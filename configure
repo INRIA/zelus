@@ -1,0 +1,319 @@
+#! /bin/sh
+
+sysname='Hybrid'
+version=0.2.0
+contact='marc.pouzet@ens.fr'
+
+for_compile=1
+
+prefix=/usr/local
+unset bindir
+unset libdir
+unset mandir
+
+with_byte='byte'
+with_opt='opt'
+with_gtk_byte='withgtk.byte'
+with_gtk_opt='withgtk.opt'
+with_sundials=1
+
+
+while : ; do
+  case "$1" in
+    "") break;;
+    --prefix)
+	prefix=$2; shift;;
+    --bindir)
+	bindir=$2; shift;;
+    --libdir)
+	libdir=$2; shift;;
+    --disable-opt)
+	with_opt=''
+	with_gtk_opt='';
+	shift;
+	continue;;
+    --disable-byte)
+	with_byte=''
+	with_gtk_byte='';
+	shift;
+	continue;;
+    --disable-gtk)
+	with_gtk_opt=''
+	with_gtk_byte='';
+	shift;
+	continue;;
+    --disable-sundials)
+	with_sundials=0;
+	shift;
+	continue;;
+    -h|--help)
+	cat <<-END_HELP_TEXT
+	'configure' configures $sysname $version to adapt to many kinds of systems.
+
+	Usage: $0 [OPTION]... [VAR=VALUE]...
+
+	To assign environment variables (e.g., CC, CFLAGS...), specify them as
+	VAR=VALUE.  See below for descriptions of some of the useful variables.
+
+	Defaults for the options are specified in brackets.
+
+	Configuration:
+	  -h, --help              display this help and exit
+
+	Installation directories:
+	  --prefix PREFIX         install architecture-independent files in PREFIX
+				  [$prefix]
+
+	By default, 'make install' will install all the files in
+	'/usr/local/bin', '/usr/local/lib' etc.  You can specify
+	an installation prefix other than '/usr/local' using '--prefix',
+	for instance '--prefix \$HOME'.
+
+	For better control, use the options below.
+
+	Fine tuning of the installation directories:
+	  --bindir DIR           user executables [PREFIX/bin]
+	  --libdir DIR           object code libraries [PREFIX/lib]
+	  --mandir DIR           man documentation [PREFIX/share/man]
+
+	Optional Features:
+	  --disable-opt           disable native library generation
+	  --disable-byte          disable byte-code library generation
+	  --disable-gtk           do not build gtk2-dependent features
+	  --disable-sundials      do not build sundials-dependent features
+
+	Some influential environment variables:
+	  OCAMLROOT     Path to ocaml installation (such that $OCAMLROOT/bin/ocamlc)
+	  MENHIRLIB	Path to Menhir libraries (menhirLib.cmi, etc.)
+	  SUNDIALSML    Path to the Ocaml/Sundials interface
+	  GLMLITE	Path to the Ocaml glMLite library
+
+	Use these variables to override the choices made by 'configure' or to help
+	it to find libraries and programs with nonstandard names/locations.
+
+	Report bugs to <$contact>.
+
+END_HELP_TEXT
+	exit 0
+	;;
+    OCAMLROOT)
+	OCAMLROOT=$2
+	OCAMLBIN="${OCAMLROOT}bin/"; shift;;
+    MENHIRLIB)
+	MENHIRLIB=$2; shift;;
+    SUNDIALSML)
+	SUNDIALSML=$2; shift;;
+    GLMLITE)
+	GLMLITE=$2; shift;;
+    MATLABROOT)
+	MATLABROOT=$2; shift;;
+    PTOLEMYROOT)
+	PTOLEMYROOT=$2; shift;;
+    *)
+	echo "illegal option \"$1\"." 1>&2; exit 2;;
+  esac
+  shift
+done
+
+targets="${with_byte} ${with_opt}"
+gtktargets="${with_gtk_byte} ${with_gtk_opt}"
+
+error=""
+
+# Check targets
+if [ "${targets}" = " " ]; then
+    error="${error}\n\tno targets specified"
+fi
+
+# Set an explicit Matlab path if necessary
+if [ -n "${MATLABROOT}" ]; then
+    matlab_bin="${MATLABROOT}bin/"
+else
+    matlab_bin=""
+fi
+
+# Set an explicit Ptolemy path if necessary
+if [ -n "${PTOLEMYROOT}" ]; then
+    ptolemy_bin="${PTOLEMYROOT}bin/"
+else
+    ptolemy_bin=""
+fi
+
+# Check for ocaml installation (and version)
+ocaml_path=`${OCAMLBIN}ocamlc -where`
+ocaml_version=`${OCAMLBIN}ocamlc -version`
+
+if [ $? -ne 0 ]; then
+    error="${error}\n\tcould not find ocamlc"
+    ocaml_path='NOT FOUND'
+    ocaml_version=''
+    ocaml_libpath=''
+else
+    case "${ocaml_version}" in
+	[0-2].*.* | 3.0* | 3.[2-9].* | 3.10.* | 3.11.*)
+	    error="${error}\n\tocaml >= 3.12.0 required" ;;
+	*) ;;
+    esac
+
+    ocaml_libpath="${ocaml_path%/}/"
+    ocaml_version=" (${ocaml_version})"
+fi
+
+# Check for opam
+if command -v opam >/dev/null 2>&1; then
+    opam_libpath="$(opam config var lib)/"
+else
+    opam_libpath=''
+fi
+
+
+# Check for gtk installation
+lablgtk2_path="${ocaml_libpath}lablgtk2"
+if [ "${gtktargets}" = " " ]; then
+    lablgtk2_path="not needed"
+else
+    if [ ! -x ${lablgtk2_path} ]; then
+	lablgtk2_path="${ocaml_libpath}site-lib/lablgtk2"
+	if [ ! -x ${lablgtk2_path} ]; then
+	    lablgtk2_path="${opam_libpath}lablgtk2"
+	    if [ ! -x ${lablgtk2_path} ]; then
+		lablgtk2_path='NOT FOUND'
+		error="${error}\n\tcould not find lablgtk2"
+	    fi
+	fi
+    fi
+fi
+
+# Check for menhir installation
+menhirlib="${MENHIRLIB:-${ocaml_libpath}menhirLib}"
+if [ ${for_compile} -eq 1 ]; then
+    if [ ! -e "${menhirlib}/menhirLib.cmi" ]; then
+	menhirlib="${ocaml_libpath}site-lib/menhirLib"
+	if [ ! -e "${menhirlib}/menhirLib.cmi" ]; then
+	    menhirlib="${opam_libpath}menhirLib"
+	    if [ ! -e "${menhirlib}/menhirLib.cmi" ]; then
+		menhirlib='NOT FOUND'
+		error="${error}\n\tcould not find MenhirLib"
+	    fi
+	fi
+    fi
+fi
+
+# Check for sundialsml installation
+sundialsml_path=${SUNDIALSML:-"${ocaml_libpath}sundials"}
+sundialsml_incl="-I ${SUNDIALSML:-"+sundials"}"
+default_solver='ode23'
+
+if [ -f "`pwd`/sundialsml/sundials_cvode.cma" ]; then
+    sundialsml_path="`pwd`/sundialsml"
+    sundialsml_incl="-I '${sundialsml_path}'"
+fi
+
+if [ ${with_sundials} -eq 0 ]; then
+    sundialsml_path=''
+    sundialsml_incl=''
+    sundialsml_status='DISABLED (defaulting to ode23)'
+else
+    if [ ! -x ${sundialsml_path} ]; then
+	sundialsml_path=''
+	sundialsml_incl=''
+	sundialsml_status='NOT FOUND (defaulting to ode23)'
+    else
+	sundialsml_status=${sundialsml_path}
+	default_solver='sundials'
+    fi
+fi
+
+# Check for glMLite installation
+glmlite_path=${GLMLITE:-"${ocaml_libpath}glMLite"}
+glmlite_incl=${GLMLITE:-"+glMLite"}
+
+if [ ! -x ${glmlite_path} ]; then
+    glmlite_path=${GLMLITE:-"${opam_libpath}glMLite"}
+    glmlite_incl=${glmlite_path}
+    if [ ! -x ${glmlite_path} ]; then
+	glmlite_status='NOT FOUND (3D demos disabled)'
+	glmlite_enabled=0
+    fi
+fi
+    
+if [ "${ocaml_path}" != "NOT_FOUND" ]; then
+    
+    # TODO: change after patch integrated into glMLite
+    # "exit (if major >= 0 && minor >= 3 && patch > 50 then 100 else 200);;" \
+    echo "let (major, minor, patch) = GL.glmlite_version in" \
+	"exit (if major >= 0 && minor >= 3 && patch >= 50 then 100 else (if major + minor + patch = 0 then 110 else 200));;" \
+	| ${OCAMLBIN}ocaml -I ${glmlite_incl} GL.cma  >/dev/null 2>&1
+    GLMLV=$?
+    
+    if [ $GLMLV -eq 100 ]; then
+	glmlite_status="${glmlite_path} (>= 0.3.51)"
+	glmlite_enabled=1
+    elif [ $GLMLV -eq 200 ]; then
+	glmlite_status="INCORRECT VERSION (must be >= 0.3.51, 3D demos disabled)"
+	glmlite_enabled=0
+    elif [ $GLMLV -eq 110 ]; then
+	glmlite_status="${glmlite_path} (SVN HEAD version)"
+	glmlite_enabled=1
+    else
+	glmlite_status="NOT WORKING (3D demos disabled)"
+	glmlite_enabled=0
+    fi
+else
+    glmlite_status="${glmlite_path} (assuming version >= 0.3.51)"
+    glmlite_enabled=1
+fi
+
+echo
+echo "Configuration"
+echo "-------------"
+
+echo
+echo "  Ocaml\t\t\t${ocaml_path}${ocaml_version}"
+if [ ${for_compile} -eq 1 ]; then
+echo "  MenhirLib\t\t${menhirlib}"
+fi
+echo "  Lablgtk2\t\t${lablgtk2_path}"
+echo "  SundialsML\t\t${sundialsml_status}"
+echo "  glMLite\t\t${glmlite_status}"
+echo
+echo "  targets:\t\t${targets} ${gtktargets}"
+echo
+echo "Installation paths"
+echo "  prefix:\t\t${prefix}"
+echo "  bindir:\t\t${bindir:-$prefix/bin}"
+echo "  libdir:\t\t${libdir:-$prefix/lib}"
+echo "  mandir:\t\t${mandir:-$prefix/share/man/}"
+echo
+
+if [ -n "${error}" ]; then
+    echo "Some errors occurred during configuration:${error}"
+    echo
+    exit 1
+fi
+
+(echo "# # # THIS FILE IS GENERATED AUTOMATICALLY BY CONFIGURE # # #"; \
+ sed -e "s#@prefix@#${prefix}#;
+	 s#@bindir@#${bindir:-$prefix/bin}#;
+	 s#@libdir@#${libdir:-$prefix/lib}#;
+	 s#@mandir@#${mandir:-$prefix/share/man/}#;
+	 s#@targets@#${targets}#;
+	 s#@gtktargets@#${gtktargets}#;
+	 s#@DEFAULT_SOLVER@#${default_solver}#;
+	 s#@SUNDIALSML_INCL@#${sundialsml_incl}#;
+	 s#@LABLGTK2_PATH@#${lablgtk2_path}#;
+	 s#@MENHIRLIB@#${menhirlib}#;
+	 s#@GLMLITE_INCL@#${glmlite_incl}#;
+	 s#@GLMLITE_ENABLED@#${glmlite_enabled}#;
+	 s#@MATLAB@#${matlab_bin}matlab#;
+	 s#@PTOLEMY@#${ptolemy_bin}ptolemy#;
+	 s#@OCAMLBIN@#${OCAMLBIN}#;
+	 s#@OCAMLROOT@#${OCAMLROOT}#;" config.in) > config
+
+sed -e "s#@prefix@#${prefix}#;
+	s#@bindir@#${bindir:-$prefix/bin}#;
+	s#@libdir@#${libdir:-$prefix/lib}#;
+	s#@OCAMLBIN@#${OCAMLBIN}#;
+	s#@TARGET@#byte#;" bin/zlc.in > bin/zlc
+chmod a+x bin/zlc
+

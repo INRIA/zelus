@@ -1,0 +1,3 @@
+
+val unsafe show  : (float * float * float) -> unit
+

@@ -1,0 +1,851 @@
+%{
+
+open Misc
+open Global
+open Location
+open Parsetree
+
+let make desc = { desc = desc; loc = get_current_location () }
+
+let make_unop op e = make (Eapp(Eop(Name(op)),[e]))
+
+let make_unary_minus op e = 
+  match op, e.desc with
+    | "-", Econst(Eint v) -> { e with desc = Econst(Eint(-v)) }
+    | ("-" | "_."), Econst(Efloat v) -> { e with desc = Econst(Efloat(-.v)) }
+    | _ -> make_unop ("~" ^ op) e
+
+let unary_minus_int x = -x
+and unary_minus_float x = -.x
+
+let make_binop op e1 e2 = make (Eapp(Eop(Name(op)), [e1;e2]))
+
+let params p = match p.desc with | Etuplepat(l) -> l | _ -> [p]
+let arg e = match e.desc with | Etuple(l) -> l | _ -> [e]
+
+let typearg ty = 
+  match ty.desc with 
+    | Etypetuple(l) -> l | _ -> [ty] 
+
+let make_state s l =
+  match l with
+    | [] -> make (Estate0(s))
+    | [{ desc = Etuple(l) }] -> make (Estate1(s, l))
+    | l -> make (Estate1(s, l))
+
+let make_statepat s l =
+  match l with
+    | [] -> make (Estate0pat(s))
+    | [{ desc = Etuplepat(l) }] -> make (Estate1pat(s,l))
+    | l -> make (Estate1pat(s, l))
+
+let make_scond_true () = make(Econdexp(make (Econst(Ebool(true)))))
+%}
+
+%token EQUAL          /* "=" */
+%token EQUALEQUAL     /* "==" */
+%token AMPERSAND      /* "&" */
+%token AMPERAMPER     /* "&&" */
+%token BARBAR         /* "||" */
+%token QUOTE          /* "'" */
+%token LPAREN         /* "(" */
+%token RPAREN         /* ")" */
+%token STAR           /* "*" */
+%token COMMA          /* "," */
+%token SEMI           /* ";" */
+%token SEMISEMI       /* ";;" */
+%token MINUSGREATER   /* "->" */
+%token EQUALGREATER   /* "=>" */
+%token TILDGREATER    /* "~>" */
+%token DOT            /* "." */
+%token COLON          /* ":" */
+%token LBRACE         /* "{" */
+%token BAR            /* "|" */
+%token RBRACE         /* "}" */
+%token UNDERSCORE     /* "_" */
+%token TEST           /* "?" */
+%token <string> CONSTRUCTOR
+%token <string> IDENT
+%token <int> INT
+%token <float> FLOAT
+%token <bool> BOOL
+%token <char> CHAR
+%token <string> STRING
+%token AS             /* "as" */
+%token AUTOMATON      /* "automaton" */
+%token CONTINUE       /* "continue" */
+%token DO             /* "do" */
+%token DONE           /* "done" */
+%token UNTIL          /* "until" */
+%token UNLESS         /* "unless" */
+%token MATCH          /* "match" */
+%token WITH           /* "with" */
+%token EMIT           /* "emit" */
+%token PRESENT        /* "present" */
+%token PERIOD         /* "period" */
+%token END            /* "end" */
+%token IN             /* "in" */
+%token LET            /* "let" */
+%token REC            /* "rec" */
+%token DER            /* "der" */
+%token INIT           /* "init" */
+%token DEFAULT        /* "default" */
+%token LOCAL          /* "local" */
+%token WHERE          /* "where" */
+%token AND            /* "and" */
+%token TYPE           /* "type" */
+%token TYPE           /* "type" */
+%token FUN            /* "fun" */
+%token NODE           /* "node" */
+%token HYBRID         /* "hybrid" */
+%token UNSAFE         /* "unsafe" */
+%token SAFE           /* "safe" */
+%token FBY            /* "fby" */
+%token PRE            /* "pre" */
+%token UP             /* "up" */
+%token DISC           /* "disc" */
+%token EVERY          /* "every" */
+%token OR             /* "or" */
+%token ON             /* "on" */
+%token RESET          /* "reset" */
+%token LAST           /* "last" */
+%token IF             /* "if" */
+%token THEN           /* "then" */      
+%token ELSE           /* "else" */
+%token OPEN           /* "open" */
+%token VAL            /* "val" */
+%token LOCAL          /* "local" */
+%token <string> PREFIX
+%token <string> INFIX0
+%token <string> INFIX1
+%token <string> INFIX2
+%token <string> SUBTRACTIVE
+%token <string> INFIX3
+%token <string> INFIX4
+%token EOF
+
+%nonassoc prec_seq
+%nonassoc SEMI
+%nonassoc prec_ident
+%nonassoc prec_where
+%nonassoc prec_let
+%nonassoc prec_simple_expr
+%right prec_list
+%left IF THEN PRESENT MATCH WITH
+%nonassoc ELSE
+%nonassoc INIT
+%left  AS
+%left BAR
+%left COMMA
+%left LPAREN RPAREN
+%right MINUSGREATER
+%nonassoc EVERY
+%left OR BARBAR
+%left AMPERSAND AMPERAMPER
+%left INFIX0 EQUAL
+%right INFIX1
+%left INFIX2 SUBTRACTIVE
+%left STAR INFIX3
+%left ON
+%left INFIX4
+%right prec_uminus
+%left FBY
+%right PRE UP DISC TEST
+%right prec_apply
+%right LAST
+%right PREFIX
+%right NOT
+%left DOT
+
+%start implementation_file
+%type <Parsetree.implementation list> implementation_file
+
+%start interface_file
+%type <Parsetree.interface list> interface_file
+
+%%
+
+implementation_file:
+  | EOF
+      { [] }
+  | implementation_list EOF
+      { List.rev $1 }
+;
+
+implementation_list:
+  | implementation_list implementation 
+      { $2 :: $1 }
+  | implementation opt_semi
+      { [$1] }
+;
+
+opt_semi:
+  | /* empty */ {}
+  | SEMISEMI {}
+;
+
+implementation:
+  | OPEN CONSTRUCTOR
+      { make (Eopen $2) }
+  | TYPE type_params IDENT type_declaration
+      { make (Etypedecl($3, $2, $4)) }
+  | LET ide EQUAL seq_expression
+      { make (Econstdecl($2, $4)) }
+  | LET ide fun_params EQUAL seq_expression WHERE equation_list
+      { make (Efundecl($2, A, $3, make(Elet(false, $7, $5)))) }
+  | LET ide fun_params EQUAL seq_expression WHERE REC equation_list
+      { make (Efundecl($2, A, $3, make(Elet(true, $8, $5)))) }
+  | LET ide fun_params EQUAL seq_expression 
+      { make (Efundecl($2, A, $3, $5)) }
+  | LET kind ide fun_params EQUAL seq_expression WHERE equation_list
+      { make (Efundecl($3, $2, $4, make(Elet(false, $8, $6)))) }
+  | LET kind ide fun_params EQUAL seq_expression WHERE REC equation_list
+      { make (Efundecl($3, $2, $4, make(Elet(true, $9, $6)))) }
+  | LET kind ide fun_params EQUAL seq_expression 
+      { make (Efundecl($3, $2, $4, $6)) }
+;
+
+fun_params:
+  | pattern
+      { params $1 }
+;
+
+/* Interface */
+interface_file:
+  | EOF
+      { [] }
+  | interface_list EOF
+      { List.rev $1 }
+;
+
+interface_list:
+  | interface_list interface opt_semi
+      { $2 :: $1 }
+  | interface opt_semi
+      { [$1] }
+;
+
+interface:
+  | OPEN CONSTRUCTOR 
+      { make (Einter_open($2)) }
+  | TYPE type_params IDENT type_declaration
+      { make (Einter_typedecl($3, $2, $4)) }
+  | VAL ide COLON type_expression
+      { make (Einter_constdecl($2, $4)) }
+  | VAL UNSAFE ide COLON type_expression arrow type_expression
+      { make (Einter_fundecl($3, { sig_inputs = typearg $5; sig_output = $7;
+                                   sig_kind = $6; sig_safe = false })) }
+  | VAL ide COLON type_expression arrow type_expression
+      { make (Einter_fundecl($2, { sig_inputs = typearg $4; sig_output = $6;
+                                   sig_kind = $5; sig_safe = true })) }
+;
+
+type_declaration:
+  | /* empty */
+      { Eabstract_type }
+  | EQUAL enum_type_desc   
+      { Evariant_type ($2) }
+  | EQUAL struct_type_desc 
+      { Erecord_type ($2) }
+  | EQUAL type_expression
+      { Eabbrev($2) }
+;
+
+type_params :
+  | LPAREN type_var_list RPAREN
+      { $2 }
+  | type_var
+      { [$1] }
+  |
+      { [] }
+;
+
+type_var_list :
+  | type_var COMMA type_var_list
+      { $1 :: $3 }
+  | type_var
+      { [$1] }
+;
+
+enum_type_desc:
+  | CONSTRUCTOR
+      { [$1] }
+  | CONSTRUCTOR BAR enum_type_desc  
+      { $1 :: $3 }
+;
+
+struct_type_desc:
+  | LBRACE label_type_list RBRACE 
+      { $2 }
+;
+
+label_type_list:
+  | label_type 
+      { [$1] }
+  | label_type SEMI
+      { [$1] }
+  | label_type SEMI label_type_list 
+      { $1 :: $3 }
+;
+
+label_type:
+  IDENT COLON type_expression 
+  { ($1, $3) }
+;
+
+equation_list:
+  | equation_list AND equation
+      { $3 :: $1 }
+  | equation
+      { [$1] }
+;
+
+equation_empty_list:
+  | /* empty */
+      { [] }
+  | equation_list
+      { $1 }
+;
+
+optional_init:
+  | /* empty */
+      { None }
+  | INIT expression
+      { Some($2) }
+;
+
+equation:
+  | pattern EQUAL expression 
+      { make (Eeq($1, $3)) }
+  | PERIOD pattern EQUAL period_expression
+      { make (Eeq($2, make (Eperiod($4)))) }
+  | DER ide EQUAL expression optional_init
+      { make (Eder($2, $4, $5, [])) }
+  | DER ide EQUAL expression optional_init RESET opt_bar present_handlers_expression 
+      { make (Eder($2, $4, $5, List.map (fun (zc, e) -> (e, zc)) (List.rev $8))) }
+  | pattern EQUAL expression INIT expression
+      { make (Einit($1, $3)) }
+  | INIT pattern EQUAL expression
+      { make (Einit($2, $4)) }
+  | AUTOMATON opt_bar automaton_handlers
+      { make (Eautomaton($3)) }
+  | MATCH expression WITH opt_bar match_handlers
+      { make (Ematch($2, $5)) }
+  | PRESENT opt_bar present_handlers
+      { make (Epresent($3, None)) }
+  | PRESENT opt_bar present_handlers ELSE block
+      { make (Epresent($3, Some($5))) }
+  | RESET equation_list EVERY simple_expression
+      { make (Ereset($2, $4)) }
+  | EMIT ide
+      { make (Eemit($2, None)) }
+  | EMIT ide EQUAL expression
+      { make (Eemit($2, Some($4))) }
+;
+
+/* states of an automaton in an equation*/
+automaton_handlers :
+  | automaton_handler
+      { [$1] }
+  | automaton_handler BAR automaton_handlers
+      { $1 :: $3 }
+;
+
+automaton_handler :
+  | state_pat MINUSGREATER 
+      local_list let_list DO equation_empty_list DONE
+      { { s_state = $1; s_block = make { b_vars = $3; b_locals = $4; b_body = $6 };
+          s_until = []; s_unless = [] } }
+  | state_pat MINUSGREATER local_list let_list
+      DO equation_empty_list UNTIL opt_bar escape_list DONE
+      { { s_state = $1;
+          s_block = make { b_vars = $3; b_locals = $4; b_body = $6 };
+          s_until = $9; s_unless = [] } }
+  | state_pat MINUSGREATER local_list let_list
+      DO equation_empty_list THEN state DONE
+      { { s_state = $1;
+          s_block = make { b_vars = $3; b_locals = $4; b_body = $6 };
+          s_until = [{ e_cond = make_scond_true (); e_reset = true; e_eq = []; 
+                      e_next_state = $8 }];
+          s_unless = [] } }
+  | state_pat MINUSGREATER local_list let_list
+      DO equation_empty_list CONTINUE state DONE
+      { { s_state = $1;
+          s_block = make { b_vars = $3; b_locals = $4; b_body = $6 };
+          s_until = [{ e_cond = make_scond_true (); e_reset = false; 
+                      e_eq = []; e_next_state = $8 }];
+          s_unless = [] } }
+  | state_pat MINUSGREATER local_list let_list
+      DO equation_empty_list THEN DO equation_list IN state DONE
+      { { s_state = $1;
+          s_block = make { b_vars = $3; b_locals = $4; b_body = $6 };
+          s_until = [{ e_cond = make_scond_true (); e_reset = true; e_eq = $9; 
+                      e_next_state = $11}];
+          s_unless = [] } }
+  | state_pat MINUSGREATER local_list let_list
+      DO equation_empty_list CONTINUE DO equation_list IN state DONE
+      { { s_state = $1;
+          s_block = make { b_vars = $3; b_locals = $4; b_body = $6 };
+          s_until = [{ e_cond = make_scond_true (); e_reset = false; e_eq = $9; 
+                      e_next_state = $11}];
+          s_unless = [] } }
+  | state_pat MINUSGREATER local_list let_list
+      DO equation_empty_list UNLESS opt_bar escape_list DONE
+      { { s_state = $1;
+          s_block = make { b_vars = $3; b_locals = $4; b_body = $6 };
+          s_until = [];
+          s_unless = $9 } }
+  | state_pat MINUSGREATER local_list let_list DO equation_empty_list 
+      UNTIL opt_bar escape_list UNLESS opt_bar escape_list DONE
+      { { s_state = $1;
+          s_block = make { b_vars = $3; b_locals = $4; b_body = $6 };
+          s_until = $9;
+          s_unless = $12 } }
+;
+
+escape:
+  | scondpat THEN state
+      { { e_cond = $1; e_reset = true; e_eq = []; e_next_state = $3 } }
+  | scondpat CONTINUE state
+      { { e_cond = $1; e_reset = false; e_eq = []; e_next_state = $3 } }
+  | scondpat THEN DO equation_list IN state
+      { { e_cond = $1; e_reset = true; e_eq = $4; e_next_state = $6 } }
+  | scondpat CONTINUE DO equation_list IN state
+      { { e_cond = $1; e_reset = false; e_eq = $4; e_next_state = $6 } }
+;
+
+escape_list:
+  | escape
+      { [$1] }
+  | escape BAR escape_list
+      { $1 :: $3 }
+;
+
+state :
+  | CONSTRUCTOR
+      { make_state $1 [] }
+  | CONSTRUCTOR simple_expression
+      { make_state $1 [$2] }
+;
+
+state_pat :
+  | CONSTRUCTOR
+      { make_statepat $1 [] }
+  | CONSTRUCTOR simple_pattern
+      { make_statepat $1 [$2] }
+;
+
+/* Pattern on a signal */
+scondpat :
+  | simple_expression pattern
+      { make (Econdpat($1, $2)) }
+  | simple_expression
+      { make (Econdexp($1)) }
+  | scondpat AMPERSAND scondpat
+      { make (Econdand($1, $3)) }
+;
+
+/* Block */
+block:
+  | local_list let_list DO equation_empty_list DONE
+      { make { b_vars = $1; b_locals = $2; b_body = $4 } }
+;
+
+let_list:
+  | /* empty */
+      { [] }
+  | one_let IN let_list
+      { $1 :: $3 }
+;
+
+one_let:
+  | LET equation_list
+      { make (false, List.rev $2) }
+  | LET REC equation_list
+      { make (true, List.rev $3) }
+;
+
+local_list:
+  | /* empty */
+      { [] }
+  | one_local IN local_list
+      { $1 @ $3 }
+;
+
+one_local:
+  | LOCAL ide_list
+      { $2 }
+;
+
+opt_bar:
+  | BAR             { () }
+  | /*epsilon*/     { () }
+;
+
+
+/* Testing the presence of signals in an equation */
+present_handlers:
+  | present_handler
+      { [$1 ] }
+  | present_handlers BAR present_handler
+      { $1 :: $3 }
+;
+
+present_handler:
+  | scondpat MINUSGREATER block
+      { { p_cond = $1; p_body = $3 } }
+;
+
+/* Testing the presence of signals in an expression */
+present_handlers_expression:
+  | present_handler_expression
+      { [$1 ] }
+  | present_handlers_expression BAR present_handler_expression
+      { $3 :: $1 }
+;
+
+present_handler_expression:
+  | scondpat MINUSGREATER expression
+      { { p_cond = $1; p_body = $3 } }
+;
+
+/* Pattern matching in an equation */
+match_handlers:
+  | match_handler
+      { [$1 ] }
+  | match_handler BAR match_handlers
+      { $1 :: $3 }
+;
+
+match_handler:
+  | pattern MINUSGREATER block
+      { { m_pat = $1; m_body = $3 } }
+;
+
+/* Pattern matching in an expression */
+match_handlers_expression:
+  | match_handler_expression
+      { [$1 ] }
+  | match_handlers_expression BAR match_handler_expression
+      { $3 :: $1 }
+;
+
+match_handler_expression:
+  | pattern MINUSGREATER expression
+      { { m_pat = $1; m_body = $3 } }
+;
+
+/* Patterns */
+pattern:
+  | simple_pattern
+      { $1 }
+  | pattern AS IDENT
+      { make (Ealiaspat($1, $3)) }
+  | pattern BAR pattern
+      { make (Eorpat($1, $3)) }
+  | pattern_comma_list %prec prec_list
+      { make (Etuplepat(List.rev $1)) }
+;
+
+simple_pattern:
+  | atomic_constant
+      { make (Econstpat $1) }
+  | SUBTRACTIVE INT
+      { make (Econstpat(Eint(unary_minus_int $2))) }
+  | SUBTRACTIVE FLOAT
+      { make (Econstpat(Efloat(unary_minus_float $2))) }
+  | constructor
+      { make (Econstr0pat($1)) }
+  | ide             
+      { make (Evarpat $1) }
+  | LPAREN pattern RPAREN 
+      { $2 }
+  | LPAREN pattern_comma_list RPAREN
+      { make (Etuplepat (List.rev $2)) }
+  | LPAREN RPAREN
+      { make (Econstpat(Evoid)) }
+  | UNDERSCORE
+      { make Ewildpat }
+  | LPAREN pattern COLON type_expression RPAREN
+      { make (Etypeconstraintpat($2, $4)) }
+  | LBRACE pattern_label_list RBRACE
+      { make (Erecordpat($2)) }
+;
+
+pattern_comma_list:
+  | pattern COMMA pattern
+      { [$3; $1] }
+  | pattern_comma_list COMMA pattern
+      { $3 :: $1 }
+;
+
+pattern_label_list :
+  | pattern_label SEMI pattern_label_list
+      { $1 :: $3 }
+  | pattern_label
+      { [$1] }
+  | UNDERSCORE
+      { [] }
+  | /*epsilon*/
+      { [] }
+;
+
+pattern_label :
+  | ext_ident EQUAL pattern
+      { ($1, $3) }
+;
+
+/* Expressions */
+seq_expression :
+  | expression SEMI seq_expression
+      { make (Eseq($1, $3)) }
+  | expression %prec prec_seq
+      { $1 }
+;
+simple_expression:
+  | ext_ident
+      { make (Evar $1) }
+  | atomic_constant 
+      { make (Econst $1) }
+  | constructor
+      { make (Econstr0($1)) }
+  | LBRACE label_expression_list RBRACE
+      { make (Erecord($2)) }
+  | LPAREN RPAREN
+      { make (Econst Evoid) }
+  | LPAREN expression_comma_list RPAREN 
+      { make (Etuple (List.rev $2)) }
+  | LPAREN expression RPAREN 
+      { $2 }
+  | LPAREN simple_expression COLON type_expression RPAREN
+      { make (Etypeconstraint($2, $4)) }
+;
+
+expression_comma_list :
+  | expression_comma_list COMMA expression
+      { $3 :: $1 }
+  | expression COMMA expression
+      { [$3; $1] }
+;
+ 
+expression:
+  | simple_expression
+      { $1 }
+  | expression_comma_list %prec prec_list
+      { make (Etuple(List.rev $1)) }
+  | simple_expression FBY expression
+      { make (Eapp(Efby, [$1; $3])) }
+  | PRE expression
+      { make (Eapp(Eunarypre, [$2])) }
+  | INIT
+      { make (Eapp(Einitial, [])) }
+  | UP expression
+      { make (Eapp(Eup, [$2])) }
+  | TEST expression
+      { make (Eapp(Etest, [$2])) }
+  | DISC expression
+      { make (Eapp(Edisc, [$2])) }
+  | ext_ident simple_expression
+      { make (Eapp(Eop($1), arg $2)) }
+  | SUBTRACTIVE expression  %prec prec_uminus
+      { make_unary_minus $1 $2 }
+  | expression INFIX4 expression
+      { make_binop $2 $1 $3 }
+  | expression INFIX3 expression
+      { make_binop $2 $1 $3 }
+  | expression INFIX2 expression
+      { make_binop $2 $1 $3 }
+  | expression INFIX1 expression
+      { make_binop $2 $1 $3 }
+  | expression INFIX0 expression
+      { make_binop $2 $1 $3 }
+  | expression EQUAL expression
+      { make_binop "=" $1 $3 }
+  | expression OR expression
+      { make_binop "or" $1 $3 }
+  | expression ON expression
+      { make (Eapp(Eon, [$1;$3])) }
+  | expression STAR expression
+      { make_binop "*" $1 $3 }
+  | expression AMPERSAND expression
+      { make_binop "&" $1 $3 }
+  | expression SUBTRACTIVE expression
+      { make_binop $2 $1 $3 }
+  | expression AMPERAMPER expression
+      { make_binop "&&" $1 $3 }
+  | expression BARBAR expression
+      { make_binop "||" $1 $3 }
+  | PREFIX expression
+      { make_unop $1 $2 }
+  | IF seq_expression THEN seq_expression ELSE expression
+      { make (Eapp(Eifthenelse, [$2; $4; $6])) }
+  | expression MINUSGREATER expression
+      { make (Eapp(Eminusgreater, [$1; $3])) }
+  | LAST ide
+      { make (Elast($2)) }
+  | expression DOT ext_ident
+      { make (Erecord_access($1, $3)) }
+  | LET equation_list IN seq_expression %prec prec_let
+      { make (Elet(false, List.rev $2, $4)) }
+  | LET REC equation_list IN seq_expression %prec prec_let
+      { make (Elet(true, List.rev $3, $5)) }
+  | PERIOD period_expression
+      { make (Eperiod($2)) }
+  | MATCH expression WITH opt_bar match_handlers_expression
+      { make (Exmatch($2, List.rev $5)) }
+  | PRESENT opt_bar present_handlers_expression
+      { make (Expresent(List.rev $3, None)) }
+  | PRESENT opt_bar present_handlers_expression ELSE expression
+      { make (Expresent(List.rev $3, Some($5))) }
+;
+
+/* Periods */
+period_expression:
+  | phase_list LPAREN period_list RPAREN
+      { { p_phase = $1; p_period = $3 } }
+;
+
+phase_list:
+  | /* empty */
+      { [] }
+  | FLOAT phase_list
+      { $1 :: $2 }
+;
+
+period_list:
+  | FLOAT
+      { [$1] }
+  | FLOAT period_list
+      { $1 :: $2 }
+;
+
+constructor:
+  | CONSTRUCTOR 
+      { Name($1) } %prec prec_ident
+  | CONSTRUCTOR DOT CONSTRUCTOR 
+      { Modname({qual = $1; id = $3}) }
+;
+
+qual_ident:
+  | CONSTRUCTOR DOT ide 
+      { {qual = $1; id = $3} }
+;
+
+/* Constants */
+
+atomic_constant:
+  | INT 
+      { Eint($1) }
+  | FLOAT 
+      { Efloat($1) }
+  | STRING
+      { Estring $1 }
+  | CHAR
+      { Echar $1 }
+  | BOOL
+      { Ebool $1 }
+;
+
+label_expression_list:
+  | label_expression 
+      { [$1] }
+  | label_expression SEMI
+      { [$1] }
+  | label_expression SEMI label_expression_list 
+      { $1 :: $3 }
+
+label_expression:
+  | ext_ident EQUAL expression 
+      { ($1, $3) }
+;
+
+/* identifiers */
+ide:
+  | IDENT
+      { $1 }
+  | LPAREN infx RPAREN
+      { $2 }
+;
+
+ide_list :
+  | ide
+      { [$1] }
+  | ide COMMA ide_list
+      { $1 :: $3 }
+;
+
+ext_ident :
+  | qual_ident
+      { Modname($1) }
+  | ide
+      { Name($1) }
+;
+
+infx:
+  | INFIX0          { $1 } 
+  | INFIX1          { $1 }    | INFIX2        { $1 }
+  | INFIX3          { $1 }    | INFIX4        { $1 }
+  | STAR            { "*" }   
+  | EQUAL           { "=" }
+  | EQUALEQUAL      { "==" }  
+  | SUBTRACTIVE     { $1 }    | PREFIX        { $1 }
+  | AMPERSAND       { "&" }   | AMPERAMPER    { "&&" }
+  | OR              { "or" }  | BARBAR        { "||" }
+  | ON              { "on" }
+;
+
+arrow:
+  | MINUSGREATER
+      { A }
+  | EQUALGREATER
+      { D }
+  | TILDGREATER
+      { C }
+;
+
+type_expression:
+  | simple_type
+      { $1 }
+  | type_star_list
+      { make(Etypetuple(List.rev $1)) }
+;
+
+simple_type:
+  | type_var
+      { make (Etypevar $1) }
+  | ext_ident 
+      { make (Etypeconstr($1, [])) }
+  | simple_type ext_ident
+      { make (Etypeconstr($2, [$1])) }
+  | LPAREN type_expression COMMA type_comma_list RPAREN ext_ident 
+      { make (Etypeconstr($6, $2 :: $4)) }
+  | LPAREN type_expression RPAREN
+      { $2 }
+
+type_star_list:
+  | simple_type STAR simple_type
+      { [$3; $1] }
+  | type_star_list STAR simple_type
+      { $3 :: $1 }
+;
+
+type_var :
+  | QUOTE IDENT
+      { $2 }
+;
+
+type_comma_list :
+  | type_expression COMMA type_comma_list
+      { $1 :: $3 }
+  | type_expression
+      { [$1] }
+;
+
+kind:
+  | NODE 
+      { D }
+  | HYBRID 
+      { C }
+;
+
+

@@ -1,0 +1,15 @@
+% ../compiler/zlc.byte -I ../lib -I ./samples  	-i samples/tutorial0041.ls (2)
+\runverbatimfalse
+\setrunverbatimcmd{zlc.byte -i \runverbatimfile}
+\begin{RunVerbatimMsg}
+Failed.
+\end{RunVerbatimMsg}
+\begin{RunVerbatimErr}
+File "tutorial.ls", line 2-6, characters 2-108:
+>..present
+>  | x(v) & y(w) -> do o = v + w done
+>  | x(v1) -> do o = v1 done
+>  | y(v2) -> do o = v2 done
+>  end
+Type error: o should be a signal.
+\end{RunVerbatimErr}

@@ -1,0 +1,12 @@
+% ../compiler/zlc.byte -I ../lib -I ./samples  	-i samples/tutorial0060.ls (2)
+\runverbatimfalse
+\setrunverbatimcmd{zlc.byte -i \runverbatimfile}
+\begin{RunVerbatimMsg}
+val two_states : int * int * int -D-> int
+\end{RunVerbatimMsg}
+\begin{RunVerbatimErr}
+File "tutorial.ls", line 6, characters 17-27:
+>          do o = last o + 1
+>                 ^^^^^^^^^^
+Initialization error: this expression may not be well initialized.
+\end{RunVerbatimErr}

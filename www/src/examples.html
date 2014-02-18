@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+!INCLUDE: src/inc-header.html
+    <title>Zélus: examples</title>
+    <meta name="description" content="Example programs written in Zélus.">
+    <meta name="author" content="Timothy Bourke and Marc Pouzet">
+  </head>
+
+  <body data-spy="scroll" data-target=".sidebar-nav">
+
+!INCLUDE: src/inc-titlebar.html
+<script>
+window.onload = function() {
+  document.getElementById('title-examples').className = 'active';
+};
+</script>
+
+    <div class="container-fluid">
+      <div class="row-fluid">
+        <div class="span3 hidden-print">
+          <div class="well sidebar-nav" data-spy="affix">
+            <ul class="nav nav-list">
+!INCLUDE: src/inc-links.html
+
+              <li class="sidebar-nav-header">Example code</li>
+!INCLUDE: generated/gen-examples-nav-local.html
+            </ul>
+          </div><!--/.well -->
+        </div><!--/span-->
+        <div class="span9 maintext">
+<h1>Examples</h1>
+!INCLUDE: generated/gen-examples-body.html
+        </div><!--/span-->
+      </div><!--/row-->
+    </div><!--/.fluid-container-->
+
+!INCLUDE: src/inc-javascript.html
+  </body>
+</html>

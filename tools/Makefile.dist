@@ -1,0 +1,26 @@
+include ./config
+
+.PHONY: help install uninstall examples
+
+help:
+	@echo "Type 'make install' to install Zélus into:"
+	@echo "    ${bindir}"
+	@echo "    ${libdir}"
+	@echo
+	@echo "Type 'make examples' to build the examples."
+
+install:
+	mkdir -p ${bindir}
+	cp bin/zlc.byte ${bindir}/
+	cp bin/zlc ${bindir}/
+	mkdir -p ${libdir}
+	cp lib/* ${libdir}/
+
+uninstall:
+	rm -f ${bindir}/zlc.byte
+	rm -f ${bindir}/zlc
+	rm -rf ${libdir}
+
+examples:
+	@for i in `ls examples`; do ${MAKE} -C examples/$$i byte; done;
+

@@ -1,0 +1,14 @@
+% ../compiler/zlc.byte -I ../lib -I ./samples  	-i samples/tutorial0028.ls (2)
+\runverbatimfalse
+\setrunverbatimcmd{zlc.byte -i \runverbatimfile}
+\begin{RunVerbatimMsg}
+type circle   = {  radius: float;  center: float * float }
+val center : circle -A-> float * float
+val radius : circle -A-> float
+\end{RunVerbatimMsg}
+\begin{RunVerbatimErr}
+File "tutorial.ls", line 3, characters 15-23:
+>let center c = c.center
+>               ^^^^^^^^
+Initialization error: this expression may not be well initialized.
+\end{RunVerbatimErr}

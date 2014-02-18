@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+!INCLUDE: src/inc-header.html
+    <title>Zélus: publications</title>
+    <meta name="description" content="Publications about Zélus.">
+    <meta name="author" content="Timothy Bourke and Marc Pouzet">
+  </head>
+
+  <body data-spy="scroll" data-target=".sidebar-nav">
+
+!INCLUDE: src/inc-titlebar.html
+<script>
+window.onload = function() {
+  document.getElementById('title-papers').className = 'active';
+};
+</script>
+
+    <div class="container-fluid">
+      <div class="row-fluid">
+        <div class="span3 hidden-print">
+          <div class="well sidebar-nav" data-spy="affix">
+            <ul class="nav nav-list">
+!INCLUDE: src/inc-links.html
+              <li class="sidebar-nav-header">Papers</li>
+!INCLUDE: generated/gen-bib-nav-local.html
+            </ul>
+          </div><!--/.well -->
+        </div><!--/span-->
+        <div class="span9 maintext">
+
+<h1>Publications</h1>
+
+<p>
+  The <a href="#CDC2010">CDC 2010</a> and <a href="#JCSS2012">JCSS 2012</a> 
+  papers focus on the semantics of hybrid modelers.
+  The <a href="#LCTES2011">LCTES 2011</a> and <a href="#EMSOFT2011">EMSOFT 
+    2011</a> papers describe the type system and compilation rules; the 
+  former addresses a basic dataflow language while the latter shows how to 
+  introduce hybrid automata.
+  The <a href="#HSCC2013">HSCC 2013</a> paper describes practical aspects of 
+  the language and its compiler.
+  The <a href="#HSCC2014">HSCC 2014</a> paper outlines some challenges in 
+  the treatment of causality in hybrid modelers and presents a Lustre-like
+  causality analysis for Zélus.
+</p>
+
+<hr/>
+
+<div class="bib">
+!INCLUDE: generated/papers.html
+</div>
+
+        </div><!--/span-->
+      </div><!--/row-->
+    </div><!--/.fluid-container-->
+
+!INCLUDE: src/inc-javascript.html
+  </body>
+</html>

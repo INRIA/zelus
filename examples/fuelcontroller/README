@@ -1,0 +1,68 @@
+Reimplementation of the Mathworks Fault Tolerant Fuel Controller example in
+Lucid Synchrone (v3).
+
+Timothy Bourke, INRIA 2010.
+
+Library Routines
+----------------
+
+* mlmisc.ml
+  Miscellaneous library routines in Ocaml.
+
+* lookup.ml
+  Implementation of the Simulink lookup block.
+
+  Replicates most features for one and two dimensional blocks, including
+  optimisations for evenly-spaced lookups, various lookup search algorithms
+  (with and without memory), different interpolation and extrapolation
+  options. Supports linear interpolation, but not cubic-spline
+  interpolation. Support for mixing different datatypes using a mix of
+  functors and polymorphism.
+
+* lucylookup.ml
+  Wrapper around lookup.ml so that lucyc can produce an lci file (i.e. it
+  does not contain modules, signatures, or functors.
+
+* basics.ls
+  Miscellaneous Lucid Synchrone nodes, including IIR filters.
+
+* runge_kutta.ls
+  Basic implementation of a fixed-step fourth-order Runge-Kutta solver.
+  Continuous systems are expressed using 'Arrows-like' combinators, which
+  like Simulink, provide outputs and state derivatives at each step. Various
+  combinators and 'blocks' are provided.
+
+  This library should be considered a first-draft prototype. It could be
+  improved and many issues are not yet resolved.
+  
+  
+Case-study specific
+---------------------
+* fuelc_data.ml
+  Contains an Ocaml version of the Matlab file:
+    toolbox/simulink/simdemos/automotive/sldemo_fuelsys_data.m
+  With data for the simulation. Especially the four lookup tables.
+
+* fuelc_common.ls
+  Provides a handful of wrapper nodes for fuelc_data, and some other
+  miscellaneous functions.
+
+* fuelc_engine.ls
+  Continuous model of the engine gas dynamics. Adapted from the Simulink
+  original using the Runge Kutta combinators.
+
+* fuelc_logic.ls
+  Reimplementation of the Stateflow fuel controller block using a
+  composition of automaton nodes.
+
+* fuelc_subsys.ls
+  Reimplementation of the discrete dataflow components of the fuel
+  controller.
+
+* fuelc.ls
+  Combines the continuous and discrete models. Also provides a few test
+  harnesses.
+
+  This combination is not completely satisfactory. More work remains on how
+  best to combine discrete and continuous components in feedback.
+

@@ -1,0 +1,33 @@
+#!/bin/sh
+
+GPLOT=$(cat <<EOF
+set terminal pdf;
+
+unset key;
+set style line 1 linecolor rgb 'red' pointtype 1;
+set style line 2 linecolor rgb 'blue' pointtype 2;
+set style line 3 linecolor rgb 'green' pointtype 3;
+set style increment user;
+set xlabel "time (hours)";
+set ylabel "distance (kilometres)";
+EOF
+)
+
+PLOT1="plot for [i=2:4] 'simulink.log' using 1:i title column(i) with linespoints;"
+PLOT2="plot for [i=2:4] 'simulink-nohit.log' using 1:i title column(i) with linespoints;"
+PLOT3="plot for [i=2:4] 'zelus.log' using 1:i title column(i) with linespoints;"
+
+gnuplot -e "${GPLOT}${PLOT1}" > simulink.pdf
+gnuplot -e "${GPLOT}set xrange [0.9999999999999:1.0000000000001];
+	    unset key;
+	    unset xtics;
+	    unset ytics;
+	    ${PLOT1}" > simulink-zoom.pdf
+gnuplot -e "${GPLOT}${PLOT2}" > simulink-nohit.pdf
+gnuplot -e "${GPLOT}${PLOT3}" > zelus.pdf
+gnuplot -e "${GPLOT}set xrange [0.999999999999995:1.000000000000005];
+	    unset key;
+	    unset xtics;
+	    unset ytics;
+	    ${PLOT3}" > zelus-zoom.pdf
+

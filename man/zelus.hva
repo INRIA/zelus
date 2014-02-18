@@ -1,0 +1,23 @@
+%\input{report.hva}
+\usepackage{color}
+
+\let\oldmeta=\@meta
+\renewcommand{\@meta}{%
+\oldmeta
+\begin{rawhtml}
+<link rel=stylesheet type="text/css" href="zelus.css">
+\end{rawhtml}}
+
+%\renewcommand{\cuttingunit}{section}
+%\renewcommand{\cuttingunit}{chapter}
+%\setcounter{cuttingdepth}{2}
+\renewcommand{\@bodyargs}{class="zelusBody"}
+
+\renewcommand{\term}[1]{\textcolor{Blue}{\tt #1}}
+\renewcommand{\nterm}[1]{\textcolor{BrickRed}{\it #1}}
+
+\renewcommand{\sig}[1]{\textcolor{OliveGreen}#1}
+
+\renewenvironment{sample}
+  {\begin{alltt}}
+  {\end{alltt}}

@@ -1,0 +1,9 @@
+opam-version: "1"
+maintainer: "marc.pouzet@ens.fr"
+homepage: ""
+build: [
+  ["./configure" "--prefix" prefix]
+  [make]
+  [make "opam-install"]
+]	
+depends: ["menhir"]

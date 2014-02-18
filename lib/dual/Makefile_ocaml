@@ -1,0 +1,128 @@
+#
+# This Makefile provides basic variables and rules for Objective
+# Caml projects. It is shared among different projects via
+# CVS. Therefore it should be rather generic - add project specific
+# changes to the project's Makefile. Specific variables can be
+# overridden in the project Makefile (and should).
+#
+# Normally the project Makefile includes this Makefile near its
+# top. Do not modify this file.
+#
+# Local configuration should be done in Makefile_config
+#
+
+# Multi-architecture support
+
+BLD_ARCH = $(shell uname -s)
+
+ifeq ($(BLD_ARCH),Darwin)
+  DEF_ARCH = -DDARWIN
+else
+  ifeq ($(BLD_ARCH),SunOS)
+    DEF_ARCH = -DSUNOS
+  else
+    DEF_ARCH = -DLINUX
+  endif
+endif
+
+# Shell and make commands
+
+ifeq ($(OSTYPE),cygwin32)
+  SHELL =	sh
+else
+  SHELL =	/bin/sh
+endif
+
+# Make command
+
+ifdef MAKE_CMD
+  MAKE=$(MAKE_CMD)
+else
+  ifeq ($(BLD_ARCH),Darwin)
+    MAKE=gmake
+  else
+    ifeq ($(BLD_ARCH),SunOS)
+      MAKE=gmake
+    else
+      MAKE=make
+    endif
+  endif
+endif
+
+# Install command
+
+INSTALL =	install
+
+# Dot command
+
+DOT =		dot
+
+# Location of CAML libraries and headers
+
+ifdef CAML_DIR
+  ICAML=$(CAML_DIR)
+else
+  ICAML=`$(CAMLC) -where`
+endif
+
+#
+# edit setting below if the OCaml binaries are not in your PATH
+# 
+
+OCAML =		ocaml
+CAMLC = 	ocamlc
+CAMLOPT =	ocamlopt
+CAMLTOP = 	ocamlmktop
+
+CAMLLINK =	$(CAMLC)
+CAMLOLINK =	$(CAMLOPT)
+
+CAMLDEP =	ocamldep
+
+CAMLYACC =	ocamlyacc
+CAMLLEX	=	ocamllex
+
+CAMLDOC =	ocamldoc
+
+CAMLWHERE =	`$(CAMLC) -where`
+
+#
+# Flags for C code
+#
+
+CC = gcc
+CCINCLUDES = -I $(ICAML)
+CCFLAGS = $(CCINCLUDES) $(CCDEBUG)
+
+#
+# compilation rules
+#
+
+.PHONY: all all.opt clean cleanup depend doc
+
+.SUFFIXES:
+.SUFFIXES:	.ml .mli .cmo .cmi .cmx .mll .mly .sig .c .o
+
+.mli.cmi:
+		$(CAMLC) $(CFLAGS) -c $<
+.ml.cmo:
+		$(CAMLC) $(CFLAGS) -c $<
+.ml.cmx:	
+		$(CAMLOPT) $(OFLAGS) -c $<
+
+.mll.ml:
+		$(CAMLLEX) $<
+.mly.mli:	
+		$(CAMLYACC) $<
+.mly.ml:	
+		$(CAMLYACC) $<
+
+# infer signature of a module - can be used to create interface .mli
+
+.ml.sig:
+		$(CAMLC) $(CFLAGS) -c -i $< > $@ || rm -f $@
+
+# compile C code
+
+.c.o:
+		$(CC) -c $(CCFLAGS) $(DEF_ARCH) $<

@@ -1,0 +1,140 @@
+% vim:nojs:spelllang=en_us tw=76 sw=2 sts=2 fo+=awn fmr={-{,}-} et ts=8
+\documentclass{beamer}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+
+\mode<presentation>
+{
+  \usetheme{default} %Pittsburgh, default, boxes
+  \setbeamertemplate{navigation symbols}{}
+  \setbeamercovered{transparent}
+  \setbeamersize
+  {
+    text margin left = 1.0em,
+    text margin right = 1.0em
+  }
+  \setbeamercolor{section in toc}{fg=red}
+  \setbeamercolor{section in toc shaded}{fg=structure}
+  \setbeamertemplate{section in toc shaded}[default][100]
+}
+
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,calc}
+
+\tikzset{appear/.code args={<#1>}{%
+  \pgfkeysalso{fill=gray!10,draw=gray!50,text=gray!50}
+  \pgfkeysalso{pin edge={latex-,color=gray!50,thick}}
+  \only<#1->{\pgfkeysalso{fill=blue!10,draw=black,text=black}}
+  \only<#1->{\pgfkeysalso{pin edge={color=black,latex-,thick}}}
+  \only<#1>{\pgfkeysalso{fill=red!50,draw=black,text=black}}
+}}
+
+\tikzset{text appear/.code args={<#1>}{%
+  \pgfkeysalso{text=gray!50}
+  \only<#1->{\pgfkeysalso{text=black}}
+}}
+
+\tikzset{line appear/.code args={<#1>}{%
+  \pgfkeysalso{color=gray!50}
+  \only<#1->{\pgfkeysalso{color=black}}
+}}
+
+\begin{document}
+
+\begin{frame}{Block diagram of a self-oscillating adaptive system} %{-{1
+
+\centering
+
+\tikzstyle{block}=[draw, fill=blue!10, rectangle,
+                   minimum height=2.5em, minimum width=4em]
+\tikzstyle{sum}=[draw, fill=blue!10, circle]
+\tikzstyle{input}=[coordinate]
+\tikzstyle{output}=[coordinate]
+\tikzstyle{pinstyle}=[pin edge={latex-,black,thick},pin distance=.4cm]
+
+\scalebox{.8}{
+\begin{tikzpicture}[auto, node distance=2cm,>=latex,thick]
+    \node[input, name=input] {};
+
+    \node[block, right of=input,node distance=1.2cm] (model) {Model};
+    \draw[draw,->] (input) -- (model);
+
+    \node[sum, right of=model] (sum1) {$\Sigma$};
+    \draw[draw,->] (model) -- node {$y_m$} (sum1);
+
+    \node[block, right of=sum1, appear=<2>] (filter) {$G_f(s)$};
+    \node[above of=filter,node distance=.7cm, text appear=<2>] {Filter};
+    \node[coordinate, left of=filter,node distance=1.1cm] (afterfilter) {};
+    \draw[->] (sum1) -- node[below] {$e$} (filter);
+
+    \node[sum, right of=filter,
+          pin={[pinstyle,appear=<4>]below:Dither},
+          appear=<4>]
+      (sum2) {$\Sigma$};
+    \draw[->] (filter) -- (sum2);
+
+    \node[block, right of=sum2] (relay) {};
+    \draw[->] (sum2) -- (relay);
+    \draw[very thick] (relay.center) |- +(-.4,-.2);
+    \draw[very thick] (relay.center) |- +(.4,.2);
+
+    \node[block, right of=relay,node distance=2.5cm] (process) {$G_p(s)$};
+    \node[above of=process,node distance=.7cm] {Process};
+    \draw[->] (relay) -- (process);
+
+    \node[output, right of=process] (output) {};
+    \draw[->] (process) -- node [name=y] {$y$}(output);
+
+    \node[block, below of=sum2,node distance=2.5cm,minimum width=2.5em]
+      (feedback) {$-1$};
+    \draw[->] (y) |- (feedback);
+    \draw[->] (feedback) -| (sum1);
+
+    \node[block, above of=filter,appear=<3>] (ffilter) {Filter};
+    \draw[->,line appear=<3>] (afterfilter) |- (ffilter);
+
+    \node[block, above of=relay,text width=3.5em,align=center,appear=<3>]
+      (gchanger) {Gain\\changer};
+    \draw[->,line appear=<3>] (ffilter) -- (gchanger);
+    \draw[->,line appear=<3>] (gchanger) -- (relay);
+
+
+\end{tikzpicture}}
+
+\bigskip
+\textcolor{gray}{\footnotesize Figure 10.7, Åström and Wittenmark, Adaptive 
+Control, 2nd edition.}
+
+\end{frame}
+%--   }-}1%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}{Model elements} %{-{1
+
+\begin{block}{Process transfer function}
+\[
+    G_p(s) = \frac{K\alpha}{s(s + 1)(s + \alpha)}
+\]
+\end{block}
+
+\begin{block}{Compensation network}
+\[
+    G_f(s) = 1.2\frac{s + 5}{s + 15}
+\]
+\end{block}
+
+\begin{block}{Gain changer}
+\begin{equation*}
+  d = \begin{cases}
+    d_1                              & \mbox{if }\lvert e\rvert > e_l\\
+    d_2 + (d_1 - d_2)e^{-(t-t_0)/T}  & \mbox{if }\lvert e\rvert < e_l
+\end{cases}
+\end{equation*}
+\end{block}
+
+\end{frame}
+%--   }-}1%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document}
+

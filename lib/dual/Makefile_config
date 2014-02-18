@@ -1,0 +1,13 @@
+#
+# Local configuration of the Makefile
+#
+# Do not modify file Makefile.
+# 
+
+INSTALL_DIR = ${HOME}
+
+BIN_DIR = $(INSTALL_DIR)/bin
+LIB_DIR = $(INSTALL_DIR)/lib
+INCLUDE_DIR = $(INSTALL_DIR)/include
+# CCDEBUG = -DDEBUG
+CCDEBUG =

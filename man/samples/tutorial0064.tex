@@ -1,0 +1,12 @@
+% ../compiler/zlc.byte -I ../lib -I ./samples  	-i samples/tutorial0064.ls (2)
+\runverbatimfalse
+\setrunverbatimcmd{zlc.byte -i \runverbatimfile}
+\begin{RunVerbatimMsg}
+Failed.
+\end{RunVerbatimMsg}
+\begin{RunVerbatimErr}
+File "tutorial.ls", line 8, characters 49-51:
+>          do y = 0 -> pre y + 1 until c continue S1
+>                                                 ^^
+Type error: the target state is expected to be reset by is entered by history.
+\end{RunVerbatimErr}

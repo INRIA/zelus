@@ -1,0 +1,59 @@
+include ../../config
+
+
+APP=cradle_modular
+EXAMPLE=$(APP).ls
+ML=
+
+ZLEXTRALIBS = $(ZLGTKLIBS)
+
+CMOS=$(ML:%.ml=%.cmo)
+CMXS=$(ML:%.ml=%.cmx)
+LCIS=$(ML:%.ml=%.lci)
+
+applis=cradle2 cradle3 cradle2bool cradle3bool cradle3soft cradle4bool cradle_modular
+targets=$(applis:%=%.byte)
+
+.SECONDARY: $(applis:%=%.ml)
+
+#default: $(word 1, $(targets))
+all:  $(targets)
+byte: $(EXAMPLE:%.ls=%.byte)
+opt:  $(EXAMPLE:%.ls=%.opt)
+
+run:
+	make clean; make; ./$(APP).byte
+
+
+
+%.byte: $(CMOS) %.cmo %_main.cmo
+	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS) graphics.cma $(ZLEXTRALIBS) $^
+
+%.opt: $(CMXS) %.cmx %_main.cmx
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) graphics.cmxa \
+	    $(ZLEXTRALIBS:.cma=.cmxa) $^
+
+%_main.cmo: INCLUDES += $(SUNDIALS)
+%_main.cmx: INCLUDES += $(SUNDIALS)
+
+%.ml %_main.ml: $(LCIS) %.ls
+	$(ZLC) $(ZLCFLAGS) -s main -period -dzero -sampling 1 -gtk2 $*.ls
+	mv main.ml $*_main.ml
+
+depend: .depend
+.depend:
+	$(OCAMLDEP) $(INCLUDES) *.mli *.ml > .depend
+
+clean:
+	-@rm -f $(applis:%=%.ml)
+	-@rm -f $(applis:%=%_main.ml)
+	-@rm -f $(applis:%=%.byte)
+	-@rm -f $(applis:%=%.opt)
+	-@rm -f *.o *.cm[oix] *.annot *.obc *.lci
+	-@rm -f .depend
+
+realclean cleanall: clean
+
+-include .depend

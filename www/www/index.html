@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="./css/bootstrap.min.css"            rel="stylesheet">
+<link href="./css/zelus.css"                    rel="stylesheet">
+<link href="./css/bootstrap-responsive.min.css" rel="stylesheet">
+<link href="./css/zelus-src.css"                rel="stylesheet">
+<!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+<!--[if lt IE 9]>
+  <script src="./js/html5shiv.js"></script>
+<![endif]-->
+
+<title>Zélus: a hybrid synchronous language with ODEs</title>
+<meta name="description"
+content="Program embedded software and its physical environment
+inside the same language.">
+<meta name="author"
+content="Timothy Bourke and Marc Pouzet">
+</head>
+
+<body>
+
+
+<div class="navbar navbar-inverse navbar-fixed-top">
+  <div class="navbar-inner">
+    <div class="container-fluid">
+      <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="brand" href="index.html">Zélus</a>
+      <div class="nav-collapse collapse">
+        <ul class="nav">
+          <li id="title-download"><a href="download.html">Download</a></li>
+          <li id="title-examples"><a href="examples.html">Examples</a></li>
+          <li id="title-papers"><a href="papers.html">Publications</a></li>
+          <li id="title-contact"><a href="contact.html">Contact</a></li>
+        </ul>
+      </div><!--/.nav-collapse -->
+    </div>
+  </div>
+</div>
+
+<script>
+window.onload = function() {
+document.getElementById('title-home').className = 'active';
+};
+</script>
+
+<div class="container-fluid">
+<div class="row-fluid">
+<div class="span1"></div>
+<div class="span10">
+
+<div id="myCarousel" class="carousel slide">
+<!-- Carousel items -->
+<div class="carousel-inner">
+<div class="container">
+<div class="carousel-caption">
+<h1>Zélus</h1>
+<p class="lead">A synchronous language with ODEs</p>
+<!-- <p class="lead">
+Program embedded software and its physical environment
+inside the same language.
+</p> -->
+</div>
+</div>
+
+<div class="active item">
+<a
+href="http://en.wikipedia.org/wiki/Roussillon,_Vaucluse"><img
+src="./img/machine.jpg" alt=""/></a>
+</div>
+
+<div class="item">
+<a href="examples.html#backhoe"><img src="./img/backhoe.jpg"
+alt=""/></a>
+</div>
+
+<div class="item">
+<a href="examples.html#airtraffic"><img
+src="./img/airplanes.jpg" alt=""/></a>
+</div>
+
+<div class="item">
+<a href="examples.html#stickysprings"><img
+src="./img/stickysprings.jpg" alt=""/></a>
+</div>
+
+</div>
+<!-- Carousel nav -->
+<!--<a class="left carousel-control" href="#myCarousel" data-slide="prev">&lsaquo;</a>-->
+<a class="right carousel-control" href="#myCarousel" data-slide="next">&rsaquo;</a>
+</div>
+
+<div class="row-fluid">
+
+<div class="span6"> <h2>Compiler</h2><p>Zélus
+is a synchronous language extended with Ordinary Differential
+Equations (ODEs) to model systems with complex interaction between
+discrete-time and continuous-time dynamics. It shares
+the basic principles of
+<a href="http://www-verimag.imag.fr/Synchrone,30?lang=en">Lustre</a>
+with features from
+<a href="http://www.di.ens.fr/~pouzet/lucid-synchrone/">Lucid
+Synchrone</a> (type inference, hierarchical automata, and
+signals).
+
+The compiler is written in <a
+href="http://caml.inria.fr/ocaml/">OCaml</a> and is
+structured as a series of source-to-source and traceable
+transformations that ultimately yield statically
+scheduled sequential code. Continuous components are
+simulated using off-the-shelf numerical solvers (here
+<a href="https://computation.llnl.gov/casc/sundials/description/description.html#descr_cvode">Sundials
+CVODE</a>) and, for the moment,
+two built-in solvers (ode23 and ode45).
+
+</p>
+<p><a class="btn" href="download.html">Get the compiler »</a></p>
+</div><!--/span-->
+
+<div class="span6">
+<h2>Research</h2>
+<p>
+Zélus is used to experiment with new techniques
+for building hybrid modelers like
+<a href="http://www.mathworks.fr/products/simulink/">Simulink/Stateflow</a>
+and <a href="https://www.modelica.org">Modelica</a> on top
+of a synchronous language.
+The language exploits novel techniques for defining the
+semantics of hybrid modelers, it provides
+dedicated type systems to ensure the
+absence of discontinuities during integration and the
+generation of sequential code.
+In particular, all discrete computations must be aligned to
+zero-crossing events;
+programs with causality loops and uninitialized values are
+statically rejected.
+</p>
+<p><a class="btn" href="papers.html">View publications »</a></p>
+</div><!--/span-->
+
+
+</div><!--/row-->
+<div class="row-fluid">
+
+<div class="span6">
+<h2>Examples</h2>
+<p>
+The compiler distribution includes runnable examples
+demonstrating different aspects of the language.
+The source code for several of the examples can be
+viewed online.
+</p>
+<p><a class="btn" href="examples.html">View examples »</a></p>
+</div><!--/span-->
+
+<div class="span6">
+<h2>People</h2>
+<p>
+Zélus is developed within the
+<a href="http://www.di.ens.fr/ParkasTeam.en.html">PARKAS</a>
+Team which is a research group supported by the <a
+href="http://www.di.ens.fr">ENS</a>, <a
+href="http://inria.fr">Inria</a>, and <a
+href="http://www.upmc.fr">the Université Pierre et Marie
+Curie</a>. </p>
+<p><a class="btn" href="contact.html">See people »</a></p>
+</div><!--/span-->
+
+</div><!--/row-->
+
+<div class="row-fluid" style="padding-top: 40px">
+<p class="muted">The original street image is copyright 2013,
+Google.
+The original <a class="disabled"
+href="http://www.flickr.com/photos/gsfc/5329624555/sizes/o/in/photostream/">clouds
+image</a> is by NASA Godard Photo and Video.
+The icons are from <a class="disabled"
+href="http://www.glyphicons.com">Glyphicons</a>.
+</p>
+</div><!--/row-->
+
+</div><!--/span-->
+<div class="span1"></div>
+</div><!--/row-->
+
+</div><!--/.fluid-container-->
+
+
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="./js/jquery.js"></script>
+<script src="./js/bootstrap.min.js"></script>
+
+<script>
+$(".accordion-body").each(function() {
+    $(this).addClass("collapse");
+  })
+
+$(document).ready(function () {
+  $('.accordion').on('shown hidden', function () {
+    $('body').scrollspy('refresh');
+  });
+});
+</script>
+
+
+</body>
+</html>

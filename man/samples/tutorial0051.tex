@@ -1,0 +1,12 @@
+% ../compiler/zlc.byte -I ../lib -I ./samples  	-i samples/tutorial0051.ls (2)
+\runverbatimfalse
+\setrunverbatimcmd{zlc.byte -i \runverbatimfile}
+\begin{RunVerbatimMsg}
+Failed.
+\end{RunVerbatimMsg}
+\begin{RunVerbatimErr}
+File "tutorial.ls", line 2, characters 22-32:
+>let node abo (a, b) = (expect a) & (expect b)
+>                      ^^^^^^^^^^
+The value name expect is unbound (may need a 'rec').
+\end{RunVerbatimErr}

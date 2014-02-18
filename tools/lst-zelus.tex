@@ -1,0 +1,81 @@
+
+\lstdefinelanguage{zelus}
+   {morekeywords={
+	let,in,rec,where,end,if,then,else,do,done,run,
+	open,
+	fun,node,hybrid,
+	match,with,automaton,emit,
+	pre,when,whenot,fby,merge,on,clock,
+	or,and,not,as,mod,
+	unless,until,continue,reset,every,await,
+	init,der,type,last,
+	period,local,present
+    },
+    sensitive=true,
+    morecomment=[n]{(*}{*)},
+    morestring=[b]",
+    mathescape=true,
+    escapechar=\%,
+    columns=fullflexible,
+    keepspaces=true,
+    basicstyle=\sffamily\footnotesize,
+    keywordstyle=\blue,
+    xleftmargin=0em,
+    literate={->}{{$\rightarrow$}}1
+             {'a}{{$\alpha$}}1
+             {'b}{{$\beta$}}1
+             {_1}{{$_1$ }}1
+             {_2}{{$_2$ }}1
+             {_3}{{$_3$ }}1
+             {_4}{{$_3$ }}1
+             {_5}{{$_3$ }}1
+             {_i}{{$_i$ }}1
+             {~f}{{$f$}}1
+             {...}{{$\ldots$}}1
+             {~>}{{$\leadsto$}}1,
+    }
+%    belowskip=0em,
+
+\lstnewenvironment{lst-zelus}[1]
+    {\lstset{language=zelus,basicstyle=\sffamily#1}}
+    {}
+
+%int boolean float char string
+%sig static
+
+\newcommand{\zl}[1]{%
+    \mbox{\lstinline[language=zelus,columns=fullflexible]{#1}}}
+
+\newcommand{\zlt}[1]{%
+    \mbox{\lstinline[language=zelus,columns=fullflexible,
+                     basicstyle=\tiny,keywordstyle=\bfseries]{#1}}}
+
+\lstdefinelanguage{zelusoutput}
+   {morekeywords={val},
+    sensitive=true,
+    morecomment=[n]{(*}{*)},
+    morestring=[b]",
+    mathescape=true,
+    columns=fullflexible,
+    basicstyle=\sffamily\footnotesize,
+    literate={->}{{$\rightarrow$}}1
+             {-A>}{{$\stackrel{\mathtt{A}}{\rightarrow}$}}1
+             {-C>}{{$\stackrel{\mathtt{C}}{\rightarrow}$}}1
+             {-D>}{{$\stackrel{\mathtt{D}}{\rightarrow}$}}1
+             {'a}{{$\alpha$}}1
+             {'b}{{$\beta$}}1
+             {'c}{{$\gamma$}}1
+             {'d}{{$\delta$}}1
+             {*}{{$\times$}}1
+             {=>}{{$\Rightarrow$}}1
+             {~>}{{$\leadsto$}}1,
+    }
+%    belowskip=0em,
+
+\lstnewenvironment{lst-zelusoutput}
+    {\lstset{language=zelusoutput}}
+    {}
+
+\newcommand{\zlo}[1]{%
+    \mbox{\lstinline[language=zelusoutput,columns=fullflexible]{#1}}}
+

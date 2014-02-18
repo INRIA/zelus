@@ -1,0 +1,12 @@
+% ../compiler/zlc.byte -I ../lib -I ./samples  	-i samples/tutorial0054.ls (2)
+\runverbatimfalse
+\setrunverbatimcmd{zlc.byte -i \runverbatimfile}
+\begin{RunVerbatimMsg}
+Failed.
+\end{RunVerbatimMsg}
+\begin{RunVerbatimErr}
+File "tutorial.ls", line 4, characters 31-44:
+>   | On  -> do x = true  until (after(n, t)) then Off
+>                               ^^^^^^^^^^^^^
+The value name after is unbound (may need a 'rec').
+\end{RunVerbatimErr}

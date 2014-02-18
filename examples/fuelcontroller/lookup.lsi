@@ -1,0 +1,39 @@
+
+type lookupty = LinearLookup | BinaryLookup
+
+val make_getidx : (lookupty * bool) * 'a array * 'a -> int
+
+type interpolatety
+
+val input_below		 : interpolatety
+val input_above		 : interpolatety
+val nearest		 : interpolatety
+val linear_interpolation : bool -> interpolatety
+val cubic_interpolation  : bool -> interpolatety
+
+type ('bpt, 'input, 'intern) breakpoint_lookup
+
+type regular_float_breakpoints
+val regular_float_breakpoints :
+  float * float * float -> regular_float_breakpoints
+
+val regular_float_breakpoints_lookup :
+  (regular_float_breakpoints, float, float) breakpoint_lookup
+
+type regular_int_breakpoints
+
+val regular_int_breakpoints :
+  int * int * int -> regular_int_breakpoints
+
+val regular_int_breakpoints_lookup :
+  (regular_int_breakpoints, float, float) breakpoint_lookup
+
+val int_breakpoints :
+  lookupty * bool -> (int array, float, float) breakpoint_lookup
+
+val float_breakpoints :
+  lookupty * bool -> (float array, float, float) breakpoint_lookup
+
+val int_breakpoints_to_test_dist : int * int array -> float * float * float
+val float_breakpoints_to_test_dist : int * float array -> float * float * float
+

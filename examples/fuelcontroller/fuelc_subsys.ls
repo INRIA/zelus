@@ -1,0 +1,78 @@
+(** Fuel Rate Control Subsystem adapted from the Mathworks Simulink Fuel
+    Controller model. *)
+
+open Fuelc_common
+open Fuelc_data
+open Library
+
+(** airflow_calc *)
+(*  Intake Airflow Estimation and Closed-Loop Correction *)
+
+let node pumping_constant (x) =
+  lookup (speed_bps, press_bps, pump_con, x)
+
+let node throttle_transient (x) =
+  iir_filter_2nd ((0.01, -.0.01), (-.0.8), x)
+
+let node ramp_rate_ki (x) =
+  lookup (ramp_rate_kix_bps, ramp_rate_kiy_bps, ramp_rate_kiz, x)
+
+let oxygen_sensor_switching_threshold = 0.5
+
+let node airflow_calc ({throttle=throttle; speed=speed; pressure=press; ego=ego},
+                       o2_normal, fuel_mode) = (est_airflow, fb_correction)
+  where
+  rec est_airflow = throttle_transient (throttle)
+        +. (press *. speed *. pumping_constant (speed, press))
+  and e0 = (if ego <= oxygen_sensor_switching_threshold then 0.5 else -. 0.5)
+  and e1 = e0 *. ramp_rate_ki (speed, press)
+
+  and enable_integration = if o2_normal & fuel_mode = Low then e1 else 0.0
+  and fb_correction = forward_euler (0.0, 1.0, fuelc_period, enable_integration)
+  (* Note: explicit constant 'fuelc_period' vs inherited sample
+           time in Simulink *)
+
+(** fuel_calc *)
+(*  Fuel Rate Calculation *)
+
+(* Loop Compensation and Filtering *)
+let node switchable_compensation (ff_fuel_rate, fuel_mode, fb_correction) =
+  match fuel_mode with
+  | Low ->
+      iir_filter_1st ((8.7696, -. 8.5104), (-. 0.7408), fb_correction)
+      +. ff_fuel_rate
+  | Rich ->
+      iir_filter_1st ((0.0, 0.2592), (-. 0.7408), ff_fuel_rate +. fb_correction)
+  | Disabled ->
+      0.0
+  end
+
+let feedforward_fuel_rate (est_airflow, fuel_mode) =
+  match fuel_mode with
+  | Low ->      est_airflow /. 14.6
+  | Rich ->     est_airflow /. (14.6 *. 0.8)
+  | Disabled -> 0.0
+  end
+
+(* Fuel Rate Calculation *)
+let node fuel_calc (est_airflow, fuel_mode, fb_correction) = fuel_rate where
+  rec ff_fuel_rate = feedforward_fuel_rate (est_airflow, fuel_mode)
+  and fuel_rate =
+        switchable_compensation (ff_fuel_rate, fuel_mode, fb_correction)
+
+(** fuel_rate_control *)
+(*  Fuel Rate Control Subsystem *)
+
+let node fuel_rate_control (sensors) = fuel_rate where
+  rec (sensors', o2_normal, fuel_mode) = Fuelc_logic.control_logic (sensors)
+  and (est_airflow, fb_correction) =
+        airflow_calc (sensors, o2_normal, fuel_mode)
+  and fuel_rate = fuel_calc (est_airflow, fuel_mode, fb_correction)
+
+let node fuel_rate_control (sensors) = fuel_rate where
+  rec
+  (sensors', o2_normal, fuel_mode) = Fuelc_logic.control_logic (sensors)
+  and (est_airflow, fb_correction) =
+        airflow_calc (sensors', o2_normal, fuel_mode)
+  and fuel_rate = fuel_calc (est_airflow, fuel_mode, fb_correction)
+

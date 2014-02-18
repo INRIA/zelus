@@ -1,0 +1,12 @@
+% ../compiler/zlc.byte -I ../lib -I ./samples  	-i samples/tutorial0077.ls (2)
+\runverbatimfalse
+\setrunverbatimcmd{zlc.byte -i \runverbatimfile}
+\begin{RunVerbatimMsg}
+Failed.
+\end{RunVerbatimMsg}
+\begin{RunVerbatimErr}
+File "tutorial.ls", line 3, characters 10-29:
+>  and o = 0.0 -> pre o +. 1.0
+>          ^^^^^^^^^^^^^^^^^^^
+Type error: this is a discrete expression and is expected to be continuous.
+\end{RunVerbatimErr}

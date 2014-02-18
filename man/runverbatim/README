@@ -1,0 +1,24 @@
++------------------------------------------------------------------------+
+|                             runverbatim                                |
+|                             version 1.0                                |
+|                           14 February 2014                             |
+|                                                                        |
+|                     Timothy Bourke <tim@tbrk.org>                      |
+|                                Inria                                   |
+|                       École normale supérieure                         |
+|                                                                        |
+|                      Marc Pouzet <pouzet@ens.fr>                       |
+|                   Université Pierre et Marie Curie                     |
+|                       École normale supérieure                         |
+|                                Inria                                   |
++------------------------------------------------------------------------+
+
+  The "runverbatim" package provides a simple means of executing the
+  contents of verbatim environments and including the results within
+  a document.
+
+  It exploits features of the "listings" and "fancyvrb" packages.
+
+  Comments, suggestions and bug reports (with version number and the
+  keyword "runverbatim" in the subject of the message) to <tim@tbrk.org>.
+

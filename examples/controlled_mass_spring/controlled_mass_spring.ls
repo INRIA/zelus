@@ -1,0 +1,101 @@
+(********************
+Mass with spring
+Cyprien L. 2/05/2012
+
+the position of the mass is controlled with a PID controller
+
+command (mouse) --|+/-|----| PID | --------> damped spring
+                    ^                             |
+                    |                             |  mass position
+                     \-----------------------------
+
+
+                     |
+   / \-------ΞΞΞΞΞΞΞ|
+   \ /\/\/\/\/\/\/\/\|
+                     |
+
+*******************)
+
+open Graphics
+let start = 
+  open_graph "";
+  auto_synchronize false;
+  set_line_width 4
+
+type system = { 
+  x0:float;
+  y0:float;
+  x:float;
+  y:float;
+}
+
+let make_system( x0 , y0 , x , y) = 
+  { x0 = x0 ; y0 = y0 ; x = x ; y = y }
+
+(**Graphical features **)
+let node draw_one_system { x0 = x0; y0 = y0; x = x; y = y } = 
+  let x0 = truncate x0 in
+  let x  = truncate x  in
+  let y0 = truncate y0 in
+  let y  = truncate y  in
+  moveto(x0, y0);
+  lineto (x, y);
+  moveto (x0, (y0+100));
+  lineto (x0, (y0-100));
+  draw_circle (x, y, 20)
+
+let node clean_and_draw_system (system) = 
+  clear_graph ();
+  draw_one_system(system);
+  synchronize ();
+  ()
+
+(* Common functions *)
+let node deriv( x , dt ) =  x' where
+  x' = 0.0->(x -. (pre x)) /. dt
+
+let node integr(dx,dt) = int_x where
+  rec int_x = 0.0 -> (pre int_x) +. dx *. dt
+
+(* Physical constants *)
+let k = 15.0 (* spring stiffness *)
+let f = 4.0 (* damoing ratio *)
+let m = 10.0 (* mass *)
+
+(* the mass *)
+(* [x0]: position of the controlled side of the spring *)
+(* [x]: position of the mass *)
+let hybrid mass x0 = x where
+  rec der x = v init 0.0
+  and der v = (-.k /. m) *. (x -. x0) -. (f/.m)*. v init 0.0
+
+(* Standard (discrete) PID Controller *)
+let node pid (input, dt ) = 
+  let p0 = 2.0 in  (* proportional correction *)
+  let i0 = 2.0 in (* integr. correctioon *)
+  let d0 = 0.01 in (* deriv. correction *)
+  let output =  p0 *. (input +. i0*.integr(input,dt) +. d0 *. deriv(input,dt)) in
+    output
+
+let step = 0.01
+let hybrid main () = () where
+  rec cx,cy = mouse_pos()
+  and y0 = 150.0
+  and y = 150.0
+  and input = float cx
+
+  and t = period(0.01)
+
+  (** No feedback version **)
+  (*  let corrected_input = input in
+  let x = mass corrected_input in *)
+
+  (** feedback version **)
+  and corrected_input = 
+    present t -> pid ((input -. (0.0 ->last x)), step) init 0.0 
+  and x = mass corrected_input
+
+  and s1 = make_system(corrected_input, y0, x, y)
+  and _ = present t -> clean_and_draw_system(s1)
+

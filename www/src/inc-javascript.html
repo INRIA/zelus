@@ -1,0 +1,17 @@
+
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="./js/jquery.js"></script>
+<script src="./js/bootstrap.min.js"></script>
+
+<script>
+$(".accordion-body").each(function() {
+    $(this).addClass("collapse");
+  })
+
+$(document).ready(function () {
+  $('.accordion').on('shown hidden', function () {
+    $('body').scrollspy('refresh');
+  });
+});
+</script>
+

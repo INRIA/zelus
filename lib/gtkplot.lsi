@@ -1,0 +1,18 @@
+
+type signal_type
+
+val points  : bool -> signal_type
+val piecewise : signal_type
+val square    : signal_type
+val linear    : signal_type
+
+type signal
+type scope
+type window
+
+val signal : string * signal_type -> signal
+val unsafe update : signal * float -> unit
+val scope  : float * float * signal list -> scope
+val window : string * float * scope list -> window
+val unsafe tick   : window * float -> unit
+

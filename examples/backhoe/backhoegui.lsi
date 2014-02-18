@@ -1,0 +1,35 @@
+
+type backhoe
+
+val unsafe show : unit -> backhoe
+
+val leg_range    : float * float * float
+val boom_range   : float * float * float
+val stick_range  : float * float * float
+val bucket_range : float * float * float
+
+val unsafe update :
+  backhoe
+  * float  (* leg position *)
+  * float  (* boom angle   *)
+  * float  (* stick angle  *)
+  * float  (* bucket angle *)
+  * bool   (* alarm lamp   *)
+  * bool   (* done lamp    *)
+  * bool   (* cancel lamp  *)
+  -> unit
+
+val unsafe showupdate :
+    float  (* leg position *)
+  * float  (* boom angle   *)
+  * float  (* stick angle  *)
+  * float  (* bucket angle *)
+  * bool   (* alarm lamp   *)
+  * bool   (* done lamp    *)
+  * bool   (* cancel lamp  *)
+  -> unit
+val unsafe showsample : unit -> (bool * bool * bool)
+
+(* stop, retract, extend *)
+val unsafe sample : backhoe -> bool * bool * bool
+

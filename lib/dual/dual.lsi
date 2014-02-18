@@ -1,0 +1,39 @@
+(*
+ *
+ * Dual numbers
+ *
+ * This module can be used for automatic differentiation and
+ * the computation of Jacobians.
+ *
+ *)
+
+type t
+
+val make : (float*float) -> t
+
+val make_re : float -> t
+val make_im : float -> t
+
+val re : t -> float
+val im : t -> float
+
+val (+.) : (t*t) -> t
+val (-.) : (t*t) -> t
+val (~-.) : t -> t
+val ( *. ) : (t*t) -> t
+val (/.) : (t*t) -> t
+val inv : t -> t
+
+val sqrt : t -> t
+val exp : t -> t
+val log : t -> t
+
+val cos : t -> t
+val sin : t -> t
+val tan : t -> t 
+
+val (>.) : (t*t) -> bool
+val (<.) : (t*t) -> bool
+val (=.) : (t*t) -> bool
+val (>=.) : (t*t) -> bool
+val (<=.) : (t*t) -> bool

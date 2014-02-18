@@ -1,0 +1,98 @@
+.lucyBody {
+  margin-left: 50px;
+  margin-right: 50px;
+  padding: 20px;
+  color: black ;
+  background-color: white ;
+  font: 13px, verdana, arial, helvetica, sans-serif;
+}
+
+h1 {  
+  font-size: 28px;
+  font-weight: 900;
+  color: #506ec9;
+}
+
+h2 {  
+  font-size: 24px;
+  padding-top: 10px;
+  color: #506ec9;
+}
+
+h3 {  
+  font-size: 20px;
+  padding-top: 10px;
+  color: #506ec9;
+}
+
+h4 {  
+  font-size: 16px;
+  padding-top: 5px;
+  color: #506ec9;
+}
+
+pre {
+  font-family: monospace;
+  white-space: pre;
+  margin-left: 20;
+  margin-right: 20;
+  margin-top: 10;
+  margin-bottom: 10;
+  padding: 5px;
+  padding-left: 20px;
+  color: black;
+  background-color:#DCEEF7;
+  border: solid thin #506ec9;
+}
+
+.chrono table { 
+  margin-top: 10;
+  margin-bottom: 10;
+  border: none;
+  border-collapse: collapse; 
+}
+
+.chrono td {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+A {
+  color: #e55c3d ;
+}
+
+div.title {
+  text-align: center;
+  font-size: 36px;
+  font-weight: 900;
+  color: #506ec9;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+div.subtitle { 
+  text-align: center;
+  font-size: 42px;
+  font-weight: bold;
+  color: black;
+}
+
+div.titlenote { 
+  text-align: center;
+  font-size: 24px;
+  color: black;
+
+}
+
+div.author { 
+  text-align: center;
+  font-size: 18px;
+  color: black;
+}
+
+div.date { 
+  text-align: center;
+  font-size: 18px;
+  color: black;
+
+}

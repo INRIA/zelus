@@ -1,0 +1,70 @@
+(********************
+n.IX in simulink-stateflow-automotive.pdf
+Cyprien L. 24/05/2012
+
+                     |
+   / \-------ΞΞΞΞΞΞΞ|
+   \ /\/\/\/\/\/\/\/\|
+                     |
+
+*******************)
+
+(* Physial constants *)
+let m = 0.001       (* mass *)
+let k = 1.0         (* spring stiffness *)
+let f_static = 1.0  (* static damping ratio *)
+let f_sliding = 1.0 (* dynamic damping ratio *)
+
+(* The sign function with an hysteresis *)
+let hybrid sgn(x) = o where
+  rec init o = if x >= 0.0 then 1.0 else -1.0
+  and z1 = up(x -. 0.01)
+  and z2 = up(-. x -. 0.01)
+  and automaton
+      | Up -> do until z1 then do o = 1.0 in Down 
+                  else z2 then do o = -1.0 in Up
+      | Down -> do until z2 then do o = -1.0 in Up
+
+(* compute the friction force *)
+(* [v]: velocity *)
+(* [f_sum]: sum of other forces *)
+(* [f_friction]: friction force on the system *)
+let hybrid friction (v,f_sum) = f_friction where
+  init f_friction = 0.0 and
+  automaton
+  | Stuck -> 
+      do f_friction = min(f_static, abs_float(f_sum)) *. sgn(f_sum)
+      until (up(abs_float(f_sum) -. f_static)) then Sliding
+  | Sliding -> 
+      do f_friction = sgn(v) *. f_sliding
+      until (up(f_static -. abs_float(f_sum))) on (v = 0.0) then Stuck
+
+(* mass-spring system with friction *)
+(* [f_in]: input force on the controlled side of the spring *)
+(* [x]: position of the mass (output) *)
+let hybrid system (f_in) = x where
+  rec init x = 0.0
+  and f_spring = k *. x
+  and f_friction = friction(v,f_in -. f_spring)
+  and der x = v
+  and der v = f_in -. f_spring -. f_friction
+
+let hybrid main () =
+  let der t = 1.0 init 0.0 in
+
+(* The input (cf. pdf file) *)
+  let f_in' = present (period(10.0)) -> 1.0
+      | (period 5.0(10.0)) -> -1.0
+      init 1.0 in
+  let der f_in = f_in' init 0.0 in
+
+(* The system *)
+  let x = system (f_in) in
+
+(* Plot in/output *)
+  present (period(0.1)) ->
+    let in_out = Scope.scope2(-.1.0,6.0,
+                              ("f_in", Scope.linear, f_in),
+                              ("x", Scope.linear, x)) in
+    Scope.window ("slipstick friction", 30.0, t, in_out)
+  else ()

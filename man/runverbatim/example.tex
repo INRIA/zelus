@@ -1,0 +1,40 @@
+\documentclass[a4paper]{article}
+
+\usepackage[prompt=]{runverbatim}
+
+\begin{document}
+
+\noindent
+Two simple declarations:
+\begin{runverbatim}
+let x = 3
+let f x = x + 1
+\end{runverbatim}
+
+\noindent
+and, after compilation with \runverbatimcmd, their types:
+\runverbatimmsg
+
+\noindent
+Then, building on these definitions:
+\begin{runverbatim}[continue,withresult,label=early]
+let y = f 3
+\end{runverbatim}
+
+\noindent
+What about compiler error messages?:
+\begin{runverbatim}[fail]
+let z = 3 + "four"
+\end{runverbatim}
+
+\noindent
+They are also detected:
+\runverbatimerr
+
+\noindent
+We can continue on from earlier examples:
+\begin{runverbatim}[withresult,include=early]
+let z = f y
+\end{runverbatim}
+
+\end{document}

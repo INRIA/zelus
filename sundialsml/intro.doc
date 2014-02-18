@@ -1,0 +1,131 @@
+{{:https://computation.llnl.gov/casc/sundials/main.html} Sundials} is a
+collection of five numerical solvers: CVODE,  CVODES, IDA, IDAS, KINSOL.
+This library interfaces with Sundials version {b 2.4.0}. Sundials is written
+by Radu Serban, Carol Woodward, and Alan Hindmarsh with the past
+contributions of Peter Brown, Scott Cohen, Aaron Collier, Keith Grant,
+Steven Lee, Dan Reynolds, Dan Shumaker, and Allan Taylor.
+
+This Ocaml interface was written by {{:http://www.tbrk.org} Timothy Bourke}
+of {{:http://www.inria.fr} INRIA}/{{:http://www.di.ens.fr/} LIENS} and
+{{:http://www.di.ens.fr/~pouzet/} Marc Pouzet} of
+{{:http://www.di.ens.fr/} LIENS}.
+
+This library provides an Ocaml interface to Sundials, though {b only the
+CVODE solver with serial nvectors is currently supported}.
+The structure and naming conventions largely follow the original libraries,
+both for ease of reading the existing documentation and for converting
+existing source code, but several changes have been made for programming
+convenience, namely:
+- solver sessions are configured through algebraic data types rather than
+  through multiple function calls,
+- error conditions are signalled by exceptions rather than return codes
+  (including in user-supplied callback routines),
+- closures (partial applications of higher-order functions) are used to
+  share user data between callback routines, and,
+- explicit free commands are not necessary nor provided since Ocaml is a
+  garbage-collected language.
+
+Function names have been renamed according to a regular scheme.
+The leading {e module identifier} is removed and replaced with a module
+path.
+The identifier is renamed by separating words that begin with an
+uppercase letter in CVODEs by underscores, and only lowercase letters are
+used.
+For instance, [CVodeSetErrHandlerFn], becomes 
+[Cvode.set_err_handler_fn], and [CVSpilsSetJacTimesVecFn] becomes 
+[Cvode.Spils.set_jac_times_vec_fn].
+
+Constant have been replaced by variant types in most cases.
+They have also been renamed by converting them to {e CamlCase} and removing
+underscores.
+For instance, [PREC_NONE] becomes [Cvode.PrecNone].
+
+Rather than try to duplicate or replace the comprehensive
+{{:https://computation.llnl.gov/casc/sundials/documentation/documentation.html}
+Sundials user manuals}, this documentation provides hyperlinks back to the original
+function descriptions and focuses instead on differences between the
+original library and the Ocaml interface.
+Most of the single line descriptions of functions have, however, been taken
+directly from the original manual written by Alan C. Hindmarsh and Radu
+Serban of the {e Center for Applied Scientific Computing, 
+Lawrence Livermore National Laboratory}.
+
+The top level {!Sundials} module provides some utility routines for dealing
+with arrays of floats and integers, and for accessing certain constants
+(like {!Sundials.big_real} and {!Sundials.unit_roundoff}).
+
+{2:nvector Nvectors}
+
+Sundials defines an abstract interface for vectors and provides
+implementations for serial and parallel vectors.
+{b Parallel vectors are not currently supported in this library.}
+
+There are mechanisms for defining new vector implementations using records
+of imperative ({! Nvector.Mutable}) or pure functions ({! Nvector.Immutable}).
+A vector implementation for standard Ocaml arrays of floats is provided as
+an example ({! Nvector_array}).
+
+Serial vectors are passed between Sundials and Ocaml programs as
+Bigarrays.
+These vectors are manipulated within the solver using the original low-level
+vector operations (cloning, linear sums, adding constants, and etcetera).
+While direct interfaces to these operations are not provided, there are
+equivalent implementations written in Ocaml for arrays of floats
+({! Nvector_array}) and bigarrays ({! Nvector_array.Bigarray}) of floats.
+
+{2:cvode CVODE}
+
+CVODE solves ODE initial value problems using a variable-step solver with
+zero-crossing detection (root finding).
+This library provides an interface to the entire CVODE library except for
+functions related to parallel nvectors and custom linear solvers.
+
+Two interfaces are provided, one for serial nvectors ({!Cvode_serial}) and
+one for abstract nvectors ({!Cvode_nvector}).
+They are identical except for the type signatures, and one or two small
+changes required to accomodate the polymorphic argument of the abstract
+nvector type.
+Serial nvectors have two advantages over abstract nvectors:
++ {e efficiency}, since the low-level vector operations are implemented
+directly in C (rather than as C stubs around Ocaml callbacks), and,
++ {e convenience}, since the interface is simpler and more direct.
+
+Both interfaces directly include the {!Cvode} module, which contains nvector
+independent types and values, which in turn includes the {!Sundials} module.
+This flattening of the module structure intends to simplify working with the
+library.
+Each program need then only begin with a single aliasing definition, either:
+
+[module Cvode = Cvode_serial]
+
+or:
+
+[module Cvode = Cvode_nvector]
+
+{3:usingcvode Using the library}
+
+Skeletons of the main program are given under {!Cvode_serial.session} and
+{!Cvode_nvector.session}. Such a program can be compiled using the
+[-I +sundials] option and including [unix.cma] (or [.cmxa]),
+[bigarray.cma] (or [.cmxa]) and [sundials_cvode.cma] (or [.cmxa]), for example:
+{[ocamlc -o myprogram -I +sundials unix.cma bigarray.cma sundials_cvode.cma myprogram.ml]}
+or:
+{[ocamlopt -o myprogram -I +sundials unix.cmxa bigarray.cmxa sundials_cvode.cmxa myprogram.ml]}
+
+{2:modules Modules}
+
+{!modules: Sundials}
+{!modules: Nvector Nvector_array}
+{!modules: Cvode Cvode_serial Cvode_nvector}
+
+{2:refs References}
+
+- A. C. Hindmarsh, P. N. Brown, K. E. Grant, S. L. Lee, R. Serban, D. E.
+Shumaker, and C. S. Woodward, "{b SUNDIALS: Suite of Nonlinear and
+Differential/Algebraic Equation Solvers}," ACM Transactions on Mathematical
+Software, 31(3), pp. 363-396, 2005.
+
+{2:indexes Indexes}
+
+{!indexlist}
+

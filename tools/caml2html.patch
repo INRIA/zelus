@@ -1,0 +1,122 @@
+diff -u caml2html-1.4.3/input.mll caml2html-1.4.3-patched/input.mll
+--- caml2html-1.4.3/input.mll	2012-10-15 15:42:36.000000000 +1100
++++ caml2html-1.4.3-patched/input.mll	2012-10-29 23:15:36.927275277 +1100
+@@ -64,6 +64,7 @@
+   "as";
+   "asr";
+   "assert";
++  "automaton";
+   "begin";
+   "class";
+   "constraint";
+@@ -72,6 +73,7 @@
+   "downto";
+   "else";
+   "end";
++  "emit";
+   "exception";
+   "external";
+   "false";
+@@ -79,14 +81,17 @@
+   "fun";
+   "function";
+   "functor";
++  "hybrid";
+   "if";
+   "in";
+   "include";
+   "inherit";
++  "init";
+   "initializer";
+   "land";
+   "lazy";
+   "let";
++  "local";
+   "lor";
+   "lsl";
+   "lsr";
+@@ -97,12 +102,16 @@
+   "module";
+   "mutable";
+   "new";
++  "node";
+   "object";
+   "of";
++  "on";
+   "open";
+   "or";
+   "private";
++  "present";
+   "rec";
++  "reset";
+   "sig";
+   "struct";
+   "then";
+@@ -110,10 +119,13 @@
+   "true";
+   "try";
+   "type";
++  "unless";
++  "until";
+   "val";
+   "virtual";
+   "when";
+   "while";
++  "where";
+   "with" ]
+ 
+ let is_keyword =
+diff -u caml2html-1.4.3/output.ml caml2html-1.4.3-patched/output.ml
+--- caml2html-1.4.3/output.ml	2012-10-15 15:42:36.000000000 +1100
++++ caml2html-1.4.3-patched/output.ml	2012-10-29 23:21:31.821035098 +1100
+@@ -47,37 +47,48 @@
+ 
+ let default_keyword_color_list =
+   [
++    "automaton", (key_color1, None, "Clet");
+     "and", (key_color1, None, "Cand");
+     "as", (key_color1, None, "Cas");
+     "class", (key_color1, None, "Cclass");
+     "constraint", (key_color1, None, "Cconstraint");
++    "der", (key_color1, None, "Cand");
+     "exception", (key_color1, None, "Cexception");
+     "external", (key_color1, None, "Cexternal");
+     "fun", (key_color1, None, "Cfun");
+     "function", (key_color1, None, "Cfunction");
+     "functor", (key_color1, None, "Cfunctor");
++    "hybrid", (key_color1, None, "Clet");
+     "in", (key_color1, None, "Cin");
+     "inherit", (key_color1, None, "Cinherit");
++    "init", (key_color1, None, "Cinitializer");
+     "initializer", (key_color1, None, "Cinitializer");
+     "let", (key_color1, None, "Clet");
++    "local", (key_color1, None, "Clet");
+     "method", (key_color1, None, "Cmethod");
+     "module", (key_color1, None, "Cmodule");
+     "mutable", (key_color1, None, "Cmutable");
++    "node", (key_color1, None, "Clet");
+     "of", (key_color1, None, "Cof");
+     "private", (key_color1, None, "Cprivate");
+     "rec", (key_color1, None, "Crec");
++    "reset", (key_color1, None, "Cinitializer");
+     "type", (key_color1, None, "Ctype");
+     "val", (key_color1, None, "Cval");
+     "virtual", (key_color1, None, "Cvirtual");
+     
+-    "do", (key_color2, None, "Cdo");
+-    "done", (key_color2, None, "Cdone");
++    "do", (key_color1, None, "Cdo");
++    "done", (key_color1, None, "Cdone");
++    "unless", (key_color1, None, "Cthen");
++    "until", (key_color1, None, "Cthen");
++
+     "downto", (key_color2, None, "Cdownto");
+     "else", (key_color2, None, "Celse");
+     "for", (key_color2, None, "Cfor");
+     "if", (key_color2, None, "Cif");
+     "lazy", (key_color2, None, "Clazy");
+     "match", (key_color2, None, "Cmatch");
++    "present", (key_color2, None, "Cmatch");
+     "new", (key_color2, None, "Cnew");
+     "or", (key_color2, None, "Cor");
+     "then", (key_color2, None, "Cthen");

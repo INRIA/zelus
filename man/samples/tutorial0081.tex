@@ -1,0 +1,13 @@
+% ../compiler/zlc.byte -I ../lib -I ./samples  samples/tutorial0079.ls 	-i samples/tutorial0081.ls (2)
+\runverbatimfalse
+\setrunverbatimcmd{zlc.byte -i \runverbatimfile}
+\begin{RunVerbatimMsg}
+val bouncing : float * float * float * float -C-> float * float
+\end{RunVerbatimMsg}
+\begin{RunVerbatimErr}
+File "tutorial.ls", line 5, characters 46-60:
+> and der y' = -. g init y'0 reset up(-. y) -> -. loose *. y'
+>                                              ^^^^^^^^^^^^^^
+Causality error: this expression may instantaneously depend on itself.
+Here is a an example of a cycle:[y' --> y']
+\end{RunVerbatimErr}

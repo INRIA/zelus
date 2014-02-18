@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="./css/bootstrap.min.css"            rel="stylesheet">
+<link href="./css/zelus.css"                    rel="stylesheet">
+<link href="./css/bootstrap-responsive.min.css" rel="stylesheet">
+<link href="./css/zelus-src.css"                rel="stylesheet">
+<!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+<!--[if lt IE 9]>
+  <script src="./js/html5shiv.js"></script>
+<![endif]-->
+
+<title>Zélus: publications</title>
+<meta name="description" content="Publications about Zélus.">
+<meta name="author" content="Timothy Bourke and Marc Pouzet">
+</head>
+
+<body data-spy="scroll" data-target=".sidebar-nav">
+
+
+<div class="navbar navbar-inverse navbar-fixed-top">
+  <div class="navbar-inner">
+    <div class="container-fluid">
+      <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="brand" href="index.html">Zélus</a>
+      <div class="nav-collapse collapse">
+        <ul class="nav">
+          <li id="title-download"><a href="download.html">Download</a></li>
+          <li id="title-examples"><a href="examples.html">Examples</a></li>
+          <li id="title-papers"><a href="papers.html">Publications</a></li>
+          <li id="title-contact"><a href="contact.html">Contact</a></li>
+        </ul>
+      </div><!--/.nav-collapse -->
+    </div>
+  </div>
+</div>
+
+<script>
+window.onload = function() {
+document.getElementById('title-papers').className = 'active';
+};
+</script>
+
+<div class="container-fluid">
+<div class="row-fluid">
+<div class="span3 hidden-print">
+<div class="well sidebar-nav" data-spy="affix">
+<ul class="nav nav-list">
+
+<li class="sidebar-nav-header">Related</li>
+<li><a href="http://www.di.ens.fr/ParkasTeam.html">PARKAS Team</a></li>
+
+<li class="sidebar-nav-header">Papers</li>
+<li><a href="#HSCC2014">HSCC 2014</a></li>
+<li><a href="#HSCC2013">HSCC 2013</a></li>
+<li><a href="#JCSS2012">JCSS 2012</a></li>
+<li><a href="#EMSOFT2011">EMSOFT 2011</a></li>
+<li><a href="#LCTES2011">LCTES 2011</a></li>
+<li><a href="#CDC2010">CDC 2010</a></li>
+</ul>
+</div><!--/.well -->
+</div><!--/span-->
+<div class="span9 maintext">
+
+<h1>Publications</h1>
+
+<p>
+The <a href="#CDC2010">CDC 2010</a> and <a href="#JCSS2012">JCSS 2012</a>
+papers focus on the semantics of hybrid modelers.
+The <a href="#LCTES2011">LCTES 2011</a> and <a href="#EMSOFT2011">EMSOFT
+2011</a> papers describe the type system and compilation rules; the
+former addresses a basic dataflow language while the latter shows how to
+introduce hybrid automata.
+The <a href="#HSCC2013">HSCC 2013</a> paper describes practical aspects of
+the language and its compiler.
+The <a href="#HSCC2014">HSCC 2014</a> paper outlines some challenges in
+the treatment of causality in hybrid modelers and presents a Lustre-like
+causality analysis for Zélus.
+</p>
+
+<hr/>
+
+<div class="bib">
+
+<dl>
+
+<dt>
+<a id="HSCC2014" class="biblink" name="HSCC2014">HSCC 2014</a>
+</dt>
+<dd>
+Albert Benveniste, Timothy Bourke, Benoit Caillaud, Bruno Pagano, and Marc
+  Pouzet.
+ A type-based analysis of causality loops in hybrid modelers.
+ In <em>17th International Conference on Hybrid Systems: Computation
+  and Control (HSCC'14)</em>, page to appear, Berlin, Germany, April 2014.<br />
+<span class="bibref"><a href="papers_bib.html#HSCC2014"><i class="icon-book"></i> bib</a></span>
+<span class="bibref"><a href="http://zelus.di.ens.fr/hscc2014/fullpaper.pdf"><i class="icon-file"></i> pdf</a></span>
+<div class="abstract"><p>
+
+	Explicit hybrid systems modelers like <em>Simulink/Stateflow</em>
+	allow for programming both discrete- and continuous-time behaviors
+	with complex interactions between them.  A key issue in their
+	compilation is the static detection of algebraic or <em>causality</em>
+	loops. Such loops can cause simulations to deadlock and prevent the
+	generation of statically scheduled code.</p><p>
+	This paper addresses this issue for a hybrid modeling language that
+	combines synchronous data-flow equations with Ordinary Differential
+	Equations (ODEs).  We introduce the operator <em>x</em> for the
+	left-limit of a signal <em>x</em>.  This operator is used to break
+	causality loops and permits a uniform treatment of discrete and
+	continuous state variables. The semantics relies on non-standard
+	analysis, defining an execution as a sequence of infinitesimally
+	small steps.  A signal is deemed <em>causally correct</em> when it can
+	be computed sequentially and only changes infinitesimally outside of
+	announced discrete events like zero-crossings.  The causality
+	analysis takes the form of a type system that expresses dependences
+	between signals. In well-typed programs, signals are provably
+	continuous during integration provided that imported external
+	functions are also continuous.</p><p>
+	The effectiveness of this system is illustrated with several
+	examples written in Zélus, a Lustre-like synchronous language
+	extended with hierarchical automata and ODEs.
+  
+</p></div>
+
+</dd>
+
+
+<dt>
+<a id="HSCC2013" class="biblink" name="HSCC2013">HSCC 2013</a>
+</dt>
+<dd>
+Timothy Bourke and Marc Pouzet.
+ Zélus: A synchronous language with ODEs.
+ In <em>16th International Conference on Hybrid Systems: Computation
+  and Control (HSCC'13)</em>, pages 113-118, Philadelphia, USA, March 2013.<br />
+<span class="bibref"><a href="papers_bib.html#HSCC2013"><i class="icon-book"></i> bib</a></span>
+<span class="bibref"><a href="http://www.di.ens.fr/~pouzet/bib/hscc13.pdf"><i class="icon-file"></i> pdf</a></span>
+<div class="abstract"><p>
+
+	Zélus is a new programming language for modeling systems that
+	mix discrete logical time and continuous time behaviors. From a
+	user's perspective, its main originality is to extend an existing
+	Lustre-like synchronous language with Ordinary Differential
+	Equations (ODEs). The extension is conservative: any synchronous
+	program expressed as data-flow equations and hierarchical automata
+	can be composed arbitrarily with ODEs in <em>the same source code</em>.</p><p>
+	A dedicated type system and causality analysis ensure that all
+	discrete changes are aligned with zero-crossing events so that no
+	side effects or discontinuities occur during integration. Programs
+	are statically scheduled and translated into sequential code that,
+	by construction, runs in bounded time and space. Compilation is
+	effected by source-to-source translation into a small synchronous
+	subset which is processed by a standard synchronous compiler
+	architecture. The resultant code is paired with an off-the-shelf
+	numeric solver.</p><p>
+	We show that it is possible to build a modeler for explicit hybrid
+	systems <em>à la Simulink/Stateflow</em> on top of an existing
+	synchronous language, using it both as a semantic basis and as a
+	target for code generation.
+  
+</p></div>
+
+</dd>
+
+
+<dt>
+<a id="JCSS2012" class="biblink" name="JCSS2012">JCSS 2012</a>
+</dt>
+<dd>
+Albert Benveniste, Timothy Bourke, Benoit Caillaud, and Marc Pouzet.
+ Non-standard semantics of hybrid systems modelers.
+ <em>Journal of Computer and System Sciences</em>, 78:877-910, May 2012.<br />
+<span class="bibref"><a href="papers_bib.html#JCSS2012"><i class="icon-book"></i> bib</a></span>
+<span class="bibref"><a href="http://dx.doi.org/10.1016/j.jcss.2011.08.009"><i class="icon-globe"></i> DOI</a></span>
+<span class="bibref"><a href="http://www.di.ens.fr/~pouzet/bib/jcsspaper.pdf"><i class="icon-file"></i> pdf</a></span>
+<div class="abstract"><p>
+
+      Hybrid system modelers have become a corner stone of complex embedded
+      system development. Embedded systems include not only control components
+      and software, but also physical devices. In this area, Simulink is a de
+      facto standard design framework, and Modelica a new player. However, such
+      tools raise several issues related to the lack of reproducibility of
+      simulations (sensitivity to simulation parameters and to the choice of
+      a simulation engine).</p><p>
+      In this paper we propose using techniques from <em>non-standard
+      analysis</em> to define a semantic domain for hybrid systems. Non-standard
+      analysis is an extension of classical analysis in which infinitesimal
+      (the &#603; and &eta; in the celebrated generic sentence
+       for all &#603; there exists &eta;... of college maths) can be
+      manipulated as first class citizens. This approach allows us to define
+      both a denotational semantics, a constructive semantics, and a Kahn
+      Process Network semantics for hybrid systems, thus establishing
+      simulation engines on a sound but flexible mathematical foundation.
+      These semantics offer a clear distinction between the concerns of the
+      numerical analyst (solving differential equations) and those of the
+      computer scientist (generating execution schemes).</p><p>
+      We also discuss a number of practical and fundamental issues in hybrid
+      system modelers that give rise to non reproducibility of results,
+      nondeterminism, and undesirable side effects. Of particular importance
+      are cascaded mode changes (also called &ldquo;zero-crossings&rdquo; in the
+      context of hybrid systems modelers).
+  
+</p></div>
+
+</dd>
+
+
+<dt>
+<a id="EMSOFT2011" class="biblink" name="EMSOFT2011">EMSOFT 2011</a>
+</dt>
+<dd>
+Albert Benveniste, Timothy Bourke, Benoit Caillaud, and Marc Pouzet.
+ A hybrid synchronous language with hierarchical automata: Static
+  typing and translation to synchronous code.
+ In <em>ACM SIGPLAN/SIGBED Conference on Embedded Software
+  (EMSOFT'11)</em>, Taipei, Taiwan, October 2011.<br />
+<span class="bibref"><a href="papers_bib.html#EMSOFT2011"><i class="icon-book"></i> bib</a></span>
+<span class="bibref"><a href="http://dx.doi.org/10.1145/2038642.2038664"><i class="icon-globe"></i> DOI</a></span>
+<span class="bibref"><a href="http://www.di.ens.fr/~pouzet/bib/emsoft11.pdf"><i class="icon-file"></i> pdf</a></span>
+<div class="abstract"><p>
+
+      Hybrid modeling tools such as Simulink have evolved from simulation
+      platforms into development platforms on which simulation, testing,
+      formal verification and code generation are performed. It is thus
+      critical to place them on a firm semantical basis where it can be
+      proven that the results of simulation, compilation and
+      verification are mutually consistent. Synchronous languages have
+      addressed these issues but only for discrete systems. They cannot
+      be used to model hybrid systems with both efficiency and
+      precision.</p><p>
+      Following the approach of Benveniste et al., we present the design of
+      a hybrid modeler built from a synchronous language and an
+      off-the-shelf numerical solver.  The main novelty is a language which
+      includes control structures, such as hierarchical automata, for both
+      continuous and discrete contexts.  These constructs can be arbitrarily
+      mixed with data-flow and ordinary differential equations (ODEs).  A
+      type system is required to statically ensure that all discrete state
+      changes are aligned with zero-crossing events and that the function
+      passed to the numerical solver is free of side-effects during
+      integration. We show that well-typed programs can be compiled through
+      a source-to-source translation into synchronous code which is then
+      translated into sequential code using an existing synchronous language
+      compiler.</p><p>
+      Based on the presented material, a compiler for a new synchronous
+      language with hybrid features has been developed. We demonstrate its
+      effectiveness on some examples.
+  
+</p></div>
+
+</dd>
+
+
+<dt>
+<a id="LCTES2011" class="biblink" name="LCTES2011">LCTES 2011</a>
+</dt>
+<dd>
+Albert Benveniste, Timothy Bourke, Benoit Caillaud, and Marc Pouzet.
+ Divide and recycle: types and compilation for a hybrid synchronous
+  language.
+ In <em>ACM SIGPLAN/SIGBED Conference on Languages, Compilers, Tools
+  and Theory for Embedded Systems (LCTES'11)</em>, Chicago, USA, April 2011.<br />
+<span class="bibref"><a href="papers_bib.html#LCTES2011"><i class="icon-book"></i> bib</a></span>
+<span class="bibref"><a href="http://dx.doi.org/10.1145/1967677.1967687"><i class="icon-globe"></i> DOI</a></span>
+<span class="bibref"><a href="http://www.di.ens.fr/~pouzet/bib/lctes11.pdf"><i class="icon-file"></i> pdf</a></span>
+<div class="abstract"><p>
+
+      Hybrid modelers such as Simulink have become corner stones of embedded
+      systems development. They allow both <em>discrete</em> controllers
+      and their <em>continuous</em> environments to be expressed <em>in
+      a single language</em>. Despite the availability of such tools,
+      there remain a number of issues related to the lack of reproducibility
+      of simulations and to the separation of the continuous part, which
+      has to be exercised by a numerical solver, from the discrete part,
+      which must be guaranteed not to evolve during a step.</p><p>
+      Starting from a minimal, yet full-featured, Lustre-like synchronous
+      language, this paper presents a conservative extension where data-flow
+      equations can be mixed with ordinary differential equations (ODEs)
+      with possible reset. A type system is proposed to statically
+      distinguish discrete computations from continuous ones and to ensure
+      that signals are used in their proper domains. We propose a semantics
+      based on <em>non-standard analysis</em> which gives a synchronous
+      interpretation to the whole language, clarifies the
+      discrete/continuous interaction and the treatment of zero-crossings,
+      and also allows the correctness of the type system to be established.</p><p>
+      The extended data-flow language is realized through a source-to-source
+      transformation into a synchronous subset, which can then be compiled
+      using existing tools into routines that are both efficient and bounded
+      in their use of memory. These routines are orchestrated with a single
+      off-the-shelf numerical solver using a simple but precise algorithm
+      which treats causally-related cascades of zero-crossings. We have
+      validated the viability of the approach through experiments with the
+      SUNDIALS library.
+  
+</p></div>
+
+</dd>
+
+
+<dt>
+<a id="CDC2010" class="biblink" name="CDC2010">CDC 2010</a>
+</dt>
+<dd>
+Albert Benveniste, Benoit Caillaud, and Marc Pouzet.
+ The fundamentals of hybrid systems modelers.
+ In <em>49th IEEE International Conference on Decision and Control
+  (CDC)</em>, Atlanta, Georgia, USA, December 2010.<br />
+<span class="bibref"><a href="papers_bib.html#CDC2010"><i class="icon-book"></i> bib</a></span>
+<span class="bibref"><a href="http://dx.doi.org/10.1109/CDC.2010.5717614"><i class="icon-globe"></i> DOI</a></span>
+<span class="bibref"><a href="http://www.di.ens.fr/~pouzet/bib/cdc10.pdf"><i class="icon-file"></i> pdf</a></span>
+<div class="abstract"><p>
+
+      Hybrid systems modelers have become the corner stone of embedded
+      system development, with Simulink a de facto standard and Modelica
+      a new player. Such tools still raise a number of issues that, we
+      believe, require more fundamental understanding.</p><p>
+     In this paper we propose using <em>non standard analysis</em> as a
+     semantic domain for hybrid systems - non standard analysis is an
+     extension of classical analysis in which infinitesimals (the
+     &#603; and &eta; in the celebrated generic sentence
+     for all &#603;. there exists &eta;... in college maths) can
+     be manipulated as first class citizens. This allows us to provide a
+     denotational semantics and a constructive semantics for hybrid systems,
+     thus establishing simulation engines on a firm mathematical basis. In
+     passing, we cleanly separate the job of the numerical analyst
+     (solving differential equations) from that of the computer
+     scientist (generating execution schemes).
+    
+</p></div>
+
+</dd>
+</dl></div>
+
+</div><!--/span-->
+</div><!--/row-->
+</div><!--/.fluid-container-->
+
+
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="./js/jquery.js"></script>
+<script src="./js/bootstrap.min.js"></script>
+
+<script>
+$(".accordion-body").each(function() {
+    $(this).addClass("collapse");
+  })
+
+$(document).ready(function () {
+  $('.accordion').on('shown hidden', function () {
+    $('body').scrollspy('refresh');
+  });
+});
+</script>
+
+</body>
+</html>

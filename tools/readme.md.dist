@@ -1,0 +1,38 @@
+# Zélus #
+
+This distribution includes the byte code of the Zélus compiler and the
+source code of several examples written in the Zélus language.
+
+Zélus is developed by Marc Pouzet and Timothy Bourke in the Inria/ENS team
+PARKAS.
+
+The license and authors of the Sundials solver can be found in
+sundialsml/sundials_license.
+
+Please contact us by email if you have any problems or questions:
+    Timothy.Bourke@inria.fr
+    Marc.Pouzet@ens.fr
+
+## Installation and use ##
+
+This software requires OCaml (v4.x):
+    http://caml.inria.fr/ocaml/
+
+Most of the examples also require lablgtk2 (2.16):
+    http://lablgtk.forge.ocamlcore.org/
+
+Basic instructions:
+    ./configure
+    make examples
+
+An error loading libsundials_cvode.so.1 can usually be corrected by running:
+    export LD_LIBRARY_PATH="`pwd`/sundialsml"
+
+Otherwise, the Sundials solver can be disabled by typing:
+    rm -rf sundialsml
+    cp lib-nosundials/* lib/
+    ./configure
+
+More details and descriptions of the examples are available online:
+    http://www.di.ens.fr/~pouzet/zelus
+

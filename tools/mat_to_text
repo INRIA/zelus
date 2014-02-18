@@ -1,0 +1,111 @@
+#!/usr/bin/python
+
+#
+# This script transforms .mat files, produced by the Simulink "To File" block,
+# into tab or comma separated text files.
+#
+# By default, it looks for a variable called "ans".
+#
+
+import sys
+import scipy.io
+import argparse
+
+## Parse command-line arguments
+
+parser = argparse.ArgumentParser(
+    description='Transform Simulink .mat files into text files.')
+
+parser.add_argument('files',
+    metavar='FILE',
+    nargs='+',
+    help='Files to transform (values are juxtaposed).')
+parser.add_argument('--titles',
+    dest='titles',
+    help="Comma separated list of column titles.")
+parser.add_argument('--csv',
+    dest='delim',
+    action='store_const',
+    const=',',
+    default='\t',
+    help='Use commas rather than tabs to delimit columns.')
+parser.add_argument('--var',
+    dest='var',
+    default='ans',
+    help="Name of variable to extract (default='ans').")
+parser.add_argument('--keepalltimes',
+    dest='skip_time',
+    action='store_false',
+    help="Do not truncate the first column from additional files.")
+parser.add_argument('--notranspose',
+    dest='transpose',
+    action='store_false',
+    help="Do not transpose the variable.")
+
+args = parser.parse_args()
+delim = args.delim
+
+## Do work
+
+n = None
+anss = []
+ncols = 0
+for filename in args.files:
+    mat = scipy.io.loadmat(filename)
+
+    if args.var not in mat.keys():
+        sys.stderr.write("The variable '%s' could not be found in %s.\n"
+                         % (args.var, filename))
+        sys.stderr.write("(%s)\n" % ", ".join(mat.keys()))
+        sys.exit(2)
+
+    if args.transpose:
+        ans = mat[args.var].transpose()
+    else:
+        ans = mat[args.var]
+    (nt, nf) = ans.shape
+
+    if n and (nt != n):
+        sys.stderr.write(
+            "The first file contains %d rows, but '%s' contains %d!\n" %
+            (n, filename, nt))
+        sys.exit(1)
+    else:
+        n = nt
+
+    ncols += nf - 1
+    anss.append((filename, ans))
+
+if args.titles:
+    titles = args.titles.split(",")
+    if len(titles) != ncols:
+        sys.stderr.write("There are %d columns but %d column titles!\n" %
+                         (ncols, len(titles)))
+        sys.exit(2)
+else:
+    titles = [ "" for x in range(0, ncols) ]
+
+titles.insert(0, "time")
+print delim.join(map (lambda s: '"%s"' % s, titles))
+
+for i in range(0, n):
+    vs = []
+    
+    skip_time = False
+    for (filename, ans) in anss:
+        ansl = ans[i].tolist()
+
+        if skip_time:
+            if ansl[0] != time:
+                sys.stderr.write("The time value at %s line %d (%.15e) does not equal %.15e!\n"
+                                    % (filename, i, ansl[1], time));
+                sys.exit(3)
+            vs.extend(ansl[1:])
+        else:
+            vs.extend(ansl)
+
+        time = ansl[0]
+        skip_time = args.skip_time
+
+    print (delim.join(map(lambda s: "%0.15e" % s, vs)))
+

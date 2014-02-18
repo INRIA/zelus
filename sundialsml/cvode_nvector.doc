@@ -1,0 +1,40 @@
+(** Abstract nvector interface to the CVODE Solver
+
+  Nvectors can be created for an {!Nvector.Mutable} or {!Nvector.Immutable}
+  data type by providing a set of low-level operations which are called by
+  the solver.
+
+  @version VERSION()
+  @author Timothy Bourke (INRIA)
+  @author Marc Pouzet (LIENS)
+ *)
+
+(**
+    This type represents a session with the CVODE solver using
+    {!Nvector.nvector}s.
+
+    A skeleton of the main program:
+    + {b Set vector of initial values}
+    {[let y = Nvector_array.wrap [| 0.0; 0.0; 0.0 |] ]}
+    The length of this vector determines the problem size.    
+    + {b Create and initialize a solver session}
+    {[let s = Cvode.init Cvode.Adams Cvode.Functional f (2, g) y]}
+    This will initialize a specific linear solver and the root-finding
+    mechanism, if necessary.
+    + {b Specify integration tolerances (optional)}, e.g.
+    {[ss_tolerances s reltol abstol]}
+    + {b Set optional inputs}, e.g.
+    {[set_stop_time s 10.0; ...]}
+    Call any of the [set_*] functions to change solver parameters from their
+    defaults.
+    + {b Advance solution in time}, e.g.
+    {[let (t', result) = Cvode.normal s !t y in
+...
+t := t' + 0.1]}
+    Repeatedly call either [normal] or [one_step] to advance the simulation.
+    + {b Get optional outputs}
+    {[let stats = get_integrator_stats s in ...]}
+    Call any of the [get_*] functions to examine solver statistics.
+
+    @cvode <node5#ss:skeleton_sim> Skeleton of main program
+ *)

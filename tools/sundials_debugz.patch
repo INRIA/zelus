@@ -1,0 +1,105 @@
+--- src/cvode/cvode.c.orig	2012-06-23 20:27:49.145474230 +1000
++++ src/cvode/cvode.c	2012-06-25 09:20:56.333556935 +1000
+@@ -16,6 +16,8 @@
+  * -----------------------------------------------------------------
+  */
+ 
++int debugz = 1; // 1 = enable debugging printfs
++
+ /*=================================================================*/
+ /*             Import Header Files                                 */
+ /*=================================================================*/
+@@ -3629,6 +3631,7 @@
+   zroot = FALSE;
+   for (i = 0; i < nrtfn; i++) {
+     if (ABS(glo[i]) == ZERO) {
++      if (debugz) printf("CVRcheck1: glo[%d]=%.24e.\n", i, glo[i]);
+       zroot = TRUE;
+       gactive[i] = FALSE;
+     }
+@@ -3636,6 +3639,7 @@
+   if (!zroot) return(CV_SUCCESS);
+ 
+   /* Some g_i is zero at t0; look at g at t0+(small increment). */
++  if (debugz) printf("CVRcheck1: checking g at t0+(small increment).\n");
+   hratio = MAX(ttol/ABS(h), TENTH);
+   smallh = hratio*h;
+   tlo += smallh;
+@@ -3769,6 +3773,7 @@
+ 
+   ttol = (ABS(tn) + ABS(h))*uround*HUN;
+   ier = CVRootfind(cv_mem);
++  fflush(stdout);
+   if (ier == CV_RTFUNC_FAIL) return(CV_RTFUNC_FAIL);
+   for(i=0; i<nrtfn; i++) {
+     if(!gactive[i] && grout[i] != ZERO) gactive[i] = TRUE;
+@@ -3870,11 +3875,15 @@
+ 
+   imax = 0;
+ 
++  if (debugz) printf("z|\nz|---------- find(%.24e, %.24e)----------\n", tlo, thi);
++
+   /* First check for change in sign in ghi or for a zero in ghi. */
+   maxfrac = ZERO;
+   zroot = FALSE;
+   sgnchg = FALSE;
+   for (i = 0;  i < nrtfn; i++) {
++    if (debugz) printf("z| g[% 2d]: % .24e --> % .24e\n", i, glo[i], ghi[i]);
++
+     if(!gactive[i]) continue;
+     if (ABS(ghi[i]) == ZERO) {
+       if(rootdir[i]*glo[i] <= ZERO) {
+@@ -3897,7 +3906,9 @@
+   if (!sgnchg) {
+     trout = thi;
+     for (i = 0; i < nrtfn; i++) grout[i] = ghi[i];
+-    if (!zroot) return(CV_SUCCESS);
++    if (!zroot) {
++	return(CV_SUCCESS);
++    }
+     for (i = 0; i < nrtfn; i++) {
+       iroots[i] = 0;
+       if(!gactive[i]) continue;
+@@ -3913,7 +3924,6 @@
+ 
+   side = 0;  sideprev = -1;
+   loop {                                    /* Looping point */
+-
+     /* Set weight alpha.
+        On the first two passes, set alpha = 1.  Thereafter, reset alpha
+        according to the side (low vs high) of the subinterval in which
+@@ -3979,7 +3989,11 @@
+       for (i = 0; i < nrtfn; i++) ghi[i] = grout[i];
+       side = 1;
+       /* Stop at root thi if converged; otherwise loop. */
+-      if (ABS(thi - tlo) <= ttol) break;
++      if (ABS(thi - tlo) <= ttol) {
++          if (debugz) printf("z| too small at %.24e (< %.24e)\n", thi, ttol);
++	  break;
++      }
++      if (debugz) printf("z| (%.24e -- %.24e]   %.24e\n", tlo, tmid, thi);
+       continue;  /* Return to looping point. */
+     }
+ 
+@@ -3987,6 +4001,7 @@
+       /* No sign change in (tlo,tmid), but g = 0 at tmid; return root tmid. */
+       thi = tmid;
+       for (i = 0; i < nrtfn; i++) ghi[i] = grout[i];
++      if (debugz) printf("z|  %.24e   [%.24e]   %.24e\n", tlo, tmid, thi);
+       break;
+     }
+ 
+@@ -3996,8 +4011,12 @@
+     for (i = 0; i < nrtfn; i++) glo[i] = grout[i];
+     side = 2;
+     /* Stop at root thi if converged; otherwise loop back. */
+-    if (ABS(thi - tlo) <= ttol) break;
++    if (ABS(thi - tlo) <= ttol) {
++        if (debugz) printf("z| too small at %.24e (< %.24e)\n", thi, ttol);
++	break;
++    }
+ 
++    if (debugz) printf("z|  %.24e   (%.24e -- %.24e]\n", tlo, tmid, thi);
+   } /* End of root-search loop */
+ 
+   /* Reset trout and grout, set iroots, and return RTFOUND. */

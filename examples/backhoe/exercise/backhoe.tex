@@ -1,0 +1,311 @@
+% vim:nojs:spelllang=en_us tw=76 sw=4 sts=4 fo+=awn fmr={-{,}-} et ts=8
+% COMP3241/9245 Esterel Component---Lab 2
+% (Adapted for Zélus)
+%
+% 20051025 T.Bourke
+%     Created original document
+%
+% 20120412 T.Bourke
+%     Updated for Zélus.
+\documentclass[12pt]{article}
+
+%{-{1 Preamble
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[
+    pdfborder={0 0 0},
+    pdfauthor={Timothy Bourke},
+    pdftitle ={Backhoe Lab Exercise}
+    pdfsubject={Real-time programming}
+    pdfkeywords={synchronous languages, real-time, programming}
+]{hyperref}
+\usepackage{alltt}
+\usepackage{graphicx}
+\usepackage[top=25mm,bottom=25mm]{geometry}
+
+\usepackage{tikz}
+\usetikzlibrary{calc,positioning}
+
+\setlength{\parindent}{0em}
+\setlength{\parskip}{1ex plus 1pt minus 1pt}
+
+\newcounter{task}
+\newcommand{\nexttask}[1]{%
+	\addtocounter{task}{1}%
+	\textbf{\large{}Task \thetask: #1\ }\rule{0em}{4ex}}
+
+\newenvironment{commands}%
+	{\hfill\begin{minipage}{.9\textwidth}\begin{alltt}}
+	{\end{alltt}\end{minipage}\hfill\newline}
+
+% 1 - width (e.g., .95\textwidth); 2 - image name/path
+\newenvironment{hgraphicscope}[2]
+  {
+    \node[anchor=south west,inner sep=0] (image) at (0,0)
+       {\includegraphics[width=#1]{#2}};
+    \begin{scope}
+    \clip (image.south west) rectangle (image.north east);
+    \path let \p1=(image.south east) in (\y1, \x1) coordinate (ylimit);
+    \end{scope}
+    \begin{scope}[x={(image.south east)},y={(ylimit)},scale=0.1,]
+  }
+  {
+    \end{scope}
+  }
+
+%--   }-}1%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\begin{center}\bfseries
+\LARGE{Backhoe loader exercises}
+\end{center}
+
+This lab consists of a series of programming exercises designed to increase 
+familiarity and understanding of synchronous dataflow programming.
+The example considered is a simplified backhoe loader.
+
+The sections marked optional are more difficult.
+They are recommended for students who find the other exercises easy.
+
+\nexttask{Understanding the interface specification} %{-{1
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}%{-{2
+\begin{hgraphicscope}{.95\textwidth}{backhoe_loader}
+    \tikzset{every path/.style={line width=2,dashed,color=black,line cap=round},
+             every node/.style={font=\ttfamily\footnotesize, inner sep=1}}
+    %\draw[help lines,xstep=1,ystep=1] (0,0) grid (image.north east);
+
+    \draw
+        (5.4,.7) -- +(0,1) node[above] {boom\_in}
+        +(0,0) -- +(.5,-.5) node[right] {boom\_out}
+        ;
+    \draw
+        (7.6,2.2) -- +(.6,.3) node[above] {stick\_in}
+        +(0,0) -- +(-.15,-.7) node[below] {stick\_out}
+        ;
+    \draw
+        (9.27,1.67) -- +(.9,-.05) node[above left=.02 and -.02] {bucket\_in}
+        +(0,0) -- +(-.55,-.65) node[below] {bucket\_out}
+        ;
+    \draw
+        (4.7,0.27) node (legsin) {} -- +(0.4,0)
+        ++(0,-.27) node (legsout) {} -- +(0.4,0)
+        ;
+    \draw[thick,solid]
+        (legsin) -- ++(-.45,-.45) -- +(-.2,0) node [left] {legs\_in}
+        (legsout) -- ++(-.45,-.45) -- +(-.2,0) node [left] {legs\_out}
+        ;
+    \draw[thick,solid]
+        (4.05,1.65) -- +(-1.5,.6)
+            node[left,align=center]
+            {stop\_button \\ extend\_button \\ retract\_button}
+        ;
+    \path[thick,solid,draw=black,fill=lightgray]
+        (9.8,-0.15) circle (.3)
+        node [left=.035] {second}
+        +(0,0) -- +(110:.24)
+        +(0,0) -- +(-30:.20)
+        ;
+\end{hgraphicscope}
+\end{tikzpicture}%}-}2$
+\caption{Backhoe Loader input signals\label{fig:backhoe}}
+\end{figure}
+
+Backhoe loaders are essentially tractors fitted with a loader unit at front, 
+and a backhoe at rear~\cite{BrainHar:BackhoeLoaders}.
+The backhoe consists of three segments: the \emph{boom}, \emph{stick} and 
+\emph{bucket}.
+Drivers are able to swivel their seats and coordinate the segments using 
+joystick controls.
+
+In this lab we will program a prototype sequencing controller to automate 
+some aspects of backhoe operation.
+The controller will receive input from the 12 signals shown in 
+Figure~\ref{fig:backhoe}.
+Each segment is fitted with two sensors, one triggered when the piston 
+driving the segment is at its minimum (\texttt{$\ast$\_in}), the other when 
+at its maximum (\texttt{$\ast$\_out}).
+Similar sensors exist for a pair of stabilizing legs.
+The cabin is fitted with three buttons, \emph{stop}, \emph{extend}, and 
+\emph{retract}.
+A signal is associated with each.
+The controller also receives a timer input, \texttt{second}, at regular 
+intervals.
+
+\begin{figure}\centering
+    \begin{tabular}{llll}
+            \texttt{boom\_push} & \texttt{boom\_pull}
+                                    & \texttt{boom\_drive} \\
+            \texttt{stick\_push} & \texttt{stick\_pull}
+                                    & \texttt{stick\_drive} \\
+            \texttt{bucket\_push} & \texttt{bucket\_pull}
+                                    & \texttt{bucket\_drive} \\
+            \texttt{legs\_extend} & \texttt{legs\_retract}
+                                    & \texttt{legs\_stop} \\
+            \texttt{alarm\_lamp(bool)} & \texttt{done\_lamp(bool)}
+                                    & \texttt{cancel\_lamp(bool)}
+    \end{tabular}
+    \caption{Backhoe Loader output signals\label{fig:outputs}}
+\end{figure}
+
+The controller is fitted with the 15 output signals summarized in 
+Figure~\ref{fig:outputs}.
+The segments are fitted with hydraulic pistons that either push or pull 
+depending on the position of an internal valve.
+The controller can position the valve by emitting either a 
+\texttt{$\ast$\_push} or \texttt{$\ast$\_pull} signal (the effect of 
+simultaneous emission is undefined).
+Segments move clockwise when pushed by the hydraulics, and counter-clockwise 
+when pulled.
+Each segment has a closed-loop controller that, by default, holds it in 
+fixed position, or, when a \texttt{$\ast$\_drive} signal is true, moves it 
+at constant speed.
+Motion ceases as soon as a signal becomes absent.
+The legs operate differently.
+The \texttt{legs\_extend} and \texttt{legs\_retract} signals start the legs 
+moving until they are out or in, respectively.
+This movement may be canceled at any time with the \texttt{legs\_stop} 
+signal.
+Three lamps, \emph{alarm}, \emph{done}, and \emph{cancel}, in the cabin are 
+switched on and off by logical (true/false) signals.
+
+%--   }-}1%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\nexttask{Running the backhoe simulation} %{-{1
+
+The simulation comprises a number of files:
+
+\begin{tabular}{ll}
+    \texttt{backhoegui.*} &
+        displays the system state \\
+
+    \texttt{backhoedyn.ls} &
+        describes the backhoe dynamics (the plant) \\
+
+    \texttt{backhoecontrol.ls} &
+        contains the discrete controller\\
+\end{tabular}
+
+\noindent
+The controller is implemented in \texttt{backhoecontrol.ls}.
+It is compiled and linked with the other modules by typing \verb+make+.
+
+When the resulting binary is executed, it displays the control and 
+simulation windows.
+The simulation window displays the backhoe and, at top-left, the Backhoe 
+Loader and cabin interface (buttons and indicator lamps).
+The control window contains buttons for pausing and stepping the simulation.
+A simulation can be paused initially by executing the binary with the 
+\verb+-pause+ option.
+
+%--   }-}1%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\nexttask{Extending the stick, then the bucket} %{-{1
+
+Implement a simple controller (in \texttt{backhoecontrol.ls}) that first 
+extends the \emph{stick} segment, and then the \emph{bucket} segment.
+The segments must not be in motion simultaneously.
+The \emph{done} lamp should be illuminated when the movements are complete.
+
+%--   }-}1%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\nexttask{Retracting the stick and bucket together} %{-{1
+
+Modify the previous program so that (only) after the \emph{stick} and 
+\emph{bucket} are fully extended, pushing the \emph{retract} button causes 
+both to be retracted simultaneously.
+The \emph{done} lamp should \emph{not} be illuminated while the backhoe is 
+moving, but should come on again as soon as the motion is complete.
+
+%--   }-}1%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\nexttask{Flashing light during movement} %{-{1
+
+Modify the previous program so that the \emph{alarm} light blinks on and off 
+with a period of two seconds whenever the backhoe is moving.
+
+%--   }-}1%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\nexttask{Leg Control} %{-{1
+
+Create a copy of the previous file, and start a new program.
+Allow the three buttons to control leg movement directly, i.e., pressing 
+\emph{extend} should start lowering the legs, \emph{stop} should stop them, 
+and \emph{retract} should cause them to lift.
+The controller should illuminate the \emph{done} lamp and halt if/when the 
+legs are fully extended.
+
+\textbf{Optionally:}
+You can assume that the legs are always raised when the controller starts.
+It should now be possible for the operator to raise, stop and lower the legs 
+any number of times.
+To avoid strain on the equipment, it is desirable to ensure that the legs 
+are fully lowered within 10 seconds of the extend button having been pressed 
+for the first time.
+
+Add a watchdog timer in parallel to the leg control loop.
+If, after 10 seconds have elapsed, the legs are not fully extended the alarm 
+lamp should be illuminated and the legs should be completely raised, they 
+should then be held for a further 5 seconds before the alarm lamp is 
+switched off and normal operation resumes---all operator
+input is to be ignored during the alarm period.
+The watchdog timer can be reset each time the legs are fully extended or 
+retracted.
+
+%--   }-}1%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\nexttask{Dig your own hole} %{-{1
+
+Enhance the previous program.
+Pressing \emph{extend} once the legs have been lowered should result in a 
+series of movements:
+\begin{enumerate}
+\item Raise the \emph{stick} and \emph{bucket}.
+\item Then, completely lower the \emph{boom} (into the ground).
+\item Then, retract both the \emph{stick} and \emph{bucket}.
+\item Wait for operator to press \emph{retract}.
+\item Bring the \emph{boom} back into the starting position.
+\end{enumerate}
+
+During the first two steps pushing the \emph{retract} button should 
+illuminate the \emph{cancel} lamp and retract all three segments 
+(simultaneously) to the starting position.
+The other buttons may be ignored during the retraction sequence.
+The \emph{retract} button is to be ignored in steps 3 and 5.
+
+Pressing the \emph{stop} button at any time should halt all movement.
+The interrupted motion should resume when the button is pressed a second 
+time.
+The \emph{alarm} lamp should be illuminated during such interruptions, and 
+the other buttons may be ignored.
+
+The \emph{done} lamp should only be illuminated when the backhoe is 
+stationary and the controller is waiting for operator input.
+It should not, however, be illuminated when in the leg movement mode.
+
+After the backhoe returns to the starting position, the buttons should 
+control the legs again, as per the previous task.
+At this stage all of the lamps should be dimmed.
+The digging motion may be resumed when the legs are fully lowered, i.e., 
+pressing \emph{extend} once would illuminate the \emph{done} lamp and 
+pressing it again would start the movement sequence.
+
+\textbf{Optionally:} Flash the \emph{cancel} lamp as the three segments are 
+being retracted.
+
+\textbf{Optionally:} The controller is damaging the valve seals by applying 
+the throttle too soon after the direction has been changed.
+Have the controller pause for at least three seconds between changing the 
+valve direction and applying the drive signal so as to increase the 
+longevity of the prototype equipment.
+\textbf{warning:} Minimizing the delay is quite challenging (i.e. time 
+consuming) if one considers interactions with the stopping feature, and 
+`expectant' direction changes.
+
+\textbf{Reflection:} Consider the issues/work involved if implementing the 
+same behavior using an explicit (flat) Finite State Machine or a C program.
+
+%--   }-}1%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\bibliography{backhoe}
+\bibliographystyle{abbrv}
+
+\end{document}

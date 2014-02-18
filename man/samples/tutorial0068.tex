@@ -1,0 +1,12 @@
+% ../compiler/zlc.byte -I ../lib -I ./samples  	-i samples/tutorial0068.ls (2)
+\runverbatimfalse
+\setrunverbatimcmd{zlc.byte -i \runverbatimfile}
+\begin{RunVerbatimMsg}
+type event   =  | Simple  | Double
+\end{RunVerbatimMsg}
+\begin{RunVerbatimErr}
+File "tutorial.ls", line 9, characters 14-26:
+>        else (counting top = 4) then do emit o = Simple in Await
+>              ^^^^^^^^^^^^
+The value name counting is unbound (may need a 'rec').
+\end{RunVerbatimErr}
