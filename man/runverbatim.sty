@@ -52,7 +52,7 @@
 \DeclareStringOption{subdir}
 \DeclareStringOption[runverbatim]{prefix}
 \DeclareStringOption[.ml]{ext}
-\DeclareStringOption[\$]{prompt}
+\DeclareStringOption[\#]{prompt}
 \DeclareStringOption[ocamlc]{compiler}
 \DeclareStringOption{compilerflags}
 \DeclareStringOption[-i]{lastflags}
@@ -62,7 +62,7 @@
 \newwrite\RVRB@samplefile
 \openout\RVRB@samplefile=\jobname.rvrb
 \AtEndDocument{\closeout\RVRB@samplefile}
-\write\RVRB@samplefile{subdir=\RVRB@subdir}
+\write\RVRB@samplefile{subdir=\RVRB@subdir/}
 \write\RVRB@samplefile{prefix=\RVRB@prefix}
 \write\RVRB@samplefile{ext=\RVRB@ext}
 \write\RVRB@samplefile{compiler=\RVRB@compiler}
@@ -98,7 +98,7 @@
 
 \define@key{RVRB@envkeys}{fail}[]{\RVRB@shouldfailtrue}
 \define@key{RVRB@envkeys}{label}{\edef\RVRB@label{#1}}
-\define@key{RVRB@envkeys}{noskip}[]{\edef\RVRB@verbopts{\RVRB@verbopts,firstline=1}}
+\define@key{RVRB@envkeys}{skipnone}[]{\edef\RVRB@verbopts{\RVRB@verbopts,firstline=1}}
 \define@key{RVRB@envkeys}{skipone}[]{\edef\RVRB@verbopts{\RVRB@verbopts,firstline=2}}
 \define@key{RVRB@envkeys}{skiptwo}[]{\edef\RVRB@verbopts{\RVRB@verbopts,firstline=3}}
 \define@key{RVRB@envkeys}{hide}[]{\RVRB@showcodefalse}
@@ -123,11 +123,10 @@
         \ifnum\value{runverbatim}<10   0\fi
         \arabic{runverbatim}}%
     \stepcounter{runverbatim}%
-    \def\RVRB@file{\RVRB@subdir\RVRB@prefix\RVRB@num}%
+    \def\RVRB@file{\RVRB@subdir/\RVRB@prefix\RVRB@num}%
     \global\let\runverbatimcmd\@undefined%
     \global\let\FV@SV@RunVerbatimMsg\@undefined%
     \global\let\FV@SV@RunVerbatimErr\@undefined%
-    \global\let\FV@SV@RunVerbatimOut\@undefined%
     \runverbatimtrue%
     \setbox\@tempboxa\hbox\bgroup%
     \lst@BeginWriteFile{\RVRB@file\RVRB@ext}%
@@ -182,7 +181,6 @@
         \global\let\runverbatimcmd\RVRB@none
         \global\let\runverbatimmsg\RVRB@none
         \global\let\runverbatimerr\RVRB@none
-        \global\let\runverbatimout\RVRB@none
     \fi
   }
 \makeatother

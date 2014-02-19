@@ -28,7 +28,16 @@ SUFFIX=.rvrb
 if [ $# -eq 0 ]; then
     INFILES=`ls *${SUFFIX}`
 else
-    INFILES=$@
+    for f in $@; do
+      case $f in
+      *${SUFFIX})
+	INFILES="$INFILES $f"
+	;;
+      *)
+	INFILES="$INFILES $f${SUFFIX}"
+	;;
+      esac
+    done
 fi
 
 ##
@@ -75,7 +84,7 @@ addopen() {
 
 	    setfilename of "$WITHOPEN" $filename
 	    if [ -n "$openfiles" ]; then
-		echo "$openfiles" > "$SUBDIR$of$EXT"
+		echo -n "$openfiles " > "$SUBDIR$of$EXT"
 		cat $SUBDIR$f$EXT >> "$SUBDIR$of$EXT"
 	    else
 		cat $SUBDIR$f$EXT > "$SUBDIR$of$EXT"

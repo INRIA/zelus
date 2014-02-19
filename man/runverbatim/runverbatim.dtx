@@ -117,12 +117,10 @@
 % code samples, often with accompanying compiler messages, giving the types 
 % or values of declarations, or errors explaining why certain declarations 
 % are invalid.
-% Packages like 
-% \texttt{fancyvrb}\footnote{\url{http://www.ctan.org/pkg/fancyvrb}} and 
-% \texttt{listings}\footnote{\url{http://www.ctan.org/pkg/listings}} are 
-% ideal for displaying code---this package extends them slightly to 
-% facilitate passing this same code through a compiler and displaying the 
-% results.
+% Packages like |fancyvrb|\footnote{\url{http://www.ctan.org/pkg/fancyvrb}} 
+% and |listings|\footnote{\url{http://www.ctan.org/pkg/listings}} are ideal 
+% for displaying code---this package extends them slightly to facilitate 
+% passing this same code through a compiler and displaying the results.
 % While it does not focus on a specific programming language, it is intended 
 % to work well with ML-like languages.
 %
@@ -146,12 +144,12 @@ let y = inc 3
 %</example>
 % \fi
 %
-% A first pass through \texttt{latex} generates both an \texttt{.rvrb} file,
-% with parameters for the compiler, and an \texttt{.ml} file containing the 
-% source code (i.e., the two lines in the example above).
-% Running the \texttt{runverbatim.sh} script processes these files to 
-% produce a \texttt{.tex} file with the results of compilation.
-% A second pass through \texttt{latex} updates the compiler message.
+% A first pass through |latex| generates both an |.rvrb| file,
+% with parameters for the compiler, and an |.ml| file containing the source 
+% code (i.e., the two lines in the example above).
+% Running the |runverbatim.sh| script processes these files to produce a 
+% |.tex| file with the results of compilation.
+% A second pass through |latex| updates the compiler message.
 %
 % \noindent
 % It is possible to continue examples and to label them (to be continued at 
@@ -214,10 +212,10 @@ let w = 1 + "four"
 % \verb|\usepackage| or via one or more calls to \verb|\runverbatimsetup|.
 % The advantage of the latter is that macros are not expanded (for a 
 % detailed explanation see the documentation for 
-% \texttt{kvoptions},\footnote{\url{http://www.ctan.org/pkg/kvoptions}} 
-% Section 4.1, \emph{Package kvoptions-patch}).
-% Options are passed as a comma separated list of 
-% \meta{key}\texttt{=}\meta{value} pairs and single \meta{key}s.
+% |kvoptions|,\footnote{\url{http://www.ctan.org/pkg/kvoptions}} Section 
+% 4.1, \emph{Package kvoptions-patch}).
+% Options are passed as a comma separated list of \meta{key}|=|\meta{value} 
+% pairs and single \meta{key}s.
 %
 % There are three classes of options: options controlling the default 
 % behaviour of \verb|runverbatim|, options for configuring the 
@@ -231,12 +229,20 @@ let w = 1 + "four"
 %
 % \begin{longtable}{@{}>{\ttfamily}lp{75mm}>{\ttfamily}l@{}}
 % \parbox{15mm}{option} & description & \parbox{25mm}{default}\\\hline
-% withresult & Automatically show compilation results.
-%            & false \\
-% skipone    & Do not display the first line of code.
-%            & \\
-% skiptwo    & Do not display the first two lines of code.
-%            & \\
+% withresult
+% & Automatically show compilation results.
+% & false
+% \\
+% skipone
+% & Do not display the first line of code (see the description under the 
+% |runverbatim| environment).
+% &
+% \\
+% skiptwo
+% & Do not display the first two lines of code (see the description under 
+% the |runverbatim| environment).
+% &
+% \\
 % \end{longtable}
 %
 % \subsubsection{Configuring compilation}
@@ -249,33 +255,49 @@ let w = 1 + "four"
 % \makeatletter
 % \begin{longtable}{@{}>{\ttfamily}lp{75mm}>{\ttfamily}l@{}}
 % \parbox{15mm}{option} & description & \parbox{25mm}{default}\\\hline
-% prefix        & Prefix for naming source files.
-%               & \RVRB@prefix \\
-% ext           & Extension of source files.
-%               & \RVRB@ext \\
-% subdir        & If defined, source files are created in the given
-%                 subdirectory, which must already exist.
-%                 This value must end with a slash (\verb|/|).
-%               & \RVRB@subdir \\
-% prompt        & The prompt displayed by \string\runverbatimcmd.
-%               & \RVRB@prompt \\
-% compiler      & Path of the compiler to execute.
-%               & \RVRB@compiler \\
-% compilerflags & Flags passed to the compiler.
-%                 These are not revealed by \string\runverbatimcmd.
-%               & \RVRB@compilerflags \\
-% lastflags     & Flags passed to the compiler before the
-%                 main source file, i.e., the last one given.
-%               & \RVRB@lastflags \\
-% includecmd    & The source language command for importing the
-%                 definitions of another file.
-%               & \RVRB@includecmd \\
+% prefix
+% & Prefix for naming source files.
+% & \RVRB@prefix
+% \\
+% ext
+% & Extension of source files.
+% & \RVRB@ext
+% \\
+% subdir
+% & If defined, source files are created in the given subdirectory, which 
+% must already exist.
+% A final slash (\verb|/|) should not be given.
+% & \RVRB@subdir
+% \\
+% prompt
+% & The prompt displayed by \string\runverbatimcmd.
+% & \RVRB@prompt
+% \\
+% compiler
+% & Path of the compiler to execute.
+% & \RVRB@compiler
+% \\
+% compilerflags
+% & Flags passed to the compiler.
+% These are not revealed by \string\runverbatimcmd.
+% & \RVRB@compilerflags
+% \\
+% lastflags
+% & Flags passed to the compiler before the main source file, i.e., the last 
+% one given.
+% & \RVRB@lastflags
+% \\
+% includecmd
+% & The source language command for importing the definitions of another 
+% file.
+% & \RVRB@includecmd
+% \\
 % \end{longtable}
 % \makeatother
 %
 % Each \verb|runverbatim| environment is assigned a number $n$, from zero, 
 % and its contents are written to the file:
-% \texttt{\meta{subdir}/\meta{prefix}\meta{n}.\meta{ext}},
+% \meta{subdir}|/|\meta{prefix}\meta{n}|.|\meta{ext},
 % where \meta{n} is zero-padded to four characters.
 % For example, by default, the fourth environment is written to the file 
 % \verb|runverbatim0003.ml| in the current directory.
@@ -286,61 +308,155 @@ let w = 1 + "four"
 % For example, if the fourth environment depends on the first and the 
 % second, a line is added:
 % \begin{center}
-% \texttt{\meta{includecmd} Withopen0000 \meta{includecmd} Withopen0001},
+% \meta{includecmd} |Withopen0000| \meta{includecmd} |Withopen0001|,
 % \end{center}
 % where \verb|Withopen| is the prefix used for such augmented files, and the 
 % compiler is invoked with:\\
 % \begin{center}
 % \begin{tabular}{ll}
-% \texttt{\meta{compiler}}
-%   & \meta{compilerflags}\ \ \texttt{Withopen0000}\ \ \texttt{Withopen0001} 
-%   \\
-%   & \meta{lastflags}\ \ \texttt{Withopen0003}
+% \meta{compiler}
+%   & \meta{compilerflags}\ \ |Withopen0000|\ \ |Withopen0001| \\
+%   & \meta{lastflags}\ \ |Withopen0003|
 % \end{tabular}
 % \end{center}
 %
 % \subsubsection{Controlling the display}
 %
+% This package exploits the display options given by the |fancyvrb| package.
+%
 % \begin{longtable}{@{}>{\ttfamily}lp{75mm}>{\ttfamily}l@{}}
 % \parbox{15mm}{option} & description & \parbox{25mm}{default}\\\hline
-% codestyle & \texttt{fancyvrb} options for code
-%           & \\
-% msgstyle  & \texttt{fancyvrb} options for compiler messages
-%           & formatcom=\string\em \\
-% errstyle  & \texttt{fancyvrb} options for error messages
-%           & formatcom=\string\em \\
+% codestyle
+% & |fancyvrb| options for code
+% & \\
+% msgstyle
+% & |fancyvrb| options for compiler messages
+% & formatcom=\string\em
+% \\
+% errstyle
+% & |fancyvrb| options for error messages
+% & formatcom=\string\em
+% \\
 % \end{longtable}
 %
-% Other options are passed through to the \verb|fancyvrb| package and 
-% applied to code blocks.
+% Other options are passed through to the |fancyvrb| package and applied to 
+% code blocks.
 % For example, \verb|frame=single|.
 %
 % \subsection{The \texttt{runverbatim} environment}\label{sec:rvenv}
 %
 % \DescribeEnv{runverbatim}
 % As an optional argument, this environment takes a comma separated list of 
-% \meta{key}\texttt{=}\meta{value} and single \meta{key}s.
+% \meta{key}|=|\meta{value} and single \meta{key}s.
 %
-% \begin{longtable}{@{}>{\ttfamily}lp{75mm}>{\ttfamily}l@{}}
-% \parbox{15mm}{option} & description & \parbox{25mm}{default}\\\hline
-% fail     & This code is expected to fail.
-%          & \\
-% continue &
-%          & \\
-% label    & Label this code for later inclusion.
-%          & \\
+% \begin{longtable}{@{}>{\ttfamily}lp{100mm}}
+% \parbox{15mm}{option} & description \\\hline
+% fail
+% & This code is expected to fail; an error is reported if it succeeds.
+% \\
+% continue
+% & This code is continued from the previous |runverbatim| environment; all 
+% of the definitions available there are imported.
+% \\
+% label
+% & Label this code for later inclusion.
+% \\
+% include
+% & All of the definitions available after the environment with the given 
+% label are imported.
+% \\
+% withresult
+% & The result of compiling the code is displayed (see also 
+% |\runverbatimmsg| and |runverbatimerr|).
+% This is normally either the types of declared values or the results of 
+% evaluation.
+% For environments marked |fail|, it will be an error message.
+% \\
+% withoutresult
+% & The result of compiling code is not displayed automatically.
+%   This is the default behaviour, but it can be overridden by the package 
+%   options.
+% \\
+% hide
+% & Do not display the code itself.
+%   It is still compiled and displayed (if |withresult|) is active, and its 
+%   definitions are still available for continuation (|continue|) or 
+%   labelling (|label|) and later inclusion (|include|).
+% \\
+% skipone
+% & Do not display the first line of the code.
+%   This line is still sent to the compiler and may thus be used to open 
+%   other modules, or to pass execution options (via comments).
+% \\
+% skiptwo
+% & As pre the previous option, but two lines are skipped.
+% \\
+% skipnone
+% & Do not skip any lines; this option overrides any package-level skip 
+% setting.
 % \end{longtable}
 %
-% 
-% \DescribeMacro{\runverbatimcmd}
+% The results of compiling the code in a |runenvironment| are made available 
+% in the following macros until the next |runenvironment| which will 
+% redefine them.
+% \begin{description}
 %
+% \item[\texttt{\string\runverbatimcmd}]
+% \DescribeMacro{\runverbatimcmd}
+% contains an idealised version of the command line used to compile the code 
+% sample.
+% It includes the |prompt|, the basename of |compiler|, and |lastflags|, but 
+% not |compilerflags| or the list of included files.
+% Furthermore, the |subdir| and serial number are removed from the filename 
+% of the code sample, which becomes simply \meta{prefix}|.|\meta{ext}.
+%
+% \item[\texttt{\string\runverbatimmsg}]
 % \DescribeMacro{\runverbatimmsg}
+% contains the verbatim text emitted by the compiler when compilation 
+% succeeds.
+% It is undefined after an environment marked |fail|.
+%
+% \item[\texttt{\string\runverbatimerr}]
 % \DescribeMacro{\runverbatimerr}
+% contains the verbatim text emitted by the compiler when compilation fails.
+% It is undefined after an environment not marked |fail|.
+% \end{description}
 %
 % \subsection{The \texttt{runverbatim.sh} script}\label{sec:rvsh}
 %
+% Processing a document that uses the |runverbatim| package produces a 
+% |.rvrb| file containing compiler options and a list of source files to 
+% together with their interdependencies.
+% The |runverbatim.sh| script processes |.rvrb| files by executing the 
+% specified compiler (or interpreter) against each listed source file 
+% \meta{subdir}|/|\meta{prefix}\meta{n}|.|\meta{ext} and copying the 
+% results---the command-line used, whether it succeeded or failed, the 
+% messages on stdout, and the messages on stderr---into a corresponding 
+% file, \meta{subdir}|/|\meta{prefix}\meta{n}|.tex|, for inclusion in the 
+% original document.
+%
+% The \verb|runverbatim.sh| script is written for the Bourne shell 
+% (\verb|sh|).
+% It takes a list of |.rvrb| files as arguments (with or without the 
+% exentions), but if none are given it processes all such files in the 
+% current working directory.
+%
 % \StopEventually{}
 \makeatletter
+%
+% \section{Remarks}
+%
+% \subsection{Known limitations}
+%
+% The package and script have some known limitations.
+% \begin{itemize}
+% 
+% \item
+% Line numbers in error messages may not correspond correctly with the line 
+% numbers of sample files, due to either the |skip*| options, or because of 
+% lines added to import code.
+% 
+% \end{itemize}
 %
 % \section{Implementation}
 %
@@ -408,7 +524,7 @@ let w = 1 + "four"
 %    \end{macrocode}
 %
 %    \begin{macrocode}
-\write\RVRB@samplefile{subdir=\RVRB@subdir}
+\write\RVRB@samplefile{subdir=\RVRB@subdir/}
 \write\RVRB@samplefile{prefix=\RVRB@prefix}
 \write\RVRB@samplefile{ext=\RVRB@ext}
 \write\RVRB@samplefile{compiler=\RVRB@compiler}
@@ -490,7 +606,7 @@ let w = 1 + "four"
 %    \begin{macrocode}
 \define@key{RVRB@envkeys}{fail}[]{\RVRB@shouldfailtrue}
 \define@key{RVRB@envkeys}{label}{\edef\RVRB@label{#1}}
-\define@key{RVRB@envkeys}{noskip}[]{\edef\RVRB@verbopts{\RVRB@verbopts,firstline=1}}
+\define@key{RVRB@envkeys}{skipnone}[]{\edef\RVRB@verbopts{\RVRB@verbopts,firstline=1}}
 \define@key{RVRB@envkeys}{skipone}[]{\edef\RVRB@verbopts{\RVRB@verbopts,firstline=2}}
 \define@key{RVRB@envkeys}{skiptwo}[]{\edef\RVRB@verbopts{\RVRB@verbopts,firstline=3}}
 \define@key{RVRB@envkeys}{hide}[]{\RVRB@showcodefalse}
@@ -511,11 +627,11 @@ let w = 1 + "four"
 % extension  protect runverbatim@ext.
 % This file is created in the subdirectory  protect runverbatim@subdir.
 % That is, the fourth code sample is written to a file: 
-% \texttt{\meta{subdir}/\meta{name}0004.\meta{ext}}.
+% \meta{subdir}|/|\meta{name}|0004.|\meta{ext}.
 %
 % \item
-% If the corresponding \texttt{.tex} file exists it is loaded, otherwise an 
-% error message is logged.
+% If the corresponding |.tex| file exists it is loaded, otherwise an error 
+% message is logged.
 % \end{enumerate}
 %    \begin{macrocode}
 \lstnewenvironment{runverbatim}[1][]
@@ -537,7 +653,7 @@ let w = 1 + "four"
         \ifnum\value{runverbatim}<10   0\fi
         \arabic{runverbatim}}%
     \stepcounter{runverbatim}%
-    \def\RVRB@file{\RVRB@subdir\RVRB@prefix\RVRB@num}%
+    \def\RVRB@file{\RVRB@subdir/\RVRB@prefix\RVRB@num}%
     \global\let\runverbatimcmd\@undefined%
     \global\let\FV@SV@RunVerbatimMsg\@undefined%
     \global\let\FV@SV@RunVerbatimErr\@undefined%
