@@ -1,6 +1,6 @@
-(* pour tester ../../compiler/hyc.byte -i -v -I ../../lib t23.ls *)
+(* pour tester ../../bin/zeluc.byte -i -v -I ../../lib t23.zls *)
 (* pour debugger
-   set arguments -I ../lib ../test/good/t23.ls *)
+   set arguments -I ../lib ../test/good/t23.zls *)
 
 let hybrid f0 y = w where
   der w = 1.0 init 0.0

@@ -17,5 +17,5 @@ forth, and may collide. After a collision, the masses remain stuck together
 until the pulling forces from the springs are greater than a _stickiness_
 value (which decreases exponentially after a collision).
 
-!SOURCEFILE: stickysprings.ls
+!SOURCEFILE: stickysprings.zls
 

@@ -1,7 +1,7 @@
 
-(* pour tester ../../compiler/hyc.byte -i -v -I ../../lib t15.ls *)
+(* pour tester ../../bin/zeluc.byte -i -v -I ../../lib t15.zls *)
 (* pour debugger
-   set arguments -I ../lib ../test/good/t15.ls *)
+   set arguments -I ../lib ../test/good/t15.zls *)
 
 type mode = M1 | M2
 

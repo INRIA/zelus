@@ -17,14 +17,14 @@ open Initial
 open Compiler
 
 let compile file =
-  if Filename.check_suffix file ".ls"
+  if Filename.check_suffix file ".zls"
   then 
-    let filename = Filename.chop_suffix file ".ls" in
+    let filename = Filename.chop_suffix file ".zls" in
     let modname = String.capitalize(Filename.basename filename) in
     compile modname filename 
-  else if Filename.check_suffix file ".lsi"
+  else if Filename.check_suffix file ".zli"
   then
-    let filename = Filename.chop_suffix file ".lsi" in
+    let filename = Filename.chop_suffix file ".zli" in
     let modname = String.capitalize(Filename.basename filename) in
     interface modname filename
   else 

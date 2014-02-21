@@ -2,31 +2,31 @@ include ../../config
 
 ZLEXTRALIBS = $(ZLGTKLIBS)
 
-VERSIONS=fly.ls \
- 	 cantharide1.ls \
-         cantharide2.ls \
-         cantharide3.ls \
-         cantharide4.ls
+VERSIONS=fly.zls \
+ 	 cantharide1.zls \
+         cantharide2.zls \
+         cantharide3.zls \
+         cantharide4.zls
 
 default: $(word 1, $(targets))
 all:  $(targets)
-byte: $(VERSIONS:%.ls=%.byte)
-opt:  $(VERSIONS:%.ls=%.opt)
+byte: $(VERSIONS:%.zls=%.byte)
+opt:  $(VERSIONS:%.zls=%.opt)
 
-fly.ml: ZLCFLAGS+=-gtk2
+fly.ml: ZELUCFLAGS+=-gtk2
 
 clean:
-	-@rm -f $(VERSIONS:.ls=.ml) $(VERSIONS:.ls=_main.ml)
-	-@rm -f *.o *.cm[oix] *.annot *.obc *.lci
-	-@rm -f $(VERSIONS:%.ls=%.byte) $(VERSIONS:%.ls=%.opt)
+	-@rm -f $(VERSIONS:.zls=.ml) $(VERSIONS:.zls=_main.ml)
+	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci
+	-@rm -f $(VERSIONS:%.zls=%.byte) $(VERSIONS:%.zls=%.opt)
 
 realclean cleanall: clean
 
 # Common rules
-.SUFFIXES : .ml .ls .byte
+.SUFFIXES : .ml .zls .byte
 
-.ls.ml:
-	#$(ZLC) $(ZLCFLAGS) -keepdeadcode -s main -period $<
-	$(ZLC) $(ZLCFLAGS) -s main -period $<
-	mv main.ml $(<:.ls=)_main.ml
+.zls.ml:
+	#$(ZELUC) $(ZELUCFLAGS) -keepdeadcode -s main -period $<
+	$(ZELUC) $(ZELUCFLAGS) -s main -period $<
+	mv main.ml $(<:.zls=)_main.ml
 

@@ -28,7 +28,7 @@ Development
 
   2. Start emacs, then
 	M-x camldebug
-	Run camldebug on file: compiler/hyc.byte
+	Run camldebug on file: compiler/zeluc.byte
 	Caml debugger to run:  ocamldebug
 
   3. In the Ocaml debugger, copy-and-paste the commands listed in debug.txt,
@@ -43,7 +43,7 @@ Development
   1. Compile the library using ocamlcp:
 	cd lib; make clean OCAMLC="ocamlcp -p a" byte
 
-  2. Compile the output of hyc using ocamlcp, e.g.,
+  2. Compile the output of zeluc using ocamlcp, e.g.,
 	cd examples/bouncingball; make clean OCAMLC="ocamlcp -p a" byte
 
   3. Run the program (using -maxt to terminate normally):
@@ -64,7 +64,7 @@ Development
   1. Compile the library with ocamlopt -p:
 	cd lib; make clean OCAMLOPTFLAGS=-p opt
 
-  2. Compile the output of hyc using ocamlopt -p, e.g.,
+  2. Compile the output of zeluc using ocamlopt -p, e.g.,
 	cd examples/bouncingball; make clean OCAMLOPTFLAGS=-p ball.opt
 
   3. Run the program and examine the results:

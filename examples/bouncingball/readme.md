@@ -10,10 +10,10 @@ to -0.8 its previous value.
 In the basic version of the program, the ball ‘falls through the floor’
 due to limited floating-point precision.
 
-!SOURCEFILE: ball.ls
+!SOURCEFILE: ball.zls
 
 With hybrid automata, it is instead possible to switch to a sliding dynamic
 when the balls vertical velocity becomes very small.
 
-!SOURCEFILE: autoball.ls
+!SOURCEFILE: autoball.zls
 

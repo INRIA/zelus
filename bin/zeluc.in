@@ -1,0 +1,6 @@
+#!/bin/sh
+
+ZLLIB=@libdir@/zelus
+export ZLLIB
+exec @OCAMLBIN@ocamlrun @bindir@/zeluc.@TARGET@ $@
+

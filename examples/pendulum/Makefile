@@ -1,13 +1,13 @@
 include ../../config
 
-EXAMPLE=pendulum.ls
+EXAMPLE=pendulum.zls
 
 OBJ = data.cmo misc.cmo
 
 default: $(word 1, $(targets))
 all:  $(targets)
-byte: $(EXAMPLE:%.ls=%.byte)
-opt:  $(EXAMPLE:%.ls=%.opt)
+byte: $(EXAMPLE:%.zls=%.byte)
+opt:  $(EXAMPLE:%.zls=%.opt)
 
 pendulum.byte: ZLEXTRALIBS += graphics.cma $(OBJ)
 pendulum.byte: $(OBJ)
@@ -15,24 +15,24 @@ pendulum.byte: $(OBJ)
 pendulum.opt: ZLEXTRALIBS += graphics.cmxa $(OBJ:.cmo=.cmx)
 pendulum.opt: $(OBJ:%.cmo=%.cmx)
 
-pendulum.ml pendulum_main.ml: pendulum.ls
-	$(ZLC) $(ZLCFLAGS) -s manual -sampling 100 $<
+pendulum.ml pendulum_main.ml: pendulum.zls
+	$(ZELUC) $(ZELUCFLAGS) -s manual -sampling 100 $<
 	mv manual.ml pendulum_main.ml
 
 clean:
-	-@rm -f $(EXAMPLE:.ls=.ml) main.ml
+	-@rm -f $(EXAMPLE:.zls=.ml) main.ml
 	-@rm -f $(OBJ:.cmo=.ml)
-	-@rm -f *.o *.cm[oix] *.annot *.obc *.lci
-	-@rm -f $(EXAMPLE:%.ls=%_main.ml)
+	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci
+	-@rm -f $(EXAMPLE:%.zls=%_main.ml)
 
 realclean cleanall: clean
-	-@rm -f $(EXAMPLE:%.ls=%.byte) $(EXAMPLE:%.ls=%.opt)
+	-@rm -f $(EXAMPLE:%.zls=%.byte) $(EXAMPLE:%.zls=%.opt)
 
 # Common rules
-.SUFFIXES : .ml .ls
+.SUFFIXES : .ml .zls
 
-.ls.ml:
-	$(ZLC) $(ZLCFLAGS) $<
+.zls.ml:
+	$(ZELUC) $(ZELUCFLAGS) $<
 
 # Dependencies
 pendulum.ml: misc.ml data.ml

@@ -1,18 +1,18 @@
 include ../../config
 
-ALL := $(shell ls t*.ls)
-NTESTS := $(shell ls t*.ls | wc -l)
+ALL := $(shell ls t*.zls)
+NTESTS := $(shell ls t*.zls | wc -l)
 HALFLINE = "------------------------------"
 
 .PRECIOUS: %.ml %.translation %.camldebug
 
 compilation: compilation-quiet
 	@$(MAKE) -s summary
-compilation-quiet: $(ALL:.ls=.compilation)
+compilation-quiet: $(ALL:.zls=.compilation)
 
 translation: translation-quiet
 	@$(MAKE) -s translation-summary
-translation-quiet: $(ALL:.ls=.translation)
+translation-quiet: $(ALL:.zls=.translation)
 
 translation-summary:
 	@TRANSOK=`ls | grep '\.translation.ok$$' | wc -l`;	\
@@ -36,7 +36,7 @@ help:
 	-@echo "make t0001 t0004        run tests 1 and 4"
 	-@echo "make t0004.debug        show debugging detail for test 4"
 	-@echo "make ADDFLAGS=-noinit t0004.debug"
-	-@echo "                        additional flags for zlc"
+	-@echo "                        additional flags for zeluc"
 	-@echo "make t0004.translation  run the first part of test 4"
 	-@echo "make t0001 VERBOSE=1    run test 1 and show more detail"
 	-@echo "make NOCOLOR=1          run tests without ANSI color commands"
@@ -54,40 +54,40 @@ FORCE:
 
 %: %.compilation ;
 
-%.debug: %.ls %.camldebug FORCE
-	@cat $(<:.ls=.camldebug)
+%.debug: %.zls %.camldebug FORCE
+	@cat $(<:.zls=.camldebug)
 	@echo "----------------------------------------------------------------------------"
 	@echo
-	@FLAGS="$(ZLCFLAGS) $(ADDFLAGS) `sed -ne 's/(\*.*TEST\[\([^]]*\)\].*\*)/\1/p' $(<)`"\
-	 ; echo "$(ZLC) $${FLAGS} -v $< 2>&1";						    \
-	 $(ZLC) $${FLAGS}  -v $< 2>&1 || true
+	@FLAGS="$(ZELUCFLAGS) $(ADDFLAGS) `sed -ne 's/(\*.*TEST\[\([^]]*\)\].*\*)/\1/p' $(<)`"\
+	 ; echo "$(ZELUC) $${FLAGS} -v $< 2>&1";						    \
+	 $(ZELUC) $${FLAGS}  -v $< 2>&1 || true
 	@echo "----------------------------------------------------------------------------"
 	@echo "Compiling with ocamlc. See below:"
 	@echo "----------------------------------------------------------------------------"
-	$(OCAMLC) $(OCAMLFLAGS) -c -I $(ZLLIB) $(INCLUDES) $(<:.ls=.ml) 2>&1 || true
+	$(OCAMLC) $(OCAMLFLAGS) -c -I $(ZLLIB) $(INCLUDES) $(<:.zls=.ml) 2>&1 || true
 
-%.camldebug: %.ls
+%.camldebug: %.zls
 	@echo "$$DEBUG_PRELUDE" > $@
-	@FLAGS="$(ZLCFLAGS) $(ADDFLAGS)	`sed -ne 's/(\*.*TEST\[\([^]]*\)\].*\*)/\1/p' $(<)`"\
+	@FLAGS="$(ZELUCFLAGS) $(ADDFLAGS)	`sed -ne 's/(\*.*TEST\[\([^]]*\)\].*\*)/\1/p' $(<)`"\
 	 ; echo "set arguments -I $(ZLLIB) $${FLAGS}" "../test/good/$<" >> $@
-%.ml %.translation: %.ls FORCE
+%.ml %.translation: %.zls FORCE
 	-@FLAGS="$(ADDFLAGS)				\
 	    `sed -ne 's/(\*.*TEST\[\([^]]*\)\].*\*)/\1/p' $(<)`";	\
-	$(ZLC) $${FLAGS} $< 2>$(<:.ls=.translation);			\
+	$(ZELUC) $${FLAGS} $< 2>$(<:.zls=.translation);			\
 	if [ $$? -eq 0 ]; then						\
-	    if [ `cat $(<:.ls=.translation) | wc -l` -ne 0 ];		\
+	    if [ `cat $(<:.zls=.translation) | wc -l` -ne 0 ];		\
 	    then WARN=" (with warnings)"; else WARN=""; fi;		\
-	    echo "--good/$(<:.ls=):"					\
+	    echo "--good/$(<:.zls=):"					\
 	    	 "$(S_GREEN)translation ok$(S_NORMAL)$(WARN)";		\
-	    touch "$(<:.ls=.translation.ok)";				\
+	    touch "$(<:.zls=.translation.ok)";				\
 	else					  			\
-	    echo "--good/$(<:.ls=):"					\
+	    echo "--good/$(<:.zls=):"					\
 		 "$(S_RED)translation fail$(S_NORMAL)"			\
-		 "(see $(<:.ls=.translation))";				\
-	    rm -f "$(<:.ls=.translation.ok)";				\
+		 "(see $(<:.zls=.translation))";				\
+	    rm -f "$(<:.zls=.translation.ok)";				\
 	fi
 ifdef VERBOSE
-	-@cat $(<:.ls=.translation)
+	-@cat $(<:.zls=.translation)
 endif
 
 %.compilation: %.ml FORCE

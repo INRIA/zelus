@@ -2,14 +2,14 @@ include ../../config
 
 
 APP=
-EXAMPLE=$(APP).ls
+EXAMPLE=$(APP).zls
 ML=
 
 ZLEXTRALIBS = $(ZLGTKLIBS)
 
 CMOS=$(ML:%.ml=%.cmo)
 CMXS=$(ML:%.ml=%.cmx)
-LCIS=$(ML:%.ml=%.lci)
+LCIS=$(ML:%.ml=%.zci)
 
 applis=power powerV1
 targets=$(applis:%=%.byte)
@@ -18,8 +18,8 @@ targets=$(applis:%=%.byte)
 
 #default: $(word 1, $(targets))
 all:  $(targets)
-byte: $(EXAMPLE:%.ls=%.byte)
-opt:  $(EXAMPLE:%.ls=%.opt)
+byte: $(EXAMPLE:%.zls=%.byte)
+opt:  $(EXAMPLE:%.zls=%.opt)
 
 run:
 	make clean; make; ./$(APP).byte
@@ -38,8 +38,8 @@ run:
 %_main.cmo: INCLUDES += $(SUNDIALS)
 %_main.cmx: INCLUDES += $(SUNDIALS)
 
-%.ml %_main.ml: $(LCIS) %.ls
-	$(ZLC) $(ZLCFLAGS) -s main -period -dzero -sampling 10 -gtk2 $*.ls
+%.ml %_main.ml: $(LCIS) %.zls
+	$(ZELUC) $(ZELUCFLAGS) -s main -period -dzero -sampling 10 -gtk2 $*.zls
 	mv main.ml $*_main.ml
 
 depend: .depend
@@ -51,7 +51,7 @@ clean:
 	-@rm -f $(applis:%=%_main.ml)
 	-@rm -f $(applis:%=%.byte)
 	-@rm -f $(applis:%=%.opt)
-	-@rm -f *.o *.cm[oix] *.annot *.obc *.lci
+	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci
 	-@rm -f .depend
 
 realclean cleanall: clean

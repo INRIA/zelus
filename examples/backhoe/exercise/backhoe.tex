@@ -182,15 +182,15 @@ The simulation comprises a number of files:
     \texttt{backhoegui.*} &
         displays the system state \\
 
-    \texttt{backhoedyn.ls} &
+    \texttt{backhoedyn.zls} &
         describes the backhoe dynamics (the plant) \\
 
-    \texttt{backhoecontrol.ls} &
+    \texttt{backhoecontrol.zls} &
         contains the discrete controller\\
 \end{tabular}
 
 \noindent
-The controller is implemented in \texttt{backhoecontrol.ls}.
+The controller is implemented in \texttt{backhoecontrol.zls}.
 It is compiled and linked with the other modules by typing \verb+make+.
 
 When the resulting binary is executed, it displays the control and 
@@ -204,7 +204,7 @@ A simulation can be paused initially by executing the binary with the
 %--   }-}1%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \nexttask{Extending the stick, then the bucket} %{-{1
 
-Implement a simple controller (in \texttt{backhoecontrol.ls}) that first 
+Implement a simple controller (in \texttt{backhoecontrol.zls}) that first 
 extends the \emph{stick} segment, and then the \emph{bucket} segment.
 The segments must not be in motion simultaneously.
 The \emph{done} lamp should be illuminated when the movements are complete.

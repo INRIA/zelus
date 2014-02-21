@@ -54,5 +54,5 @@ The manouever modelled in this case is (taken directly from the paper):
 Note that, in the model at least, the heading changes occur simultaneously
 and instantaneously.
 
-!SOURCEFILE: airtraffic.ls
+!SOURCEFILE: airtraffic.zls
 

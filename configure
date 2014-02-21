@@ -314,6 +314,6 @@ sed -e "s#@prefix@#${prefix}#;
 	s#@bindir@#${bindir:-$prefix/bin}#;
 	s#@libdir@#${libdir:-$prefix/lib}#;
 	s#@OCAMLBIN@#${OCAMLBIN}#;
-	s#@TARGET@#byte#;" bin/zlc.in > bin/zlc
-chmod a+x bin/zlc
+	s#@TARGET@#byte#;" bin/zeluc.in > bin/zeluc
+chmod a+x bin/zeluc
 

@@ -1,12 +1,12 @@
 include ../../config
 
-EXAMPLE=ball.ls autoball.ls
+EXAMPLE=ball.zls autoball.zls
 ML=showball.ml world.ml
 
 default: $(word 1, $(targets))
 all:  $(targets)
-byte: $(EXAMPLE:%.ls=%.byte)
-opt:  $(EXAMPLE:%.ls=%.opt)
+byte: $(EXAMPLE:%.zls=%.byte)
+opt:  $(EXAMPLE:%.zls=%.opt)
 
 ball.byte: showball.cmo world.cmo ball.cmo ball_main.cmo
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
@@ -20,8 +20,8 @@ ball.opt: showball.cmx world.cmx ball.cmx ball_main.cmx
 ball_main.cmo: INCLUDES += $(SUNDIALS)
 ball_main.cmx: INCLUDES += $(SUNDIALS)
 
-ball.ml ball_main.ml: showball.lci world.lci ball.ls
-	$(ZLC) $(ZLCFLAGS) -s main -period -sampling 200 ball.ls
+ball.ml ball_main.ml: showball.zci world.zci ball.zls
+	$(ZELUC) $(ZELUCFLAGS) -s main -period -sampling 200 ball.zls
 	mv main.ml ball_main.ml
 
 #
@@ -35,8 +35,8 @@ autoball.opt: showball.cmx world.cmx ball.cmx autoball.cmx autoball_main.cmx
 	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) \
 	    $(ZLEXTRALIBS:.cma=.cmxa) $^
 
-autoball.ml autoball_main.ml: showball.lci world.lci autoball.ls
-	$(ZLC) $(ZLCFLAGS) -s main -period -sampling 200 autoball.ls
+autoball.ml autoball_main.ml: showball.zci world.zci autoball.zls
+	$(ZELUC) $(ZELUCFLAGS) -s main -period -sampling 200 autoball.zls
 	mv main.ml autoball_main.ml
 
 # ##
@@ -47,9 +47,9 @@ depend: .depend
 
 export:
 	mkdir $(DISTDIR)/bouncingball
-	cp autoball.ls ball.ls Makefile readme.md \
-	   showball.lsi showball.ml showball.mli \
-	   show.lsi show.mli world.lsi world.ml world.mli \
+	cp autoball.zls ball.zls Makefile readme.md \
+	   showball.zli showball.ml showball.mli \
+	   show.zli show.mli world.zli world.ml world.mli \
 	   $(DISTDIR)/bouncingball/
 	mkdir $(DISTDIR)/bouncingball/img
 	cp img/*.png $(DISTDIR)/bouncingball/img/
@@ -57,8 +57,8 @@ export:
 clean:
 	-@rm -f ball_main.ml ball.ml autoball_main.ml
 	-@rm -f autoball.ml
-	-@rm -f *.o *.cm[oix] *.annot *.obc *.lci
-	-@rm -f $(EXAMPLE:%.ls=%.byte) $(EXAMPLE:%.ls=%.opt)
+	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci
+	-@rm -f $(EXAMPLE:%.zls=%.byte) $(EXAMPLE:%.zls=%.opt)
 	-@rm -f .depend
 
 realclean cleanall: clean

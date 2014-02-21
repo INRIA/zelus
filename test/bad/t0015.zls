@@ -1,6 +1,6 @@
-(* pour tester ../../compiler/hyc.byte -i -v -I ../../lib t19.ls *)
+(* pour tester ../../bin/zeluc.byte -i -v -I ../../lib t19.zls *)
 (* pour debugger
-   set arguments -I ../lib ../test/good/t19.ls *)
+   set arguments -I ../lib ../test/good/t19.zls *)
 
 type mode = Apart | Together
 

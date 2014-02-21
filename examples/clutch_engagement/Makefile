@@ -1,18 +1,18 @@
 include ../../config
 
-EXAMPLE=clutch_gui.ls clutch_log.ls
-ZLCFLAGS+=-period
+EXAMPLE=clutch_gui.zls clutch_log.zls
+ZELUCFLAGS+=-period
 OUT_OPTIONS?=-sundials -maxt 10
 
 .PHONY: clutch.out
 
 default: $(word 1, $(targets))
 all:  $(targets)
-byte: $(EXAMPLE:%.ls=%.byte)
-opt:  $(EXAMPLE:%.ls=%.opt)
+byte: $(EXAMPLE:%.zls=%.byte)
+opt:  $(EXAMPLE:%.zls=%.opt)
 
 clutch_graph.pdf: clutch.out clutch.plt
-	gnuplot -e "options='$(ZLCFLAGS); $(OUT_OPTIONS)'" clutch.plt > $@
+	gnuplot -e "options='$(ZELUCFLAGS); $(OUT_OPTIONS)'" clutch.plt > $@
 
 clutch.out: clutch_log.byte
 	./$< $(OUT_OPTIONS)
@@ -35,20 +35,20 @@ clutch_diff.byte: clutch_model.cmo
 clutch_diff.opt:  ZLEXTRALIBS += clutch_model.cmx
 clutch_diff.opt: clutch_model.cmx
 
-clutch_model.ml clutch_model.lci: clutch_model.ls
-	$(ZLC) $(ZLCFLAGS) $<
+clutch_model.ml clutch_model.zci: clutch_model.zls
+	$(ZELUC) $(ZELUCFLAGS) $<
 
-clutch_gui.ml: clutch_gui.ls clutch_model.lci
-	$(ZLC) $(ZLCFLAGS) -s main -sampling 0 -gtk2 -dzero $<
-	mv main.ml $(<:.ls=)_main.ml
+clutch_gui.ml: clutch_gui.zls clutch_model.zci
+	$(ZELUC) $(ZELUCFLAGS) -s main -sampling 0 -gtk2 -dzero $<
+	mv main.ml $(<:.zls=)_main.ml
 
-clutch_log.ml: clutch_log.ls clutch_model.lci
-	$(ZLC) $(ZLCFLAGS) -s main $<
-	mv main.ml $(<:.ls=)_main.ml
+clutch_log.ml: clutch_log.zls clutch_model.zci
+	$(ZELUC) $(ZELUCFLAGS) -s main $<
+	mv main.ml $(<:.zls=)_main.ml
 
-clutch_diff.ml: clutch_diff.ls clutch_model.lci
-	$(ZLC) $(ZLCFLAGS) -s main $<
-	mv main.ml $(<:.ls=)_main.ml
+clutch_diff.ml: clutch_diff.zls clutch_model.zci
+	$(ZELUC) $(ZELUCFLAGS) -s main $<
+	mv main.ml $(<:.zls=)_main.ml
 
 ## Compare simulation results with those of Simulink
 
@@ -95,12 +95,12 @@ ode23.out diff_ode23.pdf: clutch_diff.byte
 ## Cleaning
 
 clean:
-	-@rm -f *~ *.cmi *.cmo *.cmx *.annot *.o *.lci *.obc *.ml *.out *.byte *.opt
+	-@rm -f *~ *.cmi *.cmo *.cmx *.annot *.o *.zci *.obc *.ml *.out *.byte *.opt
 	-@rm -f *.out
 
 realclean cleanall: clean
-	-@rm -f $(EXAMPLE:%.ls=%.opt) $(EXAMPLE:%.ls=%.byte)
-	-@rm -f *.o *.cm[oix] *.annot *.obc *.lci
+	-@rm -f $(EXAMPLE:%.zls=%.opt) $(EXAMPLE:%.zls=%.byte)
+	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci
 	-@rm -f clutch_model.ml clutch_gui.ml clutch_log.ml
 	-@rm -f diff_*.pdf
 

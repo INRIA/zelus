@@ -1,22 +1,22 @@
 include ../../config
 
-EXAMPLE=abro.ls button.ls switch.ls hermes.ls
+EXAMPLE=abro.zls button.zls switch.zls hermes.zls
 
 default: $(word 1, $(targets))
 all:  $(targets)
-byte: $(EXAMPLE:%.ls=%.byte)
-opt:  $(EXAMPLE:%.ls=%.opt)
+byte: $(EXAMPLE:%.zls=%.byte)
+opt:  $(EXAMPLE:%.zls=%.opt)
 
 clean:
-	-@rm -f *~ *.cmi *.cmo *.cmx *.annot *.o *.lci *.obc *.ml *.out *.byte *.opt
+	-@rm -f *~ *.cmi *.cmo *.cmx *.annot *.o *.zci *.obc *.ml *.out *.byte *.opt
 
 realclean cleanall: clean
-	-@rm -f $(EXAMPLE:%.ls=%.opt) $(EXAMPLE:%.ls=%.byte)
+	-@rm -f $(EXAMPLE:%.zls=%.opt) $(EXAMPLE:%.zls=%.byte)
 
 # Common rules
-.SUFFIXES : .ml .ls
+.SUFFIXES : .ml .zls
 
-.ls.ml:
-	$(ZLC) $(ZLCFLAGS) -s main -sampling 1 $<
-	mv main.ml $(<:.ls=)_main.ml
+.zls.ml:
+	$(ZELUC) $(ZELUCFLAGS) -s main -sampling 1 $<
+	mv main.ml $(<:.zls=)_main.ml
 

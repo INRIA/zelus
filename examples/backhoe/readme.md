@@ -43,9 +43,9 @@ automaton. Two types of dynamics are modelled: moving and stopping with
 momentum (modelled as a Proportional-Integral controller) and bouncing at
 the limits of movement (modelled as instantaneous reset).
 
-!SOURCEFILE: backhoecontrol.ls
+!SOURCEFILE: backhoecontrol.zls
 
-!SOURCEFILE: backhoedyn.ls
+!SOURCEFILE: backhoedyn.zls
 
 Further details can be found in the paper [Zélus: A Synchronous Language
 with ODEs](papers.html#HSCC2013).

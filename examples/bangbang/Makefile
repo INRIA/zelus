@@ -2,31 +2,31 @@ include ../../config
 
 ZLEXTRALIBS = $(ZLGTKLIBS)
 
-EXAMPLE=bangbang.ls
+EXAMPLE=bangbang.zls
 
 default: $(word 1, $(targets))
 all:  $(targets)
-byte: $(EXAMPLE:%.ls=%.byte)
-opt:  $(EXAMPLE:%.ls=%.opt)
+byte: $(EXAMPLE:%.zls=%.byte)
+opt:  $(EXAMPLE:%.zls=%.opt)
 
 export: bangbang.byte
 	mkdir $(DISTDIR)/bangbang
-	cp bangbang.ls Makefile readme.md $(DISTDIR)/bangbang/
+	cp bangbang.zls Makefile readme.md $(DISTDIR)/bangbang/
 	cp bangbang.byte $(DISTDIR)/bangbang/
 	mkdir $(DISTDIR)/bangbang/img
 	cp img/*.png $(DISTDIR)/bangbang/img/
 
 clean:
-	-@rm -f $(EXAMPLE:.ls=.ml) $(EXAMPLE:.ls=_main.ml)
-	-@rm -f *.o *.cm[oix] *.annot *.obc *.lci
-	-@rm -f $(EXAMPLE:%.ls=%.byte) $(EXAMPLE:%.ls=%.opt)
+	-@rm -f $(EXAMPLE:.zls=.ml) $(EXAMPLE:.zls=_main.ml)
+	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci
+	-@rm -f $(EXAMPLE:%.zls=%.byte) $(EXAMPLE:%.zls=%.opt)
 
 realclean cleanall: clean
 
 # Common rules
-.SUFFIXES : .ml .ls
+.SUFFIXES : .ml .zls
 
-.ls.ml:
-	$(ZLC) $(ZLCFLAGS) -period -s main -sampling 0 -gtk2 $<
-	mv main.ml $(<:.ls=)_main.ml
+.zls.ml:
+	$(ZELUC) $(ZELUCFLAGS) -period -s main -sampling 0 -gtk2 $<
+	mv main.ml $(<:.zls=)_main.ml
 

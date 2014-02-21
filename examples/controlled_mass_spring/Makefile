@@ -1,22 +1,22 @@
 include ../../config
 
-EXAMPLE=controlled_mass_spring.ls
+EXAMPLE=controlled_mass_spring.zls
 
 default: $(word 1, $(targets))
 all:  $(targets)
-byte: $(EXAMPLE:%.ls=%.byte)
+byte: $(EXAMPLE:%.zls=%.byte)
 
 controlled_mass_spring.byte: ZLEXTRALIBS += graphics.cma $(OBJ)
 
 clean:
-	-@rm -f *~ *.cmi *.cmo *.cmx *.annot *.o *.lci *.obc *.ml *.out *.byte *.opt
+	-@rm -f *~ *.cmi *.cmo *.cmx *.annot *.o *.zci *.obc *.ml *.out *.byte *.opt
 realclean cleanall: clean
-	-@rm -f $(EXAMPLE:%.ls=%.opt) $(EXAMPLE:%.ls=%.byte)
+	-@rm -f $(EXAMPLE:%.zls=%.opt) $(EXAMPLE:%.zls=%.byte)
 
 # Common rules
-.SUFFIXES : .ml .ls .byte
+.SUFFIXES : .ml .zls .byte
 
-.ls.ml:
-	$(ZLC) $(ZLCFLAGS) -period -s main -sampling 100 $<
-	mv main.ml $(<:.ls=)_main.ml
+.zls.ml:
+	$(ZELUC) $(ZELUCFLAGS) -period -s main -sampling 100 $<
+	mv main.ml $(<:.zls=)_main.ml
 

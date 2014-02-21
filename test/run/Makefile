@@ -1,14 +1,14 @@
 include ../../config
 
-ALL := $(shell ls t*.ls)
-NTESTS := $(shell ls t*.ls | wc -l)
+ALL := $(shell ls t*.zls)
+NTESTS := $(shell ls t*.zls | wc -l)
 HALFLINE = "------------------------------"
 
 .PRECIOUS: %.ml %_main.ml %.translation %.test %.camldebug
 
 run: run-quiet
 	@$(MAKE) -s summary
-run-quiet: $(ALL:.ls=)
+run-quiet: $(ALL:.zls=)
 
 summary:
 	@TESTOK=`ls | grep '\\.ok$$' | wc -l`;			\
@@ -27,7 +27,7 @@ help:
 	-@echo "make t0001 t0004        run tests 1 and 4"
 	-@echo "make t0004.debug        show debugging detail for test 4"
 	-@echo "make ADDFLAGS=-noinit t0004.debug"
-	-@echo "                        additional flags for zlc"
+	-@echo "                        additional flags for zeluc"
 	-@echo "make t0001 VERBOSE=1    run test 1 and show more detail"
 	-@echo "make NOCOLOR=1          run tests without ANSI color commands"
 
@@ -40,35 +40,35 @@ realclean cleanall: clean
 ##
 FORCE:
 
-%.debug: %.ls %.camldebug
-	@cat $(<:.ls=.camldebug)
+%.debug: %.zls %.camldebug
+	@cat $(<:.zls=.camldebug)
 	@echo "----------------------------------------------------------------------------"
 	@echo
-	@FLAGS="$(ZLCFLAGS) $(ADDFLAGS) -s main					\
+	@FLAGS="$(ZELUCFLAGS) $(ADDFLAGS) -s main					\
 	    `sed -ne 's/(\*.*TEST\[\([^]]*\)\].*\*)/\1/p' $(<)`";	\
-	$(ZLC) $${FLAGS} -v $< 2>&1 || true
+	$(ZELUC) $${FLAGS} -v $< 2>&1 || true
 
-%.camldebug: %.ls
+%.camldebug: %.zls
 	@echo "$$DEBUG_PRELUDE" > $@
-	@echo "set arguments -I $(ZLLIB) $(ZLCFLAGS)" "../test/run/$<" >> $@
+	@echo "set arguments -I $(ZLLIB) $(ZELUCFLAGS)" "../test/run/$<" >> $@
 
-%.ml %_main.ml %.translation: %.ls FORCE
-	-@FLAGS="$(ZLCFLAGS) $(ADDFLAGS) -s main			\
+%.ml %_main.ml %.translation: %.zls FORCE
+	-@FLAGS="$(ZELUCFLAGS) $(ADDFLAGS) -s main			\
 	    `sed -ne 's/(\*.*TEST\[\([^]]*\)\].*\*)/\1/p' $(<)`";	\
-	$(ZLC) $${FLAGS} $< 2>$(<:.ls=.translation);			\
+	$(ZELUC) $${FLAGS} $< 2>$(<:.zls=.translation);			\
 	RESULT=$$?;							\
-	if [ $(VERBOSE) ]; then echo $(ZLC) $${FLAGS} $<; fi;		\
+	if [ $(VERBOSE) ]; then echo $(ZELUC) $${FLAGS} $<; fi;		\
 	if [ $${RESULT} -ne 0 ]; then					\
-	    echo "-- run/$(<:.ls=):"					\
+	    echo "-- run/$(<:.zls=):"					\
 		 "$(S_RED)translation fail$(S_NORMAL)"			\
-		 "(see $(<:.ls=.translation))";				\
-	    rm -f "$(<:.ls=.ok)" "$(<:.ls=.test)";			\
-	    rm -f $(<:%.ls=%)_main.ml;					\
+		 "(see $(<:.zls=.translation))";				\
+	    rm -f "$(<:.zls=.ok)" "$(<:.zls=.test)";			\
+	    rm -f $(<:%.zls=%)_main.ml;					\
 	else								\
-	    mv main.ml $(<:%.ls=%)_main.ml;				\
+	    mv main.ml $(<:%.zls=%)_main.ml;				\
 	fi
 ifdef VERBOSE
-	-@cat $(<:.ls=.translation)
+	-@cat $(<:.zls=.translation)
 endif
 
 %.test %.compilation: %.ml %_main.ml FORCE
@@ -89,7 +89,7 @@ ifdef VERBOSE
 endif
 
 %: %.test FORCE
-	-@ARGS="-l `sed -ne 's/(\*.*ARGS\[\([^]]*\)\].*\*)/\1/p' $(<:.test=.ls)`";\
+	-@ARGS="-l `sed -ne 's/(\*.*ARGS\[\([^]]*\)\].*\*)/\1/p' $(<:.test=.zls)`";\
 	./$(<) $${ARGS} > $(<:.test=.log) 2>&1;				\
 	RESULT=$$?;							\
 	if [ $(VERBOSE) ]; then echo "$(<) $${ARGS}"; fi;		\

@@ -2,33 +2,33 @@ include ../../config
 
 ZLEXTRALIBS = $(ZLGTKLIBS)
 
-EXAMPLE=suspend01.ls \
-	ysquared.ls \
-	discontinuity.ls \
-	hybridaut.ls \
-	updown.ls \
-	heatingh20.ls \
-	sincos.ls \
-	sqrt.ls
-#	tabledep.ls
+EXAMPLE=suspend01.zls \
+	ysquared.zls \
+	discontinuity.zls \
+	hybridaut.zls \
+	updown.zls \
+	heatingh20.zls \
+	sincos.zls \
+	sqrt.zls
+#	tabledep.zls
 
 
 default: $(word 1, $(targets))
 all:  $(targets)
-byte: $(EXAMPLE:%.ls=%.byte)
-opt:  $(EXAMPLE:%.ls=%.opt)
+byte: $(EXAMPLE:%.zls=%.byte)
+opt:  $(EXAMPLE:%.zls=%.opt)
 
 clean:
-	-@rm -f $(EXAMPLE:.ls=.ml) $(EXAMPLE:.ls=_main.ml)
-	-@rm -f *.o *.cm[oix] *.annot *.obc *.lci
-	-@rm -f $(EXAMPLE:%.ls=%.byte) $(EXAMPLE:%.ls=%.opt)
+	-@rm -f $(EXAMPLE:.zls=.ml) $(EXAMPLE:.zls=_main.ml)
+	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci
+	-@rm -f $(EXAMPLE:%.zls=%.byte) $(EXAMPLE:%.zls=%.opt)
 
 realclean cleanall: clean
 
 # Common rules
-.SUFFIXES : .ml .ls .byte
+.SUFFIXES : .ml .zls .byte
 
-.ls.ml:
-	$(ZLC) $(ZLCFLAGS) -s main -period -sampling 0 -gtk2 $<
-	mv main.ml $(<:.ls=)_main.ml
+.zls.ml:
+	$(ZELUC) $(ZELUCFLAGS) -s main -period -sampling 0 -gtk2 $<
+	mv main.ml $(<:.zls=)_main.ml
 

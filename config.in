@@ -26,10 +26,10 @@ OCAMLFLAGS    ?= -annot
 OCAMLOPTFLAGS ?= -annot 
 CPPFLAGS ?= -P -x c
 
-BIN = zlc
+BIN = zeluc
 TARGET ?= $(word 1, $(targets))
 
-ZLC := $(OCAMLRUN) ../../bin/zlc.$(TARGET) -I $(ZLLIB)
+ZELUC := $(OCAMLRUN) ../../bin/$(BIN).$(TARGET) -I $(ZLLIB)
 
 UNIX  = unix.cma
 UNIXX = unix.cmxa
@@ -108,7 +108,7 @@ export DEBUG_PRELUDE
 
 # implicit rules
 
-.SUFFIXES : .mli .ml .cmi .cmo .cmx .mll .mly .lci .lsi .byte .opt
+.SUFFIXES : .mli .ml .cmi .cmo .cmx .mll .mly .zli .zli .byte .opt
 
 %.cmi: %.mli
 	$(OCAMLC) $(OCAMLFLAGS) -c $(INCLUDES) $<
@@ -119,8 +119,8 @@ export DEBUG_PRELUDE
 %.cmx %.cmi: %.ml
 	$(OCAMLOPT) $(OCAMLOPTFLAGS) -I $(ZLLIB) -c $(INCLUDES) $<
 
-%.lci: %.lsi
-	$(ZLC) $(ZLCFLAGS) $<
+%.zci: %.zli
+	$(ZELUC) $(ZELUCFLAGS) $<
 
 %.ml: %.mll
 	$(OCAMLLEX) $<

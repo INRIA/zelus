@@ -84,7 +84,7 @@ addopen() {
 
 	    setfilename of "$WITHOPEN" $filename
 	    if [ -n "$openfiles" ]; then
-		echo -n "$openfiles " > "$SUBDIR$of$EXT"
+		echo "$openfiles " > "$SUBDIR$of$EXT"
 		cat $SUBDIR$f$EXT >> "$SUBDIR$of$EXT"
 	    else
 		cat $SUBDIR$f$EXT > "$SUBDIR$of$EXT"

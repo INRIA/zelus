@@ -5,7 +5,7 @@ shopt -s nullglob
 # script de test
 
 option=$1
-compilo="../compiler/hyc.byte -I ../lib/"
+compilo="../bin/zeluc.byte -I ../lib/"
 coption=$2
 
 compile_code=0

@@ -95,9 +95,9 @@ dist: all
 	#
 	@echo "$(S_BLUE)## Populating bin subdirectory$(S_NORMAL)"
 	mkdir -p zelus-dist/bin
-	cp bin/zlc.in zelus-dist/bin
-	cp compiler/zlc.byte zelus-dist/bin
-	chmod a-x zelus-dist/bin/zlc.byte
+	cp bin/zeluc.in zelus-dist/bin
+	cp compiler/zeluc.byte zelus-dist/bin
+	chmod a-x zelus-dist/bin/zeluc.byte
 	#
 	@echo "$(S_BLUE)## Populating examples subdirectory$(S_NORMAL)"
 	mkdir -p zelus-dist/examples
@@ -109,7 +109,7 @@ dist: all
 	mv zelus-byte/lib-nosundials/* zelus-byte/lib
 	rmdir zelus-byte/lib-nosundials
 	@echo "$(S_BLUE)## Creating packages$(S_NORMAL)"
-	VERSIONSTR=`./compiler/zlc.byte -version`; \
+	VERSIONSTR=`./compiler/zeluc.byte -version`; \
 	  VERSION=`expr "$${VERSIONSTR}" : '.*version \\(.*\\) (.*'`; \
 	  ARCH=`uname -s`-`uname -m`; \
 	  rm -rf "zelus-$${VERSION}-$${ARCH}"; \
@@ -138,7 +138,7 @@ opam-dist:
 
 
 opam-install:
-	@echo "bin: [\"compiler/$(BIN).$(TARGET)\" {\"zlc\"}]" >> zelus.install ; \
+	@echo "bin: [\"compiler/$(BIN).$(TARGET)\" {\"zeluc\"}]" >> zelus.install ; \
 	echo "lib: [" >> zelus.install ; \
 	for file in lib/*.cma lib/*.cmxa lib/*.a lib/*.cmi lib/*.lci ; do \
 	      echo "  \"$$file\"" >> zelus.install ; \

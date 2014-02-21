@@ -111,5 +111,5 @@ controller switches on and off to oscillate around the set-point.
 The LED will flash green (`2`) during periods of heating, and red (`1`) during
 periods of cooling, i.e., when not heating.
 
-!SOURCEFILE: bangbang.ls
+!SOURCEFILE: bangbang.zls
 

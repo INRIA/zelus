@@ -61,7 +61,7 @@ let findfile filename =
 let load_module modname =
   let name = String.uncapitalize modname in
     try
-      let filename = findfile (name ^ ".lci") in
+      let filename = findfile (name ^ ".zci") in
       let ic = open_in_bin filename in
         try
           let m = input_value ic in

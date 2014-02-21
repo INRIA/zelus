@@ -14,7 +14,7 @@ giving systems with high feedback loop gain.
 Three variations of the system are developed.
 The shared elements are incorporated into a single file:
 
-!SOURCEFILE: soas.ls
+!SOURCEFILE: soas.zls
 
 The models are tested over a period of 50s in response to a **command
 signal** which starts at `1` initially, drops to `0` at `17.5` seconds, and
@@ -63,7 +63,7 @@ Other elements will be added successively.
 
 ![Basic SOAS: model](img/soas-model1.png "Basic SOAS: model")
 
-!SOURCEFILE: soas1_basic.ls
+!SOURCEFILE: soas1_basic.zls
 
 The **reference model** is described as a second order system with damping
 coefficient ζ = 0.7 and natural frequency ω_n = 1 rad/sec.
@@ -99,7 +99,7 @@ adds a phase lead of -π.
 
 ![SOAS with lead network](img/soas-model2.png "SOAS with lead network")
 
-!SOURCEFILE: soas2_leadnet.ls
+!SOURCEFILE: soas2_leadnet.zls
 
 The compensation filter is defined as a transfer function:
 
@@ -128,7 +128,7 @@ It uses so called _up logic_ to speed up the controller's reponse.
 
 ![SOAS with lead network and gain changer: model](img/soas-model3.png "SOAS with lead network and gain changer: model")
 
-!SOURCEFILE: soas3_gainchanger.ls
+!SOURCEFILE: soas3_gainchanger.zls
 
 A gain changer increases the relay's amplitude (`d`) when a specified
 tolerance (e_l) is exceeded.

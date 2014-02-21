@@ -39,6 +39,7 @@
 
 \usepackage{runverbatim}
 \usepackage{url}
+\usepackage{hypdoc}
 \usepackage{showexpl}
 \usepackage{array}
 \usepackage{longtable}
@@ -431,7 +432,7 @@ let w = 1 + "four"
 % specified compiler (or interpreter) against each listed source file 
 % \meta{subdir}|/|\meta{prefix}\meta{n}|.|\meta{ext} and copying the 
 % results---the command-line used, whether it succeeded or failed, the 
-% messages on stdout, and the messages on stderr---into a corresponding 
+% messages on |stdout|, and the messages on |stderr|---into a corresponding 
 % file, \meta{subdir}|/|\meta{prefix}\meta{n}|.tex|, for inclusion in the 
 % original document.
 %
@@ -455,18 +456,37 @@ let w = 1 + "four"
 % Line numbers in error messages may not correspond correctly with the line 
 % numbers of sample files, due to either the |skip*| options, or because of 
 % lines added to import code.
-% 
+%
+% \item
+% The system has been designed to work with ML-style compilers.
+% It has not been tested with other compilers and interpreters.
+% Please contact \url{tim@tbrk.org} if you would like to support other 
+% systems.
+% Patches are most welcome, but the intent is to keep this package 
+% relatively simple rather than to try and do everything.
+%
+% \item
+% The system is not (yet) well integrated with the |listings| package.
+% We plan to integrate support for its source code highlighting features 
+% using existing hooks from the |fancyvrb| package.
+%
 % \end{itemize}
 %
 % \section{Implementation}
 %
+% All internal macros have names of the form |\RVRB@|\meta{name}.
+%
 % \begin{macro}{\runverbatim}
+% Generate the sequence of source code identifiers used in per-environment 
+% filenames and to manage dependencies.
 %    \begin{macrocode}
 \newcounter{runverbatim}
 %    \end{macrocode}
 % \end{macro}
 %
 % \begin{macro}{\ifRVRB@fileexists}
+% An internal boolean variable for remembering whether an input |.tex| file, 
+% corresponding to the compilation of source code, was found.
 %    \begin{macrocode}
 \newif\ifRVRB@fileexists
 %    \end{macrocode}
@@ -474,31 +494,33 @@ let w = 1 + "four"
 %
 % \subsection{Package Options}
 %
+% The package options are processed using the |kvoptions| 
+% package.\footnote{\url{http://www.ctan.org/pkg/kvoptions}}
+%
+% \begin{macro}{\RVRB@pkg@verbopts}
+% This list accumulates package-level options for the |verbatim| 
+% environments.
+%    \begin{macrocode}
+\def\RVRB@pkg@verbopts{}
+%    \end{macrocode}
+% \end{macro}
+%
+% \noindent
+% Declare the package options and their default values:
+
 %    \begin{macrocode}
 \DeclareBoolOption{withresult}
 \DeclareComplementaryOption{withoutresult}{withresult}
-%    \end{macrocode}
-%
-% \begin{macro}{\ifRVRB@pkg@verbopts}
-%    \begin{macrocode}
-\def\RVRB@pkg@verbopts{}
 \DeclareVoidOption{skipone}
     {\edef\RVRB@pkg@verbopts{\RVRB@pkg@verbopts,firstline=2}}
 \DeclareVoidOption{skiptwo}
     {\edef\RVRB@pkg@verbopts{\RVRB@pkg@verbopts,firstline=3}}
 \DeclareDefaultOption
     {\edef\RVRB@pkg@verbopts{\RVRB@pkg@verbopts,\CurrentOption}}
-%    \end{macrocode}
-% \end{macro}
-%
-%    \begin{macrocode}
 \DeclareStringOption[]{codestyle}
 \DeclareStringOption[formatcom=\em]{msgstyle}
 \DeclareStringOption[formatcom=\em]{errstyle}
-%    \end{macrocode}
-%
-%    \begin{macrocode}
-\DeclareStringOption{subdir}
+\DeclareStringOption[.]{subdir}
 \DeclareStringOption[runverbatim]{prefix}
 \DeclareStringOption[.ml]{ext}
 \DeclareStringOption[\#]{prompt}
@@ -506,23 +528,33 @@ let w = 1 + "four"
 \DeclareStringOption{compilerflags}
 \DeclareStringOption[-i]{lastflags}
 \DeclareStringOption[open]{includecmd}
-%    \end{macrocode}
-%
-%    \begin{macrocode}
-\def\runverbatimsetup{\kvsetkeys{RVRB}}
-%    \end{macrocode}
-%
-%    \begin{macrocode}
 \ProcessKeyvalOptions*
 %    \end{macrocode}
 %
+% \begin{macro}{\runverbatimsetup}
+% This macro offers another way of setting package options with the 
+% advantage that values are not expanded.
+%    \begin{macrocode}
+\def\runverbatimsetup{\kvsetkeys{RVRB}}
+%    \end{macrocode}
+% \end{macro}
+%
 % \subsection{Logging Files to Process}
+%
+% Several definitions and commands are used to create and write to the 
+% |.rvrb| file.
+%
+% \begin{macro}{\RVRB@samplefile}
+% The file generated when a \LaTeX{} document that uses the |runverbatim| 
+% package is processed.
 %    \begin{macrocode}
 \newwrite\RVRB@samplefile
 \openout\RVRB@samplefile=\jobname.rvrb
 \AtEndDocument{\closeout\RVRB@samplefile}
 %    \end{macrocode}
+% \end{macro}
 %
+% Package options are logged to the file.
 %    \begin{macrocode}
 \write\RVRB@samplefile{subdir=\RVRB@subdir/}
 \write\RVRB@samplefile{prefix=\RVRB@prefix}
@@ -534,6 +566,10 @@ let w = 1 + "four"
 %    \end{macrocode}
 %
 % \begin{macro}{\RVRB@logsample}
+% An entry is logged for each |runverbatim| environment.
+% It contains the sequence number for the example, followed by a colon, an 
+% ordered list of other sample files to import, and the page and line 
+% numbers (to include in error messages).
 %    \begin{macrocode}
 \newcommand{\RVRB@logsample}[2]{%
   \edef\RVRB@tolog{#1:#2 [page=\noexpand\thepage] [line=\the\inputlineno]}%
@@ -544,13 +580,22 @@ let w = 1 + "four"
 %
 % \subsection{Insertion of Compilation Results}
 %
+% Several macros are defined for use by the |runverbatim.sh| script (and any 
+% similar program).
+% These macros are called from within the |.tex| file generated for each 
+% |runverbatim| environment.
+%
 % \begin{macro}{\ifrunverbatim}
+% A successful compilation is signalled by |\runverbatimtrue|, and a failed 
+% compilation by |\runverbatimfalse|.
 %    \begin{macrocode}
 \newif\ifrunverbatim
 %    \end{macrocode}
 % \end{macro}
 %
 % \begin{macro}{\setrunverbatimcmd}
+% The command used to compile a sample is recorded by |\setrunverbatimcmd| 
+% which (re)defines the internal |\RVRB@prompt| value.
 %    \begin{macrocode}
 \newcommand{\setrunverbatimcmd}[1]{%
     \global\def\runverbatimcmd{\emph{\RVRB@prompt{#1}}}}
@@ -558,6 +603,10 @@ let w = 1 + "four"
 % \end{macro}
 
 % \begin{environment}{RunVerbatimMsg}
+% Normal compiler messages (written on |stdout|) should be communicated 
+% between |\begin{RunVerbatimMsg}| and |\end{RunVerbatimMsg}|.
+% This verbatim text is saved using the |SaveVerbatim| feature of 
+% |fancyvrb|.
 %    \begin{macrocode}
 \def\RunVerbatimMsg{\FV@Environment{}{RunVerbatimMsg}}
 \def\FVB@RunVerbatimMsg{\FVB@SaveVerbatim{RunVerbatimMsg}}
@@ -567,6 +616,10 @@ let w = 1 + "four"
 % \end{environment}
 
 % \begin{environment}{RunVerbatimErr}
+% Compiler error messages (usually written on |stderr|) should be 
+% communicated between |\begin{RunVerbatimErr}| and |\end{RunVerbatimErr}|.
+% This verbatim text is saved using the |SaveVerbatim| feature of 
+% |fancyvrb|.
 %    \begin{macrocode}
 \def\RunVerbatimErr{\FV@Environment{}{RunVerbatimErr}}
 \def\FVB@RunVerbatimErr{\FVB@SaveVerbatim{RunVerbatimErr}}
@@ -576,24 +629,36 @@ let w = 1 + "four"
 % \end{environment}
 
 % \begin{macro}{\runverbatimfile}
+% This is the filename used by |runverbatim.sh| to refer to the file 
+% containing sample code when |\setrunverbatimcmd| is called.
 %    \begin{macrocode}
 \newcommand{\runverbatimfile}{\RVRB@prefix\RVRB@ext}
 %    \end{macrocode}
 % \end{macro}
 %
-% \subsection{Command Options}
+% \subsection{Main Environment}
+%
+% Several auxiliary definitions are needed to track per-environment 
+% configuration options.
 %
 % \begin{macro}{\ifRVRB@shouldfail}
+% This boolean variable records whether sample code is expected to fail.
 %    \begin{macrocode}
 \newif\ifRVRB@shouldfail
 %    \end{macrocode}
 % \end{macro}
 %
 % \begin{macro}{\ifRVRB@showcode}
+% This boolean variable records whether the compilation result should be 
+% shown.
 %    \begin{macrocode}
 \newif\ifRVRB@showcode
 %    \end{macrocode}
 % \end{macro}
+%
+% \begin{macro}{\RVRB@continue}
+% \begin{macro}{\RVRB@precontinue}
+%
 %
 %    \begin{macrocode}
 \edef\RVRB@precontinue{}
@@ -602,7 +667,10 @@ let w = 1 + "four"
   \edef\RVRB@continue{\RVRB@continue\space\@ifundefined{RVRB@deps@#1}%
     {#1}{\csname RVRB@deps@#1\endcsname}}}
 %    \end{macrocode}
-
+% \end{macro}
+% \end{macro}
+%
+% The |keyval| package\footnote{\url{http://www.ctan.org/pkg/kvoptions}}
 %    \begin{macrocode}
 \define@key{RVRB@envkeys}{fail}[]{\RVRB@shouldfailtrue}
 \define@key{RVRB@envkeys}{label}{\edef\RVRB@label{#1}}
@@ -614,7 +682,6 @@ let w = 1 + "four"
 \define@key{RVRB@envkeys}{withoutresult}[]{\RVRB@withresultfalse}
 %    \end{macrocode}
 %
-% \subsection{Main Environment}
 %
 % \begin{environment}{RunVerbatim}
 % Include a code sample in the document.

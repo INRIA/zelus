@@ -7,20 +7,20 @@ backhoe.byte: backhoegui.cmo backhoedyn.cmo backhoecontrol.cmo backhoe_main.cmo
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
 	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $^ 
 
-backhoedyn.ls: backhoegui.lci
+backhoedyn.zls: backhoegui.zci
 
 backhoegui.cmi backhoegui.cmo: INCLUDES += $(LABLGTK2)
 backhoegui.cmi: backhoegui.mli
 backhoegui.cmo: backhoegui.ml backhoegui.cmi
 
-backhoegui.lci: backhoegui.lsi
+backhoegui.zci: backhoegui.zli
 
 backhoedyn.cmi backhoedyn.cmo: backhoedyn.ml
-backhoedyn.ml backhoedyn.lci: backhoedyn.ls backhoegui.lci
-	$(ZLC) -i $(ZLCFLAGS) -period $<
+backhoedyn.ml backhoedyn.zci: backhoedyn.zls backhoegui.zci
+	$(ZELUC) -i $(ZELUCFLAGS) -period $<
 
-backhoecontrol.ml backhoe_main.ml: backhoecontrol.ls backhoedyn.lci
-	$(ZLC) -i $(ZLCFLAGS) -period -gtk2 -sampling 5 -s main $<
+backhoecontrol.ml backhoe_main.ml: backhoecontrol.zls backhoedyn.zci
+	$(ZELUC) -i $(ZELUCFLAGS) -period -gtk2 -sampling 5 -s main $<
 	mv main.ml backhoe_main.ml
 
 test: backhoegui.cmi backhoegui.ml
@@ -31,7 +31,7 @@ test: backhoegui.cmi backhoegui.ml
 
 export:
 	mkdir $(DISTDIR)/backhoe
-	cp backhoecontrol.ls backhoedyn.ls backhoegui.lsi backhoegui.ml \
+	cp backhoecontrol.zls backhoedyn.zls backhoegui.zli backhoegui.ml \
 	   backhoegui.mli Makefile readme.md \
 	   $(DISTDIR)/backhoe/
 	mkdir $(DISTDIR)/backhoe/img
@@ -42,7 +42,7 @@ export:
 clean realclean cleanall:
 	-@rm -f backhoe_main.ml backhoedyn.ml backhoecontrol.ml
 	-@rm -f backhoegui_test.ml
-	-@rm -f *.o *.cm[oix] *.annot *.obc *.lci
+	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci
 	-@rm -f backhoe backhoe.byte backhoe.opt
 	-@if [ -d slides ]; then make -s -C slides clean; fi
 

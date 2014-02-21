@@ -1,6 +1,6 @@
-(* pour tester ../../compiler/hyc.byte -i -v -I ../../lib t13.ls *)
+(* pour tester ../../bin/zeluc.byte -i -v -I ../../lib t13.zls *)
 (* pour debugger
-   set arguments -I ../lib ../test/good/t13.ls *)
+   set arguments -I ../lib ../test/good/t13.zls *)
 
 let hybrid sliding () = (x, y) where
  rec match y >= 0.0 with

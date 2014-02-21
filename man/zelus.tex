@@ -5,9 +5,9 @@
 
 \usepackage[subdir=samples,
             prefix=tutorial,
-	    ext=.ls,
+            ext=.zls,
             prompt={aneto.local:\ },
-            compiler={../compiler/zlc.byte},
+            compiler={../compiler/zeluc.byte},
             compilerflags={-I ../lib -I ./samples},
             lastflags={-i},
             includecmd={},
@@ -2799,10 +2799,10 @@ implementation. Similarly, the compilation of the scalar interface
 are compiled by typing:
 
 \begin{verbatim}
-  % zlc draw.mli          => draw.lci
-  % zlc misc.zls          => misc.ml, misc.lci
-  % zlc pendulum.zls      => pendulum.ml
-  % zlc -s play -sampling 0.05 pendulum.lci
+  % zeluc draw.mli          => draw.lci
+  % zeluc misc.zls          => misc.ml, misc.lci
+  % zeluc pendulum.zls      => pendulum.ml
+  % zeluc -s play -sampling 0.05 pendulum.lci
   
   % ocamlc draw.mli
   % ocamlc draw.ml
@@ -2993,7 +2993,7 @@ Supposing that the program is written in a file \verb-heater.zls-, the
 program can be compiled by typing:
 
 \begin{verbatim}
-% zlc -s main heater.zls
+% zeluc -s main heater.zls
 \end{verbatim}
 which produces files \verb-heater.ml- and \verb-main.ml-, the later
 containing the transition function for the node \verb-main-.
@@ -3117,7 +3117,7 @@ let node main () =
 The final application is obained by typing:
 
 \begin{verbatim}
-%zlc -s main -sampling 0 coffee.zls
+%zeluc -s main -sampling 0 coffee.zls
 %ocamlc -o main coffee.ml main.ml
 \end{verbatim}
 
@@ -3932,14 +3932,14 @@ val instance :  'a * ('a -> 'b -> 'c * 'a) -> 'b => 'c
 val instance :: 'a * ('a -> 'b -> 'c * 'a) -> 'b -> 'c
 \end{verbatim}
 
-\chapter{{\tt zlc} - The batch compiler}
+\chapter{{\tt zeluc} - The batch compiler}
 This part describes how to transform \zelus\ programs into \ocaml\
 programs. This is achieved by the command {\tt lucyc}.
 
 \Marc{A faire.}
 
 {\tt \begin{tabbing}
-   zlc \= [-stdlib lib-dir]
+   zeluc \= [-stdlib lib-dir]
                  [-civ]
                  [-realtime]
                  [-s node] \\
@@ -3949,7 +3949,7 @@ programs. This is achieved by the command {\tt lucyc}.
 
 
 \noindent
-\verb-zlc- accepts four kinds of arguments: 
+\verb-zeluc- accepts four kinds of arguments: 
 
 \begin{itemize}
 \item
@@ -3960,9 +3960,9 @@ interface \verb-f.lci- and an \ocaml\ file \verb-f.ml- containing the
 implementation. The \verb-.ml- file defines the corresponding
 transition functions for the values defined in the input file.
 \item
-Argument ending in \verb-.lsi- are considered to be Lucid Synchrone
+Argument ending in \verb-.zli- are considered to be Lucid Synchrone
 interfaces, defining types and clocks for every value defined in the
-implementation. From a file \verb-f.lsi-, 
+implementation. From a file \verb-f.zli-, 
 the compiler produces a compiled interface
 \verb-f.lci-.
 \item
@@ -4028,7 +4028,7 @@ user must check that the execution time of the reaction is always less
 than the sampling rate.
 \end{description}
 
-\subsection*{SEE ALSO}
+\subsection*{SEE AlSO}
 distribution and manual at \url{http://zelus.di.ens.fr}
 
 \subsection*{FILES}
@@ -4062,8 +4062,8 @@ In order to simulate a node \verb-node- from a source file
 
 {\tt
 \begin{tabbing}
-  zlc -s node filename.zls \\
-  zlc -s node filename.lci
+  zeluc -s node filename.zls \\
+  zeluc -s node filename.lci
 \end{tabbing}
 }
 

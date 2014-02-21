@@ -2,7 +2,7 @@ include ../../config
 
 ZLEXTRALIBS = $(ZLGTKLIBS)
 
-EXAMPLE=stickysprings.ls
+EXAMPLE=stickysprings.zls
 
 default: $(word 1, $(targets))
 all:  $(targets)
@@ -23,8 +23,8 @@ stickysprings3d.opt: world.cmx stickysprings.ml stickysprings3d.ml stickysprings
 	$(OCAMLOPT) $(OCAMLFLAGS) -o $@ $(INCLUDES) -I $(ZLLIB) \
 	    $(ZLSTDLIBS:%.cma=%.cmxa) $(ZLEXTRALIBS:%.cma=%.cmxa) $^
 
-stickysprings3d.ml sticksprings3d_main.ml: stickysprings3d.ls stickysprings.lci world.lci
-	$(ZLC) $(ZLCFLAGS) -period -gtk2 -sampling 9 -s main $<
+stickysprings3d.ml sticksprings3d_main.ml: stickysprings3d.zls stickysprings.zci world.zci
+	$(ZELUC) $(ZELUCFLAGS) -period -gtk2 -sampling 9 -s main $<
 	mv main.ml stickysprings3d_main.ml
 
 world.cmi: world.mli
@@ -35,7 +35,7 @@ world.cmo: world.ml world.cmi
 world.cmx: INCLUDES += $(GLMLITE)
 world.cmx: world.ml world.cmi
 
-world.lci: world.lsi
+world.zci: world.zli
 
 testworld: world.cmi world.cmo testworld.ml
 	$(OCAMLC) -o $@ unix.cma bigarray.cma \
@@ -55,26 +55,26 @@ endif
 export:
 	mkdir $(DISTDIR)/stickysprings
 	cp Makefile readme.md \
-	   stickysprings3d.ls stickysprings.ls \
-	   world.lsi world.ml world.mli \
+	   stickysprings3d.zls stickysprings.zls \
+	   world.zli world.ml world.mli \
 	   $(DISTDIR)/stickysprings/
 	mkdir $(DISTDIR)/stickysprings/img
 	cp img/*.png $(DISTDIR)/stickysprings/img/
 
 clean:
-	-@rm -f $(EXAMPLE:.ls=.ml) $(EXAMPLE:.ls=_main.ml)
-	-@rm -f *.o *.cm[oix] *.annot *.obc *.lci
-	-@rm -f $(EXAMPLE:%.ls=%.byte) $(EXAMPLE:%.ls=%.opt)
+	-@rm -f $(EXAMPLE:.zls=.ml) $(EXAMPLE:.zls=_main.ml)
+	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci
+	-@rm -f $(EXAMPLE:%.zls=%.byte) $(EXAMPLE:%.zls=%.opt)
 	-@rm -f stickysprings3d.ml stickysprings3d_main.ml
 	-@rm -f testworld stickysprings3d.byte stickysprings3d.opt
 
 realclean cleanall: clean
 
 # Common rules
-.SUFFIXES : .ml .ls .lci
+.SUFFIXES : .ml .zls .zci
 
-%.ml %.lci: %.ls
-	# $(ZLC) $(ZLCFLAGS) -s main -sampling 50 -gtk2 $<
-	$(ZLC) $(ZLCFLAGS) -period -s main -sampling 9 -gtk2 $<
-	mv main.ml $(<:.ls=)_main.ml
+%.ml %.zci: %.zls
+	# $(ZELUC) $(ZELUCFLAGS) -s main -sampling 50 -gtk2 $<
+	$(ZELUC) $(ZELUCFLAGS) -period -s main -sampling 9 -gtk2 $<
+	mv main.ml $(<:.zls=)_main.ml
 

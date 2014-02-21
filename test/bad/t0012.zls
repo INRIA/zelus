@@ -1,6 +1,6 @@
-(* pour tester ../../compiler/hyc.byte -i -v -I ../../lib t10.ls *)
+(* pour tester ../../compiler/zeluc.byte -i -v -I ../../lib t10.zls *)
 (* pour debugger
-   set arguments -I ../lib ../test/good/t10.ls *)
+   set arguments -I ../lib ../test/good/t10.zls *)
 
 let node f2(x) =
   let rec nat = (0 fby nat) + 1 in

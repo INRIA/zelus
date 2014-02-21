@@ -1,21 +1,21 @@
 include ../config
 
-ZLC = ../bin/zlc.$(TARGET)
+ZELUC = ../bin/zeluc.$(TARGET)
 
-LOBJ = pervasives.lci \
-       char.lci \
-       complex.lci \
-       int32.lci \
-       nativeint.lci \
-       int64.lci \
-       random.lci \
-       string.lci \
-       graphics.lci \
-       zlsolve.lci \
-       basics.lci
+LOBJ = pervasives.zci \
+       char.zci \
+       complex.zci \
+       int32.zci \
+       nativeint.zci \
+       int64.zci \
+       random.zci \
+       string.zci \
+       graphics.zci \
+       zlsolve.zci \
+       basics.zci
 
 LOBJ_GTK = $(LOBJ) \
-	   gtkplot.lci
+	   gtkplot.zci
 
 INCLUDES += -I solvers
 SOLVER_OBJS = solvers/fixedstep.cmo \
@@ -58,12 +58,12 @@ zllibgtk.cma: $(OBJ) $(OBJ_GTK)
 zllibgtk.cmxa: $(OBJ:.cmo=.cmx) $(OBJ_GTK:.cmo=.cmx)
 	$(OCAMLOPT) -a $(OCAMLCFLAGS) -o $@ $^
 
-pervasives.lci: ZLCFLAGS := -nopervasives
-zlsolve.lci: zlsolve.lsi pervasives.lci
+pervasives.zci: ZELUCFLAGS := -nopervasives
+zlsolve.zci: zlsolve.zli pervasives.zci
 
-basics.lci: basics.lsi pervasives.lci
+basics.zci: basics.zli pervasives.zci
 
-zlsolve.lci: zlsolve.lsi
+zlsolve.zci: zlsolve.zli
 
 solvers/solversundials.cmo: INCLUDES += $(SUNDIALS)
 solvers/solversundials.cmx: INCLUDES += $(SUNDIALS)
@@ -71,16 +71,16 @@ solvers/solversundials.cmx: INCLUDES += $(SUNDIALS)
 reactpanel.cmo: INCLUDES += $(LABLGTK2)
 reactpanel.cmx: INCLUDES += $(LABLGTK2)
 
-gtkplot.lci: gtkplot.lsi pervasives.lci
+gtkplot.zci: gtkplot.zli pervasives.zci
 gtkplot.cmi:
 gtkplot.cmo: INCLUDES += $(LABLGTK2)
 gtkplot.cmx: INCLUDES += $(LABLGTK2)
 
-scope.ml: scope.ls gtkplot.lci basics.lci
-	$(ZLC) $(ZLCFLAGS) scope.ls
+scope.ml: scope.zls gtkplot.zci basics.zci
+	$(ZELUC) $(ZELUCFLAGS) scope.zls
 
-dump.ml: dump.ls basics.lci
-	$(ZLC) $(ZLCFLAGS) dump.ls
+dump.ml: dump.zls basics.zci
+	$(ZELUC) $(ZELUCFLAGS) dump.zls
 
 loadsolvers.ml:
 	@echo "(* initialize solvers *)" > $@
@@ -111,7 +111,7 @@ clean:
 	-@rm -f *.cm[iox] *.annot *~ *.o
 	-@rm -f scope.ml scope.obc
 	-@rm -f dump.ml dump.obc
-	-@rm -f *.lci *.cma *.cmxa *.a
+	-@rm -f *.zci *.cma *.cmxa *.a
 	-@rm -f solvers/*.cm[iox] solvers/*.annot solvers/*~ solvers/*.o
 	-@rm -f loadsolvers.ml
 

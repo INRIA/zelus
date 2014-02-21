@@ -50,7 +50,7 @@ let parse_interface_file source_name =
 let compile_interface parse modname filename suffix =
   (* input and outputs *)
   let source_name = filename ^ suffix
-  and obj_interf_name = filename ^ ".lci" in
+  and obj_interf_name = filename ^ ".zci" in
   let itc = open_out_bin obj_interf_name in
   let info_ff = Format.formatter_of_out_channel stdout in
   pp_set_max_boxes info_ff max_int;
@@ -75,7 +75,7 @@ let compile_interface parse modname filename suffix =
 
 (* compiling an interface *)
 let interface modname filename =
-  compile_interface parse_interface_file modname filename ".lsi"
+  compile_interface parse_interface_file modname filename ".zli"
 
 (* select which source-to-source transformation to remove ODEs *)
 let dselect impl_list =
@@ -94,8 +94,8 @@ let apply_with_close_out f o =
 (** The main function for compiling a program *)
 let compile modname filename =
   (* input and output files *)
-  let source_name = filename ^ ".ls"
-  and obj_interf_name = filename ^ ".lci"
+  let source_name = filename ^ ".zls"
+  and obj_interf_name = filename ^ ".zci"
   and ml_name = filename ^ ".ml" in
 
   (* standard output for printing types and clocks *)

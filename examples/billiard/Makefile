@@ -2,30 +2,30 @@ include ../../config
 
 ZLEXTRALIBS = $(ZLGTKLIBS)
 
-EXAMPLE= problems2.ls problems.ls doityourself.ls
+EXAMPLE= problems2.zls problems.zls doityourself.zls
 
 
-# billiard1d.ls \
-# billiard_ex1.ls billiard_ex2.ls billiard_ex3.ls \
-# billiard_ex4.ls billiard_ex4b.ls billiard_ex5.ls
+# billiard1d.zls \
+# billiard_ex1.zls billiard_ex2.zls billiard_ex3.zls \
+# billiard_ex4.zls billiard_ex4b.zls billiard_ex5.zls
 
 default: $(word 1, $(targets))
 all:  $(targets)
-byte: $(EXAMPLE:%.ls=%.byte)
-opt:  $(EXAMPLE:%.ls=%.opt)
+byte: $(EXAMPLE:%.zls=%.byte)
+opt:  $(EXAMPLE:%.zls=%.opt)
 
 clean:
-	-@rm -f $(EXAMPLE:.ls=.ml) $(EXAMPLE:.ls=_main.ml)
-	-@rm -f $(EXAMPLE:.ls=.ml) $(EXAMPLE:.ls=_main.ml)
-	-@rm -f *.o *.cm[oix] *.annot *.obc *.lci *.byte *.ml
-	-@rm -f $(EXAMPLE:%.ls=%.byte) $(EXAMPLE:%.ls=%.opt)
+	-@rm -f $(EXAMPLE:.zls=.ml) $(EXAMPLE:.zls=_main.ml)
+	-@rm -f $(EXAMPLE:.zls=.ml) $(EXAMPLE:.zls=_main.ml)
+	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci *.byte *.ml
+	-@rm -f $(EXAMPLE:%.zls=%.byte) $(EXAMPLE:%.zls=%.opt)
 
 realclean cleanall: clean
 
 # Common rules
-.SUFFIXES : .ml .ls
+.SUFFIXES : .ml .zls
 
-.ls.ml:
-	$(ZLC) $(ZLCFLAGS) -s main -sampling 10 -gtk2 -period $<
-	mv main.ml $(^:.ls=)_main.ml
+.zls.ml:
+	$(ZELUC) $(ZELUCFLAGS) -s main -sampling 10 -gtk2 -period $<
+	mv main.ml $(^:.zls=)_main.ml
 
