@@ -656,9 +656,22 @@ let w = 1 + "four"
 %    \end{macrocode}
 % \end{macro}
 %
+% The |keyval| package\footnote{\url{http://www.ctan.org/pkg/kvoptions}} is 
+% used to parse environment options.
+% The following macros setup parameters used by the |runverbatim| 
+% environment.
+%
 % \begin{macro}{\RVRB@continue}
 % \begin{macro}{\RVRB@precontinue}
-%
+% These two macros hold lists of source code identifiers: 
+% |\RVRB@precontinue| tracks the dependencies of the previous |runverbatim| 
+% environment, and |\RVRB@continue| tracks those of the current one.
+% The |continue| option appends the previous dependencies onto the list of 
+% current ones.
+% The dependencies used at each labelled environment are remembered in 
+% |\RBRB@deps|\meta{label}.
+% The |include| option causes them to be added to the list of current 
+% dependencies
 %
 %    \begin{macrocode}
 \edef\RVRB@precontinue{}
@@ -670,7 +683,6 @@ let w = 1 + "four"
 % \end{macro}
 % \end{macro}
 %
-% The |keyval| package\footnote{\url{http://www.ctan.org/pkg/kvoptions}}
 %    \begin{macrocode}
 \define@key{RVRB@envkeys}{fail}[]{\RVRB@shouldfailtrue}
 \define@key{RVRB@envkeys}{label}{\edef\RVRB@label{#1}}
@@ -682,27 +694,26 @@ let w = 1 + "four"
 \define@key{RVRB@envkeys}{withoutresult}[]{\RVRB@withresultfalse}
 %    \end{macrocode}
 %
-%
 % \begin{environment}{RunVerbatim}
-% Include a code sample in the document.
+% This is the main environment for including source code.
 % This macro works in two parts:
 % \begin{enumerate}
 % \item
-% It uses the listings package to write the code to a file with the name 
-% protect runverbatim@name followed by the value of 
-%  protect runverbatim@counter padded out with zeroes to four digits, and the 
-% extension  protect runverbatim@ext.
-% This file is created in the subdirectory  protect runverbatim@subdir.
-% That is, the fourth code sample is written to a file: 
-% \meta{subdir}|/|\meta{name}|0004.|\meta{ext}.
-%
+% It uses the listings package to write the code to a file,
 % \item
-% If the corresponding |.tex| file exists it is loaded, otherwise an error 
-% message is logged.
+% It either loads the corresponding |.tex| file or logs an error message.
 % \end{enumerate}
+%
+% The |listings| package allows the definition of custom verbatim 
+% environments.
+% This one has a single argument (a list of |keyval| options).
+%
 %    \begin{macrocode}
 \lstnewenvironment{runverbatim}[1][]
   {%
+%    \end{macrocode}
+% Set default parameter values before invoking |\setkeys|:
+%    \begin{macrocode}
     \RVRB@shouldfailfalse%
     \RVRB@showcodetrue%
     \let\RVRB@label\@undefined%
@@ -710,10 +721,28 @@ let w = 1 + "four"
     \let\RVRB@verbopts\RVRB@pkg@verbopts%
     \def\@currentlabel{\therunverbatim}%
     \setkeys{RVRB@envkeys}{#1}%
+%    \end{macrocode}
+%
+% Log an entry to the |.rvrb| file:
+%
+%    \begin{macrocode}
     \RVRB@logsample{\arabic{runverbatim}}{\RVRB@continue\ifRVRB@shouldfail\space[fail]\fi}%
+%    \end{macrocode}
+%
+% Update |\RVRB@precontinue| for the next source code block, and, if a label 
+% was defined, add an |\RVRB@deps@|\meta{label} entry.
+%
+%    \begin{macrocode}
     \global\edef\RVRB@precontinue{\RVRB@continue\space\arabic{runverbatim}}%
     \@ifundefined{RVRB@label}{}{%
     \global\expandafter\edef\csname RVRB@deps@\RVRB@label\endcsname{\RVRB@precontinue}}%
+%    \end{macrocode}
+%
+% A file will be created in the |\RVRB@subdir| subdirectory, with the name 
+% |\RVRB@prefix| followed by the value of the |runverbatim| counter, padded 
+% out with zeroes to four digits, and the extension |\RBRB@ext|.
+%
+%    \begin{macrocode}
     \edef\RVRB@num{%
         \ifnum\value{runverbatim}<1000 0\fi
         \ifnum\value{runverbatim}<100  0\fi
@@ -721,6 +750,13 @@ let w = 1 + "four"
         \arabic{runverbatim}}%
     \stepcounter{runverbatim}%
     \def\RVRB@file{\RVRB@subdir/\RVRB@prefix\RVRB@num}%
+%    \end{macrocode}
+%
+% Clear the definitions used to return information about the compilation 
+% run, and close the environment by opening a file, using the |listings| 
+% package, into which to write the ensuing contents.
+%
+%    \begin{macrocode}
     \global\let\runverbatimcmd\@undefined%
     \global\let\FV@SV@RunVerbatimMsg\@undefined%
     \global\let\FV@SV@RunVerbatimErr\@undefined%
@@ -728,9 +764,21 @@ let w = 1 + "four"
     \setbox\@tempboxa\hbox\bgroup%
     \lst@BeginWriteFile{\RVRB@file\RVRB@ext}%
   }
+%    \end{macrocode}
+%
+% Start closing the environment by closing the previously opened file and 
+% group.
+%
+%    \begin{macrocode}
   {%
     \lst@EndWriteFile%
     \egroup%
+%    \end{macrocode}
+%
+% If |hide| is not active, apply |\RVRB@verbopts| and reload the newly 
+% created file.
+%
+%    \begin{macrocode}
     \ifRVRB@showcode
         \bgroup%
         %\expandafter\lstset\expandafter{\RVRB@verbopts}%
@@ -739,8 +787,19 @@ let w = 1 + "four"
         \expandafter\VerbatimInput\expandafter[\RVRB@codestyle]{\RVRB@file\RVRB@ext}%
         \egroup%
     \fi
+%    \end{macrocode}
+%
+% Check whether a corresponding |.tex| file was created:
+%
+%    \begin{macrocode}
     \edef\RVRB@none{$\langle$Cannot load \RVRB@file.tex!$\rangle$}
     \InputIfFileExists{\RVRB@file.tex}{\RVRB@fileexiststrue}{\RVRB@fileexistsfalse}
+%    \end{macrocode}
+%
+% If the |.tex| file was loaded successfully, set the |\runverbatimmsg| and 
+% |\runverbatimerr| macros via the |\UseVerbatim| feature of |fancyvrb|.
+%
+%    \begin{macrocode}
     \ifRVRB@fileexists
         \@ifundefined{FV@SV@RunVerbatimMsg}
           {}{\global\def\runverbatimmsg{%
@@ -748,6 +807,15 @@ let w = 1 + "four"
         \@ifundefined{FV@SV@RunVerbatimErr}
           {}{\global\def\runverbatimerr{%
              \expandafter\UseVerbatim\expandafter[\RVRB@errstyle]{RunVerbatimErr}}}
+%    \end{macrocode}
+%
+% Then, if compilation failed and the |fail| option was not active, or if 
+% compilation succeeded and the |fail| option is active, log a warning 
+% message and include details in the document.
+% Otherwise, if |withresult| was given, expand either |\runverbatimerr| or 
+% |\runverbatimmsg|.
+%
+%    \begin{macrocode}
         \ifRVRB@shouldfail
             \ifrunverbatim
                 \PackageWarning{runverbatim}
@@ -774,6 +842,12 @@ let w = 1 + "four"
             \fi
         \fi
     \else
+%    \end{macrocode}
+%
+% If the |.tex| file was not loaded successfully, set |\runverbatimcmd|, 
+% |\runverbatimmsg|, and |\runverbatimerr| to an error message.
+%
+%    \begin{macrocode}
         \PackageWarning{runverbatim}{Cannot load \RVRB@file.tex}
         \global\let\runverbatimcmd\RVRB@none
         \global\let\runverbatimmsg\RVRB@none
