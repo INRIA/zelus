@@ -37,9 +37,10 @@
 \makeatletter
 \newcounter{runverbatim}
 \newif\ifRVRB@fileexists
+\def\RVRB@pkg@verbopts{}
+
 \DeclareBoolOption{withresult}
 \DeclareComplementaryOption{withoutresult}{withresult}
-\def\RVRB@pkg@verbopts{}
 \DeclareVoidOption{skipone}
     {\edef\RVRB@pkg@verbopts{\RVRB@pkg@verbopts,firstline=2}}
 \DeclareVoidOption{skiptwo}
@@ -49,6 +50,10 @@
 \DeclareStringOption[]{codestyle}
 \DeclareStringOption[formatcom=\em]{msgstyle}
 \DeclareStringOption[formatcom=\em]{errstyle}
+\DeclareStringOption{codelst}
+\DeclareStringOption{msglst}
+\DeclareStringOption{errlst}
+\DeclareStringOption{emptyoption}
 \DeclareStringOption[.]{subdir}
 \DeclareStringOption[runverbatim]{prefix}
 \DeclareStringOption[.ml]{ext}
@@ -57,8 +62,8 @@
 \DeclareStringOption{compilerflags}
 \DeclareStringOption[-i]{lastflags}
 \DeclareStringOption[open]{includecmd}
-\def\runverbatimsetup{\kvsetkeys{RVRB}}
 \ProcessKeyvalOptions*
+\def\runverbatimsetup{\kvsetkeys{RVRB}}
 \newwrite\RVRB@samplefile
 \openout\RVRB@samplefile=\jobname.rvrb
 \AtEndDocument{\closeout\RVRB@samplefile}
@@ -95,7 +100,6 @@
 \define@key{RVRB@envkeys}{include}{%
   \edef\RVRB@continue{\RVRB@continue\space\@ifundefined{RVRB@deps@#1}%
     {#1}{\csname RVRB@deps@#1\endcsname}}}
-
 \define@key{RVRB@envkeys}{fail}[]{\RVRB@shouldfailtrue}
 \define@key{RVRB@envkeys}{label}{\edef\RVRB@label{#1}}
 \define@key{RVRB@envkeys}{skipnone}[]{\edef\RVRB@verbopts{\RVRB@verbopts,firstline=1}}
@@ -136,8 +140,9 @@
     \egroup%
     \ifRVRB@showcode
         \bgroup%
-        %\expandafter\lstset\expandafter{\RVRB@verbopts}%
-        %\lstinputlisting{\@file}
+        \ifx\RVRB@codelst\RVRB@emptyoption\else
+          \expandafter\lstset\expandafter{\RVRB@codelst,fancyvrb=true}%
+        \fi
         \expandafter\fvset\expandafter{\RVRB@verbopts}%
         \expandafter\VerbatimInput\expandafter[\RVRB@codestyle]{\RVRB@file\RVRB@ext}%
         \egroup%
@@ -147,10 +152,18 @@
     \ifRVRB@fileexists
         \@ifundefined{FV@SV@RunVerbatimMsg}
           {}{\global\def\runverbatimmsg{%
-             \expandafter\UseVerbatim\expandafter[\RVRB@msgstyle]{RunVerbatimMsg}}}
+             \bgroup%
+             \ifx\RVRB@msglst\RVRB@emptyoption\else
+                \expandafter\lstset\expandafter{\RVRB@msglst,fancyvrb=true}\fi%
+             \expandafter\UseVerbatim\expandafter[\RVRB@msgstyle]{RunVerbatimMsg}%
+             \egroup}}
         \@ifundefined{FV@SV@RunVerbatimErr}
           {}{\global\def\runverbatimerr{%
-             \expandafter\UseVerbatim\expandafter[\RVRB@errstyle]{RunVerbatimErr}}}
+             \bgroup%
+             \ifx\RVRB@errlst\RVRB@emptyoption\else%
+                \expandafter\lstset\expandafter{\RVRB@errlst,fancyvrb=true}\fi%
+             \expandafter\UseVerbatim\expandafter[\RVRB@errstyle]{RunVerbatimErr}%
+             \egroup}}
         \ifRVRB@shouldfail
             \ifrunverbatim
                 \PackageWarning{runverbatim}
@@ -160,13 +173,13 @@
                              rulecolor=\color{red}]{RunVerbatimMsg}
             \else
                 \ifRVRB@withresult
-                    {\setlength{\partopsep}{0em}\runverbatimerr}
+                   {\setlength{\partopsep}{0em}\runverbatimerr}
                 \fi
             \fi
         \else
             \ifrunverbatim
                 \ifRVRB@withresult
-                    {\setlength{\partopsep}{0em}\runverbatimmsg}
+                   {\setlength{\partopsep}{0em}\runverbatimmsg}
                 \fi
             \else
                 \PackageWarning{runverbatim}

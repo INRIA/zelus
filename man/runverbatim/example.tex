@@ -1,6 +1,16 @@
 \documentclass[a4paper]{article}
 
+\usepackage[T1]{fontenc}
 \usepackage[prompt=]{runverbatim}
+\usepackage{listings}
+
+\lstdefinestyle{camlstyle}{%
+  language=caml,
+  basicstyle=\sffamily,
+  keywordstyle=\bf,
+  literate={"}{\textquotedbl}1,
+}
+\runverbatimsetup{codelst={style=camlstyle}}
 
 \begin{document}
 
@@ -33,6 +43,7 @@ They are also detected:
 
 \noindent
 We can continue on from earlier examples:
+
 \begin{runverbatim}[withresult,include=early]
 let z = f y
 \end{runverbatim}

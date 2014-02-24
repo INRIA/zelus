@@ -68,7 +68,7 @@
 %</driver>
 % \fi
 %
-% \CheckSum{0}
+% \CheckSum{352}
 %
 % \CharacterTable
 %  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
@@ -338,11 +338,24 @@ let w = 1 + "four"
 % & |fancyvrb| options for error messages
 % & formatcom=\string\em
 % \\
+% codelst
+% & |listings| options for source code, passed with |\lstset|. When this 
+% option is not empty, |fancyvrb=true| is included automatically.
+% \\
+% msglst
+% & As for |codelst|, but applied to compiler messages.
+% \\
+% errlst
+% & As for |codelst|, but applied to error messages.
+% \\
 % \end{longtable}
 %
 % Other options are passed through to the |fancyvrb| package and applied to 
 % code blocks.
 % For example, \verb|frame=single|.
+% These options must typically be set using |\runverbatimsetup|, since they 
+% will usually contain commands that should not be expanded immediately 
+% (like |\em| or |\bf|).
 %
 % \subsection{The \texttt{runverbatim} environment}\label{sec:rvenv}
 %
@@ -465,11 +478,6 @@ let w = 1 + "four"
 % Patches are most welcome, but the intent is to keep this package 
 % relatively simple rather than to try and do everything.
 %
-% \item
-% The system is not (yet) well integrated with the |listings| package.
-% We plan to integrate support for its source code highlighting features 
-% using existing hooks from the |fancyvrb| package.
-%
 % \end{itemize}
 %
 % \section{Implementation}
@@ -520,6 +528,10 @@ let w = 1 + "four"
 \DeclareStringOption[]{codestyle}
 \DeclareStringOption[formatcom=\em]{msgstyle}
 \DeclareStringOption[formatcom=\em]{errstyle}
+\DeclareStringOption{codelst}
+\DeclareStringOption{msglst}
+\DeclareStringOption{errlst}
+\DeclareStringOption{emptyoption}
 \DeclareStringOption[.]{subdir}
 \DeclareStringOption[runverbatim]{prefix}
 \DeclareStringOption[.ml]{ext}
@@ -781,8 +793,9 @@ let w = 1 + "four"
 %    \begin{macrocode}
     \ifRVRB@showcode
         \bgroup%
-        %\expandafter\lstset\expandafter{\RVRB@verbopts}%
-        %\lstinputlisting{\@file}
+        \ifx\RVRB@codelst\RVRB@emptyoption\else
+          \expandafter\lstset\expandafter{\RVRB@codelst,fancyvrb=true}%
+        \fi
         \expandafter\fvset\expandafter{\RVRB@verbopts}%
         \expandafter\VerbatimInput\expandafter[\RVRB@codestyle]{\RVRB@file\RVRB@ext}%
         \egroup%
@@ -803,10 +816,18 @@ let w = 1 + "four"
     \ifRVRB@fileexists
         \@ifundefined{FV@SV@RunVerbatimMsg}
           {}{\global\def\runverbatimmsg{%
-             \expandafter\UseVerbatim\expandafter[\RVRB@msgstyle]{RunVerbatimMsg}}}
+             \bgroup%
+             \ifx\RVRB@msglst\RVRB@emptyoption\else
+                \expandafter\lstset\expandafter{\RVRB@msglst,fancyvrb=true}\fi%
+             \expandafter\UseVerbatim\expandafter[\RVRB@msgstyle]{RunVerbatimMsg}%
+             \egroup}}
         \@ifundefined{FV@SV@RunVerbatimErr}
           {}{\global\def\runverbatimerr{%
-             \expandafter\UseVerbatim\expandafter[\RVRB@errstyle]{RunVerbatimErr}}}
+             \bgroup%
+             \ifx\RVRB@errlst\RVRB@emptyoption\else%
+                \expandafter\lstset\expandafter{\RVRB@errlst,fancyvrb=true}\fi%
+             \expandafter\UseVerbatim\expandafter[\RVRB@errstyle]{RunVerbatimErr}%
+             \egroup}}
 %    \end{macrocode}
 %
 % Then, if compilation failed and the |fail| option was not active, or if 
@@ -825,13 +846,13 @@ let w = 1 + "four"
                              rulecolor=\color{red}]{RunVerbatimMsg}
             \else
                 \ifRVRB@withresult
-                    {\setlength{\partopsep}{0em}\runverbatimerr}
+                   {\setlength{\partopsep}{0em}\runverbatimerr}
                 \fi
             \fi
         \else
             \ifrunverbatim
                 \ifRVRB@withresult
-                    {\setlength{\partopsep}{0em}\runverbatimmsg}
+                   {\setlength{\partopsep}{0em}\runverbatimmsg}
                 \fi
             \else
                 \PackageWarning{runverbatim}
