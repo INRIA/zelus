@@ -32,7 +32,7 @@ help:
 	-@echo "make NOCOLOR=1          run tests without ANSI color commands"
 
 clean:
-	-@rm -rf *.ml *.obc *.lci *.cmi *.cmo *.cmxi *.cmx *.o *.annot a.out
+	-@rm -rf *.ml *.obc *.zci *.cmi *.cmo *.cmxi *.cmx *.o *.annot a.out
 	-@rm -rf *.translation *.compilation *.ok *.test *.log *.camldebug
 
 realclean cleanall: clean

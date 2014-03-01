@@ -32,7 +32,7 @@ help:
 	-@echo "make showtests		show the contents of all tests"
 
 clean:
-	@-rm -f t*.lci t*.ml t*.obc t*_main.ml
+	@-rm -f t*.zci t*.ml t*.obc t*_main.ml
 	@-rm -f t*.log main.ml *.ok
 
 realclean cleanall: clean

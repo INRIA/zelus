@@ -43,7 +43,7 @@ help:
 	-@echo "make showtests		show the contents of all tests"
 
 clean:
-	-@rm -rf *.ml *.obc *.lci *.cmi *.cmo *.cmxi *.cmx *.o *.annot a.out
+	-@rm -rf *.ml *.obc *.zci *.cmi *.cmo *.cmxi *.cmx *.o *.annot a.out
 	-@rm -rf *.compilation *.compilation.ok *.translation *.translation.ok
 	-@rm -rf *.camldebug
 
