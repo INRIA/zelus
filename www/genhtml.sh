@@ -107,20 +107,20 @@ for ENTRY in ${EXAMPLES}; do
     do
 	case "${LINE}" in
 	    *!SOURCEFILE:*ls*)
-		FILE=`expr "$LINE" : '.*!SOURCEFILE: *\([^ ]*\).ls'`
+		FILE=`expr "$LINE" : '.*!SOURCEFILE: *\([^ ]*\).zls'`
 		cat <<EOF
 <div id="${EXNAME}-${FILE}-box" class="accordion sourcefile">
 <div class="accordion-group">
 <div class="accordion-heading">
 <a class="accordion-toggle" data-toggle="collapse"
    data-parent="#${EXNAME}-${FILE}-box"
-   href="#${EXNAME}-${FILE}"><i class="icon-file"></i> ${FILE}.ls</a>
+   href="#${EXNAME}-${FILE}"><i class="icon-file"></i> ${FILE}.zls</a>
 </div>
 
 <div id="${EXNAME}-${FILE}" class="accordion-body">
 <div class="accordion-inner">
 EOF
-		${TOOLS}/zltohtml ${EXDIR}/${FILE}.ls
+		${TOOLS}/zltohtml ${EXDIR}/${FILE}.zls
 		echo "</div></div></div></div>"
 		;;
 	    *!REQUIRES:*)
