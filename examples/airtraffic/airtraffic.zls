@@ -17,8 +17,9 @@ let radius_alert = 25.0     (* radius of the alert zone, in miles *)
 let alpha1 = 16.0           (* distance at which avoidance is triggered *)
 let alpha2 = 20.0           (* distance at which avoidance is terminated *)
 
-let aircraft1_v = 540.0     (* velocity of aircraft1, miles/hour *)
-let aircraft2_v = 570.0     (* velocity of aircraft2, miles/hour *)
+(* velocity in miles/hour converted to miles/minute *)
+let aircraft1_v = 540.0 /. 3600.0 (* velocity of aircraft1 *)
+let aircraft2_v = 570.0 /. 3600.0 (* velocity of aircraft2 *)
 
 (* initial position of aircraft2, relative to aircraft1 *)
 let aircraft2_xi = 60.0
@@ -63,13 +64,13 @@ let hybrid avoidance (x_i, y_i, theta_i, v_1, v_2) = (st, x, y, theta, t) where
             then do emit nxy = rotate(delta_phi, last x, last y) in Straight
           else  up(t -. t2)
             then do emit nxy = rotate(delta_phi, last x, last y) in Straight
-      | Straight -> 
+      | Straight ->
           do
             t' = 0.0
             and st = 2
           until up(sqr(last x) +. sqr(last y) -. sqr(alpha2))
             then do emit nxy = rotate(delta_phi, last x, last y) in Right
-      | Right -> 
+      | Right ->
           do
             t' = -. 1.0
             and st = 3
@@ -87,7 +88,7 @@ let hybrid noavoidance (x_i, y_i, theta_i, v_1, v_2) = (0, x, y, theta, t) where
 open Airtrafficgui
 
 let hybrid main () = () where
-  rec p = period (0.001)
+  rec p = period (1.0)
 
   and (click, (nxr, nyr), (ntheta_r, nd)) =
     present p -> sample ()

@@ -102,6 +102,9 @@ sig
   (* The maximum simulation time. *)
   val max_sim_time  : float option ref
 
+  (* A factor relating simulation and wall clock times. *)
+  val speedup       : float ref
+
   (* Simulations are executed as follows:
    *    let ss = ref (main model) in
    *    while not (is_done ss) do
@@ -117,7 +120,33 @@ sig
    * [Some x] after a discrete step, where [x] is the value returned by
    * the main function.
    *)
-  val step      : 'a sim_state -> 'a option * 'a sim_state
+
+  (* Given the current [sim_state], execute one step of the simulation and
+   * return the tuple (result, wallclk_delta, sim_state'). The [result] is
+   * [None] after a continuous step and [Some x] after a discrete step, where
+   * [x] is the value returned by the main function.
+   *
+   * [wallclk_delta] gives a rough indication of the amount of clock time that
+   * should elapse during the step. It is equal to 0 after a discrete step and
+   * greater than 0 after a continuous step--the exact value is the amount of
+   * simulation time that elapsed during the continuous step divided by a
+   * speedup factor. A simulation loop could try to synchronize simulation and
+   * wall clock time by executing [step] again after [wallclk_delta] seconds
+   * have elapsed, i.e., straight away after a discrete step and delayed after a
+   * continuous phase. Simulation loops should try to account for the time lost
+   * in executing [step].
+   *
+   * Note that any external events that occur during the wall-clock delay will
+   * be detected at the next discrete step. This is normal for sample-driven
+   * execution, but inadequate for event-driven execution (which would have to,
+   * at a minimum, interrupt the delay, interpolate or calculate continuous
+   * states up to the simulation time corresponding to the wall clock time
+   * (i.e., to relate the two times in the other direction) and then to execute
+   * a dicrete step and communicate the triggering event as a kind of "external
+   * zero-crossing". Accounting for computation time in this case is likely to
+   * be problematic. Such event-driven execution is not supported!
+   *)
+  val step      : 'a sim_state -> 'a option * float * 'a sim_state
   val is_done   : 'a sim_state -> bool
 
   (** Adding command-line arguments *)

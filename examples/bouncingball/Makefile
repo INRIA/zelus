@@ -21,7 +21,7 @@ ball_main.cmo: INCLUDES += $(SUNDIALS)
 ball_main.cmx: INCLUDES += $(SUNDIALS)
 
 ball.ml ball_main.ml: showball.zci world.zci ball.zls
-	$(ZELUC) $(ZELUCFLAGS) -s main -period -sampling 200 ball.zls
+	$(ZELUC) $(ZELUCFLAGS) -s main ball.zls
 	mv main.ml ball_main.ml
 
 #
@@ -36,7 +36,7 @@ autoball.opt: showball.cmx world.cmx ball.cmx autoball.cmx autoball_main.cmx
 	    $(ZLEXTRALIBS:.cma=.cmxa) $^
 
 autoball.ml autoball_main.ml: showball.zci world.zci autoball.zls
-	$(ZELUC) $(ZELUCFLAGS) -s main -period -sampling 200 autoball.zls
+	$(ZELUC) $(ZELUCFLAGS) -s main autoball.zls
 	mv main.ml autoball_main.ml
 
 # ##

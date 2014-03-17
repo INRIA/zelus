@@ -29,11 +29,12 @@ OBJ = solvers.cmo \
       basics.cmo \
       $(SOLVER_OBJS) \
       loadsolvers.cmo \
-      dump.cmo
+      dump.cmo \
+      zlsrun.cmo
 
-OBJ_GTK = reactpanel.cmo \
-	  gtkplot.cmo \
-	  scope.cmo
+OBJ_GTK = gtkplot.cmo \
+	  scope.cmo \
+	  zlsrungtk.cmo
 
 all: $(targets) $(gtktargets)
 
@@ -68,8 +69,8 @@ zlsolve.zci: zlsolve.zli
 solvers/solversundials.cmo: INCLUDES += $(SUNDIALS)
 solvers/solversundials.cmx: INCLUDES += $(SUNDIALS)
 
-reactpanel.cmo: INCLUDES += $(LABLGTK2)
-reactpanel.cmx: INCLUDES += $(LABLGTK2)
+zlsrungtk.cmo: INCLUDES += $(LABLGTK2)
+zlsrungtk.cmx: INCLUDES += $(LABLGTK2)
 
 gtkplot.zci: gtkplot.zli pervasives.zci
 gtkplot.cmi:

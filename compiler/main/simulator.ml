@@ -68,7 +68,7 @@ let check_unit_unit name info =
 let check_unit_bool name info =
   check_type_of_main_node name info Initial.typ_unit Initial.typ_bool
 
-let emit_prelude ff qualid k =
+let emit_prelude ff qualid k use_gtk =
   (* the prelude *)
   let s = Lident.qualidname qualid in
   match k with
@@ -84,11 +84,8 @@ let emit_prelude ff qualid k =
 
   | Deftypes.Tcont ->
       fprintf ff "(* instantiate a numeric solver *)\n";
-      fprintf ff "module Load = Loadsolvers\n";
-      fprintf ff
-        "let () = Zlsolve.check_for_solver Sys.argv\n";
-      fprintf ff
-        "module ZLS = (val Zlsolve.instantiate () : Zlsolve.ZELUS_SOLVER)\n";
+      if use_gtk then fprintf ff "module ZLS = Zlsrungtk.Runtime\n"
+      else fprintf ff "module ZLS = Zlsrun.Runtime\n";
       Copystate.main ff qualid
 
 (* emited code for control-driven programs: the transition function *)
@@ -108,11 +105,7 @@ let emit_simulation_code ff k info =
          (* (hybrid) simulation loop *)
          let () = Arg.parse (ZLS.args %d) (fun _ -> ())
                     \"(hybrid) simulation loop; options depend on solver\";;
-         let sc = ref (ZLS.main' (%d, %d) main) in
-         while not (ZLS.is_done !sc) do
-           sc := snd (ZLS.step !sc)
-         done;
-         exit(0)\n" n_cstate n_cstate n_zeroc
+         let () = Zlsrun.go (%d, %d) main;;\n" n_cstate n_cstate n_zeroc
 
 (* emited code for bounded checking. Check that the function returns [true] *)
 (* during [n] steps *)
@@ -166,18 +159,11 @@ let emit_gtkmain_code ff k info sampling =
   | Deftypes.Tcont ->
       let n_zeroc, n_cstate = size_of info in
       fprintf ff
-        "(* (hybrid) simulation loop: sampled on %d Hz *)
-         (* compiles with unix.cma lablgtk.cma gtkInit.cmo reactpanel.cmo *)
-           let () = Arg.parse (Reactpanel.args @@ (ZLS.args %d))
-                      (fun _ -> ())
-                      \"(hybrid) simulation loop: sampled on %d Hz; options depend on solver\";;
-         let sc = ref (ZLS.main' (%d, %d) main);;
-         let step _ = (sc := snd (ZLS.step !sc);
-                       ZLS.is_done !sc);;\n"
-         sampling n_cstate sampling n_cstate n_zeroc;
-      fprintf ff
-        "Reactpanel.go %d step (fun () -> ()); exit(0)\n"
-        sampling
+        ";;
+         (* (hybrid) simulation loop *)
+         let () = Arg.parse (ZLS.args %d) (fun _ -> ())
+                    \"(hybrid) simulation loop; options depend on solver\";;
+         let () = Zlsrungtk.go (%d, %d) main;;\n" n_cstate n_cstate n_zeroc
 
 (* emited code for event-driven programs: the transition function *)
 (* is executed every [1/sampling] seconds *)
@@ -204,7 +190,7 @@ let emit_periodic_code ff k info sampling =
          let () = Arg.parse (ZLS.args %d) (fun _ -> ())
                     \"(hybrid) simulation loop: sampled on %d Hz; options depend on solver\";;
          let sc = ref (ZLS.main' (%d, %d) main);;
-         let step _ = (sc := snd (ZLS.step !sc));;\n"
+         let step _ = let _, _, s' = ZLS.step !sc in sc := s';;\n"
          sampling n_cstate sampling n_cstate n_zeroc;
       fprintf ff
         "let periodic() =
@@ -227,7 +213,7 @@ let emit name sampling number_of_checks use_gtk =
     else check_unit_unit name info in
   let oc = open_out filename in
   let ff = Format.formatter_of_out_channel oc in
-  emit_prelude ff qualid k;
+  emit_prelude ff qualid k use_gtk;
   if number_of_checks > 0 then
     if sampling <> 0 then
       begin

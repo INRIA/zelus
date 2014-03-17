@@ -11,10 +11,6 @@ let linear      = LinearInterpolation
 
 let len_history = ref 5000
 
-let default_cursor = Gdk.Cursor.create `CROSSHAIR
-let cursor_above   = Gdk.Cursor.create `BOTTOM_SIDE
-let cursor_below   = Gdk.Cursor.create `TOP_SIDE
-
 let scope_title_height  = 30
 let y_axis_width        = 80
 let x_axis_height       = 20
@@ -583,6 +579,8 @@ class window title initial_max_t (scs : scope list) =
   let fontdesc = Pango.Font.from_string "Sans 7" in
   let _ = xaxis_context#set_font_description fontdesc in
 
+  let default_cursor = Gdk.Cursor.create `CROSSHAIR in
+
   (* Add two or three rows for each scope:
        title (optional), scope box, xaxis image *)
   let make_scope scope =
@@ -850,9 +848,9 @@ class window title initial_max_t (scs : scope list) =
 
   end
 
-let signal name ty      = new signal name ty
-let scope yl yu signals = new scope yl yu signals
-let window imax_t scopes       = new window imax_t scopes
+let signal name ty       = new signal name ty
+let scope yl yu signals  = new scope yl yu signals
+let window imax_t scopes = new window imax_t scopes
 
 let update s v = s#sample v
 let tick w t = (w#tick t; w#draw)
