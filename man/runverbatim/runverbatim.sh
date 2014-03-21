@@ -138,6 +138,10 @@ compile() {
 	echo '\\runverbatimfalse'  >> $outf
 	if [ $shouldfail -eq 0 ]; then
 	    echo "  unexpected failure (line $linenum / page $pagenum)!" >&2
+	    while read line
+	    do
+	      echo "  | $line"
+	    done < $ERRFILE >&2
 	fi
     fi
 
