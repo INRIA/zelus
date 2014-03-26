@@ -1,6 +1,6 @@
 include ../../config
 
-EXAMPLE=ball.zls autoball.zls
+EXAMPLE=ball.zls autoball.zls flatball.zls
 ML=showball.ml world.ml
 
 default: $(word 1, $(targets))
@@ -38,6 +38,26 @@ autoball.opt: showball.cmx world.cmx ball.cmx autoball.cmx autoball_main.cmx
 autoball.ml autoball_main.ml: showball.zci world.zci autoball.zls
 	$(ZELUC) $(ZELUCFLAGS) -s main autoball.zls
 	mv main.ml autoball_main.ml
+
+#
+
+flatball.byte: showball.cmo flatworld.cmo flatball.cmo flatball_main.cmo
+	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS) graphics.cma $(ZLEXTRALIBS) $^
+
+flatball.opt: showball.cmx flatworld.cmx flatball.cmx flatball_main.cmx
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) graphics.cmxa \
+	    $(ZLEXTRALIBS:.cma=.cmxa) $^
+
+flatball_main.cmo: INCLUDES += $(SUNDIALS)
+flatball_main.cmx: INCLUDES += $(SUNDIALS)
+
+flatball.ml flatball_main.ml: showball.zci flatworld.zci flatball.zls
+	$(ZELUC) $(ZELUCFLAGS) -s main flatball.zls
+	mv main.ml flatball_main.ml
+
+#
 
 # ##
 
