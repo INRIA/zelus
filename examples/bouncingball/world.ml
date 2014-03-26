@@ -8,7 +8,7 @@ let ground_height =
     1.0;
     0.0;
   |]
-let ground_limits = [| 1.0; 3.0; 5.0; 7.0; 10.0; 13.0 |]
+let ground_limits = [| 1.0; 3.0; 4.0; 6.0; 8.0; 20.0 |]
 let ground_maxidx = Array.length ground_height - 1
 
 let lookup_limit x =
