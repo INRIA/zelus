@@ -6,7 +6,7 @@ let ground_abs x = World.ground_abs(x)
 
 let x_0 = 0.0
 let y_0 = 8.0
-let x_v = 0.7
+let x_v = 0.72
 let g = 9.81
 let loose = 0.8
 

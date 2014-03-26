@@ -6,8 +6,8 @@ let ground x = World.ground(x)
 let ground_abs x = World.ground_abs(x)
 
 let x_0 = 0.0
-let y_0 = 5.6
-let x_v = 0.8
+let y_0 = 8.0
+let x_v = 0.72
 let eps = 0.01
 
 (* The bouncing ball with two modes. *)

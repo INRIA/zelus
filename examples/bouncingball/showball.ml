@@ -1,5 +1,5 @@
 
-let scale = 90.0
+let scale = 50.0
 let ball_radius = 4
 let half_ball_radius = ball_radius / 2
 
@@ -29,7 +29,7 @@ let leave_trace = ref false
 
 let start trace floor_details =
   Graphics.open_graph "";
-  Graphics.resize_window 1400 800;
+  Graphics.resize_window 800 600;
   (* Graphics.auto_synchronize false; *)
   Graphics.clear_graph ();
   floors := floor_details;
