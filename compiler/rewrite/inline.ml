@@ -143,7 +143,8 @@ let rec pattern renaming ({ p_desc = desc } as p) =
         { p with p_desc = Etuplepat(List.map (pattern renaming) p_list) }
     | Erecordpat(n_p_list) ->
         { p with p_desc =
-            Erecordpat(List.map (fun (ln, p) -> (ln, pattern renaming p)) n_p_list) }
+            Erecordpat(List.map (fun (ln, p) -> (ln, pattern renaming p)) 
+				n_p_list) }
     | Ealiaspat(p1, n) ->
         let n = try Env.find n renaming with Not_found -> n in
         { p with p_desc = Ealiaspat(pattern renaming p1, n) }
@@ -230,7 +231,8 @@ and equation renaming ({ eq_desc = desc } as eq) =
           let e = expression renaming e in
           { eq with eq_desc = EQmatch(total, e, List.map rename m_b_list) }
       | EQreset(b, e) ->
-          { eq with eq_desc =  EQreset(block renaming b, expression renaming e) }
+          { eq with eq_desc =  
+		      EQreset(block renaming b, expression renaming e) }
       | EQpresent(p_h_list, b_opt) ->
 	  let rename { p_cond = sc; p_body = b; p_env = env } =
             let env, renaming0 = build env in
@@ -266,13 +268,18 @@ and block renaming
        b_write = { dv = dv; di = di; dr = dr }; b_env = n_env } as b) =
   (* rename a write variable *)
   let rename_write renaming dv = S.map (fun x -> Env.find x renaming) dv in
-  let local l (renaming_l, l_list) =
-    let renaming_l, l = local renaming_l l in 
-    renaming_l, l :: l_list in
+  let rec local_list renaming l_list =
+    match l_list with
+    | [] -> renaming, []
+    | l :: l_list ->
+       let renaming, l = local renaming l in
+       let renaming, l_list = local_list renaming l_list in
+       renaming, l :: l_list in
+  
   let n_env, renaming0 = build n_env in
   let n_list = List.map (fun x -> Env.find x renaming0) n_list in
   let renaming = Env.append renaming0 renaming in
-  let renaming_l, l_list = List.fold_right local l_list (renaming, []) in
+  let renaming_l, l_list = local_list renaming l_list in
   { b with b_vars = n_list; b_locals = l_list; 
     b_body = List.map (equation renaming_l) eq_list; 
     b_write = { dv = rename_write renaming dv; 
