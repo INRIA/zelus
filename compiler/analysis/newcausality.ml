@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2013                                               *)
+(*  Copyright (C) 2012-2014                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -14,10 +14,16 @@
 (* causality check *)
 
 (* The relation c1 < c2 means that c1 must be computed before c2 *)
-(* In a sequence of local declarations *)
-(* let x1 = e1 in let x2 = e2 in do x = e done *)
-(* (x1 < x2) & (x2 < x) *)
-(* E.g., equations like let y = x in let z = 1 in do ... done *)
+(* The causality analysis imposes extra constraints so that control-structures *)
+(* are not opened. This could evolve if code-generation is changed. *)
+(* Extra rules are: *)
+(* 1. for a sequence of declarations, the sequential order is preserved. *)
+(*    [let x1 = e1 in let x2 = e2 in do x = e] *)
+(*    - x1: t1, x2: t2, x: t => t1 < t2 < t *)
+(* 2. for a control-structure, [if x then do x1 = e1 and x2 = e2 done *)
+(*                              else do x1 = e'1 and x2 = e'2 done *)
+(*    - all variable x1: t1, x2: t2. They must synchronise with a var. alpha *)
+(* 3. The same rule applies for all control-structures (present/automata) *)
  
 open Misc
 open Ident
