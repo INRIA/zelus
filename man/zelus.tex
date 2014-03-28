@@ -546,7 +546,7 @@ let g = 9.81
 These declarations define two infinite constant streams \verb-dt- and
 \verb-g-. Once typed, the compiler displays their type using the option {\tt -i}:
 \begin{sample}\runverbatimcmd\end{sample}
-\runverbatimmsg
+\runverbatimmsg{}
 For each declaration, we get the inferred type.
 Only constant values can be defined globally, thus rejecting the
 following program:
@@ -555,7 +555,7 @@ let first = true -> false
 \end{runverbatim}
 Trying to compile this program, we get the following answer:
 \begin{sample}\runverbatimcmd\end{sample}
-\runverbatimerr
+\runverbatimerr{}
 The right part of a global \verb-let- declaration cannot contain any
 delay operations. Definitions containing delays can only be under the
 definitions of a {\tt node} definition (see~\ref{sec:sequential-functions}).
@@ -677,7 +677,7 @@ let from n = nat where
 \end{runverbatim}
 and we get:
 \begin{sample}\runverbatimcmd\end{sample}
-\runverbatimerr
+\runverbatimerr{}
 Whereas it is not possible to call a node (arrow type \texttt{-D->})
 in a combinatorial function, it is possible to do the converse: to
 call a combinatorial function (arrow type \texttt{-A->}) in a
@@ -847,7 +847,7 @@ let node f () = o where
   rec o = 0 -> last (o + 1)
 \end{runverbatim}
 is rejected and we get:
-\runverbatimerr
+\runverbatimerr{}
 
 Instead of defining the current value of a signal according to its previous
 values, it is also possible to define the next value according to the current
@@ -892,7 +892,7 @@ let node from m = nat where
   rec nat = m -> nat + 1
 \end{runverbatim}
 the compiler emits the message:
-\runverbatimerr
+\runverbatimerr{}
 This program cannot be computed as {\tt nat} depends on {\tt nat}
 instantaneously.
 
@@ -1650,7 +1650,7 @@ let node blink_reset (r, n, m, t) = x where
 
 \medskip
 The type signatures inferred by the compiler are:
-\runverbatimmsg
+\runverbatimmsg{}
 
 \subsection{Local Definitions in a State}
 It is possible to define names which are local to a state. These names
@@ -1724,7 +1724,7 @@ let node consume (max, n, v) = status where
   end
 \end{runverbatim}
 The compiler emits the message:
-\runverbatimerr
+\runverbatimerr{}
 %\begin{sample}
 %File "tutorial.zls", line 6:
 %> unless c = max then S2
@@ -1842,7 +1842,7 @@ let node two_states (i, min, max) = o where
       end
 \end{runverbatim}
 and we get:
-\runverbatimerr
+\runverbatimerr{}
 
 We said previously that strong conditions must not depend on some
 variables computed in the current state but they can depend on some
@@ -2313,7 +2313,7 @@ the signal \texttt{o} must be computed. Symetrically, the second
 program is also meaningless because nothing says when \texttt{o} must
 be computed. These two programs are statically rejected by the compiler
 as invalid compositions. E.g.,:
-\runverbatimerr
+\runverbatimerr{}
 
 The language adopts the following simple convention to restrict the
 way continuous-time computations and discrete logical-time computations
@@ -2408,7 +2408,7 @@ let hybrid bouncing(x0,y0,x'0,y'0) = (x,y) where
  and der y' = -. g init y'0 reset up(-. y) -> -. loose *. y'
 \end{runverbatim}
 we get the compilation error:
-\runverbatimerr
+\runverbatimerr{}
 
 \Marc{Faire la figure}
 

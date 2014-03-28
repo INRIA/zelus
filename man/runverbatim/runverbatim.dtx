@@ -68,7 +68,7 @@
 %</driver>
 % \fi
 %
-% \CheckSum{352}
+% \CheckSum{399}
 %
 % \CharacterTable
 %  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
@@ -424,16 +424,21 @@ let w = 1 + "four"
 % Furthermore, the |subdir| and serial number are removed from the filename 
 % of the code sample, which becomes simply \meta{prefix}|.|\meta{ext}.
 %
-% \item[\texttt{\string\runverbatimmsg}]
-% \DescribeMacro{\runverbatimmsg}
-% contains the verbatim text emitted by the compiler when compilation 
-% succeeds.
-% It is undefined after an environment marked |fail|.
+% \item[\texttt{\string\runverbatimmsg\marg{label}}]
+% \DescribeMacro{\runverbatimmsg}: inserts the verbatim text emitted by the 
+% compiler, provided compilation succeeded, for the |runverbatim| 
+% environment labelled \meta{label}.
+% When \meta{label} is left empty, the message for the last environment is 
+% inserted.
+% It should not be used after environments marked |fail|.
 %
-% \item[\texttt{\string\runverbatimerr}]
-% \DescribeMacro{\runverbatimerr}
-% contains the verbatim text emitted by the compiler when compilation fails.
-% It is undefined after an environment not marked |fail|.
+% \item[\texttt{\string\runverbatimerr\marg{label}}]
+% \DescribeMacro{\runverbatimerr}: inserts the verbatim text emitted by the 
+% compiler, provided compilation failed, for the |runverbatim| environment 
+% labelled \meta{label}.
+% When \meta{label} is left empty, the message for the last environment is 
+% inserted.
+% It should only be used after environments marked |fail|.
 % \end{description}
 %
 % \subsection{The \texttt{runverbatim.sh} script}\label{sec:rvsh}
@@ -583,7 +588,7 @@ let w = 1 + "four"
 % ordered list of other sample files to import, and the page and line 
 % numbers (to include in error messages).
 %    \begin{macrocode}
-\newcommand{\RVRB@logsample}[2]{%
+\DeclareRobustCommand{\RVRB@logsample}[2]{%
   \edef\RVRB@tolog{#1:#2 [page=\noexpand\thepage] [line=\the\inputlineno]}%
   \expandafter\write\expandafter\RVRB@samplefile\expandafter{\RVRB@tolog}%
 }
@@ -609,7 +614,7 @@ let w = 1 + "four"
 % The command used to compile a sample is recorded by |\setrunverbatimcmd| 
 % which (re)defines the internal |\RVRB@prompt| value.
 %    \begin{macrocode}
-\newcommand{\setrunverbatimcmd}[1]{%
+\DeclareRobustCommand{\setrunverbatimcmd}[1]{%
     \global\def\runverbatimcmd{\emph{\RVRB@prompt{#1}}}}
 %    \end{macrocode}
 % \end{macro}
@@ -644,7 +649,7 @@ let w = 1 + "four"
 % This is the filename used by |runverbatim.sh| to refer to the file 
 % containing sample code when |\setrunverbatimcmd| is called.
 %    \begin{macrocode}
-\newcommand{\runverbatimfile}{\RVRB@prefix\RVRB@ext}
+\DeclareRobustCommand{\runverbatimfile}{\RVRB@prefix\RVRB@ext}
 %    \end{macrocode}
 % \end{macro}
 %
@@ -705,6 +710,57 @@ let w = 1 + "four"
 \define@key{RVRB@envkeys}{withresult}[]{\RVRB@withresulttrue}
 \define@key{RVRB@envkeys}{withoutresult}[]{\RVRB@withresultfalse}
 %    \end{macrocode}
+%
+% \begin{macro}{\runverbatimmsg}
+% This macro takes a single argument \meta{label}.
+% It first configures the |listings| and |fancyvrb| packages with the 
+% current display options.
+% It then checks the |fancyvrb| saved text namespace 
+% (`\texttt{FV@SV@\ldots}') for an entry named `\texttt{\ldots 
+% RVRB@MSG@\meta{label}}'.
+% If found, the associated verbatim text is inserted via the |\UseVerbatim| 
+% feature of |fancyvrb|, otherwise an error message is inserted.
+% In the latter case, we prefer not to fail outright, because the user may 
+% not yet have had the chance to run the compiler on the extracted code, in 
+% which case the log will already contain warnings from |runverbatim|.
+% By convention, the |runverbatim| environment creates an entry for the 
+% empty label (`\texttt{FV@SV@RVRB@MSG@}') when compilation succeeds.
+%    \begin{macrocode}
+\DeclareRobustCommand{\runverbatimmsg}[1]{
+   \bgroup%
+   \ifx\RVRB@msglst\RVRB@emptyoption\else
+      \expandafter\lstset\expandafter{\RVRB@msglst,fancyvrb=true}\fi%
+   \@ifundefined{FV@SV@RVRB@MSG@#1}
+     {\def\@tempa{#1}
+      \ifx\@tempa\empty
+        \RVRB@none
+      \else
+        $\langle$No message found for the label `#1'!$\rangle$
+      \fi}
+     {\expandafter\UseVerbatim\expandafter[\RVRB@msgstyle]{RVRB@MSG@#1}}%
+   \egroup}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\runverbatimerr}
+% This macro is essentially the same as the previous one---only that the 
+% substring `\texttt{ERR}' is used instead of `\texttt{MSG}'.
+%    \begin{macrocode}
+\DeclareRobustCommand{\runverbatimerr}[1]{
+   \bgroup%
+   \ifx\RVRB@errlst\RVRB@emptyoption\else
+      \expandafter\lstset\expandafter{\RVRB@errlst,fancyvrb=true}\fi%
+   \@ifundefined{FV@SV@RVRB@ERR@#1}
+     {\def\@tempa{#1}
+      \ifx\@tempa\empty
+        \RVRB@none
+      \else
+        $\langle$No message found for the label `#1'!$\rangle$
+      \fi}
+     {\expandafter\UseVerbatim\expandafter[\RVRB@errstyle]{RVRB@ERR@#1}}%
+   \egroup}
+%    \end{macrocode}
+% \end{macro}
 %
 % \begin{environment}{RunVerbatim}
 % This is the main environment for including source code.
@@ -805,29 +861,21 @@ let w = 1 + "four"
 % Check whether a corresponding |.tex| file was created:
 %
 %    \begin{macrocode}
-    \edef\RVRB@none{$\langle$Cannot load \RVRB@file.tex!$\rangle$}
+    \global\edef\RVRB@none{$\langle$Cannot load \RVRB@file.tex!$\rangle$}
     \InputIfFileExists{\RVRB@file.tex}{\RVRB@fileexiststrue}{\RVRB@fileexistsfalse}
 %    \end{macrocode}
 %
-% If the |.tex| file was loaded successfully, set the |\runverbatimmsg| and 
-% |\runverbatimerr| macros via the |\UseVerbatim| feature of |fancyvrb|.
+% If the |.tex| file was loaded successfully, create `unlabelled' saved 
+% verbatim environments for the message and error texts.
+% These are exploited, respectively, by the |\runverbatimmsg| and 
+% |\runverbatimerr| macros.
 %
 %    \begin{macrocode}
     \ifRVRB@fileexists
         \@ifundefined{FV@SV@RunVerbatimMsg}
-          {}{\global\def\runverbatimmsg{%
-             \bgroup%
-             \ifx\RVRB@msglst\RVRB@emptyoption\else
-                \expandafter\lstset\expandafter{\RVRB@msglst,fancyvrb=true}\fi%
-             \expandafter\UseVerbatim\expandafter[\RVRB@msgstyle]{RunVerbatimMsg}%
-             \egroup}}
+          {}{\global\let\FV@SV@RVRB@MSG@=\FV@SV@RunVerbatimMsg}
         \@ifundefined{FV@SV@RunVerbatimErr}
-          {}{\global\def\runverbatimerr{%
-             \bgroup%
-             \ifx\RVRB@errlst\RVRB@emptyoption\else%
-                \expandafter\lstset\expandafter{\RVRB@errlst,fancyvrb=true}\fi%
-             \expandafter\UseVerbatim\expandafter[\RVRB@errstyle]{RunVerbatimErr}%
-             \egroup}}
+          {}{\global\let\FV@SV@RVRB@ERR@=\FV@SV@RunVerbatimErr}
 %    \end{macrocode}
 %
 % Then, if compilation failed and the |fail| option was not active, or if 
@@ -846,13 +894,13 @@ let w = 1 + "four"
                              rulecolor=\color{red}]{RunVerbatimMsg}
             \else
                 \ifRVRB@withresult
-                   {\setlength{\partopsep}{0em}\runverbatimerr}
+                   {\setlength{\partopsep}{0em}\runverbatimerr{}}
                 \fi
             \fi
         \else
             \ifrunverbatim
                 \ifRVRB@withresult
-                   {\setlength{\partopsep}{0em}\runverbatimmsg}
+                   {\setlength{\partopsep}{0em}\runverbatimmsg{}}
                 \fi
             \else
                 \PackageWarning{runverbatim}
@@ -865,15 +913,27 @@ let w = 1 + "four"
     \else
 %    \end{macrocode}
 %
-% If the |.tex| file was not loaded successfully, set |\runverbatimcmd|, 
-% |\runverbatimmsg|, and |\runverbatimerr| to an error message.
+% If the |.tex| file was not loaded successfully, clear the 
+% |\runverbatimcmd| macros, and the `unlabelled' saved verbatim environments 
+% for the message and error results.
 %
 %    \begin{macrocode}
         \PackageWarning{runverbatim}{Cannot load \RVRB@file.tex}
         \global\let\runverbatimcmd\RVRB@none
-        \global\let\runverbatimmsg\RVRB@none
-        \global\let\runverbatimerr\RVRB@none
+        \global\let\FV@SV@RVRB@MSG@\@undefined
+        \global\let\FV@SV@RVRB@ERR@\@undefined
     \fi
+% If this environment is labelled, create persistent references to the saved 
+% verbatim environments for the message and error results.
+% These are exploited, respectively, by the |\runverbatimmsg| and 
+% |\runverbatimerr| macros when their \meta{label} argument is not empty.
+%
+    \@ifundefined{RVRB@label}{}{
+      \global\expandafter\let
+        \csname FV@SV@RVRB@MSG@\RVRB@label\endcsname=\FV@SV@RVRB@MSG@%
+      \global\expandafter\let
+        \csname FV@SV@RVRB@ERR@\RVRB@label\endcsname=\FV@SV@RVRB@ERR@%
+    }
   }
 %    \end{macrocode}
 % \end{environment}

@@ -74,12 +74,12 @@
 \write\RVRB@samplefile{compilerflags=\RVRB@compilerflags}
 \write\RVRB@samplefile{lastflags=\RVRB@lastflags}
 \write\RVRB@samplefile{includecmd=\RVRB@includecmd}
-\newcommand{\RVRB@logsample}[2]{%
+\DeclareRobustCommand{\RVRB@logsample}[2]{%
   \edef\RVRB@tolog{#1:#2 [page=\noexpand\thepage] [line=\the\inputlineno]}%
   \expandafter\write\expandafter\RVRB@samplefile\expandafter{\RVRB@tolog}%
 }
 \newif\ifrunverbatim
-\newcommand{\setrunverbatimcmd}[1]{%
+\DeclareRobustCommand{\setrunverbatimcmd}[1]{%
     \global\def\runverbatimcmd{\emph{\RVRB@prompt{#1}}}}
 
 \def\RunVerbatimMsg{\FV@Environment{}{RunVerbatimMsg}}
@@ -92,7 +92,7 @@
 \let\FVE@RunVerbatimErr\FVE@SaveVerbatim
 \DefineVerbatimEnvironment{RunVerbatimErr}{RunVerbatimErr}{}
 
-\newcommand{\runverbatimfile}{\RVRB@prefix\RVRB@ext}
+\DeclareRobustCommand{\runverbatimfile}{\RVRB@prefix\RVRB@ext}
 \newif\ifRVRB@shouldfail
 \newif\ifRVRB@showcode
 \edef\RVRB@precontinue{}
@@ -108,6 +108,32 @@
 \define@key{RVRB@envkeys}{hide}[]{\RVRB@showcodefalse}
 \define@key{RVRB@envkeys}{withresult}[]{\RVRB@withresulttrue}
 \define@key{RVRB@envkeys}{withoutresult}[]{\RVRB@withresultfalse}
+\DeclareRobustCommand{\runverbatimmsg}[1]{
+   \bgroup%
+   \ifx\RVRB@msglst\RVRB@emptyoption\else
+      \expandafter\lstset\expandafter{\RVRB@msglst,fancyvrb=true}\fi%
+   \@ifundefined{FV@SV@RVRB@MSG@#1}
+     {\def\@tempa{#1}
+      \ifx\@tempa\empty
+        \RVRB@none
+      \else
+        $\langle$No message found for the label `#1'!$\rangle$
+      \fi}
+     {\expandafter\UseVerbatim\expandafter[\RVRB@msgstyle]{RVRB@MSG@#1}}%
+   \egroup}
+\DeclareRobustCommand{\runverbatimerr}[1]{
+   \bgroup%
+   \ifx\RVRB@errlst\RVRB@emptyoption\else
+      \expandafter\lstset\expandafter{\RVRB@errlst,fancyvrb=true}\fi%
+   \@ifundefined{FV@SV@RVRB@ERR@#1}
+     {\def\@tempa{#1}
+      \ifx\@tempa\empty
+        \RVRB@none
+      \else
+        $\langle$No message found for the label `#1'!$\rangle$
+      \fi}
+     {\expandafter\UseVerbatim\expandafter[\RVRB@errstyle]{RVRB@ERR@#1}}%
+   \egroup}
 \lstnewenvironment{runverbatim}[1][]
   {%
     \RVRB@shouldfailfalse%
@@ -147,23 +173,13 @@
         \expandafter\VerbatimInput\expandafter[\RVRB@codestyle]{\RVRB@file\RVRB@ext}%
         \egroup%
     \fi
-    \edef\RVRB@none{$\langle$Cannot load \RVRB@file.tex!$\rangle$}
+    \global\edef\RVRB@none{$\langle$Cannot load \RVRB@file.tex!$\rangle$}
     \InputIfFileExists{\RVRB@file.tex}{\RVRB@fileexiststrue}{\RVRB@fileexistsfalse}
     \ifRVRB@fileexists
         \@ifundefined{FV@SV@RunVerbatimMsg}
-          {}{\global\def\runverbatimmsg{%
-             \bgroup%
-             \ifx\RVRB@msglst\RVRB@emptyoption\else
-                \expandafter\lstset\expandafter{\RVRB@msglst,fancyvrb=true}\fi%
-             \expandafter\UseVerbatim\expandafter[\RVRB@msgstyle]{RunVerbatimMsg}%
-             \egroup}}
+          {}{\global\let\FV@SV@RVRB@MSG@=\FV@SV@RunVerbatimMsg}
         \@ifundefined{FV@SV@RunVerbatimErr}
-          {}{\global\def\runverbatimerr{%
-             \bgroup%
-             \ifx\RVRB@errlst\RVRB@emptyoption\else%
-                \expandafter\lstset\expandafter{\RVRB@errlst,fancyvrb=true}\fi%
-             \expandafter\UseVerbatim\expandafter[\RVRB@errstyle]{RunVerbatimErr}%
-             \egroup}}
+          {}{\global\let\FV@SV@RVRB@ERR@=\FV@SV@RunVerbatimErr}
         \ifRVRB@shouldfail
             \ifrunverbatim
                 \PackageWarning{runverbatim}
@@ -173,13 +189,13 @@
                              rulecolor=\color{red}]{RunVerbatimMsg}
             \else
                 \ifRVRB@withresult
-                   {\setlength{\partopsep}{0em}\runverbatimerr}
+                   {\setlength{\partopsep}{0em}\runverbatimerr{}}
                 \fi
             \fi
         \else
             \ifrunverbatim
                 \ifRVRB@withresult
-                   {\setlength{\partopsep}{0em}\runverbatimmsg}
+                   {\setlength{\partopsep}{0em}\runverbatimmsg{}}
                 \fi
             \else
                 \PackageWarning{runverbatim}
@@ -192,9 +208,15 @@
     \else
         \PackageWarning{runverbatim}{Cannot load \RVRB@file.tex}
         \global\let\runverbatimcmd\RVRB@none
-        \global\let\runverbatimmsg\RVRB@none
-        \global\let\runverbatimerr\RVRB@none
+        \global\let\FV@SV@RVRB@MSG@\@undefined
+        \global\let\FV@SV@RVRB@ERR@\@undefined
     \fi
+    \@ifundefined{RVRB@label}{}{
+      \global\expandafter\let
+        \csname FV@SV@RVRB@MSG@\RVRB@label\endcsname=\FV@SV@RVRB@MSG@%
+      \global\expandafter\let
+        \csname FV@SV@RVRB@ERR@\RVRB@label\endcsname=\FV@SV@RVRB@ERR@%
+    }
   }
 \makeatother
 \clearpage
