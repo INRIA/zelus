@@ -16,14 +16,13 @@ let atomic node ignore (x, y) = ()
 
 let f () = 1
 
-let hybrid main () = check where
-  rec trigger = period (1.0)
-  and present trigger ->
+let hybrid main (trigger) = () (* check *) where
+  rec present trigger ->
         local v in do
             v = f ()
         and emit s = v
         and () = ignore (v, r)
       done
   and r = toggle s
-  and check = present trigger -> (true -> r = 2.0) else true
+  (* and check = present trigger -> (true -> r = 2.0) else true *)
 
