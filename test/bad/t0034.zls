@@ -9,10 +9,10 @@
 
 let hybrid toggle change = v where
   rec automaton
-      | Off -> do v = 1.0 until change(1) then On
+      | Off -> do v = 1.0 unless change(1) then On
       | On  -> do v = 2.0 done
 
-let node ignore (x, y) = ()
+let atomic node ignore (x, y) = ()
 
 let f () = 1
 

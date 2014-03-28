@@ -15,153 +15,153 @@
 
 (* The relation c1 < c2 means that c1 must be computed before c2 *)
 (* The causality analysis imposes extra constraints so that control-structures *)
-(* are not opened. This could evolve if code-generation is changed. *)
-(* Extra rules are: *)
-(* 1. for a sequence of declarations, the sequential order is preserved. *)
-(*    [let x1 = e1 in let x2 = e2 in do x = e] *)
-(*    - x1: t1, x2: t2, x: t => t1 < t2 < t *)
-(* 2. for a control-structure, [if x then do x1 = e1 and x2 = e2 done *)
-(*                              else do x1 = e'1 and x2 = e'2 done *)
-(*    - all variable x1: t1, x2: t2. They must synchronise with a var. alpha *)
-(* 3. The same rule applies for all control-structures (present/automata) *)
- 
-open Misc
-open Ident
-open Global
-open Zelus
-open Location
-open Defcaus
-open Newcausal
+ (* are not opened. This could evolve if code-generation is changed. *)
+ (* Extra rules are: *)
+ (* 1. for a sequence of declarations, the sequential order is preserved. *)
+ (*    [let x1 = e1 in let x2 = e2 in do x = e] *)
+ (*    - x1: t1, x2: t2, x: t => t1 < t2 < t *)
+ (* 2. for a control-structure, [if x then do x1 = e1 and x2 = e2 done *)
+ (*                              else do x1 = e'1 and x2 = e'2 done *)
+ (*    - all variable x1: t1, x2: t2. They must synchronise with a var. alpha *)
+ (* 3. The same rule applies for all control-structures (present/automata) *)
 
-(* Main error message *)
-type error =
-  | Eloop of Defcaus.info list
-  | Elast_in_continuous
+ open Misc
+ open Ident
+ open Global
+ open Zelus
+ open Location
+ open Defcaus
+ open Newcausal
 
-exception Error of location * error
+ (* Main error message *)
+ type error =
+   | Eloop of Defcaus.info list
+   | Elast_in_continuous
 
-let error loc kind = raise (Error(loc, kind))
+ exception Error of location * error
 
-let message loc kind =
-  begin match kind with
-	| Eloop(l) ->
-	   Format.eprintf "%aCausality error: this expression \
-			   may instantaneously depend on itself.@."
-			  output_location loc;
-	   Format.eprintf "%a" Printer.cycle l
-	| Elast_in_continuous ->
-	   Format.eprintf "%aCausality error: the left limit is only allowed \
-                           for a variable defined by its derivative.@."
-			  output_location loc
-  end;
-  raise Misc.Error
+ let error loc kind = raise (Error(loc, kind))
 
-(* Unification and sub-typing relation *)
-let unify loc actual_ty expected_ty =
-  try
-    Newcausal.unify actual_ty expected_ty
-  with
-    | Newcausal.Unify(l) -> error loc (Eloop(l))
+ let message loc kind =
+   begin match kind with
+	 | Eloop(l) ->
+	    Format.eprintf "%aCausality error: this expression \
+			    may instantaneously depend on itself.@."
+			   output_location loc;
+	    Format.eprintf "%a" Printer.cycle l
+	 | Elast_in_continuous ->
+	    Format.eprintf "%aCausality error: the left limit is only allowed \
+			    for a variable defined by its derivative.@."
+			   output_location loc
+   end;
+   raise Misc.Error
 
-let less_than loc actual_ty expected_ty =
-  try
-    Newcausal.less actual_ty expected_ty
-  with
-    | Newcausal.Unify(l) -> error loc (Eloop(l))
+ (* Unification and sub-typing relation *)
+ let unify loc actual_ty expected_ty =
+   try
+     Newcausal.unify actual_ty expected_ty
+   with
+     | Newcausal.Unify(l) -> error loc (Eloop(l))
 
-let synchronise loc c actual_ty =
-  try
-    Newcausal.synchronise c actual_ty
-  with
-    | Newcausal.Unify(l) -> error loc (Eloop(l))
+ let less_than loc actual_ty expected_ty =
+   try
+     Newcausal.less actual_ty expected_ty
+   with
+     | Newcausal.Unify(l) -> error loc (Eloop(l))
 
-(** Build an environment from a typing environment *)
-(** all defined variables from [l_env] must be done after [c_before] *)
-(** and before [c_after] *)
-let build_env c_before c_after l_env env =
-  let entry n { Deftypes.t_typ = ty; Deftypes.t_sort = sort } = 
-    let ty_c = Newcausal.skeleton n ty in
-    Newcausal.less (Newcausal.skeleton_on_c c_before ty) ty_c;
-    Newcausal.less ty_c (Newcausal.skeleton_on_c c_after ty);
-    let is_der =
-      match sort with
-	| Deftypes.Mem { Deftypes.t_der_is_defined = is_der } -> is_der
-	| _ -> false in
-    let is_next =
-      match sort with
-	| Deftypes.Mem { Deftypes.t_next_is_set = is_next } -> is_next
-	| _ -> false in
-    { t_typ = ty_c; t_der = is_der; t_next = is_next } in
-  Env.fold (fun n tentry acc -> Env.add n (entry n tentry) acc) l_env env
+ let synchronise loc c actual_ty =
+   try
+     Newcausal.synchronise c actual_ty
+   with
+     | Newcausal.Unify(l) -> error loc (Eloop(l))
 
-(* Build a copy of the environment for the shared variables modified in the *)
-(* current block. All types must be greater that [c_before] *)
-let copy_shared_variables env c_before
-    { Deftypes.dv = dv; Deftypes.di = di; Deftypes.dr = dr } =
-  let shared n (acc, n_old_ty_new_ty_list) =
-    let ({ t_typ = old_ty; t_next = is_next } as entry ) =
-      try Env.find n env with Not_found -> assert false in
-    let c = Newcausal.new_var () in
-    cless c_before c;
-    if is_next then acc, n_old_ty_new_ty_list
-    else
-      let new_ty = copy_on_c c old_ty in
-      Env.add n { entry with t_typ = new_ty } acc, 
-      (n, old_ty, new_ty) :: n_old_ty_new_ty_list in
-  (* the list of triples (n, old_ty, new_ty) contains names from [dv] and [di] *)
-  (* but not [dv] *)
-  let env, n_old_ty_new_ty_list = Ident.S.fold shared dv (env, []) in
-  Ident.S.fold shared di (env, n_old_ty_new_ty_list)
+ (** Build an environment from a typing environment *)
+ (** all defined variables from [l_env] must be done after [c_before] *)
+ (** and before [c_after] *)
+ let build_env c_before c_after l_env env =
+   let entry n { Deftypes.t_typ = ty; Deftypes.t_sort = sort } = 
+     let ty_c = Newcausal.skeleton n ty in
+     Newcausal.less (Newcausal.skeleton_on_c c_before ty) ty_c;
+     Newcausal.less ty_c (Newcausal.skeleton_on_c c_after ty);
+     let is_der =
+       match sort with
+	 | Deftypes.Mem { Deftypes.t_der_is_defined = is_der } -> is_der
+	 | _ -> false in
+     let is_next =
+       match sort with
+	 | Deftypes.Mem { Deftypes.t_next_is_set = is_next } -> is_next
+	 | _ -> false in
+     { t_typ = ty_c; t_der = is_der; t_next = is_next } in
+   Env.fold (fun n tentry acc -> Env.add n (entry n tentry) acc) l_env env
 
-(* Synchronize types. For every element [(n, old_ty, new_ty)] of the list *)
-(* [n_old_ty_new_ty_list], apply [new_ty < old_ty] and synchronise *)
-(* [old_ty] with [c] *)
-let synchronise_shared_variables loc c_before old_ty_new_ty_list =
-  let c = Newcausal.new_var () in
-  Newcausal.cless c_before c;
-  let synchronise (n, old_ty, new_ty) =
-    less_than loc new_ty old_ty;
-    synchronise loc c old_ty in
-  List.iter synchronise old_ty_new_ty_list
+ (* Build a copy of the environment for the shared variables modified in the *)
+ (* current block. All types must be greater that [c_before] *)
+ let copy_shared_variables env c_before
+     { Deftypes.dv = dv; Deftypes.di = di; Deftypes.dr = dr } =
+   let shared n (acc, n_old_ty_new_ty_list) =
+     let ({ t_typ = old_ty; t_next = is_next } as entry ) =
+       try Env.find n env with Not_found -> assert false in
+     let c = Newcausal.new_var () in
+     cless c_before c;
+     if is_next then acc, n_old_ty_new_ty_list
+     else
+       let new_ty = copy_on_c c old_ty in
+       Env.add n { entry with t_typ = new_ty } acc, 
+       (n, old_ty, new_ty) :: n_old_ty_new_ty_list in
+   (* the list of triples (n, old_ty, new_ty) contains names from [dv] and [di] *)
+   (* but not [dv] *)
+   let env, n_old_ty_new_ty_list = Ident.S.fold shared dv (env, []) in
+   Ident.S.fold shared di (env, n_old_ty_new_ty_list)
 
-let rec pattern expected_k env { p_desc = desc; p_loc = loc; p_typ = ty } =
-  match desc with
-    | Ewildpat | Econstpat _ | Econstr0pat _ -> 
-        Newcausal.skeleton_on_c (Newcausal.new_var ()) ty
-    | Evarpat(x) -> 
-        begin try let { t_typ = ty1 } = Env.find x env in ty1 
-	  with | Not_found -> assert false end
-    | Etuplepat(pat_list) ->
-        product (List.map (pattern expected_k env) pat_list)
-    | Erecordpat(l) -> 
-        let pattern_less_than_on_c pat c =
-          let actual_ty = pattern expected_k env pat in
-          less_than loc actual_ty (Newcausal.skeleton_on_c c pat.p_typ) in
-        let c = Newcausal.new_var () in
-        List.iter (fun (_, p) -> pattern_less_than_on_c p c) l;
-        Newcausal.skeleton_on_c c ty
-    | Etypeconstraintpat(p, _) -> pattern expected_k env p
-    | Eorpat(p1, p2) -> 
-        let ty1 = pattern expected_k env p1 in
-        let ty2 = pattern expected_k env p2 in
-        unify p1.p_loc ty1 ty2;
-        ty1
-    | Ealiaspat(p, n) -> 
-        let ty_p = pattern expected_k env p in
-        let { t_typ = ty_n } = 
-	  try Env.find n env with | Not_found -> assert false in
-	unify p.p_loc ty_p ty_n;
-        ty_p
-	
-(** Causality analysis of a match handler.*)
-(* All computations of the body must be done after [c_before] *)
-(* and after [c_after] *)
-let match_handlers body expected_k c_before c_after env m_h_list =
-  let handler { m_body = b; m_env = m_env } =
-    let c_between = Newcausal.new_var () in
-    cless c_before c_between; cless c_between c_after;
-    let env = build_env c_before c_between m_env env in
-    body expected_k c_between c_after env b in
+ (* Synchronize types. For every element [(n, old_ty, new_ty)] of the list *)
+ (* [n_old_ty_new_ty_list], apply [new_ty < old_ty] and synchronise *)
+ (* [old_ty] with [c] *)
+ let synchronise_shared_variables loc c_before old_ty_new_ty_list =
+   let c = Newcausal.new_var () in
+   Newcausal.cless c_before c;
+   let synchronise (n, old_ty, new_ty) =
+     less_than loc new_ty old_ty;
+     synchronise loc c old_ty in
+   List.iter synchronise old_ty_new_ty_list
+
+ let rec pattern expected_k env { p_desc = desc; p_loc = loc; p_typ = ty } =
+   match desc with
+     | Ewildpat | Econstpat _ | Econstr0pat _ -> 
+	 Newcausal.skeleton_on_c (Newcausal.new_var ()) ty
+     | Evarpat(x) -> 
+	 begin try let { t_typ = ty1 } = Env.find x env in ty1 
+	   with | Not_found -> assert false end
+     | Etuplepat(pat_list) ->
+	 product (List.map (pattern expected_k env) pat_list)
+     | Erecordpat(l) -> 
+	 let pattern_less_than_on_c pat c =
+	   let actual_ty = pattern expected_k env pat in
+	   less_than loc actual_ty (Newcausal.skeleton_on_c c pat.p_typ) in
+	 let c = Newcausal.new_var () in
+	 List.iter (fun (_, p) -> pattern_less_than_on_c p c) l;
+	 Newcausal.skeleton_on_c c ty
+     | Etypeconstraintpat(p, _) -> pattern expected_k env p
+     | Eorpat(p1, p2) -> 
+	 let ty1 = pattern expected_k env p1 in
+	 let ty2 = pattern expected_k env p2 in
+	 unify p1.p_loc ty1 ty2;
+	 ty1
+     | Ealiaspat(p, n) -> 
+	 let ty_p = pattern expected_k env p in
+	 let { t_typ = ty_n } = 
+	   try Env.find n env with | Not_found -> assert false in
+	 unify p.p_loc ty_p ty_n;
+	 ty_p
+
+ (** Causality analysis of a match handler.*)
+ (* All computations of the body must be done after [c_before] *)
+ (* and before [c_after] *)
+ let match_handlers body expected_k c_before c_after env m_h_list =
+   let handler { m_body = b; m_env = m_env } =
+     let c_between = Newcausal.new_var () in
+     cless c_before c_between; cless c_between c_after;
+     let env = build_env c_before c_between m_env env in
+     body expected_k c_between c_after env b in
   List.iter handler m_h_list
 
 (** Causality analysis of a present handler *)
