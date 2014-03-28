@@ -18,10 +18,8 @@ let f () = 1
 
 let hybrid main (trigger) = () (* check *) where
   rec present trigger ->
-        local v in do
-            v = f ()
-        and emit s = v
-        and () = ignore (v, r)
+        do emit s = 1
+        and () = ignore (2, r)
       done
   and r = toggle s
   (* and check = present trigger -> (true -> r = 2.0) else true *)
