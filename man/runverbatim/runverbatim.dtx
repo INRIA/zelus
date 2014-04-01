@@ -68,7 +68,7 @@
 %</driver>
 % \fi
 %
-% \CheckSum{399}
+% \CheckSum{403}
 %
 % \CharacterTable
 %  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
@@ -103,8 +103,11 @@
 % \DoNotIndex{\value,\@currentlabel,\@firstoftwo,\AtEndDocument,\em}
 % \DoNotIndex{\closeout,\csname,\endcsname,\DefineVerbatimEnvironment}
 % \DoNotIndex{\jobname,\kvsetkeys,\label,\newwrite,\noexpand,\openout}
-% \DoNotIndex{\partopsep,\setlength,\thepage,\write}
+% \DoNotIndex{\partopsep,\setlength,\thepage,\write,\resetcounteronoverlays}
+% \DoNotIndex{\@tempa,\fvset,\ifx,\inputlineno,\lstset,\the}
+% \DoNotIndex{\DeclareRobustCommand,\empty,\ifdefined,\meta}
 % \expandafter\DoNotIndex\expandafter{\string\$}
+% \expandafter\DoNotIndex\expandafter{\string\#}
 %
 % \title{The \textsf{runverbatim} package\thanks{This document
 %   corresponds to \textsf{runverbatim}~\fileversion, dated \filedate.}}
@@ -494,8 +497,13 @@ let w = 1 + "four"
 % \begin{macro}{\runverbatim}
 % Generate the sequence of source code identifiers used in per-environment 
 % filenames and to manage dependencies.
+% If |beamer| is being used, reset the counter on each overlay to avoid 
+% generating multiple output files for the same program.
 %    \begin{macrocode}
 \newcounter{runverbatim}
+\ifdefined\resetcounteronoverlays
+\resetcounteronoverlays{runverbatim}
+\fi
 %    \end{macrocode}
 % \end{macro}
 %

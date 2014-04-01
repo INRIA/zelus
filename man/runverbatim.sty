@@ -36,6 +36,9 @@
 
 \makeatletter
 \newcounter{runverbatim}
+\ifdefined\resetcounteronoverlays
+\resetcounteronoverlays{runverbatim}
+\fi
 \newif\ifRVRB@fileexists
 \def\RVRB@pkg@verbopts{}
 
