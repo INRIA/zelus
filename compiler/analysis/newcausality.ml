@@ -494,7 +494,8 @@ let implementation ff impl =
        ignore (exp Deftypes.Tany Env.empty e);
        Misc.pop_binding_level ()
     | Efundecl
-	(f, { f_kind = k; f_args = pat_list; f_body = e; f_env = h0 }) ->
+	(f, { f_kind = k; f_atomic = atomic; f_args = pat_list; 
+	      f_body = e; f_env = h0 }) ->
        Misc.push_binding_level ();
        let expected_k = Interface.kindtype k in
        let env = 
@@ -502,6 +503,14 @@ let implementation ff impl =
        (* first type the body *)
        let ty_arg_list = List.map (pattern expected_k env) pat_list in
        let ty_res = exp expected_k env e in
+       let ty_arg_list, ty_res =
+	 if atomic then
+	   (* for an atomic function, all outputs are considered to *)
+	   (* depend on all input *)
+	   let c = new_var () in
+	   List.map (fun pat -> skeleton_on_c c pat.p_typ) pat_list,
+	   skeleton_on_c c e.e_typ
+	 else ty_arg_list, ty_res in
        Misc.pop_binding_level ();
        let tys = generalise ty_arg_list ty_res in
        (* then add the current entries in the global environment *)

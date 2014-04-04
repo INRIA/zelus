@@ -388,6 +388,8 @@ let instance ty_arg_list ty_res =
 
 (** Type instance *)
 (* From the caller, outputs of an atomic node depends on all of its inputs *)
+(* This double check is useless at to moment because the declaration of an *)
+(* atomic function produce the identity causality *)
 let instance { value_atomic = is_atomic; 
 	       value_caus = tys_opt; value_typ = { typ_body = typ_body } } =
   (* build a default signature *)
