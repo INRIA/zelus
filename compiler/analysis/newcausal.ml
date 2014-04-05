@@ -79,6 +79,18 @@ let rec crepr c =
         c_son
     | _ -> c
 
+(* erase every occurrence of a given variable from the sups *)
+let rec erase_sups c c_list = List.fold_left (erase c) [] c_list
+
+(* [erase c acc c_into] returns either [acc] or [c_into :: acc] *)
+(* if [c <> c_into] and remove all occurrences of [c] into the *)
+(* sups of [c_into] *)
+and erase c acc c_into =
+  let c_into = crepr c_into in
+  let c_sup = erase_sups c c_into.c_sup in
+  c_into.c_sup <- c_sup;
+  if c.c_index = c_into.c_index then acc else c_into :: acc
+  
 (** Sets the polarity of a type. *)
 let polarity pol c =
   match pol, c.c_polarity with
@@ -287,29 +299,6 @@ let simplify c_set =
 	outputs)
     inputs
 
-(* TEMPORARY SOLUTION: *)
-(* eliminate doublons, e.g., [c < b, b] and dependences to variables *)
-(* which are not input or outputs *)
-(*
-let simplify c_set =
-  let rec remove_useless_variables c_set = S.iter remove_useless c_set 
-  and remove_useless c = 
-    let c = crepr c in
-    c.c_sup <- useful_list [] c.c_sup
-  and useful_list acc l = List.fold_left useful acc l
-  and useful acc c_right =
-    let c_right = crepr c_right in
-    match c_right.c_desc with
-    | Cvar -> 
-       if c_right.c_useful then add c_right acc
-       else useful_list acc c_right.c_sup
-    | Clink(link) -> useful acc link
-    | Cpair(c1, c2) -> 
-       remove_useless c1; remove_useless c2;
-       add c_right acc in
-  remove_useless_variables c_set
- *)
-
 (** Generalisation of a type *)
 (* the level of generalised type variables *)
 (* is set to [generic]. Returns [generic] when a sub-term *)
@@ -432,6 +421,16 @@ module Printer = struct
         (if priority >= 2 then fprintf ff "@[(%a)@]" else fprintf ff "@[%a@]")
 	  (print_list_r (typ 2) "" " *" "") ty_list
 
+  (* collect the list of dependences ['a < 'b,...] *)
+  let relation ff c_list =
+    let collect acc c =
+      if c.c_sup = [] then acc
+      else (c, c.c_sup) :: acc in
+    let print ff (c, c_sup) =
+      fprintf ff "@[%a < %a@]" caus c (print_list_r caus "" "," "") c_sup in
+    let c_sup_list = List.fold_left collect [] c_list in
+    print_list_r print "{" ";" "}" ff c_sup_list
+      
   let signature ff
       { typ_vars = c_list; typ_args = ty_arg_list; typ_res = ty_res } = 
     (* print the argument type *)
@@ -439,16 +438,6 @@ module Printer = struct
       | [] -> fprintf ff "[]"
       | ty_arg_list -> 
           fprintf ff "@[%a@]" (print_list_r (typ 2) """ *""") ty_arg_list in
-    (* collect the list of dependences ['a < 'b,...] *)
-    let relation ff c_list =
-      let collect acc c =
-	if c.c_sup = [] then acc
-	else (c, c.c_sup) :: acc in
-      let print ff (c, c_sup) =
-	fprintf ff "@[%a < %a@]" caus c (print_list_r caus "" "," "") c_sup in
-      let c_sup_list = List.fold_left collect [] c_list in
-      print_list_r print "{" ";" "}" ff c_sup_list in
-      
     fprintf ff "@[%a.%a -> %a@]" relation c_list arg_list ty_arg_list
       (typ 0) ty_res
 

@@ -1,27 +1,14 @@
-let hybrid g(x) = z where
-  rec init z = 0.0 
-  and match x with 
-      | true -> local y in
-                do y = z and der z = y done
-      end
-
-let hybrid main () = x where
-  rec init x = 0.0
-  and automaton
-      | S1 ->
-          local y in
-          do
-            y = x and der x = y
-          done
-      end
+let node g(x) = y, k, m where
+  rec present k(w) -> do y = 1 and m = 4 done
+  and init y = 0 and init m = 0
+  and present x(_) -> do emit k = y done
 
 (*
 let node g(x) = y, k, m where rec
   automaton
-  | S1 -> do y = 2 and m = 3 until x() then S1
-  | S2 -> do y = 1 and m = 4 until k(w) then S1
+  | S1 -> do y = 1 and m = 4 unless k(w) then S1
   end
-  and present x(_) -> do emit k = 0 done
+  and present x(_) -> do emit k = y done
 *)
 
  (*let hybrid f1 x =
