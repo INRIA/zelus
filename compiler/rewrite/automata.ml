@@ -352,7 +352,7 @@ and automaton env eq_list handler_list se_opt =
   let env, eq_list = 
     env_of_parameters env eq_list n_to_parameters handler_list se_opt  in
 
-  let longident n = Lident.Name(Ident.name n) in
+  let longident n = Modules.longname(Ident.name n) in
 
   (* the name of the initial state *)
   let initial =
