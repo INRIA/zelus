@@ -34,7 +34,7 @@ airtraffic.cmi airtraffic.cmo: airtraffic.ml
 
 test: airtrafficgui.cmi a330.ml
 	@cp airtrafficgui.ml airtrafficgui_test.ml
-	@echo "let _ = runtest () ;;" >> airtrafficgui_test.ml
+	@printf "let _ = runtest () ;;\n" >> airtrafficgui_test.ml
 	$(OCAMLC) -o test $(LABLGTK2) lablgtk.cma gtkInit.cmo \
 	    simplevector.ml a330.ml airtrafficgui_test.ml
 

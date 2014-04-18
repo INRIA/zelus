@@ -4,7 +4,7 @@ ME=`basename $0`
 DATAFILE="$1"
 
 if [ -z "${DATAFILE}" ]; then
-    echo "usage: ${ME} file.out > plot.pdf" 1>&2
+    printf "usage: ${ME} file.out > plot.pdf\n" 1>&2
     exit 1
 fi
 

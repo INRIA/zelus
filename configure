@@ -110,7 +110,7 @@ END_HELP_TEXT
     PTOLEMYROOT)
 	PTOLEMYROOT=$2; shift;;
     *)
-	echo "illegal option \"$1\"." 1>&2; exit 2;;
+	printf "illegal option \"$1\".\n" 1>&2; exit 2;;
   esac
   shift
 done
@@ -241,8 +241,8 @@ if [ "${ocaml_path}" != "NOT_FOUND" ]; then
     
     # TODO: change after patch integrated into glMLite
     # "exit (if major >= 0 && minor >= 3 && patch > 50 then 100 else 200);;" \
-    echo "let (major, minor, patch) = GL.glmlite_version in" \
-	"exit (if major >= 0 && minor >= 3 && patch >= 50 then 100 else (if major + minor + patch = 0 then 110 else 200));;" \
+    printf "let (major, minor, patch) = GL.glmlite_version in" \
+	"exit (if major >= 0 && minor >= 3 && patch >= 50 then 100 else (if major + minor + patch = 0 then 110 else 200));;\n" \
 	| ${OCAMLBIN}ocaml -I ${glmlite_incl} GL.cma  >/dev/null 2>&1
     GLMLV=$?
     
@@ -264,35 +264,33 @@ else
     glmlite_enabled=1
 fi
 
-echo
-echo "Configuration"
-echo "-------------"
+printf "\nConfiguration\n-------------\n"
 
-echo
-echo "  Ocaml\t\t\t${ocaml_path}${ocaml_version}"
+printf "\n"
+printf "  Ocaml\t\t\t${ocaml_path}${ocaml_version}\n"
 if [ ${for_compile} -eq 1 ]; then
-echo "  MenhirLib\t\t${menhirlib}"
+printf "  MenhirLib\t\t${menhirlib}\n"
 fi
-echo "  Lablgtk2\t\t${lablgtk2_path}"
-echo "  SundialsML\t\t${sundialsml_status}"
-echo "  glMLite\t\t${glmlite_status}"
-echo
-echo "  targets:\t\t${targets} ${gtktargets}"
-echo
-echo "Installation paths"
-echo "  prefix:\t\t${prefix}"
-echo "  bindir:\t\t${bindir:-$prefix/bin}"
-echo "  libdir:\t\t${libdir:-$prefix/lib}"
-echo "  mandir:\t\t${mandir:-$prefix/share/man/}"
-echo
+printf "  Lablgtk2\t\t${lablgtk2_path}\n"
+printf "  SundialsML\t\t${sundialsml_status}\n"
+printf "  glMLite\t\t${glmlite_status}\n"
+printf "\n"
+printf "  targets:\t\t${targets} ${gtktargets}\n"
+printf "\n"
+printf "Installation paths\n"
+printf "  prefix:\t\t${prefix}\n"
+printf "  bindir:\t\t${bindir:-$prefix/bin}\n"
+printf "  libdir:\t\t${libdir:-$prefix/lib}\n"
+printf "  mandir:\t\t${mandir:-$prefix/share/man/}\n"
+printf "\n"
 
 if [ -n "${error}" ]; then
-    echo "Some errors occurred during configuration:${error}"
-    echo
+    printf "Some errors occurred during configuration:${error}\n"
+    printf "\n"
     exit 1
 fi
 
-(echo "# # # THIS FILE IS GENERATED AUTOMATICALLY BY CONFIGURE # # #"; \
+(printf "# # # THIS FILE IS GENERATED AUTOMATICALLY BY CONFIGURE # # #\n"; \
  sed -e "s#@prefix@#${prefix}#;
 	 s#@bindir@#${bindir:-$prefix/bin}#;
 	 s#@libdir@#${libdir:-$prefix/lib}#;

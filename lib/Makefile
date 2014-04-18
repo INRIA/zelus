@@ -84,24 +84,24 @@ dump.ml: dump.zls basics.zci
 	$(ZELUC) $(ZELUCFLAGS) dump.zls
 
 loadsolvers.ml:
-	@echo "(* initialize solvers *)" > $@
+	@printf "(* initialize solvers *)\n" > $@
 	@for s in $(notdir $(SOLVER_OBJS:.cmo=)); do		\
-	    echo "let m = String.capitalize \"$$s\""            \
-	    	 "in Printf.eprintf \"module %s = %s\n\" m m;;" \
+	    printf "let m = String.capitalize \"$$s\""            \
+	    	 "in Printf.eprintf \"module %s = %s\n\" m m;;\n" \
 		 | $(OCAML) 1>/dev/null 2>>$@; 			\
 	done
-	@echo "let () = Zlsolve.set_default_solver \"$(SOLVER)\";;" >> $@
+	@printf "let () = Zlsolve.set_default_solver \"$(SOLVER)\";;\n" >> $@
 
 ### Generating a Zelus in numbers tables
 # Download ocamlwc from: http://www.lri.fr/~filliatr/software.en.html
 loc:
-	@echo "Simulation algorithm"
+	@printf "Simulation algorithm\n"
 	@ocamlwc -c zlsolve.ml basics.ml
-	@echo "Solver interface (generic)"
+	@printf "Solver interface (generic)\n"
 	@ocamlwc -c solvers.ml
-	@echo "Solver interface (Sundials, compiler specific)"
+	@printf "Solver interface (Sundials, compiler specific)\n"
 	@ocamlwc -c solvers/solversundials.ml
-	@echo "Zero-crossing detection (Illinois)"
+	@printf "Zero-crossing detection (Illinois)\n"
 	@ocamlwc -c solvers/illinois.ml
 
 depend: .depend

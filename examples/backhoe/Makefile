@@ -25,7 +25,7 @@ backhoecontrol.ml backhoe_main.ml: backhoecontrol.zls backhoedyn.zci
 
 test: backhoegui.cmi backhoegui.ml
 	@cp backhoegui.ml backhoegui_test.ml
-	@echo "let _ = runtest () ;;" >> backhoegui_test.ml
+	@printf "let _ = runtest () ;;\n" >> backhoegui_test.ml
 	$(OCAMLC) -o test $(LABLGTK2) lablgtk.cma gtkInit.cmo \
 	    backhoegui_test.ml
 

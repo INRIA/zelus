@@ -65,9 +65,9 @@ ORIG_IFS=$IFS
 if [ ! `which ${MARKDOWN}` ]; then
     if [ `which multimarkdown` ]; then
 	MARKDOWN=multimarkdown
-	echo "info: using ${MARKDOWN}." 1>&2
+	printf "info: using ${MARKDOWN}.\n"\n 1>&2
     else
-	echo "warning: ${MARKDOWN} not found." 1>&2
+	printf "warning: ${MARKDOWN} not found.\n" 1>&2
 	MARKDOWN=cat
     fi
 fi
@@ -99,7 +99,7 @@ for ENTRY in ${EXAMPLES}; do
     EXNAME=`basename ${EXDIR}`
     TITLE=`sed -n "s/##* \([^#]*\) ##*/\1/p;q" "${EX}"`
 
-    echo "<div id=\"${EXNAME}\" class=\"example-section\">" \
+    printf "<div id=\"${EXNAME}\" class=\"example-section\">\n" \
 	>> "${GENERATED}/gen-examples-body.html"
     IFS="
 "
@@ -121,27 +121,27 @@ for ENTRY in ${EXAMPLES}; do
 <div class="accordion-inner">
 EOF
 		${TOOLS}/zltohtml ${EXDIR}/${FILE}.zls
-		echo "</div></div></div></div>"
+		printf "</div></div></div></div>\n"
 		;;
 	    *!REQUIRES:*)
-		echo '<div class="requirements">'
-		echo '<p class="text-info">'
-		echo '<i class="icon-info-sign"></i> <em>Requires</em>:'
-		echo `expr "$LINE" : '.*!REQUIRES: *\(.*\)'`
-		echo '</p>'
-		echo '</div>'
+		printf '<div class="requirements">\n'
+		printf '<p class="text-info">\n'
+		printf '<i class="icon-info-sign"></i> <em>Requires</em>:\n'
+		printf `expr "$LINE" : '.*!REQUIRES: *\(.*\)'`
+		printf '\n</p>\n'
+		printf '</div>\n'
 		;;
 	    *)
-		echo "$LINE"
+		printf "$LINE\n"
 		;;
 	esac
     done >> "${GENERATED}/gen-examples-body.html")
     IFS=$ORIG_IFS
-    echo "</div><hr />" >> "${GENERATED}/gen-examples-body.html"
+    printf "</div><hr />\n" >> "${GENERATED}/gen-examples-body.html"
 
-    echo "<li><a href=\"#${EXNAME}\">${TITLE}</a></li>" \
+    printf "<li><a href=\"#${EXNAME}\">${TITLE}</a></li>\n" \
 	>> "${GENERATED}/gen-examples-nav-local.html"
-    echo "<li><a href=\"examples.html#${EXNAME}\">${TITLE}</a></li>" \
+    printf "<li><a href=\"examples.html#${EXNAME}\">${TITLE}</a></li>\n" \
 	>> "${GENERATED}/gen-examples-nav-other.html"
 
     # copy image files
@@ -151,7 +151,7 @@ EOF
 	do
 	    [ -f "$f" ] || continue
 	    cp $f ${WWW}/img/`basename $f`
-	    echo "added: ${WWW}/img/`basename $f`"
+	    printf "added: ${WWW}/img/`basename $f`\n"
 	done
     fi
 done
@@ -162,7 +162,7 @@ done
 #
 
 if [ ! `which ${BIBTEX2HTML}` ]; then
-    echo "warning: ${BIBTEX2HTML} not found." 1>&2
+    printf "warning: ${BIBTEX2HTML} not found.\n" 1>&2
     BIBTEX2HTML=cat
 fi
 
@@ -194,12 +194,12 @@ for BIB in src/*.bib; do
     do
 	BIBKEY=`expr "${line}" : '<a id="\([^"]*\)" class="[^"]*" name="[^"]*">[^<]*</a>'`
 	BIBNAME=`expr "${line}" : '<a id="[^"]*" class="[^"]*" name="[^"]*">\([^<]*\)</a>'`
-	echo "<li><a href=\"#${BIBKEY}\">${BIBNAME}</a></li>" \
+	printf "<li><a href=\"#${BIBKEY}\">${BIBNAME}</a></li>\n" \
 	    >> ${GENERATED}/gen-bib-nav-local.html
     done
 
 
-    echo "added: ${WWW}/${NAME}_bib.html"
+    printf "added: ${WWW}/${NAME}_bib.html\n"
     cp "${GENERATED}/${NAME}_bib.html" "${WWW}/"
 done
 
@@ -223,10 +223,10 @@ for SRC in ${SOURCES}; do
 		cat "${IFILE}"
 		;;
 	    *)
-		echo ${LINE}
+		printf "${LINE}\n"
 		;;
 	esac
     done) >> ${DST}
-    echo "added: ${DST}"
+    printf "added: ${DST}\n"
 done
 

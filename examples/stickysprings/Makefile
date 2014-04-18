@@ -45,10 +45,10 @@ testworld: world.cmi world.cmo testworld.ml
 else
 
 stickysprings3d.byte:
-	@echo "$@: glMLite is not available"
+	@printf "$@: glMLite is not available\n"
 
 stickysprings3d.opt:
-	@echo "$@: glMLite is not available"
+	@printf "$@: glMLite is not available\n"
 
 endif
 

@@ -101,8 +101,8 @@ due to limited floating-point precision.</p>
 <span class="keyword ">let</span> <span class="">ground_abs</span> <span class="">x</span> = <span class="constructor">World</span>.<span class="">ground_abs</span>(<span class="">x</span>)
 
 <span class="keyword ">let</span> <span class="">x_0</span> = <span class="number">0.0</span>
-<span class="keyword ">let</span> <span class="">y_0</span> = <span class="number">9.0</span>
-<span class="keyword ">let</span> <span class="">x_v</span> = <span class="number">0.8</span>
+<span class="keyword ">let</span> <span class="">y_0</span> = <span class="number">8.0</span>
+<span class="keyword ">let</span> <span class="">x_v</span> = <span class="number">0.72</span>
 <span class="keyword ">let</span> <span class="">g</span> = <span class="number">9.81</span>
 <span class="keyword ">let</span> <span class="">loose</span> = <span class="number">0.8</span>
 
@@ -146,8 +146,8 @@ when the balls vertical velocity becomes very small.</p>
 <span class="keyword ">let</span> <span class="">ground_abs</span> <span class="">x</span> = <span class="constructor">World</span>.<span class="">ground_abs</span>(<span class="">x</span>)
 
 <span class="keyword ">let</span> <span class="">x_0</span> = <span class="number">0.0</span>
-<span class="keyword ">let</span> <span class="">y_0</span> = <span class="number">5.6</span>
-<span class="keyword ">let</span> <span class="">x_v</span> = <span class="number">0.8</span>
+<span class="keyword ">let</span> <span class="">y_0</span> = <span class="number">8.0</span>
+<span class="keyword ">let</span> <span class="">x_v</span> = <span class="number">0.72</span>
 <span class="keyword ">let</span> <span class="">eps</span> = <span class="number">0.01</span>
 
 <span class="comment">(* The bouncing ball with two modes. *)</span>
@@ -626,7 +626,7 @@ sys2 = 5 * sys1
 
 <p>or <a href="https://www.scilab.org/">Scilab</a>:</p>
 
-<pre><code>s=%s
+<pre><code>s=
 sys1 = 60 / (s * (s + 1) * (s + 20))
 [a, b, c, d] = abcd(sys1)
 
@@ -695,7 +695,7 @@ Its state-space realization is readily calculated in either
 
 <p>or <a href="https://www.scilab.org/">Scilab</a>:</p>
 
-<pre><code>s = %s; wn = 1.0; zeta = 0.7;
+<pre><code>s = ; wn = 1.0; zeta = 0.7;
 tf2ss(syslin('c', wn^2, s^2 + 2*zeta*wn*s + wn^2))</code></pre>
 
 <p>We express it in a node called <code>reference</code> using a generic <code>siso_2o</code> node.</p>
@@ -1438,8 +1438,9 @@ and instantaneously.</p>
 <span class="keyword ">let</span> <span class="">alpha1</span> = <span class="number">16.0</span>           <span class="comment">(* distance at which avoidance is triggered *)</span>
 <span class="keyword ">let</span> <span class="">alpha2</span> = <span class="number">20.0</span>           <span class="comment">(* distance at which avoidance is terminated *)</span>
 
-<span class="keyword ">let</span> <span class="">aircraft1_v</span> = <span class="number">540.0</span>     <span class="comment">(* velocity of aircraft1, miles/hour *)</span>
-<span class="keyword ">let</span> <span class="">aircraft2_v</span> = <span class="number">570.0</span>     <span class="comment">(* velocity of aircraft2, miles/hour *)</span>
+<span class="comment">(* velocity in miles/hour converted to miles/minute *)</span>
+<span class="keyword ">let</span> <span class="">aircraft1_v</span> = <span class="number">540.0</span> <span class="operator">/.</span> <span class="number">3600.0</span> <span class="comment">(* velocity of aircraft1 *)</span>
+<span class="keyword ">let</span> <span class="">aircraft2_v</span> = <span class="number">570.0</span> <span class="operator">/.</span> <span class="number">3600.0</span> <span class="comment">(* velocity of aircraft2 *)</span>
 
 <span class="comment">(* initial position of aircraft2, relative to aircraft1 *)</span>
 <span class="keyword ">let</span> <span class="">aircraft2_xi</span> = <span class="number">60.0</span>
@@ -1484,13 +1485,13 @@ and instantaneously.</p>
             <span class="keyword ">then</span> <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">nxy</span> = <span class="">rotate</span>(<span class="">delta_phi</span>, <span class="keyword expr ">last</span> <span class="">x</span>, <span class="keyword expr ">last</span> <span class="">y</span>) <span class="keyword ">in</span> <span class="constructor">Straight</span>
           <span class="keyword ">else</span>  <span class="keyword expr ">up</span>(<span class="">t</span> -. <span class="">t2</span>)
             <span class="keyword ">then</span> <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">nxy</span> = <span class="">rotate</span>(<span class="">delta_phi</span>, <span class="keyword expr ">last</span> <span class="">x</span>, <span class="keyword expr ">last</span> <span class="">y</span>) <span class="keyword ">in</span> <span class="constructor">Straight</span>
-      | <span class="constructor">Straight</span> -&gt; 
+      | <span class="constructor">Straight</span> -&gt;
           <span class="keyword ">do</span>
             <span class="">t'</span> = <span class="number">0.0</span>
             <span class="keyword ">and</span> <span class="">st</span> = <span class="number">2</span>
           <span class="keyword ">until</span> <span class="keyword expr ">up</span>(<span class="">sqr</span>(<span class="keyword expr ">last</span> <span class="">x</span>) <span class="operator">+.</span> <span class="">sqr</span>(<span class="keyword expr ">last</span> <span class="">y</span>) -. <span class="">sqr</span>(<span class="">alpha2</span>))
             <span class="keyword ">then</span> <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">nxy</span> = <span class="">rotate</span>(<span class="">delta_phi</span>, <span class="keyword expr ">last</span> <span class="">x</span>, <span class="keyword expr ">last</span> <span class="">y</span>) <span class="keyword ">in</span> <span class="constructor">Right</span>
-      | <span class="constructor">Right</span> -&gt; 
+      | <span class="constructor">Right</span> -&gt;
           <span class="keyword ">do</span>
             <span class="">t'</span> = -. <span class="number">1.0</span>
             <span class="keyword ">and</span> <span class="">st</span> = <span class="number">3</span>
@@ -1508,7 +1509,7 @@ and instantaneously.</p>
 <span class="keyword keyword module ">open</span> <span class="constructor">Airtrafficgui</span>
 
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">main</span> () = () <span class="keyword ">where</span>
-  <span class="keyword ">rec</span> <span class="">p</span> = <span class="keyword expr ">period</span> (<span class="number">0.001</span>)
+  <span class="keyword ">rec</span> <span class="">p</span> = <span class="keyword expr ">period</span> (<span class="number">1.0</span>)
 
   <span class="keyword ">and</span> (<span class="">click</span>, (<span class="">nxr</span>, <span class="">nyr</span>), (<span class="">ntheta_r</span>, <span class="">nd</span>)) =
     <span class="keyword ">present</span> <span class="">p</span> -&gt; <span class="">sample</span> ()

@@ -6,7 +6,7 @@ ME=`basename $0`
 COMMAND="$@"
 
 if [ -z "${COMMAND}" ]; then
-    echo "example usage: ${ME} ./prog.byte -sundialsI -maxt 10 -debugz > plot.pdf" 1>&2
+    printf "example usage: ${ME} ./prog.byte -sundialsI -maxt 10 -debugz > plot.pdf\n" 1>&2
     exit 1
 fi
 
@@ -22,9 +22,9 @@ fi
 if grep -vq '/^.*find(\(.*\), .*).*/' ${DATAFILE}; then
     true
 else
-    echo "This script requires the logging of microsteps to stdout." 1>&2
-    echo "  - for most solvers, use the option: -debugz" 1>&2
-    echo "  - but a patched version of sundials is required." 1>&2
+    printf "This script requires the logging of microsteps to stdout.\n" 1>&2
+    printf "  - for most solvers, use the option: -debugz\n" 1>&2
+    printf "  - but a patched version of sundials is required.\n" 1>&2
     rm -f ${DATAFILE} ${TIMEFILE}
     exit 2
 fi

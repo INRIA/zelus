@@ -3,11 +3,11 @@ include ./config
 .PHONY: help install uninstall examples
 
 help:
-	@echo "Type 'make install' to install Zélus into:"
-	@echo "    ${bindir}"
-	@echo "    ${libdir}"
-	@echo
-	@echo "Type 'make examples' to build the examples."
+	@printf "Type 'make install' to install Zélus into:\n"
+	@printf "    ${bindir}\n"
+	@printf "    ${libdir}\n"
+	@printf "\n"
+	@printf "Type 'make examples' to build the examples.\n"
 
 install:
 	mkdir -p ${bindir}

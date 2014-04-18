@@ -22,7 +22,7 @@ done
 
 compile () {
 if [[ $verbose != 0 ]]; then 
-  echo $compilo $coption $1 $2
+  printf "$compilo $coption $1 $2\n"
   $compilo $coption -I good $1 $2;
 else
   $compilo $coption -I good $1 $2 > /dev/null 2>&1;
@@ -31,7 +31,7 @@ fi;
 
 ocamlcompile () {
 if [[ $verbose != 0 ]]; then 
-  echo ocamlc -I ../lib $compile_code_option $1
+  printf "ocamlc -I ../lib $compile_code_option $1\n"
   ocamlc -c -I ../lib -I good $1 > /dev/null 2>&1;
 else
   ocamlc -c -I ../lib -I good $1 > /dev/null 2>&1;
@@ -43,26 +43,25 @@ main () {
 score=0
 max=0
 
-echo "Test"
+printf "Test\n"
 
 # les mauvais
-echo -n "mauvais "
+printf "mauvais "
 for f in bad/*.ls ; do 
-    echo -n ".";
+    printf ".";
     max=`expr $max + 1`;
     if compile $f; then
-        echo
-        echo "ECHEC sur "$f" (devrait echouer)";
+        printf "\nECHEC sur \"$f\" (devrait echouer)\n";
     else
         score=`expr $score + 1`;        
     fi
 done
-echo
+printf "\n"
 
-echo -n "bons"
+printf "bons"
 for f in good/*.ls; do
     echec=0
-    echo -n ".";
+    printf ".";
     max=`expr $max + 1`;
     base_f=`basename $f .ls`
     if compile $f; then
@@ -81,15 +80,14 @@ for f in good/*.ls; do
     if [ $echec == 0 ]; then
 	score=`expr $score + 1`;
     else
-        echo
-        echo "ECHEC sur "$f" (devrait reussir)";
+        printf "\nECHEC sur \"$f\" (devrait reussir)\n";
     fi
 done
-echo
+printf "\n"
 
 percent=$(( (100 * score) / max));
 
-echo -n "Test: $score/$max : $percent%";
+printf "Test: $score/$max : $percent%%";
 
 }
 
@@ -111,11 +109,11 @@ case $option in
 	activate_compile_code;
 	main;;
     * )
-	echo "usage : $0 <options>"
-        echo "options : "
-        echo "-1      : translation" 
-        echo "-v1     : -1 + verbose" 
-        echo "-2      : translation/compile target code"
-	echo "-v2     : translation/compile target code + verbose"
+	printf "usage : $0 <options>\n"
+        printf "options : \n"
+        printf "-1      : translation\n" 
+        printf "-v1     : -1 + verbose\n" 
+        printf "-2      : translation/compile target code\n"
+	printf "-v2     : translation/compile target code + verbose\n"
 esac;
-echo
+printf "\n"

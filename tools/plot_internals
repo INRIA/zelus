@@ -8,7 +8,7 @@ ME=`basename $0`
 COMMAND="$@"
 
 if [ -z "${COMMAND}" ]; then
-    echo "example usage: ${ME} ./prog.byte -sundialsI -maxt 10 > plot.pdf" 1>&2
+    printf "example usage: ${ME} ./prog.byte -sundialsI -maxt 10 > plot.pdf\n" 1>&2
     exit 1
 fi
 

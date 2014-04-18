@@ -157,34 +157,34 @@ tex: $(GENSOURCES)
 ### Generating a Zelus in numbers tables
 # Download ocamlwc from: http://www.lri.fr/~filliatr/software.en.html
 loc:
-	@echo "Main driver (incl. main data structures)"
+	@printf "Main driver (incl. main data structures)\n"
 	@ocamlwc -c main/compiler.ml main/main.ml main/simulator.ml \
 		global/global.ml global/graph.ml global/misc.ml \
 		global/lident.ml global/ident.ml global/initial.ml \
 		global/modules.ml global/scoping.ml global/vars.ml
-	@echo "Abstract syntax and pretty printers"
+	@printf "Abstract syntax and pretty printers\n"
 	@ocamlwc -c global/hybrid.ml global/deftypes.ml global/location.ml \
 		global/pp_tools.ml global/printer.ml global/ptypes.ml
-	@echo "Lexer \\& parser"
+	@printf "Lexer \\& parser\n"
 	@ocamlwc -c parsing/parser.mly parsing/lexer.mll
-	@echo "Typing"
+	@printf "Typing\n"
 	@ocamlwc -c typing/*.ml
-	@echo "Initialization and causality analysis"
+	@printf "Initialization and causality analysis\n"
 	@ocamlwc -c analysis/*.ml
-	@echo "Transformation of hybrid features"
+	@printf "Transformation of hybrid features\n"
 	@ocamlwc -c rewrite/ode.ml rewrite/goagain.ml rewrite/last.ml \
 	    	rewrite/period.ml
-	@echo "Transformation of automata"
+	@printf "Transformation of automata\n"
 	@ocamlwc -c rewrite/automata.ml
-	@echo "Transformation of synchronous features"
+	@printf "Transformation of synchronous features\n"
 	@ocamlwc -c rewrite/activate.ml rewrite/aform.ml rewrite/completion.ml \
 	    	rewrite/control.ml rewrite/dependences.ml rewrite/letin.ml \
 		rewrite/present.ml rewrite/reset.ml rewrite/schedule.ml \
 		rewrite/write.ml
-	@echo "Inlining and other optimizations"
+	@printf "Inlining and other optimizations\n"
 	@ocamlwc -c rewrite/copy.ml rewrite/deadcode.ml rewrite/inline.ml \
 	    	rewrite/cse.ml
-	@echo "Code generation"
+	@printf "Code generation\n"
 	@ocamlwc -c gencode/*.ml
 
 dvi: tex

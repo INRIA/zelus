@@ -36,25 +36,24 @@ depend:
 	(cd lib;      $(MAKE) -f Makefile depend)
 
 debug.txt:
-	@echo "$$DEBUG_PRELUDE" > $@
-	@echo "set arguments -I $(ZLLIB) <file-to-compile>" >> $@
-	@echo "" >> $@
+	@printf "$$DEBUG_PRELUDE\n" > $@
+	@printf "set arguments -I $(ZLLIB) <file-to-compile>\n\n" >> $@
 
 loc:
 	@(cd compiler; \
-	  echo "\\\\multirow{2}{l}{\\\\textbf{Compiler}}\\\\"; \
+	  printf "\\\\multirow{2}{l}{\\\\textbf{Compiler}}\\\\\n"; \
 	  $(MAKE) --no-print-directory -f Makefile loc; \
 	 cd ../lib; \
-	  echo "\\\\multirow{2}{l}{\\\\textbf{Runtime}}\\\\"; \
+	  printf "\\\\multirow{2}{l}{\\\\textbf{Runtime}}\\\\\n"; \
 	 $(MAKE) --no-print-directory -f Makefile loc) | \
 	 	awk 'BEGIN { last="" } /^[^ ]/ { print last; printf("    %s ", $$0) } /^ / {last = sprintf("& %s \\\\", $$1)} END {print last}'
 
 dist: all
 	if [ ! -f sundialsml/config ]; \
-	    then echo "$(S_RED)sundialsml is not configured!$(S_NORMAL)"; exit 1; fi
+	    then printf "$(S_RED)sundialsml is not configured!$(S_NORMAL)\n"; exit 1; fi
 	#
 	mkdir -p zelus-dist/
-	@echo "$(S_BLUE)## Populating toplevel directory$(S_NORMAL)"
+	@printf "$(S_BLUE)## Populating toplevel directory$(S_NORMAL)\n"
 	cp tools/Makefile.dist zelus-dist/Makefile
 	sed -e 's/for_compile=.*/for_compile=0/' configure > zelus-dist/configure
 	chmod ug+x zelus-dist/configure
@@ -62,14 +61,14 @@ dist: all
 	cp tools/readme.md.dist zelus-dist/readme.md
 	cp license.*.txt zelus-dist/
 	#
-	@echo "$(S_BLUE)## Populating lib-nosundials subdirectory$(S_NORMAL)"
+	@printf "$(S_BLUE)## Populating lib-nosundials subdirectory$(S_NORMAL)\n"
 	$(MAKE) -C lib cleanall
 	$(MAKE) -C lib SOLVER=ode23 OPTIONAL_SOLVER_OBJS=""
 	mkdir -p zelus-dist/lib-nosundials
 	cp lib/zllib.cma lib/zllibgtk.cma zelus-dist/lib-nosundials/
 	cp lib/loadsolvers.cmi zelus-dist/lib-nosundials/
 	#
-	@echo "$(S_BLUE)## Populating lib subdirectory$(S_NORMAL)"
+	@printf "$(S_BLUE)## Populating lib subdirectory$(S_NORMAL)\n"
 	$(MAKE) -C lib cleanall
 	$(MAKE) -C lib
 	mkdir -p zelus-dist/lib
@@ -78,7 +77,7 @@ dist: all
 	cp lib/*.lsi lib/*.lci zelus-dist/lib/
 	cp lib/*.cmi zelus-dist/lib/
 	#
-	@echo "$(S_BLUE)## Populating sundialsml$(S_NORMAL)"
+	@printf "$(S_BLUE)## Populating sundialsml$(S_NORMAL)\n"
 	mkdir -p zelus-dist/sundialsml
 	make -C sundialsml PKGDIR=../zelus-dist/sundialsml/ \
 	    		   STUBDIR=../zelus-dist/sundialsml/ \
@@ -93,22 +92,22 @@ dist: all
 	  			chmod ug+x zelus-dist/sundialsml/`basename $$f`; \
 	  done
 	#
-	@echo "$(S_BLUE)## Populating bin subdirectory$(S_NORMAL)"
+	@printf "$(S_BLUE)## Populating bin subdirectory$(S_NORMAL)\n"
 	mkdir -p zelus-dist/bin
 	cp bin/zeluc.in zelus-dist/bin
 	cp compiler/zeluc.byte zelus-dist/bin
 	chmod a-x zelus-dist/bin/zeluc.byte
 	#
-	@echo "$(S_BLUE)## Populating examples subdirectory$(S_NORMAL)"
+	@printf "$(S_BLUE)## Populating examples subdirectory$(S_NORMAL)\n"
 	mkdir -p zelus-dist/examples
 	cp examples/Makefile zelus-dist/examples/
 	-(cd examples; make DISTDIR=../../zelus-dist/examples export)
-	@echo "$(S_BLUE)## Making bytecode distribution$(S_NORMAL)"
+	@printf "$(S_BLUE)## Making bytecode distribution$(S_NORMAL)\n"
 	cp -r zelus-dist zelus-byte
 	rm -rf zelus-byte/sundialsml
 	mv zelus-byte/lib-nosundials/* zelus-byte/lib
 	rmdir zelus-byte/lib-nosundials
-	@echo "$(S_BLUE)## Creating packages$(S_NORMAL)"
+	@printf "$(S_BLUE)## Creating packages$(S_NORMAL)\n"
 	VERSIONSTR=`./compiler/zeluc.byte -version`; \
 	  VERSION=`expr "$${VERSIONSTR}" : '.*version \\(.*\\) (.*'`; \
 	  ARCH=`uname -s`-`uname -m`; \
@@ -120,30 +119,30 @@ dist: all
 	#
 	OCAMLVERSION=`$(OCAMLC) -version`; \
 	ARCH=`uname -s`-`uname -m`; \
-	  echo "$(S_RED)Compiled with OCaml $${OCAMLVERSION} for $${ARCH}$(S_NORMAL)"
+	  printf "$(S_RED)Compiled with OCaml $${OCAMLVERSION} for $${ARCH}$(S_NORMAL)\n"
 
 opam-dist:
 	mkdir -p opam-dist/zelus/
-	@echo "$(S_BLUE)## Populating source directory$(S_NORMAL)"
+	@printf "$(S_BLUE)## Populating source directory$(S_NORMAL)\n"
 	cp -r  compiler bin lib tools Makefile config.in configure license.*.txt opam-dist/zelus/
 	#
-	@echo "$(S_BLUE)## Creating package$(S_NORMAL)"
+	@printf "$(S_BLUE)## Creating package$(S_NORMAL)\n"
 	(cd opam-dist; tar cvzf zelus.tar.gz zelus)
 	#
-	@echo "$(S_BLUE)## Removing source files$(S_NORMAL)"
+	@printf "$(S_BLUE)## Removing source files$(S_NORMAL)\n"
 	rm -rf opam-dist/zelus
 	#
-	@echo "$(S_BLUE)## Set path for the opam repository$(S_NORMAL)"
+	@printf "$(S_BLUE)## Set path for the opam repository$(S_NORMAL)\n"
 	(cd packages/zelus.0.6; sed -i '' "s#@path@#$(shell pwd)#" url)
 
 
 opam-install:
-	@echo "bin: [\"compiler/$(BIN).$(TARGET)\" {\"zeluc\"}]" >> zelus.install ; \
-	echo "lib: [" >> zelus.install ; \
+	@printf "bin: [\"compiler/$(BIN).$(TARGET)\" {\"zeluc\"}]\n" >> zelus.install ; \
+	printf "lib: [\n" >> zelus.install ; \
 	for file in lib/*.cma lib/*.cmxa lib/*.a lib/*.cmi lib/*.lci ; do \
-	      echo "  \"$$file\"" >> zelus.install ; \
+	      printf "  \"$$file\"\n" >> zelus.install ; \
 	    done ; \
-	 echo "]" >> zelus.install ; \
+	 printf "]\n" >> zelus.install ; \
 
 # Clean up
 clean:

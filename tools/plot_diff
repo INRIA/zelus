@@ -59,7 +59,7 @@ while [ "$1" ] ; do
 	;;
 
     -* )
-	echo "${ME}: unknown option \(ignored\): $1" 2>&1
+	printf "${ME}: unknown option \(ignored\): $1\n" 2>&1
 	;;
     *)
 	if [ -z "${FILE1}" ]; then
@@ -69,7 +69,7 @@ while [ "$1" ] ; do
 	    FILE2=$1
 	    FILENAME2=${FILE2}
 	else
-	    echo "${ME}: too many filenames \(ignored\): $1" 2>&1
+	    printf "${ME}: too many filenames \(ignored\): $1\n" 2>&1
 	fi
 	;;
     esac
@@ -77,7 +77,7 @@ while [ "$1" ] ; do
 done
 
 if [ -z "${FILE1}" -o -z "${FILE2}" ]; then
-    echo "usage: ${ME} file1.dat file2.dat > plot.pdf" 1>&2
+    printf "usage: ${ME} file1.dat file2.dat > plot.pdf\n" 1>&2
     exit 1
 fi
 
@@ -89,7 +89,7 @@ DIFF=`mktemp diff.XXX`
 ${TOOLS}/diff_log ${FILE1} ${FILE2} > ${DIFF}
 
 if [ $? -ne 0 ]; then
-    echo "${ME}: an error occurred in diff_log" 1>&2
+    printf "${ME}: an error occurred in diff_log\n" 1>&2
     exit 1
 fi
 

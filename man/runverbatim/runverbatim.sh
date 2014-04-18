@@ -84,7 +84,7 @@ addopen() {
 
 	    setfilename of "$WITHOPEN" $filename
 	    if [ -n "$openfiles" ]; then
-		echo "$openfiles " > "$SUBDIR$of$EXT"
+		printf "$openfiles \n" > "$SUBDIR$of$EXT"
 		cat $SUBDIR$f$EXT >> "$SUBDIR$of$EXT"
 	    else
 		cat $SUBDIR$f$EXT > "$SUBDIR$of$EXT"
@@ -109,9 +109,9 @@ compile() {
     setfilename ofile "$PREFIX" $num
 
     if [ -f "$SUBDIR$file$EXT" ]; then
-	echo "> $ofile$EXT..."
+	printf "> $ofile$EXT...\n"
     else
-	echo "> $ofile$EXT: not found."
+	printf "> $ofile$EXT: not found.\n"
 	return 1
     fi
 
@@ -127,41 +127,41 @@ compile() {
 	$LASTFLAGS $SUBDIR$file$EXT >$OUTFILE 2>$ERRFILE
     COMPILERSTATUS=$?
 
-    echo "% $COMPILER $COMPILERFLAGS $openfiles \
-	$LASTFLAGS $SUBDIR$file$EXT ($COMPILERSTATUS)" > $outf
+    printf "% $COMPILER $COMPILERFLAGS $openfiles \
+	$LASTFLAGS $SUBDIR$file$EXT ($COMPILERSTATUS)\n" > $outf
     if [ $COMPILERSTATUS -eq 0 ]; then
-	echo '\\runverbatimtrue'   >> $outf
+	printf '\\runverbatimtrue\n'   >> $outf
 	if [ $shouldfail -eq 1 ]; then
-	    echo "  unexpected success (line $linenum / page $pagenum)!" >&2
+	    printf "  unexpected success (line $linenum / page $pagenum)!\n" >&2
 	fi
     else
-	echo '\\runverbatimfalse'  >> $outf
+	printf '\\runverbatimfalse\n'  >> $outf
 	if [ $shouldfail -eq 0 ]; then
-	    echo "  unexpected failure (line $linenum / page $pagenum)!" >&2
+	    printf "  unexpected failure (line $linenum / page $pagenum)!\n" >&2
 	    while read line
 	    do
-	      echo "  | $line"
+	      printf "  | $line\n"
 	    done < $ERRFILE >&2
 	fi
     fi
 
-    echo "\\\\setrunverbatimcmd{${COMPILERNAME} ${LASTFLAGS} \\\\runverbatimfile}" >> $outf
+    printf "\\\\setrunverbatimcmd{${COMPILERNAME} ${LASTFLAGS} \\\\runverbatimfile}\n" >> $outf
 
-    echo '\\begin{RunVerbatimMsg}' >> $outf
+    printf '\\begin{RunVerbatimMsg}\n' >> $outf
     if [ `wc -l < $OUTFILE` -eq 0 ]; then
-	echo "Failed."		  >> $outf
+	printf "Failed.\n"		  >> $outf
     else
 	sed -e "s#$SUBDIR$file#$PREFIX#g" $OUTFILE >> $outf
     fi
-    echo '\\end{RunVerbatimMsg}'   >> $outf
+    printf '\\end{RunVerbatimMsg}\n'   >> $outf
 
-    echo '\\begin{RunVerbatimErr}' >> $outf
+    printf '\\begin{RunVerbatimErr}\n' >> $outf
     if [ `wc -l < $ERRFILE` -eq 0 ]; then
-	echo "Success."		  >> $outf
+	printf "Success.\n"		  >> $outf
     else
 	sed -e "s#$SUBDIR$file#$PREFIX#g" $ERRFILE >> $outf
     fi
-    echo '\\end{RunVerbatimErr}'   >> $outf
+    printf '\\end{RunVerbatimErr}\n'   >> $outf
 
     return 0
 }
@@ -221,7 +221,7 @@ for infile in ${INFILES}; do
 			if [ "$n" -eq "$n" ] 2>/dev/null; then
 			    opennums="$opennums $n"
 			else
-			    echo "warning: $filenum: ignoring unresolved include '$n'" >&2
+			    printf "warning: $filenum: ignoring unresolved include '$n'\n" >&2
 			fi
 			;;
 		    esac
@@ -231,7 +231,7 @@ for infile in ${INFILES}; do
 		compile $filenum "$opennums"
 		;;
 	    *)
-		echo "bad $infile: $l" >&2
+		printf "bad $infile: $l\n" >&2
 		;;
 	esac
 	pagenum='?'

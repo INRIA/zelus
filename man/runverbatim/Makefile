@@ -5,7 +5,7 @@ runverbatim.pdf: runverbatim.dtx runverbatim.ind runverbatim.sty runverbatim.rvr
 	./runverbatim.sh
 	pdflatex $<
 	pdflatex $<
-	@echo; echo
+	@printf "\n\n"
 	-@rubber-info $<
 
 runverbatim.ind: runverbatim.idx

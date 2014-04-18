@@ -10,26 +10,25 @@ bad-quiet: $(ALL:.zls=.log)
 
 summary:
 	@OK=`ls | grep '\.ok$$' | wc -l`;		\
-	echo "$(S_BLUE)valid rejects: $$OK / $(NTESTS)"	\
-	  "(`expr $$OK \\* 100 / $(NTESTS)`%)$(S_NORMAL)"
+	printf "$(S_BLUE)valid rejects: $$OK / $(NTESTS) (`expr $$OK \\* 100 / $(NTESTS)`%%)$(S_NORMAL)\n"
 
 show: $(ALL:.zls=)
 
 showtests:
-	@for f in $(ALL); do				\
-	    echo "-----$(HALFLINE)$(HALFLINE)-bad/$$f";	\
-	    cat $$f;					\
-	    echo;					\
+	@for f in $(ALL); do					\
+	    printf -- "-----$(HALFLINE)$(HALFLINE)-bad/$$f\n";	\
+	    cat $$f;						\
+	    printf "\n";					\
 	done
 
 help:
-	-@echo "make                    run all tests"
-	-@echo "make t0001 t0004        run tests 1 and 4"
-	-@echo "make t0001 VERBOSE=1    run test 1 and show more detail"
-	-@echo "make ADDFLAGS=-noinit t0004.debug"
-	-@echo "                        additional flags for zeluc"
-	-@echo "make NOCOLOR=1          run tests without ANSI color commands"
-	-@echo "make showtests		show the contents of all tests"
+	-@printf "make                    run all tests\n"
+	-@printf "make t0001 t0004        run tests 1 and 4\n"
+	-@printf "make t0001 VERBOSE=1    run test 1 and show more detail\n"
+	-@printf "make ADDFLAGS=-noinit t0004.debug\n"
+	-@printf "                        additional flags for zeluc\n"
+	-@printf "make NOCOLOR=1          run tests without ANSI color commands\n"
+	-@printf "make showtests		show the contents of all tests\n"
 
 clean:
 	@-rm -f t*.zci t*.ml t*.obc t*_main.ml
@@ -46,26 +45,21 @@ FORCE:
 %.log: %.zls FORCE
 	-@$(ZELUC) $(ZELUCFLAGS) $(ADDFLAGS) $< 2> $@;			 \
 	if [ $$? -eq 0 ]; then						 \
-	    echo "--bad /$(<:.zls=): $(S_RED)ERROR$(S_NORMAL)"		 \
-		 "(see $(<:.zls=.log))";					 \
+	    printf -- "--bad /$(<:.zls=): $(S_RED)ERROR$(S_NORMAL) (see $(<:.zls=.log))\n";				 \
 	    sed -ne '/(\*/d;/\*)/q;p' $<;				 \
 	    rm -f "$(<:.zls=.ok)";					 \
-	    echo;							 \
+	    printf "\n";						 \
 	elif `grep -q '^Uncaught exception:' $@`; then			 \
-	    echo "--bad /$(<:.zls=): $(S_RED)ERROR$(S_NORMAL)"		 \
-	    	 "(Uncaught exception, see $(<:.zls=.log))";		 \
+	    printf -- "--bad /$(<:.zls=): $(S_RED)ERROR$(S_NORMAL) (Uncaught exception, see $(<:.zls=.log))\n";	 \
 	    rm -f "$(<:.zls=.ok)";					 \
 	elif `grep -q '^Fatal error: exception Assert_failure' $@`; then \
-	    echo "--bad /$(<:.zls=): $(S_RED)ERROR$(S_NORMAL)"		 \
-	    	 "(Assertion failure, see $(<:.zls=.log))";		 \
+	    printf -- "--bad /$(<:.zls=): $(S_RED)ERROR$(S_NORMAL) (Assertion failure, see $(<:.zls=.log))\n"; \
 	    rm -f "$(<:.zls=.ok)";					 \
 	elif `grep -q '^Syntax error.' $@`; then			 \
-	    echo "--bad /$(<:.zls=): $(S_RED)ERROR$(S_NORMAL)"		 \
-	    	 "(Syntax error, see $(<:.zls=.log))";			 \
+	    printf -- "--bad /$(<:.zls=): $(S_RED)ERROR$(S_NORMAL) (Syntax error, see $(<:.zls=.log))\n"; \
 	    rm -f "$(<:.zls=.ok)";					 \
 	else								 \
-	    echo "--bad /$(<:.zls=):"					 \
-		 "$(S_GREEN)correctly rejected$(S_NORMAL)";		 \
+	    printf -- "--bad /$(<:.zls=): $(S_GREEN)correctly rejected$(S_NORMAL)\n"; \
 	    touch "$(<:.zls=.ok)";					 \
 	fi
 ifdef VERBOSE

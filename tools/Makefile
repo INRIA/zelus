@@ -12,7 +12,7 @@ diff_log: diff_log.ml
 
 clean:
 	rm -f *.annot *.cm[iox] *.o
-	rm -f zltohtml.ml
+	rm -f zltohtml.ml zltohtml
 
 cleanall: clean
 	rm -f zltohtml diff_log
