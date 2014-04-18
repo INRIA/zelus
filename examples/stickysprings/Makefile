@@ -12,13 +12,13 @@ opt:  stickysprings.opt stickysprings3d.opt
 ifeq ($(GLMLITE_ENABLED), 1)
 
 stickysprings3d.byte: INCLUDES += -I +lablgtk2 $(SUNDIALS) $(GLMLITE)
-stickysprings3d.byte: ZLEXTRALIBS += GL.cma GLE.cma Glu.cma Glut.cma
+stickysprings3d.byte: ZLEXTRALIBS += GL.cma Glu.cma Glut.cma GLE.cma
 stickysprings3d.byte: world.cmo stickysprings.ml stickysprings3d.ml stickysprings3d_main.ml
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
 	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $^
 
 stickysprings3d.opt: INCLUDES += -I +lablgtk2 $(SUNDIALS) $(GLMLITE)
-stickysprings3d.opt: ZLEXTRALIBS += GL.cmxa GLE.cmxa Glu.cmxa Glut.cmxa
+stickysprings3d.opt: ZLEXTRALIBS += GL.cmxa Glu.cmxa Glut.cmxa GLE.cmxa
 stickysprings3d.opt: world.cmx stickysprings.ml stickysprings3d.ml stickysprings3d_main.ml
 	$(OCAMLOPT) $(OCAMLFLAGS) -o $@ $(INCLUDES) -I $(ZLLIB) \
 	    $(ZLSTDLIBS:%.cma=%.cmxa) $(ZLEXTRALIBS:%.cma=%.cmxa) $^
@@ -39,7 +39,7 @@ world.zci: world.zli
 
 testworld: world.cmi world.cmo testworld.ml
 	$(OCAMLC) -o $@ unix.cma bigarray.cma \
-	    -I $(GLMLITE) GL.cma GLE.cma Glu.cma Glut.cma \
+	    -I $(GLMLITE) GL.cma Glu.cma Glut.cma GLE.cma \
 	    world.cmo testworld.ml
 
 else
