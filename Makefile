@@ -74,7 +74,7 @@ dist: all
 	mkdir -p zelus-dist/lib
 	cp lib/zllib.cma lib/zllibgtk.cma zelus-dist/lib/
 	#cp lib/zllib.cmxa lib/zllibgtk.cmxa zelus-dist/lib/
-	cp lib/*.lsi lib/*.lci zelus-dist/lib/
+	cp lib/*.zli lib/*.zci zelus-dist/lib/
 	cp lib/*.cmi zelus-dist/lib/
 	#
 	@printf "$(S_BLUE)## Populating sundialsml$(S_NORMAL)\n"
@@ -139,7 +139,7 @@ opam-dist:
 opam-install:
 	@printf "bin: [\"compiler/$(BIN).$(TARGET)\" {\"zeluc\"}]\n" >> zelus.install ; \
 	printf "lib: [\n" >> zelus.install ; \
-	for file in lib/*.cma lib/*.cmxa lib/*.a lib/*.cmi lib/*.lci ; do \
+	for file in lib/*.cma lib/*.cmxa lib/*.a lib/*.cmi lib/*.zci ; do \
 	      printf "  \"$$file\"\n" >> zelus.install ; \
 	    done ; \
 	 printf "]\n" >> zelus.install ; \
