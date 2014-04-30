@@ -86,9 +86,9 @@ dump.ml: dump.zls basics.zci
 loadsolvers.ml:
 	@printf "(* initialize solvers *)\n" > $@
 	@for s in $(notdir $(SOLVER_OBJS:.cmo=)); do		\
-	    printf "let m = String.capitalize \"$$s\""            \
-	    	 "in Printf.eprintf \"module %s = %s\n\" m m;;\n" \
-		 | $(OCAML) 1>/dev/null 2>>$@; 			\
+	    printf "let m = String.capitalize \"$$s\" %s"            \
+	    	   "in Printf.eprintf \"module %s = %s\n\" m m;;\n" \
+		 | tee test | $(OCAML) 1>/dev/null 2>>$@; 			\
 	done
 	@printf "let () = Zlsolve.set_default_solver \"$(SOLVER)\";;\n" >> $@
 
