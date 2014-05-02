@@ -70,7 +70,7 @@ let hybrid clockwatch (h0, th0, thl0, theta, r) = (h, t, tl) where
           until tic() | toc() then Stop(tl)
       | Stop(tli) ->
           do tl = tli
-          until up (sin (t -. tl)) then Move(tl)
+          until up (sin (t -. pi)) then Move(tl)
   init Stop(thl0)
 
 
