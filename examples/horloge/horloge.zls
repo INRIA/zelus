@@ -1,0 +1,102 @@
+open Draw
+
+(******************* Pendulum Clock **********************)
+
+let g = 9.81
+let pi = 3.1415
+
+(* Pendulum parameters *)
+let l = 1.5
+let theta0 = 0.7
+
+(* Atwood parameters *)
+let m1 = 11.
+let m2 = 10.
+let h0 = 2.
+
+(* escapement parameters *)
+let thetac = 0.5
+
+let hybrid pendulum theta0 = theta where
+  rec der thetap =  -. (g /. l) *. sin (theta) init 0.0
+  and der theta = thetap init theta0
+
+let hybrid atwood h0 = h where
+  rec der v = g *. (m2 -. m1) /. (m2 +. m1) init 0.0
+  and der h = v init h0
+
+let hybrid hand ti = t where
+  rec der t'= (-. g *. (m2 -. m1) /. (m2 +. m1)) *. 2. init 0.0
+  and der t = t' init ti
+
+let hybrid set hi = h where
+  rec der h' = 0.5 init hi
+  and h = min(h0, h')
+
+let hybrid escapement theta = (tic, rtic, toc, rtoc) where
+  rec present
+        | up (-. theta -. thetac) -> do emit tic = () done
+        | up (theta +. thetac) -> do emit rtic = () done
+        | up (theta -. thetac) -> do emit toc = () done
+        | up (-. theta +. thetac) -> do emit rtoc = () done
+
+let hybrid clockwatch (h0, th0, thl0, theta, r) = (h, t, tl) where
+  rec (tic, rtic, toc, rtoc) = escapement theta
+  and automaton
+      | Move(hi, ti) ->
+          do h = atwood hi
+          and t = hand ti
+          until tic() | toc() then Stop(h,t)
+          else up (-. h) then Exhausted(t)
+          else r() then Setting(h,t)
+      | Stop(hi, ti) ->
+          do h = hi
+          and t = ti
+          until rtic() | rtoc() then Move(h,t)
+          else r() then Setting (h,t)
+      | Exhausted(ti) ->
+          do h = 0.
+          and t = ti
+          until r() then Setting(h,t)
+      | Setting (hi, ti) ->
+          do h = set hi
+          and t = ti
+          until r() then Stop (h,t)
+  init Move(h0, th0)
+
+  and automaton
+      | Move(tli) ->
+          do tl = hand tli
+          until tic() | toc() then Stop(tl)
+      | Stop(tli) ->
+          do tl = tli
+          until up (sin (t +. pi)) then Move(tl)
+  init Stop(thl0)
+
+
+(********** Simulation ************)
+
+let hybrid keyboard () = go where
+  rec init ok = false
+  and s = period (0.04)
+  and present s -> do ok = input () done
+  and present s on ok -> do emit go = () done
+
+let hybrid main () =
+  let ok = period (0.04) in
+  let theta = pendulum theta0 in
+  let r = keyboard () in
+  let (h, th, thl) = clockwatch (h0, 5. *.pi /. 2., pi, theta,r) in
+
+  let twb = -. th /. 3. in
+  let twl = th *. (120. /. 20.) /. 3.  in
+
+  present ok ->
+    draw_system
+      (l, thetac, theta,
+       h0, h,
+       th,
+       thl,
+       twb,
+       twl);
+    ()
