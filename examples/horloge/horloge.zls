@@ -70,7 +70,7 @@ let hybrid clockwatch (h0, th0, thl0, theta, r) = (h, t, tl) where
           until tic() | toc() then Stop(tl)
       | Stop(tli) ->
           do tl = tli
-          until up (sin (t +. pi)) then Move(tl)
+          until up (sin (t -. tl)) then Move(tl)
   init Stop(thl0)
 
 
@@ -85,12 +85,14 @@ let hybrid keyboard () = go where
 let hybrid main () =
   let ok = period (0.04) in
   let theta = pendulum theta0 in
+  let (tic, _, toc, _) = escapement theta in
   let r = keyboard () in
   let (h, th, thl) = clockwatch (h0, 5. *.pi /. 2., pi, theta,r) in
 
   let twb = th /. 3. in
   let twl = -.th *. (120. /. 20.) /. 3.  in
 
-  present ok ->
-    draw_system (l, thetac, theta, h0, h, th, thl, twb, twl);
+  present ok -> draw_system (l, thetac, theta, h0, h, th, thl, twb, twl)
+        | tic() -> play_tic ()
+        | toc() -> play_toc ();
     ()

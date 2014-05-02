@@ -110,11 +110,9 @@ let draw_big_wheel theta =
   done
 
 let draw_mechanism () =
-  (* Draw weights wheel *)
-  set_color red;
-  fill_circle (int_of_float (x0+.150.)) (int_of_float (y0 -. 35.)) 20;
-
   (* Draw watch *)
+  set_color white;
+  fill_circle (int_of_float (x0+.150.)) (int_of_float (y0 -. 35.)) 70;
   set_color black;
   draw_circle (int_of_float (x0+.150.)) (int_of_float (y0 -. 35.)) 70;
   moveto (int_of_float (x0+.150. +. 68.)) (int_of_float (y0 -. 35.));
@@ -124,11 +122,11 @@ let draw_mechanism () =
   moveto (int_of_float (x0+.150.)) (int_of_float (y0 -. 35. +. 68.));
   lineto (int_of_float (x0+.150.)) (int_of_float (y0 -. 35. +. 72.));
   moveto (int_of_float (x0+.150.)) (int_of_float (y0 -. 35. -. 68.));
-  lineto (int_of_float (x0+.150.)) (int_of_float (y0 -. 35. -. 72.))
+  lineto (int_of_float (x0+.150.)) (int_of_float (y0 -. 35. -. 72.));
 
-
-
-
+  (* Draw weights wheel *)
+  set_color red;
+  fill_circle (int_of_float (x0+.150.)) (int_of_float (y0 -. 35.)) 20
 
 
 let draw_system l tc t h0 h th thl twb twl =
@@ -143,6 +141,14 @@ let draw_system l tc t h0 h th thl twb twl =
   synchronize ()
 
 let event = ref false
+
+
+let play_tic () =
+  sound 440 100
+
+let play_toc () =
+  sound 500 100
+
 
 let input () =
   if key_pressed() then begin
