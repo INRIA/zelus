@@ -1,0 +1,42 @@
+let l = 330e-6
+let c =3.3e-6
+let vz = 56e0
+
+let hybrid lzc () = (u,v,w,j) where
+  rec der j = u /. l init 25e0
+  and der v = j /. c init 0e0
+  and  u = -. v -. w
+
+  and w = -. w1
+  and  j1 = j +. j2
+  and w2 = w +. vz
+
+  and z1 = up(j)
+  and z2 = up(-.j)
+
+  and automaton
+      | Init -> do
+	  w1 = 0.0 
+          and  j2 = 0.0
+          unless z1 then W1
+      | W1 -> do
+	  w1 = 56.0 
+          and j2 = 100.0 
+          unless z2 then W2
+      | W2 -> do
+	  w1 = 0.0 
+          and  j2 = 0.0
+          unless z1 then W1
+  
+open Scope
+
+let node plot (t, u, v, w, j) =
+  let s1 = scope2 (-250.0, 250.0, ("u", linear, u), ("w", linear, w)) in
+  let s2 = scope (-250.0, 250.0, ("v", linear, v)) in
+  let s3 = scope (-20.0,25.0, ("j", linear, j)) in
+  window3 ("lzc", 500e-6, t, s1,s2,s3)
+
+let hybrid main () = () where
+  rec (u,v,w,j) = lzc ()
+  and der t = 1.0 init 0.0 
+  and _ = present (period(1e-6)) -> plot(t,u,v,w,j)
