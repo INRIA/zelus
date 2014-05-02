@@ -40,7 +40,7 @@ let hybrid escapement theta = (tic, rtic, toc, rtoc) where
         | up (theta -. thetac) -> do emit toc = () done
         | up (-. theta +. thetac) -> do emit rtoc = () done
 
-let hybrid clockwatch (h0, th0, thl0, theta, r) = (h, t, tl, active) where
+let hybrid clockwatch (h0, th0, thl0, theta, r) = (h, t, active) where
   rec (tic, rtic, toc, rtoc) = escapement theta
   and automaton
       | Move(hi, ti) ->
@@ -67,15 +67,6 @@ let hybrid clockwatch (h0, th0, thl0, theta, r) = (h, t, tl, active) where
           and active = false
           until r() then Stop (h,t)
   init Move(h0, th0)
-
-  and automaton
-      | Move(tli) ->
-          do tl = hand tli
-          until tic() | toc() then Stop(tl)
-      | Stop(tli) ->
-          do tl = tli
-          until up (sin (t -. pi)) then Move(tl)
-  init Stop(thl0)
 
 
 let node digitalwatch (hi,mi,si) = (h,m,s) where
@@ -104,7 +95,8 @@ let hybrid main () =
   let theta = pendulum theta0 in
   let (tic, _, toc, _) = escapement theta in
   let r = keyboard () in
-  let (h, th, thl, active) = clockwatch (h0, 5. *.pi /. 2., pi, theta,r) in
+  let (h, th, active) = clockwatch (h0, 5. *.pi /. 2., pi, theta,r) in
+  let thl = th /. 10. in
 
   let twb = th /. 3. in
   let twl = -.th *. (120. /. 20.) /. 3.  in
