@@ -50,7 +50,7 @@ let draw_pendulum l thetac theta =
 
 let draw_weights h0 h =
   (* Draw main weight *)
-  let x = x0 +. 150. -. 18.  in
+  let x = x0 +. 150. +. 18.  in
   let y = y0 -. 35. in
 
   set_color red;
@@ -59,7 +59,7 @@ let draw_weights h0 h =
   fill_rect (int_of_float (x -. 5.)) (int_of_float (100. *. h)) 10 20;
 
   (* Draw secondary weigh *)
-  let x = x0 +. 150. +. 18.  in
+  let x = x0 +. 150. -. 18.  in
   let y = y0 -. 35. in
   moveto (int_of_float x) (int_of_float y);
   lineto (int_of_float x) (int_of_float (100. *. (h0 -. h)));
@@ -116,7 +116,19 @@ let draw_mechanism () =
 
   (* Draw watch *)
   set_color black;
-  draw_circle (int_of_float (x0+.150.)) (int_of_float (y0 -. 35.)) 70
+  draw_circle (int_of_float (x0+.150.)) (int_of_float (y0 -. 35.)) 70;
+  moveto (int_of_float (x0+.150. +. 68.)) (int_of_float (y0 -. 35.));
+  lineto (int_of_float (x0+.150. +. 72.)) (int_of_float (y0 -. 35.));
+  moveto (int_of_float (x0+.150. -. 68.)) (int_of_float (y0 -. 35.));
+  lineto (int_of_float (x0+.150. -. 72.)) (int_of_float (y0 -. 35.));
+  moveto (int_of_float (x0+.150.)) (int_of_float (y0 -. 35. +. 68.));
+  lineto (int_of_float (x0+.150.)) (int_of_float (y0 -. 35. +. 72.));
+  moveto (int_of_float (x0+.150.)) (int_of_float (y0 -. 35. -. 68.));
+  lineto (int_of_float (x0+.150.)) (int_of_float (y0 -. 35. -. 72.))
+
+
+
+
 
 
 let draw_system l tc t h0 h th thl twb twl =

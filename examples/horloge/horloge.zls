@@ -88,15 +88,9 @@ let hybrid main () =
   let r = keyboard () in
   let (h, th, thl) = clockwatch (h0, 5. *.pi /. 2., pi, theta,r) in
 
-  let twb = -. th /. 3. in
-  let twl = th *. (120. /. 20.) /. 3.  in
+  let twb = th /. 3. in
+  let twl = -.th *. (120. /. 20.) /. 3.  in
 
   present ok ->
-    draw_system
-      (l, thetac, theta,
-       h0, h,
-       th,
-       thl,
-       twb,
-       twl);
+    draw_system (l, thetac, theta, h0, h, th, thl, twb, twl);
     ()
