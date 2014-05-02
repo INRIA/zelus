@@ -5,7 +5,7 @@ let pi = 3.1415
 let start =
   open_graph ""; auto_synchronize false; set_line_width 2
 
-let x0 = 150.
+let x0 = 175.
 let y0 = 300.
 
 let draw_pendulum l thetac theta =
@@ -129,7 +129,15 @@ let draw_mechanism () =
   fill_circle (int_of_float (x0+.150.)) (int_of_float (y0 -. 35.)) 20
 
 
-let draw_system l tc t h0 h th thl twb twl =
+let draw_digital h m s =
+  set_color black;
+  set_text_size 50;
+  moveto (int_of_float (x0 +. 125.)) (int_of_float (y0 +. 50.));
+  draw_string ((string_of_int h)^" : "^(string_of_int m)^" : "^(string_of_int s))
+
+
+
+let draw_system l tc t h0 h th thl twb twl hh mm ss =
   clear_graph ();
   draw_big_wheel twb;
   draw_little_wheel twl;
@@ -138,6 +146,7 @@ let draw_system l tc t h0 h th thl twb twl =
   draw_weights h0 h;
   draw_hand th;
   draw_little_hand thl;
+  draw_digital hh mm ss;
   synchronize ()
 
 let event = ref false
