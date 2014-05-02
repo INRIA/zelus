@@ -7,7 +7,7 @@ let pi = 3.1415
 
 (* Pendulum parameters *)
 let l = 1.5
-let theta0 = 0.7
+let theta0 = 0.5
 
 (* Atwood parameters *)
 let m1 = 11.
@@ -15,7 +15,7 @@ let m2 = 10.
 let h0 = 2.
 
 (* escapement parameters *)
-let thetac = 0.5
+let thetac = 0.4
 
 let hybrid pendulum theta0 = theta where
   rec der thetap =  -. (g /. l) *. sin (theta) init 0.0
@@ -40,7 +40,7 @@ let hybrid escapement theta = (tic, rtic, toc, rtoc) where
         | up (theta -. thetac) -> do emit toc = () done
         | up (-. theta +. thetac) -> do emit rtoc = () done
 
-let hybrid clockwatch (h0, th0, thl0, theta, r) = (h, t, active) where
+let hybrid clockwatch (h0, th0, theta, r) = (h, t, active) where
   rec (tic, rtic, toc, rtoc) = escapement theta
   and automaton
       | Move(hi, ti) ->
@@ -95,8 +95,8 @@ let hybrid main () =
   let theta = pendulum theta0 in
   let (tic, _, toc, _) = escapement theta in
   let r = keyboard () in
-  let (h, th, active) = clockwatch (h0, 5. *.pi /. 2., pi, theta,r) in
-  let thl = th /. 10. in
+  let (h, th, active) = clockwatch (h0, 0.0, theta,r) in
+  let thl = th /. 60. in
 
   let twb = th /. 3. in
   let twl = -.th *. (120. /. 20.) /. 3.  in

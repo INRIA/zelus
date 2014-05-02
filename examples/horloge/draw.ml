@@ -66,8 +66,8 @@ let draw_weights h0 h =
   fill_rect (int_of_float (x -. 5.)) (int_of_float (100. *. (h0 -. h))) 10 20
 
 let draw_hand theta =
-  let x = x0 +. 150. -. 65. *. (sin theta) in
-  let y = (y0 -. 35.) -. 65. *. (cos theta) in
+  let x = x0 +. 150. -. 65. *. (sin (theta +. pi)) in
+  let y = (y0 -. 35.) -. 65. *. (cos (theta +. pi)) in
 
   set_color black;
   fill_circle (int_of_float (x0 +. 150.)) (int_of_float (y0 -. 35.)) 5;
@@ -76,8 +76,8 @@ let draw_hand theta =
 
 
 let draw_little_hand theta =
-  let x = x0 +. 150. -. 35. *. (sin theta) in
-  let y = (y0 -. 35.) -. 35. *. (cos theta) in
+  let x = x0 +. 150. -. 35. *. (sin (theta +. pi)) in
+  let y = (y0 -. 35.) -. 35. *. (cos (theta +. pi)) in
 
   set_color black;
   moveto (int_of_float (x0 +. 150.)) (int_of_float (y0 -. 35.));
