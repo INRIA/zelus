@@ -11,9 +11,7 @@ let pi = 3.1415
 let l = 1.5
 let theta0 = 1.
 
-(* Atwood parameters *)
-let m1 = 11.
-let m2 = 10.
+(* Spring parameters *)
 let h0 = 2.
 
 (* escapement parameters *)
@@ -23,12 +21,13 @@ let hybrid pendulum theta0 = theta where
   rec der thetap =  -. k1 *. theta init 0.0
   and der theta = thetap init theta0
 
-let hybrid spring h0 = (h, v) where
+let hybrid spring h0 = h where
   rec der v = -. k2 *. h init 0.0
   and der h = v init h0
 
-let hybrid hand (ti, v) = t where
-  rec der t = -. v init ti
+let hybrid hand ti = t where
+  rec der t' = 1.0 init 0.0
+  and der t = t' init ti
 
 let hybrid set hi = h where
   rec der h' = 0.5 init hi
@@ -45,11 +44,11 @@ let hybrid clockwatch (h0, t0, theta, r) = (h, t, active) where
   rec (tic, rtic, toc, rtoc) = escapement theta
   and automaton
       | Move(hi, ti) ->
-          do (h,v) = spring hi
-          and t = hand (ti,v)
+          do h = spring hi
+          and t = hand ti
           and active = true
           until tic() | toc() then Stop(h,t)
-          else up (-. h) then Exhausted(t)
+          else up (0.1 *. h0 -. h) then Exhausted(t)
           else r() then Setting(h,t)
       | Stop(hi, ti) ->
           do h = hi
@@ -58,7 +57,7 @@ let hybrid clockwatch (h0, t0, theta, r) = (h, t, active) where
           until rtic() | rtoc() then Move(h,t)
           else r() then Setting (h,t)
       | Exhausted(ti) ->
-          do h = 0.
+          do h = 0.1 *. h0
           and t = ti
           and active = false
           until r() then Setting(h,t)
@@ -67,7 +66,7 @@ let hybrid clockwatch (h0, t0, theta, r) = (h, t, active) where
           and t = ti
           and active = false
           until r() then Stop (h,t)
-  init Move(h0, t0)
+  init Stop(h0, t0)
 
 
 let node digitalwatch (hi,mi,si) = (h,m,s) where
@@ -97,7 +96,7 @@ let hybrid main () =
   let (tic, _, toc, _) = escapement theta in
   let r = keyboard () in
   let (h, t, active) = clockwatch (h0, 0.0, theta,r) in
-  let thb = t *. 2.  in
+  let thb = t *. 3.  in
   let thl = thb /. 60. in
 
   let twb = t *. 2. in
