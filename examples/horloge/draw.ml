@@ -88,7 +88,7 @@ let draw_little_wheel theta =
   fill_circle (int_of_float x0) (int_of_float (y0 -. 40.)) 20;
   let n = 10 in
   for i = 1 to n do
-    let t = theta +. (float i) *. 2. *. pi /. (float n) +. 1.6 in
+    let t = theta +. 0.4 +. (float i) *. 2. *. pi /. (float n) in
     let x = x0 -. 25. *. (sin t) in
     let y = (y0 -. 40.) -. 25. *. (cos t) in
 

@@ -40,7 +40,7 @@ let hybrid escapement theta = (tic, rtic, toc, rtoc) where
         | up (theta -. thetac) -> do emit toc = () done
         | up (-. theta +. thetac) -> do emit rtoc = () done
 
-let hybrid clockwatch (h0, th0, theta, r) = (h, t, active) where
+let hybrid clockwatch (h0, t0, theta, r) = (h, t, active) where
   rec (tic, rtic, toc, rtoc) = escapement theta
   and automaton
       | Move(hi, ti) ->
@@ -66,7 +66,7 @@ let hybrid clockwatch (h0, th0, theta, r) = (h, t, active) where
           and t = ti
           and active = false
           until r() then Stop (h,t)
-  init Move(h0, th0)
+  init Move(h0, t0)
 
 
 let node digitalwatch (hi,mi,si) = (h,m,s) where
@@ -95,15 +95,16 @@ let hybrid main () =
   let theta = pendulum theta0 in
   let (tic, _, toc, _) = escapement theta in
   let r = keyboard () in
-  let (h, th, active) = clockwatch (h0, 0.0, theta,r) in
-  let thl = th /. 60. in
+  let (h, t, active) = clockwatch (h0, 0.0, theta,r) in
+  let thb = t *. (24. /. 60.) in
+  let thl = thb /. 60. in
 
-  let twb = th /. 3. in
-  let twl = -.th *. (120. /. 20.) /. 3.  in
+  let twb = t /. 3. in
+  let twl = -.t *. (120. /. 20.) /. 3.  in
 
-  let (hh,mm,ss) = sampled_digitalwatch(tic, toc, active, 0, 0, 0) in
+  let (hh,mm,ss) = sampled_digitalwatch(tic, toc, active, 0, 0, 1) in
 
-  present ok -> draw_system (l, thetac, theta, h0, h, th, thl, twb, twl, hh, mm, ss)
+  present ok -> draw_system (l, thetac, theta, h0, h, thb, thl, twb, twl, hh, mm, ss)
         | tic() on active -> play_tic ()
         | toc() on active  -> play_toc ();
     ()
