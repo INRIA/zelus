@@ -42,30 +42,27 @@ let hybrid escapement theta = (tic, rtic, toc, rtoc) where
 
 let hybrid clockwatch (h0, t0, theta, r) = (h, t, active) where
   rec (tic, rtic, toc, rtoc) = escapement theta
+  and init active = true
+  and init t = t0
+  and init h = h0
   and automaton
       | Move(hi, ti) ->
           do h = spring hi
           and t = hand ti
-          and active = true
           until tic() | toc() then Stop(h,t)
           else up (0.1 *. h0 -. h) then Exhausted(t)
           else r() then Setting(h,t)
       | Stop(hi, ti) ->
-          do h = hi
-          and t = ti
-          and active = true
-          until rtic() | rtoc() then Move(h,t)
-          else r() then Setting (h,t)
+          do active = true
+          until rtic() | rtoc() then Move(hi,ti)
+          else r() then Setting (hi,ti)
       | Exhausted(ti) ->
-          do h = 0.1 *. h0
-          and t = ti
-          and active = false
-          until r() then Setting(h,t)
+          do active = false
+          until r() then Setting(h,ti)
       | Setting (hi, ti) ->
           do h = set hi
-          and t = ti
           and active = false
-          until r() then Stop (h,t)
+          until r() then Stop (h,ti)
   init Stop(h0, t0)
 
 

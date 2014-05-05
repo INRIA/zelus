@@ -55,10 +55,10 @@ let draw_balance thetac theta =
   lineto (int_of_float xt2) (int_of_float yt2);
 
   (* Draw escapement *)
-  let te1 = t +. 2. *. thetac in
+  let te1 = t +. 0.8 in
   let xe1 = x0 +. 20. *. (sin te1) in
   let ye1 = y0 -. 20. *. (cos te1 ) in
-  let te1' = t +. thetac in
+  let te1' = t +. 0.4 in
   let xe1' = x0 +. 20. *. (sin te1') in
   let ye1' = y0 -. 20. *. (cos te1') in
 
@@ -66,10 +66,10 @@ let draw_balance thetac theta =
   lineto (int_of_float xe1) (int_of_float ye1);
   lineto (int_of_float xe1') (int_of_float ye1');
 
-  let te2 = t -. 2. *. thetac in
+  let te2 = t -. 0.8 in
   let xe2 = x0 +. 20. *. (sin te2) in
   let ye2 = y0 -. 20. *. (cos te2) in
-  let te2' = t -. thetac in
+  let te2' = t -. 0.4 in
   let xe2' = x0 +. 20. *. (sin te2') in
   let ye2' = y0 -. 20. *. (cos te2') in
 
