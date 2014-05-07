@@ -10,34 +10,37 @@ let hybrid calc (iy, x0,y0) = (x,ix) where
 *)
 
 let s = 400.
-let kp = 0.1
-let ki = 0.04
+let kp = 0.4
+let ki = 0.01
+let q = 0.1
 
 let hybrid calcx (newy, x0, y0) = x, newx where
   rec der x = fy init x0
   and init fx = x0
   and fy = present newy(y) -> y init y0
   and present newx(x) -> do next fx = x done
-  and present up(x -. (fx +. 1.0)) | up ((fx -. 1.0) -. x) -> do emit newx = x done
+  and present up(x -. (fx +. q)) | up ((fx -. q) -. x) -> do emit newx = x done
 
 let hybrid calcy (newx, y0, x0) = y, newy where
-  rec der y = kp *. y +. ki *. (s -. fx) init y0
+  rec der y = 100. -. (3. *. fx) -. (10. *. y) /. 7. init y0
   and init fy = y0
   and fx = present newx(x) -> x init x0
   and present newy(y) -> do next fy = y done
-  and present up(y -. (fy +. 1.0)) | up ((fy -. 1.0) -. y) -> do emit newy = y done
+  and present up(y -. (fy +. q)) | up ((fy -. q) -. y) -> do emit newy = y done
 
-(* open Dump *)
+open Scope
 
-(* let atomic node plot (t,x,y) = *)
-(*   let s = scope (-1.0, 1.0, ("asdasd", linear, x)) in *)
-(*   window ("test", 50.0, t, s) *)
+let atomic node plot (t,x) =
+  let s = scope (0.0, 42.0, ("X", points true, x)) in
+  window ("test", 50.0, t, s)
+
+
+
 
 
 let hybrid main () = () where
   rec x, newx = calcx (newy, 0.0, 0.0)
   and y, newy = calcy (newx, 0.0, 0.0)
   and der t = 1.0 init 0.0
-  and present (period (1.0)) -> do emit ok = () done
-  and present ok() | newx(_) | newy(_) -> do _ = print_endline (string_of_float x) done
-  and present ok() | newx(_) | newy(_)  -> do _ = print_endline (string_of_float y) done
+  and present (period (0.1)) -> do emit ok = () done
+  and present newx(_) -> do _ = plot (t, x) done
