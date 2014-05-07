@@ -32,9 +32,6 @@ let atomic node plot (t,x) =
   window ("test", 50.0, t, s)
 
 
-
-
-
 let hybrid main () = () where
   rec x, newx = calcx (newy, 0.0, 0.0)
   and y, newy = calcy (newx, 0.0, 0.0)
