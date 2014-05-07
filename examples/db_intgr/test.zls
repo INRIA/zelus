@@ -1,0 +1,43 @@
+(*
+let hybrid calc (iy, x0,y0) = (x,ix) where
+  rec automaton
+      | State(v, y) ->
+          do der x = x +. y init v
+          until up (last x -. v -. 1.) then do emit ix = x in State (x,y)
+          else up (last x -. v +. 1.) then do emit ix = x in State (x,y)
+          else iy(y) then State (v, y)
+  init State (x0, y0)
+*)
+
+let s = 400.
+let kp = 0.1
+let ki = 0.04
+
+let hybrid calcx (newy, x0, y0) = x, newx where
+  rec der x = fy init x0
+  and init fx = x0
+  and fy = present newy(y) -> y init y0
+  and present newx(x) -> do next fx = x done
+  and present up(x -. (fx +. 1.0)) | up ((fx -. 1.0) -. x) -> do emit newx = x done
+
+let hybrid calcy (newx, y0, x0) = y, newy where
+  rec der y = kp *. y +. ki *. (s -. fx) init y0
+  and init fy = y0
+  and fx = present newx(x) -> x init x0
+  and present newy(y) -> do next fy = y done
+  and present up(y -. (fy +. 1.0)) | up ((fy -. 1.0) -. y) -> do emit newy = y done
+
+(* open Dump *)
+
+(* let atomic node plot (t,x,y) = *)
+(*   let s = scope (-1.0, 1.0, ("asdasd", linear, x)) in *)
+(*   window ("test", 50.0, t, s) *)
+
+
+let hybrid main () = () where
+  rec x, newx = calcx (newy, 0.0, 0.0)
+  and y, newy = calcy (newx, 0.0, 0.0)
+  and der t = 1.0 init 0.0
+  and present (period (1.0)) -> do emit ok = () done
+  and present ok() | newx(_) | newy(_) -> do _ = print_endline (string_of_float x) done
+  and present ok() | newx(_) | newy(_)  -> do _ = print_endline (string_of_float y) done
