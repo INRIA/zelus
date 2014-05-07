@@ -18,15 +18,15 @@ let hybrid lzc () = (u,v,w,j) where
       | Init -> do
 	  w1 = 0.0 
           and  j2 = 0.0
-          unless z1 then W1
+          unless z2 on (v >= vz)  then W1
+          else z2 on (v < vz) then W2
       | W1 -> do
 	  w1 = 56.0 
-          and j2 = 100.0 
-          unless z2 then W2
+          and j2 = 0.0 
+      unless z1 then Init 
       | W2 -> do
-	  w1 = 0.0 
-          and  j2 = 0.0
-          unless z1 then W1
+	  w1 = v 
+          and  j2 = 0.0 done
   
 open Scope
 
@@ -34,7 +34,7 @@ let node plot (t, u, v, w, j) =
   let s1 = scope2 (-250.0, 250.0, ("u", linear, u), ("w", linear, w)) in
   let s2 = scope (-250.0, 250.0, ("v", linear, v)) in
   let s3 = scope (-20.0,25.0, ("j", linear, j)) in
-  window3 ("lzc", 500e-6, t, s1,s2,s3)
+  window3 ("lzc", 700e-6, t, s1,s2,s3)
 
 let hybrid main () = () where
   rec (u,v,w,j) = lzc ()

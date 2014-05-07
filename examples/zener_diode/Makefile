@@ -9,11 +9,11 @@ opt:  $(EXAMPLE:%.zls=%.opt)
 
 lzc.byte: lzc.cmo lzc_main.cmo
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
-	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLGTKLIBS)  $(ZLEXTRALIBS) $^
+	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLGTKLIBS)  $^
 
 lzc_main.cmo: lzc_main.ml
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
-	    -I $(ZLLIB) $(ZLSTDLIBS)  $(ZLEXTRALIBS) -c $^
+	    -I $(ZLLIB)  -c $^
 
 lzc.ml: lzc.zls
 	$(ZELUC) $(ZELUCFLAGS)  -gtk2 -s main -period -sampling 0 lzc.zls
