@@ -9,8 +9,18 @@ let hybrid calc (iy, x0,y0) = (x,ix) where
   init State (x0, y0)
 *)
 
+(* Quantum for QSS method *)
 let q = 0.1
 
+(* PI controller parameters *)
+let kp = -10. /. 7.
+let ki = 3.
+let s = 100. /. 3.
+
+
+(* PI controller : der(der x) =  kp*y + ki*(s-x) *)
+
+(* Fist integrator: der x = y *)
 let hybrid calcx (newy, x0, y0) = x, newx where
   rec der x = fy init x0
   and init fx = x0
@@ -18,15 +28,15 @@ let hybrid calcx (newy, x0, y0) = x, newx where
   and present newx(x) -> do next fx = x done
   and present up(x -. (fx +. q)) | up ((fx -. q) -. x) -> do emit newx = x done
 
+(* Second integrator: der y = kp*y + ki*(s-x) *)
 let hybrid calcy (newx, y0, x0) = y, newy where
-  rec der y = 100. -. (3. *. fx) -. (10. *. y) /. 7. init y0
+  rec der y = kp *. y +. ki *. (s -. fx) init y0
   and init fy = y0
   and fx = present newx(x) -> x init x0
   and present newy(y) -> do next fy = y done
   and present up(y -. (fy +. q)) | up ((fy -. q) -. y) -> do emit newy = y done
 
 open Scope
-
 let atomic node plot (t,x) =
   let s = scope (0.0, 42.0, ("X", points true, x)) in
   window ("test", 50.0, t, s)
@@ -36,5 +46,4 @@ let hybrid main () = () where
   rec x, newx = calcx (newy, 0.0, 0.0)
   and y, newy = calcy (newx, 0.0, 0.0)
   and der t = 1.0 init 0.0
-  and present (period (0.1)) -> do emit ok = () done
   and present newx(_) -> do _ = plot (t, x) done
