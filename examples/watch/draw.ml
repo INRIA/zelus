@@ -214,9 +214,6 @@ let draw_system x0 y0 l angle tc t h0 h th thl twb twl =
 
   synchronize ()
 
-let event = ref false
-
-
 let play_tic () =
   sound 440 100
 
@@ -224,10 +221,15 @@ let play_toc () =
   sound 500 100
 
 
+let event = ref 0
+
 let input () =
   if key_pressed() then begin
-    if read_key() = ' ' then event := true
+    match read_key() with
+    | ' ' -> event := 1
+    | 'm' -> event := 2
+    | _ -> event := 0
   end;
   let r = !event in
-  event := false;
+  event := 0;
   r

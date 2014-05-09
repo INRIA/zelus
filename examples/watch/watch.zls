@@ -7,7 +7,7 @@ let x0 = 400.
 let y0 = 600.
 
 
-let g = 0.981
+let g = 9.81
 let l = 4.
 
 let k1 = 5.
@@ -23,11 +23,21 @@ let h0 = 2.
 (* escapement parameters *)
 let thetac = 0.4
 
-let hybrid chain theta0 = theta where
-  rec der thetap =  -. (g /. l) *. sin (theta) init 0.0
-  and der theta = thetap init theta0
+let hybrid pendulum (theta0, thetap0) = theta where
+   rec der thetap =  -. (g /. (10. *. l)) *. sin (theta) init thetap0
+   and der theta = thetap init theta0
 
-let hybrid pendulum theta0 = theta where
+let hybrid chain (theta0, thetap0, move) = theta where
+  rec automaton
+      | Stop(th) ->
+          do theta = th
+          until move() then Move(theta)
+      | Move(th) ->
+          do theta = pendulum(th, thetap0)
+          until move() then Stop(theta)
+  init Stop 0.0
+
+let hybrid balance theta0 = theta where
   rec der thetap =  -. k1 *. theta init 0.0
   and der theta = thetap init theta0
 
@@ -77,25 +87,27 @@ let hybrid clockwatch (h0, t0, theta, r) = (h, t, active) where
 
 (********** Simulation ************)
 
-let hybrid keyboard () = go where
-  rec init ok = false
+let hybrid keyboard () = set, move where
+  rec init ok = 0
   and s = period (0.04)
-  and present s -> do ok = input () done
-  and present s on ok -> do emit go = () done
+  and present s -> do ok = input ()done
+  and present s on (ok = 1) -> do emit set = () done
+  and present s on (ok = 2) -> do emit move = () done
+
 
 let hybrid main () =
   let ok = period (0.04) in
-  let theta = pendulum theta0 in
+  let theta = balance theta0 in
   let (tic, _, toc, _) = escapement theta in
-  let r = keyboard () in
+  let r,m = keyboard () in
   let (h, t, active) = clockwatch (h0, 0.0, theta,r) in
-  let thb = t *. 3. /. 2.  in
+  let thb = t *. 3. /. 2. in
   let thl = thb /. 60. in
 
   let twb = t *. 2. in
   let twl = -.twb *. (120. /. 20.)  in
 
-  let tc = chain (pi /. 8.) in
+  let tc = chain (0.0, 0.2, m) in
 
   present ok ->
              draw_system
