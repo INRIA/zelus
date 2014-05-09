@@ -1,7 +1,15 @@
+let atomic node f(x) = y where rec
+  automaton
+  | S1 -> do y = 1 until x then S2(true)
+  | S2(x) -> do y = 2 unless x then S1
+  end
+
+(*
 let node g(x) = y, k, m where
   rec present k(w) -> do y = 1 and m = 4 done
   and init y = 0 and init m = 0
   and present x(_) -> do emit k = y done
+*)
 
 (*
 let node g(x) = y, k, m where rec

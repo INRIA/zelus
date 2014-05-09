@@ -28,7 +28,7 @@ let hybrid ball(x_0, y_0) = (x, y) where
         y = y0 
       until up(x -. ground_abs x)
         (* up(y -. eps -. ground(x)) *)
-      then do next y_start = 0.0 in Bouncing
+      then do y_start = 0.0 in Bouncing
   end
   
 (* Main entry point *)
