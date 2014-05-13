@@ -149,20 +149,29 @@ let draw_system l tc t h0 h th thl twb twl hh mm ss =
   draw_digital hh mm ss;
   synchronize ()
 
-let event = ref false
-
-
 let play_tic () =
   sound 440 100
 
 let play_toc () =
   sound 500 100
 
+(* let event = ref false *)
+
+(* let input () = *)
+(*   if key_pressed() then begin *)
+(*     if read_key() = ' ' then event := true *)
+(*   end; *)
+(*   let r = !event in *)
+(*   event := false; *)
+(*   r *)
+
 
 let input () =
-  if key_pressed() then begin
-    if read_key() = ' ' then event := true
-  end;
-  let r = !event in
-  event := false;
-  r
+  let rec myread v =
+    if not (key_pressed ()) then v
+    else myread (Some (read_key ()))
+  in
+  match myread None with
+  | Some ' ' -> true
+  | Some 'q' -> exit 0
+  | _ -> false
