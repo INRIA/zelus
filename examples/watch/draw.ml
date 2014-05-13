@@ -174,8 +174,7 @@ let draw_background x0 y0 l angle =
   done;
   draw_circle (int_of_float x00) (int_of_float y00) 180;
   set_color white;
-  fill_circle (int_of_float x00) (int_of_float y00) 179;
-  set_line_width 2
+  fill_circle (int_of_float x00) (int_of_float y00) 179
 
 
 let draw_mechanism x0 y0 l angle =
@@ -221,15 +220,28 @@ let play_toc () =
   sound 500 100
 
 
-let event = ref 0
+(* let event = ref 0 *)
+
+(* let input () = *)
+(*   if key_pressed() then begin *)
+(*     match read_key() with *)
+(*     | ' ' -> event := 1 *)
+(*     | 'm' -> event := 2 *)
+(*     | 'q' -> exit 0 *)
+(*     | _ -> event := 0 *)
+(*   end; *)
+(*   let r = !event in *)
+(*   event := 0; *)
+(*   r *)
+
 
 let input () =
-  if key_pressed() then begin
-    match read_key() with
-    | ' ' -> event := 1
-    | 'm' -> event := 2
-    | _ -> event := 0
-  end;
-  let r = !event in
-  event := 0;
-  r
+  let rec myread v =
+    if not (key_pressed ()) then v
+    else myread (Some (read_key ()))
+  in
+  match myread None with
+  | Some 'm' -> 2
+  | Some ' ' -> 1
+  | Some 'q' -> exit 0
+  | _ -> 0
