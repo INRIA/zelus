@@ -1,0 +1,2 @@
+zlsdep.cmo: depend.cmo
+zlsdep.cmx: depend.cmx
