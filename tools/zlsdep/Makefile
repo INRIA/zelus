@@ -1,8 +1,8 @@
+include ../../config
+
 BIN = zlsdep
 TARGET=opt
 OCAMLC= ocamlc
-
-include ../../config
 
 SRC= depend.ml zlsdep.ml
 
