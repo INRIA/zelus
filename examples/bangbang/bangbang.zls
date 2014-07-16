@@ -5,7 +5,7 @@
 
 (* ** library functions ** *)
 let hybrid integrator (i, u) = y where
-  der y = u init i
+  rec der y = u +. cpt init i
 
 let node round x = floor (x +. 0.5)
 
@@ -60,7 +60,7 @@ let b_off  = false
 let b_on   = true
 
 let node after (x) =
-  let rec c = x fby max (0, c - 1) in
+  let rec c = x -> pre (max (0, c - 1)) in
   c = 0
 
 let node at (x) =

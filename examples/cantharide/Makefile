@@ -26,7 +26,7 @@ realclean cleanall: clean
 .SUFFIXES : .ml .zls .byte
 
 .zls.ml:
-	#$(ZELUC) $(ZELUCFLAGS) -keepdeadcode -s main -period $<
-	$(ZELUC) $(ZELUCFLAGS) -s main -period $<
+	#$(ZELUC) $(ZELUCFLAGS) -nocausality -keepdeadcode -s main -period $<
+	$(ZELUC) $(ZELUCFLAGS) -nocausality -s main -period $<
 	mv main.ml $(<:.zls=)_main.ml
 

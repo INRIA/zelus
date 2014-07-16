@@ -114,12 +114,11 @@ let node sampled_controller
             | Move ->
                 do done_lamp = false
                 and alarm_lamp = blink(2, second)
-                and
-                automaton
-                  | RaiseStickBucket ->
-                      do emit stick_pull  and stick_drive = true
-                      and emit bucket_pull and bucket_drive = true
-                      unless (stick_in && bucket_in) then LowerBoom
+                and automaton
+                    | RaiseStickBucket ->
+			do emit stick_pull  and stick_drive = true
+			and emit bucket_pull and bucket_drive = true
+			unless (stick_in && bucket_in) then LowerBoom
 
                   | LowerBoom ->
                       do emit boom_push and boom_drive = true
