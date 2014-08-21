@@ -49,14 +49,15 @@ object (self)
     self#clear_timer ();
     self#inc_step_count ();
     let result, delta, ss' = Runtime.step ss in
+    let wall_clk = Unix.gettimeofday () in
+    let delta' = delta -. (wall_clk -. last_wall_clk) in
     ss <- ss';
+    last_wall_clk <- wall_clk;
     if Runtime.is_done ss then true
     else if delta <= 0.0 && not self#too_many_steps then self#trigger_step ()
     else
-      let wall_clk = Unix.gettimeofday () in
-      let delta' = delta -. (wall_clk -. last_wall_clk) in
+
       (* NB: cut losses at each continuous step: *)
-      last_wall_clk <- wall_clk;
       if self#too_many_steps then begin
          prerr_string "Zlsrungtk: too fast!\n";
          flush stderr;
@@ -177,4 +178,3 @@ let go model_size model =
   ignore (w#connect#destroy ~callback:destroy);
   w#show ();
   GMain.Main.main ()
-

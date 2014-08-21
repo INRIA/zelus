@@ -9,27 +9,22 @@ let go size model =
   let ss = ref (Runtime.main' size model) in
   let last_wall_clk = ref (Unix.gettimeofday ()) in
 
-  let rec step signal =
+  let rec step () =
     let result, delta, ss' = Runtime.step !ss in
+    let wall_clk = Unix.gettimeofday () in
+    let delta' = delta -. (wall_clk -. !last_wall_clk) in
     ss := ss';
+    last_wall_clk := wall_clk;
+
     if Runtime.is_done !ss then ()
-    else if delta <= 0.0 then step signal
+    else if delta <= 0.0 then  step ()
     else
-      let wall_clk = Unix.gettimeofday () in
-      let delta' = delta -. (wall_clk -. !last_wall_clk) in
       (* NB: cut losses at each continuous step: *)
-      last_wall_clk := wall_clk;
-      if delta' <= 0.0 then step signal
+      if delta' <= 0.0 then step ()
       else (
         (* NB: accumulate losses across steps: *)
-        (* wall_clk_last := wall_clk; *)
-        Sys.set_signal Sys.sigalrm (Sys.Signal_handle step);
-        ignore (Unix.setitimer Unix.ITIMER_REAL { Unix.it_value = delta';
-                                                  Unix.it_interval = 0.0 }))
+        ignore (Unix.select [] [] [] delta');
+        step ())
   in
-  step Sys.sigalrm;
-  while not (Runtime.is_done !ss) do
-    Unix.sleep 1
-  done;
+  step ();
   exit(0)
-
