@@ -14,6 +14,7 @@ let eprintf = Printf.eprintf
 
 let black             = "\x1b[0;0m"
 let red               = "\x1b[0;31m"
+let boldred           = "\x1b[1;31m"
 let green             = "\x1b[0;32m"
 let yellow            = "\x1b[0;33m"
 let blue              = "\x1b[0;34m"
@@ -233,7 +234,7 @@ struct (* {{{ *)
     else Printf.printf "%s%e%s" s1 t s2
 
   let print_roots t rin =
-    if !log then (set_color (if Solver.has_root rin then red else green);
+    if !log then (set_color (if Solver.has_root rin then boldred else green);
                   Solver.zvec_log "Z : " t rin;
                   set_color black)
 
