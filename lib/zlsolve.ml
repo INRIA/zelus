@@ -12,14 +12,15 @@ let add_custom_arg arg =
 let printf = Printf.printf
 let eprintf = Printf.eprintf
 
-let black   = "\x1b[0m"
-let red     = "\x1b[31m"
-let green   = "\x1b[32m"
-let yellow  = "\x1b[33m"
-let blue    = "\x1b[34m"
-let magenta = "\x1b[35m"
-let cyan    = "\x1b[36m"
-let gray    = "\x1b[37m"
+let black             = "\x1b[0;0m"
+let red               = "\x1b[0;31m"
+let green             = "\x1b[0;32m"
+let yellow            = "\x1b[0;33m"
+let blue              = "\x1b[0;34m"
+let magenta           = "\x1b[0;35m"
+let cyan              = "\x1b[0;36m"
+let before_loggedcall = "\x1b[0;36m" (* cyan *)
+let after_loggedcall  = "\x1b[0;37m" (* gray *)
 
 (* The simulation algorithm *)
 
@@ -208,6 +209,7 @@ struct (* {{{ *)
   let log           = ref false
   let log_gcalls    = ref false
   let log_fcalls    = ref false
+  let log_dcalls    = ref false
 
   let show_stats    = ref false
 
@@ -231,7 +233,7 @@ struct (* {{{ *)
     else Printf.printf "%s%e%s" s1 t s2
 
   let print_roots t rin =
-    if !log then (set_color green;
+    if !log then (set_color (if Solver.has_root rin then red else green);
                   Solver.zvec_log "Z : " t rin;
                   set_color black)
 
@@ -306,22 +308,32 @@ struct (* {{{ *)
     let f_main t cs ds =
       f_der (cs, ds);
       if !log_fcalls then begin
-        set_color gray;
+        set_color before_loggedcall;
         Solver.cvec_log  "*FC:" t cs;
         Solver.cvec_log  "*FD:" t ds;
-        set_color black;
+        set_color after_loggedcall;
       end in
 
     let g_main t cs rs =
       f_zero (cs, rs);
       if !log_gcalls then begin
-        set_color gray;
+        set_color before_loggedcall;
         Solver.cvec_log  "*ZC:" t cs;
         Solver.zxvec_log " ZR:" t rs;
-        set_color black;
+        set_color after_loggedcall;
       end in
 
-    let d_main t rin = f_disc (cstates, rin, t) in
+    let d_main t rin =
+        if !log_dcalls then begin
+          set_color before_loggedcall;
+          Solver.cvec_log "*DC:" t cstates;
+          let r = f_disc (cstates, rin, t) in
+          set_color after_loggedcall;
+          Solver.cvec_log "*DR:" t cstates;
+          set_color after_loggedcall;
+          r
+        end else f_disc (cstates, rin, t)
+    in
 
     (* This function must be called before entering a sequence of discrete
        steps to ensure that "continuous pre"s within the program are set
@@ -518,6 +530,10 @@ struct (* {{{ *)
       ("-lfcalls",
        Arg.Set log_fcalls,
        " Log differential function calls to stdout.");
+
+      ("-ldcalls",
+       Arg.Set log_dcalls,
+       " Log discrete function calls to stdout.");
 
       ("-stats",
        Arg.Set show_stats,

@@ -185,6 +185,8 @@ struct
   let roots { session; roots_in } =
     Cvode.get_root_info session roots_in;
     roots_in
+
+  let has_root = Sundials.Roots.exists
 end
 
 include Sundials

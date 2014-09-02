@@ -91,6 +91,9 @@ module type SOLVER =
       [roots] with the same session [s]. *)
     val roots : t -> zvec
 
+    (* [has_root r] eturns the disjunction of roots in [r]. *)
+    val has_root : zvec -> bool
+
   end (* }}} *)
 
 module type STATE_SOLVER =
@@ -208,6 +211,8 @@ module type ZEROC_SOLVER =
       by [find]. Note: the same zvec will be overwritten by a subsequent call to
       [roots] with the same session [s]. *)
     val roots : 'cvec t -> zvec
+
+    val has_root : zvec -> bool
 
     val set_root_directions : 'cvec t -> root_direction -> unit
 
@@ -328,6 +333,7 @@ module Presolver (State : STATE_SOLVER) (Zeroc : ZEROC_SOLVER) =
                        (t, Roots)
 
     let roots {zs} = Zeroc.roots zs
+    let has_root = Zeroc.has_root
 
   end (* }}} *)
 
@@ -584,6 +590,14 @@ module ZerosInfrastructure =
     let args = [
         ("-debugz", Arg.Set debug, " Log zero-crossing searches.")
       ]
+
+    let has_root r =
+      let n = Array.length r in
+      let rec check i =
+        if i == n then false
+        else if r.(i) <> 0 then true
+        else check (i + 1)
+      in check 0
 
     (*
       To complete the implementation, add:
