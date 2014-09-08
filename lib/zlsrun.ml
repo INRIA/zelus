@@ -5,39 +5,69 @@ module Load = Loadsolvers
 let () = Zlsolve.check_for_solver Sys.argv
 module Runtime = (val Zlsolve.instantiate () : Zlsolve.ZELUS_SOLVER)
 
-let wake_me f =
-  let rec step signal =
-    match f () with
-    | None -> raise Exit
-    | Some delta ->
-        (Sys.set_signal Sys.sigalrm (Sys.Signal_handle step);
-         ignore (Unix.setitimer Unix.ITIMER_REAL { Unix.it_value = delta;
-                                                  Unix.it_interval = 0.0 }))
+(*** Timer version ***)
+(* let wait_next_instant debut fin min = *)
+(*   let diff = min -. (fin -. debut) in *)
+(*   let rec step signal = *)
+(*     if diff > 0.0 then *)
+(*       (Sys.set_signal Sys.sigalrm (Sys.Signal_handle (fun _ -> raise Exit)); *)
+(*        ignore (Unix.setitimer Unix.ITIMER_REAL { Unix.it_value = diff; *)
+(*                                                  Unix.it_interval = 0.0 })) *)
+(*     else raise Exit *)
+(*   in *)
+(*   try *)
+(*     step Sys.sigalrm; *)
+(*     while true do *)
+(*       Unix.sleep 6000 *)
+(*     done *)
+(*   with Exit -> () *)
+
+
+(*** Without error handling ***)
+(* let rec wait_next_instant debut fin min = *)
+(*   let diff = min -. (fin -. debut) in *)
+(*   if diff > 0.0 then *)
+(*     begin try *)
+(*       ignore (Unix.select [] [] [] diff); false *)
+(*     with Unix.Unix_error (Unix.EINTR ,_, _) -> *)
+(*       wait_next_instant debut (Unix.gettimeofday ()) min *)
+(*     end *)
+(*   else true *)
+
+
+let wait_next_instant =
+  let delay = ref 0.0 in
+
+  let rec wait_next_instant starting ending delta =
+    let diff = (delta -. (ending -. starting)) -. !delay in
+    if diff > 0.0 then
+      begin try
+        delay := 0.0;
+        ignore (Unix.select [] [] [] diff); false
+      with Unix.Unix_error (Unix.EINTR ,_, _) ->
+        wait_next_instant starting (Unix.gettimeofday ()) delta
+      end
+    else
+      begin
+        delay := min (-. diff) delta;
+        true
+      end
   in
-  step Sys.sigalrm;
-  try
-    while true do
-      Unix.sleep 6000
-    done
-  with Exit -> exit 0
+  wait_next_instant
 
 let go size model =
   let ss = ref (Runtime.main' size model) in
-  let last_wall_clk = ref (Unix.gettimeofday ()) in
+  let starting = ref (Unix.gettimeofday ()) in
 
-  let rec delay () =
+  let rec step () =
     let result, delta, ss' = Runtime.step !ss in
-    let wall_clk = Unix.gettimeofday () in
-    let delta' = delta -. (wall_clk -. !last_wall_clk) in
     ss := ss';
-    last_wall_clk := wall_clk;
 
-    if Runtime.is_done !ss then None
-    else if delta <= 0.0 then delay ()
+    if Runtime.is_done !ss then ()
     else
-      (* NB: cut losses at each continuous step: *)
-      if delta' <= 0.0 then delay ()
-      else Some delta' (* NB: accumulate losses across steps: *)
+      let ending = Unix.gettimeofday () in
+      ignore (wait_next_instant !starting ending delta);
+      starting := Unix.gettimeofday ();
+      step ()
   in
-  wake_me delay
-
+step ()
