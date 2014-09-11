@@ -1,0 +1,17 @@
+let node time () = (o, d) where
+  rec o = Misc.get_time ()
+  and po = 0.0 fby o
+  and d = o -. po
+
+let hybrid main () = () where
+  (* rec z = period (1.0) *)
+  rec der t = 1.0 init 0.0 reset z -> 0.0
+  and z = up (last t -. 1.0)
+
+  and init date = 0.0
+  and init diff = 0.0
+
+  and present z
+      -> do date, diff = time ()
+         and _ = print_endline (Misc.print (date, diff))
+         done

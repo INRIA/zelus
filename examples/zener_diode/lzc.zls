@@ -16,18 +16,18 @@ let hybrid lzc () = (u,v,w,j) where
 
   and automaton
       | Init -> do
-	  w1 = 0.0 
+          w1 = 0.0
           and  j2 = 0.0
           unless z2 on (v >= vz)  then W1
           else z2 on (v < vz) then W2
       | W1 -> do
-	  w1 = 56.0 
-          and j2 = 0.0 
-      unless z1 then Init 
+          w1 = 56.0
+          and j2 = 0.0
+      unless z1 then Init
       | W2 -> do
-	  w1 = v 
+          w1 = v
           and  j2 = 0.0 done
-  
+
 open Scope
 
 let node plot (t, u, v, w, j) =
@@ -38,5 +38,5 @@ let node plot (t, u, v, w, j) =
 
 let hybrid main () = () where
   rec (u,v,w,j) = lzc ()
-  and der t = 1.0 init 0.0 
+  and der t = 1.0 init 0.0
   and _ = present (period(1e-6)) -> plot(t,u,v,w,j)
