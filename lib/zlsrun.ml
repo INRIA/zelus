@@ -22,7 +22,6 @@ module Runtime = (val Zlsolve.instantiate () : Zlsolve.ZELUS_SOLVER)
 (*     done *)
 (*   with Exit -> () *)
 
-
 (*** Without error handling ***)
 (* let rec wait_next_instant debut fin min = *)
 (*   let diff = min -. (fin -. debut) in *)
@@ -33,7 +32,6 @@ module Runtime = (val Zlsolve.instantiate () : Zlsolve.ZELUS_SOLVER)
 (*       wait_next_instant debut (Unix.gettimeofday ()) min *)
 (*     end *)
 (*   else true *)
-
 
 let wait_next_instant =
   let delay = ref 0.0 in
@@ -64,10 +62,12 @@ let go size model =
     ss := ss';
 
     if Runtime.is_done !ss then ()
+    else if delta = 0.0 then step ()
     else
       let ending = Unix.gettimeofday () in
       ignore (wait_next_instant !starting ending delta);
       starting := Unix.gettimeofday ();
       step ()
   in
-step ()
+  step ()
+

@@ -390,7 +390,7 @@ struct (* {{{ *)
         (* CONTINUOUS CALL(S) *)
         let t_limit = min (t +. !max_c_step) t_horizon in
         let (t', result) = Solver.go s t_limit cstates in
-        let delta = (t' -. t) /. !speedup in
+        let delta = if !speedup > 0.0 then (t' -. t) /. !speedup else 0.0 in
 
         print_states
           (if result = Solver.Roots
@@ -487,6 +487,10 @@ struct (* {{{ *)
       ("-speedup",
        Arg.Float (fun m -> speedup := m),
        "<float> relate simulation and wall clock times (2.0 = twice as fast)");
+
+      ("-fullspeed",
+       Arg.Unit (fun () -> speedup := 0.0),
+       "Do not try to relate simulation and wall clock times");
 
       ("-maxcstep",
        Arg.Float (fun m -> max_c_step := m),
