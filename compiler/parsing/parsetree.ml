@@ -27,7 +27,7 @@ type 'a localized = { desc: 'a; loc: Location.location }
 
 
 (** Types *)
-type type_expression = type_expression_desc localized 
+type type_expression = type_expression_desc localized
 
 and type_expression_desc =
     | Etypevar of string
@@ -130,7 +130,7 @@ and eqdesc =
   | EQinit of pattern * exp * exp option
     (* [init p = e0] or [p = e init e0] *)
   | EQnext of pattern * exp * exp option
-    (* [next p = e] or [next p = e init e0] *) 
+    (* [next p = e] or [next p = e init e0] *)
   | EQemit of name * exp option
     (* [emit n = e] *)
   | EQautomaton of eq list state_handler list * state_exp option
@@ -140,32 +140,32 @@ and eqdesc =
 
 and 'a block = 'a block_desc localized
 
-and 'a block_desc = 
+and 'a block_desc =
     { b_vars: name list;
       b_locals: local list;
-      b_body: 'a } 
+      b_body: 'a }
 
 and local = local_desc localized
 
-and local_desc = is_rec * eq list 
+and local_desc = is_rec * eq list
 
-and statepat = statepatdesc localized 
+and statepat = statepatdesc localized
 
-and statepatdesc = 
-    | Estate0pat of name 
+and statepatdesc =
+    | Estate0pat of name
     | Estate1pat of name * pattern list
 
-and state_exp = state_exp_desc localized 
+and state_exp = state_exp_desc localized
 
-and state_exp_desc = 
-    | Estate0 of name 
+and state_exp_desc =
+    | Estate0 of name
     | Estate1 of name * exp list
 
-and escape = 
+and escape =
     { e_cond: scondpat; (* condition to escape *)
       e_reset: bool; (* is-it a reset or not *)
       e_block: eq list block option; (* values emited on the transition *)
-      e_next_state: state_exp; (* next active state *) } 
+      e_next_state: state_exp; (* next active state *) }
 
 and scondpat = scondpat_desc localized
 
@@ -186,8 +186,8 @@ and 'a present_handler =
     { p_cond: scondpat;
       p_body: 'a; }
 
-and 'a state_handler = 
-    { s_state : statepat; 
-      s_block : 'a block; 
-      s_until : escape list; 
-      s_unless : escape list; } 
+and 'a state_handler =
+    { s_state : statepat;
+      s_block : 'a block;
+      s_until : escape list;
+      s_unless : escape list; }

@@ -18,16 +18,16 @@ open Lexing
 open Location
 open Parsetree
 
-let make desc start_pos end_pos = 
+let make desc start_pos end_pos =
   { desc = desc; loc = Loc(start_pos.pos_cnum, end_pos.pos_cnum) }
 
 let unop op e = Eapp(Eop(Name(op)), [e])
 
-let unary_minus op e = 
+let unary_minus op e =
   match op, e.desc with
     | "-", Econst(Eint v) -> Econst(Eint(-v))
     | ("-" | "_."), Econst(Efloat v) -> Econst(Efloat(-.v))
-    | _ -> unop ("~" ^ op) e 
+    | _ -> unop ("~" ^ op) e
 
 let unary_minus_int x = -x
 and unary_minus_float x = -.x
@@ -37,29 +37,29 @@ let binop op e1 e2 = Eapp(Eop(Name(op)), [e1;e2])
 let params p = match p.desc with | Etuplepat(l) -> l | _ -> [p]
 let arg e = match e.desc with | Etuple(l) -> l | _ -> [e]
 
-let typearg ty = 
-  match ty.desc with 
-    | Etypetuple(l) -> l | _ -> [ty] 
+let typearg ty =
+  match ty.desc with
+    | Etypetuple(l) -> l | _ -> [ty]
 
 let make_state s l start_pos end_pos =
-  let desc = 
+  let desc =
     match l with
       | [] -> Estate0(s)
       | [{ desc = Etuple(l) }] -> Estate1(s, l)
       | l -> Estate1(s, l) in
-  make desc start_pos end_pos 
+  make desc start_pos end_pos
 
 let make_statepat s l start_pos end_pos =
-  let desc = 
+  let desc =
     match l with
       | [] -> Estate0pat(s)
       | [{ desc = Etuplepat(l) }] -> Estate1pat(s,l)
       | l -> Estate1pat(s, l) in
-  make desc start_pos end_pos 
+  make desc start_pos end_pos
 
-let scond_true start_pos end_pos = 
-  make (Econdexp(make (Econst(Ebool(true))) start_pos end_pos)) 
-    start_pos end_pos 
+let scond_true start_pos end_pos =
+  make (Econdexp(make (Econst(Ebool(true))) start_pos end_pos))
+    start_pos end_pos
 
 %}
 
@@ -132,7 +132,7 @@ let scond_true start_pos end_pos =
 %token RESET          /* "reset" */
 %token LAST           /* "last" */
 %token IF             /* "if" */
-%token THEN           /* "then" */      
+%token THEN           /* "then" */
 %token ELSE           /* "else" */
 %token OPEN           /* "open" */
 %token VAL            /* "val" */
@@ -170,7 +170,7 @@ let scond_true start_pos end_pos =
 %left ON
 %left INFIX4
 %right prec_uminus
-%left FBY
+%right FBY
 %right PRE UP DISC TEST
 %right PREFIX
 %left DOT
@@ -222,34 +222,34 @@ implementation:
       { Etypedecl(id, tp, td) }
   | LET ide = ide EQUAL seq = seq_expression
       { Econstdecl(ide, seq) }
-  | LET i = ide fp = fun_params EQUAL seq = seq_expression 
+  | LET i = ide fp = fun_params EQUAL seq = seq_expression
       { Efundecl(i, A, false, fp, seq) }
-  | LET i = ide fp = fun_params EQUAL seq = seq_expression 
+  | LET i = ide fp = fun_params EQUAL seq = seq_expression
     WHERE r = is_rec eqs = equation_list
-      { Efundecl(i, A, false, fp, make(Elet(r, eqs, seq)) 
-			      $startpos(seq) $endpos(eqs))}
-  | LET k = kind i = ide fp = fun_params 
-					      EQUAL seq = seq_expression 
+      { Efundecl(i, A, false, fp, make(Elet(r, eqs, seq))
+                              $startpos(seq) $endpos(eqs))}
+  | LET k = kind i = ide fp = fun_params
+                                              EQUAL seq = seq_expression
       { Efundecl(i, k, false, fp, seq) }
-  | LET k = kind i = ide fp = fun_params 
-					      EQUAL seq = seq_expression 
+  | LET k = kind i = ide fp = fun_params
+                                              EQUAL seq = seq_expression
     WHERE r = is_rec eqs = equation_list
-      { Efundecl(i, k, false, fp, make(Elet(r, eqs, seq)) 
-			      $startpos(seq) $endpos(eqs)) }
-  | LET ATOMIC i = ide fp = fun_params EQUAL seq = seq_expression 
+      { Efundecl(i, k, false, fp, make(Elet(r, eqs, seq))
+                              $startpos(seq) $endpos(eqs)) }
+  | LET ATOMIC i = ide fp = fun_params EQUAL seq = seq_expression
       { Efundecl(i, A, true, fp, seq) }
-  | LET ATOMIC i = ide fp = fun_params EQUAL seq = seq_expression 
+  | LET ATOMIC i = ide fp = fun_params EQUAL seq = seq_expression
     WHERE r = is_rec eqs = equation_list
-      { Efundecl(i, A, true, fp, make(Elet(r, eqs, seq)) 
-			      $startpos(seq) $endpos(eqs))}
-  | LET ATOMIC k = kind i = ide fp = fun_params 
-					      EQUAL seq = seq_expression 
+      { Efundecl(i, A, true, fp, make(Elet(r, eqs, seq))
+                              $startpos(seq) $endpos(eqs))}
+  | LET ATOMIC k = kind i = ide fp = fun_params
+                                              EQUAL seq = seq_expression
       { Efundecl(i, k, true, fp, seq) }
-  | LET ATOMIC k = kind i = ide fp = fun_params 
-					      EQUAL seq = seq_expression 
+  | LET ATOMIC k = kind i = ide fp = fun_params
+                                              EQUAL seq = seq_expression
     WHERE r = is_rec eqs = equation_list
-      { Efundecl(i, k, true, fp, make(Elet(r, eqs, seq)) 
-			      $startpos(seq) $endpos(eqs)) }
+      { Efundecl(i, k, true, fp, make(Elet(r, eqs, seq))
+                              $startpos(seq) $endpos(eqs)) }
 ;
 
 is_rec:
@@ -272,7 +272,7 @@ interface_file:
 ;
 
 interface:
-  | OPEN c = CONSTRUCTOR 
+  | OPEN c = CONSTRUCTOR
       { Einter_open(c) }
   | TYPE tp = type_params i = IDENT td = type_declaration
       { Einter_typedecl(i, tp, td) }
@@ -291,7 +291,7 @@ type_declaration:
       { Eabstract_type }
   | EQUAL e = list_of(BAR, CONSTRUCTOR)
       { Evariant_type (e) }
-  | EQUAL LBRACE s = label_list(label_type) RBRACE 
+  | EQUAL LBRACE s = label_list(label_type) RBRACE
       { Erecord_type (s) }
   | EQUAL t = type_expression
       { Eabbrev(t) }
@@ -307,16 +307,16 @@ type_params :
 ;
 
 label_list(X):
-  | x = X 
+  | x = X
       { [x] }
   | x = X SEMI
       { [x] }
-  | x = X SEMI ll = label_list(X) 
+  | x = X SEMI ll = label_list(X)
       { x :: ll }
 ;
 
 label_type:
-  i = IDENT COLON t = type_expression 
+  i = IDENT COLON t = type_expression
   { (i, t) }
 ;
 
@@ -338,15 +338,15 @@ optional_init:
   | l = list_of(AND, localized(equation_desc)) { l }
 
 equation_desc:
-  | p = pattern EQUAL e = expression 
+  | p = pattern EQUAL e = expression
       { EQeq(p, e) }
-  | p = pattern EQUAL e = expression INIT e0 = expression 
+  | p = pattern EQUAL e = expression INIT e0 = expression
       { EQinit(p, e0, Some(e)) }
   | PERIOD p = pattern EQUAL e = period_expression
       { EQeq(p, make (Eperiod(e)) $startpos(e) $endpos(e)) }
   | DER i = ide EQUAL e = expression opt = optional_init
       { EQder(i, e, opt, []) }
-  | DER i = ide EQUAL e = expression opt = optional_init 
+  | DER i = ide EQUAL e = expression opt = optional_init
     RESET opt_bar pe = present_handlers(expression)
       { EQder(i, e, opt, pe) }
   | NEXT p = pattern EQUAL e = expression
@@ -357,13 +357,13 @@ equation_desc:
       { EQinit(p, e, None) }
   | AUTOMATON opt_bar a = automaton_handlers(equation_empty_list) opt_end
       { EQautomaton(List.rev a, None) }
-  | AUTOMATON opt_bar a = automaton_handlers(equation_empty_list) 
+  | AUTOMATON opt_bar a = automaton_handlers(equation_empty_list)
     INIT s = state opt_end
       { EQautomaton(List.rev a, Some(s)) }
-  | MATCH e = expression WITH opt_bar 
+  | MATCH e = expression WITH opt_bar
     m = match_handlers(block_with_done(equation_empty_list)) opt_end
       { EQmatch(e, List.rev m) }
-  | PRESENT opt_bar p = present_handlers(block_with_done(equation_empty_list)) 
+  | PRESENT opt_bar p = present_handlers(block_with_done(equation_empty_list))
     opt_end
       { EQpresent(List.rev p, None) }
   | PRESENT opt_bar p = present_handlers(block_with_done(equation_empty_list))
@@ -392,25 +392,25 @@ automaton_handlers(X) :
 
 automaton_handler(X):
   | sp = state_pat MINUSGREATER b = block(X) DONE
-    { { s_state = sp; s_block = b; s_until = []; s_unless = [] } } 
+    { { s_state = sp; s_block = b; s_until = []; s_unless = [] } }
   | sp = state_pat MINUSGREATER b = block(X) THEN st = state
     { { s_state = sp; s_block = b;
-        s_until = 
-	[{ e_cond = scond_true $endpos(b) $startpos(st); 
-	   e_reset = true; e_block = None; e_next_state = st }];
+        s_until =
+        [{ e_cond = scond_true $endpos(b) $startpos(st);
+           e_reset = true; e_block = None; e_next_state = st }];
         s_unless = [] } }
   | sp = state_pat MINUSGREATER b = block(X) CONTINUE st = state
     { { s_state = sp;
-        s_block = b; 
-        s_until = 
-	[{ e_cond = scond_true $endpos(b) $startpos(st); e_reset = false; 
+        s_block = b;
+        s_until =
+        [{ e_cond = scond_true $endpos(b) $startpos(st); e_reset = false;
            e_block = None; e_next_state = st }];
         s_unless = [] } }
-  | sp = state_pat MINUSGREATER b = block(X) THEN emit = emission st = state 
+  | sp = state_pat MINUSGREATER b = block(X) THEN emit = emission st = state
     { { s_state = sp; s_block = b;
-        s_until = 
-	[{ e_cond = scond_true $endpos(b) $startpos(emit); 
-	   e_reset = true; e_block = Some(emit); e_next_state = st}];
+        s_until =
+        [{ e_cond = scond_true $endpos(b) $startpos(emit);
+           e_reset = true; e_block = Some(emit); e_next_state = st}];
         s_unless = [] } }
   | sp = state_pat MINUSGREATER b = block(X) CONTINUE emit = emission
     st = state
@@ -421,10 +421,10 @@ automaton_handler(X):
         s_unless = [] } }
   | sp = state_pat MINUSGREATER b = block(X) UNTIL e_until = escape_list
     { { s_state = sp; s_block = b; s_until = List.rev e_until; s_unless = [] } }
-  | sp = state_pat MINUSGREATER b = block(X) UNTIL e_until = escape_list 
+  | sp = state_pat MINUSGREATER b = block(X) UNTIL e_until = escape_list
     UNLESS e_unless = escape_list
-    { { s_state = sp; s_block = b; 
-	s_until = List.rev e_until; s_unless = List.rev e_unless } }
+    { { s_state = sp; s_block = b;
+        s_until = List.rev e_until; s_unless = List.rev e_unless } }
   | sp = state_pat MINUSGREATER b = block(X) UNLESS e_unless = escape_list
     { { s_state = sp; s_block = b; s_until = []; s_unless = List.rev e_unless } }
 ;
@@ -468,9 +468,9 @@ scondpat :
   | e = simple_expression
       { make (Econdexp(e)) $startpos $endpos }
   | UP e = simple_expression
-      { make 
-	  (Econdexp (make (Eapp(Eup, [e])) $startpos(e) $endpos(e))) 
-	  $startpos $endpos }
+      { make
+          (Econdexp (make (Eapp(Eup, [e])) $startpos(e) $endpos(e)))
+          $startpos $endpos }
   | scpat1 = scondpat AMPERSAND scpat2 = scondpat
       { make (Econdand(scpat1, scpat2)) $startpos $endpos }
   | scpat1 = scondpat BAR scpat2 = scondpat
@@ -576,9 +576,9 @@ simple_pattern:
       { make (Econstpat(Efloat(unary_minus_float f))) $startpos $endpos }
   | c = constructor
       { make (Econstr0pat(c)) $startpos $endpos }
-  | i = ide             
+  | i = ide
       { make (Evarpat i) $startpos $endpos }
-  | LPAREN p = pattern RPAREN 
+  | LPAREN p = pattern RPAREN
       { p }
   | LPAREN p = pattern_comma_list RPAREN
       { make (Etuplepat (List.rev p)) $startpos $endpos }
@@ -633,15 +633,15 @@ simple_expression_desc:
       { Econstr0(c) }
 | i = ext_ident
       { Evar i }
-  | a = atomic_constant 
+  | a = atomic_constant
       { Econst a }
   | LBRACE l = label_expression_list RBRACE
       { Erecord(l) }
   | LPAREN RPAREN
       { Econst Evoid }
-  | LPAREN e = expression_comma_list RPAREN 
+  | LPAREN e = expression_comma_list RPAREN
       { Etuple (List.rev e) }
-  | LPAREN e = expression RPAREN 
+  | LPAREN e = expression RPAREN
       { e.desc }
   | LPAREN e = simple_expression COLON t = type_expression RPAREN
       { Etypeconstraint(e, t) }
@@ -653,7 +653,7 @@ expression_comma_list :
   | e1 = expression COMMA e2 = expression
       { [e2; e1] }
 ;
- 
+
 expression:
   | x = localized(expression_desc)
     { x }
@@ -757,23 +757,23 @@ period_list:
 ;
 
 constructor:
-  | c = CONSTRUCTOR 
+  | c = CONSTRUCTOR
       { Name(c) } %prec prec_ident
-  | c1 = CONSTRUCTOR DOT c2 = CONSTRUCTOR 
+  | c1 = CONSTRUCTOR DOT c2 = CONSTRUCTOR
       { Modname({qual = c1; id = c2}) }
 ;
 
 qual_ident:
-  | c = CONSTRUCTOR DOT i = ide 
+  | c = CONSTRUCTOR DOT i = ide
       { {qual = c; id = i} }
 ;
 
 /* Constants */
 
 atomic_constant:
-  | i = INT 
+  | i = INT
       { Eint(i) }
-  | f = FLOAT 
+  | f = FLOAT
       { Efloat(f) }
   | s = STRING
       { Estring s }
@@ -784,15 +784,15 @@ atomic_constant:
 ;
 
 label_expression_list:
-  | l = label_expression 
+  | l = label_expression
       { [l] }
   | l = label_expression SEMI
       { [l] }
-  | l = label_expression SEMI ll = label_expression_list 
+  | l = label_expression SEMI ll = label_expression_list
       { l :: ll }
 
 label_expression:
-  | i = ext_ident EQUAL e = expression 
+  | i = ext_ident EQUAL e = expression
       { (i, e) }
 ;
 
@@ -819,12 +819,12 @@ ext_ident :
 ;
 
 infx:
-  | INFIX0          { $1 } 
+  | INFIX0          { $1 }
   | INFIX1          { $1 }    | INFIX2        { $1 }
   | INFIX3          { $1 }    | INFIX4        { $1 }
-  | STAR            { "*" }   
+  | STAR            { "*" }
   | EQUAL           { "=" }
-  | EQUALEQUAL      { "==" }  
+  | EQUALEQUAL      { "==" }
   | SUBTRACTIVE     { $1 }    | PREFIX        { $1 }
   | AMPERSAND       { "&" }   | AMPERAMPER    { "&&" }
   | OR              { "or" }  | BARBAR        { "||" }
@@ -859,11 +859,11 @@ simple_type:
 simple_type_desc:
   | t = type_var
       { Etypevar t }
-  | i = ext_ident 
+  | i = ext_ident
       { Etypeconstr(i, []) }
   | t = simple_type i = ext_ident
       { Etypeconstr(i, [t]) }
-  | LPAREN t = type_expression COMMA tl = type_comma_list RPAREN i = ext_ident 
+  | LPAREN t = type_expression COMMA tl = type_comma_list RPAREN i = ext_ident
       { Etypeconstr(i, t :: tl) }
   | LPAREN t = type_expression RPAREN
       { t.desc }
@@ -888,12 +888,10 @@ type_comma_list :
 ;
 
 kind:
-  | NODE 
+  | NODE
       { D }
-  | HYBRID 
+  | HYBRID
       { C }
   | DISCRETE
       { AD }
 ;
-
-
