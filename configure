@@ -241,9 +241,8 @@ if [ "${ocaml_path}" != "NOT_FOUND" ]; then
     
     # TODO: change after patch integrated into glMLite
     # "exit (if major >= 0 && minor >= 3 && patch > 50 then 100 else 200);;" \
-    printf "let (major, minor, patch) = GL.glmlite_version in" \
-	"exit (if major >= 0 && minor >= 3 && patch >= 50 then 100 else (if major + minor + patch = 0 then 110 else 200));;\n" \
-	| ${OCAMLBIN}ocaml -I ${glmlite_incl} GL.cma  >/dev/null 2>&1
+    printf "let (major, minor, patch) = GL.glmlite_version in exit (if major >= 0 && minor >= 3 && patch >= 50 then 100 else (if major + minor + patch = 0 then 110 else 200));;\n" \
+	| ${OCAMLBIN}ocaml -I ${glmlite_incl} GL.cma >/dev/null 2>&1
     GLMLV=$?
     
     if [ $GLMLV -eq 100 ]; then
@@ -256,7 +255,7 @@ if [ "${ocaml_path}" != "NOT_FOUND" ]; then
 	glmlite_status="${glmlite_path} (SVN HEAD version)"
 	glmlite_enabled=1
     else
-	glmlite_status="NOT WORKING (3D demos disabled)"
+	glmlite_status="NOT WORKING (${glmlite_incl}; 3D demos disabled)"
 	glmlite_enabled=0
     fi
 else
