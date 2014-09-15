@@ -1,0 +1,158 @@
+
+>From 93677094fa4a0a0f7063e230d032d1e997082d6e Mon Sep 17 00:00:00 2001
+From: Adrien Guatto <adrien@ludics.eu>
+Date: Sun, 2 Oct 2011 18:49:43 +0200
+Subject: [PATCH] Ported to MacOS X Lion.
+
+
+diff --git trunk/SRC/Makefile.GLE trunk/SRC/Makefile.GLE
+index a5b84f3..763770d 100644
+--- trunk/SRC/Makefile.GLE
++++ trunk/SRC/Makefile.GLE
+@@ -26,7 +26,14 @@
+ #
+ # }}}
+
++UNAME := $(shell uname)
++
+ GLE_PATH := /usr/X11R6/lib
++ifeq ($(UNAME), Darwin)
++GLE_LIBS :=
++else
++GLE_LIBS := -lgle
++endif
+
+ .PHONY: all gle_byte gle_opt
+ all: gle_byte gle_opt
+@@ -57,13 +64,13 @@ gle.wrap.o: gle.wrap.c
+	$(OCAMLC)  -c  $<
+
+ dllGLE.so libGLE.a: gle.wrap.o
+-	$(OCAMLMKLIB) -o GLE $< -L"$(OCAML_PATH)" -lbigarray -L$(GLE_PATH)
+-lgle $(GL_LIBS)
++	$(OCAMLMKLIB) -o GLE $< -L"$(OCAML_PATH)" -lbigarray -L$(GLE_PATH)
+$(GLE_LIBS) $(GL_LIBS)
+
+ GLE.cmxa GLE.a:  GLE.cmx  dllGLE.so
+-	$(OCAMLMKLIB) -o GLE $< -L"$(OCAML_PATH)" -lbigarray -L$(GLE_PATH)
+-lgle $(GL_LIBS)
++	$(OCAMLMKLIB) -o GLE $< -L"$(OCAML_PATH)" -lbigarray -L$(GLE_PATH)
+$(GLE_LIBS) $(GL_LIBS)
+
+ GLE.cma:  GLE.cmo  dllGLE.so
+-	$(OCAMLMKLIB) -o GLE $< -L"$(OCAML_PATH)" -lbigarray -L$(GLE_PATH)
+-lgle $(GL_LIBS)
++	$(OCAMLMKLIB) -o GLE $< -L"$(OCAML_PATH)" -lbigarray -L$(GLE_PATH)
+$(GLE_LIBS) $(GL_LIBS)
+
+ DIST_FILES_GLE=\
+     GLE.cma   \
+diff --git trunk/SRC/Makefile.ftgl trunk/SRC/Makefile.ftgl
+index 948a885..ec03b2a 100644
+--- trunk/SRC/Makefile.ftgl
++++ trunk/SRC/Makefile.ftgl
+@@ -33,8 +33,8 @@ all: ftgl_byte ftgl_opt
+ ftgl_byte: ftgl.cma
+ ftgl_opt: ftgl.cmxa
+
+-FTGL_LIBS := -lfreetype -lz -lftgl
+-FTGL_INCS := -I/usr/include/freetype2
++FTGL_LIBS := $(shell pkg-config --libs freetype2) -lz -lftgl
++FTGL_INCS := $(patsubst -I%,-ccopt -I%,$(shell pkg-config --cflags
+freetype2))
+
+ ftgl.cmx: ftgl.ml
+	$(OCAMLOPT) -c $<
+@@ -43,7 +43,7 @@ ftgl.cmo: ftgl.ml
+	$(OCAMLC) -c $<
+
+ ftgl.wrap.o: ftgl.wrap.c
+-	$(OCAMLC) -c  -ccopt $(FTGL_INCS)  $<
++	$(OCAMLC) -c  $(FTGL_INCS)  $<
+
+ dllftgl.so  libftgl.a: ftgl.wrap.o
+	$(OCAMLMKLIB)  -o  ftgl  $<  $(FTGL_LIBS)
+diff --git trunk/SRC/Makefile.png trunk/SRC/Makefile.png
+index 9cfb36d..bdf46e2 100644
+--- trunk/SRC/Makefile.png
++++ trunk/SRC/Makefile.png
+@@ -27,7 +27,7 @@
+ # }}}
+
+ PNG_CFLAGS := $(shell libpng-config --cflags)
+-PNG_LIBS   := $(shell libpng-config --libs)
++PNG_LIBS   := $(shell libpng-config --ldflags)
+
+ .PHONY: png png_byte png_opt
+ png all: png_byte png_opt
+diff --git trunk/SRC/gle.wrap.c trunk/SRC/gle.wrap.c
+index de915f7..8ac3a0e 100644
+--- trunk/SRC/gle.wrap.c
++++ trunk/SRC/gle.wrap.c
+@@ -25,7 +25,13 @@
+
+ \* }}} */
+
++#ifndef __APPLE__
+ #include <GL/gle.h>
++#else
++#include <GLUT/tube.h>
++#include <GLUT/tube_gc.h>
++#include <GLUT/port.h>
++#endif
+
+ #include <caml/mlvalues.h>
+ #include <caml/memory.h>
+@@ -37,7 +43,7 @@
+ #define Some_val(v) Field(v,0)
+
+
+-#if __GLE_DOUBLE
++#ifdef __GLE_DOUBLE
+ #define check_kind(func,ba) \
+     if ((Bigarray_val(ba)->flags & BIGARRAY_KIND_MASK) !=
+     BIGARRAY_FLOAT64) \
+	 caml_invalid_argument(#func ": wrong Bigarray.kind")
+@@ -129,7 +135,9 @@ CAMLprim value ml_glegetjoinstyle( value unit )
+
+
+ CAMLprim value ml_gledestroygc( value unit ) {
++#ifndef __APPLE__
+     gleDestroyGC ();
++#endif
+     return Val_unit;
+ }
+
+@@ -176,14 +184,13 @@ CAMLprim value ml_glepolycone(
+     return Val_unit;
+ }
+
+-
+-
+ CAMLprim value ml_glepolycone_c4f(
+	 value npoints,
+	 value point_array,
+	 value color4_array,
+	 value radius_array )
+ {
++#ifndef __APPLE__
+     check_kind(glePolyCone_c4f, point_array);
+     check_kind(glePolyCone_c4f, radius_array);
+
+@@ -192,12 +199,11 @@ CAMLprim value ml_glepolycone_c4f(
+	     (void *) /* gleDouble[][3] */ Data_bigarray_val(point_array),
+	     (gleColor4f *) Data_bigarray_val(color4_array),
+	     (gleDouble *) Data_bigarray_val(radius_array) );
++#endif /* __APPLE__ */
+
+     return Val_unit;
+ }
+
+-
+-
+ CAMLprim value ml_gleextrusion(
+	 value ncp,
+	 value contour,
+--
+1.7.3.5
+
