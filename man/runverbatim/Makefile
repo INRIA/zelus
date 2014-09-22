@@ -6,7 +6,8 @@ runverbatim.pdf: runverbatim.dtx runverbatim.ind runverbatim.sty runverbatim.rvr
 	pdflatex $<
 	pdflatex $<
 	@printf "\n\n"
-	-@rubber-info $<
+	# TODO: find a way to extract important logged messages
+	#-@rubber-info $<
 
 runverbatim.ind: runverbatim.idx
 	makeindex -s gind.ist -o $@ $<
