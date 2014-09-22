@@ -127,7 +127,7 @@ compile() {
 	$LASTFLAGS $SUBDIR$file$EXT >$OUTFILE 2>$ERRFILE
     COMPILERSTATUS=$?
 
-    printf "% $COMPILER $COMPILERFLAGS $openfiles \
+    printf "%% $COMPILER $COMPILERFLAGS $openfiles \
 	$LASTFLAGS $SUBDIR$file$EXT ($COMPILERSTATUS)\n" > $outf
     if [ $COMPILERSTATUS -eq 0 ]; then
 	printf '\\runverbatimtrue\n'   >> $outf
