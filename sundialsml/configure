@@ -137,7 +137,7 @@ else
     lapack_info=" (with lapack: ${lapack_lib})"
 fi
 
-arch=`uname -i`
+arch=`uname -m`
 case ${arch} in
     x86_64)
 	cflags="-fPIC"
