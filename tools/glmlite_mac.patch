@@ -1,10 +1,3 @@
-
->From 93677094fa4a0a0f7063e230d032d1e997082d6e Mon Sep 17 00:00:00 2001
-From: Adrien Guatto <adrien@ludics.eu>
-Date: Sun, 2 Oct 2011 18:49:43 +0200
-Subject: [PATCH] Ported to MacOS X Lion.
-
-
 diff --git trunk/SRC/Makefile.GLE trunk/SRC/Makefile.GLE
 index a5b84f3..763770d 100644
 --- trunk/SRC/Makefile.GLE
