@@ -200,7 +200,7 @@
   title =	{A Type-Based Analysis of Causality Loops in Hybrid Modelers},
   booktitle =	{17th International Conference on Hybrid Systems:
 		 Computation and Control (HSCC'14)},
-  pages =	{to appear},
+  pages =	{71--82},
   month =	apr,
   year =	2014,
   address =	{Berlin, Germany},
@@ -215,7 +215,7 @@
 
 	This paper addresses this issue for a hybrid modeling language that
 	combines synchronous data-flow equations with Ordinary Differential
-	Equations (ODEs).  We introduce the operator $\mathtt{last}(x)$ for the
+	Equations (ODEs).  We introduce the operator $\Last{x}$ for the
 	left-limit of a signal $x$.  This operator is used to break
 	causality loops and permits a uniform treatment of discrete and
 	continuous state variables. The semantics relies on non-standard
@@ -236,3 +236,48 @@
   }
 }
 
+@inproceedings{CC2015,
+  author =	{Timothy Bourke
+		 and Jean-Louis Cola{\,{c}}o
+		 and Bruno Pagano
+		 and C{\'{e}}dric Pasteur
+		 and Marc Pouzet},
+  title =	{A Synchronous-based Code Generator For Explicit Hybrid
+		 Systems Languages},
+  booktitle =	{24th International Conference on Compiler Construction
+		 (CC 2015)},
+  year =	2015,
+  pages =	{to appear},
+  address =	{London, UK},
+  month =	apr,
+  url =		{http://zelus.di.ens.fr/cc2015/paper.pdf},
+  abstract =	{
+	Modeling languages for hybrid systems are cornerstones of embedded
+	systems development in which software interacts with a physical
+	environment. Sequential code generation from such languages is
+	important for simulation efficiency and for producing code for
+	embedded targets. Despite being routinely used in industrial
+	compilers, code generation is rarely, if ever, described in full
+	detail, much less formalized. Yet formalization is an essential
+	step in building trustable compilers for critical embedded
+	software development.
+
+	This paper presents a novel approach for generating code from a
+	hybrid systems modeling language. By building on top of an existing
+	synchronous language and compiler, it reuses almost all the existing
+	infrastructure with only a few modifications. Starting from an
+	existing synchronous data-flow language conservatively extended with
+	Ordinary Differential Equations (ODEs), this paper details the
+	sequence of source-to-source transformations that ultimately yield
+	sequential code. A generic intermediate language is introduced to
+	represent transition functions. The versatility of this approach is
+	exhibited by treating two classical simulation targets: code that
+	complies with the FMI standard and code directly linked with an
+	off-the-shelf numerical solver (Sundials CVODE).
+
+	The presented material has been implemented in the Zélus compiler
+	and the industrial Scade Suite KCG code generator of Scade 6.
+
+	See also: \url{http://zelus.di.ens.fr/cc2015}.
+  }
+}
