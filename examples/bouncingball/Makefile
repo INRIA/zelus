@@ -33,7 +33,7 @@ autoball.byte: showball.cmo world.cmo ball.cmo autoball.cmo autoball_main.cmo
 autoball.opt: showball.cmx world.cmx ball.cmx autoball.cmx autoball_main.cmx
 	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
 	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) \
-	    $(ZLEXTRALIBS:.cma=.cmxa) $^
+	    graphics.cmxa $(ZLEXTRALIBS:.cma=.cmxa) $^
 
 autoball.ml autoball_main.ml: showball.zci world.zci autoball.zls
 	$(ZELUC) $(ZELUCFLAGS) -s main autoball.zls

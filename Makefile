@@ -121,6 +121,25 @@ dist: all
 	ARCH=`uname -s`-`uname -m`; \
 	  printf "$(S_RED)Compiled with OCaml $${OCAMLVERSION} for $${ARCH}$(S_NORMAL)\n"
 
+install:
+	@for target in $(targets); do case $$target in 		\
+	  byte) cp compiler/$(BIN).byte $(bindir)/$(BIN);	\
+	        printf "$(bindir)/$(BIN)  --$(S_RED)";		\
+		head -n 1 compiler/$(BIN).byte;			\
+		printf "$(S_NORMAL)";;				\
+	  opt)  cp compiler/$(BIN).opt $(bindir)/$(BIN).opt;	\
+	  	printf "$(bindir)/$(BIN).opt\n";;		\
+	esac done
+	@mkdir -p $(libdir)
+	@printf "libdir: $(libdir)\n"
+	@cp `ls lib/*.cma lib/*.cmxa lib/*.a lib/*.cmi lib/*.zci` $(libdir)/
+
+uninstall:
+	rm $(bindir)/$(BIN)
+	rm $(libdir)/*.cma $(libdir)/*.cmxa $(libdir)/*.cmi
+	rm $(libdir)/*.a $(libdir)/*.zci
+	rmdir $(libdir)
+
 opam-dist:
 	mkdir -p opam-dist/zelus/
 	@printf "$(S_BLUE)## Populating source directory$(S_NORMAL)\n"

@@ -2,8 +2,6 @@
 (* taken from the source of the Caml Light 0.73 compiler *)
 
 
-open Lexing
-open Parsing
 open Format
 
 (* two important global variables: [input_name] and [input_chan] *)

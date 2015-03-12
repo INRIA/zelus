@@ -39,7 +39,7 @@ run:
 %_main.cmx: INCLUDES += $(SUNDIALS)
 
 %.ml %_main.ml: $(LCIS) %.zls
-	$(ZELUC) $(ZELUCFLAGS) -s main -period -dzero -sampling 10 -gtk2 $*.zls
+	$(ZELUC) $(ZELUCFLAGS) -s main -dzero -gtk2 $*.zls
 	mv main.ml $*_main.ml
 
 depend: .depend

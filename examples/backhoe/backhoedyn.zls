@@ -1,9 +1,9 @@
 (** Model constants *)
 
-let boom_rate   = 0.4
-let stick_rate  = 0.5
-let bucket_rate = 0.35
-let leg_rate    = 4.0
+let boom_rate   =  1.6
+let stick_rate  = 10.0
+let bucket_rate =  2.8
+let leg_rate    = 32.0
 
 (** Model components *)
 
@@ -12,11 +12,12 @@ let hybrid segment ((min, max, i), maxf, (push, pull, go))
 
  rec der angle = v init i
  and error = v_r -. v
- and der v = (0.7 /. maxf) *. error +. 0.3 *. z init 0.0
+ and der v = (0.8 /. maxf) *. error +. 0.2 *. z init 0.0
              reset hit(v0) -> v0
  and der z = error init 0.0 reset hit(_) -> 0.0
  and v_r = if go then rate else 0.0
- and init (segin, segout) = (angle <= min, angle >= max)
+ and init segin = angle <= min
+ and init segout = angle >= max
 
  and automaton
    | Stuck -> do
@@ -30,18 +31,18 @@ let hybrid segment ((min, max, i), maxf, (push, pull, go))
       do
         rate = maxf
         and atlimit = up(angle -. max)
-      until atlimit on (last v > 0.3 *. maxf) then do
-               emit hit = -0.8 *. last v in Pushing
-      else (atlimit) then do segout = true in Stuck
+      until atlimit on (last v > 0.1 *. maxf) then do
+               emit hit = -0.3 *. last v in Pushing
+      else (atlimit) then do segout = true and emit hit = 0.0 in Stuck
       else pull() then Pulling
 
    | Pulling -> local atlimit in
       do
         rate = -. maxf
         and atlimit = up(min -. angle)
-      until atlimit on (last v < -0.3 *. maxf) then do
-               emit hit = -0.8 *. last v in Pulling
-      else  (atlimit) then do segin = true in Stuck
+      until atlimit on (last v < -0.1 *. maxf) then do
+               emit hit = -0.3 *. last v in Pulling
+      else  (atlimit) then do segin = true and emit hit = 0.0 in Stuck
       else  push() then Pushing
 
 let hybrid legsegment ((min, max, i), rate, (extend, retract, stop)) =

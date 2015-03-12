@@ -26,6 +26,7 @@ let hybrid model () =  (car1, car2, fly, zigzags) where
   rec der car1 = car_velocity init barcelona
   and der car2 = -. car_velocity init girona
   and der fly = fly_velocity init barcelona
+  and init zigzags = 0
 
   and automaton
       | Approaching -> do

@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2013                                               *)
+(*  Copyright (C) 2012-2014                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -32,19 +32,12 @@ let find name =
         eprintf "The name %s is unbound.@." name;
       raise Misc.Error
    
-(* The size of the internal continuous state *)
-let size_of info =
-match !hybrid_mode with
-    | DeltadelayTuple  -> Ode.size_of_states info
-    | _ -> 
-        eprintf "The requested hybrid translation is not yet implemented.";
-        raise Error
-
 (* the main node must be of type [expected_ty_arg] and the result of *)
 (* type [expected_ty_res] *)
-let check_type_of_main_node name info expected_ty_arg expected_ty_res =
+let check_type_of_main_node name 
+			    { qualid = qualid; info = { value_typ = tys } } 
+			    expected_ty_arg expected_ty_res =
   try
-    let { qualid = qualid; info = { value_typ = tys } } = info in
     let k, _, ty_args, ty_res = Types.instance_of_type_signature tys in
     (* check input and output types *)
     begin match ty_args with
@@ -68,52 +61,48 @@ let check_unit_unit name info =
 let check_unit_bool name info =
   check_type_of_main_node name info Initial.typ_unit Initial.typ_bool
 
-let emit_prelude ff qualid k use_gtk =
+let emit_prelude ff ({ Lident.id = id } as qualid) k =
   (* the prelude *)
   let s = Lident.qualidname qualid in
   match k with
   | Deftypes.Tany | Deftypes.Tdiscrete(false) ->
       fprintf ff
-        "(* simulation (any) function *)
-         let main () = %s();;\n" s
+        "@[(* simulation (any) function *)
+           let main () = %s();;@.@]" s
 
   | Deftypes.Tdiscrete(true) ->
       fprintf ff
-        "(* simulation (discrete) function *)
-         let main = let mem = %s() in fun _ -> %s_step mem ();;\n" s s  
+        "@[(* simulation (discrete) function *)\n\
+           let main = let mem = %s_alloc () in fun _ -> %s_step mem ();;@.@]" s s  
 
   | Deftypes.Tcont ->
-      fprintf ff "(* instantiate a numeric solver *)\n";
-      if use_gtk then fprintf ff "module ZLS = Zlsrungtk.Runtime\n"
-      else fprintf ff "module ZLS = Zlsrun.Runtime\n";
-      Copystate.main ff qualid
+      (* first generate the top-level machine *)
+      let m = Inout.simulate (Lident.Modname qualid) in
+      (* emit the code *)
+      Modules.initialize (String.capitalize id);
+      Oprinter.machine_as_functions ff "main" m
 
 (* emited code for control-driven programs: the transition function *)
 (* is executed at full speed *)
-let emit_simulation_code ff k info =
+let emit_simulation_code ff k =
   match k with
   | Deftypes.Tany | Deftypes.Tdiscrete _ ->
       fprintf ff
-          "(* (discrete) simulation loop *)
-           while true do main () done;
-           exit(0)\n"
-
+          "@[(* (discrete) simulation loop *)\n\
+             while true do main () done;\n\
+             exit(0);;@.@]"
   | Deftypes.Tcont ->
-      let n_zeroc, n_cstate = size_of info in
-      fprintf ff
-        ";;
-         (* (hybrid) simulation loop *)
-         let () = Arg.parse (ZLS.args %d) (fun _ -> ())
-                    \"(hybrid) simulation loop; options depend on solver\";;
-         let () = Zlsrun.go (%d, %d) main;;\n" n_cstate n_cstate n_zeroc
+      fprintf ff "@[(* instantiate a numeric solver *)\n\
+                    module Runtime = Zlsrun.Make (Defaultsolver)\n\
+                    let _ = Runtime.go main@.@]"
 
 (* emited code for bounded checking. Check that the function returns [true] *)
 (* during [n] steps *)
-let emit_checked_code ff k info n =
+let emit_checked_code ff k n =
   match k with
   | Deftypes.Tany | Deftypes.Tdiscrete _ ->
       fprintf ff
-          "(* (discrete) simulation loop *)
+          "@[(* (discrete) simulation loop *)
            let ok = ref true in 
            for i = 0 to %d - 1 do
              let r = main () in 
@@ -123,85 +112,50 @@ let emit_checked_code ff k info n =
                end
              else ok := r
            done;
-           exit(0)\n" n
+           exit(0)@.@]" n
 
   | Deftypes.Tcont ->
-      let n_zeroc, n_cstate = size_of info in
-      fprintf ff
-        ";;
-         (* (hybrid) simulation loop *)
-         let () = Arg.parse (ZLS.args %d) (fun _ -> ())
-                    \"(hybrid) simulation loop\";;
-         let sc = ref (ZLS.main' (%d, %d) main) in
-         for i = 0 to %d - 1 do
-           let r, c = ZLS.step !sc in
-           sc := c;
-           (match r with
-            | Some false -> begin
-                 print_string (\"error(\" ^ (string_of_int i) ^ \")\\n\");
-                 exit(2)
-               end
-            | _ -> ())
-         done;
-         exit(0)\n" n_cstate n_cstate n_zeroc n
+      fprintf ff "@[(* instantiate a numeric solver *)\n\
+                    module Runtime = Zlsrun.Make (Defaultsolver)\n\
+                    let _ = Runtime.check main %d@.@]" n
       
-let emit_gtkmain_code ff k info sampling =
+let emit_gtkmain_code ff k sampling =
   match k with
   | Deftypes.Tany | Deftypes.Tdiscrete _ ->
       fprintf ff
-        "(* simulation loop: sampled on %d Hz *)
-         (* compiles with unix.cma lablgtk.cma gtkInit.cmo reactpanel.cmo *)\n"
+        "@[(* simulation loop: sampled on period %f Hz *)\n\
+           (* compiles with unix.cma lablgtk.cma gtkInit.cmo reactpanel.cmo *)@.@]"
         sampling;
       fprintf ff
-        "Reactpanel.go %d (fun()-> (main (); false)) (fun()->()); exit(0)\n"
+        "@[Reactpanel.go %f (fun()-> (main (); false)) (fun()->()); exit(0)@.@]"
         sampling
-
   | Deftypes.Tcont ->
-      let n_zeroc, n_cstate = size_of info in
-      fprintf ff
-        ";;
-         (* (hybrid) simulation loop *)
-         let () = Arg.parse (ZLS.args %d) (fun _ -> ())
-                    \"(hybrid) simulation loop; options depend on solver\";;
-         let () = Zlsrungtk.go (%d, %d) main;;\n" n_cstate n_cstate n_zeroc
+      fprintf ff "@[(* instantiate a numeric solver *)\n\
+                    module Runtime = Zlsrungtk.Make (Defaultsolver)\n\
+                    let _ = Runtime.go main@.@]"
 
 (* emited code for event-driven programs: the transition function *)
 (* is executed every [1/sampling] seconds *)
-let emit_periodic_code ff k info sampling =
+let emit_periodic_code ff k sampling =
   match k with
   | Deftypes.Tany | Deftypes.Tdiscrete _ ->
       fprintf ff
-        "(* simulation loop: sampled on %d Hz *)
-         (* compiles with -custom unix.cma    *)\n"
-        sampling;
+        "@[(* simulation loop: sampled on period %f *)\n\
+           (* compiles with -custom unix.cma    *)@.@]" sampling;
       fprintf ff
-        "let periodic() =
+        "@[let periodic() =
            let _x = Unix.setitimer Unix.ITIMER_REAL
              {Unix.it_interval = %f ; Unix.it_value = 1.0 }
            in Sys.set_signal Sys.sigalrm (Sys.Signal_handle main);
            while true do Unix.sleep 1 done;;
-           periodic();exit(0)\n" (1.0 /. (float sampling))
+           periodic();exit(0)@.@]" sampling
 
   | Deftypes.Tcont ->
-      let n_zeroc, n_cstate = size_of info in
-      fprintf ff
-        "(* (hybrid) simulation loop: sampled on %d Hz *)
-         (* compiles with -custom unix.cma    *)
-         let () = Arg.parse (ZLS.args %d) (fun _ -> ())
-                    \"(hybrid) simulation loop: sampled on %d Hz; options depend on solver\";;
-         let sc = ref (ZLS.main' (%d, %d) main);;
-         let step _ = let _, _, s' = ZLS.step !sc in sc := s';;\n"
-         sampling n_cstate sampling n_cstate n_zeroc;
-      fprintf ff
-        "let periodic() =
-           let _x = Unix.setitimer Unix.ITIMER_REAL
-             {Unix.it_interval = %f ; Unix.it_value = 1.0 }
-           in Sys.set_signal Sys.sigalrm (Sys.Signal_handle step);
-           while not (ZLS.is_done !sc) do Unix.sleep 1 done;;
-           periodic();exit(0)\n" (1.0 /. (float sampling))
+      fprintf ff "@[(* instantiate a numeric solver *)
+                    let _ = Zlsrun.go main@.@]"
 
 (** The main entry function. Simulation of a main function *)
-let emit name sampling number_of_checks use_gtk =
+let main name sampling number_of_checks use_gtk =
   (* - open the module where main occurs
      - makes a module of that name
      - instanciate main inside it
@@ -213,19 +167,21 @@ let emit name sampling number_of_checks use_gtk =
     else check_unit_unit name info in
   let oc = open_out filename in
   let ff = Format.formatter_of_out_channel oc in
-  emit_prelude ff qualid k use_gtk;
+  emit_prelude ff qualid k;
   if number_of_checks > 0 then
-    if sampling <> 0 then
+    if sampling <> 0.0 then
       begin
         eprintf "Do not use -sampling when checking node %s.@." name;
         raise Misc.Error
       end
     else
-      emit_checked_code ff k info number_of_checks
+      emit_checked_code ff k number_of_checks
   else
-    if use_gtk then emit_gtkmain_code ff k info sampling
+    if sampling < 0.0 then 
+      eprintf "Do not use -sampling with a negative argument.@."
+    else if use_gtk then emit_gtkmain_code ff k sampling
     else
-      if sampling = 0 then emit_simulation_code ff k info
-      else emit_periodic_code ff k info sampling;
+      if sampling = 0.0 then emit_simulation_code ff k
+      else emit_periodic_code ff k sampling;
   close_out oc
 

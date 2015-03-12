@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2013                                               *)
+(*  Copyright (C) 2012-2014                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -39,18 +39,18 @@ let build_table subst eq_list =
                   (* build [pre(n) -> x] if it does not exist already *)
                   Env.add n x table, subst, eq :: eq_list
           end
-      | EQeq _ | EQinit _ | EQnext _ | EQmatch _ | EQreset _ -> 
-	   table, subst, eq :: eq_list
-      | EQder _ | EQemit _ | EQautomaton _ 
-      | EQpresent _ -> assert false in
-  let table, subst, eq_list =
-    List.fold_left equation (Env.empty, subst, []) eq_list in
+      | EQeq _ | EQset _ | EQinit _ | EQnext _ 
+      | EQmatch _ | EQreset _ | EQder _ -> table, subst, eq :: eq_list
+      | EQemit _ | EQautomaton _ | EQpresent _ | EQblock _ -> assert false
+ and equation_list table subst eq_list =
+    List.fold_left equation (table, subst, []) eq_list in
+  let table, subst, eq_list = equation_list Env.empty subst eq_list in
   subst, eq_list
 
 (* substitution *)
 let rec exp subst e = 
   match e.e_desc with
-    | Econst _ | Econstr0 _ | Eglobal _ -> e
+    | Econst _ | Econstr0 _ | Eglobal _ | Elast _ -> e
     | Elocal(n) ->
         begin try { e with e_desc = Elocal(Env.find n subst) }
         with Not_found -> e end
@@ -71,14 +71,18 @@ let rec exp subst e =
        (* lets are supposed to be normalized, i.e., no more *)
        (* stateful functions inside *)
        { e with e_desc = Elet(local subst l, exp subst e_let) }
-    | Elast _ | Eperiod _ | Epresent _ | Ematch _ -> assert false
+    | Eperiod _ | Epresent _ | Ematch _ -> assert false
     
 (* [equation subst eq = eq'] apply a substitution to eq. *)
 and equation subst eq =
   match eq.eq_desc with
     | EQeq(pat, e) -> { eq with eq_desc = EQeq(pat, exp subst e) }
-    | EQinit(pat, e0, None) -> { eq with eq_desc = EQinit(pat, exp subst e0, None) }
-    | EQnext(pat, e, None) -> { eq with eq_desc = EQnext(pat, exp subst e, None) }
+    | EQset(ln, e) -> { eq with eq_desc = EQset(ln, exp subst e) }
+    | EQinit(n, e0) -> 
+       { eq with eq_desc = EQinit(n, exp subst e0) }
+    | EQnext(n, e, e_opt) -> 
+       { eq with eq_desc = EQnext(n, exp subst e, 
+				  Misc.optional_map (exp subst) e_opt) }
     | EQmatch(total, e, m_h_list) ->
         let e = exp subst e in
         let m_h_list = 
@@ -86,10 +90,13 @@ and equation subst eq =
             (fun ({ m_body = b} as h) -> { h with m_body = block subst b }) 
             m_h_list in
         { eq with eq_desc = EQmatch(total, e, m_h_list) }
-    | EQreset(b, e) ->
-        { eq with eq_desc = EQreset(block subst b, exp subst e) }
+    | EQreset(res_eq_list, e) ->
+        { eq with eq_desc = 
+		    EQreset(List.map (equation subst) res_eq_list, exp subst e) }
+    | EQder(n, e, None, []) -> 
+       { eq with eq_desc = EQder(n, exp subst e, None, []) }
     | EQder _ | EQemit _ | EQautomaton _ 
-    | EQpresent _ | EQinit _ | EQnext _ -> assert false
+    | EQpresent _ | EQblock _ -> assert false
 
 and local subst ({ l_eq = eq_list } as l) =
   (* extends the association table *)

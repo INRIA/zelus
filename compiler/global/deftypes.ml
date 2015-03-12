@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2013                                               *)
+(*  Copyright (C) 2012-2014                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -52,7 +52,7 @@ and typ_scheme =
 and typ_body =
     | Tvalue of typ
     | Tsignature of kind * bool * typ list * typ
-
+		
 and instance =
   { typ_instance: typ list }
 
@@ -66,9 +66,13 @@ type tentry =
 
 and tsort = 
   | Val (* a value. [last x] is forbidden *)
-  | ValDefault of immediate 
-        (* a value. [last x] is forbidden. Default value is [false] *)
+  | ValDefault of constant
+        (* a value. [last x] is forbidden. *)
   | Mem of tmem
+
+and constant =
+  | Cimmediate of immediate
+  | Cglobal of Lident.t
 
 (** a memory variable. Either change the current value or the next one *)
 (** Invariant: m.t_last_is_used => not(m.t_next_is_set) *)
@@ -84,18 +88,21 @@ and tmem =
 
 (* treatment to be done when an equation is absent in a branch *)
 and default = 
-  | Previous (* complement with [x = last x] *)
+  | Previous (* the variable is a register; complement with [x = last x] *)
   | Default (* produce a default value *)
-  | Absent (* do nothing. This is the case for signals *)
+  | Absent (* do nothing; this is the case for signals *)
 
 (** Names written in a block *)
 type defnames = 
     { dv: Ident.S.t; (* [x = ...] or [next x = ...] *)
       di: Ident.S.t; (* [init x = ...],[x = ... init ...], *)
                      (* [x = present ... init ...]*)
-      dr: Ident.S.t; (* [der x = ...] *)
+      der: Ident.S.t; (* [der x = ...] *)
     }
 
+(* empty set of defined names *)
+(** Making values *)
+let empty = { dv = Ident.S.empty; di = Ident.S.empty; der = Ident.S.empty }
 
 (* introduced names in the [initialization] phase are fully generalized *)
 let make desc =
@@ -110,9 +117,22 @@ let no_abbrev () = ref Tnil
 let discrete_memory = { t_initialized = true; t_last_is_used = true;
 			t_der_is_defined = false; t_is_set = true;
 			t_next_is_set = false; t_default = Previous }
+let last_and_next_memory = { t_initialized = true; t_last_is_used = true;
+			     t_der_is_defined = false; t_is_set = true;
+			     t_next_is_set = true; t_default = Previous }
 let continuous_memory = { t_initialized = true; t_last_is_used = true;
 			t_der_is_defined = true; t_is_set = true;
 			t_next_is_set = false; t_default = Default }
+let empty_mem = 
+  { t_initialized = false; t_is_set = false; t_next_is_set = false;
+    t_last_is_used = false; t_der_is_defined = false; 
+    t_default = Previous }
+
+let memory m is_next is_initialized =
+  match m with
+  | Val | ValDefault _ -> Mem { empty_mem with t_initialized = is_initialized;
+					       t_next_is_set = is_next }
+  | Mem k -> Mem { k with t_initialized = is_initialized; t_next_is_set = is_next }
 
 let desc ty = ty.t_desc
 let index ty = ty.t_index

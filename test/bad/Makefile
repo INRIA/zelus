@@ -58,6 +58,9 @@ FORCE:
 	elif `grep -q '^Syntax error.' $@`; then			 \
 	    printf -- "--bad /$(<:.zls=): $(S_RED)ERROR$(S_NORMAL) (Syntax error, see $(<:.zls=.log))\n"; \
 	    rm -f "$(<:.zls=.ok)";					 \
+	elif `grep -q '^Fatal error: cannot find file.*zeluc.byte' $@`; then			 \
+	    printf -- "--bad /$(<:.zls=): $(S_RED)SYSTEM ERROR$(S_NORMAL) (zeluc.byte not found)\n"; \
+	    rm -f "$(<:.zls=.ok)";					 \
 	else								 \
 	    printf -- "--bad /$(<:.zls=): $(S_GREEN)correctly rejected$(S_NORMAL)\n"; \
 	    touch "$(<:.zls=.ok)";					 \

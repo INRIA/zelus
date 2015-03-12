@@ -1,5 +1,5 @@
 
-open Solvers
+open Zls
 
 module type BUTCHER_TABLEAU =
 sig (* {{{ *)
@@ -46,7 +46,9 @@ end (* }}} *)
 
 module GenericODE (Butcher : BUTCHER_TABLEAU) : STATE_SOLVER =
 struct (* {{{1 *)
-  include SolverInfrastructure
+  open Bigarray
+
+  let debug = ref false
 
   let pow = 1.0 /. float(Butcher.order)
 
@@ -72,6 +74,25 @@ struct (* {{{1 *)
     done
   let mhBI_row r = Array.sub h_matBI (r * colsBI) colsBI
 
+  let minmax minimum maximum x = min maximum (max minimum x)
+
+  let mapinto r f =
+    for i = 0 to Array1.dim r - 1 do
+      r.{i} <- f i
+    done
+
+  let fold2 f a v1 v2 =
+    let acc = ref a in
+    for i = 0 to min (length v1) (length v2) - 1 do
+      acc := f !acc (get v1 i) (get v2 i)
+    done;
+    !acc
+
+  let maxnorm2 f = fold2 (fun acc v1 v2 -> max acc (abs_float (f v1 v2))) 0.0
+
+  type rhsfn = float -> Zls.carray -> Zls.carray -> unit
+  type dkyfn = Zls.carray -> float -> int -> unit
+
   (* dx = sysf(t, y) describes the system dynamics
 
      y/time         is the current  mesh point
@@ -90,29 +111,45 @@ struct (* {{{1 *)
      k.(1--maxK-1) track intermediate instantaneous derivatives during the
      calculation of the next mesh point.
   *)
-  type solver_t = {
-    sysf : float -> cvec -> cvec -> unit;
-    mutable y : cvec;
+  type t = {
+    sysf : float -> Zls.carray -> Zls.carray -> unit;
+    mutable y : Zls.carray;
     mutable time      : float;
     mutable last_time : float;
     mutable h         : float;
     mutable hmax      : float;
 
-    k                 : cvec array;
+    k                 : Zls.carray array;
 
-    mutable yold : cvec;
+    mutable yold      : Zls.carray;
+
+    (* -- parameters -- *)
+    mutable stop_time  : float;
+
+    (* bounds on small step sizes (mesh-points) *)
+    mutable min_step   : float;
+    mutable max_step   : float;
+
+    (* initial/fixed step size *)
+    mutable initial_step_size  : float option;
+
+    mutable rel_tol    : float;
+    mutable abs_tol    : float;
   }
-  type t = solver_t parameter_t
+
+  type nvec = Zls.carray
+  let cmake = Array1.create float64 c_layout
+  let unvec x = x
 
   let calculate_hmax tfinal max_step =
     if tfinal = infinity then max_step
     else if max_step = infinity then 0.1 *. tfinal
     else min max_step tfinal
 
-  (* NB: solver.y must be the initial state vector (y_0)
-   *     solver.k(0) must be the initial deriviatives vector (dy_0) *)
+  (* NB: y must be the initial state vector (y_0)
+   *     k(0) must be the initial deriviatives vector (dy_0) *)
   let initial_stepsize { initial_step_size; abs_tol; rel_tol; max_step;
-                         solver = { time; y; hmax; k } } =
+                         time; y; hmax; k } =
     let hmin = 16.0 *. epsilon_float *. abs_float time in
     match initial_step_size with
     | Some h -> minmax hmin max_step h
@@ -124,61 +161,90 @@ struct (* {{{1 *)
       in
       max hmin (if hmax *. rh > 1.0 then 1.0 /. rh else hmax)
 
-  let reinit ({ stop_time; max_step;
-                solver = { sysf } } as s) t ny =
-    copy ny s.solver.y;
-    s.solver.time      <- t;
-    s.solver.last_time <- t;
-    s.solver.hmax      <- calculate_hmax stop_time max_step;
-    sysf t s.solver.y s.solver.k.(maxK); (* update initial derivatives;
+  let reinitialize ({ stop_time; max_step; sysf } as s) t ny =
+    Bigarray.Array1.blit ny s.y;
+    s.time      <- t;
+    s.last_time <- t;
+    s.hmax      <- calculate_hmax stop_time max_step;
+    sysf t s.y s.k.(maxK); (* update initial derivatives;
                                             to be FSAL swapped into k.(0) *)
-    s.solver.h         <- initial_stepsize s
+    s.h         <- initial_stepsize s
 
-  let init f ydata =
-    let y_len = length ydata in
-    let s = init_parameters ({
+  let initialize f ydata =
+    let y_len = Bigarray.Array1.dim ydata in
+    let s = {
         sysf       = f;
-        y          = create y_len;
+        y          = Zls.cmake y_len;
         time       = 0.0;
         last_time  = 0.0;
         h          = 0.0;
         hmax       = 0.0;
 
-        k          = Array.init (maxK + 1) (fun _ -> create y_len);
-        yold       = create y_len;
-      }) in
-    copy ydata s.solver.k.(0);
-    reinit s 0.0 ydata;
+        k          = Array.init (maxK + 1) (fun _ -> Zls.cmake y_len);
+        yold       = Zls.cmake y_len;
+
+        (* parameters *)
+        stop_time = infinity;
+
+        min_step          = 16.0 *. epsilon_float;
+        max_step          = infinity;
+        initial_step_size = None;
+
+        rel_tol   = 1.0e-3;
+        abs_tol   = 1.0e-6;
+      } in
+    Bigarray.Array1.blit ydata s.k.(0);
+    reinitialize s 0.0 ydata;
     s
+
+  let set_stop_time t v =
+    if (v <= 0.0) then failwith "The stop time must be strictly positive.";
+    t.stop_time <- v
+
+  let set_min_step   t v = t.min_step <- v
+  let set_max_step   t v = t.max_step <- v
+
+  let set_tolerances t rel abs =
+    if (rel <= 0.0 || abs <= 0.0)
+    then failwith "Tolerance values must be strictly positive.";
+    (t.rel_tol <- rel; t.abs_tol <- abs)
 
   let make_newval y k s =
     let hB = mhB_row s in
     let newval i =
-      let acc = ref (get y i) in
+      let acc = ref y.{i} in
       for si = 0 to s - 1 do
-        acc := !acc +. (get k.(si) i) *. hB.(si)
+        acc := !acc +. k.(si).{i} *. hB.(si)
       done;
       !acc in
     newval
 
   let calculate_error threshold k y ynew =
     let maxerr = ref 0.0 in
-    for i = 0 to length y - 1 do
+    for i = 0 to Bigarray.Array1.dim y - 1 do
       let kE = ref 0.0 in
       for s = 0 to maxK do
-        kE := !kE +. (get k.(s) i) *. mE s
+        kE := !kE +. k.(s).{i} *. mE s
       done;
-      let err = !kE /. (max threshold (max (abs_float (get y i))
-                                         (abs_float (get ynew i)))) in
+      let err = !kE /. (max threshold (max (abs_float y.{i})
+                                           (abs_float ynew.{i}))) in
       maxerr := max !maxerr (abs_float err)
     done;
     !maxerr
 
+  let log_step t y dy t' y' dy' =
+    Printf.printf
+      "s|        % .24e                                       % .24e\n" t t';
+    for i = 0 to Array1.dim y - 1 do
+      Printf.printf "s| f[% 2d]: % .24e (% .24e) --> % .24e (% .24e)\n"
+        i (y.{i}) dy.{i} y'.{i} dy'.{i}
+    done
+
   (* TODO: add stats: nfevals, nfailed, nsteps *)
   let rec step s t_limit user_y =
     let { stop_time; min_step; abs_tol; rel_tol;
-          solver = { sysf = f; time = t; h = h; hmax = hmax;
-                     k = k; y = y; yold = ynew }; } = s in
+          sysf = f; time = t; h = h; hmax = hmax;
+          k = k; y = y; yold = ynew; } = s in
 
     (* First Same As Last (FSAL) swap; doing it after the previous
        step invalidates the interpolation routine. *)
@@ -199,7 +265,7 @@ struct (* {{{1 *)
            "odexx: step size < min step size (\n       now=%.24e\n         h=%.24e\n< min_step=%.24e)"
            t h s.min_step);
 
-    if !debug then printf "s|\ns|----------step(%.24e)----------\n" max_t;
+    if !debug then Printf.printf "s|\ns|----------step(%.24e)----------\n" max_t;
 
     let rec onestep alreadyfailed h =
 
@@ -217,7 +283,7 @@ struct (* {{{1 *)
 
       let err = h *. calculate_error (abs_tol /. rel_tol) k y ynew in
       if err > rel_tol then begin
-        if !debug then printf "s| error exceeds tolerance\n";
+        if !debug then Printf.printf "s| error exceeds tolerance\n";
 
         if h <= hmin then failwith
             (Printf.sprintf "Error (%e) > relative tolerance (%e) at t=%e"
@@ -240,19 +306,17 @@ struct (* {{{1 *)
     let nextt, nexth = onestep false h in
 
     (* advance a step *)
-    s.solver.y  <- ynew;
-    s.solver.yold <- y;
+    s.y  <- ynew;
+    s.yold <- y;
 
-    copy ynew user_y;
-    s.solver.last_time <- t;
-    s.solver.time <- nextt;
-    s.solver.h <- nexth;
-    s.solver.time
+    Bigarray.Array1.blit ynew user_y;
+    s.last_time <- t;
+    s.time <- nextt;
+    s.h <- nexth;
+    s.time
 
-  let full_step = make_full_step step
-
-  let get_dky { solver = { last_time = t; time = t'; h = h; yold = y; k = k } }
-      ti kd yi =
+  let get_dky { last_time = t; time = t'; h = h; yold = y; k = k }
+      yi ti kd =
 
     if kd > 0 then
       failwith "get_dky: requested derivative cannot be interpolated";
@@ -263,10 +327,10 @@ struct (* {{{1 *)
     let th = (ti -. t) /. h in
 
     update_mhBI h;
-    for i = 0 to length y - 1 do
-      let ya = ref (get y i) in
+    for i = 0 to Bigarray.Array1.dim y - 1 do
+      let ya = ref y.{i} in
       for s = 0 to maxK do
-        let k = get k.(s) i in
+        let k = k.(s).{i} in
         let hbi = mhBI_row s in
         let acc = ref 0.0 in
         for j = maxBI downto 0 do
@@ -274,12 +338,12 @@ struct (* {{{1 *)
         done;
         ya := !ya +. !acc
       done;
-      set yi i !ya
+      yi.{i} <- !ya
     done
 
 end (* }}} *)
 
-module ODE23 = GenericODE (
+module Ode23 = GenericODE (
   struct
   let order = 3
   let initial_reduction_limit_factor = 0.5
@@ -298,7 +362,7 @@ module ODE23 = GenericODE (
               0.0;   -1.0;       1.0      |]
   end)
 
-module ODE45 = GenericODE (
+module Ode45 = GenericODE (
   struct
   let order = 5
   let initial_reduction_limit_factor = 0.1
@@ -325,16 +389,4 @@ module ODE45 = GenericODE (
               0.0;   -11.0/.7.0;       11.0/.3.0;      -55.0/.28.0;
               0.0;     3.0/.2.0;         -4.0;           5.0/.2.0     |]
   end)
-
-let _ =
-  Zlsolve.register
-    "ode23"
-    "internal solver: bogacki-shampine with illinois method"
-    (module Solver (ODE23) (Illinois) : SOLVER)
-
-let _ =
-  Zlsolve.register
-    "ode45"
-    "internal solver: dormand-prince with illinois method"
-    (module Solver (ODE45) (Illinois) : SOLVER)
 

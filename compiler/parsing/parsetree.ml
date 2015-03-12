@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2013                                               *)
+(*  Copyright (C) 2012-2014                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -82,15 +82,21 @@ and desc =
   | Eseq of exp * exp
   | Eperiod of period
   | Ematch of exp * exp match_handler list
-  | Epresent of exp present_handler list * exp option
+  | Epresent of exp present_handler list * exp default
   | Eautomaton of exp state_handler list * state_exp option
   | Ereset of exp * exp
 
 and is_rec = bool
 
+and is_weak = bool
+
+and is_inline = bool
+
+and 'a default = Nothing | Init of 'a | Else of 'a 
+
 and op =
-    | Efby | Eunarypre | Eifthenelse | Eminusgreater | Eup | Einitial | Edisc | Eon
-    | Etest | Eop of longname
+    | Efby | Eunarypre | Eifthenelse | Eminusgreater 
+    | Eup | Einitial | Edisc | Etest | Eop of is_inline * longname
 
 and immediate =
     | Eint of int
@@ -100,10 +106,10 @@ and immediate =
     | Estring of string
     | Evoid
 
-(* a period is of the form v^* (v^+). E.g., 0.2 (3.4 5.2) *)
+(* a period is of the form [v](v). E.g., 0.2 (3.4) or (5.2) *)
 and period =
-    { p_phase: float list;
-      p_period: float list }
+    { p_phase: float option;
+      p_period: float }
 
 and constr = longname
 
@@ -127,16 +133,18 @@ and eqdesc =
     (* [p = e] *)
   | EQder of name * exp * exp option * exp present_handler list
     (* [der n = e [init e0] [reset p1 -> e1 | ... | pn -> en]] *)
-  | EQinit of pattern * exp * exp option
-    (* [init p = e0] or [p = e init e0] *)
-  | EQnext of pattern * exp * exp option
-    (* [next p = e] or [next p = e init e0] *)
+  | EQinit of name * exp
+    (* [init n = e0] *)
+  | EQnext of name * exp * exp option
+    (* [next n = e] or [next n = e init e0] *) 
   | EQemit of name * exp option
     (* [emit n = e] *)
   | EQautomaton of eq list state_handler list * state_exp option
   | EQpresent of eq list block present_handler list * eq list block option
   | EQmatch of exp * eq list block match_handler list
+  | EQifthenelse of exp * eq list block * eq list block
   | EQreset of eq list * exp
+  | EQblock of eq list block
 
 and 'a block = 'a block_desc localized
 
@@ -153,7 +161,7 @@ and statepat = statepatdesc localized
 
 and statepatdesc =
     | Estate0pat of name
-    | Estate1pat of name * pattern list
+    | Estate1pat of name * name list
 
 and state_exp = state_exp_desc localized
 
@@ -186,8 +194,10 @@ and 'a present_handler =
     { p_cond: scondpat;
       p_body: 'a; }
 
-and 'a state_handler =
-    { s_state : statepat;
-      s_block : 'a block;
+and 'a state_handler_desc = 
+    { s_state : statepat; 
+      s_block : 'a block; 
       s_until : escape list;
-      s_unless : escape list; }
+      s_unless : escape list } 
+
+and 'a state_handler = 'a state_handler_desc localized

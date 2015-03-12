@@ -24,6 +24,6 @@ realclean cleanall: clean
 .SUFFIXES : .ml .zls .byte
 
 .zls.ml:
-	$(ZELUC) $(ZELUCFLAGS) -s main -sampling 100 $<
+	$(ZELUC) $(ZELUCFLAGS) -s main $<
 	mv main.ml $(<:.zls=)_main.ml
 

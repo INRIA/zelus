@@ -1,12 +1,9 @@
-% ../compiler/zeluc.byte -I ../lib -I ./samples  	-i samples/tutorial0066.zls (2)
-\runverbatimfalse
+% ../compiler/zeluc.byte -I ../lib -I ./samples  	-i samples/tutorial0066.zls (0)
+\runverbatimtrue
 \setrunverbatimcmd{zeluc.byte -i \runverbatimfile}
 \begin{RunVerbatimMsg}
-Failed.
+val two_states : int * int * int -D-> int
 \end{RunVerbatimMsg}
 \begin{RunVerbatimErr}
-File "tutorial.zls", line 12, characters 5-11:
->     unless (counting top = 4) then Emit(true, false)
->     ^^^^^^
-Syntax error.
+Success.
 \end{RunVerbatimErr}

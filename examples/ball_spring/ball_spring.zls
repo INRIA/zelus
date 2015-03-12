@@ -16,7 +16,7 @@ ___________
 
 open Graphics
 let start = 
-  open_graph "";
+  open_graph " 200x500";
   auto_synchronize false;
   set_line_width 4
 
@@ -24,61 +24,102 @@ let start =
 (* [z]: ball height *)
 (* [z_plateform]: plateform height *)
 (* [rad]: ball radius *)
-let discrete draw_ball_plateform(z,z_plateform,rad) = 
+let discrete draw_ball_platform(z,z_platform,rad) =
   clear_graph ();
-  let z = truncate z in
-  let z_plateform = truncate z_plateform in
-  draw_circle (100, z, truncate(rad));
-  moveto(0,z_plateform);
-  lineto(400,z_plateform);
+  let z = truncate (z *. 10.0) in
+  let z_platform = truncate (z_platform *. 10.0) in
+  set_color red;
+  fill_circle (100, z, truncate(rad *. 10.0));
+  set_color blue;
+  moveto(10, z_platform);
+  lineto(190, z_platform);
+  (* add spring zigzags *)
+  let h = z_platform / 8 in
+  moveto( 20, z_platform);
+  lineto(180, z_platform - h);
+  lineto( 20, z_platform - 2 * h);
+  lineto(180, z_platform - 3 * h);
+  lineto( 20, z_platform - 4 * h);
+  lineto(180, z_platform - 5 * h);
+  lineto( 20, z_platform - 6 * h);
+  lineto(180, z_platform - 7 * h);
+  lineto( 20, z_platform - 8 * h);
+  lineto(180, z_platform - 9 * h);
   synchronize ()
 
 (*physical constants for the ball*)
 let g = 9.81
-let m_ball = 80.0
-let radius = 20.0
-(*and for the plateform*)
-let m_plateform = 10.0
-let k = 200.0
-let f = 5.0 (* damping *)
-let base_level = 100.0
-let f_scratch = 1.0 (* level of interaction when sticked *)
+let m_ball = 8.0
+let radius = 2.0
 
-let hybrid integr(x', i) = x where der x = x' init i
+(*and for the platform*)
+let m_platform = 1.0
+let k = 20.0
+let f = 0.5 (* damping *)
+let base_level = 15.0
+let f_scratch = 0.1 (* level of interaction when stuck *)
+
+open Dump
 
 (* Hybrid system description *)
 (* [z0]: initial level of the ball *)
-(* [v0]: initial level of the plateform *)
+(* [v0]: initial level of the platform *)
 (* [radius]: ball radius *)
-let hybrid system(z0,v0,radius) = (z,z_plateform) where
+let hybrid system(z0, v0, radius) = (z, z_platform) where
   rec automaton
-      | Fall(z_init,v_init,z_p_init,v_p_init) -> 
-          do der z = v init z_init
-          and der v = -.g init v_init
-          and der z_plateform = v_plateform init z_p_init
-          and der v_plateform = 
-            -.(k/.m_plateform)*.(z_plateform-. base_level) 
-              -. (f/.m_plateform)*.v_plateform init v_p_init
-          until (up(-.z+.z_plateform+.radius)) then
-            Sticked(z_plateform,((m_ball *. v +. m_plateform *. v_plateform) 
-                 /.(m_ball +. m_plateform)))
-      | Sticked(z_init,v_init) -> local a_plateform in
-        do a_plateform =  -.(k/.(m_plateform+.m_ball)) *. (z_plateform -. 100.0)
-            -. (f/.(m_plateform+.m_ball)) *. v_plateform
-          and der z = v_plateform init (z_init+.radius)
-          and der v = a_plateform init v_init
-          and der z_plateform = v_plateform init z_init
-          and der v_plateform = a_plateform init v_init
-          until 
-            (up(-.(m_ball *. (-.(k /. (m_plateform +. m_ball)) *. 
-                                 (z_plateform-.100.0) 
-                               -. (f /. (m_plateform +. m_ball)) 
-                               *. v_plateform +. f_scratch))))
-          then Fall(z, (m_ball/.(m_ball +. m_plateform)) *. v, z_plateform, (m_plateform/.(m_ball +. m_plateform))*. v_plateform)
-      init Fall(z0,v0,base_level,5.0)
+      | Fall(z_init, v_init, z_p_init, v_p_init) -> 
+          do
+                der z = v init z_init
+            and der v = -.g init v_init
+            and der z_platform = v_platform init z_p_init
+            and der v_platform = 
+              -.(k/.m_platform)*.(z_platform -. base_level) 
+                -. (f/.m_platform)*.v_platform init v_p_init
+            and mode = 0.0
+          until up(-.z +. z_platform +. radius)
+            then Stuck(z_platform,
+                       (m_ball *. v +. m_platform *. v_platform)
+                          /. (m_ball +. m_platform))
 
-let hybrid main () =
-  let t = period(0.2) in
-  let (z,z_plateform) = system(400.0,30.0,radius) in
-  (present t -> draw_ball_plateform(z,z_plateform,radius));
-  ()
+      | Stuck(z_init, v_init) ->
+        local a_platform in
+        do
+              a_platform =  -.(k/.(m_platform +. m_ball))
+                                  *. (z_platform -. base_level)
+                            -. (f/.(m_platform +. m_ball)) *. v_platform
+          and der z = v_platform init (z_init +. radius)
+          and der v = a_platform init v_init
+          and der z_platform = v_platform init z_init
+          and der v_platform = a_platform init v_init
+          and mode = 1.0
+        until up(-.(m_ball *. (a_platform +. f_scratch)))
+          then Fall(z,
+                    (m_ball/.(m_ball +. m_platform)) *. v,
+                    z_platform,
+                    (m_platform/.(m_ball +. m_platform)) *. v_platform)
+
+      init Fall(z0, v0, base_level, 0.5)
+
+   (* Graph the results via gnuplot *)
+   and der t = 1.0 init 0.0
+   and _ = present (period (0.1)) | (init) ->
+             let a_platform = -.(k/.(m_platform +. m_ball))
+                                    *. (z_platform -. base_level)
+                              -. (f/.(m_platform +. m_ball)) *. v_platform
+             in
+             let pos = scope2 (0.0, 100.0, ("ball", linear, z),
+                                           ("platform", linear, z_platform))
+             in
+             let other = scope3 (-10.0, 10.0,
+                   ("mode", square, mode),
+                   ("zfall",  linear, -.z +. z_platform +. radius),
+                   ("zstuck", linear, -.(m_ball *. (a_platform +. f_scratch))))
+             in
+             let w1 = window2("ball_spring", 20.0, t, pos, other) in
+             ()
+
+let hybrid main () = () where
+  rec t = period (0.1)
+  and z, z_platform = system(40.0, 3.0, radius)
+  and _ = present t | (init) -> draw_ball_platform(z, z_platform, radius)
+

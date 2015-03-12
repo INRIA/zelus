@@ -35,7 +35,7 @@ let hybrid chain (theta0, thetap0, move) = theta where
       | Move(th) ->
           do theta = pendulum(th, thetap0)
           until move() then Stop(theta)
-  init Stop 0.0
+  init Stop(0.0)
 
 let hybrid balance theta0 = theta where
   rec der thetap =  -. k1 *. theta init 0.0
@@ -78,7 +78,10 @@ let hybrid clockwatch (h0, t0, theta, r) = (h, t, active) where
           else r() then Setting (hi,ti)
       | Exhausted(ti) ->
           do active = false
+    done
+    (*
           until r() then Setting(h,ti)
+      *)
       | Setting (hi, ti) ->
           do h = set hi
           and active = false

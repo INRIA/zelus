@@ -1,15 +1,69 @@
 
-include Solvers.ZerosInfrastructure
+let printf = Printf.printf
+
+type root_direction = Up | Down | Either | Ignore
+
+let extra_precision = ref false
+let set_precise_logging _ = (extra_precision := true)
+
+let fold_zxzx f acc f0 f1 =
+  let n = Zls.length f0 in
+  let rec fold acc i =
+    if i = n then acc
+    else
+      let acc' = f i acc f0.{i} f1.{i} in
+      fold acc' (i + 1)
+  in fold acc 0
+
+(* return a function that looks for zero-crossings *)
+let get_check_root rdir =
+  let check_up     x0 x1 = if x0 < 0.0 && x1 >= 0.0 then  1l else 0l in
+  let check_down   x0 x1 = if x0 > 0.0 && x1 <= 0.0 then -1l else 0l in
+  let check_either x0 x1 = if x0 < 0.0 && x1 >= 0.0 then  1l else
+                           if x0 > 0.0 && x1 <= 0.0 then -1l else 0l in
+  let no_check x0 x1 = 0l in
+
+  match rdir with
+  | Up     -> check_up
+  | Down   -> check_down
+  | Either -> check_either
+  | Ignore -> no_check
+
+(* return a function that looks for zero-crossings between f0 and f1 *)
+let make_check_root rdir f0 f1 =
+  let check = get_check_root rdir in
+  (fun i -> check f0.{i} f1.{i})
+
+let update_roots calc_zc f0 f1 roots =
+  let update i found x0 x1 =
+    let zc = calc_zc x0 x1 in
+    roots.{i} <- zc;
+    found || (zc <> 0l)
+  in
+  fold_zxzx update false f0 f1
+
+let clear_roots roots =
+  for i = 0 to Zls.length roots - 1 do
+    roots.{i} <- 0l
+  done
+
+let log_limits f0 f1 =
+  let logf i _ = Printf.printf "z| g[% 2d]: % .24e --> % .24e\n" i in
+  fold_zxzx logf () f0 f1
+
+let log_limit f0 =
+  let logf i _ x _ = Printf.printf "z| g[% 2d]: % .24e\n" i x in
+  fold_zxzx logf () f0 f0
+
+let debug = ref false
+
+type zcfn  = float -> Zls.carray -> Zls.carray -> unit
 
 (* type of a session with the solver *)
 (*  zx = g(t, c) yields the values of system zero-crossing expressions
     
     f0/t0 are the zero-crossing expression values at the last mesh point
     f1/t1 are the zero-crossing expression values at the next mesh point
-
-    rightf_valid is false until f1/t1 is initialised. Since this involves a call
-    to the root function g, it must be delayed to avoid triggering undesired
-    side-effects; bothf_valid implies rightf_valid.
 
     bothf_valid is true when both f0/t0 and f1/t1 are valid and thus find
     can check for zero-crossings between them.
@@ -23,63 +77,55 @@ include Solvers.ZerosInfrastructure
     They are kept in the session as an optimisation to avoid having to
     continually create and destroy arrays.
  *)
-type 'cvec t = {
-    g : float -> 'cvec -> zxvec -> unit;
-    mutable rightf_valid : bool;
+type t = {
+    g : zcfn;
     mutable bothf_valid  : bool;
 
-    mutable f0 : zxvec;
+    mutable f0 : Zls.carray;
     mutable t0 : float;
 
-    mutable f1 : zxvec;
+    mutable f1 : Zls.carray;
     mutable t1 : float;
 
-    mutable roots : zvec;
-    mutable calc_zc : float -> float -> int;
+    mutable calc_zc : float -> float -> int32;
 
-    mutable fta : zxvec;
-    mutable ftb : zxvec;
+    mutable fta : Zls.carray;
+    mutable ftb : Zls.carray;
   }
 
-let reinit s t c =
+(* Called from find when bothf_valid = false to initialise f1. *)
+let reinitialize ({ g; f1 = f1; t1 = t1 } as s) t c =
   s.t1 <- t;
-  s.rightf_valid <- false;
+  g t1 c f1;   (* fill f1, because it is immediately copied into f0 by next_mesh *)
+  if !debug then (printf "z|---------- init(%.24e, ... ----------\n" t;
+                  log_limit s.f1);
   s.bothf_valid  <- false
 
-let init (nroots, g) c =
+let initialize nroots g c =
   let s =
     {
         g = g;
-        rightf_valid = false;
         bothf_valid  = false;
 
-        f0 = create nroots;
+        f0 = Zls.cmake nroots;
         t0 = 0.0;
 
-        f1 = create nroots;
+        f1 = Zls.cmake nroots;
         t1 = 0.0;
 
-        fta = create nroots;
-        ftb = create nroots;
+        fta = Zls.cmake nroots;
+        ftb = Zls.cmake nroots;
 
-        roots = zvec_create nroots;
         calc_zc = get_check_root Up;
     }
   in
-  reinit s 0.0 c;
+  reinitialize s 0.0 c;
   s
 
-let num_roots { f0 } = length f0
-
-(* Called from find when bothf_valid = false to initialise f1. This cannot be
-   done in init/reinit where g is not yet guaranteed to be side-effect free. *)
-let init_mesh ({ g; f1 = f1; t1 = t1 } as s) c =
-  g t1 c f1;   (* fill f1, because it is immediately copied into f0 by next_mesh *)
-  s.rightf_valid <- true
+let num_roots { f0 } = Zls.length f0
 
 (* f0/t0 take the previous values of f1/t1, f1/t1 are refreshed by g *)
-let next_mesh ({ g; f0 = f0; f1 = f1; t1 = t1; roots } as s) t c =
-
+let step ({ g; f0 = f0; f1 = f1; t1 = t1 } as s) t c =
   (* swap f0 and f1; f0 takes the previous value of f1 *)
   s.f0 <- f1;
   s.t0 <- t1;
@@ -88,7 +134,11 @@ let next_mesh ({ g; f0 = f0; f1 = f1; t1 = t1; roots } as s) t c =
 
   (* calculate a new value for f1 *)
   g t c s.f1;
-  s.bothf_valid <- true
+  s.bothf_valid <- true;
+
+  if !debug then
+    (printf "z|---------- step(%.24e, %.24e)----------\n" s.t0 s.t1;
+     log_limits s.f0 s.f1)
 
 type root_interval = SearchLeft | FoundMid | SearchRight
 
@@ -110,19 +160,15 @@ let resolve_intervals r1 r2 =
 let check_interval calc_zc f_left f_mid =
   let check i r x0 x1 =
     let rv = calc_zc x0 x1 in
-    let r' = if rv = 0 then SearchRight
+    let r' = if rv = 0l then SearchRight
              else if x1 = 0.0 then FoundMid
              else SearchLeft in
     resolve_intervals r r' in
   fold_zxzx check SearchRight f_left f_mid
 
-let printf = Printf.printf
-
-let find ({ g = g; rightf_valid = rightf_valid;
-            bothf_valid = bothf_valid;
+let find ({ g = g; bothf_valid = bothf_valid;
             f0 = f0; t0 = t0; f1 = f1; t1 = t1;
-            fta = fta; ftb = ftb; roots = roots;
-            calc_zc = calc_zc } as s) dky c =
+            fta = fta; ftb = ftb; calc_zc = calc_zc } as s) (dky, c) roots =
   let ttol = 100.0 *. epsilon_float *. max (abs_float t0) (abs_float t1) in
 
   (* A small optimisation to avoid copying or overwriting f1 *)
@@ -130,10 +176,15 @@ let find ({ g = g; rightf_valid = rightf_valid;
   let f_mid_from_f_right ofr = match ofr with None -> ftb | Some f -> f in
 
   (* update roots and c; return (t, f0_valid, f0, fta, ftb) *)
-  let interval_too_small t_right f_left f_mid f_right' =
-    if !debug then printf "z| too small at %.24e (< %.24e)\n" t_right ttol;
-    dky t_right 0 c;      (* c = dky_0(t_right); update state *)
+  let interval_too_small t_left t_right f_left f_mid f_right' =
+    dky t_right 0;      (* c = dky_0(t_right); update state *)
     ignore (update_roots calc_zc f_left (get_f_right f_right') roots);
+
+    if !debug then
+      (printf
+          "z|---------- stall(%.24e, %.24e) {interval < %.24e !}--\n"
+          t_left t_right ttol;
+       log_limits f_left (get_f_right f_right'));
 
     match f_right' with
     | None         -> (t_right, false, f_left,  f_mid, ftb)
@@ -185,14 +236,14 @@ let find ({ g = g; rightf_valid = rightf_valid;
       fold_zxzx check default f_left f_right in
 
     if dt <= ttol
-    then interval_too_small t_right f_left f_mid f_right'
+    then interval_too_small t_left t_right f_left f_mid f_right'
     else
       let t_mid = leftmost_midpoint t_right in
       if t_mid = t_right
-      then interval_too_small t_right f_left f_mid f_right'
+      then interval_too_small t_left t_right f_left f_mid f_right'
       else begin
 
-        dky t_mid 0 c;   (* c = dky_0(t_mid);    interpolate state *)
+        dky t_mid 0;     (* c = dky_0(t_mid);    interpolate state *)
         g t_mid c f_mid; (* f_mid = g(t_mid, c); compute zc expressions *)
 
         match check_interval calc_zc f_left f_mid with
@@ -218,26 +269,23 @@ let find ({ g = g; rightf_valid = rightf_valid;
       end
   in
 
-  if not rightf_valid then init_mesh s c;
-
-  if not bothf_valid then (clear_roots roots; None)
+  if not bothf_valid then (clear_roots roots; assert false)
   else begin
     if !debug then
-      (printf "z|\nz|---------- find(%.24e, %.24e)----------\n" t0 t1;
-       log_limits f0 f1);
+      printf "z|\nz|---------- find(%.24e, %.24e)----------\n" t0 t1;
 
     match check_interval calc_zc f0 f1 with
     | SearchRight -> begin
         clear_roots roots;
         s.bothf_valid <- false;
-        None
+        assert false
       end
 
     | FoundMid    -> begin
         if !debug then printf "z| zero-crossing at limit (%.24e)\n" t1;
         ignore (update_roots calc_zc f0 f1 roots);
         s.bothf_valid <- false;
-        Some t1
+        t1
       end
 
     | SearchLeft  -> begin
@@ -250,11 +298,12 @@ let find ({ g = g; rightf_valid = rightf_valid;
         s.fta <- fta';
         s.ftb <- ftb';
 
-        Some t
+        t
       end
     end
 
-let roots { roots } = roots
+let has_roots { bothf_valid = bothf_valid; t0; f0; t1; f1; calc_zc = calc_zc }
+  = bothf_valid && (check_interval calc_zc f0 f1 <> SearchRight)
 
 let set_root_directions s rd = (s.calc_zc <- get_check_root rd)
 

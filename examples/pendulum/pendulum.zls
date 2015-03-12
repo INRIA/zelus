@@ -34,7 +34,7 @@ let node pendulum_with_loss (theta0, x0'', y0'') = theta where
       thetap = theta0 fby theta
   
 
-let node mpendulum(theta0, x0, y0) =
+let atomic node mpendulum(theta0, x0, y0) =
 (* pendulum controled by hand:        *)
 (* x0, y0 are the botom coordinates   *)
   

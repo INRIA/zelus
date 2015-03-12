@@ -1,0 +1,6 @@
+
+let hybrid main zin = v where
+ rec error = 1.0 -. v
+ and der v = error init 0.0 reset zin -> 0.0
+ and der z = error init 0.0 reset zin -> 0.0
+

@@ -21,31 +21,50 @@ with_sundials=1
 while : ; do
   case "$1" in
     "") break;;
+
     --prefix)
 	prefix=$2; shift;;
+    --prefix=*)
+	prefix=`expr "$1" : '--[^=]*=\(.*\)'`;;
+
     --bindir)
 	bindir=$2; shift;;
+    --bindir=*)
+	bindir=`expr "$1" : '--[^=]*=\(.*\)'`;;
+
     --libdir)
 	libdir=$2; shift;;
+    --libdir=*)
+	libdir=`expr "$1" : '--[^=]*=\(.*\)'`;;
+
+    --mandir)
+	mandir=$2; shift;;
+    --mandir=*)
+	mandir=`expr "$1" : '--[^=]*=\(.*\)'`;;
+
     --disable-opt)
 	with_opt=''
 	with_gtk_opt='';
 	shift;
 	continue;;
+
     --disable-byte)
 	with_byte=''
 	with_gtk_byte='';
 	shift;
 	continue;;
+
     --disable-gtk)
 	with_gtk_opt=''
 	with_gtk_byte='';
 	shift;
 	continue;;
+
     --disable-sundials)
 	with_sundials=0;
 	shift;
 	continue;;
+
     -h|--help)
 	cat <<-END_HELP_TEXT
 	'configure' configures $sysname $version to adapt to many kinds of systems.
@@ -61,6 +80,7 @@ while : ; do
 	  -h, --help              display this help and exit
 
 	Installation directories:
+	  --prefix=PREFIX
 	  --prefix PREFIX         install architecture-independent files in PREFIX
 				  [$prefix]
 
@@ -177,8 +197,8 @@ else
 	if [ ! -x ${lablgtk2_path} ]; then
 	    lablgtk2_path="${opam_libpath}lablgtk2"
 	    if [ ! -x ${lablgtk2_path} ]; then
-		lablgtk2_path='NOT FOUND'
-		error="${error}\n\tcould not find lablgtk2"
+		lablgtk2_path='NOT FOUND (disabling gtk features)'
+		gtktargets=''
 	    fi
 	fi
     fi
@@ -200,27 +220,28 @@ if [ ${for_compile} -eq 1 ]; then
 fi
 
 # Check for sundialsml installation
-sundialsml_path=${SUNDIALSML:-"${ocaml_libpath}sundials"}
-sundialsml_incl="-I ${SUNDIALSML:-"+sundials"}"
-default_solver='ode23'
-
-if [ -f "`pwd`/sundialsml/sundials_cvode.cma" ]; then
-    sundialsml_path="`pwd`/sundialsml"
-    sundialsml_incl="-I '${sundialsml_path}'"
-fi
+sundialsml_path=${SUNDIALSML:-"${ocaml_libpath}sundialsml"}
+sundialsml_incl="-I ${SUNDIALSML:-"+sundialsml"}"
 
 if [ ${with_sundials} -eq 0 ]; then
     sundialsml_path=''
     sundialsml_incl=''
-    sundialsml_status='DISABLED (defaulting to ode23)'
+    sundialsml_status='DISABLED (defaulting to ode45)'
+    default_solver='Odexx.Ode45'
 else
-    if [ ! -x ${sundialsml_path} ]; then
-	sundialsml_path=''
-	sundialsml_incl=''
-	sundialsml_status='NOT FOUND (defaulting to ode23)'
-    else
-	sundialsml_status=${sundialsml_path}
-	default_solver='sundials'
+    sundialsml_status=${sundialsml_path}
+    default_solver='Sundials_cvode'
+
+    if [ ! -r "${sundialsml_path%/}/sundials.cma" ]; then
+	sundialsml_path="${opam_libpath}sundialsml"
+	sundialsml_incl="-I ${sundialsml_path}"
+
+	if [ ! -r "${sundialsml_path%/}/sundials.cma" ]; then
+	    sundialsml_path=''
+	    sundialsml_incl=''
+	    sundialsml_status='NOT FOUND (defaulting to ode45)'
+	    default_solver='Odexx.Ode45'
+	fi
     fi
 fi
 
@@ -241,8 +262,10 @@ if [ "${ocaml_path}" != "NOT_FOUND" ]; then
     
     # TODO: change after patch integrated into glMLite
     # "exit (if major >= 0 && minor >= 3 && patch > 50 then 100 else 200);;" \
-    printf "let (major, minor, patch) = GL.glmlite_version in exit (if major >= 0 && minor >= 3 && patch >= 50 then 100 else (if major + minor + patch = 0 then 110 else 200));;\n" \
-	| ${OCAMLBIN}ocaml -I ${glmlite_incl} GL.cma >/dev/null 2>&1
+    printf "let major, minor, patch = GL.glmlite_version in \
+	    exit (if major >= 0 && minor >= 3 && patch >= 50 then 100 \
+	    else (if major + minor + patch = 0 then 110 else 200));;\n" \
+	| ${OCAMLBIN}ocaml -I ${glmlite_incl} GL.cma  >/dev/null 2>&1
     GLMLV=$?
     
     if [ $GLMLV -eq 100 ]; then
@@ -263,31 +286,34 @@ else
     glmlite_enabled=1
 fi
 
-printf "\nConfiguration\n-------------\n"
+printf "\nConfiguration\n-------------\n"		 > config.log
 
-printf "\n"
-printf "  Ocaml\t\t\t${ocaml_path}${ocaml_version}\n"
+printf "\n"						>> config.log
+printf "  Ocaml\t\t\t${ocaml_path}${ocaml_version}\n"	>> config.log
 if [ ${for_compile} -eq 1 ]; then
-printf "  MenhirLib\t\t${menhirlib}\n"
+printf "  MenhirLib\t\t${menhirlib}\n"			>> config.log
 fi
-printf "  Lablgtk2\t\t${lablgtk2_path}\n"
-printf "  SundialsML\t\t${sundialsml_status}\n"
-printf "  glMLite\t\t${glmlite_status}\n"
-printf "\n"
-printf "  targets:\t\t${targets} ${gtktargets}\n"
-printf "\n"
-printf "Installation paths\n"
-printf "  prefix:\t\t${prefix}\n"
-printf "  bindir:\t\t${bindir:-$prefix/bin}\n"
-printf "  libdir:\t\t${libdir:-$prefix/lib}\n"
-printf "  mandir:\t\t${mandir:-$prefix/share/man/}\n"
-printf "\n"
+printf "  Lablgtk2\t\t${lablgtk2_path}\n"		>> config.log
+printf "  SundialsML\t\t${sundialsml_status}\n"		>> config.log
+printf "  glMLite\t\t${glmlite_status}\n"		>> config.log
+printf "\n"						>> config.log
+printf "  targets:\t\t${targets} ${gtktargets}\n"	>> config.log
+printf "\n"						>> config.log
+printf "Installation paths\n"				>> config.log
+printf "  prefix:\t\t${prefix}\n"			>> config.log
+printf "  bindir:\t\t${bindir:-$prefix/bin}\n"		>> config.log
+printf "  libdir:\t\t${libdir:-$prefix/lib}\n"		>> config.log
+printf "  mandir:\t\t${mandir:-$prefix/share/man/}\n"	>> config.log
+printf "\n"						>> config.log
 
 if [ -n "${error}" ]; then
-    printf "Some errors occurred during configuration:${error}\n"
-    printf "\n"
+    printf "Some errors occurred during configuration:${error}\n" >> config.log
+    printf "The 'config' file has not been written."		  >> config.log
+    printf "\n"							  >> config.log
     exit 1
 fi
+
+cat config.log
 
 (printf "# # # THIS FILE IS GENERATED AUTOMATICALLY BY CONFIGURE # # #\n"; \
  sed -e "s#@prefix@#${prefix}#;
@@ -307,10 +333,13 @@ fi
 	 s#@OCAMLBIN@#${OCAMLBIN}#;
 	 s#@OCAMLROOT@#${OCAMLROOT}#;" config.in) > config
 
-sed -e "s#@prefix@#${prefix}#;
-	s#@bindir@#${bindir:-$prefix/bin}#;
-	s#@libdir@#${libdir:-$prefix/lib}#;
-	s#@OCAMLBIN@#${OCAMLBIN}#;
-	s#@TARGET@#byte#;" bin/zeluc.in > bin/zeluc
+printf "#!/bin/sh\n"			     > bin/zeluc
+printf "ZLLIB=`pwd`/lib\n"		    >> bin/zeluc
+printf "export ZLLIB\n"			    >> bin/zeluc
+if [ -n ${with_byte} ]; then
+    printf "`pwd`/compiler/zeluc.byte \$@\n"   >> bin/zeluc
+else
+    printf "`pwd`/compiler/zeluc.opt \$@\n"    >> bin/zeluc
+fi
 chmod a+x bin/zeluc
 

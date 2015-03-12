@@ -8,11 +8,11 @@ let hybrid g () = (sin, cos, sin_cos) where
   rec 
       automaton
       | Mode1 ->
-	  do sin, cos = f()
-	  until z then Mode2
+          do sin, cos = f()
+          until z then Mode2
       | Mode2 ->
-	  do sin = 0.0 and cos = 0.0
-	  until z then Mode1
+          do sin = 0.0 and cos = 0.0
+          until z then Mode1
       end
   and z = period (2.5)
   and sin_cos = sin *. sin +. cos *. cos

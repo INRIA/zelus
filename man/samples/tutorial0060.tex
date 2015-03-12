@@ -1,12 +1,10 @@
-% ../compiler/zeluc.byte -I ../lib -I ./samples  	-i samples/tutorial0060.zls (2)
-\runverbatimfalse
+% ../compiler/zeluc.byte -I ../lib -I ./samples  	-i samples/tutorial0060.zls (0)
+\runverbatimtrue
 \setrunverbatimcmd{zeluc.byte -i \runverbatimfile}
 \begin{RunVerbatimMsg}
-val two_states : int * int * int -D-> int
+val counting : int -D-> int
+val consume : int * int * int -D-> bool
 \end{RunVerbatimMsg}
 \begin{RunVerbatimErr}
-File "tutorial.zls", line 6, characters 17-27:
->          do o = last o + 1
->                 ^^^^^^^^^^
-Initialization error: this expression may not be well initialized.
+Success.
 \end{RunVerbatimErr}

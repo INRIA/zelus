@@ -17,10 +17,10 @@ backhoegui.zci: backhoegui.zli
 
 backhoedyn.cmi backhoedyn.cmo: backhoedyn.ml
 backhoedyn.ml backhoedyn.zci: backhoedyn.zls backhoegui.zci
-	$(ZELUC) -i $(ZELUCFLAGS) -nocausality -period $<
+	$(ZELUC) -i $(ZELUCFLAGS) $<
 
 backhoecontrol.ml backhoe_main.ml: backhoecontrol.zls backhoedyn.zci
-	$(ZELUC) -i $(ZELUCFLAGS) -nocausality -period -gtk2 -sampling 5 -s main $<
+	$(ZELUC) -i $(ZELUCFLAGS) -gtk2 -s main $<
 	mv main.ml backhoe_main.ml
 
 test: backhoegui.cmi backhoegui.ml

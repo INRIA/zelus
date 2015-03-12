@@ -26,7 +26,7 @@ let show_floors () =
   Graphics.lineto (Graphics.current_x ()) (yc 0.0)
 
 let leave_trace = ref false
-
+ 
 let start trace floor_details =
   Graphics.open_graph "";
   Graphics.resize_window 800 600;

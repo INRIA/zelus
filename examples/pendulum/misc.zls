@@ -7,3 +7,6 @@ let node integr (dt, x') = x where
 let node deriv (dt, x) = x' where
   rec x' = 0.0 -> (x -.(pre x)) /. dt
 
+let node deriv2 (dt, x) = x' where
+  rec x' = 0.0 -> pre (0.0 -> pre (0.0 -> pre (x -. 0.0 -> (pre x)) /. dt))
+

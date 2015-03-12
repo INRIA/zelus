@@ -84,7 +84,15 @@ let hybrid sampled_digitalwatch (tic, toc, active, hi,mi,si) = (h,m,s) where
   rec init s = si
   and init m = mi
   and init h = hi
-  and present tic() on active | toc() on active -> do next (h,m,s) = digitalwatch (h,m,s) done
+  and present tic() on active | toc() on active ->
+      (* do h,m,s = digitalwatch (h,m,s) done *)
+      local h',m',s' in
+      do
+        h', m', s' = digitalwatch (h,m,s)
+        and next h = h'
+        and next m = m'
+        and next s = s'
+      done
 
 let hybrid main () =
   let ok = period (0.04) in

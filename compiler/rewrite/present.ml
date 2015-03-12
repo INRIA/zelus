@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2013                                               *)
+(*  Copyright (C) 2012-2014                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -36,17 +36,20 @@ open Deftypes
 (*   end                                                                *)
 (*                                                                      *)
 (*   - then produce a regular pattern matching construct                *)
+(*     every handler is marked to be activated on an event              *)
 (*                                                                      *)
 (*   match x1, ... cond1, ..., condn with                               *)
-(*   | Present(p1), ..., true, ... -> ...                               *)
-(*   | Present(p3), ..., _,  true -> ...                                *)
+(*   | Present(p1), ..., true, ... -> (* zero = true *) ...             *)
+(*   | Present(p3), ..., _,  true -> (* zero = true *) ...              *)
 (*   end                                                                *)
 (*                                                                      *)
 (* a signal x is represented by a pair (bit, value)                     *)
 
-let emake desc ty = { e_desc = desc; e_loc = no_location; e_typ = ty }
-let pmake desc ty = { p_desc = desc; p_loc = no_location; p_typ = ty }
-let eqmake desc = { eq_desc = desc; eq_loc = no_location }
+let emake desc ty = { e_desc = desc; e_loc = no_location; e_typ = ty; e_caus = [] }
+let pmake desc ty = { p_desc = desc; p_loc = no_location; p_typ = ty; p_caus = [] }
+let eqmake desc =
+  { eq_desc = desc; eq_loc = no_location; eq_before = S.empty;
+    eq_after = S.empty; eq_write = Deftypes.empty }
 
 let cvoid = emake (Econst(Evoid)) typ_unit
 let cfalse = emake (Econst(Ebool(false))) typ_bool
@@ -76,7 +79,16 @@ let presentpat pat = { pat with p_desc = Etuplepat[pat; truepat];
 
 let pair e1 e2 =  emake (Etuple([e1; e2])) (tproduct [e1.e_typ; e2.e_typ])
 let pairpat p1 p2 = pmake (Etuplepat([p1; p2])) (tproduct [p1.p_typ; p2.p_typ])
-let ematch total e l = eqmake (EQmatch(ref total, e, l))
+let ematch total e l = 
+  let block_do_done =
+    { b_vars = []; b_locals = []; b_body = []; b_loc = no_location;
+      b_env = Env.empty; 
+      b_write = { dv = S.empty; di = S.empty; der = S.empty } } in
+  (* if [total = false] complete with an empty block [do done] *)
+  let l = if total then l
+	else l @ [{ m_pat = wildpat; m_body = block_do_done; m_env = Env.empty;
+		   m_reset = false; m_zero = false }] in
+  eqmake (EQmatch(ref true, e, l))
 
 (* build the environment for signals from a typing environment *)
 (* every signal [x: t sig] is associated to a pair [xv, xp] of two fresh *)
@@ -91,7 +103,9 @@ let build signals n_list l_env =
       Env.add n (xv, xp, ty) signals,
       xv :: xp :: n_list,
       Env.add xv { t_typ = ty; t_sort = Val }
-        (Env.add xp { t_typ = typ_bool; t_sort = ValDefault(Ebool(false)) } new_env)
+        (Env.add xp { t_typ = typ_bool; 
+		      t_sort = ValDefault(Cimmediate(Ebool(false))) } 
+		 new_env)
     else
       signals, n :: n_list, Env.add n tentry new_env in
   Env.fold make l_env (signals, [], Env.empty)
@@ -107,6 +121,14 @@ let equal e1 e2 =
 
 (* the member function *)
 let mem e exps = List.exists (equal e) exps
+
+(* rename written variables [w] according to a substitution [signals] *)
+(* the field [w.dr] is not concerned *)
+let defnames signals ({ dv = dv; di = di } as w) =
+  let defname n acc = 
+    try let nv, np, _ = Env.find n signals in S.add nv (S.add np acc)
+    with Not_found -> S.add n acc in
+  { w with dv = S.fold defname dv S.empty; di = S.fold defname di S.empty }
 
 (* separate signal testing from boolean condition in a signal pattern *)
 (* [spat] should be state-less *)
@@ -163,7 +185,7 @@ let rec exp signals e =
       | Elast(name) -> Elast(name)
       | Etuple(e_list) -> Etuple(List.map (exp signals) e_list)
       | Eapp(Etest, e_list) -> 
-	 Eapp(Eop (Lident.Name "snd"), List.map (exp signals) e_list)
+	 Eapp(Eop(false, Lident.Name "snd"), List.map (exp signals) e_list)
       | Eapp(op, e_list) -> Eapp(op, List.map (exp signals) e_list)
       | Erecord(label_e_list) ->
          Erecord(List.map (fun (label, e) -> (label, exp signals e)) label_e_list)
@@ -178,18 +200,14 @@ let rec exp signals e =
 
 and equation signals eq_list eq =
   match eq.eq_desc with
-    | EQreset(b, e) ->
-        let b = block signals b in 
-        { eq with eq_desc = EQreset(b, exp signals e) } :: eq_list
     | EQeq(pat, e) -> 
         { eq with eq_desc = EQeq(pattern signals pat, exp signals e) } :: eq_list
-    | EQinit(pat, e0, e_opt) -> 
-        { eq with eq_desc = 
-	    EQinit(pattern signals pat, exp signals e0, 
-		   optional_map (exp signals) e_opt) } :: eq_list
-    | EQnext(pat, e, e0_opt) ->
+    | EQinit(n, e0) -> 
+        { eq with eq_desc = EQinit(n, exp signals e0) } :: eq_list
+    | EQset(ln, e) -> { eq with eq_desc = EQset(ln, exp signals e) } :: eq_list
+    | EQnext(n, e, e0_opt) ->
         { eq with eq_desc =
-	    EQnext(pattern signals pat, exp signals e, 
+	    EQnext(n, exp signals e, 
 		   optional_map (exp signals) e0_opt) } :: eq_list
     | EQder(n, e, None, []) ->
         { eq with eq_desc = EQder(n, exp signals e, None, []) } :: eq_list
@@ -207,6 +225,10 @@ and equation signals eq_list eq =
         :: eq_list
     | EQpresent(present_handler_list, b_opt) ->
         present_handlers signals eq_list present_handler_list b_opt
+    | EQreset(res_eq_list, e) ->
+        let res_eq_list = equation_list signals res_eq_list in
+	{ eq with eq_desc = EQreset(res_eq_list, exp signals e) } :: eq_list
+    | EQblock(b) -> { eq with eq_desc = EQblock(block signals b) } :: eq_list
     | EQautomaton _ | EQder _ -> assert false
 
 and equation_list signals eq_list = List.fold_left (equation signals) [] eq_list
@@ -227,14 +249,17 @@ and locals signals l_list =
      signals, l :: l_list
 
 and block signals 
-    ({ b_vars = n_list; b_locals = l_list; b_body = eq_list; b_env = b_env } as b) =
+    ({ b_vars = n_list; b_locals = l_list; 
+       b_body = eq_list; b_env = b_env; b_write = w } as b) =
   (* for every signal [s] declared in [b_env], we introduce *)
   (* a pair of names [sv, sp] for the value and presence *)
   let signals, n_list, b_env = build signals n_list b_env in
   let signals, l_list = locals signals l_list in
   let eq_list = equation_list signals eq_list in
+  (* rename variables in [w] *)
+  let w = defnames signals w in
   { b with b_vars = n_list; b_locals = l_list; 
-    b_body = eq_list; b_write = Total.empty; b_env = b_env }
+    b_body = eq_list; b_write = w; b_env = b_env }
 
 and match_handler signals ({ m_body = b } as handler) =
   { handler with m_body = block signals b }
@@ -292,7 +317,8 @@ and present_handlers signals eq_list handler_list b_opt =
     let spat_list = norm spat [] in
     let pat_list = List.map pattern spat_list in
     let pat = orpat pat_list in
-    { m_pat = pat; m_body = block signals b; m_env = h0; m_reset = false } in
+    { m_pat = pat; m_body = block signals b; m_env = h0; 
+      m_reset = false; m_zero = true } in
     
   (* first build the two association tables *)
   let exps = unique handler_list in
@@ -307,8 +333,9 @@ and present_handlers signals eq_list handler_list b_opt =
     match b_opt with
       | None -> false, pat_block_list
       | Some(b) -> true, 
-          pat_block_list @ [{ m_pat = wildpat; m_body = block signals b; 
-                              m_env = Env.empty; m_reset = false }] in
+          pat_block_list @ 
+	    [{ m_pat = wildpat; m_body = block signals b; 
+               m_env = Env.empty; m_reset = false; m_zero = false }] in
   (ematch total e pat_block_list) :: eq_list
 
 let implementation impl =

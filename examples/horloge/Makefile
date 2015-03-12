@@ -20,7 +20,7 @@ horloge_main.cmo: INCLUDE += $(SUNDIALS)
 horloge_main.cmx: INCLUDE += $(SUNDIALS)
 
 horloge.ml horloge_main.ml: draw.zci horloge.zls
-	$(ZELUC) -I $(ZLLIB) $(ZLCFLAGS) -s main -period -sampling 0 horloge.zls
+	$(ZELUC) -I $(ZLLIB) $(ZLCFLAGS) -s main -sampling 0 horloge.zls
 	mv main.ml horloge_main.ml
 
 

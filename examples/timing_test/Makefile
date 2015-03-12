@@ -20,7 +20,7 @@ timing_test_main.cmo: misc.cmo timing_test_main.ml
 	    -I $(ZLLIB) -c $^
 
 timing_test.ml: misc.zci timing_test.zls
-	$(ZELUC) $(ZELUCFLAGS) -I $(ZLLIB) -s main -period -sampling 0 timing_test.zls
+	$(ZELUC) $(ZELUCFLAGS) -I $(ZLLIB) -s main -sampling 0 timing_test.zls
 	mv main.ml timing_test_main.ml
 
 depend: .depend

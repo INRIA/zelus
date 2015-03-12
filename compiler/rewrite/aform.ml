@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2013                                               *)
+(*  Copyright (C) 2012-2014                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -17,6 +17,7 @@
 (* distribute pattern matchings [(p1,...,pn) = (e1,...,en)] into *)
 (* p1 = e1 and ... pn = en] *)
 open Zelus
+open Ident
 
 (* matching. Translate [(p1,...,pn) = (e1,...,en)] into the set of *)
 (* equations [p1 = e1 and ... and pn = en] *)
@@ -25,7 +26,7 @@ let rec matching compose eq_list p e =
   match p.p_desc, e.e_desc with
     | Etuplepat(p_list), Etuple(e_list) ->
         matching_list compose eq_list p_list e_list
-    | _ -> { eq_desc = compose p e; eq_loc = e.e_loc } :: eq_list
+    | _ -> (compose p e) :: eq_list
 
 and matching_list compose eq_list p_list e_list =
   List.fold_left2 (matching compose) eq_list p_list e_list
@@ -33,11 +34,8 @@ and matching_list compose eq_list p_list e_list =
 let rec equation eq_list ({ eq_desc = desc } as eq) =
   match desc with
     | EQeq(pat, e) -> 
-        matching (fun p e -> EQeq(p, e)) eq_list pat e
-    | EQnext(pat, e, None) -> 
-        matching (fun p e -> EQnext(p, e, None)) eq_list pat e
-    | EQinit(pat, e0, None) ->
-        matching (fun p e -> EQinit(p, e, None)) eq_list pat e0
+      (* all [p1 = e1,..., pn = en] inherits the [before] and [after] tags *)
+      matching (fun p e -> { eq with eq_desc = EQeq(p, e) }) eq_list pat e
     | EQmatch(total, e, m_h_list) ->
         { eq with eq_desc = EQmatch(total, e, 
 				    List.map handler m_h_list) } :: eq_list

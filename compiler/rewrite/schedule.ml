@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2013                                               *)
+(*  Copyright (C) 2012-2014                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -82,24 +82,27 @@ let rec exp e =
   
 and equation ({ eq_desc = desc } as eq) =
   let desc = match desc with
-    | EQeq _ | EQinit _ | EQnext _ -> desc
+    | EQeq _ | EQset _ | EQinit _ | EQnext _ | EQder _ -> desc
     | EQmatch(total, e, p_h_list) ->
         EQmatch(total, exp e, 
 		List.map 
                   (fun ({ m_body = b } as m_h) -> { m_h with m_body = block b })
                   p_h_list)
-    | EQreset(b, e) -> EQreset(block b, exp e)
-    | EQder _ | EQemit _ | EQautomaton _ 
-    | EQpresent _ -> assert false in
+    | EQreset(eq_list, e) -> EQreset(schedule eq_list, exp e)
+    | EQemit _ | EQautomaton _ 
+    | EQpresent _ | EQblock _ -> assert false in
   { eq with eq_desc = desc }
   
 and block ({ b_locals = locals; b_body = eq_list } as b) =
   let locals = List.map local locals in
+  (* schedule every nested block structure *)
   let eq_list = List.map equation eq_list in
+  (* schedule the set of equations *)
   let eq_list = schedule eq_list in
   { b with b_locals = locals; b_body = eq_list }
 
 and local ({ l_eq = eq_list } as l) =
+  (* translate and schedule the set of equations *)
   let eq_list = List.map equation eq_list in
   let eq_list = schedule eq_list in
   { l with l_eq = eq_list }

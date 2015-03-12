@@ -1,7 +1,6 @@
 include ../../config
 
 EXAMPLE=clutch_gui.zls clutch_log.zls
-ZELUCFLAGS+=-period
 OUT_OPTIONS?=-sundials -maxt 10
 
 .PHONY: clutch.out
@@ -39,7 +38,7 @@ clutch_model.ml clutch_model.zci: clutch_model.zls
 	$(ZELUC) $(ZELUCFLAGS) $<
 
 clutch_gui.ml: clutch_gui.zls clutch_model.zci
-	$(ZELUC) $(ZELUCFLAGS) -s main -sampling 0 -gtk2 -dzero $<
+	$(ZELUC) $(ZELUCFLAGS) -s main -gtk2 -dzero $<
 	mv main.ml $(<:.zls=)_main.ml
 
 clutch_log.ml: clutch_log.zls clutch_model.zci

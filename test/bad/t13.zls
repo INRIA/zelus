@@ -1,0 +1,7 @@
+(* Type error: this is a stateless discrete expression and is expected to be continuous. *)
+
+let hybrid sliding () = (x, y) where
+ rec match y >= 0.0 with
+        | true -> do der x= 1.0 and der y = -1.0 done
+        | false -> do der x = 1.0 and der y = 1.0 done
+    and init x = 1.0 and init y = 1.0

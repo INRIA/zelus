@@ -29,7 +29,7 @@ CPPFLAGS ?= -P -x c
 BIN = zeluc
 TARGET ?= $(word 1, $(targets))
 
-ZELUC := $(OCAMLRUN) ../../bin/$(BIN).$(TARGET) -I $(ZLLIB)
+ZELUC := ../../bin/$(BIN)
 
 UNIX  = unix.cma
 UNIXX = unix.cmxa
@@ -50,10 +50,10 @@ PTOLEMYFLAGS =
 
 SOLVER = @DEFAULT_SOLVER@
 
-SUNDIALS = @SUNDIALSML_INCL@
-ifeq ($(strip $(SOLVER)), sundials)
-SUNDIALS_CVODE = sundials_cvode.cma
-OPTIONAL_SOLVER_OBJS = solvers/solversundials.cmo
+SUNDIALS=@SUNDIALSML_INCL@
+ifneq ($(SUNDIALS),)
+SUNDIALS_CVODE = sundials.cma
+OPTIONAL_SOLVER_OBJS = solvers/sundials_cvode.cmo
 endif
 
 ZLSTDLIBS = bigarray.cma unix.cma $(SUNDIALS) $(SUNDIALS_CVODE)
@@ -89,19 +89,22 @@ install_printer Lident.fprint_t
 install_printer Ptypes.output
 install_printer Printer.expression
 install_printer Printer.equation
-install_printer Printer.block
 install_printer Printer.print_env
 install_printer Printer.implementation
 install_printer Printer.interface
 install_printer Printer.state_ident_typ
 install_printer Printer.state_eq
-install_printer Printer.state_handler
-install_printer Printer.state_handler_list
 install_printer Printer.local
 install_printer Oprinter.implementation
 install_printer Oprinter.ptype
 install_printer Oprinter.pattern
 install_printer Oprinter.expression
+install_printer Pcaus.caus
+install_printer Pcaus.caus_list
+install_printer Pcaus.set
+install_printer Pcaus.map
+install_printer Causality.Cenv.env
+install_printer Deadcode.print
 
 endef
 export DEBUG_PRELUDE
@@ -117,7 +120,7 @@ export DEBUG_PRELUDE
 	$(OCAMLC) $(OCAMLFLAGS) -c -I $(ZLLIB) $(INCLUDES) $<
 
 %.cmx %.cmi: %.ml
-	$(OCAMLOPT) $(OCAMLOPTFLAGS) -I $(ZLLIB) -c $(INCLUDES) $<
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -I $(ZLLIB) -c $(INCLUDES:.cma=.cmxa) $<
 
 %.zci: %.zli
 	$(ZELUC) $(ZELUCFLAGS) $<

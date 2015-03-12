@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2013                                               *)
+(*  Copyright (C) 2012-2014                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -30,7 +30,7 @@ type tentry =
       t_last: bool; (* last x is initialized *) }
 
 (** Build an environment from a typing environment *)
-(* if a variable is well initialized with [init x = e] then [x] does *)
+(* if a variable is initialized with [init x = e] then [x] does *)
 (* have a last value which is initialized provided [e] is initialized *)
 (* otherwise, [last x] is not initialized. Signals must always be initialized *)
 let build_env l_env env =
@@ -202,7 +202,9 @@ let rec exp env { e_desc = desc; e_typ = ty } =
         product (List.map (exp env) e_list)
     | Eapp(op, e_list) -> apply env op ty e_list
     | Erecord_access(e_record, _) -> 
-        exp env e_record        
+        let i = Init.new_var () in
+        exp_less_than_on_i env e_record i;
+	Init.skeleton_on_i i ty
     | Erecord(l) -> 
         let i = Init.new_var () in
         List.iter (fun (_, e) -> exp_less_than_on_i env e i) l;
@@ -244,22 +246,22 @@ and apply env op ty e_list =
         exp_less_than_on_i env e2 i;
         exp_less_than_on_i env e3 i;
         Init.skeleton_on_i i ty
-    | (Einitial | Eup | Etest | Edisc | Eon), e_list ->
+    | (Einitial | Eup | Etest | Edisc), e_list ->
         let i = Init.new_var () in
         List.iter (fun e -> exp_less_than_on_i env e izero) e_list;
         Init.skeleton_on_i i ty
-    | Eop(lname), e_list when Types.is_a_node lname ->
+    | Eop(_, lname), e_list when Types.is_a_node lname ->
         (* for the moment, no type signature is stored in the global *)
         (* environment. Arguments/results must always be initialized. *)
         List.iter (fun e -> exp_less_than_on_i env e izero) e_list;
         Init.skeleton_on_i izero ty
-    | Eop(lname), e_list ->
+    | Eop(_, lname), e_list ->
         (* combinatorial functions are abstracted as the identity. Warning: *)
         (* this is only correct for functions that are safe. To be done *)
         let i = Init.new_var () in
         List.iter (fun e -> exp_less_than_on_i env e i) e_list;
         Init.skeleton_on_i i ty
-    | Eevery(lname), e :: e_list ->
+    | Eevery(_, lname), e :: e_list ->
         let i = Init.new_var () in
         List.iter (fun e -> exp_less_than_on_i env e i) e_list;
         exp_less_than_on_i env e izero;
@@ -296,19 +298,17 @@ and equation env { eq_desc = eq_desc; eq_loc = loc } =
 	  | None -> if not is_last then error loc (Elast_uninitialized(n))
 	  | Some(e0) -> exp_less_than_on_i env e0 izero);
         present_handler_exp_list env p_h_e_list ty_n
-    | EQinit(p, e0, e_opt) ->
-        let ty_p = pattern env p in
-        exp_less_than env e0 ty_p;
+    | EQinit(n, e0) ->
+        exp_less_than_on_i env e0 izero
+    | EQset(_, e) -> exp_less_than_on_i env e izero
+    | EQnext(n, e, e0_opt) ->
+        let ty_n = try let { t_typ = ty } = Env.find n env in ty
+		   with Not_found -> assert false in
+	exp_less_than env e ty_n;
         ignore
-	  (Misc.optional_map (fun e -> exp_less_than env e ty_p) e_opt);
-	unify e0.e_loc ty_p (Init.skeleton_on_i izero e0.e_typ)
-    | EQnext(p, e, e0_opt) ->
-        let ty_p = pattern env p in
-        exp_less_than env e ty_p;
-        ignore
-	  (Misc.optional_map (fun e -> exp_less_than env e ty_p) e0_opt);
-	unify e.e_loc ty_p (Init.skeleton_on_i izero e.e_typ)
-    | EQautomaton(s_h_list, se_opt) ->
+	  (Misc.optional_map (fun e -> exp_less_than env e ty_n) e0_opt);
+	unify e.e_loc ty_n (Init.skeleton_on_i izero e.e_typ)
+    | EQautomaton(is_weak, s_h_list, se_opt) ->
         (* state *)
         let state env { desc = desc } =
 	  match desc with
@@ -316,27 +316,22 @@ and equation env { eq_desc = eq_desc; eq_loc = loc } =
 	    | Estate1(_, e_list) -> 
 	      List.iter (fun e -> exp_less_than_on_i env e izero) e_list in
 	(* handler *)
-        let handler env { s_body = b; s_until = until; s_unless = unless } =
+        let handler env { s_body = b; s_trans = trans } =
           let escape env { e_cond = sc; e_block = b_opt; e_next_state = ns } =
             scondpat env sc;
 	    let env = 
 	      match b_opt with | None -> env | Some(b) -> block_eq_list env b in
 	    state env ns in
           let env = block_eq_list env b in
-          List.iter (escape env) until;
-          List.iter (escape env) unless in
+          List.iter (escape env) trans in
         (* do a special treatment for the initial state *)
-        (* does a given handler have only weak transitions? *)
-        let only_weak { s_unless = sunless } = sunless = [] in
         let first_s_h, remaining_s_h_list = split se_opt s_h_list in
 	(* first type the initial branch *)
         handler env first_s_h;
         (* if the initial state has only weak transition then all *)
         (* variables from [defined_names] do have a last value *)
         let defnames = first_s_h.s_body.b_write in
-        let env = 
-          if only_weak first_s_h then add_last_to_env env defnames 
-          else env in
+        let env = if is_weak then add_last_to_env env defnames else env in
         List.iter (handler env) remaining_s_h_list;
 	(* every partially defined value must have an initialized value *)
 	let defnames_list =
@@ -362,9 +357,9 @@ and equation env { eq_desc = eq_desc; eq_loc = loc } =
 	let defnames_list =
 	  List.map (fun { p_body = { b_write = w } } -> w) p_h_list in
 	initialized_last loc env (defnames :: defnames_list)       
-    | EQreset(b, e) -> 
+    | EQreset(eq_list, e) -> 
         exp_less_than_on_i env e izero;
-        ignore (block_eq_list env b)
+        equation_list env eq_list
     | EQemit(n, e_opt) ->
         let ty_n = 
           try let { t_typ = ty1 } = Env.find n env in ty1
@@ -372,6 +367,8 @@ and equation env { eq_desc = eq_desc; eq_loc = loc } =
         unify loc ty_n (Init.atom izero);
 	ignore
 	  (Misc.optional_map (fun e -> exp_less_than_on_i env e izero) e_opt)
+    | EQblock(b_eq_list) ->
+       ignore (block_eq_list env b_eq_list)
 
 and present_handler_exp_list env p_h_list ty =
   present_handlers scondpat 

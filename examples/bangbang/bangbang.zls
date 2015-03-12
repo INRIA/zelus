@@ -3,9 +3,12 @@
       Bang-Bang Control Using Temporal Logic
  *)
 
+(* time-scale factor *)
+let tscale x = x *. 100.0
+
 (* ** library functions ** *)
 let hybrid integrator (i, u) = y where
-  rec der y = u init i
+  rec der y = tscale u init i
 
 let node round x = floor (x +. 0.5)
 
@@ -34,21 +37,17 @@ let discrete fixdt (s, b, v) = int_of_float ((v -. b) /. s)
 
 (* ** model of boiler plant with an exponential ** *)
 let hybrid boiler_exponential(k1, k2, is_on) = actual_temp where
-  rec der actual_temp = 
-           (* two modes. [is_on] is a boolean and will only change *)
-           (* at a zero-crossing instant. *)
-           if is_on then k1 -. k2 *. actual_temp
-           else -. k2 *. actual_temp
-         init 15.0
+  rec actual_temp = integrator (15.0, if is_on then k1 -. k2 *. actual_temp
+                                      else -. k2 *. actual_temp)
+                      (* two modes. [is_on] is a boolean and will only change *)
+                      (* at a zero-crossing instant. *)
 
 (* the one below is the Simulink version with an approximation by a *)
 (* linear function *)
-let hybrid boiler(is_on) = actual_temp where
-  rec der actual_temp = 
-           (* two modes. [is_on] is a boolean and will only change *)
-           (* at a zero-crossing instant. *)
-           (if is_on then 1.0 else -0.1) /. 25.0
-         init 15.0
+let hybrid boiler(is_on) =
+  integrator (15.0, (if is_on then 1.0 else -0.1) /. 25.0)
+                    (* two modes. [is_on] is a boolean and will only change *)
+                    (* at a zero-crossing instant. *)
 
 (* ** Bang-Bang Controller ** *)
 
@@ -59,7 +58,7 @@ let green = 2
 let b_off  = false
 let b_on   = true
 
-let node after (x) =
+let node wait (x) =
   let rec c = x -> pre (max (0, c - 1)) in
   c = 0
 
@@ -69,8 +68,8 @@ let node at (x) =
 
 let node flash_led (color, delay) = led where
   automaton
-  | Off -> do led = off   until (after delay) then On
-  | On  -> do led = color until (after delay) then Off
+  | Off -> do led = off   until (wait delay) then On
+  | On  -> do led = color until (wait delay) then Off
 
 let node controller (ref, temp) = (led, boiler) where
   rec cold = temp <= ref
@@ -78,7 +77,7 @@ let node controller (ref, temp) = (led, boiler) where
   | Off ->
       do boiler = b_off
       and led = flash_led (red, 5)
-      until (after 40) & cold then On
+      until (wait 40) & cold then On
   | On ->
       do boiler = b_on
       and led = flash_led (green, 1)
@@ -90,18 +89,17 @@ let node controller (ref, temp) = (led, boiler) where
 let reference = fixdt (5.0 /. 256.0 /. 0.05, -. 0.75 /. 0.05, 20.0)
 
 let hybrid model () = (led, on_off, actual_temp) where
-  rec trigger = period (1.0)
+  rec trigger = period (0.01)
 
-  and (led, on_off) = 
-           present trigger -> controller(reference, last digital_temp) 
-      init (red, false)
+  and present trigger -> 
+         do (led, on_off) = controller(reference, last digital_temp) done
+  and init led = red and init on_off = false
   and actual_temp = boiler(on_off)
-  and digital_temp = 
-         present trigger -> digital_thermometer (actual_temp)
-      init 0
+  and present trigger -> 
+         do digital_temp = digital_thermometer (actual_temp) done
+  and init digital_temp = 0
 
 open Scope (* Dump *)
-let sample_period = 1.0
 
 let node bool_to_float(x) = if x then 1.0 else 0.0
 
@@ -112,11 +110,11 @@ let node plot (led, boiler, temp) =
     scope (0.0, 1.0, ("boiler (0=OFF, 1=ON)", points true, bool_to_float(boiler))) in
   let s3 =
     scope (11.0, 25.0, ("temperature (degC)", linear, temp)) in
-  let rec t = 0.0 fby t +. sample_period in
-  window3 ("bangbang", 600.0, t, s1, s2, s3)
+  let rec t = 0.0 fby t +. 1.0 in
+  window3 ("bangbang", 1600.0, t, s1, s2, s3)
 
 let hybrid main () =
   let (led, on_off, actual_temp) = model () in
-  let trigger = period (0.5) in
+  let trigger = period (0.01) in
   present trigger -> plot (led, on_off, actual_temp) else ()
 

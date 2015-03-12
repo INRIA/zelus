@@ -2,13 +2,11 @@
 \runverbatimfalse
 \setrunverbatimcmd{zeluc.byte -i \runverbatimfile}
 \begin{RunVerbatimMsg}
-type circle   = {  radius: float;  center: float * float }
-val center : circle -A-> float * float
-val radius : circle -A-> float
+val from : 'a -D-> int
 \end{RunVerbatimMsg}
 \begin{RunVerbatimErr}
-File "tutorial.zls", line 3, characters 15-23:
->let center c = c.center
->               ^^^^^^^^
+File "tutorial.zls", line 2, characters 12-23:
+>  rec nat = pre nat + 1
+>            ^^^^^^^^^^^
 Initialization error: this expression may not be well initialized.
 \end{RunVerbatimErr}

@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2013                                               *)
+(*  Copyright (C) 2012-2014                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -40,7 +40,6 @@ and t =
 and desc =
   | Cvar
   | Clink of t
-  | Cpair of t * t (* discrete causality and continuous causality *)
 
 and info =
   | Cname of Ident.t
@@ -48,5 +47,12 @@ and info =
 
 and polarity = Punknown | Pplus | Pminus | Pplusminus
 
-
 let compare c1 c2 = Pervasives.compare c1.c_index c2.c_index
+
+(** A module to represent sets of causality variables *)
+
+type tentry = 
+    { t_typ: typ;   (* the causality type of x *)
+      t_last: bool; (* [last x] is allowed *)
+    }
+

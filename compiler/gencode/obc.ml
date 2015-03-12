@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2013                                               *)
+(*  Copyright (C) 2012-2014                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -19,7 +19,21 @@ open Ident
 
 type name = string
 
-type sort = Val | Var | Mem
+type sort = 
+  | Val (* local variable with a single write *)
+  | Var (* shared variable with possibly several writes *)
+  | Mem of mem (* state variable *)
+
+and mem =
+  | Discrete (* discrete state variable *)
+  | Zero (* zero-crossing variable with its size *)
+  | Cont (* continuous-state variable with its size *)
+	
+(* a continuous state variable [x] is pair of arrays *)
+(* with two fields: [x.der] for its derivative. [x.pos] for its current value. *)
+(* a zero-crossing variable [x] has two field: [x.zin] is true when *)
+(* the solver has detected a zero-crossing. [x.zout] is the value *)
+(* to be observed for a zero-crossing *)
 
 type 'a localized =
     { desc: 'a;
@@ -28,30 +42,60 @@ type 'a localized =
 type exp = edesc localized
 
 and edesc =
-  | Oconst of immediate
-  | Oconstr0 of Lident.t
+  | Oconst of immediate (* immediate constant *)
+  | Oconstr0 of Lident.t (* 0-ary and 1-ary constructor *)
   | Oconstr1 of Lident.t * exp list
-  | Oglobal of Lident.t
-  | Olocal of Ident.t * sort
-  | Oarray_element of Ident.t * exp
-  | Otuple of exp list
-  | Oapp of Lident.t * exp list
-  | Ostep of Lident.t * Ident.t * exp list
-  | Oreset of Lident.t * Ident.t
-  | Orecord of (Lident.t * exp) list
-  | Orecord_access of exp * Lident.t
-  | Otypeconstraint of exp * type_expression
-  | Olet of (pattern * exp) list * exp
-  | Oletvar of Ident.t * Deftypes.typ * exp option * exp
-  | Oifthenelse of exp * exp * exp
-  | Ofor of bool * Ident.t * exp * exp * exp
-  | Omatch of exp * match_handler list
-  | Oassign of left_value * sort * exp
-  | Oarray_assign of Ident.t * exp * exp
-  | Osequence of exp * exp
-      
-and left_value = Ident.t
-    
+  | Oglobal of Lident.t (* global variable *)
+  | Olocal of Ident.t * is_shared (* read of local variable *)
+  | Ostate of left_state_value (* read of a state variable *)
+  | Oindex of exp * exp (* access in an array *)
+  | Otuple of exp list (* tuples *)
+  | Oapp of Lident.t * exp list (* function applicatin *)
+  | Omethod of method_call * exp list
+           (* call a method Omethod(m, e_list) *)
+  | Orecord of (Lident.t * exp) list (* record *)
+  | Orecord_access of exp * Lident.t (* access to a record field *)
+  | Otypeconstraint of exp * type_expression (* type constraint *)
+  | Olet of (pattern * exp) list * exp (* local definition of values *)
+  | Oletvar of Ident.t * Deftypes.typ * exp option * exp (* local variables *)
+  | Oifthenelse of exp * exp * exp (* lazy conditional *)
+  | Ofor of bool * Ident.t * exp * exp * exp (* for loop *)
+  | Owhile of exp * exp (* while loop *)
+  | Omatch of exp * exp match_handler list (* math/with *)
+  | Oassign of left_value * exp (* assignment to a local variable *)
+  | Oassign_state of left_state_value * exp (* assignment to a state variable *)
+  | Osequence of exp * exp (* sequence *)
+
+and method_call =
+  { c_machine: Lident.t; (* the class of the method *)
+    c_method_name: method_name; (* the name of the method *)
+    c_instance: Ident.t option; (* either a call to self (None) *)
+                                (* or to some instance *)
+  }
+
+and is_shared = bool
+
+and left_value = 
+  | Oleft_name of Ident.t
+  | Oleft_record_access of left_value * Lident.t
+  | Oleft_index of left_value * exp
+  
+and left_state_value =
+  | Oself
+  | Oleft_state_global of Lident.t 
+  | Oleft_instance_name of Ident.t
+  | Oleft_state_name of Ident.t
+  | Oleft_state_record_access of left_state_value * Lident.t
+  | Oleft_state_index of left_state_value * exp
+  | Oleft_state_primitive_access of left_state_value * primitive_access
+
+(* a machine provides certain fields for reading/writting special values *)
+and primitive_access =
+  | Oderivative (* x.der.(i) <- ... *)
+  | Ocontinuous (* x.pos.(i) <- ... *)
+  | Ozero_out (* x.zero_out.(i) <-... *)
+  | Ozero_in (* ... x.zero_in.(i) ... *)
+
 and immediate =
   | Oint of int
   | Oint32 of int
@@ -75,16 +119,34 @@ and pdesc =
   | Otypeconstraintpat of pattern * type_expression
   | Orecordpat of (Lident.t * pattern) list
       
-and match_handler =
+and 'a match_handler =
     { w_pat  : pattern;
-      w_body : exp; }
+      w_body : 'a; }
       
-and machine = 
-    { m_memories: (Ident.t * (Deftypes.typ * exp option)) list; (* memories *)
-      m_instances: (Ident.t * Lident.t) list; (* instances *)
-      m_step: pattern list * exp; (* method step for computing one reaction *)
-      m_reset: exp; (* method to reset the internal state *)
+(* implementation of a machine *)
+and machine =
+    { m_kind: Deftypes.kind;
+      m_memories:
+	(Ident.t * (mem * Deftypes.typ * exp option)) list; (* memories *)
+      m_instances: (Ident.t * Lident.t * Deftypes.kind) list; (* instances *)
+      m_methods: method_desc list; (* the list of methods *) 
     }
+
+and method_desc =
+   { m_name: method_name;
+     m_param: pattern list;
+     m_body: exp } 
+
+and method_name = 
+  | Ostep (* computes values and possible changes of states *)
+  | Oreset (* resets the discrete state *)
+  | Oderivatives (* computes the values of derivatives *)
+  | Ocrossings (* computes the zero-crossing functions *)
+  | Omaxsize (* returns the size of the cvector and zvector *)
+  | Oreinit (* should we re-init the solver? *)
+  | Ocin | Ocout (* copies the continuous state vector *)
+  | Odout | Ozin | Oclear_zin | Ozout (* copies derivatives and zero crossings *)
+  | Ocsize | Ozsize (* current size for cont. states and zero crossings *)
 
 and implementation_list = implementation list
 

@@ -58,8 +58,12 @@ let hybrid cradle () =
   and hit01 = up (last p0 -. last p1)
   and hit12 = up (last p1 -. last p2)
 
-  and h1 = present hit01 -> -1.0 *. last h1 init -0.1
-  and h2 = present hit12 -> -1.0 *. last h2 init -0.1
+  and init h1 = -0.1
+  and present hit01 -> do h1 = -1.0 *. last h1 done
+                  else do der h1 = 0.0 done
+  and init h2 = -0.1
+  and present hit12 -> do h2 = -1.0 *. last h2 done
+                  else do der h2 = 0.0 done
 
   in p0, p1 +. 1.0 , p2 +. 2.0 , h1, h2 
 

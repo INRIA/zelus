@@ -17,7 +17,6 @@ let kp = -10. /. 7.
 let ki = 3.
 let s = 100. /. 3.
 
-
 (* PI controller : der(der x) =  kp*y + ki*(s-x) *)
 
 (* Fist integrator: der x = y *)
@@ -37,13 +36,14 @@ let hybrid calcy (newx, y0, x0) = y, newy where
   and present up(y -. (fy +. q)) | up ((fy -. q) -. y) -> do emit newy = y done
 
 open Scope
+
 let atomic node plot (t,x) =
   let s = scope (0.0, 42.0, ("X", points true, x)) in
   window ("test", 50.0, t, s)
 
-
 let hybrid main () = () where
-  rec x, newx = calcx (newy, 0.0, 0.0)
-  and y, newy = calcy (newx, 0.0, 0.0)
+  rec x, newx = inline calcx (newy, 0.0, 0.0)
+  and y, newy = inline calcy (newx, 0.0, 0.0)
   and der t = 1.0 init 0.0
   and present newx(_) -> do _ = plot (t, x) done
+

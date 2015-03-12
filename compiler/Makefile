@@ -1,7 +1,7 @@
 #************************************************************************#
 #                                                                        #
 #  The Zelus Hybrid Synchronous Language                                 #
-#  Copyright (C) 2012-2013                                               #
+#  Copyright (C) 2012-2014                                               #
 #                                                                        #
 #  Timothy Bourke                                                        #
 #  Marc Pouzet                                                           #
@@ -20,8 +20,8 @@ INCLUDES += $(DIRECTORIES:%=-I %)
 LOCATION = global/location.cmo	
 
 PARSING = parsing/parsetree.cmo \
-	parsing/lexer.cmo \
-	parsing/parser.cmo
+	parsing/parser.cmo \
+	parsing/lexer.cmo
 
 GLOBAL = global/misc.cmo \
 	global/pp_tools.cmo \
@@ -36,6 +36,7 @@ GLOBAL = global/misc.cmo \
 	global/modules.cmo \
 	global/initial.cmo \
 	global/ptypes.cmo \
+	global/pcaus.cmo \
 	global/printer.cmo \
 	global/scoping.cmo \
 	global/graph.cmo \
@@ -50,41 +51,36 @@ TYPING = typing/types.cmo \
 
 ANALYSIS = analysis/causal.cmo \
 	analysis/causality.cmo \
-	analysis/newcausal.cmo \
-	analysis/newcausality.cmo \
 	analysis/init.cmo \
 	analysis/initialization.cmo
 
-REWRITE = rewrite/dependences.cmo \
+REWRITE = rewrite/markfunctions.cmo \
+	rewrite/dependences.cmo \
+	rewrite/write.cmo \
 	rewrite/automata.cmo \
         rewrite/activate.cmo \
-	rewrite/letin.cmo \
-	rewrite/periodz.cmo \
-	rewrite/goagain.cmo \
-	rewrite/present.cmo \
 	rewrite/inline.cmo \
-	rewrite/ode.cmo \
+	rewrite/present.cmo \
+	rewrite/letin.cmo \
 	rewrite/period.cmo \
-	rewrite/write.cmo \
-	rewrite/completion.cmo \
+	rewrite/delays.cmo \
 	rewrite/reset.cmo \
-	rewrite/last.cmo \
 	rewrite/aform.cmo \
-	rewrite/cse.cmo \
-	rewrite/deadcode.cmo \
+	rewrite/shared.cmo \
 	rewrite/control.cmo \
+	rewrite/cse.cmo \
 	rewrite/schedule.cmo \
-	rewrite/copy.cmo
+	rewrite/copy.cmo \
+	rewrite/deadcode.cmo
 
 GENCODE = gencode/obc.cmo \
-	gencode/oprinter.cmo \
-	gencode/translate.cmo \
-	gencode/copystate.cmo
+	  gencode/oprinter.cmo \
+	  gencode/translate.cmo \
+	  gencode/inout.cmo
 
 MAIN = main/compiler.cmo \
 	main/simulator.cmo \
-	main/fixstep.cmo \
-	main/main.cmo
+	main/fixstep.cmo
 
 OBJ = $(LOCATION) $(PARSING) $(GLOBAL) $(TYPING) $(ANALYSIS) \
 	$(REWRITE) $(GENCODE) $(MAIN)
@@ -97,19 +93,21 @@ all: $(targets)
 opt: $(BIN).opt
 byte: $(BIN).byte
 
-$(BIN).opt: $(GENSOURCES) $(OBJ:%.cmo=%.cmx)
+$(BIN).opt: $(GENSOURCES) $(OBJ:%.cmo=%.cmx) main/main.cmx
 	$(OCAMLOPT) $(UNIXX) $(OCAMLOPTFLAGS) $(INCLUDES) \
-	-I $(MENHIRLIB) menhirLib.cmx $(OBJ:%.cmo=%.cmx) -o $(BIN).opt
+	-I $(MENHIRLIB) menhirLib.cmx $(OBJ:%.cmo=%.cmx) main/main.cmx \
+	-o $(BIN).opt
 
-$(BIN).byte: $(GENSOURCES) $(OBJ)
+$(BIN).byte: $(GENSOURCES) $(OBJ) main/main.cmo
 	$(OCAMLC) $(UNIX) $(OCAMLFLAGS) $(INCLUDES) \
-        -I $(MENHIRLIB) menhirLib.cmo $(OBJ) -o $(BIN).byte
+        -I $(MENHIRLIB) menhirLib.cmo $(OBJ) main/main.cmo \
+	-o $(BIN).byte
 
 debug: OCAMLFLAGS += -g
 debug: byte debugprinter.cma
 
-debugprinter.cma: $(LOCATION) $(GLOBAL) gencode/obc.cmo gencode/oprinter.cmo
-	$(OCAMLC) -a -o $@ $^
+debugprinter.cma: $(OBJ)
+	$(OCAMLC) -a -o $@ -I $(MENHIRLIB) menhirLib.cmo $^
 
 # Extra dependences
 

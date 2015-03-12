@@ -47,7 +47,7 @@ let hybrid system (f_in) = x where
   and f_spring = k *. x
   and f_friction = friction(v,f_in -. f_spring)
   and der x = v
-  and der v = f_in -. f_spring -. f_friction
+  and der v = f_in -. f_spring -. f_friction init 0.0
 
 let hybrid main () =
   let der t = 1.0 init 0.0 in

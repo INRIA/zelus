@@ -1,12 +1,12 @@
-val open_graph : string -> unit
-val close_graph : unit -> unit
-val set_window_title : string -> unit
-val clear_graph : unit -> unit
+val unsafe open_graph : string -> unit
+val unsafe close_graph : unit -> unit
+val unsafe set_window_title : string -> unit
+val unsafe clear_graph : unit -> unit
 val size_x : unit -> int
 val size_y : unit -> int
 type color
 val rgb : int * int * int -> color
-val set_color : color -> unit
+val unsafe set_color : color -> unit
 val background : color
 val foreground : color
 val black : color
@@ -17,35 +17,35 @@ val blue : color
 val yellow : color
 val cyan : color
 val magenta : color
-val plot : int * int -> unit
-val plots : (int * int) array -> unit
+val unsafe plot : int * int -> unit
+val unsafe plots : (int * int) array -> unit
 val point_color : int * int -> color
-val moveto : int * int -> unit
-val rmoveto : int * int -> unit
+val unsafe moveto : int * int -> unit
+val unsafe rmoveto : int * int -> unit
 val current_x : unit -> int
 val current_y : unit -> int
 val current_point : unit -> int * int
-val lineto : int * int -> unit
-val rlineto : int * int -> unit
-val curveto : (int * int) * (int * int) * (int * int) -> unit
-val draw_rect : int * int * int * int -> unit
-val draw_poly_line : (int * int) array -> unit
-val draw_poly : (int * int) array -> unit
-val draw_segments : (int * int * int * int) array -> unit
-val draw_arc : int * int * int * int * int * int -> unit
-val draw_ellipse : int * int * int * int -> unit
-val draw_circle : int * int * int -> unit
-val set_line_width : int -> unit
-val draw_char : char -> unit
-val draw_string : string -> unit
-val set_font : string -> unit
-val set_text_size : int -> unit
+val unsafe lineto : int * int -> unit
+val unsafe rlineto : int * int -> unit
+val unsafe curveto : (int * int) * (int * int) * (int * int) -> unit
+val unsafe draw_rect : int * int * int * int -> unit
+val unsafe draw_poly_line : (int * int) array -> unit
+val unsafe draw_poly : (int * int) array -> unit
+val unsafe draw_segments : (int * int * int * int) array -> unit
+val unsafe draw_arc : int * int * int * int * int * int -> unit
+val unsafe draw_ellipse : int * int * int * int -> unit
+val unsafe draw_circle : int * int * int -> unit
+val unsafe set_line_width : int -> unit
+val unsafe draw_char : char -> unit
+val unsafe draw_string : string -> unit
+val unsafe set_font : string -> unit
+val unsafe set_text_size : int -> unit
 val text_size : string -> int * int
-val fill_rect : int * int * int * int -> unit
-val fill_poly : (int * int) array -> unit
-val fill_arc : int * int * int * int * int * int -> unit
-val fill_ellipse : int * int * int * int -> unit
-val fill_circle : int * int * int -> unit
+val unsafe fill_rect : int * int * int * int -> unit
+val unsafe fill_poly : (int * int) array -> unit
+val unsafe fill_arc : int * int * int * int * int * int -> unit
+val unsafe fill_ellipse : int * int * int * int -> unit
+val unsafe fill_circle : int * int * int -> unit
 type image
 val transp : color
 val make_image : color array array -> image 
@@ -53,7 +53,7 @@ val dump_image : image -> color array array
 val draw_image : image * int * int -> unit
 val get_image : int * int * int * int -> image
 val create_image : int * int -> image 
-val blit_image : image * int * int -> unit
+val unsafe blit_image : image * int * int -> unit
 type status =
   { mouse_x : int;              (** X coordinate of the mouse *)
     mouse_y : int;              (** Y coordinate of the mouse *)
@@ -67,12 +67,12 @@ type event =
   | Key_pressed                 (** A key is pressed *)
   | Mouse_motion                (** The mouse is moved *)
   | Poll                        (** Don't wait; return immediately *)
-val wait_next_event : event list -> status 
+val unsafe wait_next_event : event list -> status 
 val mouse_pos : unit -> int * int
 val button_down : unit -> bool
 val read_key : unit -> char
 val key_pressed : unit -> bool
 val sound : int * int -> unit 
-val auto_synchronize : bool -> unit
-val synchronize : unit -> unit 
-val display_mode : bool -> unit 
+val unsafe auto_synchronize : bool -> unit
+val unsafe synchronize : unit -> unit 
+val unsafe display_mode : bool -> unit 

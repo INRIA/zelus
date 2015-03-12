@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2013                                               *)
+(*  Copyright (C) 2012-2015                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -12,203 +12,578 @@
 (*                                                                        *)
 (**************************************************************************)
 (* causality check *)
-(* sigma ::= forall a1,...,an:C.t1 -> t2 *)
-(* t ::= t * ... * t | a *)
+
+(* The relation c1 < c2 means that c1 must be computed before c2 *)
+(* The causality analysis imposes extra constraints so that control-structures *)
+(* are not opened. This could evolve if code-generation is changed. *)
+(* Extra rules are: *)
+(* 1. for a sequence of declarations, the sequential order is preserved. *)
+(*    [let x1 = e1 in let x2 = e2 in do x = e] *)
+(*    - x1: t1, x2: t2, x: t => t1 < t2 < t *)
+(* 2. for a control-structure, [if x then do x1 = e1 and x2 = e2 done *)
+(*                              else do x1 = e'1 and x2 = e'2 done *)
+(*    - x: t[d] *)
+(*    - [x1: t1[a]; x2: t2[b] ] < [x1: t1'[d]; x2: t2'[d]] with a, b, c < d *)
+ (* 3. The same rule applies for all control-structures (present/automata) *)
+ 
+let print x = Misc.internal_error "unbound" Printer.name x
 
 open Misc
 open Ident
+open Global
 open Zelus
 open Location
+open Defcaus
+open Pcaus
 open Causal
 
-(* lift a kind to a discrete one *)
-let discrete = function | A -> A | C -> D | D -> D | AD -> AD
+(* The typing environment for causality *)
+module Cenv =
+struct
+  type t =
+    | Empty
+    | Append of Defcaus.tentry Ident.Env.t * t
+    | On of t * Defcaus.t
 
-(** Causality analysis of a match handler *)
-let match_handlers k env body m_h_list =
-  let handler { m_pat = p; m_body = b } = 
-    body k env b in
-  corlist (List.map handler m_h_list)
+  (* returns the type associated to [x] in [cenv] *)
+  let rec find is_after x cenv =
+    match cenv with
+      | Empty -> raise Not_found
+      | On(cenv, c) ->
+	let ({ t_typ = ty } as tentry) = find is_after x cenv in
+	{ tentry with t_typ = if is_after then Causal.after ty c else ty }
+      | Append(env, cenv) ->
+	try
+	  Ident.Env.find x env
+	with
+	| Not_found -> find is_after x cenv
+			    
+  let root x cenv = find false x cenv
+  let find x cenv = find true x cenv
+  
+  (* returns the current dependence variable *)
+  let rec dep cenv =
+    match cenv with
+      | Empty -> Causal.new_var ()
+      | On(cenv, c) -> c
+      | Append(env, cenv) -> dep cenv
+
+  let empty = Empty
+  let append env cenv = Append(env, cenv)
+  let on cenv c = On(cenv, Causal.afterc (dep cenv) c)
+
+  (* makes a copy of an environment for a set of names *)
+  (* according to a boolean flag [is_last] *)
+  let add_roots is_last dv cenv acc =
+    Ident.S.fold
+      (fun x acc ->
+	Env.add x { (root x cenv) with t_last = is_last } acc) dv acc
+
+  (* returns the environment for names in [defnames]. A variable *)
+  (* [x in defnames] cannot be accessed with [last x] unless [x] is a *)
+  (* continuous state variable *)
+  let current cenv
+      { Deftypes.dv = dv; Deftypes.di = di; Deftypes.der = dr } =
+    let env = add_roots false dv cenv Env.empty in
+    let env = add_roots false di cenv env in
+    append (add_roots true dr cenv env) cenv
+        		       
+  (* returns the environment for names in [defnames]. All variable names *)
+  (* can be accessed with a last *)
+  let last cenv { Deftypes.dv = dv; Deftypes.di = di; Deftypes.der = dr } =
+    let env = add_roots true dv cenv Env.empty in
+    let env = add_roots true di cenv env in
+    append (add_roots true dr cenv env) cenv
+  		       
+  let print_env ff cenv =
+    (* print a typing environment *)
+    let p_env ff l_env =
+      let vars_env env = 
+	Env.fold (fun _ { t_typ = tc } acc -> Causal.vars acc tc) env [] in
+      let env ff l_env =
+	Env.iter
+	  (fun n { t_typ = ty; t_last = is_last } ->
+	   Format.fprintf ff "@[%s%a : %a@ @]" (if is_last then "last " else "")
+			  Printer.name n (typ 0) ty) l_env in
+      if not (Env.is_empty l_env)
+      then let v_list = vars_env l_env in
+	   Format.fprintf ff "@[%a@ with %a@]" env l_env relation v_list in
+    let rec print_env ff = function
+      | Empty -> ()
+      | On(cenv, c) ->
+	 Format.fprintf ff "@[%a on@ %a@]" print_env cenv Pcaus.caus c
+      | Append(env, cenv) ->
+	 Format.fprintf ff "@[%a %a@]" print_env cenv p_env env in
+    print_env ff cenv
+end
+  
+
+(* Main error message *)
+type error =
+  | Eloop of Defcaus.t list
+  (* dependence cycle and the current typing environment *)
+  | Elast_in_continuous
+
+exception Error of location * error
+
+let error loc kind = raise (Error(loc, kind))
+
+let message loc kind =
+  begin match kind with
+	| Eloop(l) ->
+	   Format.eprintf "@[%aCausality error: this expression \
+		  	   may instantaneously depend on itself.@.\
+                           Here is an example of a cycle:@.@[%a@]@.@]"
+			  output_location loc
+			  Pcaus.cycle l
+	| Elast_in_continuous ->
+	   Format.eprintf "%aCausality error: last is only allowed here \
+                           for a variable defined by its derivative.@."
+			  output_location loc
+  end;
+  raise Misc.Error
+
+(* Unification and sub-typing relation *)
+
+(** Typing a pattern. It returns an environment *)
+let rec pattern ({ p_desc = desc; p_loc = loc } as p) ty =
+  try
+    let env = match desc with
+      | Ewildpat | Econstpat _ | Econstr0pat _ -> Env.empty
+      | Evarpat(x) -> 
+	 Env.singleton x { t_typ = Causal.mark_with_name x ty; t_last = false }
+      | Etuplepat(pat_list) ->
+         let ty_list = Causal.filter_product (List.length pat_list) ty in
+	 append_list (List.map2 pattern pat_list ty_list)
+      | Erecordpat(l) -> 
+	 let c = Causal.new_var () in
+	 Causal.synchronise c ty;
+	 append_list (List.map (fun (_, p) -> pattern p (Causal.atom c)) l)
+      | Etypeconstraintpat(p, _) -> pattern p ty
+      | Eorpat(p, _) -> 
+	 pattern p ty
+      | Ealiaspat(p, n) -> 
+	 append_list [pattern p ty; 
+		      Env.singleton n { t_typ = Causal.mark_with_name n ty; 
+					t_last = false }] in
+    (* annotate the patter with causality information *)
+    p.p_caus <- Causal.vars [] ty;
+    env
+  with
+  | Causal.Unify(l) -> error loc (Eloop(l))
+
+(** Build an environment from a typing environment *)
+(* In a continuous context, [last x] is allowed for continuous state variables *)
+let build_env l_env =
+   let entry n { Deftypes.t_typ = ty; Deftypes.t_sort = sort } acc = 
+     let ty_c = Causal.skeleton_with_name n ty in
+     let is_last =
+       match sort with
+	 | Deftypes.Mem { Deftypes.t_der_is_defined = true } -> true
+	 | _ -> false in
+     Env.add n { t_typ = ty_c; t_last = is_last } acc in
+   Env.fold entry l_env Env.empty
+
+(** Causality analysis of a match handler.*)
+let match_handlers body expected_k env m_h_list =
+  let handler { m_pat = p; m_body = b } =
+    let c_e = Causal.new_var () in
+    let m_env = pattern p (skeleton_on_c c_e p.p_typ) in
+    let env = Cenv.append m_env env in 
+    body expected_k env b in
+  List.map handler m_h_list
 
 (** Causality analysis of a present handler *)
-let present_handlers k env scondpat body p_h_list =
+let present_handlers scondpat body expected_k env p_h_list h_opt =
   let handler { p_cond = scpat; p_body = b } =
-    let t = scondpat k env scpat in
-    cseq t (body (discrete k) env b) in
-  corlist (List.map handler p_h_list)
+    let _, new_env = scondpat expected_k env scpat in
+    let env = Cenv.append new_env env in
+    body (Types.lift_to_discrete expected_k) env b in
+  let ty_list = List.map handler p_h_list in
+  match h_opt with
+    | None -> ty_list | Some(h) -> (body expected_k env h) :: ty_list
 
-(** Causality analysis of a block. *)
-let block k env locals body
-    { b_vars = n_list; b_locals = l_list; b_body = bo; b_loc = loc } =
-  (* local names defined in [n_list] *)
-  let l_env = List.fold_left (fun acc n -> S.add n acc) S.empty n_list in
-  let env = S.union l_env env in        
-  let c_locals = locals k env l_list in
-  let c_body = body k env bo in
-  let c = cseq c_locals c_body in
-  Causal.check loc c;
-  clear l_env c
+(* causality for [last x] *)
+let last loc expected_k is_last ty =
+  (* [last x] breaks an algebraic cycle *)
+  (* it can be used in any discrete context or if [is_last = true] *)
+  match expected_k with 
+    | Deftypes.Tdiscrete(true) -> Causal.last ty 
+    | _ -> if is_last then Causal.last ty else error loc Elast_in_continuous
 
-(* cutting dependences with a delay operator *)
-let rec pre = function
-  | Cor(c1, c2) -> Cor(pre c1, pre c2)
-  | Cand(c1, c2) -> Cand(pre c1, pre c2)
-  | Cseq(c1, c2) -> Cseq(pre c1, pre c2)
-  | Cread(x) -> Clastread(x)
-  | (Cwrite _ | Clastread _ | Cempty) as c -> c
-
-(* The causality of [last x]. Breaks a cycle in a discrete context. Not in *)
-(* a continuous one *)
-let lastread k x = match k with | C -> read x | A | AD | D -> lastread x
-
-(** Computes the causality constraint for an expression under kind [k]. Dependences *)
-(* are kept for names appearing in [env] only. *)
-let rec exp k env { e_desc = desc; e_loc = loc } =
-  match desc with
-    | Econst _ | Econstr0 _ | Eglobal _ | Eperiod _ -> cempty
-    | Elocal(x) -> if S.mem x env then read x else cempty
-    | Elast(x) -> if S.mem x env then lastread k x else cempty
-    | Etuple(e_list) -> candlist (List.map (exp k env) e_list)
-    | Eapp(op, e_list) -> apply k env op e_list
-    | Erecord_access(e, _) -> exp k env e
-    | Erecord(l) -> candlist (List.map (fun (_, e) -> exp k env e) l)
-    | Etypeconstraint(e, _) -> exp k env e
-    | Elet(l, e_let) -> 
-        let env, t_l = local k (env, cempty) l in
-        let t = cseq t_l (exp k env e_let) in
-        Causal.check loc t;
-        t
-    | Eseq(e1, e2) -> cseq (exp k env e1) (exp k env e2)
-    | Epresent(p_h_e_list, e_opt) ->
-        let t_p_h_e_list = present_handler_exp_list k env p_h_e_list in
-	let t = opt (exp k env) e_opt in
-	cor t_p_h_e_list t
-    | Ematch(_, e, m_h_e_list) ->
-        let t = exp k env e in
-	let t_m_h_e_list = match_handler_exp_list k env m_h_e_list in
-	cseq t t_m_h_e_list
-      
+(** causality of an expression *)
+let rec exp expected_k env ({ e_desc = desc; e_typ = ty; e_loc = loc } as e) =
+  try
+    let tc = match desc with
+      (* if variables from [env] are computed before [c] *)
+      (* constants are synchronized with [c] *)
+      | Econst _ | Econstr0 _
+      | Eglobal _ | Eperiod _ -> 
+		     let c = Cenv.dep env in Causal.skeleton_on_c c ty
+      | Elocal(x) -> 
+         begin try 
+	     let { t_typ = actual_ty } = Cenv.find x env in
+	     (* subtyping must be done at an instanciation point *)
+	     let expected_ty = Causal.skeleton_with_name x ty in
+	     Causal.type_before_type actual_ty expected_ty; expected_ty
+           with | Not_found -> print x
+         end
+      | Elast(x) -> 
+         begin try 
+	     let { t_typ = ty1; t_last = is_last } = 
+	       Cenv.root x env in last loc expected_k is_last ty1
+	   with | Not_found -> assert false
+	 end
+      | Etuple(e_list) -> 
+         product (List.map (exp expected_k env) e_list)
+      | Eapp(op, e_list) -> 
+         apply expected_k env op ty e_list
+      | Erecord_access(e_record, _) -> 
+         let c = Causal.new_var () in
+	 exp_before_on_c expected_k env e_record c;
+         Causal.skeleton_on_c c ty
+      | Erecord(l) -> 
+         let c = Causal.new_var () in
+         List.iter (fun (_, e) -> exp_before_on_c expected_k env e c) l;
+         Causal.skeleton_on_c c ty
+      | Etypeconstraint(e, _) -> exp expected_k env e
+      | Elet(l, e_let) -> 
+         let new_env = local expected_k env l in
+	 let ty = exp expected_k (Cenv.append new_env env) e_let in
+	 ty
+      | Eseq(e1, e2) -> 
+         let c = Causal.new_var () in
+         exp_before_on_c expected_k env e1 c;
+	 exp_before_on_c expected_k env e2 c;
+	 Causal.skeleton_on_c c e2.e_typ
+      | Epresent(h_e_list, e_opt) ->
+         let c_e = Causal.new_var () in
+         present_handler_exp_list expected_k (Cenv.on env c_e) h_e_list e_opt
+      | Ematch(_, e, h_e_list) ->
+         let c_e = Causal.new_var () in
+	 exp_before_on_c expected_k env e c_e;
+       	 match_handler_exp_list expected_k (Cenv.on env c_e) h_e_list in
+    (* annotate [e] with causality variables *)
+    e.e_caus <- Causal.vars [] tc;
+    tc
+  with
+  | Causal.Unify(l) -> error loc (Eloop(l))
+			     
 (** Typing an application *)
-and apply k env op e_list =
+and apply expected_k env op ty e_list =
+  let c = Causal.new_var () in
   match op, e_list with
-    | Eunarypre, [e] -> pre (exp k env e)
+    | Eunarypre, [e] -> 
+        exp_before_on_c expected_k env e (Causal.new_var ());
+        Causal.skeleton_on_c c ty
     | Efby, [e1;e2] ->
-        let t1 = exp k env e1 in
-        let t2 = pre (exp k env e2) in
-        candlist [t1; t2]
+        exp_before_on_c expected_k env e2 (Causal.new_var ());
+        exp_before_on_c expected_k env e1 c;
+	Causal.skeleton_on_c c ty
     | Eminusgreater, [e1;e2] ->
-        let t1 = exp k env e1 in
-        let t2 = exp k env e2 in
-        candlist [t1; t2]
+        exp_before_on_c expected_k env e1 c;
+        exp_before_on_c expected_k env e2 c;
+	Causal.skeleton_on_c c ty
     | Eifthenelse, [e1; e2; e3] ->
-        let t1 = exp k env e1 in
-        let i2 = exp k env e2 in
-        let i3 = exp k env e3 in
-        cseq t1 (cor i2 i3)
-    | (Eup | Etest | Edisc), [e1] -> exp k env e1
-    | (Eon | Eop _ | Einitial), e_list -> candlist (List.map (exp k env) e_list)
+        exp_before_on_c expected_k env e1 c;
+        exp_before_on_c expected_k env e2 c;
+        exp_before_on_c expected_k env e3 c;
+        Causal.skeleton_on_c c ty
+    | (Einitial | Eup | Etest | Edisc), e_list ->
+        List.iter 
+	  (fun e -> 
+	    exp_before_on_c expected_k env e c) e_list;
+        Causal.skeleton_on_c c ty
+    | Eop(_, lname), e_list ->
+        let { info = info } = Modules.find_value lname in
+	let ty_arg_list, ty_res = Causal.instance info in
+	List.iter2 (exp_before expected_k env) e_list ty_arg_list;
+        ty_res
+    | Eevery(_, lname), e :: e_list ->
+        let { info = info } = Modules.find_value lname in
+	let ty_arg_list, ty_res = Causal.instance info in
+	List.iter2 (exp_before expected_k env) e_list ty_arg_list;
+        exp_before_on_c expected_k env e c;
+	Causal.type_before_type (Causal.skeleton_on_c c ty) ty_res;
+	ty_res
     | _ -> assert false
 
-and pattern { p_desc = desc } =
-  match desc with
-    | Ewildpat | Econstpat _ | Econstr0pat _ -> cempty
-    | Evarpat(x) -> cwrite(x)
-    | Etuplepat(pat_list) ->
-        candlist (List.map pattern pat_list)
-    | Erecordpat(l) -> candlist (List.map (fun (_, p) -> pattern p) l)
-    | Etypeconstraintpat(p, _) -> pattern p
-    | Eorpat(p1, _) -> pattern p1
-    | Ealiaspat(p, n) -> cand (pattern p) (cwrite n)
+and exp_before_on_c expected_k env e expected_c =
+  try
+    let actual_ty = exp expected_k env e in
+    let expected_ty = Causal.skeleton_on_c expected_c e.e_typ in
+    Causal.type_before_type actual_ty expected_ty;
+    (* annotate [e] with causality variables *)
+    e.e_caus <- Causal.vars [] expected_ty
+  with
+  | Causal.Unify(l) -> error e.e_loc (Eloop(l))
 
+and exp_before expected_k env e expected_ty =
+  try
+    let actual_ty = exp expected_k env e in
+    Causal.type_before_type actual_ty expected_ty;
+    (* annotate [e] with causality variables *)
+    e.e_caus <- Causal.vars [] expected_ty
+  with
+  | Causal.Unify(l) -> error e.e_loc (Eloop(l))
+			     
 (** Checking equations *)
-and equation_list k env eq_list = candlist (List.map (equation k env) eq_list)
+and equation_list expected_k env eq_list = 
+  (* type the set of equations *)
+  let new_env =
+    List.fold_left 
+      (fun acc_env eq -> Causal.supenv (equation expected_k env eq) acc_env) 
+      Env.empty eq_list in
+  new_env
 
-and equation k env eq =
-  match eq.eq_desc with
-    | EQeq(p, e) -> cseq (exp k env e) (pattern p)
-    | EQder(n, e, e0_opt, p_h_e_list) ->
-        let t_e0 = opt (exp k env) e0_opt in
-        let t_list =
-	  List.fold_left
-	    (fun t { p_cond = scpat; p_body = e } ->
-	      cor t (cseq (scondpat k env scpat) (exp k env e))) cempty p_h_e_list in
-	cand (candlist [pre (exp k env e); t_e0]) t_list
-    | EQinit(p, e0, e_opt) ->
-        cseq (cand (exp k env e0) (opt (exp k env) e_opt)) (pattern p)
-    | EQnext(p, e, e0_opt) ->
-        cseq (pre (exp k env e)) (opt (exp k env) e0_opt)
-    | EQautomaton(s_h_list, se_opt) ->
-        let state k env { desc = desc } =
-	    match desc with
-	      | Estate0 _ -> cempty
-	      | Estate1(_, e_list) -> candlist (List.map (exp k env) e_list) in
-	(* handler *)
-        let handler k env { s_body = b; s_until = until; s_unless = unless } =
-          let escape k env t { e_cond = sc; e_block = b_opt; e_next_state = se } =
-            cor t
-	      (cseq (scondpat k env sc) 
-		 (cseq 
-		    (match b_opt with 
-		      | None -> cempty | Some(b) -> block_eq_list (discrete k) env b)
-		    (state (discrete k) env se))) in
-          cseq (List.fold_left (escape k env) cempty unless)
-            (cseq (block_eq_list k env b) 
-	       (List.fold_left (escape k env) cempty until)) in
-        cseq (opt (state k env) se_opt) 
-	  (List.fold_left 
-	     (fun t s_h -> cor t (handler k env s_h)) cempty s_h_list)
-    | EQmatch(_, e, m_h_list) ->
-        let t = match_handler_block_eq_list k env m_h_list in
-        cseq (exp k env e) t
-    | EQpresent(p_h_list, b_opt) ->
-        let t_opt = 
-	  match b_opt with | None -> cempty | Some(b) -> block_eq_list k env b in
-        let t = present_handler_block_eq_list k env p_h_list in
-	cor t_opt t
-    | EQreset(b, e) -> cseq (exp k env e) (block_eq_list k env b)
-    | EQemit(n, e_opt) ->
-        let t = opt (exp k env) e_opt in
-        cseq t (cwrite n)
-
-and scondpat k env { desc = desc } =
+and equation expected_k env
+    { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
   match desc with
-    | Econdand(scpat1, scpat2) | Econdor(scpat1, scpat2) ->
-        cand (scondpat k env scpat1) (scondpat k env scpat2)
-    | Econdon(scpat1, e) -> cand (scondpat k env scpat1) (exp k env e)
-    | Econdexp(e) | Econdpat(e, _) -> exp k env e
+    | EQeq(p, e) -> 
+        let ty_e = exp expected_k env e in
+	pattern p ty_e
+    | EQder(n, e, e0_opt, h_e_list) ->
+        (* no causality constraint for [e] *)
+	let _ = exp expected_k env e in
+	(* type the initialization and handler *)
+	let c_e = Causal.new_var () in
+	let env = Cenv.on env c_e in
+	let ty =
+	  match h_e_list with
+	    | [] -> Causal.skeleton_on_c c_e e.e_typ
+	    | _ -> present_handler_exp_list expected_k env h_e_list None in
+	let ty =
+	  match e0_opt with
+	  | None -> ty
+	  | Some(e0) -> 
+	    sup ty (exp (Types.lift_to_discrete expected_k) env e0) in
+	Env.singleton n { t_typ = ty; t_last = true }
+    | EQset(_, e) -> let _ = exp expected_k env e in Env.empty
+    | EQinit(n, e0) ->
+        let ty = exp expected_k env e0 in
+	Env.singleton n { t_typ = ty; t_last = false }
+    | EQnext(n, e, e0_opt) ->
+        ignore (exp expected_k env e);
+	let expected_ty = Causal.skeleton_on_c (Causal.new_var ()) e.e_typ in
+	begin match e0_opt with 
+	      | None -> () | Some(e) -> exp_before expected_k env e expected_ty
+	end;
+	Env.singleton n { t_typ = expected_ty; t_last = false }
+    | EQautomaton(is_weak, s_h_list, se_opt) ->
+        (* Typing a state expression *)
+        let state env { desc = desc } =
+	  let c = Causal.new_var () in
+	  match desc with
+	    | Estate0 _ -> ()
+	    | Estate1(_, e_list) -> 
+	       List.iter
+		 (fun e -> exp_before_on_c expected_k env e c) e_list in
+	(* Typing of handlers *)
+        (* scheduling is done this way: *)
+	(* - Automata with strong preemption: *)
+	(*   1. compute unless conditions; *)
+	(*   2. execute the corresponding handler. *)
+	(* - Automata with weak preemption: *)
+        (*   1. compute the body; 2. compute the next active state. *)
+	let handler expected_k env
+	    { s_body = b; s_trans = trans; s_env = s_env } =
+          (* typing an escape. *)
+	  let escape env { e_cond = sc; e_block = b_opt; e_next_state = ns } =
+            let c_e, new_env = scondpat expected_k env sc in
+	    let env = Cenv.append new_env (Cenv.on env c_e) in
+	    let env, shared_env = 
+	      match b_opt with 
+	      | None -> env, Env.empty
+	      | Some(b) ->
+		block_eq_list_with_local_env
+		  (Types.lift_to_discrete expected_k) env b in
+	    state (Cenv.append shared_env env) ns;
+	    shared_env in
+          let s_env = build_env s_env in
+	  let env = Cenv.append s_env env in
+	  if is_weak then
+	    let env, shared_env =
+	      block_eq_list_with_local_env expected_k env b in
+	    let env = Cenv.append shared_env env in
+	    let trans_env =
+	      Causal.supenv_list (List.map (escape env) trans) in
+	    Env.append shared_env trans_env
+	  else
+	    let trans_env =
+	      Causal.supenv_list (List.map (escape env) trans) in
+	    let shared_env = block_eq_list expected_k env b in
+	    Env.append shared_env trans_env in
+	(* all variables read in [s_h_list] must be scheduled before *)
+	(* a certain date *)
+	let env = Cenv.on env (Causal.new_var ()) in
+	(* a shared variable [x] defined in [s_h_list] can potentially *)
+	(* be accessed with [last x] *)
+	let env = Cenv.last env defnames in
+	let new_env =
+	  supenv_list (List.map (handler expected_k env) s_h_list) in
+	ignore (Misc.optional_map (state env) se_opt);
+	new_env
+    | EQmatch(_, e, m_h_list) ->
+       let c_e = Causal.new_var () in
+       exp_before_on_c expected_k env e c_e;
+       (* all variables read in [m_h_list] must be scheduled before the *)
+       (* date [e] is scheduled *)
+       let env = Cenv.on env c_e in
+       (* a shared variable [x] defined in [m_h_list] can potentially *)
+       (* be accessed with [last x] *)
+       let env = Cenv.last env defnames in
+       match_handler_block_eq_list expected_k env m_h_list
+    | EQpresent(p_h_list, b_opt) ->
+      (* all variables read in [p_h_list] must be scheduled *)
+      (* before a certain date *)
+      let c_e = Causal.new_var () in
+      let env = Cenv.on env c_e in
+      (* a shared variable [x] defined in [p_h_list] can potentially *)
+      (* be accessed with [last x] *)
+      let env = Cenv.last env defnames in
+       present_handler_block_eq_list expected_k env p_h_list b_opt
+    | EQreset(eq_list, e) -> 
+        (* variables defined in [b] depend on [e] *)
+       let c_e = Causal.new_var () in
+       exp_before_on_c expected_k env e c_e;
+       equation_list expected_k (Cenv.on env c_e) eq_list
+    | EQemit(n, e_opt) ->
+        let c_e = Causal.new_var () in
+	begin match e_opt with 
+	  | None -> ()
+	  | Some(e) -> exp_before_on_c expected_k env e c_e
+	end;
+	Env.singleton n { t_typ = atom c_e; t_last = false }
+    | EQblock(b_eq_list) ->
+        block_eq_list expected_k env b_eq_list
+	  
+(* Typing a present handler for expressions *)
+(* The handler list is not be empty *)
+and present_handler_exp_list expected_k env p_h_list e_opt =
+  let ty_list = present_handlers scondpat exp expected_k env p_h_list e_opt in
+  Causal.sup_list ty_list
 
-and present_handler_exp_list k env p_h_list =
-  present_handlers k env scondpat exp p_h_list
+(* Typing a present handler for blocks *)
+and present_handler_block_eq_list expected_k env p_h_list p_h_opt =
+  let env_list = 
+    present_handlers scondpat block_eq_list expected_k env p_h_list p_h_opt in
+  Causal.supenv_list env_list
 
-and present_handler_block_eq_list k env p_h_list =
-  present_handlers k env scondpat block_eq_list p_h_list
+(* Typing a match handler for expressions *)
+(* The handler list is not empty *)
+and match_handler_exp_list expected_k env m_h_list =
+  let ty_list = match_handlers exp expected_k env m_h_list in
+  Causal.sup_list ty_list
 
-and match_handler_block_eq_list k env m_h_list =
-  match_handlers k env block_eq_list m_h_list
+(* Typing a match handler for blocks *)
+and match_handler_block_eq_list expected_k env m_h_list =
+  let new_env_list = match_handlers block_eq_list expected_k env m_h_list in
+  Causal.supenv_list new_env_list
 
-and match_handler_exp_list k env m_h_list =
-  match_handlers k env exp m_h_list
+(* Typing a block with a set of equations in its body. Returns *)
+(* the pair [env, shared_env] *)
+(* [env] is the environment of variable defined globally plus local variables *)
+(* [shared_env] is the variables between the [do ... done] *)
+(* [expected_k] is the expected kind for the body. *)
+and block_eq_list_with_local_env expected_k env 
+    { b_locals = l_list; b_body = eq_list; 
+      b_env = b_env; b_loc = loc; b_write = defnames } =
+  (* A block structure is scheduled as a whole. *)
+  (* Introduce [c_e]: every computation which is not shared must be scheduled *)
+  (* after [c_e] *)
+  (* Local definitions must be executed before equations in the current block *)
+  let c_e = Causal.new_var () in
+  let local local_env l =
+    let new_env = local expected_k local_env l in
+    Cenv.append new_env local_env in
+  let env = List.fold_left local (Cenv.on env c_e) l_list in
+  (* Build the typing environment for names introduced by a *)
+  (* [local x1,..., xn in ...] *)
+  let b_env = build_env b_env in
+  let env = Cenv.append b_env env in
+  (* Then, type the body *)
+  (* Copy shared variables, that is, names in [defnames] *)
+  (* so that they do not have to be scheduled before [c_e] *)
+  let env = Cenv.current env defnames in
+  try
+    let new_env = equation_list expected_k env eq_list in
+    (* detect causality cycles inside the block *)
+    let shared_env = Causal.env_structurally_before_env new_env b_env in
+    env, shared_env
+  with Causal.Unify(l) -> error loc (Eloop(l))
 
-and block_eq_list k env b =
-  let locals k env l_list =
-    let _, t = List.fold_left (local k) (env, cempty) l_list in t in
-  block k env locals equation_list b
-  
-and local k (env, t) { l_eq = eq_list; l_loc = loc; l_env = l_env } =
-  let l_env = Env.fold (fun n _ acc -> S.add n acc) l_env S.empty in
-  let env = S.union l_env env in
-  let t_eq_list = equation_list k env eq_list in
-  Causal.check loc t_eq_list;
-  let t_eq_list = clear l_env t_eq_list in
-  env, cseq t t_eq_list
+(* Typing a block with a set of equations in its body. Only returns *)
+(* the environment of shared variables *)
+and block_eq_list expected_k env b =
+  let _, shared_env = block_eq_list_with_local_env expected_k env b in
+  shared_env
+    
+(* Typing a local declaration. Returns the environment of local variables *)
+and local expected_k env { l_eq = eq_list; l_env = l_env; l_loc = loc } =
+  (* First extend the typing environment *)
+  let l_env = build_env l_env in
+  let env = Cenv.append l_env env in
+  (* Then type the body *)
+  try
+    let new_env = equation_list expected_k env eq_list in
+    ignore (Causal.env_structurally_before_env new_env l_env);
+    l_env
+  with Causal.Unify(l) -> error loc (Eloop(l))
+    
+(* Typing  a signal pattern. *)
+and scondpat expected_k env sc =
+  let rec scondpat c { desc = desc; loc = loc } =
+    match desc with
+    | Econdand(sc1, sc2) | Econdor(sc1, sc2) -> 
+        Causal.supenv (scondpat c sc1) (scondpat c sc2)
+    | Econdon(sc1, e) ->
+      exp_before_on_c expected_k env e c;
+      scondpat c sc1
+    | Econdexp(e) -> 
+      exp_before_on_c expected_k env e c; Env.empty
+    | Econdpat(e, p) -> 
+      exp_before_on_c expected_k env e c;
+      let ty = Causal.skeleton_on_c c p.p_typ in
+      pattern p ty in
+  let c = Causal.new_var () in
+  c, scondpat c sc
 
-let implementation ff impl =
-  match impl.desc with
+let implementation ff { desc = desc } =
+  try
+    match desc with
     | Eopen _ | Etypedecl _ -> ()
-    | Econstdecl(f, e) -> ignore (exp Zelus.A S.empty e) 
-    | Efundecl(f, { f_kind = k; f_args = p_args; f_body = e }) ->
-        let c = exp k S.empty e in
-        (* output the signature *)
-	if !Misc.print_causality then print_declaration ff f (p_args, c)
+    | Econstdecl(_, e) -> 
+       Misc.push_binding_level ();
+       ignore (exp Deftypes.Tany Cenv.empty e);
+       Misc.pop_binding_level ()
+    | Efundecl (f, { f_kind = k; f_atomic = atomic; f_args = pat_list;
+		     f_body = e; f_env = h0 }) ->
+       Misc.push_binding_level ();
+       let expected_k = Interface.kindtype k in
+       (* first type the body *)
+       let c_in = Causal.new_var () in
+       let c_res = Causal.new_var () in
+       ignore (Causal.afterc c_in c_res);
+       let ty_arg_list, ty_res = 
+	 (* for an atomic node, all outputs depend on all inputs *)
+	 if atomic then
+	   List.map (fun p -> Causal.skeleton_on_c c_in p.p_typ) pat_list,
+	   Causal.skeleton_on_c c_res e.e_typ
+	 else
+	   List.map (fun p -> Causal.skeleton_on_c (Causal.new_var ()) p.p_typ) 
+		    pat_list,
+	   Causal.skeleton e.e_typ in
+       let env = 
+	 List.fold_left2 (fun acc p ty -> Env.append (pattern p ty) acc) 
+			 Env.empty pat_list ty_arg_list in
+       exp_before expected_k (Cenv.append env Cenv.empty) e ty_res;
+       Misc.pop_binding_level ();
+       let tys = generalise ty_arg_list ty_res in
+       (* then add the current entries in the global environment *)
+       Global.set_causality (Modules.find_value (Lident.Name(f))) tys;
+       (* output the signature *)
+       if !Misc.print_causality then Pcaus.declaration ff f tys
+  with
+  | Error(loc, err) -> message loc err
 
 let implementation_list ff impl_list = List.iter (implementation ff) impl_list

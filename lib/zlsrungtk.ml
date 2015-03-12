@@ -1,14 +1,8 @@
-(**************************************************************************)
-(*                                                                        *)
-(*  Author : Timothy Bourke                                               *)
-(*  Organization : Synchronics, INRIA                                     *)
-(*                                                                        *)
-(**************************************************************************)
+module Make (SSolver : Zls.STATE_SOLVER) =
+struct (* {{{ *)
 
 (* instantiate a numeric solver *)
-module Load = Loadsolvers
-let () = Zlsolve.check_for_solver Sys.argv
-module Runtime = (val Zlsolve.instantiate () : Zlsolve.ZELUS_SOLVER)
+module Solver = Zlsolve.Make (SSolver) (Illinois)
 
 let _ = GMain.init () (* initialize lablgtk2 *)
 
@@ -16,15 +10,25 @@ let start_playing = ref true
 
 let destroy () = GMain.Main.quit ()
 
-let () = Zlsolve.add_custom_arg
-  ("-pause", Arg.Clear start_playing,
-   " Start the simulator in paused mode.")
+let low_prio = Glib.int_of_priority `LOW
+external timeout_add : ?prio:int -> ms:int -> callback:(unit -> bool)
+                       -> Glib.Timeout.id
+  = "ml_g_timeout_add"
 
-class step_task model_size model =
+class step_task main_alloc main_csize main_zsize main_maxsize main_ders
+                main_step main_zero main_reset =
 object (self)
 
-  val mutable ss =
-    Runtime.main' model_size model
+  val stepfn =
+    Solver.step
+      main_alloc
+      main_csize
+      main_zsize
+      main_maxsize
+      main_ders
+      main_step
+      main_zero
+      main_reset
 
   val mutable last_wall_clk = Unix.gettimeofday ()
   val mutable timer_id = None
@@ -37,33 +41,31 @@ object (self)
   method private clear_timer () =
     match timer_id with
       None -> ()
-    | Some id -> (GMain.Timeout.remove id;
+    | Some id -> (Glib.Timeout.remove id;
                   timer_id <- None)
 
   method single_step () =
-    let result, delta, ss' = Runtime.step ss in
-    ss <- ss';
-    Runtime.is_done ss
+    let _, is_done, _ = stepfn () in
+    is_done
 
   method trigger_step () =
     self#clear_timer ();
     self#inc_step_count ();
-    let result, delta, ss' = Runtime.step ss in
+    let _, is_done, delta = stepfn () in
     let wall_clk = Unix.gettimeofday () in
     let delta' = delta -. (wall_clk -. last_wall_clk) in
-    ss <- ss';
     last_wall_clk <- wall_clk;
-    if Runtime.is_done ss then true
+    if is_done then true
     else if delta <= 0.0 && not self#too_many_steps then self#trigger_step ()
     else
-
       (* NB: cut losses at each continuous step: *)
       if self#too_many_steps then begin
          prerr_string "Zlsrungtk: too fast!\n";
          flush stderr;
          self#reset_step_count ();
          (* Give GTK a chance to process other events *)
-         timer_id <- Some (GMain.Timeout.add 10 self#trigger_step);
+         timer_id <- Some (timeout_add ~prio:low_prio ~ms:10
+                                       ~callback:self#trigger_step);
          true
         end
       else if delta' <= 0.0 then self#trigger_step ()
@@ -71,8 +73,9 @@ object (self)
         (* NB: accumulate losses across steps: *)
         (* wall_clk_last := wall_clk; *)
         self#reset_step_count ();
-        timer_id <- Some (GMain.Timeout.add
-                           (int_of_float (delta' *. 1000.0)) self#trigger_step);
+        timer_id <- Some (timeout_add ~prio:low_prio
+                           ~ms:(int_of_float (delta' *. 1000.0))
+                           ~callback:self#trigger_step);
         true)
 
   method start () =
@@ -82,7 +85,8 @@ object (self)
   method stop () = self#clear_timer ()
 end
 
-let go model_size model =
+let go (main_alloc, main_csize, main_zsize, main_maxsize, main_ders, main_step,
+        main_zero, main_reset) =
   let w = GWindow.window
     ~title:"Simulator"
     ~width:250
@@ -118,7 +122,9 @@ let go model_size model =
   in
   b_pause#misc#set_sensitive false;
 
-  let stask = new step_task model_size model in
+  let stask =
+    new step_task main_alloc main_csize main_zsize main_maxsize main_ders
+                  main_step main_zero main_reset in
 
   let s_speed_adj = GData.adjustment
     ~lower:1.0
@@ -127,10 +133,10 @@ let go model_size model =
     ~step_incr:0.2
     ()
   in
-  let original_speedup = !Runtime.speedup in
+  let original_speedup = !Solver.speedup in
   let change_speedup x =
     let v = s_speed_adj#value in
-    Runtime.speedup := original_speedup
+    Solver.speedup := original_speedup
         *. (if v <= 3.0 then v /. 3.0 else (v -. 3.0) *. 4.0);
     ignore (stask#trigger_step ())
     in
@@ -178,3 +184,8 @@ let go model_size model =
   ignore (w#connect#destroy ~callback:destroy);
   w#show ();
   GMain.Main.main ()
+
+let check _ _ = assert false
+
+end (* }}} *)
+

@@ -314,7 +314,7 @@ class tractor ~context =
     (* }}}1 *)
   end
 
-class window =
+class window () =
   (* {{{1 *)
 
   let w = GWindow.window
@@ -414,7 +414,7 @@ let stick_range  = (-2.0 *. pi /. 3.0, -0.05, -.0.05)
 let bucket_range = (-. 2.0 *. pi /. 3.0, 0.0, 0.0)
 
 let show () =
-  let w = new window in
+  let w = new window () in
   let _ = w#show in
   w, w#tractor
 

@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2013                                               *)
+(*  Copyright (C) 2012-2014                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -15,7 +15,7 @@
 
 (* version of the compiler *)
 let version = "Zélus Hybrid Synchronous language"
-let subversion = "0.6"
+let subversion = "1.2"
 let date = DATE
 
 let header_in_file =
@@ -53,16 +53,14 @@ let show_version () =
 (* sets the simulation node *)
 let simulation_node = ref None
 let set_simulation_node (n:string) = simulation_node := Some(n)
-let simulated_name n = 
-  match !simulation_node with | None -> false | Some(m) -> n = m
 
 (* sets the checking flag *)
 let number_of_checks = ref 0
 let set_check (n: int) = number_of_checks := n
 
 (* sampling the main loop on a real timer *)
-let sampling_rate = ref 0
-let set_sampling_rate f = sampling_rate := f
+let sampling_period = ref 0.0
+let set_sampling_period p = sampling_period := p
 
 (* level of inlining *)
 let inlining_level = ref 10
@@ -78,46 +76,7 @@ let print_causality = ref false
 let typeonly = ref false
 let use_gtk = ref false
 let no_causality = ref false
-let causality = ref false
 let no_initialisation = ref false
-
-let compile_periods_into_discrete_counters = ref false
-
-type hybrid_mode =
-  | DeltadelayTuple
-  | DeltadelayFun
-  | InstantaneousTuple
-  | InstantaneousFun
-  | AllSynchronous
-
-(* let hybrid_mode = ref DeltadelayFun *)
-let hybrid_mode = ref DeltadelayTuple
-(* the solver to instantiate *)
-let solver_module = ref SOLVER
-let set_solver s () = solver_module := s
-
-let set_hybrid_mode s = 
-  let v =
-    if s = "dtuple"      then DeltadelayTuple
-    else if s = "dfun"   then DeltadelayFun
-    else if s = "ituple" then InstantaneousTuple
-    else if s = "ifun"   then InstantaneousFun
-    else if s = "allsync" then AllSynchronous
-    else !hybrid_mode
-  in
-  hybrid_mode := v
-
-let h_allsync = ref 0.01 (* fixed step for the all_synchronous hybrid mode*)
-let set_h_allsync h = h_allsync := h
-
-let string_of_hybrid_mode m =
-  match m with
-  | DeltadelayTuple    -> "deltadelay (tuples)"
-  | DeltadelayFun      -> "deltadelay (functions)"
-  | InstantaneousTuple -> "instantaneous (tuples)"
-  | InstantaneousFun   -> "instantaneous (functions)"
-  | AllSynchronous     -> "ODE converted in synchronous code"
- 
 
 (* variable creation *)
 (* generating names *)
@@ -189,6 +148,10 @@ let optional_map f = function
   | None -> None
   | Some(x) -> Some(f x)
 
+let optional_with_map f acc = function
+  | None -> acc, None
+  | Some(x) -> let acc, x = f acc x in acc, Some(x)
+
 let optional_get = function
   | Some x -> x
   | None   -> assert false
@@ -213,19 +176,25 @@ module State =
     type 'a t = (* ' *)
         | Empty
         | Cons of 'a * 'a t
-        | Pair of 'a t * 'a t
+        | Par of 'a t * 'a t
+	| Seq of 'a t * 'a t
     let singleton x = Cons(x, Empty)
     let cons x s = Cons(x, s)
-    let pair s1 s2 = 
+    let seq s1 s2 = 
       match s1, s2 with
         | (Empty, s) | (s, Empty) -> s
-        | _ -> Pair(s1, s2)
+        | _ -> Seq(s1, s2)
+    let par s1 s2 = 
+      match s1, s2 with
+        | (Empty, s) | (s, Empty) -> s
+        | _ -> Par(s1, s2)
     let empty = Empty
     let is_empty s = (s = empty)
     let rec fold f s acc = match s with
       | Empty -> acc
       | Cons(x, l) -> f x (fold f l acc)
-      | Pair(l1, l2) -> fold f l1 (fold f l2 acc)
+      | Par(l1, l2) -> fold f l1 (fold f l2 acc)
+      | Seq(l1, l2) -> fold f l1 (fold f l2 acc)
     let list acc s = fold (fun l ls -> l :: ls) s acc
 
     let cons_list xs s = List.fold_left (fun s x -> Cons (x, s)) s (List.rev xs)
@@ -233,13 +202,14 @@ module State =
     let rec map f s = match s with
       | Empty -> Empty
       | Cons(x, l) -> Cons(f x, map f l)
-      | Pair(l1, l2) -> Pair(map f l1, map f l2)
+      | Par(l1, l2) -> Par(map f l1, map f l2)
+      | Seq(l1, l2) -> Seq(map f l1, map f l2)
 
     let rec iter f s = match s with
       | Empty -> ()
       | Cons(x, l) -> (f x; iter f l)
-      | Pair(l1, l2) -> (iter f l1; iter f l2)
-
+      | Par(l1, l2) | Seq(l1, l2) -> (iter f l1; iter f l2)
+      
     let fprint_t fprint_v ff s =
       Format.fprintf ff "@[<hov>{@ ";
       iter (fun v -> Format.fprintf ff "%a@ " fprint_v v) s;
@@ -250,6 +220,12 @@ module State =
 (* error during the whole process *)
 exception Error
 
+(* Internal error in the compiler. *)
+let internal_error message printer input =
+  Format.eprintf "Internal error (%s) %a@." message printer input;
+  raise Error
+
+(* generic data-structres for sets and symbol tables *)
 module S = Set.Make (struct type t = string let compare = compare end)
 module Env = Map.Make (struct type t = string let compare = compare end)
 

@@ -1,14 +1,4 @@
 
-let time_eq  = Solvers.time_eq
-let time_leq = Solvers.time_leq
-let time_geq = Solvers.time_geq
-
-let custom_args = ref ([] : (Arg.key * Arg.spec * Arg.doc) list)
-
-(* Add another argument to the list returned by args *)
-let add_custom_arg arg =
-  custom_args := arg :: !custom_args
-
 let printf = Printf.printf
 let eprintf = Printf.eprintf
 
@@ -27,165 +17,46 @@ let after_loggedcall  = "\x1b[0;37m" (* gray *)
 
 module type ZELUS_SOLVER =
 sig (* {{{ *)
-
-  (** Interface for compiled functions: SEE zlsolve.mli *)
-
-  type cvector  (* array of continuous states *)
-  type zvector  (* array of zero-crossing flags *)
-  type zxvector (* array of zero-crossing values *)
-
-  val get_cs : cvector  -> int -> float
-  val set_cs : cvector  -> int -> float -> unit
-  val get_zc : zvector  -> int -> bool
-  val set_zx : zxvector -> int -> float -> unit
-
-  type 'a single_f =
-    cvector * cvector * zxvector * zvector * bool * float -> 'a * bool * float
-
-  type model_der = cvector * cvector -> unit
-
-  type model_zero = cvector * zxvector -> unit
-
-  type model_disc_next =
-    | Continue of bool * float
-    | Goagain of bool
-    | EndSimulation
-
-  type 'a model_disc = cvector * zvector * float -> 'a * model_disc_next
-
-  type 'a compiled_model = {
-    f_der : model_der;
-    f_zero : model_zero;
-    f_disc : 'a model_disc;
-    num_cstates : unit -> int;
-    num_zeros : unit -> int;
-  }
-
-  val split_single : int -> int -> 'a single_f -> 'a compiled_model
+  (** Interface for compiled functions *)
 
   (** Configuring and calling the D-C solver *)
 
   (* Log simulation steps and continuous state values. *)
   val enable_logging       : unit -> unit
 
-  (* The solver's minimum and maxmium step sizes. *)
+  (* The solver's minimum and maximum step sizes. *)
   val min_step_size : float option ref
   val max_step_size : float option ref
 
-(* The maximum simulation time. *)
+  (* The maximum simulation time. *)
   val max_sim_time  : float option ref
 
-(* A factor relating simulation and wall clock times. *)
-val speedup       : float ref
+  (* A factor relating simulation and wall clock times. *)
+  val speedup       : float ref
 
-  type 'a sim_state
+  val step  :    's Zls.f_alloc
+              -> 's Zls.f_csize
+              -> 's Zls.f_zsize
+              -> 's Zls.f_maxsize
+              -> 's Zls.f_ders
+              -> ('s, 'o) Zls.f_step
+              -> 's Zls.f_zero
+              -> 's Zls.f_reset
+              -> (unit -> 'o option * bool * float)
 
-  val main  : 'a compiled_model -> 'a sim_state
-  val main' : (int * int) -> 'a single_f -> 'a sim_state
-
-  (* Given the current [sim_state], execute one step of the simulation and
-   * return the tuple (result, wallclk_delta, sim_state'). The [result] is
-   * [None] after a continuous step and [Some x] after a discrete step, where
-   * [x] is the value returned by the main function.
-   *
-   * [wallclk_delta] gives a rough indication of the amount of clock time that
-   * should elapse during the step. It is equal to 0 after a discrete step and
-   * greater than 0 after a continuous step--the exact value is the amount of
-   * simulation time that elapsed during the continuous step divided by a
-   * speedup factor. A simulation loop could try to synchronize simulation and
-   * wall clock time by executing [step] again after [wallclk_delta] seconds
-   * have elapsed, i.e., straight away after a discrete step and delayed after a
-   * continuous phase. Simulation loops should try to account for the time lost
-   * in executing [step].
-   *
-   * Note that any external events that occur during the wall-clock delay will
-   * be detected at the next discrete step. This is normal for sample-driven
-   * execution, but inadequate for event-driven execution (which would have to,
-   * at a minimum, interrupt the delay, interpolate or calculate continuous
-   * states up to the simulation time corresponding to the wall clock time
-   * (i.e., to relate the two times in the other direction) and then to execute
-   * a dicrete step and communicate the triggering event as a kind of "external
-   * zero-crossing". Accounting for computation time in this case is likely to
-   * be problematic. Such event-driven execution is not supported!
-   *)
-  val step    : 'a sim_state -> 'a option * float * 'a sim_state
-  val is_done : 'a sim_state -> bool
-
-
-  (** Adding command-line arguments *)
-
-  (* Given the number of continuous states in the system being simulated, return a
-   * list that can be passed to Arg.parse to allow simulation parameters to be set
-   * at the command line. *)
-  val args : int -> (Arg.key * Arg.spec * Arg.doc) list
 end (* }}} *)
 
-module Instantiate (Solver : Solvers.SOLVER) =
+module Make (SSolver : Zls.STATE_SOLVER) 
+            (ZSolver : Zls.ZEROC_SOLVER) =
 struct (* {{{ *)
 
   (** Interface for compiled functions **)
 
-  type cvector  = Solver.cvec
-  type zvector  = Solver.zvec
-  type zxvector = Solver.zxvec
-
-  let get_cs = Solver.cvec_get
-  let set_cs = Solver.cvec_set
-  let get_zc = Solver.zvec_get
-  let set_zx = Solver.zxvec_set
-
-  type 'a single_f =
-    cvector * cvector * zxvector * zvector * bool * float -> 'a * bool * float
-
-  type model_der = cvector * cvector -> unit
-
-  type model_zero = cvector * zxvector -> unit
-
-  type model_disc_next =
-    | Continue of bool * float
-    | Goagain of bool
-    | EndSimulation
-
-  type 'a model_disc = cvector * zvector * float -> 'a * model_disc_next
-
-  type 'a compiled_model = {
-    f_der : model_der;
-    f_zero : model_zero;
-    f_disc : 'a model_disc;
-    num_cstates : unit -> int;
-    num_zeros : unit -> int;
-  }
-
   (* the value of time passed to main_f when it is executed inside the solver *)
   let no_time_in_solver = -1.0
 
-  let split_single n_cstates n_zeros main =
-    let (no_roots_in, ignore_roots_out) = Solver.ignore_roots n_zeros in
-    let ignore_der = Solver.cvec_create n_cstates in
-
-    let der_f (x, dx) =
-      ignore (main
-        (x, dx, ignore_roots_out, no_roots_in, false, no_time_in_solver))
-
-    and zero_f (x, ze) =
-      ignore (main
-        (x, ignore_der, ze, no_roots_in, false, no_time_in_solver))
-
-    and disc_f (x, z, t) =
-      let result, goagain, t_horizon =
-          main (x, ignore_der, ignore_roots_out, z, true, t)
-      in
-      if goagain then (result, Goagain true)
-      else (result, Continue (true, t_horizon))
-
-    in
-    {
-      f_der = der_f;
-      f_zero = zero_f;
-      f_disc = disc_f;
-      num_cstates = (fun () -> n_cstates);
-      num_zeros = (fun () -> n_zeros);
-    }
+  (* increment a given horizon by a small margin *)
+  let add_margin h = h +. (2.0 *. epsilon_float *. h)
 
   (** Configurable settings **)
 
@@ -199,9 +70,9 @@ struct (* {{{ *)
   (* The maximum amount of simulation time that may pass within a C step, i.e.
    * within a single call to the solver. Experience shows that Cvode.normal
    * returns incorrect t' results if this value is too large (i.e. ~1.0e35), and
-   * thus it cannot simply default to max_float or infinity. Even just very high
-   * values (e.g. 1.0e20) will cause problems, like missed zero-crossings,
-   * because they influence the behaviour of the solver. *)
+   * thus it cannot simply default to max_float or infinity. Even just a very
+   * high values (e.g. 1.0e20) may cause problems, like missed zero-crossings,
+   * because it influences the behaviour of the solver. *)
   let max_c_step    = ref 100.0
 
   let rel_tol       = ref (None : float option)
@@ -227,19 +98,38 @@ struct (* {{{ *)
   (** Logging functions **)
 
   let set_color s = if !color_logging then print_string s
+  let set_err_color s = if !color_logging then prerr_string s
 
   let print_time (s1, s2) t =
     if !precise_logging
     then Printf.printf "%s%.15e%s" s1 t s2
     else Printf.printf "%s%e%s" s1 t s2
 
-  let print_roots t rin =
-    if !log then (set_color (if Solver.has_root rin then boldred else green);
-                  Solver.zvec_log "Z : " t rin;
+  let extra_precision = ref false
+  let set_precise_logging _ = (extra_precision := true)
+
+  let carray_log l t c =
+    let pr = if !extra_precision then printf "\t% .15e" else printf "\t% e" in
+    if !extra_precision then printf "%s%.15e" l t else printf "%s%e" l t;
+    for i = 0 to Bigarray.Array1.dim c -1 do
+      pr c.{i}
+    done;
+    printf "\n"
+
+  let zarray_log l t z =
+    if !extra_precision then printf "%s%.15e" l t else printf "%s%e" l t;
+    for i = 0 to Bigarray.Array1.dim z - 1 do
+      printf "\t%s" (Int32.to_string z.{i})
+    done;
+    printf "\n"
+
+  let print_roots zs t rin =
+    if !log then (set_color boldred;
+                  zarray_log "Z : " t rin;
                   set_color black)
 
   let print_states label t cs =
-    if !log then Solver.cvec_log label t cs
+    if !log then carray_log label t cs
 
   let print_horizon t t_horizon reinit =
     if !log then begin
@@ -254,21 +144,23 @@ struct (* {{{ *)
   let print_help_key () =
     if !log then begin
       print_endline "";
+      print_endline "  I : initial solver state";
       print_endline "  C : result of continuous solver";
       print_endline "  C': state given to the discrete solver (last values)";
-      set_color green;
+      set_color boldred;
       print_endline "  Z : zero-crossings triggering the discrete solver";
       set_color black;
       print_endline "  D : result of discrete solver";
       set_color yellow;
       print_endline "  H : time horizon set for a continuous phase";
       set_color black;
-      print_endline "";
+      print_newline ();
 
       print_string "M : time";
       print_newline ();
 
-      print_string "--+\n"
+      print_string "--+\n";
+      flush stdout
     end
 
   let print_terminated t =
@@ -289,196 +181,11 @@ struct (* {{{ *)
       flush stdout
     end
 
-  (** Execution algorithm **)
-
-  type 'a sim_state =
-    | SimCont of (unit -> ('a option * float * 'a sim_state))
-    | SimEnd
-
-  let main { f_der; f_zero; f_disc; num_cstates; num_zeros } =
-    let n_cstates = num_cstates ()
-    and n_zeros   = ref (num_zeros ()) in
-
-    let cstates     = Solver.cvec_create n_cstates
-    and cder        = Solver.cvec_create n_cstates
-    and pre_cstates = Solver.cvec_create
-                        (if !always_reinit then 0 else n_cstates)
-    and no_roots_in = ref (fst (Solver.ignore_roots !n_zeros))
-    in
-
-    let f_main t cs ds =
-      f_der (cs, ds);
-      if !log_fcalls then begin
-        set_color before_loggedcall;
-        Solver.cvec_log  "*FC:" t cs;
-        Solver.cvec_log  "*FD:" t ds;
-        set_color after_loggedcall;
-      end in
-
-    let g_main t cs rs =
-      f_zero (cs, rs);
-      if !log_gcalls then begin
-        set_color before_loggedcall;
-        Solver.cvec_log  "*ZC:" t cs;
-        Solver.zxvec_log " ZR:" t rs;
-        set_color after_loggedcall;
-      end in
-
-    let d_main t rin =
-        if !log_dcalls then begin
-          set_color before_loggedcall;
-          Solver.cvec_log "*DC:" t cstates;
-          let r = f_disc (cstates, rin, t) in
-          set_color after_loggedcall;
-          Solver.cvec_log "*DR:" t cstates;
-          set_color after_loggedcall;
-          r
-        end else f_disc (cstates, rin, t)
-    in
-
-    (* This function must be called before entering a sequence of discrete
-       steps to ensure that "continuous pre"s within the program are set
-       correctly (since the solver will normally have called the program for a
-       later time, and then back interpolated for the requested time). In
-       addition, when always_reinit=false, it is needed to set the value of
-       pre_cstates. *)
-    let setup_discrete_step t =
-        f_main no_time_in_solver cstates cder;
-        if not !always_reinit then Solver.cvec_copy cstates pre_cstates
-      in
-
-    let exists_state_reset () =
-      let rec check i =
-        if i = n_cstates then false
-        else if Solver.cvec_get cstates i <> Solver.cvec_get pre_cstates i
-        then true
-        else check (i + 1) in
-      !always_reinit || check 0 in
-
-    let rec init () = begin
-        (* INITIAL CALL *)
-        let goagain, t_horizon =
-          match snd (d_main 0.0 !no_roots_in) with
-          | Continue (_, t_horizon) -> (false, t_horizon)
-          | Goagain reset -> (true, infinity)
-          | EndSimulation -> failwith "End of simulation at first call!" in
-        
-        if goagain && not !always_reinit
-          then Solver.cvec_copy cstates pre_cstates;
-
-        let s = Solver.init f_main (!n_zeros, g_main) cstates in
-
-        Solver.set_root_directions s Solver.Up;
-
-        set_param  Solver.set_stop_time  s max_sim_time;
-        set_param  Solver.set_min_step   s min_step_size;
-        set_param  Solver.set_max_step   s max_step_size;
-        set_param2 Solver.set_tolerances s rel_tol abs_tol;
-        if !precise_logging then Solver.set_precise_logging s;
-
-        print_help_key ();
-        print_states (if goagain then "I.: " else "I : ") 0.0 cstates;
-        print_horizon 0.0 t_horizon false;
-
-        if goagain
-        then SimCont (discrete' s 0.0 !no_roots_in false false)
-        else SimCont (continuous s 0.0 t_horizon)
-      end
-
-    and continuous s t t_horizon () =
-      try
-        (* CONTINUOUS CALL(S) *)
-        let t_limit = min (t +. !max_c_step) t_horizon in
-        let (t', result) = Solver.go s t_limit cstates in
-        let delta = if !speedup > 0.0 then (t' -. t) /. !speedup else 0.0 in
-
-        print_states
-          (if result = Solver.Roots
-              || t' >= t_horizon then "C': " else "C : ") t' cstates;
-
-        match result with
-        | Solver.Continue when (t' < t_horizon) ->
-            (None, delta, SimCont (continuous s t' t_horizon))
-
-        | Solver.Roots | Solver.Continue ->
-            (None, delta, SimCont (discrete s t'))
-
-        | Solver.Stop ->
-            (print_terminated t; (None, delta, SimEnd))
-      with Solver.Solvererror err ->
-            (eprintf "fatal solver error: %s\n" err; (None, 0.0, SimEnd))
-
-    and discrete s t () = begin
-        setup_discrete_step t;
-
-        let roots_in = Solver.roots s in
-        print_roots t roots_in;
-        discrete' s t roots_in false false ()
-      end
-
-    and discrete' s t roots_in needs_reset needs_rootfn () =
-      (* DISCRETE CALL *)
-      let (result, next) = d_main t roots_in in
-
-      let pre_nzeros = !n_zeros
-      and n_zeros' = num_zeros () in
-      if n_zeros' <> pre_nzeros then begin
-        n_zeros := n_zeros';
-        no_roots_in := fst (Solver.ignore_roots !n_zeros)
-      end;
-
-      match next with
-      | Continue (reset, t_horizon) ->
-          let reset = needs_reset || reset in
-          begin
-            print_states "D : " t cstates;
-            let needs_reinit = reset && exists_state_reset () in
-            print_horizon t t_horizon needs_reinit;
-
-            if needs_rootfn then
-              (* Solver.reinit_roots s !n_zeros g_main *)
-              failwith "reinit_roots is not yet implemented!"
-              ;
-            if needs_reinit then Solver.reinit s t cstates;
-
-            (Some result, 0.0, SimCont (continuous s t t_horizon))
-          end
-
-      | Goagain reset ->
-          let reset = needs_reset || reset in
-          begin
-            print_states "D.: " t cstates;
-            (Some result, 0.0, SimCont (discrete' s t !no_roots_in reset
-                                             (pre_nzeros <> !n_zeros)))
-          end
-
-      | EndSimulation -> begin
-            print_states "D$: " t cstates;
-            print_terminated t;
-            (Some result, 0.0, SimEnd)
-          end
-    in
-    init ()
-
-  let main' (ns, nz) main_f =
-    let model = split_single ns nz main_f in
-    main model
-
-  let step x =
-    match x with
-    | SimCont f -> f ()
-    | SimEnd -> (None, 0.0, x)
-
-  let is_done x =
-    match x with
-    | SimEnd    -> true
-    | SimCont _ -> false
-
-  (** command-line arguments **)
-
+  (* Given the number of continuous states in the system being simulated,
+   * return a list that can be passed to Arg.parse to allow simulation
+   * parameters to be set at the command line. *)
   let args n_eq =
     Arg.align (
-    !custom_args @ Solver.args n_eq @
     [
       ("-maxt",
        Arg.Float (fun m -> max_sim_time := Some m),
@@ -490,7 +197,7 @@ struct (* {{{ *)
 
       ("-fullspeed",
        Arg.Unit (fun () -> speedup := 0.0),
-       "Do not try to relate simulation and wall clock times");
+       " Do not try to relate simulation and wall clock times");
 
       ("-maxcstep",
        Arg.Float (fun m -> max_c_step := m),
@@ -545,64 +252,277 @@ struct (* {{{ *)
        " Show statistics on termination (with -maxt).");
   ])
 
+  (** Execution algorithm **)
+
+  type model_disc_next =
+    | Continue of bool * float
+    | Goagain of bool
+    | EndSimulation
+
+  type sim_state_i = {
+    discrete_ready : bool;
+    reset_required : bool;
+    init_horizon   : float;
+  }
+
+  type sim_state_d = {
+    ssolver     : SSolver.t; (* session with the state solver *)
+    zsolver     : ZSolver.t; (* session with the zero-crossing solver *)
+    t_sim       : float;     (* time at the start of a step *)
+    t_nextmesh  : float;     (* maximum time calculated by the solver *)
+    t_horizon   : float;     (* horizon for the next solver step *)
+    after_c     : bool;      (* the mode at the last step was C *)
+    roots_valid : bool;      (* the roots array contains valid data *)
+    needs_reset : bool;      (* the solver must be reset *)
+  }
+
+  type sim_state =
+    | SimI of sim_state_i
+    | SimD of sim_state_d
+    | SimC of sim_state_d
+    | SimF
+
+  let step (f_alloc   : 's Zls.f_alloc)
+           (f_csize   : 's Zls.f_csize)
+           (f_zsize   : 's Zls.f_zsize)
+           (f_maxsize : 's Zls.f_maxsize)
+           (f_ders    : 's Zls.f_ders)
+           (f_step    : ('s, 'o) Zls.f_step)
+           (f_zero    : 's Zls.f_zero)
+           (f_reset   : 's Zls.f_reset)
+    =
+    let dstate = f_alloc () in
+    let n_cstates, n_zeros = f_maxsize dstate in
+    Arg.parse (args n_cstates) (fun _ -> ())
+      "Zélus simulation loop";
+
+    let no_roots_in = Zls.zmake n_zeros in
+    let no_roots_out = Zls.cmake n_zeros in
+    let roots = Zls.zmake n_zeros in
+    let ignore_der = Zls.cmake n_cstates in
+
+    let cstates_nv  = SSolver.cmake n_cstates in
+    let cstates     = SSolver.unvec cstates_nv in
+    let pre_cstates = Zls.cmake (if !always_reinit then 0 else n_cstates) in
+
+    let f_main t cs ds =
+      if !log_fcalls then begin
+        set_color before_loggedcall;
+        carray_log "*FC:" t cs; flush stdout;
+        ignore (f_ders dstate cs ds no_time_in_solver);
+        set_color after_loggedcall;
+        carray_log "*FD:" t ds; flush stdout;
+        set_color black;
+      end else ignore (f_ders dstate cs ds no_time_in_solver);
+    in
+
+    let g_main t cs rs =
+      if !log_gcalls then begin
+        set_color before_loggedcall;
+        carray_log "*ZC:" t cs; flush stdout;
+        ignore (f_zero dstate cs rs no_time_in_solver);
+        set_color after_loggedcall;
+        carray_log " ZR:" t rs; flush stdout;
+        set_color black;
+      end else ignore (f_zero dstate cs rs no_time_in_solver);
+    in
+
+    let d_main t rin =
+      (* TODO: need to pass a single dout vector; solvers should not use two
+       * either! *)
+      let o, t_horizon =
+        if !log_dcalls then begin
+          set_color before_loggedcall;
+          carray_log "*DC:" t cstates; flush stdout;
+          let r = f_step dstate cstates ignore_der rin t in
+          set_color after_loggedcall;
+          carray_log "*DR:" t cstates; flush stdout;
+          set_color black;
+          r
+        end else f_step dstate cstates ignore_der rin t
+      in
+      if t_horizon <= t then o, Goagain true
+      else o, Continue (true, t_horizon)
+    in
+
+    let simstate = ref (SimI { discrete_ready = false;
+                               reset_required = true;
+                               init_horizon = 0.0 }) in
+      
+    (* This function must be called before entering a sequence of discrete
+       steps to ensure that "continuous pre"s within the program are set
+       correctly (since the solver will normally have called the program for a
+       later time, and then back interpolated for the requested time). In
+       addition, when always_reinit=false, it is needed to set the value of
+       pre_cstates. *)
+    let setup_discrete_step t =
+        g_main no_time_in_solver cstates no_roots_out;
+        if not !always_reinit then Bigarray.Array1.blit cstates pre_cstates
+      in
+
+    let exists_state_reset () =
+      let rec check i =
+        if i = n_cstates then false
+        else if cstates.{i} <> pre_cstates.{i}
+        then true
+        else check (i + 1) in
+      !always_reinit || check 0 in
+
+    let step () =
+      match !simstate with
+      | SimI { discrete_ready = false; reset_required } -> begin
+          (* INITIAL CALL: first part, discrete steps *)
+          if reset_required then begin
+            print_help_key ();
+            f_reset dstate cstates
+          end;
+
+          let step_out, step_status = d_main 0.0 no_roots_in in
+          let goagain, t_horizon = match step_status with
+            | Continue (_, t_horizon) -> (false, t_horizon)
+            | Goagain reset -> (true, infinity)
+            | EndSimulation -> failwith "End of simulation at first call!" in
+
+          print_states (if goagain then "D.: " else "D : ") 0.0 cstates;
+          print_horizon 0.0 t_horizon false;
+
+          simstate := SimI { discrete_ready = not goagain;
+                             reset_required = false;
+                             init_horizon = t_horizon };
+          Some step_out, false, 0.0
+        end
+
+      | SimI { discrete_ready = true; init_horizon } -> begin
+          (* INITIAL CALL: second part, solver initialization *)
+          if not !always_reinit
+            then Bigarray.Array1.blit cstates pre_cstates;
+
+          let ss = SSolver.initialize f_main cstates_nv in
+          let zs = ZSolver.initialize n_zeros g_main cstates in
+          set_param  SSolver.set_stop_time  ss max_sim_time;
+          set_param  SSolver.set_min_step   ss min_step_size;
+          set_param  SSolver.set_max_step   ss max_step_size;
+          set_param2 SSolver.set_tolerances ss rel_tol abs_tol;
+
+          print_states "I : " 0.0 cstates;
+          print_horizon 0.0 init_horizon false;
+
+          let params = {
+            ssolver     = ss;
+            zsolver     = zs;
+            t_sim       = 0.0;
+            t_nextmesh  = 0.0;
+            t_horizon   = init_horizon;
+            after_c     = false;
+            roots_valid = false;
+            needs_reset = false;
+          } in
+          simstate := SimC params;
+          None, false, 0.0
+        end
+
+      | SimC ({ ssolver = ss; zsolver = zs; t_sim = last_t;
+                t_nextmesh; t_horizon; needs_reset } as params) -> (try
+          (* CONTINUOUS CALL(S) *)
+          if needs_reset then (SSolver.reinitialize ss last_t cstates_nv;
+                               ZSolver.reinitialize zs last_t cstates);
+
+          let t_limit = min (last_t +. !max_c_step) t_horizon in
+          let t_nextmesh =
+            if needs_reset || t_limit > t_nextmesh
+            then SSolver.step ss (add_margin t_limit) cstates_nv
+            else t_nextmesh in
+
+          let t = if t_limit < t_nextmesh
+                  then (SSolver.get_dky ss cstates_nv t_limit 0; t_limit)
+                  else t_nextmesh
+          in
+
+          ZSolver.step zs t cstates;
+
+          (* TODO: should zero-crossings search a little to the right? *)
+          let has_roots = ZSolver.has_roots zs in
+          let t =
+            if has_roots
+            then ZSolver.find zs (SSolver.get_dky ss cstates_nv, cstates) roots
+            else t in
+
+          let event = has_roots || t >= t_horizon in
+          let delta =
+            if !speedup > 0.0 then (t -. last_t) /. !speedup else 0.0 in
+
+          print_states (if event then "C': " else "C : ") t cstates;
+
+          let at_stop_time =
+            match !max_sim_time with Some tmax -> t >= tmax | _ -> false in
+
+          simstate :=
+            if at_stop_time then (print_terminated t; SimF)
+            else if event then begin
+                if has_roots then print_roots zs t roots;
+                setup_discrete_step t;
+                SimD { params with t_sim = t;
+                                   t_nextmesh = t_nextmesh;
+                                   after_c = true;
+                                   roots_valid = has_roots;
+                                   needs_reset = false; }
+              end
+            else SimC { params with needs_reset = false;
+                                    after_c = true;
+                                    t_sim = t;
+                                    t_nextmesh = t_nextmesh };
+          None, false, delta
+
+        with err -> begin
+          flush stdout;
+          set_err_color boldred;
+          eprintf "fatal error: %s\n" (Printexc.to_string err);
+          if !log then
+            if Printexc.backtrace_status ()
+            then Printexc.print_backtrace stderr
+            else prerr_string
+              "(compile with -g and run with OCAMLRUNPARAM=b for a backtrace)\n";
+          Printexc.print_backtrace stderr;
+          set_err_color black;
+          flush stderr;
+          simstate := SimF;
+          None, false, 0.0
+        end)
+
+      | SimD ({ ssolver = ss; zsolver = zs;
+                t_sim; after_c; needs_reset; roots_valid } as params) -> begin
+          (* DISCRETE CALL *)
+          let step_out, step_status =
+            d_main t_sim (if after_c && roots_valid
+                          then roots else no_roots_in) in
+          simstate := (match step_status with
+            | Continue (reset, t_horizon) -> begin
+                  print_states "D : " t_sim cstates;
+                  let needs_reinit =
+                        needs_reset || reset && exists_state_reset () in
+                  print_horizon t_sim t_horizon needs_reinit;
+                  SimC { params with after_c = false;
+                                     t_horizon = t_horizon;
+                                     needs_reset = needs_reinit }
+                end
+
+            | Goagain reset -> begin
+                  print_states "D.: " t_sim cstates;
+                  SimD { params with after_c = false;
+                                     needs_reset = needs_reset || reset }
+                end
+
+            | EndSimulation -> begin
+                  print_states "D$: " t_sim cstates;
+                  print_terminated t_sim;
+                  SimF
+                end);
+          Some step_out, false, 0.0
+        end
+
+      | SimF -> None, true, 0.0
+    in
+    step
+
 end (* }}} *)
-
-let add_epsilons num_eps v =
-  v +. (float(num_eps)
-        *. (if v = 0.0 then min_float else abs_float v)
-        *. epsilon_float
-        *. 100.0)
-
-let float_with_delta_of_string s =
-  let tally = ref 0 in
-
-  let count_deltas c =
-    if c == '+' then incr tally
-    else if c == '-' then decr tally
-  in
-
-  let f = Scanf.sscanf s "%e%s" (fun f s -> (String.iter count_deltas s; f))
-  in
-  add_epsilons !tally f
-
-let set_float_delta fr =
-  Arg.String (fun s -> fr := float_with_delta_of_string s)
-
-(* Solver registration and instantiation *)
-
-let solver  = ref ""
-let set_default_solver name = (solver := name)
-
-let solvers : (string, (module Solvers.SOLVER)) Hashtbl.t = Hashtbl.create 17
-
-let register' name ((key, spec, doc) as arg) smodule =
-  let arg = if name = !solver then (key, spec, doc ^ " (default)") else arg in
-  Hashtbl.add solvers name smodule;
-  add_custom_arg arg
-
-let register name doc smodule =
-  let arg = ("-" ^ name, Arg.Unit (fun () -> solver := name), " " ^ doc) in
-  register' name arg smodule
-
-let instantiate () =
-  try
-    let module S = (val Hashtbl.find solvers !solver : Solvers.SOLVER) in
-    (module Instantiate (S) : ZELUS_SOLVER)
-  with Not_found -> failwith (Printf.sprintf
-              "The library does not contain the '%s' numeric solver!" !solver)
-
-let check_for_solver argv =
-  let skip_one = ref true in  (* skip the program name *)
-  let skip_all = ref false in
-  let check_arg arg =
-    if !skip_all then ()
-    else if !skip_one  then skip_one := false
-    else if arg = "--" then skip_all := true
-    else if arg = "-"  then skip_one := true
-    else if String.get arg 0 <> '-' then ()
-    else
-      let name = String.sub arg 1 (String.length arg - 1) in
-      if Hashtbl.mem solvers name then solver := name
-  in
-  Array.iter check_arg argv
 

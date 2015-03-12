@@ -1,0 +1,12 @@
+(* Sinus/Cosinus *)
+let hybrid f () = x where
+    rec der x = x *. x init 1.0
+
+let hybrid main () =
+  let der t = 1.0 init 0.0 in
+  let x = f () in
+  present (period 0.0(0.2)) ->
+    let s = Scope.scope (1.0, 5.0, ("x", Scope.linear, x)) in
+    Scope.window ("x", 10.0, t, s)
+  else ()
+

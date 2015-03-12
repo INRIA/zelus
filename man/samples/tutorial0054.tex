@@ -1,12 +1,9 @@
-% ../compiler/zeluc.byte -I ../lib -I ./samples  	-i samples/tutorial0054.zls (2)
-\runverbatimfalse
+% ../compiler/zeluc.byte -I ../lib -I ./samples  samples/tutorial0052.zls 	-i samples/tutorial0054.zls (0)
+\runverbatimtrue
 \setrunverbatimcmd{zeluc.byte -i \runverbatimfile}
 \begin{RunVerbatimMsg}
-Failed.
+val abo : int signal * int signal -D-> int signal
 \end{RunVerbatimMsg}
 \begin{RunVerbatimErr}
-File "tutorial.zls", line 4, characters 31-44:
->   | On  -> do x = true  until (after(n, t)) then Off
->                               ^^^^^^^^^^^^^
-The value name after is unbound (may need a 'rec').
+Success.
 \end{RunVerbatimErr}

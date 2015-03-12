@@ -19,8 +19,8 @@
 
 @Unpublished{esterel:primer99,
   author       = {Berry, G\'erard},
-  title	       = {The esterel v5 language primer, version 5.21 release
-                  2.0},
+  title	       = {{The Esterel v5 language primer, version 5.21 release
+                  2.0}},
   note	       = {Draft book},
   year	       = 1999
 }
@@ -118,7 +118,6 @@
   publisher = {ISTE},
   year =	 2007,
   editors = {Nicolas Navet and Stephan Mertz},
-  note = {English translation of~\cite{lucy:hermes06}},
   url = {chap_lucid_synchrone_english_iste08.pdf},
   abstract = {Lucid Synchrone is a programming language dedicated to
 the design of reactive systems. It is based on the synchronous model
@@ -134,35 +133,6 @@ Finally, the language offers both data-flow and automata-based
 programming inside a unique framework.}
 }
 
-@InBook{lucy:hermes06,
-  author =	 {Paul Caspi and Gr\'egoire Hamon and Marc Pouzet},
-  editor =	 {Nicolas Navet},
-  title = 	 {{Syst\`emes Temps-r\'eel~: Techniques de Description et 
-                  de V\'erification -- Th\'eorie et Outils}},
-  chapter = 	 {{Lucid Synchrone, un langage de programmation des 
-                  syst\`emes r\'eactifs}},
-  publisher = 	 {Hermes},
-  volume = {1},
-  year = 2006,
-  pages = {217-260},
-  url = {chap_lucid_synchrone_hermes06.pdf},
-  abstract = {Ce chapitre pr\'esente {\bf Lucid Synchrone},
-un langage d\'edi\'e \`a
-la programmation de syst\`emes r\'eactifs. Il est fond\'e sur le
-mod\`ele synchrone de {\bf Lustre} qu'il \'etend avec
-des caract\'eristiques pr\'esentes dans les langages fonctionnels tels
-que l'ordre sup\'erieur ou l'inf\'erence des types. Il offre un
-m\'ecanisme de synth\`ese automatique des horloges et permet de
-d\'ecrire, dans un cadre unifi\'e, une programmation flot de donn\'ees
-et une programmation par automates.
-
-Ce chapitre est une pr\'esentation du langage, destin\'ee \`a la fois au
-programmeur cherchant \`a se familiariser avec celui-ci, mais aussi au
-chercheur s'int\'eressant aux syst\`emes r\'eactifs et aux techniques qui
-peuvent \^etre appliqu\'ees au niveau d'un langage, pour faciliter les
-activit\'es de sp\'ecification, de programmation et de v\'erification.
-}}
-
 @Manual{lucy:manual06,
   author =	 {Marc Pouzet},
   title =	 {{Lucid Synchrone}, version 3.
@@ -170,6 +140,41 @@ activit\'es de sp\'ecification, de programmation et de v\'erification.
   organization = {Universit\'e Paris-Sud, LRI},
   month =	{April},
   year =	 2006}
+
+@InProceedings{lucy:lctes08a,
+  author = 	 {Darek Biernacki and Jean-Louis Colaco and Gr\'egoire Hamon
+                  and Marc Pouzet},
+  title = 	 {{Clock-directed Modular Code Generation of Synchronous Data-flow
+                   Languages}},
+  booktitle =	 {ACM International Conference on
+                  Languages, Compilers, and Tools for Embedded Systems 
+                  (LCTES)},
+  year =	 2008,
+  address =	 {Tucson, Arizona},
+  month =	 {June},
+  url = {lctes08a.pdf},
+  abstract = {The compilation of synchronous block diagrams into sequential
+imperative code has been addressed in the early eighties and can now
+be considered as folklore. However, modular code
+generation, though largely used in existing compilers and particularly
+in industrial ones, has never been precisely described or entirely
+formalized. Such a formalization is now fundamental in the long-term
+goal to develop a mathematically certified compiler for a synchronous
+language as well as in simplifying existing implementations.
+
+This article presents in full detail the modular compilation of
+synchronous block diagrams into sequential code. We consider a
+first-order functional language reminiscent of Lustre, which it
+extends with a general n-ary merge operator, a reset
+construct, and a richer notion of clocks. The clocks are used to
+express activation of computations in the program and are specifically
+taken into account during the compilation process to produce efficient
+imperative code. We introduce a generic machine-based intermediate
+language to represent transition functions, and we present a concise
+clock-directed translation from the source to this intermediate
+language. We address the target code generation phase by describing a
+translation from the intermediate language to Java and C.
+}}
 
 @Article{lucy:jcss12,
   author =	 {Albert Benveniste and Timothy Bourke and Benoit
@@ -372,6 +377,39 @@ with hybrid features has been developed.
 We demonstrate its effectiveness on some examples.
 }}
 
+@InProceedings{lucy:emsoft05b,
+  author = 	 {Jean-Louis Cola\c{c}o and Bruno Pagano and Marc Pouzet},
+  title = 	 {{A Conservative Extension of Synchronous Data-flow with
+                   State Machines}},
+  booktitle = 	 {ACM International Conference on 
+                  Embedded Software (EMSOFT'05)},
+  address =	 {Jersey city, New Jersey, USA},
+  month =	 {September},
+  year =	 2005,
+  url = {emsoft05b.pdf},
+  abstract = {This paper presents an extension of a synchronous
+data-flow language such as Lustre with imperative features expressed
+in terms of powerful state machine \`a la SyncChart.  This
+extension is fully conservative in the sense that all the
+programs from the basic language still make sense in the extended
+language and their semantics is preserved.
+
+From a syntactical point of view this extension consists in
+hierarchical state machines that may carry at each hierarchy level a
+bunch of equations.  This proposition is an alternative to the joint
+use of Simulink and Stateflow but improves it by allowing a fine
+grain mix of both styles.
+
+The central idea of the paper is to base this extension on the use of
+clocks, translating imperative constructs into well clocked
+data-flow programs from the basic language. This clock directed
+approach is an easy way to define a semantics for the extension, it is
+light to implement in an existing compiler and experiments show that
+the generated code compete favorably with ad-hoc techniques.
+The proposed extension has been implemented in the ReLuC compiler of
+Scade/Lustre and in the Lucid Synchrone compiler.
+}}
+
 @InProceedings{lucy:emsoft09,
   author = 	 {Marc Pouzet and Pascal Raymond},
   title = 	 {{Modular Static Scheduling of Synchronous Data-flow
@@ -426,6 +464,16 @@ We demonstrate its effectiveness on some examples.
   booktitle = {ACM Principles of Programming Languages (POPL)},
   year =      2009}
 
+@Article{signal:scp91,
+  author = 	 "A.~Benveniste and P.~LeGuernic and Ch. Jacquemot",
+  title = 	 "Synchronous programming with events and relations:
+		  the {SIGNAL} language and its semantics",
+  journal = 	 "Science of Computer Programming",
+  year = 	 "1991",
+  volume = 	 "16",
+  pages = 	 "103-149"
+}
+
 @InProceedings{signal:pldi,
   author = 	 {T. Amagbegnon and L. Besnard and  P. Le Guernic.},
   title = 	 {Implementation of the Data-flow Synchronous Language Signal},
@@ -457,16 +505,42 @@ We demonstrate its effectiveness on some examples.
   year =	2008,
 }
 
-@article{ShampineRei:MatlabODE:1997,
-  author =	{Lawrence F. Shampine and Mark W. Reichelt},
-  title =	{The {MATLAB} {ODE} Suite},
-  journal =	{SIAM Journal on Scientific Computing},
-  year =	1997,
-  volume =	18,
-  number =	1,
-  pages =	{1--22},
-  month =	jan,
-}
+@InProceedings{lucy:cc2015,
+  author = 	 {Timothy Bourke and Jean-Louis Cola\c{c}o and Bruno Pagano and
+                  C\'edric Pasteur and Marc Pouzet},
+  title = 	 {{A Synchronous-based Code Generator For Explicit
+                  Hybrid Systems Languages}},
+  booktitle = 	 {International Conference on Compiler Construction (CC)},
+  month = 	 {April 11-18},
+  address = {London, UK},
+  series = {LNCS},
+  organisation = {ETAPS},
+  year = 	 2015,
+  abstract = {Modeling languages for hybrid systems are cornerstones of embedded
+systems development in which software interacts with a physical
+environment. The generation of sequential code is important
+for simulations to be efficient and to produce target embedded code.
+Despite routine use in industrial compilers, code generation
+is not described in full detail nor formalized. This formalization is
+essential for obtaining trustable compilers for critical
+embedded software development.
+
+This paper presents a novel approach for the code generation of a
+hybrid systems modeling language. By building on top of an existing
+synchronous language and compiler, it reuses almost all the existing
+infrastructure with only a few modifications.
+Starting from an existing synchronous data-flow language extended with
+Ordinary Differential Equations (ODEs), this paper details the
+translation to sequential code. The translation is expressed as a
+sequence of source-to-source transformations. A generic intermediate
+language is introduced to represent transition functions which are
+turned into C code.  The versatility of the compiler organisation is
+illustrated by considering two classical targets: generation of
+simulation code complying with the FMI standard and linking with an
+off-the-shelf numerical solver (Sundials CVODE).
+
+The presented material has been implemented in the Z\'elus compiler
+and the industrial KCG code generator of SCADE 6.}}
 
 @InProceedings{MalerMannaPnueli:hybrid92,
   author =	 {Oded Maler and Zouar Manna and Amir Pnueli},
@@ -478,3 +552,9 @@ We demonstrate its effectiveness on some examples.
   pages =	 {447-484},
   publisher = {Springer}}
 
+@book{ShampineGlaTho:ODEsMatlab:2003,
+	author = {L.F. Shampine and I. Gladwell and S. Thompson},
+	publisher = {Cambridge University Press},
+	title = {Solving {ODEs} with {Matlab}},
+	year = 2003
+}

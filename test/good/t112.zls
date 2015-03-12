@@ -1,0 +1,22 @@
+let hybrid delay_1 (w) = r where
+ rec init data = 0
+ and init t = 0.0
+ and present 
+     | up(t) -> do emit r = data done
+     | w(d) -> do t = -. 1.0 and data = d done
+     else do der t = 1.0 done 
+
+let hybrid delay_2 (w) = r where
+ rec init data = 0
+ and present 
+     | up(last t) -> do emit r = data done
+ and der t = 1.0 init 0.0 reset w(d) -> -. d
+   
+let hybrid f(x) = o1, o2 where
+  rec init o1 = 0
+  and init o2 = 0
+  and match true with
+      | true -> do o1 = 1 done
+      | false -> do o2 = last o1 + x done
+      end
+      

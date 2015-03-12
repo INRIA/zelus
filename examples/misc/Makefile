@@ -2,7 +2,8 @@ include ../../config
 
 ZLEXTRALIBS = $(ZLGTKLIBS)
 
-EXAMPLE=suspend01.zls \
+EXAMPLE=khalil.zls \
+        suspend01.zls \
 	ysquared.zls \
 	discontinuity.zls \
 	hybridaut.zls \
@@ -29,6 +30,6 @@ realclean cleanall: clean
 .SUFFIXES : .ml .zls .byte
 
 .zls.ml:
-	$(ZELUC) $(ZELUCFLAGS) -s main -period -sampling 0 -gtk2 $<
+	$(ZELUC) $(ZELUCFLAGS) -s main -gtk2 $<
 	mv main.ml $(<:.zls=)_main.ml
 

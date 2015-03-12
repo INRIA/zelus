@@ -83,7 +83,8 @@ ifdef VERBOSE
 endif
 
 %: %.test FORCE
-	-@ARGS="-l `sed -ne 's/(\*.*ARGS\[\([^]]*\)\].*\*)/\1/p' $(<:.test=.zls)`";\
+	-@ARGS="-fullspeed -l `sed -ne 's/(\*.*ARGS\[\([^]]*\)\].*\*)/\1/p' $(<:.test=.zls)`";\
+	if [ $(VERBOSE) ]; then echo "$(<) $${ARGS}"; fi;		\
 	./$(<) $${ARGS} > $(<:.test=.log) 2>&1;				\
 	RESULT=$$?;							\
 	if [ $(VERBOSE) ]; then printf "$(<) $${ARGS}\n"; fi;		\

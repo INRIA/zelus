@@ -5,8 +5,8 @@ let hybrid sawtooth () = y where
   rec init mode = Rising
   and init y = 0.0
   and present
-      | (up(y -. 1.0))    -> do mode = Falling done
-      | (up(-. y -. 1.0)) -> do mode = Rising  done
+      | (up(last y -. 1.0))    -> do mode = Falling done
+      | (up(-. last y -. 1.0)) -> do mode = Rising  done
   and match mode with
       | Rising  -> do der y =    1.0 done
       | Falling -> do der y = -. 1.0 done

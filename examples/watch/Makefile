@@ -20,7 +20,7 @@ watch_main.cmo: INCLUDE += $(SUNDIALS)
 watch_main.cmx: INCLUDE += $(SUNDIALS)
 
 watch.ml watch_main.ml: draw.zci watch.zls
-	$(ZELUC) -I $(ZLLIB) $(ZLCFLAGS) -s main -period -sampling 0 watch.zls
+	$(ZELUC) -I $(ZLLIB) $(ZLCFLAGS) -s main -sampling 0 watch.zls
 	mv main.ml watch_main.ml
 
 

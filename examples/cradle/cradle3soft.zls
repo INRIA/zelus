@@ -38,8 +38,8 @@ let f0 = 1.0
 (* true when x > 0, false otherwise *)
 let hybrid switch(x) = ok where
   automaton
-  | False -> do ok = false until up(if x > 0.0 then 1.0 else -1.0) then True done
-  | True -> do ok = true until up(-. (if x > 0.0 then 1.0 else -1.0)) then False done
+  | False -> do ok = false until up(x) then True
+  | True -> do ok = true until up(-. x) then False
 
 let k = -0.33
 
@@ -47,16 +47,19 @@ let hybrid clock suspend = t where
   init t = 0.
   and
     automaton
-      | Run -> do der t = 1. until up(if suspend then 1.0 else -1.0) then Hold done
-      | Hold -> do der t = 0. until up(if suspend then -1.0 else 1.0) then Run done
+      | Run -> do der t = 1. until up(if suspend then 1.0 else -1.0) then Hold
+      | Hold -> do der t = 0. until up(if suspend then -1.0 else 1.0) then Run
 
 let hybrid cradle (theta01, theta02, theta03) (* initial positions *) =
   let rec der theta1 = omega1 init theta01 
   and der theta2 = omega2 init theta02 
   and der theta3 = omega3 init theta03 
-  and der omega1 = (if collide then 0.0 else k *. sin theta1) -. alpha12
-  and der omega2 = (if collide then 0.0 else k *. sin theta2) +. alpha12 -. alpha23
-  and der omega3 = (if collide then 0.0 else k *. sin theta3) +. alpha23
+  and init omega1 = 0.0
+  and der  omega1 = (if collide then 0.0 else k *. sin theta1) -. alpha12
+  and init omega2 = 0.0
+  and der  omega2 = (if collide then 0.0 else k *. sin theta2) +. alpha12 -. alpha23
+  and init omega3 = 0.0
+  and der  omega3 = (if collide then 0.0 else k *. sin theta3) +. alpha23
   and alpha12 = if collide12 then 10.0 else 0.0
   and alpha23 = if collide23 then 10.0 else 0.0
   and collide12 = switch(theta1 -. theta2)

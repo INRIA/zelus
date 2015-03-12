@@ -25,7 +25,9 @@ let hybrid cradle () =
   and der v1 = acc (p1) init 0.0 reset hit01 -> last v0
   and hit01 = up (last p0 -. last p1)
 
-  and h = present hit01 -> -1.0 *. last h init -0.1
+  and init h = -0.1
+  and present hit01 -> do h = -1.0 *. last h done
+         else do der h = 0.0 done
   (* and h = present hit01 -> 0.1 +. last h init -1. *)
 
   in h, (p0, v0 /. 10.) , (p1, v1 /. 10.)

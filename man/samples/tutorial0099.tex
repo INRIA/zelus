@@ -1,0 +1,13 @@
+% ../compiler/zeluc.byte -I ../lib -I ./samples  samples/tutorial0096.zls samples/tutorial0098.zls 	-i samples/tutorial0099.zls (2)
+\runverbatimfalse
+\setrunverbatimcmd{zeluc.byte -i \runverbatimfile}
+\begin{RunVerbatimMsg}
+val input :
+  string -D-> Tutorial0096.coin signal * Tutorial0096.buttons signal
+\end{RunVerbatimMsg}
+\begin{RunVerbatimErr}
+File "tutorial.zls", line 15, characters 14-37:
+>  | Coffee -> print_string "Coffee\n"
+>              ^^^^^^^^^^^^^^^^^^^^^^^
+Type error: this is a stateless discrete expression and is expected to be combinatorial.
+\end{RunVerbatimErr}

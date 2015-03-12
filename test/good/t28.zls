@@ -1,0 +1,7 @@
+let hybrid truncate(x) = m where
+  rec
+      present
+      | (up(x -. float(m) -. 1.0))
+      | (up(x -. float(m) +. 1.0)) -> do next m = truncate(x) done
+  and init m = truncate(x)
+

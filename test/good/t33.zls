@@ -1,0 +1,14 @@
+
+let hybrid f go = () where
+  rec init x = 0.0
+  and automaton
+      | S1 ->
+          do
+            der x = 0.0
+          until go then S1
+      | S2 ->
+          do
+            der x = 1.0
+          until (up(1.0)) then S2
+      end
+

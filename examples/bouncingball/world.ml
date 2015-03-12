@@ -22,9 +22,11 @@ let ground_abs x = ground_limits.(lookup_limit x)
 
 let show_trace = ref false
 
+(*
 let () = Zlsolve.add_custom_arg
     ("-trace", Arg.Set show_trace,
      " Show a trace of ball positions.")
+ *)
 
 let () = Showball.start !show_trace (ground_height, ground_limits)
 

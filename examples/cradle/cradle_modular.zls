@@ -54,14 +54,14 @@ let becomes x = if x then 1. else -.1.
 let hybrid mup(x) = ok where
   automaton
   | Init ->
-      do until (init on (x = 0.0)) then Zero | (init) then Await done
+      do until (init) on (x = 0.0) then Zero
+          else (init) then Await
   | Await ->
       let o = up(x) in
-      do until 
-           | o on (x = 0.0) then do emit ok = () in Zero
-           | o then do emit ok = () in Await done
+      do until o on (x = 0.0) then do emit ok = () in Zero
+          else o then do emit ok = () in Await
   | Zero ->
-      do until up(if x > 0.0 then 1.0 else -1.0) then do emit ok = () in Await done
+      do until up(x) then do emit ok = () in Await
 
 (* let ground x = World.ground(x) *)
 
@@ -76,23 +76,21 @@ let hybrid cradle () = (p0, p1 +. 1.0 , p2 +. 2.0 , h1, h2) where
   | Running ->
       do der p1 = v1
       and der v1 = acc(p1)
-      until
-      | hit01() & hit12() then
-          do v1_for_2 = last v0 and v1_for_0 = last v2 in NoRead 
-      | hit01() then do v1_for_0 = last v1 in ReadLeft
-      | hit12() then do v1_for_2 = last v1 in ReadRight
-      done
-  | NoRead -> do until (init) then Running done
+      until hit01() & hit12() then
+              do v1_for_2 = last v0 and v1_for_0 = last v2 in NoRead 
+       else hit01() then do v1_for_0 = last v1 in ReadLeft
+       else hit12() then do v1_for_2 = last v1 in ReadRight
+  | NoRead -> do until (init) then Running
   | ReadLeft ->
       do until (init) then 
           do v1 = last v0_for_1 
           and p1 = if last v1 = 0.0 then last p1 else last p0 
-          in Running done
+          in Running
   | ReadRight ->
       do until (init) then 
           do v1 = last v2_for_1 
           and p1 = if last v1 = 0.0 then last p1 else last p2 
-          in Running done
+          in Running
   and hit01 = mup(last p0 -. last p1)
   and hit12 = mup(last p1 -. last p2)
 
@@ -104,12 +102,11 @@ let hybrid cradle () = (p0, p1 +. 1.0 , p2 +. 2.0 , h1, h2) where
       do der p0 = v0
       and der v0 = acc(p0)
       until hit01() then do v0_for_1 = last v0 in Read
-      done
   | Read ->
       do until (init) then 
           do v0 = last v1_for_0 
           and p0 = if last v0 = 0.0 then last p0 else last p1 
-          in Running done
+          in Running
 
   and init p2 = pinit2
   and init v2 = 0.0
@@ -119,12 +116,11 @@ let hybrid cradle () = (p0, p1 +. 1.0 , p2 +. 2.0 , h1, h2) where
       do der p2 = v2
       and der v2 = acc(p2)
       until hit12() then do v2_for_1 = last v2 in Read
-      done
   | Read ->
       do until (init) then 
            do v2 = last v1_for_2 
            and p2 = if last v2 = 0.0 then last p2 else last p1 
-           in Running done
+           in Running
   
   (* and h1 = present hit01 -> -1.0 *. last h1 init -0.1
   and h2 = present hit12 -> -1.0 *. last h2 init -0.1 *)

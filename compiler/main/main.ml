@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2013                                               *)
+(*  Copyright (C) 2012-2014                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -44,19 +44,15 @@ and doc_simulation = "<node> Simulates the node <node> \
                       and generates a file <node>.ml \n\t\t  \
                       For hybrid programs, compile with:\n\t\t  \
                 bigarray.cma unix.cma -I +sundials sundials_cvode.cma zllib.cma"
-and doc_sampling = "<f> Sets the sampling frequency to f Hz"
+and doc_sampling = "<p> Sets the sampling period to p (float <= 1.0)"
 and doc_check = "<n> Check that the simulated node returns true for n steps"
 and doc_use_gtk = " Use lablgtk2 interface.\n\t\t  \
                    Compile with: -I +lablgtk2 lablgtk.cma zllibgtk.cma"
-and doc_period = " Compile periods into discrete code to compute \n\t\t  \
-                  the next horizon for the solver."
 and doc_inlining_level = "<n> Level of inlining"
 and doc_dzero = " Turn on discrete zero-crossing detection"
 and doc_nocausality = " (undocumented)"
 and doc_causality = " When the flag is on, choose the old causality analysis"
 and doc_noinitialisation = " (undocumented)"
-
-and doc_h_allsync = "step size for the all-synchronous hybrid mode"
 
 let errmsg = "Options are:"
 
@@ -70,9 +66,6 @@ let main () =
       ([
         "-v", Arg.Unit set_verbose, doc_verbose;
         "-version", Arg.Unit show_version, doc_version;
-        "-h", Arg.Symbol (["dtuple"; "dfun"; "ifun"; "allsync"], set_hybrid_mode),
-              doc_hybrid;
-        "-h_allsync", Arg.Float set_h_allsync, doc_h_allsync;
         "-I", Arg.String add_include, doc_include;
         "-i", Arg.Set print_types, doc_print_types;
         "-ic", Arg.Set print_causality, doc_print_causality;
@@ -81,13 +74,11 @@ let main () =
         "-nopervasives", Arg.Unit set_no_pervasives, doc_no_pervasives;
         "-typeonly", Arg.Set typeonly, doc_typeonly;
         "-s", Arg.String set_simulation_node, doc_simulation;
-        "-sampling", Arg.Int set_sampling_rate, doc_sampling;
+        "-sampling", Arg.Float set_sampling_period, doc_sampling;
         "-check", Arg.Int set_check, doc_check;
         "-gtk2", Arg.Set use_gtk, doc_use_gtk;
-        "-period", Arg.Set compile_periods_into_discrete_counters, doc_period;
         "-dzero", Arg.Set dzero, doc_dzero;
         "-nocausality", Arg.Set no_causality, doc_nocausality;
-        "-causality", Arg.Set causality, doc_causality;
         "-noinit", Arg.Set no_initialisation, doc_noinitialisation;
         "-inline", Arg.Int set_inlining_level, doc_inlining_level;
       ]))
@@ -95,7 +86,8 @@ let main () =
       errmsg;
     begin
       match !simulation_node with
-        | Some(name) -> Simulator.emit name !sampling_rate !number_of_checks !use_gtk
+        | Some(name) -> 
+	    Simulator.main name !sampling_period !number_of_checks !use_gtk
         | _ -> ()
     end
   with

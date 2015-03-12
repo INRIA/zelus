@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2013                                               *)
+(*  Copyright (C) 2012-2014                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -33,7 +33,7 @@ type error =
     | Edefined_twice of Ident.t
     | Einit_undefined of Ident.t
     | Elast_undefined of Ident.t
-    | Eshould_be_a_signal of Ident.t
+    | Eshould_be_a_signal of Ident.t * typ
     | Ecannot_be_set of bool * Ident.t
     | Etype_clash of typ * typ
     | Earity_clash of int * int
@@ -90,10 +90,12 @@ let message loc kind =
               forbidden.@."
         output_location loc
         (Ident.source s) (Ident.source s)
-  | Eshould_be_a_signal(s) ->
-      eprintf "%aType error: %s should be a signal.@."
+  | Eshould_be_a_signal(s, expected_ty) ->
+      eprintf "@[%aType error: %s has type@ %a,@ \
+               but is expected to be a signal.@.@]"
         output_location loc
         (Ident.source s)
+	Ptypes.output expected_ty
   | Ecannot_be_set(is_next, s) ->
       eprintf "%aType error: the %s value of %s cannot be set. This is either \
                because the %s value is set or the last value is used.@."

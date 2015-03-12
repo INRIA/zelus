@@ -160,7 +160,7 @@ when the balls vertical velocity becomes very small.</p>
       <span class="comment">(* the ball is falling with a possible bound. *)</span>
       <span class="keyword ">local</span> <span class="">z</span>, <span class="">y_v</span> <span class="keyword ">in</span>
       <span class="keyword ">do</span>
-        (<span class="">y</span>, <span class="">y_v</span>, <span class="">z</span>) = <span class="constructor">Ball</span>.<span class="">ball</span>(<span class="">x</span>, <span class="">y_start</span>)
+        (<span class="">y</span>, <span class="">y_v</span>, <span class="">z</span>) = <span class="constructor">Ball</span>.<span class="">ball</span>(<span class="">x</span>, <span class="keyword expr ">last</span> <span class="">y_start</span>)
       <span class="keyword ">until</span> <span class="">z</span> <span class="keyword expr ">on</span> (<span class="">y_v</span> &lt; <span class="">eps</span>) <span class="keyword ">then</span> <span class="constructor">Sliding</span>(<span class="">ground</span>(<span class="">x</span>))
   | <span class="constructor">Sliding</span>(<span class="">y0</span>) -&gt;
       <span class="comment">(* the ball is fixed, i.e., the derivative for y is 0 *)</span>

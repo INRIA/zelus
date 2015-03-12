@@ -24,7 +24,7 @@ stickysprings3d.opt: world.cmx stickysprings.ml stickysprings3d.ml stickysprings
 	    $(ZLSTDLIBS:%.cma=%.cmxa) $(ZLEXTRALIBS:%.cma=%.cmxa) $^
 
 stickysprings3d.ml sticksprings3d_main.ml: stickysprings3d.zls stickysprings.zci world.zci
-	$(ZELUC) $(ZELUCFLAGS) -period -gtk2 -sampling 9 -s main $<
+	$(ZELUC) $(ZELUCFLAGS) -gtk2 -s main $<
 	mv main.ml stickysprings3d_main.ml
 
 world.cmi: world.mli
@@ -75,6 +75,6 @@ realclean cleanall: clean
 
 %.ml %.zci: %.zls
 	# $(ZELUC) $(ZELUCFLAGS) -s main -sampling 50 -gtk2 $<
-	$(ZELUC) $(ZELUCFLAGS) -period -s main -sampling 9 -gtk2 $<
+	$(ZELUC) $(ZELUCFLAGS) -s main -sampling 9 -gtk2 $<
 	mv main.ml $(<:.zls=)_main.ml
 

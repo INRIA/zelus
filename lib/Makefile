@@ -1,6 +1,6 @@
 include ../config
 
-ZELUC = ../bin/zeluc.$(TARGET)
+ZELUC = ../bin/zeluc
 
 LOBJ = pervasives.zci \
        char.zci \
@@ -11,30 +11,27 @@ LOBJ = pervasives.zci \
        random.zci \
        string.zci \
        graphics.zci \
-       zlsolve.zci \
        basics.zci
 
 LOBJ_GTK = $(LOBJ) \
 	   gtkplot.zci
 
 INCLUDES += -I solvers
-SOLVER_OBJS = solvers/fixedstep.cmo \
-	      solvers/illinois.cmo  \
-	      solvers/rk4.cmo       \
+SOLVER_OBJS = solvers/illinois.cmo  \
 	      solvers/odexx.cmo     \
 	      $(OPTIONAL_SOLVER_OBJS)
 
-OBJ = solvers.cmo \
+OBJ = zls.cmo \
       zlsolve.cmo \
       basics.cmo \
       $(SOLVER_OBJS) \
-      loadsolvers.cmo \
+      defaultsolver.cmo \
       dump.cmo \
       zlsrun.cmo
 
 OBJ_GTK = gtkplot.cmo \
 	  scope.cmo \
-	  zlsrungtk.cmo
+ 	  zlsrungtk.cmo
 
 all: $(targets) $(gtktargets)
 
@@ -60,14 +57,11 @@ zllibgtk.cmxa: $(OBJ:.cmo=.cmx) $(OBJ_GTK:.cmo=.cmx)
 	$(OCAMLOPT) -a $(OCAMLCFLAGS) -o $@ $^
 
 pervasives.zci: ZELUCFLAGS := -nopervasives
-zlsolve.zci: zlsolve.zli pervasives.zci
 
 basics.zci: basics.zli pervasives.zci
 
-zlsolve.zci: zlsolve.zli
-
-solvers/solversundials.cmo: INCLUDES += $(SUNDIALS)
-solvers/solversundials.cmx: INCLUDES += $(SUNDIALS)
+solvers/sundials_cvode.cmo: INCLUDES += $(SUNDIALS) $(SUNDIALS_CVODE)
+solvers/sundials_cvode.cmx: INCLUDES += $(SUNDIALS) $(SUNDIALS_CVODE)
 
 zlsrungtk.cmo: INCLUDES += $(LABLGTK2)
 zlsrungtk.cmx: INCLUDES += $(LABLGTK2)
@@ -83,26 +77,9 @@ scope.ml: scope.zls gtkplot.zci basics.zci
 dump.ml: dump.zls basics.zci
 	$(ZELUC) $(ZELUCFLAGS) dump.zls
 
-loadsolvers.ml:
-	@printf "(* initialize solvers *)\n" > $@
-	@for s in $(notdir $(SOLVER_OBJS:.cmo=)); do		\
-	    printf "let m = String.capitalize \"$$s\" %s"            \
-	    	   "in Printf.eprintf \"module %s = %s\n\" m m;;\n" \
-		 | tee test | $(OCAML) 1>/dev/null 2>>$@; 			\
-	done
-	@printf "let () = Zlsolve.set_default_solver \"$(SOLVER)\";;\n" >> $@
-
-### Generating a Zelus in numbers tables
-# Download ocamlwc from: http://www.lri.fr/~filliatr/software.en.html
-loc:
-	@printf "Simulation algorithm\n"
-	@ocamlwc -c zlsolve.ml basics.ml
-	@printf "Solver interface (generic)\n"
-	@ocamlwc -c solvers.ml
-	@printf "Solver interface (Sundials, compiler specific)\n"
-	@ocamlwc -c solvers/solversundials.ml
-	@printf "Zero-crossing detection (Illinois)\n"
-	@ocamlwc -c solvers/illinois.ml
+defaultsolver.ml: ../config
+	@printf "(* This file is generated automatically by make. *)\n" > $@
+	@printf "include $(SOLVER)\n" >> $@
 
 depend: .depend
 .depend: *.mli *.ml
@@ -114,7 +91,7 @@ clean:
 	-@rm -f dump.ml dump.obc
 	-@rm -f *.zci *.cma *.cmxa *.a
 	-@rm -f solvers/*.cm[iox] solvers/*.annot solvers/*~ solvers/*.o
-	-@rm -f loadsolvers.ml
+	-@rm -f defaultsolver.ml
 
 realclean cleanall: clean
 

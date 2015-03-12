@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2013                                               *)
+(*  Copyright (C) 2012-2014                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -319,6 +319,13 @@ let is_a_float ty =
   with
     | Unify -> false
 
+(** Is-it a float ? *)
+let is_zero ty =
+  let ty = typ_repr ty in
+  match ty.t_desc with
+  | Tconstr(id, _, _) when id = Initial.zero_ident -> true
+  | _ -> false
+
 (** The same but in case ty is polymorphic, no unification is done *)
 let is_a_direct_signal ty =
   let ty = typ_repr ty in
@@ -353,6 +360,12 @@ let is_a_hybrid_node lname =
     Modules.find_value lname in
   match typ_body with
     | Tsignature(Tcont, _, _, _) -> true | _ -> false
+
+let kind_of_node lname =
+  let { info = { value_typ = { typ_body = typ_body } } } = 
+    Modules.find_value lname in
+  match typ_body with
+    | Tsignature(k, _, _, _) -> k | _ -> Tany
 
 
 

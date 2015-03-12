@@ -45,7 +45,7 @@ let make_rect (x, y) (x', y') =
   Gdk.Rectangle.create
     ~x:(min x x') ~y:(min y y') ~width:(abs (x - x')) ~height:(abs (y - y'))
 
-class model ~context ((x_off, y_off), max_t, r_alert, r_protected, delta_phi) =
+class model ~context ((x_off, y_off), r_alert, r_protected, delta_phi) =
   let text_layout = Pango.Layout.create context in
   object (self)
     (* {{{1 *)
@@ -170,7 +170,7 @@ class model ~context ((x_off, y_off), max_t, r_alert, r_protected, delta_phi) =
       let r = 30 in
       let di = 2 * r in
       let xo, yo = 170, canvas_height - 105 in
-      let t_deg = (min 1.0 (t /. (max_t v1 v2))) *. 360.0 in
+      let t_deg = t *. 360.0 in
       d#set_foreground color_dimgray;
       d#arc ~x:xo ~y:yo ~width:di ~height:di ~filled:true
             ~start:0.0 ~angle:360.0 ();
@@ -382,9 +382,7 @@ type airtraffic = window * model
 (* 1 mile = scale pixels *)
 (* r_alert and r_protected are in miles *)
 let show d dtheta r_alert r_protected delta_phi =
-  let max_t v1 v2 = max (d /. (v1 *. sin dtheta)) (d /. (v2 *. sin dtheta)) in
-  let w = new window ((x_offset, y_offset),
-                      max_t, r_alert, r_protected, delta_phi)
+  let w = new window ((x_offset, y_offset), r_alert, r_protected, delta_phi)
   in
   let _ = w#show in
   w, w#model

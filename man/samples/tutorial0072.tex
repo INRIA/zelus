@@ -1,12 +1,9 @@
-% ../compiler/zeluc.byte -I ../lib -I ./samples  	-i samples/tutorial0072.zls (2)
-\runverbatimfalse
+% ../compiler/zeluc.byte -I ../lib -I ./samples  	-i samples/tutorial0072.zls (0)
+\runverbatimtrue
 \setrunverbatimcmd{zeluc.byte -i \runverbatimfile}
 \begin{RunVerbatimMsg}
-Failed.
+val switch : int signal * int signal -D-> int
 \end{RunVerbatimMsg}
 \begin{RunVerbatimErr}
-File "tutorial.zls", line 2, characters 40-43:
->  match x with | true -> 1 | false -> 2 end
->                                        ^^^
-Syntax error.
+Success.
 \end{RunVerbatimErr}

@@ -1,9 +1,8 @@
-(* compiles with -custom unix.cma    *)
+module Make (SSolver : Zls.STATE_SOLVER) =
+struct
 
 (* instantiate a numeric solver *)
-module Load = Loadsolvers
-let () = Zlsolve.check_for_solver Sys.argv
-module Runtime = (val Zlsolve.instantiate () : Zlsolve.ZELUS_SOLVER)
+module Solver = Zlsolve.Make (SSolver) (Illinois)
 
 (*** Timer version ***)
 (* let wait_next_instant debut fin min = *)
@@ -53,15 +52,25 @@ let wait_next_instant =
   in
   wait_next_instant
 
-let go size model =
-  let ss = ref (Runtime.main' size model) in
+let go (main_alloc, main_csize, main_zsize, main_maxsize, main_ders,
+        main_step, main_zero, main_reset) =
+  let stepfn = Solver.step
+        main_alloc
+        main_csize
+        main_zsize
+        main_maxsize
+        main_ders
+        main_step
+        main_zero
+        main_reset
+  in
+
   let starting = ref (Unix.gettimeofday ()) in
 
   let rec step () =
-    let result, delta, ss' = Runtime.step !ss in
-    ss := ss';
+    let _, is_done, delta = stepfn () in
 
-    if Runtime.is_done !ss then ()
+    if is_done then ()
     else if delta = 0.0 then step ()
     else
       let ending = Unix.gettimeofday () in
@@ -70,4 +79,28 @@ let go size model =
       step ()
   in
   step ()
+
+let check (main_alloc, main_csize, main_zsize, main_maxsize, main_ders,
+           main_step, main_zero, main_reset) limit =
+  let stepfn = Solver.step
+        main_alloc
+        main_csize
+        main_zsize
+        main_maxsize
+        main_ders
+        main_step
+        main_zero
+        main_reset
+  in
+  let rec step n =
+    if n == limit then ()
+    else
+      let result, is_done, delta = stepfn () in
+      match result with
+      | Some false -> exit 1
+      | _ -> if is_done then () else step (n + 1)
+  in
+  (step 0; exit 0)
+
+end
 

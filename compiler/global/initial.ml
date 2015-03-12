@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2013                                               *)
+(*  Copyright (C) 2012-2014                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -64,6 +64,7 @@ and typ_string = constr string_ident []
 and typ_float = constr float_ident []
 and typ_unit = constr unit_ident []
 and typ_signal ty = constr sig_ident [ty]
+and typ_array ty = constr array_ident [ty]
 
 (* global types loaded initially *)
 let tglobal =

@@ -16,14 +16,14 @@ pendulum.opt: ZLEXTRALIBS += graphics.cmxa $(OBJ:.cmo=.cmx)
 pendulum.opt: $(OBJ:%.cmo=%.cmx)
 
 pendulum.ml pendulum_main.ml: pendulum.zls
-	$(ZELUC) $(ZELUCFLAGS) -s manual -sampling 100 $<
+	$(ZELUC) $(ZELUCFLAGS) -sampling 0.01 -s manual $<
 	mv manual.ml pendulum_main.ml
 
 clean:
 	-@rm -f $(EXAMPLE:.zls=.ml) main.ml
 	-@rm -f $(OBJ:.cmo=.ml)
 	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci
-	-@rm -f $(EXAMPLE:%.zls=%_main.ml)
+	-@rm -f $(EXAMPLE:%.zls=%_main.ml) pendulum.byte
 
 realclean cleanall: clean
 	-@rm -f $(EXAMPLE:%.zls=%.byte) $(EXAMPLE:%.zls=%.opt)

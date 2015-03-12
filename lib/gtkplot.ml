@@ -12,6 +12,7 @@ let linear      = LinearInterpolation
 let len_history = ref 5000
 
 let scope_title_height  = 30
+let scope_title_height  = 30
 let y_axis_width        = 80
 let x_axis_height       = 20
 
@@ -42,7 +43,7 @@ let nearest_powten x = 10.0 ** (floor (log10 x +. 0.5));;
 
 let float_to_string x =
   let t = int_of_float (log10 x) in
-  if -4 <= t & t <= 3
+  if -4 <= t && t <= 3
   then Printf.sprintf "%f" x
   else Printf.sprintf "%e" x
 

@@ -5,7 +5,7 @@ let r = 1000.0
 let c = 10e-6
 
 let hybrid count(clk) = o where
-  rec o = present clk -> (last o + 1) init 0
+  rec o = present clk | (init) -> (0 -> (pre o + 1)) init 0
 
 (* A version counting on a periodic timer *)
 let hybrid power1() = (p, t, float cpt) where

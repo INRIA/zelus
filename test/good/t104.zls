@@ -1,0 +1,14 @@
+
+let hybrid model p = q where
+  der q = p init 0.0
+
+let node f x = c where
+  rec c = (0.0 fby c) +. x
+
+let hybrid main () = () where
+   rec init x = 0.0
+   and init y = 0.0
+   and p = 0.0
+   and present up(p) -> do x = f(last y) done
+   and z = model(x) and y = z
+

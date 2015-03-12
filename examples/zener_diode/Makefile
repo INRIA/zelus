@@ -16,7 +16,7 @@ lzc_main.cmo: lzc_main.ml
 	    -I $(ZLLIB)  -c $^
 
 lzc.ml: lzc.zls
-	$(ZELUC) $(ZELUCFLAGS)  -gtk2 -s main -period -sampling 0 lzc.zls
+	$(ZELUC) $(ZELUCFLAGS)  -gtk2 -s main -sampling 0 lzc.zls
 	mv main.ml lzc_main.ml
 
 depend: .depend

@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2013                                               *)
+(*  Copyright (C) 2012-2014                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -65,49 +65,130 @@ let choose ty =
   with
     | Failure _ -> None
 
-(* The constant false *)
+(* Basic constants *)
 let cfalse = make (Oconst(Obool(false)))
+let void = make (Oconst(Ovoid))
+let czero = make (Oconst(Oint(0)))
+
+(* The translation uses an environment to store information about identifiers *)
+type env = sort Ident.Env.t (* the symbol table *)
 
 (* the translation function returns a sequence of instructions of the *)
 (* following form *)
 type eq =
-    | Let of pattern * exp
-    | Match of exp * match_handler list
-    | If of exp * exp
-    | Letvar of Ident.t * Deftypes.typ * exp option
-    | Set of Ident.t * sort * exp
-    | Imp of exp
+  | Let of pattern * exp
+  | Match of exp * exp match_handler list
+  | If of exp * exp
+  | Letvar of Ident.t * Deftypes.typ * exp option
+  | Set of left_value * exp
+  | Setstate of left_state_value * exp
+  | Imp of exp
             
 type code =
-    { mem: (Ident.t * (Deftypes.typ * exp option)) State.t;
-                   (* set of state variables, statically allocated *)
-                   (* and possibly initialized with constant values *)
-      inst: (Ident.t * Lident.t) State.t; (* set of instances *)
-      eqs: eq State.t;  (* sequence of equations executed on a step *)
-      init: eq State.t; (* sequence of code to execute on a reset *)
-    }
-    
-let empty = { mem = State.empty; inst = State.empty; 
-              eqs = State.empty; init = State.empty }
-let pair { mem = m1; inst = i1; eqs = eqs1; init = init1 }
-    { mem = m2; inst = i2; eqs = eqs2; init = init2 } =
-  { mem = State.pair m1 m2; inst = State.pair i1 i2;
-    eqs = State.pair eqs1 eqs2; init = State.pair init1 init2 }
-let flush { mem = m1; inst = i1; eqs = eqs1; init = init1 } =
-  State.list [] m1, State.list [] i1, State.list [] eqs1, State.list [] init1
+    { mem: (Ident.t * mem * Deftypes.typ) State.t; (* set of state variables *)
+      init: (Ident.t * exp) State.t; (* set of initializations among the above *)
+      inst: (Ident.t * Lident.t * Deftypes.kind) State.t; (* set of instances *)
+      reset: eq State.t; (* sequence of equations for resetting the block *)
+      step: eq State.t; (* sequence of equations during the discrete step *)
+      }
 
-(* environment that give the status of variables *)
-type vars = { v_shared: S.t; v_mem: S.t }
+let empty = { mem = State.empty; init = State.empty; inst = State.empty; 
+	      reset = State.empty; step = State.empty }
 
-let novars = { v_shared = S.empty; v_mem = S.empty }
+let pair { mem = m1; init = in1; inst = i1; reset = r1; step = d1 } 
+	 { mem = m2; init = in2; inst = i2; reset = r2; step = d2 } =
+  { mem = State.par m1 m2; init = State.par in1 in2;
+    inst = State.par i1 i2; reset = State.par r1 r2; 
+    step = State.par d1 d2 }
 
-let append { v_shared = s1; v_mem = m1 } { v_shared = s2; v_mem = m2 } =
-  { v_shared = S.union s1 s2; v_mem = S.union m1 m2 }
+let flush 
+      { mem = m1; init = in1; inst = i1; reset = r1; step = s1 } =
+  (* associate an initial value to state variables *)
+  let initialize table (n, mem, ty) =
+    let opt_e = try Some(Env.find n table)
+		with Not_found -> choose ty in
+    (n, (mem, ty, opt_e)) in
+  let m1 = State.list [] m1 in
+  let in1 = State.list [] in1 in
+  let table = 
+    List.fold_left (fun acc (n, e) -> Env.add n e acc) Env.empty in1 in
+  let m1 = List.map (initialize table) m1 in
+  m1, State.list [] i1, State.list [] r1, State.list [] s1
 
-let is_shared n { v_shared = shared } = S.mem n shared
 
-let status_of_var n { v_shared = shared; v_mem = mem } =
-  if S.mem n shared then Var else if S.mem n mem then Mem else Val
+(* Extension of an environment. The environment is used to decide which *)
+(* kind of assignment or read must be done on a variable *)
+(* [append shared_variables zero_variables l_env env0 = l_mem, env] *)
+(* returns the set of state variables *)
+(* [l_mem] defined in [l_env] and a new environment [env] *)
+(* [shared_variables] is the set of local names which are shared *)
+(* [zero_variables] is the set of local names defined by en eq. [x = up(e)] *)
+let append shared_variables zero_variables l_env env0 =
+  (* for every entry in [l_env], add the name into the environment *)
+  (* For names in [shared_variables], switch sort [Val] to [Var] *)
+  let sort n { t_sort = sort; t_typ = typ } =
+    let sort = match sort with
+      | Deftypes.Val | Deftypes.ValDefault _ -> 
+	  if S.mem n shared_variables then Var else Val
+      | Deftypes.Mem 
+	  { t_der_is_defined = der; t_last_is_used = is_last; 
+	    t_initialized = is_init } ->
+	 if der then Mem (Cont)
+	 else if is_last || is_init then Mem Discrete
+	 else if S.mem n shared_variables then Var else Val in
+    sort, typ in
+  (* add zero-crossing variables to [l_env] *)
+  let zero n l_env = Env.add n (Mem(Zero), Initial.typ_bool) l_env in
+  (* build the declaration of state variables *)
+  let mem n (sort, typ) (l_shared, l_mem) =
+    match sort with
+    | Val -> l_shared, l_mem
+    | Var -> S.add n l_shared, l_mem
+    | Mem m -> l_shared, State.cons (n, m, typ) l_mem in
+  let l_env = Env.mapi sort l_env in
+  let l_env = S.fold zero zero_variables l_env in
+  let l_shared, l_mem = Env.fold mem l_env (S.empty, State.empty) in
+  l_shared, l_mem, Env.append l_env env0
+
+let is_shared n env =  
+  try
+    let sort,_ = Env.find n env in
+    match sort with | Var -> true | _ -> false
+  with 
+    | Not_found -> assert false
+
+let is_derivative n env =  
+  try
+    let sort,_ = Env.find n env in
+    match sort with 
+    | Mem(Cont) -> true | Mem _ -> false | _ -> assert false
+  with 
+    | Not_found -> assert false
+
+let sort n env =  
+  try
+    let sort,_ = Env.find n env in sort
+  with 
+    | Not_found -> assert false
+
+(** Translation of a variable read. *)
+let localvar n env =
+  try
+    let sort,_ = Env.find n env in
+    match sort with
+      | Val -> make (Olocal(n, false)) | Var -> make (Olocal(n, true))
+      | Mem(m) ->
+	 begin match m with
+	 | Discrete -> make (Ostate(Oleft_state_name(n)))
+	 | Zero -> 
+	    make (Ostate((Oleft_state_primitive_access
+					 (Oleft_state_name(n), Ozero_in))))
+	 | Cont -> 
+	    make (Ostate(Oleft_state_primitive_access(Oleft_state_name(n),
+					  Ocontinuous)))
+	 end
+  with
+  | Not_found -> Misc.internal_error "Unbound variable" Printer.name n
 
 (** Translation of immediate values *)
 let immediate = function
@@ -118,57 +199,59 @@ let immediate = function
   | Deftypes.Estring(s) -> Ostring(s)
   | Deftypes.Evoid -> Ovoid
 
-(* compute the status of variables (either shared or memory) *)
-let build eq_list =
-  let rec buildrec 
-      ({ v_shared = s; v_mem = m } as vars) { Zelus.eq_desc = desc } =
+let constant = function
+  | Deftypes.Cimmediate(i) -> make (Oconst(immediate i))
+  | Deftypes.Cglobal(ln) -> make (Oglobal(ln))
+ 
+(* compute the set of shared variables and zero-crossing variables *)
+(* from a sequence of equations. If a variable [x] has more than one *)
+(* definition, it is considered as a shared variable *)
+let variables eq_list =
+  let rec buildrec (shared_variables, zero_variables) { Zelus.eq_desc = desc } =
     match desc with
-      (* variables written in several branches are shared *)
-      | Zelus.EQmatch(_, _, p_h_list) ->
-        let s = 
-          List.fold_left
-            (fun acc { Zelus.m_body = { Zelus.b_write = { dv = w } } } -> 
-              S.union w acc)
-            s p_h_list in
-        { v_shared = s; v_mem = m }
-      (* [x = pre(e)] or [x = v fby e] or [init x = e] or [next x = e] *)
-      (* for a memory *)
-      | Zelus.EQnext({Zelus.p_desc = Zelus.Evarpat(n)}, _, _)
-      | Zelus.EQinit({Zelus.p_desc = Zelus.Evarpat(n)}, _, _)
-      | Zelus.EQeq({Zelus.p_desc = Zelus.Evarpat(n)}, 
-                   {Zelus.e_desc = Zelus.Eapp((Zelus.Eunarypre 
-                                                  | Zelus.Efby),_)})
-        -> { v_shared = s; v_mem = S.add n m }
-      | Zelus.EQreset({ Zelus.b_write = { dv = w } }, _) -> 
-          { v_shared = S.union w s; v_mem = m }
-      | _ -> vars
-  and buildlist vars eq_list =
-    List.fold_left buildrec vars eq_list in
-  buildlist novars eq_list
+    (* zero-crossing variables *)
+    | Zelus.EQeq({ Zelus.p_desc = Zelus.Evarpat(n) },
+		 { Zelus.e_desc = Zelus.Eapp(Zelus.Eup, _) }) ->
+       shared_variables, S.add n zero_variables
+    | Zelus.EQmatch(_, _, p_h_list) ->
+       (* variables written in several branches are shared *)
+       List.fold_left
+         (fun acc { Zelus.m_body = { Zelus.b_write = { dv = w } } } -> 
+          S.union w acc)
+         shared_variables p_h_list, zero_variables
+    | _ -> shared_variables, zero_variables
+  and buildlist (shared_variables, zero_variables) eq_list =
+    List.fold_left buildrec (shared_variables, zero_variables) eq_list in
+  buildlist (S.empty, S.empty) eq_list
 
-let add_localvar { v_shared = shared } env ctx =
-  let addrec n acc = 
+(* For every shared variable appearing in [l_env] add a local declaration *)
+(* var x in ... *)
+let add_localvar l_shared l_env ctx =
+  let addrec n { t_sort = k; t_typ = ty } acc = 
     (* initialize the shared variable with [im] when its kind *)
-    (* is ValDefault(im) in the source. Otherwise, initialize with any value *)
-    try
-      let { t_sort = k; t_typ = ty } = Env.find n env in
+    (* is ValDefault(c) in the source. Otherwise, initialize with any value *)
+    if S.mem n l_shared then
       let opt_e = 
         match k with 
-          | ValDefault(im) -> Some(make (Oconst(immediate im))) | _ -> choose ty in
+        | ValDefault(c) -> Some(constant c)
+	| _ -> choose ty in
       State.cons (Letvar(n, ty, opt_e)) acc
-    with
-      | Not_found -> failwith (Ident.name n) in
-  { ctx with eqs = S.fold addrec shared ctx.eqs }
+    else acc in
+  { ctx with step = Env.fold addrec l_env ctx.step }
 
-let void = make (Oconst(Ovoid))
-  
+(* Add the declaration of state variables *)
+let add_memories l_mem ctx = { ctx with mem = State.par l_mem ctx.mem }
+
+(* Turn equations produced during the translation into expressions from Obc *) 
 let letin eq_list e =
   let rec letrec = function
     | [] -> e
     | Let(p, e) :: eq_list -> 
         make (Olet([p, e], letrec eq_list))
-    | Set(n, k, e) :: eq_list -> 
-        make (Osequence(make(Oassign(n, k, e)), letrec eq_list))
+    | Set(left, e) :: eq_list -> 
+        make (Osequence(make(Oassign(left, e)), letrec eq_list))
+    | Setstate(left, e) :: eq_list -> 
+        make (Osequence(make(Oassign_state(left, e)), letrec eq_list))
     | Letvar(n, ty, opt_e) :: eq_list ->
         make (Oletvar(n, ty, opt_e, letrec eq_list))
     | If(e, e1) :: eq_list -> 
@@ -183,107 +266,121 @@ let letin eq_list e =
     | Imp(e) :: eq_list ->
         make (Osequence(e, letrec eq_list)) in
   letrec eq_list
-              
-let machine pat_list ctx e =
-  let mems, insts, eqs, inits = flush ctx in
-  { m_memories = mems; m_instances = insts;
-    m_step = (pat_list, letin eqs e); m_reset = letin inits void} 
- 
-(** Conditional. [p = e1 every z1 | ... default e] is translated into *)
-(* [p = if z1 then e1 else ... else e] *)
-let ifthenelse e1 e2 e3 = make (Oifthenelse(e1, e2, e3))
-
-(** Execute the set of initialization function when a condition is true *)
+           
+(* Execute the set of initialization function when a condition is true *)
+(* This is only useful if the reset/every construct is kept up to translation *)
 let reset e init eqs =
   let init = State.list [] init in
   match init with 
     | [] -> eqs 
     | _ -> State.cons (If(e, letin init void)) eqs
 
-let rec default e_e_list e =
-  match e_e_list with
-    | [] -> e
-    | (e1, z1) :: e_e_list -> ifthenelse z1 e1 (default e_e_list e)
-
-(* reset application. When [e_opt = Some(e)] the application is reset *)
+(* Converts an initialisation [x, e] into an assignment *)
+let init_to_eq env (x, e) =
+  let left = 
+    if is_derivative x env 
+    then Oleft_state_primitive_access(Oleft_state_name x, Ocontinuous)
+    else Oleft_state_name x in
+  Setstate(left, e)
+     
+(** Translation of a function application. *)
+(* It returns a context [ctx] and an expression *)
+(* When [e_opt = Some(e)] the application is reset *)
 let apply ctx e_opt op e_list =
-  if Types.is_a_node op
-  then
-    (* create an object *)
-    let id = Ident.fresh "inst" in
-    let ctx = 
-      { ctx with inst = State.cons (id, op) ctx.inst;
-        init = State.cons (Imp(make(Oreset(op, id)))) ctx.init } in
-    let e = 
-      match e_opt with
-	| None -> make (Ostep(op, id, e_list))
+  let k = Types.kind_of_node op in
+  match k with
+    | Deftypes.Tany | Deftypes.Tdiscrete(false) -> 
+      let e = make (Oapp(op, e_list)) in ctx, e
+    | Deftypes.Tdiscrete(true) | Deftypes.Tcont ->
+      (* create an instance *)
+      let id = Ident.fresh "inst" in
+      let ctx = 
+	{ ctx with inst = State.cons (id, op, k) ctx.inst;
+		   reset = 
+		     State.cons
+		       (Imp(make(Omethod({ c_machine = op;
+					   c_method_name = Oreset;
+					   c_instance = Some(id) }, [])))) 
+		       ctx.reset } in
+      let e_step = 
+	match e_opt with
+	| None -> make (Omethod({ c_machine = op; c_method_name = Ostep;
+				  c_instance = Some(id) }, e_list))
 	| Some(e) ->
-	    make (Osequence(make(Oifthenelse(e, make(Oreset(op, id)), void)),
-			    make (Ostep(op, id, e_list)))) in
-    ctx, e
-  else ctx, make (Oapp(op, e_list))
+	   make (Osequence(
+		     make(Oifthenelse(e, 
+				      make(Omethod({ c_machine = op;
+						     c_method_name = Oreset;
+						     c_instance = Some(id) },
+						   [])), 
+				      void)),
+		     make (Omethod({ c_machine = op;
+				     c_method_name = Ostep;
+				     c_instance = Some(id) }, e_list)))) in
+      ctx, e_step
 
-(** Translation of expressions. [vars] is the set of shared variables *)
-let rec exp vars { Zelus.e_desc = desc } =
+(** Translation of expressions under an environment [env] *)
+let rec exp env { Zelus.e_desc = desc } =
   match desc with
     | Zelus.Econst(i) -> empty, make (Oconst(immediate i))
-    | Zelus.Elocal(n) -> 
-        (* [n] is shared is if appears in [vars.v_shared]; a state variable *)
-        (* if it appears in [vars.v_mem] and a value otherwise *)
-        empty, make (Olocal(n, status_of_var n vars))
-    | Zelus.Elast(n) -> empty, make (Olocal(n, Mem))
+    | Zelus.Elocal(n) | Zelus.Elast(n) -> empty, localvar n env
     | Zelus.Eglobal(ln) -> empty, make (Oglobal(ln))
     | Zelus.Econstr0(ln) -> empty, make (Oconstr0(ln))
     | Zelus.Etuple(e_list) ->
-        let ctx, e_list = exp_list vars e_list in
-        ctx, make (Otuple(e_list))
+       let ctx, e_list = exp_list env e_list in
+       ctx, make (Otuple(e_list))
     | Zelus.Eapp(Zelus.Eifthenelse, [e1; e2; e3]) ->
-        let ctx1, e1 = exp vars e1 in
-        let ctx2, e2 = exp vars e2 in
-        let ctx3, e3 = exp vars e3 in
-        pair ctx1 (pair ctx2 ctx3), make (Oifthenelse(e1, e2, e3))
+       let ctx1, e1 = exp env e1 in
+       let ctx2, e2 = exp env e2 in
+       let ctx3, e3 = exp env e3 in
+       pair ctx1 (pair ctx2 ctx3), make (Oifthenelse(e1, e2, e3))
     | Zelus.Erecord(label_e_list) ->
-        let ctx, label_e_list = record_list vars label_e_list in
-        ctx, make (Orecord(label_e_list))
+       let ctx, label_e_list = record_list env label_e_list in
+       ctx, make (Orecord(label_e_list))
     | Zelus.Erecord_access(e, longname) ->
-        let ctx, e = exp vars e in
-        ctx, make (Orecord_access(e, longname))
+       let ctx, e = exp env e in
+       ctx, make (Orecord_access(e, longname))
     | Zelus.Etypeconstraint(e, ty) ->
-        let ctx, e = exp vars e in
-        ctx, make (Otypeconstraint(e, type_expression ty))
+       let ctx, e = exp env e in
+       ctx, make (Otypeconstraint(e, type_expression ty))
     | Zelus.Elet(l, e) ->
-        let vars, ({ eqs = eqs } as ctx) = local vars l in
-        let ctx_e, e = exp vars e in
-        pair { ctx with eqs = State.empty } ctx_e, 
-        letin (State.list [] eqs) e
+       (* [l] must be stateless and this is ensured by the normalization *)
+       (* process *)
+       let env, ({ step = eqs } as ctx) = local env l in
+       let ctx_e, e = exp env e in
+       pair { ctx with step = State.empty } ctx_e, 
+       letin (State.list [] eqs) e
     | Zelus.Eseq(e1, e2) ->
-        let ctx1, e1 = exp vars e1 in
-        let ctx2, e2 = exp vars e2 in
-        pair ctx1 ctx2, make (Osequence(e1, e2))
-    | Zelus.Eapp(Zelus.Eop(op), e_list) ->
-        let ctx, e_list = exp_list vars e_list in
-	apply ctx None op e_list
-    | Zelus.Eapp(Zelus.Eevery(op), e :: e_list) ->
-        let ctx_e, e = exp vars e in
-	let ctx, e_list = exp_list vars e_list in
-	apply (pair ctx_e ctx) (Some(e)) op e_list
+       let ctx1, e1 = exp env e1 in
+       let ctx2, e2 = exp env e2 in
+       pair ctx1 ctx2, make (Osequence(e1, e2))
+    | Zelus.Eapp(Zelus.Eup, [e]) -> exp env e
+    | Zelus.Eapp(Zelus.Eop(_, op), e_list) ->
+       let ctx, e_list = exp_list env e_list in
+       let ctx, e_step = apply ctx None op e_list in
+       ctx, e_step
+    | Zelus.Eapp(Zelus.Eevery(_, op), e :: e_list) ->
+       let ctx_e, e = exp env e in
+       let ctx, e_list = exp_list env e_list in
+       let ctx, e_step = apply (pair ctx_e ctx) (Some(e)) op e_list in
+       ctx, e_step
     | Zelus.Eapp _ | Zelus.Eperiod _ 
     | Zelus.Epresent _ | Zelus.Ematch _ -> assert false
 
-and exp_list vars e_list =
+and exp_list env e_list =
   match e_list with
     | [] -> empty, []
     | e :: e_list ->
-        let ctx_e, e = exp vars e in
-        let ctx, e_list = exp_list vars e_list in
+        let ctx_e, e = exp env e in
+        let ctx, e_list = exp_list env e_list in
         pair ctx_e ctx, e :: e_list
 
-and record_list vars label_e_list =
+and record_list env label_e_list =
   match label_e_list with
     | [] -> empty, []
     | (label, e) :: label_e_list ->
-        let ctx, e = exp vars e in
-        let ctx_label_list, label_e_list = record_list vars label_e_list in
+        let ctx, e = exp env e in
+        let ctx_label_list, label_e_list = record_list env label_e_list in
         empty, (label, e) :: label_e_list
 
 (** Patterns *)
@@ -306,97 +403,110 @@ and pattern { Zelus.p_desc = desc } =
 
   
 (** Equations *)
-and equation vars { Zelus.eq_desc = desc } =
+and equation env { Zelus.eq_desc = desc } =
   match desc with
-    | Zelus.EQeq({ Zelus.p_desc = Zelus.Evarpat(n) }, 
-                  { Zelus.e_desc = Zelus.Eapp(Zelus.Eunarypre, [e]);
-                    Zelus.e_typ = ty }) ->
-        let some_v = choose ty in
-        let ctx, e = exp vars e in
-        (* a reset is useless *)
-        { ctx with eqs = State.cons (Set(n, Mem, e)) ctx.eqs;
-                   mem = State.cons (n, (ty, some_v)) ctx.mem }
-    | Zelus.EQeq({ Zelus.p_desc = Zelus.Evarpat(n) },
-                  { Zelus.e_desc = Zelus.Eapp(Zelus.Efby,[v; e]);
-                    Zelus.e_typ = ty }) ->
-        let ctx1, v = exp vars v in
-        let ctx2, e = exp vars e in
-        let ctx = pair ctx1 ctx2 in
-          (* a reset is done for initialized delays only *)
-          { ctx with eqs = State.cons (Set(n, Mem, e)) ctx.eqs;
-                   init = State.cons (Set(n, Mem, v)) ctx.init;
-                   mem = State.cons (n, (ty, Some(v))) ctx.mem }
-    | Zelus.EQeq({ Zelus.p_desc = Zelus.Evarpat(n) }, e) 
-        when is_shared n vars ->
-        let ctx, e = exp vars e in
-        { ctx with eqs = State.cons (Set(n, Var, e)) ctx.eqs }
-    | Zelus.EQeq(pat, e) ->
-        let ctx, e = exp vars e in
-        let pat = pattern pat in
-        { ctx with eqs = State.cons (Let(pat, e)) ctx.eqs }
-    | Zelus.EQmatch(_, e, p_h_list) ->
-        let ctx_e, e = exp vars e in
-        let ctx, p_h_list = match_handlers vars p_h_list in
-        let ctx = pair ctx_e ctx in
-        { ctx with eqs = State.cons (Match(e, p_h_list)) ctx.eqs }
-    | Zelus.EQreset(b, e) ->
-        let ctx_e, e = exp vars e in
-        let ({ init = init } as ctx) = block vars b in
-        (* execute the initialization code when [e] is true *)
-        let ctx = pair ctx_e ctx in
-        { ctx with eqs = reset e init ctx.eqs }
-    | Zelus.EQinit _ | Zelus.EQnext _ | Zelus.EQder _ 
-    | Zelus.EQemit _ | Zelus.EQautomaton _ 
-    | Zelus.EQpresent _ -> assert false
-        
-and equation_list vars = function
+  | Zelus.EQeq({ Zelus.p_desc = Zelus.Evarpat(n) }, e) ->
+     let ctx, e = exp env e in
+     let assign =
+       match sort n env with
+       | Val -> Let(make (Ovarpat(n)), e)
+       | Var -> Set(Oleft_name n, e)
+       | Mem m -> 
+	  match m with
+	  | Zero -> Setstate(Oleft_state_primitive_access(Oleft_state_name(n), 
+							  Ozero_out), e)
+	  | Discrete -> Setstate(Oleft_state_name n, e)
+	  | Cont -> Setstate(Oleft_state_primitive_access(Oleft_state_name(n),
+							  Ocontinuous), e) in
+     { ctx with step = State.cons assign ctx.step }
+  | Zelus.EQset(ln, e) ->
+      let ctx, e = exp env e in
+      { ctx with step = 
+		   State.cons (Setstate(Oleft_state_global(ln), e)) ctx.step }
+  | Zelus.EQder(n, e, None, []) ->
+     (* derivatives [der n = e] *)
+     let ctx, e = exp env e in
+     { ctx with step = 
+		  State.cons 
+		    (Setstate(Oleft_state_primitive_access(Oleft_state_name(n), 
+							   Oderivative), e)) 
+		    ctx.step }
+  | Zelus.EQeq(pat, e) ->
+     (* regular equation of local variables *)
+     let ctx, e = exp env e in
+     let pat = pattern pat in
+     { ctx with step = State.cons (Let(pat, e)) ctx.step }
+  | Zelus.EQmatch(_, e, p_h_list) ->
+     let ctx_e, e = exp env e in
+     let ctx, p_step_h_list = match_handlers env p_h_list in
+     let ctx = pair ctx_e ctx in
+     { ctx with step = State.cons (Match(e, p_step_h_list)) ctx.step }
+  | Zelus.EQreset(res_eq_list, e) ->
+     let ctx_e, e = exp env e in
+     let ctx_res_eq_list = equation_list env res_eq_list in
+     (* execute the initialization code when [e] is true *)
+     let ctx_res_eq_list = 
+       { ctx_res_eq_list with 
+	 step = reset e (State.seq (State.map (init_to_eq env) 
+				      ctx_res_eq_list.init)
+			   ctx_res_eq_list.step) State.empty } in
+     pair ctx_e ctx_res_eq_list
+  | Zelus.EQinit(n, ({ Zelus.e_typ = ty } as v)) ->
+     (* initialization of a register with an immediate value *)
+     let is_immediate = Reset.static v in
+     let ctx, v = exp env v in
+     let n_receives_v = init_to_eq env (n, v) in
+     if is_immediate
+     then { ctx with reset = State.cons n_receives_v ctx.reset;
+		     init = State.cons (n, v) ctx.init }
+     else { ctx with step = State.cons n_receives_v ctx.step }
+  | Zelus.EQnext _ | Zelus.EQder _ 
+  | Zelus.EQemit _ | Zelus.EQautomaton _ 
+  | Zelus.EQpresent _ | Zelus.EQblock _ -> assert false
+				
+and equation_list env = function
   | [] -> empty
   | eq :: eq_list -> 
-      let ctx_eq = equation vars eq in
-      let ctx = equation_list vars eq_list in
-      pair ctx_eq ctx
-
-and handler_list vars = function
-  | [] -> empty, []
-  | (e, ze) :: h_list ->
-      let ctx_e, e = exp vars e in
-      let ctx_ze, ze = exp vars ze in
-      let ctx, h_list = handler_list vars h_list in
-      pair ctx_e (pair ctx_ze ctx), (e, ze) :: h_list
-
-and match_handlers vars p_h_list =
+     let ctx_eq = equation env eq in
+     let ctx = equation_list env eq_list in
+     pair ctx_eq ctx
+	  
+(* Translation of a math/with handler. *)
+and match_handlers env p_h_list =
   match p_h_list with
-    | [] -> empty, []
-    | { Zelus.m_pat = p; Zelus.m_body = b } :: p_h_list ->
-        let ctx, p_h_list = match_handlers vars p_h_list in
-        let ({ eqs = eqs } as ctx_b) = block vars b in
-        pair ctx { ctx_b with eqs = State.empty }, 
-        { w_pat = pattern p; w_body = letin (State.list [] eqs) void } 
-        :: p_h_list
-
-and local vars { Zelus.l_eq = eq_list; Zelus.l_env = env } =
-  (* first compute the status of variables in eq_list *)
-  let vars0 = build eq_list in
-  let vars = append vars0 vars in
-  let ctx = equation_list vars eq_list in
+  | [] -> empty, []
+  | { Zelus.m_pat = p; Zelus.m_body = b; Zelus.m_env = m_env } :: p_h_list ->
+     let ctx, p_step_h_list = match_handlers env p_h_list in
+     let _, _, env = append S.empty S.empty m_env env in
+     let ({ step = step } as ctx_b) = block env b in
+     pair ctx { ctx_b with step = State.empty }, 
+     { w_pat = pattern p; w_body = letin (State.list [] step) void } 
+     :: p_step_h_list
+	  
+and local env { Zelus.l_eq = eq_list; Zelus.l_env = l_env } =
+  (* first compute the sort of variables in eq_list *)
+  let shared_variables, zero_variables = variables eq_list in
+  let l_shared, l_mem, env = append shared_variables zero_variables l_env env in
+  let ctx = equation_list env eq_list in
   (* for every shared variable, add a local declaration *)
   (* according to their status in the environment *)
-  vars, add_localvar vars0 env ctx
+  let ctx = add_localvar l_shared l_env ctx in
+  (* add state variables *)
+  let ctx = add_memories l_mem ctx in
+  env, ctx
 
-and block vars { Zelus.b_body = eq_list; Zelus.b_env = n_env  } =
+and block env { Zelus.b_body = eq_list; Zelus.b_env = n_env  } =
   (* we look at the status of locally defined variables from [l_list] *)
   (* in [eq_list] to know which is shared or not *)
-  let vars0 = build eq_list in
-  let vars = append vars0 vars in
-  (* add [let x1 = e1 in ... let xn = en] for variables in [n_env] *)
-  let eqs = 
-    Env.fold
-      (fun n { t_typ = ty } acc ->
-        if is_shared n vars then State.cons (Letvar(n, ty, choose ty)) acc else acc)
-      n_env State.empty in
-  let ctx = { empty with eqs = eqs } in
+  let shared_variables, zero_variables = variables eq_list in
+  let l_shared, l_mem, env = 
+    append shared_variables zero_variables n_env env in
+  (* add [var x1 = e1 in ... var xn = en] for shared variables in [n_env] *)
+  let ctx = add_localvar l_shared n_env empty in
+  (* add state variables *)
+  let ctx = add_memories l_mem ctx in
   (* then translate the sequence of equations *)    
-  let ctx_eq = equation_list vars eq_list in
+  let ctx_eq = equation_list env eq_list in
   pair ctx ctx_eq
 
 (** Translating type expressions *)
@@ -418,23 +528,51 @@ and type_of_type_decl ty_decl =
         Orecord_type(
           List.map (fun (n, ty) -> (n, type_expression ty)) n_ty_list)
         
+(* Define a function or a machine according to a kind [k] *)
+let machine n k pat_list ctx e =
+  let k = Interface.kindtype k in
+  let mems, insts, r_list, s_list = flush ctx in
+  match k with
+  | Deftypes.Tany | Deftypes.Tdiscrete(false) -> 
+      make (Oletfun(n, pat_list, letin s_list e))
+  | Deftypes.Tdiscrete(true) | Deftypes.Tcont ->
+     let body =
+       { m_kind = k;
+	 m_memories = mems; m_instances = insts;
+	 m_methods = 
+	   [{ m_name = Oreset; m_param = []; m_body = letin r_list void };
+	    { m_name = Ostep; m_param = pat_list; m_body = letin s_list e } ] } in
+     make(Oletmachine(n, body))
+ 
+(* Translation of an expression. After normalisation *)
+(* the body of a function is either of the form [e] with [e] stateless *)
+(* or [let Eq in e] with [e] stateless *)
+let expression env ({ Zelus.e_desc = desc } as e) =
+  match desc with
+  | Zelus.Elet(l, e_let) ->
+     let env, ctx = local env l in
+     let ctx_e, e = exp env e_let in
+     pair ctx ctx_e, e
+  | _ -> exp env e
+       
+
+(** Translation of a declaration *)
 let implementation { Zelus.desc = desc } =
   match desc with
       | Zelus.Eopen(n) -> make (Oopen(n))
       | Zelus.Etypedecl(n, params, ty_decl) ->
-          make (Otypedecl([n, params, type_of_type_decl ty_decl]))
+         make (Otypedecl([n, params, type_of_type_decl ty_decl]))
       | Zelus.Econstdecl(n, e) ->
-          let _, e = exp novars e in
-          make (Oletvalue(n, e))
-      | Zelus.Efundecl(n, { Zelus.f_kind = Zelus.D;
-                             Zelus.f_args = pat_list;
-                             Zelus.f_body = e }) ->
-          let pat_list = List.map pattern pat_list in
-          let ctx, e = exp novars e in
-          make (Oletmachine(n, machine pat_list ctx e))
-      | Zelus.Efundecl(n, { Zelus.f_args = pat_list; Zelus.f_body = e }) ->
-          let pat_list = List.map pattern pat_list in
-          let _, e = exp novars e in
-          make (Oletfun(n, pat_list, e))
+         (* There should be no memory allocated by [e] *)
+	 let { step = eqs }, e = expression Env.empty e in
+         make (Oletvalue(n, letin (State.list [] eqs) e))
+      | Zelus.Efundecl(n, { Zelus.f_kind = k;
+			    Zelus.f_args = pat_list; Zelus.f_body = e;
+			    Zelus.f_env = f_env }) ->
+         let l_shared, l_mem, env = append S.empty S.empty f_env Env.empty in
+	 let pat_list = List.map pattern pat_list in
+         let ctx, e = expression env e in
+         let ctx = add_memories l_mem ctx in
+	 machine n k pat_list ctx e      
 
 let implementation_list impl_list = Misc.iter implementation impl_list

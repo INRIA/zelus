@@ -12,7 +12,7 @@ byte: $(EXAMPLE:%.zls=%.byte)
 opt:  $(EXAMPLE:%.zls=%.opt)
 
 soas.ml soas.zci: soas.zls
-	$(ZELUC) $(ZELUCFLAGS) -dzero -period $<
+	$(ZELUC) $(ZELUCFLAGS) -dzero $<
 
 soas1_basic.byte: ZLEXTRALIBS += $(ZLGTKLIBS) soas.cmo
 soas1_basic.byte: soas.cmo
@@ -21,7 +21,7 @@ soas1_basic.opt: ZLEXTRALIBS += $(ZLGTKLIBS) soas.cmx
 soas1_basic.opt: soas.cmx
 
 soas1_basic.ml: soas1_basic.zls soas.zci
-	$(ZELUC) $(ZELUCFLAGS) -s main -sampling 0 -gtk2 -dzero -period $<
+	$(ZELUC) $(ZELUCFLAGS) -s main -gtk2 -dzero $<
 	mv main.ml $(<:.zls=)_main.ml
 
 soas2_leadnet.byte: ZLEXTRALIBS += $(ZLGTKLIBS) soas.cmo
@@ -31,7 +31,7 @@ soas2_leadnet.opt: ZLEXTRALIBS += $(ZLGTKLIBS) soas.cmx
 soas2_leadnet.opt: soas.cmx
 
 soas2_leadnet.ml: soas2_leadnet.zls soas.zci
-	$(ZELUC) $(ZELUCFLAGS) -s main -sampling 0 -gtk2 -dzero -period $<
+	$(ZELUC) $(ZELUCFLAGS) -s main -sampling 0 -gtk2 -dzero $<
 	mv main.ml $(<:.zls=)_main.ml
 
 soas3_gainchanger.byte: ZLEXTRALIBS += $(ZLGTKLIBS) soas.cmo
@@ -41,7 +41,7 @@ soas3_gainchanger.opt: ZLEXTRALIBS += $(ZLGTKLIBS) soas.cmx
 soas3_gainchanger.opt: soas.cmx
 
 soas3_gainchanger.ml: soas3_gainchanger.zls soas.zci
-	$(ZELUC) $(ZELUCFLAGS) -s main -sampling 0 -gtk2 -dzero -period $<
+	$(ZELUC) $(ZELUCFLAGS) -s main -sampling 0 -gtk2 -dzero $<
 	mv main.ml $(<:.zls=)_main.ml
 
 export:

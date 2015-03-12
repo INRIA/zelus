@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2013                                               *)
+(*  Copyright (C) 2012-2014                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -24,16 +24,22 @@ open Deftypes
 open Types
 
 (** Names written in a block *)
-let empty = { dv = S.empty; di = S.empty; dr = S.empty }
+let empty = { dv = S.empty; di = S.empty; der = S.empty }
+
+
+let union 
+      { dv = dv1; di = di1; der = der1 } { dv = dv2; di = di2; der = der2 } =
+  { dv = S.union dv1 dv2; di = S.union di1 di2; der = S.union der1 der2 }
 
 (* add two sets of names provided they are distinct *)
-let add loc { dv = dv1; di = di1; dr = dr1 } { dv = dv2; di = di2; dr = dr2 } =
+let add loc 
+	{ dv = dv1; di = di1; der = der1 } { dv = dv2; di = di2; der = der2 } =
   let add set1 set2 =
     S.fold 
       (fun elt set -> 
 	if not (S.mem elt set) then S.add elt set
 	else error loc (Ealready(elt))) set1 set2 in
-  { dv = add dv1 dv2; di = add di1 di2; dr = add dr1 dr2 }
+  { dv = add dv1 dv2; di = add di1 di2; der = add der1 der2 }
 
 (* checks that every partial name defined at this level *)
 (* has a last value *)
@@ -50,7 +56,7 @@ let all_last loc h set =
 	      tentry.t_sort <- Mem { m with t_last_is_used = true }
         | Mem { t_default = Absent } | Val -> 
             begin try ignore (Types.filter_signal ty)
-              with Types.Unify -> error loc (Eshould_be_a_signal(elt))
+              with Types.Unify -> error loc (Eshould_be_a_signal(elt, ty))
             end
 	| Mem { t_default = Default } | ValDefault _ -> ()
     with
@@ -76,18 +82,18 @@ let rec merge local_names_list =
         total, S.union partial1 partial2
   
 let merge_defnames_list defnames_list =
-  let split (acc_dv, acc_di, acc_dr) { dv = dv; di = di; dr = dr } =
-    dv :: acc_dv, di :: acc_di, dr :: acc_dr in
-  let dv, di, dr = List.fold_left split ([], [], []) defnames_list in
+  let split (acc_dv, acc_di, acc_der) { dv = dv; di = di; der = der } =
+    dv :: acc_dv, di :: acc_di, der :: acc_der in
+  let dv, di, der = List.fold_left split ([], [], []) defnames_list in
   let dv_total, dv_partial = merge dv in
   let di_total, di_partial = merge di in
-  let dr_total, dr_partial = merge dr in
-  (dv_total, dv_partial), (di_total, di_partial), (dr_total, dr_partial)
+  let der_total, der_partial = merge der in
+  (dv_total, dv_partial), (di_total, di_partial), (der_total, der_partial)
 
 (* The main entry. Identify variables which are partially defined *)
 let merge loc h defnames_list =
   let
-      (dv_total, dv_partial), (di_total, di_partial), (dr_total, dr_partial) =
+      (dv_total, dv_partial), (di_total, di_partial), (der_total, der_partial) =
     merge_defnames_list defnames_list in
   (* every partial variable must be defined as a memory *)
   all_last loc h (S.diff dv_partial di_total);
@@ -96,12 +102,13 @@ let merge loc h defnames_list =
   then error loc (Einit_undefined(S.choose(di_partial)));
   (* the default equation for a derivative is [der x = 0] so nothing *)
   (* has to be done *)
-  add loc { dv = dv_partial; di = di_partial; dr = dr_partial }
-    { dv = dv_total; di = di_total; dr = dr_total }
+  add loc { dv = dv_partial; di = di_partial; der = der_partial }
+    { dv = dv_total; di = di_total; der = der_total }
 
 (* Join two sets of names in a parallel composition. Check that names *)
 (* are only defined once. Moreover, reject [der x = ...] and [x = ...] *)
-let join loc { dv = dv1; di = di1; dr = dr1 } { dv = dv2; di = di2; dr = dr2 } =
+let join loc 
+	 { dv = dv1; di = di1; der = der1 } { dv = dv2; di = di2; der = der2 } =
   let join names1 names2 =
     let joinrec n acc = 
       if S.mem n names1 then error loc (Edefined_twice(n)) else S.add n acc in
@@ -110,33 +117,10 @@ let join loc { dv = dv1; di = di1; dr = dr1 } { dv = dv2; di = di2; dr = dr2 } =
     let disjointrec n = 
       if S.mem n names1 then error loc (Edefined_twice(n)) in
     S.iter disjointrec names2 in
-  disjoint dv1 dr2;
-  disjoint dv2 dr1;
-  { dv = join dv1 dv2; di = join di1 di2; dr = join dr1 dr2 }
+  disjoint dv1 der2;
+  disjoint dv2 der1;
+  { dv = join dv1 dv2; di = join di1 di2; der = join der1 der2 }
   
-(* check that every initialized name [init x = ...] comes with *)
-(* a definition of [x = ...]. This is not a bug but a warning is produced *)
-let initialization_with_definition loc n { t_sort = sort } =
-  match sort with
-    | Val | ValDefault _ | Mem { t_initialized = false } -> ()
-    | Mem { t_initialized = true; t_der_is_defined = der;
-	    t_is_set = set; t_next_is_set = next } ->
-        if not (set || next || der) then
-	  Format.eprintf 
-	    "%aWarning: the variable %s is initialized \
-               but no definition is given.@."
-            output_location loc
-	    (Ident.source n)
-
-let check_initialization_associated_to_a_definition_env loc h =
-  Env.iter (initialization_with_definition loc) h
-
-let check_initialization_associated_to_a_definition_names loc h n_list =
-  List.iter 
-    (fun n -> let entry = try Env.find n h with Not_found -> assert false in
-	      initialization_with_definition loc n entry)
-    n_list
-
 (** Check totality of automata *)
 module Automaton =
   struct
@@ -164,14 +148,13 @@ module Automaton =
     type table = { t_initial: Ident.t * entry; t_remaining: entry Env.t }
 
     let table state_handlers =
-      let add acc { s_state = statepat; s_body = { b_loc = loc } } =
+      let add acc { s_state = statepat; s_loc = loc } =
         Env.add (statepatname statepat)
           { e_loc = loc;
             e_state = empty;
             e_until = empty;
             e_unless = empty } acc in
-      let { s_state = statepat; s_body = { b_loc = loc } } = 
-	List.hd state_handlers in
+      let { s_state = statepat; s_loc = loc } = List.hd state_handlers in
       let remaining_handlers = List.tl state_handlers in
       { t_initial = 
           statepatname statepat,
@@ -214,5 +197,5 @@ module Automaton =
         merge loc h 
           ((add loc entry.e_until entry.e_unless) :: 
 	      defined_names_list_in_transitions) in
-      add loc defined_names_in_states defined_names_in_transitions
+      union defined_names_in_states defined_names_in_transitions
   end

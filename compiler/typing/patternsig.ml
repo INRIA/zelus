@@ -184,10 +184,8 @@ module LANG =
     (* Translation from tagged patterns is trivial. *)
     let rec eject internal_pat =
       let sensible_default pdesc = (* TODO: ask Marc *)
-        { p_desc = pdesc;
-          p_loc = Loc (0, 0);
-          p_typ = 
-	    { t_desc = Tvar; t_index = 0; t_level = 0 } } in
+        { p_desc = pdesc; p_loc = Loc (0, 0);
+          p_typ = { t_desc = Tvar; t_index = 0; t_level = 0 }; p_caus = [] } in
       match internal_pat with
         | Pany -> sensible_default Ewildpat
         | Por (l, r) -> sensible_default (Eorpat (eject l, eject r))

@@ -20,14 +20,11 @@ open Zelus
 open Initial
 open Deftypes
 
-(* Automata must verify some well-formation constraints: *)
-(* all branches going to a state must be of the same kind, that is, *)
-(* being all by reset or continue, all strong or weak *)
-(* Example of translation: *)
+(* Translation of automata. *)
+(* Strong transitions: *)
 (* automaton
    | S1 -> locals in 
            do eq_list 
-           until | c1 then do eq_list'1 in S'1(e1) | ... | ck then S'k(ek)
            unless | c'1 then do eq_list''1 in S''1(e'1) | ...
    | S2(p) -> ...p... | c2 then ...
    ...
@@ -35,37 +32,53 @@ open Deftypes
 
 is translated into:
 
-   (* strong preemption *)
-   match pstate with
-   | S1 -> present
-           | c'1 -> eq_list''1 and state = S''1 and p1 = e'1 and res = true
-           | ...
-           end
+   local state, res in
+   do init state = S1 in
+   do init res = false in
+   match last state with
+   | S1 -> reset
+             present
+             | c'1 -> eq_list''1 and state = S''1 and p1 = e'1 and res = true
+             | ...
+             else res = false
+           every last res
    | S2 -> ...
    end
-
-   (* weak preemption *)
+   and
    match state with
+   | S1 -> reset
+              locals in do eq_list
+           every res
+   | S2 -> ...p... *)
+
+(* Weak transitions: *)
+(* automaton
+   | S1 -> locals in 
+           do eq_list 
+           until | c1 then do eq_list'1 in S'1(e1) | ... | ck then S'k(ek)
+   | S2(p) -> ...p... | c2 then ...
+   ...
+   end
+
+is translated into:
+
+   local state, res in
+   do init state = S1 in
+   do init res = false in
+   match last state with
    | S1 -> reset
               locals
             and
               present
-              | c1 -> eq_list1 and nstate = S'1 and p1 = e1 and nres = true
+              | c1 -> eq_list1 and 
+                      state = S'1 and next p1 = e1 and res = true
               | ...
-              end
-           every res or pres
-   | S2 -> ...last p...
+              else res = false
+           every last res
+   | S2 -> ...p...
    end
 
-   and pstate = pre(nstate) and pres = pre(nres)
-
-2. Optimisations:
-- no strong preemption : replace [res or pres] by [pres] and
-   remove of the first pattern/matching
-- no weak preemption: replace [res or pres] by [res] and
-   remove of the control code [present ...]
-
-3. Builds a local table table_of_types for every new type
+2. Builds a local table table_of_types for every new type
 *)
 
 module TableOfTypes =
@@ -90,9 +103,13 @@ let constr c ty_list =
   Deftypes.make
     (Deftypes.Tconstr(Modules.qualify c, ty_list, Deftypes.no_abbrev()))
 
-let emake desc ty = { e_desc = desc; e_loc = no_location; e_typ = ty }
-let pmake desc ty = { p_desc = desc; p_loc = no_location; p_typ = ty }
-let eqmake desc = { eq_desc = desc; eq_loc = no_location }
+let emake desc ty =
+  { e_desc = desc; e_loc = no_location; e_typ = ty; e_caus = [] }
+let pmake desc ty =
+  { p_desc = desc; p_loc = no_location; p_typ = ty; p_caus = [] }
+let eqmake desc =
+  { eq_desc = desc; eq_loc = no_location; eq_before = S.empty;
+    eq_after = S.empty; eq_write = Deftypes.empty }
 
 (* introduce a new type for an enumerated type. This should be a sum type *)
 (* type ('a1,...,'ak) state_k = St1 [of 'a1] | ... | Stm [of 'an] *)
@@ -107,13 +124,13 @@ let intro_type s_h_list =
   (* introduce a new name for every parameterized state. *)
   (* for the moment, we do not share them *)
   (* [states] is a set of names [n1;...;nk] and *)
-  (* [n_to_parameters] associate a state name to a name in defs *)
+  (* [n_to_parameters] associate a list of parameters to a state name *)
   let states_and_variables_for_parameters s_h_list =
     let variable (states, n_to_parameters) { s_state = statepat } =
       match statepat.desc with
         | Estate0pat(n) -> n :: states, n_to_parameters
-        | Estate1pat(n, p_list) ->
-            n :: states, Env.add n p_list n_to_parameters in
+        | Estate1pat(n, n_list) ->
+            n :: states, Env.add n n_list n_to_parameters in
     List.fold_left variable ([], Env.empty) s_h_list in
 
   (* build variants *)
@@ -130,7 +147,8 @@ let intro_type s_h_list =
   let typ_desc = { type_desc = Variant_type(v_list); type_parameters = [] } in
   (* we add it to the global environment *)
   Modules.add_type name typ_desc;
-  List.iter2 (fun n { info = v } -> Modules.add_constr (Ident.name n) v) states v_list;
+  List.iter2 
+    (fun n { info = v } -> Modules.add_constr (Ident.name n) v) states v_list;
   (* and the environment of state types *)
   TableOfTypes.add name typ_desc;
   (* compute the set of variables needed for storing parameters *)
@@ -157,32 +175,28 @@ let extend_block eq_list b_opt =
     | None -> eblock eq_list
     | Some(b) -> { b with b_body = eq_list @ b.b_body }
  
-let reset b e = eqmake (EQreset(b, e))
-let ematch e l = eqmake (EQmatch(ref true, e, l))
-let present l default = eqmake (EQpresent(l, Some(default)))
+let eq_reset eq_list e = eqmake (EQreset(eq_list, e))
+let eq_match e l = eqmake (EQmatch(ref true, e, l))
+let eq_present l_true l_false = 
+  match l_true, l_false with 
+  | [], _ -> l_false 
+  | _, [] -> [eqmake (EQpresent(l_true, None))]
+  | _ -> [eqmake (EQpresent(l_true, Some(eblock l_false)))]
+let eq_block b = eqmake (EQblock(b))
+let eq_init x e =
+  { eq_desc = EQinit(x, e); eq_loc = no_location;
+    eq_before = S.empty; eq_after = S.empty; eq_write = Deftypes.empty }
 
-let value ty = 
-    { Deftypes.t_sort = Deftypes.Val; Deftypes.t_typ = ty }
-let initialized is_init ty = 
+let state_value ty = 
+    { Deftypes.t_sort = Deftypes.Mem Deftypes.discrete_memory; 
+      Deftypes.t_typ = ty }
+let state_parameter is_init ty = 
     { Deftypes.t_sort = 
-	Deftypes.Mem 
-	  { Deftypes.discrete_memory with Deftypes.t_initialized = is_init };
+        Deftypes.Mem 
+          { Deftypes.last_and_next_memory
+	    with Deftypes.t_initialized = is_init };
       Deftypes.t_typ = ty }
     
-(** Rename a pattern according to a renaming substitution *)
-let rec rename r_env ({ p_desc = desc } as p) =
-  let desc = match desc with
-    | Ewildpat | Econstpat _ | Econstr0pat _ -> desc
-    | Etuplepat(p_list) -> Etuplepat(List.map (rename r_env) p_list)
-    | Evarpat(n) -> Evarpat(Env.find n r_env)
-    | Erecordpat(label_pat_list) ->
-      Erecordpat(List.map (fun (label, p) -> (label, rename r_env p)) 
-                    label_pat_list)
-    | Etypeconstraintpat(p, ty) -> Etypeconstraintpat(rename r_env p, ty)
-    | Ealiaspat(p, n) -> Ealiaspat(rename r_env p, Env.find n r_env)
-    | Eorpat(p1, p2) -> Eorpat(rename r_env p1, rename r_env p2) in
-  { p with p_desc = desc }
-
 (** returns [local x1,...,xn] from a typing env. [t1/x1,...,tn/xn] *)
 let env_to_localvars env (x_list, t_env) =
   let add_local x t_entry (x_list, t_env) = 
@@ -194,6 +208,8 @@ let env_to_env acc env =
   Env.fold add env acc
 
 (** Adds variables used for state parameters to the environment *)
+(** we consider that a parameter variable can be both modified/red with *)
+(** [next p = e], [p = ...], [...p...], [...last p...] *)
 let env_of_parameters env eq_list n_to_parameters s_h_list se_opt =
   (* test whether or not a state equals [se_opt] *)
   let equalstate se_opt { desc = desc } =
@@ -204,7 +220,7 @@ let env_of_parameters env eq_list n_to_parameters s_h_list se_opt =
   (* different state handlers. Every parameter becomes a state variable *)
   let entry is_init n { Deftypes.t_typ = ty } acc =
       (* set the kind of a variable to mustlast *)
-      Env.add n (initialized is_init ty) acc in
+      Env.add n (state_parameter is_init ty) acc in
   let add acc { s_state = statepat; s_env = env } = 
     let is_init = equalstate se_opt statepat in
     Env.fold (entry is_init) env acc in
@@ -216,20 +232,15 @@ let env_of_parameters env eq_list n_to_parameters s_h_list se_opt =
   let eq_list =
     match se_opt with
       | None | Some({ desc = Estate0 _ }) -> 
-	  (* the initial state is the first one or has no parameter *)
-	  eq_list
+          (* the initial state is the first one or has no parameter *)
+          eq_list
       | Some({ desc = Estate1(n, e_list) }) ->
-          let pat_list = Env.find n n_to_parameters in
-	  List.fold_left2 
-	    (fun acc pat e -> eqmake (EQinit(pat, e, None)) :: acc) 
-	    eq_list pat_list e_list in
+          let n_list = Env.find n n_to_parameters in
+          List.fold_left2 
+            (fun acc n e -> eq_init n e :: acc)
+            eq_list n_list e_list in
   env, eq_list
 
-(* an automaton may be a Moore automaton, i.e., with only weak transitions; *)
-let moore s_h_list =
-  let handler is_moore { s_unless = l } = is_moore && (l = []) in
-    List.fold_left handler true s_h_list
-      
 (* Translate a generic block *)
 let block locals body 
     ({ b_vars = n_list; b_locals = l_list; b_body = bo; b_env = b_env } as b) =
@@ -264,28 +275,25 @@ let rec exp ({ e_desc = desc } as e) =
     | Elet(l, e) -> Elet(local l, exp e)
     | Epresent(p_h_list, e_opt) ->
         let e_opt = Misc.optional_map exp e_opt in
-	let p_h_list = present_handler_exp_list p_h_list in
-	Epresent(p_h_list, e_opt)
+        let p_h_list = present_handler_exp_list p_h_list in
+        Epresent(p_h_list, e_opt)
     | Ematch(total, e, m_h_list) ->
         let e = exp e in
-	let m_h_list = match_handler_exp_list m_h_list in
-	Ematch(total, e, m_h_list) in
+        let m_h_list = match_handler_exp_list m_h_list in
+        Ematch(total, e, m_h_list) in
     { e with e_desc = desc }
             
 (** Translating an equation. [env] defines the set of names already introduced *)
 (** during the translation. [eq_list] is the list of equations already compiler *)
 and equation (env, eq_list) ({ eq_desc = desc } as eq) =
   match desc with
-    | EQreset(b, e) ->
-        let b = block_eq_list b in
-        env, { eq with eq_desc = EQreset(b, exp e) } :: eq_list
     | EQeq(pat, e) -> env, { eq with eq_desc = EQeq(pat, exp e) } :: eq_list
-    | EQinit(pat, e0, e_opt) -> 
+    | EQset(ln, e) -> env, { eq with eq_desc = EQset(ln, exp e) } :: eq_list
+    | EQinit(n, e0) -> 
+      env, { eq with eq_desc = EQinit(n, exp e0) } :: eq_list
+    | EQnext(n, e, e0_opt) -> 
       env, 
-      { eq with eq_desc = EQinit(pat, exp e0, optional_map exp e_opt) } :: eq_list
-    | EQnext(pat, e, e0_opt) -> 
-      env, 
-      { eq with eq_desc = EQnext(pat, exp e, optional_map exp e0_opt) } :: eq_list
+      { eq with eq_desc = EQnext(n, exp e, optional_map exp e0_opt) } :: eq_list
     | EQder(n, e, e0_opt, p_h_e_list) ->
         env, { eq with eq_desc =
             EQder(n, exp e, optional_map exp e0_opt, 
@@ -294,8 +302,8 @@ and equation (env, eq_list) ({ eq_desc = desc } as eq) =
         env, { eq with eq_desc = EQemit(name, optional_map exp e_opt) } :: eq_list
     | EQmatch(total, e, m_h_list) ->
         let m_h_list = match_handler_block_eq_list m_h_list in
-	env, 
-	{ eq with eq_desc = EQmatch(total, exp e, m_h_list) } :: eq_list
+        env, 
+        { eq with eq_desc = EQmatch(total, exp e, m_h_list) } :: eq_list
     | EQpresent(p_h_b_eq_list, b_opt) ->
         let p_h_b_eq_list =
           present_handler_block_eq_list p_h_b_eq_list in
@@ -303,8 +311,13 @@ and equation (env, eq_list) ({ eq_desc = desc } as eq) =
           match b_opt with | None -> None | Some(b) -> Some(block_eq_list b) in
         env, { eq with eq_desc = EQpresent(p_h_b_eq_list, b_opt) } 
           :: eq_list
-    | EQautomaton(state_handler_list, se_opt) ->
-        automaton env eq_list state_handler_list se_opt
+    | EQautomaton(is_weak, state_handler_list, se_opt) ->
+        automaton is_weak env eq_list state_handler_list se_opt
+    | EQreset(res_eq_list, e) ->
+       let env, res_eq_list = equation_list env res_eq_list in
+       env, { eq with eq_desc = EQreset(res_eq_list, exp e) } :: eq_list
+    | EQblock(b_eq_list) ->
+       env, { eq with eq_desc = EQblock(block_eq_list b_eq_list) } :: eq_list
 
 and equation_list env eq_list = List.fold_left equation (env, []) eq_list
 
@@ -321,7 +334,8 @@ and present_handler_block_eq_list p_h_b_eq_list =
 
 and match_handler_exp_list m_h_list =
   List.map 
-    (fun ({ m_body = e } as handler) -> { handler with m_body = exp e }) m_h_list    
+    (fun ({ m_body = e } as handler) -> 
+      { handler with m_body = exp e }) m_h_list    
 
 and match_handler_block_eq_list m_h_list =
   List.map 
@@ -339,9 +353,7 @@ and local ({ l_eq = eq_list; l_env = env } as l) =
 (** Translating an automaton *)
 (** [eq_list] is a list of equations. The translation returns *)
 (** an extended list containing [eq_list] and new equations *)
-and automaton env eq_list handler_list se_opt =
-  let moore = moore handler_list in
-
+and automaton is_weak env eq_list handler_list se_opt =
   (* introduce a sum type to represent states and *)
   (* build an environment which associate parameters to states *)
   let statetype, n_to_parameters = intro_type handler_list in
@@ -352,156 +364,123 @@ and automaton env eq_list handler_list se_opt =
   let env, eq_list = 
     env_of_parameters env eq_list n_to_parameters handler_list se_opt  in
 
-  let longident n = Modules.longname(Ident.name n) in
+  let longident n = Modules.longname (Ident.name n) in
 
   (* the name of the initial state *)
   let initial =
     match se_opt with
       | None ->
-	  (* the initial state is the first in the list *)
-	  begin match (List.hd handler_list).s_state.desc with
-	  | Estate0pat(n) -> longident n | _ -> assert false
-	end
+          (* the initial state is the first in the list *)
+          begin match (List.hd handler_list).s_state.desc with
+          | Estate0pat(n) -> longident n | _ -> assert false
+        end
       | Some({ desc = Estate0(n) } | { desc = Estate1(n, _) }) -> longident n in
 
   (* translate states *)
   let translate_statepat statepat =
     let desc = match statepat.desc with
         | Estate0pat(n) | Estate1pat(n, _) -> Econstr0pat(longident n) in
-    { p_desc = desc; p_loc = statepat.loc; p_typ = Deftypes.no_typ } in
+    { p_desc = desc; p_loc = statepat.loc; p_typ = Deftypes.no_typ; p_caus = [] } in
 
-  let translate_state { desc = desc; loc = loc } =
+  (* In case of a weak transition, the parameter [n] of the target *)
+  (* state is changed with [next n = ...] *)
+  let translate_state is_weak { desc = desc; loc = loc } =
+    (* make an equation [n = e] or [next n = e] *)
+    let eqmake n e =
+      if is_weak then eqmake (EQnext(n, e, None))
+      else eqmake (EQeq(varpat n e.e_typ, e)) in
     match desc with
       | Estate0(n) -> 
           { e_desc = Econstr0(longident n);
             e_loc = loc;
-            e_typ = Deftypes.no_typ }, []
+            e_typ = Deftypes.no_typ; e_caus = [] }, []
       | Estate1(n, e_list) ->
-          let pat_list = Env.find n n_to_parameters in
+          let n_list = Env.find n n_to_parameters in
           { e_desc = Econstr0(longident n);
             e_loc = loc;
-            e_typ = Deftypes.no_typ }, 
-          List.map2 (fun pat e -> eqmake (EQeq(pat, e))) pat_list e_list in
+            e_typ = Deftypes.no_typ; e_caus = [] }, 
+          List.map2 eqmake n_list e_list in
 
-  let cur_statename = Ident.fresh "s" in
-  let cur_resetname = Ident.fresh "r" in
-  let next_statename = Ident.fresh "ns" in
-  let next_resetname = Ident.fresh "nr" in
-  let pre_next_resetname = Ident.fresh "pnr" in
-  let pre_next_statename = Ident.fresh "pns" in
+  (* [state_name] is the target state computed in the current step *)
+  (* [reset_name] is the target reset bit computed in the current step *)
+  let state_name = Ident.fresh "s" in
+  let reset_name = Ident.fresh "r" in
+  
+  let state_pat n = pmake (Evarpat(n)) statetype in
+  let state_var n = var n statetype in
+  let bool_var n = var n typ_bool in
+  let bool_pat n = pmake (Evarpat(n)) typ_bool in
+  let state_last n = last n statetype in
+  let bool_last n = last n typ_bool in
+  
+  (* Translation of an escape handler *)
+  let escape is_weak { e_cond = e; e_reset = r; e_block = b_opt; 
+		       e_next_state = se; e_env = h0 } =
+    let se, eq_list_se = translate_state is_weak se in
+    { p_cond = e; p_env = h0;
+      p_body =
+        extend_block
+          ((eq (state_pat state_name) se) ::
+             (eq (bool_pat reset_name) (if r then ctrue else cfalse))
+             :: eq_list_se) b_opt } in
+  
+  (* This function computes what to do with a automaton with strong transitions *)
+  let strong { s_state = statepat; s_body = b; s_trans = trans } =
+    let pat = translate_statepat statepat in
+    let p_h_list = List.map (escape false) trans in
+    let handler_to_compute_current_state =
+      eblock [eq_reset (eq_present p_h_list [eq (bool_pat reset_name) cfalse])
+                       (bool_last reset_name)] in
+    let handler_for_current_active_state = 
+      let b = block_eq_list b in
+      eblock [eq_reset [eq_block b] (bool_var reset_name)] in
+    (pat, handler_to_compute_current_state),
+    (pat, handler_for_current_active_state) in
 
-  let statepat n = pmake (Evarpat(n)) statetype in
-  let statevar n = var n statetype in
-  let boolvar n = var n typ_bool in
-  let boolpat n = pmake (Evarpat(n)) typ_bool in
-  let fby_state initial e = 
-    emake (Eapp(Efby, [emake (Econstr0(initial)) statetype; e])) statetype in
-  let fby_false e = emake (Eapp(Efby, [cfalse; e])) Initial.typ_bool in
-
-  (* [prestatename] is the target state computed by the previous *)
-  (* weak action *)
-  (* [preresetname] is the target reset condition computed by the *)
-  (* previous weak action *)
-  let strong prestatename preresetname { s_state = _; s_unless = su } =
-    let default_cur_eq =
-      [eq (statepat cur_statename) (statevar prestatename);
-       eq (boolpat cur_resetname) (boolvar preresetname)] in
-    let default_cur_present_handler =
-      eblock default_cur_eq in
-    let escape 
-        { e_cond = e; e_reset = r; e_block = b_opt; 
-          e_next_state = se; e_env = h0 } p_h_list =
-      let se, eq_list_se = translate_state se in
-      { p_cond = e;
-        p_env = h0;
-        p_body =
-          (* by constrution, we know that equations on transitions [b_opt] *)
-          (* are stateless thus no automaton can appear into them. *)
-          (* No compilation is done for them *)
-          extend_block
-            ((eq (statepat cur_statename) se) ::
-                (eq (boolpat cur_resetname) (if r then ctrue else cfalse))
-              :: eq_list_se) b_opt } :: p_h_list in
-    let cur_state_code =
-      match su with
-        | [] -> default_cur_eq
-        | _ -> 
-            let p_h_list = List.fold_right escape su [] in
-            [present p_h_list default_cur_present_handler] in
-      eblock 
-        [reset (eblock cur_state_code) (boolvar preresetname)]
-  in
-    
-  (* [statename] is the target state computed by the strong action         *)
-  (* [resetname] is the target reset condition computed by strong action   *)
-  let weak statename resetname { s_state = _; s_body = b; s_until = su } =
-    let default_next_eq =
-      [eq (statepat next_statename) (statevar statename);
-       eq (boolpat next_resetname) cfalse] in
-    let default_next_present_handler =
-      eblock default_next_eq in
-    let escape 
-        { e_cond = e; e_reset = r; e_block = b_opt; e_next_state = se; e_env = h0 }
-        p_h_list =
-      let se, eq_list_se = translate_state se in
-      { p_cond = e;
-        p_env = h0;
-        p_body =
-          (* by constrution, we know that equations on transitions [b_opt] *)
-          (* are stateless thus no automaton can appear into them. *)
-          (* No compilation is done for them *)
-          extend_block
-            ((eq (statepat next_statename) se) ::
-                (eq (boolpat next_resetname) (if r then ctrue else cfalse))
-              :: eq_list_se) b_opt } :: p_h_list in
-    let next_state_code =
-      match su with
-        | [] -> default_next_eq
-        | _ -> 
-            let p_h_list = List.fold_right escape su [] in
-            [present p_h_list default_next_present_handler] in
+  (* This function computes what to do with a automaton with weak transitions *)
+  (* a single match/with is generated *)
+  let weak { s_state = statepat; s_body = b; s_trans = trans } =
+    let pat = translate_statepat statepat in
+    let p_h_list = List.map (escape true) trans in
     let b = block_eq_list b in
-    let b = { b with b_body = next_state_code @ b.b_body } in
-    eblock [reset b (boolvar resetname)] in
-
-  (* the match/with code to compute the current active state *)
-  let strong_handler prestatename preresetname =
-    ematch (statevar prestatename)
-      (List.map
-          (fun ({ s_state = statepat } as case) ->
-                { m_pat = translate_statepat statepat;
-                  m_body = strong prestatename preresetname case;
-                  m_env = Env.empty; m_reset = false })
-          handler_list) in
-    (* the match/with code to compute the next active state *)
-  let weak_handler statename resetname =
-    ematch (statevar statename)
-      (List.map
-          (fun ({ s_state = statepat } as case) ->
-                { m_pat = translate_statepat statepat;
-                  m_body = weak statename resetname case;
-                  m_env = Env.empty; m_reset = false })
-          handler_list) in
+    let eq_next_state = eq_present p_h_list [eq (bool_pat reset_name) cfalse] in
+    let b = { b with b_body = eq_next_state @ b.b_body } in
+    pat, eblock [eq_reset [eq_block b] (bool_last reset_name)] in
+  
+  (* the code generated for automata with strong transitions *)
+  let strong_automaton handler_list eq_list =
+    let handlers = List.map strong handler_list in
+    let handler_to_compute_current_state_list,
+        handler_for_current_active_state_list = List.split handlers in
+    (eq_match (state_last state_name)
+               (List.map 
+                  (fun (pat, body) ->
+                   { m_pat = pat; m_body = body; m_env = Env.empty; 
+                     m_reset = false; m_zero = false })
+                  handler_to_compute_current_state_list)) ::
+      (eq_match (state_var state_name)
+               (List.map (fun (pat, body) ->
+                          { m_pat = pat; m_body = body; m_env = Env.empty;
+                            m_reset = false; m_zero = false })
+                         handler_for_current_active_state_list)) :: eq_list in
+  (* the code for automatama with weak transitions *)
+  let weak_automaton handler_list eq_list =
+    let handlers = List.map weak handler_list in
+    (eq_match (state_last state_name)
+             (List.map
+                (fun (pat, body) ->
+                 { m_pat = pat; m_body = body; m_env = Env.empty; 
+                   m_reset = false; m_zero = false }) handlers)) :: eq_list in
   (* the result *)
-  let statetype_entry = value statetype in
-  let typ_bool_entry = value typ_bool in
-  Env.add cur_statename statetype_entry
-    (Env.add next_statename statetype_entry
-        (Env.add pre_next_statename statetype_entry
-            (Env.add cur_resetname typ_bool_entry
-                (Env.add next_resetname typ_bool_entry
-                    (Env.add pre_next_resetname typ_bool_entry env))))),
-  if moore then
-    (eq (boolpat pre_next_resetname) (fby_false (boolvar (next_resetname)))) ::
-      (eq (statepat pre_next_statename)
-          (fby_state initial (statevar next_statename))) ::
-      (weak_handler pre_next_statename pre_next_resetname) :: eq_list
-  else
-    (eq (boolpat pre_next_resetname) (fby_false (boolvar (next_resetname)))) ::
-      (eq (statepat pre_next_statename)
-          (fby_state initial (statevar next_statename))) ::
-      (strong_handler pre_next_statename pre_next_resetname) ::
-      (weak_handler cur_statename cur_resetname) :: eq_list
+  let statetype_entry = state_value statetype in
+  let typ_bool_entry = state_value typ_bool in
+  Env.add state_name statetype_entry (Env.add reset_name typ_bool_entry env),
+  (* initial state and reset value *)
+  let eq_list = 
+    (eq_init state_name (emake (Econstr0(initial)) statetype)) :: 
+      (eq_init reset_name cfalse) :: eq_list in
+  if is_weak then weak_automaton handler_list eq_list
+  else strong_automaton handler_list eq_list
 
 let implementation impl =
   match impl.desc with
@@ -515,3 +494,4 @@ let implementation impl =
 let implementation_list impl_list =
   let impl_list = Misc.iter implementation impl_list in
   TableOfTypes.flush impl_list
+

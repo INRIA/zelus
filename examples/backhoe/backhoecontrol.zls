@@ -1,15 +1,15 @@
-let node after (n, t) = (c = n) where
+let node aftern (n, t) = (c = n) where
   rec c = 0 fby min ((if t then c + 1 else c), n)
 
 let node blink (n, t) = x where
   automaton
-  | On  -> do x = true  until (after (n, t)) then Off
-  | Off -> do x = false until (after (n, t)) then On
+  | On  -> do x = true  until (aftern (n, t)) then Off
+  | Off -> do x = false until (aftern (n, t)) then On
 
 let node blink2(ton, toff, t) = x where
   automaton
-  | On  -> do x = true  until (after (ton, t)) then Off
-  | Off -> do x = false until (after (toff, t)) then On
+  | On  -> do x = true  until (aftern (ton, t)) then Off
+  | Off -> do x = false until (aftern (toff, t)) then On
 
 let node leg_controller 
     ((legs_in, legs_out), (stop_button, retract_button, extend_button), second) = 
@@ -22,29 +22,24 @@ let node leg_controller
           do alarm = false
           until extend_button then LegsMoving(true)
 
-      | LegsMoving(extend) ->
-          local at_extremity in
-          do init at_extremity = false
-          and
+      | LegsMoving(extend) -> do
           automaton
              | Initial ->
                  do
-                 unless extend       then Extending
-                   else (not extend) then Retracting
+                 until extend       then Extending
+                  else (not extend) then Retracting
 
              | Extending ->
                  do
                    emit legs_extend
                  until stop_button    then Stopped
                   else retract_button then Retracting
-                  else legs_out       then Done
 
              | Retracting ->
                  do
                    emit legs_retract
                  until stop_button   then Stopped
                   else extend_button then Extending
-                  else legs_in       then Done
 
              | Stopped ->
                  do
@@ -52,19 +47,17 @@ let node leg_controller
                  until extend_button  then Extending
                   else retract_button then Retracting
 
-              | Done -> do at_extremity = true done
-
              and alarm = false -> not (pre alarm)
              and extended = false
 
-          until (at_extremity && legs_out) then LegsOut
-           else (at_extremity && legs_in)  then LegsIn
-           else (after(20, second))        then Error
+          until legs_extend(_)  & legs_out then LegsOut
+           else legs_retract(_) & legs_in  then LegsIn
+           else (aftern(20, second))       then Error
 
       | LegsOut ->
           do
             extended = true and alarm = false
-          unless retract_button then LegsMoving(false)
+          until retract_button then LegsMoving(false)
 
       | Error ->
           do
@@ -103,8 +96,8 @@ let node sampled_controller
           do alarm_lamp  = false
           and done_lamp   = true
           and cancel_lamp = false
-          until  extend_button  then Dig
-          unless retract_button continue Legs
+          until extend_button  then Dig
+           else retract_button continue Legs
 
       | Dig ->
           local finished in
@@ -115,10 +108,10 @@ let node sampled_controller
                 do done_lamp = false
                 and alarm_lamp = blink(2, second)
                 and automaton
-                    | RaiseStickBucket ->
-			do emit stick_pull  and stick_drive = true
-			and emit bucket_pull and bucket_drive = true
-			unless (stick_in && bucket_in) then LowerBoom
+                  | RaiseStickBucket ->
+                      do emit stick_pull  and stick_drive = true
+                      and emit bucket_pull and bucket_drive = true
+                      unless (stick_in && bucket_in) then LowerBoom
 
                   | LowerBoom ->
                       do emit boom_push and boom_drive = true
@@ -129,12 +122,12 @@ let node sampled_controller
                       do emit stick_push  and stick_drive = true
                       and emit bucket_push and bucket_drive = true
                       and boom_drive = false
-                      until (stick_out && boom_out) then RaiseBoom
+                      unless (stick_out && boom_out) then RaiseBoom
 
                   | RaiseBoom ->
                       do emit boom_pull and boom_drive = true
                       and bucket_drive = false and stick_drive = false
-                      until (boom_in) then Finished
+                      unless (boom_in) then Finished
 
                   | Finished ->
                       do finished = true done
@@ -148,7 +141,7 @@ let node sampled_controller
                 and stick_drive = false
                 and bucket_drive = false
                 until (extend_button) continue Move
-                 else (retract_button || after(30, second)) then Cancel
+                 else (retract_button || aftern(30, second)) then Cancel
 
             | Cancel ->
                 do cancel_lamp = blink(1, second)
@@ -183,15 +176,18 @@ let hybrid main () = () where
            (alarm_lamp, done_lamp, cancel_lamp)) = 
                           sampled_controller (last sensors, Backhoedyn.buttons (), second) 
         done
-		
+                
   and sensors = 
         Backhoedyn.model ((boom_push, boom_pull, boom_drive),
-			  (stick_push, stick_pull, stick_drive),
-			  (bucket_push, bucket_pull, bucket_drive),
-			  (legs_extend, legs_retract, legs_stop),
-			  (alarm_lamp, done_lamp, cancel_lamp)) 
+                          (stick_push, stick_pull, stick_drive),
+                          (bucket_push, bucket_pull, bucket_drive),
+                          (legs_extend, legs_retract, legs_stop),
+                          (alarm_lamp, done_lamp, cancel_lamp)) 
 
-  and sample = period (0.5)
+  and sample = period (0.2)
 
-  and second = present sample -> not (last second) init true
+  (* and second = present sample -> not (last second) init true *)
+  (* and second = present (init) | sample -> true fby not (second) init true *)
+
+  and second = present sample -> true -> not (last second) init true
 

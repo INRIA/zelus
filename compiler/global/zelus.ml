@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2013                                               *)
+(*  Copyright (C) 2012-2014                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -69,7 +69,8 @@ and type_signature =
 and exp = 
     { mutable e_desc: desc;
       e_loc: location;
-      mutable e_typ: Deftypes.typ }
+      mutable e_typ: Deftypes.typ;
+      mutable e_caus: Defcaus.t list }
 
 and desc =
   | Elocal of Ident.t
@@ -91,19 +92,22 @@ and desc =
 and op =
     | Efby | Eunarypre | Eifthenelse 
     | Eminusgreater | Eup | Einitial | Edisc
-    | Etest | Eon | Eop of Lident.t | Eevery of Lident.t
+    | Etest | Eop of is_inline * Lident.t | Eevery of is_inline * Lident.t
 
 and immediate = Deftypes.immediate
 
-(* a period is an expression of the form v^* (v^+). E.g., 0.2 (3.4 5.2) *)
+and is_inline = bool
+
+(* a period is an expression of the form [v] (v). E.g., 0.2 (3.4) or (4.5) *)
 and period =
-    { p_phase: float list;
-      p_period: float list }
+    { p_phase: float option;
+      p_period: float }
 
 and pattern =
     { mutable p_desc: pdesc;
       p_loc: location;
-      mutable p_typ: Deftypes.typ }
+      mutable p_typ: Deftypes.typ;
+      mutable p_caus: Defcaus.t list; }
 
 and pdesc =
   | Ewildpat
@@ -118,26 +122,34 @@ and pdesc =
 
 and eq = 
     { eq_desc: eqdesc;
-      eq_loc: location }
+      eq_loc: location;
+      eq_before: Ident.S.t;
+      eq_after: Ident.S.t;
+      mutable eq_write: Deftypes.defnames}
 
 and eqdesc =
   | EQeq of pattern * exp
   (* [p = e] *)
   | EQder of Ident.t * exp * exp option * exp present_handler list
   (* [der n = e [init e0] [reset p1 -> e1 | ... | pn -> en]] *)
-  | EQinit of pattern * exp * exp option
-  (* [init p = e0] or [p = e init e0] *) 
-  | EQnext of pattern * exp * exp option
-  (* [next p = e] or [next p = e init e0] *)
-  | EQautomaton of state_handler list * state_exp option
+  | EQinit of Ident.t * exp
+  (* [init n = e0 *)
+  | EQnext of Ident.t * exp * exp option
+  (* [next n = e] *)
+  | EQset of Lident.t * exp
+  (* [n <- e] *)
+  | EQautomaton of is_weak * state_handler list * state_exp option
   | EQpresent of eq list block present_handler list * eq list block option
   | EQmatch of total ref * exp * eq list block match_handler list
-  | EQreset of eq list block * exp
+  | EQreset of eq list * exp
   | EQemit of Ident.t * exp option
- 
+  | EQblock of eq list block
+
 and total = bool
 
 and is_next = bool
+
+and is_weak = bool
 
 and 'a block =
     { b_vars: Ident.t list;
@@ -153,10 +165,10 @@ and local =
       l_loc: location }
 
 and state_handler = 
-    { s_state: statepat; 
+    { s_loc: location;
+      s_state: statepat; 
       s_body: eq list block; 
-      s_until: escape list; 
-      s_unless: escape list;
+      s_trans: escape list;
       s_env: Deftypes.tentry Ident.Env.t;
       mutable s_reset: bool } 
 
@@ -164,7 +176,7 @@ and statepat = statepatdesc localized
 
 and statepatdesc = 
     | Estate0pat of Ident.t 
-    | Estate1pat of Ident.t * pattern list
+    | Estate1pat of Ident.t * Ident.t list
 
 and state_exp = state_exdesc localized 
 
@@ -194,7 +206,9 @@ and 'a match_handler =
     { m_pat: pattern;
       m_body: 'a;
       m_env: Deftypes.tentry Ident.Env.t;
-      m_reset: bool }
+      m_reset: bool; (* the handler is reset on entry *)
+      m_zero: bool; (* the handler is done at a zero-crossing instant *)
+    }
 
 and 'a present_handler =
     { p_cond: scondpat;

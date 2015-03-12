@@ -3,7 +3,7 @@
 
 include ../config
 LANG=zelus
-VERSION=0.1
+VERSION=1.2
 MANUAL_HTML=zelus_html
 PS2PDF=ps2pdf
 PUBLIC=public
@@ -11,44 +11,51 @@ WEB_DIR=pouzet@di.ens.fr:WWW/$(LANG)
 HEVEA=hevea
 HACHA=hacha
 PDFLATEX=pdflatex
-RUNVERBATIM=./runverbatim.sh
+LATEXMK=latexmk -pdf
 
-all: zelus.pdf zelus.html 
+RUNVERBATIM=runverbatim/runverbatim.sh
+
+all:
+	pdflatex manual.tex
+
+re: manual.pdf 
+	$(LATEXMK) manual.tex
+
+#runverbatim
+runverbatim: manual.aux
+	$(RUNVERBATIM)
 
 #bibliography
-zelus.bbl: zelus.aux
-	$(BIBTEX) zelus
+manual.bbl: manual.aux
+	$(BIBTEX) manual
 
 install: 
-	$(INSTALL) -d $(mandir)/man1
-	$(INSTALL) $(LANG).m $(mandir)/man1/$(LANG).1
 
 clean:
-	rm -f *.aux *.dvi *.log *.toc *.html *.ml *.lci *.dcc *.gz *.gif \
+	rm -f *.aux *.log *.toc *.html *.ml *.zci *.gz *.gif \
 		*.bbl *.blg *.brf *.haux *.out ;\
 	rm -r -f $(MANUAL_HTML)
 
 realclean: clean
 	rm -f zelus.pdf zelus.ps zelus.html
 
-web: zelus.pdf zelus.html
-	cp zelus.pdf $(PUBLIC)/$(LANG)-$(VERSION)_zelus.pdf
-	cp zelus_html/* $(PUBLIC)/zelus-html/
-	mv zelus_html/ $(LANG)-zelus
+web: manual.pdf manual.html
+	cp manual.pdf $(PUBLIC)/$(LANG)-$(VERSION)_zelus.pdf
+	cp manual_html/* $(PUBLIC)/zelus-html/
+	mv manual_html/ $(LANG)-zelus
 	tar -zcvf $(LANG)_zelus.tar.gz $(LANG)-$(VERSION)-zelus
 	mv $(LANG)-zelus zelus_html
 	mv $(LANG)_zelus.tar.gz $(PUBLIC)
 	scp -r $(PUBLIC) $(WEB_DIR)
 
 #implicit rules
-.SUFFIXES: .tex .html .aux .dvi .ps .pdf
+.SUFFIXES: .tex .html .aux .ps .pdf
 
 .tex.aux:
 	$(PDFLATEX) $<
 
 .tex.pdf:
 	$(PDFLATEX) $<
-	$(RUNVERBATIM)
 	$(PDFLATEX) $<
 
 .tex.html:

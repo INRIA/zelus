@@ -11,7 +11,7 @@ let x_v = 0.72
 let eps = 0.01
 
 (* The bouncing ball with two modes. *)
-let hybrid ball(x_0, y_0) = (x, y) where
+hybrid ball(x_0, y_0) = (x, y) where
   rec init y_start = y_0 
   and der x = x_v init x_0
   and

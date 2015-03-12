@@ -1,8 +1,5 @@
 include ../../config
 
-ZELUC = zeluc
-ZLLIB = `zeluc -where`
-
 EXAMPLE=test.zls
 
 default: $(word 1, $(targets))
@@ -19,7 +16,7 @@ test_main.cmo: test_main.ml
 	    -I $(ZLLIB) -c $^
 
 test.ml: test.zls
-	$(ZELUC) $(ZELUCFLAGS)  -gtk2 -s main -period -sampling 0 test.zls
+	$(ZELUC) $(ZELUCFLAGS)  -gtk2 -s main -sampling 0 test.zls
 	mv main.ml test_main.ml
 
 depend: .depend

@@ -18,5 +18,5 @@ val tl    : 'a list -> 'a list
 val float_eq : float * float * float -> bool
 
 (* to within 99.9999% *)
-val (=~=) : float * float -> bool
+val (=~=) : float * float -AD-> bool
 

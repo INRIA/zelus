@@ -2,8 +2,6 @@ include ../../config
 
 .PHONY: test debug
 
-SAMPLING = 20
-
 ZLEXTRALIBS = $(ZLGTKLIBS)
 
 default: $(word 1, $(targets))
@@ -39,11 +37,11 @@ test: airtrafficgui.cmi a330.ml
 	    simplevector.ml a330.ml airtrafficgui_test.ml
 
 debug: airtraffic.zls airtrafficgui.zci
-	$(ZELUC) -v $(ZELUCFLAGS) -period -gtk2 -sampling 1 -s main $< \
+	$(ZELUC) -v $(ZELUCFLAGS) -gtk2 -s main $< \
 	    2>&1
 
 airtraffic.ml airtraffic_main.ml: airtraffic.zls airtrafficgui.zci
-	$(ZELUC) $(ZELUCFLAGS) -period -gtk2 -sampling $(SAMPLING) -s main $<
+	$(ZELUC) $(ZELUCFLAGS) -gtk2 -s main $<
 	mv main.ml airtraffic_main.ml
 
 # version rotation
@@ -55,7 +53,7 @@ airtrafficrot.byte: simplevector.cmo a330.cmo airtrafficgui.cmo \
 	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $(ZLGTKLIBS) $^ 
 
 airtrafficrot.ml airtrafficrot_main.ml: airtrafficrot.zls airtrafficgui.zci
-	$(ZELUC) $(ZELUCFLAGS) -period -gtk2 -sampling $(SAMPLING) -s main $<
+	$(ZELUC) $(ZELUCFLAGS) -gtk2 -s main $<
 	mv main.ml airtrafficrot_main.ml
 
 #
@@ -69,7 +67,7 @@ airtraffictpb.byte: simplevector.cmo a330.cmo airtrafficgui.cmo \
 	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $(ZLGTKLIBS) $^ 
 
 airtraffictpb.ml airtraffictpb_main.ml: airtraffictpb.zls airtrafficgui.zci
-	$(ZELUC) $(ZELUCFLAGS) -period -gtk2 -sampling $(SAMPLING) -s main $<
+	$(ZELUC) $(ZELUCFLAGS) -gtk2 -s main $<
 	mv main.ml airtraffictpb_main.ml
 
 #

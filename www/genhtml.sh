@@ -181,7 +181,6 @@ for BIB in src/*.bib; do
 	-e 's/<blockquote>/<div class="abstract"><p>/' \
 	-e 's/<\/blockquote>/<\/p><\/div>/' \
 	-e 's/^<\/p><p>//' \
-	-e '/^\[<a.*<\/a>\]$/s/<\/*sup>//g' \
 	-e 's/\[<a name="\([^0-9]*\)\([0-9]*\)">[^<]*<\/a>\]/<a id="\1\2" class="biblink" name="\1\2">\1 \2<\/a>/' \
 	-e 's/.*<a href="\([^"]*\)">DOI<\/a>.*/<span class="bibref"><a href="\1"><i class="icon-globe"><\/i> DOI<\/a><\/span>/' \
 	-e 's/.*<a href="\([^"]*\)">.pdf<\/a>.*/<span class="bibref"><a href="\1"><i class="icon-file"><\/i> pdf<\/a><\/span>/' \
