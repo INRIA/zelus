@@ -168,7 +168,7 @@ when the balls vertical velocity becomes very small.</p>
         <span class="">y</span> = <span class="">y0</span> 
       <span class="keyword ">until</span> <span class="keyword expr ">up</span>(<span class="">x</span> -. <span class="">ground_abs</span> <span class="">x</span>)
         <span class="comment">(* up(y -. eps -. ground(x)) *)</span>
-      <span class="keyword ">then</span> <span class="keyword ">do</span> <span class="keyword ">next</span> <span class="">y_start</span> = <span class="number">0.0</span> <span class="keyword ">in</span> <span class="constructor">Bouncing</span>
+      <span class="keyword ">then</span> <span class="keyword ">do</span> <span class="">y_start</span> = <span class="number">0.0</span> <span class="keyword ">in</span> <span class="constructor">Bouncing</span>
   <span class="keyword ">end</span>
   
 <span class="comment">(* Main entry point *)</span>
@@ -321,7 +321,7 @@ periods of cooling, i.e., when not heating.</p>
 
 <span class="comment">(* ** library functions ** *)</span>
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">integrator</span> (<span class="">i</span>, <span class="">u</span>) = <span class="">y</span> <span class="keyword ">where</span>
-  <span class="keyword ">der</span> <span class="">y</span> = <span class="">u</span> <span class="keyword ">init</span> <span class="">i</span>
+  <span class="keyword ">rec</span> <span class="keyword ">der</span> <span class="">y</span> = <span class="">u</span> <span class="keyword ">init</span> <span class="">i</span>
 
 <span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">round</span> <span class="">x</span> = <span class="">floor</span> (<span class="">x</span> <span class="operator">+.</span> <span class="number">0.5</span>)
 
@@ -376,7 +376,7 @@ periods of cooling, i.e., when not heating.</p>
 <span class="keyword ">let</span> <span class="">b_on</span>   = <span class="keyword constant ">true</span>
 
 <span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">after</span> (<span class="">x</span>) =
-  <span class="keyword ">let</span> <span class="keyword ">rec</span> <span class="">c</span> = <span class="">x</span> <span class="keyword expr ">fby</span> <span class="">max</span> (<span class="number">0</span>, <span class="">c</span> - <span class="number">1</span>) <span class="keyword ">in</span>
+  <span class="keyword ">let</span> <span class="keyword ">rec</span> <span class="">c</span> = <span class="">x</span> -&gt; <span class="keyword expr ">pre</span> (<span class="">max</span> (<span class="number">0</span>, <span class="">c</span> - <span class="number">1</span>)) <span class="keyword ">in</span>
   <span class="">c</span> = <span class="number">0</span>
 
 <span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">at</span> (<span class="">x</span>) =
@@ -1139,12 +1139,11 @@ the limits of movement (modelled as instantaneous reset).</p>
             | <span class="constructor">Move</span> -&gt;
                 <span class="keyword ">do</span> <span class="">done_lamp</span> = <span class="keyword constant ">false</span>
                 <span class="keyword ">and</span> <span class="">alarm_lamp</span> = <span class="">blink</span>(<span class="number">2</span>, <span class="">second</span>)
-                <span class="keyword ">and</span>
-                <span class="keyword ">automaton</span>
-                  | <span class="constructor">RaiseStickBucket</span> -&gt;
-                      <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">stick_pull</span>  <span class="keyword ">and</span> <span class="">stick_drive</span> = <span class="keyword constant ">true</span>
-                      <span class="keyword ">and</span> <span class="keyword ">emit</span> <span class="">bucket_pull</span> <span class="keyword ">and</span> <span class="">bucket_drive</span> = <span class="keyword constant ">true</span>
-                      <span class="keyword ">unless</span> (<span class="">stick_in</span> <span class="operator">&&</span> <span class="">bucket_in</span>) <span class="keyword ">then</span> <span class="constructor">LowerBoom</span>
+                <span class="keyword ">and</span> <span class="keyword ">automaton</span>
+                    | <span class="constructor">RaiseStickBucket</span> -&gt;
+			<span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">stick_pull</span>  <span class="keyword ">and</span> <span class="">stick_drive</span> = <span class="keyword constant ">true</span>
+			<span class="keyword ">and</span> <span class="keyword ">emit</span> <span class="">bucket_pull</span> <span class="keyword ">and</span> <span class="">bucket_drive</span> = <span class="keyword constant ">true</span>
+			<span class="keyword ">unless</span> (<span class="">stick_in</span> <span class="operator">&&</span> <span class="">bucket_in</span>) <span class="keyword ">then</span> <span class="constructor">LowerBoom</span>
 
                   | <span class="constructor">LowerBoom</span> -&gt;
                       <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">boom_push</span> <span class="keyword ">and</span> <span class="">boom_drive</span> = <span class="keyword constant ">true</span>
