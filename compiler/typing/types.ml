@@ -149,14 +149,14 @@ let rec gen_ty is_gen ty =
     ty.t_level
 
 (* main generalisation function *)
-let gen typ_body =
+let gen non_expensive typ_body =
   list_of_typ_vars := [];
   begin match typ_body with
     | Tvalue(ty) ->
-        ignore (gen_ty true ty)
+        ignore (gen_ty non_expensive ty)
     | Tsignature(_, _, ty_arg_list, ty_res) ->
-        ignore (List.map (gen_ty true) ty_arg_list);
-        ignore (gen_ty true ty_res)
+        ignore (List.map (gen_ty non_expensive) ty_arg_list);
+        ignore (gen_ty non_expensive ty_res)
   end;
   { typ_vars = !list_of_typ_vars; typ_body = typ_body }
 

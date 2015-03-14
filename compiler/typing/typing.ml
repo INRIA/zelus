@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2013                                               *)
+(*  Copyright (C) 2012-2015                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -78,6 +78,15 @@ let safe loc is_safe expected_k =
       | Deftypes.Tdiscrete _ -> ()
       | _ -> (* we treat [is_safe=true] as kind [Tdiscrete(false)] *)
 	     error loc (Ekind_clash(Deftypes.Tdiscrete(false), expected_k))
+
+(* An expression is expansive if it is not an immediate value *)
+let rec expansive { e_desc = desc } =
+  match desc with
+    | Elocal _ | Eglobal _ | Econst _ | Econstr0 _ -> false
+    | Etuple(e_list) -> List.exists expansive e_list
+    | Erecord(l_e_list) -> List.exists (fun (_, e) -> expansive e) l_e_list
+    | Erecord_access(e, _) | Etypeconstraint(e, _) -> expansive e
+    | _ -> true
 
 let check_statefull loc expected_k =
   if not (Types.is_statefull expected_k) then error loc Ekind_not_combinatorial
@@ -834,7 +843,7 @@ let implementation ff impl =
     match impl.desc with
       | Econstdecl(f, e) ->
           let ty = expression (Tdiscrete(false)) Env.empty e in
-          let tys = gen (Tvalue(ty)) in
+          let tys = Types.gen (not (expansive e)) (Tvalue(ty)) in
           Interface.addvalue ff impl.loc f true tys
       | Efundecl(f,{ f_kind = k; f_atomic = is_atomic;
 		     f_args = pat_list; f_body = e; f_env = h0 }) ->
@@ -849,7 +858,7 @@ let implementation ff impl =
           check_total_pattern_list pat_list;
           let ty = expression expected_k h0 e in
           Misc.pop_binding_level ();
-	  let tys = gen(Tsignature(expected_k, true, ty_list, ty)) in
+	  let tys = Types.gen true (Tsignature(expected_k, true, ty_list, ty)) in
           (* then add the corresponding entries in the global environment *)
           Interface.addvalue ff impl.loc f is_atomic tys
     | Eopen(modname) ->
