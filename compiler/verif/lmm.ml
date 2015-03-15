@@ -17,6 +17,8 @@ open Location
 open Ident
 open Deftypes
 
+type 'a localized = { desc: 'a; loc: Location.location }
+
 type kind = A | D
 
 type expression =
@@ -60,13 +62,24 @@ type expression =
      p_name: Ident.t;
      p_loc: location }
 
- and p_kind = Estatic | Evar | Einit of expression
+ and pkind =
+   | Estatic | Evar | Einit of expression
 
- and implementation =
-   { impl_desc: impl_desc;
-     impl_loc: location }
+ and implementation = implementation_desc localized
 
- and impl_desc =
+ and implementation_desc =
    | Econstdecl of name * exp
    | Efundecl of name * funexp
+   | Etypedecl of name * type_decl
+
+ and type_decl =
+   | Eabstract_type
+   | Eabbrev of type_expression
+   | Evariant_type of name list
+   | Erecord_type of (name * type_expression) list
+
+ and type_expression = type_expression_desc localized
+
+ and type_expression_desc =
+   | Etypevar of string
 			  
