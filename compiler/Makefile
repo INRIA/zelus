@@ -78,12 +78,14 @@ GENCODE = gencode/obc.cmo \
 	  gencode/translate.cmo \
 	  gencode/inout.cmo
 
+VERIF = verif/lmm.cmo \
+
 MAIN = main/compiler.cmo \
 	main/simulator.cmo \
 	main/fixstep.cmo
 
 OBJ = $(LOCATION) $(PARSING) $(GLOBAL) $(TYPING) $(ANALYSIS) \
-	$(REWRITE) $(GENCODE) $(MAIN)
+	$(REWRITE) $(GENCODE) $(VERIF) $(MAIN)
 
 default: $(word 1, $(targets))
 world: all

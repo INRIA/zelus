@@ -55,7 +55,8 @@ type expression =
      f_inputs: param list;
      f_outputs: param list;
      f_local: param list;
-     f_body: eq list }
+     f_body: eq list;
+     f_assert: expression option }
 
  and param =
    { p_kind: pkind;
