@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2014                                               *)
+(*  Copyright (C) 2012-2015                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -11,13 +11,8 @@
 (*   This file is distributed under the terms of the CeCILL-C licence     *)
 (*                                                                        *)
 (**************************************************************************)
-(* Remove control structures from the program. This step generates *)
-(* for every node a set of data-flow equations all computed on the *)
-(* base clock *)
-(* A register change [next x = e with init x = v] activated on clock *)
-(* base on e1 on ... on en] is translated into *)
-(* [x = v -> pre (if e1 && ... && en then e else x)] *)
 
+(* Translation into Lustre *)
 open Location
 open Ident
 open Zelus
