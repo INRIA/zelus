@@ -21,7 +21,7 @@ type 'a localized = { desc: 'a; loc: Location.location }
 
 type kind = A | D
 
-type expression =
+type exp =
     { e_desc: desc;
       e_loc: location;
       e_typ: Deftypes.typ
@@ -42,29 +42,29 @@ type expression =
  and immediate = Deftypes.immediate
 		   
  and pattern =
-   | Etuplepat of pat list
+   | Etuplepat of pattern list
    | Evarpat of Ident.t
 		  
  and eq =
-   { eq_lhs: pat;
-     eq_rhs: expression;
+   { eq_lhs: pattern;
+     eq_rhs: exp;
      eq_loc: location }
      
  and funexp =
    { f_kind: kind;
-     f_inputs: param list;
-     f_outputs: param list;
-     f_local: param list;
+     f_inputs: vardec list;
+     f_outputs: vardec list;
+     f_local: vardec list;
      f_body: eq list;
-     f_assert: expression option }
+     f_assert: exp option }
 
- and param =
+ and vardec =
    { p_kind: pkind;
      p_name: Ident.t;
+     p_typ: Deftypes.typ;
      p_loc: location }
 
- and pkind =
-   | Estatic | Evar | Einit of expression
+ and pkind = | Estatic | Evar 
 
  and implementation = implementation_desc localized
 
