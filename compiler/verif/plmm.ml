@@ -14,7 +14,6 @@
 (* Printer for lmm *)
 
 open Location
-open Ident
 open Format
 open Pp_tools
 open Lmm
@@ -51,6 +50,19 @@ let rec expression ff { e_desc = desc } =
   | Erecord(l_e_list) ->
      print_record (print_couple longname expression """ =""") ff ln_e_list
 
+and operator ff op e_list =
+  match op, e_list with
+  | Eunarypre, [e] ->
+     fprintf ff "@[pre@ %a@]" expression e
+  | Eminusgreater, [e1; e2] ->
+     fprintf ff "@[%a ->@ %a@]" expression e1 expression e2
+  | Eifthenelse, [e1; e2; e3] ->
+     fprintf ff "@[<hov>if %a@ then %a@ else %a@]"
+	     expression e1 expression e2 expression e3
+  | Eop(ln), e_list ->
+     fprintf ff "@[%a%a@]" longname ln (print_list_r expression "("","")") e_list
+  | _ -> assert false
+		
 let equation ff { eq_lhs = p; eq_rhs = e } =
   fprintf ff "@[%a = %a@]"
 	  pattern p expression e
@@ -62,13 +74,12 @@ let equation_list ff = function
 let fundecl ff n { f_kind = k; f_inputs = inputs; f_outputs = outputs;
 		   f_local = locals; f_body = eq_list; f_assert = exp_opt } =
   fprintf ff "@[node %a%a%a@ returns %a@]@\n%a%a%a@]@\n@."
-    print_qualname n
-    print_node_params params
-    print_vd_tuple ni
-    print_vd_tuple no
-    (print_opt print_contract) contract
-    print_local_vars nl
-    print_eqs ne
+    name n
+    var_dec_list inputs
+    var_dec_list outputs
+    var_dec_list locals
+    (print_opt asserts) exp_opt
+    equation_list eq_list
 
 let implementation ff { desc = desc } =
   match desc with
