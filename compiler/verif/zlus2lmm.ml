@@ -22,6 +22,12 @@ open Deftypes
 let eqmake loc pat e loc = 
   { Lmm.eq_lhs = pat; Lmm.eq_rhs = e; Lmm.eq_loc = loc }
 
+let make loc desc ty = { Lmm.e_desc = desc; Lmm.e_typ = ty; Lmm.e_loc = loc }
+
+let and_op e1 e2 =
+  make no_location (Eapp(Eop(Lident.Modname(Initial.pervasives_name "&&")),
+			[e1; e2])) Initial.typ_bool
+       
 type ck = | Ck_base | Ck_on of ck * Lmm.exp
  
 let on ck e = Ck_on(ck, e)
@@ -33,12 +39,10 @@ let rec clock = function
   | Ck_on(ck, e) -> and_op (clock ck) e
 
 (* [equation subst eq_list eq = eq_list] *)
-let rec equation ck acc { eq_desc = desc } =
+let rec equation ck acc { eq_desc = desc; eq_loc = loc } =
   match desc with
-  | EQeq({ p_desc = Evarpat(x) }, e) when S.mem x shared_names -> 
-     eq_list, Env.add x e subst
-  | EQeq(p, e) -> eq :: eq_list, subst
-  | EQinit _ -> eq_list, subst
+  | EQeq({ p_desc = p }, e) ->
+     (eqmake loc (pattern p) (expression ck e)) :: acc
   | EQmatch(total, e, p_h_list) ->
      (* first compute the set of shared variables *)
      let s = shared_variables p_h_list in
