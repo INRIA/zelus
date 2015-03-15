@@ -167,8 +167,7 @@ let rec expression ff e =
     | Etuple(e_list) ->
         fprintf ff "@[%a@]" (print_list_r expression "("","")") e_list
     | Erecord_access(e, field) ->
-        expression ff e;
-        longname ff field
+        fprintf ff "@[%a.%a@]" expression e longname field
     | Erecord(ln_e_list) ->
         print_record (print_couple longname expression """ =""") ff ln_e_list
     | Elet(l, e) ->

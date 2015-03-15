@@ -31,7 +31,7 @@ type exp =
    | Elocal of Ident.t
    | Eglobal of Lident.t
    | Econst of immediate
-   | Econtr0 of Lident.t
+   | Econstr0 of Lident.t
    | Eapp of op * exp list
    | Erecord_access of exp * Lident.t
    | Erecord of (Lident.t * exp) list

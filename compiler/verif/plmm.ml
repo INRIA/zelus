@@ -21,7 +21,8 @@ open Lmm
 let longname = Printer.longname
 let immediate = Printer.immediate
 let name = Printer.name
-let ptype = Printer.ptype
+let shortname = Printer.shortname
+let internal_type = Ptypes.output
 	      
 let rec pattern ff = function
   | Evarpat(n) -> name ff n
@@ -32,7 +33,7 @@ let pkind ff = function
   | Estatic -> fprintf ff "const " | Evar -> fprintf ff "var "
 
 let var_dec ff { p_kind = k; p_name = n; p_typ = typ } =
-  fprintf ff "%s%a : %a" pkind k name ff n ptype typ
+  fprintf ff "%a%a : %a" pkind k name n internal_type typ
 
 let var_dec_list ff = function
   | [] -> ()
@@ -43,11 +44,10 @@ let rec expression ff { e_desc = desc } =
   | Elocal(n) -> name ff n
   | Eglobal(ln) -> longname ff ln
   | Econst(i) -> immediate ff i
-  | Econstr0(g) -> lname ff ln
-  | Eapp(op, e_list) -> operator op ff e_list
-  | Erecord_access(e, ln) ->
-     fprintf ff "@[%a.%a@]" expression e longname field
-  | Erecord(l_e_list) ->
+  | Econstr0(ln) -> longname ff ln
+  | Eapp(op, e_list) -> operator ff op e_list
+  | Erecord_access(e, ln) -> fprintf ff "@[%a.%a@]" expression e longname ln
+  | Erecord(ln_e_list) ->
      print_record (print_couple longname expression """ =""") ff ln_e_list
 
 and operator ff op e_list =
@@ -63,29 +63,50 @@ and operator ff op e_list =
      fprintf ff "@[%a%a@]" longname ln (print_list_r expression "("","")") e_list
   | _ -> assert false
 		
+let p_assert ff e =
+  fprintf ff "@[assert@ %a;@]" expression e
+
 let equation ff { eq_lhs = p; eq_rhs = e } =
   fprintf ff "@[%a = %a@]"
 	  pattern p expression e
 
-let equation_list ff = function
+let equation_list_with_assert e_opt ff = function
   | [] -> ()
-  | l -> fprintf ff "@[<v2>let@ %a@]@\ntel" (print_list_r equation """;""") l
+  | l ->
+     fprintf ff "@[<v2>let@ %a%a@]@\ntel"
+	     (print_opt p_assert) e_opt
+	     (print_list_r equation """;""") l
 
 let fundecl ff n { f_kind = k; f_inputs = inputs; f_outputs = outputs;
-		   f_local = locals; f_body = eq_list; f_assert = exp_opt } =
-  fprintf ff "@[node %a%a%a@ returns %a@]@\n%a%a%a@]@\n@."
-    name n
+		   f_local = locals; f_body = eq_list; f_assert = e_opt } =
+  fprintf ff "@[node %s%a@ returns %a@]@\n%a%a@]@\n@."
+    n
     var_dec_list inputs
     var_dec_list outputs
     var_dec_list locals
-    (print_opt asserts) exp_opt
-    equation_list eq_list
+    (equation_list_with_assert e_opt) eq_list
+
+let rec ptype ff ty =
+  match ty.desc with
+  | Etypevar(s) -> fprintf ff "%s" s
+	     
+let type_decl ff ty_decl =
+  match ty_decl with
+    | Eabstract_type -> ()
+    | Eabbrev(ty) ->
+        fprintf ff " = %a" ptype ty
+    | Evariant_type(tag_name_list) ->
+        fprintf ff " = %a" (print_list_l shortname "" "|" "") tag_name_list
+    | Erecord_type(n_ty_list) ->
+        fprintf ff " = %a" 
+          (print_record (print_couple shortname ptype """ :""")) n_ty_list
 
 let implementation ff { desc = desc } =
   match desc with
-  | Econstdecl(n, e) -> fprint ff "@[const %a = %a@]\n@." name n expression e
+  | Econstdecl(n, e) -> fprintf ff "@[const %s = %a@]\n@." n expression e
   | Efundecl(n, f) -> fundecl ff n f
-  | Etypedecl(n, typ_decl) -> typedecl ff n typ_decl
+  | Etypedecl(n, ty_decl) ->
+     fprintf ff "@[<v 2>type %s %a@.@]" n type_decl ty_decl
 
 let implementation_list ff imp_list =
   List.iter (implementation ff) imp_list
