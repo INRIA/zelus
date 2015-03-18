@@ -23,7 +23,7 @@ let immediate = Printer.immediate
 let name = Printer.name
 let shortname = Printer.shortname
 let internal_type = Ptypes.output
-	      
+
 let rec pattern ff = function
   | Evarpat(n) -> name ff n
   | Etuplepat(pat_list) ->
@@ -58,27 +58,27 @@ and operator ff op e_list =
      fprintf ff "@[%a ->@ %a@]" expression e1 expression e2
   | Eifthenelse, [e1; e2; e3] ->
      fprintf ff "@[<hov>if %a@ then %a@ else %a@]"
-	     expression e1 expression e2 expression e3
+             expression e1 expression e2 expression e3
   | Eop(ln), e_list ->
      fprintf ff "@[%a%a@]" longname ln (print_list_r expression "("","")") e_list
   | _ -> assert false
-		
+
 let p_assert ff e =
   fprintf ff "@[assert@ %a;@]" expression e
 
 let equation ff { eq_lhs = p; eq_rhs = e } =
   fprintf ff "@[%a = %a@]"
-	  pattern p expression e
+          pattern p expression e
 
 let equation_list_with_assert e_opt ff = function
   | [] -> ()
   | l ->
      fprintf ff "@[<v2>let@ %a%a@]@\ntel"
-	     (print_opt p_assert) e_opt
-	     (print_list_r equation """;""") l
+             (print_opt p_assert) e_opt
+             (print_list_r equation """;""") l
 
 let fundecl ff n { f_kind = k; f_inputs = inputs; f_outputs = outputs;
-		   f_local = locals; f_body = eq_list; f_assert = e_opt } =
+                   f_local = locals; f_body = eq_list; f_assert = e_opt } =
   fprintf ff "@[node %s%a@ returns %a@]@\n%a%a@]@\n@."
     n
     var_dec_list inputs
@@ -89,7 +89,7 @@ let fundecl ff n { f_kind = k; f_inputs = inputs; f_outputs = outputs;
 let rec ptype ff ty =
   match ty.desc with
   | Etypevar(s) -> fprintf ff "%s" s
-	     
+
 let type_decl ff ty_decl =
   match ty_decl with
     | Eabstract_type -> ()
@@ -98,7 +98,7 @@ let type_decl ff ty_decl =
     | Evariant_type(tag_name_list) ->
         fprintf ff " = %a" (print_list_l shortname "" "|" "") tag_name_list
     | Erecord_type(n_ty_list) ->
-        fprintf ff " = %a" 
+        fprintf ff " = %a"
           (print_record (print_couple shortname ptype """ :""")) n_ty_list
 
 let implementation ff { desc = desc } =
@@ -110,5 +110,3 @@ let implementation ff { desc = desc } =
 
 let implementation_list ff imp_list =
   List.iter (implementation ff) imp_list
-
-	    Zlus2lmm

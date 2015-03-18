@@ -60,7 +60,7 @@ ZLSTDLIBS = bigarray.cma unix.cma $(SUNDIALS) $(SUNDIALS_CVODE)
 ZLEXTRALIBS = zllib.cma
 ZLGTKLIBS = $(LABLGTK2) lablgtk.cma zllibgtk.cma
 
-DIRECTORIES = global parsing typing analysis rewrite gencode main
+DIRECTORIES = global parsing typing analysis rewrite gencode verif main
 
 # colours (used in tests)
 
