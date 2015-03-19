@@ -1,0 +1,3 @@
+let node good(i, d) = m where
+  rec init m = d
+  and present i(v) -> do m = v done
