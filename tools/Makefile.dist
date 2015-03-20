@@ -15,11 +15,13 @@ install:
 	cp bin/zeluc ${bindir}/
 	mkdir -p ${libdir}
 	cp lib/* ${libdir}/
+	$(OCAMLFIND) install zelus META || true
 
 uninstall:
 	rm -f ${bindir}/zeluc.byte
 	rm -f ${bindir}/zeluc
 	rm -rf ${libdir}
+	$(OCAMLFIND) remove zelus || true
 
 examples:
 	@for i in `ls examples`; do ${MAKE} -C examples/$$i byte; done;

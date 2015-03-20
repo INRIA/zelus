@@ -1,7 +1,7 @@
 #! /bin/sh
 
-sysname='Hybrid'
-version=0.2.0
+sysname='Zélus'
+version=1.0.0
 contact='marc.pouzet@ens.fr'
 
 for_compile=1
@@ -186,11 +186,17 @@ else
     opam_libpath=''
 fi
 
+# Check for ocamlfind
+OCAMLFIND=`which ocamlfind`
+if [ -z "${OCAMLFIND}" ]; then
+    OCAMLFIND=ocamlfind
+fi
 
 # Check for gtk installation
 lablgtk2_path="${ocaml_libpath}lablgtk2"
 if [ "${gtktargets}" = " " ]; then
     lablgtk2_path="not needed"
+    gtktargets=''
 else
     if [ ! -x ${lablgtk2_path} ]; then
 	lablgtk2_path="${ocaml_libpath}site-lib/lablgtk2"
@@ -330,16 +336,33 @@ cat config.log
 	 s#@GLMLITE_ENABLED@#${glmlite_enabled}#;
 	 s#@MATLAB@#${matlab_bin}matlab#;
 	 s#@PTOLEMY@#${ptolemy_bin}ptolemy#;
+	 s#@OCAMLFIND@#${OCAMLFIND}#;
 	 s#@OCAMLBIN@#${OCAMLBIN}#;
 	 s#@OCAMLROOT@#${OCAMLROOT}#;" config.in) > config
 
-printf "#!/bin/sh\n"			     > bin/zeluc
-printf "ZLLIB=`pwd`/lib\n"		    >> bin/zeluc
-printf "export ZLLIB\n"			    >> bin/zeluc
-if [ -n ${with_byte} ]; then
-    printf "`pwd`/compiler/zeluc.byte \$@\n"   >> bin/zeluc
-else
-    printf "`pwd`/compiler/zeluc.opt \$@\n"    >> bin/zeluc
-fi
+printf "#!/bin/sh\n"				> bin/zeluc
+printf "ZLLIB=${libdir:-$prefix/lib}/zelus\n"   >> bin/zeluc
+printf "export ZLLIB\n"				>> bin/zeluc
+printf "exec ${OCAMLBIN}ocamlrun ${bindir:-$prefix/bin}/zeluc.byte \$@\n" \
+						>> bin/zeluc
 chmod a+x bin/zeluc
+
+printf "version = \"${version}\"\n"				 > META
+printf "description = \"A synchronous language with ODEs\"\n"	>> META
+printf "requires = \""						>> META
+if [ -n "${sundialsml_incl}" ]; then
+    printf "sundialsml"						>> META
+fi
+if [ -n "${gtktargets}" ]; then
+    printf " lablgtk2"						>> META
+fi
+printf "\"\n"							>> META
+printf "directory = \"${libdir:-$prefix/lib}/zelus\"\n"		>> META
+if [ -n "${gtktargets}" ]; then
+    printf "archive(byte) = \"zllibgtk.cma\"\n"			>> META
+    printf "archive(native) = \"zllibgtk.cma\"\n"		>> META
+else
+    printf "archive(byte) = \"zllib.cma\"\n"			>> META
+    printf "archive(native) = \"zllib.cmxa\"\n"			>> META
+fi
 

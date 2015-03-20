@@ -16,6 +16,7 @@ OCAMLYACC ?= @OCAMLBIN@ocamlyacc
 OCAMLOPT  ?= @OCAMLBIN@ocamlopt
 OCAMLDEP  ?= @OCAMLBIN@ocamldep
 OCAMLRUN  ?= @OCAMLBIN@ocamlrun
+OCAMLFIND ?= @OCAMLFIND@
 MENHIR    ?= @OCAMLBIN@menhir
 OTAGS	  ?= otags
 
