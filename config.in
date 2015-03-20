@@ -54,6 +54,9 @@ SUNDIALS=@SUNDIALSML_INCL@
 ifneq ($(SUNDIALS),)
 SUNDIALS_CVODE = sundials.cma
 OPTIONAL_SOLVER_OBJS = solvers/sundials_cvode.cmo
+DISTOPTION = -sundials
+else
+DISTOPTION = -nosundials
 endif
 
 ZLSTDLIBS = bigarray.cma unix.cma $(SUNDIALS) $(SUNDIALS_CVODE)

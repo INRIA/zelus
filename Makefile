@@ -41,85 +41,61 @@ debug.txt:
 
 loc:
 	@(cd compiler; \
-	  printf "\\\\multirow{2}{l}{\\\\textbf{Compiler}}\\\\\n"; \
+	  #printf "\\\\multirow{2}{l}{\\\\textbf{Compiler}}\\\\\n"; \
 	  $(MAKE) --no-print-directory -f Makefile loc; \
 	 cd ../lib; \
 	  printf "\\\\multirow{2}{l}{\\\\textbf{Runtime}}\\\\\n"; \
 	 $(MAKE) --no-print-directory -f Makefile loc) | \
 	 	awk 'BEGIN { last="" } /^[^ ]/ { print last; printf("    %s ", $$0) } /^ / {last = sprintf("& %s \\\\", $$1)} END {print last}'
 
-dist: all
-	if [ ! -f sundialsml/config ]; \
-	    then printf "$(S_RED)sundialsml is not configured!$(S_NORMAL)\n"; exit 1; fi
-	#
-	mkdir -p zelus-dist/
+dist:
+	$(MAKE) cleanall
+	./configure --disable-opt --disable-sundials
+	$(MAKE) all makedist
+	$(MAKE) cleanall
+	./configure --disable-opt
+	$(MAKE) all makedist
+
+makedist:
 	@printf "$(S_BLUE)## Populating toplevel directory$(S_NORMAL)\n"
+	rm -rf zelus-dist/
+	mkdir -p zelus-dist/
 	cp tools/Makefile.dist zelus-dist/Makefile
 	sed -e 's/for_compile=.*/for_compile=0/' configure > zelus-dist/configure
 	chmod ug+x zelus-dist/configure
 	cp config.in zelus-dist/
 	cp tools/readme.md.dist zelus-dist/readme.md
 	cp license.*.txt zelus-dist/
-	#
-	@printf "$(S_BLUE)## Populating lib-nosundials subdirectory$(S_NORMAL)\n"
-	$(MAKE) -C lib cleanall
-	$(MAKE) -C lib SOLVER=ode23 OPTIONAL_SOLVER_OBJS=""
-	mkdir -p zelus-dist/lib-nosundials
-	cp lib/zllib.cma lib/zllibgtk.cma zelus-dist/lib-nosundials/
-	cp lib/loadsolvers.cmi zelus-dist/lib-nosundials/
-	#
+	@#
 	@printf "$(S_BLUE)## Populating lib subdirectory$(S_NORMAL)\n"
-	$(MAKE) -C lib cleanall
-	$(MAKE) -C lib
 	mkdir -p zelus-dist/lib
 	cp lib/zllib.cma lib/zllibgtk.cma zelus-dist/lib/
-	#cp lib/zllib.cmxa lib/zllibgtk.cmxa zelus-dist/lib/
+	@#cp lib/zllib.cmxa lib/zllibgtk.cmxa zelus-dist/lib/
 	cp lib/*.zli lib/*.zci zelus-dist/lib/
 	cp lib/*.cmi zelus-dist/lib/
-	#
-	@printf "$(S_BLUE)## Populating sundialsml$(S_NORMAL)\n"
-	mkdir -p zelus-dist/sundialsml
-	make -C sundialsml PKGDIR=../zelus-dist/sundialsml/ \
-	    		   STUBDIR=../zelus-dist/sundialsml/ \
-			   INSTALL_DOCS=0 install
-	cp sundialsml/sundials_license zelus-dist/sundialsml
-	if [ `uname` = 'Darwin' ]; then \
-	    LIBS=`otool -L sundialsml/dllmlsundials_cvode.so | grep libsundials | cut -d ' ' -f 1`; \
-	  else \
-	    LIBS=`ldd sundialsml/dllmlsundials_cvode.so | grep libsundials | cut -d ' ' -f 3`; \
-	  fi; \
-	  for f in $${LIBS}; do cp $$f zelus-dist/sundialsml/; \
-	  			chmod ug+x zelus-dist/sundialsml/`basename $$f`; \
-	  done
-	#
+	@#
 	@printf "$(S_BLUE)## Populating bin subdirectory$(S_NORMAL)\n"
 	mkdir -p zelus-dist/bin
-	cp bin/zeluc.in zelus-dist/bin
-	cp compiler/zeluc.byte zelus-dist/bin
-	chmod a-x zelus-dist/bin/zeluc.byte
-	#
+	#cp bin/zeluc.in zelus-dist/bin # XXX
+	cp compiler/zeluc.byte zelus-dist/bin/zeluc # XXX
+	@#
 	@printf "$(S_BLUE)## Populating examples subdirectory$(S_NORMAL)\n"
 	mkdir -p zelus-dist/examples
 	cp examples/Makefile zelus-dist/examples/
 	-(cd examples; make DISTDIR=../../zelus-dist/examples export)
-	@printf "$(S_BLUE)## Making bytecode distribution$(S_NORMAL)\n"
-	cp -r zelus-dist zelus-byte
-	rm -rf zelus-byte/sundialsml
-	mv zelus-byte/lib-nosundials/* zelus-byte/lib
-	rmdir zelus-byte/lib-nosundials
-	@printf "$(S_BLUE)## Creating packages$(S_NORMAL)\n"
-	VERSIONSTR=`./compiler/zeluc.byte -version`; \
-	  VERSION=`expr "$${VERSIONSTR}" : '.*version \\(.*\\) (.*'`; \
-	  ARCH=`uname -s`-`uname -m`; \
-	  rm -rf "zelus-$${VERSION}-$${ARCH}"; \
-	  mv zelus-byte "zelus-$${VERSION}.bytecode"; \
-	  tar czvf "zelus-$${VERSION}.bytecode.tar.gz" "zelus-$${VERSION}.bytecode"; \
-	  mv zelus-dist "zelus-$${VERSION}.$${ARCH}"; \
-	  tar czvf "zelus-$${VERSION}.$${ARCH}.tar.gz" "zelus-$${VERSION}.$${ARCH}"
-	#
-	OCAMLVERSION=`$(OCAMLC) -version`; \
-	ARCH=`uname -s`-`uname -m`; \
-	  printf "$(S_RED)Compiled with OCaml $${OCAMLVERSION} for $${ARCH}$(S_NORMAL)\n"
+	@printf "$(S_BLUE)## Creating package$(S_NORMAL)\n"
+	@#ARCH=`uname -s`-`uname -m`;
+	@VERSIONSTR=`./compiler/zeluc.byte -version`;			\
+	  VERSION=`expr "$${VERSIONSTR}" : '.*version \\(.*\\) (.*'`;	\
+	  ARCH=byte;							\
+	  DISTNAME="zelus-$${VERSION}$(DISTOPTION)-$${ARCH}";		\
+	  rm -rf "$${DISTNAME}";					\
+	  mv zelus-dist "$${DISTNAME}";					\
+	  tar czvf "$${DISTNAME}.tar.gz" "$${DISTNAME}";		\
+	  OCAMLVERSION=`$(OCAMLC) -version`;				\
+	  ARCH=`uname -s`-`uname -m`;					\
+	  printf "$(S_RED)## Compiled with OCaml $${OCAMLVERSION} ";	\
+	  printf "and using the $(SOLVER) solver ($${DISTNAME}).$(S_NORMAL)\n"
 
 install:
 	@for target in $(targets); do case $$target in 		\
