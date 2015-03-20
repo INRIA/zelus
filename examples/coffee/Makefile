@@ -1,24 +1,39 @@
 include ../../config
-OBJ = coffee.cmo main.cmo                                                                   
-BIN = coffee                                                                                
 
-$(BIN): $(OBJ)
-	$(OCAMLC) -o $(BIN) -custom unix.cma graphics.cma $(OBJ)                            
-main.ml: coffee.ml
-	$(ZELUC) $(ZELUCFLAGS) -s main -sampling 0 coffee.zls                         
+EXAMPLE=coffee.zls
+
+all: byte
+#$(targets)
+
+byte: $(EXAMPLE:%.zls=%.byte)
+opt:  $(EXAMPLE:%.zls=%.opt)
+
+coffee.byte: coffee.cmo coffee_main.cmo
+	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) graphics.cma $^
+
+coffee.opt: coffee.cmx coffee_main.cmx
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) $(ZLEXTRALIBS:.cma=.cmxa) graphics.cmxa $^
+
+coffee_main.cmo: INCLUDE += $(SUNDIALS)
+coffee_main.cmx: INCLUDE += $(SUNDIALS)
+
+coffee.ml coffee_main.ml: coffee.zls
+	$(ZELUC) -I $(ZLLIB) $(ZLCFLAGS) -s main -sampling 0 coffee.zls
+	mv main.ml coffee_main.ml
+
+
+depend: .depend
+.depend:
+	$(OCAMLDEP) $(INCLUDE) *.mli *.ml > .depend
 
 clean:
-	/bin/rm -f *~ *.cmi *.cmo *.cmx *.o *.zci coffee.ml main.ml                   
-realclean: clean
-	rm -f $(BIN)                                                                        
+	-@rm -f $(EXAMPLE:.zls=.ml) $(EXAMPLE:.zls=_main.ml)
+	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci .depend
+	-@rm -f $(EXAMPLE:%.zls=%.byte) $(EXAMPLE:%.zls=%.opt)
 
-.SUFFIXES: .zls .ml .cmo .dcc .mli .cmi .zci                                                 
-.zls.ml:
-	$(ZELUC) $(ZELUCFLAGS) $<                                                             
-.ml.cmo:
-	$(OCAMLC) -c $<                                                                     
-.mli.cmi:
-	$(OCAMLC) -c $<                                                                     
-.mli.zci:
-	$(ZELUC) $(ZELUCFLAGS) $<                                                           
-#dependences                                                                                
+realclean cleanall: clean
+
+-include .depend
+
