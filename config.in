@@ -1,4 +1,6 @@
 
+VERSION = @VERSION@
+
 # configure variables
 bindir = @bindir@
 libdir = @libdir@/zelus

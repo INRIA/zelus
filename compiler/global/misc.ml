@@ -15,7 +15,7 @@
 
 (* version of the compiler *)
 let version = "Zélus Hybrid Synchronous language"
-let subversion = "1.2"
+let subversion = VERSION
 let date = DATE
 
 let header_in_file =

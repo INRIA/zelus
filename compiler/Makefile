@@ -116,8 +116,9 @@ debugprinter.cma: $(OBJ)
 
 global/misc.cmo global/misc.cmi: OCAMLFLAGS := \
 		-pp "$(CPP) $(CPPFLAGS) \
-		     -DSTDLIB=\\\"$(libdir)\\\" \
-		     -DSOLVER=\\\"$(SOLVER)\\\" \
+		     -DVERSION=\\\"$(VERSION)\\\" \
+		     -DSTDLIB=\\\"$(libdir)\\\"   \
+		     -DSOLVER=\\\"$(SOLVER)\\\"   \
                      -DDATE=\\\"\"`date`\"\\\""
 
 
