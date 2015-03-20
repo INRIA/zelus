@@ -168,14 +168,14 @@ let cleanup () = List.iter (fun ty -> ty.t_desc <- Tvar) !s;
 (* makes a copy of a type *)
 let rec copy ty =
   let level = ty.t_level in
-  match ty.t_desc with
+   match ty.t_desc with
     | Tvar ->
       if level = generic
       then
         let v = new_var () in
-          ty.t_desc <- Tlink(v);
-          save ty;
-          v
+        ty.t_desc <- Tlink(v);
+        save ty;
+        v
       else ty
     | Tlink(link) ->
         if level = generic
@@ -264,7 +264,7 @@ let rec unify expected_ty actual_ty =
       if expected_ty == actual_ty then ()
       else
         match expected_ty.t_desc, actual_ty.t_desc with
-            Tvar, _ ->
+          |  Tvar, _ ->
               occur_check expected_ty.t_level expected_ty actual_ty;
               expected_ty.t_desc <- Tlink(actual_ty)
           | _, Tvar ->
@@ -300,38 +300,22 @@ let filter_product arity ty =
             unify ty (product ty_list);
             ty_list
 
-
 let filter_signal ty =
   let ty_arg = new_var () in
   unify ty (Initial.typ_signal ty_arg); ty_arg
 
-(** Is-it a signal ? *)
-let is_a_signal ty =
-  try
-    ignore (filter_signal ty); true
-  with
-    | Unify -> false
+(** All the function below are pure. They do not modify the internal *)
+(** representation of types. This is mandatory for them to be used once *)
+(** static typing is performed *)
 
-(** Is-it a float ? *)
-let is_a_float ty =
-  try
-    unify ty (Initial.typ_float); true
-  with
-    | Unify -> false
-
-(** Is-it a float ? *)
-let is_zero ty =
-  let ty = typ_repr ty in
-  match ty.t_desc with
-  | Tconstr(id, _, _) when id = Initial.zero_ident -> true
-  | _ -> false
-
-(** The same but in case ty is polymorphic, no unification is done *)
-let is_a_direct_signal ty =
-  let ty = typ_repr ty in
-  match ty.t_desc with
-      | Tconstr(id, _, _) when id = Initial.sig_ident -> true
-      | _ -> false
+    
+(** A function which returns either the type argument of a signal *)
+(** or nothing. *)
+let rec is_a_signal { t_desc = desc } =
+  match desc with
+    | Tconstr(id, [ty], _) when id = Initial.sig_ident -> Some(ty)
+    | Tlink(link) -> is_a_signal link
+    | _ -> None
 
 (** Is-it a node ? *)
 let is_a_node lname =

@@ -44,7 +44,10 @@ let arrow_tostring = function
   | Tdiscrete(s) -> if s then "-D->" else "-AD->" 
 
 let rec print priority ff ty = match ty.t_desc with
-  | Tvar -> fprintf ff "@['%s@]" (type_name#name ty.t_index)
+  | Tvar ->
+      (* prefix non generalized type variables with "_" *)
+      let p = if ty.t_level <> Misc.notgeneric then "" else "_" in
+      fprintf ff "@['%s%s@]" p (type_name#name ty.t_index)
   | Tproduct [] -> fprintf ff "ERROR"
   | Tproduct(ty_list) ->
       (if priority >= 2 then fprintf ff "@[(%a)@]" else fprintf ff "@[%a@]")

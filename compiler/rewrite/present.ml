@@ -95,19 +95,17 @@ let ematch total e l =
 (* names. [xv: t] and [xp: bool] *)
 let build signals n_list l_env =
   let make n ({ t_typ = ty } as tentry) (signals, n_list, new_env) = 
-    if Types.is_a_direct_signal ty 
-    then 
-      let ty = Types.filter_signal ty in
-      let xv = Ident.fresh ((Ident.source n) ^ "v") in
-      let xp = Ident.fresh ((Ident.source n) ^ "p") in
-      Env.add n (xv, xp, ty) signals,
-      xv :: xp :: n_list,
-      Env.add xv { t_typ = ty; t_sort = Val }
-        (Env.add xp { t_typ = typ_bool; 
-		      t_sort = ValDefault(Cimmediate(Ebool(false))) } 
-		 new_env)
-    else
-      signals, n :: n_list, Env.add n tentry new_env in
+    match Types.is_a_signal ty with
+      | Some(ty) ->
+	  let xv = Ident.fresh ((Ident.source n) ^ "v") in
+	  let xp = Ident.fresh ((Ident.source n) ^ "p") in
+	  Env.add n (xv, xp, ty) signals,
+	  xv :: xp :: n_list,
+	  Env.add xv { t_typ = ty; t_sort = Val }
+            (Env.add xp { t_typ = typ_bool; 
+			  t_sort = ValDefault(Cimmediate(Ebool(false))) } 
+	       new_env)
+      | None -> signals, n :: n_list, Env.add n tentry new_env in
   Env.fold make l_env (signals, [], Env.empty)
 
 (* equality between expressions. for efficiency purpose *)
