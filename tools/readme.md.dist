@@ -51,7 +51,7 @@ Programs are compiled in two steps.
 
     The simplest solution is to use `ocamlfind`:
 
-        ocamlfind ocamlc -o bangbang -package zelus -linkpkg bangbang.ml main.ml
+        ocamlfind ocamlc -o bangbang -package zelus.gtk -linkpkg bangbang.ml main.ml
 
     Otherwise all dependencies must be specified in the correct order:
 

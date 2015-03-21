@@ -316,6 +316,7 @@ if [ -n "${error}" ]; then
     printf "Some errors occurred during configuration:${error}\n" >> config.log
     printf "The 'config' file has not been written."		  >> config.log
     printf "\n"							  >> config.log
+    cat config.log
     exit 1
 fi
 
@@ -341,29 +342,34 @@ cat config.log
 	 s#@OCAMLBIN@#${OCAMLBIN}#;
 	 s#@OCAMLROOT@#${OCAMLROOT}#;" config.in) > config
 
-printf "#!/bin/sh\n"				> bin/zeluc
-printf "ZLLIB=${libdir:-$prefix/lib}/zelus\n"   >> bin/zeluc
-printf "export ZLLIB\n"				>> bin/zeluc
-printf "exec ${OCAMLBIN}ocamlrun ${bindir:-$prefix/bin}/zeluc.byte \$@\n" \
-						>> bin/zeluc
+if [ ${for_compile} -ne 1 ]; then
+cat > bin/zeluc <<ENDOFFILE
+#!/bin/sh
+ZLLIB=${libdir:-$prefix/lib}/zelus
+export ZLLIB
+exec ${OCAMLBIN}ocamlrun ${bindir:-$prefix/bin}/zeluc.byte \$@
+ENDOFFILE
 chmod a+x bin/zeluc
+fi
 
-printf "version = \"${version}\"\n"				 > META
-printf "description = \"A synchronous language with ODEs\"\n"	>> META
-printf "requires = \""						>> META
 if [ -n "${sundialsml_incl}" ]; then
-    printf "sundialsml"						>> META
-fi
-if [ -n "${gtktargets}" ]; then
-    printf " lablgtk2"						>> META
-fi
-printf "\"\n"							>> META
-printf "directory = \"${libdir:-$prefix/lib}/zelus\"\n"		>> META
-if [ -n "${gtktargets}" ]; then
-    printf "archive(byte) = \"zllibgtk.cma\"\n"			>> META
-    printf "archive(native) = \"zllibgtk.cma\"\n"		>> META
+    META_SUNDIALS="sundialsml"
 else
-    printf "archive(byte) = \"zllib.cma\"\n"			>> META
-    printf "archive(native) = \"zllib.cmxa\"\n"			>> META
+    META_SUNDIALS=
 fi
+cat > META <<ENDOFFILE
+directory = "${libdir:-$prefix/lib}/zelus"
+version = "${version}"
+description = "A synchronous language with ODEs"
+requires = "${META_SUNDIALS}"
+archive(byte) = "zllib.cma"
+archive(native) = "zllib.cmxa"
+package "gtk" (
+    version = "${version}"
+    description = "A synchronous language with ODEs (with gtk)"
+    requires = "${META_SUNDIALS} lablgtk2"
+    archive(byte) = "zllibgtk.cma"
+    archive(native) = "zllibgtk.cmxa"
+)
+ENDOFFILE
 

@@ -32,7 +32,7 @@ CPPFLAGS ?= -P -x c
 BIN = zeluc
 TARGET ?= $(word 1, $(targets))
 
-ZELUC := ../../bin/$(BIN)
+ZELUC := ../../compiler/$(BIN).$(TARGET)
 
 UNIX  = unix.cma
 UNIXX = unix.cmxa

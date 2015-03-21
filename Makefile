@@ -76,8 +76,8 @@ makedist:
 	@#
 	@printf "$(S_BLUE)## Populating bin subdirectory$(S_NORMAL)\n"
 	mkdir -p zelus-dist/bin
-	@(printf "#!/usr/bin/env ocamlrun\n"; sed 1d compiler/zeluc.byte) \
-	    > zelus-dist/bin/zeluc.byte
+	@(read x; printf "#!/usr/bin/env ocamlrun\n"; cat) \
+	    < compiler/zeluc.byte > zelus-dist/bin/zeluc.byte
 	@chmod ugo+x zelus-dist/bin/zeluc.byte
 	@#
 	@printf "$(S_BLUE)## Populating examples subdirectory$(S_NORMAL)\n"

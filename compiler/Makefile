@@ -124,6 +124,7 @@ global/misc.cmo global/misc.cmi: OCAMLFLAGS := \
 
 global/misc.cmx global/misc.cmi: OCAMLOPTFLAGS := \
 		-pp "$(CPP) $(CPPFLAGS) \
+		     -DVERSION=\\\"$(VERSION)\\\" \
 		     -DSTDLIB=\\\"$(libdir)\\\" \
 		     -DSOLVER=\\\"$(SOLVER)\\\" \
                      -DDATE=\\\"\"`date`\"\\\""
