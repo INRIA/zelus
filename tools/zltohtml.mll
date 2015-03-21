@@ -62,7 +62,7 @@ let print_empty_css () =
 
 (* To buffer string literals *)
 
-let initial_string_buffer = String.create 256
+let initial_string_buffer = Bytes.create 256
 let string_buff = ref initial_string_buffer
 let string_index = ref 0
 
@@ -72,16 +72,16 @@ let reset_string_buffer () =
   ()
 
 let store_string_char c =
-  if !string_index >= String.length (!string_buff) then begin
-    let new_buff = String.create (String.length (!string_buff) * 2) in
-      String.blit (!string_buff) 0 new_buff 0 (String.length (!string_buff));
+  if !string_index >= Bytes.length (!string_buff) then begin
+    let new_buff = Bytes.create (Bytes.length (!string_buff) * 2) in
+      Bytes.blit (!string_buff) 0 new_buff 0 (Bytes.length (!string_buff));
       string_buff := new_buff
   end;
-  String.set (!string_buff) (!string_index) c;
+  Bytes.set (!string_buff) (!string_index) c;
   incr string_index
 
 let get_stored_string () =
-  let s = String.sub (!string_buff) 0 (!string_index) in
+  let s = Bytes.sub (!string_buff) 0 (!string_index) in
     string_buff := initial_string_buffer;
     "\"" ^ s ^ "\""
 
