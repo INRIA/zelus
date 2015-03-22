@@ -77,9 +77,12 @@ document.getElementById('title-examples').className = 'active';
 <p>A slight variation of the classic bouncing ball model: a ball bouncing down
 a set of steps. The instants of impact are detected using zero crossings,
 <code>up(ground(x) -. y)</code>, which trigger a reset of the balls vertical velocity
-to -0.8 its previous value.</p>
+to &#8211;0.8 its previous value.</p>
 
-<p><img src="img/bouncingball.png" alt="Screenshot" title="Screenshot" id="screenshot" /></p>
+<figure>
+<img src="img/bouncingball.png" alt="Screenshot" title="Screenshot" />
+<figcaption>Screenshot</figcaption>
+</figure>
 
 <p>In the basic version of the program, the ball ‘falls through the floor’
 due to limited floating-point precision.</p>
@@ -107,13 +110,12 @@ due to limited floating-point precision.</p>
 <span class="keyword ">let</span> <span class="">loose</span> = <span class="number">0.8</span>
 
 <span class="comment">(* The bouncing ball *)</span>
-<span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">ball</span>(<span class="">x</span>, <span class="">y_0</span>) = (<span class="">y</span>, <span class="">y_v</span>, <span class="">z</span>) <span class="keyword ">where</span>
+<span class="keyword ">let</span> <span class="keyword ">atomic</span> <span class="keyword ">hybrid</span> <span class="">ball</span>(<span class="">x</span>, <span class="">y_0</span>) = (<span class="">y</span>, <span class="">y_v</span>, <span class="">z</span>) <span class="keyword ">where</span>
   <span class="keyword ">rec</span>
       <span class="keyword ">der</span> <span class="">y</span> = <span class="">y_v</span> <span class="keyword ">init</span> <span class="">y_0</span>
   <span class="keyword ">and</span> 
       <span class="keyword ">der</span> <span class="">y_v</span> = -. <span class="">g</span> <span class="keyword ">init</span> <span class="number">0.0</span> <span class="keyword ">reset</span> <span class="">z</span> -&gt; (-. <span class="">loose</span> <span class="operator">*.</span> <span class="keyword expr ">last</span> <span class="">y_v</span>)
   <span class="keyword ">and</span> <span class="">z</span> = <span class="keyword expr ">up</span>(<span class="">ground</span>(<span class="">x</span>) -. <span class="">y</span>)
-
   
 <span class="comment">(* Main entry point *)</span>
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">main</span> () =
@@ -151,7 +153,7 @@ when the balls vertical velocity becomes very small.</p>
 <span class="keyword ">let</span> <span class="">eps</span> = <span class="number">0.01</span>
 
 <span class="comment">(* The bouncing ball with two modes. *)</span>
-<span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">ball</span>(<span class="">x_0</span>, <span class="">y_0</span>) = (<span class="">x</span>, <span class="">y</span>) <span class="keyword ">where</span>
+<span class="keyword ">hybrid</span> <span class="">ball</span>(<span class="">x_0</span>, <span class="">y_0</span>) = (<span class="">x</span>, <span class="">y</span>) <span class="keyword ">where</span>
   <span class="keyword ">rec</span> <span class="keyword ">init</span> <span class="">y_start</span> = <span class="">y_0</span> 
   <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">x</span> = <span class="">x_v</span> <span class="keyword ">init</span> <span class="">x_0</span>
   <span class="keyword ">and</span>
@@ -160,7 +162,7 @@ when the balls vertical velocity becomes very small.</p>
       <span class="comment">(* the ball is falling with a possible bound. *)</span>
       <span class="keyword ">local</span> <span class="">z</span>, <span class="">y_v</span> <span class="keyword ">in</span>
       <span class="keyword ">do</span>
-        (<span class="">y</span>, <span class="">y_v</span>, <span class="">z</span>) = <span class="constructor">Ball</span>.<span class="">ball</span>(<span class="">x</span>, <span class="keyword expr ">last</span> <span class="">y_start</span>)
+        (<span class="">y</span>, <span class="">y_v</span>, <span class="">z</span>) = <span class="constructor">Ball</span>.<span class="">ball</span>(<span class="">x</span>, <span class="">y_start</span>)
       <span class="keyword ">until</span> <span class="">z</span> <span class="keyword expr ">on</span> (<span class="">y_v</span> &lt; <span class="">eps</span>) <span class="keyword ">then</span> <span class="constructor">Sliding</span>(<span class="">ground</span>(<span class="">x</span>))
   | <span class="constructor">Sliding</span>(<span class="">y0</span>) -&gt;
       <span class="comment">(* the ball is fixed, i.e., the derivative for y is 0 *)</span>
@@ -195,13 +197,16 @@ The main differences with the original model are:</p>
 
 <ul>
 <li><p>We manually track the bias and slope for integers representing rational
-values.</p></li>
+ values.</p></li>
 <li><p>We use int for the integer values rather than int8.</p></li>
 </ul>
 
 <p>The top level of this example comprises three nodes:</p>
 
-<p><img src="img/bangbang-model.png" alt="Model" title="Model" id="model" /></p>
+<figure>
+<img src="img/bangbang-model.png" alt="Model" title="Model" />
+<figcaption>Model</figcaption>
+</figure>
 
 <h3 id="controller">Controller</h3>
 
@@ -213,7 +218,7 @@ values.</p></li>
 <p>This value is a constant 20°C, but it is encoded as a fixed-point integer
 so that it can be compared directly with the digital temperature value
 from the environment model. The reference temperature has a value
-between 0 (-15°C) and 255 (84.609375°C), i.e., a resolution of
+between 0 (&#8211;15°C) and 255 (84.609375°C), i.e., a resolution of
 0.390625 per bit (0.390625 = 5 / 256 / 0.05).</p></li>
 <li><p><em>feedback temperature</em></p>
 
@@ -266,7 +271,7 @@ attained.</p>
 thermometer.</p>
 
 <p>The boiler temperature is modeled by a single integrator with an initial
-value of 15°C. This value (cools) at a rate of -0.1 / 25 when the
+value of 15°C. This value (cools) at a rate of &#8211;0.1 / 25 when the
 boiler is off. It changes (heats) at a rate of 1.0 / 25 when the boiler is
 on.</p>
 
@@ -291,7 +296,10 @@ at discrete instants (as plotting is a side-effect) and the graph is thus
 
 <h3 id="simulation">Simulation</h3>
 
-<p><img src="img/bangbang-graph.png" alt="Simulation" title="Simulation" id="simulation" /></p>
+<figure>
+<img src="img/bangbang-graph.png" alt="Simulation" title="Simulation" />
+<figcaption>Simulation</figcaption>
+</figure>
 
 <p>The simulation output shows a staircased increase in temperature from 15°C
 at <code>t = 0</code> to the 20°C just before <code>t = 500</code>. The initial rising edges have a
@@ -319,9 +327,12 @@ periods of cooling, i.e., when not heating.</p>
       Bang-Bang Control Using Temporal Logic
  *)</span>
 
+<span class="comment">(* time-scale factor *)</span>
+<span class="keyword ">let</span> <span class="">tscale</span> <span class="">x</span> = <span class="">x</span> <span class="operator">*.</span> <span class="number">100.0</span>
+
 <span class="comment">(* ** library functions ** *)</span>
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">integrator</span> (<span class="">i</span>, <span class="">u</span>) = <span class="">y</span> <span class="keyword ">where</span>
-  <span class="keyword ">rec</span> <span class="keyword ">der</span> <span class="">y</span> = <span class="">u</span> <span class="keyword ">init</span> <span class="">i</span>
+  <span class="keyword ">rec</span> <span class="keyword ">der</span> <span class="">y</span> = <span class="">tscale</span> <span class="">u</span> <span class="keyword ">init</span> <span class="">i</span>
 
 <span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">round</span> <span class="">x</span> = <span class="">floor</span> (<span class="">x</span> <span class="operator">+.</span> <span class="number">0.5</span>)
 
@@ -350,21 +361,17 @@ periods of cooling, i.e., when not heating.</p>
 
 <span class="comment">(* ** model of boiler plant with an exponential ** *)</span>
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">boiler_exponential</span>(<span class="">k1</span>, <span class="">k2</span>, <span class="">is_on</span>) = <span class="">actual_temp</span> <span class="keyword ">where</span>
-  <span class="keyword ">rec</span> <span class="keyword ">der</span> <span class="">actual_temp</span> = 
-           <span class="comment">(* two modes. [is_on] is a boolean and will only change *)</span>
-           <span class="comment">(* at a zero-crossing instant. *)</span>
-           <span class="keyword ">if</span> <span class="">is_on</span> <span class="keyword ">then</span> <span class="">k1</span> -. <span class="">k2</span> <span class="operator">*.</span> <span class="">actual_temp</span>
-           <span class="keyword ">else</span> -. <span class="">k2</span> <span class="operator">*.</span> <span class="">actual_temp</span>
-         <span class="keyword ">init</span> <span class="number">15.0</span>
+  <span class="keyword ">rec</span> <span class="">actual_temp</span> = <span class="">integrator</span> (<span class="number">15.0</span>, <span class="keyword ">if</span> <span class="">is_on</span> <span class="keyword ">then</span> <span class="">k1</span> -. <span class="">k2</span> <span class="operator">*.</span> <span class="">actual_temp</span>
+                                      <span class="keyword ">else</span> -. <span class="">k2</span> <span class="operator">*.</span> <span class="">actual_temp</span>)
+                      <span class="comment">(* two modes. [is_on] is a boolean and will only change *)</span>
+                      <span class="comment">(* at a zero-crossing instant. *)</span>
 
 <span class="comment">(* the one below is the Simulink version with an approximation by a *)</span>
 <span class="comment">(* linear function *)</span>
-<span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">boiler</span>(<span class="">is_on</span>) = <span class="">actual_temp</span> <span class="keyword ">where</span>
-  <span class="keyword ">rec</span> <span class="keyword ">der</span> <span class="">actual_temp</span> = 
-           <span class="comment">(* two modes. [is_on] is a boolean and will only change *)</span>
-           <span class="comment">(* at a zero-crossing instant. *)</span>
-           (<span class="keyword ">if</span> <span class="">is_on</span> <span class="keyword ">then</span> <span class="number">1.0</span> <span class="keyword ">else</span> -<span class="number">0.1</span>) <span class="operator">/.</span> <span class="number">25.0</span>
-         <span class="keyword ">init</span> <span class="number">15.0</span>
+<span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">boiler</span>(<span class="">is_on</span>) =
+  <span class="">integrator</span> (<span class="number">15.0</span>, (<span class="keyword ">if</span> <span class="">is_on</span> <span class="keyword ">then</span> <span class="number">1.0</span> <span class="keyword ">else</span> -<span class="number">0.1</span>) <span class="operator">/.</span> <span class="number">25.0</span>)
+                    <span class="comment">(* two modes. [is_on] is a boolean and will only change *)</span>
+                    <span class="comment">(* at a zero-crossing instant. *)</span>
 
 <span class="comment">(* ** Bang-Bang Controller ** *)</span>
 
@@ -375,7 +382,7 @@ periods of cooling, i.e., when not heating.</p>
 <span class="keyword ">let</span> <span class="">b_off</span>  = <span class="keyword constant ">false</span>
 <span class="keyword ">let</span> <span class="">b_on</span>   = <span class="keyword constant ">true</span>
 
-<span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">after</span> (<span class="">x</span>) =
+<span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">wait</span> (<span class="">x</span>) =
   <span class="keyword ">let</span> <span class="keyword ">rec</span> <span class="">c</span> = <span class="">x</span> -&gt; <span class="keyword expr ">pre</span> (<span class="">max</span> (<span class="number">0</span>, <span class="">c</span> - <span class="number">1</span>)) <span class="keyword ">in</span>
   <span class="">c</span> = <span class="number">0</span>
 
@@ -385,8 +392,8 @@ periods of cooling, i.e., when not heating.</p>
 
 <span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">flash_led</span> (<span class="">color</span>, <span class="">delay</span>) = <span class="">led</span> <span class="keyword ">where</span>
   <span class="keyword ">automaton</span>
-  | <span class="constructor">Off</span> -&gt; <span class="keyword ">do</span> <span class="">led</span> = <span class="">off</span>   <span class="keyword ">until</span> (<span class="">after</span> <span class="">delay</span>) <span class="keyword ">then</span> <span class="constructor">On</span>
-  | <span class="constructor">On</span>  -&gt; <span class="keyword ">do</span> <span class="">led</span> = <span class="">color</span> <span class="keyword ">until</span> (<span class="">after</span> <span class="">delay</span>) <span class="keyword ">then</span> <span class="constructor">Off</span>
+  | <span class="constructor">Off</span> -&gt; <span class="keyword ">do</span> <span class="">led</span> = <span class="">off</span>   <span class="keyword ">until</span> (<span class="">wait</span> <span class="">delay</span>) <span class="keyword ">then</span> <span class="constructor">On</span>
+  | <span class="constructor">On</span>  -&gt; <span class="keyword ">do</span> <span class="">led</span> = <span class="">color</span> <span class="keyword ">until</span> (<span class="">wait</span> <span class="">delay</span>) <span class="keyword ">then</span> <span class="constructor">Off</span>
 
 <span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">controller</span> (<span class="">ref</span>, <span class="">temp</span>) = (<span class="">led</span>, <span class="">boiler</span>) <span class="keyword ">where</span>
   <span class="keyword ">rec</span> <span class="">cold</span> = <span class="">temp</span> <span class="operator"><=</span> <span class="">ref</span>
@@ -394,7 +401,7 @@ periods of cooling, i.e., when not heating.</p>
   | <span class="constructor">Off</span> -&gt;
       <span class="keyword ">do</span> <span class="">boiler</span> = <span class="">b_off</span>
       <span class="keyword ">and</span> <span class="">led</span> = <span class="">flash_led</span> (<span class="">red</span>, <span class="number">5</span>)
-      <span class="keyword ">until</span> (<span class="">after</span> <span class="number">40</span>) &amp; <span class="">cold</span> <span class="keyword ">then</span> <span class="constructor">On</span>
+      <span class="keyword ">until</span> (<span class="">wait</span> <span class="number">40</span>) &amp; <span class="">cold</span> <span class="keyword ">then</span> <span class="constructor">On</span>
   | <span class="constructor">On</span> -&gt;
       <span class="keyword ">do</span> <span class="">boiler</span> = <span class="">b_on</span>
       <span class="keyword ">and</span> <span class="">led</span> = <span class="">flash_led</span> (<span class="">green</span>, <span class="number">1</span>)
@@ -406,18 +413,17 @@ periods of cooling, i.e., when not heating.</p>
 <span class="keyword ">let</span> <span class="">reference</span> = <span class="">fixdt</span> (<span class="number">5.0</span> <span class="operator">/.</span> <span class="number">256.0</span> <span class="operator">/.</span> <span class="number">0.05</span>, -. <span class="number">0.75</span> <span class="operator">/.</span> <span class="number">0.05</span>, <span class="number">20.0</span>)
 
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">model</span> () = (<span class="">led</span>, <span class="">on_off</span>, <span class="">actual_temp</span>) <span class="keyword ">where</span>
-  <span class="keyword ">rec</span> <span class="">trigger</span> = <span class="keyword expr ">period</span> (<span class="number">1.0</span>)
+  <span class="keyword ">rec</span> <span class="">trigger</span> = <span class="keyword expr ">period</span> (<span class="number">0.01</span>)
 
-  <span class="keyword ">and</span> (<span class="">led</span>, <span class="">on_off</span>) = 
-           <span class="keyword ">present</span> <span class="">trigger</span> -&gt; <span class="">controller</span>(<span class="">reference</span>, <span class="keyword expr ">last</span> <span class="">digital_temp</span>) 
-      <span class="keyword ">init</span> (<span class="">red</span>, <span class="keyword constant ">false</span>)
+  <span class="keyword ">and</span> <span class="keyword ">present</span> <span class="">trigger</span> -&gt; 
+         <span class="keyword ">do</span> (<span class="">led</span>, <span class="">on_off</span>) = <span class="">controller</span>(<span class="">reference</span>, <span class="keyword expr ">last</span> <span class="">digital_temp</span>) <span class="keyword ">done</span>
+  <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">led</span> = <span class="">red</span> <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">on_off</span> = <span class="keyword constant ">false</span>
   <span class="keyword ">and</span> <span class="">actual_temp</span> = <span class="">boiler</span>(<span class="">on_off</span>)
-  <span class="keyword ">and</span> <span class="">digital_temp</span> = 
-         <span class="keyword ">present</span> <span class="">trigger</span> -&gt; <span class="">digital_thermometer</span> (<span class="">actual_temp</span>)
-      <span class="keyword ">init</span> <span class="number">0</span>
+  <span class="keyword ">and</span> <span class="keyword ">present</span> <span class="">trigger</span> -&gt; 
+         <span class="keyword ">do</span> <span class="">digital_temp</span> = <span class="">digital_thermometer</span> (<span class="">actual_temp</span>) <span class="keyword ">done</span>
+  <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">digital_temp</span> = <span class="number">0</span>
 
 <span class="keyword keyword module ">open</span> <span class="constructor">Scope</span> <span class="comment">(* Dump *)</span>
-<span class="keyword ">let</span> <span class="">sample_period</span> = <span class="number">1.0</span>
 
 <span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">bool_to_float</span>(<span class="">x</span>) = <span class="keyword ">if</span> <span class="">x</span> <span class="keyword ">then</span> <span class="number">1.0</span> <span class="keyword ">else</span> <span class="number">0.0</span>
 
@@ -428,12 +434,12 @@ periods of cooling, i.e., when not heating.</p>
     <span class="">scope</span> (<span class="number">0.0</span>, <span class="number">1.0</span>, (<span class="string">"boiler (0=OFF, 1=ON)"</span>, <span class="">points</span> <span class="keyword constant ">true</span>, <span class="">bool_to_float</span>(<span class="">boiler</span>))) <span class="keyword ">in</span>
   <span class="keyword ">let</span> <span class="">s3</span> =
     <span class="">scope</span> (<span class="number">11.0</span>, <span class="number">25.0</span>, (<span class="string">"temperature (degC)"</span>, <span class="">linear</span>, <span class="">temp</span>)) <span class="keyword ">in</span>
-  <span class="keyword ">let</span> <span class="keyword ">rec</span> <span class="">t</span> = <span class="number">0.0</span> <span class="keyword expr ">fby</span> <span class="">t</span> <span class="operator">+.</span> <span class="">sample_period</span> <span class="keyword ">in</span>
-  <span class="">window3</span> (<span class="string">"bangbang"</span>, <span class="number">600.0</span>, <span class="">t</span>, <span class="">s1</span>, <span class="">s2</span>, <span class="">s3</span>)
+  <span class="keyword ">let</span> <span class="keyword ">rec</span> <span class="">t</span> = <span class="number">0.0</span> <span class="keyword expr ">fby</span> <span class="">t</span> <span class="operator">+.</span> <span class="number">1.0</span> <span class="keyword ">in</span>
+  <span class="">window3</span> (<span class="string">"bangbang"</span>, <span class="number">1600.0</span>, <span class="">t</span>, <span class="">s1</span>, <span class="">s2</span>, <span class="">s3</span>)
 
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">main</span> () =
   <span class="keyword ">let</span> (<span class="">led</span>, <span class="">on_off</span>, <span class="">actual_temp</span>) = <span class="">model</span> () <span class="keyword ">in</span>
-  <span class="keyword ">let</span> <span class="">trigger</span> = <span class="keyword expr ">period</span> (<span class="number">0.5</span>) <span class="keyword ">in</span>
+  <span class="keyword ">let</span> <span class="">trigger</span> = <span class="keyword expr ">period</span> (<span class="number">0.01</span>) <span class="keyword ">in</span>
   <span class="keyword ">present</span> <span class="">trigger</span> -&gt; <span class="">plot</span> (<span class="">led</span>, <span class="">on_off</span>, <span class="">actual_temp</span>) <span class="keyword ">else</span> ()
 
 </code></pre></div></div></div></div>
@@ -448,7 +454,7 @@ Lablgtk2</p>
 </p>
 </div>
 
-<p>This example comes from Chapter 10 of Åström and Wittenmark's
+<p>This example comes from Chapter 10 of Åström and Wittenmark&#8217;s
 <a href="http://store.doverpublications.com/0486462781.html"><em>Adaptive Control</em></a>
 (2nd edition).</p>
 
@@ -497,12 +503,10 @@ The shared elements are incorporated into a single file:</p>
   <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">x3</span> = <span class="">a31</span> <span class="operator">*.</span> <span class="">x1</span>  <span class="operator">+.</span>  <span class="">a32</span> <span class="operator">*.</span> <span class="">x2</span>  <span class="operator">+.</span>  <span class="">a33</span> <span class="operator">*.</span> <span class="">x3</span>  <span class="operator">+.</span>  <span class="">b3</span> <span class="operator">*.</span> <span class="">u</span> <span class="keyword ">init</span> <span class="number">0.0</span>
   <span class="keyword ">and</span> <span class="">y</span> = <span class="">c1</span> <span class="operator">*.</span> <span class="">x1</span>  <span class="operator">+.</span>  <span class="">c2</span> <span class="operator">*.</span> <span class="">x2</span>  <span class="operator">+.</span>  <span class="">c3</span> <span class="operator">*.</span> <span class="">x3</span>  <span class="operator">+.</span>  <span class="">d</span> <span class="operator">*.</span> <span class="">u</span>
 
-<span class="comment">(* The initial state should be Low when e < 0 *)</span>
 <span class="comment">(* ideal relay model *)</span>
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">relay</span> (<span class="">d</span>, <span class="">e</span>) = <span class="">u</span> <span class="keyword ">where</span>
-  <span class="keyword ">automaton</span>
-  | <span class="constructor">High</span> -&gt; <span class="keyword ">do</span> <span class="">u</span> = <span class="">d</span>    <span class="keyword ">until</span> <span class="keyword expr ">up</span>(-. <span class="">e</span>) <span class="keyword ">then</span> <span class="constructor">Low</span>
-  | <span class="constructor">Low</span>  -&gt; <span class="keyword ">do</span> <span class="">u</span> = -. <span class="">d</span> <span class="keyword ">until</span> <span class="keyword expr ">up</span>(<span class="">e</span>)    <span class="keyword ">then</span> <span class="constructor">High</span>
+  <span class="">u</span> = <span class="keyword ">present</span> (<span class="keyword expr ">up</span>(<span class="">e</span>)) | (<span class="keyword ">disc</span>(<span class="">e</span>)) | (<span class="keyword ">init</span>) -&gt; <span class="keyword ">if</span> <span class="">e</span> <span class="operator">>=</span> <span class="number">0.0</span> <span class="keyword ">then</span> <span class="">d</span> <span class="keyword ">else</span> -. <span class="">d</span>
+      <span class="keyword ">init</span> <span class="number">0.0</span>
 
 <span class="comment">(* ** model ** *)</span>
 
@@ -523,8 +527,8 @@ The shared elements are incorporated into a single file:</p>
 
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">command</span> () = <span class="">u</span> <span class="keyword ">where</span>
   <span class="keyword ">automaton</span>
-  | <span class="constructor">S0</span> -&gt; <span class="keyword ">do</span> <span class="">u</span> = <span class="number">1.0</span>  <span class="keyword ">until</span> (<span class="keyword expr ">period</span> (<span class="number">17.5</span>)) <span class="keyword ">then</span> <span class="constructor">S1</span>
-  | <span class="constructor">S1</span> -&gt; <span class="keyword ">do</span> <span class="">u</span> = -<span class="number">1.0</span> <span class="keyword ">until</span> (<span class="keyword expr ">period</span> (<span class="number">17.5</span>)) <span class="keyword ">then</span> <span class="constructor">S2</span>
+  | <span class="constructor">S0</span> -&gt; <span class="keyword ">do</span> <span class="">u</span> = <span class="number">1.0</span>  <span class="keyword ">until</span> (<span class="keyword expr ">period</span> <span class="number">17.5</span> (<span class="number">17.5</span>)) <span class="keyword ">then</span> <span class="constructor">S1</span>
+  | <span class="constructor">S1</span> -&gt; <span class="keyword ">do</span> <span class="">u</span> = -<span class="number">1.0</span> <span class="keyword ">until</span> (<span class="keyword expr ">period</span> <span class="number">35.0</span> (<span class="number">35.0</span>)) <span class="keyword ">then</span> <span class="constructor">S2</span>
   | <span class="constructor">S2</span> -&gt; <span class="keyword ">do</span> <span class="">u</span> = <span class="number">1.0</span> <span class="keyword ">done</span>
 
 <span class="comment">(* compensation network
@@ -579,7 +583,7 @@ The shared elements are incorporated into a single file:</p>
 *)</span>
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">process</span> <span class="">u</span> = <span class="">y</span> <span class="keyword ">where</span>
   <span class="keyword ">rec</span> <span class="keyword ">automaton</span>
-      | <span class="constructor">G5</span>  -&gt; <span class="keyword ">do</span> <span class="">b1</span> = <span class="number">4.0</span> <span class="keyword ">and</span> <span class="">c3</span> = <span class="number">3.750</span> <span class="keyword ">until</span> (<span class="keyword expr ">period</span> (<span class="number">25.0</span>)) <span class="keyword ">then</span> <span class="constructor">G15</span>
+      | <span class="constructor">G5</span>  -&gt; <span class="keyword ">do</span> <span class="">b1</span> = <span class="number">4.0</span> <span class="keyword ">and</span> <span class="">c3</span> = <span class="number">3.750</span> <span class="keyword ">until</span> (<span class="keyword expr ">period</span> <span class="number">25.0</span> (<span class="number">25.0</span>)) <span class="keyword ">then</span> <span class="constructor">G15</span>
       | <span class="constructor">G15</span> -&gt; <span class="keyword ">do</span> <span class="">b1</span> = <span class="number">8.0</span> <span class="keyword ">and</span> <span class="">c3</span> = <span class="number">9.375</span> <span class="keyword ">done</span>
   <span class="keyword ">and</span> <span class="">y</span> = <span class="">siso_3o</span> ((-<span class="number">21.0</span>, -<span class="number">5.0</span>, <span class="number">0.0</span>,
                       <span class="number">4.0</span>,  <span class="number">0.0</span>, <span class="number">0.0</span>,
@@ -606,11 +610,17 @@ then rises to <code>1</code> again at <code>35</code> seconds.
 The command signal is defined using a hybrid automaton in a node called
 <code>command</code>.</p>
 
-<p><img src="img/soas-command.png" alt="Command input" title="Command input" id="commandinput" /></p>
+<figure>
+<img src="img/soas-command.png" alt="Command input" title="Command input" />
+<figcaption>Command input</figcaption>
+</figure>
 
 <p>The <strong>process</strong> to be controlled is described by the transfer function:</p>
 
-<p><img src="img/soas-process.png" alt="Process transfer function" title="Process transfer function" id="processtransferfunction" /></p>
+<figure>
+<img src="img/soas-process.png" alt="Process transfer function" title="Process transfer function" />
+<figcaption>Process transfer function</figcaption>
+</figure>
 
 <p>where, initially, K = 3 and α = 20, but where the <em>process gain is suddenly
 increased by a factor of 5 at t = 25</em>.
@@ -645,7 +655,10 @@ inverter—that tries to follow the reponse of a reference model to the
 command signal.
 Other elements will be added successively.</p>
 
-<p><img src="img/soas-model1.png" alt="Basic SOAS: model" title="Basic SOAS: model" id="basicsoas:model" /></p>
+<figure>
+<img src="img/soas-model1.png" alt="Basic SOAS: model" title="Basic SOAS: model" />
+<figcaption>Basic SOAS: model</figcaption>
+</figure>
 
 <div id="soas_relaycontrol-soas1_basic-box" class="accordion sourcefile">
 <div class="accordion-group">
@@ -674,7 +687,7 @@ Other elements will be added successively.</p>
   <span class="comment">(* into a function. We can not for the moment as there *)</span>
   <span class="comment">(* is no inlining of function call a priori *)</span>
   <span class="keyword ">and</span> <span class="keyword ">automaton</span>
-      | <span class="constructor">G3</span>  -&gt; <span class="keyword ">do</span> <span class="">b1</span> = <span class="number">4.0</span> <span class="keyword ">and</span> <span class="">c3</span> = <span class="number">3.750</span> <span class="keyword ">until</span> (<span class="keyword expr ">period</span> (<span class="number">25.0</span>)) <span class="keyword ">then</span> <span class="constructor">G15</span>
+      | <span class="constructor">G3</span>  -&gt; <span class="keyword ">do</span> <span class="">b1</span> = <span class="number">4.0</span> <span class="keyword ">and</span> <span class="">c3</span> = <span class="number">3.750</span> <span class="keyword ">until</span> (<span class="keyword expr ">period</span> <span class="number">25.0</span> (<span class="number">25.0</span>)) <span class="keyword ">then</span> <span class="constructor">G15</span>
       | <span class="constructor">G15</span> -&gt; <span class="keyword ">do</span> <span class="">b1</span> = <span class="number">8.0</span> <span class="keyword ">and</span> <span class="">c3</span> = <span class="number">9.375</span> <span class="keyword ">done</span>
 
   <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">x1</span> = -<span class="number">21.0</span> <span class="operator">*.</span> <span class="">x1</span>  <span class="operator">+.</span>  -<span class="number">5.0</span> <span class="operator">*.</span> <span class="">x2</span>  <span class="operator">+.</span>  <span class="">b1</span> <span class="operator">*.</span> <span class="">u</span> <span class="keyword ">init</span> <span class="number">0.0</span>
@@ -704,21 +717,30 @@ tf2ss(syslin('c', wn^2, s^2 + 2*zeta*wn*s + wn^2))</code></pre>
 below.
 The actual output of the feedback loop is shown in blue.</p>
 
-<p><img src="img/soas-output1.png" alt="Basic SOAS: output" title="Basic SOAS: output" id="basicsoas:output" /></p>
+<figure>
+<img src="img/soas-output1.png" alt="Basic SOAS: output" title="Basic SOAS: output" />
+<figcaption>Basic SOAS: output</figcaption>
+</figure>
 
 <p>The <strong>relay</strong> is modelled in a node called <code>relay</code> using a hybrid
 automaton that alternates between <code>High</code> (output = <code>d</code>) and <code>Low</code> (output =
 <code>-d</code>) states in response to zero-crossings on its input signal.
-The relay's value is shown below.</p>
+The relay&#8217;s value is shown below.</p>
 
-<p><img src="img/soas-relay1.png" alt="Basic SOAS: relay" title="Basic SOAS: relay" id="basicsoas:relay" /></p>
+<figure>
+<img src="img/soas-relay1.png" alt="Basic SOAS: relay" title="Basic SOAS: relay" />
+<figcaption>Basic SOAS: relay</figcaption>
+</figure>
 
 <h3 id="soaswithleadnetwork">SOAS with lead network</h3>
 
 <p>The next model augments the basic model with a compensation network that
 adds a phase lead of -π.</p>
 
-<p><img src="img/soas-model2.png" alt="SOAS with lead network" title="SOAS with lead network" id="soaswithleadnetwork" /></p>
+<figure>
+<img src="img/soas-model2.png" alt="SOAS with lead network" title="SOAS with lead network" />
+<figcaption>SOAS with lead network</figcaption>
+</figure>
 
 <div id="soas_relaycontrol-soas2_leadnet-box" class="accordion sourcefile">
 <div class="accordion-group">
@@ -747,7 +769,7 @@ adds a phase lead of -π.</p>
   <span class="comment">(* into a function. We can not for the moment as there *)</span>
   <span class="comment">(* is no inlining of function call a priori *)</span>
   <span class="keyword ">and</span> <span class="keyword ">automaton</span>
-      | <span class="constructor">G3</span>  -&gt; <span class="keyword ">do</span> <span class="">b1</span> = <span class="number">4.0</span> <span class="keyword ">and</span> <span class="">c3</span> = <span class="number">3.750</span> <span class="keyword ">until</span> (<span class="keyword expr ">period</span> (<span class="number">25.0</span>)) <span class="keyword ">then</span> <span class="constructor">G15</span>
+      | <span class="constructor">G3</span>  -&gt; <span class="keyword ">do</span> <span class="">b1</span> = <span class="number">4.0</span> <span class="keyword ">and</span> <span class="">c3</span> = <span class="number">3.750</span> <span class="keyword ">until</span> (<span class="keyword expr ">period</span> <span class="number">25.0</span> (<span class="number">25.0</span>)) <span class="keyword ">then</span> <span class="constructor">G15</span>
       | <span class="constructor">G15</span> -&gt; <span class="keyword ">do</span> <span class="">b1</span> = <span class="number">8.0</span> <span class="keyword ">and</span> <span class="">c3</span> = <span class="number">9.375</span> <span class="keyword ">done</span>
 
   <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">x1</span> = -<span class="number">21.0</span> <span class="operator">*.</span> <span class="">x1</span>  <span class="operator">+.</span>  -<span class="number">5.0</span> <span class="operator">*.</span> <span class="">x2</span>  <span class="operator">+.</span>  <span class="">b1</span> <span class="operator">*.</span> <span class="">u</span> <span class="keyword ">init</span> <span class="number">0.0</span>
@@ -761,13 +783,15 @@ adds a phase lead of -π.</p>
 
 <p>The compensation filter is defined as a transfer function:</p>
 
-<p><img src="img/soas-filter.png" alt="G_f(s) = 1.2(s + 5)/(s + 15)" title="Filter" id="g_fs1.2s5s15" /></p>
+<figure>
+<img src="img/soas-filter.png" alt="G_f(s) = 1.2(s + 5)/(s + 15)" title="Filter" />
+<figcaption>G_f(s) = 1.2(s + 5)/(s + 15)</figcaption>
+</figure>
 
 <p>which is implemented in the node <code>g_f</code> using the generic node <code>siso_1o</code>
 after having calculated its state-space realization in either
-<a href="http://www.mathworks.com/products/matlab/">Matlab</a>:</p>
-
-<pre><code>[a, b, c, d] = ss(1.2 * tf([1 5], [1 15]))</code></pre>
+<a href="http://www.mathworks.com/products/matlab/">Matlab</a>:
+<pre><code>[a, b, c, d] = ss(1.2 * tf([1 5], [1 15]))</code></pre></p>
 
 <p>or <a href="https://www.scilab.org/">Scilab</a>:</p>
 
@@ -778,14 +802,20 @@ after having calculated its state-space realization in either
 maintaining the reponse speed, as can be seen in the simulation results
 below.</p>
 
-<p><img src="img/soas-output2.png" alt="SOAS with lead network: output" title="SOAS with lead network: output" id="soaswithleadnetwork:output" /></p>
+<figure>
+<img src="img/soas-output2.png" alt="SOAS with lead network: output" title="SOAS with lead network: output" />
+<figcaption>SOAS with lead network: output</figcaption>
+</figure>
 
 <h3 id="soaswithleadnetworkandgainchanger">SOAS with lead network and gain changer</h3>
 
 <p>A gain changer is added in the final model.
-It uses so called <em>up logic</em> to speed up the controller's reponse.</p>
+It uses so called <em>up logic</em> to speed up the controller&#8217;s reponse.</p>
 
-<p><img src="img/soas-model3.png" alt="SOAS with lead network and gain changer: model" title="SOAS with lead network and gain changer: model" id="soaswithleadnetworkandgainchanger:model" /></p>
+<figure>
+<img src="img/soas-model3.png" alt="SOAS with lead network and gain changer: model" title="SOAS with lead network and gain changer: model" />
+<figcaption>SOAS with lead network and gain changer: model</figcaption>
+</figure>
 
 <div id="soas_relaycontrol-soas3_gainchanger-box" class="accordion sourcefile">
 <div class="accordion-group">
@@ -814,7 +844,7 @@ It uses so called <em>up logic</em> to speed up the controller's reponse.</p>
   <span class="comment">(* into a function. We can not for the moment as there *)</span>
   <span class="comment">(* is no inlining of function call a priori *)</span>
   <span class="keyword ">and</span> <span class="keyword ">automaton</span>
-      | <span class="constructor">G3</span>  -&gt; <span class="keyword ">do</span> <span class="">b1</span> = <span class="number">4.0</span> <span class="keyword ">and</span> <span class="">c3</span> = <span class="number">3.750</span> <span class="keyword ">until</span> (<span class="keyword expr ">period</span> (<span class="number">25.0</span>)) <span class="keyword ">then</span> <span class="constructor">G15</span>
+      | <span class="constructor">G3</span>  -&gt; <span class="keyword ">do</span> <span class="">b1</span> = <span class="number">4.0</span> <span class="keyword ">and</span> <span class="">c3</span> = <span class="number">3.750</span> <span class="keyword ">until</span> (<span class="keyword expr ">period</span> <span class="number">25.0</span> (<span class="number">25.0</span>)) <span class="keyword ">then</span> <span class="constructor">G15</span>
       | <span class="constructor">G15</span> -&gt; <span class="keyword ">do</span> <span class="">b1</span> = <span class="number">8.0</span> <span class="keyword ">and</span> <span class="">c3</span> = <span class="number">9.375</span> <span class="keyword ">done</span>
 
   <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">x1</span> = -<span class="number">21.0</span> <span class="operator">*.</span> <span class="">x1</span>  <span class="operator">+.</span>  -<span class="number">5.0</span> <span class="operator">*.</span> <span class="">x2</span>  <span class="operator">+.</span>  <span class="">b1</span> <span class="operator">*.</span> <span class="">u</span> <span class="keyword ">init</span> <span class="number">0.0</span>
@@ -826,10 +856,13 @@ It uses so called <em>up logic</em> to speed up the controller's reponse.</p>
 
 </code></pre></div></div></div></div>
 
-<p>A gain changer increases the relay's amplitude (<code>d</code>) when a specified
+<p>A gain changer increases the relay&#8217;s amplitude (<code>d</code>) when a specified
 tolerance (e_l) is exceeded.</p>
 
-<p><img src="img/soas-gainchanger.png" alt="d = if |e| > e_l then d_1 else d_2 + (d_1 - d_2)e^(-(t - t_0)/T)" title="Gain changer" id="difee_lthend_1elsed_2d_1-d_2e-t-t_0t" /></p>
+<figure>
+<img src="img/soas-gainchanger.png" alt="d = if |e| &gt; e_l then d_1 else d_2 + (d_1 - d_2)e^(-(t - t_0)/T)" title="Gain changer" />
+<figcaption>d = if |e| &gt; e_l then d_1 else d_2 + (d_1 - d_2)e^(-(t - t_0)/T)</figcaption>
+</figure>
 
 <p>This logic is readily implemented in the <code>gain_changer</code> node using a hybrid
 automaton.</p>
@@ -838,12 +871,18 @@ automaton.</p>
 amplitude oscillations to the system with higher gain, without losing
 performance for the system with smaller gain.</p>
 
-<p><img src="img/soas-output3.png" alt="SOAS with lead network and gain changer: output" title="SOAS with lead network and gain changer: output" id="soaswithleadnetworkandgainchanger:output" /></p>
+<figure>
+<img src="img/soas-output3.png" alt="SOAS with lead network and gain changer: output" title="SOAS with lead network and gain changer: output" />
+<figcaption>SOAS with lead network and gain changer: output</figcaption>
+</figure>
 
 <p>The effect of the gain changing logic on the relay output is evident in the
 exponential envelopes on the signal shown below.</p>
 
-<p><img src="img/soas-relay3.png" alt="SOAS with lead network and gain changer: relay" title="SOAS with lead network and gain changer: relay" id="soaswithleadnetworkandgainchanger:relay" /></p>
+<figure>
+<img src="img/soas-relay3.png" alt="SOAS with lead network and gain changer: relay" title="SOAS with lead network and gain changer: relay" />
+<figcaption>SOAS with lead network and gain changer: relay</figcaption>
+</figure>
 </div><hr />
 <div id="stickysprings" class="example-section">
 <h2 id="stickymasses">Sticky Masses</h2>
@@ -861,7 +900,10 @@ Systems</em></a>, Second Edition,
 and the Ptolemy II model by Jie Liu, Haiyang Zheng,
 and Edward A. Lee.</p>
 
-<p><img src="img/stickysprings.png" alt="Sticky masses model" title="Sticky masses model" id="stickymassesmodel" /></p>
+<figure>
+<img src="img/stickysprings.png" alt="Sticky masses model" title="Sticky masses model" />
+<figcaption>Sticky masses model</figcaption>
+</figure>
 
 <p>The model comprises two sticky round masses, each on the end of a spring.
 The other ends of the springs are tied to opposing walls. After the springs
@@ -974,7 +1016,10 @@ Lablgtk2</p>
 example</a> that we developed to
 teach reactive programming.</p>
 
-<p><img src="img/backhoeloop.png" alt="Backhoe control loop" title="Backhoe loop" id="backhoecontrolloop" /></p>
+<figure>
+<img src="img/backhoeloop.png" alt="Backhoe control loop" title="Backhoe loop" />
+<figcaption>Backhoe control loop</figcaption>
+</figure>
 
 <p>The model comprises two interconnected elements:</p>
 
@@ -987,7 +1032,10 @@ teach reactive programming.</p>
 expressing the continuous dynamics is also an interesting programming
 problem, as is interfacing the two models.</p>
 
-<p><img src="img/backhoesensors.png" alt="Backhoe model: sensor names and locations" title="Backhoe sensor names" id="backhoemodel:sensornamesandlocations" /></p>
+<figure>
+<img src="img/backhoesensors.png" alt="Backhoe model: sensor names and locations" title="Backhoe sensor names" />
+<figcaption>Backhoe model: sensor names and locations</figcaption>
+</figure>
 
 <p>The discrete controller receives input from sensors which are defined inside
 the continuous model. There are sensors for each of three buttons
@@ -996,7 +1044,10 @@ whether the legs are fully retracted (<code>legs_in</code>) or fully extended
 (<code>legs_out</code>), and for indicating whether each of the rear segments is fully
 retracted (<code>*_in</code>) or fully extended (<code>*_out</code>).</p>
 
-<p><img src="img/backhoeactuators.png" alt="Backhoe model: actuator names" title="Backhoe actuator names" id="backhoemodel:actuatornames" /></p>
+<figure>
+<img src="img/backhoeactuators.png" alt="Backhoe model: actuator names" title="Backhoe actuator names" />
+<figcaption>Backhoe model: actuator names</figcaption>
+</figure>
 
 <p>There are control signals for three lamps (<code>alarm_lamp</code>, <code>done_lamp</code>, and
 <code>cancel_lamp</code>) and for triggering leg extension (<code>legs_extend</code>), leg
@@ -1006,7 +1057,10 @@ are three control signals pel segment: setting an internal valve for pushing
 through the valve (<code>*_drive</code>). It is assumed that a lower-level controller
 maintains a segments position when it is not being driven.</p>
 
-<p><img src="img/backhoesegmentauto.png" alt="Backhoe segment model" title="Backhoe segment model" id="backhoesegmentmodel" /></p>
+<figure>
+<img src="img/backhoesegmentauto.png" alt="Backhoe segment model" title="Backhoe segment model" />
+<figcaption>Backhoe segment model</figcaption>
+</figure>
 
 <p>Each segment is modelled using set of equations that include a hybrid
 automaton. Two types of dynamics are modelled: moving and stopping with
@@ -1023,18 +1077,18 @@ the limits of movement (modelled as instantaneous reset).</p>
 
 <div id="backhoe-backhoecontrol" class="accordion-body">
 <div class="accordion-inner">
-<pre class="zelus "><code><span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">after</span> (<span class="">n</span>, <span class="">t</span>) = (<span class="">c</span> = <span class="">n</span>) <span class="keyword ">where</span>
+<pre class="zelus "><code><span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">aftern</span> (<span class="">n</span>, <span class="">t</span>) = (<span class="">c</span> = <span class="">n</span>) <span class="keyword ">where</span>
   <span class="keyword ">rec</span> <span class="">c</span> = <span class="number">0</span> <span class="keyword expr ">fby</span> <span class="">min</span> ((<span class="keyword ">if</span> <span class="">t</span> <span class="keyword ">then</span> <span class="">c</span> <span class="operator">+</span> <span class="number">1</span> <span class="keyword ">else</span> <span class="">c</span>), <span class="">n</span>)
 
 <span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">blink</span> (<span class="">n</span>, <span class="">t</span>) = <span class="">x</span> <span class="keyword ">where</span>
   <span class="keyword ">automaton</span>
-  | <span class="constructor">On</span>  -&gt; <span class="keyword ">do</span> <span class="">x</span> = <span class="keyword constant ">true</span>  <span class="keyword ">until</span> (<span class="">after</span> (<span class="">n</span>, <span class="">t</span>)) <span class="keyword ">then</span> <span class="constructor">Off</span>
-  | <span class="constructor">Off</span> -&gt; <span class="keyword ">do</span> <span class="">x</span> = <span class="keyword constant ">false</span> <span class="keyword ">until</span> (<span class="">after</span> (<span class="">n</span>, <span class="">t</span>)) <span class="keyword ">then</span> <span class="constructor">On</span>
+  | <span class="constructor">On</span>  -&gt; <span class="keyword ">do</span> <span class="">x</span> = <span class="keyword constant ">true</span>  <span class="keyword ">until</span> (<span class="">aftern</span> (<span class="">n</span>, <span class="">t</span>)) <span class="keyword ">then</span> <span class="constructor">Off</span>
+  | <span class="constructor">Off</span> -&gt; <span class="keyword ">do</span> <span class="">x</span> = <span class="keyword constant ">false</span> <span class="keyword ">until</span> (<span class="">aftern</span> (<span class="">n</span>, <span class="">t</span>)) <span class="keyword ">then</span> <span class="constructor">On</span>
 
 <span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">blink2</span>(<span class="">ton</span>, <span class="">toff</span>, <span class="">t</span>) = <span class="">x</span> <span class="keyword ">where</span>
   <span class="keyword ">automaton</span>
-  | <span class="constructor">On</span>  -&gt; <span class="keyword ">do</span> <span class="">x</span> = <span class="keyword constant ">true</span>  <span class="keyword ">until</span> (<span class="">after</span> (<span class="">ton</span>, <span class="">t</span>)) <span class="keyword ">then</span> <span class="constructor">Off</span>
-  | <span class="constructor">Off</span> -&gt; <span class="keyword ">do</span> <span class="">x</span> = <span class="keyword constant ">false</span> <span class="keyword ">until</span> (<span class="">after</span> (<span class="">toff</span>, <span class="">t</span>)) <span class="keyword ">then</span> <span class="constructor">On</span>
+  | <span class="constructor">On</span>  -&gt; <span class="keyword ">do</span> <span class="">x</span> = <span class="keyword constant ">true</span>  <span class="keyword ">until</span> (<span class="">aftern</span> (<span class="">ton</span>, <span class="">t</span>)) <span class="keyword ">then</span> <span class="constructor">Off</span>
+  | <span class="constructor">Off</span> -&gt; <span class="keyword ">do</span> <span class="">x</span> = <span class="keyword constant ">false</span> <span class="keyword ">until</span> (<span class="">aftern</span> (<span class="">toff</span>, <span class="">t</span>)) <span class="keyword ">then</span> <span class="constructor">On</span>
 
 <span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">leg_controller</span> 
     ((<span class="">legs_in</span>, <span class="">legs_out</span>), (<span class="">stop_button</span>, <span class="">retract_button</span>, <span class="">extend_button</span>), <span class="">second</span>) = 
@@ -1047,29 +1101,24 @@ the limits of movement (modelled as instantaneous reset).</p>
           <span class="keyword ">do</span> <span class="">alarm</span> = <span class="keyword constant ">false</span>
           <span class="keyword ">until</span> <span class="">extend_button</span> <span class="keyword ">then</span> <span class="constructor">LegsMoving</span>(<span class="keyword constant ">true</span>)
 
-      | <span class="constructor">LegsMoving</span>(<span class="">extend</span>) -&gt;
-          <span class="keyword ">local</span> <span class="">at_extremity</span> <span class="keyword ">in</span>
-          <span class="keyword ">do</span> <span class="keyword ">init</span> <span class="">at_extremity</span> = <span class="keyword constant ">false</span>
-          <span class="keyword ">and</span>
+      | <span class="constructor">LegsMoving</span>(<span class="">extend</span>) -&gt; <span class="keyword ">do</span>
           <span class="keyword ">automaton</span>
              | <span class="constructor">Initial</span> -&gt;
                  <span class="keyword ">do</span>
-                 <span class="keyword ">unless</span> <span class="">extend</span>       <span class="keyword ">then</span> <span class="constructor">Extending</span>
-                   <span class="keyword ">else</span> (<span class="">not</span> <span class="">extend</span>) <span class="keyword ">then</span> <span class="constructor">Retracting</span>
+                 <span class="keyword ">until</span> <span class="">extend</span>       <span class="keyword ">then</span> <span class="constructor">Extending</span>
+                  <span class="keyword ">else</span> (<span class="">not</span> <span class="">extend</span>) <span class="keyword ">then</span> <span class="constructor">Retracting</span>
 
              | <span class="constructor">Extending</span> -&gt;
                  <span class="keyword ">do</span>
                    <span class="keyword ">emit</span> <span class="">legs_extend</span>
                  <span class="keyword ">until</span> <span class="">stop_button</span>    <span class="keyword ">then</span> <span class="constructor">Stopped</span>
                   <span class="keyword ">else</span> <span class="">retract_button</span> <span class="keyword ">then</span> <span class="constructor">Retracting</span>
-                  <span class="keyword ">else</span> <span class="">legs_out</span>       <span class="keyword ">then</span> <span class="constructor">Done</span>
 
              | <span class="constructor">Retracting</span> -&gt;
                  <span class="keyword ">do</span>
                    <span class="keyword ">emit</span> <span class="">legs_retract</span>
                  <span class="keyword ">until</span> <span class="">stop_button</span>   <span class="keyword ">then</span> <span class="constructor">Stopped</span>
                   <span class="keyword ">else</span> <span class="">extend_button</span> <span class="keyword ">then</span> <span class="constructor">Extending</span>
-                  <span class="keyword ">else</span> <span class="">legs_in</span>       <span class="keyword ">then</span> <span class="constructor">Done</span>
 
              | <span class="constructor">Stopped</span> -&gt;
                  <span class="keyword ">do</span>
@@ -1077,19 +1126,17 @@ the limits of movement (modelled as instantaneous reset).</p>
                  <span class="keyword ">until</span> <span class="">extend_button</span>  <span class="keyword ">then</span> <span class="constructor">Extending</span>
                   <span class="keyword ">else</span> <span class="">retract_button</span> <span class="keyword ">then</span> <span class="constructor">Retracting</span>
 
-              | <span class="constructor">Done</span> -&gt; <span class="keyword ">do</span> <span class="">at_extremity</span> = <span class="keyword constant ">true</span> <span class="keyword ">done</span>
-
              <span class="keyword ">and</span> <span class="">alarm</span> = <span class="keyword constant ">false</span> -&gt; <span class="">not</span> (<span class="keyword expr ">pre</span> <span class="">alarm</span>)
              <span class="keyword ">and</span> <span class="">extended</span> = <span class="keyword constant ">false</span>
 
-          <span class="keyword ">until</span> (<span class="">at_extremity</span> <span class="operator">&&</span> <span class="">legs_out</span>) <span class="keyword ">then</span> <span class="constructor">LegsOut</span>
-           <span class="keyword ">else</span> (<span class="">at_extremity</span> <span class="operator">&&</span> <span class="">legs_in</span>)  <span class="keyword ">then</span> <span class="constructor">LegsIn</span>
-           <span class="keyword ">else</span> (<span class="">after</span>(<span class="number">20</span>, <span class="">second</span>))        <span class="keyword ">then</span> <span class="constructor">Error</span>
+          <span class="keyword ">until</span> <span class="">legs_extend</span>(_)  &amp; <span class="">legs_out</span> <span class="keyword ">then</span> <span class="constructor">LegsOut</span>
+           <span class="keyword ">else</span> <span class="">legs_retract</span>(_) &amp; <span class="">legs_in</span>  <span class="keyword ">then</span> <span class="constructor">LegsIn</span>
+           <span class="keyword ">else</span> (<span class="">aftern</span>(<span class="number">20</span>, <span class="">second</span>))       <span class="keyword ">then</span> <span class="constructor">Error</span>
 
       | <span class="constructor">LegsOut</span> -&gt;
           <span class="keyword ">do</span>
             <span class="">extended</span> = <span class="keyword constant ">true</span> <span class="keyword ">and</span> <span class="">alarm</span> = <span class="keyword constant ">false</span>
-          <span class="keyword ">unless</span> <span class="">retract_button</span> <span class="keyword ">then</span> <span class="constructor">LegsMoving</span>(<span class="keyword constant ">false</span>)
+          <span class="keyword ">until</span> <span class="">retract_button</span> <span class="keyword ">then</span> <span class="constructor">LegsMoving</span>(<span class="keyword constant ">false</span>)
 
       | <span class="constructor">Error</span> -&gt;
           <span class="keyword ">do</span>
@@ -1128,8 +1175,8 @@ the limits of movement (modelled as instantaneous reset).</p>
           <span class="keyword ">do</span> <span class="">alarm_lamp</span>  = <span class="keyword constant ">false</span>
           <span class="keyword ">and</span> <span class="">done_lamp</span>   = <span class="keyword constant ">true</span>
           <span class="keyword ">and</span> <span class="">cancel_lamp</span> = <span class="keyword constant ">false</span>
-          <span class="keyword ">until</span>  <span class="">extend_button</span>  <span class="keyword ">then</span> <span class="constructor">Dig</span>
-          <span class="keyword ">unless</span> <span class="">retract_button</span> <span class="keyword ">continue</span> <span class="constructor">Legs</span>
+          <span class="keyword ">until</span> <span class="">extend_button</span>  <span class="keyword ">then</span> <span class="constructor">Dig</span>
+           <span class="keyword ">else</span> <span class="">retract_button</span> <span class="keyword ">continue</span> <span class="constructor">Legs</span>
 
       | <span class="constructor">Dig</span> -&gt;
           <span class="keyword ">local</span> <span class="">finished</span> <span class="keyword ">in</span>
@@ -1140,10 +1187,10 @@ the limits of movement (modelled as instantaneous reset).</p>
                 <span class="keyword ">do</span> <span class="">done_lamp</span> = <span class="keyword constant ">false</span>
                 <span class="keyword ">and</span> <span class="">alarm_lamp</span> = <span class="">blink</span>(<span class="number">2</span>, <span class="">second</span>)
                 <span class="keyword ">and</span> <span class="keyword ">automaton</span>
-                    | <span class="constructor">RaiseStickBucket</span> -&gt;
-			<span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">stick_pull</span>  <span class="keyword ">and</span> <span class="">stick_drive</span> = <span class="keyword constant ">true</span>
-			<span class="keyword ">and</span> <span class="keyword ">emit</span> <span class="">bucket_pull</span> <span class="keyword ">and</span> <span class="">bucket_drive</span> = <span class="keyword constant ">true</span>
-			<span class="keyword ">unless</span> (<span class="">stick_in</span> <span class="operator">&&</span> <span class="">bucket_in</span>) <span class="keyword ">then</span> <span class="constructor">LowerBoom</span>
+                  | <span class="constructor">RaiseStickBucket</span> -&gt;
+                      <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">stick_pull</span>  <span class="keyword ">and</span> <span class="">stick_drive</span> = <span class="keyword constant ">true</span>
+                      <span class="keyword ">and</span> <span class="keyword ">emit</span> <span class="">bucket_pull</span> <span class="keyword ">and</span> <span class="">bucket_drive</span> = <span class="keyword constant ">true</span>
+                      <span class="keyword ">unless</span> (<span class="">stick_in</span> <span class="operator">&&</span> <span class="">bucket_in</span>) <span class="keyword ">then</span> <span class="constructor">LowerBoom</span>
 
                   | <span class="constructor">LowerBoom</span> -&gt;
                       <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">boom_push</span> <span class="keyword ">and</span> <span class="">boom_drive</span> = <span class="keyword constant ">true</span>
@@ -1154,12 +1201,12 @@ the limits of movement (modelled as instantaneous reset).</p>
                       <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">stick_push</span>  <span class="keyword ">and</span> <span class="">stick_drive</span> = <span class="keyword constant ">true</span>
                       <span class="keyword ">and</span> <span class="keyword ">emit</span> <span class="">bucket_push</span> <span class="keyword ">and</span> <span class="">bucket_drive</span> = <span class="keyword constant ">true</span>
                       <span class="keyword ">and</span> <span class="">boom_drive</span> = <span class="keyword constant ">false</span>
-                      <span class="keyword ">until</span> (<span class="">stick_out</span> <span class="operator">&&</span> <span class="">boom_out</span>) <span class="keyword ">then</span> <span class="constructor">RaiseBoom</span>
+                      <span class="keyword ">unless</span> (<span class="">stick_out</span> <span class="operator">&&</span> <span class="">boom_out</span>) <span class="keyword ">then</span> <span class="constructor">RaiseBoom</span>
 
                   | <span class="constructor">RaiseBoom</span> -&gt;
                       <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">boom_pull</span> <span class="keyword ">and</span> <span class="">boom_drive</span> = <span class="keyword constant ">true</span>
                       <span class="keyword ">and</span> <span class="">bucket_drive</span> = <span class="keyword constant ">false</span> <span class="keyword ">and</span> <span class="">stick_drive</span> = <span class="keyword constant ">false</span>
-                      <span class="keyword ">until</span> (<span class="">boom_in</span>) <span class="keyword ">then</span> <span class="constructor">Finished</span>
+                      <span class="keyword ">unless</span> (<span class="">boom_in</span>) <span class="keyword ">then</span> <span class="constructor">Finished</span>
 
                   | <span class="constructor">Finished</span> -&gt;
                       <span class="keyword ">do</span> <span class="">finished</span> = <span class="keyword constant ">true</span> <span class="keyword ">done</span>
@@ -1173,7 +1220,7 @@ the limits of movement (modelled as instantaneous reset).</p>
                 <span class="keyword ">and</span> <span class="">stick_drive</span> = <span class="keyword constant ">false</span>
                 <span class="keyword ">and</span> <span class="">bucket_drive</span> = <span class="keyword constant ">false</span>
                 <span class="keyword ">until</span> (<span class="">extend_button</span>) <span class="keyword ">continue</span> <span class="constructor">Move</span>
-                 <span class="keyword ">else</span> (<span class="">retract_button</span> || <span class="">after</span>(<span class="number">30</span>, <span class="">second</span>)) <span class="keyword ">then</span> <span class="constructor">Cancel</span>
+                 <span class="keyword ">else</span> (<span class="">retract_button</span> || <span class="">aftern</span>(<span class="number">30</span>, <span class="">second</span>)) <span class="keyword ">then</span> <span class="constructor">Cancel</span>
 
             | <span class="constructor">Cancel</span> -&gt;
                 <span class="keyword ">do</span> <span class="">cancel_lamp</span> = <span class="">blink</span>(<span class="number">1</span>, <span class="">second</span>)
@@ -1208,17 +1255,20 @@ the limits of movement (modelled as instantaneous reset).</p>
            (<span class="">alarm_lamp</span>, <span class="">done_lamp</span>, <span class="">cancel_lamp</span>)) = 
                           <span class="">sampled_controller</span> (<span class="keyword expr ">last</span> <span class="">sensors</span>, <span class="constructor">Backhoedyn</span>.<span class="">buttons</span> (), <span class="">second</span>) 
         <span class="keyword ">done</span>
-		
+                
   <span class="keyword ">and</span> <span class="">sensors</span> = 
         <span class="constructor">Backhoedyn</span>.<span class="">model</span> ((<span class="">boom_push</span>, <span class="">boom_pull</span>, <span class="">boom_drive</span>),
-			  (<span class="">stick_push</span>, <span class="">stick_pull</span>, <span class="">stick_drive</span>),
-			  (<span class="">bucket_push</span>, <span class="">bucket_pull</span>, <span class="">bucket_drive</span>),
-			  (<span class="">legs_extend</span>, <span class="">legs_retract</span>, <span class="">legs_stop</span>),
-			  (<span class="">alarm_lamp</span>, <span class="">done_lamp</span>, <span class="">cancel_lamp</span>)) 
+                          (<span class="">stick_push</span>, <span class="">stick_pull</span>, <span class="">stick_drive</span>),
+                          (<span class="">bucket_push</span>, <span class="">bucket_pull</span>, <span class="">bucket_drive</span>),
+                          (<span class="">legs_extend</span>, <span class="">legs_retract</span>, <span class="">legs_stop</span>),
+                          (<span class="">alarm_lamp</span>, <span class="">done_lamp</span>, <span class="">cancel_lamp</span>)) 
 
-  <span class="keyword ">and</span> <span class="">sample</span> = <span class="keyword expr ">period</span> (<span class="number">0.5</span>)
+  <span class="keyword ">and</span> <span class="">sample</span> = <span class="keyword expr ">period</span> (<span class="number">0.2</span>)
 
-  <span class="keyword ">and</span> <span class="">second</span> = <span class="keyword ">present</span> <span class="">sample</span> -&gt; <span class="">not</span> (<span class="keyword expr ">last</span> <span class="">second</span>) <span class="keyword ">init</span> <span class="keyword constant ">true</span>
+  <span class="comment">(* and second = present sample -> not (last second) init true *)</span>
+  <span class="comment">(* and second = present (init) | sample -> true fby not (second) init true *)</span>
+
+  <span class="keyword ">and</span> <span class="">second</span> = <span class="keyword ">present</span> <span class="">sample</span> -&gt; <span class="keyword constant ">true</span> -&gt; <span class="">not</span> (<span class="keyword expr ">last</span> <span class="">second</span>) <span class="keyword ">init</span> <span class="keyword constant ">true</span>
 
 </code></pre></div></div></div></div>
 
@@ -1234,10 +1284,10 @@ the limits of movement (modelled as instantaneous reset).</p>
 <div class="accordion-inner">
 <pre class="zelus "><code><span class="comment">(** Model constants *)</span>
 
-<span class="keyword ">let</span> <span class="">boom_rate</span>   = <span class="number">0.4</span>
-<span class="keyword ">let</span> <span class="">stick_rate</span>  = <span class="number">0.5</span>
-<span class="keyword ">let</span> <span class="">bucket_rate</span> = <span class="number">0.35</span>
-<span class="keyword ">let</span> <span class="">leg_rate</span>    = <span class="number">4.0</span>
+<span class="keyword ">let</span> <span class="">boom_rate</span>   =  <span class="number">1.6</span>
+<span class="keyword ">let</span> <span class="">stick_rate</span>  = <span class="number">10.0</span>
+<span class="keyword ">let</span> <span class="">bucket_rate</span> =  <span class="number">2.8</span>
+<span class="keyword ">let</span> <span class="">leg_rate</span>    = <span class="number">32.0</span>
 
 <span class="comment">(** Model components *)</span>
 
@@ -1246,11 +1296,12 @@ the limits of movement (modelled as instantaneous reset).</p>
 
  <span class="keyword ">rec</span> <span class="keyword ">der</span> <span class="">angle</span> = <span class="">v</span> <span class="keyword ">init</span> <span class="">i</span>
  <span class="keyword ">and</span> <span class="">error</span> = <span class="">v_r</span> -. <span class="">v</span>
- <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">v</span> = (<span class="number">0.7</span> <span class="operator">/.</span> <span class="">maxf</span>) <span class="operator">*.</span> <span class="">error</span> <span class="operator">+.</span> <span class="number">0.3</span> <span class="operator">*.</span> <span class="">z</span> <span class="keyword ">init</span> <span class="number">0.0</span>
+ <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">v</span> = (<span class="number">0.8</span> <span class="operator">/.</span> <span class="">maxf</span>) <span class="operator">*.</span> <span class="">error</span> <span class="operator">+.</span> <span class="number">0.2</span> <span class="operator">*.</span> <span class="">z</span> <span class="keyword ">init</span> <span class="number">0.0</span>
              <span class="keyword ">reset</span> <span class="">hit</span>(<span class="">v0</span>) -&gt; <span class="">v0</span>
  <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">z</span> = <span class="">error</span> <span class="keyword ">init</span> <span class="number">0.0</span> <span class="keyword ">reset</span> <span class="">hit</span>(_) -&gt; <span class="number">0.0</span>
  <span class="keyword ">and</span> <span class="">v_r</span> = <span class="keyword ">if</span> <span class="">go</span> <span class="keyword ">then</span> <span class="">rate</span> <span class="keyword ">else</span> <span class="number">0.0</span>
- <span class="keyword ">and</span> <span class="keyword ">init</span> (<span class="">segin</span>, <span class="">segout</span>) = (<span class="">angle</span> <span class="operator"><=</span> <span class="">min</span>, <span class="">angle</span> <span class="operator">>=</span> <span class="">max</span>)
+ <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">segin</span> = <span class="">angle</span> <span class="operator"><=</span> <span class="">min</span>
+ <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">segout</span> = <span class="">angle</span> <span class="operator">>=</span> <span class="">max</span>
 
  <span class="keyword ">and</span> <span class="keyword ">automaton</span>
    | <span class="constructor">Stuck</span> -&gt; <span class="keyword ">do</span>
@@ -1264,18 +1315,18 @@ the limits of movement (modelled as instantaneous reset).</p>
       <span class="keyword ">do</span>
         <span class="">rate</span> = <span class="">maxf</span>
         <span class="keyword ">and</span> <span class="">atlimit</span> = <span class="keyword expr ">up</span>(<span class="">angle</span> -. <span class="">max</span>)
-      <span class="keyword ">until</span> <span class="">atlimit</span> <span class="keyword expr ">on</span> (<span class="keyword expr ">last</span> <span class="">v</span> &gt; <span class="number">0.3</span> <span class="operator">*.</span> <span class="">maxf</span>) <span class="keyword ">then</span> <span class="keyword ">do</span>
-               <span class="keyword ">emit</span> <span class="">hit</span> = -<span class="number">0.8</span> <span class="operator">*.</span> <span class="keyword expr ">last</span> <span class="">v</span> <span class="keyword ">in</span> <span class="constructor">Pushing</span>
-      <span class="keyword ">else</span> (<span class="">atlimit</span>) <span class="keyword ">then</span> <span class="keyword ">do</span> <span class="">segout</span> = <span class="keyword constant ">true</span> <span class="keyword ">in</span> <span class="constructor">Stuck</span>
+      <span class="keyword ">until</span> <span class="">atlimit</span> <span class="keyword expr ">on</span> (<span class="keyword expr ">last</span> <span class="">v</span> &gt; <span class="number">0.1</span> <span class="operator">*.</span> <span class="">maxf</span>) <span class="keyword ">then</span> <span class="keyword ">do</span>
+               <span class="keyword ">emit</span> <span class="">hit</span> = -<span class="number">0.3</span> <span class="operator">*.</span> <span class="keyword expr ">last</span> <span class="">v</span> <span class="keyword ">in</span> <span class="constructor">Pushing</span>
+      <span class="keyword ">else</span> (<span class="">atlimit</span>) <span class="keyword ">then</span> <span class="keyword ">do</span> <span class="">segout</span> = <span class="keyword constant ">true</span> <span class="keyword ">and</span> <span class="keyword ">emit</span> <span class="">hit</span> = <span class="number">0.0</span> <span class="keyword ">in</span> <span class="constructor">Stuck</span>
       <span class="keyword ">else</span> <span class="">pull</span>() <span class="keyword ">then</span> <span class="constructor">Pulling</span>
 
    | <span class="constructor">Pulling</span> -&gt; <span class="keyword ">local</span> <span class="">atlimit</span> <span class="keyword ">in</span>
       <span class="keyword ">do</span>
         <span class="">rate</span> = -. <span class="">maxf</span>
         <span class="keyword ">and</span> <span class="">atlimit</span> = <span class="keyword expr ">up</span>(<span class="">min</span> -. <span class="">angle</span>)
-      <span class="keyword ">until</span> <span class="">atlimit</span> <span class="keyword expr ">on</span> (<span class="keyword expr ">last</span> <span class="">v</span> &lt; -<span class="number">0.3</span> <span class="operator">*.</span> <span class="">maxf</span>) <span class="keyword ">then</span> <span class="keyword ">do</span>
-               <span class="keyword ">emit</span> <span class="">hit</span> = -<span class="number">0.8</span> <span class="operator">*.</span> <span class="keyword expr ">last</span> <span class="">v</span> <span class="keyword ">in</span> <span class="constructor">Pulling</span>
-      <span class="keyword ">else</span>  (<span class="">atlimit</span>) <span class="keyword ">then</span> <span class="keyword ">do</span> <span class="">segin</span> = <span class="keyword constant ">true</span> <span class="keyword ">in</span> <span class="constructor">Stuck</span>
+      <span class="keyword ">until</span> <span class="">atlimit</span> <span class="keyword expr ">on</span> (<span class="keyword expr ">last</span> <span class="">v</span> &lt; -<span class="number">0.1</span> <span class="operator">*.</span> <span class="">maxf</span>) <span class="keyword ">then</span> <span class="keyword ">do</span>
+               <span class="keyword ">emit</span> <span class="">hit</span> = -<span class="number">0.3</span> <span class="operator">*.</span> <span class="keyword expr ">last</span> <span class="">v</span> <span class="keyword ">in</span> <span class="constructor">Pulling</span>
+      <span class="keyword ">else</span>  (<span class="">atlimit</span>) <span class="keyword ">then</span> <span class="keyword ">do</span> <span class="">segin</span> = <span class="keyword constant ">true</span> <span class="keyword ">and</span> <span class="keyword ">emit</span> <span class="">hit</span> = <span class="number">0.0</span> <span class="keyword ">in</span> <span class="constructor">Stuck</span>
       <span class="keyword ">else</span>  <span class="">push</span>() <span class="keyword ">then</span> <span class="constructor">Pushing</span>
 
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">legsegment</span> ((<span class="">min</span>, <span class="">max</span>, <span class="">i</span>), <span class="">rate</span>, (<span class="">extend</span>, <span class="">retract</span>, <span class="">stop</span>)) =
@@ -1366,21 +1417,27 @@ Systems</em></a>, Tomlin, Pappas, Sastry, 1998.</p>
 Aircraft2. Both aircraft are flying at a similar altitude and with constant
 velocity and heading. Two zones are defined around each aircraft:</p>
 
-<p><img src="img/aircraft-zones.png" alt="Plane alert zones" title="Plane alert zones" id="planealertzones" /></p>
+<figure>
+<img src="img/aircraft-zones.png" alt="Plane alert zones" title="Plane alert zones" />
+<figcaption>Plane alert zones</figcaption>
+</figure>
 
 <p>A conflict resolution manouever is considered when two planes have entered
-into each other's alert zones. The system aims to ensure that neither plane
-ever enters the other's protected zone.</p>
+into each other&#8217;s alert zones. The system aims to ensure that neither plane
+ever enters the other&#8217;s protected zone.</p>
 
 <p>In the model, the position and heading of Aircraft1 define, respectively, the
 origin and direction of the positive x-axis of a relative coordinate system,
 in which the position of Aircraft2 is specified. The heading of Aircraft2 is
 specified relative to the positive x-axis.</p>
 
-<p><img src="img/aircraft-model.png" alt="Basic model" title="Basic model" id="basicmodel" /></p>
+<figure>
+<img src="img/aircraft-model.png" alt="Basic model" title="Basic model" />
+<figcaption>Basic model</figcaption>
+</figure>
 
 <p>The initial condition in the model is that the aircraft are cruising outside
-each other's protected zones, but inside each other's alert zones.</p>
+each other&#8217;s protected zones, but inside each other&#8217;s alert zones.</p>
 
 <p>The manouever modelled in this case is (taken directly from the paper):</p>
 
@@ -1426,6 +1483,10 @@ and instantaneously.</p>
 
 <span class="comment">(** constants, initial state **)</span>
 
+<span class="comment">(* increase the derivatives for a faster animation *)</span>
+<span class="keyword ">let</span> <span class="">tscale</span> <span class="">x</span> = <span class="number">20.0</span> <span class="operator">*.</span> <span class="">x</span>
+
+
 <span class="keyword ">let</span> <span class="">pi</span> = <span class="number">4.0</span> <span class="operator">*.</span> <span class="">atan</span> <span class="number">1.0</span>
 
 <span class="keyword ">let</span> <span class="">d</span> = <span class="number">10.0</span>                <span class="comment">(* distance to deviate for avoidance, in miles *)</span>
@@ -1459,48 +1520,50 @@ and instantaneously.</p>
 
 <span class="keyword ">let</span> <span class="">sqr</span> <span class="">x</span> = <span class="">x</span> <span class="operator">*.</span> <span class="">x</span>
 
-<span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">integr</span>(<span class="">x'</span>, <span class="">x0</span>) = <span class="">x</span> <span class="keyword ">where</span> <span class="keyword ">rec</span> <span class="keyword ">der</span> <span class="">x</span> = <span class="">x'</span> <span class="keyword ">init</span> <span class="">x0</span>
-
-<span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">avoidance</span> (<span class="">x_i</span>, <span class="">y_i</span>, <span class="">theta_i</span>, <span class="">v_1</span>, <span class="">v_2</span>) = (<span class="">st</span>, <span class="">x</span>, <span class="">y</span>, <span class="">theta</span>, <span class="">t</span>) <span class="keyword ">where</span>
+<span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">avoidance</span> (<span class="">x_i</span>, <span class="">y_i</span>, <span class="">theta_i</span>, <span class="">v_1</span>, <span class="">v_2</span>) = (<span class="">st</span>, <span class="">x</span>, <span class="">y</span>, <span class="">theta</span>, <span class="">show_t</span>)
+  <span class="keyword ">where</span>
   <span class="keyword ">rec</span> <span class="keyword ">init</span> <span class="">theta</span> = <span class="">theta_i</span>
-  <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">x</span> = -. <span class="">v_1</span> <span class="operator">+.</span> <span class="">v_2</span> <span class="operator">*.</span> <span class="">cos</span>(<span class="">theta</span>) <span class="keyword ">init</span> <span class="">x_i</span> <span class="keyword ">reset</span> <span class="">nxy</span>(<span class="">nx</span>, _) -&gt; <span class="">nx</span>
-  <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">y</span> = <span class="">v_2</span> <span class="operator">*.</span> <span class="">sin</span>(<span class="">theta</span>) <span class="keyword ">init</span> <span class="">y_i</span> <span class="keyword ">reset</span> <span class="">nxy</span>(_, <span class="">ny</span>) -&gt; <span class="">ny</span>
-  <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">t</span> = <span class="">t'</span> <span class="keyword ">init</span> <span class="number">0.0</span>
+  <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">x</span> = <span class="">tscale</span> (-. <span class="">v_1</span> <span class="operator">+.</span> <span class="">v_2</span> <span class="operator">*.</span> <span class="">cos</span>(<span class="">theta</span>))
+              <span class="keyword ">init</span> <span class="">x_i</span> <span class="keyword ">reset</span> <span class="">nxy</span>(<span class="">nx</span>, _) -&gt; <span class="">nx</span>
+  <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">y</span> = <span class="">tscale</span> (<span class="">v_2</span> <span class="operator">*.</span> <span class="">sin</span>(<span class="">theta</span>))
+              <span class="keyword ">init</span> <span class="">y_i</span> <span class="keyword ">reset</span> <span class="">nxy</span>(_, <span class="">ny</span>) -&gt; <span class="">ny</span>
+  <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">t</span> = <span class="">tscale</span> <span class="">t'</span> <span class="keyword ">init</span> <span class="number">0.0</span>
+
   <span class="keyword ">and</span> <span class="keyword ">automaton</span>
       | <span class="constructor">Cruise</span> -&gt;
           <span class="keyword ">do</span>
             <span class="">t'</span> = <span class="number">0.0</span>
             <span class="keyword ">and</span> <span class="">st</span> = <span class="number">0</span>
+            <span class="keyword ">and</span> <span class="">show_t</span> = <span class="number">0.0</span>
           <span class="keyword ">until</span> <span class="keyword expr ">up</span>(<span class="">sqr</span>(<span class="">alpha1</span>) -. <span class="">sqr</span>(<span class="keyword expr ">last</span> <span class="">x</span>) -. <span class="">sqr</span>(<span class="keyword expr ">last</span> <span class="">y</span>))
-            <span class="keyword ">then</span> <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">nxy</span> = <span class="">rotate</span>(-. <span class="">delta_phi</span>, <span class="keyword expr ">last</span> <span class="">x</span>, <span class="keyword expr ">last</span> <span class="">y</span>) <span class="keyword ">in</span> <span class="constructor">Left</span>
-      | <span class="constructor">Left</span> -&gt;
-          <span class="keyword ">local</span> <span class="">t1</span>, <span class="">t2</span> <span class="keyword ">in</span>
+            <span class="keyword ">then</span> <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">nxy</span> = <span class="">rotate</span>(-. <span class="">delta_phi</span>, <span class="keyword expr ">last</span> <span class="">x</span>, <span class="keyword expr ">last</span> <span class="">y</span>)
+            <span class="keyword ">in</span> <span class="constructor">Left</span>(<span class="">d</span> <span class="operator">/.</span> (<span class="">max</span>(<span class="">v_1</span>, <span class="">v_2</span>) <span class="operator">*.</span> <span class="">sin</span>(<span class="">delta_phi</span>)))
+      | <span class="constructor">Left</span>(<span class="">tmax</span>) -&gt;
           <span class="keyword ">do</span>
-            <span class="">t1</span> = <span class="">d</span> <span class="operator">/.</span> (<span class="">v_1</span> <span class="operator">*.</span> <span class="">sin</span>(<span class="">delta_phi</span>))
-            <span class="keyword ">and</span> <span class="">t2</span> = <span class="">d</span> <span class="operator">/.</span> (<span class="">v_2</span> <span class="operator">*.</span> <span class="">sin</span>(<span class="">delta_phi</span>))
-            <span class="keyword ">and</span> <span class="">t'</span> = <span class="number">1.0</span>
+            <span class="">t'</span> = <span class="number">1.0</span>
             <span class="keyword ">and</span> <span class="">st</span> = <span class="number">1</span>
-          <span class="keyword ">until</span> <span class="keyword expr ">up</span>(<span class="">t</span> -. <span class="">t1</span>)
-            <span class="keyword ">then</span> <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">nxy</span> = <span class="">rotate</span>(<span class="">delta_phi</span>, <span class="keyword expr ">last</span> <span class="">x</span>, <span class="keyword expr ">last</span> <span class="">y</span>) <span class="keyword ">in</span> <span class="constructor">Straight</span>
-          <span class="keyword ">else</span>  <span class="keyword expr ">up</span>(<span class="">t</span> -. <span class="">t2</span>)
-            <span class="keyword ">then</span> <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">nxy</span> = <span class="">rotate</span>(<span class="">delta_phi</span>, <span class="keyword expr ">last</span> <span class="">x</span>, <span class="keyword expr ">last</span> <span class="">y</span>) <span class="keyword ">in</span> <span class="constructor">Straight</span>
-      | <span class="constructor">Straight</span> -&gt;
+            <span class="keyword ">and</span> <span class="">show_t</span> = <span class="">t</span> <span class="operator">/.</span> <span class="">tmax</span>
+          <span class="keyword ">until</span> <span class="keyword expr ">up</span>(<span class="">t</span> -. <span class="">tmax</span>) <span class="keyword ">then</span> <span class="keyword ">do</span>
+            <span class="keyword ">emit</span> <span class="">nxy</span> = <span class="">rotate</span>(<span class="">delta_phi</span>, <span class="keyword expr ">last</span> <span class="">x</span>, <span class="keyword expr ">last</span> <span class="">y</span>) <span class="keyword ">in</span> <span class="constructor">Straight</span>(<span class="">tmax</span>)
+      | <span class="constructor">Straight</span>(<span class="">tmax</span>) -&gt;
           <span class="keyword ">do</span>
             <span class="">t'</span> = <span class="number">0.0</span>
             <span class="keyword ">and</span> <span class="">st</span> = <span class="number">2</span>
+            <span class="keyword ">and</span> <span class="">show_t</span> = <span class="">t</span> <span class="operator">/.</span> <span class="">tmax</span>
           <span class="keyword ">until</span> <span class="keyword expr ">up</span>(<span class="">sqr</span>(<span class="keyword expr ">last</span> <span class="">x</span>) <span class="operator">+.</span> <span class="">sqr</span>(<span class="keyword expr ">last</span> <span class="">y</span>) -. <span class="">sqr</span>(<span class="">alpha2</span>))
-            <span class="keyword ">then</span> <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">nxy</span> = <span class="">rotate</span>(<span class="">delta_phi</span>, <span class="keyword expr ">last</span> <span class="">x</span>, <span class="keyword expr ">last</span> <span class="">y</span>) <span class="keyword ">in</span> <span class="constructor">Right</span>
-      | <span class="constructor">Right</span> -&gt;
+            <span class="keyword ">then</span> <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">nxy</span> = <span class="">rotate</span>(<span class="">delta_phi</span>, <span class="keyword expr ">last</span> <span class="">x</span>, <span class="keyword expr ">last</span> <span class="">y</span>) <span class="keyword ">in</span> <span class="constructor">Right</span>(<span class="">tmax</span>)
+      | <span class="constructor">Right</span>(<span class="">tmax</span>) -&gt;
           <span class="keyword ">do</span>
             <span class="">t'</span> = -. <span class="number">1.0</span>
             <span class="keyword ">and</span> <span class="">st</span> = <span class="number">3</span>
+            <span class="keyword ">and</span> <span class="">show_t</span> = <span class="">t</span> <span class="operator">/.</span> <span class="">tmax</span>
           <span class="keyword ">until</span> <span class="keyword expr ">up</span>(-. <span class="">t</span>)
             <span class="keyword ">then</span> <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">nxy</span> = <span class="">rotate</span>(-. <span class="">delta_phi</span>, <span class="keyword expr ">last</span> <span class="">x</span>, <span class="keyword expr ">last</span> <span class="">y</span>) <span class="keyword ">in</span> <span class="constructor">Cruise</span>
 
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">noavoidance</span> (<span class="">x_i</span>, <span class="">y_i</span>, <span class="">theta_i</span>, <span class="">v_1</span>, <span class="">v_2</span>) = (<span class="number">0</span>, <span class="">x</span>, <span class="">y</span>, <span class="">theta</span>, <span class="">t</span>) <span class="keyword ">where</span>
   <span class="keyword ">rec</span> <span class="">theta</span> = <span class="">theta_i</span>
-  <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">x</span> = -. <span class="">v_1</span> <span class="operator">+.</span> <span class="">v_2</span> <span class="operator">*.</span> <span class="">cos</span>(<span class="">theta</span>) <span class="keyword ">init</span> <span class="">x_i</span>
-  <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">y</span> = <span class="">v_2</span> <span class="operator">*.</span> <span class="">sin</span>(<span class="">theta</span>) <span class="keyword ">init</span> <span class="">y_i</span>
+  <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">x</span> = <span class="">tscale</span> (-. <span class="">v_1</span> <span class="operator">+.</span> <span class="">v_2</span> <span class="operator">*.</span> <span class="">cos</span>(<span class="">theta</span>)) <span class="keyword ">init</span> <span class="">x_i</span>
+  <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">y</span> = <span class="">tscale</span> (<span class="">v_2</span> <span class="operator">*.</span> <span class="">sin</span>(<span class="">theta</span>)) <span class="keyword ">init</span> <span class="">y_i</span>
   <span class="keyword ">and</span> <span class="">t</span> = <span class="number">0.0</span>
 
 <span class="comment">(** Animation **)</span>
@@ -1508,7 +1571,7 @@ and instantaneously.</p>
 <span class="keyword keyword module ">open</span> <span class="constructor">Airtrafficgui</span>
 
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">main</span> () = () <span class="keyword ">where</span>
-  <span class="keyword ">rec</span> <span class="">p</span> = <span class="keyword expr ">period</span> (<span class="number">1.0</span>)
+  <span class="keyword ">rec</span> <span class="">p</span> = <span class="keyword expr ">period</span> (<span class="number">0.1</span>)
 
   <span class="keyword ">and</span> (<span class="">click</span>, (<span class="">nxr</span>, <span class="">nyr</span>), (<span class="">ntheta_r</span>, <span class="">nd</span>)) =
     <span class="keyword ">present</span> <span class="">p</span> -&gt; <span class="">sample</span> ()
@@ -1520,8 +1583,11 @@ and instantaneously.</p>
           <span class="">avoidance</span> (<span class="">nxr</span>, <span class="">nyr</span>, <span class="">ntheta_r</span>, <span class="">aircraft1_v</span>, <span class="">aircraft2_v</span>)
       <span class="keyword ">until</span> <span class="">p</span> <span class="keyword expr ">on</span> <span class="">click</span> <span class="keyword ">then</span> <span class="constructor">S1</span>
 
-  <span class="keyword ">and</span> _ = <span class="keyword ">present</span> <span class="">p</span> -&gt; <span class="">showupdate</span> (<span class="">d</span>, <span class="">delta_phi</span>, <span class="">radius_alert</span>, <span class="">radius_protected</span>, <span class="number">0.0</span>,
-                                   <span class="">st</span>, <span class="">xr</span>, <span class="">yr</span>, <span class="">theta_r</span>, <span class="">aircraft1_v</span>, <span class="">aircraft2_v</span>, <span class="">t</span>)
+  <span class="keyword ">and</span> _ = <span class="keyword ">present</span> <span class="">p</span> -&gt; <span class="">showupdate</span> (<span class="">d</span>, <span class="">delta_phi</span>, <span class="">radius_alert</span>,
+                                   <span class="">radius_protected</span>, <span class="number">0.0</span>,
+                                   <span class="">st</span>, <span class="">xr</span>, <span class="">yr</span>, <span class="">theta_r</span>,
+                                   <span class="">aircraft1_v</span> <span class="operator">*.</span> <span class="number">3600.0</span>,
+                                   <span class="">aircraft2_v</span> <span class="operator">*.</span> <span class="number">3600.0</span>, <span class="">t</span>)
 
 </code></pre></div></div></div></div>
 </div><hr />

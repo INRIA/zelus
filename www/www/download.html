@@ -70,16 +70,16 @@ document.getElementById('title-download').className = 'active';
 <h1>Download and Installation</h1>
 
 <p>
-This distribution includes the Zélus compiler, runtime libraries, and 
+This distribution includes the Zélus compiler, runtime libraries, and
 example source code.
-The <a href="http://caml.inria.fr/ocaml/index.en.html">OCaml</a> runtime 
-(<code>ocamlrun</code>) is required to transform Zélus programs into 
+The <a href="http://caml.inria.fr/ocaml/index.en.html">OCaml</a> runtime
+(<code>ocamlrun</code>) is required to transform Zélus programs into
 imperative code.
 The OCaml compiler is required to compile imperative code into executables.
-Many of the examples require <a 
+Many of the examples require <a
 href="http://lablgtk.forge.ocamlcore.org/">lablgtk2</a>.
-The 3D visualization of the <a href="examples.html#stickysprings">Sticky 
-Masses</a> example requires <a 
+The 3D visualization of the <a href="examples.html#stickysprings">Sticky
+Masses</a> example requires <a
 href="http://www.linux-nantes.org/~fmonnier/ocaml/GL/">glMLite</a>.
 </p>
 
@@ -109,55 +109,55 @@ href="zelus-0.6.bytecode.tar.gz">Download Bytecode (without sundials)</a>
 
 <tr><td><a href="http://lablgtk.forge.ocamlcore.org/">lablgtk2</a></td>
 <td>= 2.16.0</td>
-<td>Required for the plotting control and hence many of the 
+<td>Required for the plotting control and hence many of the
 examples.</td>
 </tr>
 
 <tr><td><a href="http://www.linux-nantes.org/~fmonnier/ocaml/GL/">glMLite</a></td>
 <td>Optional. &gt;= 0.03.51</td>
-<td>Required for the <a href="examples.html#stickysprings">Sticky 
+<td>Required for the <a href="examples.html#stickysprings">Sticky
 Masses</a> example.</td>
 </tr>
 
-<tr><td><a href="https://computation.llnl.gov/casc/sundials/download/download.html">Sundials 
+<tr><td><a href="https://computation.llnl.gov/casc/sundials/download/download.html">Sundials
 CVODE solver</a></td>
 <td>Default but optional. &gt;= 2.6.0 (Sundials v2.4.0)</td>
-<td>Binaries are included with the distribution (<a 
+<td>Binaries are included with the distribution (<a
 href="http://computation.llnl.gov/casc/sundials/download/license.html">see
 license</a>).</td>
 </tr>
 </table>
 
 <p>The compiler is distributed as byte code.
-It should run on any platform on which the <a 
+It should run on any platform on which the <a
 href="http://caml.inria.fr">OCaml</a> runtime has been installed.
-There are <a href="http://caml.inria.fr/ocaml/release.en.html">packages</a> for 
+There are <a href="http://caml.inria.fr/ocaml/release.en.html">packages</a> for
 Linux, Mac, and Windows.
-Compiling Zélus programs to executable form requires the full OCaml 
+Compiling Zélus programs to executable form requires the full OCaml
 toolchain.
-Unfortunately, it may be difficult to run the examples under Windows as 
-the most convenient <a 
-href="http://protz.github.com/ocaml-installer/">installer</a> does not 
+Unfortunately, it may be difficult to run the examples under Windows as
+the most convenient <a
+href="http://protz.github.com/ocaml-installer/">installer</a> does not
 seem to provide the dllunix and dllbigarray libraries which are required.
 We recommend running the examples on Linux or a Mac.</p>
 
-<p>Many of the examples use <a 
-href="http://lablgtk.forge.ocamlcore.org/">lablgtk2</a> to display 
+<p>Many of the examples use <a
+href="http://lablgtk.forge.ocamlcore.org/">lablgtk2</a> to display
 graphs and animations.
-On Ubuntu Linux, for example, it can be installed from the <a 
+On Ubuntu Linux, for example, it can be installed from the <a
 href="http://packages.ubuntu.com/quantal/liblablgtk2-ocaml"><code>liblablgtk2-ocaml</code></a>
 package.</p>
 
-<p>The runtime libraries in the OS-specific packages include support for the 
-<a href="https://computation.llnl.gov/casc/sundials/">Sundials</a> CVODE 
+<p>The runtime libraries in the OS-specific packages include support for the
+<a href="https://computation.llnl.gov/casc/sundials/">Sundials</a> CVODE
 solver.
-Alternatively, it is also possible to use custom (byte-code) implementations 
-of the Bogacki-Shampine (ode23) and Dormand-Prince (ode45) solvers—see 
+Alternatively, it is also possible to use custom (byte-code) implementations
+of the Bogacki-Shampine (ode23) and Dormand-Prince (ode45) solvers—see
 <code>readme.md</code>.</p>
 
 <h2 id="using" class="section">Using the compiler</h2>
 
-<p>After downloading the distribution, it is necessary to run the configure 
+<p>After downloading the distribution, it is necessary to run the configure
 script (optionally setting an installation prefix):</p>
 
 <pre><code>./configure --prefix=/opt/zelus</code></pre>
@@ -167,12 +167,12 @@ script (optionally setting an installation prefix):</p>
 <pre><code>make install</code></pre>
 
 <p>The Zélus compiler is called <code>zeluc</code>.
-It compiles <code>.ls</code> Zélus source files into <code>.ml</code> 
+It compiles <code>.ls</code> Zélus source files into <code>.ml</code>
 OCaml source files:</p>
 
 <pre><code>zeluc -I ../../lib/ -i -period backhoedyn.ls</code></pre>
 
-<p>Adding <code>-v</code> will show results after each of the intermediate 
+<p>Adding <code>-v</code> will show results after each of the intermediate
 source-to-source transformations.</p>
 
 </div><!--/span-->

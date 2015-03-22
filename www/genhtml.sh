@@ -106,7 +106,7 @@ for ENTRY in ${EXAMPLES}; do
     (cat ${EX} | ${MARKDOWN} | while read LINE
     do
 	case "${LINE}" in
-	    *!SOURCEFILE:*ls*)
+	    *!SOURCEFILE:*zls*)
 		FILE=`expr "$LINE" : '.*!SOURCEFILE: *\([^ ]*\).zls'`
 		cat <<EOF
 <div id="${EXNAME}-${FILE}-box" class="accordion sourcefile">
@@ -174,6 +174,7 @@ for BIB in src/*.bib; do
      ${BIBTEX2HTML} -q -d -r -nodoc -unicode -linebreak \
  	-noheader -nofooter -nobiblinks -s alpha \
 	-o "${NAME}" -dl "../${BIB}")
+    mv "${GENERATED}/${NAME}.html" "${GENERATED}/${NAME}-raw.html"
 
     sed -e 's/<font [^>]*>//' \
 	-e 's/<\/font>//' \
@@ -181,13 +182,14 @@ for BIB in src/*.bib; do
 	-e 's/<blockquote>/<div class="abstract"><p>/' \
 	-e 's/<\/blockquote>/<\/p><\/div>/' \
 	-e 's/^<\/p><p>//' \
+	-e '/\[<a name="[^0-9]*[0-9]*">.*<\/a>\]/s/<sup>//g' \
+	-e '/\[<a name="[^0-9]*[0-9]*">.*<\/a>\]/s/<\/sup>//g' \
 	-e 's/\[<a name="\([^0-9]*\)\([0-9]*\)">[^<]*<\/a>\]/<a id="\1\2" class="biblink" name="\1\2">\1 \2<\/a>/' \
 	-e 's/.*<a href="\([^"]*\)">DOI<\/a>.*/<span class="bibref"><a href="\1"><i class="icon-globe"><\/i> DOI<\/a><\/span>/' \
 	-e 's/.*<a href="\([^"]*\)">.pdf<\/a>.*/<span class="bibref"><a href="\1"><i class="icon-file"><\/i> pdf<\/a><\/span>/' \
 	-e 's/.*<a href="\([^"]*\)">bib<\/a>.*/<span class="bibref"><a href="\1"><i class="icon-book"><\/i> bib<\/a><\/span>/' \
-	"${GENERATED}/${NAME}.html" \
-	> "${GENERATED}/${NAME}-post.html"
-    mv "${GENERATED}/${NAME}-post.html" "${GENERATED}/${NAME}.html"
+	"${GENERATED}/${NAME}-raw.html" \
+	> "${GENERATED}/${NAME}.html"
 
     grep '<a id="[^>]*".*' "${GENERATED}/${NAME}.html" | while read line
     do
@@ -197,9 +199,8 @@ for BIB in src/*.bib; do
 	    >> ${GENERATED}/gen-bib-nav-local.html
     done
 
-
     printf "added: ${WWW}/${NAME}_bib.html\n"
-    cp "${GENERATED}/${NAME}_bib.html" "${WWW}/"
+    cp "${GENERATED}/${NAME}_bib.html" "${WWW}/${NAME}_bib.html"
 done
 
 ########################################################################
