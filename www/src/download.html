@@ -47,6 +47,8 @@ The 3D visualization of the <a href="examples.html#stickysprings">Sticky
   href="http://www.linux-nantes.org/~fmonnier/ocaml/GL/">glMLite</a>.
 </p>
 
+<p>The current version of Zélus is <strong>1.0.0</strong>.</p>
+
 <div class="important-button">
   <a class="btn btn-large btn-primary"
      href="zelus-1.0.0-sundials-byte.tar.gz">Download (with sundials)</a>
@@ -109,11 +111,13 @@ We recommend running the examples on Linux or a Mac.</p>
 of <a href="http://brew.sh">homebrew</a> and
 <a href="http://opam.ocamlpro.com">opam</a>.</p>
 
-<p>To install OCaml, the Opam package manager, and ocamlfind:</p>
+<p>To install OCaml, the Opam package manager, ocamlfind, and the bigarray 
+module:</p>
 <pre>
 brew install opam
 opam switch 4.02.1
 opam install ocamlfind
+opam install bigarray
 </pre>
 
 <p>(The <code>opam switch</code> installs OCaml with the graphics module 
@@ -137,10 +141,12 @@ complicated.</p>
 
 <h3 id="dep-ubuntu">Ubuntu Linux</h3>
 
-<p>To install OCaml, the Opam package manager, and ocamlfind:</p>
+<p>To install OCaml, the Opam package manager, ocamlfind, and the bigarray 
+module:</p>
 <pre>
 sudo apt-get install opam
 opam install ocamlfind
+opam install bigarray
 </pre>
 
 <p>To install Lablgtk:</p>
@@ -160,17 +166,17 @@ opam install sundialsml
 <p>After downloading the distribution, run the configure script (optionally 
 setting an installation prefix):</p>
 
-<pre><code>./configure --prefix=/opt/zelus</code></pre>
+<pre>./configure --prefix=/opt/zelus</pre>
 
 <p>Zélus can then be installed by running:</p>
 
-<pre><code>make install</code></pre>
+<pre>make install</pre>
 
 <p>The Zélus compiler is called <code>zeluc</code>.
 It compiles <code>.zls</code> Zélus source files into <code>.ml</code> OCaml 
 source files:</p>
 
-<pre><code>zeluc -i backhoedyn.ls</code></pre>
+<pre>zeluc -i backhoedyn.ls</pre>
 
 <p>Adding <code>-v</code> will show results after each of the intermediate 
 source-to-source transformations.</p>
