@@ -23,6 +23,14 @@ horloge.ml horloge_main.ml: draw.zci horloge.zls
 	$(ZELUC) -I $(ZLLIB) $(ZLCFLAGS) -s main -sampling 0 horloge.zls
 	mv main.ml horloge_main.ml
 
+export:
+	mkdir $(DISTDIR)/horloge
+	cp Makefile draw.ml draw.mli draw.zli horloge.zls readme.md \
+	   $(DISTDIR)/horloge/
+	mkdir $(DISTDIR)/horloge/img
+	cp img/*.png $(DISTDIR)/horloge/img/
+
+#
 
 depend: .depend
 .depend:
