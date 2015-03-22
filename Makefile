@@ -150,6 +150,7 @@ clean:
 	@rm -rf debug.txt
 
 realclean cleanall:
+	@rm config config.log
 	(cd compiler;  make -f Makefile cleanall)
 	(cd lib;       make -f Makefile cleanall)
 	(cd test/good; make -f Makefile cleanall)
