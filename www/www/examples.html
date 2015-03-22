@@ -1747,6 +1747,142 @@ automaton with four modes:</p>
 an added bonus, the entire system can be made to swing back and forth by
 pressing the <code>m</code> key. The system state is drawn by an external (OCaml)
 function called <code>draw_system</code>.</p>
+
+<div id="watch-watch-box" class="accordion sourcefile">
+<div class="accordion-group">
+<div class="accordion-heading">
+<a class="accordion-toggle" data-toggle="collapse"
+   data-parent="#watch-watch-box"
+   href="#watch-watch"><i class="icon-file"></i> watch.zls</a>
+</div>
+
+<div id="watch-watch" class="accordion-body">
+<div class="accordion-inner">
+<pre class="zelus "><code><span class="keyword keyword module ">open</span> <span class="constructor">Draw</span>
+
+<span class="comment">(******************* Pendulum Clock **********************)</span>
+
+
+<span class="keyword ">let</span> <span class="">x0</span> = <span class="number">400.</span>
+<span class="keyword ">let</span> <span class="">y0</span> = <span class="number">600.</span>
+
+
+<span class="keyword ">let</span> <span class="">g</span> = <span class="number">9.81</span>
+<span class="keyword ">let</span> <span class="">l</span> = <span class="number">4.</span>
+
+<span class="keyword ">let</span> <span class="">k1</span> = <span class="number">5.</span>
+<span class="keyword ">let</span> <span class="">k2</span> = <span class="number">1.</span>
+<span class="keyword ">let</span> <span class="">pi</span> = <span class="number">3.1415</span>
+
+<span class="comment">(* Pendulum parameters *)</span>
+<span class="keyword ">let</span> <span class="">theta0</span> = <span class="number">1.</span>
+
+<span class="comment">(* Spring parameters *)</span>
+<span class="keyword ">let</span> <span class="">h0</span> = <span class="number">2.</span>
+
+<span class="comment">(* escapement parameters *)</span>
+<span class="keyword ">let</span> <span class="">thetac</span> = <span class="number">0.4</span>
+
+<span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">pendulum</span> (<span class="">theta0</span>, <span class="">thetap0</span>) = <span class="">theta</span> <span class="keyword ">where</span>
+   <span class="keyword ">rec</span> <span class="keyword ">der</span> <span class="">thetap</span> =  -. (<span class="">g</span> <span class="operator">/.</span> (<span class="number">10.</span> <span class="operator">*.</span> <span class="">l</span>)) <span class="operator">*.</span> <span class="">sin</span> (<span class="">theta</span>) <span class="keyword ">init</span> <span class="">thetap0</span>
+   <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">theta</span> = <span class="">thetap</span> <span class="keyword ">init</span> <span class="">theta0</span>
+
+<span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">chain</span> (<span class="">theta0</span>, <span class="">thetap0</span>, <span class="">move</span>) = <span class="">theta</span> <span class="keyword ">where</span>
+  <span class="keyword ">rec</span> <span class="keyword ">automaton</span>
+      | <span class="constructor">Stop</span>(<span class="">th</span>) -&gt;
+          <span class="keyword ">do</span> <span class="">theta</span> = <span class="">th</span>
+          <span class="keyword ">until</span> <span class="">move</span>() <span class="keyword ">then</span> <span class="constructor">Move</span>(<span class="">theta</span>)
+      | <span class="constructor">Move</span>(<span class="">th</span>) -&gt;
+          <span class="keyword ">do</span> <span class="">theta</span> = <span class="">pendulum</span>(<span class="">th</span>, <span class="">thetap0</span>)
+          <span class="keyword ">until</span> <span class="">move</span>() <span class="keyword ">then</span> <span class="constructor">Stop</span>(<span class="">theta</span>)
+  <span class="keyword ">init</span> <span class="constructor">Stop</span>(<span class="number">0.0</span>)
+
+<span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">balance</span> <span class="">theta0</span> = <span class="">theta</span> <span class="keyword ">where</span>
+  <span class="keyword ">rec</span> <span class="keyword ">der</span> <span class="">thetap</span> =  -. <span class="">k1</span> <span class="operator">*.</span> <span class="">theta</span> <span class="keyword ">init</span> <span class="number">0.0</span>
+  <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">theta</span> = <span class="">thetap</span> <span class="keyword ">init</span> <span class="">theta0</span>
+
+<span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">spring</span> <span class="">h0</span> = <span class="">h</span> <span class="keyword ">where</span>
+  <span class="keyword ">rec</span> <span class="keyword ">der</span> <span class="">v</span> = -. <span class="">k2</span> <span class="operator">*.</span> <span class="">h</span> <span class="keyword ">init</span> <span class="number">0.0</span>
+  <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">h</span> = <span class="">v</span> <span class="keyword ">init</span> <span class="">h0</span>
+
+<span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">hand</span> <span class="">ti</span> = <span class="">t</span> <span class="keyword ">where</span>
+  <span class="keyword ">rec</span> <span class="keyword ">der</span> <span class="">t'</span> = <span class="number">1.0</span> <span class="keyword ">init</span> <span class="number">0.0</span>
+  <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">t</span> = <span class="">t'</span> <span class="keyword ">init</span> <span class="">ti</span>
+
+<span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">set</span> <span class="">hi</span> = <span class="">h</span> <span class="keyword ">where</span>
+  <span class="keyword ">rec</span> <span class="keyword ">der</span> <span class="">h'</span> = <span class="number">0.5</span> <span class="keyword ">init</span> <span class="">hi</span>
+  <span class="keyword ">and</span> <span class="">h</span> = <span class="">min</span>(<span class="">h0</span>, <span class="">h'</span>)
+
+<span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">escapement</span> <span class="">theta</span> = (<span class="">tic</span>, <span class="">rtic</span>, <span class="">toc</span>, <span class="">rtoc</span>) <span class="keyword ">where</span>
+  <span class="keyword ">rec</span> <span class="keyword ">present</span>
+        | <span class="keyword expr ">up</span> (-. <span class="">theta</span> -. <span class="">thetac</span>) -&gt; <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">tic</span> = () <span class="keyword ">done</span>
+        | <span class="keyword expr ">up</span> (<span class="">theta</span> <span class="operator">+.</span> <span class="">thetac</span>) -&gt; <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">rtic</span> = () <span class="keyword ">done</span>
+        | <span class="keyword expr ">up</span> (<span class="">theta</span> -. <span class="">thetac</span>) -&gt; <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">toc</span> = () <span class="keyword ">done</span>
+        | <span class="keyword expr ">up</span> (-. <span class="">theta</span> <span class="operator">+.</span> <span class="">thetac</span>) -&gt; <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">rtoc</span> = () <span class="keyword ">done</span>
+
+<span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">clockwatch</span> (<span class="">h0</span>, <span class="">t0</span>, <span class="">theta</span>, <span class="">r</span>) = (<span class="">h</span>, <span class="">t</span>, <span class="">active</span>) <span class="keyword ">where</span>
+  <span class="keyword ">rec</span> (<span class="">tic</span>, <span class="">rtic</span>, <span class="">toc</span>, <span class="">rtoc</span>) = <span class="">escapement</span> <span class="">theta</span>
+  <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">active</span> = <span class="keyword constant ">true</span>
+  <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">t</span> = <span class="">t0</span>
+  <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">h</span> = <span class="">h0</span>
+  <span class="keyword ">and</span> <span class="keyword ">automaton</span>
+      | <span class="constructor">Move</span>(<span class="">hi</span>, <span class="">ti</span>) -&gt;
+          <span class="keyword ">do</span> <span class="">h</span> = <span class="">spring</span> <span class="">hi</span>
+          <span class="keyword ">and</span> <span class="">t</span> = <span class="">hand</span> <span class="">ti</span>
+          <span class="keyword ">until</span> <span class="">tic</span>() | <span class="">toc</span>() <span class="keyword ">then</span> <span class="constructor">Stop</span>(<span class="">h</span>,<span class="">t</span>)
+          <span class="keyword ">else</span> <span class="keyword expr ">up</span> (<span class="number">0.1</span> <span class="operator">*.</span> <span class="">h0</span> -. <span class="">h</span>) <span class="keyword ">then</span> <span class="constructor">Exhausted</span>(<span class="">t</span>)
+          <span class="keyword ">else</span> <span class="">r</span>() <span class="keyword ">then</span> <span class="constructor">Setting</span>(<span class="">h</span>,<span class="">t</span>)
+      | <span class="constructor">Stop</span>(<span class="">hi</span>, <span class="">ti</span>) -&gt;
+          <span class="keyword ">do</span> <span class="">active</span> = <span class="keyword constant ">true</span>
+          <span class="keyword ">until</span> <span class="">rtic</span>() | <span class="">rtoc</span>() <span class="keyword ">then</span> <span class="constructor">Move</span>(<span class="">hi</span>,<span class="">ti</span>)
+          <span class="keyword ">else</span> <span class="">r</span>() <span class="keyword ">then</span> <span class="constructor">Setting</span> (<span class="">hi</span>,<span class="">ti</span>)
+      | <span class="constructor">Exhausted</span>(<span class="">ti</span>) -&gt;
+          <span class="keyword ">do</span> <span class="">active</span> = <span class="keyword constant ">false</span>
+    <span class="keyword ">done</span>
+    <span class="comment">(*
+          until r() then Setting(h,ti)
+      *)</span>
+      | <span class="constructor">Setting</span> (<span class="">hi</span>, <span class="">ti</span>) -&gt;
+          <span class="keyword ">do</span> <span class="">h</span> = <span class="">set</span> <span class="">hi</span>
+          <span class="keyword ">and</span> <span class="">active</span> = <span class="keyword constant ">false</span>
+          <span class="keyword ">until</span> <span class="">r</span>() <span class="keyword ">then</span> <span class="constructor">Stop</span> (<span class="">h</span>,<span class="">ti</span>)
+  <span class="keyword ">init</span> <span class="constructor">Stop</span>(<span class="">h0</span>, <span class="">t0</span>)
+
+<span class="comment">(********** Simulation ************)</span>
+
+<span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">keyboard</span> () = <span class="">set</span>, <span class="">move</span> <span class="keyword ">where</span>
+  <span class="keyword ">rec</span> <span class="keyword ">init</span> <span class="">ok</span> = <span class="number">0</span>
+  <span class="keyword ">and</span> <span class="">s</span> = <span class="keyword expr ">period</span> (<span class="number">0.04</span>)
+  <span class="keyword ">and</span> <span class="keyword ">present</span> <span class="">s</span> -&gt; <span class="keyword ">do</span> <span class="">ok</span> = <span class="">input</span> ()<span class="keyword ">done</span>
+  <span class="keyword ">and</span> <span class="keyword ">present</span> <span class="">s</span> <span class="keyword expr ">on</span> (<span class="">ok</span> = <span class="number">1</span>) -&gt; <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">set</span> = () <span class="keyword ">done</span>
+  <span class="keyword ">and</span> <span class="keyword ">present</span> <span class="">s</span> <span class="keyword expr ">on</span> (<span class="">ok</span> = <span class="number">2</span>) -&gt; <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">move</span> = () <span class="keyword ">done</span>
+
+
+<span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">main</span> () =
+  <span class="keyword ">let</span> <span class="">ok</span> = <span class="keyword expr ">period</span> (<span class="number">0.04</span>) <span class="keyword ">in</span>
+  <span class="keyword ">let</span> <span class="">theta</span> = <span class="">balance</span> <span class="">theta0</span> <span class="keyword ">in</span>
+  <span class="keyword ">let</span> (<span class="">tic</span>, _, <span class="">toc</span>, _) = <span class="">escapement</span> <span class="">theta</span> <span class="keyword ">in</span>
+  <span class="keyword ">let</span> <span class="">r</span>,<span class="">m</span> = <span class="">keyboard</span> () <span class="keyword ">in</span>
+  <span class="keyword ">let</span> (<span class="">h</span>, <span class="">t</span>, <span class="">active</span>) = <span class="">clockwatch</span> (<span class="">h0</span>, <span class="number">0.0</span>, <span class="">theta</span>,<span class="">r</span>) <span class="keyword ">in</span>
+  <span class="keyword ">let</span> <span class="">thb</span> = <span class="">t</span> <span class="operator">*.</span> <span class="number">3.</span> <span class="operator">/.</span> <span class="number">2.</span> <span class="keyword ">in</span>
+  <span class="keyword ">let</span> <span class="">thl</span> = <span class="">thb</span> <span class="operator">/.</span> <span class="number">60.</span> <span class="keyword ">in</span>
+
+  <span class="keyword ">let</span> <span class="">twb</span> = <span class="">t</span> <span class="operator">*.</span> <span class="number">2.</span> <span class="keyword ">in</span>
+  <span class="keyword ">let</span> <span class="">twl</span> = -.<span class="">twb</span> <span class="operator">*.</span> (<span class="number">120.</span> <span class="operator">/.</span> <span class="number">20.</span>)  <span class="keyword ">in</span>
+
+  <span class="keyword ">let</span> <span class="">tc</span> = <span class="">chain</span> (<span class="number">0.0</span>, <span class="number">0.2</span>, <span class="">m</span>) <span class="keyword ">in</span>
+
+  <span class="keyword ">present</span> <span class="">ok</span> -&gt;
+             <span class="">draw_system</span>
+               (<span class="">x0</span>, <span class="">y0</span>, <span class="">l</span>, <span class="">tc</span>,
+                <span class="">thetac</span>, <span class="">theta</span>,
+                <span class="">h0</span>, <span class="">h</span>,
+                <span class="">thb</span>, <span class="">thl</span>,
+                <span class="">twb</span>, <span class="">twl</span>)
+        | <span class="">tic</span>() <span class="keyword expr ">on</span> <span class="">active</span> -&gt; <span class="">play_tic</span> ()
+        | <span class="">toc</span>() <span class="keyword expr ">on</span> <span class="">active</span>  -&gt; <span class="">play_toc</span> ();
+    ()
+</code></pre></div></div></div></div>
 </div><hr />
 <div id="airtraffic" class="example-section">
 <h2 id="airtrafficcontrol">Airtraffic Control</h2>

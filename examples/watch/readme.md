@@ -28,3 +28,5 @@ an added bonus, the entire system can be made to swing back and forth by
 pressing the `m` key. The system state is drawn by an external (OCaml)
 function called `draw_system`.
 
+!SOURCEFILE: watch.zls
+
