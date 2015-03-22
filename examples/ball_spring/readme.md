@@ -15,7 +15,7 @@ together until the ball becomes unstuck.
 
 The calls to OCaml graphics for animating the system are written directly in
 a discrete node. Additional calls are added to log the system state to a
-file for [visualization](img/ball_spring.pdf) with
+file for [graphing](img/ball_spring.pdf) with
 [gnuplot](http://gnuplot.sourceforge.net/).
 
 !SOURCEFILE: ball_spring.zls

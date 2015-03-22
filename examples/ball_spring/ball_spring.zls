@@ -15,7 +15,7 @@ let discrete draw_ball_platform(z,z_platform,rad) =
   let z_platform = truncate (z_platform *. 10.0) in
   set_color red;
   fill_circle (100, z, truncate(rad *. 10.0));
-  set_color blue;
+  set_color green;
   moveto(10, z_platform);
   lineto(190, z_platform);
   (* add spring zigzags *)
