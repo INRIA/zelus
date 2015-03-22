@@ -52,7 +52,8 @@ let rec equation ck { eq_desc = desc; eq_write = defnames } =
 	let p = pattern p in
 	let eq_p_e = pat_with_expression p e in
 	let ck = on ck p e in
-	block ck b in
+	let eq = block ck b in
+	eq
       (* do it for all *)
       let p_h_list = List.map handler p_h_list in
       merge e pat_subst_list
