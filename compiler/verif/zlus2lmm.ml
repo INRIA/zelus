@@ -19,14 +19,14 @@ open Ident
 open Zelus
 open Deftypes
 
-let eqmake loc pat e loc = 
-  { Lmm.eq_lhs = pat; Lmm.eq_rhs = e; Lmm.eq_loc = loc }
+let eq_make pat e loc = 
+  { Lmm.eq_lhs = pat; Lmm.eq_rhs = e; Lmm.eq_loc = no_location }
 
-let make loc desc ty = { Lmm.e_desc = desc; Lmm.e_typ = ty; Lmm.e_loc = loc }
+let make desc ty = { Lmm.e_desc = desc; Lmm.e_typ = ty; Lmm.e_loc = no_location }
 
 let and_op e1 e2 =
-  make no_location (Eapp(Eop(Lident.Modname(Initial.pervasives_name "&&")),
-			[e1; e2])) Initial.typ_bool
+  make (Eapp(Eop(Lident.Modname(Initial.pervasives_name "&&")),
+	     [e1; e2])) Initial.typ_bool
        
 type ck = | Ck_base | Ck_on of ck * Lmm.exp
  
@@ -38,20 +38,24 @@ let rec clock = function
   | Ck_on(Ck_base, e) -> e
   | Ck_on(ck, e) -> and_op (clock ck) e
 
-(* [equation subst eq_list eq = eq_list] *)
-let rec equation ck acc { eq_desc = desc; eq_loc = loc } =
+(* [equation ck eq = eq_list] *)
+let rec equation ck { eq_desc = desc; eq_write = defnames } = 
   match desc with
-  | EQeq({ p_desc = p }, e) ->
-     (eqmake loc (pattern p) (expression ck e)) :: acc
-  | EQmatch(total, e, p_h_list) ->
-     (* first compute the set of shared variables *)
-     let s = shared_variables p_h_list in
-     let handler (eq_list, pat_subst_list) { m_pat = p; m_body = b; m_env } =
-       let ck = on ck p e in
-       block env (eq_list, (p, Env.empty)) ck b in
-     let eq_list, subst_list = List.fold_left handler (eq_list, []) p_h_list in
-     let pat_subst_list = List.rev pat_subst_list in
-     merge e pat_subst_list
+    | EQeq(p, e) ->
+      State.singleton (eq_make (pattern p) (expression ck e))
+    | EQmatch(total, e, p_h_list) ->
+      (* first translate [e] *)
+      let e = expression ck e in
+      (* then compute the set of shared variables *)
+      let s = shared_variables defnames in
+      let handler { m_pat = p; m_body = b } =
+	let p = pattern p in
+	let eq_p_e = pat_with_expression p e in
+	let ck = on ck p e in
+	block ck b in
+      (* do it for all *)
+      let p_h_list = List.map handler p_h_list in
+      merge e pat_subst_list
   | EQemit _ | EQautomaton _ | EQpresent _ | EQder _ | EQreset _ -> assert false
 
 and equation_list ck acc eq_list =  List.fold_left (equation ck) acc eq_list
