@@ -49,13 +49,9 @@ The 3D visualization of the <a href="examples.html#stickysprings">Sticky
 
 <div class="important-button">
   <a class="btn btn-large btn-primary"
-     href="zelus-0.6.Linux-x86_64.tar.gz">Download for Linux (x86_64)</a>
-
+     href="zelus-1.0.0-sundials-byte.tar.gz">Download (with sundials)</a>
   <a class="btn btn-large btn-primary"
-     href="zelus-0.6.Darwin-x86_64.tar.gz">Download for Mac (x86_64)</a>
-
-  <a class="btn btn-large btn-primary"
-     href="zelus-0.6.bytecode.tar.gz">Download Bytecode (without sundials)</a>
+     href="zelus-1.0.0-sundials-byte.tar.gz">Download (without sundials)</a>
 </div>
 
 <h2 id="dependencies" class="section">Dependencies</h2>
@@ -67,12 +63,22 @@ The 3D visualization of the <a href="examples.html#stickysprings">Sticky
   </tr>
 
   <tr><td><a href="http://caml.inria.fr/download.en.html">OCaml</a></td>
-      <td>&gt;= 4.00</td>
+      <td>Required. &gt;= 4.02.1</td>
       <td>Running the Zélus compiler and compiling examples.</td>
   </tr>
 
+  <tr><td><a href="http://inria-parkas.github.io/sundialsml/">Sundials/ML</a></td>
+      <td>Optional. = 2.5.0</td>
+      <td>Default solver for the “with sundials” distribution.</td>
+  </tr>
+
+  <tr><td><a href="http://projects.camlcity.org/projects/findlib.html">ocamlfind</a></td>
+      <td>Optional. &gt;= 1.5.5</td>
+      <td>Recommended for compiling your own Zélus programs.</td>
+  </tr>
+
   <tr><td><a href="http://lablgtk.forge.ocamlcore.org/">lablgtk2</a></td>
-      <td>= 2.16.0</td>
+      <td>Optional. = 2.18.0</td>
       <td>Required for the plotting control and hence many of the 
         examples.</td>
   </tr>
@@ -81,14 +87,6 @@ The 3D visualization of the <a href="examples.html#stickysprings">Sticky
       <td>Optional. &gt;= 0.03.51</td>
       <td>Required for the <a href="examples.html#stickysprings">Sticky 
           Masses</a> example.</td>
-  </tr>
-
-  <tr><td><a href="https://computation.llnl.gov/casc/sundials/download/download.html">Sundials 
-        CVODE solver</a></td>
-      <td>Default but optional. &gt;= 2.6.0 (Sundials v2.4.0)</td>
-      <td>Binaries are included with the distribution (<a 
-          href="http://computation.llnl.gov/casc/sundials/download/license.html">see 
-          license</a>).</td>
   </tr>
 </table>
       
@@ -105,24 +103,58 @@ the most convenient <a
 seem to provide the dllunix and dllbigarray libraries which are required.
 We recommend running the examples on Linux or a Mac.</p>
 
-<p>Many of the examples use <a 
-  href="http://lablgtk.forge.ocamlcore.org/">lablgtk2</a> to display 
-graphs and animations.
-On Ubuntu Linux, for example, it can be installed from the <a 
-  href="http://packages.ubuntu.com/quantal/liblablgtk2-ocaml"><code>liblablgtk2-ocaml</code></a> 
-package.</p>
+<h3 id="dep-osx">OS X</h3>
 
-<p>The runtime libraries in the OS-specific packages include support for the 
-<a href="https://computation.llnl.gov/casc/sundials/">Sundials</a> CVODE 
-solver.
-Alternatively, it is also possible to use custom (byte-code) implementations 
-of the Bogacki-Shampine (ode23) and Dormand-Prince (ode45) solvers—see 
-<code>readme.md</code>.</p>
+<p>The easiest way to ensure the required dependencies is with a combination 
+of <a href="http://brew.sh">homebrew</a> and
+<a href="http://opam.ocamlpro.com">opam</a>.</p>
+
+<p>To install OCaml, the Opam package manager, and ocamlfind:</p>
+<pre>
+brew install opam
+opam install ocamlfind
+</pre>
+
+<p>To install Lablgtk:</p>
+<pre>
+brew install gtk+
+export PKG_CONFIG_PATH=/opt/X11/lib/pkgconfig
+opam install lablgtk
+</pre>
+
+<p>To install Sundials/ML</p>
+<pre>
+brew install homebrew/science/sundials
+opam install sundialsml
+</pre>
+
+<p>It is possible to get glMLite to work, but the process is rather 
+complicated.</p>
+
+<h3 id="dep-ubuntu">Ubuntu Linux</h3>
+
+<p>To install OCaml, the Opam package manager, and ocamlfind:</p>
+<pre>
+sudo apt-get install opam
+opam install ocamlfind
+</pre>
+
+<p>To install Lablgtk:</p>
+<pre>
+sudo apt-get install libgtk2.0-dev
+opam install lablgtk
+</pre>
+
+<p>To install Sundials/ML:</p>
+<pre>
+sudo apt-get install libsundials-serial-dev
+opam install sundialsml
+</pre>
 
 <h2 id="using" class="section">Using the compiler</h2>
 
-<p>After downloading the distribution, it is necessary to run the configure 
-script (optionally setting an installation prefix):</p>
+<p>After downloading the distribution, run the configure script (optionally 
+setting an installation prefix):</p>
 
 <pre><code>./configure --prefix=/opt/zelus</code></pre>
 
@@ -131,13 +163,27 @@ script (optionally setting an installation prefix):</p>
 <pre><code>make install</code></pre>
 
 <p>The Zélus compiler is called <code>zeluc</code>.
-It compiles <code>.ls</code> Zélus source files into <code>.ml</code> 
-OCaml source files:</p>
+It compiles <code>.zls</code> Zélus source files into <code>.ml</code> OCaml 
+source files:</p>
 
-<pre><code>zeluc -I ../../lib/ -i -period backhoedyn.ls</code></pre>
+<pre><code>zeluc -i backhoedyn.ls</code></pre>
 
 <p>Adding <code>-v</code> will show results after each of the intermediate 
 source-to-source transformations.</p>
+
+<p>Several dependencies are required to compile the resulting OCaml code. 
+The simplest solution is to use ocamlfind.
+For example to compile the <a href="examples.html#bangbang">Bang-Bang 
+  Temperature Control</a> example:</p>
+<pre>
+zeluc -s main -gtk2 bangbang.ml
+ocamlfind ocamlc -o bangbang -package zelus.gtk -linkpkg bangbang.ml main.ml
+</pre>
+
+<p>The <code>-s main</code> option generates simulation code for the node 
+called <code>main</code> into the file <code>main.ml</code>.
+The <code>-gtk2</code> option requests the lablgtk runtime.
+</p>
 
         </div><!--/span-->
       </div><!--/row-->
