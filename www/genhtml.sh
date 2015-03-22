@@ -51,6 +51,7 @@ SOURCES="src/index.html
 GENERATED=./generated
 EXAMPLES="${ZELUS}/examples/bouncingball
 	  ${ZELUS}/examples/bangbang
+	  ${ZELUS}/examples/ball_spring
 	  ${ZELUS}/examples/soas_relaycontrol
 	  ${ZELUS}/examples/stickysprings
 	  ${ZELUS}/examples/backhoe
@@ -150,7 +151,7 @@ EOF
     # copy image files
     mkdir -p ${WWW}/img
     if [ -d "${EXDIR}/img" ]; then
-	for f in ${EXDIR}/img/*.png ${EXDIR}/img/*.jpg
+	for f in ${EXDIR}/img/*.png ${EXDIR}/img/*.jpg ${EXDIR}/img/*.pdf
 	do
 	    [ -f "$f" ] || continue
 	    cp $f ${WWW}/img/`basename $f`

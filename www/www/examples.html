@@ -62,6 +62,7 @@ document.getElementById('title-examples').className = 'active';
 <li class="sidebar-nav-header">Example code</li>
 <li><a href="#bouncingball">Bouncing ball</a></li>
 <li><a href="#bangbang">Bang-Bang Temperature Control</a></li>
+<li><a href="#ball_spring">Ball and Spring</a></li>
 <li><a href="#soas_relaycontrol">Self-Oscillating Adaptive System</a></li>
 <li><a href="#stickysprings">Sticky Masses</a></li>
 <li><a href="#backhoe">Backhoe</a></li>
@@ -441,6 +442,155 @@ periods of cooling, i.e., when not heating.</p>
   <span class="keyword ">let</span> (<span class="">led</span>, <span class="">on_off</span>, <span class="">actual_temp</span>) = <span class="">model</span> () <span class="keyword ">in</span>
   <span class="keyword ">let</span> <span class="">trigger</span> = <span class="keyword expr ">period</span> (<span class="number">0.01</span>) <span class="keyword ">in</span>
   <span class="keyword ">present</span> <span class="">trigger</span> -&gt; <span class="">plot</span> (<span class="">led</span>, <span class="">on_off</span>, <span class="">actual_temp</span>) <span class="keyword ">else</span> ()
+
+</code></pre></div></div></div></div>
+</div><hr />
+<div id="ball_spring" class="example-section">
+<h2 id="ballandspring">Ball and Spring</h2>
+
+<p>Author: Cyprien Lecourt</p>
+
+<figure>
+<img src="img/ball_spring.png" alt="Screenshot" title="Screenshot" />
+
+</figure>
+
+<p>A ball bouncing on a spring with damping. This example is programmed as a
+two-state automaton. In the first state the ball and spring move separately:
+the ball decelerating and eventually falling back to the spring, and the
+spring oscillating with less and less energy. The second state is entered
+when the ball lands on the platform, in it the ball and platform move
+together until the ball becomes unstuck.</p>
+
+<figure>
+<img src="img/ball_spring_plot.png" alt="Screenshot" title="Plot" />
+
+</figure>
+
+<p>The calls to OCaml graphics for animating the system are written directly in
+a discrete node. Additional calls are added to log the system state to a
+file for <a href="img/ball_spring.pdf">visualization</a> with
+<a href="http://gnuplot.sourceforge.net/">gnuplot</a>.</p>
+
+<div id="ball_spring-ball_spring-box" class="accordion sourcefile">
+<div class="accordion-group">
+<div class="accordion-heading">
+<a class="accordion-toggle" data-toggle="collapse"
+   data-parent="#ball_spring-ball_spring-box"
+   href="#ball_spring-ball_spring"><i class="icon-file"></i> ball_spring.zls</a>
+</div>
+
+<div id="ball_spring-ball_spring" class="accordion-body">
+<div class="accordion-inner">
+<pre class="zelus "><code>
+<span class="keyword keyword module ">open</span> <span class="constructor">Graphics</span>
+<span class="keyword ">let</span> <span class="">start</span> = 
+  <span class="">open_graph</span> <span class="string">" 200x500"</span>;
+  <span class="">auto_synchronize</span> <span class="keyword constant ">false</span>;
+  <span class="">set_line_width</span> <span class="number">4</span>
+
+<span class="comment">(**Graphical features **)</span>
+<span class="comment">(* [z]: ball height *)</span>
+<span class="comment">(* [z_platform]: platform height *)</span>
+<span class="comment">(* [rad]: ball radius *)</span>
+<span class="keyword ">let</span> <span class="keyword ">discrete</span> <span class="">draw_ball_platform</span>(<span class="">z</span>,<span class="">z_platform</span>,<span class="">rad</span>) =
+  <span class="">clear_graph</span> ();
+  <span class="keyword ">let</span> <span class="">z</span> = <span class="">truncate</span> (<span class="">z</span> <span class="operator">*.</span> <span class="number">10.0</span>) <span class="keyword ">in</span>
+  <span class="keyword ">let</span> <span class="">z_platform</span> = <span class="">truncate</span> (<span class="">z_platform</span> <span class="operator">*.</span> <span class="number">10.0</span>) <span class="keyword ">in</span>
+  <span class="">set_color</span> <span class="">red</span>;
+  <span class="">fill_circle</span> (<span class="number">100</span>, <span class="">z</span>, <span class="">truncate</span>(<span class="">rad</span> <span class="operator">*.</span> <span class="number">10.0</span>));
+  <span class="">set_color</span> <span class="">blue</span>;
+  <span class="">moveto</span>(<span class="number">10</span>, <span class="">z_platform</span>);
+  <span class="">lineto</span>(<span class="number">190</span>, <span class="">z_platform</span>);
+  <span class="comment">(* add spring zigzags *)</span>
+  <span class="keyword ">let</span> <span class="">h</span> = <span class="">z_platform</span> <span class="operator">/</span> <span class="number">8</span> <span class="keyword ">in</span>
+  <span class="">moveto</span>( <span class="number">20</span>, <span class="">z_platform</span>);
+  <span class="">lineto</span>(<span class="number">180</span>, <span class="">z_platform</span> - <span class="">h</span>);
+  <span class="">lineto</span>( <span class="number">20</span>, <span class="">z_platform</span> - <span class="number">2</span> * <span class="">h</span>);
+  <span class="">lineto</span>(<span class="number">180</span>, <span class="">z_platform</span> - <span class="number">3</span> * <span class="">h</span>);
+  <span class="">lineto</span>( <span class="number">20</span>, <span class="">z_platform</span> - <span class="number">4</span> * <span class="">h</span>);
+  <span class="">lineto</span>(<span class="number">180</span>, <span class="">z_platform</span> - <span class="number">5</span> * <span class="">h</span>);
+  <span class="">lineto</span>( <span class="number">20</span>, <span class="">z_platform</span> - <span class="number">6</span> * <span class="">h</span>);
+  <span class="">lineto</span>(<span class="number">180</span>, <span class="">z_platform</span> - <span class="number">7</span> * <span class="">h</span>);
+  <span class="">lineto</span>( <span class="number">20</span>, <span class="">z_platform</span> - <span class="number">8</span> * <span class="">h</span>);
+  <span class="">lineto</span>(<span class="number">180</span>, <span class="">z_platform</span> - <span class="number">9</span> * <span class="">h</span>);
+  <span class="">synchronize</span> ()
+
+<span class="comment">(*physical constants for the ball*)</span>
+<span class="keyword ">let</span> <span class="">g</span> = <span class="number">9.81</span>
+<span class="keyword ">let</span> <span class="">m_ball</span> = <span class="number">8.0</span>
+<span class="keyword ">let</span> <span class="">radius</span> = <span class="number">2.0</span>
+
+<span class="comment">(*and for the platform*)</span>
+<span class="keyword ">let</span> <span class="">m_platform</span> = <span class="number">1.0</span>
+<span class="keyword ">let</span> <span class="">k</span> = <span class="number">20.0</span>
+<span class="keyword ">let</span> <span class="">f</span> = <span class="number">0.5</span> <span class="comment">(* damping *)</span>
+<span class="keyword ">let</span> <span class="">base_level</span> = <span class="number">15.0</span>
+<span class="keyword ">let</span> <span class="">f_scratch</span> = <span class="number">0.1</span> <span class="comment">(* level of interaction when stuck *)</span>
+
+<span class="keyword keyword module ">open</span> <span class="constructor">Dump</span>
+
+<span class="comment">(* Hybrid system description *)</span>
+<span class="comment">(* [z0]: initial level of the ball *)</span>
+<span class="comment">(* [v0]: initial level of the platform *)</span>
+<span class="comment">(* [radius]: ball radius *)</span>
+<span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">system</span>(<span class="">z0</span>, <span class="">v0</span>, <span class="">radius</span>) = (<span class="">z</span>, <span class="">z_platform</span>) <span class="keyword ">where</span>
+  <span class="keyword ">rec</span> <span class="keyword ">automaton</span>
+      | <span class="constructor">Fall</span>(<span class="">z_init</span>, <span class="">v_init</span>, <span class="">z_p_init</span>, <span class="">v_p_init</span>) -&gt; 
+          <span class="keyword ">do</span>
+                <span class="keyword ">der</span> <span class="">z</span> = <span class="">v</span> <span class="keyword ">init</span> <span class="">z_init</span>
+            <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">v</span> = -.<span class="">g</span> <span class="keyword ">init</span> <span class="">v_init</span>
+            <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">z_platform</span> = <span class="">v_platform</span> <span class="keyword ">init</span> <span class="">z_p_init</span>
+            <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">v_platform</span> = 
+              -.(<span class="">k</span><span class="operator">/.</span><span class="">m_platform</span>)<span class="operator">*.</span>(<span class="">z_platform</span> -. <span class="">base_level</span>) 
+                -. (<span class="">f</span><span class="operator">/.</span><span class="">m_platform</span>)<span class="operator">*.</span><span class="">v_platform</span> <span class="keyword ">init</span> <span class="">v_p_init</span>
+            <span class="keyword ">and</span> <span class="">mode</span> = <span class="number">0.0</span>
+          <span class="keyword ">until</span> <span class="keyword expr ">up</span>(-.<span class="">z</span> <span class="operator">+.</span> <span class="">z_platform</span> <span class="operator">+.</span> <span class="">radius</span>)
+            <span class="keyword ">then</span> <span class="constructor">Stuck</span>(<span class="">z_platform</span>,
+                       (<span class="">m_ball</span> <span class="operator">*.</span> <span class="">v</span> <span class="operator">+.</span> <span class="">m_platform</span> <span class="operator">*.</span> <span class="">v_platform</span>)
+                          <span class="operator">/.</span> (<span class="">m_ball</span> <span class="operator">+.</span> <span class="">m_platform</span>))
+
+      | <span class="constructor">Stuck</span>(<span class="">z_init</span>, <span class="">v_init</span>) -&gt;
+        <span class="keyword ">local</span> <span class="">a_platform</span> <span class="keyword ">in</span>
+        <span class="keyword ">do</span>
+              <span class="">a_platform</span> =  -.(<span class="">k</span><span class="operator">/.</span>(<span class="">m_platform</span> <span class="operator">+.</span> <span class="">m_ball</span>))
+                                  <span class="operator">*.</span> (<span class="">z_platform</span> -. <span class="">base_level</span>)
+                            -. (<span class="">f</span><span class="operator">/.</span>(<span class="">m_platform</span> <span class="operator">+.</span> <span class="">m_ball</span>)) <span class="operator">*.</span> <span class="">v_platform</span>
+          <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">z</span> = <span class="">v_platform</span> <span class="keyword ">init</span> (<span class="">z_init</span> <span class="operator">+.</span> <span class="">radius</span>)
+          <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">v</span> = <span class="">a_platform</span> <span class="keyword ">init</span> <span class="">v_init</span>
+          <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">z_platform</span> = <span class="">v_platform</span> <span class="keyword ">init</span> <span class="">z_init</span>
+          <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">v_platform</span> = <span class="">a_platform</span> <span class="keyword ">init</span> <span class="">v_init</span>
+          <span class="keyword ">and</span> <span class="">mode</span> = <span class="number">1.0</span>
+        <span class="keyword ">until</span> <span class="keyword expr ">up</span>(-.(<span class="">m_ball</span> <span class="operator">*.</span> (<span class="">a_platform</span> <span class="operator">+.</span> <span class="">f_scratch</span>)))
+          <span class="keyword ">then</span> <span class="constructor">Fall</span>(<span class="">z</span>,
+                    (<span class="">m_ball</span><span class="operator">/.</span>(<span class="">m_ball</span> <span class="operator">+.</span> <span class="">m_platform</span>)) <span class="operator">*.</span> <span class="">v</span>,
+                    <span class="">z_platform</span>,
+                    (<span class="">m_platform</span><span class="operator">/.</span>(<span class="">m_ball</span> <span class="operator">+.</span> <span class="">m_platform</span>)) <span class="operator">*.</span> <span class="">v_platform</span>)
+
+      <span class="keyword ">init</span> <span class="constructor">Fall</span>(<span class="">z0</span>, <span class="">v0</span>, <span class="">base_level</span>, <span class="number">0.5</span>)
+
+   <span class="comment">(* Graph the results via gnuplot *)</span>
+   <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">t</span> = <span class="number">1.0</span> <span class="keyword ">init</span> <span class="number">0.0</span>
+   <span class="keyword ">and</span> _ = <span class="keyword ">present</span> (<span class="keyword expr ">period</span> (<span class="number">0.1</span>)) | (<span class="keyword ">init</span>) -&gt;
+             <span class="keyword ">let</span> <span class="">a_platform</span> = -.(<span class="">k</span><span class="operator">/.</span>(<span class="">m_platform</span> <span class="operator">+.</span> <span class="">m_ball</span>))
+                                    <span class="operator">*.</span> (<span class="">z_platform</span> -. <span class="">base_level</span>)
+                              -. (<span class="">f</span><span class="operator">/.</span>(<span class="">m_platform</span> <span class="operator">+.</span> <span class="">m_ball</span>)) <span class="operator">*.</span> <span class="">v_platform</span>
+             <span class="keyword ">in</span>
+             <span class="keyword ">let</span> <span class="">pos</span> = <span class="">scope2</span> (<span class="number">0.0</span>, <span class="number">100.0</span>, (<span class="string">"ball"</span>, <span class="">linear</span>, <span class="">z</span>),
+                                           (<span class="string">"platform"</span>, <span class="">linear</span>, <span class="">z_platform</span>))
+             <span class="keyword ">in</span>
+             <span class="keyword ">let</span> <span class="">other</span> = <span class="">scope3</span> (-<span class="number">10.0</span>, <span class="number">10.0</span>,
+                   (<span class="string">"mode"</span>, <span class="">square</span>, <span class="">mode</span>),
+                   (<span class="string">"zfall"</span>,  <span class="">linear</span>, -.<span class="">z</span> <span class="operator">+.</span> <span class="">z_platform</span> <span class="operator">+.</span> <span class="">radius</span>),
+                   (<span class="string">"zstuck"</span>, <span class="">linear</span>, -.(<span class="">m_ball</span> <span class="operator">*.</span> (<span class="">a_platform</span> <span class="operator">+.</span> <span class="">f_scratch</span>))))
+             <span class="keyword ">in</span>
+             <span class="keyword ">let</span> <span class="">w1</span> = <span class="">window2</span>(<span class="string">"ball_spring"</span>, <span class="number">20.0</span>, <span class="">t</span>, <span class="">pos</span>, <span class="">other</span>) <span class="keyword ">in</span>
+             ()
+
+<span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">main</span> () = () <span class="keyword ">where</span>
+  <span class="keyword ">rec</span> <span class="">t</span> = <span class="keyword expr ">period</span> (<span class="number">0.1</span>)
+  <span class="keyword ">and</span> <span class="">z</span>, <span class="">z_platform</span> = <span class="">system</span>(<span class="number">40.0</span>, <span class="number">3.0</span>, <span class="">radius</span>)
+  <span class="keyword ">and</span> _ = <span class="keyword ">present</span> <span class="">t</span> | (<span class="keyword ">init</span>) -&gt; <span class="">draw_ball_platform</span>(<span class="">z</span>, <span class="">z_platform</span>, <span class="">radius</span>)
 
 </code></pre></div></div></div></div>
 </div><hr />
