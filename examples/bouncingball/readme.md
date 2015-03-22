@@ -17,3 +17,8 @@ when the balls vertical velocity becomes very small.
 
 !SOURCEFILE: autoball.zls
 
+There is also a simpler model where the ball bounces up and down on the
+spot.
+
+!SOURCEFILE: flatball.zls
+

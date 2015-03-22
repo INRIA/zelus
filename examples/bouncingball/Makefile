@@ -70,13 +70,15 @@ export:
 	cp autoball.zls ball.zls Makefile readme.md \
 	   showball.zli showball.ml showball.mli \
 	   show.zli show.mli world.zli world.ml world.mli \
+	   flatball.zls flatworld.ml flatworld.mli flatworld.zli \
 	   $(DISTDIR)/bouncingball/
 	mkdir $(DISTDIR)/bouncingball/img
 	cp img/*.png $(DISTDIR)/bouncingball/img/
 
 clean:
-	-@rm -f ball_main.ml ball.ml autoball_main.ml
-	-@rm -f autoball.ml
+	-@rm -f ball_main.ml ball.ml
+	-@rm -f autoball_main.ml autoball.ml
+	-@rm -f flatball_main.ml flatball.ml
 	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci
 	-@rm -f $(EXAMPLE:%.zls=%.byte) $(EXAMPLE:%.zls=%.opt)
 	-@rm -f .depend
