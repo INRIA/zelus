@@ -103,7 +103,10 @@ for ENTRY in ${EXAMPLES}; do
 	>> "${GENERATED}/gen-examples-body.html"
     IFS="
 "
-    (cat ${EX} | ${MARKDOWN} | while read LINE
+    (cat ${EX}					    \
+	| ${MARKDOWN}				    \
+	| sed -e 's/<figcaption>[^>]*<\/figcaption>//' \
+	| while read LINE
     do
 	case "${LINE}" in
 	    *!SOURCEFILE:*zls*)
