@@ -362,13 +362,13 @@ cat > META <<ENDOFFILE
 directory = "${libdir:-$prefix/lib}/zelus"
 version = "${version}"
 description = "A synchronous language with ODEs"
-requires = "${META_SUNDIALS}"
+requires = "bigarray ${META_SUNDIALS}"
 archive(byte) = "zllib.cma"
 archive(native) = "zllib.cmxa"
 package "gtk" (
     version = "${version}"
     description = "A synchronous language with ODEs (with gtk)"
-    requires = "${META_SUNDIALS} lablgtk2"
+    requires = "bigarray ${META_SUNDIALS} lablgtk2"
     archive(byte) = "zllibgtk.cma"
     archive(native) = "zllibgtk.cmxa"
 )
