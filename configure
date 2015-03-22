@@ -329,6 +329,7 @@ cat config.log
 	 s#@mandir@#${mandir:-$prefix/share/man/}#;
 	 s#@targets@#${targets}#;
 	 s#@gtktargets@#${gtktargets}#;
+	 s#@for_compile@#${for_compile}#;
 	 s#@VERSION@#${version}#;
 	 s#@DEFAULT_SOLVER@#${default_solver}#;
 	 s#@SUNDIALSML_INCL@#${sundialsml_incl}#;
