@@ -1,18 +1,3 @@
-(********************
-Ball bouncing on a spring (with damping)
-Cyprien L. 2/05/2012
-
-   / \
-   \ /
-
-
-___________
-| |    /
-|||    \
- |     /
- |     \
-
-*******************)
 
 open Graphics
 let start = 
@@ -22,7 +7,7 @@ let start =
 
 (**Graphical features **)
 (* [z]: ball height *)
-(* [z_plateform]: plateform height *)
+(* [z_platform]: platform height *)
 (* [rad]: ball radius *)
 let discrete draw_ball_platform(z,z_platform,rad) =
   clear_graph ();
