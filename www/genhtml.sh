@@ -56,6 +56,7 @@ EXAMPLES="${ZELUS}/examples/bouncingball
 	  ${ZELUS}/examples/stickysprings
 	  ${ZELUS}/examples/backhoe
 	  ${ZELUS}/examples/horloge
+	  ${ZELUS}/examples/watch
 	  ${ZELUS}/examples/airtraffic"
 TOOLS=${ZELUS}/tools
 

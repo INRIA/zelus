@@ -67,6 +67,7 @@ document.getElementById('title-examples').className = 'active';
 <li><a href="#stickysprings">Sticky Masses</a></li>
 <li><a href="#backhoe">Backhoe</a></li>
 <li><a href="#horloge">Pendulum Clock</a></li>
+<li><a href="#watch">Spring-driven Watch</a></li>
 <li><a href="#airtraffic">Airtraffic Control</a></li>
 </ul>
 </div><!--/.well -->
@@ -1710,6 +1711,42 @@ drawn by an external (OCaml) function called <code>draw_system</code>.</p>
         | <span class="">toc</span>() <span class="keyword expr ">on</span> <span class="">active</span>  -&gt; <span class="">play_toc</span> ();
     ()
 </code></pre></div></div></div></div>
+</div><hr />
+<div id="watch" class="example-section">
+<h2 id="spring-drivenwatch">Spring-driven Watch</h2>
+
+<p>Author: <a href="http://www.di.ens.fr/~baudart/">Guillaume Baudart</a></p>
+
+<figure>
+<img src="img/watch.png" alt="Screenshot" title="Screenshot" />
+
+</figure>
+
+<p>This model was made to celebrate
+<a href="http://people.rennes.inria.fr/Albert.Benveniste/">Albert Benveniste&#8217;s</a>
+<a href="https://project.inria.fr/alberts65th/">65th birthday</a> in honour of
+<a href="http://people.rennes.inria.fr/Albert.Benveniste/pub/Polychrony.pdf">“The old fashioned Signal watch”</a>.</p>
+
+<p>The watch features an escapement that regulates the movement of two cogs
+according to the back and forth rocking of a regulator wheel. The
+<code>escapement</code> node generates four events as the regulator moves: <code>tic</code> and
+<code>toc</code> as the smaller, pink cog is caught by the escapement and stopped from
+moving, and <code>rtic</code> and <code>rtoc</code> as it is released and allowed to turn. When
+the ping cog is free, then bigger, green cog is pushed by the balance
+spring. This is turn moves the clock hands. The <code>clockwatch</code> node is an
+automaton with four modes:</p>
+
+<ul>
+<li><code>Move</code>: the cogs are free to turn.</li>
+<li><code>Stop</code>: the cogs are trapped by the escapement.</li>
+<li><code>Exhausted</code>: there is no energy left in the masses.</li>
+<li><code>Setting</code>: energy is added to the mass system.</li>
+</ul>
+
+<p>A sound is emitted whenever the escapement catches (on <code>tic</code> and <code>toc</code>). As
+an added bonus, the entire system can be made to swing back and forth by
+pressing the <code>m</code> key. The system state is drawn by an external (OCaml)
+function called <code>draw_system</code>.</p>
 </div><hr />
 <div id="airtraffic" class="example-section">
 <h2 id="airtrafficcontrol">Airtraffic Control</h2>

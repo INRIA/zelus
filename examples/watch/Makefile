@@ -23,6 +23,14 @@ watch.ml watch_main.ml: draw.zci watch.zls
 	$(ZELUC) -I $(ZLLIB) $(ZLCFLAGS) -s main -sampling 0 watch.zls
 	mv main.ml watch_main.ml
 
+export:
+	mkdir $(DISTDIR)/watch
+	cp Makefile draw.ml draw.mli draw.zli readme.md watch.zls \
+	   $(DISTDIR)/watch/
+	mkdir $(DISTDIR)/watch/img
+	cp img/*.png $(DISTDIR)/watch/img/
+
+#
 
 depend: .depend
 .depend:
