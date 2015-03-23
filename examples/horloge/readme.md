@@ -15,7 +15,7 @@ four events as the pendlum moves: `tic` and `toc` as the smaller, pink cog
 is caught by the escapement and stopped from moving, and `rtic` and `rtoc`
 as it is released and allowed to turn. When the ping cog is free, then
 bigger, green cog can turn pulled by the falling `atwood` masses.
-This is turn moves the clock hands.
+This in turn moves the clock hands.
 The `clockwatch` node is an automaton with four modes:
 
 * `Move`: the cogs are free to turn.

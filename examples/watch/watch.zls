@@ -78,10 +78,7 @@ let hybrid clockwatch (h0, t0, theta, r) = (h, t, active) where
           else r() then Setting (hi,ti)
       | Exhausted(ti) ->
           do active = false
-    done
-    (*
           until r() then Setting(h,ti)
-      *)
       | Setting (hi, ti) ->
           do h = set hi
           and active = false
