@@ -33,7 +33,7 @@ BIN = zeluc
 TARGET ?= $(word 1, $(targets))
 
 ifeq (@for_compile@,1)
-ZELUC := ../../compiler/$(BIN).$(TARGET)
+ZELUC := ../../bin/$(BIN)
 else
 ZELUC := ../../bin/$(BIN).$(TARGET) -stdlib ../../lib
 endif

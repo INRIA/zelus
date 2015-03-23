@@ -1,6 +1,6 @@
 include ../config
 
-ZELUC = ../compiler/zeluc.$(TARGET)
+ZELUC = ../bin/zeluc
 
 LOBJ = pervasives.zci \
        char.zci \
