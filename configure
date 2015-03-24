@@ -343,15 +343,22 @@ cat config.log
 	 s#@OCAMLBIN@#${OCAMLBIN}#;
 	 s#@OCAMLROOT@#${OCAMLROOT}#;" config.in) > config
 
-if [ ${for_compile} -ne 1 ]; then
+if [ ${for_compile} -eq 1 ]; then
+cat > bin/zeluc <<ENDOFFILE
+#!/bin/sh
+ZLLIB=`pwd`/lib
+export ZLLIB
+exec ${OCAMLBIN}ocamlrun `pwd`/compiler/zeluc.byte \$@
+ENDOFFILE
+else
 cat > bin/zeluc <<ENDOFFILE
 #!/bin/sh
 ZLLIB=${libdir:-$prefix/lib}/zelus
 export ZLLIB
 exec ${OCAMLBIN}ocamlrun ${bindir:-$prefix/bin}/zeluc.byte \$@
 ENDOFFILE
-chmod a+x bin/zeluc
 fi
+chmod a+x bin/zeluc
 
 if [ -n "${sundialsml_incl}" ]; then
     META_SUNDIALS="sundialsml"
