@@ -1,6 +1,5 @@
-include /Users/baudart/Software/zelus-svn/trunk/config
+include ../../config
 
-ZELUC = zeluc
 EXAMPLE = ltta.zls
 
 all: byte
