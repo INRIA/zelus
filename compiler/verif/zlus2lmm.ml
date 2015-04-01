@@ -14,6 +14,43 @@
 
 (* Translation into Lustre-- *)
 
+(* no automaton, no present *)
+
+(* Tr(ck)(match e with
+          | p1 -> E1 | ... | pn -> En) = 
+
+   with one defined variable y (defnames = {y}) and used variable x
+   (example: E1 = local t in do t = x + 3 and y = t + 2 done)
+
+becomes:
+ 
+   local c in
+   do
+     c = Tr(ck)(e)
+   and
+     Tr(c on c1)(E1)[y_1/y]
+   and
+     ...
+   and
+     Tr(c on cn)(En)[y_n/y]
+   and
+     c1 = test(p1)(c) and ... and cn = test(pn)(c)
+   and
+     pat(p1) = c and ... and pat(pn) = c
+   and
+     y = if c1 then y_1 else ... if cn then y_n [else pre y]
+
+where:
+
+  test(p)(c) returns an expression testing that the pattern p matches c
+
+  pat(p) returns a pattern with variables only
+
+*)
+
+is translated into a set of equations
+
+   
 open Location
 open Ident
 open Zelus
