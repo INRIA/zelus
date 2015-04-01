@@ -52,8 +52,6 @@ Tr(ck)(x = e) = x = if ck then Tr(ck)(e) else pre x
 
 *)
 
-is translated into a set of equations
-
    
 open Location
 open Ident
