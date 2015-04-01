@@ -111,5 +111,10 @@ controller switches on and off to oscillate around the set-point.
 The LED will flash green (`2`) during periods of heating, and red (`1`) during
 periods of cooling, i.e., when not heating.
 
+Note that the timing constants in the program have all been divided by 100
+to speedup animation of the system. Another way to achieve the same effect
+would have been to use the `-speedup` option available in compiled Zélus
+programs.
+
 !SOURCEFILE: bangbang.zls
 
