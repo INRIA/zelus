@@ -77,6 +77,20 @@ let rec clock = function
   | Ck_on(Ck_base, e) -> e
   | Ck_on(ck, e) -> and_op (clock ck) e
 
+(* for a pair [pat, e] computes the equation [pat_v = e] where *)
+(* pat_v is only made of variables and [c] which is true when [pat] matches [e] *)
+let rec filter { p_desc = desc } e =
+  match desc with
+  | Ewildpat | Evarpat _  -> make e.e_typ (Econstpat(Etrue))
+  | Econstr0pat(c) -> make_equal c e
+  | Etuplepat(p_list) -> 
+  | Ealiaspat(p, _) | Etypeconstraintpat(p, _) -> filter p e
+  | Eorpat(p1, p2) -> make_or (filter p1 e) (filter p2 e)
+  | Erecordpat(l_p_list) ->
+     List.fold_left
+       (fun acc (l, p) -> make_and (filter p (make (Erecord_access(e, l)))))
+       [] l_p_list
+       
 (* [equation ck eq = eq_list] *)
 let rec equation ck { eq_desc = desc; eq_write = defnames } = 
   match desc with
