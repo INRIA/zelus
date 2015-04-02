@@ -78,27 +78,47 @@ let rec clock = function
   | Ck_on(ck, e) -> and_op (clock ck) e
 
 
-			   P1 | P2, P3 = e
 (* for a pair [pat, e] computes the equation [pat_v = e] and boolean *)
 (* condition c where [pat_v] is only made of variables and [c] *)
 (* is true when [pat] matches [e] *)
-let rec filter eqs { p_desc = p_desc } { e_desc = e_desc } =
+let rec take p l_e_list =
+  match l_e_list with
+  | [] -> assert false
+  | (q, e) :: l_e_list ->
+     if Lident.same p q then e else take p l_e_list
+
+let rec filter { p_desc = p_desc } { e_desc = e_desc } =
   match p_desc, e_desc with
-  | Ewildpat, _ -> eqs, e_true
-  | Evarpat(x), _ -> eq_make (Lmm.Evarpat(x)) e, e_true
-  | Econstr0pat(c), _ -> eqs, make_equal c e
+  | Ewildpat, _ | Evarpat _ -> e_true
+  | Econstr0pat(c), _ -> make_equal (Econstr0(c)) e
   | Etuplepat(p_list), Etuple(e_list) ->
      List.fold_left2
-       (fun (eqs, c) (p, e) -> let eqs, c_e = filter eqs p e in
-			       eqs, make_and c c_e)
-       ([], e_true) p_list e_list     
-  | Ealiaspat(p, _) | Etypeconstraintpat(p, _) -> filter eqs p e
-  | Eorpat(p1, p2) ->
-     let make_or (filter p1 e) (filter p2 e)
-  | Erecordpat(l_p_list) ->
+       (fun cond p e -> make_and cond (filter eqs p e))
+       e_true p_list e_list     
+  | Ealiaspat(p, _) | Etypeconstraintpat(p, _), _ -> filter p e
+  | Eorpat(p1, p2), _ ->
+     make_or (filter p1 e) (filter p2 e)
+  | Erecordpat(l_p_list), Erecord(l_e_list) ->
      List.fold_left
-       (fun acc (l, p) -> make_and (filter p (make (Erecord_access(e, l)))))
-       [] l_p_list
+       (fun cond (l, p) -> make_and cond (filter p (take p l_e_list)))
+       e_true l_p_list
+
+let pvars eqs { p_desc = p_desc } { e_desc = e_desc } =
+  match p_desc, e_desc with
+  | Ewildpat, _ -> eqs
+  | Evarpat(x), _ -> (eq_make p e) :: eqs
+  | Econstr0pat(c), _ -> make_equal (Econstr0(c)) e
+  | Etuplepat(p_list), Etuple(e_list) ->
+     List.fold_left2
+       (fun cond p e -> make_and cond (filter eqs p e))
+       e_true p_list e_list     
+  | Ealiaspat(p, _) | Etypeconstraintpat(p, _), _ -> filter p e
+  | Eorpat(p1, p2), _ ->
+     make_or (filter p1 e) (filter p2 e)
+  | Erecordpat(l_p_list), Erecord(l_e_list) ->
+     List.fold_left
+       (fun cond (l, p) -> make_and cond (filter p (take p l_e_list)))
+       e_true l_p_list
        
 (* [equation ck eq = eq_list] *)
 let rec equation ck { eq_desc = desc; eq_write = defnames } = 
