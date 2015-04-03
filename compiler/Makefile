@@ -79,8 +79,7 @@ GENCODE = gencode/obc.cmo \
 	  gencode/inout.cmo
 
 VERIF = verif/lmm.cmo \
-	verif/plmm.cmo \
-	verif/zlus2lmm.cmo
+	verif/plmm.cmo
 
 MAIN = main/compiler.cmo \
 	main/simulator.cmo \
