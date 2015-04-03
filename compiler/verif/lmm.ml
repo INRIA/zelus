@@ -72,16 +72,4 @@ type exp =
  and implementation_desc =
    | Econstdecl of name * exp
    | Efundecl of name * funexp
-   | Etypedecl of name * type_decl
-
- and type_decl =
-   | Eabstract_type
-   | Eabbrev of type_expression
-   | Evariant_type of name list
-   | Erecord_type of (name * type_expression) list
-
- and type_expression = type_expression_desc localized
-
- and type_expression_desc =
-   | Etypevar of string
-			  
+   | Etypedecl of name * name list * Zelus.type_decl

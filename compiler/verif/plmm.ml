@@ -88,27 +88,14 @@ let fundecl ff n { f_kind = k; f_inputs = inputs; f_outputs = outputs;
     var_dec_list locals
     (equation_list_with_assert e_opt) eq_list
 
-let rec ptype ff ty =
-  match ty.desc with
-  | Etypevar(s) -> fprintf ff "%s" s
-
-let type_decl ff ty_decl =
-  match ty_decl with
-    | Eabstract_type -> ()
-    | Eabbrev(ty) ->
-        fprintf ff " = %a" ptype ty
-    | Evariant_type(tag_name_list) ->
-        fprintf ff " = %a" (print_list_l shortname "" "|" "") tag_name_list
-    | Erecord_type(n_ty_list) ->
-        fprintf ff " = %a"
-          (print_record (print_couple shortname ptype """ :""")) n_ty_list
-
 let implementation ff { desc = desc } =
   match desc with
   | Econstdecl(n, e) -> fprintf ff "@[const %s = %a@]\n@." n expression e
   | Efundecl(n, f) -> fundecl ff n f
-  | Etypedecl(n, ty_decl) ->
-     fprintf ff "@[<v 2>type %s %a@.@]" n type_decl ty_decl
+  | Etypedecl(n, params, ty_decl) ->
+     fprintf ff "@[<v 2>type %a %s %a@.@]"
+	     Pp_tools.print_type_params params n
+	     Printer.type_decl ty_decl
 
 let implementation_list ff imp_list =
   List.iter (implementation ff) imp_list
