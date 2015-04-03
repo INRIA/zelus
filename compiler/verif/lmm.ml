@@ -35,6 +35,7 @@ type exp =
    | Eapp of op * exp list
    | Erecord_access of exp * Lident.t
    | Erecord of (Lident.t * exp) list
+   | Etuple of exp list
 				 
  and op =
    | Eunarypre | Eminusgreater | Eifthenelse | Eop of Lident.t

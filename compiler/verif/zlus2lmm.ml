@@ -61,73 +61,116 @@ open Deftypes
 let eq_make pat e = 
   { Lmm.eq_lhs = pat; Lmm.eq_rhs = e; Lmm.eq_loc = no_location }
 
-let make desc ty = { Lmm.e_desc = desc; Lmm.e_typ = ty; Lmm.e_loc = no_location }
+let make desc = { Lmm.e_desc = desc;
+		  Lmm.e_typ = Deftypes.no_typ;
+		  Lmm.e_loc = no_location }
 
-let and_op e1 e2 =
-  make (Eapp(Eop(Lident.Modname(Initial.pervasives_name "&&")),
-	     [e1; e2])) Initial.typ_bool
-       
+let e_true = make (Lmm.Econst(Ebool(true)))
+let e_false = make (Lmm.Econst(Ebool(false)))
+  
+let bool_op op e1 e2 =
+  make (Lmm.Eapp(Lmm.Eop(Lident.Modname(Initial.pervasives_name op)),
+	     [e1; e2]))
+
+let equal_op e1 e2 = bool_op "=" e1 e2
+let and_op e1 e2 = bool_op "&&" e1 e2
+let or_op e1 e2 = bool_op "||" e1 e2
+  
 type ck = | Ck_base | Ck_on of ck * Lmm.exp
  
 let on ck e = Ck_on(ck, e)
 
 (* from a clock to a boolean expression *)
 let rec clock = function
-  | Ck_base -> make (Econst(Ebool(true))) Initial.typ_bool
+  | Ck_base -> e_true
   | Ck_on(Ck_base, e) -> e
   | Ck_on(ck, e) -> and_op (clock ck) e
-
 
 (* for a pair [pat, e] computes the equation [pat_v = e] and boolean *)
 (* condition c where [pat_v] is only made of variables and [c] *)
 (* is true when [pat] matches [e] *)
-let rec take p l_e_list =
-  match l_e_list with
-  | [] -> assert false
-  | (q, e) :: l_e_list ->
-     if Lident.same p q then e else take p l_e_list
+let rec filter eqs { p_desc = p_desc } e =
+  match p_desc with
+    | Ewildpat ->  eqs, e_true
+    | Evarpat(id) -> (eq_make (Lmm.Evarpat(id)) e) :: eqs, e_true
+    | Econstpat(c) -> eqs, equal_op (make (Lmm.Econst(c))) e
+    | Econstr0pat(c) -> eqs, equal_op (make (Lmm.Econstr0(c))) e
+    | Etuplepat(p_list) ->
+      (* introduce n fresh names *)
+      let n_list = List.map (fun _ -> Ident.fresh "") p_list in
+      let eqs, cond =
+	List.fold_left2
+	  (fun (eqs, cond) p n ->
+	    let eqs, cond_p_n = filter eqs p (make (Lmm.Elocal(n))) in
+	    eqs, and_op cond cond_p_n) (eqs, e_true) p_list n_list in
+      eqs, cond
+    | Ealiaspat(p, id) ->
+      let eqs, cond = filter eqs p e in
+      (eq_make (Lmm.Evarpat(id)) e) :: eqs, cond
+    | Etypeconstraintpat(p, _) -> filter eqs p e
+    | Eorpat(p1, p2) ->
+      let eqs, cond1 = filter eqs p1 e in
+      let eqs, cond2 = filter eqs p2 e in
+      eqs, or_op cond1 cond2
+    | Erecordpat(l_p_list) ->
+      let eqs, cond =
+	List.fold_left
+	  (fun (eqs, cond) (l, p) ->
+	    let eqs, cond_l_p = filter eqs p (make (Lmm.Erecord_access(e, l))) in
+	    eqs, and_op cond cond_l_p) (eqs, e_true) l_p_list in
+       eqs, cond
 
-let rec filter { p_desc = p_desc } { e_desc = e_desc } =
-  match p_desc, e_desc with
-  | Ewildpat, _ | Evarpat _ -> e_true
-  | Econstr0pat(c), _ -> make_equal (Econstr0(c)) e
-  | Etuplepat(p_list), Etuple(e_list) ->
-     List.fold_left2
-       (fun cond p e -> make_and cond (filter eqs p e))
-       e_true p_list e_list     
-  | Ealiaspat(p, _) | Etypeconstraintpat(p, _), _ -> filter p e
-  | Eorpat(p1, p2), _ ->
-     make_or (filter p1 e) (filter p2 e)
-  | Erecordpat(l_p_list), Erecord(l_e_list) ->
-     List.fold_left
-       (fun cond (l, p) -> make_and cond (filter p (take p l_e_list)))
-       e_true l_p_list
+(* translate an operator *)
+let operator ck op e_list =
+  match op with
+    | Eunarypre -> Lmm.Eapp(Lmm.Eunarypre, e_list)
+    | Eifthenelse -> Lmm.Eapp(Lmm.Eifthenelse, e_list) 
+    | Eminusgreater -> Lmm.Eapp(Lmm.Eminusgreater, e_list)
+    | Eop(_, lid) | Eevery(_, lid) ->
+      if Types.is_a_function lid then Lmm.Eapp(Lmm.Eop(lid), e_list)
+      else Lmm.Eapp(Lmm.Eop(lid), e_false :: (clock ck) :: e_list)
+    | Efby | Eup | Einitial | Edisc
+    | Etest -> assert false
 
-let pvars eqs { p_desc = p_desc } { e_desc = e_desc } =
-  match p_desc, e_desc with
-  | Ewildpat, _ -> eqs
-  | Evarpat(x), _ -> (eq_make p e) :: eqs
-  | Econstr0pat(c), _ -> make_equal (Econstr0(c)) e
-  | Etuplepat(p_list), Etuple(e_list) ->
-     List.fold_left2
-       (fun cond p e -> make_and cond (filter eqs p e))
-       e_true p_list e_list     
-  | Ealiaspat(p, _) | Etypeconstraintpat(p, _), _ -> filter p e
-  | Eorpat(p1, p2), _ ->
-     make_or (filter p1 e) (filter p2 e)
-  | Erecordpat(l_p_list), Erecord(l_e_list) ->
-     List.fold_left
-       (fun cond (l, p) -> make_and cond (filter p (take p l_e_list)))
-       e_true l_p_list
-       
-(* [equation ck eq = eq_list] *)
-let rec equation ck { eq_desc = desc; eq_write = defnames } = 
+(* renaming of a name by an other *)
+let rename x subst =
+  try Env.find x subst
+  with | Not_found -> assert false
+    
+(* [subst] is a substitution to rename [last x] by a fresh variable [lx] *)
+let rec expression ck subst { e_desc = desc } =
   match desc with
+    | Elocal(id) -> make (Lmm.Elocal(id))
+    | Eglobal(lid) -> make (Lmm.Eglobal(lid))
+    | Econst(im) -> make (Lmm.Econst(im))
+    | Econstr0(lid) -> make (Lmm.Econstr0(lid))
+    | Elast(lx) -> make (Lmm.Elocal(rename lx subst))
+    | Eapp(op, e_list) ->
+      make (operator ck op (List.map (expression ck subst) e_list))
+    | Etuple(e_list) ->
+      make (Lmm.Etuple(List.map (expression ck subst) e_list))
+    | Erecord_access(e, lid) ->
+      make (Lmm.Erecord_access(expression ck subst e, lid))
+    | Erecord(l_e_list) ->
+      make (Lmm.Erecord
+	      (List.map (fun (l, e) -> (l, expression ck subst e)) l_e_list))
+    | Etypeconstraint(e, _) -> expression ck subst e
+    | Epresent _ | Ematch _ | Elet _ | Eseq _ | Eperiod _ -> assert false
+
+let shared_variables { dv = dv } = dv
+  
+(* [equation ck eq = eq_list] *)
+let rec equation ck subst eqs { eq_desc = desc; eq_write = defnames } = 
+  match desc with
+    | EQeq({ p_desc = Evarpat(id) }, e) ->
+      (eq_make (Lmm.Evarpat(id)) (expression ck subst e)) :: eqs
     | EQeq(p, e) ->
-      State.singleton (eq_make (pattern p) (expression ck e))
+      let n = Ident.fresh "" in
+      let eqs, _ = filter eqs p (make (Lmm.Elocal(n))) in
+      (eq_make (Lmm.Evarpat(n)) (expression ck subst e)) :: eqs
     | EQmatch(total, e, p_h_list) ->
       (* first translate [e] *)
-      let e = expression ck e in
+      let e = expression ck subst e in
       (* then compute the set of shared variables *)
       let s = shared_variables defnames in
       let handler { m_pat = p; m_body = b } =
@@ -135,7 +178,7 @@ let rec equation ck { eq_desc = desc; eq_write = defnames } =
 	let eq_p_e = pat_with_expression p e in
 	let ck = on ck p e in
 	let eq = block ck b in
-	eq
+	eq in
       (* do it for all *)
       let p_h_list = List.map handler p_h_list in
       merge e pat_subst_list

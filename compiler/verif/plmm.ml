@@ -48,7 +48,9 @@ let rec expression ff { e_desc = desc } =
   | Eapp(op, e_list) -> operator ff op e_list
   | Erecord_access(e, ln) -> fprintf ff "@[%a.%a@]" expression e longname ln
   | Erecord(ln_e_list) ->
-     print_record (print_couple longname expression """ =""") ff ln_e_list
+    print_record (print_couple longname expression """ =""") ff ln_e_list
+  | Etuple(e_list) ->
+    fprintf ff "@[%a@]" (print_list_r expression "("", "")") e_list
 
 and operator ff op e_list =
   match op, e_list with

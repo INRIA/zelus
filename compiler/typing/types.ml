@@ -324,21 +324,21 @@ let is_a_node lname =
   match typ_body with
     | Tsignature((Tdiscrete(true) | Tcont), _, _, _) -> true | _ -> false
 
-(** Is-it a safe function ? *)
+(** Is-it a safe function? *)
 let is_a_safe_function lname =
   let { info = { value_typ = { typ_body = typ_body } } } = 
     Modules.find_value lname in
   match typ_body with
     | Tsignature(Tany, is_safe, _, _) -> is_safe | _ -> false
 
-(** Is-it a function ? *)
+(** Is-it a function? *)
 let is_a_function lname =
   let { info = { value_typ = { typ_body = typ_body } } } = 
     Modules.find_value lname in
   match typ_body with
     | Tsignature(Tany, _, _, _) -> true | _ -> false
 
-(** Is-it a safe function ? *)
+(** Is-it a hybrid function? *)
 let is_a_hybrid_node lname =
   let { info = { value_typ = { typ_body = typ_body } } } = 
     Modules.find_value lname in
