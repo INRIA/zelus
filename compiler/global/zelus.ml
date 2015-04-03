@@ -90,9 +90,9 @@ and desc =
   | Eperiod of period
 
 and op =
-    | Efby | Eunarypre | Eifthenelse 
-    | Eminusgreater | Eup | Einitial | Edisc
-    | Etest | Eop of is_inline * Lident.t | Eevery of is_inline * Lident.t
+  | Efby | Eunarypre | Eifthenelse 
+  | Eminusgreater | Eup | Einitial | Edisc
+  | Etest | Eop of is_inline * Lident.t | Eevery of is_inline * Lident.t
 
 and immediate = Deftypes.immediate
 
