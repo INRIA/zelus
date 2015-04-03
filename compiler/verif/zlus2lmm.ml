@@ -157,8 +157,17 @@ let rec expression ck subst { e_desc = desc } =
     | Etypeconstraint(e, _) -> expression ck subst e
     | Epresent _ | Ematch _ | Elet _ | Eseq _ | Eperiod _ -> assert false
 
+(* the set of shared variables from a set of defined names *)
 let shared_variables { dv = dv } = dv
-  
+
+(* returns the expression associated to [x] in a substitution [name_to_exp] *)
+(* if [x] is unbound, returns [pre x] *)
+let get x name_to_exp =
+  try
+    Env.find x name_to_exp
+  with
+    | Not_found -> make (Lmm.Eapp(Lmm.Eunarypre, [make (Lmm.Elocal(x))]))
+      
 (* [equation ck eq = eq_list] *)
 let rec equation ck subst eqs { eq_desc = desc; eq_write = defnames } = 
   match desc with
@@ -173,16 +182,40 @@ let rec equation ck subst eqs { eq_desc = desc; eq_write = defnames } =
       let e = expression ck subst e in
       (* then compute the set of shared variables *)
       let s = shared_variables defnames in
-      let handler { m_pat = p; m_body = b } =
-	let p = pattern p in
-	let eq_p_e = pat_with_expression p e in
-	let ck = on ck p e in
-	let eq = block ck b in
-	eq in
-      (* do it for all *)
-      let p_h_list = List.map handler p_h_list in
-      merge e pat_subst_list
-  | EQemit _ | EQautomaton _ | EQpresent _ | EQder _ | EQreset _ -> assert false
+      (* introduce [n] fresh clock names [c1,..., cn] *)
+      let c_list =
+	List.map (fun _ -> Ident.fresh "") p_h_list in
+
+      (* translate the list of body *)
+      let equations_from_handler eqs c { m_body = b } =
+	let eqs = block (on ck c) subst eqs b in
+	let eqs, name_to_exp = split s eqs in
+	eqs, name_to_exp in
+
+      let eqs, name_to_exp_list =
+	List.fold_right2
+	  (fun c p_h (eqs, name_to_exp_list) ->
+	    let eqs, name_to_exp = equations_from_handler eqs c h in
+	    eqs, name_to_exp :: name_to_exp_list)
+	  c_list p_h_list in
+      
+      (* translate the list of patterns *)
+      let patterns_from_handler eqs c { m_pat = p } =
+	let eqs, cond = filter eqs p e in
+	(eq_make (Lmm.Evarpat(c)) cond) :: eqs in
+      let eqs = List.fold_left2 patterns_from_handler c_list p_h_list in
+
+      (* merge results for every shared variable. Returns *)
+      (* if c1 then e1 else ... en *)
+      let rec merge x cond_name_to_exp_list =
+	match name_to_exp_list with
+	  | [] -> assert false
+	  | [cond, name_to_exp] -> get x name_to_exp
+	  | (cond, name_to_exp) :: cond_name_to_exp_list ->
+	    make (Lmm.Eop(Lmm.Eifthenelse,
+			  [cond; get x name_to_exp; merge x cond_name_to_exp_list]))
+      in
+    | EQemit _ | EQautomaton _ | EQpresent _ | EQder _ | EQreset _ -> assert false
 
 and equation_list ck acc eq_list =  List.fold_left (equation ck) acc eq_list
  
