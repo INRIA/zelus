@@ -43,11 +43,9 @@ becomes:
 where:
 
   test(p)(c) returns an expression testing that the pattern p matches c
-
   pat(p) returns a pattern with variables only
 
 Tr(ck)(x = e) = x = if ck then Tr(ck)(e) else pre x
-
                 with the special case that if base then e else e' = e
 
 *)
