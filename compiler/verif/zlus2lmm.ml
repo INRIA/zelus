@@ -264,14 +264,9 @@ let implementation impl_list impl =
 		    p_typ = e.e_typ; p_loc = no_location } in
      let eqs = equation Ck_true subst eqs e in
      { Lmm.desc =
-	 Lmm.Efundecl(n, { f_kind = k;
-			   f_args = arg_list;
-			   f_outputs = [output];
-			   f_local = [];
-			   f_body = eqs;
-			   f_assert = None });
+	 Lmm.Efundecl(n, { f_kind = k; f_inputs = arg_list; f_outputs = [output];
+			   f_local = []; f_body = eqs; f_assert = None });
        Lmm.loc = no_location }
        
 let implementation_list impl_list =
   List.rev (List.fold_left implementation [] impl_list)
-					      
