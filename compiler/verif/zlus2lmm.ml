@@ -58,32 +58,35 @@ open Deftypes
 
 let eq_make pat e = 
   { Lmm.eq_lhs = pat; Lmm.eq_rhs = e; Lmm.eq_loc = no_location }
-    
-let make desc = { Lmm.e_desc = desc;
-		  Lmm.e_typ = Deftypes.no_typ;
-		  Lmm.e_loc = no_location }
-		  
-let e_true = make (Lmm.Econst(Ebool(true)))
-let e_false = make (Lmm.Econst(Ebool(false)))
+    		  
+let e_true = Lmm.Econst(Ebool(true))
+let e_false = Lmm.Econst(Ebool(false))
 		   
 let bool_op op e1 e2 =
-  make (Lmm.Eapp(Lmm.Eop(Lident.Modname(Initial.pervasives_name op)),
-		 [e1; e2]))
+  Lmm.Eapp(Lmm.Eop(Lident.Modname(Initial.pervasives_name op)),[e1; e2])
        
 let equal_op e1 e2 = bool_op "=" e1 e2
 let and_op e1 e2 = bool_op "&&" e1 e2
 let or_op e1 e2 = bool_op "||" e1 e2
 			  
 type ck = | Ck_base | Ck_on of ck * Lmm.exp
+type res = | Res_never | Res_or of res * Lmm.exp
 				      
-let on ck c = Ck_on(ck, make (Lmm.Elocal(c)))
+let on ck c = Ck_on(ck, Lmm.Elocal(c))
+let ror res c = Res_or(res, Lmm.Elocal(c))
 		   
 (* from a clock to a boolean expression *)
 let rec clock = function
   | Ck_base -> e_true
   | Ck_on(Ck_base, e) -> e
   | Ck_on(ck, e) -> and_op (clock ck) e
-			   
+
+(* from a reset to a boolean expression *)
+let rec reset = function
+  | Res_never -> e_false
+  | Res_or(Res_never, e) -> e
+  | Res_or(res, e) -> or_op (reset res) e
+			    
 (* for a pair [pat, e] computes the equation [pat_v = e] and boolean *)
 (* condition c where [pat_v] is only made of variables and [c] *)
 (* is true when [pat] matches [e] *)
@@ -91,12 +94,12 @@ let rec filter eqs { p_desc = p_desc } e =
   match p_desc with
   | Ewildpat ->  eqs, e_true
   | Evarpat(id) -> (eq_make (Lmm.Evarpat(id)) e) :: eqs, e_true
-  | Econstpat(c) -> eqs, equal_op (make (Lmm.Econst(c))) e
-  | Econstr0pat(c) -> eqs, equal_op (make (Lmm.Econstr0(c))) e
+  | Econstpat(c) -> eqs, equal_op (Lmm.Econst(c)) e
+  | Econstr0pat(c) -> eqs, equal_op (Lmm.Econstr0(c)) e
   | Etuplepat(p_list) ->
      (* introduce n fresh names *)
      let n_list = List.map (fun _ -> Ident.fresh "") p_list in
-     let e_list = List.map (fun n -> make (Lmm.Elocal(n))) n_list in
+     let e_list = List.map (fun n -> Lmm.Elocal(n)) n_list in
      let eqs, cond = filter_list eqs p_list e_list in
      eqs, cond
   | Ealiaspat(p, id) ->
@@ -111,7 +114,7 @@ let rec filter eqs { p_desc = p_desc } e =
      let eqs, cond =
        List.fold_left
 	 (fun (eqs, cond) (l, p) ->
-	  let eqs, cond_l_p = filter eqs p (make (Lmm.Erecord_access(e, l))) in
+	  let eqs, cond_l_p = filter eqs p (Lmm.Erecord_access(e, l)) in
 	  eqs, and_op cond cond_l_p) (eqs, e_true) l_p_list in
      eqs, cond
 
@@ -141,20 +144,20 @@ let rename x subst =
 (* [subst] is a substitution to rename [last x] by a fresh variable [lx] *)
 let rec expression ck subst { e_desc = desc } =
   match desc with
-  | Elocal(id) -> make (Lmm.Elocal(id))
-  | Eglobal(lid) -> make (Lmm.Eglobal(lid))
-  | Econst(im) -> make (Lmm.Econst(im))
-  | Econstr0(lid) -> make (Lmm.Econstr0(lid))
-  | Elast(lx) -> make (Lmm.Elocal(rename lx subst))
+  | Elocal(id) -> Lmm.Elocal(id)
+  | Eglobal(lid) -> Lmm.Eglobal(lid)
+  | Econst(im) -> Lmm.Econst(im)
+  | Econstr0(lid) -> Lmm.Econstr0(lid)
+  | Elast(lx) -> Lmm.Elocal(rename lx subst)
   | Eapp(op, e_list) ->
-     make (operator ck op (List.map (expression ck subst) e_list))
+     operator ck op (List.map (expression ck subst) e_list)
   | Etuple(e_list) ->
-     make (Lmm.Etuple(List.map (expression ck subst) e_list))
+     Lmm.Etuple(List.map (expression ck subst) e_list)
   | Erecord_access(e, lid) ->
-     make (Lmm.Erecord_access(expression ck subst e, lid))
+     Lmm.Erecord_access(expression ck subst e, lid)
   | Erecord(l_e_list) ->
-     make (Lmm.Erecord
-	     (List.map (fun (l, e) -> (l, expression ck subst e)) l_e_list))
+     Lmm.Erecord
+       (List.map (fun (l, e) -> (l, expression ck subst e)) l_e_list)
   | Etypeconstraint(e, _) -> expression ck subst e
   | Epresent _ | Ematch _ | Elet _ | Eseq _ | Eperiod _ -> assert false
 								  
@@ -167,7 +170,7 @@ let get x name_to_exp =
   try
     Env.find x name_to_exp
   with
-  | Not_found -> make (Lmm.Eapp(Lmm.Eunarypre, [make (Lmm.Elocal(x))]))
+  | Not_found -> Lmm.Eapp(Lmm.Eunarypre, [Lmm.Elocal(x)])
 		      
 (* [split s_set eqs = [eqs_acc, name_to_exp] splits eqs into *)
 (* two complementary sets of equations *)
@@ -188,7 +191,7 @@ let rec equation ck subst eqs { eq_desc = desc; eq_write = defnames } =
      (eq_make (Lmm.Evarpat(id)) (expression ck subst e)) :: eqs
   | EQeq(p, e) ->
      let n = Ident.fresh "" in
-     let eqs, _ = filter eqs p (make (Lmm.Elocal(n))) in
+     let eqs, _ = filter eqs p (Lmm.Elocal(n)) in
      (eq_make (Lmm.Evarpat(n)) (expression ck subst e)) :: eqs
   | EQmatch(total, e, p_h_list) ->
      (* first translate [e] *)
@@ -225,9 +228,9 @@ let rec equation ck subst eqs { eq_desc = desc; eq_write = defnames } =
        | [] -> assert false
        | [cond, name_to_exp] -> get x name_to_exp
        | (cond, name_to_exp) :: cond_name_to_exp_list ->
-	  make (Lmm.Eapp(Lmm.Eifthenelse,
-			 [make (Lmm.Elocal(cond)); get x name_to_exp;
-			  merge x cond_name_to_exp_list])) in
+	  Lmm.Eapp(Lmm.Eifthenelse,
+		   [Lmm.Elocal(cond); get x name_to_exp;
+		    merge x cond_name_to_exp_list]) in
      let eqs =
        S.fold
 	 (fun x eqs ->
@@ -271,7 +274,7 @@ let implementation impl_list impl =
        Lmm.loc = no_location } :: impl_list
   | Efundecl(n, { f_kind = k; f_args = p_list; f_body = e }) ->
      let n_arg_list = List.map (fun _ -> Ident.fresh "") p_list in
-     let e_list = List.map (fun n -> make (Lmm.Elocal(n))) n_arg_list in
+     let e_list = List.map (fun n -> Lmm.Elocal(n)) n_arg_list in
      let eqs, _ = filter_list [] p_list e_list in
      let arg_list =
        List.map2 (fun n pat -> { Lmm.p_kind = Lmm.Evar; Lmm.p_name = n;

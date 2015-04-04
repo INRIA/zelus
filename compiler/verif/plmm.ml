@@ -39,8 +39,8 @@ let var_dec_list ff = function
   | [] -> ()
   | l -> fprintf ff "@[<4>%a@]@\n" (print_list_r var_dec """;""") l
 
-let rec expression ff { e_desc = desc } =
-  match desc with
+let rec expression ff e =
+  match e with
   | Elocal(n) -> name ff n
   | Eglobal(ln) -> longname ff ln
   | Econst(i) -> immediate ff i
@@ -62,7 +62,8 @@ and operator ff op e_list =
      fprintf ff "@[<hov>if %a@ then %a@ else %a@]"
              expression e1 expression e2 expression e3
   | Eop(ln), e_list ->
-     fprintf ff "@[%a%a@]" longname ln (print_list_r expression "("","")") e_list
+     fprintf ff "@[%a%a@]"
+	     longname ln (print_list_r expression "("","")") e_list
   | _ -> assert false
 
 let p_assert ff e =

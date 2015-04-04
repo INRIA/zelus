@@ -22,21 +22,15 @@ type 'a localized = { desc: 'a; loc: Location.location }
 type kind = A | D
 
 type exp =
-    { e_desc: desc;
-      e_loc: location;
-      e_typ: Deftypes.typ
-    }
-      
- and desc =
-   | Elocal of Ident.t
-   | Eglobal of Lident.t
-   | Econst of immediate
-   | Econstr0 of Lident.t
-   | Eapp of op * exp list
-   | Erecord_access of exp * Lident.t
-   | Erecord of (Lident.t * exp) list
-   | Etuple of exp list
-				 
+  | Elocal of Ident.t
+  | Eglobal of Lident.t
+  | Econst of immediate
+  | Econstr0 of Lident.t
+  | Eapp of op * exp list
+  | Erecord_access of exp * Lident.t
+  | Erecord of (Lident.t * exp) list
+  | Etuple of exp list
+		  
  and op =
    | Eunarypre | Eminusgreater | Eifthenelse | Eop of Lident.t
 							
@@ -64,11 +58,11 @@ type exp =
      p_name: Ident.t;
      p_typ: Deftypes.typ;
      p_loc: location }
-
+     
  and pkind = | Estatic | Evar 
-
+			   
  and implementation = implementation_desc localized
-
+					  
  and implementation_desc =
    | Econstdecl of name * exp
    | Efundecl of name * funexp
