@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2014                                               *)
+(*  Copyright (C) 2012-2015                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -77,7 +77,8 @@ let typeonly = ref false
 let use_gtk = ref false
 let no_causality = ref false
 let no_initialisation = ref false
-
+let lmm = ref false
+	      
 (* variable creation *)
 (* generating names *)
 class name_generator =

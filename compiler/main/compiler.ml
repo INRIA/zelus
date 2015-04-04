@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2014                                               *)
+(*  Copyright (C) 2012-2015                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -88,7 +88,8 @@ let compile modname filename =
   (* input and output files *)
   let source_name = filename ^ ".zls"
   and obj_interf_name = filename ^ ".zci"
-  and ml_name = filename ^ ".ml" in
+  and ml_name = filename ^ ".ml"
+  and lmm_name = filename ^ ".lus" in
 
   (* standard output for printing types and clocks *)
   let info_ff = Format.formatter_of_out_channel stdout in
@@ -98,6 +99,11 @@ let compile modname filename =
     let mlc_ff = Format.formatter_of_out_channel mlc in
     pp_set_max_boxes mlc_ff max_int;
     Oprinter.implementation_list mlc_ff true impl_list in
+
+  let write_lmm_list impl_list lmmc =
+    let lmm_ff = Format.formatter_of_out_channel lmmc in
+    pp_set_max_boxes lmm_ff max_int;
+    Plmm.implementation_list lmm_ff impl_list in
 
   let comment c =
     let sep =
@@ -122,135 +128,146 @@ let compile modname filename =
   if !verbose then Printer.implementation_list info_ff impl_list;
   
   (* continue if [typeonly = false] *)
-  if not !typeonly then begin
-
-  (* Causality check *)
-  if not (!Misc.no_causality) then
+  if not !typeonly then
     begin
-      Causality.implementation_list info_ff impl_list;
-      if !verbose then comment "Causality check done"
-    end;
-
-  (* Initialization check *)
-  if not (!Misc.no_initialisation) then
-    begin Initialization.implementation_list info_ff impl_list;
-      if !verbose then comment "Initialization check done"
-    end;
-
-  (* Start of source-to-source translation *)
-
-  (* Mark functions calls to be inlined according to causality information *)
-  let impl_list = Markfunctions.implementation_list impl_list in
-  if !verbose then comment "Mark functions calls to be inlined. See below:";
-  if !verbose then Printer.implementation_list info_ff impl_list;
-
-  (* Elimation of automata *)
-  let impl_list = Automata.implementation_list impl_list in
-  if !verbose then comment "Translation of automata done. See below:";
-  if !verbose then Printer.implementation_list info_ff impl_list;
-
-  (* Elimation of activations *)
-  let impl_list = Activate.implementation_list impl_list in
-  if !verbose then comment "Translation of activations done. See below:";
-  if !verbose then Printer.implementation_list info_ff impl_list;
-
-  (* Static expansion of function calls (inlining) *)
-  (* inlined code is stored into a global symbol table *)
-  let impl_list = Inline.implementation_list impl_list in
-  if !verbose then comment "Inlining of function calls. See below:";
-  if !verbose then Printer.implementation_list info_ff impl_list;
-
-  (* Elimination of presents. *)
-  let impl_list = Present.implementation_list impl_list in
-  if !verbose then comment "Translation of present done. See below:";
-  if !verbose then Printer.implementation_list info_ff impl_list;
-
-  (* actualize the set of write variable in every block *)
-  let impl_list = Write.implementation_list impl_list in
-  if !verbose then comment 
-    "Actualize write variables in blocks. See below:";
-  if !verbose then Printer.implementation_list info_ff impl_list;
-
-  (* compiling various forms of unit delays (fby/pre/next) into (init/last) *)
-  let impl_list = Delays.implementation_list impl_list in
-  if !verbose then 
-    comment "Compilation of memories (fby/pre/next) into (init/last). See below:";
-  if !verbose then Printer.implementation_list info_ff impl_list;
-  
-  (* normalise the structure of let/ins *)
-  let impl_list = Letin.implementation_list impl_list in
-  if !verbose then comment 
-    "Flattening lets and naming of function applications done. See below:";
-  if !verbose then Printer.implementation_list info_ff impl_list;
-
-  (* compilation of periods *)
-  let impl_list = Period.implementation_list impl_list in
-  if !verbose then comment "Translation of periods done. See below:";
-  if !verbose then Printer.implementation_list info_ff impl_list;
-
-  (* compile the reset construct. Introduce a fresh reset for every branch *)
-  let impl_list = Reset.implementation_list impl_list in
-  if !verbose then 
-    comment 
-      "Compilation of reset done. Add initialization bit for every branch. See below:";
-  if !verbose then Printer.implementation_list info_ff impl_list;
-  
-  (* actualize the set of write variable in every block *)
-  let impl_list = Write.implementation_list impl_list in
-  if !verbose then comment 
-    "Actualize write variables in blocks. See below:";
-  if !verbose then Printer.implementation_list info_ff impl_list;
-
-  (* A-normal form. A restricted case for the moment. *)
-  let impl_list = Aform.implementation_list impl_list in
-  if !verbose then 
-    comment "Translation into A-normal form. See below:";
-  if !verbose then Printer.implementation_list info_ff impl_list;
-
-  let impl_list = Shared.implementation_list impl_list in
-  if !verbose then 
-    comment "Naming shared variables and memories done. See below:";
-  if !verbose then Printer.implementation_list info_ff impl_list;
-  
-  (* optimization. cse elimination *)
-  let impl_list = Cse.implementation_list impl_list in
-  if !verbose then 
-    comment "Common sub-expression elimination. See below:";
-  if !verbose then Printer.implementation_list info_ff impl_list;
-  
-  (* schedule *)
-  let impl_list = Schedule.implementation_list impl_list in
-  if !verbose then comment "Scheduling done. See below:";
-  if !verbose then Printer.implementation_list info_ff impl_list;
-  
-  (* remove copy variables *)
-  let impl_list = Copy.implementation_list impl_list in
-  if !verbose then comment "Removing of copy variables done. See below:";
-  if !verbose then Printer.implementation_list info_ff impl_list;
-  
-  (* optimization. dead-code removal *)
-  (* let impl_list = Deadcode.implementation_list impl_list in
+      (* Causality check *)
+      if not (!Misc.no_causality) then
+	begin
+	  Causality.implementation_list info_ff impl_list;
+	  if !verbose then comment "Causality check done"
+	end;
+      
+      (* Initialization check *)
+      if not (!Misc.no_initialisation) then
+	begin Initialization.implementation_list info_ff impl_list;
+	      if !verbose then comment "Initialization check done"
+	end;
+      
+      (* Start of source-to-source translation *)
+      
+      (* Mark functions calls to be inlined according to causality *)
+      (* information *)
+      let impl_list = Markfunctions.implementation_list impl_list in
+      if !verbose then comment "Mark functions calls to be inlined. See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
+      (* Elimation of automata *)
+      let impl_list = Automata.implementation_list impl_list in
+      if !verbose then comment "Translation of automata done. See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
+      (* Elimation of activations *)
+      let impl_list = Activate.implementation_list impl_list in
+      if !verbose then comment "Translation of activations done. See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
+      (* Static expansion of function calls (inlining) *)
+      (* inlined code is stored into a global symbol table *)
+      let impl_list = Inline.implementation_list impl_list in
+      if !verbose then comment "Inlining of function calls. See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
+      (* Elimination of presents. *)
+      let impl_list = Present.implementation_list impl_list in
+      if !verbose then comment "Translation of present done. See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
+      (* actualize the set of write variable in every block *)
+      let impl_list = Write.implementation_list impl_list in
+      if !verbose then comment 
+			 "Actualize write variables in blocks. See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
+      (* compiling various forms of unit delays (fby/pre/next) *)
+      (* into (init/last) *)
+      let impl_list = Delays.implementation_list impl_list in
+      if !verbose then 
+	comment
+	  "Compilation of memories (fby/pre/next) into (init/last). See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
+      (* normalise the structure of let/ins *)
+      let impl_list = Letin.implementation_list impl_list in
+      if !verbose then
+	comment 
+	  "Flattening lets and naming of function applications done. See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
+      (* compilation of periods *)
+      let impl_list = Period.implementation_list impl_list in
+      if !verbose then comment "Translation of periods done. See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
+      (* compile the reset construct. Introduce a fresh reset for every *)
+      (* branch *)
+      let impl_list = Reset.implementation_list impl_list in
+      if !verbose then 
+	comment 
+	  "Compilation of reset done. Add initialization bit for every branch. See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
+      (* actualize the set of write variable in every block *)
+      let impl_list = Write.implementation_list impl_list in
+      if !verbose then
+	comment "Actualize write variables in blocks. See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
+      (* A-normal form. A restricted case for the moment. *)
+      let impl_list = Aform.implementation_list impl_list in
+      if !verbose then 
+	comment "Translation into A-normal form. See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
+      let impl_list = Shared.implementation_list impl_list in
+      if !verbose then 
+	comment "Naming shared variables and memories done. See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
+      (* optimization. cse elimination *)
+      let impl_list = Cse.implementation_list impl_list in
+      if !verbose then 
+	comment "Common sub-expression elimination. See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
+      (* schedule *)
+      let impl_list = Schedule.implementation_list impl_list in
+      if !verbose then comment "Scheduling done. See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
+      (* remove copy variables *)
+      let impl_list = Copy.implementation_list impl_list in
+      if !verbose then comment "Removing of copy variables done. See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
+      (* optimization. dead-code removal *)
+      (* let impl_list = Deadcode.implementation_list impl_list in
   if !verbose then comment "Deadcode removal. See below:";
   if !verbose then Printer.implementation_list info_ff impl_list; *)
+      
+      (* translate *)
+      let obc_list = Translate.implementation_list impl_list in
+      if !verbose then comment "Translation done. See below:";
+      if !verbose then Oprinter.implementation_list info_ff false obc_list;
+      
+      (* store continuous state variables and zero-crossings into vectors *)
+      let obc_list = Inout.implementation_list obc_list in
+      if !verbose then 
+	comment
+	  "Represent continuous states and zero-crossings by vectors. See below:";
+      if !verbose then Oprinter.implementation_list info_ff false obc_list;
+      
+      (* generate ml code *)
+      let mlc = open_out ml_name in
+      apply_with_close_out (write_implementation_list obc_list) mlc;
+      
+      (* translate into Lustre if asked for *)
+      if !Misc.lmm then
+	let lmm_list = Zlus2lmm.implementation_list impl_list in
+	let lmm = open_out lmm_name in
+	apply_with_close_out (write_lmm_list lmm_list) lmm
+    end;
   
-  (* translate *)
-  let impl_list = Translate.implementation_list impl_list in
-  if !verbose then comment "Translation done. See below:";
-  if !verbose then Oprinter.implementation_list info_ff false impl_list;
-  
-  (* store continuous state variables and zero-crossings into vectors *)
-  let impl_list = Inout.implementation_list impl_list in
-  if !verbose then 
-    comment "Represent continuous states and zero-crossings by vectors. See below:";
-  if !verbose then Oprinter.implementation_list info_ff false impl_list;
-  
-  (* generate ml code *)
-  let mlc = open_out ml_name in
-  apply_with_close_out (write_implementation_list impl_list) mlc;
-
-  end;
-
   (* Write the symbol table into the interface file *)
   let itc = open_out_bin obj_interf_name in
   apply_with_close_out Modules.write itc
-
+		       

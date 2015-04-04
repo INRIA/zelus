@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2014                                               *)
+(*  Copyright (C) 2012-2015                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -53,7 +53,8 @@ and doc_dzero = " Turn on discrete zero-crossing detection"
 and doc_nocausality = " (undocumented)"
 and doc_causality = " When the flag is on, choose the old causality analysis"
 and doc_noinitialisation = " (undocumented)"
-
+and doc_lmm = "Translate into Lustre--"
+		
 let errmsg = "Options are:"
 
 let set_verbose () =
@@ -81,6 +82,7 @@ let main () =
         "-nocausality", Arg.Set no_causality, doc_nocausality;
         "-noinit", Arg.Set no_initialisation, doc_noinitialisation;
         "-inline", Arg.Int set_inlining_level, doc_inlining_level;
+	"-lmm", Arg.Set lmm, doc_lmm;
       ]))
       compile
       errmsg;
