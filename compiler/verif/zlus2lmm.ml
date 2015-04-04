@@ -175,12 +175,16 @@ let rec expression ck subst { e_desc = desc } =
 let shared_variables { dv = dv } = dv
 				     
 (* returns the expression associated to [x] in a substitution [name_to_exp] *)
-(* if [x] is unbound, returns [pre x] *)
-let get x name_to_exp =
+(* if [x] is unbound, returns either [lx] if [x in subst] or [pre x] *)
+let get x name_to_exp subst =
   try
     Env.find x name_to_exp
   with
-  | Not_found -> Lmm.Eapp(Lmm.Eunarypre, [Lmm.Elocal(x)])
+  | Not_found ->
+     try
+       Lmm.Elocal(Env.find x subst)
+     with
+     | Not_found -> Lmm.Eapp(Lmm.Eunarypre, [Lmm.Elocal(x)])
 		      
 (* [split s_set eqs = [eqs_acc, name_to_exp] splits eqs into *)
 (* two complementary sets of equations *)
@@ -193,7 +197,20 @@ let split s_set eqs =
        else eq :: eqs_acc, name_to_exp
     | _ -> eq :: eqs_acc, name_to_exp in
   List.fold_left split ([], Env.empty) eqs
-		 
+
+(* build a substitution from an environment *)
+(* [build subst l_env = subst'] extends the *)
+(* substitution [subst] with entries [x1\lx1,..., xn\lxn] *)
+(* for all state variables which are initialized *)
+let build subst l_env =
+  Env.fold
+    (fun x { t_sort = sort; t_typ = typ } acc ->
+     match sort with
+     | Mem { t_initialized = true } ->
+	let lx = Ident.fresh "" in Env.add x lx acc
+    | Val | ValDefault _ | Mem _ -> acc)
+    l_env subst
+    
 (* [equation ck res eq = eq_list] *)
 let rec equation ck res subst eqs { eq_desc = desc; eq_write = defnames } = 
   match desc with
@@ -244,10 +261,10 @@ let rec equation ck res subst eqs { eq_desc = desc; eq_write = defnames } =
      let rec merge x cond_name_to_exp_list =
        match cond_name_to_exp_list with
        | [] -> assert false
-       | [cond, name_to_exp] -> get x name_to_exp
+       | [cond, name_to_exp] -> get x name_to_exp subst
        | (cond, name_to_exp) :: cond_name_to_exp_list ->
 	  Lmm.Eapp(Lmm.Eifthenelse,
-		   [Lmm.Elocal(cond); get x name_to_exp;
+		   [Lmm.Elocal(cond); get x name_to_exp subst;
 		    merge x cond_name_to_exp_list]) in
      let eqs =
        S.fold
@@ -261,12 +278,13 @@ let rec equation ck res subst eqs { eq_desc = desc; eq_write = defnames } =
      let e = ifthenelse (reset res) e (pre x) in
      (eq_make (Lmm.Evarpat(rename x subst)) e) :: eqs
   | EQnext _ | EQset _ | EQblock _ | EQemit _ | EQautomaton _
-  | EQpresent _ | EQder _ | EQreset _ -> assert false
+  | EQpresent _ | EQder _ -> assert false
 									   
 and equation_list ck res subst eqs eq_list =
   List.fold_left (equation ck res subst) eqs eq_list
  
 and block ck res subst eqs { b_body = body_eq_list; b_env = n_env } =
+  let subst = build subst n_env in
   equation_list ck res subst eqs body_eq_list
 
 let local eqs { l_eq = eq_list } =
