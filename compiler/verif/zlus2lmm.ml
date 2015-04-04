@@ -79,10 +79,10 @@ let ifthenelse e1 e2 e3 =
 let pre id = Lmm.Eapp(Lmm.Eunarypre, [Lmm.Elocal(id)])
 		    
 type ck = | Ck_base | Ck_on of ck * Lmm.exp
-type res = | Res_never | Res_or of res * Lmm.exp
+type res = | Res_never | Res_else of res * Lmm.exp
 				      
 let on ck c = Ck_on(ck, Lmm.Elocal(c))
-let ror res c = Res_or(res, Lmm.Elocal(c))
+let relse res c = Res_else(res, c)
 		   
 (* from a clock to a boolean expression *)
 let rec clock = function
@@ -93,8 +93,8 @@ let rec clock = function
 (* from a reset to a boolean expression *)
 let rec reset = function
   | Res_never -> e_false
-  | Res_or(Res_never, e) -> e
-  | Res_or(res, e) -> or_op (reset res) e
+  | Res_else(Res_never, e) -> e
+  | Res_else(res, e) -> or_op (reset res) e
 			    
 (* for a pair [pat, e] computes the equation [pat_v = e] and boolean *)
 (* condition c where [pat_v] is only made of variables and [c] *)
@@ -194,8 +194,8 @@ let split s_set eqs =
     | _ -> eq :: eqs_acc, name_to_exp in
   List.fold_left split ([], Env.empty) eqs
 		 
-(* [equation ck eq = eq_list] *)
-let rec equation ck subst eqs { eq_desc = desc; eq_write = defnames } = 
+(* [equation ck res eq = eq_list] *)
+let rec equation ck res subst eqs { eq_desc = desc; eq_write = defnames } = 
   match desc with
   | EQeq({ p_desc = Evarpat(id) }, e) ->
      (* if [id] is a register name, then equation is translated *)
@@ -208,6 +208,9 @@ let rec equation ck subst eqs { eq_desc = desc; eq_write = defnames } =
      let n = Ident.fresh "" in
      let eqs, _ = filter eqs p (Lmm.Elocal(n)) in
      (eq_make (Lmm.Evarpat(n)) (expression ck subst e)) :: eqs
+  | EQreset(eq_list, e) ->
+     let e = expression ck subst e in
+     equation_list ck (relse res e) subst eqs eq_list
   | EQmatch(total, e, p_h_list) ->
      (* first translate [e] *)
      let e = expression ck subst e in
@@ -219,7 +222,7 @@ let rec equation ck subst eqs { eq_desc = desc; eq_write = defnames } =
      
      (* translate the list of body *)
      let equations_from_handler eqs c { m_body = b } =
-       let eqs = block (on ck c) subst eqs b in
+       let eqs = block (on ck c) res subst eqs b in
        let eqs, name_to_exp = split s_set eqs in
        eqs, name_to_exp in
      
@@ -253,17 +256,21 @@ let rec equation ck subst eqs { eq_desc = desc; eq_write = defnames } =
 	 s_set eqs in
      eqs
   | EQinit(x, e) ->
-     (eq_make (Lmm.Evarpat(rename x subst)) (expression ck subst e)) :: eqs
+     (* the initialization is reset every time [res] is true *)
+     let e = expression ck subst e in
+     let e = ifthenelse (reset res) e (pre x) in
+     (eq_make (Lmm.Evarpat(rename x subst)) e) :: eqs
   | EQnext _ | EQset _ | EQblock _ | EQemit _ | EQautomaton _
   | EQpresent _ | EQder _ | EQreset _ -> assert false
 									   
-and equation_list ck subst eqs eq_list =
-  List.fold_left (equation ck subst) eqs eq_list
+and equation_list ck res subst eqs eq_list =
+  List.fold_left (equation ck res subst) eqs eq_list
  
-and block ck subst eqs { b_body = body_eq_list; b_env = n_env } =
-  equation_list ck subst eqs body_eq_list
+and block ck res subst eqs { b_body = body_eq_list; b_env = n_env } =
+  equation_list ck res subst eqs body_eq_list
 
-let local eqs { l_eq = eq_list } = equation_list Ck_base Env.empty eqs eq_list
+let local eqs { l_eq = eq_list } =
+  equation_list Ck_base Res_never Env.empty eqs eq_list
 					
 let let_expression ck subst eqs ({ e_desc = desc } as e) =
   match desc with
