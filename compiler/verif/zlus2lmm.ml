@@ -311,7 +311,8 @@ let implementation impl_list impl =
   match impl.desc with
   | Eopen _ -> impl_list
   | Etypedecl(n, params, td) ->
-     { Lmm.desc = Lmm.Etypedecl(n, params, td); Lmm.loc = no_location } :: impl_list
+     { Lmm.desc = Lmm.Etypedecl(n, params, td);
+       Lmm.loc = no_location } :: impl_list
   | Econstdecl(x, e) ->
      { Lmm.desc = Lmm.Econstdecl(x, expression Ck_base Env.empty e);
        Lmm.loc = no_location } :: impl_list
