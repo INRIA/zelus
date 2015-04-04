@@ -310,7 +310,7 @@ and block ck res subst acc { b_body = body_eq_list; b_env = n_env } =
 let local acc { l_eq = eq_list } =
   equation_list Ck_base Res_never Env.empty acc eq_list
 					
-let let_expression ck subst
+let let_expression ck res subst
 		   ({ eqs = eqs; env = env } as acc) ({ e_desc = desc } as e) =
   match desc with
   | Elet(l, e) ->
@@ -346,13 +346,25 @@ let implementation impl_list impl =
        List.map2 (fun n p -> vardec n p.p_typ) n_input_list p_list in
      let n_output = Ident.fresh "" in
      let output = vardec n_output e.e_typ in
-     let { eqs = eqs; env = env } = let_expression Ck_base Env.empty acc e in
+     (* if [n] is combinatorial, then no reset nor clock is useful *)
+     (* otherwise, two extra parameters are added to functions *)
+     let ck, res, input_list =
+       match k with
+       | A | AD -> Ck_base, Res_never, input_list
+       | D ->
+	  let ck_name = Ident.fresh "" in
+	  let res_name = Ident.fresh "" in
+	  let ck_vardec = vardec ck_name Initial.typ_bool in
+	  let res_vardec = vardec res_name Initial.typ_bool in
+	  on Ck_base ck_name, relse Res_never (Lmm.Elocal(res_name)),
+	  ck_vardec :: res_vardec :: input_list 
+       | C -> assert false in
+     let { eqs = eqs; env = env } = let_expression ck res Env.empty acc e in
      { Lmm.desc =
 	 Lmm.Efundecl(n,
 		      { Lmm.f_kind = kind k; Lmm.f_inputs = input_list;
-			Lmm.f_outputs = [output];
-			Lmm.f_local = env; Lmm.f_body = eqs;
-			Lmm.f_assert = None });
+			Lmm.f_outputs = [output]; Lmm.f_local = env;
+			Lmm.f_body = eqs; Lmm.f_assert = None });
        Lmm.loc = no_location } :: impl_list
 				   
        
