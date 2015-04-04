@@ -74,7 +74,10 @@ let or_op e1 e2 =
   if e1 = e_false then e2
   else if e2 = e_false then e1
   else bool_op "||" e1 e2
-			  
+let ifthenelse e1 e2 e3 =
+  Lmm.Eapp(Lmm.Eifthenelse, [e1; e2; e3])
+let pre id = Lmm.Eapp(Lmm.Eunarypre, [Lmm.Elocal(id)])
+		    
 type ck = | Ck_base | Ck_on of ck * Lmm.exp
 type res = | Res_never | Res_or of res * Lmm.exp
 				      
@@ -197,7 +200,10 @@ let rec equation ck subst eqs { eq_desc = desc; eq_write = defnames } =
   | EQeq({ p_desc = Evarpat(id) }, e) ->
      (* if [id] is a register name, then equation is translated *)
      (* into [id = if ck then e else pre(id)] *)
-     (eq_make (Lmm.Evarpat(id)) (expression ck subst e)) :: eqs
+     let e = expression ck subst e in
+     let e =
+       if Env.mem id subst then ifthenelse (clock ck) e (pre id) else e in
+     (eq_make (Lmm.Evarpat(id)) e) :: eqs
   | EQeq(p, e) ->
      let n = Ident.fresh "" in
      let eqs, _ = filter eqs p (Lmm.Elocal(n)) in
