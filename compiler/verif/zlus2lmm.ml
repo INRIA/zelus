@@ -76,8 +76,8 @@ let or_op e1 e2 =
   else bool_op "||" e1 e2
 let ifthenelse e1 e2 e3 =
   Lmm.Eapp(Lmm.Eifthenelse, [e1; e2; e3])
-let pre id = Lmm.Eapp(Lmm.Eunarypre, [Lmm.Elocal(id)])
-		    
+let unarypre x = Lmm.Eapp(Lmm.Eunarypre, [Lmm.Elocal(x)])
+			 
 type ck = | Ck_base | Ck_on of ck * Lmm.exp
 type res = | Res_never | Res_else of res * Lmm.exp
 				      
@@ -174,17 +174,20 @@ let rec expression ck subst { e_desc = desc } =
 (* the set of shared variables from a set of defined names *)
 let shared_variables { dv = dv } = dv
 				     
+(* returns the previous value of [x] *)
+let pre x subst =
+  try
+    Lmm.Elocal(Env.find x subst)
+  with
+  | Not_found -> unarypre x
+
 (* returns the expression associated to [x] in a substitution [name_to_exp] *)
 (* if [x] is unbound, returns either [lx] if [x in subst] or [pre x] *)
 let get x name_to_exp subst =
   try
     Env.find x name_to_exp
   with
-  | Not_found ->
-     try
-       Lmm.Elocal(Env.find x subst)
-     with
-     | Not_found -> Lmm.Eapp(Lmm.Eunarypre, [Lmm.Elocal(x)])
+  | Not_found -> pre x subst
 		      
 (* [split s_set eqs = [eqs_acc, name_to_exp] splits eqs into *)
 (* two complementary sets of equations *)
@@ -219,7 +222,7 @@ let rec equation ck res subst eqs { eq_desc = desc; eq_write = defnames } =
      (* into [id = if ck then e else pre(id)] *)
      let e = expression ck subst e in
      let e =
-       if Env.mem id subst then ifthenelse (clock ck) e (pre id) else e in
+       if Env.mem id subst then ifthenelse (clock ck) e (pre id subst) else e in
      (eq_make (Lmm.Evarpat(id)) e) :: eqs
   | EQeq(p, e) ->
      let n = Ident.fresh "" in
@@ -275,7 +278,7 @@ let rec equation ck res subst eqs { eq_desc = desc; eq_write = defnames } =
   | EQinit(x, e) ->
      (* the initialization is reset every time [res] is true *)
      let e = expression ck subst e in
-     let e = ifthenelse (reset res) e (pre x) in
+     let e = ifthenelse (reset res) e (unarypre x) in
      (eq_make (Lmm.Evarpat(rename x subst)) e) :: eqs
   | EQnext _ | EQset _ | EQblock _ | EQemit _ | EQautomaton _
   | EQpresent _ | EQder _ -> assert false
