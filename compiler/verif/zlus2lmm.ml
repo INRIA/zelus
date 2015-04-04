@@ -95,7 +95,9 @@ let rec reset = function
   | Res_never -> e_false
   | Res_else(Res_never, e) -> e
   | Res_else(res, e) -> or_op (reset res) e
-			    
+
+type eqs = { eqs: Lmm.eq list; env: Lmm.vardec Env.t }
+	     
 (* for a pair [pat, e] computes the equation [pat_v = e] and boolean *)
 (* condition c where [pat_v] is only made of variables and [c] *)
 (* is true when [pat] matches [e] *)
