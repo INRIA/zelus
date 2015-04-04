@@ -66,8 +66,14 @@ let bool_op op e1 e2 =
   Lmm.Eapp(Lmm.Eop(Lident.Modname(Initial.pervasives_name op)),[e1; e2])
        
 let equal_op e1 e2 = bool_op "=" e1 e2
-let and_op e1 e2 = bool_op "&&" e1 e2
-let or_op e1 e2 = bool_op "||" e1 e2
+let and_op e1 e2 =
+  if e1 = e_true then e2
+  else if e2 = e_true then e1
+  else bool_op "&&" e1 e2
+let or_op e1 e2 =
+  if e1 = e_false then e2
+  else if e2 = e_false then e1
+  else bool_op "||" e1 e2
 			  
 type ck = | Ck_base | Ck_on of ck * Lmm.exp
 type res = | Res_never | Res_or of res * Lmm.exp
@@ -125,6 +131,7 @@ and filter_list eqs p_list e_list =
      eqs, and_op cond cond_p_e) (eqs, e_true) p_list e_list
      
 (* translate an operator *)
+(* a statefull function application receives a clock as an extra argument *)
 let operator ck op e_list =
   match op with
   | Eunarypre -> Lmm.Eapp(Lmm.Eunarypre, e_list)
@@ -132,7 +139,7 @@ let operator ck op e_list =
   | Eminusgreater -> Lmm.Eapp(Lmm.Eminusgreater, e_list)
   | Eop(_, lid) | Eevery(_, lid) ->
 		   if Types.is_a_function lid then Lmm.Eapp(Lmm.Eop(lid), e_list)
-		   else Lmm.Eapp(Lmm.Eop(lid), e_false :: (clock ck) :: e_list)
+		   else Lmm.Eapp(Lmm.Eop(lid), (clock ck) :: e_list)
   | Efby | Eup | Einitial | Edisc
   | Etest -> assert false
 		    
@@ -188,6 +195,8 @@ let split s_set eqs =
 let rec equation ck subst eqs { eq_desc = desc; eq_write = defnames } = 
   match desc with
   | EQeq({ p_desc = Evarpat(id) }, e) ->
+     (* if [id] is a register name, then equation is translated *)
+     (* into [id = if ck then e else pre(id)] *)
      (eq_make (Lmm.Evarpat(id)) (expression ck subst e)) :: eqs
   | EQeq(p, e) ->
      let n = Ident.fresh "" in
