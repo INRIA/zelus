@@ -56,6 +56,10 @@ open Ident
 open Zelus
 open Deftypes
 
+let vardec id ty =
+  { Lmm.p_kind = Lmm.Evar; Lmm.p_name = id;
+    Lmm.p_typ = ty; Lmm.p_loc = no_location }
+
 let eq_make pat e = 
   { Lmm.eq_lhs = pat; Lmm.eq_rhs = e; Lmm.eq_loc = no_location }
     		  
@@ -96,44 +100,49 @@ let rec reset = function
   | Res_else(Res_never, e) -> e
   | Res_else(res, e) -> or_op (reset res) e
 
-type eqs = { eqs: Lmm.eq list; env: Lmm.vardec Env.t }
-	     
+type eqs = { eqs: Lmm.eq list; env: Lmm.vardec list }
+
+let empty = { eqs = []; env = [] }
+	      
 (* for a pair [pat, e] computes the equation [pat_v = e] and boolean *)
 (* condition c where [pat_v] is only made of variables and [c] *)
 (* is true when [pat] matches [e] *)
-let rec filter eqs { p_desc = p_desc } e =
+let rec filter ({ eqs = eqs; env = env} as acc) { p_desc = p_desc } e =
   match p_desc with
-  | Ewildpat ->  eqs, e_true
-  | Evarpat(id) -> (eq_make (Lmm.Evarpat(id)) e) :: eqs, e_true
-  | Econstpat(c) -> eqs, equal_op (Lmm.Econst(c)) e
-  | Econstr0pat(c) -> eqs, equal_op (Lmm.Econstr0(c)) e
+  | Ewildpat ->  acc, e_true
+  | Evarpat(id) -> { acc with eqs = (eq_make (Lmm.Evarpat(id)) e) :: eqs }, e_true
+  | Econstpat(c) -> acc, equal_op (Lmm.Econst(c)) e
+  | Econstr0pat(c) -> acc, equal_op (Lmm.Econstr0(c)) e
   | Etuplepat(p_list) ->
      (* introduce n fresh names *)
-     let n_list = List.map (fun _ -> Ident.fresh "") p_list in
-     let e_list = List.map (fun n -> Lmm.Elocal(n)) n_list in
-     let eqs, cond = filter_list eqs p_list e_list in
-     eqs, cond
-  | Ealiaspat(p, id) ->
-     let eqs, cond = filter eqs p e in
-     (eq_make (Lmm.Evarpat(id)) e) :: eqs, cond
-  | Etypeconstraintpat(p, _) -> filter eqs p e
-  | Eorpat(p1, p2) ->
-     let eqs, cond1 = filter eqs p1 e in
-     let eqs, cond2 = filter eqs p2 e in
-     eqs, or_op cond1 cond2
-  | Erecordpat(l_p_list) ->
-     let eqs, cond =
+     let n_ty_list =
+       List.map (fun { p_typ = ty } -> Ident.fresh "", ty) p_list in
+     let e_list = List.map (fun (n, _) -> Lmm.Elocal(n)) n_ty_list in
+     let env =
        List.fold_left
-	 (fun (eqs, cond) (l, p) ->
-	  let eqs, cond_l_p = filter eqs p (Lmm.Erecord_access(e, l)) in
-	  eqs, and_op cond cond_l_p) (eqs, e_true) l_p_list in
-     eqs, cond
+	 (fun env (n, ty) -> (vardec n ty) :: env) env n_ty_list in
+     filter_list { acc with env = env } p_list e_list
+  | Ealiaspat(p, id) ->
+     let ({ eqs = eqs } as acc), cond = filter acc p e in
+     { acc with eqs = (eq_make (Lmm.Evarpat(id)) e) :: eqs }, cond
+  | Etypeconstraintpat(p, _) -> filter acc p e
+  | Eorpat(p1, p2) ->
+     let acc, cond1 = filter acc p1 e in
+     let acc, cond2 = filter acc p2 e in
+     acc, or_op cond1 cond2
+  | Erecordpat(l_p_list) ->
+     let acc, cond =
+       List.fold_left
+	 (fun (acc, cond) (l, p) ->
+	  let acc, cond_l_p = filter acc p (Lmm.Erecord_access(e, l)) in
+	  acc, and_op cond cond_l_p) (acc, e_true) l_p_list in
+     acc, cond
 
-and filter_list eqs p_list e_list =
+and filter_list acc p_list e_list =
   List.fold_left2
-    (fun (eqs, cond) p e ->
-     let eqs, cond_p_e = filter eqs p e in
-     eqs, and_op cond cond_p_e) (eqs, e_true) p_list e_list
+    (fun (acc, cond) p e ->
+     let acc, cond_p_e = filter acc p e in
+     acc, and_op cond cond_p_e) (acc, e_true) p_list e_list
      
 (* translate an operator *)
 (* a statefull function application receives a clock as an extra argument *)
@@ -216,8 +225,12 @@ let build subst l_env =
     | Val | ValDefault _ | Mem _ -> acc)
     l_env subst
     
-(* [equation ck res eq = eq_list] *)
-let rec equation ck res subst eqs { eq_desc = desc; eq_write = defnames } = 
+(* [equation ck res subst acc eq = acc'] *)
+(* with [acc = { eqs = eqs; env = env }]. Returns a set of *)
+(* equations and an environment for names *)
+let rec equation ck res subst
+		 ({ eqs = eqs; env = env } as acc)
+		 { eq_desc = desc; eq_write = defnames } = 
   match desc with
   | EQeq({ p_desc = Evarpat(id) }, e) ->
      (* if [id] is a register name, then equation is translated *)
@@ -225,14 +238,15 @@ let rec equation ck res subst eqs { eq_desc = desc; eq_write = defnames } =
      let e = expression ck subst e in
      let e =
        if Env.mem id subst then ifthenelse (clock ck) e (pre id subst) else e in
-     (eq_make (Lmm.Evarpat(id)) e) :: eqs
+     { acc with eqs = (eq_make (Lmm.Evarpat(id)) e) :: eqs }
   | EQeq(p, e) ->
      let n = Ident.fresh "" in
-     let eqs, _ = filter eqs p (Lmm.Elocal(n)) in
-     (eq_make (Lmm.Evarpat(n)) (expression ck subst e)) :: eqs
+     let { eqs = eqs; env = env }, _ = filter acc p (Lmm.Elocal(n)) in
+     { eqs = (eq_make (Lmm.Evarpat(n)) (expression ck subst e)) :: eqs;
+       env = (vardec n e.e_typ) :: env }
   | EQreset(eq_list, e) ->
      let e = expression ck subst e in
-     equation_list ck (relse res e) subst eqs eq_list
+     equation_list ck (relse res e) subst acc eq_list
   | EQmatch(total, e, p_h_list) ->
      (* first translate [e] *)
      let e = expression ck subst e in
@@ -243,23 +257,24 @@ let rec equation ck res subst eqs { eq_desc = desc; eq_write = defnames } =
        List.map (fun _ -> Ident.fresh "") p_h_list in
      
      (* translate the list of body *)
-     let equations_from_handler eqs c { m_body = b } =
-       let eqs = block (on ck c) res subst eqs b in
+     let equations_from_handler acc c { m_body = b } =
+       let { eqs = eqs; env = env } = block (on ck c) res subst acc b in
        let eqs, name_to_exp = split s_set eqs in
-       eqs, name_to_exp in
+       { eqs = eqs; env = env }, name_to_exp in
      
-     let eqs, cond_name_to_exp_list =
+     let acc, cond_name_to_exp_list =
        List.fold_right2
-	 (fun c p_h (eqs, cond_name_to_exp_list) ->
-	  let eqs, name_to_exp = equations_from_handler eqs c p_h in
-	  eqs, (c, name_to_exp) :: cond_name_to_exp_list)
-	 c_list p_h_list (eqs, []) in
+	 (fun c p_h (acc, cond_name_to_exp_list) ->
+	  let acc, name_to_exp = equations_from_handler acc c p_h in
+	  acc, (c, name_to_exp) :: cond_name_to_exp_list)
+	 c_list p_h_list (acc, []) in
      
      (* translate the list of patterns *)
-     let patterns_from_handler eqs c { m_pat = p } =
-       let eqs, cond = filter eqs p e in
-       (eq_make (Lmm.Evarpat(c)) cond) :: eqs in
-     let eqs = List.fold_left2 patterns_from_handler eqs c_list p_h_list in
+     let patterns_from_handler acc c { m_pat = p } =
+       let { eqs = eqs; env = env }, cond = filter acc p e in
+       { eqs = (eq_make (Lmm.Evarpat(c)) cond) :: eqs; env = env } in
+     let { eqs = eqs; env = env } =
+       List.fold_left2 patterns_from_handler acc c_list p_h_list in
      
      (* merge results for every shared variable. Returns *)
      (* if c1 then e1 else ... en *)
@@ -276,36 +291,41 @@ let rec equation ck res subst eqs { eq_desc = desc; eq_write = defnames } =
 	 (fun x eqs ->
 	  (eq_make (Lmm.Evarpat(x)) (merge x cond_name_to_exp_list)) :: eqs)
 	 s_set eqs in
-     eqs
+     { eqs = eqs; env = env }
   | EQinit(x, e) ->
      (* the initialization is reset every time [res] is true *)
      let e = expression ck subst e in
      let e = ifthenelse (reset res) e (unarypre x) in
-     (eq_make (Lmm.Evarpat(rename x subst)) e) :: eqs
+     { acc with eqs = (eq_make (Lmm.Evarpat(rename x subst)) e) :: eqs }
   | EQnext _ | EQset _ | EQblock _ | EQemit _ | EQautomaton _
   | EQpresent _ | EQder _ -> assert false
 									   
-and equation_list ck res subst eqs eq_list =
-  List.fold_left (equation ck res subst) eqs eq_list
+and equation_list ck res subst acc eq_list =
+  List.fold_left (equation ck res subst) acc eq_list
  
-and block ck res subst eqs { b_body = body_eq_list; b_env = n_env } =
+and block ck res subst acc { b_body = body_eq_list; b_env = n_env } =
   let subst = build subst n_env in
-  equation_list ck res subst eqs body_eq_list
+  equation_list ck res subst acc body_eq_list
 
-let local eqs { l_eq = eq_list } =
-  equation_list Ck_base Res_never Env.empty eqs eq_list
+let local acc { l_eq = eq_list } =
+  equation_list Ck_base Res_never Env.empty acc eq_list
 					
-let let_expression ck subst eqs ({ e_desc = desc } as e) =
+let let_expression ck subst
+		   ({ eqs = eqs; env = env } as acc) ({ e_desc = desc } as e) =
   match desc with
   | Elet(l, e) ->
-     let eqs = local eqs l in
-     let e = expression ck subst e in
      let n_output = Ident.fresh "" in
-     (eq_make (Lmm.Evarpat(n_output)) e) :: eqs
+     let ty = e.e_typ in
+     let { eqs = eqs; env = env } = local acc l in
+     let e = expression ck subst e in
+     { eqs = (eq_make (Lmm.Evarpat(n_output)) e) :: eqs;
+       env = (vardec n_output ty) :: env }
   | _ ->
      let n_output = Ident.fresh "" in
+     let ty = e.e_typ in
      let e = expression ck subst e in
-     (eq_make (Lmm.Evarpat(n_output)) e) :: eqs
+     { eqs = (eq_make (Lmm.Evarpat(n_output)) e) :: eqs;
+       env = (vardec n_output ty) :: env }
 
 let kind = function | A | AD -> Lmm.A | D -> Lmm.D | C -> assert false
 							    
@@ -319,22 +339,19 @@ let implementation impl_list impl =
      { Lmm.desc = Lmm.Econstdecl(x, expression Ck_base Env.empty e);
        Lmm.loc = no_location } :: impl_list
   | Efundecl(n, { f_kind = k; f_args = p_list; f_body = e }) ->
-     let n_arg_list = List.map (fun _ -> Ident.fresh "") p_list in
-     let e_list = List.map (fun n -> Lmm.Elocal(n)) n_arg_list in
-     let eqs, _ = filter_list [] p_list e_list in
-     let arg_list =
-       List.map2 (fun n pat -> { Lmm.p_kind = Lmm.Evar; Lmm.p_name = n;
-				 Lmm.p_typ = pat.p_typ;
-				 Lmm.p_loc = no_location }) n_arg_list p_list in
+     let n_input_list = List.map (fun _ -> Ident.fresh "") p_list in
+     let e_list = List.map (fun n -> Lmm.Elocal(n)) n_input_list in
+     let acc, _ = filter_list empty p_list e_list in
+     let input_list =
+       List.map2 (fun n p -> vardec n p.p_typ) n_input_list p_list in
      let n_output = Ident.fresh "" in
-     let output = { Lmm.p_kind = Lmm.Evar; Lmm.p_name = n_output;
-		    Lmm.p_typ = e.e_typ; Lmm.p_loc = no_location } in
-     let eqs = let_expression Ck_base Env.empty eqs e in
+     let output = vardec n_output e.e_typ in
+     let { eqs = eqs; env = env } = let_expression Ck_base Env.empty acc e in
      { Lmm.desc =
 	 Lmm.Efundecl(n,
-		      { Lmm.f_kind = kind k; Lmm.f_inputs = arg_list;
+		      { Lmm.f_kind = kind k; Lmm.f_inputs = input_list;
 			Lmm.f_outputs = [output];
-			Lmm.f_local = []; Lmm.f_body = eqs;
+			Lmm.f_local = env; Lmm.f_body = eqs;
 			Lmm.f_assert = None });
        Lmm.loc = no_location } :: impl_list
 				   
