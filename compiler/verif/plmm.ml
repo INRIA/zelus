@@ -61,33 +61,36 @@ and operator ff op e_list =
   | Eifthenelse, [e1; e2; e3] ->
      fprintf ff "@[<hov>if %a@ then %a@ else %a@]"
              expression e1 expression e2 expression e3
+  | Esharp, e_list ->
+     fprintf ff "@[#(%a)@]" (print_list_r expression "("","")") e_list
   | Eop(ln), e_list ->
      fprintf ff "@[%a%a@]"
 	     longname ln (print_list_r expression "("","")") e_list
   | _ -> assert false
 
-let p_assert ff e =
-  fprintf ff "@[assert@ %a;@]" expression e
+let p_assert ff e_list =
+  print_list_r
+    (fun ff e -> fprintf ff "@[assert@ %a;@]" expression e) """""" ff e_list
 
 let equation ff { eq_lhs = p; eq_rhs = e } =
   fprintf ff "@[%a = %a@]"
           pattern p expression e
 
-let equation_list_with_assert e_opt ff = function
+let equation_list_with_assert e_list ff = function
   | [] -> ()
   | l ->
      fprintf ff "@[<v2>let@ %a%a@]@\ntel"
-             (print_opt p_assert) e_opt
+             p_assert e_list
              (print_list_r equation """;""") l
 
 let fundecl ff n { f_kind = k; f_inputs = inputs; f_outputs = outputs;
-                   f_local = locals; f_body = eq_list; f_assert = e_opt } =
+                   f_local = locals; f_body = eq_list; f_assert = e_list } =
   fprintf ff "@[node %s%a@ returns %a@]@\n%a%a@]@\n@."
     n
     var_dec_list inputs
     var_dec_list outputs
     var_dec_list locals
-    (equation_list_with_assert e_opt) eq_list
+    (equation_list_with_assert e_list) eq_list
 
 let implementation ff { desc = desc } =
   match desc with

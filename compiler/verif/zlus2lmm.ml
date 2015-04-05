@@ -14,10 +14,11 @@
 
 (* Translation into Lustre-- *)
 
-(* no automaton, no present *)
+(* no automaton, no present, no pre/fby/->. All names must be *)
+(* pair-wise differents *)
 
-(* Tr(ck)(match e with
-          | p1 -> E1 | ... | pn -> En) = 
+(* Tr(ck)(res)(match e with
+               | p1 -> E1 | ... | pn -> En) = 
 
    with one defined variable y (defnames = {y}) and used variable x
    (example: E1 = local t in do t = x + 3 and y = t + 2 done)
@@ -100,9 +101,9 @@ let rec reset = function
   | Res_else(Res_never, e) -> e
   | Res_else(res, e) -> or_op (reset res) e
 
-type eqs = { eqs: Lmm.eq list; env: Lmm.vardec list }
+type eqs = { eqs: Lmm.eq list; env: Lmm.vardec list; assertion: Lmm.exp list }
 
-let empty = { eqs = []; env = [] }
+let empty = { eqs = []; env = []; assertion = []  }
 	      
 (* for a pair [pat, e] computes the equation [pat_v = e] and boolean *)
 (* condition c where [pat_v] is only made of variables and [c] *)
@@ -110,7 +111,8 @@ let empty = { eqs = []; env = [] }
 let rec filter ({ eqs = eqs; env = env} as acc) { p_desc = p_desc } e =
   match p_desc with
   | Ewildpat ->  acc, e_true
-  | Evarpat(id) -> { acc with eqs = (eq_make (Lmm.Evarpat(id)) e) :: eqs }, e_true
+  | Evarpat(id) ->
+     { acc with eqs = (eq_make (Lmm.Evarpat(id)) e) :: eqs }, e_true
   | Econstpat(c) -> acc, equal_op (Lmm.Econst(c)) e
   | Econstr0pat(c) -> acc, equal_op (Lmm.Econstr0(c)) e
   | Etuplepat(p_list) ->
@@ -148,13 +150,11 @@ and filter_list acc p_list e_list =
 (* a statefull function application receives a clock as an extra argument *)
 let operator ck op e_list =
   match op with
-  | Eunarypre -> Lmm.Eapp(Lmm.Eunarypre, e_list)
   | Eifthenelse -> Lmm.Eapp(Lmm.Eifthenelse, e_list) 
-  | Eminusgreater -> Lmm.Eapp(Lmm.Eminusgreater, e_list)
   | Eop(_, lid) | Eevery(_, lid) ->
 		   if Types.is_a_function lid then Lmm.Eapp(Lmm.Eop(lid), e_list)
 		   else Lmm.Eapp(Lmm.Eop(lid), (clock ck) :: e_list)
-  | Efby | Eup | Einitial | Edisc
+  | Eunarypre | Eminusgreater | Efby | Eup | Einitial | Edisc
   | Etest -> assert false
 		    
 (* renaming of a name by an other *)
@@ -188,7 +188,7 @@ let shared_variables { dv = dv } = dv
 (* returns the previous value of [x] *)
 let pre x subst =
   try
-    Lmm.Elocal(Env.find x subst)
+    Lmm.Elocal(Env.find x subst) (* if [x] is given an last value [lx] *)
   with
   | Not_found -> unarypre x
 
@@ -229,7 +229,7 @@ let build subst l_env =
 (* with [acc = { eqs = eqs; env = env }]. Returns a set of *)
 (* equations and an environment for names *)
 let rec equation ck res subst
-		 ({ eqs = eqs; env = env } as acc)
+		 ({ eqs = eqs; env = env; assertion = assertion } as acc)
 		 { eq_desc = desc; eq_write = defnames } = 
   match desc with
   | EQeq({ p_desc = Evarpat(id) }, e) ->
@@ -241,8 +241,9 @@ let rec equation ck res subst
      { acc with eqs = (eq_make (Lmm.Evarpat(id)) e) :: eqs }
   | EQeq(p, e) ->
      let n = Ident.fresh "" in
-     let { eqs = eqs; env = env }, _ = filter acc p (Lmm.Elocal(n)) in
-     { eqs = (eq_make (Lmm.Evarpat(n)) (expression ck subst e)) :: eqs;
+     let ({ eqs = eqs; env = env } as acc), _ = filter acc p (Lmm.Elocal(n)) in
+     { acc with
+       eqs = (eq_make (Lmm.Evarpat(n)) (expression ck subst e)) :: eqs;
        env = (vardec n e.e_typ) :: env }
   | EQreset(eq_list, e) ->
      let e = expression ck subst e in
@@ -255,12 +256,12 @@ let rec equation ck res subst
      (* introduce [n] fresh clock names [c1,..., cn] *)
      let c_list =
        List.map (fun _ -> Ident.fresh "") p_h_list in
-     
+
      (* translate the list of body *)
      let equations_from_handler acc c { m_body = b } =
-       let { eqs = eqs; env = env } = block (on ck c) res subst acc b in
+       let { eqs = eqs } as acc = block (on ck c) res subst acc b in
        let eqs, name_to_exp = split s_set eqs in
-       { eqs = eqs; env = env }, name_to_exp in
+       { acc with eqs = eqs; env = env }, name_to_exp in
      
      let acc, cond_name_to_exp_list =
        List.fold_right2
@@ -271,10 +272,17 @@ let rec equation ck res subst
      
      (* translate the list of patterns *)
      let patterns_from_handler acc c { m_pat = p } =
-       let { eqs = eqs; env = env }, cond = filter acc p e in
-       { eqs = (eq_make (Lmm.Evarpat(c)) cond) :: eqs; env = env } in
-     let { eqs = eqs; env = env } =
+       let ({ eqs = eqs } as acc), cond = filter acc p e in
+       { acc with eqs = (eq_make (Lmm.Evarpat(c)) cond) :: eqs } in
+     let { eqs = eqs; env = env; assertion = assertion } =
        List.fold_left2 patterns_from_handler acc c_list p_h_list in
+
+     (* the variables [c1,...,cn] cannot be true at the same time *)
+     let assertion =
+       Lmm.Eapp(Lmm.Esharp, List.map (fun c -> Lmm.Elocal(c)) c_list) ::
+	 assertion in
+     let env = List.fold_left
+		 (fun acc c -> (vardec c Initial.typ_bool) :: acc) env c_list in
      
      (* merge results for every shared variable. Returns *)
      (* if c1 then e1 else ... en *)
@@ -291,7 +299,7 @@ let rec equation ck res subst
 	 (fun x eqs ->
 	  (eq_make (Lmm.Evarpat(x)) (merge x cond_name_to_exp_list)) :: eqs)
 	 s_set eqs in
-     { eqs = eqs; env = env }
+     { eqs = eqs; env = env; assertion = assertion }
   | EQinit(x, e) ->
      (* the initialization is reset every time [res] is true *)
      let e = expression ck subst e in
@@ -307,8 +315,9 @@ and block ck res subst acc { b_body = body_eq_list; b_env = n_env } =
   let subst = build subst n_env in
   equation_list ck res subst acc body_eq_list
 
-let local acc { l_eq = eq_list } =
-  equation_list Ck_base Res_never Env.empty acc eq_list
+let local ck res subst acc { l_eq = eq_list; l_env = l_env } =
+  let subst = build subst l_env in
+  equation_list ck res subst acc eq_list
 					
 let let_expression ck res subst
 		   ({ eqs = eqs; env = env } as acc) ({ e_desc = desc } as e) =
@@ -316,16 +325,18 @@ let let_expression ck res subst
   | Elet(l, e) ->
      let n_output = Ident.fresh "" in
      let ty = e.e_typ in
-     let { eqs = eqs; env = env } = local acc l in
+     let { eqs = eqs; env = env } as acc = local ck res subst acc l in
      let e = expression ck subst e in
-     { eqs = (eq_make (Lmm.Evarpat(n_output)) e) :: eqs;
+     { acc with
+       eqs = (eq_make (Lmm.Evarpat(n_output)) e) :: eqs;
        env = (vardec n_output ty) :: env }
   | _ ->
      let n_output = Ident.fresh "" in
      let ty = e.e_typ in
      let e = expression ck subst e in
      { eqs = (eq_make (Lmm.Evarpat(n_output)) e) :: eqs;
-       env = (vardec n_output ty) :: env }
+       env = (vardec n_output ty) :: env;
+       assertion = [] }
 
 let kind = function | A | AD -> Lmm.A | D -> Lmm.D | C -> assert false
 							    
@@ -359,12 +370,14 @@ let implementation impl_list impl =
 	  on Ck_base ck_name, relse Res_never (Lmm.Elocal(res_name)),
 	  ck_vardec :: res_vardec :: input_list 
        | C -> assert false in
-     let { eqs = eqs; env = env } = let_expression ck res Env.empty acc e in
+     let { eqs = eqs; env = env; assertion = assertion } =
+       let_expression ck res Env.empty acc e in
      { Lmm.desc =
 	 Lmm.Efundecl(n,
 		      { Lmm.f_kind = kind k; Lmm.f_inputs = input_list;
 			Lmm.f_outputs = [output]; Lmm.f_local = env;
-			Lmm.f_body = eqs; Lmm.f_assert = None });
+			Lmm.f_body = eqs;
+			Lmm.f_assert = assertion });
        Lmm.loc = no_location } :: impl_list
 				   
        

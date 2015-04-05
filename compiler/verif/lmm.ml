@@ -32,7 +32,7 @@ type exp =
   | Etuple of exp list
 		  
  and op =
-   | Eunarypre | Eminusgreater | Eifthenelse | Eop of Lident.t
+   | Eunarypre | Eminusgreater | Eifthenelse | Esharp | Eop of Lident.t
 							
  and immediate = Deftypes.immediate
 		   
@@ -51,7 +51,7 @@ type exp =
      f_outputs: vardec list;
      f_local: vardec list;
      f_body: eq list;
-     f_assert: exp option }
+     f_assert: exp list }
 
  and vardec =
    { p_kind: pkind;
