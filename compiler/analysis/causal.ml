@@ -125,7 +125,7 @@ let rec cunify left_c right_c =
 	    right_c.c_sup <- union left_c.c_sup right_c.c_sup
 	| _ -> assert false
 
-let rec ctype_before_ctype left_c right_c =
+let rec cless left_c right_c =
   let left_c = crepr left_c in
   let right_c = crepr right_c in
   match left_c.c_desc, right_c.c_desc with
@@ -149,7 +149,7 @@ let is_less_than_lists c1_list c2_list =
     (fun c1 -> List.exists (fun c2 -> less_than c1 c2) c2_list) c1_list
       
 (* the main entry *)
-let type_before_type = unify ctype_before_ctype
+let type_before_type = unify cless
   
 (* ordering between two environments. This is done structurally *)
 (* for local names defined in [right_env] *)
@@ -170,8 +170,7 @@ let rec after tc c =
   match tc with
     | Cproduct(l) -> Cproduct(List.map (fun tc -> after tc c) l)
     | Catom(left_c) -> Catom(afterc left_c c)
-and afterc left_c c = 
-  ctype_before_ctype left_c c; c
+and afterc left_c c = cless left_c c; c
     
 (* Compute the sup of two types *)
 let rec sup left_tc right_tc =
@@ -325,8 +324,9 @@ let simplify c_set =
     S.fold (fun i acc -> M.add i (out i) acc) inputs M.empty in
   let o_table =
     S.fold (fun i acc -> M.add i (out i) acc) outputs o_table in
-  
+    
   (* compute io(c) *)
+  (* io(c) = {i in I / O(c) subseteq O(i) } *)
   let rec io c =
     let o = M.find c o_table in
     S.fold
@@ -343,10 +343,9 @@ let simplify c_set =
   (* c1 < c2 iff io(c1) subset io(c2) *)
   (* moreover, variables are partitioned according to [io], i.e., *)
   (* [c1 eq c2 iff io(c1) = io(c2)] *)
-  let set c_left c_right = (crepr c_left).c_desc <- Clink(c_right) in
-  let less c_left c_right =
-    let c_left = crepr c_left in c_left.c_sup <- add c_right c_left.c_sup in
-  S.iter (fun c -> c.c_sup <- []) inputs_outputs;
+  let set left_c right_c = cunify left_c right_c in
+  let less left_c right_c = cless left_c right_c in
+  S.iter (fun c -> (crepr c).c_sup <- []) inputs_outputs;
   S.iter
     (fun i -> 
       let io_of_i = M.find i io_table in
@@ -358,14 +357,12 @@ let simplify c_set =
 		 if S.compare io_of_i io_of_o = 0 then set i o
 		 else less i o)
 	outputs)
-    inputs
+    inputs    
     
 (* TEMPORARY SOLUTION for testing: *)
 (* eliminate doublons, e.g., [c < b, b] and dependences to variables *)
 (* which are not input or outputs *)
-
-(*
-let simplify c_set =
+let remove_useless c_set =
   let rec remove_useless_variables c_set = S.iter remove_useless c_set 
   and remove_useless c = 
     let c = crepr c in
@@ -379,9 +376,6 @@ let simplify c_set =
        else useful_list acc c_right.c_sup
     | Clink(link) -> useful acc link in
   remove_useless_variables c_set
-  *)
-			   
-(* let simplify c_set = () *)
 
 (** Generalisation of a type *)
 (* the level of generalised type variables *)

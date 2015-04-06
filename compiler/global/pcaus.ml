@@ -64,7 +64,7 @@ let rec typ priority ff = function
 let set ff s = Format.fprintf ff "@[{%a}@]" (fun ff s -> S.iter (caus ff) s) s
 			      
 let map ff m =
-  let one ff c s = Format.fprintf ff "@[%a -> %a@]" caus c set s in
+  let one ff c s = Format.fprintf ff "@[%a -> %a@]@," caus c set s in
   Format.fprintf ff "@[{%a}@]" (fun ff m -> M.iter (one ff) m) m
 		 
 (* computes the set of constraints ['a < 'a_1,..., 'a_n] *)

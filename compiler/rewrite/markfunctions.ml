@@ -60,7 +60,7 @@ let to_inline c_in c_out c_arg c_res =
   if not i then
     List.iter
       (fun c_arg ->
-       List.iter (fun c_res -> Causal.ctype_before_ctype c_arg c_res) c_res)
+       List.iter (fun c_res -> Causal.cless c_arg c_res) c_res)
       c_arg;
   i
 
