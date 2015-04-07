@@ -216,14 +216,15 @@ let split s_set eqs =
 (* [build subst l_env = subst'] extends the *)
 (* substitution [subst] with entries [x1\lx1,..., xn\lxn] *)
 (* for all state variables which are initialized *)
-let build subst l_env =
+let build subst ({ env = env } as acc) l_env =
   Env.fold
-    (fun x { t_sort = sort; t_typ = typ } acc ->
-     match sort with
-     | Mem { t_initialized = true } ->
-	let lx = Ident.fresh "" in Env.add x lx acc
-    | Val | ValDefault _ | Mem _ -> acc)
-    l_env subst
+    (fun x { t_sort = sort; t_typ = ty } (subst, ({ env = env } as acc)) ->
+     let subst = match sort with
+       | Mem { t_initialized = true } ->
+	  let lx = Ident.fresh "" in Env.add x lx subst
+       | Val | ValDefault _ | Mem _ -> subst in
+     subst, { acc with env = (vardec x ty) :: env })
+    l_env (subst, acc)
     
 (* [equation ck res subst acc eq = acc'] *)
 (* with [acc = { eqs = eqs; env = env }]. Returns a set of *)
@@ -312,11 +313,11 @@ and equation_list ck res subst acc eq_list =
   List.fold_left (equation ck res subst) acc eq_list
  
 and block ck res subst acc { b_body = body_eq_list; b_env = n_env } =
-  let subst = build subst n_env in
+  let subst, acc = build subst acc n_env in
   equation_list ck res subst acc body_eq_list
 
 let local ck res subst acc { l_eq = eq_list; l_env = l_env } =
-  let subst = build subst l_env in
+  let subst, acc = build subst acc l_env in
   equation_list ck res subst acc eq_list
 					
 let let_expression ck res subst n_output
@@ -347,6 +348,7 @@ let implementation impl_list impl =
      let n_input_list = List.map (fun _ -> Ident.fresh "") p_list in
      let e_list = List.map (fun n -> Lmm.Elocal(n)) n_input_list in
      let acc, _ = filter_list empty p_list e_list in
+     if acc.env = [] then (Printf.printf "Empty\n"; flush stdout);
      let input_list =
        List.map2 (fun n p -> vardec n p.p_typ) n_input_list p_list in
      let n_output = Ident.fresh "" in
@@ -364,14 +366,15 @@ let implementation impl_list impl =
 	  on Ck_base ck_name, relse Res_never (Lmm.Elocal(res_name)),
 	  ck_vardec :: res_vardec :: input_list 
        | C -> assert false in
+     if acc.env = [] then (Printf.printf "Empty\n"; flush stdout);
      let { eqs = eqs; env = env; assertion = assertion } =
        let_expression ck res Env.empty n_output acc e in
+     if env = [] then (Printf.printf "Empty\n"; flush stdout);
      { Lmm.desc =
 	 Lmm.Efundecl(n,
 		      { Lmm.f_kind = kind k; Lmm.f_inputs = input_list;
 			Lmm.f_outputs = [output]; Lmm.f_local = env;
-			Lmm.f_body = eqs;
-			Lmm.f_assert = assertion });
+			Lmm.f_body = eqs; Lmm.f_assert = assertion });
        Lmm.loc = no_location } :: impl_list
 				   
        
