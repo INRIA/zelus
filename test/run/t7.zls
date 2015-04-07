@@ -20,4 +20,3 @@ let hybrid main () = check where
      same problem without it. The variable t can only be bigger than 0.0 if the
      tz zero-crossing is missed. *)
   and check = present (period (5.0)) -> (timer < 1.0) init true
-
