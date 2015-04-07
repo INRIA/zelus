@@ -30,14 +30,13 @@ let rec pattern ff = function
       fprintf ff "@[<2>(%a)@]" (print_list_r pattern """,""") pat_list
 
 let pkind ff = function
-  | Estatic -> fprintf ff "const " | Evar -> fprintf ff "var "
+  | Estatic -> fprintf ff "const " | Evar -> ()
 
 let var_dec ff { p_kind = k; p_name = n; p_typ = typ } =
   fprintf ff "%a%a : %a" pkind k name n internal_type typ
 
-let var_dec_list ff = function
-  | [] -> ()
-  | l -> fprintf ff "@[<4>%a@]@\n" (print_list_r var_dec """;""") l
+let var_dec_list po sep pf ff l =
+  print_list_r var_dec po sep pf ff l
 
 let rec expression ff e =
   match e with
@@ -85,11 +84,11 @@ let equation_list_with_assert e_list ff = function
 
 let fundecl ff n { f_kind = k; f_inputs = inputs; f_outputs = outputs;
                    f_local = locals; f_body = eq_list; f_assert = e_list } =
-  fprintf ff "@[node %s%a@ returns %a@]@\n%a%a@]@\n@."
+  fprintf ff "@[node %s(%a)@ returns (%a)@]@\n%a%a@]@\n@."
     n
-    var_dec_list inputs
-    var_dec_list outputs
-    var_dec_list locals
+    (var_dec_list "" ";" "") inputs
+    (var_dec_list "" ";" "") outputs
+    (var_dec_list "var " ";" ";") locals
     (equation_list_with_assert e_list) eq_list
 
 let implementation ff { desc = desc } =
