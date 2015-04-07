@@ -3,24 +3,24 @@ open Misc
 (*** Modeling Quasi-periodic Architecturea ***)
 
 (** Bounds of Definition 1 **)
-let t_min = 100.0
-let t_max = 1000.0
+let t_min = 300.0
+let t_max = 350.0
 let tau_min = 10.0
-let tau_max = 250.0
-let eps = 1.0
+let tau_max = 50.0
 
 
-(** Quasy-periodic clocks **)
-let hybrid metro (t_min, t_max) = x where
-  rec der t = 1.0 init -. Misc.rand_val (t_min, t_max)
-        reset up(last t) -> -. Misc.rand_val (t_min, t_max)
-  and present up(last t) -> do emit x = () done
+(** Quasi-periodic clocks **)
+let hybrid metro (t_min, t_max) = c where
+  rec der t = 1.0 init -. arbitrary (t_min, t_max)
+        reset up(last t) -> -. arbitrary (t_min, t_max)
+  and present up(t) -> do emit c = () done
+
 
 (** Delayed clock. Model transmission delay **)
-let hybrid delay(xs, tau_min, tau_max) = xl where
+let hybrid delay(c, tau_min, tau_max) = dc where
   rec der t = 1.0 init 0.0
-        reset xs() ->  -. Misc.rand_val  (tau_min, tau_max)
-  and present up(last t) -> do emit xl = () done
+        reset c() ->  -. arbitrary (tau_min, tau_max)
+  and present up(t) -> do emit dc = () done
 
 
 
@@ -42,16 +42,17 @@ let node ltta_node(i, default) = o where
 *)
 
 (** Modeling links **)
-let node channel (cl, i) = o where
+let node channel (dc, i) = o where
   rec init mem = empty()
   and present
-      | cl() & i(v) ->
+      | dc() on (not (is_empty (last mem))) & i(v)  ->
           do emit o = front (last mem)
           and mem = enqueue(dequeue(last mem), v) done
-      | cl() ->
+      | dc() on (not (is_empty (last mem))) ->
           do emit o = front (last mem)
           and mem = dequeue (last mem) done
-      | i(v) -> do mem = enqueue (last mem, v) done
+      | i(v) ->
+          do mem = enqueue (last mem, v) done
 
 
 let node link(dc, i, default) = o where
@@ -75,17 +76,10 @@ let node fresh (i, r) = o where
 
 let data v = v.data
 
-(* Remark: We should treat lists here: *)
-(* - val forall_fresh: 'a msg list -> bool *)
-(* - val exists_freh: 'a msg list -> bool *)
-(* - val data: 'a msg list -> 'a list *)
-
-
 (** LTTA links **)
-let node ltta_link (cl, i, default) = o where
-  rec s = channel (cl, i)
+let node ltta_link (dc, i, default) = o where
+  rec s = channel (dc, i)
   and o = mem (alternate s, {data = default; alt = false})
-
 
 
 
@@ -108,30 +102,71 @@ let node bp_controller (i, ra, m) = (o, a, im) where
 
 
 (** Time-Based LTTA **)
-(* Contants of thm 6 *)
+(* Constants of thm 6 *)
 let p =
   int_of_float (
-  ceil ((2. *. tau_max +. t_max) /.
-        t_min))
+  floor ((2. *. tau_max +. t_max) /.
+        t_min) +. 1.)
 
 let q =
   int_of_float (
-  ceil ((tau_max  +. (1. +. float (p)) *. t_max) /.
-        t_min -. float (p)))
+  floor ((tau_max  +. (1. +. float (p)) *. t_max) /.
+         t_min -. float (p)) +. 1.)
 
 let node tb_controller (i, ro, m) = (o, im) where
   rec init n = 1
   and automaton
       | Wait ->
-          do n = p fby n - 1
+          do n = p -> (pre n - 1)
           unless (last n = 1) then
             do emit im = data(i) in Ready
       | Ready ->
-          do n = q fby n - 1
+          do n = q -> (pre n - 1)
           unless ((last n = 1) or preempted) then
             do emit o = m in Wait
 
-  and preempted = fresh(i, im) or fresh(ro, o)
+  and preempted = fresh(i, im) or fresh(ro, im)
+
+
+
+(*** Appendix ***)
+
+(** Modeling Transmission Delay **)
+let hybrid delay2(c, tau_min, tau_max, eps) = dc where
+  rec init q = empty()
+  and init t = 0.0
+  and init trans = false
+  and present
+      | c() & up(last t) ->
+          local tau, d in
+          do if is_empty(last q) then do t = -. tau done
+             else do q = enqueue(dequeue(last q), d)
+                  and t = -. front(last q) done
+          and tau = arbitrary(tau_min, tau_max)
+          and d = max(eps, tau -. sum(last q) +. last t)
+          and emit dc = () done
+      | up(last t) ->
+          do if is_empty(last q) then do trans = false done
+             else do t = -. front(last q) and q = dequeue(last q) done
+          and emit dc = () done
+      | c() ->
+          local tau, d in
+          do if last trans then do  q = enqueue(last q, max(d, eps)) done
+              else do t = -. tau and trans = true done
+          and tau = arbitrary(tau_min, tau_max)
+          and d = tau -. sum(last q) +. last t done
+   else do der t = 1.0 done
+
+
+(** Broadcast Communication **)
+let node rb_controller (i, m) = (o, im) where
+  rec automaton
+      | Wait ->
+          do (* skip *)
+          unless all_fresh_inputs then
+            do emit im = data(i) and emit o = m in Wait
+
+  and all_fresh_inputs = fresh(i, im)
 
 
 
@@ -139,52 +174,24 @@ let node tb_controller (i, ro, m) = (o, im) where
 
 (** The embedded application **)
 let node machine1 () = n where
-  rec n = 0 -> (pre n + 1)
+  rec n = 1 -> (pre n + 2)
 
-let node machine2(n) = m where
-  rec m = n - 1
-
-(* Same example viewed as one synchronous program. *)
-(* Note the logical delay between nodes *)
-let node ex_2 () = (n,m) where
-  rec n = 0 -> (pre n + 1)
-  and m = (0 -> pre n) - 1
+let node machine2 () = m where
+  rec m = 0 -> (pre m + 2)
 
 (** LTTA nodes **)
-
 let node n1(i, ro) = o where
-  rec m = mem(om, 0)
+  rec m = mem (om, 0)
   and (o, im) = tb_controller(i, ro, m)
-  and present im(v) -> do emit om = machine1() done
+  and present im(_) -> do emit om = machine1() done
 
-(* Remark: Handmade inlining because Zelus considers automata as *)
-(* strict functions. Therefore the logical delay introduced by the *)
-(* controllers between i and o is not detected. *)
-(* It might also explain why the translation in ocaml succeed but *)
-(* not the final compilation when composing nodes: *)
-(* (Error unbound variable r_* ...) *)
-
-(*
 let node n2(i, ro) = o where
   rec m = mem(om, 0)
   and (o, im) = tb_controller(i, ro, m)
-  and present im(v) -> do emit om = machine2(v) done
-*)
+  and present im(_) -> do emit om = machine2() done
 
-let node n2 (i, ro) = o where
-  rec init n = 1
-  and init m = 0
-  and automaton
-      | Wait ->
-          do n = p fby n - 1
-          unless (last n = 1) then
-            do emit im = () and m = machine2(i.data) in Ready
-      | Ready ->
-          do n = q fby n - 1
-          unless ((last n = 1) or preempted) then
-            do emit o = m in Wait
-
-  and preempted = fresh(i, im) or fresh(ro, o)
+(** Dummy ltta_link for nodes with no inputs **)
+let source () = {data = 0; alt = false}
 
 (** Pluging two nodes with links to form an example **)
 
@@ -192,8 +199,9 @@ let node n2 (i, ro) = o where
 (* and the links on their delayed version dc1 and dc2. *)
 (* The output if the content of the links at each step. *)
 let node example (c1, dc1, c2, dc2) = (o1, o2) where
-   rec present c1() -> do n = n1(l2, l1) done
-   and present c2() -> do m = n2(l1, l2) done
+   rec present c1() -> do n = n1(l0, l0) done
+   and present c2() -> do m = n2(l0, l0) done
+   and l0 = source()
    and l1 = ltta_link(dc1, n, 0)
    and l2 = ltta_link(dc2, m, 0)
    and o1 = l1.data
@@ -210,51 +218,9 @@ let hybrid main () = () where
   and dc2 = delay(c2, tau_min, tau_max)
 
   (* Global clock *)
-  and g = present c1() | dc1() | c2() | dc2() -> ()
+  and present c1() | dc1() | c2() | dc2() -> do emit g = () done
 
   and present g() -> local o1, o2 in
         (* Run the example model *)
-        do (o1,o2) = example(c1, dc1, c2, dc2) done
-
-
-
-
-(*** Appendix ***)
-
-(** Modeling Transmission Delay **)
-let hybrid delay2(cs, tau_min, tau_max, eps) = cl where
-  rec init q = empty()
-  and init t = 0.0
-  and init trans = false
-  and present
-      | cs() & up(last t) ->
-          local tau, d in
-          do if is_empty(last q) then do t = -. tau done
-             else do q = enqueue(dequeue(last q), d)
-                  and t = -. front(last q) done
-          and tau = Misc.rand_val(tau_min, tau_max)
-          and d = max(eps, tau -. sum(last q) +. last t) done
-      | up(last t) ->
-          do emit cl = ()
-          and if is_empty(last q) then do trans = false done
-              else do t = -. front(last q) and q = dequeue(last q) done
-          done
-      | cs() ->
-          local tau, d in
-          do tau = Misc.rand_val(tau_min, tau_max)
-          and d = tau -. sum(last q) +. last t
-          and if last trans then do  q = enqueue(last q, max(d, eps)) done
-              else do t = -. tau and trans = true done
-          done
-   else do der t = 1.0 done
-
-
-(*** Broadcast Communication ***)
-let node rb_controller (i, m) = (o, im) where
-  rec automaton
-      | Wait ->
-          do (* skip *)
-          unless all_fresh_inputs then
-            do emit im = data(i) and emit o = m in Wait
-
-  and all_fresh_inputs = fresh(i, im)
+        do (o1,o2) = example(c1, dc1, c2, dc2)
+        and _ = print (o1, o2) done
