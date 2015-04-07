@@ -319,24 +319,18 @@ let local ck res subst acc { l_eq = eq_list; l_env = l_env } =
   let subst = build subst l_env in
   equation_list ck res subst acc eq_list
 					
-let let_expression ck res subst
-		   ({ eqs = eqs; env = env } as acc) ({ e_desc = desc } as e) =
+let let_expression ck res subst n_output
+		   ({ eqs = eqs } as acc) ({ e_desc = desc } as e) =
   match desc with
   | Elet(l, e) ->
-     let n_output = Ident.fresh "" in
-     let ty = e.e_typ in
-     let { eqs = eqs; env = env } as acc = local ck res subst acc l in
+     let { eqs = eqs } as acc = local ck res subst acc l in
      let e = expression ck subst e in
      { acc with
-       eqs = (eq_make (Lmm.Evarpat(n_output)) e) :: eqs;
-       env = (vardec n_output ty) :: env }
+       eqs = (eq_make (Lmm.Evarpat(n_output)) e) :: eqs }
   | _ ->
-     let n_output = Ident.fresh "" in
-     let ty = e.e_typ in
      let e = expression ck subst e in
-     { eqs = (eq_make (Lmm.Evarpat(n_output)) e) :: eqs;
-       env = (vardec n_output ty) :: env;
-       assertion = [] }
+     { acc with
+       eqs = (eq_make (Lmm.Evarpat(n_output)) e) :: eqs }
 
 let kind = function | A | AD -> Lmm.A | D -> Lmm.D | C -> assert false
 							    
@@ -371,7 +365,7 @@ let implementation impl_list impl =
 	  ck_vardec :: res_vardec :: input_list 
        | C -> assert false in
      let { eqs = eqs; env = env; assertion = assertion } =
-       let_expression ck res Env.empty acc e in
+       let_expression ck res Env.empty n_output acc e in
      { Lmm.desc =
 	 Lmm.Efundecl(n,
 		      { Lmm.f_kind = kind k; Lmm.f_inputs = input_list;

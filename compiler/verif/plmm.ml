@@ -78,13 +78,13 @@ let equation ff { eq_lhs = p; eq_rhs = e } =
 let equation_list_with_assert e_list ff = function
   | [] -> ()
   | l ->
-     fprintf ff "@[<v2>let@ %a%a@]@\ntel"
+     fprintf ff "@[<v2>let@ @[%a@,@]@[%a@,@]@]@\ntel"
              p_assert e_list
              (print_list_r equation """;""") l
 
 let fundecl ff n { f_kind = k; f_inputs = inputs; f_outputs = outputs;
                    f_local = locals; f_body = eq_list; f_assert = e_list } =
-  fprintf ff "@[node %s(%a)@ returns (%a)@]@\n%a%a@]@\n@."
+  fprintf ff "@[node %s(%a)@ returns (%a)@]@\n@[%a@,@]@[%a@,@]@]@\n@."
     n
     (var_dec_list "" ";" "") inputs
     (var_dec_list "" ";" "") outputs
