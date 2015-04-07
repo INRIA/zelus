@@ -16,14 +16,26 @@
 open Location
 open Format
 open Pp_tools
+open Lident
 open Lmm
-
+       
 let longname = Printer.longname
 let immediate = Printer.immediate
 let name = Printer.name
 let shortname = Printer.shortname
 let internal_type = Ptypes.output
 
+(* special printing for infix operators from the pervasives module *)
+let infix_from_pervasives ln =
+  let infix s =
+    (Printer.is_infix s) ||
+      (let c = String.get s 0 in
+       match c with | '*' | '/' | '-' | '+' -> true | _ -> false) in
+  match ln with
+  | Modname { qual = q; id = s } ->
+       if q = Initial.pervasives_module then infix s else false
+  | Name(s) -> infix s
+							    
 let rec pattern ff = function
   | Evarpat(n) -> name ff n
   | Etuplepat(pat_list) ->
@@ -36,7 +48,7 @@ let var_dec ff { p_kind = k; p_name = n; p_typ = typ } =
   fprintf ff "%a%a : %a" pkind k name n internal_type typ
 
 let var_dec_list po sep pf ff l =
-  print_list_r var_dec po sep pf ff l
+  print_list_r_empty var_dec po sep pf ff l
 
 let rec expression ff e =
   match e with
@@ -47,9 +59,9 @@ let rec expression ff e =
   | Eapp(op, e_list) -> operator ff op e_list
   | Erecord_access(e, ln) -> fprintf ff "@[%a.%a@]" expression e longname ln
   | Erecord(ln_e_list) ->
-    print_record (print_couple longname expression """ =""") ff ln_e_list
+     print_record (print_couple longname expression """ =""") ff ln_e_list
   | Etuple(e_list) ->
-    fprintf ff "@[%a@]" (print_list_r expression "("", "")") e_list
+     fprintf ff "@[%a@]" (print_list_r expression "("", "")") e_list
 
 and operator ff op e_list =
   match op, e_list with
@@ -62,14 +74,17 @@ and operator ff op e_list =
              expression e1 expression e2 expression e3
   | Esharp, e_list ->
      fprintf ff "@[#(%a)@]" (print_list_r expression "("","")") e_list
+  | Eop(ln), [e1; e2] when infix_from_pervasives ln ->
+     fprintf ff "@[%a %a %a@]"
+	     expression e1 longname ln expression e2
   | Eop(ln), e_list ->
      fprintf ff "@[%a%a@]"
 	     longname ln (print_list_r expression "("","")") e_list
   | _ -> assert false
 
 let p_assert ff e_list =
-  print_list_r
-    (fun ff e -> fprintf ff "@[assert@ %a;@]" expression e) """""" ff e_list
+  print_list_r_empty
+    (fun ff e -> fprintf ff "@[assert@ %a@]" expression e) """;"";" ff e_list
 
 let equation ff { eq_lhs = p; eq_rhs = e } =
   fprintf ff "@[%a = %a@]"
@@ -80,7 +95,7 @@ let equation_list_with_assert e_list ff = function
   | l ->
      fprintf ff "@[<v2>let@ @[%a@,@]@[%a@,@]@]@\ntel"
              p_assert e_list
-             (print_list_r equation """;""") l
+             (print_list_r_empty equation """;"";") l
 
 let fundecl ff n { f_kind = k; f_inputs = inputs; f_outputs = outputs;
                    f_local = locals; f_body = eq_list; f_assert = e_list } =
