@@ -27,12 +27,9 @@ let node z_n2() = o where
   and present im(_) -> do emit om = machine1() done
 
 (* Different results for z_n1 and z_n2? *)
-let hybrid main () = ok where
-  rec der t = 1.0 init -1.0 reset up(last t) -> -. 1.0
-  and ok = present up(t) ->
-        let rec n1 = z_n1()
-        and n2 = z_n2()
-        and m1 = mem(n1, 0)
-        and m2 = mem(n2, 0)
-        in (m1 = m2)
-      init true
+let node main () = ok where
+  rec n1 = z_n1()
+  and n2 = z_n2()
+  and m1 = mem(n1, 0)
+  and m2 = mem(n2, 0)
+  and ok = (m1 = m2)
