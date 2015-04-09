@@ -1,4 +1,4 @@
-(* TEST[-check 1000] ARGS[-fullspeed] *)
+(* TEST[-check 100000] ARGS[] *)
 
 let hybrid main () = ok where
   rec der t = 1.0 init -. 300.0
