@@ -11,12 +11,6 @@
 #   This file is distributed under the terms of the CeCILL-C licence
 # 
 
-#
-# TODO: incorporate support for executing generated files:
-#	- include their output
-#	- and/or generate graphs of their runs
-#
-
 ##
 # Configuration
 SCRIPT=`basename $0`
@@ -199,6 +193,7 @@ compile() {
 }
 
 # Loop through each runverbatim command file
+subdirs=
 for infile in ${INFILES}; do
 
     # Add the suffix if necessary (as latex does)
@@ -212,6 +207,11 @@ for infile in ${INFILES}; do
 	case $l in
 	    subdir=*)
 		SUBDIR=`expr "$l" : '.*=\(.*\)'`
+		existing=`expr "$subdirs" : ".*:${SUBDIR}:\\([^:]*\\).*"`
+		if [ -n "$existing" ]; then
+		    printf "warning: %s: subdir=%s already used by %s!\n" \
+			"$infile" "$SUBDIR" "$existing" >&2
+		fi
 		;;
 	    prefix=*)
 		PREFIX=`expr "$l" : '.*=\(.*\)'`
@@ -276,6 +276,7 @@ for infile in ${INFILES}; do
 	linenum='?'
 	shouldfail=0
     done < "${infile}"
+    subdirs="${subdirs} :${SUBDIR}:${infile}:"
 done
 
 cleanup
