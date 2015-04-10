@@ -197,11 +197,22 @@ compile() {
     return 0
 }
 
+locked=
 dooption() {
     opt_name="$1"
     opt_value="$2"
 
+    if [ "$opt_name" != "locked" \
+	 -a $(expr "$locked" : ".* $opt_name .*") -ne 0 ]
+    then
+	printf \
+	    'info: ignoring locked option ''%s''\n' "$opt_name" >&2
+	return
+    fi
+
     case "$opt_name" in
+	lock)
+	    locked="$locked $opt_value ";;
 	subdir)
 	    SUBDIR="$opt_value" ;;
 	prefix)
