@@ -53,6 +53,13 @@ trap cleanup 1 2 15
 ##
 # Code
 
+#
+# Given
+#   var	    a variable to store the result
+#   name    the filename prefix
+#   num	    an id number
+# generate a filename from name and num and store it in var.
+#
 setfilename() {
     local var="$1"
     local name="$2"
@@ -68,6 +75,13 @@ setfilename() {
     fi
 }
 
+#
+# If the WITHOPEN option is set, create a modified program text (with a
+# different name) whose first lines import dependencies.
+# Args:
+#   filename	    the id of the program text
+#   openfilenums    its dependencies (id list)
+#
 addopen() {
     local filename="$1"
     local openfilenums="$2"
@@ -93,49 +107,64 @@ addopen() {
     fi
 }
 
+#
+# Given
+#   num		    a program (id)
+#   openfilenums    its dependencies (id list)
+# (Try to) Compile the program and create a corresponding .tex file that
+# summarizes the results for reading back into the source document.
+#
 compile() {
     local num="$1"
     local openfilenums="$2"
-    local file ofile outf
+    local ifile ofile outf
     local FILENAME
 
+    # Decide whether to use the original program source or the version
+    # augmented to import dependencies.
     if [ -n "$WITHOPEN" ]; then
 	FILENAME=${WITHOPEN}
     else
 	FILENAME=${PREFIX}
     fi
 
-    setfilename file "$FILENAME" $num
+    # Generate the program (ifile) and output (ofile) filenames
+    setfilename ifile "$FILENAME" $num
+    ipath="$SUBDIR$ifile$EXT" 
     setfilename ofile "$PREFIX" $num
+    opath="$SUBDIR$ofile.tex"
 
-    if [ -f "$SUBDIR$file$EXT" ]; then
+    # Check that the input file exists
+    if [ -f "$ipath" ]; then
 	printf "> $ofile$EXT...\n"
     else
-	printf "> $ofile$EXT: not found.\n"
+	printf "> $ofile$EXT: program source not found.\n"
 	return 1
     fi
 
+    # Generate a list of dependency filenames to pass to the compiler
     local of n openfiles=""
     for n in $openfilenums; do
 	setfilename of "$FILENAME" $n
 	openfiles="$openfiles $SUBDIR$of$EXT"
     done
 
-    outf="$SUBDIR$ofile.tex"
-
-    $COMPILER $COMPILERFLAGS $openfiles \
-	$LASTFLAGS $SUBDIR$file$EXT >$OUTFILE 2>$ERRFILE
+    # Invoke the compiler
+    $COMPILER $COMPILERFLAGS $openfiles $LASTFLAGS "$ipath" >$OUTFILE 2>$ERRFILE
     COMPILERSTATUS=$?
 
+    # Start the output tex file with the compilation command as a comment
     printf "%% $COMPILER $COMPILERFLAGS $openfiles \
-	$LASTFLAGS $SUBDIR$file$EXT ($COMPILERSTATUS)\n" > $outf
+	$LASTFLAGS $ipath ($COMPILERSTATUS)\n" > $opath
+
+    # Signal compilation success (\runverbatimtrue) or not (\runverbatimfalse)
     if [ $COMPILERSTATUS -eq 0 ]; then
-	printf '\\runverbatimtrue\n'   >> $outf
+	printf '\\runverbatimtrue\n'   >> $opath
 	if [ $shouldfail -eq 1 ]; then
 	    printf "  unexpected success (line $linenum / page $pagenum)!\n" >&2
 	fi
     else
-	printf '\\runverbatimfalse\n'  >> $outf
+	printf '\\runverbatimfalse\n'  >> $opath
 	if [ $shouldfail -eq 0 ]; then
 	    printf "  unexpected failure (line $linenum / page $pagenum)!\n" >&2
 	    while read line
@@ -145,33 +174,40 @@ compile() {
 	fi
     fi
 
-    printf "\\\\setrunverbatimcmd{${COMPILERNAME} ${LASTFLAGS} \\\\runverbatimfile}\n" >> $outf
+    # Include a sanitized compilation command (\setrunverbatimcmd)
+    printf "\\\\setrunverbatimcmd{${COMPILERNAME} ${LASTFLAGS} \\\\runverbatimfile}\n" >> $opath
 
-    printf '\\begin{RunVerbatimMsg}\n' >> $outf
+    # Include the compiler's stdout
+    printf '\\begin{RunVerbatimMsg}\n' >> $opath
     if [ `wc -l < $OUTFILE` -eq 0 ]; then
-	printf "Failed.\n"		  >> $outf
+	printf "Failed.\n"		  >> $opath
     else
-	sed -e "s#$SUBDIR$file#$PREFIX#g" $OUTFILE >> $outf
+	sed -e "s#$SUBDIR$ifile#$PREFIX#g" $OUTFILE >> $opath
     fi
-    printf '\\end{RunVerbatimMsg}\n'   >> $outf
+    printf '\\end{RunVerbatimMsg}\n'   >> $opath
 
-    printf '\\begin{RunVerbatimErr}\n' >> $outf
+    # Include the compiler's stderr
+    printf '\\begin{RunVerbatimErr}\n' >> $opath
     if [ `wc -l < $ERRFILE` -eq 0 ]; then
-	printf "Success.\n"		  >> $outf
+	printf "Success.\n"		  >> $opath
     else
-	sed -e "s#$SUBDIR$file#$PREFIX#g" $ERRFILE >> $outf
+	sed -e "s#$SUBDIR$ifile#$PREFIX#g" $ERRFILE >> $opath
     fi
-    printf '\\end{RunVerbatimErr}\n'   >> $outf
+    printf '\\end{RunVerbatimErr}\n'   >> $opath
 
     return 0
 }
 
+# Loop through each runverbatim command file
 for infile in ${INFILES}; do
+
+    # Add the suffix if necessary (as latex does)
     case $infile in
 	*${SUFFIX}) ;;
 	*) infile=${infile}${SUFFIX} ;;
     esac
 
+    # Process each line of the command file
     while read l; do
 	case $l in
 	    subdir=*)
@@ -202,10 +238,12 @@ for infile in ${INFILES}; do
 		fi
 		;;
 	    *:*)
+		# a snippet to be compiled
 		filenum=`expr "$l" : '\(.*\):.*'`
 		openfilenums=`expr "$l" : '.*:\(.*\)'`
 
-		opennums=""	
+		# build up a list of dependencies in opennums
+		opennums=""
 		for n in $openfilenums; do
 		    case $n in
 		    \[page=*\])

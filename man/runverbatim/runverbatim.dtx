@@ -178,13 +178,17 @@ let z = y + inc y
 % \fi
 \begin{LTXexample}[pos=b]
 This code does not compile:
-\begin{runverbatim}[fail, withresult]
-let w = 1 + "four"
+\begin{runverbatim}[continue, fail, withresult,skipone]
+let u = 3
+let w = u + "four"
 \end{runverbatim}
 \end{LTXexample}
 % \iffalse
 %</example>
 % \fi
+% Note that the line number is not correct.
+% This is because the |continue| option added a line to include the previous 
+% definitions and the |skipone| option hid the |let u = 3| line.
 %
 % \section{Use}\label{sec:use}
 %
@@ -486,7 +490,10 @@ let w = 1 + "four"
 % Please contact \url{tim@tbrk.org} if you would like to support other 
 % systems.
 % Patches are most welcome, but the intent is to keep this package 
-% relatively simple rather than to try and do everything.
+% relatively simple rather than to try to do everything.
+%
+% \item
+% Multiple languages in a single document are not supported.
 %
 % \end{itemize}
 %
