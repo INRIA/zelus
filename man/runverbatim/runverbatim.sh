@@ -55,9 +55,9 @@ trap cleanup 1 2 15
 # generate a filename from name and num and store it in var.
 #
 setfilename() {
-    local var="$1"
-    local name="$2"
-    local num="$3"
+    var="$1"
+    name="$2"
+    num="$3"
     if [ $num -lt 10 ]; then
 	eval $var="${name}000${num}"
     elif [ $num -lt 100 ]; then
@@ -77,14 +77,15 @@ setfilename() {
 #   openfilenums    its dependencies (id list)
 #
 addopen() {
-    local filename="$1"
-    local openfilenums="$2"
-    local of f
+    filename="$1"
+    openfilenums="$2"
+    unset of f
+
     if [ -n "$WITHOPEN" ]; then
 	setfilename f "$PREFIX" $filename
 	if [ -f "$SUBDIR$f$EXT" ]; then
 
-	    local n openfiles=""
+	    openfiles=""
 	    for n in $openfilenums; do
 		setfilename of "$WITHOPEN" $n
 		openfiles="$openfiles ${INCLUDECMD} $of"
@@ -109,10 +110,9 @@ addopen() {
 # summarizes the results for reading back into the source document.
 #
 compile() {
-    local num="$1"
-    local openfilenums="$2"
-    local ifile ofile outf
-    local FILENAME
+    num="$1"
+    openfilenums="$2"
+    unset ifile ofile outf of FILENAME
 
     # Decide whether to use the original program source or the version
     # augmented to import dependencies.
@@ -137,7 +137,7 @@ compile() {
     fi
 
     # Generate a list of dependency filenames to pass to the compiler
-    local of n openfiles=""
+    openfiles=""
     for n in $openfilenums; do
 	setfilename of "$FILENAME" $n
 	openfiles="$openfiles $SUBDIR$of$EXT"
@@ -154,13 +154,13 @@ compile() {
     # Signal compilation success (\runverbatimtrue) or not (\runverbatimfalse)
     if [ $COMPILERSTATUS -eq 0 ]; then
 	printf '\\runverbatimtrue\n'   >> $opath
-	if [ $shouldfail -eq 1 ]; then
-	    printf "  unexpected success (line $linenum / page $pagenum)!\n" >&2
+	if [ $SHOULDFAIL -eq 1 ]; then
+	    printf "  unexpected success (line $LINENUM / page $PAGENUM)!\n" >&2
 	fi
     else
 	printf '\\runverbatimfalse\n'  >> $opath
-	if [ $shouldfail -eq 0 ]; then
-	    printf "  unexpected failure (line $linenum / page $pagenum)!\n" >&2
+	if [ $SHOULDFAIL -eq 0 ]; then
+	    printf "  unexpected failure (line $LINENUM / page $PAGENUM)!\n" >&2
 	    while read line
 	    do
 	      printf "  | $line\n"
@@ -192,22 +192,17 @@ compile() {
     return 0
 }
 
-# Loop through each runverbatim command file
 subdirs=
-for infile in ${INFILES}; do
-
-    # Add the suffix if necessary (as latex does)
-    case $infile in
-	*${SUFFIX}) ;;
-	*) infile=${infile}${SUFFIX} ;;
-    esac
+readrvrb() {
+    infile=$1
+    unset l existing openfilenums filenum opennums
 
     # Process each line of the command file
     while read l; do
 	case $l in
 	    subdir=*)
 		SUBDIR=`expr "$l" : '.*=\(.*\)'`
-		existing=`expr "$subdirs" : ".*:${SUBDIR}:\\([^:]*\\).*"`
+		existing=`expr "$subdirs" : ".*::${SUBDIR}:\\([^:]*\\):.*"`
 		if [ -n "$existing" ]; then
 		    printf "warning: %s: subdir=%s already used by %s!\n" \
 			"$infile" "$SUBDIR" "$existing" >&2
@@ -247,13 +242,13 @@ for infile in ${INFILES}; do
 		for n in $openfilenums; do
 		    case $n in
 		    \[page=*\])
-			pagenum=`expr "$n" : '\[page=\(.*\)\]'`
+			PAGENUM=`expr "$n" : '\[page=\(.*\)\]'`
 			;;
 		    \[line=*\])
-			linenum=`expr "$n" : '\[line=\(.*\)\]'`
+			LINENUM=`expr "$n" : '\[line=\(.*\)\]'`
 			;;
 		    \[fail\])
-			shouldfail=1
+			SHOULDFAIL=1
 			;;
 		    *)
 			if [ "$n" -eq "$n" ] 2>/dev/null; then
@@ -272,11 +267,23 @@ for infile in ${INFILES}; do
 		printf "bad $infile: $l\n" >&2
 		;;
 	esac
-	pagenum='?'
-	linenum='?'
-	shouldfail=0
-    done < "${infile}"
-    subdirs="${subdirs} :${SUBDIR}:${infile}:"
+	unset PAGENUM
+	unset LINENUM
+	SHOULDFAIL=0
+    done < "$infile"
+    subdirs="$subdirs::$SUBDIR:$infile:"
+}
+
+# Loop through each runverbatim command file
+for f in ${INFILES}; do
+
+    # Add the suffix if necessary (as latex does)
+    case $f in
+	*${SUFFIX}) ;;
+	*) infile="$f$SUFFIX" ;;
+    esac
+
+    readrvrb $f
 done
 
 cleanup
