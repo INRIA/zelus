@@ -105,6 +105,9 @@ struct (* {{{ *)
     then Printf.printf "%s%.15e%s" s1 t s2
     else Printf.printf "%s%e%s" s1 t s2
 
+  let print_black_newline () = set_color black; print_newline (); flush stdout
+  let print_black_endline s = print_string s; print_black_newline ()
+
   let extra_precision = ref false
   let set_precise_logging _ = (extra_precision := true)
 
@@ -114,19 +117,18 @@ struct (* {{{ *)
     for i = 0 to Bigarray.Array1.dim c -1 do
       pr c.{i}
     done;
-    printf "\n"
+    print_black_newline ()
 
   let zarray_log l t z =
     if !extra_precision then printf "%s%.15e" l t else printf "%s%e" l t;
     for i = 0 to Bigarray.Array1.dim z - 1 do
       printf "\t%s" (Int32.to_string z.{i})
     done;
-    printf "\n"
+    print_black_newline ()
 
   let print_roots zs t rin =
     if !log then (set_color boldred;
-                  zarray_log "Z : " t rin;
-                  set_color black)
+                  zarray_log "Z : " t rin)
 
   let print_states label t cs =
     if !log then carray_log label t cs
@@ -136,9 +138,8 @@ struct (* {{{ *)
       set_color yellow;
       print_time ("H : ", " ") t;
       print_time ("\t horizon=",
-        if reinit then " (reinit)\n" else "\n") t_horizon;
-      set_color black;
-      flush stdout
+        if reinit then " (reinit)" else "") t_horizon;
+      print_black_newline ()
     end
 
   let print_help_key () =
@@ -148,12 +149,10 @@ struct (* {{{ *)
       print_endline "  C : result of continuous solver";
       print_endline "  C': state given to the discrete solver (last values)";
       set_color boldred;
-      print_endline "  Z : zero-crossings triggering the discrete solver";
-      set_color black;
+      print_black_endline "  Z : zero-crossings triggering the discrete solver";
       print_endline "  D : result of discrete solver";
       set_color yellow;
-      print_endline "  H : time horizon set for a continuous phase";
-      set_color black;
+      print_black_endline "  H : time horizon set for a continuous phase";
       print_newline ();
 
       print_string "M : time";
@@ -308,22 +307,20 @@ struct (* {{{ *)
     let f_main t cs ds =
       if !log_fcalls then begin
         set_color before_loggedcall;
-        carray_log "*FC:" t cs; flush stdout;
+        carray_log "*FC:" t cs;
         ignore (f_ders dstate cs ds no_time_in_solver);
         set_color after_loggedcall;
-        carray_log "*FD:" t ds; flush stdout;
-        set_color black;
+        carray_log "*FD:" t ds
       end else ignore (f_ders dstate cs ds no_time_in_solver);
     in
 
     let g_main t cs rs =
       if !log_gcalls then begin
         set_color before_loggedcall;
-        carray_log "*ZC:" t cs; flush stdout;
+        carray_log "*ZC:" t cs;
         ignore (f_zero dstate cs rs no_time_in_solver);
         set_color after_loggedcall;
-        carray_log " ZR:" t rs; flush stdout;
-        set_color black;
+        carray_log " ZR:" t rs
       end else ignore (f_zero dstate cs rs no_time_in_solver);
     in
 
@@ -333,11 +330,10 @@ struct (* {{{ *)
       let o, t_horizon =
         if !log_dcalls then begin
           set_color before_loggedcall;
-          carray_log "*DC:" t cstates; flush stdout;
+          carray_log "*DC:" t cstates;
           let r = f_step dstate cstates ignore_der rin t in
           set_color after_loggedcall;
-          carray_log "*DR:" t cstates; flush stdout;
-          set_color black;
+          carray_log "*DR:" t cstates;
           r
         end else f_step dstate cstates ignore_der rin t
       in
