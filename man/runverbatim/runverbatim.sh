@@ -88,6 +88,7 @@ addopen() {
 	    openfiles=""
 	    for n in $openfilenums; do
 		setfilename of "$WITHOPEN" "$n"
+		# shellcheck disable=SC2154
 		openfiles="$openfiles ${INCLUDECMD} $of"
 	    done
 
@@ -124,8 +125,10 @@ compile() {
 
     # Generate the program (ifile) and output (ofile) filenames
     setfilename ifile "$FILENAME" "$num"
+    # shellcheck disable=SC2154
     ipath="$SUBDIR$ifile$EXT" 
     setfilename ofile "$PREFIX" "$num"
+    # shellcheck disable=SC2154
     opath="$SUBDIR$ofile.tex"
 
     # Check that the input file exists
@@ -202,17 +205,22 @@ dooption() {
     opt_name="$1"
     opt_value="$2"
 
-    if [ "$opt_name" != "locked" \
-	 -a $(expr "$locked" : ".* $opt_name .*") -ne 0 ]
-    then
-	printf \
-	    'info: ignoring locked option ''%s''\n' "$opt_name" >&2
-	return
-    fi
+    case "$opt_name" in
+	lock\ *)
+	    opt_name=${opt_name#lock }
+	    locked="$locked $opt_name "
+	    ;;
+	*)
+	    if [ "$(expr "$locked" : ".* $opt_name .*")" -ne 0 ]; then
+		printf \
+		    'info: %s: ignoring locked option ''%s''\n' \
+		    "$infile" "$opt_name" >&2
+		return
+	    fi
+	    ;;
+    esac
 
     case "$opt_name" in
-	lock)
-	    locked="$locked $opt_value ";;
 	subdir)
 	    SUBDIR="$opt_value" ;;
 	prefix)
@@ -294,7 +302,9 @@ readrvrb() {
 		;;
 
 	    *)
-		printf "bad %s: %s\n" "$infile" "$l" >&2
+		if [ -n "$l" ]; then
+		    printf "bad %s: %s\n" "$infile" "$l" >&2
+		fi
 		;;
 	esac
 	unset PAGENUM
