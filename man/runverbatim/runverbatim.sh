@@ -16,6 +16,9 @@
 SCRIPT=$(basename "$0")
 SUFFIX=.rvrb
 
+RED="[0;31m"
+BLACK="[0;0m"
+
 ##
 # Command-line
 
@@ -295,8 +298,8 @@ readrvrb() {
 		if [ "$n" = "subdir" ]; then
 		    existing=$(expr "$subdirs" : ".*::${SUBDIR}:\\([^:]*\\):.*")
 		    if [ -n "$existing" ]; then
-			printf "warning: %s: subdir=%s already used by %s!\n" \
-			    "$infile" "$SUBDIR" "$existing" >&2
+			printf "%swarning: %s: subdir=%s already used by %s!%s\n" \
+			    "$RED" "$infile" "$SUBDIR" "$existing" "$BLACK" >&2
 		    fi
 		fi
 		;;
