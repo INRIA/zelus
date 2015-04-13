@@ -23,6 +23,9 @@
 \usepackage{graphicx}
 \usepackage{epsf}
 \usepackage{amssymb}
+\usepackage{cleveref}
+
+\crefname{figure}{figure}{figures}
 
 \usepackage[printonlyused]{acronym}
 % Put macro definitions below. Then, in the text write
@@ -61,11 +64,6 @@
 \newcommand{\field}{\ensuremath{\mathit{field}}}
 \newcommand{\method}{\ensuremath{\mathit{method}}}
 
-\newcommand{\Refsec}[1]{Section~\ref{sec:#1}}
-\newcommand{\refsec}[1]{Section~\ref{sec:#1}}
-\newcommand{\refappendix}[1]{Appendix~\ref{appendix:#1}}
-\newcommand{\Reffig}[1]{Figure~\ref{fig:#1}}
-\newcommand{\reffig}[1]{Figure~\ref{fig:#1}}
 \newcommand{\rulename}[1]{{\small\sc ({#1})}}
 
 \newcommand{\Solve}[2]{\mathit{solve}({#1})({#2})}
@@ -518,22 +516,23 @@ sending us comments.
 
 % }-}1
 \chapter{Synchronous Programming} %{-{1
-\label{chapter:synchronous-programming}
+\label{chap:synchronous-programming}
 %HEVEA\cutdef[1]{section}
-The following two chapters are a tutorial introduction to \zelus. This
-chapter focuses on the synchronous kernel of the language, reminiscent
-of \lustre{} and \lucy. Every time possible, we shall point-out the
-differences with those two languages. \acp{ODE}, zero-crossings and
-the interaction with synchronous features are presented in
-Chapter~\ref{chapter:ode-programming}. Chapter~\ref{chapter:simulation-loop}
-explains the simulation engine.
 
-A good familiarity with general programming
-languages is assumed. Some familiarity with (strict or lazy) ML
+This chapter and the next one give a tutorial introduction to \zelus. This
+chapter focuses on the synchronous kernel of the language, which is 
+reminiscent of \lustre{} and \lucy.
+We shall sometimes compare \zelus{} with those two languages.
+The next chapter focuses on newer, hybrid aspects, like \acp{ODE},
+zero-crossings, and their interaction with the synchronous features.
+The simulation engine is described in \cref{chap:simulation-loop}.
+
+Familiarity with general programming languages is assumed.
+Some familiarity with (strict or lazy) ML
 languages and with existing synchronous data-flow languages like \lustre{} is
 helpful but not mandatory. Some references are given at the end of this document.
 
-For this tutorial, we suppose that programs are written in a file
+In this tutorial, we suppose that programs are written in a file called
 \verb-tutorial.zls-.% This file is available in the \zelus{} distribution.
 
 \section{The Core Synchronous Language}
@@ -542,9 +541,10 @@ For this tutorial, we suppose that programs are written in a file
 %aspect are considered later.
 
 \subsection{Point-wise Operations}
-The language is a first-order functional language. As in \lustre,
-every ground type or any scalar value imported from the host language
-\ocaml{} is implicitly lifted to signals. A signal is a
+
+\zelus{} is a first-order functional language. As in \lustre,
+every ground type or scalar value is imported from the host language
+(\ocaml{}) and implicitly lifted to signals. A signal is a
 \emph{sequence} or \emph{stream} of values, sequentially ordered in
 time, so that a value at an instant cannot be produced if all the
 values at previous instants have not been produced. This property
@@ -952,7 +952,7 @@ according to its previous value \emph{versus} defining the next value
 according to the current one --- is better than the other. Both are
 equivalent in the sense that one can be transformed into the
 other. This depend on the situation. Nonetheless, we shall see in
-Section~\ref{chapter:ode-programming} that restrictions apply on the
+\cref{chap:ode-programming} that restrictions apply on the
 use of the operators \texttt{next} and \texttt{last} when combining discrete-time and
 continuous-time dynamics.
 
@@ -2424,7 +2424,7 @@ programmer. The same short-cut is possible with the \verb-present- statement.
 
 % }-}1
 \chapter{Hybrid Systems Programming} %{-{1
-\label{chapter:ode-programming}
+\label{chap:ode-programming}
 
 We now see the main novelty of \zelus{} with respect to a
 synchronous language. It is possible to combine any of the
@@ -2488,7 +2488,7 @@ and the two classical variable step solvers \texttt{ode23} and
 
 \medskip Functions like \verb+heater+, \verb+sin_cos+ and
 \verb+integr+ are different from the function we have defined in
-Chapter~\ref{chapter:synchronous-programming}. They are identified
+\cref{chap:synchronous-programming}. They are identified
 with the special keyword \texttt{hybrid}. These are functions from
 continuous-time signals to continuous-time signals. They will need a
 special treatment for the integration with the solver. On the
@@ -2636,7 +2636,7 @@ let hybrid bouncing(x0,y0,x'0,y'0) = (x,y) where
 The \ac{ODE} defining \texttt{y'} is now reset every time \texttt{-.y}
 crosses zero.  At this precise instant, the initial value of \verb-y'-
 is \verb+-. loose *. last y'+. Exactly like in
-Chapter~\ref{chapter:synchronous-programming}, \texttt{last y'} is the
+\cref{chap:synchronous-programming}, \texttt{last y'} is the
 value of \texttt{y'} at the previous instant. But this notion of the
 previous instant for a continuous-time signal has to be
 clarified. Mathematically, at the instant of a reset, we need to
@@ -2850,7 +2850,7 @@ let hybrid ball_with_modes(x_0, y_0) = (x, y) where
 
 % }-}1
 \chapter{The Simulation Loop} %{-{1
-\label{chapter:simulation-loop}
+\label{chap:simulation-loop}
 
 This chapter explains the basic principles of the code generation of a \zelus{}
 program. This part is useful to understand how to link a \zelus{} program
@@ -2959,8 +2959,8 @@ asked to detect when they cross zero.
 
 This synchronous function has two modes: the discrete mode ($D$) gathers
 all computations that may change the discrete state or
-do side effects. The continuous mode ($C$) is where ODEs are solved. 
-It follows the cyclic execution scheme summarized in~\reffig{simalgo}.
+do side effects. The continuous mode ($C$) is where ODEs are solved. It 
+follows the cyclic execution scheme summarized in~\cref{fig:simalgo}.
 
 
 %\paragraph{Initialization}
