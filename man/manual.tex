@@ -1,4 +1,6 @@
+% vim:nojs:spelllang=en_us tw=76 sw=4 sts=4 fo+=awn fmr={-{,}-} et ts=8
 \documentclass[11pt,titlepage,twoside]{report}
+%{-{1 Packages
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{textcomp}
@@ -46,6 +48,9 @@
 \usetikzlibrary{positioning,chains,matrix,shapes.arrows,scopes,
                 shapes.misc,arrows,automata,calc,decorations.markings,
                 decorations.text}
+
+%}-}1
+%{-{1 Macros
 
 \newcommand{\cvode}{{\sc CVODE}}
 \newcommand{\ly}{\ensuremath{\mathit{ly}}}
@@ -278,8 +283,9 @@
 
 \newcommand{\Remark}{\medskip\noindent{\bf Remark: }}
 
+% }-}1
 \begin{document}
-
+%{-{1
 \pagestyle{empty}
 
 % we make a special title page for HeVeA
@@ -331,58 +337,73 @@
 \newcommand{\Left}{\mathit{left}}
 \newcommand{\Right}{\mathit{right}}
 
-\chapter*{Foreword}
+% }-}1
+\chapter*{Foreword} %{-{1
 
-This document describes \zelus, a synchronous language extended with
-\ac{ODE} to program systems that mix discrete-time and continuous-time
-behaviors.  The simplest example is a real-time software controller in
-closed loop with a model of a physical continuous-time environment
-defined by an \ac{ODE}. It is possible to write more interwined
-interactions between discrete and continuous-time, both for the controller or
-the physical plant: discrete or continuous-time PID controllers,
-hybrid automata with modes defined by \acp{ODE}, etc.
+\zelus{} is a synchronous language extended with
+\acp{ODE}.
+It is for programming systems that mix discrete-time and continuous-time
+behaviors, like, for instance, real-time control software executing in 
+closed loop with a model of its physical environment.
+More intricate interactions between discrete- and continuous-time behaviors 
+can be expressed, like, for instance, continuous-time PID controllers or 
+hybrid automata with modes defined by \acp{ODE}.
+%It is also possible to program more intricate interactions between discrete 
+%and continuous-time, both for the controller or
+%the physical plant: discrete or continuous-time PID controllers,
+%hybrid automata with modes defined by \acp{ODE}, etc.
 %With \zelus, the model of the software and the
 %physical environment can be written in the very same source.
-\zelus{} provides the expressiveness of a synchronous language with
-all their basic constructs --- difference and data-flow equations,
-hierarchical automata and the definition of stream functions --- in
-the style of \lustre~\cite{lustre:ieee91} and
-\lucy~\cite{lucy:iste07}. It is conservatively extended with \ac{ODE}
-to model continuous-time behaviors. The expressiveness of the language
-has been voluntarily constrained to statically ensure both
-determinism and the generation of loop-free sequential code that
-run in bounded time and space. Moreover, the target code used for the
-embedded implementation and for the simulation are the same.  When the
-source program embeds \acp{ODE}, the sequential code is paired with a
-numerical solver to approximate continous-time dynamics.
+\zelus{} provides basic synchronous language constructs---difference and 
+data-flow equations, hierarchical automata, and stream function 
+definitions---in the style of \lustre~\cite{lustre:ieee91} and
+\lucy~\cite{lucy:iste07}.
+The extension with \acp{ODE} for modeling continuous-time behaviors is 
+conservative.
+The expressiveness of the language is deliberately constrained to statically 
+ensure determinism and the generation of loop-free sequential code that runs 
+in bounded time and space. Moreover, code is generated identically for both 
+embedded targets and simulation. For source programs with \acp{ODE}, the 
+generated sequential code is paired with a numerical solver to approximate 
+the continuous-time dynamics.
 %
 %(type inference, causality and initialization analyses, support for freely 
 %mixing data-flow equations and automata).
-The main features of the langage 
-are:
+\zelus's main features are:
 \begin{flatitemize}
 \item
-The language is data-flow and \ac{SSA}: every name must have a single 
-definition in the source code at any instant. A program is a collection 
-of functions from signals to signals. A \emph{signal} is a function from time
+It is a data-flow language in \ac{SSA} form: every name has only a single 
+definition in the source code at any instant. A program is a collection of 
+functions from signals to signals. A \emph{signal} is a function from time
 to values. A set of signals is defined uniquely as
 the solution of a set of mutually recursive equations.
 \item
-  The separation between discrete-time and continuous-time signals and
-  systems is organised at the level of function definitions:
+The separation between discrete-time and continuous-time signals and
+systems is imposed at the level of function definitions:
   \begin{enumerate}
   \item
     A \emph{node} is a function from discrete-time signals to
-    discrete-time signals. A discrete-time signal is a sequence (or
-    \emph{stream}) of values like in other synchronous languages. A
-    node is executed on a sequence of instants.
-    %, i.e., enumerated with
-    %an integer value.
-    It may be
-    statefull, that is, its current output may depend on previous
-    inputs, or not and is produced instantaneously with the read of inputs.
-    In a node, time is logical, that is, no hypothesis is made on the time that elapses
-    between two successive instants.
+    discrete-time signals. A discrete-time signal is a sequence of values (a 
+    \emph{stream}) as in other synchronous languages.
+    A node is executed consecutively over the elements of a sequence of 
+    inputs to give a sequence of outputs.
+    Nodes have no other notion of time than this succession of instants.
+    In particular, there is no a~priori `distance' (time elapsed) between 
+    two instants.
+    Outputs are produced atomically with triggering inputs, that is, 
+    instantaneously in the same discrete instant.
+    They may depend on previous inputs; such nodes are termed 
+    \emph{stateful}.
+    %A node is executed on a sequence of instants.
+    %%, i.e., enumerated with
+    %%an integer value.
+    %Nodes may be stateful, that is, their outputs at an instant may depend 
+    %on previous inputs.
+    %It may be
+    %stateful, that is, its current output may depend on previous
+    %inputs, or not and is produced instantaneously with the read of inputs.
+    %In a node, time is logical, that is, no hypothesis is made on the time that elapses
+    %between two successive instants.
     % and treat signals as successions of values in a
     % sequence.% \zelus{} is a conservative extension of an existing
     % synchronous language.% Given the main function of the system, the
@@ -399,66 +420,70 @@ the solution of a set of mutually recursive equations.
     %~\footnote{$\forall n. t(i) = [\Left(i),\Right(i)]$ with
     %  $0 \leq \Left(0)$ and $\Right(i) \leq \Left(i+1)$}.
     A hybrid node is executed on this set of instants. Only hybrid nodes
-    can contain \acp{ODE} and the detection of zero-crossing events.
+    may contain \acp{ODE} and detect zero-crossing events.
   \end{enumerate}
 \item
 All
-discrete-time computations must be executed on a \emph{discrete clock}
-and this is statically enforced by the type system, with the following
-convention.
+discrete-time computations must be executed on a \emph{discrete clock}.
+This is statically enforced by the type system, following the convention:
 
 \begin{quote}
-A clock is termed \emph{discrete} if it has been declared so or if it is the 
-result of a zero-crossing or a sub-sampling of a discrete clock. Otherwise, it
-is termed \emph{continuous}.
+A clock is termed \emph{discrete} if it has been so declared or if it 
+results from the sub-sampling a discrete clock or a zero-crossing.
+Otherwise, it is termed \emph{continuous}.
 \end{quote}
 
-It is possible to reset the continuous variable defined by an \ac{ODE}
-on a discrete clock. A \emph{zero-crossing} occurs when a 
-continuous-time signal crosses zero from a negative value to a positive one 
-during integration. A \emph{timer} is a particular case of a zero-crossing
-event but it is implemented in a specific manner.
+It is possible to reset a continuous variable defined by an \ac{ODE}
+on a discrete clock.
+A \emph{zero-crossing} occurs when a continuous-time signal crosses zero 
+from a negative value to a positive one during integration.
+Conceptually, a \emph{timer} is a particular case of a zero-crossing event, 
+even if the actual implementation is more specific.
 
 \item
-  Basic types like integers, floatting-point numbers, booleans or
-  characters are those of the host language \ocaml.  Abstract types,
+  The basic types like integers, floating-point numbers, booleans, and
+  characters are lifted from the host language \ocaml.  Abstract types,
   product types, record types, and enumerated types can either be
-  defined directly or imported from the host language. Functions can
-  have a polymorphic type \emph{à la ML}. Structured values can be
-  accessed via pattern matching.
+  defined directly or imported from the host language. Functions may have 
+  polymorphic types as in \emph{ML}.
+  Structured values are accessed via pattern matching.
+
 \item
-The language allows the arbitrary composition of data-flow equations
-and hierarchical automata in the style of
-\lucy~\footnote{\url{http://www.di.ens.fr/~pouzet/lucid-synchrone/}}
+Data-flow equations may be composed arbitrarily with hierarchical automata 
+as in \lucy\footnote{\url{http://www.di.ens.fr/~pouzet/lucid-synchrone/}}
 and
-\scadesix.~\footnote{\url{http://www.esterel-technologies.com/products/scade-suite/}}
-The compiler ensures determinacy and the absence of infinite loops. Those
-hierarchical automata are internally rewritten into data-flow equations by
-the compiler.
+\scadesix.\footnote{\url{http://www.esterel-technologies.com/products/scade-suite/}}
+The compiler ensures determinacy and the absence of infinite loops.
+Hierarchical automata are internally rewritten into data-flow equations.
+
 \item
-The compiler is written in \ocaml{} and is structured as a series of
+The compiler is written in \ocaml{} as a series of
 source-to-source and traceable transformations that ultimately yield
-statically scheduled sequential code written in \ocaml.
-The results of intermediate steps can be written to output.
+statically scheduled sequential \ocaml code.
+The results of intermediate steps can be displayed.
 Continuous components are simulated using an off-the-shelf
-numerical solvers (here SUNDIALS
-CVODE~\footnote{\url{https://www.llnl.gov/casc/sundials/}}) and, currently
-two built-in basic solvers (based on Matlab's \texttt{ode23} and
-\texttt{ode45} solvers~\cite{ShampineGlaTho:ODEsMatlab:2003}).~\footnote{The
-  source-to-source translation of ODEs into synchronous data-flow
-equations is not done for the moment.}
+numerical solvers (SUNDIALS
+CVODE\footnote{\url{https://www.llnl.gov/casc/sundials/}}~\cite{sundials:2005})
+and, two built-in basic solvers (based on Matlab's \texttt{ode23} and
+\texttt{ode45} solvers~\cite{ShampineGlaTho:ODEsMatlab:2003}).
+%\footnote{The source-to-source translation of ODEs into synchronous data-flow
+%equations is not done for the moment.}
 \end{flatitemize}
 
-\zelus{} is a research prototype that implements a new way of
-defining a hybrid systems modeling language, by building it on
-synchronous languages principles. Its expressive power for modeling physics
-is limited to \acp{ODE} and not \acp{DAE} as
-\modelica~\footnote{\url{https://www.modelica.org}} does. Research
-papers on the design, semantics and implementation of \zelus{} are available at
-\ahrefurl{\url{http://zelus.di.ens.fr}}.
+\zelus{} is a research prototype that exhibits a new way of
+defining a hybrid systems modeling language based on
+the principles and techniques of synchronous languages.
+Its expressive power for modeling physics is limited to \acp{ODE}, unlike 
+\modelica\footnote{\url{https://www.modelica.org}} which is based on 
+\acp{DAE}.
+%Its expressive power for modeling physics
+%is limited to \acp{ODE} and not \acp{DAE} as
+%\modelica~\footnote{\url{https://www.modelica.org}} does.
+Research papers on the design, semantics and implementation of \zelus{} are 
+available at \ahrefurl{\url{http://zelus.di.ens.fr}}.
 
 \section*{Availability}
-The implementation is written in, and generates programs in, \ocaml, which 
+The implementation is written in, and generates programs in \ocaml, which 
 must be installed.
 \begin{center}
 \begin{tabular}{ll}
@@ -481,16 +506,18 @@ This software includes the \ocaml{} run-time system, which is
 copyrighted INRIA, 2015. 
 
 \section*{Thanks}
+
 This software is a research prototype that takes considerable time to 
-develop. If
-you find it useful, please cite it and send us comments. 
-Currently, the reference for citing \zelus{} is~\cite{lucy:hscc13}.
+develop.
+If you find it useful, please consider cite our work~\cite{lucy:hscc13} and 
+sending us comments.
 
 \cleardoublepage
 \part{The Z\'elus Language}
 \cleardoublepage
 
-\chapter{Synchronous Programming}
+% }-}1
+\chapter{Synchronous Programming} %{-{1
 \label{chapter:synchronous-programming}
 %HEVEA\cutdef[1]{section}
 The following two chapters are a tutorial introduction to \zelus. This
@@ -2395,7 +2422,8 @@ programmer. The same short-cut is possible with the \verb-present- statement.
 
 %HEVEA\cutend
 
-\chapter{Hybrid Systems Programming}
+% }-}1
+\chapter{Hybrid Systems Programming} %{-{1
 \label{chapter:ode-programming}
 
 We now see the main novelty of \zelus{} with respect to a
@@ -2820,7 +2848,8 @@ let hybrid ball_with_modes(x_0, y_0) = (x, y) where
       end
 \end{runverbatim}
 
-\chapter{The Simulation Loop}
+% }-}1
+\chapter{The Simulation Loop} %{-{1
 \label{chapter:simulation-loop}
 
 This chapter explains the basic principles of the code generation of a \zelus{}
@@ -3134,7 +3163,8 @@ the compiler produces four functions:
 \part{Reference manual}
 \label{reference-manual}
 \cleardoublepage
-\chapter{The language}
+% }-}1
+\chapter{The language} % {-{1
 
 %HEVEA\cutdef[1]{section}
 
@@ -3987,7 +4017,8 @@ value is automatically lifted to the stream level in the following way.
   applied point-wisely to its argument.
 \end{itemize}
 
-\chapter{{\tt zeluc} - The Compiler}
+% }-}1
+\chapter{{\tt zeluc} - The Compiler} % {-{1
 This part describes how to transform \zelus{} programs into \ocaml{}
 programs. This is achieved by the command {\tt zeluc} which can be passed
 a sequence of options and files to compile.
@@ -4056,6 +4087,7 @@ distribution and manual at \url{http://zelus.di.ens.fr}
 {\tt /usr/local/lib/zeluc} & the standard library
 \end{tabular}
 
+% }-}1
 \bibliographystyle{plain}
 \bibliography{zelus}
 
