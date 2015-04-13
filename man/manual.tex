@@ -15,6 +15,7 @@
             includecmd={},
            ]{runverbatim}
 \fvset{xleftmargin=5mm}
+\newcommand{\zls}[1]{\texttt{#1}}
 
 \usepackage{a4wide}
 \usepackage{hevea}
@@ -507,16 +508,15 @@ copyrighted INRIA, 2015.
 
 This software is a research prototype that takes considerable time to 
 develop.
-If you find it useful, please consider cite our work~\cite{lucy:hscc13} and 
-sending us comments.
+If you find it useful, please consider citing our work~\cite{lucy:hscc13} 
+and sending us comments.
 
 \cleardoublepage
 \part{The Z\'elus Language}
 \cleardoublepage
 
 % }-}1
-\chapter{Synchronous Programming} %{-{1
-\label{chap:synchronous-programming}
+\chapter{Synchronous Programming}\label{chap:sync-programming} %{-{1
 %HEVEA\cutdef[1]{section}
 
 This chapter and the next one give a tutorial introduction to \zelus. This
@@ -535,87 +535,96 @@ helpful but not mandatory. Some references are given at the end of this document
 In this tutorial, we suppose that programs are written in a file called
 \verb-tutorial.zls-.% This file is available in the \zelus{} distribution.
 
-\section{The Core Synchronous Language}
+\section{The Core Synchronous Language} %{-{2
 %We start with the synchronous part of the language. \acp{ODE} and all 
 %continuous
 %aspect are considered later.
 
-\subsection{Point-wise Operations}
+\subsection{Point-wise Operations} %{-{3
 
 \zelus{} is a first-order functional language. As in \lustre,
-every ground type or scalar value is imported from the host language
+every ground type or scalar value is imported from a host language
 (\ocaml{}) and implicitly lifted to signals. A signal is a
-\emph{sequence} or \emph{stream} of values, sequentially ordered in
-time, so that a value at an instant cannot be produced if all the
-values at previous instants have not been produced. This property
-models \emph{causality}. Thus:
+\emph{sequence} or \emph{stream} of values ordered in time:
+a value at an instant can only be produced after the values at all previous 
+instants have been produced. This property
+models \emph{causality}. In particular,
 \begin{itemize}
 \item \verb-int- stands for the type of streams of integers,
-\item \verb-1- stands for the  constant stream of values $1$,
-\item \verb-+- adds point-wisely its two input streams. It can be seen
-  as an adder circuit, in the same way, \verb-&- can be seen as an
-  ``and'' gate. \\
+\item \verb-1- stands for the constant stream of $1$s,
+\item \verb-+- stands for the pointwise addition operator over two input 
+streams. It can be seen as an adder circuit just as \verb-&- can be seen as an
+  ``and'' gate.
 \end{itemize}
-Program executions can be represented as {\em chronograms}, showing
-the sequence of values taken by streams during the execution. The
+Program executions can be represented as \emph{chronograms} showing the 
+sequences of values taken by streams. The
 example below shows five streams, one per line. The first line shows
-the value of a stream {\tt c}, which has the value $t$ ({\em true}) at the
-first instant, $f$ ({\em false}) at the second one, and $t$ at the
-third. The notation \dots indicates that the stream has more values
-(it is infinite), not represented here. Similarly, the following lines
-define {\tt x} and {\tt y}. The fourth line define a stream obtained
-by adding {\tt x} and {\tt y}, addition is done point-wisely.
+the value of a stream \zls{c}, which has the value \zls{t} ({\em true}) at 
+the first instant, \zls{f} ({\em false}) at the second one, and \zls{t} at 
+the
+third. The `\dots' indicate that the stream has infinitely more values that 
+are not shown. The next two lines define \zls{x} and \zls{y}. The fourth 
+line defines a stream obtained
+by the pointwise addition of \zls{x} and \zls{y}.
+The expression in the fifth line takes the current value of either \zls{x} 
+or \zls{y} according to the current value of \zls{c}.
 
 \begin{chrono}{c|cccc}
 \hline
-\tt c & $t$ & $f$ & $t$ & \dots \\ \hline
-\tt x & $x_0$ & $x_1$ & $x_2$ & \dots \\ \hline
-\tt y & $y_0$ & $y_1$ & $y_2$ & \dots \\ \hline 
-\tt x+y & $x_0+y_0$ & $x_1+y_1$ & $x_2+y_2$ & \dots \\ \hline 
-\tt if c then x else y &  $x_0$ & $y_1$ & $x_2$ & \dots \\ \hline
+\zls{c} & $t$ & $f$ & $t$ & $\cdots$ \\ \hline
+\zls{x} & $x_0$ & $x_1$ & $x_2$ & $\cdots$ \\ \hline
+\zls{y} & $y_0$ & $y_1$ & $y_2$ & $\cdots$ \\ \hline
+\zls{x+y} & $x_0+y_0$ & $x_1+y_1$ & $x_2+y_2$ & $\cdots$ \\
+\hline \zls{if c then x else y} &  $x_0$ & $y_1$ & $x_2$ & $\cdots$ \\ 
+\hline
 \end{chrono}
 
-\subsection{Delays}
+% }-}3
+\subsection{Delays} %{-{3
 
-{\tt fby} is a delay operator. The expression {\tt x fby y}, which can
-be read as ``{\tt x} {\em followed by} {\tt y}'' takes the first value
-of {\tt x} at the first instant, then takes the previous value of {\tt
-  y}. In other words, it delays {\tt y} by one instant, and is
-initialized by {\tt x}. This operator is borrowed from the language
-\lucid~\cite{lucida}.
+The delay operator is denoted \zls{fby}.
+The expression \zls{x fby y}, which is read as ``\zls{x} {\em followed by} 
+\zls{y}'' takes the first value
+of \zls{x} at the first instant and the previous value of \zls{y} at all 
+instants thereafter. In other words, it delays \zls{y} by one instant, and 
+is initialized by \zls{x}.
+This operator originated in the language \lucid~\cite{lucida}.
 \begin{chrono}{c|cccc}
 \hline
-\tt x & $x_0$ & $x_1$ & $x_2$ & \dots \\ \hline
-\tt y & $y_0$ & $y_1$ & $y_2$ & \dots \\ \hline 
-\tt x fby y &  $x_0$ & $y_0$ & $y_1$ & \dots \\ \hline
+\zls{x} & $x_0$ & $x_1$ & $x_2$ & $\cdots$ \\ \hline
+\zls{y} & $y_0$ & $y_1$ & $y_2$ & $\cdots$ \\ \hline
+\zls{x fby y} &  $x_0$ & $y_0$ & $y_1$ & $\cdots$ \\ \hline
 \end{chrono}
-It is often needed to separate the delay from the initialization. This
-is done using the delay operator {\tt pre}, and the initialization
-operator {\tt ->}. {\tt pre x} delays its argument {\tt x}, and has an
-unspecified value (denoted here by {\em nil}) at the first
-instant. {\tt x -> y} takes the first value of x at the first instant,
-then the current value of y. The expression {\tt x -> (pre y)} is
-equivalent to {\tt x fby y}.
+As it is often useful to separate a delay from its initialization, there is 
+an operator \zls{pre x} that delays its argument \zls{x} and has an
+unspecified value (denoted here by {\em nil}) at the first instant.
+The complementary initialization operator  \zls{x -> y} takes the first 
+value of \zls{x} at the first instant, and the current value of \zls{y} 
+thereafter.
+The expression \zls{x -> (pre y)} is equivalent to \zls{x fby y}.
 \begin{chrono}{c|cccc}
 \hline
-\tt x & $x_0$ & $x_1$ & $x_2$ & \dots \\ \hline
-\tt y & $y_0$ & $y_1$ & $y_2$ & \dots \\ \hline 
-\tt pre x &  $nil$ & $x_0$ & $x_1$ & \dots \\ \hline 
-\tt x -> y &  $x_0$ & $y_1$ & $y_2$ & \dots \\ \hline
+\zls{x} & $x_0$ & $x_1$ & $x_2$ & $\cdots$ \\ \hline
+\zls{y} & $y_0$ & $y_1$ & $y_2$ & $\cdots$ \\ \hline
+\zls{pre x} &  $nil$ & $x_0$ & $x_1$ & $\cdots$ \\ \hline
+\zls{x -> y} &  $x_0$ & $y_1$ & $y_2$ & $\cdots$ \\ \hline
 \end{chrono}
-The {\em initialization check} made by the compiler checks that the
+The compiler performs an {\em initialization check} to ensure that the
 behavior of a program never depends on the value {\em nil}. See
-section~\ref{initialisation-check} for details.
+\cref{initialisation-check} for details.
 
-\medskip\noindent{\bf Warning:} A common error with the initialization
-operator is to use it for defining the first two values of a
-stream. This does not work, since \verb+x -> y -> z+ =
-\verb+x -> z+. One should instead write \verb-x fby y fby z- or,
-\verb+x -> pre (y -> pre z)+. E.g., the stream which starts with value
-$1$ and is followed by $2$ and $3$ forever is written: \verb-1 fby 2 fby 3-
-or \verb+1 -> pre(2 -> pre(3))+ or \verb+1 -> pre(2 -> 3)+.
+\medskip\noindent{\bf Warning:} A common error is to try to use the 
+initialization operator to define the first two values of a
+stream. This does not work, since \zls{x -> y -> z} =
+\zls{x -> z}. One should instead write either \zls{x fby y fby z} or
+\zls{x -> pre (y -> pre z)}.
+For example, the stream which starts with a value
+$1$, followed by a $2$, and then $3$ forever is written \zls{1 fby 2 fby 3}
+or \mbox{\zls{1 -> pre(2 -> pre(3))}} or \zls{1 -> pre(2 -> 3)}.
 
-\subsection{Global declarations}
+% }-}3
+\subsection{Global declarations} %{-{3
+
 A program is made of a sequence of declarations of global
 values. \verb-let- defines non recursive global values. These global values may
 be constant or functions. For example:
@@ -638,9 +647,11 @@ Trying to compile this program, we get the following answer:
 \runverbatimerr{}
 The right part of a global \verb-let- declaration cannot contain any
 delay operations. Definitions containing delays can only be under the
-definitions of a {\tt node} definition (see~\ref{sec:sequential-functions}).
+definitions of a {\tt node} definition 
+(see~\cref{sec:sequential-functions}).
 
-\subsection{Combinatorial Functions}
+% }-}3
+\subsection{Combinatorial Functions} %{-{3
 Signal functions can be {\em combinatorial} or not.
 A function is combinatorial when its output at
 instant $n$ depends only on its input at the same instant $n$. Combinatorial
@@ -664,7 +675,7 @@ detailled further.
 
 Function definition can contain local declarations, introduced using
 either the {\tt where}, or the {\tt let} notation
-(see~\ref{sec:local-defin-mutu}). For example the average function can
+(see~\cref{sec:local-defin-mutu}). For example the average function can
 be written in two (equivalent) manners:
 \begin{runverbatim}
 let average (x,y) = o where o = (x + y) / 2
@@ -703,7 +714,7 @@ let full_add(a, b, c) = (s, co) where
 
 A full adder can be described more efficiently as a composition
 of two half adders. The graphical description is given in
-figure~\ref{half-adder} and it corresponds to the following code:
+figure~\cref{half-adder} and it corresponds to the following code:
 \begin{runverbatim}[continue,withresult]
 let half_add(a,b) = (s, co) where
    rec s = xor (a, b)
@@ -727,8 +738,8 @@ fun half_add(a,b) = (s, co) where
   and co = a & b
 \end{runverbatim}
 
-
-\subsection{Stateful Functions}
+% }-}3
+\subsection{Stateful Functions} %{-{3
 \label{sec:sequential-functions}
 Stateful or \emph{sequential} functions are
 such that their output
@@ -840,7 +851,8 @@ node integr (x0, x') = x where
 % let from = fun n => nat where rec nat = n -> pre nat + 1
 % \end{runverbatim}
 
-\subsection{Local Definitions and Mutually Recursive Definition}
+% }-}3
+\subsection{Local Definitions and Mutually Recursive Definition} %{-{3
 \label{sec:local-defin-mutu}
 Variables may be defined locally with a \verb-let/in- or
 \verb-let rec/in- and there is no special restriction on the
@@ -894,8 +906,8 @@ let node sin_cos theta = (sin, cos) where
   and cos = integr(1.0, -. theta *. sin)
 \end{runverbatim}
 
-
-\subsection{Shared Memory and Initialization}
+% }-}3
+\subsection{Shared Memory and Initialization} %{-{3
 The language provides an alternative way to the use of the delay
 \verb-pre- in order to refer to the previous value of a stream. If
 \verb-o- is a stream variable defined by some equation, \verb-last o-
@@ -960,7 +972,9 @@ continuous-time dynamics.
 operations \verb-last-, \verb+->+, \verb-fby-, \verb+pre+, \verb+init+
 and \verb+next+ into a minimal subset.
 
-\subsection{Causality check}
+% }-}3
+\subsection{Causality check} %{-{3
+
 \label{causality-check}
 Recursively defined values must not contain any {\em instantaneous} or
 {\em causality} loops in order to be able to generate statically schedulable
@@ -1019,7 +1033,8 @@ function which is simply called.\footnote{Modular code generation
   are inlined, according to the dependence information
   computed by the causality analysis.}
 
-\subsection{Initialization check}
+%}-}3
+\subsection{Initialization check} %{-{3
 \label{initialisation-check}
 The compiler checks that every delay operator is initialized. For
 example:
@@ -1034,10 +1049,11 @@ practice, it rejects expressions like \verb-pre (pre e)-, that is,
 un-initialized expressions cannot be used as an argument of a delay
 and must be first initialized using \verb+->+.
 
+% }-}3
+% }-}2
+\section{Data-types, Pattern matching} %{-{2
 
-\section{Data-types, Pattern matching}
-
-\subsection{Type definitions}
+\subsection{Type definitions} %{-{3
 Product types, record types and enumerated type may be defined with a
 notation close to that of \ocaml. Nonetheless, no constructors with
 arguments are allowed for the moment. It is nonetheless possible to
@@ -1055,7 +1071,8 @@ let center c = c.center
 let radius c = c.radius
 \end{runverbatim}
   
-\subsection{Pattern matching}
+% }-}3
+\subsection{Pattern matching} %{-{3
 The language provides means for doing pattern matching over streams
 with a \verb-match/with- construction {\em \`a la} \ocaml.
 
@@ -1160,7 +1177,8 @@ let node two (m, i) = o where
 making clear that \verb-last o- stands for the previous defined value
 of \verb-o-.
 
-\subsection{The Difference between Pre and Last}
+% }-}3
+\subsection{The Difference between Pre and Last} %{-{3
 Whereas \verb-last o- may seem
 to be just another way to refer to the previous value of a stream like
 \verb-pre o- does, there is a fundamental difference between the
@@ -1237,7 +1255,9 @@ two branches. Every branch defines its own clock, one denoting the
 instants where \verb-m = Up- and the other denoting the instant where
 \verb-m = Down-.
 
-\subsection{Local Definitions}
+% }-}3
+\subsection{Local Definitions} %{-{3
+
 It is possible to define variables which stay local to a branch. For
 example:
 
@@ -1262,7 +1282,9 @@ In the first handler of the \texttt{match/with} statement, \texttt{c} is
 declared to be local to the handler. The compiler checks that a definition for
 \texttt{c} is given. Several variables can be declared local by writing
 \texttt{local c1,..., cn in ...}.
-\subsection{Implicit Completion of Shared Variables}
+
+% }-}3
+\subsection{Implicit Completion of Shared Variables} %{-{3
 Finally, note that the branches of a pattern-matching constraint do
 not have to contain a definition for all the shared variables. A
 shared variable is implicitly completed as if one has written
@@ -1407,7 +1429,9 @@ $c$ indicating when the signal is present and (2) a value present when $c$ is
 true.\footnote{For \ocaml{} programmers, a signals correspond to a value
 of an option type.}
  
-\subsection{Signal Emission}
+% }-}3
+\subsection{Signal Emission} %{-{3
+
 It is also possible to define the value of a signal at certain instant only,
 that is, not to implictly keep the previous value as we illustrated with
 shared variables. % As opposed to shared variables, it is now possible to give a
@@ -1430,7 +1454,8 @@ let node within (min, max, x) = o where
   and present c -> do o = () done
 \end{runverbatim}
 
-\subsection{Testing the Presence of a Signal and Accessing its Value}
+% }-}3
+\subsection{Testing the Presence of a Signal and Accessing its Value} %{-{3
 It is possible to test for the presence of a signal expression $e$ by
 writing the boolean expression $? e$. The following program, for
 example, counts the number of instants where \verb-x- is emitted.
@@ -1561,7 +1586,8 @@ state by {\em reset} or by {\em history}. One important feature of
 these state machines is that {\em only one set of equations is
   executed during one reaction}.
 
-\subsection{Strong Preemption}
+% }-}3
+\subsection{Strong Preemption} %{-{3
 Here is a two state automaton illustrating strong preemption. The
 function \verb-expect- awaits \verb-x- to be true and emits
 \verb-true- for the remaining instants.
@@ -1587,7 +1613,9 @@ instant. Thus, the following chronogram hold:
 \tt expect x           & \tt false & \tt false & \tt true & \tt true & \tt true &  \tt true & \dots  \\ \hline
 \end{chrono}
 
-\subsection{Weak Preemption}
+% }-}3
+\subsection{Weak Preemption} %{-{3
+
 On the contrary, the following function emits \verb-false- at the
 instant where \verb-x- is true and \verb-true- for the remaining
 instants, thus corresponding to regular {\em Moore automata}.
@@ -1633,7 +1661,7 @@ let node correct on_off =
 weak_switch on_off = strong_switch (false -> pre on_off)
 \end{runverbatim}
 The graphical representation of these two automata is given in
-figure~\ref{switch-figure}.
+figure~\cref{switch-figure}.
 
 \begin{figure}
 %BEGIN IMAGE
@@ -1659,7 +1687,8 @@ figure~\ref{switch-figure}.
 %Compared to the previous version, state \verb-True- can be strongly
 %preempted when some stop condition \verb-stop- is true.
 
-\subsection{Parameterized State Machines}
+% }-}3
+\subsection{Parameterized State Machines} %{-{3
 In the examples we have considered so far, an automaton is made of a
 finite set of states and transitions. It is possible to define more
 general state machines containing parameterized states, that is,
@@ -1706,7 +1735,9 @@ let node count_in_an_automaton x = o where
 This automaton simulates an infinite state machine with states
 \verb-Zero-, \verb-Plus(1)-, \verb-Plus(2)-, etc.
 
-\subsection{ABRO and Modular Reseting}
+% }-}3
+\subsection{ABRO and Modular Reseting} %{-{3
+
 The ABRO example is due to G\'erard Berry~\cite{esterel:primer99}. It
 highlight the expressive power of parallel composition and preemption
 in Esterel. The specification is the following:
@@ -1838,7 +1869,9 @@ Does \texttt{after(n, second)} means \texttt{n} real-time seconds? No, for two r
 In a discrete-time program as we wrote in this chapter, time is not absolute but
 logical and local.
   
-\subsection{Local Definitions in a State}
+% }-}3
+\subsection{Local Definitions in a State} %{-{3
+
 It is possible to define names which are local to a state. These names
 can only be used inside the body of the state and may be used in weak
 conditions only.
@@ -1934,7 +1967,10 @@ let node consume (max, n, v) = status where
 \end{runverbatim}
 The compiler emits the message:
 \runverbatimerr{}
-\subsection{Communication between States and Shared Memory}
+
+% }-}3
+\subsection{Communication between States and Shared Memory} %{-{3
+
 In the previous examples, there is no communication between values
 computed in each state. Consider a simple system made of two running
 modes as seen previously. In the \verb-Up- mode, the system increases
@@ -1979,7 +2015,8 @@ An execution diagram is given below:
 \hline
 \end{chrono}
 
-\subsection{The Particular Role of the Initial State}
+% }-}3
+\subsection{The Particular Role of the Initial State} %{-{3
 The initial state can be used for defining some variables whose value
 can then be sustained in remaining states. In that case, their last
 value is considered to be defined. Moreover, it becomes possible not
@@ -2110,7 +2147,8 @@ Finally, \verb-o- do not have to be defined in all the states. In that
 case, it keeps its previous value, that is, an equation
 \verb-o = last o- is implicitly added.
 
-\subsection{Resume a Local State}
+% }-}3
+\subsection{Resume a Local State} %{-{3
 By default, when entering in a state, every computation in the state
 is reseted. We also provides some means to resume the internal memory
 of a state (this is called {\em enter by history} in UML diagrams).
@@ -2150,7 +2188,8 @@ let node time_sharing (c, i) = (x,y) where
       end
 \end{runverbatim}
 
-\subsection{Actions on Transitions}
+% }-{3
+\subsection{Actions on Transitions} %{-{3
 
 It is possible to do an action on a transition. We illustrate on the
 programming of a mouse controller whose specification is the following:
@@ -2255,7 +2294,8 @@ between the \texttt{do/until} or \texttt{do/unless}.
 % instant.
 
 
-\subsection{State Machines and Signals}
+% }-}3
+\subsection{State Machines and Signals} %{-{3
 In the automata we have considered so far, conditions on transitions
 are boolean expressions. The language provides a more general
 mechanism allowing to test (and access) signals on transitions.
@@ -2290,8 +2330,8 @@ the output of the system: \verb-o- can be \verb-Simple-, \verb-Double-
 or absent. In the previous version, a fourth case corresponding to the
 boolean value \verb-simple & double- was possible, even though it is meaningless.
 
-
-\subsection{Pattern Matching over Signals}
+%}-}3
+\subsection{Pattern Matching over Signals} %{-{3
 Now, we must consider how signals are accessed. We generalize
 conditions to be signal patterns as provided by the \verb-present-
 statement.
@@ -2363,7 +2403,9 @@ let node controller (click, top) = e where
   end
 \end{runverbatim}
 
-\subsection{Initializing the Initial State}
+% }-}3
+\subsection{Initializing the Initial State} %{-{3
+
 It is possible to initialize the parameter of the initial state by adding
 an initialization to the automaton. E.g., the following two state automaton
 starts in state \texttt{On(incr)} with \texttt{incr} initialized with the first
@@ -2422,9 +2464,11 @@ programmer. The same short-cut is possible with the \verb-present- statement.
 
 %HEVEA\cutend
 
-% }-}1
-\chapter{Hybrid Systems Programming} %{-{1
-\label{chap:ode-programming}
+%}-}3
+%}-}2
+%}-}1
+\chapter{Hybrid Systems Programming}\label{chap:ode-programming} %{-{1
+%{-{2
 
 We now see the main novelty of \zelus{} with respect to a
 synchronous language. It is possible to combine any of the
@@ -2443,7 +2487,7 @@ of a boiler. The evolution of the temperature $t$ is defined by the following
 where $g_0$ and $g_1$ are two constant values.
 $t_0$ is the initial temperature. Instead
 of choosing an explicit integration scheme as we did in
-paragraph~\ref{causality-check}, we write:
+paragraph~\cref{causality-check}, we write:
 
 \begin{runverbatim}[withresult]
 let hybrid heater(t0, g0, g1) = t where
@@ -2451,7 +2495,7 @@ let hybrid heater(t0, g0, g1) = t where
 \end{runverbatim}
 
 The sinus and cosinus signals, whose stream approximation was given in
-paragraph~\ref{sec:local-defin-mutu} are now defined this way:
+paragraph~\cref{sec:local-defin-mutu} are now defined this way:
 \begin{runverbatim}[withresult]
 let hybrid sin_cos theta = (sin, cos) where
   rec der sin = theta *. cos init 0.0
@@ -2478,7 +2522,6 @@ to simulate the whole using an external solver and possibly replace some of the
 %Still, when needed, the
 %programmer can mix stream equations with \acp{ODE}.
 
-
 \Remark The compiler generates sequential code so that \acp{ODE} are
 approximated by a numerical solver. The current version of \zelus{}
 provides an interface for SUNDIALS
@@ -2488,7 +2531,7 @@ and the two classical variable step solvers \texttt{ode23} and
 
 \medskip Functions like \verb+heater+, \verb+sin_cos+ and
 \verb+integr+ are different from the function we have defined in
-\cref{chap:synchronous-programming}. They are identified
+\cref{chap:sync-programming}. They are identified
 with the special keyword \texttt{hybrid}. These are functions from
 continuous-time signals to continuous-time signals. They will need a
 special treatment for the integration with the solver. On the
@@ -2518,7 +2561,10 @@ let node disc_pi(kp, ki, error) = cmd where
   rec cmd = kp *. error +. ki *. disc_integr(0.0, error)
 \end{runverbatim}
 
-\section{Communication betwen Discrete/Continuous-time Signals}
+% }-}2
+\section{Communication betwen Discrete/Continuous-time Signals} %{-{2
+%{-{3
+
 The language forbids the arbitrary mix of discrete logical time and
 continuous-time signals and systems. The intuition can be illustrated
 on the following two simple programs:
@@ -2605,7 +2651,9 @@ let hybrid good(tick) = o where
 \texttt{tick} is of type \texttt{zero} which is the type of
 \emph{zero-crossing} events.
 
-\subsection{Zero-crossing Events}
+% }-}3
+\subsection{Zero-crossing Events} %{-{3
+
 A zero-crossing event is produced by the operator \texttt{up(x)}
 which detects that a signal \texttt{x} goes from a negative value to a
 positive value during integration. Such events can also be used
@@ -2614,7 +2662,8 @@ bouncing ball.
 
 Consider a ball with initial position $(x_0, y_0)$ and initial speed
 $(x'_0, y'_0)$. Every time it hits the ground, it bounces but looses
-20\% of its speed. The trajectory is depicted in Figure~\ref{fig:bouncing-ball}.
+20\% of its speed. The trajectory is depicted in 
+Figure~\cref{fig:bouncing-ball}.
 
 \begin{figure}
   \Marc{Tim: tu voudrais bien ajouter une image ?}
@@ -2636,7 +2685,7 @@ let hybrid bouncing(x0,y0,x'0,y'0) = (x,y) where
 The \ac{ODE} defining \texttt{y'} is now reset every time \texttt{-.y}
 crosses zero.  At this precise instant, the initial value of \verb-y'-
 is \verb+-. loose *. last y'+. Exactly like in
-\cref{chap:synchronous-programming}, \texttt{last y'} is the
+\cref{chap:sync-programming}, \texttt{last y'} is the
 value of \texttt{y'} at the previous instant. But this notion of the
 previous instant for a continuous-time signal has to be
 clarified. Mathematically, at the instant of a reset, we need to
@@ -2676,7 +2725,9 @@ Every time \texttt{last x -. 1.0} crosses zero from a negative to positive value
 \texttt{x} is reset to zero. Note also the need to use \texttt{last} to break
 a causality cycle.
 
-\subsection{Periodic Timers}
+% }-}3
+\subsection{Periodic Timers} %{-{3
+
 The language provides a particular form of zero-crossings to model
 timers. A timer with phase \texttt{phase} and period \texttt{period} generates
 an event at instant $t = \mathtt{phase} + n \cdot \mathtt{period}$ with
@@ -2698,7 +2749,9 @@ but by an dedicated (and far more efficient) mechanism. At every discrete transi
 the minimal value of all timers is computed and defines the next horizon for the
 integration. No root-finding is used.
 
-\subsection{Hierarchical Automata and ODEs}
+% }-}3
+\subsection{Hierarchical Automata and ODEs} %{-{3
+
 We now illustrate the mix of \acp{ODE} with hierarchical automata. We take
 the example of a hysteresis controller for a heater.  Consider first
 the dynamics of a heater. It has two modes. When \texttt{active} is true,
@@ -2714,7 +2767,7 @@ occurs. This property is ensured by typing.
 
 % \subsection{A Ball Bouncing on a Staircase}
 % We illustrate them on the classical example of a falling bouncing ball on
-% a staircase as illustrated in Figure~\ref{bouncing-ball-staircase}.
+% a staircase as illustrated in Figure~\cref{bouncing-ball-staircase}.
 
 % \Marc{Ajouter l'image de la page web.}
 
@@ -2786,7 +2839,9 @@ a zero-crossing occurs.
 %   end
 % \end{runverbatim}
 
-\subsection{Hierarchial Hybrid Automata}
+%}-}3
+\subsection{Hierarchical Hybrid Automata} %{-{3
+
 Hierarchical automata can be mixed with ODEs. These automata are a
 particular case of the \emph{hybrid automata} of Maler, Manna and
 Pnueli~\cite{MalerMannaPnueli:hybrid92}. Nonetheless, we restrict them
@@ -2848,9 +2903,10 @@ let hybrid ball_with_modes(x_0, y_0) = (x, y) where
       end
 \end{runverbatim}
 
-% }-}1
-\chapter{The Simulation Loop} %{-{1
-\label{chap:simulation-loop}
+%}-}3
+%}-}2
+%}-}1
+\chapter{The Simulation Loop}\label{chap:simulation-loop} %{-{1
 
 This chapter explains the basic principles of the code generation of a \zelus{}
 program. This part is useful to understand how to link a \zelus{} program
@@ -3494,7 +3550,7 @@ construction itself.
 \subsection{Operators}
 The operators written \nterm{infix-op} in the grammar can appear in
 infix position (between two expressions). The operators written
-\nterm{prefix-op} in the grammar (section~\ref{expressions} can appear
+\nterm{prefix-op} in the grammar (\cref{expressions}) can appear
 in prefix position (in front of an expression).
 
 Classical operators provided by \ocaml\ (from the {\tt Pervasives}
@@ -3556,7 +3612,7 @@ of a function \nterm{value-path} to the expression \nterm{simple-expr}.
 The constructions \verb-reset-, \verb-match/with-, \verb-reset- and
 \verb-automaton- are control-structures which combine equations and
 thus belong to the syntactic class of definitions (see
-section~\ref{definitions}).
+\cref{definitions}).
 
 A derived form belonging to the syntactic class of expressions is also
 provided. The derived form is useful for textual programming whereas
