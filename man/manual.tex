@@ -14,8 +14,11 @@
             lastflags={-i},
             includecmd={},
            ]{runverbatim}
-\fvset{xleftmargin=5mm}
+\fvset{xleftmargin=3mm}
+\runverbatimsetup{errstyle={formatcom=\small}}
+
 \newcommand{\zls}[1]{\texttt{#1}}
+\newcommand{\zlsmsg}[1]{\texttt{#1}}
 
 \usepackage{a4wide}
 \usepackage{hevea}
@@ -274,7 +277,7 @@
 %   \end{minipage} \end{tabular}\end{flushleft}}
 
 \newenvironment{sample}
-  {\begin{flushright}\begin{minipage}[t]{15cm}\begin{alltt}}
+  {\begin{flushright}\begin{minipage}[t]{15.3cm}\begin{alltt}\small}
   {\end{alltt}\end{minipage}\end{flushright}}
 
 \newcommand{\shell}[1]{{\em aneto.local: #1}}
@@ -623,63 +626,70 @@ $1$, followed by a $2$, and then $3$ forever is written \zls{1 fby 2 fby 3}
 or \mbox{\zls{1 -> pre(2 -> pre(3))}} or \zls{1 -> pre(2 -> 3)}.
 
 % }-}3
-\subsection{Global declarations} %{-{3
+\subsection{Global Declarations} %{-{3
 
-A program is made of a sequence of declarations of global
-values. \verb-let- defines non recursive global values. These global values may
-be constant or functions. For example:
+A program comprises a sequence of declarations of global
+values. The keyword \zls{let} defines non recursive global values which may
+be either constants or functions. For example:
 \begin{runverbatim}
 let dt = 0.001
 let g = 9.81
 \end{runverbatim}
-These declarations define two infinite constant streams \verb-dt- and
-\verb-g-. Once typed, the compiler displays their type using the option {\tt -i}:
+These declarations define two constant streams \zls{dt} and
+\zls{g}.
+Given the option \texttt{-i}, the compiler displays the types inferred for 
+each declaration:
 \begin{sample}\runverbatimcmd\end{sample}
 \runverbatimmsg{}
-For each declaration, we get the inferred type.
-Only constant values can be defined globally, thus rejecting the
-following program:
+Only constant values can be defined globally.
+The following declaration is rejected,
 \begin{runverbatim}[fail]
 let first = true -> false
 \end{runverbatim}
-Trying to compile this program, we get the following answer:
+with the message:
 \begin{sample}\runverbatimcmd\end{sample}
 \runverbatimerr{}
-The right part of a global \verb-let- declaration cannot contain any
-delay operations. Definitions containing delays can only be under the
-definitions of a {\tt node} definition 
-(see~\cref{sec:sequential-functions}).
+The right-hand side of a global \zls{let} declaration may not contain delay 
+operations. Definitions containing delays require the introduction of state.
+They may only be made within the \zls{node} definition described 
+in~\cref{sec:sequential-functions}.
 
 % }-}3
 \subsection{Combinatorial Functions} %{-{3
-Signal functions can be {\em combinatorial} or not.
-A function is combinatorial when its output at
-instant $n$ depends only on its input at the same instant $n$. Combinatorial
-functions are stateless and can thus be used at any time scale, either
-discrete or continuous.
 
-Like for any globally defined value, a combinatorial function
-is defined using the {\tt let} notation.
-Consider, for example, the function computing the
-average of its two inputs. We directly give its type
-signatures as computed by the compiler.
+Functions whose output at an instant $n$ depends only on inputs at the same 
+instant $n$ are called \emph{combinatorial}.
+They are stateless and may thus be used in both discrete and continuous 
+time.
+%Signal functions can be {\em combinatorial} or not.
+%A function is combinatorial when its output at
+%instant $n$ depends only on its input at the same instant $n$.
+%Combinatorial
+%functions are stateless and can thus be used at any time scale, either
+%discrete or continuous.
+
+As for any globally defined value, a combinatorial function
+is defined using the \zls{let} keyword.
+Consider, for example, a function computing the
+instantaneous average of two inputs:
 \begin{runverbatim}[withresult]
 let average (x,y) = (x + y) / 2
 \end{runverbatim}
-This function get the type signature \verb+int * int -A-> int+ stating
-that it takes two integer streams and returns an integer stream. The
-tagged arrow \texttt{-A->} with mark \texttt{A} indicates that
-\texttt{average} is combinatorial. \texttt{A} means ``any'', that is,
-\texttt{average} can be used anywhere in the code. This will be
-detailled further.
+The type signature inferred by the compiler, \zlsmsg{int * int -A-> int},
+indicates that it takes two integer streams and returns an integer stream.
+The arrow \texttt{-A->} tagged with an \texttt{A} indicates that this 
+function is combinatorial.
+The \texttt{A} stands for ``any''; the function \texttt{average} can be used 
+anywhere in the code.
+We will describe the other possibilities soon.
 
-Function definition can contain local declarations, introduced using
-either the {\tt where}, or the {\tt let} notation
-(see~\cref{sec:local-defin-mutu}). For example the average function can
-be written in two (equivalent) manners:
+Function definitions may contain local declarations, introduced using
+either \zls{where} or \zls{let} notations. For example, the average function 
+can be written in two (equivalent) ways:
 \begin{runverbatim}
 let average (x,y) = o where o = (x + y) / 2
 \end{runverbatim}
+and
 \begin{runverbatim}
 let average (x,y) = let o = (x + y) / 2 in o
 \end{runverbatim}
