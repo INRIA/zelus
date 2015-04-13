@@ -58,6 +58,10 @@
 
 %}-}1
 %{-{1 Macros
+%
+\newcommand{\f}{$f$}
+\renewcommand{\t}{$t$}
+\newcommand{\nil}{$\mathit{nil}$}
 
 \newcommand{\cvode}{{\sc CVODE}}
 \newcommand{\ly}{\ensuremath{\mathit{ly}}}
@@ -562,9 +566,8 @@ streams. It can be seen as an adder circuit just as \verb-&- can be seen as an
 Program executions can be represented as \emph{chronograms} showing the 
 sequences of values taken by streams. The
 example below shows five streams, one per line. The first line shows
-the value of a stream \zls{c}, which has the value \zls{t} ({\em true}) at 
-the first instant, \zls{f} ({\em false}) at the second one, and \zls{t} at 
-the
+the value of a stream \zls{c}, which has the value \t{} ({\em true}) at the 
+first instant, \f{} ({\em false}) at the second one, and \t{} at the
 third. The `\dots' indicate that the stream has infinitely more values that 
 are not shown. The next two lines define \zls{x} and \zls{y}. The fourth 
 line defines a stream obtained
@@ -574,7 +577,7 @@ or \zls{y} according to the current value of \zls{c}.
 
 \begin{chrono}{c|cccc}
 \hline
-\zls{c} & $t$ & $f$ & $t$ & $\cdots$ \\ \hline
+\zls{c} & \t & \f & \t & $\cdots$ \\ \hline
 \zls{x} & $x_0$ & $x_1$ & $x_2$ & $\cdots$ \\ \hline
 \zls{y} & $y_0$ & $y_1$ & $y_2$ & $\cdots$ \\ \hline
 \zls{x+y} & $x_0+y_0$ & $x_1+y_1$ & $x_2+y_2$ & $\cdots$ \\
@@ -600,7 +603,7 @@ This operator originated in the language \lucid~\cite{lucida}.
 \end{chrono}
 As it is often useful to separate a delay from its initialization, there is 
 an operator \zls{pre x} that delays its argument \zls{x} and has an
-unspecified value (denoted here by {\em nil}) at the first instant.
+unspecified value (denoted here by \nil{}) at the first instant.
 The complementary initialization operator  \zls{x -> y} takes the first 
 value of \zls{x} at the first instant, and the current value of \zls{y} 
 thereafter.
@@ -609,15 +612,15 @@ The expression \zls{x -> (pre y)} is equivalent to \zls{x fby y}.
 \hline
 \zls{x} & $x_0$ & $x_1$ & $x_2$ & $\cdots$ \\ \hline
 \zls{y} & $y_0$ & $y_1$ & $y_2$ & $\cdots$ \\ \hline
-\zls{pre x} &  $nil$ & $x_0$ & $x_1$ & $\cdots$ \\ \hline
+\zls{pre x} &  \nil & $x_0$ & $x_1$ & $\cdots$ \\ \hline
 \zls{x -> y} &  $x_0$ & $y_1$ & $y_2$ & $\cdots$ \\ \hline
 \end{chrono}
 The compiler performs an {\em initialization check} to ensure that the
-behavior of a program never depends on the value {\em nil}. See
+behavior of a program never depends on the value \nil. See
 \cref{initialisation-check} for details.
 
-\medskip\noindent{\bf Warning:} A common error is to try to use the 
-initialization operator to define the first two values of a
+\paragraph{Note:} A common error is to try to use the initialization 
+operator to define the first two values of a
 stream. This does not work, since \zls{x -> y -> z} =
 \zls{x -> z}. One should instead write either \zls{x fby y fby z} or
 \zls{x -> pre (y -> pre z)}.
@@ -657,10 +660,12 @@ in~\cref{sec:sequential-functions}.
 % }-}3
 \subsection{Combinatorial Functions} %{-{3
 
-Functions whose output at an instant $n$ depends only on inputs at the same 
-instant $n$ are called \emph{combinatorial}.
+Functions whose output at an instant depends only on inputs at the same 
+instant are \emph{combinatorial}.
 They are stateless and may thus be used in both discrete and continuous 
 time.
+Any expression without delays, initialization operators, or automata is 
+necessarily combinatorial.
 %Signal functions can be {\em combinatorial} or not.
 %A function is combinatorial when its output at
 %instant $n$ depends only on its input at the same instant $n$.
@@ -694,13 +699,15 @@ and
 let average (x,y) = let o = (x + y) / 2 in o
 \end{runverbatim}
 
-As another example of combinatorial program, we end with the classical
-description of a one-bit adder. A full adder takes three bits
-(\verb-a-, \verb-b- and a carry bit \verb-c-) and it returns the
-result \verb-c- and the new carry \verb-co-.
+The full adder is a classic example of a combinatorial program.
+%As another example of a combinatorial program, we end with the classical
+%description of a one-bit adder
+It takes three input bits, \zls{a}, \zls{b}, and a carry bit \zls{c}, and 
+returns outputs for the sum~\zls{s} and carry-out~\zls{co}.
 \begin{runverbatim}[withresult,label=xor]
 let xor (a, b) = (a & not(b)) or (not a & b)
-let full_add(a, b, c) = (s, co) where
+
+let full_add (a, b, c) = (s, co) where
    rec s = xor (xor (a, b), c)
    and co = (a & b) or (b & c) or (a & c)
 \end{runverbatim}
@@ -709,7 +716,7 @@ let full_add(a, b, c) = (s, co) where
 \begin{center}
 \begin{tabular}{ll}
 %BEGIN IMAGE
-\includegraphics[width=0.3\textwidth]{Fig/half_adder}
+\includegraphics[width=0.25\textwidth]{Fig/half_adder}
 %END IMAGE
 %HEVEA\imageflush
 & \quad\quad
@@ -722,9 +729,9 @@ let full_add(a, b, c) = (s, co) where
 \caption{A half-adder and a full-adder~\label{half-adder}}
 \end{figure}
 
-A full adder can be described more efficiently as a composition
-of two half adders. The graphical description is given in
-figure~\cref{half-adder} and it corresponds to the following code:
+Alternatively, a full adder can be described more efficiently as a composition
+of two half adders. A graphical depiction is given in
+\cref{half-adder}. The corresponding program text is:
 \begin{runverbatim}[continue,withresult]
 let half_add(a,b) = (s, co) where
    rec s = xor (a, b)
@@ -738,85 +745,89 @@ let full_add2(a, b, c) = (s, co) where
   and co = c1 or c2
 \end{runverbatim}
 
-\paragraph{Notation short-cut} For function definitions, the
-keyword \texttt{let} can be removed. A combinational function
-like \verb-half_add- is written instead:
-
+\paragraph{Alternative notation:} For combinatorial function definitions, 
+the keyword \zls{let} can be replaced by \zls{fun}.
 \begin{runverbatim}[include=xor]
-fun half_add(a,b) = (s, co) where
+fun half_add (a,b) = (s, co) where
   rec s = xor (a, b)
   and co = a & b
 \end{runverbatim}
 
 % }-}3
-\subsection{Stateful Functions} %{-{3
-\label{sec:sequential-functions}
-Stateful or \emph{sequential} functions are
-such that their output
-at some instant $n$ may depend on the history of their inputs, that is,
-input values of instants $k$ ($k \leq n$). A function is called
-sequential if it may produce a non constant output signal even when its
-inputs are constant. Otherwise, we call it combinatorial. A
-sufficient condition to be a combinatorial expression is not to
-contain any delay, initialization operator, nor automaton.
+\subsection{Stateful Functions}\label{sec:sequential-functions} %{-{3
 
-Sequential functions are introduced by the keyword \verb-node-. They receive
-a different type signature than the one given to combinatorial functions.
-The type signature \texttt{int -D-> int} states that \verb-from- is
-a stream function from an integer stream to an integer stream and
-that its output may depend on the history of its input. 
+A function is stateful or \emph{sequential} if its output at an instant~$n$ 
+depends on the inputs at previous instants~$k$ ($k \leq n$), that is, on the 
+history of inputs.
+Such functions may produce a varying output signal even when their inputs 
+are constant.
+%Stateful or \emph{sequential} functions are
+%such that their output
+%at some instant $n$ may depend on the history of their inputs, that is,
+%input values of instants $k$ ($k \leq n$).
+%A function is called
+%sequential if it may produce a non constant output signal even when its
+%inputs are constant. Otherwise, we call it combinatorial.
+%A
+%sufficient condition to be a combinatorial expression is not to
+%contain any delay, initialization operator, nor automaton.
 
-The following function computes the sequence of integers starting at
-some initial value given by parameter \verb-m-:
+Stateful functions must be declared with the \zls{node} keyword.
+For example, this function computes the sequence of integers starting at an 
+initial value given by the parameter \zls{m}:
 \begin{runverbatim}[withresult]
-let node from m = nat where rec nat = m -> pre nat + 1
+let node from m = nat where
+  rec nat = m -> pre nat + 1
 \end{runverbatim}
-Applying this function to the constant stream {\tt 0} yields the
-following execution:
+
+\noindent
+The type signature \zlsmsg{int -D-> int} indicates that \zls{from} is
+a sequential function that maps one integer stream to another.
+The \zls{D} indicates that this function is stateful, it stands for 
+``discrete''.
+The functions output may depend on the past values of its input.
+
+Applying this function to the constant stream \zls{0} yields the
+execution:
 \begin{chrono}{l|ccccccc}
 \hline
-\tt m                 & $0$ & $0$ & $0$ & $0$ & $0$ &  $0$ & \dots \\ \hline
-\tt 1                 & $1$ & $1$ & $1$ & $1$ & $1$ &  $1$ & \dots \\ \hline
-\tt pre nat           & $nil$ & $0$ & $1$ & $2$ & $3$ &  $4$ & \dots \\ \hline
-\tt pre nat + 1       & $nil$ & $1$ & $2$ & $3$ & $4$ &  $5$ & \dots \\ \hline
-\tt m -> pre nat + 1  & $0$ & $1$ & $2$ & $3$ & $4$ &  $5$ & \dots \\ \hline
-\tt from m            & $0$ & $1$ & $2$ & $3$ & $4$ &  $5$ & \dots \\ \hline
+\zls{m}                 & 0    & 0 & 0 & 0 & 0 & 0 & $\cdots$ \\ \hline
+\zls{1}                 & 1    & 1 & 1 & 1 & 1 & 1 & $\cdots$ \\ \hline
+\zls{pre nat}           & \nil & 0 & 1 & 2 & 3 & 4 & $\cdots$ \\ \hline
+\zls{pre nat + 1}       & \nil & 1 & 2 & 3 & 4 & 5 & $\cdots$ \\ \hline
+\zls{m -> pre nat + 1}  & 0    & 1 & 2 & 3 & 4 & 5 & $\cdots$ \\ \hline
+\zls{from m}            & 0    & 1 & 2 & 3 & 4 & 5 & $\cdots$ \\ \hline
 \end{chrono}
 
-Combinatorial functions are checked to be combinatorial at compile
-time, thus forgetting the keyword \verb-node- leads to an error:
+The fact that a function is combinatorial is verified during compilation.
+Thus, omitting the \zls{node} keyword,
 \begin{runverbatim}[fail]
 let from n = nat where rec nat = n -> pre nat + 1
 \end{runverbatim}
-and we get:
+leads to an error message:
 \begin{sample}\runverbatimcmd\end{sample}
 \runverbatimerr{}
-Whereas it is not possible to call a node (arrow type \texttt{-D->})
-in a combinatorial function, it is possible to do the converse: to
-call a combinatorial function (arrow type \texttt{-A->}) in a
-node. E.g., the addition called in function \texttt{from} has type
-signature: \texttt{int * int -A-> int}.
+While a node (arrow type \zlsmsg{-D->}) cannot be called within a 
+combinatorial function, it is possible to call a combinatorial function
+(arrow type \zlsmsg{-A->}) within in a
+node. For example, the addition operator in the \zls{from} function has the 
+type signature \zlsmsg{int * int -A-> int}.
 
 \medskip\noindent
-The edge front detector is defined in the following way:
-\begin{runverbatim}
+The edge front detector is defined a global function from boolean streams to
+boolean streams:
+\vskip-.8em
+\begin{runverbatim}[withresult]
 let node edge c = c & not (false fby c)
 \end{runverbatim}
 \begin{chrono}{l|ccccccc}
 \hline
-\tt c                 & $f$ & $f$ & $t$ & $t$ & $f$ &  $t$ & \dots \\
-\hline
-\tt false             & $f$ & $f$ & $f$ & $f$ & $f$ &  $f$ & \dots \\
-\hline
-\tt false fby c       & $f$ & $f$ & $f$ & $t$ & $t$ &  $f$ & \dots \\
-\hline
-\tt not (false fby c) & $t$ & $t$ & $t$ & $f$ & $f$ &  $t$ & \dots \\
-\hline
-\tt edge c            & $f$ & $f$ & $t$ & $f$ & $f$ &  $t$ & \dots \\
-\hline
+\zls{c}                 & \f & \f & \t & \t & \f &  \t & $\cdots$ \\ \hline
+\zls{false}             & \f & \f & \f & \f & \f &  \f & $\cdots$ \\ \hline
+\zls{false fby c}       & \f & \f & \f & \t & \t &  \f & $\cdots$ \\ \hline
+\zls{not (false fby c)} & \t & \t & \t & \f & \f &  \t & $\cdots$ \\ \hline
+\zls{edge c}            & \f & \f & \t & \f & \f &  \t & $\cdots$ \\ \hline
 \end{chrono}
-\noindent \verb-edge- is a global function from boolean streams to
-boolean streams. 
 
 \medskip\noindent
 A forward Euler integrator is defined by:
@@ -825,21 +836,22 @@ let dt = 0.01
 let node integr (x0, x') = x where
   rec x = x0 -> pre (x +. x' *. dt)
 \end{runverbatim}
-\verb-integr- is a global function returning a stream \verb-x- defined
+These declarations give a global function \zls{integr} that returns a stream 
+\zls{x} defined
 recursively so that, for all $n \in \Nat, x(n) = x0 + \sum_{i=0}^{n-1}
-x'(i)\cdot dt$.  The operators \verb-+.-, \verb-*.- stand for the
-addition and multiplication over floating point numbers. Sequential
-functions may be composed as any other functions. For example:
+x'(i)\cdot dt$.  The operators \verb-+.-, \verb-*.- are, respectively, 
+addition and multiplication over floating-point numbers. Sequential
+functions may be composed just as any other functions, as, for example, in:
 \begin{runverbatim}[continue]
 let node double_integr (x0, x0', x'') = x where
   rec x = integr (x0, x')
   and x' = integr (x0', x'')
 \end{runverbatim}
 
-\paragraph{Notation Shortcut} As for combinatorial functions,
-the keyword \texttt{let} can be removed, e.g.,:
+\paragraph{Alternative notation:} Similarly for combinatorial functions,
+the keyword \zls{let} can be removed, for example,
 
-\begin{runverbatim}[withresult,label=integr]
+\begin{runverbatim}
 let dt = 0.01
 node integr (x0, x') = x where
   rec x = x0 -> pre (x +. x' *. dt)
