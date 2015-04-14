@@ -17,24 +17,33 @@ SCRIPT=$(basename "$0")
 SUFFIX=.rvrb
 
 RED="[0;31m"
+BLUE="[0;34m"
 BLACK="[0;0m"
 
 ##
 # Command-line
 
-if [ $# -eq 0 ]; then
+unset INFILES
+for f in "$@"; do
+  case $f in
+  --no-colors)
+    unset RED BLUE BLACK
+    ;;
+  --*)
+    printf "%s: unrecognized option '%s'\n" "$SCRIPT" "$f"
+    exit 1
+    ;;
+  *${SUFFIX})
+    INFILES="$INFILES $f"
+    ;;
+  *)
+    INFILES="$INFILES $f${SUFFIX}"
+    ;;
+  esac
+done
+
+if [ -z "$INFILES" ]; then
     INFILES=$(ls ./*${SUFFIX})
-else
-    for f in "$@"; do
-      case $f in
-      *${SUFFIX})
-	INFILES="$INFILES $f"
-	;;
-      *)
-	INFILES="$INFILES $f${SUFFIX}"
-	;;
-      esac
-    done
 fi
 
 ##
@@ -136,9 +145,10 @@ compile() {
 
     # Check that the input file exists
     if [ -f "$ipath" ]; then
-	printf '> %s...\n' "$ofile$EXT"
+	printf '> %s%s...%s\n' "$BLUE" "$ofile$EXT" "$BLACK"
     else
-	printf '> %s%s: program source not found.\n' "$ofile" "$EXT"
+	printf '%s> %s%s: program source not found.%s\n' \
+	    "$RED" "$ofile" "$EXT" "$BLACK"
 	return 1
     fi
 
@@ -163,14 +173,14 @@ compile() {
     if [ "$COMPILERSTATUS" -eq 0 ]; then
 	printf '\\runverbatimtrue\n'   >> "$opath"
 	if [ "$SHOULDFAIL" -eq 1 ]; then
-	    printf '  unexpected success (line %s/ page %s)!\n' \
-		"$LINENUM" "$PAGENUM" >&2
+	    printf '%s  unexpected success (line %s/ page %s)!%s\n' \
+		"$RED" "$LINENUM" "$PAGENUM" "$BLACK" >&2
 	fi
     else
 	printf '\\runverbatimfalse\n'  >> "$opath"
 	if [ "$SHOULDFAIL" -eq 0 ]; then
-	    printf "  unexpected failure (line %s / page %s)!\n" \
-		"$LINENUM" "$PAGENUM" >&2
+	    printf "%s  unexpected failure (line %s / page %s)!%s\n" \
+		"$RED" "$LINENUM" "$PAGENUM" "$BLACK" >&2
 	    while read line
 	    do
 	      printf "  | %s\n" "$line"
@@ -280,8 +290,8 @@ readrvrb() {
 			    opennums="$opennums $n"
 			else
 			    printf \
-				"warning: %s: ignoring unresolved include '%s'\n" \
-				"$filenum" "$n" >&2
+				"%swarning: %s: ignoring unresolved include '%s'%s\n" \
+				"$RED" "$filenum" "$n" "$BLACK" >&2
 			fi
 			;;
 		    esac
@@ -306,7 +316,7 @@ readrvrb() {
 
 	    *)
 		if [ -n "$l" ]; then
-		    printf "bad %s: %s\n" "$infile" "$l" >&2
+		    printf "%sbad %s: %s%s\n" "$RED" "$infile" "$l" "$BLACK" >&2
 		fi
 		;;
 	esac
