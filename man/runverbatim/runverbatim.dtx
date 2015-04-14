@@ -68,7 +68,7 @@
 %</driver>
 % \fi
 %
-% \CheckSum{403}
+% \CheckSum{0}
 %
 % \CharacterTable
 %  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
@@ -245,11 +245,19 @@ let w = u + "four"
 % & Do not display the first line of code (see the description under the 
 % |runverbatim| environment).
 % &
+% false
 % \\
 % skiptwo
 % & Do not display the first two lines of code (see the description under 
 % the |runverbatim| environment).
 % &
+% false
+% \\
+% ignoreerrors
+% & Globally disable the display of error messages (within a red box) when 
+% compilation fails or succeeds unexpectedly.
+% &
+% false
 % \\
 % \end{longtable}
 %
@@ -417,6 +425,17 @@ let w = u + "four"
 % skipnone
 % & Do not skip any lines; this option overrides any package-level skip 
 % setting.
+% \\
+% ignoreerrors
+% & Do not display an error message within the document when compilation 
+% fails or succeeds unexpectedly.
+% \\
+% showerrors
+% & Display an error message within the document when compilation fails or 
+% succeeds unexpectedly.
+% This is the default behaviour unless the |ignoreerrors| package option was 
+% set.
+% \\
 % \end{longtable}
 %
 % The results of compiling the code in a |runenvironment| are made available 
@@ -503,6 +522,19 @@ let w = u + "four"
 % Multiple languages in a single document are not supported.
 %
 % \item
+% Care must be taken when using |runverbatim| with the overlays of the 
+% Beamer package.
+% In particular, |runverbatim| environment commands are to be avoided within 
+% commands that completely omit material from slides, like |only|, |alt|, or 
+% |temporal|, or with `closed' overlay specifications, like |2| or |1-3|.
+% As these commands do not execute the material, the environment sequence 
+% numbers do not increase monotonically, and the compilation results may not 
+% be properly synchronized with the verbatim text.
+% Commands that only hide material, or that introduce it successively, like 
+% |uncover| or |visible|, or `open' overlay specifications, like |2-|, 
+% should function as expected.
+%
+% \item
 % Contrary to its name, |runverbatim| does not actually run the files that 
 % are generated.
 % It only compiles them.
@@ -553,6 +585,8 @@ let w = u + "four"
 %    \begin{macrocode}
 \DeclareBoolOption{withresult}
 \DeclareComplementaryOption{withoutresult}{withresult}
+\DeclareBoolOption[true]{showerrors}
+\DeclareComplementaryOption{ignoreerrors}{showerrors}
 \DeclareVoidOption{skipone}
     {\edef\RVRB@pkg@verbopts{\RVRB@pkg@verbopts,firstline=2}}
 \DeclareVoidOption{skiptwo}
@@ -738,6 +772,8 @@ let w = u + "four"
 \define@key{RVRB@envkeys}{hide}[]{\RVRB@showcodefalse}
 \define@key{RVRB@envkeys}{withresult}[]{\RVRB@withresulttrue}
 \define@key{RVRB@envkeys}{withoutresult}[]{\RVRB@withresultfalse}
+\define@key{RVRB@envkeys}{showerrors}[]{\RVRB@showerrorstrue}
+\define@key{RVRB@envkeys}{ignoreerrors}[]{\RVRB@showerrorsfalse}
 %    \end{macrocode}
 %
 % \begin{macro}{\runverbatimmsg}
@@ -909,7 +945,8 @@ let w = u + "four"
 %
 % Then, if compilation failed and the |fail| option was not active, or if 
 % compilation succeeded and the |fail| option is active, log a warning 
-% message and include details in the document.
+% message and, if errors are not being ignored, include details in the 
+% document.
 % Otherwise, if |withresult| was given, expand either |\runverbatimerr| or 
 % |\runverbatimmsg|.
 %
@@ -918,9 +955,11 @@ let w = u + "four"
             \ifrunverbatim
                 \PackageWarning{runverbatim}
                     {Compilation of \RVRB@file\RVRB@ext\space should have failed}
-                \UseVerbatim[frame=single,
-                             label=Unexpected success,
-                             rulecolor=\color{red}]{RunVerbatimMsg}
+                \ifRVRB@showerrors
+                  \UseVerbatim[frame=single,
+                               label=Unexpected success,
+                               rulecolor=\color{red}]{RunVerbatimMsg}
+                \fi
             \else
                 \ifRVRB@withresult
                    {\setlength{\partopsep}{0em}\runverbatimerr{}}
@@ -934,9 +973,11 @@ let w = u + "four"
             \else
                 \PackageWarning{runverbatim}
                     {Compilation of \RVRB@file\RVRB@ext\space should not have failed}
-                \UseVerbatim[frame=single,
-                             label=Unexpected failure,
-                             rulecolor=\color{red}]{RunVerbatimErr}
+                \ifRVRB@showerrors
+                  \UseVerbatim[frame=single,
+                               label=Unexpected failure,
+                               rulecolor=\color{red}]{RunVerbatimErr}
+                \fi
             \fi
         \fi
     \else
