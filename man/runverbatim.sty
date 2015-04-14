@@ -44,6 +44,8 @@
 
 \DeclareBoolOption{withresult}
 \DeclareComplementaryOption{withoutresult}{withresult}
+\DeclareBoolOption[true]{showerrors}
+\DeclareComplementaryOption{ignoreerrors}{showerrors}
 \DeclareVoidOption{skipone}
     {\edef\RVRB@pkg@verbopts{\RVRB@pkg@verbopts,firstline=2}}
 \DeclareVoidOption{skiptwo}
@@ -111,6 +113,8 @@
 \define@key{RVRB@envkeys}{hide}[]{\RVRB@showcodefalse}
 \define@key{RVRB@envkeys}{withresult}[]{\RVRB@withresulttrue}
 \define@key{RVRB@envkeys}{withoutresult}[]{\RVRB@withresultfalse}
+\define@key{RVRB@envkeys}{showerrors}[]{\RVRB@showerrorstrue}
+\define@key{RVRB@envkeys}{ignoreerrors}[]{\RVRB@showerrorsfalse}
 \DeclareRobustCommand{\runverbatimmsg}[1]{
    \bgroup%
    \ifx\RVRB@msglst\RVRB@emptyoption\else
@@ -187,9 +191,11 @@
             \ifrunverbatim
                 \PackageWarning{runverbatim}
                     {Compilation of \RVRB@file\RVRB@ext\space should have failed}
-                \UseVerbatim[frame=single,
-                             label=Unexpected success,
-                             rulecolor=\color{red}]{RunVerbatimMsg}
+                \ifRVRB@showerrors
+                  \UseVerbatim[frame=single,
+                               label=Unexpected success,
+                               rulecolor=\color{red}]{RunVerbatimMsg}
+                \fi
             \else
                 \ifRVRB@withresult
                    {\setlength{\partopsep}{0em}\runverbatimerr{}}
@@ -203,9 +209,11 @@
             \else
                 \PackageWarning{runverbatim}
                     {Compilation of \RVRB@file\RVRB@ext\space should not have failed}
-                \UseVerbatim[frame=single,
-                             label=Unexpected failure,
-                             rulecolor=\color{red}]{RunVerbatimErr}
+                \ifRVRB@showerrors
+                  \UseVerbatim[frame=single,
+                               label=Unexpected failure,
+                               rulecolor=\color{red}]{RunVerbatimErr}
+                \fi
             \fi
         \fi
     \else
