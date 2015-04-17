@@ -527,6 +527,7 @@ and sending us comments.
 % }-}1
 \chapter{Synchronous Programming}\label{chap:sync-programming} %{-{1
 %HEVEA\cutdef[1]{section}
+%{-{2
 
 This chapter and the next one give a tutorial introduction to \zelus. This
 chapter focuses on the synchronous kernel of the language, which is 
@@ -544,6 +545,7 @@ helpful but not mandatory. Some references are given at the end of this document
 In this tutorial, we suppose that programs are written in a file called
 \verb-tutorial.zls-.% This file is available in the \zelus{} distribution.
 
+% }-}2
 \section{The Core Synchronous Language} %{-{2
 %We start with the synchronous part of the language. \acp{ODE} and all 
 %continuous
@@ -710,24 +712,21 @@ returns outputs for the sum~\zls{s} and carry-out~\zls{co}.
 let xor (a, b) = (a & not(b)) or (not a & b)
 
 let full_add (a, b, c) = (s, co) where
-   rec s = xor (xor (a, b), c)
+       s = xor (xor (a, b), c)
    and co = (a & b) or (b & c) or (a & c)
 \end{runverbatim}
 
 \begin{figure}
-\begin{center}
-\begin{tabular}{ll}
+\centering
 %BEGIN IMAGE
-\includegraphics[width=0.25\textwidth]{Fig/half_adder}
+\includegraphics[width=0.19\textwidth]{Fig/half_adder}
 %END IMAGE
 %HEVEA\imageflush
-& \quad\quad
+\hfil
 %BEGIN IMAGE
-\includegraphics[width=0.5\textwidth]{Fig/full_adder}
+\includegraphics[width=0.4\textwidth]{Fig/full_adder}
 %END IMAGE
 %HEVEA\imageflush
-\end{tabular}
-\end{center}
 \caption{A half-adder and a full-adder~\label{half-adder}}
 \end{figure}
 
@@ -736,16 +735,22 @@ of two half adders. A graphical depiction is given in
 \cref{half-adder}. The corresponding program text is:
 \begin{runverbatim}[continue,withresult]
 let half_add(a,b) = (s, co) where
-   rec s = xor (a, b)
+       s = xor (a, b)
    and co = a & b
 \end{runverbatim}
 
 \begin{runverbatim}[continue,withresult]
 let full_add2(a, b, c) = (s, co) where
-  rec (s1, c1) = half_add(a,b)
+  rec (s1, c1) = half_add(a, b)
   and (s, c2) = half_add(c, s1)
   and co = c1 or c2
 \end{runverbatim}
+
+The \zls{rec} keyword specifies that the block of equations following the 
+\zls{where} is defined by mutual recursion.
+Without it the \zls{s1} in the equation for \zls{s} and \zls{c2} would have 
+to exist in the list of inputs or the global environment, and similarly for 
+\zls{c1} and \zls{c2} in the equation for \zls{co}.
 
 \paragraph{Alternative notation:} For combinatorial function definitions, 
 the keyword \zls{let} can be replaced by \zls{fun}.
@@ -851,9 +856,8 @@ let node double_integr (x0, x0', x'') = x where
 \end{runverbatim}
 
 \paragraph{Alternative notation:}
-Much the same as for combinatorial functions, the keyword \zls{let} can be 
-omitted, for example,
-\begin{runverbatim}
+The keyword \zls{let} can be omitted, for example,
+\begin{runverbatim}[skipone]
 let dt = 0.01
 node integr (x0, x') = x where
   rec x = x0 -> pre (x +. x' *. dt)
@@ -878,42 +882,47 @@ node integr (x0, x') = x where
 % }-}3
 \subsection{Local Definitions and Mutually Recursive Definition} %{-{3
 \label{sec:local-defin-mutu}
+
 Variables may be defined locally with \zls{let}/\zls{in} or
 \zls{let rec}/\zls{in} whether the defining expression is stateful or not.
 The following
 program computes the Euclidean distance between two points:
+\vskip-.2em
 \begin{runverbatim}
 let distance ((x0,y0), (x1,y1)) =
   let d0 = x1 -. x0 in
   let d1 = y1 -. x1 in
   sqrt (d0 *. d0 +. d1 *. d1)
 \end{runverbatim}
-Note that because \verb-d0- and \verb-d1- denote infinite streams
-the computations of \verb+x1 -. x0+ and \verb+y1 -. x1+ are
-(virtually) executed in parallel.  Nonetheless, when writing sequences
-of definitions \zls{let}/\zls{in} such as above, the sequential order is
-preserved for each reaction of the system, that is, the current value
-of \zls{d0} is always computed before the current value of
-\zls{d1}. The preservation of the sequential order is useful when functions
-with side-effects are imported from the host language. If you do not want to
-specify any order, write \texttt{let rec d0 = ... and d1 = ...} instead.
+Since \zls{d0} and \zls{d1} denote infinite streams, the computations of 
+\verb+x1 -. x0+ and \verb+y1 -. x1+ occur in parallel, at least 
+conceptually.
+In Zélus, however, the consecutive nesting of \zls{let}/\zls{in}s introduces 
+a sequential ordering on the computations at an instant.
+In this example, this means that the current value of \zls{d0} is always 
+computed before the current value of \zls{d1}.
+Being able to impose such an ordering is useful when functions with 
+side-effects are imported from the host language.
+Write simply \zls{let rec d0 = ... and d1 = ...} if no particular ordering 
+is needed.
 
-Streams may be defined as a set of mutually recursive equations.  The
-function which computes the minimum and maximum of an input stream
-\verb-x- can be written in the three equivalent manners:
+Streams may be defined through sets of mutually recursive equations.  The
+function that computes the minimum and maximum of an input stream
+\zls{x} can be written in at least three equivalent ways.
+As two mutually recursive equations after a \zls{where}:
 \begin{runverbatim}
 let node min_max x = (min, max) where
   rec min = x -> if x < pre min then x else pre min
   and max = x -> if x > pre max then x else pre max
 \end{runverbatim}
-
+as a stream of tuples defined by two local, mutually recursive equations:
 \begin{runverbatim}
 let node min_max x =
   let rec min = x -> if x < pre min then x else pre min
   and max = x -> if x > pre max then x else pre max in
   (min, max)
 \end{runverbatim}
-
+or as a stream of tuples defined by a single recursive equation:
 \begin{runverbatim}
 let node min_max x = (min, max) where
   rec (min, max) = (x, x) -> if x < pre min then (x, pre max)
@@ -921,8 +930,8 @@ let node min_max x = (min, max) where
                              else (pre min, pre max)
 \end{runverbatim}
 
-\noindent The classical sinus and cosinus functions can be defined like the
-following:
+\noindent Discrete approximations to the sine and cosine functions can be 
+defined by:
 \begin{runverbatim}[continue,include=integr]
 let node sin_cos theta = (sin, cos) where
   rec sin = integr(0.0, theta *. cos)
