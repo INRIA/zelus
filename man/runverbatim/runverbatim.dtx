@@ -912,22 +912,22 @@ let w = u + "four"
 % created file.
 %
 %    \begin{macrocode}
-    \ifRVRB@showcode
+    \ifRVRB@showcode%
         \bgroup%
-        \ifx\RVRB@codelst\RVRB@emptyoption\else
+        \ifx\RVRB@codelst\RVRB@emptyoption\else%
           \expandafter\lstset\expandafter{\RVRB@codelst,fancyvrb=true}%
-        \fi
+        \fi%
         \expandafter\fvset\expandafter{\RVRB@verbopts}%
         \expandafter\VerbatimInput\expandafter[\RVRB@codestyle]{\RVRB@file\RVRB@ext}%
         \egroup%
-    \fi
+    \fi%
 %    \end{macrocode}
 %
 % Check whether a corresponding |.tex| file was created:
 %
 %    \begin{macrocode}
-    \global\edef\RVRB@none{$\langle$Cannot load \RVRB@file.tex!$\rangle$}
-    \InputIfFileExists{\RVRB@file.tex}{\RVRB@fileexiststrue}{\RVRB@fileexistsfalse}
+    \global\edef\RVRB@none{$\langle$Cannot load \RVRB@file.tex!$\rangle$}%
+    \InputIfFileExists{\RVRB@file.tex}{\RVRB@fileexiststrue}{\RVRB@fileexistsfalse}%
 %    \end{macrocode}
 %
 % If the |.tex| file was loaded successfully, create `unlabelled' saved 
@@ -936,11 +936,11 @@ let w = u + "four"
 % |\runverbatimerr| macros.
 %
 %    \begin{macrocode}
-    \ifRVRB@fileexists
-        \@ifundefined{FV@SV@RunVerbatimMsg}
-          {}{\global\let\FV@SV@RVRB@MSG@=\FV@SV@RunVerbatimMsg}
-        \@ifundefined{FV@SV@RunVerbatimErr}
-          {}{\global\let\FV@SV@RVRB@ERR@=\FV@SV@RunVerbatimErr}
+    \ifRVRB@fileexists%
+        \@ifundefined{FV@SV@RunVerbatimMsg}%
+          {}{\global\let\FV@SV@RVRB@MSG@=\FV@SV@RunVerbatimMsg}%
+        \@ifundefined{FV@SV@RunVerbatimErr}%
+          {}{\global\let\FV@SV@RVRB@ERR@=\FV@SV@RunVerbatimErr}%
 %    \end{macrocode}
 %
 % Then, if compilation failed and the |fail| option was not active, or if 
@@ -951,36 +951,36 @@ let w = u + "four"
 % |\runverbatimmsg|.
 %
 %    \begin{macrocode}
-        \ifRVRB@shouldfail
-            \ifrunverbatim
-                \PackageWarning{runverbatim}
-                    {Compilation of \RVRB@file\RVRB@ext\space should have failed}
-                \ifRVRB@showerrors
+        \ifRVRB@shouldfail%
+            \ifrunverbatim%
+                \PackageWarning{runverbatim}%
+                    {Compilation of \RVRB@file\RVRB@ext\space should have failed}%
+                \ifRVRB@showerrors%
                   \UseVerbatim[frame=single,
                                label=Unexpected success,
-                               rulecolor=\color{red}]{RunVerbatimMsg}
-                \fi
-            \else
-                \ifRVRB@withresult
-                   {\setlength{\partopsep}{0em}\runverbatimerr{}}
-                \fi
-            \fi
-        \else
-            \ifrunverbatim
-                \ifRVRB@withresult
-                   {\setlength{\partopsep}{0em}\runverbatimmsg{}}
-                \fi
-            \else
-                \PackageWarning{runverbatim}
-                    {Compilation of \RVRB@file\RVRB@ext\space should not have failed}
-                \ifRVRB@showerrors
+                               rulecolor=\color{red}]{RunVerbatimMsg}%
+                \fi%
+            \else%
+                \ifRVRB@withresult%
+                   {\setlength{\partopsep}{0em}\runverbatimerr{}}%
+                \fi%
+            \fi%
+        \else%
+            \ifrunverbatim%
+                \ifRVRB@withresult%
+                   {\setlength{\partopsep}{0em}\runverbatimmsg{}}%
+                \fi%
+            \else%
+                \PackageWarning{runverbatim}%
+                    {Compilation of \RVRB@file\RVRB@ext\space should not have failed}%
+                \ifRVRB@showerrors%
                   \UseVerbatim[frame=single,
                                label=Unexpected failure,
-                               rulecolor=\color{red}]{RunVerbatimErr}
-                \fi
-            \fi
-        \fi
-    \else
+                               rulecolor=\color{red}]{RunVerbatimErr}%
+                \fi%
+            \fi%
+        \fi%
+    \else%
 %    \end{macrocode}
 %
 % If the |.tex| file was not loaded successfully, clear the 
@@ -988,23 +988,23 @@ let w = u + "four"
 % for the message and error results.
 %
 %    \begin{macrocode}
-        \PackageWarning{runverbatim}{Cannot load \RVRB@file.tex}
-        \global\let\runverbatimcmd\RVRB@none
-        \global\let\FV@SV@RVRB@MSG@\@undefined
-        \global\let\FV@SV@RVRB@ERR@\@undefined
-    \fi
+        \PackageWarning{runverbatim}{Cannot load \RVRB@file.tex}%
+        \global\let\runverbatimcmd\RVRB@none%
+        \global\let\FV@SV@RVRB@MSG@\@undefined%
+        \global\let\FV@SV@RVRB@ERR@\@undefined%
+    \fi%
 % If this environment is labelled, create persistent references to the saved 
 % verbatim environments for the message and error results.
 % These are exploited, respectively, by the |\runverbatimmsg| and 
 % |\runverbatimerr| macros when their \meta{label} argument is not empty.
 %
-    \@ifundefined{RVRB@label}{}{
-      \global\expandafter\let
+    \@ifundefined{RVRB@label}{}{%
+      \global\expandafter\let%
         \csname FV@SV@RVRB@MSG@\RVRB@label\endcsname=\FV@SV@RVRB@MSG@%
-      \global\expandafter\let
+      \global\expandafter\let%
         \csname FV@SV@RVRB@ERR@\RVRB@label\endcsname=\FV@SV@RVRB@ERR@%
-    }
-  }
+    }%
+  }%
 %    \end{macrocode}
 % \end{environment}
 %
