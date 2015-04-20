@@ -822,8 +822,7 @@ type signature \zlsmsg{int * int -A-> int}.
 
 \medskip\noindent
 The edge front detector is defined a global function from boolean streams to
-boolean streams:
-\vskip-.8em
+boolean streams:%
 \begin{runverbatim}[withresult]
 let node edge c = c & not (false fby c)
 \end{runverbatim}
@@ -886,8 +885,7 @@ node integr (x0, x') = x where
 Variables may be defined locally with \zls{let}/\zls{in} or
 \zls{let rec}/\zls{in} whether the defining expression is stateful or not.
 The following
-program computes the Euclidean distance between two points:
-\vskip-.2em
+program computes the Euclidean distance between two points:%
 \begin{runverbatim}
 let distance ((x0,y0), (x1,y1)) =
   let d0 = x1 -. x0 in
@@ -941,88 +939,83 @@ let node sin_cos theta = (sin, cos) where
 % }-}3
 \subsection{Shared Memory and Initialization} %{-{3
 
-Zélus provides an alternative way to the use of the delay
-\verb-pre- in order to refer to the previous value of a stream. If
-\verb-o- is a stream variable defined by some equation, \verb-last o-
-refers to the last value of \verb-o-. For example:
+In addition to the delay operator \zls{pre}, Zélus provides another 
+construction for referring to the previous value of a stream: \zls{last o}, 
+where \zls{o} is a variable defined by an equation. For example:%
 \begin{runverbatim}
 let node counter i = o where
   rec init o = i
   and o = last o + 1
 \end{runverbatim}
-The equation \verb-init o = i- defines the initial value of the {\em
-  memory} \verb-last o-. This memory is initialized with the first
-value of \verb-i- and then, contains the previous value of
+The equation \zls{init o = i} defines the initial value of the \emph{memory} 
+\zls{last o}. This memory is initialized with the first
+value of \verb-i-, and thereafter it contains the previous value of
 \verb-o-. The above program is thus equivalent to the following
-one:\footnote{The construction \texttt{last} is eliminated during the
-  compilation process by a similar transformation.}
+one:\footnote{The construction \texttt{last} is eliminated during 
+compilation by a similar transformation.}
 \begin{runverbatim}
 let node counter i = o where
   rec last_o = i -> pre o
   and o = last_o + 1
 \end{runverbatim}
-The memory \verb-last o- will play an important role when combined
-with control structures. This will be illustrated later.
-From a syntactical point of view, \verb-last- is {\em not} an
-operator: \verb-last o- denotes a shared memory and the argument of
-\verb-last- is necessarily a name. Thus the following program:
-\begin{runverbatim}[fail]
+The reason for introducing memories, will become clear when control 
+structures are introduced in \cref{sec:patternmatch}.
+Syntactically, \verb-last- is {\em not} an operator: \verb-last o- denotes
+a shared memory and the argument of \verb-last-, here \verb-o-, must be a 
+variable name. Thus this program is rejected:
+\begin{runverbatim}[fail,withresult]
 let node f () = o where
   rec o = 0 -> last (o + 1)
 \end{runverbatim}
-is rejected and we get:
-\runverbatimerr{}
 
-Instead of defining the current value of a signal according to its previous
-values, it is also possible to define the next value according to the current
-one. The counter
-can also be defined in the following ways:
-
+Rather than define the current value of a signal in terms of its previous
+one, the next value can also be defined in terms of the current one.
+The same counter program can be written:
 \begin{runverbatim}
 let node counter i = o where
   rec init o = i
   and next o = o + 1
 \end{runverbatim}
-or:
+or equivalently:
 \begin{runverbatim}
 let node counter i = o where
   rec next o = o + 1 init i
 \end{runverbatim}
-In the two definitions, \texttt{o} is initialized with the very first value of
-\verb-i- and the value of \texttt{o} at instant $n+1$ equals the value of
-\texttt{o+1} at instant $n$ (for all $n \in \Nat$).
+In both definitions, \texttt{o} is initialized with the first value of
+\verb-i- and then the value of \texttt{o} at instant $n+1$ is the value of
+\verb-o + 1- at instant $n$ (for all $n \in \Nat$).
 
-None of the two forms --- defining the current value of a signal
-according to its previous value \emph{versus} defining the next value
-according to the current one --- is better than the other. Both are
-equivalent in the sense that one can be transformed into the
-other. This depend on the situation. Nonetheless, we shall see in
-\cref{chap:ode-programming} that restrictions apply on the
-use of the operators \texttt{next} and \texttt{last} when combining discrete-time and
+Neither the form defining the current value from the previous one, nor the 
+form defining the next value from the current one is intrinsically superior; 
+it depends on the situation.
+Either form can be transformed into the other.
+We will see in \cref{chap:ode-programming} that restrictions apply to both 
+the \verb-next- and \verb-last- constructions when combining discrete- and
 continuous-time dynamics.
 
-\Remark Internally, the compiler rewrites
-operations \verb-last-, \verb+->+, \verb-fby-, \verb+pre+, \verb+init+
-and \verb+next+ into a minimal subset.
+\Remark The compiler rewrites \verb-last-, \verb+->+, \verb-fby-, 
+\verb+pre+, \verb+init+ and \verb+next+ into a minimal subset.
 
 % }-}3
-\subsection{Causality check} %{-{3
+\subsection{Causality check}\label{causality-check} %{-{3
 
-\label{causality-check}
-Recursively defined values must not contain any {\em instantaneous} or
-{\em causality} loops in order to be able to generate statically schedulable
-sequential code. For example, if we type:
+Instantaneous cycles between recursively defined values---\emph{causality 
+loops}---are forbidden so that the compiler can produce statically-scheduled 
+sequential code.
+For example, the program:%
 \begin{runverbatim}[fail]
 let node from m = nat where
   rec nat = m -> nat + 1
 \end{runverbatim}
-the compiler emits the message:
+is rejected with the message:
 \runverbatimerr{}
-This program cannot be computed as {\tt nat} depends on {\tt nat}
-instantaneously.
-The compiler statically reject function definitions which cannot be scheduled
-sequentially, that is streams whose value at instant $n$ may depend on
-some value at instant $n$. In practice, it imposes that any loop
+\noindent
+This program cannot be computed since \verb+nat+ depends instantaneously on 
+itself.
+The compiler statically reject function definitions which cannot be 
+scheduled sequentially, that is streams whose value at instant $n$ may 
+depend on some value at instant $n$.
+In practice, it imposes that any loop
 crosses a delay \verb-pre- or \verb-fby-. The purpose of
 the \emph{causality analysis} to to reject those loops.
 
@@ -1105,7 +1098,8 @@ let radius c = c.radius
 \end{runverbatim}
   
 % }-}3
-\subsection{Pattern matching} %{-{3
+\subsection{Pattern matching}\label{sec:patternmatch} %{-{3
+
 The language provides means for doing pattern matching over streams
 with a \verb-match/with- construction {\em \`a la} \ocaml.
 
