@@ -308,6 +308,7 @@ struct (* {{{ *)
       if !log_fcalls then begin
         set_color before_loggedcall;
         carray_log "*FC:" t cs;
+        Zls.zero_fill ds;
         ignore (f_ders dstate cs ds no_time_in_solver);
         set_color after_loggedcall;
         carray_log "*FD:" t ds
