@@ -17,7 +17,6 @@ let length = Array1.dim
 let get = Array1.get
 let set = Array1.set
 let get_zin v i = Array1.get v i <> 0l
-let zero_fill r = Array1.fill r 0.0
 
 type 's f_alloc = unit -> 's
 type 's f_csize = 's -> int
