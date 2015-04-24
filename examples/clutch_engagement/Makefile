@@ -1,7 +1,7 @@
 include ../../config
 
 EXAMPLE=clutch_gui.zls clutch_log.zls
-OUT_OPTIONS?=-sundials -maxt 10
+OUT_OPTIONS?=-maxt 10 -fullspeed
 
 .PHONY: clutch.out
 
