@@ -142,6 +142,8 @@ compile() {
     setfilename ofile "$PREFIX" "$num"
     # shellcheck disable=SC2154
     opath="$SUBDIR$ofile.tex"
+    opath_msg="$SUBDIR$ofile.msg"
+    opath_err="$SUBDIR$ofile.err"
 
     # Check that the input file exists
     if [ -f "$ipath" ]; then
@@ -197,7 +199,8 @@ compile() {
     if [ "$(wc -l < "$OUTFILE")" -eq 0 ]; then
 	printf "Failed.\n"			      >> "$opath"
     else
-	sed -e "s#$SUBDIR$ifile#$PREFIX#g" "$OUTFILE" >> "$opath"
+	sed -e "s#$SUBDIR$ifile#$PREFIX#g" "$OUTFILE" >> "$opath_msg"
+	cat "$opath_msg"			      >> "$opath"
     fi
     printf "%s\n" '\end{RunVerbatimMsg}'	      >> "$opath"
 
@@ -206,7 +209,8 @@ compile() {
     if [ "$(wc -l < "$ERRFILE")" -eq 0 ]; then
 	printf "%s\n" "Success."		      >> "$opath"
     else
-	sed -e "s#$SUBDIR$ifile#$PREFIX#g" "$ERRFILE" >> "$opath"
+	sed -e "s#$SUBDIR$ifile#$PREFIX#g" "$ERRFILE" >> "$opath_err"
+	cat "$opath_err"			      >> "$opath"
     fi
     printf "%s\n" '\end{RunVerbatimErr}'	      >> "$opath"
 

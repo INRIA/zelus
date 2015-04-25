@@ -1,0 +1,123 @@
+%% HeVeA support for runverbatim.
+%%
+%% Not supported:
+%% * fancyvrb and the package options: codestyle, msgstyle, and errstyle
+%%   (use css for formatting code, messages, and errors)
+%% * Non-empty labels in the arguments of \runverbatimmsg and \runverbatimerr.
+%%
+%% TODO:
+%% * Add support for codelst, msglst, errlst
+%%
+\ProvidesPackage{runverbatim}
+\RequirePackage{keyval}
+\RequirePackage{listings}
+\RequirePackage{comment}
+
+\newcounter{runverbatim}
+\setcounter{runverbatim}{-1}
+
+\newif\ifRVRB@fileexists
+\newif\ifRVRB@shouldfail\RVRB@shouldfailfalse
+\newif\ifRVRB@withresult\RVRB@withresultfalse
+\def\RVRB@pkg@skipopts{}
+
+\DeclareOption{withresult}{\RVRB@withresulttrue}
+\DeclareOption{withoutresult}{\RVRB@withresultfalse}
+\DeclareOption{skipone}{\def\RVRB@pkg@skipopts{firstline=2}}
+\DeclareOption{skiptwo}{\def\RVRB@pkg@skipopts{firstline=3}}
+%\DeclareOption*{}   % quietly ignore all other options
+
+%DeclareStringOption[]{codestyle}		% XXX
+%DeclareStringOption[formatcom=\em]{msgstyle}	% XXX
+%\DeclareStringOption[formatcom=\em]{errstyle}	% XXX
+\def\RVRB@msgstyle{}	% TODO: test
+\def\RVRB@errstyle{}	% TODO: test
+\def\RVRB@codestyle{}	% TODO: test
+
+%\DeclareStringOption{codelst} % XXX
+%\DeclareStringOption{msglst}  % XXX
+%\DeclareStringOption{errlst}  % XXX
+
+\def\RVRB@subdir{.}
+\def\RVRB@prefix{runverbatim}
+\def\RVRB@prompt{\#}
+\def\RVRB@ext{.ml}
+%\DeclareStringOption[.]{subdir}	    % TODO: need to parse out subdir
+%\DeclareStringOption[runverbatim]{prefix}  % TODO: need to parse out prefix
+%\DeclareStringOption[\#]{prompt}	    % TODO: need to parse out prompt
+%\DeclareStringOption[.ml]{ext}		    % TODO: need to parse out ext
+\def\RVRB@prompt{} % TODO: just for example
+
+\newcommand{\runverbatimsetup}{}	    % TODO: implement
+
+\ProcessOptions*
+
+%\def\runverbatimsetup{\kvsetkeys{RVRB}}    % TODO: need to process...
+
+\newif\ifrunverbatim
+\newcommand{\setrunverbatimcmd}[1]{%
+    \global\def\runverbatimcmd{\emph{\RVRB@prompt{#1}}}}
+
+\newenvironment{RunVerbatimMsg}{\@excludecomment}{\end@excludecomment}
+\newenvironment{RunVerbatimErr}{\@excludecomment}{\end@excludecomment}
+
+\newcommand{\runverbatimfile}{\RVRB@prefix\RVRB@ext}
+\newif\ifRVRB@showcode\RVRB@showcodetrue
+
+\define@key{RVRB@envkeys}{continue}[]{}
+\define@key{RVRB@envkeys}{include}[]{}
+\define@key{RVRB@envkeys}{label}[]{}
+\define@key{RVRB@envkeys}{showerrors}[]{}
+\define@key{RVRB@envkeys}{ignoreerrors}[]{}
+\define@key{RVRB@envkeys}{skipnone}[]{\def\RVRB@pkg@skipopts{firstline=1}}
+\define@key{RVRB@envkeys}{skipone}[]{\def\RVRB@pkg@skipopts{firstline=2}}
+\define@key{RVRB@envkeys}{skiptwo}[]{\def\RVRB@pkg@skipopts{firstline=3}}
+\define@key{RVRB@envkeys}{hide}[]{\RVRB@showcodefalse}
+\define@key{RVRB@envkeys}{withresult}[]{\RVRB@withresulttrue}
+\define@key{RVRB@envkeys}{withoutresult}[]{\RVRB@withresultfalse}
+\define@key{RVRB@envkeys}{fail}[]{\RVRB@shouldfailtrue}
+
+\newcommand{\runverbatimmsg}{\bgroup%
+  \setenvclass{lstlisting}{lstlisting runverbatimmsg}%
+  %\lstset{\RVRB@msgstyle}%
+  \lstinputlisting{\RVRB@subdir/\RVRB@prefix\RVRB@num.msg}%
+  \egroup}%
+
+\newcommand{\runverbatimerr}{\bgroup%
+  \setenvclass{lstlisting}{lstlisting runverbatimerr}%
+  %\lstset{\RVRB@errstyle}%
+  \lstinputlisting{\RVRB@subdir/\RVRB@prefix\RVRB@num.err}%
+  \egroup}%
+
+\lstnewenvironment{runverbatim}[1][]
+  {%
+    \setenvclass{lstlisting}{lstlisting runverbatim}%
+    \stepcounter{runverbatim}%
+    \def\@currentlabel{\therunverbatim}%
+    \setkeys{RVRB@envkeys}{#1}%
+    \global\def\RVRB@num{%
+	\ifthenelse{\value{runverbatim}<1000}{0}{}%
+        \ifthenelse{\value{runverbatim}<100}{0}{}%
+        \ifthenelse{\value{runverbatim}<10}{0}{}%
+        \arabic{runverbatim}}%
+    \global\def\RVRB@file{\RVRB@subdir/\RVRB@prefix\RVRB@num}%
+    \global\let\runverbatimcmd\relax%
+    %\ifRVRB@showcode\relax\else\fi%	TODO: add print=false to codelst
+    %
+    %\ifx\RVRB@codelst\RVRB@emptyoption\else%
+    %  \expandafter\lstset\expandafter{\RVRB@codelst,fancyvrb=true}%
+    %\fi%
+    %
+    % TODO: pass codestyle arguments below...  [\RVRB@codestyle]
+    % TODO: also include the skip arguments: \RVRB@pkg@skipopts
+    % Call \lstset?
+  }
+  {%
+    \input{\RVRB@file.tex}%
+    \ifrunverbatim%
+      \ifRVRB@withresult{\runverbatimmsg{}}\fi%
+    \else%
+      \ifRVRB@withresult{\runverbatimerr{}}\fi%
+    \fi%
+  }%
+\endinput
