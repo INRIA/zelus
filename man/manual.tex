@@ -5,6 +5,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage{textcomp}
 
+\usepackage{hevea}
 \usepackage[subdir=samples,
             prefix=tutorial,
             ext=.zls,
@@ -15,13 +16,16 @@
             includecmd={},
            ]{runverbatim}
 \fvset{xleftmargin=3mm}
+\ifhevea
+\relax
+\else
 \runverbatimsetup{errstyle={formatcom=\small}}
+\fi
 
 \newcommand{\zls}[1]{\texttt{#1}}
 \newcommand{\zlsmsg}[1]{\texttt{#1}}
 
 \usepackage{a4wide}
-\usepackage{hevea}
 \usepackage{alltt}
 \usepackage{url}
 \usepackage{graphicx}
@@ -38,10 +42,12 @@
   {\begin{itemize}[leftmargin=*]}
   {\end{itemize}}
 
+%BEGIN IMAGE
 \usepackage{tikz}
 \usetikzlibrary{positioning,chains,matrix,shapes.arrows,scopes,
                 shapes.misc,arrows,automata,calc,decorations.markings,
                 decorations.text}
+%END IMAGE
 
 %}-}1
 %{-{1 Macros
@@ -284,7 +290,7 @@
 \pagestyle{empty}
 
 % we make a special title page for HeVeA
-\begin{latexonly}
+%BEGIN LATEX
 \vfill
 
 \noindent {\huge \bf Z\'elus: a Synchronous Language with ODEs}
@@ -314,7 +320,7 @@
 % {\small \begin{verbatim}
 % $Id: manual.tex,v 1.12 2009-02-08 11:15:55 pouzet Exp $
 % \end{verbatim}}
-\end{latexonly}
+%END LATEX
 \begin{rawhtml}
   <div class="subtitle">Zelus</div>
   <div class="titlenote">Release, version 3.0</div>

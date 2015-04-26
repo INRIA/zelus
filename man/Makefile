@@ -40,9 +40,10 @@ realclean: clean
 	rm -f zelus.pdf zelus.ps zelus.html
 
 web: manual.pdf manual.html
+	mkdir -p $(PUBLIC)
 	cp manual.pdf $(PUBLIC)/$(LANG)-$(VERSION)_zelus.pdf
-	cp manual_html/* $(PUBLIC)/zelus-html/
-	mv manual_html/ $(LANG)-zelus
+	cp -r $(MANUAL_HTML) $(PUBLIC)/zelus-html
+	mv $(MANUAL_HTML)/ $(LANG)-zelus
 	tar -zcvf $(LANG)_zelus.tar.gz $(LANG)-$(VERSION)-zelus
 	mv $(LANG)-zelus zelus_html
 	mv $(LANG)_zelus.tar.gz $(PUBLIC)
@@ -59,9 +60,11 @@ web: manual.pdf manual.html
 	$(PDFLATEX) $<
 
 .tex.html:
-	mkdir -p $(MANUAL_HTML)
+	mkdir -p $(MANUAL_HTML)/Fig
 	cp zelus.css $(MANUAL_HTML)
-	cp Fig/*.eps Fig/*.ps $(MANUAL_HTML)
+	cp hevea.sty $(MANUAL_HTML)
+	cp runverbatim.sty $(MANUAL_HTML)
+	cp Fig/*.eps Fig/*.ps $(MANUAL_HTML)/Fig/
 	(cd $(MANUAL_HTML); \
 	 $(HEVEA) -fix -I .. zelus.hva ../$< -o $@; \
 	 $(HACHA) $@)

@@ -134,7 +134,7 @@
     \setenvclass{lstlisting}{lstlisting runverbatim}%
     \stepcounter{runverbatim}%
     \def\@currentlabel{\therunverbatim}%
-    \setkeys{RVRB@envkeys}{#1}%
+    \@setkeys{RVRB@envkeys}{#1}%
     \global\def\RVRB@num{%
 	\ifthenelse{\value{runverbatim}<1000}{0}{}%
         \ifthenelse{\value{runverbatim}<100}{0}{}%
