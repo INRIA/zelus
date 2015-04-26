@@ -3,6 +3,7 @@
 \usepackage[T1]{fontenc}
 \usepackage[prompt=]{runverbatim}
 \usepackage{listings}
+\usepackage{hevea}
 
 \lstdefinestyle{camlstyle}{%
   language=caml,
@@ -10,7 +11,12 @@
   keywordstyle=\bf,
   literate={"}{\textquotedbl}1,
 }
+%BEGIN LATEX
 \runverbatimsetup{codelst={style=camlstyle}}
+%END LATEX
+%HEVEA \newstyle{.runverbatimerr}{font-style: italic; color: red;}
+%HEVEA \newstyle{.runverbatimmsg}{font-style: italic;}
+%HEVEA \runverbatimsetup{codelst=\{style=camlstyle\}}
 
 \begin{document}
 
