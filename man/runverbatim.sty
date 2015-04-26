@@ -171,64 +171,64 @@
   {%
     \lst@EndWriteFile%
     \egroup%
-    \ifRVRB@showcode
+    \ifRVRB@showcode%
         \bgroup%
-        \ifx\RVRB@codelst\RVRB@emptyoption\else
+        \ifx\RVRB@codelst\RVRB@emptyoption\else%
           \expandafter\lstset\expandafter{\RVRB@codelst,fancyvrb=true}%
-        \fi
+        \fi%
         \expandafter\fvset\expandafter{\RVRB@verbopts}%
         \expandafter\VerbatimInput\expandafter[\RVRB@codestyle]{\RVRB@file\RVRB@ext}%
         \egroup%
-    \fi
-    \global\edef\RVRB@none{$\langle$Cannot load \RVRB@file.tex!$\rangle$}
-    \InputIfFileExists{\RVRB@file.tex}{\RVRB@fileexiststrue}{\RVRB@fileexistsfalse}
-    \ifRVRB@fileexists
-        \@ifundefined{FV@SV@RunVerbatimMsg}
-          {}{\global\let\FV@SV@RVRB@MSG@=\FV@SV@RunVerbatimMsg}
-        \@ifundefined{FV@SV@RunVerbatimErr}
-          {}{\global\let\FV@SV@RVRB@ERR@=\FV@SV@RunVerbatimErr}
-        \ifRVRB@shouldfail
-            \ifrunverbatim
-                \PackageWarning{runverbatim}
-                    {Compilation of \RVRB@file\RVRB@ext\space should have failed}
-                \ifRVRB@showerrors
+    \fi%
+    \global\edef\RVRB@none{$\langle$Cannot load \RVRB@file.tex!$\rangle$}%
+    \InputIfFileExists{\RVRB@file.tex}{\RVRB@fileexiststrue}{\RVRB@fileexistsfalse}%
+    \ifRVRB@fileexists%
+        \@ifundefined{FV@SV@RunVerbatimMsg}%
+          {}{\global\let\FV@SV@RVRB@MSG@=\FV@SV@RunVerbatimMsg}%
+        \@ifundefined{FV@SV@RunVerbatimErr}%
+          {}{\global\let\FV@SV@RVRB@ERR@=\FV@SV@RunVerbatimErr}%
+        \ifRVRB@shouldfail%
+            \ifrunverbatim%
+                \PackageWarning{runverbatim}%
+                    {Compilation of \RVRB@file\RVRB@ext\space should have failed}%
+                \ifRVRB@showerrors%
                   \UseVerbatim[frame=single,
                                label=Unexpected success,
-                               rulecolor=\color{red}]{RunVerbatimMsg}
-                \fi
-            \else
-                \ifRVRB@withresult
-                   {\setlength{\partopsep}{0em}\runverbatimerr{}}
-                \fi
-            \fi
-        \else
-            \ifrunverbatim
-                \ifRVRB@withresult
-                   {\setlength{\partopsep}{0em}\runverbatimmsg{}}
-                \fi
-            \else
-                \PackageWarning{runverbatim}
-                    {Compilation of \RVRB@file\RVRB@ext\space should not have failed}
-                \ifRVRB@showerrors
+                               rulecolor=\color{red}]{RunVerbatimMsg}%
+                \fi%
+            \else%
+                \ifRVRB@withresult%
+                   {\setlength{\partopsep}{0em}\runverbatimerr{}}%
+                \fi%
+            \fi%
+        \else%
+            \ifrunverbatim%
+                \ifRVRB@withresult%
+                   {\setlength{\partopsep}{0em}\runverbatimmsg{}}%
+                \fi%
+            \else%
+                \PackageWarning{runverbatim}%
+                    {Compilation of \RVRB@file\RVRB@ext\space should not have failed}%
+                \ifRVRB@showerrors%
                   \UseVerbatim[frame=single,
                                label=Unexpected failure,
-                               rulecolor=\color{red}]{RunVerbatimErr}
-                \fi
-            \fi
-        \fi
-    \else
-        \PackageWarning{runverbatim}{Cannot load \RVRB@file.tex}
-        \global\let\runverbatimcmd\RVRB@none
-        \global\let\FV@SV@RVRB@MSG@\@undefined
-        \global\let\FV@SV@RVRB@ERR@\@undefined
-    \fi
-    \@ifundefined{RVRB@label}{}{
-      \global\expandafter\let
+                               rulecolor=\color{red}]{RunVerbatimErr}%
+                \fi%
+            \fi%
+        \fi%
+    \else%
+        \PackageWarning{runverbatim}{Cannot load \RVRB@file.tex}%
+        \global\let\runverbatimcmd\RVRB@none%
+        \global\let\FV@SV@RVRB@MSG@\@undefined%
+        \global\let\FV@SV@RVRB@ERR@\@undefined%
+    \fi%
+    \@ifundefined{RVRB@label}{}{%
+      \global\expandafter\let%
         \csname FV@SV@RVRB@MSG@\RVRB@label\endcsname=\FV@SV@RVRB@MSG@%
-      \global\expandafter\let
+      \global\expandafter\let%
         \csname FV@SV@RVRB@ERR@\RVRB@label\endcsname=\FV@SV@RVRB@ERR@%
-    }
-  }
+    }%
+  }%
 \makeatother
 \clearpage
 \endinput

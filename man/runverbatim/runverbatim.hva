@@ -65,6 +65,13 @@
 \define@key{RVRB@pkgkeys}{prefix}[]{\def\RVRB@prefix{#1}}
 \define@key{RVRB@pkgkeys}{ext}[]{\def\RVRB@ext{#1}}
 
+% Unused options
+\define@key{RVRB@pkgkeys}{ignoreerrors}[]{}
+\define@key{RVRB@pkgkeys}{compiler}[]{}
+\define@key{RVRB@pkgkeys}{compilerflags}[]{}
+\define@key{RVRB@pkgkeys}{lastflags}[]{}
+\define@key{RVRB@pkgkeys}{includecmd}[]{}
+
 % % % Process Options % % %
 
 % Work around the lack of \DeclareOption* in package.hva
