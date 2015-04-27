@@ -156,10 +156,99 @@ address a {
     overflow: hidden;
 }
 
+/* HeVeA Generated Manual Pages */
+
+.subsection:before {
+    display: block;
+    content: "";
+    height: 60px;
+    margin: -60px 0 0; 
+} /* correct anchor offset */
+
+.lstlisting {
+    font-family: monospace;
+    white-space: pre;
+    margin-right: auto;
+    margin-left: 1em;
+    margin-bottom: 2ex;
+    text-align: left
+}
+
+.runverbatimmsg {
+    font-style: italic;
+}
+
+.runverbatimerr {
+    font-style: italic;
+}
+
+body.manual pre {
+    background-color: white;
+    color: none;
+    font-size: 90%;
+    line-height: 100%;
+    border: 0pt;
+    padding-left: 1em;
+    padding-top: 0px;
+    padding-bottom: 0px;
+}
+
+div.chrono td { min-width: 2em; }
+div.chrono {
+    padding-top: 1ex;
+    padding-bottom: 2ex;
+}
+div.center table {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.footnotetext {
+    margin: 0ex;
+    padding:0ex;
+}
+
+div.footnotetext P {
+    margin: 0px;
+    text-indent: 1em;
+}
+
+.thefootnotes {
+    text-align: left;
+    margin: 0ex;
+}
+
+.dt-thefootnotes {
+    margin:0em;
+}
+
+.dd-thefootnotes {
+    margin:0em 0em 0em 2em;
+}
+
+hr.footnoterule {
+    color: black;
+    margin: 1em auto 1em 0px;
+    width: 50%;
+}
+
+.caption {
+    padding-left: 2ex;
+    padding-right: 2ex;
+    margin-left: auto;
+    margin-right: auto;
+}
+
 /* CUSTOMIZE THE SIDE BAR
 -------------------------------------------------- */
 
 .sidebar-nav { margin-top: 20px; }
+
+ul.nav hr {
+    margin-top: .5ex;
+    margin-bottom: .5ex;
+    border-color: #a48800;
+}
 
 .sidebar-nav {
     padding: 9px 0;

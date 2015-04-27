@@ -27,7 +27,7 @@
         <meta name="description" content="Zélus user and reference manual."/>
         <meta name="author" content="Timothy Bourke and Marc Pouzet"/>
       </head>
-      <body data-spy="scroll" data-target=".sidebar-nav">
+      <body class="manual" data-spy="scroll" data-target=".sidebar-nav">
         <xsl:copy-of select="document('../www/src/inc-titlebar.html')" />
         <script>
         window.onload = function() {
@@ -68,10 +68,23 @@
   </xsl:template>
 
   <xsl:template mode="body_links" match="/html/body">
-    <xsl:for-each select="h3">
-        <li><a href="#{@id}"><xsl:value-of select="text()"/></a></li>
+    <xsl:for-each select="h1 | h2 | h3">
+      <li><a href="#{@id}">
+          <xsl:value-of select="text()"/></a>
+      </li>
     </xsl:for-each>
   </xsl:template>
+
+  <!--
+  <xsl:template match="h3">
+    <xsl:variable name="header" select="."/>
+    <div id="{concat(@id, '_link')}" class="example-section">
+      <h3 id="{@id}" class="{@class}"><xsl:value-of select="text()"/></h3>
+      <xsl:copy-of
+        select="following-sibling::*[preceding-sibling::h3[1] = $header]"/>
+    </div>
+  </xsl:template>
+  -->
 
   <!--strip away the <body> tags-->
   <xsl:template match="/html/body">
@@ -79,7 +92,7 @@
   </xsl:template>
 
   <!--strip away the first and last <hr>-->
-  <xsl:template match="html/body/hr[position()=1 or last()]"/>
+  <xsl:template match="html/body/hr[position()=1 or last() and not(@class = 'footnoterule')]"/>
 
   <!--strip away the navigation links-->
   <xsl:template match="html/body/a
