@@ -227,8 +227,10 @@ div.footnotetext P {
 }
 
 hr.footnoterule {
+    border-top: none;
+    border-bottom: solid 2px;
+    padding-top: 4em;
     border-color: #a48800;
-    margin: 1em auto 1em 0px;
     width: 50%;
 }
 
