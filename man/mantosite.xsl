@@ -18,6 +18,23 @@
     </xsl:copy>
   </xsl:template>
 
+  <!--add ../ to all a:hrefs-->
+  <xsl:template mode="adjustpaths" match="a">
+    <a>
+      <xsl:attribute name="href">
+        <xsl:value-of select="concat('../', @href)" />
+      </xsl:attribute>
+      <xsl:apply-templates mode="adjustpaths"
+                           select="@*[name()!='href']|node()" />
+    </a>
+  </xsl:template>
+
+  <xsl:template mode="adjustpaths" match="@*|node()">
+    <xsl:copy>
+      <xsl:apply-templates mode="adjustpaths" select="@*|node()"/>
+    </xsl:copy>
+  </xsl:template>
+
   <!--...but only within the body-->
   <xsl:template match="/">
     <html>
@@ -28,7 +45,8 @@
         <meta name="author" content="Timothy Bourke and Marc Pouzet"/>
       </head>
       <body class="manual" data-spy="scroll" data-target=".sidebar-nav">
-        <xsl:copy-of select="document('../www/src/inc-titlebar.html')" />
+        <xsl:apply-templates mode="adjustpaths"
+                             select="document('inc-titlebar.html')" />
         <script>
         window.onload = function() {
           document.getElementById('title-manual').className = 'active';
@@ -39,9 +57,9 @@
             <div class="span3 hidden-print">
               <div class="well sidebar-nav" data-spy="affix">
                 <ul class="nav nav-list">
-                  <xsl:apply-templates select="html/body" mode="nav_links"/>
+                  <xsl:apply-templates select="html/body" mode="navlinks"/>
                   <hr/>
-                  <xsl:apply-templates select="html/body" mode="body_links"/>
+                  <xsl:apply-templates select="html/body" mode="bodylinks"/>
                 </ul>
               </div><!--/.well -->
             </div><!--/span-->
@@ -50,13 +68,13 @@
             </div><!--/span-->
           </div><!--/row-->
         </div><!--/.fluid-container-->
-        <xsl:copy-of select="document('inc-javascript.html')" />
+        <xsl:copy-of select="document('inc-javascript.html')/contents/*" />
       </body>
     </html>
   </xsl:template>
 
   <!--extract the next, up, and previous buttons-->
-  <xsl:template mode="nav_links" match="/html/body">
+  <xsl:template mode="navlinks" match="/html/body">
     <xsl:variable name="navlinks" select="a
       [descendant::img[@alt='Up' or @alt='Next' or @alt='Previous']]"/>
     <xsl:variable name="numnavlinks" select="count($navlinks) div 2"/>
@@ -67,7 +85,7 @@
     </xsl:for-each>
   </xsl:template>
 
-  <xsl:template mode="body_links" match="/html/body">
+  <xsl:template mode="bodylinks" match="/html/body">
     <xsl:for-each select="h1 | h2 | h3">
       <li><a href="#{@id}">
           <xsl:value-of select="text()"/></a>

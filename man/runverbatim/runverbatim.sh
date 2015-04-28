@@ -215,7 +215,7 @@ compile() {
     if [ "$(wc -l < "$OUTFILE")" -eq 0 ]; then
 	printf "Failed.\n"			      >> "$opath"
     else
-	sed -e "s#$SUBDIR$ifile#$PREFIX#g" "$OUTFILE" >> "$opath_msg"
+	sed -e "s#$SUBDIR$ifile#$PREFIX#g" "$OUTFILE" > "$opath_msg"
 	cat "$opath_msg"			      >> "$opath"
     fi
     printf "%s\n" '\end{RunVerbatimMsg}'	      >> "$opath"
@@ -225,7 +225,7 @@ compile() {
     if [ "$(wc -l < "$ERRFILE")" -eq 0 ]; then
 	printf "%s\n" "Success."		      >> "$opath"
     else
-	sed -e "s#$SUBDIR$ifile#$PREFIX#g" "$ERRFILE" >> "$opath_err"
+	sed -e "s#$SUBDIR$ifile#$PREFIX#g" "$ERRFILE" > "$opath_err"
 	cat "$opath_err"			      >> "$opath"
     fi
     printf "%s\n" '\end{RunVerbatimErr}'	      >> "$opath"
