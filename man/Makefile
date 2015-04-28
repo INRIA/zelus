@@ -61,18 +61,18 @@ wwwman: $(MANUAL_HTML)/manual.html \
 
 inc-header.html: ../www/src/inc-header.html
 	@printf '<head>' > $@
-	@sed $< -e 's/<meta\(.*\)>/<meta\1 \/>/'	\
-	        -e 's/<link\(.*\)>/<link\1 \/>/'	\
-	        -e 's/.\/css\//..\/css\//'		\
-	        -e 's/.\/js\//..\/js\//'		\
-	    >> $@
+	@sed -e 's#<meta\(.*\)>#<meta\1 />#'	\
+	     -e 's#<link\(.*\)>#<link\1 />#'	\
+	     -e 's#./css/#../css/#'		\
+	     -e 's#./js/#../js/#'		\
+	    $< >> $@
 	@printf '</head>' >> $@
 
 inc-javascript.html: ../www/src/inc-javascript.html
 	@printf '<contents>' > $@
-	@sed $< -e 's/<meta\(.*\)>/<meta\1 \/>/'	\
-	        -e 's/.\/js\//..\/js\//'		\
-	    >> $@
+	@sed -e 's#<meta\(.*\)>#<meta\1 />#'	\
+	     -e 's#./js/#../js/#'		\
+	    $< >> $@
 	@printf '</contents>' >> $@
 
 inc-titlebar.html: ../www/src/inc-titlebar.html
