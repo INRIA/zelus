@@ -17,6 +17,16 @@ open Zelus
 
 module Dependences = Dependences.Make(Vars)
 
+(* check the absence of cycles *)
+let check_no_cycle g_list =
+  let c_opt = Graph.cycle g_list in
+  match c_opt with
+  | None -> ()
+  | Some(eq_list) ->
+     Misc.internal_error
+       "Cycle: equations cannot be scheduled"
+       (Printer.equation_list "" "") eq_list
+  
 (* scheduling *)
 let schedule eq_list =
   (* possible overlapping between conditions *)
@@ -51,6 +61,8 @@ let schedule eq_list =
     
   (* build the dependence graph *)
   let graph = Dependences.build eq_list in
+  (* check that there is no cycle. This situation should not arrive *)
+  check_no_cycle graph;
   (* schedule it *)
   let l = Graph.topological graph in
   let l = List.rev (recook (List.rev (recook l))) in

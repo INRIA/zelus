@@ -105,6 +105,9 @@ and build bounded acc { eq_desc = desc; eq_before = before } =
 	  
 and build_list bounded acc eq_list = List.fold_left (build bounded) acc eq_list
 
+let fv acc e =
+  let acc_last, acc = fv S.empty (S.empty, acc) e in S.union acc_last acc
+
 (** The main entries *)
 let rec init { eq_desc = desc } =
   match desc with
@@ -112,13 +115,12 @@ let rec init { eq_desc = desc } =
   | EQreset([eq], _) -> init eq
   | _ -> false
 
-let fv acc e =
-  let acc_last, acc = fv S.empty (S.empty, acc) e in S.union acc_last acc
-
 let read eq = fv_eq S.empty (S.empty, S.empty) eq
 let def eq = build S.empty S.empty eq
 let defs eq_list = List.fold_left (build S.empty) S.empty eq_list
-let rec antidep { eq_desc = desc } =
-  match desc with
-    | EQeq(_, { e_desc = Eapp((Eunarypre | Efby | Eup), _) }) | EQnext _ -> true
-    | _ -> false
+let nodep ({ eq_desc }) =
+  match eq_desc with
+  | EQeq(_, { e_desc = Eapp(Eup, _) }) -> true | _ -> false
+let control ({ eq_desc }) =
+  match eq_desc with
+  | EQmatch _ -> true | _ -> false

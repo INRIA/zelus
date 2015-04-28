@@ -171,7 +171,7 @@ let rec after tc c =
     | Cproduct(l) -> Cproduct(List.map (fun tc -> after tc c) l)
     | Catom(left_c) -> Catom(afterc left_c c)
 and afterc left_c c = cless left_c c; c
-    
+
 (* Compute the sup of two types *)
 let rec sup left_tc right_tc =
   match left_tc, right_tc with
@@ -207,6 +207,12 @@ let supenv left_env right_env =
 
 let supenv_list env_list = List.fold_left supenv Env.empty env_list
   
+(* adds a control dependence *)
+let rec control c tc =
+  match tc with
+  | Cproduct(l) -> Cproduct(List.map (control c) l)
+  | Catom(right_c) -> Catom(supc c right_c)
+     
 
 let rec copy c = function
   | Cproduct(tc_list) -> product (List.map (copy c) tc_list)

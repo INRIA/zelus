@@ -61,16 +61,20 @@ struct
   let root x cenv = find false x cenv
   let find x cenv = find true x cenv
 
-  (* returns the current dependence variable *)
-  let rec dep cenv =
-    match cenv with
-      | Empty -> Causal.new_var ()
-      | On(cenv, c) -> c
-      | Append(env, cenv) -> dep cenv
-
+  (* the dependence introduced by a control block *)
+  let rec dep = function
+    | Empty -> Causal.new_var ()
+    | On(_, c) -> c
+    | Append(env, cenv) -> dep cenv
+			       
+  (* add a dependence from the current control block to a type [ty] *)
+  let rec control cenv ty =
+    let c = dep cenv in
+    Causal.control c ty
+  
   let empty = Empty
   let append env cenv = Append(env, cenv)
-  let on cenv c = On(cenv, Causal.afterc (dep cenv) c)
+  let rec on cenv c = On(cenv, Causal.afterc (dep cenv) c)
 
   (* makes a copy of an environment for a set of names *)
   (* according to a boolean flag [is_last] *)
@@ -218,8 +222,7 @@ let rec exp expected_k env ({ e_desc = desc; e_typ = ty; e_loc = loc } as e) =
       (* if variables from [env] are computed before [c] *)
       (* constants are synchronized with [c] *)
       | Econst _ | Econstr0 _
-      | Eglobal _ | Eperiod _ ->
-                     let c = Cenv.dep env in Causal.skeleton_on_c c ty
+      | Eglobal _ | Eperiod _ -> Causal.skeleton ty
       | Elocal(x) ->
          begin try
              let { t_typ = actual_ty } = Cenv.find x env in
@@ -341,32 +344,33 @@ and equation expected_k env
   match desc with
     | EQeq(p, e) ->
         let ty_e = exp expected_k env e in
-        pattern p ty_e
+        pattern p (Cenv.control env ty_e)
     | EQder(n, e, e0_opt, h_e_list) ->
         (* no causality constraint for [e] *)
         let _ = exp expected_k env e in
-        (* type the initialization and handler *)
         let c_e = Causal.new_var () in
         let env = Cenv.on env c_e in
+        (* type the initialization and handler *)
         let ty =
           match h_e_list with
-            | [] -> Causal.skeleton_on_c c_e e.e_typ
-            | _ -> present_handler_exp_list expected_k env h_e_list None in
+          | [] -> Causal.skeleton_on_c c_e e.e_typ
+          | _ -> let ty = present_handler_exp_list expected_k env h_e_list None in
+		 Cenv.control env ty in
         let ty =
           match e0_opt with
           | None -> ty
           | Some(e0) ->
-            sup ty (exp (Types.lift_to_discrete expected_k) env e0) in
+             Causal.sup ty (exp (Types.lift_to_discrete expected_k) env e0) in
         Env.singleton n { t_typ = ty; t_last = true }
     | EQset(_, e) -> let _ = exp expected_k env e in Env.empty
     | EQinit(n, e0) ->
         let ty = exp expected_k env e0 in
-        Env.singleton n { t_typ = ty; t_last = false }
+        Env.singleton n { t_typ = Cenv.control env ty; t_last = false }
     | EQnext(n, e, e0_opt) ->
         ignore (exp expected_k env e);
         let expected_ty = Causal.skeleton_on_c (Causal.new_var ()) e.e_typ in
         begin match e0_opt with
-              | None -> () | Some(e) -> exp_before expected_k env e expected_ty
+              | None -> () | Some(e0) -> exp_before expected_k env e0 expected_ty
         end;
         Env.singleton n { t_typ = expected_ty; t_last = false }
     | EQautomaton(is_weak, s_h_list, se_opt) ->
@@ -453,7 +457,7 @@ and equation expected_k env
           | None -> ()
           | Some(e) -> exp_before_on_c expected_k env e c_e
         end;
-        Env.singleton n { t_typ = atom c_e; t_last = false }
+        Env.singleton n { t_typ = Cenv.control env (atom c_e); t_last = false }
     | EQblock(b_eq_list) ->
         block_eq_list expected_k env b_eq_list
 

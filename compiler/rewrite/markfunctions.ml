@@ -13,9 +13,6 @@
 (**************************************************************************)
 
 (* Mark functions to be inlined. *)
-(* For a function definition: f(x) = y where ... k = g(e) ... *)
-(* the call to g is inlined when [x: a], [y: b] and [g: b -> a] *)
-(* that is, the call to [g] breaks an instantaneous dependence between [x] and [y] *)
 
 open Zelus
 open Causal

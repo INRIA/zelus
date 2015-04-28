@@ -47,17 +47,15 @@ let union n_list1 n_list2 =
 
 let add node n_list = if List.memq node n_list then n_list else node :: n_list
 
-(* direct dependences *)
-let prec g_list = List.fold_left (fun acc g -> union acc g.g_depends_on) [] g_list
-
-
 (** Add a dependence. [add_depends node1 node2] makes [node1] also depend *)
 (** on [node2] *)
 let add_depends node1 node2 =
   node1.g_depends_on <- add node2 node1.g_depends_on;
   node2.g_depends_by <- add node1 node2.g_depends_by
+
 let graph top_list bot_list = { g_top = top_list; g_bot = bot_list }
 
+(* print a graph. *)
 let print { g_bot = bot_list } =
   let rec print acc g =
     if g.g_visited then acc
@@ -66,9 +64,10 @@ let print { g_bot = bot_list } =
         g.g_visited <- true;
         let acc =
           (containt g, g.g_mark, List.map containt g.g_depends_on) :: acc in
-        List.fold_left print acc g.g_depends_on
-      end in
-  let acc = List.fold_left print [] bot_list in
+        print_list acc g.g_depends_on
+      end
+  and print_list acc g_list = List.fold_left print acc g_list in
+  let acc = print_list [] bot_list in
   let bot_list = List.map containt bot_list in
   bot_list, acc
 
@@ -96,16 +95,14 @@ let topological g_list =
 (*  - 0 for "opened" nodes, currently visited, while visiting its descendents*)
 (*  - 1 for "closed" nodes, visited once, no circuits found from it. *)
 (*  A circuit is found when a node marked with 0 is visited again.*)
-let cycle { g_bot = g_list } =
+let cycle g_list =
   (* store nodes in a stack *)
   let s = Stack.create () in
   (* flush the connected component *)
   let rec flush index =
     if Stack.is_empty s then []
-    else let v = Stack.top s in
-         if v.g_tag = index then let _ = Stack.pop s in []
-         else let v = Stack.pop s in
-              v.g_containt :: flush index in
+    else let v = Stack.pop s in
+    v.g_containt :: flush v.g_tag in
 
   let rec visit g =
     match g.g_mark with
@@ -130,7 +127,10 @@ let cycle { g_bot = g_list } =
   with
     | Cycle(index) -> Some(flush index)
 
-let accessible useful_nodes graph =
+(** [accessible useful_nodes g_list] returns the list of
+    accessible nodes starting from useful_nodes and belonging to
+    g_list. *)
+let accessible useful_nodes g_list =
   let rec follow g =
     if not g.g_visited then
       begin
@@ -140,4 +140,10 @@ let accessible useful_nodes graph =
   let read acc g =
     if g.g_visited then begin g.g_visited <- false; g :: acc end else acc in
   List.iter follow useful_nodes;
-  List.fold_left read [] graph.g_bot
+  List.fold_left read [] g_list
+
+(** [exists_path nodes n1 n2] returns whether there is a path
+    from n1 to n2 in the graph. nodes is the list of all the nodes
+    in the graph. *)
+let exists_path nodes n1 n2 =
+  List.mem n2 (accessible [n1] nodes)

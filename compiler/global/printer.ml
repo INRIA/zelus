@@ -80,7 +80,8 @@ let rec pattern ff ({ p_caus = caus_list } as pat) =
         fprintf ff "%a as %a" pattern p name n
     | Eorpat(pat1, pat2) ->
        fprintf ff "%a | %a" pattern pat1 pattern pat2 in
-  fprintf ff "@[%a (* caus: %a *)@]" pattern pat Pcaus.caus_list caus_list  
+(* fprintf ff "@[%a (* caus: %a *)@]" pattern pat Pcaus.caus_list caus_list *)
+  pattern ff pat
   
 
 and pattern_list ff pat_list =

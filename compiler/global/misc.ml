@@ -223,7 +223,7 @@ exception Error
 
 (* Internal error in the compiler. *)
 let internal_error message printer input =
-  Format.eprintf "Internal error (%s) %a@." message printer input;
+  Format.eprintf "@[Internal error (%s)@. %a@.@]" message printer input;
   raise Error
 
 (* generic data-structres for sets and symbol tables *)
