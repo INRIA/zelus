@@ -67,6 +67,7 @@
 \DeclareStringOption{compilerflags}
 \DeclareStringOption[-i]{lastflags}
 \DeclareStringOption[open]{includecmd}
+\DeclareStringOption[]{html}
 \ProcessKeyvalOptions*
 \def\runverbatimsetup{\kvsetkeys{RVRB}}
 \newwrite\RVRB@samplefile
@@ -79,6 +80,7 @@
 \write\RVRB@samplefile{compilerflags=\RVRB@compilerflags}
 \write\RVRB@samplefile{lastflags=\RVRB@lastflags}
 \write\RVRB@samplefile{includecmd=\RVRB@includecmd}
+\write\RVRB@samplefile{htmlfilter=\RVRB@html}
 \DeclareRobustCommand{\RVRB@logsample}[2]{%
   \edef\RVRB@tolog{#1:#2 [page=\noexpand\thepage] [line=\the\inputlineno]}%
   \expandafter\write\expandafter\RVRB@samplefile\expandafter{\RVRB@tolog}%

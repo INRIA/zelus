@@ -14,6 +14,7 @@
             compilerflags={-I ../lib -I ./samples},
             lastflags={-i},
             includecmd={},
+            html={../tools/zltohtml},
            ]{runverbatim}
 \fvset{xleftmargin=3mm}
 \ifhevea
@@ -730,7 +731,7 @@ let half_add(a,b) = (s, co) where
        s = xor (a, b)
    and co = a & b
 \end{runverbatim}
-
+%
 \begin{runverbatim}[continue,withresult]
 let full_add2(a, b, c) = (s, co) where
   rec (s1, c1) = half_add(a, b)
@@ -1021,7 +1022,6 @@ example. E.g., consider the initial value problem:
 \]
 Approximate the integration with the explicit Euler integrator defined previously. The
 signal $\temp$ can be implemented by the following recursive equation.
-
 \begin{runverbatim}[withresult,include=integr]
 (* [t0] is the initial temperature; [g0] and [g1] two constant *)
 let node heater(t0, g0, g1) = temp where
@@ -1115,7 +1115,7 @@ successive values of the input stream \verb-i-.
 type color = Blue | Red | Green
 type dir = Direct | Indirect | Undetermined | Immobile
 \end{runverbatim}
-
+%
 \begin{runverbatim}[continue,withresult]
 let node direction i = d where
   rec pi = i fby i
@@ -1279,7 +1279,6 @@ instants where \verb-m = Up- and the other denoting the instant where
 
 It is possible to define variables which stay local to a branch. For
 example:
-
 \begin{runverbatim}[include=updownmodes]
 let node two (m, i) = o where
   match m with
@@ -1466,7 +1465,6 @@ which is present with value \verb-()- every time \verb-c- is
 true. There is no need here to give an initial value to \verb-o-. When \verb-c- is
 false, \verb-o- is simply absent. Writting the following program would lead to
 an error:
-
 \begin{runverbatim}[withresult,fail]
 let node within (min, max, x) = o where
   rec c = (min <= x) & (x <= max)
@@ -1740,7 +1738,6 @@ argument \verb-v- could be replaced by any expression.
 The following program is a quite radical use of parameterized states: it
 is a simple counter that counts the number of
 occurrences of \verb-x-.
-
 \begin{runverbatim}[withresult]
 let node count x = o where rec o = 0 -> pre o + 1
 
@@ -1780,7 +1777,7 @@ a value \texttt{v}, the next state becomes \texttt{Sustain(v)} with the paramete
 let node abo (a, b) = o where
   present (await a)(v1) & (await b)(v2) -> do emit o = v1 + v2 done
 \end{runverbatim}
-
+%
 \begin{runverbatim}[withresult,continue]
 (* here is ABRO: the same except that we reset the behavior *)
 (* when r is true *)
@@ -1797,7 +1794,6 @@ computation of \verb-abo a b-: every stream in \verb-abo a b- restarts
 with its initial value. The language provides a specific
 \verb-reset/every- primitive as a shortcut of such a one-state
 automaton. We can write:
-
 \begin{runverbatim}[withresult,include=await]
 let node abro (a, b, r) = o where
   reset
@@ -1810,7 +1806,6 @@ equations (separated with an \verb-and-). Note that the reset
 operation correspond to strong preemption: the body is reseted at the
 instant where the condition is true. The language does not provide a
 ``weak reset''. Nonetheless, it can be programmed adding a unit delay.
-
 \begin{runverbatim}[withresult,include=abo]
   let node abro (a, b, r) = o where
     reset
@@ -1852,7 +1847,6 @@ is true. We first write a node \texttt{after} such that
 \texttt{after(n, t)} returns true when \texttt{t} had \texttt{n} true
 values. The node \texttt{blink\_reset} is a two mode automaton
 surrended by a reset.
-
 \begin{runverbatim}[withresult,label=after,label=blink_reset]
 let node after(n, t) = (cpt >= n) where
   rec tick = if t then 1 else 0
@@ -1898,7 +1892,6 @@ conditions only.
 The following programs integrates the integer sequence \verb-v- and
 emits false until the sum has reached some value \verb-max-. Then, it
 emits \verb-true- during \verb-n- instants.
-
 \begin{runverbatim}
 let node consume (max, n, v) = status where
   automaton
@@ -1921,7 +1914,6 @@ current one. Moreover, there is no restriction on the kind of
 expressions appearing in conditions and they may, in particular, have
 some internal state. For example, the previous program can be
 rewritten as:
-
 \begin{runverbatim}
 let node counting v = cpt where
   rec cpt = v -> pre cpt + v
@@ -1946,7 +1938,6 @@ in a strong preemption, the condition is evaluated {\em before} the
 equations of the body and thus, cannot depend on them. In a weak
 preemption, the condition is evaluated at the end, {\em after} the
 definitions of the body have been evaluated. Thus, when writing:
-
 \begin{runverbatim}[fail]
 let node consume (max, n, v) = status where
   automaton
@@ -1970,7 +1961,6 @@ The compiler emits the message:
 %\end{sample}
 The variable \verb-c- is not visible in the handler of the \verb-unless-. The
 same appears if \verb-c- is declared as a local variable.
-
 \begin{runverbatim}[fail]
 let node consume (max, n, v) = status where
   automaton
@@ -1999,7 +1989,6 @@ mode to the other is described by a two-state automaton whose behavior
 depends on the value computed in each mode. This example, due to
 Maraninchi \& R\'emond~\cite{Modes-SCP03} can be programmed in the
 following way.
-
 \begin{runverbatim}[include=updownmodes]
 let node two_states (i, min, max) = o where
   rec automaton
@@ -2040,7 +2029,6 @@ The initial state can be used for defining some variables whose value
 can then be sustained in remaining states. In that case, their last
 value is considered to be defined. Moreover, it becomes possible not
 to define their value in all the states.
-
 \begin{runverbatim}
 let node two_states (i, min, max) = o where
   rec automaton
@@ -2082,7 +2070,6 @@ Because the initial state \verb-Init- is only weakly preempted,
 \verb-i-. Thus, \verb-last o- is well defined in the remaining
 states. Note that replacing the weak preemption by a strong one will
 lead to an error.
-
 \begin{runverbatim}[fail]
 let node two_states (i, min, max) = o where
   rec automaton
@@ -2102,7 +2089,6 @@ and we get:
 We said previously that strong conditions must not depend on some
 variables computed in the current state but they can depend on some
 shared memory \verb-last o- as in:
-
 \begin{runverbatim}[skiptwo]
 let node two_states (i, min, max) = o where
 rec init o = i
@@ -2171,7 +2157,6 @@ case, it keeps its previous value, that is, an equation
 By default, when entering in a state, every computation in the state
 is reseted. We also provides some means to resume the internal memory
 of a state (this is called {\em enter by history} in UML diagrams).
-
 \begin{runverbatim}[include=updownmodes]
 let node two_modes (min, max) = o where
   rec automaton
@@ -2194,7 +2179,6 @@ let node two_modes (min, max) = o where
 This is an other way to write {\em activation conditions} and is very
 convenient for programming a scheduler which alternate between some
 computations, each of them keeping its own state as in:
-
 \begin{runverbatim}
 let node time_sharing (c, i) = (x,y) where
   rec automaton
@@ -2218,7 +2202,6 @@ in less than four \verb-top-. Emits \verb-simple- if only one click
 has been received.
 \end{quote}
 Here is a possible implementation:
-
 \begin{runverbatim}[label=counting,withresult]
 let node counting e = cpt where
   rec cpt = if e then 1 -> pre cpt + 1 else 0 -> pre cpt
@@ -2321,7 +2304,6 @@ mechanism allowing to test (and access) signals on transitions.
 
 Using signals, we can reprogram the mouse controller in the following
 way.
-
 \begin{runverbatim}[include=counting,withresult]
 type event = Simple | Double
 
@@ -2357,7 +2339,6 @@ statement.
 
 Let us consider a system with two input signals \verb-low-,
 \verb-high- and an output integer stream \verb-o-.
-
 \begin{runverbatim}[withresult]
 let node switch (low, high) = o where
   rec automaton
@@ -2384,7 +2365,6 @@ the value of the signal at the instant where $e$ is present.  In the
 above example, it introduces the variable \verb-w-. It is also
 possible to test for the presence of a signal as well as the validity
 of a boolean condition. For example:
-
 \begin{runverbatim}[withresult]
 let node switch (low, high) = o where
   rec automaton
@@ -2405,7 +2385,6 @@ The system has the same behavior except that the presence of
 
 Finally, we can write a new version of the mouse controller where all
 the values are signals.
-
 \begin{runverbatim}[withresult]
 type event = Simple | Double
 
@@ -2429,7 +2408,6 @@ It is possible to initialize the parameter of the initial state by adding
 an initialization to the automaton. E.g., the following two state automaton
 starts in state \texttt{On(incr)} with \texttt{incr} initialized with the first
 value of \texttt{i0}.
-
 \begin{runverbatim}[withresult]
 let node two_states(i0, idle, run) = o where
   rec automaton
@@ -2507,7 +2485,6 @@ where $g_0$ and $g_1$ are two constant values.
 $t_0$ is the initial temperature. Instead
 of choosing an explicit integration scheme as we did in
 paragraph~\cref{causality-check}, we write:
-
 \begin{runverbatim}[withresult]
 let hybrid heater(t0, g0, g1) = t where
   rec der t = g0 -. g1 *. t init t0
@@ -2559,7 +2536,6 @@ instants, and cannot contain any nested continuous-time computations.
 
 A classical example of a continuous-time function is a PI
 (Proportional Integral) controller.
-
 \begin{runverbatim}[withresult]
 (* a continuous-time integrator *)
 let hybrid integr(x0, x') = x where
@@ -2587,7 +2563,6 @@ let node disc_pi(kp, ki, error) = cmd where
 The language forbids the arbitrary mix of discrete logical time and
 continuous-time signals and systems. The intuition can be illustrated
 on the following two simple programs:
-
 \begin{runverbatim}[fail]
 let hybrid wrong() = o where
   rec der x = 1.0 init 0.0
@@ -2717,7 +2692,6 @@ It is important to notice that replacing \texttt{last y'} by
 \texttt{y'} would lead to a causality error. Indeed, that would make
 the current value of \texttt{y'} instantaneously depend on itself and
 this is statically rejected by the compiler. Typing:
-
 \begin{runverbatim}[include=gravity,fail]
 let hybrid bouncing(x0,y0,x'0,y'0) = (x,y) where
  rec der x = x' init x0
@@ -2733,7 +2707,6 @@ we get the compilation error:
 An other example of a reset of an ODE is with the classical sawtooth
 signal $x: \bR^+ \mapsto \bR^+$ such that $\DotNotation{x}(t) = 1$ and
 $x(t) = 0$ if $t\in\bN$.
-
 \begin{runverbatim}[withresult]
 let hybrid sawtooth() = x where
   rec der x = 1.0 init 0.0 reset up(last x -. 1.0) -> 0.0
@@ -2751,7 +2724,6 @@ timers. A timer with phase \texttt{phase} and period \texttt{period} generates
 an event at instant $t = \mathtt{phase} + n \cdot \mathtt{period}$ with
 $n \in \bN^+$. Such a timer can be interpreted as a zero-crossing event as
 exemplified by the following program:
-
 \begin{runverbatim}[withresult]
 let hybrid timer(phase, p) = z where
   rec der t = 1.0 init -. phase reset z -> -. p
@@ -2782,25 +2754,25 @@ high threshold \verb-t_max-. Finally, the main system is obtained by
 putting the heater and the controller in parallel. Observe that the
 boolean signal \verb-active- only changes when a zero-
 occurs. This property is ensured by typing.
-
+%
 % \subsection{A Ball Bouncing on a Staircase}
 % We illustrate them on the classical example of a falling bouncing ball on
 % a staircase as illustrated in Figure~\cref{bouncing-ball-staircase}.
-
+%
 % \Marc{Ajouter l'image de la page web.}
-
+%
 % \begin{runverbatim}
 % (* module Ball *)
 % (* [ground x] returns the position in [y] *)
 % let ground x = World.ground(x)
-
+%
 % let x0 = 0.0
 % let y0 = 9.0
 % let x0' = 0.8
 % let y0' = 0.0
 % let g = 9.81
 % let loose = 0.8
-
+%
 % (* The bouncing ball *)
 % let hybrid ball() = (x, y, z) where
 %   rec der x = x' init x0
@@ -2808,14 +2780,14 @@ occurs. This property is ensured by typing.
 %   and der y = y' init y0
 %   and der y' = -. g init 0.0 reset z -> (-. loose *. last y')
 %   and z = up(ground(x) -. y)
-
+%
 % (* Main entry point *)
 % let hybrid main () =
 %   let (x, y, z) = ball(x, y_0) in
 %   present (period (0.04)) | z -> Showball.show (x fby x, y fby y, x, y);
 %   ()
 % \end{runverbatim}
-
+%
 \begin{runverbatim}
 let c = 1.0
 let k = 1.0
@@ -2844,11 +2816,11 @@ the temperature \verb-temps- and which has to be given to the numeric solver,
 the function that compute the zero-crossing signal which must be observed
 during integration and the rest of the program which is executed every time
 a zero-crossing occurs.
-
+%
 % It has been a matter of taste to program the hybrid function \texttt{heater} with
 % a conditional, as well has having programmed the controller with an automaton.
 % E.g., one could have written equivalently:
-
+%
 % \begin{runverbatim}
 % let hybrid heater(active) = temps where
 %   automaton
@@ -2875,7 +2847,6 @@ to be deterministic:
 We give below a simple example of an hybrid automaton. Define first
 a module \texttt{Ball} (in a file \texttt{ball.zls}) which models a ball bouncing
 on a staircase.~\footnote{The complete example is available in the distribution.}
-
 \begin{runverbatim}[withresult]
 (* [ground x] returns the position in [y] *)
 
@@ -2898,7 +2869,6 @@ stair from position \verb-x-. We model now a ball that bounces on this
 staircase but slides when the speed is below a certain threashold. We
 write this in a module \verb-Autoball- (that is, file
 \verb-autoball.zls-).
-
 \begin{runverbatim}[continue,withresult]
 let eps = 0.01
 
