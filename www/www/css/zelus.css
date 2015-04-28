@@ -44,6 +44,19 @@ code {
     font-family: Cabin, sans-serif;
 }
 
+body.manual code {
+    font-size: 105%;
+    line-height: 130%;
+}
+
+body.manual pre.zelus {
+    padding-top: 1ex;
+}
+
+body.manual p + pre.zelus {
+    padding-top: 0ex;
+}
+
 .important-button {
     width: 100%;
     text-align: center;
@@ -158,6 +171,18 @@ address a {
 
 /* HeVeA Generated Manual Pages */
 
+h2.section {
+    text-align: left;
+}
+
+h2.subsection {
+    text-align: left;
+}
+
+h2.subsubsection {
+    text-align: left;
+}
+
 .subsection:before {
     display: block;
     content: "";
@@ -175,11 +200,31 @@ address a {
 }
 
 .runverbatimmsg {
+    padding-top: 1ex;
     font-style: italic;
+    font-size: 85%;
+}
+
+p + .runverbatimmsg {
+    padding-top: 0ex;
 }
 
 .runverbatimerr {
+    padding-top: 1ex;
     font-style: italic;
+    font-size: 85%;
+}
+
+p + .runverbatimerr {
+    padding-top: 0ex;
+}
+
+div.zelusprompt {
+    padding-top: 1ex;
+}
+
+p + div.zelusprompt {
+    padding-top: 0ex;
 }
 
 body.manual pre {
@@ -198,9 +243,18 @@ div.chrono {
     padding-top: 1ex;
     padding-bottom: 2ex;
 }
+div.center hr {
+    margin-left: auto;
+    margin-right: auto;
+}
 div.center table {
     margin-left: auto;
     margin-right: auto;
+}
+
+blockquote.figure {
+    border: none;
+    background-color: none;
 }
 
 .footnotetext {
