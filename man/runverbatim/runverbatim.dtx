@@ -310,6 +310,9 @@ let w = u + "four"
 % file.
 % & \RVRB@includecmd
 % \\
+% html
+% & Optionally filter source files to html for loading by HeVeA.
+% & \RVRB@html
 % \end{longtable}
 % \makeatother
 %
@@ -608,6 +611,7 @@ let w = u + "four"
 \DeclareStringOption{compilerflags}
 \DeclareStringOption[-i]{lastflags}
 \DeclareStringOption[open]{includecmd}
+\DeclareStringOption[]{html}
 \ProcessKeyvalOptions*
 %    \end{macrocode}
 %
@@ -643,6 +647,7 @@ let w = u + "four"
 \write\RVRB@samplefile{compilerflags=\RVRB@compilerflags}
 \write\RVRB@samplefile{lastflags=\RVRB@lastflags}
 \write\RVRB@samplefile{includecmd=\RVRB@includecmd}
+\write\RVRB@samplefile{htmlfilter=\RVRB@html}
 %    \end{macrocode}
 %
 % \begin{macro}{\RVRB@logsample}

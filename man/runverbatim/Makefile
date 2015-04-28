@@ -12,7 +12,7 @@ runverbatim.ind: runverbatim.idx
 runverbatim.idx runverbatim.rvrb: runverbatim.dtx
 	pdflatex $<
 
-runverbatim.sty:
+runverbatim.sty: runverbatim.dtx
 	latex runverbatim.ins
 
 example.pdf: example.tex example.rvrb runverbatim.sty

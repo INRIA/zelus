@@ -33,6 +33,7 @@
 \newif\ifRVRB@showcode\RVRB@showcodetrue
 \newif\ifRVRB@shouldfail\RVRB@shouldfailfalse
 \newif\ifRVRB@withresult\RVRB@withresultfalse
+\newif\ifRVRB@loadhtml\RVRB@loadhtmltrue
 \def\RVRB@pkg@skipopts{}
 
 % % % Declare Options % % %
@@ -64,6 +65,7 @@
 \define@key{RVRB@pkgkeys}{subdir}[]{\def\RVRB@subdir{#1}}
 \define@key{RVRB@pkgkeys}{prefix}[]{\def\RVRB@prefix{#1}}
 \define@key{RVRB@pkgkeys}{ext}[]{\def\RVRB@ext{#1}}
+\define@key{RVRB@pkgkeys}{html}[]{\RVRB@loadhtmltrue}
 
 % Unused options
 \define@key{RVRB@pkgkeys}{ignoreerrors}[]{}
@@ -144,10 +146,14 @@
     \global\let\runverbatimcmd\relax%
     \ifRVRB@showcode%
       \bgroup%
-      \elstset{\RVRB@pkg@skipopts}%
-      \elstset{\RVRB@codestyle}%
-      \elstset{\RVRB@codelst}%
-      \lstinputlisting{\RVRB@file\RVRB@ext}%
+      \ifRVRB@loadhtml%
+        \rawinput{\RVRB@file{}.html}%
+      \else%
+        \elstset{\RVRB@pkg@skipopts}%
+        \elstset{\RVRB@codestyle}%
+        \elstset{\RVRB@codelst}%
+        \lstinputlisting{\RVRB@file\RVRB@ext}%
+      \fi%
       \egroup%
       \input{\RVRB@file.tex}%
       \ifrunverbatim%

@@ -23,23 +23,38 @@ BLACK="[0;0m"
 ##
 # Command-line
 
+usage () {
+    printf '%s: check source code exported from LaTeX documents.\n' "$SCRIPT"
+    printf 'usage: %s [options] [file ...]\n' "$SCRIPT"
+    printf '\n'
+    printf '  options:\n'
+    printf '  --no-colors       log to terminal without control codes\n'
+    printf '\n'
+}
+
 unset INFILES
-for f in "$@"; do
-  case $f in
+while [ -n "$1" ]; do
+  case "$1" in
   --no-colors)
     unset RED BLUE BLACK
     ;;
+  --help)
+    usage
+    exit 0
+    ;;
   --*)
-    printf "%s: unrecognized option '%s'\n" "$SCRIPT" "$f"
+    printf "%s: unrecognized option '%s'\n" "$SCRIPT" "$1"
+    usage
     exit 1
     ;;
   *${SUFFIX})
-    INFILES="$INFILES $f"
+    INFILES="$INFILES $1"
     ;;
   *)
-    INFILES="$INFILES $f${SUFFIX}"
+    INFILES="$INFILES $1${SUFFIX}"
     ;;
   esac
+  shift
 done
 
 if [ -z "$INFILES" ]; then
@@ -144,6 +159,7 @@ compile() {
     opath="$SUBDIR$ofile.tex"
     opath_msg="$SUBDIR$ofile.msg"
     opath_err="$SUBDIR$ofile.err"
+    opath_html="$SUBDIR$ofile.html"
 
     # Check that the input file exists
     if [ -f "$ipath" ]; then
@@ -214,6 +230,12 @@ compile() {
     fi
     printf "%s\n" '\end{RunVerbatimErr}'	      >> "$opath"
 
+    # Filter to html if necessary
+    if [ -n "$HTMLFILTER" ]; then
+	# shellcheck disable=SC2086
+	$HTMLFILTER "$ipath" > "$opath_html"
+    fi
+
     return 0
 }
 
@@ -260,6 +282,8 @@ dooption() {
 		WITHOPEN=Withopen
 	    fi
 	    ;;
+	htmlfilter)
+	    HTMLFILTER="${opt_value}" ;;
     esac
 }
 
