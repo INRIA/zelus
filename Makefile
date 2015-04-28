@@ -10,22 +10,27 @@ all: depend
 byte: depend
 	(cd compiler; $(MAKE) -f Makefile byte)
 	(cd lib;      $(MAKE) -f Makefile byte)
+	(cd tools;    $(MAKE) -f Makefile all)
 
 withgtk.byte: depend
 	(cd compiler; $(MAKE) -f Makefile byte)
 	(cd lib;      $(MAKE) -f Makefile withgtk.byte)
+	(cd tools;    $(MAKE) -f Makefile all)
 
 opt: depend
 	(cd compiler; $(MAKE) -f Makefile opt)
 	(cd lib;      $(MAKE) -f Makefile opt)
+	(cd tools;    $(MAKE) -f Makefile all)
 
 withgtk.opt: depend
 	(cd compiler; $(MAKE) -f Makefile opt)
 	(cd lib;      $(MAKE) -f Makefile withgtk.opt)
+	(cd tools;    $(MAKE) -f Makefile all)
 
 debug: depend debug.txt
 	(cd compiler; $(MAKE) -f Makefile debug)
 	(cd lib;      $(MAKE) -f Makefile debug)
+	(cd tools;    $(MAKE) -f Makefile debug)
 
 tests: all
 	(cd test/good; $(MAKE) -f Makefile)
@@ -34,6 +39,7 @@ tests: all
 depend:
 	(cd compiler; $(MAKE) -f Makefile depend)
 	(cd lib;      $(MAKE) -f Makefile depend)
+	(cd tools;    $(MAKE) -f Makefile depend)
 
 debug.txt:
 	@printf "$$DEBUG_PRELUDE\n" > $@
@@ -144,6 +150,7 @@ opam-install:
 clean:
 	(cd compiler;  make -f Makefile clean)
 	(cd lib;       make -f Makefile clean)
+	(cd tools;     make -f Makefile clean)
 	(cd test/good; make -f Makefile clean)
 	(cd test/bad;  make -f Makefile clean)
 	(cd examples;  make -f Makefile clean)
@@ -152,6 +159,7 @@ clean:
 realclean cleanall:
 	(cd compiler;  make -f Makefile cleanall)
 	(cd lib;       make -f Makefile cleanall)
+	(cd tools;     make -f Makefile cleanall)
 	(cd test/good; make -f Makefile cleanall)
 	(cd test/bad;  make -f Makefile cleanall)
 	(cd examples;  make -f Makefile cleanall)

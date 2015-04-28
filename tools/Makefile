@@ -2,6 +2,10 @@ include ../config
 
 all: diff_log zltohtml
 
+byte: all
+opt: all
+depend:
+
 zltohtml: zltohtml.ml
 	$(OCAMLC) -o $@ -I ../compiler/parsing lexer.cmo $^
 
