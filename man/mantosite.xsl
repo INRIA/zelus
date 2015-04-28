@@ -30,6 +30,16 @@
     </a>
   </xsl:template>
 
+  <!--add class=dl-horizontal to dl.thefootnotes -->
+  <xsl:template match="dl[@class='thefootnotes']">
+    <dl>
+      <xsl:attribute name="class">
+        <xsl:value-of select="concat(@class, ' dl-horizontal')" />
+      </xsl:attribute>
+      <xsl:apply-templates select="@*[name()!='class']|node()" />
+    </dl>
+  </xsl:template>
+
   <xsl:template mode="adjustpaths" match="@*|node()">
     <xsl:copy>
       <xsl:apply-templates mode="adjustpaths" select="@*|node()"/>
@@ -93,17 +103,6 @@
       </li>
     </xsl:for-each>
   </xsl:template>
-
-  <!--
-  <xsl:template match="h3">
-    <xsl:variable name="header" select="."/>
-    <div id="{concat(@id, '_link')}" class="example-section">
-      <h3 id="{@id}" class="{@class}"><xsl:value-of select="text()"/></h3>
-      <xsl:copy-of
-        select="following-sibling::*[preceding-sibling::h3[1] = $header]"/>
-    </div>
-  </xsl:template>
-  -->
 
   <!--strip away the <body> tags-->
   <xsl:template match="/html/body">

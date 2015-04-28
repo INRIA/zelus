@@ -171,15 +171,15 @@ address a {
 
 /* HeVeA Generated Manual Pages */
 
-h2.section {
+h1.chapter {
     text-align: left;
 }
 
-h2.subsection {
+h2.section h2.subsection h2.subsubsection {
     text-align: left;
 }
 
-h2.subsubsection {
+h3.section h3.subsection h3.subsubsection {
     text-align: left;
 }
 
@@ -257,27 +257,15 @@ blockquote.figure {
     background-color: none;
 }
 
-.footnotetext {
-    margin: 0ex;
-    padding:0ex;
-}
-
-div.footnotetext P {
-    margin: 0px;
-    text-indent: 1em;
-}
-
-.thefootnotes {
-    text-align: left;
-    margin: 0ex;
-}
-
-.dt-thefootnotes {
-    margin:0em;
-}
-
-.dd-thefootnotes {
-    margin:0em 0em 0em 2em;
+@media (min-width: 767px) {
+    dl.thefootnotes {
+    }
+    dl.thefootnotes dt {
+        width: 2em;
+    }
+    dl.thefootnotes dd {
+        margin-left: 3em;
+    }
 }
 
 hr.footnoterule {
@@ -291,6 +279,11 @@ hr.footnoterule {
 .caption {
     padding-left: 2ex;
     padding-right: 2ex;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.caption table {
     margin-left: auto;
     margin-right: auto;
 }
