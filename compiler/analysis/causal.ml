@@ -139,12 +139,12 @@ let rec cless left_c right_c =
       left_c.c_sup <- add right_c left_c.c_sup
     | _ -> assert false
 
-(* does it exist a path from [c1] to [c2]? *)
+(* does it exist a strict path from [c1] to [c2]? *)
 let path c1 c2 =
   let rec pathrec c1 =
     (equal c1 c2) || List.exists pathrec (sups c1) in
-  pathrec c1
-      
+  not (equal c1 c2) && pathrec c1
+    
 (* the main entry *)
 let type_before_type = unify cless
   

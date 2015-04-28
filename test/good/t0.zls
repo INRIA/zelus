@@ -1,3 +1,12 @@
+let node strict(x, y) = x + y
+
+let node non_strict(x) = 0 -> pre(x) + 1
+
+let node g() = 0 where
+   rec o = non_strict(x + 2)
+   and x = strict(o, 1)
+   
+
 let node controller (click, top) = (simple) where rec
   automaton
   | Await ->
@@ -17,7 +26,8 @@ let node z_n1() = o where
   rec m = mem (om, 0)
   and (o, im) = z_controller(m)
   and present im(_) -> do om = 1 done else do om = 0 done 
-	   
+ 
+
     (*
 let atomic node draw_pendulum1 (color, x0, y0, x, y) =
   let x0 = truncate (10.0 *. x0) in

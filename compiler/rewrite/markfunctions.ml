@@ -30,7 +30,7 @@ let causality_of_exp_list e_list = List.fold_left causality_of_exp [] e_list
 (* (1) and (2) are verified *)
 (* (1). exists rj, ai. rj < ai *)
 (* (2). exists input in and output out. (in < ai) & (ai < out) & not (in < out) *)
-(* otherwise, add a dependence ai < rj, for all i, j. *)
+(* otherwise, add a dependence ai < rj when ai <> rj, for all i, j. *)
     
 let to_inline c_in_list c_out_list c_arg_list c_res_list =
   let i =
@@ -54,8 +54,10 @@ let to_inline c_in_list c_out_list c_arg_list c_res_list =
   (* inlining is useless *)
   if not i then
     List.iter
-      (fun c_arg -> List.iter (fun c_res -> Causal.cless c_arg c_res) c_res_list)
-      c_arg_list;
+      (fun c_arg ->
+	List.iter (fun c_res ->
+	  if not (Causal.equal c_arg c_res) then Causal.cless c_arg c_res)
+	  c_res_list) c_arg_list;
   i
 
 (* generic translation for match handlers *)
