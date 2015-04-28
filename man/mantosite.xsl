@@ -109,10 +109,20 @@
   </xsl:template>
 
   <xsl:template mode="chapterlinks" match="/html/body">
-    <xsl:for-each select="h1">
-      <li><a href="#{@id}">
-          <xsl:value-of select="text()"/></a>
-      </li>
+    <xsl:variable name="shallow" select="count(ancestor::*) + 1" />
+    <xsl:for-each select="//h1">
+      <xsl:choose>
+        <xsl:when test="count(ancestor::*) > $shallow">
+          <li class="sidebar-nav-header">
+              <xsl:value-of select="text()"/>
+          </li>
+        </xsl:when>
+        <xsl:otherwise>
+          <li><a href="#{@id}">
+              <xsl:value-of select="text()"/></a>
+          </li>
+        </xsl:otherwise>
+      </xsl:choose>
     </xsl:for-each>
   </xsl:template>
 
