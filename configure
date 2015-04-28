@@ -343,6 +343,7 @@ cat config.log
 	 s#@OCAMLBIN@#${OCAMLBIN}#;
 	 s#@OCAMLROOT@#${OCAMLROOT}#;" config.in) > config
 
+mkdir -p bin
 if [ ${for_compile} -eq 1 ]; then
 cat > bin/zeluc <<ENDOFFILE
 #!/bin/sh
