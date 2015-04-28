@@ -171,6 +171,39 @@ address a {
 
 /* HeVeA Generated Manual Pages */
 
+div.manualtitle h1 {
+    text-align: center;
+}
+
+div.manualtitle h2 {
+    text-align: center;
+}
+
+div.manualtitle div.date {
+    font-style: italic;
+    text-align: center;
+}
+
+div.manualtitle div.address {
+    text-align: center;
+    padding-top: 1em;
+    padding-bottom: 2em;
+}
+
+div.manualtitle ul.authors {
+    margin-left: 0px;
+    margin-right: 0px;
+    padding-top: 2ex;
+    padding-bottom: 2ex;
+    font-size: larger;
+    text-align: center;
+    list-style-type: none;
+}
+
+div.manualtitle ul.authors li.first {
+    padding-bottom: 1em;
+}
+
 h1.chapter {
     text-align: left;
 }

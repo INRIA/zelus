@@ -112,6 +112,7 @@
     <xsl:variable name="shallow" select="count(ancestor::*) + 1" />
     <xsl:for-each select="//h1">
       <xsl:choose>
+        <xsl:when test="../@class = 'manualtitle'" />
         <xsl:when test="count(ancestor::*) > $shallow">
           <li class="sidebar-nav-header">
               <xsl:value-of select="text()"/>

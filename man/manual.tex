@@ -28,10 +28,10 @@
 
 \usepackage{a4wide}
 \usepackage{alltt}
-\usepackage{url}
 \usepackage{graphicx}
 \usepackage{epsf}
 \usepackage{amssymb}
+\usepackage{hyperref}
 \usepackage{cleveref}
 
 \crefname{figure}{figure}{figures}
@@ -52,7 +52,14 @@
 
 %}-}1
 %{-{1 Macros
-%
+
+\ifhevea
+\newcommand{\footnoteurl}[2]{\ahref{#2}{#1}}
+\else
+\newcommand{\footnoteurl}[2]{{#1}\footnote{\url{#2}}}
+\fi
+
+
 \newcommand{\f}{$f$}
 \renewcommand{\t}{$t$}
 \newcommand{\nil}{$\mathit{nil}$}
@@ -159,8 +166,6 @@
 }}
 \end{latexonly}
 
-%\usepackage[bookmarks, pagebackref, colorlinks, linkcolor=blue]{hyperref}
-
 \long\def\framed#1{\framebox[\textwidth]{\vbox{\begin{center}#1\end{center}}}}
 %utiliser \framed{...}
 
@@ -215,7 +220,7 @@
 \newcommand{\Extend}{\mbox{{\tt extend}}}
 \newcommand{\Minusgreater}{\mbox{{\tt ->}}}
 \newcommand{\Equalgreater}{\mbox{{\tt =>}}}
-\newcommand{\Reset}{\mbox{{\tt reset}}}
+\renewcommand{\Reset}{\mbox{{\tt reset}}}
 \newcommand{\Every}{\mbox{{\tt every}}}
 \newcommand{\Nil}{\mbox{{\tt Nil}}}
 \newcommand{\Semisemi}{\mbox{{\tt ;;}}}
@@ -323,13 +328,26 @@
 % \end{verbatim}}
 %END LATEX
 \begin{rawhtml}
-  <div class="subtitle">Zelus</div>
-  <div class="titlenote">Release, version 3.0</div>
-  <div class="titlenote">Tutorial and Reference Manual</div>
-  <div class="author">Marc Pouzet</div>
-  <div class="date">May 2013</div>
-\end{rawhtml}
+<div class="manualtitle">
+  <h1>Zélus: A Synchronous Language with ODEs</h1>
+  <h2>Tutorial and Reference Manual (Release, version 1.2)</h2>
 
+  <ul class="authors">
+    <li class="first"><a href="mailto:Marc.Pouzet@ens.fr">Marc Pouzet</a></li>
+    <li><a href="mailto:Albert.Benveniste@inria.fr">Albert Benveniste</a></li>
+    <li><a href="mailto:Timothy.Bourke@inria.fr">Timothy Bourke</a></li>
+    <li><a href="mailto:Benoit.Caillaud@inria.fr">Benoit Caillaud</a></li>
+  </ul>
+
+  <div class="date">January 2015</div>
+  <div class="address">
+    Project Team PARKAS<br/>
+    École normale supérieure<br/>
+    45 rue d'Ulm<br/>
+    75230 Paris, France
+  </div>
+</div>
+\end{rawhtml}
 
 \newpage
 \cleardoublepage
@@ -453,9 +471,14 @@ even if the actual implementation is more specific.
 
 \item
 Data-flow equations may be composed arbitrarily with hierarchical automata 
-as in \lucy\footnote{\url{http://www.di.ens.fr/~pouzet/lucid-synchrone/}}
+as in
+\ifhevea
+\ahref{http://www.di.ens.fr/\textasciitilde{}pouzet/lucid-synchrone/}{\lucy}
+\else
+\lucy\footnote{\url{http://www.di.ens.fr/~pouzet/lucid-synchrone/}}
+\fi
 and
-\scadesix.\footnote{\url{http://www.esterel-technologies.com/products/scade-suite/}}
+\footnoteurl{\scadesix.}{http://www.esterel-technologies.com/products/scade-suite/}
 The compiler ensures determinacy and the absence of infinite loops.
 Hierarchical automata are internally rewritten into data-flow equations.
 
@@ -466,7 +489,7 @@ statically scheduled sequential \ocaml code.
 The results of intermediate steps can be displayed.
 Continuous components are simulated using an off-the-shelf
 numerical solvers (SUNDIALS
-CVODE\footnote{\url{https://www.llnl.gov/casc/sundials/}}~\cite{sundials:2005})
+\footnoteurl{CVODE}{https://www.llnl.gov/casc/sundials/}~\cite{sundials:2005})
 and, two built-in basic solvers (based on Matlab's \texttt{ode23} and
 \texttt{ode45} solvers~\cite{ShampineGlaTho:ODEsMatlab:2003}).
 %\footnote{The source-to-source translation of ODEs into synchronous data-flow
@@ -477,7 +500,7 @@ and, two built-in basic solvers (based on Matlab's \texttt{ode23} and
 defining a hybrid systems modeling language based on
 the principles and techniques of synchronous languages.
 Its expressive power for modeling physics is limited to ODEs, unlike 
-\modelica\footnote{\url{https://www.modelica.org}} which is based on DAEs.
+\footnoteurl{\modelica}{https://www.modelica.org} which is based on DAEs.
 %Its expressive power for modeling physics
 %is limited to ODEs and not DAEs as
 %\modelica~\footnote{\url{https://www.modelica.org}} does.
@@ -500,8 +523,8 @@ must be installed.
 \end{tabular}
 \end{center}
 The language is experimental and evolves continuously. Please send
-comments or bug reports to \url{Timothy.Bourke@inria.fr} or 
-\url{Marc.Pouzet@ens.fr}. 
+comments or bug reports to \mailto{Timothy.Bourke@inria.fr} or 
+\mailto{Marc.Pouzet@ens.fr}. 
 
 \section*{Copyright notice}
 This software includes the \ocaml{} run-time system, which is
@@ -1585,8 +1608,9 @@ The current version of \zelus{} does not provide a \emph{clock calculus} as
 The language provides means to define hierachical state
 machines. These state machines can be composed in parallel with
 regular equations or other state machines and can be arbitrarily
-nested. State machines are essentially borrowed \emph{as is} from \lucy{} and 
-\scadesix.~\footnote{\url{http://www.esterel-technologies.com/products/scade-suite/}}
+nested. State machines are essentially borrowed \emph{as is} from \lucy{} 
+and 
+\footnoteurl{\scadesix.}{http://www.esterel-technologies.com/products/scade-suite/}
 Their compilation is that of~\cite{lucy:emsoft05b}.
 
 In this tutorial, we first consider state machines where transitions
@@ -2520,8 +2544,8 @@ ODEs by difference equations.
 
 \Remark The compiler generates sequential code so that ODEs are
 approximated by a numerical solver. The current version of \zelus{}
-provides an interface for SUNDIALS
-CVODE~\cite{sundials:2005}\footnote{\url{https://www.llnl.gov/casc/sundials/}}
+provides an interface for \footnoteurl{SUNDIALS
+CVODE}{https://www.llnl.gov/casc/sundials/}~\cite{sundials:2005}
 and the two classical variable step solvers \texttt{ode23} and
 \texttt{ode45}~\cite{DahlquistBjo08}.
 
