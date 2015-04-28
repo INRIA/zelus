@@ -118,8 +118,10 @@
           </li>
         </xsl:when>
         <xsl:otherwise>
-          <li><a href="#{@id}">
-              <xsl:value-of select="text()"/></a>
+          <li>
+            <a href="#{@id}">
+              <xsl:value-of select="string(.)"/>
+            </a>
           </li>
         </xsl:otherwise>
       </xsl:choose>
@@ -128,8 +130,10 @@
 
   <xsl:template mode="bodylinks" match="/html/body">
     <xsl:for-each select="h1 | h2 | h3">
-      <li><a href="#{@id}">
-          <xsl:value-of select="text()"/></a>
+      <li>
+        <a href="#{@id}">
+          <xsl:value-of select="string(.)"/>
+        </a>
       </li>
     </xsl:for-each>
   </xsl:template>
