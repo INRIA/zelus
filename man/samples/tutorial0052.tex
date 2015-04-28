@@ -1,9 +1,43 @@
-% ../compiler/zeluc.byte -I ../lib -I ./samples  	-i samples/tutorial0052.zls (0)
-\runverbatimtrue
+% ../compiler/zeluc.byte -I ../lib -I ./samples  	-i samples/tutorial0052.zls (2)
+\runverbatimfalse
 \setrunverbatimcmd{zeluc.byte -i \runverbatimfile}
 \begin{RunVerbatimMsg}
 val await : 'a signal -D-> 'a signal
 \end{RunVerbatimMsg}
 \begin{RunVerbatimErr}
-Success.
+Internal error (Cycle: equations cannot be scheduled)
+ total match s_19 with
+ | Await_11 ->  (* dv = {init_36} *)
+                do init_36 = false done
+ | Sustain_12 -> 
+     (* dv = {ov_24, op_25, init_37} *)
+     do init_37 = false and op_25 = true and ov_24 = last x_18 done
+  before {o_32}
+ and total match last s_19 with
+     | Await_11 -> 
+         local init_41, init_40 in
+         (* dv = {x_18, s_19, r_20, init_38} *)
+         (* defs: mem(init)(last)(cur) init_40: bool;
+                  mem(init)(last)(cur) init_41: bool *)
+         do reset init init_41 = true 
+            every (||)(last init_38, last r_20)
+         and reset init init_40 = true 
+             every (||)(last init_38, last r_20)
+         and init_38 = false
+         and total match (ev_22, ep_23) with
+             | (v_21, true) -> (* zero *)
+                 (* defs: mem v_21: 'a *)
+                 (* dv = {x_18, s_19, r_20, init_40} *)
+                 do init_40 = false
+                 and s_19 = Sustain_12 and r_20 = true and x_18 = v_21 done
+             | _ -> 
+                 (* dv = {r_20, init_41} *)
+                 do init_41 = false and r_20 = false done
+              before {o_28, o_29}
+         done
+     | Sustain_12 -> 
+         (* dv = {r_20, init_39} *)
+         do init_39 = false and r_20 = false done
+      before {o_31}
+ 
 \end{RunVerbatimErr}

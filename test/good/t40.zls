@@ -1,4 +1,3 @@
-
 let hybrid legsegment ((min, max, i), rate, (extend, retract, stop)) =
   ((segin, segout), pos) where
 
@@ -14,7 +13,6 @@ let hybrid legsegment ((min, max, i), rate, (extend, retract, stop)) =
           then do next segin = false in Extending
         else  retract() on (not segin)
           then do next segout = false in Retracting
-
     | Extending ->
         do
           der pos = rate
@@ -22,7 +20,6 @@ let hybrid legsegment ((min, max, i), rate, (extend, retract, stop)) =
           then do next segout = true in Stationary
         else  stop()         then Stationary
         else  retract()      then Retracting
-
     | Retracting ->
         do
           der pos = -. rate

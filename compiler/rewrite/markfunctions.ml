@@ -25,40 +25,37 @@ let causality_of_exp acc { e_caus = c_list } = Causal.union acc c_list
 
 let causality_of_exp_list e_list = List.fold_left causality_of_exp [] e_list
 						  
-(* remove dependence variables which appear in both *)
-(*[c_in] and [c_out] *)
-let rec only_once c_in c_out =
-  let c_in =
-    List.fold_left (fun acc c -> Causal.remove c acc) c_in c_out in
-  let c_out =
-    List.fold_left (fun acc c -> Causal.remove c acc) c_out c_in in
-  c_in, c_out
-
-(* Hypothesis: [c_in] and [c_out] are disjoint *)
-(* A function call [res = f(arg)] is inlined if *)
-(* [is_less_than_lists c_in c_arg] and [is_less_than_list c_arg c_out] *)
-(* or [is_less_than_lists c_res c_arg] *)		  
-
 (* for a function call [res = f(arg)], with [res: r1,...,rn] *)
-(* [arg: a1,...,ak], a dependence [ai < rj] is added if conditions *)
+(* [arg: a1,...,ak], inlining must be done if one of the two condition holds *)
 (* (1) and (2) are verified *)
-(* (1). not (rj < ai) - otherwise, this would add a cycle *)
-(* (2). for any input in and output out. (in < ai) & (ai < out) => (in = out) *)
-	   	   
-let to_inline c_in c_out c_arg c_res =
-  let c_arg, c_res = only_once c_arg c_res in
-  
-  let i = Causal.is_less_than_lists c_res c_arg in
-  let i = if i then true
-	  else (Causal.is_less_than_lists c_in c_arg) &&
-		 (Causal.is_less_than_lists c_res c_out) in
+(* (1). exists rj, ai. rj < ai *)
+(* (2). exists input in and output out. (in < ai) & (ai < out) & not (in < out) *)
+(* otherwise, add a dependence ai < rj, for all i, j. *)
+    
+let to_inline c_in_list c_out_list c_arg_list c_res_list =
+  let i =
+    (* condition (1) *)
+    List.exists
+      (fun c_res -> List.exists (Causal.path c_res) c_arg_list) c_res_list in
+  let i =
+    if i then true
+    else
+      (* condition (2) *)
+      List.exists
+	(fun c_in ->
+	  List.exists
+	    (fun c_out ->
+	      List.exists (fun c_arg -> Causal.path c_in c_arg) c_arg_list &&
+		List.exists (fun c_res -> Causal.path c_res c_out) c_res_list &&
+		not (Causal.path c_in c_out))
+	    c_out_list)
+	c_in_list in
   (* strictification of the function application in case *)
   (* inlining is useless *)
   if not i then
     List.iter
-      (fun c_arg ->
-       List.iter (fun c_res -> Causal.cless c_arg c_res) c_res)
-      c_arg;
+      (fun c_arg -> List.iter (fun c_res -> Causal.cless c_arg c_res) c_res_list)
+      c_arg_list;
   i
 
 (* generic translation for match handlers *)

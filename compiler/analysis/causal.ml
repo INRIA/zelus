@@ -71,6 +71,9 @@ let equal c1 c2 =
   let c1 = crepr c1 in
   let c2 = crepr c2 in
   c1.c_index = c2.c_index
+
+(* sups *)
+let sups c = let c = crepr c in c.c_sup
 		 
 let rec mark_with_name n = function
   | Catom(c) -> atom(cmark_with_name n c)
@@ -136,17 +139,11 @@ let rec cless left_c right_c =
       left_c.c_sup <- add right_c left_c.c_sup
     | _ -> assert false
 
-(* less than or equal is [c1 = c2 or c1 < c'1 and c'1 < c2] *)
-let is_less_than_lists c1_list c2_list =
-  let rec less_than_or_equal c1 c2 =
-    if equal c1 c2 then true
-    else match c1.c_desc with
-      | Cvar -> List.exists (fun c1 -> less_than_or_equal c1 c2) c1.c_sup
-      | Clink(c_link) -> less_than_or_equal c_link c2 in
-  let less_than c1 c2 =
-    if equal c1 c2 then false else less_than_or_equal c1 c2 in      
-  List.exists
-    (fun c1 -> List.exists (fun c2 -> less_than c1 c2) c2_list) c1_list
+(* does it exist a path from [c1] to [c2]? *)
+let path c1 c2 =
+  let rec pathrec c1 =
+    (equal c1 c2) || List.exists pathrec (sups c1) in
+  pathrec c1
       
 (* the main entry *)
 let type_before_type = unify cless
