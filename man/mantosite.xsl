@@ -8,6 +8,7 @@
     method="html"
     encoding="utf-8"
     indent="no"
+    doctype-system="about:legacy-compat"
     omit-xml-declaration="yes"
   />
 
