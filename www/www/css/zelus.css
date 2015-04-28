@@ -175,13 +175,27 @@ h1.chapter {
     text-align: left;
 }
 
-h2.section h2.subsection h2.subsubsection {
+h2.section, h2.subsection, h2.subsubsection {
     text-align: left;
 }
 
-h3.section h3.subsection h3.subsubsection {
+h3.section, h3.subsection, h3.subsubsection {
     text-align: left;
 }
+
+.chapter:before {
+    display: block;
+    content: "";
+    height: 60px;
+    margin: -60px 0 0; 
+} /* correct anchor offset */
+
+.section:before {
+    display: block;
+    content: "";
+    height: 60px;
+    margin: -60px 0 0; 
+} /* correct anchor offset */
 
 .subsection:before {
     display: block;
@@ -264,6 +278,15 @@ blockquote.figure {
         width: 2em;
     }
     dl.thefootnotes dd {
+        margin-left: 3em;
+    }
+
+    dl.thebibliography {
+    }
+    dl.thebibliography dt {
+        width: 2em;
+    }
+    dl.thebibliography dd {
         margin-left: 3em;
     }
 }

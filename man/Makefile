@@ -55,7 +55,7 @@ $(MANUAL_HTML)/manual.html: manual.tex manual.pdf samples/tutorial0001.html
 wwwman: $(MANUAL_HTML)/manual.html \
     inc-header.html inc-javascript.html inc-titlebar.html
 	mkdir -p $@
-	for f in $(MANUAL_HTML)/index.html $$(ls $(MANUAL_HTML)/manual0*.html);\
+	for f in $$(ls $(MANUAL_HTML)/*.html);\
 	do $(XSLTPROC) --output $@/$${f#*/} --html mantosite.xsl $$f; done
 	cp $(MANUAL_HTML)/*.png $@/
 

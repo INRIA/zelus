@@ -31,7 +31,7 @@
   </xsl:template>
 
   <!--add class=dl-horizontal to dl.thefootnotes -->
-  <xsl:template match="dl[@class='thefootnotes']">
+  <xsl:template match="dl[@class='thefootnotes' or @class='thebibliography']">
     <dl>
       <xsl:attribute name="class">
         <xsl:value-of select="concat(@class, ' dl-horizontal')" />
@@ -68,9 +68,21 @@
             <div class="span3 hidden-print">
               <div class="well sidebar-nav" data-spy="affix">
                 <ul class="nav nav-list">
+                  <li class="sidebar-nav-header">Zélus Manual</li> 
                   <xsl:apply-templates select="html/body" mode="navlinks"/>
-                  <hr/>
-                  <xsl:apply-templates select="html/body" mode="bodylinks"/>
+                  <xsl:if test="count(html/body/h1
+                                      | html/body/h2
+                                      | html/body/h3) > 1">
+                    <hr/>
+                    <xsl:choose>
+                      <xsl:when test="count(html/body/h1) > 3">
+                        <xsl:apply-templates select="html/body" mode="chapterlinks"/>
+                      </xsl:when>
+                      <xsl:otherwise>
+                        <xsl:apply-templates select="html/body" mode="bodylinks"/>
+                      </xsl:otherwise>
+                    </xsl:choose>
+                  </xsl:if>
                 </ul>
               </div><!--/.well -->
             </div><!--/span-->
@@ -93,6 +105,14 @@
       <xsl:if test="position() &lt;= $numnavlinks">
         <li><a href="{@href}"><xsl:value-of select="img/@alt"/></a></li>
       </xsl:if>
+    </xsl:for-each>
+  </xsl:template>
+
+  <xsl:template mode="chapterlinks" match="/html/body">
+    <xsl:for-each select="h1">
+      <li><a href="#{@id}">
+          <xsl:value-of select="text()"/></a>
+      </li>
     </xsl:for-each>
   </xsl:template>
 
