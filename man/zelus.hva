@@ -18,6 +18,8 @@
 
 \renewcommand{\sig}[1]{\textcolor{OliveGreen}#1}
 
+\setenvclass{zelusprompt}{zelusprompt}
 \renewenvironment{sample}
-  {\begin{alltt}}
-  {\end{alltt}}
+  {\@open{div}{\envclass@attr{zelusprompt}}
+   \begin{alltt}}
+  {\end{alltt}\@close{div}}
