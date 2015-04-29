@@ -252,23 +252,23 @@ h3.section, h3.subsection, h3.subsubsection {
     text-align: left
 }
 
-.runverbatimmsg {
+.chklistingmsg {
     padding-top: 1ex;
     font-style: italic;
     font-size: 85%;
 }
 
-p + .runverbatimmsg {
+p + .chklistingmsg {
     padding-top: 0ex;
 }
 
-.runverbatimerr {
+.chklistingerr {
     padding-top: 1ex;
     font-style: italic;
     font-size: 85%;
 }
 
-p + .runverbatimerr {
+p + .chklistingerr {
     padding-top: 0ex;
 }
 
