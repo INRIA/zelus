@@ -4,6 +4,9 @@
   xmlns:exsl="http://exslt.org/common"
   extension-element-prefixes="exsl">
 
+  <xsl:param name="isindex" select="0"/>
+  <xsl:param name="issingle" select="0"/>
+
   <xsl:output
     method="html"
     encoding="utf-8"
@@ -40,6 +43,54 @@
     </dl>
   </xsl:template>
 
+  <xsl:template match="div[@class='manualtitle']">
+    <div>
+      <xsl:apply-templates select="@*|node()" />
+    </div>
+    <xsl:if test="$isindex = 1">
+      <h3>Front matter</h3>
+    </xsl:if>
+  </xsl:template>
+
+  <xsl:template match="table[.//h1[@class='part']]">
+    <xsl:choose>
+      <xsl:when test="$isindex = 1">
+        <xsl:apply-templates mode="partheadings"
+                             select=".//h1[@class='part']" />
+      </xsl:when>
+      <xsl:otherwise>
+        <xsl:copy>
+          <xsl:apply-templates select="@*|node()" />
+        </xsl:copy>
+      </xsl:otherwise>
+    </xsl:choose>
+  </xsl:template>
+
+  <xsl:template mode="partheadings" match="h1">
+    <xsl:element name="h3">
+      <xsl:copy-of select="@*" />
+      <xsl:apply-templates mode="partheadings" select="node()" />
+    </xsl:element>
+  </xsl:template>
+
+  <xsl:template mode="partheadings" match="br">:</xsl:template>
+
+  <xsl:template match="blockquote[@class='quote']">
+    <xsl:copy>
+      <xsl:choose>
+        <xsl:when test="$isindex = 1">
+          <xsl:attribute name="class">
+            <xsl:value-of select="concat('heveainfo ', @class)" />
+          </xsl:attribute>
+          <xsl:apply-templates select="@*[not(name()='class')]|node()"/>
+        </xsl:when>
+        <xsl:otherwise>
+          <xsl:apply-templates select="@*|node()"/>
+        </xsl:otherwise>
+      </xsl:choose>
+    </xsl:copy>
+  </xsl:template>
+
   <xsl:template mode="adjustpaths" match="@*|node()">
     <xsl:copy>
       <xsl:apply-templates mode="adjustpaths" select="@*|node()"/>
@@ -70,6 +121,14 @@
                 <ul class="nav nav-list">
                   <li class="sidebar-nav-header">Zélus Manual</li> 
                   <xsl:apply-templates select="html/body" mode="navlinks"/>
+                  <xsl:if test="$isindex = 1">
+                    <li><a href="manual.html">single page</a></li>
+                    <li><a href="manual.pdf">pdf version</a></li>
+                  </xsl:if>
+                  <xsl:if test="$issingle = 1">
+                    <li><a href="index.html">multiple pages</a></li>
+                    <li><a href="manual.pdf">pdf version</a></li>
+                  </xsl:if>
                   <xsl:if test="count(html/body/h1
                                       | html/body/h2
                                       | html/body/h3) > 1">

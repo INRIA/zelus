@@ -171,6 +171,11 @@ address a {
 
 /* HeVeA Generated Manual Pages */
 
+blockquote.heveainfo {
+    padding-top: 5em;
+    font-size: x-small;
+}
+
 div.manualtitle h1 {
     text-align: center;
 }
