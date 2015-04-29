@@ -27,6 +27,8 @@ module type READ =
 
 module Make (Read:READ) =
 struct
+  type node = { n_eq: eq; n_def: S.t; n_read: S.t * S.t }
+
   let build eq_list =
     (* associate a graph node for each name declaration *)
     let rec nametograph g var_set n_to_graph =
