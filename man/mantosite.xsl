@@ -137,6 +137,9 @@
                       <xsl:when test="count(html/body/h1) > 3">
                         <xsl:apply-templates select="html/body" mode="chapterlinks"/>
                       </xsl:when>
+                      <xsl:when test="count(html/body/h2) > 10">
+                        <xsl:apply-templates select="html/body" mode="sectionlinks"/>
+                      </xsl:when>
                       <xsl:otherwise>
                         <xsl:apply-templates select="html/body" mode="bodylinks"/>
                       </xsl:otherwise>
@@ -185,6 +188,16 @@
           </li>
         </xsl:otherwise>
       </xsl:choose>
+    </xsl:for-each>
+  </xsl:template>
+
+  <xsl:template mode="sectionlinks" match="/html/body">
+    <xsl:for-each select="h1 | h2">
+      <li>
+        <a href="#{@id}">
+          <xsl:value-of select="string(.)"/>
+        </a>
+      </li>
     </xsl:for-each>
   </xsl:template>
 
