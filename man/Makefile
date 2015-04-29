@@ -15,25 +15,25 @@ XSLTPROC=xsltproc
 BIBTEX=bibtex
 LATEXMK=latexmk -pdf
 
-RUNVERBATIM=runverbatim/runverbatim.sh
+CHECKLISTINGS=checklistings/checklistings.sh
 
 .PHONY: wwwman
 
 all:
 	pdflatex manual.tex
 
-re: manual.pdf 
+re: manual.pdf
 	$(LATEXMK) manual.tex
 
-manual.pdf: manual.tex manual.bbl
+manual.pdf: manual.tex manual.bbl samples/tutorial0001.tex
 	$(PDFLATEX) manual
 
-#runverbatim
-runverbatim: manual.rvrb
-	$(RUNVERBATIM) $<
+#checklistings
+checklistings: manual.chkl
+	$(CHECKLISTINGS) $<
 
-samples/tutorial0001.html: manual.rvrb
-	$(RUNVERBATIM) $<
+samples/tutorial0001.html: manual.chkl
+	$(CHECKLISTINGS) $<
 
 #bibliography
 manual.bbl:
@@ -46,7 +46,7 @@ $(MANUAL_HTML)/manual.html: manual.tex manual.pdf samples/tutorial0001.html
 	mkdir -p $(MANUAL_HTML)/Fig
 	cp zelus.css $(MANUAL_HTML)
 	cp hevea.sty $(MANUAL_HTML)
-	cp runverbatim.sty $(MANUAL_HTML)
+	cp checklistings.sty $(MANUAL_HTML)
 	cp Fig/*.eps Fig/*.ps $(MANUAL_HTML)/Fig/
 	(cd $(MANUAL_HTML); \
 	 $(HEVEA) -fix -I .. zelus.hva ../$< -o $(notdir $@); \

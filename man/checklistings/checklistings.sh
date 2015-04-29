@@ -1,20 +1,22 @@
 #!/bin/sh
-#
-#  The Zelus Hybrid Synchronous Language
-#
-#  Copyright (C) 2012-2013
-#	Timothy Bourke
-#	Marc Pouzet
-#
-#  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA
-#
-#   This file is distributed under the terms of the CeCILL-C licence
 # 
+#                            checklistings                               #
+#                             version 1.0                                #
+#                                                                        #
+#                     Timothy Bourke <tim@tbrk.org>                      #
+#                                Inria                                   #
+#                       École normale supérieure                         #
+#                                                                        #
+#                      Marc Pouzet <pouzet@ens.fr>                       #
+#                   Université Pierre et Marie Curie                     #
+#                       École normale supérieure                         #
+#                                Inria                                   #
+#
 
 ##
 # Configuration
 SCRIPT=$(basename "$0")
-SUFFIX=.rvrb
+SUFFIX=.chkl
 
 RED="[0;31m"
 BLUE="[0;34m"
@@ -187,15 +189,15 @@ compile() {
     printf '%% %s\n' "$COMPILER $COMPILERFLAGS $openfiles \
 	$LASTFLAGS $ipath ($COMPILERSTATUS)" > "$opath"
 
-    # Signal compilation success (\runverbatimtrue) or not (\runverbatimfalse)
+    # Signal compilation success (\chklistingtrue) or not (\chklistingfalse)
     if [ "$COMPILERSTATUS" -eq 0 ]; then
-	printf '\\runverbatimtrue\n'   >> "$opath"
+	printf '\\chklistingtrue\n'   >> "$opath"
 	if [ "$SHOULDFAIL" -eq 1 ]; then
 	    printf '%s  unexpected success (line %s/ page %s)!%s\n' \
 		"$RED" "$LINENUM" "$PAGENUM" "$BLACK" >&2
 	fi
     else
-	printf '\\runverbatimfalse\n'  >> "$opath"
+	printf '\\chklistingfalse\n'  >> "$opath"
 	if [ "$SHOULDFAIL" -eq 0 ]; then
 	    printf "%s  unexpected failure (line %s / page %s)!%s\n" \
 		"$RED" "$LINENUM" "$PAGENUM" "$BLACK" >&2
@@ -206,29 +208,29 @@ compile() {
 	fi
     fi
 
-    # Include a sanitized compilation command (\setrunverbatimcmd)
-    printf '\setrunverbatimcmd{%s %s \\runverbatimfile}\n' \
+    # Include a sanitized compilation command (\setchklistingcmd)
+    printf '\setchklistingcmd{%s %s \\chklistingfile}\n' \
 	"${COMPILERNAME}" "${LASTFLAGS}" >> "$opath"
 
     # Include the compiler's stdout
-    printf "%s\n" '\begin{RunVerbatimMsg}'	      >> "$opath"
+    printf "%s\n" '\begin{ChkListingMsg}'	      >> "$opath"
     if [ "$(wc -l < "$OUTFILE")" -eq 0 ]; then
 	printf "Failed.\n"			      >> "$opath"
     else
 	sed -e "s#$SUBDIR$ifile#$PREFIX#g" "$OUTFILE" > "$opath_msg"
 	cat "$opath_msg"			      >> "$opath"
     fi
-    printf "%s\n" '\end{RunVerbatimMsg}'	      >> "$opath"
+    printf "%s\n" '\end{ChkListingMsg}'		      >> "$opath"
 
     # Include the compiler's stderr
-    printf "%s\n" '\begin{RunVerbatimErr}'	      >> "$opath"
+    printf "%s\n" '\begin{ChkListingErr}'	      >> "$opath"
     if [ "$(wc -l < "$ERRFILE")" -eq 0 ]; then
 	printf "%s\n" "Success."		      >> "$opath"
     else
 	sed -e "s#$SUBDIR$ifile#$PREFIX#g" "$ERRFILE" > "$opath_err"
 	cat "$opath_err"			      >> "$opath"
     fi
-    printf "%s\n" '\end{RunVerbatimErr}'	      >> "$opath"
+    printf "%s\n" '\end{ChkListingErr}'		      >> "$opath"
 
     # Filter to html if necessary
     if [ -n "$HTMLFILTER" ]; then
@@ -288,7 +290,7 @@ dooption() {
 }
 
 subdirs=
-readrvrb() {
+readchkl() {
     infile=$1
     unset l existing openfilenums filenum opennums
 
@@ -355,7 +357,7 @@ readrvrb() {
     subdirs="$subdirs::$SUBDIR:$infile:"
 }
 
-# Loop through each runverbatim command file
+# Loop through each checklistings command file
 for f in ${INFILES}; do
 
     # Add the suffix if necessary (as latex does)
@@ -364,7 +366,7 @@ for f in ${INFILES}; do
 	*) infile="$f$SUFFIX" ;;
     esac
 
-    readrvrb "$f"
+    readchkl "$f"
 done
 
 cleanup

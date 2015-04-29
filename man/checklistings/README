@@ -1,7 +1,7 @@
 +------------------------------------------------------------------------+
-|                             runverbatim                                |
+|                            checklistings                               |
 |                             version 1.0                                |
-|                           14 February 2014                             |
+|                             01 May 2015                                |
 |                                                                        |
 |                     Timothy Bourke <tim@tbrk.org>                      |
 |                                Inria                                   |
@@ -13,12 +13,12 @@
 |                                Inria                                   |
 +------------------------------------------------------------------------+
 
-  The "runverbatim" package provides a simple means of executing the
+  The "checklistings" package provides a simple means of executing the
   contents of verbatim environments and including the results within
   a document.
 
   It exploits features of the "listings" and "fancyvrb" packages.
 
   Comments, suggestions and bug reports (with version number and the
-  keyword "runverbatim" in the subject of the message) to <tim@tbrk.org>.
+  keyword "checklistings" in the subject of the message) to <tim@tbrk.org>.
 

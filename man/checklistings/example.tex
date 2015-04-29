@@ -1,0 +1,56 @@
+\documentclass[a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[prompt=,prefix=example,html=cat]{checklistings}
+\usepackage{listings}
+
+\lstdefinestyle{camlstyle}{%
+  language=caml,
+  basicstyle=\sffamily,
+  keywordstyle=\bf,
+  literate={"}{\textquotedbl}1,
+}
+%BEGIN LATEX
+\checklistings{codelst={style=camlstyle}}
+%END LATEX
+%HEVEA \newstyle{.chklistingerr}{font-style: italic; color: red;}
+%HEVEA \newstyle{.chklistingmsg}{font-style: italic;}
+%HEVEA \checklistings{codelst=\{style=camlstyle\}}
+
+\begin{document}
+
+\noindent
+Two simple declarations:
+\begin{chklisting}
+let x = 3
+let f x = x + 1
+\end{chklisting}
+
+\noindent
+and, after compilation with \chklistingcmd, their types:
+\chklistingmsg{}
+
+\noindent
+Then, building on these definitions:
+\begin{chklisting}[continue,withresult,label=early]
+let y = f 3
+\end{chklisting}
+
+\noindent
+What about compiler error messages?:
+\begin{chklisting}[fail]
+let z = 3 + "four"
+\end{chklisting}
+
+\noindent
+They are also detected:
+\chklistingerr{}
+
+\noindent
+We can continue on from earlier examples:
+
+\begin{chklisting}[withresult,include=early]
+let z = f y
+\end{chklisting}
+
+\end{document}

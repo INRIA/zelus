@@ -1,11 +1,11 @@
 % ../compiler/zeluc.byte -I ../lib -I ./samples  	-i samples/tutorial0074.zls (0)
-\runverbatimtrue
-\setrunverbatimcmd{zeluc.byte -i \runverbatimfile}
-\begin{RunVerbatimMsg}
+\chklistingtrue
+\setchklistingcmd{zeluc.byte -i \chklistingfile}
+\begin{ChkListingMsg}
 type event   =  | Simple  | Double
 val counting : 'a signal -D-> int
 val controller : 'a signal * 'b signal -D-> event signal
-\end{RunVerbatimMsg}
-\begin{RunVerbatimErr}
+\end{ChkListingMsg}
+\begin{ChkListingErr}
 Success.
-\end{RunVerbatimErr}
+\end{ChkListingErr}

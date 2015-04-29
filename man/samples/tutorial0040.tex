@@ -1,13 +1,13 @@
 % ../compiler/zeluc.byte -I ../lib -I ./samples  	-i samples/tutorial0040.zls (2)
-\runverbatimfalse
-\setrunverbatimcmd{zeluc.byte -i \runverbatimfile}
-\begin{RunVerbatimMsg}
+\chklistingfalse
+\setchklistingcmd{zeluc.byte -i \chklistingfile}
+\begin{ChkListingMsg}
 Failed.
-\end{RunVerbatimMsg}
-\begin{RunVerbatimErr}
+\end{ChkListingMsg}
+\begin{ChkListingErr}
 File "tutorial.zls", line 3-4, characters 6-34:
 >......present c -> do o = () done
 >.....
 Type error: o has type
 unit, but is expected to be a signal.
-\end{RunVerbatimErr}
+\end{ChkListingErr}

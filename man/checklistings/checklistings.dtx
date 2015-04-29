@@ -1,6 +1,6 @@
 % \iffalse meta-comment
 %
-% Copyright (C) 2014 by Timothy Bourke <tim@tbrk.org>
+% Copyright (C) 2015 by Timothy Bourke <tim@tbrk.org>
 %                    and Marc Pouzet <pouzet@ens.fr>
 % -------------------------------------------------------
 % 
@@ -19,10 +19,10 @@
 %
 % \iffalse
 %<*driver>
-\ProvidesFile{runverbatim.dtx}
+\ProvidesFile{checklistings.dtx}
 %</driver>
 %<package>\NeedsTeXFormat{LaTeX2e}
-%<package>\ProvidesPackage{runverbatim}
+%<package>\ProvidesPackage{checklistings}
 %<package>   [2014/02/14 v1.0 compile code samples and insert the results]
 %<package>\RequirePackage{keyval}
 %<package>\RequirePackage{kvoptions}
@@ -31,13 +31,13 @@
 %<package>\RequirePackage{listings}
 %<package>\makeatletter
 %<package>\lst@RequireAspects{writefile}
-%<package>\SetupKeyvalOptions{family=RVRB,prefix=RVRB@}
+%<package>\SetupKeyvalOptions{family=CHKL,prefix=CHKL@}
 %<package>\makeatother
 %
 %<*driver>
 \documentclass{ltxdoc}
 
-\usepackage{runverbatim}
+\usepackage{checklistings}
 \usepackage{url}
 \usepackage{hypdoc}
 \usepackage{showexpl}
@@ -51,7 +51,7 @@
     pos=l,
 }
 
-\runverbatimsetup{
+\checklistings{
   msgstyle={formatcom=\footnotesize},
   errstyle={formatcom=\footnotesize}}
 
@@ -61,7 +61,7 @@
 \newcommand{\refsec}[1]{Section~\ref{sec:#1}}
 
 \begin{document}
-  \DocInput{runverbatim.dtx}
+  \DocInput{checklistings.dtx}
   \PrintChanges
   \PrintIndex
 \end{document}
@@ -89,7 +89,7 @@
 %
 % \changes{v1.0}{2014/02/14}{Initial version}
 %
-% \GetFileInfo{runverbatim.dtx}
+% \GetFileInfo{checklistings.dtx}
 %
 % \DoNotIndex{\newcommand,\newenvironment}
 % \DoNotIndex{\@file,\@ifundefined,\@tempboxa,\@undefined}
@@ -109,8 +109,8 @@
 % \expandafter\DoNotIndex\expandafter{\string\$}
 % \expandafter\DoNotIndex\expandafter{\string\#}
 %
-% \title{The \textsf{runverbatim} package\thanks{This document
-%   corresponds to \textsf{runverbatim}~\fileversion, dated \filedate.}}
+% \title{The \textsf{checklistings} package\thanks{This document
+%   corresponds to \textsf{checklistings}~\fileversion, dated \filedate.}}
 % \author{Timothy Bourke and Marc Pouzet}
 %
 % \maketitle
@@ -139,19 +139,19 @@ Code samples are included
 verbatim and the results of
 compilation can be included
 automatically:
-\begin{runverbatim}[withresult]
+\begin{chklisting}[withresult]
 let inc x = x + 1
 let y = inc 3
-\end{runverbatim}
+\end{chklisting}
 \end{LTXexample}
 % \iffalse
 %</example>
 % \fi
 %
-% A first pass through |latex| generates both an |.rvrb| file,
+% A first pass through |latex| generates both an |.chkl| file,
 % with parameters for the compiler, and an |.ml| file containing the source 
 % code (i.e., the two lines in the example above).
-% Running the |runverbatim.sh| script processes these files to produce a 
+% Running the |checklistings.sh| script processes these files to produce a 
 % |.tex| file with the results of compilation.
 % A second pass through |latex| updates the compiler message.
 %
@@ -163,9 +163,9 @@ let y = inc 3
 % \fi
 \begin{LTXexample}[pos=b]
 These definitions follow on from the previous ones:
-\begin{runverbatim}[continue,withresult,label=early]
+\begin{chklisting}[continue,withresult,label=early]
 let z = y + inc y
-\end{runverbatim}
+\end{chklisting}
 \end{LTXexample}
 % \iffalse
 %</example>
@@ -178,10 +178,10 @@ let z = y + inc y
 % \fi
 \begin{LTXexample}[pos=b]
 This code does not compile:
-\begin{runverbatim}[continue, fail, withresult,skipone]
+\begin{chklisting}[continue, fail, withresult,skipone]
 let u = 3
 let w = u + "four"
-\end{runverbatim}
+\end{chklisting}
 \end{LTXexample}
 % \iffalse
 %</example>
@@ -196,18 +196,18 @@ let w = u + "four"
 % \begin{enumerate}
 %
 % \item
-% The declaration \verb|\usepackage{runverbatim}|.\\
+% The declaration \verb|\usepackage{checklistings}|.\\
 % \refsec{rvpkg} describes the options for configuring package behaviour.
 %
 % \item
-% The environment \verb|runverbatim|.\\
+% The environment \verb|chklisting|.\\
 % This environment is used like any other verbatim environment.
 % \refsec{rvenv} describes options that may be given to control its 
 % behaviour.
 %
 % \item
-% The script \verb|runverbatim.sh|.\\
-% Running this script passes the contents of each \verb|runverbatim| 
+% The script \verb|checklistings.sh|.\\
+% Running this script passes the contents of each \verb|chklisting| 
 % environment through a compiler or interpreter and copies the resulting 
 % output into a file.
 %
@@ -215,9 +215,9 @@ let w = u + "four"
 %
 % \subsection{Package options}\label{sec:rvpkg}
 %
-% \DescribeMacro{\runverbatimsetup}
+% \DescribeMacro{\checklistings}
 % Package options are either given as optional arguments to 
-% \verb|\usepackage| or via one or more calls to \verb|\runverbatimsetup|.
+% \verb|\usepackage| or via one or more calls to \verb|\checklistings|.
 % The advantage of the latter is that macros are not expanded (for a 
 % detailed explanation see the documentation for 
 % |kvoptions|,\footnote{\url{http://www.ctan.org/pkg/kvoptions}} Section 
@@ -226,13 +226,13 @@ let w = u + "four"
 % pairs and single \meta{key}s.
 %
 % There are three classes of options: options controlling the default 
-% behaviour of \verb|runverbatim|, options for configuring the 
-% \verb|runverbatim.sh| script, and options controlling the display of code 
-% and results.
+% behaviour of \verb|chklisting|, options for configuring the 
+% \verb|checklistings.sh| script, and options controlling the display of
+% code and results.
 %
 % \subsubsection{Behavioural options}
 %
-% These options control the default behaviour of the \verb|runverbatim| 
+% These options control the default behaviour of the \verb|chklisting| 
 % environment.
 %
 % \begin{longtable}{@{}>{\ttfamily}lp{75mm}>{\ttfamily}l@{}}
@@ -243,13 +243,13 @@ let w = u + "four"
 % \\
 % skipone
 % & Do not display the first line of code (see the description under the 
-% |runverbatim| environment).
+% |chklisting| environment).
 % &
 % false
 % \\
 % skiptwo
 % & Do not display the first two lines of code (see the description under 
-% the |runverbatim| environment).
+% the |chklisting| environment).
 % &
 % false
 % \\
@@ -264,9 +264,9 @@ let w = u + "four"
 % \subsubsection{Configuring compilation}\label{sec:compileconfig}
 %
 % These options are used for naming and placing the files generated by 
-% \verb|runverbatim| environments.
-% They are passed to the \verb|runverbatim.sh| script and thus control its 
-% behaviour.
+% \verb|chklisting| environments.
+% They are passed to the \verb|checklistings.sh| script and thus control
+% its behaviour.
 %
 % \makeatletter
 % \begin{longtable}{@{}>{\ttfamily}lp{75mm}>{\ttfamily}l@{}}
@@ -274,54 +274,54 @@ let w = u + "four"
 % prefix
 % & Prefix for naming source files.
 %   It must not contain underscores (\verb|_|).
-% & \RVRB@prefix
+% & \CHKL@prefix
 % \\
 % ext
 % & Extension of source files.
-% & \RVRB@ext
+% & \CHKL@ext
 % \\
 % subdir
 % & If defined, source files are created in the given subdirectory, which 
 % must already exist.
 % A final slash (\verb|/|) should not be given.
 % The name must not contain underscores (\verb|_|).
-% & \RVRB@subdir
+% & \CHKL@subdir
 % \\
 % prompt
-% & The prompt displayed by \string\runverbatimcmd.
-% & \RVRB@prompt
+% & The prompt displayed by \string\chklistingcmd.
+% & \CHKL@prompt
 % \\
 % compiler
 % & Path of the compiler to execute.
-% & \RVRB@compiler
+% & \CHKL@compiler
 % \\
 % compilerflags
 % & Flags passed to the compiler.
-% These are not revealed by \string\runverbatimcmd.
-% & \RVRB@compilerflags
+% These are not revealed by \string\chklistingcmd.
+% & \CHKL@compilerflags
 % \\
 % lastflags
 % & Flags passed to the compiler before the main source file, i.e., the last 
 % one given.
-% & \RVRB@lastflags
+% & \CHKL@lastflags
 % \\
 % includecmd
 % & The source language command for importing the definitions of another 
 % file.
-% & \RVRB@includecmd
+% & \CHKL@includecmd
 % \\
 % html
 % & Optionally filter source files to html for loading by HeVeA.
-% & \RVRB@html
+% & \CHKL@html
 % \end{longtable}
 % \makeatother
 %
-% Each \verb|runverbatim| environment is assigned a number $n$, from zero, 
+% Each \verb|chklisting| environment is assigned a number $n$, from zero, 
 % and its contents are written to the file:
 % \meta{subdir}|/|\meta{prefix}\meta{n}|.|\meta{ext},
 % where \meta{n} is zero-padded to four characters.
 % For example, by default, the fourth environment is written to the file 
-% \verb|runverbatim0003.ml| in the current directory.
+% \verb|chklisting0003.ml| in the current directory.
 %
 % Source lines are added for each dependency, and those files are compiled 
 % using the \meta{compiler}, \meta{compilerflags}, and \meta{lastflags} 
@@ -371,15 +371,15 @@ let w = u + "four"
 % \end{longtable}
 %
 % Other options are passed directly through to the |fancyvrb| package and 
-% applied to all |runverbatim| code blocks (but not to messages or errors).
+% applied to all |chklisting| code blocks (but not to messages or errors).
 % For example, \verb|frame=single|.
-% These options must typically be set using |\runverbatimsetup|, since they 
+% These options must typically be set using |\checklistings|, since they 
 % will usually contain commands that should not be expanded immediately 
 % (like |\em| or |\bf|).
 %
-% \subsection{The \texttt{runverbatim} environment}\label{sec:rvenv}
+% \subsection{The \texttt{chklisting} environment}\label{sec:rvenv}
 %
-% \DescribeEnv{runverbatim}
+% \DescribeEnv{chklisting}
 % As an optional argument, this environment takes a comma separated list of 
 % \meta{key}|=|\meta{value} and single \meta{key}s.
 %
@@ -389,7 +389,7 @@ let w = u + "four"
 % & This code is expected to fail; an error is reported if it succeeds.
 % \\
 % continue
-% & This code is continued from the previous |runverbatim| environment; all 
+% & This code is continued from the previous |chklisting| environment; all 
 % of the definitions available there are imported.
 % \\
 % label
@@ -401,7 +401,7 @@ let w = u + "four"
 % \\
 % withresult
 % & The result of compiling the code is displayed (see also 
-% |\runverbatimmsg| and |runverbatimerr|).
+% |\chklistingmsg| and |\chklistingerr|).
 % This is normally either the types of declared values or the results of 
 % evaluation.
 % For environments marked |fail|, it will be an error message.
@@ -446,8 +446,8 @@ let w = u + "four"
 % redefine them.
 % \begin{description}
 %
-% \item[\texttt{\string\runverbatimcmd}]
-% \DescribeMacro{\runverbatimcmd}
+% \item[\texttt{\string\chklistingcmd}]
+% \DescribeMacro{\chklistingcmd}
 % contains an idealised version of the command line used to compile the code 
 % sample.
 % It includes the |prompt|, the basename of |compiler|, and |lastflags|, but 
@@ -455,29 +455,29 @@ let w = u + "four"
 % Furthermore, the |subdir| and serial number are removed from the filename 
 % of the code sample, which becomes simply \meta{prefix}|.|\meta{ext}.
 %
-% \item[\texttt{\string\runverbatimmsg\marg{label}}]
-% \DescribeMacro{\runverbatimmsg}: inserts the verbatim text emitted by the 
-% compiler, provided compilation succeeded, for the |runverbatim| 
+% \item[\texttt{\string\chklistingmsg\marg{label}}]
+% \DescribeMacro{\chklistingmsg}: inserts the verbatim text emitted by the 
+% compiler, provided compilation succeeded, for the |chklisting| 
 % environment labelled \meta{label}.
 % When \meta{label} is left empty, the message for the last environment is 
 % inserted.
 % It should not be used after environments marked |fail|.
 %
-% \item[\texttt{\string\runverbatimerr\marg{label}}]
-% \DescribeMacro{\runverbatimerr}: inserts the verbatim text emitted by the 
-% compiler, provided compilation failed, for the |runverbatim| environment 
+% \item[\texttt{\string\chklistingerr\marg{label}}]
+% \DescribeMacro{\chklistingerr}: inserts the verbatim text emitted by the 
+% compiler, provided compilation failed, for the |chklisting| environment 
 % labelled \meta{label}.
 % When \meta{label} is left empty, the message for the last environment is 
 % inserted.
 % It should only be used after environments marked |fail|.
 % \end{description}
 %
-% \subsection{The \texttt{runverbatim.sh} script}\label{sec:rvsh}
+% \subsection{The \texttt{checklistings.sh} script}\label{sec:rvsh}
 %
-% Processing a document that uses the |runverbatim| package produces a 
-% |.rvrb| file containing compiler options and a list of source files to 
+% Processing a document that uses the |checklistings| package produces a 
+% |.chkl| file containing compiler options and a list of source files to 
 % together with their interdependencies.
-% The |runverbatim.sh| script processes |.rvrb| files by executing the 
+% The |checklistings.sh| script processes |.chkl| files by executing the 
 % specified compiler (or interpreter) against each listed source file 
 % \meta{subdir}|/|\meta{prefix}\meta{n}|.|\meta{ext} and copying the 
 % results---the command-line used, whether it succeeded or failed, the 
@@ -485,14 +485,14 @@ let w = u + "four"
 % file, \meta{subdir}|/|\meta{prefix}\meta{n}|.tex|, for inclusion in the 
 % original document.
 %
-% The \verb|runverbatim.sh| script is written for the Bourne shell 
+% The \verb|checklistings.sh| script is written for the Bourne shell 
 % (\verb|sh|).
-% It takes a list of |.rvrb| files as arguments (with or without the 
+% It takes a list of |.chkl| files as arguments (with or without the 
 % exentions), but if none are given it processes all such files in the 
 % current working directory.
 %
 % The compilation options specified within a \LaTeX{} source file, see
-% \refsec{compileconfig}, can be manually overridden by processing a |.rvrb| 
+% \refsec{compileconfig}, can be manually overridden by processing a |.chkl| 
 % file, before any others, containing a `|lock|' directive, for example:
 % |lock compiler=/usr/local/bin/ocamlc|.
 % This feature is useful when working with others to develop the compiler 
@@ -525,9 +525,9 @@ let w = u + "four"
 % Multiple languages in a single document are not supported.
 %
 % \item
-% Care must be taken when using |runverbatim| with the overlays of the 
+% Care must be taken when using |checklistings| with the overlays of the 
 % Beamer package.
-% In particular, |runverbatim| environment commands are to be avoided within 
+% In particular, |chklisting| environment commands are to be avoided within 
 % commands that completely omit material from slides, like |only|, |alt|, or 
 % |temporal|, or with `closed' overlay specifications, like |2| or |1-3|.
 % As these commands do not execute the material, the environment sequence 
@@ -537,35 +537,30 @@ let w = u + "four"
 % |uncover| or |visible|, or `open' overlay specifications, like |2-|, 
 % should function as expected.
 %
-% \item
-% Contrary to its name, |runverbatim| does not actually run the files that 
-% are generated.
-% It only compiles them.
-%
 % \end{itemize}
 %
 % \section{Implementation}
 %
-% All internal macros have names of the form |\RVRB@|\meta{name}.
+% All internal macros have names of the form |\CHKL@|\meta{name}.
 %
-% \begin{macro}{\runverbatim}
+% \begin{macro}{\chklisting}
 % Generate the sequence of source code identifiers used in per-environment 
 % filenames and to manage dependencies.
 % If |beamer| is being used, reset the counter on each overlay to avoid 
 % generating multiple output files for the same program.
 %    \begin{macrocode}
-\newcounter{runverbatim}
+\newcounter{chklisting}
 \ifdefined\resetcounteronoverlays
-\resetcounteronoverlays{runverbatim}
+\resetcounteronoverlays{chklisting}
 \fi
 %    \end{macrocode}
 % \end{macro}
 %
-% \begin{macro}{\ifRVRB@fileexists}
+% \begin{macro}{\ifCHKL@fileexists}
 % An internal boolean variable for remembering whether an input |.tex| file, 
 % corresponding to the compilation of source code, was found.
 %    \begin{macrocode}
-\newif\ifRVRB@fileexists
+\newif\ifCHKL@fileexists
 %    \end{macrocode}
 % \end{macro}
 %
@@ -574,11 +569,11 @@ let w = u + "four"
 % The package options are processed using the |kvoptions| 
 % package.\footnote{\url{http://www.ctan.org/pkg/kvoptions}}
 %
-% \begin{macro}{\RVRB@pkg@verbopts}
+% \begin{macro}{\CHKL@pkg@verbopts}
 % This list accumulates package-level options for the |verbatim| 
 % environments.
 %    \begin{macrocode}
-\def\RVRB@pkg@verbopts{}
+\def\CHKL@pkg@verbopts{}
 %    \end{macrocode}
 % \end{macro}
 %
@@ -591,11 +586,11 @@ let w = u + "four"
 \DeclareBoolOption[true]{showerrors}
 \DeclareComplementaryOption{ignoreerrors}{showerrors}
 \DeclareVoidOption{skipone}
-    {\edef\RVRB@pkg@verbopts{\RVRB@pkg@verbopts,firstline=2}}
+    {\edef\CHKL@pkg@verbopts{\CHKL@pkg@verbopts,firstline=2}}
 \DeclareVoidOption{skiptwo}
-    {\edef\RVRB@pkg@verbopts{\RVRB@pkg@verbopts,firstline=3}}
+    {\edef\CHKL@pkg@verbopts{\CHKL@pkg@verbopts,firstline=3}}
 \DeclareDefaultOption
-    {\edef\RVRB@pkg@verbopts{\RVRB@pkg@verbopts,\CurrentOption}}
+    {\edef\CHKL@pkg@verbopts{\CHKL@pkg@verbopts,\CurrentOption}}
 \DeclareStringOption[]{codestyle}
 \DeclareStringOption[formatcom=\em]{msgstyle}
 \DeclareStringOption[formatcom=\em]{errstyle}
@@ -604,7 +599,7 @@ let w = u + "four"
 \DeclareStringOption{errlst}
 \DeclareStringOption{emptyoption}
 \DeclareStringOption[.]{subdir}
-\DeclareStringOption[runverbatim]{prefix}
+\DeclareStringOption[chklisting]{prefix}
 \DeclareStringOption[.ml]{ext}
 \DeclareStringOption[\#]{prompt}
 \DeclareStringOption[ocamlc]{compiler}
@@ -615,109 +610,109 @@ let w = u + "four"
 \ProcessKeyvalOptions*
 %    \end{macrocode}
 %
-% \begin{macro}{\runverbatimsetup}
+% \begin{macro}{\checklistings}
 % This macro offers another way of setting package options with the 
 % advantage that values are not expanded.
 %    \begin{macrocode}
-\def\runverbatimsetup{\kvsetkeys{RVRB}}
+\def\checklistings{\kvsetkeys{CHKL}}
 %    \end{macrocode}
 % \end{macro}
 %
 % \subsection{Logging Files to Process}
 %
 % Several definitions and commands are used to create and write to the 
-% |.rvrb| file.
+% |.chkl| file.
 %
-% \begin{macro}{\RVRB@samplefile}
-% The file generated when a \LaTeX{} document that uses the |runverbatim| 
+% \begin{macro}{\CHKL@samplefile}
+% The file generated when a \LaTeX{} document that uses the |checklistings| 
 % package is processed.
 %    \begin{macrocode}
-\newwrite\RVRB@samplefile
-\openout\RVRB@samplefile=\jobname.rvrb
-\AtEndDocument{\closeout\RVRB@samplefile}
+\newwrite\CHKL@samplefile
+\openout\CHKL@samplefile=\jobname.chkl
+\AtEndDocument{\closeout\CHKL@samplefile}
 %    \end{macrocode}
 % \end{macro}
 %
 % Package options are logged to the file.
 %    \begin{macrocode}
-\write\RVRB@samplefile{subdir=\RVRB@subdir/}
-\write\RVRB@samplefile{prefix=\RVRB@prefix}
-\write\RVRB@samplefile{ext=\RVRB@ext}
-\write\RVRB@samplefile{compiler=\RVRB@compiler}
-\write\RVRB@samplefile{compilerflags=\RVRB@compilerflags}
-\write\RVRB@samplefile{lastflags=\RVRB@lastflags}
-\write\RVRB@samplefile{includecmd=\RVRB@includecmd}
-\write\RVRB@samplefile{htmlfilter=\RVRB@html}
+\write\CHKL@samplefile{subdir=\CHKL@subdir/}
+\write\CHKL@samplefile{prefix=\CHKL@prefix}
+\write\CHKL@samplefile{ext=\CHKL@ext}
+\write\CHKL@samplefile{compiler=\CHKL@compiler}
+\write\CHKL@samplefile{compilerflags=\CHKL@compilerflags}
+\write\CHKL@samplefile{lastflags=\CHKL@lastflags}
+\write\CHKL@samplefile{includecmd=\CHKL@includecmd}
+\write\CHKL@samplefile{htmlfilter=\CHKL@html}
 %    \end{macrocode}
 %
-% \begin{macro}{\RVRB@logsample}
-% An entry is logged for each |runverbatim| environment.
+% \begin{macro}{\CHKL@logsample}
+% An entry is logged for each |chklisting| environment.
 % It contains the sequence number for the example, followed by a colon, an 
 % ordered list of other sample files to import, and the page and line 
 % numbers (to include in error messages).
 %    \begin{macrocode}
-\DeclareRobustCommand{\RVRB@logsample}[2]{%
-  \edef\RVRB@tolog{#1:#2 [page=\noexpand\thepage] [line=\the\inputlineno]}%
-  \expandafter\write\expandafter\RVRB@samplefile\expandafter{\RVRB@tolog}%
+\DeclareRobustCommand{\CHKL@logsample}[2]{%
+  \edef\CHKL@tolog{#1:#2 [page=\noexpand\thepage] [line=\the\inputlineno]}%
+  \expandafter\write\expandafter\CHKL@samplefile\expandafter{\CHKL@tolog}%
 }
 %    \end{macrocode}
 % \end{macro}
 %
 % \subsection{Insertion of Compilation Results}
 %
-% Several macros are defined for use by the |runverbatim.sh| script (and any 
-% similar program).
+% Several macros are defined for use by the |checklistings.sh| script (and
+% any similar program).
 % These macros are called from within the |.tex| file generated for each 
-% |runverbatim| environment.
+% |chklisting| environment.
 %
-% \begin{macro}{\ifrunverbatim}
-% A successful compilation is signalled by |\runverbatimtrue|, and a failed 
-% compilation by |\runverbatimfalse|.
+% \begin{macro}{\ifchklisting}
+% A successful compilation is signalled by |\chklistingtrue|, and a failed 
+% compilation by |\chklistingfalse|.
 %    \begin{macrocode}
-\newif\ifrunverbatim
+\newif\ifchklisting
 %    \end{macrocode}
 % \end{macro}
 %
-% \begin{macro}{\setrunverbatimcmd}
-% The command used to compile a sample is recorded by |\setrunverbatimcmd| 
-% which (re)defines the internal |\RVRB@prompt| value.
+% \begin{macro}{\setchklistingcmd}
+% The command used to compile a sample is recorded by |\setchklistingcmd| 
+% which (re)defines the internal |\CHKL@prompt| value.
 %    \begin{macrocode}
-\DeclareRobustCommand{\setrunverbatimcmd}[1]{%
-    \global\def\runverbatimcmd{\emph{\RVRB@prompt{#1}}}}
+\DeclareRobustCommand{\setchklistingcmd}[1]{%
+    \global\def\chklistingcmd{\emph{\CHKL@prompt{#1}}}}
 %    \end{macrocode}
 % \end{macro}
 
-% \begin{environment}{RunVerbatimMsg}
+% \begin{environment}{ChkListingMsg}
 % Normal compiler messages (written on |stdout|) should be communicated 
-% between |\begin{RunVerbatimMsg}| and |\end{RunVerbatimMsg}|.
+% between |\begin{ChkListingMsg}| and |\end{ChkListingMsg}|.
 % This verbatim text is saved using the |SaveVerbatim| feature of 
 % |fancyvrb|.
 %    \begin{macrocode}
-\def\RunVerbatimMsg{\FV@Environment{}{RunVerbatimMsg}}
-\def\FVB@RunVerbatimMsg{\FVB@SaveVerbatim{RunVerbatimMsg}}
-\let\FVE@RunVerbatimMsg\FVE@SaveVerbatim
-\DefineVerbatimEnvironment{RunVerbatimMsg}{RunVerbatimMsg}{}
+\def\ChkListingMsg{\FV@Environment{}{ChkListingMsg}}
+\def\FVB@ChkListingMsg{\FVB@SaveVerbatim{ChkListingMsg}}
+\let\FVE@ChkListingMsg\FVE@SaveVerbatim
+\DefineVerbatimEnvironment{ChkListingMsg}{ChkListingMsg}{}
 %    \end{macrocode}
 % \end{environment}
 
-% \begin{environment}{RunVerbatimErr}
+% \begin{environment}{ChkListingErr}
 % Compiler error messages (usually written on |stderr|) should be 
-% communicated between |\begin{RunVerbatimErr}| and |\end{RunVerbatimErr}|.
+% communicated between |\begin{ChkListingErr}| and |\end{ChkListingErr}|.
 % This verbatim text is saved using the |SaveVerbatim| feature of 
 % |fancyvrb|.
 %    \begin{macrocode}
-\def\RunVerbatimErr{\FV@Environment{}{RunVerbatimErr}}
-\def\FVB@RunVerbatimErr{\FVB@SaveVerbatim{RunVerbatimErr}}
-\let\FVE@RunVerbatimErr\FVE@SaveVerbatim
-\DefineVerbatimEnvironment{RunVerbatimErr}{RunVerbatimErr}{}
+\def\ChkListingErr{\FV@Environment{}{ChkListingErr}}
+\def\FVB@ChkListingErr{\FVB@SaveVerbatim{ChkListingErr}}
+\let\FVE@ChkListingErr\FVE@SaveVerbatim
+\DefineVerbatimEnvironment{ChkListingErr}{ChkListingErr}{}
 %    \end{macrocode}
 % \end{environment}
 
-% \begin{macro}{\runverbatimfile}
-% This is the filename used by |runverbatim.sh| to refer to the file 
-% containing sample code when |\setrunverbatimcmd| is called.
+% \begin{macro}{\chklistingfile}
+% This is the filename used by |checklistings.sh| to refer to the file 
+% containing sample code when |\setchklistingcmd| is called.
 %    \begin{macrocode}
-\DeclareRobustCommand{\runverbatimfile}{\RVRB@prefix\RVRB@ext}
+\DeclareRobustCommand{\chklistingfile}{\CHKL@prefix\CHKL@ext}
 %    \end{macrocode}
 % \end{macro}
 %
@@ -726,31 +721,31 @@ let w = u + "four"
 % Several auxiliary definitions are needed to track per-environment 
 % configuration options.
 %
-% \begin{macro}{\ifRVRB@shouldfail}
+% \begin{macro}{\ifCHKL@shouldfail}
 % This boolean variable records whether sample code is expected to fail.
 %    \begin{macrocode}
-\newif\ifRVRB@shouldfail
+\newif\ifCHKL@shouldfail
 %    \end{macrocode}
 % \end{macro}
 %
-% \begin{macro}{\ifRVRB@showcode}
+% \begin{macro}{\ifCHKL@showcode}
 % This boolean variable records whether the compilation result should be 
 % shown.
 %    \begin{macrocode}
-\newif\ifRVRB@showcode
+\newif\ifCHKL@showcode
 %    \end{macrocode}
 % \end{macro}
 %
 % The |keyval| package\footnote{\url{http://www.ctan.org/pkg/kvoptions}} is 
 % used to parse environment options.
-% The following macros setup parameters used by the |runverbatim| 
+% The following macros setup parameters used by the |chklisting| 
 % environment.
 %
-% \begin{macro}{\RVRB@continue}
-% \begin{macro}{\RVRB@precontinue}
+% \begin{macro}{\CHKL@continue}
+% \begin{macro}{\CHKL@precontinue}
 % These two macros hold lists of source code identifiers: 
-% |\RVRB@precontinue| tracks the dependencies of the previous |runverbatim| 
-% environment, and |\RVRB@continue| tracks those of the current one.
+% |\CHKL@precontinue| tracks the dependencies of the previous |chklisting| 
+% environment, and |\CHKL@continue| tracks those of the current one.
 % The |continue| option appends the previous dependencies onto the list of 
 % current ones.
 % The dependencies used at each labelled environment are remembered in 
@@ -759,80 +754,80 @@ let w = u + "four"
 % dependencies
 %
 %    \begin{macrocode}
-\edef\RVRB@precontinue{}
-\define@key{RVRB@envkeys}{continue}[]{\edef\RVRB@continue{\RVRB@precontinue}}
-\define@key{RVRB@envkeys}{include}{%
-  \edef\RVRB@continue{\RVRB@continue\space\@ifundefined{RVRB@deps@#1}%
-    {#1}{\csname RVRB@deps@#1\endcsname}}}
+\edef\CHKL@precontinue{}
+\define@key{CHKL@envkeys}{continue}[]{\edef\CHKL@continue{\CHKL@precontinue}}
+\define@key{CHKL@envkeys}{include}{%
+  \edef\CHKL@continue{\CHKL@continue\space\@ifundefined{CHKL@deps@#1}%
+    {#1}{\csname CHKL@deps@#1\endcsname}}}
 %    \end{macrocode}
 % \end{macro}
 % \end{macro}
 %
 %    \begin{macrocode}
-\define@key{RVRB@envkeys}{fail}[]{\RVRB@shouldfailtrue}
-\define@key{RVRB@envkeys}{label}{\edef\RVRB@label{#1}}
-\define@key{RVRB@envkeys}{skipnone}[]{\edef\RVRB@verbopts{\RVRB@verbopts,firstline=1}}
-\define@key{RVRB@envkeys}{skipone}[]{\edef\RVRB@verbopts{\RVRB@verbopts,firstline=2}}
-\define@key{RVRB@envkeys}{skiptwo}[]{\edef\RVRB@verbopts{\RVRB@verbopts,firstline=3}}
-\define@key{RVRB@envkeys}{hide}[]{\RVRB@showcodefalse}
-\define@key{RVRB@envkeys}{withresult}[]{\RVRB@withresulttrue}
-\define@key{RVRB@envkeys}{withoutresult}[]{\RVRB@withresultfalse}
-\define@key{RVRB@envkeys}{showerrors}[]{\RVRB@showerrorstrue}
-\define@key{RVRB@envkeys}{ignoreerrors}[]{\RVRB@showerrorsfalse}
+\define@key{CHKL@envkeys}{fail}[]{\CHKL@shouldfailtrue}
+\define@key{CHKL@envkeys}{label}{\edef\CHKL@label{#1}}
+\define@key{CHKL@envkeys}{skipnone}[]{\edef\CHKL@verbopts{\CHKL@verbopts,firstline=1}}
+\define@key{CHKL@envkeys}{skipone}[]{\edef\CHKL@verbopts{\CHKL@verbopts,firstline=2}}
+\define@key{CHKL@envkeys}{skiptwo}[]{\edef\CHKL@verbopts{\CHKL@verbopts,firstline=3}}
+\define@key{CHKL@envkeys}{hide}[]{\CHKL@showcodefalse}
+\define@key{CHKL@envkeys}{withresult}[]{\CHKL@withresulttrue}
+\define@key{CHKL@envkeys}{withoutresult}[]{\CHKL@withresultfalse}
+\define@key{CHKL@envkeys}{showerrors}[]{\CHKL@showerrorstrue}
+\define@key{CHKL@envkeys}{ignoreerrors}[]{\CHKL@showerrorsfalse}
 %    \end{macrocode}
 %
-% \begin{macro}{\runverbatimmsg}
+% \begin{macro}{\chklistingmsg}
 % This macro takes a single argument \meta{label}.
 % It first configures the |listings| and |fancyvrb| packages with the 
 % current display options.
 % It then checks the |fancyvrb| saved text namespace 
 % (`\texttt{FV@SV@\ldots}') for an entry named `\texttt{\ldots 
-% RVRB@MSG@\meta{label}}'.
+% CHKL@MSG@\meta{label}}'.
 % If found, the associated verbatim text is inserted via the |\UseVerbatim| 
 % feature of |fancyvrb|, otherwise an error message is inserted.
 % In the latter case, we prefer not to fail outright, because the user may 
 % not yet have had the chance to run the compiler on the extracted code, in 
-% which case the log will already contain warnings from |runverbatim|.
-% By convention, the |runverbatim| environment creates an entry for the 
-% empty label (`\texttt{FV@SV@RVRB@MSG@}') when compilation succeeds.
+% which case the log will already contain warnings from |chklisting|.
+% By convention, the |chklisting| environment creates an entry for the 
+% empty label (`\texttt{FV@SV@CHKL@MSG@}') when compilation succeeds.
 %    \begin{macrocode}
-\DeclareRobustCommand{\runverbatimmsg}[1]{
+\DeclareRobustCommand{\chklistingmsg}[1]{
    \bgroup%
-   \ifx\RVRB@msglst\RVRB@emptyoption\else
-      \expandafter\lstset\expandafter{\RVRB@msglst,fancyvrb=true}\fi%
-   \@ifundefined{FV@SV@RVRB@MSG@#1}
+   \ifx\CHKL@msglst\CHKL@emptyoption\else
+      \expandafter\lstset\expandafter{\CHKL@msglst,fancyvrb=true}\fi%
+   \@ifundefined{FV@SV@CHKL@MSG@#1}
      {\def\@tempa{#1}
       \ifx\@tempa\empty
-        \RVRB@none
+        \CHKL@none
       \else
         $\langle$No message found for the label `#1'!$\rangle$
       \fi}
-     {\expandafter\UseVerbatim\expandafter[\RVRB@msgstyle]{RVRB@MSG@#1}}%
+     {\expandafter\UseVerbatim\expandafter[\CHKL@msgstyle]{CHKL@MSG@#1}}%
    \egroup}
 %    \end{macrocode}
 % \end{macro}
 %
-% \begin{macro}{\runverbatimerr}
+% \begin{macro}{\chklistingerr}
 % This macro is essentially the same as the previous one---only that the 
 % substring `\texttt{ERR}' is used instead of `\texttt{MSG}'.
 %    \begin{macrocode}
-\DeclareRobustCommand{\runverbatimerr}[1]{
+\DeclareRobustCommand{\chklistingerr}[1]{
    \bgroup%
-   \ifx\RVRB@errlst\RVRB@emptyoption\else
-      \expandafter\lstset\expandafter{\RVRB@errlst,fancyvrb=true}\fi%
-   \@ifundefined{FV@SV@RVRB@ERR@#1}
+   \ifx\CHKL@errlst\CHKL@emptyoption\else
+      \expandafter\lstset\expandafter{\CHKL@errlst,fancyvrb=true}\fi%
+   \@ifundefined{FV@SV@CHKL@ERR@#1}
      {\def\@tempa{#1}
       \ifx\@tempa\empty
-        \RVRB@none
+        \CHKL@none
       \else
         $\langle$No message found for the label `#1'!$\rangle$
       \fi}
-     {\expandafter\UseVerbatim\expandafter[\RVRB@errstyle]{RVRB@ERR@#1}}%
+     {\expandafter\UseVerbatim\expandafter[\CHKL@errstyle]{CHKL@ERR@#1}}%
    \egroup}
 %    \end{macrocode}
 % \end{macro}
 %
-% \begin{environment}{RunVerbatim}
+% \begin{environment}{chklisting}
 % This is the main environment for including source code.
 % This macro works in two parts:
 % \begin{enumerate}
@@ -847,47 +842,47 @@ let w = u + "four"
 % This one has a single argument (a list of |keyval| options).
 %
 %    \begin{macrocode}
-\lstnewenvironment{runverbatim}[1][]
+\lstnewenvironment{chklisting}[1][]
   {%
 %    \end{macrocode}
 % Set default parameter values before invoking |\setkeys|:
 %    \begin{macrocode}
-    \RVRB@shouldfailfalse%
-    \RVRB@showcodetrue%
-    \let\RVRB@label\@undefined%
-    \edef\RVRB@continue{}%
-    \let\RVRB@verbopts\RVRB@pkg@verbopts%
-    \def\@currentlabel{\therunverbatim}%
-    \setkeys{RVRB@envkeys}{#1}%
+    \CHKL@shouldfailfalse%
+    \CHKL@showcodetrue%
+    \let\CHKL@label\@undefined%
+    \edef\CHKL@continue{}%
+    \let\CHKL@verbopts\CHKL@pkg@verbopts%
+    \def\@currentlabel{\thechklisting}%
+    \setkeys{CHKL@envkeys}{#1}%
 %    \end{macrocode}
 %
-% Log an entry to the |.rvrb| file:
+% Log an entry to the |.chkl| file:
 %
 %    \begin{macrocode}
-    \RVRB@logsample{\arabic{runverbatim}}{\RVRB@continue\ifRVRB@shouldfail\space[fail]\fi}%
+    \CHKL@logsample{\arabic{chklisting}}{\CHKL@continue\ifCHKL@shouldfail\space[fail]\fi}%
 %    \end{macrocode}
 %
-% Update |\RVRB@precontinue| for the next source code block, and, if a label 
-% was defined, add an |\RVRB@deps@|\meta{label} entry.
+% Update |\CHKL@precontinue| for the next source code block, and, if a label 
+% was defined, add an |\CHKL@deps@|\meta{label} entry.
 %
 %    \begin{macrocode}
-    \global\edef\RVRB@precontinue{\RVRB@continue\space\arabic{runverbatim}}%
-    \@ifundefined{RVRB@label}{}{%
-    \global\expandafter\edef\csname RVRB@deps@\RVRB@label\endcsname{\RVRB@precontinue}}%
+    \global\edef\CHKL@precontinue{\CHKL@continue\space\arabic{chklisting}}%
+    \@ifundefined{CHKL@label}{}{%
+    \global\expandafter\edef\csname CHKL@deps@\CHKL@label\endcsname{\CHKL@precontinue}}%
 %    \end{macrocode}
 %
-% A file will be created in the |\RVRB@subdir| subdirectory, with the name 
-% |\RVRB@prefix| followed by the value of the |runverbatim| counter, padded 
+% A file will be created in the |\CHKL@subdir| subdirectory, with the name 
+% |\CHKL@prefix| followed by the value of the |chklisting| counter, padded 
 % out with zeroes to four digits, and the extension |\RBRB@ext|.
 %
 %    \begin{macrocode}
-    \edef\RVRB@num{%
-        \ifnum\value{runverbatim}<1000 0\fi
-        \ifnum\value{runverbatim}<100  0\fi
-        \ifnum\value{runverbatim}<10   0\fi
-        \arabic{runverbatim}}%
-    \stepcounter{runverbatim}%
-    \def\RVRB@file{\RVRB@subdir/\RVRB@prefix\RVRB@num}%
+    \edef\CHKL@num{%
+        \ifnum\value{chklisting}<1000 0\fi
+        \ifnum\value{chklisting}<100  0\fi
+        \ifnum\value{chklisting}<10   0\fi
+        \arabic{chklisting}}%
+    \stepcounter{chklisting}%
+    \def\CHKL@file{\CHKL@subdir/\CHKL@prefix\CHKL@num}%
 %    \end{macrocode}
 %
 % Clear the definitions used to return information about the compilation 
@@ -895,12 +890,12 @@ let w = u + "four"
 % package, into which to write the ensuing contents.
 %
 %    \begin{macrocode}
-    \global\let\runverbatimcmd\@undefined%
-    \global\let\FV@SV@RunVerbatimMsg\@undefined%
-    \global\let\FV@SV@RunVerbatimErr\@undefined%
-    \runverbatimtrue%
+    \global\let\chklistingcmd\@undefined%
+    \global\let\FV@SV@ChkListingMsg\@undefined%
+    \global\let\FV@SV@ChkListingErr\@undefined%
+    \chklistingtrue%
     \setbox\@tempboxa\hbox\bgroup%
-    \lst@BeginWriteFile{\RVRB@file\RVRB@ext}%
+    \lst@BeginWriteFile{\CHKL@file\CHKL@ext}%
   }
 %    \end{macrocode}
 %
@@ -913,17 +908,17 @@ let w = u + "four"
     \egroup%
 %    \end{macrocode}
 %
-% If |hide| is not active, apply |\RVRB@verbopts| and reload the newly 
+% If |hide| is not active, apply |\CHKL@verbopts| and reload the newly 
 % created file.
 %
 %    \begin{macrocode}
-    \ifRVRB@showcode%
+    \ifCHKL@showcode%
         \bgroup%
-        \ifx\RVRB@codelst\RVRB@emptyoption\else%
-          \expandafter\lstset\expandafter{\RVRB@codelst,fancyvrb=true}%
+        \ifx\CHKL@codelst\CHKL@emptyoption\else%
+          \expandafter\lstset\expandafter{\CHKL@codelst,fancyvrb=true}%
         \fi%
-        \expandafter\fvset\expandafter{\RVRB@verbopts}%
-        \expandafter\VerbatimInput\expandafter[\RVRB@codestyle]{\RVRB@file\RVRB@ext}%
+        \expandafter\fvset\expandafter{\CHKL@verbopts}%
+        \expandafter\VerbatimInput\expandafter[\CHKL@codestyle]{\CHKL@file\CHKL@ext}%
         \egroup%
     \fi%
 %    \end{macrocode}
@@ -931,57 +926,57 @@ let w = u + "four"
 % Check whether a corresponding |.tex| file was created:
 %
 %    \begin{macrocode}
-    \global\edef\RVRB@none{$\langle$Cannot load \RVRB@file.tex!$\rangle$}%
-    \InputIfFileExists{\RVRB@file.tex}{\RVRB@fileexiststrue}{\RVRB@fileexistsfalse}%
+    \global\edef\CHKL@none{$\langle$Cannot load \CHKL@file.tex!$\rangle$}%
+    \InputIfFileExists{\CHKL@file.tex}{\CHKL@fileexiststrue}{\CHKL@fileexistsfalse}%
 %    \end{macrocode}
 %
 % If the |.tex| file was loaded successfully, create `unlabelled' saved 
 % verbatim environments for the message and error texts.
-% These are exploited, respectively, by the |\runverbatimmsg| and 
-% |\runverbatimerr| macros.
+% These are exploited, respectively, by the |\chklistingmsg| and 
+% |\chklistingerr| macros.
 %
 %    \begin{macrocode}
-    \ifRVRB@fileexists%
-        \@ifundefined{FV@SV@RunVerbatimMsg}%
-          {}{\global\let\FV@SV@RVRB@MSG@=\FV@SV@RunVerbatimMsg}%
-        \@ifundefined{FV@SV@RunVerbatimErr}%
-          {}{\global\let\FV@SV@RVRB@ERR@=\FV@SV@RunVerbatimErr}%
+    \ifCHKL@fileexists%
+        \@ifundefined{FV@SV@ChkListingMsg}%
+          {}{\global\let\FV@SV@CHKL@MSG@=\FV@SV@ChkListingMsg}%
+        \@ifundefined{FV@SV@ChkListingErr}%
+          {}{\global\let\FV@SV@CHKL@ERR@=\FV@SV@ChkListingErr}%
 %    \end{macrocode}
 %
 % Then, if compilation failed and the |fail| option was not active, or if 
 % compilation succeeded and the |fail| option is active, log a warning 
 % message and, if errors are not being ignored, include details in the 
 % document.
-% Otherwise, if |withresult| was given, expand either |\runverbatimerr| or 
-% |\runverbatimmsg|.
+% Otherwise, if |withresult| was given, expand either |\chklistingerr| or 
+% |\chklistingmsg|.
 %
 %    \begin{macrocode}
-        \ifRVRB@shouldfail%
-            \ifrunverbatim%
-                \PackageWarning{runverbatim}%
-                    {Compilation of \RVRB@file\RVRB@ext\space should have failed}%
-                \ifRVRB@showerrors%
+        \ifCHKL@shouldfail%
+            \ifchklisting%
+                \PackageWarning{checklistings}%
+                    {Compilation of \CHKL@file\CHKL@ext\space should have failed}%
+                \ifCHKL@showerrors%
                   \UseVerbatim[frame=single,
                                label=Unexpected success,
-                               rulecolor=\color{red}]{RunVerbatimMsg}%
+                               rulecolor=\color{red}]{ChkListingMsg}%
                 \fi%
             \else%
-                \ifRVRB@withresult%
-                   {\setlength{\partopsep}{0em}\runverbatimerr{}}%
+                \ifCHKL@withresult%
+                   {\setlength{\partopsep}{0em}\chklistingerr{}}%
                 \fi%
             \fi%
         \else%
-            \ifrunverbatim%
-                \ifRVRB@withresult%
-                   {\setlength{\partopsep}{0em}\runverbatimmsg{}}%
+            \ifchklisting%
+                \ifCHKL@withresult%
+                   {\setlength{\partopsep}{0em}\chklistingmsg{}}%
                 \fi%
             \else%
-                \PackageWarning{runverbatim}%
-                    {Compilation of \RVRB@file\RVRB@ext\space should not have failed}%
-                \ifRVRB@showerrors%
+                \PackageWarning{checklistings}%
+                    {Compilation of \CHKL@file\CHKL@ext\space should not have failed}%
+                \ifCHKL@showerrors%
                   \UseVerbatim[frame=single,
                                label=Unexpected failure,
-                               rulecolor=\color{red}]{RunVerbatimErr}%
+                               rulecolor=\color{red}]{ChkListingErr}%
                 \fi%
             \fi%
         \fi%
@@ -989,25 +984,25 @@ let w = u + "four"
 %    \end{macrocode}
 %
 % If the |.tex| file was not loaded successfully, clear the 
-% |\runverbatimcmd| macros, and the `unlabelled' saved verbatim environments 
+% |\chklistingcmd| macros, and the `unlabelled' saved verbatim environments 
 % for the message and error results.
 %
 %    \begin{macrocode}
-        \PackageWarning{runverbatim}{Cannot load \RVRB@file.tex}%
-        \global\let\runverbatimcmd\RVRB@none%
-        \global\let\FV@SV@RVRB@MSG@\@undefined%
-        \global\let\FV@SV@RVRB@ERR@\@undefined%
+        \PackageWarning{checklistings}{Cannot load \CHKL@file.tex}%
+        \global\let\chklistingcmd\CHKL@none%
+        \global\let\FV@SV@CHKL@MSG@\@undefined%
+        \global\let\FV@SV@CHKL@ERR@\@undefined%
     \fi%
 % If this environment is labelled, create persistent references to the saved 
 % verbatim environments for the message and error results.
-% These are exploited, respectively, by the |\runverbatimmsg| and 
-% |\runverbatimerr| macros when their \meta{label} argument is not empty.
+% These are exploited, respectively, by the |\chklistingmsg| and 
+% |\chklistingerr| macros when their \meta{label} argument is not empty.
 %
-    \@ifundefined{RVRB@label}{}{%
+    \@ifundefined{CHKL@label}{}{%
       \global\expandafter\let%
-        \csname FV@SV@RVRB@MSG@\RVRB@label\endcsname=\FV@SV@RVRB@MSG@%
+        \csname FV@SV@CHKL@MSG@\CHKL@label\endcsname=\FV@SV@CHKL@MSG@%
       \global\expandafter\let%
-        \csname FV@SV@RVRB@ERR@\RVRB@label\endcsname=\FV@SV@RVRB@ERR@%
+        \csname FV@SV@CHKL@ERR@\CHKL@label\endcsname=\FV@SV@CHKL@ERR@%
     }%
   }%
 %    \end{macrocode}

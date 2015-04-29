@@ -1,14 +1,14 @@
 % ../compiler/zeluc.byte -I ../lib -I ./samples  	-i samples/tutorial0025.zls (2)
-\runverbatimfalse
-\setrunverbatimcmd{zeluc.byte -i \runverbatimfile}
-\begin{RunVerbatimMsg}
+\chklistingfalse
+\setchklistingcmd{zeluc.byte -i \chklistingfile}
+\begin{ChkListingMsg}
 val from : int -D-> int
-\end{RunVerbatimMsg}
-\begin{RunVerbatimErr}
+\end{ChkListingMsg}
+\begin{ChkListingErr}
 File "tutorial.zls", line 1-2, characters 18-52:
 >..................nat where
 >  rec nat = m -> nat + 1
 Causality error: this expression may instantaneously depend on itself.
 Here is an example of a cycle:
 [nat --> nat nat --> nat nat --> nat]
-\end{RunVerbatimErr}
+\end{ChkListingErr}

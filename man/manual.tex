@@ -15,12 +15,12 @@
             lastflags={-i},
             includecmd={},
             html={../tools/zltohtml},
-           ]{runverbatim}
+           ]{checklistings}
 \fvset{xleftmargin=3mm}
 \ifhevea
 \relax
 \else
-\runverbatimsetup{errstyle={formatcom=\small}}
+\checklistings{errstyle={formatcom=\small}}
 \fi
 
 \newcommand{\zls}[1]{\texttt{#1}}
@@ -654,24 +654,24 @@ or \mbox{\zls{1 -> pre(2 -> pre(3))}} or \zls{1 -> pre(2 -> 3)}.
 A program comprises a sequence of declarations of global
 values. The keyword \zls{let} defines non recursive global values which may
 be either constants or functions. For example:
-\begin{runverbatim}
+\begin{chklisting}
 let dt = 0.001
 let g = 9.81
-\end{runverbatim}
+\end{chklisting}
 These declarations define two constant streams \zls{dt} and
 \zls{g}.
 Given the option \texttt{-i}, the compiler displays the types inferred for 
 each declaration:
-\begin{sample}\runverbatimcmd\end{sample}
-\runverbatimmsg{}
+\begin{sample}\chklistingcmd\end{sample}
+\chklistingmsg{}
 Only constant values can be defined globally.
 The following declaration is rejected,
-\begin{runverbatim}[fail]
+\begin{chklisting}[fail]
 let first = true -> false
-\end{runverbatim}
+\end{chklisting}
 with the message:
-\begin{sample}\runverbatimcmd\end{sample}
-\runverbatimerr{}
+\begin{sample}\chklistingcmd\end{sample}
+\chklistingerr{}
 The right-hand side of a global \zls{let} declaration may not contain delay 
 operations. Definitions containing delays require the introduction of state.
 They may only be made within the \zls{node} definition described 
@@ -697,9 +697,9 @@ As for any globally defined value, a combinatorial function
 is defined using the \zls{let} keyword.
 Consider, for example, a function computing the
 instantaneous average of two inputs:
-\begin{runverbatim}[withresult]
+\begin{chklisting}[withresult]
 let average (x,y) = (x + y) / 2
-\end{runverbatim}
+\end{chklisting}
 The type signature inferred by the compiler, \zlsmsg{int * int -A-> int},
 indicates that it takes two integer streams and returns an integer stream.
 The arrow \texttt{-A->} tagged with an \texttt{A} indicates that this 
@@ -711,26 +711,26 @@ We will describe the other possibilities soon.
 Function definitions may contain local declarations, introduced using
 either \zls{where} or \zls{let} notations. For example, the average function 
 can be written in two (equivalent) ways:
-\begin{runverbatim}
+\begin{chklisting}
 let average (x,y) = o where o = (x + y) / 2
-\end{runverbatim}
+\end{chklisting}
 and
-\begin{runverbatim}
+\begin{chklisting}
 let average (x,y) = let o = (x + y) / 2 in o
-\end{runverbatim}
+\end{chklisting}
 
 The full adder is a classic example of a combinatorial program.
 %As another example of a combinatorial program, we end with the classical
 %description of a one-bit adder
 It takes three input bits, \zls{a}, \zls{b}, and a carry bit \zls{c}, and 
 returns outputs for the sum~\zls{s} and carry-out~\zls{co}.
-\begin{runverbatim}[withresult,label=xor]
+\begin{chklisting}[withresult,label=xor]
 let xor (a, b) = (a & not(b)) or (not a & b)
 
 let full_add (a, b, c) = (s, co) where
        s = xor (xor (a, b), c)
    and co = (a & b) or (b & c) or (a & c)
-\end{runverbatim}
+\end{chklisting}
 
 \begin{figure}
 \centering
@@ -749,18 +749,18 @@ let full_add (a, b, c) = (s, co) where
 Alternatively, a full adder can be described more efficiently as a composition
 of two half adders. A graphical depiction is given in
 \cref{half-adder}. The corresponding program text is:
-\begin{runverbatim}[continue,withresult]
+\begin{chklisting}[continue,withresult]
 let half_add(a,b) = (s, co) where
        s = xor (a, b)
    and co = a & b
-\end{runverbatim}
+\end{chklisting}
 %
-\begin{runverbatim}[continue,withresult]
+\begin{chklisting}[continue,withresult]
 let full_add2(a, b, c) = (s, co) where
   rec (s1, c1) = half_add(a, b)
   and (s, c2) = half_add(c, s1)
   and co = c1 or c2
-\end{runverbatim}
+\end{chklisting}
 
 The \zls{rec} keyword specifies that the block of equations following the 
 \zls{where} is defined by mutual recursion.
@@ -770,11 +770,11 @@ to exist in the list of inputs or the global environment, and similarly for
 
 \paragraph{Alternative notation:} For combinatorial function definitions, 
 the keyword \zls{let} can be replaced by \zls{fun}.
-\begin{runverbatim}[include=xor]
+\begin{chklisting}[include=xor]
 fun half_add (a,b) = (s, co) where
   rec s = xor (a, b)
   and co = a & b
-\end{runverbatim}
+\end{chklisting}
 
 % }-}3
 \subsection{Stateful Functions\label{nodefunc}} %{-{3
@@ -798,10 +798,10 @@ are constant.
 Stateful functions must be declared with the \zls{node} keyword.
 For example, this function computes the sequence of integers starting at an 
 initial value given by the parameter \zls{m}:
-\begin{runverbatim}[withresult]
+\begin{chklisting}[withresult]
 let node from m = nat where
   rec nat = m -> pre nat + 1
-\end{runverbatim}
+\end{chklisting}
 
 \noindent
 The type signature \zlsmsg{int -D-> int} indicates that \zls{from} is
@@ -824,12 +824,12 @@ execution:
 
 The fact that a function is combinatorial is verified during compilation.
 Thus, omitting the \zls{node} keyword,
-\begin{runverbatim}[fail]
+\begin{chklisting}[fail]
 let from n = nat where rec nat = n -> pre nat + 1
-\end{runverbatim}
+\end{chklisting}
 leads to an error message:
-\begin{sample}\runverbatimcmd\end{sample}
-\runverbatimerr{}
+\begin{sample}\chklistingcmd\end{sample}
+\chklistingerr{}
 While a node (arrow type \zlsmsg{-D->}) cannot be called within a 
 combinatorial function, it is possible to call a combinatorial function
 (arrow type \zlsmsg{-A->}) within in a
@@ -839,9 +839,9 @@ type signature \zlsmsg{int * int -A-> int}.
 \medskip\noindent
 The edge front detector is defined a global function from boolean streams to
 boolean streams:%
-\begin{runverbatim}[withresult]
+\begin{chklisting}[withresult]
 let node edge c = c & not (false fby c)
-\end{runverbatim}
+\end{chklisting}
 \begin{chrono}{l|ccccccc}
 \hline
 \zls{c}                 & \f & \f & \t & \t & \f &  \t & $\cdots$ \\ \hline
@@ -853,30 +853,30 @@ let node edge c = c & not (false fby c)
 
 \medskip\noindent
 A forward Euler integrator is defined by:
-\begin{runverbatim}[withresult,label=integr]
+\begin{chklisting}[withresult,label=integr]
 let dt = 0.01
 let node integr (x0, x') = x where
   rec x = x0 -> pre (x +. x' *. dt)
-\end{runverbatim}
+\end{chklisting}
 These declarations give a global function \zls{integr} that returns a stream 
 \zls{x} defined
 recursively so that, for all $n \in \Nat, x(n) = x0 + \sum_{i=0}^{n-1}
 x'(i)\cdot dt$.  The operators `\zls{+.}', `\zls{*.}' are, respectively, 
 addition and multiplication over floating-point numbers. Sequential
 functions are composed just like any other function, as, for example, in:
-\begin{runverbatim}[continue]
+\begin{chklisting}[continue]
 let node double_integr (x0, x0', x'') = x where
   rec x = integr (x0, x')
   and x' = integr (x0', x'')
-\end{runverbatim}
+\end{chklisting}
 
 \paragraph{Alternative notation:}
 The keyword \zls{let} can be omitted, for example,
-\begin{runverbatim}[skipone]
+\begin{chklisting}[skipone]
 let dt = 0.01
 node integr (x0, x') = x where
   rec x = x0 -> pre (x +. x' *. dt)
-\end{runverbatim}
+\end{chklisting}
 
 
 % \subsection{Anonymous Functions}
@@ -889,10 +889,10 @@ node integr (x0, x') = x where
 % has the type \verb#'a -> 'a => 'a#.
 
 % The functions \verb-average- and \verb-from- can be defined as:
-% \begin{runverbatim}
+% \begin{chklisting}
 % let average = fun (x,y) -> (x + y) / 2
 % let from = fun n => nat where rec nat = n -> pre nat + 1
-% \end{runverbatim}
+% \end{chklisting}
 
 % }-}3
 \subsection{Local and Mutually Recursive Definitions\label{localdefmut}} %{-{3
@@ -901,12 +901,12 @@ Variables may be defined locally with \zls{let}/\zls{in} or
 \zls{let rec}/\zls{in} whether the defining expression is stateful or not.
 The following
 program computes the Euclidean distance between two points:%
-\begin{runverbatim}
+\begin{chklisting}
 let distance ((x0,y0), (x1,y1)) =
   let d0 = x1 -. x0 in
   let d1 = y1 -. x1 in
   sqrt (d0 *. d0 +. d1 *. d1)
-\end{runverbatim}
+\end{chklisting}
 Since \zls{d0} and \zls{d1} denote infinite streams, the computations of 
 \verb+x1 -. x0+ and \verb+y1 -. x1+ occur in parallel, at least 
 conceptually.
@@ -923,33 +923,33 @@ Streams may be defined through sets of mutually recursive equations.  The
 function that computes the minimum and maximum of an input stream
 \zls{x} can be written in at least three equivalent ways.
 As two mutually recursive equations after a \zls{where}:
-\begin{runverbatim}
+\begin{chklisting}
 let node min_max x = (min, max) where
   rec min = x -> if x < pre min then x else pre min
   and max = x -> if x > pre max then x else pre max
-\end{runverbatim}
+\end{chklisting}
 as a stream of tuples defined by two local, mutually recursive equations:
-\begin{runverbatim}
+\begin{chklisting}
 let node min_max x =
   let rec min = x -> if x < pre min then x else pre min
   and max = x -> if x > pre max then x else pre max in
   (min, max)
-\end{runverbatim}
+\end{chklisting}
 or as a stream of tuples defined by a single recursive equation:
-\begin{runverbatim}
+\begin{chklisting}
 let node min_max x = (min, max) where
   rec (min, max) = (x, x) -> if x < pre min then (x, pre max)
                              else if x > pre max then (pre min, x)
                              else (pre min, pre max)
-\end{runverbatim}
+\end{chklisting}
 
 \noindent Discrete approximations to the sine and cosine functions can be 
 defined by:
-\begin{runverbatim}[continue,include=integr]
+\begin{chklisting}[continue,include=integr]
 let node sin_cos theta = (sin, cos) where
   rec sin = integr(0.0, theta *. cos)
   and cos = integr(1.0, -. theta *. sin)
-\end{runverbatim}
+\end{chklisting}
 
 % }-}3
 \subsection{Shared Memory and Initialization\label{sharedinit}} %{-{3
@@ -957,45 +957,45 @@ let node sin_cos theta = (sin, cos) where
 In addition to the delay operator \zls{pre}, Zélus provides another 
 construction for referring to the previous value of a stream: \zls{last o}, 
 where \zls{o} is a variable defined by an equation. For example:%
-\begin{runverbatim}
+\begin{chklisting}
 let node counter i = o where
   rec init o = i
   and o = last o + 1
-\end{runverbatim}
+\end{chklisting}
 The equation \zls{init o = i} defines the initial value of the \emph{memory} 
 \zls{last o}. This memory is initialized with the first
 value of \verb-i-, and thereafter it contains the previous value of
 \verb-o-. The above program is thus equivalent to the following
 one:\footnote{The construction \texttt{last} is eliminated during 
 compilation by a similar transformation.}
-\begin{runverbatim}
+\begin{chklisting}
 let node counter i = o where
   rec last_o = i -> pre o
   and o = last_o + 1
-\end{runverbatim}
+\end{chklisting}
 The reason for introducing memories, will become clear when control 
 structures are introduced in \cref{patternmatch}.
 Syntactically, \verb-last- is {\em not} an operator: \verb-last o- denotes
 a shared memory and the argument of \verb-last-, here \verb-o-, must be a 
 variable name. Thus this program is rejected:
-\begin{runverbatim}[fail,withresult]
+\begin{chklisting}[fail,withresult]
 let node f () = o where
   rec o = 0 -> last (o + 1)
-\end{runverbatim}
+\end{chklisting}
 
 Rather than define the current value of a signal in terms of its previous
 one, the next value can also be defined in terms of the current one.
 The same counter program can be written:
-\begin{runverbatim}
+\begin{chklisting}
 let node counter i = o where
   rec init o = i
   and next o = o + 1
-\end{runverbatim}
+\end{chklisting}
 or equivalently:
-\begin{runverbatim}
+\begin{chklisting}
 let node counter i = o where
   rec next o = o + 1 init i
-\end{runverbatim}
+\end{chklisting}
 In both definitions, \texttt{o} is initialized with the first value of
 \verb-i- and then the value of \texttt{o} at instant $n+1$ is the value of
 \verb-o + 1- at instant $n$ (for all $n \in \Nat$).
@@ -1018,12 +1018,12 @@ Instantaneous cycles between recursively defined values---\emph{causality
 loops}---are forbidden so that the compiler can produce statically-scheduled 
 sequential code.
 For example, the program:%
-\begin{runverbatim}[fail]
+\begin{chklisting}[fail]
 let node from m = nat where
   rec nat = m -> nat + 1
-\end{runverbatim}
+\end{chklisting}
 is rejected with the message:
-\runverbatimerr{}
+\chklistingerr{}
 \noindent
 This program cannot be computed since \verb+nat+ depends instantaneously on 
 itself.
@@ -1044,11 +1044,11 @@ example. E.g., consider the initial value problem:
 \]
 Approximate the integration with the explicit Euler integrator defined previously. The
 signal $\temp$ can be implemented by the following recursive equation.
-\begin{runverbatim}[withresult,include=integr]
+\begin{chklisting}[withresult,include=integr]
 (* [t0] is the initial temperature; [g0] and [g1] two constant *)
 let node heater(t0, g0, g1) = temp where
   rec temp = integr(t0, g0 -. g1 *. temp)
-\end{runverbatim}
+\end{chklisting}
 This feedback loop is accepted because \verb+integr(t0, g0 -. g1 *. temp)+ does
 not depend instantaneously on its input.
 
@@ -1056,11 +1056,11 @@ It is also possible to force a function to be considered to be strict
 by adding the keyword \texttt{atomic}. E.g., the following program is
 now rejected by the causality analysis.
 %
-\begin{runverbatim}[fail,withresult]
+\begin{chklisting}[fail,withresult]
 let atomic node f x = 0 -> pre (x + 1)
 let node wrong () =
   let rec o = f o in o
-\end{runverbatim}
+\end{chklisting}
 %
 Indeed, whereas the output of \texttt{f} does not instantaneously
 depend on its input \texttt{x}, adding the keyword \texttt{atomic}
@@ -1078,10 +1078,10 @@ function which is simply called.\footnote{Modular code generation
 
 The compiler checks that every delay operator is initialized. For
 example:
-\begin{runverbatim}[fail,withresult]
+\begin{chklisting}[fail,withresult]
 let node from m = nat where
   rec nat = pre nat + 1
-\end{runverbatim}
+\end{chklisting}
 The analysis is a {\em one-bit} analysis where expressions are
 considered to be either always defined or always defined except at the
 very first instant.  It is defined in~\cite{lucy:sttt04}. In
@@ -1104,12 +1104,12 @@ Records are defined as in Ocaml and accessed with the dot notation. E.g.,
 the following defines a type {\tt
   circle}, representing a circle as a record containing a {\tt
   center}, given by its coordinates, and a {\tt radius}.
-\begin{runverbatim}
+\begin{chklisting}
 type circle = { center: float * float; radius: float }
 
 let center c = c.center
 let radius c = c.radius
-\end{runverbatim}
+\end{chklisting}
   
 % }-}3
 \subsection{Pattern matching\label{patternmatch}} %{-{3
@@ -1133,12 +1133,12 @@ some instants where the direction is undetermined
 We program the controler in the following way. First, we introduce two
 sum types.  The function \verb-direction- then compares three
 successive values of the input stream \verb-i-.
-\begin{runverbatim}
+\begin{chklisting}
 type color = Blue | Red | Green
 type dir = Direct | Indirect | Undetermined | Immobile
-\end{runverbatim}
+\end{chklisting}
 %
-\begin{runverbatim}[continue,withresult]
+\begin{chklisting}[continue,withresult]
 let node direction i = d where
   rec pi = i fby i
   and ppi = i fby pi
@@ -1151,7 +1151,7 @@ let node direction i = d where
          do d = Indirect done
   | _ -> do d = Undetermined done
   end
-\end{runverbatim}
+\end{chklisting}
 
 The handler of a pattern-matching construct is made of a set of
 equations defining {\em shared} variables (here the variable
@@ -1166,7 +1166,7 @@ in the presence of delay operators. This can be illustrated on the
 following program. This program is made of two modes: in the \verb-Up-
 mode, the variable \verb-o- increases by step \verb-1- whereas in the
 mode \verb-Down-, it decreases by step \verb+-1+.
-\begin{runverbatim}
+\begin{chklisting}
 type modes = Up | Down
 
 let node two (m, i) = o where
@@ -1175,7 +1175,7 @@ let node two (m, i) = o where
       | Up -> do o = last o + 1 done
       | Down -> do o = last o - 1 done
       end
-\end{runverbatim}
+\end{chklisting}
 The equation \verb-init o = i- defines a shared memory \verb-last o-
 which is initialized with the first value of \verb-i-. \verb-o- is
 called a shared variable because it is defined by several
@@ -1204,17 +1204,17 @@ defined. The execution diagram for some execution is given below.
 
 \medskip\noindent
 The function \texttt{two} is equivalent to the following one:
-\begin{runverbatim}[hide,label=updownmodes]
+\begin{chklisting}[hide,label=updownmodes]
 type modes = Up | Down
-\end{runverbatim}
-\begin{runverbatim}[continue]
+\end{chklisting}
+\begin{chklisting}[continue]
 let node two (m, i) = o where
   rec last_o = i -> pre o
   and match m with
       | Up -> do o = last_o + 1 done
       | Down -> do o = last_o - 1 done
       end
-\end{runverbatim}
+\end{chklisting}
 making clear that \verb-last o- stands for the previous defined value
 of \verb-o-.
 
@@ -1247,7 +1247,7 @@ We illustrate the difference between the two on the following
 example. We add extra equations on the previous example. The two other streams
 \verb-c1- and \verb-c2-
 return respectively the number of instants each mode is active.
-\begin{runverbatim}[include=updownmodes]
+\begin{chklisting}[include=updownmodes]
 let node two (m, i) = (o, c1, c2) where
   rec init o = i
   and init c1 = 0
@@ -1260,7 +1260,7 @@ let node two (m, i) = (o, c1, c2) where
                  and c2 = 1 -> pre c2 + 1
                  done
     end
-\end{runverbatim}
+\end{chklisting}
 
 The equation \verb#c1 = 1 -> pre c1 + 1# is only active in the
 \verb-Up- mode whereas equation \texttt{c2 = 1 -> pre c2 + 1} is
@@ -1302,23 +1302,23 @@ instants where \verb-m = Up- and the other denoting the instant where
 
 It is possible to define variables which stay local to a branch. For
 example:
-\begin{runverbatim}[include=updownmodes]
+\begin{chklisting}[include=updownmodes]
 let node two (m, i) = o where
   match m with
   | Up -> let rec c = 0 -> pre c + 1 in
           do o = c done
   | Down -> do o = 0 done
   end
-\end{runverbatim}
+\end{chklisting}
 or equivalently:
-\begin{runverbatim}[include=updownmodes]
+\begin{chklisting}[include=updownmodes]
 let node two (m, i) = o where
   match m with
   | Up -> local c in
           do c = 0 -> pre c + 1 and o = c done
   | Down -> do o = 0 done
   end
-\end{runverbatim}
+\end{chklisting}
 In the first handler of the \texttt{match/with} statement, \texttt{c} is
 declared to be local to the handler. The compiler checks that a definition for
 \texttt{c} is given. Several variables can be declared local by writing
@@ -1334,13 +1334,13 @@ equations of the form \verb-x = last x- in branches where no
 definition for \verb-x- is given. Finally, the compiler rejects situations
 where it is unable to ensure that an initial value exist for
 \texttt{last x}. Thus, the following program is rejected.
-\begin{runverbatim}[withresult,fail,include=updownmodes]
+\begin{chklisting}[withresult,fail,include=updownmodes]
 let node two (m, i) = o where
   rec match m with
       | Up -> do o = last o + 1 done
       | Down -> do o = last o - 1 done
       end
-\end{runverbatim}
+\end{chklisting}
 
 % \begin{verbatim}
 % type event = Click | Move | Keypressed of char
@@ -1481,21 +1481,21 @@ that is, not to implictly keep the previous value as we illustrated with
 shared variables. % As opposed to shared variables, it is now possible to give a
 % partial definition with no implicit completion.
 Consider the following program:
-\begin{runverbatim}[withresult]
+\begin{chklisting}[withresult]
 let node within (min, max, x) = o where
   rec c = (min <= x) & (x <= max)
   and present c -> do emit o = () done
-\end{runverbatim}
+\end{chklisting}
 It computes a condition \verb-c-. Then \verb-o- is a signal
 which is present with value \verb-()- every time \verb-c- is
 true. There is no need here to give an initial value to \verb-o-. When \verb-c- is
 false, \verb-o- is simply absent. Writting the following program would lead to
 an error:
-\begin{runverbatim}[withresult,fail]
+\begin{chklisting}[withresult,fail]
 let node within (min, max, x) = o where
   rec c = (min <= x) & (x <= max)
   and present c -> do o = () done
-\end{runverbatim}
+\end{chklisting}
 
 % }-}3
 \subsection{Signal Presence and Values\label{signalpresence}} %{-{3
@@ -1503,10 +1503,10 @@ let node within (min, max, x) = o where
 It is possible to test for the presence of a signal expression $e$ by
 writing the boolean expression $? e$. The following program, for
 example, counts the number of instants where \verb-x- is emitted.
-\begin{runverbatim}[withresult]
+\begin{chklisting}[withresult]
 let node count x = cpt where
   rec cpt = if ?x then 1 -> pre cpt + 1 else 0 -> pre cpt
-\end{runverbatim}
+\end{chklisting}
 
 The language provides a more general mechanism to test for the
 presence of several signals and access their values. It is reminiscent
@@ -1525,7 +1525,7 @@ returns an integer which equals the sum of \verb-x- and \verb-y- when
 both are emitted, it returns the value of \verb-x- when \verb-x- is
 emitted only and the value \verb-0- when only \verb-y- is emitted and
 \verb-0- otherwise.
-\begin{runverbatim}[withresult]
+\begin{chklisting}[withresult]
 let node sum (x, y) = o where
   present
   | x(v) & y(w) -> do o = v + w done
@@ -1533,7 +1533,7 @@ let node sum (x, y) = o where
   | y(v2) -> do o = v2 done
   else do o = 0 done
   end
-\end{runverbatim}
+\end{chklisting}
 A \verb-present- statement is made of several signal conditions and
 handlers. Each condition is tested sequentially. The signal condition
 \verb-x(v) & y(w)- is verified when both signals \verb-x- and \verb-y-
@@ -1550,39 +1550,39 @@ and the presence of \verb-y-.
 Note that the output of the function \verb-sum- is a regular flow
 since the test is exhaustive. Forgetting the default case will raise
 an error.
-\begin{runverbatim}[withresult,fail]
+\begin{chklisting}[withresult,fail]
 let node sum (x, y) = o where
   present
   | x(v) & y(w) -> do o = v + w done
   | x(v1) -> do o = v1 done
   | y(v2) -> do o = v2 done
   end
-\end{runverbatim}
+\end{chklisting}
 
 We can easily eliminate this error by giving a last value to \verb-o-
 (e.g., adding an equation \verb-init o = 0- outside of the present
 statement). In that case, the default case is implicitly completed
 with an equation \verb-o = last o-. The other way is to state that
 \verb-o- is now a signal and is thus only partially defined.
-\begin{runverbatim}[withresult]
+\begin{chklisting}[withresult]
 let node sum (x, y) = o where
   present
   | x(v) & y(w) -> do emit o = v + w done
   | x(v1) -> do emit o = v1 done
   | y(v2) -> do emit o = v2 done
   end
-\end{runverbatim}
+\end{chklisting}
 
 A signal pattern may also contain boolean expressions. The following
 program, sums the values of the two signals \verb-x- and \verb-y-
 provided they arrive at the same time and \verb-z >= 0-.
-\begin{runverbatim}
+\begin{chklisting}
 let node sum (x, y, z) = o where
   present
     x(v) & y(w) & (z >= 0) -> do o = v + w done
   else do o = 0 done
   end
-\end{runverbatim}
+\end{chklisting}
 
 \Remark Using signals, it is possible
 to mimic the
@@ -1591,12 +1591,12 @@ to mimic the
 is present and the value of \verb-y- when \verb-x- is absent and
 \verb-y- is present. The signal pattern \verb+x(v) | y(v)+ tests the
 presence of ``\verb-x- or \verb-y-''.
-\begin{runverbatim}
+\begin{chklisting}
 let node default (x, y) = o where
   present
     x(v) | y(v) -> do emit o = v done
   end
-\end{runverbatim}
+\end{chklisting}
 This is only a simulation since all the information about the precise
 instants where \verb-x- and \verb-y- are present --- the so-called
 \emph{clock calculus} of \signal~\cite{signal:scp91} --- are hidden at
@@ -1641,14 +1641,14 @@ these state machines is that {\em only one set of equations is
 Here is a two state automaton illustrating strong preemption. The
 function \verb-expect- awaits \verb-x- to be true and emits
 \verb-true- for the remaining instants.
-\begin{runverbatim}[continue,withresult]
+\begin{chklisting}[continue,withresult]
 (* await x to be true and then sustain the value *)
 let node strong x = o where 
   automaton
   | S1 -> do o = false unless x then S2
   | S2 -> do o = true done
   end
-\end{runverbatim}
+\end{chklisting}
 
 This automaton is made of two states, each of them defining the value
 of a {\em shared} variable \verb-o-. The keyword \verb-unless-
@@ -1669,14 +1669,14 @@ instant. Thus, the following chronogram hold:
 On the contrary, the following function emits \verb-false- at the
 instant where \verb-x- is true and \verb-true- for the remaining
 instants, thus corresponding to regular {\em Moore automata}.
-\begin{runverbatim}[label=expect,withresult]
+\begin{chklisting}[label=expect,withresult]
 (* await x to be true and then sustain the value *)
 let node expect x = o where 
   automaton
   | S1 -> do o = false until x then S2
   | S2 -> do o = true done
   end
-\end{runverbatim}
+\end{chklisting}
 
 \begin{chrono}{c|ccccccc}
 \hline
@@ -1687,29 +1687,29 @@ let node expect x = o where
 
 The classical two states \verb-switch- automaton can be written like
 the following:
-\begin{runverbatim}
+\begin{chklisting}
 let node weak_switch on_off = o where
   automaton
   | False -> do o = false until on_off then True
   | True -> do o = true until on_off then False
   end
-\end{runverbatim}
+\end{chklisting}
 
 Note the difference with the following form with weak transitions only:
-\begin{runverbatim}[continue]
+\begin{chklisting}[continue]
 let node strong_switch on_off = o where
   automaton
   | False -> do o = false unless on_off then True
   | True -> do o = true unless on_off then False
   end
-\end{runverbatim}
+\end{chklisting}
 
 We can check that for any boolean stream \verb-on_off-, the following
 property holds:
-\begin{runverbatim}[continue,skipone]
+\begin{chklisting}[continue,skipone]
 let node correct on_off =
 weak_switch on_off = strong_switch (false -> pre on_off)
-\end{runverbatim}
+\end{chklisting}
 The graphical representation of these two automata is given in
 figure~\cref{switch-figure}.
 
@@ -1725,14 +1725,14 @@ figure~\cref{switch-figure}.
 
 % Weak and strong conditions can be arbitrarily mixed as in the
 % following variation of the switch automaton:
-% \begin{runverbatim}
+% \begin{chklisting}
 % let node switch2 (on_off, stop) = o where
 %   automaton
 %   | False -> do o = false until on_off then True
 %   | True -> do o = true until on_off then False unless stop then Stop
 %   | Stop -> do o = true done
 %   end
-% \end{runverbatim}
+% \end{chklisting}
 %
 %Compared to the previous version, state \verb-True- can be strongly
 %preempted when some stop condition \verb-stop- is true.
@@ -1755,14 +1755,14 @@ active state.
 The following function awaits for an event \texttt{e}. When \texttt{e} is present with
 a value \texttt{v}, the next state becomes \texttt{Sustain(v)} with the parameter
 \texttt{x} of state \texttt{Sustain} set to \texttt{v}.
-\begin{runverbatim}[withresult,label=await]
+\begin{chklisting}[withresult,label=await]
 (* await e to be present and sustain its value for the remaining instants *)
 let node await e = o where 
   automaton
   | Await -> do unless e(v) then Sustain(v)
   | Sustain(x) -> do emit o = x done
   end
-\end{runverbatim}
+\end{chklisting}
 
 Note that the formal parameter \verb-x- of state \verb-Sustain- could
 be used without restriction in the body of the state. In the same way, the
@@ -1772,7 +1772,7 @@ argument \verb-v- could be replaced by any expression.
 The following program is a quite radical use of parameterized states: it
 is a simple counter that counts the number of
 occurrences of \verb-x-.
-\begin{runverbatim}[withresult]
+\begin{chklisting}[withresult]
 let node count x = o where rec o = 0 -> pre o + 1
 
 let node count_in_an_automaton x = o where
@@ -1780,7 +1780,7 @@ let node count_in_an_automaton x = o where
   | Zero -> do o = 0 until x then Plus(1)
   | Plus(v) -> do o = v until x then Plus(v+1)
   end
-\end{runverbatim}
+\end{chklisting}
 
 This automaton simulates an infinite state machine with states
 \verb-Zero-, \verb-Plus(1)-, \verb-Plus(2)-, etc.
@@ -1806,13 +1806,13 @@ events are valued.
 The following function awaits for an event \texttt{e}. When \texttt{e} is present with
 a value \texttt{v}, the next state becomes \texttt{Sustain(v)} with the parameter
 \texttt{x} of state \texttt{Sustain} set to \texttt{v}.
-\begin{runverbatim}[withresult,include=await,label=abo]
+\begin{chklisting}[withresult,include=await,label=abo]
 (* emit o and sustain it when a and b has been received *)
 let node abo (a, b) = o where
   present (await a)(v1) & (await b)(v2) -> do emit o = v1 + v2 done
-\end{runverbatim}
+\end{chklisting}
 %
-\begin{runverbatim}[withresult,continue]
+\begin{chklisting}[withresult,continue]
 (* here is ABRO: the same except that we reset the behavior *)
 (* when r is true *)
 let node abro (a, b, r) = o where
@@ -1821,31 +1821,31 @@ let node abro (a, b, r) = o where
        do present (await a)(v1) & (await b)(v2) -> do emit o = v1 + v2 done
        unless r then S1
   end
-\end{runverbatim}
+\end{chklisting}
 
 The node \verb-abro- is a one state automaton which {\em resets} the
 computation of \verb-abo a b-: every stream in \verb-abo a b- restarts
 with its initial value. The language provides a specific
 \verb-reset/every- primitive as a shortcut of such a one-state
 automaton. We can write:
-\begin{runverbatim}[withresult,include=await]
+\begin{chklisting}[withresult,include=await]
 let node abro (a, b, r) = o where
   reset
     present (await a)(v1) & (await b)(v2) -> do emit o = v1 + v2 done
   every r
-\end{runverbatim}
+\end{chklisting}
 
 The \verb-reset/every- construction combines a set of parallel
 equations (separated with an \verb-and-). Note that the reset
 operation correspond to strong preemption: the body is reseted at the
 instant where the condition is true. The language does not provide a
 ``weak reset''. Nonetheless, it can be programmed adding a unit delay.
-\begin{runverbatim}[withresult,include=abo]
+\begin{chklisting}[withresult,include=abo]
   let node abro (a, b, r) = o where
     reset
       o = abo (a, b)
     every true -> pre r
-\end{runverbatim}
+\end{chklisting}
 
 % It is also possible to write:
 
@@ -1881,7 +1881,7 @@ is true. We first write a node \texttt{after} such that
 \texttt{after(n, t)} returns true when \texttt{t} had \texttt{n} true
 values. The node \texttt{blink\_reset} is a two mode automaton
 surrended by a reset.
-\begin{runverbatim}[withresult,label=after,label=blink_reset]
+\begin{chklisting}[withresult,label=after,label=blink_reset]
 let node after(n, t) = (cpt >= n) where
   rec tick = if t then 1 else 0
   and ok = cpt >= n
@@ -1893,11 +1893,11 @@ let node blink_reset (r, n, m, t) = x where
    | On  -> do x = true  until (after(n, t)) then Off
    | Off -> do x = false until (after(m, t)) then On
  every r
-\end{runverbatim}
+\end{chklisting}
 
 \medskip
 The type signatures inferred by the compiler are:
-\runverbatimmsg{}
+\chklistingmsg{}
 
 Does \texttt{after(n, second)} means \texttt{n} real-time seconds? No, for two reasons.
 \begin{enumerate}
@@ -1926,7 +1926,7 @@ conditions only.
 The following programs integrates the integer sequence \verb-v- and
 emits false until the sum has reached some value \verb-max-. Then, it
 emits \verb-true- during \verb-n- instants.
-\begin{runverbatim}
+\begin{chklisting}
 let node consume (max, n, v) = status where
   automaton
   | S1 ->
@@ -1938,7 +1938,7 @@ let node consume (max, n, v) = status where
       do status = true
       until (c = n) then S1
   end
-\end{runverbatim}
+\end{chklisting}
 
 State \verb-S1- defines a local variable \verb-c- which can be used to
 compute the weak condition \verb-c = max- and this does not introduce
@@ -1948,7 +1948,7 @@ current one. Moreover, there is no restriction on the kind of
 expressions appearing in conditions and they may, in particular, have
 some internal state. For example, the previous program can be
 rewritten as:
-\begin{runverbatim}
+\begin{chklisting}
 let node counting v = cpt where
   rec cpt = v -> pre cpt + v
 
@@ -1961,7 +1961,7 @@ let node consume (max, n, v) = status where
        do status = true
        until (counting 1 = n) then S1
   end
-\end{runverbatim}
+\end{chklisting}
 The body of a state is a sequence (possibly empty) of local
 definitions (with \verb-let/in-) followed by some definitions of
 shared names (with \verb-do/until-). As said previously, weak
@@ -1972,7 +1972,7 @@ in a strong preemption, the condition is evaluated {\em before} the
 equations of the body and thus, cannot depend on them. In a weak
 preemption, the condition is evaluated at the end, {\em after} the
 definitions of the body have been evaluated. Thus, when writing:
-\begin{runverbatim}[fail]
+\begin{chklisting}[fail]
 let node consume (max, n, v) = status where
   automaton
   | S1 ->
@@ -1984,9 +1984,9 @@ let node consume (max, n, v) = status where
       do status = true
       unless (c = n) then S1
   end
-\end{runverbatim}
+\end{chklisting}
 The compiler emits the message:
-\runverbatimerr{}
+\chklistingerr{}
 %\begin{sample}
 %File "tutorial.zls", line 6:
 %> unless c = max then S2
@@ -1995,7 +1995,7 @@ The compiler emits the message:
 %\end{sample}
 The variable \verb-c- is not visible in the handler of the \verb-unless-. The
 same appears if \verb-c- is declared as a local variable.
-\begin{runverbatim}[fail]
+\begin{chklisting}[fail]
 let node consume (max, n, v) = status where
   automaton
   | S1 ->
@@ -2007,9 +2007,9 @@ let node consume (max, n, v) = status where
       do c = v -> pre c + v and status = true
       unless (c = n) then S1
   end
-\end{runverbatim}
+\end{chklisting}
 The compiler emits the message:
-\runverbatimerr{}
+\chklistingerr{}
 
 % }-}3
 \subsection{Communication between States and Shared Memory\label{commstateshared}} %{-{3
@@ -2023,7 +2023,7 @@ mode to the other is described by a two-state automaton whose behavior
 depends on the value computed in each mode. This example, due to
 Maraninchi \& R\'emond~\cite{Modes-SCP03} can be programmed in the
 following way.
-\begin{runverbatim}[include=updownmodes]
+\begin{chklisting}[include=updownmodes]
 let node two_states (i, min, max) = o where
   rec automaton
       | Up -> do o = last o + 1
@@ -2032,7 +2032,7 @@ let node two_states (i, min, max) = o where
                 until (o = min) then Up
       end
   and init o = i
-\end{runverbatim}
+\end{chklisting}
 An execution diagram is given below:
 \begin{chrono}
 {l|ccccccccccccc}
@@ -2064,7 +2064,7 @@ The initial state can be used for defining some variables whose value
 can then be sustained in remaining states. In that case, their last
 value is considered to be defined. Moreover, it becomes possible not
 to define their value in all the states.
-\begin{runverbatim}
+\begin{chklisting}
 let node two_states (i, min, max) = o where
   rec automaton
       | Init ->
@@ -2076,7 +2076,7 @@ let node two_states (i, min, max) = o where
           do o = last o - 1
           until (o = min) then Up
       end
-\end{runverbatim}
+\end{chklisting}
 
 \begin{chrono}{l|cccccccccccccccc}
 \hline
@@ -2105,7 +2105,7 @@ Because the initial state \verb-Init- is only weakly preempted,
 \verb-i-. Thus, \verb-last o- is well defined in the remaining
 states. Note that replacing the weak preemption by a strong one will
 lead to an error.
-\begin{runverbatim}[fail]
+\begin{chklisting}[fail]
 let node two_states (i, min, max) = o where
   rec automaton
       | Init ->
@@ -2117,14 +2117,14 @@ let node two_states (i, min, max) = o where
           do o = last o - 1
           unless (o = min) then Up
       end
-\end{runverbatim}
+\end{chklisting}
 and we get:
-\runverbatimerr{}
+\chklistingerr{}
 
 We said previously that strong conditions must not depend on some
 variables computed in the current state but they can depend on some
 shared memory \verb-last o- as in:
-\begin{runverbatim}[skiptwo]
+\begin{chklisting}[skiptwo]
 let node two_states (i, min, max) = o where
 rec init o = i
 and automaton
@@ -2137,7 +2137,7 @@ and automaton
           do o = last o - 1
           unless (last o = min) then Up
       end
-\end{runverbatim}
+\end{chklisting}
 and we get the same execution diagram as before:
 \begin{chrono}{l|cccccccccccccccc}
 \hline
@@ -2193,13 +2193,13 @@ case, it keeps its previous value, that is, an equation
 By default, when entering in a state, every computation in the state
 is reseted. We also provides some means to resume the internal memory
 of a state (this is called {\em enter by history} in UML diagrams).
-\begin{runverbatim}[include=updownmodes]
+\begin{chklisting}[include=updownmodes]
 let node two_modes (min, max) = o where
   rec automaton
       | Up -> do o = 0 -> last o + 1 until (o >= max) continue Down
       | Down -> do o = last o - 1 until (o <= min) continue Up
       end
-\end{runverbatim}
+\end{chklisting}
 
 \begin{chrono}{l|cccccccccccccccc}
 \hline
@@ -2215,7 +2215,7 @@ let node two_modes (min, max) = o where
 This is an other way to write {\em activation conditions} and is very
 convenient for programming a scheduler which alternate between some
 computations, each of them keeping its own state as in:
-\begin{runverbatim}
+\begin{chklisting}
 let node time_sharing (c, i) = (x,y) where
   rec automaton
       | Init ->
@@ -2225,7 +2225,7 @@ let node time_sharing (c, i) = (x,y) where
       | S2 ->
           do y = 0 -> pre y + 1 until c continue S1
       end
-\end{runverbatim}
+\end{chklisting}
 
 % }-{3
 \subsection{Actions on Transitions\label{transacts}} %{-{3
@@ -2238,11 +2238,11 @@ in less than four \verb-top-. Emits \verb-simple- if only one click
 has been received.
 \end{quote}
 Here is a possible implementation:
-\begin{runverbatim}[label=counting,withresult]
+\begin{chklisting}[label=counting,withresult]
 let node counting e = cpt where
   rec cpt = if e then 1 -> pre cpt + 1 else 0 -> pre cpt
-\end{runverbatim}
-\begin{runverbatim}[continue,withresult]
+\end{chklisting}
+\begin{chklisting}[continue,withresult]
 let node controller (click, top) = (simple, double) where rec
   automaton
   | Await ->
@@ -2252,7 +2252,7 @@ let node controller (click, top) = (simple, double) where rec
      else (counting top = 4) then
         do simple = true and double = false in Await
   end
-\end{runverbatim}
+\end{chklisting}
 
 It first awaits for the first occurrence of \verb-click-, then it
 enters in state \verb-One-, starting to count the number of
@@ -2285,7 +2285,7 @@ between the \texttt{do/until} or \texttt{do/unless}.
 % has been received.
 % \end{quote}
 % Here is a possible implementation:
-% \begin{runverbatim}
+% \begin{chklisting}
 % (* counts the number of events from the last reset [res] *)
 % let node counter (res, event) = count where
 %   rec count = if res then 0 else x
@@ -2299,9 +2299,9 @@ between the \texttt{do/until} or \texttt{do/unless}.
 %   and single = ((0 fby count) = 3) & top & not click
 %   and double = (false fby counting) & click
 %   and res = single or double
-% \end{runverbatim}
+% \end{chklisting}
 
-% \begin{runverbatim}[label=counting]
+% \begin{chklisting}[label=counting]
 % let node counting e = cpt where
 %   rec cpt = if e then 1 -> pre cpt + 1 else 0 -> pre cpt
 
@@ -2318,7 +2318,7 @@ between the \texttt{do/until} or \texttt{do/unless}.
 %      do simple = x1 and double = x2
 %      until true then Await
 %   end
-% \end{runverbatim}
+% \end{chklisting}
 
 % It first awaits for the first occurrence of \verb-click-, then it
 % enters in state \verb-One-, starting to count the number of
@@ -2340,7 +2340,7 @@ mechanism allowing to test (and access) signals on transitions.
 
 Using signals, we can reprogram the mouse controller in the following
 way.
-\begin{runverbatim}[include=counting,withresult]
+\begin{chklisting}[include=counting,withresult]
 type event = Simple | Double
 
 let node controller (click, top) = o where
@@ -2351,7 +2351,7 @@ let node controller (click, top) = o where
      do until click then do emit o = Double in Await
         else (counting top = 4) then do emit o = Simple in Await
   end
-\end{runverbatim}
+\end{chklisting}
 
 This time, nothing is emitted in state \verb-Await-. By
 writing \verb-emit o = x-, we state that \verb-o- is a signal and not
@@ -2376,7 +2376,7 @@ statement.
 
 Let us consider a system with two input signals \verb-low-,
 \verb-high- and an output integer stream \verb-o-.
-\begin{runverbatim}[withresult]
+\begin{chklisting}[withresult]
 let node switch (low, high) = o where
   rec automaton
       | Init -> do o = 0 until low(u) then Up(u)
@@ -2387,7 +2387,7 @@ let node switch (low, high) = o where
           do o = last o - v
           until low(w) then Up(w)
       end
-\end{runverbatim}
+\end{chklisting}
 
 The condition \verb-until low(w)- says: {\em await for the presence of
   the signal \verb-low- with some value \verb-w-. Then go to the
@@ -2402,7 +2402,7 @@ the value of the signal at the instant where $e$ is present.  In the
 above example, it introduces the variable \verb-w-. It is also
 possible to test for the presence of a signal as well as the validity
 of a boolean condition. For example:
-\begin{runverbatim}[withresult]
+\begin{chklisting}[withresult]
 let node switch (low, high) = o where
   rec automaton
   | Init -> do o = 0 until low(u) then Up(u)
@@ -2415,14 +2415,14 @@ let node switch (low, high) = o where
       do o = last o - v
       until low(w) & (timeout > 42) then Up(w)
   end
-\end{runverbatim}
+\end{chklisting}
 The system has the same behavior except that the presence of
 \verb-high- in the \verb-Up- state is only taken into account when the
 \verb-timeout- stream has reached the value \verb-42-.
 
 Finally, we can write a new version of the mouse controller where all
 the values are signals.
-\begin{runverbatim}[withresult]
+\begin{chklisting}[withresult]
 type event = Simple | Double
 
 let node counting e = o where
@@ -2436,7 +2436,7 @@ let node controller (click, top) = e where
      do until click(_) then do emit e = Double in Await
      else (counting top = 4) then do emit e = Simple in Await
   end
-\end{runverbatim}
+\end{chklisting}
 
 % }-}3
 \subsection{Initializing the Initial State\label{initinitstate}} %{-{3
@@ -2445,13 +2445,13 @@ It is possible to initialize the parameter of the initial state by adding
 an initialization to the automaton. E.g., the following two state automaton
 starts in state \texttt{On(incr)} with \texttt{incr} initialized with the first
 value of \texttt{i0}.
-\begin{runverbatim}[withresult]
+\begin{chklisting}[withresult]
 let node two_states(i0, idle, run) = o where
   rec automaton
       | Run(incr) -> do o = 0 fby o + incr until idle() then Idle
       | Idle -> do until run(incr) then Run(incr)
       init Run(i0)
-\end{runverbatim}
+\end{chklisting}
 
 \Remark The current version of \zelus{} does not permit the mix of
 weak and strong transitions inside one automaton, as \lucy{} and
@@ -2480,20 +2480,20 @@ essential.
 The language also provides a derived form for control structures
 allowing them to be used as expressions. For example:
 %
-\begin{runverbatim}
+\begin{chklisting}
 let node two x =
   match x with | true -> 1 | false -> 2
-\end{runverbatim}
+\end{chklisting}
 %
 as a short-cut for:
-\begin{runverbatim}
+\begin{chklisting}
 let node two x =
   let match x with
      |  true -> do o = 1 done
      | false -> do o = 2 done
      end in
   o
-\end{runverbatim}
+\end{chklisting}
 %
 thus leading to a more conventional notation for the \ocaml{}
 programmer. The same short-cut is possible with the \verb-present- statement.
@@ -2526,18 +2526,18 @@ where $g_0$ and $g_1$ are two constant values.
 $t_0$ is the initial temperature. Instead
 of choosing an explicit integration scheme as we did in
 paragraph~\cref{causalcheck}, we write:
-\begin{runverbatim}[withresult]
+\begin{chklisting}[withresult]
 let hybrid heater(t0, g0, g1) = t where
   rec der t = g0 -. g1 *. t init t0
-\end{runverbatim}
+\end{chklisting}
 
 The sinus and cosinus signals, whose stream approximation was given in
 paragraph~\cref{localdefmut} are now defined this way:
-\begin{runverbatim}[withresult]
+\begin{chklisting}[withresult]
 let hybrid sin_cos theta = (sin, cos) where
   rec der sin = theta *. cos init 0.0
   and der cos = -. theta *. sin init 1.0
-\end{runverbatim}
+\end{chklisting}
 
 Is it different from what has been written previously? A lot!
 
@@ -2577,7 +2577,7 @@ instants, and cannot contain any nested continuous-time computations.
 
 A classical example of a continuous-time function is a PI
 (Proportional Integral) controller.
-\begin{runverbatim}[withresult]
+\begin{chklisting}[withresult]
 (* a continuous-time integrator *)
 let hybrid integr(x0, x') = x where
   rec der x = x' init x0
@@ -2595,7 +2595,7 @@ let node disc_integr(y0, x') = y where
 (* a discrete-time PI controller *)
 let node disc_pi(kp, ki, error) = cmd where
   rec cmd = kp *. error +. ki *. disc_integr(0.0, error)
-\end{runverbatim}
+\end{chklisting}
 
 % }-}2
 \section{Communication between Discrete/Continuous-time Signals\label{commdisccont}} %{-{2
@@ -2604,22 +2604,22 @@ let node disc_pi(kp, ki, error) = cmd where
 The language forbids the arbitrary mix of discrete logical time and
 continuous-time signals and systems. The intuition can be illustrated
 on the following two simple programs:
-\begin{runverbatim}[fail]
+\begin{chklisting}[fail]
 let hybrid wrong() = o where
   rec der x = 1.0 init 0.0
   and o = 0.0 -> pre o +. x
-\end{runverbatim}
+\end{chklisting}
 and:
-\begin{runverbatim}[fail]
+\begin{chklisting}[fail]
 let hybrid wrong() = o where
   rec der x = o init 0.0
   and o = 0.0 -> pre o +. 1.0
-\end{runverbatim}
+\end{chklisting}
 
 % \Marc{Tim: on devrait mettre l'exemple que l'on met dans tous nos exposes
 % avec la courbe que tu avais faite. Qu'en penses-tu ?}
 % \Tim{Marc: D'accord. En fait, je veux générer ce genre de truc 
-% automatiquement avec le nouveau runverbatim package. J'y réfléchis...}
+% automatiquement avec le nouveau checklistings package. J'y réfléchis...}
 
 The first program is rejected because \texttt{x} is a continuous-time
 signal, with $\forall t \in \bR+, x(t) = t$ whereas \texttt{->} and
@@ -2629,7 +2629,7 @@ because \verb-o- should be the discrete-time signal $\forall n \in
 \bN, o(n) = n$ and it cannot be integrated to produce \verb-x-.
 These two programs
 are statically rejected by the compiler as invalid
-compositions. E.g.,: \runverbatimerr{}
+compositions. E.g.,: \chklistingerr{}
 
 \paragraph{Typing Constraints}
 
@@ -2676,12 +2676,12 @@ Otherwise, it is termed \emph{continuous}.}
 For example, the following function which compose an ODE and a discrete-time
 computation is correct. The value of \texttt{x} is summed into \verb-o- at every
 instant \verb-tick- is present. Between those instants, \verb-o- is unchanged.
-\begin{runverbatim}[withresult]
+\begin{chklisting}[withresult]
 let hybrid good(tick) = o where
   rec der x = 1.0 init 0.0
   and present tick -> do o = last o +. x done
   and init o = 0.0
-\end{runverbatim}
+\end{chklisting}
 \texttt{tick} is of type \texttt{zero} which is the type of
 \emph{zero-crossing} events.
 
@@ -2704,17 +2704,17 @@ Figure~\cref{fig:bouncing-ball}.
 \caption{The Bouncing Ball~\label{fig:bouncing-ball}}
 \end{figure}
 
-\begin{runverbatim}[label=gravity]
+\begin{chklisting}[label=gravity]
 let g = 9.81
 let loose = 0.8
-\end{runverbatim}
-\begin{runverbatim}[continue,withresult]
+\end{chklisting}
+\begin{chklisting}[continue,withresult]
 let hybrid bouncing(x0,y0,x'0,y'0) = (x,y) where
  rec der x = x' init x0
  and der x' = 0.0 init x'0
  and der y = y' init y0
  and der y' = -. g init y'0 reset up(-. y) -> -. loose *. last y'
-\end{runverbatim}
+\end{chklisting}
 
 The ODE defining \texttt{y'} is now reset every time \texttt{-.y}
 crosses zero.  At this precise instant, the initial value of \verb-y'-
@@ -2733,25 +2733,25 @@ It is important to notice that replacing \texttt{last y'} by
 \texttt{y'} would lead to a causality error. Indeed, that would make
 the current value of \texttt{y'} instantaneously depend on itself and
 this is statically rejected by the compiler. Typing:
-\begin{runverbatim}[include=gravity,fail]
+\begin{chklisting}[include=gravity,fail]
 let hybrid bouncing(x0,y0,x'0,y'0) = (x,y) where
  rec der x = x' init x0
  and der x' = 0.0 init x'0
  and der y = y' init y0
  and der y' = -. g init y'0 reset up(-. y) -> -. loose *. y'
-\end{runverbatim}
+\end{chklisting}
 we get the compilation error:
-\runverbatimerr{}
+\chklistingerr{}
 
 %\Marc{Faire la figure}
 
 An other example of a reset of an ODE is with the classical sawtooth
 signal $x: \bR^+ \mapsto \bR^+$ such that $\DotNotation{x}(t) = 1$ and
 $x(t) = 0$ if $t\in\bN$.
-\begin{runverbatim}[withresult]
+\begin{chklisting}[withresult]
 let hybrid sawtooth() = x where
   rec der x = 1.0 init 0.0 reset up(last x -. 1.0) -> 0.0
-\end{runverbatim}
+\end{chklisting}
 %
 Every time \texttt{last x -. 1.0} crosses zero from a negative to positive value,
 \texttt{x} is reset to zero. Note also the need to use \texttt{last} to break
@@ -2765,11 +2765,11 @@ timers. A timer with phase \texttt{phase} and period \texttt{period} generates
 an event at instant $t = \mathtt{phase} + n \cdot \mathtt{period}$ with
 $n \in \bN^+$. Such a timer can be interpreted as a zero-crossing event as
 exemplified by the following program:
-\begin{runverbatim}[withresult]
+\begin{chklisting}[withresult]
 let hybrid timer(phase, p) = z where
   rec der t = 1.0 init -. phase reset z -> -. p
   and z = up(last t)
-\end{runverbatim}
+\end{chklisting}
 
 \zelus{} provides a special syntax for those timers. For the moment,
 it is restricted to timer with a constant phase and period. E.g.,
@@ -2802,7 +2802,7 @@ occurs. This property is ensured by typing.
 %
 % \Marc{Ajouter l'image de la page web.}
 %
-% \begin{runverbatim}
+% \begin{chklisting}
 % (* module Ball *)
 % (* [ground x] returns the position in [y] *)
 % let ground x = World.ground(x)
@@ -2827,16 +2827,16 @@ occurs. This property is ensured by typing.
 %   let (x, y, z) = ball(x, y_0) in
 %   present (period (0.04)) | z -> Showball.show (x fby x, y fby y, x, y);
 %   ()
-% \end{runverbatim}
+% \end{chklisting}
 %
-\begin{runverbatim}
+\begin{chklisting}
 let c = 1.0
 let k = 1.0
 let temp0 = 0.0
 let t_min = 0.0
 let t_max = 1.0
-\end{runverbatim}
-\begin{runverbatim}[continue]
+\end{chklisting}
+\begin{chklisting}[continue]
 (* an hysteresis controller for a heater *)
 (* [c] and [k] are constant. *)
 let hybrid heater(active) = temp where
@@ -2850,7 +2850,7 @@ let hybrid hysteresis_controller(temp) = active where
 let hybrid main() = temp where
   rec active = hysteresis_controller(temp)
   and temp = heater(active)
-\end{runverbatim}
+\end{chklisting}
 
 Given this program, the compiler generate the function that computes
 the temperature \verb-temps- and which has to be given to the numeric solver,
@@ -2862,13 +2862,13 @@ a zero-crossing occurs.
 % a conditional, as well has having programmed the controller with an automaton.
 % E.g., one could have written equivalently:
 %
-% \begin{runverbatim}
+% \begin{chklisting}
 % let hybrid heater(active) = temps where
 %   automaton
 %   | Cold -> do der temp = -. k *. temp unless (not active) then Hot
 %   | Hot -> do der temp = c -. k * temp unless active then Colf
 %   end
-% \end{runverbatim}
+% \end{chklisting}
 
 %}-}3
 \subsection{Hierarchical Hybrid Automata\label{hautos}} %{-{3
@@ -2888,7 +2888,7 @@ to be deterministic:
 We give below a simple example of an hybrid automaton. Define first
 a module \texttt{Ball} (in a file \texttt{ball.zls}) which models a ball bouncing
 on a staircase.~\footnote{The complete example is available in the distribution.}
-\begin{runverbatim}[withresult]
+\begin{chklisting}[withresult]
 (* [ground x] returns the position in [y] *)
 
 let x_0 = 0.0
@@ -2902,7 +2902,7 @@ let atomic hybrid ball(x, y_0) = (y, y_v, z) where
   rec der y = y_v init y_0
   and der y_v = -. g init 0.0 reset z -> (-. loose *. last y_v)
   and z = up(World.ground(x) -. y)
-\end{runverbatim}
+\end{chklisting}
 
 \verb-World.ground x- is the height of the stair at position
 \verb-x-. \verb-World.ground_abs x- is the position of the right end of the
@@ -2910,7 +2910,7 @@ stair from position \verb-x-. We model now a ball that bounces on this
 staircase but slides when the speed is below a certain threashold. We
 write this in a module \verb-Autoball- (that is, file
 \verb-autoball.zls-).
-\begin{runverbatim}[continue,withresult]
+\begin{chklisting}[continue,withresult]
 let eps = 0.01
 
 (* The bouncing ball with two modes. *)
@@ -2930,7 +2930,7 @@ let hybrid ball_with_modes(x_0, y_0) = (x, y) where
          until up(x -. World.ground_abs x)
          then do y_start = 0.0 in Bouncing
       end
-\end{runverbatim}
+\end{chklisting}
 
 %}-}3
 %}-}2

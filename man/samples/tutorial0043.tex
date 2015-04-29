@@ -1,10 +1,10 @@
 % ../compiler/zeluc.byte -I ../lib -I ./samples  	-i samples/tutorial0043.zls (2)
-\runverbatimfalse
-\setrunverbatimcmd{zeluc.byte -i \runverbatimfile}
-\begin{RunVerbatimMsg}
+\chklistingfalse
+\setchklistingcmd{zeluc.byte -i \chklistingfile}
+\begin{ChkListingMsg}
 Failed.
-\end{RunVerbatimMsg}
-\begin{RunVerbatimErr}
+\end{ChkListingMsg}
+\begin{ChkListingErr}
 File "tutorial.zls", line 2-6, characters 2-108:
 >..present
 >  | x(v) & y(w) -> do o = v + w done
@@ -13,4 +13,4 @@ File "tutorial.zls", line 2-6, characters 2-108:
 >  end
 Type error: o has type
 int, but is expected to be a signal.
-\end{RunVerbatimErr}
+\end{ChkListingErr}
