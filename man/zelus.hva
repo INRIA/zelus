@@ -12,6 +12,7 @@
 %\renewcommand{\cuttingunit}{chapter}
 %\setcounter{cuttingdepth}{2}
 \renewcommand{\@bodyargs}{class="zelusBody"}
+\renewcommand{\refname}{References\label{references}}
 
 \renewcommand{\term}[1]{\textcolor{Blue}{\tt #1}}
 \renewcommand{\nterm}[1]{\textcolor{BrickRed}{\it #1}}

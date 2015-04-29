@@ -359,7 +359,7 @@
 \newcommand{\Right}{\mathit{right}}
 
 % }-}1
-\chapter*{Foreword} %{-{1
+\chapter*{Foreword\label{foreword}} %{-{1
 
 \zelus{} is a synchronous language extended with
 Ordinary Differential Equations.
@@ -508,7 +508,7 @@ Its expressive power for modeling physics is limited to ODEs, unlike
 Research papers on the design, semantics and implementation of \zelus{} are 
 available at \ahrefurl{\url{http://zelus.di.ens.fr}}.
 
-\section*{Availability}
+\section*{Availability\label{availability}}
 The implementation is written in, and generates programs in \ocaml, which 
 must be installed.
 \begin{center}
@@ -527,23 +527,22 @@ The language is experimental and evolves continuously. Please send
 comments or bug reports to \mailto{Timothy.Bourke@inria.fr} or 
 \mailto{Marc.Pouzet@ens.fr}. 
 
-\section*{Copyright notice}
+\section*{Copyright notice\label{copyright}}
 This software includes the \ocaml{} run-time system, which is
 copyrighted INRIA, 2015. 
 
-\section*{Thanks}
+\section*{Thanks\label{thanks}}
 
 This software is a research prototype that takes considerable time to 
 develop.
 If you find it useful, please consider citing our work~\cite{lucy:hscc13} 
 and sending us comments.
 
-\cleardoublepage
-\part{The Z\'elus Language}
-\cleardoublepage
-
 % }-}1
-\chapter{Synchronous Programming}\label{chap:sync-programming} %{-{1
+\cleardoublepage
+\part{The Z\'elus Language\label{zeluslang}}
+\cleardoublepage
+\chapter{Synchronous Programming\label{syncprog}} %{-{1
 %HEVEA\cutdef[1]{section}
 %{-{2
 
@@ -553,7 +552,7 @@ reminiscent of \lustre{} and \lucy.
 We shall sometimes compare \zelus{} with those two languages.
 The next chapter focuses on newer, hybrid aspects, like ODEs,
 zero-crossings, and their interaction with the synchronous features.
-The simulation engine is described in \cref{chap:simulation-loop}.
+The simulation engine is described in \cref{simulation-loop}.
 
 Familiarity with general programming languages is assumed.
 Some familiarity with (strict or lazy) ML
@@ -564,11 +563,11 @@ In this tutorial, we suppose that programs are written in a file called
 \verb-tutorial.zls-.% This file is available in the \zelus{} distribution.
 
 % }-}2
-\section{The Core Synchronous Language} %{-{2
+\section{The Core Synchronous Language\label{coresync}} %{-{2
 %We start with the synchronous part of the language. ODEs and all continuous
 %aspect are considered later.
 
-\subsection{Point-wise Operations} %{-{3
+\subsection{Point-wise Operations\label{pointwise}} %{-{3
 
 \zelus{} is a first-order functional language. As in \lustre,
 every ground type or scalar value is imported from a host language
@@ -607,7 +606,7 @@ or \zls{y} according to the current value of \zls{c}.
 \end{chrono}
 
 % }-}3
-\subsection{Delays} %{-{3
+\subsection{Delays\label{delays}} %{-{3
 
 The delay operator is denoted \zls{fby}.
 The expression \zls{x fby y}, which is read as ``\zls{x} {\em followed by} 
@@ -638,7 +637,7 @@ The expression \zls{x -> (pre y)} is equivalent to \zls{x fby y}.
 \end{chrono}
 The compiler performs an {\em initialization check} to ensure that the
 behavior of a program never depends on the value \nil. See
-\cref{initialisation-check} for details.
+\cref{initcheck} for details.
 
 \paragraph{Note:} A common error is to try to use the initialization 
 operator to define the first two values of a
@@ -650,7 +649,7 @@ $1$, followed by a $2$, and then $3$ forever is written \zls{1 fby 2 fby 3}
 or \mbox{\zls{1 -> pre(2 -> pre(3))}} or \zls{1 -> pre(2 -> 3)}.
 
 % }-}3
-\subsection{Global Declarations} %{-{3
+\subsection{Global Declarations\label{globaldecl}} %{-{3
 
 A program comprises a sequence of declarations of global
 values. The keyword \zls{let} defines non recursive global values which may
@@ -676,10 +675,10 @@ with the message:
 The right-hand side of a global \zls{let} declaration may not contain delay 
 operations. Definitions containing delays require the introduction of state.
 They may only be made within the \zls{node} definition described 
-in~\cref{sec:sequential-functions}.
+in~\cref{nodefunc}.
 
 % }-}3
-\subsection{Combinatorial Functions} %{-{3
+\subsection{Combinatorial Functions\label{combfunc}} %{-{3
 
 Functions whose output at an instant depends only on inputs at the same 
 instant are \emph{combinatorial}.
@@ -778,7 +777,7 @@ fun half_add (a,b) = (s, co) where
 \end{runverbatim}
 
 % }-}3
-\subsection{Stateful Functions}\label{sec:sequential-functions} %{-{3
+\subsection{Stateful Functions\label{nodefunc}} %{-{3
 
 A function is stateful or \emph{sequential} if its output at an instant~$n$ 
 depends on the inputs at previous instants~$k$ ($k \leq n$), that is, on the 
@@ -896,8 +895,7 @@ node integr (x0, x') = x where
 % \end{runverbatim}
 
 % }-}3
-\subsection{Local and Mutually Recursive Definitions} %{-{3
-\label{sec:local-defin-mutu}
+\subsection{Local and Mutually Recursive Definitions\label{localdefmut}} %{-{3
 
 Variables may be defined locally with \zls{let}/\zls{in} or
 \zls{let rec}/\zls{in} whether the defining expression is stateful or not.
@@ -954,7 +952,7 @@ let node sin_cos theta = (sin, cos) where
 \end{runverbatim}
 
 % }-}3
-\subsection{Shared Memory and Initialization} %{-{3
+\subsection{Shared Memory and Initialization\label{sharedinit}} %{-{3
 
 In addition to the delay operator \zls{pre}, Zélus provides another 
 construction for referring to the previous value of a stream: \zls{last o}, 
@@ -976,7 +974,7 @@ let node counter i = o where
   and o = last_o + 1
 \end{runverbatim}
 The reason for introducing memories, will become clear when control 
-structures are introduced in \cref{sec:patternmatch}.
+structures are introduced in \cref{patternmatch}.
 Syntactically, \verb-last- is {\em not} an operator: \verb-last o- denotes
 a shared memory and the argument of \verb-last-, here \verb-o-, must be a 
 variable name. Thus this program is rejected:
@@ -1006,15 +1004,15 @@ Neither the form defining the current value from the previous one, nor the
 form defining the next value from the current one is intrinsically superior; 
 it depends on the situation.
 Either form can be transformed into the other.
-We will see in \cref{chap:ode-programming} that restrictions apply to both 
-the \verb-next- and \verb-last- constructions when combining discrete- and
+We will see in \cref{ode-programming} that restrictions apply to both the 
+\verb-next- and \verb-last- constructions when combining discrete- and
 continuous-time dynamics.
 
 \Remark The compiler rewrites \verb-last-, \verb+->+, \verb-fby-, 
 \verb+pre+, \verb+init+ and \verb+next+ into a minimal subset.
 
 % }-}3
-\subsection{Causality check}\label{causality-check} %{-{3
+\subsection{Causality check\label{causalcheck}} %{-{3
 
 Instantaneous cycles between recursively defined values---\emph{causality 
 loops}---are forbidden so that the compiler can produce statically-scheduled 
@@ -1076,8 +1074,8 @@ function which is simply called.\footnote{Modular code generation
   computed by the causality analysis.}
 
 %}-}3
-\subsection{Initialization check} %{-{3
-\label{initialisation-check}
+\subsection{Initialization check\label{initcheck}} %{-{3
+
 The compiler checks that every delay operator is initialized. For
 example:
 \begin{runverbatim}[fail,withresult]
@@ -1093,9 +1091,9 @@ and must be first initialized using \verb+->+.
 
 % }-}3
 % }-}2
-\section{Data-types, Pattern matching} %{-{2
+\section{Data-types, Pattern matching\label{dtypespatterns}} %{-{2
+\subsection{Type definitions\label{typedef}} %{-{3
 
-\subsection{Type definitions} %{-{3
 Product types, record types and enumerated type may be defined with a
 notation close to that of \ocaml. Nonetheless, no constructors with
 arguments are allowed for the moment. It is nonetheless possible to
@@ -1114,7 +1112,7 @@ let radius c = c.radius
 \end{runverbatim}
   
 % }-}3
-\subsection{Pattern matching}\label{sec:patternmatch} %{-{3
+\subsection{Pattern matching\label{patternmatch}} %{-{3
 
 The language provides means for doing pattern matching over streams
 with a \verb-match/with- construction {\em \`a la} \ocaml.
@@ -1221,7 +1219,8 @@ making clear that \verb-last o- stands for the previous defined value
 of \verb-o-.
 
 % }-}3
-\subsection{Pre versus Last} %{-{3
+\subsection{Pre versus Last\label{prelast}} %{-{3
+
 Whereas \verb-last o- may seem
 to be just another way to refer to the previous value of a stream like
 \verb-pre o- does, there is a fundamental difference between the
@@ -1299,7 +1298,7 @@ instants where \verb-m = Up- and the other denoting the instant where
 \verb-m = Down-.
 
 % }-}3
-\subsection{Local Definitions} %{-{3
+\subsection{Local Definitions\label{localdef}} %{-{3
 
 It is possible to define variables which stay local to a branch. For
 example:
@@ -1326,7 +1325,8 @@ declared to be local to the handler. The compiler checks that a definition for
 \texttt{local c1,..., cn in ...}.
 
 % }-}3
-\subsection{Implicit Completion of Shared Variables} %{-{3
+\subsection{Implicit Completion of Shared Variables\label{completeshared}} %{-{3
+
 Finally, note that the branches of a pattern-matching constraint do
 not have to contain a definition for all the shared variables. A
 shared variable is implicitly completed as if one has written
@@ -1462,8 +1462,10 @@ let node two (m, i) = o where
 % \verb-e- equals \verb-Click-. The compilers deeply rely on clocks for
 % generating good imperative code.
 
-\section{Valued Signals}
-\label{signals}
+% }-}2
+\section{Valued Signals\label{signals}} %{-{2
+% {-{3
+
 The language provides a way to manage {\em valued signals}. Signals
 are built and accessed through the constructions \verb-emit- and
 \verb-present-.  At every instant, a value signal is a pair made of (1) a boolean
@@ -1472,7 +1474,7 @@ true.\footnote{For \ocaml{} programmers, a signals correspond to a value
 of an option type.}
  
 % }-}3
-\subsection{Signal Emission} %{-{3
+\subsection{Signal Emission\label{emit}} %{-{3
 
 It is also possible to define the value of a signal at certain instant only,
 that is, not to implictly keep the previous value as we illustrated with
@@ -1496,7 +1498,8 @@ let node within (min, max, x) = o where
 \end{runverbatim}
 
 % }-}3
-\subsection{Testing the Presence of a Signal and Accessing its Value} %{-{3
+\subsection{Signal Presence and Values\label{signalpresence}} %{-{3
+
 It is possible to test for the presence of a signal expression $e$ by
 writing the boolean expression $? e$. The following program, for
 example, counts the number of instants where \verb-x- is emitted.
@@ -1605,8 +1608,12 @@ compiler is unable to state that \verb-o- is emitted only when
 The current version of \zelus{} does not provide a \emph{clock calculus} as
 \lustre, \lucy{} and \signal{} did.
 
-\section{Hierarchical State Machines}
-The language provides means to define hierachical state
+% }-}3
+% }-}2
+\section{Hierarchical State Machines\label{hierstate}} %{-{2
+%{-{3
+
+The language provides means to define hierarchical state
 machines. These state machines can be composed in parallel with
 regular equations or other state machines and can be arbitrarily
 nested. State machines are essentially borrowed \emph{as is} from \lucy{} 
@@ -1629,7 +1636,8 @@ these state machines is that {\em only one set of equations is
   executed during one reaction}.
 
 % }-}3
-\subsection{Strong Preemption} %{-{3
+\subsection{Strong Preemption\label{strongpreemption}} %{-{3
+
 Here is a two state automaton illustrating strong preemption. The
 function \verb-expect- awaits \verb-x- to be true and emits
 \verb-true- for the remaining instants.
@@ -1656,7 +1664,7 @@ instant. Thus, the following chronogram hold:
 \end{chrono}
 
 % }-}3
-\subsection{Weak Preemption} %{-{3
+\subsection{Weak Preemption\label{weakpreemption}} %{-{3
 
 On the contrary, the following function emits \verb-false- at the
 instant where \verb-x- is true and \verb-true- for the remaining
@@ -1730,7 +1738,8 @@ figure~\cref{switch-figure}.
 %preempted when some stop condition \verb-stop- is true.
 
 % }-}3
-\subsection{Parameterized State Machines} %{-{3
+\subsection{Parameterized State Machines\label{paramstatemachine}} %{-{3
+
 In the examples we have considered so far, an automaton is made of a
 finite set of states and transitions. It is possible to define more
 general state machines containing parameterized states, that is,
@@ -1777,7 +1786,7 @@ This automaton simulates an infinite state machine with states
 \verb-Zero-, \verb-Plus(1)-, \verb-Plus(2)-, etc.
 
 % }-}3
-\subsection{ABRO and Modular Reseting} %{-{3
+\subsection{ABRO and Modular Resets\label{resets}} %{-{3
 
 The ABRO example is due to G\'erard Berry~\cite{esterel:primer99}. It
 highlight the expressive power of parallel composition and preemption
@@ -1908,7 +1917,7 @@ In a discrete-time program as we wrote in this chapter, time is not absolute but
 logical and local.
   
 % }-}3
-\subsection{Local Definitions in a State} %{-{3
+\subsection{Local Definitions in a State\label{statelocaldefs}} %{-{3
 
 It is possible to define names which are local to a state. These names
 can only be used inside the body of the state and may be used in weak
@@ -2003,7 +2012,7 @@ The compiler emits the message:
 \runverbatimerr{}
 
 % }-}3
-\subsection{Communication between States and Shared Memory} %{-{3
+\subsection{Communication between States and Shared Memory\label{commstateshared}} %{-{3
 
 In the previous examples, there is no communication between values
 computed in each state. Consider a simple system made of two running
@@ -2049,7 +2058,8 @@ An execution diagram is given below:
 \end{chrono}
 
 % }-}3
-\subsection{The Particular Role of the Initial State} %{-{3
+\subsection{The Particular Role of the Initial State\label{initrole}} %{-{3
+
 The initial state can be used for defining some variables whose value
 can then be sustained in remaining states. In that case, their last
 value is considered to be defined. Moreover, it becomes possible not
@@ -2178,7 +2188,8 @@ case, it keeps its previous value, that is, an equation
 \verb-o = last o- is implicitly added.
 
 % }-}3
-\subsection{Resume a Local State} %{-{3
+\subsection{Resume a Local State\label{resume}} %{-{3
+
 By default, when entering in a state, every computation in the state
 is reseted. We also provides some means to resume the internal memory
 of a state (this is called {\em enter by history} in UML diagrams).
@@ -2217,7 +2228,7 @@ let node time_sharing (c, i) = (x,y) where
 \end{runverbatim}
 
 % }-{3
-\subsection{Actions on Transitions} %{-{3
+\subsection{Actions on Transitions\label{transacts}} %{-{3
 
 It is possible to do an action on a transition. We illustrate on the
 programming of a mouse controller whose specification is the following:
@@ -2322,7 +2333,7 @@ between the \texttt{do/until} or \texttt{do/unless}.
 
 
 % }-}3
-\subsection{State Machines and Signals} %{-{3
+\subsection{State Machines and Signals\label{statemachinesig}} %{-{3
 In the automata we have considered so far, conditions on transitions
 are boolean expressions. The language provides a more general
 mechanism allowing to test (and access) signals on transitions.
@@ -2357,7 +2368,8 @@ or absent. In the previous version, a fourth case corresponding to the
 boolean value \verb-simple & double- was possible, even though it is meaningless.
 
 %}-}3
-\subsection{Pattern Matching over Signals} %{-{3
+\subsection{Pattern Matching over Signals\label{patmatchsig}} %{-{3
+
 Now, we must consider how signals are accessed. We generalize
 conditions to be signal patterns as provided by the \verb-present-
 statement.
@@ -2427,7 +2439,7 @@ let node controller (click, top) = e where
 \end{runverbatim}
 
 % }-}3
-\subsection{Initializing the Initial State} %{-{3
+\subsection{Initializing the Initial State\label{initinitstate}} %{-{3
 
 It is possible to initialize the parameter of the initial state by adding
 an initialization to the automaton. E.g., the following two state automaton
@@ -2448,7 +2460,10 @@ this mix, without restriction, makes programs difficult to
 understand. Future versions of \zelus{} may allow a constrained mix of
 weak and strong transition nonetheless.
 
-\section{Alternative Syntax for Control Structures}
+% }-}3
+% }-}2
+\section{Alternative Syntax for Control Structures\label{altcontrol}} %{-{2
+
 We can notice that the three control structures (\verb+match/with+,
 \verb-automaton- and \verb-present-) combine equations. Each branch is
 made of a set of equations defining shared values. In this form, it
@@ -2489,7 +2504,7 @@ programmer. The same short-cut is possible with the \verb-present- statement.
 %}-}3
 %}-}2
 %}-}1
-\chapter{Hybrid Systems Programming}\label{chap:ode-programming} %{-{1
+\chapter{Hybrid Systems Programming\label{ode-programming}} %{-{1
 %{-{2
 
 We now see the main novelty of \zelus{} with respect to a
@@ -2499,7 +2514,8 @@ automata with ODEs. As before, only
 basic examples are given in this section. See the distribution page for
 more advanced examples.
 
-\section{Initial Value Problems}
+%}-}2
+\section{Initial Value Problems\label{odeinit}} %{-{2
 Consider the classical Initial Value Problem that models the temperature
 of a boiler. The evolution of the temperature $t$ is defined by the following
 ODE with an initial condition:
@@ -2509,14 +2525,14 @@ ODE with an initial condition:
 where $g_0$ and $g_1$ are two constant values.
 $t_0$ is the initial temperature. Instead
 of choosing an explicit integration scheme as we did in
-paragraph~\cref{causality-check}, we write:
+paragraph~\cref{causalcheck}, we write:
 \begin{runverbatim}[withresult]
 let hybrid heater(t0, g0, g1) = t where
   rec der t = g0 -. g1 *. t init t0
 \end{runverbatim}
 
 The sinus and cosinus signals, whose stream approximation was given in
-paragraph~\cref{sec:local-defin-mutu} are now defined this way:
+paragraph~\cref{localdefmut} are now defined this way:
 \begin{runverbatim}[withresult]
 let hybrid sin_cos theta = (sin, cos) where
   rec der sin = theta *. cos init 0.0
@@ -2552,7 +2568,7 @@ and the two classical variable step solvers \texttt{ode23} and
 
 \medskip Functions like \verb+heater+, \verb+sin_cos+ and
 \verb+integr+ are different from the function we have defined in
-\cref{chap:sync-programming}. They are identified
+\cref{syncprog}. They are identified
 with the special keyword \texttt{hybrid}. These are functions from
 continuous-time signals to continuous-time signals. They will need a
 special treatment for the integration with the solver. On the
@@ -2582,7 +2598,7 @@ let node disc_pi(kp, ki, error) = cmd where
 \end{runverbatim}
 
 % }-}2
-\section{Communication betwen Discrete/Continuous-time Signals} %{-{2
+\section{Communication between Discrete/Continuous-time Signals\label{commdisccont}} %{-{2
 %{-{3
 
 The language forbids the arbitrary mix of discrete logical time and
@@ -2670,7 +2686,7 @@ let hybrid good(tick) = o where
 \emph{zero-crossing} events.
 
 % }-}3
-\subsection{Zero-crossing Events} %{-{3
+\subsection{Zero-crossing Events\label{zerocrossings}} %{-{3
 
 A zero-crossing event is produced by the operator \texttt{up(x)}
 which detects that a signal \texttt{x} goes from a negative value to a
@@ -2703,7 +2719,7 @@ let hybrid bouncing(x0,y0,x'0,y'0) = (x,y) where
 The ODE defining \texttt{y'} is now reset every time \texttt{-.y}
 crosses zero.  At this precise instant, the initial value of \verb-y'-
 is \verb+-. loose *. last y'+. Exactly like in
-\cref{chap:sync-programming}, \texttt{last y'} is the
+\cref{syncprog}, \texttt{last y'} is the
 value of \texttt{y'} at the previous instant. But this notion of the
 previous instant for a continuous-time signal has to be
 clarified. Mathematically, at the instant of a reset, we need to
@@ -2742,7 +2758,7 @@ Every time \texttt{last x -. 1.0} crosses zero from a negative to positive value
 a causality cycle.
 
 % }-}3
-\subsection{Periodic Timers} %{-{3
+\subsection{Periodic Timers\label{periodictimers}} %{-{3
 
 The language provides a particular form of zero-crossings to model
 timers. A timer with phase \texttt{phase} and period \texttt{period} generates
@@ -2765,7 +2781,7 @@ the minimal value of all timers is computed and defines the next horizon for the
 integration. No root-finding is used.
 
 % }-}3
-\subsection{Hierarchical Automata and ODEs} %{-{3
+\subsection{Hierarchical Automata and ODEs\label{hautoodes}} %{-{3
 
 We now illustrate the mix of ODEs with hierarchical automata. We take
 the example of a hysteresis controller for a heater.  Consider first
@@ -2855,7 +2871,7 @@ a zero-crossing occurs.
 % \end{runverbatim}
 
 %}-}3
-\subsection{Hierarchical Hybrid Automata} %{-{3
+\subsection{Hierarchical Hybrid Automata\label{hautos}} %{-{3
 
 Hierarchical automata can be mixed with ODEs. These automata are a
 particular case of the \emph{hybrid automata} of Maler, Manna and
@@ -2919,14 +2935,17 @@ let hybrid ball_with_modes(x_0, y_0) = (x, y) where
 %}-}3
 %}-}2
 %}-}1
-\chapter{The Simulation Loop}\label{chap:simulation-loop} %{-{1
+\chapter{The Simulation Loop\label{simulation-loop}} %{-{1
+%{-{2
 
 This chapter explains the basic principles of the code generation of a \zelus{}
 program. This part is useful to understand how to link a \zelus{} program
 with an \ocaml{} in both ways: importing an \ocaml{} value into \zelus{}
 or exporting the compiled code from a \zelus{} program to \ocaml.
 
-\section{Combinatorial Functions}
+%}-}2
+\section{Combinatorial Functions\label{combfuncs}} %{-{2
+
 A combinatorial function defined by:
 \begin{center}
   [ \term{let} ] [ \term{fun} ] \nterm{ident} \nterm{pattern} \term{=}
@@ -2936,7 +2955,9 @@ A combinatorial function defined by:
 is compiled \emph{as is} into an \ocaml{} function. No transformation is
 performed on it.
 
-\section{Sequential Nodes}
+% }-}2
+\section{Sequential Nodes\label{seqnodes}} %{-{2
+
 A synchronous, possibly stateful, function defined by:
 \begin{center}
   [ \term{let} ] [ \term{node} ] \nterm{ident} \nterm{pattern} \term{=}
@@ -2965,10 +2986,11 @@ is translated into the following:
     returns an initial state (of type \nterm{ident}).
 \end{itemize}
 
-\section{Hybrid Nodes and the Interaction with the Solver}
+% }-}2
+\section{Hybrid Nodes and the Interaction with the Solver\label{hybridnoes}} %{-{2
 
 \begin{figure}[t]
-\centering%{-{2
+\centering%{-{3
 %BEGIN IMAGE
 \begin{tikzpicture}[
     ->,
@@ -3006,7 +3028,7 @@ is translated into the following:
      ;
 
 
-\end{tikzpicture}%}-}2
+\end{tikzpicture}%}-}3
 %END IMAGE
 %HEVEA\imageflush
 \caption{Basic structure of a hybrid simulation 
@@ -3229,14 +3251,13 @@ the compiler produces four functions:
     internal state \nterm{self}. 
 \end{itemize}
 
-
-\cleardoublepage
-
-\part{Reference manual}
-\label{reference-manual}
-\cleardoublepage
+% }-}2
 % }-}1
-\chapter{The language} % {-{1
+\cleardoublepage
+\part{Reference manual\label{refman}}
+\cleardoublepage
+\chapter{The language\label{language}} % {-{1
+% {-{2
 
 %HEVEA\cutdef[1]{section}
 
@@ -3250,7 +3271,8 @@ repetitions of the enclosed components.
 % We follow the following convention for grammatical rules. If $t$ is
 % a syntactical entity, $\{\;t\;\}$ denotes the arbitrary repetition of $t$.
 
-\section{Lexical conventions}
+% }-}2
+\section{Lexical conventions\label{lexical}} %{-{2
 
 Lexical conventions for blanks, comments, identifiers, integer
 literals, floating-point literals, character literals, string
@@ -3271,23 +3293,31 @@ The following character sequences are also keywords:
         +    -     *     /     ;;     <=        (     .
 \end{verbatim}
 
-\section{Values}
+%}-}2
+\section{Values\label{values}} %{-{2
+\subsection{Basic values\label{basicvalues}} %{-{3
 
-\subsection{Basic values}
 \zelus{} only implements the basic values of \ocaml{} with the same
 convention, that is, integer numbers, floating-point numbers,
 characters and character strings.
-\subsection{Tuples, records, sum types}
+
+%}-}3
+\subsection{Tuples, records, sum types\label{tuplesrecords}} %{-{3
+
 \zelus{} implements the tuples of \ocaml, with the same conventions. It
 also implements records and sum types with constructors of arity 0.
 
-\subsubsection{Functions}
+%}-}3
+\subsubsection{Functions\label{funcvalues}} %{-{3
 Mapping from values to values. Functions are separated into three main
 categories: pure or \emph{combinatorial} functions and stateful functions. Stateful
 functions are either discrete-time or continuous-time.
 
-\section{Global names}
-\label{global-names}
+%}-}3
+%}-}2
+\section{Global names\label{global-names}} %{-{2
+%{-{3
+
 The naming conventions in \zelus{} are inherited from \ocaml, with some
 restrictions. They are listed here:
 
@@ -3301,7 +3331,8 @@ Names in \zelus{} are decomposed into the following syntactic classes:
   The syntactic class \nterm{module-name} for module names
 \end{itemize}
 
-\subsection{Naming values}
+%}-}3
+\subsection{Naming values\label{namingvalues}} %{-{3
 
 \begin{center}
 \begin{tabular}{lcl}
@@ -3324,7 +3355,9 @@ set of identifiers starting with a lowercase letter whereas
 \nterm{capitalized-ident} is the set of of identifiers starting with a
 capital letter.
 
-\subsection{Referring to named values}
+% }-}3
+\subsection{Referring to named values\label{refnamedvalues}} %{-{3
+
 \begin{center}
 \begin{tabular}{lcl}
 \nterm{value-path}  & ::=        & \nterm{value-name} \\
@@ -3341,7 +3374,10 @@ capital letter.
 A value can be referred either by its name or by qualifying the name
 with a module name.
 
-\section{Types and Function Types}
+% }-}3
+% }-}2
+\section{Types and Function Types\label{typesftypes}} %{-{2
+
 \begin{center}
 \begin{tabular}{lcl}
 \nterm{type} & ::=        & \term{'} \nterm{ident} \\
@@ -3372,7 +3408,8 @@ with a module name.
 % \end{tabular}
 % \end{center}
 
-\section{Constants}
+% }-}2
+\section{Constants\label{constants}} %{-{2
 
 \begin{center}
 \begin{tabular}{lcl}
@@ -3386,7 +3423,8 @@ with a module name.
 Constants are made of literals from the firth base types (integers,
 floating-point numbers, characters, character strings and booleans).
 
-\section{Patterns}
+% }-}2
+\section{Patterns\label{patterns}} %{-{2
 
 Patterns allow selecting data structures of a given shape and binding
 identifiers to components of the data structure.
@@ -3414,7 +3452,8 @@ identifiers to components of the data structure.
 \end{tabular}
 \end{center}
 
-\section{Signal Patterns}
+% }-}2
+\section{Signal Patterns\label{sigpatterns}} %{-{2
 
 \Marc{Changer la syntaxe pour la
   suivante: \texttt{present x?(p) -> ... | \_ when c -> ...}}
@@ -3433,8 +3472,10 @@ a boolean expression.
 \end{tabular}
 \end{center}
 
-\section{Expressions}
-\label{expressions}
+%}-}2
+\section{Expressions\label{expressions}} %{-{2
+% {-{3
+
 \begin{center}
 \begin{tabular}{lcl}
 \nterm{simple-expr}
@@ -3527,22 +3568,27 @@ function application            & -             \\
 }
 \end{center}
 
-\subsection{Simple expressions}
+% }-}3
+\subsection{Simple expressions\label{simpleexpressions}} % {-{3
+\subsubsection{Constants} %{-{4
 
-\subsubsection{Constants}
 Expressions consisting in a constant evaluate to an infinite stream
 made of this constant.
 
-\subsubsection{Variables}
+% }-}4
+\subsubsection{Variables} %{-{4
+
 Expressions consisting in a variable evaluate to the value bound to
 this variable in the current evaluation environment.
 
-\subsubsection{Parenthetised expressions}
+% }-}4
+\subsubsection{Parenthetised expressions} %{-{4
 The expression \term{(} \nterm{expr} \term{)} has the same value than
 \nterm{expr}.
 
+% }-}4
+\subsubsection{Local definitions} %{-{4
 
-\subsubsection{Local definitions}
 The \term{\Let} and \term{\Let\ \Rec} constructs bind variables
 locally. The expression 
 \begin{center}
@@ -3563,7 +3609,11 @@ Recursive definitions of variables are introduced by \term{\Let\ \Rec}:
 This time, the current environment also contains names defined by the \term{\Let}
 construction itself.
 
-\subsection{Operators}
+% }-}4
+% }-}3
+\subsection{Operators\label{operators}} % {-{3
+% {-{4
+
 The operators written \nterm{infix-op} in the grammar can appear in
 infix position (between two expressions). The operators written
 \nterm{prefix-op} in the grammar (\cref{expressions}) can appear
@@ -3574,7 +3624,9 @@ module) are imported. As for general scalar value imported from the
 host language, they become stream operators which are applied
 point-wisely to streams.
 
-\subsubsection{Unit Delays}
+% }-}4
+\subsubsection{Unit Delays} % {-{4
+
 The expression \term{\Pre} \nterm{expr} is the delayed
 stream. The $n$-th value of the result is the $n-1$-th
 value of \nterm{expr}. Its value at the first instant is undefined.
@@ -3588,7 +3640,9 @@ These two delay operators must only be activated on a \emph{discrete clock}. In
 \zelus, Version 1.2, this is ensured by imposing that those delays only
 appear in a context of kind $k = \NodeKind$.
 
-\subsubsection{Initialization Operation}
+% }-}4
+\subsubsection{Initialization Operation} % {-{4
+
 \nterm{expr}$_1$ \term{\Minusgreater} \nterm{expr}$_2$ initializes a
 stream. The \nterm{expr}$_i$ must be streams of the same type. The
 first value of the result is the first value of
@@ -3597,7 +3651,9 @@ value of \nterm{expr}$_2$.
 
 The initialization operator must be activated on a \emph{discrete clock}.
 
-\subsubsection{Access to a Shared State Variable}
+% }-}4
+\subsubsection{Access to a Shared State Variable} % {-{4
+
 The expression \term{\Last} \nterm{ident} denotes the previous computed value
 of a variable \nterm{ident}.
 
@@ -3608,7 +3664,9 @@ any contex. Nonetheless, when $\term{\Last}\; x$ appears in a continuous context
 \zelus, Version 1.2 imposes $x$ to be a continuous state variable, that is,
 it must be defined by an equation $\term{der}\; x = e$.
 
-\subsubsection{Point-wise conditional}
+% }-}4
+\subsubsection{Point-wise conditional} % {-{4
+
 The expression \term{\If} \nterm{expr}$_1$ \term{\Then}
 \nterm{expr}$_2$ \term{\Else} \nterm{expr}$_3$ is the point-wise
 conditional. \nterm{expr}$_1$ must be a boolean stream,
@@ -3620,11 +3678,17 @@ are evaluated no matter is the value of the condition. The result at instant
 $n$ is the value of \nterm{expr}$_2$ if the value of \nterm{expr}$_1$ is true and
 the value of \nterm{expr}$_3$ otherwise.
 
-\subsubsection{Function application}
+% }-}4
+\subsubsection{Function application} % {-{4
+
 The expression \nterm{value-path} \nterm{simple-expr} is the application
 of a function \nterm{value-path} to the expression \nterm{simple-expr}.
 
-\subsection{Control Structures}
+% }-}4
+% }-}3
+\subsection{Control Structures\label{controlstructures}} % {-{3
+% {-{4
+
 The constructions \verb-reset-, \verb-match/with-, \verb-reset- and
 \verb-automaton- are control-structures which combine equations and
 thus belong to the syntactic class of definitions (see
@@ -3636,7 +3700,9 @@ the original one is motivated by the graphical representation of
 dataflow programs. The derived form is only syntactic sugar for the
 original form.
 
-\subsubsection{Pattern Matching over Expressions}
+% }-}4
+\subsubsection{Pattern Matching over Expressions} % {-{4
+
 The expression
 \term{match} \nterm{expr} \term{with} 
   \nterm{pat}$_1$ \term{\Minusgreater} \nterm{expr}$_1$ \term{|} \dots 
@@ -3657,14 +3723,18 @@ is a short-cut for the expression:
 \end{center}
 provided \nterm{o} is a fresh name.
 
-\subsubsection{Modular Reset over Expressions}
+% }-}4
+\subsubsection{Modular Reset over Expressions} % {-{4
+
 The expression \term{reset} \nterm{expr}$_1$ \term{every} \nterm{expr}$_2$
 is a short-cut for
 \term{let reset} \nterm{o} \term{=} \nterm{expr}$_1$ 
 \term{every} \nterm{expr}$_2$ \term{in} \nterm{o},
 provided \nterm{o} is a fresh name.
 
-\subsubsection{Automata}
+% }-}4
+\subsubsection{Automata} % {-{4
+
 The expression 
 \term{automaton} \nterm{state}$_1$ \term{\Minusgreater} \nterm{expr}$_1$ 
                  \nterm{trans}$_1$ 
@@ -3685,7 +3755,9 @@ let \= \term{automaton} \\
 \end{tabbing}
 provided \nterm{o} is a fresh name.
 
-\subsubsection{Testing the Presence}
+% }-}4
+\subsubsection{Testing the Presence} % {-{4
+
 The expression
 \term{present}
   \nterm{spat}$_1$ \term{\Minusgreater} \nterm{expr}$_1$ \term{|} \dots 
@@ -3706,7 +3778,11 @@ is a short-cut for the expression:
 \end{center}
 provided \nterm{o} is a fresh name.
 
-\section{Definitions}
+% }-}4
+% }-}3
+% }-}2
+\section{Definitions\label{langdefs}} %{-{2
+
 \label{definitions}
 \begin{center}
 \begin{tabular}{lcl}
@@ -3753,11 +3829,13 @@ provided \nterm{o} is a fresh name.
 \end{center}
 
 \subsubsection{Global Value Definition}
+
 A global definition \nterm{ident} \term{=} \nterm{expr} defines the value
 of the global identier \nterm{ident} to be that of \nterm{expr} in the
 current global environment. \nterm{expr} must be combinatorial.
 
 \subsubsection{Global Function Definition}
+
 A global function definition is of the form:
 \begin{center}
   [ \term{let} ] [ \nterm{kind} ] \nterm{ident} \nterm{pattern} \term{=}
@@ -3793,6 +3871,7 @@ with:
 \end{itemize}
 
 \subsubsection{Alternative Syntax for Local Definitions}
+
 The language provides an alternate form of local definitions for returning
 the result of a function. The expression:
 \begin{center}
@@ -3807,15 +3886,18 @@ has the meaning of:
 \end{center}
 
 \subsubsection{Equation}
+
 Equation \nterm{pattern} = \nterm{expr} defines the current
 value of \nterm{pattern} to be equal to the current value of \nterm{expr}.
 
 \subsubsection{Initialization of a State Variable}
+
 A definition \term{init} \nterm{ident} \term{=} \nterm{expr} initializes
 the value of \term{\Last} \nterm{ident} with the
 value of \nterm{expr}.
 
 \subsubsection{Signal Emission}
+
 An equation \term{\Emit} \nterm{ident} \term{=} \nterm{expr} defines
 the signal \nterm{ident} to be equal to the value of \nterm{expr}. At
 every instant, a signal can be absent or present. When present, it carries
@@ -3845,6 +3927,7 @@ Shared variables are variable that may appear in several branches and
 which are not bound by a \term{local} construct.
 
 \subsubsection{Reinitialization}
+
 The construction \term{\Reset} \nterm{definition}$_1$ \term{\And} ...
 \term{\And} \nterm{definition}$_n$ \term{\Every} \nterm{expr} allows
 for resetting the computation made in a set of definitions. All the
@@ -4002,7 +4085,9 @@ defines the corresponding action to execute. Finally, the optional handler:
 \end{center}
 defines a condition which always succeed.
 
-\section{Type definition}
+% }-}2
+\section{Type definition\label{langtypedefs}} %{-{2
+
 Abstract types can be defined. Their syntax is inherited from \ocaml\
 and is reminded here. 
 \begin{center}
@@ -4039,7 +4124,8 @@ and is reminded here.
 \end{tabular}
 \end{center}
 
-\section{Module implementation}
+% }-}2
+\section{Module implementation\label{moduleimpl}} %{-{2
 \begin{center}
 \begin{tabular}{lcl}
 \nterm{implementation}
@@ -4063,7 +4149,9 @@ definition or is a sequence of definitions.
 \item The value definition defines some global values.
 \end{itemize}
 
-\section{Scalar Interfaces and Importing values}
+% }-}2
+\section{Scalar Interfaces and Importing values\label{importing}} %{-{2
+
 Scalar interfaces written in \ocaml\ can be imported by \zelus. In the
 current implementation, a restricted subset of \ocaml\ interfaces is
 considered. The syntax is the following:
@@ -4089,8 +4177,9 @@ value is automatically lifted to the stream level in the following way.
   applied point-wisely to its argument.
 \end{itemize}
 
+% }-}2
 % }-}1
-\chapter{{\tt zeluc} - The Compiler} % {-{1
+\chapter{{\tt zeluc} - The Compiler\label{zeluc}} % {-{1
 This part describes how to transform \zelus{} programs into \ocaml{}
 programs. This is achieved by the command {\tt zeluc} which can be passed
 a sequence of options and files to compile.
@@ -4149,6 +4238,7 @@ Every value defined in \verb-f.mli- is considered to be a scalar value.
 
 
 \subsection*{SEE ALSO}
+
 distribution and manual at \url{http://zelus.di.ens.fr}
 
 \subsection*{FILES}
