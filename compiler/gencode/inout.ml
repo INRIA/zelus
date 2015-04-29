@@ -191,8 +191,8 @@ let inout_const (table, size) method_name set instances =
   let rec add acc insts =
     match insts with
     | [] -> acc
-    | (o, f, Tcont)::insts -> add (call o f method_name [] :: acc) insts
-    | _::insts -> add acc insts in
+    | (o, f, Tcont) :: insts -> add (call o f method_name [] :: acc) insts
+    | _ :: insts -> add acc insts in
   { m_name = method_name; m_param = [];
     m_body = sequence (add c_list instances) } 
   
