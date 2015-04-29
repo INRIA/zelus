@@ -1,32 +1,8 @@
-let node strict(x, y) = x + y
-
-let node non_strict(x) = 0 -> pre(x) + 1
-
-let node g() = 0 where
-   rec o = non_strict(x + 2)
-   and x = strict(o, 1)
-   
-
-let node controller (click, top) = (simple) where rec
+let node await e = o where 
   automaton
-  | Await ->
-     do simple = false until click then One
-  | One ->
-     do until click then do simple = false in Await
+  | Await -> do unless e(v) then Sustain(v)
+  | Sustain(x) -> do emit o = x done
   end
-
-let node mem (i, default) = i + default
-
-let node z_controller(m) = (o, im) where
-  rec b = true fby (not b)
-  and present b -> do emit im = () done
-  and present (not b) -> do emit o = m done
-
-let node z_n1() = o where
-  rec m = mem (om, 0)
-  and (o, im) = z_controller(m)
-  and present im(_) -> do om = 1 done else do om = 0 done 
- 
 
     (*
 let atomic node draw_pendulum1 (color, x0, y0, x, y) =
