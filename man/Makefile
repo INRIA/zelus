@@ -52,12 +52,23 @@ $(MANUAL_HTML)/manual.html: manual.tex manual.pdf samples/tutorial0001.html
 	 $(HEVEA) -fix -I .. zelus.hva ../$< -o $(notdir $@); \
 	 $(HACHA) $(notdir $@))
 
-wwwman: $(MANUAL_HTML)/manual.html \
+wwwman: $(MANUAL_HTML)/manual.html css js \
     inc-header.html inc-javascript.html inc-titlebar.html
 	mkdir -p $@
-	for f in $$(ls $(MANUAL_HTML)/*.html);\
+	$(XSLTPROC) --output $@/index.html --html --param isindex 1 \
+		mantosite.xsl $(MANUAL_HTML)/index.html
+	$(XSLTPROC) --output $@/manual.html --html --param issingle 1 \
+		mantosite.xsl $(MANUAL_HTML)/manual.html
+	for f in $$(ls $(MANUAL_HTML)/manual0*.html);\
 	do $(XSLTPROC) --output $@/$${f#*/} --html mantosite.xsl $$f; done
 	cp $(MANUAL_HTML)/*.png $@/
+	cp manual.pdf $@/
+
+css:
+	ln -s ../www/www/$@
+
+js:
+	ln -s ../www/www/$@
 
 inc-header.html: ../www/src/inc-header.html
 	@printf '<head>' > $@
@@ -96,7 +107,7 @@ clean:
 
 realclean: clean
 	rm -f zelus.pdf zelus.ps zelus.html
-	rm -rf wwwman
+	rm -rf wwwman css js
 
 #implicit rules
 .SUFFIXES: .tex .html .aux .ps .pdf
