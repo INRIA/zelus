@@ -33,7 +33,7 @@
 \newif\ifCHKL@showcode\CHKL@showcodetrue
 \newif\ifCHKL@shouldfail\CHKL@shouldfailfalse
 \newif\ifCHKL@withresult\CHKL@withresultfalse
-\newif\ifCHKL@loadhtml\CHKL@loadhtmltrue
+\newif\ifCHKL@loadhtml\CHKL@loadhtmlfalse
 \def\CHKL@pkg@skipopts{}
 
 % % % Declare Options % % %
