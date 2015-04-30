@@ -47,6 +47,13 @@
     </dl>
   </xsl:template>
 
+  <!--strip td styles-->
+  <xsl:template match="td">
+    <td>
+      <xsl:apply-templates select="@*[name()!='style']|node()" />
+    </td>
+  </xsl:template>
+
   <xsl:template match="div[@class='manualtitle']">
     <div>
       <xsl:apply-templates select="@*|node()" />

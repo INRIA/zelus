@@ -306,10 +306,25 @@ body.manual pre {
     padding-bottom: 0px;
 }
 
-div.chrono td { min-width: 2em; }
 div.chrono {
     padding-top: 1ex;
     padding-bottom: 2ex;
+}
+div.chrono table {
+  border: 0px;
+}
+div.chrono td {
+  min-width: 2em;
+  text-align: center;
+  border: 0px;
+  padding-left: .2em;
+  padding-right: .2em;
+}
+div.chrono td + td {
+  border-left: thin dotted gray;
+}
+div.chrono tr:nth-child(even) {
+    background-color: #fffbe6;
 }
 div.center hr {
     margin-left: auto;

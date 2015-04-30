@@ -766,10 +766,11 @@ let full_add (a, b, c) = (s, co) where
 \includegraphics[width=0.4\textwidth]{Fig/full_adder}
 %END IMAGE
 %HEVEA\imageflush
-\caption{A half-adder and a full-adder~\label{half-adder}}
+\caption{A half-adder and a full-adder\label{half-adder}}
 \end{figure}
 
-Alternatively, a full adder can be described more efficiently as a composition
+Alternatively, a full adder can be described more efficiently as a 
+composition
 of two half adders. A graphical depiction is given in
 \cref{half-adder}. The corresponding program text is:
 \begin{chklisting}[continue,withresult]
@@ -1141,87 +1142,87 @@ let radius c = c.radius
 Pattern matching over streams uses a \zls{match/with} construction like that 
 of \ocaml.
 
+For example, consider a colored wheel rotating on an axis for which we want 
+to compute the direction of rotation.
+As shown in \cref{colorwheel}, the wheel has three sections with colors, 
+ordered clockwise, blue (\zls{Blue}), green (\zls{Green}), and red 
+(\zls{Red}) .
+A sensor mounted on the frame detects the changing colors as the wheel 
+turns.
+
 \begin{figure}[t]
-\centering%{-{3
+\centering%{-{4
 %BEGIN IMAGE
-\begin{tikzpicture}[]
+\begin{tikzpicture}[fill opacity=.7]
     \path[fill=blue]
         (0,0)
-        -- (1.5,0)
-        arc (0:120:1.5) coordinate (blue)
+        -- (-15:1.5)
+        arc (-15:105:1.5) coordinate (blue)
         -- cycle;
     \path[fill=red]
         (0,0)
         -- (blue)
-        arc (120:240:1.5) coordinate (red)
+        arc (105:225:1.5) coordinate (red)
         -- cycle;
     \path[fill=green]
         (0,0)
         -- (red)
-        arc (240:360:1.5) coordinate (red)
+        arc (225:345:1.5) coordinate (red)
         -- cycle;
     \draw[fill=black]
-          (-.3,.8)
-       -- ++(.6,0)
+          (-.1,.9)
+       -- ++(.2,0)
        -- ++(0,1.0) node[right] {sensor}
-       -- ++(-.6,0)
+       -- ++(-.2,0)
        -- cycle;
     \fill[black] (0,0) circle (.1);
-\end{tikzpicture}%}-}3
+\end{tikzpicture}
 %END IMAGE
-%HEVEA\imageflush
-\caption{Rotating colored wheel and sensor\label{fig:colorwheel}}
+%HEVEA\imageflush %}-}4
+\caption{Rotating colored wheel and sensor\label{colorwheel}}
 \end{figure}
 
-For example, consider a colored wheel rotating on an axis and for
-which we want to compute the rotation direction. This wheel is
-composed of three sections with colors blue (\zls{Blue}), red
-(\zls{Red}) and green (\zls{Green}).  A sensor observes the
-successive colors on the wheel and has to decide if the wheel is
-immobile or determine the rotation direction.
-
-We consider that the direction is direct (\zls{Direct}) when there is
-a succession of \zls{Red}, \zls{Green}, \zls{Blue}, \zls{Red}...,
-the opposite direction being indirect (\zls{Indirect}). There are
-some instants where the direction is undetermined
-(\zls{Undetermined}) or that the wheel is immobile (\zls{Immobile}).
-
-We program the controller in the following way. First, we introduce two
-sum types.  The function \zls{direction} then compares three
-successive values of the input stream \zls{i}.
+We must calculate whether the wheel is moving clockwise (\zls{Clockwise}), 
+that is, the sensor reports the sequence \zls{Red}, \zls{Green}, \zls{Blue}, 
+\zls{Red}\ldots, anticlockwise (\zls{Anticlockwise}), whether it is not 
+moving (\zls{Immobile}), or whether the direction cannot be determined 
+(\zls{Undetermined}).
+We program the controller by first introducing two sum types:
 \begin{chklisting}
 type color = Blue | Red | Green
-type dir = Direct | Indirect | Undetermined | Immobile
+type dir = Clockwise | Anticlockwise | Undetermined | Immobile
 \end{chklisting}
-%
+The function \zls{direction} then compares three successive values of the 
+input stream \zls{i}.
 \begin{chklisting}[continue,withresult]
 let node direction i = d where
   rec pi = i fby i
   and ppi = i fby pi
-  and match ppi, pi, i with
-  | (Red, Red, Red) | (Blue, Blue, Blue) | (Green, Green, Green) ->
-         do d = Immobile done
-  | (_, Blue, Red) | (_, Red, Green) | (_, Green, Blue) -> 
-         do d = Direct done
-  | (_, Red, Blue) | (_, Blue, Green) | (_, Green, Red) -> 
-         do d = Indirect done
-  | _ -> do d = Undetermined done
+  and match i, pi, ppi  with
+      | (Red, Red, Red) | (Blue, Blue, Blue) | (Green, Green, Green) ->
+             do d = Immobile done
+      | (Blue, Red, _) | (Red, Green, _) | (Green, Blue, _) ->
+             do d = Clockwise done
+      | (Red, Blue, _) | (Blue, Green, _) | (Green, Red, _) ->
+             do d = Anticlockwise done
+      | _ -> do d = Undetermined done
   end
 \end{chklisting}
 
-The handler of a pattern-matching construct is made of a set of
-equations defining {\em shared} variables (here the variable
-\verb-d-). At each instant, the \verb-match/with- statement selects
-the first pattern (from top to bottom) which matches the actual value
-of the triple \verb-pii, pi, i- and executes the corresponding
-branch. During a reaction, only one branch is executed.
+Each handler in a pattern-matching construct contains a set of
+equations defining \emph{shared} variables; here the variable
+\zls{d}.
+At each instant, the \zls{match/with} statement in the example selects
+the first pattern (from the top) that matches the actual value
+of the triple \zls{i, pi, ppi} and executes the corresponding
+branch.
+Only one branch is executed in any single reaction.
 
-Because only one branch is executed during a reaction, one must be
-careful when programming with such control structures, in particular
-in the presence of delay operators. This can be illustrated on the
-following program. This program is made of two modes: in the \verb-Up-
-mode, the variable \verb-o- increases by step \verb-1- whereas in the
-mode \verb-Down-, it decreases by step \verb+-1+.
+Combining such control structures with delay operators can give rise to 
+subtle behaviors.
+Consider, for instance, the following program with two modes: in the 
+\zls{Up} mode, the variable \zls{o} increases by \zls{1} at each reaction 
+and, in the mode \zls{Down}, it decreases by \zls{1}.
 \begin{chklisting}
 type modes = Up | Down
 
@@ -1232,15 +1233,16 @@ let node two (m, i) = o where
       | Down -> do o = last o - 1 done
       end
 \end{chklisting}
-The equation \verb-init o = i- defines a shared memory \verb-last o-
-which is initialized with the first value of \verb-i-. \verb-o- is
-called a shared variable because it is defined by several
-equations. When \verb-m- equals \verb-Up-, \verb-o- equals
-\verb-last o + 1-. When \verb-m- equals \verb-Down-, \verb-o- equals
-\verb+last o - 1+.  The communication between the two modes is done
-through a shared memory \verb-last o-.  \verb-last o- contains the
-previous value of \verb-o-, the last time \verb-o- has been
-defined. The execution diagram for some execution is given below.
+The equation \zls{init o = i} defines a shared memory \zls{last o}
+which is initialized with the first value of \zls{i}.
+The variable \zls{o} is called a \emph{shared variable} because its 
+definition is spread over several equations: when \zls{m} equals \zls{Up}, 
+\zls{o} equals \zls{last o + 1}; when \zls{m} equals \zls{Down}, \zls{o} 
+equals \zls{last o - 1}.
+Communication between the two modes occurs through the shared memory 
+\zls{last o} which contains the value that \zls{o} had the last time that it 
+was defined (that is, at the most recent previous instant of definition).
+An example execution diagram is given below.
 \begin{chrono}{l|cccccccc}
 \hline
 \tt i                 & \tt 0  & \tt 0  & \tt 0 & \tt 0    & \tt 0  & \tt 0    &  \tt 0  & \dots \\
@@ -1259,7 +1261,7 @@ defined. The execution diagram for some execution is given below.
 \end{chrono}
 
 \medskip\noindent
-The function \texttt{two} is equivalent to the following one:
+An equivalent way to express the same behaviour is:
 \begin{chklisting}[hide,label=updownmodes]
 type modes = Up | Down
 \end{chklisting}
@@ -1271,8 +1273,8 @@ let node two (m, i) = o where
       | Down -> do o = last_o - 1 done
       end
 \end{chklisting}
-making clear that \verb-last o- stands for the previous defined value
-of \verb-o-.
+This version makes it clear how \zls{last o} stands for the previously 
+defined value of \zls{o}.
 
 % }-}3
 \subsection{Pre versus Last\label{prelast}} %{-{3
@@ -2754,7 +2756,7 @@ ball.
 Consider a ball with initial position $(x_0, y_0)$ and initial speed
 $(x'_0, y'_0)$. Every time it hits the ground, it bounces but looses
 20\% of its speed. The trajectory is depicted in 
-Figure~\cref{fig:bouncing-ball}.
+Figure~\cref{bouncing-ball}.
 
 \begin{figure}
 \begin{center}
@@ -2766,7 +2768,7 @@ Figure~\cref{fig:bouncing-ball}.
 \includegraphics[width=.7\textwidth]{Fig/bouncingball}
 \fi
 \end{center}
-\caption{The Bouncing Ball~\label{fig:bouncing-ball}}
+\caption{The Bouncing Ball~\label{bouncing-ball}}
 \end{figure}
 
 \begin{chklisting}[label=gravity]
@@ -2863,7 +2865,7 @@ occurs. This property is ensured by typing.
 %
 % \subsection{A Ball Bouncing on a Staircase}
 % We illustrate them on the classical example of a falling bouncing ball on
-% a staircase as illustrated in Figure~\cref{bouncing-ball-staircase}.
+% a staircase as illustrated in Figure~\cref{bouncing-ball}.
 %
 % \Marc{Ajouter l'image de la page web.}
 %
