@@ -132,6 +132,15 @@ addopen() {
     fi
 }
 
+# A filename string for sed that ignores the case (BSD sed has no i flag)
+makeicfilename() {
+    IFILENAME=""
+    for l in $(printf "$FILENAME" | sed -e 's/\(.\)/\1 /g'); do
+	L="$(printf "$l" | tr "[:lower:]" "[:upper:]")"
+	IFILENAME="${IFILENAME}[$L$l]"
+    done
+}
+
 #
 # Given
 #   num		    a program (id)
@@ -151,6 +160,7 @@ compile() {
     else
 	FILENAME=${PREFIX}
     fi
+    makeicfilename
 
     # Generate the program (ifile) and output (ofile) filenames
     setfilename ifile "$FILENAME" "$num"
@@ -217,9 +227,9 @@ compile() {
     if [ "$(wc -l < "$OUTFILE")" -eq 0 ]; then
 	printf "Failed.\n"			      >> "$opath"
     else
-	sed -e "s#$SUBDIR$ifile#$PREFIX#g" "$OUTFILE"	\
-	    -e "s#$FILENAME[0-9][0-9][0-9][0-9]\.##ig"	\
-						      > "$opath_msg"
+	sed -e "s#$SUBDIR$ifile#$PREFIX#g"		\
+	    -e "s#$IFILENAME[0-9][0-9][0-9][0-9]\.##g"	\
+	    "$OUTFILE"				      > "$opath_msg"
 	cat "$opath_msg"			      >> "$opath"
     fi
     printf "%s\n" '\end{ChkListingMsg}'		      >> "$opath"
@@ -229,9 +239,9 @@ compile() {
     if [ "$(wc -l < "$ERRFILE")" -eq 0 ]; then
 	printf "%s\n" "Success."		      >> "$opath"
     else
-	sed -e "s#$SUBDIR$ifile#$PREFIX#g" "$ERRFILE"	\
-	    -e "s#$FILENAME[0-9][0-9][0-9][0-9]\.##ig"	\
-						      > "$opath_err"
+	sed -e "s#$SUBDIR$ifile#$PREFIX#g"		\
+	    -e "s#$IFILENAME[0-9][0-9][0-9][0-9]\.##g"	\
+	    "$ERRFILE"				      > "$opath_err"
 	cat "$opath_err"			      >> "$opath"
     fi
     printf "%s\n" '\end{ChkListingErr}'		      >> "$opath"
