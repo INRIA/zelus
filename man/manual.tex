@@ -1321,8 +1321,8 @@ let node two (m, i) = (o, c1, c2) where
 \end{chklisting}
 %
 The equation \zls{c1 = 1 -> pre c1 + 1} is only active in the
-\zls{Up} mode whereas equation \zls{c2 = 1 -> pre c2 + 1} is
-active in mode \zls{Down}. The execution diagram is given below.
+\zls{Up} mode, and the equation \zls{c2 = 1 -> pre c2 + 1} is
+active in the \zls{Down} mode. The execution diagram is given below.
 \begin{chrono}{l|cccccccc}
 \hline
 \tt i                 & \tt 0  & \tt 0  & \tt 0 & \tt 0    & \tt 0  & \tt 0    &  \tt 0  & \dots \\
@@ -1349,16 +1349,15 @@ active in mode \zls{Down}. The execution diagram is given below.
 \hline
 \end{chrono}
 
-A pattern matching composes several complementary sub-streams.
-The above pattern matching has
-two branches. Every branch defines its own clock, one denoting the
-instants where \zls{m = Up} and the other denoting the instant where
-\zls{m = Down}.
+Pattern matching composes complementary sub-streams.
+For instance, the \zls{match/with} in the previous example has two branches, 
+and each defines its own clock, one for the instants where \zls{m = Up} and 
+the other for the instants where \zls{m = Down}.
 
 % }-}3
 \subsection{Local Definitions\label{localdef}} %{-{3
 
-It is possible to define variables which stay local to a branch. For
+It is possible to define variables which are local to a branch. For
 example:
 \begin{chklisting}[include=updownmodes]
 let node two (m, i) = o where
@@ -1373,25 +1372,28 @@ or equivalently:
 let node two (m, i) = o where
   match m with
   | Up -> local c in
-          do c = 0 -> pre c + 1 and o = c done
+          do c = 0 -> pre c + 1
+          and o = c done
   | Down -> do o = 0 done
   end
 \end{chklisting}
-In the first handler of the \texttt{match/with} statement, \texttt{c} is
-declared to be local to the handler. The compiler checks that a definition for
-\texttt{c} is given. Several variables can be declared local by writing
-\texttt{local c1,..., cn in ...}.
+Here, \zls{c} is declared local to the first handler of the \zls{match/with} 
+statement.
+The compiler verifies that a definition for \zls{c} is given.
+Several variables can be declared local by writing
+\zls{local c1,..., cn in ...}.
 
 % }-}3
 \subsection{Implicit Completion of Shared Variables\label{completeshared}} %{-{3
 
-Finally, note that the branches of a pattern-matching constraint do
-not have to contain a definition for all the shared variables. A
-shared variable is implicitly completed as if one has written
-equations of the form \verb-x = last x- in branches where no
-definition for \verb-x- is given. Finally, the compiler rejects situations
-where it is unable to ensure that an initial value exist for
-\texttt{last x}. Thus, the following program is rejected.
+The branches of a pattern-matching constraint need not contain definitions 
+for all shared variables.
+Branches without a definition for a shared variable \zls{o} are implicitly 
+\emph{completed} with an equation \zls{o = last o}.
+
+The compiler rejects programs where it is unable to ensure that \zls{last o} 
+has an initial value.
+The following program is, for instance, rejected.
 \begin{chklisting}[withresult,fail,include=updownmodes]
 let node two (m, i) = o where
   rec match m with
