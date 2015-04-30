@@ -320,8 +320,8 @@ div.chrono td {
   padding-left: .2em;
   padding-right: .2em;
 }
-div.chrono td + td {
-  border-left: thin dotted gray;
+div.chrono td:first-child {
+  border-right: thin solid gray;
 }
 div.chrono tr:nth-child(even) {
     background-color: #fffbe6;

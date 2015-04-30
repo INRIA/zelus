@@ -932,8 +932,7 @@ let distance ((x0,y0), (x1,y1)) =
   sqrt (d0 *. d0 +. d1 *. d1)
 \end{chklisting}
 Since \zls{d0} and \zls{d1} denote infinite streams, the computations of 
-\verb+x1 -. x0+ and \verb+y1 -. x1+ occur in parallel, at least 
-conceptually.
+\zls{x1 -. x0} and \zls{y1 -. x1} occur in parallel, at least conceptually.
 In Zélus, however, the consecutive nesting of \zls{let}/\zls{in}s introduces 
 a sequential ordering on the computations at an instant.
 In this example, this means that the current value of \zls{d0} is always 
@@ -1279,32 +1278,33 @@ defined value of \zls{o}.
 % }-}3
 \subsection{Pre versus Last\label{prelast}} %{-{3
 
-Whereas \verb-last o- may seem
-to be just another way to refer to the previous value of a stream like
-\verb-pre o- does, there is a fundamental difference between the
-two. This difference is a matter or instant of observation.
+While \zls{last o} may seem like just an alternative to \zls{pre o} for 
+referring to the previous value of a stream, there is a fundamental 
+difference between the two based on their respective instants of 
+observation.
 
-\begin{itemize}
+\begin{flatitemize}
 \item
-In block-diagram formalism {\em \`a la}
-\simulink\ or \scade, $\texttt{pre}\;e$ is a unit delay which
-is a local memory. $\texttt{pre}$ denotes the last value of its argument, the
-last time it was {\em observed}. If $\texttt{pre}\;e$ appears in a
-block structure which is executed from time to time --- say when some condition
-$c$ is true --- it means that the argument $e$ is only computed when
-$c$ is true. Thus $\texttt{pre}\;e$ is the value $e$ had the last time $c$ was true.
-\item
-$\texttt{last}\;o$ denotes the previous value of the variable $o$ on
-  the instant where the variable $o$ is {\em defined}.
-  $\texttt{last}\;o$ is syntactically valid when $o$ is a variable name and
-  not an expression.  $\texttt{last}\;o$ is useful to communicate
-  values between modes and this is why it is called a shared memory.
-\end{itemize}
+In \zelus{}, as in other block-diagram formalisms like \simulink{} and 
+\scade, \zls{pre e} is a unit delay through a local memory---it denotes the 
+value that its argument had the last time it was \emph{observed}.
+If \zls{pre e} is used in a block structure which is executed from time to 
+time, for example, when some condition \zls{c} is true, the argument~\zls{e} 
+is only computed when~\zls{c} is true: \zls{pre e} is the value of \zls{e} 
+the last time \zls{c} was true.
 
-We illustrate the difference between the two on the following
-example. We add extra equations on the previous example. The two other streams
-\verb-c1- and \verb-c2-
-return respectively the number of instants each mode is active.
+\item
+On the other hand, \zls{last o} denotes the previous value of the variable 
+\zls{o} relative to the sequence of instants where the variable \zls{o} (it 
+must be a variable and not an expression) is \emph{defined}.
+It is useful for communicating values between modes which is why it is 
+called a shared memory.
+\end{flatitemize}
+
+We augment the previous example with extra equations to illustrate the 
+difference between the two delay constructs.
+The two new streams \zls{c1} and \zls{c2} return respectively the number of 
+instants in which each mode is active.
 \begin{chklisting}[include=updownmodes]
 let node two (m, i) = (o, c1, c2) where
   rec init o = i
@@ -1312,17 +1312,17 @@ let node two (m, i) = (o, c1, c2) where
   and init c2 = 0
   and match m with
        | Up -> do o = last o + 1
-              and c1 = 1 -> pre c1 + 1
-              done
+               and c1 = 1 -> pre c1 + 1
+               done
        | Down -> do o = last o - 1
                  and c2 = 1 -> pre c2 + 1
                  done
     end
 \end{chklisting}
-
-The equation \verb#c1 = 1 -> pre c1 + 1# is only active in the
-\verb-Up- mode whereas equation \texttt{c2 = 1 -> pre c2 + 1} is
-active in mode \verb-Down-. The execution diagram is given below.
+%
+The equation \zls{c1 = 1 -> pre c1 + 1} is only active in the
+\zls{Up} mode whereas equation \zls{c2 = 1 -> pre c2 + 1} is
+active in mode \zls{Down}. The execution diagram is given below.
 \begin{chrono}{l|cccccccc}
 \hline
 \tt i                 & \tt 0  & \tt 0  & \tt 0 & \tt 0    & \tt 0  & \tt 0    &  \tt 0  & \dots \\
@@ -1352,8 +1352,8 @@ active in mode \verb-Down-. The execution diagram is given below.
 A pattern matching composes several complementary sub-streams.
 The above pattern matching has
 two branches. Every branch defines its own clock, one denoting the
-instants where \verb-m = Up- and the other denoting the instant where
-\verb-m = Down-.
+instants where \zls{m = Up} and the other denoting the instant where
+\zls{m = Down}.
 
 % }-}3
 \subsection{Local Definitions\label{localdef}} %{-{3
