@@ -69,6 +69,7 @@ REWRITE = rewrite/markfunctions.cmo \
 	rewrite/shared.cmo \
 	rewrite/control.cmo \
 	rewrite/cse.cmo \
+	rewrite/cut.cmo \
 	rewrite/schedule.cmo \
 	rewrite/copy.cmo \
 	rewrite/deadcode.cmo
