@@ -115,10 +115,11 @@ rule main = parse
   | "=>" { print "=&gt;"; main lexbuf }
   | "~>" { print "~&gt;"; main lexbuf }
 
+  | "*"  { print "∗"; main lexbuf }   (* unicode: 0x2217 *)
+
   | "."
   | "("
   | ")"
-  | "*"
   | "{"
   | "}"
   | ":"
