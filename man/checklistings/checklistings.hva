@@ -147,7 +147,9 @@
     \ifCHKL@showcode%
       \bgroup%
       \ifCHKL@loadhtml%
+        \@open{div}{class="chklisting"}%
         \rawinput{\CHKL@file{}.html}%
+        \@close{div}%
       \else%
         \elstset{\CHKL@pkg@skipopts}%
         \elstset{\CHKL@codestyle}%
