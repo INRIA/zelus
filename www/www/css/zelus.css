@@ -36,6 +36,12 @@ p {
     text-align: justify;
 }
 
+span.zelusinline {
+    /* font-family: Cabin, sans-serif; */
+    font-family: monospace;
+    white-space: pre;
+}
+
 code {
     background-color: #ffffff;
     color: #000000;
@@ -169,7 +175,21 @@ address a {
     overflow: hidden;
 }
 
+ul.flatitemize {
+}
+
+ul.flatitemize li + li {
+    padding-top: .5em;
+}
+
 /* HeVeA Generated Manual Pages */
+
+table.dcenter {
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
 
 blockquote.heveainfo {
     padding-top: 5em;
