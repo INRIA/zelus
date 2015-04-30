@@ -230,10 +230,10 @@ let compile modname filename =
       if !verbose then Printer.implementation_list info_ff impl_list;
       
       (* Add extra copy for [last x] to remore false cycles *)
-      (* let impl_list = Cut.implementation_list impl_list in
+      let impl_list = Cut.implementation_list impl_list in
       if !verbose then 
 	comment "Add copies for [last x] to remore false cycles. See below:";
-      if !verbose then Printer.implementation_list info_ff impl_list; *)
+      if !verbose then Printer.implementation_list info_ff impl_list;
       
       (* schedule *)
       let impl_list = Schedule.implementation_list impl_list in

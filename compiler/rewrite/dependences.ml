@@ -53,7 +53,7 @@ struct
       let var_set = Read.def eq in
       let n_to_graph = nametograph g var_set n_to_graph in
       g :: g_list, nametograph g var_set n_to_graph in
-    
+
     let make_graph g_list n_to_graph =
       (* [g] must be scheduled after all nodes associated to [n] *)
       (* when [is_last], reverse dependences *)
@@ -70,7 +70,7 @@ struct
 	  with | Not_found -> () in
 	let g_list = all n n_to_graph in
         List.iter (attach g_node) g_list in
-      
+
       let add_node g =
         let g_node = containt g in
 	let last_names, names = Read.read g_node in

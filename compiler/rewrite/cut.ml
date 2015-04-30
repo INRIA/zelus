@@ -35,7 +35,7 @@ let env subst b_env =
     match sort with
     | Mem ({ t_last_is_used = true } as mem) -> 
        let lx = Ident.fresh "l" in
-       Env.add x { entry with t_sort = Val } env,
+       Env.add lx { entry with t_sort = Val } env,
        Env.add x lx subst,
        (eq_last lx x ty) :: eq_list
     | Val | ValDefault _ | Mem _ -> env, subst, eq_list in
