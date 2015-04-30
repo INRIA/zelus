@@ -48,6 +48,7 @@ $(MANUAL_HTML)/manual.html: manual.tex manual.pdf samples/tutorial0001.html
 	cp hevea.sty $(MANUAL_HTML)
 	cp checklistings.sty $(MANUAL_HTML)
 	cp Fig/*.eps Fig/*.ps $(MANUAL_HTML)/Fig/
+	cp Fig/*.png $(MANUAL_HTML)/
 	(cd $(MANUAL_HTML); \
 	 $(HEVEA) -fix -I .. zelus.hva ../$< -o $(notdir $@); \
 	 $(HACHA) $(notdir $@))

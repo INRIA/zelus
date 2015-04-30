@@ -1117,17 +1117,17 @@ first be initialized using the \zls{->} operator.
 \section{Data-types, Pattern matching\label{dtypespatterns}} %{-{2
 \subsection{Type definitions\label{typedef}} %{-{3
 
-Product types, record types and enumerated type may be defined with a
-notation close to that of \ocaml. Nonetheless, no constructors with
-arguments are allowed for the moment. It is nonetheless possible to
-define abstract types and to inport functions from an \ocaml{} module.
-See the present reference manual for syntactic considerations.
+Product types, record types, and enumerated types are defined in a syntax 
+close to that of \ocaml.
+Constructors with arguments are not supported in the current release.
+They can nevertheless be defined together with the functions that manipulate 
+them in an \ocaml{} module which is then imported into Zélus; see 
+\cref{importing}.
 
 Records are defined as in Ocaml and accessed with the dot notation. For 
 example,
-the following defines a type {\tt
-  circle}, representing a circle as a record containing a {\tt
-  center}, given by its coordinates, and a {\tt radius}.
+the following defines a type \zls{circle}, representing a circle as a record 
+containing a \zls{center}, given by its coordinates, and a \zls{radius}.
 \begin{chklisting}
 type circle = { center: float * float; radius: float }
 
@@ -1138,25 +1138,25 @@ let radius c = c.radius
 % }-}3
 \subsection{Pattern matching\label{patternmatch}} %{-{3
 
-The language provides means for doing pattern matching over streams
-with a \verb-match/with- construction {\em \`a la} \ocaml.
+Pattern matching over streams uses a \zls{match/with} construction like that 
+of \ocaml.
 
-Consider the example of a colored wheel rotating on an axis and for
+For example, consider a colored wheel rotating on an axis and for
 which we want to compute the rotation direction. This wheel is
-composed of three sections with colors blue (\verb-Blue-), red
-(\verb-Red-) and green (\verb-Green-).  A sensor observes the
+composed of three sections with colors blue (\zls{Blue}), red
+(\zls{Red}) and green (\zls{Green}).  A sensor observes the
 successive colors on the wheel and has to decide if the wheel is
 immobile or determine the rotation direction.
 
-We consider that the direction is direct (\verb-Direct-) when there is
-a succession of \verb-Red-, \verb-Green-, \verb-Blue-, \verb-Red-...,
-the opposite direction being indirect (\verb-Indirect-). There are
+We consider that the direction is direct (\zls{Direct}) when there is
+a succession of \zls{Red}, \zls{Green}, \zls{Blue}, \zls{Red}...,
+the opposite direction being indirect (\zls{Indirect}). There are
 some instants where the direction is undetermined
-(\verb-Undetermined-) or that the wheel is immobile (\verb-Immobile-).
+(\zls{Undetermined}) or that the wheel is immobile (\zls{Immobile}).
 
-We program the controler in the following way. First, we introduce two
-sum types.  The function \verb-direction- then compares three
-successive values of the input stream \verb-i-.
+We program the controller in the following way. First, we introduce two
+sum types.  The function \zls{direction} then compares three
+successive values of the input stream \zls{i}.
 \begin{chklisting}
 type color = Blue | Red | Green
 type dir = Direct | Indirect | Undetermined | Immobile
@@ -2725,7 +2725,15 @@ $(x'_0, y'_0)$. Every time it hits the ground, it bounces but looses
 Figure~\cref{fig:bouncing-ball}.
 
 \begin{figure}
-  \Marc{Tim: tu voudrais bien ajouter une image ?}
+\begin{center}
+\ifhevea
+\begin{rawhtml}
+<img src="bouncingball.png">
+\end{rawhtml}
+\else
+\includegraphics[width=.7\textwidth]{Fig/bouncingball}
+\fi
+\end{center}
 \caption{The Bouncing Ball~\label{fig:bouncing-ball}}
 \end{figure}
 
