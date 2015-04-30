@@ -1141,6 +1141,38 @@ let radius c = c.radius
 Pattern matching over streams uses a \zls{match/with} construction like that 
 of \ocaml.
 
+\begin{figure}[t]
+\centering%{-{3
+%BEGIN IMAGE
+\begin{tikzpicture}[]
+    \path[fill=blue]
+        (0,0)
+        -- (1.5,0)
+        arc (0:120:1.5) coordinate (blue)
+        -- cycle;
+    \path[fill=red]
+        (0,0)
+        -- (blue)
+        arc (120:240:1.5) coordinate (red)
+        -- cycle;
+    \path[fill=green]
+        (0,0)
+        -- (red)
+        arc (240:360:1.5) coordinate (red)
+        -- cycle;
+    \draw[fill=black]
+          (-.3,.8)
+       -- ++(.6,0)
+       -- ++(0,1.0) node[right] {sensor}
+       -- ++(-.6,0)
+       -- cycle;
+    \fill[black] (0,0) circle (.1);
+\end{tikzpicture}%}-}3
+%END IMAGE
+%HEVEA\imageflush
+\caption{Rotating colored wheel and sensor\label{fig:colorwheel}}
+\end{figure}
+
 For example, consider a colored wheel rotating on an axis and for
 which we want to compute the rotation direction. This wheel is
 composed of three sections with colors blue (\zls{Blue}), red
