@@ -143,7 +143,7 @@ let rec cless left_c right_c =
 let path c1 c2 =
   let rec pathrec c1 =
     (equal c1 c2) || List.exists pathrec (sups c1) in
-  not (equal c1 c2) && pathrec c1
+  pathrec c1
     
 (* the main entry *)
 let type_before_type = unify cless

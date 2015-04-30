@@ -4,7 +4,8 @@ let node await e = o where
   | Sustain(x) -> do emit o = x done
   end
 
-    (*
+(*
+>>>>>>> .r2266
 let atomic node draw_pendulum1 (color, x0, y0, x, y) =
   let x0 = truncate (10.0 *. x0) in
   let y0 = truncate (10.0 *. y0) in
