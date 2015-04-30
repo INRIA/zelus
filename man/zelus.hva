@@ -1,5 +1,8 @@
 %\input{report.hva}
-\usepackage{color}
+
+%\renewcommand{\cuttingunit}{section}
+%\renewcommand{\cuttingunit}{chapter}
+%\setcounter{cuttingdepth}{2}
 
 \let\oldmeta=\@meta
 \renewcommand{\@meta}{%
@@ -8,19 +11,11 @@
 <link rel=stylesheet type="text/css" href="zelus.css">
 \end{rawhtml}}
 
-%\renewcommand{\cuttingunit}{section}
-%\renewcommand{\cuttingunit}{chapter}
-%\setcounter{cuttingdepth}{2}
 \renewcommand{\@bodyargs}{class="zelusBody"}
 \renewcommand{\refname}{References\label{references}}
+\newcommand{\hfil}{\hspace{5em}}
 
-\renewcommand{\term}[1]{\textcolor{Blue}{\tt #1}}
-\renewcommand{\nterm}[1]{\textcolor{BrickRed}{\it #1}}
+% Eliminate HeVeA warnings about redefinition.
+\newcommand{\t}{\relax}
+\newcommand{\Reset}{\relax}
 
-\renewcommand{\sig}[1]{\textcolor{OliveGreen}#1}
-
-\setenvclass{zelusprompt}{zelusprompt}
-\renewenvironment{sample}
-  {\@open{div}{\envclass@attr{zelusprompt}}
-   \begin{alltt}}
-  {\end{alltt}\@close{div}}

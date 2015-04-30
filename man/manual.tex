@@ -16,32 +16,38 @@
             includecmd={},
             html={../tools/zltohtml},
            ]{checklistings}
-\fvset{xleftmargin=3mm}
 \ifhevea
-\relax
+\newcommand{\zls}[1]{{\@span{class="zelusinline"}#1}}
 \else
+\fvset{xleftmargin=3mm}
 \checklistings{errstyle={formatcom=\small}}
+\newcommand{\zls}[1]{\texttt{#1}}
 \fi
 
-\newcommand{\zls}[1]{\texttt{#1}}
 \newcommand{\zlsmsg}[1]{\texttt{#1}}
 
 \usepackage{a4wide}
 \usepackage{alltt}
+\usepackage{color}
 \usepackage{graphicx}
 \usepackage{epsf}
 \usepackage{amssymb}
 \usepackage{hyperref}
-\usepackage{cleveref}
+\usepackage[nameinlink]{cleveref}
 
 \crefname{figure}{figure}{figures}
 
+\ifhevea
+\newenvironment{flatitemize}
+  {\setenvclass{itemize}{flatitemize}%
+   \begin{itemize}}
+  {\end{itemize}}
+\else
 \usepackage[inline]{enumitem}
-\newlist{inparaenum}{enumerate*}{1}
-\setlist[inparaenum,1]{label=(\arabic*),ref=\arabic*}
 \newenvironment{flatitemize}
   {\begin{itemize}[leftmargin=*]}
   {\end{itemize}}
+\fi
 
 %BEGIN IMAGE
 \usepackage{tikz}
@@ -268,8 +274,13 @@
 \newcommand{\Tim}[1]{{\bf Tim.} {#1} {\bf Fin}}
 
 % Pour le manuel de ref
+\ifhevea
+\newcommand{\term}[1]{\textcolor{Blue}{\tt #1}}
+\newcommand{\nterm}[1]{\textcolor{BrickRed}{\it #1}}
+\else
 \newcommand{\term}[1]{{\tt #1}}
 \newcommand{\nterm}[1]{{\em #1}}
+\fi
 
 % Un environnement pour les chronogrammes
 \newenvironment{chrono}[1]
@@ -281,12 +292,24 @@
 %   &\begin{minipage}[t]{10cm} \begin{alltt}} {\end{alltt}
 %   \end{minipage} \end{tabular}\end{flushleft}}
 
+\ifhevea
+\setenvclass{zelusprompt}{zelusprompt}
+\newenvironment{sample}
+  {\@open{div}{\envclass@attr{zelusprompt}}
+   \begin{alltt}}
+  {\end{alltt}\@close{div}}
+\else
 \newenvironment{sample}
   {\begin{flushright}\begin{minipage}[t]{15.3cm}\begin{alltt}\small}
   {\end{alltt}\end{minipage}\end{flushright}}
+\fi
 
 \newcommand{\shell}[1]{{\em aneto.local: #1}}
+\ifhevea
+\newcommand{\sig}[1]{\textcolor{OliveGreen}#1}
+\else
 \newcommand{\sig}[1]{{\em #1}}
+\fi
 
 \newcommand{\Remark}{\medskip\noindent{\bf Remark: }}
 
@@ -506,21 +529,19 @@ Its expressive power for modeling physics is limited to ODEs, unlike
 %is limited to ODEs and not DAEs as
 %\modelica~\footnote{\url{https://www.modelica.org}} does.
 Research papers on the design, semantics and implementation of \zelus{} are 
-available at \ahrefurl{\url{http://zelus.di.ens.fr}}.
+available at \url{http://zelus.di.ens.fr}.
 
 \section*{Availability\label{availability}}
 The implementation is written in, and generates programs in \ocaml, which 
 must be installed.
 \begin{center}
 \begin{tabular}{ll}
-  \zelus, version 1.2:  & 
-  \ahrefurl{\url{http://zelus.di.ens.fr}} \\
-  Objective Caml, version 4.02.1  & 
-  \ahrefurl{\url{http://www.ocaml.org}}
+  \zelus, version 1.2:  & \url{http://zelus.di.ens.fr} \\
+  Objective Caml, version 4.02.1  & \url{http://www.ocaml.org}
 %   \\
-%   SundialsML & \ahrefurl{\url{http://inria-parkas.github.io/sundialsml/}}
+%   SundialsML & \\url{http://inria-parkas.github.io/sundialsml/}
 %   \\
-%   SUNDIALS & \ahrefurl{\url{https://computation.llnl.gov/casc/sundials/}}
+%   SUNDIALS & \url{https://computation.llnl.gov/casc/sundials/}
 \end{tabular}
 \end{center}
 The language is experimental and evolves continuously. Please send
@@ -964,8 +985,8 @@ let node counter i = o where
 \end{chklisting}
 The equation \zls{init o = i} defines the initial value of the \emph{memory} 
 \zls{last o}. This memory is initialized with the first
-value of \verb-i-, and thereafter it contains the previous value of
-\verb-o-. The above program is thus equivalent to the following
+value of \zls{i}, and thereafter it contains the previous value of
+\zls{o}. The above program is thus equivalent to the following
 one:\footnote{The construction \texttt{last} is eliminated during 
 compilation by a similar transformation.}
 \begin{chklisting}
@@ -973,10 +994,10 @@ let node counter i = o where
   rec last_o = i -> pre o
   and o = last_o + 1
 \end{chklisting}
-The reason for introducing memories, will become clear when control 
+The reason for introducing memories will become clear when control 
 structures are introduced in \cref{patternmatch}.
-Syntactically, \verb-last- is {\em not} an operator: \verb-last o- denotes
-a shared memory and the argument of \verb-last-, here \verb-o-, must be a 
+Syntactically, \zls{last} is {\em not} an operator: \zls{last o} denotes
+a shared memory and the argument of \zls{last}, here \zls{o}, must be a 
 variable name. Thus this program is rejected:
 \begin{chklisting}[fail,withresult]
 let node f () = o where
@@ -996,20 +1017,20 @@ or equivalently:
 let node counter i = o where
   rec next o = o + 1 init i
 \end{chklisting}
-In both definitions, \texttt{o} is initialized with the first value of
-\verb-i- and then the value of \texttt{o} at instant $n+1$ is the value of
-\verb-o + 1- at instant $n$ (for all $n \in \Nat$).
+In both definitions, \zls{o} is initialized with the first value of
+\zls{i} and then the value of \texttt{o} at instant $n+1$ is the value of
+\zls{o + 1} at instant $n$ (for all $n \in \Nat$).
 
 Neither the form defining the current value from the previous one, nor the 
 form defining the next value from the current one is intrinsically superior; 
 it depends on the situation.
 Either form can be transformed into the other.
 We will see in \cref{ode-programming} that restrictions apply to both the 
-\verb-next- and \verb-last- constructions when combining discrete- and
+\zls{next} and \zls{last} constructions when combining discrete- and
 continuous-time dynamics.
 
-\Remark The compiler rewrites \verb-last-, \verb+->+, \verb-fby-, 
-\verb+pre+, \verb+init+ and \verb+next+ into a minimal subset.
+\Remark The compiler rewrites \zls{last}, \zls{->}, \zls{fby}, \zls{pre}, 
+\zls{init} and \zls{next} into a minimal subset.
 
 % }-}3
 \subsection{Causality check\label{causalcheck}} %{-{3
@@ -1025,36 +1046,36 @@ let node from m = nat where
 is rejected with the message:
 \chklistingerr{}
 \noindent
-This program cannot be computed since \verb+nat+ depends instantaneously on 
+This program cannot be computed since \zls{nat} depends instantaneously on 
 itself.
-The compiler statically reject function definitions which cannot be 
-scheduled sequentially, that is streams whose value at instant $n$ may 
-depend on some value at instant $n$.
-In practice, it imposes that any loop
-crosses a delay \verb-pre- or \verb-fby-. The purpose of
-the \emph{causality analysis} to to reject those loops.
-
-\newcommand{\temp}{\mathit{temp}}
+The compiler statically rejects function definitions that cannot be 
+scheduled sequentially, that is, when the value of a stream at an 
+instant~$n$ may be required in the calculation of that very value at the 
+same instant, whether directly or through a sequence of intermediate 
+calculations.
+In practice, we impose that all such stream interdependencies be broken by a 
+delay (\zls{pre} or \zls{fby}).
+The purpose of \emph{causality analysis} to to reject all other loops.
 
 Note that delays can be hidden internally in the body of a function as
-this is the case for the languages \lustre{} and \signal, for
-example. E.g., consider the initial value problem:
+is the case, for instance, in the languages \lustre{} and \signal.
+For example, consider the initial value problem:
 \[
-\dot{\temp} = g_0 - g_1 \cdot \temp \quad \temp(0) = t_0
+\dot{t} = g_0 - g_1 \cdot t \qquad\qquad t(0) = t_0
 \]
-Approximate the integration with the explicit Euler integrator defined previously. The
-signal $\temp$ can be implemented by the following recursive equation.
+We can approximate this value by using the explicit Euler integrator defined 
+previously and defining a signal~$t$ by a recursive equation.
 \begin{chklisting}[withresult,include=integr]
-(* [t0] is the initial temperature; [g0] and [g1] two constant *)
-let node heater(t0, g0, g1) = temp where
-  rec temp = integr(t0, g0 -. g1 *. temp)
+(* [t0] is the initial temperature; [g0] and [g1] two constants *)
+let node heater(t0, g0, g1) = t where
+  rec t = integr(t0, g0 -. g1 *. t)
 \end{chklisting}
-This feedback loop is accepted because \verb+integr(t0, g0 -. g1 *. temp)+ does
-not depend instantaneously on its input.
+This feedback loop is accepted because \zls{integr(t0, g0 -. g1 *. temp)} 
+does not depend instantaneously on its input.
 
-It is also possible to force a function to be considered to be strict
-by adding the keyword \texttt{atomic}. E.g., the following program is
-now rejected by the causality analysis.
+It is also possible to force the compiler to consider a function as strict 
+with the \zls{atomic} keyword. For example, the following program is
+rejected by the causality analysis.
 %
 \begin{chklisting}[fail,withresult]
 let atomic node f x = 0 -> pre (x + 1)
@@ -1062,32 +1083,32 @@ let node wrong () =
   let rec o = f o in o
 \end{chklisting}
 %
-Indeed, whereas the output of \texttt{f} does not instantaneously
-depend on its input \texttt{x}, adding the keyword \texttt{atomic}
-forces to consider that all output instantaneously depend on all
-inputs. For atomic functions, the compiler produces a single step
-function which is simply called.\footnote{Modular code generation
+Even though the output of \zls{f} does not depend instantaneously
+depend on its input \zls{x}, the keyword \zls{atomic} adds instantaneous 
+dependencies between the output and all inputs.
+For atomic functions, the compiler produces a single step
+function.\footnote{Note, though, that Modular code generation
   where a function is split into a minimal set of functions, as
   proposed in~\cite{lucy:emsoft09,lustre:tripakis-popl09}, is not
   implemented in the current version of the compiler. Some functions
-  are inlined, according to the dependence information
+  are inlined, however, according to the dependency information
   computed by the causality analysis.}
 
 %}-}3
 \subsection{Initialization check\label{initcheck}} %{-{3
 
 The compiler checks that every delay operator is initialized. For
-example:
+example,
 \begin{chklisting}[fail,withresult]
 let node from m = nat where
   rec nat = pre nat + 1
 \end{chklisting}
-The analysis is a {\em one-bit} analysis where expressions are
-considered to be either always defined or always defined except at the
-very first instant.  It is defined in~\cite{lucy:sttt04}. In
-practice, it rejects expressions like \verb-pre (pre e)-, that is,
-un-initialized expressions cannot be used as an argument of a delay
-and must be first initialized using \verb+->+.
+The analysis~\cite{lucy:sttt04} is a {\em one-bit} analysis where 
+expressions are considered to be either always defined or always defined 
+except at the very first instant.
+In practice, it rejects expressions like \zls{pre (pre e)}, that is,
+uninitialized expressions cannot be passed as arguments to delays; they must 
+first be initialized using the \zls{->} operator.
 
 % }-}3
 % }-}2
@@ -1100,7 +1121,8 @@ arguments are allowed for the moment. It is nonetheless possible to
 define abstract types and to inport functions from an \ocaml{} module.
 See the present reference manual for syntactic considerations.
 
-Records are defined as in Ocaml and accessed with the dot notation. E.g.,
+Records are defined as in Ocaml and accessed with the dot notation. For 
+example,
 the following defines a type {\tt
   circle}, representing a circle as a record containing a {\tt
   center}, given by its coordinates, and a {\tt radius}.
@@ -1560,7 +1582,7 @@ let node sum (x, y) = o where
 \end{chklisting}
 
 We can easily eliminate this error by giving a last value to \verb-o-
-(e.g., adding an equation \verb-init o = 0- outside of the present
+(for example, adding an equation \verb-init o = 0- outside of the present
 statement). In that case, the default case is implicitly completed
 with an equation \verb-o = last o-. The other way is to state that
 \verb-o- is now a signal and is thus only partially defined.
@@ -2177,7 +2199,7 @@ and we get the same execution diagram as before:
 %   and x = integr x0 dx
 % \end{verbatim}
 % We can make a more complicated system where the new direction is the
-% result of a computation (e.g., elastic collision with Newton laws).
+% result of a computation (for example, elastic collision with Newton laws).
 
 Note that the escape condition \verb-do x = 0 and y = 0 then Up- in
 the initial state is a shortcut for
@@ -2442,7 +2464,8 @@ let node controller (click, top) = e where
 \subsection{Initializing the Initial State\label{initinitstate}} %{-{3
 
 It is possible to initialize the parameter of the initial state by adding
-an initialization to the automaton. E.g., the following two state automaton
+an initialization to the automaton. For example, the following two state 
+automaton
 starts in state \texttt{On(incr)} with \texttt{incr} initialized with the first
 value of \texttt{i0}.
 \begin{chklisting}[withresult]
@@ -2629,7 +2652,7 @@ because \verb-o- should be the discrete-time signal $\forall n \in
 \bN, o(n) = n$ and it cannot be integrated to produce \verb-x-.
 These two programs
 are statically rejected by the compiler as invalid
-compositions. E.g.,: \chklistingerr{}
+compositions. For example,: \chklistingerr{}
 
 \paragraph{Typing Constraints}
 
@@ -2772,7 +2795,7 @@ let hybrid timer(phase, p) = z where
 \end{chklisting}
 
 \zelus{} provides a special syntax for those timers. For the moment,
-it is restricted to timer with a constant phase and period. E.g.,
+it is restricted to timer with a constant phase and period. For example,
 taking $10.3$ and $20.5$ for \texttt{phase} and \texttt{p}, one can
 write \texttt{period 10.3(20.5)}. Timers are not implemented by a 
 zero-crossing detecton mechanism
@@ -2860,7 +2883,7 @@ a zero-crossing occurs.
 %
 % It has been a matter of taste to program the hybrid function \texttt{heater} with
 % a conditional, as well has having programmed the controller with an automaton.
-% E.g., one could have written equivalently:
+% For example, one could have written equivalently:
 %
 % \begin{chklisting}
 % let hybrid heater(active) = temps where
@@ -3153,7 +3176,8 @@ occurs or the horizon $t(n)+step(n)$ is reached:
 \end{description}
 %Finally, the solver state is local to mode $C$, that is,
 %$s(n+1) = s(n)$ when $C$ is not active.
-If the solver raises an error (e.g., division by zero or unable to find a
+If the solver raises an error (for example, division by zero or unable to 
+find a
 solution), we consider that the simulation fails.
 
 \paragraph{The Discrete Mode ($D$)}
@@ -3213,8 +3237,8 @@ at instant $n+1$ according to their value at instant $n$ and an
 internal state. By writing $\Solve{f}{g}$, we abstract the
 actual choice of the integration method and zero-crossing detection
 algorithms. A more detailed description of $\Solve{f}{g}$ would be
-possible (e.g., as an automaton with two states: one that integrates, one 
-that detects zero-crossings) but with no influence on
+possible (for example, as an automaton with two states: one that integrates, 
+one that detects zero-crossings) but with no influence on
 the code generation problem which must be independent of such simulation
 details. 
 

@@ -235,7 +235,13 @@ compile() {
     # Filter to html if necessary
     if [ -n "$HTMLFILTER" ]; then
 	# shellcheck disable=SC2086
-	$HTMLFILTER "$ipath" > "$opath_html"
+	if [ "$HTMLFILTER" = "cat" ]; then
+	    printf '<pre>\n'	    > "$opath_html"
+	    $HTMLFILTER "$ipath"    >> "$opath_html"
+	    printf '</pre>\n'	    >> "$opath_html"
+	else
+	    $HTMLFILTER "$ipath" > "$opath_html"
+	fi
     fi
 
     return 0
