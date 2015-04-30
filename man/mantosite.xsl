@@ -22,6 +22,10 @@
     </xsl:copy>
   </xsl:template>
 
+  <!--...except empty <p> tags.-->
+  <xsl:template match="p[not(@*|*|comment()|processing-instruction()) 
+                         and normalize-space()='']" />
+
   <!--add ../ to all a:hrefs-->
   <xsl:template mode="adjustpaths" match="a">
     <a>

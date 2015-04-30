@@ -351,6 +351,7 @@
 % \end{verbatim}}
 %END LATEX
 \begin{rawhtml}
+</p>
 <div class="manualtitle">
   <h1>Zélus: A Synchronous Language with ODEs</h1>
   <h2>Tutorial and Reference Manual</h2>
@@ -371,6 +372,7 @@
     75230 Paris, France
   </div>
 </div>
+<p>
 \end{rawhtml}
 
 \newpage
@@ -953,7 +955,7 @@ as a stream of tuples defined by two local, mutually recursive equations:
 \begin{chklisting}
 let node min_max x =
   let rec min = x -> if x < pre min then x else pre min
-  and max = x -> if x > pre max then x else pre max in
+      and max = x -> if x > pre max then x else pre max in
   (min, max)
 \end{chklisting}
 or as a stream of tuples defined by a single recursive equation:

@@ -56,11 +56,6 @@ body.manual code {
 }
 
 body.manual pre.zelus {
-    padding-top: 1ex;
-}
-
-body.manual p + pre.zelus {
-    padding-top: 0ex;
 }
 
 .important-button {
