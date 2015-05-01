@@ -4,15 +4,19 @@
 let node count x = cpt where
   rec cpt = if ?x then 1 -> pre cpt + 1 else 0 -> pre cpt
 
+let node count2 x = cpt where
+  rec cpt = (0 -> pre cpt) + (if ?x then 1 else 0)
+
 let node show_count x =
   let _ = print_string "count: " in
   let _ = print_int x in
   print_newline ()
 
-let node main () = (cpt = expected) where
+let node main () = (cpt = expected) && (cpt = cpt2) where
   rec expected = 0 fby 0 fby 1 fby 1 fby 1 fby 2 fby 3
   and match (expected <> (0 -> pre expected)) with
       | true -> let _ = print_endline "emit x" in do emit x done
   and cpt = count x
+  and cpt2 = count2 x
   and _ = show_count cpt
 
