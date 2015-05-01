@@ -1,5 +1,6 @@
 # Tutorial and Manual
 # Author: Marc Pouzet
+# 	  Timothy Bourke
 
 include ../config
 LANG=zelus

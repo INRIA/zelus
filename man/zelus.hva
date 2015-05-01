@@ -19,3 +19,12 @@
 \newcommand{\t}{\relax}
 \newcommand{\Reset}{\relax}
 
+% Workaround for tikz
+\newcommand{\usetikzlibrary}[1]{%
+\begin{toimage}\usetikzlibrary{#1}\end{toimage}}
+\newcommand{\tikzset}[1]{%
+\begin{toimage}\tikzset{#1}\end{toimage}}
+\newenvironment{tikzpicture}[1][]%
+  {\begin{toimage}\begin{tikzpicture}[#1]}
+  {\end{tikzpicture}\end{toimage}\imageflush}
+
