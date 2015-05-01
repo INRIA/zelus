@@ -606,7 +606,7 @@ models \emph{causality}. In particular,
 streams. It can be seen as an adder circuit just as \verb-&- can be seen as an
   ``and'' gate.
 \end{itemize}
-Program executions can be represented as \emph{chronograms} showing the 
+Program executions can be represented as \emph{timelines} showing the 
 sequences of values taken by streams. The
 example below shows five streams, one per line. The first line shows
 the value of a stream \zls{c}, which has the value \t{} ({\em true}) at the 
@@ -1675,36 +1675,36 @@ Unlike \lustre, \lucy{} and \signal{}, \zelus{} does not currently have a
 \section{Hierarchical State Machines\label{hierstate}} %{-{2
 %{-{3
 
-The language provides means to define hierarchical state
-machines. These state machines can be composed in parallel with
-regular equations or other state machines and can be arbitrarily
-nested. State machines are essentially borrowed \emph{as is} from \lucy{} 
-and 
+\zelus{} provides hierarchical state machines that can be composed in 
+parallel with regular equations or other state machines as well as 
+arbitrarily nested.
+State machines are essentially taken \emph{as is} from \lucy{} and 
 \footnoteurl{\scadesix.}{http://www.esterel-technologies.com/products/scade-suite/}
-Their compilation is that of~\cite{lucy:emsoft05b}.
+They are compiled to data-flow equations~\cite{lucy:emsoft05b}.
 
-In this tutorial, we first consider state machines where transitions
-are only made of boolean expressions. Then, we consider two important
-extensions of the basic model. The first one is the ability to build
-define state machines with parameterized states and actions on
-transitions. The second one introduces the general form of transitions
-made of signal matching and boolean expressions.
+In this tutorial, we first consider basic state machines where transition 
+guards are limited to boolean expressions.
+Then, we consider two important extensions.
+The first is the ability to define state machines with parameterized states 
+(\cref{paramstates}) and actions on transitions (\cref{transacts}).
+The second is a more general form of transitions with signal matching and 
+boolean expressions (\cref{patmatchsig}).
 
-An automaton is a collection of states and transitions. Two kinds of
-transitions are provided, namely {\em weak} and {\em strong}
-transitions and for each of them, it is possible to enter in the next
-state by {\em reset} or by {\em history}. One important feature of
-these state machines is that {\em only one set of equations is
-  executed during one reaction}.
+An automaton is a collection of states and transitions.
+Two kinds of transitions are provided: \emph{weak} and \emph{strong}.
+For each, it is possible to enter the next state by \emph{reset} or by 
+\emph{history}.
+An important feature of state machines in \zelus{} is that \emph{only one 
+set of equations is executed during any single reaction}.
 
 % }-}3
 \subsection{Strong Preemption\label{strongpreemption}} %{-{3
 
-Here is a two state automaton illustrating strong preemption. The
-function \verb-expect- awaits \verb-x- to be true and emits
-\verb-true- for the remaining instants.
+The following program contains a two state automaton with strong preemption, 
+it returns \zls{false} until \zls{x} becomes true and then it returns 
+\zls{true} indefinitely.
 \begin{chklisting}[continue,withresult]
-(* await x to be true and then sustain the value *)
+(* wait for x to become true and then sustain the value *)
 let node strong x = o where 
   automaton
   | S1 -> do o = false unless x then S2
@@ -1712,42 +1712,50 @@ let node strong x = o where
   end
 \end{chklisting}
 
-This automaton is made of two states, each of them defining the value
-of a {\em shared} variable \verb-o-. The keyword \verb-unless-
-indicates that \verb-o- is defined by the equation \verb-o = false-
-from state \verb-S1- while \verb-x- is false. At the instant where
-\verb-x- is true, \verb-S2- becomes the active state for the remaining
-instant. Thus, the following chronogram hold:
+Each of the two states defines a value for the \emph{shared} variable 
+\zls{o}.
+The keyword \zls{unless} indicates a strong transition: the automaton stays 
+in the state \zls{S1} as long as \zls{x} is false, and \zls{o} is defined
+by the equation \zls{o = false}, but the instant when \zls{x} becomes true,
+\zls{S2} becomes active immediately, and \zls{o} is defined by the equation 
+\zls{o = true}.
+Thus, the following timeline holds:
 \begin{chrono}{c|ccccccc}
 \hline
-\tt x                 & \tt false & \tt false & \tt true & \tt false & \tt false &  \tt true & \dots \\
+\tt x                 & \tt false & \tt false & \tt true & \tt false & \tt false &  \tt true & $\cdots$ \\
 \hline
-\tt expect x           & \tt false & \tt false & \tt true & \tt true & \tt true &  \tt true & \dots  \\ \hline
+\tt strong x           & \tt false & \tt false & \tt true & \tt true & \tt 
+true &  \tt true & $\cdots$  \\ \hline
 \end{chrono}
+The guards of strong transitions are tested \emph{before} determining which 
+state is active at an instant and executing its body.
 
 % }-}3
 \subsection{Weak Preemption\label{weakpreemption}} %{-{3
 
-On the contrary, the following function emits \verb-false- at the
-instant where \verb-x- is true and \verb-true- for the remaining
-instants, thus corresponding to regular {\em Moore automata}.
+The following program contains a two state automaton with weak preemption, 
+it returns \zls{false} at the instant that \zls{x} becomes true and then it 
+returns \zls{true} indefinitely; it is like a \emph{Moore automaton}.
 \begin{chklisting}[label=expect,withresult]
-(* await x to be true and then sustain the value *)
+(* wait for x to become true and then sustain the value *)
 let node expect x = o where 
   automaton
   | S1 -> do o = false until x then S2
   | S2 -> do o = true done
   end
 \end{chklisting}
-
+This timeline of this program is shown below.
 \begin{chrono}{c|ccccccc}
 \hline
-\tt x                 & \tt false & \tt false & \tt true & \tt false & \tt false &  \tt true & \dots \\
+\tt x                 & \tt false & \tt false & \tt true & \tt false & \tt false &  \tt true & $\cdots$ \\
 \hline
-\tt expect x           & \tt false & \tt false & \tt false & \tt true & \tt true &  \tt true & \dots  \\ \hline
+\tt expect x           & \tt false & \tt false & \tt false & \tt true & \tt true &  \tt true & $\cdots$  \\ \hline
 \end{chrono}
 
-The classical two states \verb-switch- automaton can be written like
+The guards of weak transitions are tested \emph{after} executing the body of 
+the current active state to determine the active state at the next instant. 
+
+The classical two states \zls{switch} automaton can be written like
 the following:
 \begin{chklisting}
 let node weak_switch on_off = o where
