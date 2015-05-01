@@ -2,7 +2,9 @@
 \chklistingtrue
 \setchklistingcmd{zeluc.byte -i \chklistingfile}
 \begin{ChkListingMsg}
-val two_states : int * unit signal * int signal -D-> int
+type event   =  | Simple  | Double
+val counting : 'a signal -D-> int
+val controller : 'a signal * 'b signal -D-> event signal
 \end{ChkListingMsg}
 \begin{ChkListingErr}
 Success.

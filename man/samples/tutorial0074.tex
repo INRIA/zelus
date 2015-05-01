@@ -2,9 +2,7 @@
 \chklistingtrue
 \setchklistingcmd{zeluc.byte -i \chklistingfile}
 \begin{ChkListingMsg}
-type event   =  | Simple  | Double
-val counting : 'a signal -D-> int
-val controller : 'a signal * 'b signal -D-> event signal
+val switch : int signal * int signal -D-> int
 \end{ChkListingMsg}
 \begin{ChkListingErr}
 Success.

@@ -1799,8 +1799,15 @@ figure~\cref{switch-figure}.
 %Compared to the previous version, state \verb-True- can be strongly
 %preempted when some stop condition \verb-stop- is true.
 
+\Remark The current version of \zelus{} does not permit the mix of
+weak and strong transitions inside one automaton, as \lucy{} and
+\scadesix{} did. After an extensive use of automata, we consider that
+this mix, without restriction, makes programs difficult to
+understand. Future versions of \zelus{} may allow a constrained mix of
+weak and strong transition nonetheless.
+
 % }-}3
-\subsection{Parameterized State Machines\label{paramstatemachine}} %{-{3
+\subsection{Parameterized States\label{paramstates}} %{-{3
 
 In the examples we have considered so far, an automaton is made of a
 finite set of states and transitions. It is possible to define more
@@ -1848,7 +1855,7 @@ This automaton simulates an infinite state machine with states
 \verb-Zero-, \verb-Plus(1)-, \verb-Plus(2)-, etc.
 
 % }-}3
-\subsection{ABRO and Modular Resets\label{resets}} %{-{3
+\subsection{Modular Resets\label{resets}} %{-{3
 
 The ABRO example is due to G\'erard Berry~\cite{esterel:primer99}. It
 highlight the expressive power of parallel composition and preemption
@@ -1979,7 +1986,7 @@ In a discrete-time program as we wrote in this chapter, time is not absolute but
 logical and local.
   
 % }-}3
-\subsection{Local Definitions in a State\label{statelocaldefs}} %{-{3
+\subsection{Local State Definitions\label{statelocaldefs}} %{-{3
 
 It is possible to define names which are local to a state. These names
 can only be used inside the body of the state and may be used in weak
@@ -2074,7 +2081,7 @@ The compiler emits the message:
 \chklistingerr{}
 
 % }-}3
-\subsection{Communication between States and Shared Memory\label{commstateshared}} %{-{3
+\subsection{States and Shared Memory\label{stateshared}} %{-{3
 
 In the previous examples, there is no communication between values
 computed in each state. Consider a simple system made of two running
@@ -2120,7 +2127,7 @@ An execution diagram is given below:
 \end{chrono}
 
 % }-}3
-\subsection{The Particular Role of the Initial State\label{initrole}} %{-{3
+\subsection{The Initial State\label{init}} %{-{3
 
 The initial state can be used for defining some variables whose value
 can then be sustained in remaining states. In that case, their last
@@ -2249,8 +2256,23 @@ Finally, \verb-o- do not have to be defined in all the states. In that
 case, it keeps its previous value, that is, an equation
 \verb-o = last o- is implicitly added.
 
+\subsubsection{Initializing the Initial State\label{initinitstate}}
+
+It is possible to initialize the parameter of the initial state by adding
+an initialization to the automaton. For example, the following two state 
+automaton
+starts in state \texttt{On(incr)} with \texttt{incr} initialized with the first
+value of \texttt{i0}.
+\begin{chklisting}[withresult]
+let node two_states(i0, idle, run) = o where
+  rec automaton
+      | Run(incr) -> do o = 0 fby o + incr until idle() then Idle
+      | Idle -> do until run(incr) then Run(incr)
+      init Run(i0)
+\end{chklisting}
+
 % }-}3
-\subsection{Resume a Local State\label{resume}} %{-{3
+\subsection{Resuming a State\label{resume}} %{-{3
 
 By default, when entering in a state, every computation in the state
 is reseted. We also provides some means to resume the internal memory
@@ -2395,7 +2417,7 @@ between the \texttt{do/until} or \texttt{do/unless}.
 
 
 % }-}3
-\subsection{State Machines and Signals\label{statemachinesig}} %{-{3
+\subsection{Signals and State Machines\label{statemachinesig}} %{-{3
 In the automata we have considered so far, conditions on transitions
 are boolean expressions. The language provides a more general
 mechanism allowing to test (and access) signals on transitions.
@@ -2499,29 +2521,6 @@ let node controller (click, top) = e where
      else (counting top = 4) then do emit e = Simple in Await
   end
 \end{chklisting}
-
-% }-}3
-\subsection{Initializing the Initial State\label{initinitstate}} %{-{3
-
-It is possible to initialize the parameter of the initial state by adding
-an initialization to the automaton. For example, the following two state 
-automaton
-starts in state \texttt{On(incr)} with \texttt{incr} initialized with the first
-value of \texttt{i0}.
-\begin{chklisting}[withresult]
-let node two_states(i0, idle, run) = o where
-  rec automaton
-      | Run(incr) -> do o = 0 fby o + incr until idle() then Idle
-      | Idle -> do until run(incr) then Run(incr)
-      init Run(i0)
-\end{chklisting}
-
-\Remark The current version of \zelus{} does not permit the mix of
-weak and strong transitions inside one automaton, as \lucy{} and
-\scadesix{} did. After an extensive use of automata, we consider that
-this mix, without restriction, makes programs difficult to
-understand. Future versions of \zelus{} may allow a constrained mix of
-weak and strong transition nonetheless.
 
 % }-}3
 % }-}2
@@ -4320,7 +4319,7 @@ distribution and manual at \url{http://zelus.di.ens.fr}
 \end{tabular}
 
 % }-}1
-\bibliographystyle{plain}
+\bibliographystyle{plainurl}
 \bibliography{zelus}
 
 \end{document}

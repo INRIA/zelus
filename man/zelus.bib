@@ -1,16 +1,17 @@
 @Article{lucida,
-  author       = {Ashcroft, E. A. and Wadge, W. W.},
+  author       = {Ashcroft, E.~A. and Wadge, W.~W.},
   title	       = {Lucid, a non procedural language with iteration},
   journal      = {Communications of the ACM},
   year	       = 1977,
   volume       = 20,
   number       = 7,
   pages	       = {519--526},
+  url	       = {http://www.cse.unsw.edu.au/~plaice/archive/WWW/1977/P-CACM77-Lucid.pdf},
 }
 
 @TechReport{esterel:watch89,
-  author       = {Berry, G\'erard},
-  title	       = {Programming a digital watch in esterel v3},
+  author       = {Berry, G.},
+  title	       = {Programming a digital watch in {Esterel} v3},
   institution  = {INRIA},
   year	       = 1989,
   type	       = {Technical Report},
@@ -18,15 +19,15 @@
 }
 
 @Unpublished{esterel:primer99,
-  author       = {Berry, G\'erard},
-  title	       = {{The Esterel v5 language primer, version 5.21 release
-                  2.0}},
+  author       = {Berry, G.},
+  title	       = {The {Esterel} v5 language primer, version 5.21 release 2.0},
   note	       = {Draft book},
-  year	       = 1999
+  year	       = 1999,
+  url	= {http://www-sop.inria.fr/members/Gerard.Berry/Papers/primer.pdf}
 }
 
 @Article{lucy:sttt04,
-  author       = {Cola\c{c}o, Jean-Louis and Pouzet, Marc},
+  author       = {Cola\c{c}o, J.-L. and Pouzet, M.},
   title	       = {Type-based Initialization Analysis of a Synchronous
                   Data-flow Language},
   journal      = {International Journal on Software Tools for
@@ -35,11 +36,12 @@
   volume       = 6,
   number       = 3,
   pages	       = {245--255},
-  month	       = aug
+  month	       = aug,
+  url	       = {http://www.di.ens.fr/~pouzet/bib/sttt04.pdf}
 }
 
 @InProceedings{FournetGonthier96:rcham-join-calculus,
-  author       = {Fournet, C\'edric and Gonthier, Georges},
+  author       = {Fournet, C. and Gonthier, G.},
   title	       = {The reflexive chemical abstract machine and the
                   join-calculus},
   booktitle    = {POPL '96: Proceedings of the 23rd ACM SIGPLAN-SIGACT
@@ -63,11 +65,12 @@
   number       = 9,
   pages	       = {1305--1320},
   month	       = sep,
-  year	       = 1991
+  year	       = 1991,
+  url	       = {http://www-verimag.imag.fr/~halbwach/lustre-ieee.html},
 }
 
 @inproceedings{kahn74,
-  author       = {Gilles Kahn},
+  author       = {G. Kahn},
   title	       = {The Semantics of Simple Language for Parallel
                   Programming},
   booktitle    = {IFIP 74 Congress},
@@ -76,7 +79,7 @@
 }
 
 @TechReport{ocaml:manual,
-  author       = {Xavier Leroy},
+  author       = {X. Leroy},
   title	       = {The {Objective Caml} system release
                   3.09. {Documentation and user's manual}},
   institution  = {INRIA},
@@ -94,467 +97,228 @@
   publisher    = {Elsevier},
   volume       = 46,
   pages	       = {219--254},
-  year	       = 2003
+  year	       = 2003,
+  url = {http://www-verimag.imag.fr/~maraninx/spip.php?article49}
 }
 
 @Book{milner:ccs-book89,
-  author =	 {Robin Milner},
+  author =	 {R. Milner},
   title = 	 {Communication and Concurrency},
   publisher = 	 {Prentice Hall},
   year = 	 1989
 }
 
 @Misc{hume06,
-  author =	 {Kevin Hammond},
+  author =	 {K. Hammond},
   title =	 {Hume},
   note =	 {\url{http://www-fp.dcs.st-and.ac.uk/hume/}}
 }
 
 @InBook{lucy:iste07,
-  author =	 {Paul Caspi and Gr\'egoire Hamon and Marc Pouzet},
-  title = 	 {Real-Time Systems: Models and verification --- Theory 
-                  and tools},
-  chapter =	 {{Synchronous Functional Programming with Lucid Synchrone}},
-  publisher = {ISTE},
+  author =	 {P. Caspi and G. Hamon and M. Pouzet},
+  chapter =	 {Synchronous Functional Programming with {Lucid Synchrone}},
+  title = 	 {Modeling and Verification of Real-Time Systems: Formalisms
+		  and Software Tools},
+  publisher = {ISTE Ltd},
   year =	 2007,
-  editors = {Nicolas Navet and Stephan Mertz},
-  url = {chap_lucid_synchrone_english_iste08.pdf},
-  abstract = {Lucid Synchrone is a programming language dedicated to
-the design of reactive systems. It is based on the synchronous model
-of Lustre which it extends with
-features usually found in functional languages such as higher-order
-or constructed data-types.
-The language is equipped with several static analysis, all expressed
-as special type-systems and used to ensure the absence of certain
-run-time errors on the final application.  It provides, in particular,
-automatic type and clock inference and statically detects
-initialization issues or dead-locks.
-Finally, the language offers both data-flow and automata-based
-programming inside a unique framework.}
+  editors = {N. Navet and S. Mertz},
+  url = {http://onlinelibrary.wiley.com/doi/10.1002/9780470611012.ch7/summary},
 }
 
 @Manual{lucy:manual06,
-  author =	 {Marc Pouzet},
+  author =	 {M. Pouzet},
   title =	 {{Lucid Synchrone}, version 3.
                   {Tutorial and reference manual}},
   organization = {Universit\'e Paris-Sud, LRI},
-  month =	{April},
+  month =	apr,
   year =	 2006}
 
 @InProceedings{lucy:lctes08a,
-  author = 	 {Darek Biernacki and Jean-Louis Colaco and Gr\'egoire Hamon
-                  and Marc Pouzet},
-  title = 	 {{Clock-directed Modular Code Generation of Synchronous Data-flow
-                   Languages}},
+  author = 	 {D. Biernacki and J.-L. Cola\c{c}o and G. Hamon
+                  and M. Pouzet},
+  title = 	 {Clock-directed Modular Code Generation of Synchronous Data-flow
+                   Languages},
   booktitle =	 {ACM International Conference on
                   Languages, Compilers, and Tools for Embedded Systems 
                   (LCTES)},
   year =	 2008,
   address =	 {Tucson, Arizona},
-  month =	 {June},
-  url = {lctes08a.pdf},
-  abstract = {The compilation of synchronous block diagrams into sequential
-imperative code has been addressed in the early eighties and can now
-be considered as folklore. However, modular code
-generation, though largely used in existing compilers and particularly
-in industrial ones, has never been precisely described or entirely
-formalized. Such a formalization is now fundamental in the long-term
-goal to develop a mathematically certified compiler for a synchronous
-language as well as in simplifying existing implementations.
-
-This article presents in full detail the modular compilation of
-synchronous block diagrams into sequential code. We consider a
-first-order functional language reminiscent of Lustre, which it
-extends with a general n-ary merge operator, a reset
-construct, and a richer notion of clocks. The clocks are used to
-express activation of computations in the program and are specifically
-taken into account during the compilation process to produce efficient
-imperative code. We introduce a generic machine-based intermediate
-language to represent transition functions, and we present a concise
-clock-directed translation from the source to this intermediate
-language. We address the target code generation phase by describing a
-translation from the intermediate language to Java and C.
-}}
+  month =	 jun,
+  url =		{lctes08a.pdf},
+}
 
 @Article{lucy:jcss12,
-  author =	 {Albert Benveniste and Timothy Bourke and Benoit
-                  Caillaud and Marc Pouzet},
-  title =	 {{Non-Standard Semantics of Hybrid Systems Modelers}},
+  author =	 {A. Benveniste and T. Bourke and B.
+                  Caillaud and M. Pouzet},
+  title =	 {Non-Standard Semantics of Hybrid Systems Modelers},
   journal =	 {Journal of Computer and System Sciences (JCSS)},
   year =	 2012,
   note =	 {Special issue in honor of Amir Pnueli},
   doi = {http://dx.doi.org/10.1016/j.jcss.2011.08.009},
-  volume = {78},
-  number = {3},
-  month = {May},
-  pages = {877-910},
-  url = {jcsspaper.pdf},
-  abstract = {  Hybrid system modelers have become a corner stone of complex
-  embedded system development. Embedded systems include not only
-  control components and software, but also physical devices. In this
-  area, Simulink is a de facto standard design framework, and Modelica
-  a new player. However, such tools raise several issues related to
-  the lack of reproducibility of simulations (sensitivity to
-  simulation parameters and to the choice of a simulation engine).
-
-  In this paper we propose using techniques from \emph{non-standard
-    analysis} to define a semantic domain for hybrid systems.
-  Non-standard analysis is an extension of classical analysis in which
-  infinitesimal (the $\varepsilon$ and $\eta$ in the celebrated
-  generic sentence $\forall\varepsilon\exists\eta\dots$ of college
-  maths) can be manipulated as first class citizens.  This approach
-  allows us to define both a denotational semantics, a constructive
-  semantics, and a Kahn Process Network semantics for hybrid systems,
-  thus establishing simulation engines on a sound but flexible
-  mathematical foundation.  These semantics offer a clear distinction
-  between the concerns of the numerical analyst (solving differential
-  equations) and those of the computer scientist (generating execution
-  schemes).
-
-  We also discuss a number of practical and fundamental issues in
-  hybrid system modelers that give rise to non reproducibility of
-  results, nondeterminism, and undesirable side effects. Of particular
-  importance are cascaded mode changes (also called ``zero-crossings''
-  in the context of hybrid systems modelers).}}
+  volume = 78,
+  number = 3,
+  month = may,
+  pages = {877--910},
+  url = {../papers.html#JCSS2012},
+}
 
 @InProceedings{lucy:hscc13,
-  author = 	 {Timothy Bourke and Marc Pouzet},
+  author = 	 {T. Bourke and M. Pouzet},
   title = 	 {{Z\'elus, a Synchronous Language with ODEs}},
   booktitle = {International Conference on
                   Hybrid Systems: Computation and Control (HSCC 2013)},
   year = 	 2013,
-  month = 	 {April 8--11},
+  month = 	 apr,
   address = 	 {Philadelphia, USA},
   organization = {ACM},
-  abstract = {
-Z\'elus is a new programming language for modeling systems that mix 
-discrete logical time and continuous time
-behaviors. From a user's perspective, its main originality is to
-extend an existing Lustre-like synchronous language with Ordinary
-Differential Equations (ODEs). The extension is conservative: any 
-synchronous program expressed as data-flow equations and hierarchical 
-automata can be composed arbitrarily with ODEs in \emph{the same source 
-code}.
-
-A dedicated type system and causality analysis ensure that all discrete 
-changes are aligned with
-zero-crossing events so that no side effects or discontinuities occur
-during integration. Programs are statically
-scheduled and translated into sequential code which, by construction, runs 
-in bounded time and space.
-Compilation is effected by source-to-source translation into a small 
-synchronous subset which is
-processed by a standard synchronous compiler architecture.
-The resulting code is paired with an off-the-shelf numeric solver.
-
-This experiment show that it is possible to build a modeler for
-explicit hybrid systems \emph{\`a la Simulink/Stateflow} on top of an
-existing synchronous language, using it both as a semantic basis and as a
-target for code generation.},
-  url = {hscc13.pdf}}
+  url = {../papers.html#HSCC2013},
+}
 
 @InProceedings{lucy:hscc14,
-  author = 	 {Albert Benveniste and Timothy Bourke and Benoit
-                  Caillaud and Bruno Pagano and Marc Pouzet},
-  title = 	 {{A Type-based Analysis of Causality Loops in Hybrid Modelers}},
+  author = 	 {A. Benveniste and T. Bourke and B. Caillaud
+		  and B. Pagano and M. Pouzet},
+  title = 	 {A Type-based Analysis of Causality Loops in Hybrid Modelers},
   booktitle = {International Conference on
                Hybrid Systems: Computation and Control (HSCC)},
   year = 	 2014,
-  month = 	 {April 15--17},
+  month = 	 apr,
   address = 	 {Berlin, Germany},
   organization = {ACM},
-  abstract = {Explicit hybrid systems modelers like Simulink/Stateflow allow
-for programming both discrete- and continuous-time behaviors with
-complex interactions between them.  A key issue in their compilation is the static
-detection of algebraic or \emph{causality} loops.  Such loops can
-cause simulations to deadlock
-%, are a source of compilation bugs
-and prevent the generation of statically scheduled code.
-
-This paper addresses this issue for a hybrid modeling language that
-combines synchronous Lustre-like data-flow equations with Ordinary
-Differential Equations (ODEs).  We introduce the operator \emph{last(x)}
-for the left-limit of a signal \emph{x}.  This operator is used to break
-causality loops and permits a uniform treatment of discrete and
-continuous state variables. The semantics relies on non-standard
-analysis, defining an execution as a sequence of infinitesimally small
-steps.  A signal is deemed \emph{causally correct} when it can be
-computed sequentially and only progresses by infinitesimal steps
-outside of discrete events.  The causality analysis takes the form of
-a simple type system. In well-typed programs, signals are proved continuous
-during integration.
-
-The effectiveness of this system is illustrated with several examples
-written in Z\'elus, a Lustre-like synchronous language extended with
-hierarchical automata and ODEs.},
-url = {hscc14.pdf} 
+  url = {../papers.html#HSCC2014},
 }
 
 @InProceedings{lucy:lctes11,
-  author = 	 {Albert Benveniste and Timothy Bourke and
-                  Benoit Caillaud and Marc Pouzet},
-  title = 	 {{Divide and recycle: types and compilation for a 
-                   hybrid synchronous language}},
+  author = 	 {A. Benveniste and T. Bourke and
+                  B. Caillaud and M. Pouzet},
+  title = 	 {Divide and recycle: types and compilation for a 
+                   hybrid synchronous language},
   booktitle = {ACM SIGPLAN/SIGBED Conference on Languages, 
                Compilers, Tools and Theory for Embedded Systems (LCTES'11)},
-  month = {April},
+  month = apr,
   address = {Chicago, USA},
   year = 2011,
-  url = {lctes11.pdf},
-  abstract = {Hybrid modelers such as Simulink have become corner stones of embedded 
-  systems development.
-  They allow both \emph{discrete} controllers and their \emph{continuous} 
-  environments to be expressed \emph{in a single language}.
-  Despite the availability of such tools, there remain a number of issues 
-  related to the lack of reproducibility of simulations and to the 
-  separation of the continuous part, which has to be exercised by a 
-  numerical solver, from the discrete part, which must be guaranteed not to 
-  evolve during a step.
-
-  Starting from a minimal, yet full-featured, Lustre-like synchronous
-  language, this paper presents a conservative extension
-  where data-flow equations can be mixed with ordinary differential
-  equations (ODEs) with possible reset.
-  A type system is proposed to statically distinguish discrete computations 
-  from continuous ones and to ensure that signals are used in their proper 
-  domains.
-  We propose a semantics based on \emph{non-standard analysis} which gives a 
-  synchronous interpretation to the whole language, clarifies the 
-  discrete/continuous interaction and the treatment of zero-crossings, and 
-  also allows the correctness of the type system to be established.
-
-  The extended data-flow language is realized through a source-to-source 
-  transformation into a synchronous subset, which can then be compiled using 
-  existing tools into routines that are both efficient and bounded in their 
-  use of memory.
-  These routines are orchestrated with a single off-the-shelf numerical 
-  solver using a simple but precise algorithm which treats causally-related 
-  cascades of zero-crossings.
-  We have validated the viability of the approach through experiments with 
-  the SUNDIALS library.},  
-  x-type = {article},
-  topics = {team}}
+  url = {../papers.html#LCTES2011},
+}
 
 @InProceedings{lucy:emsoft11,
-  author = 	 {Albert Benveniste and Timothy Bourke and
-                  Benoit Caillaud and Marc Pouzet},
-  title = 	 {{A Hybrid Synchronous Language with Hierarchical
-  Automata}: {Static Typing and Translation to Synchronous Code}},
+  author = 	 {A. Benveniste and T. Bourke and
+                  B. Caillaud and M. Pouzet},
+  title = 	 {A Hybrid Synchronous Language with Hierarchical
+  Automata: Static Typing and Translation to Synchronous Code},
   booktitle = {ACM SIGPLAN/SIGBED Conference on Embedded Software (EMSOFT'11)},
-  month = {October},
+  month = oct,
   address = {Taipei, Taiwan},
   year = 2011,
-  url = {emsoft11.pdf},
-  abstract = {Hybrid modeling tools such as Simulink
-have evolved from simulation 
-platforms into development platforms on which simulation, testing, formal 
-verification and code generation are performed.
-It is thus critical to place them on a firm semantical basis where it can be 
-proven that the results of simulation, compilation and verification are 
-mutually consistent.
-Synchronous languages have addressed these issues but only for 
-discrete systems.
-They cannot be used to model hybrid systems with both efficiency and 
-precision.
-
-Following the approach of Benveniste et al., we present the design of
-a hybrid modeler built from a synchronous language and an
-off-the-shelf numerical solver.  The main novelty is a language which
-includes
-control structures, such as hierarchical
-automata, for both continuous and discrete contexts.  These constructs
-can be arbitrarily mixed with data-flow and ordinary differential
-equations (ODEs).  A type system is required to statically ensure that
-all discrete state changes are aligned with zero-crossing events and
-that the function passed to the numerical solver is free of
-side-effects during integration.
-We show that well-typed programs can be compiled through a source-to-source 
-translation into synchronous code which is then translated into 
-sequential code using an existing synchronous language compiler.
-
-Based on the presented material, a compiler for a new synchronous language 
-with hybrid features has been developed.
-We demonstrate its effectiveness on some examples.
-}}
+  url = {../papers.html#EMSOFT2011},
+}
 
 @InProceedings{lucy:emsoft05b,
-  author = 	 {Jean-Louis Cola\c{c}o and Bruno Pagano and Marc Pouzet},
-  title = 	 {{A Conservative Extension of Synchronous Data-flow with
-                   State Machines}},
+  author = 	 {J.-L. Cola\c{c}o and B. Pagano and M. Pouzet},
+  title = 	 {A Conservative Extension of Synchronous Data-flow with
+                   State Machines},
   booktitle = 	 {ACM International Conference on 
                   Embedded Software (EMSOFT'05)},
   address =	 {Jersey city, New Jersey, USA},
-  month =	 {September},
+  month =	 sep,
   year =	 2005,
-  url = {emsoft05b.pdf},
-  abstract = {This paper presents an extension of a synchronous
-data-flow language such as Lustre with imperative features expressed
-in terms of powerful state machine \`a la SyncChart.  This
-extension is fully conservative in the sense that all the
-programs from the basic language still make sense in the extended
-language and their semantics is preserved.
-
-From a syntactical point of view this extension consists in
-hierarchical state machines that may carry at each hierarchy level a
-bunch of equations.  This proposition is an alternative to the joint
-use of Simulink and Stateflow but improves it by allowing a fine
-grain mix of both styles.
-
-The central idea of the paper is to base this extension on the use of
-clocks, translating imperative constructs into well clocked
-data-flow programs from the basic language. This clock directed
-approach is an easy way to define a semantics for the extension, it is
-light to implement in an existing compiler and experiments show that
-the generated code compete favorably with ad-hoc techniques.
-The proposed extension has been implemented in the ReLuC compiler of
-Scade/Lustre and in the Lucid Synchrone compiler.
-}}
+  url = {http://www.di.ens.fr/~pouzet/bib/emsoft05b.pdf},
+}
 
 @InProceedings{lucy:emsoft09,
-  author = 	 {Marc Pouzet and Pascal Raymond},
-  title = 	 {{Modular Static Scheduling of Synchronous Data-flow
-                  Networks: An efficient symbolic representation}},
+  author = 	 {M. Pouzet and P. Raymond},
+  title = 	 {Modular Static Scheduling of Synchronous Data-flow
+                  Networks: An efficient symbolic representation},
   booktitle = 	 {ACM International Conference on 
                   Embedded Software (EMSOFT'09)},
   address =	 {Grenoble, France},
-  month =	 {October},
+  month =	 oct,
   year =	 2009,
-  url = {emsoft09.pdf},
-    x-type = {article},
-  topics = {team},
-  abstract = {This paper addresses the question of producing modular sequential
-  imperative code from synchronous data-flow networks. Precisely,
-  given a system with several input and output flows, how to decompose
-  it into a minimal number of classes executed atomically and
-  statically scheduled without restricting possible feedback loops
-  between input and output?
-  
-  Though this question has been identified by Raymond in the early
-  years of Lustre, it has almost been left aside until the recent
-  work of Lublinerman, Szegedy and Tripakis. The problem is proven to
-  be intractable, in the sense that it belongs to the family of
-  optimization problems where the corresponding decision problem ---
-  there exists a solution with size $c$ --- is NP-complete.  Then, the
-  authors derive an iterative algorithm looking for
-  solutions for $c = 1,2,...$ where each step is encoded as a SAT
-  problem.
-
-  Despite the apparent intractability of the problem, our experience
-  is that real programs do not exhibit such a complexity.
-  Based on earlier work by Raymond, this paper presents a new symbolic encoding
-  of the problem in terms of input/output relations. This encoding
-  simplifies the problem, in the sense that it rejects
-  solutions, while keeping all the optimal ones. It allows, in
-  polynomial time, (1) to identify nodes for which several schedules
-  are feasible and thus are possible sources of combinatorial
-  explosion; (2) to obtain solutions which in some cases are already
-  optimal; (3) otherwise, to get a non trivial lower bound for $c$ to
-  start an iterative combinatorial search.
-
- The solution applies to a large class of
-  block-diagram formalisms based on atomic computations and a 
-    delay operator, ranging from synchronous languages such as
-  Lustre or SCADE to modeling tools such as Simulink.}}
-}}
+  url = {http://www.di.ens.fr/~pouzet/bib/emsoft09.pdf},
+}
 
 @InProceedings{lustre:tripakis-popl09,
   author =       {R. Lublinerman and C. Szegedy and S. Tripakis},
-  title =        {{Modular Code Generation from Synchronous 
-                  Block Diagrams --- Modularity vs. Code Size}},
+  title =        {Modular Code Generation from Synchronous 
+                  Block Diagrams---Modularity vs. Code Size},
   booktitle = {ACM Principles of Programming Languages (POPL)},
-  year =      2009}
+  year =      2009,
+  url = {http://www-verimag.imag.fr/~tripakis/papers/popl09.pdf}
+}
 
 @Article{signal:scp91,
-  author = 	 "A.~Benveniste and P.~LeGuernic and Ch. Jacquemot",
+  author = 	 "A. Benveniste and P. LeGuernic and Ch. Jacquemot",
   title = 	 "Synchronous programming with events and relations:
 		  the {SIGNAL} language and its semantics",
   journal = 	 "Science of Computer Programming",
-  year = 	 "1991",
-  volume = 	 "16",
-  pages = 	 "103-149"
+  year = 	 1991,
+  volume = 	 16,
+  pages = 	 "103--149",
+  url = {http://www.sciencedirect.com/science/article/pii/016764239190001E}
 }
 
 @InProceedings{signal:pldi,
   author = 	 {T. Amagbegnon and L. Besnard and  P. Le Guernic.},
-  title = 	 {Implementation of the Data-flow Synchronous Language Signal},
+  title = 	 {Implementation of the Data-flow Synchronous Language {Signal}},
   booktitle = 	 {Programming Languages Design and Implementation (PLDI)},
-  pages =	 {163-173},
+  pages =	 {163--173},
   year =	 1995,
   publisher =	 {ACM}
 }
 
 @article{sundials:2005,
-  author =	{A.C. Hindmarsh and P.N. Brown and K.E. Grant
-		 and S.L. Lee and R. Serban and D.E. Shumaker
-		 and C.S. Woodward},
+  author =	{A.~C. Hindmarsh and P.~N. Brown and K.~E. Grant
+		 and S.~L. Lee and R. Serban and D.~E. Shumaker
+		 and C.~S. Woodward},
   title =	{{SUNDIALS}: Suite of Nonlinear and Differential/Algebraic
 		 Equation Solvers},
-  journal =	{ACM Trans. Math. Soft.},
+  journal =	{ACM Transactions on Mathematical Software},
   year =	2005,
   volume =	31,
   number =	3,
   pages =	{363--396},
   month =	sep,
-  review =	{20100928},
+  url = {https://computation.llnl.gov/casc/nsde/pubs/toms_sundials.pdf},
 }
 
 @book{DahlquistBjo08,
-  author =	{Germund Dahlquist and {\AA}ke Bj{\"{o}}rck},
+  author =	{G. Dahlquist and {\AA}. Bj{\"{o}}rck},
   title =	{Numerical Methods in Scientific Computing: Volume 1},
   publisher =	{SIAM},
   year =	2008,
+  url =		{http://bookstore.siam.org/ot103/},
 }
 
 @InProceedings{lucy:cc2015,
-  author = 	 {Timothy Bourke and Jean-Louis Cola\c{c}o and Bruno Pagano and
-                  C\'edric Pasteur and Marc Pouzet},
-  title = 	 {{A Synchronous-based Code Generator For Explicit
-                  Hybrid Systems Languages}},
+  author = 	 {T. Bourke and J.-L. Cola\c{c}o and B. Pagano and
+                  C. Pasteur and M. Pouzet},
+  title = 	 {A Synchronous-based Code Generator For Explicit
+                  Hybrid Systems Languages},
   booktitle = 	 {International Conference on Compiler Construction (CC)},
-  month = 	 {April 11-18},
+  month = 	 apr,
   address = {London, UK},
   series = {LNCS},
   organisation = {ETAPS},
   year = 	 2015,
-  abstract = {Modeling languages for hybrid systems are cornerstones of embedded
-systems development in which software interacts with a physical
-environment. The generation of sequential code is important
-for simulations to be efficient and to produce target embedded code.
-Despite routine use in industrial compilers, code generation
-is not described in full detail nor formalized. This formalization is
-essential for obtaining trustable compilers for critical
-embedded software development.
-
-This paper presents a novel approach for the code generation of a
-hybrid systems modeling language. By building on top of an existing
-synchronous language and compiler, it reuses almost all the existing
-infrastructure with only a few modifications.
-Starting from an existing synchronous data-flow language extended with
-Ordinary Differential Equations (ODEs), this paper details the
-translation to sequential code. The translation is expressed as a
-sequence of source-to-source transformations. A generic intermediate
-language is introduced to represent transition functions which are
-turned into C code.  The versatility of the compiler organisation is
-illustrated by considering two classical targets: generation of
-simulation code complying with the FMI standard and linking with an
-off-the-shelf numerical solver (Sundials CVODE).
-
-The presented material has been implemented in the Z\'elus compiler
-and the industrial KCG code generator of SCADE 6.}}
+  url = {../papers.html#CC2015},
+}
 
 @InProceedings{MalerMannaPnueli:hybrid92,
-  author =	 {Oded Maler and Zouar Manna and Amir Pnueli},
-  title =	 {{From Timed to Hybrid Systems}},
-  booktitle = {{Real-Time: Theory in Practice}},
+  author =	 {O. Maler and Z. Manna and A. Pnueli},
+  title =	 {From Timed to Hybrid Systems},
+  booktitle = {Real-Time: Theory in Practice},
   year =	 1992,
   volume =	 600,
   series =	 {LNCS},
-  pages =	 {447-484},
-  publisher = {Springer}}
+  pages =	 {447--484},
+  publisher = {Springer},
+  url = {http://www-verimag.imag.fr/PEOPLE/Oded.Maler/Papers/mmp.pdf}
+}
 
 @book{ShampineGlaTho:ODEsMatlab:2003,
-	author = {L.F. Shampine and I. Gladwell and S. Thompson},
+	author = {L.~F. Shampine and I. Gladwell and S. Thompson},
 	publisher = {Cambridge University Press},
 	title = {Solving {ODEs} with {Matlab}},
-	year = 2003
+	year = 2003,
+	url = {http://dx.doi.org/10.1017/CBO9780511615542}
 }
+

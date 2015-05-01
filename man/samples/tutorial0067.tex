@@ -1,8 +1,8 @@
-% ../compiler/zeluc.byte -I ../lib -I ./samples  samples/tutorial0033.zls 	-i samples/tutorial0067.zls (0)
+% ../compiler/zeluc.byte -I ../lib -I ./samples  	-i samples/tutorial0067.zls (0)
 \chklistingtrue
 \setchklistingcmd{zeluc.byte -i \chklistingfile}
 \begin{ChkListingMsg}
-val two_modes : int * int -D-> int
+val two_states : int * unit signal * int signal -D-> int
 \end{ChkListingMsg}
 \begin{ChkListingErr}
 Success.
