@@ -1,0 +1,36 @@
+(* TEST[-check 80] ARGS[] *)
+(* Compare the strong and weak 'switching' automata from the
+   manual. *)
+
+open Basics
+
+let node strong_switch on_off = o where
+  automaton
+  | False -> do o = false unless on_off then True
+  | True -> do o = true unless on_off then False
+  end
+
+let node weak_switch on_off = o where
+  automaton
+  | False -> do o = false until on_off then True
+  | True -> do o = true until on_off then False
+  end
+
+let node show (s, v) =
+  let rec i = 0 fby (i + 1) in
+  let _ = print_int i in
+  let _ = print_string " " in
+  let _ = print_string s in
+  let _ = print_string (if v then ": true" else ": false") in
+  print_newline ()
+
+let node main () = ok where
+  rec x = true fby true fby false fby true fby false fby false fby false
+          fby true fby false fby true fby x
+  and _ = show ("x", x)
+  and wy = weak_switch x
+  and _ = show ("wy", wy)
+  and sy = strong_switch (false -> pre x)
+  and _ = show ("sy", sy)
+  and ok = (wy = sy)
+
