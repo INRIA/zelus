@@ -55,7 +55,7 @@
 \usepackage{tikz}
 \usetikzlibrary{positioning,chains,matrix,shapes.arrows,scopes,
                 shapes.misc,arrows,automata,calc,decorations.markings,
-                decorations.text}
+                decorations.text,circuits.logic.US}
 
 %}-}1
 %{-{1 Macros
@@ -685,16 +685,58 @@ let full_add (a, b, c) = (s, co) where
 \end{chklisting}
 
 \begin{figure}
-\centering
-%BEGIN IMAGE
-\includegraphics[width=0.19\textwidth]{Fig/half_adder}
-%END IMAGE
-%HEVEA\imageflush
-\hfil
-%BEGIN IMAGE
-\includegraphics[width=0.4\textwidth]{Fig/full_adder}
-%END IMAGE
-%HEVEA\imageflush
+\centering %{-{4
+\begin{tikzpicture}[
+    circuit logic US,
+    every circuit symbol/.style={draw,thick},
+    wire/.style={thick},
+    every node/.style={font=\sffamily\footnotesize},
+    connector/.style={fill,circle,inner sep=1pt},
+    node distance=.5cm,
+]
+\begin{scope}
+    \node [xor gate] (s) {};
+    \node [and gate,below right=of s] (co) {};
+    \draw[wire]
+        (s.input 1)
+        -- ++(left:.8cm) coordinate (a) node[left,yshift=1] {a}
+        (s.input 2)
+        -- (s.input 2 -| a) coordinate (b) node[left,yshift=-1] {b}
+        (co.input 1) -| ($ (a)!.7!(s.input 1) $) node[connector] {}
+        (co.input 2) -| ($ (b)!.3!(s.input 2) $) node[connector] {}
+        (s.output) -- (right:1.7cm) coordinate (s out) node[right] {s}
+        (co.output) -- (co.output -| s out) node[right] {co}
+    ;
+\end{scope}
+
+\begin{scope}[xshift=4.5cm]
+    \node [xor gate] (s1) {};
+    \node [and gate,below right=of s1] (c1) {};
+    \draw[wire]
+        (s1.input 1)
+        -- ++(left:.8cm) coordinate (a) node[left,yshift=1] {a}
+        (s1.input 2)
+        -- (s1.input 2 -| a) coordinate (b) node[left,yshift=-1] {b}
+        (c1.input 1) -| ($ (a)!.7!(s1.input 1) $) node[connector] {}
+        (c1.input 2) -| ($ (b)!.3!(s1.input 2) $) node[connector] {}
+    ;
+
+    \node [xor gate,above right=1cm and 2.0cm of s1.output] (s2) {};
+    \node [and gate,below right=of s2] (c2) {};
+    \node [or gate,right=1cm of c2,anchor=input 1] (co) {};
+    \draw[wire]
+        (s2.input 1) -- ++(left:.8cm) coordinate (c) node[left,yshift=1] {c}
+        (s2.input 2) -- ++(left:1.2cm) coordinate (s2 bend) node[left] {s1}
+        (c2.input 1) -| ($ (c)!.7!(s2.input 1) $) node[connector] {}
+        (c2.input 2) -| ($ (s2 bend)!.3!(s2.input 2) $) node[connector] {}
+        (c2.output) -- node[above,near start] {c2} (co.input 1)
+        (co.input 2) -- ++(left:.5cm) |- (c1.output) node[above right] {c1}
+        (co.output) -- ++(right:.5cm) coordinate (co) node[right] {co}
+        (s1.output) -| (s2 bend)
+        (s2.output) -- (s2.output -| co) node[right] {s}
+    ;
+\end{scope}
+\end{tikzpicture} % }-}4
 \caption{A half-adder and a full-adder\label{half-adder}}
 \end{figure}
 
