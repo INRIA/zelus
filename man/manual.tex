@@ -933,8 +933,8 @@ let distance ((x0,y0), (x1,y1)) =
 \end{chklisting}
 Since \zls{d0} and \zls{d1} denote infinite streams, the computations of 
 \zls{x1 -. x0} and \zls{y1 -. x1} occur in parallel, at least conceptually.
-In Zélus, however, the consecutive nesting of \zls{let}/\zls{in}s introduces 
-a sequential ordering on the computations at an instant.
+In \zelus, however, the consecutive nesting of \zls{let}/\zls{in}s 
+introduces a sequential ordering on the computations at an instant.
 In this example, this means that the current value of \zls{d0} is always 
 computed before the current value of \zls{d1}.
 Being able to impose such an ordering is useful when functions with 
@@ -977,7 +977,7 @@ let node sin_cos theta = (sin, cos) where
 % }-}3
 \subsection{Shared Memory and Initialization\label{sharedinit}} %{-{3
 
-In addition to the delay operator \zls{pre}, Zélus provides another 
+In addition to the delay operator \zls{pre}, \zelus{} provides another 
 construction for referring to the previous value of a stream: \zls{last o}, 
 where \zls{o} is a variable defined by an equation. For example:%
 \begin{chklisting}
@@ -1121,7 +1121,7 @@ Product types, record types, and enumerated types are defined in a syntax
 close to that of \ocaml.
 Constructors with arguments are not supported in the current release.
 They can nevertheless be defined together with the functions that manipulate 
-them in an \ocaml{} module which is then imported into Zélus; see 
+them in an \ocaml{} module which is then imported into \zelus; see 
 \cref{importing}.
 
 Records are defined as in Ocaml and accessed with the dot notation. For 
@@ -1393,7 +1393,7 @@ Branches without a definition for a shared variable \zls{o} are implicitly
 
 The compiler rejects programs where it is unable to ensure that \zls{last o} 
 has an initial value.
-The following program is, for instance, rejected.
+The following program, for instance, is rejected.
 \begin{chklisting}[withresult,fail,include=updownmodes]
 let node two (m, i) = o where
   rec match m with
@@ -1526,65 +1526,66 @@ let node two (m, i) = o where
 \section{Valued Signals\label{signals}} %{-{2
 % {-{3
 
-The language provides a way to manage {\em valued signals}. Signals
-are built and accessed through the constructions \verb-emit- and
-\verb-present-.  At every instant, a value signal is a pair made of (1) a boolean
-$c$ indicating when the signal is present and (2) a value present when $c$ is
-true.\footnote{For \ocaml{} programmers, a signals correspond to a value
-of an option type.}
+\zelus{} provides \emph{valued signals} that are built and accessed, 
+respectively, through the constructions \zls{emit} and \zls{present}.
+At every instant, a valued signal is a pair comprising (1) a boolean
+$c$ indicating when the signal is present and (2) a value that is present 
+when $c$ is true.\footnote{For \ocaml{} programmers: signals are like 
+streams of an option type.}
  
 % }-}3
 \subsection{Signal Emission\label{emit}} %{-{3
 
-It is also possible to define the value of a signal at certain instant only,
-that is, not to implictly keep the previous value as we illustrated with
-shared variables. % As opposed to shared variables, it is now possible to give a
+Unlike shared variables, signal values are not necessarily defined at every 
+instant, nor do they implicitly keep their previous value when not updated.
+% As opposed to shared variables, it is now possible to give a
 % partial definition with no implicit completion.
-Consider the following program:
+Consider this program, for instance:
 \begin{chklisting}[withresult]
 let node within (min, max, x) = o where
   rec c = (min <= x) & (x <= max)
   and present c -> do emit o = () done
 \end{chklisting}
-It computes a condition \verb-c-. Then \verb-o- is a signal
-which is present with value \verb-()- every time \verb-c- is
-true. There is no need here to give an initial value to \verb-o-. When \verb-c- is
-false, \verb-o- is simply absent. Writting the following program would lead to
-an error:
+It computes a condition \zls{c} based on the input \zls{x}.
+The signal \zls{o} is present with value \zls{()} every time \zls{c} is
+true.
+There is no need to give an initial value for \zls{o}.
+When \zls{c} is false, \zls{o} is simply absent.
+This program results is rejected by the compiler:
 \begin{chklisting}[withresult,fail]
 let node within (min, max, x) = o where
   rec c = (min <= x) & (x <= max)
   and present c -> do o = () done
 \end{chklisting}
+The output \zls{o} is not declared as a shared variable (with \zls{init}) 
+nor is it defined as a signal (with \zls{emit}).
 
 % }-}3
 \subsection{Signal Presence and Values\label{signalpresence}} %{-{3
 
-It is possible to test for the presence of a signal expression $e$ by
-writing the boolean expression $? e$. The following program, for
-example, counts the number of instants where \verb-x- is emitted.
+The presence of a signal expression~\zls{e} can be tested by the boolean 
+expression~\zls{?e}.
+This program, for
+example, counts the number of instants when \zls{x} is emitted.
 \begin{chklisting}[withresult]
 let node count x = cpt where
   rec cpt = if ?x then 1 -> pre cpt + 1 else 0 -> pre cpt
 \end{chklisting}
 
-The language provides a more general mechanism to test for the
-presence of several signals and access their values. It is reminiscent
-of the pattern-matching construct of ML.  This pattern matching
-mechanisn is safe in the sense that it is possible to access the value
-of a signal only at the instant where it is emitted.\footnote{This
-  contrasts the \esterel{} solution where the value of a signal
-  implicitly holds and can be accessed even when it is not
-  emitted. The constraint imposed by \zelus{} may be cumbersome in some circumstances,
-  but it is safer. It avoids initialization issues and
-  the need to allocate a state variable to store the previous
-  value.}
+There is also a more general mechanism to test signal presence that treats 
+multiple signals simultaneously and allows access to their values.
+It resembles the pattern-matching construct of ML and it only allows signal 
+values to be accessed at instants of emission.\footnote{This contrasts with 
+signals in \esterel{} where values are maintained implicitly and can be 
+accessed even in instants when they are not emitted.
+The constraint imposed by \zelus{} may sometimes be cumbersome, but it is 
+safer, avoids initialization issues, and does not require the allocation of 
+a state variable.}
 
-The following program takes two signals \verb-x- and \verb-y- and
-returns an integer which equals the sum of \verb-x- and \verb-y- when
-both are emitted, it returns the value of \verb-x- when \verb-x- is
-emitted only and the value \verb-0- when only \verb-y- is emitted and
-\verb-0- otherwise.
+The following program takes two input signals, \zls{x} and \zls{y}, and
+returns an integer equal to their sum when both are emitted, the value of 
+\zls{x} when it alone is emitted, the value of \zls{y} when it alone is 
+emitted, or \zls{0} otherwise.
 \begin{chklisting}[withresult]
 let node sum (x, y) = o where
   present

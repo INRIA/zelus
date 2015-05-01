@@ -114,8 +114,9 @@
       <head>
         <xsl:copy-of select="document('inc-header.html')/head/*" />
         <title>Zélus Manual: <xsl:copy-of select="/html/head/title/text()"/></title>
-        <meta name="description" content="Zélus user and reference manual."/>
-        <meta name="author" content="Timothy Bourke and Marc Pouzet"/>
+        <meta name="description" content="Zélus tutorial and reference manual."/>
+        <meta name="author" content="Marc Pouzet, Albert Benveniste,
+                                     Timothy Bourke, and Benoit Caillaud"/>
       </head>
       <body class="manual" data-spy="scroll" data-target=".sidebar-nav">
         <xsl:apply-templates mode="adjustpaths"
@@ -130,7 +131,7 @@
             <div class="span3 hidden-print">
               <div class="well sidebar-nav" data-spy="affix">
                 <ul class="nav nav-list">
-                  <li class="sidebar-nav-header">Zélus Manual</li> 
+                  <li class="sidebar-nav-header">Tutorial and Reference</li> 
                   <xsl:apply-templates select="html/body" mode="navlinks"/>
                   <xsl:if test="$isindex = 1">
                     <li><a href="manual.html">single page</a></li>
