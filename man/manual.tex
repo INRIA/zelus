@@ -105,6 +105,16 @@
     thick,
     -latex}}
 
+\tikzset{zelus automata/.style={
+    semithick,
+    auto,
+    node distance=4.5cm,
+    initial text=,
+    initial where=above,
+    every initial by arrow/.style={-latex},
+    every state/.style={rounded rectangle,thick},
+}}
+
 \long\def\framed#1{\framebox[\textwidth]{\vbox{\begin{center}#1\end{center}}}}
 %utiliser \framed{...}
 
@@ -1765,15 +1775,8 @@ weak_switch toggle = strong_switch (false -> pre toggle)
 
 \begin{figure}[t]
 \centering%{-{4
-\begin{tikzpicture}[
-    semithick,
-    auto,
-    node distance=4.5cm,
-    initial text=,
-    initial where=above,
-    every initial by arrow/.style={-latex},
-    every state/.style={rounded rectangle,thick},
-]
+\begin{tikzpicture}[zelus automata]
+
    % Weak automaton
 
    \node[state,initial] (False)                     {\zls{o = false}};
@@ -1835,111 +1838,129 @@ and strong transitions.
 % }-}3
 \subsection{Parameterized States\label{paramstates}} %{-{3
 
-In the examples we have considered so far, an automaton is made of a
-finite set of states and transitions. It is possible to define more
-general state machines containing parameterized states, that is,
-states that may be initialized with some input values. Parameterized
-states are a natural way to pass informations from states to states
-and to reduce the number of states. Parameterized state machine
-lead to a particular style of programming similar to the
-definition of mutually tail-recursive functions in ML. Yet they are not
-compiled into mutually recursive functions but into a single step
-function with a \texttt{switch}-like construct according to the current
-active state.
+In the examples considered so far, each automaton had a finite set of states 
+and transitions.
+It is also possible to define more general state machines with parameterized 
+states, that is, states containing local values that are initialized on 
+entry.
+Parameterized states are a natural way to pass information between states 
+and to reduce the number of explicitly programmed states.
+Parameterized state machines lead to a style of programming that resembles 
+the definition of mutually tail-recursive functions in ML.
+Yet they are not compiled into mutually recursive functions but into a 
+single step function with a \texttt{switch}-like construct over the active 
+state.
 
-The following function awaits for an event \texttt{e}. When \texttt{e} is present with
-a value \texttt{v}, the next state becomes \texttt{Sustain(v)} with the parameter
-\texttt{x} of state \texttt{Sustain} set to \texttt{v}.
+In the following function, the automaton waits in its initial state for the 
+signal \zls{e}. When \zls{e} is present, its value is bound to \zls{v} and 
+the automaton transitions to the state \zls{Sustain(v)}, that is, to the 
+state \zls{Sustain} with parameter \zls{x} set to \zls{v}.
 \begin{chklisting}[withresult,label=await]
-(* await e to be present and sustain its value for the remaining instants *)
+(* wait for e and then sustain its value indefinitely *)
 let node await e = o where 
   automaton
   | Await -> do unless e(v) then Sustain(v)
   | Sustain(x) -> do emit o = x done
   end
 \end{chklisting}
+The formal parameter \zls{x} of state \zls{Sustain} can be used without 
+restriction in the body of the state, and the argument \zls{v} could be 
+replaced by an expression.
 
-Note that the formal parameter \verb-x- of state \verb-Sustain- could
-be used without restriction in the body of the state. In the same way, the
-argument \verb-v- could be replaced by any expression.
+As another example, the program below uses parameterized states to count the 
+occurrences of \zls{x}.
+It simulates an infinite state machine with states \zls{Zero}, 
+\zls{Plus(1)}, \zls{Plus(2)}, etcetera.
 
-\medskip
-The following program is a quite radical use of parameterized states: it
-is a simple counter that counts the number of
-occurrences of \verb-x-.
 \begin{chklisting}[withresult]
 let node count x = o where rec o = 0 -> pre o + 1
 
 let node count_in_an_automaton x = o where
   automaton
-  | Zero -> do o = 0 until x then Plus(1)
+  | Zero    -> do o = 0 until x then Plus(1)
   | Plus(v) -> do o = v until x then Plus(v+1)
   end
 \end{chklisting}
 
-This automaton simulates an infinite state machine with states
-\verb-Zero-, \verb-Plus(1)-, \verb-Plus(2)-, etc.
-
 % }-}3
 \subsection{Modular Resets\label{resets}} %{-{3
 
-The ABRO example is due to G\'erard Berry~\cite{esterel:primer99}. It
-highlight the expressive power of parallel composition and preemption
-in Esterel. The specification is the following:
-
+Gérard Berry's ABRO example highlights the expressive power of parallel 
+composition and preemption in Esterel. The specification 
+is~\cite[\textsection 3.1]{esterel:primer99}:
 \begin{quote}
-Awaits the presence of events \verb-A- and \verb-B- and emit \verb-O-
-at the exact instant where both events have been received.  Reset this
-behavior every time \verb-R- is received.
+Emit an output \zls{O} as soon as two inputs \zls{A} and \zls{B} have 
+occurred.
+Reset this behavior each time the input \zls{R} occurs.
+%Await the presence of events \zls{A} and \zls{B} and emit \zls{O}
+%at the exact instant that both events have been received. Reset this
+%behavior every time \zls{R} is received.
 \end{quote}
-Here is how we write it, replacing capital letters by small
-letter~\footnote{As in \ocaml, identifiers starting with a capital
-  letter are considered to be constructors and cannot be used for
-  variables.}. We make it a little more general, considering that
-events are valued.
+We will implement this example in \zelus---replacing uppercase letters by 
+lowercase ones\footnote{As in \ocaml, identifiers starting with an uppercase 
+letter are considered to be datatype constructors and cannot be used as 
+variable names.}---but generalize it slightly by considering valued events.
 
-The following function awaits for an event \texttt{e}. When \texttt{e} is present with
-a value \texttt{v}, the next state becomes \texttt{Sustain(v)} with the parameter
-\texttt{x} of state \texttt{Sustain} set to \texttt{v}.
+%The following function awaits for an event \texttt{e}. When \texttt{e} is 
+%present with
+%a value \texttt{v}, the next state becomes \texttt{Sustain(v)} with the parameter
+%\texttt{x} of state \texttt{Sustain} set to \texttt{v}.
+%
+As a first step, consider this function that implements the first part of 
+the specification: it waits for occurrences of both \zls{a} and \zls{b} 
+using the \zls{await} node from \cref{paramstates} and then emits the sum of 
+their values.
 \begin{chklisting}[withresult,include=await,label=abo]
-(* emit o and sustain it when a and b has been received *)
 let node abo (a, b) = o where
   present (await a)(v1) & (await b)(v2) -> do emit o = v1 + v2 done
 \end{chklisting}
-%
+This first version is readily extended to the full specification by putting 
+it inside an automaton state with a self-looping (weak) transition that 
+resets it when \zls{r} is true.
 \begin{chklisting}[withresult,continue]
-(* here is ABRO: the same except that we reset the behavior *)
-(* when r is true *)
 let node abro (a, b, r) = o where
   automaton
   | S1 ->
-       do present (await a)(v1) & (await b)(v2) -> do emit o = v1 + v2 done
+       do
+         present (await a)(v1) & (await b)(v2) -> do emit o = v1 + v2 done
        unless r then S1
   end
 \end{chklisting}
+A graphical version is shown in \cref{abro-figure}.
+The transition on \zls{r} \emph{resets} the computation within the state: 
+all streams in \zls{abo a b}, including those inside both \zls{await} nodes, 
+restart with their initial values.
+\begin{figure}[t]
+\centering%{-{4
+\begin{tikzpicture}[zelus automata]
+   \node[state,initial] (S1) {%
+    \zls{present (await a)(v1) \& (await b)(v2) -> do emit o = v1 + v2 done}};
+   \path (S1) edge [weak,in=2,out=-2,loop] node[right] {\zls{r}} (S1);
+\end{tikzpicture}
+%}-}4
+\caption{The ABRO automaton~\label{abro-figure}}
+\end{figure}
 
-The node \verb-abro- is a one state automaton which {\em resets} the
-computation of \verb-abo a b-: every stream in \verb-abo a b- restarts
-with its initial value. The language provides a specific
-\verb-reset/every- primitive as a shortcut of such a one-state
-automaton. We can write:
+\zelus{} also provides a specific \zls{reset/every} primitive as a shortcut 
+for such a one-state automaton.
+It combines a set of parallel equations (separated by \zls{and}s).
+We could thus write:%
 \begin{chklisting}[withresult,include=await]
-let node abro (a, b, r) = o where
+let node strong_abro (a, b, r) = o where
   reset
     present (await a)(v1) & (await b)(v2) -> do emit o = v1 + v2 done
   every r
 \end{chklisting}
-
-The \verb-reset/every- construction combines a set of parallel
-equations (separated with an \verb-and-). Note that the reset
-operation correspond to strong preemption: the body is reseted at the
-instant where the condition is true. The language does not provide a
-``weak reset''. Nonetheless, it can be programmed adding a unit delay.
+Except that \zls{reset/every} is strongly preemptive; the body is reset 
+before being executed at the instant the condition is true.
+There is no ``weak reset'' since one need only add a unit delay for the same 
+effect.
+The following program implements the ABRO specification.
 \begin{chklisting}[withresult,include=abo]
-  let node abro (a, b, r) = o where
-    reset
-      o = abo (a, b)
-    every true -> pre r
+let node abro (a, b, r) = o where
+reset
+  o = abo (a, b)
+every true -> pre r
 \end{chklisting}
 
 % It is also possible to write:
@@ -1964,9 +1985,8 @@ and real-time. Consider a light that
 blinks with a specification that says:
 
 \begin{quote}
-  Repeat infinitely the following behavior:
-  Turn light on for \texttt{n} seconds and off for
-  \texttt{m} seconds.
+Repeat infinitely the following behavior:
+Turn light on for \texttt{n} seconds and off for \texttt{m} seconds.
 \end{quote}
 
 A way of implementing it is this. The signal \texttt{second} is

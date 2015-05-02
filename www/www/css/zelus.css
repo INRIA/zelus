@@ -186,6 +186,14 @@ table.dcenter {
     margin-bottom: 1em;
 }
 
+blockquote.quote {
+    margin-bottom: .8em;
+    font-style: italic;
+    border-left: thick #fffbe6 solid;
+    padding-left: 2em;
+    padding-right: 2em;
+}
+
 blockquote.heveainfo {
     padding-top: 5em;
     font-size: x-small;
