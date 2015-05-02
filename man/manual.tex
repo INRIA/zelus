@@ -69,6 +69,10 @@
 
 \newcommand{\f}{$f$}
 \renewcommand{\t}{$t$}
+
+\newcommand{\F}{\texttt{false}}
+\newcommand{\T}{\texttt{true}}
+
 \newcommand{\nil}{$\mathit{nil}$}
 
 \newcommand{\cvode}{{\sc CVODE}}
@@ -1715,45 +1719,52 @@ let node expect x = o where
 This timeline of this program is shown below.
 \begin{chrono}{c|ccccccc}
 \hline
-\tt x                 & \tt false & \tt false & \tt true & \tt false & \tt false &  \tt true & $\cdots$ \\
-\hline
-\tt expect x           & \tt false & \tt false & \tt false & \tt true & \tt true &  \tt true & $\cdots$  \\ \hline
+\tt x         & \F & \F & \T & \F & \F & \T & $\cdots$ \\ \hline
+\tt expect x  & \F & \F & \F & \T & \T & \T & $\cdots$ \\ \hline
 \end{chrono}
 
 The guards of weak transitions are tested \emph{after} executing the body of 
-the current active state to determine the active state at the next instant. 
+the current active state to determine the active state at the next instant.
 
-The classical two states \zls{switch} automaton can be written like
-the following:
+We now consider a two state automaton that switches between two states 
+whenever the input \zls{toggle} is true.
 \begin{chklisting}
-let node weak_switch on_off = o where
+let node weak_switch toggle = o where
   automaton
-  | False -> do o = false until on_off then True
-  | True -> do o = true until on_off then False
+  | False -> do o = false until toggle then True
+  | True  -> do o = true until toggle then False
   end
 \end{chklisting}
-
-Note the difference with the following form with weak transitions only:
+For an example input stream, the timeline is:
+\begin{chrono}{c|cccccccc}
+\hline
+\tt toggle & \F & \T & \F & \F & \T & \T & \F & $\cdots$ \\ \hline
+\tt o      & \F & \F & \T & \T & \T & \F & \T & $\cdots$ \\ \hline
+\end{chrono}
+%
+The form with strong transitions follows.
 \begin{chklisting}[continue]
-let node strong_switch on_off = o where
+let node strong_switch toggle = o where
   automaton
-  | False -> do o = false unless on_off then True
-  | True -> do o = true unless on_off then False
+  | False -> do o = false unless toggle then True
+  | True  -> do o = true unless toggle then False
   end
 \end{chklisting}
-
-We can check that for any boolean stream \verb-on_off-, the following
+Its behavior relative to the same input sequence differs.
+\begin{chrono}{c|cccccccc}
+\hline
+\tt toggle & \F & \T & \F & \F & \T & \T & \F & $\cdots$ \\ \hline
+\tt o      & \F & \T & \T & \T & \F & \T & \T & $\cdots$ \\ \hline
+\end{chrono}
+In fact, for any boolean stream \zls{toggle} the following
 property holds:
 \begin{chklisting}[continue,skipone]
-let node correct on_off =
-weak_switch on_off = strong_switch (false -> pre on_off)
+let node correct toggle =
+weak_switch toggle = strong_switch (false -> pre toggle)
 \end{chklisting}
-The graphical representation of these two automata is given in
-figure~\cref{switch-figure}.
 
 \begin{figure}[t]
 \centering%{-{4
-%BEGIN IMAGE
 \begin{tikzpicture}[
     semithick,
     auto,
@@ -1765,40 +1776,47 @@ figure~\cref{switch-figure}.
 ]
    % Weak automaton
 
-   \node[state,initial] (False)		         {\zls{o = false}};
-   \node[state]         (True)  [right of=False] {\zls{o = true}};
+   \node[state,initial] (False)                     {\zls{o = false}};
+   \node[state]         (True) [right of=False]     {\zls{o = true}};
 
    \path
-    (False) edge [weak,bend left] node {\zls{on\_off}} (True)
-    (True)  edge [weak,bend left] node {\zls{on\_off}} (False)
+    (False) edge [weak,bend left] node {\zls{toggle}} (True)
+    (True)  edge [weak,bend left] node {\zls{toggle}} (False)
     ;
 
    % Strong automaton
 
    \node[state,initial] (False) [right=1.5cm of True] {\zls{o = false}};
-   \node[state]         (True) [right of=False]       {\zls{o = true}};
+   \node[state]         (True)  [right of=False]      {\zls{o = true}};
 
    \path
-    (False) edge [strong,bend left] node {\zls{on\_off}} (True)
-    (True)  edge [strong,bend left] node {\zls{on\_off}} (False)
+    (False) edge [strong,bend left] node {\zls{toggle}} (True)
+    (True)  edge [strong,bend left] node {\zls{toggle}} (False)
     ;
 
 \end{tikzpicture}
-%
 %}-}4
-%END IMAGE
-%HEVEA\imageflush
 \caption{Automata with weak (at left) and strong (at right) 
 transitions~\label{switch-figure}}
 \end{figure}
+The graphical representation of these two automata is shown in
+\cref{switch-figure}.
+The circles on the transition arrows distinguish weak transitions from 
+strong ones: they graphically separate the actions of one instant from 
+another.
+Since a weak transition is executed in the same instants as its source 
+state, the circle is placed to separate it from its destination state.
+Since a strong transition is executed in the same instants as its 
+destination state, the circle is placed to separate it from its source 
+state.
 
 % Weak and strong conditions can be arbitrarily mixed as in the
 % following variation of the switch automaton:
 % \begin{chklisting}
-% let node switch2 (on_off, stop) = o where
+% let node switch2 (toggle, stop) = o where
 %   automaton
-%   | False -> do o = false until on_off then True
-%   | True -> do o = true until on_off then False unless stop then Stop
+%   | False -> do o = false until toggle then True
+%   | True -> do o = true until toggle then False unless stop then Stop
 %   | Stop -> do o = true done
 %   end
 % \end{chklisting}
@@ -1806,12 +1824,13 @@ transitions~\label{switch-figure}}
 %Compared to the previous version, state \verb-True- can be strongly
 %preempted when some stop condition \verb-stop- is true.
 
-\Remark The current version of \zelus{} does not permit the mix of
-weak and strong transitions inside one automaton, as \lucy{} and
-\scadesix{} did. After an extensive use of automata, we consider that
-this mix, without restriction, makes programs difficult to
-understand. Future versions of \zelus{} may allow a constrained mix of
-weak and strong transition nonetheless.
+\Remark The current version of \zelus{} does not permit arbitrary 
+combinations of weak and strong transitions within an automaton as in 
+\lucy{} and \scadesix{}.
+After much experience with automata, we think that such arbitrary mixes give 
+programs that are difficult to understand.
+Future versions of \zelus{} may, however, allow a constrained mix of weak 
+and strong transitions.
 
 % }-}3
 \subsection{Parameterized States\label{paramstates}} %{-{3

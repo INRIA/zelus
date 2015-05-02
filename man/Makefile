@@ -57,12 +57,14 @@ $(MANUAL_HTML)/manual.html: manual.tex manual.pdf samples/tutorial0001.html
 wwwman: $(MANUAL_HTML)/manual.html css js \
     inc-header.html inc-javascript.html inc-titlebar.html
 	mkdir -p $@
-	$(XSLTPROC) --output $@/index.html --html --param isindex 1 \
-		mantosite.xsl $(MANUAL_HTML)/index.html
-	$(XSLTPROC) --output $@/manual.html --html --param issingle 1 \
-		mantosite.xsl $(MANUAL_HTML)/manual.html
-	for f in $$(ls $(MANUAL_HTML)/manual0*.html);\
-	do $(XSLTPROC) --output $@/$${f#*/} --html mantosite.xsl $$f; done
+	for f in $$(ls $(MANUAL_HTML)/*.html); do			       \
+	    $(XSLTPROC) --output $@/$${f#*/} --html			       \
+	    	--param isindex `if [ "$$f" = "$(MANUAL_HTML)/index.html" ];   \
+	    	     		 then echo 1; else echo 0; fi`		       \
+	    	--param issingle `if [ "$$f" = "$(MANUAL_HTML)/manual.html" ]; \
+	    	      		  then echo 1; else echo 0; fi`		       \
+	    	mantosite.xsl $$f;					       \
+	done
 	cp $(MANUAL_HTML)/*.png $@/
 	cp manual.pdf $@/
 
