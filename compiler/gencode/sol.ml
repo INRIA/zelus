@@ -14,10 +14,6 @@
 
 (* abstract syntax tree of the generic object code *)
 
-open Location
-open Misc
-open Ident
-
 type sort = 
   | Oval (* local variable with a single write *)
   | Ovar (* shared variable with possibly several writes *)
@@ -34,12 +30,11 @@ and mem =
 (* the solver has detected a zero-crossing. [x.zout] is the value *)
 (* to be observed for a zero-crossing *)
 
-and 'exp state =
+and state =
   | Oself
   | Oname of Ident.t
   | Oinstance of Ident.t
-  | Oprimitive of 'exp state * primitive
-  | Oindex of 'exp state * 'exp
+  | Oprimitive of state * primitive
   
 (* a machine provides certain fields for reading/writting special values *)
 and primitive =
