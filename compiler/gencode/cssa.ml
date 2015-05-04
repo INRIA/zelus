@@ -42,6 +42,7 @@ type exp =
   | Cconstr0 of Lident.t
   | Cglobal of Lident.t (* global variable *)
   | Clocal of Ident.t
+  | Clast of state
   | Cstate of state (* read of a state variable *)
   | Cindex of exp * exp (* access in an array *)
   | Ctuple of exp list (* tuples *)
