@@ -74,7 +74,9 @@ REWRITE = rewrite/markfunctions.cmo \
 	rewrite/copy.cmo \
 	rewrite/deadcode.cmo
 
-GENCODE = gencode/obc.cmo \
+GENCODE = gencode/sol.cmo \
+	  gencode/cssa.cmo \
+	  gencode/obc.cmo \
 	  gencode/oprinter.cmo \
 	  gencode/translate.cmo \
 	  gencode/inout.cmo

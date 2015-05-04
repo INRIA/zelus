@@ -33,7 +33,7 @@ let eq_last lx x ty =
 let env subst b_env =
   let last x ({ t_typ = ty; t_sort = sort } as entry) (env, subst, eq_list) =
     match sort with
-    | Mem ({ t_last_is_used = true } as mem) -> 
+    | Mem { t_last_is_used = true } -> 
        let lx = Ident.fresh "l" in
        Env.add lx { entry with t_sort = Val } env,
        Env.add x lx subst,
