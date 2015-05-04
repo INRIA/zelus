@@ -41,9 +41,8 @@ type exp =
   | Cconst of immediate (* immediate constant *)
   | Cconstr0 of Lident.t
   | Cglobal of Lident.t (* global variable *)
-  | Clocal of Ident.t
-  | Clast of state
-  | Cstate of state (* read of a state variable *)
+  | Clocal of Ident.t (* local variable *)
+  | Cstate of is_last * Ident.t (* state variable *)
   | Cindex of exp * exp (* access in an array *)
   | Ctuple of exp list (* tuples *)
   | Capp of Lident.t * exp list (* function application *)
@@ -53,12 +52,14 @@ type exp =
   | Cifthenelse of exp * exp * exp (* lazy conditional *)
   | Cmatch of exp * (pattern * exp) list (* math/with *)
 
+ and is_last = bool
+		 
  and method_call =
    { c_machine: Lident.t; (* the class of the method *)
      c_method_name: method_name; (* the name of the method *)
      c_instance: Ident.t option; (* either a call to self (None) *)
                                  (* or to some instance *)
-  }
+   }
 
  and eq =
    { eq_lhs: left;
@@ -77,4 +78,4 @@ type exp =
  and left =
    | Cpat of pattern
    | Cset of state
-   
+
