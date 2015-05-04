@@ -32,10 +32,12 @@ and mem =
 
 and state =
   | Oself
-  | Oname of Ident.t
+  | Oname of is_last * Ident.t
   | Oinstance of Ident.t
   | Oprimitive of state * primitive
-  
+
+and is_last = bool
+		
 (* a machine provides certain fields for reading/writting special values *)
 and primitive =
   | Oder (* x.der.(i) <- ... *)
