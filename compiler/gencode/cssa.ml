@@ -17,49 +17,7 @@
 
 open Sol
       
-type immediate =
-  | Cint of int
-  | Cint32 of int
-  | Cbool of bool
-  | Cfloat of float
-  | Cchar of char
-  | Cstring of string
-  | Cvoid
-
-type pattern =
-  | Cwildpat
-  | Ctuplepat of pattern list
-  | Cvarpat of Ident.t
-  | Cconstpat of immediate
-  | Caliaspat of pattern * Ident.t
-  | Cconstr0pat of Lident.t
-  | Corpat of pattern * pattern
-  | Ctypeconstraintpat of pattern * type_expression
-  | Crecordpat of (Lident.t * pattern) list
-  
-type exp =
-  | Cconst of immediate (* immediate constant *)
-  | Cconstr0 of Lident.t
-  | Cglobal of Lident.t (* global variable *)
-  | Clocal of Ident.t (* local variable *)
-  | Cstate of state (* state variable *)
-  | Cindex of exp * exp (* access in an array *)
-  | Ctuple of exp list (* tuples *)
-  | Capp of Lident.t * exp list (* function application *)
-  | Cmethod of method_call * exp list (* call a method Omethod(m, e_list) *)
-  | Crecord of (Lident.t * exp) list (* record *)
-  | Crecord_access of exp * Lident.t (* access to a record field *)
-  | Cifthenelse of exp * exp * exp (* lazy conditional *)
-  | Cmatch of exp * (pattern * exp) list (* math/with *)
-
-  and method_call =
-   { c_machine: Lident.t; (* the class of the method *)
-     c_method_name: method_name; (* the name of the method *)
-     c_instance: Ident.t option; (* either a call to self (None) *)
-                                 (* or to some instance *)
-   }
-
- and eq =
+type eq =
    { eq_lhs: left;
      eq_rhs: exp;
      eq_clk: clock;
@@ -76,4 +34,4 @@ type exp =
  and left =
    | Cpat of pattern
    | Cset of state
-
+   | Cinit of Ident.t

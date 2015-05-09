@@ -12,18 +12,14 @@
 (*                                                                        *)
 (**************************************************************************)
 
-(* abstract syntax tree of the generic object code *)
+(* abstract syntax tree of the dataflow code with modes *)
 
-type sort = 
-  | Oval (* local variable with a single write *)
-  | Ovar (* shared variable with possibly several writes *)
-  | Omem of mem (* state variable *)
-
-and mem =
+type mem =
   | Odiscrete (* discrete state variable *)
   | Ozero (* zero-crossing variable with its size *)
   | Ocont (* continuous-state variable with its size *)
-	
+  | Operiod (* period *)
+      
 (* a continuous state variable [x] is pair of arrays *)
 (* with two fields: [x.der] for its derivative. [x.pos] for its current value. *)
 (* a zero-crossing variable [x] has two field: [x.zin] is true when *)
@@ -54,19 +50,64 @@ and immediate =
   | Ostring of string
   | Ovoid
 
+type pattern =
+  | Cwildpat
+  | Ctuplepat of pattern list
+  | Cvarpat of Ident.t
+  | Cconstpat of immediate
+  | Caliaspat of pattern * Ident.t
+  | Cconstr0pat of Lident.t
+  | Corpat of pattern * pattern
+  | Ctypeconstraintpat of pattern * type_expression
+  | Crecordpat of (Lident.t * pattern) list
+  
+and exp =
+  | Cconst of immediate (* immediate constant *)
+  | Cconstr0 of Lident.t
+  | Cglobal of Lident.t (* global variable *)
+  | Clocal of Ident.t (* local variable *)
+  | Cstate of state (* state variable *)
+  | Cindex of exp * exp (* access in an array *)
+  | Ctuple of exp list (* tuples *)
+  | Capp of op * exp list (* function application *)
+  | Crecord of (Lident.t * exp) list (* record *)
+  | Crecord_access of exp * Lident.t (* access to a record field *)
+  | Cifthenelse of exp * exp * exp (* lazy conditional *)
+  | Cmatch of exp * (pattern * exp) list (* math/with *)
+
+and op =
+  | Cop of Lident.t
+  | Cmethod of Lident.t * method_name * Ident.t option
+	     (* the class of the method, the method and the instance *)
+
+
 (* implementation of a generic machine. The body of method is generic *)
-type ('exp, 'eq) machine =
+and 'eq machine =
     { m_kind: Deftypes.kind;
-      m_memories:
-	(Ident.t * (mem * Deftypes.typ * 'exp option)) list; (* memories *)
-      m_instances: (Ident.t * Lident.t * Deftypes.kind) list; (* instances *)
+      m_memories: mentry Ident.Env.t; (* memories *)
+      m_instances: ientry Ident.Env.t; (* instances *)
       m_methods: 'eq method_desc list; (* the list of methods *) 
     }
 
 and 'eq method_desc =
-   { m_name: method_name;
-     m_param: Ident.t list;
-     m_body: 'eq } 
+  { m_name: method_name; (* name of the method *)
+    m_input: (Ident.t * Deftypes.typ) list; (* list of input arguments *)
+    m_output: Ident.t * Deftypes.typ;
+    m_env: ventry Ident.Env.t; (* local environment *)
+    m_body: 'eq }
+
+and ventry =
+  { v_ty: Deftypes.typ;
+    v_value: exp option }
+
+and mentry =
+  { m_ty: Deftypes.typ;
+    m_value: exp option;
+    m_kind: mem }
+
+and ientry =
+  { i_machine: Lident.t;
+    i_kind: Deftypes.kind }
 
 and method_name = 
   | Ostep (* computes values and possible changes of states *)
@@ -76,13 +117,14 @@ and method_name =
   | Omaxsize (* returns the size of the cvector and zvector *)
   | Oreinit (* should we re-init the solver? *)
   | Ocin | Ocout (* copies the continuous state vector *)
-  | Odout | Oczin | Oclear_zin | Oczout(* copies derivatives and zero crossings *)
+  | Odout | Oczin | Oclear_zin | Oczout
+                 (* copies derivatives and zero crossings *)
   | Ocsize | Ozsize (* current size for cont. states and zero crossings *)
 
-and ('exp, 'eq) implementation =
-    | Oletvalue of string * 'exp
-    | Oletfun of string * Ident.t list * 'exp
-    | Oletmachine of string * ('exp, 'eq) machine
+and 'eq implementation =
+    | Oletvalue of string * exp
+    | Oletfun of string * Ident.t list * exp
+    | Oletmachine of string * 'eq machine
     | Oopen of string
     | Otypedecl of (string * string list * type_decl) list
 
