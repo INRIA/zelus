@@ -24,7 +24,7 @@ open Deftypes
 (** then recursively mark all useful variable according to read-in dependences *)
 (** finally, only keep equations and name defs. for useful variables *)
 (** the optimization is not very agressive, e.g., stateful function calls *)
-(* are still not removed *)
+(** are still not removed *)
 type table = cont Env.t
 and cont = 
     { mutable c_vars: S.t; (* set of variables *)
@@ -38,10 +38,11 @@ let print ff table =
   let names ff l =
     Pp_tools.print_list_r Printer.name "{" "," "}" ff (S.elements l) in
   let entry x { c_vars = l; c_unsafe = uns; c_useful = u } =
-    Format.fprintf ff "@[%a -> {c_vars = %a; c_unsafe = %s; c_useful = %s}@]@ "
-		   Printer.name x
-		   names l
-		   (if uns then "true" else "false") (if u then "true" else "false") in
+    Format.fprintf ff
+      "@[%a -> {c_vars = %a; c_unsafe = %s; c_useful = %s}@]@ "
+      Printer.name x
+      names l
+      (if uns then "true" else "false") (if u then "true" else "false") in
   Env.iter entry table 
 
 (** Add an entry [x, {x1,...,xn}] to a table. If x already exists *)
@@ -59,7 +60,8 @@ let add uns r x table =
 (* Compute the set of unsafe variables *)
 let unsafe_in_table table =
   Env.fold
-    (fun x { c_unsafe = uns } acc -> if uns then S.add x acc else acc) table S.empty
+    (fun x { c_unsafe = uns } acc ->
+      if uns then S.add x acc else acc) table S.empty
     
 (** Extend [table] where every entry [y -> {x1,...,xn}] *)
 (** is marked to also depend on [after] *)
