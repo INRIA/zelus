@@ -239,7 +239,7 @@ let zin (ztable, zsize) instances =
   inout (ztable, zsize) Ozin assign zstart zin_vec instances
 
 (* Add a method clear_zin zstart = zstart' which sets the internal state for *)
-(* zero-crossings to false from position [zstart] and returns the new position. *)
+(* zero-crossings to false from position [zstart]. *)
 let clear_zin (ztable, zsize) instances =
   let set n _ =
     make (Oassign_state(Oleft_state_primitive_access(Oleft_state_name(n), 
@@ -257,6 +257,16 @@ let zout (ztable, zsize) instances =
                                                             Ozero_out))))) in
   inout (ztable, zsize) Ozout assign zstart zout_vec instances
 
+(* Add a method dzero dvec cstart = cstart' which resets to 0 the internal *)
+(* derivatives in [dvec] from position [cstart]. Returns the new position *)
+let dzero (ctable, csize) instances =
+  let assign n index =
+    make (Oassign(Oleft_index(Oleft_name(dvec),
+                              plus (var cstart)
+                                       (make (Oconst(Oint(index))))),
+                  (make (Oconst(Ofloat(0.)))))) in
+  inout (ctable, csize) Odzero assign cstart dvec instances
+
 (** Translate a continuous-time machine *)
 let machine f ({ m_memories = m_list; m_instances = instances;
                  m_methods = method_list } as mach) =
@@ -269,6 +279,7 @@ let machine f ({ m_memories = m_list; m_instances = instances;
   let method_list = cin (ctable, csize) instances :: method_list in
   let method_list = cout (ctable, csize) instances :: method_list in
   let method_list = dout (ctable, csize) instances :: method_list in
+  let method_list = dzero (ctable, csize) instances :: method_list in
   let method_list = zin (ztable, zsize) instances :: method_list in
   let method_list = clear_zin (ztable, zsize) instances :: method_list in
   let method_list = zout (ztable, zsize) instances :: method_list in

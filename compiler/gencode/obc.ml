@@ -146,6 +146,7 @@ and method_name =
   | Oreinit (* should we re-init the solver? *)
   | Ocin | Ocout (* copies the continuous state vector *)
   | Odout | Ozin | Oclear_zin | Ozout (* copies derivatives and zero crossings *)
+  | Odzero (* resets the derivatives *)
   | Ocsize | Ozsize (* current size for cont. states and zero crossings *)
 
 and implementation_list = implementation list

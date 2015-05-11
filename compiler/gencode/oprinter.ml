@@ -129,6 +129,7 @@ and method_name m_name =
   | Ocrossings -> "crossings" | Omaxsize -> "maxsize"
   | Oreinit -> "reinit" | Ocin -> "cin" | Ocout -> "cout"
   | Ozin -> "zin" | Oclear_zin -> "clear_zin" | Ozout -> "zout" | Odout -> "dout"
+  | Odzero -> "dzero"
   | Ocsize -> "csize" | Ozsize -> "zsize"
 
 (** Print the call to a method *)
