@@ -92,7 +92,9 @@ and desc =
 and op =
   | Efby | Eunarypre | Eifthenelse 
   | Eminusgreater | Eup | Einitial | Edisc
-  | Etest | Eop of is_inline * Lident.t | Eevery of is_inline * Lident.t
+  | Etest
+  | Eop of is_inline * Lident.t
+  | Eevery of is_inline * Lident.t
 
 and immediate = Deftypes.immediate
 

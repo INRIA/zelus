@@ -256,10 +256,18 @@ and equation renaming ({ eq_desc = desc } as eq) =
 		     Misc.optional_map (expression renaming) e0_opt) }
       | EQset(ln, e) -> 
 	{ eq with eq_desc = EQset(ln, expression renaming e) }
-      | EQder(x, e, e0_opt, []) ->
-          let e = expression renaming e in
-          let e0_opt = Misc.optional_map (expression renaming) e0_opt in
-          { eq with eq_desc = EQder(Env.find x renaming, e, e0_opt, []) }
+      | EQder(x, e, e0_opt, p_e_list) ->
+         let rename { p_cond = sc; p_body = e; p_env = env } =
+	   let env, renaming0 = build env in
+	   let renaming = Env.append renaming0 renaming in
+	   { p_cond = scondpat renaming sc;
+	     p_body = expression renaming e;
+	     p_env = env } in
+	 let e = expression renaming e in
+         let e0_opt = Misc.optional_map (expression renaming) e0_opt in
+         { eq with eq_desc =
+		     EQder(Env.find x renaming, e, e0_opt,
+			   List.map rename p_e_list) }
       | EQmatch(total, e, m_b_list) ->
           let rename ({ m_pat = p; m_body = b; m_env = env } as m_h) =
             let env, renaming0 = build env in
@@ -282,10 +290,11 @@ and equation renaming ({ eq_desc = desc } as eq) =
           let b_opt = Misc.optional_map (block renaming) b_opt in
 	  { eq with eq_desc = EQpresent(List.map rename p_h_list, b_opt) }
       | EQemit(x, e_opt) ->
-	  { eq with eq_desc = EQemit(Env.find x renaming, 
-				    Misc.optional_map (expression renaming) e_opt) }
+	 { eq with eq_desc =
+		     EQemit(Env.find x renaming, 
+			    Misc.optional_map (expression renaming) e_opt) }
       | EQblock(b) -> { eq with eq_desc = EQblock(block renaming b) } 
-      | EQder _ | EQautomaton _ -> assert false
+      | EQautomaton _ -> assert false
       
 and scondpat renaming ({ desc = desc } as sc) =
   match desc with
@@ -302,7 +311,6 @@ and scondpat renaming ({ desc = desc } as sc) =
     | Econdpat(e, p) ->
         { sc with desc = Econdpat(expression renaming e, pattern renaming p) }
   
-
 and block renaming 
     ({ b_vars = n_list; b_locals = l_list; b_body = eq_list; 
        b_write = { dv = dv; di = di; der = der }; b_env = n_env } as b) =

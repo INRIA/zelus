@@ -129,7 +129,6 @@ let defnames signals ({ dv = dv; di = di } as w) =
   { w with dv = S.fold defname dv S.empty; di = S.fold defname di S.empty }
 
 (* separate signal testing from boolean condition in a signal pattern *)
-(* [spat] should be state-less *)
 let split spat =
   let rec split (se_list, pat_list, cond_list) spat =
     match spat.desc with
@@ -186,7 +185,8 @@ let rec exp signals e =
 	 Eapp(Eop(false, Lident.Name "snd"), List.map (exp signals) e_list)
       | Eapp(op, e_list) -> Eapp(op, List.map (exp signals) e_list)
       | Erecord(label_e_list) ->
-         Erecord(List.map (fun (label, e) -> (label, exp signals e)) label_e_list)
+         Erecord(List.map
+		   (fun (label, e) -> (label, exp signals e)) label_e_list)
       | Erecord_access(e, longname) -> Erecord_access(exp signals e, longname)
       | Etypeconstraint(e, ty) -> Etypeconstraint(exp signals e, ty)
       | Eseq(e1, e2) -> Eseq(exp signals e1, exp signals e2)
@@ -199,7 +199,8 @@ let rec exp signals e =
 and equation signals eq_list eq =
   match eq.eq_desc with
     | EQeq(pat, e) -> 
-        { eq with eq_desc = EQeq(pattern signals pat, exp signals e) } :: eq_list
+       { eq with eq_desc =
+		   EQeq(pattern signals pat, exp signals e) } :: eq_list
     | EQinit(n, e0) -> 
         { eq with eq_desc = EQinit(n, exp signals e0) } :: eq_list
     | EQset(ln, e) -> { eq with eq_desc = EQset(ln, exp signals e) } :: eq_list
@@ -329,7 +330,7 @@ and present_handlers signals eq_list handler_list b_opt =
   (* treat the optional default handler *)
   let total, pat_block_list =
     match b_opt with
-      | None -> false, pat_block_list
+    | None -> false, pat_block_list
       | Some(b) -> true, 
           pat_block_list @ 
 	    [{ m_pat = wildpat; m_body = block signals b; 

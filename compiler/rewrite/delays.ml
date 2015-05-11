@@ -15,7 +15,7 @@
 (* Translation of fby/pre/next into init/last *)
 (* After this pass equations are of the form: *)
 (* eq ::= x = e | x = e | der x = e *)
-(*              | init x = e | x = e1 -> e2 *)
+(*              | init x = e *)
 (*              | match e with P1 -> b1 | ... Pn -> bn *)
 (*
     [e1 fby e2] => [let init x = e1 and x = e2 in last x]

@@ -11,7 +11,7 @@
 (*   This file is distributed under the terms of the CeCILL-C licence     *)
 (*                                                                        *)
 (**************************************************************************)
-(* removing every statements *)
+(* removing [der x] definition with resets *)
 open Misc
 open Location
 open Ident
@@ -115,7 +115,8 @@ and equation eq_list ({ eq_desc = desc } as eq) =
     | EQder(n, e, e0_opt, p_h_e_list) ->
         derpresent n e e0_opt p_h_e_list eq_list
     | EQemit(name, e_opt) ->
-        { eq with eq_desc = EQemit(name, Misc.optional_map exp e_opt) } :: eq_list
+       { eq with eq_desc =
+		   EQemit(name, Misc.optional_map exp e_opt) } :: eq_list
     | EQmatch(total, e, m_h_list) ->
         { eq with eq_desc =
             EQmatch(total, exp e, 
@@ -125,17 +126,32 @@ and equation eq_list ({ eq_desc = desc } as eq) =
     | EQpresent(p_h_list, b_opt) ->
         { eq with eq_desc =
             EQpresent
-	      (List.map (fun ({ p_body = b } as p) -> { p with p_body = block b })
+	      (List.map (fun ({ p_cond = c; p_body = b } as p) ->
+			 { p with p_cond = scondpat c; p_body = block b })
                  p_h_list,
                Misc.optional_map block b_opt) } :: eq_list
     | EQreset(res_eq_list, e) ->
-        { eq with eq_desc = EQreset(equation_list res_eq_list, exp e) } :: eq_list
+       { eq with eq_desc =
+		   EQreset(equation_list res_eq_list, exp e) } :: eq_list
     | EQblock(b_eq_list) -> 
        { eq with eq_desc = EQblock(block b_eq_list) } :: eq_list
     | EQautomaton _ -> assert false
 
 and block ({ b_locals = locals; b_body = eq_list } as b) =
   { b with b_locals = List.map local locals; b_body = equation_list eq_list }
+
+and scondpat ({ desc = desc } as scpat) =
+  match desc with
+  | Econdand(scpat1, scpat2) ->
+     { scpat with desc = Econdand(scondpat scpat1, scondpat scpat2) }
+  | Econdor(scpat1, scpat2) ->
+     { scpat with desc = Econdor(scondpat scpat1, scpat2) }
+  | Econdexp(e) ->
+     { scpat with desc = Econdexp(exp e) }
+  | Econdpat(e, p) ->
+     { scpat with desc = Econdpat(exp e, p) }
+  | Econdon(scpat, e) ->
+     { scpat with desc = Econdon(scondpat scpat, exp e) }
 
 let implementation impl =
   match impl.desc with
