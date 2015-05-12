@@ -73,8 +73,9 @@ let named = function
 (** An expression or equation is unsafe if it contains an unsafe operation. *)
 let rec unsafe { e_desc = desc } =
     match desc with
-    | Eapp(Eop(_, f), _) when not (Types.is_a_safe_function f) -> true
-    | Etuple(e_list) | Eapp(_, e_list) -> List.exists unsafe e_list
+    | Eapp((Eop(_, f) | Eevery(_, f)), _) when not (Types.is_a_safe_function f)
+      -> true
+    | Eapp(_, e_list) | Etuple(e_list) -> List.exists unsafe e_list
     | Erecord_access(e, _) | Etypeconstraint(e, _) -> unsafe e
     | Erecord(f_e_list) ->
        List.exists (fun (_, e) -> unsafe e) f_e_list

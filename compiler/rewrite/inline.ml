@@ -12,10 +12,10 @@
 (*                                                                        *)
 (**************************************************************************)
 (* static expansion of function calls (inlining) *)
-(* input:  code in normal form *)
-(* output: output in normal form *)
+(* input: any source code *)
+(* output: any source code *)
 (* inlining is done according to two criteria: *)
-(* - every non atomic function call is expanded. This may change in future *)
+(* - function calls annotated with [inline] *)
 (*   versions of the compiler. *)
 (* - small functions (according to a cost function) are statically expanded *)
 (* we compute an estimated cost for every function definition [f x = e] *)
@@ -54,7 +54,7 @@ let cost_less e max =
       | Elocal _ | Elast _ | Econst _ | Econstr0 _ | Eglobal _ -> ()
       | Eapp(op, e_list) ->
           incr (1 + List.length e_list);
-	  List.iter cost e_list; incr (costop op)
+	  List.iter cost e_list; incr (cost_op op)
       | Etuple(e_list) -> incr 1; List.iter cost e_list
       | Erecord(n_e_list) ->
 	 incr 1; List.iter (fun (label, e) -> cost e) n_e_list
@@ -64,40 +64,60 @@ let cost_less e max =
           incr (match p1_opt with | None -> 1 | Some _ -> 2)
       | Etypeconstraint(e, _) -> cost e
       | Elet(local, e_let) ->
-          costlocal local; cost e_let
+          cost_local local; cost e_let
       | Epresent _ | Ematch _ -> assert false
-  and costop op = 
+  and cost_op op = 
     match op with 
       | Efby | Eunarypre | Eminusgreater -> 2
       | Edisc -> 4
       | Einitial -> 2
       | Eup -> -2
       | Eifthenelse | Etest | Eop _ | Eevery _ -> 1
-  and costblock { b_locals = l_list; b_body = eq_list } =
-    List.iter costlocal l_list; List.iter costeq eq_list
-  and costlocal { l_eq = eq_list } =
-    List.iter costeq eq_list
-  and costeq eq =
+  and cost_block { b_locals = l_list; b_body = eq_list } =
+    List.iter cost_local l_list; List.iter cost_eq eq_list
+  and cost_local { l_eq = eq_list } =
+    List.iter cost_eq eq_list
+  and cost_eq eq =
     match eq.eq_desc with
       | EQeq(_, e) | EQinit(_, e) | EQset(_, e) -> incr 1; cost e
       | EQnext(_, e0, e_opt) -> 
 	  incr 1; cost e0; Misc.optional_unit (fun _ e -> cost e) () e_opt
       | EQmatch(_, e, p_h_list) ->
           cost e;
-          List.iter (fun { m_body = b } -> costblock b) p_h_list
+          List.iter (fun { m_body = b } -> cost_block b) p_h_list
       | EQder(n, e, e0_opt, h) ->
           incr (-2);
           Misc.optional_unit (fun _ e -> cost e) () e0_opt;
           List.iter (fun { p_body = e } -> cost e) h;
           cost e
-      | EQreset(eq_list, e) -> incr 1; List.iter costeq eq_list
+      | EQreset(eq_list, e) -> incr 1; List.iter cost_eq eq_list
       | EQpresent(p_h_list, b_opt) ->
-	  List.iter (fun { p_body = b } -> costblock b) p_h_list;
-	  Misc.optional_unit (fun _ b -> costblock b) () b_opt
+	  List.iter (fun { p_body = b } -> cost_block b) p_h_list;
+	  Misc.optional_unit (fun _ b -> cost_block b) () b_opt
       | EQemit(_, e_opt) ->
 	  Misc.optional_unit (fun _ e -> cost e) () e_opt
-      | EQblock(b) -> costblock b
-      | EQautomaton _ -> assert false in
+      | EQblock(b) -> cost_block b
+      | EQautomaton(_, s_h_list, se_opt) ->
+	 List.iter cost_state_handler s_h_list;
+	 Misc.optional_unit (fun _ se -> cost_state_exp se) () se_opt	 
+  and cost_state_handler { s_body = b; s_trans = esc_list } =
+    cost_block b; List.iter cost_escape esc_list
+  and cost_escape { e_cond = scpat; e_block = b_opt; e_next_state = se } =
+    cost_scpat scpat;
+    Misc.optional_unit (fun _ b -> cost_block b) () b_opt;
+    cost_state_exp se
+  and cost_state_exp { desc = desc } =
+    match desc with
+    | Estate0 _ -> incr 1
+    | Estate1(_, e_list) -> List.iter cost e_list
+  and cost_scpat { desc = desc } =
+    match desc with
+    | Econdand(scpat1, scpat2)
+    | Econdor(scpat1, scpat2) -> cost_scpat scpat1; cost_scpat scpat2
+    | Econdexp(e) | Econdpat(e, _) -> cost e
+    | Econdon(scpat, e) -> cost_scpat scpat; cost e
+    
+  in
   try
     cost e; true
   with

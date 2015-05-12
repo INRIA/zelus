@@ -38,25 +38,29 @@ let print ff table =
   let names ff l =
     Pp_tools.print_list_r Printer.name "{" "," "}" ff (S.elements l) in
   let entry x { c_vars = l; c_unsafe = uns; c_useful = u } =
-    Format.fprintf ff
-      "@[%a -> {c_vars = %a; c_unsafe = %s; c_useful = %s}@]@ "
-      Printer.name x
-      names l
-      (if uns then "true" else "false") (if u then "true" else "false") in
+    Format.fprintf ff "@[%a -> {c_vars = %a; c_unsafe = %s; c_useful = %s}@]@ "
+		   Printer.name x
+		   names l
+		   (if uns then "true" else "false")
+		   (if u then "true" else "false") in
   Env.iter entry table 
 
 (** Add an entry [x, {x1,...,xn}] to a table. If x already exists *)
 (** extends its definition. Otherwise, add the new entry *)
-let add uns r x table =
-  try
-    let ({ c_vars = l; c_unsafe = uns_old } as cont) = Env.find x table in
-    cont.c_vars <- S.union r l;
-    cont.c_unsafe <- uns || uns_old;
-    table
-  with 
+(** for an unsafe expression, add a dummy variable *)
+let add uns w r table =
+  let add x table =
+    try
+      let ({ c_vars = l; c_unsafe = uns_old } as cont) = Env.find x table in
+      cont.c_vars <- S.union r l;
+      cont.c_unsafe <- uns || uns_old;
+      table
+    with 
     | Not_found ->
-        Env.add x { c_vars = r; c_unsafe = uns; c_useful = false } table
-
+       Env.add x { c_vars = r; c_unsafe = uns; c_useful = false } table in
+  S.fold add
+	 (if S.is_empty w && uns then S.singleton (Ident.fresh "") else w) table
+	 
 (* Compute the set of unsafe variables *)
 let unsafe_in_table table =
   Env.fold
@@ -64,15 +68,11 @@ let unsafe_in_table table =
       if uns then S.add x acc else acc) table S.empty
     
 (** Extend [table] where every entry [y -> {x1,...,xn}] *)
-(** is marked to also depend on [after] *)
-(** also add new entries [y1 -> {m1,..., mk}] for [yj] in [before] *)
-(** where then [mi] are unsafe entries in [table] *)
-let extend table before after =
-  let table =
-    Env.map 
-      (fun ({ c_vars = l } as cont) -> { cont with c_vars = S.union l after })
-      table in
-  S.fold (add false (unsafe_in_table table)) before table
+(** is marked to also depend on names in [names] *)
+let extend table names =
+  Env.map 
+    (fun ({ c_vars = l } as cont) -> { cont with c_vars = S.union l names })
+    table
 
 (** Fusion of two tables *)
 let merge table1 table2 =
@@ -87,41 +87,42 @@ let merge table1 table2 =
   Env.fold add table2 table1
 
 (** Build the association table [yk -> { x1,..., xn}] *)     
-let rec build_equation table
-    ({ eq_desc = desc; eq_before = before; eq_after = after }) =
+let rec build_equation table { eq_desc = desc } =
   match desc with
     | EQeq(p, e) ->
        (* is-it an unsafe or stateful expression? *)
        let uns = Letin.unsafe e in
-       let w = fv_pat S.empty before p in
+       let w = fv_pat S.empty S.empty p in
        (* for every [x in w], add the link [x -> {x1, ..., xn }] to table *)
-       let r = fv after e in
-       S.fold (add uns r) w table
+       let r = fv S.empty e in
+       add uns w r table
     | EQset(_, e) ->
-       let r = fv after e in
-       S.fold (add true r) before table
-    | EQnext(n, e, _) | EQinit(n, e) | EQder(n, e, None, []) -> 
+       let r = fv S.empty e in
+       add true S.empty r table
+    | EQinit(n, e) | EQder(n, e, None, []) -> 
        let uns = Letin.unsafe e in
-       let r = fv after e in
-       S.fold (add uns r) (S.add n before) table
+       let r = fv S.empty e in
+       add uns (S.singleton n) r table
     | EQmatch(_, e, m_h_list) ->
-        let after = fv after e in
+        let r = fv S.empty e in
         let table_b =
 	  List.fold_left
-	    (fun table { m_body = b } -> build_block table b) Env.empty m_h_list in
-	merge table (extend table_b before after)
+	    (fun table { m_body = b } -> build_block table b)
+	    Env.empty m_h_list in
+	merge table (extend table_b r)
     | EQreset(res_eq_list, e) ->
-        let after = fv after e in
+        let r = fv S.empty e in
 	let table_res = build_equation_list Env.empty res_eq_list in
-	merge table (extend table_res before after)
-    | EQder _ | EQautomaton _ | EQpresent _ | EQemit _ | EQblock _ -> assert false
+	merge table (extend table_res r)
+    | EQder _ | EQnext _ | EQautomaton _
+    | EQpresent _ | EQemit _ | EQblock _ -> assert false
 
 and build_block table { b_body = eq_list } = build_equation_list table eq_list
   
 and build_local table { l_eq = eq_list } = build_equation_list table eq_list
   
-and build_equation_list table eq_list = List.fold_left build_equation table eq_list
-
+and build_equation_list table eq_list =
+  List.fold_left build_equation table eq_list
 
 (** Visit the table: recursively mark all useful variables *)
 (** returns the set of useful variables *)
@@ -154,15 +155,15 @@ let visit read table =
 let is_empty_block { b_locals = l; b_body = eq_list } = (l = []) && (eq_list = [])
 
 (** Remove useless equations. [useful] is the set of useful names *)
-let rec remove_equation useful
-    ({ eq_desc = desc; eq_before = before; eq_after = after } as eq) eq_list =
+let rec remove_equation useful ({ eq_desc = desc } as eq) eq_list =
   match desc with
     | EQeq(p, e) ->
-        let w = fv_pat S.empty before p in
-	if S.exists (fun x -> S.mem x useful) w
-	then (* the equation is useful *) eq :: eq_list else eq_list
+       let uns = Letin.unsafe e in
+       let w = fv_pat S.empty S.empty p in
+       if uns || S.exists (fun x -> S.mem x useful) w
+       then (* the equation is useful *) eq :: eq_list else eq_list
     | EQset _ -> eq :: eq_list
-    | EQder(n, e, None, []) | EQinit(n, e) | EQnext(n, e, None) ->
+    | EQder(n, e, None, []) | EQinit(n, e) ->
        if S.mem n useful then eq :: eq_list else eq_list
     | EQmatch(total, e, m_h_list) ->
        let m_h_list = 
@@ -185,8 +186,9 @@ and remove_equation_list useful eq_list =
   List.fold_right (remove_equation useful) eq_list []
 
 and remove_block useful 
-    ({ b_vars = n_list; b_body = eq_list; 
-       b_write = ({ dv = w } as defnames); b_env = n_env } as b) =
+		 ({ b_vars = n_list; b_body = eq_list; 
+		    b_write = ({ dv = w } as defnames);
+		    b_env = n_env } as b) =
   let eq_list = remove_equation_list useful eq_list in
   let n_list = List.filter (fun x -> S.mem x useful) n_list in
   let n_env = Env.filter (fun x entry -> S.mem x useful) n_env in
