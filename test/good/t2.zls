@@ -15,10 +15,10 @@ let node g (x,y,z) =
 
 let f (x, y) = x + y
 
-
 let node main () =
   let rec nat = 0 -> pre nat + 1 in
   print_int nat;
   print_newline ()
 
 let r () = 1
+

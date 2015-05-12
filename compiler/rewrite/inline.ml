@@ -175,20 +175,25 @@ let build env =
     Env.add n m renaming in
   Env.fold buildrec env (Env.empty, Env.empty)
 
+(** rename a variable *)
+let rename x renaming =
+  try Env.find x renaming
+  with Not_found ->
+    Misc.internal_error "Inline: unbound name" Printer.name x
+
 (** Renaming of patterns *)
 let rec pattern renaming ({ p_desc = desc } as p) =
   match desc with
     | Ewildpat | Econstpat _ | Econstr0pat _ -> p
-    | Evarpat(n) ->
-        begin try { p with p_desc = Evarpat(Env.find n renaming) }
-          with Not_found -> p end
+    | Evarpat(n) ->  { p with p_desc = Evarpat(rename n renaming) }
     | Etuplepat(p_list) ->
         { p with p_desc = Etuplepat(List.map (pattern renaming) p_list) }
     | Erecordpat(n_p_list) ->
         { p with p_desc =
-            Erecordpat(List.map (fun (ln, p) -> (ln, pattern renaming p)) n_p_list) }
+		   Erecordpat(List.map (fun (ln, p) -> (ln, pattern renaming p))
+				       n_p_list) }
     | Ealiaspat(p1, n) ->
-        let n = try Env.find n renaming with Not_found -> n in
+        let n = rename n renaming in
         { p with p_desc = Ealiaspat(pattern renaming p1, n) }
     | Eorpat(p1, p2) ->
         { p with p_desc = Eorpat(pattern renaming p1, pattern renaming p2) }
@@ -199,12 +204,8 @@ let rec pattern renaming ({ p_desc = desc } as p) =
 let rec expression renaming ({ e_desc = desc } as e) =
   match desc with
   | Econst _ | Econstr0 _ | Eglobal _ -> e
-  | Elocal(n) ->
-     begin try { e with e_desc = Elocal(Env.find n renaming) }
-           with Not_found -> e end
-  | Elast(n) ->
-     begin try { e with e_desc = Elast(Env.find n renaming) }
-           with Not_found -> e end
+  | Elocal(n) -> { e with e_desc = Elocal(rename n renaming) }
+  | Elast(n) -> { e with e_desc = Elast(rename n renaming) }
   | Etuple(e_list) ->
      { e with e_desc = Etuple(List.map (expression renaming) e_list) }
   | Erecord(n_e_list) -> 
@@ -268,16 +269,15 @@ and equation renaming ({ eq_desc = desc } as eq) =
       | EQeq(p, e) ->
           { eq with eq_desc = EQeq(pattern renaming p, expression renaming e) }
       | EQinit(x, e0) ->
-          { eq with eq_desc = 
-	      EQinit(Env.find x renaming, expression renaming e0) }
+          { eq with eq_desc = EQinit(rename x renaming, expression renaming e0) }
       | EQnext(x, e, e0_opt) ->
           { eq with eq_desc = 
-	      EQnext(Env.find x renaming, expression renaming e,
+	      EQnext(rename x renaming, expression renaming e,
 		     Misc.optional_map (expression renaming) e0_opt) }
       | EQset(ln, e) -> 
 	{ eq with eq_desc = EQset(ln, expression renaming e) }
       | EQder(x, e, e0_opt, p_e_list) ->
-         let rename { p_cond = sc; p_body = e; p_env = env } =
+         let body { p_cond = sc; p_body = e; p_env = env } =
 	   let env, renaming0 = build env in
 	   let renaming = Env.append renaming0 renaming in
 	   { p_cond = scondpat renaming sc;
@@ -286,35 +286,86 @@ and equation renaming ({ eq_desc = desc } as eq) =
 	 let e = expression renaming e in
          let e0_opt = Misc.optional_map (expression renaming) e0_opt in
          { eq with eq_desc =
-		     EQder(Env.find x renaming, e, e0_opt,
-			   List.map rename p_e_list) }
+		     EQder(rename x renaming, e, e0_opt,
+			   List.map body p_e_list) }
       | EQmatch(total, e, m_b_list) ->
-          let rename ({ m_pat = p; m_body = b; m_env = env } as m_h) =
+          let body ({ m_pat = p; m_body = b; m_env = env } as m_h) =
             let env, renaming0 = build env in
             let renaming = Env.append renaming0 renaming in
-            { m_h with m_pat = pattern renaming p;
-              m_body = block renaming b;
-              m_env = env } in
+            let _, b = block renaming b in
+	    { m_h with m_pat = pattern renaming p;
+              m_body = b; m_env = env } in
           let e = expression renaming e in
-          { eq with eq_desc = EQmatch(total, e, List.map rename m_b_list) }
+          { eq with eq_desc = EQmatch(total, e, List.map body m_b_list) }
       | EQreset(eq_list, e) ->
           { eq with eq_desc =  EQreset(List.map (equation renaming) eq_list,
 				       expression renaming e) }
       | EQpresent(p_h_list, b_opt) ->
-	  let rename { p_cond = sc; p_body = b; p_env = env } =
+	  let body { p_cond = sc; p_body = b; p_env = env } =
             let env, renaming0 = build env in
             let renaming = Env.append renaming0 renaming in
-            { p_cond = scondpat renaming sc;
-              p_body = block renaming b;
-              p_env = env } in
-          let b_opt = Misc.optional_map (block renaming) b_opt in
-	  { eq with eq_desc = EQpresent(List.map rename p_h_list, b_opt) }
+            let _, b = block renaming b in
+	    { p_cond = scondpat renaming sc;
+              p_body = b; p_env = env } in
+          let b_opt =
+	    Misc.optional_map (fun b -> let _, b = block renaming b in b) b_opt in
+	  { eq with eq_desc = EQpresent(List.map body p_h_list, b_opt) }
       | EQemit(x, e_opt) ->
 	 { eq with eq_desc =
-		     EQemit(Env.find x renaming, 
+		     EQemit(rename x renaming, 
 			    Misc.optional_map (expression renaming) e_opt) }
-      | EQblock(b) -> { eq with eq_desc = EQblock(block renaming b) } 
-      | EQautomaton _ -> assert false
+      | EQblock(b) ->
+	 let _, b = block renaming b in { eq with eq_desc = EQblock(b) } 
+      | EQautomaton(is_weak, s_h_list, se_opt) ->
+	 let build_state_names renaming { s_state = { desc = desc } } =
+	   match desc with
+	   | Estate0pat(n) | Estate1pat(n, _) ->
+			      let m = Ident.fresh (Ident.source n) in
+			      Env.add n m renaming in
+	 let statepat renaming ({ desc = desc } as spat) =
+	   match desc with
+	   | Estate0pat(x) -> { spat with desc = Estate0pat(rename x renaming) }
+	   | Estate1pat(x, x_list) ->
+	      let x = rename x renaming in
+	      let x_list = List.map (fun x -> rename x renaming) x_list in
+	      { spat with desc = Estate1pat(x, x_list) } in
+	 let state_exp renaming ({ desc = desc } as se) =
+	   match desc with
+	   | Estate0(x) -> { se with desc = Estate0(rename x renaming) }
+	   | Estate1(x, e_list) ->
+	      { se with desc =
+			  Estate1(rename x renaming,
+				  List.map (expression renaming) e_list) } in
+	 let escape renaming ({ e_cond = scpat; e_block = b_opt;
+				e_next_state = se; e_env = env } as esc) =
+	   let env, renaming0 = build env in
+	   let renaming = Env.append renaming0 renaming in
+	   let renaming, b_opt =
+	     match b_opt with
+	     | None -> renaming, None
+	     | Some(b) ->
+		let renaming, b = block renaming b in renaming, Some(b) in
+	   { esc with e_cond = scondpat renaming scpat; 
+		      e_block = b_opt;
+		      e_next_state = state_exp renaming se;
+		      e_env = env } in
+	 let body renaming
+	       ({ s_state = spat; s_body = b; s_trans = esc_list;
+		 s_env = env } as h) =
+	   let env, renaming0 = build env in
+	   let renaming = Env.append renaming0 renaming in
+	   let spat = statepat renaming spat in
+	   let renaming, b = block renaming b in
+	   { h with s_state = spat;
+		    s_body = b;
+		    s_trans = List.map (escape renaming) esc_list;
+		    s_env = env } in
+	 let renaming =
+	   List.fold_left build_state_names renaming s_h_list in
+	 let se_opt = Misc.optional_map (state_exp renaming) se_opt in
+	 { eq with eq_desc =
+		     EQautomaton(is_weak, List.map (body renaming) s_h_list,
+				 se_opt) }
       
 and scondpat renaming ({ desc = desc } as sc) =
   match desc with
@@ -330,12 +381,13 @@ and scondpat renaming ({ desc = desc } as sc) =
 	    Econdon(scondpat renaming sc1, expression renaming e) }
     | Econdpat(e, p) ->
         { sc with desc = Econdpat(expression renaming e, pattern renaming p) }
-  
+
+
 and block renaming 
     ({ b_vars = n_list; b_locals = l_list; b_body = eq_list; 
        b_write = { dv = dv; di = di; der = der }; b_env = n_env } as b) =
   (* rename a write variable *)
-  let rename_write renaming dv = S.map (fun x -> Env.find x renaming) dv in
+  let rename_write renaming dv = S.map (fun x -> rename x renaming) dv in
   let rec local_list renaming l_list =
     match l_list with
     | [] -> renaming, []
@@ -345,9 +397,10 @@ and block renaming
        renaming, l :: l_list in
   
   let n_env, renaming0 = build n_env in
-  let n_list = List.map (fun x -> Env.find x renaming0) n_list in
   let renaming = Env.append renaming0 renaming in
+  let n_list = List.map (fun x -> rename x renaming) n_list in
   let renaming_l, l_list = local_list renaming l_list in
+  renaming_l,
   { b with b_vars = n_list; b_locals = l_list; 
     b_body = List.map (equation renaming_l) eq_list; 
     b_write = { dv = rename_write renaming dv; 
@@ -360,9 +413,11 @@ let implementation acc impl =
     | Econstdecl(f, e) ->
        let e = expression Env.empty e in
        { impl with desc = Econstdecl(f, e) } :: acc
-    | Efundecl(f, ({ f_body = e } as body)) ->
-       let e = expression Env.empty e in
-       let body = { body with f_body = e } in
+    | Efundecl(f, ({ f_args = p_list; f_body = e; f_env = f_env } as body)) ->
+       let f_env, renaming = build f_env in
+       let p_list = List.map (pattern renaming) p_list in
+       let e = expression renaming e in
+       let body = { body with f_args = p_list; f_body = e; f_env = f_env } in
        (* store the code into the global symbol table *)
        store f body;
        { impl with desc = Efundecl(f, body) } :: acc

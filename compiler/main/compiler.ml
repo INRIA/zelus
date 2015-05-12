@@ -151,6 +151,12 @@ let compile modname filename =
       if !verbose then comment "Mark functions calls to be inlined. See below:";
       if !verbose then Printer.implementation_list info_ff impl_list;
       
+      (* Static expansion of function calls (inlining) *)
+      (* inlined code is stored into a global symbol table *)
+      let impl_list = Inline.implementation_list impl_list in
+      if !verbose then comment "Inlining of function calls. See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
       (* Elimation of automata *)
       let impl_list = Automata.implementation_list impl_list in
       if !verbose then comment "Translation of automata done. See below:";
@@ -159,12 +165,6 @@ let compile modname filename =
       (* Elimation of activations *)
       let impl_list = Activate.implementation_list impl_list in
       if !verbose then comment "Translation of activations done. See below:";
-      if !verbose then Printer.implementation_list info_ff impl_list;
-      
-      (* Static expansion of function calls (inlining) *)
-      (* inlined code is stored into a global symbol table *)
-      let impl_list = Inline.implementation_list impl_list in
-      if !verbose then comment "Inlining of function calls. See below:";
       if !verbose then Printer.implementation_list info_ff impl_list;
       
       (* Elimination of presents. *)
