@@ -54,9 +54,12 @@ let plus e1 e2 =
   make (Oapp(Modname (Initial.pervasives_name "(+)"), [e1; e2]))
 let lte e1 e2 = 
   make (Oapp(Modname (Initial.pervasives_name "(<=)"), [e1; e2]))
+let lt e1 e2 = 
+  make (Oapp(Modname (Initial.pervasives_name "(<)"), [e1; e2]))
 let neq e1 e2 = 
   make (Oapp(Modname (Initial.pervasives_name "(<>)"), [e1; e2]))
 let onot e = make (Oapp(Modname (Initial.pervasives_name "not"), [e]))
+let oand e1 e2 = make (Oapp(Modname (Initial.pervasives_name "(&&)"), [e1; e2]))
 let oassign id e = make (Oassign(Oleft_name(id), e))
 let oassign_state id e = make (Oassign_state(Oleft_state_name(id), e))
 let oletvar id ty e_opt e = make (Oletvar(id, ty, e_opt, e))
@@ -79,6 +82,9 @@ let snd e = make (Oapp(Modname (Initial.pervasives_name "snd"), [e]))
 
 let for_loop i e1 e2 body =
   make (Ofor(true, i, e1, e2, body))
+
+let if_then ec cmd =
+  make (Oifthenelse (ec, cmd, void))
 
 (* arrays in which states are stored *)
 let cvec  = Ident.fresh "cvec" (* vector of positions *)
@@ -257,15 +263,13 @@ let zout (ztable, zsize) instances =
                                                             Ozero_out))))) in
   inout (ztable, zsize) Ozout assign zstart zout_vec instances
 
-(* Add a method dzero dvec cstart = cstart' which resets to 0 the internal *)
+(* TODO: Add a method dzero dvec cstart = cstart' which resets to 0 the internal *)
 (* derivatives in [dvec] from position [cstart]. Returns the new position *)
 let dzero (ctable, csize) instances =
-  let assign n index =
-    make (Oassign(Oleft_index(Oleft_name(dvec),
-                              plus (var cstart)
-                                       (make (Oconst(Oint(index))))),
-                  (make (Oconst(Ofloat(0.)))))) in
-  inout (ctable, csize) Odzero assign cstart dvec instances
+  let set n _ =
+    make (Oassign_state(Oleft_state_primitive_access(Oleft_state_name(n), 
+                                                     Oderivative), float_const 0.0)) in
+  inout_const (ctable, csize) Odzero set instances
 
 (** Translate a continuous-time machine *)
 let machine f ({ m_memories = m_list; m_instances = instances;
@@ -358,9 +362,9 @@ let simulate f =
              olet (varpat csize)
                   (call Ocout [var cvec; int_const 0])
                   (sequence
-                     [for_loop i (int_const 0)
-                                 (plus (var csize) (int_const (-1)))
-                                 (set dvec (var i) (float_const 0.0));
+                     [if_then (oand (lte (float_const 0.0) (var t))
+                                    (lt  (var t) (var horizon)))
+                        (ignore (call Odzero []));
                       tuple [var output; var horizon]])])]) };
        { m_name = Oderivatives;
          m_param = [varpat cvec; varpat dvec; varpat t];
