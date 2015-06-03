@@ -88,7 +88,7 @@ type res = | Res_never | Res_else of res * Lmm.exp
 				      
 let on ck c = Ck_on(ck, Lmm.Elocal(c))
 let relse res c = Res_else(res, c)
-		   
+
 (* from a clock to a boolean expression *)
 let rec clock = function
   | Ck_base -> e_true
@@ -160,28 +160,8 @@ let operator ck op e_list =
 (* renaming of a name by an other *)
 let rename x subst =
   try Env.find x subst
-  with | Not_found -> assert false
+  with | Not_found -> x (* assert false *)
 			     
-(* [subst] is a substitution to rename [last x] by a fresh variable [lx] *)
-let rec expression ck subst { e_desc = desc } =
-  match desc with
-  | Elocal(id) -> Lmm.Elocal(id)
-  | Eglobal(lid) -> Lmm.Eglobal(lid)
-  | Econst(im) -> Lmm.Econst(im)
-  | Econstr0(lid) -> Lmm.Econstr0(lid)
-  | Elast(lx) -> Lmm.Elocal(rename lx subst)
-  | Eapp(op, e_list) ->
-     operator ck op (List.map (expression ck subst) e_list)
-  | Etuple(e_list) ->
-     Lmm.Etuple(List.map (expression ck subst) e_list)
-  | Erecord_access(e, lid) ->
-     Lmm.Erecord_access(expression ck subst e, lid)
-  | Erecord(l_e_list) ->
-     Lmm.Erecord
-       (List.map (fun (l, e) -> (l, expression ck subst e)) l_e_list)
-  | Etypeconstraint(e, _) -> expression ck subst e
-  | Epresent _ | Ematch _ | Elet _ | Eseq _ | Eperiod _ -> assert false
-								  
 (* the set of shared variables from a set of defined names *)
 let shared_variables { dv = dv } = dv
 				     
@@ -199,7 +179,28 @@ let get x name_to_exp subst =
     Env.find x name_to_exp
   with
   | Not_found -> pre x subst
-		      
+
+(* [subst] is a substitution to rename [last x] by a fresh variable [lx] *)
+let rec expression ck subst { e_desc = desc } =
+  match desc with
+  | Elocal(id) -> Lmm.Elocal(id)
+  | Eglobal(lid) -> Lmm.Eglobal(lid)
+  | Econst(im) -> Lmm.Econst(im)
+  | Econstr0(lid) -> Lmm.Econstr0(lid)
+  | Elast(x) -> pre x subst
+  | Eapp(op, e_list) ->
+     operator ck op (List.map (expression ck subst) e_list)
+  | Etuple(e_list) ->
+     Lmm.Etuple(List.map (expression ck subst) e_list)
+  | Erecord_access(e, lid) ->
+     Lmm.Erecord_access(expression ck subst e, lid)
+  | Erecord(l_e_list) ->
+     Lmm.Erecord
+       (List.map (fun (l, e) -> (l, expression ck subst e)) l_e_list)
+  | Etypeconstraint(e, _) -> expression ck subst e
+  | Epresent _ | Ematch _ | Elet _ | Eseq _ | Eperiod _ -> assert false
+								  
+
 (* [split s_set eqs = [eqs_acc, name_to_exp] splits eqs into *)
 (* two complementary sets of equations *)
 (* [name_to_exp] associates an expression to any names from [s_set] *)
@@ -233,13 +234,6 @@ let rec equation ck res subst
 		 ({ eqs = eqs; env = env; assertion = assertion } as acc)
 		 { eq_desc = desc; eq_write = defnames } = 
   match desc with
-  | EQeq({ p_desc = Evarpat(id) }, e) ->
-     (* if [id] is a register name, then equation is translated *)
-     (* into [id = if ck then e else pre(id)] *)
-     let e = expression ck subst e in
-     let e =
-       if Env.mem id subst then ifthenelse (clock ck) e (pre id subst) else e in
-     { acc with eqs = (eq_make (Lmm.Evarpat(id)) e) :: eqs }
   | EQeq(p, e) ->
      let n = Ident.fresh "" in
      let ({ eqs = eqs; env = env } as acc), _ = filter acc p (Lmm.Elocal(n)) in
@@ -302,9 +296,14 @@ let rec equation ck res subst
 	 s_set eqs in
      { eqs = eqs; env = env; assertion = assertion }
   | EQinit(x, e) ->
+     let unarypre_with_clock ck x lx =
+       Lmm.Eapp(Lmm.Eunarypre,
+		[ifthenelse (clock ck) (Lmm.Elocal(x)) (Lmm.Elocal(lx))]) in
      (* the initialization is reset every time [res] is true *)
+     (* produce [last_x = if res then e else pre(if ck then x else last_x)] *)
      let e = expression ck subst e in
-     let e = ifthenelse (reset res) e (unarypre x) in
+     let e = ifthenelse (reset res) e
+       (unarypre_with_clock ck x (rename x subst)) in
      { acc with eqs = (eq_make (Lmm.Evarpat(rename x subst)) e) :: eqs }
   | EQnext _ | EQset _ | EQblock _ | EQemit _ | EQautomaton _
   | EQpresent _ | EQder _ -> assert false

@@ -66,7 +66,7 @@ let rec expression ff e =
 and operator ff op e_list =
   match op, e_list with
   | Eunarypre, [e] ->
-     fprintf ff "@[pre@ %a@]" expression e
+     fprintf ff "@[pre@ (%a)@]" expression e
   | Eminusgreater, [e1; e2] ->
      fprintf ff "@[%a ->@ %a@]" expression e1 expression e2
   | Eifthenelse, [e1; e2; e3] ->
