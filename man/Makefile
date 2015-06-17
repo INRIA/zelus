@@ -56,8 +56,13 @@ $(WWWMAN)/index.html: $(WWWMAN)/manual.html
 # 3. Integrate into the main website (using xlst).
 wwwman: $(WWWMAN)/index.html css js \
     inc-header.html inc-javascript.html inc-titlebar.html
+	@if [ ! -f "$@/manual.haux" ]; then			   	   \
+	    printf >&2 'wwwman: %s\n'					   \
+	    	"cannot transform twice! (re-make $(WWWMAN)/manual.html)"; \
+	    exit 1;							   \
+	fi
 	mkdir -p $@
-	for f in $$(ls $(WWWMAN)/*.html); do			       	   \
+	for f in $$(ls $@/*.html); do			       	   	   \
 	    $(XSLTPROC) --output $@/$${f#*/}.2 --html			   \
 	    	--param isindex `if [ "$$f" = "$(WWWMAN)/index.html" ];    \
 	    	     		 then echo 1; else echo 0; fi`		   \
@@ -68,8 +73,8 @@ wwwman: $(WWWMAN)/index.html css js \
 	done
 	cp Fig/bouncingball.png $@/
 	cp manual.pdf $@/
-	rm $@/contents_motif.gif $@/next_motif.gif $@/previous_motif.gif
-	rm $@/manual.haux $@/manual.htoc $@/manual.image.tex
+	rm -f $@/contents_motif.gif $@/next_motif.gif $@/previous_motif.gif
+	rm -f $@/manual.haux $@/manual.htoc $@/manual.image.tex
 
 css:
 	ln -s ../www/www/$@
