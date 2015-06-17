@@ -282,7 +282,7 @@
 
 {\Large Marc Pouzet} \\[2ex]
 {\Large Albert Benveniste, Timothy Bourke and Benoit Caillaud} \\[4ex]
-{\large Project Team PARKAS, \\
+{\large Inria Project Team PARKAS, \\
 \'Ecole normale sup\'erieure, \\ 45 rue d'Ulm,
 75230 Paris, France} \\[2ex]
 {\Large January 2015} \\
@@ -2034,13 +2034,13 @@ logical and local.
 % }-}3
 \subsection{Local State Definitions\label{statelocaldefs}} %{-{3
 
-It is possible to define names which are local to a state. These names
-can only be used inside the body of the state and may be used in weak
-conditions only.
+Names may be declared local to a state.
+Such names can only be used inside the body of the state and in the guards 
+of outgoing weak transitions.
 
-The following programs integrates the integer sequence \verb-v- and
-emits false until the sum has reached some value \verb-max-. Then, it
-emits \verb-true- during \verb-n- instants.
+The following program integrates the integer sequence \zls{v} and emits 
+false until the sum has reached some value \zls{max}. Then, it
+emits \zls{true} during \zls{n} instants.
 \begin{chklisting}
 let node consume (max, n, v) = status where
   automaton
@@ -2055,8 +2055,8 @@ let node consume (max, n, v) = status where
   end
 \end{chklisting}
 
-State \verb-S1- defines a local variable \verb-c- which can be used to
-compute the weak condition \verb-c = max- and this does not introduce
+State \zls{S1} defines a local variable \zls{c} which can be used to
+compute the weak condition \zls{c = max} and this does not introduce
 any causality problem. Indeed, weak transitions are only effective
 during the next reaction, that is, they define the next state, not the
 current one. Moreover, there is no restriction on the kind of
