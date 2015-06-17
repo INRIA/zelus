@@ -40,13 +40,20 @@ manual.bbl:
 	$(BIBTEX) manual
 	$(PDFLATEX) manual
 
-$(WWWMAN)/manual.html: manual.tex manual.pdf samples/tutorial0001.html
-	mkdir -p $(WWWMAN)
-	$(HEVEA) -fix zelus.hva $< -o $@
+### Generating the web pages
 
+# 1. Generate a basic page with HeVeA.
+$(WWWMAN)/manual.html: manual.tex manual.bbl manual.pdf samples/tutorial0001.html
+	mkdir -p $(WWWMAN)
+	cp manual.bbl $(WWWMAN)/
+	$(HEVEA) -fix zelus.hva $< -o $@
+	rm $(WWWMAN)/manual.bbl
+
+# 2. Cut it up into pieces with HaChA.
 $(WWWMAN)/index.html: $(WWWMAN)/manual.html
 	cd $(WWWMAN) && $(HACHA) $(notdir $<)
 
+# 3. Integrate into the main website (using xlst).
 wwwman: $(WWWMAN)/index.html css js \
     inc-header.html inc-javascript.html inc-titlebar.html
 	mkdir -p $@
@@ -88,6 +95,8 @@ inc-javascript.html: ../www/src/inc-javascript.html
 
 inc-titlebar.html: ../www/src/inc-titlebar.html
 	cp $< $@
+
+###
 
 clean:
 	rm -f *.aux *.log *.toc *.html *.ml *.zci *.gz *.gif \
