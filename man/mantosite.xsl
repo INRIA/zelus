@@ -26,6 +26,12 @@
   <xsl:template match="p[not(@*|*|comment()|processing-instruction()) 
                          and normalize-space()='']" />
 
+  <!--add srcset for retina displays-->
+  <xsl:template match="img">
+    <img src="{@src}"
+         srcset="{concat(substring-before(@src, '.png'), '@2x.png 2x')}" />
+  </xsl:template>
+
   <!--add ../ to all a:hrefs-->
   <xsl:template mode="adjustpaths" match="a">
     <a>

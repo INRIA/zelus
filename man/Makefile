@@ -9,6 +9,7 @@ WWWMAN=wwwman
 PS2PDF=ps2pdf
 HEVEA=hevea
 HACHA=hacha
+IMAGEN=imagen
 PDFLATEX=pdflatex
 XSLTPROC=xsltproc
 BIBTEX=bibtex
@@ -47,6 +48,14 @@ $(WWWMAN)/manual.html: manual.tex manual.bbl manual.pdf samples/tutorial0001.htm
 	mkdir -p $(WWWMAN)
 	cp manual.bbl $(WWWMAN)/
 	$(HEVEA) -fix zelus.hva $< -o $@
+	for f in $(WWWMAN)/*.png; do		\
+		mv $$f $$f.lowres;		\
+	done
+	$(IMAGEN) -res 200 $(@:.html=)
+	for f in $(WWWMAN)/*.png; do		\
+		mv $$f $${f%.png}@2x.png;	\
+		mv $$f.lowres $${f};		\
+	done
 	rm $(WWWMAN)/manual.bbl
 
 # 2. Cut it up into pieces with HaChA.
@@ -72,6 +81,7 @@ wwwman: $(WWWMAN)/index.html css js \
 		  && mv $@/$${f#*/}.2 $@/$${f#*/};			   \
 	done
 	cp Fig/bouncingball.png $@/
+	convert $@/bouncingball.png -scale '200%' $@/bouncingball@2x.png
 	cp manual.pdf $@/
 	rm -f $@/contents_motif.gif $@/next_motif.gif $@/previous_motif.gif
 	rm -f $@/manual.haux $@/manual.htoc $@/manual.image.tex
