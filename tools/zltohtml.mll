@@ -105,17 +105,18 @@ rule main = parse
 
   | ([' ' '\010' '\013' '\009' '\012'] + as s)   { print s; main lexbuf }
 
-  | "&"   { print "&amp;"; main lexbuf }
-  | ">"   { print "&gt;";  main lexbuf }
-  | ">="  { print "&gt;="; main lexbuf }
-  | "<"   { print "&lt;";  main lexbuf }
-  | "<="  { print "&lt;="; main lexbuf }
+  | "&"   { print "&amp;";      main lexbuf }
+  | "&&"  { print "&amp;&amp;"; main lexbuf }
+  | ">"   { print "&gt;";       main lexbuf }
+  | ">="  { print "&gt;=";      main lexbuf }
+  | "<"   { print "&lt;";       main lexbuf }
+  | "<="  { print "&lt;=";      main lexbuf }
 
-  | "->" { print "-&gt;"; main lexbuf }
-  | "=>" { print "=&gt;"; main lexbuf }
-  | "~>" { print "~&gt;"; main lexbuf }
+  | "->"  { print "-&gt;";      main lexbuf }
+  | "=>"  { print "=&gt;";      main lexbuf }
+  | "~>"  { print "~&gt;";      main lexbuf }
 
-  | "*"  { print "∗"; main lexbuf }   (* unicode: 0x2217 *)
+  | "*"   { print "∗";          main lexbuf }   (* unicode: 0x2217 *)
 
   | "."
   | "("
