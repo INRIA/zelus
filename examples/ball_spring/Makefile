@@ -1,7 +1,6 @@
 include ../../config
 
 EXAMPLE=ball_spring.zls
-ZLEXTRALIBS = $(ZLGTKLIBS)
 
 default: $(word 1, $(targets))
 all:  $(targets)
