@@ -110,6 +110,7 @@ rule main = parse
   | ">"   { print "&gt;";       main lexbuf }
   | ">="  { print "&gt;=";      main lexbuf }
   | "<"   { print "&lt;";       main lexbuf }
+  | "<>"  { print "&lt;&gt;";   main lexbuf }
   | "<="  { print "&lt;=";      main lexbuf }
 
   | "->"  { print "-&gt;";      main lexbuf }
