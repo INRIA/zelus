@@ -238,6 +238,11 @@ and comment = parse
   | "'" '\\' ['0'-'9'] ['0'-'9'] ['0'-'9'] "'"
       { printspan "character" (Lexing.lexeme lexbuf); comment lexbuf }
 
+  | ">"   { print "&gt;";  comment lexbuf }
+  | ">="  { print "&gt;="; comment lexbuf }
+  | "<"   { print "&lt;";  comment lexbuf }
+  | "<="  { print "&lt;="; comment lexbuf }
+
   | eof
       { raise(Lexical_error(Unterminated_comment,
                             (0,Lexing.lexeme_start lexbuf))) }
