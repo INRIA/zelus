@@ -99,16 +99,18 @@ rm -f ${GENERATED}/gen-examples-body.html \
 for ENTRY in ${EXAMPLES}; do
     EX=${ENTRY}/readme.md
     EXDIR=`dirname ${EX}`
-    EXNAME=`basename ${EXDIR}`
+    EXNAME="ex-$(basename ${EXDIR})"
     TITLE=`sed -n "s/##* \([^#]*\) ##*/\1/p;q" "${EX}"`
 
     printf "<div id=\"${EXNAME}\" class=\"example-section\">\n" \
 	>> "${GENERATED}/gen-examples-body.html"
     IFS="
 "
-    (cat ${EX}					    \
-	| ${MARKDOWN}				    \
-	| sed -e 's/<figcaption>[^>]*<\/figcaption>//' \
+    (cat ${EX}						\
+	| ${MARKDOWN}					\
+	| sed -e 's/<figcaption>[^>]*<\/figcaption>//'	\
+	      -e 's/<figure>/<p>/'			\
+	      -e 's#</figure>#</p>#'			\
 	| while read LINE
     do
 	case "${LINE}" in
@@ -133,7 +135,7 @@ EOF
 		printf '<div class="requirements">\n'
 		printf '<p class="text-info">\n'
 		printf '<i class="icon-info-sign"></i> <em>Requires</em>:\n'
-		printf `expr "$LINE" : '.*!REQUIRES: *\(.*\)'`
+		printf `expr "$LINE" : '.*!REQUIRES: *\([^<]*\).*'`
 		printf '\n</p>\n'
 		printf '</div>\n'
 		;;
@@ -190,7 +192,7 @@ for BIB in src/*.bib; do
 	-e 's/^<\/p><p>//' \
 	-e '/\[<a name="[^0-9]*[0-9]*">.*<\/a>\]/s/<sup>//g' \
 	-e '/\[<a name="[^0-9]*[0-9]*">.*<\/a>\]/s/<\/sup>//g' \
-	-e 's/\[<a name="\([^0-9]*\)\([0-9]*\)">[^<]*<\/a>\]/<a id="\1\2" class="biblink" name="\1\2">\1 \2<\/a>/' \
+	-e 's/\[<a name="\([^0-9]*\)\([0-9]*\)">[^<]*<\/a>\]/<a id="\1\2" class="biblink">\1 \2<\/a>/' \
 	-e 's/.*<a href="\([^"]*\)">DOI<\/a>.*/<span class="bibref"><a href="\1"><i class="icon-globe"><\/i> DOI<\/a><\/span>/' \
 	-e 's/.*<a href="\([^"]*\)">.pdf<\/a>.*/<span class="bibref"><a href="\1"><i class="icon-file"><\/i> pdf<\/a><\/span>/' \
 	-e 's/.*<a href="\([^"]*\)">bib<\/a>.*/<span class="bibref"><a href="\1"><i class="icon-book"><\/i> bib<\/a><\/span>/' \
@@ -199,8 +201,8 @@ for BIB in src/*.bib; do
 
     grep '<a id="[^>]*".*' "${GENERATED}/${NAME}.html" | while read line
     do
-	BIBKEY=`expr "${line}" : '<a id="\([^"]*\)" class="[^"]*" name="[^"]*">[^<]*</a>'`
-	BIBNAME=`expr "${line}" : '<a id="[^"]*" class="[^"]*" name="[^"]*">\([^<]*\)</a>'`
+	BIBKEY=`expr "${line}" : '<a id="\([^"]*\)" class="[^"]*">[^<]*</a>'`
+	BIBNAME=`expr "${line}" : '<a id="[^"]*" class="[^"]*">\([^<]*\)</a>'`
 	printf "<li><a href=\"#${BIBKEY}\">${BIBNAME}</a></li>\n" \
 	    >> ${GENERATED}/gen-bib-nav-local.html
     done
@@ -232,7 +234,9 @@ for SRC in ${SOURCES}; do
 		printf "${LINE}\n"
 		;;
 	esac
-    done) >> ${DST}
+    done) >> "${DST}-pre"
+    xsltproc --output "${DST}" --html postproc.xsl "${DST}-pre"
+    rm -f "${DST}-pre"
     printf "added: ${DST}\n"
 done
 

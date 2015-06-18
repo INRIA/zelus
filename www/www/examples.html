@@ -1,14 +1,14 @@
-<!DOCTYPE html>
+<!DOCTYPE html SYSTEM "about:legacy-compat">
 <html lang="en">
 <head>
 
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link href="./css/bootstrap.min.css"            rel="stylesheet">
-<link href="./css/zelus.css"                    rel="stylesheet">
+<link href="./css/bootstrap.min.css" rel="stylesheet">
+<link href="./css/zelus.css" rel="stylesheet">
 <link href="./css/bootstrap-responsive.min.css" rel="stylesheet">
-<link href="./css/zelus-src.css"                rel="stylesheet">
+<link href="./css/zelus-src.css" rel="stylesheet">
 <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
 <!--[if lt IE 9]>
   <script src="./js/html5shiv.js"></script>
@@ -60,42 +60,43 @@ document.getElementById('title-examples').className = 'active';
 
 
 <li class="sidebar-nav-header">Example code</li>
-<li><a href="#bouncingball">Bouncing ball</a></li>
-<li><a href="#bangbang">Bang-Bang Temperature Control</a></li>
-<li><a href="#ball_spring">Ball and Spring</a></li>
-<li><a href="#soas_relaycontrol">Self-Oscillating Adaptive System</a></li>
-<li><a href="#stickysprings">Sticky Masses</a></li>
-<li><a href="#backhoe">Backhoe</a></li>
-<li><a href="#horloge">Pendulum Clock</a></li>
-<li><a href="#watch">Spring-driven Watch</a></li>
-<li><a href="#airtraffic">Airtraffic Control</a></li>
+<li><a href="#ex-bouncingball">Bouncing ball</a></li>
+<li><a href="#ex-bangbang">Bang-Bang Temperature Control</a></li>
+<li><a href="#ex-ball_spring">Ball and Spring</a></li>
+<li><a href="#ex-soas_relaycontrol">Self-Oscillating Adaptive System</a></li>
+<li><a href="#ex-stickysprings">Sticky Masses</a></li>
+<li><a href="#ex-backhoe">Backhoe</a></li>
+<li><a href="#ex-horloge">Pendulum Clock</a></li>
+<li><a href="#ex-watch">Spring-driven Watch</a></li>
+<li><a href="#ex-airtraffic">Airtraffic Control</a></li>
 </ul>
 </div><!--/.well -->
 </div><!--/span-->
 <div class="span9 maintext">
 <h1>Examples</h1>
-<div id="bouncingball" class="example-section">
+<div id="ex-bouncingball" class="example-section">
 <h2 id="bouncingball">Bouncing ball</h2>
 
 <p>A slight variation of the classic bouncing ball model: a ball bouncing down
 a set of steps. The instants of impact are detected using zero crossings,
 <code>up(ground(x) -. y)</code>, which trigger a reset of the balls vertical velocity
-to -0.8 its previous value.</p>
+to –0.8 its previous value.</p>
 
-<p><img src="img/bouncingball.png" alt="Screenshot" title="Screenshot" id="screenshot" /></p>
+<p>
+<img src="img/bouncingball.png" srcset="img/bouncingball@2x.png 2x">
+
+</p>
 
 <p>In the basic version of the program, the ball ‘falls through the floor’
 due to limited floating-point precision.</p>
 
-<div id="bouncingball-ball-box" class="accordion sourcefile">
+<div id="ex-bouncingball-ball-box" class="accordion sourcefile">
 <div class="accordion-group">
 <div class="accordion-heading">
-<a class="accordion-toggle" data-toggle="collapse"
-   data-parent="#bouncingball-ball-box"
-   href="#bouncingball-ball"><i class="icon-file"></i> ball.zls</a>
+<a class="accordion-toggle" data-toggle="collapse" data-parent="#ex-bouncingball-ball-box" href="#ex-bouncingball-ball"><i class="icon-file"></i> ball.zls</a>
 </div>
 
-<div id="bouncingball-ball" class="accordion-body">
+<div id="ex-bouncingball-ball" class="accordion-body">
 <div class="accordion-inner">
 <pre class="zelus "><code><span class="comment">(** Bouncing ball. *)</span>
 
@@ -130,15 +131,13 @@ due to limited floating-point precision.</p>
 <p>With hybrid automata, it is instead possible to switch to a sliding dynamic
 when the balls vertical velocity becomes very small.</p>
 
-<div id="bouncingball-autoball-box" class="accordion sourcefile">
+<div id="ex-bouncingball-autoball-box" class="accordion sourcefile">
 <div class="accordion-group">
 <div class="accordion-heading">
-<a class="accordion-toggle" data-toggle="collapse"
-   data-parent="#bouncingball-autoball-box"
-   href="#bouncingball-autoball"><i class="icon-file"></i> autoball.zls</a>
+<a class="accordion-toggle" data-toggle="collapse" data-parent="#ex-bouncingball-autoball-box" href="#ex-bouncingball-autoball"><i class="icon-file"></i> autoball.zls</a>
 </div>
 
-<div id="bouncingball-autoball" class="accordion-body">
+<div id="ex-bouncingball-autoball" class="accordion-body">
 <div class="accordion-inner">
 <pre class="zelus "><code><span class="comment">(** The same as the bouncing ball, this time with a mean *)</span>
 <span class="comment">(* to avoid crossing the ground *)</span>
@@ -184,15 +183,13 @@ when the balls vertical velocity becomes very small.</p>
 <p>There is also a simpler model where the ball bounces up and down on the
 spot.</p>
 
-<div id="bouncingball-flatball-box" class="accordion sourcefile">
+<div id="ex-bouncingball-flatball-box" class="accordion sourcefile">
 <div class="accordion-group">
 <div class="accordion-heading">
-<a class="accordion-toggle" data-toggle="collapse"
-   data-parent="#bouncingball-flatball-box"
-   href="#bouncingball-flatball"><i class="icon-file"></i> flatball.zls</a>
+<a class="accordion-toggle" data-toggle="collapse" data-parent="#ex-bouncingball-flatball-box" href="#ex-bouncingball-flatball"><i class="icon-file"></i> flatball.zls</a>
 </div>
 
-<div id="bouncingball-flatball" class="accordion-body">
+<div id="ex-bouncingball-flatball" class="accordion-body">
 <div class="accordion-inner">
 <pre class="zelus "><code><span class="comment">(** Bouncing ball. *)</span>
 
@@ -222,14 +219,14 @@ spot.</p>
   ()
 
 </code></pre></div></div></div></div>
-</div><hr />
-<div id="bangbang" class="example-section">
+</div><hr>
+<div id="ex-bangbang" class="example-section">
 <h2 id="bang-bangtemperaturecontrol">Bang-Bang Temperature Control</h2>
 
 <div class="requirements">
 <p class="text-info">
 <i class="icon-info-sign"></i> <em>Requires</em>:
-Lablgtk2</p>
+Lablgtk2
 </p>
 </div>
 
@@ -239,13 +236,16 @@ The main differences with the original model are:</p>
 
 <ul>
 <li><p>We manually track the bias and slope for integers representing rational
-values.</p></li>
+ values.</p></li>
 <li><p>We use int for the integer values rather than int8.</p></li>
 </ul>
 
 <p>The top level of this example comprises three nodes:</p>
 
-<p><img src="img/bangbang-model.png" alt="Model" title="Model" id="model" /></p>
+<p>
+<img src="img/bangbang-model.png" srcset="img/bangbang-model@2x.png 2x">
+
+</p>
 
 <h3 id="controller">Controller</h3>
 
@@ -257,7 +257,7 @@ values.</p></li>
 <p>This value is a constant 20°C, but it is encoded as a fixed-point integer
 so that it can be compared directly with the digital temperature value
 from the environment model. The reference temperature has a value
-between 0 (-15°C) and 255 (84.609375°C), i.e., a resolution of
+between 0 (–15°C) and 255 (84.609375°C), i.e., a resolution of
 0.390625 per bit (0.390625 = 5 / 256 / 0.05).</p></li>
 <li><p><em>feedback temperature</em></p>
 
@@ -310,7 +310,7 @@ attained.</p>
 thermometer.</p>
 
 <p>The boiler temperature is modeled by a single integrator with an initial
-value of 15°C. This value (cools) at a rate of -0.1 / 25 when the
+value of 15°C. This value (cools) at a rate of –0.1 / 25 when the
 boiler is off. It changes (heats) at a rate of 1.0 / 25 when the boiler is
 on.</p>
 
@@ -335,7 +335,10 @@ at discrete instants (as plotting is a side-effect) and the graph is thus
 
 <h3 id="simulation">Simulation</h3>
 
-<p><img src="img/bangbang-graph.png" alt="Simulation" title="Simulation" id="simulation" /></p>
+<p>
+<img src="img/bangbang-graph.png" srcset="img/bangbang-graph@2x.png 2x">
+
+</p>
 
 <p>The simulation output shows a staircased increase in temperature from 15°C
 at <code>t = 0</code> to the 20°C just before <code>t = 500</code>. The initial rising edges have a
@@ -353,15 +356,13 @@ to speedup animation of the system. Another way to achieve the same effect
 would have been to use the <code>-speedup</code> option available in compiled Zélus
 programs.</p>
 
-<div id="bangbang-bangbang-box" class="accordion sourcefile">
+<div id="ex-bangbang-bangbang-box" class="accordion sourcefile">
 <div class="accordion-group">
 <div class="accordion-heading">
-<a class="accordion-toggle" data-toggle="collapse"
-   data-parent="#bangbang-bangbang-box"
-   href="#bangbang-bangbang"><i class="icon-file"></i> bangbang.zls</a>
+<a class="accordion-toggle" data-toggle="collapse" data-parent="#ex-bangbang-bangbang-box" href="#ex-bangbang-bangbang"><i class="icon-file"></i> bangbang.zls</a>
 </div>
 
-<div id="bangbang-bangbang" class="accordion-body">
+<div id="ex-bangbang-bangbang" class="accordion-body">
 <div class="accordion-inner">
 <pre class="zelus "><code><span class="comment">(*
   Version of the Mathworks Simulink example:
@@ -383,8 +384,8 @@ programs.</p>
 
 <span class="comment">(* limiting without zero-crossings *)</span>
 <span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">limit</span> (<span class="">min</span>, <span class="">max</span>, <span class="">x</span>) =
-  <span class="keyword ">if</span> <span class="">x</span> <span class="operator">>=</span> <span class="">max</span> <span class="keyword ">then</span> <span class="">max</span>
-  <span class="keyword ">else</span> <span class="keyword ">if</span> <span class="">x</span> <span class="operator"><=</span> <span class="">min</span> <span class="keyword ">then</span> <span class="">min</span>
+  <span class="keyword ">if</span> <span class="">x</span> &gt;= <span class="">max</span> <span class="keyword ">then</span> <span class="">max</span>
+  <span class="keyword ">else</span> <span class="keyword ">if</span> <span class="">x</span> &lt;= <span class="">min</span> <span class="keyword ">then</span> <span class="">min</span>
   <span class="keyword ">else</span> <span class="">x</span>
 
 <span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">adc</span> (<span class="">v</span>) = <span class="">pcm</span> <span class="keyword ">where</span>
@@ -437,7 +438,7 @@ programs.</p>
   | <span class="constructor">On</span>  -&gt; <span class="keyword ">do</span> <span class="">led</span> = <span class="">color</span> <span class="keyword ">until</span> (<span class="">wait</span> <span class="">delay</span>) <span class="keyword ">then</span> <span class="constructor">Off</span>
 
 <span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">controller</span> (<span class="">ref</span>, <span class="">temp</span>) = (<span class="">led</span>, <span class="">boiler</span>) <span class="keyword ">where</span>
-  <span class="keyword ">rec</span> <span class="">cold</span> = <span class="">temp</span> <span class="operator"><=</span> <span class="">ref</span>
+  <span class="keyword ">rec</span> <span class="">cold</span> = <span class="">temp</span> &lt;= <span class="">ref</span>
   <span class="keyword ">and</span> <span class="keyword ">automaton</span>
   | <span class="constructor">Off</span> -&gt;
       <span class="keyword ">do</span> <span class="">boiler</span> = <span class="">b_off</span>
@@ -484,13 +485,16 @@ programs.</p>
   <span class="keyword ">present</span> <span class="">trigger</span> -&gt; <span class="">plot</span> (<span class="">led</span>, <span class="">on_off</span>, <span class="">actual_temp</span>) <span class="keyword ">else</span> ()
 
 </code></pre></div></div></div></div>
-</div><hr />
-<div id="ball_spring" class="example-section">
+</div><hr>
+<div id="ex-ball_spring" class="example-section">
 <h2 id="ballandspring">Ball and Spring</h2>
 
 <p>Author: Cyprien Lecourt</p>
 
-<p><img src="img/ball_spring.png" alt="Screenshot" title="Screenshot" id="screenshot" /></p>
+<p>
+<img src="img/ball_spring.png" srcset="img/ball_spring@2x.png 2x">
+
+</p>
 
 <p>A ball bouncing on a spring with damping. This example is programmed as a
 two-state automaton. In the first state the ball and spring move separately:
@@ -499,22 +503,23 @@ spring oscillating with less and less energy. The second state is entered
 when the ball lands on the platform, in it the ball and platform move
 together until the ball becomes unstuck.</p>
 
-<p><img src="img/ball_spring_plot.png" alt="Screenshot" title="Plot" id="screenshot" /></p>
+<p>
+<img src="img/ball_spring_plot.png" srcset="img/ball_spring_plot@2x.png 2x">
+
+</p>
 
 <p>The calls to OCaml graphics for animating the system are written directly in
 a discrete node. Additional calls are added to log the system state to a
 file for <a href="img/ball_spring.pdf">graphing</a> with
 <a href="http://gnuplot.sourceforge.net/">gnuplot</a>.</p>
 
-<div id="ball_spring-ball_spring-box" class="accordion sourcefile">
+<div id="ex-ball_spring-ball_spring-box" class="accordion sourcefile">
 <div class="accordion-group">
 <div class="accordion-heading">
-<a class="accordion-toggle" data-toggle="collapse"
-   data-parent="#ball_spring-ball_spring-box"
-   href="#ball_spring-ball_spring"><i class="icon-file"></i> ball_spring.zls</a>
+<a class="accordion-toggle" data-toggle="collapse" data-parent="#ex-ball_spring-ball_spring-box" href="#ex-ball_spring-ball_spring"><i class="icon-file"></i> ball_spring.zls</a>
 </div>
 
-<div id="ball_spring-ball_spring" class="accordion-body">
+<div id="ex-ball_spring-ball_spring" class="accordion-body">
 <div class="accordion-inner">
 <pre class="zelus "><code>
 <span class="keyword keyword module ">open</span> <span class="constructor">Graphics</span>
@@ -540,14 +545,14 @@ file for <a href="img/ball_spring.pdf">graphing</a> with
   <span class="keyword ">let</span> <span class="">h</span> = <span class="">z_platform</span> <span class="operator">/</span> <span class="number">8</span> <span class="keyword ">in</span>
   <span class="">moveto</span>( <span class="number">20</span>, <span class="">z_platform</span>);
   <span class="">lineto</span>(<span class="number">180</span>, <span class="">z_platform</span> - <span class="">h</span>);
-  <span class="">lineto</span>( <span class="number">20</span>, <span class="">z_platform</span> - <span class="number">2</span> * <span class="">h</span>);
-  <span class="">lineto</span>(<span class="number">180</span>, <span class="">z_platform</span> - <span class="number">3</span> * <span class="">h</span>);
-  <span class="">lineto</span>( <span class="number">20</span>, <span class="">z_platform</span> - <span class="number">4</span> * <span class="">h</span>);
-  <span class="">lineto</span>(<span class="number">180</span>, <span class="">z_platform</span> - <span class="number">5</span> * <span class="">h</span>);
-  <span class="">lineto</span>( <span class="number">20</span>, <span class="">z_platform</span> - <span class="number">6</span> * <span class="">h</span>);
-  <span class="">lineto</span>(<span class="number">180</span>, <span class="">z_platform</span> - <span class="number">7</span> * <span class="">h</span>);
-  <span class="">lineto</span>( <span class="number">20</span>, <span class="">z_platform</span> - <span class="number">8</span> * <span class="">h</span>);
-  <span class="">lineto</span>(<span class="number">180</span>, <span class="">z_platform</span> - <span class="number">9</span> * <span class="">h</span>);
+  <span class="">lineto</span>( <span class="number">20</span>, <span class="">z_platform</span> - <span class="number">2</span> ∗ <span class="">h</span>);
+  <span class="">lineto</span>(<span class="number">180</span>, <span class="">z_platform</span> - <span class="number">3</span> ∗ <span class="">h</span>);
+  <span class="">lineto</span>( <span class="number">20</span>, <span class="">z_platform</span> - <span class="number">4</span> ∗ <span class="">h</span>);
+  <span class="">lineto</span>(<span class="number">180</span>, <span class="">z_platform</span> - <span class="number">5</span> ∗ <span class="">h</span>);
+  <span class="">lineto</span>( <span class="number">20</span>, <span class="">z_platform</span> - <span class="number">6</span> ∗ <span class="">h</span>);
+  <span class="">lineto</span>(<span class="number">180</span>, <span class="">z_platform</span> - <span class="number">7</span> ∗ <span class="">h</span>);
+  <span class="">lineto</span>( <span class="number">20</span>, <span class="">z_platform</span> - <span class="number">8</span> ∗ <span class="">h</span>);
+  <span class="">lineto</span>(<span class="number">180</span>, <span class="">z_platform</span> - <span class="number">9</span> ∗ <span class="">h</span>);
   <span class="">synchronize</span> ()
 
 <span class="comment">(*physical constants for the ball*)</span>
@@ -627,18 +632,18 @@ file for <a href="img/ball_spring.pdf">graphing</a> with
   <span class="keyword ">and</span> _ = <span class="keyword ">present</span> <span class="">t</span> | (<span class="keyword ">init</span>) -&gt; <span class="">draw_ball_platform</span>(<span class="">z</span>, <span class="">z_platform</span>, <span class="">radius</span>)
 
 </code></pre></div></div></div></div>
-</div><hr />
-<div id="soas_relaycontrol" class="example-section">
+</div><hr>
+<div id="ex-soas_relaycontrol" class="example-section">
 <h2 id="self-oscillatingadaptivesystem">Self-Oscillating Adaptive System</h2>
 
 <div class="requirements">
 <p class="text-info">
 <i class="icon-info-sign"></i> <em>Requires</em>:
-Lablgtk2</p>
+Lablgtk2
 </p>
 </div>
 
-<p>This example comes from Chapter 10 of Åström and Wittenmark's
+<p>This example comes from Chapter 10 of Åström and Wittenmark’s
 <a href="http://store.doverpublications.com/0486462781.html"><em>Adaptive Control</em></a>
 (2nd edition).</p>
 
@@ -650,15 +655,13 @@ giving systems with high feedback loop gain.</p>
 <p>Three variations of the system are developed.
 The shared elements are incorporated into a single file:</p>
 
-<div id="soas_relaycontrol-soas-box" class="accordion sourcefile">
+<div id="ex-soas_relaycontrol-soas-box" class="accordion sourcefile">
 <div class="accordion-group">
 <div class="accordion-heading">
-<a class="accordion-toggle" data-toggle="collapse"
-   data-parent="#soas_relaycontrol-soas-box"
-   href="#soas_relaycontrol-soas"><i class="icon-file"></i> soas.zls</a>
+<a class="accordion-toggle" data-toggle="collapse" data-parent="#ex-soas_relaycontrol-soas-box" href="#ex-soas_relaycontrol-soas"><i class="icon-file"></i> soas.zls</a>
 </div>
 
-<div id="soas_relaycontrol-soas" class="accordion-body">
+<div id="ex-soas_relaycontrol-soas" class="accordion-body">
 <div class="accordion-inner">
 <pre class="zelus "><code><span class="comment">(*
     Example 10.2 (A basic SOAS)
@@ -689,7 +692,7 @@ The shared elements are incorporated into a single file:</p>
 
 <span class="comment">(* ideal relay model *)</span>
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">relay</span> (<span class="">d</span>, <span class="">e</span>) = <span class="">u</span> <span class="keyword ">where</span>
-  <span class="">u</span> = <span class="keyword ">present</span> (<span class="keyword expr ">up</span>(<span class="">e</span>)) | (<span class="keyword ">disc</span>(<span class="">e</span>)) | (<span class="keyword ">init</span>) -&gt; <span class="keyword ">if</span> <span class="">e</span> <span class="operator">>=</span> <span class="number">0.0</span> <span class="keyword ">then</span> <span class="">d</span> <span class="keyword ">else</span> -. <span class="">d</span>
+  <span class="">u</span> = <span class="keyword ">present</span> (<span class="keyword expr ">up</span>(<span class="">e</span>)) | (<span class="keyword ">disc</span>(<span class="">e</span>)) | (<span class="keyword ">init</span>) -&gt; <span class="keyword ">if</span> <span class="">e</span> &gt;= <span class="number">0.0</span> <span class="keyword ">then</span> <span class="">d</span> <span class="keyword ">else</span> -. <span class="">d</span>
       <span class="keyword ">init</span> <span class="number">0.0</span>
 
 <span class="comment">(* ** model ** *)</span>
@@ -731,7 +734,7 @@ The shared elements are incorporated into a single file:</p>
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">g_f</span> <span class="">u</span> = <span class="">siso_1o</span> (-<span class="number">15.0</span>, <span class="number">4.0</span>, -<span class="number">3.0</span>, <span class="number">1.2</span>, <span class="">u</span>)
 
 <span class="comment">(* up-logic gain changer *)</span>
-<span class="comment">(* The initial state should be D1 when |e| > e_l *)</span>
+<span class="comment">(* The initial state should be D1 when |e| &gt; e_l *)</span>
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">gain_changer</span> (<span class="">d1</span>, <span class="">d2</span>, <span class="">e_l</span>, <span class="">e</span>) = <span class="">d</span> <span class="keyword ">where</span>
   <span class="keyword ">automaton</span>
   | <span class="constructor">D2</span> -&gt; <span class="keyword ">local</span> <span class="">t</span> <span class="keyword ">in</span>
@@ -794,11 +797,17 @@ then rises to <code>1</code> again at <code>35</code> seconds.
 The command signal is defined using a hybrid automaton in a node called
 <code>command</code>.</p>
 
-<p><img src="img/soas-command.png" alt="Command input" title="Command input" id="commandinput" /></p>
+<p>
+<img src="img/soas-command.png" srcset="img/soas-command@2x.png 2x">
+
+</p>
 
 <p>The <strong>process</strong> to be controlled is described by the transfer function:</p>
 
-<p><img src="img/soas-process.png" alt="Process transfer function" title="Process transfer function" id="processtransferfunction" /></p>
+<p>
+<img src="img/soas-process.png" srcset="img/soas-process@2x.png 2x">
+
+</p>
 
 <p>where, initially, K = 3 and α = 20, but where the <em>process gain is suddenly
 increased by a factor of 5 at t = 25</em>.
@@ -833,17 +842,18 @@ inverter—that tries to follow the reponse of a reference model to the
 command signal.
 Other elements will be added successively.</p>
 
-<p><img src="img/soas-model1.png" alt="Basic SOAS: model" title="Basic SOAS: model" id="basicsoas:model" /></p>
+<p>
+<img src="img/soas-model1.png" srcset="img/soas-model1@2x.png 2x">
 
-<div id="soas_relaycontrol-soas1_basic-box" class="accordion sourcefile">
+</p>
+
+<div id="ex-soas_relaycontrol-soas1_basic-box" class="accordion sourcefile">
 <div class="accordion-group">
 <div class="accordion-heading">
-<a class="accordion-toggle" data-toggle="collapse"
-   data-parent="#soas_relaycontrol-soas1_basic-box"
-   href="#soas_relaycontrol-soas1_basic"><i class="icon-file"></i> soas1_basic.zls</a>
+<a class="accordion-toggle" data-toggle="collapse" data-parent="#ex-soas_relaycontrol-soas1_basic-box" href="#ex-soas_relaycontrol-soas1_basic"><i class="icon-file"></i> soas1_basic.zls</a>
 </div>
 
-<div id="soas_relaycontrol-soas1_basic" class="accordion-body">
+<div id="ex-soas_relaycontrol-soas1_basic" class="accordion-body">
 <div class="accordion-inner">
 <pre class="zelus "><code><span class="comment">(*
     Example 10.2 (A basic SOAS)
@@ -892,31 +902,38 @@ tf2ss(syslin('c', wn^2, s^2 + 2*zeta*wn*s + wn^2))</code></pre>
 below.
 The actual output of the feedback loop is shown in blue.</p>
 
-<p><img src="img/soas-output1.png" alt="Basic SOAS: output" title="Basic SOAS: output" id="basicsoas:output" /></p>
+<p>
+<img src="img/soas-output1.png" srcset="img/soas-output1@2x.png 2x">
+
+</p>
 
 <p>The <strong>relay</strong> is modelled in a node called <code>relay</code> using a hybrid
 automaton that alternates between <code>High</code> (output = <code>d</code>) and <code>Low</code> (output =
 <code>-d</code>) states in response to zero-crossings on its input signal.
-The relay's value is shown below.</p>
+The relay’s value is shown below.</p>
 
-<p><img src="img/soas-relay1.png" alt="Basic SOAS: relay" title="Basic SOAS: relay" id="basicsoas:relay" /></p>
+<p>
+<img src="img/soas-relay1.png" srcset="img/soas-relay1@2x.png 2x">
+
+</p>
 
 <h3 id="soaswithleadnetwork">SOAS with lead network</h3>
 
 <p>The next model augments the basic model with a compensation network that
 adds a phase lead of -π.</p>
 
-<p><img src="img/soas-model2.png" alt="SOAS with lead network" title="SOAS with lead network" id="soaswithleadnetwork" /></p>
+<p>
+<img src="img/soas-model2.png" srcset="img/soas-model2@2x.png 2x">
 
-<div id="soas_relaycontrol-soas2_leadnet-box" class="accordion sourcefile">
+</p>
+
+<div id="ex-soas_relaycontrol-soas2_leadnet-box" class="accordion sourcefile">
 <div class="accordion-group">
 <div class="accordion-heading">
-<a class="accordion-toggle" data-toggle="collapse"
-   data-parent="#soas_relaycontrol-soas2_leadnet-box"
-   href="#soas_relaycontrol-soas2_leadnet"><i class="icon-file"></i> soas2_leadnet.zls</a>
+<a class="accordion-toggle" data-toggle="collapse" data-parent="#ex-soas_relaycontrol-soas2_leadnet-box" href="#ex-soas_relaycontrol-soas2_leadnet"><i class="icon-file"></i> soas2_leadnet.zls</a>
 </div>
 
-<div id="soas_relaycontrol-soas2_leadnet" class="accordion-body">
+<div id="ex-soas_relaycontrol-soas2_leadnet" class="accordion-body">
 <div class="accordion-inner">
 <pre class="zelus "><code><span class="comment">(*
     Example 10.2 (A basic SOAS)
@@ -949,13 +966,15 @@ adds a phase lead of -π.</p>
 
 <p>The compensation filter is defined as a transfer function:</p>
 
-<p><img src="img/soas-filter.png" alt="G_f(s) = 1.2(s + 5)/(s + 15)" title="Filter" id="g_fs1.2s5s15" /></p>
+<p>
+<img src="img/soas-filter.png" srcset="img/soas-filter@2x.png 2x">
+
+</p>
 
 <p>which is implemented in the node <code>g_f</code> using the generic node <code>siso_1o</code>
 after having calculated its state-space realization in either
-<a href="http://www.mathworks.com/products/matlab/">Matlab</a>:</p>
-
-<pre><code>[a, b, c, d] = ss(1.2 * tf([1 5], [1 15]))</code></pre>
+<a href="http://www.mathworks.com/products/matlab/">Matlab</a>:
+</p><pre><code>[a, b, c, d] = ss(1.2 * tf([1 5], [1 15]))</code></pre>
 
 <p>or <a href="https://www.scilab.org/">Scilab</a>:</p>
 
@@ -966,24 +985,28 @@ after having calculated its state-space realization in either
 maintaining the reponse speed, as can be seen in the simulation results
 below.</p>
 
-<p><img src="img/soas-output2.png" alt="SOAS with lead network: output" title="SOAS with lead network: output" id="soaswithleadnetwork:output" /></p>
+<p>
+<img src="img/soas-output2.png" srcset="img/soas-output2@2x.png 2x">
+
+</p>
 
 <h3 id="soaswithleadnetworkandgainchanger">SOAS with lead network and gain changer</h3>
 
 <p>A gain changer is added in the final model.
-It uses so called <em>up logic</em> to speed up the controller's reponse.</p>
+It uses so called <em>up logic</em> to speed up the controller’s reponse.</p>
 
-<p><img src="img/soas-model3.png" alt="SOAS with lead network and gain changer: model" title="SOAS with lead network and gain changer: model" id="soaswithleadnetworkandgainchanger:model" /></p>
+<p>
+<img src="img/soas-model3.png" srcset="img/soas-model3@2x.png 2x">
 
-<div id="soas_relaycontrol-soas3_gainchanger-box" class="accordion sourcefile">
+</p>
+
+<div id="ex-soas_relaycontrol-soas3_gainchanger-box" class="accordion sourcefile">
 <div class="accordion-group">
 <div class="accordion-heading">
-<a class="accordion-toggle" data-toggle="collapse"
-   data-parent="#soas_relaycontrol-soas3_gainchanger-box"
-   href="#soas_relaycontrol-soas3_gainchanger"><i class="icon-file"></i> soas3_gainchanger.zls</a>
+<a class="accordion-toggle" data-toggle="collapse" data-parent="#ex-soas_relaycontrol-soas3_gainchanger-box" href="#ex-soas_relaycontrol-soas3_gainchanger"><i class="icon-file"></i> soas3_gainchanger.zls</a>
 </div>
 
-<div id="soas_relaycontrol-soas3_gainchanger" class="accordion-body">
+<div id="ex-soas_relaycontrol-soas3_gainchanger" class="accordion-body">
 <div class="accordion-inner">
 <pre class="zelus "><code><span class="comment">(*
     Example 10.2 (A basic SOAS)
@@ -1014,10 +1037,13 @@ It uses so called <em>up logic</em> to speed up the controller's reponse.</p>
 
 </code></pre></div></div></div></div>
 
-<p>A gain changer increases the relay's amplitude (<code>d</code>) when a specified
+<p>A gain changer increases the relay’s amplitude (<code>d</code>) when a specified
 tolerance (e_l) is exceeded.</p>
 
-<p><img src="img/soas-gainchanger.png" alt="d = if |e| > e_l then d_1 else d_2 + (d_1 - d_2)e^(-(t - t_0)/T)" title="Gain changer" id="difee_lthend_1elsed_2d_1-d_2e-t-t_0t" /></p>
+<p>
+<img src="img/soas-gainchanger.png" srcset="img/soas-gainchanger@2x.png 2x">
+
+</p>
 
 <p>This logic is readily implemented in the <code>gain_changer</code> node using a hybrid
 automaton.</p>
@@ -1026,20 +1052,26 @@ automaton.</p>
 amplitude oscillations to the system with higher gain, without losing
 performance for the system with smaller gain.</p>
 
-<p><img src="img/soas-output3.png" alt="SOAS with lead network and gain changer: output" title="SOAS with lead network and gain changer: output" id="soaswithleadnetworkandgainchanger:output" /></p>
+<p>
+<img src="img/soas-output3.png" srcset="img/soas-output3@2x.png 2x">
+
+</p>
 
 <p>The effect of the gain changing logic on the relay output is evident in the
 exponential envelopes on the signal shown below.</p>
 
-<p><img src="img/soas-relay3.png" alt="SOAS with lead network and gain changer: relay" title="SOAS with lead network and gain changer: relay" id="soaswithleadnetworkandgainchanger:relay" /></p>
-</div><hr />
-<div id="stickysprings" class="example-section">
+<p>
+<img src="img/soas-relay3.png" srcset="img/soas-relay3@2x.png 2x">
+
+</p>
+</div><hr>
+<div id="ex-stickysprings" class="example-section">
 <h2 id="stickymasses">Sticky Masses</h2>
 
 <div class="requirements">
 <p class="text-info">
 <i class="icon-info-sign"></i> <em>Requires</em>:
-Lablgtk2 (glMLite)</p>
+Lablgtk2 (glMLite)
 </p>
 </div>
 
@@ -1049,7 +1081,10 @@ Systems</em></a>, Second Edition,
 and the Ptolemy II model by Jie Liu, Haiyang Zheng,
 and Edward A. Lee.</p>
 
-<p><img src="img/stickysprings.png" alt="Sticky masses model" title="Sticky masses model" id="stickymassesmodel" /></p>
+<p>
+<img src="img/stickysprings.png" srcset="img/stickysprings@2x.png 2x">
+
+</p>
 
 <p>The model comprises two sticky round masses, each on the end of a spring.
 The other ends of the springs are tied to opposing walls. After the springs
@@ -1058,15 +1093,13 @@ forth, and may collide. After a collision, the masses remain stuck together
 until the pulling forces from the springs are greater than a <em>stickiness</em>
 value (which decreases exponentially after a collision).</p>
 
-<div id="stickysprings-stickysprings-box" class="accordion sourcefile">
+<div id="ex-stickysprings-stickysprings-box" class="accordion sourcefile">
 <div class="accordion-group">
 <div class="accordion-heading">
-<a class="accordion-toggle" data-toggle="collapse"
-   data-parent="#stickysprings-stickysprings-box"
-   href="#stickysprings-stickysprings"><i class="icon-file"></i> stickysprings.zls</a>
+<a class="accordion-toggle" data-toggle="collapse" data-parent="#ex-stickysprings-stickysprings-box" href="#ex-stickysprings-stickysprings"><i class="icon-file"></i> stickysprings.zls</a>
 </div>
 
-<div id="stickysprings-stickysprings" class="accordion-body">
+<div id="ex-stickysprings-stickysprings" class="accordion-body">
 <div class="accordion-inner">
 <pre class="zelus "><code><span class="comment">(* ** Parameters ** *)</span>
 
@@ -1074,7 +1107,7 @@ value (which decreases exponentially after a collision).</p>
 <span class="keyword ">let</span> <span class="">p1</span> = <span class="number">1.25</span>
 <span class="keyword ">let</span> <span class="">p2</span> = <span class="number">1.75</span>
 
-<span class="comment">(* initial positions of the two masses: y1_i < y2_i *)</span>
+<span class="comment">(* initial positions of the two masses: y1_i &lt; y2_i *)</span>
 <span class="keyword ">let</span> <span class="">x1_i</span> = <span class="number">0.0</span>
 <span class="keyword ">let</span> <span class="">x2_i</span> = <span class="number">3.0</span>
 
@@ -1147,14 +1180,14 @@ value (which decreases exponentially after a collision).</p>
        <span class="">plot</span> (<span class="">t</span>, (<span class="">y1</span>, <span class="">y1_dot</span>), (<span class="">y2</span>, <span class="">y2_dot</span>), <span class="">pull_force</span>, <span class="">stickiness</span>, <span class="">total</span>);
   ()
 </code></pre></div></div></div></div>
-</div><hr />
-<div id="backhoe" class="example-section">
+</div><hr>
+<div id="ex-backhoe" class="example-section">
 <h2 id="backhoe">Backhoe</h2>
 
 <div class="requirements">
 <p class="text-info">
 <i class="icon-info-sign"></i> <em>Requires</em>:
-Lablgtk2</p>
+Lablgtk2
 </p>
 </div>
 
@@ -1162,7 +1195,10 @@ Lablgtk2</p>
 example</a> that we developed to
 teach reactive programming.</p>
 
-<p><img src="img/backhoeloop.png" alt="Backhoe control loop" title="Backhoe loop" id="backhoecontrolloop" /></p>
+<p>
+<img src="img/backhoeloop.png" srcset="img/backhoeloop@2x.png 2x">
+
+</p>
 
 <p>The model comprises two interconnected elements:</p>
 
@@ -1175,7 +1211,10 @@ teach reactive programming.</p>
 expressing the continuous dynamics is also an interesting programming
 problem, as is interfacing the two models.</p>
 
-<p><img src="img/backhoesensors.png" alt="Backhoe model: sensor names and locations" title="Backhoe sensor names" id="backhoemodel:sensornamesandlocations" /></p>
+<p>
+<img src="img/backhoesensors.png" srcset="img/backhoesensors@2x.png 2x">
+
+</p>
 
 <p>The discrete controller receives input from sensors which are defined inside
 the continuous model. There are sensors for each of three buttons
@@ -1184,7 +1223,10 @@ whether the legs are fully retracted (<code>legs_in</code>) or fully extended
 (<code>legs_out</code>), and for indicating whether each of the rear segments is fully
 retracted (<code>*_in</code>) or fully extended (<code>*_out</code>).</p>
 
-<p><img src="img/backhoeactuators.png" alt="Backhoe model: actuator names" title="Backhoe actuator names" id="backhoemodel:actuatornames" /></p>
+<p>
+<img src="img/backhoeactuators.png" srcset="img/backhoeactuators@2x.png 2x">
+
+</p>
 
 <p>There are control signals for three lamps (<code>alarm_lamp</code>, <code>done_lamp</code>, and
 <code>cancel_lamp</code>) and for triggering leg extension (<code>legs_extend</code>), leg
@@ -1194,22 +1236,23 @@ are three control signals pel segment: setting an internal valve for pushing
 through the valve (<code>*_drive</code>). It is assumed that a lower-level controller
 maintains a segments position when it is not being driven.</p>
 
-<p><img src="img/backhoesegmentauto.png" alt="Backhoe segment model" title="Backhoe segment model" id="backhoesegmentmodel" /></p>
+<p>
+<img src="img/backhoesegmentauto.png" srcset="img/backhoesegmentauto@2x.png 2x">
+
+</p>
 
 <p>Each segment is modelled using set of equations that include a hybrid
 automaton. Two types of dynamics are modelled: moving and stopping with
 momentum (modelled as a Proportional-Integral controller) and bouncing at
 the limits of movement (modelled as instantaneous reset).</p>
 
-<div id="backhoe-backhoecontrol-box" class="accordion sourcefile">
+<div id="ex-backhoe-backhoecontrol-box" class="accordion sourcefile">
 <div class="accordion-group">
 <div class="accordion-heading">
-<a class="accordion-toggle" data-toggle="collapse"
-   data-parent="#backhoe-backhoecontrol-box"
-   href="#backhoe-backhoecontrol"><i class="icon-file"></i> backhoecontrol.zls</a>
+<a class="accordion-toggle" data-toggle="collapse" data-parent="#ex-backhoe-backhoecontrol-box" href="#ex-backhoe-backhoecontrol"><i class="icon-file"></i> backhoecontrol.zls</a>
 </div>
 
-<div id="backhoe-backhoecontrol" class="accordion-body">
+<div id="ex-backhoe-backhoecontrol" class="accordion-body">
 <div class="accordion-inner">
 <pre class="zelus "><code><span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">aftern</span> (<span class="">n</span>, <span class="">t</span>) = (<span class="">c</span> = <span class="">n</span>) <span class="keyword ">where</span>
   <span class="keyword ">rec</span> <span class="">c</span> = <span class="number">0</span> <span class="keyword expr ">fby</span> <span class="">min</span> ((<span class="keyword ">if</span> <span class="">t</span> <span class="keyword ">then</span> <span class="">c</span> <span class="operator">+</span> <span class="number">1</span> <span class="keyword ">else</span> <span class="">c</span>), <span class="">n</span>)
@@ -1324,7 +1367,7 @@ the limits of movement (modelled as instantaneous reset).</p>
                   | <span class="constructor">RaiseStickBucket</span> -&gt;
                       <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">stick_pull</span>  <span class="keyword ">and</span> <span class="">stick_drive</span> = <span class="keyword constant ">true</span>
                       <span class="keyword ">and</span> <span class="keyword ">emit</span> <span class="">bucket_pull</span> <span class="keyword ">and</span> <span class="">bucket_drive</span> = <span class="keyword constant ">true</span>
-                      <span class="keyword ">unless</span> (<span class="">stick_in</span> <span class="operator">&&</span> <span class="">bucket_in</span>) <span class="keyword ">then</span> <span class="constructor">LowerBoom</span>
+                      <span class="keyword ">unless</span> (<span class="">stick_in</span> &amp;&amp; <span class="">bucket_in</span>) <span class="keyword ">then</span> <span class="constructor">LowerBoom</span>
 
                   | <span class="constructor">LowerBoom</span> -&gt;
                       <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">boom_push</span> <span class="keyword ">and</span> <span class="">boom_drive</span> = <span class="keyword constant ">true</span>
@@ -1335,7 +1378,7 @@ the limits of movement (modelled as instantaneous reset).</p>
                       <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">stick_push</span>  <span class="keyword ">and</span> <span class="">stick_drive</span> = <span class="keyword constant ">true</span>
                       <span class="keyword ">and</span> <span class="keyword ">emit</span> <span class="">bucket_push</span> <span class="keyword ">and</span> <span class="">bucket_drive</span> = <span class="keyword constant ">true</span>
                       <span class="keyword ">and</span> <span class="">boom_drive</span> = <span class="keyword constant ">false</span>
-                      <span class="keyword ">unless</span> (<span class="">stick_out</span> <span class="operator">&&</span> <span class="">boom_out</span>) <span class="keyword ">then</span> <span class="constructor">RaiseBoom</span>
+                      <span class="keyword ">unless</span> (<span class="">stick_out</span> &amp;&amp; <span class="">boom_out</span>) <span class="keyword ">then</span> <span class="constructor">RaiseBoom</span>
 
                   | <span class="constructor">RaiseBoom</span> -&gt;
                       <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">boom_pull</span> <span class="keyword ">and</span> <span class="">boom_drive</span> = <span class="keyword constant ">true</span>
@@ -1365,7 +1408,7 @@ the limits of movement (modelled as instantaneous reset).</p>
                 <span class="keyword ">and</span> <span class="keyword ">emit</span> <span class="">stick_push</span>  <span class="keyword ">and</span> <span class="">stick_drive</span>  = <span class="keyword constant ">true</span>
                 <span class="keyword ">and</span> <span class="keyword ">emit</span> <span class="">bucket_push</span> <span class="keyword ">and</span> <span class="">bucket_drive</span> = <span class="keyword constant ">true</span>
 
-                <span class="keyword ">and</span> <span class="">finished</span> = <span class="">boom_in</span> <span class="operator">&&</span> <span class="">stick_out</span> <span class="operator">&&</span> <span class="">bucket_out</span>
+                <span class="keyword ">and</span> <span class="">finished</span> = <span class="">boom_in</span> &amp;&amp; <span class="">stick_out</span> &amp;&amp; <span class="">bucket_out</span>
                 <span class="keyword ">done</span>
 
             <span class="keyword ">until</span> (<span class="">finished</span>) <span class="keyword ">then</span> <span class="constructor">Stable</span>
@@ -1399,22 +1442,20 @@ the limits of movement (modelled as instantaneous reset).</p>
 
   <span class="keyword ">and</span> <span class="">sample</span> = <span class="keyword expr ">period</span> (<span class="number">0.2</span>)
 
-  <span class="comment">(* and second = present sample -> not (last second) init true *)</span>
-  <span class="comment">(* and second = present (init) | sample -> true fby not (second) init true *)</span>
+  <span class="comment">(* and second = present sample -&gt; not (last second) init true *)</span>
+  <span class="comment">(* and second = present (init) | sample -&gt; true fby not (second) init true *)</span>
 
   <span class="keyword ">and</span> <span class="">second</span> = <span class="keyword ">present</span> <span class="">sample</span> -&gt; <span class="keyword constant ">true</span> -&gt; <span class="">not</span> (<span class="keyword expr ">last</span> <span class="">second</span>) <span class="keyword ">init</span> <span class="keyword constant ">true</span>
 
 </code></pre></div></div></div></div>
 
-<div id="backhoe-backhoedyn-box" class="accordion sourcefile">
+<div id="ex-backhoe-backhoedyn-box" class="accordion sourcefile">
 <div class="accordion-group">
 <div class="accordion-heading">
-<a class="accordion-toggle" data-toggle="collapse"
-   data-parent="#backhoe-backhoedyn-box"
-   href="#backhoe-backhoedyn"><i class="icon-file"></i> backhoedyn.zls</a>
+<a class="accordion-toggle" data-toggle="collapse" data-parent="#ex-backhoe-backhoedyn-box" href="#ex-backhoe-backhoedyn"><i class="icon-file"></i> backhoedyn.zls</a>
 </div>
 
-<div id="backhoe-backhoedyn" class="accordion-body">
+<div id="ex-backhoe-backhoedyn" class="accordion-body">
 <div class="accordion-inner">
 <pre class="zelus "><code><span class="comment">(** Model constants *)</span>
 
@@ -1434,8 +1475,8 @@ the limits of movement (modelled as instantaneous reset).</p>
              <span class="keyword ">reset</span> <span class="">hit</span>(<span class="">v0</span>) -&gt; <span class="">v0</span>
  <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">z</span> = <span class="">error</span> <span class="keyword ">init</span> <span class="number">0.0</span> <span class="keyword ">reset</span> <span class="">hit</span>(_) -&gt; <span class="number">0.0</span>
  <span class="keyword ">and</span> <span class="">v_r</span> = <span class="keyword ">if</span> <span class="">go</span> <span class="keyword ">then</span> <span class="">rate</span> <span class="keyword ">else</span> <span class="number">0.0</span>
- <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">segin</span> = <span class="">angle</span> <span class="operator"><=</span> <span class="">min</span>
- <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">segout</span> = <span class="">angle</span> <span class="operator">>=</span> <span class="">max</span>
+ <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">segin</span> = <span class="">angle</span> &lt;= <span class="">min</span>
+ <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">segout</span> = <span class="">angle</span> &gt;= <span class="">max</span>
 
  <span class="keyword ">and</span> <span class="keyword ">automaton</span>
    | <span class="constructor">Stuck</span> -&gt; <span class="keyword ">do</span>
@@ -1467,8 +1508,8 @@ the limits of movement (modelled as instantaneous reset).</p>
   ((<span class="">segin</span>, <span class="">segout</span>), <span class="">pos</span>) <span class="keyword ">where</span>
 
   <span class="keyword ">rec</span> <span class="keyword ">init</span> <span class="">pos</span> = <span class="">i</span>
-  <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">segin</span>  = <span class="">pos</span> <span class="operator"><=</span> <span class="">min</span>
-  <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">segout</span> = <span class="">pos</span> <span class="operator">>=</span> <span class="">max</span>
+  <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">segin</span>  = <span class="">pos</span> &lt;= <span class="">min</span>
+  <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">segout</span> = <span class="">pos</span> &gt;= <span class="">max</span>
 
   <span class="keyword ">and</span> <span class="keyword ">automaton</span>
     | <span class="constructor">Stationary</span> -&gt;
@@ -1532,16 +1573,19 @@ the limits of movement (modelled as instantaneous reset).</p>
 
 <p>Further details can be found in the paper <a href="papers.html#HSCC2013">Zélus: A Synchronous Language
 with ODEs</a>.</p>
-</div><hr />
-<div id="horloge" class="example-section">
+</div><hr>
+<div id="ex-horloge" class="example-section">
 <h2 id="pendulumclock">Pendulum Clock</h2>
 
 <p>Author: <a href="http://www.di.ens.fr/~baudart/">Guillaume Baudart</a></p>
 
-<p><img src="img/horloge.png" alt="Screenshot" title="Screenshot" id="screenshot" /></p>
+<p>
+<img src="img/horloge.png" srcset="img/horloge@2x.png 2x">
 
-<p>This model was made to celebrate 
-<a href="http://people.rennes.inria.fr/Albert.Benveniste/">Albert Benveniste's</a>
+</p>
+
+<p>This model was made to celebrate
+<a href="http://people.rennes.inria.fr/Albert.Benveniste/">Albert Benveniste’s</a>
 <a href="https://project.inria.fr/alberts65th/">65th birthday</a> in honour of
 <a href="http://people.rennes.inria.fr/Albert.Benveniste/pub/Polychrony.pdf">“The old fashioned Signal watch”</a>.</p>
 
@@ -1565,15 +1609,13 @@ The <code>clockwatch</code> node is an automaton with four modes:</p>
 spacebar is used to reset the position of the masses. The system state is
 drawn by an external (OCaml) function called <code>draw_system</code>.</p>
 
-<div id="horloge-horloge-box" class="accordion sourcefile">
+<div id="ex-horloge-horloge-box" class="accordion sourcefile">
 <div class="accordion-group">
 <div class="accordion-heading">
-<a class="accordion-toggle" data-toggle="collapse"
-   data-parent="#horloge-horloge-box"
-   href="#horloge-horloge"><i class="icon-file"></i> horloge.zls</a>
+<a class="accordion-toggle" data-toggle="collapse" data-parent="#ex-horloge-horloge-box" href="#ex-horloge-horloge"><i class="icon-file"></i> horloge.zls</a>
 </div>
 
-<div id="horloge-horloge" class="accordion-body">
+<div id="ex-horloge-horloge" class="accordion-body">
 <div class="accordion-inner">
 <pre class="zelus "><code><span class="keyword keyword module ">open</span> <span class="constructor">Draw</span>
 
@@ -1644,8 +1686,8 @@ drawn by an external (OCaml) function called <code>draw_system</code>.</p>
 
 <span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">digitalwatch</span> (<span class="">hi</span>,<span class="">mi</span>,<span class="">si</span>) = (<span class="">h</span>,<span class="">m</span>,<span class="">s</span>) <span class="keyword ">where</span>
   <span class="keyword ">rec</span> <span class="">s</span> = <span class="">si</span> <span class="keyword expr ">fby</span> (<span class="">s</span><span class="operator">+</span><span class="number">1</span>) <span class="keyword operator ">mod</span> <span class="number">60</span>
-  <span class="keyword ">and</span> <span class="">m</span> = <span class="">mi</span> -&gt; (<span class="keyword ">if</span> ((<span class="">s</span> = <span class="number">0</span>) <span class="operator">&&</span> (<span class="">s</span> <span class="operator"><></span> <span class="number">0</span> <span class="keyword expr ">fby</span> <span class="">s</span>)) <span class="keyword ">then</span> (<span class="keyword expr ">pre</span> <span class="">m</span>) <span class="operator">+</span> <span class="number">1</span> <span class="keyword ">else</span> <span class="keyword expr ">pre</span> <span class="">m</span>) <span class="keyword operator ">mod</span> <span class="number">60</span>
-  <span class="keyword ">and</span> <span class="">h</span> = <span class="">hi</span> -&gt; (<span class="keyword ">if</span> ((<span class="">m</span> = <span class="number">0</span>) <span class="operator">&&</span> (<span class="">m</span> <span class="operator"><></span> <span class="number">0</span> <span class="keyword expr ">fby</span> <span class="">m</span>)) <span class="keyword ">then</span> (<span class="keyword expr ">pre</span> <span class="">h</span>) <span class="operator">+</span> <span class="number">1</span> <span class="keyword ">else</span> <span class="keyword expr ">pre</span> <span class="">h</span>) <span class="keyword operator ">mod</span> <span class="number">24</span>
+  <span class="keyword ">and</span> <span class="">m</span> = <span class="">mi</span> -&gt; (<span class="keyword ">if</span> ((<span class="">s</span> = <span class="number">0</span>) &amp;&amp; (<span class="">s</span> &lt;&gt; <span class="number">0</span> <span class="keyword expr ">fby</span> <span class="">s</span>)) <span class="keyword ">then</span> (<span class="keyword expr ">pre</span> <span class="">m</span>) <span class="operator">+</span> <span class="number">1</span> <span class="keyword ">else</span> <span class="keyword expr ">pre</span> <span class="">m</span>) <span class="keyword operator ">mod</span> <span class="number">60</span>
+  <span class="keyword ">and</span> <span class="">h</span> = <span class="">hi</span> -&gt; (<span class="keyword ">if</span> ((<span class="">m</span> = <span class="number">0</span>) &amp;&amp; (<span class="">m</span> &lt;&gt; <span class="number">0</span> <span class="keyword expr ">fby</span> <span class="">m</span>)) <span class="keyword ">then</span> (<span class="keyword expr ">pre</span> <span class="">h</span>) <span class="operator">+</span> <span class="number">1</span> <span class="keyword ">else</span> <span class="keyword expr ">pre</span> <span class="">h</span>) <span class="keyword operator ">mod</span> <span class="number">24</span>
 
 
 
@@ -1690,16 +1732,19 @@ drawn by an external (OCaml) function called <code>draw_system</code>.</p>
         | <span class="">toc</span>() <span class="keyword expr ">on</span> <span class="">active</span>  -&gt; <span class="">play_toc</span> ();
     ()
 </code></pre></div></div></div></div>
-</div><hr />
-<div id="watch" class="example-section">
+</div><hr>
+<div id="ex-watch" class="example-section">
 <h2 id="spring-drivenwatch">Spring-driven Watch</h2>
 
 <p>Author: <a href="http://www.di.ens.fr/~baudart/">Guillaume Baudart</a></p>
 
-<p><img src="img/watch.png" alt="Screenshot" title="Screenshot" id="screenshot" /></p>
+<p>
+<img src="img/watch.png" srcset="img/watch@2x.png 2x">
 
-<p>This model was made to celebrate 
-<a href="http://people.rennes.inria.fr/Albert.Benveniste/">Albert Benveniste's</a>
+</p>
+
+<p>This model was made to celebrate
+<a href="http://people.rennes.inria.fr/Albert.Benveniste/">Albert Benveniste’s</a>
 <a href="https://project.inria.fr/alberts65th/">65th birthday</a> in honour of
 <a href="http://people.rennes.inria.fr/Albert.Benveniste/pub/Polychrony.pdf">“The old fashioned Signal watch”</a>.</p>
 
@@ -1733,15 +1778,13 @@ automaton with two modes.</p>
 The system state is drawn by an external (OCaml) function called
 <code>draw_system</code>.</p>
 
-<div id="watch-watch-box" class="accordion sourcefile">
+<div id="ex-watch-watch-box" class="accordion sourcefile">
 <div class="accordion-group">
 <div class="accordion-heading">
-<a class="accordion-toggle" data-toggle="collapse"
-   data-parent="#watch-watch-box"
-   href="#watch-watch"><i class="icon-file"></i> watch.zls</a>
+<a class="accordion-toggle" data-toggle="collapse" data-parent="#ex-watch-watch-box" href="#ex-watch-watch"><i class="icon-file"></i> watch.zls</a>
 </div>
 
-<div id="watch-watch" class="accordion-body">
+<div id="ex-watch-watch" class="accordion-body">
 <div class="accordion-inner">
 <pre class="zelus "><code><span class="keyword keyword module ">open</span> <span class="constructor">Draw</span>
 
@@ -1865,14 +1908,14 @@ The system state is drawn by an external (OCaml) function called
         | <span class="">toc</span>() <span class="keyword expr ">on</span> <span class="">active</span>  -&gt; <span class="">play_toc</span> ();
     ()
 </code></pre></div></div></div></div>
-</div><hr />
-<div id="airtraffic" class="example-section">
+</div><hr>
+<div id="ex-airtraffic" class="example-section">
 <h2 id="airtrafficcontrol">Airtraffic Control</h2>
 
 <div class="requirements">
 <p class="text-info">
 <i class="icon-info-sign"></i> <em>Requires</em>:
-Lablgtk2</p>
+Lablgtk2
 </p>
 </div>
 
@@ -1884,21 +1927,27 @@ Systems</em></a>, Tomlin, Pappas, Sastry, 1998.</p>
 Aircraft2. Both aircraft are flying at a similar altitude and with constant
 velocity and heading. Two zones are defined around each aircraft:</p>
 
-<p><img src="img/aircraft-zones.png" alt="Plane alert zones" title="Plane alert zones" id="planealertzones" /></p>
+<p>
+<img src="img/aircraft-zones.png" srcset="img/aircraft-zones@2x.png 2x">
+
+</p>
 
 <p>A conflict resolution manouever is considered when two planes have entered
-into each other's alert zones. The system aims to ensure that neither plane
-ever enters the other's protected zone.</p>
+into each other’s alert zones. The system aims to ensure that neither plane
+ever enters the other’s protected zone.</p>
 
 <p>In the model, the position and heading of Aircraft1 define, respectively, the
 origin and direction of the positive x-axis of a relative coordinate system,
 in which the position of Aircraft2 is specified. The heading of Aircraft2 is
 specified relative to the positive x-axis.</p>
 
-<p><img src="img/aircraft-model.png" alt="Basic model" title="Basic model" id="basicmodel" /></p>
+<p>
+<img src="img/aircraft-model.png" srcset="img/aircraft-model@2x.png 2x">
+
+</p>
 
 <p>The initial condition in the model is that the aircraft are cruising outside
-each other's protected zones, but inside each other's alert zones.</p>
+each other’s protected zones, but inside each other’s alert zones.</p>
 
 <p>The manouever modelled in this case is (taken directly from the paper):</p>
 
@@ -1926,15 +1975,13 @@ displacement of d miles is acheived for both aircraft.</p></li>
 <p>Note that, in the model at least, the heading changes occur simultaneously
 and instantaneously.</p>
 
-<div id="airtraffic-airtraffic-box" class="accordion sourcefile">
+<div id="ex-airtraffic-airtraffic-box" class="accordion sourcefile">
 <div class="accordion-group">
 <div class="accordion-heading">
-<a class="accordion-toggle" data-toggle="collapse"
-   data-parent="#airtraffic-airtraffic-box"
-   href="#airtraffic-airtraffic"><i class="icon-file"></i> airtraffic.zls</a>
+<a class="accordion-toggle" data-toggle="collapse" data-parent="#ex-airtraffic-airtraffic-box" href="#ex-airtraffic-airtraffic"><i class="icon-file"></i> airtraffic.zls</a>
 </div>
 
-<div id="airtraffic-airtraffic" class="accordion-body">
+<div id="ex-airtraffic-airtraffic" class="accordion-body">
 <div class="accordion-inner">
 <pre class="zelus "><code><span class="comment">(*
  * This example is taken from the paper:
@@ -2051,7 +2098,7 @@ and instantaneously.</p>
                                    <span class="">aircraft2_v</span> <span class="operator">*.</span> <span class="number">3600.0</span>, <span class="">t</span>)
 
 </code></pre></div></div></div></div>
-</div><hr />
+</div><hr>
 </div><!--/span-->
 </div><!--/row-->
 </div><!--/.fluid-container-->
