@@ -170,6 +170,11 @@ address a {
     overflow: hidden;
 }
 
+address .glyphicon {
+    padding-right: 2pt;
+    font-size: 85%;
+}
+
 ul.flatitemize {
 }
 

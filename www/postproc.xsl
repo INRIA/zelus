@@ -28,7 +28,7 @@
              srcset="{concat(substring-before(@src, '.png'), '@2x.png 2x')}" />
       </xsl:when>
       <xsl:otherwise>
-        <img src="{@src}" />
+        <img src="{@src}" srcset="{@srcset}" />
       </xsl:otherwise>
     </xsl:choose>
   </xsl:template>

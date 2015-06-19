@@ -122,7 +122,8 @@ for ENTRY in ${EXAMPLES}; do
 <div class="accordion-heading">
 <a class="accordion-toggle" data-toggle="collapse"
    data-parent="#${EXNAME}-${FILE}-box"
-   href="#${EXNAME}-${FILE}"><i class="icon-file"></i> ${FILE}.zls</a>
+   href="#${EXNAME}-${FILE}"><i class="glyphicon glyphicon-file"></i>
+				${FILE}.zls</a>
 </div>
 
 <div id="${EXNAME}-${FILE}" class="accordion-body">
@@ -134,7 +135,8 @@ EOF
 	    *!REQUIRES:*)
 		printf '<div class="requirements">\n'
 		printf '<p class="text-info">\n'
-		printf '<i class="icon-info-sign"></i> <em>Requires</em>:\n'
+		printf '<i class="glyphicon glpyhicon-info-sign"></i> '
+		printf '<em>Requires</em>:\n'
 		printf `expr "$LINE" : '.*!REQUIRES: *\([^<]*\).*'`
 		printf '\n</p>\n'
 		printf '</div>\n'
@@ -193,9 +195,9 @@ for BIB in src/*.bib; do
 	-e '/\[<a name="[^0-9]*[0-9]*">.*<\/a>\]/s/<sup>//g' \
 	-e '/\[<a name="[^0-9]*[0-9]*">.*<\/a>\]/s/<\/sup>//g' \
 	-e 's/\[<a name="\([^0-9]*\)\([0-9]*\)">[^<]*<\/a>\]/<a id="\1\2" class="biblink">\1 \2<\/a>/' \
-	-e 's/.*<a href="\([^"]*\)">DOI<\/a>.*/<span class="bibref"><a href="\1"><i class="icon-globe"><\/i> DOI<\/a><\/span>/' \
-	-e 's/.*<a href="\([^"]*\)">.pdf<\/a>.*/<span class="bibref"><a href="\1"><i class="icon-file"><\/i> pdf<\/a><\/span>/' \
-	-e 's/.*<a href="\([^"]*\)">bib<\/a>.*/<span class="bibref"><a href="\1"><i class="icon-book"><\/i> bib<\/a><\/span>/' \
+	-e 's/.*<a href="\([^"]*\)">DOI<\/a>.*/<span class="bibref"><a href="\1"><i class="glyphicon glyphicon-globe"><\/i> DOI<\/a><\/span>/' \
+	-e 's/.*<a href="\([^"]*\)">.pdf<\/a>.*/<span class="bibref"><a href="\1"><i class="glyphicon glyphicon-file"><\/i> pdf<\/a><\/span>/' \
+	-e 's/.*<a href="\([^"]*\)">bib<\/a>.*/<span class="bibref"><a href="\1"><i class="glyphicon glyphicon-book"><\/i> bib<\/a><\/span>/' \
 	"${GENERATED}/${NAME}-raw.html" \
 	> "${GENERATED}/${NAME}.html"
 
