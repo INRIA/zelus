@@ -173,6 +173,7 @@ address a {
 address .glyphicon {
     padding-right: 2pt;
     font-size: 85%;
+    color: #000000;
 }
 
 ul.flatitemize {
