@@ -108,6 +108,7 @@ The compensation filter is defined as a transfer function:
 which is implemented in the node `g_f` using the generic node `siso_1o`
 after having calculated its state-space realization in either
 [Matlab](http://www.mathworks.com/products/matlab/):
+
 <pre><code>[a, b, c, d] = ss(1.2 * tf([1 5], [1 15]))</code></pre>
 
 or [Scilab](https://www.scilab.org/):
