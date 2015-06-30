@@ -326,8 +326,18 @@ readchkl() {
 		opennums=""
 		for n in $openfilenums; do
 		    case $n in
-		    \[page=*\])
+		    \[page=*)
 			PAGENUM=$(expr "$n" : '\[page=\(.*\)\]')
+			if [ "$PAGENUM" = "" ]; then
+			    PAGENUM="unknown"
+			fi
+			;;
+		    \])
+			# ignore invalid patterns when checklistings.sty
+			# cannot expand \thepage properly (due to a
+			# conflicting package setting) and instead produces
+			# '[page=\thepage ]' which is read as two tokens:
+			# '[page=\thepage' and ']'.
 			;;
 		    \[line=*\])
 			LINENUM=$(expr "$n" : '\[line=\(.*\)\]')
