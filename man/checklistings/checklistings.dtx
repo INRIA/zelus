@@ -971,7 +971,8 @@ let w = u + "four"
         \else%
             \ifchklisting%
                 \ifCHKL@withresult%
-                   {\setlength{\partopsep}{0em}\chklistingmsg{}}%
+                   {\vspace{\dimexpr-2\topsep-2\partopsep+.5em\relax}%
+                    \setlength{\partopsep}{0em}\chklistingmsg{}}%
                 \fi%
             \else%
                 \PackageWarning{checklistings}%
