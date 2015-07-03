@@ -11,8 +11,8 @@ set lmargin at screen 0.1
 set ylabel "process"
 set key bottom right
 set yrange [-1.5:1.5]
-plot datafile using 1:2 title "desired" lc rgb "red" with lines, \
-     datafile using 1:3 title "actual" lc rgb "blue" with lines
+plot datafile using 1:2 title "y_m (reference)" lc rgb "red" with lines, \
+     datafile using 1:3 title "y (actual)" lc rgb "blue" with lines
 
 set notitle
 set nokey
