@@ -1,7 +1,7 @@
 
 datafile = "soas.out"
 
-set terminal postscript enhanced eps color dashed dl 5 lw 2;
+set terminal postscript enhanced eps color lw 1;
 set grid
 
 set notitle
