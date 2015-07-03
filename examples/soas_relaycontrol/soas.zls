@@ -27,8 +27,8 @@ let hybrid siso_3o ((a11, a12, a13, a21, a22, a23, a31, a32, a33),
 
 (* ideal relay model *)
 let hybrid relay (d, e) = u where
-  u = present (up(e)) | (disc(e)) | (init) -> if e >= 0.0 then d else -. d
-      init 0.0
+  u = present up(e) | up(-. e) | (disc(e)) | (init)
+        -> if e >= 0.0 then d else -. d init 0.0
 
 (* ** model ** *)
 
@@ -89,9 +89,9 @@ let hybrid gain_changer (d1, d2, e_l, e) = d where
 
    The state-space realization can be calculated in Matlab:
      sys1 = tf(60, [1 21 20 0])
-     [a, b, c, d] = ss()
+     [a, b, c, d] = ss(sys1)
 
-   "The process gain is suddenly increaed by a factor of 5 at t = 25."
+   "The process gain is suddenly increased by a factor of 5 at t = 25."
      sys2 = 5 * sys1
      [a, b, c, d] = ss(sys2)
 
