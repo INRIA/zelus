@@ -1,0 +1,65 @@
+(* A box, linked to a fixed wall with a *)
+(* rubber band, lies on a conveyor belt *)
+(* dragging the box away from the wall. *)
+(* Under certain conditions, the system *)
+(* reaches a periodic behaviour showing *)
+(* the box alternating between the Slip *)
+(* and Stick phases.                    *)
+
+(* /|                                   *)
+(* /|             ______                *)
+(* /|            |      |               *)
+(* /|============|      |      ___      *)
+(* /|   _________|______|_______  \     *)
+(* /|  /   \                /   \  \    *)
+(* /| |  O  |              |  O  |  |   *)
+(* /|  \___/________________\___/  /    *)
+(* /|            <-----           L     *)
+(* /|                                   *)
+
+let vcb =  0.1  (* velocity of the conveyor belt *)
+let k   = 10.   (* stiffness of the rubber band  *)
+let m   =  1.   (* mass of the mobile            *)
+let g   =  9.81 (* acceleration due to gravity   *)
+let fd  =  0.8  (* dynamic friction coefficient  *)
+let fs  =  0.9  (* static friction coefficient   *)
+
+(* Sign function with hysteresis        *)
+let hybrid sign(x) = o where
+    rec init o = if x >= 0.0 then 1.0 else -1.0
+    and z1 = up(x -. 0.01)
+    and z2 = up(-. x -. 0.01)
+    and automaton
+        | Up -> do until z1 then do o = 1.0 in Down
+                    else z2 then do o = -1.0 in Up
+        | Down -> do until z2 then do o = -1.0 in Up
+
+(* [x0]: initial position               *)
+(* [v0]: initial velocity               *)
+let hybrid stick_slip(x0, v0) = (t, x, v) where
+  rec
+    der t = 1.0 init 0.0
+  and automaton
+      | Slip(x0, v0) ->
+            do
+                der x = v init x0
+            and der v = -.k/.m*.x -. (sign (v-.vcb))*.g*.fd init v0
+          until up(v -. vcb)
+            then Stick(x, v)
+
+      | Stick(x0, v0) ->
+            do
+                der x = v init x0
+            and der v = 0. init vcb
+        until up(k*.x -. m*.g*.fs)
+          then Slip(x, v)
+
+      init Slip(x0, v0)
+
+(* Main entry point                     *)
+let hybrid main () =
+    let (t, x, v) = stick_slip(0., 5.) in
+    let tick = present (period (0.1)) -> () in
+    present tick() -> Util.print (t, x, v);
+    ()
+
