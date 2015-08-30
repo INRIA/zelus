@@ -67,8 +67,8 @@
 \fi
 
 
-\newcommand{\f}{$f$}
-\renewcommand{\t}{$t$}
+\newcommand{\f}{$F$}
+\renewcommand{\t}{$T$}
 
 \newcommand{\F}{\texttt{false}}
 \newcommand{\T}{\texttt{true}}
@@ -543,20 +543,20 @@ a value at an instant can only be produced after the values at all previous
 instants have been produced. This property
 models \emph{causality}. In particular,
 \begin{itemize}
-\item \verb-int- stands for the type of streams of integers,
-\item \verb-1- stands for the constant stream of $1$s,
-\item \verb-+- stands for the pointwise addition operator over two input 
-streams. It can be seen as an adder circuit just as \verb-&- can be seen as an
-  ``and'' gate.
+\item \zls{int} stands for the type of streams of integers,
+\item \zls{1} stands for the constant stream of $1$s,
+\item \zls{+} stands for the pointwise addition operator over two input 
+streams. It can be seen as an adder circuit just as \zls{\&\&} can be seen 
+as an ``and'' gate.
 \end{itemize}
 Program executions can be represented as \emph{timelines} showing the 
 sequences of values taken by streams. The
 example below shows five streams, one per line. The first line shows
-the value of a stream \zls{c}, which has the value \t{} ({\em true}) at the 
-first instant, \f{} ({\em false}) at the second one, and \t{} at the
-third. The `\dots' indicate that the stream has infinitely more values that 
-are not shown. The next two lines define \zls{x} and \zls{y}. The fourth 
-line defines a stream obtained
+a stream \zls{c}, which has the value \t{} ({\em true}) at the first 
+instant, \f{} ({\em false}) at the second one, and \t{} at the
+third. The `$\cdots$' indicates that the stream has infinitely more values 
+that are not shown. The next two lines define \zls{x} and \zls{y}. The 
+fourth line defines a stream obtained
 by the pointwise addition of \zls{x} and \zls{y}.
 The expression in the fifth line takes the current value of either \zls{x} 
 or \zls{y} according to the current value of \zls{c}.
@@ -566,7 +566,7 @@ or \zls{y} according to the current value of \zls{c}.
 \zls{c} & \t & \f & \t & $\cdots$ \\ \hline
 \zls{x} & $x_0$ & $x_1$ & $x_2$ & $\cdots$ \\ \hline
 \zls{y} & $y_0$ & $y_1$ & $y_2$ & $\cdots$ \\ \hline
-\zls{x+y} & $x_0+y_0$ & $x_1+y_1$ & $x_2+y_2$ & $\cdots$ \\
+\zls{x+y} & $x_0 + y_0$ & $x_1 + y_1$ & $x_2 + y_2$ & $\cdots$ \\
 \hline \zls{if c then x else y} &  $x_0$ & $y_1$ & $x_2$ & $\cdots$ \\ 
 \hline
 \end{chrono}
@@ -617,7 +617,7 @@ or \mbox{\zls{1 -> pre(2 -> pre(3))}} or \zls{1 -> pre(2 -> 3)}.
 % }-}3
 \subsection{Global Declarations\label{globaldecl}} %{-{3
 
-A program comprises a sequence of declarations of global
+A program is a sequence of declarations of global
 values. The keyword \zls{let} defines non recursive global values which may
 be either constants or functions. For example:
 \begin{chklisting}
@@ -631,11 +631,11 @@ each declaration:
 \begin{sample}\chklistingcmd\end{sample}
 \chklistingmsg{}
 Only constant values can be defined globally.
-The following declaration is rejected,
+The declaration
 \begin{chklisting}[fail]
 let first = true -> false
 \end{chklisting}
-with the message:
+is rejected with the message:
 \begin{sample}\chklistingcmd\end{sample}
 \chklistingerr{}
 The right-hand side of a global \zls{let} declaration may not contain delay 
@@ -647,7 +647,7 @@ in~\cref{nodefunc}.
 \subsection{Combinatorial Functions\label{combfunc}} %{-{3
 
 Functions whose output at an instant depends only on inputs at the same 
-instant are \emph{combinatorial}.
+instant are termed \emph{combinatorial}.
 They are stateless and may thus be used in both discrete and continuous 
 time.
 Any expression without delays, initialization operators, or automata is 
@@ -670,8 +670,8 @@ The type signature inferred by the compiler, \zlsmsg{int * int -A-> int},
 indicates that it takes two integer streams and returns an integer stream.
 The arrow \texttt{-A->} tagged with an \texttt{A} indicates that this 
 function is combinatorial.
-The \texttt{A} stands for ``any''; the function \texttt{average} can be used 
-anywhere in the code.
+The \texttt{A} stands for ``any''---the function \texttt{average} can be 
+used anywhere in the code.
 We will describe the other possibilities soon.
 
 Function definitions may contain local declarations, introduced using
@@ -773,7 +773,7 @@ let full_add2(a, b, c) = (s, co) where
 
 The \zls{rec} keyword specifies that the block of equations following the 
 \zls{where} is defined by mutual recursion.
-Without it the \zls{s1} in the equation for \zls{s} and \zls{c2} would have 
+Without it, the \zls{s1} in the equation for \zls{s} and \zls{c2} would have 
 to exist in the list of inputs or the global environment, and similarly for 
 \zls{c1} and \zls{c2} in the equation for \zls{co}.
 
@@ -817,7 +817,7 @@ The type signature \zlsmsg{int -D-> int} indicates that \zls{from} is
 a sequential function that maps one integer stream to another.
 The \zls{D} indicates that this function is stateful, it stands for 
 ``discrete''.
-The functions output may depend on the past values of its input.
+The function's output may depend on the past values of its input.
 
 Applying this function to the constant stream \zls{0} yields the
 execution:
@@ -845,9 +845,10 @@ combinatorial function, it is possible to call a combinatorial function
 node. For example, the addition operator in the \zls{from} function has the 
 type signature \zlsmsg{int * int -A-> int}.
 
-\medskip\noindent
-The edge front detector is defined a global function from boolean streams to
-boolean streams:%
+We now present a few more examples of stateful functions.
+
+The edge front detector is defined as a global function from boolean streams 
+to boolean streams:%
 \begin{chklisting}[withresult]
 let node edge c = c & not (false fby c)
 \end{chklisting}
@@ -861,7 +862,7 @@ let node edge c = c & not (false fby c)
 \end{chrono}
 
 \medskip\noindent
-A forward Euler integrator is defined by:
+A forward Euler integrator can be defined by:
 \begin{chklisting}[withresult,label=integr]
 let dt = 0.01
 let node integr (x0, x') = x where
@@ -870,9 +871,9 @@ let node integr (x0, x') = x where
 These declarations give a global function \zls{integr} that returns a stream 
 \zls{x} defined
 recursively so that, for all $n \in \Nat, x(n) = x0 + \sum_{i=0}^{n-1}
-x'(i)\cdot dt$.  The operators `\zls{+.}', `\zls{*.}' are, respectively, 
-addition and multiplication over floating-point numbers. Sequential
-functions are composed just like any other function, as, for example, in:
+x'(i)\cdot dt$.  The operators `\zls{+.}' and `\zls{*.}' are, respectively, 
+addition and multiplication over floating-point numbers. Stateful
+functions are composed just like any other functions, as, for example, in:
 \begin{chklisting}[continue]
 let node double_integr (x0, x0', x'') = x where
   rec x = integr (x0, x')
@@ -972,7 +973,7 @@ let node counter i = o where
 \end{chklisting}
 The equation \zls{init o = i} defines the initial value of the \emph{memory} 
 \zls{last o}. This memory is initialized with the first
-value of \zls{i}, and thereafter it contains the previous value of
+value of \zls{i} and thereafter contains the previous value of
 \zls{o}. The above program is thus equivalent to the following
 one:\footnote{The construction \texttt{last} is eliminated during 
 compilation by a similar transformation.}
@@ -1071,7 +1072,7 @@ let node wrong () =
 \end{chklisting}
 %
 Even though the output of \zls{f} does not depend instantaneously
-depend on its input \zls{x}, the keyword \zls{atomic} adds instantaneous 
+on its input \zls{x}, the keyword \zls{atomic} adds instantaneous 
 dependencies between the output and all inputs.
 For atomic functions, the compiler produces a single step
 function.\footnote{Note, though, that Modular code generation
