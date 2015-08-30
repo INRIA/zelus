@@ -1021,7 +1021,7 @@ continuous-time dynamics.
 \zls{init} and \zls{next} into a minimal subset.
 
 % }-}3
-\subsection{Causality check\label{causalcheck}} %{-{3
+\subsection{Causality Check\label{causalcheck}} %{-{3
 
 Instantaneous cycles between recursively defined values---\emph{causality 
 loops}---are forbidden so that the compiler can produce statically-scheduled 
@@ -1083,7 +1083,7 @@ function.\footnote{Note, though, that Modular code generation
   computed by the causality analysis.}
 
 %}-}3
-\subsection{Initialization check\label{initcheck}} %{-{3
+\subsection{Initialization Check\label{initcheck}} %{-{3
 
 The compiler checks that every delay operator is initialized. For
 example,
@@ -1100,8 +1100,8 @@ first be initialized using the \zls{->} operator.
 
 % }-}3
 % }-}2
-\section{Data types and pattern matching\label{dtypespatterns}} %{-{2
-\subsection{Type definitions\label{typedef}} %{-{3
+\section{Data types and Pattern Matching\label{dtypespatterns}} %{-{2
+\subsection{Type Definitions\label{typedef}} %{-{3
 
 Product types, record types, and enumerated types are defined in a syntax 
 close to that of \ocaml.
@@ -1122,7 +1122,7 @@ let radius c = c.radius
 \end{chklisting}
   
 % }-}3
-\subsection{Pattern matching\label{patternmatch}} %{-{3
+\subsection{Pattern Matching\label{patternmatch}} %{-{3
 
 Pattern matching over streams uses a \zls{match/with} construction like that 
 of \ocaml.
@@ -1537,7 +1537,7 @@ The signal \zls{o} is present with value \zls{()} every time \zls{c} is
 true.
 There is no need to give an initial value for \zls{o}.
 When \zls{c} is false, \zls{o} is simply absent.
-This program results is rejected by the compiler:
+Removing the \zls{emit} gives a program that the compiler rejects:
 \begin{chklisting}[withresult,fail]
 let node within (min, max, x) = o where
   rec c = (min <= x) & (x <= max)
@@ -1551,8 +1551,8 @@ nor is it defined as a signal (with \zls{emit}).
 
 The presence of a signal expression~\zls{e} can be tested by the boolean 
 expression~\zls{?e}.
-This program, for
-example, counts the number of instants when \zls{x} is emitted.
+The following program, for
+example, counts the number of instants where \zls{x} is emitted.
 \begin{chklisting}[withresult]
 let node count x = cpt where
   rec cpt = if ?x then 1 -> pre cpt + 1 else 0 -> pre cpt
@@ -1561,9 +1561,9 @@ let node count x = cpt where
 There is also a more general mechanism to test signal presence that treats 
 multiple signals simultaneously and allows access to their values.
 It resembles the pattern-matching construct of ML and it only allows signal 
-values to be accessed at instants of emission.\footnote{Unlike \esterel{} 
-signals whose values are maintained implicitly and can be accessed even when 
-they are not emitted.
+values to be accessed at instants of emission.\footnote{Unlike in \esterel{} 
+where signal values are maintained implicitly and can be accessed even in 
+instants where they are not emitted.
 The approach of \zelus{} is slightly more cumbersome, but it is safer and 
 avoids initialization issues and the allocation of a state variable.}
 
@@ -1595,8 +1595,8 @@ are patterns. Writing \zls{x(42) \& y(w)} means ``detect the presence of
 signal \zls{x} with value \zls{42} and the simultaneous presence of 
 \zls{y}''.
 
-The output of the preceding function \zls{sum} is a regular stream since the 
-test is exhaustive thanks to the \zls{else} clause.
+The output of the preceding function is a regular stream since the test is 
+exhaustive thanks to the \zls{else} clause.
 Omitting this default case results in an error.
 \begin{chklisting}[withresult,fail]
 let node sum (x, y) = o where
@@ -1645,8 +1645,8 @@ let node default (x, y) = o where
     x(v) | y(v) -> do emit o = v done
   end
 \end{chklisting}
-This is only a simulation since all information about the instants where 
-\zls{x} and \zls{y} are present---the so-called
+This is only a simulation of Signal's behavior since all information about 
+the instants where \zls{x} and \zls{y} are present---the so-called
 \emph{clock calculus} of \signal~\cite{signal:scp91}---is hidden at
 run-time and not exploited by the compiler.
 In particular, and unlike in the clock calculus of \signal{}, the \zelus{} 
