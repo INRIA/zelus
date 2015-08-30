@@ -1100,7 +1100,7 @@ first be initialized using the \zls{->} operator.
 
 % }-}3
 % }-}2
-\section{Data-types, Pattern matching\label{dtypespatterns}} %{-{2
+\section{Data types and pattern matching\label{dtypespatterns}} %{-{2
 \subsection{Type definitions\label{typedef}} %{-{3
 
 Product types, record types, and enumerated types are defined in a syntax 
@@ -1180,12 +1180,12 @@ input stream \zls{i}.
 let node direction i = d where
   rec pi = i fby i
   and ppi = i fby pi
-  and match i, pi, ppi  with
+  and match ppi, pi, i with
       | (Red, Red, Red) | (Blue, Blue, Blue) | (Green, Green, Green) ->
              do d = Immobile done
-      | (Blue, Red, _) | (Red, Green, _) | (Green, Blue, _) ->
+      | (_, Blue, Red) | (_, Green, Blue) | (_, Red, Green) ->
              do d = Clockwise done
-      | (Red, Blue, _) | (Blue, Green, _) | (Green, Red, _) ->
+      | (_, Red, Blue) | (_, Green, Red) | (_, Blue, Green) ->
              do d = Anticlockwise done
       | _ -> do d = Undetermined done
   end
@@ -1196,7 +1196,7 @@ equations defining \emph{shared} variables; here the variable
 \zls{d}.
 At each instant, the \zls{match/with} statement in the example selects
 the first pattern (from the top) that matches the actual value
-of the triple \zls{i, pi, ppi} and executes the corresponding
+of the triple \zls{ppi, pi, i} and executes the corresponding
 branch.
 Only one branch is executed in any single reaction.
 
@@ -1258,6 +1258,9 @@ let node two (m, i) = o where
 This version makes it clear how \zls{last o} stands for the previously 
 defined value of \zls{o}.
 
+The next section explains why using \zls{pre} in this example would have 
+given quite different results.
+
 % }-}3
 \subsection{Pre versus Last\label{prelast}} %{-{3
 
@@ -1305,7 +1308,7 @@ let node two (m, i) = (o, c1, c2) where
 %
 The equation \zls{c1 = 1 -> pre c1 + 1} is only active in the
 \zls{Up} mode, and the equation \zls{c2 = 1 -> pre c2 + 1} is
-active in the \zls{Down} mode. The execution diagram is given below.
+only active in the \zls{Down} mode. The execution diagram is given below.
 \begin{chrono}{l|cccccccc}
 \hline
 \tt i                 & \tt 0  & \tt 0  & \tt 0 & \tt 0    & \tt 0  & \tt 0    &  \tt 0  & $\cdots$ \\
@@ -1334,8 +1337,8 @@ active in the \zls{Down} mode. The execution diagram is given below.
 
 Pattern matching composes complementary sub-streams.
 For instance, the \zls{match/with} in the previous example has two branches, 
-and each defines its own clock, one for the instants where \zls{m = Up} and 
-the other for the instants where \zls{m = Down}.
+and each defines its own clock, one for the instants when \zls{m = Up} and 
+the other for the instants when \zls{m = Down}.
 
 % }-}3
 \subsection{Local Definitions\label{localdef}} %{-{3
@@ -1369,7 +1372,7 @@ Several variables can be declared local by writing
 % }-}3
 \subsection{Implicit Completion of Shared Variables\label{completeshared}} %{-{3
 
-The branches of a pattern-matching constraint need not contain definitions 
+The branches of a pattern-matching construct need not contain definitions 
 for all shared variables.
 Branches without a definition for a shared variable \zls{o} are implicitly 
 \emph{completed} with an equation \zls{o = last o}.
@@ -1899,7 +1902,7 @@ Reset this behavior each time the input \zls{R} occurs.
 \end{quote}
 We will implement this example in \zelus---replacing uppercase letters by 
 lowercase ones\footnote{As in \ocaml, identifiers starting with an uppercase 
-letter are considered to be datatype constructors and cannot be used as 
+letter are considered to be data type constructors and cannot be used as 
 variable names.}---but generalize it slightly by considering valued events.
 
 %The following function awaits for an event \texttt{e}. When \texttt{e} is 
@@ -3083,7 +3086,7 @@ A synchronous, possibly stateful, function defined by:
 is translated into the following:
 \begin{itemize}
 \item
-  A data-type \nterm{ident} used to represent the current value of the
+  A data type \nterm{ident} used to represent the current value of the
   internal state of the function. A value of that type is a tree, that
   is, a record where a field contain either the current value of a unit delay
   appearing in the function body or the
@@ -3172,16 +3175,16 @@ follows the cyclic execution scheme summarized in~\cref{fig:simalgo}.
 
 %\paragraph{Initialization}
 %The initial discrete state $y(0)$ is a value in some
-%abstract datatype $S_d$ and the initial continuous state $\lx(0)$ is 
-%likewise a value in some datatype $S_c$.
-%The solver also has an initial internal state $s(0)$ in datatype $S_s$.
+%abstract data type $S_d$ and the initial continuous state $\lx(0)$ is 
+%likewise a value in some data type $S_c$.
+%The solver also has an initial internal state $s(0)$ in data type $S_s$.
 %We thus denote the initial state $(y, \lx, s)(0) = init$, where:
 %  \[ init: S_d \times S_c \times S_s\mbox{.}\]
 
  %At initialization, the initial values of the discrete state, the
  %continuous state and the solver state are set. Let $y(0)$ denote the
- %initial value of the discrete state, of some abstract data-type $S_d$
- %and $\lx(0)$, the initial value of the continuous state with data-type
+ %initial value of the discrete state, of some abstract data type $S_d$
+ %and $\lx(0)$, the initial value of the continuous state with data type
  %$S_c$ and $s(0)$ the initial internal state of the solver. If $init$
  %denotes the initial state,
  %$(y, \lx, s)(0) = init$, where:
@@ -3342,7 +3345,7 @@ the compiler produces four functions:
 
 \begin{itemize}
 \item
-  A data-type \nterm{ident} used to represent the current
+  A data type \nterm{ident} used to represent the current
   value of the internal state of the function. It contains both the
   value of unit delays, continuous state variables (that is, variables
   defined by their derivatives) and zero-crossing variables.
