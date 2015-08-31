@@ -1,0 +1,6 @@
+(* expression shorthand for automata *)
+let node blah x = y where
+  rec y = automaton
+          | S1 -> do 0 until x then S2
+          | S2 -> do 1 until x then S1
+    
