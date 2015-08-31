@@ -1,12 +1,9 @@
-% ../compiler/zeluc.byte -I ../lib -I ./samples  	-i samples/tutorial0062.zls (2)
-\chklistingfalse
+% ../compiler/zeluc.byte -I ../lib -I ./samples  samples/tutorial0033.zls 	-i samples/tutorial0062.zls (0)
+\chklistingtrue
 \setchklistingcmd{zeluc.byte -i \chklistingfile}
 \begin{ChkListingMsg}
-Failed.
+val two_states : int * int * int -D-> int
 \end{ChkListingMsg}
 \begin{ChkListingErr}
-File "tutorial.zls", line 6, characters 14-15:
->      unless (c = max) then S2
->              ^
-The value name c is unbound (may need a 'rec').
+Success.
 \end{ChkListingErr}

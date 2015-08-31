@@ -254,6 +254,10 @@
 \newcommand{\sig}[1]{{\em #1}}
 \fi
 
+\newcommand{\AnyKind}{\ensuremath{\mathtt{A}}}
+\newcommand{\NodeKind}{\ensuremath{\mathtt{D}}}
+\newcommand{\HybridKind}{\ensuremath{\mathtt{C}}}
+
 \newcommand{\Remark}{\medskip\noindent{\bf Remark: }}
 
 % }-}1
@@ -668,10 +672,10 @@ let average (x,y) = (x + y) / 2
 \end{chklisting}
 The type signature inferred by the compiler, \zlsmsg{int * int -A-> int},
 indicates that it takes two integer streams and returns an integer stream.
-The arrow \texttt{-A->} tagged with an \texttt{A} indicates that this 
+The arrow \texttt{-A->} tagged with an \AnyKind{} indicates that this 
 function is combinatorial.
-The \texttt{A} stands for ``any''---the function \texttt{average} can be 
-used anywhere in the code.
+The \AnyKind{} stands for ``any''---the function \zls{average} can be used 
+anywhere in the code.
 We will describe the other possibilities soon.
 
 Function definitions may contain local declarations, introduced using
@@ -975,8 +979,8 @@ The equation \zls{init o = i} defines the initial value of the \emph{memory}
 \zls{last o}. This memory is initialized with the first
 value of \zls{i} and thereafter contains the previous value of
 \zls{o}. The above program is thus equivalent to the following
-one:\footnote{The construction \texttt{last} is eliminated during 
-compilation by a similar transformation.}
+one:\footnote{The construction \zls{last} is eliminated during compilation 
+by a similar transformation.}
 \begin{chklisting}
 let node counter i = o where
   rec last_o = i -> pre o
@@ -1006,7 +1010,7 @@ let node counter i = o where
   rec next o = o + 1 init i
 \end{chklisting}
 In both definitions, \zls{o} is initialized with the first value of
-\zls{i} and then the value of \texttt{o} at instant $n+1$ is the value of
+\zls{i} and then the value of \zls{o} at instant $n+1$ is the value of
 \zls{o + 1} at instant $n$ (for all $n \in \Nat$).
 
 Neither the form defining the current value from the previous one, nor the 
@@ -1403,19 +1407,19 @@ let node two (m, i) = o where
 % A pattern matching composes several complementary sub-streams, that
 % is, streams on complementary clocks. The above pattern matching 
 % has two branches. Every branch defines its own clock, one denoting
-% the instants where \verb-e = Top- and the other denoting the instant
-% where \verb-e = Click-.
+% the instants where \zls{e = Top} and the other denoting the instant
+% where \zls{e = Click}.
 
-% The branch \verb#Top when clk -> (pre o) when clk + 1#
-% states that for the instants where the condition \verb-e = Top- is
-% true (\verb-clk- being the clock of this branch), the result is the
-% previous value of \verb-o- plus one. For the instants where
-% \verb-e = Click-, the result is \verb-0-.
+% The branch \zls{Top when clk -> (pre o) when clk + 1}
+% states that for the instants where the condition \zls{e = Top} is
+% true (\zls{clk} being the clock of this branch), the result is the
+% previous value of \zls{o} plus one. For the instants where
+% \zls{e = Click}, the result is \zls{0}.
 
-% The pattern-matching construction is very similar to the \verb-merge-
+% The pattern-matching construction is very similar to the \zls{merge}
 % construction and thus, benefit (and somethimes suffers ?) from the same clock
-% constraints. Thus, writing simply \verb-(pre o) + 1- would lead to a
-% clocking error since \verb-o- is on the base clock and must be sampled
+% constraints. Thus, writing simply \zls{(pre o) + 1} would lead to a
+% clocking error since \zls{o} is on the base clock and must be sampled
 % on the clock of the branch.
 
 % The execution diagram is given below.
@@ -1454,11 +1458,11 @@ let node two (m, i) = o where
 %   o
 % \end{verbatim}
 
-% If we get back to the first version of the \verb-count- function, the reader may
+% If we get back to the first version of the \zls{count} function, the reader may
 %  notice the difference between an expression
-% \verb-(pre o) when clk- which refers to ``the value of \verb-o- at the last
-% global instant'' and \verb-pre (o when clk)- which refers ``the value
-% of \verb-o- at the last instant where \verb-clk- was true''. To illustrate
+% \zls{(pre o) when clk} which refers to ``the value of \zls{o} at the last
+% global instant'' and \zls{pre (o when clk)} which refers ``the value
+% of \zls{o} at the last instant where \zls{clk} was true''. To illustrate
 % this difference, consider now the problem of counting the distance
 % made by a mouse between two clicks.
 
@@ -1500,12 +1504,12 @@ let node two (m, i) = o where
 % \end{tabular}
 
 % \vspace{.5cm}
-% The \verb-match/with- construction is a generalised form of
-% \verb-merge-. These constructions are the natural way to express
+% The \zls{match/with} construction is a generalised form of
+% \zls{merge}. These constructions are the natural way to express
 % control structure in a data-flow language. In the example above, the
 % computation  
 % \verb+pos_x when c - pre (pos_x when c)+ is only executed when
-% \verb-e- equals \verb-Click-. The compilers deeply rely on clocks for
+% \zls{e} equals \zls{Click}. The compilers deeply rely on clocks for
 % generating good imperative code.
 
 % }-}2
@@ -1670,7 +1674,7 @@ They are compiled to data-flow equations~\cite{lucy:emsoft05b}.
 
 In this tutorial, we first consider basic state machines where transition 
 guards are limited to boolean expressions.
-Then, we consider two important extensions.
+We then consider two important extensions.
 The first is the ability to define state machines with parameterized states 
 (\cref{paramstates}) and actions on transitions (\cref{transacts}).
 The second is a more general form of transitions with signal matching and 
@@ -1690,7 +1694,6 @@ The following program contains a two state automaton with strong preemption,
 it returns \zls{false} until \zls{x} becomes true and then it returns 
 \zls{true} indefinitely.
 \begin{chklisting}[continue,withresult]
-(* wait for x to become true and then sustain the value *)
 let node strong x = o where 
   automaton
   | S1 -> do o = false unless x then S2
@@ -1702,7 +1705,7 @@ Each of the two states defines a value for the \emph{shared} variable
 \zls{o}.
 The keyword \zls{unless} indicates a strong transition: the automaton stays 
 in the state \zls{S1} as long as \zls{x} is false, and \zls{o} is defined
-by the equation \zls{o = false}, but the instant when \zls{x} becomes true,
+by the equation \zls{o = false}, but the instant that \zls{x} becomes true,
 \zls{S2} becomes active immediately, and \zls{o} is defined by the equation 
 \zls{o = true}.
 Thus, the following timeline holds:
@@ -1723,7 +1726,6 @@ The following program contains a two state automaton with weak preemption,
 it returns \zls{false} at the instant that \zls{x} becomes true and then it 
 returns \zls{true} indefinitely; it is like a \emph{Moore automaton}.
 \begin{chklisting}[label=expect,withresult]
-(* wait for x to become true and then sustain the value *)
 let node expect x = o where 
   automaton
   | S1 -> do o = false until x then S2
@@ -1806,7 +1808,7 @@ weak_switch toggle = strong_switch (false -> pre toggle)
 \caption{Automata with weak (at left) and strong (at right) 
 transitions~\label{switch-figure}}
 \end{figure}
-The graphical representation of these two automata is shown in
+The graphical representations of these two automata are shown in
 \cref{switch-figure}.
 The circles on the transition arrows distinguish weak transitions from 
 strong ones: they graphically separate the actions of one instant from 
@@ -1828,8 +1830,8 @@ state.
 %   end
 % \end{chklisting}
 %
-%Compared to the previous version, state \verb-True- can be strongly
-%preempted when some stop condition \verb-stop- is true.
+%Compared to the previous version, state \zls{True} can be strongly
+%preempted when some stop condition \zls{stop} is true.
 
 \Remark The current version of \zelus{} does not permit arbitrary 
 combinations of weak and strong transitions within an automaton as in 
@@ -1867,9 +1869,9 @@ let node await e = o where
   | Sustain(x) -> do emit o = x done
   end
 \end{chklisting}
-The formal parameter \zls{x} of state \zls{Sustain} can be used without 
-restriction in the body of the state, and the argument \zls{v} could be 
-replaced by an expression.
+The formal parameter \zls{x} of the \zls{Sustain} state can be used without 
+restriction in the body of the state, and the variable \zls{v} could just as
+well have been an expression.
 
 As another example, the program below uses parameterized states to count the 
 occurrences of \zls{x}.
@@ -1905,12 +1907,12 @@ lowercase ones\footnote{As in \ocaml, identifiers starting with an uppercase
 letter are considered to be data type constructors and cannot be used as 
 variable names.}---but generalize it slightly by considering valued events.
 
-%The following function awaits for an event \texttt{e}. When \texttt{e} is 
-%present with
-%a value \texttt{v}, the next state becomes \texttt{Sustain(v)} with the parameter
-%\texttt{x} of state \texttt{Sustain} set to \texttt{v}.
+%The following function awaits for an event \zls{e}. When \zls{e} is present 
+%with
+%a value \zls{v}, the next state becomes \zls{Sustain(v)} with the parameter
+%\zls{x} of state \zls{Sustain} set to \zls{v}.
 %
-As a first step, consider this function that implements the first part of 
+As a first step, consider a function that implements the first part of 
 the specification: it waits for occurrences of both \zls{a} and \zls{b} 
 using the \zls{await} node from \cref{paramstates} and then emits the sum of 
 their values.
@@ -1964,7 +1966,7 @@ The following program implements the ABRO specification.
 let node abro (a, b, r) = o where
 reset
   o = abo (a, b)
-every true -> pre r
+every true fby r
 \end{chklisting}
 
 % It is also possible to write:
@@ -1982,59 +1984,6 @@ every true -> pre r
 %       end
 % \end{verbatim}
 
-We end with a very common situation of a real-time controller that count
-the passage of time and change its running mode according to those counter. This
-example enlight the difference between logical time as we have considered up to know
-and real-time. Consider a light that
-blinks with a specification that says:
-
-\begin{quote}
-Repeat infinitely the following behavior:
-Turn light on for \texttt{n} seconds and off for \texttt{m} seconds.
-\end{quote}
-
-A way of implementing it is this. The signal \texttt{second} is
-represented by a boolean, true at every occurrence of a second, false
-otherwise. Moreover, we want this to be reset every time \texttt{res}
-is true. We first write a node \texttt{after} such that
-\texttt{after(n, t)} returns true when \texttt{t} had \texttt{n} true
-values. The node \texttt{blink\_reset} is a two mode automaton
-surrended by a reset.
-\begin{chklisting}[withresult,label=after,label=blink_reset]
-let node after(n, t) = (cpt >= n) where
-  rec tick = if t then 1 else 0
-  and ok = cpt >= n
-  and cpt = tick -> if pre ok then n else pre cpt + tick
-
-let node blink_reset (r, n, m, t) = x where
- reset
-   automaton
-   | On  -> do x = true  until (after(n, t)) then Off
-   | Off -> do x = false until (after(m, t)) then On
- every r
-\end{chklisting}
-
-\medskip
-The type signatures inferred by the compiler are:
-\chklistingmsg{}
-
-Does \texttt{after(n, second)} means \texttt{n} real-time seconds? No, for two reasons.
-\begin{enumerate}
-\item
-  \texttt{second} is a Boolean stream. No hypothesis is made by or
-  ensured by the compiler about the
-  actual real-time duration between two occurrences of the value
-  \emph{true}. It is a matter of the implementation to ensure that
-  \texttt{second} is a good approximation of a real second.
-\item
-  The counting of instants in the expression
-  \texttt{after(n, t)} is performed only when the expression is active, that is,
-  it returns true when \texttt{n} occurrences of the value \emph{true} has
-  been \emph{observed}.
-\end{enumerate}
-In a discrete-time program as we wrote in this chapter, time is not absolute but
-logical and local.
-  
 % }-}3
 \subsection{Local State Definitions\label{statelocaldefs}} %{-{3
 
@@ -2042,9 +1991,9 @@ Names may be declared local to a state.
 Such names can only be used inside the body of the state and in the guards 
 of outgoing weak transitions.
 
-The following program integrates the integer sequence \zls{v} and emits 
+The following program sums the integer sequence \zls{v} and emits 
 false until the sum has reached some value \zls{max}. Then, it
-emits \zls{true} during \zls{n} instants.
+emits \zls{true} for \zls{n} instants.
 \begin{chklisting}
 let node consume (max, n, v) = status where
   automaton
@@ -2059,38 +2008,41 @@ let node consume (max, n, v) = status where
   end
 \end{chklisting}
 
-State \zls{S1} defines a local variable \zls{c} which can be used to
-compute the weak condition \zls{c = max} and this does not introduce
-any causality problem. Indeed, weak transitions are only effective
-during the next reaction, that is, they define the next state, not the
+State \zls{S1} defines a local variable \zls{c} that is used to
+compute the weak condition \zls{c = max} without introducing
+any causality problems. Indeed, weak transitions only take effect
+in a subsequent reaction: they define the next state, not the
 current one. Moreover, there is no restriction on the kind of
 expressions appearing in conditions and they may, in particular, have
 some internal state. For example, the previous program can be
 rewritten as:
 \begin{chklisting}
-let node counting v = cpt where
+let node sum v = cpt where
   rec cpt = v -> pre cpt + v
 
 let node consume (max, n, v) = status where
   automaton
   | S1 ->
        do status = false
-       until (counting v = max) then S2
+       until (sum v = max) then S2
   | S2 ->
        do status = true
-       until (counting 1 = n) then S1
+       until (sum 1 = n) then S1
   end
 \end{chklisting}
-The body of a state is a sequence (possibly empty) of local
-definitions (with \verb-let/in-) followed by some definitions of
-shared names (with \verb-do/until-). As said previously, weak
+
+The body of a state comprises (possibly empty) sequences of local declarations 
+(with \zls{local/in}), local
+definitions (with \zls{let/in}), and definitions of
+shared variables (with \zls{do/until}). As noted previously, weak
 conditions may depend on local names and shared names.
 
-Replacing \verb-until- by an \verb-unless- leads to an error. Indeed,
-in a strong preemption, the condition is evaluated {\em before} the
-equations of the body and thus, cannot depend on them. In a weak
-preemption, the condition is evaluated at the end, {\em after} the
-definitions of the body have been evaluated. Thus, when writing:
+In weak preemptions, as in the example above, transition conditions are 
+evaluated \emph{after} the equations in the body have been evaluated.
+The \zls{until}s in this example may not be replaced with \zls{unless}s
+because in strong preemptions the transition conditions are evaluated
+\emph{before} the equations in the body and may not depend on them.
+Thus, writing
 \begin{chklisting}[fail]
 let node consume (max, n, v) = status where
   automaton
@@ -2099,12 +2051,12 @@ let node consume (max, n, v) = status where
       do status = false
       unless (c = max) then S2
   | S2 ->
-      let rec c = 1 -> pre c + v in
+      let rec c = 1 -> pre c + 1 in
       do status = true
       unless (c = n) then S1
   end
 \end{chklisting}
-The compiler emits the message:
+causes the compiler to emit the message:
 \chklistingerr{}
 %\begin{sample}
 %File "tutorial.zls", line 6:
@@ -2112,9 +2064,10 @@ The compiler emits the message:
 %>        ^^^^^^^
 %This expression may depend on itself.
 %\end{sample}
-The variable \verb-c- is not visible in the handler of the \verb-unless-. The
-same appears if \verb-c- is declared as a local variable.
-\begin{chklisting}[fail]
+The variable \zls{c} is not visible in the handler of the \zls{unless}. The
+same problem occurs if \zls{c} is declared as a local variable, as in the
+following program.
+\begin{chklisting}[fail,withresult]
 let node consume (max, n, v) = status where
   automaton
   | S1 ->
@@ -2127,21 +2080,14 @@ let node consume (max, n, v) = status where
       unless (c = n) then S1
   end
 \end{chklisting}
-The compiler emits the message:
-\chklistingerr{}
 
 % }-}3
 \subsection{States and Shared Memory\label{stateshared}} %{-{3
 
-In the previous examples, there is no communication between values
-computed in each state. Consider a simple system made of two running
-modes as seen previously. In the \verb-Up- mode, the system increases
-some value with a fixed step \verb-1- whereas in the \verb-Down- mode,
-this value decreased with the same step. Now, the transition from one
-mode to the other is described by a two-state automaton whose behavior
-depends on the value computed in each mode. This example, due to
-Maraninchi \& R\'emond~\cite{Modes-SCP03} can be programmed in the
-following way.
+In the previous examples, there is no communication between the values
+computed in each state.
+We now consider the following simple system, due to Maraninchi and
+R\'emond~\cite{Modes-SCP03}, of two running modes.
 \begin{chklisting}[include=updownmodes]
 let node two_states (i, min, max) = o where
   rec automaton
@@ -2152,7 +2098,13 @@ let node two_states (i, min, max) = o where
       end
   and init o = i
 \end{chklisting}
-An execution diagram is given below:
+In the \zls{Up} mode, the system continually increments
+some value by \zls{1} and in the \zls{Down} mode, it decrements the same value 
+by the same amount.
+The transitions between these two modes are described by a two-state automaton 
+whose behavior
+depends on the value computed in each mode.
+The system's execution diagram is
 \begin{chrono}
 {l|ccccccccccccc}
 \hline
@@ -2162,11 +2114,11 @@ An execution diagram is given below:
 \hline
 \tt max               & \tt 4  & \tt 4  & \tt 4 & \tt 4    & \tt 4  & \tt 4    &  \tt 4 & \tt 4  & \tt 4 & \tt 4    & \tt 4  & \tt 4    & \dots \\
 \hline
-\tt last o            & \tt 0 & \tt 1 & \tt 2 & \tt 3 & \tt 4 & \tt 3 &  \tt 2 
-& \tt 1  & \tt 0 & \tt -1    & \tt 0  & \tt 1   & \dots \\
-\hline
 \tt o            & \tt 1 & \tt 2 & \tt 3 & \tt 4 & \tt 3 & \tt 2 &  \tt 1 
 & \tt 0  & \tt -1 & \tt 0    & \tt 1  & \tt 2   & \dots \\
+\hline
+\tt last o            & \tt 0 & \tt 1 & \tt 2 & \tt 3 & \tt 4 & \tt 3 &  \tt 2 
+& \tt 1  & \tt 0 & \tt -1    & \tt 0  & \tt 1   & \dots \\
 \hline
 \tt last o + 1        & \tt 1  & \tt 2  & \tt 3  & \tt 4  &   &   & 
 & & & \tt 0 & \tt 1    & \tt 2  & \dots \\
@@ -2176,13 +2128,21 @@ An execution diagram is given below:
 \hline
 \end{chrono}
 
+As for \zls{match/with} and \zls{present}, an implicit completion mechanism 
+applies so that variables like \zls{o} need not be explicitly defined in all 
+automaton states.
+When an equation is not given, the shared variable keeps its previous values.
+In other words, an equation \zls{o = last o} is assumed.
+
 % }-}3
 \subsection{The Initial State\label{init}} %{-{3
 
-The initial state can be used for defining some variables whose value
-can then be sustained in remaining states. In that case, their last
-value is considered to be defined. Moreover, it becomes possible not
-to define their value in all the states.
+The initial automaton state can be used to define the values of variables 
+that are shared across the other states.
+Such variables are considered to have a last value that can be accessed 
+through the \zls{last} operator.
+And, thanks to \zls{o = last o} completion, explicit definitions can be 
+omitted in other states.
 \begin{chklisting}
 let node two_states (i, min, max) = o where
   rec automaton
@@ -2205,26 +2165,27 @@ let node two_states (i, min, max) = o where
 \hline
 \tt max               & \tt 0  & \tt 0  & \tt 0 & \tt 4  & \tt 4  & \tt 4 & \tt 4    & \tt 4  & \tt 4    &  \tt 4 & \tt 4  & \tt 4 & \tt 4    & \tt 4  & \tt 4    & \dots \\
 \hline
+\tt o            & \tt 0  & \tt 0  & \tt 0 & \tt 1 & \tt 2 & \tt 3 & \tt 4 & 
+\tt 3 & \tt 2 &  \tt 1 & \tt 0  & \tt -1 & \tt 0    & \tt 1  & \tt 2   & 
+\dots \\
+\hline
 \tt last o            & \tt 0  & \tt 0  & \tt 0 & \tt 0 & \tt 1 & \tt 2 & \tt 3 & \tt 4 & \tt 3 &  \tt 2 
 & \tt 1  & \tt 0 & \tt -1    & \tt 0  & \tt 1   & \dots \\
 \hline
-\tt o            & \tt 0  & \tt 0  & \tt 0 & \tt 1 & \tt 2 & \tt 3 & \tt 4 & \tt 3 & \tt 2 &  \tt 1 
-& \tt 0  & \tt -1 & \tt 0    & \tt 1  & \tt 2   & \dots \\
-\hline
-\tt last o + 1     & \tt 0  & \tt 0  & \tt 0    & \tt 1  & \tt 2  & \tt 3  & \tt 4  &   &   & 
-& & & \tt 0 & \tt 1    & \tt 2  & \dots \\
+\tt last o + 1     & \tt 0  & \tt 0  & \tt 0    & \tt 1  & \tt 2  & \tt 3  & 
+\tt 4  &   &   & & & & \tt 0 & \tt 1    & \tt 2  & \dots \\
 \hline
 \tt last o - 1   & \tt 0  & \tt 0  & \tt 0 &    &        &        &        & \tt 3 & \tt 2  & \tt 1
 & \tt 0  & \tt -1 &   & & & \dots \\
 \hline
 \end{chrono}
 
-Because the initial state \verb-Init- is only weakly preempted,
-\verb-o- is necessarily initialized with the current value of
-\verb-i-. Thus, \verb-last o- is well defined in the remaining
-states. Note that replacing the weak preemption by a strong one will
-lead to an error.
-\begin{chklisting}[fail]
+As the initial state \zls{Init} is only weakly preempted,
+\zls{o} is necessarily initialized with the current value of
+\zls{i}. Thus, \zls{last o} is well defined in the remaining
+states.
+Replacing weak preemption by strong preemption results in an error.
+\begin{chklisting}[fail,withresult]
 let node two_states (i, min, max) = o where
   rec automaton
       | Init ->
@@ -2237,12 +2198,10 @@ let node two_states (i, min, max) = o where
           unless (o = min) then Up
       end
 \end{chklisting}
-and we get:
-\chklistingerr{}
 
-We said previously that strong conditions must not depend on some
-variables computed in the current state but they can depend on some
-shared memory \verb-last o- as in:
+As explained in \cref{statelocaldefs}, the guards of strong transitions may 
+not depend on variables computed in the current state.
+They may depend, however, on a shared memory \zls{last o}, as in:
 \begin{chklisting}[skiptwo]
 let node two_states (i, min, max) = o where
 rec init o = i
@@ -2257,7 +2216,7 @@ and automaton
           unless (last o = min) then Up
       end
 \end{chklisting}
-and we get the same execution diagram as before:
+giving the same execution diagram as before:
 \begin{chrono}{l|cccccccccccccccc}
 \hline
 \tt i                 & \tt 0  & \tt 0  & \tt 0 & \tt 1  & \tt 1  & \tt 1 & \tt 1    & \tt 1  & \tt 1    &  \tt 1  & \tt 1  & \tt 1 & \tt 1    & \tt 1  & \tt 1   & \dots \\
@@ -2266,11 +2225,11 @@ and we get the same execution diagram as before:
 \hline
 \tt max               & \tt 0  & \tt 0  & \tt 0 & \tt 4  & \tt 4  & \tt 4 & \tt 4    & \tt 4  & \tt 4    &  \tt 4 & \tt 4  & \tt 4 & \tt 4    & \tt 4  & \tt 4    & \dots \\
 \hline
-\tt last o            & \tt 0  & \tt 0  & \tt 0 & \tt 0 & \tt 1 & \tt 2 & \tt 3 & \tt 4 & \tt 3 &  \tt 2 
-& \tt 1  & \tt 0 & \tt -1    & \tt 0  & \tt 1   & \dots \\
-\hline
 \tt o            & \tt 0  & \tt 0  & \tt 0 & \tt 1 & \tt 2 & \tt 3 & \tt 4 & \tt 3 & \tt 2 &  \tt 1 
 & \tt 0  & \tt -1 & \tt 0    & \tt 1  & \tt 2   & \dots \\
+\hline
+\tt last o            & \tt 0  & \tt 0  & \tt 0 & \tt 0 & \tt 1 & \tt 2 & \tt 3 & \tt 4 & \tt 3 &  \tt 2 
+& \tt 1  & \tt 0 & \tt -1    & \tt 0  & \tt 1   & \dots \\
 \hline
 \tt last o + 1     & \tt 0  & \tt 0  & \tt 0    & \tt 1  & \tt 2  & \tt 3  & \tt 4  &   &   & 
 & & & \tt 0 & \tt 1    & \tt 2  & \dots \\
@@ -2298,59 +2257,60 @@ and we get the same execution diagram as before:
 % We can make a more complicated system where the new direction is the
 % result of a computation (for example, elastic collision with Newton laws).
 
-Note that the escape condition \verb-do x = 0 and y = 0 then Up- in
-the initial state is a shortcut for
-\verb-do x = 0 and y = 0 until true then Up-.
-
-Finally, \verb-o- do not have to be defined in all the states. In that
-case, it keeps its previous value, that is, an equation
-\verb-o = last o- is implicitly added.
-
-\subsubsection{Initializing the Initial State\label{initinitstate}}
-
-It is possible to initialize the parameter of the initial state by adding
-an initialization to the automaton. For example, the following two state 
-automaton
-starts in state \texttt{On(incr)} with \texttt{incr} initialized with the first
-value of \texttt{i0}.
+An initial state may be parameterized if an explicit initialization clause 
+is added to the automaton.
+For example, the following two state automaton
+starts in state \zls{Run(incr)} with \zls{incr} initialized to the first
+value of \zls{i0}.
 \begin{chklisting}[withresult]
 let node two_states(i0, idle, run) = o where
   rec automaton
-      | Run(incr) -> do o = 0 fby o + incr until idle() then Idle
-      | Idle -> do until run(incr) then Run(incr)
+      | Run(incr) ->
+          do o = 0 fby o + incr until idle() then Idle
+      | Idle ->
+          do until run(incr) then Run(incr)
       init Run(i0)
 \end{chklisting}
 
 % }-}3
 \subsection{Resuming a State\label{resume}} %{-{3
 
-By default, when entering in a state, every computation in the state
-is reseted. We also provides some means to resume the internal memory
-of a state (this is called {\em enter by history} in UML diagrams).
-\begin{chklisting}[include=updownmodes]
-let node two_modes (min, max) = o where
+By default, the computations within an automaton state are reset when it is 
+entered.
+So, for instance, the counters in the states of the example below are reset 
+on every transition.
+\begin{chklisting}[withresult]
+let node time_restarting c = (x, y) where
   rec automaton
-      | Up -> do o = 0 -> last o + 1 until (o >= max) continue Down
-      | Down -> do o = last o - 1 until (o <= min) continue Up
+      | Init ->
+          do x = 0 and y = 0 then S1
+      | S1 ->
+          do x = 0 -> pre x + 1 until c then S2
+      | S2 ->
+          do y = 0 -> pre y + 1 until c then S1
       end
 \end{chklisting}
-
-\begin{chrono}{l|cccccccccccccccc}
+Giving the execution trace:
+\begin{chrono}{l|ccccccccccccccccc}
 \hline
-\tt min               & \tt 0  & \tt 0  & \tt 0  & \tt 0  & \tt 0  & \tt 0 & \tt 0    & \tt 0  & \tt 0    &  \tt 0  & \tt 0  & \tt 0 & \tt -1    & \tt 0  & \tt 0   & \dots \\
-\hline
-\tt max               & \tt 0  & \tt 0  & \tt 0 & \tt 4  & \tt 4  & \tt 4 & \tt 4    & \tt 4  & \tt 4    &  \tt 4 & \tt 4  & \tt 4 & \tt 4    & \tt 4  & \tt 4    & \dots \\
-\hline
-\tt o            & \tt 0  & \tt -1  & \tt 0 & \tt 1 & \tt 2 & \tt 3 & \tt 4 & \tt 3 & \tt 2 &  \tt 1 
-& \tt 0  & \tt -1 & \tt 0    & \tt 1  & \tt 2   & \dots \\
-\hline
+\tt c & \f & \f & \f & \f & \t & \f & \t & \f & \f & \f & \f & \t & \t & \f & \f & \f
+\\ \hline
+\tt x &  0 &  0 &  1 &  2 &  3 &  3 &  3 &  0 &  1 &  2 &  3 &  4 &  4 &  0 &  1 &  2
+\\ \hline
+\tt y &  0 &  0 &  0 &  0 &  0 &  0 &  1 &  1 &  1 &  1 &  1 &  1 &  0 &  0 &  0 &  0
+\\ \hline
 \end{chrono}
 
-This is an other way to write {\em activation conditions} and is very
-convenient for programming a scheduler which alternate between some
-computations, each of them keeping its own state as in:
-\begin{chklisting}
-let node time_sharing (c, i) = (x,y) where
+Note that the transition from the initial state,
+\zls{do x = 0 and y = 0 then S1}, is shorthand for
+\zls{do x = 0 and y = 0 until true then S1}.
+
+It is also possible to enter a state without resetting its internal memory (as 
+in the \emph{entry-by-history} of StateCharts) using the \zls{continue} 
+transitions.
+The modified example,
+\begin{chklisting}[withresult]
+let node time_sharing c = (x, y) where
   rec automaton
       | Init ->
           do x = 0 and y = 0 continue S1
@@ -2360,18 +2320,33 @@ let node time_sharing (c, i) = (x,y) where
           do y = 0 -> pre y + 1 until c continue S1
       end
 \end{chklisting}
+has the execution trace:
+\begin{chrono}{l|cccccccccccccccc}
+\hline
+\tt c & \f & \f & \f & \f & \t & \f & \t & \f & \f & \f & \f & \t & \t & \f & \f & \f
+\\ \hline
+\tt x &  0 &  0 &  1 &  2 &  3 &  3 &  3 &  4 &  5 &  6 &  7 &  8 &  8 &  9 & 10 & 11
+\\ \hline
+\tt y &  0 &  0 &  0 &  0 &  0 &  0 &  1 &  1 &  1 &  1 &  1 &  1 &  2 &  2 &  2 &  2
+\\ \hline
+\end{chrono}
+
+This is a way of writing {\em activation conditions}.
+It is convenient, for instance, for programming a scheduler which alternates 
+between different computations, each of them having its own state.
 
 % }-{3
 \subsection{Actions on Transitions\label{transacts}} %{-{3
 
-It is possible to do an action on a transition. We illustrate on the
-programming of a mouse controller whose specification is the following:
+It is possible to perform an action on a transition.
+As an example, consider programming a simple mouse controller with the 
+following specification.
 \begin{quote}
-Return the event \verb-double- when two \verb-click- has been received
-in less than four \verb-top-. Emits \verb-simple- if only one click
-has been received.
+Return the event \zls{double} whenever two \zls{click}s are received
+in less than four \zls{top}s. Emit \zls{simple} if only one click
+is received within the interval.
 \end{quote}
-Here is a possible implementation:
+Here is one possible implementation:
 \begin{chklisting}[label=counting,withresult]
 let node counting e = cpt where
   rec cpt = if e then 1 -> pre cpt + 1 else 0 -> pre cpt
@@ -2388,34 +2363,51 @@ let node controller (click, top) = (simple, double) where rec
   end
 \end{chklisting}
 
-It first awaits for the first occurrence of \verb-click-, then it
-enters in state \verb-One-, starting to count the number of
-\verb-top-. This state can be exited when a second
-\verb-click- occurs or that the condition \verb-counting top = 4- is
-true. 
+This program waits for the first occurrence of \zls{click}, then it enters the 
+\zls{One} state and starts to count the number of \zls{top}s.
+This state is exited when a second \zls{click} occurs or when the condition 
+\zls{counting top = 4} becomes true.
 
-Any set of equations can appear between the \texttt{do/in}, exactly as
-between the \texttt{do/until} or \texttt{do/unless}.
+Note that the \zls{One} state has two outgoing weak transitions (the second 
+prefixed by \zls{else}.
+As for the \zls{present} construct, transition guards are evaluated in order
+from top to bottom.
+The first to be satisfied is triggered.
+
+\begin{chrono}{l|ccccccccccccccc}
+\hline
+\tt click  & \f & \t & \f & \t & \f & \t & \f & \f & \f & \f & \f & \f & \f & \f
+\\ \hline
+\tt top    & \t & \f & \t & \f & \t & \t & \f & \t & \t & \t & \f & \t & \t & \f
+\\ \hline
+\tt simple & \f & \f & \f & \f & \f & \f & \f & \f & \f & \f & \f & \t & \f & \f
+\\ \hline
+\tt double & \f & \f & \f & \t & \f & \f & \f & \f & \f & \f & \f & \f & \f & \f
+\\ \hline
+\end{chrono}
+
+Any set of equations can be placed between the \zls{do/in} of a transition,
+exactly as between a \zls{do/until} or \zls{do/unless}.
 
 % We now come back to the example of the mouse controller whose informal
 % specification is reminded below:
 
 % \begin{quote}
-% Return the event \verb-double- when two \verb-click- has been received
-% in less than four \verb-top-. Emits \verb-simple- if only one click
+% Return the event \zls{double} when two \zls{click} has been received
+% in less than four \zls{top}. Emits \zls{simple} if only one click
 % has been received.
 % \end{quote}
 
 % This specification is too informal and says nothing about the precise
-% instant where \verb-double- or \verb-simple- must be emitted.  The
+% instant where \zls{double} or \zls{simple} must be emitted.  The
 % mouse controller can be programmed as a three states automaton:
 
 
 % We end with the programming of a mouse controller, a very
 % classical example. Its specification is the following:
 % \begin{quote}
-% Return the event \verb-double- when two \verb-click- has been received
-% in less than four \verb-top-. Emits \verb-simple- if only one click
+% Return the event \zls{double} when two \zls{click} has been received
+% in less than four \zls{top}. Emits \zls{simple} if only one click
 % has been received.
 % \end{quote}
 % Here is a possible implementation:
@@ -2454,26 +2446,26 @@ between the \texttt{do/until} or \texttt{do/unless}.
 %   end
 % \end{chklisting}
 
-% It first awaits for the first occurrence of \verb-click-, then it
-% enters in state \verb-One-, starting to count the number of
-% \verb-top-. This state can be preempted strongly when a second
-% \verb-click- occurs or that the condition \verb-counting top = 4- is
-% true. For example when \verb-click- is true, the control immediately
-% enters in state \verb-Emit(false, true)-, giving the initial values
-% \verb-false- to \verb-x1- and \verb-true- to \verb-x2-. Thus, at the
-% same instant, \verb-simple = false- and \verb-double = true-. Then,
-% the control goes to the initial state \verb-Await- at the next
+% It first awaits for the first occurrence of \zls{click}, then it
+% enters in state \zls{One}, starting to count the number of
+% \zls{top}. This state can be preempted strongly when a second
+% \zls{click} occurs or that the condition \zls{counting top = 4} is
+% true. For example when \zls{click} is true, the control immediately
+% enters in state \zls{Emit(false, true)}, giving the initial values
+% \zls{false} to \zls{x1} and \zls{true} to \zls{x2}. Thus, at the
+% same instant, \zls{simple = false} and \zls{double = true}. Then,
+% the control goes to the initial state \zls{Await} at the next
 % instant.
-
 
 % }-}3
 \subsection{Signals and State Machines\label{statemachinesig}} %{-{3
-In the automata we have considered so far, conditions on transitions
-are boolean expressions. The language provides a more general
-mechanism allowing to test (and access) signals on transitions.
 
-Using signals, we can reprogram the mouse controller in the following
-way.
+In the automata considered until now, the conditions on transitions
+have been boolean expressions. The language also provides a more general
+mechanism for testing signals and accessing their values on transitions.
+
+Using signals, we can reprogram the mouse controller of the previous section
+as follows.
 \begin{chklisting}[include=counting,withresult]
 type event = Simple | Double
 
@@ -2487,117 +2479,115 @@ let node controller (click, top) = o where
   end
 \end{chklisting}
 
-This time, nothing is emitted in state \verb-Await-. By
-writing \verb-emit o = x-, we state that \verb-o- is a signal and not
-a regular stream. We do not impose \verb-o- to be defined in every
-branch (and to complement it with its last value). Here, the signal
-\verb-o- is only emitted in state \verb-Emit-. Otherwise, it is
-considered to be absent.
+This time no variables are defined in state \zls{Await}.
+Writing \zls{emit o = x} means that \zls{o} is a signal and not
+a regular stream, there is thus no need to define it in every state of the 
+automaton nor to declare a last value.
+The signal \zls{o} is only emitted in state \zls{Emit}.
+Otherwise, it is absent.
 
-The use of signals combined with sum type has some advantage here with
-respect to the use of boolean variables in the previous version of the
-mouse controller. By construction, only three values are possible for
-the output of the system: \verb-o- can be \verb-Simple-, \verb-Double-
+\begin{chrono}{l|ccccccccccccccc}
+\hline
+\tt click  & \f & \t & \f & \t & \f & \t & \f & \f & \f & \f & \f & \f & \f & \f
+\\ \hline
+\tt top    & \t & \f & \t & \f & \t & \t & \f & \t & \t & \t & \f & \t & \t & \f
+\\ \hline
+\tt o      &    &    &    & \tt Double &  &  &  &  &  &  &  & \tt Simple &  &   
+\\ \hline
+\end{chrono}
+
+Combining signals with a sum type, as is done here, has some advantages over 
+the use of boolean variables in the original program.
+By construction, only three values are possible for
+the output: \zls{o} can only be \zls{Simple}, \zls{Double}
 or absent. In the previous version, a fourth case corresponding to the
-boolean value \verb-simple & double- was possible, even though it is meaningless.
+boolean value \zls{simple \& double} is possible, even though it is 
+meaningless.
 
 %}-}3
 \subsection{Pattern Matching over Signals\label{patmatchsig}} %{-{3
 
-Now, we must consider how signals are accessed. We generalize
-conditions to be signal patterns as provided by the \verb-present-
-statement.
+The signal patterns introduced in \cref{signalpresence} for the \zls{present} 
+construct may also be used in transition conditions to combine signals and 
+access their values.
 
-Let us consider a system with two input signals \verb-low-,
-\verb-high- and an output integer stream \verb-o-.
+Consider, for example, the system below that has two input signals \zls{inc} 
+and \zls{dec}, and that outputs a stream of integers \zls{o}.
 \begin{chklisting}[withresult]
-let node switch (low, high) = o where
+let node switch (inc, dec) = o where
   rec automaton
-      | Init -> do o = 0 until low(u) then Up(u)
+      | Init ->
+          do o = 0
+          until inc(u) then Up(u)
+           else dec(u) then Down(u)
       | Up(u) ->
           do o = last o + u
-          until high(v) then Down(v)
+          until dec(v) then Down(v)
       | Down(v) ->
           do o = last o - v
-          until low(w) then Up(w)
+          until inc(u) then Up(u)
       end
 \end{chklisting}
 
-The condition \verb-until low(w)- says: {\em await for the presence of
-  the signal \verb-low- with some value \verb-w-. Then go to the
-  parameterized state \verb-Up(w)-}.
+The condition \zls{until inc(u)} means: \emph{await the presence of
+the signal \zls{low} with some value~\zls{u}, then transition to the
+parameterized state \zls{Up(u)}}.
 
 \newcommand{\Signal}[1]{{#1}\;\mbox{\tt sig}}
 
-The right part of a pre-emption condition is of the form $e(p)$ where
-$e$ is an expression of type $\Signal{t}$ and $p$ stands for a pattern
-of type $t$. The condition is a binder: the pattern $p$ is bound with
-the value of the signal at the instant where $e$ is present.  In the
-above example, it introduces the variable \verb-w-. It is also
-possible to test for the presence of a signal as well as the validity
-of a boolean condition. For example:
+A basic preemption condition has the form \zls{e(p)} where \zls{e} is an 
+expression of type \zls{t sig} and \zls{p} is a pattern of type \zls{t}.
+The condition binds the variables in the pattern \zls{p} from the value of the 
+signal at the instant when \zls{e} is present.
+In the above example, for instance, the variable \zls{u} is introduced and 
+bound over the rest of the transition.
+A test for signal presence can be combined with a boolean condition.
+For example,
 \begin{chklisting}[withresult]
-let node switch (low, high) = o where
+let node switch (inc, dec) = o where
   rec automaton
-  | Init -> do o = 0 until low(u) then Up(u)
+  | Init ->
+      do o = 0
+      until inc(u) then Up(u)
+       else dec(u) then Down(u)
   | Up(u) ->
       let rec timeout = 0 -> pre timeout + 1 in
       do o = last o + u
-      until high(v) & (timeout > 42) then Down(v)
+      until dec(v) & (timeout > 42) then Down(v)
   | Down(v) ->
       let rec timeout = 0 -> pre timeout + 1 in
       do o = last o - v
-      until low(w) & (timeout > 42) then Up(w)
+      until inc(u) & (timeout > 42) then Up(u)
   end
 \end{chklisting}
-The system has the same behavior except that the presence of
-\verb-high- in the \verb-Up- state is only taken into account when the
-\verb-timeout- stream has reached the value \verb-42-.
-
-Finally, we can write a new version of the mouse controller where all
-the values are signals.
-\begin{chklisting}[withresult]
-type event = Simple | Double
-
-let node counting e = o where
-  rec o = if ?e then 1 -> pre o + 1 else 0 -> pre o
-
-let node controller (click, top) = e where
-  automaton
-  | Await ->
-     do until click(_) then One
-  | One ->
-     do until click(_) then do emit e = Double in Await
-     else (counting top = 4) then do emit e = Simple in Await
-  end
-\end{chklisting}
+This system has the same behavior except that the presence of
+\zls{dec} in the \zls{Up} state is only taken into account when the
+\zls{timeout} stream has passed the value \zls{42}.
 
 % }-}3
 % }-}2
 \section{Alternative Syntax for Control Structures\label{altcontrol}} %{-{2
 
-We can notice that the three control structures (\verb+match/with+,
-\verb-automaton- and \verb-present-) combine equations. Each branch is
-made of a set of equations defining shared values. In this form, it
-is not necessary to give a definition for each shared variable in all the
-branches: a shared variable implicitly keeps its previous value or
-is absent if it is defined as a signal.
+Each of the three control structures (\zls{match/with},
+\zls{automaton}, and \zls{present}) combines equations. Each branch comprises
+a set of equations defining shared values. In this form, it
+is not necessary to explicitly define all shared variables in every branch
+since they implicitly keep their previous value or, for signals, become absent.
 
-We have adopted this syntactical convention to be close to the graphical
-representation of programs in synchronous dataflow tools (such as
-\scade). In such tools, control structures naturally combine (large) sets of
-equations and the implicit completion of absent definitions is
-essential.
+This syntactical convention mirrors the graphical representation of programs in 
+synchronous dataflow tools (like \scade). In such tools, control structures 
+naturally combine (large) sets of equations and the implicit completion of 
+absent definitions is essential.
 
-The language also provides a derived form for control structures
-allowing them to be used as expressions. For example:
+The language also provides a derived form that allows control structures
+to be used in expressions. For example,
 %
 \begin{chklisting}
 let node two x =
   match x with | true -> 1 | false -> 2
 \end{chklisting}
 %
-as a short-cut for:
+can be written as a shorthand for
 \begin{chklisting}
 let node two x =
   let match x with
@@ -2607,14 +2597,92 @@ let node two x =
   o
 \end{chklisting}
 %
-thus leading to a more conventional notation for the \ocaml{}
-programmer. The same short-cut is possible with the \verb-present- statement.
-
-
-%HEVEA\cutend
+This notation is more conventional for \ocaml{} programmers.
+A similar shorthand exists for the \zls{present} and \zls{automaton}
+constructs.
+One can write, for instance,
+\begin{chklisting}
+let node toggle x = y where
+  rec y =
+    automaton
+    | S0 -> do 0 until x then S1
+    | S1 -> do 1 until x then S0
+\end{chklisting}
 
 %}-}3
 %}-}2
+\section{Real Time versus Logical Time\label{realvslogical}} %{-{2
+
+We close the chapter on synchronous programming with an example real-time 
+controller that tracks the passage of time using counters that then influence 
+the running mode.
+This example highlights the difference between the idea of logical time 
+considered thus far and that of real-time.
+
+Consider a light that blinks according to the specification:
+\begin{quote}
+Repeat the following behavior indefinitely:
+Turn a light on for \texttt{n} seconds and then off for \texttt{m} seconds.
+Allow it to be restarted at any instant.
+\end{quote}
+
+One way to start implementing this specification is to define a boolean signal 
+called \zls{second} that is true at every occurrence of a second, whatever that 
+may mean, and false otherwise.
+We then define a node called \zls{after(n, t)} that returns \zls{true} when 
+\zls{n} true values are counted on \zls{t}.
+This is then instantiated twice in a node called \zls{blink\_reset} containing 
+an automaton with two modes wrapped by a \zls{reset} construct.
+\begin{chklisting}[label=after,label=blink_reset]
+let node after(n, t) = (cpt >= n) where
+  rec tick = if t then 1 else 0
+  and ok = cpt >= n
+  and cpt = tick -> if pre ok then n else pre cpt + tick
+
+let node blink_reset (restart, n, m, second) = x where
+ reset
+   automaton
+   | On  -> do x = true  until (after(n, second)) then Off
+   | Off -> do x = false until (after(m, second)) then On
+ every restart
+\end{chklisting}
+
+\medskip
+The type signatures inferred by the compiler are:
+\chklistingmsg{}
+
+Does \zls{after(n, second)} really give a delay of \zls{n} real-time seconds?
+No, for three reasons.
+\begin{enumerate}
+\item
+  \zls{second} is a Boolean stream. No hypothesis is made or
+  ensured by the compiler about the actual real-time duration between
+  two occurrences of \emph{true} in the stream.
+  It is up to the implementation to ensure that
+  \zls{second} correctly approximates a real second.
+
+\item
+  The counting of instants in the expression
+  \zls{after(n, t)} is only performed when the expression is active, that 
+  is, it returns true when \zls{n} occurrences of the value \emph{true} have
+  been \emph{observed}.
+  Instantiating \zls{blink\_reset} within a branch of an \zls{automaton}
+  or \zls{match} may skew the relation between logical and real time.
+
+\item
+  Even given an `accurate' \zls{second} signal and ignoring the possibility of 
+  suspension at a higher-level, the expression \zls{after(n, second)} still only
+  gives a delay in the interval $(n-1, n]$ seconds.
+  This is because it counts ticks, not the `spaces' between ticks.
+  If \zls{restart} occurs just before but not simultaneously with \zls{second},
+  then the real-time delay will be less than $n$ seconds.
+\end{enumerate}
+
+In the discrete-time programs of this chapter, time is not real and absolute 
+but rather logical and local.
+  
+%}-}2
+%HEVEA\cutend
 %}-}1
 \chapter{Hybrid Systems Programming\label{ode-programming}} %{-{1
 %{-{2
@@ -2681,7 +2749,7 @@ and the two classical variable step solvers \texttt{ode23} and
 \medskip Functions like \verb+heater+, \verb+sin_cos+ and
 \verb+integr+ are different from the function we have defined in
 \cref{syncprog}. They are identified
-with the special keyword \texttt{hybrid}. These are functions from
+with the special keyword \zls{hybrid}. These are functions from
 continuous-time signals to continuous-time signals. They will need a
 special treatment for the integration with the solver. On the
 contrary, nodes evolve on a logical time basis, that is a sequence of
@@ -2733,21 +2801,17 @@ let hybrid wrong() = o where
 % \Tim{Marc: D'accord. En fait, je veux générer ce genre de truc 
 % automatiquement avec le nouveau checklistings package. J'y réfléchis...}
 
-The first program is rejected because \texttt{x} is a continuous-time
-signal, with $\forall t \in \bR+, x(t) = t$ whereas \texttt{->} and
-the unit delay \texttt{pre} expect a signal evolving at a discrete
+The first program is rejected because \zls{x} is a continuous-time
+signal, with $\forall t \in \bR+, x(t) = t$ whereas \zls{->} and
+the unit delay \zls{pre} expect a signal evolving at a discrete
 time basis. Symetrically, the second program is also meaningless
-because \verb-o- should be the discrete-time signal $\forall n \in
-\bN, o(n) = n$ and it cannot be integrated to produce \verb-x-.
+because \zls{o} should be the discrete-time signal $\forall n \in
+\bN, o(n) = n$ and it cannot be integrated to produce \zls{x}.
 These two programs
 are statically rejected by the compiler as invalid
 compositions. For example,: \chklistingerr{}
 
 \paragraph{Typing Constraints}
-
-\newcommand{\AnyKind}{\mathtt{A}}
-\newcommand{\NodeKind}{\mathtt{D}}
-\newcommand{\HybridKind}{\mathtt{C}}
 
 The language adopts the following convention to restrict the
 way combinatorial, discrete-time and continuous-time expressions are mixed.
@@ -2757,28 +2821,28 @@ Every expression is associated to a kind $k \in \{\AnyKind, \NodeKind,
 \begin{enumerate}
 \item
   The body of a combinatorial function (declared with
-keyword \verb-fun-) must be of kind $\AnyKind$; the body of a node
-function (declared with keyword \verb-node-) must be of kind
+keyword \zls{fun}) must be of kind $\AnyKind$; the body of a node
+function (declared with keyword \zls{node}) must be of kind
 $\NodeKind$ and the body of a continuous-time function (declared with
-keyword \verb-hybrid-) must be of kind $\HybridKind$. 
+keyword \zls{hybrid}) must be of kind $\HybridKind$. 
 \item
   When two equations $E_1$ and $E_2$ are composed in parallel in
   $\AndEq{E_1}{E_2}$ which is expected to be of some kind $k$, both
   equations $E_1$ and $E_2$ must be of the same kind $k$. If
   $\AndEq{E_1}{E_2}$ is expected to be combinatorial then $E_1$ and
-  $E_2$ must be both combinatorial (with kind \texttt{A}); if
-  $\AndEq{E_1}{E_2}$ must be discrete (with kind \texttt{D}) then both
+  $E_2$ must be both combinatorial (with kind \AnyKind); if
+  $\AndEq{E_1}{E_2}$ must be discrete (with kind \NodeKind) then both
   $E_1$ and $E_2$ must be discrete. Finally, if $\AndEq{E_1}{E_2}$ is
-  expected to be continuous (with kind \texttt{C}) then both $E_1$ and
+  expected to be continuous (with kind \HybridKind) then both $E_1$ and
   $E_2$ must be continuous.
   \end{enumerate}
 Thus, in a combinatorial function, all sub-expression appearing in
-its body must be with kind \texttt{A}. Under the definition of a node
-(with kind \texttt{D}), all sub-expression must be of kind \texttt{D} or
-\texttt{A}). Under the definition of an hybrid node (with kind
-\texttt{C}), all sub-expression must be of kind \texttt{A} or kind
-\texttt{C}. A computation with kind \texttt{D} can be put in parallel
-with an expression with kind \texttt{C} provided it is sampled on a
+its body must be with kind \AnyKind. Under the definition of a node
+(with kind \NodeKind), all sub-expression must be of kind \NodeKind{} or
+\AnyKind). Under the definition of an hybrid node (with kind
+\HybridKind), all sub-expression must be of kind \AnyKind{} or kind
+\HybridKind. A computation with kind \NodeKind{} can be put in parallel
+with an expression with kind \HybridKind{} provided it is sampled on a
 \emph{discrete clock}. We adopt the following convention:
 \begin{quote}
 {A clock is termed \emph{discrete} if it has been declared so or if it is the 
@@ -2786,22 +2850,23 @@ result of a zero-crossing or a sub-sampling of a discrete clock.
 Otherwise, it is termed \emph{continuous}.}
 \end{quote}
 For example, the following function which compose an ODE and a discrete-time
-computation is correct. The value of \texttt{x} is summed into \verb-o- at every
-instant \verb-tick- is present. Between those instants, \verb-o- is unchanged.
+computation is correct. The value of \zls{x} is summed into \zls{o} at 
+every
+instant \zls{tick} is present. Between those instants, \zls{o} is unchanged.
 \begin{chklisting}[withresult]
 let hybrid good(tick) = o where
   rec der x = 1.0 init 0.0
   and present tick -> do o = last o +. x done
   and init o = 0.0
 \end{chklisting}
-\texttt{tick} is of type \texttt{zero} which is the type of
+\zls{tick} is of type \zls{zero} which is the type of
 \emph{zero-crossing} events.
 
 % }-}3
 \subsection{Zero-crossing Events\label{zerocrossings}} %{-{3
 
-A zero-crossing event is produced by the operator \texttt{up(x)}
-which detects that a signal \texttt{x} goes from a negative value to a
+A zero-crossing event is produced by the operator \zls{up(x)}
+which detects that a signal \zls{x} goes from a negative value to a
 positive value during integration. Such events can also be used
 to \emph{reset} ODEs as illustrated in the classical example of a bouncing 
 ball.
@@ -2836,22 +2901,22 @@ let hybrid bouncing(x0,y0,x'0,y'0) = (x,y) where
  and der y' = -. g init y'0 reset up(-. y) -> -. loose *. last y'
 \end{chklisting}
 
-The ODE defining \texttt{y'} is now reset every time \texttt{-.y}
-crosses zero.  At this precise instant, the initial value of \verb-y'-
+The ODE defining \zls{y'} is now reset every time \zls{-.y}
+crosses zero.  At this precise instant, the initial value of \zls{y'}
 is \verb+-. loose *. last y'+. Exactly like in
-\cref{syncprog}, \texttt{last y'} is the
-value of \texttt{y'} at the previous instant. But this notion of the
+\cref{syncprog}, \zls{last y'} is the
+value of \zls{y'} at the previous instant. But this notion of the
 previous instant for a continuous-time signal has to be
 clarified. Mathematically, at the instant of a reset, we need to
-distinguish the the value of \verb-y'- \emph{just before the reset}
-and the new value we would like to give to \verb-y'- at the instant of
-the reset. As \texttt{y'} is a continuous-time signal, \texttt{last
-  y'} is the \emph{left limit} of \texttt{y'}. It corresponds to the
-last value of \texttt{y'} computed during the integration process.
+distinguish the the value of \zls{y'} \emph{just before the reset}
+and the new value we would like to give to \zls{y'} at the instant of
+the reset. As \zls{y'} is a continuous-time signal, \zls{last
+  y'} is the \emph{left limit} of \zls{y'}. It corresponds to the
+last value of \zls{y'} computed during the integration process.
 
-It is important to notice that replacing \texttt{last y'} by
-\texttt{y'} would lead to a causality error. Indeed, that would make
-the current value of \texttt{y'} instantaneously depend on itself and
+It is important to notice that replacing \zls{last y'} by
+\zls{y'} would lead to a causality error. Indeed, that would make
+the current value of \zls{y'} instantaneously depend on itself and
 this is statically rejected by the compiler. Typing:
 \begin{chklisting}[include=gravity,fail]
 let hybrid bouncing(x0,y0,x'0,y'0) = (x,y) where
@@ -2873,15 +2938,16 @@ let hybrid sawtooth() = x where
   rec der x = 1.0 init 0.0 reset up(last x -. 1.0) -> 0.0
 \end{chklisting}
 %
-Every time \texttt{last x -. 1.0} crosses zero from a negative to positive value,
-\texttt{x} is reset to zero. Note also the need to use \texttt{last} to break
+Every time \zls{last x -. 1.0} crosses zero from a negative to positive 
+value,
+\zls{x} is reset to zero. Note also the need to use \zls{last} to break
 a causality cycle.
 
 % }-}3
 \subsection{Periodic Timers\label{periodictimers}} %{-{3
 
 The language provides a particular form of zero-crossings to model
-timers. A timer with phase \texttt{phase} and period \texttt{period} generates
+timers. A timer with phase \zls{phase} and period \zls{period} generates
 an event at instant $t = \mathtt{phase} + n \cdot \mathtt{period}$ with
 $n \in \bN^+$. Such a timer can be interpreted as a zero-crossing event as
 exemplified by the following program:
@@ -2893,9 +2959,9 @@ let hybrid timer(phase, p) = z where
 
 \zelus{} provides a special syntax for those timers. For the moment,
 it is restricted to timer with a constant phase and period. For example,
-taking $10.3$ and $20.5$ for \texttt{phase} and \texttt{p}, one can
-write \texttt{period 10.3(20.5)}. Timers are not implemented by a 
-zero-crossing detecton mechanism
+taking $10.3$ and $20.5$ for \zls{phase} and \zls{p}, one can
+write \zls{period 10.3(20.5)}. Timers are not implemented by a zero-crossing 
+detecton mechanism
 but by an dedicated (and far more efficient) mechanism. At every discrete transition,
 the minimal value of all timers is computed and defines the next horizon for the
 integration. No root-finding is used.
@@ -2905,15 +2971,15 @@ integration. No root-finding is used.
 
 We now illustrate the mix of ODEs with hierarchical automata. We take
 the example of a hysteresis controller for a heater.  Consider first
-the dynamics of a heater. It has two modes. When \texttt{active} is true,
+the dynamics of a heater. It has two modes. When \zls{active} is true,
 the temperature is increasing whereas it decreases when
-\texttt{active} is false. The hysteresis controller has two mode also. In the
-\texttt{Idle} mode, \texttt{active = false} until the temperature
-\texttt{temp} reaches a low threshold \verb-t_min-. Then, it stays in
-the \texttt{Active} mode until the temperature \verb-temp- reaches the
-high threshold \verb-t_max-. Finally, the main system is obtained by
+\zls{active} is false. The hysteresis controller has two mode also. In the
+\zls{Idle} mode, \zls{active = false} until the temperature
+\zls{temp} reaches a low threshold \zls{t\_min}. Then, it stays in
+the \zls{Active} mode until the temperature \zls{temp} reaches the
+high threshold \zls{t\_max}. Finally, the main system is obtained by
 putting the heater and the controller in parallel. Observe that the
-boolean signal \verb-active- only changes when a zero-
+boolean signal \zls{active} only changes when a zero-
 occurs. This property is ensured by typing.
 %
 % \subsection{A Ball Bouncing on a Staircase}
@@ -2973,12 +3039,13 @@ let hybrid main() = temp where
 \end{chklisting}
 
 Given this program, the compiler generate the function that computes
-the temperature \verb-temps- and which has to be given to the numeric solver,
+the temperature \zls{temps} and which has to be given to the numeric solver,
 the function that compute the zero-crossing signal which must be observed
 during integration and the rest of the program which is executed every time
 a zero-crossing occurs.
 %
-% It has been a matter of taste to program the hybrid function \texttt{heater} with
+% It has been a matter of taste to program the hybrid function \zls{heater} 
+% with
 % a conditional, as well has having programmed the controller with an automaton.
 % For example, one could have written equivalently:
 %
@@ -3006,7 +3073,8 @@ to be deterministic:
 \end{enumerate}
 
 We give below a simple example of an hybrid automaton. Define first
-a module \texttt{Ball} (in a file \texttt{ball.zls}) which models a ball bouncing
+a module \zls{Ball} (in a file \texttt{ball.zls}) which models a ball 
+bouncing
 on a staircase.~\footnote{The complete example is available in the distribution.}
 \begin{chklisting}[withresult]
 (* [ground x] returns the position in [y] *)
@@ -3024,11 +3092,11 @@ let atomic hybrid ball(x, y_0) = (y, y_v, z) where
   and z = up(World.ground(x) -. y)
 \end{chklisting}
 
-\verb-World.ground x- is the height of the stair at position
-\verb-x-. \verb-World.ground_abs x- is the position of the right end of the
-stair from position \verb-x-. We model now a ball that bounces on this
+\zls{World.ground x} is the height of the stair at position
+\zls{x}. \zls{World.ground\_abs x} is the position of the right end of the
+stair from position \zls{x}. We model now a ball that bounces on this
 staircase but slides when the speed is below a certain threashold. We
-write this in a module \verb-Autoball- (that is, file
+write this in a module \zls{Autoball} (that is, file
 \verb-autoball.zls-).
 \begin{chklisting}[continue,withresult]
 let eps = 0.01
@@ -3804,8 +3872,8 @@ of a function \nterm{value-path} to the expression \nterm{simple-expr}.
 \subsection{Control Structures\label{controlstructures}} % {-{3
 % {-{4
 
-The constructions \verb-reset-, \verb-match/with-, \verb-reset- and
-\verb-automaton- are control-structures which combine equations and
+The constructions \zls{reset}, \zls{match/with}, \zls{reset} and
+\zls{automaton} are control-structures which combine equations and
 thus belong to the syntactic class of definitions (see
 \cref{definitions}).
 

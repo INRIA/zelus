@@ -1,9 +1,8 @@
-% ../compiler/zeluc.byte -I ../lib -I ./samples  samples/tutorial0070.zls 	-i samples/tutorial0072.zls (0)
+% ../compiler/zeluc.byte -I ../lib -I ./samples  	-i samples/tutorial0072.zls (0)
 \chklistingtrue
 \setchklistingcmd{zeluc.byte -i \chklistingfile}
 \begin{ChkListingMsg}
-type event   =  | Simple  | Double
-val controller : bool * bool -D-> event signal
+val switch : int signal * int signal -D-> int
 \end{ChkListingMsg}
 \begin{ChkListingErr}
 Success.
