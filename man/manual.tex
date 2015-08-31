@@ -2723,9 +2723,14 @@ It signifies the definition of a function between continuous-time signals.
 This is reflected in the type signature inferred by the compiler with its
 \zls{-C->} arrow.
 The \zls{C} stands for ``continuous''
+Hybrid functions need special treatment for simulation with a numeric.
+Discrete \zls{node}s, on the other hand, evolve in logical time, that is, as 
+a sequence of instants, and may not contain any nested continuous-time 
+computations.
 
-The sinus and cosinus signals, whose stream approximation was given in
-\cref{localdefmut}, can now be defined by
+As a second example of the new features, consider the following continuous 
+definition of the sine and cosine signals whose stream approximation was 
+given in \cref{localdefmut}:
 \begin{chklisting}[withresult]
 let hybrid sin_cos theta = (sin, cos) where
   rec der sin = theta *. cos init 0.0
@@ -2736,40 +2741,34 @@ Are these definitions really all that different from those in the previous
 chapter? Yes!
 
 \medskip
-The dynamics of the temperature, that of the sinus and cosinus signals
-are now defined by an ODE and a
-numeric solver is used to approximate the continuous-time
-trajectory. The choice of the solver is separated from the model and
-outside of the language. The program is at a higher level of
-abstraction, leaving the choice of the integration scheme to the
-responsability of the numerical solver. In particular, it is not
-obliged to integrate signal with a fixed-step explicit
-scheme. Continuous-time signals can be more efficiently and more
-precisely approximated than what achieve the backward Euler method
-written previously. Thus, it is possible to write a version of the
-model that mix discrete-time computations and with ODE,
-to simulate the whole using an external solver and possibly replace some of the
-ODEs by difference equations.
-%Still, when needed, the
+The dynamics of the boiler temperature and those of the sine and cosine 
+signals are now defined by ODEs, and a numeric solver is used to approximate 
+their continuous-time trajectories.
+The choice of the solver is independent of the model and made outside the 
+language.
+Programs are defined at a higher level of abstraction, leaving the choice of 
+an integration scheme to the numerical solver.
+In particular, signals are not necessarily integrated using a fixed-step 
+explicit scheme like that coded manually in \cref{causalcheck}.
+%Continuous-time signals can be more efficiently and more precisely 
+%approximated than what achieve the backward Euler method written previously.
+It is possible to program models that mix discrete-time computations with 
+ODEs and to simulate them together using an external solver.
+%and possibly replace some of the ODEs by difference equations. Still, when 
+%needed, the
 %programmer can mix stream equations with ODEs.
 
-\Remark The compiler generates sequential code so that ODEs are
-approximated by a numerical solver. The current version of \zelus{}
-provides an interface for \footnoteurl{SUNDIALS
-CVODE}{https://www.llnl.gov/casc/sundials/}~\cite{sundials:2005}
-and the two classical variable step solvers \texttt{ode23} and
-\texttt{ode45}~\cite{DahlquistBjo08}.
+\Remark The compiler generates sequential code that allows ODEs to be 
+approximated by a numerical solver.
+The current version of \zelus{} provides an interface to the
+\footnoteurl{Sundials 
+CVODE}{https://computation.llnl.gov/casc/sundials/main.html}~\cite{sundials:2005} 
+solver and two classical variable step solvers (\texttt{ode23} and
+\texttt{ode45}~\cite{DahlquistBjo08}).
 
-\medskip Functions like \verb+heater+, \verb+sin_cos+ and
-\verb+integr+ are different from the function we have defined in
-\cref{syncprog}.
-They will need a
-special treatment for the integration with the solver. On the
-contrary, nodes evolve on a logical time basis, that is a sequence of
-instants, and cannot contain any nested continuous-time computations.
-
-A classical example of a continuous-time function is a PI
-(Proportional Integral) controller.
+\medskip
+A Proportional Integral (PI) controller is a classic example of a 
+continuous-time function:
 \begin{chklisting}[withresult]
 (* a continuous-time integrator *)
 let hybrid integr(x0, x') = x where
@@ -2791,7 +2790,7 @@ let node disc_pi(kp, ki, error) = cmd where
 \end{chklisting}
 
 % }-}2
-\section{Communication between Discrete/Continuous-time Signals\label{commdisccont}} %{-{2
+\section{Mixing Discrete and Continuous Signals\label{commdisccont}} %{-{2
 %{-{3
 
 The language forbids the arbitrary mix of discrete logical time and
@@ -2980,7 +2979,8 @@ the minimal value of all timers is computed and defines the next horizon for the
 integration. No root-finding is used.
 
 % }-}3
-\subsection{Hierarchical Automata and ODEs\label{hautoodes}} %{-{3
+%}-}2
+\section{Hierarchical Automata and ODEs\label{hautoodes}} %{-{2
 
 We now illustrate the mix of ODEs with hierarchical automata. We take
 the example of a hysteresis controller for a heater.  Consider first
@@ -3070,8 +3070,7 @@ a zero-crossing occurs.
 %   end
 % \end{chklisting}
 
-%}-}3
-\subsection{Hierarchical Hybrid Automata\label{hautos}} %{-{3
+% TODO: better integration of this text into the text above.
 
 Hierarchical automata can be mixed with ODEs. These automata are a
 particular case of the \emph{hybrid automata} of Maler, Manna and
@@ -3133,7 +3132,6 @@ let hybrid ball_with_modes(x_0, y_0) = (x, y) where
       end
 \end{chklisting}
 
-%}-}3
 %}-}2
 %}-}1
 \chapter{The Simulation Loop\label{simulation-loop}} %{-{1
