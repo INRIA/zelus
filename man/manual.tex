@@ -35,6 +35,7 @@
 \usepackage{graphicx}
 \usepackage{epsf}
 \usepackage{amssymb}
+\usepackage{amsmath}
 \usepackage{hyperref}
 \usepackage[nameinlink]{cleveref}
 
@@ -146,7 +147,7 @@
 \newcommand{\Let}{\mbox{{\tt let}}}
 \newcommand{\Rec}{\mbox{{\tt rec}}}
 \newcommand{\In}{\mbox{{\tt in}}}
-\newcommand{\And}{\mbox{{\tt and}}}
+\newcommand{\AND}{\mbox{{\tt and}}}
 \newcommand{\Const}{\mbox{{\tt const}}}
 \newcommand{\Fun}{\mbox{{\tt fun}}}
 \newcommand{\Node}{\mbox{{\tt node}}}
@@ -567,7 +568,7 @@ or \zls{y} according to the current value of \zls{c}.
 
 \begin{chrono}{c|cccc}
 \hline
-\zls{c} & \t & \f & \t & $\cdots$ \\ \hline
+\zls{c} & \T & \F & \T & $\cdots$ \\ \hline
 \zls{x} & $x_0$ & $x_1$ & $x_2$ & $\cdots$ \\ \hline
 \zls{y} & $y_0$ & $y_1$ & $y_2$ & $\cdots$ \\ \hline
 \zls{x+y} & $x_0 + y_0$ & $x_1 + y_1$ & $x_2 + y_2$ & $\cdots$ \\
@@ -676,7 +677,7 @@ The arrow \texttt{-A->} tagged with an \AnyKind{} indicates that this
 function is combinatorial.
 The \AnyKind{} stands for ``any''---the function \zls{average} can be used 
 anywhere in the code.
-We will describe the other possibilities soon.
+We will describe other possibilities soon.
 
 Function definitions may contain local declarations, introduced using
 either \zls{where} or \zls{let} notations. For example, the average function 
@@ -858,11 +859,11 @@ let node edge c = c & not (false fby c)
 \end{chklisting}
 \begin{chrono}{l|ccccccc}
 \hline
-\zls{c}                 & \f & \f & \t & \t & \f &  \t & $\cdots$ \\ \hline
-\zls{false}             & \f & \f & \f & \f & \f &  \f & $\cdots$ \\ \hline
-\zls{false fby c}       & \f & \f & \f & \t & \t &  \f & $\cdots$ \\ \hline
-\zls{not (false fby c)} & \t & \t & \t & \f & \f &  \t & $\cdots$ \\ \hline
-\zls{edge c}            & \f & \f & \t & \f & \f &  \t & $\cdots$ \\ \hline
+\zls{c}                 & \F & \F & \T & \T & \F &  \T & $\cdots$ \\ \hline
+\zls{false}             & \F & \F & \F & \F & \F &  \F & $\cdots$ \\ \hline
+\zls{false fby c}       & \F & \F & \F & \T & \T &  \F & $\cdots$ \\ \hline
+\zls{not (false fby c)} & \T & \T & \T & \F & \F &  \T & $\cdots$ \\ \hline
+\zls{edge c}            & \F & \F & \T & \F & \F &  \T & $\cdots$ \\ \hline
 \end{chrono}
 
 \medskip\noindent
@@ -1052,9 +1053,10 @@ The purpose of \emph{causality analysis} to to reject all other loops.
 Note that delays can be hidden internally in the body of a function as
 is the case, for instance, in the languages \lustre{} and \signal.
 For example, consider the initial value problem:
-\[
-\dot{t} = g_0 - g_1 \cdot t \qquad\qquad t(0) = t_0
-\]
+\begin{align*}
+\dot{t} &= g_0 - g_1 \cdot t \\
+t(0) &= t_0
+\end{align*}
 We can approximate this value by using the explicit Euler integrator defined 
 previously and defining a signal~$t$ by a recursive equation.
 \begin{chklisting}[withresult,include=integr]
@@ -1711,10 +1713,9 @@ by the equation \zls{o = false}, but the instant that \zls{x} becomes true,
 Thus, the following timeline holds:
 \begin{chrono}{c|ccccccc}
 \hline
-\tt x                 & \tt false & \tt false & \tt true & \tt false & \tt false &  \tt true & $\cdots$ \\
+\tt x                 & \F & \F & \T & \F & \F &  \T & $\cdots$ \\
 \hline
-\tt strong x           & \tt false & \tt false & \tt true & \tt true & \tt 
-true &  \tt true & $\cdots$  \\ \hline
+\tt strong x           & \F & \F & \T & \T & \T &  \T & $\cdots$  \\ \hline
 \end{chrono}
 The guards of strong transitions are tested \emph{before} determining which 
 state is active at an instant and executing its body.
@@ -2290,7 +2291,7 @@ let node time_restarting c = (x, y) where
           do y = 0 -> pre y + 1 until c then S1
       end
 \end{chklisting}
-Giving the execution trace:
+Giving the execution trace (where we write \f{} for \F{} and \t{} for \T):
 \begin{chrono}{l|ccccccccccccccccc}
 \hline
 \tt c & \f & \f & \f & \f & \t & \f & \t & \f & \f & \f & \f & \t & \t & \f & \f & \f
@@ -2687,39 +2688,52 @@ but rather logical and local.
 \chapter{Hybrid Systems Programming\label{ode-programming}} %{-{1
 %{-{2
 
-We now see the main novelty of \zelus{} with respect to a
-synchronous language. It is possible to combine any of the
-constructions seen previously, that is, stream equations and hierarchical
-automata with ODEs. As before, only
-basic examples are given in this section. See the distribution page for
-more advanced examples.
+In this chapter we introduce the main novelty of \zelus{} with respect to 
+standard synchronous languages: all of the previously introduced constructs, 
+that is, stream equations and hierarchical automata, can be combined with 
+Ordinary Differential Equations (ODEs).
+As before, we only present basic examples in this document.
+More advanced examples can be found on the \footnoteurl{examples web 
+page.}{http://zelus.di.ens.fr/examples.html}
 
 %}-}2
 \section{Initial Value Problems\label{odeinit}} %{-{2
-Consider the classical Initial Value Problem that models the temperature
-of a boiler. The evolution of the temperature $t$ is defined by the following
-ODE with an initial condition:
-\[
-\dot{t} = g_0 - g_1 \cdot t \quad t(0) = t_0
-\]
-where $g_0$ and $g_1$ are two constant values.
-$t_0$ is the initial temperature. Instead
-of choosing an explicit integration scheme as we did in
-paragraph~\cref{causalcheck}, we write:
+
+Consider the classic Initial Value Problem that models the temperature
+of a boiler.
+The evolution of the temperature $t$ is defined by an ODE and 
+an initial condition:
+\begin{align*}
+\dot{t} &= g_0 - g_1 \cdot t \\
+t(0)    &= t_0
+\end{align*}
+where $g_0$ and $g_1$ are constant parameters and 
+$t_0$ is the initial temperature.
+Instead of choosing an explicit integration scheme as in \cref{causalcheck}, we 
+can now just write the ODE directly:
 \begin{chklisting}[withresult]
 let hybrid heater(t0, g0, g1) = t where
   rec der t = g0 -. g1 *. t init t0
 \end{chklisting}
 
+The \zls{der} keyword defines \zls{t} by a (continuous) derivative and an 
+initial value.
+Notice that the \zls{hybrid} keyword is used here rather than \zls{node}.
+It signifies the definition of a function between continuous-time signals.
+This is reflected in the type signature inferred by the compiler with its
+\zls{-C->} arrow.
+The \zls{C} stands for ``continuous''
+
 The sinus and cosinus signals, whose stream approximation was given in
-paragraph~\cref{localdefmut} are now defined this way:
+\cref{localdefmut}, can now be defined by
 \begin{chklisting}[withresult]
 let hybrid sin_cos theta = (sin, cos) where
   rec der sin = theta *. cos init 0.0
   and der cos = -. theta *. sin init 1.0
 \end{chklisting}
 
-Is it different from what has been written previously? A lot!
+Are these definitions really all that different from those in the previous 
+chapter? Yes!
 
 \medskip
 The dynamics of the temperature, that of the sinus and cosinus signals
@@ -2748,9 +2762,8 @@ and the two classical variable step solvers \texttt{ode23} and
 
 \medskip Functions like \verb+heater+, \verb+sin_cos+ and
 \verb+integr+ are different from the function we have defined in
-\cref{syncprog}. They are identified
-with the special keyword \zls{hybrid}. These are functions from
-continuous-time signals to continuous-time signals. They will need a
+\cref{syncprog}.
+They will need a
 special treatment for the integration with the solver. On the
 contrary, nodes evolve on a logical time basis, that is a sequence of
 instants, and cannot contain any nested continuous-time computations.
@@ -3689,7 +3702,7 @@ a boolean expression.
 %   & $\;\;\alt$ & \term{\Fun} \nterm{multiple-matching} \\
 %                       & $\alt$ & \Function\ simple-matching \\
    & $\;\;\alt$ & \term{\Let} [ \term{\Rec} ] \nterm{definition}
-                  \{ \term{\And} \nterm{definition} \} \term{\In} 
+                  \{ \term{\AND} \nterm{definition} \} \term{\In} 
                   \nterm{expr} \\
    & $\;\;\alt$ & \term{\If} \nterm{expr} \term{\Then} \nterm{expr}
                   \term{\Else} \nterm{expr} \\
@@ -3775,8 +3788,8 @@ The expression \term{(} \nterm{expr} \term{)} has the same value than
 The \term{\Let} and \term{\Let\ \Rec} constructs bind variables
 locally. The expression 
 \begin{center}
-  \term{\Let} \nterm{definition}$_1$ \term{\And} ... 
-  \term{\And} \nterm{definition}$_n$ \term{\In} \nterm{expr}
+  \term{\Let} \nterm{definition}$_1$ \term{\AND} ... 
+  \term{\AND} \nterm{definition}$_n$ \term{\In} \nterm{expr}
 \end{center}
 defines values to be visible in \nterm{expr}. In a \term{\Let} definition,
 variables names appearing on the right of an equality are bound to their definition
@@ -3785,8 +3798,8 @@ the \term{\Let} definition itself.
 
 Recursive definitions of variables are introduced by \term{\Let\ \Rec}:
 \begin{center}
-  \term{\Let\ \Rec} \nterm{definition}$_1$ \term{\And} ... 
-  \term{\And} \nterm{definition}$_n$ \term{\In} \nterm{expr}
+  \term{\Let\ \Rec} \nterm{definition}$_1$ \term{\AND} ... 
+  \term{\AND} \nterm{definition}$_n$ \term{\In} \nterm{expr}
 \end{center}
 
 This time, the current environment also contains names defined by the \term{\Let}
@@ -3979,7 +3992,7 @@ provided \nterm{o} is a fresh name.
 \\ \\
 \nterm{result-expr}
 & ::=    & \nterm{expr} [ \term{\Where} [ \term{\Rec} ]
-  \nterm{definition} \{ \term{\And} \nterm{definition} \} ]
+  \nterm{definition} \{ \term{\AND} \nterm{definition} \} ]
 \\ \\
 \nterm{definition} 
 & ::=        & \nterm{pattern} \term{=} \nterm{expr} \\
@@ -3989,7 +4002,7 @@ provided \nterm{o} is a fresh name.
 \nterm{def-match-handlers} [ \term{end} ]
 \\
 & $\;\;\alt$ & \term{\Reset} \nterm{definition}
-               \{ \term{\And} \nterm{definition} \} \term{\Every} \nterm{expr}
+               \{ \term{\AND} \nterm{definition} \} \term{\Every} \nterm{expr}
                   \\
 & $\;\;\alt$ & \term{automaton} \nterm{def-automaton-handlers}
                   [ \term{end} ]
@@ -4001,12 +4014,12 @@ provided \nterm{o} is a fresh name.
                     \term{do} \nterm{definition-list} \term{done}
 \\ \\
 \nterm{definition-list}
-   & ::=        & [ \nterm{definition} \{ \term{\And}
+   & ::=        & [ \nterm{definition} \{ \term{\AND}
                   \nterm{definition} \} ]
 \\ \\
 \nterm{local-definitions}      
    & ::=        & \{ \term{\Let} [ \term{\Rec} ] \nterm{definition}
-                  \{ \term{\And} \nterm{definition} \} \term{\In} \}
+                  \{ \term{\AND} \nterm{definition} \} \term{\In} \}
                   \{ \term{local} \nterm{ident} \term{in} \}
 \end{tabular}
 \end{center}
@@ -4059,12 +4072,12 @@ The language provides an alternate form of local definitions for returning
 the result of a function. The expression:
 \begin{center}
 \nterm{expr} \term{\Where} [ \term{\Rec} ]
-  \nterm{definition}$_1$ \term{\And} ... \term{\And} \nterm{definition}$_n$ 
+  \nterm{definition}$_1$ \term{\AND} ... \term{\AND} \nterm{definition}$_n$ 
 \end{center}
 has the meaning of:
 \begin{center}
   \term{\Let} [ \term{\Rec} ] 
-  \nterm{definition}$_1$ \term{\And} ... \term{\And} \nterm{definition}$_n$
+  \nterm{definition}$_1$ \term{\AND} ... \term{\AND} \nterm{definition}$_n$
   \term{\In} \nterm{expr}
 \end{center}
 
@@ -4111,8 +4124,8 @@ which are not bound by a \term{local} construct.
 
 \subsubsection{Reinitialization}
 
-The construction \term{\Reset} \nterm{definition}$_1$ \term{\And} ...
-\term{\And} \nterm{definition}$_n$ \term{\Every} \nterm{expr} allows
+The construction \term{\Reset} \nterm{definition}$_1$ \term{\AND} ...
+\term{\AND} \nterm{definition}$_n$ \term{\Every} \nterm{expr} allows
 for resetting the computation made in a set of definitions. All the
 defined values and expression \nterm{expr} must be on the same
 clock. This construction acts as a regular multi-definition except
