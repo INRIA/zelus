@@ -185,6 +185,14 @@ ul.flatitemize li + li {
 
 /* HeVeA Generated Manual Pages */
 
+li.li-enumerate {
+    margin-top: 1ex;
+}
+
+li:first-child.li-enumerate {
+    margin-top: 0;
+}
+
 table.dcenter {
     margin-left: auto;
     margin-right: auto;

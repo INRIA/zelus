@@ -2949,54 +2949,75 @@ signal $\forall n \in \bN, o(n) = n$ which cannot be integrated to produce
 % }-}4
 \subsection{Typing Constraints.} % {-{4
 
-The language adopts the following convention to restrict the
-way combinatorial, discrete-time and continuous-time expressions are mixed.
+The restrictions on mixing combinatorial, discrete-time, and continuous-time 
+constructs are formalized as a typing system that statically accepts or 
+rejects programs.
 
 Every expression is associated to a kind $k \in \{\AnyKind, \NodeKind,
-\HybridKind\}$. During typing, the compilers verifies the following invariants:
+\HybridKind\}$. During typing, the compiler ensures that the following rules 
+are satisfied:
 \begin{enumerate}
 \item
-  The body of a combinatorial function (declared with
-keyword \zls{fun}) must be of kind $\AnyKind$; the body of a node
-function (declared with keyword \zls{node}) must be of kind
-$\NodeKind$ and the body of a continuous-time function (declared with
-keyword \zls{hybrid}) must be of kind $\HybridKind$. 
+The body of a combinatorial function (see \cref{combfunc}) must be of kind 
+$\AnyKind$.
+The body of a stateful function (declared as a \zls{node}; see 
+\cref{nodefunc}) must be of kind $\NodeKind$.
+Finally, the body of a continuous-time function (declared with the 
+\zls{hybrid} keyword) must be of kind $\HybridKind$. 
+
 \item
-  When two equations $E_1$ and $E_2$ are composed in parallel in
-  $\AndEq{E_1}{E_2}$ which is expected to be of some kind $k$, both
-  equations $E_1$ and $E_2$ must be of the same kind $k$. If
-  $\AndEq{E_1}{E_2}$ is expected to be combinatorial then $E_1$ and
-  $E_2$ must be both combinatorial (with kind \AnyKind); if
-  $\AndEq{E_1}{E_2}$ must be discrete (with kind \NodeKind) then both
-  $E_1$ and $E_2$ must be discrete. Finally, if $\AndEq{E_1}{E_2}$ is
-  expected to be continuous (with kind \HybridKind) then both $E_1$ and
-  $E_2$ must be continuous.
-  \end{enumerate}
-Thus, in a combinatorial function, all sub-expression appearing in
-its body must be with kind \AnyKind. Under the definition of a node
-(with kind \NodeKind), all sub-expression must be of kind \NodeKind{} or
-\AnyKind). Under the definition of an hybrid node (with kind
-\HybridKind), all sub-expression must be of kind \AnyKind{} or kind
-\HybridKind. A computation with kind \NodeKind{} can be put in parallel
-with an expression with kind \HybridKind{} provided it is sampled on a
-\emph{discrete clock}. We adopt the following convention:
+When the parallel composition of two (sets of) equations 
+``$\AndEq{E_1}{E_2}$'' is expected to have kind~$k$, then $E_1$ and $E_2$ 
+must both also be of the same kind~$k$.
+For instance, if $\AndEq{E_1}{E_2}$ is expected to be combinatorial ($k = 
+\AnyKind$) then $E_1$ and $E_2$ must also both be combinatorial; if 
+$\AndEq{E_1}{E_2}$ is discrete ($k = \NodeKind$) then both $E_1$ and $E_2$ 
+must be discrete.
+Finally, if $\AndEq{E_1}{E_2}$ is continuous ($k = \HybridKind$) then both 
+$E_1$ and $E_2$ must be continuous.
+
+\item
+Any combinatorial equation or expression can be treated as either a discrete 
+or a continuous one.
+In other words, $\AnyKind$ is a subkind of both $\NodeKind$ and 
+$\HybridKind$.
+
+\end{enumerate}
+Thus, all sub-expressions in the body of a combinatorial function must be of 
+kind~$\AnyKind$.
+All sub-expressions in the body of a node must be of kind~\AnyKind{} or of 
+kind~\NodeKind.
+All sub-expressions in the body of a hybrid node must be of kind~\AnyKind{} 
+or of kind~\HybridKind.
+
+In addition to these basic rules, a computation with kind \NodeKind{} can be 
+placed in parallel with an expression of kind \HybridKind{} provided it is 
+sampled on a \emph{discrete clock}.
+We adopt the following convention:
 \begin{quote}
-{A clock is termed \emph{discrete} if it has been declared so or if it is the 
+A clock is termed \emph{discrete} if it has been declared so or if it is the 
 result of a zero-crossing or a sub-sampling of a discrete clock.
-Otherwise, it is termed \emph{continuous}.}
+Otherwise, it is termed \emph{continuous}.
 \end{quote}
-For example, the following function which compose an ODE and a discrete-time
-computation is correct. The value of \zls{x} is summed into \zls{o} at 
-every
-instant \zls{tick} is present. Between those instants, \zls{o} is unchanged.
+For example, the following function which composes an ODE and a 
+discrete-time computation is correct.
+The value of \zls{x} is added to that of \zls{o} at every instant where 
+\zls{tick} is present.
+Between \zls{tick}s, \zls{o} is unchanged.
 \begin{chklisting}[withresult]
 let hybrid correct(tick) = o where
   rec der x = 1.0 init 0.0
   and present tick -> do o = last o +. x done
   and init o = 0.0
 \end{chklisting}
-\zls{tick} is of type \zls{zero} which is the type of
-\emph{zero-crossing} events.
+The input \zls{tick} has type \zls{zero}, the type of \emph{zero-crossing} 
+events which are explained in the next section.
+The interpretation of this program is sketched in \cref{correctinterp}.
+The instants of activation of \zls{tick} are generated (elsewhere) by 
+monitoring a continuous expression.
+The value of \zls{o} (in red) is recalculated at these instants by sampling 
+the value at \zls{x} and adding it onto the previous value, it is otherwise 
+unchanged (that is, piecewise constant).
 
 \begin{figure}
 \centering %{-{5
@@ -3025,9 +3046,9 @@ let hybrid correct(tick) = o where
             (2.5,-0.7) sin
             (2.8,-1.1) cos
             (3.4, 1.0) sin
-            (4.0, 2.5) node[above right] {ez};
+            (4.0, 2.5);% node[above right] {e};
 
-        \draw [ysig,dashed,very thick]
+        \draw [ysig,very thick]
             (0.0,0.0) -- (0.86,0.0)
             (0.86,0.86) -- (3.20,0.86)
             (3.20,4.06) -- (4.0,4.06)
@@ -3043,6 +3064,9 @@ let hybrid correct(tick) = o where
 \caption{Interpretation of the (newly) \zls{correct} 
 program.\label{correctinterp}}
 \end{figure}
+
+A formal presentation of the typing rules described in this section is 
+available~\cite{lucy:lctes11}.
 
 % }-}4
 % }-}3
