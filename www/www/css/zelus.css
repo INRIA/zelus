@@ -394,6 +394,21 @@ hr.footnoterule {
     margin-right: auto;
 }
 
+div.anumerate > ol {
+    counter-reset: anumerate;
+    text-indent: -1.6em;
+}
+
+div.anumerate > ol > li {
+    list-style: none;
+    position: relative;
+}
+
+div.anumerate > ol > li:before {
+    counter-increment: anumerate;
+    content:"(" counter(anumerate, lower-alpha)") "
+}
+
 /* CUSTOMIZE THE SIDE BAR
 -------------------------------------------------- */
 

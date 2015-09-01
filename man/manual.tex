@@ -46,11 +46,17 @@
   {\setenvclass{itemize}{flatitemize}%
    \begin{itemize}}
   {\end{itemize}}
+\newenvironment{anumerate}
+  {\begin{divstyle}{anumerate}\begin{enumerate}}
+  {\end{enumerate}\end{divstyle}}
 \else
 \usepackage[inline]{enumitem}
 \newenvironment{flatitemize}
   {\begin{itemize}[leftmargin=*]}
   {\end{itemize}}
+\newenvironment{anumerate}
+  {\begin{enumerate}[label=(\emph{\alph*})]}
+  {\end{enumerate}}
 \fi
 
 \usepackage{tikz}
@@ -2795,24 +2801,58 @@ let node disc_pi(kp, ki, error) = cmd where
 % }-}2
 \section{Mixing Discrete and Continuous Signals\label{commdisccont}} %{-{2
 %{-{3
+%{-{4
 
 Care must be taken when mixing signals and systems defined in discrete 
 logical time with those defined in continuous time, both to ensure that 
 programs make sense and that they can be simulated effectively.
-Consider, for instance, the following two simple programs.
+Consider, for instance, the following simple program.
 \begin{chklisting}[fail]
 let hybrid wrong1() = o where
   rec der x = 1.0 init 0.0
   and o = 0.0 -> pre o +. x
 \end{chklisting}
-\begin{chklisting}[fail]
-let hybrid wrong2() = o where
-  rec der x = o init 0.0
-  and o = 0.0 -> pre o +. 1.0
-\end{chklisting}
+
+\noindent
+The signal \zls{x} is continuous and \zls{o} is discrete (due to the 
+\zls{->} and \zls{pre} operators).
+What can it mean to put them in parallel in this way?
+The meaning of \zls{x} along is clear:
+$\forall t \in \bR+, x(t) = t$.
+It is shown in the three diagrams of \cref{wrong1interp} as a blue line that 
+increases from zero with a constant slope.
+Each of the diagrams shows a different interpretation for~\zls{o}:
+
+\begin{anumerate}
+\item
+Since the discrete reactions can be numbered by the natural numbers and 
+these numbers are a subset of the reals, we could decide to simply embed the 
+discrete reactions at times $0.0$, $1.0$, $2.0$, etcetera.
+The value of \zls{o} is then perfectly well defined (the red dots in the 
+figure), but the mapping of reactions to continuous time is completely 
+arbitrary.
+
+\item
+Since a numeric solver must inevitably approximate continuous signals over a 
+sequence of discrete steps, we could decide to execute discrete equations at 
+the sampling instants chosen by the solver.
+This mapping of reactions is less arbitrary since it corresponds to the 
+underlying discrete solver process, but the meaning of a program now depends 
+on low-level details of the numerical simulation.
+Changing the solver or its parameters, or adding another unrelated equation 
+in parallel will likely change the value of \zls{o}.
+
+\item
+A third possibility is to consider that the process corresponding to \zls{o} 
+is iterated continually, that is, as time advances infinitesimally.
+Although the value of \zls{o} rapidly diverges toward infinity, it is well 
+defined.
+The real problem is that such programs cannot be effectively simulated using 
+numeric techniques.
+\end{anumerate}
 
 \begin{figure}
-\centering %{-{4
+\centering %{-{5
     \tikzset{timesig/.style={blue},
              ysig/.style={red},
              ezsig/.style={green},
@@ -2833,7 +2873,7 @@ let hybrid wrong2() = o where
             \draw (0,\y) node[left,help lines] {\y};
 
             \draw[timesig,fill] (0,0) ellipse (.05 and .10);
-            \draw[timesig,thick] (0,0) -- (4,4) node[above right] {time};
+            \draw[timesig,thick] (0,0) -- (4,4) node[above right] {x};
         \end{scope}
     }
 
@@ -2887,22 +2927,27 @@ let hybrid wrong2() = o where
         \node at (2,-2.8)
             {\normalsize\textrm{(c) infinitesimal steps}};
     \end{scope}
-    \end{tikzpicture} %}-}4
+    \end{tikzpicture} %}-}5
 \caption{Possible interpretations of the \zls{wrong1} 
 program.\label{wrong1interp}}
 \end{figure}
 
-The first program is rejected because \zls{x} is a continuous-time
-signal, with $\forall t \in \bR+, x(t) = t$ whereas \zls{->} and
-the unit delay \zls{pre} expect a signal evolving at a discrete
-time basis. Symetrically, the second program is also meaningless
-because \zls{o} should be the discrete-time signal $\forall n \in
-\bN, o(n) = n$ and it cannot be integrated to produce \zls{x}.
-These two programs
-are statically rejected by the compiler as invalid
-compositions. For example,: \chklistingerr{}
+\noindent
+We do not consider any of these three alternatives as acceptable.
+Instead, the compiler rejects \zls{wrong1} as invalid: \chklistingerr{}
 
-\paragraph{Typing Constraints}
+Similarly, a second program,
+\begin{chklisting}[fail]
+let hybrid wrong2() = o where
+  rec der x = o init 0.0
+  and o = 0.0 -> pre o +. 1.0
+\end{chklisting}
+is also rejected as meaningless because \zls{o} should be the discrete-time 
+signal $\forall n \in \bN, o(n) = n$ which cannot be integrated to produce 
+\zls{x}.
+
+% }-}4
+\subsection{Typing Constraints.} % {-{4
 
 The language adopts the following convention to restrict the
 way combinatorial, discrete-time and continuous-time expressions are mixed.
@@ -2954,7 +2999,7 @@ let hybrid correct(tick) = o where
 \emph{zero-crossing} events.
 
 \begin{figure}
-\centering %{-{4
+\centering %{-{5
     \tikzset{timesig/.style={blue},
              ysig/.style={red},
              ezsig/.style={green},
@@ -2972,7 +3017,7 @@ let hybrid correct(tick) = o where
         \draw (0,\y) node[left,help lines] {\y};
 
         \draw[timesig,fill] (0,0) ellipse (.05 and .10);
-        \draw[timesig,thick] (0,0) -- (4,4) node[above right] {time};
+        \draw[timesig,thick] (0,0) -- (4,4) node[above right] {x};
 
         \draw[ezsig,thick]
             (0.0,-1.8) sin
@@ -2994,11 +3039,12 @@ let hybrid correct(tick) = o where
         \draw[reaction] (0.86,-.2) -- (0.86,.5);
         \draw[reaction] (3.20,-.2) -- (3.20,.5);
 
-    \end{tikzpicture} %}-}4
+    \end{tikzpicture} %}-}5
 \caption{Interpretation of the (newly) \zls{correct} 
 program.\label{correctinterp}}
 \end{figure}
 
+% }-}4
 % }-}3
 \subsection{Zero-crossing Events\label{zerocrossings}} %{-{3
 
