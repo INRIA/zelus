@@ -3072,16 +3072,25 @@ available~\cite{lucy:lctes11}.
 % }-}3
 \subsection{Zero-crossing Events\label{zerocrossings}} %{-{3
 
-A zero-crossing event is produced by the operator \zls{up(x)}
-which detects that a signal \zls{x} goes from a negative value to a
-positive value during integration. Such events can also be used
-to \emph{reset} ODEs as illustrated in the classical example of a bouncing 
-ball.
+Zero-crossings are a standard mechanism used by numeric solvers to detect 
+significant events.
+A solver recalculates the values of a set of \emph{zero-crossing 
+expressions} at each new approximation of the continuous state of a system.
+When one of the expressions changes sign between two successive 
+approximations, the solver iterates to try to pinpoint the instant when the 
+expression is equal to zero.
+
+In \zelus{}, a zero-crossing expression is declared by the operator 
+\zls{up(e)}.
+The language runtime detects when the value of the expression \zls{e}
+changes from a negative value to a positive one during integration.
+The resulting events can be used to \emph{reset} ODEs as illustrated in the 
+following, classic example of a bouncing ball.
 
 Consider a ball with initial position $(x_0, y_0)$ and initial speed
-$(x'_0, y'_0)$. Every time it hits the ground, it bounces but looses
-20\% of its speed. The trajectory is depicted in 
-Figure~\cref{bouncing-ball}.
+$(x'_0, y'_0)$. Every time the ball hits the ground, it bounces but looses
+20\% of its speed. An example trajectory is depicted 
+in~\cref{bouncing-ball}.
 
 \begin{figure}
 \begin{center}
@@ -3096,6 +3105,12 @@ Figure~\cref{bouncing-ball}.
 \caption{The Bouncing Ball~\label{bouncing-ball}}
 \end{figure}
 
+The source program is shown below.
+This version is slightly simplified compared to the
+\footnoteurl{version}{http://zelus.di.ens.fr/examples.html\#ex-bouncingball} 
+giving rise to \cref{bouncing-ball}: the steps are not modeled and we 
+consider that the ground is at $y=0$.
+
 \begin{chklisting}[label=gravity]
 let g = 9.81
 let loose = 0.8
@@ -3108,70 +3123,104 @@ let hybrid bouncing(x0,y0,x'0,y'0) = (x,y) where
  and der y' = -. g init y'0 reset up(-. y) -> -. loose *. last y'
 \end{chklisting}
 
-The ODE defining \zls{y'} is now reset every time \zls{-.y}
-crosses zero.  At this precise instant, the initial value of \zls{y'}
-is \verb+-. loose *. last y'+. Exactly like in
-\cref{syncprog}, \zls{last y'} is the
-value of \zls{y'} at the previous instant. But this notion of the
-previous instant for a continuous-time signal has to be
-clarified. Mathematically, at the instant of a reset, we need to
-distinguish the the value of \zls{y'} \emph{just before the reset}
-and the new value we would like to give to \zls{y'} at the instant of
-the reset. As \zls{y'} is a continuous-time signal, \zls{last
-  y'} is the \emph{left limit} of \zls{y'}. It corresponds to the
-last value of \zls{y'} computed during the integration process.
+The ODE defining \zls{y'} is reset every time \zls{-.y} crosses zero.
+At this precise instant, the initial value of \zls{y'} is \zls{-. loose *. 
+last y'}.
+Exactly as in \cref{syncprog}, \zls{last y'} is the value of \zls{y'} at the 
+previous instant.
+But the notion of previous instant for a continuous-time signal requires 
+clarification.
+Mathematically, at the instant of a reset, we need to distinguish the value 
+of \zls{y'} \emph{just before the reset} and the new value that \zls{y'} 
+takes at the instant of the reset.
+As \zls{y'} is a continuous-time signal, \zls{last y'} is the \emph{left 
+limit} of \zls{y'}.
+It corresponds to the value of \zls{y'} computed during the integration 
+process just preceding the discrete reaction that resets \zls{y'}.
 
-It is important to notice that replacing \zls{last y'} by
-\zls{y'} would lead to a causality error. Indeed, that would make
-the current value of \zls{y'} instantaneously depend on itself and
-this is statically rejected by the compiler. Typing:
-\begin{chklisting}[include=gravity,fail]
+Replacing \zls{last y'} by \zls{y'} leads to an error of causality.
+Indeed, the current value of \zls{y'} would then depend instantaneously on 
+itself.
+The compiler statically rejects such programs:
+\begin{chklisting}[include=gravity,fail,withresult]
 let hybrid bouncing(x0,y0,x'0,y'0) = (x,y) where
  rec der x = x' init x0
  and der x' = 0.0 init x'0
  and der y = y' init y0
  and der y' = -. g init y'0 reset up(-. y) -> -. loose *. y'
 \end{chklisting}
-we get the compilation error:
-\chklistingerr{}
 
-%\Marc{Faire la figure}
+\begin{figure}
+\centering %{-{4
+    \begin{tikzpicture}[font=\sffamily\tiny]
+    \tikzstyle{timesig}  = [blue]
+    \tikzstyle{ysig}     = [red,very thick]
 
-An other example of a reset of an ODE is with the classical sawtooth
-signal $x: \bR^+ \mapsto \bR^+$ such that $\DotNotation{x}(t) = 1$ and
-$x(t) = 0$ if $t\in\bN$.
+    \draw[fill,white,opacity=.9] (0,-1) rectangle (5,2);
+    \draw[help lines] (0,-1) grid (5,2);
+    \draw[->] (0,0) -- (5.25,0);
+    \draw[<->] (0,-1.5) -- (0,2.5);
+    \foreach \x in {0,...,5}
+        \draw (\x,0) node[xshift=-1mm,below right,help lines] {\x};
+    \foreach \y in {-1,...,2}
+    \draw (0,\y) node[left,help lines] {\y};
+
+    \draw[ysig]  (0,0)
+        -- (1,1) (1,0)
+        -- (2,1) (2,0)
+        -- (3,1) (3,0)
+        -- (4,1) (4,0)
+        -- (5,1) (5,0)
+        ;
+    \draw[ysig,fill]
+        (0, 0) ellipse (.05 and .05)
+        (1, 0) ellipse (.05 and .05)
+        (2, 0) ellipse (.05 and .05)
+        (3, 0) ellipse (.05 and .05)
+        (4, 0) ellipse (.05 and .05)
+        (5, 0) ellipse (.05 and .05)
+        ;
+    \end{tikzpicture} %}-}4
+\caption{Trace of the \zls{sawtooth} program.\label{sawtooth}}
+\end{figure}
+
+The sawtooth signal shown in \cref{sawtooth} is another example of an ODE 
+with reset.
+The signal $x: \bR^+ \mapsto \bR^+$ is defined such that $\DotNotation{x}(t) 
+= 1$ and
+$x(t) = 0$ if $t\in\bN$, or as a hybrid node:
 \begin{chklisting}[withresult]
 let hybrid sawtooth() = x where
   rec der x = 1.0 init 0.0 reset up(last x -. 1.0) -> 0.0
 \end{chklisting}
 %
-Every time \zls{last x -. 1.0} crosses zero from a negative to positive 
-value,
-\zls{x} is reset to zero. Note also the need to use \zls{last} to break
-a causality cycle.
+Each time \zls{last x -. 1.0} crosses zero from a negative to positive 
+value, \zls{x} is reset to zero.
+Note also the use of \zls{last} to break what would otherwise be an invalid 
+causality cycle.
 
 % }-}3
 \subsection{Periodic Timers\label{periodictimers}} %{-{3
 
-The language provides a particular form of zero-crossings to model
-timers. A timer with phase \zls{phase} and period \zls{period} generates
-an event at instant $t = \mathtt{phase} + n \cdot \mathtt{period}$ with
-$n \in \bN^+$. Such a timer can be interpreted as a zero-crossing event as
-exemplified by the following program:
+A particular form of zero-crossings is provided to model timers.
+A timer with phase \zls{phase} and period \zls{p} generates
+an event at every instant where $t = \mathtt{phase} + n \cdot 
+\mathtt{period}$ with $n \in \bN^+$.
+While such timers can be expressed directly using the features described in 
+the previous two sections,
 \begin{chklisting}[withresult]
 let hybrid timer(phase, p) = z where
   rec der t = 1.0 init -. phase reset z -> -. p
   and z = up(last t)
 \end{chklisting}
-
-\zelus{} provides a special syntax for those timers. For the moment,
-it is restricted to timer with a constant phase and period. For example,
-taking $10.3$ and $20.5$ for \zls{phase} and \zls{p}, one can
-write \zls{period 10.3(20.5)}. Timers are not implemented by a zero-crossing 
-detecton mechanism
-but by an dedicated (and far more efficient) mechanism. At every discrete transition,
-the minimal value of all timers is computed and defines the next horizon for the
-integration. No root-finding is used.
+\zelus{} also provides a special \zls{period} operator, which, for the 
+moment at least, is restricted to timers of constant phase and period.
+For example, for a timer with $\mathtt{phase} = 10.3$ and $\mathtt{p} = 20.5$
+one can write \zls{period 10.3(20.5)}.
+Such timers are not realized using zero-crossings, but rather by a dedicated 
+and more efficient mechanism.
+At every discrete transition, the minimal `next value' of all timers is 
+computed to define the next integration horizon.
 
 % }-}3
 %}-}2
