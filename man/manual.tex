@@ -2768,7 +2768,10 @@ solver and two classical variable step solvers (\texttt{ode23} and
 
 \medskip
 A Proportional Integral (PI) controller is a classic example of a 
-continuous-time function:
+continuous-time function.
+Below we present two implementations: a continuous version to be 
+approximated by an external numeric solver, and a discrete version using 
+forward Euler integration.
 \begin{chklisting}[withresult]
 (* a continuous-time integrator *)
 let hybrid integr(x0, x') = x where
@@ -2793,25 +2796,101 @@ let node disc_pi(kp, ki, error) = cmd where
 \section{Mixing Discrete and Continuous Signals\label{commdisccont}} %{-{2
 %{-{3
 
-The language forbids the arbitrary mix of discrete logical time and
-continuous-time signals and systems. The intuition can be illustrated
-on the following two simple programs:
+Care must be taken when mixing signals and systems defined in discrete 
+logical time with those defined in continuous time, both to ensure that 
+programs make sense and that they can be simulated effectively.
+Consider, for instance, the following two simple programs.
 \begin{chklisting}[fail]
-let hybrid wrong() = o where
+let hybrid wrong1() = o where
   rec der x = 1.0 init 0.0
   and o = 0.0 -> pre o +. x
 \end{chklisting}
-and:
 \begin{chklisting}[fail]
-let hybrid wrong() = o where
+let hybrid wrong2() = o where
   rec der x = o init 0.0
   and o = 0.0 -> pre o +. 1.0
 \end{chklisting}
 
-% \Marc{Tim: on devrait mettre l'exemple que l'on met dans tous nos exposes
-% avec la courbe que tu avais faite. Qu'en penses-tu ?}
-% \Tim{Marc: D'accord. En fait, je veux générer ce genre de truc 
-% automatiquement avec le nouveau checklistings package. J'y réfléchis...}
+\begin{figure}
+\centering %{-{4
+    \tikzset{timesig/.style={blue},
+             ysig/.style={red},
+             ezsig/.style={green},
+             reaction/.style={red,thick,-latex}}
+    \begin{tikzpicture}
+      [yscale=.5,font=\sffamily\tiny]
+
+    \foreach \x in {0,150,300}
+    {
+        \begin{scope}[xshift=\x]
+            \draw[help lines] (0,-2) grid (4,10);
+            \draw[->] (0,0) -- (4.25,0);
+            \draw[<->] (0,-2.5) -- (0,10.5);
+            \foreach \x in {0,...,4}
+                \path (\x,0) node
+                    [shift={(-.8mm,.5mm)},below right,help lines] {\x};
+            \foreach \y in {-2,...,10}
+            \draw (0,\y) node[left,help lines] {\y};
+
+            \draw[timesig,fill] (0,0) ellipse (.05 and .10);
+            \draw[timesig,thick] (0,0) -- (4,4) node[above right] {time};
+        \end{scope}
+    }
+
+    % N subset R
+    \begin{scope}[xshift=0]
+        \draw[ysig,fill]
+            (0.0, 0.0) ellipse (.05 and .10)
+            (1.0, 1.0) ellipse (.05 and .10)
+            (2.0, 3.0) ellipse (.05 and .10)
+            (3.0, 6.0) ellipse (.05 and .10)
+            (4.0,10.0) ellipse (.05 and .10);
+
+        \draw[reaction] (0.0,-.2) -- (0.0,.5);
+        \draw[reaction] (1.0,-.2) -- (1.0,.5);
+        \draw[reaction] (2.0,-.2) -- (2.0,.5);
+        \draw[reaction] (3.0,-.2) -- (3.0,.5);
+        \draw[reaction] (4.0,-.2) -- (4.0,.5);
+        
+        \node at (2,-2.8)
+            {\normalsize\textrm{(a) $\mathbb{N} \subseteq \mathbb{R}$}};
+    \end{scope}
+
+    % depends on solver
+    \begin{scope}[xshift=150]
+        \draw[ysig,fill]
+            (0.0, 0.0) ellipse (.05 and .10)
+            (2.0, 2.0) ellipse (.05 and .10)
+            (2.5, 4.5) ellipse (.05 and .10)
+            (3.8, 8.3) ellipse (.05 and .10);
+
+        \draw[reaction] (0.0,-.2) -- (0.0,.5);
+        \draw[reaction] (2.0,-.2) -- (2.0,.5);
+        \draw[reaction] (2.5,-.2) -- (2.5,.5);
+        \draw[reaction] (3.8,-.2) -- (3.8,.5);
+
+        \node at (2,-2.8)
+            {\normalsize\textrm{(b) depends on solver}};
+    \end{scope}
+
+    % infinitesimal steps
+    \begin{scope}[xshift=300]
+        \draw[ysig,fill,very thick,->]
+            (0.0, 0.0) -- (0.04, 10.5);
+
+        \draw[reaction] (0.00,-.2) -- (0.00,.5);
+        \draw[reaction] (0.01,-.2) -- (0.01,.5);
+        \draw[reaction] (0.02,-.2) -- (0.02,.5);
+        \draw[reaction] (0.03,-.2) -- (0.03,.5);
+        \draw[reaction] (0.04,-.2) -- (0.04,.5);
+
+        \node at (2,-2.8)
+            {\normalsize\textrm{(c) infinitesimal steps}};
+    \end{scope}
+    \end{tikzpicture} %}-}4
+\caption{Possible interpretations of the \zls{wrong1} 
+program.\label{wrong1interp}}
+\end{figure}
 
 The first program is rejected because \zls{x} is a continuous-time
 signal, with $\forall t \in \bR+, x(t) = t$ whereas \zls{->} and
@@ -2866,13 +2945,59 @@ computation is correct. The value of \zls{x} is summed into \zls{o} at
 every
 instant \zls{tick} is present. Between those instants, \zls{o} is unchanged.
 \begin{chklisting}[withresult]
-let hybrid good(tick) = o where
+let hybrid correct(tick) = o where
   rec der x = 1.0 init 0.0
   and present tick -> do o = last o +. x done
   and init o = 0.0
 \end{chklisting}
 \zls{tick} is of type \zls{zero} which is the type of
 \emph{zero-crossing} events.
+
+\begin{figure}
+\centering %{-{4
+    \tikzset{timesig/.style={blue},
+             ysig/.style={red},
+             ezsig/.style={green},
+             reaction/.style={red,thick,-latex}}
+    \begin{tikzpicture}
+      [yscale=.5,font=\sffamily\tiny]
+
+        \draw[help lines] (0,-2) grid (4,10);
+        \draw[->] (0,0) -- (4.25,0);
+        \draw[<->] (0,-2.5) -- (0,10.5);
+        \foreach \x in {0,...,4}
+            \path (\x,0) node
+                [shift={(-.8mm,.5mm)},below right,help lines] {\x};
+        \foreach \y in {-2,...,10}
+        \draw (0,\y) node[left,help lines] {\y};
+
+        \draw[timesig,fill] (0,0) ellipse (.05 and .10);
+        \draw[timesig,thick] (0,0) -- (4,4) node[above right] {time};
+
+        \draw[ezsig,thick]
+            (0.0,-1.8) sin
+            (1.5, 0.5) cos
+            (2.5,-0.7) sin
+            (2.8,-1.1) cos
+            (3.4, 1.0) sin
+            (4.0, 2.5) node[above right] {ez};
+
+        \draw [ysig,dashed,very thick]
+            (0.0,0.0) -- (0.86,0.0)
+            (0.86,0.86) -- (3.20,0.86)
+            (3.20,4.06) -- (4.0,4.06)
+            ;
+        \draw [ysig,fill]
+            (0.86, 0.86) ellipse (.05 and .10)
+            (3.20, 4.06) ellipse (.05 and .10);
+
+        \draw[reaction] (0.86,-.2) -- (0.86,.5);
+        \draw[reaction] (3.20,-.2) -- (3.20,.5);
+
+    \end{tikzpicture} %}-}4
+\caption{Interpretation of the (newly) \zls{correct} 
+program.\label{correctinterp}}
+\end{figure}
 
 % }-}3
 \subsection{Zero-crossing Events\label{zerocrossings}} %{-{3
