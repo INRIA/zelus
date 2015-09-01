@@ -2540,8 +2540,6 @@ The condition \zls{until inc(u)} means: \emph{await the presence of
 the signal \zls{low} with some value~\zls{u}, then transition to the
 parameterized state \zls{Up(u)}}.
 
-\newcommand{\Signal}[1]{{#1}\;\mbox{\tt sig}}
-
 A basic preemption condition has the form \zls{e(p)} where \zls{e} is an 
 expression of type \zls{t sig} and \zls{p} is a pattern of type \zls{t}.
 The condition binds the variables in the pattern \zls{p} from the value of the 
@@ -2659,7 +2657,7 @@ The type signatures inferred by the compiler are:
 \chklistingmsg{}
 
 Does \zls{after(n, second)} really give a delay of \zls{n} real-time seconds?
-No, for three reasons.
+No, for three reasons (see also~\cite{BourkeSow:SYNCHRON:2009}):
 \begin{enumerate}
 \item
   \zls{second} is a Boolean stream. No hypothesis is made or
@@ -3110,6 +3108,8 @@ This version is slightly simplified compared to the
 \footnoteurl{version}{http://zelus.di.ens.fr/examples.html\#ex-bouncingball} 
 giving rise to \cref{bouncing-ball}: the steps are not modeled and we 
 consider that the ground is at $y=0$.
+We will reconsider this detail when we reprogram the example in 
+\cref{hautoodes}.
 
 \begin{chklisting}[label=gravity]
 let g = 9.81
@@ -3226,51 +3226,22 @@ computed to define the next integration horizon.
 %}-}2
 \section{Hierarchical Automata and ODEs\label{hautoodes}} %{-{2
 
-We now illustrate the mix of ODEs with hierarchical automata. We take
-the example of a hysteresis controller for a heater.  Consider first
-the dynamics of a heater. It has two modes. When \zls{active} is true,
-the temperature is increasing whereas it decreases when
-\zls{active} is false. The hysteresis controller has two mode also. In the
-\zls{Idle} mode, \zls{active = false} until the temperature
-\zls{temp} reaches a low threshold \zls{t\_min}. Then, it stays in
-the \zls{Active} mode until the temperature \zls{temp} reaches the
-high threshold \zls{t\_max}. Finally, the main system is obtained by
-putting the heater and the controller in parallel. Observe that the
-boolean signal \zls{active} only changes when a zero-
-occurs. This property is ensured by typing.
-%
-% \subsection{A Ball Bouncing on a Staircase}
-% We illustrate them on the classical example of a falling bouncing ball on
-% a staircase as illustrated in Figure~\cref{bouncing-ball}.
-%
-% \Marc{Ajouter l'image de la page web.}
-%
-% \begin{chklisting}
-% (* module Ball *)
-% (* [ground x] returns the position in [y] *)
-% let ground x = World.ground(x)
-%
-% let x0 = 0.0
-% let y0 = 9.0
-% let x0' = 0.8
-% let y0' = 0.0
-% let g = 9.81
-% let loose = 0.8
-%
-% (* The bouncing ball *)
-% let hybrid ball() = (x, y, z) where
-%   rec der x = x' init x0
-%   and der x' = 0.0 init x0'
-%   and der y = y' init y0
-%   and der y' = -. g init 0.0 reset z -> (-. loose *. last y')
-%   and z = up(ground(x) -. y)
-%
-% (* Main entry point *)
-% let hybrid main () =
-%   let (x, y, z) = ball(x, y_0) in
-%   present (period (0.04)) | z -> Showball.show (x fby x, y fby y, x, y);
-%   ()
-% \end{chklisting}
+We now illustrate how to combine ODEs with hierarchical automata using as an 
+example, an hysteresis controller for a heater.
+We will first consider the heater dynamics.
+It has two modes: when \zls{active} is true, the temperature increases; when 
+\zls{active} is false, it decreases.
+The hysteresis controller also has two modes.
+In the \zls{Idle} mode, it outputs \zls{active = false} until the 
+temperature \zls{temp} reaches the lower threshold \zls{t\_min}.
+The controller then stays in the \zls{Active} mode until \zls{temp} reaches 
+the upper threshold \zls{t\_max}.
+The complete system is obtained by composing the heater and controller in 
+parallel.
+Observe that the boolean signal \zls{active} only changes when a 
+zero-crossing occurs.
+This is a property guaranteed by the type system for all discrete 
+(non-\zls{float}) data types.
 %
 \begin{chklisting}
 let c = 1.0
@@ -3280,8 +3251,7 @@ let t_min = 0.0
 let t_max = 1.0
 \end{chklisting}
 \begin{chklisting}[continue]
-(* an hysteresis controller for a heater *)
-(* [c] and [k] are constant. *)
+(* an hysteresis controller for a heater: [c] and [k] are constant. *)
 let hybrid heater(active) = temp where
   rec der temp = if active then c -. k *. temp else -. k *. temp init temp0
 
@@ -3295,11 +3265,28 @@ let hybrid main() = temp where
   and temp = heater(active)
 \end{chklisting}
 
-Given this program, the compiler generate the function that computes
-the temperature \zls{temps} and which has to be given to the numeric solver,
-the function that compute the zero-crossing signal which must be observed
-during integration and the rest of the program which is executed every time
-a zero-crossing occurs.
+\noindent
+The biggest difference between the automaton in the program above and those 
+of previous programs is in the transition guards.
+The transition conditions of automata in a continuous context---that is, of 
+kind \HybridKind---may be either signal patterns, as described in 
+\cref{patmatchsig}, or zero-crossing expressions, as in the example above.
+Notably, however, they may not be boolean expressions, though boolean 
+expressions may still be combined with signal patterns.
+The equations within mode bodies inherit the kind of the automaton.
+In this example, we simply define \zls{active} using constant expressions, 
+but it would also have been possible to define signals by their derivatives 
+(using \zls{der}).
+
+As always (continuous) automata may be nested hierarchically and composed in 
+parallel.
+The extra structure is compiled away to generate a function that computes 
+the temperature \zls{temp} in tandem with a numeric solver and that monitors 
+the active zero-crossing expression.
+The type system for automata~\cite{lucy:emsoft11} guarantees that mode 
+changes will only occur at discrete instants, that is, in response to 
+zero-crossing or timer events.
+
 %
 % It has been a matter of taste to program the hybrid function \zls{heater} 
 % with
@@ -3316,24 +3303,26 @@ a zero-crossing occurs.
 
 % TODO: better integration of this text into the text above.
 
-Hierarchical automata can be mixed with ODEs. These automata are a
-particular case of the \emph{hybrid automata} of Maler, Manna and
-Pnueli~\cite{MalerMannaPnueli:hybrid92}. Nonetheless, we restrict them
-to be deterministic:
+The ability to program with both automata and ODEs gives a restricted form 
+of the \emph{hybrid automata} of Maler, Manna, and 
+Pnueli~\cite{MalerMannaPnueli:hybrid92}.
+In particular, hybrid automata in \zelus{} are deterministic:
 \begin{enumerate}
-  \item When several transitions can be fired, for
-    example because several conditions are true, the first one in order is
-    taken.
-  \item It is not possible to associate an invariant in a state. The current
-    state is left when one of the conditions is true.
+\item When several transitions can be fired, for example because several 
+conditions are true, the first one in order is taken.
+
+\item It is not possible to associate an invariant with a state.
+The current state is exited when a condition on an outgoing transition 
+fires.
 \end{enumerate}
 
-We give below a simple example of an hybrid automaton. Define first
-a module \zls{Ball} (in a file \texttt{ball.zls}) which models a ball 
-bouncing
-on a staircase.~\footnote{The complete example is available in the distribution.}
+We will present a slightly more complicated hybrid automata by returning to 
+the bouncing ball example of \cref{zerocrossings}.
+First we reprogram the vertical dynamics of the ball, this time using an 
+external function, \zls{World.ground()}, to retrieve the height of the 
+ground as a function of the horizontal position.
 \begin{chklisting}[withresult]
-(* [ground x] returns the position in [y] *)
+(* [World.ground(x)] returns the position in [y] *)
 
 let x_0 = 0.0
 let y_0 = 8.0
@@ -3348,12 +3337,14 @@ let atomic hybrid ball(x, y_0) = (y, y_v, z) where
   and z = up(World.ground(x) -. y)
 \end{chklisting}
 
-\zls{World.ground x} is the height of the stair at position
-\zls{x}. \zls{World.ground\_abs x} is the position of the right end of the
-stair from position \zls{x}. We model now a ball that bounces on this
-staircase but slides when the speed is below a certain threashold. We
-write this in a module \zls{Autoball} (that is, file
-\verb-autoball.zls-).
+\noindent
+We now incorporate these dynamics into an automaton with two modes.
+In \zls{Bouncing}, it behaves as explained previously, but when the velocity 
+of the ball becomes below a certain threshold, the system enters a 
+\zls{Sliding} mode.
+When \zls{Sliding}, the ball only moves in the vertical dimension, until it 
+reaches the edge of a step (as determined by a \zls{World.ground\_abs()} 
+function).
 \begin{chklisting}[continue,withresult]
 let eps = 0.01
 
@@ -3375,6 +3366,19 @@ let hybrid ball_with_modes(x_0, y_0) = (x, y) where
          then do y_start = 0.0 in Bouncing
       end
 \end{chklisting}
+
+\noindent
+This example demonstrates the hierarchical instantiation of hybrid nodes, 
+the use of \zls{local} variables in modes, shared variable resets on 
+transition actions (\zls{...then do y\_start = 0.0 in...}) and a new 
+\zls{on} operator of type \zls{zero * bool -> zero} which combines 
+zero-crossing expressions and boolean conditions.
+The \zls{on} operator emits an event when the zero-crossing occurs and the 
+condition evaluates to \zls{true} at that instant.
+
+Futher examples are available 
+\footnoteurl{online}{http://zelus.di.ens.fr/examples.html} and in published 
+papers~\cite{lucy:hscc13}.
 
 %}-}2
 %}-}1
