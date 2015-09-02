@@ -3371,7 +3371,7 @@ hybrid ball_with_modes(x_0, y_0) = (x, y) where
       (* the ball is falling with a possible bounce. *)
       local z, y_v in
       do
-        (y, y_v, z) = Ball.ball(x, y_start)
+        (y, y_v, z) = ball(x, y_start)
       and x' = x_v until z on (y_v < eps) then Sliding(World.ground_abs(x),
                                                        World.ground(x))
   | Sliding(x0, y0) ->
