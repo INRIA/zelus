@@ -3385,56 +3385,64 @@ papers~\cite{lucy:hscc13}.
 \chapter{The Simulation Loop\label{simulation-loop}} %{-{1
 %{-{2
 
-This chapter explains the basic principles of the code generation of a \zelus{}
-program. This part is useful to understand how to link a \zelus{} program
-with an \ocaml{} in both ways: importing an \ocaml{} value into \zelus{}
-or exporting the compiled code from a \zelus{} program to \ocaml.
+This chapter explains the basic principles behind the compilation and 
+execution of \zelus{} programs.
+Understanding these details is useful for linking \zelus{} and \ocaml{} 
+code, either by importing \ocaml{} values into \zelus{} or by exporting 
+compiled \zelus{} code into \ocaml.
 
 %}-}2
 \section{Combinatorial Functions\label{combfuncs}} %{-{2
 
-A combinatorial function defined by:
+Combinatorial functions are defined by the form:
 \begin{center}
   [ \term{let} ] [ \term{fun} ] \nterm{ident} \nterm{pattern} \term{=}
   \nterm{result-expr}
 \end{center}
 
-is compiled \emph{as is} into an \ocaml{} function. No transformation is
-performed on it.
+\medskip\noindent
+They are compiled directly into \ocaml{} functions without any particular 
+transformations.
 
 % }-}2
 \section{Sequential Nodes\label{seqnodes}} %{-{2
 
-A synchronous, possibly stateful, function defined by:
+Synchronous, possibly stateful, functions are defined by the form:
 \begin{center}
   [ \term{let} ] [ \term{node} ] \nterm{ident} \nterm{pattern} \term{=}
   \nterm{result-expr}
 \end{center}
-is translated into the following:
-\begin{itemize}
+
+\medskip\noindent
+They are translated as follows:
+\begin{flatitemize}
 \item
-  A data type \nterm{ident} used to represent the current value of the
-  internal state of the function. A value of that type is a tree, that
-  is, a record where a field contain either the current value of a unit delay
-  appearing in the function body or the
-  state of a node instance called by the function \nterm{ident}.
+A record type \nterm{ident} is introduced to represent the current value of 
+the node's internal state.
+Such records contains fields for each unit delay and \zls{->} within the 
+node, and also for every other node instantiated within it.
+Values of this type are thus trees of nested records that reflect the 
+structure of instantiations.
+
 \item
-  A step function \nterm{ident\_step} such that
-    \nterm{ident\_step self pattern} returns the current output of the function
-    \nterm{ident}, with the current state \nterm{self} (of type
-    \nterm{ident}) and input \nterm{pattern}. The call to this step
-    function returns the current output and modifies in-place
-    the state \nterm{self}.
-  \item
-    A reset function \nterm{ident\_reset} such that \nterm{ident\_reset self}
-    re-initializes the state \nterm{self} with its initial value.
-  \item
-    An allocation function \nterm{ident\_alloc} such that \nterm{ident\_alloc ()}
-    returns an initial state (of type \nterm{ident}).
-\end{itemize}
+A step function \nterm{ident\_step} is introduced.
+Calling \nterm{ident\_step self pattern}, where \nterm{self} is the current 
+state of the node (of type \nterm{ident}) and \nterm{pattern} passes the 
+current value of the input, returns the current output of the node and 
+directly updates the state record \nterm{self}.
+
+\item
+A reset function \nterm{ident\_reset} is also introduced.
+Calling \nterm{ident\_reset self} resets the state \nterm{self} to its 
+initial value.
+
+\item
+Finally, there is also an allocation function \nterm{ident\_alloc ()} which 
+returns an initial state (of type \nterm{ident}).
+\end{flatitemize}
 
 % }-}2
-\section{Hybrid Nodes and the Interaction with the Solver\label{hybridnodes}} %{-{2
+\section{Hybrid Nodes and Interaction with a Solver\label{hybridnodes}} %{-{2
 
 \begin{figure}[t]
 \centering%{-{3
@@ -3475,7 +3483,8 @@ is translated into the following:
 
 
 \end{tikzpicture}%}-}3
-\caption{Basic structure of a hybrid simulation algorithm\label{fig:simalgo}}
+\caption{Basic structure of the hybrid simulation 
+algorithm\label{fig:simalgo}}
 \end{figure}
 
 We now examine the compilation and simulation of a hybrid node,
