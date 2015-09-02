@@ -97,7 +97,7 @@ The relay's value is shown below.
 The next model augments the basic model with a compensation network that
 adds a phase lead of -π.
 
-![SOAS with lead network](img/soas-model2.png "SOAS with lead network")
+![SOAS with lead network model](img/soas-model2.png "SOAS with lead network")
 
 !SOURCEFILE: soas2_leadnet.zls
 
@@ -120,14 +120,15 @@ The compensation filter decreases the amplitude of oscillation while
 maintaining the reponse speed, as can be seen in the simulation results
 below.
 
-![SOAS with lead network: output](img/soas-output2.png "SOAS with lead network: output")
+![SOAS with lead network output](img/soas-output2.png "SOAS with lead 
+network: output")
 
 ### SOAS with lead network and gain changer ###
 
 A gain changer is added in the final model.
 It uses so called _up logic_ to speed up the controller's reponse.
 
-![SOAS with lead network and gain changer: model](img/soas-model3.png "SOAS with lead network and gain changer: model")
+![SOAS with lead network and gain changer model](img/soas-model3.png "SOAS with lead network and gain changer: model")
 
 !SOURCEFILE: soas3_gainchanger.zls
 
@@ -143,10 +144,10 @@ The simulation results show that the new controller responds with smaller
 amplitude oscillations to the system with higher gain, without losing
 performance for the system with smaller gain.
 
-![SOAS with lead network and gain changer: output](img/soas-output3.png "SOAS with lead network and gain changer: output")
+![SOAS with lead network and gain changer output](img/soas-output3.png "SOAS with lead network and gain changer: output")
 
 The effect of the gain changing logic on the relay output is evident in the
 exponential envelopes on the signal shown below.
 
-![SOAS with lead network and gain changer: relay](img/soas-relay3.png "SOAS with lead network and gain changer: relay")
+![SOAS with lead network and gain changer relay](img/soas-relay3.png "SOAS with lead network and gain changer: relay")
 

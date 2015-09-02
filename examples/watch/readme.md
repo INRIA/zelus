@@ -2,7 +2,7 @@
 
 Author: [Guillaume Baudart](http://www.di.ens.fr/~baudart/)
 
-![Screenshot](img/watch.png "Screenshot")
+![Watch screenshot](img/watch.png "Screenshot")
 
 This model was made to celebrate 
 [Albert Benveniste's](http://people.rennes.inria.fr/Albert.Benveniste/)

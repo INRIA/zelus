@@ -98,7 +98,7 @@ at discrete instants (as plotting is a side-effect) and the graph is thus
 
 ### Simulation ###
 
-![Simulation](img/bangbang-graph.png "Simulation")
+![Bang-Bang Simulation](img/bangbang-graph.png "Simulation")
 
 The simulation output shows a staircased increase in temperature from 15°C
 at `t = 0` to the 20°C just before `t = 500`. The initial rising edges have a
