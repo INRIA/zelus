@@ -3755,10 +3755,10 @@ returns an initial state (of type \nterm{ident}).
 % {-{2
 
 % Shamelessly stole from the OCaml manual
-The syntax of the language is given in BNF-like notation. Terminal
+The syntax of the language is presented in BNF-like notation. Terminal
 symbols are set in typewriter font (\term{like this}). Non-terminal symbols
 are set in italic font (\nterm{like that}). Square brackets [ ... ] denote
-optional components. Curly brackets \{ ... \} denotes zero, one or several
+optional components. Curly brackets \{ ... \} denotes zero, one, or several
 repetitions of the enclosed components.
 
 % We follow the following convention for grammatical rules. If $t$ is
@@ -3767,19 +3767,25 @@ repetitions of the enclosed components.
 % }-}2
 \section{Lexical conventions\label{lexical}} %{-{2
 
-Lexical conventions for blanks, comments, identifiers, integer
+We adopt the lexical conventions of
+\footnoteurl{\ocaml}{http://caml.inria.fr/pub/docs/manual-ocaml/lex.html} 
+for blanks, comments, identifiers, integer
 literals, floating-point literals, character literals, string
-literals, prefix and infix symbols are the one of \ocaml.
+literals, and prefix and infix symbols.
 
 \subsubsection{Keywords}
-The following identifiers are keywords.
+The following identifiers are reserved as keywords.
 
 \begin{verbatim}
-      let  and   if    then  pre   or   node  done      unless   run    end
-      rec  where fun   else  not   open match automaton continue emit   up
-      fby  reset every do    until on   der   init      fun      hybrid discrete
+  as      automaton  atomic   inline  continue  disc  do    done   until
+  unless  emit       present  match   period    with  end   fun    node
+  hybrid  discrete   init     in      and       open  val   local  unsafe
+  let     rec        where    open    fby       next  up    der    reset
+  pre     type       every    true    false     or    on    last   if
+  then    else       quo      mod     land      lor   lxor  lsl    lsr
+  asr
 \end{verbatim}
-The following character sequences are also keywords:
+The following character sequences are also keywords.
 
 \begin{verbatim}
         ->   >     <     =     <>     >=        )     &  ?
@@ -3790,38 +3796,37 @@ The following character sequences are also keywords:
 \section{Values\label{values}} %{-{2
 \subsection{Basic values\label{basicvalues}} %{-{3
 
-\zelus{} only implements the basic values of \ocaml{} with the same
-convention, that is, integer numbers, floating-point numbers,
-characters and character strings.
+\zelus{} provides the basic values of \ocaml{}---that is, integer numbers, 
+floating-point numbers, characters and character strings---and with the same
+conventions.
 
 %}-}3
 \subsection{Tuples, records, sum types\label{tuplesrecords}} %{-{3
 
-\zelus{} implements the tuples of \ocaml, with the same conventions. It
-also implements records and sum types with constructors of arity 0.
+\zelus{} provides the tuples of \ocaml with the same conventions. It
+also provides records and sum types with constructors of arity 0.
 
 %}-}3
 \subsubsection{Functions\label{funcvalues}} %{-{3
-Mapping from values to values. Functions are separated into three main
-categories: pure or \emph{combinatorial} functions and stateful functions. Stateful
-functions are either discrete-time or continuous-time.
+
+Functions map values to other values.
+They are separated into three main
+categories: pure or \emph{combinatorial} functions, discrete-time stateful 
+functions, and continuous-time stateful functions.
 
 %}-}3
 %}-}2
 \section{Global names\label{global-names}} %{-{2
 %{-{3
 
-The naming conventions in \zelus{} are inherited from \ocaml, with some
-restrictions. They are listed here:
+The naming conventions in \zelus{} are inherited from \ocaml subject to the
+restrictions detailed in this section.
 
-Names in \zelus{} are decomposed into the following syntactic classes:
+Names in \zelus{} fall into one of three syntactic classes:
 \begin{itemize}
-\item
-  The syntactic class \nterm{value-name} for value names
-\item
-  The syntactic class \nterm{typeconstr-name} for type constructors
-\item
-  The syntactic class \nterm{module-name} for module names
+\item \nterm{value-name} for value names,
+\item \nterm{typeconstr-name} for type constructors, and
+\item \nterm{module-name} for module names.
 \end{itemize}
 
 %}-}3
@@ -3864,8 +3869,8 @@ capital letter.
                                    \nterm{typeconstr}
 \end{tabular}
 \end{center}
-A value can be referred either by its name or by qualifying the name
-with a module name.
+A value can be referred to either by its name or by its name qualified with 
+a module name.
 
 % }-}3
 % }-}2
@@ -3913,14 +3918,13 @@ with a module name.
                   & $\;\;\alt$    & \nterm{boolean-literal} \\
 \end{tabular}
 \end{center}
-Constants are made of literals from the firth base types (integers,
-floating-point numbers, characters, character strings and booleans).
+Constants are formed of literals from the base types (integers,
+floating-point numbers, characters, character strings, and booleans).
 
 % }-}2
 \section{Patterns\label{patterns}} %{-{2
 
-Patterns allow selecting data structures of a given shape and binding
-identifiers to components of the data structure.
+Patterns allow binding identifiers to the components of data structures.
 
 \begin{center}
 \begin{tabular}{lcl}
@@ -3948,12 +3952,13 @@ identifiers to components of the data structure.
 % }-}2
 \section{Signal Patterns\label{sigpatterns}} %{-{2
 
-\Marc{Changer la syntaxe pour la
-  suivante: \texttt{present x?(p) -> ... | \_ when c -> ...}}
+%\Marc{Changer la syntaxe pour la
+  %suivante: \texttt{present x?(p) -> ... | \_ when c -> ...}}
 
-Signal patterns allows to test the presence of signals and to match
-their value with some pattern. Moreover, a signal pattern can be also
-a boolean expression.
+Signal patterns allows for testing the presence of signals and for binding 
+their values with patterns.
+A boolean expressions is also considered a signal pattern (in non-continuous 
+contexts).
 \begin{center}
 \begin{tabular}{lcl}
 \nterm{signal-pattern} 
@@ -4044,9 +4049,9 @@ a boolean expression.
 \end{tabular}
 \end{center}
 
-The precedence and associativity rules are the one of \ocaml. For
-special \zelus\ primitives, they are given below:
-higher precedences come first.
+The precedence and associativity rules of \ocaml are adopted.
+The rules for \zelus-specific primitives are, in order from highest to 
+lowest precedence:
 \begin{center}
 {
 \begin{tabular}{|l|l|} \hline
@@ -4065,18 +4070,19 @@ function application            & -             \\
 \subsection{Simple expressions\label{simpleexpressions}} % {-{3
 \subsubsection{Constants} %{-{4
 
-Expressions consisting in a constant evaluate to an infinite stream
-made of this constant.
+A constant expression, like \zls{1} or \zls{false}, denotes an infinite 
+stream of that constant.
 
 % }-}4
 \subsubsection{Variables} %{-{4
 
-Expressions consisting in a variable evaluate to the value bound to
-this variable in the current evaluation environment.
+A variable evaluates to the value bound to that variable in the current 
+evaluation environment.
 
 % }-}4
-\subsubsection{Parenthetised expressions} %{-{4
-The expression \term{(} \nterm{expr} \term{)} has the same value than
+\subsubsection{Parenthesized expressions} %{-{4
+
+The expression \term{(} \nterm{expr} \term{)} has the same value as
 \nterm{expr}.
 
 % }-}4
@@ -4099,47 +4105,48 @@ Recursive definitions of variables are introduced by \term{\Let\ \Rec}:
   \term{\AND} \nterm{definition}$_n$ \term{\In} \nterm{expr}
 \end{center}
 
-This time, the current environment also contains names defined by the \term{\Let}
-construction itself.
+In a recursive definition the current environment also contains names 
+defined within the \term{\Let} construction itself.
 
 % }-}4
 % }-}3
 \subsection{Operators\label{operators}} % {-{3
 % {-{4
 
-The operators written \nterm{infix-op} in the grammar can appear in
-infix position (between two expressions). The operators written
-\nterm{prefix-op} in the grammar (\cref{expressions}) can appear
-in prefix position (in front of an expression).
+The operators written \nterm{infix-op} in the grammar are applied by placing 
+them between two expressions.
+The operators written \nterm{prefix-op} in the grammar are applied by 
+placing them in front of an expression.
 
-Classical operators provided by \ocaml\ (from the {\tt Pervasives}
-module) are imported. As for general scalar value imported from the
-host language, they become stream operators which are applied
-point-wisely to streams.
+The basic operators provided by \ocaml\ (from the {\tt Pervasives}
+module) are imported. Scalar values imported from the
+host language become stream operators that are applied
+pointwise.
 
 % }-}4
 \subsubsection{Unit Delays} % {-{4
 
-The expression \term{\Pre} \nterm{expr} is the delayed
-stream. The $n$-th value of the result is the $n-1$-th
-value of \nterm{expr}. Its value at the first instant is undefined.
+The expression \term{\Pre} \nterm{expr} denotes the delayed
+stream. The $n$th value of the result is the $n-1$th
+value of \nterm{expr}. The value at the first instant is undefined.
 
 The binary operator \term{\Fby} is the initialized delay operator. The
 first value of \nterm{expr}$_1$ \term{\Fby} \nterm{expr}$_2$ is the
-first value of \nterm{expr}$_1$. Its $n$-th value is the $n-1$-th
+first value of \nterm{expr}$_1$. The $n$th value is the $n-1$th
 value of \nterm{expr}$_2$.
 
-These two delay operators must only be activated on a \emph{discrete clock}. In
-\zelus, Version 1.2, this is ensured by imposing that those delays only
-appear in a context of kind $k = \NodeKind$.
+These two delay operators may only be activated on a \emph{discrete clock}. 
+In \zelus{} (version 1.2) this is ensured by imposing that they appear only 
+in contexts of kind $k = \NodeKind$.
 
 % }-}4
 \subsubsection{Initialization Operation} % {-{4
 
-\nterm{expr}$_1$ \term{\Minusgreater} \nterm{expr}$_2$ initializes a
-stream. The \nterm{expr}$_i$ must be streams of the same type. The
+The expression \nterm{expr}$_1$ \term{\Minusgreater} \nterm{expr}$_2$ 
+initializes a stream.
+The \nterm{expr}$_i$ must be streams of the same type. The
 first value of the result is the first value of
-\nterm{expr}$_1$. Then, the $n$-th value of the result is the $n$-th
+\nterm{expr}$_1$, after which the $n$th value of the result is the $n$th
 value of \nterm{expr}$_2$.
 
 The initialization operator must be activated on a \emph{discrete clock}.
@@ -4148,41 +4155,42 @@ The initialization operator must be activated on a \emph{discrete clock}.
 \subsubsection{Access to a Shared State Variable} % {-{4
 
 The expression \term{\Last} \nterm{ident} denotes the previous computed value
-of a variable \nterm{ident}.
+of the variable \nterm{ident}.
 
-As opposed to the unit delays \term{\Pre} and \term{\Fby}, the
+As opposed to the unit delays, \term{\Pre} and \term{\Fby}, the
 operator \term{\Last} only applies to variable names and it can be activated
-on any clock, either \emph{discrete} or \emph{continuous} and thus
-any contex. Nonetheless, when $\term{\Last}\; x$ appears in a continuous context,
-\zelus, Version 1.2 imposes $x$ to be a continuous state variable, that is,
-it must be defined by an equation $\term{der}\; x = e$.
+on both \emph{discrete} and \emph{continuous} clocks.
+Nonetheless, when $\term{\Last}\; x$ appears in a continuous context,
+\zelus{} (version 1.2) imposes that $x$ be a continuous state variable; in 
+other words, it must be defined directly by an equation of the form 
+$\term{der}\; x = e$.
 
 % }-}4
 \subsubsection{Point-wise conditional} % {-{4
 
 The expression \term{\If} \nterm{expr}$_1$ \term{\Then}
-\nterm{expr}$_2$ \term{\Else} \nterm{expr}$_3$ is the point-wise
-conditional. \nterm{expr}$_1$ must be a boolean stream,
-\nterm{expr}$_2$ and \nterm{expr}$_3$ two streams of the same
+\nterm{expr}$_2$ \term{\Else} \nterm{expr}$_3$ is the pointwise
+conditional: \nterm{expr}$_1$ must be a boolean stream and
+\nterm{expr}$_2$ and \nterm{expr}$_3$ must be two streams of the same
 type. The type of the result is the type of \nterm{expr}$_2$.
 
 Warning: this operator is strict, that is, at every step, both branches
-are evaluated no matter is the value of the condition. The result at instant
-$n$ is the value of \nterm{expr}$_2$ if the value of \nterm{expr}$_1$ is true and
-the value of \nterm{expr}$_3$ otherwise.
+are evaluated regardless of the value of the condition. The result at 
+instant~$n$ is the value of \nterm{expr}$_2$ if the value of 
+\nterm{expr}$_1$ is true and the value of \nterm{expr}$_3$ otherwise.
 
 % }-}4
 \subsubsection{Function application} % {-{4
 
 The expression \nterm{value-path} \nterm{simple-expr} is the application
-of a function \nterm{value-path} to the expression \nterm{simple-expr}.
+of the function \nterm{value-path} to the expression \nterm{simple-expr}.
 
 % }-}4
 % }-}3
 \subsection{Control Structures\label{controlstructures}} % {-{3
 % {-{4
 
-The constructions \zls{reset}, \zls{match/with}, \zls{reset} and
+The constructions \zls{reset}, \zls{match/with}, \zls{reset}, and
 \zls{automaton} are control-structures which combine equations and
 thus belong to the syntactic class of definitions (see
 \cref{definitions}).
@@ -4214,7 +4222,7 @@ is a short-cut for the expression:
 \nterm{o}
 \end{tabbing}
 \end{center}
-provided \nterm{o} is a fresh name.
+provided that \nterm{o} is a fresh name.
 
 % }-}4
 \subsubsection{Modular Reset over Expressions} % {-{4
@@ -4223,7 +4231,7 @@ The expression \term{reset} \nterm{expr}$_1$ \term{every} \nterm{expr}$_2$
 is a short-cut for
 \term{let reset} \nterm{o} \term{=} \nterm{expr}$_1$ 
 \term{every} \nterm{expr}$_2$ \term{in} \nterm{o},
-provided \nterm{o} is a fresh name.
+provided that \nterm{o} is a fresh name.
 
 % }-}4
 \subsubsection{Automata} % {-{4
@@ -4246,10 +4254,10 @@ let \= \term{automaton} \\
     \> \term{end in} \\
 \nterm{o}
 \end{tabbing}
-provided \nterm{o} is a fresh name.
+provided that \nterm{o} is a fresh name.
 
 % }-}4
-\subsubsection{Testing the Presence} % {-{4
+\subsubsection{Testing Presence} % {-{4
 
 The expression
 \term{present}
@@ -4269,7 +4277,7 @@ is a short-cut for the expression:
 \nterm{o}
 \end{tabbing}
 \end{center}
-provided \nterm{o} is a fresh name.
+provided that \nterm{o} is a fresh name.
 
 % }-}4
 % }-}3
@@ -4324,8 +4332,9 @@ provided \nterm{o} is a fresh name.
 \subsubsection{Global Value Definition}
 
 A global definition \nterm{ident} \term{=} \nterm{expr} defines the value
-of the global identier \nterm{ident} to be that of \nterm{expr} in the
-current global environment. \nterm{expr} must be combinatorial.
+of the global identifier \nterm{ident} to be equal to the value of 
+\nterm{expr} in the current global environment.
+The expression \nterm{expr} must be combinatorial.
 
 \subsubsection{Global Function Definition}
 
@@ -4334,7 +4343,7 @@ A global function definition is of the form:
   [ \term{let} ] [ \nterm{kind} ] \nterm{ident} \nterm{pattern} \term{=}
                     \nterm{result-expr}
 \end{center}
-with:
+with
 \begin{center}
   \begin{tabular}{lcl}
     \nterm{function-kind} & ::=  & \term{fun} $\alt$ \term{node}
@@ -4342,31 +4351,37 @@ with:
 \end{tabular}
 \end{center}
 
+\noindent
+where
 \begin{itemize}
 \item
-  \term{fun} is the kind for combinatorial functions --- typically a
-  function imported from the host language and applied pointwise. Its
-  body \nterm{result-expr} must only contain combinatorial operations:
-  it cannot call stateful functions like unit delays or integrators.
+\term{fun} is the kind of combinatorial functions---typically a
+function imported from the host language and applied pointwise. Its
+body \nterm{result-expr} must only contain combinatorial operations.
+In particular, it may not invoke stateful functions like unit delays or 
+integrators.
+
 \item
-  \term{node} is the kind for (possibly) stateful discrete-time
-  function --- typically a synchronous function that must be activated
-  on a discrete-time scale like the presence of an event. Its body
-  \nterm{result-expr} must only contain discrete-time stateful
-  operations: it cannot call continuous-time operators like
-  integrators or zero-crossing detection of continuous-time signals.
+\term{node} is the kind of (possibly) stateful discrete-time
+functions---typically a synchronous function that must be activated
+on a discrete-time scale.
+Its body \nterm{result-expr} must only contain combinatorial and 
+discrete-time stateful operations.
+In particular, it may not invoke continuous-time operators like
+integrators or zero-crossing detection.
+
 \item
-  \term{hybrid} is the kind for (possibly) stateful continuous-time
-  functions --- typically a function that contains ODEs and/or
-  zero-crossing detection and must be activated continuously. It can
-  contain any kind of operators provided discrete-time operations are activated
-  on an event.
+\term{hybrid} is the kind of (possibly) stateful continuous-time
+functions---typically a function that contains ODEs and/or
+zero-crossing detection and must be activated continuously. It may
+contain all kinds of operator provided that discrete-time operations are 
+activated on discrete events.
 \end{itemize}
 
 \subsubsection{Alternative Syntax for Local Definitions}
 
 The language provides an alternate form of local definitions for returning
-the result of a function. The expression:
+the results of functions. The expression:
 \begin{center}
 \nterm{expr} \term{\Where} [ \term{\Rec} ]
   \nterm{definition}$_1$ \term{\AND} ... \term{\AND} \nterm{definition}$_n$ 
@@ -4380,7 +4395,7 @@ has the meaning of:
 
 \subsubsection{Equation}
 
-Equation \nterm{pattern} = \nterm{expr} defines the current
+The equation \nterm{pattern} = \nterm{expr} defines the current
 value of \nterm{pattern} to be equal to the current value of \nterm{expr}.
 
 \subsubsection{Initialization of a State Variable}
@@ -4409,28 +4424,29 @@ a value.
 \end{tabular}
 \end{center}
 
+The construct
 \term{match} \nterm{expr} \term{with} \nterm{pattern}$_1$ \term{->}
 \nterm{action}$_1$ \term{|} ... \term{|} \nterm{pattern}$_n$ \term{->}
-\nterm{action}$_n$ \term{end} is used for combining $n$ complementary
+\nterm{action}$_n$ \term{end} is used to combine $n$ complementary
 sub-streams. Each of these streams is on the clock defined by the
 instants where the value of $e$ has the form \nterm{pattern}$_i$\ .
 
 Each \nterm{definition} can define local and shared variables.
-Shared variables are variable that may appear in several branches and
-which are not bound by a \term{local} construct.
+Shared variables are variables that may be defined and used across several 
+branches and which are not bound by a \term{local} construct.
 
 \subsubsection{Reinitialization}
 
-The construction \term{\Reset} \nterm{definition}$_1$ \term{\AND} ...
+The construct \term{\Reset} \nterm{definition}$_1$ \term{\AND} ...
 \term{\AND} \nterm{definition}$_n$ \term{\Every} \nterm{expr} allows
-for resetting the computation made in a set of definitions. All the
+for resetting the computation defined by a set of definitions. All the
 defined values and expression \nterm{expr} must be on the same
 clock. This construction acts as a regular multi-definition except
-that all the streams and automata defined in
+that the streams and automata defined in
 \nterm{definition}$_1$,..., \nterm{definition}$_n$ restart with their
-initial value every time the current value of {\em expr} is true. In
+initial values every time the current value of {\em expr} is true. In
 particular, automata appearing in \nterm{definition}$_1$,...,
-\nterm{definition}$_n$ restart into their initial state.
+\nterm{definition}$_n$ restart in their initial states.
 
 \subsubsection{Hierarchical Automata}
 
@@ -4475,26 +4491,28 @@ particular, automata appearing in \nterm{definition}$_1$,...,
 
 The construction \term{automaton} \nterm{def-automaton-handler} \term{|}
 ... \term{|} \nterm{def-automaton-handler} \term{end} defines an
-automaton. Each branch of the automaton is of the form:
+automaton. Each branch of the automaton has either the form:
 \begin{center} 
   \nterm{constructor} \term{->} \nterm{automaton-definition}
 \end{center}
-or
+or the form
 \begin{center}
   \nterm{constructor} \nterm{pattern} \term{->} \nterm{automaton-definition}
 \end{center}
 where \nterm{constructor} denotes the name of the state. This state
 may be parameterized by a pattern.  The first branch defines the
-initial state and this state cannot be parameterized.
+initial state and this state cannot be parameterized unless an 
+initialization clause is given.
+% TODO: add initialization clauses to the syntax
 
-The action associated to a state is of the form:
+The action associated to a state has the form:
 \begin{center}
   \nterm{local-definitions} \term{\Do} \nterm{definition-list} 
   \nterm{transitions}
 \end{center}
-It is made of a (possibly empty) sequence of local definitions to the
-state, a definition list of shared variables and a (possibly empty)
-list of transitions which are tested sequentially. Transitions may
+It comprises a (possibly empty) sequence of local definitions to the
+state, a definition list of shared variables, and a (possibly empty)
+list of transitions to be tested sequentially. Transitions may
 have several forms.  Writing:
 \begin{center}
   \term{\Until} \nterm{transition} \{ \term{else} \nterm{transition} \}
@@ -4502,65 +4520,67 @@ have several forms.  Writing:
 defines a {\em weak transition} which is executed within the current reaction
 but at the end of it, that is, {\em after} definitions from the current state have
 been executed. Transitions are all evaluated in the same instant but
-sequentially: the first transition to succeed defines what will be the target
-state at the next reaction. Writting:
+sequentially: the first transition to succeed determines the target
+state at the next reaction. Writing:
 \begin{center}
   \term{\Unless} \nterm{transition} \{ \term{else} \nterm{transition} \}
 \end{center}
 defines a {\em strong transition} which is executed {\em before} the
 reaction starts, that is, before definitions from the current state
 have been executed. Transitions are all evaluated in the same instant
-but sequentially: the first transition to succeed defines what is the
+but sequentially: the first transition to succeed determines the
 current active state.
 
-A transition may be either by reset or by
-history. Writting:
+A transition may reset or not the history of the state being entered.
+Writing:
 \begin{center}
   \nterm{signal-pattern} \term{\Then}
                   [ \nterm{local-definitions} \term{do} \nterm{definition-list} ]
                   \term{in} \nterm{state}
 \end{center}
 indicates that the target state is {\em entered by reset}, that is, all
-the streams and automata in the target state restart with their initial
-value.  Writting: 
+streams and automata in the target state restart with their initial
+values.
+Writing:
 \begin{center}
   \nterm{signal-pattern} \term{\Continue}
                   [ \nterm{local-definitions} \term{do} \nterm{definition-list} ]
                   \term{in} \nterm{state}
 \end{center}
 has the same behavior except that the target state is {\em entered by
-  history}, that is, no reset occurs. For both kind of transition
+  history}, that is, no reset occurs. For both kinds of transition
 (reset or history), the condition \nterm{signal-pattern} is
 tested. When it is true, \nterm{local-definitions} do
-\nterm{definition-list} \term{in} \nterm{state} are executed in the same reaction.
+\nterm{definition-list} \term{in} \nterm{state} are executed in
+the same reaction.
 
-The language provides two short-cuts for transitions:
-
-\begin{itemize}
+The language provides two transition shorthands:
+\begin{enumerate}
 \item
-  The transition \term{\Then} \nterm{state} is a short-cut for
+  The transition \term{\Then} \nterm{state} is shorthand for
   \term{\Until} {\tt true}
   \term{\Then} \nterm{state}
 \item
-  The transition \term{\Continue} \nterm{state} is a short-cut
+  The transition \term{\Continue} \nterm{state} is shorthand
   for \term{\Until} {\tt true} \term{\Continue} \nterm{state}.
-\end{itemize}
+\end{enumerate}
 
-\zelus, Version 1.2, imposes that weak and strong conditions are not mixed inside
-an automaton. This differs from \lucy, for example, which allowed for arbitrary
-combination of both in an automaton. We made this choice to simplify code
-generation and make it more efficient. It is possible that we come back to
-the initial solution in a future release.
+\zelus{} (version 1.2) forbids the mixing of weak and strong conditions 
+within a single automaton (not counting nested automata).
+This differs from \lucy, for example, which allows for arbitrary
+combinations within an automaton. We made this choice to simplify code
+generation and allow for more efficient execution.
+But we may lift this restriction in a future release.
 
 \subsubsection{Testing the Presence of a Signal}
 
-A present statement is pretty much the same as a pattern-matching
-statement. It is of the form: 
+The present construct resembles the pattern-matching one.
+It has the form:
 \begin{center}
   \term{present} \nterm{def-present-handlers} [ \term{else} \nterm{definition} ]
   \term{end}
 \end{center}
-Where a handler is of the form:
+where a handler has the form:
 \begin{center}
 \begin{tabular}{lcl}
 \nterm{def-present-handlers}
@@ -4571,18 +4591,18 @@ Where a handler is of the form:
    & ::=        & \nterm{signal-pattern} \term{->} \nterm{definition}
 \end{tabular}
 \end{center}
-At every instant, signal patterns are tested sequentially and the one which succeed
-defines the corresponding action to execute. Finally, the optional handler:
+At every instant, signal patterns are tested sequentially and the one which 
+first succeeds determines the action to execute. The optional handler:
 \begin{center} 
   \term{else} \nterm{definition}
 \end{center}
-defines a condition which always succeed.
+defines a condition which always succeed and thus gives a default action.
 
 % }-}2
 \section{Type definition\label{langtypedefs}} %{-{2
 
 Abstract types can be defined. Their syntax is inherited from \ocaml\
-and is reminded here. 
+and recalled here.
 \begin{center}
 \begin{tabular}{lcl}
 \nterm{type-definition} 
@@ -4630,23 +4650,27 @@ and is reminded here.
   & $\;\;\alt$ & \term{open} \nterm{module-name} 
 \end{tabular}
 \end{center}
-A module implementation consists in a sequence of implementation
-phrases. An implementation phrase either opens a module, is a type
-definition or is a sequence of definitions.
+A module implementation comprises a sequence of implementation
+phrases. An implementation phrase either opens a module, declares a type, or 
+defines a sequence of values.
 \begin{itemize}
-\item The instruction \term{open} modifies the list of opened modules
-  by adding the module name to the list of opened modules, in first
-  position.
-\item The type definition defines the type for the implementation
-  phrases following the definition.
-\item The value definition defines some global values.
+\item
+The instruction \term{open} modifies the list of opened modules by adding 
+the module name to the head of the list of opened modules.
+
+\item
+The type definition defines a type from the implementation
+phrases following the definition.
+
+\item
+The value definition defines global values.
 \end{itemize}
 
 % }-}2
 \section{Scalar Interfaces and Importing values\label{importing}} %{-{2
 
-Scalar interfaces written in \ocaml\ can be imported by \zelus. In the
-current implementation, a restricted subset of \ocaml\ interfaces is
+Scalar interfaces written in \ocaml\ can be imported into \zelus.
+In the current implementation, a restricted subset of \ocaml\ interfaces is
 considered. The syntax is the following:
 \begin{center}
 \begin{tabular}{lcl}
@@ -4661,13 +4685,16 @@ considered. The syntax is the following:
   & ::=        & \term{val} \nterm{ident} \term{:} \nterm{type}
 \end{tabular}
 \end{center}
-When a value is imported from the host language \ocaml\ the
-value is automatically lifted to the stream level in the following way.
+When a value is imported from \ocaml, it
+is automatically lifted to the stream level:
 \begin{itemize}
-\item A scalar value with a basic or declared type becomes a infinite
-  stream of that type.
-\item A scalar functional value becomes a stream functional value
-  applied point-wisely to its argument.
+\item
+A scalar value with a basic or declared type becomes an infinite stream of 
+that type.
+
+\item
+A scalar functional value becomes a stream functional value
+applied pointwise to its argument.
 \end{itemize}
 
 % }-}2
