@@ -23,7 +23,7 @@
 %% 
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesPackage{checklistings}
-   [2014/02/14 v1.0 compile code samples and insert the results]
+   [2015/09/01 v1.0 compile code samples and insert the results]
 \RequirePackage{keyval}
 \RequirePackage{kvoptions}
 \RequirePackage{fancyvrb}
@@ -41,15 +41,18 @@
 \fi
 \newif\ifCHKL@fileexists
 \def\CHKL@pkg@verbopts{}
+\def\CHKL@pkg@globalskip{0}
 
 \DeclareBoolOption{withresult}
 \DeclareComplementaryOption{withoutresult}{withresult}
 \DeclareBoolOption[true]{showerrors}
 \DeclareComplementaryOption{ignoreerrors}{showerrors}
 \DeclareVoidOption{skipone}
-    {\edef\CHKL@pkg@verbopts{\CHKL@pkg@verbopts,firstline=2}}
+    {\edef\CHKL@pkg@globalskip{1}%
+     \edef\CHKL@pkg@verbopts{\CHKL@pkg@verbopts,firstline=2}}
 \DeclareVoidOption{skiptwo}
-    {\edef\CHKL@pkg@verbopts{\CHKL@pkg@verbopts,firstline=3}}
+    {\edef\CHKL@pkg@globalskip{2}%
+     \edef\CHKL@pkg@verbopts{\CHKL@pkg@verbopts,firstline=3}}
 \DeclareDefaultOption
     {\edef\CHKL@pkg@verbopts{\CHKL@pkg@verbopts,\CurrentOption}}
 \DeclareStringOption[]{codestyle}
@@ -102,6 +105,7 @@
 \DeclareRobustCommand{\chklistingfile}{\CHKL@prefix\CHKL@ext}
 \newif\ifCHKL@shouldfail
 \newif\ifCHKL@showcode
+\def\CHKL@skip{0}
 \edef\CHKL@precontinue{}
 \define@key{CHKL@envkeys}{continue}[]{\edef\CHKL@continue{\CHKL@precontinue}}
 \define@key{CHKL@envkeys}{include}{%
@@ -109,9 +113,12 @@
     {#1}{\csname CHKL@deps@#1\endcsname}}}
 \define@key{CHKL@envkeys}{fail}[]{\CHKL@shouldfailtrue}
 \define@key{CHKL@envkeys}{label}{\edef\CHKL@label{#1}}
-\define@key{CHKL@envkeys}{skipnone}[]{\edef\CHKL@verbopts{\CHKL@verbopts,firstline=1}}
-\define@key{CHKL@envkeys}{skipone}[]{\edef\CHKL@verbopts{\CHKL@verbopts,firstline=2}}
-\define@key{CHKL@envkeys}{skiptwo}[]{\edef\CHKL@verbopts{\CHKL@verbopts,firstline=3}}
+\define@key{CHKL@envkeys}{skipnone}[]{%
+  \edef\CHKL@skip{0}\edef\CHKL@verbopts{\CHKL@verbopts,firstline=1}}
+\define@key{CHKL@envkeys}{skipone}[]{%
+  \edef\CHKL@skip{1}\edef\CHKL@verbopts{\CHKL@verbopts,firstline=2}}
+\define@key{CHKL@envkeys}{skiptwo}[]{%
+  \edef\CHKL@skip{2}\edef\CHKL@verbopts{\CHKL@verbopts,firstline=3}}
 \define@key{CHKL@envkeys}{hide}[]{\CHKL@showcodefalse}
 \define@key{CHKL@envkeys}{withresult}[]{\CHKL@withresulttrue}
 \define@key{CHKL@envkeys}{withoutresult}[]{\CHKL@withresultfalse}
@@ -149,10 +156,13 @@
     \CHKL@showcodetrue%
     \let\CHKL@label\@undefined%
     \edef\CHKL@continue{}%
+    \def\CHKL@skip{\CHKL@pkg@globalskip}%
     \let\CHKL@verbopts\CHKL@pkg@verbopts%
     \def\@currentlabel{\thechklisting}%
     \setkeys{CHKL@envkeys}{#1}%
-    \CHKL@logsample{\arabic{chklisting}}{\CHKL@continue\ifCHKL@shouldfail\space[fail]\fi}%
+    \CHKL@logsample{\arabic{chklisting}}{\CHKL@continue%
+      \space\ifnum\CHKL@skip>0[skip=\CHKL@skip]\fi%
+      \ifCHKL@shouldfail\space[fail]\fi}%
     \global\edef\CHKL@precontinue{\CHKL@continue\space\arabic{chklisting}}%
     \@ifundefined{CHKL@label}{}{%
     \global\expandafter\edef\csname CHKL@deps@\CHKL@label\endcsname{\CHKL@precontinue}}%
@@ -206,7 +216,8 @@
         \else%
             \ifchklisting%
                 \ifCHKL@withresult%
-                   {\setlength{\partopsep}{0em}\chklistingmsg{}}%
+                   {%\vspace{\dimexpr-2\topsep-2\partopsep+.5em\relax}%
+                    \setlength{\partopsep}{0em}\chklistingmsg{}}%
                 \fi%
             \else%
                 \PackageWarning{checklistings}%
