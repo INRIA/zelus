@@ -49,6 +49,12 @@
 \newenvironment{anumerate}
   {\begin{divstyle}{anumerate}\begin{enumerate}}
   {\end{enumerate}\end{divstyle}}
+\newenvironment{cdescription}
+  {\begin{divstyle}{cdescription}\begin{description}}
+  {\end{description}\end{divstyle}}
+\newenvironment{ddescription}
+  {\begin{divstyle}{ddescription}\begin{description}}
+  {\end{description}\end{divstyle}}
 \else
 \usepackage[inline]{enumitem}
 \newenvironment{flatitemize}
@@ -57,6 +63,12 @@
 \newenvironment{anumerate}
   {\begin{enumerate}[label=(\emph{\alph*})]}
   {\end{enumerate}}
+\newenvironment{cdescription}
+  {\begin{description}[leftmargin=3.5em,style=multiline]}
+  {\end{description}}
+\newenvironment{ddescription}
+  {\begin{description}[leftmargin=6.0em,style=multiline]}
+  {\end{description}}
 \fi
 
 \usepackage{tikz}
@@ -529,7 +541,7 @@ reminiscent of \lustre{} and \lucy.
 We shall sometimes compare \zelus{} with those two languages.
 The next chapter focuses on newer, hybrid aspects, like ODEs,
 zero-crossings, and their interaction with the synchronous features.
-The simulation engine is described in \cref{simulation-loop}.
+The simulation engine is described in \cref{compilsimul}.
 
 Familiarity with general programming languages is assumed.
 Some familiarity with (strict or lazy) ML
@@ -3382,7 +3394,7 @@ papers~\cite{lucy:hscc13}.
 
 %}-}2
 %}-}1
-\chapter{The Simulation Loop\label{simulation-loop}} %{-{1
+\chapter{Compilation and Simulation\label{compilsimul}} %{-{1
 %{-{2
 
 This chapter explains the basic principles behind the compilation and 
@@ -3487,27 +3499,37 @@ returns an initial state (of type \nterm{ident}).
 algorithm\label{fig:simalgo}}
 \end{figure}
 
-We now examine the compilation and simulation of a hybrid node,
-that is, a node which must be activated continuously with
-possible ODEs to be approximated by a numerical solver.
+Hybrid nodes are also compiled into several functions.
+Their execution requires run-time support to coordinate phases of
+integration by a numeric solver with the execution of discrete reactions.
+Before outlining the form of compilation, we describe the principles behind 
+the \emph{simulation loop} provided by the run-time.
 
-The simulation loop of a hybrid system can be defined formally as a
-synchronous function that defines four streams $\lx(n)$,
-$y(n)$, $z(n)$ and $t(n)$, with $n \in \bN$.  $t(n)$ is the increasing
-sequence of instants where the solver stops.\footnote{In \simulink,
-  these are called the \emph{major time steps}} $\lx(n)$ is the value
-at time $t(n) \in \bR$ of the \emph{continuous state variables}, that
-is, variables defined by their derivatives in the original
-model. $y(n)$ is the value at time $t(n)$ of the \emph{discrete
-  state}.  $z(n)$ signals any \emph{zero-crossing} occurring at
-instant $t(n)$. Zero-crossings are signals for which the solver is
-asked to detect when they cross zero.
+The simulation loop of a hybrid system can be formalized as a synchronous 
+function that defines four streams $\lx(n)$, $y(n)$, $z(n)$ and $t(n)$, with 
+$n \in \bN$.
+Here, $t(n)$ is the increasing sequence of simulation times at which the 
+solver stops;\footnote{They are called \emph{major time steps} in 
+\simulink.} $\lx(n)$ is the value at time $t(n) \in \bR$ of the 
+\emph{continuous state variables}, that is, the variables defined by their 
+derivatives in the original model; $y(n)$ is the value at time $t(n)$ of the 
+model's \emph{discrete state}; and $z(n)$ signals any \emph{zero-crossings} 
+occurring at instant $t(n)$.
 
-This synchronous function has two modes: the discrete mode ($D$) gathers
-all computations that may change the discrete state or
-do side effects. The continuous mode ($C$) is where ODEs are solved. It 
-follows the cyclic execution scheme summarized in~\cref{fig:simalgo}.
-
+The simulation loop function has two modes: discrete ($D$) and continuous 
+($C$).
+The two modes and the transitions between them are sketched 
+in~\cref{fig:simalgo}.
+The function begins in~$D$, where all computations that may change the 
+discrete state or that have side effects are executed.
+Several discrete steps may be executed without advancing the simulation 
+time~$t$ in what is termed an \emph{event cascade}.
+Simulation time is advanced in~$C$ where a numeric solver is invoked to 
+approximate the values of ODEs within the model.
+The function loops back to the~$D$ mode whenever a zero-crossing occurs 
+(\cref{zerocrossings}) or a timer horizon (\cref{periodictimers}) is 
+reached.
+We now formalize the details of the two modes.
 
 %\paragraph{Initialization}
 %The initial discrete state $y(0)$ is a value in some
@@ -3527,103 +3549,113 @@ follows the cyclic execution scheme summarized in~\cref{fig:simalgo}.
   %\[ init: S_d \times S_c \times S_s\]
 
 \paragraph{The Continuous Mode ($C$)}
-In the continuous mode $C$, the solver computes
-  an approximation of the solution of the ODEs. The actual solver is
-  abstracted as a function $\Solve{f}{g}$ parameterized by $f$ and
-  $g$. $x'(\tau) = f(y(n), \tau, x(\tau))$ is the derivative of continuous
-  state variables $x$ at instant $\tau \in \bR$.
+
+In the continuous mode $C$, a numeric solver computes an approximation of 
+the solution of the set of (active) ODEs within a model.
+We represent the solver abstractly as a function $\Solve{f}{g}$ 
+parameterized by two other functions $f$ and $g$:
+\begin{itemize}
+\item
+$x'(\tau) = f(y(n), \tau, x(\tau))$ yields the derivatives of continuous 
+state variables $x$ at $\tau \in \bR$,
+given
+the discrete states~$y(n)$ and an approximation to the continuous 
+states~$x(\tau)$;
 %  \[
 %     f : S_d \rightarrow \bR \rightarrow S_c \rightarrow S_c
 %  \]
-  The solver also takes a function $g$ to compute the current value of
-  zero-crossings: \mbox{$upz(\tau) = g(y(n), \tau, x(\tau))$} defines the
-  current value of a set of signals $upz$.
+\item
+\mbox{$\mathit{upz}(\tau) = g(y(n), \tau, x(\tau))$} computes the value of 
+the zero-crossing expressions~$\mathit{upz}$ given the same arguments 
+as~$f$.
+\end{itemize}
 %  \[
 %     g : S_d \rightarrow \bR \rightarrow S_c \rightarrow Z
 %  \]
-  Given $f$ and $g$, the continuous mode $C$ computes
-  $s$, $\lx$, $z$ and $t$ such that:
-  \[
-    (\lx, z, t, s)(n+1) = \Solve{f}{g}(s, y, \lx, t, step)(n)
-  \]
-  where
-  \begin{description}[leftmargin=3.5em,style=multiline]
-    \item[$s(n)$]
-      is the internal state of the solver at instant $t(n) \in \bR$. Calling
-      $\Solve{f}{g}$ updates the state to $s(n+1)$.
-    \item[$\lx(n)$]
-      is the value of $x$ at instant $t(n)$,
-      that is, $\lx(n) = x(t(n))$. $\lx$ is a discrete-time signal while
-      $x$ is a continuous-time signal.
-    \item[$t(n+1)$] is bounded by the horizon $t(n) + step(n)$ the solver has been
-      asked to reach, that is:
-      \[t(n) \leq t(n+1) \leq t(n) + step(n)\]
-    \item[$x$]
-      is a solution of an ODE,
-      parameterized by the current discrete state~$y(n)$, that is:
-      \[\forall T \in [t(n), t(n+1) + margin]\;\;
-            x(T) = \lx(n) + \int_{t(n)}^{T} f (y(n), \tau, x(\tau)))
-            \,d\tau
-      \] 
-      Integration is performed on an interval strictly
-            larger than \mbox{$[t(n),t(n+1)]$} to account for
-            possible zero-crossing at instant $t(n+1)$. $margin$ is
-            considered as a constant parameter of the
-            solver. %\footnote{It would also be possible to make it a
-              %time varying input passed to the solver. This choice
-              %has no consequences on the code generation problem.}
-            In practice, $\Solve{f}{g}$ computes a finite sample
-            of approximated values on the interval $[t(n), \mbox{t(n+1)} + margin]$.
-            The value of $\lx(n+1)$ is: \[ \lx(n+1) = x(t(n+1)) \]
+For a given~$f$ and~$g$, the continuous mode $C$ computes
+$s$, $\lx$, $z$, and $t$ such that:
+\[
+(\lx, z, t, s)(n+1) = \Solve{f}{g}(s, y, \lx, t, step)(n)
+\]
+where
+\begin{cdescription}
+\item[$s(n)$]
+is the internal state of the solver at instant $t(n) \in \bR$.
+Calling $\Solve{f}{g}$ updates the state to $s(n+1)$.
 
-    \item[$z(n+1)$] signals any zero-crossings detected at time $t(n+1)$.
-      It comprises $k \in \bN$ boolean elements $z(n+1)(i)$ such that:
-      \[
-      z(n+1)(i) = %(upz(t(n))(i) < 0) \wedge
-        \begin{array}{l}
-           (\forall T \in \left[t(n), t(n+1)\right) \; upz(T)(i) < 0) \\
-           % Definition without positive -> negative stop
-           %\begin{array}{l}
-           %(\exists t_n \in \left[t(n), t(n+1)\right).\; \\
-           %\hspace{1em}\phantom{\land\;}
-              %(\forall T \in \left[t(n), t_n\right] \; upz(T)(i) \geq 0)
-           %\\ \hspace{1em} \land\;
-              %(\forall T \in \left(t_n, t(n+1)\right) \; upz(T)(i) < 0))
-           %\end{array} \\
-           \wedge \\
-           \exists m \leq \mathit{margin}.
-              (\forall T \in [t(n+1), t(n+1)+m] \; upz(T)(i) \geq 0)
-        \end{array}
-      \]
+\item[$\lx(n)$]
+is the value of $x$ at instant $t(n)$, that is, $\lx(n) = x(t(n))$; $\lx$ is 
+a discrete-time signal while $x$ is a continuous-time signal.
+
+\item[$t(n+1)$]
+is bounded by the horizon given to the solver $t(n) + step(n)$, that is,
+\[t(n) \leq t(n+1) \leq t(n) + step(n)\]
+
+\item[$x$]
+is a solution of an ODE, parameterized by the current discrete state~$y(n)$, 
+that is:
+  \[\forall T \in [t(n), t(n+1) + margin]\;\;
+        x(T) = \lx(n) + \int_{t(n)}^{T} f (y(n), \tau, x(\tau)))
+        \,d\tau
+  \]
+Integration is performed on an interval strictly larger than 
+\mbox{$[t(n),t(n+1)]$} to account for possible zero-crossings at instant 
+$t(n+1)$.
+The constant $margin$ is considered as a parameter of the solver.
+%\footnote{It would also be possible to make it a
+%time varying input passed to the solver. This choice
+%has no consequences on the code generation problem.}
+In practice, $\Solve{f}{g}$ computes a finite sample of approximated values 
+on the interval $[t(n), \mbox{t(n+1)} + margin]$.
+The value of $\lx(n+1)$ is \[ \lx(n+1) = x(t(n+1)) \]
+
+\item[$z(n+1)$]
+signals any zero-crossings detected at time $t(n+1)$.
+It comprises $k \in \bN$ boolean elements $z(n+1)(i)$ such that:
+  \[
+  z(n+1)(i) = %(upz(t(n))(i) < 0) \wedge
+    \begin{array}{l}
+       (\forall T \in \left[t(n), t(n+1)\right) \; upz(T)(i) < 0) \\
+       % Definition without positive -> negative stop
+       %\begin{array}{l}
+       %(\exists t_n \in \left[t(n), t(n+1)\right).\; \\
+       %\hspace{1em}\phantom{\land\;}
+          %(\forall T \in \left[t(n), t_n\right] \; upz(T)(i) \geq 0)
+       %\\ \hspace{1em} \land\;
+          %(\forall T \in \left(t_n, t(n+1)\right) \; upz(T)(i) < 0))
+       %\end{array} \\
+       \wedge \\
+       \exists m \leq \mathit{margin}.
+          (\forall T \in [t(n+1), t(n+1)+m] \; upz(T)(i) \geq 0)
+    \end{array}
+  \]
 This definition assumes that the solver also stops whenever a zero-crossing 
 expression passes through zero from positive to negative.
 An event occurs with a transition to the discrete phase ($D$) when a zero-crossing
 occurs or the horizon $t(n)+step(n)$ is reached:
-  \[\mathit{event} = z(n+1)(0) \vee \dots \vee z(n+1)(k) \vee
-                             t(n+1) = t(n) + step(n)
-  \]
-\end{description}
+\[\mathit{event} = z(n+1)(0) \lor \dots \lor z(n+1)(k) \lor
+                         t(n+1) = t(n) + step(n)
+\]
+\end{cdescription}
 %Finally, the solver state is local to mode $C$, that is,
 %$s(n+1) = s(n)$ when $C$ is not active.
-If the solver raises an error (for example, division by zero or unable to 
-find a
-solution), we consider that the simulation fails.
+If the solver raises an error (for example, a division by zero occurs, or a 
+suitable approximation cannot be found), we consider that the simulation 
+fails.
 
 \paragraph{The Discrete Mode ($D$)}
 All discrete changes occur in this mode.
-It is entered when an
-event is raised during integration. During a discrete phase,
-the function $\mathit{next}$ defines $y$, $\lx$, $\step$, $\encore$, $z$, and $t$:
-\[
-\begin{array}{c}
+It is entered when an event occurs during integration.
+During a discrete phase, the function $\mathit{next}$ defines $y$, $\lx$, 
+$\step$, $\encore$, $z$, and $t$:
+\begin{align*}
 (y, \lx, step, encore%, reinit
-)(n+1) = next (y, \lx, z, t)(n) \\[1.5ex]
-z(n+1) = false \\[1.5ex]
-t(n+1) = t(n)
-\end{array}
-\]
+)(n+1) & = next (y, \lx, z, t)(n) \\
+z(n+1) & = false \\
+t(n+1) & = t(n) \\
+\end{align*}
 where:
-\begin{description}[leftmargin=6em,style=multiline]
+\begin{ddescription}
 
 %\item[$\mathit{next}$] denotes the function to be executed in discrete 
 %phases.
@@ -3641,68 +3673,78 @@ in the discrete mode; %; otherwise $\lx(n+1) = \lx(n)$;
 \item[$\step(n+1)$] is the new step size;
 
 \item[$\encore(n+1)$] is true if an additional discrete step must be
-  performed. Function $\mathit{next}$ can decide to trigger instantaneously
-  another discrete event causing an \emph{event cascade}.
+  performed. Function $\mathit{next}$ can decide to trigger another discrete 
+  event instantaneously causing an event cascade.
 
 \item[$t(n)$] (the simulation time) is unchanged during a discrete phase.
-\end{description}
+\end{ddescription}
 %
 The initial values for $y(0)$, $\lx(0)$ and $s(0)$ are given by an
 initialization function \textit{init}. Finally, $\Solve{f}{g}$ may
 decide to reset its internal state when the continuous state
-changes. If $init\_solve(\lx(n), s(n))$ initializes the solver state,
+changes. If $init\_solve(\lx(n), s(n))$ initializes the solver state, then
 we have:
-\[
-\begin{array}{c}
-reinit = (\lx(n+1) \not= \lx(n)) \\[1.5ex]
-s(n+1) = \Ifthenelse{reinit}{init\_solve(\lx(n+1), s(n))}{s(n)}
-\end{array}
-\]
-
+\begin{align*}
+reinit &= (\lx(n+1) \not= \lx(n)) \\
+s(n+1) &= \Ifthenelse{reinit}{init\_solve(\lx(n+1), s(n))}{s(n)} \\
+\end{align*}
 
 These definitions give a synchronous interpretation of the simulation loop,
-seen as a stream function that computes the sequences $\lx$, $y$ and $t$
-at instant $n+1$ according to their value at instant $n$ and an
+seen as a stream function that iteratively computes the sequences $\lx$, $y$ 
+and $t$ at instant $n+1$ relative to their values at instant $n$ and an
 internal state. By writing $\Solve{f}{g}$, we abstract the
-actual choice of the integration method and zero-crossing detection
+actual choices of the integration method and zero-crossing detection
 algorithms. A more detailed description of $\Solve{f}{g}$ would be
 possible (for example, as an automaton with two states: one that integrates, 
-one that detects zero-crossings) but with no influence on
-the code generation problem which must be independent of such simulation
-details. 
+one that detects zero-crossings) but these details have no influence on
+the code generation problem which is independent of such simulation
+details.
 
-
-Given a hybrid node defined by:
+Hybrid functions are defined by the form:
 \begin{center}
   [ \term{let} ] [ \term{hybrid} ] \nterm{ident} \nterm{pattern} \term{=}
   \nterm{result-expr}
 \end{center}
-the compiler produces four functions:
 
-\begin{itemize}
+\medskip\noindent
+They are compiled into six functions:
+\begin{flatitemize}
 \item
-  A data type \nterm{ident} used to represent the current
-  value of the internal state of the function. It contains both the
-  value of unit delays, continuous state variables (that is, variables
-  defined by their derivatives) and zero-crossing variables.
+A record type \nterm{ident} is introduced to represent the current value of 
+the function's internal state.
+In addition to fields for each unit delay, \zls{->} operator, and node 
+instantiation within the function body, it also contains fields for 
+continuous state variables (those defined with \zls{der}) and zero-crossing 
+expressions (those registered with \zls{up()}).
+
 \item
-  A step function \nterm{ident\_step} such that
-    \nterm{ident\_step self pattern} returns the current output of the function
-    \nterm{ident}, with the current state \nterm{self} (of type
-    \nterm{ident}) and input \nterm{pattern}. The call to this step
-    function returns the current output and may modify in-place
-    the state \nterm{self}.
-  \item
-    A function \nterm{ident\_derivatives} such that
-    \nterm{ident\_derivatives self pattern} computes the
-    current value of derivatives from the current state and stores it
-    into the internal state \nterm{self}.
-  \item
-    A function \nterm{ident\_crossings} such that
-    \nterm{ident\_crossings self pattern} computes the
-    current value of zero-crossing variables and stores it into the
-    internal state \nterm{self}. 
-\end{itemize}
+A step function \nterm{ident\_step} is introduced.
+Calling \nterm{ident\_step self pattern}, where \nterm{self} is the current 
+state of the node (of type \nterm{ident}) and \nterm{pattern} passes the 
+current value of the input, returns the current output of the node and 
+directly updates the state record \nterm{self}.
+
+\item
+The abstract function~$f$, in the above formalization, is realized by the 
+function \nterm{ident\_derivatives self pattern} that computes the current 
+values of derivatives from the current state and stores them in the internal 
+state \nterm{self}.
+
+\item
+The abstract function~$g$, in the above formalization, is realized by the 
+function \nterm{ident\_crossings self pattern} that computes the current 
+values of zero-crossing expressions and stores them in the internal state 
+\nterm{self}.
+
+\item
+A reset function \nterm{ident\_reset} is also introduced.
+Calling \nterm{ident\_reset self} resets the state \nterm{self} to its 
+initial value.
+
+\item
+Finally, there is also an allocation function \nterm{ident\_alloc ()} which 
+returns an initial state (of type \nterm{ident}).
+\end{flatitemize}
 
 % }-}2
 % }-}1

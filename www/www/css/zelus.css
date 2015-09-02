@@ -417,6 +417,41 @@ div.anumerate > ol > li:before {
     content:"(" counter(anumerate, lower-alpha)") "
 }
 
+div.cdescription > dl {
+    margin-bottom: 0em;
+    padding-bottom: 0em;
+}
+
+div.cdescription > dl > dt {
+    font-weight: normal;
+    float: left;
+    clear: left;
+    width: 3.5em;
+}
+
+div.cdescription > dl > dd {
+    margin-left: 3.5em;
+    padding-bottom: 0.5em;
+}
+
+div.ddescription > dl {
+    margin-bottom: 0em;
+    padding-bottom: 0em;
+}
+
+div.ddescription > dl > dt {
+    font-weight: normal;
+    float: left;
+    clear: left;
+    width: 6.0em;
+}
+
+div.ddescription > dl > dd {
+    margin-left: 6.0em;
+    padding-bottom: 0.5em;
+}
+
+
 /* CUSTOMIZE THE SIDE BAR
 -------------------------------------------------- */
 
