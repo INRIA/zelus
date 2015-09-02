@@ -3874,7 +3874,7 @@ a module name.
 
 % }-}3
 % }-}2
-\section{Types and Function Types\label{typesftypes}} %{-{2
+\section{Types\label{typesftypes}} %{-{2
 
 \begin{center}
 \begin{tabular}{lcl}
@@ -4667,7 +4667,7 @@ The value definition defines global values.
 \end{itemize}
 
 % }-}2
-\section{Scalar Interfaces and Importing values\label{importing}} %{-{2
+\section{Importing values\label{importing}} %{-{2
 
 Scalar interfaces written in \ocaml\ can be imported into \zelus.
 In the current implementation, a restricted subset of \ocaml\ interfaces is
@@ -4699,10 +4699,11 @@ applied pointwise to its argument.
 
 % }-}2
 % }-}1
-\chapter{{\tt zeluc} - The Compiler\label{zeluc}} % {-{1
-This part describes how to transform \zelus{} programs into \ocaml{}
-programs. This is achieved by the command {\tt zeluc} which can be passed
-a sequence of options and files to compile.
+\chapter{\texttt{zeluc}\label{zeluc}} % {-{1
+
+The \zelus{} compiler is called \texttt{zeluc}.
+Given a list of options and a filename, it transforms \zelus{} source code 
+into \ocaml{} source code.
 
 \begin{verbatim}
   zeluc [option] filename
@@ -4733,33 +4734,34 @@ where options are:
   --help         Display this list of options
 \end{verbatim}
 
-\verb-zeluc- accepts three kinds of arguments:
+Three kinds of arguments are accepted:
+\begin{enumerate}
+\item
+Arguments ending in \verb-.zls- are interpreted as \zelus{} source
+files. These files must contain sequences of node declarations.
+The \texttt{zeluc} compiler turns \verb-.zls- files into a
+compiled interface \verb-f.zci- and an \ocaml{} file \verb-f.ml-.
+The \verb-.ml- file defines the corresponding transition functions for the 
+values defined in the input file.
 
-\begin{itemize}
 \item
-Arguments ending in \verb-.zls- are considered to be \zelus{} source
-files. A file \verb-f.zls- is a sequence of node declarations. From a
-file \verb-.zls-, the \verb-zeluc- compiler produces a compiled
-interface \verb-f.zci- and an \ocaml{} file \verb-f.ml- containing the
-implementation. The \verb-.ml- file defines the corresponding
-transition functions for the values defined in the input file.
-\item
-Argument ending in \verb-.zli- are considered to be \zelus{}
-interfaces, defining the type signatures for every value defined in the
-implementation. From a file \verb-f.zli-, 
-the compiler produces a compiled interface
-\verb-f.lci-.
-\item
-Arguments ending in \verb-.mli- are considered to be \ocaml{}
-interface files. From a file \verb-f.mli-, the 
-\verb-zeluc- compiler produces a compiled interface \verb-f.zci-.
-Every value defined in \verb-f.mli- is considered to be a scalar value.
-\end{itemize}
+Arguments ending in \verb-.zli- are interpreted as \zelus{}
+interface files.
+These files define type signatures for values implemented elsewhere.
+The \texttt{zeluc} compiler turns \verb-.zli- files into a
+compiled interface \verb-f.zci-.
 
+\item
+Arguments ending in \verb-.mli- are interpreted as \ocaml{}
+interface files.
+The \texttt{zeluc} compiler turns \verb-.mli- files into a
+compiled interface \verb-f.zci-.
+The values defined in \verb-f.mli- are considered to be a scalars.
+\end{enumerate}
 
 \subsection*{SEE ALSO}
 
-distribution and manual at \url{http://zelus.di.ens.fr}
+The distribution and manual are available at \url{http://zelus.di.ens.fr}.
 
 \subsection*{FILES}
 
