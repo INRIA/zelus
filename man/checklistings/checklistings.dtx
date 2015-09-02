@@ -1014,7 +1014,7 @@ let w = u + "four"
         \else%
             \ifchklisting%
                 \ifCHKL@withresult%
-                   {\vspace{\dimexpr-2\topsep-2\partopsep+.5em\relax}%
+                   {%\vspace{\dimexpr-2\topsep-2\partopsep+.5em\relax}%
                     \setlength{\partopsep}{0em}\chklistingmsg{}}%
                 \fi%
             \else%
