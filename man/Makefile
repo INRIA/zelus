@@ -85,6 +85,7 @@ wwwman: $(WWWMAN)/index.html css js \
 	cp manual.pdf $@/
 	rm -f $@/contents_motif.gif $@/next_motif.gif $@/previous_motif.gif
 	rm -f $@/manual.haux $@/manual.htoc $@/manual.image.tex
+	chmod o+r $@/*
 
 css:
 	ln -s ../www/www/$@
