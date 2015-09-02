@@ -148,14 +148,14 @@ when the balls vertical velocity becomes very small.</p>
 <span class="keyword ">let</span> <span class="">ground_abs</span> <span class="">x</span> = <span class="constructor">World</span>.<span class="">ground_abs</span>(<span class="">x</span>)
 
 <span class="keyword ">let</span> <span class="">x_0</span> = <span class="number">0.0</span>
-<span class="keyword ">let</span> <span class="">y_0</span> = <span class="number">8.0</span>
-<span class="keyword ">let</span> <span class="">x_v</span> = <span class="number">0.32</span>
+<span class="keyword ">let</span> <span class="">y_0</span> = <span class="number">10.0</span>
+<span class="keyword ">let</span> <span class="">x_v</span> = <span class="number">0.41</span>
 <span class="keyword ">let</span> <span class="">eps</span> = <span class="number">0.01</span>
 
 <span class="comment">(* The bouncing ball with two modes. *)</span>
 <span class="keyword ">hybrid</span> <span class="">ball</span>(<span class="">x_0</span>, <span class="">y_0</span>) = (<span class="">x</span>, <span class="">y</span>, <span class="">y_start</span>) <span class="keyword ">where</span>
   <span class="keyword ">rec</span> <span class="keyword ">init</span> <span class="">y_start</span> = <span class="">y_0</span> 
-  <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">x</span> = <span class="">x_v</span> <span class="keyword ">init</span> <span class="">x_0</span>
+  <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">x</span> = <span class="">x'</span> <span class="keyword ">init</span> <span class="">x_0</span>
   <span class="keyword ">and</span>
   <span class="keyword ">automaton</span>
   | <span class="constructor">Bouncing</span> -&gt;
@@ -163,16 +163,17 @@ when the balls vertical velocity becomes very small.</p>
       <span class="keyword ">local</span> <span class="">z</span>, <span class="">y_v</span> <span class="keyword ">in</span>
       <span class="keyword ">do</span>
         (<span class="">y</span>, <span class="">y_v</span>, <span class="">z</span>) = <span class="constructor">Ball</span>.<span class="">ball</span>(<span class="">x</span>, <span class="">y_start</span>)
-      <span class="keyword ">until</span> <span class="">z</span> <span class="keyword expr ">on</span> (<span class="">y_v</span> &lt; <span class="">eps</span>) <span class="keyword ">then</span> <span class="constructor">Sliding</span>(<span class="">x</span>, <span class="">ground</span>(<span class="">x</span>))
+      <span class="keyword ">and</span> <span class="">x'</span> = <span class="">x_v</span> 
+      <span class="keyword ">until</span> <span class="">z</span> <span class="keyword expr ">on</span> (<span class="">y_v</span> &lt; <span class="">eps</span>) <span class="keyword ">then</span> <span class="constructor">Sliding</span>(<span class="">ground_abs</span> <span class="">x</span>, <span class="">ground</span>(<span class="">x</span>))
   | <span class="constructor">Sliding</span>(<span class="">x0</span>, <span class="">y0</span>) -&gt;
       <span class="comment">(* the ball is fixed, i.e., the derivative for y is 0 *)</span>
       <span class="keyword ">do</span> 
-        <span class="">y</span> = <span class="">y0</span> 
-      <span class="keyword ">until</span> <span class="keyword expr ">up</span>(<span class="">x</span> -. <span class="">ground_abs</span> <span class="">x0</span>)
-        <span class="comment">(* up(y -. eps -. ground(x)) *)</span>
-      <span class="keyword ">then</span> <span class="keyword ">do</span> <span class="">y_start</span> = <span class="">y</span> <span class="keyword ">in</span> <span class="constructor">Bouncing</span>
+        <span class="">y</span> = <span class="">y0</span>
+      <span class="keyword ">and</span>
+        <span class="keyword ">der</span> <span class="">x'</span> = -<span class="number">0.8</span> <span class="operator">*.</span> <span class="">x'</span>
+      <span class="keyword ">until</span> <span class="keyword expr ">up</span>(<span class="">x</span> -. <span class="">x0</span>) <span class="keyword ">then</span> <span class="keyword ">do</span> <span class="">y_start</span> = <span class="">y</span> <span class="keyword ">in</span> <span class="constructor">Bouncing</span>
   <span class="keyword ">end</span>
-  
+      
 <span class="comment">(* Main entry point *)</span>
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">main</span> () =
   <span class="keyword ">let</span> (<span class="">x</span>, <span class="">y</span>, <span class="">y_start</span>) = <span class="">ball</span>(<span class="">x_0</span>, <span class="">y_0</span>) <span class="keyword ">in</span>
