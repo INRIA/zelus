@@ -22,6 +22,8 @@ RED="[0;31m"
 BLUE="[0;34m"
 BLACK="[0;0m"
 
+ADJUSTLINETEXT=line
+
 ##
 # Command-line
 
@@ -31,6 +33,7 @@ usage () {
     printf '\n'
     printf '  options:\n'
     printf '  --no-colors       log to terminal without control codes\n'
+    printf '  --no-line-adjust	do not try to adjust error line numbers\n'
     printf '\n'
 }
 
@@ -40,11 +43,18 @@ while [ -n "$1" ]; do
   --no-colors)
     unset RED BLUE BLACK
     ;;
+  --no-line-adjust)
+    unset ADJUSTLINETEXT
+    ;;
+  --h)
+    usage
+    exit 0
+    ;;
   --help)
     usage
     exit 0
     ;;
-  --*)
+  -*)
     printf "%s: unrecognized option '%s'\n" "$SCRIPT" "$1"
     usage
     exit 1
@@ -123,6 +133,7 @@ addopen() {
 
 	    setfilename of "$WITHOPEN" "$filename"
 	    if [ -n "$openfiles" ]; then
+		addedlines=$((addedlines + 1))
 		printf '%s \n' "$openfiles" > "$SUBDIR$of$EXT"
 		cat "$SUBDIR$f$EXT" >> "$SUBDIR$of$EXT"
 	    else
@@ -135,10 +146,37 @@ addopen() {
 # A filename string for sed that ignores the case (BSD sed has no i flag)
 makeicfilename() {
     IFILENAME=""
-    for l in $(printf "$FILENAME" | sed -e 's/\(.\)/\1 /g'); do
-	L="$(printf "$l" | tr "[:lower:]" "[:upper:]")"
+    for l in $(printf "%s" "$FILENAME" | sed -e 's/\(.\)/\1 /g'); do
+	L="$(printf "%s" "$l" | tr "[:lower:]" "[:upper:]")"
 	IFILENAME="${IFILENAME}[$L$l]"
     done
+}
+
+#
+# Given
+#   $ERRFILE	     path to the file containing error messages
+#   $ADJUSTLINETEXT  the text preceding the line number (default: "line")
+#		     if empty or unset, no adjustments are made.
+#   $addedlines      the amount by which to decrement line numbers
+#
+adjustlinenumbers() {
+    if [ -n "$ADJUSTLINETEXT" ]; then
+	printf '' > "$ERRFILE-adjusted" 
+	while read line
+	do
+	    linen=$(expr "$line" : ".*$ADJUSTLINETEXT  *\([0-9][0-9]*\).*")
+	    if [ -n "$linen" ]; then
+		before=$(expr "$line" : "^\(.*$ADJUSTLINETEXT  *\)$linen.*$")
+		after=$(expr "$line" : "^.*$ADJUSTLINETEXT  *$linen\(.*\)$")
+		newlinen=$((linen - addedlines))
+		printf "%s%s%s\n" "$before" "$newlinen" "$after" \
+		    >> "$ERRFILE-adjusted" 
+	    else
+		printf "%s\n" "$line" >> "$ERRFILE-adjusted" 
+	    fi
+	done < "$ERRFILE"
+	mv "$ERRFILE-adjusted" "$ERRFILE"
+    fi
 }
 
 #
@@ -194,6 +232,7 @@ compile() {
     $COMPILER $COMPILERFLAGS $openfiles $LASTFLAGS "$ipath" \
 	>"$OUTFILE" 2>"$ERRFILE"
     COMPILERSTATUS=$?
+    adjustlinenumbers
 
     # Start the output tex file with the compilation command as a comment
     printf '%% %s\n' "$COMPILER $COMPILERFLAGS $openfiles \
@@ -316,6 +355,7 @@ readchkl() {
 
     # Process each line of the command file
     while read l; do
+	addedlines=0
 	case $l in
 	    [[:digit:]]*:*)
 		# a snippet to be compiled
@@ -344,6 +384,9 @@ readchkl() {
 			;;
 		    \[fail\])
 			SHOULDFAIL=1
+			;;
+		    \[skip=*\])
+			addedlines=$(expr "$n" : '\[skip=\([0-9][0-9]*\)\]')
 			;;
 		    *)
 			if [ "$n" -eq "$n" ] 2>/dev/null; then
