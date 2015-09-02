@@ -35,6 +35,7 @@
       <div class="nav-collapse collapse">
         <ul class="nav">
           <li id="title-download"><a href="download.html">Download</a></li>
+          <li id="title-manual"><a href="man/">Manual</a></li>
           <li id="title-examples"><a href="examples.html">Examples</a></li>
           <li id="title-papers"><a href="papers.html">Publications</a></li>
           <li id="title-contact"><a href="contact.html">Contact</a></li>
@@ -81,12 +82,9 @@ document.getElementById('title-examples').className = 'active';
 <p>A slight variation of the classic bouncing ball model: a ball bouncing down
 a set of steps. The instants of impact are detected using zero crossings,
 <code>up(ground(x) -. y)</code>, which trigger a reset of the balls vertical velocity
-to –0.8 its previous value.</p>
+to -0.8 its previous value.</p>
 
-<p>
-<img src="img/bouncingball.png" srcset="img/bouncingball@2x.png 2x">
-
-</p>
+<p><img src="img/bouncingball.png" srcset="img/bouncingball@2x.png 2x"></p>
 
 <p>In the basic version of the program, the ball ‘falls through the floor’
 due to limited floating-point precision.</p>
@@ -151,11 +149,11 @@ when the balls vertical velocity becomes very small.</p>
 
 <span class="keyword ">let</span> <span class="">x_0</span> = <span class="number">0.0</span>
 <span class="keyword ">let</span> <span class="">y_0</span> = <span class="number">8.0</span>
-<span class="keyword ">let</span> <span class="">x_v</span> = <span class="number">0.72</span>
+<span class="keyword ">let</span> <span class="">x_v</span> = <span class="number">0.32</span>
 <span class="keyword ">let</span> <span class="">eps</span> = <span class="number">0.01</span>
 
 <span class="comment">(* The bouncing ball with two modes. *)</span>
-<span class="keyword ">hybrid</span> <span class="">ball</span>(<span class="">x_0</span>, <span class="">y_0</span>) = (<span class="">x</span>, <span class="">y</span>) <span class="keyword ">where</span>
+<span class="keyword ">hybrid</span> <span class="">ball</span>(<span class="">x_0</span>, <span class="">y_0</span>) = (<span class="">x</span>, <span class="">y</span>, <span class="">y_start</span>) <span class="keyword ">where</span>
   <span class="keyword ">rec</span> <span class="keyword ">init</span> <span class="">y_start</span> = <span class="">y_0</span> 
   <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">x</span> = <span class="">x_v</span> <span class="keyword ">init</span> <span class="">x_0</span>
   <span class="keyword ">and</span>
@@ -165,19 +163,19 @@ when the balls vertical velocity becomes very small.</p>
       <span class="keyword ">local</span> <span class="">z</span>, <span class="">y_v</span> <span class="keyword ">in</span>
       <span class="keyword ">do</span>
         (<span class="">y</span>, <span class="">y_v</span>, <span class="">z</span>) = <span class="constructor">Ball</span>.<span class="">ball</span>(<span class="">x</span>, <span class="">y_start</span>)
-      <span class="keyword ">until</span> <span class="">z</span> <span class="keyword expr ">on</span> (<span class="">y_v</span> &lt; <span class="">eps</span>) <span class="keyword ">then</span> <span class="constructor">Sliding</span>(<span class="">ground</span>(<span class="">x</span>))
-  | <span class="constructor">Sliding</span>(<span class="">y0</span>) -&gt;
+      <span class="keyword ">until</span> <span class="">z</span> <span class="keyword expr ">on</span> (<span class="">y_v</span> &lt; <span class="">eps</span>) <span class="keyword ">then</span> <span class="constructor">Sliding</span>(<span class="">x</span>, <span class="">ground</span>(<span class="">x</span>))
+  | <span class="constructor">Sliding</span>(<span class="">x0</span>, <span class="">y0</span>) -&gt;
       <span class="comment">(* the ball is fixed, i.e., the derivative for y is 0 *)</span>
       <span class="keyword ">do</span> 
         <span class="">y</span> = <span class="">y0</span> 
-      <span class="keyword ">until</span> <span class="keyword expr ">up</span>(<span class="">x</span> -. <span class="">ground_abs</span> <span class="">x</span>)
+      <span class="keyword ">until</span> <span class="keyword expr ">up</span>(<span class="">x</span> -. <span class="">ground_abs</span> <span class="">x0</span>)
         <span class="comment">(* up(y -. eps -. ground(x)) *)</span>
-      <span class="keyword ">then</span> <span class="keyword ">do</span> <span class="">y_start</span> = <span class="number">0.0</span> <span class="keyword ">in</span> <span class="constructor">Bouncing</span>
+      <span class="keyword ">then</span> <span class="keyword ">do</span> <span class="">y_start</span> = <span class="">y</span> <span class="keyword ">in</span> <span class="constructor">Bouncing</span>
   <span class="keyword ">end</span>
   
 <span class="comment">(* Main entry point *)</span>
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">main</span> () =
-  <span class="keyword ">let</span> (<span class="">x</span>, <span class="">y</span>) = <span class="">ball</span>(<span class="">x_0</span>, <span class="">y_0</span>) <span class="keyword ">in</span>
+  <span class="keyword ">let</span> (<span class="">x</span>, <span class="">y</span>, <span class="">y_start</span>) = <span class="">ball</span>(<span class="">x_0</span>, <span class="">y_0</span>) <span class="keyword ">in</span>
   <span class="keyword ">present</span> (<span class="keyword expr ">period</span> (<span class="number">0.04</span>)) -&gt; <span class="constructor">Showball</span>.<span class="">show</span>(<span class="">x</span> <span class="keyword expr ">fby</span> <span class="">x</span>, <span class="">y</span> <span class="keyword expr ">fby</span> <span class="">y</span>, <span class="">x</span>, <span class="">y</span>);
   ()
 
@@ -240,16 +238,13 @@ The main differences with the original model are:</p>
 
 <ul>
 <li><p>We manually track the bias and slope for integers representing rational
- values.</p></li>
+values.</p></li>
 <li><p>We use int for the integer values rather than int8.</p></li>
 </ul>
 
 <p>The top level of this example comprises three nodes:</p>
 
-<p>
-<img src="img/bangbang-model.png" srcset="img/bangbang-model@2x.png 2x">
-
-</p>
+<p><img src="img/bangbang-model.png" srcset="img/bangbang-model@2x.png 2x"></p>
 
 <h3 id="controller">Controller</h3>
 
@@ -261,7 +256,7 @@ The main differences with the original model are:</p>
 <p>This value is a constant 20°C, but it is encoded as a fixed-point integer
 so that it can be compared directly with the digital temperature value
 from the environment model. The reference temperature has a value
-between 0 (–15°C) and 255 (84.609375°C), i.e., a resolution of
+between 0 (-15°C) and 255 (84.609375°C), i.e., a resolution of
 0.390625 per bit (0.390625 = 5 / 256 / 0.05).</p></li>
 <li><p><em>feedback temperature</em></p>
 
@@ -314,7 +309,7 @@ attained.</p>
 thermometer.</p>
 
 <p>The boiler temperature is modeled by a single integrator with an initial
-value of 15°C. This value (cools) at a rate of –0.1 / 25 when the
+value of 15°C. This value (cools) at a rate of -0.1 / 25 when the
 boiler is off. It changes (heats) at a rate of 1.0 / 25 when the boiler is
 on.</p>
 
@@ -339,10 +334,7 @@ at discrete instants (as plotting is a side-effect) and the graph is thus
 
 <h3 id="simulation">Simulation</h3>
 
-<p>
-<img src="img/bangbang-graph.png" srcset="img/bangbang-graph@2x.png 2x">
-
-</p>
+<p><img src="img/bangbang-graph.png" srcset="img/bangbang-graph@2x.png 2x"></p>
 
 <p>The simulation output shows a staircased increase in temperature from 15°C
 at <code>t = 0</code> to the 20°C just before <code>t = 500</code>. The initial rising edges have a
@@ -496,10 +488,7 @@ programs.</p>
 
 <p>Author: Cyprien Lecourt</p>
 
-<p>
-<img src="img/ball_spring.png" srcset="img/ball_spring@2x.png 2x">
-
-</p>
+<p><img src="img/ball_spring.png" srcset="img/ball_spring@2x.png 2x"></p>
 
 <p>A ball bouncing on a spring with damping. This example is programmed as a
 two-state automaton. In the first state the ball and spring move separately:
@@ -508,10 +497,7 @@ spring oscillating with less and less energy. The second state is entered
 when the ball lands on the platform, in it the ball and platform move
 together until the ball becomes unstuck.</p>
 
-<p>
-<img src="img/ball_spring_plot.png" srcset="img/ball_spring_plot@2x.png 2x">
-
-</p>
+<p><img src="img/ball_spring_plot.png" srcset="img/ball_spring_plot@2x.png 2x"></p>
 
 <p>The calls to OCaml graphics for animating the system are written directly in
 a discrete node. Additional calls are added to log the system state to a
@@ -649,7 +635,7 @@ Lablgtk2
 </p>
 </div>
 
-<p>This example comes from Chapter 10 of Åström and Wittenmark’s
+<p>This example comes from Chapter 10 of Åström and Wittenmark's
 <a href="http://store.doverpublications.com/0486462781.html"><em>Adaptive Control</em></a>
 (2nd edition).</p>
 
@@ -699,8 +685,8 @@ The shared elements are incorporated into a single file:</p>
 
 <span class="comment">(* ideal relay model *)</span>
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">relay</span> (<span class="">d</span>, <span class="">e</span>) = <span class="">u</span> <span class="keyword ">where</span>
-  <span class="">u</span> = <span class="keyword ">present</span> (<span class="keyword expr ">up</span>(<span class="">e</span>)) | (<span class="keyword ">disc</span>(<span class="">e</span>)) | (<span class="keyword ">init</span>) -&gt; <span class="keyword ">if</span> <span class="">e</span> &gt;= <span class="number">0.0</span> <span class="keyword ">then</span> <span class="">d</span> <span class="keyword ">else</span> -. <span class="">d</span>
-      <span class="keyword ">init</span> <span class="number">0.0</span>
+  <span class="">u</span> = <span class="keyword ">present</span> <span class="keyword expr ">up</span>(<span class="">e</span>) | <span class="keyword expr ">up</span>(-. <span class="">e</span>) | (<span class="keyword ">disc</span>(<span class="">e</span>)) | (<span class="keyword ">init</span>)
+        -&gt; <span class="keyword ">if</span> <span class="">e</span> &gt;= <span class="number">0.0</span> <span class="keyword ">then</span> <span class="">d</span> <span class="keyword ">else</span> -. <span class="">d</span> <span class="keyword ">init</span> <span class="number">0.0</span>
 
 <span class="comment">(* ** model ** *)</span>
 
@@ -761,9 +747,9 @@ The shared elements are incorporated into a single file:</p>
 
    The state-space realization can be calculated in Matlab:
      sys1 = tf(60, [1 21 20 0])
-     [a, b, c, d] = ss()
+     [a, b, c, d] = ss(sys1)
 
-   <span class="string">"The process gain is suddenly increaed by a factor of 5 at t = 25."</span>
+   <span class="string">"The process gain is suddenly increased by a factor of 5 at t = 25."</span>
      sys2 = 5 * sys1
      [a, b, c, d] = ss(sys2)
 
@@ -804,17 +790,11 @@ then rises to <code>1</code> again at <code>35</code> seconds.
 The command signal is defined using a hybrid automaton in a node called
 <code>command</code>.</p>
 
-<p>
-<img src="img/soas-command.png" srcset="img/soas-command@2x.png 2x">
-
-</p>
+<p><img src="img/soas-command.png" srcset="img/soas-command@2x.png 2x"></p>
 
 <p>The <strong>process</strong> to be controlled is described by the transfer function:</p>
 
-<p>
-<img src="img/soas-process.png" srcset="img/soas-process@2x.png 2x">
-
-</p>
+<p><img src="img/soas-process.png" srcset="img/soas-process@2x.png 2x"></p>
 
 <p>where, initially, K = 3 and α = 20, but where the <em>process gain is suddenly
 increased by a factor of 5 at t = 25</em>.
@@ -849,10 +829,7 @@ inverter—that tries to follow the reponse of a reference model to the
 command signal.
 Other elements will be added successively.</p>
 
-<p>
-<img src="img/soas-model1.png" srcset="img/soas-model1@2x.png 2x">
-
-</p>
+<p><img src="img/soas-model1.png" srcset="img/soas-model1@2x.png 2x"></p>
 
 <div id="ex-soas_relaycontrol-soas1_basic-box" class="accordion sourcefile">
 <div class="accordion-group">
@@ -910,30 +887,21 @@ tf2ss(syslin('c', wn^2, s^2 + 2*zeta*wn*s + wn^2))</code></pre>
 below.
 The actual output of the feedback loop is shown in blue.</p>
 
-<p>
-<img src="img/soas-output1.png" srcset="img/soas-output1@2x.png 2x">
-
-</p>
+<p><img src="img/soas-output1.png" srcset="img/soas-output1@2x.png 2x"></p>
 
 <p>The <strong>relay</strong> is modelled in a node called <code>relay</code> using a hybrid
 automaton that alternates between <code>High</code> (output = <code>d</code>) and <code>Low</code> (output =
 <code>-d</code>) states in response to zero-crossings on its input signal.
-The relay’s value is shown below.</p>
+The relay's value is shown below.</p>
 
-<p>
-<img src="img/soas-relay1.png" srcset="img/soas-relay1@2x.png 2x">
-
-</p>
+<p><img src="img/soas-relay1.png" srcset="img/soas-relay1@2x.png 2x"></p>
 
 <h3 id="soaswithleadnetwork">SOAS with lead network</h3>
 
 <p>The next model augments the basic model with a compensation network that
 adds a phase lead of -π.</p>
 
-<p>
-<img src="img/soas-model2.png" srcset="img/soas-model2@2x.png 2x">
-
-</p>
+<p><img src="img/soas-model2.png" srcset="img/soas-model2@2x.png 2x"></p>
 
 <div id="ex-soas_relaycontrol-soas2_leadnet-box" class="accordion sourcefile">
 <div class="accordion-group">
@@ -975,10 +943,7 @@ adds a phase lead of -π.</p>
 
 <p>The compensation filter is defined as a transfer function:</p>
 
-<p>
-<img src="img/soas-filter.png" srcset="img/soas-filter@2x.png 2x">
-
-</p>
+<p><img src="img/soas-filter.png" srcset="img/soas-filter@2x.png 2x"></p>
 
 <p>which is implemented in the node <code>g_f</code> using the generic node <code>siso_1o</code>
 after having calculated its state-space realization in either
@@ -995,20 +960,14 @@ after having calculated its state-space realization in either
 maintaining the reponse speed, as can be seen in the simulation results
 below.</p>
 
-<p>
-<img src="img/soas-output2.png" srcset="img/soas-output2@2x.png 2x">
-
-</p>
+<p><img src="img/soas-output2.png" srcset="img/soas-output2@2x.png 2x"></p>
 
 <h3 id="soaswithleadnetworkandgainchanger">SOAS with lead network and gain changer</h3>
 
 <p>A gain changer is added in the final model.
-It uses so called <em>up logic</em> to speed up the controller’s reponse.</p>
+It uses so called <em>up logic</em> to speed up the controller's reponse.</p>
 
-<p>
-<img src="img/soas-model3.png" srcset="img/soas-model3@2x.png 2x">
-
-</p>
+<p><img src="img/soas-model3.png" srcset="img/soas-model3@2x.png 2x"></p>
 
 <div id="ex-soas_relaycontrol-soas3_gainchanger-box" class="accordion sourcefile">
 <div class="accordion-group">
@@ -1048,13 +1007,10 @@ It uses so called <em>up logic</em> to speed up the controller’s reponse.</p>
 
 </code></pre></div></div></div></div>
 
-<p>A gain changer increases the relay’s amplitude (<code>d</code>) when a specified
+<p>A gain changer increases the relay's amplitude (<code>d</code>) when a specified
 tolerance (e_l) is exceeded.</p>
 
-<p>
-<img src="img/soas-gainchanger.png" srcset="img/soas-gainchanger@2x.png 2x">
-
-</p>
+<p><img src="img/soas-gainchanger.png" srcset="img/soas-gainchanger@2x.png 2x"></p>
 
 <p>This logic is readily implemented in the <code>gain_changer</code> node using a hybrid
 automaton.</p>
@@ -1063,18 +1019,12 @@ automaton.</p>
 amplitude oscillations to the system with higher gain, without losing
 performance for the system with smaller gain.</p>
 
-<p>
-<img src="img/soas-output3.png" srcset="img/soas-output3@2x.png 2x">
-
-</p>
+<p><img src="img/soas-output3.png" srcset="img/soas-output3@2x.png 2x"></p>
 
 <p>The effect of the gain changing logic on the relay output is evident in the
 exponential envelopes on the signal shown below.</p>
 
-<p>
-<img src="img/soas-relay3.png" srcset="img/soas-relay3@2x.png 2x">
-
-</p>
+<p><img src="img/soas-relay3.png" srcset="img/soas-relay3@2x.png 2x"></p>
 </div><hr>
 <div id="ex-stickysprings" class="example-section">
 <h2 id="stickymasses">Sticky Masses</h2>
@@ -1092,10 +1042,7 @@ Systems</em></a>, Second Edition,
 and the Ptolemy II model by Jie Liu, Haiyang Zheng,
 and Edward A. Lee.</p>
 
-<p>
-<img src="img/stickysprings.png" srcset="img/stickysprings@2x.png 2x">
-
-</p>
+<p><img src="img/stickysprings.png" srcset="img/stickysprings@2x.png 2x"></p>
 
 <p>The model comprises two sticky round masses, each on the end of a spring.
 The other ends of the springs are tied to opposing walls. After the springs
@@ -1207,10 +1154,7 @@ Lablgtk2
 example</a> that we developed to
 teach reactive programming.</p>
 
-<p>
-<img src="img/backhoeloop.png" srcset="img/backhoeloop@2x.png 2x">
-
-</p>
+<p><img src="img/backhoeloop.png" srcset="img/backhoeloop@2x.png 2x"></p>
 
 <p>The model comprises two interconnected elements:</p>
 
@@ -1223,10 +1167,7 @@ teach reactive programming.</p>
 expressing the continuous dynamics is also an interesting programming
 problem, as is interfacing the two models.</p>
 
-<p>
-<img src="img/backhoesensors.png" srcset="img/backhoesensors@2x.png 2x">
-
-</p>
+<p><img src="img/backhoesensors.png" srcset="img/backhoesensors@2x.png 2x"></p>
 
 <p>The discrete controller receives input from sensors which are defined inside
 the continuous model. There are sensors for each of three buttons
@@ -1235,10 +1176,7 @@ whether the legs are fully retracted (<code>legs_in</code>) or fully extended
 (<code>legs_out</code>), and for indicating whether each of the rear segments is fully
 retracted (<code>*_in</code>) or fully extended (<code>*_out</code>).</p>
 
-<p>
-<img src="img/backhoeactuators.png" srcset="img/backhoeactuators@2x.png 2x">
-
-</p>
+<p><img src="img/backhoeactuators.png" srcset="img/backhoeactuators@2x.png 2x"></p>
 
 <p>There are control signals for three lamps (<code>alarm_lamp</code>, <code>done_lamp</code>, and
 <code>cancel_lamp</code>) and for triggering leg extension (<code>legs_extend</code>), leg
@@ -1248,10 +1186,7 @@ are three control signals pel segment: setting an internal valve for pushing
 through the valve (<code>*_drive</code>). It is assumed that a lower-level controller
 maintains a segments position when it is not being driven.</p>
 
-<p>
-<img src="img/backhoesegmentauto.png" srcset="img/backhoesegmentauto@2x.png 2x">
-
-</p>
+<p><img src="img/backhoesegmentauto.png" srcset="img/backhoesegmentauto@2x.png 2x"></p>
 
 <p>Each segment is modelled using set of equations that include a hybrid
 automaton. Two types of dynamics are modelled: moving and stopping with
@@ -1593,13 +1528,10 @@ with ODEs</a>.</p>
 
 <p>Author: <a href="http://www.di.ens.fr/~baudart/">Guillaume Baudart</a></p>
 
-<p>
-<img src="img/horloge.png" srcset="img/horloge@2x.png 2x">
+<p><img src="img/horloge.png" srcset="img/horloge@2x.png 2x"></p>
 
-</p>
-
-<p>This model was made to celebrate
-<a href="http://people.rennes.inria.fr/Albert.Benveniste/">Albert Benveniste’s</a>
+<p>This model was made to celebrate 
+<a href="http://people.rennes.inria.fr/Albert.Benveniste/">Albert Benveniste's</a>
 <a href="https://project.inria.fr/alberts65th/">65th birthday</a> in honour of
 <a href="http://people.rennes.inria.fr/Albert.Benveniste/pub/Polychrony.pdf">“The old fashioned Signal watch”</a>.</p>
 
@@ -1753,13 +1685,10 @@ drawn by an external (OCaml) function called <code>draw_system</code>.</p>
 
 <p>Author: <a href="http://www.di.ens.fr/~baudart/">Guillaume Baudart</a></p>
 
-<p>
-<img src="img/watch.png" srcset="img/watch@2x.png 2x">
+<p><img src="img/watch.png" srcset="img/watch@2x.png 2x"></p>
 
-</p>
-
-<p>This model was made to celebrate
-<a href="http://people.rennes.inria.fr/Albert.Benveniste/">Albert Benveniste’s</a>
+<p>This model was made to celebrate 
+<a href="http://people.rennes.inria.fr/Albert.Benveniste/">Albert Benveniste's</a>
 <a href="https://project.inria.fr/alberts65th/">65th birthday</a> in honour of
 <a href="http://people.rennes.inria.fr/Albert.Benveniste/pub/Polychrony.pdf">“The old fashioned Signal watch”</a>.</p>
 
@@ -1943,27 +1872,21 @@ Systems</em></a>, Tomlin, Pappas, Sastry, 1998.</p>
 Aircraft2. Both aircraft are flying at a similar altitude and with constant
 velocity and heading. Two zones are defined around each aircraft:</p>
 
-<p>
-<img src="img/aircraft-zones.png" srcset="img/aircraft-zones@2x.png 2x">
-
-</p>
+<p><img src="img/aircraft-zones.png" srcset="img/aircraft-zones@2x.png 2x"></p>
 
 <p>A conflict resolution manouever is considered when two planes have entered
-into each other’s alert zones. The system aims to ensure that neither plane
-ever enters the other’s protected zone.</p>
+into each other's alert zones. The system aims to ensure that neither plane
+ever enters the other's protected zone.</p>
 
 <p>In the model, the position and heading of Aircraft1 define, respectively, the
 origin and direction of the positive x-axis of a relative coordinate system,
 in which the position of Aircraft2 is specified. The heading of Aircraft2 is
 specified relative to the positive x-axis.</p>
 
-<p>
-<img src="img/aircraft-model.png" srcset="img/aircraft-model@2x.png 2x">
-
-</p>
+<p><img src="img/aircraft-model.png" srcset="img/aircraft-model@2x.png 2x"></p>
 
 <p>The initial condition in the model is that the aircraft are cruising outside
-each other’s protected zones, but inside each other’s alert zones.</p>
+each other's protected zones, but inside each other's alert zones.</p>
 
 <p>The manouever modelled in this case is (taken directly from the paper):</p>
 
