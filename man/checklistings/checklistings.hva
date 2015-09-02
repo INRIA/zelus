@@ -33,6 +33,7 @@
 \newif\ifCHKL@showcode\CHKL@showcodetrue
 \newif\ifCHKL@shouldfail\CHKL@shouldfailfalse
 \newif\ifCHKL@withresult\CHKL@withresultfalse
+\newif\ifCHKL@showerrors\CHKL@showerrorstrue
 \newif\ifCHKL@loadhtml\CHKL@loadhtmlfalse
 \def\CHKL@pkg@skipopts{}
 
@@ -42,6 +43,8 @@
 \DeclareOption{withoutresult}{\CHKL@withresultfalse}
 \DeclareOption{skipone}{\def\CHKL@pkg@skipopts{firstline=2}}
 \DeclareOption{skiptwo}{\def\CHKL@pkg@skipopts{firstline=3}}
+\DeclareOption{showerrors}{\CHKL@showerrorstrue}
+\DeclareOption{ignoreerrors}{\CHKL@showerrorsfalse}
 
 \def\CHKL@codestyle{}
 \def\CHKL@msgstyle{}
@@ -68,7 +71,6 @@
 \define@key{CHKL@pkgkeys}{html}[]{\CHKL@loadhtmltrue}
 
 % Unused options
-\define@key{CHKL@pkgkeys}{ignoreerrors}[]{}
 \define@key{CHKL@pkgkeys}{compiler}[]{}
 \define@key{CHKL@pkgkeys}{compilerflags}[]{}
 \define@key{CHKL@pkgkeys}{lastflags}[]{}
@@ -103,8 +105,8 @@
 \define@key{CHKL@envkeys}{continue}[]{}
 \define@key{CHKL@envkeys}{include}[]{}
 \define@key{CHKL@envkeys}{label}[]{}
-\define@key{CHKL@envkeys}{showerrors}[]{}
-\define@key{CHKL@envkeys}{ignoreerrors}[]{}
+\define@key{CHKL@envkeys}{showerrors}[]{\CHKL@showerrorstrue}
+\define@key{CHKL@envkeys}{ignoreerrors}[]{\CHKL@showerrorsfalse}
 \define@key{CHKL@envkeys}{skipnone}[]{\def\CHKL@pkg@skipopts{firstline=1}}
 \define@key{CHKL@envkeys}{skipone}[]{\def\CHKL@pkg@skipopts{firstline=2}}
 \define@key{CHKL@envkeys}{skiptwo}[]{\def\CHKL@pkg@skipopts{firstline=3}}
@@ -158,11 +160,27 @@
       \fi%
       \egroup%
       \input{\CHKL@file.tex}%
-      \ifchklisting%
-	\ifCHKL@withresult{\chklistingmsg{}}\fi%
-      \else%
-	\ifCHKL@withresult{\chklistingerr{}}\fi%
-      \fi%
+      \ifCHKL@shouldfail%
+	\ifchklisting%
+	  \ifCHKL@showerrors%
+	    \begin{divstyle}{checklistingserror}%
+	    Unexpected success: \chklistingmsg{}
+	    \end{divstyle}%
+	  \fi%
+	\else%
+	  \ifCHKL@withresult{\chklistingerr{}}\fi%
+	\fi%
+      \else
+	\ifchklisting%
+	  \ifCHKL@withresult{\chklistingmsg{}}\fi%
+	\else%
+	  \ifCHKL@showerrors%
+	    \begin{divstyle}{checklistingserror}%
+	    Unexpected failure: \chklistingerr{}
+	    \end{divstyle}%
+	  \fi%
+	\fi%
+      \fi
     \fi%
     \verblatex%
   }
