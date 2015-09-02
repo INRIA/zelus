@@ -3353,32 +3353,34 @@ let atomic hybrid ball(x, y_0) = (y, y_v, z) where
 
 \noindent
 We now incorporate these dynamics into an automaton with two modes.
-In \zls{Bouncing}, it behaves as explained previously, but when the velocity 
-of the ball becomes below a certain threshold, the system enters a 
-\zls{Sliding} mode.
+In \zls{Bouncing}, it behaves as explained previously but for two details.
+When the velocity of the ball drops below a certain threshold, the system 
+enters a \zls{Sliding} mode and we gradually reduce the horizontal velocity.
 When \zls{Sliding}, the ball only moves in the vertical dimension, until it 
 reaches the edge of a step (as determined by a \zls{World.ground\_abs()} 
 function).
 \begin{chklisting}[continue,withresult]
 let eps = 0.01
 
-(* The bouncing ball with two modes. *)
-let hybrid ball_with_modes(x_0, y_0) = (x, y) where
+hybrid ball_with_modes(x_0, y_0) = (x, y) where
   rec init y_start = y_0 
-  and der x = x_v init x_0
-  and automaton
-      | Bouncing ->
-         (* the ball is falling with a possible bound. *)
-         local z, y_v in
-         do (y, y_v, z) = ball(x, y_start)
-         until z on (y_v < eps) then Sliding(World.ground(x))
-      | Sliding(y0) ->
-         (* the ball is fixed, i.e., the derivative for y is 0 *)
-         do 
-           y = y0 
-         until up(x -. World.ground_abs x)
-         then do y_start = 0.0 in Bouncing
-      end
+  and der x = x' init x_0
+  and
+  automaton
+  | Bouncing ->
+      (* the ball is falling with a possible bounce. *)
+      local z, y_v in
+      do
+        (y, y_v, z) = Ball.ball(x, y_start)
+      and x' = x_v until z on (y_v < eps) then Sliding(World.ground_abs(x),
+                                                       World.ground(x))
+  | Sliding(x0, y0) ->
+      (* the ball is fixed, i.e., the derivative for y is 0 *)
+      do 
+        y = y0
+      and der x' = -0.8 *. x'
+      until up(x -. x0) then do y_start = y in Bouncing
+  end
 \end{chklisting}
 
 \noindent
