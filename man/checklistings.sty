@@ -45,8 +45,8 @@
 
 \DeclareBoolOption{withresult}
 \DeclareComplementaryOption{withoutresult}{withresult}
-\DeclareBoolOption[true]{showerrors}
-\DeclareComplementaryOption{ignoreerrors}{showerrors}
+\DeclareBoolOption[true]{showproblems}
+\DeclareComplementaryOption{hideproblems}{showproblems}
 \DeclareVoidOption{skipone}
     {\edef\CHKL@pkg@globalskip{1}%
      \edef\CHKL@pkg@verbopts{\CHKL@pkg@verbopts,firstline=2}}
@@ -122,8 +122,8 @@
 \define@key{CHKL@envkeys}{hide}[]{\CHKL@showcodefalse}
 \define@key{CHKL@envkeys}{withresult}[]{\CHKL@withresulttrue}
 \define@key{CHKL@envkeys}{withoutresult}[]{\CHKL@withresultfalse}
-\define@key{CHKL@envkeys}{showerrors}[]{\CHKL@showerrorstrue}
-\define@key{CHKL@envkeys}{ignoreerrors}[]{\CHKL@showerrorsfalse}
+\define@key{CHKL@envkeys}{showproblems}[]{\CHKL@showproblemstrue}
+\define@key{CHKL@envkeys}{hideproblems}[]{\CHKL@showproblemsfalse}
 \DeclareRobustCommand{\chklistingmsg}[1]{
    \bgroup%
    \ifx\CHKL@msglst\CHKL@emptyoption\else
@@ -203,7 +203,7 @@
             \ifchklisting%
                 \PackageWarning{checklistings}%
                     {Compilation of \CHKL@file\CHKL@ext\space should have failed}%
-                \ifCHKL@showerrors%
+                \ifCHKL@showproblems%
                   \UseVerbatim[frame=single,
                                label=Unexpected success,
                                rulecolor=\color{red}]{ChkListingMsg}%
@@ -222,7 +222,7 @@
             \else%
                 \PackageWarning{checklistings}%
                     {Compilation of \CHKL@file\CHKL@ext\space should not have failed}%
-                \ifCHKL@showerrors%
+                \ifCHKL@showproblems%
                   \UseVerbatim[frame=single,
                                label=Unexpected failure,
                                rulecolor=\color{red}]{ChkListingErr}%

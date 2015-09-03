@@ -270,8 +270,8 @@ let w = u + "four"
 % &
 % false
 % \\
-% ignoreerrors
-% & Globally disable the display of error messages (within a red box) when 
+% hideproblems
+% & Globally disable the display of failure messages (within a red box) when 
 % compilation fails or succeeds unexpectedly.
 % &
 % false
@@ -449,14 +449,14 @@ let w = u + "four"
 % & Do not skip any lines; this option overrides any package-level skip 
 % setting.
 % \\
-% ignoreerrors
+% hideproblems
 % & Do not display an error message within the document when compilation 
 % fails or succeeds unexpectedly.
 % \\
-% showerrors
+% showproblems
 % & Display an error message within the document when compilation fails or 
 % succeeds unexpectedly.
-% This is the default behaviour unless the |ignoreerrors| package option was 
+% This is the default behaviour unless the |hideproblems| package option was 
 % set.
 % \\
 % \end{longtable}
@@ -610,8 +610,8 @@ let w = u + "four"
 %    \begin{macrocode}
 \DeclareBoolOption{withresult}
 \DeclareComplementaryOption{withoutresult}{withresult}
-\DeclareBoolOption[true]{showerrors}
-\DeclareComplementaryOption{ignoreerrors}{showerrors}
+\DeclareBoolOption[true]{showproblems}
+\DeclareComplementaryOption{hideproblems}{showproblems}
 \DeclareVoidOption{skipone}
     {\edef\CHKL@pkg@globalskip{1}%
      \edef\CHKL@pkg@verbopts{\CHKL@pkg@verbopts,firstline=2}}
@@ -815,8 +815,8 @@ let w = u + "four"
 \define@key{CHKL@envkeys}{hide}[]{\CHKL@showcodefalse}
 \define@key{CHKL@envkeys}{withresult}[]{\CHKL@withresulttrue}
 \define@key{CHKL@envkeys}{withoutresult}[]{\CHKL@withresultfalse}
-\define@key{CHKL@envkeys}{showerrors}[]{\CHKL@showerrorstrue}
-\define@key{CHKL@envkeys}{ignoreerrors}[]{\CHKL@showerrorsfalse}
+\define@key{CHKL@envkeys}{showproblems}[]{\CHKL@showproblemstrue}
+\define@key{CHKL@envkeys}{hideproblems}[]{\CHKL@showproblemsfalse}
 %    \end{macrocode}
 %
 % \begin{macro}{\chklistingmsg}
@@ -1001,7 +1001,7 @@ let w = u + "four"
             \ifchklisting%
                 \PackageWarning{checklistings}%
                     {Compilation of \CHKL@file\CHKL@ext\space should have failed}%
-                \ifCHKL@showerrors%
+                \ifCHKL@showproblems%
                   \UseVerbatim[frame=single,
                                label=Unexpected success,
                                rulecolor=\color{red}]{ChkListingMsg}%
@@ -1020,7 +1020,7 @@ let w = u + "four"
             \else%
                 \PackageWarning{checklistings}%
                     {Compilation of \CHKL@file\CHKL@ext\space should not have failed}%
-                \ifCHKL@showerrors%
+                \ifCHKL@showproblems%
                   \UseVerbatim[frame=single,
                                label=Unexpected failure,
                                rulecolor=\color{red}]{ChkListingErr}%
