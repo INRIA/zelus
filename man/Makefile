@@ -15,7 +15,7 @@ XSLTPROC=xsltproc
 BIBTEX=bibtex
 LATEXMK=latexmk -pdf
 
-CHECKLISTINGS=checklistings/checklistings.sh
+CHECKLISTINGS=./checklistings.sh
 
 .PHONY: wwwman
 
