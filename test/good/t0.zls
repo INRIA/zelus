@@ -1,9 +1,49 @@
+open Graphics
+
+let atomic node from x =
+  let rec o = x -> pre o + 1 in
+  o
+
+let node main () =
+  let o = from 1 in
+   print_int o; print_newline () 
+
+
+
+(*
+let hybrid model z = led where
+  rec init digital_temp = 0
+  and init led = 0
+  and present z -> do led = last digital_temp done
+  and present z -> do digital_temp = 1 done
+		       
+
+let node f() = o where
+  rec
+      automaton
+      | S1 -> do o = 1 done
+      | S2(x) -> do o = x -> pre o + 1 done
+      end
+*)
+		       
+(*
+let main2 x = let z = x + 2 in z
+
+let node count2(n, tick) = o where
+  rec
+    cpt = 0 -> (pre cpt + 1) mod n
+  and
+    o = false -> cpt = 0
+       *)
+      
+(*
 let node await e = o where 
   automaton
   | Await -> do unless e(v) then Sustain(v)
   | Sustain(x) -> do emit o = x done
   end
-
+ *)
+	
 (*
 >>>>>>> .r2266
 let atomic node draw_pendulum1 (color, x0, y0, x, y) =

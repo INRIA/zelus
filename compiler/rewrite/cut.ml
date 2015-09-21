@@ -18,27 +18,20 @@ open Location
 open Deftypes
 open Zelus
 open Ident
+open Zaux
 
-let make desc ty =
-  { e_desc = desc; e_loc = no_location; e_typ = ty; e_caus = [] }
-let pmake desc ty =
-  { p_desc = desc; p_loc = no_location; p_typ = ty; p_caus = [] }
-
-let eq_last lx x ty =
-  { eq_desc = EQeq(pmake (Evarpat(lx)) ty, make (Elast(x)) ty);
-    eq_loc = Location.no_location; eq_before = S.empty;
-    eq_after = S.empty; eq_write = Deftypes.empty }
+let eq_last lx x ty = eqmake (EQeq(pmake (Evarpat(lx)) ty, emake (Elast(x)) ty))
 
 (* Computes the set of variables [last x] from [b_env] *)
 let env subst b_env =
   let last x ({ t_typ = ty; t_sort = sort } as entry) (env, subst, eq_list) =
     match sort with
-    | Mem { t_last_is_used = true } -> 
+    | Smem { m_previous = true } -> 
        let lx = Ident.fresh "l" in
-       Env.add lx { entry with t_sort = Val } env,
+       Env.add lx { entry with t_sort = Deftypes.value } env,
        Env.add x lx subst,
        (eq_last lx x ty) :: eq_list
-    | Val | ValDefault _ | Mem _ -> env, subst, eq_list in
+    | Sval | Svar _ | Smem _ -> env, subst, eq_list in
   Env.fold last b_env (b_env, subst, [])
     
 (* replace occurrences of [last x] by [lx]. [subst(x) = lx] *)
@@ -76,10 +69,10 @@ and equation subst eq_list ({ eq_desc } as eq) =
     | EQinit(n, e0) ->
      { eq with eq_desc = EQinit(n, exp subst e0) } :: eq_list
     | EQmatch(total, e, p_h_list) ->
-     let p_h_list = 
-       List.map (fun ({ m_body = b } as h) -> { h with m_body = block subst b }) 
-	 p_h_list in
-     { eq with eq_desc = EQmatch(total, exp subst e, p_h_list) } :: eq_list
+      let p_h_list = 
+	List.map (fun ({ m_body = b } as h) -> { h with m_body = block subst b }) 
+	  p_h_list in
+      { eq with eq_desc = EQmatch(total, exp subst e, p_h_list) } :: eq_list
     | EQreset(res_eq_list, e) ->
       let res_eq_list = equation_list subst res_eq_list in
       { eq with eq_desc = EQreset(res_eq_list, exp subst e) } :: eq_list
@@ -95,10 +88,12 @@ and block subst ({ b_locals = l_list; b_body = eq_list; b_env = b_env } as b) =
   let b_env, subst, eq_last_list = env subst b_env in
   let l_list, subst = 
     List.fold_left
-      (fun (l_list, subst) l -> let l, subst = local subst l in l :: l_list, subst)
+      (fun (l_list, subst) l ->
+       let l, subst = local subst l in l :: l_list, subst)
       ([], subst) l_list in
   let eq_list = equation_list subst eq_list in
-  { b with b_locals = List.rev l_list; b_body = eq_last_list @ eq_list; b_env = b_env }
+  { b with b_locals = List.rev l_list;
+    b_body = eq_last_list @ eq_list; b_env = b_env }
   
 and local subst ({ l_eq = l_eq_list; l_env = l_env } as l) =
   let l_env, subst, eq_last_list = env subst l_env in

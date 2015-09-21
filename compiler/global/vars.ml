@@ -37,9 +37,13 @@ let rec fv_pat bounded acc p =
     | Eorpat(p1, _) -> fv_pat bounded acc p1
     | Etypeconstraintpat(p, _) -> fv_pat bounded acc p
         
-let fv_block fv_local fv_body bounded acc { b_env = b_env; b_body = body } =
+let fv_block fv_local fv_body bounded acc
+    { b_env = b_env; b_locals = l_list; b_body = body; b_write = defnames } =
+  let bounded = names bounded b_env in
+  let bounded = Deftypes.names bounded defnames in
+  let bounded, acc = List.fold_left fv_local (bounded, acc) l_list in
   fv_body (names bounded b_env) acc body
- 
+
 let fv_match_handler fv_body m_h_list bounded acc = 
   List.fold_left
     (fun acc { m_pat = pat; m_body = b; m_env = env } ->
@@ -62,48 +66,29 @@ let rec fv bounded (last_acc, acc) e =
        let bounded, acc = fv_local (bounded, (last_acc, acc)) local in
        fv bounded acc e
     | Eseq(e1, e2) -> fv bounded (fv bounded (last_acc, acc) e1) e2
-    | Econst _ | Econstr0 _ | Eglobal _ -> last_acc, acc
-    | Epresent _ | Ematch _ | Eperiod _ -> assert false
+    | Econst _ | Econstr0 _ | Eglobal _ | Eperiod _ -> last_acc, acc
+    | Epresent _ | Ematch _ -> assert false
         
-and fv_eq bounded (last_acc, acc) { eq_desc = desc; eq_after = w } =
-  let last_acc, acc =
-    match desc with
+and fv_eq bounded (last_acc, acc) { eq_desc = desc; eq_write = w } =
+  match desc with
     | EQeq(_, e) | EQinit(_, e) | EQset(_, e) -> fv bounded (last_acc, acc) e
     | EQmatch(_, e, m_h_list) ->
        fv_match_handler (fv_block fv_local fv_eq_list) m_h_list bounded 
 			(fv bounded (last_acc, acc) e)
     | EQreset(eq_list, r) ->
-       fv_eq_list bounded (fv bounded (last_acc, acc) r) eq_list
+       (* remove the names written in the body *)
+       fv bounded
+	  (fv_eq_list (Deftypes.names bounded w) (last_acc, acc) eq_list) r
     | EQder(_, e, None, []) -> fv bounded (last_acc, acc) e
-    | EQblock _ | EQder _ | EQemit _ | EQpresent _  
-    | EQautomaton _ | EQnext _ -> assert false in
-  last_acc, S.union acc (S.diff w bounded)
+    | EQblock(b) -> fv_block fv_local fv_eq_list bounded (last_acc, acc) b
+    | EQder _ | EQemit _ | EQpresent _  
+    | EQautomaton _ | EQnext _ -> assert false
 
 and fv_eq_list bounded acc eq_list = List.fold_left (fv_eq bounded) acc eq_list
 
 and fv_local (bounded, acc) { l_eq = eq_list; l_env = l_env } =
   let acc = List.fold_left (fv_eq (names bounded l_env)) acc eq_list in
   (bounded, acc)
-
-and build bounded acc { eq_desc = desc; eq_before = before } =
-  let block bounded acc { b_body = eq_list; b_env = b_env } = 
-    List.fold_left (build (names bounded b_env)) acc eq_list in
-  let acc =
-    match desc with
-    | EQeq(pat, _) -> fv_pat bounded acc pat
-    | EQinit(n, _) ->
-       if (S.mem n acc) || (S.mem n bounded) then acc else S.add n acc
-    | EQreset(eq_list, _) -> build_list bounded acc eq_list
-    | EQmatch(_, _, m_h_list) ->
-        List.fold_left 
-          (fun acc { m_body = b_eq_list } -> 
-	   block bounded acc b_eq_list) acc m_h_list
-    | EQder(_, _, None, []) | EQset _ -> acc
-    | EQblock _ | EQder _ | EQautomaton _ 
-    | EQpresent _ | EQemit _ | EQnext _ -> assert false in
-  S.union acc (S.diff before bounded)
-	  
-and build_list bounded acc eq_list = List.fold_left (build bounded) acc eq_list
 
 let fv acc e =
   let acc_last, acc = fv S.empty (S.empty, acc) e in S.union acc_last acc
@@ -116,11 +101,8 @@ let rec init { eq_desc = desc } =
   | _ -> false
 
 let read eq = fv_eq S.empty (S.empty, S.empty) eq
-let def eq = build S.empty S.empty eq
-let defs eq_list = List.fold_left (build S.empty) S.empty eq_list
+let def { eq_write = w } = Deftypes.names S.empty w
 let nodep ({ eq_desc }) =
   match eq_desc with
-  | EQeq(_, { e_desc = Eapp(Eup, _) }) -> true | _ -> false
-let control ({ eq_desc }) =
-  match eq_desc with
-  | EQmatch _ -> true | _ -> false
+  | EQeq(_, { e_desc = Eapp(Eup, _) })
+  | EQder(_, _, None, []) -> true | _ -> false

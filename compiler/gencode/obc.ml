@@ -28,7 +28,10 @@ and mem =
   | Discrete (* discrete state variable *)
   | Zero (* zero-crossing variable with its size *)
   | Cont (* continuous-state variable with its size *)
-	
+  | Horizon (* horizon *)
+  | Encore (* should we do an extra step *)
+  | Period (* period *)
+      
 (* a continuous state variable [x] is pair of arrays *)
 (* with two fields: [x.der] for its derivative. [x.pos] for its current value. *)
 (* a zero-crossing variable [x] has two field: [x.zin] is true when *)
@@ -91,8 +94,8 @@ and left_state_value =
 
 (* a machine provides certain fields for reading/writting special values *)
 and primitive_access =
-  | Oderivative (* x.der.(i) <- ... *)
-  | Ocontinuous (* x.pos.(i) <- ... *)
+  | Oder (* x.der.(i) <- ... *)
+  | Ocont (* x.pos.(i) <- ... *)
   | Ozero_out (* x.zero_out.(i) <-... *)
   | Ozero_in (* ... x.zero_in.(i) ... *)
 
@@ -146,9 +149,10 @@ and method_name =
   | Oreinit (* should we re-init the solver? *)
   | Ocin | Ocout (* copies the continuous state vector *)
   | Odout | Ozin | Oclear_zin | Ozout (* copies derivatives and zero crossings *)
-  | Odzero (* resets the derivatives *)
+  | Odzero (* resets the internal derivatives *)
   | Ocsize | Ozsize (* current size for cont. states and zero crossings *)
-
+  | Ohorizon (* next horizon *)
+      
 and implementation_list = implementation list
 
 and implementation = implementation_desc localized

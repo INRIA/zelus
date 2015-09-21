@@ -21,7 +21,7 @@ open Ident
 
 (* matching. Translate [(p1,...,pn) = (e1,...,en)] into the set of *)
 (* equations [p1 = e1 and ... and pn = en] *)
-(* [compose] defines the type of equation: [init p = e] or [p = e] or [next p = e] *)
+(* [compose] defines the type of equation: [init p = e] or [p = e] *)
 let rec matching compose eq_list p e =
   match p.p_desc, e.e_desc with
     | Etuplepat(p_list), Etuple(e_list) ->
@@ -34,11 +34,11 @@ and matching_list compose eq_list p_list e_list =
 let rec equation eq_list ({ eq_desc = desc } as eq) =
   match desc with
     | EQeq(pat, e) -> 
-      (* all [p1 = e1,..., pn = en] inherits the [before] and [after] tags *)
-      matching (fun p e -> { eq with eq_desc = EQeq(p, e) }) eq_list pat e
+       matching (fun p e -> { eq with eq_desc = EQeq(p, e) }) eq_list pat e
     | EQmatch(total, e, m_h_list) ->
         { eq with eq_desc = EQmatch(total, e, 
 				    List.map handler m_h_list) } :: eq_list
+    | EQblock(b) -> { eq with eq_desc = EQblock(block b) } :: eq_list
     | _ -> eq :: eq_list
 
 and equation_list eq_list = List.fold_left equation [] eq_list
@@ -47,8 +47,8 @@ and handler ({ m_body = b } as m_h) = { m_h with m_body = block b }
 
 and block ({ b_body = eq_list } as b) = { b with b_body = equation_list eq_list }
 
-let exp e =
-  match e.e_desc with
+let exp ({ e_desc = desc } as e) =
+  match desc with
     | Elet(({ l_eq = eq_list } as l), e) ->
         { e with e_desc = Elet({ l with l_eq = equation_list eq_list }, e) }
     | _ -> e

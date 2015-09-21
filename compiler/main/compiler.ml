@@ -172,44 +172,46 @@ let compile modname filename =
       if !verbose then comment "Translation of present done. See below:";
       if !verbose then Printer.implementation_list info_ff impl_list;
       
+      (* Translation of periods into horizons *)
+      let impl_list = Period.implementation_list impl_list in
+      if !verbose then comment "Translation of periods done. See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
+      (* compiling various forms of unit delays (fby/pre/next) *)
+      (* into (init/last) *)
+      let impl_list = Pre.implementation_list impl_list in
+      if !verbose then 
+	comment
+	  "Compilation of memories (fby/pre/next) into (init/last). See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
       (* actualize the set of write variable in every block *)
       let impl_list = Write.implementation_list impl_list in
       if !verbose then comment 
 			 "Actualize write variables in blocks. See below:";
       if !verbose then Printer.implementation_list info_ff impl_list;
       
-      (* compiling various forms of unit delays (fby/pre/next) *)
-      (* into (init/last) *)
-      let impl_list = Delays.implementation_list impl_list in
-      if !verbose then 
-	comment
-	  "Compilation of memories (fby/pre/next) into (init/last). See below:";
+      (* Add an extra discrete step for weak transitions *)
+      let impl_list = Encore.implementation_list impl_list in
+      if !verbose then comment "Add an extra discrete step. See below:";
       if !verbose then Printer.implementation_list info_ff impl_list;
       
-      (* normalise the structure of let/ins *)
+      (* Un-nest let/in blocks *)
       let impl_list = Letin.implementation_list impl_list in
-      if !verbose then
-	comment 
-	  "Flattening lets and naming of function applications done. See below:";
+      if !verbose then 
+	comment "Un-nest let/in blocks. See below:";
       if !verbose then Printer.implementation_list info_ff impl_list;
       
-      (* compilation of periods *)
-      let impl_list = Period.implementation_list impl_list in
-      if !verbose then comment "Translation of periods done. See below:";
+      (* Gather all horizons into a single one per function *)
+      let impl_list = Horizon.implementation_list impl_list in
+      if !verbose then comment "Gather all horizons. See below:";
       if !verbose then Printer.implementation_list info_ff impl_list;
       
-      (* compile the reset construct. Introduce a fresh reset for every *)
-      (* branch *)
+      (* compiling the initialization -> and init *)
       let impl_list = Reset.implementation_list impl_list in
       if !verbose then 
 	comment 
-	  "Compilation of reset done. Add initialization bit for every branch. See below:";
-      if !verbose then Printer.implementation_list info_ff impl_list;
-      
-      (* actualize the set of write variable in every block *)
-      let impl_list = Write.implementation_list impl_list in
-      if !verbose then
-	comment "Actualize write variables in blocks. See below:";
+	  "Compilation of reset done. See below:";
       if !verbose then Printer.implementation_list info_ff impl_list;
       
       (* A-normal form. A restricted case for the moment. *)
@@ -235,6 +237,17 @@ let compile modname filename =
 	comment "Add copies for [last x] to remore false cycles. See below:";
       if !verbose then Printer.implementation_list info_ff impl_list;
       
+      (* actualize the set of write variable in every block *)
+      let impl_list = Write.implementation_list impl_list in
+      if !verbose then comment 
+			 "Actualize write variables in blocks. See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
+      (* optimization. dead-code removal *)
+      let impl_list = Deadcode.implementation_list impl_list in
+      if !verbose then comment "Deadcode removal. See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
       (* schedule *)
       let impl_list = Schedule.implementation_list impl_list in
       if !verbose then comment "Scheduling done. See below:";
@@ -243,11 +256,6 @@ let compile modname filename =
       (* remove copy variables *)
       let impl_list = Copy.implementation_list impl_list in
       if !verbose then comment "Removing of copy variables done. See below:";
-      if !verbose then Printer.implementation_list info_ff impl_list;
-      
-      (* optimization. dead-code removal *)
-      let impl_list = Deadcode.implementation_list impl_list in
-      if !verbose then comment "Deadcode removal. See below:";
       if !verbose then Printer.implementation_list info_ff impl_list;
       
       (* translate *)

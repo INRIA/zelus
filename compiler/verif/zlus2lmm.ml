@@ -221,9 +221,9 @@ let build subst ({ env = env } as acc) l_env =
   Env.fold
     (fun x { t_sort = sort; t_typ = ty } (subst, ({ env = env } as acc)) ->
      let subst = match sort with
-       | Mem { t_initialized = true } ->
+       | Smem { m_init = Some _ } ->
 	  let lx = Ident.fresh "" in Env.add x lx subst
-       | Val | ValDefault _ | Mem _ -> subst in
+       | Sval | Svar _ | Smem _ -> subst in
      subst, { acc with env = (vardec x ty) :: env })
     l_env (subst, acc)
     

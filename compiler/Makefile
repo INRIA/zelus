@@ -35,6 +35,7 @@ GLOBAL = global/misc.cmo \
 	global/global.cmo \
 	global/modules.cmo \
 	global/initial.cmo \
+	global/zaux.cmo \
 	global/ptypes.cmo \
 	global/pcaus.cmo \
 	global/printer.cmo \
@@ -57,16 +58,19 @@ ANALYSIS = analysis/causal.cmo \
 REWRITE = rewrite/markfunctions.cmo \
 	rewrite/dependences.cmo \
 	rewrite/write.cmo \
+	rewrite/unsafe.cmo \
 	rewrite/automata.cmo \
         rewrite/activate.cmo \
 	rewrite/inline.cmo \
 	rewrite/present.cmo \
-	rewrite/letin.cmo \
 	rewrite/period.cmo \
-	rewrite/delays.cmo \
+	rewrite/pre.cmo \
+	rewrite/encore.cmo \
+	rewrite/horizon.cmo \
 	rewrite/reset.cmo \
 	rewrite/aform.cmo \
 	rewrite/shared.cmo \
+	rewrite/letin.cmo \
 	rewrite/control.cmo \
 	rewrite/cse.cmo \
 	rewrite/cut.cmo \

@@ -5,5 +5,14 @@
 val time_sharing : bool -D-> int * int
 \end{ChkListingMsg}
 \begin{ChkListingErr}
-Success.
+File "tutorial.zls", line 2-9, characters 6-214:
+>......automaton
+>      | Init ->
+>          do x = 0 and y = 0 continue S1
+>      | S1 ->
+>          do x = 0 -> pre x + 1 until c continue S2
+>      | S2 ->
+>          do y = 0 -> pre y + 1 until c continue S1
+>      end
+Type warning: the state Init in this automaton is unreachable.
 \end{ChkListingErr}

@@ -5,5 +5,10 @@
 val expect : bool -D-> bool
 \end{ChkListingMsg}
 \begin{ChkListingErr}
-Success.
+File "tutorial.zls", line 2-5, characters 2-83:
+>..automaton
+>  | S1 -> do o = false until x then S2
+>  | S2 -> do o = true done
+>  end
+Type warning: the state S1 in this automaton is unreachable.
 \end{ChkListingErr}

@@ -118,35 +118,34 @@ let check_target_state loc expected_reset actual_reset =
 	else error loc (Ereset_target_state(actual_reset, expected_reset))
 
 (* Every shared variable defined in the initial state of an automaton *)
-(* left weakly is considered to be a memory. Branches are implicitely *)
-(* complemented with [x = last x] *)
-let add_last_to_tenv h { dv = dv } =
+(* left weakly is considered to be an initialized state variable. *)
+let turn_vars_into_memories h { dv = dv } =
   let add n acc = 
     let ({ t_sort = sort; t_typ = typ } as tentry) = Env.find n h in
     match sort with
-      | Mem { t_default = Previous } -> Env.add n tentry acc
-      | Mem m -> 
-	  Env.add n 
-	    { tentry with t_sort = Mem { m with t_default = Previous } } acc
-      | _ -> assert false in
+    | Sval ->
+       Env.add n { tentry with t_sort = Smem (initialized empty_mem) } acc
+    | Svar { v_combine = c; v_default = None } ->
+       Env.add n { tentry with
+		   t_sort = Smem { (initialized empty_mem) with m_combine = c } }
+	       acc
+    | Svar { v_combine = c; v_default = Some _ } -> acc
+    | Smem m ->
+       Env.add n { tentry with t_sort = Smem { m with m_init = Some None } } acc in
   let first_h = S.fold add dv Env.empty in
   first_h, Env.append first_h h
 
-(* once every branch of the automaton has been typed *)
-(* every shared variable [x] for which [last x] is used is marked MustLast *)
-let mark_last_to_tenv first_h h =
+(* once all branch of the automaton has been typed *)
+(* incorporate the information computed about variables from *)
+(* the initial environment into the global one *)
+let incorporate_into_env first_h h =
   let mark n { t_sort = sort } =
-    match sort with  
-      | Mem({ t_last_is_used = true } as m) ->
-          let { t_sort = sort0 } as tentry = Env.find n h in
-          tentry.t_sort <- Mem(m)
-      | Mem _ -> ()
-      | _ -> assert false in
+    let tentry = Env.find n h in tentry.t_sort <- sort in
   Env.iter mark first_h
 
 (** Remove the sort "last" to the set [h] *)
 let remove_last_to_env h =
-  let remove t_entry = { t_entry with t_sort = Val } in
+  let remove t_entry = { t_entry with t_sort = Deftypes.value } in
   Env.map remove h
 
 (** Variables in a pattern *)
@@ -158,10 +157,11 @@ let var h n =
 
 let last loc h n =
   let { t_sort = sort; t_typ = typ } as entry = Env.find n h in 
-  (* [last n] is allowed only if [n] is marked to be a memory *)
+  (* [last n] is allowed only if [n] is a state variable *)
   begin match sort with
-    | Val | ValDefault _ -> error loc (Elast_undefined(n))
-    | Mem m -> entry.t_sort <- Mem { m with t_last_is_used = true }
+	| Sval | Svar _ -> error loc (Elast_undefined(n))
+	| Smem (m) ->
+	   entry.t_sort <- Smem { m with m_previous = true }
   end; typ
 
 let der h n =
@@ -182,32 +182,32 @@ let constr loc c =
 
 let rec get_all_labels loc ty =
   match ty.t_desc with
-    | Tconstr(qual, _, _) ->
-        let { info = { type_desc = ty_c } } =
-          find_type loc (Lident.Modname(qual)) in
-        begin match ty_c with
-              Record_type(l) -> l
-            | _ -> assert false
-        end
-    | Tlink(link) -> get_all_labels loc link
-    | _ -> assert false
-
+  | Tconstr(qual, _, _) ->
+     let { info = { type_desc = ty_c } } =
+       find_type loc (Lident.Modname(qual)) in
+     begin match ty_c with
+             Record_type(l) -> l
+           | _ -> assert false
+     end
+  | Tlink(link) -> get_all_labels loc link
+  | _ -> assert false
+		
 (* check that every name introduced in the local list is associated to a *)
 (* definition *)
 (* returns a new [defined_names] where names from [n_list] has been removed *)
 let check_definition_for_every_name loc defined_names n_list =
   List.fold_left
     (fun { dv = dv; di = di; der = der } n ->
-      let in_dv = S.mem n dv in
-      let in_di = S.mem n di in
-      let in_der = S.mem n der in
-      if not (in_dv || in_di || in_der) 
-      then error loc (Eequation_is_missing(n));
-      { dv = if in_dv then S.remove n dv else dv;
-	di = if in_di then S.remove n di else di;
-	der = if in_der then S.remove n der else der })
- defined_names n_list
-
+     let in_dv = S.mem n dv in
+     let in_di = S.mem n di in
+     let in_der = S.mem n der in
+     if not (in_dv || in_di || in_der) 
+     then error loc (Eequation_is_missing(n));
+     { dv = if in_dv then S.remove n dv else dv;
+       di = if in_di then S.remove n di else di;
+       der = if in_der then S.remove n der else der })
+    defined_names n_list
+    
 (* sets that a variable is defined by an equation [x = ...] or [next x = ...] *)
 (* when [is_next = true] then [x] must be defined by equation [next x = ...] *)
 (* [x = ...] otherwise *)
@@ -216,15 +216,13 @@ let set is_next loc dv h =
     let { t_sort = sort } as entry = 
       try Env.find x h with Not_found -> assert false in
   match sort with
-    | Val | ValDefault _ -> 
-        if is_next then error loc (Ecannot_be_set(is_next, x))
-    | Mem ({ t_last_is_used = last; t_is_set = set; t_next_is_set = next } as m)
-      ->
-        if is_next then 
-	  if last || set then error loc (Ecannot_be_set(is_next, x))
-	  else entry.t_sort <- Mem { m with t_next_is_set = true }
-	else if next then error loc (Ecannot_be_set(is_next, x))
-	     else entry.t_sort <- Mem { m with t_is_set = true } in
+  | Sval -> error loc (Ecannot_be_set(is_next, x))
+  | Svar _ -> if is_next then error loc (Ecannot_be_set(is_next, x))
+  | Smem ({ m_next = n_opt } as m) ->
+     match n_opt with
+     | None ->
+	entry.t_sort <- Smem { m with m_next = Some(is_next) }
+     | Some(n) -> if n <> is_next then error loc (Ecannot_be_set(is_next, x)) in
   S.iter set dv
 
 (* set the variables from [dv] to be initialized *)
@@ -233,8 +231,8 @@ let set_init loc dv h =
     let { t_sort = sort } as entry = 
       try Env.find x h with Not_found -> assert false in
   match sort with
-    | Val | ValDefault _ -> assert false
-    | Mem(m) -> entry.t_sort <- Mem { m with t_initialized = true } in
+    | Sval | Svar _ -> assert false
+    | Smem m -> entry.t_sort <- Smem { m with m_init = Some(None) } in
   S.iter set dv
 
 (* set the variables from [dv] to be derivatives *)
@@ -243,15 +241,28 @@ let set_derivative loc dv h =
     let { t_sort = sort } as entry = 
       try Env.find x h with Not_found -> assert false in
   match sort with
-    | Val | ValDefault _ -> assert false
-    | Mem(m) -> entry.t_sort <- Mem { m with t_der_is_defined = true } in
+    | Sval | Svar _ -> assert false
+    | Smem m -> entry.t_sort <- Smem { m with m_kind = Some(Cont) } in
   S.iter set dv
 
 (** Build the initial environment. When [is_last = false] *)
 (** variables are input values *)
-let initialize_env is_last h0 =
+let set_env_with_values h0 =
   let initialize _ entry = 
-    if not is_last then entry.t_sort <- Val;
+    entry.t_sort <- Sval;
+    entry.t_typ <- Types.new_var () in
+  Env.iter initialize h0
+
+let set_env is_mem h0 =
+  let initial_memory =
+    Smem { m_kind = None; m_next = None; m_previous = false;
+	   m_init = None; m_combine = None } in
+  let initialize _ ({ t_sort = sort } as entry) = 
+    let sort =
+      match sort with
+      | Svar _ when is_mem -> initial_memory
+      | _ -> sort in
+    entry.t_sort <- sort;
     entry.t_typ <- Types.new_var () in
   Env.iter initialize h0
   
@@ -281,6 +292,12 @@ let operator loc expected_k op =
         op, Tdiscrete(true), true, [s; s], s
     | Eup ->
         op, Tcont, true, [Initial.typ_float], Initial.typ_zero
+    | Ehorizon ->
+        op, Tcont, true, [Initial.typ_float], Initial.typ_zero
+    | Eafter ->
+        let s1 = new_var () in
+        let s2 = new_var () in
+        op, Tany, true, [s1; s2], s1
     | Etest ->
         let s = new_var () in
         op, Tany, true, [Initial.typ_signal s], Initial.typ_bool
@@ -373,7 +390,7 @@ let check_total_pattern_list p_list = List.iter check_total_pattern p_list
 (** Typing a pattern matching. Returns defined names *)
 let match_handlers body loc expected_k h total m_handlers pat_ty ty =
   let handler { m_pat = pat; m_body = b; m_env = h0 } =
-    initialize_env false h0;
+    set_env_with_values h0;
     pattern h0 pat pat_ty;
     let h = Env.append h0 h in
     body expected_k h b ty in
@@ -383,7 +400,7 @@ let match_handlers body loc expected_k h total m_handlers pat_ty ty =
         
   let defined_names_list = 
     if is_exhaustive then defined_names_list 
-    else Total.empty :: defined_names_list in
+    else Deftypes.empty :: defined_names_list in
   (* set total to the right value *)
   total := is_exhaustive;
   (* identify variables which are defined partially *)
@@ -393,11 +410,14 @@ let match_handlers body loc expected_k h total m_handlers pat_ty ty =
 (** for every branch the expected kind is discrete. For the default case *)
 (** it is the kind of the context. *)
 let present_handlers scondpat body loc expected_k h p_h_list b_opt expected_ty =
-  let handler { p_cond = scpat; p_body = b; p_env = h0 } =
+  let handler ({ p_cond = scpat; p_body = b; p_env = h0 } as ph) =
     (* local variables from [scpat] cannot be accessed through a last *)
-    initialize_env false h0;
+    set_env_with_values h0;
     let h = Env.append h0 h in
-    scondpat expected_k (Types.is_continuous expected_k) h scpat;
+    let is_zero = Types.is_continuous expected_k in
+    scondpat expected_k is_zero h scpat;
+    (* sets [zero = true] is [expected_k = Tcont] *)
+    ph.p_zero <- is_zero;
     body (Types.lift_to_discrete expected_k) h b expected_ty in
 
   let defined_names_list = List.map handler p_h_list in
@@ -405,7 +425,7 @@ let present_handlers scondpat body loc expected_k h p_h_list b_opt expected_ty =
   (* treat the optional default case *)
   let defined_names_list =
     match b_opt with
-      | None -> Total.empty :: defined_names_list
+      | None -> Deftypes.empty :: defined_names_list
       | Some(b) -> let defined_names = body expected_k h b expected_ty in
                    defined_names :: defined_names_list in
 
@@ -416,7 +436,7 @@ let block locals body expected_k h
     ({ b_vars = n_list; b_locals = l_list; 
        b_body = bo; b_env = h0; b_loc = loc } as b) expected_ty =
   (* initialize the local environment *)
-  initialize_env (Types.is_statefull expected_k) h0;
+  set_env (Types.is_statefull expected_k) h0;
   let h = Env.append h0 h in
   let new_h = locals expected_k h l_list in
   let defined_names = body expected_k new_h bo in
@@ -543,11 +563,11 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
 	let dv = vars p in
 	(* sets that every variable from [dv] has a current value *)
 	set false loc dv h;
-	{ Total.empty with dv = dv }
+	{ Deftypes.empty with dv = dv }
     | EQset(ln, e) ->
         let qualid, ty = global loc ln in
 	expect expected_k h e ty;
-	Total.empty        
+	Deftypes.empty        
     | EQinit(n, e0) ->
         (* an initialization is valid only in a continuous or discrete context *)
         check_statefull loc expected_k;
@@ -556,7 +576,7 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
         (* sets that every variable from [di] is initialized *)
 	let di = S.singleton n in
 	set_init loc di h;
-	{ Total.empty with di = di }
+	{ Deftypes.empty with di = di }
     | EQnext(n, e, e0_opt) ->
         (* a next is valid only in a discrete context *)
         less_than loc (Tdiscrete(true)) expected_k;
@@ -570,7 +590,7 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
 	    | None -> S.empty | Some(e) -> expect expected_k h e actual_ty; dv in
 	(* sets that every variable from [di] is initialized *)
 	set_init loc di h;
-	{ Total.empty with dv = dv; di = di }
+	{ Deftypes.empty with dv = dv; di = di }
     | EQder(n, e, e0_opt, p_h_e_list) ->
         (* integration is only valid in a continuous context *)
         less_than loc Tcont expected_k;
@@ -616,7 +636,7 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
                 unify loc (Initial.typ_signal ty_e) ty_name;
                 expect expected_k h e ty_e 
         end;
-        { Total.empty with dv = S.singleton n }
+        { Deftypes.empty with dv = S.singleton n }
     | EQblock(b_eq_list) ->
       snd (block_eq_list expected_k h b_eq_list) in
   (* set the names defined in the current equation *)
@@ -627,13 +647,13 @@ and equation_list expected_k h eq_list =
   List.fold_left
     (fun defined_names eq -> 
       Total.join eq.eq_loc (equation expected_k h eq) defined_names)
-    Total.empty eq_list
+    Deftypes.empty eq_list
 
 (** Type a present handler when the body is an expression *)
 and present_handler_exp_list loc expected_k h p_h_list e0_opt expected_ty =
   present_handlers scondpat 
     (fun expected_k h e expected_ty -> 
-      expect expected_k h e expected_ty; Total.empty)
+      expect expected_k h e expected_ty; Deftypes.empty)
     loc expected_k h p_h_list e0_opt expected_ty
 
 and present_handler_block_eq_list loc expected_k h p_h_list b_opt =
@@ -649,7 +669,7 @@ and match_handler_block_eq_list loc expected_k h total m_h_list pat_ty =
 and match_handler_exp_list loc expected_k h total m_h_list pat_ty ty =
   match_handlers 
     (fun expected_k h e expected_ty ->
-      expect expected_k h e expected_ty; Total.empty)
+      expect expected_k h e expected_ty; Deftypes.empty)
     loc expected_k h total m_h_list pat_ty ty
   
 (** Type a block when the body is a list of equations *)
@@ -660,7 +680,7 @@ and block_eq_list expected_k h b =
 
 and local expected_k h { l_eq = eq_list; l_env = h0; l_loc = loc } =
   (* decide whether [last x] is allowed or not on every [x] from [h0] *)
-  initialize_env (Types.is_statefull expected_k) h0;
+  set_env (Types.is_statefull expected_k) h0;
   let h = Env.append h0 h in
   ignore (equation_list expected_k h eq_list);
   (* outside of the block, last values cannot be accessed anymore *)
@@ -743,6 +763,9 @@ and mark_reset_state def_states state_handlers =
 
 (** Typing an automaton. Returns defined names *)
 and automaton_handlers is_weak loc expected_k h state_handlers se_opt =
+  (* check that all declared states are accessible *)
+  Total.Automaton.check_all_states_are_accessible loc state_handlers;
+  
   (* global table which associate the set of defined_names for every state *)
   let t = Total.Automaton.table state_handlers in
     
@@ -774,15 +797,17 @@ and automaton_handlers is_weak loc expected_k h state_handlers se_opt =
   let typing_handler h 
 	{ s_state = statepat; s_body = b; s_trans = trans; s_env = h0 } =
     let escape source_state h expected_k 
-        { e_cond = scpat; e_reset = r; e_block = b_opt; 
-          e_next_state = state; e_env = h0 } =
+        ({ e_cond = scpat; e_reset = r; e_block = b_opt; 
+           e_next_state = state; e_env = h0 } as esc) =
       (* type one escape condition *)
-      initialize_env (Types.is_statefull expected_k) h0;
+      set_env_with_values h0;
       let h = Env.append h0 h in
       scondpat expected_k is_zero_type h scpat;
+      (* sets flag [zero = true] when [is_zero_type = true] *)
+      esc.e_zero <- is_zero_type;
       let h, defined_names = 
 	match b_opt with 
-	  | None -> h, Total.empty 
+	  | None -> h, Deftypes.empty 
 	  | Some(b) -> block_eq_list (Tdiscrete(true)) h b in
       (* checks that [state] belond to the current set of [states] *)
       typing_state h def_states r state;
@@ -792,7 +817,7 @@ and automaton_handlers is_weak loc expected_k h state_handlers se_opt =
       Total.Automaton.add_transition is_weak h statename defined_names t in
 
     (* typing the state pattern *)
-    initialize_env false h0;
+    set_env_with_values h0;
     begin match statepat.desc with
       | Estate0pat _ -> ()
       | Estate1pat(s, n_list) ->
@@ -816,7 +841,7 @@ and automaton_handlers is_weak loc expected_k h state_handlers se_opt =
   let defined_names = typing_handler h first_handler in
   (* if the initial state has only weak transition then all *)
   (* variables from [defined_names] do have a last value *)
-  let first_h, new_h = if is_weak then add_last_to_tenv h defined_names 
+  let first_h, new_h = if is_weak then turn_vars_into_memories h defined_names 
 		       else Env.empty, h in
 
   let defined_names_list = 
@@ -831,8 +856,9 @@ and automaton_handlers is_weak loc expected_k h state_handlers se_opt =
       b.b_write <- defined_names)
     state_handlers (defined_names :: defined_names_list);
   
-  (* mark all variable x for which last x is used *)
-  mark_last_to_tenv first_h h;
+  (* incorporate all the information computed concerning variables *)
+  (* from the initial handler into the global one *)
+  incorporate_into_env first_h h;
 
   (* finally, indicate for every state handler if it is entered by reset or not *)
   mark_reset_state def_states state_handlers;
@@ -850,7 +876,7 @@ let implementation ff impl =
 	  Misc.push_binding_level ();
 	  let expected_k = Interface.kindtype k in
           (* var. in the pattern list [pat_list] cannot be accessed with a last *)
-	  initialize_env false h0;
+	  set_env_with_values h0;
           (* first type the body *)
           let ty_list = List.map (fun _ -> new_var ()) pat_list in
           pattern_list h0 pat_list ty_list;

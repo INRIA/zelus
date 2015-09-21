@@ -183,7 +183,7 @@ let build_env l_env =
      let ty_c = Causal.skeleton_with_name n ty in
      let is_last =
        match sort with
-         | Deftypes.Mem { Deftypes.t_der_is_defined = true } -> true
+         | Deftypes.Smem { Deftypes.m_kind = Some(Deftypes.Cont) } -> true
          | _ -> false in
      Env.add n { t_typ = ty_c; t_last = is_last } acc in
    Env.fold entry l_env Env.empty

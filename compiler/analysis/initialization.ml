@@ -32,17 +32,13 @@ type tentry =
 (** Build an environment from a typing environment *)
 (* if a variable is initialized with [init x = e] then [x] does *)
 (* have a last value which is initialized provided [e] is initialized *)
-(* otherwise, [last x] is not initialized. Signals must always be initialized *)
+(* otherwise, [last x] is not initialized. *)
 let build_env l_env env =
   let entry { Deftypes.t_sort = sort; Deftypes.t_typ = ty } = 
     match sort with 
-      | Deftypes.Mem { Deftypes.t_initialized = true } -> 
-	  { t_last = true; t_typ = Init.skeleton_on_i izero ty }
-      | Deftypes.Mem { Deftypes.t_last_is_used = true } 
-      |	Deftypes.Mem { Deftypes.t_der_is_defined = true } -> 
-          { t_last = false; t_typ = Init.skeleton_on_i izero ty }
-      | Deftypes.Mem { Deftypes.t_default = Absent | Default } | Deftypes.Val -> 
-	  { t_last = true; t_typ = Init.skeleton ty }
+    | Deftypes.Smem { Deftypes.m_init = Some _ }
+    | Deftypes.Sval | Deftypes.Svar _ -> 
+	 { t_last = true; t_typ = Init.skeleton_on_i izero ty }
       | _ -> { t_last = false; t_typ = Init.skeleton ty } in
   Env.fold (fun n tentry acc -> Env.add n (entry tentry) acc) l_env env
 
@@ -346,14 +342,14 @@ and equation env { eq_desc = eq_desc; eq_loc = loc } =
 	let defnames_list =
 	  List.map (fun { m_body = { b_write = w } } -> w) m_h_list in
 	let defnames_list = 
-	  if !total then defnames_list else Total.empty :: defnames_list in
+	  if !total then defnames_list else Deftypes.empty :: defnames_list in
 	initialized_last loc env defnames_list
     | EQpresent(p_h_list, b_opt) ->
         let _ = Misc.optional_map (fun b -> ignore (block_eq_list env b)) b_opt in
         present_handler_block_eq_list env p_h_list;
 	(* every partially defined value must have an initialized value *)
 	let defnames =
-	  match b_opt with | None -> Total.empty | Some { b_write = w } -> w in
+	  match b_opt with | None -> Deftypes.empty | Some { b_write = w } -> w in
 	let defnames_list =
 	  List.map (fun { p_body = { b_write = w } } -> w) p_h_list in
 	initialized_last loc env (defnames :: defnames_list)       

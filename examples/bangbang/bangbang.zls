@@ -28,9 +28,10 @@ let node adc (v) = pcm where
 
 (* ** model of digital thermometer ** *)
 
-let node digital_thermometer (temp) = int_of_float(adv) where
-  rec voltage = 0.05 *. temp +. 0.75
-  and adv = adc (voltage)
+let node digital_thermometer (temp) =
+  let voltage = 0.05 *. temp +. 0.75 in
+  let adv = adc (voltage) in
+  int_of_float(adv)
 
 (* signed fixed-point int from scale and bias *)
 let discrete fixdt (s, b, v) = int_of_float ((v -. b) /. s)

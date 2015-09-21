@@ -88,23 +88,23 @@ type defnames = S.t
 module Rename =
 struct
   (* the sort of names *)
-  type tsort = bool (* [init x = ...] appear *)
+  type initialized = bool (* [init x = ...] appear *)
 
   (* the renaming environment associates a fresh name and a sort *)
-  type value = { v_name: Ident.t; mutable v_sort: tsort }
+  type value = { v_name: Ident.t; mutable initialized: initialized }
   include (Map.Make (struct type t = string let compare = String.compare end))
   
   (* an entry *)
-  let entry n = { v_name = n; v_sort = false }
+  let entry n = { v_name = n; initialized = false }
   
-  let initialize ({ v_sort = s } as v) = v.v_sort <- true
+  let initialize ({ initialized = s } as v) = v.initialized <- true
 
   (* flat an environment into a list *)
   let list env =
     fold (fun key v acc -> (key, v) :: acc) env []
   let print ff env =
     List.iter
-      (fun (key, { v_name = n; v_sort = sort }) -> 
+      (fun (key, { v_name = n; initialized = sort }) -> 
        fprintf ff "@[%s%s@]" (if sort then "init " else "") key)
       (list env)
   
@@ -118,25 +118,21 @@ struct
   let append env0 env = fold (fun key v env -> add key v env) env0 env
   
   (* build a typing environment from a renaming environment *)
-  (* when nothing is said about a local ident [x] it is considered to be a *)
-  (* register only if an equation [init x = ...] occurs. Otherwise *)
-  (* its default value is absent *)
+  (* when [init x = ...] occurs, [x] is considered to be initialized memory *)
   let typ_env env =
-    let convert sort =
-      Deftypes.Mem 
-	{ Deftypes.empty_mem with 
-	  Deftypes.t_default = if sort then Deftypes.Previous else Deftypes.Absent } in
+    let init is_init =
+      if is_init then Deftypes.imemory else Deftypes.variable in
     fold 
-      (fun key { v_name = n; v_sort = sort } acc -> 
-       Env.add n { t_sort = convert sort; t_typ = no_typ } acc)
+      (fun key { v_name = n; initialized = is_init } acc -> 
+       Env.add n { t_sort = init is_init; t_typ = no_typ } acc)
       env Env.empty     
 end
 
 (* making a local declaration and a block producing a [result] *)
-let emake loc desc = 
-  { Zelus.e_desc = desc; Zelus.e_loc = loc; Zelus.e_typ = no_typ; Zelus.e_caus = [] }
-let pmake loc desc = 
-  { Zelus.p_desc = desc; Zelus.p_loc = loc; Zelus.p_typ = no_typ; Zelus.p_caus = [] }
+let emake loc desc = { (Zaux.emake desc no_typ) with Zelus.e_loc = loc }
+let eqmake loc desc = { (Zaux.eqmake desc) with Zelus.eq_loc = loc }
+let pmake loc desc =  { (Zaux.pmake desc no_typ) with Zelus.p_loc = loc }
+
 let var loc x = emake loc (Zelus.Elocal(x))
 let varpat loc x = pmake loc (Zelus.Evarpat(x))
 
@@ -155,22 +151,21 @@ let block_with_result emit ({ Zelus.e_loc = loc } as e) =
 
 let local_with_result result eq = 
   { Zelus.l_eq = [eq]; Zelus.l_loc = eq.Zelus.eq_loc; 
-    Zelus.l_env = Env.singleton result { t_sort = Val; t_typ = no_typ } }
+    Zelus.l_env =
+      Env.singleton result { t_sort = Deftypes.variable; t_typ = no_typ } }
 
 let local_for_present loc is_mem result eq_list = 
-  let sort = if is_mem then Mem empty_mem else Val in
+  let sort = if is_mem then Deftypes.imemory else Deftypes.variable in
   { Zelus.l_eq = eq_list; Zelus.l_loc = loc; 
     Zelus.l_env = Env.singleton result { t_sort = sort; t_typ = no_typ } }
                 
 let equation_with_result result ({ Zelus.e_loc = loc } as e) = 
-  { Zelus.eq_desc = Zelus.EQeq(varpat loc result, e); Zelus.eq_loc = loc;
-    Zelus.eq_before = Ident.S.empty; Zelus.eq_after = Ident.S.empty;
-    Zelus.eq_write = empty }
+  eqmake loc (Zelus.EQeq(varpat loc result, e))
   
 let name_with_sort initialize loc env n =
   try
     let { Rename.v_name = m } as v = Rename.find n env in
-    if initialize then v.Rename.v_sort <- true;
+    if initialize then v.Rename.initialized <- true;
     m
   with
   | Not_found -> Error.error loc (Error.Evar(n))
@@ -379,7 +374,7 @@ let present_handler_list scondpat body env_pat env p_h_list =
     let env_scpat, env, scpat = scondpat env scpat in
     let b = body env_pat env b in
     { Zelus.p_cond = scpat; Zelus.p_body = b;
-    Zelus.p_env = Rename.typ_env env_scpat } in
+      Zelus.p_env = Rename.typ_env env_scpat; Zelus.p_zero = false } in
   List.map handler p_h_list
 
 (** Translate automata *)
@@ -428,15 +423,18 @@ let state_handler_list
 	| Some(b) -> let env, b = block_in_escape env_pat env b in env, Some(b) in
     let se = state env se in
     { Zelus.e_cond = scpat; Zelus.e_reset = r; Zelus.e_block = b_opt;
-      Zelus.e_next_state = se; Zelus.e_env = Rename.typ_env env_scpat } in
+      Zelus.e_next_state = se; Zelus.e_env = Rename.typ_env env_scpat;
+      Zelus.e_zero = false } in
 
   (* We forbid until and unless transitions to be mixed *)
   let is_weak, is_strong =
     List.fold_left
       (fun (is_weak, is_strong)
 	   { desc = { s_until = until; s_unless = unless } } ->
-       is_weak || (until <> []), is_strong || (unless <> [])) (false, false) s_h_list in
-  if is_weak && is_strong then Error.error loc (Error.Eautomaton_with_mixed_transitions);
+	     is_weak || (until <> []), is_strong || (unless <> []))
+      (false, false) s_h_list in
+  if is_weak && is_strong
+  then Error.error loc (Error.Eautomaton_with_mixed_transitions);
   (* treat one handler *)
   let handler
 	{ desc = { s_state = spat; s_block = b;
@@ -450,6 +448,8 @@ let state_handler_list
       Zelus.s_env = Rename.typ_env env_spat;
       Zelus.s_reset = false } in
 
+  (* in case there is no transition, the automaton is weak *)
+  let is_weak = not is_strong in
   is_weak, List.map handler s_h_list, Misc.optional_map (state env) se_opt
 
 (* A block [b] appears in a context of the form [pat -> b] *)
@@ -518,21 +518,13 @@ let rec expression env { desc = desc; loc = loc } =
            let match e with P -> do result = e1 done in result *)
         let result = Ident.fresh "result" in
         let emit e = 
-	  { Zelus.eq_desc = Zelus.EQeq(varpat e.Zelus.e_loc result, e); 
-	    Zelus.eq_loc = e.Zelus.e_loc;
-	    Zelus.eq_before = Ident.S.empty;
-	    Zelus.eq_after = Ident.S.empty;
-	    Zelus.eq_write = empty } in
+	  eqmake e.Zelus.e_loc (Zelus.EQeq(varpat e.Zelus.e_loc result, e)) in
 	let e1 = expression env e1 in
         let handlers = 
 	  match_handler_list 
 	    (fun _ env e -> let e = expression env e in block_with_result emit e) 
 	    Rename.empty env handlers in
-	let eq = { Zelus.eq_desc = Zelus.EQmatch(ref false, e1, handlers); 
-                   Zelus.eq_loc = loc;
-		   Zelus.eq_before = Ident.S.empty;
-		   Zelus.eq_after = Ident.S.empty;
-		   Zelus.eq_write = empty } in
+	let eq = eqmake loc (Zelus.EQmatch(ref false, e1, handlers)) in
         Zelus.Elet(local_with_result result eq, var loc result)
    | Epresent(handlers, e_opt) ->
         (* Translate a present expression into a present equation *)
@@ -549,18 +541,10 @@ let rec expression env { desc = desc; loc = loc } =
 	let emit e =
 	  match e_opt with 
 	    | Nothing -> 
-	        { Zelus.eq_desc = Zelus.EQemit(result, Some(e)); 
-		  Zelus.eq_loc = e.Zelus.e_loc;
-		  Zelus.eq_before = Ident.S.empty;
-		  Zelus.eq_after = Ident.S.empty;
-		  Zelus.eq_write = empty }
+	        eqmake e.Zelus.e_loc (Zelus.EQemit(result, Some(e)))
 	    | Init _ 
 	    | Else _ ->
-	       { Zelus.eq_desc = Zelus.EQeq(varpat e.Zelus.e_loc result, e); 
-		 Zelus.eq_loc = e.Zelus.e_loc;
-		 Zelus.eq_before = Ident.S.empty;
-		 Zelus.eq_after = Ident.S.empty;
-		 Zelus.eq_write = empty } in
+	       eqmake e.Zelus.e_loc (Zelus.EQeq(varpat e.Zelus.e_loc result, e)) in
 	let handlers = 
 	  present_handler_list
 	    scondpat 
@@ -570,71 +554,42 @@ let rec expression env { desc = desc; loc = loc } =
 	    match e_opt with 
 	      | Nothing -> None, [], false
 	      | Init(e) -> None, 
-			   [{ Zelus.eq_desc = 
-				Zelus.EQinit(result, expression env e); 
-			      Zelus.eq_loc = loc;
-			      Zelus.eq_before = Ident.S.empty;
-			      Zelus.eq_after = Ident.S.empty;
-			      Zelus.eq_write = empty }], true
+		[eqmake loc (Zelus.EQinit(result, expression env e))],
+		true
 	      | Else(e) -> 
 		 Some(block_with_result emit (expression env e)), [], false in
 	let eq_list = 
-	  { Zelus.eq_desc = Zelus.EQpresent(handlers, b_opt); 
-	    Zelus.eq_loc = loc;
-	    Zelus.eq_before = Ident.S.empty;
-	    Zelus.eq_after = Ident.S.empty;
-	    Zelus.eq_write = empty } :: eq_init in
+	  eqmake loc (Zelus.EQpresent(handlers, b_opt)) :: eq_init in
 	Zelus.Elet(local_for_present loc is_mem result eq_list, var loc result)
     | Ereset(e_body, r) ->
         let e_body = expression env e_body in
 	let r = expression env r in
 	let result = Ident.fresh "result" in
 	let eq = 
-	  { Zelus.eq_desc = 
-	      Zelus.EQeq(varpat e_body.Zelus.e_loc result, e_body); 
-	    Zelus.eq_loc = e_body.Zelus.e_loc;
-	    Zelus.eq_before = Ident.S.empty;
-	    Zelus.eq_after = Ident.S.empty;
-	    Zelus.eq_write = empty } in
-	let eq = { Zelus.eq_desc = Zelus.EQreset([eq], r);
-		   Zelus.eq_loc = loc;
-		   Zelus.eq_before = Ident.S.empty;
-		   Zelus.eq_after = Ident.S.empty;
-		   Zelus.eq_write = empty } in
+	  eqmake e_body.Zelus.e_loc
+	    (Zelus.EQeq(varpat e_body.Zelus.e_loc result, e_body)) in
+	let eq = eqmake loc (Zelus.EQreset([eq], r)) in
 	Zelus.Elet(local_with_result result eq, var loc result)
     | Eautomaton(handlers, e_opt) ->
         let result = Ident.fresh "result" in
 	let emit e = 
-	  { Zelus.eq_desc = Zelus.EQeq(varpat e.Zelus.e_loc result, e); 
-	    Zelus.eq_loc = e.Zelus.e_loc;
-	    Zelus.eq_before = Ident.S.empty;
-	    Zelus.eq_after = Ident.S.empty;
-	    Zelus.eq_write = empty } in
+	  eqmake e.Zelus.e_loc (Zelus.EQeq(varpat e.Zelus.e_loc result, e)) in
 	let is_weak, handlers, e_opt = 
 	  state_handler_list loc scondpat 
 	    (block locals (fun _ env e -> let e = expression env e in [emit e]))
 	    (block locals equation_list)
 	    expression 
 	    Rename.empty env handlers e_opt in
-	let eq = { Zelus.eq_desc = Zelus.EQautomaton(is_weak, handlers, e_opt); 
-		   Zelus.eq_loc = loc;
-		   Zelus.eq_before = Ident.S.empty;
-		   Zelus.eq_after = Ident.S.empty;
-		   Zelus.eq_write = empty } in
+	let eq = eqmake loc (Zelus.EQautomaton(is_weak, handlers, e_opt)) in
 	Zelus.Elet(local_with_result result eq, var loc result) in
-  
-  { Zelus.e_desc = desc; Zelus.e_loc = loc; Zelus.e_typ = Deftypes.no_typ; Zelus.e_caus = [] }
+  emake loc desc
 
 (* renaming an equation. [env_pat] is used for renamming names *)
 (* appearing in patterns while [env] is used for right-hand side expressions *)
 and equation env_pat env eq_list { desc = desc; loc = loc } =
   match desc with
   | EQeq(pat, e) ->
-     { Zelus.eq_desc = Zelus.EQeq(check_pattern env_pat pat, expression env e); 
-       Zelus.eq_loc = loc;
-       Zelus.eq_before = Ident.S.empty;
-       Zelus.eq_after = Ident.S.empty;
-       Zelus.eq_write = empty } :: eq_list
+     eqmake loc (Zelus.EQeq(check_pattern env_pat pat, expression env e)) :: eq_list
   | EQder(n, e, e0_opt, p_h_e_list) ->
      let e = expression env e in
      let e0_opt = Misc.optional_map (expression env) e0_opt in
@@ -642,100 +597,56 @@ and equation env_pat env eq_list { desc = desc; loc = loc } =
        present_handler_exp_list env_pat env p_h_e_list in
      let initialized = match e0_opt with | None -> false | Some _ -> true in
      let n = name_with_sort initialized loc env_pat n in
-     { Zelus.eq_desc = 
-	 Zelus.EQder(n, e, e0_opt, p_h_e_list);
-       Zelus.eq_loc = loc;
-       Zelus.eq_before = Ident.S.empty;
-       Zelus.eq_after = Ident.S.empty;
-	    Zelus.eq_write = empty } :: eq_list
+     eqmake loc (Zelus.EQder(n, e, e0_opt, p_h_e_list)) :: eq_list
   | EQinit(n, e0) ->
      let n = name_with_sort true loc env_pat n in
      let e0 = expression env e0 in
-     { Zelus.eq_desc = Zelus.EQinit(n, e0);
-       Zelus.eq_loc = loc;
-       Zelus.eq_before = Ident.S.empty;
-       Zelus.eq_after = Ident.S.empty;
-       Zelus.eq_write = empty } :: eq_list
+     eqmake loc (Zelus.EQinit(n, e0)) :: eq_list
   | EQnext(n, e, e0_opt) ->
      let initialized = match e0_opt with | None -> false | Some _ -> true in
      let n = name_with_sort initialized loc env_pat n in
      let e = expression env e in
      let e0_opt = Misc.optional_map (expression env) e0_opt in
-     { Zelus.eq_desc = Zelus.EQnext(n, e, e0_opt);
-       Zelus.eq_loc = loc;
-       Zelus.eq_before = Ident.S.empty;
-       Zelus.eq_after = Ident.S.empty;
-       Zelus.eq_write = empty } :: eq_list
+     eqmake loc (Zelus.EQnext(n, e, e0_opt)) :: eq_list
   | EQemit(n, e_opt) ->
-     { Zelus.eq_desc = Zelus.EQemit(name loc env_pat n, 
-				    optional_map (expression env) e_opt);
-       Zelus.eq_loc = loc;
-       Zelus.eq_before = Ident.S.empty;
-       Zelus.eq_after = Ident.S.empty;
-       Zelus.eq_write = empty } :: eq_list  
+    eqmake loc
+      (Zelus.EQemit(name loc env_pat n, 
+		    optional_map (expression env) e_opt)) :: eq_list  
   | EQautomaton(s_h_list, se_opt) ->
      let is_weak, s_h_list, st_opt =
        state_handler_eq_list loc env_pat env s_h_list se_opt in
-     { Zelus.eq_desc = 
-	 Zelus.EQautomaton(is_weak, s_h_list, st_opt); 
-       Zelus.eq_loc = loc;
-       Zelus.eq_before = Ident.S.empty;
-       Zelus.eq_after = Ident.S.empty;
-       Zelus.eq_write = empty } :: eq_list
+     eqmake loc (Zelus.EQautomaton(is_weak, s_h_list, st_opt)) :: eq_list
   | EQmatch(e, m_h_list) ->
-     { Zelus.eq_desc = 
-	 Zelus.EQmatch(ref false, expression env e, 
-		       match_handler_block_eq_list env_pat env m_h_list);
-       Zelus.eq_loc = loc;
-       Zelus.eq_before = Ident.S.empty;
-       Zelus.eq_after = Ident.S.empty;
-       Zelus.eq_write = empty } :: eq_list
+    eqmake loc
+      (Zelus.EQmatch(ref false, expression env e, 
+		     match_handler_block_eq_list env_pat env m_h_list)) :: eq_list
   | EQifthenelse(e, b1, b2) ->
-     let ptrue = { Zelus.p_desc = Zelus.Econstpat(Deftypes.Ebool(true));
-		   Zelus.p_typ = Deftypes.no_typ;
-		   Zelus.p_caus = [];		   
-		   Zelus.p_loc = Location.no_location } in
-     let pfalse = { Zelus.p_desc = Zelus.Econstpat(Deftypes.Ebool(false));
-		   Zelus.p_typ = Deftypes.no_typ;
-		   Zelus.p_caus = [];		   
-		   Zelus.p_loc = Location.no_location } in
-     { Zelus.eq_desc =
-	 Zelus.EQmatch(ref true, expression env e,
-		       [ { Zelus.m_pat = ptrue; 
-			   Zelus.m_body = snd (block_eq_list env_pat env b1);
-			   Zelus.m_env = Env.empty;
-			   Zelus.m_reset = false; Zelus.m_zero = false };
-			 { Zelus.m_pat = pfalse; 
-			   Zelus.m_body = snd (block_eq_list env_pat env b2);
-			   Zelus.m_env = Env.empty;
-			   Zelus.m_reset = false; Zelus.m_zero = false } ]);
-       Zelus.eq_loc = loc;
-       Zelus.eq_before = Ident.S.empty;
-       Zelus.eq_after = Ident.S.empty;
-       Zelus.eq_write = empty } :: eq_list
+    let ptrue =
+      pmake Location.no_location (Zelus.Econstpat(Deftypes.Ebool(true))) in
+    let pfalse =
+      pmake Location.no_location (Zelus.Econstpat(Deftypes.Ebool(false))) in
+    eqmake loc
+      (Zelus.EQmatch(ref true, expression env e,
+		     [ { Zelus.m_pat = ptrue; 
+			 Zelus.m_body = snd (block_eq_list env_pat env b1);
+			 Zelus.m_env = Env.empty;
+			 Zelus.m_reset = false; Zelus.m_zero = false };
+		       { Zelus.m_pat = pfalse; 
+			 Zelus.m_body = snd (block_eq_list env_pat env b2);
+			 Zelus.m_env = Env.empty;
+			 Zelus.m_reset = false; Zelus.m_zero = false } ]))
+      :: eq_list
   | EQpresent(p_h_list, b_opt) ->
      let b_opt = optional_map (fun b -> snd (block_eq_list env_pat env b)) b_opt in
-     { Zelus.eq_desc = 
-	 Zelus.EQpresent(present_handler_block_eq_list env_pat env p_h_list, b_opt);
-       Zelus.eq_loc = loc;
-       Zelus.eq_before = Ident.S.empty;
-       Zelus.eq_after = Ident.S.empty;
-       Zelus.eq_write = empty } :: eq_list
+     eqmake loc
+       (Zelus.EQpresent(present_handler_block_eq_list env_pat env p_h_list, b_opt))
+     :: eq_list
   | EQreset(eq_r_list, e) ->
-     { Zelus.eq_desc = 
-	 Zelus.EQreset(List.fold_left (equation env_pat env) [] eq_r_list, 
-		       expression env e);
-       Zelus.eq_loc = loc;
-       Zelus.eq_before = Ident.S.empty;
-       Zelus.eq_after = Ident.S.empty;
-       Zelus.eq_write = empty } :: eq_list
+    eqmake loc
+      (Zelus.EQreset(List.fold_left (equation env_pat env) [] eq_r_list, 
+		     expression env e)) :: eq_list
   | EQblock(b) ->
-    { Zelus.eq_desc =
-	Zelus.EQblock(snd (block_eq_list env_pat env b));
-      Zelus.eq_loc = loc;
-      Zelus.eq_before = Ident.S.empty;
-      Zelus.eq_after = Ident.S.empty;
-      Zelus.eq_write = empty } :: eq_list
+    eqmake loc (Zelus.EQblock(snd (block_eq_list env_pat env b))) :: eq_list
 
 and equation_list env_pat env eq_list = 
   List.fold_left (equation env_pat env) [] eq_list

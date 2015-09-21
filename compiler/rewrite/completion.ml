@@ -21,19 +21,6 @@ open Ident
 open Zelus
 open Deftypes
 
-let emake desc = 
-  { e_desc = desc; e_loc = no_location; e_typ = Deftypes.no_typ }
-let eqmake desc = 
-  { eq_desc = desc; eq_loc = no_location; eq_before = S.empty; eq_after = S.empty }
-let var n = 
-  { e_desc = Elocal(n); e_loc = no_location; e_typ = Deftypes.no_typ }
-let varpat n = 
-  { p_desc = Evarpat(n); p_loc = no_location; p_typ = Deftypes.no_typ }
-let wildpat () =
-  { p_desc = Ewildpat; p_loc = no_location; p_typ = Deftypes.no_typ }
-let zero =
-  { e_desc = Econst(Efloat(0.0)); 
-    e_loc = no_location; e_typ = Initial.typ_float }
 
 (* adds an equation [next x = x] or [x = last(x)] or [der x = 0.0] *)
 (* for every partially defined variable in a control structure. *)
@@ -49,7 +36,7 @@ let complete_with_last_next_der env defined_names names eq_list =
   (* add an equation [der n = 0.0] if no equation [n = ...] is present *)
   let der n (eq_list, acc) =
     if (S.mem n names.der) || (S.mem n names.dv) then eq_list, acc
-    else (eqmake (EQder(n, zero, None, []))) :: eq_list, S.add n acc in
+    else (eq_der n zero) :: eq_list, S.add n acc in
   (* add an equation [n = last n] or [next n = n] *)
   let last_of_next n (eq_list, acc) =
     let { Deftypes.t_sort = sort } = 
@@ -59,7 +46,7 @@ let complete_with_last_next_der env defined_names names eq_list =
     match sort with
       | Deftypes.Mem { Deftypes.t_is_set = true } when not already ->
 	  (* add an equation [n = last n] *)
-	  (eqmake (EQeq(varpat n, last n))) :: eq_list, S.add n acc
+	  (eq_make n (last n)) :: eq_list, S.add n acc
       | Deftypes.Mem { Deftypes.t_next_is_set = true } when not already ->
 	  (* add an equation [next n = n] *)
 	  (eqmake (EQnext(n, local n, None))) :: eq_list, S.add n acc
@@ -101,7 +88,7 @@ let add_copies env n_list n_env eq_list copies =
 let default_handler env defnames =
   let eq_list, new_names = 
     complete_with_last_next_der env defnames Total.empty [] in
-  { m_pat = wildpat ();
+  { m_pat = wildpat;
     m_body = { b_vars = []; b_locals = []; b_body = eq_list; 
                b_write = new_names;
 	       b_loc = no_location; b_env = Env.empty };

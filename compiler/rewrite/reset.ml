@@ -43,59 +43,26 @@ open Misc
 open Location
 open Deftypes
 open Zelus
+open Zaux
 open Ident
+
+let eq_false i = eqmake (EQeq(bool_varpat i, efalse))
+
+let add_false_to_block i ({ b_body = eq_list } as b) =
+  { b with b_body = eq_false i :: eq_list }
 
 type reset = 
   | Zinit of Ident.t (* Zinit(i): the reset bit is [i = true -> false] *)
   | Zelse of exp (* Zelse(e): the reset bit is e *)
 
-(** Build basic operations *)
-let make desc ty = 
-  { e_desc = desc; e_loc = no_location; e_typ = ty; e_caus = [] }
-let pmake desc ty = { p_desc = desc; p_loc = no_location; p_typ = ty; p_caus = [] }
-let boolpat n = pmake (Evarpat(n)) Initial.typ_bool
-let eqmake desc =
-  { eq_desc = desc; eq_loc = no_location; eq_before = S.empty;
-    eq_after = S.empty; eq_write = Deftypes.empty }
-let initmake n e =
-  { eq_desc = EQinit(n, e); eq_loc = no_location;
-    eq_before = S.empty; eq_after = S.empty; eq_write = Deftypes.empty }
-let setmake n e = 
-  { eq_desc = EQeq(boolpat n, e); eq_loc = no_location;
-    eq_before = S.empty; eq_after = S.empty; eq_write = Deftypes.empty }
-let efalse = make (Econst(Ebool(false))) Initial.typ_bool
-let etrue = make (Econst(Ebool(true))) Initial.typ_bool
-let eqfalse i =
-  { eq_desc = EQeq(boolpat i, efalse); eq_loc = no_location;
-    eq_before = S.empty; eq_after = S.empty; eq_write = Deftypes.empty }
-let boollast i = make (Elast(i)) Initial.typ_bool
-let add_false_to_block i ({ b_body = eq_list } as b) =
-  { b with b_body = eqfalse i :: eq_list }
-let ifthenelse e1 e2 e3 =
-  { e2 with e_desc = Eapp(Eifthenelse, [e1; e2; e3]) }
-let or_op e1 e2 = 
-  make (Eapp(Eop(false, Lident.Modname(Initial.pervasives_name "||")), [e1; e2])) 
-    Initial.typ_bool
-let init i eq_list = 
-  (initmake i etrue) :: (setmake i efalse) :: eq_list
-let reset = function | Zinit(i) -> boollast i | Zelse(e) -> e
+let reset = function | Zinit(i) -> bool_last i | Zelse(e) -> e
 let initial = function | Zinit _ -> true | Zelse _ -> false
 let eqinit i = function
-  | Zinit _ -> initmake i etrue 
-  | Zelse(e) -> eqmake (EQreset([initmake i etrue], e))
+  | Zinit _ -> eq_init i etrue 
+  | Zelse(e) -> eqmake (EQreset([eq_init i etrue], e))
 let zor e = function
   | Zinit _ -> e | Zelse(ze) -> or_op ze e
 
-(** Distribute [before] and [after] fields over a list of equations *)
-(** Only unsafe equations are concerned *)
-let before_after before after eq_list acc =
-  let add acc ({ eq_before = before0; eq_after = after0 } as eq) =
-    { eq with eq_before =
-	if S.is_empty before0 then before0 else S.union before0 before;
-      eq_after =
-	if S.is_empty after0 then after0 else S.union after0 after } :: acc in
-  List.fold_left add acc eq_list
-  
 (** Static expressions *)
 let rec static { e_desc = desc } =
   match desc with
@@ -109,33 +76,19 @@ let rec static { e_desc = desc } =
 (** Translation of equations. From bottom to top. *)
 (** [equation res (eq_list, env) eq = eq_list', env'] *)
 (** returns an extended set of equations with env extended accordingly *)
-let rec equation res (eq_list, env)
-    ({ eq_desc = desc; eq_before = before; eq_after = after } as eq) =
+let rec equation res (eq_list, env) ({ eq_desc = desc } as eq) =
   match desc with
-  | EQeq(p, ({ e_desc = Eapp(Eop(inline, f), e_list) } as e)) 
-       when (Types.is_a_node f) && not (initial res) ->
-     (* turn the application into [p = f(e1,...,en) every res] *)
-     let e_list = (reset res) :: e_list in
-     { eq with eq_desc = 
-		 EQeq(p, { e with e_desc = Eapp(Eevery(inline, f), e_list) }) }
-       :: eq_list, env
-  | EQeq(p, ({ e_desc = Eapp(Eevery(inline, f), e_res :: e_list) } as e)) 
-       when (Types.is_a_node f) && not (initial res) ->
-     (* turn the application into [p = f(e1,...,en) every res or e_res] *)
-     let e_list = (zor e_res res) :: e_list in
-     { eq with eq_desc = 
-		 EQeq(p, { e with e_desc = Eapp(Eevery(inline, f), e_list) }) }
-       :: eq_list, env
-  | EQeq(p, { e_desc = Eapp(Eminusgreater, [e1; e2]) }) -> 
-     (* [e1 -> e2 = if res then e1 else e2] *)
-     { eq with eq_desc = EQeq(p, ifthenelse (reset res) e1 e2) } :: eq_list, env
-  | EQeq(p, { e_desc = Eapp(Einitial, []) }) -> 
-     (* [init = res] *)
-     { eq with eq_desc = EQeq(p, reset res) } :: eq_list, env
-  | EQset _ -> eq :: eq_list, env
-  | EQinit(x, e) when not (static e) || not (initial res) -> 
-     { eq with eq_desc = EQreset([eq], reset res) } :: eq_list, env
-  | EQnext _ | EQder _ | EQeq _ | EQinit _ -> eq :: eq_list, env     
+  | EQeq(p, e) ->
+     { eq with eq_desc = EQeq(p, expression res e) } :: eq_list, env
+  | EQset(n, e) ->
+     { eq with eq_desc = EQset(n, expression res e) } :: eq_list, env
+  | EQinit(x, e) ->
+     let eq =
+       if not (static e) || not (initial res) then
+	 { eq with eq_desc = EQreset([eq], reset res) } else eq in
+     eq :: eq_list, env
+  | EQder(x, e, None, []) ->
+     { eq with eq_desc = EQder(x, expression res e, None, []) } :: eq_list, env
   | EQmatch(total, e, m_h_list) ->
      (* introduce [n] initialization registers *)
      (* [init i_1 = true and ... init i_n = true] *)
@@ -146,7 +99,7 @@ let rec equation res (eq_list, env)
      let env =
        List.fold_left 
          (fun acc i -> Env.add i { t_typ = Initial.typ_bool; 
-				   t_sort = Mem discrete_memory } acc)
+				   t_sort = Deftypes.memory } acc)
 	 env i_list in
      let eq_list =
        List.fold_left (fun acc i -> (eqinit i res) :: acc) eq_list i_list in
@@ -155,17 +108,15 @@ let rec equation res (eq_list, env)
        List.map2
          (fun ({ m_body = b } as h) i -> 
 	  { h with m_body = 
-		     add_false_to_block i (block (Zelse(boollast i)) b) }) 
+		     add_false_to_block i (block (Zelse(bool_last i)) b) }) 
          m_h_list i_list in
      { eq with eq_desc = EQmatch(total, e, m_h_list) } :: eq_list, env
   | EQreset(res_eq_list, e) ->
-     (* The construction [reset eq1 and ... and eqn every e] is distributed *)
-     (* among the [eq1;...; eqn] *)
-    (* scheduling information ([before] and [after] fields) must *)
-    (* be added to every equation *)
-    let res_eq_list, env = equation_list (Zelse (zor e res)) env res_eq_list [] in
-    before_after before after res_eq_list eq_list, env
-  | EQemit _ | EQautomaton _ | EQpresent _ | EQblock _ -> assert false
+    (* The construction [reset eq1 and ... and eqn every e] is distributed *)
+    (* among the [eq1;...; eqn] *)
+    equation_list (Zelse (zor e res)) env res_eq_list eq_list
+  | EQblock _ | EQemit _ | EQnext _ | EQder _
+  | EQautomaton _ | EQpresent _ -> assert false
 
 and equation_list res env eq_list acc_list = 
   List.fold_left (equation res) (acc_list, env) eq_list
@@ -185,27 +136,70 @@ and block res ({ b_vars = n_list; b_body = eq_list; b_env = n_env } as b) =
   let n_list, n_env = add_locals env n_list n_env in
   { b with b_vars = n_list; b_body = eq_list; b_env = n_env }
 
-(** The main entry function for expressions. They are supposed to be normalized *)
-let exp ({ e_desc = desc } as e) =
-  (* add an equation [init i = true and i = false] *)
-  let add_initialization_bit i ({ l_eq = eq_list; l_env = l_env }  as l) =
-    let l_env = Env.add i { t_typ = Initial.typ_bool; 
-			    t_sort = Mem discrete_memory } l_env in
-    let eq_list = init i eq_list in
-    { l with l_eq = eq_list; l_env = l_env } in
+(** translation of expressions *)
+and expression res ({ e_desc = desc } as e) =
   match desc with
-    | Elet(l, e) -> 
-       (* introduce the initialization bit [i = true -> false] *)
-       let i = Ident.fresh "init" in
-       let l = local (Zinit(i)) l in
-       let l = add_initialization_bit i l in
-       { e with e_desc = Elet(l, e) }
-    | _ -> e
-        
+  | Elocal _ | Eglobal _ | Econst _ | Econstr0 _ | Elast _ -> e
+  | Eapp(Eminusgreater, [e1; e2]) -> 
+     (* [e1 -> e2 = if res then e1 else e2] *)
+     ifthenelse (reset res) e1 e2
+  | Eapp(Einitial, []) -> 
+     (* [init = res] *)
+     reset res
+  | Eapp(Eop(is_inline, f) as op, e_list) ->
+     let e_list = List.map (expression res) e_list in
+     if (Types.is_a_node f) && not (initial res) then
+       (* turn the application into [f(e1,...,en) every res] *)
+       { e with e_desc = Eapp(Eevery(is_inline, f), (reset res) :: e_list) }
+     else 
+       { e with e_desc = Eapp(op, e_list) }
+  | Eapp(Eevery(is_inline, f) as op, e_res :: e_list) ->
+     let e_res = expression res e_res in
+     let e_list = List.map (expression res) e_list in
+     if (Types.is_a_node f) && not (initial res) then
+       (* turn the application into [f(e1,...,en) every res] *)
+       { e with e_desc = Eapp(Eevery(is_inline, f),
+			      (or_op (reset res) e_res) :: e_list) }
+     else { e with e_desc = Eapp(op, e_res :: e_list) }
+  | Eapp(op, e_list) ->
+     { e with e_desc = Eapp(op, List.map (expression res) e_list) }
+  | Etuple(e_list) ->
+     { e with e_desc = Etuple(List.map (expression res) e_list) }
+  | Erecord_access(e, x) ->
+     { e with e_desc = Erecord_access(expression res e, x) }
+  | Erecord(l_e_list) ->
+     let l_e_list = List.map (fun (l, e) -> (l, expression res e)) l_e_list in
+     { e with e_desc = Erecord(l_e_list) }
+  | Etypeconstraint(e, ty) ->
+     { e with e_desc = Etypeconstraint(expression res e, ty) }
+  | Eseq(e1, e2) ->
+     { e with e_desc = Eseq(expression res e1, expression res e2) }
+  | Elet _ | Eperiod _ | Epresent _ | Ematch _ -> assert false
+
+
+(* introduce the initialization bit [init i = true and i = false] *)
+let exp_with_reset ({ e_desc = desc } as e) =
+  (* transform [e] into let rec init i = true and i = false
+                            and result = Tr(i)(e) in result *)
+  let add_init i ({ l_eq = eq_list; l_env = l_env } as l) =
+    { l with l_eq = init i eq_list;
+	     l_env = Env.add i
+			     { t_typ = Initial.typ_bool; t_sort = Deftypes.memory }
+			     l_env } in
+  
+  let i = Ident.fresh "init" in
+  match desc with
+  | Elet(l, e) ->
+     let l = local (Zinit(i)) l in
+     let e = expression (Zinit(i)) e in
+     { e with e_desc = Elet(add_init i l, e) }
+  | _ -> e
+ 
 let implementation impl =
   match impl.desc with
       | Efundecl(n, ({ f_kind = D | C; f_body = e } as body)) ->
-        { impl with desc = Efundecl(n, { body with f_body = exp e }) }
+         { impl with desc =
+		       Efundecl(n, { body with f_body = exp_with_reset e }) }
       | Eopen _ | Etypedecl _ | Econstdecl _ | Efundecl _ -> impl
       
 

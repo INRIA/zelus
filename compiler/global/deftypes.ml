@@ -59,38 +59,36 @@ and instance =
 and kind = Tany | Tcont | Tdiscrete of bool (* statefull or stateless *)
 
 (* entry in the typing environment *)
-type tentry = 
-    { mutable t_sort: tsort; (* its sort *)
+type 'a entry = 
+    { mutable t_sort: 'a tsort; (* its sort *)
       mutable t_typ: typ (* its type *)
     }
 
-and tsort = 
-  | Val (* a value. [last x] is forbidden *)
-  | ValDefault of constant
-        (* a value. [last x] is forbidden. *)
-  | Mem of tmem
+(* variables are defined by local x [[default e | init e ] with op] in ... *)
+and 'a tsort =
+  | Sval (* a let value *)
+  | Svar of 'a var (* a shared variable *)
+  | Smem of 'a mem (* a state variable *)
 
+and 'a var =
+  { v_combine: 'a option; (* combination function *)
+    v_default: 'a option; (* default value *)
+  }
+
+and 'a mem =
+  { m_kind: mkind option;
+    m_next: bool option; (* is-it set with [x = ...] or [next x = ...]? *)
+    m_previous: bool; (* [last x] or [x] is used *)
+    m_init: 'a option option; (* is-it initialized? *)
+    m_combine: 'a option; (* combination function *) }
+
+and mkind = Cont | Zero | Horizon | Period | Encore
+			    
 and constant =
   | Cimmediate of immediate
   | Cglobal of Lident.t
 
-(** a memory variable. Either change the current value or the next one *)
-(** Invariant: m.t_last_is_used => not(m.t_next_is_set) *)
-(**         /\ m.t_is_set => not(m.t_next_is_set)  *)
-and tmem =
-    { t_last_is_used: bool; (* [last x] appears *)
-      t_der_is_defined: bool; (* [der x = ...] appears *)
-      t_initialized: bool;  (* [init x = ...] appears *)
-      t_is_set: bool; (* [x = ...] appears *)
-      t_next_is_set: bool; (* [next x = ...] appears *)
-      t_default: default; (* what to do when no equation is given *)
-    }
-
-(* treatment to be done when an equation is absent in a branch *)
-and default = 
-  | Previous (* the variable is a register; complement with [x = last x] *)
-  | Default (* produce a default value *)
-  | Absent (* do nothing; this is the case for signals *)
+and tentry = constant entry
 
 (** Names written in a block *)
 type defnames = 
@@ -100,6 +98,10 @@ type defnames =
       der: Ident.S.t; (* [der x = ...] *)
     }
 
+(* set of names *)
+let names acc { dv = dv; di = di; der = der } =
+  Ident.S.union acc (Ident.S.union dv (Ident.S.union di der))
+	  
 (* empty set of defined names *)
 (** Making values *)
 let empty = { dv = Ident.S.empty; di = Ident.S.empty; der = Ident.S.empty }
@@ -113,26 +115,22 @@ let no_typ = make (Tproduct [])
 let no_typ_instance = { typ_instance = [] }
 let no_abbrev () = ref Tnil
 
-(* basic values for memories. By default, they are initialized *)
-let discrete_memory = { t_initialized = true; t_last_is_used = true;
-			t_der_is_defined = false; t_is_set = true;
-			t_next_is_set = false; t_default = Previous }
-let last_and_next_memory = { t_initialized = true; t_last_is_used = true;
-			     t_der_is_defined = false; t_is_set = true;
-			     t_next_is_set = true; t_default = Previous }
-let continuous_memory = { t_initialized = true; t_last_is_used = true;
-			t_der_is_defined = true; t_is_set = true;
-			t_next_is_set = false; t_default = Default }
-let empty_mem = 
-  { t_initialized = false; t_is_set = false; t_next_is_set = false;
-    t_last_is_used = false; t_der_is_defined = false; 
-    t_default = Previous }
-
-let memory m is_next is_initialized =
-  match m with
-  | Val | ValDefault _ -> Mem { empty_mem with t_initialized = is_initialized;
-					       t_next_is_set = is_next }
-  | Mem k -> Mem { k with t_initialized = is_initialized; t_next_is_set = is_next }
+(* basic entries for variables *)
+let value = Sval
+let variable = Svar { v_combine = None; v_default = None }
+let empty_mem = { m_kind = None; m_next = None; m_previous = false;
+		  m_init = None; m_combine = None }
+let initialized mem = { mem with m_init = Some(None) }
+let previous mem = { mem with m_next = Some(false); m_previous = true }
+let next mem = { mem with m_next = Some(true); m_previous = false }
+let zero mem = Smem { mem with m_kind = Some Zero }
+let horizon mem = Smem (previous { mem with m_kind = Some Horizon })
+let imem = initialized empty_mem
+let mem = previous imem
+let memory = Smem mem
+let imemory = Smem imem
+		   
+let entry sort ty = { t_sort = sort; t_typ = ty }
 
 let desc ty = ty.t_desc
 let index ty = ty.t_index

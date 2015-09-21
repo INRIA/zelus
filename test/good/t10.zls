@@ -55,6 +55,8 @@ let node f55(x) = y where
       | S2(t) -> 
           do y = t + 1 - x and emit m = 1 
           until (y = -10) then S1
+	  else (y = 4) then S2(0)
+		      
   and cpt = 0 -> pre cpt + 1
 
 let node f5(x) = y where

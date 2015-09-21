@@ -49,11 +49,16 @@ type error =
     | Eperiod_not_positive of float
     | Ereset_target_state of bool * bool
     | Epattern_not_total
-
+			      
 exception Error of location * error
 
 let error loc kind = raise (Error(loc, kind))
 
+type warning =
+  | Wpartial_matching of Zelus.pattern
+  | Wunreachable_state of Ident.t
+  | Wmatch_unused of Zelus.pattern
+		       
 let kind_of_ident k = match k with
     | Value -> "value" | Type -> "type" 
     | Constr -> "constructor" | Label -> "label"
@@ -176,3 +181,19 @@ let message loc kind =
        output_location loc
   end;
   raise Misc.Error
+
+let warning loc w =
+  match w with
+  | Wpartial_matching(p) ->
+     Format.eprintf "%aType warning: this pattern-matching is not exhaustive.\n"
+		    output_location loc;
+     Format.eprintf "Here is an example of a value that is not matched:\n%a\n"
+		    Printer.pattern p
+  | Wunreachable_state(s) ->
+     eprintf
+       "%aType warning: the state %s in this automaton is unreachable.@."
+       output_location loc
+       (Ident.source s)
+  | Wmatch_unused(p) ->
+     Format.eprintf "Type warning: match case \"%a\" is unused.\n" Printer.pattern p
+    

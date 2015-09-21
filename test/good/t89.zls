@@ -1,4 +1,3 @@
-(*
 let node f() = x where
   rec automaton
       | Init(x0) -> do x = x0 -> pre x + 1 until (x >= 10) then Up(x)
@@ -9,4 +8,4 @@ let node f() = x where
 let node main() =
   let x = f() in
   print_int x; print_newline ()
-*)
+

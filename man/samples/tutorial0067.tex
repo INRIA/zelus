@@ -5,5 +5,14 @@
 val time_restarting : bool -D-> int * int
 \end{ChkListingMsg}
 \begin{ChkListingErr}
-Success.
+File "tutorial.zls", line 2-9, characters 6-202:
+>......automaton
+>      | Init ->
+>          do x = 0 and y = 0 then S1
+>      | S1 ->
+>          do x = 0 -> pre x + 1 until c then S2
+>      | S2 ->
+>          do y = 0 -> pre y + 1 until c then S1
+>      end
+Type warning: the state Init in this automaton is unreachable.
 \end{ChkListingErr}

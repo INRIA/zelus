@@ -10,7 +10,7 @@ let hybrid f1 z =
   let rec 
       automaton
       | S1 -> do der y = 1.0 until z then S2
-      | S2 -> do der y = 0.0 done
+      | S2 -> do der y = 0.0 until z then S1
   and init y = 0.0 in
   y
 

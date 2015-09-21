@@ -5,5 +5,15 @@
 val switch : int signal * int signal -D-> int
 \end{ChkListingMsg}
 \begin{ChkListingErr}
-Success.
+File "tutorial.zls", line 2-13, characters 6-292:
+>......automaton
+>      | Init ->
+>          do o = 0
+>          until inc(u) then Up(u)
+>..........
+>      | Down(v) ->
+>          do o = last o - v
+>          until inc(u) then Up(u)
+>      end
+Type warning: the state Init in this automaton is unreachable.
 \end{ChkListingErr}

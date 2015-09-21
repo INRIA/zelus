@@ -169,7 +169,15 @@ let from i =
     | 0 -> acc
     | _ -> fromrec ( i :: acc) (i - 1) in
   fromrec [] i
-
+	  
+let map_fold f acc l =
+  let rec maprec acc = function
+    | [] -> [], acc
+    | x :: l ->
+       let y, acc = f acc x in
+       let l, acc = maprec acc l in
+       y :: l, acc in
+  maprec acc l
 
 (** The data-structure to represent a state *)
 module State =

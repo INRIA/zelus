@@ -5,5 +5,10 @@
 val await : 'a signal -D-> 'a signal
 \end{ChkListingMsg}
 \begin{ChkListingErr}
-Success.
+File "tutorial.zls", line 3-6, characters 2-98:
+>..automaton
+>  | Await -> do unless e(v) then Sustain(v)
+>  | Sustain(x) -> do emit o = x done
+>  end
+Type warning: the state Await in this automaton is unreachable.
 \end{ChkListingErr}

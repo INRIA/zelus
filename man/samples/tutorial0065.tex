@@ -5,5 +5,15 @@
 val two_states : int * int * int -D-> int
 \end{ChkListingMsg}
 \begin{ChkListingErr}
-Success.
+File "tutorial.zls", line 1-12, characters 4-249:
+>....automaton
+>      | Init ->
+>          do o = i unless (i > 0) then Up
+>      | Up ->
+>..........
+>      | Down ->
+>          do o = last o - 1
+>          unless (last o = min) then Up
+>      end
+Type warning: the state Init in this automaton is unreachable.
 \end{ChkListingErr}

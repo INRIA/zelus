@@ -24,9 +24,6 @@ open Deftypes
 open Types
 
 (** Names written in a block *)
-let empty = { dv = S.empty; di = S.empty; der = S.empty }
-
-
 let union 
       { dv = dv1; di = di1; der = der1 } { dv = dv2; di = di2; der = der2 } =
   { dv = S.union dv1 dv2; di = S.union di1 di2; der = S.union der1 der2 }
@@ -41,27 +38,25 @@ let add loc
 	else error loc (Ealready(elt))) set1 set2 in
   { dv = add dv1 dv2; di = add di1 di2; der = add der1 der2 }
 
+
 (* checks that every partial name defined at this level *)
 (* has a last value *)
 let all_last loc h set =
   let check elt =
-    try
-      let ({ t_sort = k; t_typ = ty } as tentry) = Env.find elt h in
-      match k with
-          | Mem ({ t_default = Previous; t_next_is_set = next } as m) ->
-	    (* When [m] is not defined in a branch *)
-	    (* this one is implicitely complemented with [next m = m] *)
-	    (* if the next value of [m] is defined and with [m = last m] *)
-	    if not next then
-	      tentry.t_sort <- Mem { m with t_last_is_used = true }
-        | Mem { t_default = Absent } | Val -> 
-            begin try ignore (Types.filter_signal ty)
-              with Types.Unify -> error loc (Eshould_be_a_signal(elt, ty))
-            end
-	| Mem { t_default = Default } | ValDefault _ -> ()
-    with
-      | Not_found -> () in
- S.iter check set
+    let ({ t_sort = sort; t_typ = ty } as tentry) =
+      try Env.find elt h with | Not_found -> assert false in
+    match sort with
+    | Smem { m_init = Some _; m_next = Some(true) } -> ()
+    | Smem ({ m_init = Some _ } as m) ->
+       tentry.t_sort <- Smem { m with m_previous = true }
+    | Svar { v_default = Some _ } -> ()
+    | Sval | Svar { v_default = None }
+    | Smem _ ->
+       try
+	 ignore (Types.filter_signal ty);
+	 tentry.t_sort <-  variable
+       with Types.Unify -> error loc (Eshould_be_a_signal(elt, ty)) in
+  S.iter check set
 
 (* [merge [set1;...;setn]] returns a set of names defined in every seti *)
 (* and the set of names only defined partially *)
@@ -121,7 +116,8 @@ let join loc
   disjoint dv2 der1;
   { dv = join dv1 dv2; di = join di1 di2; der = join der1 der2 }
   
-(** Check totality of automata *)
+(** Check that every variable defined in an automaton *)
+(* has a definition or is a signal or its value can be implicitly kept *)
 module Automaton =
   struct
     let statepatname statepat =
@@ -198,4 +194,27 @@ module Automaton =
           ((add loc entry.e_until entry.e_unless) :: 
 	      defined_names_list_in_transitions) in
       union defined_names_in_states defined_names_in_transitions
+
+    (* check that all states of the automaton are potentially accessible *)
+    let check_all_states_are_accessible loc state_handlers = 
+      (* the name defined by the state declaration *)
+      let statepat { desc = desc } =
+	match desc with | Estate0pat(n) | Estate1pat(n, _) -> n in
+      (* the name defined by the call to a state *)
+      let sexp { desc = desc } =
+	match desc with | Estate0(n) | Estate1(n, _) -> n in
+
+      let escape acc { e_next_state = se } = S.add (sexp se) acc in
+      
+      let handler (def_states, called_states)
+		  { s_state = spat; s_trans = escape_list } =
+	S.add (statepat spat) def_states,
+	List.fold_left escape called_states escape_list in
+
+      (* computes the set of defined states and called states *)
+      let def_states, called_states =
+	List.fold_left handler (S.empty, S.empty) state_handlers in
+      let unreachable_states = S.diff def_states called_states in
+      if not (S.is_empty unreachable_states)
+      then warning loc (Wunreachable_state (S.choose unreachable_states))
   end

@@ -66,7 +66,6 @@ and exp =
   | Cconstr0 of Lident.t
   | Cglobal of Lident.t (* global variable *)
   | Clocal of Ident.t (* local variable *)
-  | Cstate of state (* state variable *)
   | Cindex of exp * exp (* access in an array *)
   | Ctuple of exp list (* tuples *)
   | Capp of op * exp list (* function application *)
@@ -90,11 +89,11 @@ and 'eq machine =
     }
 
 and 'eq method_desc =
-  { m_name: method_name; (* name of the method *)
-    m_input: (Ident.t * Deftypes.typ) list; (* list of input arguments *)
-    m_output: Ident.t * Deftypes.typ;
-    m_env: ventry Ident.Env.t; (* local environment *)
-    m_body: 'eq }
+  { ma_name: method_name; (* name of the method *)
+    ma_input: (Ident.t * Deftypes.typ) list; (* list of input arguments *)
+    ma_output: Ident.t * Deftypes.typ;
+    ma_env: ventry Ident.Env.t; (* local environment *)
+    ma_body: 'eq }
 
 and ventry =
   { v_ty: Deftypes.typ;

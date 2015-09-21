@@ -131,6 +131,7 @@ and method_name m_name =
   | Ozin -> "zin" | Oclear_zin -> "clear_zin" | Ozout -> "zout" | Odout -> "dout"
   | Odzero -> "dzero"
   | Ocsize -> "csize" | Ozsize -> "zsize"
+  | Ohorizon -> "horizon"
 
 (** Print the call to a method *)
 and method_call ff { c_machine = lname; c_method_name = m; c_instance = i_opt } =
@@ -183,7 +184,7 @@ and assign_state ff left e =
 and access ff a =
   let s =
     match a with
-    | Oderivative -> "der" | Ocontinuous -> "pos"
+    | Oder -> "der" | Ocont -> "pos"
     | Ozero_out -> "zout"  | Ozero_in -> "zin" in
   fprintf ff "%s" s
 
@@ -286,10 +287,10 @@ and constr_decl ff = function
 
 let print_memory ff (n, (m, ty, e_opt)) =
   let mem ff mem =
-    match mem with
-    | Discrete -> fprintf ff "disc"
-    | Zero -> fprintf ff "zero"
-    | Cont -> fprintf ff "cont" in
+    let s = match mem with
+      | Discrete -> "discrete" | Zero -> "zero" | Encore -> "encore"
+      | Cont -> "cont" | Horizon -> "horizon" | Period -> "period" in
+  fprintf ff "%s" s in
   match e_opt with
   | None -> fprintf ff "%a %a : %a" mem m name n Ptypes.output ty
   | Some(e) ->
@@ -359,8 +360,11 @@ let def_alloc_for_a_machine ff f memories instances =
     | Cont ->
       begin match e_opt with
         | None -> fprintf ff "%a = { pos = 0.0; der = 0.0 }" name n
-        | Some(e) -> fprintf ff "%a = { pos = %a; der = 0.0 }" name n expression e
+        | Some(e) ->
+	   fprintf ff "%a = { pos = %a; der = 0.0 }" name n expression e
       end
+    | Horizon | Period -> fprintf ff "%a = 0.0" name n
+    | Encore -> fprintf ff "%a = false" name n
     | Discrete ->
       begin match e_opt with
         | None ->

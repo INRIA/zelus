@@ -74,7 +74,7 @@ and joinblock
       b_env = b_env2; b_write = { dv = w2 } } =
   { b1 with b_vars = n_list1 @ n_list2;
     b_locals = l1 @ l2; b_body = eq_list1 @ eq_list2;
-    b_write = { Total.empty with dv = Ident.S.union w1 w2 } }
+    b_write = { Deftypes.empty with dv = Ident.S.union w1 w2 } }
   
 let rec joinlist = function
   | [] -> []

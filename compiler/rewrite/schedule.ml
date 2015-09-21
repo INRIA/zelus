@@ -101,17 +101,18 @@ and equation ({ eq_desc = desc } as eq) =
                   (fun ({ m_body = b } as m_h) -> { m_h with m_body = block b })
                   p_h_list)
     | EQreset(eq_list, e) -> EQreset(schedule eq_list, exp e)
+    | EQblock(b) -> EQblock(block b)
     | EQemit _ | EQautomaton _ 
-    | EQpresent _ | EQblock _ -> assert false in
+    | EQpresent _ -> assert false in
   { eq with eq_desc = desc }
   
-and block ({ b_locals = locals; b_body = eq_list } as b) =
-  let locals = List.map local locals in
+and block ({ b_locals = l_list; b_body = eq_list } as b) =
+  let l_list = List.map local l_list in
   (* schedule every nested block structure *)
   let eq_list = List.map equation eq_list in
   (* schedule the set of equations *)
   let eq_list = schedule eq_list in
-  { b with b_locals = locals; b_body = eq_list }
+  { b with b_locals = l_list; b_body = eq_list }
 
 and local ({ l_eq = eq_list } as l) =
   (* translate and schedule the set of equations *)

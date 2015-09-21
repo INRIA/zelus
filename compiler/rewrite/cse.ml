@@ -11,10 +11,9 @@
 (*   This file is distributed under the terms of the CeCILL-C licence     *)
 (*                                                                        *)
 (**************************************************************************)
-(* common sub-expression. Very simple things. To make it complete *)
-(* we should first translate into clock data-flow equations *)
-(* For the moment, only equations of the form [y = pre(x)] are shared *)
-(* cse must be applied on normalized and scheduled equations *)
+(* common sub-expression for registers. Very simple things. *)
+(* For the moment, only equations of the form *)
+(* [init x = e0 ... x = e] are shared *)
 
 open Misc
 open Ident
@@ -40,8 +39,9 @@ let build_table subst eq_list =
                   Env.add n x table, subst, eq :: eq_list
           end
       | EQeq _ | EQset _ | EQinit _ | EQnext _ 
-      | EQmatch _ | EQreset _ | EQder _ -> table, subst, eq :: eq_list
-      | EQemit _ | EQautomaton _ | EQpresent _ | EQblock _ -> assert false
+      | EQmatch _ | EQreset _ | EQder _ | EQblock _ ->
+					   table, subst, eq :: eq_list
+      | EQemit _ | EQautomaton _ | EQpresent _ -> assert false
  and equation_list table subst eq_list =
     List.fold_left equation (table, subst, []) eq_list in
   let table, subst, eq_list = equation_list Env.empty subst eq_list in
@@ -95,8 +95,8 @@ and equation subst eq =
 		    EQreset(List.map (equation subst) res_eq_list, exp subst e) }
     | EQder(n, e, None, []) -> 
        { eq with eq_desc = EQder(n, exp subst e, None, []) }
-    | EQder _ | EQemit _ | EQautomaton _ 
-    | EQpresent _ | EQblock _ -> assert false
+    | EQblock(b) -> { eq with eq_desc= EQblock(block subst b) }
+    | EQder _ | EQemit _ | EQautomaton _ | EQpresent _ -> assert false
 
 and local subst ({ l_eq = eq_list } as l) =
   (* extends the association table *)

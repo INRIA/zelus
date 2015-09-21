@@ -101,21 +101,32 @@ let print_vars ff v =
   if v <> [] 
   then fprintf ff "@[<v 0>%a@ @]" (print_list_r name "local " "," " in") v
 
-let print_binding ff (n, { t_sort = tsort; t_typ = typ }) =
-  match tsort with
-    | Val -> fprintf ff "val %a: %a" name n Ptypes.output typ
-    | ValDefault(c) -> 
-        fprintf ff "val %a: %a = %a" name n Ptypes.output typ constant c
-    | Mem{ t_last_is_used = is_l; t_der_is_defined = is_d; 
-	   t_initialized = is_i; t_is_set = is_s; t_next_is_set = is_n } ->
-      let init = if is_i then "(init)" else "" in
-      let der = if is_d then "(der)" else "" in
-      let last = if is_l then "(last)" else "" in
-      let cur = if is_s then "(cur)" else "" in
-      let next = if is_n then "(next)" else "" in
-      fprintf 
-	ff "@[mem%s%s%s%s%s %a: %a@]"
-	init der last cur next name n Ptypes.output typ
+let print_binding ff (n, { t_sort = sort; t_typ = typ }) =
+  let combine prefix ff v = fprintf ff " %s %a" prefix constant v in
+  let init ff i_opt =
+    match i_opt with
+    | None -> fprintf ff " initialized"
+    | Some(c) -> fprintf ff " init %a" constant c in
+  let next ff is_n = if is_n then fprintf ff "next " in
+  let previous p = if p then "last " else "" in
+  let kind ff k =
+    let k = match k with
+      | Cont -> "cont" | Zero -> "zero"
+      | Period -> "period" | Horizon -> "horizon" | Encore -> "encore" in
+    fprintf ff " %s " k in
+  match sort with
+  | Sval -> fprintf ff "@[val %a: %a@,@]" name n Ptypes.output typ
+  | Svar { v_combine = c_opt; v_default = v_opt } ->
+     fprintf ff "@[var %a: %a%a%a@,@]" name n Ptypes.output typ
+	     (Misc.optional_unit (combine " default ")) v_opt
+	     (Misc.optional_unit (combine " with ")) c_opt
+  | Smem { m_kind = k; m_next = n_opt; m_previous = p;
+	   m_init = i_opt; m_combine = c_opt } ->
+     fprintf ff "@[%a%s%amem %a: %a%a%a@,@]"
+	     (Misc.optional_unit next) n_opt (previous p) 
+	     (Misc.optional_unit kind) k name n Ptypes.output typ
+	     (Misc.optional_unit init) i_opt
+	     (Misc.optional_unit (combine " with ")) c_opt
 
 let print_env ff env =
   let env = Ident.Env.bindings env in
@@ -205,7 +216,12 @@ and operator op ff e_list =
     | Etest, [e] -> 
         fprintf ff "? %a" expression e
     | Edisc, [e] -> 
-        fprintf ff "disc %a" expression e
+       fprintf ff "disc %a" expression e
+    | Eafter, e :: e_list ->
+       fprintf ff "@[%a@ after@ @[%a@]@]" expression e
+	       (print_list_r expression "("","")") e_list
+    | Ehorizon, [e] ->
+       fprintf ff "@[horizon@ @[%a@]@]" expression e
     | Einitial, _ -> 
         fprintf ff "init"
     | Eop(is_inline, f), e_list -> 
@@ -221,71 +237,66 @@ and period ff { p_phase = opt_phase; p_period = p } =
     | None -> fprintf ff "@[(%f)@]" p
     | Some(phase) -> fprintf ff "@[%f(%f)@]" phase p
         
-and equation ff { eq_desc = desc; eq_before = before; eq_after = after } =
-  let equation ff desc =
-    match desc with
+and equation ff { eq_desc = desc; eq_write = w } =
+  print_writes ff w;
+  match desc with
     | EQeq(p, e) ->
-        fprintf ff "@[<hov 2>%a =@ %a@]" pattern p expression e
+      fprintf ff "@[<hov 2>%a =@ %a@]" pattern p expression e
     | EQder(n, e, e0_opt, []) ->
-         fprintf ff "@[<hov 2>der %a =@ %a %a@]"
-         name n expression e 
-           (optional_unit 
-               (fun ff e -> fprintf ff "init %a " expression e)) e0_opt
+      fprintf ff "@[<hov 2>der %a =@ %a %a@]"
+        name n expression e 
+        (optional_unit 
+           (fun ff e -> fprintf ff "init %a " expression e)) e0_opt
     | EQder(n, e, e0_opt, present_handler_list) ->
-         fprintf ff "@[<hov 2>der %a =@ %a %a@ @[<hov 2>reset@ @[%a@]@]@]"
-         name n expression e 
-           (optional_unit 
-               (fun ff e -> fprintf ff "init %a " expression e)) e0_opt
-           (print_list_l (present_handler scondpat expression) """""") 
-	   present_handler_list
+      fprintf ff "@[<hov 2>der %a =@ %a %a@ @[<hov 2>reset@ @[%a@]@]@]"
+        name n expression e 
+        (optional_unit 
+           (fun ff e -> fprintf ff "init %a " expression e)) e0_opt
+        (print_list_l (present_handler scondpat expression) """""") 
+	present_handler_list
     | EQinit(n, e0) ->
-        fprintf ff "@[<hov 2>init %a =@ %a@]" name n expression e0
+      fprintf ff "@[<hov 2>init %a =@ %a@]" name n expression e0
     | EQset(ln, e) ->
-        fprintf ff "@[<hov 2>%a <-@ %a@]" longname ln expression e
+      fprintf ff "@[<hov 2>%a <-@ %a@]" longname ln expression e
     | EQnext(n, e, None) ->
-        fprintf ff "@[<hov 2>next %a =@ %a@]" 
-	  name n expression e
+      fprintf ff "@[<hov 2>next %a =@ %a@]" 
+	name n expression e
     | EQnext(n, e, Some(e0)) ->
-        fprintf ff "@[<hov 2>next %a =@ @[%a@ init %a@]@]"
-	  name n expression e expression e0
+      fprintf ff "@[<hov 2>next %a =@ @[%a@ init %a@]@]"
+	name n expression e expression e0
     | EQautomaton(is_weak, s_h_list, e_opt) ->
-        fprintf ff "@[<v>@[<hov 0>automaton@ @[%a@]@]%a@]"
-	  (state_handler_list is_weak) s_h_list
-	  (print_opt (print_with_braces state " init" "")) e_opt
+      fprintf ff "@[<v>@[<hov 0>automaton%s@ @[%a@]@]%a@]"
+	      (if is_weak then "(* weak *)" else "(* strong *)")
+	      (state_handler_list is_weak) s_h_list
+	      (print_opt (print_with_braces state " init" "")) e_opt
     | EQmatch(total, e, match_handler_list) ->
-        fprintf ff "@[<v>@[<hov 0>%smatch %a with@ @[%a@]@]@]"
-          (if !total then "total " else "")
-          expression e 
-	  (print_list_l 
-	     (match_handler (block_equation_list "do " "done")) """""") 
-	  match_handler_list
+      fprintf ff "@[<v>@[<hov 0>%smatch %a with@ @[%a@]@]@]"
+        (if !total then "total " else "")
+        expression e 
+	(print_list_l 
+	   (match_handler (block_equation_list "do " "done")) """""") 
+	match_handler_list
     | EQpresent(present_handler_list, None) ->
-        fprintf ff "@[<v>@[<hov 0>present@ @[%a@]@]@]"
-          (print_list_l 
-	     (present_handler scondpat (block_equation_list "do " "done")) 
-	     """""") present_handler_list
+      fprintf ff "@[<v>@[<hov 0>present@ @[%a@]@]@]"
+        (print_list_l 
+	   (present_handler scondpat (block_equation_list "do " "done")) 
+	   """""") present_handler_list
     | EQpresent(present_handler_list, Some(b)) ->
-       fprintf ff "@[<v>@[<hov 0>present@ @[%a@]@]@ else @[%a@]@]"
-               (print_list_l 
-		  (present_handler scondpat (block_equation_list "do " "done")) 
-		  """""")  present_handler_list
-               (block_equation_list "do " "done")  b
+      fprintf ff "@[<v>@[<hov 0>present@ @[%a@]@]@ else @[%a@]@]"
+        (print_list_l 
+	   (present_handler scondpat (block_equation_list "do " "done")) 
+	   """""")  present_handler_list
+        (block_equation_list "do " "done")  b
     | EQreset(eq_list, e) ->
-        fprintf ff "@[<v>@[<hov 2>reset@ @[%a@]@]@ @[<hov 2>every@ %a@]@]"
-          (equation_list "" "") eq_list expression e
+      fprintf ff "@[<v>@[<hov 2>reset@ @[%a@]@]@ @[<hov 2>every@ %a@]@]"
+        (equation_list "" "") eq_list expression e
     | EQemit(n, opt_e) ->
-        begin match opt_e with
-          | None -> fprintf ff "@[emit %a@]" name n
-          | Some(e) ->
-              fprintf ff "@[emit %a = %a@]" name n expression e
-        end
-    | EQblock(b_eq_list) -> block_equation_list "do " "done" ff b_eq_list in
-  let before = Ident.S.elements before in
-  let after = Ident.S.elements after in
-  fprintf ff "@[%a%a%a@]" equation desc
-    (print_list_r_empty name " before {" "," "}") before
-    (print_list_r_empty name " after {" "," "}") after
-
+      begin match opt_e with
+        | None -> fprintf ff "@[emit %a@]" name n
+        | Some(e) ->
+          fprintf ff "@[emit %a = %a@]" name n expression e
+      end
+    | EQblock(b_eq_list) -> block_equation_list "do " "done" ff b_eq_list
 
 and block_equation_list po pf ff b = block locals equation_list po pf ff b
 

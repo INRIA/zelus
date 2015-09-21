@@ -68,6 +68,7 @@ let present_handler scondpat body ({ p_cond = sc; p_body = b } as p_h) =
   { p_h with p_cond = scondpat sc; p_body = body b }
 
 (* Mark function calls [y = f(e)] to be inlined *)
+(* [c_in] is the set of dependences variables for inputs; [c_out] for output *)
 let rec exp c_in c_out e =
   let rec exp ({ e_desc = desc; e_caus = c_list } as e) =
     let desc = match desc with

@@ -91,7 +91,7 @@ and desc =
 
 and op =
   | Efby | Eunarypre | Eifthenelse 
-  | Eminusgreater | Eup | Einitial | Edisc
+  | Eminusgreater | Eup | Einitial | Edisc | Ehorizon | Eafter
   | Etest
   | Eop of is_inline * Lident.t
   | Eevery of is_inline * Lident.t
@@ -109,7 +109,7 @@ and pattern =
     { mutable p_desc: pdesc;
       p_loc: location;
       mutable p_typ: Deftypes.typ;
-      mutable p_caus: Defcaus.t list; }
+      mutable p_caus: Defcaus.t list }
 
 and pdesc =
   | Ewildpat
@@ -125,9 +125,7 @@ and pdesc =
 and eq = 
     { eq_desc: eqdesc;
       eq_loc: location;
-      eq_before: Ident.S.t;
-      eq_after: Ident.S.t;
-      mutable eq_write: Deftypes.defnames}
+      mutable eq_write: Deftypes.defnames }
 
 and eqdesc =
   | EQeq of pattern * exp
@@ -191,7 +189,8 @@ and escape =
       e_reset: bool; 
       e_block: eq list block option;
       e_next_state: state_exp;
-      e_env: Deftypes.tentry Ident.Env.t } 
+      e_env: Deftypes.tentry Ident.Env.t;
+      mutable e_zero: bool } 
 
 and scondpat = scondpat_desc localized
 
@@ -209,13 +208,11 @@ and 'a match_handler =
       m_body: 'a;
       m_env: Deftypes.tentry Ident.Env.t;
       m_reset: bool; (* the handler is reset on entry *)
-      m_zero: bool; (* the handler is done at a zero-crossing instant *)
+      mutable m_zero: bool; (* the handler is done at a zero-crossing instant *)
     }
 
 and 'a present_handler =
     { p_cond: scondpat;
       p_body: 'a;
-      p_env: Deftypes.tentry Ident.Env.t }
-
-let desc e = e.desc
-let make x = { desc = x; loc = no_location }
+      p_env: Deftypes.tentry Ident.Env.t;
+      mutable p_zero: bool }

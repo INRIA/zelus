@@ -8,6 +8,7 @@ let i1 j = k where
   | true -> match true with
             | true -> do emit k = () done
 	    | false -> do done
+            end
   | false -> do done
 
 
@@ -34,3 +35,4 @@ let hybrid main () =
   and _ = g(4.0) in
   ()
 
+let main2 x = let z = x + 2 in z

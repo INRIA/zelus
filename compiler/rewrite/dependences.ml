@@ -21,7 +21,6 @@ module type READ =
     val read: eq -> S.t * S.t (* reads last and current variables *)
     val def: eq -> S.t  (* defined variables *)
     val init: eq -> bool (* [init x = e] must be scheduled before reads/writes *)
-    val control: eq -> bool (* control structure *)
     val nodep: eq -> bool (* [x = e] does not introduce any dependence for [x] *)
   end
 
@@ -55,17 +54,17 @@ struct
       g :: g_list, nametograph g var_set n_to_graph in
     
     let make_graph g_list n_to_graph =
-      (* [g] must be scheduled after all nodes associated to [n] *)
-      (* when [is_last], reverse dependences *)
+      (* A node [g] that reads [n1,...,nk] must be scheduled after *)
+      (* all the nodes that compute the [ni] *)
+      (* when [is_last], reverse the dependence, i.e., [g] must be *)
+      (* scheduled before *)
       let attach is_last n_to_graph g_node n =
         let attach g_node g =
           try
 	    if Read.nodep g.g_containt then ()
 	    else
-	      (* an equation [[init] x = f(last x)] has no cycle *)
-	      (* as well a for a control structure *)
-	      if (g == g_node) && (is_last || Read.control g.g_containt) then ()
-	      else if is_last && not (Read.init g.g_containt)
+	      if (g == g_node) && is_last then ()
+	      else if is_last
 	      then add_depends g g_node else add_depends g_node g
 	  with | Not_found -> () in
 	let g_list = all n n_to_graph in
@@ -75,7 +74,8 @@ struct
         let g_node = containt g in
 	let last_names, names = Read.read g_node in
         let last_names =
-	  (* an equation [init x = e] depends on [last x] *)
+	  (* an equation [init x = e] must be done before *)
+	  (* [last x] and [x] are read *)
 	  if Read.init g_node
 	  then S.union (Read.def g_node) last_names else last_names in
 	(* reads of [x] after assignment to [x] *)

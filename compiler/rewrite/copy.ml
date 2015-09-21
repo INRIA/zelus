@@ -53,11 +53,11 @@ let rename n { renaming = renaming; captured = captured } =
 (** from w (set of writes) *)
 let rec build w ({ renaming = renaming } as r) { eq_desc = desc } =
   match desc with
-    | EQeq({ p_desc = Evarpat(n) }, { e_desc = Elocal(m) }) when not (S.mem n w) ->
-        { r with renaming = Env.add n m renaming }
-    | EQeq _ | EQset _ | EQnext _ | EQinit _ | EQmatch _ | EQreset _ 
-    | EQder(_, _, None, []) -> r
-    | EQautomaton _ | EQpresent _ | EQemit _ | EQder _ | EQblock _ -> assert false
+  | EQeq({ p_desc = Evarpat(n) }, { e_desc = Elocal(m) }) when not (S.mem n w) ->
+     { r with renaming = Env.add n m renaming }
+  | EQeq _ | EQset _ | EQnext _ | EQinit _ | EQmatch _ | EQreset _ 
+  | EQder(_, _, None, []) | EQblock _ -> r
+  | EQautomaton _ | EQpresent _ | EQemit _ | EQder _ -> assert false
 
 (** Treating an expression. Apply the renaming substitution recursively *)
 let rec expression renaming ({ e_desc = desc } as e) =
@@ -94,6 +94,12 @@ and local renaming ({ l_eq = eq_list } as l) =
   let renaming, eq_list = equation_list renaming eq_list in
   renaming, { l with l_eq = eq_list }
 
+and locals renaming l_list =
+  List.fold_right
+    (fun l (renaming, l_list) ->
+     let renaming, l = local renaming l in renaming, l :: l_list)
+    l_list (renaming, [])
+    
 (** renaming of equations *)
 and equation (renaming, eq_list) ({ eq_desc = desc } as eq) =
     match desc with
@@ -125,14 +131,19 @@ and equation (renaming, eq_list) ({ eq_desc = desc } as eq) =
        let e = expression renaming e in
        let renaming, res_eq_ist = equation_list renaming res_eq_list in
        renaming, { eq with eq_desc = EQreset(res_eq_list, e) } :: eq_list
+    | EQblock(b) ->
+       renaming, { eq with eq_desc = EQblock(block renaming b) } :: eq_list
     | EQautomaton _ | EQpresent _ 
-    | EQemit _ | EQder _ | EQblock _ -> assert false
+    | EQemit _ | EQder _ -> assert false
 
 and equation_list renaming eq_list =
   let renaming, eq_list = List.fold_left equation (renaming, []) eq_list in
   renaming, List.rev eq_list
 
-and block renaming ({ b_env = b_env; b_body = eq_list; b_write = { dv = w } } as b) =
+and block renaming
+	  ({ b_env = b_env; b_locals = l_list;
+	     b_body = eq_list; b_write = { dv = w } } as b) =
+  let renaming, l_list = locals renaming l_list in
   let renaming = List.fold_left (build w) renaming eq_list in
   let renaming = closure renaming in
   let _, eq_list = equation_list renaming eq_list in

@@ -210,18 +210,15 @@ module C = PATTERN_CHECKER(LANG)
 (** The main entry. Checks that pattern matching are exhaustive and warns *)
 (** about redundancy. Returns [true] if the pattern matching is exhaustive *)
 let check_match_handlers loc match_handlers =
+  let partial_matching loc p =
+    Typerrors.warning loc (Typerrors.Wpartial_matching(p)) in
+  let display_redundant p =
+    Typerrors.warning loc (Typerrors.Wmatch_unused(p)) in
+
   let patterns = List.map (fun { m_pat = pat } -> pat) match_handlers in
   let r = C.check patterns in
-  begin match r.C.not_matched with
-    | None -> ()
-    | Some p ->
-        Format.eprintf "%aWarning: this pattern-matching is not exhaustive.\n"
-          output_location loc;
-        Format.eprintf "Here is an example of a value that is not matched:\n%a\n"
-          Printer.pattern p;
-  end;
-  let display_redundant p =
-    Format.eprintf "Warning: match case \"%a\" is unused.\n" Printer.pattern p in
+
+  Misc.optional_unit partial_matching loc r.C.not_matched;
   List.iter display_redundant r.C.redundant_patterns;
   match r.C.not_matched with | None -> true | Some _ -> false
 

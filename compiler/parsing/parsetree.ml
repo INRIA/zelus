@@ -88,8 +88,6 @@ and desc =
 
 and is_rec = bool
 
-and is_weak = bool
-
 and is_inline = bool
 
 and 'a default = Nothing | Init of 'a | Else of 'a 

@@ -17,6 +17,7 @@ open Location
 open Ident
 open Global
 open Zelus
+open Zaux
 open Initial
 open Types
 open Deftypes
@@ -42,44 +43,20 @@ open Deftypes
 (*   | Present(p1), ..., true, ... -> (* zero = true *) ...             *)
 (*   | Present(p3), ..., _,  true -> (* zero = true *) ...              *)
 (*   end                                                                *)
+(* the bit [zero] indicates that the branch corresponds to a *)
+(* zero-crossing. It is set to [true] only when the context is continuous *)
+(*                                                                      *)
 (*                                                                      *)
 (* a signal x is represented by a pair (bit, value)                     *)
 
-let emake desc ty = { e_desc = desc; e_loc = no_location; e_typ = ty; e_caus = [] }
-let pmake desc ty = { p_desc = desc; p_loc = no_location; p_typ = ty; p_caus = [] }
-let eqmake desc =
-  { eq_desc = desc; eq_loc = no_location; eq_before = S.empty;
-    eq_after = S.empty; eq_write = Deftypes.empty }
-
-let cvoid = emake (Econst(Evoid)) typ_unit
-let cfalse = emake (Econst(Ebool(false))) typ_bool
-let ctrue = emake (Econst(Ebool(true))) typ_bool
-let truepat = pmake (Econstpat(Ebool(true))) typ_bool
-let wildpat = pmake (Ewildpat) Deftypes.no_typ
-let tproduct ty_list = Deftypes.make (Tproduct(ty_list))
-let tuplepat pat_list = 
-  let ty_list = List.map (fun { p_typ = ty } -> ty) pat_list in
-  pmake (Etuplepat(pat_list)) (tproduct ty_list)
-let tuple e_list = 
-  let ty_list = List.map (fun { e_typ = ty } -> ty) e_list in
-  emake (Etuple(e_list)) (tproduct ty_list)
-let rec orpat pat_list =
-  match pat_list with
-    | [] -> assert false
-    | [pat] -> pat
-    | pat :: pat_list -> pmake (Eorpat(pat, orpat pat_list)) pat.p_typ
-let varpat name ty = pmake (Evarpat(name)) ty
-let var name ty = emake (Elocal(name)) ty
 
 (** representation of signals *)
 (* a [signal] is a pair made of a value and a boolean *)
-let emit e = e, ctrue
+let emit e = e, etrue
 let presentpat pat = { pat with p_desc = Etuplepat[pat; truepat];
                                 p_typ = tproduct [pat.p_typ; typ_bool] }
 
-let pair e1 e2 =  emake (Etuple([e1; e2])) (tproduct [e1.e_typ; e2.e_typ])
-let pairpat p1 p2 = pmake (Etuplepat([p1; p2])) (tproduct [p1.p_typ; p2.p_typ])
-let ematch total e l = 
+let eq_match total e l = 
   let block_do_done =
     { b_vars = []; b_locals = []; b_body = []; b_loc = no_location;
       b_env = Env.empty; 
@@ -101,10 +78,12 @@ let build signals n_list l_env =
 	  let xp = Ident.fresh ((Ident.source n) ^ "p") in
 	  Env.add n (xv, xp, ty) signals,
 	  xv :: xp :: n_list,
-	  Env.add xv { t_typ = ty; t_sort = Val }
+	  Env.add xv { t_typ = ty; t_sort = Deftypes.variable }
             (Env.add xp { t_typ = typ_bool; 
-			  t_sort = ValDefault(Cimmediate(Ebool(false))) } 
-	       new_env)
+			  t_sort =
+			    Svar { v_combine = None;
+				   v_default = Some(Cimmediate(Ebool(false))) } }
+		     new_env)
       | None -> signals, n :: n_list, Env.add n tentry new_env in
   Env.fold make l_env (signals, [], Env.empty)
 
@@ -212,7 +191,7 @@ and equation signals eq_list eq =
         { eq with eq_desc = EQder(n, exp signals e, None, []) } :: eq_list
     | EQemit(name, e_opt) ->
         (* essentially translate to [(namev,namep) = e] *)
-        let e = match e_opt with | None -> cvoid | Some(e) -> exp signals e in
+        let e = match e_opt with | None -> evoid | Some(e) -> exp signals e in
         let nv, np, ty = Env.find name signals in
         let ev, ep = emit e in
 	{ eq with eq_desc = EQeq(varpat nv ty, ev) } ::
@@ -265,6 +244,7 @@ and match_handler signals ({ m_body = b } as handler) =
 
 (* Translating a present statement *)
 (* a present statement is translated into a pattern-matching statement *)
+(* [is_cont = true] means that the present constructs run in a continuous context *)
 and present_handlers signals eq_list handler_list b_opt =
   (* compute the set of expressions from a signal pattern matching *)
   (* expressions appearing more than once are shared *)
@@ -316,6 +296,7 @@ and present_handlers signals eq_list handler_list b_opt =
     let spat_list = norm spat [] in
     let pat_list = List.map pattern spat_list in
     let pat = orpat pat_list in
+    (* the flag [zero] is true when [is_cont] is true *)
     { m_pat = pat; m_body = block signals b; m_env = h0; 
       m_reset = false; m_zero = true } in
     
@@ -335,7 +316,7 @@ and present_handlers signals eq_list handler_list b_opt =
           pat_block_list @ 
 	    [{ m_pat = wildpat; m_body = block signals b; 
                m_env = Env.empty; m_reset = false; m_zero = false }] in
-  (ematch total e pat_block_list) :: eq_list
+  (eq_match total e pat_block_list) :: eq_list
 
 let implementation impl =
   match impl.desc with

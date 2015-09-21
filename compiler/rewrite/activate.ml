@@ -17,6 +17,7 @@ open Location
 open Ident
 open Global
 open Zelus
+open Zaux
 open Initial
 open Types
 open Deftypes
@@ -25,55 +26,38 @@ open Deftypes
 (* into: [init x = e0 *)
 (*        and present (z1) -> do x = e1 done | ... end and der x = e] *)
 
-let typ_float = Initial.typ_float
-
-let varpat x = 
-  { p_desc = Evarpat(x); p_loc = no_location; p_typ = typ_float; p_caus = [] }
-
-let eqmake desc = { eq_desc = desc; eq_loc = no_location;
-		    eq_before = S.empty; eq_after = S.empty;
-		    eq_write = Deftypes.empty }
-
 let block_of_eq s pat e =
   { b_vars = []; b_locals = []; b_body = [eqmake (EQeq(pat, e))]; 
-    b_loc = no_location; b_write = { Total.empty with dv = s };
+    b_loc = no_location; b_write = { Deftypes.empty with dv = s };
     b_env = Env.empty }
 
 let block_of_der s x e =
   { b_vars = []; b_locals = []; b_body = [eqmake (EQder(x, e, None, []))]; 
     b_loc = no_location; 
-    b_write = { Total.empty with der = s }; b_env = Env.empty }
-
-let eq pat e_opt eq_list =
-  match e_opt with 
-  | None -> eq_list | Some(e) -> (eqmake(EQeq(pat, e))) :: eq_list
-
-let der x e eq_list = (eqmake(EQder(x, e, None, []))) :: eq_list
-
-let init x e eq_list = (eqmake(EQinit(x, e))) :: eq_list
-
+    b_write = { Deftypes.empty with der = s }; b_env = Env.empty }
+    
 let block_spat_e_list s pat spat_e_list =
   List.map 
-    (fun { p_cond = spat; p_body = e; p_env = env } ->
+    (fun { p_cond = spat; p_body = e; p_env = env; p_zero = zero } ->
       { p_cond = spat;
         p_body = block_of_eq s pat e;
-        p_env = env }) spat_e_list
+        p_env = env; p_zero = zero }) spat_e_list
 
 let present s x spat_e_list e eq_list =
-  let spat_b_list = block_spat_e_list s (varpat x) spat_e_list in
+  let spat_b_list =
+    block_spat_e_list s (varpat x Initial.typ_float) spat_e_list in
   (* only generate a present if [spat_b_list] is not empty *)
   match spat_b_list with
-    | [] -> (eqmake (EQder(x, e, None, []))) :: eq_list
-    | _ -> eqmake (EQpresent(spat_b_list, None)) ::
-	     (eqmake (EQder(x, e, None, []))) :: eq_list
+    | [] -> (eq_der x e) :: eq_list
+    | _ -> (eqmake (EQpresent(spat_b_list, None))) :: (eq_der x e) :: eq_list
 
-let derpresent x e e0_opt spat_e_list eq_list =
+let der_present x e e0_opt spat_e_list eq_list =
   (* present z1 -> do x = e1 done | ... | zn -> do x = en done 
      and der x = e and init x = e0 *)
   let eq_list = 
     match e0_opt with
     | None -> eq_list
-    | Some(e0) -> init x e0 eq_list in
+    | Some(e0) -> (eq_init x e0) :: eq_list in
   present (S.singleton x) x spat_e_list e eq_list  
 
 let rec exp e =
@@ -113,7 +97,7 @@ and equation eq_list ({ eq_desc = desc } as eq) =
         { eq with eq_desc = 
 		    EQnext(n, exp e, optional_map exp e0_opt) } :: eq_list
     | EQder(n, e, e0_opt, p_h_e_list) ->
-        derpresent n e e0_opt p_h_e_list eq_list
+        der_present n e e0_opt p_h_e_list eq_list
     | EQemit(name, e_opt) ->
        { eq with eq_desc =
 		   EQemit(name, Misc.optional_map exp e_opt) } :: eq_list
