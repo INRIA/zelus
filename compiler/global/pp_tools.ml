@@ -36,19 +36,6 @@ let print_list_l print po sep pf ff l =
   | [] -> fprintf ff "%s%s" po pf
   | x :: l -> fprintf ff "@[<hov 0>%s%a@ %a%s@]" po print x printrec l pf
 
-let rec print_list_rb print po sep pf ff = function
-  | [] -> fprintf ff "@[%s%s@]" po pf
-  | x :: l ->
-      fprintf ff "@[<2>%s@[%a@]" po print x;
-      List.iter (fprintf ff "%s@]@ @[<2>@[%a@]" sep print) l;
-      fprintf ff "%s@]" pf
-
-let rec print_list_lb print po sep pf ff = function
-  | [] -> fprintf ff "@[%s%s@]" po pf
-  | x :: l ->
-      fprintf ff "@[<2>%s%a@]" po print x;
-      List.iter (fprintf ff "@]@ @[<2>%s%a" sep print) l;
-      fprintf ff "%s@]" pf
 
 let print_list_r_empty print po sep pf ff l =
   print_if_not_empty (print_list_r print po sep pf) ff l
@@ -61,7 +48,7 @@ let print_couple2 print1 print2 po sep1 sep2 pf ff (c1, c2) =
   fprintf ff
 	  "@[<hov>%s@[%a@]%s@ %s@[%a@]%s@]" po print1 c1 sep1 sep2 print2 c2 pf
 
-let print_with_braces print po pf ff p = fprintf ff "%s%a%s" po print p pf
+let print_with_braces print po pf ff p = fprintf ff "@[%s%a%s@]" po print p pf
 
 let print_opt print ff = function
   | None -> ()
@@ -74,7 +61,7 @@ let print_opt_magic print ff = function
 
 let print_opt2 print sep ff = function
   | None -> ()
-  | Some(s) -> fprintf ff "%s%a" sep print s
+  | Some(s) -> fprintf ff "@[%s%a@]" sep print s
 
 let print_record print ff r =
   fprintf ff "@[<hv2>%a@]" (print_list_r print "{ "";"" }") r

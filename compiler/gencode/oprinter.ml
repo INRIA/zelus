@@ -110,10 +110,10 @@ let rec pattern ff pat = match pat.desc with
   | Ovarpat(n) -> name ff n
   | Otuplepat(pat_list) ->
       pattern_comma_list ff pat_list
-  | Oaliaspat(p, n) -> fprintf ff "%a as %a" pattern p name n
-  | Oorpat(pat1, pat2) -> fprintf ff "%a | %a" pattern pat1 pattern pat2
+  | Oaliaspat(p, n) -> fprintf ff "@[%a as %a@]" pattern p name n
+  | Oorpat(pat1, pat2) -> fprintf ff "@[%a | %a@]" pattern pat1 pattern pat2
   | Otypeconstraintpat(p, ty_exp) ->
-      fprintf ff "(%a: %a)" pattern p ptype ty_exp
+      fprintf ff "@[(%a: %a)@]" pattern p ptype ty_exp
   | Orecordpat(n_pat_list) ->
       print_record (print_couple longname pattern """ =""") ff n_pat_list
 
@@ -376,16 +376,16 @@ let def_alloc_for_a_machine ff f memories instances =
     fprintf ff "@[%a = %a_alloc () (* %s *) @]" name n longname ln (kind k)  in
   if memories = []
   then if instances = []
-       then fprintf ff "@[let %s_alloc () = ()@.@.@]" f
+       then fprintf ff "@[let %s_alloc () = ()@.@]" f
        else
-         fprintf ff "@[<v 2>let %s_alloc () =@ { @[%a@] }@.@.@]"
-                 f (print_list_r one_instance """;""") instances
+         fprintf ff "@[<v 2>let %s_alloc () =@ %a @.@]"
+                 f (print_record one_instance) instances
   else if instances = []
   then
-    fprintf ff "@[<v 2>let %s_alloc () =@ { @[%a@] }@.@.@]"
-            f (print_list_r one_memory """;""") memories
+    fprintf ff "@[<v 2>let %s_alloc () =@ %a @.@]"
+            f (print_record one_memory) memories
   else
-    fprintf ff "@[<v 2>let %s_alloc () =@ { @[%a%a@] }@.@.@]"
+    fprintf ff "@[<v 2>let %s_alloc () =@ { @[%a%a@] }@.@]"
             f
             (print_list_r one_memory """;"";") memories
             (print_list_r one_instance """;""") instances
@@ -395,10 +395,9 @@ let machine_as_a_class ff f { m_kind = k;
                               m_memories = memories;
                               m_instances = instances;
                               m_methods = m_list } =
-  fprintf ff "@[<hov 2>let %s = machine(%s) {@,\
-                  @[@[<v 2>memories @[%a@]@]@;\
-                  @[@[<v 2>instances @[%a@]@]@;\
-                  @[%a@]}@.@]@.@]@]"
+  fprintf ff
+  "@[<hov 2>let %s = machine(%s) \
+         {@, @[@[<v 2>memories @[%a@]@]@;@[<v 2>instances @[%a@]@]@;@[%a@]]}@.@]"
     f
     (kind k)
     (print_list_r_empty print_memory """;""") memories
@@ -455,7 +454,7 @@ let implementation ff impl = match impl.desc with
       fprintf ff "@[open %s@.@]" s
   | Otypedecl(l) ->
       fprintf ff "@[%a@.@]"
-        (print_list_lb
+        (print_list_l
             (fun ff (s, s_list, ty_decl) ->
                   fprintf ff "%a%s =@ %a"
                     print_type_params s_list

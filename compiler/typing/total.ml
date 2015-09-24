@@ -198,22 +198,24 @@ module Automaton =
     (* check that all states of the automaton are potentially accessible *)
     let check_all_states_are_accessible loc state_handlers = 
       (* the name defined by the state declaration *)
-      let statepat { desc = desc } =
-	match desc with | Estate0pat(n) | Estate1pat(n, _) -> n in
-      (* the name defined by the call to a state *)
-      let sexp { desc = desc } =
-	match desc with | Estate0(n) | Estate1(n, _) -> n in
-
-      let escape acc { e_next_state = se } = S.add (sexp se) acc in
+      let def_states acc { s_state = spat } =
+	let statepat { desc = desc } =
+	  match desc with | Estate0pat(n) | Estate1pat(n, _) -> n in
+	S.add (statepat spat) acc in
       
-      let handler (def_states, called_states)
-		  { s_state = spat; s_trans = escape_list } =
-	S.add (statepat spat) def_states,
-	List.fold_left escape called_states escape_list in
+      (* the name defined by the call to a state *)
+      let called_states acc { s_trans = escape_list } =
+	let sexp { desc = desc } =
+	  match desc with | Estate0(n) | Estate1(n, _) -> n in
+	let escape acc { e_next_state = se } = S.add (sexp se) acc in
+	List.fold_left escape acc escape_list in
 
-      (* computes the set of defined states and called states *)
-      let def_states, called_states =
-	List.fold_left handler (S.empty, S.empty) state_handlers in
+      (* the initial state is reachable *)
+      let init_state = def_states S.empty (List.hd state_handlers) in
+      let called_states =
+	List.fold_left called_states init_state state_handlers in
+      let def_states = List.fold_left def_states S.empty state_handlers in
+            
       let unreachable_states = S.diff def_states called_states in
       if not (S.is_empty unreachable_states)
       then warning loc (Wunreachable_state (S.choose unreachable_states))

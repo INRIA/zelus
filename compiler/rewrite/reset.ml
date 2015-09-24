@@ -32,10 +32,9 @@
    3/ reset(z)(x = op(e)) = x = op(e) if op is combinatorial
    4/ reset(z)(x = f(e)) = reset x = f(e) every z otherwise
    5/ reset(z)(reset E every k) = reset(z or k)(E)
-   6/ reset(z)(init x = e) = reset init x = e every z if e is constant
-   7/ reset(z)(init x = e) = reset init x = e every (true -> z) otherwise
-   8/ reset(z)(x = e1 -> e2) = x = if z then e1 else e2
-   9/ reset(z)(init) = z (* init is a clock *)
+   6/ reset(z)(init x = e) = reset init x = e every z
+   7/ reset(z)(x = e1 -> e2) = x = if z then e1 else e2
+   8/ reset(z)(init) = z (* init is a clock *)
 
 *)
 

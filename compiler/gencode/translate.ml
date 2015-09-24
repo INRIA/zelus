@@ -169,6 +169,15 @@ let kind is_read n k =
 				      if is_read then Ozero_in else Ozero_out)
      | Deftypes.Horizon | Deftypes.Period | Deftypes.Encore -> Oleft_state_name(n)
 							      
+let var_exp env n e =
+  let { t_sort = sort } = try Env.find n env with Not_found -> assert false in
+  let assign =
+    match sort with
+    | Sval -> Let(make (Ovarpat(n)), e)
+    | Svar _ -> Set(Oleft_name n, e)
+    | Smem { m_kind = k } -> Setstate(kind false n k, e) in
+  assign
+    	  
 (** Translation of a variable read. *)
 let local_var n env =
   let { t_sort = sort } =
@@ -205,12 +214,14 @@ let letin eq_list e =
         make (Osequence(e, letrec eq_list)) in
   letrec eq_list
            
-(* Execute the set of initialization function when a condition is true *)
-(* This is only useful if the reset/every construct is kept up to translation *)
-let reset e ({ reset = r } as ctx) =
-  if State.is_empty r then ctx
-  else { ctx with step =
-		    State.cons (If(e, letin (State.list [] r) void)) ctx.step }
+(* Resets an initialization [init x = e] when [r_e] is true *)
+let init_every is_immediate env x e r_e =
+  let x_receive_e = var_exp env x e in
+  if is_immediate then
+    { empty with reset = State.singleton x_receive_e;
+		 init = State.singleton (x, e);
+		 step = State.singleton (If(r_e, letin [x_receive_e] void)) }
+  else { empty with step = State.singleton (If(r_e, letin [x_receive_e] void)) }
 		      
 (** Translation of a function application (f [every e_opt] (e1,...,en)) *)
 (* Returns a context [ctx] and an expression *)
@@ -224,17 +235,18 @@ let apply e_opt op e_list =
      (* create an instance *)
      let id = Ident.fresh "i" in
      let reset_code =
-       Imp(make(Omethod({ c_machine = op; c_method_name = Oreset;
-			  c_instance = Some(id) }, []))) in
+       make(Omethod({ c_machine = op; c_method_name = Oreset;
+		      c_instance = Some(id) }, [])) in
      let ctx = 
        { empty with instances = State.singleton (id, op, k);
-		    reset = State.singleton reset_code } in
+		    reset = State.singleton (Imp (reset_code)) } in
      let e_step = make (Omethod({ c_machine = op; c_method_name = Ostep;
 				  c_instance = Some(id) }, e_list)) in
      (* reset the instance when [e_opt] is true *)
      match e_opt with
      | None -> ctx, e_step
-     | Some(e) -> reset e ctx, e_step
+     | Some(e) ->
+	{ ctx with step = State.singleton (If(e, reset_code)) }, e_step
 
 (** Translation of expressions under an environment [env] *)
 let rec exp env { Zelus.e_desc = desc } =
@@ -341,39 +353,24 @@ and equation env { Zelus.eq_desc = desc } =
      let ctx_match =
        { empty with step = State.singleton (Match(e, p_step_h_list)) } in
      seq ctx_e (seq ctx ctx_match)
-  | Zelus.EQreset(res_eq_list, e) ->
-     let ctx_e, e = exp env e in
-     let ctx_res_eq_list = equation_list env res_eq_list in
-     (* execute the initialization code when [e] is true *)
-     let ctx_res_eq_list = reset e ctx_res_eq_list in
-     seq ctx_e ctx_res_eq_list
-  | Zelus.EQinit(n, ({ Zelus.e_typ = ty } as e)) ->
-     (* initialization of a state variable *)
+  | Zelus.EQreset([{ eq_desc = Zelus.EQinit(x, e) }], r_e) ->
      let is_immediate = Reset.static e in
-     let ctx, e = exp env e in
-     let n_receive_e = var_exp env n e in
-     let ctx_r =
-       if is_immediate then { empty with reset = State.singleton n_receive_e;
-					 init = State.singleton (n, e) }
-       else { empty with step = State.singleton n_receive_e } in
-     seq ctx ctx_r
-  | Zelus.EQblock(b) -> block env b
-  | Zelus.EQnext _ | Zelus.EQder _ 
-  | Zelus.EQemit _ | Zelus.EQautomaton _ 
-  | Zelus.EQpresent _ -> assert false
-				
+     let ctx_e, e = exp env e in
+     let ctx_r_e, r_e = exp env r_e in
+     seq ctx_e (seq ctx_r_e (init_every is_immediate env x e r_e))
+  | Zelus.EQinit(x, e) when Reset.static e ->
+     (* initialization of a state variable with a static value *)
+     let ctx_e, e = exp env e in
+     let x_receive_e = var_exp env x e in
+     seq ctx_e { empty with reset = State.singleton x_receive_e;
+			    init = State.singleton (x, e) }
+  | Zelus.EQblock _ | Zelus.EQnext _
+  | Zelus.EQder _ | Zelus.EQemit _ | Zelus.EQautomaton _ 
+  | Zelus.EQpresent _ | Zelus.EQreset _ | Zelus.EQinit _ -> assert false
+
 and equation_list env eq_list =
   List.fold_left (fun ctx eq -> seq ctx (equation env eq)) empty eq_list
 
-and var_exp env n e =
-  let { t_sort = sort } = try Env.find n env with Not_found -> assert false in
-  let assign =
-    match sort with
-    | Sval -> Let(make (Ovarpat(n)), e)
-    | Svar _ -> Set(Oleft_name n, e)
-    | Smem { m_kind = k } -> Setstate(kind false n k, e) in
-  assign
-    	  
 (* Translation of a math/with handler. *)
 and match_handlers env p_h_list =
   match p_h_list with

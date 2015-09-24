@@ -124,12 +124,12 @@ let output ff ty =
 
 let output_type_declaration ff global_list =
   fprintf ff "@[<v>%a@.@]"
-    (print_list_lb print_type_declaration "type ""and """)
+    (print_list_l print_type_declaration "type ""and """)
     global_list
 
 let output_value_type_declaration ff global_list =
   fprintf ff "@[<v>%a@.@]"
-    (print_list_lb print_value_type_declaration "val ""val """)
+    (print_list_l print_value_type_declaration "val ""val """)
     global_list
 
 

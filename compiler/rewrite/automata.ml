@@ -34,8 +34,9 @@ open Initial
 is translated into:
 
    local state, res in
-   do init state = S1 in
-   do init res = false in
+   do  init state = S1
+   and init res = false
+   and
    match last state with
    | S1 -> reset
              present

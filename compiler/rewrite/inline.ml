@@ -14,14 +14,14 @@
 (* static expansion of function calls (inlining) *)
 (* input: any source code *)
 (* output: any source code *)
-(* inlining is done according to two criteria: *)
-(* - function calls annotated with [inline] *)
-(*   versions of the compiler. *)
+(* inlining is done according to the following: *)
+(* - calls to atomic functions are not inlined. *)
+(* - function calls annotated with [inline] are systematically inlined *)
 (* - small functions (according to a cost function) are statically expanded *)
 (* we compute an estimated cost for every function definition [f x = e] *)
 (* functions whose cost body is less than [inline + cost f(x)]  *)
 (* are inlined *)
-(* the cost depends on the number of parameters and the size of the state *)
+(* the cost depends on the number of parameters and the size of its body *)
 
 open Misc
 open Ident
@@ -124,16 +124,18 @@ let cost_less e max =
 
 (** Decide whether a global function has to be inlined or not *)
 (** A function is inlined either because [is_inline = true] *)
-(** or it is small enough *)
+(** or it is small enough and it is not atomic *)
 let inline is_inline lname =
-  let { info = { value_code = opt_code; 
+  let { info = { value_atomic = is_atomic;
+		 value_code = opt_code; 
 		 value_typ = { Deftypes.typ_vars = l } } } = 
     Modules.find_value lname in
   match opt_code with
     | Some({ f_args = p_list; f_body = e } as body) ->
-	 if is_inline then body
-	 else if cost_less e (!inlining_level + List.length p_list) then body
-	 else raise No_inline
+       if is_atomic then raise No_inline
+       else if is_inline then body
+       else if cost_less e (!inlining_level + List.length p_list) then body
+       else raise No_inline
     | _ -> raise No_inline
     
 (* store the pre-compiled code into the environment for further use *)
@@ -372,8 +374,6 @@ and scondpat renaming ({ desc = desc } as sc) =
 and block renaming 
     ({ b_vars = n_list; b_locals = l_list; b_body = eq_list; 
        b_write = { dv = dv; di = di; der = der }; b_env = n_env } as b) =
-  (* rename a write variable *)
-  let rename_write renaming dv = S.map (fun x -> rename x renaming) dv in
   let rec local_list renaming l_list =
     match l_list with
     | [] -> renaming, []
