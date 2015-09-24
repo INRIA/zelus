@@ -30,7 +30,7 @@
          end
    2/ reset(z)(E1 and ... and En) = reset(z)(E1) and ... and reset(z)(En)
    3/ reset(z)(x = op(e)) = x = op(e) if op is combinatorial
-   4/ reset(z)(x = f(e)) = reset x = f(e) every z otherwise
+   4/ reset(z)(x = f(e)) every z = x = f(e) every z
    5/ reset(z)(reset E every k) = reset(z or k)(E)
    6/ reset(z)(init x = e) = reset init x = e every z
    7/ reset(z)(x = e1 -> e2) = x = if z then e1 else e2
