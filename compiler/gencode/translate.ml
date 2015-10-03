@@ -353,7 +353,7 @@ and equation env { Zelus.eq_desc = desc } =
      let ctx_match =
        { empty with step = State.singleton (Match(e, p_step_h_list)) } in
      seq ctx_e (seq ctx ctx_match)
-  | Zelus.EQreset([{ eq_desc = Zelus.EQinit(x, e) }], r_e) ->
+  | Zelus.EQreset([{ Zelus.eq_desc = Zelus.EQinit(x, e) }], r_e) ->
      let is_immediate = Reset.static e in
      let ctx_e, e = exp env e in
      let ctx_r_e, r_e = exp env r_e in

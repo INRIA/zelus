@@ -1,5 +1,9 @@
 open Graphics
 
+let node g y = z where
+  rec init x = y
+  and z = last x + 1 + y
+
 let atomic node from x =
   let rec o = x -> pre o + 1 in
   o
@@ -9,8 +13,6 @@ let node main () =
    print_int o; print_newline () 
 
 
-
-(*
 let hybrid model z = led where
   rec init digital_temp = 0
   and init led = 0
@@ -24,7 +26,6 @@ let node f() = o where
       | S1 -> do o = 1 done
       | S2(x) -> do o = x -> pre o + 1 done
       end
-*)
 		       
 (*
 let main2 x = let z = x + 2 in z
