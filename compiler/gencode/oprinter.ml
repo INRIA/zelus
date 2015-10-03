@@ -19,7 +19,7 @@ open Ident
 open Obc
 open Format
 open Pp_tools
-
+       
 (** Priorities *)
 let priority e =
   match e.desc with
@@ -196,9 +196,14 @@ and letvar ff n ty e_opt e =
   match e_opt with
     | None ->
         if !print_as_functions
-        then fprintf ff "@[<v 0>let %a = ref (Obj.magic (): %a) in@ %a@]"
-                name n Ptypes.output ty (expression 0) e
-        else fprintf ff "@[<v 0>var %a: %a in@ %a@]"
+        then match Translate.choose ty with
+	     | None ->
+		fprintf ff "@[<v 0>let %a = ref (Obj.magic (): %a) in@ %a@]"
+			name n Ptypes.output ty (expression 0) e
+	     | Some(e0) ->
+		fprintf ff "@[<v 0>let %a = ref (%a:%a) in@ %a@]"
+			name n (expression 0) e0 Ptypes.output ty (expression 0) e
+	else fprintf ff "@[<v 0>var %a: %a in@ %a@]"
                 name n Ptypes.output ty (expression 0) e
     | Some(e0) ->
         if !print_as_functions

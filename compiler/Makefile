@@ -81,9 +81,9 @@ REWRITE = rewrite/markfunctions.cmo \
 GENCODE = gencode/sol.cmo \
 	  gencode/cssa.cmo \
 	  gencode/obc.cmo \
-	  gencode/oprinter.cmo \
 	  gencode/translate.cmo \
-	  gencode/inout.cmo
+	  gencode/oprinter.cmo \
+	  gencode/inout.cmo	  
 
 VERIF = verif/lmm.cmo \
 	verif/plmm.cmo \
