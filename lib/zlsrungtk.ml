@@ -15,8 +15,8 @@ external timeout_add : ?prio:int -> ms:int -> callback:(unit -> bool)
                        -> Glib.Timeout.id
   = "ml_g_timeout_add"
 
-class step_task main_alloc main_csize main_zsize main_maxsize main_ders
-                main_step main_zero main_reset =
+class step_task main_alloc main_csize main_zsize main_horizon main_maxsize
+                main_ders main_step main_zero main_reset =
 object (self)
 
   val stepfn =
@@ -24,6 +24,7 @@ object (self)
       main_alloc
       main_csize
       main_zsize
+      main_horizon
       main_maxsize
       main_ders
       main_step
@@ -85,8 +86,8 @@ object (self)
   method stop () = self#clear_timer ()
 end
 
-let go (main_alloc, main_csize, main_zsize, main_maxsize, main_ders, main_step,
-        main_zero, main_reset) =
+let go (main_alloc, main_csize, main_zsize, main_horizon, main_maxsize,
+        main_ders, main_step, main_zero, main_reset) =
   let w = GWindow.window
     ~title:"Simulator"
     ~width:250
@@ -123,8 +124,8 @@ let go (main_alloc, main_csize, main_zsize, main_maxsize, main_ders, main_step,
   b_pause#misc#set_sensitive false;
 
   let stask =
-    new step_task main_alloc main_csize main_zsize main_maxsize main_ders
-                  main_step main_zero main_reset in
+    new step_task main_alloc main_csize main_zsize main_horizon main_maxsize
+                  main_ders main_step main_zero main_reset in
 
   let s_speed_adj = GData.adjustment
     ~lower:1.0

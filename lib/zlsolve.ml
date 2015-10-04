@@ -37,6 +37,7 @@ sig (* {{{ *)
   val step  :    's Zls.f_alloc
               -> 's Zls.f_csize
               -> 's Zls.f_zsize
+              -> 's Zls.f_horizon
               -> 's Zls.f_maxsize
               -> 's Zls.f_ders
               -> ('s, 'o) Zls.f_step
@@ -284,6 +285,7 @@ struct (* {{{ *)
   let step (f_alloc   : 's Zls.f_alloc)
            (f_csize   : 's Zls.f_csize)
            (f_zsize   : 's Zls.f_zsize)
+           (f_horizon : 's Zls.f_horizon)
            (f_maxsize : 's Zls.f_maxsize)
            (f_ders    : 's Zls.f_ders)
            (f_step    : ('s, 'o) Zls.f_step)
@@ -327,7 +329,7 @@ struct (* {{{ *)
     let d_main t rin =
       (* TODO: need to pass a single dout vector; solvers should not use two
        * either! *)
-      let o, t_horizon =
+      let o =
         if !log_dcalls then begin
           set_color before_loggedcall;
           carray_log "*DC:" t cstates;
@@ -337,6 +339,7 @@ struct (* {{{ *)
           r
         end else f_step dstate cstates ignore_der rin t
       in
+      let t_horizon = f_horizon dstate in
       if t_horizon <= t then o, Goagain true
       else o, Continue (true, t_horizon)
     in

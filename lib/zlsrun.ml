@@ -52,12 +52,13 @@ let wait_next_instant =
   in
   wait_next_instant
 
-let go (main_alloc, main_csize, main_zsize, main_maxsize, main_ders,
-        main_step, main_zero, main_reset) =
+let go (main_alloc, main_csize, main_zsize, main_horizon, main_maxsize,
+        main_ders, main_step, main_zero, main_reset) =
   let stepfn = Solver.step
         main_alloc
         main_csize
         main_zsize
+        main_horizon
         main_maxsize
         main_ders
         main_step
@@ -80,12 +81,13 @@ let go (main_alloc, main_csize, main_zsize, main_maxsize, main_ders,
   in
   step ()
 
-let check (main_alloc, main_csize, main_zsize, main_maxsize, main_ders,
-           main_step, main_zero, main_reset) limit =
+let check (main_alloc, main_csize, main_zsize, main_horizon, main_maxsize,
+           main_ders, main_step, main_zero, main_reset) limit =
   let stepfn = Solver.step
         main_alloc
         main_csize
         main_zsize
+        main_horizon
         main_maxsize
         main_ders
         main_step

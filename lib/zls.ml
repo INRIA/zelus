@@ -21,10 +21,11 @@ let get_zin v i = Array1.get v i <> 0l
 type 's f_alloc = unit -> 's
 type 's f_csize = 's -> int
 type 's f_zsize = 's -> int
+type 's f_horizon = 's -> float
 type 's f_maxsize = 's -> int * int
-type 's f_ders = 's -> carray -> carray -> float -> int
-type ('s, 'o) f_step = 's -> carray -> carray -> zarray -> float -> 'o * float
-type 's f_zero = 's -> carray -> carray -> float -> int
+type 's f_ders = 's -> carray -> carray -> float -> unit
+type ('s, 'o) f_step = 's -> carray -> carray -> zarray -> float -> 'o
+type 's f_zero = 's -> carray -> carray -> float -> unit
 type 's f_reset = 's -> carray -> unit
 
 (* TODO: eliminate this ? *)
@@ -125,6 +126,7 @@ sig
   val go : 's f_alloc
            * 's f_csize
            * 's f_zsize
+           * 's f_horizon
            * 's f_maxsize
            * 's f_ders
            * ('s, 'o) f_step
@@ -135,6 +137,7 @@ sig
   val check : 's f_alloc
               * 's f_csize
               * 's f_zsize
+              * 's f_horizon
               * 's f_maxsize
               * 's f_ders
               * ('s, bool) f_step

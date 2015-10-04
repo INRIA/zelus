@@ -24,6 +24,7 @@ sig
   val step  :    's Zls.f_alloc
               -> 's Zls.f_csize
               -> 's Zls.f_zsize
+              -> 's Zls.f_horizon
               -> 's Zls.f_maxsize
               -> 's Zls.f_ders
               -> ('s, 'o) Zls.f_step
