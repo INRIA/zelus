@@ -248,6 +248,12 @@ let compile modname filename =
       if !verbose then comment "Deadcode removal. See below:";
       if !verbose then Printer.implementation_list info_ff impl_list;
       
+      (* actualize the set of write variable in every block *)
+      let impl_list = Write.implementation_list impl_list in
+      if !verbose then comment 
+			 "Actualize write variables in blocks. See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
       (* schedule *)
       let impl_list = Schedule.implementation_list impl_list in
       if !verbose then comment "Scheduling done. See below:";

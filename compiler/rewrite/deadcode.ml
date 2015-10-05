@@ -129,10 +129,16 @@ let visit read table =
   !useful
 
 (** Empty block *)
-let is_empty_block { b_locals = l; b_body = eq_list } = (l = []) && (eq_list = [])
+let is_empty_block { b_locals = l; b_body = eq_list } =
+  (l = []) && (eq_list = [])
 
+(** remove useless names in write names *)
+let writes useful { dv = dv; di = di; der = der } =
+  let filter set = S.filter (fun x -> S.mem x useful) set in
+  { dv = filter dv; di = filter di; der = filter der }
+			
 (** Remove useless equations. [useful] is the set of useful names *)
-let rec remove_equation useful ({ eq_desc = desc } as eq) eq_list =
+let rec remove_equation useful ({ eq_desc = desc; eq_write = w } as eq) eq_list =
   match desc with
     | EQeq(p, e) ->
        let w = fv_pat S.empty S.empty p in
@@ -149,15 +155,15 @@ let rec remove_equation useful ({ eq_desc = desc } as eq) eq_list =
        (* remove the equation if all handlers are empty *)
        if List.for_all (fun { m_body = b} -> is_empty_block b) m_h_list
        then eq_list
-       else { eq with eq_desc = EQmatch(total, e, m_h_list) } :: eq_list
+       else { eq with eq_desc = EQmatch(total, e, m_h_list);
+		      eq_write = writes useful w } :: eq_list
     | EQreset(res_eq_list, e) ->
        let res_eq_list = remove_equation_list useful res_eq_list in
        (* remove the equation if the body is empty *)
        if res_eq_list = [] then eq_list
-       else { eq with eq_desc = EQreset(res_eq_list, e) } :: eq_list
-    | EQblock(b) ->
-       { eq with eq_desc = EQblock(remove_block useful b) } :: eq_list
-    | EQnext _ | EQder _ | EQautomaton _ 
+       else { eq with eq_desc = EQreset(res_eq_list, e);
+		      eq_write = writes useful w } :: eq_list
+    | EQnext _ | EQder _ | EQautomaton _ | EQblock _ 
     | EQpresent _ | EQemit _ -> assert false
 				       
 and remove_equation_list useful eq_list =
