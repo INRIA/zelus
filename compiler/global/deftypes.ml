@@ -98,10 +98,10 @@ type defnames =
       der: Ident.S.t; (* [der x = ...] *)
     }
 
-(* set of names *)
-let names acc { dv = dv; di = di; der = der } =
-  Ident.S.union acc (Ident.S.union dv (Ident.S.union di der))
-	  
+(* set of names. Derivatives are not taken into account *)
+let names acc { dv = dv; di = di } =
+  Ident.S.union acc (Ident.S.union dv di)
+      
 (* empty set of defined names *)
 (** Making values *)
 let empty = { dv = Ident.S.empty; di = Ident.S.empty; der = Ident.S.empty }
