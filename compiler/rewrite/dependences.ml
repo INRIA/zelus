@@ -46,8 +46,8 @@ struct
       with
 	Not_found -> [] in
     
-    (* first build the association table n_to_graph_list: [n -> [node1,...,nodek]] *)
-    (* for every defined variable *)
+    (* first build the association table n_to_graph_list: *)
+    (* [n -> [node1,...,nodek]] for every defined variable *)
     (* [eq_list] is the input list of equations *)
     let init_graph (g_list, n_to_graph_list) eq =
       let g = make eq in
@@ -65,7 +65,7 @@ struct
           try
 	    if Read.nodep g.g_containt then ()
 	    else
-	      if (g == g_node) && is_last then ()
+	      if (g == g_node) (* && is_last *) then ()
 	      else (* an equation [init x = e] must be done before *)
 		   (* [last x] and [x] are read *)
 		(* if Read.init g_node
@@ -80,7 +80,12 @@ struct
       let add_node g =
 	let g_node = containt g in
 	let last_names, names = Read.read g_node in
-        (* reads of [x] after assignment to [x] *)
+        (* an equation [init x = e] must be done before *)
+	(* any equation [x = ...] *)
+	let last_names =
+	  if Read.init g_node
+	  then S.union (Read.def g_node) last_names else last_names in
+	(* reads of [x] after assignment to [x] *)
 	S.iter (attach false n_to_graph_list g) names;
         (* reads of [last x] done before assignment to [x] *)
 	S.iter (attach true n_to_graph_list g) last_names in

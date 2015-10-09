@@ -101,7 +101,9 @@ let rec init { eq_desc = desc } =
   | _ -> false
 
 let read eq = fv_eq S.empty (S.empty, S.empty) eq
-let def { eq_write = w } = Deftypes.names S.empty w
+let def { eq_write = { dv = dv; di = di } } =
+  (* derivatives are not taken into account *)
+  S.union dv di
 let nodep ({ eq_desc }) =
   match eq_desc with
   | EQeq(_, { e_desc = Eapp(Eup, _) })
