@@ -101,7 +101,7 @@ let rec init { eq_desc = desc } =
   | _ -> false
 
 let read eq = fv_eq S.empty (S.empty, S.empty) eq
-let def { eq_write = { dv = dv; di = di } } =
+let def { eq_write = { Deftypes.dv = dv; Deftypes.di = di } } =
   (* derivatives are not taken into account *)
   S.union dv di
 let nodep ({ eq_desc }) =

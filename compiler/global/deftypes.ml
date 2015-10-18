@@ -80,7 +80,8 @@ and 'a mem =
     m_next: bool option; (* is-it set with [x = ...] or [next x = ...]? *)
     m_previous: bool; (* [last x] or [x] is used *)
     m_init: 'a option option; (* is-it initialized? *)
-    m_combine: 'a option; (* combination function *) }
+    m_combine: 'a option; (* combination function *)
+  }
 
 and mkind = Cont | Zero | Horizon | Period | Encore
 			    
