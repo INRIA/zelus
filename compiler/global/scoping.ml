@@ -272,7 +272,8 @@ let rec build_equation_list defnames eq_list =
 and build_equation defnames eq =
   match eq.desc with
     | EQeq(pat, _) -> build false defnames pat
-    | EQemit(n, _) | EQder(n, _, _, _) | EQinit(n, _) | EQnext(n, _, _) -> 
+    | EQemit(n, _) | EQder(n, _, _, _) | EQinit(n, _)
+    | EQnext(n, _, _) | EQpluseq(n, _) -> 
         if S.mem n defnames then defnames else S.add n defnames
     | EQautomaton(s_h_list, _) ->
         List.fold_left 
@@ -602,6 +603,10 @@ and equation env_pat env eq_list { desc = desc; loc = loc } =
      let n = name_with_sort true loc env_pat n in
      let e0 = expression env e0 in
      eqmake loc (Zelus.EQinit(n, e0)) :: eq_list
+  | EQpluseq(n, e) ->
+     let n = name_with_sort false loc env_pat n in
+     let e = expression env e in
+     eqmake loc (Zelus.EQpluseq(n, e)) :: eq_list
   | EQnext(n, e, e0_opt) ->
      let initialized = match e0_opt with | None -> false | Some _ -> true in
      let n = name_with_sort initialized loc env_pat n in

@@ -137,6 +137,8 @@ and eqdesc =
     (* [next n = e] or [next n = e init e0] *) 
   | EQemit of name * exp option
     (* [emit n = e] *)
+  | EQpluseq of name * exp
+    (* [n += e] *)
   | EQautomaton of eq list state_handler list * state_exp option
   | EQpresent of eq list block present_handler list * eq list block option
   | EQmatch of exp * eq list block match_handler list

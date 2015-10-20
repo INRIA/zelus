@@ -256,8 +256,8 @@ and equation ff { eq_desc = desc; eq_write = w } =
 	present_handler_list
     | EQinit(n, e0) ->
       fprintf ff "@[<hov 2>init %a =@ %a@]" name n expression e0
-    | EQset(ln, e) ->
-      fprintf ff "@[<hov 2>%a <-@ %a@]" longname ln expression e
+    | EQpluseq(n, e) ->
+      fprintf ff "@[<hov 2>%a +=@ %a@]" name n expression e
     | EQnext(n, e, None) ->
       fprintf ff "@[<hov 2>next %a =@ %a@]" 
 	name n expression e

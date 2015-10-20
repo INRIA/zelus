@@ -296,7 +296,6 @@ and equation env { eq_desc = eq_desc; eq_loc = loc } =
         present_handler_exp_list env p_h_e_list ty_n
     | EQinit(n, e0) ->
         exp_less_than_on_i env e0 izero
-    | EQset(_, e) -> exp_less_than_on_i env e izero
     | EQnext(n, e, e0_opt) ->
         let ty_n = try let { t_typ = ty } = Env.find n env in ty
 		   with Not_found -> assert false in

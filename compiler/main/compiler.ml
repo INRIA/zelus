@@ -185,12 +185,6 @@ let compile modname filename =
 	  "Compilation of memories (fby/pre/next) into (init/last). See below:";
       if !verbose then Printer.implementation_list info_ff impl_list;
       
-      (* Un-nest let/in blocks *)
-      let impl_list = Letin.implementation_list impl_list in
-      if !verbose then 
-	comment "Un-nest let/in blocks. See below:";
-      if !verbose then Printer.implementation_list info_ff impl_list;
-      
       (* actualize the set of write variable in every block *)
       let impl_list = Write.implementation_list impl_list in
       if !verbose then comment 
@@ -200,6 +194,12 @@ let compile modname filename =
       (* Add an extra discrete step for weak transitions *)
       let impl_list = Encore.implementation_list impl_list in
       if !verbose then comment "Add an extra discrete step. See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
+      (* Un-nest let/in blocks *)
+      let impl_list = Letin.implementation_list impl_list in
+      if !verbose then 
+	comment "Un-nest let/in blocks. See below:";
       if !verbose then Printer.implementation_list info_ff impl_list;
       
       (* Gather all horizons into a single one per function *)

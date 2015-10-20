@@ -305,7 +305,7 @@ let rec equation ck res subst
      let e = ifthenelse (reset res) e
        (unarypre_with_clock ck x (rename x subst)) in
      { acc with eqs = (eq_make (Lmm.Evarpat(rename x subst)) e) :: eqs }
-  | EQnext _ | EQset _ | EQblock _ | EQemit _ | EQautomaton _
+  | EQnext _ | EQblock _ | EQemit _ | EQautomaton _
   | EQpresent _ | EQder _ -> assert false
 									   
 and equation_list ck res subst acc eq_list =

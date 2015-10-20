@@ -99,8 +99,6 @@ and equation subst eq_list ({ eq_desc = desc } as eq) =
   match desc with
   | EQeq(p, e) -> 
      { eq with eq_desc = EQeq(p, exp subst e) } :: eq_list
-  | EQset(ln, e) -> 
-     { eq with eq_desc = EQset(ln, exp subst e) } :: eq_list
   | EQnext(n, e, None) ->
      { eq with eq_desc = EQeq(varpat n e.e_typ, exp subst e) } :: eq_list
   | EQnext(n, e, Some(e0)) ->

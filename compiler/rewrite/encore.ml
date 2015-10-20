@@ -99,8 +99,6 @@ and equation env ({ eq_desc = desc } as eq) =
   | EQreset(res_eq_list, e) ->
      let e = expression env e in
      { eq with eq_desc = EQreset(equation_list env res_eq_list, e) }
-  | EQset(id, e) ->
-     { eq with eq_desc = EQset(id, expression env e) }
   | EQinit(x, e) ->
      { eq with eq_desc = EQinit(x, expression env e) }
   | EQder(x, e, None, []) -> 

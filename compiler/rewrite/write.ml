@@ -12,7 +12,7 @@
 (*                                                                        *)
 (**************************************************************************)
 (* compute write variables for every equation and block. Variables which *)
-(* are set only once and which stay local to their block are of set to *)
+(* are set only once and which stay local to their block are set to *)
 (* kind [Sval] *)
 
 open Ident
@@ -38,7 +38,7 @@ let filter_env shared_set b_env =
     let entry =
       match sort with
       | (Svar _ | Smem { m_kind = None; m_init = None; m_previous = false })
-	      when not (S.mem n shared_set) -> { entry with t_sort = Sval }
+	   when not (S.mem n shared_set) -> { entry with t_sort = Sval }
       | _ -> entry in
     S.add n bounded, Env.add n entry env in
   Env.fold filter b_env (S.empty, Env.empty)
@@ -49,8 +49,8 @@ let rec equation ({ eq_desc = desc } as eq) =
        eq, { Deftypes.empty with dv = Vars.fv_pat S.empty S.empty pat }, S.empty
     | EQnext(n, _, _)
     | EQemit(n, _) -> eq, { Deftypes.empty with dv = S.singleton n }, S.empty
-    | EQset _ -> eq, Deftypes.empty, S.empty
-    | EQder(n, _, _, _) -> eq, { Deftypes.empty with der = S.singleton n }, S.empty
+    | EQder(n, _, _, _) ->
+       eq, { Deftypes.empty with der = S.singleton n }, S.empty
     | EQinit(n, _) -> eq, { Deftypes.empty with di = S.singleton n }, S.empty
     | EQmatch(total, e, m_h_list) ->
        let m_h_list, (defnames, shared_set) =

@@ -362,7 +362,6 @@ and equation expected_k env
           | Some(e0) ->
              Causal.sup ty (exp (Types.lift_to_discrete expected_k) env e0) in
         Env.singleton n { t_typ = ty; t_last = true }
-    | EQset(_, e) -> let _ = exp expected_k env e in Env.empty
     | EQinit(n, e0) ->
         let ty = exp expected_k env e0 in
         Env.singleton n { t_typ = Cenv.control env ty; t_last = false }

@@ -58,7 +58,7 @@ let rec equation h_opt ({ eq_desc = desc } as eq) =
   | EQreset(res_eq_list, e) ->
      let res_eq_list, h_opt = equation_list h_opt res_eq_list in
      { eq with eq_desc = EQreset(res_eq_list, e) }, h_opt
-  | EQset _ | EQinit _ | EQder _ | EQeq _ -> eq, h_opt
+  | EQinit _ | EQder _ | EQeq _ -> eq, h_opt
   | EQblock _ | EQautomaton _ | EQpresent _ | EQemit _ | EQnext _ -> assert false
 
 and equation_list h_opt eq_list = Misc.map_fold equation h_opt eq_list      

@@ -94,7 +94,7 @@ let rec build_equation table { eq_desc = desc } =
         let r = fv S.empty e in
 	let table_res = build_equation_list Env.empty res_eq_list in
 	merge table (extend table_res r)
-    | EQblock _ | EQset _ -> table
+    | EQblock _ -> table
     | EQder _ | EQnext _ | EQautomaton _
     | EQpresent _ | EQemit _ -> assert false
 
@@ -144,7 +144,6 @@ let rec remove_equation useful ({ eq_desc = desc; eq_write = w } as eq) eq_list 
        let w = fv_pat S.empty S.empty p in
        if S.exists (fun x -> S.mem x useful) w
        then (* the equation is useful *) eq :: eq_list else eq_list
-    | EQset _ -> eq :: eq_list
     | EQder(n, e, None, []) | EQinit(n, e) ->
        if S.mem n useful then eq :: eq_list else eq_list
     | EQmatch(total, e, m_h_list) ->

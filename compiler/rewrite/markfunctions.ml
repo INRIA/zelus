@@ -117,7 +117,6 @@ and equation c_in c_out ({ eq_desc = desc } as eq) =
     | EQinit(n, e) -> EQinit(n, exp c_in c_out e)
     | EQnext(n, e, e_opt) -> EQnext(n, exp c_in c_out e,
 				    Misc.optional_map (exp c_in c_out) e_opt)
-    | EQset(n, e) -> EQset(n, exp c_in c_out e)
     | EQautomaton(is_weak, s_h_list, se_opt) ->
        EQautomaton(is_weak, List.map (state_handler c_in c_out) s_h_list,
 		   Misc.optional_map (state c_in c_out) se_opt)

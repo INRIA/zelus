@@ -332,12 +332,6 @@ and equation env { Zelus.eq_desc = desc } =
      let ctx_e, e = exp env e in
      let ctx_p = { empty with step = State.singleton (Let(pattern p, e)) } in
      seq ctx_e ctx_p
-  | Zelus.EQset(ln, e) ->
-      let ctx_e, e = exp env e in
-      let ctx_ln =
-	{ empty with step =
-		       State.singleton (Setstate(Oleft_state_global(ln), e)) }
-      in seq ctx_e ctx_ln
   | Zelus.EQder(n, e, None, []) ->
      (* derivatives [der n = e] *)
      let ctx_e, e = exp env e in

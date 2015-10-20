@@ -152,6 +152,7 @@ rule main = parse
   | ":"  { COLON }
   | "="  { EQUAL }
   | "==" { EQUALEQUAL }
+  | "+=" { PLUSEQUAL }
   | "&"  { AMPERSAND }
   | "'"  { QUOTE }
   | "&&" { AMPERAMPER }

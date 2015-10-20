@@ -168,9 +168,6 @@ and equation ({ eq_desc = desc } as eq) =
   | EQinit(n, e0) ->
      let e0, ctx_e0 = expression e0 in
      State.cons (make { eq with eq_desc = EQinit(n, e0) }) ctx_e0
-  | EQset(ln, e) ->
-     let e, ctx_e = expression e in
-     State.cons (make { eq with eq_desc = EQset(ln, e) }) ctx_e
   | EQmatch(total, e, p_h_list) ->
      let e, ctx_e = expression e in
      let p_h_list =

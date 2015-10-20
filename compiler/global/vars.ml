@@ -71,7 +71,7 @@ let rec fv bounded (last_acc, acc) e =
         
 and fv_eq bounded (last_acc, acc) { eq_desc = desc; eq_write = w } =
   match desc with
-    | EQeq(_, e) | EQinit(_, e) | EQset(_, e) -> fv bounded (last_acc, acc) e
+    | EQeq(_, e) | EQinit(_, e) | EQpluseq(_, e) -> fv bounded (last_acc, acc) e
     | EQmatch(_, e, m_h_list) ->
        fv_match_handler (fv_block fv_local fv_eq_list) m_h_list bounded 
 			(fv bounded (last_acc, acc) e)

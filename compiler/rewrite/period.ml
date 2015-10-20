@@ -148,8 +148,6 @@ and equation time ({ eq_desc = desc } as eq) =
      let e = expression time e in
      let res_eq_list = equation_list time res_eq_list in
      { eq with eq_desc = EQreset(res_eq_list, e) }
-  | EQset(id, e) ->
-     { eq with eq_desc = EQset(id, expression time e) }
   | EQinit(x, e) ->
      { eq with eq_desc = EQinit(x, expression time e) }
   | EQder(x, e, None, []) -> 

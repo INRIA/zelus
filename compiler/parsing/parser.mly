@@ -55,6 +55,7 @@ let block_of_equation ({ desc = desc; loc = loc } as eq) =
 
 %token EQUAL          /* "=" */
 %token EQUALEQUAL     /* "==" */
+%token PLUSEQUAL      /* "+=" */
 %token AMPERSAND      /* "&" */
 %token AMPERAMPER     /* "&&" */
 %token BARBAR         /* "||" */
@@ -352,9 +353,11 @@ equation_desc:
   | eq = simple_equation_desc
     { eq } 
   | p = pattern EQUAL e = expression
-      { EQeq(p, e) }
+    { EQeq(p, e) }
+  | i = ide PLUSEQUAL e = expression
+    { EQpluseq(i, e) }
   | PERIOD p = pattern EQUAL e = period_expression
-      { EQeq(p, make (Eperiod(e)) $startpos(e) $endpos(e)) }
+    { EQeq(p, make (Eperiod(e)) $startpos(e) $endpos(e)) }
   | DER i = ide EQUAL e = expression opt = optional_init
       { EQder(i, e, opt, []) }
   | DER i = ide EQUAL e = expression opt = optional_init

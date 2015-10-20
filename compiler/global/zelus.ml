@@ -136,8 +136,8 @@ and eqdesc =
   (* [init n = e0 *)
   | EQnext of Ident.t * exp * exp option
   (* [next n = e] *)
-  | EQset of Lident.t * exp
-  (* [n <- e] *)
+  | EQpluseq of Ident.t * exp
+  (* [n += e] *)
   | EQautomaton of is_weak * state_handler list * state_exp option
   | EQpresent of eq list block present_handler list * eq list block option
   | EQmatch of total ref * exp * eq list block match_handler list

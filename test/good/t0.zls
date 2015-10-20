@@ -1,15 +1,19 @@
+let hybrid f(x) = (o, k1, k2) where
+ rec match x with
+     | true -> do o = period 1.0(2.0) done
+     | false -> do o = period 3.0(4.0) done
+     end
+ and k1 = period 5.0(6.0)
+ and k2 = period 7.0(10.0)
+    
+(*
 let hybrid model z = led where
   rec init digital_temp = 0
   and init led = 0
   and present z -> do led = last digital_temp done
   and present z -> do digital_temp = 1 done
-  
-(*
-init x = y
-     k = x + 1
-     m = last x + 1
-     x = 2 
-*)
+ *)
+
 (*
 open Graphics
 

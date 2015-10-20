@@ -564,10 +564,6 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
 	(* sets that every variable from [dv] has a current value *)
 	set false loc dv h;
 	{ Deftypes.empty with dv = dv }
-    | EQset(ln, e) ->
-        let qualid, ty = global loc ln in
-	expect expected_k h e ty;
-	Deftypes.empty        
     | EQinit(n, e0) ->
         (* an initialization is valid only in a continuous or discrete context *)
         check_statefull loc expected_k;

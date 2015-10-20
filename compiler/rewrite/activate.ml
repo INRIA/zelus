@@ -92,7 +92,6 @@ and equation eq_list ({ eq_desc = desc } as eq) =
         { eq with eq_desc = EQeq(pat, exp e) } :: eq_list
     | EQinit(n, e) ->
        { eq with eq_desc = EQinit(n, exp e) } :: eq_list
-    | EQset(ln, e) -> { eq with eq_desc = EQset(ln, exp e) } :: eq_list
     | EQnext(n, e, e0_opt) ->
         { eq with eq_desc = 
 		    EQnext(n, exp e, optional_map exp e0_opt) } :: eq_list

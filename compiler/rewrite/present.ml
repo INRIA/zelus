@@ -182,7 +182,6 @@ and equation signals eq_list eq =
 		   EQeq(pattern signals pat, exp signals e) } :: eq_list
     | EQinit(n, e0) -> 
         { eq with eq_desc = EQinit(n, exp signals e0) } :: eq_list
-    | EQset(ln, e) -> { eq with eq_desc = EQset(ln, exp signals e) } :: eq_list
     | EQnext(n, e, e0_opt) ->
         { eq with eq_desc =
 	    EQnext(n, exp signals e, 
