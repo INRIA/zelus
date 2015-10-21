@@ -48,6 +48,9 @@ let rec equation ({ eq_desc = desc } as eq) =
     | EQeq(pat, e) ->
        { eq with eq_desc = EQeq(pat, expression e) },
        { Deftypes.empty with dv = Vars.fv_pat S.empty S.empty pat }, S.empty
+    | EQpluseq(n, e) ->
+       { eq with eq_desc = EQpluseq(n, expression e) },
+       { Deftypes.empty with dv = S.singleton n }, S.empty
     | EQder(n, e, None, []) ->
        { eq with eq_desc = EQder(n, expression e, None, []) },
        { Deftypes.empty with der = S.singleton n }, S.empty
@@ -70,7 +73,7 @@ let rec equation ({ eq_desc = desc } as eq) =
     | EQblock(b) ->
        let b, defnames, shared_set = block b in
        { eq with eq_desc = EQblock(b) }, defnames, shared_set
-    | EQpresent _ | EQautomaton _ | EQder _ | EQnext _ -> assert false in
+    | EQpresent _ | EQautomaton _ | EQder _ | EQnext _ | EQemit _ -> assert false in
   (* set the names defined in the equation *)
   { eq with eq_write = defnames }, defnames, shared_set
 

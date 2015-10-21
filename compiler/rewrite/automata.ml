@@ -266,6 +266,7 @@ let rec exp ({ e_desc = desc } as e) =
 and equation (env, eq_list) ({ eq_desc = desc } as eq) =
   match desc with
     | EQeq(pat, e) -> env, { eq with eq_desc = EQeq(pat, exp e) } :: eq_list
+    | EQpluseq(n, e) -> env, { eq with eq_desc = EQpluseq(n, exp e) } :: eq_list
     | EQinit(n, e0) -> 
       env, { eq with eq_desc = EQinit(n, exp e0) } :: eq_list
     | EQnext(n, e, e0_opt) -> 

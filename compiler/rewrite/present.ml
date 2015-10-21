@@ -178,16 +178,18 @@ let rec exp signals e =
 and equation signals eq_list eq =
   match eq.eq_desc with
     | EQeq(pat, e) -> 
-       { eq with eq_desc =
-		   EQeq(pattern signals pat, exp signals e) } :: eq_list
-    | EQinit(n, e0) -> 
-        { eq with eq_desc = EQinit(n, exp signals e0) } :: eq_list
-    | EQnext(n, e, e0_opt) ->
+      { eq with eq_desc =
+	  EQeq(pattern signals pat, exp signals e) } :: eq_list
+    | EQpluseq(x, e) -> 
+      { eq with eq_desc = EQpluseq(x, exp signals e) } :: eq_list
+    | EQinit(x, e0) -> 
+        { eq with eq_desc = EQinit(x, exp signals e0) } :: eq_list
+    | EQnext(x, e, e0_opt) ->
         { eq with eq_desc =
-	    EQnext(n, exp signals e, 
+	    EQnext(x, exp signals e, 
 		   optional_map (exp signals) e0_opt) } :: eq_list
-    | EQder(n, e, None, []) ->
-        { eq with eq_desc = EQder(n, exp signals e, None, []) } :: eq_list
+    | EQder(x, e, None, []) ->
+        { eq with eq_desc = EQder(x, exp signals e, None, []) } :: eq_list
     | EQemit(name, e_opt) ->
         (* essentially translate to [(namev,namep) = e] *)
         let e = match e_opt with | None -> evoid | Some(e) -> exp signals e in

@@ -283,6 +283,11 @@ and equation env { eq_desc = eq_desc; eq_loc = loc } =
     | EQeq(p, e) -> 
         let ty_p = pattern env p in
         exp_less_than env e ty_p
+    | EQpluseq(n, e) ->
+        let ty_n =
+	  try let { t_typ = ty } = Env.find n env in ty
+	  with Not_found -> assert false in
+	exp_less_than env e ty_n
     | EQder(n, e, e0_opt, p_h_e_list) ->
         let ty_n, is_last = 
           begin try let { t_typ = ty1; t_last = is_last } = Env.find n env in 

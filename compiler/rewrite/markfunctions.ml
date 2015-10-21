@@ -109,6 +109,7 @@ and local c_in c_out ({ l_eq = eq_list } as l) =
 and equation c_in c_out ({ eq_desc = desc } as eq) =
   let desc = match desc with
     | EQeq(p, e) -> EQeq(p, exp c_in c_out e)
+    | EQpluseq(n, e) -> EQpluseq(n, exp c_in c_out e)
     | EQder(n, e, e_opt, p_h_list) ->
        EQder(n, exp c_in c_out e, Misc.optional_map (exp c_in c_out) e_opt,
 	     List.map

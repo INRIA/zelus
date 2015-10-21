@@ -38,7 +38,7 @@ let build_table subst eq_list =
                   (* build [pre(n) -> x] if it does not exist already *)
                   Env.add n x table, subst, eq :: eq_list
           end
-      | EQeq _ | EQinit _ | EQnext _ 
+      | EQeq _ | EQpluseq _ | EQinit _ | EQnext _ 
       | EQmatch _ | EQreset _ | EQder _ | EQblock _ ->
 					   table, subst, eq :: eq_list
       | EQemit _ | EQautomaton _ | EQpresent _ -> assert false
@@ -77,6 +77,7 @@ let rec exp subst e =
 and equation subst eq =
   match eq.eq_desc with
     | EQeq(pat, e) -> { eq with eq_desc = EQeq(pat, exp subst e) }
+    | EQpluseq(n, e) -> { eq with eq_desc = EQpluseq(n, exp subst e) }
     | EQinit(n, e0) -> 
        { eq with eq_desc = EQinit(n, exp subst e0) }
     | EQnext(n, e, e_opt) -> 

@@ -115,6 +115,8 @@ and equation dv copies eq =
        (* are added *)
        let pat, copies = pattern dv copies pat in
        { eq with eq_desc = EQeq(pat, exp e) }, copies
+    | EQpluseq(n, e) ->
+       { eq with eq_desc = EQpluseq(n, exp e) }, copies
     | EQder(n, e, None, []) ->
        { eq with eq_desc = EQder(n, exp e, None, []) }, copies
     | EQinit(n, e0) ->

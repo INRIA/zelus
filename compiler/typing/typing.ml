@@ -167,6 +167,14 @@ let last loc h n =
 let der h n =
   let { t_typ = typ } = Env.find n h in typ
 
+let pluseq loc h n =
+  (* check that a name [n] is declared with a combination function *)
+  let { t_typ = typ; t_sort = sort } = Env.find n h in
+  match sort with
+    | Sval | Svar { v_combine = None } | Smem { m_combine = None } ->
+      error loc (Ecombination_function(n))
+    | _ -> typ
+       
 (** Types for global identifiers *)
 let global loc lname =
   let { qualid = qualid; info = { value_typ = tys } } = find_value loc lname in
@@ -265,7 +273,8 @@ let set_env is_mem h0 =
     entry.t_sort <- sort;
     entry.t_typ <- Types.new_var () in
   Env.iter initialize h0
-  
+
+ 
 (** The typing functions *)
 let immediate = function
   | Ebool _ -> Initial.typ_bool
@@ -562,6 +571,14 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
         check_total_pattern p;
 	let dv = vars p in
 	(* sets that every variable from [dv] has a current value *)
+	set false loc dv h;
+	{ Deftypes.empty with dv = dv }
+    | EQpluseq(n, e) ->
+        let actual_ty = expression expected_k h e in
+        let expected_ty = pluseq loc h n in 
+        unify loc expected_ty actual_ty;
+	(* sets that every variable from [dv] has a current value *)
+	let dv = S.singleton n in
 	set false loc dv h;
 	{ Deftypes.empty with dv = dv }
     | EQinit(n, e0) ->

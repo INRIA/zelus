@@ -345,6 +345,9 @@ and equation expected_k env
     | EQeq(p, e) ->
         let ty_e = exp expected_k env e in
         pattern p (Cenv.control env ty_e)
+    | EQpluseq(n, e) ->
+        let ty_e = exp expected_k env e in
+	Env.singleton n { t_typ = ty_e; t_last = false }
     | EQder(n, e, e0_opt, h_e_list) ->
         (* no causality constraint for [e] *)
         let _ = exp expected_k env e in

@@ -59,28 +59,28 @@ and instance =
 and kind = Tany | Tcont | Tdiscrete of bool (* statefull or stateless *)
 
 (* entry in the typing environment *)
-type 'a entry = 
-    { mutable t_sort: 'a tsort; (* its sort *)
+type tentry = 
+    { mutable t_sort: tsort; (* its sort *)
       mutable t_typ: typ (* its type *)
     }
 
 (* variables are defined by local x [[default e | init e ] with op] in ... *)
-and 'a tsort =
+and tsort =
   | Sval (* a let value *)
-  | Svar of 'a var (* a shared variable *)
-  | Smem of 'a mem (* a state variable *)
+  | Svar of var (* a shared variable *)
+  | Smem of mem (* a state variable *)
 
-and 'a var =
-  { v_combine: 'a option; (* combination function *)
-    v_default: 'a option; (* default value *)
+and var =
+  { v_combine: Lident.t option; (* combination function *)
+    v_default: constant option; (* default value *)
   }
 
-and 'a mem =
+and mem =
   { m_kind: mkind option;
     m_next: bool option; (* is-it set with [x = ...] or [next x = ...]? *)
     m_previous: bool; (* [last x] or [x] is used *)
-    m_init: 'a option option; (* is-it initialized? *)
-    m_combine: 'a option; (* combination function *)
+    m_init: constant option option; (* is-it initialized? *)
+    m_combine: Lident.t option; (* combination function *)
   }
 
 and mkind = Cont | Zero | Horizon | Period | Encore
@@ -88,8 +88,6 @@ and mkind = Cont | Zero | Horizon | Period | Encore
 and constant =
   | Cimmediate of immediate
   | Cglobal of Lident.t
-
-and tentry = constant entry
 
 (** Names written in a block *)
 type defnames = 

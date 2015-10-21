@@ -102,7 +102,8 @@ let print_vars ff v =
   then fprintf ff "@[<v 0>%a@ @]" (print_list_r name "local " "," " in") v
 
 let print_binding ff (n, { t_sort = sort; t_typ = typ }) =
-  let combine prefix ff v = fprintf ff " %s %a" prefix constant v in
+  let default ff v = fprintf ff " default %a" constant v in
+  let combine ff v = fprintf ff " with %a" longname v in
   let init ff i_opt =
     match i_opt with
     | None -> fprintf ff " initialized"
@@ -116,17 +117,17 @@ let print_binding ff (n, { t_sort = sort; t_typ = typ }) =
     fprintf ff " %s " k in
   match sort with
   | Sval -> fprintf ff "@[val %a: %a@,@]" name n Ptypes.output typ
-  | Svar { v_combine = c_opt; v_default = v_opt } ->
+  | Svar { v_combine = c_opt; v_default = d_opt } ->
      fprintf ff "@[var %a: %a%a%a@,@]" name n Ptypes.output typ
-	     (Misc.optional_unit (combine " default ")) v_opt
-	     (Misc.optional_unit (combine " with ")) c_opt
+	     (Misc.optional_unit default) d_opt
+	     (Misc.optional_unit combine) c_opt
   | Smem { m_kind = k; m_next = n_opt; m_previous = p;
 	   m_init = i_opt; m_combine = c_opt } ->
      fprintf ff "@[%a%s%amem %a: %a%a%a@,@]"
 	     (Misc.optional_unit next) n_opt (previous p) 
 	     (Misc.optional_unit kind) k name n Ptypes.output typ
 	     (Misc.optional_unit init) i_opt
-	     (Misc.optional_unit (combine " with ")) c_opt
+	     (Misc.optional_unit combine) c_opt
 
 let print_env ff env =
   let env = Ident.Env.bindings env in

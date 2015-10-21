@@ -169,25 +169,40 @@ let kind is_read n k =
 				      if is_read then Ozero_in else Ozero_out)
      | Deftypes.Horizon | Deftypes.Period | Deftypes.Encore -> Oleft_state_name(n)
 							      
-let var_exp env n e =
-  let { t_sort = sort } = try Env.find n env with Not_found -> assert false in
-  let assign =
-    match sort with
-    | Sval -> Let(make (Ovarpat(n)), e)
-    | Svar _ -> Set(Oleft_name n, e)
-    | Smem { m_kind = k } -> Setstate(kind false n k, e) in
-  assign
-    	  
-(** Translation of a variable read. *)
-let local_var n env =
-  let { t_sort = sort } =
-    try Env.find n env
-    with Not_found -> Misc.internal_error "Unbound variable" Printer.name n in
+(** Compile a read of a variable *)
+let var sort n =
   match sort with
   | Sval -> make (Olocal(n, false))
   | Svar _ -> make (Olocal(n, true))
   | Smem { m_kind = k } -> make (Ostate(kind true n k))
-	
+
+let local_var n env =
+  let { t_sort = sort } =
+    try Env.find n env
+    with Not_found -> Misc.internal_error "Unbound variable" Printer.name n in
+  var sort n
+
+(** Make an assignment according to the sort of a variable [n] *)
+let assign sort n e =
+  match sort with
+    | Sval -> Let(make (Ovarpat(n)), e)
+    | Svar _ -> Set(Oleft_name n, e)
+    | Smem { m_kind = k } -> Setstate(kind false n k, e)
+
+(** Compile an equation [n = e] *)
+let var_exp env n e =
+  let { t_sort = sort } = try Env.find n env with Not_found -> assert false in
+  assign sort n e
+
+ (** Compile an equation [n += e] *)
+let var_plus_exp env n e =
+  let { t_sort = sort } = try Env.find n env with Not_found -> assert false in
+  let ln =
+    match sort with
+    | Svar { v_combine = Some(ln) } | Smem { m_combine = Some(ln) } -> ln
+    | _ -> assert false in
+  assign sort n (make (Oapp(ln, [var sort n; e])))
+      
 		 
 (* Turn equations produced during the translation into an Obc expression *) 
 let letin eq_list e =
@@ -332,6 +347,10 @@ and equation env { Zelus.eq_desc = desc } =
      let ctx_e, e = exp env e in
      let ctx_p = { empty with step = State.singleton (Let(pattern p, e)) } in
      seq ctx_e ctx_p
+  | Zelus.EQpluseq(n, e) ->
+     let ctx_e, e = exp env e in
+     let ctx_n = { empty with step = State.singleton (var_plus_exp env n e) } in
+     seq ctx_e ctx_n
   | Zelus.EQder(n, e, None, []) ->
      (* derivatives [der n = e] *)
      let ctx_e, e = exp env e in

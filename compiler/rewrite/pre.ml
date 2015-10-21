@@ -99,15 +99,17 @@ and equation subst eq_list ({ eq_desc = desc } as eq) =
   match desc with
   | EQeq(p, e) -> 
      { eq with eq_desc = EQeq(p, exp subst e) } :: eq_list
-  | EQnext(n, e, None) ->
-     { eq with eq_desc = EQeq(varpat n e.e_typ, exp subst e) } :: eq_list
-  | EQnext(n, e, Some(e0)) ->
+  | EQpluseq(x, e) -> 
+     { eq with eq_desc = EQpluseq(x, exp subst e) } :: eq_list
+  | EQnext(x, e, None) ->
+     { eq with eq_desc = EQeq(varpat x e.e_typ, exp subst e) } :: eq_list
+  | EQnext(x, e, Some(e0)) ->
      let e = exp subst e in
      let e0 = exp subst e0 in
-     { eq with eq_desc = EQinit(n, e0) } :: 
-       { eq with eq_desc = EQeq(varpat n e.e_typ, e) } :: eq_list
-  | EQinit(n, e0) ->
-     { eq with eq_desc = EQinit(n, exp subst e0) } :: eq_list
+     { eq with eq_desc = EQinit(x, e0) } :: 
+       { eq with eq_desc = EQeq(varpat x e.e_typ, e) } :: eq_list
+  | EQinit(x, e0) ->
+     { eq with eq_desc = EQinit(x, exp subst e0) } :: eq_list
   | EQmatch(total, e, p_h_list) ->
      let p_h_list = 
        List.map (fun ({ m_body = b } as h) -> { h with m_body = block subst b }) 

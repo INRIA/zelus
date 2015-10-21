@@ -65,6 +65,10 @@ let rec do_after (env, eq_list, w) ({ eq_desc = desc } as eq) =
 	 env, n_e :: { eq with eq_desc = EQeq(p, var n e.e_typ) } :: eq_list,
 	 S.singleton n
        else env, { eq with eq_desc = EQeq(p, after e w) } :: eq_list, w_p
+    | EQpluseq(n, e) ->
+       let env, m_e, m = intro env (after e w) in
+       env, m_e :: { eq with eq_desc = EQpluseq(n, var m e.e_typ) } :: eq_list,
+       S.singleton m
     | EQder(n, e, None, []) ->
        let env, m_e, m = intro env (after e w) in
        env,
@@ -160,6 +164,9 @@ and equation ({ eq_desc = desc } as eq) =
   | EQeq(p, e) ->
      let e, ctx = expression e in
      State.cons (make { eq with eq_desc = EQeq(p, e) }) ctx
+  | EQpluseq(n, e) ->
+     let e, ctx_e = expression e in
+     State.cons (make { eq with eq_desc = EQpluseq(n, e) }) ctx_e
   | EQder(n, e, e0_opt, []) ->
      let e, ctx = expression e in
      let e0_opt, ctx0 = optional expression e0_opt in

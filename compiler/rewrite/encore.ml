@@ -73,6 +73,7 @@ let rec expression env ({ e_desc = e_desc } as e) =
 and equation env ({ eq_desc = desc } as eq) =
   match desc with 
   | EQeq(p, e) -> { eq with eq_desc = EQeq(p, expression env e) }
+  | EQpluseq(x, e) -> { eq with eq_desc = EQpluseq(x, expression env e) }
   | EQmatch(total, e, m_h_list) ->
      let e = expression env e in
      (* does-it exist a branch which is executed on a zero-crossing instant? *)

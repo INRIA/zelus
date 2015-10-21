@@ -78,7 +78,7 @@ let cost_less e max =
     List.iter cost_eq eq_list
   and cost_eq eq =
     match eq.eq_desc with
-      | EQeq(_, e) | EQinit(_, e) -> incr 1; cost e
+      | EQeq(_, e) | EQinit(_, e) | EQpluseq(_, e) -> incr 1; cost e
       | EQnext(_, e0, e_opt) -> 
 	  incr 1; cost e0; Misc.optional_unit (fun _ e -> cost e) () e_opt
       | EQmatch(_, e, p_h_list) ->
@@ -262,6 +262,8 @@ and equation renaming ({ eq_desc = desc } as eq) =
   let desc = match desc with
     | EQeq(p, e) ->
        EQeq(pattern renaming p, expression renaming e)
+    | EQpluseq(x, e) ->
+       EQpluseq(rename x renaming, expression renaming e)
     | EQinit(x, e0) ->
           EQinit(rename x renaming, expression renaming e0)
     | EQnext(x, e, e0_opt) ->

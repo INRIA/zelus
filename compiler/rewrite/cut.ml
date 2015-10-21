@@ -64,8 +64,10 @@ and equation subst eq_list ({ eq_desc } as eq) =
   match eq_desc with
     | EQeq(p, e) -> 
       { eq with eq_desc = EQeq(p, exp subst e) } :: eq_list
+    | EQpluseq(n, e) -> 
+      { eq with eq_desc = EQpluseq(n, exp subst e) } :: eq_list
     | EQinit(n, e0) ->
-     { eq with eq_desc = EQinit(n, exp subst e0) } :: eq_list
+      { eq with eq_desc = EQinit(n, exp subst e0) } :: eq_list
     | EQmatch(total, e, p_h_list) ->
       let p_h_list = 
 	List.map (fun ({ m_body = b } as h) -> { h with m_body = block subst b }) 

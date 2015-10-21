@@ -90,6 +90,8 @@ and equation eq_list ({ eq_desc = desc } as eq) =
   match desc with
     | EQeq(pat, e) -> 
         { eq with eq_desc = EQeq(pat, exp e) } :: eq_list
+    | EQpluseq(n, e) -> 
+        { eq with eq_desc = EQpluseq(n, exp e) } :: eq_list
     | EQinit(n, e) ->
        { eq with eq_desc = EQinit(n, exp e) } :: eq_list
     | EQnext(n, e, e0_opt) ->

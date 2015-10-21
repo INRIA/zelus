@@ -34,7 +34,7 @@ let rec exp { e_desc = desc } =
       
 let rec equation { eq_desc = desc } =
   match desc with
-    | EQeq(_, e) | EQinit(_, e) | EQder(_, e, None, []) -> exp e
+    | EQeq(_, e) | EQinit(_, e) | EQder(_, e, None, []) | EQpluseq(_, e) -> exp e
     | EQmatch(_, e, m_h_list) ->
        exp e
        || List.exists

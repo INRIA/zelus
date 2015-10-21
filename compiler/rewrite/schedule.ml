@@ -94,7 +94,7 @@ let rec exp e =
   
 and equation ({ eq_desc = desc } as eq) =
   let desc = match desc with
-    | EQeq _ | EQinit _ | EQnext _ | EQder _ -> desc
+    | EQeq _ | EQpluseq _ | EQinit _ | EQnext _ | EQder _ -> desc
     | EQmatch(total, e, p_h_list) ->
         EQmatch(total, exp e, 
 		List.map 

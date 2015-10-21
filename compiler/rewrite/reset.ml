@@ -79,6 +79,8 @@ let rec equation res (eq_list, env) ({ eq_desc = desc } as eq) =
   match desc with
   | EQeq(p, e) ->
      { eq with eq_desc = EQeq(p, expression res e) } :: eq_list, env
+  | EQpluseq(x, e) ->
+     { eq with eq_desc = EQpluseq(x, expression res e) } :: eq_list, env
   | EQinit(x, e) ->
      let eq =
        if not (static e) || not (initial res) then

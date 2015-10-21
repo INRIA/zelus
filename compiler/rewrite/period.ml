@@ -138,6 +138,7 @@ let rec expression time ({ e_desc = e_desc } as e) =
 and equation time ({ eq_desc = desc } as eq) =
   match desc with 
   | EQeq(p, e) -> { eq with eq_desc = EQeq(p, expression time e) }
+  | EQpluseq(x, e) -> { eq with eq_desc = EQpluseq(x, expression time e) }
   | EQmatch(total, e, m_h_list) ->
      let m_h_list =
        List.map

@@ -49,6 +49,7 @@ type error =
     | Eperiod_not_positive of float
     | Ereset_target_state of bool * bool
     | Epattern_not_total
+    | Ecombination_function of Ident.t
 			      
 exception Error of location * error
 
@@ -179,6 +180,10 @@ let message loc kind =
      eprintf
        "%aType error: this pattern must be total.@."
        output_location loc
+ | Ecombination_function(n) ->
+     eprintf
+       "%aType error: a combination function for %s must be given.@."
+       output_location loc (Ident.source n)
   end;
   raise Misc.Error
 

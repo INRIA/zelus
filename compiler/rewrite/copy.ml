@@ -61,7 +61,7 @@ let rec build rel { eq_desc = desc } =
        | Elast m -> Env.add x (Vlast(m)) rel
        | _ -> rel in
      rel
-  | EQeq _ | EQnext _ | EQinit _ | EQmatch _ | EQreset _ 
+  | EQeq _ | EQpluseq _ | EQnext _ | EQinit _ | EQmatch _ | EQreset _ 
   | EQder(_, _, None, []) | EQblock _ -> rel
   | EQautomaton _ | EQpresent _ | EQemit _ | EQder _ -> assert false
 
@@ -101,6 +101,7 @@ and equation ({ defs = defs } as renaming, eq_list)
 	     ({ eq_desc = desc; eq_write = w } as eq) =
   let desc = match desc with
     | EQeq(p, e) -> EQeq(p, expression renaming e)
+    | EQpluseq(x, e) -> EQpluseq(x, expression renaming e)
     | EQinit(x, e0) -> EQinit(x, expression renaming e0)
     | EQmatch(total, e, m_b_list) ->
        let rename ({ m_body = b } as m_h) =

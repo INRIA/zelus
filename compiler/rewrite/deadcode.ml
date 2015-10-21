@@ -80,7 +80,7 @@ let rec build_equation table { eq_desc = desc } =
        (* for every [x in w], add the link [x -> {x1, ..., xn }] to table *)
        let r = fv S.empty e in
        add w r table
-    | EQinit(n, e) | EQder(n, e, None, []) -> 
+    | EQpluseq(n, e) | EQinit(n, e) | EQder(n, e, None, []) -> 
        let r = fv S.empty e in
        add (S.singleton n) r table
     | EQmatch(_, e, m_h_list) ->
@@ -144,7 +144,7 @@ let rec remove_equation useful ({ eq_desc = desc; eq_write = w } as eq) eq_list 
        let w = fv_pat S.empty S.empty p in
        if S.exists (fun x -> S.mem x useful) w
        then (* the equation is useful *) eq :: eq_list else eq_list
-    | EQder(n, e, None, []) | EQinit(n, e) ->
+    | EQpluseq(n, e) | EQder(n, e, None, []) | EQinit(n, e) ->
        if S.mem n useful then eq :: eq_list else eq_list
     | EQmatch(total, e, m_h_list) ->
        let m_h_list = 
