@@ -1,3 +1,10 @@
+let node f(x) =
+  match x with
+  | true -> print_int 1
+  | false -> ()
+  end; ()
+
+(*
 let hybrid f(x) = (o, k1, k2) where
  rec match x with
      | true -> do o = period 1.0(2.0) done
@@ -5,6 +12,7 @@ let hybrid f(x) = (o, k1, k2) where
      end
  and k1 = period 5.0(6.0)
  and k2 = period 7.0(10.0)
+ *)
     
 (*
 let hybrid model z = led where

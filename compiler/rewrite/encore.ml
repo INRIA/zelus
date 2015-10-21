@@ -51,8 +51,7 @@ let block_with_horizon h eq =
 (** Translation of expressions. *)
 let rec expression env ({ e_desc = e_desc } as e) =
   match e_desc with
-
-  | Elet(l, e) ->
+    | Elet(l, e) ->
        { e with e_desc = Elet(local env l, expression env e) }
     | Eapp(op, e_list) ->
        { e with e_desc = Eapp(op, List.map (expression env) e_list) }
