@@ -94,17 +94,18 @@ let hybrid noavoidance (x_i, y_i, theta_i, v_1, v_2) = (0, x, y, theta, t) where
 open Airtrafficgui
 
 let hybrid main () = () where
-  rec p = period (0.1)
+  rec p = period 0.1(0.1)
 
   and (click, (nxr, nyr), (ntheta_r, nd)) =
     present p -> sample ()
     init (false, (aircraft2_xi, aircraft2_yi), (aircraft2_thetai, 0.0))
 
   and automaton
-      S1 -> do
-        (st, xr, yr, theta_r, t) =
-          avoidance (nxr, nyr, ntheta_r, aircraft1_v, aircraft2_v)
-      until p on click then S1
+	S1 ->
+	  do
+            (st, xr, yr, theta_r, t) =
+               avoidance (nxr, nyr, ntheta_r, aircraft1_v, aircraft2_v)
+          until p on click then S1
 
   and _ = present p -> showupdate (d, delta_phi, radius_alert,
                                    radius_protected, 0.0,
