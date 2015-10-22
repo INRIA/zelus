@@ -23,6 +23,7 @@ open Deftypes
 (** the list of read variables used to produce yn *)
 (** then recursively mark all useful variable according to read-in dependences *)
 (** finally, only keep equations and name defs. for useful variables *)
+(** horizons are considered to be useful *)
 (** the optimization is not very agressive, e.g., stateful function calls *)
 (** are still not removed *)
 type table = cont Env.t
@@ -94,8 +95,7 @@ let rec build_equation table { eq_desc = desc } =
         let r = fv S.empty e in
 	let table_res = build_equation_list Env.empty res_eq_list in
 	merge table (extend table_res r)
-    | EQblock _ -> table
-    | EQder _ | EQnext _ | EQautomaton _
+    | EQblock _ | EQder _ | EQnext _ | EQautomaton _
     | EQpresent _ | EQemit _ -> assert false
 
 and build_block table { b_body = eq_list } = build_equation_list table eq_list
@@ -186,11 +186,19 @@ and remove_local useful ({ l_eq = eq_list; l_env = l_env } as l) =
   let l_env = Env.filter (fun x entry -> S.mem x useful) l_env in
   { l with l_eq = eq_list; l_env = l_env }
 
+(** Compute the set of horizons *)
+let horizon read { l_env = l_env } =
+  let take h { t_sort = sort } acc =
+    match sort with | Smem { m_kind = Some(Horizon) } -> S.add h acc | _ -> acc in
+  Env.fold take l_env read
+    
 (** the main entry for expressions. Warning: [e] must be in normal form *)
 let exp ({ e_desc = desc } as e) =
   match desc with
     | Elet(l, e_let) ->
         let read = fv S.empty e_let in
+	(* horizons are considered as outputs *)
+	let read = horizon read l in
 	let table = build_local Env.empty l in
 	(* Format.printf "%a@.@." print table; *)
 	let useful = visit read table in

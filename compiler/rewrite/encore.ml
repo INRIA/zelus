@@ -63,12 +63,13 @@ let rec equation env encore_opt ({ eq_desc = desc } as eq) =
 	Misc.map_fold
 	  (fun encore_opt ({ m_zero = zero; m_body = b } as m_h) ->
 	    let b, encore_opt =
-	      if zero then with_zero env encore_opt b else block env encore_opt b in
+	      if zero then with_zero env encore_opt b
+	      else block env encore_opt b in
 	    { m_h with m_body = b }, encore_opt)
 	  encore_opt m_h_list in
       { eq with eq_desc = EQmatch(total, e, m_h_list) }, encore_opt
     | EQautomaton _ | EQpresent _ | EQemit _ | EQnext _
-    | EQder _ | EQblock _ | EQreset _ -> assert false
+    | EQblock _ | EQreset _ -> assert false
 
 and equation_list env encore_opt eq_list =
   Misc.map_fold (equation env) encore_opt eq_list      
