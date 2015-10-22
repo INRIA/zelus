@@ -12,16 +12,14 @@
 (*                                                                        *)
 (**************************************************************************)
 
+(* applied to normalised equations and expressions *)
 (* add of an horizon [h = if encore then 0.0 else infinity] to *)
-(* every function body. [encore] is a global boolean variable *)
-(* to every function body such that: *)
-
-(* the default value is [encore = false] *)
-(* [encore = true] when an equation [x = e] on a last variable [x] *)
-(* appears inside a condition that is activated on a zero-crossing event *)
+(* every function body and the declaration of a variable [encore] *)
+(* with default value [false] *)
+(* An equation [encore = true] is added in a block activated on *)
+(* a zero-crossing and which writes a non local state variable *)
 (* match e with | P1 -> (* zero *) x = ... | Pn -> ... *)
-(* into:  match e with *)
-(*        | P1 -> do encore = true and x = ... | ... *)
+(* into:  match e with | P1 -> do encore = true and x = ... | ... *)
 
 open Misc
 open Location
@@ -43,90 +41,72 @@ let encore env { dv = dv } =
       | Smem { m_previous = previous } -> previous | _ -> false in
   S.exists write_on_last dv
 
-(* creates a block [local [horizon] h in eq] *)
-let block_with_horizon h eq =
-  let horizon = Deftypes.horizon Deftypes.empty_mem in
-  make_block (Env.singleton h (Deftypes.entry horizon Initial.typ_float)) [eq]
-
-(** Translation of expressions. *)
-let rec expression env ({ e_desc = e_desc } as e) =
-  match e_desc with
-    | Elet(l, e) ->
-       { e with e_desc = Elet(local env l, expression env e) }
-    | Eapp(op, e_list) ->
-       { e with e_desc = Eapp(op, List.map (expression env) e_list) }
-    | Etuple(e_list) ->
-       { e with e_desc = Etuple(List.map (expression env) e_list) }
-    | Erecord_access(e, x) ->
-       { e with e_desc = Erecord_access(expression env e, x) }
-    | Erecord(l_e_list) ->
-       let l_e_list = List.map (fun (l, e) -> (l, expression env e)) l_e_list in
-       { e with e_desc = Erecord(l_e_list) }
-    | Etypeconstraint(e, ty) ->
-       { e with e_desc = Etypeconstraint(expression env e, ty) }
-    | Elocal _ | Eglobal _ | Econst _ | Econstr0 _ | Elast _ -> e
-    | Eseq(e1, e2) ->
-       { e with e_desc = Eseq(expression env e1, expression env e2) }
-    | Eperiod _ | Epresent _ | Ematch _ -> assert false
-
+(** Add an equation [encore = true] *)
+let with_zero env encore_opt ({ b_body = eq_list; b_write = w } as b) =
+  if encore env w then
+    let encore =
+      match encore_opt with
+	| None -> Ident.fresh "encore" | Some(encore) -> encore in
+    { b with b_body = (Zaux.eq_make encore Zaux.etrue) :: eq_list }, Some(encore)
+  else b, encore_opt
+    
 (* Translation of equations *)
-and equation env ({ eq_desc = desc } as eq) =
+let rec equation env encore_opt ({ eq_desc = desc } as eq) =
   match desc with 
-  | EQeq(p, e) -> { eq with eq_desc = EQeq(p, expression env e) }
-  | EQpluseq(x, e) -> { eq with eq_desc = EQpluseq(x, expression env e) }
-  | EQmatch(total, e, m_h_list) ->
-     let e = expression env e in
-     (* does-it exist a branch which is executed on a zero-crossing instant? *)
-     let zero = List.exists (fun { m_zero = zero; } -> zero) m_h_list in
-     if zero then
-       (* if this is the case, introduce the local variable [h] *)
-       let h = Ident.fresh "h" in
-       let m_h_list =
-	 List.map
-	   (fun ({ m_body = b; m_env = m_env; m_zero = zero } as m_h) ->
-	    let env = Env.append m_env env in
-	    { m_h with m_body = with_zero env zero h (block env b) }) m_h_list in
-       let eq = { eq with eq_desc =
-			    EQmatch(total, after e (float_last h), m_h_list) } in
-       { eq with eq_desc = EQblock(block_with_horizon h eq) }
-     else
-       let m_h_list =
-	 List.map
-	   (fun ({ m_body = b; m_env = m_env } as m_h) ->
-	    { m_h with m_body = block (Env.append m_env env) b }) m_h_list in
-       { eq with eq_desc = EQmatch(total, e, m_h_list) }
-  | EQblock(b) -> { eq with eq_desc = EQblock(block env b) }
-  | EQreset(res_eq_list, e) ->
-     let e = expression env e in
-     { eq with eq_desc = EQreset(equation_list env res_eq_list, e) }
-  | EQinit(x, e) ->
-     { eq with eq_desc = EQinit(x, expression env e) }
-  | EQder(x, e, None, []) -> 
-     { eq with eq_desc = EQder(x, expression env e, None, []) }
-  | EQautomaton _ | EQpresent _ | EQemit _ | EQnext _ | EQder _ -> assert false
+    | EQeq _ | EQpluseq _ | EQreset([{ eq_desc = EQinit _ }], _)
+    | EQder _ | EQinit _ -> eq, encore_opt
+    | EQmatch(total, e, m_h_list) ->
+     (* add an equation [encore = true] if a branch is activated *)
+     (* on a zero-crossing and changes a non local state variable *)
+     (* whose last value is read outside *)
+      let m_h_list, encore_opt =
+	Misc.map_fold
+	  (fun encore_opt ({ m_zero = zero; m_body = b } as m_h) ->
+	    let b, encore_opt =
+	      if zero then with_zero env encore_opt b else block env encore_opt b in
+	    { m_h with m_body = b }, encore_opt)
+	  encore_opt m_h_list in
+      { eq with eq_desc = EQmatch(total, e, m_h_list) }, encore_opt
+    | EQautomaton _ | EQpresent _ | EQemit _ | EQnext _
+    | EQder _ | EQblock _ | EQreset _ -> assert false
 
-and equation_list env eq_list = List.map (equation env) eq_list      
+and equation_list env encore_opt eq_list =
+  Misc.map_fold (equation env) encore_opt eq_list      
 
 (** Translate a block *)
-and block env ({ b_locals = l_list; b_body = eq_list; b_env = n_env } as b) =
+and block env encore_opt ({ b_body = eq_list; b_env = n_env } as b) =
   let env = Env.append n_env env in
-  let l_list = List.map (local env) l_list in
-  let eq_list = equation_list env eq_list in
-  { b with b_locals = l_list; b_body = eq_list }
+  let eq_list, encore_opt = equation_list env encore_opt eq_list in
+  { b with b_body = eq_list }, encore_opt
 
-and local env ({ l_eq = eq_list; l_env = l_env } as l) =
-  let env = Env.append l_env env in
-  let eq_list = equation_list env eq_list in
-  { l with l_eq = eq_list }
-
-(* Add an encore step with [h = 0.0] for a block that is activated on *)
-(* a zero-crossing instant and writes a discrete state variable [x] *)
-(* [h = infinity] otherwise *)
-and with_zero env zero h ({ b_body = eq_list; b_write = w } as b) =
-  let eq = if zero && (encore env w) then eq_make h Zaux.zero
-	   else eq_make h Zaux.infinity in
-  { b with b_body = eq :: eq_list }
-
+(** Translate an expression. Add two declarations if an extra step *)
+(** is needed. [encore] is a local variable with default value [false]; *)
+(** [h] is an horizon such that [h = if encore then 0.0 else infinity] *)
+let expression env ({ e_desc = desc } as e) =
+  match desc with
+  | Elet({ l_eq = eq_list; l_env = l_env } as l, e) ->
+    let env = Env.append l_env env in
+    let eq_list, encore_opt = equation_list env None eq_list in
+     let l, e =
+       match encore_opt with
+       | None -> { l with l_eq = eq_list; l_env = l_env }, e
+       | Some(encore) ->
+	 (* declaration of [encore: bool default infinity] *)
+	 let sort =
+	    Deftypes.default_variable
+	      (Deftypes.Cimmediate(Deftypes.Ebool(false))) in
+	  let l_env =
+	    Env.add encore (Deftypes.entry sort Initial.typ_bool) l_env in
+	  (* declaration of [horizon h] *)
+	  let h = Ident.fresh "h" in
+	  let sort = Deftypes.horizon Deftypes.empty_mem in
+	  let l_env =
+	    Env.add h (Deftypes.entry sort Initial.typ_float) l_env in
+	  { l with l_eq = eq_list; l_env = l_env },
+	  Zaux.after e (Zaux.var h Initial.typ_float) in
+     { e with e_desc = Elet(l, e) }
+  | _ -> e
+    
 let implementation impl =
   match impl.desc with
   | Eopen _ | Etypedecl _ | Econstdecl _  

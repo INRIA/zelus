@@ -126,6 +126,7 @@ let previous mem = { mem with m_next = Some(false); m_previous = true }
 let next mem = { mem with m_next = Some(true); m_previous = false }
 let zero mem = Smem { mem with m_kind = Some Zero }
 let horizon mem = Smem (previous { mem with m_kind = Some Horizon })
+let default_variable v = Svar { v_combine = None; v_default = Some(v) }
 let imem = initialized empty_mem
 let mem = previous imem
 let memory = Smem mem

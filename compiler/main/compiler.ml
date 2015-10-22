@@ -191,25 +191,10 @@ let compile modname filename =
 			 "Actualize write variables in blocks. See below:";
       if !verbose then Printer.implementation_list info_ff impl_list;
       
-      (* Add an extra discrete step for weak transitions *)
-      let impl_list = Encore.implementation_list impl_list in
-      if !verbose then comment "Add an extra discrete step. See below:";
-      if !verbose then Printer.implementation_list info_ff impl_list;
-      
-      let impl_list = Write.implementation_list impl_list in
-      if !verbose then comment 
-			 "Actualize write variables in blocks. See below:";
-      if !verbose then Printer.implementation_list info_ff impl_list;
-      
       (* Un-nest let/in blocks *)
       let impl_list = Letin.implementation_list impl_list in
       if !verbose then 
 	comment "Un-nest let/in blocks. See below:";
-      if !verbose then Printer.implementation_list info_ff impl_list;
-      
-      (* Gather all horizons into a single one per function *)
-      let impl_list = Horizon.implementation_list impl_list in
-      if !verbose then comment "Gather all horizons. See below:";
       if !verbose then Printer.implementation_list info_ff impl_list;
       
       (* compiling the initialization -> and init *)
@@ -217,6 +202,16 @@ let compile modname filename =
       if !verbose then 
 	comment 
 	  "Compilation of reset done. See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
+      (* Add an extra discrete step for weak transitions *)
+      let impl_list = Encore.implementation_list impl_list in
+      if !verbose then comment "Add an extra discrete step. See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
+      (* Gather all horizons into a single one per function *)
+      let impl_list = Horizon.implementation_list impl_list in
+      if !verbose then comment "Gather all horizons. See below:";
       if !verbose then Printer.implementation_list info_ff impl_list;
       
       (* A-normal form. A restricted case for the moment. *)
