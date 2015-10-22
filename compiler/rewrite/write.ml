@@ -37,9 +37,10 @@ let filter_env shared_set b_env =
   let filter n ({ t_sort = sort } as entry) (bounded, env) =
     let entry =
       match sort with
-      | (Svar _ | Smem { m_kind = None; m_init = None; m_previous = false })
-	   when not (S.mem n shared_set) -> { entry with t_sort = Sval }
-      | _ -> entry in
+	| (Svar { v_combine = None; v_default = None }
+	      | Smem { m_kind = None; m_init = None; m_previous = false })
+	    when not (S.mem n shared_set) -> { entry with t_sort = Sval }
+	| _ -> entry in
     S.add n bounded, Env.add n entry env in
   Env.fold filter b_env (S.empty, Env.empty)
   			
