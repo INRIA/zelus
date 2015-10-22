@@ -1,10 +1,5 @@
-let hybrid f(x) = (o, k1, k2) where
- rec match x with
-     | true -> do o = period 1.0(2.0) done
-     | false -> do o = period 3.0(4.0) done
-     end
- and k1 = period 5.0(6.0)
- and k2 = period 7.0(10.0)
+let hybrid f(x) = o where
+  o = period (0.1)
     
 (*
 let hybrid model z = led where
