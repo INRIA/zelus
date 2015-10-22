@@ -191,16 +191,20 @@ let assign sort n e =
 
 (** Compile an equation [n = e] *)
 let var_exp env n e =
-  let { t_sort = sort } = try Env.find n env with Not_found -> assert false in
+  let { t_sort = sort } =
+    try Env.find n env with Not_found ->
+      Misc.internal_error "Unbound variable" Printer.name n in
   assign sort n e
 
  (** Compile an equation [n += e] *)
 let var_plus_exp env n e =
-  let { t_sort = sort } = try Env.find n env with Not_found -> assert false in
+  let { t_sort = sort } =
+    try Env.find n env with Not_found ->
+      Misc.internal_error "Unbound variable" Printer.name n in
   let ln =
     match sort with
     | Svar { v_combine = Some(ln) } | Smem { m_combine = Some(ln) } -> ln
-    | _ -> assert false in
+    | _ -> Misc.internal_error "Unbound variable" Printer.name n in
   assign sort n (make (Oapp(ln, [var sort n; e])))
       
 		 
