@@ -87,7 +87,7 @@ let expression ({ e_desc = desc } as e) =
 	      (Some(Deftypes.Cglobal(Modname(Initial.pervasives_name "infinity"))))
 	      (Some(Modname(Initial.pervasives_name "min"))) in
 	 let l_env =
-	    Env.add h (Deftypes.entry sort Initial.typ_bool) l_env in
+	    Env.add h (Deftypes.entry sort Initial.typ_float) l_env in
 	 let hor = Ident.fresh "h" in
 	 let sort = Deftypes.horizon Deftypes.empty_mem in
 	 let l_env = Env.add hor (Deftypes.entry sort Initial.typ_float) l_env in
