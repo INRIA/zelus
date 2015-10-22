@@ -37,12 +37,12 @@ let horizon h_opt h_list eq_list =
   | [] -> eq_list, h_opt
   | [x] ->
      let h = match h_opt with | None -> Ident.fresh "h" | Some(h) -> h in
-     (eq_make h (float_var x)) :: eq_list, Some(h)
+     (pluseq_make h (float_var x)) :: eq_list, Some(h)
   | x :: l ->
      let h = match h_opt with | None -> Ident.fresh "h" | Some(h) -> h in
      let e =
        List.fold_left (fun acc y -> min_op acc (float_var y)) (float_var x) l in
-     (eq_make h e) :: eq_list, Some(h)
+     (pluseq_make h e) :: eq_list, Some(h)
 
 (* Translation of equations. The function returns a new equation *)
 (* and a possible horizon [h] *)
@@ -55,10 +55,8 @@ let rec equation h_opt ({ eq_desc = desc } as eq) =
 	  let b, h_opt = block h_opt b in
 	  { m_h with m_body = b }, h_opt) h_opt m_h_list in
      { eq with eq_desc = EQmatch(total, e, m_h_list) }, h_opt
-  | EQreset(res_eq_list, e) ->
-     let res_eq_list, h_opt = equation_list h_opt res_eq_list in
-     { eq with eq_desc = EQreset(res_eq_list, e) }, h_opt
-  | EQinit _ | EQder _ | EQeq _ | EQpluseq _ -> eq, h_opt
+  | EQinit _ | EQreset([{ eq_desc = EQinit _ }], _) | EQder _ | EQeq _
+  | EQpluseq _ -> eq, h_opt
   | EQblock _ | EQautomaton _ | EQpresent _ | EQemit _ | EQnext _ -> assert false
 
 and equation_list h_opt eq_list = Misc.map_fold equation h_opt eq_list      
@@ -82,9 +80,18 @@ let expression ({ e_desc = desc } as e) =
        match h_opt with
        | None -> { l with l_eq = eq_list; l_env = l_env }, e
        | Some(h) ->
-	  let sort = Deftypes.horizon Deftypes.empty_mem in
-	  let l_env = Env.add h (Deftypes.entry sort Initial.typ_float) l_env in
-	  { l with l_eq = eq_list; l_env = l_env },
+	  (* declaration of [h: float default infinity with (min)] *)
+	 let sort =
+	    Deftypes.default
+	      (Some(Deftypes.Cglobal(Modname(Initial.pervasives_name "infinity"))))
+	      (Some(Modname(Initial.pervasives_name "min"))) in
+	 let l_env =
+	    Env.add h (Deftypes.entry sort Initial.typ_bool) l_env in
+	 let horizon = Ident.fresh "h" in
+	 let sort = Deftypes.horizon Deftypes.empty_mem in
+	 let l_env = Env.add h (Deftypes.entry sort Initial.typ_float) l_env in
+	 let eq_list = Zaux.eq_make h (Zaux.var h Initial.typ_float) :: eq_list in
+	 { l with l_eq = eq_list; l_env = l_env },
 	  Zaux.after e (Zaux.var h Initial.typ_float) in
      { e with e_desc = Elet(l, e) }
   | _ -> e

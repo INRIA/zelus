@@ -104,7 +104,8 @@ let make_block env eq_list =
 let eq_make n e = eqmake (EQeq(varpat n e.e_typ, e))
 let eq_next n e = eqmake (EQnext(n, e, None))
 let eq_init n e = eqmake (EQinit(n, e))
-    
+let pluseq_make n e = eqmake (EQpluseq(n, e))
+  
 let eq_reset eq_list e = eqmake (EQreset(eq_list, e))
 let eq_match e l = eqmake (EQmatch(ref true, e, l))
 let eq_block b = eqmake (EQblock(b))

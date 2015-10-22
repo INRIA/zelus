@@ -87,14 +87,14 @@ let expression env ({ e_desc = desc } as e) =
   | Elet({ l_eq = eq_list; l_env = l_env } as l, e) ->
     let env = Env.append l_env env in
     let eq_list, encore_opt = equation_list env None eq_list in
-     let l, e =
+     let l =
        match encore_opt with
-       | None -> { l with l_eq = eq_list; l_env = l_env }, e
+       | None -> { l with l_eq = eq_list; l_env = l_env }
        | Some(encore) ->
 	 (* declaration of [encore: bool default infinity] *)
 	 let sort =
-	    Deftypes.default_variable
-	      (Deftypes.Cimmediate(Deftypes.Ebool(false))) in
+	   Deftypes.default
+	     (Some(Deftypes.Cimmediate(Deftypes.Ebool(false)))) None in
 	  let l_env =
 	    Env.add encore (Deftypes.entry sort Initial.typ_bool) l_env in
 	  (* declaration of [horizon h] *)
@@ -102,8 +102,11 @@ let expression env ({ e_desc = desc } as e) =
 	  let sort = Deftypes.horizon Deftypes.empty_mem in
 	  let l_env =
 	    Env.add h (Deftypes.entry sort Initial.typ_float) l_env in
-	  { l with l_eq = eq_list; l_env = l_env },
-	  Zaux.after e (Zaux.var h Initial.typ_float) in
+	  (* add equation [h = if encore then 0.0 else infinity] *)
+	  let eq_list =
+	    Zaux.eq_make h (ifthenelse (Zaux.var encore Initial.typ_bool)
+			      Zaux.zero Zaux.infinity) :: eq_list in
+	  { l with l_eq = eq_list; l_env = l_env } in
      { e with e_desc = Elet(l, e) }
   | _ -> e
     
