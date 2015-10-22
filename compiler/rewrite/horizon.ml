@@ -57,7 +57,8 @@ let rec equation h_opt ({ eq_desc = desc } as eq) =
      { eq with eq_desc = EQmatch(total, e, m_h_list) }, h_opt
   | EQinit _ | EQreset([{ eq_desc = EQinit _ }], _) | EQder _ | EQeq _
   | EQpluseq _ -> eq, h_opt
-  | EQblock _ | EQautomaton _ | EQpresent _ | EQemit _ | EQnext _ -> assert false
+  | EQblock _ | EQautomaton _ | EQpresent _ | EQemit _ | EQnext _ | EQreset _ ->
+    assert false
 
 and equation_list h_opt eq_list = Misc.map_fold equation h_opt eq_list      
 
@@ -87,12 +88,13 @@ let expression ({ e_desc = desc } as e) =
 	      (Some(Modname(Initial.pervasives_name "min"))) in
 	 let l_env =
 	    Env.add h (Deftypes.entry sort Initial.typ_bool) l_env in
-	 let horizon = Ident.fresh "h" in
+	 let hor = Ident.fresh "h" in
 	 let sort = Deftypes.horizon Deftypes.empty_mem in
-	 let l_env = Env.add h (Deftypes.entry sort Initial.typ_float) l_env in
-	 let eq_list = Zaux.eq_make h (Zaux.var h Initial.typ_float) :: eq_list in
+	 let l_env = Env.add hor (Deftypes.entry sort Initial.typ_float) l_env in
+	 let eq_list =
+	   Zaux.eq_make hor (Zaux.var h Initial.typ_float) :: eq_list in
 	 { l with l_eq = eq_list; l_env = l_env },
-	  Zaux.after e (Zaux.var h Initial.typ_float) in
+	  Zaux.after e (Zaux.var hor Initial.typ_float) in
      { e with e_desc = Elet(l, e) }
   | _ -> e
 	   
