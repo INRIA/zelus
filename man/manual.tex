@@ -1666,7 +1666,7 @@ is present and the value of \zls{y} when \zls{x} is absent and
 The signal pattern \zls{x(v) | y(v)} tests the presence of ``\zls{x} or 
 \zls{y}''.
 \begin{chklisting}
-let node default (x, y) = o where
+let node signal_default (x, y) = o where
   present
     x(v) | y(v) -> do emit o = v done
   end
