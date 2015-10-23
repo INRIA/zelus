@@ -91,11 +91,11 @@ struct
   type initialized = bool (* [init x = ...] appear *)
 
   (* the renaming environment associates a fresh name and a sort *)
-  type value = { v_name: Ident.t; mutable initialized: initialized }
+  type value = { name: Ident.t; mutable initialized: initialized }
   include (Map.Make (struct type t = string let compare = String.compare end))
   
   (* an entry *)
-  let entry n = { v_name = n; initialized = false }
+  let entry n = { name = n; initialized = false }
   
   let initialize ({ initialized = s } as v) = v.initialized <- true
 
@@ -104,7 +104,7 @@ struct
     fold (fun key v acc -> (key, v) :: acc) env []
   let print ff env =
     List.iter
-      (fun (key, { v_name = n; initialized = sort }) -> 
+      (fun (key, { name = n; initialized = sort }) -> 
        fprintf ff "@[%s%s@]" (if sort then "init " else "") key)
       (list env)
   
@@ -123,9 +123,28 @@ struct
     let init is_init =
       if is_init then Deftypes.imemory else Deftypes.variable in
     fold 
-      (fun key { v_name = n; initialized = is_init } acc -> 
+      (fun key { name = n; initialized = is_init } acc -> 
        Env.add n { t_sort = init is_init; t_typ = no_typ } acc)
-      env Env.empty     
+      env Env.empty
+
+  (* build a typing environment from a renaming environment *)
+  (* and a declaration of variable with a sort *)
+  let typ_env_from_vardec v_list =
+    let init is_init d_opt c_opt =
+      match d_opt with
+	| None ->
+	    if is_init then Deftypes.Smem (Deftypes.cmem c_opt Deftypes.imem)
+	    else Deftypes.default None c_opt
+	| Some(Init(v)) ->
+	  Deftypes.Smem (Deftypes.cmem c_opt
+			   { empty_mem with m_init = Some(Some(v)) })
+	| Some(Default(v)) ->
+	  if is_init then Deftypes.Smem (Deftypes.cmem c_opt Deftypes.imem)
+	  else Deftypes.default (Some(v)) c_opt in
+    List.fold_left
+      (fun acc ({ name = n; initialized = is_init }, d_opt, c_opt) -> 
+	Env.add n { t_sort = init is_init d_opt c_opt; t_typ = no_typ } acc)
+      Env.empty v_list
 end
 
 (* making a local declaration and a block producing a [result] *)
@@ -164,7 +183,7 @@ let equation_with_result result ({ Zelus.e_loc = loc } as e) =
   
 let name_with_sort initialize loc env n =
   try
-    let { Rename.v_name = m } as v = Rename.find n env in
+    let { Rename.name = m } as v = Rename.find n env in
     if initialize then v.Rename.initialized <- true;
     m
   with
@@ -187,6 +206,14 @@ let immediate = function
   | Parsetree.Estring(s) -> Deftypes.Estring(s)
   | Parsetree.Evoid -> Deftypes.Evoid
 
+let constant = function
+  | Parsetree.Cimmediate(i) -> Deftypes.Cimmediate(immediate i)
+  | Parsetree.Cglobal(ln) -> Deftypes.Cglobal(longname ln)
+
+let default = function
+  | Parsetree.Init(c) -> Deftypes.Init(constant c)
+  | Parsetree.Default(c) -> Deftypes.Default(constant c)
+    
 let operator = function
   | Eunarypre -> Zelus.Eunarypre
   | Efby -> Zelus.Efby
@@ -302,13 +329,14 @@ and build_equation defnames eq =
         
 
 and build_block_equation_list defnames 
-    { desc = { b_vars = n_list; b_locals = l_list; b_body = eq_list }; loc = loc } =
-  (* bounded names [local x1,...,xn in ...] *)
+    { desc = { b_vars = vardec_list; b_locals = l_list; b_body = eq_list };
+      loc = loc } =
+  (* bounded names [local x1 [init v1| default v1][with op1],...,xn in ...] *)
   let bounded_names =
     List.fold_left
-      (fun acc n -> 
+      (fun acc { vardec_name = n } -> 
         if S.mem n acc then Error.error loc (Error.Enon_linear_pat(n)) 
-        else S.add n acc) S.empty n_list in
+        else S.add n acc) S.empty vardec_list in
   let defnames1 = build_equation_list S.empty eq_list in
   bounded_names, S.union defnames (S.diff defnames1 bounded_names)
 
@@ -456,21 +484,27 @@ let state_handler_list
 (* A block [b] appears in a context of the form [pat -> b] *)
 (* [env_pat] is the environment for [pat]; [env] is the global environment *)
 let block locals body env_pat env 
-    { desc = { b_vars = n_list; b_locals = l_list; b_body = b }; loc = loc } =
-  (* hide [n_list] in [env_pat] as it is local *)
-  let m_list = List.map Ident.fresh n_list in
-  let env_n_list =
-    List.fold_left2 
-      (fun acc n m -> Rename.add n (Rename.entry m) acc) 
-      Rename.empty n_list m_list in
+    { desc = { b_vars = vardec_list; b_locals = l_list; b_body = b };
+      loc = loc } =
+  (* hide [vardec_list] in [env_pat] as it is local *)
+  let m_list = List.map (fun { vardec_name = n } -> Ident.fresh n) vardec_list in
+  let env_n_list, env_vardec_list =
+    List.fold_left2
+      (fun (env_n_list, env_vardec_list)
+	({ vardec_name = n; vardec_default = d_opt; vardec_combine = c_opt }) m ->
+	  let entry = Rename.entry m in
+	  let d_opt = Misc.optional_map default d_opt in
+	  let c_opt = Misc.optional_map longname c_opt in
+	  Rename.add n entry env_n_list, (entry, d_opt, c_opt) :: env_vardec_list)
+      (Rename.empty, []) vardec_list m_list in
   let env_pat = Rename.append env_n_list env_pat in
   let env = Rename.append env_n_list env in
   (* renames local lets *)
   let env, l_list = locals env l_list in
   let b = body env_pat env b in
-  env, { Zelus.b_vars = m_list; Zelus.b_locals = l_list; Zelus.b_body = b; 
+  env, { Zelus.b_vars = m_list; Zelus.b_locals = l_list; Zelus.b_body = b;
          Zelus.b_loc = loc; Zelus.b_write = empty;
-         Zelus.b_env = Rename.typ_env env_n_list }
+         Zelus.b_env = Rename.typ_env_from_vardec env_vardec_list }
 
 (** Scoping an expression *)
 let rec expression env { desc = desc; loc = loc } =
@@ -479,7 +513,7 @@ let rec expression env { desc = desc; loc = loc } =
     | Econstr0(lname) -> Zelus.Econstr0(longname lname)
     | Evar(Name(n)) ->
         begin try
-            let { Rename.v_name = m } = Rename.find n env in Zelus.Elocal(m)
+            let { Rename.name = m } = Rename.find n env in Zelus.Elocal(m)
         with
           | Not_found -> Zelus.Eglobal(Lident.Name(n))
         end
@@ -541,10 +575,10 @@ let rec expression env { desc = desc; loc = loc } =
         let result = Ident.fresh "result" in
 	let emit e =
 	  match e_opt with 
-	    | Nothing -> 
+	    | None -> 
 	        eqmake e.Zelus.e_loc (Zelus.EQemit(result, Some(e)))
-	    | Init _ 
-	    | Else _ ->
+	    | Some(Init _)
+	    | Some(Default _) ->
 	       eqmake e.Zelus.e_loc (Zelus.EQeq(varpat e.Zelus.e_loc result, e)) in
 	let handlers = 
 	  present_handler_list
@@ -553,11 +587,11 @@ let rec expression env { desc = desc; loc = loc } =
 	    Rename.empty env handlers in
 	let b_opt, eq_init, is_mem = 
 	    match e_opt with 
-	      | Nothing -> None, [], false
-	      | Init(e) -> None, 
+	      | None -> None, [], false
+	      | Some(Init(e)) -> None, 
 		[eqmake loc (Zelus.EQinit(result, expression env e))],
 		true
-	      | Else(e) -> 
+	      | Some(Default(e)) -> 
 		 Some(block_with_result emit (expression env e)), [], false in
 	let eq_list = 
 	  eqmake loc (Zelus.EQpresent(handlers, b_opt)) :: eq_init in
@@ -584,6 +618,7 @@ let rec expression env { desc = desc; loc = loc } =
 	let eq = eqmake loc (Zelus.EQautomaton(is_weak, handlers, e_opt)) in
 	Zelus.Elet(local_with_result result eq, var loc result) in
   emake loc desc
+
 
 (* renaming an equation. [env_pat] is used for renamming names *)
 (* appearing in patterns while [env] is used for right-hand side expressions *)

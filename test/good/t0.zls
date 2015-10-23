@@ -1,5 +1,6 @@
 let hybrid f(x) = o where
-  o = period (0.1)
+  local r default 42 with (+) in
+  do r = 1 and o = 2 done
     
 (*
 let hybrid model z = led where

@@ -52,6 +52,7 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "hybrid", HYBRID;
   "discrete", DISCRETE;
   "init", INIT;
+  "default", DEFAULT;
   "in", IN;
   "and", AND;
   "open", OPEN;

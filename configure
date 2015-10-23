@@ -1,7 +1,7 @@
 #! /bin/sh
 
 sysname='Zélus'
-version=1.0.0
+version=1.2
 contact='marc.pouzet@ens.fr'
 
 for_compile=1

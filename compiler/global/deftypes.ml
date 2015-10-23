@@ -89,6 +89,9 @@ and constant =
   | Cimmediate of immediate
   | Cglobal of Lident.t
 
+and 'a default =
+  | Init of 'a | Default of 'a
+
 (** Names written in a block *)
 type defnames = 
     { dv: Ident.S.t; (* [x = ...] or [next x = ...] *)
@@ -128,6 +131,7 @@ let zero mem = Smem { mem with m_kind = Some Zero }
 let horizon mem = Smem (previous { mem with m_kind = Some Horizon })
 let default v_opt c_opt = Svar { v_combine = c_opt; v_default = v_opt }
 let imem = initialized empty_mem
+let cmem c_opt mem = { mem with m_combine = c_opt }
 let mem = previous imem
 let memory = Smem mem
 let imemory = Smem imem

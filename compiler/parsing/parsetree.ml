@@ -82,7 +82,7 @@ and desc =
   | Eseq of exp * exp
   | Eperiod of period
   | Ematch of exp * exp match_handler list
-  | Epresent of exp present_handler list * exp default
+  | Epresent of exp present_handler list * exp default option
   | Eautomaton of exp state_handler list * state_exp option
   | Ereset of exp * exp
 
@@ -90,7 +90,8 @@ and is_rec = bool
 
 and is_inline = bool
 
-and 'a default = Nothing | Init of 'a | Else of 'a 
+and 'a default =
+  | Init of 'a | Default of 'a
 
 and op =
     | Efby | Eunarypre | Eifthenelse | Eminusgreater 
@@ -104,6 +105,10 @@ and immediate =
     | Estring of string
     | Evoid
 
+and constant =
+  | Cimmediate of immediate
+  | Cglobal of longname
+      
 (* a period is of the form [v](v). E.g., 0.2 (3.4) or (5.2) *)
 and period =
     { p_phase: float option;
@@ -149,9 +154,17 @@ and eqdesc =
 and 'a block = 'a block_desc localized
 
 and 'a block_desc =
-    { b_vars: name list;
+    { b_vars: vardec list;
       b_locals: local list;
       b_body: 'a }
+
+and vardec =
+    { vardec_name: name; (* its name *)
+      vardec_default: constant default option;
+      (* either an initial or a default value *)
+      vardec_combine: longname option; (* an optional combination function *)
+    }
+
 
 and local = local_desc localized
 

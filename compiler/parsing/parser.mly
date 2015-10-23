@@ -105,6 +105,7 @@ let block_of_equation ({ desc = desc; loc = loc } as eq) =
 %token REC            /* "rec" */
 %token DER            /* "der" */
 %token INIT           /* "init" */
+%token DEFAULT        /* "default" */
 %token LOCAL          /* "local" */
 %token WHERE          /* "where" */
 %token AND            /* "and" */
@@ -188,6 +189,13 @@ list_of(S, X):
 /* Localization */
 localized(X):
 | x = X { make x $startpos $endpos }
+;
+
+optional(X):
+  | /* empty */
+      { None }
+  | x = X
+      { Some(x) }
 ;
 
 implementation_file:
@@ -520,14 +528,36 @@ one_let:
 local_list:
   | /* empty */
       { [] }
-  | o = one_local IN l = local_list
+  | LOCAL o = list_of(COMMA, one_local) IN l = local_list
       { o @ l }
 ;
 
 one_local:
-  | LOCAL i = ide_list
-      { i }
+  | i = ide v = optional(default_or_init) c = opt_combine
+    { { vardec_name = i; vardec_default = v; vardec_combine = c } }
 ;
+
+default_or_init:
+  | DEFAULT c = constant
+      { Default(c) }
+  | INIT c = constant
+    { Init(c) }
+;
+
+opt_combine:
+  | /* empty */
+      { None }
+  | WITH i = ext_ident
+    { Some(i) }
+;
+
+constant:
+  | i = atomic_constant
+    { Cimmediate(i) }
+  | i = ext_ident
+    { Cglobal(i) }
+;
+
 
 opt_bar:
   | BAR             { () }
@@ -735,11 +765,11 @@ expression_desc:
   | MATCH e = seq_expression WITH opt_bar m = match_handlers(expression) opt_end
       { Ematch(e, List.rev m) }
   | PRESENT opt_bar pe = present_handlers(expression) opt_end
-      { Epresent(List.rev pe, Nothing) }
+      { Epresent(List.rev pe, None) }
   | PRESENT opt_bar pe = present_handlers(expression) INIT e = expression
-      { Epresent(List.rev pe, Init(e)) }
+      { Epresent(List.rev pe, Some(Init(e))) }
   | PRESENT opt_bar pe = present_handlers(expression) ELSE e = expression opt_end
-      { Epresent(List.rev pe, Else(e)) }
+      { Epresent(List.rev pe, Some(Default(e))) }
   | RESET e = seq_expression EVERY r = expression
       { Ereset(e, r) }
 ;
@@ -808,13 +838,6 @@ ide:
       { i }
   | LPAREN i = infx RPAREN
       { i }
-;
-
-ide_list :
-  | i = ide
-      { [i] }
-  | i = ide COMMA il = ide_list
-      { i :: il }
 ;
 
 ext_ident :
