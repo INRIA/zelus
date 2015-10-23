@@ -230,9 +230,10 @@ let block locals body
   { b with b_locals = l_list; b_body = bo; b_vars = n_list; b_env = b_env }
 
 (* translating a present statement *)
-let present_handlers body p_h_list =
+let present_handlers scondpat body p_h_list =
   List.map
-    (fun ({ p_body = b } as handler) -> { handler with p_body = body b })
+    (fun ({ p_cond = scpat; p_body = b } as handler) ->
+      { handler with p_cond = scondpat scpat; p_body = body b })
     p_h_list
 
 let rec exp ({ e_desc = desc } as e) =
@@ -305,10 +306,10 @@ and block_eq_list b =
   block locals body b
 
 and present_handler_exp_list p_h_e_list =
-  present_handlers exp p_h_e_list
+  present_handlers scondpat exp p_h_e_list
 
 and present_handler_block_eq_list p_h_b_eq_list =
-  present_handlers block_eq_list p_h_b_eq_list
+  present_handlers scondpat block_eq_list p_h_b_eq_list
 
 and match_handler_exp_list m_h_list =
   List.map 
@@ -327,7 +328,15 @@ and local ({ l_eq = eq_list; l_env = env } as l) =
     let env = env_to_env env env0 in
     { l with l_eq = eq_list; l_env = env }
        
-          
+and scondpat ({ desc = desc } as scpat) =
+    let desc = match desc with
+      | Econdand(scpat1, scpat2) -> Econdand(scondpat scpat1, scondpat scpat2)
+      | Econdor(scpat1, scpat2) -> Econdor(scondpat scpat1, scondpat scpat2)
+      | Econdexp(e) -> Econdexp(exp e)
+      | Econdpat(e, p) -> Econdpat(exp e, p)
+      | Econdon(scpat, e) -> Econdon(scondpat scpat, exp e) in
+    { scpat with desc = desc }
+      
 (** Translating an automaton *)
 (** [eq_list] is a list of equations. The translation returns *)
 (** an extended list containing [eq_list] and new equations *)
@@ -395,7 +404,7 @@ and automaton is_weak env eq_list handler_list se_opt =
   let escape is_weak { e_cond = e; e_reset = r; e_block = b_opt; 
 		       e_next_state = se; e_env = h0; e_zero = zero } =
     let se, eq_list_se = translate_state is_weak se in
-    { p_cond = e; p_env = h0;
+    { p_cond = scondpat e; p_env = h0;
       p_body =
         extend_block
           ((eq_make state_name se) ::
