@@ -2,14 +2,9 @@
 \chklistingtrue
 \setchklistingcmd{zeluc.byte -i \chklistingfile}
 \begin{ChkListingMsg}
-val count : 'a -D-> int
-val count_in_an_automaton : bool -D-> int
+val count : 'a -D-> int 
+val count_in_an_automaton : bool -D-> int 
 \end{ChkListingMsg}
 \begin{ChkListingErr}
-File "tutorial.zls", line 4-7, characters 2-109:
->..automaton
->  | Zero    -> do o = 0 until x then Plus(1)
->  | Plus(v) -> do o = v until x then Plus(v+1)
->  end
-Type warning: the state Zero in this automaton is unreachable.
+Success.
 \end{ChkListingErr}

@@ -2,18 +2,8 @@
 \chklistingtrue
 \setchklistingcmd{zeluc.byte -i \chklistingfile}
 \begin{ChkListingMsg}
-val switch : int signal * int signal -D-> int
+val switch : int signal * int signal -D-> int 
 \end{ChkListingMsg}
 \begin{ChkListingErr}
-File "tutorial.zls", line 2-15, characters 6-378:
->......automaton
->  | Init ->
->      do o = 0
->      until inc(u) then Up(u)
->..........
->      let rec timeout = 0 -> pre timeout + 1 in
->      do o = last o - v
->      until inc(u) & (timeout > 42) then Up(u)
->  end
-Type warning: the state Init in this automaton is unreachable.
+Success.
 \end{ChkListingErr}

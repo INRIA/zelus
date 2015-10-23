@@ -1,15 +1,9 @@
-% ../compiler/zeluc.byte -I ../lib -I ./samples  samples/tutorial0052.zls samples/tutorial0054.zls 	-i samples/tutorial0055.zls (2)
-\chklistingfalse
+% ../compiler/zeluc.byte -I ../lib -I ./samples  samples/tutorial0052.zls samples/tutorial0054.zls 	-i samples/tutorial0055.zls (0)
+\chklistingtrue
 \setchklistingcmd{zeluc.byte -i \chklistingfile}
 \begin{ChkListingMsg}
-Failed.
+val abro : int signal * int signal * bool -D-> int signal 
 \end{ChkListingMsg}
 \begin{ChkListingErr}
-File "samples/zls", line 3-6, characters 2-98:
->..automaton
->  | Await -> do unless e(v) then Sustain(v)
->  | Sustain(x) -> do emit o = x done
->  end
-Type warning: the state Await in this automaton is unreachable.
-Fatal error: exception File "rewrite/activate.ml", line 122, characters 23-29: Assertion failed
+Success.
 \end{ChkListingErr}

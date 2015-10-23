@@ -2,20 +2,9 @@
 \chklistingfalse
 \setchklistingcmd{zeluc.byte -i \chklistingfile}
 \begin{ChkListingMsg}
-val two_states : int * int * int -D-> int
+val two_states : int * int * int -D-> int 
 \end{ChkListingMsg}
 \begin{ChkListingErr}
-File "tutorial.zls", line 2-11, characters 6-241:
->......automaton
->      | Init ->
->          do o = i unless (i > 0) then Up
->      | Up ->
->..........
->      | Down ->
->          do o = last o - 1
->          unless (o = min) then Up
->      end
-Type warning: the state Init in this automaton is unreachable.
 File "tutorial.zls", line 7, characters 17-26:
 >          unless (o = max) then Down
 >                 ^^^^^^^^^
