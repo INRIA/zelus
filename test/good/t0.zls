@@ -1,6 +1,6 @@
 let hybrid f(x) = o where
-  local r default 42 with (+) in
-  do r = 1 and o = 2 done
+  local r init 42, s init 2, v, w init 42 in
+  do r = 1 and o = 2 and v = 2 and w = 4 and s = 4 done
     
 (*
 let hybrid model z = led where
