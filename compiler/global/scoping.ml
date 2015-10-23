@@ -131,7 +131,7 @@ struct
   (* and a declaration of variable with a sort *)
   let typ_env_from_vardec v_list =
     let init is_init d_opt c_opt =
-      match d_opt with
+      let entry = match d_opt with
 	| None ->
 	    if is_init then Deftypes.Smem (Deftypes.cmem c_opt Deftypes.imem)
 	    else Deftypes.default None c_opt
@@ -141,6 +141,7 @@ struct
 	| Some(Default(v)) ->
 	  if is_init then Deftypes.Smem (Deftypes.cmem c_opt Deftypes.imem)
 	  else Deftypes.default (Some(v)) c_opt in
+      entry in
     List.fold_left
       (fun acc ({ name = n; initialized = is_init }, d_opt, c_opt) -> 
 	Env.add n { t_sort = init is_init d_opt c_opt; t_typ = no_typ } acc)

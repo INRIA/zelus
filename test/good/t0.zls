@@ -1,5 +1,5 @@
 let hybrid f(x) = o where
-  local r init 42, s init 2, v, w init 42 in
+  local r init 42 with (+), s init 2 with min, v with (+), w init 42 in
   do r = 1 and o = 2 and v = 2 and w = 4 and s = 4 done
     
 (*
