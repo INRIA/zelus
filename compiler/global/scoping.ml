@@ -139,8 +139,7 @@ struct
 	  Deftypes.Smem (Deftypes.cmem c_opt
 			   { empty_mem with m_init = Some(Some(v)) })
 	| Some(Default(v)) ->
-	  if is_init then Deftypes.Smem (Deftypes.cmem c_opt Deftypes.imem)
-	  else Deftypes.default (Some(v)) c_opt in
+	  Deftypes.default (Some(v)) c_opt in
       entry in
     List.fold_left
       (fun acc ({ name = n; initialized = is_init }, d_opt, c_opt) -> 

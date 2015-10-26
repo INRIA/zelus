@@ -200,11 +200,12 @@ let rec get_all_labels loc ty =
   | Tlink(link) -> get_all_labels loc link
   | _ -> assert false
 		
-(* check that every name introduced in the local list is associated to a *)
-(* definition *)
-(* returns a new [defined_names] where names from [n_list] has been removed *)
-let check_definition_for_every_name loc defined_names n_list =
-  List.fold_left
+(** Check that every declared name is associated to a *)
+(** defining equation and that initialized state variable is *)
+(** initialized again in the body *)
+(** Returns a new [defined_names] where names from [vardec_list] *)
+let check_definition_for_every_name loc defined_names vardec_list =
+  List.fold_left 
     (fun { dv = dv; di = di; der = der } n ->
      let in_dv = S.mem n dv in
      let in_di = S.mem n di in
@@ -214,7 +215,7 @@ let check_definition_for_every_name loc defined_names n_list =
      { dv = if in_dv then S.remove n dv else dv;
        di = if in_di then S.remove n di else di;
        der = if in_der then S.remove n der else der })
-    defined_names n_list
+    defined_names vardec_list
     
 (* sets that a variable is defined by an equation [x = ...] or [next x = ...] *)
 (* when [is_next = true] then [x] must be defined by equation [next x = ...] *)
@@ -261,15 +262,19 @@ let set_env_with_values h0 =
     entry.t_typ <- Types.new_var () in
   Env.iter initialize h0
 
-let set_env is_mem h0 =
-  let initial_memory =
+(** Set the sort of variables in the environment. State variables *)
+(** are only allowed when [is_statefull = true] *)
+let set_env is_statefull h0 =
+  let memory c_opt =
     Smem { m_kind = None; m_next = None; m_previous = false;
-	   m_init = None; m_combine = None } in
+	   m_init = None; m_combine = c_opt } in
   let initialize _ ({ t_sort = sort } as entry) = 
     let sort =
       match sort with
-      | Svar _ when is_mem -> initial_memory
-      | _ -> sort in
+	| Svar { v_default = None; v_combine = c_opt } when is_statefull ->
+	  memory c_opt
+	(* a variable declared with a default value has no last value *)
+	| Svar { v_default = Some _ } | _ -> sort in
     entry.t_sort <- sort;
     entry.t_typ <- Types.new_var () in
   Env.iter initialize h0
@@ -442,7 +447,7 @@ let present_handlers scondpat body loc expected_k h p_h_list b_opt expected_ty =
   Total.merge loc h defined_names_list
 
 let block locals body expected_k h 
-    ({ b_vars = n_list; b_locals = l_list; 
+    ({ b_vars = vardec_list; b_locals = l_list; 
        b_body = bo; b_env = h0; b_loc = loc } as b) expected_ty =
   (* initialize the local environment *)
   set_env (Types.is_statefull expected_k) h0;
@@ -450,8 +455,10 @@ let block locals body expected_k h
   let new_h = locals expected_k h l_list in
   let defined_names = body expected_k new_h bo in
   (* check that every local variable from [l_list] appears in *)
-  (* [defined_variable] *)
-  let defined_names = check_definition_for_every_name loc defined_names n_list in
+  (* [defined_variable] and that initialized state variables are not *)
+  (* re-initialized in the body *)
+  let defined_names =
+    check_definition_for_every_name loc defined_names vardec_list in
   (* annotate the block with the set of written variables *)
   b.b_write <- defined_names;
   new_h, defined_names
