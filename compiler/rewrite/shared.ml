@@ -39,7 +39,10 @@ let add_copies n_list n_env eq_list copies =
     Env.fold
       (fun x (x_copy, ty) acc -> Env.add x_copy (value ty) acc) copies n_env in
   let n_copy_list =
-    Env.fold (fun _ (x_copy, _) acc -> x_copy :: acc) copies n_list in
+    Env.fold
+      (fun _ (x_copy, ty) acc ->
+	(Zaux.vardec_from_entry x_copy { t_sort = Sval; t_typ = ty }) :: acc)
+      copies n_list in
  let eq_list =
     Env.fold
       (fun x (x_copy, ty) acc ->

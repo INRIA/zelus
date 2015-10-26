@@ -117,7 +117,9 @@ let env_eq_list_of_ctx ctx =
 let add_locals ctx n_list l_env =
   let env, eq_list, _ = env_eq_list_of_ctx ctx in
   let n_list =
-    Env.fold (fun n _ n_list -> n :: n_list) env n_list in
+    Env.fold
+      (fun n entry n_list -> (Zaux.vardec_from_entry n entry) :: n_list)
+      env n_list in
   let l_env = Env.append env l_env in
   n_list, l_env, eq_list
 

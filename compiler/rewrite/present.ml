@@ -70,21 +70,23 @@ let eq_match total e l =
 (* build the environment for signals from a typing environment *)
 (* every signal [x: t sig] is associated to a pair [xv, xp] of two fresh *)
 (* names. [xv: t] and [xp: bool] *)
-let build signals n_list l_env =
+let build signals l_env =
   let make n ({ t_typ = ty } as tentry) (signals, n_list, new_env) = 
     match Types.is_a_signal ty with
       | Some(ty) ->
 	  let xv = Ident.fresh ((Ident.source n) ^ "v") in
 	  let xp = Ident.fresh ((Ident.source n) ^ "p") in
 	  Env.add n (xv, xp, ty) signals,
-	  xv :: xp :: n_list,
+	  (Zaux.vardec xv) :: (Zaux.vardec xp) :: n_list,
 	  Env.add xv { t_typ = ty; t_sort = Deftypes.variable }
             (Env.add xp { t_typ = typ_bool; 
 			  t_sort =
 			    Svar { v_combine = None;
 				   v_default = Some(Cimmediate(Ebool(false))) } }
 		     new_env)
-      | None -> signals, n :: n_list, Env.add n tentry new_env in
+      | None ->
+	signals, (Zaux.vardec_from_entry n tentry) :: n_list,
+	Env.add n tentry new_env in
   Env.fold make l_env (signals, [], Env.empty)
 
 (* equality between expressions. for efficiency purpose *)
@@ -215,7 +217,7 @@ and equation_list signals eq_list = List.fold_left (equation signals) [] eq_list
 and local signals ({ l_eq = eq_list; l_env = l_env } as l) =
   (* for every signal [s] declared in [env], we introduce *)
   (* a pair of names [sv, sp] for the value and presence *)
-  let signals, _, l_env = build signals [] l_env in
+  let signals, _, l_env = build signals l_env in
   let eq_list = equation_list signals eq_list in
   signals, { l with l_eq = eq_list; l_env = l_env }
 
@@ -232,7 +234,7 @@ and block signals
        b_body = eq_list; b_env = b_env; b_write = w } as b) =
   (* for every signal [s] declared in [b_env], we introduce *)
   (* a pair of names [sv, sp] for the value and presence *)
-  let signals, n_list, b_env = build signals n_list b_env in
+  let signals, n_list, b_env = build signals b_env in
   let signals, l_list = locals signals l_list in
   let eq_list = equation_list signals eq_list in
   (* rename variables in [w] *)
@@ -325,7 +327,7 @@ let implementation impl =
     | Econstdecl(n, e) ->
         let e = exp Env.empty e in { impl with desc = Econstdecl(n, e) }
     | Efundecl(n, ({ f_args = p_list; f_body = e; f_env = f_env } as body)) ->
-        let signals, _, f_env = build Env.empty [] f_env in
+        let signals, _, f_env = build Env.empty f_env in
 	let p_list = List.map (pattern signals) p_list in
 	let e = exp signals e in
 	{ impl with desc = 

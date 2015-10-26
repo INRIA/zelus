@@ -113,3 +113,20 @@ let eq_der x e = eqmake (EQder(x, e, None, []))
 
 let init i eq_list = (eq_init i etrue) :: (eq_make i efalse) :: eq_list
  
+let vardec i =
+  { vardec_name = i; vardec_default = None;
+    vardec_combine = None; vardec_loc = no_location }
+
+let vardec_from_entry i { t_sort = sort } =
+  let d_opt, c_opt =
+    match sort with
+      | Sval -> None, None
+      | Svar { v_default = None; v_combine = c_opt }
+      | Smem { m_init = (None | Some(None)); m_combine = c_opt } -> None, c_opt
+      | Svar { v_default = Some(c); v_combine = c_opt } -> Some(Default(c)), c_opt
+      | Smem { m_init = Some(Some(c)); m_combine = c_opt } ->
+	Some(Init(c)), c_opt in
+  { vardec_name = i; vardec_default = d_opt;
+    vardec_combine = c_opt; vardec_loc = no_location }
+    
+      

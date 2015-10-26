@@ -97,9 +97,18 @@ and ptype ff ty =
     | Etypetuple(ty_list) ->
         fprintf ff "@[<hov2>%a@]" (print_list_r ptype "(""*"")") ty_list
         
-let print_vars ff v =  
-  if v <> [] 
-  then fprintf ff "@[<v 0>%a@ @]" (print_list_r name "local " "," " in") v
+let print_vardec_list ff vardec_list =  
+  let default ff = function
+    | Init(v) -> fprintf ff " init %a" constant v
+    | Default(v) -> fprintf ff " default %a" constant v in
+  let combine ff v = fprintf ff " with %a" longname v in
+  let vardec ff
+      { vardec_name = n; vardec_default = d_opt; vardec_combine = c_opt } =
+    fprintf ff "@[%a%a%a@]" name n
+      (Misc.optional_unit default) d_opt (Misc.optional_unit combine) c_opt in
+  if vardec_list <> [] 
+  then fprintf ff "@[<v 2>%a@ @]"
+    (print_list_r vardec "local " "," " in") vardec_list
 
 let print_binding ff (n, { t_sort = sort; t_typ = typ }) =
   let default ff v = fprintf ff " default %a" constant v in
@@ -150,9 +159,9 @@ let print_writes ff { dv = dv; di = di; der = der } =
       
 (* print a block surrounded by two braces [po] and [pf] *)
 let block locals body po pf ff 
-    { b_vars = n_list; b_locals = l; b_body = b; b_write = w; b_env = n_env } =
+    { b_vars = vardec_list; b_locals = l; b_body = b; b_write = w; b_env = n_env } =
   fprintf ff "@[<hov 0>%a%a%a%a%a@]"
-    print_vars n_list
+    print_vardec_list vardec_list
     print_writes w
     print_env n_env
     locals l

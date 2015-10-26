@@ -175,7 +175,8 @@ and remove_block useful
 		    b_env = n_env } as b) =
   let l_list = List.map (remove_local useful) l_list in
   let eq_list = remove_equation_list useful eq_list in
-  let n_list = List.filter (fun x -> S.mem x useful) n_list in
+  let n_list =
+    List.filter (fun { vardec_name = x } -> S.mem x useful) n_list in
   let n_env = Env.filter (fun x entry -> S.mem x useful) n_env in
   let w = S.filter (fun x -> S.mem x useful) w in
   { b with b_vars = n_list; b_locals = l_list; b_body = eq_list; 

@@ -374,6 +374,8 @@ and scondpat renaming ({ desc = desc } as sc) =
 and block renaming 
     ({ b_vars = n_list; b_locals = l_list; b_body = eq_list; 
        b_write = { dv = dv; di = di; der = der }; b_env = n_env } as b) =
+  let vardec renaming ({ vardec_name = n } as v) =
+    { v with vardec_name = rename n renaming } in
   let rec local_list renaming l_list =
     match l_list with
     | [] -> renaming, []
@@ -384,7 +386,7 @@ and block renaming
   
   let n_env, renaming0 = build n_env in
   let renaming = Env.append renaming0 renaming in
-  let n_list = List.map (fun x -> rename x renaming) n_list in
+  let n_list = List.map (vardec renaming) n_list in
   let renaming_l, l_list = local_list renaming l_list in
   renaming_l,
   { b with b_vars = n_list; b_locals = l_list; 

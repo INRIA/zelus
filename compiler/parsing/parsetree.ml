@@ -158,13 +158,14 @@ and 'a block_desc =
       b_locals: local list;
       b_body: 'a }
 
-and vardec =
+and vardec = vardecdesc localized
+
+and vardecdesc =
     { vardec_name: name; (* its name *)
       vardec_default: constant default option;
       (* either an initial or a default value *)
       vardec_combine: longname option; (* an optional combination function *)
     }
-
 
 and local = local_desc localized
 

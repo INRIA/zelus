@@ -152,12 +152,24 @@ and is_next = bool
 and is_weak = bool
 
 and 'a block =
-    { b_vars: Ident.t list;
+    { b_vars: vardec list;
       b_locals: local list;
       b_body: 'a;
       b_loc: location;
       b_env: Deftypes.tentry Ident.Env.t;
       mutable b_write: Deftypes.defnames }
+
+and vardec =
+    { vardec_name: Ident.t; (* its name *)
+      vardec_default: Deftypes.constant default option;
+      (* either an initial or a default value *)
+      vardec_combine: Lident.t option; (* an optional combination function *)
+      vardec_loc: location;
+    }
+
+and 'a default =
+  | Init of 'a | Default of 'a
+
 
 and local = 
     { l_eq: eq list;

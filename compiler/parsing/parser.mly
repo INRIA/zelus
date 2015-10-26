@@ -534,7 +534,8 @@ local_list:
 
 one_local:
   | i = ide v = optional(default_or_init) c = opt_combine
-    { { vardec_name = i; vardec_default = v; vardec_combine = c } }
+    { make { vardec_name = i; vardec_default = v; vardec_combine = c }
+	$startpos $endpos }
 ;
 
 default_or_init:

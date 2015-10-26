@@ -89,9 +89,6 @@ and constant =
   | Cimmediate of immediate
   | Cglobal of Lident.t
 
-and 'a default =
-  | Init of 'a | Default of 'a
-
 (** Names written in a block *)
 type defnames = 
     { dv: Ident.S.t; (* [x = ...] or [next x = ...] *)

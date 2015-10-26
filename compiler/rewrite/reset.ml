@@ -12,6 +12,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
+(* Applied to normalized expressions and equations *)
 (* Distribution of reset under match/with constructs *)
 (* The transformation is applied on normalized expressions *)
 (* A reset [z] is of the form: Zinit(i) | Zelse(i) *)
@@ -128,7 +129,8 @@ and local res ({ l_eq = eq_list; l_env = l_env } as l) =
 and block res ({ b_vars = n_list; b_body = eq_list; b_env = n_env } as b) =
   (* add local declarations [local x1 in ... in local xn in ...] *)
   let add_locals env n_list n_env =
-    let add x entry (n_list, n_env) = x :: n_list, Env.add x entry n_env in
+    let add x entry (n_list, n_env) =
+      (Zaux.vardec_from_entry x entry) :: n_list, Env.add x entry n_env in
     Env.fold add env (n_list, n_env) in
     
   let eq_list, env = equation_list res Env.empty eq_list [] in

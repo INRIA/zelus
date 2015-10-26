@@ -176,10 +176,10 @@ let state_parameter is_init is_next ty =
     Deftypes.t_typ = ty }
     
 (** returns [local x1,...,xn] from a typing env. [t1/x1,...,tn/xn] *)
-let env_to_localvars env (x_list, t_env) =
-  let add_local x t_entry (x_list, t_env) = 
-    x :: x_list, Env.add x t_entry t_env in
-  Env.fold add_local env (x_list, t_env)
+let env_to_localvars env (n_list, t_env) =
+  let add_local x t_entry (n_list, t_env) = 
+    (Zaux.vardec x) :: n_list, Env.add x t_entry t_env in
+  Env.fold add_local env (n_list, t_env)
 
 let env_to_env acc env =
   let add x t_entry acc = Env.add x t_entry acc in
@@ -227,7 +227,7 @@ let block locals body
   let env0, bo = body bo in
   (* these names are made local to the block *)
   let n_list, b_env = env_to_localvars env0 (n_list, b_env) in
-  { b with b_locals = l_list; b_body = bo; b_vars = n_list; b_env = b_env }
+  { b with b_vars = n_list; b_locals = l_list; b_body = bo; b_env = b_env }
 
 (* translating a present statement *)
 let present_handlers scondpat body p_h_list =

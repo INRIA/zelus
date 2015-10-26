@@ -201,20 +201,25 @@ let rec get_all_labels loc ty =
   | _ -> assert false
 		
 (** Check that every declared name is associated to a *)
-(** defining equation and that initialized state variable is *)
-(** initialized again in the body *)
+(** defining equation and that an initialized state variable is *)
+(** not initialized again in the body *)
 (** Returns a new [defined_names] where names from [vardec_list] *)
-let check_definition_for_every_name loc defined_names vardec_list =
+(** have been removed *)
+let check_definition_for_every_name defined_names vardec_list =
   List.fold_left 
-    (fun { dv = dv; di = di; der = der } n ->
+    (fun { dv = dv; di = di; der = der }
+      { vardec_name = n; vardec_default = d_opt; vardec_loc = loc } ->
      let in_dv = S.mem n dv in
      let in_di = S.mem n di in
      let in_der = S.mem n der in
-     if not (in_dv || in_di || in_der) 
-     then error loc (Eequation_is_missing(n));
-     { dv = if in_dv then S.remove n dv else dv;
-       di = if in_di then S.remove n di else di;
-       der = if in_der then S.remove n der else der })
+     (* check that n is defined by an equation *)
+     if not (in_dv || in_di || in_der)  then error loc (Eequation_is_missing(n));
+     (* check that it is not already initialized *)
+     match d_opt with
+       | Some(Init _) when in_di -> error loc (Edefined_twice(n))
+       | _ -> { dv = if in_dv then S.remove n dv else dv;
+		di = if in_di then S.remove n di else di;
+		der = if in_der then S.remove n der else der })
     defined_names vardec_list
     
 (* sets that a variable is defined by an equation [x = ...] or [next x = ...] *)
@@ -448,7 +453,7 @@ let present_handlers scondpat body loc expected_k h p_h_list b_opt expected_ty =
 
 let block locals body expected_k h 
     ({ b_vars = vardec_list; b_locals = l_list; 
-       b_body = bo; b_env = h0; b_loc = loc } as b) expected_ty =
+       b_body = bo; b_env = h0 } as b) expected_ty =
   (* initialize the local environment *)
   set_env (Types.is_statefull expected_k) h0;
   let h = Env.append h0 h in
@@ -458,7 +463,7 @@ let block locals body expected_k h
   (* [defined_variable] and that initialized state variables are not *)
   (* re-initialized in the body *)
   let defined_names =
-    check_definition_for_every_name loc defined_names vardec_list in
+    check_definition_for_every_name defined_names vardec_list in
   (* annotate the block with the set of written variables *)
   b.b_write <- defined_names;
   new_h, defined_names
