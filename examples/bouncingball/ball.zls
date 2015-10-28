@@ -11,7 +11,7 @@ let g = 9.81
 let loose = 0.8
 
 (* The bouncing ball *)
-let atomic hybrid ball(x, y_0) = (y, y_v, z) where
+let hybrid ball(x, y_0) = (y, y_v, z) where
   rec
       der y = y_v init y_0
   and 

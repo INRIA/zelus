@@ -91,7 +91,7 @@ and constant =
 
 (** Names written in a block *)
 type defnames = 
-    { dv: Ident.S.t; (* [x = ...] or [next x = ...] *)
+    { dv: Ident.S.t; (* [x = ..., next x = ..., x += ...] *)
       di: Ident.S.t; (* [init x = ...],[x = ... init ...], *)
                      (* [x = present ... init ...]*)
       der: Ident.S.t; (* [der x = ...] *)

@@ -126,27 +126,6 @@ struct
       (fun key { name = n; initialized = is_init } acc -> 
        Env.add n { t_sort = init is_init; t_typ = no_typ } acc)
       env Env.empty
-
-  (* build a typing environment from a list of pairs *)
-  (* [(entry, vardec)] where [entry] tells wheither the name *)
-  (* in [vardec] is initialized or not *)
-  let typ_env_from_vardec entry_vardec_list =
-    let init is_init d_opt c_opt =
-      let entry = match d_opt with
-	| None ->
-	    if is_init then Deftypes.Smem (Deftypes.cmem c_opt Deftypes.imem)
-	    else Deftypes.default None c_opt
-	| Some(Zelus.Init(v)) ->
-	  Deftypes.Smem (Deftypes.cmem c_opt
-			   { empty_mem with m_init = Some(Some(v)) })
-	| Some(Zelus.Default(v)) ->
-	  Deftypes.default (Some(v)) c_opt in
-      entry in
-    List.fold_left
-      (fun acc ({ name = n; initialized = is_init },
-		{ Zelus.vardec_default = d_opt; Zelus.vardec_combine = c_opt }) -> 
-	Env.add n { t_sort = init is_init d_opt c_opt; t_typ = no_typ } acc)
-      Env.empty entry_vardec_list
 end
 
 (* making a local declaration and a block producing a [result] *)
@@ -489,9 +468,9 @@ let block locals body env_pat env
     { desc = { b_vars = vardec_list; b_locals = l_list; b_body = b };
       loc = loc } =
   (* hide [vardec_list] in [env_pat] as it is local *)
-  let env_n_m_list, vardec_list, entry_vardec_list =
+  let env_n_m_list, vardec_list =
     List.fold_left
-      (fun (env_n_m_list, vardec_list, entry_vardec_list)
+      (fun (env_n_m_list, vardec_list)
 	{ desc = { vardec_name = n; vardec_default = d_opt;
 		   vardec_combine = c_opt }; loc = loc } ->
 	  let m = Ident.fresh n in
@@ -501,11 +480,9 @@ let block locals body env_pat env
 	    { Zelus.vardec_name = m;
 	      Zelus.vardec_default = d_opt; Zelus.vardec_combine = c_opt;
 	      Zelus.vardec_loc = loc } in
-	  let entry = Rename.entry m in
-	  Rename.add n entry env_n_m_list,
-	  vardec :: vardec_list,
-	  (entry, vardec) :: entry_vardec_list)
-      (Rename.empty, [], []) vardec_list in
+	  Rename.add n (Rename.entry m) env_n_m_list,
+	  vardec :: vardec_list)
+      (Rename.empty, []) vardec_list in
   let env_pat = Rename.append env_n_m_list env_pat in
   let env = Rename.append env_n_m_list env in
   (* renames local lets *)
@@ -513,7 +490,7 @@ let block locals body env_pat env
   let b = body env_pat env b in
   env, { Zelus.b_vars = vardec_list; Zelus.b_locals = l_list; Zelus.b_body = b;
          Zelus.b_loc = loc; Zelus.b_write = empty;
-         Zelus.b_env = Rename.typ_env_from_vardec entry_vardec_list }
+         Zelus.b_env = Rename.typ_env env_n_m_list }
 
 (** Scoping an expression *)
 let rec expression env { desc = desc; loc = loc } =

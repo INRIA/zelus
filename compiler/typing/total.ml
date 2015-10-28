@@ -31,16 +31,17 @@ let union
 (* add two sets of names provided they are distinct *)
 let add loc 
 	{ dv = dv1; di = di1; der = der1 } { dv = dv2; di = di2; der = der2 } =
-  let add set1 set2 =
+  let add k set1 set2 =
     S.fold 
       (fun elt set -> 
 	if not (S.mem elt set) then S.add elt set
-	else error loc (Ealready(elt))) set1 set2 in
-  { dv = add dv1 dv2; di = add di1 di2; der = add der1 der2 }
+	else error loc (Ealready(k, elt))) set1 set2 in
+  { dv = add Current dv1 dv2; di = add Initial di1 di2;
+    der = add Derivative der1 der2 }
 
 
 (* checks that every partial name defined at this level *)
-(* has a last value *)
+(* has a last value or a default value *)
 let all_last loc h set =
   let check elt =
     let ({ t_sort = sort; t_typ = ty } as tentry) =
@@ -90,7 +91,8 @@ let merge loc h defnames_list =
   let
       (dv_total, dv_partial), (di_total, di_partial), (der_total, der_partial) =
     merge_defnames_list defnames_list in
-  (* every partial variable must be defined as a memory *)
+  (* every partial variable must be defined as a memory or declared with *)
+  (* a default value *)
   all_last loc h (S.diff dv_partial di_total);
   (* for initialized values, all branches must give a definition *)
   if not (S.is_empty di_partial) 
@@ -104,17 +106,18 @@ let merge loc h defnames_list =
 (* are only defined once. Moreover, reject [der x = ...] and [x = ...] *)
 let join loc 
 	 { dv = dv1; di = di1; der = der1 } { dv = dv2; di = di2; der = der2 } =
-  let join names1 names2 =
+  let join k names1 names2 =
     let joinrec n acc = 
-      if S.mem n names1 then error loc (Edefined_twice(n)) else S.add n acc in
+      if S.mem n names1 then error loc (Ealready(k, n)) else S.add n acc in
     S.fold joinrec names2 names1 in
-  let disjoint names1 names2 =
+  let disjoint k names1 names2 =
     let disjointrec n = 
-      if S.mem n names1 then error loc (Edefined_twice(n)) in
+      if S.mem n names1 then error loc (Ealready(k, n)) in
     S.iter disjointrec names2 in
-  disjoint dv1 der2;
-  disjoint dv2 der1;
-  { dv = join dv1 dv2; di = join di1 di2; der = join der1 der2 }
+  disjoint CurrentDerivative dv1 der2;
+  disjoint CurrentDerivative dv2 der1;
+  { dv = join Current dv1 dv2; di = join Initial di1 di2;
+    der = join Derivative der1 der2 }
   
 (** Check that every variable defined in an automaton *)
 (* has a definition or is a signal or its value can be implicitly kept *)

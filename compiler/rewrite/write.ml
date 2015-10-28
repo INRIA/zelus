@@ -38,7 +38,8 @@ let filter_env shared_set b_env =
     let entry =
       match sort with
 	| (Svar { v_combine = None; v_default = None }
-	      | Smem { m_kind = None; m_init = None; m_previous = false })
+	  | Smem { m_kind = None; m_init = None; m_previous = false;
+		   m_combine = None })
 	    when not (S.mem n shared_set) -> { entry with t_sort = Sval }
 	| _ -> entry in
     S.add n bounded, Env.add n entry env in
@@ -74,7 +75,8 @@ let rec equation ({ eq_desc = desc } as eq) =
     | EQblock(b) ->
        let b, defnames, shared_set = block b in
        { eq with eq_desc = EQblock(b) }, defnames, shared_set
-    | EQpresent _ | EQautomaton _ | EQder _ | EQnext _ | EQemit _ -> assert false in
+    | EQpresent _ | EQautomaton _ | EQder _
+    | EQnext _ | EQemit _ -> assert false in
   (* set the names defined in the equation *)
   { eq with eq_write = defnames }, defnames, shared_set
 

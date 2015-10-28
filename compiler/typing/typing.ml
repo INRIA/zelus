@@ -135,6 +135,15 @@ let turn_vars_into_memories h { dv = dv } =
   let first_h = S.fold add dv Env.empty in
   first_h, Env.append first_h h
 
+(** Typing immediate values *)
+let immediate = function
+  | Ebool _ -> Initial.typ_bool
+  | Eint(i) -> Initial.typ_int
+  | Efloat(i) -> Initial.typ_float
+  | Echar(c) -> Initial.typ_char 
+  | Estring(c) -> Initial.typ_string 
+  | Evoid -> Initial.typ_unit 
+
 (* once all branch of the automaton has been typed *)
 (* incorporate the information computed about variables from *)
 (* the initial environment into the global one *)
@@ -203,9 +212,9 @@ let rec get_all_labels loc ty =
 (** Check that every declared name is associated to a *)
 (** defining equation and that an initialized state variable is *)
 (** not initialized again in the body *)
-(** Returns a new [defined_names] where names from [vardec_list] *)
+(** Returns a new [defined_names] where names from [n_list] *)
 (** have been removed *)
-let check_definition_for_every_name defined_names vardec_list =
+let check_definitions_for_every_name defined_names n_list =
   List.fold_left 
     (fun { dv = dv; di = di; der = der }
       { vardec_name = n; vardec_default = d_opt; vardec_loc = loc } ->
@@ -216,11 +225,13 @@ let check_definition_for_every_name defined_names vardec_list =
      if not (in_dv || in_di || in_der)  then error loc (Eequation_is_missing(n));
      (* check that it is not already initialized *)
      match d_opt with
-       | Some(Init _) when in_di -> error loc (Edefined_twice(n))
-       | _ -> { dv = if in_dv then S.remove n dv else dv;
-		di = if in_di then S.remove n di else di;
-		der = if in_der then S.remove n der else der })
-    defined_names vardec_list
+       | Some(Init _) when in_di -> error loc (Ealready(Initial, n))
+       | _ ->
+	  (* otherwise, remove local names *)
+	  { dv = if in_dv then S.remove n dv else dv;
+	    di = if in_di then S.remove n di else di;
+	    der = if in_der then S.remove n der else der })
+    defined_names n_list
     
 (* sets that a variable is defined by an equation [x = ...] or [next x = ...] *)
 (* when [is_next = true] then [x] must be defined by equation [next x = ...] *)
@@ -259,41 +270,81 @@ let set_derivative loc dv h =
     | Smem m -> entry.t_sort <- Smem { m with m_kind = Some(Cont) } in
   S.iter set dv
 
-(** Build the initial environment. When [is_last = false] *)
-(** variables are input values *)
+(** Build the initial environment. *)
+(* [set_env_with_value h0] sets the sort of names in [h0] to be value *)
 let set_env_with_values h0 =
   let initialize _ entry = 
     entry.t_sort <- Sval;
     entry.t_typ <- Types.new_var () in
   Env.iter initialize h0
 
-(** Set the sort of variables in the environment. State variables *)
-(** are only allowed when [is_statefull = true] *)
+(* [set_env is_statefull h0] sets the sort to be a memory *)
+(* when [is_statefull = true] *)
 let set_env is_statefull h0 =
-  let memory c_opt =
-    Smem { m_kind = None; m_next = None; m_previous = false;
-	   m_init = None; m_combine = c_opt } in
-  let initialize _ ({ t_sort = sort } as entry) = 
-    let sort =
+  let initialize _ ({ t_sort = sort } as entry) =
+    entry.t_typ <- Types.new_var ();
+    entry.t_sort <-
       match sort with
-	| Svar { v_default = None; v_combine = c_opt } when is_statefull ->
-	  memory c_opt
-	(* a variable declared with a default value has no last value *)
-	| Svar { v_default = Some _ } | _ -> sort in
-    entry.t_sort <- sort;
-    entry.t_typ <- Types.new_var () in
+      | Svar _ when is_statefull -> Deftypes.Smem (Deftypes.empty_mem)
+      | _ -> sort in
   Env.iter initialize h0
 
- 
-(** The typing functions *)
-let immediate = function
-  | Ebool _ -> Initial.typ_bool
-  | Eint(i) -> Initial.typ_int
-  | Efloat(i) -> Initial.typ_float
-  | Echar(c) -> Initial.typ_char 
-  | Estring(c) -> Initial.typ_string 
-  | Evoid -> Initial.typ_unit 
 
+  (** Typing a declaration *)
+(* Set the sort of variables in the environment. State variables *)
+(** are only allowed when [is_statefull = true] *)
+(** change the sort of names in [h0] according to what is declared *)
+let vardec_list is_statefull n_list h0 =
+  (* type checking of the combination function *)
+  let combine loc expected_ty lname  =
+    let { qualid = qualid; info = { value_typ = tys } } = 
+      find_value loc lname in
+    let actual_k, is_safe, ty_arg_list, ty_res = 
+      instance_of_type_signature loc lname tys in
+    (* the combination function must be safe *)
+    safe loc is_safe Tany;
+    (* and stateless *)
+    less_than loc actual_k Tany;  
+    (* Its signature must be [expected_ty * expected_ty -> expected_ty] *)
+    match ty_arg_list with
+    | [ty1; ty2] -> unify loc expected_ty ty1; unify loc expected_ty ty2
+    | _ -> error loc (Earity_clash(2, List.length ty_arg_list)) in
+  (* type checking of the declared default/init value *)
+  let constant loc expected_ty = function
+    | Cimmediate(i) ->
+       let actual_ty = immediate(i) in
+       unify loc expected_ty actual_ty
+    | Cglobal(lname) ->
+       let qualid, actual_ty = global loc lname in 
+       unify loc expected_ty actual_ty in
+  let default loc expected_ty c_opt  = function
+    | Init(v) ->
+       (* the initialization must appear in a statefull function *)
+       if not is_statefull then error loc Ekind_not_combinatorial;
+       constant loc expected_ty v;
+       Deftypes.Smem
+	 (Deftypes.cmem c_opt { empty_mem with m_init = Some(Some(v)) })
+    | Default(v) ->
+       constant loc expected_ty v;
+       Deftypes.default (Some(v)) c_opt in
+		 
+  (* typing every declaration *)
+  let vardec { vardec_name = n; vardec_default = d_opt; vardec_combine = c_opt;
+	       vardec_loc = loc } =
+    let expected_ty = Types.new_var () in
+    let { t_sort = sort } as entry = Env.find n h0 in
+    Misc.optional_unit (combine loc) expected_ty c_opt;
+    let sort =
+      match d_opt with
+      | None ->
+	 if is_statefull
+	 then Deftypes.Smem (Deftypes.cmem c_opt Deftypes.empty_mem)
+	 else Deftypes.default None c_opt
+      | Some(d) -> default loc expected_ty c_opt d in
+    entry.t_typ <- expected_ty;
+    entry.t_sort <- sort in
+  List.iter vardec n_list
+ 
 (** The type of primitives and imported functions *)
 let operator loc expected_k op =
   match op with
@@ -452,10 +503,10 @@ let present_handlers scondpat body loc expected_k h p_h_list b_opt expected_ty =
   Total.merge loc h defined_names_list
 
 let block locals body expected_k h 
-    ({ b_vars = vardec_list; b_locals = l_list; 
+    ({ b_vars = n_list; b_locals = l_list; 
        b_body = bo; b_env = h0 } as b) expected_ty =
   (* initialize the local environment *)
-  set_env (Types.is_statefull expected_k) h0;
+  vardec_list (Types.is_statefull expected_k) n_list h0;
   let h = Env.append h0 h in
   let new_h = locals expected_k h l_list in
   let defined_names = body expected_k new_h bo in
@@ -463,7 +514,7 @@ let block locals body expected_k h
   (* [defined_variable] and that initialized state variables are not *)
   (* re-initialized in the body *)
   let defined_names =
-    check_definition_for_every_name defined_names vardec_list in
+    check_definitions_for_every_name defined_names n_list in
   (* annotate the block with the set of written variables *)
   b.b_write <- defined_names;
   new_h, defined_names

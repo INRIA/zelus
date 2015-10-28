@@ -22,15 +22,16 @@ open Deftypes
 open Ptypes
 open Format
 
-type kind_of_ident = Value | Type | Constr | Label
+type kind_of_global_ident = Value | Type | Constr | Label
+
+type kind_of_ident = Current | Initial | Derivative | CurrentDerivative
 
 type error =
     | Emissing of Ident.t
-    | Eglobal_undefined of kind_of_ident * Lident.t
-    | Eglobal_already of kind_of_ident * string
-    | Ealready of Ident.t
+    | Eglobal_undefined of kind_of_global_ident * Lident.t
+    | Eglobal_already of kind_of_global_ident * string
+    | Ealready of kind_of_ident * Ident.t
     | Eis_a_value of Ident.t
-    | Edefined_twice of Ident.t
     | Einit_undefined of Ident.t
     | Elast_undefined of Ident.t
     | Eshould_be_a_signal of Ident.t * typ
@@ -60,10 +61,18 @@ type warning =
   | Wunreachable_state of Ident.t
   | Wmatch_unused of Zelus.pattern
 		       
-let kind_of_ident k = match k with
+let kind_of_global_ident k = match k with
     | Value -> "value" | Type -> "type" 
     | Constr -> "constructor" | Label -> "label"
-  
+
+let kind_of_ident k =
+  match k with
+  | Current -> "value", ""
+  | Derivative -> "derivative", ""
+  | Initial -> "initial value", ""
+  | CurrentDerivative ->
+     "value", " (a value and its derivative must occur in exclusive branches)"
+		
 let message loc kind =
   begin match kind with
   | Emissing(s) ->
@@ -72,17 +81,15 @@ let message loc kind =
         (Ident.source s);
   | Eglobal_undefined(k, lname) ->
           eprintf "%aThe %s name %s is unbound (may need a 'rec').@."
-            output_location loc (kind_of_ident k)
+            output_location loc (kind_of_global_ident k)
             (Lident.modname lname)
   | Eglobal_already(k, s) ->
       eprintf "%aType error: the %s name %s is already defined.@."
-        output_location loc (kind_of_ident k) s 
-  | Ealready(s) ->
-      eprintf "%aType error: the name %s is already defined.@."
-        output_location loc (Ident.source s)
-  | Edefined_twice(s) ->
-      eprintf "%aType error: the variable %s is defined twice.@."
-        output_location loc (Ident.source s) 
+        output_location loc (kind_of_global_ident k) s 
+  | Ealready(k, s) ->
+     let prefix, suffix = kind_of_ident k in
+     eprintf "%aType error: the %s of %s is defined twice%s.@."
+        output_location loc prefix (Ident.source s) suffix
   | Einit_undefined(s) ->
       eprintf "%aType error: %s must be initialized in every branch.@."
         output_location loc
@@ -97,8 +104,9 @@ let message loc kind =
         output_location loc
         (Ident.source s) (Ident.source s)
   | Eshould_be_a_signal(s, expected_ty) ->
-      eprintf "@[%aType error: %s has type@ %a,@ \
-               but is expected to be a signal.@.@]"
+      eprintf "@[%aType error: %s is a value of type %a,@ \
+               but is expected to be a signal \
+               (maybe a default or initialization is missing).@.@]"
         output_location loc
         (Ident.source s)
 	Ptypes.output expected_ty

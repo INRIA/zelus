@@ -1,7 +1,8 @@
-let hybrid f(x) = o where
-  local r init 42 with (+), s init 2 with min, v with (+), w init 42 in
-  do r = 1 and o = 2 and v = 2 and w = 4 and s = 4 done
-    
+let node f(x) = o where
+  rec automaton
+  | Await -> do o = 0 unless x then Run
+  | Run -> do o = last o + 1 done
+  end     
 (*
 let hybrid model z = led where
   rec init digital_temp = 0
