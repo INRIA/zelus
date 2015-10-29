@@ -55,7 +55,10 @@ let rec equation h_opt ({ eq_desc = desc } as eq) =
 	  let b, h_opt = block h_opt b in
 	  { m_h with m_body = b }, h_opt) h_opt m_h_list in
      { eq with eq_desc = EQmatch(total, e, m_h_list) }, h_opt
-  | EQinit _ | EQreset([{ eq_desc = EQinit _ }], _) | EQder _ | EQeq _
+  | EQreset(eq_list, e) ->
+     let eq_list, h_opt = equation_list h_opt eq_list in
+     { eq with eq_desc = EQreset(eq_list, e) }, h_opt
+  | EQinit _ | EQder _ | EQeq _
   | EQpluseq _ -> eq, h_opt
   | EQblock _ | EQautomaton _ | EQpresent _ | EQemit _ | EQnext _ | EQreset _ ->
     assert false

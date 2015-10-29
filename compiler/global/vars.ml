@@ -97,7 +97,7 @@ let fv acc e =
 let rec init { eq_desc = desc } =
   match desc with
   | EQinit _ -> true
-  | EQreset([eq], _) -> init eq
+  | EQreset(eq_list, _) -> List.for_all init eq_list
   | _ -> false
 
 let read eq = fv_eq S.empty (S.empty, S.empty) eq

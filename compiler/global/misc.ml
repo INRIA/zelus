@@ -23,8 +23,7 @@ let header_in_file =
 
 (* standard module *)
 let pervasives_module = "Pervasives"
-let standard_lib = STDLIB
-let standard_lib = try Sys.getenv "ZLLIB" with Not_found -> standard_lib
+let standard_lib = try Sys.getenv "ZLLIB" with Not_found -> STDLIB
 
 (* list of modules initially opened *)
 let default_used_modules = ref [pervasives_module]

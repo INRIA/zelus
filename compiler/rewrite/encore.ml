@@ -53,8 +53,10 @@ let with_zero env encore_opt ({ b_body = eq_list; b_write = w } as b) =
 (* Translation of equations *)
 let rec equation env encore_opt ({ eq_desc = desc } as eq) =
   match desc with 
-    | EQeq _ | EQpluseq _ | EQreset([{ eq_desc = EQinit _ }], _)
-    | EQder _ | EQinit _ -> eq, encore_opt
+    | EQeq _ | EQpluseq _ | EQder _ | EQinit _ -> eq, encore_opt
+    | EQreset(eq_list, e) ->
+       let eq_list, encore_opt = equation_list env encore_opt eq_list in
+       { eq with eq_desc = EQreset(eq_list, e) }, encore_opt
     | EQmatch(total, e, m_h_list) ->
      (* add an equation [encore = true] if a branch is activated *)
      (* on a zero-crossing and changes a non local state variable *)

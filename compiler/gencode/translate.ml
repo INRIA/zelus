@@ -242,6 +242,13 @@ let init_every is_immediate env x e r_e =
 		 step = State.singleton (If(r_e, letin [x_receive_e] void)) }
   else { empty with step = State.singleton (If(r_e, letin [x_receive_e] void)) }
 		      
+(* Execute the reset code when a condition is true *)
+let reset e eqs =
+  let eq_list = State.list [] eqs in
+  match eq_list with 
+    | [] -> State.empty
+    | _ -> State.singleton (If(e, letin eq_list void))
+
 (** Translation of a function application (f [every e_opt] (e1,...,en)) *)
 (* Returns a context [ctx] and an expression *)
 let apply e_opt op e_list =
@@ -370,20 +377,32 @@ and equation env { Zelus.eq_desc = desc } =
      let ctx_match =
        { empty with step = State.singleton (Match(e, p_step_h_list)) } in
      seq ctx_e (seq ctx ctx_match)
-  | Zelus.EQreset([{ Zelus.eq_desc = Zelus.EQinit(x, e) }], r_e) ->
-     let is_immediate = Reset.static e in
-     let ctx_e, e = exp env e in
+  | Zelus.EQreset([{ Zelus.eq_desc = Zelus.EQinit(x, e) }], r_e)
+       when not (Reset.static e) ->
      let ctx_r_e, r_e = exp env r_e in
-     seq ctx_e (seq ctx_r_e (init_every is_immediate env x e r_e))
-  | Zelus.EQinit(x, e) when Reset.static e ->
-     (* initialization of a state variable with a static value *)
      let ctx_e, e = exp env e in
      let x_receive_e = var_exp env x e in
-     seq ctx_e { empty with reset = State.singleton x_receive_e;
-			    init = State.singleton (x, e) }
+     seq ctx_r_e
+	 (seq ctx_e
+	      { empty with step =
+			     State.singleton (If(r_e, letin [x_receive_e] void)) })
+  | Zelus.EQreset(eq_list, r_e) ->
+     let ctx_r_e, r_e = exp env r_e in
+     let ({ init = i; reset = eqs } as ctx_eq_list ) = equation_list env eq_list in
+     (* execute the initialization code when [e] is true *)
+     let ctx_res = { empty with step = reset r_e eqs } in
+     seq ctx_r_e (seq ctx_res ctx_eq_list)
+  | Zelus.EQinit(x, e) ->
+     let ctx_e, ce = exp env e in
+     let x_receive_e = var_exp env x ce in
+     (* initialization of a state variable with a static value *)
+     if Reset.static e
+     then seq ctx_e { empty with reset = State.singleton x_receive_e;
+				 init = State.singleton (x, ce) }
+     else seq ctx_e { empty with step = State.singleton x_receive_e }
   | Zelus.EQblock _ | Zelus.EQnext _
   | Zelus.EQder _ | Zelus.EQemit _ | Zelus.EQautomaton _ 
-  | Zelus.EQpresent _ | Zelus.EQreset _ | Zelus.EQinit _ -> assert false
+  | Zelus.EQpresent _ -> assert false
 
 and equation_list env eq_list =
   List.fold_left (fun ctx eq -> seq ctx (equation env eq)) empty eq_list
