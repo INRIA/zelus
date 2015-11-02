@@ -27,9 +27,8 @@ let causality_of_exp_list e_list = List.fold_left causality_of_exp [] e_list
 						  
 (* for a function call [res = f(arg)], with [res: r1,...,rn] *)
 (* [arg: a1,...,ak], inlining must be done if one of the two condition holds *)
-(* (1) and (2) are verified *)
 (* (1). exists rj, ai. rj < ai *)
-(* (2). exists input in and output out. (in < ai) & (ai < out) & not (in < out) *)
+(* (2). exists input in and output out. (in < ai) & (ri < out) & not (in < out) *)
 (* otherwise, add a dependence ai < rj when ai <> rj, for all i, j. *)
     
 let to_inline c_in_list c_out_list c_arg_list c_res_list =

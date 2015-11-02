@@ -47,9 +47,8 @@ let intro env e =
 
 let after e w =
   if S.is_empty w then e
-  else
-    after_list
-      e (S.fold (fun n acc -> var n Deftypes.no_typ :: acc) w [])
+  else after_list
+	 e (S.fold (fun n acc -> var n Deftypes.no_typ :: acc) w [])
 	       
 (* express that [eq] depends on [w] if [eq] is unsafe. In that case *)
 (* express that the equations that will follow [eq] depend on the variables *)
@@ -149,16 +148,13 @@ let rec expression ({ e_desc = desc } as e) =
      let ctx = local l in
      let e_let, ctx_let = expression e_let in
      e_let, State.seq ctx ctx_let
-  | Eperiod _ ->
-     let env, n_e, n = intro Env.empty e in
-     var n e.e_typ, State.singleton (env, [n_e])
   | Eseq(e1, e2) ->
      (* [e1; e2] is a short-cut for [let x = e1 in e2 after x] *)
      let e1, ctx1 = expression e1 in
      let e2, ctx2 = expression e2 in
      let env, n_e1, n = intro Env.empty e1 in
      e2, State.seq (State.cons (env, [n_e1]) ctx1) ctx2
-  | Epresent _ | Ematch _ -> assert false
+  | Epresent _ | Ematch _ | Eperiod _ -> assert false
 				    
 (** Translate an equation. *)
 and equation ({ eq_desc = desc } as eq) =

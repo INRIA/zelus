@@ -11,7 +11,13 @@
 (*   This file is distributed under the terms of the CeCILL-C licence     *)
 (*                                                                        *)
 (**************************************************************************)
-(* static scheduling *)
+
+(* static scheduling. Applied to normalized expressions and equations *)
+
+(* Apply the scheduling recursively to every expression *)
+(* and equations. At the end, equations are scheduled so *)
+(* that writes are done before write and state modifications *)
+(* are performed after their read *)
 
 open Zelus
 
@@ -70,49 +76,26 @@ let schedule eq_list =
   let eq_list = List.map Graph.containt l in
   Control.joinlist eq_list
 
-(** Apply the scheduling recursively to every expression *)
-(** and equations. At the end, equations are scheduled so *)
-(** that writes are done before write and state modifications *)
-(** are performed after their read *)
-(** Expressions *)
-let rec exp e =
-  match e.e_desc with
-    | Econst _ | Econstr0 _ | Elocal _ | Elast _ | Eglobal _ -> e
-    | Etuple(e_list) -> { e with e_desc = Etuple(List.map exp e_list) }
-    | Eapp(op, e_list) -> { e with e_desc = Eapp(op, List.map exp e_list) }
-    | Erecord(label_e_list) ->
-        { e with e_desc = Erecord(List.map (fun (label, e) -> (label, exp e)) 
-                                     label_e_list) }
-    | Erecord_access(e, longname) -> 
-        { e with e_desc = Erecord_access(exp e, longname) }
-    | Etypeconstraint(e, ty) -> { e with e_desc = Etypeconstraint(exp e, ty) }
-    | Elet(l, e_let) ->
-        { e with e_desc = Elet(local l, exp e_let) }
-    | Eseq(e1, e2) ->
-        { e with e_desc = Eseq(exp e1, exp e2) }
-    | Eperiod _ | Epresent _ | Ematch _ -> assert false
-  
-and equation ({ eq_desc = desc } as eq) =
+let rec equation ({ eq_desc = desc } as eq) =
   let desc = match desc with
     | EQeq _ | EQpluseq _ | EQinit _ | EQnext _ | EQder _ -> desc
     | EQmatch(total, e, p_h_list) ->
-        EQmatch(total, exp e, 
+        EQmatch(total, e, 
 		List.map 
                   (fun ({ m_body = b } as m_h) -> { m_h with m_body = block b })
                   p_h_list)
-    | EQreset(eq_list, e) -> EQreset(schedule eq_list, exp e)
-    | EQblock(b) -> EQblock(block b)
-    | EQemit _ | EQautomaton _ 
-    | EQpresent _ -> assert false in
+    | EQreset(eq_list, e) ->
+       let eq_list = List.map equation eq_list in
+       EQreset(schedule eq_list, e)
+    | EQemit _ | EQautomaton _ | EQpresent _ | EQblock _ -> assert false in
   { eq with eq_desc = desc }
   
-and block ({ b_locals = l_list; b_body = eq_list } as b) =
-  let l_list = List.map local l_list in
-  (* schedule every nested block structure *)
+and block ({ b_body = eq_list } as b) =
+  (* schedule every nested equation *)
   let eq_list = List.map equation eq_list in
   (* schedule the set of equations *)
   let eq_list = schedule eq_list in
-  { b with b_locals = l_list; b_body = eq_list }
+  { b with b_body = eq_list }
 
 and local ({ l_eq = eq_list } as l) =
   (* translate and schedule the set of equations *)
@@ -120,6 +103,14 @@ and local ({ l_eq = eq_list } as l) =
   let eq_list = schedule eq_list in
   { l with l_eq = eq_list }
 
+(** Top level expressions *)
+let exp ({ e_desc = desc } as e) =
+  let desc =
+    match desc with
+    | Elet(l, e) -> Elet(local l, e)
+    | _ -> desc in
+  { e with e_desc = desc }
+  
 let implementation impl =
   match impl.desc with
     | Eopen _ | Etypedecl _ | Econstdecl _ -> impl

@@ -60,8 +60,8 @@ let rec equation h_opt ({ eq_desc = desc } as eq) =
      { eq with eq_desc = EQreset(eq_list, e) }, h_opt
   | EQinit _ | EQder _ | EQeq _
   | EQpluseq _ -> eq, h_opt
-  | EQblock _ | EQautomaton _ | EQpresent _ | EQemit _ | EQnext _ | EQreset _ ->
-    assert false
+  | EQblock _ | EQautomaton _
+  | EQpresent _ | EQemit _ | EQnext _ -> assert false
 
 and equation_list h_opt eq_list = Misc.map_fold equation h_opt eq_list      
 

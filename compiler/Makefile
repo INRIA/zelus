@@ -65,12 +65,12 @@ REWRITE = rewrite/markfunctions.cmo \
 	rewrite/present.cmo \
 	rewrite/period.cmo \
 	rewrite/pre.cmo \
+	rewrite/letin.cmo \
+	rewrite/reset.cmo \
 	rewrite/encore.cmo \
 	rewrite/horizon.cmo \
-	rewrite/reset.cmo \
 	rewrite/aform.cmo \
 	rewrite/shared.cmo \
-	rewrite/letin.cmo \
 	rewrite/control.cmo \
 	rewrite/cse.cmo \
 	rewrite/cut.cmo \

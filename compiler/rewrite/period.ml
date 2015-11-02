@@ -93,9 +93,6 @@ let disc e =
   minusgreater (emake (Econst(Ebool(false))) Initial.typ_bool)
                (diff e (pre e))
 
-(* Translation of the initial event *)
-let initial = fby etrue efalse
-			   
 (* Add an extra input parameter for hybrid nodes *)
 let extra_input time env pat_list = 
   Env.add time { t_sort = Deftypes.value; t_typ = Initial.typ_float } env,
@@ -106,7 +103,6 @@ let rec expression time ({ e_desc = e_desc } as e) =
   match e_desc with
   | Eperiod(p) -> period time p
   | Eapp(Edisc, [e]) -> disc (expression time e)
-  | Eapp(Einitial, []) -> initial
   | Eapp(op, e_list) ->
      (* for hybrid nodes, add the extra input [time] *)
      let e_list = List.map (expression time) e_list in

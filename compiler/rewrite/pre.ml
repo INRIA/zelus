@@ -25,6 +25,10 @@
     [next x = e] => [x = e] and replace all occ. of [x] by [last x]
 
     [up(e)] => [let x = up(e) in x]
+
+    [e1 -> e2] => [let x = e1 -> e2 in x]
+
+    [horizon(e)] => [let x = horizon(e) in x]
 *)
 
 open Misc
@@ -34,13 +38,13 @@ open Zelus
 open Ident
 open Zaux
 
-let let_make is_init is_up x ty eq_list e =
+let let_make is_init is_up x eq_list e =
   let entry ty =
     let mem = Deftypes.previous Deftypes.empty_mem in
     let mem  = if is_init then Deftypes.initialized mem else mem in
     let sort = if is_up then Deftypes.zero mem else Deftypes.Smem mem in
     { t_sort = sort; t_typ = ty } in
-  emake (Elet({ l_eq = eq_list; l_env = Env.singleton x (entry ty); 
+  emake (Elet({ l_eq = eq_list; l_env = Env.singleton x (entry e.e_typ); 
 		l_loc = no_location }, e)) e.e_typ
 
 (* Computes the set of variables modified by a "next" from an environment *)
@@ -67,17 +71,23 @@ let rec exp subst e =
      let e2 = exp subst e2 in
      (* turns it into [let init x = e1 and x = e2 in last x] *)
      let x = Ident.fresh "m" in
-     let_make true false x e1.e_typ [eq_init x e1; eq_make x e2] (last x e1.e_typ)
+     let_make true false x [eq_init x e1; eq_make x e2] (last x e1.e_typ)
+  | Eapp(Eminusgreater | Einitial | Ehorizon as op, e_list) ->
+     let e_list = List.map (exp subst) e_list in
+     (* turns it into [let x = op(e1,...,en) in x] *)
+     let x = Ident.fresh "m" in
+     let_make false false x [eq_make x { e with e_desc = Eapp(op, e_list) }]
+	      (var x e.e_typ)
   | Eapp(Eunarypre, [e1]) ->
      let e1 = exp subst e1 in
      (* turns it into [let x = e1 in last x] *)
      let x = Ident.fresh "m" in
-     let_make false false x e1.e_typ [eq_make x e1] (last x e1.e_typ)
+     let_make false false x [eq_make x e1] (last x e1.e_typ)
   | Eapp(Eup, [e1]) ->
      let e1 = exp subst e1 in
      (* turns it into [let x = up(e1) in x] *)
      let x = Ident.fresh "m" in
-     let_make false true x e1.e_typ [eq_make x (up e1)] (var x e1.e_typ)
+     let_make false true x [eq_make x (up e1)] (var x e1.e_typ)
   | Eapp(op, e_list) ->
      let e_list = List.map (exp subst) e_list in
      { e with e_desc = Eapp(op, e_list) }
@@ -126,7 +136,7 @@ and equation subst eq_list ({ eq_desc = desc } as eq) =
 and equation_list subst eq_list = List.fold_left (equation subst) [] eq_list
 
 and block subst ({ b_locals = l_list; b_body = eq_list; b_env = b_env } as b) =
-  (* Identify which defined variable is a modified by a "next". *)
+  (* Identify which defined variable is modified by a "next". *)
   (* Change its status to *)
   (* become a "last" variable *)
   let b_env, subst = env subst b_env in

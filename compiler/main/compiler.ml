@@ -197,11 +197,11 @@ let compile modname filename =
 	comment "Un-nest let/in blocks. See below:";
       if !verbose then Printer.implementation_list info_ff impl_list;
       
-      (* compiling the initialization -> and init *)
+      (* compiling the initialization -> and init according to the resets *)
       let impl_list = Reset.implementation_list impl_list in
       if !verbose then 
 	comment 
-	  "Compilation of reset done. See below:";
+	  "Compilation of initialization and resets done. See below:";
       if !verbose then Printer.implementation_list info_ff impl_list;
       
       (* Add an extra discrete step for weak transitions *)
