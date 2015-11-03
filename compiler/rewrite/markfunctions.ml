@@ -28,14 +28,16 @@ let causality_of_exp_list e_list = List.fold_left causality_of_exp [] e_list
 (* for a function call [res = f(arg)], with [res: r1,...,rn] *)
 (* [arg: a1,...,ak], inlining must be done if one of the two condition holds *)
 (* (1). exists rj, ai. rj < ai *)
-(* (2). exists input in and output out. (in < ai) & (ri < out) & not (in < out) *)
+(* (2). exists input in and output out. *)
+        (* (in <= ai) & (rj <= out) & not (in <= out) *)
 (* otherwise, add a dependence ai < rj when ai <> rj, for all i, j. *)
     
 let to_inline c_in_list c_out_list c_arg_list c_res_list =
   let i =
     (* condition (1) *)
     List.exists
-      (fun c_res -> List.exists (Causal.path c_res) c_arg_list) c_res_list in
+      (fun c_res ->
+	List.exists (Causal.strict_path c_res) c_arg_list) c_res_list in
   let i =
     if i then true
     else
@@ -51,14 +53,18 @@ let to_inline c_in_list c_out_list c_arg_list c_res_list =
 	c_in_list in
   (* strictification of the function application in case *)
   (* inlining is useless *)
-  if not i then
-    List.iter
-      (fun c_arg ->
-	List.iter (fun c_res ->
-	  if not (Causal.equal c_arg c_res) then Causal.cless c_arg c_res)
-	  c_res_list) c_arg_list;
-  i
-
+  try
+    if not i then
+      List.iter
+	(fun c_arg ->
+	  List.iter (fun c_res ->
+	    if not (Causal.path c_res c_arg) then Causal.cless c_arg c_res)
+	    c_res_list) c_arg_list;
+    i
+  with
+    | Causal.Unify(l) ->
+      Misc.internal_error "Mark function (to inline)" Pcaus.cycle l
+	
 (* generic translation for match handlers *)
 let match_handler body ({ m_body = b } as m_h) = { m_h with m_body = body b }
 

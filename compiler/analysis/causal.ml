@@ -140,10 +140,8 @@ let rec cless left_c right_c =
     | _ -> assert false
 
 (* does it exist a strict path from [c1] to [c2]? *)
-let path c1 c2 =
-  let rec pathrec c1 =
-    (equal c1 c2) || List.exists pathrec (sups c1) in
-  pathrec c1
+let rec strict_path c1 c2 = List.exists (fun c1 -> path c1 c2) (sups c1) 
+and path c1 c2 = (equal c1 c2) || (strict_path c1 c2)
     
 (* the main entry *)
 let type_before_type = unify cless

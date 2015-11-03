@@ -127,7 +127,7 @@ and local ({ l_eq = eq_list; l_env = l_env } as l) =
 (* Those variables and memories must be modified with equations of the *)
 (* form [x = e] only. *)
 and block dv ({ b_vars = n_list; b_body = eq_list; b_env = n_env;
-		b_write = ({ dv = dv_b } as names) } as b) =
+		b_write = { dv = dv_b } } as b) =
   (* written variables [dv] are considered to be shared *)
   let dv = shared (S.union dv dv_b) n_env in
   let eq_list, copies = equation_list dv Env.empty eq_list in
