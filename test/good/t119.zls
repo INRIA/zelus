@@ -1,0 +1,19 @@
+let node f (y, z1, z2, z3) = (z, k) where
+  rec init x = y
+  and
+      reset
+	z = last x + 1 + y
+      and
+        match z3 with
+        | true ->
+            local m in
+            do init m = 42
+            and 
+	    reset
+	      k = 1 + 0 fby k + 2 + last m + 1
+            every z1
+            done
+	| false ->
+	    do k = 2 fby k + 2 done
+	end
+      every z2      

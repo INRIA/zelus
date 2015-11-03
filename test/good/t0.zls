@@ -1,3 +1,33 @@
+let node f (y, z1, z2, z3) = (z, k) where
+  rec init x = y
+  and
+      reset
+	z = last x + 1 + y
+      and
+        match z3 with
+        | true ->
+            local m in
+            do init m = 42
+            and 
+	    reset
+	      k = 1 + 0 fby k + 2 + last m + 1
+            every z1
+            done
+	| false ->
+	    do k = 2 fby k + 2 done
+	end
+      every z2      
+
+(*
+    if self.i1 then self.x <- y;
+    if z2 then self.k1 <- 0; self.k2 <- 2; self.i2 <- true;
+    self.z <- self.z + 1 + y;
+    match z3 with
+    | true -> if z1 then self.k1 <- 0; self.k1 <- self.k1 + 2; k := self.k1
+    | false -> self.k2 <- self.k2 + 2;
+ *)
+ 
+
 (* [World.ground(x)] returns the position in [y] *)
 
 let x_0 = 0.0
@@ -36,33 +66,6 @@ hybrid ball_with_modes(x_0, y_0) = (x, y) where
       until up(x -. x0) then do y_start = y in Bouncing
   end
 
-(*
-let node g (y, z1, z2, z3) = (z, k) where
-  rec init x = y
-  and
-      reset
-	z = last x + 1 + y
-      and
-        match z3 with
-        | true ->
-	    reset
-	      k = 0 fby k + 2
-	    every z1
-	| false ->
-	    do k = 2 fby k + 2 done
-	end
-      every z2      
-
-(*
-    if self.i1 then self.x <- y;
-    if z2 then self.k1 <- 0; self.k2 <- 2; self.i2 <- true;
-    self.z <- self.z + 1 + y;
-    match z3 with
-    | true -> if z1 then self.k1 <- 0; self.k1 <- self.k1 + 2; k := self.k1
-    | false -> self.k2 <- self.k2 + 2;
- *)
- *)
-   
 (*
 open Graphics
 
