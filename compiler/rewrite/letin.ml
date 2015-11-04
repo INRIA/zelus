@@ -65,18 +65,14 @@ let rec do_after (env, eq_list, w) ({ eq_desc = desc } as eq) =
 	 S.singleton n
        else env, { eq with eq_desc = EQeq(p, after e w) } :: eq_list, w_p
     | EQpluseq(n, e) ->
-       let env, m_e, m = intro env (after e w) in
-       env, m_e :: { eq with eq_desc = EQpluseq(n, var m e.e_typ) } :: eq_list,
-       S.singleton m
+       env, { eq with eq_desc = EQpluseq(n, after e w) } :: eq_list,
+       S.singleton n
     | EQder(n, e, None, []) ->
-       let env, m_e, m = intro env (after e w) in
-       env,
-       m_e :: { eq with eq_desc = EQder(n, var m e.e_typ, None, []) } :: eq_list,
-       S.singleton m
+       env, { eq with eq_desc = EQder(n, after e w, None, []) } :: eq_list,
+       S.singleton n
     | EQinit(n, e) ->
-       let env, m_e, m = intro env (after e w) in
-       env, m_e :: { eq with eq_desc = EQinit(n, var m e.e_typ) } :: eq_list,
-       S.singleton m
+       env, { eq with eq_desc = EQinit(n, after e w) } :: eq_list,
+       S.singleton n
     | EQmatch(total, e, m_h_list) ->
        (* variables written by the [match/with] *)
        let w_p =
