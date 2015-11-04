@@ -77,11 +77,9 @@ let node fresh (i, r) = o where
 let data v = v.data
 
 (** LTTA links **)
-let node ltta_link (dc, i, default) = o where
+let node ltta_link (dc, i, default) = m where
   rec s = channel (dc, i)
-  and o = mem (alternate s, {data = default; alt = false})
-
-
+  and m = mem (alternate s, {data = default; alt = false})
 
 (*** The LTTA Protocols ***)
 

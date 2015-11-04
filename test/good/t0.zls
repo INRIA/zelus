@@ -1,4 +1,8 @@
-let node g(x,y) = (x+1, y+1)
+let hybrid main () = () where
+  rec der t = 1.0 init -1.0 reset up(last t) -> -.1.0
+  and present up(last t) -> do _ = print_endline "coucou" done
+
+let node f(x,y) = (x+1, y+1)
 
 let node h (x, y) =
   let (o1, o2) = g(x+1, x+1) in
@@ -20,10 +24,10 @@ let atomic node from x =
 
 let node main () =
   let o = from 1 in
-   print_int o; print_newline () 
+   print_int o; print_newline ()
 
 
-		       
+
 
 let node f() = o where
   rec
@@ -32,7 +36,7 @@ let node f() = o where
       | S2(x) -> do o = x -> pre o + 1 done
       end
  *)
-		       
+
 (*
 let main2 x = let z = x + 2 in z
 
@@ -42,15 +46,15 @@ let node count2(n, tick) = o where
   and
     o = false -> cpt = 0
        *)
-      
+
 (*
-let node await e = o where 
+let node await e = o where
   automaton
   | Await -> do unless e(v) then Sustain(v)
   | Sustain(x) -> do emit o = x done
   end
  *)
-	
+
 (*
 >>>>>>> .r2266
 let atomic node draw_pendulum1 (color, x0, y0, x, y) =
@@ -63,14 +67,14 @@ let node f x = 0 -> pre x + 1
 let node double x =
   let rec x1 = f(x2 + 1) and x2 = f(x2 + x1) in
   x + x1
-    
+
 let node f55(x) = y where
   rec automaton
-      | S1 -> 
+      | S1 ->
           let rec c = 0 -> pre c + 1 in
           do y = 1 -> pre y + 1 until (c = 0) then S1
-      | S2(t) -> 
-          do y = t + 1 - x and emit m = 1 
+      | S2(t) ->
+          do y = t + 1 - x and emit m = 1
           until (y = -10) then S1
   and cpt = 0 -> pre cpt + 1
 
@@ -80,7 +84,7 @@ let node g() =
   let rec x = f(y + 1) and y = f(x+2) in
   (x) *)
      *)
-    
+
 (*
 type event = Simple | Double
 
@@ -92,14 +96,14 @@ let node controller (click, top) = o where
               else (counting top = 4) then Emit(Simple)
      | Emit(x) ->
          do emit o = x
-	 until true then Await
+         until true then Await
      end
  *)
-	
+
 (* let node f5(x) = y where
   rec match x with
       | true ->
-	  let rec c = 0 -> pre c + 1 in
+          let rec c = 0 -> pre c + 1 in
           do y = 1 -> pre y + 1 done
       | false -> do y = 0 done *)
 
@@ -110,7 +114,7 @@ let node controller (click, top) = o where
   and present hit(_) -> do z = 0.0 done else do der z = error done
 *)
 
-  
+
 (*  let hybrid blah(x) = y where
      rec init t = 0
      and automaton
@@ -139,7 +143,7 @@ let hybrid h(x, k) = y where
   rec match x with
     | true -> do der y = 0.1 done
     | false -> do der y = 1.0 done
-  and init y = k 
+  and init y = k
 *)
 
 (*
@@ -149,7 +153,7 @@ let hybrid f(y_1, y_0) =
 *)
 
 (* let atomic hybrid f (z) = o where
-  rec 
+  rec
       present z -> do o = last o +. 2.0 done
       else do der o = 1.0 done
   and init o = 2.0
@@ -184,28 +188,28 @@ let atomic hybrid main1 z = k where
 
 let hybrid main () =
    let der k = 0.0 init 0.0 in
-   let o = main1 true +. k in 
+   let o = main1 true +. k in
    present (period (0.1)) -> print_float o; print_newline () else ()
 
 let node h z =
   let rec
       match z with
-      | true -> 
-	  let k = 1 + 2 in 
-	  let r = k + 2 in 
-	  local s in 
-          do s = print_int 2;2 
-	  and o = 1 -> last o + 1 done
-      | false -> 
-	  local k, s in
-          do o = 2 -> last o + 2 
-	  and k = 1 + 2 and s = k + 1 done
+      | true ->
+          let k = 1 + 2 in
+          let r = k + 2 in
+          local s in
+          do s = print_int 2;2
+          and o = 1 -> last o + 1 done
+      | false ->
+          local k, s in
+          do o = 2 -> last o + 2
+          and k = 1 + 2 and s = k + 1 done
       end in
   print_int 3
 *)
 
 (*
-let node f x = z where 
+let node f x = z where
   rec match x with
       | true -> do z = 1 and m = r + 1 done
       | false -> do z = 1 and m = r + 1 done
@@ -318,7 +322,7 @@ let atomic hybrid f(x,y) = z where
 let atomic hybrid f(x, y) = z where
   present | x() -> do next z = 1.0 done
           | y() -> do done
-  else do der z = 2.0 done 
+  else do der z = 2.0 done
   and init z = 0.0
 *)
 
@@ -342,7 +346,7 @@ let node g(x) = y, k, m where rec
 *)
 
  (*let hybrid f1 x =
-  let rec 
+  let rec
       automaton
       | S1 -> do der y = 1.0 until x then S2
       | S2 -> do done
@@ -357,8 +361,8 @@ let node h () = x where
 *)
 
 (*
-let node f(x) = o where 
-  rec init o = 1 
+let node f(x) = o where
+  rec init o = 1
   and reset
         match x with
         | true -> local o1 in
@@ -377,14 +381,14 @@ let hybrid h(x) = o where
 *)
 
 (*
-let hybrid h(x) = 
+let hybrid h(x) =
   let der z = 1.0 init 0.0 in
   let o = present x -> (z +. 2.0) else 0.0 in
   o +. 2.0
 *)
 
 (*
-let node h(x) = 
+let node h(x) =
   let rec init y = 0 and init z = 2 and init k = 2 and init l = 2
   and present
       | true -> do y = 1 and z = l done
@@ -396,7 +400,7 @@ let node h(x) =
 *)
 
 (*
-let node g(x,z) = y, 1 where 
+let node g(x,z) = y, 1 where
  rec y = x + 1 and x = 0 -> pre y + 1
 *)
 
@@ -423,7 +427,7 @@ let node g() = x where
 
 let node main() =
   let x = g() in
-  print_int x; 
+  print_int x;
   print_newline ()
 *)
 
@@ -431,13 +435,13 @@ let node main() =
 let hybrid f () = y where
   rec init y = 0.0
   and automaton
-      | S1 -> 
-	  local z in
+      | S1 ->
+          local z in
           do der y = 1.0 reset z -> 10.0
           and z = up(y -. 10.0)
           until z then S2 done
-      | S2 -> 
-	  local z, y' in
+      | S2 ->
+          local z, y' in
           do y' = 1.0 and der y = y' and z = up(y -. 10.0)
           until z then S1 done
 
@@ -451,7 +455,7 @@ let hybrid f z = o where
       | false -> present r -> do o = 2 done
       end
 *)
-  
+
 (* let hybrid g k =
   let m = f k in
   let v = exceed 1.0 in
@@ -465,8 +469,8 @@ let hybrid g x = o where
 
 let hybrid f x = o where
   rec automaton
-      | S1 -> 
-	  do der o = 1.0 until x then do o = 2.0 in S1 done
+      | S1 ->
+          do der o = 1.0 until x then do o = 2.0 in S1 done
   and init o = 0.0
 *)
 
@@ -475,9 +479,9 @@ let hybrid ff z = o where rec der o = 1.0 init 0.0 reset z -> 2.0
 
 let hybrid g z = x where
   rec init x = 1.0
-  and match z with 
-      | true -> local y in do der y = 2.0 init 0.0 done 
-      | false -> local z in do der z = 3.0 and init z = 2.3 done 
+  and match z with
+      | true -> local y in do der y = 2.0 init 0.0 done
+      | false -> local z in do der z = 3.0 and init z = 2.3 done
 
 let node h () = () where
   rec x = 1 -> last x + 1
