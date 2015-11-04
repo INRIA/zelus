@@ -91,8 +91,8 @@ and desc =
 
 and op =
   | Efby | Eunarypre | Eifthenelse 
-  | Eminusgreater | Eup | Einitial | Edisc | Ehorizon | Eafter
-  | Etest
+  | Eminusgreater | Eup | Einitial | Edisc | Ehorizon
+  | Eafter of Ident.t list | Etest
   | Eop of is_inline * Lident.t
   | Eevery of is_inline * Lident.t
 

@@ -86,6 +86,7 @@ let block_of_equation ({ desc = desc; loc = loc } as eq) =
 %token <char> CHAR
 %token <string> STRING
 %token AS             /* "as" */
+%token AFTER          /* "after" */
 %token AUTOMATON      /* "automaton" */
 %token ATOMIC         /* "atomic" */
 %token INLINE         /* "inline" */
@@ -164,6 +165,7 @@ let block_of_equation ({ desc = desc; loc = loc } as eq) =
 %left STAR INFIX3
 %left ON
 %left INFIX4
+%left AFTER
 %right prec_uminus
 %right FBY
 %right PRE UP DISC TEST
@@ -749,6 +751,10 @@ expression_desc:
       { Eapp(Eifthenelse, [e1; e2; e3]) }
   | e1 = expression MINUSGREATER e2 = expression
       { Eapp(Eminusgreater, [e1; e2]) }
+  | e = expression AFTER n = IDENT
+      { Eapp(Eafter([n]), [e]) }
+  | e = expression AFTER LPAREN n_list = list_of(COMMA, IDENT) RPAREN
+      { Eapp(Eafter(n_list), [e]) }
   | LAST i = ide
       { Elast(i) }
   | e = expression DOT i = ext_ident

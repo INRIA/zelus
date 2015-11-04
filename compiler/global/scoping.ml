@@ -195,7 +195,7 @@ let default = function
   | Parsetree.Init(c) -> Zelus.Init(constant c)
   | Parsetree.Default(c) -> Zelus.Default(constant c)
     
-let operator = function
+let operator loc env = function
   | Eunarypre -> Zelus.Eunarypre
   | Efby -> Zelus.Efby
   | Eminusgreater -> Zelus.Eminusgreater
@@ -204,6 +204,7 @@ let operator = function
   | Einitial -> Zelus.Einitial
   | Edisc -> Zelus.Edisc
   | Etest -> Zelus.Etest
+  | Eafter(n_list) -> Zelus.Eafter(List.map (name loc env) n_list)
   | Eop(is_inline, lname) -> Zelus.Eop(is_inline, longname lname)
 
 let period { p_phase = p1; p_period = p2 } = 
@@ -507,7 +508,7 @@ let rec expression env { desc = desc; loc = loc } =
     | Elast(n) -> Zelus.Elast(name loc env n)
     | Etuple(e_list) -> Zelus.Etuple(List.map (expression env) e_list)
     | Eapp(op, e_list) ->
-        Zelus.Eapp(operator op, List.map (expression env) e_list)
+        Zelus.Eapp(operator loc env op, List.map (expression env) e_list)
     | Erecord(label_e_list) ->
         let rec recordrec labels label_e_list =
           match label_e_list with

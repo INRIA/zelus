@@ -96,6 +96,8 @@ and 'a default =
 and op =
     | Efby | Eunarypre | Eifthenelse | Eminusgreater 
     | Eup | Einitial | Edisc | Etest | Eop of is_inline * longname
+    | Eafter of name list
+  
 
 and immediate =
     | Eint of int

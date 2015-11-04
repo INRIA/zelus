@@ -47,8 +47,7 @@ let intro env e =
 
 let after e w =
   if S.is_empty w then e
-  else after_list
-	 e (S.fold (fun n acc -> var n Deftypes.no_typ :: acc) w [])
+  else after_list e (S.fold (fun n acc -> n :: acc) w [])
 
 (* express that [eq] depends on [w] if [eq] is unsafe. In that case *)
 (* express that the equations that will follow [eq] depend on the variables *)

@@ -97,7 +97,7 @@ let expression ({ e_desc = desc } as e) =
 	 let eq_list =
 	   Zaux.eq_make hor (Zaux.var h Initial.typ_float) :: eq_list in
 	 { l with l_eq = eq_list; l_env = l_env },
-	  Zaux.after e (Zaux.var hor Initial.typ_float) in
+	  Zaux.after e hor in
      { e with e_desc = Elet(l, e) }
   | _ -> e
 	   

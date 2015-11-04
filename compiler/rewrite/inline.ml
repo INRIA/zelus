@@ -70,7 +70,7 @@ let cost_less e max =
       | Einitial -> 2
       | Eup -> -2
       | Eifthenelse | Etest | Eop _ | Eevery _ -> 1
-      | Eafter -> 0
+      | Eafter _ -> 0
       | Ehorizon -> 1
   and cost_block { b_locals = l_list; b_body = eq_list } =
     List.iter cost_local l_list; List.iter cost_eq eq_list

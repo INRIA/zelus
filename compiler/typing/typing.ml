@@ -364,10 +364,9 @@ let operator loc expected_k op =
         op, Tcont, true, [Initial.typ_float], Initial.typ_zero
     | Ehorizon ->
         op, Tcont, true, [Initial.typ_float], Initial.typ_zero
-    | Eafter ->
-        let s1 = new_var () in
-        let s2 = new_var () in
-        op, Tany, true, [s1; s2], s1
+    | Eafter _ ->
+        let s = new_var () in
+        op, Tany, true, [s], s
     | Etest ->
         let s = new_var () in
         op, Tany, true, [Initial.typ_signal s], Initial.typ_bool

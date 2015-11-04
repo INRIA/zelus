@@ -88,8 +88,8 @@ let minusgreater e1 e2 = emake (Eapp(Eminusgreater, [e1;e2])) e1.e_typ
 let fby e1 e2 = emake (Eapp(Efby, [e1;e2])) e1.e_typ
 
 let ifthenelse e1 e2 e3 = emake (Eapp(Eifthenelse, [e1;e2;e3])) e2.e_typ
-let after_list e e_list = emake (Eapp(Eafter, e :: e_list)) e.e_typ
-let after e1 e2 = after_list e1 [e2]
+let after_list e n_list = emake (Eapp(Eafter(n_list), [e])) e.e_typ
+let after e n = after_list e [n]
 
 let make_local env eq_list = 
   { l_eq = eq_list; l_env = env; l_loc = Location.no_location }

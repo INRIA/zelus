@@ -294,7 +294,7 @@ let rec exp env { Zelus.e_desc = desc } =
        let ctx, e = exp env e in
        ctx, make (Otypeconstraint(e, type_expression ty))
     | Zelus.Eapp((Zelus.Eup | Zelus.Ehorizon), [e]) -> exp env e
-    | Zelus.Eapp(Zelus.Eafter, e :: _) -> exp env e
+    | Zelus.Eapp(Zelus.Eafter _, [e]) -> exp env e
     | Zelus.Eapp(Zelus.Eifthenelse, [e1; e2; e3]) ->
        let ctx1, e1 = exp env e1 in
        let ctx2, e2 = exp env e2 in
