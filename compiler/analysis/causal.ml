@@ -286,6 +286,14 @@ let rec mark pol acc tc =
     | Cproduct(tc_list) -> List.fold_left (mark pol) acc tc_list
     | Catom(c) -> cmark acc c
 
+let rec all_sups c =
+  let rec all acc c =
+    let c = crepr c in
+    match c.c_desc with
+    | Clink(link) -> all acc link
+    | Cvar -> List.fold_left all (S.add c acc) c.c_sup in
+  all S.empty c  
+
 (* we compute IO sets [see Pouzet and Raymond, EMSOFT'09] *)
 (* IO(c) = { i / i in I /\ i <_O c } and i <_O c iff O(c) subset O(i) *)
 (* Partition according to IO, i.e., two variables with the same IO *)

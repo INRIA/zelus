@@ -276,40 +276,40 @@ let rec exp expected_k env ({ e_desc = desc; e_typ = ty; e_loc = loc } as e) =
 and apply expected_k env op ty e_list =
   let c = Causal.new_var () in
   match op, e_list with
-    | Eunarypre, [e] ->
-        exp_before_on_c expected_k env e (Causal.new_var ());
-        Causal.skeleton_on_c c ty
-    | Efby, [e1;e2] ->
-        exp_before_on_c expected_k env e2 (Causal.new_var ());
-        exp_before_on_c expected_k env e1 c;
-        Causal.skeleton_on_c c ty
-    | Eminusgreater, [e1;e2] ->
-        exp_before_on_c expected_k env e1 c;
-        exp_before_on_c expected_k env e2 c;
-        Causal.skeleton_on_c c ty
-    | Eifthenelse, [e1; e2; e3] ->
-        exp_before_on_c expected_k env e1 c;
-        exp_before_on_c expected_k env e2 c;
-        exp_before_on_c expected_k env e3 c;
-        Causal.skeleton_on_c c ty
-    | (Einitial | Eup | Etest | Edisc), e_list ->
-        List.iter
-          (fun e ->
-            exp_before_on_c expected_k env e c) e_list;
-        Causal.skeleton_on_c c ty
-    | Eop(_, lname), e_list ->
-        let { info = info } = Modules.find_value lname in
-        let ty_arg_list, ty_res = Causal.instance info in
-        List.iter2 (exp_before expected_k env) e_list ty_arg_list;
-        ty_res
-    | Eevery(_, lname), e :: e_list ->
-        let { info = info } = Modules.find_value lname in
-        let ty_arg_list, ty_res = Causal.instance info in
-        List.iter2 (exp_before expected_k env) e_list ty_arg_list;
-        exp_before_on_c expected_k env e c;
-        Causal.type_before_type (Causal.skeleton_on_c c ty) ty_res;
-        ty_res
-    | _ -> assert false
+  | Eunarypre, [e] ->
+     exp_before_on_c expected_k env e (Causal.new_var ());
+     Causal.skeleton_on_c c ty
+  | Efby, [e1;e2] ->
+     exp_before_on_c expected_k env e2 (Causal.new_var ());
+     exp_before_on_c expected_k env e1 c;
+     Causal.skeleton_on_c c ty
+  | Eminusgreater, [e1;e2] ->
+     exp_before_on_c expected_k env e1 c;
+     exp_before_on_c expected_k env e2 c;
+     Causal.skeleton_on_c c ty
+  | Eifthenelse, [e1; e2; e3] ->
+     exp_before_on_c expected_k env e1 c;
+     exp_before_on_c expected_k env e2 c;
+     exp_before_on_c expected_k env e3 c;
+     Causal.skeleton_on_c c ty
+  | (Einitial | Eup | Etest | Edisc), e_list ->
+     List.iter
+       (fun e ->
+        exp_before_on_c expected_k env e c) e_list;
+     Causal.skeleton_on_c c ty
+  | Eop(_, lname), e_list ->
+     let { info = info } = Modules.find_value lname in
+     let ty_arg_list, ty_res = Causal.instance info in
+     List.iter2 (exp_before expected_k env) e_list ty_arg_list;
+     ty_res
+  | Eevery(_, lname), e :: e_list ->
+     let { info = info } = Modules.find_value lname in
+     let ty_arg_list, ty_res = Causal.instance info in
+     List.iter2 (exp_before expected_k env) e_list ty_arg_list;
+     exp_before_on_c expected_k env e c;
+     Causal.type_before_type (Causal.skeleton_on_c c ty) ty_res;
+     ty_res
+  | _ -> assert false
 
 and exp_before_on_c expected_k env e expected_c =
   try
