@@ -110,13 +110,13 @@ let env_eq_list_of_ctx ctx =
   
 (* every variable from [ctx] becomes a local variable *)
 let add_locals ctx n_list l_env =
-  let env, eq_list, _ = env_eq_list_of_ctx ctx in
+  let env, eq_list, w = env_eq_list_of_ctx ctx in
   let n_list =
     Env.fold
       (fun n entry n_list -> (Zaux.vardec_from_entry n entry) :: n_list)
       env n_list in
   let l_env = Env.append env l_env in
-  n_list, l_env, eq_list
+  n_list, l_env, eq_list, w
 
 
 (** Translation of expressions *)
@@ -196,14 +196,15 @@ and equation_list eq_list =
 (* Once normalized, a block is of the form *)
 (* local x1,..., xn in do eq1 and ... and eqn *)
 and block ({ b_vars = n_list; b_locals = l_list;
-	     b_body = eq_list; b_env = b_env } as b) =
+	     b_body = eq_list; b_env = b_env;
+	     b_write = { dv = dv } as w } as b) =
   (* first translate local declarations *)
   let l_ctx = local_list l_list in
   (* then the set of equations *)
   let ctx = equation_list eq_list in
   let ctx = State.seq l_ctx ctx in
   (* every variable from ctx is now a local variable of the block *)
-  let n_list, b_env, eq_list = add_locals ctx n_list b_env in
+  let n_list, b_env, eq_list, w_unsafe = add_locals ctx n_list b_env in
   { b with b_vars = n_list; b_locals = []; b_body = eq_list; b_env = b_env }
     
 and local { l_eq = eq_list; l_env = l_env } =
