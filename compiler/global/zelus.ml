@@ -125,8 +125,7 @@ and pdesc =
 and eq = 
     { eq_desc: eqdesc;
       eq_loc: location;
-      mutable eq_write: Deftypes.defnames;
-      mutable eq_unsafe: bool }
+      mutable eq_write: Deftypes.defnames }
 
 and eqdesc =
   | EQeq of pattern * exp
