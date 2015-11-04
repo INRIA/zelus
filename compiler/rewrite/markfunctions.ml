@@ -38,30 +38,6 @@ let causality_of_exp_list e_list = List.fold_left causality_of_exp [] e_list
 (*     - exists ai, rj. not (o(ai) <= o(rj)) *)
 (*     said differently, adding an extra dependence would change the io rel. *)
 let to_inline c_in_list c_out_list c_arg_list c_res_list =
-  (* let l_in = List.map Causal.all_sups c_in_list in
-  let l_out = List.map Causal.all_sups c_out_list in
-  let l_arg = List.map Causal.all_sups c_arg_list in
-  let l_res = List.map Causal.all_sups c_res_list in
-  let l_in_out =
-    List.map
-      (fun c1 -> List.map (fun c2 -> Causal.path c1 c2) c_out_list) c_in_list
-  in
-  let l_in_arg =
-    List.map
-      (fun c1 -> List.map (fun c2 -> Causal.path c1 c2) c_arg_list) c_in_list
-  in
-  let l_in_res =
-    List.map
-      (fun c1 -> List.map (fun c2 -> Causal.path c1 c2) c_res_list) c_in_list
-  in
-  let l_res_out =
-    List.map
-      (fun c1 -> List.map (fun c2 -> Causal.path c1 c2) c_out_list) c_res_list
-  in
-  let l_arg_res =
-    List.map
-      (fun c1 -> List.map (fun c2 -> Causal.path c1 c2) c_res_list) c_arg_list
-  in *)
   let i =
     (* condition (1) *)
     List.exists
@@ -78,16 +54,6 @@ let to_inline c_in_list c_out_list c_arg_list c_res_list =
 	 List.exists
 	   (fun o_res -> not (Causal.S.subset o_res o_arg)) o_res_list)
 	o_arg_list in
-	(* List.exists
-	(fun c_in ->
-	  List.exists
-	    (fun c_out ->
-	      List.exists (fun c_arg -> Causal.path c_in c_arg) c_arg_list &&
-		List.exists (fun c_res -> Causal.path c_res c_out) c_res_list &&
-		not (Causal.path c_in c_out))
-	    c_out_list)
-	c_in_list in *)
-      
   (* strictification of the function application in case *)
   (* inlining is useless *)
   try
