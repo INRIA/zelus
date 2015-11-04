@@ -49,7 +49,16 @@ let after e w =
   if S.is_empty w then e
   else after_list
 	 e (S.fold (fun n acc -> var n Deftypes.no_typ :: acc) w [])
-	       
+
+(** Add one equation [n = e] to a handler *)
+let add_equation n_e n m_h_list =
+  let add ({ m_body = ({ b_body = eq_list;
+			 b_write = ({ dv = dv } as w) } as b) } as m_h) =
+    { m_h with m_body =
+		 { b with b_body = n_e :: eq_list;
+			  b_write = { w with dv = S.add n dv } } } in
+  match m_h_list with [] -> [] | m_h :: m_h_list -> add m_h :: m_h_list
+	 
 (* express that [eq] depends on [w] if [eq] is unsafe. In that case *)
 (* express that the equations that will follow [eq] depend on the variables *)
 (* [w_p] written by [eq] *)
@@ -79,9 +88,17 @@ let rec do_after (env, eq_list, w) ({ eq_desc = desc } as eq) =
 	 List.fold_left
 	   (fun acc { m_body = { b_write = { dv = dv; di = di; der = der } } } ->
 	    S.union acc (S.union dv (S.union di der))) S.empty m_h_list in
-       env,
-       { eq with eq_desc = EQmatch(total, after e w, m_h_list) } :: eq_list,
-       w_p
+       if S.is_empty w_p then
+	 (* a fresh equation is introduced inside a branch *)
+	 let env, n_e, n = intro env (after Zaux.evoid w) in
+	 let m_h_list = add_equation n_e n m_h_list in
+	 env,
+	 { eq with eq_desc = EQmatch(total, after e w, m_h_list) } :: eq_list,
+	 S.singleton n
+       else 
+	 env,
+	 { eq with eq_desc = EQmatch(total, after e w, m_h_list) } :: eq_list,
+	 w_p
     | EQreset(res_eq_list, e) ->
        let env, res_eq_list, w_p =
 	 List.fold_left do_after (env, [], w) res_eq_list in
