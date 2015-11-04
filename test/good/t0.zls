@@ -1,16 +1,8 @@
-let hybrid main () = () where
-  rec der t = 1.0 init -1.0 reset up(last t) -> -.1.0
-  and present up(last t) -> do _ = print_endline "coucou" done
+let node main () = () where
+  rec t = 1.0
+  and match true with
+      | true -> do () = print_endline "coucou" done
 
-let node f(x,y) = (x+1, y+1)
-
-let node h (x, y) =
-  let (o1, o2) = g(x+1, x+1) in
-  o1, o2
-
-let node i (x, y) =
-  let rec (o1, o2) = h(1, o1) in
-  o1, o2
 (*
 open Graphics
 

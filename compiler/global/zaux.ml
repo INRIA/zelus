@@ -29,7 +29,8 @@ let emake desc ty =
 let pmake desc ty =
   { p_desc = desc; p_loc = no_location; p_typ = ty; p_caus = [] }
 let eqmake desc =
-  { eq_desc = desc; eq_loc = no_location; eq_write = Deftypes.empty }
+  { eq_desc = desc; eq_loc = no_location;
+    eq_write = Deftypes.empty; eq_unsafe = false }
 
 let evoid = emake (Econst(Evoid)) typ_unit
 let efalse = emake (Econst(Ebool(false))) typ_bool
