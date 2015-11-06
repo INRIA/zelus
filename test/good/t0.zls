@@ -1,4 +1,3 @@
-(*
 open Graphics
 
 let node g y = z where
@@ -15,7 +14,7 @@ let node main () =
 
 
 
-
+(*
 let node f() = o where
   rec
       automaton

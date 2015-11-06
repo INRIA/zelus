@@ -49,25 +49,31 @@ let fv_match_handler fv_body m_h_list bounded acc =
     (fun acc { m_pat = pat; m_body = b; m_env = env } ->
       fv_body (names bounded env) acc b)
     acc m_h_list
- 
+
+let operator acc = function
+  | Eafter(n_list) -> List.fold_left (fun acc n -> S.add n acc) acc n_list
+  | Efby | Eunarypre | Eifthenelse | Etest 
+  | Eminusgreater | Eup | Einitial | Edisc | Ehorizon | Eop _ | Eevery _ -> acc
+	   
 let rec fv bounded (last_acc, acc) e =
   match e.e_desc with
-    | Etuple(e_list) 
-    | Eapp(_, e_list) -> List.fold_left (fv bounded) (last_acc, acc) e_list
-    | Elocal(n) ->
-       last_acc, if (S.mem n acc) || (S.mem n bounded) then  acc else S.add n acc
-    | Elast(n) ->
-       (if (S.mem n last_acc) || (S.mem n bounded) 
-	then last_acc else S.add n last_acc), acc
-    | Erecord_access(e, _) | Etypeconstraint(e, _) -> fv bounded (last_acc, acc) e
-    | Erecord(f_e_list) ->
-       List.fold_left (fun acc (_, e) -> fv bounded acc e) (last_acc, acc) f_e_list
-    | Elet(local, e) ->
-       let bounded, acc = fv_local (bounded, (last_acc, acc)) local in
-       fv bounded acc e
-    | Eseq(e1, e2) -> fv bounded (fv bounded (last_acc, acc) e1) e2
-    | Econst _ | Econstr0 _ | Eglobal _ | Eperiod _ -> last_acc, acc
-    | Epresent _ | Ematch _ -> assert false
+  | Etuple(e_list) -> List.fold_left (fv bounded) (last_acc, acc) e_list
+  | Eapp(op, e_list) ->
+     List.fold_left (fv bounded) (last_acc, operator acc op) e_list
+  | Elocal(n) ->
+     last_acc, if (S.mem n acc) || (S.mem n bounded) then  acc else S.add n acc
+  | Elast(n) ->
+     (if (S.mem n last_acc) || (S.mem n bounded) 
+      then last_acc else S.add n last_acc), acc
+  | Erecord_access(e, _) | Etypeconstraint(e, _) -> fv bounded (last_acc, acc) e
+  | Erecord(f_e_list) ->
+     List.fold_left (fun acc (_, e) -> fv bounded acc e) (last_acc, acc) f_e_list
+  | Elet(local, e) ->
+     let bounded, acc = fv_local (bounded, (last_acc, acc)) local in
+     fv bounded acc e
+  | Eseq(e1, e2) -> fv bounded (fv bounded (last_acc, acc) e1) e2
+  | Econst _ | Econstr0 _ | Eglobal _ | Eperiod _ -> last_acc, acc
+  | Epresent _ | Ematch _ -> assert false
         
 and fv_eq bounded (last_acc, acc) { eq_desc = desc; eq_write = w } =
   match desc with
