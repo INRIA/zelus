@@ -45,9 +45,15 @@ let intro env e =
   let n = Ident.fresh "" in
   Env.add n { t_sort = Deftypes.value; t_typ = e.e_typ } env, eq_make n e, n
 
-let after e w =
+let after ({ e_desc = desc } as e) w =
+  let add w x = if List.mem x w then w else x :: w in
   if S.is_empty w then e
-  else after_list e (S.fold (fun n acc -> n :: acc) w [])
+  else
+    let w = S.fold (fun n acc -> n :: acc) w [] in
+    match desc with
+    | Eapp(Eafter(w1), [e1]) ->
+       { e with e_desc = Eapp(Eafter(List.fold_left add w1 w), [e1]) }
+    | _ -> after_list e w
 
 (* express that [eq] depends on [w] if [eq] is unsafe. In that case *)
 (* express that the equations that will follow [eq] depend on the variables *)
@@ -195,15 +201,14 @@ and equation_list eq_list =
 (* Once normalized, a block is of the form *)
 (* local x1,..., xn in do eq1 and ... and eqn *)
 and block ({ b_vars = n_list; b_locals = l_list;
-	     b_body = eq_list; b_env = b_env;
-	     b_write = { dv = dv } as w } as b) =
+	     b_body = eq_list; b_env = b_env } as b) =
   (* first translate local declarations *)
   let l_ctx = local_list l_list in
   (* then the set of equations *)
   let ctx = equation_list eq_list in
   let ctx = State.seq l_ctx ctx in
   (* every variable from ctx is now a local variable of the block *)
-  let n_list, b_env, eq_list, w_unsafe = add_locals ctx n_list b_env in
+  let n_list, b_env, eq_list, _ = add_locals ctx n_list b_env in
   { b with b_vars = n_list; b_locals = []; b_body = eq_list; b_env = b_env }
     
 and local { l_eq = eq_list; l_env = l_env } =

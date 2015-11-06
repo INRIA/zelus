@@ -45,6 +45,7 @@ type error =
     | Ekind_clash of kind * kind
     | Esome_labels_are_missing
     | Eequation_is_missing of Ident.t
+    | Eequation_does_not_define_a_name
     | Eglobal_is_a_function of Lident.t
     | Eapplication_of_non_function of Lident.t
     | Eperiod_not_positive of float
@@ -60,7 +61,8 @@ type warning =
   | Wpartial_matching of Zelus.pattern
   | Wunreachable_state of Ident.t
   | Wmatch_unused of Zelus.pattern
-		       
+  | Wequation_does_not_define_a_name
+  		       
 let kind_of_global_ident k = match k with
     | Value -> "value" | Type -> "type" 
     | Constr -> "constructor" | Label -> "label"
@@ -209,4 +211,9 @@ let warning loc w =
        (Ident.source s)
   | Wmatch_unused(p) ->
      Format.eprintf "Type warning: match case \"%a\" is unused.\n" Printer.pattern p
-    
+  | Wequation_does_not_define_a_name ->
+     eprintf
+       "%aType warning: this equation does not define a name.\n\
+          The compiler may consider it as deadcode and remove it.@."
+       output_location loc
+     

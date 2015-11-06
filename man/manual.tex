@@ -2648,12 +2648,12 @@ Allow it to be restarted at any instant.
 One way to start implementing this specification is to define a boolean signal 
 called \zls{second} that is true at every occurrence of a second, whatever that 
 may mean, and false otherwise.
-We then define a node called \zls{after(n, t)} that returns \zls{true} when 
+We then define a node called \zls{after\_n(n, t)} that returns \zls{true} when 
 \zls{n} true values are counted on \zls{t}.
 This is then instantiated twice in a node called \zls{blink\_reset} containing 
 an automaton with two modes wrapped by a \zls{reset} construct.
 \begin{chklisting}[label=after,label=blink_reset]
-let node after(n, t) = (cpt >= n) where
+let node after_n(n, t) = (cpt >= n) where
   rec tick = if t then 1 else 0
   and ok = cpt >= n
   and cpt = tick -> if pre ok then n else pre cpt + tick
@@ -2661,8 +2661,8 @@ let node after(n, t) = (cpt >= n) where
 let node blink_reset (restart, n, m, second) = x where
  reset
    automaton
-   | On  -> do x = true  until (after(n, second)) then Off
-   | Off -> do x = false until (after(m, second)) then On
+   | On  -> do x = true  until (after_n(n, second)) then Off
+   | Off -> do x = false until (after_n(m, second)) then On
  every restart
 \end{chklisting}
 
@@ -2670,8 +2670,8 @@ let node blink_reset (restart, n, m, second) = x where
 The type signatures inferred by the compiler are:
 \chklistingmsg{}
 
-Does \zls{after(n, second)} really give a delay of \zls{n} real-time seconds?
-No, for three reasons (see also~\cite{BourkeSow:SYNCHRON:2009}):
+Does \zls{after\_n(n, second)} really give a delay of \zls{n} real-time seconds?
+No, for two reasons (see also~\cite{BourkeSow:SYNCHRON:2009}):
 \begin{enumerate}
 \item
   \zls{second} is a Boolean stream. No hypothesis is made or
@@ -2681,24 +2681,26 @@ No, for three reasons (see also~\cite{BourkeSow:SYNCHRON:2009}):
   \zls{second} correctly approximates a real second.
 
 \item
-  The counting of instants in the expression
-  \zls{after(n, t)} is only performed when the expression is active, that 
-  is, it returns true when \zls{n} occurrences of the value \emph{true} have
-  been \emph{observed}.
-  Instantiating \zls{blink\_reset} within a branch of an \zls{automaton}
-  or \zls{match} may skew the relation between logical and real time.
+  The counting of instants in the expression \zls{after\_n(n, t)} is
+  only performed when the expression is active, that is, it returns
+  true when \zls{n} occurrences of the value \emph{true} have been
+  observed. This can be less than the number of occurrences of the
+  value \emph{true} of \zls{n}. E.g., instantiating \zls{blink\_reset}
+  within a branch of an \zls{automaton} or \zls{match} that is activated
+  from time to time.
 
-\item
-  Even given an `accurate' \zls{second} signal and ignoring the possibility of 
-  suspension at a higher-level, the expression \zls{after(n, second)} still only
-  gives a delay in the interval $(n-1, n]$ seconds.
-  This is because it counts ticks, not the `spaces' between ticks.
-  If \zls{restart} occurs just before but not simultaneously with \zls{second},
-  then the real-time delay will be less than $n$ seconds.
+% \item
+%   Even given an `accurate' \zls{second} signal and ignoring the possibility of 
+%   suspension at a higher-level, the expression \zls{after\_n(n, second)} still only
+%   gives a delay in the interval $(n-1, n]$ seconds.
+%   This is because it counts ticks, not the `spaces' between ticks.
+%   If \zls{restart} occurs just before but not simultaneously with \zls{second},
+%   then the real-time delay will be less than $n$ seconds.
 \end{enumerate}
 
-In the discrete-time programs of this chapter, time is not real and absolute 
-but rather logical and local.
+In this chapter, time is logical meaning that we count number of
+occurrences. We shall see in the next chapter how to connect it with
+physical time.
   
 %}-}2
 %HEVEA\cutend

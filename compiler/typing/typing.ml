@@ -716,6 +716,9 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
       snd (block_eq_list expected_k h b_eq_list) in
   (* set the names defined in the current equation *)
   eq.eq_write <- defnames;
+  (* every equation must define at least a name *)
+  if S.is_empty (Deftypes.names S.empty defnames)
+  then warning loc Wequation_does_not_define_a_name;
   defnames
 
 and equation_list expected_k h eq_list =

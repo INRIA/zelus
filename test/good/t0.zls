@@ -1,8 +1,3 @@
-let node main () = () where
-  rec t = 1.0
-  and match true with
-      | true -> do () = print_endline "coucou" done
-
 (*
 open Graphics
 
