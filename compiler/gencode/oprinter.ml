@@ -402,7 +402,7 @@ let machine_as_a_class ff f { m_kind = k;
                               m_methods = m_list } =
   fprintf ff
   "@[<hov 2>let %s = machine(%s) \
-         {@, @[@[<v 2>memories @[%a@]@]@;@[<v 2>instances @[%a@]@]@;@[%a@]]}@.@]"
+    {@, @[@[<v 2>memories@ @[%a@]@]@;@[<v 2>instances@ @[%a@]@]@;@[%a@]@]]}@.@]"
     f
     (kind k)
     (print_list_r_empty print_memory """;""") memories

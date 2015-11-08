@@ -1,17 +1,18 @@
 open Graphics
 
-let node g y = z where
-  rec init x = y
-  and z = last x + 1 + y
-
 let atomic node from x =
   let rec o = x -> pre o + 1 in
   o
 
+(* let node g y = z where
+  rec init x = y
+  and z = last x + 1 + y
+
+
 let node main () =
   let o = from 1 in
    print_int o; print_newline ()
-
+*)
 
 
 (*
