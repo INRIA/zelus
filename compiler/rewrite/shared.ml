@@ -33,28 +33,37 @@ let shared dv l_env =
     match sort with | Sval -> acc | Svar _ | Smem _ -> S.add x acc in
   Env.fold (fun x { t_sort = sort } acc -> add x sort acc) l_env dv
     
-(* Makes a list of copies [x = x_copy] for every entry in [env] *)
+(* Remove the flag [is_copy] from a environment of copies *)
+let remove_is_copy copies =
+  Env.map (fun (x_copy, _, ty) -> (x_copy, false, ty)) copies
+
+(* Makes a list of copy equations [x = x_copy] for every entry in [env] *)
+(* when the [is_copy] flag is true *)
 let add_equations_for_copies eq_list copies =
   (* makes a value for [x_copy] *)
   Env.fold
-    (fun x (x_copy, ty) acc ->
-     (eqmake (EQeq(varpat x ty, var x_copy ty))) :: acc) copies eq_list
+    (fun x (x_copy, is_copy, ty) acc ->
+     if is_copy then
+       (eqmake (EQeq(varpat x ty, var x_copy ty))) :: acc
+     else acc) copies eq_list
 
 (* Extends the local environment with definitions for the [x_copy] *)
 let add_locals_for_copies n_list n_env copies =
   let value ty = { t_sort = Deftypes.value; t_typ = ty } in
   let n_env =
     Env.fold
-      (fun x (x_copy, ty) acc -> Env.add x_copy (value ty) acc) copies n_env in
+      (fun x (x_copy, _, ty) acc ->
+       Env.add x_copy (value ty) acc) copies n_env in
   let n_copy_list =
     Env.fold
-      (fun _ (x_copy, ty) acc ->
+      (fun _ (x_copy, _, ty) acc ->
        (Zaux.vardec_from_entry x_copy { t_sort = Sval; t_typ = ty }) :: acc)
       copies n_list in
   n_copy_list, n_env
 
-(* makes a copy of a pattern if it contains a shared variable [x] *)
-(* introduce auxilary equations [x = x_copy] in [copies] for every name in [dv] *)
+(* Makes a copy of a pattern if it contains a shared variable [x] *)
+(* introduce auxilary equations [x = x_copy] in [copies] for every name *)
+(* in [dv] *)
 let rec pattern dv copies pat =
   match pat.p_desc with
     | Ewildpat | Econstpat _ | Econstr0pat _ -> pat, copies
@@ -65,7 +74,7 @@ let rec pattern dv copies pat =
         if S.mem n dv then
           let ncopy = Ident.fresh "copy" in
           { pat with p_desc = Evarpat(ncopy) },
-	  Env.add n (ncopy, pat.p_typ) copies
+	  Env.add n (ncopy, true, pat.p_typ) copies
         else pat, copies
     | Erecordpat(label_pat_list) ->
         let label_pat_list, copies =
@@ -82,7 +91,7 @@ let rec pattern dv copies pat =
         let n, copies = 
           if S.mem n dv then
             let ncopy = Ident.fresh "copy" in
-            ncopy, Env.add n (ncopy, p.p_typ) copies
+            ncopy, Env.add n (ncopy, true, p.p_typ) copies
           else n, copies in
         { pat with p_desc = Ealiaspat(p, n) }, copies
     | Eorpat _ -> assert false
@@ -108,13 +117,14 @@ let rec equation dv copies ({ eq_desc = desc } as eq) =
     | EQreset(res_eq_list, e) ->
        let res_eq_list, copies = equation_list dv copies res_eq_list in
        { eq with eq_desc = EQreset(res_eq_list, e) }, copies
-    | EQemit _ | EQautomaton _ | EQpresent _ | EQnext _ | EQblock _ -> assert false
+    | EQemit _ | EQautomaton _ | EQpresent _
+    | EQnext _ | EQblock _ -> assert false
 
 (* [dv] defines names modified by [eq_list] but visible outside of the block *)
 and equation_list dv copies eq_list = 
   let eq_list, copies_eq_list = Misc.map_fold (equation dv) Env.empty eq_list in
   let eq_list = add_equations_for_copies eq_list copies_eq_list in
-  eq_list, Env.append copies_eq_list copies
+  eq_list, Env.append (remove_is_copy copies_eq_list) copies
  
 and local ({ l_eq = eq_list; l_env = l_env } as l) =
   let dv = shared S.empty l_env in
