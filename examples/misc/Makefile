@@ -10,7 +10,8 @@ EXAMPLE=khalil.zls \
 	updown.zls \
 	heatingh20.zls \
 	sincos.zls \
-	sqrt.zls
+	sqrt.zls \
+	water.zls
 #	tabledep.zls
 
 
