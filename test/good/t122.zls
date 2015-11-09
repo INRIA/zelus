@@ -1,0 +1,22 @@
+let hybrid time() = t where
+  rec der t = 1.0 init 0.0
+
+let hybrid delay(z, k) = go where
+  rec automaton
+      | Await -> do until up(z) then Run
+      | Run -> do until up(time() -. k) then do emit go = () in Await
+      end
+      
+let hybrid water() =
+  let rec
+      init x = 0.0
+  and
+      automaton
+      | On ->
+	  do der x = 1.0
+	  unless (delay(10.0 -. x, 2.0))() then Off
+      | Off ->
+	  do der x = -2.0
+	  unless (delay(5.0 -. x, 2.0))() then On
+      end in
+  x
