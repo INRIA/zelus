@@ -240,8 +240,15 @@ and operator op ff e_list =
     | Eevery(is_inline, f), e :: e_list -> 
         fprintf ff "@[%s%a%a every %a@]" (if is_inline then "inline " else "")
           longname f (print_list_r expression "("","")") e_list expression e
-    | _ -> assert false
-
+    | Eafter _, e_list ->
+       print_newline ();
+       print_int (List.length e_list);
+       print_newline ();
+       flush stdout;
+       raise Not_found
+    | (Eevery _ | Ehorizon | Edisc | Etest | Eup | Eifthenelse
+       | Eminusgreater | Efby | Eunarypre), _ -> assert false
+						       
 and period ff { p_phase = opt_phase; p_period = p } =
   match opt_phase with
     | None -> fprintf ff "@[(%f)@]" p

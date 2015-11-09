@@ -39,7 +39,7 @@ let hybrid water() =
 let hybrid main () =
   let der t = 1.0 init 0.0 in
   let water_level = water () in
-  present (period (0.1)) ->
+  present (period (0.01)) ->
       (let s = Scope.scope (0.0, 15.0, ("water", Scope.linear, water_level))
       in Scope.window ("Water level", 30.0, t, s));
   ()

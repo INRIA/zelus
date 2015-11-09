@@ -45,7 +45,6 @@ type error =
     | Ekind_clash of kind * kind
     | Esome_labels_are_missing
     | Eequation_is_missing of Ident.t
-    | Eequation_does_not_define_a_name
     | Eglobal_is_a_function of Lident.t
     | Eapplication_of_non_function of Lident.t
     | Eperiod_not_positive of float

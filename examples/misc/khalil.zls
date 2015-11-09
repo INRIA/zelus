@@ -1,4 +1,4 @@
-(* Sinus/Cosinus *)
+(* Stiff programs due to Khalil Ghorbal. *)
 let hybrid f () = x where
     rec der x = x *. x init 1.0
 

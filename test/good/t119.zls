@@ -1,3 +1,6 @@
+let node counter(n) = o where
+  rec o = n -> (pre o - 1) mod n
+
 let node f (y, z1, z2, z3) = (z, k) where
   rec init x = y
   and
@@ -6,14 +9,17 @@ let node f (y, z1, z2, z3) = (z, k) where
       and
         match z3 with
         | true ->
-            local m in
+            local m, s in
             do init m = 42
             and 
 	    reset
-	      k = 1 + 0 fby k + 2 + last m + 1
+	      k = 1 + 0 fby k + 2 + last m + 1 + s
+	     and
+	      s = counter y	
             every z1
             done
 	| false ->
-	    do k = 2 fby k + 2 done
+	    local r in
+            do init r = y and k = 2 fby k + 2 + r and r = last r + 1 done
 	end
       every z2      
