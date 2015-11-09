@@ -2,7 +2,7 @@
 (* Abstract Interpretation with Infinitesimals by *)
 (* Kido, Chaudhuri, Hasuo, 2015 *)
 
-(* Invariant: [18 − 54 ∗ t <= x <= 22 + 24 ∗ t] *)
+(* Invariant: [18 − 54 ∗ dt <= x <= 22 + 24 ∗ dt] *)
 
 let hybrid thermostat() = x where
   rec

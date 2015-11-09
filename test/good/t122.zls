@@ -25,7 +25,7 @@ let hybrid water() =
       | On ->
           (* [1 <= x <= 12] *)
           do der x = 1.0
-	  unless (delay(10.0 -. x, 2.0))() then Off
+	  unless (delay(x -. 10.0, 2.0))() then Off
       | Off ->
 	  (* [1 <= x <= 12] *)
           do der x = -2.0
