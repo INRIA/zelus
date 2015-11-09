@@ -5,13 +5,15 @@
 (* Prouver que [1 <= x <= 12] ? *)
    
 (* A timer *)
-let hybrid time() = t where rec der t = 1.0 init 0.0
+let hybrid timeout(k) = alarm where
+  rec der t = 1.0 init -. k
+  and alarm = up(t)
 
 (* Await for zero-crossing on [z]. Emit [go] after [k] seconds. *)
 let hybrid delay(z, k) = go where
   rec automaton
       | Await -> do unless up(z) then Run
-      | Run -> do unless up(time() -. k) then do emit go = () in Await
+      | Run -> do unless (timeout(k)) then do emit go = () in Await
       end
       
 (* A two modes water tank. In the [On] mode, the level [x] is increased *)
