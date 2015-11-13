@@ -1,6 +1,11 @@
 (* The hybrid version of the two state automaton "up/down" *)
 (* from Florence Maraninchi, ESOP'98 *)
 
+let node ff(x) =
+  let rec o = x fby o + 1 in
+  o + x
+
+    
 let hybrid f () = y where
   rec init y = 0.0
   and automaton
@@ -18,6 +23,16 @@ let hybrid g () = y where
           do der y = -1.0 until (up(-. last y -. 10.0)) 
           then do y = last y -. 1.0 in S1
       end
+  
+let node h(x, y) = x, y
+
+let node j(x, y) =
+  h(x, y)
+
+let node m(x) =
+  let rec (o1, o2) = j(o2, 0) in
+  o1
+    
 
 (*
 let hybrid h () = y where
@@ -49,8 +64,8 @@ let hybrid i () = y where
 let hybrid f_at_zero () = y where
   rec init y = -1.0
   and automaton
-      | S1 -> do der y = 1.0 until (up(y)) then S2
-      | S2 -> do der y = -1.0 until (up(-. y)) then S1
+      | S1 -> do der y = 1.0 until (up(y -. 4.0)) then S2
+      | S2 -> do der y = -1.0 until (up(-. y -. 4.0)) then S1
       end
 
 (* The main function *)
