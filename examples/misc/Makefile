@@ -11,7 +11,8 @@ EXAMPLE=khalil.zls \
 	heatingh20.zls \
 	sincos.zls \
 	sqrt.zls \
-	water.zls
+	water.zls \
+	div_by_zero.zls
 #	tabledep.zls
 
 
