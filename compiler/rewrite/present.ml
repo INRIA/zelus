@@ -71,19 +71,22 @@ let eq_match total e l =
 (* every signal [x: t sig] is associated to a pair [xv, xp] of two fresh *)
 (* names. [xv: t] and [xp: bool] *)
 let build signals l_env =
-  let make n ({ t_typ = ty } as tentry) (signals, n_list, new_env) = 
+  let make n ({ t_typ = ty; t_sort = sort } as tentry) (signals, n_list, new_env) = 
     match Types.is_a_signal ty with
       | Some(ty) ->
 	  let xv = Ident.fresh ((Ident.source n) ^ "v") in
 	  let xp = Ident.fresh ((Ident.source n) ^ "p") in
+	  let sort_v, sort_p =
+	    match sort with
+	    | Sval -> Sval, Sval
+	    | Svar _
+	    | Smem _ -> Deftypes.variable,
+			Svar { v_combine = None;
+			       v_default = Some(Cimmediate(Ebool(false))) } in
 	  Env.add n (xv, xp, ty) signals,
 	  (Zaux.vardec xv) :: (Zaux.vardec xp) :: n_list,
-	  Env.add xv { t_typ = ty; t_sort = Deftypes.variable }
-            (Env.add xp { t_typ = typ_bool; 
-			  t_sort =
-			    Svar { v_combine = None;
-				   v_default = Some(Cimmediate(Ebool(false))) } }
-		     new_env)
+	  Env.add xv { t_typ = ty; t_sort = sort_v }
+		  (Env.add xp { t_typ = typ_bool; t_sort = sort_p } new_env)
       | None ->
 	signals, (Zaux.vardec_from_entry n tentry) :: n_list,
 	Env.add n tentry new_env in
