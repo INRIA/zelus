@@ -20,17 +20,23 @@ open Zelus
 open Ident
 open Zaux
 
+(* Make an equation [lx = last x] *)
 let eq_last lx x ty = eqmake (EQeq(pmake (Evarpat(lx)) ty, emake (Elast(x)) ty))
 
+(* Add an equation [lx = last x] if x in Dom(subst) *)
+let add_eq_last subst x ty eq_list =
+  try let lx = Env.find x subst in (eq_last lx x ty) :: eq_list
+  with Not_found -> eq_list
+		      
 (* Computes the set of variables [last x] from [b_env] *)
 let env subst b_env =
   let last x ({ t_typ = ty; t_sort = sort } as entry) (env, subst, eq_list) =
     match sort with
-    | Smem { m_previous = true } -> 
+    | Smem { m_previous = true; m_init = Some i } -> 
        let lx = Ident.fresh "l" in
-       Env.add lx { entry with t_sort = Deftypes.value } env,
+       Env.add lx { entry with t_sort = Deftypes.variable } env,
        Env.add x lx subst,
-       (eq_last lx x ty) :: eq_list
+       (match i with None -> eq_list | Some _ -> (eq_last lx x ty) :: eq_list)
     | Sval | Svar _ | Smem _ -> env, subst, eq_list in
   Env.fold last b_env (b_env, subst, [])
     
@@ -53,7 +59,7 @@ let rec exp subst ({ e_desc } as e) =
     | Etypeconstraint(e1, ty) ->
       Etypeconstraint(exp subst e1, ty)
     | Elet(l, e) -> 
-      let l, subst = local subst l in Elet(l, exp subst e)
+       let l, subst = local subst l in Elet(l, exp subst e)
     | Eseq(e1, e2) -> 
       Eseq(exp subst e1, exp subst e2)
     | Epresent _ | Ematch _ -> assert false in
@@ -64,10 +70,12 @@ and equation subst eq_list ({ eq_desc } as eq) =
   match eq_desc with
     | EQeq(p, e) -> 
       { eq with eq_desc = EQeq(p, exp subst e) } :: eq_list
-    | EQpluseq(n, e) -> 
-      { eq with eq_desc = EQpluseq(n, exp subst e) } :: eq_list
-    | EQinit(n, e0) ->
-      { eq with eq_desc = EQinit(n, exp subst e0) } :: eq_list
+    | EQpluseq(x, e) -> 
+       { eq with eq_desc = EQpluseq(x, exp subst e) } :: eq_list
+    | EQinit(x, e0) ->
+       (* add an equation [lx = last x] *)
+       let eq_list = add_eq_last subst x e0.e_typ eq_list in
+       { eq with eq_desc = EQinit(x, exp subst e0) } :: eq_list
     | EQmatch(total, e, p_h_list) ->
       let p_h_list = 
 	List.map (fun ({ m_body = b } as h) -> { h with m_body = block subst b }) 
@@ -76,8 +84,8 @@ and equation subst eq_list ({ eq_desc } as eq) =
     | EQreset(res_eq_list, e) ->
       let res_eq_list = equation_list subst res_eq_list in
       { eq with eq_desc = EQreset(res_eq_list, exp subst e) } :: eq_list
-    | EQder(n, e, None, []) ->
-      { eq with eq_desc = EQder(n, exp subst e, None, []) } :: eq_list
+    | EQder(x, e, None, []) ->
+       { eq with eq_desc = EQder(x, exp subst e, None, []) } :: eq_list
     | EQblock(b) -> { eq with eq_desc = EQblock(block subst b) } :: eq_list
     | EQpresent _ | EQautomaton _ | EQder _ | EQemit _ | EQnext _ -> assert false
 							       

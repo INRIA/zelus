@@ -123,15 +123,9 @@ let turn_vars_into_memories h { dv = dv } =
   let add n acc = 
     let ({ t_sort = sort; t_typ = typ } as tentry) = Env.find n h in
     match sort with
-    | Sval ->
-       Env.add n { tentry with t_sort = Smem (initialized empty_mem) } acc
-    | Svar { v_combine = c; v_default = None } ->
-       Env.add n { tentry with
-		   t_sort = Smem { (initialized empty_mem) with m_combine = c } }
-	       acc
-    | Svar { v_combine = c; v_default = Some _ } -> acc
-    | Smem m ->
-       Env.add n { tentry with t_sort = Smem { m with m_init = Some None } } acc in
+    | Smem({ m_init = None } as m) ->
+       Env.add n { tentry with t_sort = Smem { m with m_init = Some None } } acc
+    | Sval | Svar _ | Smem _ -> acc  in
   let first_h = S.fold add dv Env.empty in
   first_h, Env.append first_h h
 
@@ -149,7 +143,11 @@ let immediate = function
 (* the initial environment into the global one *)
 let incorporate_into_env first_h h =
   let mark n { t_sort = sort } =
-    let tentry = Env.find n h in tentry.t_sort <- sort in
+    let tentry = Env.find n h in
+    match sort with
+    | Smem({ m_init = Some None } as m) ->
+       tentry.t_sort <- Smem { m with m_init = None }
+    | _ -> () in
   Env.iter mark first_h
 
 (** Remove the sort "last" to the set [h] *)
