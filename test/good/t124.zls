@@ -14,8 +14,6 @@ let hybrid delay(c) = dc where
 let hybrid main () =
   let c = metro() in
   let dc = delay(c) in
-  let g =  present c() | dc() -> () in
-
-  present g() -> print_endline "coucou"
+  present dc() -> print_endline "coucou"
   else ()
 
