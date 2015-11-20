@@ -19,7 +19,7 @@ open Ident
 open Zelus
 open Deftypes
 
-(* merge of two sets of defined names. If a name appears in one branch *)
+(* merge of two sets of defined names. If a name appears in one branch only *)
 (* it must be a shared variable *)
 let merge ({ dv = dv1 } as def1, s1) ({ dv = dv2 } as def2, s2) =
   Total.union def1 def2, S.union dv1 (S.union dv2 (S.union s1 s2))
@@ -71,7 +71,10 @@ let rec equation ({ eq_desc = desc } as eq) =
     | EQreset(eq_list, e) ->
        let eq_list, (defnames, shared_set) =
 	 equation_list (Deftypes.empty, S.empty) eq_list in
-       { eq with eq_desc = EQreset(eq_list, expression e) }, defnames, shared_set
+       let defnames, shared_set =
+	 merge (defnames, shared_set) (Deftypes.empty, S.empty) in
+       { eq with eq_desc = EQreset(eq_list, expression e) },
+       defnames, shared_set
     | EQblock(b) ->
        let b, defnames, shared_set = block b in
        { eq with eq_desc = EQblock(b) }, defnames, shared_set

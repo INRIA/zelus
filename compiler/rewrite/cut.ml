@@ -76,6 +76,12 @@ and equation subst eq_list ({ eq_desc } as eq) =
        (* add an equation [lx = last x] *)
        let eq_list = add_eq_last subst x e0.e_typ eq_list in
        { eq with eq_desc = EQinit(x, exp subst e0) } :: eq_list
+    | EQreset([{ eq_desc = EQinit(x, e0) } as eq_init], e) ->
+       (* add an equation [lx = last x] *)
+       let eq_list = add_eq_last subst x e0.e_typ eq_list in
+       { eq with eq_desc =
+		   EQreset([{ eq_init with eq_desc = EQinit(x, exp subst e0) }],
+			  exp subst e) } :: eq_list
     | EQmatch(total, e, p_h_list) ->
       let p_h_list = 
 	List.map (fun ({ m_body = b } as h) -> { h with m_body = block subst b }) 
