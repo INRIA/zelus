@@ -21,13 +21,13 @@ let hybrid model () =  (car1, car2, fly, zigzags) where
   and automaton
       | TowardGirona -> do
             velocity = fly_velocity
-          until up(fly -. car2) then do emit zag in TowardBarcelona
-           else up(fly -. car1) then do emit zig in TowardBarcelona
+          until up(last fly -. car2) then do emit zag in TowardBarcelona
+           else up(last fly -. car1) then do emit zig in TowardBarcelona
 
       | TowardBarcelona -> do
             velocity = -. fly_velocity
-          until up(car1 -. fly) then do emit zig in TowardGirona
-           else up(car2 -. fly) then do emit zag in TowardGirona
+          until up(car1 -. last fly) then do emit zig in TowardGirona
+           else up(car2 -. last fly) then do emit zag in TowardGirona
 
   and zigzags = present
                 | zig() -> last zigzags + 1
