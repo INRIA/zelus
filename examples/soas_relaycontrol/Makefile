@@ -44,6 +44,16 @@ soas3_gainchanger.ml: soas3_gainchanger.zls soas.zci
 	$(ZELUC) $(ZELUCFLAGS) -s main -sampling 0 -gtk2 -dzero $<
 	mv main.ml $(<:.zls=)_main.ml
 
+soas4_gainchanger_disc.byte: ZLEXTRALIBS += $(ZLGTKLIBS) soas.cmo
+soas4_gainchanger_disc.byte: soas.cmo
+
+soas4_gainchanger_disc.opt: ZLEXTRALIBS += $(ZLGTKLIBS) soas.cmx
+soas4_gainchanger_disc.opt: soas.cmx
+
+soas4_gainchanger_disc.ml: soas4_gainchanger_disc.zls soas.zci
+	$(ZELUC) $(ZELUCFLAGS) -s main -sampling 0 -gtk2 -dzero $<
+	mv main.ml $(<:.zls=)_main.ml
+
 export:
 	mkdir $(DISTDIR)/soas_relaycontrol
 	cp Makefile readme.md \

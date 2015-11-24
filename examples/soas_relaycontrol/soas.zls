@@ -25,10 +25,18 @@ let hybrid siso_3o ((a11, a12, a13, a21, a22, a23, a31, a32, a33),
   and der x3 = a31 *. x1  +.  a32 *. x2  +.  a33 *. x3  +.  b3 *. u init 0.0
   and y = c1 *. x1  +.  c2 *. x2  +.  c3 *. x3  +.  d *. u
 
+let hybrid above(x) = ok where
+  ok = present up(x) -> true | up(-.x) -> false
+       | (disc(x)) -> x >= 0.0
+       init (x >= 0.0)
+
 (* ideal relay model *)
 let hybrid relay (d, e) = u where
-  u = present up(e) | up(-. e) | (disc(e)) | (init)
-        -> if e >= 0.0 then d else -. d init 0.0
+  u = if above(e) then d else -.d
+
+let hybrid relay2 (d, e) = u where
+  u = present up(e) | up(-. e) | (disc(e)) ->
+        if e >= 0.0 then d else -. d init 0.0
 
 (* ** model ** *)
 
@@ -68,14 +76,30 @@ let hybrid command () = u where
 *)
 let hybrid g_f u = siso_1o (-15.0, 4.0, -3.0, 1.2, u)
 
+(* discrete compensation network (period = 0.05s)
+
+   Obtained in Matlab:
+     dsys = c2d(1.2 * tf([1 5], [1 15]), 0.05)
+
+   or in Scilab:
+     ss2tf(dscr(1.2 * tf([1 5], [1 15]), 0.05))
+ *)
+let node dfilter x = y where rec
+    y = 1.2 *. x +. 0.0 fby (-0.9889466 *. x)
+            +. 0.0 fby (0.4723666 *. y)
+
+(* discrete compensation network obtained using forward Euler. *)
+let node dfilter1 u = y where
+  rec x = (0.0 fby (-14.0 *. x)) +. 4.0 *. u
+  and y = -3.0 *. x +. 1.2 *. u
+
 (* up-logic gain changer *)
 (* The initial state should be D1 when |e| > e_l *)
 let hybrid gain_changer (d1, d2, e_l, e) = d where
-  automaton
-  | D2 -> local t in
-          do
-            der t = 1.0 init 0.0
-            and d = d2 +. (d1 -. d2) *. exp(-.t)
+  rec init d = d1
+  and automaton
+  | D2 -> do
+            der d = d2 +. d
           until up(abs_float e -. e_l) then D1
   | D1 -> do d = d1 until up(e_l -. abs_float e) then D2
 
@@ -103,6 +127,7 @@ let hybrid gain_changer (d1, d2, e_l, e) = d where
      sys2 = 5 * sys1
      [a, b, c, d] = abcd(sys2)
 *)
+(*
 let hybrid process u = y where
   rec automaton
       | G5  -> do b1 = 4.0 and c3 = 3.750 until (period 25.0 (25.0)) then G15
@@ -111,8 +136,19 @@ let hybrid process u = y where
                       4.0,  0.0, 0.0,
                       0.0,  1.0, 0.0),
                    (b1, 0.0, 0.0), (0.0, 0.0, c3), 0.0, u)
+*)
+
+let hybrid process (u, highgain) = y where
+  rec der x1 = -21.0 *. x1  +.  -5.0 *. x2  +.  b1 *. u
+       init 0.0
+  and der x2 = 4.0 *. x1 init 0.0
+  and der x3 = x2 init 0.0
+  and y = c3 *. x3
+  and b1, c3 =
+    if highgain then (8.0, 9.375) else (4.0, 3.750)
 
 open Scope (* Dump *)
+(* open Dump *)
 
 let hybrid plot (title, y, y_m, u, e) = () where
   _ = present (period (0.08)) -> (
