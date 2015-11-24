@@ -53,7 +53,8 @@ let hybrid sticky () =
           and der v2 = y_dot_dot
           and der stickiness = -. stickiness /. tau init stickiness_max
           and stickiness_out = stickiness
-          until up (pull -. stickiness) then Apart
+          until (init) on (pull >= stickiness) then Apart
+           else up (pull -. stickiness) then Apart
 
 (* ** plotting ** *)
 
