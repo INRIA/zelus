@@ -1,0 +1,6 @@
+(* Probleme d'initialisation *)
+let node f x = c where
+    rec a = x
+    and b = last a
+    and c = x -> last b
+
