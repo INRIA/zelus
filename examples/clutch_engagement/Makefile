@@ -35,7 +35,7 @@ clutch_diff.opt:  ZLEXTRALIBS += clutch_model.cmx
 clutch_diff.opt: clutch_model.cmx
 
 clutch_model.ml clutch_model.zci: clutch_model.zls
-	$(ZELUC) -nocausality $(ZELUCFLAGS) $<
+	$(ZELUC) $(ZELUCFLAGS) $<
 
 clutch_gui.ml: clutch_gui.zls clutch_model.zci
 	$(ZELUC) $(ZELUCFLAGS) -s main -gtk2 -dzero $<
