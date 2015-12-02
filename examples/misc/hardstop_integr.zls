@@ -1,0 +1,47 @@
+(* 'How to model a hard stop in Simulink' *)
+(* http://blogs.mathworks.com/seth/2014/01/22/how-to-model-a-hard-stop-in-simulink/ *)
+
+let hybrid down(x) = up(-. x)
+
+let hybrid second_order_limit(u, x_min, x_max) = (x, v) where
+  rec init x = 0.0
+  and init v = 0.0
+  and automaton
+      | Moving ->
+	  do der x = v and der v = u
+	  until (down (x -. x_min)) then do v = 0.0 in LowSat
+          else (up (x -. x_max)) then do v = 0.0 in UpSat
+      | LowSat ->
+          do until (up u) | (init) on (u > 0.0) then Moving
+      | UpSat ->
+          do until (down u) | (init) on (u < 0.0) then Moving
+      end
+
+let hybrid second_order_limit_z(u, x_min, x_max) = (x, v, z) where
+  rec init x = 0.0
+  and init v = 0.0
+  and automaton
+      | Moving ->
+	  do der x = v and der v = u
+	  until (down (x -. x_min)) then do v = 0.0 and emit z in LowSat
+          else (up (x -. x_max)) then do v = 0.0 and emit z in UpSat
+      | LowSat ->
+          do until (up u) | (init) on (u > 0.0) then do emit z in Moving
+      | UpSat ->
+          do until (down u) | (init) on (u < 0.0) then do emit z in Moving
+      end
+
+open Scope
+
+let hybrid main () =
+  let der t = 1.0 init 0.0 in
+  let u = sin t in
+  let x_min = -3.0 and x_max = 5.0 in
+  let (x, v, z) = second_order_limit_z(u, x_min, x_max) in
+  present (period (0.1)) | z() ->
+    let s = Scope.scope3 (-4.0, 6.0, ("u", Scope.linear, u),
+			             ("x", Scope.linear, x),
+			             ("v", Scope.linear, v))
+    in Scope.window ("hardstop", 10.0, t, s)
+else ()
+  
