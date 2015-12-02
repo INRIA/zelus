@@ -71,24 +71,22 @@ let hybrid simulation () = (t, t_in, f_n, t_fmaxs, t_fmaxk, w_e, w_v, w) where
   (* The inputs *)
   and automaton
   | High    -> do t_in = 2.0
-               until (period (5.0)) then Falling
+               until (up (t -. 5.0)) then Falling
 
   | Falling -> do t_in = 2.0 -. 2.0 *. (t -. 5.0)
-               until (period (1.0)) then Low
+               until (up (t -. 6.0)) then Low
 
   | Low     -> do t_in = 0.0 done
 
   and automaton
   | Rising  -> do f_n = 0.8 *. t
-               until (period (2.0)) then Flat
+               until (up (t -. 2.0)) then Flat
 
-  | Flat    -> local t' in
-               do f_n = 1.6
-               and der t' = 1.0 init -3.0
-               until (up t) then Falling
+  | Flat    -> do f_n = 1.6
+               until (up(t -. 5.0)) then Falling
 
   | Falling -> do f_n = 1.6 -. 0.8 *. (t -. 5.0)
-               until (period(2.0)) then Low
+               until (up(t -. 7.0)) then Low
 
   | Low     -> do f_n = 0.0 done
 

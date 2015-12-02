@@ -1,0 +1,6 @@
+
+val unsafe start : unit -> unit
+val unsafe show  : (bool * float * float * float * float) -> unit
+val unsafe stop  : unit -> unit
+val unsafe input : unit -> bool
+

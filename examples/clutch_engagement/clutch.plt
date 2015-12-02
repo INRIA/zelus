@@ -2,7 +2,7 @@
 
 if (!exists("options")) options = "clutch.out"
 
-set terminal pdf font ",4";
+set terminal postscript font ",4";
 
 set xlabel "t (seconds)";
 set key autotitle columnhead;
