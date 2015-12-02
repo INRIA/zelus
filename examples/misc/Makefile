@@ -12,7 +12,8 @@ EXAMPLE=khalil.zls \
 	sincos.zls \
 	sqrt.zls \
 	water.zls \
-	div_by_zero.zls
+	div_by_zero.zls \
+        hardstop_integr.zls
 #	tabledep.zls
 
 
