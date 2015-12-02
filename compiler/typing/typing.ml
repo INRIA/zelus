@@ -368,8 +368,11 @@ let operator loc expected_k op =
     | Etest ->
         let s = new_var () in
         op, Tany, true, [Initial.typ_signal s], Initial.typ_bool
+    (* | Edisc ->
+        op, Tcont, true, [Initial.typ_float], Initial.typ_zero *)
     | Edisc ->
-        op, Tcont, true, [Initial.typ_float], Initial.typ_zero
+        let s = new_var () in
+        op, Tcont, true, [s], Initial.typ_zero
     | Einitial ->
         op, Tcont, true, [], Initial.typ_zero
     | Eop(is_inline, lname) ->

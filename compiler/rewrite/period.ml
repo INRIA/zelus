@@ -89,9 +89,14 @@ let period time { p_phase = p1_opt; p_period = p2 } =
 
 (* Translation of discrete zero-crossings into synchronous code *)
 let disc e =
-  (* disc(e)] = [false -> e <> pre(e)] *)
-  minusgreater (emake (Econst(Ebool(false))) Initial.typ_bool)
-               (diff e (pre e))
+  if Unsafe.exp e
+  then (* disc(e)] = [let x = e in x <> (x fby x)] *)
+    let x = Ident.fresh "x" in
+    let env = Env.singleton x { t_sort = Deftypes.value;
+				t_typ = e.e_typ } in
+    let xv = var x e.e_typ in
+    make_let env [eq_make x e] (diff xv (fby xv xv))
+  else diff e (fby e e)
 
 (* Add an extra input parameter for hybrid nodes *)
 let extra_input time env pat_list = 
