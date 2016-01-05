@@ -107,7 +107,7 @@ let message loc kind =
   | Eshould_be_a_signal(s, expected_ty) ->
       eprintf "@[%aType error: %s is a value of type %a,@ \
                but is expected to be a signal \
-               (maybe a default or initialization is missing).@.@]"
+               (maybe a default value or initialization is missing).@.@]"
         output_location loc
         (Ident.source s)
 	Ptypes.output expected_ty

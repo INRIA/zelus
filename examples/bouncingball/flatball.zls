@@ -1,4 +1,4 @@
-(** Bouncing ball. *)
+ (** Bouncing ball. *)
 
 (* [ground x] returns the position in [y] *)
 let ground x = Flatworld.ground(x)
@@ -21,7 +21,6 @@ let hybrid ball(x, y_0) = (y, y_v, z) where
 (* Main entry point *)
 let hybrid main () =
   let (y, _, z) = ball(x_0, y_0) in
-  let ok = present (period (0.04)) -> () | z -> () in
-  present ok() -> Showball.show (x_0, y fby y, x_0, y);
+  present (period (0.04)) | z -> Showball.show (x_0, y fby y, x_0, y);
   ()
 

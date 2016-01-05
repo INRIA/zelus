@@ -53,7 +53,7 @@ and doc_dzero = " Turn on discrete zero-crossing detection"
 and doc_nocausality = " (undocumented)"
 and doc_causality = " When the flag is on, choose the old causality analysis"
 and doc_noinitialisation = " (undocumented)"
-and doc_lmm = "Translate into Lustre--"
+and doc_lmm = " Translate into Lustre--"
 		
 let errmsg = "Options are:"
 

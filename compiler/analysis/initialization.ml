@@ -27,19 +27,24 @@ open Init
 (** An entry in the type environment *)
 type tentry = 
     { t_typ: Definit.typ; (* the init type of x *)
-      t_last: bool; (* last x is initialized *) }
+      t_last: bool; (* true when both [x] and [last x] are well initialized *) }
 
 (** Build an environment from a typing environment *)
-(* if a variable is initialized with [init x = e] then [x] does *)
-(* have a last value which is initialized provided [e] is initialized *)
-(* otherwise, [last x] is not initialized. *)
+(* if [x] is defined by [init x = e] and [x = ex] then *)
+(* both [x] and [last x] are initialized, provided [ex] is initialized *)
+(* if [x] is a shared variable, it also hold as [x] is necessarily a signal *)
 let build_env l_env env =
   let entry { Deftypes.t_sort = sort; Deftypes.t_typ = ty } = 
     match sort with 
-    | Deftypes.Smem { Deftypes.m_init = Some _ }
-    | Deftypes.Sval | Deftypes.Svar _ -> 
-	 { t_last = true; t_typ = Init.skeleton_on_i izero ty }
-      | _ -> { t_last = false; t_typ = Init.skeleton ty } in
+    | Deftypes.Smem { Deftypes.m_init = Some _ } | Deftypes.Svar _ ->
+       (* [x] and [last x] are initialized *)
+       { t_last = true; t_typ = Init.skeleton_on_i izero ty }
+    | Deftypes.Smem { Deftypes.m_previous = true } ->
+       (* [x] initialized; [last x] uninitialized *)
+       { t_last = false; t_typ = Init.skeleton_on_i izero ty }
+    | Deftypes.Sval | Deftypes.Smem _ -> 
+       (* no constraint *)
+       { t_last = false; t_typ = Init.skeleton ty } in
   Env.fold (fun n tentry acc -> Env.add n (entry tentry) acc) l_env env
 
 (* change the status of last variables. This is useful when typing *)

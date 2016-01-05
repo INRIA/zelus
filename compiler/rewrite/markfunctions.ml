@@ -15,7 +15,6 @@
 (* Mark functions to be inlined. *)
 
 open Zelus
-open Causal
 
 let causality_of_pattern_list p_list =
   List.fold_left

@@ -5,11 +5,8 @@
 val two : modes * 'a -D-> int 
 \end{ChkListingMsg}
 \begin{ChkListingErr}
-File "tutorial.zls", line 1-5, characters 22-134:
->......................o where
->  rec match m with
+File "tutorial.zls", line 3, characters 21-31:
 >      | Up -> do o = last o + 1 done
->      | Down -> do o = last o - 1 done
->      end
+>                     ^^^^^^^^^^
 Initialization error: this expression may not be well initialized.
 \end{ChkListingErr}

@@ -16,14 +16,15 @@
 (** Type definitions. *)
 
 (* type scheme *)
-type typ_scheme = 
+type tc_scheme = 
     { typ_vars: t list; (* list of type variables *)
-      typ_args: typ list; (* type of the arguments *)
-      typ_res: typ;       (* type of the result *)
+      typ_rel: (t * t list) list; (* the relation between variables *)
+      typ_args: tc list; (* type of the arguments *)
+      typ_res: tc;       (* type of the result *)
     }
 
-and typ =
-    | Cproduct of typ list (* products *)
+and tc =
+    | Cproduct of tc list (* products *)
     | Catom of t (* dependences *)
 
 (* a causality variable points to its predecessors and successors *)
@@ -52,7 +53,7 @@ let compare c1 c2 = Pervasives.compare c1.c_index c2.c_index
 (** A module to represent sets of causality variables *)
 
 type tentry = 
-    { t_typ: typ;   (* the causality type of x *)
+    { t_tc: tc;   (* the causality type of x *)
       t_last: bool; (* [last x] is allowed *)
     }
 

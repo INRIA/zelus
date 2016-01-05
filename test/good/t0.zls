@@ -1,10 +1,116 @@
 open Graphics
 
-let hybrid g(x) = up(x)
+let node f1 x =
+  let rec init o = x  and o = last o + 1 in o
     
-let hybrid f(x) =
-  let rec der y = 1.0 init 0.0 reset up(last y) -> 0.0 in y
+let hybrid f0 x =
+  let rec init o = x + 1
+  and o = last o + 1 in o
 
+let hybrid h (z) = () where
+  rec t2 = 1
+  and present z -> do x = last t2 + 1 done else do x = 0 done
+
+
+      
+let hybrid g(x) =
+  let rec der m = 1.0 +. 2.0 init 0.0 
+  and der z = m init 1.0 and k = z and l = up(m) in
+  m
+
+let hybrid f (z) = y where
+  rec init y = 1.0
+  and present z -> do y = 1.0 done
+      else do der y = 1.0 done
+
+let hybrid main (z) = y where
+  rec der y = 1.0 init -1.0 reset z -> -2.0
+  
+(* let hybrid main () = () where
+  rec t2 = 1
+  and x = last t2 + 1
+ *)
+					
+(* x : a1 | a2   t2 : a3 | a4 *)
+(* x : a6 | a7   a4 < a6, a7 *)
+(* a7 < a6, a2 < a1, a4 < a3 *)
+					
+
+      
+(*
+let hybrid i z = o where
+  rec present z -> do o = last v + 1 done and init o = 1
+  and v = o + 1
+ *)
+    
+(*
+let hybrid h z = c where
+  rec init c = 0 and init c' = 0
+  and c' = last c (* and c = last c + 1 *)
+
+let hybrid main2 z = x where
+  rec init x = true
+  and automaton
+    | S0 ->
+        do until z on x then do x = false in S0
+
+    *)
+      
+(*  c: a_c | a_lc, sans contrainte entre eux. *)
+(* a_c | a_lc < b_c | b_lc ssi a_c < b_c & a_lc < b_lc *)
+(*                          et a_lc < a_c *)
+	    
+
+(* c': a_c' | a_c'  ;  o : a_o | a_o *)
+	    
+(*
+let hybrid i (k) = x where
+  rec init x = 0.0
+  and present k(nx) -> do x = nx done else do der x = 1.0 done
+  and present | (disc(x)) -> do emit k = -1.0 done
+				 *)
+	    
+(*
+let hybrid h(z) = (x, y) where
+  rec init x = 0 and init y = 0
+  and match z with
+      | true -> do x = last y + 1 done
+      | false -> do y = last x + 1 done
+
+let hybrid f(z) = o where
+  rec present z -> do o = last x + 1 done
+  and init o = 0 and init x = 0
+      
+let hybrid g(x) = o where
+  rec o = let rec
+	      present x -> do r = 0 -> last o + 1 done
+	      and init r = 0 in
+	  r
+	    *)
+
+								   
+
+	    (*
+let node g(x1, k) =
+  let rec r1, r2 =
+    let x = (print_int 0; x1 + 2) in
+    let y = (print_int 1; x + 3 + r2) in
+    y, (print_int 3; k) + 2 in
+  r1, r2
+	     *)
+	    
+(*
+    C | H |- e: ct reads {a1,...,an}
+
+        G(f) = forall a1,...,an:C1.ct1 -> c2   C2 | H |- e : ct1 reads R
+      -------------------------------------------------------------------
+	  C1, C2 | H |- f(e) : ct2 reads R
+
+	      C | H |- e : ct reads {a1,...,an}
+         ----------------------------------------------
+	      C | H |- atomic e: ct reads {a1,..., an}
+		*)
+	
 (* let node g y = z where
   rec init x = y
   and z = last x + 1 + y

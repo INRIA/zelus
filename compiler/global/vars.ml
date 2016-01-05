@@ -40,9 +40,8 @@ let rec fv_pat bounded acc p =
 let fv_block fv_local fv_body bounded acc
     { b_env = b_env; b_locals = l_list; b_body = body; b_write = defnames } =
   let bounded = names bounded b_env in
-  let bounded = Deftypes.names bounded defnames in
   let bounded, acc = List.fold_left fv_local (bounded, acc) l_list in
-  fv_body (names bounded b_env) acc body
+  fv_body bounded acc body
 
 let fv_match_handler fv_body m_h_list bounded acc = 
   List.fold_left
@@ -79,24 +78,27 @@ and fv_eq bounded (last_acc, acc) { eq_desc = desc; eq_write = w } =
   match desc with
     | EQeq(_, e) | EQinit(_, e) | EQpluseq(_, e) -> fv bounded (last_acc, acc) e
     | EQmatch(_, e, m_h_list) ->
-       fv_match_handler (fv_block fv_local fv_eq_list) m_h_list bounded 
+       fv_match_handler fv_block_eq_list m_h_list bounded 
 			(fv bounded (last_acc, acc) e)
     | EQreset(eq_list, r) ->
        (* remove the names written in the body *)
        fv bounded
 	  (fv_eq_list (Deftypes.names bounded w) (last_acc, acc) eq_list) r
     | EQder(_, e, None, []) -> fv bounded (last_acc, acc) e
-    | EQblock(b) -> fv_block fv_local fv_eq_list bounded (last_acc, acc) b
+    | EQblock(b) -> fv_block_eq_list bounded (last_acc, acc) b
     | EQder _ | EQemit _ | EQpresent _  
     | EQautomaton _ | EQnext _ -> assert false
 
 and fv_eq_list bounded acc eq_list = List.fold_left (fv_eq bounded) acc eq_list
 
 and fv_local (bounded, acc) { l_eq = eq_list; l_env = l_env } =
-  let acc = List.fold_left (fv_eq (names bounded l_env)) acc eq_list in
+  let bounded = names bounded l_env in
+  let acc = List.fold_left (fv_eq bounded) acc eq_list in
   (bounded, acc)
 
-let fv acc e =
+and fv_block_eq_list bounded acc = fv_block fv_local fv_eq_list bounded acc
+					    
+let fve acc e =
   let acc_last, acc = fv S.empty (S.empty, acc) e in S.union acc_last acc
 
 (** The main entries *)

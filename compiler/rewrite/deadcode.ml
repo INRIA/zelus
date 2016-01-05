@@ -79,20 +79,20 @@ let rec build_equation table { eq_desc = desc } =
     | EQeq(p, e) ->
        let w = fv_pat S.empty S.empty p in
        (* for every [x in w], add the link [x -> {x1, ..., xn }] to table *)
-       let r = fv S.empty e in
+       let r = fve S.empty e in
        add w r table
     | EQpluseq(n, e) | EQinit(n, e) | EQder(n, e, None, []) -> 
-       let r = fv S.empty e in
+       let r = fve S.empty e in
        add (S.singleton n) r table
     | EQmatch(_, e, m_h_list) ->
-        let r = fv S.empty e in
+        let r = fve S.empty e in
         let table_b =
 	  List.fold_left
 	    (fun table { m_body = b } -> build_block table b)
 	    Env.empty m_h_list in
 	merge table (extend table_b r)
     | EQreset(res_eq_list, e) ->
-        let r = fv S.empty e in
+        let r = fve S.empty e in
 	let table_res = build_equation_list Env.empty res_eq_list in
 	merge table (extend table_res r)
     | EQblock _ | EQder _ | EQnext _ | EQautomaton _
@@ -197,7 +197,7 @@ let horizon read { l_env = l_env } =
 let exp ({ e_desc = desc } as e) =
   match desc with
     | Elet(l, e_let) ->
-        let read = fv S.empty e_let in
+        let read = fve S.empty e_let in
 	(* horizons are considered as outputs *)
 	let read = horizon read l in
 	let table = build_local Env.empty l in

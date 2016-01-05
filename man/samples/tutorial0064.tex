@@ -5,8 +5,8 @@
 val two_states : int * int * int -D-> int 
 \end{ChkListingMsg}
 \begin{ChkListingErr}
-File "tutorial.zls", line 7, characters 17-26:
->          unless (o = max) then Down
->                 ^^^^^^^^^
+File "tutorial.zls", line 6, characters 17-27:
+>          do o = last o + 1
+>                 ^^^^^^^^^^
 Initialization error: this expression may not be well initialized.
 \end{ChkListingErr}

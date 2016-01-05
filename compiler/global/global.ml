@@ -23,7 +23,7 @@ type 'a info = { qualid : Lident.qualident; info : 'a }
 type value_desc =
     { value_typ: Deftypes.typ_scheme; (* its type scheme *)
       value_atomic: bool; (* is-it an atomic value? *)
-      mutable value_caus: Defcaus.typ_scheme option; (* its causality scheme *)
+      mutable value_caus: Defcaus.tc_scheme option; (* its causality scheme *)
       mutable value_code: funexp option; (* source code for possible inlining *)
     }
 
