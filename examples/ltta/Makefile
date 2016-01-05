@@ -1,9 +1,14 @@
-include ../../config
+# Change to the Zelus directory
+ZLDIR = ../..
+
+include $(ZLDIR)/config
+
+ZELUC = $(ZLDIR)/compiler/zeluc.byte -i
+ZLLIB = $(ZLDIR)/lib
 
 EXAMPLE = ltta.zls
 
 all: byte
-#$(targets)
 
 byte: $(EXAMPLE:%.zls=%.byte)
 opt:  $(EXAMPLE:%.zls=%.opt)
@@ -18,6 +23,8 @@ ltta.ml ltta_main.ml: misc.zci ltta.zls
 	$(ZELUC) -I $(ZLLIB) $(ZLCFLAGS) -s main -sampling 0 ltta.zls
 	mv main.ml ltta_main.ml
 
+misc.zci:
+	$(ZELUC) -I $(ZLLIB) $(ZLCFLAGS) misc.zli
 
 depend: .depend
 .depend:
@@ -31,4 +38,3 @@ clean:
 realclean cleanall: clean
 
 -include .depend
-

@@ -1,19 +1,32 @@
 open Misc
 
+(***  The embedded application ***)
+(* [M1] ------> [M2] -----> [M1] *)
+
+let node machine1 (i) = n where
+  rec n = 0 -> (i+2 + pr)
+  and pr = debug "MACHINE 1"
+
+let node machine2 (i) = m where
+  rec m = 1 -> (i+2 + pr)
+  and pr = debug "MACHINE 2"
+
+
 (*** Modeling Quasi-periodic Architecturea ***)
 
 (** Bounds of Definition 1 **)
-let t_min = 300.0
-let t_max = 350.0
-let tau_min = 10.0
-let tau_max = 50.0
+let t_min = 3.0
+let t_max = 3.5
+let tau_min = 0.11
+let tau_max = 0.53
 
 
 (** Quasi-periodic clocks **)
 let hybrid metro (t_min, t_max) = c where
   rec der t = 1.0 init -. arbitrary (t_min, t_max)
-        reset up(last t) -> -. arbitrary (t_min, t_max)
-  and present up(t) -> do emit c = () done
+      reset z -> -. arbitrary (t_min, t_max)
+  and z = up(last t)
+  and present z -> do emit c = () done
 
 
 (** Delayed clock. Model transmission delay **)
@@ -23,13 +36,13 @@ let hybrid delay(c, tau_min, tau_max) = dc where
   and present up(t) -> do emit dc = () done
 
 
-
 (*** General Framework ***)
 
 (** Memory. Maintain the last received value on a signal *)
-let node mem (i, default) = m where
-  rec init m = default
+let node mem (i, mi) = o where
+  rec init m = mi
   and present i(v) -> do m = v done
+  and o = last m
 
 
 (** Modeling nodes **)
@@ -43,60 +56,93 @@ let node ltta_node(i, default) = o where
 
 (** Modeling links **)
 let node channel (dc, i) = o where
-  rec init mem = empty()
+  rec init q = empty()
+  and trans = not (is_empty (last q))
   and present
-      | dc() on (not (is_empty (last mem))) & i(v)  ->
-          do emit o = front (last mem)
-          and mem = enqueue(dequeue(last mem), v) done
-      | dc() on (not (is_empty (last mem))) ->
-          do emit o = front (last mem)
-          and mem = dequeue (last mem) done
+      | dc() on trans & i(v)  ->
+          do emit o = front (last q)
+          and q = enqueue(dequeue(last q), v) done
+      | dc() on trans ->
+          do emit o = front (last q)
+          and q = dequeue (last q) done
       | i(v) ->
-          do mem = enqueue (last mem, v) done
+          do q = enqueue (last q, v) done
 
 
-let node link(dc, i, default) = o where
+let node link(dc, i, mi) = o where
   rec s = channel(dc, i)
-  and o = mem(s, default)
+  and o = mem(i, mi)
 
 
 (** Freshness of value **)
 type 'a msg = {data : 'a; alt : bool}
+let data v = v.data
 
 let node alternate i = o where
   rec present i(v) -> local flag in
         do flag = true -> not (pre flag)
         and emit o = {data = v; alt = flag} done
 
-
-let node fresh (i, r) = o where
-  rec init m = false
+let node fresh (i, r, st) = o where
+  rec init m = st
   and present r(_) -> do m = i.alt done
   and o = (i.alt <> last m)
 
-let data v = v.data
-
 (** LTTA links **)
-let node ltta_link (dc, i, default) = m where
+let node ltta_link (dc, i, mi) = o where
   rec s = channel (dc, i)
-  and m = mem (alternate s, {data = default; alt = false})
+  and sa = alternate s
+  and o = mem (sa, {data = mi; alt = false})
+
 
 (*** The LTTA Protocols ***)
 
 (** Back-Pressure LTTA **)
-let node bp_controller (i, ra, m) = (o, a, im) where
-  rec automaton
+let node bp_controller (i, ra, om, mi) = (o, a, im, pr) where
+  rec m = mem(om, mi)
+  and init pr = 0
+  and automaton
       | Wait ->
           do (* skip *)
           unless all_inputs_fresh then
-            do emit im = data(i) and emit a = () in Ready
+            do pr = debug "STEP"
+            and emit im = data(i)+pr and emit a in Ready
       | Ready ->
           do (* skip *)
           unless all_acks_fresh then
-            do emit o = m in Wait
+            do pr = debug "PUBLISH"
+            and emit o = m+pr in Wait
 
-  and all_inputs_fresh = fresh(i, im)
-  and all_acks_fresh = fresh(ra, o)
+  and all_inputs_fresh = fresh(i, im, true)
+  and all_acks_fresh = fresh(ra, o, false)
+
+
+(** A small example **)
+(* BP nodes *)
+let node m1(i,ra) = o,a where
+  rec (o, a, im, pr) = bp_controller(i, ra, om, -1)
+  and present im(v) -> do emit om = machine1(v) done
+
+let node m2(i,ra) = o,a where
+  rec (o, a, im, pr) = bp_controller(i, ra, om, -1)
+  and present im(v) -> do emit om = machine2(v) done
+
+
+(** Pluging two nodes with links to form an example **)
+
+(* Note the activations of nodes on clock c1 and c2, *)
+(* and the links on their delayed versions dc1 and dc2. *)
+(* The output if the content of the links at each step. *)
+let node example_bp (c1, dc1, c2, dc2) = (o1,o2) where
+  rec present c1() -> do n,an = m1(l2,l2a) done
+  and present c2() -> do m,am = m2(l1,l1a) done
+  and l1 = ltta_link(dc1, n, -1)
+  and l1a = ltta_link(dc1, an, ())
+  and l2 = ltta_link(dc2, m, -1)
+  and l2a = ltta_link(dc2, am, ())
+  and o1 = l1.data
+  and o2 = l2.data
+
 
 
 (** Time-Based LTTA **)
@@ -111,25 +157,127 @@ let q =
   floor ((tau_max  +. (1. +. float (p)) *. t_max) /.
          t_min -. float (p)) +. 1.)
 
-let node tb_controller (i, ro, m) = (o, im) where
+let node tb_controller (i, om, mi) = (o, im, pr) where
   rec init n = 1
+  and init pr = 0
+  and m = mem(om,mi)
   and automaton
       | Wait ->
-          do n = p -> (pre n - 1)
-          unless (last n = 1) then
-            do emit im = data(i) in Ready
+          do n = p -> (last n - 1)
+          until (n = 1) then
+            do pr = debug "STEP"
+            and emit im = data(i)+pr in Ready
       | Ready ->
-          do n = q -> (pre n - 1)
-          unless ((last n = 1) or preempted) then
-            do emit o = m in Wait
+          do n = q -> (last n - 1)
+          until ((n = 1) or preempted) then
+            do pr = debug "PUBLISH"
+            and emit o = m+pr in Wait
 
-  and preempted = fresh(i, im) or fresh(ro, im)
+ and preempted = fresh(i, im, false)
 
+(** A small example **)
+(** TB nodes **)
+let node n1(i) = o where
+  rec (o, im, pr) = tb_controller(i, om, -1)
+  and present im(v) -> do emit om = machine1(v) done
+
+let node n2(i) = o where
+  rec (o, im, pr) = tb_controller(i, om, -1)
+  and present im(v) -> do emit om = machine2(v) done
+
+
+(** Pluging two nodes with links to form an example **)
+let node example_tb (c1, dc1, c2, dc2) = (o1,o2) where
+  rec present c1() -> do n = n1(l2) done
+  and present c2() -> do m = n2(l1) done
+  and l1 = ltta_link(dc1, n, -1)
+  and l2 = ltta_link(dc2, m, -1)
+  and o1 = l1.data
+  and o2 = l2.data
+
+
+(*** Optimizations ***)
+
+(** Modeling buffer links **)
+let node buffer (i, r) = o where
+  rec init pr = 0
+  and init q = empty()
+  and not_empty = not (is_empty (last q))
+  and present
+      | r(_) on not_empty & i(v)  ->
+          do q = enqueue(dequeue(last q), v) done
+      | r(_) on not_empty ->
+          do q = dequeue (last q) done
+      | i(v) ->
+          do q = enqueue (last q, v) done
+
+  (* the field alt is now set to false when the buffer is empty *)
+  and o = if not_empty
+          then {data=front (last q); alt=true}
+          else {data= (-1); alt=false}
+
+let node buff_link (dc, i, r) = o where
+  rec s = channel (dc, i)
+  and o = buffer (s, r)
+
+(** Round-Based LTTA  **)
+let node rb_controller (i, om) = (o, im) where
+  rec init pr = 0
+  and automaton
+      | Wait ->
+          do (* skip *)
+          unless all_input_fresh then
+            do pr = debug "STEP/PUBLISH"
+            and emit im = data(i)+pr in Wait
+
+  and all_input_fresh = true -> i.alt
+  and o = om
+
+(** A small example **)
+(** RB nodes **)
+let node p1(i) = o, im where
+  rec (o, im) = rb_controller(i, om)
+  and present im(v) -> do emit om = machine1(v) done
+
+let node p2(i) = o, im where
+  rec (o, im) = rb_controller(i, om)
+  and present im(v) -> do emit om = machine2(v) done
+
+
+let node example_rb (c1, dc1, c2, dc2) = (o1,o2) where
+  rec present c1() -> do n, r1 = p1(l2) done
+  and present c2() -> do m, r2 = p2(l1) done
+  and l1 = buff_link(dc1, n, r2)
+  and l2 = buff_link(dc2, m, r1)
+  and o1 = l1.data
+  and o2 = l2.data
+
+
+(*** Simulation ***)
+(* Link with the timing constraints of the application *)
+let hybrid main () =
+
+  (* Architecture constraints *)
+  let c1 = metro(t_min, t_max) in
+  let dc1 = delay(c1, tau_min, tau_max) in
+  let c2 = metro(t_min, t_max) in
+  let dc2 = delay(c2, tau_min, tau_max) in
+
+  (* Global clock *)
+  let g =  present c1() | dc1() | c2() | dc2() -> () in
+
+  present g() ->
+    (* Run an example (choose the protocol) *)
+    let (o1,o2) = example_tb(c1, dc1, c2, dc2) in
+    (* let (o1,o2) = example_bp(c1, dc1, c2, dc2) in *)
+    (* let (o1,o2) = example_rb(c1, dc1, c2, dc2) in *)
+    print (o1, o2)
+  else ()
 
 
 (*** Appendix ***)
 
-(** Modeling Transmission Delay **)
+(** Complete Modeling of the Transmission Delay **)
 let hybrid delay2(c, tau_min, tau_max, eps) = dc where
   rec init q = empty()
   and init t = 0.0
@@ -154,71 +302,3 @@ let hybrid delay2(c, tau_min, tau_max, eps) = dc where
           and tau = arbitrary(tau_min, tau_max)
           and d = tau -. sum(last q) +. last t done
    else do der t = 1.0 done
-
-
-(** Broadcast Communication **)
-let node rb_controller (i, m) = (o, im) where
-  rec automaton
-      | Wait ->
-          do (* skip *)
-          unless all_fresh_inputs then
-            do emit im = data(i) and emit o = m in Wait
-
-  and all_fresh_inputs = fresh(i, im)
-
-
-
-(*** A small example ***)
-
-(** The embedded application **)
-let node machine1 () = n where
-  rec n = 1 -> (pre n + 2)
-
-let node machine2 () = m where
-  rec m = 0 -> (pre m + 2)
-
-(** LTTA nodes **)
-let node n1(i, ro) = o where
-  rec m = mem (om, 0)
-  and (o, im) = tb_controller(i, ro, m)
-  and present im(_) -> do emit om = machine1() done
-
-let node n2(i, ro) = o where
-  rec m = mem(om, 0)
-  and (o, im) = tb_controller(i, ro, m)
-  and present im(_) -> do emit om = machine2() done
-
-(** Dummy ltta_link for nodes with no inputs **)
-let source () = {data = 0; alt = false}
-
-(** Pluging two nodes with links to form an example **)
-
-(* Note the activations of node on clock c1 and c2, *)
-(* and the links on their delayed version dc1 and dc2. *)
-(* The output if the content of the links at each step. *)
-let node example (c1, dc1, c2, dc2) = (o1, o2) where
-   rec present c1() -> do n = n1(l0, l0) done
-   and present c2() -> do m = n2(l0, l0) done
-   and l0 = source()
-   and l1 = ltta_link(dc1, n, 0)
-   and l2 = ltta_link(dc2, m, 0)
-   and o1 = l1.data
-   and o2 = l2.data
-
-
-(** Link with the timing constraints of the application : Simulation **)
-let hybrid main () = () where
-
-  (* Architecture constraints *)
-  rec c1 = metro(t_min, t_max)
-  and dc1 = delay(c1, tau_min, tau_max)
-  and c2 = metro(t_min, t_max)
-  and dc2 = delay(c2, tau_min, tau_max)
-
-  (* Global clock *)
-  and present c1() | dc1() | c2() | dc2() -> do emit g = () done
-
-  and present g() -> local o1, o2 in
-        (* Run the example model *)
-        do (o1,o2) = example(c1, dc1, c2, dc2)
-        and _ = print (o1, o2) done
