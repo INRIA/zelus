@@ -1,5 +1,8 @@
 open Graphics
 
+let hybrid derivative(k1, k2, x) = x' where
+  rec der x' = k1 *. x -. k2 *. x'
+
 let node f1 x =
   let rec init o = x  and o = last o + 1 in o
     

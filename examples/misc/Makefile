@@ -13,7 +13,8 @@ EXAMPLE=khalil.zls \
 	sqrt.zls \
 	water.zls \
 	div_by_zero.zls \
-        hardstop_integr.zls
+        hardstop_integr.zls \
+	derivative.zls
 #	tabledep.zls
 
 
