@@ -43,8 +43,8 @@
 \DeclareOption{withoutresult}{\CHKL@withresultfalse}
 \DeclareOption{skipone}{\def\CHKL@pkg@skipopts{firstline=2}}
 \DeclareOption{skiptwo}{\def\CHKL@pkg@skipopts{firstline=3}}
-\DeclareOption{showerrors}{\CHKL@showerrorstrue}
-\DeclareOption{ignoreerrors}{\CHKL@showerrorsfalse}
+\DeclareOption{showproblems}{\CHKL@showproblemstrue}
+\DeclareOption{hideproblems}{\CHKL@showproblemsfalse}
 
 \def\CHKL@codestyle{}
 \def\CHKL@msgstyle{}
@@ -105,8 +105,8 @@
 \define@key{CHKL@envkeys}{continue}[]{}
 \define@key{CHKL@envkeys}{include}[]{}
 \define@key{CHKL@envkeys}{label}[]{}
-\define@key{CHKL@envkeys}{showerrors}[]{\CHKL@showerrorstrue}
-\define@key{CHKL@envkeys}{ignoreerrors}[]{\CHKL@showerrorsfalse}
+\define@key{CHKL@envkeys}{showproblems}[]{\CHKL@showproblemstrue}
+\define@key{CHKL@envkeys}{hideproblems}[]{\CHKL@showproblemsfalse}
 \define@key{CHKL@envkeys}{skipnone}[]{\def\CHKL@pkg@skipopts{firstline=1}}
 \define@key{CHKL@envkeys}{skipone}[]{\def\CHKL@pkg@skipopts{firstline=2}}
 \define@key{CHKL@envkeys}{skiptwo}[]{\def\CHKL@pkg@skipopts{firstline=3}}
@@ -162,7 +162,7 @@
       \input{\CHKL@file.tex}%
       \ifCHKL@shouldfail%
 	\ifchklisting%
-	  \ifCHKL@showerrors%
+	  \ifCHKL@showproblems%
 	    \begin{divstyle}{checklistingserror}%
 	    Unexpected success: \chklistingmsg{}
 	    \end{divstyle}%
@@ -174,7 +174,7 @@
 	\ifchklisting%
 	  \ifCHKL@withresult{\chklistingmsg{}}\fi%
 	\else%
-	  \ifCHKL@showerrors%
+	  \ifCHKL@showproblems%
 	    \begin{divstyle}{checklistingserror}%
 	    Unexpected failure: \chklistingerr{}
 	    \end{divstyle}%

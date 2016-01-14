@@ -229,13 +229,13 @@ compile() {
 
     # Invoke the compiler
     # shellcheck disable=SC2086
-    $COMPILER $COMPILERFLAGS $openfiles $LASTFLAGS "$ipath" \
+    $COMPILER $COMPILERFLAGS $openfiles $LCOMPILERFLAGS $LASTFLAGS "$ipath" \
 	>"$OUTFILE" 2>"$ERRFILE"
     COMPILERSTATUS=$?
     adjustlinenumbers
 
     # Start the output tex file with the compilation command as a comment
-    printf '%% %s\n' "$COMPILER $COMPILERFLAGS $openfiles \
+    printf '%% %s\n' "$COMPILER $COMPILERFLAGS $openfiles $LCOMPILERFLAGS \
 	$LASTFLAGS $ipath ($COMPILERSTATUS)" > "$opath"
 
     # Signal compilation success (\chklistingtrue) or not (\chklistingfalse)
@@ -258,8 +258,8 @@ compile() {
     fi
 
     # Include a sanitized compilation command (\setchklistingcmd)
-    printf '\setchklistingcmd{%s %s \\chklistingfile}\n' \
-	"${COMPILERNAME}" "${LASTFLAGS}" >> "$opath"
+    printf '\setchklistingcmd{%s%s %s \\chklistingfile}\n' \
+	"${COMPILERNAME}" "${LCOMPILERFLAGS}" "${LASTFLAGS}" >> "$opath"
 
     # Include the compiler's stdout
     printf "%s\n" '\begin{ChkListingMsg}'	      >> "$opath"
@@ -382,6 +382,9 @@ readchkl() {
 		    \[line=*\])
 			LINENUM=$(expr "$n" : '\[line=\(.*\)\]')
 			;;
+		    \[flags=*\])
+			LCOMPILERFLAGS=" $(expr "$n" : '\[flags=\(.*\)\]')"
+			;;
 		    \[fail\])
 			SHOULDFAIL=1
 			;;
@@ -425,6 +428,7 @@ readchkl() {
 	esac
 	unset PAGENUM
 	unset LINENUM
+	unset LCOMPILERFLAGS
 	SHOULDFAIL=0
     done < "$1"
     subdirs="$subdirs::$SUBDIR:$infile:"

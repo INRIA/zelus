@@ -106,6 +106,7 @@
 \newif\ifCHKL@shouldfail
 \newif\ifCHKL@showcode
 \def\CHKL@skip{0}
+\edef\CHKL@lcompilerflags{\null}
 \edef\CHKL@precontinue{}
 \define@key{CHKL@envkeys}{continue}[]{\edef\CHKL@continue{\CHKL@precontinue}}
 \define@key{CHKL@envkeys}{include}{%
@@ -122,6 +123,7 @@
 \define@key{CHKL@envkeys}{hide}[]{\CHKL@showcodefalse}
 \define@key{CHKL@envkeys}{withresult}[]{\CHKL@withresulttrue}
 \define@key{CHKL@envkeys}{withoutresult}[]{\CHKL@withresultfalse}
+\define@key{CHKL@envkeys}{compilerflags}[]{\edef\CHKL@lcompilerflags{#1}}
 \define@key{CHKL@envkeys}{showproblems}[]{\CHKL@showproblemstrue}
 \define@key{CHKL@envkeys}{hideproblems}[]{\CHKL@showproblemsfalse}
 \DeclareRobustCommand{\chklistingmsg}[1]{
@@ -162,6 +164,7 @@
     \setkeys{CHKL@envkeys}{#1}%
     \CHKL@logsample{\arabic{chklisting}}{\CHKL@continue%
       \space\ifnum\CHKL@skip>0[skip=\CHKL@skip]\fi%
+      \ifx\CHKL@lcompilerflags\null\else\space[flags=\CHKL@lcompilerflags]\fi%
       \ifCHKL@shouldfail\space[fail]\fi}%
     \global\edef\CHKL@precontinue{\CHKL@continue\space\arabic{chklisting}}%
     \@ifundefined{CHKL@label}{}{%
