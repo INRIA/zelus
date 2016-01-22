@@ -42,6 +42,8 @@ clean:
 	rm -f *.zci
 	rm -f *.o
 
+realclean cleanall: clean
+
 depend: *.mli *.ml
 	$(OCAMLDEP) $(INCLUDES) $^ > .depend
 
