@@ -123,9 +123,13 @@ opam install ocamlfind
 
 <p>To install Lablgtk:</p>
 <pre>
-brew install gtk+
-export PKG_CONFIG_PATH=/opt/X11/lib/pkgconfig
+brew install pkg-config gtk+
 opam install lablgtk
+</pre>
+
+If the second step fails, you may need to first run
+<pre>
+export PKG_CONFIG_PATH=/opt/X11/lib/pkgconfig
 </pre>
 
 <p>To install Sundials/ML</p>
@@ -172,11 +176,11 @@ opam install sundialsml
 <p>After downloading the distribution, run the configure script (optionally 
 setting an installation prefix):</p>
 
-<pre>./configure --prefix=/opt/zelus</pre>
+<pre>./configure --prefix=/usr/local</pre>
 
 <p>Zélus can then be installed by running:</p>
 
-<pre>make install</pre>
+<pre>sudo make install</pre>
 
 <p>The Zélus compiler is called <code>zeluc</code>.
 It compiles <code>.zls</code> Zélus source files into <code>.ml</code> OCaml 
