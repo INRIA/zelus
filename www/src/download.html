@@ -53,7 +53,7 @@ The 3D visualization of the <a href="examples.html#stickysprings">Sticky
   <a class="btn btn-large btn-primary"
      href="zelus-1.2.0-sundials-byte.tar.gz">Download (supports sundials)</a>
   <a class="btn btn-large btn-primary"
-     href="zelus-1.2.0-sundials-byte.tar.gz">Download (internal solver)</a>
+     href="zelus-1.2.0-nosundials-byte.tar.gz">Download (internal solver)</a>
 </div>
 
 <h2 id="dependencies" class="section">Dependencies</h2>
@@ -141,7 +141,11 @@ complicated.</p>
 
 <p>To install the Opam package manager and ocamlfind:</p>
 <pre>
-sudo apt-get install opam
+sudo apt-get install opam m4
+# opam init                 # if this is your first time
+opam update &amp;&amp; opam upgrade # optionally
+opam switch 4.02.3
+eval `opam config env`
 opam install ocamlfind
 </pre>
 
@@ -149,6 +153,12 @@ opam install ocamlfind
 <pre>
 sudo apt-get install libgtk2.0-dev
 opam install lablgtk
+</pre>
+
+<p>To install glMLite (optional):</p>
+<pre>
+sudo apt-get install freeglut3-dev libjpeg-dev
+opam install glMLite
 </pre>
 
 <p>To install Sundials/ML:</p>
