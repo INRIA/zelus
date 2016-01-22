@@ -38,11 +38,7 @@ and add_include d =
 
 (* where is the standard library *)
 let locate_stdlib () =
-  let stdlib = try
-    Sys.getenv "ZLLIB"
-  with
-    Not_found -> standard_lib in
-  Printf.printf "%s\n" stdlib
+  Printf.printf "%s\n" standard_lib
 
 let show_version () =
   Printf.printf "The %s compiler, version %s (%s)\n"

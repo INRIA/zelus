@@ -76,7 +76,7 @@ makedist:
 	@printf "$(S_BLUE)## Populating lib subdirectory$(S_NORMAL)\n"
 	mkdir -p zelus-dist/lib
 	cp lib/zllib.cma lib/zllibgtk.cma zelus-dist/lib/
-	cp lib/zllib.cmxa lib/zllibgtk.cmxa zelus-dist/lib/
+	#cp lib/zllib.cmxa lib/zllibgtk.cmxa zelus-dist/lib/
 	cp lib/*.zli lib/*.zci zelus-dist/lib/
 	cp lib/*.cmi zelus-dist/lib/
 	@#

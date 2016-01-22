@@ -111,7 +111,7 @@ due to limited floating-point precision.</p>
 <span class="keyword ">let</span> <span class="">loose</span> = <span class="number">0.8</span>
 
 <span class="comment">(* The bouncing ball *)</span>
-<span class="keyword ">let</span> <span class="keyword ">atomic</span> <span class="keyword ">hybrid</span> <span class="">ball</span>(<span class="">x</span>, <span class="">y_0</span>) = (<span class="">y</span>, <span class="">y_v</span>, <span class="">z</span>) <span class="keyword ">where</span>
+<span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">ball</span>(<span class="">x</span>, <span class="">y_0</span>) = (<span class="">y</span>, <span class="">y_v</span>, <span class="">z</span>) <span class="keyword ">where</span>
   <span class="keyword ">rec</span>
       <span class="keyword ">der</span> <span class="">y</span> = <span class="">y_v</span> <span class="keyword ">init</span> <span class="">y_0</span>
   <span class="keyword ">and</span> 
@@ -149,24 +149,24 @@ when the balls vertical velocity becomes very small.</p>
 
 <span class="keyword ">let</span> <span class="">x_0</span> = <span class="number">0.0</span>
 <span class="keyword ">let</span> <span class="">y_0</span> = <span class="number">10.0</span>
-<span class="keyword ">let</span> <span class="">x_v</span> = <span class="number">0.41</span>
+<span class="keyword ">let</span> <span class="">x_v</span> = <span class="number">0.45</span>
 <span class="keyword ">let</span> <span class="">eps</span> = <span class="number">0.01</span>
 
 <span class="comment">(* The bouncing ball with two modes. *)</span>
 <span class="keyword ">hybrid</span> <span class="">ball</span>(<span class="">x_0</span>, <span class="">y_0</span>) = (<span class="">x</span>, <span class="">y</span>, <span class="">y_start</span>) <span class="keyword ">where</span>
   <span class="keyword ">rec</span> <span class="keyword ">init</span> <span class="">y_start</span> = <span class="">y_0</span> 
   <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">x</span> = <span class="">x'</span> <span class="keyword ">init</span> <span class="">x_0</span>
-  <span class="keyword ">and</span>
+  <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">x'</span> = <span class="">x_v</span>
+  <span class="keyword ">and</span> 
   <span class="keyword ">automaton</span>
   | <span class="constructor">Bouncing</span> -&gt;
       <span class="comment">(* the ball is falling with a possible bound. *)</span>
       <span class="keyword ">local</span> <span class="">z</span>, <span class="">y_v</span> <span class="keyword ">in</span>
       <span class="keyword ">do</span>
         (<span class="">y</span>, <span class="">y_v</span>, <span class="">z</span>) = <span class="constructor">Ball</span>.<span class="">ball</span>(<span class="">x</span>, <span class="">y_start</span>)
-      <span class="keyword ">and</span> <span class="">x'</span> = <span class="">x_v</span> 
       <span class="keyword ">until</span> <span class="">z</span> <span class="keyword expr ">on</span> (<span class="">y_v</span> &lt; <span class="">eps</span>) <span class="keyword ">then</span> <span class="constructor">Sliding</span>(<span class="">ground_abs</span> <span class="">x</span>, <span class="">ground</span>(<span class="">x</span>))
   | <span class="constructor">Sliding</span>(<span class="">x0</span>, <span class="">y0</span>) -&gt;
-      <span class="comment">(* the ball is fixed, i.e., the derivative for y is 0 *)</span>
+      <span class="comment">(* the ball slides, i.e., the derivative for y is 0 *)</span>
       <span class="keyword ">do</span> 
         <span class="">y</span> = <span class="">y0</span>
       <span class="keyword ">and</span>
@@ -194,7 +194,7 @@ spot.</p>
 
 <div id="ex-bouncingball-flatball" class="accordion-body">
 <div class="accordion-inner">
-<pre class="zelus "><code><span class="comment">(** Bouncing ball. *)</span>
+<pre class="zelus "><code> <span class="comment">(** Bouncing ball. *)</span>
 
 <span class="comment">(* [ground x] returns the position in [y] *)</span>
 <span class="keyword ">let</span> <span class="">ground</span> <span class="">x</span> = <span class="constructor">Flatworld</span>.<span class="">ground</span>(<span class="">x</span>)
@@ -217,8 +217,7 @@ spot.</p>
 <span class="comment">(* Main entry point *)</span>
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">main</span> () =
   <span class="keyword ">let</span> (<span class="">y</span>, _, <span class="">z</span>) = <span class="">ball</span>(<span class="">x_0</span>, <span class="">y_0</span>) <span class="keyword ">in</span>
-  <span class="keyword ">let</span> <span class="">ok</span> = <span class="keyword ">present</span> (<span class="keyword expr ">period</span> (<span class="number">0.04</span>)) -&gt; () | <span class="">z</span> -&gt; () <span class="keyword ">in</span>
-  <span class="keyword ">present</span> <span class="">ok</span>() -&gt; <span class="constructor">Showball</span>.<span class="">show</span> (<span class="">x_0</span>, <span class="">y</span> <span class="keyword expr ">fby</span> <span class="">y</span>, <span class="">x_0</span>, <span class="">y</span>);
+  <span class="keyword ">present</span> (<span class="keyword expr ">period</span> (<span class="number">0.04</span>)) | <span class="">z</span> -&gt; <span class="constructor">Showball</span>.<span class="">show</span> (<span class="">x_0</span>, <span class="">y</span> <span class="keyword expr ">fby</span> <span class="">y</span>, <span class="">x_0</span>, <span class="">y</span>);
   ()
 
 </code></pre></div></div></div></div>
@@ -374,27 +373,28 @@ programs.</p>
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">integrator</span> (<span class="">i</span>, <span class="">u</span>) = <span class="">y</span> <span class="keyword ">where</span>
   <span class="keyword ">rec</span> <span class="keyword ">der</span> <span class="">y</span> = <span class="">tscale</span> <span class="">u</span> <span class="keyword ">init</span> <span class="">i</span>
 
-<span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">round</span> <span class="">x</span> = <span class="">floor</span> (<span class="">x</span> <span class="operator">+.</span> <span class="number">0.5</span>)
+<span class="keyword ">let</span> <span class="keyword ">discrete</span> <span class="">round</span> <span class="">x</span> = <span class="">floor</span> (<span class="">x</span> <span class="operator">+.</span> <span class="number">0.5</span>)
 
 <span class="comment">(* ** model of analog-to-digital convertor ** *)</span>
 
-<span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">quantize</span> (<span class="">q</span>, <span class="">u</span>) = <span class="">q</span> <span class="operator">*.</span> <span class="">round</span>(<span class="">u</span> <span class="operator">/.</span> <span class="">q</span>)
+<span class="keyword ">let</span> <span class="keyword ">discrete</span> <span class="">quantize</span> (<span class="">q</span>, <span class="">u</span>) = <span class="">q</span> <span class="operator">*.</span> <span class="">round</span>(<span class="">u</span> <span class="operator">/.</span> <span class="">q</span>)
 
 <span class="comment">(* limiting without zero-crossings *)</span>
-<span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">limit</span> (<span class="">min</span>, <span class="">max</span>, <span class="">x</span>) =
+<span class="keyword ">let</span> <span class="keyword ">discrete</span> <span class="">limit</span> (<span class="">min</span>, <span class="">max</span>, <span class="">x</span>) =
   <span class="keyword ">if</span> <span class="">x</span> &gt;= <span class="">max</span> <span class="keyword ">then</span> <span class="">max</span>
   <span class="keyword ">else</span> <span class="keyword ">if</span> <span class="">x</span> &lt;= <span class="">min</span> <span class="keyword ">then</span> <span class="">min</span>
   <span class="keyword ">else</span> <span class="">x</span>
 
-<span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">adc</span> (<span class="">v</span>) = <span class="">pcm</span> <span class="keyword ">where</span>
+<span class="keyword ">let</span> <span class="keyword ">discrete</span> <span class="">adc</span> (<span class="">v</span>) = <span class="">pcm</span> <span class="keyword ">where</span>
   <span class="keyword ">rec</span> <span class="">vs</span> = <span class="">v</span> <span class="operator">*.</span> (<span class="number">256.0</span> <span class="operator">/.</span> <span class="number">5.0</span>)
   <span class="keyword ">and</span> <span class="">pcm</span> = <span class="">quantize</span> (<span class="number">1.0</span>, <span class="">limit</span> (<span class="number">0.0</span>, <span class="number">255.0</span>, <span class="">vs</span>))
 
 <span class="comment">(* ** model of digital thermometer ** *)</span>
 
-<span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">digital_thermometer</span> (<span class="">temp</span>) = <span class="">int_of_float</span>(<span class="">adv</span>) <span class="keyword ">where</span>
-  <span class="keyword ">rec</span> <span class="">voltage</span> = <span class="number">0.05</span> <span class="operator">*.</span> <span class="">temp</span> <span class="operator">+.</span> <span class="number">0.75</span>
-  <span class="keyword ">and</span> <span class="">adv</span> = <span class="">adc</span> (<span class="">voltage</span>)
+<span class="keyword ">let</span> <span class="keyword ">discrete</span> <span class="">digital_thermometer</span> (<span class="">temp</span>) =
+  <span class="keyword ">let</span> <span class="">voltage</span> = <span class="number">0.05</span> <span class="operator">*.</span> <span class="">temp</span> <span class="operator">+.</span> <span class="number">0.75</span> <span class="keyword ">in</span>
+  <span class="keyword ">let</span> <span class="">adv</span> = <span class="">adc</span> (<span class="">voltage</span>) <span class="keyword ">in</span>
+  <span class="">int_of_float</span>(<span class="">adv</span>)
 
 <span class="comment">(* signed fixed-point int from scale and bias *)</span>
 <span class="keyword ">let</span> <span class="keyword ">discrete</span> <span class="">fixdt</span> (<span class="">s</span>, <span class="">b</span>, <span class="">v</span>) = <span class="">int_of_float</span> ((<span class="">v</span> -. <span class="">b</span>) <span class="operator">/.</span> <span class="">s</span>)
@@ -453,15 +453,15 @@ programs.</p>
 <span class="keyword ">let</span> <span class="">reference</span> = <span class="">fixdt</span> (<span class="number">5.0</span> <span class="operator">/.</span> <span class="number">256.0</span> <span class="operator">/.</span> <span class="number">0.05</span>, -. <span class="number">0.75</span> <span class="operator">/.</span> <span class="number">0.05</span>, <span class="number">20.0</span>)
 
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">model</span> () = (<span class="">led</span>, <span class="">on_off</span>, <span class="">actual_temp</span>) <span class="keyword ">where</span>
-  <span class="keyword ">rec</span> <span class="">trigger</span> = <span class="keyword expr ">period</span> (<span class="number">0.01</span>)
-
+  <span class="keyword ">rec</span> <span class="keyword ">init</span> <span class="">led</span> = <span class="">red</span>
+  <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">on_off</span> = <span class="keyword constant ">false</span>
+  <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">digital_temp</span> = <span class="number">0</span>
+  <span class="keyword ">and</span> <span class="">trigger</span> = <span class="keyword expr ">period</span> (<span class="number">0.01</span>)
   <span class="keyword ">and</span> <span class="keyword ">present</span> <span class="">trigger</span> -&gt; 
          <span class="keyword ">do</span> (<span class="">led</span>, <span class="">on_off</span>) = <span class="">controller</span>(<span class="">reference</span>, <span class="keyword expr ">last</span> <span class="">digital_temp</span>) <span class="keyword ">done</span>
-  <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">led</span> = <span class="">red</span> <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">on_off</span> = <span class="keyword constant ">false</span>
-  <span class="keyword ">and</span> <span class="">actual_temp</span> = <span class="">boiler</span>(<span class="">on_off</span>)
   <span class="keyword ">and</span> <span class="keyword ">present</span> <span class="">trigger</span> -&gt; 
          <span class="keyword ">do</span> <span class="">digital_temp</span> = <span class="">digital_thermometer</span> (<span class="">actual_temp</span>) <span class="keyword ">done</span>
-  <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">digital_temp</span> = <span class="number">0</span>
+  <span class="keyword ">and</span> <span class="">actual_temp</span> = <span class="">boiler</span>(<span class="">on_off</span>)
 
 <span class="keyword keyword module ">open</span> <span class="constructor">Scope</span> <span class="comment">(* Dump *)</span>
 
@@ -516,7 +516,7 @@ file for <a href="img/ball_spring.pdf">graphing</a> with
 <div class="accordion-inner">
 <pre class="zelus "><code>
 <span class="keyword keyword module ">open</span> <span class="constructor">Graphics</span>
-<span class="keyword ">let</span> <span class="">start</span> = 
+<span class="keyword ">let</span> <span class="">start</span> =
   <span class="">open_graph</span> <span class="string">" 200x500"</span>;
   <span class="">auto_synchronize</span> <span class="keyword constant ">false</span>;
   <span class="">set_line_width</span> <span class="number">4</span>
@@ -550,80 +550,41 @@ file for <a href="img/ball_spring.pdf">graphing</a> with
 
 <span class="comment">(*physical constants for the ball*)</span>
 <span class="keyword ">let</span> <span class="">g</span> = <span class="number">9.81</span>
-<span class="keyword ">let</span> <span class="">m_ball</span> = <span class="number">8.0</span>
+<span class="keyword ">let</span> <span class="">m</span> = <span class="number">1.0</span>
 <span class="keyword ">let</span> <span class="">radius</span> = <span class="number">2.0</span>
 
 <span class="comment">(*and for the platform*)</span>
-<span class="keyword ">let</span> <span class="">m_platform</span> = <span class="number">1.0</span>
-<span class="keyword ">let</span> <span class="">k</span> = <span class="number">20.0</span>
+<span class="keyword ">let</span> <span class="">mp</span> = <span class="number">10.0</span>
+<span class="keyword ">let</span> <span class="">k</span> = <span class="number">2.0</span>
 <span class="keyword ">let</span> <span class="">f</span> = <span class="number">0.5</span> <span class="comment">(* damping *)</span>
 <span class="keyword ">let</span> <span class="">base_level</span> = <span class="number">15.0</span>
 <span class="keyword ">let</span> <span class="">f_scratch</span> = <span class="number">0.1</span> <span class="comment">(* level of interaction when stuck *)</span>
 
 <span class="keyword keyword module ">open</span> <span class="constructor">Dump</span>
 
-<span class="comment">(* Hybrid system description *)</span>
-<span class="comment">(* [z0]: initial level of the ball *)</span>
-<span class="comment">(* [v0]: initial level of the platform *)</span>
-<span class="comment">(* [radius]: ball radius *)</span>
-<span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">system</span>(<span class="">z0</span>, <span class="">v0</span>, <span class="">radius</span>) = (<span class="">z</span>, <span class="">z_platform</span>) <span class="keyword ">where</span>
-  <span class="keyword ">rec</span> <span class="keyword ">automaton</span>
-      | <span class="constructor">Fall</span>(<span class="">z_init</span>, <span class="">v_init</span>, <span class="">z_p_init</span>, <span class="">v_p_init</span>) -&gt; 
-          <span class="keyword ">do</span>
-                <span class="keyword ">der</span> <span class="">z</span> = <span class="">v</span> <span class="keyword ">init</span> <span class="">z_init</span>
-            <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">v</span> = -.<span class="">g</span> <span class="keyword ">init</span> <span class="">v_init</span>
-            <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">z_platform</span> = <span class="">v_platform</span> <span class="keyword ">init</span> <span class="">z_p_init</span>
-            <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">v_platform</span> = 
-              -.(<span class="">k</span><span class="operator">/.</span><span class="">m_platform</span>)<span class="operator">*.</span>(<span class="">z_platform</span> -. <span class="">base_level</span>) 
-                -. (<span class="">f</span><span class="operator">/.</span><span class="">m_platform</span>)<span class="operator">*.</span><span class="">v_platform</span> <span class="keyword ">init</span> <span class="">v_p_init</span>
-            <span class="keyword ">and</span> <span class="">mode</span> = <span class="number">0.0</span>
-          <span class="keyword ">until</span> <span class="keyword expr ">up</span>(-.<span class="">z</span> <span class="operator">+.</span> <span class="">z_platform</span> <span class="operator">+.</span> <span class="">radius</span>)
-            <span class="keyword ">then</span> <span class="constructor">Stuck</span>(<span class="">z_platform</span>,
-                       (<span class="">m_ball</span> <span class="operator">*.</span> <span class="">v</span> <span class="operator">+.</span> <span class="">m_platform</span> <span class="operator">*.</span> <span class="">v_platform</span>)
-                          <span class="operator">/.</span> (<span class="">m_ball</span> <span class="operator">+.</span> <span class="">m_platform</span>))
+<span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">simu</span> (<span class="">x_init</span>) = <span class="">x</span>, <span class="">xp</span> <span class="keyword ">where</span>
+  <span class="keyword ">rec</span> <span class="">z</span> = <span class="keyword expr ">up</span>(<span class="">xp</span> -. <span class="">x</span>)
+  <span class="keyword ">and</span> <span class="">rv</span> = (<span class="number">2.</span> <span class="operator">*.</span> <span class="">mp</span> <span class="operator">*.</span> <span class="keyword expr ">last</span> <span class="">vp</span> -. <span class="">mp</span> <span class="operator">*.</span> <span class="keyword expr ">last</span> <span class="">v</span> <span class="operator">+.</span> <span class="">m</span> <span class="operator">*.</span> <span class="keyword expr ">last</span> <span class="">v</span>) <span class="operator">/.</span> (<span class="">mp</span> <span class="operator">+.</span> <span class="">m</span>)
+  <span class="keyword ">and</span> <span class="">rvp</span> = (<span class="number">2.</span> <span class="operator">*.</span> <span class="">m</span> <span class="operator">*.</span> <span class="keyword expr ">last</span> <span class="">v</span> -. <span class="">m</span> <span class="operator">*.</span> <span class="keyword expr ">last</span> <span class="">vp</span> <span class="operator">+.</span> <span class="">mp</span> <span class="operator">*.</span> <span class="keyword expr ">last</span> <span class="">vp</span>) <span class="operator">/.</span> (<span class="">mp</span> <span class="operator">+.</span> <span class="">m</span>)
+  <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">v</span> = -.<span class="">g</span> <span class="keyword ">init</span> <span class="number">0.0</span> <span class="keyword ">reset</span> <span class="">z</span> -&gt; <span class="">rv</span>
+  <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">vp</span> = -. (<span class="">k</span> <span class="operator">/.</span> <span class="">mp</span>)  <span class="operator">*.</span> <span class="">xp</span> -. (<span class="">f</span> <span class="operator">/.</span> <span class="">mp</span>) <span class="operator">*.</span> <span class="">vp</span> <span class="keyword ">init</span> <span class="number">0.0</span> <span class="keyword ">reset</span> <span class="">z</span> -&gt; <span class="">rvp</span>
+  <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">x</span> = <span class="">v</span> <span class="keyword ">init</span> <span class="">x_init</span>
+  <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">xp</span> = <span class="">vp</span> <span class="keyword ">init</span> <span class="number">0.0</span>
 
-      | <span class="constructor">Stuck</span>(<span class="">z_init</span>, <span class="">v_init</span>) -&gt;
-        <span class="keyword ">local</span> <span class="">a_platform</span> <span class="keyword ">in</span>
-        <span class="keyword ">do</span>
-              <span class="">a_platform</span> =  -.(<span class="">k</span><span class="operator">/.</span>(<span class="">m_platform</span> <span class="operator">+.</span> <span class="">m_ball</span>))
-                                  <span class="operator">*.</span> (<span class="">z_platform</span> -. <span class="">base_level</span>)
-                            -. (<span class="">f</span><span class="operator">/.</span>(<span class="">m_platform</span> <span class="operator">+.</span> <span class="">m_ball</span>)) <span class="operator">*.</span> <span class="">v_platform</span>
-          <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">z</span> = <span class="">v_platform</span> <span class="keyword ">init</span> (<span class="">z_init</span> <span class="operator">+.</span> <span class="">radius</span>)
-          <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">v</span> = <span class="">a_platform</span> <span class="keyword ">init</span> <span class="">v_init</span>
-          <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">z_platform</span> = <span class="">v_platform</span> <span class="keyword ">init</span> <span class="">z_init</span>
-          <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">v_platform</span> = <span class="">a_platform</span> <span class="keyword ">init</span> <span class="">v_init</span>
-          <span class="keyword ">and</span> <span class="">mode</span> = <span class="number">1.0</span>
-        <span class="keyword ">until</span> <span class="keyword expr ">up</span>(-.(<span class="">m_ball</span> <span class="operator">*.</span> (<span class="">a_platform</span> <span class="operator">+.</span> <span class="">f_scratch</span>)))
-          <span class="keyword ">then</span> <span class="constructor">Fall</span>(<span class="">z</span>,
-                    (<span class="">m_ball</span><span class="operator">/.</span>(<span class="">m_ball</span> <span class="operator">+.</span> <span class="">m_platform</span>)) <span class="operator">*.</span> <span class="">v</span>,
-                    <span class="">z_platform</span>,
-                    (<span class="">m_platform</span><span class="operator">/.</span>(<span class="">m_ball</span> <span class="operator">+.</span> <span class="">m_platform</span>)) <span class="operator">*.</span> <span class="">v_platform</span>)
-
-      <span class="keyword ">init</span> <span class="constructor">Fall</span>(<span class="">z0</span>, <span class="">v0</span>, <span class="">base_level</span>, <span class="number">0.5</span>)
-
-   <span class="comment">(* Graph the results via gnuplot *)</span>
-   <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">t</span> = <span class="number">1.0</span> <span class="keyword ">init</span> <span class="number">0.0</span>
-   <span class="keyword ">and</span> _ = <span class="keyword ">present</span> (<span class="keyword expr ">period</span> (<span class="number">0.1</span>)) | (<span class="keyword ">init</span>) -&gt;
-             <span class="keyword ">let</span> <span class="">a_platform</span> = -.(<span class="">k</span><span class="operator">/.</span>(<span class="">m_platform</span> <span class="operator">+.</span> <span class="">m_ball</span>))
-                                    <span class="operator">*.</span> (<span class="">z_platform</span> -. <span class="">base_level</span>)
-                              -. (<span class="">f</span><span class="operator">/.</span>(<span class="">m_platform</span> <span class="operator">+.</span> <span class="">m_ball</span>)) <span class="operator">*.</span> <span class="">v_platform</span>
-             <span class="keyword ">in</span>
-             <span class="keyword ">let</span> <span class="">pos</span> = <span class="">scope2</span> (<span class="number">0.0</span>, <span class="number">100.0</span>, (<span class="string">"ball"</span>, <span class="">linear</span>, <span class="">z</span>),
-                                           (<span class="string">"platform"</span>, <span class="">linear</span>, <span class="">z_platform</span>))
-             <span class="keyword ">in</span>
-             <span class="keyword ">let</span> <span class="">other</span> = <span class="">scope3</span> (-<span class="number">10.0</span>, <span class="number">10.0</span>,
-                   (<span class="string">"mode"</span>, <span class="">square</span>, <span class="">mode</span>),
-                   (<span class="string">"zfall"</span>,  <span class="">linear</span>, -.<span class="">z</span> <span class="operator">+.</span> <span class="">z_platform</span> <span class="operator">+.</span> <span class="">radius</span>),
-                   (<span class="string">"zstuck"</span>, <span class="">linear</span>, -.(<span class="">m_ball</span> <span class="operator">*.</span> (<span class="">a_platform</span> <span class="operator">+.</span> <span class="">f_scratch</span>))))
-             <span class="keyword ">in</span>
-             <span class="keyword ">let</span> <span class="">w1</span> = <span class="">window2</span>(<span class="string">"ball_spring"</span>, <span class="number">20.0</span>, <span class="">t</span>, <span class="">pos</span>, <span class="">other</span>) <span class="keyword ">in</span>
-             ()
+  <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">t</span> = <span class="number">1.0</span> <span class="keyword ">init</span> <span class="number">0.0</span>
+  <span class="keyword ">and</span> _ = <span class="keyword ">present</span> (<span class="keyword expr ">period</span> (<span class="number">0.01</span>)) | (<span class="keyword ">init</span>) -&gt;
+    <span class="keyword ">let</span> <span class="">pos</span> = <span class="">scope2</span> (<span class="number">0.0</span>, <span class="number">100.0</span>, (<span class="string">"ball"</span>, <span class="">linear</span>, <span class="">x</span>),
+                      (<span class="string">"platform"</span>, <span class="">linear</span>, <span class="">xp</span>))
+    <span class="keyword ">in</span>
+    <span class="keyword ">let</span> <span class="">w1</span> = <span class="">window</span>(<span class="string">"ball_spring"</span>, <span class="number">20.0</span>, <span class="">t</span>, <span class="">pos</span>) <span class="keyword ">in</span>
+    ()
 
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">main</span> () = () <span class="keyword ">where</span>
   <span class="keyword ">rec</span> <span class="">t</span> = <span class="keyword expr ">period</span> (<span class="number">0.1</span>)
-  <span class="keyword ">and</span> <span class="">z</span>, <span class="">z_platform</span> = <span class="">system</span>(<span class="number">40.0</span>, <span class="number">3.0</span>, <span class="">radius</span>)
-  <span class="keyword ">and</span> _ = <span class="keyword ">present</span> <span class="">t</span> | (<span class="keyword ">init</span>) -&gt; <span class="">draw_ball_platform</span>(<span class="">z</span>, <span class="">z_platform</span>, <span class="">radius</span>)
-
+  <span class="keyword ">and</span> <span class="">x</span>, <span class="">xp</span> = <span class="">simu</span>(<span class="number">10.</span>)
+  <span class="keyword ">and</span> <span class="">z</span> = <span class="">x</span> <span class="operator">+.</span> <span class="">base_level</span>
+  <span class="keyword ">and</span> <span class="">zp</span> = <span class="">xp</span> <span class="operator">+.</span> <span class="">base_level</span> -. <span class="">radius</span>
+  <span class="keyword ">and</span> _ = <span class="keyword ">present</span> <span class="">t</span> | (<span class="keyword ">init</span>) -&gt; <span class="">draw_ball_platform</span>(<span class="">z</span>, <span class="">zp</span>, <span class="">radius</span>)
 </code></pre></div></div></div></div>
 </div><hr>
 <div id="ex-soas_relaycontrol" class="example-section">
@@ -1116,7 +1077,8 @@ value (which decreases exponentially after a collision).</p>
           <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">v2</span> = <span class="">y_dot_dot</span>
           <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">stickiness</span> = -. <span class="">stickiness</span> <span class="operator">/.</span> <span class="">tau</span> <span class="keyword ">init</span> <span class="">stickiness_max</span>
           <span class="keyword ">and</span> <span class="">stickiness_out</span> = <span class="">stickiness</span>
-          <span class="keyword ">until</span> <span class="keyword expr ">up</span> (<span class="">pull</span> -. <span class="">stickiness</span>) <span class="keyword ">then</span> <span class="constructor">Apart</span>
+          <span class="keyword ">until</span> (<span class="keyword ">init</span>) <span class="keyword expr ">on</span> (<span class="">pull</span> &gt;= <span class="">stickiness</span>) <span class="keyword ">then</span> <span class="constructor">Apart</span>
+           <span class="keyword ">else</span> <span class="keyword expr ">up</span> (<span class="">pull</span> -. <span class="">stickiness</span>) <span class="keyword ">then</span> <span class="constructor">Apart</span>
 
 <span class="comment">(* ** plotting ** *)</span>
 
@@ -2020,17 +1982,18 @@ and instantaneously.</p>
 <span class="keyword keyword module ">open</span> <span class="constructor">Airtrafficgui</span>
 
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">main</span> () = () <span class="keyword ">where</span>
-  <span class="keyword ">rec</span> <span class="">p</span> = <span class="keyword expr ">period</span> (<span class="number">0.1</span>)
+  <span class="keyword ">rec</span> <span class="">p</span> = <span class="keyword expr ">period</span> <span class="number">0.1</span>(<span class="number">0.1</span>)
 
   <span class="keyword ">and</span> (<span class="">click</span>, (<span class="">nxr</span>, <span class="">nyr</span>), (<span class="">ntheta_r</span>, <span class="">nd</span>)) =
     <span class="keyword ">present</span> <span class="">p</span> -&gt; <span class="">sample</span> ()
     <span class="keyword ">init</span> (<span class="keyword constant ">false</span>, (<span class="">aircraft2_xi</span>, <span class="">aircraft2_yi</span>), (<span class="">aircraft2_thetai</span>, <span class="number">0.0</span>))
 
   <span class="keyword ">and</span> <span class="keyword ">automaton</span>
-      <span class="constructor">S1</span> -&gt; <span class="keyword ">do</span>
-        (<span class="">st</span>, <span class="">xr</span>, <span class="">yr</span>, <span class="">theta_r</span>, <span class="">t</span>) =
-          <span class="">avoidance</span> (<span class="">nxr</span>, <span class="">nyr</span>, <span class="">ntheta_r</span>, <span class="">aircraft1_v</span>, <span class="">aircraft2_v</span>)
-      <span class="keyword ">until</span> <span class="">p</span> <span class="keyword expr ">on</span> <span class="">click</span> <span class="keyword ">then</span> <span class="constructor">S1</span>
+	<span class="constructor">S1</span> -&gt;
+	  <span class="keyword ">do</span>
+            (<span class="">st</span>, <span class="">xr</span>, <span class="">yr</span>, <span class="">theta_r</span>, <span class="">t</span>) =
+               <span class="">avoidance</span> (<span class="">nxr</span>, <span class="">nyr</span>, <span class="">ntheta_r</span>, <span class="">aircraft1_v</span>, <span class="">aircraft2_v</span>)
+          <span class="keyword ">until</span> <span class="">p</span> <span class="keyword expr ">on</span> <span class="">click</span> <span class="keyword ">then</span> <span class="constructor">S1</span>
 
   <span class="keyword ">and</span> _ = <span class="keyword ">present</span> <span class="">p</span> -&gt; <span class="">showupdate</span> (<span class="">d</span>, <span class="">delta_phi</span>, <span class="">radius_alert</span>,
                                    <span class="">radius_protected</span>, <span class="number">0.0</span>,
