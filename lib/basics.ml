@@ -39,3 +39,11 @@ let float_eq max_relative_error f1 f2 =
 (* 99.9999% accuracy *)
 let (=~=) = float_eq 0.000001
 
+(* Horrible hack to get at the major time step without holding a reference to
+   the current solver. *)
+let is_major_step = ref false
+
+let set_major_step x = is_major_step := x
+let major_step () = !is_major_step
+let minor_step () = not !is_major_step
+

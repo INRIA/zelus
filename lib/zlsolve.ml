@@ -370,6 +370,8 @@ struct (* {{{ *)
     let step () =
       match !simstate with
       | SimI { discrete_ready = false; reset_required } -> begin
+          Basics.set_major_step true;
+
           (* INITIAL CALL: first part, discrete steps *)
           if reset_required then begin
             print_help_key ();
@@ -393,6 +395,8 @@ struct (* {{{ *)
 
       | SimI { discrete_ready = true; init_horizon } -> begin
           (* INITIAL CALL: second part, solver initialization *)
+          Basics.set_major_step true;
+
           if not !always_reinit
             then Bigarray.Array1.blit cstates pre_cstates;
 
@@ -423,6 +427,8 @@ struct (* {{{ *)
       | SimC ({ ssolver = ss; zsolver = zs; t_sim = last_t;
                 t_nextmesh; t_horizon; needs_reset } as params) -> (try
           (* CONTINUOUS CALL(S) *)
+          Basics.set_major_step false;
+
           if needs_reset then (SSolver.reinitialize ss last_t cstates_nv;
                                ZSolver.reinitialize zs last_t cstates);
 
@@ -491,6 +497,8 @@ struct (* {{{ *)
       | SimD ({ ssolver = ss; zsolver = zs;
                 t_sim; after_c; needs_reset; roots_valid } as params) -> begin
           (* DISCRETE CALL *)
+          Basics.set_major_step true;
+
           let step_out, step_status =
             d_main t_sim (if after_c && roots_valid
                           then roots else no_roots_in) in

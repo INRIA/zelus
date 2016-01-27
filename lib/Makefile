@@ -22,8 +22,8 @@ SOLVER_OBJS = solvers/illinois.cmo  \
 	      $(OPTIONAL_SOLVER_OBJS)
 
 OBJ = zls.cmo \
-      zlsolve.cmo \
       basics.cmo \
+      zlsolve.cmo \
       $(SOLVER_OBJS) \
       defaultsolver.cmo \
       dump.cmo \
