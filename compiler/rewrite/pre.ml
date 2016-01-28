@@ -96,6 +96,10 @@ let rec exp subst e =
      let x = Ident.fresh "m" in
      let_state_value x e1 None (last x e1.e_typ)
   | Eapp(Eup, [e1]) ->
+     (* let e1 = exp subst e1 in
+     (* turns it into [let [zero] x = e1 in up(x)] *)
+     let x = Ident.fresh "m" in
+     let_zero_value x e1 (Zaux.up(var x e1.e_typ)) *)
      let e1 = exp subst e1 in
      (* turns it into [let x = up(e1) in x] *)
      let x = Ident.fresh "m" in

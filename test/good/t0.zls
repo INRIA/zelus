@@ -1,15 +1,14 @@
 open Graphics
 
-let hybrid derivative(k1, k2, x) = x' where
-  rec der x' = k1 *. x -. k2 *. x'
+let hybrid ff(x, e) =
+  match x with
+  | true -> present up(e +. 0.0) -> 2 else 0
+  | false -> present up(e) -> 1 else 0
 
+      (*
 let node f1 x =
   let rec init o = x  and o = last o + 1 in o
     
-let hybrid f0 x =
-  let rec init o = x + 1
-  and o = last o + 1 in o
-
 let hybrid h (z) = () where
   rec t2 = 1
   and present z -> do x = last t2 + 1 done else do x = 0 done
@@ -28,7 +27,8 @@ let hybrid f (z) = y where
 
 let hybrid main (z) = y where
   rec der y = 1.0 init -1.0 reset z -> -2.0
-  
+       *)
+      
 (* let hybrid main () = () where
   rec t2 = 1
   and x = last t2 + 1

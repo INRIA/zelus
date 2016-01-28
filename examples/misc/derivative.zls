@@ -16,14 +16,15 @@ let hybrid main () =
   let der t = 1.0 init 0.0 in
   let x = sin (t) in
   (* let x = t *. t in *)
-  let x' = derivative(0.01, x) in
+  let x' = derivative(0.0001, x) in
   let x'_ref = cos (t) in
-  present
-    (period (0.1)) ->
+   let error = abs_float (x' -. x'_ref) in
+   present
+    (period (0.001)) ->
        let x = Scope.scope (-2.0, 2.0, ("x =", Scope.linear, x))
        and x' = Scope.scope (-2.0, 2.0, ("x' =", Scope.linear, x'))
        and x_ref =
-                Scope.scope (-2.0, 2.0, ("x'_ref =", Scope.linear, x'_ref)) in
+                Scope.scope (-2.0, 2.0, ("error =", Scope.linear, error)) in
        Scope.window3 ("derivative", 8.0, t, x, x', x_ref)
   else ()
 

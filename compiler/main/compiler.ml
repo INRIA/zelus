@@ -237,6 +237,11 @@ let compile modname filename =
 	comment "Add copies for [last x] to remore false cycles. See below:";
       if !verbose then Printer.implementation_list info_ff impl_list;
       
+      (* Sharing of zero-crossings *)
+      let impl_list = Zopt.implementation_list impl_list in
+      if !verbose then comment "Sharing of zero-crossings. See below:";
+      if !verbose then Printer.implementation_list info_ff impl_list;
+      
       (* actualize the set of write variable in every block *)
       let impl_list = Write.implementation_list impl_list in
       if !verbose then comment 

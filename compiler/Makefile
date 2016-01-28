@@ -74,6 +74,7 @@ REWRITE = rewrite/markfunctions.cmo \
 	rewrite/control.cmo \
 	rewrite/cse.cmo \
 	rewrite/cut.cmo \
+	rewrite/zopt.cmo \
 	rewrite/schedule.cmo \
 	rewrite/copy.cmo \
 	rewrite/deadcode.cmo
