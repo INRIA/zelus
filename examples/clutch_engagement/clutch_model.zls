@@ -45,50 +45,49 @@ let hybrid clutch (f_n, t_in) = t_fmaxs, t_fmaxk, w_e, w_v, w where
   and t_fmaxs, t_fmaxk = friction_model(f_n)
   and automaton
       | Slipping ->
-          local s_torque in do
-                s_torque = abs_float ((t_in -. w_e *. (b_e +. b_v)) *. i_v /. (i_v +. i_e)
-                                      +. b_v *. w_e)
-
+          local s_torque in
+            do  s_torque =
+	           abs_float
+		     ((t_in -. w_e *. (b_e +. b_v)) *. i_v /. (i_v +. i_e)
+                        +. b_v *. w_e)
             and der w_e = ( t_in -. b_e *. w_e -. t_c1) /. i_e
             and der w_v = ( t_c1 -. b_v *. w_v) /. i_v
-
-            and t_c1 = sgn(w_e -. w_v) *. t_fmaxk
-
-          until up(t_fmaxs -. s_torque) on (w_e =~= w_v) then do w = w_e in Locked
-           else up(w_e -. w_v) on (s_torque < t_fmaxs) then do w = w_e in Locked
-           else up(w_v -. w_e) on (s_torque < t_fmaxs) then do w = w_e in Locked
-
+	    and t_c1 = sgn(w_e -. w_v) *. t_fmaxk
+	    until
+	      up(t_fmaxs -. s_torque) on (w_e =~= w_v) then do w = w_e in Locked
+            else
+	      up(w_e -. w_v) on (s_torque < t_fmaxs) then do w = w_e in Locked
+            else
+	      up(w_v -. w_e) on (s_torque < t_fmaxs) then do w = w_e in Locked
       | Locked ->
-          local l_torque in do
-                l_torque = abs_float((i_v *. t_in -. (i_v *. b_e -. i_e *. b_v) *. w)
-                                     /. (i_v +. i_e))
+          local l_torque in
+            do l_torque =
+	      abs_float((i_v *. t_in -. (i_v *. b_e -. i_e *. b_v) *. w)
+                          /. (i_v +. i_e))
             and der w = (t_in -. b_e *. w -. b_v *. w) /. (i_v +. i_e)
-          until up(l_torque -. t_fmaxs) then do w_e = last w and w_v = last w in Slipping
-
+            until
+	      up(l_torque -. t_fmaxs)
+	      then do w_e = last w and w_v = last w in Slipping
+      end
+      
 let hybrid simulation () = (t, t_in, f_n, t_fmaxs, t_fmaxk, w_e, w_v, w) where
   rec der t = 1.0 init 0.0
-
   (* The inputs *)
   and automaton
-  | High    -> do t_in = 2.0
-               until (up (t -. 5.0)) then Falling
-
-  | Falling -> do t_in = 2.0 -. 2.0 *. (t -. 5.0)
-               until (up (t -. 6.0)) then Low
-
-  | Low     -> do t_in = 0.0 done
-
+      | High -> do t_in = 2.0
+                until (up (t -. 5.0)) then Falling
+      | Falling -> do t_in = 2.0 -. 2.0 *. (t -. 5.0)
+                   until (up (t -. 6.0)) then Low
+      | Low     -> do t_in = 0.0 done
+      end
   and automaton
-  | Rising  -> do f_n = 0.8 *. t
-               until (up (t -. 2.0)) then Flat
-
-  | Flat    -> do f_n = 1.6
-               until (up(t -. 5.0)) then Falling
-
-  | Falling -> do f_n = 1.6 -. 0.8 *. (t -. 5.0)
-               until (up(t -. 7.0)) then Low
-
-  | Low     -> do f_n = 0.0 done
-
+      | Rising  -> do f_n = 0.8 *. t
+                   until (up (t -. 2.0)) then Flat
+      | Flat -> do f_n = 1.6
+                until (up(t -. 5.0)) then Falling
+      | Falling -> do f_n = 1.6 -. 0.8 *. (t -. 5.0)
+                   until (up(t -. 7.0)) then Low
+      | Low -> do f_n = 0.0 done
+      end
   (* The Clutch *)
   and t_fmaxs, t_fmaxk, w_e, w_v, w = clutch(f_n,t_in)
