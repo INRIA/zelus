@@ -4,7 +4,7 @@ let hybrid main () =
   let (t, t_in, f_n, t_fmaxs, t_fmaxk, w_e, w_v, w) =
     Clutch_model.simulation () in
   (* Plotting in/outputs *)
-  present (period(0.01)) ->
+  present (period(0.005)) ->
     let inputs  = scope3(0.0, 2.0, ("Tin",     linear, t_in),
                                    ("Tfmaxs",  linear, t_fmaxs),
                                    ("Tfmaxk",  linear, t_fmaxk)) in
