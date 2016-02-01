@@ -88,6 +88,11 @@ let period time { p_phase = p1_opt; p_period = p2 } =
   make_let env eq_list (bool_var z)
 
 (* Translation of discrete zero-crossings into synchronous code *)
+(* Use an unsafe construction "major_step" *)
+let major_step =
+  Zaux.emake (Eapp(Eop(false, Modname { qual = "Basics"; id = "major_step" }),
+		   [Zaux.evoid]))
+	     Initial.typ_zero
 let disc e =
   if Unsafe.exp e
   then (* disc(e)] = [let x = e in x <> (x fby x)] *)
@@ -95,8 +100,8 @@ let disc e =
     let env = Env.singleton x { t_sort = Deftypes.value;
 				t_typ = e.e_typ } in
     let xv = var x e.e_typ in
-    make_let env [eq_make x e] (diff xv (fby xv xv))
-  else diff e (fby e e)
+    make_let env [eq_make x e] (Zaux.on_op major_step (diff xv (fby xv xv)))
+  else Zaux.on_op major_step (diff e (fby e e))
 
 (* Add an extra input parameter for hybrid nodes *)
 let extra_input time env pat_list = 

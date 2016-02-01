@@ -68,6 +68,7 @@ val ldexp : float * int -> float
 val modf : float -AD-> float * float
 val float : int -> float
 val float_of_int : int -> float
+val float_abs : float -> float
 val truncate : float -AD-> int
 val int_of_float : float -AD-> int
 val infinity : float

@@ -29,11 +29,17 @@ let hybrid sgn(x) = o where
 let epsilon = 0.01
 
 let float_bool x = if x then 1.0 else -1.0
-  
+
 let hybrid sgn(x) = float_bool o where
+  rec x_abs = float_abs(x) -. epsilon
+  and o = present up(x) | up(-. x) (* | (disc(x)) *) ->
+		     (x >= 0.0) init (x >= 0.0)
+(*
   rec o =
     present up(x +. epsilon) | up(-. x -. epsilon) -> (x >= 0.0)
     init (x >= 0.0)
+*)
+
 
                                                              
 
@@ -65,13 +71,11 @@ let hybrid clutch (f_n, t_in) = t_fmaxs, t_fmaxk, w_e, w_v, w where
                         +. b_v *. w_e)
             and der w_e = ( t_in -. b_e *. w_e -. t_c1) /. i_e
             and der w_v = ( t_c1 -. b_v *. w_v) /. i_v
-            and t_c1 = sgn(w_e -. w_v) *. t_fmaxk
-            until
-              up(t_fmaxs -. s_torque) on (w_e =~= w_v) then do w = w_e in Locked
-            else
-              up(w_e -. w_v) on (s_torque < t_fmaxs) then do w = w_e in Locked
-            else
-              up(w_v -. w_e) on (s_torque < t_fmaxs) then do w = w_e in Locked
+	    and t_c1 = sgn(w_e -. w_v) *. t_fmaxk
+	    until
+	      up(t_fmaxs -. s_torque) on (w_e =~= w_v)
+            | up(w_e -. w_v) on (s_torque < t_fmaxs)
+            | up(w_v -. w_e) on (s_torque < t_fmaxs) then do w = w_e in Locked
       | Locked ->
           local l_torque in
             do l_torque =
@@ -83,7 +87,8 @@ let hybrid clutch (f_n, t_in) = t_fmaxs, t_fmaxk, w_e, w_v, w where
             then do w_e = last w and w_v = last w in Slipping
       end
       
-let hybrid simulation () = (t, t_in, f_n, t_fmaxs, t_fmaxk, w_e, w_v, w) where
+let hybrid simulation () =
+  (t, t_in, f_n, t_fmaxs, t_fmaxk, w_e, w_v, w) where
   rec der t = 1.0 init 0.0
   (* The inputs *)
   and automaton
@@ -100,6 +105,36 @@ let hybrid simulation () = (t, t_in, f_n, t_fmaxs, t_fmaxk, w_e, w_v, w) where
                 until (up(t -. 5.0)) then Falling
       | Falling -> do f_n = 1.6 -. 0.8 *. (t -. 5.0)
                    until (up(t -. 7.0)) then Low
+      | Low -> do f_n = 0.0 done
+      end
+  (* The Clutch *)
+  and t_fmaxs, t_fmaxk, w_e, w_v, w = clutch(f_n,t_in)
+
+(* The clutch is simulated on a sequential scenario:
+ * - t_in = 2.0 for 5 seconds;
+ * - t_in = 2.0 - 2.0 (t - 5.0) for 1 second;
+ * - t_in = 0.0 for the rest of the simulation
+In parallel:
+ * - f_n = 0.8 * time for 2 seconds;
+ * - f_n = 1.6 for 3 seconds;
+ * - f_n = 1.6 - 0.8 * (time - 5.0) *)
+let hybrid simulation_with_period () =
+  (time, t_in, f_n, t_fmaxs, t_fmaxk, w_e, w_v, w) where
+  rec der time = 1.0 init 0.0
+  and automaton
+      | High -> do t_in = 2.0
+                until (period 5.0(5.0)) then Falling
+      | Falling -> do t_in = 2.0 -. 2.0 *. (time -. 5.0)
+                   until (period 1.0(1.0)) then Low
+      | Low     -> do t_in = 0.0 done
+      end
+  and automaton
+      | Rising  -> do f_n = 0.8 *. time
+                   until (period 2.0(2.0)) then Flat
+      | Flat -> do f_n = 1.6
+                until (period 3.0(3.0)) then Falling
+      | Falling -> do f_n = 1.6 -. 0.8 *. (time -. 5.0)
+                   until (period 2.0(2.0)) then Low
       | Low -> do f_n = 0.0 done
       end
   (* The Clutch *)

@@ -2,7 +2,7 @@ open Graphics
 
 let hybrid ff(x, e) =
   match x with
-  | true -> present up(e +. 0.0) -> 2 else 0
+  | true -> present (up(e +. 0.0)) on x | up(e) -> 2 else 0
   | false -> present up(e) -> 1 else 0
 
       (*

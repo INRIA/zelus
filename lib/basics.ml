@@ -47,3 +47,5 @@ let set_major_step x = is_major_step := x
 let major_step () = !is_major_step
 let minor_step () = not !is_major_step
 
+let on x y = x && y
+		    

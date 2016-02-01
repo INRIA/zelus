@@ -39,7 +39,6 @@ let wildpat = pmake (Ewildpat) Deftypes.no_typ
 let zero = emake (Econst(Efloat(0.0))) Initial.typ_float
 let infinity = 
   emake (Eglobal(Modname(Initial.pervasives_name "infinity"))) typ_float
-
 let tproduct ty_list = Deftypes.make (Tproduct(ty_list))
 let tuplepat pat_list = 
   let ty_list = List.map (fun { p_typ = ty } -> ty) pat_list in
@@ -79,6 +78,7 @@ let plus e1 e2 = binop "+." e1 e2 Initial.typ_float
 let minus e1 e2 = binop "-." e1 e2 Initial.typ_float
 let diff e1 e2 = binop "<>" e1 e2 Initial.typ_float
 let or_op e1 e2 = binop "||" e1 e2 Initial.typ_bool
+let on_op e1 e2 = binop "on" e1 e2 Initial.typ_zero
 let min_op e1 e2 = binop "min" e1 e2 Initial.typ_float
 let greater_or_equal e1 e2 = binop ">=" e1 e2 Initial.typ_bool
 let up e = emake (Eapp(Eup, [e])) Initial.typ_zero
