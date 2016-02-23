@@ -149,6 +149,11 @@ let rec expression ({ e_desc = desc } as e) =
      let ctx = local l in
      let e_let, ctx_let = expression e_let in
      e_let, State.seq ctx ctx_let
+  | Eblock({ b_locals = l_list; b_env = b_env; b_body = eq_list }, e) ->
+     let l_ctx = local_list l_list in
+     let b_ctx = equation_list eq_list in
+     let e, ctx_e = expression e in
+     e, State.seq l_ctx (State.seq (extend b_env b_ctx) ctx_e)
   | Eseq(e1, e2) ->
      (* [e1; e2] is a short-cut for [let x = e1 in e2 after x] *)
      let e1, ctx1 = expression e1 in

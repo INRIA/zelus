@@ -96,10 +96,6 @@ let rec exp subst e =
      let x = Ident.fresh "m" in
      let_state_value x e1 None (last x e1.e_typ)
   | Eapp(Eup, [e1]) ->
-     (* let e1 = exp subst e1 in
-     (* turns it into [let [zero] x = e1 in up(x)] *)
-     let x = Ident.fresh "m" in
-     let_zero_value x e1 (Zaux.up(var x e1.e_typ)) *)
      let e1 = exp subst e1 in
      (* turns it into [let x = up(e1) in x] *)
      let x = Ident.fresh "m" in
@@ -116,6 +112,8 @@ let rec exp subst e =
      { e with e_desc = Etypeconstraint(exp subst e1, ty) }
   | Elet(l, e) -> 
      let l, subst = local subst l in { e with e_desc = Elet(l, exp subst e) }
+  | Eblock(b, e) -> 
+     let b, subst = block subst b in { e with e_desc = Eblock(b, exp subst e) }
   | Eseq(e1, e2) -> 
      { e with e_desc = Eseq(exp subst e1, exp subst e2) }
   | Epresent _ | Ematch _ -> assert false
@@ -138,7 +136,8 @@ and equation subst eq_list ({ eq_desc = desc } as eq) =
      { eq with eq_desc = EQinit(x, exp subst e0) } :: eq_list
   | EQmatch(total, e, p_h_list) ->
      let p_h_list = 
-       List.map (fun ({ m_body = b } as h) -> { h with m_body = block subst b }) 
+       List.map (fun ({ m_body = b } as h) -> let b, _ = block subst b in
+					      { h with m_body = b }) 
 		p_h_list in
      { eq with eq_desc = EQmatch(total, exp subst e, p_h_list) } :: eq_list
   | EQreset(res_eq_list, e) ->
@@ -146,7 +145,8 @@ and equation subst eq_list ({ eq_desc = desc } as eq) =
      { eq with eq_desc = EQreset(res_eq_list, exp subst e) } :: eq_list
   | EQder(n, e, None, []) ->
      { eq with eq_desc = EQder(n, exp subst e, None, []) } :: eq_list
-  | EQblock(b) -> { eq with eq_desc = EQblock(block subst b) } :: eq_list
+  | EQblock(b) -> let b, _ = block subst b in
+		  { eq with eq_desc = EQblock(b) } :: eq_list
   | EQpresent _ | EQautomaton _ | EQder _ | EQemit _ -> assert false
 							       
 and equation_list subst eq_list = List.fold_left (equation subst) [] eq_list
@@ -161,7 +161,7 @@ and block subst ({ b_locals = l_list; b_body = eq_list; b_env = b_env } as b) =
       (fun (l_list, subst) l -> let l, subst = local subst l in l :: l_list, subst)
       ([], subst) l_list in
   let eq_list = equation_list subst eq_list in
-  { b with b_locals = List.rev l_list; b_body = eq_list; b_env = b_env }
+  { b with b_locals = List.rev l_list; b_body = eq_list; b_env = b_env }, subst
   
 and local subst ({ l_eq = l_eq_list; l_env = l_env } as l) =
   let l_env, subst = env subst l_env in

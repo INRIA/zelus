@@ -62,6 +62,8 @@ let cost_less e max =
       | Etypeconstraint(e, _) -> cost e
       | Elet(local, e_let) ->
           cost_local local; cost e_let
+      | Eblock(b, e_block) ->
+	 cost_block b; cost e_block
       | Epresent _ | Ematch _ -> assert false
   and cost_op op = 
     match op with 
@@ -248,6 +250,9 @@ let rec expression renaming ({ e_desc = desc } as e) =
   | Elet(l, e_let) ->
      let renaming, l = local renaming l in
      { e with e_desc = Elet(l, expression renaming e_let) }
+  | Eblock(b, e_block) ->
+     let renaming, b = block renaming b in
+     { e with e_desc = Eblock(b, expression renaming e_block) }
   | Epresent _ | Ematch _ -> assert false
 				    
 (** Renaming a local declaration *)

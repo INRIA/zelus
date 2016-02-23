@@ -129,10 +129,7 @@ let rec rename_expression ren ({ e_desc = desc } as e) =
      { e with e_desc = Etypeconstraint(rename_expression ren e1, ty) }      
   | Eseq(e1, e2) ->
      { e with e_desc = Eseq(rename_expression ren e1, rename_expression ren e2) }
-  | Elet(l, e_let) ->
-     let l = rename_local ren l in
-     { e with e_desc = Elet(l, rename_expression ren e_let) }
-  | Eperiod _ | Epresent _ | Ematch _ -> assert false
+  | Eperiod _ | Epresent _ | Ematch _ | Elet _ | Eblock _ -> assert false
 						
 and rename_local ren ({ l_eq = eq_list } as l) =
   let eq_list = rename_equation_list ren eq_list in

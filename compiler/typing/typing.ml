@@ -566,6 +566,9 @@ let rec expression expected_k h ({ e_desc = desc; e_loc = loc } as e) =
     | Elet(l, e) ->
         let h = local expected_k h l in
         expression expected_k h e
+    | Eblock(b, e) ->
+        let h, _ = block_eq_list expected_k h b in
+        expression expected_k h e
     | Eseq(e1, e2) -> 
         ignore (expression expected_k h e1);
         expression expected_k h e2

@@ -310,7 +310,7 @@ let rec exp env { Zelus.e_desc = desc } =
        let ctx_op, e_step = apply (Some(e)) op e_list in
        seq ctx_e (seq ctx ctx_op), e_step
     | Zelus.Elet _ | Zelus.Eseq _ | Zelus.Eapp _ | Zelus.Eperiod _ 
-    | Zelus.Epresent _ | Zelus.Ematch _ -> assert false
+    | Zelus.Epresent _ | Zelus.Ematch _ | Zelus.Eblock _ -> assert false
 
 and exp_list env e_list =
   match e_list with

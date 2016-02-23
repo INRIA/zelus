@@ -120,6 +120,7 @@ and expression ({ e_desc = desc } as e) =
        Erecord(List.map (fun (l, e) -> (l, expression e)) l_e_list)
     | Etypeconstraint(e, ty) -> Etypeconstraint(expression e, ty)
     | Elet(l, e) -> Elet(local l, expression e)
+    | Eblock(b, e) -> let b, _, _ = block b in Eblock(b, expression e)
     | Eseq(e1, e2) -> Eseq(expression e1, expression e2)
     | Epresent _ | Ematch _ -> assert false in
   { e with e_desc = desc }

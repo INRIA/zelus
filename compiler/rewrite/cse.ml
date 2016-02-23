@@ -67,11 +67,7 @@ let rec exp subst e =
         { e with e_desc = Etypeconstraint(exp subst e1, ty) }
     | Eseq(e1, e2) ->
         { e with e_desc = Eseq(exp subst e1, exp subst e2) }
-    | Elet(l, e_let) ->
-       (* lets are supposed to be normalized, i.e., no more *)
-       (* stateful functions inside *)
-       { e with e_desc = Elet(local subst l, exp subst e_let) }
-    | Eperiod _ | Epresent _ | Ematch _ -> assert false
+    | Eperiod _ | Epresent _ | Ematch _ | Elet _ | Eblock _ -> assert false
     
 (* [equation subst eq = eq'] apply a substitution to eq. *)
 and equation subst eq =

@@ -133,6 +133,8 @@ let rec expression time ({ e_desc = e_desc } as e) =
      { e with e_desc = Etypeconstraint(expression time e, ty) }
   | Elet(l, e) ->
      { e with e_desc = Elet(local time l, expression time e) }
+  | Eblock(b, e) ->
+     { e with e_desc = Eblock(block time b, expression time e) }
   | Eseq(e1, e2) ->
      { e with e_desc = Eseq(expression time e1, expression time e2) }
   | Elocal _ | Eglobal _ | Econst _ | Econstr0 _ | Elast _ -> e

@@ -85,6 +85,7 @@ and desc =
   | Epresent of exp present_handler list * exp default option
   | Eautomaton of exp state_handler list * state_exp option
   | Ereset of exp * exp
+  | Eblock of eq list block * exp 
 
 and is_rec = bool
 
@@ -141,7 +142,7 @@ and eqdesc =
   | EQinit of name * exp
     (* [init n = e0] *)
   | EQnext of name * exp * exp option
-    (* [next n = e] or [next n = e init e0] *)
+    (* [next n = e] or [next n = e init e0] *) 
   | EQemit of name * exp option
     (* [emit n = e] *)
   | EQpluseq of name * exp

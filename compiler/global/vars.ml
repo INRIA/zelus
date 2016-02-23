@@ -41,7 +41,7 @@ let fv_block fv_local fv_body bounded acc
     { b_env = b_env; b_locals = l_list; b_body = body; b_write = defnames } =
   let bounded = names bounded b_env in
   let bounded, acc = List.fold_left fv_local (bounded, acc) l_list in
-  fv_body bounded acc body
+  bounded, fv_body bounded acc body
 
 let fv_match_handler fv_body m_h_list bounded acc = 
   List.fold_left
@@ -70,6 +70,8 @@ let rec fv bounded (last_acc, acc) e =
   | Elet(local, e) ->
      let bounded, acc = fv_local (bounded, (last_acc, acc)) local in
      fv bounded acc e
+  | Eblock(b, e) ->
+     let acc = fv_block_eq_list bounded (last_acc, acc) b in fv bounded acc e
   | Eseq(e1, e2) -> fv bounded (fv bounded (last_acc, acc) e1) e2
   | Econst _ | Econstr0 _ | Eglobal _ | Eperiod _ -> last_acc, acc
   | Epresent _ | Ematch _ -> assert false
@@ -96,7 +98,8 @@ and fv_local (bounded, acc) { l_eq = eq_list; l_env = l_env } =
   let acc = List.fold_left (fv_eq bounded) acc eq_list in
   (bounded, acc)
 
-and fv_block_eq_list bounded acc = fv_block fv_local fv_eq_list bounded acc
+and fv_block_eq_list bounded acc b =
+  let _, acc = fv_block fv_local fv_eq_list bounded acc b in acc
 					    
 let fve acc e =
   let acc_last, acc = fv S.empty (S.empty, acc) e in S.union acc_last acc

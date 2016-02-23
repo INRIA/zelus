@@ -252,6 +252,7 @@ let rec exp ({ e_desc = desc } as e) =
     | Eseq(e1, e2) -> Eseq(exp e1, exp e2)
     | Eperiod(p) -> Eperiod(p)
     | Elet(l, e) -> Elet(local l, exp e)
+    | Eblock(b, e) -> Eblock(block_eq_list b, exp e)
     | Epresent(p_h_list, e_opt) ->
         let e_opt = Misc.optional_map exp e_opt in
         let p_h_list = present_handler_exp_list p_h_list in

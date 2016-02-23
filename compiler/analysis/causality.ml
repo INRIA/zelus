@@ -173,6 +173,10 @@ let rec exp expected_k before_c env
          let new_env = local expected_k before_c env l in
          let tc = exp expected_k before_c (Env.append new_env env) e_let in
          tc
+      | Eblock(b, e_block) ->
+         let _, new_env = block_eq_list expected_k before_c env b in
+         let tc = exp expected_k before_c (Env.append new_env env) e_block in
+         tc
       | Eseq(e1, e2) ->
          let c = Causal.new_var () in
          exp_before_on_c expected_k before_c env e1 c;

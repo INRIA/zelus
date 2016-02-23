@@ -29,7 +29,7 @@ let rec exp { e_desc = desc } =
     | Eseq(e1, e2) -> (exp e1) || (exp e2)
     | Elocal _ | Elast _ | Econst _ | Econstr0 _ 
     | Eglobal _ | Eperiod _ -> false
-    | Elet _ -> true
+    | Elet _ | Eblock _ -> true
     | Epresent _ | Ematch _ -> assert false
       
 let rec equation { eq_desc = desc } =

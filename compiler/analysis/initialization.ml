@@ -214,6 +214,9 @@ let rec exp env { e_desc = desc; e_typ = ty } =
     | Elet(l, e_let) -> 
         let env = local env l in
         exp env e_let
+    | Eblock(b, e_block) ->
+         let env = block_eq_list env b in
+         exp env e_block
     | Eseq(e1, e2) -> 
         ignore (exp env e1);
         exp env e2

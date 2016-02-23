@@ -194,6 +194,8 @@ let rec expression ff e =
         print_record (print_couple longname expression """ =""") ff ln_e_list
     | Elet(l, e) ->
         fprintf ff "@[<v 0>%a@ %a@]" local l expression e
+    | Eblock(b, e) ->
+       fprintf ff "@[<v 0>%a@ %a@]" (block_equation_list "do " "in") b expression e
     | Etypeconstraint(e, typ) ->
         fprintf ff "@[(%a: %a)@]" expression e ptype typ
     | Eseq(e1, e2) ->

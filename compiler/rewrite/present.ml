@@ -177,6 +177,9 @@ let rec exp signals e =
       | Eperiod(p) -> Eperiod(p)
       | Elet(l, e) -> 
 	 let signals, l = local signals l in Elet(l, exp signals e)
+      | Eblock(b, e) ->
+	 let signals, b = block signals b in
+	 Eblock(b, exp signals e)
       | Epresent _ | Ematch _ -> assert false in
   { e with e_desc = desc }
 
@@ -212,7 +215,9 @@ and equation signals eq_list eq =
     | EQreset(res_eq_list, e) ->
         let res_eq_list = equation_list signals res_eq_list in
 	{ eq with eq_desc = EQreset(res_eq_list, exp signals e) } :: eq_list
-    | EQblock(b) -> { eq with eq_desc = EQblock(block signals b) } :: eq_list
+    | EQblock(b) ->
+       let _, b = block signals b in
+       { eq with eq_desc = EQblock(b) } :: eq_list
     | EQautomaton _ | EQder _ -> assert false
 
 and equation_list signals eq_list = List.fold_left (equation signals) [] eq_list
@@ -242,11 +247,11 @@ and block signals
   let eq_list = equation_list signals eq_list in
   (* rename variables in [w] *)
   let w = defnames signals w in
-  { b with b_vars = n_list; b_locals = l_list; 
-    b_body = eq_list; b_write = w; b_env = b_env }
+  signals, { b with b_vars = n_list; b_locals = l_list; 
+		    b_body = eq_list; b_write = w; b_env = b_env }
 
 and match_handler signals ({ m_body = b } as handler) =
-  { handler with m_body = block signals b }
+  let _, b = block signals b in { handler with m_body = b }
 
 (* Translating a present statement *)
 (* a present statement is translated into a pattern-matching statement *)
@@ -303,7 +308,8 @@ and present_handlers signals eq_list handler_list b_opt =
     let pat_list = List.map pattern spat_list in
     let pat = orpat pat_list in
     (* the flag [zero] is true when [is_cont] is true *)
-    { m_pat = pat; m_body = block signals b; m_env = h0; 
+    let _, b = block signals b in
+    { m_pat = pat; m_body = b; m_env = h0; 
       m_reset = false; m_zero = true } in
     
   (* first build the two association tables *)
@@ -318,10 +324,11 @@ and present_handlers signals eq_list handler_list b_opt =
   let total, pat_block_list =
     match b_opt with
     | None -> false, pat_block_list
-      | Some(b) -> true, 
-          pat_block_list @ 
-	    [{ m_pat = wildpat; m_body = block signals b; 
-               m_env = Env.empty; m_reset = false; m_zero = false }] in
+    | Some(b) ->
+       let _, b = block signals b in
+       true, pat_block_list @ 
+	       [{ m_pat = wildpat; m_body = b; 
+		  m_env = Env.empty; m_reset = false; m_zero = false }] in
   (eq_match total e pat_block_list) :: eq_list
 
 let implementation impl =

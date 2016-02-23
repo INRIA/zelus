@@ -142,6 +142,7 @@ let block_of_equation ({ desc = desc; loc = loc } as eq) =
 
 %nonassoc prec_no_end
 %nonassoc END
+%right IN
 %right prec_seq
 %right SEMI
 %nonassoc prec_ident
@@ -779,6 +780,9 @@ expression_desc:
       { Epresent(List.rev pe, Some(Default(e))) }
   | RESET e = seq_expression EVERY r = expression
       { Ereset(e, r) }
+  | lo = local_list DO eqs = equation_list IN r = expression
+      { Eblock(make { b_locals = []; b_vars = lo; b_body = eqs }
+	       $startpos $endpos, r) }
 ;
 
 /* Periods */

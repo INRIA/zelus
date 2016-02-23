@@ -88,7 +88,8 @@ and desc =
   | Elet of local * exp
   | Eseq of exp * exp
   | Eperiod of period
-
+  | Eblock of eq list block * exp
+				
 and op =
   | Efby | Eunarypre | Eifthenelse 
   | Eminusgreater | Eup | Einitial | Edisc | Ehorizon

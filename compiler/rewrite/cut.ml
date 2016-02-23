@@ -62,7 +62,7 @@ let rec exp subst ({ e_desc } as e) =
        let l, subst = local subst l in Elet(l, exp subst e)
     | Eseq(e1, e2) -> 
       Eseq(exp subst e1, exp subst e2)
-    | Epresent _ | Ematch _ -> assert false in
+    | Epresent _ | Ematch _ | Eblock _ -> assert false in
   { e with e_desc = e_desc }
 	
 (** Translation of equations. *)

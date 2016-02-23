@@ -106,6 +106,8 @@ let rec exp c_in c_out e =
 	 Ematch(total, exp e, List.map (match_handler exp) m_h_list)
       | Elet(l, e) ->
 	 Elet(local c_in c_out l, exp e)
+      | Eblock(b, e) ->
+	 Eblock(block c_in c_out b, exp e)
       | Eseq(e1, e2) -> Eseq(exp e1, exp e2) in
     { e with e_desc = desc } in
   exp e

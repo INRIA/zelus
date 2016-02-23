@@ -78,6 +78,7 @@ let rec exp e =
     | Eseq(e1, e2) -> Eseq(exp e1, exp e2)
     | Eperiod(p) -> Eperiod(p)
     | Elet(l, e) -> Elet(local l, exp e)
+    | Eblock(b, e) -> Eblock(block b, exp e)
     | Epresent _ | Ematch _ -> assert false in
   { e with e_desc = desc }
 

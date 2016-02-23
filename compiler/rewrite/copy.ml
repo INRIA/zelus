@@ -87,7 +87,7 @@ let rec expression renaming ({ e_desc = desc } as e) =
   | Elet(l, e_let) ->
      let renaming, l = local renaming l in
      { e with e_desc = Elet(l, expression renaming e_let) }
-  | Eperiod _ | Epresent _ | Ematch _ -> assert false
+  | Eperiod _ | Epresent _ | Ematch _ | Eblock _ -> assert false
 						
 (** Local declarations *)
 and local renaming ({ l_eq = eq_list } as l) =
