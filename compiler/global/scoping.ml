@@ -584,7 +584,8 @@ let rec expression env { desc = desc; loc = loc } =
 	  eqmake loc (Zelus.EQpresent(handlers, b_opt)) :: eq_init in
 	Zelus.Elet(local_for_present loc is_mem result eq_list, var loc result)
     | Ereset(e_body, r) ->
-        let e_body = expression env e_body in
+       (* translated into a reset that applies to equations *)
+       let e_body = expression env e_body in
 	let r = expression env r in
 	let result = Ident.fresh "result" in
 	let eq = 
@@ -593,7 +594,8 @@ let rec expression env { desc = desc; loc = loc } =
 	let eq = eqmake loc (Zelus.EQreset([eq], r)) in
 	Zelus.Elet(local_with_result result eq, var loc result)
     | Eautomaton(handlers, e_opt) ->
-        let result = Ident.fresh "result" in
+       (* translated into an automaton that applies to equations *)
+       let result = Ident.fresh "result" in
 	let emit e = 
 	  eqmake e.Zelus.e_loc (Zelus.EQeq(varpat e.Zelus.e_loc result, e)) in
 	let is_weak, handlers, e_opt = 

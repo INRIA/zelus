@@ -141,7 +141,7 @@ and eqdesc =
   | EQinit of name * exp
     (* [init n = e0] *)
   | EQnext of name * exp * exp option
-    (* [next n = e] or [next n = e init e0] *) 
+    (* [next n = e] or [next n = e init e0] *)
   | EQemit of name * exp option
     (* [emit n = e] *)
   | EQpluseq of name * exp

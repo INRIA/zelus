@@ -14,7 +14,8 @@ EXAMPLE=khalil.zls \
 	water.zls \
 	div_by_zero.zls \
         hardstop_integr.zls \
-	derivative.zls
+	derivative.zls \
+	zero.zls
 #	tabledep.zls
 
 
