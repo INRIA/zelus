@@ -1,0 +1,102 @@
+
+-- Node Rates
+ 
+const Ts_h:float64     = 1/50.0;  -- Altitude hold controller  
+const Ts_K1:float64    = 1/50.0;  -- Airspeed controller
+const Ts_K2:float64    = 1/50.0;  -- Vertical speed controller
+const Ts_f_Va:float64  = 1/100.0; -- Airspeed filter
+const Ts_f_az:float64  = 1/100.0; -- Vertical acceleration filter
+const Ts_f_q:float64   = 1/100.0; -- Pitch rate filter
+const Ts_f_Vz:float64  = 1/100.0; -- Vertical speed filter;
+const Ts_f_h:float64   = 1/50.0;  -- Altitude filter
+
+-- Aircraft and Environment parameters
+
+-- Atmosphere parameters
+
+const rho0:float64 = 1.225;    -- air density at SL (Sea Level) (in kg/m^3)
+const g0:float64   =  9.80665; -- standard gravity (in m/s^2)
+const T0_0:float64 =  288.15;  -- Temperature at SL (in K)
+const T0_h:float64 = -0.0065;  -- Temperature gradient between 0 and 11 km (in K/m)
+const Rs:float64   =  287.05;  -- Air specific constant
+
+-- Aircraft parameters
+
+const mass:float64      =  57837.5;   -- Mass (in kg)
+const I_y:float64       =  3781272.0; -- Moment of inertia (in kg.m^2)
+const S:float64         =  122.6;     -- Wing aera (in m^2)
+const cbar:float64      =  4.29;      -- Aerodynamic chord (in m)
+const CD_0:float64      =  0.016;     -- Drag coefficient
+const CD_alpha:float64  =  2.5;       -- Drag coefficient w.r.t. alpha
+const CD_deltae:float64 =  0.05;      -- Drag coefficient w.r.t. elevator deflection
+const CL_alpha:float64  =  5.5;       -- Lift coefficient w.r.t. alpha
+const CL_deltae:float64 =  0.193;     -- Lift coefficient w.r.t. elevator deflection
+const alpha_0:float64   = -0.05;      -- Zero-lift angle of incidence
+const Cm_0:float64      =  0.04;      -- Pitching moment coefficient at aerodynamic center
+const Cm_alpha:float64  = -0.83;      -- Pitching moment coefficient w.r.t. alpha
+const Cm_deltae:float64 = -1.5;       -- Pitching moment coefficient w.r.t. elevator deflection
+const Cm_q:float64      = -30;        -- Pithcing moment coefficient w.r.t. pitch rate
+
+-- Initial flight condition (Equilibrium)
+
+const h_eq:float64       = 10000.0;           -- Initial altitude
+const Va_eq:float64      = 230.0;             -- Initial airspeed
+const delta_x_eq:float64 = 1.5868660794926;   -- Initial throttle
+const delta_e_eq:float64 = 0.012009615652468; -- Initial elevator deflection               
+const theta_eq:float64   = 0.026485847681737; -- Initial theta (pitch angle)
+
+-- Initial conditions for flight dynamic state vector
+
+const u0:float64       = 229.9193; -- Va_eq * cos(theta_eq);
+const w0:float64       = 6.0910;   -- Va_eq * sin(theta_eq);
+const q0:float64       = 0;
+const theta0:float64   = theta_eq;
+const h0:float64       = h_eq;
+const CI_FD:float64^5 = [u0, w0, q0, theta0, h0];
+
+-- Engine parameters
+
+const A_dx:float64  = -0.75;
+const B_dx:float64  = 0.75;
+const C_dx:float64  = 26350;
+const D_dx:float64  = 0.0;
+const CI_dx:float64 = delta_x_eq;
+
+-- Elevator parameters
+
+const xi:float64 = 0.85;
+const omega:float64 = 5;
+const A_de:float64^2^2 = [[0, 1], [-omega*omega, -2*xi*omega]];
+const B_de:float64^2  = [0, omega*omega];
+const C_de:float64^2  = [1, 0];
+const D_de:float64  = 0;
+const CI_de:float64^2 = [delta_e_eq, 0];
+
+-- Controller parameters
+
+-- Altitude hold
+
+const Kp_h : float64       = 0.1014048;
+const Ki_h : float64       = 0.0048288;
+const Vz_c0 : float64      = -2.5;
+const h_switch : float64   = 50.0;
+const CI_AltHold : float64 = Vz_c0/Ki_h + h_switch*Kp_h/Ki_h;
+
+-- Va Speed controller
+
+const K1_intVa : float64 =  0.049802610664357;
+const K1_Va : float64    = -0.486813084356079;
+const K1_Vz : float64    = -0.077603095495388;
+const K1_q : float64     = 21.692383376322041;
+
+-- Vz Speed controller
+
+const K2_intVz : float64 =  0.000627342822264;
+const K2_Vz : float64    = -0.003252836726554;
+const K2_q : float64     =  0.376071446897134;
+const K2_az : float64    = -0.001566907423747;
+
+-- Autopilot/Authrottle inputs
+
+const h_c : float64  = 10000.0;
+const Va_c : float64 = 230.0;
