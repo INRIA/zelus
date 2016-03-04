@@ -82,7 +82,7 @@ let hybrid clutch (f_n, t_in) = t_fmaxs, t_fmaxk, w_e, w_v, w where
             and der w = (t_in -. b_e *. w -. b_v *. w) /. (i_v +. i_e)
             until
               up(l_torque -. t_fmaxs)
-            then do w_e = last w and w_v = last w in Slipping
+            then do w_e = w and w_v = w in Slipping
       end
       
 let hybrid simulation () =
