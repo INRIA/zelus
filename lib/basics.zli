@@ -23,3 +23,6 @@ val (=~=) : float * float -AD-> bool
 val major_step : unit -A-> zero
 val minor_step : unit -A-> zero
 
+(* discontinuous sgn function for testing *)
+val bad_sgn : float -A-> float
+

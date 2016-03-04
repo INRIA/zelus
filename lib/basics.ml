@@ -48,4 +48,6 @@ let major_step () = !is_major_step
 let minor_step () = not !is_major_step
 
 let on x y = x && y
-		    
+
+let bad_sgn e = if e = 0.0 then 0.0 else if e > 0.0 then 1.0 else -1.0
+
