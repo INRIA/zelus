@@ -109,19 +109,16 @@ struct (* {{{ *)
   let print_black_newline () = set_color black; print_newline (); flush stdout
   let print_black_endline s = print_string s; print_black_newline ()
 
-  let extra_precision = ref false
-  let set_precise_logging _ = (extra_precision := true)
-
   let carray_log l t c =
-    let pr = if !extra_precision then printf "\t% .15e" else printf "\t% e" in
-    if !extra_precision then printf "%s%.15e" l t else printf "%s%e" l t;
+    let pr = if !precise_logging then printf "\t% .15e" else printf "\t% e" in
+    if !precise_logging then printf "%s%.15e" l t else printf "%s%e" l t;
     for i = 0 to Bigarray.Array1.dim c -1 do
       pr c.{i}
     done;
     print_black_newline ()
 
   let zarray_log l t z =
-    if !extra_precision then printf "%s%.15e" l t else printf "%s%e" l t;
+    if !precise_logging then printf "%s%.15e" l t else printf "%s%e" l t;
     for i = 0 to Bigarray.Array1.dim z - 1 do
       printf "\t%s" (Int32.to_string z.{i})
     done;
