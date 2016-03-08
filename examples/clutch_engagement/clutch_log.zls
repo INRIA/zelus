@@ -2,7 +2,7 @@ open Dump
 
 let hybrid main () =
   let (t, t_in, f_n, t_fmaxs, t_fmaxk, w_e, w_v, w) =
-    Clutch_model.simulation () in
+    Clutch_model.simulation_with_period () in
   (* Plotting in/outputs *)
   present (period(0.10)) ->
     let inputs  = scope3(0.0, 2.0, ("Tin",     linear, t_in),
