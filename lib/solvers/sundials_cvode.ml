@@ -1,5 +1,5 @@
 
-type t = Cvode.serial_session
+type t = Nvector_serial.kind Cvode.serial_session
 
 type nvec = Nvector_serial.t
 let cmake n = Nvector_serial.wrap (Sundials.RealArray.create n)
