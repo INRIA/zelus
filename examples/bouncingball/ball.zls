@@ -1,4 +1,4 @@
-(** Bouncing ball. *)
+ (** Bouncing ball. *)
 
 (* [ground x] returns the position in [y] *)
 let ground x = World.ground(x)
@@ -14,10 +14,10 @@ let loose = 0.8
 let hybrid ball(x, y_0) = (y, y_v, z) where
   rec
       der y = y_v init y_0
-  and 
+  and
       der y_v = -. g init 0.0 reset z -> (-. loose *. last y_v)
   and z = up(ground(x) -. y)
-  
+
 (* Main entry point *)
 let hybrid main () =
   let der x = x_v init x_0 in
@@ -25,4 +25,3 @@ let hybrid main () =
   let ok = present (period (0.04)) -> () | z -> () in
   present ok() -> Showball.show (x fby x, y fby y, x, y);
   ()
-
