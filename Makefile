@@ -156,7 +156,7 @@ clean:
 	(cd examples;  make -f Makefile clean)
 	@rm -rf debug.txt
 
-realclean cleanall:
+realclean cleanall distclean:
 	(cd compiler;  make -f Makefile cleanall)
 	(cd lib;       make -f Makefile cleanall)
 	(cd tools;     make -f Makefile cleanall)
