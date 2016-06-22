@@ -72,8 +72,9 @@ let typeonly = ref false
 let use_gtk = ref false
 let no_causality = ref false
 let no_initialisation = ref false
+let no_deadcode = ref false
 let lmm = ref false
-	      
+      
 (* variable creation *)
 (* generating names *)
 class name_generator =

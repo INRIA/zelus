@@ -53,6 +53,7 @@ and doc_dzero = " Turn on discrete zero-crossing detection"
 and doc_nocausality = " (undocumented)"
 and doc_causality = " When the flag is on, choose the old causality analysis"
 and doc_noinitialisation = " (undocumented)"
+and doc_nodeadcode = " (undocumented)"
 and doc_lmm = " Translate into Lustre--"
 		
 let errmsg = "Options are:"
@@ -80,6 +81,7 @@ let main () =
         "-gtk2", Arg.Set use_gtk, doc_use_gtk;
         "-dzero", Arg.Set dzero, doc_dzero;
         "-nocausality", Arg.Set no_causality, doc_nocausality;
+        "-nodeadcode", Arg.Set no_deadcode, doc_nodeadcode;
         "-noinit", Arg.Set no_initialisation, doc_noinitialisation;
         "-inline", Arg.Int set_inlining_level, doc_inlining_level;
 	"-lmm", Arg.Set lmm, doc_lmm;

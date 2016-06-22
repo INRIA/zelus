@@ -249,9 +249,12 @@ let compile modname filename =
       if !verbose then Printer.implementation_list info_ff impl_list;
       
       (* optimization. dead-code removal *)
-      let impl_list = Deadcode.implementation_list impl_list in
-      if !verbose then comment "Deadcode removal. See below:";
-      if !verbose then Printer.implementation_list info_ff impl_list;
+      if not (!Misc.no_deadcode) then
+	begin
+          let impl_list = Deadcode.implementation_list impl_list in
+          if !verbose then comment "Deadcode removal. See below:";
+          if !verbose then Printer.implementation_list info_ff impl_list
+        end;
       
       (* schedule *)
       let impl_list = Schedule.implementation_list impl_list in
@@ -264,9 +267,12 @@ let compile modname filename =
       if !verbose then Printer.implementation_list info_ff impl_list;
       
       (* optimization. dead-code removal *)
-      let impl_list = Deadcode.implementation_list impl_list in
-      if !verbose then comment "Deadcode removal. See below:";
-      if !verbose then Printer.implementation_list info_ff impl_list;
+      if not (!Misc.no_deadcode) then
+	begin
+          let impl_list = Deadcode.implementation_list impl_list in
+          if !verbose then comment "Deadcode removal. See below:";
+          if !verbose then Printer.implementation_list info_ff impl_list
+        end;
       
       (* translate *)
       let obc_list = Translate.implementation_list impl_list in
