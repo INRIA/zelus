@@ -3,6 +3,7 @@ include ../../config
 .PHONY: test debug
 
 ZLEXTRALIBS = $(ZLGTKLIBS)
+OCAMLFLAGS += -w -26
 
 default: $(word 1, $(targets))
 all:  $(targets)

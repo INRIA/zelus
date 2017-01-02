@@ -1,6 +1,7 @@
 include ../../config
 
 ZLEXTRALIBS = $(ZLGTKLIBS)
+OCAMLFLAGS += -w -26
 
 backhoe.byte: INCLUDES += $(LABLGTK2) $(SUNDIALS)
 backhoe.byte: backhoegui.cmo backhoedyn.cmo backhoecontrol.cmo backhoe_main.cmo

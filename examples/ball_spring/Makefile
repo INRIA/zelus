@@ -1,6 +1,7 @@
 include ../../config
 
 EXAMPLE=ball_spring.zls
+OCAMLFLAGS += -w -26
 
 default: $(word 1, $(targets))
 all:  $(targets)

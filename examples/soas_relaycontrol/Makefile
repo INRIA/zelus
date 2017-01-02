@@ -1,6 +1,7 @@
 include ../../config
 
 ZLEXTRALIBS = $(ZLGTKLIBS)
+OCAMLFLAGS += -w -26
 
 EXAMPLE=soas1_basic.zls \
 	soas2_leadnet.zls \

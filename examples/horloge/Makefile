@@ -1,6 +1,7 @@
 include ../../config
 
 EXAMPLE=horloge.zls
+OCAMLFLAGS += -w -26
 
 all: byte
 #$(targets)
