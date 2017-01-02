@@ -98,7 +98,7 @@ due to limited floating-point precision.</p>
 
 <div id="ex-bouncingball-ball" class="accordion-body">
 <div class="accordion-inner">
-<pre class="zelus "><code><span class="comment">(** Bouncing ball. *)</span>
+<pre class="zelus "><code> <span class="comment">(** Bouncing ball. *)</span>
 
 <span class="comment">(* [ground x] returns the position in [y] *)</span>
 <span class="keyword ">let</span> <span class="">ground</span> <span class="">x</span> = <span class="constructor">World</span>.<span class="">ground</span>(<span class="">x</span>)
@@ -114,10 +114,10 @@ due to limited floating-point precision.</p>
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">ball</span>(<span class="">x</span>, <span class="">y_0</span>) = (<span class="">y</span>, <span class="">y_v</span>, <span class="">z</span>) <span class="keyword ">where</span>
   <span class="keyword ">rec</span>
       <span class="keyword ">der</span> <span class="">y</span> = <span class="">y_v</span> <span class="keyword ">init</span> <span class="">y_0</span>
-  <span class="keyword ">and</span> 
+  <span class="keyword ">and</span>
       <span class="keyword ">der</span> <span class="">y_v</span> = -. <span class="">g</span> <span class="keyword ">init</span> <span class="number">0.0</span> <span class="keyword ">reset</span> <span class="">z</span> -&gt; (-. <span class="">loose</span> <span class="operator">*.</span> <span class="keyword expr ">last</span> <span class="">y_v</span>)
   <span class="keyword ">and</span> <span class="">z</span> = <span class="keyword expr ">up</span>(<span class="">ground</span>(<span class="">x</span>) -. <span class="">y</span>)
-  
+
 <span class="comment">(* Main entry point *)</span>
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">main</span> () =
   <span class="keyword ">let</span> <span class="keyword ">der</span> <span class="">x</span> = <span class="">x_v</span> <span class="keyword ">init</span> <span class="">x_0</span> <span class="keyword ">in</span>
@@ -125,7 +125,6 @@ due to limited floating-point precision.</p>
   <span class="keyword ">let</span> <span class="">ok</span> = <span class="keyword ">present</span> (<span class="keyword expr ">period</span> (<span class="number">0.04</span>)) -&gt; () | <span class="">z</span> -&gt; () <span class="keyword ">in</span>
   <span class="keyword ">present</span> <span class="">ok</span>() -&gt; <span class="constructor">Showball</span>.<span class="">show</span> (<span class="">x</span> <span class="keyword expr ">fby</span> <span class="">x</span>, <span class="">y</span> <span class="keyword expr ">fby</span> <span class="">y</span>, <span class="">x</span>, <span class="">y</span>);
   ()
-
 </code></pre></div></div></div></div>
 
 <p>With hybrid automata, it is instead possible to switch to a sliding dynamic
