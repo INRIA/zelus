@@ -116,19 +116,19 @@ while : ; do
 END_HELP_TEXT
 	exit 0
 	;;
-    OCAMLROOT)
-	OCAMLROOT=$2
-	OCAMLBIN="${OCAMLROOT}bin/"; shift;;
-    MENHIRLIB)
-	MENHIRLIB=$2; shift;;
-    SUNDIALSML)
-	SUNDIALSML=$2; shift;;
-    GLMLITE)
-	GLMLITE=$2; shift;;
-    MATLABROOT)
-	MATLABROOT=$2; shift;;
-    PTOLEMYROOT)
-	PTOLEMYROOT=$2; shift;;
+    OCAMLROOT=*)
+	OCAMLROOT=`expr "$1" : 'OCAMLROOT=\(.*\)'`
+        OCAMLBIN="${OCAMLROOT}bin/";;
+    MENHIRLIB=*)
+	MENHIRLIB=`expr "$1" : 'MENHIRLIB=\(.*\)'`;;
+    SUNDIALSML=*)
+	SUNDIALSML=`expr "$1" : 'SUNDIALSML=\(.*\)'`;;
+    GLMLITE=*)
+	GLMLITE=`expr "$1" : 'GLMLITE=\(.*\)'`; shift;;
+    MATLABROOT=*)
+	MATLABROOT=`expr "$1" : 'MATLABROOT=\(.*\)'`;;
+    PTOLEMYROOT=*)
+	PTOLEMYROOT=`expr "$1" : 'PTOLEMYROOT=\(.*\)'`;;
     *)
 	printf "illegal option \"$1\".\n" 1>&2; exit 2;;
   esac
@@ -295,7 +295,7 @@ fi
 printf "\nConfiguration\n-------------\n"		 > config.log
 
 printf "\n"						>> config.log
-printf "  Ocaml\t\t\t${ocaml_path}${ocaml_version}\n"	>> config.log
+printf "  OCaml\t\t\t${ocaml_path}${ocaml_version}\n"	>> config.log
 if [ ${for_compile} -eq 1 ]; then
 printf "  MenhirLib\t\t${menhirlib}\n"			>> config.log
 fi
