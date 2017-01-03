@@ -177,7 +177,7 @@ let scheme_of_type_signature
 (* translating a declared type into an internal type *)
 let scheme_of_type typ =
   let lv = free_of_type [] typ in
-  let typ_vars = List.map (fun v -> (v, new_var ())) lv in
+  let typ_vars = List.map (fun v -> (v, new_generic_var ())) lv in
   let typ = typ_of_type_expression typ_vars typ in
   { typ_vars = List.map snd typ_vars;
     typ_body = Tvalue(typ) }
