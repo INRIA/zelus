@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -13,7 +13,7 @@
 (**************************************************************************)
 (* compute write variables for every equation and block. Variables which *)
 (* are set only once and which stay local to their block are set to *)
-(* kind [Sval] *)
+(* kind [Sval]. Otherwise, they get kind Svar or Smem *)
 
 open Ident
 open Zelus
@@ -75,9 +75,50 @@ let rec equation ({ eq_desc = desc } as eq) =
 	 merge (defnames, shared_set) (Deftypes.empty, S.empty) in
        { eq with eq_desc = EQreset(eq_list, expression e) },
        defnames, shared_set
+    | EQpar(par_eq_list) ->
+       let par_eq_list, (defnames, shared_set) =
+	 equation_list (Deftypes.empty, S.empty) par_eq_list in
+       { eq with eq_desc = EQpar(par_eq_list) }, defnames, shared_set
+    | EQseq(seq_eq_list) ->
+       let seq_eq_list, (defnames, shared_set) =
+	 equation_list (Deftypes.empty, S.empty) seq_eq_list in
+       { eq with eq_desc = EQseq(seq_eq_list) }, defnames, shared_set
     | EQblock(b) ->
        let b, defnames, shared_set = block b in
        { eq with eq_desc = EQblock(b) }, defnames, shared_set
+    | EQforall ({ for_index = i_list; for_init = init_list;
+		  for_body = b_eq_list } as body) ->
+       let index (out_left, out_right) ({ desc = desc } as ind) =
+	 match desc with
+	 | Einput(i, e) ->
+	    { ind with desc = Einput(i, expression e) }, (out_left, out_right) 
+	 | Eindex(i, e1, e2) ->
+	    { ind with desc = Eindex(i, expression e1, expression e2) },
+	    (out_left, out_right) 
+	 | Eoutput(i, j) ->
+	    { ind with desc = Eoutput(i, j) },
+	    (S.add i out_left, S.add j out_right) in
+       let init acc ({ desc = desc } as ini) =
+	 match desc with
+	 | Einit_last(i, e) ->
+	    { ini with desc = Einit_last(i, expression e) }, S.add i acc
+	 | Einit_value(i, e, c_opt) ->
+	    { ini with desc = Einit_value(i, expression e, c_opt) },
+	    S.add i acc in
+       let i_list, (out_left, out_right) =
+	 Misc.map_fold index (S.empty, S.empty) i_list in
+       let init_list, acc = Misc.map_fold init S.empty init_list in
+       (* all variables defined in the body of the loop are shared *)
+       let b_eq_list, ({ dv = dv } as defnames), shared_set = block b_eq_list in
+       let defnames =
+	 { defnames with dv =
+			   S.union (S.union (S.diff dv out_left) acc) out_right } in
+       let defnames, shared_set =
+	 merge (defnames, shared_set) (Deftypes.empty, S.empty) in
+       { eq with eq_desc =
+		   EQforall { body with for_index = i_list; for_init = init_list;
+					for_body = b_eq_list } },
+       defnames, shared_set
     | EQpresent _ | EQautomaton _ | EQder _
     | EQnext _ | EQemit _ -> assert false in
   (* set the names defined in the equation *)
@@ -112,8 +153,10 @@ and local ({ l_eq = eq_list; l_env = l_env } as l) =
 and expression ({ e_desc = desc } as e) =
   let desc =
     match desc with
-    | Elocal _ | Eglobal _ | Econst _ | Econstr0 _ | Elast _ | Eperiod _ -> desc
-    | Eapp(op, e_list) -> Eapp(op, List.map expression e_list)
+    | Elocal _ | Eglobal _ | Eop _
+    | Econst _ | Econstr0 _ | Elast _ | Eperiod _ -> desc
+    | Eapp(app, op, e_list) ->
+       Eapp(app, op, List.map expression e_list)
     | Etuple(e_list) -> Etuple(List.map expression e_list)
     | Erecord_access(e, ln) -> Erecord_access(expression e, ln)
     | Erecord(l_e_list) ->

@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2014                                               *)
+(*  Copyright (C) 2012-2016                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -24,78 +24,86 @@ open Format
 
 (* types of errors *)
 type error =
-    | Eunbound_type_constr of Lident.t
-    | Etype_constr_arity of Lident.t * int * int
-    | Eunbound_type_var of string
-    | Erepeated_type_param of string
-    | Erepeated_constructor of string
-    | Erepeated_label of string
-    | Ealready_defined_type of string
-    | Ealready_defined_constr of string
-    | Ealready_defined_label of string
-    | Ealready_defined_value of string
-    | Ecyclic_abbreviation
-
+  | Eunbound_type_constr of Lident.t
+  | Eunbound_global_value of Lident.t
+  | Etype_constr_arity of Lident.t * int * int
+  | Eunbound_type_var of string
+  | Erepeated_type_param of string
+  | Erepeated_constructor of string
+  | Erepeated_label of string
+  | Ealready_defined_type of string
+  | Ealready_defined_constr of string
+  | Ealready_defined_label of string
+  | Ealready_defined_value of string
+  | Ecyclic_abbreviation
+      
 exception Error of location * error
-
+				
 let error loc e = raise(Error(loc, e))
-
+		       
 (* printing error messages *)
 let message loc kind =
-  begin match kind with
+  begin
+    match kind with
     | Eunbound_type_constr(longname) ->
-        eprintf "%aThe type constructor %s is unbound.@."
-          output_location loc (modname longname)
+       eprintf "%aThe type constructor %s is unbound.@."
+	       output_location loc (modname longname)
+    | Eunbound_global_value(longname) ->
+       eprintf "%aThe global value %s is unbound.@."
+	       output_location loc (modname longname)
     | Etype_constr_arity(longname, arit, arit') ->
-        eprintf "%aThe type constructor %s expects %d argument(s),\
-                     but is here given %d argument(s).@."
-        output_location loc
-          (modname longname) arit arit'
+       eprintf "%aThe type constructor %s expects %d argument(s),\
+                but is here given %d argument(s).@."
+               output_location loc
+               (modname longname) arit arit'
     | Eunbound_type_var(n) ->
-        eprintf "%aThe type variable %s is unbound.@."
-          output_location loc
-          n
+       eprintf "%aThe type variable %s is unbound.@."
+               output_location loc
+               n
     | Erepeated_type_param(n) ->
-        eprintf "%aRepeated parameter in type declaration.@."
-          output_location loc
+       eprintf "%aRepeated parameter in type declaration.@."
+               output_location loc
     | Erepeated_constructor(n) ->
-        eprintf "%aTwo constructors are named %s@."
-          output_location loc n
+       eprintf "%aTwo constructors are named %s@."
+               output_location loc n
     | Erepeated_label(n) ->
-        eprintf "%aTwo labels are named %s@."
-          output_location loc n
+       eprintf "%aTwo labels are named %s@."
+               output_location loc n
     | Ealready_defined_type(n) ->
-        eprintf "%aThe type %s already exists in the current module.@."
-          output_location loc n
+       eprintf "%aThe type %s already exists in the current module.@."
+               output_location loc n
     | Ealready_defined_constr(n) ->
-        eprintf
-          "%aThe constructor %s already exists in the current module.@."
-          output_location loc n
+       eprintf
+         "%aThe constructor %s already exists in the current module.@."
+         output_location loc n
     | Ealready_defined_label(n) ->
-        eprintf "%aThe label %s already exists in the current module.@."
-          output_location loc n
+       eprintf "%aThe label %s already exists in the current module.@."
+               output_location loc n
     | Ealready_defined_value(n) ->
-        eprintf "%aThe value %s already exists in the current module.@."
-          output_location loc n
+       eprintf "%aThe value %s already exists in the current module.@."
+               output_location loc n
     | Ecyclic_abbreviation ->
-        eprintf "%aThis definition is cyclic.@."
-        output_location loc
+       eprintf "%aThis definition is cyclic.@."
+               output_location loc
   end;
   raise Misc.Error
 
 let make desc = { desc = desc; loc = no_location }
-
+		  
 (* type checking of type declarations *)
 let global n desc = { qualid = Modules.qualify n; info = desc }
-
+		      
 let rec free_of_type v ty =
   match ty.desc with
-    | Etypevar(x) -> if List.mem x v then v else x::v
-    | Etypetuple(t) ->
-        List.fold_left free_of_type v t
-    | Etypeconstr(_,t) ->
-        List.fold_left free_of_type v t
-
+  | Etypevar(x) -> if List.mem x v then v else x :: v
+  | Etypetuple(ty_list) ->
+     List.fold_left free_of_type v ty_list
+  | Etypeconstr(_,ty_list) ->
+     List.fold_left free_of_type v ty_list
+  | Etypefun(_, _, _, ty_arg, ty_res) ->
+     free_of_type (free_of_type v ty_arg) ty_res
+  | Etypevec(ty_arg, _) -> free_of_type v ty_arg
+					
 (* checks that every type is defined *)
 (* and used with the correct arity *)
 let constr_name loc s arity =
@@ -110,36 +118,69 @@ let constr_name loc s arity =
   name
 
 let kindtype = function
-  | A -> Tany | C -> Tcont | AD -> Tdiscrete(false) | D -> Tdiscrete(true)
-
+  | S -> Tstatic(true) | A -> Tany | C -> Tcont
+  | AD -> Tdiscrete(false) | D -> Tdiscrete(true)
+  | AS -> Tstatic(false)
+		 
 let kindoftype = function
+  | Tstatic(s) -> if s then S else AS
   | Tany -> A | Tcont -> C | Tdiscrete(s) -> if s then D else AD
 
 let typ_of_type_expression typ_vars typ =
   let rec typrec typ =
     match typ.desc with
-      | Etypevar(s) ->
-          begin try
-              List.assoc s typ_vars
-            with
-                Not_found -> error typ.loc (Eunbound_type_var(s))
-          end
-      | Etypetuple(l) ->
-          Types.product (List.map typrec l)
-      | Etypeconstr(s, ty_list) ->
-                let name = constr_name typ.loc s (List.length ty_list) in
-            Types.nconstr name (List.map typrec ty_list)
+    | Etypevar(s) ->
+       begin try
+           List.assoc s typ_vars
+         with
+           Not_found -> error typ.loc (Eunbound_type_var(s))
+       end
+    | Etypetuple(l) ->
+       Types.product (List.map typrec l)
+    | Etypeconstr(s, ty_list) ->
+       let name = constr_name typ.loc s (List.length ty_list) in
+       Types.nconstr name (List.map typrec ty_list)
+    | Etypefun(k, s, n_opt, ty_arg, ty_res) ->
+       Types.funtype (kindtype k) s n_opt (typrec ty_arg) (typrec ty_res)
+    | Etypevec(ty_arg, si) -> Types.vec (typrec ty_arg) (size si)
+  and size si =
+    match si.desc with
+    | Sconst(i) -> Deftypes.Tconst(i)
+    | Sglobal(ln) ->
+       let { qualid = qualid } =
+	 try Modules.find_value ln
+	 with | Not_found -> error si.loc (Eunbound_global_value ln) in
+       Deftypes.Tglobal(qualid)
+    | Sname(n) -> Deftypes.Tname(n)
+    | Sop(s_op, si1, si2) ->
+       let operator =
+	 function | Splus -> Deftypes.Tplus | Sminus -> Deftypes.Tminus in
+       Deftypes.Top(operator s_op, size si1, size si2)
   in typrec typ
-
+	    
 let rec type_expression_of_typ typ =
+  let rec size si =
+    match si with
+    | Tconst(i) -> make (Sconst(i))
+    | Tglobal(ln) -> make (Sglobal(Modname(ln)))
+    | Tname(n) -> make (Sname(n))
+    | Top(s_op, si1, si2) ->
+       let operator =
+	 function | Tplus -> Splus | Tminus -> Sminus in
+       make (Sop(operator s_op, size si1, size si2)) in
   match typ.t_desc with
-    | Tvar -> make (Etypevar("'a" ^ (string_of_int typ.t_index)))
-    | Tproduct(l) ->
-        make (Etypetuple(List.map type_expression_of_typ l))
-    | Tconstr(s, ty_list, _) ->
-        make (Etypeconstr(Modules.currentname (Lident.Modname(s)),
-                         List.map type_expression_of_typ ty_list))
-    | Tlink(typ) -> type_expression_of_typ typ
+  | Tvar -> make (Etypevar("'a" ^ (string_of_int typ.t_index)))
+  | Tproduct(l) ->
+     make (Etypetuple(List.map type_expression_of_typ l))
+  | Tconstr(s, ty_list, _) ->
+     make (Etypeconstr(Modules.currentname (Lident.Modname(s)),
+                       List.map type_expression_of_typ ty_list))
+  | Tfun(k, s, n_opt, ty_arg, ty_res) ->
+     make (Etypefun(kindoftype k, s, n_opt, type_expression_of_typ ty_arg,
+		    type_expression_of_typ ty_res))
+  | Tvec(ty_arg, si) ->
+     make (Etypevec(type_expression_of_typ ty_arg, size si))
+  | Tlink(typ) -> type_expression_of_typ typ
 
 (* translate the internal representation of a type into a type definition *)
 let type_decl_of_type_desc tyname
@@ -160,27 +201,13 @@ let type_decl_of_type_desc tyname
   (tyname, params, type_decl)
 
 
-(* translating a declared signature into an internal type *)
-let scheme_of_type_signature 
-    { sig_inputs = typ_i_list; sig_output = typ_o; 
-      sig_kind = k; sig_safe = s } =
-  let lv = List.fold_left free_of_type [] typ_i_list in
-  let lv = free_of_type lv typ_o in
-  let typ_vars = List.map (fun v -> (v, new_generic_var ())) lv in
-  let typ_i_list = 
-    List.map (typ_of_type_expression typ_vars) typ_i_list in
-  let typ_o = typ_of_type_expression typ_vars typ_o in
-  { typ_vars = List.map snd typ_vars; 
-    typ_body = Tsignature(kindtype k, s, typ_i_list, typ_o) }
-
-
 (* translating a declared type into an internal type *)
 let scheme_of_type typ =
   let lv = free_of_type [] typ in
   let typ_vars = List.map (fun v -> (v, new_generic_var ())) lv in
   let typ = typ_of_type_expression typ_vars typ in
   { typ_vars = List.map snd typ_vars;
-    typ_body = Tvalue(typ) }
+    typ_body = typ }
 
 (* analysing a type declaration *)
 let check_no_repeated_type_param loc typ_params =
@@ -290,22 +317,25 @@ let typedecl ff loc ty_name ty_params typ =
     | Error(loc, k) -> message loc k
 
 (* analysing a value declaration *)
-let addvalue ff loc name is_atomic ty_scheme =
+let add_type_of_value ff loc name is_atomic ty_scheme =
   try
-    add_value name (value_desc is_atomic ty_scheme);
+    add_value name (value_desc is_atomic ty_scheme (Modules.qualify name));
     if !Misc.print_types then
       Ptypes.output_value_type_declaration ff [global name ty_scheme]
   with
     | Already_defined(x) -> message loc (Ealready_defined_value(x))
 
+let update_type_of_value ff loc name is_atomic ty_scheme =
+  update_value name (value_desc is_atomic ty_scheme (Modules.qualify name))
+
 (* adding the type signature for a constant and a function. By default *)
 (* [is_atomic = true] meaning that no inlining should be necessary to compile *)
 (* the callees *)
 let constdecl ff loc name typ =
-  addvalue ff loc name true (scheme_of_type typ)
+  add_type_of_value ff loc name true (scheme_of_type typ)
 
-let fundecl ff loc name sig_typ =
-  addvalue ff loc name true (scheme_of_type_signature sig_typ)
+let fundecl ff loc name typ =
+  add_type_of_value ff loc name true (scheme_of_type typ)
 
 let interface ff inter =
   match inter.desc with
@@ -314,8 +344,6 @@ let interface ff inter =
         typedecl ff inter.loc name params typ
     | Einter_constdecl(x, typ) ->
         constdecl ff inter.loc x typ
-    | Einter_fundecl(x, sig_typ) ->
-        fundecl ff inter.loc x sig_typ
 
 let interface_list ff p_list =
   try

@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -58,8 +58,17 @@ let rec equation h_opt ({ eq_desc = desc } as eq) =
   | EQreset(eq_list, e) ->
      let eq_list, h_opt = equation_list h_opt eq_list in
      { eq with eq_desc = EQreset(eq_list, e) }, h_opt
+  | EQpar(par_eq_list) ->
+     let par_eq_list, h_opt = equation_list h_opt par_eq_list in
+     { eq with eq_desc = EQpar(par_eq_list) }, h_opt
+  | EQseq(seq_eq_list) ->
+     let seq_eq_list, h_opt = equation_list h_opt seq_eq_list in
+     { eq with eq_desc = EQseq(seq_eq_list) }, h_opt
   | EQinit _ | EQder _ | EQeq _
   | EQpluseq _ -> eq, h_opt
+  | EQforall ({ for_body = b_eq_list } as body) ->
+     let b_eq_list, h_opt = block h_opt b_eq_list in
+     { eq with eq_desc = EQforall { body with for_body = b_eq_list } }, h_opt
   | EQblock _ | EQautomaton _
   | EQpresent _ | EQemit _ | EQnext _ -> assert false
 
@@ -104,7 +113,7 @@ let expression ({ e_desc = desc } as e) =
 let implementation impl =
   match impl.desc with
   | Eopen _ | Etypedecl _ | Econstdecl _  
-  | Efundecl(_, { f_kind = (A | AD | D) }) -> impl
+  | Efundecl(_, { f_kind = (S | A | AS | AD | D) }) -> impl
   | Efundecl(n, ({ f_kind = C; f_body = e } as body)) ->
      { impl with desc = Efundecl(n, { body with f_body = expression e }) }
        

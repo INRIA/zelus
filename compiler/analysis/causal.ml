@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2016                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -43,6 +43,13 @@ let new_var () =
     c_polarity = Punknown; c_info = None }
 let new_var_with_info { c_info = i } = { (new_var ()) with c_info = i }
 let product l = Cproduct(l)
+let funtype tc1 tc2 = Cfun(tc1, tc2)
+let rec funtype_list tc_arg_list tc_res =
+  match tc_arg_list with
+  | [] -> tc_res
+  | [tc] -> funtype tc tc_res
+  | tc :: tc_arg_list ->
+     funtype tc (funtype_list tc_arg_list tc_res)
 let atom c = Catom(c)
 let rec mem c l =
   match l with | [] -> false | c1 :: l -> (c.c_index = c1.c_index) || (mem c l)
@@ -88,6 +95,7 @@ let sups c = let c = crepr c in c.c_sup
 let rec annotate n = function
   | Catom(c) -> atom(cannotate n c)
   | Cproduct(ty_list) -> product(List.map (annotate n) ty_list)
+  | Cfun _ as ty -> ty
 and cannotate n c =
   let c = crepr c in
   c.c_info <- Some(n); c
@@ -96,13 +104,14 @@ and cannotate n c =
 let rec vars acc = function
   | Catom(c) -> S.add (crepr c) acc
   | Cproduct(ty_list) -> List.fold_left vars acc ty_list
+  | Cfun(ty_arg, ty_res) -> vars (vars acc ty_arg) ty_res
 
 (** Sets the polarity of a type. *)
-let polarity pol c =
+let cpolarity pol c =
   match pol, c.c_polarity with
-    | _, Punknown -> c.c_polarity <- pol
-    | Punknown, polarity -> ()
-    | _, polarity -> if pol <> polarity then c.c_polarity <- Pplusminus
+    | _, Punknown -> c.c_polarity <- if pol then Pplus else Pminus
+    | (true, Pplus) | (false, Pminus) -> ()
+    | _ -> c.c_polarity <- Pplusminus
 
 (** check for cycles. Does [index] appears in the set of elements *)
 (* greater than [c] *)
@@ -122,6 +131,8 @@ let rec unify cunify left_tc right_tc =
   match left_tc, right_tc with
     | Cproduct(l1), Cproduct(l2) -> List.iter2 (unify cunify) l1 l2
     | Catom(c1), Catom(c2) -> cunify c1 c2
+    | Cfun(tc_arg1, tc_res1), Cfun(tc_arg2, tc_res2) ->
+       unify cunify tc_arg1 tc_arg2; unify cunify tc_res1 tc_res2
     | _ -> assert false
 
 let rec cunify left_c right_c =
@@ -175,23 +186,16 @@ let cunify_types left_c right_c =
 (* Copy of a causality type *)
 let rec fresh tc =
   match tc with
+  | Cfun(tc1, tc2) -> Cfun(fresh tc1, fresh tc2)
   | Cproduct(l) -> Cproduct(List.map fresh l)
   | Catom(c) -> Catom(new_var_with_info c)
-
-(* Computes a greater type *)
-let after tc =
-  let rec after c_after tc =
-    match tc with
-    | Cproduct(l) -> Cproduct(List.map (after c_after) l)
-    | Catom(c) -> ctype_before_ctype c c_after; Catom(c_after) in
-  let c_after = new_var () in
-  after c_after tc
-
+		     
 (* Returns a causality type that is structurally like [tc] but *)
 (* depends on both [tc] and [cset] *)
 let rec supcset cset tc =
   match tc with
     | Cproduct(l) -> Cproduct(List.map (supcset cset) l)
+    | Cfun(tc1, tc2) -> Cfun(tc1, supcset cset tc2)
     | Catom(left_c) ->
        let right_c = new_var () in
        S.iter (fun c -> ctype_before_ctype c right_c) (S.add left_c cset);
@@ -211,6 +215,8 @@ let rec sup left_tc right_tc =
   | Cproduct(l1), Cproduct(l2) when List.length l1 = List.length l2 -> 
      Cproduct(List.map2 sup l1 l2)
   | Catom(c1), Catom(c2) -> Catom(supc c1 c2)
+  | Cfun(left_tc1, left_tc2), Cfun(right_tc1, right_tc2) ->
+     Cfun(sup left_tc1 right_tc1, sup left_tc2 right_tc2)
   | _ -> assert false
 
 let sup_list tc_list = 
@@ -224,12 +230,13 @@ let synchronise left_c tc =
   let rec csynchronise  right_c =
     let right_c = crepr right_c in
     match right_c.c_desc with
-      | Cvar -> cunify_types left_c right_c
-      | Clink(link) -> csynchronise link
+    | Cvar -> cunify_types left_c right_c
+    | Clink(link) -> csynchronise link
   and synchronise tc =
     match tc with
-      | Cproduct(tc_list) -> List.iter synchronise tc_list
-      | Catom(right_c) -> csynchronise right_c in
+    | Cproduct(tc_list) -> List.iter synchronise tc_list
+    | Cfun(tc1, tc2) -> synchronise tc1; synchronise tc2
+    | Catom(right_c) -> csynchronise right_c in
   synchronise tc
 
 (** Computing a causality type from a type *)
@@ -237,31 +244,38 @@ let rec skeleton ty =
   match ty.t_desc with
   | Tvar -> atom (new_var ())
   | Tproduct(ty_list) -> product (List.map skeleton ty_list)
-  | Tconstr(_, ty_list, _) -> atom (new_var ())
+  | Tfun(_, _, _, ty_arg, ty) ->
+     funtype (skeleton ty_arg) (skeleton ty)
+  | Tconstr(_, _, _) | Tvec _ -> atom (new_var ())
   | Tlink(ty) -> skeleton ty
 
 let rec skeleton_on_c c ty =
   match ty.t_desc with
     | Tvar -> atom c
     | Tproduct(ty_list) -> product (List.map (skeleton_on_c c) ty_list)
-    | Tconstr(_, ty_list, _) -> atom c
+    | Tfun(_, _, _, ty_arg, ty) ->
+       funtype (skeleton_on_c c ty_arg) (skeleton_on_c c ty)
+    | Tconstr(_, _, _) | Tvec _ -> atom c
     | Tlink(ty) -> skeleton_on_c c ty
-				 
+
 (** Simplification of types *)
 (* Mark useful/useless variables and returns them *)
-let rec mark pol acc tc =
+let rec mark right acc tc =
   match tc with
-    | Cproduct(tc_list) -> List.fold_left (mark pol) acc tc_list
-    | Catom(c) -> cmark pol acc c
+  | Cfun(tc1, tc2) ->
+     let acc = mark (not right) acc tc1 in
+     mark right acc tc2
+  | Cproduct(tc_list) -> List.fold_left (mark right) acc tc_list
+  | Catom(c) -> cmark right acc c
 
-and cmark pol acc c =
+and cmark right acc c =
   let c = crepr c in
   match c.c_desc with
   | Cvar -> 
      c.c_useful <- true;
-     polarity pol c;
+     cpolarity right c;
      S.add c acc
-  | Clink(link) -> cmark pol acc link
+  | Clink(link) -> cmark right acc link
   			
 (* we compute IO sets [see Pouzet and Raymond, EMSOFT'09] *)
 (* IO(c) = { i / i in I /\ i <_O c } and i <_O c iff O(c) subset O(i) *)
@@ -380,39 +394,37 @@ let list_of_vars = ref []
 
 let rec gen tc =
   match tc with
-    | Cproduct(tc_list) -> List.iter gen tc_list
-    | Catom(c) -> ignore (cgen c)
+  | Cproduct(tc_list) -> List.iter gen tc_list
+  | Cfun(tc1, tc2) -> gen tc1; gen tc2
+  | Catom(c) -> ignore (cgen c)
 
 and cgen c =
   let c = crepr c in
   match c.c_desc with
-    | Cvar ->
-        if c.c_level > !binding_level
-	then 
-	  begin
-	    c.c_level <- generic;
-	    let level = gen_set c.c_sup in
-	    c.c_level <- level;
-	    if level = generic then list_of_vars := c :: !list_of_vars
-	  end;
-        c.c_level
-    | Clink(link) -> cgen link
-    
+  | Cvar ->
+     if c.c_level > !binding_level
+     then 
+       begin
+	 c.c_level <- generic;
+	 let level = gen_set c.c_sup in
+	 c.c_level <- level;
+	 if level = generic then list_of_vars := c :: !list_of_vars
+       end;
+     c.c_level
+  | Clink(link) -> cgen link
+			
 and gen_set l = List.fold_left (fun acc c -> max (cgen c) acc) generic l
-
+			       
 (** Main generalisation function *)
-let generalise tc_arg_list tc_res =
+let generalise tc =
   list_of_vars := [];
   (* we compute useful variables *)
-  let c_set = List.fold_left (mark Pminus) S.empty tc_arg_list in
-  let c_set = mark Pplus c_set tc_res in
+  let c_set = mark true S.empty tc in
   (* type simplification *)
   simplify c_set;
-  List.iter (fun tc -> ignore (gen tc)) tc_arg_list;
-  ignore (gen tc_res);
+  ignore (gen tc);
   let rel = relation c_set in
-  { typ_vars = !list_of_vars; typ_rel = rel;
-    typ_args = tc_arg_list; typ_res = tc_res }
+  { typ_vars = !list_of_vars; typ_rel = rel; typ = tc }
 
 (** Instantiation of a type *)
 (* save and cleanup links *)
@@ -422,51 +434,56 @@ let save link = links := link :: !links
 let cleanup () = List.iter (fun c -> c.c_desc <- Cvar) !links; links := []
 
 (* instanciation *)
-let instance tc_arg_list tc_res =
-  let rec copy tc =
-    match tc with
-      | Cproduct(tc_list) -> product (List.map copy tc_list)
-      | Catom(c) -> atom (ccopy c)
-	
-  and ccopy c =
-    match c.c_desc with
-      | Cvar ->
-          if c.c_level = generic
-	  then
-	    let v = new_var () in
-	    c.c_desc <- Clink(v);
-            save c;
-            v
-          else c
-      | Clink(link) -> if c.c_level = generic then link else ccopy link in
-  
-  let tc_arg_list = List.map copy tc_arg_list in
-  let tc_res = copy tc_res in
+let rec copy tc ty =
+  let { t_desc = tydesc } as ty = Types.typ_repr ty in
+  match tc, tydesc with
+  | Cfun(tc1, tc2), Tfun(_, _, _, ty1, ty2) ->
+     funtype (copy tc1 ty1) (copy tc2 ty2)
+  | Cproduct(tc_list), Tproduct(ty_list) ->
+     begin try product (List.map2 copy tc_list ty_list) with | _ -> assert false end
+  | Catom(c), _ -> skeleton_on_c c ty
+  | _ -> assert false
+				 
+and ccopy c =
+  match c.c_desc with
+  | Cvar ->
+     if c.c_level = generic
+     then
+       let v = new_var () in
+       c.c_desc <- Clink(v);
+       save c;
+       v
+     else c
+  | Clink(link) -> if c.c_level = generic then link else ccopy link
+
+let instance { typ = tc } ty =
+  let tc = copy tc ty in
   cleanup ();
-  tc_arg_list, tc_res
+  tc
 
 (** Type instance *)
-let instance { value_caus = tcs_opt; value_typ = { typ_body = typ_body } } =
+let instance { value_caus = tcs_opt } ty =
   (* build a default signature *)
-  let signature ty_arg_list ty_res =
+  let default ty =
     let c = new_var () in
-    List.map (skeleton_on_c c) ty_arg_list, skeleton_on_c c ty_res in
-  let ty_arg_list, ty_res = 
-    match typ_body with
-    | Tvalue _ -> assert false
-    | Tsignature(_, _, ty_arg_list, ty_res) -> ty_arg_list, ty_res in
+    skeleton_on_c c ty in
   match tcs_opt with
     | None -> 
        (* if no causality information has been entered, a default one is built *)
-       signature ty_arg_list ty_res
-    | Some({ typ_args = tc_causality_arg_list; typ_res = tc_causality_res }) -> 
-        instance tc_causality_arg_list tc_causality_res
+       default ty
+    | Some(tcs) -> instance tcs ty
 
 (* check that [tc] is of the form [tc1;...;tc_arity] *)
 let filter_product arity tc =
   match tc with
     | Cproduct(l) when List.length l = arity -> l
     | _ -> assert false
+
+(* check that [tc] is a function type *)
+let filter_arrow tc =
+  match tc with
+  | Cfun(tc1, tc2) -> tc1, tc2
+  | _ -> assert false
 
 (* Environment for causality types *)
 module Cenv =

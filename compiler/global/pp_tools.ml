@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2016                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -17,13 +17,22 @@ open Format
 
 let print_if_not_empty print ff = function | [] -> () | l -> print ff l
 								   
+let print_list_no_space print po sep pf ff l =
+  let rec printrec ff l =
+    match l with
+    | [] -> ()
+    | [x] -> print ff x
+    | x :: l ->
+       fprintf ff "@[%a%s%a@]" print x sep printrec l in
+  fprintf ff "@[%s%a%s@]" po printrec l pf
+
 let print_list_r print po sep pf ff l =
   let rec printrec ff l =
     match l with
     | [] -> ()
     | [x] -> print ff x
     | x :: l ->
-       fprintf ff "@[%a%s@ @[%a@]@]" print x sep printrec l in
+       fprintf ff "@[<hov>%a%s@ @[%a@]@]" print x sep printrec l in
   fprintf ff "@[%s%a%s@]" po printrec l pf
 
 (* prints in a row a [po body [sep body]+ pf] *)
@@ -34,6 +43,7 @@ let print_list_l print po sep pf ff l =
     | x :: l -> fprintf ff "@[%s%a@ %a@]" sep print x printrec l in
   match l with
   | [] -> fprintf ff "%s%s" po pf
+  | [x] -> fprintf ff "%s%a%s" po print x pf
   | x :: l -> fprintf ff "@[<hov 0>%s%a@ %a%s@]" po print x printrec l pf
 
 

@@ -1,0 +1,25 @@
+(* test des boucles *)
+
+(* fenetre glissante *)
+let node window(n)(x) = acc, t where
+  rec forall i in 0 .. (n - 1), ti out t do
+        acc = x fby last acc and ti = last acc
+      initialize
+	last acc = x
+      done
+
+let node print(n)(x) = () where
+  forall i in 0 .. (n - 1), xi in x do
+    _ = (print_int xi; print_string " ")
+  done
+      
+(* on teste window(4)(x) et x fby x fby x fby x fby x *)
+let node main () =
+  let rec nat = 42 -> pre nat + 1 in
+  let o, t = window(4)(nat) in
+  print_int o;
+  print_newline ();
+  print(4)(t);
+  print_newline ();
+  print_newline ();;
+  

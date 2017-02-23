@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -22,143 +22,44 @@
 (* functions whose cost body is less than [inline + cost f(x)]  *)
 (* are inlined *)
 (* the cost depends on the number of parameters and the size of its body *)
-
+(* the inlining function preserves typing, i.e., if e is well typed *)
+(* (e itself and any of its subterms) e is inlined into e', then e' *)
+(* is also well typed *)
 open Misc
 open Ident
 open Lident
 open Global
 open Zelus
 open Zaux
-open Deftypes
-     
+      
 exception No_inline;;
 
 inlining_level := -100000
-
-(** Simple cost function for an expression *)
-(** [max] is the maximum allowed cost of [e] *)
-(** raise Exit if the cost is greater than [max]      *)
-(** continuous operators (up/der) reduce the local cost *)
-(** since calling a function with continuous state need extra copy code *)
-let cost_less e max =
-  let c = ref 0 in
-  let incr n =
-    let c' = !c + n in
-      if c' >= max then raise Exit
-      else c := !c + n in
-  let rec cost e =
-    match e.e_desc with
-      | Elocal _ | Elast _ | Econst _ | Econstr0 _ | Eglobal _ -> ()
-      | Eapp(op, e_list) ->
-          incr (1 + List.length e_list);
-	  List.iter cost e_list; incr (cost_op op)
-      | Etuple(e_list) -> incr 1; List.iter cost e_list
-      | Erecord(n_e_list) ->
-	 incr 1; List.iter (fun (label, e) -> cost e) n_e_list
-      | Erecord_access(e, _) -> cost e
-      | Eseq(e1, e2) -> cost e1; cost e2
-      | Eperiod({ p_phase = p1_opt; p_period = p2 }) -> 
-          incr (match p1_opt with | None -> 1 | Some _ -> 2)
-      | Etypeconstraint(e, _) -> cost e
-      | Elet(local, e_let) ->
-          cost_local local; cost e_let
-      | Eblock(b, e_block) ->
-	 cost_block b; cost e_block
-      | Epresent _ | Ematch _ -> assert false
-  and cost_op op = 
-    match op with 
-      | Efby | Eunarypre | Eminusgreater -> 2
-      | Edisc -> 4
-      | Einitial -> 2
-      | Eup -> -2
-      | Eifthenelse | Etest | Eop _ | Eevery _ -> 1
-      | Eafter _ -> 0
-      | Ehorizon -> 1
-  and cost_block { b_locals = l_list; b_body = eq_list } =
-    List.iter cost_local l_list; List.iter cost_eq eq_list
-  and cost_local { l_eq = eq_list } =
-    List.iter cost_eq eq_list
-  and cost_eq eq =
-    match eq.eq_desc with
-      | EQeq(_, e) | EQinit(_, e) | EQpluseq(_, e) -> incr 1; cost e
-      | EQnext(_, e0, e_opt) -> 
-	  incr 1; cost e0; Misc.optional_unit (fun _ e -> cost e) () e_opt
-      | EQmatch(_, e, p_h_list) ->
-          cost e;
-          List.iter (fun { m_body = b } -> cost_block b) p_h_list
-      | EQder(n, e, e0_opt, h) ->
-          incr (-2);
-          Misc.optional_unit (fun _ e -> cost e) () e0_opt;
-          List.iter (fun { p_body = e } -> cost e) h;
-          cost e
-      | EQreset(eq_list, e) -> incr 1; List.iter cost_eq eq_list
-      | EQpresent(p_h_list, b_opt) ->
-	  List.iter (fun { p_body = b } -> cost_block b) p_h_list;
-	  Misc.optional_unit (fun _ b -> cost_block b) () b_opt
-      | EQemit(_, e_opt) ->
-	  Misc.optional_unit (fun _ e -> cost e) () e_opt
-      | EQblock(b) -> cost_block b
-      | EQautomaton(_, s_h_list, se_opt) ->
-	 List.iter cost_state_handler s_h_list;
-	 Misc.optional_unit (fun _ se -> cost_state_exp se) () se_opt	 
-  and cost_state_handler { s_body = b; s_trans = esc_list } =
-    cost_block b; List.iter cost_escape esc_list
-  and cost_escape { e_cond = scpat; e_block = b_opt; e_next_state = se } =
-    cost_scpat scpat;
-    Misc.optional_unit (fun _ b -> cost_block b) () b_opt;
-    cost_state_exp se
-  and cost_state_exp { desc = desc } =
-    match desc with
-    | Estate0 _ -> incr 1
-    | Estate1(_, e_list) -> List.iter cost e_list
-  and cost_scpat { desc = desc } =
-    match desc with
-    | Econdand(scpat1, scpat2)
-    | Econdor(scpat1, scpat2) -> cost_scpat scpat1; cost_scpat scpat2
-    | Econdexp(e) | Econdpat(e, _) -> cost e
-    | Econdon(scpat, e) -> cost_scpat scpat; cost e
-    
-  in
-  try
-    cost e; true
-  with
-    | Exit -> false
 
 (** Decide whether a global function has to be inlined or not *)
 (** A function is inlined either because [is_inline = true] *)
 (** or it is small enough and it is not atomic *)
 let inline is_inline lname =
   let { info = { value_atomic = is_atomic;
-		 value_code = opt_code; 
+		 value_code = { Global.value_exp = v };
 		 value_typ = { Deftypes.typ_vars = l } } } = 
     Modules.find_value lname in
-  match opt_code with
-    | Some({ f_args = p_list; f_body = e } as body) ->
-       if is_atomic then raise No_inline
-       else if is_inline then body
-       else if cost_less e (!inlining_level + List.length p_list) then body
-       else raise No_inline
-    | _ -> raise No_inline
+  match v with
+  | Global.Vfun({ f_args = p_list; f_body = e } as body, _) ->
+     if is_atomic then raise No_inline
+     else if is_inline then body
+     else if Cost.expression e (!inlining_level + List.length p_list) then body
+     else raise No_inline
+  | _ -> raise No_inline
     
-(* store the pre-compiled code into the environment for further use *)
-let store f body = Global.set_code (Modules.find_value (Lident.Name(f))) body
-    
-
-(** Building a [let p1 = e1 and ... and pn = en in e] *)
-let letin env p_list e_list e =
-  let eqmake p e = eqmake (EQeq(p, e)) in
-  { e with e_desc =
-      Elet({ l_env = env;
-             l_eq = List.map2 eqmake p_list e_list;
-             l_loc = Location.no_location }, e) }
-
 (** Building an expression [let reset res = e every r in res] *)
 let reset e e_reset =
   let res = Ident.fresh "r" in
   let eq = eqmake (EQreset([eqmake (EQeq(varpat res e.e_typ, e))], e_reset)) in
   let env = 
     Env.singleton res
-		  { Deftypes.t_sort = Deftypes.value; Deftypes.t_typ = e.e_typ } in
+		  { Deftypes.t_sort = Deftypes.value;
+		    Deftypes.t_typ = e.e_typ } in
   { e with e_desc =
 	     Elet({ l_env = env; l_eq = [eq];
 		    l_loc = Location.no_location }, var res e.e_typ) }
@@ -177,6 +78,44 @@ let rename x renaming =
   with Not_found ->
     Misc.internal_error "Inline: unbound name" Printer.name x
 
+(** Rename an operator *)
+let operator renaming op =
+  match op with
+  | Eunarypre | Efby | Eminusgreater | Eifthenelse
+  | Eup | Etest | Edisc | Ehorizon | Einitial | Eaccess -> op
+  | Eafter(l) -> Eafter(List.map (fun x -> rename x renaming) l)
+		       
+(** Renaming of type expressions *)
+let rec type_expression renaming ({ desc = desc } as ty_e) =
+  match desc with
+  | Etypevar _ -> ty_e
+  | Etypeconstr(g, ty_list) ->
+     { ty_e with desc =
+		   Etypeconstr(g, List.map (type_expression renaming) ty_list) }
+  | Etypetuple(ty_list) ->
+     { ty_e with desc =
+		   Etypetuple(List.map (type_expression renaming) ty_list) }
+  | Etypevec(ty_vec, s) ->
+     { ty_e with desc =
+		   Etypevec(type_expression renaming ty_vec, size renaming s) }
+  | Etypefun(k, s, opt_name, ty_arg, ty_res) ->
+     let ty_arg = type_expression renaming ty_arg in
+     let opt_name, renaming =
+       match opt_name with
+       | None -> opt_name, renaming
+       | Some(n) ->
+	  let m = Ident.fresh (Ident.source n) in
+	  Some(m), Env.add n m renaming in
+     let ty_res = type_expression renaming ty_res in
+     { ty_e with desc = Etypefun(k, s, opt_name, ty_arg, ty_res) }
+
+and size renaming ({ desc = desc } as s) =
+  match desc with
+  | Sconst _ | Sglobal _ -> s
+  | Sname(n) -> { s with desc = Sname(rename n renaming) }
+  | Sop(op, s1, s2) ->
+     { s with desc = Sop(op, size renaming s1, size renaming s2) }
+
 (** Renaming of patterns *)
 let rec pattern renaming ({ p_desc = desc } as p) =
   match desc with
@@ -194,8 +133,10 @@ let rec pattern renaming ({ p_desc = desc } as p) =
     | Eorpat(p1, p2) ->
         { p with p_desc = Eorpat(pattern renaming p1, pattern renaming p2) }
     | Etypeconstraintpat(p1, ty) ->
-        { p with p_desc = Etypeconstraintpat(pattern renaming p1, ty) }
-        
+       { p with p_desc = Etypeconstraintpat(pattern renaming p1,
+					    type_expression renaming ty) }
+
+	
 (** Renaming of expressions *)
 let rec expression renaming ({ e_desc = desc } as e) =
   match desc with
@@ -210,38 +151,25 @@ let rec expression renaming ({ e_desc = desc } as e) =
 				 n_e_list) }
   | Erecord_access(e, ln) ->
      { e with e_desc = Erecord_access(expression renaming e, ln) }
-  | Eapp(Eop(is_inline, f), e_list) ->
+  | Eop(op, e_list) ->
+     { e with e_desc = Eop(operator renaming op,
+			   List.map (expression renaming) e_list) }
+  | Eapp({ app_inline = i } as app,
+	 ({ e_desc = Eglobal { lname = f } } as op), e_list) ->
      let e_list = List.map (expression renaming) e_list in
      begin try
-         let { f_args = p_list; f_body = e; f_env = env } = inline is_inline f in
-         let env, renaming0 = build env in
-         let renaming = Env.append renaming0 renaming in
-         letin env (List.map (pattern renaming) p_list) e_list
-               (expression renaming e)
+         let { f_args = p_list; f_body = e; f_env = env } = inline i f in
+         letin renaming env p_list e_list e
        with
        | No_inline ->
           (* the body of [f] is not visible or the gain of the inlining *)
           (* threshold is not enough *)
-          { e with e_desc = Eapp(Eop(is_inline, f), e_list) }
+          { e with e_desc = Eapp(app, op, e_list) }
      end
-  | Eapp(Eevery(is_inline, f), e_reset :: e_list) ->
-     let e_reset = expression renaming e_reset in
-     let e_list = List.map (expression renaming) e_list in
-     begin try
-         let { f_args = p_list; f_body = e; f_env = env } = inline is_inline f in
-         let env, renaming0 = build env in
-         let renaming = Env.append renaming0 renaming in
-         letin env (List.map (pattern renaming) p_list) e_list
-               (reset (expression renaming e) e_reset)
-       with
-       | No_inline ->
-          (* the body of [f] is not visible or the gain of the inlining *)
-          (* threshold is not enough *)
-          { e with e_desc = Eapp(Eevery(is_inline, f), e_reset :: e_list) }
-     end
-  | Eapp(op, e_list) ->
+  | Eapp(app, e, e_list) ->
      { e with e_desc = 
-		Eapp(op, List.map (expression renaming) e_list) }
+		Eapp(app, expression renaming e,
+		     List.map (expression renaming) e_list) }
   | Etypeconstraint(e1, ty) -> 
      { e with e_desc = Etypeconstraint(expression renaming e1, ty) }      
   | Eseq(e1, e2) ->
@@ -294,8 +222,12 @@ and equation renaming ({ eq_desc = desc } as eq) =
 		    m_body = b; m_env = env } in
        let e = expression renaming e in
        EQmatch(total, e, List.map body m_b_list)
-    | EQreset(eq_list, e) ->
-       EQreset(List.map (equation renaming) eq_list, expression renaming e)
+    | EQreset(res_eq_list, e) ->
+       EQreset(List.map (equation renaming) res_eq_list, expression renaming e)
+    | EQpar(par_eq_list) ->
+       EQpar(List.map (equation renaming) par_eq_list)
+    | EQseq(seq_eq_list) ->
+       EQseq(List.map (equation renaming) seq_eq_list)
     | EQpresent(p_h_list, b_opt) ->
        let body { p_cond = sc; p_body = b; p_env = env; p_zero = zero } =
          let env, renaming0 = build env in
@@ -309,7 +241,35 @@ and equation renaming ({ eq_desc = desc } as eq) =
     | EQemit(x, e_opt) ->
        EQemit(rename x renaming, Misc.optional_map (expression renaming) e_opt)
     | EQblock(b) ->
-       let _, b = block renaming b in EQblock(b) 
+       let _, b = block renaming b in EQblock(b)
+    | EQforall { for_index = i_list; for_init = init_list;
+		 for_body = b_eq_list;
+		 for_in_env = in_env; for_out_env = out_env } ->
+       let in_env, renaming0 = build in_env in
+       let out_env, renaming1 = build out_env in
+       let renaming = Env.append renaming0 (Env.append renaming1 renaming) in
+       let index ({ desc = desc } as ind) =
+	 let desc = match desc with
+	   | Einput(x, e) -> Einput(rename x renaming,
+				    expression renaming e)
+	   | Eoutput(x, xout) -> Eoutput(rename x renaming,
+					 rename xout renaming)
+	   | Eindex(x, e1, e2) -> Eindex(rename x renaming,
+					 expression renaming e1,
+					 expression renaming e2) in
+	 { ind with desc = desc } in
+       let init ({ desc = desc } as ini) =
+	 let desc = match desc with
+	   | Einit_last(x, e) -> Einit_last(rename x renaming,
+					    expression renaming e)
+	   | Einit_value(x, e, c_opt) ->
+	      Einit_value(rename x renaming, expression renaming e, c_opt) in
+	 { ini with desc = desc } in
+       let _, b_eq_list = block renaming b_eq_list in
+       EQforall { for_index = List.map index i_list;
+		  for_init = List.map init init_list;
+		  for_body = b_eq_list;
+		  for_in_env = in_env; for_out_env = out_env }       
     | EQautomaton(is_weak, s_h_list, se_opt) ->
        let build_state_names renaming { s_state = { desc = desc } } =
 	 match desc with
@@ -375,12 +335,12 @@ and scondpat renaming ({ desc = desc } as sc) =
     | Econdpat(e, p) ->
         { sc with desc = Econdpat(expression renaming e, pattern renaming p) }
 
-
+and vardec renaming ({ vardec_name = n } as v) =
+    { v with vardec_name = rename n renaming }
+  
 and block renaming 
     ({ b_vars = n_list; b_locals = l_list; b_body = eq_list; 
-       b_write = { dv = dv; di = di; der = der }; b_env = n_env } as b) =
-  let vardec renaming ({ vardec_name = n } as v) =
-    { v with vardec_name = rename n renaming } in
+       b_env = n_env } as b) =
   let rec local_list renaming l_list =
     match l_list with
     | [] -> renaming, []
@@ -399,6 +359,19 @@ and block renaming
     b_write = Deftypes.empty;
     b_env = n_env }
 
+(* returns [let p1' = e1 and ... and pn' = en in e[p1'/p1,...,p'n/pn] *)
+(* in which [p1,...,pn] are renamed into [p1',...,pn'] and [e] is *)
+(* recursively inlined *)
+and letin renaming env p_list e_list e =
+  let eqmake p e = eqmake (EQeq(p, e)) in
+
+  let env, renaming0 = build env in
+  let renaming = Env.append renaming0 renaming in
+  let p_list = List.map (pattern renaming) p_list in
+  { e with e_desc =
+      Elet({ l_env = env; l_eq = List.map2 eqmake p_list e_list;
+             l_loc = Location.no_location }, expression renaming e) }
+
 let implementation acc impl = 
   match impl.desc with
     | Econstdecl(f, e) ->
@@ -409,8 +382,6 @@ let implementation acc impl =
        let p_list = List.map (pattern renaming) p_list in
        let e = expression renaming e in
        let body = { body with f_args = p_list; f_body = e; f_env = f_env } in
-       (* store the code into the global symbol table *)
-       store f body;
        { impl with desc = Efundecl(f, body) } :: acc
     | _ -> impl :: acc
         

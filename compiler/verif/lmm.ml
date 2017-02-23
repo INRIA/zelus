@@ -23,6 +23,7 @@ type kind = A | D
 
 type exp =
   | Elocal of Ident.t
+  | Elast of Ident.t
   | Eglobal of Lident.t
   | Econst of immediate
   | Econstr0 of Lident.t
@@ -59,7 +60,7 @@ type exp =
      p_typ: Deftypes.typ;
      p_loc: location }
      
- and pkind = | Estatic | Evar 
+ and pkind = | Estatic | Evar | Elast of immediate option
 			   
  and implementation = implementation_desc localized
 					  

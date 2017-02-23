@@ -27,33 +27,41 @@ type kind_of_global_ident = Value | Type | Constr | Label
 type kind_of_ident = Current | Initial | Derivative | CurrentDerivative
 
 type error =
-    | Emissing of Ident.t
-    | Eglobal_undefined of kind_of_global_ident * Lident.t
-    | Eglobal_already of kind_of_global_ident * string
-    | Ealready of kind_of_ident * Ident.t
-    | Eis_a_value of Ident.t
-    | Einit_undefined of Ident.t
-    | Elast_undefined of Ident.t
-    | Eshould_be_a_signal of Ident.t * typ
-    | Ecannot_be_set of bool * Ident.t
-    | Etype_clash of typ * typ
-    | Earity_clash of int * int
-    | Estate_arity_clash of Ident.t * int * int
-    | Estate_unbound of Ident.t
-    | Estate_initial
-    | Ekind_not_combinatorial
-    | Ekind_clash of kind * kind
-    | Esome_labels_are_missing
-    | Eequation_is_missing of Ident.t
-    | Eglobal_is_a_function of Lident.t
-    | Eapplication_of_non_function of Lident.t
-    | Eperiod_not_positive of float
-    | Ereset_target_state of bool * bool
-    | Epattern_not_total
-    | Ecombination_function of Ident.t
-			      
+  | Evar_undefined of Ident.t
+  | Emissing of Ident.t
+  | Eglobal_undefined of kind_of_global_ident * Lident.t
+  | Eglobal_already of kind_of_global_ident * string
+  | Ealready of kind_of_ident * Ident.t
+  | Eis_a_value of Ident.t
+  | Ealready_in_forall of Ident.t
+  | Einit_undefined of Ident.t
+  | Elast_undefined of Ident.t
+  | Eshould_be_a_signal of Ident.t * typ
+  | Ecannot_be_set of bool * Ident.t
+  | Etype_clash of typ * typ
+  | Etype_kind_clash of kind * typ
+  | Earity_clash of int * int
+  | Estate_arity_clash of Ident.t * int * int
+  | Estate_unbound of Ident.t
+  | Estate_initial
+  | Ekind_not_combinatorial
+  | Ekind_clash of kind * kind
+  | Esome_labels_are_missing
+  | Eequation_is_missing of Ident.t
+  | Eglobal_is_a_function of Lident.t
+  | Eapplication_of_non_function
+  | Eperiod_not_positive of float
+  | Ereset_target_state of bool * bool
+  | Epattern_not_total
+  | Ecombination_function of Ident.t
+  | Esize_parameter_must_be_a_name
+  | Enot_a_size_expression
+  | Esize_of_vec_is_undetermined
+  | Esize_clash of size * size
+  | Esize_parameter_cannot_be_generalized of Ident.t * typ
+							 
 exception Error of location * error
-
+				
 let error loc kind = raise (Error(loc, kind))
 
 type warning =
@@ -74,34 +82,48 @@ let kind_of_ident k =
   | CurrentDerivative ->
      "value", " (a value and its derivative must occur in exclusive branches)"
 		
+let kind_message kind =
+  match kind with
+  | Tstatic _ -> "static" 
+  | Tcont -> "continuous"
+  | Tany -> "combinatorial"
+  | Tdiscrete(s) -> if s then "discrete" else "stateless discrete"
+						      
 let message loc kind =
   begin match kind with
+  | Evar_undefined(name) ->
+     eprintf "@[%aTyping error: The value identifier %s is unbound.@.@]"
+             output_location loc (Ident.source name)
   | Emissing(s) ->
-      eprintf "%aType error: no equation is given for name %s.@."
+     eprintf "@[%aType error: no equation is given for name %s.@.@]"
         output_location loc
         (Ident.source s);
   | Eglobal_undefined(k, lname) ->
-          eprintf "%aThe %s name %s is unbound (may need a 'rec').@."
+          eprintf "@[%aType error: the global value identifier %s %s is unbound.@.@]"
             output_location loc (kind_of_global_ident k)
             (Lident.modname lname)
   | Eglobal_already(k, s) ->
-      eprintf "%aType error: the %s name %s is already defined.@."
+      eprintf "@[%aType error: the %s name %s is already defined.@.@]"
         output_location loc (kind_of_global_ident k) s 
   | Ealready(k, s) ->
      let prefix, suffix = kind_of_ident k in
-     eprintf "%aType error: the %s of %s is defined twice%s.@."
+     eprintf "@[%aType error: the %s of %s is defined twice%s.@.@]"
         output_location loc prefix (Ident.source s) suffix
+  | Ealready_in_forall(s) ->
+     eprintf
+       "@[%aType error: the variable %s has several definitions in parallel.@.@]"
+        output_location loc (Ident.source s)
   | Einit_undefined(s) ->
-      eprintf "%aType error: %s must be initialized in every branch.@."
+      eprintf "@[%aType error: %s must be initialized in every branch.@.@]"
         output_location loc
         (Ident.source s)
   | Eis_a_value(s) ->
-      eprintf "%aType error: last %s is forbidden as %s is a value.@."
+      eprintf "@[%aType error: last %s is forbidden as %s is a value.@.@]"
         output_location loc
         (Ident.source s) (Ident.source s)
   | Elast_undefined(s) ->
-      eprintf "%aType error: %s is not a state variable so last %s is \
-              forbidden.@."
+      eprintf "@[%aType error: %s is not a state variable so last %s is \
+              forbidden.@.@]"
         output_location loc
         (Ident.source s) (Ident.source s)
   | Eshould_be_a_signal(s, expected_ty) ->
@@ -112,8 +134,8 @@ let message loc kind =
         (Ident.source s)
 	Ptypes.output expected_ty
   | Ecannot_be_set(is_next, s) ->
-      eprintf "%aType error: the %s value of %s cannot be set. This is either \
-               because the %s value is set or the last value is used.@."
+      eprintf "@[%aType error: the %s value of %s cannot be set. This is either \
+               because the %s value is set or the last value is used.@.@]"
         output_location loc
         (if is_next then "next" else "current")
 	(Ident.source s)
@@ -124,75 +146,101 @@ let message loc kind =
         output_location loc
         Ptypes.output actual_ty
         Ptypes.output expected_ty
+  | Etype_kind_clash(k, actual_ty) ->
+      eprintf "@[%aType error: this expression has type@ %a,@ \
+               which does not belong to the %s kind.@.@]"
+        output_location loc
+        Ptypes.output actual_ty
+        (kind_message k)
   | Earity_clash(actual_arit, expected_arit) ->
-      eprintf "%aType error: the operator expects %d arguments,@ \
-               but is given %d arguments.@."
+      eprintf "@[%aType error: the function expects %d arguments,@ \
+               but is given %d arguments.@.@]"
         output_location loc
         expected_arit actual_arit
   | Estate_arity_clash(name, actual_arit, expected_arit) ->
-      eprintf "%aType error: the state %s expects %d arguments,@ \
-               but is given %d arguments.@."
+      eprintf "@[%aType error: the state %s expects %d arguments,@ \
+               but is given %d arguments.@.@]"
         output_location loc
         (Ident.source name)
         expected_arit actual_arit
   | Estate_unbound(name) ->
       eprintf
-        "%aType error: the state %s is unbound in the current automaton.@."
+        "@[%aType error: the state %s is unbound in the current automaton.@.@]"
         output_location loc
         (Ident.source name)
   | Estate_initial ->
       eprintf
-        "%aType error: the initial state cannot be parameterized.@."
+        "@[%aType error: the initial state cannot be parameterized.@.@]"
         output_location loc
   | Ekind_not_combinatorial ->
       eprintf
-        "%aType error: this expression should be combinatorial.@."
+        "@[%aType error: this expression should be combinatorial.@.@]"
         output_location loc
  | Ekind_clash(actual_kind, expected_kind) ->
-      let message kind =
-        match kind with
-          | Tcont -> "continuous"
-          | Tany -> "combinatorial"
-          | Tdiscrete(s) -> if s then "discrete" else "stateless discrete" in
-      eprintf
-        "%aType error: this is a %s expression and is expected to be %s.@."
+       eprintf
+        "@[%aType error: this is a %s expression and is expected to be %s.@.@]"
         output_location loc
-        (message actual_kind) (message expected_kind)
+        (kind_message actual_kind) (kind_message expected_kind)
  | Esome_labels_are_missing ->
       eprintf
-        "%aType error: some fields are missing.@."
+        "@[%aType error: some fields are missing.@.@]"
         output_location loc
  | Eequation_is_missing(name) ->
      eprintf
-       "%aType error: the variable %s must be defined in an equation.@."
+       "@[%aType error: the variable %s must be defined in an equation.@.@]"
        output_location loc
        (Ident.source name)
  | Eglobal_is_a_function(lname) ->
-     eprintf "%aType error: the global name %s must not be a function.@."
+     eprintf "@[%aType error: the global name %s must not be a function.@.@]"
         output_location loc
         (Lident.modname lname)
- | Eapplication_of_non_function(lname) ->
-     eprintf "%aType error: the global name %s is not a function.@."
+ | Eapplication_of_non_function ->
+     eprintf "@[%aType error: this is not a function.@.@]"
         output_location loc
-        (Lident.modname lname)
  | Eperiod_not_positive(f) ->
      eprintf 
-       "%aType error: the period contains %f which is not strictly positive.@."
+       "@[%aType error: the period contains %f which is not strictly positive.@.@]"
        output_location loc f
  | Ereset_target_state(actual_reset, expected_reset) ->
      eprintf
-       "%aType error: the target state is expected to be %s by is entered by %s.@."
+       "@[%aType error: the target state is expected to be %s by is entered by %s.@.@]"
        output_location loc
        (if expected_reset then "reset" else "on history")
        (if actual_reset then "reset" else "history")
  | Epattern_not_total ->
      eprintf
-       "%aType error: this pattern must be total.@."
+       "@[%aType error: this pattern must be total.@.@]"
        output_location loc
  | Ecombination_function(n) ->
      eprintf
-       "%aType error: a combination function for %s must be given.@."
+       "@[%aType error: a combination function for %s must be given.@.@]"
        output_location loc (Ident.source n)
+ | Esize_parameter_must_be_a_name ->
+    eprintf
+      "@[%aType error: the type of the result depend on some variables \
+       from this pattern. This pattern must be a variable.@.@]"
+       output_location loc
+ | Esize_of_vec_is_undetermined ->
+    eprintf
+      "@[<hov 0>%aType error: this expression is either not a vector@ or its \
+       size cannot be determined at that point.@.@]"
+      output_location loc
+ | Enot_a_size_expression ->
+    eprintf
+      "@[%aType error: this is not a valid size expression.@.@]"
+      output_location loc
+ | Esize_clash(actual_size, expected_size) ->
+      eprintf "@[%aType error: this expression is equal to@ %a,@ \
+               but is expected to have equal to@ %a.@.@]"
+        output_location loc
+        Ptypes.output_size actual_size
+        Ptypes.output_size expected_size
+ | Esize_parameter_cannot_be_generalized(n, ty) ->
+      eprintf "@[%aType error: this pattern has type@ %a,@ \
+                 which contains the variable %s that is bounded later or never.@.@]"
+	output_location loc
+        Ptypes.output ty
+	(Ident.name n)
   end;
   raise Misc.Error
 

@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2014                                               *)
+(*  Copyright (C) 2012-2016                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -51,7 +51,7 @@ let all_last loc h set =
     | Smem ({ m_init = Some _ } as m) ->
        tentry.t_sort <- Smem { m with m_previous = true }
     | Svar { v_default = Some _ } -> ()
-    | Sval | Svar { v_default = None }
+    | Sstatic | Sval | Svar { v_default = None }
     | Smem _ ->
        try
 	 ignore (Types.filter_signal ty);

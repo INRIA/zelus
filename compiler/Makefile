@@ -56,12 +56,15 @@ ANALYSIS = analysis/causal.cmo \
 	analysis/initialization.cmo
 
 REWRITE = rewrite/markfunctions.cmo \
+	rewrite/static.cmo \
+	rewrite/cost.cmo \
+	rewrite/inline.cmo \
+	rewrite/reduce.cmo \
 	rewrite/dependences.cmo \
 	rewrite/write.cmo \
 	rewrite/unsafe.cmo \
 	rewrite/automata.cmo \
         rewrite/activate.cmo \
-	rewrite/inline.cmo \
 	rewrite/present.cmo \
 	rewrite/period.cmo \
 	rewrite/pre.cmo \
@@ -82,8 +85,8 @@ REWRITE = rewrite/markfunctions.cmo \
 GENCODE = gencode/sol.cmo \
 	  gencode/cssa.cmo \
 	  gencode/obc.cmo \
-	  gencode/translate.cmo \
 	  gencode/oprinter.cmo \
+	  gencode/translate.cmo \
 	  gencode/inout.cmo	  
 
 VERIF = verif/lmm.cmo \

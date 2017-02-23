@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2016                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -21,17 +21,18 @@ open Deftypes
 
 (** Dead-code removal. First build a table [yn -> {x1,...,xk}] wich associate *)
 (** the list of read variables used to produce yn *)
-(** then recursively mark all useful variable according to read-in dependences *)
+(** then recursively mark all useful variable according to *)
+(** read-in dependences *)
 (** finally, only keep equations and name defs. for useful variables *)
 (** horizons are considered to be useful *)
-(** the optimization is not very agressive, e.g., stateful function calls *)
-(** are still not removed *)
+(** the optimization is not very agressive, e.g., non combinatorial *)
+(** function calls are not removed *)
 type table = cont Env.t
-and cont = 
-    { mutable c_vars: S.t; (* set of variables *)
-      mutable c_useful: bool; (* is-it a useful variable? *)
-    }
-
+ and cont = 
+   { mutable c_vars: S.t; (* set of variables *)
+     mutable c_useful: bool; (* is-it a useful variable? *)
+     mutable c_visited: bool; (* has it been visited already? *) }
+     
 (** Useful function. For debugging purpose. *)
 let print ff table =
   let names ff l =
@@ -44,15 +45,17 @@ let print ff table =
 
 (** Add an entry [x, {x1,...,xn}] to a table. If x already exists *)
 (** extends its definition. Otherwise, add the new entry *)
-let add w r table =
+let add is_useful w r table =
   let add x table =
     try
-      let ({ c_vars = l } as cont) = Env.find x table in
+      let ({ c_vars = l; c_useful = u } as cont) = Env.find x table in
       cont.c_vars <- S.union r l;
+      cont.c_useful <- u || is_useful;
       table
     with 
     | Not_found ->
-       Env.add x { c_vars = r; c_useful = false } table in
+       Env.add x
+	       { c_vars = r; c_useful = is_useful; c_visited = false } table in
   S.fold add w table
 	 
 (** Extend [table] where every entry [y -> {x1,...,xn}] *)
@@ -69,34 +72,51 @@ let merge table1 table2 =
       let ({ c_vars = l2 } as cont2) = Env.find x table in
       cont2.c_vars <- S.union l1 l2;
       table
-  with 
+    with 
     | Not_found -> Env.add x cont1 table in
   Env.fold add table2 table1
 
 (** Build the association table [yk -> { x1,..., xn}] *)     
 let rec build_equation table { eq_desc = desc } =
   match desc with
-    | EQeq(p, e) ->
-       let w = fv_pat S.empty S.empty p in
-       (* for every [x in w], add the link [x -> {x1, ..., xn }] to table *)
-       let r = fve S.empty e in
-       add w r table
-    | EQpluseq(n, e) | EQinit(n, e) | EQder(n, e, None, []) -> 
-       let r = fve S.empty e in
-       add (S.singleton n) r table
-    | EQmatch(_, e, m_h_list) ->
-        let r = fve S.empty e in
-        let table_b =
-	  List.fold_left
-	    (fun table { m_body = b } -> build_block table b)
-	    Env.empty m_h_list in
-	merge table (extend table_b r)
-    | EQreset(res_eq_list, e) ->
-        let r = fve S.empty e in
-	let table_res = build_equation_list Env.empty res_eq_list in
-	merge table (extend table_res r)
-    | EQblock _ | EQder _ | EQnext _ | EQautomaton _
-    | EQpresent _ | EQemit _ -> assert false
+  | EQeq(p, e) ->
+     let w = fv_pat S.empty S.empty p in
+     (* for every [x in w], add the link [x -> {x1, ..., xn }] to table *)
+     let r = fve S.empty e in
+     add false w r table
+  | EQpluseq(n, e) | EQinit(n, e)
+  | EQder(n, e, None, []) -> 
+     let r = fve S.empty e in
+     add false (S.singleton n) r table
+  | EQmatch(_, e, m_h_list) ->
+     let r = fve S.empty e in
+     let table_b =
+       List.fold_left
+	 (fun table { m_body = b } -> build_block table b)
+	 Env.empty m_h_list in
+     merge table (extend table_b r)
+  | EQreset(res_eq_list, e) ->
+     let r = fve S.empty e in
+     let table_res = build_equation_list Env.empty res_eq_list in
+     merge table (extend table_res r)
+  | EQforall
+      { for_index = i_list; for_init = init_list; for_body = b_eq_list } ->
+     let index table { desc = desc } =
+       match desc with
+       | Einput(i, e) -> add false (S.singleton i) (fve S.empty e) table
+       | Eoutput(i, j) -> add false (S.singleton j) (S.singleton i) table
+       | Eindex(i, e1, e2) ->
+	  add true (S.singleton i) (fve (fve S.empty e1) e2) table in
+     let init table { desc = desc } =
+       match desc with
+       | Einit_last(i, e)
+       | Einit_value(i, e, _) ->
+	  add false (S.singleton i) (fve S.empty e) table in
+     let table = List.fold_left index table i_list in
+     let table = List.fold_left init table init_list in
+     build_block table b_eq_list
+  | EQblock _ | EQder _ | EQnext _ | EQautomaton _
+  | EQpresent _ | EQemit _ -> assert false
 
 and build_block table { b_body = eq_list } = build_equation_list table eq_list
   
@@ -110,22 +130,27 @@ and build_equation_list table eq_list =
 (** [read] is a set of variables *)
 let visit read table =
   let useful = ref read in
-  (* recursively mark visited nodes which are necessary *)
-  let rec visit x ({ c_vars = l; c_useful = u } as entry) = 
-    if not u then
-        begin
-          entry.c_useful <- true;
-          useful := S.add x !useful;
-	  S.iter visit_table l
-        end
-  and visit_table x =
+  (* recursively mark visited nodes which are useful *)
+  let rec visit x ({ c_vars = l; c_useful = u; c_visited = v } as entry) = 
+    if not v then
+      begin
+        entry.c_visited <- true;
+        entry.c_useful <- true;
+        useful := S.add x !useful;
+	S.iter visit_fathers l
+      end
+  and visit_fathers x =
     try
       let entry = Env.find x table in
       visit x entry
     with
-      Not_found -> useful := S.add x !useful in
+      Not_found -> ()
+  (* look for an entry in the table that is not marked but useful *)
+  and visit_table x ({ c_useful = u; c_visited = v } as entry) =
+    if not v && u then visit x entry in
   (* recursively mark nodes and their predecessors *)
-  S.iter visit_table read;
+  S.iter visit_fathers read;
+  Env.iter visit_table table;
   !useful
 
 (** Empty block *)
@@ -140,31 +165,54 @@ let writes useful { dv = dv; di = di; der = der } =
 (** Remove useless equations. [useful] is the set of useful names *)
 let rec remove_equation useful ({ eq_desc = desc; eq_write = w } as eq) eq_list =
   match desc with
-    | EQeq(p, e) ->
-       let w = fv_pat S.empty S.empty p in
-       if S.exists (fun x -> S.mem x useful) w
-       then (* the equation is useful *) eq :: eq_list else eq_list
-    | EQpluseq(n, e) | EQder(n, e, None, []) | EQinit(n, e) ->
-       if S.mem n useful then eq :: eq_list else eq_list
-    | EQmatch(total, e, m_h_list) ->
-       let m_h_list = 
-         List.map
-	   (fun ({ m_body = b } as m_h) ->
-	     { m_h with m_body = remove_block useful b }) m_h_list in
-       (* remove the equation if all handlers are empty *)
-       if List.for_all (fun { m_body = b} -> is_empty_block b) m_h_list
-       then eq_list
-       else { eq with eq_desc = EQmatch(total, e, m_h_list);
-		      eq_write = writes useful w } :: eq_list
-    | EQreset(res_eq_list, e) ->
-       let res_eq_list = remove_equation_list useful res_eq_list in
-       (* remove the equation if the body is empty *)
-       if res_eq_list = [] then eq_list
-       else { eq with eq_desc = EQreset(res_eq_list, e);
-		      eq_write = writes useful w } :: eq_list
-    | EQnext _ | EQder _ | EQautomaton _ | EQblock _ 
-    | EQpresent _ | EQemit _ -> assert false
-				       
+  | EQeq(p, _) ->
+     let w = fv_pat S.empty S.empty p in
+     if S.exists (fun x -> S.mem x useful) w
+     then (* the equation is useful *) eq :: eq_list else eq_list
+  | EQpluseq(n, _) | EQder(n, _, None, [])
+  | EQinit(n, _) ->
+     if S.mem n useful then eq :: eq_list else eq_list
+  | EQmatch(total, e, m_h_list) ->
+     let m_h_list = 
+       List.map
+	 (fun ({ m_body = b } as m_h) ->
+	  { m_h with m_body = remove_block useful b }) m_h_list in
+     (* remove the equation if all handlers are empty *)
+     if List.for_all (fun { m_body = b} -> is_empty_block b) m_h_list
+     then eq_list
+     else { eq with eq_desc = EQmatch(total, e, m_h_list);
+		    eq_write = writes useful w } :: eq_list
+  | EQreset(res_eq_list, e) ->
+     let res_eq_list = remove_equation_list useful res_eq_list in
+     (* remove the equation if the body is empty *)
+     if res_eq_list = [] then eq_list
+     else { eq with eq_desc = EQreset(res_eq_list, e);
+		    eq_write = writes useful w } :: eq_list
+  | EQforall { for_index = i_list; for_init = init_list; for_body = b_eq_list;
+	       for_in_env = in_env; for_out_env = out_env } ->
+     let index acc ({ desc = desc } as ind) =
+       match desc with
+       | Einput(i, _) | Eoutput(_, i) 
+       | Eindex(i, _, _) -> if S.mem i useful then ind :: acc else acc in
+     let init acc ({ desc = desc } as ini) =
+       match desc with
+       | Einit_last(i, _)
+       | Einit_value(i, _, _) ->
+	  if S.mem i useful then ini :: acc else acc in
+     let i_list = List.fold_left index [] i_list in
+     let init_list = List.fold_left init [] init_list in
+     let b_eq_list = remove_block useful b_eq_list in
+     let in_env = Env.filter (fun x entry -> S.mem x useful) in_env in
+     let out_env = Env.filter (fun x entry -> S.mem x useful) out_env in
+     if is_empty_block b_eq_list then eq_list
+     else { eq with eq_desc = EQforall { for_index = i_list;
+					 for_init = init_list;
+					 for_body = b_eq_list;
+					 for_in_env = in_env;
+					 for_out_env = out_env } } :: eq_list
+  | EQnext _ | EQder _ | EQautomaton _ | EQblock _ 
+  | EQpresent _ | EQemit _ -> assert false
+				     
 and remove_equation_list useful eq_list =
   List.fold_right (remove_equation useful) eq_list []
 		  
@@ -196,22 +244,22 @@ let horizon read { l_env = l_env } =
 (** the main entry for expressions. Warning: [e] must be in normal form *)
 let exp ({ e_desc = desc } as e) =
   match desc with
-    | Elet(l, e_let) ->
-        let read = fve S.empty e_let in
-	(* horizons are considered as outputs *)
-	let read = horizon read l in
-	let table = build_local Env.empty l in
-	(* Format.printf "%a@.@." print table; *)
-	let useful = visit read table in
-	(* Format.printf "%a@." print table; flush stdout; *)
-	let { l_eq = eq_list } as l = remove_local useful l in
-	if eq_list = [] then e_let else { e with e_desc = Elet(l, e_let) }
-    | _ -> e
-        
+  | Elet(l, e_let) ->
+     let read = fve S.empty e_let in
+     (* horizons are considered as outputs *)
+     let read = horizon read l in
+     let table = build_local Env.empty l in
+     (* Format.printf "%a@.@." print table; *)
+     let useful = visit read table in
+     (* Format.printf "%a@." print table; flush stdout; *)
+     let { l_eq = eq_list } as l = remove_local useful l in
+     if eq_list = [] then e_let else { e with e_desc = Elet(l, e_let) }
+  | _ -> e
+           
 let implementation impl =
   match impl.desc with
-      | Eopen _ | Etypedecl _ | Econstdecl _ -> impl
-      | Efundecl(n, ({ f_body = e } as body)) ->
-          { impl with desc = Efundecl(n, { body with f_body = exp e }) }
-
+  | Eopen _ | Etypedecl _ | Econstdecl _ -> impl
+  | Efundecl(n, ({ f_body = e } as body)) ->
+     { impl with desc = Efundecl(n, { body with f_body = exp e }) }
+       
 let implementation_list impl_list = Misc.iter implementation impl_list

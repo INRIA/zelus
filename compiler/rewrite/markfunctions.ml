@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -80,20 +80,20 @@ let rec exp c_in c_out e =
   let rec exp ({ e_desc = desc; e_caus = c_list } as e) =
     let desc = match desc with
       | Elocal _ | Eglobal _ | Econst _
-      | Econstr0 _ | Elast _ | Eperiod _ -> desc
-      | Eapp(Eop(false, f), e_list) ->
-	 let e_list = List.map exp e_list in
-	 let c_arg = causality_of_exp_list e_list in
+      | Econstr0 _ | Elast _ | Eperiod _ | Eop _ -> desc
+      | Eapp({ app_inline = false } as app, op, arg_list)
+	   when Types.fully_applied e.e_typ ->
+	 (* only fully applied functions can be inlined *)
+	 let op = exp op in
+	 let arg_list = List.map exp arg_list in
+	 let c_arg = causality_of_exp_list arg_list in
 	 let c_res = causality_of_exp [] e in
 	 let i = to_inline c_in c_out c_arg c_res in
-	 Eapp(Eop(i, f), e_list)
-      | Eapp(Eevery(false, f), e_list) ->
-	 let e_list = List.map exp e_list in
-	 let c_arg = causality_of_exp_list e_list in
-	 let c_res = causality_of_exp [] e in
-	 let i = to_inline c_in c_out c_arg c_res in
-	 Eapp(Eevery(i, f), e_list)
-      | Eapp(op, e_list) -> Eapp(op, List.map exp e_list)
+	 Eapp({ app with app_inline = i }, op, arg_list)
+      | Eapp(app, op, arg_list) ->
+	 let op = exp op in
+	 let arg_list = List.map exp arg_list in
+	 Eapp(app, op, arg_list)
       | Etuple(e_list) -> Etuple(List.map exp e_list)
       | Erecord_access(e, m) -> Erecord_access(exp e, m)
       | Erecord(m_e_list) ->
@@ -107,7 +107,7 @@ let rec exp c_in c_out e =
       | Elet(l, e) ->
 	 Elet(local c_in c_out l, exp e)
       | Eblock(b, e) ->
-	 Eblock(block c_in c_out b, exp e)
+	 Eblock(block_eq_list c_in c_out b, exp e)
       | Eseq(e1, e2) -> Eseq(exp e1, exp e2) in
     { e with e_desc = desc } in
   exp e
@@ -132,17 +132,42 @@ and equation c_in c_out ({ eq_desc = desc } as eq) =
 		   Misc.optional_map (state c_in c_out) se_opt)
     | EQpresent(p_h_list, b_opt) ->
        EQpresent(List.map
-		   (present_handler (scondpat c_in c_out) (block c_in c_out))
+		   (present_handler (scondpat c_in c_out)
+				    (block_eq_list c_in c_out))
 		   p_h_list,
-		 Misc.optional_map (block c_in c_out) b_opt)
+		 Misc.optional_map (block_eq_list c_in c_out) b_opt)
     | EQmatch(total, e, m_h_list) ->
        EQmatch(total, exp c_in c_out e,
-	       List.map (match_handler (block c_in c_out)) m_h_list)
-    | EQreset(eq_list, e) ->
-       EQreset(List.map (equation c_in c_out) eq_list, exp c_in c_out e)
+	       List.map (match_handler (block_eq_list c_in c_out)) m_h_list)
+    | EQreset(res_eq_list, e) ->
+       EQreset(List.map (equation c_in c_out) res_eq_list, exp c_in c_out e)
+    | EQpar(par_eq_list) ->
+       EQpar(List.map (equation c_in c_out) par_eq_list)
+    | EQseq(seq_eq_list) ->
+       EQseq(List.map (equation c_in c_out) seq_eq_list)
     | EQemit(n, e_opt) ->
        EQemit(n, Misc.optional_map (exp c_in c_out) e_opt)
-    | EQblock(b) -> EQblock(block c_in c_out b) in
+    | EQblock(b) -> EQblock(block_eq_list c_in c_out b)
+    | EQforall({ for_index = i_list; for_init = init_list;
+		 for_body = b_eq_list } as body) ->
+       let index ({ desc = desc } as ind) =
+	 let desc = match desc with
+	 | Einput(x, e) -> Einput(x, exp c_in c_out e)
+	 | Eindex(x, e1, e2) ->
+	    Eindex(x, exp c_in c_out e1, exp c_in c_out e2)
+	 | Eoutput _ -> desc in
+	 { ind with desc = desc } in
+       let init ({ desc = desc } as ini) =
+	 let desc = match desc with
+	   | Einit_last(x, e) -> Einit_last(x, exp c_in c_out e)
+	   | Einit_value(x, e, c_opt) ->
+	      Einit_value(x, exp c_in c_out e, c_opt) in
+	 { ini with desc = desc } in
+       let i_list = List.map index i_list in
+       let init_list = List.map init init_list in
+       let b_eq_list = block_eq_list c_in c_out b_eq_list in
+       EQforall { body with for_index = i_list; for_init = init_list;
+			    for_body = b_eq_list } in
   { eq with eq_desc = desc }
 
 and scondpat c_in c_out ({ desc = desc } as sc) =
@@ -157,7 +182,7 @@ and scondpat c_in c_out ({ desc = desc } as sc) =
   { sc with desc = desc }     
 				   
 and state_handler c_in c_out ({ s_body = b; s_trans = trans } as sh) =
-  { sh with s_body = block c_in c_out b;
+  { sh with s_body = block_eq_list c_in c_out b;
 	    s_trans = List.map (escape c_in c_out) trans }
 
 and state c_in c_out ({ desc = desc } as se) =
@@ -166,14 +191,14 @@ and state c_in c_out ({ desc = desc } as se) =
     | Estate1(id, e_list) -> Estate1(id, List.map (exp c_in c_out) e_list) in
   { se with desc = desc }
 
-and block c_in c_out ({ b_locals = l_list; b_body = eq_list } as b) =
+and block_eq_list c_in c_out ({ b_locals = l_list; b_body = eq_list } as b) =
   { b with b_locals = List.map (local c_in c_out) l_list;
 	   b_body = List.map (equation c_in c_out) eq_list }
 
 and escape c_in c_out
 	   ({ e_cond = sc; e_block = b_opt; e_next_state = se } as esc) =
   { esc with e_cond = scondpat c_in c_out sc;
-	     e_block = Misc.optional_map (block c_in c_out) b_opt;
+	     e_block = Misc.optional_map (block_eq_list c_in c_out) b_opt;
 	     e_next_state = state c_in c_out se }
     
 let implementation impl =
@@ -185,5 +210,6 @@ let implementation impl =
      let e = exp c_in c_out e in
      { impl with desc = Efundecl(n, { body with f_body = e }) }
 
-let implementation_list impl_list = Misc.iter implementation impl_list
+let implementation_list impl_list =
+  Misc.iter implementation impl_list
 					      

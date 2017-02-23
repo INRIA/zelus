@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2016                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -52,13 +52,16 @@ let fv_match_handler fv_body m_h_list bounded acc =
 let operator acc = function
   | Eafter(n_list) -> List.fold_left (fun acc n -> S.add n acc) acc n_list
   | Efby | Eunarypre | Eifthenelse | Etest 
-  | Eminusgreater | Eup | Einitial | Edisc | Ehorizon | Eop _ | Eevery _ -> acc
+  | Eminusgreater | Eup | Einitial | Edisc | Ehorizon | Eaccess -> acc
 	   
 let rec fv bounded (last_acc, acc) e =
   match e.e_desc with
+  | Eop(op, e_list) ->
+     let last_acc, acc = List.fold_left (fv bounded) (last_acc, acc) e_list in
+     last_acc, operator acc op
   | Etuple(e_list) -> List.fold_left (fv bounded) (last_acc, acc) e_list
-  | Eapp(op, e_list) ->
-     List.fold_left (fv bounded) (last_acc, operator acc op) e_list
+  | Eapp(_, e, e_list) ->
+     List.fold_left (fv bounded) (fv bounded (last_acc, acc) e) e_list
   | Elocal(n) ->
      last_acc, if (S.mem n acc) || (S.mem n bounded) then  acc else S.add n acc
   | Elast(n) ->
@@ -66,7 +69,8 @@ let rec fv bounded (last_acc, acc) e =
       then last_acc else S.add n last_acc), acc
   | Erecord_access(e, _) | Etypeconstraint(e, _) -> fv bounded (last_acc, acc) e
   | Erecord(f_e_list) ->
-     List.fold_left (fun acc (_, e) -> fv bounded acc e) (last_acc, acc) f_e_list
+     List.fold_left
+       (fun acc (_, e) -> fv bounded acc e) (last_acc, acc) f_e_list
   | Elet(local, e) ->
      let bounded, acc = fv_local (bounded, (last_acc, acc)) local in
      fv bounded acc e
@@ -76,20 +80,43 @@ let rec fv bounded (last_acc, acc) e =
   | Econst _ | Econstr0 _ | Eglobal _ | Eperiod _ -> last_acc, acc
   | Epresent _ | Ematch _ -> assert false
         
-and fv_eq bounded (last_acc, acc) { eq_desc = desc; eq_write = w } =
+and fv_eq bounded (last_acc, acc) { eq_desc = desc } =
   match desc with
-    | EQeq(_, e) | EQinit(_, e) | EQpluseq(_, e) -> fv bounded (last_acc, acc) e
-    | EQmatch(_, e, m_h_list) ->
-       fv_match_handler fv_block_eq_list m_h_list bounded 
-			(fv bounded (last_acc, acc) e)
-    | EQreset(eq_list, r) ->
-       (* remove the names written in the body *)
-       fv bounded
-	  (fv_eq_list (Deftypes.names bounded w) (last_acc, acc) eq_list) r
-    | EQder(_, e, None, []) -> fv bounded (last_acc, acc) e
-    | EQblock(b) -> fv_block_eq_list bounded (last_acc, acc) b
-    | EQder _ | EQemit _ | EQpresent _  
-    | EQautomaton _ | EQnext _ -> assert false
+  | EQeq(_, e) | EQinit(_, e) | EQpluseq(_, e) ->
+				 fv bounded (last_acc, acc) e
+  | EQmatch(_, e, m_h_list) ->
+     fv_match_handler fv_block_eq_list m_h_list bounded 
+		      (fv bounded (last_acc, acc) e)
+  | EQreset(eq_list, r) ->
+     fv bounded (fv_eq_list bounded (last_acc, acc) eq_list) r
+  | EQder(_, e, None, []) -> fv bounded (last_acc, acc) e
+  | EQblock(b) -> fv_block_eq_list bounded (last_acc, acc) b
+  | EQpar(eq_list)
+  | EQseq(eq_list) -> fv_eq_list bounded (last_acc, acc) eq_list
+  | EQforall { for_index = i_list; for_init = init_list;
+	       for_body = b_eq_list } ->
+     (* read variables from the expression in the list of indexes *)
+     (* [i in e0 .. e1], [xi in e], [xo out e] *)
+     let index (last_acc, acc) { desc = desc } =
+       match desc with
+       | Einput(_, e) -> fv bounded (last_acc, acc) e
+       | Eindex(_, e1, e2) ->
+	  fv bounded (fv bounded (last_acc, acc) e1) e2
+       | Eoutput _ -> last_acc, acc in
+     (* read variables from the initialized variables *)
+     (* last x = e removes last x from the list of read variables *)
+     let init (bounded, last_acc, acc) { desc = desc } =
+       match desc with
+       | Einit_last(x, e)
+       | Einit_value(x, e, _) ->
+	  let last_acc, acc = fv bounded (last_acc, acc) e in
+	  (S.add x bounded, last_acc, acc) in
+     let last_acc, acc = List.fold_left index (last_acc, acc) i_list in
+     let bounded, last_acc, acc =
+       List.fold_left init (bounded, last_acc, acc) init_list in
+     fv_block_eq_list bounded (last_acc, acc) b_eq_list
+  | EQder _ | EQemit _ | EQpresent _  
+  | EQautomaton _ | EQnext _ -> assert false
 
 and fv_eq_list bounded acc eq_list = List.fold_left (fv_eq bounded) acc eq_list
 
@@ -117,5 +144,5 @@ let def { eq_write = { Deftypes.dv = dv; Deftypes.di = di } } =
   S.union dv di
 let nodep ({ eq_desc }) =
   match eq_desc with
-  | EQeq(_, { e_desc = Eapp(Eup, _) })
+  | EQeq(_, { e_desc = Eop(Eup, _) })
   | EQder(_, _, None, []) -> true | _ -> false

@@ -10,7 +10,7 @@ let square    = ()
 let linear    = ()
 let points x  = ()
 
-let node scope (yl, yu, (n1, t1, v1)) =
+let node scope yl yu, (n1, t1, v1)) =
   let init names = singleton n1 in
   (names, singleton v1)
   

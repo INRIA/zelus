@@ -43,7 +43,11 @@ let current =
     
 let modules = 
   { current = current; opened = []; modules = E.empty }
-    
+
+let clear () =
+  current.values <- E.empty; current.types <- E.empty;
+  current.constr <- E.empty; current.label <- E.empty
+						
 let findfile filename =
   if Sys.file_exists filename then
     filename
@@ -59,7 +63,7 @@ let findfile filename =
     in find !load_path
     
 let load_module modname =
-  let name = String.uncapitalize modname in
+  let name = String.uncapitalize_ascii modname in
     try
       let filename = findfile (name ^ ".zci") in
       let ic = open_in_bin filename in
@@ -125,8 +129,7 @@ let add_constr f ty_res =
   current.constr <- E.add f ty_res current.constr
 let add_label f label_desc =
   if E.mem f current.label then raise (Already_defined f);
-  current.label <- 
-    E.add f label_desc current.label
+  current.label <- E.add f label_desc current.label
 
 let find_value = find (fun ident m -> E.find ident m.values)
 let find_type = find (fun ident m -> E.find ident m.types)
@@ -143,4 +146,7 @@ let currentname longname =
     | Name(n) -> longname
     | Modname{ qual = q; id = id} -> 
         if current.name = q then Name(id) else longname
-
+let qualident longname =
+  match longname with | Name(n) -> qualify n | Modname(qid) -> qid
+let current_module () = current.name
+			  

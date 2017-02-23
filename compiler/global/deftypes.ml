@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2014                                               *)
+(*  Copyright (C) 2012-2016                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -28,18 +28,30 @@ type immediate =
 type name = string
 
 (* types *)
-type typ =
-  { mutable t_desc: typ_desc;  (* descriptor *)
-    mutable t_index: int;      (* a number for debugging purpose *)
-    mutable t_level: int;      (* level for generalisation *)
+type 'a loc =
+  { mutable t_desc: 'a;   (* descriptor *)
+    mutable t_index: int; (* a number for debugging purpose *)
+    mutable t_level: int; (* level for generalisation *)
   }
 
-and typ_desc =
-  | Tvar
-  | Tproduct of typ list
-  | Tconstr of Lident.qualident * typ list * abbrev ref
-  | Tlink of typ
+type typ = typ_desc loc
 
+ and typ_desc =
+   | Tvar
+   | Tproduct of typ list
+   | Tconstr of Lident.qualident * typ list * abbrev ref
+   | Tvec of typ * size
+   | Tfun of kind * bool * Ident.t option * typ * typ 
+   | Tlink of typ
+
+and size =
+  | Tconst of int
+  | Tglobal of Lident.qualident 
+  | Tname of Ident.t
+  | Top of op * size * size
+
+and op = Tplus | Tminus
+		   
 and abbrev =
   | Tnil
   | Tcons of typ list * typ
@@ -47,16 +59,13 @@ and abbrev =
 (* type scheme *)
 and typ_scheme =
     { typ_vars: typ list;
-      mutable typ_body: typ_body }
+      mutable typ_body: typ }
+	
+and typ_instance = { typ_instance : typ list }
 
-and typ_body =
-    | Tvalue of typ
-    | Tsignature of kind * bool * typ list * typ
-		
-and instance =
-  { typ_instance: typ list }
-
-and kind = Tany | Tcont | Tdiscrete of bool (* statefull or stateless *)
+and kind =
+  | Tstatic of bool (* the argument can be static or not *)
+  | Tany | Tcont | Tdiscrete of bool (* statefull or stateless *)
 
 (* entry in the typing environment *)
 type tentry = 
@@ -66,6 +75,7 @@ type tentry =
 
 (* variables are defined by local x [[default e | init e ] with op] in ... *)
 and tsort =
+  | Sstatic (* a static value *)
   | Sval (* a let value *)
   | Svar of var (* a shared variable *)
   | Smem of mem (* a state variable *)
@@ -113,10 +123,12 @@ let make desc =
 let make_realtime desc =
   { t_desc = desc; t_index = - 1; t_level = generic }
 let no_typ = make (Tproduct [])
+let no_typ_scheme = { typ_vars = []; typ_body = no_typ }
 let no_typ_instance = { typ_instance = [] }
 let no_abbrev () = ref Tnil
 
 (* basic entries for variables *)
+let static = Sstatic
 let value = Sval
 let variable = Svar { v_combine = None; v_default = None }
 let empty_mem = { m_kind = None; m_next = None; m_previous = false;

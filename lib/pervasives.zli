@@ -1,50 +1,50 @@
 (* the core module. taken from Ocaml *)
-(* to debut set arguments -nopervasives -i lib/pervasives.lsi *)
+(* to debut set arguments -nopervasives -i lib/pervasives.zli *)
 
 type 'a list
 
-val ( on ) : zero * bool -> zero
-val orz : zero * zero -> zero
-val ( = ) : 'a * 'a -AD-> bool
-val ( <> ) : 'a * 'a -AD-> bool
-val ( < ) : 'a * 'a -AD-> bool
-val ( > ) : 'a * 'a -AD-> bool
-val ( <= ) : 'a * 'a -AD-> bool
-val ( >= ) : 'a * 'a -AD-> bool
-val compare : 'a * 'a -AD-> int
-val min : 'a * 'a -A-> 'a
-val max : 'a * 'a -A-> 'a
-val ( == ) : 'a * 'a -AD-> bool
-val ( != ) : 'a * 'a -AD-> bool
+val ( on ) : zero -> bool -> zero
+val orz : zero -> zero -> zero
+val ( = ) : 'a -> 'a -AD-> bool
+val ( <> ) : 'a -> 'a -AD-> bool
+val ( < ) : 'a -> 'a -AD-> bool
+val ( > ) : 'a -> 'a -AD-> bool
+val ( <= ) : 'a -> 'a -AD-> bool
+val ( >= ) : 'a -> 'a -AD-> bool
+val compare : 'a -> 'a -AD-> int
+val min : 'a -> 'a -A-> 'a
+val max : 'a -> 'a -A-> 'a
+val ( == ) : 'a -> 'a -AD-> bool
+val ( != ) : 'a -> 'a -AD-> bool
 val not : bool -> bool
-val ( && ) : bool * bool -> bool
-val ( & ) : bool * bool -> bool
-val ( || ) : bool * bool -> bool
-val ( or ) : bool * bool -> bool
+val ( && ) : bool -> bool -> bool
+val ( & ) : bool -> bool -> bool
+val ( || ) : bool -> bool -> bool
+val ( or ) : bool -> bool -> bool
 val ( ~- ) : int -> int
 val succ : int -> int
 val pred : int -> int
-val ( + ) : int * int -> int
-val ( - ) : int * int -> int
-val ( * ) : int * int -> int
-val ( / ) : int * int -> int
-val ( mod ) : int * int -> int
+val ( + ) : int -AS-> int -AS-> int
+val ( - ) : int -AS-> int -AS-> int
+val ( * ) : int -> int -> int
+val ( / ) : int -> int -> int
+val ( mod ) : int -> int -> int
 val abs : int -> int
 val max_int : int 
 val min_int : int 
-val ( land ) : int * int -> int
-val ( lor ) : int * int -> int
-val ( lxor ) : int * int -> int
+val ( land ) : int -> int -> int
+val ( lor ) : int -> int -> int
+val ( lxor ) : int -> int -> int
 val lnot : int -> int
-val ( lsl ) : int * int -> int
-val ( lsr ) : int * int -> int
-val ( asr ) : int * int -> int
+val ( lsl ) : int -> int -> int
+val ( lsr ) : int -> int -> int
+val ( asr ) : int -> int -> int
 val ( ~-. ) : float -> float
-val ( +. ) : float * float -> float
-val ( -. ) : float * float -> float
-val ( *. ) : float * float -> float
-val ( /. ) : float * float -> float
-val ( ** ) : float * float -> float
+val ( +. ) : float -> float -> float
+val ( -. ) : float -> float -> float
+val ( *. ) : float -> float -> float
+val ( /. ) : float -> float -> float
+val ( ** ) : float -> float -> float
 val sqrt : float -> float
 val exp : float -> float 
 val log : float -> float 
@@ -55,16 +55,16 @@ val tan : float -> float
 val acos : float -> float
 val asin : float -> float
 val atan : float -> float
-val atan2 : float * float -> float
+val atan2 : float -> float -> float
 val cosh : float -> float
 val sinh : float -> float
 val tanh : float -> float
 val ceil : float -AD-> float
 val floor : float -AD-> float
 val abs_float : float -> float
-val mod_float : float * float -AD-> float
+val mod_float : float -> float -AD-> float
 val frexp : float -> float * int
-val ldexp : float * int -> float
+val ldexp : float -> int -> float
 val modf : float -AD-> float * float
 val float : int -> float
 val float_of_int : int -> float
@@ -84,7 +84,7 @@ type fpclass =
   | FP_infinite         (** Number is positive or negative infinity *)
   | FP_nan              (** Not a number: result of an undefined operation *)
 val classify_float : float -> fpclass
-val ( ^ ) : string * string -> string
+val ( ^ ) : string -> string -> string
 val int_of_char : char -> int
 val char_of_int : int -> char
 val ignore : 'a -> unit
@@ -94,28 +94,28 @@ val string_of_int : int -> string
 val int_of_string : string -> int
 val string_of_float : float -> string
 val float_of_string : string -> float
-val fst : 'a * 'b -> 'a
-val snd : 'a * 'b -> 'b
+val fst : 'a -> 'b -> 'a
+val snd : 'a -> 'b -> 'b
 type in_channel
 type out_channel
 val stdin : in_channel 
 val stdout : out_channel 
 val stderr : out_channel 
-val unsafe print_char : char -> unit
-val unsafe print_string : string -> unit
-val unsafe print_int : int -> unit
-val unsafe print_float : float -> unit
-val unsafe print_endline : string -> unit
-val unsafe print_newline : unit -> unit
-val unsafe prerr_char : char -> unit
-val unsafe prerr_string : string -> unit
-val unsafe prerr_int : int -> unit
-val unsafe prerr_float : float -> unit
-val unsafe prerr_endline : string -> unit
-val unsafe prerr_newline : unit -> unit
-val unsafe read_line : unit -> string
-val unsafe read_int : unit -> int
-val unsafe read_float : unit -> float
+val print_char : char -AD-> unit
+val print_string : string -AD-> unit
+val print_int : int -AD-> unit
+val print_float : float -AD-> unit
+val print_endline : string -AD-> unit
+val print_newline : unit -AD-> unit
+val prerr_char : char -AD-> unit
+val prerr_string : string -AD-> unit
+val prerr_int : int -AD-> unit
+val prerr_float : float -AD-> unit
+val prerr_endline : string -AD-> unit
+val prerr_newline : unit -AD-> unit
+val read_line : unit -AD-> string
+val read_int : unit -AD-> int
+val read_float : unit -AD-> float
 type open_flag =
     Open_rdonly      (** open for reading. *)
   | Open_wronly      (** open for writing. *)
@@ -126,36 +126,36 @@ type open_flag =
   | Open_binary      (** open in binary mode (no conversion). *)
   | Open_text        (** open in text mode (may perform conversions). *)
   | Open_nonblock    (** open in non-blocking mode. *)
-val unsafe open_out : string -> out_channel
-val unsafe open_out_bin : string -> out_channel
-val unsafe open_out_gen : open_flag list * int * string -> out_channel
-val unsafe flush : out_channel -> unit
-val unsafe flush_all : unit -> unit
-val unsafe output_char : out_channel * char -> unit
-val unsafe output_string : out_channel * string -> unit
-val unsafe output : out_channel * string * int * int -> unit
-val unsafe output_byte : out_channel * int -> unit
-val unsafe output_binary_int : out_channel * int -> unit
-val unsafe output_value : out_channel * 'a -> unit
-val unsafe seek_out : out_channel * int -> unit
-val unsafe pos_out : out_channel -> int
-val unsafe out_channel_length : out_channel -> int
-val unsafe close_out : out_channel -> unit
-val unsafe close_out_noerr : out_channel -> unit
-val unsafe set_binary_mode_out : out_channel * bool -> unit
-val unsafe open_in : string -> in_channel
-val unsafe open_in_bin : string -> in_channel
-val unsafe open_in_gen : open_flag list * int * string -> in_channel
-val unsafe input_char : in_channel -> char
-val unsafe input_line : in_channel -> string
-val unsafe input : in_channel * string * int * int -> int
-val unsafe really_input : in_channel * string * int * int -> unit
-val unsafe input_byte : in_channel -> int
-val unsafe input_binary_int : in_channel -> int
-val unsafe input_value : in_channel -> 'a
-val unsafe seek_in : in_channel * int -> unit
-val unsafe pos_in : in_channel -> int
-val unsafe in_channel_length : in_channel -> int
-val unsafe close_in : in_channel -> unit
-val unsafe close_in_noerr : in_channel -> unit
-val unsafe set_binary_mode_in : in_channel * bool -> unit
+val open_out : string -AD-> out_channel
+val open_out_bin : string -AD-> out_channel
+val open_out_gen : open_flag list -> int -> string -AD-> out_channel
+val flush : out_channel -AD-> unit
+val flush_all : unit -AD-> unit
+val output_char : out_channel -> char -AD-> unit
+val output_string : out_channel -> string -AD-> unit
+val output : out_channel -> string -> int -> int -AD-> unit
+val output_byte : out_channel -> int -AD-> unit
+val output_binary_int : out_channel -> int -AD-> unit
+val output_value : out_channel -> 'a -AD-> unit
+val seek_out : out_channel -> int -AD-> unit
+val pos_out : out_channel -AD-> int
+val out_channel_length : out_channel -AD-> int
+val close_out : out_channel -AD-> unit
+val close_out_noerr : out_channel -AD-> unit
+val set_binary_mode_out : out_channel -> bool -AD-> unit
+val open_in : string -AD-> in_channel
+val open_in_bin : string -AD-> in_channel
+val open_in_gen : open_flag list -> int -> string -AD-> in_channel
+val input_char : in_channel -AD-> char
+val input_line : in_channel -AD-> string
+val input : in_channel -> string -> int -> int -AD-> int
+val really_input : in_channel -> string -> int -> int -AD-> unit
+val input_byte : in_channel -AD-> int
+val input_binary_int : in_channel -AD-> int
+val input_value : in_channel -AD-> 'a
+val seek_in : in_channel -> int -AD-> unit
+val pos_in : in_channel -AD-> int
+val in_channel_length : in_channel -AD-> int
+val close_in : in_channel -AD-> unit
+val close_in_noerr : in_channel -AD-> unit
+val set_binary_mode_in : in_channel -> bool -AD-> unit

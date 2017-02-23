@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -12,8 +12,6 @@
 (*                                                                        *)
 (**************************************************************************)
 (* useful stuff *)
-
-
 
 (* version of the compiler *)
 let version = "Zélus Hybrid Synchronous language"
@@ -47,10 +45,14 @@ let show_version () =
     version subversion date;
   locate_stdlib ()
 
-(* sets the simulation node *)
+(* sets the main simulation node *)
 let simulation_node = ref None
 let set_simulation_node (n:string) = simulation_node := Some(n)
 
+(* set the option [all]. When on, all nodes including ones with *)
+(* static parameters are compiled *)
+let all = ref false
+		 
 (* sets the checking flag *)
 let number_of_checks = ref 0
 let set_check (n: int) = number_of_checks := n
@@ -74,9 +76,10 @@ let typeonly = ref false
 let use_gtk = ref false
 let no_causality = ref false
 let no_initialisation = ref false
+let no_opt = ref false
 let no_deadcode = ref false
 let lmm = ref false
-      
+	      
 (* variable creation *)
 (* generating names *)
 class name_generator =
@@ -148,8 +151,8 @@ let optional_map f = function
   | Some(x) -> Some(f x)
 
 let optional_with_map f acc = function
-  | None -> acc, None
-  | Some(x) -> let acc, x = f acc x in acc, Some(x)
+  | None -> None, acc
+  | Some(x) -> let x, acc = f acc x in Some(x), acc
 
 let optional_get = function
   | Some x -> x
@@ -177,6 +180,12 @@ let map_fold f acc l =
        y :: l, acc in
   maprec acc l
 
+(* takes the first patterns of the list, except the last one *)
+let rec firsts = function
+    | [] -> assert false
+    | [p] -> [], p
+    | p :: l -> let head, tail = firsts l in p :: head, tail
+  
 (** The data-structure to represent a state *)
 module State =
   struct

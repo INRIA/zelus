@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2016                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -42,7 +42,7 @@ let build_env l_env env =
     | Deftypes.Smem { Deftypes.m_previous = true } ->
        (* [x] initialized; [last x] uninitialized *)
        { t_last = false; t_typ = Init.skeleton_on_i izero ty }
-    | Deftypes.Sval | Deftypes.Smem _ -> 
+    | Deftypes.Sstatic | Deftypes.Sval | Deftypes.Smem _ -> 
        (* no constraint *)
        { t_last = false; t_typ = Init.skeleton ty } in
   Env.fold (fun n tentry acc -> Env.add n (entry tentry) acc) l_env env
@@ -184,93 +184,91 @@ let present_handlers scondpat body env p_h_list =
 (** Initialization of an expression *)
 let rec exp env { e_desc = desc; e_typ = ty } =
   match desc with
-    | Econst _ | Econstr0 _ | Eglobal _ | Eperiod _ -> 
-        Init.skeleton_on_i (Init.new_var ()) ty
-    | Elocal(x) -> 
-        begin try let { t_typ = ty1 } = Env.find x env in ty1 
-          with | Not_found -> Init.skeleton_on_i izero ty
-        end
-    | Elast(x) -> 
-        begin try 
-            (* [last x] is initialized only if an equation [init x = e] *)
-            (* appears and [e] is also initialized *)
-            let { t_last = last } = Env.find x env in
-            if last then Init.skeleton_on_i izero ty
-            else Init.skeleton_on_i ione ty 
-          with 
-            | Not_found -> Init.skeleton_on_i ione ty end
-    | Etuple(e_list) -> 
-        product (List.map (exp env) e_list)
-    | Eapp(op, e_list) -> apply env op ty e_list
-    | Erecord_access(e_record, _) -> 
-        let i = Init.new_var () in
-        exp_less_than_on_i env e_record i;
-	Init.skeleton_on_i i ty
-    | Erecord(l) -> 
-        let i = Init.new_var () in
-        List.iter (fun (_, e) -> exp_less_than_on_i env e i) l;
-        Init.skeleton_on_i i ty
-    | Etypeconstraint(e, _) -> exp env e
-    | Elet(l, e_let) -> 
-        let env = local env l in
-        exp env e_let
-    | Eblock(b, e_block) ->
-         let env = block_eq_list env b in
-         exp env e_block
-    | Eseq(e1, e2) -> 
-        ignore (exp env e1);
-        exp env e2
-    | Epresent(p_h_list, e_opt) ->
-        let ty = Init.skeleton_on_i (Init.new_var ()) ty in
-        let _ = Misc.optional_map (fun e -> exp_less_than env e ty) e_opt in
-        present_handler_exp_list env p_h_list ty;
-	ty
-    | Ematch(_, e, m_h_list) ->
-        let ty = Init.skeleton_on_i (Init.new_var ()) ty in
-        exp_less_than_on_i env e izero;
-        match_handler_exp_list env m_h_list ty;
-	ty
+  (* for the moment, no type signature is stored in the global *)
+  (* environment. Arguments/results must always be initialized. *)
+  | Econst _ | Econstr0 _ | Eglobal _ | Eperiod _ -> 
+					 Init.skeleton_on_i (Init.new_var ()) ty
+  | Elocal(x) -> 
+     begin try let { t_typ = ty1 } = Env.find x env in ty1 
+           with | Not_found -> Init.skeleton_on_i izero ty
+     end
+  | Elast(x) -> 
+     begin try 
+         (* [last x] is initialized only if an equation [init x = e] *)
+         (* appears and [e] is also initialized *)
+         let { t_last = last } = Env.find x env in
+         if last then Init.skeleton_on_i izero ty
+         else Init.skeleton_on_i ione ty 
+       with 
+       | Not_found -> Init.skeleton_on_i ione ty end
+  | Etuple(e_list) -> 
+     product (List.map (exp env) e_list)
+  | Eop(op, e_list) -> operator env op ty e_list
+  | Eapp(_, e, e_list) ->
+     app env (exp env e) e_list
+  | Erecord_access(e_record, _) -> 
+     let i = Init.new_var () in
+     exp_less_than_on_i env e_record i;
+     Init.skeleton_on_i i ty
+  | Erecord(l) -> 
+     let i = Init.new_var () in
+     List.iter (fun (_, e) -> exp_less_than_on_i env e i) l;
+     Init.skeleton_on_i i ty
+  | Etypeconstraint(e, _) -> exp env e
+  | Elet(l, e_let) -> 
+     let env = local env l in
+     exp env e_let
+  | Eblock(b, e_block) ->
+     let env = block_eq_list env b in
+     exp env e_block
+  | Eseq(e1, e2) -> 
+     ignore (exp env e1);
+     exp env e2
+  | Epresent(p_h_list, e_opt) ->
+     let ty = Init.skeleton_on_i (Init.new_var ()) ty in
+     let _ = Misc.optional_map (fun e -> exp_less_than env e ty) e_opt in
+     present_handler_exp_list env p_h_list ty;
+     ty
+  | Ematch(_, e, m_h_list) ->
+     let ty = Init.skeleton_on_i (Init.new_var ()) ty in
+     exp_less_than_on_i env e izero;
+     match_handler_exp_list env m_h_list ty;
+     ty
+       
+(** Typing an operator *)
+and operator env op ty e_list =
+  match op, e_list with
+  | Eunarypre, [e] -> 
+     exp_less_than_on_i env e izero; 
+     Init.skeleton_on_i ione ty
+  | Efby, [e1;e2] ->
+     exp_less_than_on_i env e2 izero;
+     exp env e1
+  | Eminusgreater, [e1;e2] ->
+     let t1 = exp env e1 in
+     let _ = exp env e2 in
+     t1
+  | Eifthenelse, [e1; e2; e3] ->
+     let i = Init.new_var () in
+     exp_less_than_on_i env e1 i;
+     exp_less_than_on_i env e2 i;
+     exp_less_than_on_i env e3 i;
+     Init.skeleton_on_i i ty
+  | (Einitial | Eup | Etest | Edisc | Eaccess), e_list ->
+     List.iter (fun e -> exp_less_than_on_i env e izero) e_list;
+     Init.skeleton_on_i izero ty
+  | (Eafter _, []) | _ -> assert false
 
 (** Typing an application *)
-and apply env op ty e_list =
-  match op, e_list with
-    | Eunarypre, [e] -> 
-        exp_less_than_on_i env e izero; 
-        Init.skeleton_on_i ione ty
-    | Efby, [e1;e2] ->
-        exp_less_than_on_i env e2 izero;
-        exp env e1
-    | Eminusgreater, [e1;e2] ->
-        let t1 = exp env e1 in
-        let _ = exp env e2 in
-        t1
-    | Eifthenelse, [e1; e2; e3] ->
-        let i = Init.new_var () in
-        exp_less_than_on_i env e1 i;
-        exp_less_than_on_i env e2 i;
-        exp_less_than_on_i env e3 i;
-        Init.skeleton_on_i i ty
-    | (Einitial | Eup | Etest | Edisc), e_list ->
-        let i = Init.new_var () in
-        List.iter (fun e -> exp_less_than_on_i env e izero) e_list;
-        Init.skeleton_on_i i ty
-    | Eop(_, lname), e_list when Types.is_a_node lname ->
-        (* for the moment, no type signature is stored in the global *)
-        (* environment. Arguments/results must always be initialized. *)
-        List.iter (fun e -> exp_less_than_on_i env e izero) e_list;
-        Init.skeleton_on_i izero ty
-    | Eop(_, lname), e_list ->
-        (* combinatorial functions are abstracted as the identity. Warning: *)
-        (* this is only correct for functions that are safe. To be done *)
-        let i = Init.new_var () in
-        List.iter (fun e -> exp_less_than_on_i env e i) e_list;
-        Init.skeleton_on_i i ty
-    | Eevery(_, lname), e :: e_list ->
-        let i = Init.new_var () in
-        List.iter (fun e -> exp_less_than_on_i env e i) e_list;
-        exp_less_than_on_i env e izero;
-        Init.skeleton_on_i i ty
-    | _ -> assert false
+and app env ty_fct arg_list =
+  (* typing the list of arguments *)
+  let rec args ty_fct = function
+    | [] -> ty_fct
+    | arg :: arg_list ->
+       let ty1, ty2 = Init.filter_arrow ty_fct in
+       exp_less_than env arg ty1;
+       args ty2 arg_list in
+  args ty_fct arg_list
 
 and exp_less_than_on_i env e expected_i =
   let actual_ty = exp env e in
@@ -357,17 +355,21 @@ and equation env { eq_desc = eq_desc; eq_loc = loc } =
 	  if !total then defnames_list else Deftypes.empty :: defnames_list in
 	initialized_last loc env defnames_list
     | EQpresent(p_h_list, b_opt) ->
-        let _ = Misc.optional_map (fun b -> ignore (block_eq_list env b)) b_opt in
+       let _ =
+	 Misc.optional_map (fun b -> ignore (block_eq_list env b)) b_opt in
         present_handler_block_eq_list env p_h_list;
 	(* every partially defined value must have an initialized value *)
 	let defnames =
-	  match b_opt with | None -> Deftypes.empty | Some { b_write = w } -> w in
+	  match b_opt with
+	  | None -> Deftypes.empty | Some { b_write = w } -> w in
 	let defnames_list =
 	  List.map (fun { p_body = { b_write = w } } -> w) p_h_list in
 	initialized_last loc env (defnames :: defnames_list)       
     | EQreset(eq_list, e) -> 
         exp_less_than_on_i env e izero;
         equation_list env eq_list
+    | EQpar(eq_list)
+    | EQseq(eq_list) -> equation_list env eq_list
     | EQemit(n, e_opt) ->
         let ty_n = 
           try let { t_typ = ty1 } = Env.find n env in ty1
@@ -376,6 +378,42 @@ and equation env { eq_desc = eq_desc; eq_loc = loc } =
 	ignore
 	  (Misc.optional_map (fun e -> exp_less_than_on_i env e izero) e_opt)
     | EQblock(b_eq_list) ->
+       ignore (block_eq_list env b_eq_list)
+    | EQforall { for_index = i_list; for_init = init_list; for_body = b_eq_list;
+		 for_in_env = i_env; for_out_env = o_env } ->
+       (* typing the declaration of indexes *)
+       (* all bounds must be initialized *)
+       let index env { desc = desc; loc = loc } =
+	 match desc with
+	 | Einput(_, e) -> exp_less_than_on_i env e izero
+	 | Eindex(_, e1, e2) ->
+	    exp_less_than_on_i env e1 izero;
+	    exp_less_than_on_i env e2 izero
+	 | Eoutput(x, xout) ->
+	    let ti =
+	      try
+		let { t_typ = ti } = Env.find xout env in ti
+              with | Not_found -> assert false in
+            less_than loc ti (Init.atom izero) in
+       (* typing the initialization *)
+       (* all right hand-side expressions must be initialized *)
+       let init init_env { desc = desc } =
+	 match desc with
+	 | Einit_last(x, e) ->
+	    let ti = exp env e in
+	    let tzero = Init.skeleton_on_i izero e.e_typ in
+	    less_than e.e_loc ti tzero;
+	    Env.add x { t_last = true; t_typ = tzero } init_env
+	 | Einit_value(x, e, _) ->
+	    let ti = exp env e in
+	    let tzero = Init.skeleton_on_i izero e.e_typ in
+	    less_than e.e_loc ti tzero;
+	    Env.add x { t_last = false; t_typ = tzero } init_env in
+       List.iter (index env) i_list;
+       let init_env = List.fold_left init Env.empty init_list in
+       let env = build_env i_env env in
+       let env = build_env o_env env in
+       let env = Env.append init_env env in
        ignore (block_eq_list env b_eq_list)
 
 and present_handler_exp_list env p_h_list ty =
@@ -428,4 +466,5 @@ let implementation ff impl =
   with
     | Error(loc, kind) -> message loc kind
 
-let implementation_list ff impl_list = List.iter (implementation ff) impl_list
+let implementation_list ff impl_list =
+  List.iter (implementation ff) impl_list; impl_list

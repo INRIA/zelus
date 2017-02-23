@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2016                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -40,56 +40,47 @@ open Deftypes
 open Obc
 open Format
 
-let infinity = make (Oglobal(Modname(Initial.pervasives_name "infinity")))
-let varpat x = make (Ovarpat(x))
-let tuplepat p_list = make (Otuplepat(p_list))
-let wildpat = make (Owildpat)
-let void = make (Oconst(Ovoid))
-let int32_0 = make (Oconst(Oint32 0))
-let tuple e_list = make (Otuple(e_list))
-let var x = make (Olocal(x, false))
-let shared x = make (Olocal(x, true))
-let state x = make (Ostate(Oleft_state_name(x)))
-let int_const v = make (Oconst(Oint(v)))
-let float_const v = make (Oconst(Ofloat(v)))
-let bool b = make (Oconst(Obool(b)))
-let oplus e1 e2 = 
-  make (Oapp(Modname (Initial.pervasives_name "(+)"), [e1; e2]))
-let omin e1 e2 = 
-  make (Oapp(Modname (Initial.pervasives_name "min"), [e1; e2]))
-let olte e1 e2 = 
-  make (Oapp(Modname (Initial.pervasives_name "(<=)"), [e1; e2]))
-let olt e1 e2 = 
-  make (Oapp(Modname (Initial.pervasives_name "(<)"), [e1; e2]))
-let oneq e1 e2 = 
-  make (Oapp(Modname (Initial.pervasives_name "(<>)"), [e1; e2]))
-let onot e = make (Oapp(Modname (Initial.pervasives_name "not"), [e]))
-let oand e1 e2 = make (Oapp(Modname (Initial.pervasives_name "(&&)"), [e1; e2]))
-let oassign id e = make (Oassign(Oleft_name(id), e))
-let oassign_state id e = make (Oassign_state(Oleft_state_name(id), e))
-let oletvar id ty e_opt e = make (Oletvar(id, ty, e_opt, e))
-let owhile e1 e2 = make (Owhile(e1, e2))
-let call o f m_name e_list = 
-  make (Omethod({ c_machine = f; c_method_name = m_name; c_instance = Some(o) }, 
-                e_list))
-let olet p e1 e2 = make (Olet([p, e1], e2))
+let infinity = Oglobal(Modname(Initial.pervasives_name "infinity"))
+let varpat x ty = Ovarpat(x, ty)
+let tuplepat p_list = Otuplepat(p_list)
+let wildpat = Owildpat
+let void = Oconst(Ovoid)
+let int32_0 = Oconst(Oint32 0)
+let tuple e_list = Otuple(e_list)
+let var x = Ovar(x)
+let local x = Olocal(x)
+let state x = Ostate(Oleft_state_name(x))
+let int_const v = Oconst(Oint(v))
+let float_const v = Oconst(Ofloat(v))
+let bool b = Oconst(Obool(b))
+let operator op = Oglobal(Modname (Initial.pervasives_name op))
+let oplus e1 e2 = Oapp(operator "(+)", [e1; e2])
+let omin e1 e2 = Oapp(operator "min", [e1; e2])
+let olte e1 e2 = Oapp(operator "(<=)", [e1; e2])
+let olt e1 e2 = Oapp(operator "(<)", [e1; e2])
+let oneq e1 e2 = Oapp(operator "(<>)", [e1; e2])
+let onot e = Oapp(operator "not", [e])
+let oand e1 e2 = Oapp(operator "(&&)", [e1; e2])
+let oassign id e = Oassign(Oleft_name(id), e)
+let oassign_state id e = Oassign_state(Oleft_state_name(id), e)
+let oletvar id ty e_opt e = Oletvar(id, ty, e_opt, e)
+let owhile e1 e2 = Owhile(e1, e2)
+let call o m_name e_list = 
+  Omethodcall({ met_machine = None; met_name = m_name;
+		met_instance = Some(o, []); met_args = e_list })
+let olet p e1 i2 = Olet(p, e1, i2)
+let rec olets p_e_list i =
+  match p_e_list with | [] -> i | (p, e) :: p_e_list -> olet p e (olets p_e_list i)
 let rec sum v e_list =
   match e_list with
   | [] -> v
   | e :: e_list -> sum (oplus v e) e_list
-let rec sequence e_list =
-  match e_list with
-  | [] -> void
-  | [e] -> e
-  | e :: e_list -> make (Osequence(e, sequence e_list))
-let ignore e = make (Oapp(Modname (Initial.pervasives_name "ignore"), [e]))
-let snd e = make (Oapp(Modname (Initial.pervasives_name "snd"), [e]))
+let ignore e = Oapp(operator "ignore", [e])
+let snd e = Oapp(operator "snd", [e])
 
-let for_loop i e1 e2 body =
-  make (Ofor(true, i, e1, e2, body))
+let for_loop i e1 e2 body = Ofor(true, i, e1, e2, body)
 
-let if_then ec cmd =
-  make (Oifthenelse (ec, cmd, void))
+let if_then ec body = Oif(ec, body)
 
 (* arrays in which states are stored *)
 let cvec  = Ident.fresh "cvec" (* vector of positions *)
@@ -105,35 +96,44 @@ let output    = Ident.fresh "output"   (* the output of the function *)
 (* access functions for state vectors *)
 
 (* First solution: functions are defined in module [ZLS] *)
-let solver_fn n  = Lident.Modname { Lident.qual = "Zls"; Lident.id = n }
+let solver_fn n  =
+  Oglobal(Lident.Modname { Lident.qual = "Zls"; Lident.id = n })
 
 (* create accessor and mutator functions for state vectors *)
 let make_get get_fn array_ident idx =
-  make (Oapp(get_fn, [make (Olocal (array_ident, false)); idx]))
+  Oapp(get_fn, [Olocal(array_ident); idx])
 
 let make_set set_fn array_ident idx e =
-  make (Oapp(set_fn, [make (Olocal (array_ident, false)); idx; e]))
+  Oapp(set_fn, [Olocal(array_ident); idx; e])
 
 let get cvec e = make_get (solver_fn "get") cvec e
 let set cvec idx e = make_set (solver_fn "set") cvec idx e
 let get cvec e = make_get (solver_fn "get_zin") cvec e
 
 (* Second solution (default): direct access to arrays *)
-let get cvec e = make (Oindex(make (Olocal(cvec, false)), e))
-let set cvec idx e = make (Oassign(Oleft_index(Oleft_name(cvec), idx), e))
-let get_zin zvec e = oneq (make (Oindex(make (Olocal(zvec, false)), e))) int32_0
-
+let get cvec e = Oindex(Olocal(cvec), e)
+let set cvec idx e = Oassign(Oleft_index(Oleft_name(cvec), idx), e)
+let get_zin zvec e = oneq (Oindex(Olocal(zvec), e)) int32_0
+let rec letin p_e_list i =
+  match p_e_list with
+  | [] -> i
+  | (p, e) :: p_e_list -> Olet(p, e, letin p_e_list i)
+					   
 (** Compute the index associated to a state variable [x] in the current block *)
 (* [build_index m_list = (ctable, csize), (ztable, zsize), m_list] *)
 let build_index m_list =
   (* build two tables. The table [ctable] associates an integer index to *)
   (* every continuous state variable; [ztable] do the same for zero-crossings *)
   (* also return the size of every table *)
-  let build ((ctable, csize), (ztable, zsize)) (n, (mem, ty, e_opt)) =
-    match mem with
-    | Discrete | Horizon | Period | Encore -> (ctable, csize), (ztable, zsize)
-    | Zero -> (ctable, csize), (Env.add n zsize ztable, zsize + 1)
-    | Cont -> (Env.add n csize ctable, csize + 1), (ztable, zsize) in
+  let build ((ctable, csize), (ztable, zsize))
+	    { m_name = n; m_kind = m; m_value = e_opt } = 
+    match m with
+    | None -> (ctable, csize), (ztable, zsize)
+    | Some(k) ->
+       match k with
+       | Horizon | Period | Encore -> (ctable, csize), (ztable, zsize)
+       | Zero -> (ctable, csize), (Env.add n zsize ztable, zsize + 1)
+       | Cont -> (Env.add n csize ctable, csize + 1), (ztable, zsize) in
   let (ctable, csize), (ztable, zsize) =
     List.fold_left build ((Env.empty, 0), (Env.empty, 0)) m_list in
   (ctable, csize), (ztable, zsize)
@@ -145,24 +145,24 @@ let maxsize csize zsize instances =
   (* the main function is of the form:
      let c1, z1 = o1.maxsize () in ... in let cn, cn = on.maxsize () in
      c1 + ... + cn, z1 + ... + zn *)
-  let one (c_list, z_list, p_e_list) (o, f, k) =
+  let one (c_list, z_list, p_e_list) { i_name = o; i_machine = ei; i_kind = k } =
     match k with
     | Tcont ->
        let r1 = Ident.fresh "r" in
        let r2 = Ident.fresh "r" in
        (var r1) :: c_list,
        (var r2) :: z_list,
-       (tuplepat [varpat r1; varpat r2],
-        make (Omethod({ c_machine = f; c_method_name = Omaxsize;
-                        c_instance = Some(o) }, []))) :: p_e_list
+       (tuplepat [varpat r1 Initial.typ_int; varpat r2 Initial.typ_int],
+        Omethodcall { met_machine = None; met_name = Omaxsize;
+                      met_instance = Some(o, []); met_args = [] }) :: p_e_list
     | _ -> c_list, z_list, p_e_list in
   let c_list, z_list, p_e_list = List.fold_left one ([], [], []) instances in
   let c = sum (int_const csize) c_list in
   let z = sum (int_const zsize) z_list in
   let e = 
     match p_e_list with 
-    | [] -> tuple [c; z] | _ -> make (Olet(p_e_list, tuple [c; z])) in
-  { m_name = Omaxsize; m_param = []; m_body = e }
+    | [] -> Oexp (Otuple [c; z]) | _ -> letin p_e_list (Oexp (Otuple([c; z]))) in
+  { me_name = Omaxsize; me_params = []; me_body = e }
 
 (** Add a method [horizon] which returns the next horizon. When it returns *)
 (* 0.0, this means that an extra discrete step must be performed *)
@@ -174,26 +174,26 @@ let maxsize csize zsize instances =
 (*  v                                                        *)
 let horizon m_list instances =
   (* build the expression [min ...] *)
-  let add acc (o, f, k) =
+  let add acc { i_name = o; i_machine = ei; i_kind = k } =
        match k with
-       | Tcont -> omin (call o f Ohorizon []) acc
+       | Tcont -> omin (call o Ohorizon []) acc
        | _ -> acc in
   (* find the horizon *)
-  let find h_opt (n, (mem, _, _)) =
-    match mem, h_opt with
-    | Horizon, None -> Some(n)
-    | Horizon, Some _ ->
+  let find h_opt { m_name = n; m_kind = k_opt } =
+    match k_opt, h_opt with
+    | Some(Horizon), None -> Some(n)
+    | Some(Horizon), Some _ ->
        Misc.internal_error "Inout: two horizon" Oprinter.name n
     | _ -> h_opt in
   let h_opt = List.fold_left find None m_list in
   let v = Ident.fresh "v" in
   let c =
     match h_opt with
-    | None -> List.fold_left add infinity instances
+    | None -> Oexp(List.fold_left add infinity instances)
     | Some(h) ->
-       olet (varpat v) (List.fold_left add (state h) instances)
-	    (sequence [oassign_state h infinity; var v]) in
-  { m_name = Ohorizon; m_param = []; m_body = c }
+       Olet(varpat v Initial.typ_float, List.fold_left add (state h) instances,
+	   Osequence [oassign_state h infinity; Oexp(Olocal(v))]) in
+  { me_name = Ohorizon; me_params = []; me_body = c }
   
 (** Add a method to copy back and forth the internal representation *)
 (** of the continuous state vector to the external flat representation *)
@@ -205,22 +205,26 @@ let inout (table, size) method_name assign start vec instances =
   (* run [assign n table] *)
   let add n index acc = (assign n index) :: acc in
   let c_list = Env.fold add table [] in
-  (* for every instance [o:f] add *)
-  (* [let start = call o f vec start] *)
-  let add acc (o, f, k) =
+  (* for every instance [o] add *)
+  (* [let start = call o vec start] *)
+  let add acc { i_name = o; i_machine = ei; i_kind = k } =
     match k with
-    | Tcont -> olet (varpat start) (call o f method_name [var vec; var start]) acc
+    | Tcont -> Olet(varpat start Initial.typ_int,
+		   call o method_name [local vec; local start], acc)
     | _ -> acc in
-  let c = List.fold_left add (var start) instances in
+  let c = List.fold_left add (Oexp(Olocal(start))) instances in
   (* add [let cstart = cstart + size] *)
   let c = 
     match size with
     | 0 -> c
-    | _ -> olet (varpat start) (oplus (var start) (int_const size)) c in
-  { m_name = method_name; m_param = [varpat vec; varpat start];
-    m_body = sequence (c_list @ [c]) } 
+    | _ -> Olet(varpat start Initial.typ_int, oplus (local start)
+						    (int_const size), c) in
+  { me_name = method_name;
+    me_params = [varpat vec (Initial.typ_array Initial.typ_float);
+		 varpat start Initial.typ_int];
+    me_body = Osequence (c_list @ [c]) } 
 
-(** Add a method to reset the values of an internal representation. *)
+(** Add a method to recursively apply a method to all instances *)
 (* This function is generic: [table, size] contains the association table *)
 (* [name, index] with size [size]. [assign n index] sets the local memories. *)
 let inout_const (table, size) method_name set instances =
@@ -232,83 +236,86 @@ let inout_const (table, size) method_name set instances =
   let rec add acc insts =
     match insts with
     | [] -> acc
-    | (o, f, Tcont) :: insts -> add (call o f method_name [] :: acc) insts
+    | { i_name = o; i_machine = ei; i_kind = Tcont } :: insts ->
+       add (Oexp(call o method_name []) :: acc) insts
     | _ :: insts -> add acc insts in
-  { m_name = method_name; m_param = [];
-    m_body = sequence (add c_list instances) } 
+  { me_name = method_name; me_params = [];
+    me_body = Osequence (add c_list instances) } 
   
 (* Add a method cin cvec cstart = cstart' which copies [cvec] *)
 (* from position [cstart] to the internal state and returns the new position *)
 let cin (ctable, csize) instances =
   let assign n index =
-    make (Oassign_state(Oleft_state_primitive_access(Oleft_state_name(n), 
-                                                     Ocont),
-                        get cvec (oplus (var cstart) 
-					(make (Oconst(Oint(index))))))) in
+    Oassign_state(Oleft_state_primitive_access(Oleft_state_name(n), 
+                                               Ocont),
+                  get cvec (oplus (local cstart) 
+				  (Oconst(Oint(index))))) in
   inout (ctable, csize) Ocin assign cstart cvec instances
 
 (* Add a method cout cvec cstart = cstart' which copies the internal *)
-(* continuous state into [cvec] from position [cstart]. Returns the new position *)
+(* continuous state into [cvec] from position [cstart]. Returns *)
+(* the new position *)
 let cout (ctable, csize) instances =
   let assign n index =
-    make (Oassign(Oleft_index(Oleft_name(cvec),
-                              oplus (var cstart) 
-                                    (make (Oconst(Oint(index))))),
-                  make (Ostate(Oleft_state_primitive_access(Oleft_state_name(n),
-                                                            Ocont))))) in
+    Oassign(Oleft_index(Oleft_name(cvec),
+                        oplus (local cstart) 
+                              (Oconst(Oint(index)))),
+            Ostate(Oleft_state_primitive_access(Oleft_state_name(n),
+                                                Ocont))) in
   inout (ctable, csize) Ocout assign cstart cvec instances
-
+	
 (* Add a method dout cvec cstart = cstart' which copies the internal *)
 (* derivative into [dvec] from position [cstart]. Returns the new position *)
 let dout (ctable, csize) instances =
   let assign n index =
-    make (Oassign(Oleft_index(Oleft_name(cvec),
-                              oplus (var cstart) 
-                                    (make (Oconst(Oint(index))))),
-                  make (Ostate(Oleft_state_primitive_access(Oleft_state_name(n),
-                                                            Oder))))) in
+    Oassign(Oleft_index(Oleft_name(cvec),
+                        oplus (local cstart) 
+                              (Oconst(Oint(index)))),
+            Ostate(Oleft_state_primitive_access(Oleft_state_name(n),
+                                                Oder))) in
   inout (ctable, csize) Odout assign cstart cvec instances
-
+	
 (* Add a method zin zin_vec zstart = zstart' which copies [zin_vec] *)
 (* from position [zstart] to the internal state and returns the new position *)
 let zin (ztable, zsize) instances =
   let assign n index =
-    make (Oassign_state(Oleft_state_primitive_access(Oleft_state_name(n), 
-                                                     Ozero_in),
-                        get_zin zin_vec (oplus (var zstart) 
-					       (make (Oconst(Oint(index))))))) in
+    Oassign_state(Oleft_state_primitive_access(Oleft_state_name(n), 
+                                               Ozero_in),
+                  get_zin zin_vec (oplus (local zstart) 
+					 (Oconst(Oint(index))))) in
   inout (ztable, zsize) Ozin assign zstart zin_vec instances
 
 (* Add a method clear_zin zstart = zstart' which sets the internal state for *)
 (* zero-crossings to false from position [zstart]. *)
 let clear_zin (ztable, zsize) instances =
   let set n _ =
-    make (Oassign_state(Oleft_state_primitive_access(Oleft_state_name(n), 
-                                                     Ozero_in), bool false)) in
+    Oassign_state(Oleft_state_primitive_access(Oleft_state_name(n), 
+                                               Ozero_in), bool false) in
   inout_const (ztable, zsize) Oclear_zin set instances
-
+	      
 (* Add a method cout cvec cstart = cstart' which copies the internal *)
-(* continuous state into [cvec] from position [cstart]. Returns the new position *)
+(* continuous state into [cvec] from position [cstart]. Returns *)
+(* the new position *)
 let zout (ztable, zsize) instances =
   let assign n index =
-    make (Oassign(Oleft_index(Oleft_name(zout_vec),
-                              oplus (var zstart) 
-                                    (make (Oconst(Oint(index))))),
-                  make (Ostate(Oleft_state_primitive_access(Oleft_state_name(n),
-                                                            Ozero_out))))) in
+    Oassign(Oleft_index(Oleft_name(zout_vec),
+                        oplus (local zstart) 
+                              (Oconst(Oint(index)))),
+            Ostate(Oleft_state_primitive_access(Oleft_state_name(n),
+                                                Ozero_out))) in
   inout (ztable, zsize) Ozout assign zstart zout_vec instances
-
+	
 (* Add a method dzero dvec cstart = cstart' which resets to 0 the internal *)
 (* derivatives in [dvec] from position [cstart]. Returns the new position *)
 let dzero (ctable, csize) instances =
   let set n _ =
-    make (Oassign_state(Oleft_state_primitive_access(Oleft_state_name(n), 
-                                                     Oder), float_const 0.0)) in
+    Oassign_state(Oleft_state_primitive_access(Oleft_state_name(n), 
+                                               Oder), float_const 0.0) in
   inout_const (ctable, csize) Odzero set instances
 
 (** Translate a continuous-time machine *)
-let machine f ({ m_memories = m_list; m_instances = instances;
-                 m_methods = method_list } as mach) =
+let machine f ({ ma_memories = m_list; ma_instances = instances;
+                 ma_methods = method_list } as mach) =
   (* first associate an integer index to every continuous state *)
   (* variable or zero-crossing *)
   let (ctable, csize), (ztable, zsize) = build_index m_list in
@@ -323,15 +330,15 @@ let machine f ({ m_memories = m_list; m_instances = instances;
   let method_list = dzero (ctable, csize) instances :: method_list in
   let method_list = zout (ztable, zsize) instances :: method_list in
   let method_list = horizon m_list instances :: method_list in
-  { mach with m_memories = m_list; m_methods = method_list }
+  { mach with ma_memories = m_list; ma_methods = method_list }
 
 (** The main entry. Add new methods to copy the continuous state vector *)
 (** back and forth into the internal state *)
 let implementation impl =
-  match impl.desc with
-  | Oletmachine(f, ({ m_kind = Deftypes.Tcont } as mach)) -> 
+  match impl with
+  | Oletmachine(f, ({ ma_kind = Deftypes.Tcont } as mach)) -> 
      (* only continuous machines are concerned *)
-     { impl with desc = Oletmachine(f, machine f mach) }
+     Oletmachine(f, machine f mach)
   | Oletmachine _ | Oletvalue _ | Oletfun _ | Oopen _ | Otypedecl _ -> impl
   
 (* Simulate a continuous system [f]. If [f] is a continuous machine *)
@@ -367,59 +374,84 @@ let implementation impl =
 
 let simulate f =
   let o = Ident.fresh "" in
-  let t = Ident.fresh "t" in
+  let time = Ident.fresh "t" in
   let csize = Ident.fresh "csize" in
   let zsize = Ident.fresh "zsize" in
   let mcsize = Ident.fresh "mcsize" in
   let mzsize = Ident.fresh "mzsize" in
-  let call m_name e_list = call o f m_name e_list in
-  { m_kind = Deftypes.Tcont;
-    m_memories = [(mcsize, (Discrete, Initial.typ_int, Some (int_const 0)));
-                  (mzsize, (Discrete, Initial.typ_int, Some (int_const 0)))];
-    m_instances = [o, f, Deftypes.Tcont];
-    m_methods = 
-      [{ m_name = Ostep;
-         m_param = [varpat cvec; varpat dvec; varpat zin_vec; varpat t];
-         m_body =
-           sequence [
-		ignore (call Ocin [var cvec; int_const 0]);
-		ignore (call Ozin [var zin_vec; int_const 0]);
-		olet (varpat output) (call Ostep [var t; void])
-		     (sequence [call Oclear_zin [];
-				call Odzero [];
-				ignore
-				  (call Ocout [var cvec; int_const 0]);
-				var output]) ] };
-       { m_name = Oderivatives;
-         m_param = [varpat cvec; varpat dvec; varpat t];
-         m_body = 
-           sequence [
-	       ignore (call Ocin [var cvec; int_const 0]);
-	       ignore (call Ostep [var t; void]);
-	       ignore (call Odout [var dvec; int_const 0]) ] };
-       { m_name = Ocrossings;
-         m_param = [varpat cvec; varpat zout_vec; varpat t];
-         m_body = 
-           sequence [
-	       ignore (call Ocin [var cvec; int_const 0]);
-	       ignore (call Ostep [var t; void]);
-	       ignore (call Ozout [var zout_vec; int_const 0]) ] };
-       { m_name = Oreset;
-         m_param = [varpat cvec];
-         m_body = sequence [call Oreset [];
-                            ignore (call Ocout [var cvec; int_const 0])]};
-       { m_name = Omaxsize; 
-         m_param = [];
-	 m_body = 
-	   olet (tuplepat [varpat csize; varpat zsize]) (call Omaxsize [])
-		(sequence [oassign_state mcsize (var csize); 
-			   oassign_state mzsize (var zsize);
-			   tuple [var csize; var zsize]]) };
-       { m_name = Ocsize;
-         m_param = []; m_body = make (Ostate(Oleft_state_name(mcsize))) };
-       { m_name = Ozsize;
-         m_param = []; m_body = make (Ostate(Oleft_state_name(mzsize))) };
-       { m_name = Ohorizon;
-	 m_param = []; m_body = call Ohorizon [] } ] }
+  let call m_name e_list = call o m_name e_list in
+  { ma_kind = Deftypes.Tcont;
+    ma_params = [];
+    ma_memories = [{ m_name = mcsize;
+		     m_value = Some(int_const 0);
+		     m_typ = Initial.typ_int;
+		     m_kind = None;
+		     m_size = [] };
+		   { m_name = mzsize;
+		     m_value = Some(int_const 0);
+		     m_typ = Initial.typ_int;
+		     m_kind = None;
+		     m_size = [] }];
+    ma_instances = [{ i_name = o;
+		      i_machine = Oglobal(f);
+		      i_kind = Deftypes.Tcont;
+		      i_params = [];
+		      i_size = [] }];
+    ma_methods = 
+      [{ me_name = Ostep;
+         me_params =
+	   [varpat cvec (Initial.typ_array Initial.typ_float);
+	    varpat dvec (Initial.typ_array Initial.typ_float);
+	    varpat zin_vec (Initial.typ_array Initial.typ_float);
+	    varpat time (Initial.typ_array Initial.typ_float)];
+         me_body =
+           olets [Owildpat, call Ocin [local cvec; int_const 0];
+		  Owildpat, call Ozin [local zin_vec; int_const 0];
+		  Owildpat, call Ostep [local time; void];
+		  Owildpat, call Oclear_zin [];
+		  Owildpat, call Odzero [];
+		  Owildpat, call Ocout [local cvec; int_const 0]]
+		 (Oexp(Oconst(Ovoid))) };
+       { me_name = Oderivatives;
+         me_params =
+	   [varpat cvec (Initial.typ_array Initial.typ_float);
+	    varpat dvec (Initial.typ_array Initial.typ_float);
+	    varpat time (Initial.typ_array Initial.typ_float)];
+         me_body = 
+           olets [Owildpat, call Ocin [local cvec; int_const 0];
+		  Owildpat, call Ostep [local time; void];
+		  Owildpat, call Odout [local dvec; int_const 0]]
+	 	 (Oexp(Oconst(Ovoid))) };
+       { me_name = Ocrossings;
+         me_params =
+	   [varpat cvec (Initial.typ_array Initial.typ_float);
+	    varpat zout_vec (Initial.typ_array Initial.typ_float);
+	    varpat time (Initial.typ_array Initial.typ_float)];
+         me_body = 
+           olets [Owildpat, call Ocin [local cvec; int_const 0];
+		  Owildpat, call Ostep [local time; void];
+		  Owildpat, call Ozout [local zout_vec; int_const 0]]
+		 (Oexp(Oconst(Ovoid))) };
+       { me_name = Oreset;
+         me_params =
+	   [varpat cvec (Initial.typ_array Initial.typ_float)];
+         me_body = olets [Owildpat, call Oreset [];
+			  Owildpat, call Ocout [local cvec; int_const 0]]
+			 (Oexp(Oconst(Ovoid))) };
+       { me_name = Omaxsize; 
+         me_params = [];
+	 me_body = 
+	   olets [tuplepat [varpat csize Initial.typ_int;
+			    varpat zsize Initial.typ_int], call Omaxsize []]
+		 (Osequence
+		    [oassign_state mcsize (local csize); 
+		     oassign_state mzsize (local zsize);
+		     Oexp(tuple [local csize; local zsize])]) };
+       { me_name = Ocsize;
+         me_params = []; me_body = Oexp(Ostate(Oleft_state_name(mcsize))) };
+       { me_name = Ozsize;
+         me_params = []; me_body = Oexp (Ostate(Oleft_state_name(mzsize))) };
+       { me_name = Ohorizon;
+	 me_params = []; me_body = Oexp(call Ohorizon []) } ] }
         
 let implementation_list impl_list = Misc.iter implementation impl_list

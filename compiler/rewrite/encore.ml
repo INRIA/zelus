@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -57,6 +57,12 @@ let rec equation env encore_opt ({ eq_desc = desc } as eq) =
     | EQreset(eq_list, e) ->
        let eq_list, encore_opt = equation_list env encore_opt eq_list in
        { eq with eq_desc = EQreset(eq_list, e) }, encore_opt
+    | EQpar(par_eq_list) ->
+       let par_eq_list, encore_opt = equation_list env encore_opt par_eq_list in
+       { eq with eq_desc = EQpar(par_eq_list) }, encore_opt
+    | EQseq(seq_eq_list) ->
+       let seq_eq_list, encore_opt = equation_list env encore_opt seq_eq_list in
+       { eq with eq_desc = EQseq(seq_eq_list) }, encore_opt
     | EQmatch(total, e, m_h_list) ->
      (* add an equation [encore = true] if a branch is activated *)
      (* on a zero-crossing and changes a non local state variable *)
@@ -70,6 +76,10 @@ let rec equation env encore_opt ({ eq_desc = desc } as eq) =
 	    { m_h with m_body = b }, encore_opt)
 	  encore_opt m_h_list in
       { eq with eq_desc = EQmatch(total, e, m_h_list) }, encore_opt
+    | EQforall ({ for_body = b_eq_list } as body) ->
+       let b_eq_list, encore_opt = block env encore_opt b_eq_list in
+       { eq with eq_desc = EQforall { body with for_body = b_eq_list }},
+       encore_opt
     | EQautomaton _ | EQpresent _ | EQemit _
     | EQnext _ | EQblock _ -> assert false
 
@@ -116,7 +126,7 @@ let expression env ({ e_desc = desc } as e) =
 let implementation impl =
   match impl.desc with
   | Eopen _ | Etypedecl _ | Econstdecl _  
-  | Efundecl(_, { f_kind = (A | AD | D) }) -> impl
+  | Efundecl(_, { f_kind = (S | AS | A | AD | D) }) -> impl
   | Efundecl(n, ({ f_kind = C; f_body = e; f_env = f_env } as body)) ->
      { impl with desc = Efundecl(n, { body with f_body = expression f_env e }) }
        

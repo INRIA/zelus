@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2016                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -116,6 +116,14 @@ let build_env expected_k l_env =
      Env.add n { last = false; cur_tc = cur_tc; last_tc = last_tc } acc in
    Env.fold entry l_env Env.empty
 
+(** Build an environment with all entries synchronised on [c] *)
+let build_env_on_c expected_k c l_env =
+   let entry n { Deftypes.t_typ = ty; Deftypes.t_sort = sort } acc =
+     let cur_tc = Causal.annotate (Cname n) (Causal.skeleton_on_c c ty) in
+     let last_tc = Causal.annotate (Clast n) (Causal.skeleton_on_c c ty) in
+     Env.add n { last = false; cur_tc = cur_tc; last_tc = last_tc } acc in
+   Env.fold entry l_env Env.empty
+
 (** Causality analysis of a match handler.*)
 let match_handlers body expected_k before_c env m_h_list =
   let handler { m_pat = p; m_body = b } =
@@ -146,7 +154,10 @@ let rec exp expected_k before_c env
 	    ({ e_desc = desc; e_typ = ty; e_loc = loc } as e) =
   try
     let tc = match desc with
-      | Econst _ | Econstr0 _ | Eglobal _ | Eperiod _ -> Causal.skeleton ty
+      | Econst _ | Econstr0 _ | Eperiod _ -> Causal.skeleton ty
+      | Eglobal { lname = lname } ->
+	 let { info = info } = Modules.find_value lname in
+	 Causal.instance info ty
       | Elocal(x) ->
          begin try
              let { cur_tc = tc } = Env.find x env in tc
@@ -157,8 +168,10 @@ let rec exp expected_k before_c env
 	 type_of_last loc expected_k centry
       | Etuple(e_list) ->
          product (List.map (exp expected_k before_c env) e_list)
-      | Eapp(op, e_list) ->
-         apply expected_k before_c env op ty e_list
+      | Eop(op, e_list) ->
+	 operator expected_k before_c env op ty e_list
+      | Eapp(_, e, e_list) ->
+	 app expected_k before_c env (exp expected_k before_c env e) e_list
       | Erecord_access(e_record, _) ->
          let c = Causal.new_var () in
          exp_before_on_c expected_k before_c env e_record c;
@@ -199,7 +212,18 @@ let rec exp expected_k before_c env
   | Causal.Error err -> error loc env err
 
 (** Typing an application *)
-and apply expected_k before_c env op ty e_list =
+and app expected_k before_c env tc_fct arg_list =
+  (* typing the list of arguments *)
+  let rec args tc_fct = function
+    | [] -> tc_fct
+    | arg :: arg_list ->
+       let tc1, tc2 = Causal.filter_arrow tc_fct in
+       exp_before expected_k before_c env arg tc1;
+       args tc2 arg_list in
+  args tc_fct arg_list
+       
+(** Typing an operator *)
+and operator expected_k before_c env op ty e_list =
   let c = Causal.new_var () in
   match op, e_list with
   | Eunarypre, [e] ->
@@ -218,28 +242,22 @@ and apply expected_k before_c env op ty e_list =
      exp_before_on_c expected_k before_c env e2 c;
      exp_before_on_c expected_k before_c env e3 c;
      Causal.skeleton_on_c c ty
-  | Eup, [e] -> (* [up(e)] does not depend instantaneously of itself *)
+  | Eup, [e] ->
+     (* [up(e)] does not depend instantaneously of itself *)
      exp_before_on_c expected_k before_c env e before_c;
      Causal.skeleton_on_c c ty
-  | (Einitial | Etest | Edisc), e_list ->
-     List.iter
-       (fun e ->
-        exp_before_on_c expected_k before_c env e c) e_list;
-     Causal.skeleton_on_c c ty
-  | Eop(_, lname), e_list ->
-     let { info = info } = Modules.find_value lname in
-     let tc_arg_list, tc_res = Causal.instance info in
-     List.iter2 (exp_before expected_k before_c env) e_list tc_arg_list;
-     tc_res
-  | Eevery(_, lname), e :: e_list ->
-     let { info = info } = Modules.find_value lname in
-     let tc_arg_list, tc_res = Causal.instance info in
-     List.iter2 (exp_before expected_k before_c env) e_list tc_arg_list;
+  | Einitial, [] ->
+     Causal.skeleton_on_c c ty 
+  | (Etest | Edisc | Ehorizon), [e] ->
      exp_before_on_c expected_k before_c env e c;
-     Causal.type_before_type (Causal.skeleton_on_c c ty) tc_res;
-     tc_res
-  | _ -> assert false
-
+     Causal.skeleton_on_c c ty
+  | Eaccess, [e1; e2] ->
+     exp_before_on_c expected_k before_c env e1 c;
+     exp_before_on_c expected_k before_c env e2 c;
+     Causal.skeleton_on_c c ty
+  | (Eafter _, []) | _ -> assert false
+     
+		    
 and exp_before_on_c expected_k before_c env e expected_c =
   try
     let actual_tc = exp expected_k before_c env e in
@@ -377,6 +395,10 @@ and equation expected_k before_c env
        exp_before_on_c expected_k before_c env e c_e;
        let env = equation_list expected_k before_c env eq_list in
        Cenv.supc c_e env
+    | EQpar(eq_list) ->
+       equation_list expected_k before_c env eq_list 
+    | EQseq(eq_list) ->
+       equation_list expected_k before_c env eq_list 
     | EQemit(n, e_opt) ->
        let c_e = Causal.new_var () in
        Misc.optional_unit
@@ -386,13 +408,56 @@ and equation expected_k before_c env
     | EQblock(b_eq_list) ->
        let _, shared_env = block_eq_list expected_k before_c env b_eq_list in
        shared_env
+    | EQforall { for_index = i_list; for_init = init_list; for_body = b_eq_list;
+		 for_in_env = i_env; for_out_env = o_env } ->
+       (* typing the declaration of indexes *)
+       (* defines a local environment *)
+       let expected_in_c = Causal.new_var () in
+       let expected_out_c = Causal.new_var () in
+       let index env { desc = desc } =
+	 match desc with
+	 | Einput(_, e) -> exp_before_on_c expected_k before_c env e expected_in_c
+	 | Eindex(_, e1, e2) ->
+	    exp_before_on_c expected_k before_c env e1 expected_in_c;
+	    exp_before_on_c expected_k before_c env e2 expected_in_c
+	 | Eoutput _ -> () in
+       (* replace every entry [x:ty|ty] by [xout:ty|ty] for [x out xout] *)
+       let out_env shared_env { desc = desc } =
+	 match desc with
+	 | Einput _ | Eindex _ -> shared_env
+	 | Eoutput(_, xout) ->
+	    let tc = Causal.atom expected_out_c in
+	    Env.add xout { last = false; cur_tc = tc; last_tc = tc } shared_env in
+       (* typing the initialization *)
+       let init init_env { desc = desc } =
+	 match desc with
+	 | Einit_last(x, e) ->
+	    let tc = exp expected_k before_c env e in
+	    Env.add x { last = true; cur_tc = fresh tc; last_tc = tc } init_env
+	 | Einit_value(x, e, _) ->
+	    let tc = exp expected_k before_c env e in
+	    Env.add x { last = false; cur_tc = tc; last_tc = tc } init_env in
+       List.iter (index env) i_list;
+       let init_env = List.fold_left init Env.empty init_list in
+       let env = Env.append init_env env in
+       let i_env = build_env_on_c expected_k expected_in_c i_env in
+       let env = Env.append i_env env in
+       let o_env = build_env_on_c expected_k expected_out_c o_env in
+       let env = Env.append o_env env in
+       let _, shared_env = block_eq_list expected_k before_c env b_eq_list in
+       let shared_env =
+	 try
+	   Cenv.before shared_env env
+	 with Causal.Error err -> error loc env err in
+       List.fold_left out_env shared_env i_list
 
 (* Typing a present handler for expressions *)
 (* The handler list is not be empty *)
 and present_handler_exp_list expected_k before_c env p_h_list e_opt =
   let before_local_c = Causal.new_var () in
   Causal.ctype_before_ctype before_local_c before_c;
-  let tc_list = present_handlers scondpat exp expected_k before_local_c env p_h_list e_opt in
+  let tc_list =
+    present_handlers scondpat exp expected_k before_local_c env p_h_list e_opt in
   Causal.supc before_local_c (Causal.sup_list tc_list)
 
 (* Typing a present handler for blocks *)
@@ -494,8 +559,8 @@ let implementation ff { desc = desc } =
        Misc.push_binding_level ();
        ignore (exp Deftypes.Tany (Causal.new_var ()) Env.empty e);
        Misc.pop_binding_level ()
-    | Efundecl (f, { f_kind = k; f_atomic = atomic; f_args = pat_list;
-                     f_body = e; f_env = h0 }) ->
+    | Efundecl (f, { f_kind = k; f_atomic = atomic;
+		     f_args = pat_list; f_body = e; f_env = h0 }) ->
        Misc.push_binding_level ();
        let expected_k = Interface.kindtype k in
        let tc_arg_list, tc_res =
@@ -517,7 +582,7 @@ let implementation ff { desc = desc } =
            Env.empty pat_list tc_arg_list in
        exp_before expected_k before_c env e tc_res;
        Misc.pop_binding_level ();
-       let tcs = generalise tc_arg_list tc_res in
+       let tcs = generalise (Causal.funtype_list tc_arg_list tc_res) in
        (* then add the current entries in the global environment *)
        Global.set_causality (Modules.find_value (Lident.Name(f))) tcs;
        (* output the signature *)
@@ -525,4 +590,5 @@ let implementation ff { desc = desc } =
   with
   | Error(loc, env, err) -> message loc env err
 
-let implementation_list ff impl_list = List.iter (implementation ff) impl_list
+let implementation_list ff impl_list =
+  List.iter (implementation ff) impl_list; impl_list

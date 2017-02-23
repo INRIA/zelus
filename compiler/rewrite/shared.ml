@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -30,7 +30,7 @@ open Zaux
 (* add them to [dv] *)
 let shared dv l_env =
   let add x sort acc =
-    match sort with | Sval -> acc | Svar _ | Smem _ -> S.add x acc in
+    match sort with | Sstatic | Sval -> acc | Svar _ | Smem _ -> S.add x acc in
   Env.fold (fun x { t_sort = sort } acc -> add x sort acc) l_env dv
     
 (* Remove the flag [is_copy] from a environment of copies *)
@@ -117,9 +117,16 @@ let rec equation dv copies ({ eq_desc = desc } as eq) =
     | EQreset(res_eq_list, e) ->
        let res_eq_list, copies = equation_list dv copies res_eq_list in
        { eq with eq_desc = EQreset(res_eq_list, e) }, copies
+    | EQpar(par_eq_list) ->
+       let par_eq_list, copies = equation_list dv copies par_eq_list in
+       { eq with eq_desc = EQpar(par_eq_list) }, copies
+    | EQseq(seq_eq_list) ->
+       let seq_eq_list, copies = equation_list dv copies seq_eq_list in
+       { eq with eq_desc = EQseq(seq_eq_list) }, copies
+    | EQforall _ -> eq, copies
     | EQemit _ | EQautomaton _ | EQpresent _
     | EQnext _ | EQblock _ -> assert false
-
+				     
 (* [dv] defines names modified by [eq_list] but visible outside of the block *)
 and equation_list dv copies eq_list = 
   let eq_list, copies_eq_list = Misc.map_fold (equation dv) Env.empty eq_list in

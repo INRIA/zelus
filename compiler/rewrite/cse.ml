@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -24,50 +24,56 @@ open Zelus
 let build_table subst eq_list =
   let rec equation (table, subst, eq_list) eq =
     match eq.eq_desc with
-      | EQeq({ p_desc = Evarpat(x) } as p, 
-             ({ e_desc = Eapp(Eunarypre, [{ e_desc = Elocal(n) }]) } as e)) -> 
-          begin try
-                  let y = Env.find n table in
-                  table, 
-                  (* extends the substitution *)
-                  Env.add x y subst,
-                  { eq with eq_desc = EQeq(p, { e with e_desc = Elocal(y) }) }
-                    :: eq_list            
-            with 
-              | Not_found ->
-                  (* build [pre(n) -> x] if it does not exist already *)
-                  Env.add n x table, subst, eq :: eq_list
-          end
-      | EQeq _ | EQpluseq _ | EQinit _ | EQnext _ 
-      | EQmatch _ | EQreset _ | EQder _ | EQblock _ ->
-					   table, subst, eq :: eq_list
-      | EQemit _ | EQautomaton _ | EQpresent _ -> assert false
- and equation_list table subst eq_list =
+    | EQeq({ p_desc = Evarpat(x) } as p, 
+           ({ e_desc = Eop(Eunarypre, [{ e_desc = Elocal(n) }]) } as e)) -> 
+       begin try
+           let y = Env.find n table in
+           table, 
+           (* extends the substitution *)
+           Env.add x y subst,
+           { eq with eq_desc = EQeq(p, { e with e_desc = Elocal(y) }) }
+           :: eq_list            
+         with 
+         | Not_found ->
+            (* build [pre(n) -> x] if it does not exist already *)
+            Env.add n x table, subst, eq :: eq_list
+       end
+    | EQpar(parseq_eq_list)
+    | EQseq(parseq_eq_list) -> equation_list table subst parseq_eq_list
+    | EQeq _ | EQpluseq _ | EQinit _ | EQnext _ 
+    | EQmatch _ | EQreset _ | EQder _ | EQblock _ | EQforall _ ->
+					 table, subst, eq :: eq_list
+    | EQemit _ | EQautomaton _ | EQpresent _ -> assert false
+  and equation_list table subst eq_list =
     List.fold_left equation (table, subst, []) eq_list in
   let table, subst, eq_list = equation_list Env.empty subst eq_list in
   subst, eq_list
-
+	   
 (* substitution *)
 let rec exp subst e = 
   match e.e_desc with
-    | Econst _ | Econstr0 _ | Eglobal _ | Elast _ -> e
-    | Elocal(n) ->
-        begin try { e with e_desc = Elocal(Env.find n subst) }
-        with Not_found -> e end
-    | Etuple(e_list) ->
-        { e with e_desc = Etuple(List.map (exp subst) e_list) }
-    | Eapp(op, e_list) ->
-        { e with e_desc = Eapp(op, List.map (exp subst) e_list) }
-    | Erecord(label_e_list) ->
-        { e with e_desc = 
-            Erecord(List.map (fun (l, e) -> l, exp subst e) label_e_list) }
-    | Erecord_access(e1, longname) ->
-        { e with e_desc = Erecord_access(exp subst e1, longname) }
-    | Etypeconstraint(e1, ty) ->
-        { e with e_desc = Etypeconstraint(exp subst e1, ty) }
-    | Eseq(e1, e2) ->
-        { e with e_desc = Eseq(exp subst e1, exp subst e2) }
-    | Eperiod _ | Epresent _ | Ematch _ | Elet _ | Eblock _ -> assert false
+  | Econst _ | Econstr0 _ | Eglobal _ | Elast _ -> e
+  | Elocal(n) ->
+     begin try { e with e_desc = Elocal(Env.find n subst) }
+           with Not_found -> e end
+  | Etuple(e_list) ->
+     { e with e_desc = Etuple(List.map (exp subst) e_list) }
+  | Eop(op, e_list) ->
+     let e_list = List.map (exp subst) e_list in
+     { e with e_desc = Eop(op, e_list) }
+  | Eapp(app, e_op, e_list) ->
+     { e with e_desc =
+		Eapp(app, exp subst e_op, List.map (exp subst) e_list) }
+  | Erecord(label_e_list) ->
+     { e with e_desc = 
+		Erecord(List.map (fun (l, e) -> l, exp subst e) label_e_list) }
+  | Erecord_access(e1, longname) ->
+     { e with e_desc = Erecord_access(exp subst e1, longname) }
+  | Etypeconstraint(e1, ty) ->
+     { e with e_desc = Etypeconstraint(exp subst e1, ty) }
+  | Eseq(e1, e2) ->
+     { e with e_desc = Eseq(exp subst e1, exp subst e2) }
+  | Eperiod _ | Epresent _ | Ematch _ | Elet _ | Eblock _ -> assert false
     
 (* [equation subst eq = eq'] apply a substitution to eq. *)
 and equation subst eq =
@@ -88,10 +94,35 @@ and equation subst eq =
         { eq with eq_desc = EQmatch(total, e, m_h_list) }
     | EQreset(res_eq_list, e) ->
         { eq with eq_desc = 
-		    EQreset(List.map (equation subst) res_eq_list, exp subst e) }
+		    EQreset(List.map (equation subst) res_eq_list,
+			    exp subst e) }
+    | EQpar(par_eq_list) ->
+       { eq with eq_desc = EQpar(List.map (equation subst) par_eq_list) }
+    | EQseq(seq_eq_list) ->
+       { eq with eq_desc = EQseq(List.map (equation subst) seq_eq_list) }
     | EQder(n, e, None, []) -> 
        { eq with eq_desc = EQder(n, exp subst e, None, []) }
     | EQblock(b) -> { eq with eq_desc= EQblock(block subst b) }
+    | EQforall ({ for_index = i_list; for_init = init_list;
+		  for_body = b_eq_list } as body) ->
+       let index ({ desc = desc } as ind) =
+	 let desc = match desc with
+	   | Einput(x, e) -> Einput(x, exp subst e)
+	   | Eoutput _ -> desc
+	   | Eindex(x, e1, e2) -> Eindex(x, exp subst e1, exp subst e2) in
+	 { ind with desc = desc } in
+       let init ({ desc = desc } as ini) =
+	 let desc = match desc with
+	   | Einit_last(x, e) -> Einit_last(x, exp subst e)
+	   | Einit_value(x, e, c_opt) -> Einit_value(x, exp subst e, c_opt) in
+	 { ini with desc = desc } in
+       let i_list = List.map index i_list in
+       let init_list = List.map init init_list in
+       let b_eq_list = block subst b_eq_list in
+       { eq with eq_desc =
+		   EQforall { body with for_index = i_list;
+					for_init = init_list;
+					for_body = b_eq_list } }
     | EQder _ | EQemit _ | EQautomaton _ | EQpresent _ -> assert false
 
 and local subst ({ l_eq = eq_list } as l) =

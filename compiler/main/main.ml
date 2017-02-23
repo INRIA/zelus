@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2016                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -17,15 +17,15 @@ open Initial
 open Compiler
 
 let compile file =
-  if Filename.check_suffix file ".zls"
+  if Filename.check_suffix file ".zls" || Filename.check_suffix file ".zlus"
   then 
-    let filename = Filename.chop_suffix file ".zls" in
-    let modname = String.capitalize(Filename.basename filename) in
+    let filename = Filename.chop_extension file in
+    let modname = String.capitalize_ascii(Filename.basename filename) in
     compile modname filename 
   else if Filename.check_suffix file ".zli"
   then
     let filename = Filename.chop_suffix file ".zli" in
-    let modname = String.capitalize(Filename.basename filename) in
+    let modname = String.capitalize_ascii(Filename.basename filename) in
     interface modname filename
   else 
     raise (Arg.Bad ("don't know what to do with " ^ file))
@@ -51,11 +51,12 @@ and doc_use_gtk = " Use lablgtk2 interface.\n\t\t  \
 and doc_inlining_level = "<n> Level of inlining"
 and doc_dzero = " Turn on discrete zero-crossing detection"
 and doc_nocausality = " (undocumented)"
-and doc_causality = " When the flag is on, choose the old causality analysis"
+and doc_no_opt = " (undocumented)"
+and doc_no_deadcode = " (undocumented)"
 and doc_noinitialisation = " (undocumented)"
-and doc_nodeadcode = " (undocumented)"
 and doc_lmm = " Translate into Lustre--"
-		
+and doc_red_name = " Static reduction for"
+and doc_all = " Compile all functions (including those with static parameters)"
 let errmsg = "Options are:"
 
 let set_verbose () =
@@ -81,10 +82,13 @@ let main () =
         "-gtk2", Arg.Set use_gtk, doc_use_gtk;
         "-dzero", Arg.Set dzero, doc_dzero;
         "-nocausality", Arg.Set no_causality, doc_nocausality;
-        "-nodeadcode", Arg.Set no_deadcode, doc_nodeadcode;
+        "-nopt", Arg.Set no_opt, doc_no_opt;
+        "-nodeadcode", Arg.Set no_deadcode, doc_no_deadcode;
         "-noinit", Arg.Set no_initialisation, doc_noinitialisation;
         "-inline", Arg.Int set_inlining_level, doc_inlining_level;
 	"-lmm", Arg.Set lmm, doc_lmm;
+	"-all", Arg.Set all, doc_all;
+        
       ]))
       compile
       errmsg;

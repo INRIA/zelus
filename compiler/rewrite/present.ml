@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -15,6 +15,7 @@
 open Misc
 open Location
 open Ident
+open Lident
 open Global
 open Zelus
 open Zaux
@@ -78,6 +79,7 @@ let build signals l_env =
 	  let xp = Ident.fresh ((Ident.source n) ^ "p") in
 	  let sort_v, sort_p =
 	    match sort with
+	    | Sstatic -> Sstatic, Sstatic
 	    | Sval -> Sval, Sval
 	    | Svar _
 	    | Smem _ -> Deftypes.variable,
@@ -151,36 +153,37 @@ let rec pattern signals p =
   | Etypeconstraintpat(p1, ty) ->
       { p with p_desc = Etypeconstraintpat(pattern signals p1, ty) }
 
-let rec exp signals e =
-  let desc = match e.e_desc with
-      | Econst(i) -> Econst(i)
-      | Econstr0(longname) -> Econstr0(longname)
-      | Eglobal(longname) -> Eglobal(longname)
-      | Elocal(name) as desc -> 
-	 begin try 
-             let nv, np, ty = Env.find name signals in
-             Etuple [var nv ty; var np typ_bool]
-           with 
-           | Not_found -> desc
-	 end
-      | Elast(name) -> Elast(name)
-      | Etuple(e_list) -> Etuple(List.map (exp signals) e_list)
-      | Eapp(Etest, e_list) -> 
-	 Eapp(Eop(false, Lident.Name "snd"), List.map (exp signals) e_list)
-      | Eapp(op, e_list) -> Eapp(op, List.map (exp signals) e_list)
-      | Erecord(label_e_list) ->
-         Erecord(List.map
-		   (fun (label, e) -> (label, exp signals e)) label_e_list)
-      | Erecord_access(e, longname) -> Erecord_access(exp signals e, longname)
-      | Etypeconstraint(e, ty) -> Etypeconstraint(exp signals e, ty)
-      | Eseq(e1, e2) -> Eseq(exp signals e1, exp signals e2)
-      | Eperiod(p) -> Eperiod(p)
-      | Elet(l, e) -> 
-	 let signals, l = local signals l in Elet(l, exp signals e)
-      | Eblock(b, e) ->
-	 let signals, b = block signals b in
-	 Eblock(b, exp signals e)
-      | Epresent _ | Ematch _ -> assert false in
+let rec exp signals ({ e_desc = desc } as e) =
+  let desc = match desc with
+    | Econst _ | Econstr0 _ | Eglobal _ | Elast _ -> desc
+    | Elocal(name) as desc -> 
+       begin try 
+           let nv, np, ty = Env.find name signals in
+           Etuple [var nv ty; var np typ_bool]
+       with 
+       | Not_found -> desc
+     end
+  | Etuple(e_list) -> Etuple(List.map (exp signals) e_list)
+  | Eop(Etest, [e]) ->
+     Eapp(Zaux.prime_app, Zaux.global_in_pervasives "snd" Deftypes.no_typ,
+	  [exp signals e])
+  | Eop(op, e_list) ->
+     Eop(op, List.map (exp signals) e_list)
+  | Eapp(app, e, e_list) ->
+     Eapp(app, exp signals e, List.map (exp signals) e_list)
+  | Erecord(label_e_list) ->
+     Erecord(List.map
+	       (fun (label, e) -> (label, exp signals e)) label_e_list)
+  | Erecord_access(e, longname) -> Erecord_access(exp signals e, longname)
+  | Etypeconstraint(e, ty) -> Etypeconstraint(exp signals e, ty)
+  | Eseq(e1, e2) -> Eseq(exp signals e1, exp signals e2)
+  | Eperiod(p) -> Eperiod(p)
+  | Elet(l, e) -> 
+     let signals, l = local signals l in Elet(l, exp signals e)
+  | Eblock(b, e) ->
+     let signals, b = block signals b in
+     Eblock(b, exp signals e)
+  | Epresent _ | Ematch _ -> assert false in
   { e with e_desc = desc }
 
 and equation signals eq_list eq =
@@ -215,9 +218,34 @@ and equation signals eq_list eq =
     | EQreset(res_eq_list, e) ->
         let res_eq_list = equation_list signals res_eq_list in
 	{ eq with eq_desc = EQreset(res_eq_list, exp signals e) } :: eq_list
+    | EQpar(par_eq_list) ->
+       { eq with eq_desc = EQpar(equation_list signals par_eq_list) } :: eq_list
+    | EQseq(seq_eq_list) ->
+       { eq with eq_desc = EQseq(equation_list signals seq_eq_list) } :: eq_list
     | EQblock(b) ->
        let _, b = block signals b in
        { eq with eq_desc = EQblock(b) } :: eq_list
+    | EQforall ({ for_index = i_list; for_init = init_list;
+		  for_body = b_eq_list } as body) ->
+       let index ({ desc = desc } as ind) =
+	 let desc = match desc with
+	   | Einput(x, e) -> Einput(x, exp signals e)
+	   | Eoutput _ -> desc
+	   | Eindex(x, e1, e2) ->
+	      Eindex(x, exp signals e1, exp signals e2) in
+	 { ind with desc = desc } in
+       let init ({ desc = desc } as ini) =
+	 let desc = match desc with
+	   | Einit_last(x, e) -> Einit_last(x, exp signals e)
+	   | Einit_value(x, e, c_opt) ->
+	      Einit_value(x, exp signals e, c_opt) in
+	 { ini with desc = desc } in
+       let _, b_eq_list = block signals b_eq_list in
+       { eq with eq_desc =
+		   EQforall { body with for_index = List.map index i_list;
+					for_init = List.map init init_list;
+					for_body = b_eq_list } }
+       :: eq_list
     | EQautomaton _ | EQder _ -> assert false
 
 and equation_list signals eq_list = List.fold_left (equation signals) [] eq_list

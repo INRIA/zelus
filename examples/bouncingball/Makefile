@@ -2,7 +2,6 @@ include ../../config
 
 EXAMPLE=ball.zls autoball.zls flatball.zls
 ML=showball.ml world.ml
-OCAMLFLAGS += -w -26
 
 default: $(word 1, $(targets))
 all:  $(targets)

@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -47,7 +47,7 @@ let let_value x e e_let =
 let let_state_value x e e0_opt e_let =
   let mem = Deftypes.previous Deftypes.empty_mem in
   let eq_list = [eq_make x e] in
-  let sort, eq_list =
+  let mem, eq_list =
     match e0_opt with
     | None -> mem, eq_list
     | Some(e0) -> Deftypes.initialized mem, (eq_init x e0) :: eq_list in
@@ -68,7 +68,7 @@ let env subst b_env =
       Env.add n { entry with t_sort = Smem { m with m_next = Some(false); 
 						    m_previous = true } } env,
       S.add n subst
-    | Sval | Svar _ | Smem _ -> Env.add n entry env, subst in
+    | Sstatic | Sval | Svar _ | Smem _ -> Env.add n entry env, subst in
   Env.fold change b_env (Env.empty, subst)
 
 (** Translation of expressions. Replaces [x] by [last x] for all variables *)
@@ -79,30 +79,32 @@ let rec exp subst e =
   | Econst _ | Econstr0 _ | Eglobal _ | Elast _ | Eperiod _ -> e
   | Etuple(e_list) ->
      { e with e_desc = Etuple (List.map (exp subst) e_list) }
-  | Eapp(Efby, [e1; e2]) ->
+  | Eop(Efby, [e1; e2]) ->
      let e1 = exp subst e1 in
      let e2 = exp subst e2 in
      (* turns it into [let init x = e1 and x = e2 in last x] *)
      let x = Ident.fresh "m" in
      let_state_value x e2 (Some(e1)) (last x e1.e_typ)
-  | Eapp(Eminusgreater | Einitial | Ehorizon as op, e_list) ->
+  | Eop(Eminusgreater | Einitial | Ehorizon as op, e_list) ->
      let e_list = List.map (exp subst) e_list in
-     (* turns it into [let x = op(e1,...,en) in x] *)
+     (* turns it into [let m = op(e1,...,en) in x] *)
      let x = Ident.fresh "m" in
-     let_value x { e with e_desc = Eapp(op, e_list) } (var x e.e_typ)
-  | Eapp(Eunarypre, [e1]) ->
+     let_value x { e with e_desc = Eop(op, e_list) } (var x e.e_typ)
+  | Eop(Eunarypre, [e1]) ->
      let e1 = exp subst e1 in
      (* turns it into [let x = e1 in last x] *)
      let x = Ident.fresh "m" in
      let_state_value x e1 None (last x e1.e_typ)
-  | Eapp(Eup, [e1]) ->
+  | Eop(Eup, [e1]) ->
      let e1 = exp subst e1 in
      (* turns it into [let x = up(e1) in x] *)
      let x = Ident.fresh "m" in
-     let_zero_value x { e with e_desc = Eapp(Eup, [e1]) } (var x e.e_typ)
-  | Eapp(op, e_list) ->
+     let_zero_value x { e with e_desc = Eop(Eup, [e1]) } (var x e.e_typ)
+  | Eop(op, e_list) -> { e with e_desc = Eop(op, List.map (exp subst) e_list) }
+  | Eapp(app, e_op, e_list) ->
+     let e_op = exp subst e_op in
      let e_list = List.map (exp subst) e_list in
-     { e with e_desc = Eapp(op, e_list) }
+     { e with e_desc = Eapp(app, e_op, e_list) }
   | Erecord(label_e_list) ->
      let label_e_list = List.map (fun (l, e) -> (l, exp subst e)) label_e_list in
      { e with e_desc = Erecord(label_e_list) }
@@ -143,11 +145,38 @@ and equation subst eq_list ({ eq_desc = desc } as eq) =
   | EQreset(res_eq_list, e) ->
      let res_eq_list = equation_list subst res_eq_list in
      { eq with eq_desc = EQreset(res_eq_list, exp subst e) } :: eq_list
+  | EQpar(par_eq_list) ->
+     { eq with eq_desc = EQpar(equation_list subst par_eq_list) } :: eq_list
+  | EQseq(seq_eq_list) ->
+     { eq with eq_desc = EQseq(equation_list subst seq_eq_list) } :: eq_list
   | EQder(n, e, None, []) ->
      { eq with eq_desc = EQder(n, exp subst e, None, []) } :: eq_list
   | EQblock(b) -> let b, _ = block subst b in
 		  { eq with eq_desc = EQblock(b) } :: eq_list
-  | EQpresent _ | EQautomaton _ | EQder _ | EQemit _ -> assert false
+  | EQforall ({ for_index = i_list; for_init = init_list;
+		for_body = b_eq_list } as body) ->
+     let index ({ desc = desc } as ind) =
+       let desc = match desc with
+	 | Einput(x, e) -> Einput(x, exp subst e)
+	 | Eoutput _ -> desc
+	 | Eindex(x, e1, e2) ->
+	    Eindex(x, exp subst e1, exp subst e2) in
+       { ind with desc = desc } in
+     let init ({ desc = desc } as ini) =
+       let desc = match desc with
+	 | Einit_last(x, e) -> Einit_last(x, exp subst e)
+	 | Einit_value(x, e, c_opt) ->
+	    Einit_value(x, exp subst e, c_opt) in
+       { ini with desc = desc } in
+     let i_list = List.map index i_list in
+     let init_list = List.map init init_list in
+     let b_eq_list, _ = block subst b_eq_list in
+     { eq with eq_desc =
+		 EQforall { body with for_index = i_list;
+				      for_init = init_list;
+				      for_body = b_eq_list } }
+     :: eq_list
+    | EQpresent _ | EQautomaton _ | EQder _ | EQemit _ -> assert false
 							       
 and equation_list subst eq_list = List.fold_left (equation subst) [] eq_list
 

@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -87,6 +87,9 @@ let rec equation ({ eq_desc = desc } as eq) =
     | EQreset(eq_list, e) ->
        let eq_list = List.map equation eq_list in
        EQreset(schedule eq_list, e)
+    | EQforall ({ for_body = b_eq_list } as body) ->
+       let b_eq_list = block b_eq_list in
+       EQforall { body with for_body = b_eq_list }
     | EQemit _ | EQautomaton _ | EQpresent _ | EQblock _ -> assert false in
   { eq with eq_desc = desc }
   

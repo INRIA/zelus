@@ -1,0 +1,6 @@
+let node fix(f)(x) =
+  let rec o = f(x, o) in o
+
+let ff (x, y) = x + y
+
+let node fix_f x = fix ff x

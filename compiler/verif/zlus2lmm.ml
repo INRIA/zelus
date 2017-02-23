@@ -151,9 +151,6 @@ and filter_list acc p_list e_list =
 let operator ck op e_list =
   match op with
   | Eifthenelse -> Lmm.Eapp(Lmm.Eifthenelse, e_list) 
-  | Eop(_, lid) | Eevery(_, lid) ->
-		   if Types.is_a_function lid then Lmm.Eapp(Lmm.Eop(lid), e_list)
-		   else Lmm.Eapp(Lmm.Eop(lid), (clock ck) :: e_list)
   | Eunarypre | Eminusgreater | Efby | Eup | Einitial | Edisc
   | Etest -> assert false
 		    
@@ -184,16 +181,21 @@ let get x name_to_exp subst =
 let rec expression ck subst { e_desc = desc } =
   match desc with
   | Elocal(id) -> Lmm.Elocal(id)
-  | Eglobal(lid) -> Lmm.Eglobal(lid)
+  | Eglobal { lname = lname } -> Lmm.Eglobal(lname)
   | Econst(im) -> Lmm.Econst(im)
-  | Econstr0(lid) -> Lmm.Econstr0(lid)
+  | Econstr0(lname) -> Lmm.Econstr0(lname)
   | Elast(x) -> pre x subst
-  | Eapp(op, e_list) ->
+  | Eop(op, e_list) ->
      operator ck op (List.map (expression ck subst) e_list)
+  | Eapp(_, { e_desc = Eglobal { lname = lname } }, e_list) ->
+     let e_list = List.map (expression ck subst) e_list in
+     if Types.is_a_function_name lname
+     then Lmm.Eapp(Lmm.Eop(lname), e_list)
+     else Lmm.Eapp(Lmm.Eop(lname), (clock ck) :: e_list)
   | Etuple(e_list) ->
      Lmm.Etuple(List.map (expression ck subst) e_list)
-  | Erecord_access(e, lid) ->
-     Lmm.Erecord_access(expression ck subst e, lid)
+  | Erecord_access(e, lname) ->
+     Lmm.Erecord_access(expression ck subst e, lname)
   | Erecord(l_e_list) ->
      Lmm.Erecord
        (List.map (fun (l, e) -> (l, expression ck subst e)) l_e_list)

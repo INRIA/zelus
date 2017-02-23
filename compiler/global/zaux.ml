@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2016                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -24,12 +24,17 @@ open Lident
 let desc e = e.desc
 let make x = { desc = x; loc = no_location }
 
+let prime_app = { app_inline = false; app_statefull = false }
+	    
 let emake desc ty =
   { e_desc = desc; e_loc = no_location; e_typ = ty; e_caus = [] }
 let pmake desc ty =
   { p_desc = desc; p_loc = no_location; p_typ = ty; p_caus = [] }
 let eqmake desc =
   { eq_desc = desc; eq_loc = no_location; eq_write = Deftypes.empty }
+
+let global lname =
+  Eglobal { lname = lname; typ_instance = Deftypes.no_typ_instance }
 
 let evoid = emake (Econst(Evoid)) typ_unit
 let efalse = emake (Econst(Ebool(false))) typ_bool
@@ -38,7 +43,7 @@ let truepat = pmake (Econstpat(Ebool(true))) typ_bool
 let wildpat = pmake (Ewildpat) Deftypes.no_typ
 let zero = emake (Econst(Efloat(0.0))) Initial.typ_float
 let infinity = 
-  emake (Eglobal(Modname(Initial.pervasives_name "infinity"))) typ_float
+  emake (global (Modname(Initial.pervasives_name "infinity"))) typ_float
 let tproduct ty_list = Deftypes.make (Tproduct(ty_list))
 let tuplepat pat_list = 
   let ty_list = List.map (fun { p_typ = ty } -> ty) pat_list in
@@ -72,8 +77,13 @@ let bool_var x = var x Initial.typ_bool
 let float_last x = last x Initial.typ_float
 let bool_last x = last x Initial.typ_bool
 
+let global_in_pervasives lname ty =
+  emake (global (Modname(Initial.pervasives_name lname))) ty
+let unop op e ty =
+  emake (Eapp(prime_app, global_in_pervasives op Deftypes.no_typ, [e])) ty
 let binop op e1 e2 ty =
-  emake (Eapp(Eop(false, Modname(Initial.pervasives_name op)), [e1;e2])) ty
+  emake (Eapp(prime_app, global_in_pervasives op Deftypes.no_typ, [e1;e2])) ty
+	   
 let plus e1 e2 = binop "+." e1 e2 Initial.typ_float
 let minus e1 e2 = binop "-." e1 e2 Initial.typ_float
 let diff e1 e2 = binop "<>" e1 e2 Initial.typ_float
@@ -81,14 +91,14 @@ let or_op e1 e2 = binop "||" e1 e2 Initial.typ_bool
 let on_op e1 e2 = binop "on" e1 e2 Initial.typ_zero
 let min_op e1 e2 = binop "min" e1 e2 Initial.typ_float
 let greater_or_equal e1 e2 = binop ">=" e1 e2 Initial.typ_bool
-let up e = emake (Eapp(Eup, [e])) Initial.typ_zero
-		 
-let pre e = emake (Eapp(Eunarypre, [e])) e.e_typ
-let minusgreater e1 e2 = emake (Eapp(Eminusgreater, [e1;e2])) e1.e_typ
-let fby e1 e2 = emake (Eapp(Efby, [e1;e2])) e1.e_typ
-
-let ifthenelse e1 e2 e3 = emake (Eapp(Eifthenelse, [e1;e2;e3])) e2.e_typ
-let after_list e n_list = emake (Eapp(Eafter(n_list), [e])) e.e_typ
+let up e = emake (Eop(Eup, [e])) Initial.typ_zero
+let pre e = emake (Eop(Eunarypre, [e])) e.e_typ
+let minusgreater e1 e2 = emake (Eop(Eminusgreater, [e1;e2])) e1.e_typ
+let fby e1 e2 = emake (Eop(Efby, [e1;e2])) e1.e_typ
+let ifthenelse e1 e2 e3 =
+  emake (Eop(Eifthenelse, [e1;e2;e3])) e2.e_typ
+let after_list e n_list =
+  emake (Eop(Eafter(n_list), [e])) e.e_typ
 let after e n = after_list e [n]
 
 let make_local env eq_list = 
@@ -120,6 +130,7 @@ let vardec i =
 let vardec_from_entry i { t_sort = sort } =
   let d_opt, c_opt =
     match sort with
+      | Sstatic -> None, None
       | Sval -> None, None
       | Svar { v_default = None; v_combine = c_opt }
       | Smem { m_init = (None | Some(None)); m_combine = c_opt } -> None, c_opt
@@ -129,4 +140,3 @@ let vardec_from_entry i { t_sort = sort } =
   { vardec_name = i; vardec_default = d_opt;
     vardec_combine = c_opt; vardec_loc = no_location }
     
-      

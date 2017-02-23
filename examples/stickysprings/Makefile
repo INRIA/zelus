@@ -3,7 +3,6 @@ include ../../config
 ZLEXTRALIBS = $(ZLGTKLIBS)
 
 EXAMPLE=stickysprings.zls
-OCAMLFLAGS += -w -26
 
 default: $(word 1, $(targets))
 all:  $(targets)

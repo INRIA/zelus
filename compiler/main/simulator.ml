@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2016                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -32,61 +32,70 @@ let find name =
         eprintf "The name %s is unbound.@." name;
       raise Misc.Error
    
-(* the main node must be of type [expected_ty_arg] and the result of *)
-(* type [expected_ty_res] *)
+(* the main node must be of type [expected_ty_arg_list] and the result of *)
+(* type [expected_ty_res_list] *)
 let check_type_of_main_node name 
 			    { qualid = qualid; info = { value_typ = tys } } 
-			    expected_ty_arg expected_ty_res =
+			    opt_name expected_ty_arg expected_ty_res =
+  let actual_ty = Types.instance_of_type tys in
+  let k, s, opt_name, actual_ty_arg, actual_ty_res =
+    try
+      Types.filter_actual_arrow actual_ty
+    with
+    | _ ->  eprintf "@[The name %s must define a function.@.@]" name;
+	    raise Misc.Error in
+  let expected_ty = Types.funtype k s opt_name actual_ty_arg actual_ty_res in
   try
-    let k, _, ty_args, ty_res = Types.instance_of_type_signature tys in
-    (* check input and output types *)
-    begin match ty_args with
-     | [ty_arg] -> 
-        Types.unify ty_arg expected_ty_arg;
-        Types.unify ty_res expected_ty_res;
-     | _ -> raise Types.Unify
-    end;
-    qualid, k
+    Types.unify expected_ty actual_ty; qualid, k
   with
-    | Types.Unify ->
-        eprintf "The input and output types of %s should be %a and %a.@." 
-          name Ptypes.output expected_ty_arg Ptypes.output expected_ty_res;
-      raise Misc.Error
+  | Types.Unify ->
+     eprintf "@[The name %s has type@ %a,@ \
+              but is expected to have type@ %a.@.@]"
+	     name
+	     Ptypes.output actual_ty
+             Ptypes.output expected_ty;
+     raise Misc.Error
 
-(* the  main node must be of type [unit -> unit] in case of sampled simulation *)
+(* the  main node must be of type [unit -> unit] *)
+(* in case of sampled simulation *)
 let check_unit_unit name info =
-  check_type_of_main_node name info Initial.typ_unit Initial.typ_unit
+  check_type_of_main_node name info None Initial.typ_unit Initial.typ_unit
 
 (* the  main node must be of type [unit -> bool] in case of bounded testing *)
 let check_unit_bool name info =
-  check_type_of_main_node name info Initial.typ_unit Initial.typ_bool
+  check_type_of_main_node name info None Initial.typ_unit Initial.typ_bool
 
 let emit_prelude ff ({ Lident.id = id } as qualid) k =
   (* the prelude *)
   let s = Lident.qualidname qualid in
   match k with
-  | Deftypes.Tany | Deftypes.Tdiscrete(false) ->
+  | Deftypes.Tstatic _ | Deftypes.Tany | Deftypes.Tdiscrete(false) ->
       fprintf ff
         "@[(* simulation (any) function *)
            let main () = %s();;@.@]" s
 
   | Deftypes.Tdiscrete(true) ->
-      fprintf ff
-        "@[(* simulation (discrete) function *)\n\
-           let main = let mem = %s_alloc () in fun _ -> %s_step mem ();;@.@]" s s  
+     fprintf ff
+       "@[open Zlib@.\
+          (* simulation (discrete) function *)@.\
+          let main = \
+            @[let Node { alloc = alloc; step = step; reset = reset } = %s in @,\
+              let mem = alloc () in @,\
+              reset mem;@,\
+              fun _ -> step mem ();;@]@.@]" s
 
   | Deftypes.Tcont ->
-      (* first generate the top-level machine *)
-      let m = Inout.simulate (Lident.Modname qualid) in
-      (* emit the code *)
-      Modules.initialize (String.capitalize id);
-      Oprinter.machine_as_functions ff "main" m
+     (* first generate the top-level machine *)
+     let m = Inout.simulate (Lident.Modname qualid) in
+     (* emit the code *)
+     Modules.initialize (String.capitalize_ascii id);
+     Oprinter.machine_as_functions ff "main" m
 
 (* emited code for control-driven programs: the transition function *)
 (* is executed at full speed *)
 let emit_simulation_code ff k =
   match k with
-  | Deftypes.Tany | Deftypes.Tdiscrete _ ->
+  | Deftypes.Tstatic _ | Deftypes.Tany | Deftypes.Tdiscrete _ ->
       fprintf ff
           "@[(* (discrete) simulation loop *)\n\
              while true do main () done;\n\
@@ -100,7 +109,7 @@ let emit_simulation_code ff k =
 (* during [n] steps *)
 let emit_checked_code ff k n =
   match k with
-  | Deftypes.Tany | Deftypes.Tdiscrete _ ->
+  | Deftypes.Tstatic _ | Deftypes.Tany | Deftypes.Tdiscrete _ ->
       fprintf ff
           "@[(* (discrete) simulation loop *)
            let ok = ref true in 
@@ -121,39 +130,41 @@ let emit_checked_code ff k n =
       
 let emit_gtkmain_code ff k sampling =
   match k with
-  | Deftypes.Tany | Deftypes.Tdiscrete _ ->
-      fprintf ff
-        "@[(* simulation loop: sampled on period %f Hz *)\n\
-           (* compiles with unix.cma lablgtk.cma gtkInit.cmo reactpanel.cmo *)@.@]"
-        sampling;
-      fprintf ff
-        "@[Reactpanel.go %f (fun()-> (main (); false)) (fun()->()); exit(0)@.@]"
-        sampling
+  | Deftypes.Tstatic _ | Deftypes.Tany
+  | Deftypes.Tdiscrete _ ->
+     fprintf ff
+     "@[(* simulation loop: sampled on period %f Hz *)\n\
+      (* compiles with unix.cma lablgtk.cma gtkInit.cmo reactpanel.cmo *)@.@]"
+             sampling;
+     fprintf ff
+     "@[Reactpanel.go %f (fun()-> (main (); false)) (fun()->()); exit(0)@.@]"
+     sampling
   | Deftypes.Tcont ->
-      fprintf ff "@[(* instantiate a numeric solver *)\n\
-                    module Runtime = Zlsrungtk.Make (Defaultsolver)\n\
-                    let _ = Runtime.go main@.@]"
-
+     fprintf ff "@[(* instantiate a numeric solver *)\n\
+                 module Runtime = Zlsrungtk.Make (Defaultsolver)\n\
+                 let _ = Runtime.go main@.@]"
+	     
 (* emited code for event-driven programs: the transition function *)
 (* is executed every [1/sampling] seconds *)
 let emit_periodic_code ff k sampling =
   match k with
-  | Deftypes.Tany | Deftypes.Tdiscrete _ ->
-      fprintf ff
-        "@[(* simulation loop: sampled on period %f *)\n\
-           (* compiles with -custom unix.cma    *)@.@]" sampling;
-      fprintf ff
-        "@[let periodic() =
-           let _x = Unix.setitimer Unix.ITIMER_REAL
-             {Unix.it_interval = %f ; Unix.it_value = 1.0 }
-           in Sys.set_signal Sys.sigalrm (Sys.Signal_handle main);
-           while true do Unix.sleep 1 done;;
-           periodic();exit(0)@.@]" sampling
+  | Deftypes.Tstatic _ | Deftypes.Tany
+  | Deftypes.Tdiscrete _ ->
+     fprintf ff
+	     "@[(* simulation loop: sampled on period %f *)\n\
+	      (* compiles with -custom unix.cma    *)@.@]" sampling;
+     fprintf ff
+             "@[let periodic() =
+              let _x = Unix.setitimer Unix.ITIMER_REAL
+              {Unix.it_interval = %f ; Unix.it_value = 1.0 }
+              in Sys.set_signal Sys.sigalrm (Sys.Signal_handle main);
+              while true do Unix.sleep 1 done;;
+              periodic();exit(0)@.@]" sampling
 
   | Deftypes.Tcont ->
-      fprintf ff "@[(* instantiate a numeric solver *)
-                    let _ = Zlsrun.go main@.@]"
-
+     fprintf ff "@[(* instantiate a numeric solver *)
+                 let _ = Zlsrun.go main@.@]"
+	     
 (** The main entry function. Simulation of a main function *)
 let main name sampling number_of_checks use_gtk =
   (* - open the module where main occurs
@@ -184,4 +195,4 @@ let main name sampling number_of_checks use_gtk =
       if sampling = 0.0 then emit_simulation_code ff k
       else emit_periodic_code ff k sampling;
   close_out oc
-
+	    

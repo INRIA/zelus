@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2014                                               *)
+(*  Copyright (C) 2012-2016                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -18,13 +18,13 @@
 (* type scheme *)
 type styp = 
     { typ_vars: init list; (* list of type variables *)
-      typ_args: typ list; (* type of the arguments *)
-      typ_res: typ;       (* type of the result *)
+      typ_res: typ;        (* type of the result *)
     }
 
-and typ =
-    | Iproduct of typ list
-    | Iatom of init
+ and typ =
+   | Ifun of typ * typ
+   | Iproduct of typ list
+   | Iatom of init
 
 (* an initialization type t is associated to its left type t_left *)
 (* and right type t_right such that t_inf < t < t_sup wich are *)

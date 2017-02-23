@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -15,7 +15,7 @@
 (* Applied to normalized expressions and equations *)
 (* compiling the initialization [->], [initial clock] and [init x = ...] *)
 (* Introduce an initialization bit [init i = true and i = false] *)
-(* per control block when the block contains [init x = e] with *)
+(* per control block when the block contains [init x = e] and *)
 (* [e] is not static *)
 
 open Misc
@@ -66,13 +66,13 @@ let intro (i_names, i_opt) n_list env eq_list =
 (* value, introduce a fresh initialization variable [i] *)
 let rec equation (i_names, i_opt) ({ eq_desc = desc } as eq) =
   match desc with
-  | EQeq(p, ({ e_desc = Eapp(Eminusgreater, [e1; e2]) } as e)) ->
+  | EQeq(p, ({ e_desc = Eop(Eminusgreater, [e1; e2]) } as e)) ->
      (* [e1 -> e2 = if last i then e1 else e2] *)
      let cond, i_opt = condition i_opt in
      { eq with eq_desc =
-		 EQeq(p, { e with e_desc = Eapp(Eifthenelse, [cond; e1; e2]) }) },
+		 EQeq(p, { e with e_desc = Eop(Eifthenelse, [cond; e1; e2]) }) },
      (i_names, i_opt)
-  | EQeq({ p_desc = Evarpat(x) } as p, { e_desc = Eapp(Einitial, []) })
+  | EQeq({ p_desc = Evarpat(x) } as p, { e_desc = Eop(Einitial, []) })
     -> (* [initial = true fby false] *)
      let cond, i_opt = condition i_opt in
      { eq with eq_desc = EQeq(p, cond) }, (i_names, i_opt)
@@ -90,7 +90,20 @@ let rec equation (i_names, i_opt) ({ eq_desc = desc } as eq) =
        equation_list (i_names, None) res_eq_list in
      let res_eq_list, i_names = intro_equation i_names_i_opt res_eq_list in
      { eq with eq_desc = EQreset(res_eq_list, e) }, (i_names, i_opt)
-  | EQblock _ | EQemit _ | EQnext _ | EQautomaton _ | EQpresent _ -> assert false
+  | EQpar(par_eq_list) ->
+     let par_eq_list, i_names_i_opt =
+       equation_list (i_names, i_opt) par_eq_list in
+     { eq with eq_desc = EQpar(par_eq_list) }, i_names_i_opt
+  | EQseq(seq_eq_list) ->
+     let seq_eq_list, i_names_i_opt =
+       equation_list (i_names, i_opt) seq_eq_list in
+     { eq with eq_desc = EQseq(seq_eq_list) }, i_names_i_opt
+  | EQforall ({ for_body = b_eq_list } as body) ->
+     let b_eq_list = block b_eq_list in
+     { eq with eq_desc = EQforall { body with for_body = b_eq_list } },
+     (i_names, i_opt)
+  | EQblock _ | EQemit _ | EQnext _ | EQautomaton _ | EQpresent _ ->
+						       assert false
 
 and equation_list i_names_i_opt eq_list =
   Misc.map_fold equation i_names_i_opt eq_list

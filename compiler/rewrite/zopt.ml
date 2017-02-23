@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2016                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -14,7 +14,7 @@
 (* sharing of zero-crossings *)
 (* Zero-crossing that appear in exclusive control branches are shared *)
 (* This transformation is applied to normalized equations and expressions *)
-(* [z1 = up(e1) # z2 = up(e2)] becomes [z1 = up(e1) # z2 = up(e2)] *)
+(* [z1 = up(e1) # z2 = up(e2)] becomes [z1 = up(e1) # z1 = up(e2)] *)
 (* Two phases algorithm: 
  * one phase computes zero-crossing variables and a substitution;
  * the second one applies the subsitution *)
@@ -96,7 +96,15 @@ let rec equation ({ eq_desc = desc } as eq) =
   | EQreset(eq_list, e) ->
      let eq_list, zenv = equation_list eq_list in
      { eq with eq_desc = EQreset(eq_list, e) }, zenv
-  | EQblock _ | EQpresent _ | EQautomaton _ | EQnext _ | EQemit _ -> assert false
+  | EQpar(par_eq_list) ->
+     let par_eq_list, zenv = equation_list par_eq_list in
+     { eq with eq_desc = EQpar(par_eq_list) }, zenv
+  | EQseq(seq_eq_list) ->
+     let seq_eq_list, zenv = equation_list seq_eq_list in
+     { eq with eq_desc = EQseq(seq_eq_list) }, zenv
+  | EQforall _ -> eq, zempty
+  | EQblock _ | EQpresent _ | EQautomaton _ | EQnext _ | EQemit _ ->
+							  assert false
 
 and equation_list eq_list = 
   Misc.map_fold (fun acc eq -> let eq, zenv = equation eq in
@@ -123,8 +131,12 @@ let rec rename_expression ren ({ e_desc = desc } as e) =
 				  (ln, rename_expression ren e)) n_e_list) }
   | Erecord_access(e, ln) ->
      { e with e_desc = Erecord_access(rename_expression ren e, ln) }
-  | Eapp(op, e_list) ->
-     { e with e_desc = Eapp(op, List.map (rename_expression ren) e_list) }
+  | Eop(op, e_list) ->
+     { e with e_desc = Eop(op, List.map (rename_expression ren) e_list) }
+  | Eapp(app, e_op, e_list) ->
+     let e_op = rename_expression ren e_op in
+     let e_list = List.map (rename_expression ren) e_list in
+     { e with e_desc = Eapp(app, e_op, e_list) }
   | Etypeconstraint(e1, ty) -> 
      { e with e_desc = Etypeconstraint(rename_expression ren e1, ty) }      
   | Eseq(e1, e2) ->
@@ -155,6 +167,30 @@ and rename_equation ren ({ eq_desc = desc } as eq) =
        let e = rename_expression ren e in
        let res_eq_list = rename_equation_list ren res_eq_list in
        EQreset(res_eq_list, e)
+    | EQpar(par_eq_list) ->
+       EQpar(rename_equation_list ren par_eq_list)
+    | EQseq(seq_eq_list) ->
+       EQseq(rename_equation_list ren seq_eq_list)
+    | EQforall ({ for_index = i_list; for_init = init_list;
+		  for_body = b_eq_list } as body) ->
+       let index ({ desc = desc } as ind) =
+	 let desc = match desc with
+	   | Einput(x, e) -> Einput(x, rename_expression ren e)
+	   | Eoutput _ -> desc
+	   | Eindex(x, e1, e2) -> Eindex(x, rename_expression ren e1,
+					 rename_expression ren e2) in
+	 { ind with desc = desc } in
+       let init ({ desc = desc } as ini) =
+	 let desc = match desc with
+	   | Einit_last(x, e) -> Einit_last(x, rename_expression ren e)
+	   | Einit_value(x, e, c_opt) ->
+	      Einit_value(x, rename_expression ren e, c_opt) in
+	 { ini with desc = desc } in
+       let i_list = List.map index i_list in
+       let init_list = List.map init init_list in
+       let b_eq_list = rename_block ren b_eq_list in
+       EQforall { body with for_index = i_list; for_init = init_list;
+			    for_body = b_eq_list }
     | EQblock _ | EQautomaton _ | EQpresent _ 
     | EQemit _ | EQder _ | EQnext _ -> assert false in
   { eq with eq_desc = desc }

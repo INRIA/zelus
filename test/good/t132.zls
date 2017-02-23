@@ -1,0 +1,48 @@
+let node ff(g)(x) = run g x
+
+let node h(x)(y) =
+  let rec o = x -> pre o + y in o
+
+let node main0 () =
+  let i = read_int () in
+  let o = ff(h(1))(i) in
+  print_int o; print_newline ()
+
+let node make(n)(v) = o where
+  rec forall i in 0 .. n, oi out o do
+	oi = v
+      done
+
+let node sum(n)(f)(x, y) = z where
+  rec forall i in 0 .. n, xi in x, yi in y, zi out z do
+        zi = xi + yi
+      done
+
+let node accu(n)(x) = z where
+  rec forall i in 0 .. n, xi in x do
+	z = last z + xi
+      initialize
+	last z = 0
+      done
+
+let f x = 1 + x
+let g x y = x + y
+
+    
+let node sum42(x, y) =
+  let o1 = sum(42)(f)(x, y) in
+  let o2 = sum(42)(g (43))(o1, y) in
+  o1, o2
+
+let node sum4242(x, y) =
+  let o1, o2 = sum42(x, y) in
+  let o3, o4 = sum42(y, x) in
+  let m = accu(42)(o1) + accu(42)(o2) in
+  let g = accu(42)(o3) + accu(42)(o4) in
+  let rec o3 = m -> pre o3 + m + g in o3
+
+let node main () =
+  let o1 = make(42)(0) in
+  let o2 = make(42)(0) in
+  let o = sum4242(o1, o2) in
+  print_int o; print_newline ()

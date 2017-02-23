@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -241,10 +241,12 @@ let rec exp ({ e_desc = desc } as e) =
     | Econst(i) -> Econst(i)
     | Econstr0(longname) -> Econstr0(longname)
     | Eglobal(longname) -> Eglobal(longname)
+    | Eop(op, e_list) -> Eop(op, List.map exp e_list)
     | Elocal(name) -> Elocal(name)
     | Elast(name) -> Elast(name)
     | Etuple(e_list) -> Etuple(List.map exp e_list)
-    | Eapp(op, e_list) -> Eapp(op, List.map exp e_list)
+    | Eapp(app, e, e_list) ->
+       Eapp(app, exp e, List.map exp e_list)
     | Erecord(label_e_list) ->
         Erecord(List.map (fun (label, e) -> (label, exp e)) label_e_list)
     | Erecord_access(e, longname) -> Erecord_access(exp e, longname)
@@ -296,8 +298,36 @@ and equation (env, eq_list) ({ eq_desc = desc } as eq) =
     | EQreset(res_eq_list, e) ->
        let env, res_eq_list = equation_list env res_eq_list in
        env, { eq with eq_desc = EQreset(res_eq_list, exp e) } :: eq_list
+    | EQpar(par_eq_list) ->
+       let env, par_eq_list = equation_list env par_eq_list in
+       env, { eq with eq_desc = EQpar(par_eq_list) } :: eq_list
+    | EQseq(seq_eq_list) ->
+       let env, seq_eq_list = equation_list env seq_eq_list in
+       env, { eq with eq_desc = EQpar(seq_eq_list) } :: eq_list
     | EQblock(b_eq_list) ->
        env, { eq with eq_desc = EQblock(block_eq_list b_eq_list) } :: eq_list
+    | EQforall ({ for_index = i_list; for_init = init_list;
+		  for_body = b_eq_list } as body) ->
+       let index ({ desc = desc } as ind) =
+	 let desc = match desc with
+	   | Einput(x, e) -> Einput(x, exp e)
+	   | Eoutput _ -> desc
+	   | Eindex(x, e1, e2) -> Eindex(x, exp e1, exp e2) in
+	 { ind with desc = desc } in
+       let init ({ desc = desc } as ini) =
+	 let desc = match desc with
+	   | Einit_last(x, e) -> Einit_last(x, exp e)
+	   | Einit_value(x, e, c_opt) -> Einit_value(x, exp e, c_opt) in
+	 { ini with desc = desc } in
+       let i_list = List.map index i_list in
+       let init_list = List.map init init_list in
+       let b_eq_list = block_eq_list b_eq_list in
+       env,
+       { eq with eq_desc = EQforall { body with for_index = i_list;
+						for_init = init_list;
+						for_body = b_eq_list } } ::
+	 eq_list
+  
 
 and equation_list env eq_list = List.fold_left equation (env, []) eq_list
 

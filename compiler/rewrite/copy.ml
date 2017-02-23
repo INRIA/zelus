@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -50,6 +50,16 @@ let rename n { rel = rel; defs = defs } =
     with Not_found -> Elocal n in
   rename n
 
+let operator op renaming =
+  let rename acc n =
+    let m = rename n renaming in
+    match m with
+    | Elocal(x) -> x :: acc | _ -> acc in
+  match op with
+  | Efby | Eunarypre | Eifthenelse 
+  | Eminusgreater | Eup | Einitial | Edisc | Ehorizon | Etest | Eaccess -> op
+  | Eafter(id_list) -> Eafter (List.fold_left rename [] id_list)
+    			     
 (** Build a substitution [x1\v1,...,xn\vn]. *)
 let rec build rel { eq_desc = desc } =
   match desc with
@@ -62,7 +72,8 @@ let rec build rel { eq_desc = desc } =
        | _ -> rel in
      rel
   | EQeq _ | EQpluseq _ | EQnext _ | EQinit _ | EQmatch _ | EQreset _ 
-  | EQder(_, _, None, []) | EQblock _ -> rel
+  | EQder(_, _, None, [])
+  | EQforall _ | EQblock _ -> rel
   | EQautomaton _ | EQpresent _ | EQemit _ | EQder _ -> assert false
 
 (** Expressions. Apply [renaming] to every sub-expression *)
@@ -78,8 +89,13 @@ let rec expression renaming ({ e_desc = desc } as e) =
 				  (ln, expression renaming e)) n_e_list) }
   | Erecord_access(e, ln) ->
      { e with e_desc = Erecord_access(expression renaming e, ln) }
-  | Eapp(op, e_list) ->
-     { e with e_desc = Eapp(op, List.map (expression renaming) e_list) }
+  | Eop(op, e_list) ->
+     { e with e_desc = Eop(operator op renaming,
+			   List.map (expression renaming) e_list) }
+  | Eapp(app, e_op, e_list) ->
+     let e_op = expression renaming e_op in
+     let e_list = List.map (expression renaming) e_list in
+     { e with e_desc = Eapp(app, e_op, e_list) }
   | Etypeconstraint(e1, ty) -> 
      { e with e_desc = Etypeconstraint(expression renaming e1, ty) }      
   | Eseq(e1, e2) ->
@@ -113,6 +129,23 @@ and equation ({ defs = defs } as renaming, eq_list)
        let e = expression renaming e in
        let _, eq_list = equation_list renaming res_eq_list in
        EQreset(eq_list, e)
+    | EQforall ({ for_index = i_list; for_init = init_list; for_body = b_eq_list } as b) ->
+       let index ({ desc = desc } as ind) =
+	 let desc = match desc with
+	   | Einput(i, e) -> Einput(i, expression renaming e)
+	   | Eoutput _ -> desc
+	   | Eindex(i, e1, e2) ->
+	      Eindex(i, expression renaming e1, expression renaming e2) in
+	 { ind with desc = desc } in
+       let init ({ desc = desc } as i) =
+	 let desc = match desc with
+	   | Einit_last(i, e) -> Einit_last(i, expression renaming e)
+	   | Einit_value(i, e, c_opt) -> Einit_value(i, expression renaming e, c_opt) in
+	 { i with desc = desc } in
+       let i_list = List.map index i_list in
+       let init_list = List.map init init_list in
+       let b_eq_list = block renaming b_eq_list in
+       EQforall { b with for_index = i_list; for_init = init_list; for_body = b_eq_list }
     | EQblock _ | EQautomaton _ | EQpresent _ 
     | EQemit _ | EQder _ | EQnext _ -> assert false in
   { renaming with defs = Deftypes.dv defs w },

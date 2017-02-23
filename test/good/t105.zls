@@ -5,4 +5,3 @@ let hybrid f (r) = h where
       | S0(hi) -> do h = hi done
       | S1(ti) -> do until r then S0(ti)
   init S1(0.0)
-

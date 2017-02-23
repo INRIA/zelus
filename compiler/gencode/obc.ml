@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2016                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -19,62 +19,44 @@ open Ident
 
 type name = string
 
-type sort = 
-  | Val (* local variable with a single write *)
-  | Var (* shared variable with possibly several writes *)
-  | Mem of mem (* state variable *)
-
-and mem =
-  | Discrete (* discrete state variable *)
-  | Zero (* zero-crossing variable with its size *)
-  | Cont (* continuous-state variable with its size *)
-  | Horizon (* horizon *)
-  | Encore (* should we do an extra step *)
-  | Period (* period *)
-      
-(* a continuous state variable [x] is pair of arrays *)
+(* a continuous state variable [x] is a pair *)
 (* with two fields: [x.der] for its derivative. [x.pos] for its current value. *)
 (* a zero-crossing variable [x] has two field: [x.zin] is true when *)
 (* the solver has detected a zero-crossing. [x.zout] is the value *)
 (* to be observed for a zero-crossing *)
 
-type 'a localized =
-    { desc: 'a;
-      loc: location }
-
-type exp = edesc localized
-
-and edesc =
+(* expressions are expected to be safe; unsafe ones must be put *)
+(* into instructions *)
+type exp = 
   | Oconst of immediate (* immediate constant *)
   | Oconstr0 of Lident.t (* 0-ary and 1-ary constructor *)
   | Oconstr1 of Lident.t * exp list
   | Oglobal of Lident.t (* global variable *)
-  | Olocal of Ident.t * is_shared (* read of local variable *)
+  | Olocal of Ident.t (* read of local value *)
+  | Ovar of Ident.t (* read of local variable *)
   | Ostate of left_state_value (* read of a state variable *)
   | Oindex of exp * exp (* access in an array *)
+  | Ovec of exp * exp (* e1[e2] build an array of size [e2] with value [e1] *)
   | Otuple of exp list (* tuples *)
-  | Oapp of Lident.t * exp list (* function applicatin *)
-  | Omethod of method_call * exp list
-           (* call a method Omethod(m, e_list) *)
+  | Oapp of exp * exp list (* function application *)
   | Orecord of (Lident.t * exp) list (* record *)
   | Orecord_access of exp * Lident.t (* access to a record field *)
   | Otypeconstraint of exp * type_expression (* type constraint *)
-  | Olet of (pattern * exp) list * exp (* local definition of values *)
-  | Oletvar of Ident.t * Deftypes.typ * exp option * exp (* local variables *)
-  | Oifthenelse of exp * exp * exp (* lazy conditional *)
-  | Ofor of bool * Ident.t * exp * exp * exp (* for loop *)
-  | Owhile of exp * exp (* while loop *)
-  | Omatch of exp * exp match_handler list (* math/with *)
-  | Oassign of left_value * exp (* assignment to a local variable *)
-  | Oassign_state of left_state_value * exp (* assignment to a state variable *)
-  | Osequence of exp * exp (* sequence *)
+  | Oifthenelse of exp * exp * exp
+  | Omethodcall of method_call			       
 
-and method_call =
-  { c_machine: Lident.t; (* the class of the method *)
-    c_method_name: method_name; (* the name of the method *)
-    c_instance: Ident.t option; (* either a call to self (None) *)
-                                (* or to some instance *)
-  }
+ (* instructions *)
+and inst =
+  | Olet of pattern * exp * inst
+  | Oletvar of Ident.t * Deftypes.typ * exp option * inst
+  | Ofor of bool * Ident.t * exp * exp * inst
+  | Owhile of exp * inst
+  | Omatch of exp * inst match_handler list
+  | Oif of exp * inst
+  | Oassign of left_value * exp
+  | Oassign_state of left_state_value * exp
+  | Osequence of inst list
+  | Oexp of exp		     
 
 and is_shared = bool
 
@@ -107,13 +89,12 @@ and immediate =
   | Ochar of char
   | Ostring of string
   | Ovoid
-
-and pattern = pdesc localized
-
-and pdesc =
+  | Oany
+      
+and pattern = 
   | Owildpat
   | Otuplepat of pattern list
-  | Ovarpat of Ident.t
+  | Ovarpat of Ident.t * Deftypes.typ
   | Oconstpat of immediate
   | Oaliaspat of pattern * Ident.t
   | Oconstr0pat of Lident.t
@@ -127,18 +108,43 @@ and 'a match_handler =
       w_body : 'a; }
       
 (* implementation of a machine *)
-and machine =
-    { m_kind: Deftypes.kind;
-      m_memories:
-	(Ident.t * (mem * Deftypes.typ * exp option)) list; (* memories *)
-      m_instances: (Ident.t * Lident.t * Deftypes.kind) list; (* instances *)
-      m_methods: method_desc list; (* the list of methods *) 
-    }
+and 'a machine =
+  { ma_kind: Deftypes.kind;
+    ma_params: pattern list; (* list of static parameters *)
+    ma_memories: mentry list;(* memories *)
+    ma_instances: ientry list; (* instances *)
+    ma_methods: 'a method_desc list; (* methods *) 
+  }
 
-and method_desc =
-   { m_name: method_name;
-     m_param: pattern list;
-     m_body: exp } 
+and mentry =
+  { m_name: Ident.t; (* its name *)
+    m_value: exp option; (* its possible initial value *)
+    m_typ: Deftypes.typ; (* its type *)
+    m_kind: Deftypes.mkind option; (* the kind of the memory *)
+    m_size: exp list; (* it may be an array *)
+  }
+
+and ientry =
+  { i_name: Ident.t; (* its name *)
+    i_machine: exp;  (* the machine it belongs to *)
+    i_kind: Deftypes.kind; (* the kind of the machine *)
+    i_params: exp list; (* static parameters used at instance creation *)
+    i_size: exp list; (* it is possibly an array of instances *)
+  }
+    
+and 'a method_desc =
+  { me_name: method_name; (* name of the method *)
+    me_params: pattern list; (* list of input arguments *)
+    me_body: 'a; (* body *)
+  }
+
+and method_call =
+  { met_machine: Lident.t option; (* the class of the method *)
+    met_name: method_name; (* the name of the method *)
+    met_instance: (Ident.t * exp list) option;
+    (* either a call to self (None) or to *)
+    (* one instance o.(index_1)...(index_n).m(e_1,...,e_k) *)
+    met_args: exp list }
 
 and method_name = 
   | Ostep (* computes values and possible changes of states *)
@@ -155,33 +161,36 @@ and method_name =
       
 and implementation_list = implementation list
 
-and implementation = implementation_desc localized
-
-and implementation_desc =
-    | Oletvalue of name * exp
-    | Oletfun of name * pattern list * exp
-    | Oletmachine of name * machine
-    | Oopen of string
-    | Otypedecl of (string * string list * type_decl) list
+and implementation = 
+  | Oletvalue of name * inst
+  | Oletfun of name * pattern list * inst
+  | Oletmachine of name * inst machine
+  | Oopen of string
+  | Otypedecl of (string * string list * type_decl) list
 
 (* type declaration *)
-and type_expression = type_expression_desc localized
+and type_expression = 
+  | Otypevar of string
+  | Otypefun of Ident.t option * type_expression * type_expression
+  | Otypetuple of type_expression list
+  | Otypeconstr of Lident.t * type_expression list
+  | Otypevec of type_expression * size
 
-and type_expression_desc =
-    | Otypevar of string
-    | Otypearrow of type_expression * type_expression
-    | Otypetuple of type_expression list
-    | Otypeconstr of Lident.t * type_expression list
-    | Otypeobject of (name * type_expression) list
-
+and size =
+  | Sconst of int
+  | Sname of Ident.t
+  | Sglobal of Lident.t
+  | Sop of size_op * size * size
+      
+and size_op = Splus | Sminus
+    
 and type_decl =
-    | Oabstract_type
-    | Oabbrev of type_expression
-    | Ovariant_type of constr_decl list
-    | Orecord_type of (string * type_expression) list
-
+  | Oabstract_type
+  | Oabbrev of type_expression
+  | Ovariant_type of constr_decl list
+  | Orecord_type of (string * type_expression) list
+					       
 and constr_decl =
-    | Oconstr0decl of string
-    | Oconstr1decl of string * type_expression list
-
-let make desc = { desc = desc; loc = no_location }
+  | Oconstr0decl of string
+  | Oconstr1decl of string * type_expression list
+					     

@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -39,6 +39,10 @@ let rec equation eq_list ({ eq_desc = desc } as eq) =
         { eq with eq_desc = EQmatch(total, e, 
 				    List.map handler m_h_list) } :: eq_list
     | EQblock(b) -> { eq with eq_desc = EQblock(block b) } :: eq_list
+    | EQpar(par_eq_list) ->
+       { eq with eq_desc = EQpar(equation_list par_eq_list) } :: eq_list
+    | EQseq(seq_eq_list) ->
+       { eq with eq_desc = EQseq(equation_list seq_eq_list) } :: eq_list
     | _ -> eq :: eq_list
 
 and equation_list eq_list = List.fold_left equation [] eq_list

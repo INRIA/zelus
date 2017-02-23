@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2016                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -55,12 +55,19 @@ let rec name ff c =
        Format.fprintf ff "(%s:'%s)" info (type_name#name index)
      else Format.fprintf ff "%s" info
 
-let rec typ priority ff = function
-  | Catom(c) -> caus ff c
-  | Cproduct(ty_list) ->
-     (if priority >= 2
-      then Format.fprintf ff "@[(%a)@]" else Format.fprintf ff "@[%a@]")
-       (print_list_r (typ 2) "" " *" "") ty_list
+let rec typ prio ff tc =
+  let priority = function | Catom _ -> 3 | Cproduct _ -> 2 | Cfun _ -> 1 in
+  let prio_current = priority tc in
+  if prio_current < prio then fprintf ff "(";
+  begin match tc with
+	| Catom(c) -> caus ff c
+	| Cfun(ty_arg, ty_res) ->
+	   Format.fprintf ff "@[%a -> %a@]" (typ (prio_current + 1)) ty_arg
+			  (typ prio_current) ty_res
+	| Cproduct(ty_list) ->
+	   print_list_r (typ (prio_current + 1)) "" " *" "" ff ty_list
+  end;
+  if prio_current < prio then fprintf ff ")"  
        
 (* print a set of dependences *)
 let set ff s = Format.fprintf ff "@[{%a}@]" (fun ff s -> S.iter (caus ff) s) s
@@ -73,17 +80,8 @@ let relation ff rel =
   print_list_r print "{" ";" "}" ff rel
 	       
 (* print a causality type signature *)
-let signature ff
-	      { typ_vars = c_list; typ_rel = rel;
-		typ_args = ty_arg_list; typ_res = ty_res } = 
-  (* print the argument type *)
-  let arg_list ff = function
-    | [] -> Format.fprintf ff "[]"
-    | ty_arg_list -> 
-       Format.fprintf
-	 ff "@[%a@]" (print_list_r (typ 2) """ *""") ty_arg_list in
-  Format.fprintf
-    ff "@[%a.%a -> %a@]" relation rel arg_list ty_arg_list (typ 0) ty_res
+let scheme ff { typ_rel = rel; typ = ty } = 
+  Format.fprintf ff "@[%a.%a@]" relation rel (typ 0) ty
 
    
 (* prints a dependence cycle *)
@@ -105,4 +103,4 @@ let cycle ff c_list =
 (* printing a declaration *)
 let declaration ff f tys =
   type_name#reset;
-  Format.fprintf ff "@[val %s : %a@.@]" f signature tys    
+  Format.fprintf ff "@[val %s : %a@.@]" f scheme tys    

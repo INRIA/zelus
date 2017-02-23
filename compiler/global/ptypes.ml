@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2016                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -35,44 +35,68 @@ let print_list print_el sep ff l =
     match l with
       [] -> ()
     | [x] -> print_el ff x
-    | x::l -> fprintf ff "%a%s@ %a" print_el x sep printrec l
+    | x::l -> fprintf ff "@[%a%s@ %a@]" print_el x sep printrec l
   in
     printrec ff l
 
+
 let arrow_tostring = function 
-  | Tany -> "-A->" | Tcont -> "-C->" 
+  | Tstatic(true) -> "-S->" | Tstatic(false) -> "-AS->"
+  | Tany -> "->" | Tcont -> "-C->" 
   | Tdiscrete(s) -> if s then "-D->" else "-AD->" 
 
-let rec print priority ff ty = match ty.t_desc with
+let print_size ff si =
+  let operator = function Tplus -> "+" | Tminus -> "-" in
+  let priority = function Tplus -> 0 | Tminus -> 1 in
+  let rec printrec prio ff si =
+    match si with
+      | Tconst(i) -> fprintf ff "%d" i
+      | Tglobal(qualid) -> print_qualid ff qualid
+      | Tname(x) -> fprintf ff "%s" (Ident.name x)
+      | Top(op, si1, si2) ->
+	 let prio_op = priority op in
+	 if prio > prio_op then fprintf ff "(";
+	 fprintf ff "@[%a %s %a@]"
+		 (printrec prio_op) si1 (operator op) (printrec prio_op) si2;
+	 if prio > prio_op then fprintf ff ")" in
+  printrec 0 ff si
+    
+let rec print prio ff ({ t_desc = desc } as ty) =
+  let priority = function
+    | Tvar -> 3 | Tproduct _ -> 2 | Tconstr _ -> 3 | Tfun _ -> 1
+    | Tvec _ -> 3 | Tlink _ -> prio in
+  let prio_current = priority desc in
+  if prio_current < prio then fprintf ff "(";
+  begin match desc with
   | Tvar ->
       (* prefix non generalized type variables with "_" *)
       let p = if ty.t_level <> Misc.notgeneric then "" else "_" in
       fprintf ff "@['%s%s@]" p (type_name#name ty.t_index)
   | Tproduct [] -> fprintf ff "ERROR"
-  | Tproduct(ty_list) ->
-      (if priority >= 2 then fprintf ff "@[(%a)@]" else fprintf ff "@[%a@]")
-        (print_list (print 2) " *") ty_list
-  | Tconstr(name, ty_list,_) ->
-      let n = List.length ty_list in
-        (if n = 1 then fprintf ff "@[%a@ %a@]" (print 2) (List.hd ty_list)
-         else if n > 1
-         then fprintf ff "@[(%a)@ %a@]" (print_list (print 2) ",") ty_list
-         else fprintf ff "@[%a@]")
-          print_qualid name
-  | Tlink(link) -> print priority ff link
+  | Tproduct(ty_list) -> print_list (print (prio_current + 1)) " *" ff ty_list
+  | Tconstr(name, ty_list, _) ->
+     let n = List.length ty_list in
+      if n = 1 then
+	fprintf ff "@[%a@ %a@]" (print prio_current)
+		(List.hd ty_list) print_qualid name
+      else if n > 1
+      then fprintf ff "@[(%a)@ %a@]" (print_list (print 0) ",") ty_list
+		   print_qualid name 
+      else fprintf ff "@[%a@]" print_qualid name
+  | Tfun(k, s, name_opt, ty_arg, ty_res) ->
+     let print_arg ff ty =
+       match name_opt with
+       | None -> print (prio_current + 1) ff ty
+       | Some(n) -> fprintf ff "(%s:%a)" (Ident.name n) (print 0) ty in
+     fprintf ff "@[<hov 2>%a@ %s@ %a@]"
+	     print_arg ty_arg (arrow_tostring k) (print prio_current) ty_res
+  | Tvec(ty, e) ->
+     fprintf ff "@[%a[%a]@]" (print prio_current) ty print_size e
+  | Tlink(link) -> print prio ff link
+  end;
+  if prio_current < prio then fprintf ff ")"  
 
-let print_scheme ff { typ_body = typ_body } =
-  let print_arg_list ff = function
-    | [] -> fprintf ff "unit"
-    | ty_arg_list -> 
-        fprintf ff "@[%a@]" (print_list_r (print 2) """ *""") ty_arg_list in
-  match typ_body with
-    | Tvalue(ty) -> print 0 ff ty
-    | Tsignature(k, s, ty_arg_list, ty_res) ->
-        fprintf ff "@[%a %s %a@]" 
-          print_arg_list ty_arg_list
-          (arrow_tostring k) (print 0) ty_res
-      
+let print_scheme ff { typ_body = typ } = print 0 ff typ      
 
 let print_one_type_variable ff i =
   fprintf ff "'%s" (type_name#name i)
@@ -118,17 +142,18 @@ let print_value_type_declaration ff { qualid = qualid; info = ty_scheme } =
 
 
 (* the main printing functions *)
-
 let output ff ty =
   fprintf ff "%a" (print 0) ty
 
+let output_size ff si = print_size ff si
+
 let output_type_declaration ff global_list =
-  fprintf ff "@[<v>%a@.@]"
+  fprintf ff "@[<hov 2>%a@.@]"
     (print_list_l print_type_declaration "type ""and """)
     global_list
 
 let output_value_type_declaration ff global_list =
-  fprintf ff "@[<v>%a@.@]"
+  fprintf ff "@[<hov 2>%a@.@]"
     (print_list_l print_value_type_declaration "val ""val """)
     global_list
 

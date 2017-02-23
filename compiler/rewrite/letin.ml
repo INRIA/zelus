@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -51,12 +51,12 @@ let after ({ e_desc = desc } as e) w =
   else
     let w = S.fold (fun n acc -> n :: acc) w [] in
     match desc with
-    | Eapp(Eafter(w1), [e1]) ->
-       { e with e_desc = Eapp(Eafter(List.fold_left add w1 w), [e1]) }
+    | Eop(Eafter(w1), [e1]) ->
+       { e with e_desc = Eop(Eafter(List.fold_left add w1 w), [e1]) }
     | _ -> after_list e w
-
+		      
 (* express that [eq] depends on [w] if [eq] is unsafe. In that case *)
-(* express that the equations that will follow [eq] depend on the variables *)
+(* express that the equations that follow [eq] depend on the variables *)
 (* [w_p] written by [eq] *)
 let rec do_after (env, eq_list, w) ({ eq_desc = desc } as eq) =
   if Unsafe.equation eq then
@@ -82,7 +82,8 @@ let rec do_after (env, eq_list, w) ({ eq_desc = desc } as eq) =
        (* variables written by the [match/with] *)
        let w_p =
 	 List.fold_left
-	   (fun acc { m_body = { b_write = { dv = dv; di = di; der = der } } } ->
+	   (fun acc
+		{ m_body = { b_write = { dv = dv; di = di; der = der } } } ->
 	    S.union acc (S.union dv (S.union di der))) S.empty m_h_list in
        env,
        { eq with eq_desc = EQmatch(total, after e w, m_h_list) } :: eq_list,
@@ -90,7 +91,23 @@ let rec do_after (env, eq_list, w) ({ eq_desc = desc } as eq) =
     | EQreset(res_eq_list, e) ->
        let env, res_eq_list, w_p =
 	 List.fold_left do_after (env, [], w) res_eq_list in
-       env, { eq with eq_desc = EQreset(res_eq_list, after e w) } :: eq_list, w_p
+       env,
+       { eq with eq_desc = EQreset(res_eq_list, after e w) } :: eq_list, w_p
+    | EQforall ({ for_index = ind;
+		  for_body =
+		    { b_write = { dv = dv; di = di; der = der } } } as for_h) ->
+       let after_index ({ desc = desc } as ind) =
+	 let desc = match desc with
+	   | Einput(n, e) -> Einput(n, after e w)
+	   | Eoutput _ -> desc
+	   | Eindex(n, e1, e2) -> Eindex(n, after e1 w, after e2 w) in
+	 { ind with desc = desc } in
+       let w_p = S.union dv (S.union di der) in
+       env,
+       { eq with eq_desc =
+		   EQforall
+		     { for_h with for_index = List.map after_index ind } }
+       :: eq_list, w_p
     | _ -> assert false
   else env, eq :: eq_list, w
 			      
@@ -129,9 +146,14 @@ let rec expression ({ e_desc = desc } as e) =
   match desc with
   | Elocal _ | Eglobal _ | Econst _
   | Econstr0 _ | Elast _ -> e, State.empty
-  | Eapp(op, e_list) ->
+  | Eop(op, e_list) ->
      let e_list, ctx = fold expression e_list in
-     { e with e_desc = Eapp(op, e_list) }, ctx
+     { e with e_desc = Eop(op, e_list) }, ctx
+  | Eapp(app, e_op, e_list) ->
+     let e_op, ctx_e_op = expression e_op in
+     let e_list, ctx = fold expression e_list in
+     { e with e_desc = Eapp(app, e_op, e_list) },
+     State.par ctx_e_op ctx
   | Etuple(e_list) ->
      let e_list, ctx = fold expression e_list in
      { e with e_desc = Etuple(e_list) }, ctx
@@ -197,6 +219,10 @@ and equation ({ eq_desc = desc } as eq) =
      let l_ctx = local_list l_list in
      let b_ctx = equation_list eq_list in
      State.seq l_ctx (extend b_env b_ctx)
+  | EQforall ({ for_body = b_eq_list } as body) ->
+     let b_eq_list = block b_eq_list in
+     State.singleton
+       (make { eq with eq_desc = EQforall { body with for_body = b_eq_list } })
   | EQder _ | EQautomaton _ | EQpresent _ | EQemit _ | EQnext _ -> assert false
 							       
 and equation_list eq_list =

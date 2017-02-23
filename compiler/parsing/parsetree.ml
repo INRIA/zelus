@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2014                                               *)
+(*  Copyright (C) 2012-2016                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -15,7 +15,16 @@
 
 open Location
 
-type kind = A | C | AD | D
+type kind = | S | AS | A | C | AD | D
+
+(*  D   C  
+     \ /   
+      A   S
+      \  / 
+       AS
+ *)
+
+					  
 type name = string
 
 type qualident = { qual: name; id: name }
@@ -33,7 +42,19 @@ and type_expression_desc =
     | Etypevar of string
     | Etypeconstr of longname * type_expression list
     | Etypetuple of type_expression list
+    | Etypevec of type_expression * size
+    | Etypefun of
+	kind * bool * string option * type_expression * type_expression
 
+and size = size_desc localized
+
+and size_desc =
+  | Sconst of int
+  | Sname of longname
+  | Sop of size_op * size * size
+
+and size_op = Splus | Sminus
+		   
 
 (** Declarations and expressions *)
 type interface = interface_desc localized
@@ -42,7 +63,6 @@ and interface_desc =
     | Einter_open of name
     | Einter_typedecl of name * name list * type_decl
     | Einter_constdecl of name * type_expression
-    | Einter_fundecl of name * type_signature
 
 and type_decl =
     | Eabstract_type
@@ -56,14 +76,14 @@ and implementation_desc =
     | Eopen of name
     | Etypedecl of name * name list * type_decl
     | Econstdecl of name * exp
-    | Efundecl of name * kind * is_atomic * pattern list * exp
+    | Efundecl of name * funexp
 
-and type_signature =
-    { sig_inputs : type_expression list;
-      sig_output : type_expression;
-      sig_kind : kind;
-      sig_safe : bool }
-
+and funexp =
+  { f_kind: kind;
+    f_atomic: is_atomic;
+    f_args: pattern list;
+    f_body: exp }
+    
 and is_atomic = bool
 
 and exp = desc localized
@@ -73,7 +93,8 @@ and desc =
   | Econst of immediate
   | Econstr0 of constr
   | Elast of name
-  | Eapp of op * exp list
+  | Eapp of app * exp * exp list
+  | Eop of op * exp list
   | Etuple of exp list
   | Erecord_access of exp * longname
   | Erecord of (longname * exp) list
@@ -88,17 +109,15 @@ and desc =
   | Eblock of eq list block * exp 
 
 and is_rec = bool
-
-and is_inline = bool
-
+	       
+and app = { app_inline: bool; app_statefull: bool}
+		     
 and 'a default =
   | Init of 'a | Default of 'a
 
 and op =
     | Efby | Eunarypre | Eifthenelse | Eminusgreater 
-    | Eup | Einitial | Edisc | Etest | Eop of is_inline * longname
-    | Eafter of name list
-  
+    | Eup | Einitial | Edisc | Etest | Eafter of name list | Eaccess
 
 and immediate =
     | Eint of int
@@ -150,9 +169,10 @@ and eqdesc =
   | EQautomaton of eq list state_handler list * state_exp option
   | EQpresent of eq list block present_handler list * eq list block option
   | EQmatch of exp * eq list block match_handler list
-  | EQifthenelse of exp * eq list block * eq list block
+  | EQifthenelse of exp * eq list block * eq list block option
   | EQreset of eq list * exp
   | EQblock of eq list block
+  | EQforall of forall_handler
 
 and 'a block = 'a block_desc localized
 
@@ -218,3 +238,26 @@ and 'a state_handler_desc =
       s_unless : escape list } 
 
 and 'a state_handler = 'a state_handler_desc localized
+
+(* the body of a for loop *)
+(* for(all|seq) [id in e..e | id in e | id out id]+
+ *   local id [and id]*
+ *   do eq and ... and eq
+ *   [init
+ *     [[id = e with g] | [last id = e]]
+ *     [and [[id = e with g] | [last id = e]]]*
+ *   done *)
+and forall_handler =
+  { for_indexes: indexes_desc localized list;
+    for_init: init_desc localized list;
+    for_body: eq list block}
+
+and indexes_desc =
+  | Einput of name * exp
+  | Eoutput of name * name
+  | Eindex of name * exp * exp
+
+and init_desc =
+  | Einit_last of name * exp
+  | Einit_value of name * exp * longname option
+					 

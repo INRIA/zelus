@@ -33,6 +33,7 @@ let keyword_table = ((Hashtbl.create 149) : (string, token) Hashtbl.t);;
 List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "as", AS;
   "after", AFTER;
+  "forall", FORALL;
   "automaton", AUTOMATON;
   "atomic", ATOMIC;
   "inline", INLINE;
@@ -48,13 +49,16 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "period", PERIOD;
   "with", WITH;
   "end", END;
+  "static", STATIC;
   "fun", FUN;
   "node", NODE;
   "hybrid", HYBRID;
   "discrete", DISCRETE;
   "init", INIT;
+  "initialize", INITIALIZE;
   "default", DEFAULT;
   "in", IN;
+  "out", OUT;
   "and", AND;
   "open", OPEN;
   "val", VAL;
@@ -77,6 +81,7 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "or", OR;
   "on", ON;
   "last", LAST;
+  "run", RUN;
   "if", IF;
   "then", THEN;
   "else", ELSE;
@@ -127,7 +132,7 @@ let get_stored_string () =
     s
 
 let char_for_backslash = function
-    'n' -> '\010'
+  | 'n' -> '\010'
   | 'r' -> '\013'
   | 'b' -> '\008'
   | 't' -> '\009'
@@ -146,8 +151,11 @@ let char_for_decimal_code lexbuf i =
 rule main = parse 
   | [' ' '\010' '\013' '\009' '\012'] +   { main lexbuf }
   | "."  { DOT }
+  | ".."  { DOTDOT }
   | "("  { LPAREN }
   | ")"  { RPAREN }
+  | "["  { LBRACKET }
+  | "]"  { RBRACKET }
   | "*"  { STAR }
   | "{"  { LBRACE }
   | "}"  { RBRACE }
@@ -166,9 +174,12 @@ rule main = parse
   | "-A->" { AFUN }
   | "-D->" { DFUN }
   | "-AD->" { ADFUN }
+  | "-AS->" { ASFUN }
   | "-C->" { CFUN }
+  | "-S->" { SFUN }
   | "|"  { BAR }
-  | "-"  { SUBTRACTIVE "-" }
+  | "-"  { MINUS }
+  | "+"  { PLUS }
   | "-." { SUBTRACTIVE "-." }
   | "_"  { UNDERSCORE }
   | "?"  { TEST }

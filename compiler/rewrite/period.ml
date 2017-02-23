@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -90,8 +90,11 @@ let period time { p_phase = p1_opt; p_period = p2 } =
 (* Translation of discrete zero-crossings into synchronous code *)
 (* Use an unsafe construction "major_step" *)
 let major_step =
-  Zaux.emake (Eapp(Eop(false, Modname { qual = "Basics"; id = "major_step" }),
-		   [Zaux.evoid]))
+  Zaux.emake (Eapp(Zaux.prime_app,
+		   Zaux.emake
+		     (Zaux.global (Modname { qual = "Basics";
+					     id = "major_step" }))
+		     Initial.typ_zero, [Zaux.evoid]))
 	     Initial.typ_zero
 let disc e =
   if Unsafe.exp e
@@ -112,16 +115,14 @@ let extra_input time env pat_list =
 let rec expression time ({ e_desc = e_desc } as e) =
   match e_desc with
   | Eperiod(p) -> period time p
-  | Eapp(Edisc, [e]) -> disc (expression time e)
-  | Eapp(op, e_list) ->
+  | Eop(Edisc, [e]) -> disc (expression time e)
+  | Eapp(app, op, e_list) ->
      (* for hybrid nodes, add the extra input [time] *)
+     let op = expression time op in
      let e_list = List.map (expression time) e_list in
-     let e_list =
-       match op with
-       | (Eop(_, id) | Eevery(_, id)) when Types.is_a_hybrid_node id ->
-	  (float_var time) :: e_list
-       | _ -> e_list in
-     { e with e_desc = Eapp(op, e_list) }
+     let e_list = if Types.is_hybrid op.e_typ then (float_var time) :: e_list
+		  else e_list in
+     { e with e_desc = Eapp(app, op, e_list) }
   | Etuple(e_list) ->
      { e with e_desc = Etuple(List.map (expression time) e_list) }
   | Erecord_access(e, x) ->
@@ -137,7 +138,7 @@ let rec expression time ({ e_desc = e_desc } as e) =
      { e with e_desc = Eblock(block time b, expression time e) }
   | Eseq(e1, e2) ->
      { e with e_desc = Eseq(expression time e1, expression time e2) }
-  | Elocal _ | Eglobal _ | Econst _ | Econstr0 _ | Elast _ -> e
+  | Elocal _ | Eglobal _ | Eop _ | Econst _ | Econstr0 _ | Elast _ -> e
   | Epresent _ | Ematch _ -> assert false
 
 (* Translation of equations *)
@@ -157,6 +158,10 @@ and equation time ({ eq_desc = desc } as eq) =
      let e = expression time e in
      let res_eq_list = equation_list time res_eq_list in
      { eq with eq_desc = EQreset(res_eq_list, e) }
+  | EQpar(par_eq_list) ->
+     { eq with eq_desc = EQpar(equation_list time par_eq_list) }
+  | EQseq(seq_eq_list) ->
+     { eq with eq_desc = EQseq(equation_list time seq_eq_list) }
   | EQinit(x, e) ->
      { eq with eq_desc = EQinit(x, expression time e) }
   | EQder(x, e, None, []) -> 
@@ -165,6 +170,27 @@ and equation time ({ eq_desc = desc } as eq) =
      let e_opt = Misc.optional_map (expression time) e_opt in
      { eq with eq_desc = EQnext(x, expression time e, e_opt) }
   | EQblock(b) -> { eq with eq_desc = EQblock(block time b) }
+  | EQforall ({ for_index = i_list; for_init = init_list;
+		for_body = b_eq_list } as body) ->
+     let index ({ desc = desc } as ind) =
+       let desc = match desc with
+       | Einput(x, e) -> Einput(x, expression time e)
+       | Eoutput _ -> desc
+       | Eindex(x, e1, e2) ->
+	  Eindex(x, expression time e1, expression time e2) in
+       { ind with desc = desc } in
+     let init ({ desc = desc } as ini) =
+       let desc = match desc with
+	 | Einit_last(x, e) -> Einit_last(x, expression time e)
+	 | Einit_value(x, e, c_opt) ->
+	    Einit_value(x, expression time e, c_opt) in
+       { ini with desc = desc } in
+     let i_list = List.map index i_list in
+     let init_list = List.map init init_list in
+     let b_eq_list = block time b_eq_list in
+     { eq with eq_desc = EQforall { body with for_index = i_list;
+					      for_init = init_list;
+					      for_body = b_eq_list } }
   | EQautomaton _ | EQpresent _ | EQemit _
   | EQder _ -> assert false
 		      
@@ -182,7 +208,7 @@ and local time ({ l_eq = eq_list } as l) =
 let implementation impl =
   match impl.desc with
   | Eopen _ | Etypedecl _ | Econstdecl _  
-  | Efundecl(_, { f_kind = (A | AD | D) }) -> impl
+  | Efundecl(_, { f_kind = (S | AS | A | AD | D) }) -> impl
   | Efundecl(n, ({ f_kind = C; f_args = pat_list;
 		   f_body = e; f_env = f_env } as body)) ->
      let time = new_time () in

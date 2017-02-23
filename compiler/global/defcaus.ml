@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2014                                               *)
+(*  Copyright (C) 2012-2016                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -19,13 +19,13 @@
 type tc_scheme = 
     { typ_vars: t list; (* list of type variables *)
       typ_rel: (t * t list) list; (* the relation between variables *)
-      typ_args: tc list; (* type of the arguments *)
-      typ_res: tc;       (* type of the result *)
+      typ: tc; (* type *)
     }
 
 and tc =
-    | Cproduct of tc list (* products *)
-    | Catom of t (* dependences *)
+  | Cfun of tc * tc
+  | Cproduct of tc list (* products *)
+  | Catom of t (* dependences *)
 
 (* a causality variable points to its predecessors and successors *)
 and t =
