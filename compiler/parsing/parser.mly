@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2016                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -49,6 +49,12 @@ let block_of_equation ({ desc = desc; loc = loc } as eq) =
   match desc with
     | EQblock(b) -> b
     | _ -> { desc = { b_locals = []; b_vars = []; b_body = [eq] }; loc = loc }
+
+let block l lo eq_list startpos endpos =
+  match l, lo with
+  | [], [] -> EQand(eq_list)
+  | _ -> EQblock(make { b_locals = l; b_vars = lo; b_body = eq_list }
+		      startpos endpos)
 
 %}
 
@@ -109,6 +115,7 @@ let block_of_equation ({ desc = desc; loc = loc } as eq) =
 %token PERIOD         /* "period" */
 %token END            /* "end" */
 %token IN             /* "in" */
+%token BEFORE         /* "before" */
 %token OUT            /* "out" */
 %token LET            /* "let" */
 %token REC            /* "rec" */
@@ -165,6 +172,7 @@ let block_of_equation ({ desc = desc; loc = loc } as eq) =
 %left UNLESS
 %nonassoc THEN
 %nonassoc ELSE
+%right BEFORE
 %left  AS
 %left  BAR
 %left COMMA
@@ -358,7 +366,15 @@ optional_init:
 ;
 
 %inline equation_list:
-  | l = list_of(AND, localized(equation_desc)) { l }
+  | l = list_of(AND, equation) { l } 
+;
+
+%inline equation:
+   eq = localized(equation_desc) { eq }
+;
+
+%inline simple_equation:
+   eq = localized(simple_equation_desc) { eq }
 ;
 
 simple_equation_desc:
@@ -383,8 +399,7 @@ simple_equation_desc:
   | RESET eq = equation_list EVERY e = expression
     { EQreset(eq, e) }
   | l = let_list lo = local_list DO eq_list = equation_empty_list DONE
-    { EQblock(make { b_locals = l; b_vars = lo; b_body = eq_list }
-	      $startpos $endpos) }
+    { block l lo eq_list $startpos $endpos }
   | FORALL i = index_list bo = block(equation_list)
     INITIALIZE inits = init_equation_list DONE
     { EQforall
@@ -418,6 +433,8 @@ equation_desc:
       { EQemit(i, None) }
   | EMIT i = ide EQUAL e = seq_expression
       { EQemit(i, Some(e)) }
+  | eq1 = equation BEFORE eq2 = equation
+      { EQbefore [eq1; eq2] }
 ;
 
 opt_end:
@@ -566,7 +583,7 @@ block(X):
 ;
 
 block_of_equation:
-  | eq = localized (simple_equation_desc) { block_of_equation(eq) }
+  | eq = simple_equation { block_of_equation(eq) }
 ;
 
 

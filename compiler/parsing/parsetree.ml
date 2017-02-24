@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2016                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -171,6 +171,8 @@ and eqdesc =
   | EQmatch of exp * eq list block match_handler list
   | EQifthenelse of exp * eq list block * eq list block option
   | EQreset of eq list * exp
+  | EQand of eq list
+  | EQbefore of eq list
   | EQblock of eq list block
   | EQforall of forall_handler
 
