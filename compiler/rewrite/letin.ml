@@ -11,10 +11,13 @@
 (*   This file is distributed under the terms of the CeCILL-C licence     *)
 (*                                                                        *)
 (**************************************************************************)
-(* Translate sequential lets into parallel ones *)
-(* Preserves the order between side effects, i.e., if [e1] has *)
-(* a side effect in [let x = e1 in e2], the order between [e1] and [e2] *)
-(* is kept. This is done by adding extra data-dependences *)
+
+(* Remove nested declaration of variables *)
+(* Preserves the sequential order defined by a let/in *)
+(* declaration and, thus, possible side effects in them *)
+(* E.g., in [let x = e1 in e2], all side effects in [e1] are done before *)
+(* those of [e2] *)
+(* [let x = e1 in e2] has the behavior of [let x = e1 before y = e2 in y] *)
 
 open Misc
 open Location
@@ -26,143 +29,94 @@ open Zaux
 
 (* a structure to represent nested equations before they are turned into *)
 (* valid Zelus equations *)
-type ctx = Deftypes.tentry Env.t * eq list
+type ctx = { env: Deftypes.tentry Env.t State.t; eqs: eq State.t }
 
-let make eq = Env.empty, [eq]
-let extend l_env ctx = State.cons (l_env, []) ctx
-				  
+let empty = { env = State.empty; eqs = State.empty }
+let par { env = env1; eqs = eqs1 } { env = env2; eqs = eqs2 } =
+  { env = State.par env1 env2; eqs = State.par eqs1 eqs2 }
+let seq { env = env1; eqs = eqs1 } { env = env2; eqs = eqs2 } =
+  { env = State.seq env1 env2; eqs = State.seq eqs1 eqs2 }
+let cons eq ({ eqs = eqs } as ctx) = { ctx with eqs = State.cons eq eqs }
+				   				      
 let optional f e_opt =
   match e_opt with
-    | None -> None, State.Empty
+    | None -> None, { env = State.Empty; eqs = State.Empty }
     | Some(e) -> let e, ctx = f e in Some(e), ctx
 
-let fold f l =
-  List.fold_right
-    (fun i (l, ctx) -> let i, ctx_i = f i in i :: l, State.par ctx_i ctx) l
-    ([], State.empty)
+let par_fold f l =
+  Misc.map_fold
+    (fun { env = env; eqs = eqs } x ->
+     let y, { env = env_y; eqs = eqs_y } = f x in
+     y, { env = State.par env env_y; eqs = State.par eqs eqs_y })
+    { env = State.Empty; eqs = State.Empty } l
 
-let intro env e =
-  let n = Ident.fresh "" in
-  Env.add n { t_sort = Deftypes.value; t_typ = e.e_typ } env, eq_make n e, n
+let seq_fold f l =
+  Misc.map_fold
+    (fun { env = env; eqs = eqs } x ->
+     let y, { env = env_y; eqs = eqs_y } = f x in
+     y, { env = State.seq env env_y; eqs = State.seq eqs eqs_y })
+    { env = State.Empty; eqs = State.Empty } l
+    
+(* translate a context [ctx] into an environment and an equation *)
+let equations eqs =
+  (* computes the set of sequential equations *)
+  let rec seq eqs eq_list =
+    match eqs with
+    | State.Empty -> eq_list
+    | State.Cons(eq, eqs) -> eq :: seq eqs eq_list
+    | State.Seq(eqs1, eqs2) ->
+       seq eqs1 (seq eqs2 eq_list)
+    | State.Par(eqs1, eqs2) ->
+       let par_eq_list = par [] eqs1 in
+       let par_eq_list = par par_eq_list eqs2 in
+       Zaux.par par_eq_list :: eq_list
+  (* and the set of parallel equations *)
+  and par eq_list eqs =
+    match eqs with
+    | State.Empty -> eq_list
+    | State.Cons(eq, eqs) -> par (eq :: eq_list) eqs
+    | State.Seq(eqs1, eqs2) ->
+       let seq_eq_list = seq eqs1 [] in
+       let seq_eq_list = seq eqs2 seq_eq_list in
+       Zaux.before seq_eq_list :: eq_list
+    | State.Par(eqs1, eqs2) ->
+       par (par eq_list eqs1) eqs2 in
+  par [] eqs
 
-let after ({ e_desc = desc } as e) w =
-  let add w x = if List.mem x w then w else x :: w in
-  if S.is_empty w then e
-  else
-    let w = S.fold (fun n acc -> n :: acc) w [] in
-    match desc with
-    | Eop(Eafter(w1), [e1]) ->
-       { e with e_desc = Eop(Eafter(List.fold_left add w1 w), [e1]) }
-    | _ -> after_list e w
-		      
-(* express that [eq] depends on [w] if [eq] is unsafe. In that case *)
-(* express that the equations that follow [eq] depend on the variables *)
-(* [w_p] written by [eq] *)
-let rec do_after (env, eq_list, w) ({ eq_desc = desc } as eq) =
-  if Unsafe.equation eq then
-    match desc with
-    | EQeq(p, e) ->
-       let w_p = Vars.fv_pat S.empty S.empty p in
-       if S.is_empty w_p then
-	 (* a fresh equation is introduced and it depends on [w] *)
-	 let env, n_e, n = intro env (after e w) in
-	 env, n_e :: { eq with eq_desc = EQeq(p, var n e.e_typ) } :: eq_list,
-	 S.singleton n
-       else env, { eq with eq_desc = EQeq(p, after e w) } :: eq_list, w_p
-    | EQpluseq(n, e) ->
-       env, { eq with eq_desc = EQpluseq(n, after e w) } :: eq_list,
-       S.singleton n
-    | EQder(n, e, None, []) ->
-       env, { eq with eq_desc = EQder(n, after e w, None, []) } :: eq_list,
-       S.singleton n
-    | EQinit(n, e) ->
-       env, { eq with eq_desc = EQinit(n, after e w) } :: eq_list,
-       S.singleton n
-    | EQmatch(total, e, m_h_list) ->
-       (* variables written by the [match/with] *)
-       let w_p =
-	 List.fold_left
-	   (fun acc
-		{ m_body = { b_write = { dv = dv; di = di; der = der } } } ->
-	    S.union acc (S.union dv (S.union di der))) S.empty m_h_list in
-       env,
-       { eq with eq_desc = EQmatch(total, after e w, m_h_list) } :: eq_list,
-       w_p
-    | EQreset(res_eq_list, e) ->
-       let env, res_eq_list, w_p =
-	 List.fold_left do_after (env, [], w) res_eq_list in
-       env,
-       { eq with eq_desc = EQreset(res_eq_list, after e w) } :: eq_list, w_p
-    | EQforall ({ for_index = ind;
-		  for_body =
-		    { b_write = { dv = dv; di = di; der = der } } } as for_h) ->
-       let after_index ({ desc = desc } as ind) =
-	 let desc = match desc with
-	   | Einput(n, e) -> Einput(n, after e w)
-	   | Eoutput _ -> desc
-	   | Eindex(n, e1, e2) -> Eindex(n, after e1 w, after e2 w) in
-	 { ind with desc = desc } in
-       let w_p = S.union dv (S.union di der) in
-       env,
-       { eq with eq_desc =
-		   EQforall
-		     { for_h with for_index = List.map after_index ind } }
-       :: eq_list, w_p
-    | _ -> assert false
-  else env, eq :: eq_list, w
-			      
-(* translate a context [ctx] into an environment and a list of equations *)
-let env_eq_list_of_ctx ctx =
-  (* [env] is an environment; [eq_list] a list of equations; [w] the *)
-  (* set of write variables for unsafe computations in [eq_list] *)
-  let rec equations (env, eq_list, w) ctx =
-    match ctx with
-    | State.Empty -> env, eq_list, w
-    | State.Cons((env0, eq_list0), ctx) ->
-       let env, eq_list, w = equations (Env.append env env0, eq_list, w) ctx in
-       List.fold_left do_after (env, eq_list, w) eq_list0
-    | State.Seq(ctx1, ctx2) ->
-       equations (equations (env, eq_list, w) ctx1) ctx2
-    | State.Par(ctx1, ctx2) ->
-       let env, eq_list, w1 = equations (env, eq_list, w) ctx1 in
-       let env, eq_list, w2 = equations (env, eq_list, w) ctx2 in
-       env, eq_list, S.union w1 w2 in
-  equations (Env.empty, [], S.empty) ctx
-  
-  
 (* every variable from [ctx] becomes a local variable *)
-let add_locals ctx n_list l_env =
-  let env, eq_list, w = env_eq_list_of_ctx ctx in
+let add_locals n_list l_env { env = env; eqs = eqs } =
+  let eq_list = equations eqs in
+  let l_env = State.fold (fun env acc -> Env.append env acc) env l_env in
   let n_list =
-    Env.fold
-      (fun n entry n_list -> (Zaux.vardec_from_entry n entry) :: n_list)
-      env n_list in
-  let l_env = Env.append env l_env in
-  n_list, l_env, eq_list, w
-
-
+    State.fold (fun env acc ->
+		Env.fold
+		  (fun n entry acc -> (Zaux.vardec_from_entry n entry) :: acc)
+		  env acc) env n_list in
+  n_list, l_env, eq_list
+				      
 (** Translation of expressions *)
 let rec expression ({ e_desc = desc } as e) =
   match desc with
   | Elocal _ | Eglobal _ | Econst _
-  | Econstr0 _ | Elast _ -> e, State.empty
+  | Econstr0 _ | Elast _ -> e, empty
   | Eop(op, e_list) ->
-     let e_list, ctx = fold expression e_list in
+     let e_list, ctx = par_fold expression e_list in
      { e with e_desc = Eop(op, e_list) }, ctx
   | Eapp(app, e_op, e_list) ->
      let e_op, ctx_e_op = expression e_op in
-     let e_list, ctx = fold expression e_list in
+     let e_list, ctx = par_fold expression e_list in
      { e with e_desc = Eapp(app, e_op, e_list) },
-     State.par ctx_e_op ctx
+     par ctx_e_op ctx
   | Etuple(e_list) ->
-     let e_list, ctx = fold expression e_list in
+     let e_list, ctx = par_fold expression e_list in
      { e with e_desc = Etuple(e_list) }, ctx
   | Erecord_access(e1, l) ->
      let e1, ctx = expression e1 in
      { e with e_desc = Erecord_access(e1, l) }, ctx
   | Erecord(l_e_list) ->
      let l_e_list, ctx =
-       fold (fun (l, e) -> let e, ctx = expression e in (l, e), ctx) l_e_list in
+       par_fold
+	 (fun (l, e) -> let e, ctx = expression e in (l, e), ctx) l_e_list in
      { e with e_desc = Erecord(l_e_list) }, ctx
   | Etypeconstraint(e1, ty) ->
      let e1, ctx = expression e1 in
@@ -170,18 +124,20 @@ let rec expression ({ e_desc = desc } as e) =
   | Elet(l, e_let) ->
      let ctx = local l in
      let e_let, ctx_let = expression e_let in
-     e_let, State.seq ctx ctx_let
+     e_let, seq ctx ctx_let
   | Eblock({ b_locals = l_list; b_env = b_env; b_body = eq_list }, e) ->
      let l_ctx = local_list l_list in
-     let b_ctx = equation_list eq_list in
+     let eq_list_ctx = par_equation_list eq_list in
      let e, ctx_e = expression e in
-     e, State.seq l_ctx (State.seq (extend b_env b_ctx) ctx_e)
+     e, seq { empty with env = State.singleton b_env }
+	    (seq l_ctx (seq eq_list_ctx ctx_e))
   | Eseq(e1, e2) ->
-     (* [e1; e2] is a short-cut for [let x = e1 in e2 after x] *)
+     (* [e1; e2] is a short-cut for [let _ = e1 in e2] *)
      let e1, ctx1 = expression e1 in
      let e2, ctx2 = expression e2 in
-     let env, n_e1, n = intro Env.empty e1 in
-     e2, State.seq (State.cons (env, [n_e1]) ctx1) ctx2
+     let _e1 =
+       Zaux.eqmake (EQeq({ Zaux.wildpat with p_typ = e1.e_typ }, e1)) in
+     e2, seq ctx1 (seq { empty with eqs = State.singleton _e1 } ctx2)
   | Epresent _ | Ematch _ | Eperiod _ -> assert false
 				    
 (** Translate an equation. *)
@@ -189,18 +145,18 @@ and equation ({ eq_desc = desc } as eq) =
   match desc with 
   | EQeq(p, e) ->
      let e, ctx = expression e in
-     State.cons (make { eq with eq_desc = EQeq(p, e) }) ctx
+     cons { eq with eq_desc = EQeq(p, e) } ctx
   | EQpluseq(n, e) ->
      let e, ctx_e = expression e in
-     State.cons (make { eq with eq_desc = EQpluseq(n, e) }) ctx_e
+     cons { eq with eq_desc = EQpluseq(n, e) } ctx_e
   | EQder(n, e, e0_opt, []) ->
      let e, ctx = expression e in
      let e0_opt, ctx0 = optional expression e0_opt in
      let eq = { eq with eq_desc = EQder(n, e, e0_opt, []) } in
-     State.cons (make eq) (State.par ctx ctx0)
+     cons eq (par ctx ctx0)
   | EQinit(n, e0) ->
      let e0, ctx_e0 = expression e0 in
-     State.cons (make { eq with eq_desc = EQinit(n, e0) }) ctx_e0
+     cons { eq with eq_desc = EQinit(n, e0) } ctx_e0
   | EQmatch(total, e, p_h_list) ->
      let e, ctx_e = expression e in
      let p_h_list =
@@ -209,25 +165,56 @@ and equation ({ eq_desc = desc } as eq) =
           let b = block b in
           { p_h with m_body = b })
          p_h_list in
-     State.cons (make { eq with eq_desc = EQmatch(total, e, p_h_list) }) ctx_e
+     cons { eq with eq_desc = EQmatch(total, e, p_h_list) } ctx_e
   | EQreset(res_eq_list, e) -> 
      let e, ctx_e = expression e in
-     let res_ctx = equation_list res_eq_list in
-     let env, res_eq_list, _ = env_eq_list_of_ctx res_ctx in
-     State.cons (env, [{ eq with eq_desc = EQreset(res_eq_list, e) }]) ctx_e
+     let { env = env; eqs = eqs } = par_equation_list res_eq_list in
+     let res_eq_list = equations eqs in
+     cons { eq with eq_desc = EQreset(res_eq_list, e) }
+	  { empty with env = env }
+  | EQand(and_eq_list) -> par_equation_list and_eq_list
+  | EQbefore(before_eq_list) ->
+     seq_equation_list before_eq_list     
   | EQblock { b_locals = l_list; b_env = b_env; b_body = eq_list } ->
      let l_ctx = local_list l_list in
-     let b_ctx = equation_list eq_list in
-     State.seq l_ctx (extend b_env b_ctx)
-  | EQforall ({ for_body = b_eq_list } as body) ->
+     let eq_list_ctx = par_equation_list eq_list in
+     seq (seq l_ctx eq_list_ctx) { empty with env = State.singleton b_env }
+  | EQforall ({ for_index = ind_list; for_init = i_list;
+		for_body = b_eq_list } as body) ->
+     let index ({ desc = desc } as ind) =
+       match desc with
+       | Einput(x, e) ->
+	  let e, ctx_e = expression e in
+	  { ind with desc = Einput(x, e) }, ctx_e 
+       | Eoutput _ -> ind, empty
+       | Eindex(x, e1, e2) ->
+	  let e1, ctx_e1 = expression e1 in
+	  let e2, ctx_e2 = expression e2 in
+	  { ind with desc = Eindex(x, e1, e2) }, par ctx_e1 ctx_e2 in
+     let init ({ desc = desc } as i) =
+       match desc with
+       | Einit_last(x, e) ->
+	  let e, ctx_e = expression e in
+	  { i with desc = Einit_last(x, e) }, ctx_e
+       | Einit_value(x, e, v_opt) ->
+	  let e, ctx_e = expression e in
+	  { i with desc = Einit_value(x, e, v_opt) }, ctx_e in
+     let ind_list, ind_ctx = par_fold index ind_list in
+     let i_list, i_ctx = par_fold init i_list in
      let b_eq_list = block b_eq_list in
-     State.singleton
-       (make { eq with eq_desc = EQforall { body with for_body = b_eq_list } })
+     cons { eq with eq_desc =
+		       EQforall { body with for_index = ind_list;
+					    for_init = i_list;
+					    for_body = b_eq_list } }
+	  (seq ind_ctx i_ctx)	  
   | EQder _ | EQautomaton _ | EQpresent _ | EQemit _ | EQnext _ -> assert false
 							       
-and equation_list eq_list =
-  List.fold_left (fun acc eq -> State.par (equation eq) acc) State.empty eq_list
-		 
+and par_equation_list eq_list =
+  List.fold_left (fun acc eq -> par (equation eq) acc) empty eq_list
+
+and seq_equation_list eq_list =
+  List.fold_left (fun acc eq -> seq (equation eq) acc) empty eq_list
+
 (** Translating a block *)
 (* Once normalized, a block is of the form *)
 (* local x1,..., xn in do eq1 and ... and eqn *)
@@ -236,28 +223,29 @@ and block ({ b_vars = n_list; b_locals = l_list;
   (* first translate local declarations *)
   let l_ctx = local_list l_list in
   (* then the set of equations *)
-  let ctx = equation_list eq_list in
-  let ctx = State.seq l_ctx ctx in
-  (* every variable from ctx is now a local variable of the block *)
-  let n_list, b_env, eq_list, _ = add_locals ctx n_list b_env in
+  let ctx = par_equation_list eq_list in
+  let ctx = seq l_ctx ctx in
+  (* all local variables from [l_ctx] and [ctx] are now *)
+  (* declared in that block *)
+  let n_list, b_env, eq_list = add_locals n_list b_env ctx in
   { b with b_vars = n_list; b_locals = []; b_body = eq_list; b_env = b_env }
     
 and local { l_eq = eq_list; l_env = l_env } =
-  let ctx = equation_list eq_list in
-  extend l_env ctx
+  let ctx = par_equation_list eq_list in
+  seq { empty with env = State.singleton l_env } ctx
 	     
 and local_list = function
-  | [] -> State.empty
+  | [] -> empty
   | l :: l_list -> 
      let l_ctx = local l in
      let ctx = local_list l_list in
-     State.seq l_ctx ctx
+     seq l_ctx ctx
 	       
 let implementation impl =
   let make_let e =
     let e, ctx = expression e in
-    let env, eq_list, w = env_eq_list_of_ctx ctx in
-    Zaux.make_let env eq_list (after e w) in
+    let _, env, eq_list = add_locals [] Env.empty ctx in
+    Zaux.make_let env eq_list e in
   match impl.desc with
   | Eopen _ | Etypedecl _ -> impl
   | Econstdecl(n, e) -> { impl with desc = Econstdecl(n, make_let e) }
