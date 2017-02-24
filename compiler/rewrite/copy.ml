@@ -71,7 +71,10 @@ let rec build rel { eq_desc = desc } =
        | Elast m -> Env.add x (Vlast(m)) rel
        | _ -> rel in
      rel
-  | EQeq _ | EQpluseq _ | EQnext _ | EQinit _ | EQmatch _ | EQreset _ 
+  | EQreset(eq_list, _)
+  | EQand(eq_list)
+  | EQbefore(eq_list) ->  List.fold_left build rel eq_list
+  | EQeq _ | EQpluseq _ | EQnext _ | EQinit _ | EQmatch _ 
   | EQder(_, _, None, [])
   | EQforall _ | EQblock _ -> rel
   | EQautomaton _ | EQpresent _ | EQemit _ | EQder _ -> assert false
@@ -129,7 +132,8 @@ and equation ({ defs = defs } as renaming, eq_list)
        let e = expression renaming e in
        let _, eq_list = equation_list renaming res_eq_list in
        EQreset(eq_list, e)
-    | EQforall ({ for_index = i_list; for_init = init_list; for_body = b_eq_list } as b) ->
+    | EQforall ({ for_index = i_list; for_init = init_list;
+		  for_body = b_eq_list } as b) ->
        let index ({ desc = desc } as ind) =
 	 let desc = match desc with
 	   | Einput(i, e) -> Einput(i, expression renaming e)
@@ -140,13 +144,18 @@ and equation ({ defs = defs } as renaming, eq_list)
        let init ({ desc = desc } as i) =
 	 let desc = match desc with
 	   | Einit_last(i, e) -> Einit_last(i, expression renaming e)
-	   | Einit_value(i, e, c_opt) -> Einit_value(i, expression renaming e, c_opt) in
+	   | Einit_value(i, e, c_opt) ->
+	      Einit_value(i, expression renaming e, c_opt) in
 	 { i with desc = desc } in
        let i_list = List.map index i_list in
        let init_list = List.map init init_list in
        let b_eq_list = block renaming b_eq_list in
-       EQforall { b with for_index = i_list; for_init = init_list; for_body = b_eq_list }
-    | EQblock _ | EQautomaton _ | EQpresent _ 
+       EQforall { b with for_index = i_list; for_init = init_list;
+			 for_body = b_eq_list }
+    | EQbefore(before_eq_list) ->
+       let _, before_eq_list = equation_list renaming before_eq_list in
+       EQbefore(before_eq_list)
+    | EQand _ | EQblock _ | EQautomaton _ | EQpresent _ 
     | EQemit _ | EQder _ | EQnext _ -> assert false in
   { renaming with defs = Deftypes.dv defs w },
   { eq with eq_desc = desc } :: eq_list

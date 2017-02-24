@@ -12,6 +12,7 @@
 (*                                                                        *)
 (**************************************************************************)
 (* dead-code removal. *)
+(* this is applied to normalized and scheduled code *)
 
 open Misc
 open Ident
@@ -115,7 +116,9 @@ let rec build_equation table { eq_desc = desc } =
      let table = List.fold_left index table i_list in
      let table = List.fold_left init table init_list in
      build_block table b_eq_list
-  | EQblock _ | EQder _ | EQnext _ | EQautomaton _
+  | EQbefore(before_eq_list) ->
+     build_equation_list table before_eq_list
+  | EQand _ | EQblock _ | EQder _ | EQnext _ | EQautomaton _
   | EQpresent _ | EQemit _ -> assert false
 
 and build_block table { b_body = eq_list } = build_equation_list table eq_list
@@ -210,7 +213,12 @@ let rec remove_equation useful ({ eq_desc = desc; eq_write = w } as eq) eq_list 
 					 for_body = b_eq_list;
 					 for_in_env = in_env;
 					 for_out_env = out_env } } :: eq_list
-  | EQnext _ | EQder _ | EQautomaton _ | EQblock _ 
+  | EQbefore(before_eq_list) ->
+     let before_eq_list = remove_equation_list useful before_eq_list in
+     (* remove the equation if the body is empty *)
+     if before_eq_list = [] then eq_list
+     else (Zaux.before before_eq_list) :: eq_list
+  | EQand _ | EQnext _ | EQder _ | EQautomaton _ | EQblock _ 
   | EQpresent _ | EQemit _ -> assert false
 				     
 and remove_equation_list useful eq_list =

@@ -11,7 +11,9 @@
 (*   This file is distributed under the terms of the CeCILL-C licence     *)
 (*                                                                        *)
 (**************************************************************************)
+
 (* translation from zelus code to obc *)
+(* applied to normalized and scheduled code *)
 open Misc
 open Ident
 open Global
@@ -538,7 +540,9 @@ let rec equation env loop_path { Zelus.eq_desc = desc } code =
        reset = sequence (for_loop true ix e1 e2 r_code) r;
        step = sequence (Osequence initialization_list)
 			(sequence (for_loop true ix e1 e2 s_code) s) }
-  | Zelus.EQblock _ | Zelus.EQnext _
+  | Zelus.EQbefore(before_eq_list) ->
+     equation_list env loop_path before_eq_list code
+  | Zelus.EQand _ | Zelus.EQblock _ | Zelus.EQnext _
   | Zelus.EQder _ | Zelus.EQemit _ | Zelus.EQautomaton _ 
   | Zelus.EQpresent _ -> assert false
 				
