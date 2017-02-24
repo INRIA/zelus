@@ -121,6 +121,17 @@ let eq_match e l = eqmake (EQmatch(ref true, e, l))
 let eq_block b = eqmake (EQblock(b))
 let eq_der x e = eqmake (EQder(x, e, None, []))
 
+let before eq_list =
+  match eq_list with
+  | [] -> assert false
+  | [eq] -> eq
+  | _ -> eqmake (EQbefore(eq_list))
+let par eq_list =
+  match eq_list with
+  | [] -> assert false
+  | [eq] -> eq
+  | _ -> eqmake (EQand(eq_list))
+		
 let init i eq_list = (eq_init i etrue) :: (eq_make i efalse) :: eq_list
  
 let vardec i =
