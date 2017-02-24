@@ -141,10 +141,10 @@ and equation c_in c_out ({ eq_desc = desc } as eq) =
 	       List.map (match_handler (block_eq_list c_in c_out)) m_h_list)
     | EQreset(res_eq_list, e) ->
        EQreset(List.map (equation c_in c_out) res_eq_list, exp c_in c_out e)
-    | EQpar(par_eq_list) ->
-       EQpar(List.map (equation c_in c_out) par_eq_list)
-    | EQseq(seq_eq_list) ->
-       EQseq(List.map (equation c_in c_out) seq_eq_list)
+    | EQand(and_eq_list) ->
+       EQand(List.map (equation c_in c_out) and_eq_list)
+    | EQbefore(before_eq_list) ->
+       EQbefore(List.map (equation c_in c_out) before_eq_list)
     | EQemit(n, e_opt) ->
        EQemit(n, Misc.optional_map (exp c_in c_out) e_opt)
     | EQblock(b) -> EQblock(block_eq_list c_in c_out b)

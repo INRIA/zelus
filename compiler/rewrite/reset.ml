@@ -90,14 +90,14 @@ let rec equation (i_names, i_opt) ({ eq_desc = desc } as eq) =
        equation_list (i_names, None) res_eq_list in
      let res_eq_list, i_names = intro_equation i_names_i_opt res_eq_list in
      { eq with eq_desc = EQreset(res_eq_list, e) }, (i_names, i_opt)
-  | EQpar(par_eq_list) ->
-     let par_eq_list, i_names_i_opt =
-       equation_list (i_names, i_opt) par_eq_list in
-     { eq with eq_desc = EQpar(par_eq_list) }, i_names_i_opt
-  | EQseq(seq_eq_list) ->
-     let seq_eq_list, i_names_i_opt =
-       equation_list (i_names, i_opt) seq_eq_list in
-     { eq with eq_desc = EQseq(seq_eq_list) }, i_names_i_opt
+  | EQand(and_eq_list) ->
+     let and_eq_list, i_names_i_opt =
+       equation_list (i_names, i_opt) and_eq_list in
+     { eq with eq_desc = EQand(and_eq_list) }, i_names_i_opt
+  | EQbefore(before_eq_list) ->
+     let before_eq_list, i_names_i_opt =
+       equation_list (i_names, i_opt) before_eq_list in
+     { eq with eq_desc = EQbefore(before_eq_list) }, i_names_i_opt
   | EQforall ({ for_body = b_eq_list } as body) ->
      let b_eq_list = block b_eq_list in
      { eq with eq_desc = EQforall { body with for_body = b_eq_list } },

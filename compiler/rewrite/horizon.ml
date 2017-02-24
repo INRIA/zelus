@@ -58,12 +58,12 @@ let rec equation h_opt ({ eq_desc = desc } as eq) =
   | EQreset(eq_list, e) ->
      let eq_list, h_opt = equation_list h_opt eq_list in
      { eq with eq_desc = EQreset(eq_list, e) }, h_opt
-  | EQpar(par_eq_list) ->
-     let par_eq_list, h_opt = equation_list h_opt par_eq_list in
-     { eq with eq_desc = EQpar(par_eq_list) }, h_opt
-  | EQseq(seq_eq_list) ->
-     let seq_eq_list, h_opt = equation_list h_opt seq_eq_list in
-     { eq with eq_desc = EQseq(seq_eq_list) }, h_opt
+  | EQand(and_eq_list) ->
+     let and_eq_list, h_opt = equation_list h_opt and_eq_list in
+     { eq with eq_desc = EQand(and_eq_list) }, h_opt
+  | EQbefore(before_eq_list) ->
+     let before_eq_list, h_opt = equation_list h_opt before_eq_list in
+     { eq with eq_desc = EQbefore(before_eq_list) }, h_opt
   | EQinit _ | EQder _ | EQeq _
   | EQpluseq _ -> eq, h_opt
   | EQforall ({ for_body = b_eq_list } as body) ->

@@ -119,10 +119,10 @@ and equation eq_list ({ eq_desc = desc } as eq) =
     | EQreset(res_eq_list, e) ->
        { eq with eq_desc =
 		   EQreset(equation_list res_eq_list, exp e) } :: eq_list
-    | EQpar(par_eq_list) ->
-       { eq with eq_desc = EQpar(equation_list par_eq_list) } :: eq_list
-    | EQseq(seq_eq_list) ->
-       { eq with eq_desc = EQseq(equation_list seq_eq_list) } :: eq_list
+    | EQand(and_eq_list) ->
+       { eq with eq_desc = EQand(equation_list and_eq_list) } :: eq_list
+    | EQbefore(before_eq_list) ->
+       { eq with eq_desc = EQbefore(equation_list before_eq_list) } :: eq_list
     | EQblock(b_eq_list) -> 
        { eq with eq_desc = EQblock(block b_eq_list) } :: eq_list
     | EQforall ({ for_index = i_list; for_init = init_list;

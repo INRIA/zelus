@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2016                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -152,8 +152,8 @@ and eqdesc =
   | EQreset of eq list * exp
   | EQemit of Ident.t * exp option
   | EQblock of eq list block
-  | EQpar of eq list (* eq1 and ... and eqn *)
-  | EQseq of eq list (* eq1 before ... before eqn *)
+  | EQand of eq list (* eq1 and ... and eqn *)
+  | EQbefore of eq list (* eq1 before ... before eqn *)
   | EQforall of forall_handler (* forall i in ... do ... initialize ... done *)
 
 and total = bool

@@ -96,12 +96,12 @@ let rec equation ({ eq_desc = desc } as eq) =
   | EQreset(eq_list, e) ->
      let eq_list, zenv = equation_list eq_list in
      { eq with eq_desc = EQreset(eq_list, e) }, zenv
-  | EQpar(par_eq_list) ->
-     let par_eq_list, zenv = equation_list par_eq_list in
-     { eq with eq_desc = EQpar(par_eq_list) }, zenv
-  | EQseq(seq_eq_list) ->
-     let seq_eq_list, zenv = equation_list seq_eq_list in
-     { eq with eq_desc = EQseq(seq_eq_list) }, zenv
+  | EQand(and_eq_list) ->
+     let and_eq_list, zenv = equation_list and_eq_list in
+     { eq with eq_desc = EQand(and_eq_list) }, zenv
+  | EQbefore(before_eq_list) ->
+     let before_eq_list, zenv = equation_list before_eq_list in
+     { eq with eq_desc = EQbefore(before_eq_list) }, zenv
   | EQforall _ -> eq, zempty
   | EQblock _ | EQpresent _ | EQautomaton _ | EQnext _ | EQemit _ ->
 							  assert false
@@ -167,10 +167,10 @@ and rename_equation ren ({ eq_desc = desc } as eq) =
        let e = rename_expression ren e in
        let res_eq_list = rename_equation_list ren res_eq_list in
        EQreset(res_eq_list, e)
-    | EQpar(par_eq_list) ->
-       EQpar(rename_equation_list ren par_eq_list)
-    | EQseq(seq_eq_list) ->
-       EQseq(rename_equation_list ren seq_eq_list)
+    | EQand(and_eq_list) ->
+       EQand(rename_equation_list ren and_eq_list)
+    | EQbefore(before_eq_list) ->
+       EQbefore(rename_equation_list ren before_eq_list)
     | EQforall ({ for_index = i_list; for_init = init_list;
 		  for_body = b_eq_list } as body) ->
        let index ({ desc = desc } as ind) =

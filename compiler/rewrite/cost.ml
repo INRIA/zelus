@@ -78,8 +78,8 @@ let expression e max =
           List.iter (fun { p_body = e } -> cost e) h;
           cost e
       | EQreset(eq_list, e) -> incr 1; List.iter cost_eq eq_list
-      | EQpar(eq_list)
-      | EQseq(eq_list) -> List.iter cost_eq eq_list
+      | EQand(eq_list)
+      | EQbefore(eq_list) -> List.iter cost_eq eq_list
       | EQpresent(p_h_list, b_opt) ->
 	  List.iter (fun { p_body = b } -> cost_block b) p_h_list;
 	  Misc.optional_unit (fun _ b -> cost_block b) () b_opt

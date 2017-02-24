@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2016                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -91,8 +91,8 @@ and fv_eq bounded (last_acc, acc) { eq_desc = desc } =
      fv bounded (fv_eq_list bounded (last_acc, acc) eq_list) r
   | EQder(_, e, None, []) -> fv bounded (last_acc, acc) e
   | EQblock(b) -> fv_block_eq_list bounded (last_acc, acc) b
-  | EQpar(eq_list)
-  | EQseq(eq_list) -> fv_eq_list bounded (last_acc, acc) eq_list
+  | EQand(eq_list)
+  | EQbefore(eq_list) -> fv_eq_list bounded (last_acc, acc) eq_list
   | EQforall { for_index = i_list; for_init = init_list;
 	       for_body = b_eq_list } ->
      (* read variables from the expression in the list of indexes *)

@@ -75,14 +75,14 @@ let rec equation ({ eq_desc = desc } as eq) =
 	 merge (defnames, shared_set) (Deftypes.empty, S.empty) in
        { eq with eq_desc = EQreset(eq_list, expression e) },
        defnames, shared_set
-    | EQpar(par_eq_list) ->
-       let par_eq_list, (defnames, shared_set) =
-	 equation_list (Deftypes.empty, S.empty) par_eq_list in
-       { eq with eq_desc = EQpar(par_eq_list) }, defnames, shared_set
-    | EQseq(seq_eq_list) ->
-       let seq_eq_list, (defnames, shared_set) =
-	 equation_list (Deftypes.empty, S.empty) seq_eq_list in
-       { eq with eq_desc = EQseq(seq_eq_list) }, defnames, shared_set
+    | EQand(and_eq_list) ->
+       let and_eq_list, (defnames, shared_set) =
+	 equation_list (Deftypes.empty, S.empty) and_eq_list in
+       { eq with eq_desc = EQand(and_eq_list) }, defnames, shared_set
+    | EQbefore(before_eq_list) ->
+       let before_eq_list, (defnames, shared_set) =
+	 equation_list (Deftypes.empty, S.empty) before_eq_list in
+       { eq with eq_desc = EQbefore(before_eq_list) }, defnames, shared_set
     | EQblock(b) ->
        let b, defnames, shared_set = block b in
        { eq with eq_desc = EQblock(b) }, defnames, shared_set

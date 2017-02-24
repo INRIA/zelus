@@ -158,10 +158,10 @@ and equation time ({ eq_desc = desc } as eq) =
      let e = expression time e in
      let res_eq_list = equation_list time res_eq_list in
      { eq with eq_desc = EQreset(res_eq_list, e) }
-  | EQpar(par_eq_list) ->
-     { eq with eq_desc = EQpar(equation_list time par_eq_list) }
-  | EQseq(seq_eq_list) ->
-     { eq with eq_desc = EQseq(equation_list time seq_eq_list) }
+  | EQand(and_eq_list) ->
+     { eq with eq_desc = EQand(equation_list time and_eq_list) }
+  | EQbefore(before_eq_list) ->
+     { eq with eq_desc = EQbefore(equation_list time before_eq_list) }
   | EQinit(x, e) ->
      { eq with eq_desc = EQinit(x, expression time e) }
   | EQder(x, e, None, []) -> 

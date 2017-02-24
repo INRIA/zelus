@@ -41,8 +41,8 @@ let rec equation { eq_desc = desc } =
 	  (fun { m_body = b_eq_list } -> block_eq_list b_eq_list) m_h_list
   | EQreset(eq_list, e) ->
      exp e || List.exists equation eq_list
-  | EQpar(eq_list)
-  | EQseq(eq_list) -> List.exists equation eq_list
+  | EQand(eq_list)
+  | EQbefore(eq_list) -> List.exists equation eq_list
   | EQforall
       { for_index = i_list; for_init = init_list; for_body = b_eq_list } ->
      let index { desc = desc } =

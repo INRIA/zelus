@@ -362,8 +362,8 @@ let rec build (names, inames) { eq_desc = desc } =
   | EQemit(n, _) -> S.add n names, inames
   | EQinit(n, _) -> S.add n names, S.add n inames
   | EQreset(eq_list, _)
-  | EQpar(eq_list)
-  | EQseq(eq_list) -> build_list (names, inames) eq_list
+  | EQand(eq_list)
+  | EQbefore(eq_list) -> build_list (names, inames) eq_list
   | EQblock(b) -> block (names, inames) b
   | EQpresent(ph_list, b_opt) ->
      (* present handler *)
@@ -843,8 +843,8 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
     | EQreset(eq_list, e) ->
         expect expected_k h e (Types.zero_type expected_k);
         equation_list expected_k h eq_list
-    | EQpar(eq_list)
-    | EQseq(eq_list) ->	equation_list expected_k h eq_list
+    | EQand(eq_list)
+    | EQbefore(eq_list) -> equation_list expected_k h eq_list
     | EQemit(n, e_opt) ->
         less_than loc expected_k (Tdiscrete(true));
         let ty_e = new_var () in

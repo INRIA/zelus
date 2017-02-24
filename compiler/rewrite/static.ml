@@ -169,8 +169,8 @@ and equation env ({ eq_desc = desc; eq_loc = loc } as eq) =
      let env, b = select env v m_b_list in
      block env b
   | EQblock(b) -> block env b
-  | EQpar(eq_list) 
-  | EQseq(eq_list) -> List.fold_left equation env eq_list
+  | EQand(eq_list) 
+  | EQbefore(eq_list) -> List.fold_left equation env eq_list
   | EQpluseq _ | EQinit _ | EQnext _
   | EQder _ | EQreset _ | EQpresent _
   | EQemit _ | EQautomaton _ | EQforall _ -> raise (NotStatic (Eq eq))

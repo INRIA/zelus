@@ -38,8 +38,8 @@ let build_table subst eq_list =
             (* build [pre(n) -> x] if it does not exist already *)
             Env.add n x table, subst, eq :: eq_list
        end
-    | EQpar(parseq_eq_list)
-    | EQseq(parseq_eq_list) -> equation_list table subst parseq_eq_list
+    | EQand(eq_list)
+    | EQbefore(eq_list) -> equation_list table subst eq_list
     | EQeq _ | EQpluseq _ | EQinit _ | EQnext _ 
     | EQmatch _ | EQreset _ | EQder _ | EQblock _ | EQforall _ ->
 					 table, subst, eq :: eq_list
@@ -96,10 +96,10 @@ and equation subst eq =
         { eq with eq_desc = 
 		    EQreset(List.map (equation subst) res_eq_list,
 			    exp subst e) }
-    | EQpar(par_eq_list) ->
-       { eq with eq_desc = EQpar(List.map (equation subst) par_eq_list) }
-    | EQseq(seq_eq_list) ->
-       { eq with eq_desc = EQseq(List.map (equation subst) seq_eq_list) }
+    | EQand(and_eq_list) ->
+       { eq with eq_desc = EQand(List.map (equation subst) and_eq_list) }
+    | EQbefore(before_eq_list) ->
+       { eq with eq_desc = EQbefore(List.map (equation subst) before_eq_list) }
     | EQder(n, e, None, []) -> 
        { eq with eq_desc = EQder(n, exp subst e, None, []) }
     | EQblock(b) -> { eq with eq_desc= EQblock(block subst b) }

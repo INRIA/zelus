@@ -322,6 +322,8 @@ and build_equation defnames eq =
 	  defnames b_opt
     | EQreset(eq_list, e) ->
         build_equation_list defnames eq_list
+    | EQand(eq_list) | EQbefore(eq_list) ->
+       build_equation_list defnames eq_list
     | EQblock(b) ->
        snd (build_block_equation_list defnames b)
     | EQforall
@@ -737,10 +739,20 @@ and equation env_pat env eq_list { desc = desc; loc = loc } =
     eqmake loc
       (Zelus.EQreset(List.fold_left (equation env_pat env) [] eq_r_list, 
 		     expression env e)) :: eq_list
+  | EQand(and_eq_list) ->
+     eqmake loc
+	    (Zelus.EQand(List.fold_left (equation env_pat env) [] and_eq_list))
+     :: eq_list
+  | EQbefore(before_eq_list) ->
+     eqmake loc
+	    (Zelus.EQbefore(List.fold_left (equation env_pat env) []
+					   before_eq_list))
+     :: eq_list
   | EQblock(b) ->
      eqmake loc (Zelus.EQblock(snd (block_eq_list env_pat env b))) :: eq_list
   | EQforall
-      { for_indexes = i_list; for_init = init_list; for_body = b_eq_forall_list } ->
+      { for_indexes = i_list; for_init = init_list;
+	for_body = b_eq_forall_list } ->
      let build (in_names, out_left, out_right) { desc = desc; loc = loc } =
        match desc with
        | Einput(n, _) | Eindex(n, _, _) -> S.add n in_names, out_left, out_right
@@ -760,7 +772,8 @@ and equation env_pat env eq_list { desc = desc; loc = loc } =
        { Zelus.desc = desc; Zelus.loc = loc } in
      let init { desc = desc; loc = loc } =
        let desc = match desc with
-       | Einit_last(n, e) -> Zelus.Einit_last(name loc env_pat n, expression env e)
+	 | Einit_last(n, e) ->
+	    Zelus.Einit_last(name loc env_pat n, expression env e)
        | Einit_value(n, e, c_opt) ->
 	  Zelus.Einit_value(name loc env_pat n, expression env e,
 			    Misc.optional_map longname c_opt) in

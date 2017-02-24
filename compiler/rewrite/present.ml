@@ -218,10 +218,11 @@ and equation signals eq_list eq =
     | EQreset(res_eq_list, e) ->
         let res_eq_list = equation_list signals res_eq_list in
 	{ eq with eq_desc = EQreset(res_eq_list, exp signals e) } :: eq_list
-    | EQpar(par_eq_list) ->
-       { eq with eq_desc = EQpar(equation_list signals par_eq_list) } :: eq_list
-    | EQseq(seq_eq_list) ->
-       { eq with eq_desc = EQseq(equation_list signals seq_eq_list) } :: eq_list
+    | EQand(and_eq_list) ->
+       { eq with eq_desc = EQand(equation_list signals and_eq_list) } :: eq_list
+    | EQbefore(before_eq_list) ->
+       { eq with eq_desc =
+		   EQbefore(equation_list signals before_eq_list) } :: eq_list
     | EQblock(b) ->
        let _, b = block signals b in
        { eq with eq_desc = EQblock(b) } :: eq_list

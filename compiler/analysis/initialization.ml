@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2016                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -368,8 +368,8 @@ and equation env { eq_desc = eq_desc; eq_loc = loc } =
     | EQreset(eq_list, e) -> 
         exp_less_than_on_i env e izero;
         equation_list env eq_list
-    | EQpar(eq_list)
-    | EQseq(eq_list) -> equation_list env eq_list
+    | EQand(eq_list)
+    | EQbefore(eq_list) -> equation_list env eq_list
     | EQemit(n, e_opt) ->
         let ty_n = 
           try let { t_typ = ty1 } = Env.find n env in ty1

@@ -57,12 +57,13 @@ let rec equation env encore_opt ({ eq_desc = desc } as eq) =
     | EQreset(eq_list, e) ->
        let eq_list, encore_opt = equation_list env encore_opt eq_list in
        { eq with eq_desc = EQreset(eq_list, e) }, encore_opt
-    | EQpar(par_eq_list) ->
-       let par_eq_list, encore_opt = equation_list env encore_opt par_eq_list in
-       { eq with eq_desc = EQpar(par_eq_list) }, encore_opt
-    | EQseq(seq_eq_list) ->
-       let seq_eq_list, encore_opt = equation_list env encore_opt seq_eq_list in
-       { eq with eq_desc = EQseq(seq_eq_list) }, encore_opt
+    | EQand(and_eq_list) ->
+       let and_eq_list, encore_opt = equation_list env encore_opt and_eq_list in
+       { eq with eq_desc = EQand(and_eq_list) }, encore_opt
+    | EQbefore(before_eq_list) ->
+       let before_eq_list, encore_opt =
+	 equation_list env encore_opt before_eq_list in
+       { eq with eq_desc = EQbefore(before_eq_list) }, encore_opt
     | EQmatch(total, e, m_h_list) ->
      (* add an equation [encore = true] if a branch is activated *)
      (* on a zero-crossing and changes a non local state variable *)

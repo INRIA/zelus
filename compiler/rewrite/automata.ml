@@ -298,12 +298,12 @@ and equation (env, eq_list) ({ eq_desc = desc } as eq) =
     | EQreset(res_eq_list, e) ->
        let env, res_eq_list = equation_list env res_eq_list in
        env, { eq with eq_desc = EQreset(res_eq_list, exp e) } :: eq_list
-    | EQpar(par_eq_list) ->
-       let env, par_eq_list = equation_list env par_eq_list in
-       env, { eq with eq_desc = EQpar(par_eq_list) } :: eq_list
-    | EQseq(seq_eq_list) ->
-       let env, seq_eq_list = equation_list env seq_eq_list in
-       env, { eq with eq_desc = EQpar(seq_eq_list) } :: eq_list
+    | EQand(and_eq_list) ->
+       let env, and_eq_list = equation_list env and_eq_list in
+       env, { eq with eq_desc = EQand(and_eq_list) } :: eq_list
+    | EQbefore(before_eq_list) ->
+       let env, before_eq_list = equation_list env before_eq_list in
+       env, { eq with eq_desc = EQbefore(before_eq_list) } :: eq_list
     | EQblock(b_eq_list) ->
        env, { eq with eq_desc = EQblock(block_eq_list b_eq_list) } :: eq_list
     | EQforall ({ for_index = i_list; for_init = init_list;

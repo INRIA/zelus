@@ -117,12 +117,12 @@ let rec equation dv copies ({ eq_desc = desc } as eq) =
     | EQreset(res_eq_list, e) ->
        let res_eq_list, copies = equation_list dv copies res_eq_list in
        { eq with eq_desc = EQreset(res_eq_list, e) }, copies
-    | EQpar(par_eq_list) ->
-       let par_eq_list, copies = equation_list dv copies par_eq_list in
-       { eq with eq_desc = EQpar(par_eq_list) }, copies
-    | EQseq(seq_eq_list) ->
-       let seq_eq_list, copies = equation_list dv copies seq_eq_list in
-       { eq with eq_desc = EQseq(seq_eq_list) }, copies
+    | EQand(and_eq_list) ->
+       let and_eq_list, copies = equation_list dv copies and_eq_list in
+       { eq with eq_desc = EQand(and_eq_list) }, copies
+    | EQbefore(before_eq_list) ->
+       let before_eq_list, copies = equation_list dv copies before_eq_list in
+       { eq with eq_desc = EQbefore(before_eq_list) }, copies
     | EQforall _ -> eq, copies
     | EQemit _ | EQautomaton _ | EQpresent _
     | EQnext _ | EQblock _ -> assert false

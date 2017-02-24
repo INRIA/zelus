@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2016                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -395,10 +395,10 @@ and equation expected_k before_c env
        exp_before_on_c expected_k before_c env e c_e;
        let env = equation_list expected_k before_c env eq_list in
        Cenv.supc c_e env
-    | EQpar(eq_list) ->
-       equation_list expected_k before_c env eq_list 
-    | EQseq(eq_list) ->
-       equation_list expected_k before_c env eq_list 
+    | EQand(and_eq_list) ->
+       equation_list expected_k before_c env and_eq_list 
+    | EQbefore(before_eq_list) ->
+       equation_list expected_k before_c env before_eq_list 
     | EQemit(n, e_opt) ->
        let c_e = Causal.new_var () in
        Misc.optional_unit

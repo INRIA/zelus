@@ -224,10 +224,10 @@ and equation renaming ({ eq_desc = desc } as eq) =
        EQmatch(total, e, List.map body m_b_list)
     | EQreset(res_eq_list, e) ->
        EQreset(List.map (equation renaming) res_eq_list, expression renaming e)
-    | EQpar(par_eq_list) ->
-       EQpar(List.map (equation renaming) par_eq_list)
-    | EQseq(seq_eq_list) ->
-       EQseq(List.map (equation renaming) seq_eq_list)
+    | EQand(and_eq_list) ->
+       EQand(List.map (equation renaming) and_eq_list)
+    | EQbefore(before_eq_list) ->
+       EQbefore(List.map (equation renaming) before_eq_list)
     | EQpresent(p_h_list, b_opt) ->
        let body { p_cond = sc; p_body = b; p_env = env; p_zero = zero } =
          let env, renaming0 = build env in

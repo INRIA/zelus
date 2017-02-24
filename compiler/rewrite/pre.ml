@@ -145,10 +145,11 @@ and equation subst eq_list ({ eq_desc = desc } as eq) =
   | EQreset(res_eq_list, e) ->
      let res_eq_list = equation_list subst res_eq_list in
      { eq with eq_desc = EQreset(res_eq_list, exp subst e) } :: eq_list
-  | EQpar(par_eq_list) ->
-     { eq with eq_desc = EQpar(equation_list subst par_eq_list) } :: eq_list
-  | EQseq(seq_eq_list) ->
-     { eq with eq_desc = EQseq(equation_list subst seq_eq_list) } :: eq_list
+  | EQand(and_eq_list) ->
+     { eq with eq_desc = EQand(equation_list subst and_eq_list) } :: eq_list
+  | EQbefore(before_eq_list) ->
+     { eq with eq_desc =
+		 EQbefore(equation_list subst before_eq_list) } :: eq_list
   | EQder(n, e, None, []) ->
      { eq with eq_desc = EQder(n, exp subst e, None, []) } :: eq_list
   | EQblock(b) -> let b, _ = block subst b in

@@ -178,14 +178,14 @@ and equation env fun_defs ({ eq_desc = desc } as eq) =
      let e, fun_defs = expression env fun_defs e in
      let eq_list, fun_defs = Misc.map_fold (equation env) fun_defs eq_list in
      { eq with eq_desc = EQreset(eq_list, e) }, fun_defs
-  | EQpar(par_eq_list) ->
-     let par_eq_list, fun_defs =
-       Misc.map_fold (equation env) fun_defs par_eq_list in
-     { eq with eq_desc = EQpar(par_eq_list) }, fun_defs
-  | EQseq(seq_eq_list) ->
-     let seq_eq_list, fun_defs =
-       Misc.map_fold (equation env) fun_defs seq_eq_list in
-     { eq with eq_desc = EQseq(seq_eq_list) }, fun_defs
+  | EQand(and_eq_list) ->
+     let and_eq_list, fun_defs =
+       Misc.map_fold (equation env) fun_defs and_eq_list in
+     { eq with eq_desc = EQand(and_eq_list) }, fun_defs
+  | EQbefore(before_eq_list) ->
+     let before_eq_list, fun_defs =
+       Misc.map_fold (equation env) fun_defs before_eq_list in
+     { eq with eq_desc = EQbefore(before_eq_list) }, fun_defs
   | EQpresent(p_h_list, b_opt) ->
      let body fun_defs ({ p_cond = scpat; p_body = b } as p_b) =
        let scpat, fun_defs = scondpat env fun_defs scpat in

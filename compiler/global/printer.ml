@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2016                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -339,10 +339,10 @@ and equation ff { eq_desc = desc; eq_write = w } =
           fprintf ff "@[emit %a = %a@]" name n expression e
       end
     | EQblock(b_eq_list) -> block_equation_list "do " " done" ff b_eq_list
-    | EQpar(eq_list) ->
-       print_list_l equation "" "and " "" ff eq_list
-    | EQseq(eq_list) ->
-       print_list_l equation "" "before " "" ff eq_list
+    | EQand(and_eq_list) ->
+       print_list_l equation "" "and " "" ff and_eq_list
+    | EQbefore(before_eq_list) ->
+       print_list_l equation "" "before " "" ff before_eq_list
     | EQforall { for_index = i_list; for_init = init_list; for_body = b_eq_list;
 		 for_in_env = in_env; for_out_env = out_env } ->
        let index ff { desc = desc } =
