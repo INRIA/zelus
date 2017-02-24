@@ -76,33 +76,61 @@ let schedule eq_list =
   let eq_list = List.map Graph.containt l in
   Control.joinlist eq_list
 
-let rec equation ({ eq_desc = desc } as eq) =
-  let desc = match desc with
-    | EQeq _ | EQpluseq _ | EQinit _ | EQnext _ | EQder _ -> desc
-    | EQmatch(total, e, p_h_list) ->
-        EQmatch(total, e, 
-		List.map 
-                  (fun ({ m_body = b } as m_h) -> { m_h with m_body = block b })
-                  p_h_list)
-    | EQreset(eq_list, e) ->
-       let eq_list = List.map equation eq_list in
-       EQreset(schedule eq_list, e)
-    | EQforall ({ for_body = b_eq_list } as body) ->
-       let b_eq_list = block b_eq_list in
-       EQforall { body with for_body = b_eq_list }
-    | EQemit _ | EQautomaton _ | EQpresent _ | EQblock _ -> assert false in
-  { eq with eq_desc = desc }
+let rec par_equation eq_list ({ eq_desc = desc } as eq) =
+  match desc with
+  | EQeq _ | EQpluseq _ | EQinit _ | EQnext _ | EQder _ -> eq :: eq_list
+  | EQmatch(total, e, p_h_list) ->
+     { eq with eq_desc = match_eq total e p_h_list } :: eq_list
+  | EQreset(res_eq_list, e) ->
+     { eq with eq_desc = reset_eq res_eq_list e } :: eq_list
+  | EQand(and_eq_list) ->
+     List.fold_left par_equation eq_list and_eq_list
+  | EQbefore(before_eq_list) ->
+     let before_eq_list = List.fold_left seq_equation [] before_eq_list in
+     { eq with eq_desc = EQbefore(List.rev before_eq_list) } :: eq_list
+  | EQforall(body) ->
+     { eq with eq_desc = forall_eq body } :: eq_list
+  | EQemit _ | EQautomaton _ | EQpresent _ | EQblock _ -> assert false
+
+and seq_equation eq_list ({ eq_desc = desc } as eq) =
+  match desc with
+  | EQeq _ | EQpluseq _ | EQinit _ | EQnext _ | EQder _ -> eq :: eq_list
+  | EQmatch(total, e, p_h_list) ->
+     { eq with eq_desc = match_eq total e p_h_list } :: eq_list
+  | EQreset(res_eq_list, e) ->
+     { eq with eq_desc = reset_eq res_eq_list e } :: eq_list
+  | EQand(and_eq_list) ->
+     let and_eq_list = List.fold_left par_equation [] and_eq_list in
+     { eq with eq_desc = EQbefore(schedule and_eq_list) } :: eq_list
+  | EQbefore(before_eq_list) ->
+     let before_eq_list = List.fold_left seq_equation eq_list before_eq_list in
+     { eq with eq_desc = EQbefore(List.rev before_eq_list) } :: eq_list
+  | EQforall(body) ->
+     { eq with eq_desc = forall_eq body } :: eq_list
+  | EQemit _ | EQautomaton _ | EQpresent _ | EQblock _ -> assert false
+
+and match_eq total e p_h_list =
+  EQmatch(total, e, List.map (fun ({ m_body = b } as m_h) ->
+			      { m_h with m_body = block b }) p_h_list)
+
+and reset_eq res_eq_list e =
+  let res_eq_list = List.fold_left par_equation [] res_eq_list in
+  EQreset(schedule res_eq_list, e)
+
+and forall_eq ({ for_body = b_eq_list } as body) =
+  let b_eq_list = block b_eq_list in
+  EQforall { body with for_body = b_eq_list }
   
 and block ({ b_body = eq_list } as b) =
   (* schedule every nested equation *)
-  let eq_list = List.map equation eq_list in
+  let eq_list = List.fold_left par_equation [] eq_list in
   (* schedule the set of equations *)
   let eq_list = schedule eq_list in
   { b with b_body = eq_list }
 
 and local ({ l_eq = eq_list } as l) =
   (* translate and schedule the set of equations *)
-  let eq_list = List.map equation eq_list in
+  let eq_list = List.fold_left par_equation [] eq_list in
   let eq_list = schedule eq_list in
   { l with l_eq = eq_list }
 
