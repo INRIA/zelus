@@ -263,9 +263,6 @@ and operator ff op e_list =
      fprintf ff "? %a" expression e
   | Edisc, [e] -> 
      fprintf ff "disc %a" expression e
-  | Eafter(n_list), [e] ->
-     fprintf ff "@[%a@ after@ @[%a@]@]" expression e
-	     (print_list_r name "("","")") n_list
   | Ehorizon, [e] ->
      fprintf ff "@[horizon@ @[%a@]@]" expression e
   | Einitial, [] -> 

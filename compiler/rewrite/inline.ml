@@ -83,8 +83,7 @@ let operator renaming op =
   match op with
   | Eunarypre | Efby | Eminusgreater | Eifthenelse
   | Eup | Etest | Edisc | Ehorizon | Einitial | Eaccess -> op
-  | Eafter(l) -> Eafter(List.map (fun x -> rename x renaming) l)
-		       
+  		       
 (** Renaming of type expressions *)
 let rec type_expression renaming ({ desc = desc } as ty_e) =
   match desc with

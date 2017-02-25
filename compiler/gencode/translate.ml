@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2016                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -392,7 +392,6 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      Otypeconstraint(e, type_expression ty), code
   | Zelus.Eop((Zelus.Eup | Zelus.Ehorizon), [e]) ->
      exp env loop_path code e
-  | Zelus.Eop(Zelus.Eafter _, [e]) -> exp env loop_path code e
   | Zelus.Eop(Zelus.Eifthenelse, [e1; e2; e3]) ->
      let e1, code = exp env loop_path code e1 in
      let e2, code = exp env loop_path code e2 in

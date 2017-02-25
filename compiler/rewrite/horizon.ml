@@ -88,7 +88,8 @@ and block h_opt ({ b_body = eq_list; b_env = n_env } as b) =
 let expression ({ e_desc = desc } as e) =
   match desc with
   | Elet({ l_eq = eq_list; l_env = l_env } as l, e) ->
-     let l_env, eq_list, h_opt = equation_list_with_horizon None l_env eq_list in
+     let l_env, eq_list, h_opt =
+       equation_list_with_horizon None l_env eq_list in
      let l, e =
        match h_opt with
        | None -> { l with l_eq = eq_list; l_env = l_env }, e
@@ -96,17 +97,18 @@ let expression ({ e_desc = desc } as e) =
 	  (* declaration of [h: float default infinity with (min)] *)
 	 let sort =
 	    Deftypes.default
-	      (Some(Deftypes.Cglobal(Modname(Initial.pervasives_name "infinity"))))
+	      (Some(Deftypes.Cglobal(Modname(Initial.pervasives_name
+					       "infinity"))))
 	      (Some(Modname(Initial.pervasives_name "min"))) in
 	 let l_env =
 	    Env.add h (Deftypes.entry sort Initial.typ_float) l_env in
 	 let hor = Ident.fresh "h" in
 	 let sort = Deftypes.horizon Deftypes.empty_mem in
-	 let l_env = Env.add hor (Deftypes.entry sort Initial.typ_float) l_env in
+	 let l_env =
+	   Env.add hor (Deftypes.entry sort Initial.typ_float) l_env in
 	 let eq_list =
 	   Zaux.eq_make hor (Zaux.var h Initial.typ_float) :: eq_list in
-	 { l with l_eq = eq_list; l_env = l_env },
-	  Zaux.after e hor in
+	 { l with l_eq = eq_list; l_env = l_env }, e in
      { e with e_desc = Elet(l, e) }
   | _ -> e
 	   

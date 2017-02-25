@@ -255,7 +255,7 @@ and operator expected_k before_c env op ty e_list =
      exp_before_on_c expected_k before_c env e1 c;
      exp_before_on_c expected_k before_c env e2 c;
      Causal.skeleton_on_c c ty
-  | (Eafter _, []) | _ -> assert false
+  | _ -> assert false
      
 		    
 and exp_before_on_c expected_k before_c env e expected_c =

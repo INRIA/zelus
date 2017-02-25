@@ -102,7 +102,7 @@ and desc =
 and op =
   | Efby | Eunarypre | Eifthenelse 
   | Eminusgreater | Eup | Einitial | Edisc | Ehorizon
-  | Eafter of Ident.t list | Etest | Eaccess
+  | Etest | Eaccess
 
 and immediate = Deftypes.immediate
 

@@ -98,7 +98,6 @@ let block l lo eq_list startpos endpos =
 %token <char> CHAR
 %token <string> STRING
 %token AS             /* "as" */
-%token AFTER          /* "after" */
 %token FORALL         /* "forall" */
 %token AUTOMATON      /* "automaton" */
 %token ATOMIC         /* "atomic" */
@@ -186,7 +185,6 @@ let block l lo eq_list startpos endpos =
 %left STAR INFIX3
 %left ON
 %left INFIX4
-%left AFTER
 %right prec_uminus
 %right FBY
 %right PRE UP DISC TEST
@@ -807,10 +805,6 @@ expression_desc:
       { Eop(Eifthenelse, [e1; e2; e3]) }
   | e1 = expression MINUSGREATER e2 = expression
       { Eop(Eminusgreater, [e1; e2]) }
-  | e = expression AFTER n = IDENT
-      { Eop(Eafter [n], [e]) }
-  | e = expression AFTER LPAREN n_list = list_of(COMMA, IDENT) RPAREN
-      { Eop(Eafter(n_list), [e]) }
   | s = SUBTRACTIVE e = expression  %prec prec_uminus
       { unary_minus s e ($startpos(s)) ($endpos(s)) }
   | e1 = expression i = INFIX4 e2 = expression

@@ -192,7 +192,6 @@ let operator loc env = function
   | Einitial -> Zelus.Einitial
   | Edisc -> Zelus.Edisc
   | Etest -> Zelus.Etest
-  | Eafter(n_list) -> Zelus.Eafter(List.map (name loc env) n_list)
   | Eaccess -> Zelus.Eaccess
   		 
 let period { p_phase = p1; p_period = p2 } = 

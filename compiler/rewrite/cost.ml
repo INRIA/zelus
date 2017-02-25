@@ -58,7 +58,6 @@ let expression e max =
       | Einitial -> 2
       | Eup -> -2
       | Eifthenelse | Etest | Eaccess -> 1
-      | Eafter _ -> 0
       | Ehorizon -> 1
   and cost_block { b_locals = l_list; b_body = eq_list } =
     List.iter cost_local l_list; List.iter cost_eq eq_list

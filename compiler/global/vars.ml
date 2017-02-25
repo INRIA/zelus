@@ -50,7 +50,6 @@ let fv_match_handler fv_body m_h_list bounded acc =
     acc m_h_list
 
 let operator acc = function
-  | Eafter(n_list) -> List.fold_left (fun acc n -> S.add n acc) acc n_list
   | Efby | Eunarypre | Eifthenelse | Etest 
   | Eminusgreater | Eup | Einitial | Edisc | Ehorizon | Eaccess -> acc
 	   

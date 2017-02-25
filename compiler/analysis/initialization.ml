@@ -257,7 +257,7 @@ and operator env op ty e_list =
   | (Einitial | Eup | Etest | Edisc | Eaccess), e_list ->
      List.iter (fun e -> exp_less_than_on_i env e izero) e_list;
      Init.skeleton_on_i izero ty
-  | (Eafter _, []) | _ -> assert false
+  | _ -> assert false
 
 (** Typing an application *)
 and app env ty_fct arg_list =

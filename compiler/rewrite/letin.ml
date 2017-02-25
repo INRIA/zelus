@@ -50,13 +50,6 @@ let par_fold f l =
      y, { env = State.par env env_y; eqs = State.par eqs eqs_y })
     { env = State.Empty; eqs = State.Empty } l
 
-let seq_fold f l =
-  Misc.map_fold
-    (fun { env = env; eqs = eqs } x ->
-     let y, { env = env_y; eqs = eqs_y } = f x in
-     y, { env = State.seq env env_y; eqs = State.seq eqs eqs_y })
-    { env = State.Empty; eqs = State.Empty } l
-    
 (* translate a context [ctx] into an environment and an equation *)
 let equations eqs =
   (* computes the set of sequential equations *)
@@ -76,8 +69,8 @@ let equations eqs =
     | State.Empty -> eq_list
     | State.Cons(eq, eqs) -> par (eq :: eq_list) eqs
     | State.Seq(eqs1, eqs2) ->
-       let seq_eq_list = seq eqs1 [] in
-       let seq_eq_list = seq eqs2 seq_eq_list in
+       let seq_eq_list = seq eqs2 [] in
+       let seq_eq_list = seq eqs1 seq_eq_list in
        Zaux.before seq_eq_list :: eq_list
     | State.Par(eqs1, eqs2) ->
        par (par eq_list eqs1) eqs2 in
@@ -213,7 +206,7 @@ and par_equation_list eq_list =
   List.fold_left (fun acc eq -> par (equation eq) acc) empty eq_list
 
 and seq_equation_list eq_list =
-  List.fold_left (fun acc eq -> seq (equation eq) acc) empty eq_list
+  List.fold_left (fun acc eq -> seq acc (equation eq)) empty eq_list
 
 (** Translating a block *)
 (* Once normalized, a block is of the form *)

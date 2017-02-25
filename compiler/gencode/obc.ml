@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2016                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -154,7 +154,8 @@ and method_name =
   | Omaxsize (* returns the size of the cvector and zvector *)
   | Oreinit (* should we re-init the solver? *)
   | Ocin | Ocout (* copies the continuous state vector *)
-  | Odout | Ozin | Oclear_zin | Ozout (* copies derivatives and zero crossings *)
+  | Odout | Ozin | Oclear_zin | Ozout
+  (* copies derivatives and zero crossings *)
   | Odzero (* resets the internal derivatives *)
   | Ocsize | Ozsize (* current size for cont. states and zero crossings *)
   | Ohorizon (* next horizon *)

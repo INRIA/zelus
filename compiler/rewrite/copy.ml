@@ -50,15 +50,10 @@ let rename n { rel = rel; defs = defs } =
     with Not_found -> Elocal n in
   rename n
 
-let operator op renaming =
-  let rename acc n =
-    let m = rename n renaming in
-    match m with
-    | Elocal(x) -> x :: acc | _ -> acc in
+let operator op =
   match op with
   | Efby | Eunarypre | Eifthenelse 
   | Eminusgreater | Eup | Einitial | Edisc | Ehorizon | Etest | Eaccess -> op
-  | Eafter(id_list) -> Eafter (List.fold_left rename [] id_list)
     			     
 (** Build a substitution [x1\v1,...,xn\vn]. *)
 let rec build rel { eq_desc = desc } =
@@ -93,7 +88,7 @@ let rec expression renaming ({ e_desc = desc } as e) =
   | Erecord_access(e, ln) ->
      { e with e_desc = Erecord_access(expression renaming e, ln) }
   | Eop(op, e_list) ->
-     { e with e_desc = Eop(operator op renaming,
+     { e with e_desc = Eop(operator op,
 			   List.map (expression renaming) e_list) }
   | Eapp(app, e_op, e_list) ->
      let e_op = expression renaming e_op in

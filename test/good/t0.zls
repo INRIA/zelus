@@ -3,7 +3,7 @@ let node f(x) =
       (* forall i_42 in 0 .. 3, xi in x
         do o = print_int xi;print_string " " and () = ()
 	 initialize last o = () done *) y = x + 1
-  and t = x + 1 and () = print_int 42 before () = () in
+  and t = x + 1 (* and () = print_int 42 before () = () *) in
   print_newline (); print_int 1; print_int 2
 
 (*
