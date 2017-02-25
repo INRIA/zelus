@@ -675,7 +675,8 @@ let rec expression env { desc = desc; loc = loc } =
 and equation env_pat env eq_list { desc = desc; loc = loc } =
   match desc with
   | EQeq(pat, e) ->
-     eqmake loc (Zelus.EQeq(check_pattern env_pat pat, expression env e)) :: eq_list
+     eqmake loc
+	    (Zelus.EQeq(check_pattern env_pat pat, expression env e)) :: eq_list
   | EQder(n, e, e0_opt, p_h_e_list) ->
      let e = expression env e in
      let e0_opt = Misc.optional_map (expression env) e0_opt in
@@ -709,7 +710,8 @@ and equation env_pat env eq_list { desc = desc; loc = loc } =
   | EQmatch(e, m_h_list) ->
     eqmake loc
       (Zelus.EQmatch(ref false, expression env e, 
-		     match_handler_block_eq_list env_pat env m_h_list)) :: eq_list
+		     match_handler_block_eq_list env_pat env m_h_list))
+    :: eq_list
   | EQifthenelse(e, b1, b2_opt) ->
     let ptrue =
       pmake Location.no_location (Zelus.Econstpat(Deftypes.Ebool(true))) in
@@ -733,20 +735,19 @@ and equation env_pat env eq_list { desc = desc; loc = loc } =
      let b_opt =
        optional_map (fun b -> snd (block_eq_list env_pat env b)) b_opt in
      eqmake loc
-       (Zelus.EQpresent(present_handler_block_eq_list env_pat env p_h_list, b_opt))
+	    (Zelus.EQpresent(present_handler_block_eq_list env_pat env p_h_list,
+			     b_opt))
      :: eq_list
   | EQreset(eq_r_list, e) ->
     eqmake loc
-      (Zelus.EQreset(List.fold_left (equation env_pat env) [] eq_r_list, 
-		     expression env e)) :: eq_list
+	   (Zelus.EQreset(equation_list env_pat env eq_r_list,
+			  expression env e)) :: eq_list
   | EQand(and_eq_list) ->
      eqmake loc
-	    (Zelus.EQand(List.fold_left (equation env_pat env) [] and_eq_list))
-     :: eq_list
+	    (Zelus.EQand(equation_list env_pat env and_eq_list)) :: eq_list
   | EQbefore(before_eq_list) ->
      eqmake loc
-	    (Zelus.EQbefore(List.fold_left (equation env_pat env) []
-					   before_eq_list))
+	    (Zelus.EQbefore(equation_list env_pat env before_eq_list))
      :: eq_list
   | EQblock(b) ->
      eqmake loc (Zelus.EQblock(snd (block_eq_list env_pat env b))) :: eq_list
@@ -797,7 +798,8 @@ and equation_list env_pat env eq_list =
 and local env { desc = (is_rec, eq_list); loc = loc } =
   let env_let, env, eq_list = letin is_rec env eq_list in
   env,
-  { Zelus.l_eq = eq_list; Zelus.l_loc = loc; Zelus.l_env = Rename.typ_env env_let }
+  { Zelus.l_eq = eq_list; Zelus.l_loc = loc;
+    Zelus.l_env = Rename.typ_env env_let }
 
 and locals env l = 
   match l with
@@ -811,7 +813,7 @@ and letin is_rec env eq_list =
   let env_let = Rename.make (build_equation_list S.empty eq_list) in
   let new_env = Rename.append env_let env in
   let env_local = if is_rec then new_env else env in
-  env_let, new_env, List.fold_left (equation env_let env_local) [] eq_list
+  env_let, new_env, equation_list env_let env_local eq_list
 
 
 (** Translate a present and match when handlers are expressions or equations *)

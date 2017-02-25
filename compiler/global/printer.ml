@@ -340,7 +340,7 @@ and equation ff { eq_desc = desc; eq_write = w } =
       end
     | EQblock(b_eq_list) -> block_equation_list "do " " done" ff b_eq_list
     | EQand(and_eq_list) ->
-       print_list_r equation "do" "and " "done" ff and_eq_list
+       print_list_l equation "do" "and " "done" ff and_eq_list
     | EQbefore(before_eq_list) ->
        print_list_l equation "" "before " "" ff before_eq_list
     | EQforall { for_index = i_list; for_init = init_list; for_body = b_eq_list;
