@@ -258,9 +258,9 @@ and forall_handler =
     (* def (left) names from [id ou id'] *) }
 
 and indexes_desc =
-  | Einput of Ident.t * exp
-  | Eoutput of Ident.t * Ident.t
-  | Eindex of Ident.t * exp * exp
+  | Einput of Ident.t * exp (* xi in t_input *)
+  | Eoutput of Ident.t * Ident.t (* xi out t_output *)
+  | Eindex of Ident.t * exp * exp (* i in e1 .. e2 *)
 
 and init_desc =
   | Einit_last of Ident.t * exp

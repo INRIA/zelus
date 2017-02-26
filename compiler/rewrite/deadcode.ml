@@ -26,7 +26,7 @@ open Deftypes
 (** read-in dependences *)
 (** An equation [eq] is marked useful when it may be unsafe, that *)
 (** is, it has side effets and/or is non total *)
-(** or be non total. For the moment, only combinatorial functions *)
+(** For the moment, only combinatorial functions *)
 (** are considered safe. *)
 (** finally, only keep equations and name defs. for useful variables *)
 (** horizons are considered to be useful *)
@@ -46,12 +46,26 @@ let print ff table =
 		   names l (if u then "true" else "false") in
   Env.iter entry table 
 
-(** Add an entry [x, {x1,...,xn}] to a table. If x already exists *)
-(** extends its definition. Otherwise, add the new entry *)
+(* mark all names in [r] to be useful *)
+let mark_useful r table =
+  let mark x table =
+    try
+      let { c_useful = u } as cont = Env.find x table in
+      cont.c_useful <- true;
+      table
+    with
+    | Not_found ->
+       Env.add x
+	       { c_vars = S.empty; c_useful = true; c_visited = false } table in
+  S.fold mark r table
+
+(** Add the entries [x <- x1; ...; x <- xn] in the table. If x already exists *)
+(* extends its definition. Otherwise, add the new entry *)
+(* when [is_useful = true], mark all read variables [x1,..., xn] to be useful *)
 let add is_useful w r table =
   let add x table =
     try
-      let ({ c_vars = l; c_useful = u } as cont) = Env.find x table in
+      let { c_vars = l; c_useful = u } as cont = Env.find x table in
       cont.c_vars <- S.union r l;
       cont.c_useful <- u || is_useful;
       table
@@ -59,7 +73,11 @@ let add is_useful w r table =
     | Not_found ->
        Env.add x
 	       { c_vars = r; c_useful = is_useful; c_visited = false } table in
+  (* mark all vars. in [r] to be useful *)
+  let table = if is_useful then mark_useful r table else table in
+  (* add dependences *)
   S.fold add w table
+
 	 
 (** Extend [table] where every entry [y -> {x1,...,xn}] *)
 (** is marked to also depend on names in [names] *)
@@ -111,7 +129,8 @@ let rec build_equation table { eq_desc = desc } =
        | Eoutput(i, j) ->
 	  add false (S.singleton j) (S.singleton i) table
        | Eindex(i, e1, e2) ->
-	  add true (S.singleton i) (fve (fve S.empty e1) e2) table in
+	  add ((Unsafe.exp e1) || (Unsafe.exp e2))
+	      (S.singleton i) (fve (fve S.empty e1) e2) table in
      let init table { desc = desc } =
        match desc with
        | Einit_last(i, e)
@@ -200,13 +219,18 @@ let rec remove_equation useful
 	       for_in_env = in_env; for_out_env = out_env } ->
      let index acc ({ desc = desc } as ind) =
        match desc with
-       | Einput(i, _) | Eoutput(_, i) 
-       | Eindex(i, _, _) -> if S.mem i useful then ind :: acc else acc in
+       | Einput(i, e) ->
+	  if (Unsafe.exp e) || (S.mem i useful) then ind :: acc else acc
+       | Eoutput(xo, o) ->
+	  if (S.mem xo useful) || (S.mem o useful) then ind :: acc else acc
+       | Eindex _ ->
+	  (* the index i in [e1 .. e2] is kept *)
+	  ind :: acc in
      let init acc ({ desc = desc } as ini) =
        match desc with
-       | Einit_last(i, _)
-       | Einit_value(i, _, _) ->
-	  if S.mem i useful then ini :: acc else acc in
+       | Einit_last(i, e)
+       | Einit_value(i, e, _) ->
+	  if (Unsafe.exp e) || (S.mem i useful) then ini :: acc else acc in
      let i_list = List.fold_left index [] i_list in
      let init_list = List.fold_left init [] init_list in
      let b_eq_list = remove_block useful b_eq_list in
