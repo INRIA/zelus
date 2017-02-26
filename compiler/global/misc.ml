@@ -14,7 +14,7 @@
 (* useful stuff *)
 
 (* version of the compiler *)
-let version = "Zélus Hybrid Synchronous language"
+let version = "Zélus"
 let subversion = VERSION
 let date = DATE
 
@@ -43,7 +43,7 @@ let locate_stdlib () =
 let show_version () =
   Printf.printf "The %s compiler, version %s (%s)\n"
     version subversion date;
-  locate_stdlib ()
+  Printf.printf "Std lib: "; locate_stdlib ()
 
 (* sets the main simulation node *)
 let simulation_node = ref None

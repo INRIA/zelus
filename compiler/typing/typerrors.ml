@@ -261,6 +261,6 @@ let warning loc w =
   | Wequation_does_not_define_a_name ->
      eprintf
        "%aType warning: this equation does not define a name.\n\
-          The compiler may consider it as deadcode and remove it.@."
+          This looks like deadcode.@."
        output_location loc
      

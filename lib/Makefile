@@ -1,3 +1,16 @@
+#*************************************************************************)
+#                                                                        *)
+#  The Zelus Hybrid Synchronous Language                                 *)
+#  Copyright (C) 2012-2017                                               *)
+#                                                                        *)
+#  Timothy Bourke                                                        *)
+#  Marc Pouzet                                                           *)
+#                                                                        *)
+#  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
+#                                                                        *)
+#   This file is distributed under the terms of the CeCILL-C licence     *)
+#                                                                        *)
+#*************************************************************************)
 include ../config
 
 ZELUC = ../bin/zeluc
@@ -21,7 +34,8 @@ SOLVER_OBJS = solvers/illinois.cmo  \
 	      solvers/odexx.cmo     \
 	      $(OPTIONAL_SOLVER_OBJS)
 
-OBJ = zls.cmo \
+OBJ = ztypes.cmo \
+      zls.cmo \
       basics.cmo \
       zlsolve.cmo \
       $(SOLVER_OBJS) \
@@ -31,7 +45,7 @@ OBJ = zls.cmo \
 
 OBJ_GTK = gtkplot.cmo \
 	  scope.cmo \
- 	  zlsrungtk.cmo
+	  zlsrungtk.cmo
 
 all: $(targets) $(gtktargets)
 

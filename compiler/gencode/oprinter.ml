@@ -621,5 +621,5 @@ let implementation ff impl = match impl with
 let implementation_list ff as_functions impl_list =
   print_as_functions := as_functions;
   fprintf ff "@[(* %s *)@.@]" header_in_file;
-  fprintf ff "@[open Zlib@.@]";
+  fprintf ff "@[open Ztypes@.@]";
   List.iter (implementation ff) impl_list
