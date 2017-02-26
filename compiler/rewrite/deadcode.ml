@@ -169,29 +169,31 @@ let writes useful { dv = dv; di = di; der = der } =
   { dv = filter dv; di = filter di; der = filter der }
 			
 (** Remove useless equations. [useful] is the set of useful names *)
-let rec remove_equation useful ({ eq_desc = desc; eq_write = w } as eq) eq_list =
+let rec remove_equation useful
+			({ eq_desc = desc; eq_write = w } as eq) eq_list =
   match desc with
-  | EQeq(p, _) ->
+  | EQeq(p, e) ->
      let w = fv_pat S.empty S.empty p in
-     if S.exists (fun x -> S.mem x useful) w
+     if Unsafe.exp e || S.exists (fun x -> S.mem x useful) w
      then (* the equation is useful *) eq :: eq_list else eq_list
-  | EQpluseq(n, _) | EQder(n, _, None, [])
-  | EQinit(n, _) ->
-     if S.mem n useful then eq :: eq_list else eq_list
+  | EQpluseq(n, e) | EQder(n, e, None, [])
+  | EQinit(n, e) ->
+     if Unsafe.exp e || S.mem n useful then eq :: eq_list else eq_list
   | EQmatch(total, e, m_h_list) ->
      let m_h_list = 
        List.map
 	 (fun ({ m_body = b } as m_h) ->
 	  { m_h with m_body = remove_block useful b }) m_h_list in
      (* remove the equation if all handlers are empty *)
-     if List.for_all (fun { m_body = b} -> is_empty_block b) m_h_list
+     if not (Unsafe.exp e)
+	&& List.for_all (fun { m_body = b} -> is_empty_block b) m_h_list
      then eq_list
      else { eq with eq_desc = EQmatch(total, e, m_h_list);
 		    eq_write = writes useful w } :: eq_list
   | EQreset(res_eq_list, e) ->
      let res_eq_list = remove_equation_list useful res_eq_list in
      (* remove the equation if the body is empty *)
-     if res_eq_list = [] then eq_list
+     if not (Unsafe.exp e) && res_eq_list = [] then eq_list
      else { eq with eq_desc = EQreset(res_eq_list, e);
 		    eq_write = writes useful w } :: eq_list
   | EQforall { for_index = i_list; for_init = init_list; for_body = b_eq_list;
@@ -254,7 +256,8 @@ and remove_local useful ({ l_eq = eq_list; l_env = l_env } as l) =
 (** Compute the set of horizons *)
 let horizon read { l_env = l_env } =
   let take h { t_sort = sort } acc =
-    match sort with | Smem { m_kind = Some(Horizon) } -> S.add h acc | _ -> acc in
+    match sort with
+    | Smem { m_kind = Some(Horizon) } -> S.add h acc | _ -> acc in
   Env.fold take l_env read
     
 (** the main entry for expressions. Warning: [e] must be in normal form *)
