@@ -201,18 +201,18 @@ let on_type expected_k =
     | Tcont | Tany -> Tdiscrete(false)
     | _ -> expected_k
 
-let is_combinatorial expected_k = 
+let is_combinatorial_kind expected_k = 
   match expected_k with
   | Tany -> true | Tstatic _ | Tcont | Tdiscrete _ -> false
 
-let is_discrete expected_k =
+let is_discrete_kind expected_k =
   match expected_k with | Tdiscrete(true) -> true | _ -> false
 
-let is_continuous expected_k =
+let is_continuous_kind expected_k =
   match expected_k with
     | Tstatic _ | Tany | Tdiscrete _ -> false | Tcont -> true
 
-let is_statefull expected_k =
+let is_statefull_kind expected_k =
   match expected_k with
     | Tdiscrete(true) | Tcont -> true | _ -> false
 
@@ -553,12 +553,12 @@ let rec is_a_signal { t_desc = desc } =
     | Tlink(link) -> is_a_signal link
     | _ -> None
 
-(** Is-it a safe function? *)
-let is_unsafe ty =
+(** Is-it a combinatorial function? *)
+let is_combinatorial ty =
   let ty = typ_repr ty in
   match ty.t_desc with
-  | Tfun((Tdiscrete _ | Tcont), _, _, _, _) -> true
-  | _ -> false
+  | Tfun((Tdiscrete _ | Tcont), _, _, _, _) -> false
+  | _ -> true
 
 let is_hybrid ty =
   let ty = typ_repr ty in

@@ -168,11 +168,9 @@ let compile modname filename =
 	step "Translation of periods done. See below:"
 	     Period.implementation_list impl_list in
       let impl_list =
-	step "Compilation of memories (fby/pre/next) into (init/last). See below:"
+	step
+	  "Compilation of memories (fby/pre/next) into (init/last). See below:"
 	     Pre.implementation_list impl_list in
-      let impl_list =
-	step "Actualize write variables in blocks. See below:"
-	     Write.implementation_list impl_list in
       let impl_list =
 	step "Un-nest let/in blocks. See below:"
 	     Letin.implementation_list impl_list in
@@ -189,6 +187,9 @@ let compile modname filename =
        step "Translation into A-normal form. See below:"
 	    Aform.implementation_list impl_list in
      let impl_list =
+	step "Actualize write variables in blocks. See below:"
+	     Write.implementation_list impl_list in
+      let impl_list =
        step "Naming shared variables and memories done. See below:"
 	    Shared.implementation_list impl_list in
      let impl_list =

@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2016                                               *)
+(*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -12,7 +12,7 @@
 (*                                                                        *)
 (**************************************************************************)
 (* dead-code removal. *)
-(* this is applied to normalized and scheduled code *)
+(* this is applied to normalized code *)
 
 open Misc
 open Ident
@@ -24,10 +24,12 @@ open Deftypes
 (** the list of read variables used to produce yn *)
 (** then recursively mark all useful variable according to *)
 (** read-in dependences *)
+(** An equation [eq] is marked useful when it may be unsafe, that *)
+(** is, it has side effets and/or is non total *)
+(** or be non total. For the moment, only combinatorial functions *)
+(** are considered safe. *)
 (** finally, only keep equations and name defs. for useful variables *)
 (** horizons are considered to be useful *)
-(** the optimization is not very agressive, e.g., non combinatorial *)
-(** function calls are not removed *)
 type table = cont Env.t
  and cont = 
    { mutable c_vars: S.t; (* set of variables *)
@@ -84,11 +86,11 @@ let rec build_equation table { eq_desc = desc } =
      let w = fv_pat S.empty S.empty p in
      (* for every [x in w], add the link [x -> {x1, ..., xn }] to table *)
      let r = fve S.empty e in
-     add false w r table
+     add (Unsafe.exp e) w r table
   | EQpluseq(n, e) | EQinit(n, e)
   | EQder(n, e, None, []) -> 
      let r = fve S.empty e in
-     add false (S.singleton n) r table
+     add (Unsafe.exp e) (S.singleton n) r table
   | EQmatch(_, e, m_h_list) ->
      let r = fve S.empty e in
      let table_b =
@@ -104,21 +106,22 @@ let rec build_equation table { eq_desc = desc } =
       { for_index = i_list; for_init = init_list; for_body = b_eq_list } ->
      let index table { desc = desc } =
        match desc with
-       | Einput(i, e) -> add false (S.singleton i) (fve S.empty e) table
-       | Eoutput(i, j) -> add false (S.singleton j) (S.singleton i) table
+       | Einput(i, e) ->
+	  add (Unsafe.exp e) (S.singleton i) (fve S.empty e) table
+       | Eoutput(i, j) ->
+	  add false (S.singleton j) (S.singleton i) table
        | Eindex(i, e1, e2) ->
 	  add true (S.singleton i) (fve (fve S.empty e1) e2) table in
      let init table { desc = desc } =
        match desc with
        | Einit_last(i, e)
        | Einit_value(i, e, _) ->
-	  add false (S.singleton i) (fve S.empty e) table in
+	  add (Unsafe.exp e) (S.singleton i) (fve S.empty e) table in
      let table = List.fold_left index table i_list in
      let table = List.fold_left init table init_list in
      build_block table b_eq_list
-  | EQbefore(before_eq_list) ->
-     build_equation_list table before_eq_list
-  | EQand _ | EQblock _ | EQder _ | EQnext _ | EQautomaton _
+  | EQand(eq_list) | EQbefore(eq_list) -> build_equation_list table eq_list
+  | EQblock _ | EQder _ | EQnext _ | EQautomaton _
   | EQpresent _ | EQemit _ -> assert false
 
 and build_block table { b_body = eq_list } = build_equation_list table eq_list
@@ -218,7 +221,12 @@ let rec remove_equation useful ({ eq_desc = desc; eq_write = w } as eq) eq_list 
      (* remove the equation if the body is empty *)
      if before_eq_list = [] then eq_list
      else (Zaux.before before_eq_list) :: eq_list
-  | EQand _ | EQnext _ | EQder _ | EQautomaton _ | EQblock _ 
+  | EQand(and_eq_list) ->
+     let and_eq_list = remove_equation_list useful and_eq_list in
+     (* remove the equation if the body is empty *)
+     if and_eq_list = [] then eq_list
+     else (Zaux.par and_eq_list) :: eq_list
+  | EQnext _ | EQder _ | EQautomaton _ | EQblock _ 
   | EQpresent _ | EQemit _ -> assert false
 				     
 and remove_equation_list useful eq_list =

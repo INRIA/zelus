@@ -45,7 +45,8 @@ let rec equation eq_list ({ eq_desc = desc } as eq) =
        { eq with eq_desc = EQbefore(equation_list before_eq_list) } :: eq_list
     | _ -> eq :: eq_list
 
-and equation_list eq_list = List.fold_left equation [] eq_list
+and equation_list eq_list =
+  let eq_list = List.fold_left equation [] eq_list in List.rev eq_list
 
 and handler ({ m_body = b } as m_h) = { m_h with m_body = block b }
 

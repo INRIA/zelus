@@ -116,7 +116,8 @@ let rec expansive { e_desc = desc } =
     | _ -> true
 
 let check_statefull loc expected_k =
-  if not (Types.is_statefull expected_k) then error loc Ekind_not_combinatorial
+  if not (Types.is_statefull_kind expected_k)
+  then error loc Ekind_not_combinatorial
 
 (** The type of states in automata *)
 (** We constraint the use of automata such that a state can be entered *)
@@ -319,7 +320,7 @@ let vardec_list expected_k n_list =
   let default loc expected_ty c_opt = function
   | Init(v) ->
      (* the initialization must appear in a statefull function *)
-     if not (Types.is_statefull expected_k)
+     if not (Types.is_statefull_kind expected_k)
      then error loc Ekind_not_combinatorial;
      constant loc expected_ty v;
      Deftypes.Smem
@@ -550,7 +551,7 @@ let present_handlers scondpat body loc expected_k h p_h_list b_opt expected_ty =
     (* local variables from [scpat] cannot be accessed through a last *)
     let h0 = env_of_scondpat scpat in
     let h = Env.append h0 h in
-    let is_zero = Types.is_continuous expected_k in
+    let is_zero = Types.is_continuous_kind expected_k in
     scondpat expected_k is_zero h scpat;
     (* sets [zero = true] is [expected_k = Tcont] *)
     ph.p_zero <- is_zero;
@@ -875,8 +876,9 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
 	 S.iter belong_to der in
 
        (* outputs are either shared or state variables *)
-       let sort = if Types.is_statefull expected_k
-		  then Deftypes.Smem Deftypes.empty_mem else Deftypes.variable in
+       let sort = if Types.is_statefull_kind expected_k
+		  then Deftypes.Smem Deftypes.empty_mem
+		  else Deftypes.variable in
 
        (* bounds for loops must be static *)
        (* computes the set of array names returned by the loop *)
@@ -1105,7 +1107,7 @@ and automaton_handlers is_weak loc expected_k h state_handlers se_opt =
   end;      
 
   (* the type for conditions on transitions *)
-  let is_zero_type = Types.is_continuous expected_k in
+  let is_zero_type = Types.is_continuous_kind expected_k in
     
   (* typing the body of the automaton *)
   let typing_handler h 

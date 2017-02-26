@@ -86,8 +86,9 @@ and equation subst eq_list ({ eq_desc } as eq) =
 			 exp subst e) } :: eq_list
   | EQmatch(total, e, p_h_list) ->
      let p_h_list = 
-       List.map (fun ({ m_body = b } as h) -> { h with m_body = block subst b }) 
-		p_h_list in
+       List.map
+	 (fun ({ m_body = b } as h) -> { h with m_body = block subst b }) 
+	 p_h_list in
      { eq with eq_desc = EQmatch(total, exp subst e, p_h_list) } :: eq_list
   | EQreset(res_eq_list, e) ->
      let res_eq_list = equation_list subst res_eq_list in
@@ -125,7 +126,9 @@ and equation subst eq_list ({ eq_desc } as eq) =
      :: eq_list
   | EQpresent _ | EQautomaton _ | EQder _ | EQemit _ | EQnext _ -> assert false
 									  
-and equation_list subst eq_list = List.fold_left (equation subst) [] eq_list
+and equation_list subst eq_list =
+  let eq_list = List.fold_left (equation subst) [] eq_list in
+  List.rev eq_list
 						 
 and block subst ({ b_body = eq_list; b_env = b_env } as b) =
   (* Identify variables [last x] in [b_env] *)

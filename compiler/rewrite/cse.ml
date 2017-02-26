@@ -38,14 +38,20 @@ let build_table subst eq_list =
             (* build [pre(n) -> x] if it does not exist already *)
             Env.add n x table, subst, eq :: eq_list
        end
-    | EQand(eq_list)
-    | EQbefore(eq_list) -> equation_list table subst eq_list
+    | EQand(and_eq_list) ->
+       let table, subst, and_eq_list = equation_list table subst and_eq_list in
+       table, subst, { eq with eq_desc = EQand(and_eq_list) } :: eq_list
+    | EQbefore(and_eq_list) ->
+       let table, subst, and_eq_list = equation_list table subst and_eq_list in
+       table, subst, { eq with eq_desc = EQbefore(and_eq_list) } :: eq_list
     | EQeq _ | EQpluseq _ | EQinit _ | EQnext _ 
     | EQmatch _ | EQreset _ | EQder _ | EQblock _ | EQforall _ ->
 					 table, subst, eq :: eq_list
     | EQemit _ | EQautomaton _ | EQpresent _ -> assert false
   and equation_list table subst eq_list =
-    List.fold_left equation (table, subst, []) eq_list in
+    let table, subst, eq_list =
+      List.fold_left equation (table, subst, []) eq_list in
+    table, subst, List.rev eq_list in
   let table, subst, eq_list = equation_list Env.empty subst eq_list in
   subst, eq_list
 	   
@@ -138,11 +144,11 @@ and block subst ({ b_body = eq_list } as b) =
   { b with b_body = eq_list }
 
 (** the main entry for expressions. Warning: [e] must be in normal form *)
-and nexp subst e =
+let exp subst e =
   match e.e_desc with
     | Elet(l, e1) ->
         let l = local subst l in
-        let e1 = nexp subst e1 in
+        let e1 = exp subst e1 in
         { e with e_desc = Elet(l, e1) }
     | _ -> exp subst e
   
@@ -150,6 +156,7 @@ let implementation impl =
   match impl.desc with
       | Eopen _ | Etypedecl _ | Econstdecl _ -> impl
       | Efundecl(n, ({ f_body = e } as body)) ->
-          { impl with desc = Efundecl(n, { body with f_body = nexp Env.empty e }) }
+         { impl with desc =
+		       Efundecl(n, { body with f_body = exp Env.empty e }) }
 
 let implementation_list impl_list = Misc.iter implementation impl_list

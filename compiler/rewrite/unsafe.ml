@@ -12,6 +12,9 @@
 (*                                                                        *)
 (**************************************************************************)
 
+(* safe/unsafe expressions and equations. *)
+(* A computation is safe when it is combinatorial, that is, it *)
+(* has no side effect, total and no state *)
 open Zelus
 open Ident
 open Deftypes
@@ -21,7 +24,8 @@ open Zaux
 let rec exp { e_desc = desc } =
   match desc with
   | Eapp(_, e, e_list) ->
-     (Types.is_unsafe e.e_typ) || (exp e) || (List.exists exp e_list)
+     (not (Types.is_combinatorial e.e_typ))
+     || (exp e) || (List.exists exp e_list)
   | Erecord_access(e, _) | Etypeconstraint(e, _) -> exp e
   | Erecord(f_e_list) ->
      List.exists (fun (_, e) -> exp e) f_e_list
