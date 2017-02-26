@@ -207,14 +207,14 @@ let rec types env ty =
     | Etypetuple(ty_list) -> Zelus.Etypetuple(List.map (types env) ty_list)
     | Etypeconstr(lname, ty_list) ->
        Zelus.Etypeconstr(longname lname, List.map (types env) ty_list)
-    | Etypefun(k, s, n_opt, ty_arg, ty_res) ->
+    | Etypefun(k, n_opt, ty_arg, ty_res) ->
        let ty_arg = types env ty_arg in
        let env =
 	 match n_opt with
 	 | None -> env
 	 | Some(n) -> Rename.append (Rename.make (S.singleton n)) env in
        let ty_res = types env ty_res in
-       Zelus.Etypefun(kind k, s, None, ty_arg, ty_res)
+       Zelus.Etypefun(kind k, None, ty_arg, ty_res)
     | Etypevec(ty_arg, si) -> Zelus.Etypevec(types env ty_arg, size env si) in
   { Zelus.desc = desc; Zelus.loc = ty.loc }
 

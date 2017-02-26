@@ -30,8 +30,7 @@ and type_expression_desc =
   | Etypeconstr of Lident.t * type_expression list
   | Etypetuple of type_expression list
   | Etypevec of type_expression * size
-  | Etypefun of
-      kind * bool * Ident.t option * type_expression * type_expression
+  | Etypefun of kind * Ident.t option * type_expression * type_expression
 
 and size = size_desc localized
 

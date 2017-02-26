@@ -83,7 +83,7 @@ let rec print prio ff ({ t_desc = desc } as ty) =
       then fprintf ff "@[(%a)@ %a@]" (print_list (print 0) ",") ty_list
 		   print_qualid name 
       else fprintf ff "@[%a@]" print_qualid name
-  | Tfun(k, s, name_opt, ty_arg, ty_res) ->
+  | Tfun(k, name_opt, ty_arg, ty_res) ->
      let print_arg ff ty =
        match name_opt with
        | None -> print (prio_current + 1) ff ty

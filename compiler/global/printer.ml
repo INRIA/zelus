@@ -109,7 +109,7 @@ and ptype ff ty =
           longname ln
     | Etypetuple(ty_list) ->
        fprintf ff "@[<hov2>%a@]" (print_list_r ptype "(""*"")") ty_list
-    | Etypefun(k, s, n_opt, ty_arg, ty_res) ->
+    | Etypefun(k, n_opt, ty_arg, ty_res) ->
        let pas ff (n_opt, ty_arg) =
 	 match n_opt with
 	 | None -> () | Some(n) -> fprintf ff "(%a : %a)" name n ptype ty_arg in

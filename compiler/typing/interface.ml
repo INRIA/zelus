@@ -100,7 +100,7 @@ let rec free_of_type v ty =
      List.fold_left free_of_type v ty_list
   | Etypeconstr(_,ty_list) ->
      List.fold_left free_of_type v ty_list
-  | Etypefun(_, _, _, ty_arg, ty_res) ->
+  | Etypefun(_, _, ty_arg, ty_res) ->
      free_of_type (free_of_type v ty_arg) ty_res
   | Etypevec(ty_arg, _) -> free_of_type v ty_arg
 					
@@ -140,8 +140,8 @@ let typ_of_type_expression typ_vars typ =
     | Etypeconstr(s, ty_list) ->
        let name = constr_name typ.loc s (List.length ty_list) in
        Types.nconstr name (List.map typrec ty_list)
-    | Etypefun(k, s, n_opt, ty_arg, ty_res) ->
-       Types.funtype (kindtype k) s n_opt (typrec ty_arg) (typrec ty_res)
+    | Etypefun(k, n_opt, ty_arg, ty_res) ->
+       Types.funtype (kindtype k) n_opt (typrec ty_arg) (typrec ty_res)
     | Etypevec(ty_arg, si) -> Types.vec (typrec ty_arg) (size si)
   and size si =
     match si.desc with
@@ -175,8 +175,8 @@ let rec type_expression_of_typ typ =
   | Tconstr(s, ty_list, _) ->
      make (Etypeconstr(Modules.currentname (Lident.Modname(s)),
                        List.map type_expression_of_typ ty_list))
-  | Tfun(k, s, n_opt, ty_arg, ty_res) ->
-     make (Etypefun(kindoftype k, s, n_opt, type_expression_of_typ ty_arg,
+  | Tfun(k, n_opt, ty_arg, ty_res) ->
+     make (Etypefun(kindoftype k, n_opt, type_expression_of_typ ty_arg,
 		    type_expression_of_typ ty_res))
   | Tvec(ty_arg, si) ->
      make (Etypevec(type_expression_of_typ ty_arg, size si))

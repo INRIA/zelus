@@ -63,7 +63,6 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "open", OPEN;
   "val", VAL;
   "local", LOCAL;
-  "unsafe", UNSAFE;
   "let", LET;
   "rec", REC;
   "where", WHERE;

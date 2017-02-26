@@ -50,7 +50,7 @@ let rec type_expression { Zelus.desc = desc } =
     Otypetuple(List.map type_expression ty_list)
   | Zelus.Etypevec(ty, s) ->
      Otypevec(type_expression ty, size s)
-  | Zelus.Etypefun(_, _, opt_name, ty_arg, ty_res) ->
+  | Zelus.Etypefun(_, opt_name, ty_arg, ty_res) ->
      Otypefun(opt_name, type_expression ty_arg, type_expression ty_res)
 
 and type_of_type_decl ty_decl =

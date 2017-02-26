@@ -244,7 +244,7 @@ let rec skeleton ty =
   match ty.t_desc with
   | Tvar -> atom (new_var ())
   | Tproduct(ty_list) -> product (List.map skeleton ty_list)
-  | Tfun(_, _, _, ty_arg, ty) ->
+  | Tfun(_, _, ty_arg, ty) ->
      funtype (skeleton ty_arg) (skeleton ty)
   | Tconstr(_, _, _) | Tvec _ -> atom (new_var ())
   | Tlink(ty) -> skeleton ty
@@ -253,7 +253,7 @@ let rec skeleton_on_c c ty =
   match ty.t_desc with
     | Tvar -> atom c
     | Tproduct(ty_list) -> product (List.map (skeleton_on_c c) ty_list)
-    | Tfun(_, _, _, ty_arg, ty) ->
+    | Tfun(_, _, ty_arg, ty) ->
        funtype (skeleton_on_c c ty_arg) (skeleton_on_c c ty)
     | Tconstr(_, _, _) | Tvec _ -> atom c
     | Tlink(ty) -> skeleton_on_c c ty
@@ -437,7 +437,7 @@ let cleanup () = List.iter (fun c -> c.c_desc <- Cvar) !links; links := []
 let rec copy tc ty =
   let { t_desc = tydesc } as ty = Types.typ_repr ty in
   match tc, tydesc with
-  | Cfun(tc1, tc2), Tfun(_, _, _, ty1, ty2) ->
+  | Cfun(tc1, tc2), Tfun(_, _, ty1, ty2) ->
      funtype (copy tc1 ty1) (copy tc2 ty2)
   | Cproduct(tc_list), Tproduct(ty_list) ->
      begin try product (List.map2 copy tc_list ty_list) with | _ -> assert false end

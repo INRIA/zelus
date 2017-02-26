@@ -43,8 +43,7 @@ and type_expression_desc =
     | Etypeconstr of longname * type_expression list
     | Etypetuple of type_expression list
     | Etypevec of type_expression * size
-    | Etypefun of
-	kind * bool * string option * type_expression * type_expression
+    | Etypefun of kind * string option * type_expression * type_expression
 
 and size = size_desc localized
 

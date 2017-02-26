@@ -38,13 +38,13 @@ let check_type_of_main_node name
 			    { qualid = qualid; info = { value_typ = tys } } 
 			    opt_name expected_ty_arg expected_ty_res =
   let actual_ty = Types.instance_of_type tys in
-  let k, s, opt_name, actual_ty_arg, actual_ty_res =
+  let k, opt_name, actual_ty_arg, actual_ty_res =
     try
       Types.filter_actual_arrow actual_ty
     with
     | _ ->  eprintf "@[The name %s must define a function.@.@]" name;
 	    raise Misc.Error in
-  let expected_ty = Types.funtype k s opt_name actual_ty_arg actual_ty_res in
+  let expected_ty = Types.funtype k opt_name actual_ty_arg actual_ty_res in
   try
     Types.unify expected_ty actual_ty; qualid, k
   with

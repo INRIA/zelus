@@ -131,7 +131,6 @@ let block l lo eq_list startpos endpos =
 %token NODE           /* "node" */
 %token HYBRID         /* "hybrid" */
 %token DISCRETE       /* "discrete" */
-%token UNSAFE         /* "unsafe" */
 %token FBY            /* "fby" */
 %token NEXT           /* "next" */
 %token PRE            /* "pre" */
@@ -310,8 +309,6 @@ interface:
   | TYPE tp = type_params i = IDENT td = type_declaration
       { Einter_typedecl(i, tp, td) }
   | VAL i = ide COLON t = type_expression
-      { Einter_constdecl(i, t) }
-  | VAL UNSAFE i = ide COLON t = type_expression
       { Einter_constdecl(i, t) }
 ;
 
@@ -1003,10 +1000,10 @@ type_expression:
   | tl = type_star_list
       { make(Etypetuple(List.rev tl)) $startpos $endpos}
   | t_arg = type_expression a = arrow t_res = type_expression
-      { make(Etypefun(a, true, None, t_arg, t_res)) $startpos $endpos}
+      { make(Etypefun(a, None, t_arg, t_res)) $startpos $endpos}
   | LPAREN id = IDENT COLON t_arg = type_expression RPAREN
 			    a = arrow t_res = type_expression
-      { make(Etypefun(a, true, Some(id), t_arg, t_res)) $startpos $endpos}
+      { make(Etypefun(a, Some(id), t_arg, t_res)) $startpos $endpos}
 ;
     
 simple_type:

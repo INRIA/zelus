@@ -97,7 +97,7 @@ let rec type_expression renaming ({ desc = desc } as ty_e) =
   | Etypevec(ty_vec, s) ->
      { ty_e with desc =
 		   Etypevec(type_expression renaming ty_vec, size renaming s) }
-  | Etypefun(k, s, opt_name, ty_arg, ty_res) ->
+  | Etypefun(k, opt_name, ty_arg, ty_res) ->
      let ty_arg = type_expression renaming ty_arg in
      let opt_name, renaming =
        match opt_name with
@@ -106,7 +106,7 @@ let rec type_expression renaming ({ desc = desc } as ty_e) =
 	  let m = Ident.fresh (Ident.source n) in
 	  Some(m), Env.add n m renaming in
      let ty_res = type_expression renaming ty_res in
-     { ty_e with desc = Etypefun(k, s, opt_name, ty_arg, ty_res) }
+     { ty_e with desc = Etypefun(k, opt_name, ty_arg, ty_res) }
 
 and size renaming ({ desc = desc } as s) =
   match desc with

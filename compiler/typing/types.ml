@@ -27,14 +27,14 @@ let make ty =
 let product ty_list =
   make (Tproduct(ty_list))
 let vec ty e = make (Tvec(ty, e))
-let funtype k s n_opt ty_arg ty_res =
-  make (Tfun(k, s, n_opt, ty_arg, ty_res))
-let rec funtype_list k s ty_arg_list ty_res =
+let funtype k n_opt ty_arg ty_res =
+  make (Tfun(k, n_opt, ty_arg, ty_res))
+let rec funtype_list k ty_arg_list ty_res =
   match ty_arg_list with
   | [] -> ty_res
-  | [n_opt, ty] -> funtype k s n_opt ty ty_res
+  | [n_opt, ty] -> funtype k n_opt ty ty_res
   | (n_opt, ty) :: ty_arg_list ->
-     funtype (Tstatic(true)) true n_opt ty (funtype_list k s ty_arg_list ty_res)
+     funtype (Tstatic(true)) n_opt ty (funtype_list k ty_arg_list ty_res)
 
 (** Make size expressions. Apply simple simplification rules *)
 let plus si1 si2 =
@@ -71,7 +71,7 @@ let rec fv acc { t_desc = desc } =
   | Tvar -> acc
   | Tproduct(ty_list) | Tconstr(_, ty_list, _) -> List.fold_left fv acc ty_list
   | Tvec(ty_arg, size) -> fv (fv_size acc size) ty_arg
-  | Tfun(_, _, _, ty_arg, ty_res) -> fv (fv acc ty_arg) ty_res
+  | Tfun(_, _, ty_arg, ty_res) -> fv (fv acc ty_arg) ty_res
   | Tlink(ty_link) -> fv acc ty_link
 
 and fv_size acc si =
@@ -90,7 +90,7 @@ let rec subst_in_type senv ({ t_desc = desc; t_index = index } as ty) =
   | Tvec(ty_arg, si) ->
      vec (subst_in_type senv ty_arg) (subst_in_size senv si)
   | Tlink(ty_link) -> subst_in_type  senv ty_link
-  | Tfun(k, s, n_opt, ty_arg, ty_res) ->
+  | Tfun(k, n_opt, ty_arg, ty_res) ->
      let ty_arg = subst_in_type senv ty_arg in
      let ty_res =
        match n_opt with
@@ -98,7 +98,7 @@ let rec subst_in_type senv ({ t_desc = desc; t_index = index } as ty) =
        | Some(n) ->
 	  let m = Ident.fresh (Ident.source n) in
 	  subst_in_type (Env.add n (Tname(m)) senv) ty_res in
-     funtype k s n_opt ty_arg ty_res
+     funtype k n_opt ty_arg ty_res
 
 and subst_in_size senv si =
   match si with
@@ -131,12 +131,12 @@ let rec remove_dependences ({ t_desc = desc } as ty) =
      constr gl (List.map remove_dependences ty_list) (ref (abbrev !a))
   | Tvec(ty_arg, _) -> Initial.typ_array ty_arg
   | Tlink(ty_link) -> remove_dependences ty_link
-  | Tfun(k, s, _, ty_arg, ty_res) ->
+  | Tfun(k, _, ty_arg, ty_res) ->
      let ty_arg = remove_dependences ty_arg in
      let ty_res = remove_dependences ty_res in
      match k with
      | Tany
-     | Tstatic _ | Tdiscrete false -> funtype Tany true None ty_arg ty_res
+     | Tstatic _ | Tdiscrete false -> funtype Tany None ty_arg ty_res
      | Tdiscrete true -> typ_node ty_arg ty_res
      | Tcont -> typ_hybrid ty_arg ty_res
 			    
@@ -169,7 +169,7 @@ let intro = function
 let run_type expected_k =
   let ty_arg = new_var () in
   let ty_res = new_var () in
-  funtype expected_k true None ty_arg ty_res
+  funtype expected_k None ty_arg ty_res
 
 							      
 (* Check that a type has itself kind k. If forbids function unless k = S *)
@@ -242,7 +242,7 @@ let rec occur_check level index ty =
     | Tproduct(ty_list) -> List.iter check ty_list
     | Tconstr(name, ty_list, _) ->
        List.iter check ty_list
-    | Tfun(_, _, _, ty_arg, ty_res) -> check ty_arg; check ty_res
+    | Tfun(_, _, ty_arg, ty_res) -> check ty_arg; check ty_res
     | Tvec(ty_arg, _) -> check ty_arg
     | Tlink(link) -> check link
   in check ty
@@ -259,14 +259,15 @@ let rec clear acc ({ t_desc = desc } as ty) =
      let ty_arg, acc = clear acc ty_arg in
      let acc = fv_size acc size in
      vec ty_arg size, acc
-  | Tfun(k, s, n_opt, ty_arg, ty_res) ->
+  | Tfun(k, n_opt, ty_arg, ty_res) ->
      let ty_res, acc = clear acc ty_res in
      let n_opt, acc =
        match n_opt with
        | None -> None, acc
-       | Some(n) -> if S.mem n acc then Some(n), acc else None, S.remove n acc in
+       | Some(n) ->
+	  if S.mem n acc then Some(n), acc else None, S.remove n acc in
      let ty_arg, acc = clear acc ty_arg in
-     funtype k s n_opt ty_arg ty_res, acc
+     funtype k n_opt ty_arg ty_res, acc
   | Tlink(ty_link) -> clear acc ty_link
   | Tconstr(gl, ty_list, abbrev) ->
      let clear_abbrev acc = function
@@ -304,7 +305,7 @@ let rec gen_ty is_gen ty =
        ty.t_level <- List.fold_left
 		       (fun level ty -> min level (gen_ty is_gen ty))
 		       notgeneric ty_list
-    | Tfun(_, _, _, ty_arg, ty_res) ->
+    | Tfun(_, _, ty_arg, ty_res) ->
 	     ty.t_level <-
 	       min (gen_ty is_gen ty_arg) (gen_ty is_gen ty_res)
     | Tvec(ty_arg, _) ->
@@ -351,9 +352,9 @@ let rec copy ty =
         then
           constr name (List.map copy ty_list) abbrev
         else ty
-    | Tfun(k, s, n_opt, ty_arg, ty_res) ->
+    | Tfun(k, n_opt, ty_arg, ty_res) ->
        if level = generic
-       then funtype k s n_opt (copy ty_arg) (copy ty_res)
+       then funtype k n_opt (copy ty_arg) (copy ty_res)
        else ty
     | Tvec(ty_arg, e) ->
        if level = generic
@@ -448,15 +449,15 @@ let rec unify expected_ty actual_ty =
 	| _, Tconstr(n2, ty_l2, abbrev) ->
            let actual_ty = abbreviation n2 abbrev ty_l2 in
            unify expected_ty actual_ty
-	| Tfun(k1, s1, None, ty_arg1, ty_res1),
-	  Tfun(k2, s2, None, ty_arg2, ty_res2) ->
-	   if (k1 = k2) && (s1 = s2) then
+	| Tfun(k1, None, ty_arg1, ty_res1),
+	  Tfun(k2, None, ty_arg2, ty_res2) ->
+	   if k1 = k2 then
 	     begin unify ty_arg1 ty_arg2; unify ty_res1 ty_res2 end
 	   else raise Unify
-	| Tfun(k1, s1, Some(n1), ty_arg1, ty_res1),
-	  Tfun(k2, s2, Some(n2), ty_arg2, ty_res2) ->
+	| Tfun(k1, Some(n1), ty_arg1, ty_res1),
+	  Tfun(k2, Some(n2), ty_arg2, ty_res2) ->
 	    unify ty_arg1 ty_arg2;
-	    if (k1 = k2) && (s1 = s2) then
+	    if k1 = k2 then
 	      if Ident.compare n1 n2 = 0 then unify ty_res1 ty_res2
 	      else
 		let m = Ident.fresh (Ident.source n1) in
@@ -498,19 +499,19 @@ let filter_signal ty =
 let filter_arrow expected_k ty =
   let ty = typ_repr ty in
   match ty.t_desc with
-  | Tfun(actual_k, actual_s, n_opt, ty_arg, ty_res) ->
-     actual_k, actual_s, n_opt, ty_arg, ty_res
+  | Tfun(actual_k, n_opt, ty_arg, ty_res) ->
+     actual_k, n_opt, ty_arg, ty_res
   | _ ->
      let ty_arg = new_var () in
      let ty_res = new_var () in
-     unify ty (funtype expected_k true None ty_arg ty_res);
-     expected_k, true, None, ty_arg, ty_res
+     unify ty (funtype expected_k None ty_arg ty_res);
+     expected_k, None, ty_arg, ty_res
 
 let filter_actual_arrow ty =
   let ty = typ_repr ty in
   match ty.t_desc with
-  | Tfun(actual_k, actual_s, n_opt, ty_arg, ty_res) ->
-     actual_k, actual_s, n_opt, ty_arg, ty_res
+  | Tfun(actual_k, n_opt, ty_arg, ty_res) ->
+     actual_k, n_opt, ty_arg, ty_res
   | _ -> assert false
 
 (* Splits the list of arguments of a function application *)
@@ -522,7 +523,7 @@ let rec split_arguments ty_fun e_list =
   match e_list with
   | [] -> [], [], ty_fun
   | e :: e_rest_list ->
-     let k, _, _, _, ty_res = filter_actual_arrow ty_fun in
+     let k, _, _, ty_res = filter_actual_arrow ty_fun in
      match k with
      | Tstatic(true) ->
 	let se_list, ne_list, ty_res = split_arguments ty_res e_rest_list in
@@ -536,9 +537,9 @@ let filter_vec ty =
   | _ -> raise Unify
 
 let type_of_combine () =
-  funtype (Tstatic(false)) true None
+  funtype (Tstatic(false)) None
 	  (new_var ())
-	  (funtype (Tstatic(false)) true None (new_var ()) (new_var ()))
+	  (funtype (Tstatic(false)) None (new_var ()) (new_var ()))
 		    		  
 (** All the function below are pure. They do not modify the internal *)
 (** representation of types. This is mandatory for them to be used once *)
@@ -557,26 +558,26 @@ let rec is_a_signal { t_desc = desc } =
 let is_combinatorial ty =
   let ty = typ_repr ty in
   match ty.t_desc with
-  | Tfun((Tdiscrete _ | Tcont), _, _, _, _) -> false
+  | Tfun((Tdiscrete _ | Tcont), _, _, _) -> false
   | _ -> true
 
 let is_hybrid ty =
   let ty = typ_repr ty in
   match ty.t_desc with
-    | Tfun(Tcont, _, _, _, _) -> true | _ -> false
+    | Tfun(Tcont, _, _, _) -> true | _ -> false
 
 (** Is-it stateless? *)
 let is_stateless ty =
   let ty = typ_repr ty in
   match ty.t_desc with
-  | Tfun((Tstatic _ | Tany | Tdiscrete(false)), _, _, _, _) -> true | _ -> false
+  | Tfun((Tstatic _ | Tany | Tdiscrete(false)), _, _, _) -> true | _ -> false
 
 (** Is-it a node ? *)
 let is_a_node_name lname =
   let { info = { value_typ = { typ_body = typ_body } } } = 
     Modules.find_value lname in
   match typ_body.t_desc with
-    | Tfun((Tdiscrete(true) | Tcont), _, _, _, _) -> true | _ -> false
+    | Tfun((Tdiscrete(true) | Tcont), _, _, _) -> true | _ -> false
 
 (** Is-it a function? *)
 let is_a_function_name lname =
@@ -584,7 +585,7 @@ let is_a_function_name lname =
     Modules.find_value lname in
   let ty = typ_repr ty in
   match ty.t_desc with
-    | Tfun(Tany, _, _, _, _) -> true | _ -> false
+    | Tfun(Tany, _, _, _) -> true | _ -> false
 
 (** Is-it a hybrid function? *)
 let is_a_hybrid_node_name lname =
@@ -592,13 +593,13 @@ let is_a_hybrid_node_name lname =
     Modules.find_value lname in
   let ty = typ_repr ty in
   match ty.t_desc with
-    | Tfun(Tcont, _, _, _, _) -> true | _ -> false
+    | Tfun(Tcont, _, _, _) -> true | _ -> false
 
 (* kind of a function type *)
 let rec kind_of_funtype ty =
   let ty = typ_repr ty in
   match ty.t_desc with
-  | Tfun(k, _, _, _, _) -> k | _ -> assert false
+  | Tfun(k, _, _, _) -> k | _ -> assert false
 							
 let kind_of_node_name lname =
   let { info = { value_typ = { typ_body = ty } } } = 
@@ -613,8 +614,8 @@ let noparameters { typ_vars = lvars; typ_body = typ_body } =
     | Tproduct(ty_list)| Tconstr(_, ty_list, _) -> List.for_all static ty_list
     | Tvec(ty_arg, _) -> static ty_arg
     | Tlink(ty_link) -> static ty_link
-    | Tfun(Tstatic _, _, _, _, _) | Tfun(_, _, Some _, _, _) -> false
-    | Tfun(_, _, _, ty_arg, ty_res) -> (static ty_arg) && (static ty_res) in
+    | Tfun(Tstatic _, _, _, _) | Tfun(_, Some _, _, _) -> false
+    | Tfun(_, _, ty_arg, ty_res) -> (static ty_arg) && (static ty_res) in
   static typ_body
 
 (* Does a type scheme contains type variables *)

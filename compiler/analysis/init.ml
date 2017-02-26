@@ -155,7 +155,7 @@ and iunify left_i right_i =
 let rec skeleton ty =
   match ty.t_desc with
   | Tvar -> atom (new_var ())
-  | Tfun(_, _, _, ty1, ty2) -> funtype (skeleton ty1) (skeleton ty2)
+  | Tfun(_, _, ty1, ty2) -> funtype (skeleton ty1) (skeleton ty2)
   | Tproduct(ty_list) -> product (List.map skeleton ty_list)
   | Tconstr(_, _, _) | Tvec _ -> atom (new_var ())
   | Tlink(ty) -> skeleton ty
@@ -163,7 +163,7 @@ let rec skeleton ty =
 let rec skeleton_on_i i ty =
   match ty.t_desc with
   | Tvar -> atom i
-  | Tfun(_, _, _, ty1, ty2) ->
+  | Tfun(_, _, ty1, ty2) ->
      funtype (skeleton_on_i i ty1) (skeleton_on_i i ty2)
   | Tproduct(ty_list) -> product (List.map (skeleton_on_i i) ty_list)
   | Tconstr(_, _, _) | Tvec _ -> atom i

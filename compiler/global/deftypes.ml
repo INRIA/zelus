@@ -41,7 +41,7 @@ type typ = typ_desc loc
    | Tproduct of typ list
    | Tconstr of Lident.qualident * typ list * abbrev ref
    | Tvec of typ * size
-   | Tfun of kind * bool * Ident.t option * typ * typ 
+   | Tfun of kind * Ident.t option * typ * typ 
    | Tlink of typ
 
 and size =

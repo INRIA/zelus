@@ -98,14 +98,6 @@ let check_is_vec loc actual_ty =
   with
     | Types.Unify -> error loc Esize_of_vec_is_undetermined
       
-(* check that a safe function is only called in a discrete context *)
-let safe loc is_safe expected_k =
-  if not is_safe then
-    match expected_k with
-      | Deftypes.Tdiscrete _ -> ()
-      | _ -> (* we treat [is_safe=true] as kind [Tdiscrete(false)] *)
-	     error loc (Ekind_clash(Deftypes.Tdiscrete(false), expected_k))
-
 (* An expression is expansive if it is not an immediate value *)
 let rec expansive { e_desc = desc } =
   match desc with
@@ -750,10 +742,9 @@ and apply loc is_statefull expected_k h e arg_list =
   let rec args ty_fct = function
     | [] -> ty_fct
     | arg :: arg_list ->
-       let actual_k, actual_s, n_opt, ty1, ty2 =
+       let actual_k, n_opt, ty1, ty2 =
 	 try Types.filter_arrow intro_k ty_fct
 	 with Unify ->  error loc (Eapplication_of_non_function) in
-       safe e.e_loc actual_s expected_k;
        let expected_k = lift e.e_loc expected_k actual_k in
        expect expected_k h arg ty1;
        let ty2 =
@@ -1213,7 +1204,7 @@ let funtype loc expected_k pat_list ty_list ty_res =
        (opt_name, ty_arg) :: ty_res_list, fv fv_in_ty_res ty_arg
     | _ -> assert false in
   let ty_arg_list, fv_in_ty_res = arg pat_list ty_list (fv S.empty ty_res) in
-  let ty_res = funtype_list expected_k true ty_arg_list ty_res in
+  let ty_res = funtype_list expected_k ty_arg_list ty_res in
   no_unbounded_name loc fv_in_ty_res ty_res
 
 (* The main entry functions *)
