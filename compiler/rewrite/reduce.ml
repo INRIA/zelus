@@ -87,7 +87,7 @@ let rec expression env fun_defs ({ e_desc = desc } as e) =
 	  (* and return [f ne1...nek]. [f] could then be shared in case *)
 	  (* several instance of [v_fun s1...sn] exist *)
 	  (* Or we directly inline the body of [f]. We take this solution *)
-	  (* at the moment *)
+	  (* for the moment *)
 	  match opt_name, v with
 	  | None, Vfun({ f_args = p_list; f_body = e; f_env = nenv }, env) ->
 	     let e, fun_defs = expression env fun_defs e in
@@ -287,41 +287,39 @@ and block env fun_defs ({ b_locals = l_list; b_body = eq_list } as b) =
  * - v is a value;
  * - e is the corresponding expression for v *)
 and exp_of_value fun_defs { value_exp = v; value_name = opt_name } =
-  match opt_name with
-  | Some(qualident) ->
-     Zaux.emake (Zaux.global (Lident.Modname(qualident))) Deftypes.no_typ,
-     fun_defs
-  | None ->
-     (* otherwise translate the value into an expression *)
-     let desc, fun_defs =
-       match v with
-       | Vconst(i) -> Econst(i), fun_defs
-       | Vconstr0(qualident) ->
-	  Econstr0(Lident.Modname(qualident)), fun_defs
-       | Vtuple(v_list) ->
-	  let v_list, fun_defs =
-	    Misc.map_fold exp_of_value fun_defs v_list in
-	  Etuple(v_list), fun_defs
-       | Vrecord(l_v_list) ->
-	  let l_e_list, fun_defs =
-	    Misc.map_fold
-	      (fun fun_defs (qid, v) ->
-	       let v, fun_defs = exp_of_value fun_defs v in
-	       (Lident.Modname(qid), v), fun_defs)
-	      fun_defs l_v_list in
-	  Erecord(l_e_list), fun_defs
-       | Vperiod(p) -> Eperiod(p), fun_defs
-       | Vfun(funexp, env) ->
+  let desc, fun_defs =
+    match v with
+    | Vconst(i) -> Econst(i), fun_defs
+    | Vconstr0(qualident) ->
+       Econstr0(Lident.Modname(qualident)), fun_defs
+    | Vtuple(v_list) ->
+       let v_list, fun_defs =
+	 Misc.map_fold exp_of_value fun_defs v_list in
+       Etuple(v_list), fun_defs
+    | Vrecord(l_v_list) ->
+       let l_e_list, fun_defs =
+	 Misc.map_fold
+	   (fun fun_defs (qid, v) ->
+	    let v, fun_defs = exp_of_value fun_defs v in
+	    (Lident.Modname(qid), v), fun_defs)
+	   fun_defs l_v_list in
+       Erecord(l_e_list), fun_defs
+    | Vperiod(p) -> Eperiod(p), fun_defs
+    | Vabstract(qualident) ->
+       Zaux.global (Lident.Modname(qualident)), fun_defs
+    | Vfun(funexp, env) ->
+       (* if the function already exist, return its name *)
+       match opt_name with
+       | Some(qualident) ->
+	  Zaux.global (Lident.Modname(qualident)), fun_defs
+       | None ->
 	  let funexp, fun_defs = lambda env fun_defs funexp in
 	  (* introduce a new function *)
 	  let name = fresh () in
 	  Zaux.global (Lident.Name(name)),
-	  { fundefs = (name, funexp) :: fun_defs.fundefs }
-       | Vabstract(qualident) ->
-	  Zaux.global (Lident.Modname(qualident)), fun_defs in
-     Zaux.emake desc Deftypes.no_typ, fun_defs
-
-
+	  { fundefs = (name, funexp) :: fun_defs.fundefs } in
+    Zaux.emake desc Deftypes.no_typ, fun_defs
+				     
 (* Reduction under a function body. *)
 and lambda env fun_defs ({ f_body = e } as funexp) =
   let e, fun_defs = expression env fun_defs e in
