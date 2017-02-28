@@ -221,7 +221,7 @@ localized(X):
 | x = X { make x $startpos $endpos }
 ;
 
-optional(X):
+%inline optional(X):
   | /* empty */
       { None }
   | x = X
@@ -606,10 +606,16 @@ one_let:
 local_list:
   | /* empty */
       { [] }
-  | LOCAL o = list_of(COMMA, one_local) l = local_list
+  | LOCAL o = list_of(COMMA, one_local) opt_in l = local_list
       { o @ l }
 ;
-
+  
+opt_in:
+    /* epsilon */
+  | {}
+  | IN { () }
+;
+    
 one_local:
   | i = ide v = optional(default_or_init) c = opt_combine
     { make { vardec_name = i; vardec_default = v; vardec_combine = c }
@@ -685,9 +691,9 @@ pattern:
 simple_pattern:
   | a = atomic_constant
       { make (Econstpat a) $startpos $endpos }
-  | SUBTRACTIVE i = INT
+  | MINUS i = INT
       { make (Econstpat(Eint(unary_minus_int i))) $startpos $endpos }
-  | SUBTRACTIVE f = FLOAT
+  | MINUS f = FLOAT
       { make (Econstpat(Efloat(unary_minus_float f))) $startpos $endpos }
   | c = constructor
       { make (Econstr0pat(c)) $startpos $endpos }
@@ -802,6 +808,8 @@ expression_desc:
       { Eop(Eifthenelse, [e1; e2; e3]) }
   | e1 = expression MINUSGREATER e2 = expression
       { Eop(Eminusgreater, [e1; e2]) }
+  | MINUS e = expression  %prec prec_uminus
+      { unary_minus "-" e ($startpos($1)) ($endpos($1)) }
   | s = SUBTRACTIVE e = expression  %prec prec_uminus
       { unary_minus s e ($startpos(s)) ($endpos(s)) }
   | e1 = expression i = INFIX4 e2 = expression
@@ -824,10 +832,10 @@ expression_desc:
       { binop "*" e1 e2 ($startpos($2)) ($endpos($2)) }
   | e1 = expression AMPERSAND e2 = expression
       { binop "&" e1 e2 ($startpos($2)) ($endpos($2)) }
-  | e1 = expression s = SUBTRACTIVE e2 = expression
-      { binop s e1 e2 ($startpos(s)) ($endpos(s)) }
   | e1 = expression MINUS e2 = expression
       { binop "-" e1 e2 ($startpos($2)) ($endpos($2)) }
+  | e1 = expression s = SUBTRACTIVE e2 = expression
+      { binop s e1 e2 ($startpos(s)) ($endpos(s)) }
   | e1 = expression AMPERAMPER e2 = expression
       { binop "&&" e1 e2 ($startpos($2)) ($endpos($2)) }
   | e1 = expression BARBAR e2 = expression
@@ -873,7 +881,6 @@ expression_desc:
 	       $startpos $endpos, r) }
 ;
 
-    
 /* Periods */
 period_expression:
   | phase = phase LPAREN period = period RPAREN
