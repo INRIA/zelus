@@ -70,7 +70,8 @@ let rec equation (i_names, i_opt) ({ eq_desc = desc } as eq) =
      (* [e1 -> e2 = if last i then e1 else e2] *)
      let cond, i_opt = condition i_opt in
      { eq with eq_desc =
-		 EQeq(p, { e with e_desc = Eop(Eifthenelse, [cond; e1; e2]) }) },
+		 EQeq(p,
+		      { e with e_desc = Eop(Eifthenelse, [cond; e1; e2]) }) },
      (i_names, i_opt)
   | EQeq({ p_desc = Evarpat(x) } as p, { e_desc = Eop(Einitial, []) })
     -> (* [initial = true fby false] *)

@@ -31,7 +31,7 @@ type ('a, 'b) node =
 type time = float
 type cvec = float array
 type dvec = float array
-type zinvec = float array
+type zinvec = int32 array
 type zoutvec = float array
 		    
 type ('a, 'b) hybrid =

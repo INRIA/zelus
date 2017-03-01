@@ -145,13 +145,14 @@ let maxsize csize zsize instances =
   (* the main function is of the form:
      let c1, z1 = o1.maxsize () in ... in let cn, cn = on.maxsize () in
      c1 + ... + cn, z1 + ... + zn *)
-  let one (c_list, z_list, p_e_list) { i_name = o; i_machine = ei; i_kind = k } =
+  let one (c_list, z_list, p_e_list)
+	  { i_name = o; i_machine = ei; i_kind = k } =
     match k with
     | Tcont ->
        let r1 = Ident.fresh "r" in
        let r2 = Ident.fresh "r" in
-       (var r1) :: c_list,
-       (var r2) :: z_list,
+       (local r1) :: c_list,
+       (local r2) :: z_list,
        (tuplepat [varpat r1 Initial.typ_int; varpat r2 Initial.typ_int],
         Omethodcall { met_machine = None; met_name = Omaxsize;
                       met_instance = Some(o, []); met_args = [] }) :: p_e_list
@@ -161,7 +162,8 @@ let maxsize csize zsize instances =
   let z = sum (int_const zsize) z_list in
   let e = 
     match p_e_list with 
-    | [] -> Oexp (Otuple [c; z]) | _ -> letin p_e_list (Oexp (Otuple([c; z]))) in
+    | [] -> Oexp (Otuple [c; z])
+    | _ -> letin p_e_list (Oexp (Otuple([c; z]))) in
   { me_name = Omaxsize; me_params = []; me_body = e }
 
 (** Add a method [horizon] which returns the next horizon. When it returns *)
@@ -200,7 +202,7 @@ let horizon m_list instances =
 (* This function is generic: [table, size] contains the association table *)
 (* [name, index] with size [size]. [assign n index] does the copy for *)
 (* local memories. *)
-let inout (table, size) method_name assign start vec instances =
+let inout (table, size) method_name assign start (vec, ty) instances =
   (* For every input (n, index) from [table] *)
   (* run [assign n table] *)
   let add n index acc = (assign n index) :: acc in
@@ -220,7 +222,7 @@ let inout (table, size) method_name assign start vec instances =
     | _ -> Olet(varpat start Initial.typ_int, oplus (local start)
 						    (int_const size), c) in
   { me_name = method_name;
-    me_params = [varpat vec (Initial.typ_array Initial.typ_float);
+    me_params = [varpat vec (Initial.typ_array ty);
 		 varpat start Initial.typ_int];
     me_body = Osequence (c_list @ [c]) } 
 
@@ -241,7 +243,7 @@ let inout_const (table, size) method_name set instances =
     | _ :: insts -> add acc insts in
   { me_name = method_name; me_params = [];
     me_body = Osequence (add c_list instances) } 
-  
+
 (* Add a method cin cvec cstart = cstart' which copies [cvec] *)
 (* from position [cstart] to the internal state and returns the new position *)
 let cin (ctable, csize) instances =
@@ -250,7 +252,7 @@ let cin (ctable, csize) instances =
                                                Ocont),
                   get cvec (oplus (local cstart) 
 				  (Oconst(Oint(index))))) in
-  inout (ctable, csize) Ocin assign cstart cvec instances
+  inout (ctable, csize) Ocin assign cstart (cvec, Initial.typ_float) instances
 
 (* Add a method cout cvec cstart = cstart' which copies the internal *)
 (* continuous state into [cvec] from position [cstart]. Returns *)
@@ -262,7 +264,7 @@ let cout (ctable, csize) instances =
                               (Oconst(Oint(index)))),
             Ostate(Oleft_state_primitive_access(Oleft_state_name(n),
                                                 Ocont))) in
-  inout (ctable, csize) Ocout assign cstart cvec instances
+  inout (ctable, csize) Ocout assign cstart (cvec, Initial.typ_float) instances
 	
 (* Add a method dout cvec cstart = cstart' which copies the internal *)
 (* derivative into [dvec] from position [cstart]. Returns the new position *)
@@ -273,7 +275,7 @@ let dout (ctable, csize) instances =
                               (Oconst(Oint(index)))),
             Ostate(Oleft_state_primitive_access(Oleft_state_name(n),
                                                 Oder))) in
-  inout (ctable, csize) Odout assign cstart cvec instances
+  inout (ctable, csize) Odout assign cstart (cvec, Initial.typ_float) instances
 	
 (* Add a method zin zin_vec zstart = zstart' which copies [zin_vec] *)
 (* from position [zstart] to the internal state and returns the new position *)
@@ -283,7 +285,8 @@ let zin (ztable, zsize) instances =
                                                Ozero_in),
                   get_zin zin_vec (oplus (local zstart) 
 					 (Oconst(Oint(index))))) in
-  inout (ztable, zsize) Ozin assign zstart zin_vec instances
+  inout (ztable, zsize)
+	Ozin assign zstart (zin_vec, Initial.typ_int32) instances
 
 (* Add a method clear_zin zstart = zstart' which sets the internal state for *)
 (* zero-crossings to false from position [zstart]. *)
@@ -303,7 +306,8 @@ let zout (ztable, zsize) instances =
                               (Oconst(Oint(index)))),
             Ostate(Oleft_state_primitive_access(Oleft_state_name(n),
                                                 Ozero_out))) in
-  inout (ztable, zsize) Ozout assign zstart zout_vec instances
+  inout
+    (ztable, zsize) Ozout assign zstart (zout_vec, Initial.typ_float) instances
 	
 (* Add a method dzero dvec cstart = cstart' which resets to 0 the internal *)
 (* derivatives in [dvec] from position [cstart]. Returns the new position *)
@@ -402,7 +406,7 @@ let simulate f =
          me_params =
 	   [varpat cvec (Initial.typ_array Initial.typ_float);
 	    varpat dvec (Initial.typ_array Initial.typ_float);
-	    varpat zin_vec (Initial.typ_array Initial.typ_float);
+	    varpat zin_vec (Initial.typ_array Initial.typ_int32);
 	    varpat time (Initial.typ_array Initial.typ_float)];
          me_body =
            olets [Owildpat, call Ocin [local cvec; int_const 0];

@@ -152,7 +152,7 @@ and block dv ({ b_vars = n_list; b_body = eq_list; b_env = n_env;
   { b with b_vars = n_list; b_body = eq_list; b_env = n_env }
 
 (* Expressions. *)
-let rec exp ({ e_desc = desc } as e) =
+let exp ({ e_desc = desc } as e) =
   let desc =
     match desc with
     | Elet(l, e_let) -> Elet(local l, e_let)

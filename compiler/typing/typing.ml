@@ -701,7 +701,7 @@ and operator expected_k h loc op e_list =
         let ty = new_var () in
         Tcont, [ty], Initial.typ_zero
     | Einitial ->
-       Tcont, [Initial.typ_unit], Initial.typ_zero
+       Tcont, [], Initial.typ_zero
     | Eaccess -> assert false in
   less_than loc actual_k expected_k;
   List.iter2 (expect expected_k h) e_list ty_args;
