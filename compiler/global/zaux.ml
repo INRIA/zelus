@@ -13,6 +13,7 @@
 (**************************************************************************)
 (* Functions to build expressions *)
 
+open Misc
 open Location
 open Initial
 open Deftypes
@@ -79,14 +80,22 @@ let bool_last x = last x Initial.typ_bool
 
 let global_in_pervasives lname ty =
   emake (global (Modname(Initial.pervasives_name lname))) ty
+
+let maketype ty_arg_list ty_res =
+  let make ty = { t_desc = ty; t_level = generic; t_index = symbol#name } in
+  make (Tfun(Tany, None, make (Tproduct(ty_arg_list)), ty_res))
+
 let unop op e ty =
-  emake (Eapp(prime_app, global_in_pervasives op Deftypes.no_typ, [e])) ty
+  emake (Eapp(prime_app,
+	      global_in_pervasives op (maketype [e.e_typ] ty), [e])) ty
 let binop op e1 e2 ty =
-  emake (Eapp(prime_app, global_in_pervasives op Deftypes.no_typ, [e1;e2])) ty
-	   
+  emake (Eapp(prime_app,
+	      global_in_pervasives op (maketype [e1.e_typ; e2.e_typ] ty),
+	      [e1;e2])) ty
+
 let plus e1 e2 = binop "+." e1 e2 Initial.typ_float
 let minus e1 e2 = binop "-." e1 e2 Initial.typ_float
-let diff e1 e2 = binop "<>" e1 e2 Initial.typ_float
+let diff e1 e2 = binop "<>" e1 e2 Initial.typ_bool
 let or_op e1 e2 = binop "||" e1 e2 Initial.typ_bool
 let on_op e1 e2 = binop "on" e1 e2 Initial.typ_zero
 let min_op e1 e2 = binop "min" e1 e2 Initial.typ_float

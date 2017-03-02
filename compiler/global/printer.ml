@@ -177,11 +177,14 @@ let print_writes ff { dv = dv; di = di; der = der } =
   let der = Ident.S.elements der in
   open_box 0;
   if dv <> [] then 
-    fprintf ff "@[<v 0>(* dv = {@[%a@]} *)@ @]" (print_list_r name "" "," "") dv;
+    fprintf ff
+	    "@[<v 0>(* dv = {@[%a@]} *)@ @]" (print_list_r name "" "," "") dv;
   if di <> [] then
-    fprintf ff "@[<v 0>(* di = {@[%a@]} *)@ @]" (print_list_r name "" "," "") di;
+    fprintf ff
+	    "@[<v 0>(* di = {@[%a@]} *)@ @]" (print_list_r name "" "," "") di;
   if der <> [] then
-    fprintf ff "@[<v 0>(* der = {@[%a@]} *)@ @]" (print_list_r name "" "," "") der;
+    fprintf ff
+	    "@[<v 0>(* der = {@[%a@]} *)@ @]" (print_list_r name "" "," "") der;
   close_box ()
       
 (* print a block surrounded by two braces [po] and [pf] *)
@@ -207,7 +210,8 @@ let present_handler scondpat body ff { p_cond = scpat; p_body = b; p_env = env }
     scondpat scpat print_env env body b
 
 let rec expression ff e =
-  (* fprintf ff "@[(* %a *)@]" Ptypes.output e.e_typ; *)
+  if Deftypes.is_no_typ e.e_typ then
+    fprintf ff "@[(* %a *)@]" Ptypes.output e.e_typ;
   match e.e_desc with
     | Elocal n -> name ff n
     | Eglobal { lname = ln } -> longname ff ln

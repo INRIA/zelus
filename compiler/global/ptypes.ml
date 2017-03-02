@@ -72,7 +72,9 @@ let rec print prio ff ({ t_desc = desc } as ty) =
       (* prefix non generalized type variables with "_" *)
       let p = if ty.t_level <> Misc.notgeneric then "" else "_" in
       fprintf ff "@['%s%s@]" p (type_name#name ty.t_index)
-  | Tproduct [] -> fprintf ff "ERROR"
+  | Tproduct [] ->
+     (* this situation should not happen after typing *)
+     fprintf ff "ERROR"
   | Tproduct(ty_list) -> print_list (print (prio_current + 1)) " *" ff ty_list
   | Tconstr(name, ty_list, _) ->
      let n = List.length ty_list in

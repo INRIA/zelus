@@ -123,6 +123,9 @@ let make desc =
 let make_realtime desc =
   { t_desc = desc; t_index = - 1; t_level = generic }
 let no_typ = make (Tproduct [])
+let rec is_no_typ { t_desc = desc } =
+  match desc with
+  | Tproduct [] -> true | Tlink(link) -> is_no_typ link | _ -> false
 let no_typ_scheme = { typ_vars = []; typ_body = no_typ }
 let no_typ_instance = { typ_instance = [] }
 let no_abbrev () = ref Tnil

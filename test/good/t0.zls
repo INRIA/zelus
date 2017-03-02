@@ -1,4 +1,13 @@
-let f(x) = - 1.0
+let node f3(r, x) =
+  let rec
+    nat = if r then 0 else pnat + 1
+  and
+    pnat = 1 -> pre(nat) in
+  let rec
+    nat2 = nat + if r then 0 else pnat2 + nat
+  and
+    pnat2 = 1 -> pre(nat2) in
+  nat + nat2
 
 (* let node f(x) =
   let rec

@@ -86,13 +86,13 @@ let rec par_equation eq_list ({ eq_desc = desc } as eq) =
   | EQand(and_eq_list) ->
      List.fold_left par_equation eq_list and_eq_list
   | EQbefore(before_eq_list) ->
-     let before_eq_list = List.fold_left seq_equation [] before_eq_list in
-     { eq with eq_desc = EQbefore(List.rev before_eq_list) } :: eq_list
+     let before_eq_list =  List.fold_right seq_equation before_eq_list [] in
+     { eq with eq_desc = EQbefore(before_eq_list) } :: eq_list
   | EQforall(body) ->
      { eq with eq_desc = forall_eq body } :: eq_list
   | EQemit _ | EQautomaton _ | EQpresent _ | EQblock _ -> assert false
 
-and seq_equation eq_list ({ eq_desc = desc } as eq) =
+and seq_equation ({ eq_desc = desc } as eq) eq_list =
   match desc with
   | EQeq _ | EQpluseq _ | EQinit _ | EQnext _ | EQder _ -> eq :: eq_list
   | EQmatch(total, e, p_h_list) ->
@@ -101,10 +101,9 @@ and seq_equation eq_list ({ eq_desc = desc } as eq) =
      { eq with eq_desc = reset_eq res_eq_list e } :: eq_list
   | EQand(and_eq_list) ->
      let and_eq_list = List.fold_left par_equation [] and_eq_list in
-     (schedule and_eq_list) @ eq_list
+     { eq with eq_desc = EQbefore(schedule and_eq_list) } :: eq_list
   | EQbefore(before_eq_list) ->
-     let before_eq_list = List.fold_left seq_equation eq_list before_eq_list in
-     { eq with eq_desc = EQbefore(List.rev before_eq_list) } :: eq_list
+     List.fold_right seq_equation before_eq_list eq_list
   | EQforall(body) ->
      { eq with eq_desc = forall_eq body } :: eq_list
   | EQemit _ | EQautomaton _ | EQpresent _ | EQblock _ -> assert false

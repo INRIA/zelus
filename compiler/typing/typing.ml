@@ -308,7 +308,9 @@ let constant loc expected_ty = function
      unify loc expected_ty actual_ty
 	   
 (* Typing the declaration of variables. The result is a typing environment *)
-let vardec_list expected_k n_list =
+(* [inames] is the set of initialized variables, that is, variable *)
+(* which appear in an [init x = e] equation *)
+let vardec_list expected_k n_list inames =
   let default loc expected_ty c_opt = function
   | Init(v) ->
      (* the initialization must appear in a statefull function *)
@@ -334,7 +336,10 @@ let vardec_list expected_k n_list =
 	 | Tstatic _ -> Deftypes.static
 	 | Tany | Tdiscrete false -> Deftypes.default None c_opt
 	 | Tdiscrete true
-	 | Tcont -> Deftypes.Smem (Deftypes.cmem c_opt Deftypes.empty_mem) in
+	 | Tcont ->
+	    Deftypes.Smem (Deftypes.cmem c_opt
+					 (if S.mem n inames then Deftypes.imem
+					  else Deftypes.empty_mem)) in
     Env.add n { t_typ = expected_ty; t_sort = sort } h0 in
   List.fold_left vardec Env.empty n_list
  
@@ -562,22 +567,6 @@ let present_handlers scondpat body loc expected_k h p_h_list b_opt expected_ty =
   (* identify variables which are defined partially *)
   Total.merge loc h defined_names_list
 
-let block locals body expected_k h 
-    ({ b_vars = n_list; b_locals = l_list; b_body = bo } as b) expected_ty =
-  (* initialize the local environment *)
-  let h0 = vardec_list expected_k n_list in
-  let h = Env.append h0 h in
-  let new_h = locals expected_k h l_list in
-  let defined_names = body expected_k new_h bo in
-  (* check that every local variable from [l_list] appears in *)
-  (* [defined_variable] and that initialized state variables are not *)
-  (* re-initialized in the body *)
-  let defined_names =
-    check_definitions_for_every_name defined_names n_list in
-  (* annotate the block with the set of written variables and environment *)
-  b.b_write <- defined_names;
-  b.b_env <- h0;
-  new_h, defined_names
 
 (* [expression expected_k h e] returns the type for [e] *)
 let rec expression expected_k h ({ e_desc = desc; e_loc = loc } as e) =
@@ -934,7 +923,8 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
        let init_h = List.fold_left init Env.empty init_list in
        (* the environment [h] is extended with [in_h], [out_h] and [init_h] *)
        let h = Env.append in_h (Env.append out_h (Env.append init_h h)) in
-       let _, ({ dv = dv } as defnames) = block_eq_list expected_k h b_eq_list in
+       let _, ({ dv = dv } as defnames) =
+	 block_eq_list expected_k h b_eq_list in
        (* check that every name in defnames is initialized or an output *)
        merge defnames init_h out_h;
        (* remove names in [out_h] from [defnames] and add [out_right] *)
@@ -977,11 +967,24 @@ and match_handler_exp_list loc expected_k h total m_h_list pat_ty ty =
       expect expected_k h e expected_ty; Deftypes.empty)
     loc expected_k h total m_h_list pat_ty ty
   
-(** Type a block when the body is a list of equations *)
-and block_eq_list expected_k h b = 
-  let locals expected_k h l_list =
-    List.fold_left (local expected_k) h l_list in 
-  block locals equation_list expected_k h b Initial.typ_unit
+and block_eq_list expected_k h 
+		  ({ b_vars = n_list; b_locals = l_list;
+		     b_body = eq_list } as b) =
+  (* initialize the local environment *)
+  let _, inames = build_list (S.empty, S.empty) eq_list in
+  let h0 = vardec_list expected_k n_list inames in
+  let h = Env.append h0 h in
+  let new_h = List.fold_left (local expected_k) h l_list in
+  let defined_names = equation_list expected_k new_h eq_list in
+  (* check that every local variable from [l_list] appears in *)
+  (* [defined_variable] and that initialized state variables are not *)
+  (* re-initialized in the body *)
+  let defined_names =
+    check_definitions_for_every_name defined_names n_list in
+  (* annotate the block with the set of written variables and environment *)
+  b.b_write <- defined_names;
+  b.b_env <- h0;
+  new_h, defined_names
 
 and local expected_k h ({ l_eq = eq_list } as l) =
   (* decide whether [last x] is allowed or not on every [x] from [h0] *)
