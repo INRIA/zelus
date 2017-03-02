@@ -1,11 +1,11 @@
-val unsafe initialize : int -> unit
+val initialize : int -AD-> unit
 (** Initialize the generator, using the argument as a seed.
      The same seed will always yield the same sequence of numbers. *)
 
-val unsafe full_init : int array -> unit
+val full_init : int array -AD-> unit
 (** Same as {!Random.init} but takes more data as seed. *)
 
-val unsafe self_init : unit -> unit
+val self_init : unit -AD-> unit
 (** Initialize the generator with a more-or-less random seed chosen
    in a system-dependent way. *)
 
