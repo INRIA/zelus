@@ -36,7 +36,8 @@ let par { env = env1; eqs = eqs1 } { env = env2; eqs = eqs2 } =
   { env = State.par env1 env2; eqs = State.par eqs1 eqs2 }
 let seq { env = env1; eqs = eqs1 } { env = env2; eqs = eqs2 } =
   { env = State.seq env1 env2; eqs = State.seq eqs1 eqs2 }
-let cons eq ({ eqs = eqs } as ctx) = { ctx with eqs = State.cons eq eqs }
+let add eq ({ eqs = eqs } as ctx) =
+  { ctx with eqs = State.par (State.singleton eq) eqs }
 				   				      
 let optional f e_opt =
   match e_opt with
@@ -138,18 +139,18 @@ and equation ({ eq_desc = desc } as eq) =
   match desc with 
   | EQeq(p, e) ->
      let e, ctx = expression e in
-     cons { eq with eq_desc = EQeq(p, e) } ctx
+     add { eq with eq_desc = EQeq(p, e) } ctx
   | EQpluseq(n, e) ->
      let e, ctx_e = expression e in
-     cons { eq with eq_desc = EQpluseq(n, e) } ctx_e
+     add { eq with eq_desc = EQpluseq(n, e) } ctx_e
   | EQder(n, e, e0_opt, []) ->
      let e, ctx = expression e in
      let e0_opt, ctx0 = optional expression e0_opt in
      let eq = { eq with eq_desc = EQder(n, e, e0_opt, []) } in
-     cons eq (par ctx ctx0)
+     add eq (par ctx ctx0)
   | EQinit(n, e0) ->
      let e0, ctx_e0 = expression e0 in
-     cons { eq with eq_desc = EQinit(n, e0) } ctx_e0
+     add { eq with eq_desc = EQinit(n, e0) } ctx_e0
   | EQmatch(total, e, p_h_list) ->
      let e, ctx_e = expression e in
      let p_h_list =
@@ -158,12 +159,12 @@ and equation ({ eq_desc = desc } as eq) =
           let b = block b in
           { p_h with m_body = b })
          p_h_list in
-     cons { eq with eq_desc = EQmatch(total, e, p_h_list) } ctx_e
+     add { eq with eq_desc = EQmatch(total, e, p_h_list) } ctx_e
   | EQreset(res_eq_list, e) -> 
      let e, ctx_e = expression e in
      let { env = env; eqs = eqs } = par_equation_list res_eq_list in
      let res_eq_list = equations eqs in
-     cons { eq with eq_desc = EQreset(res_eq_list, e) }
+     add { eq with eq_desc = EQreset(res_eq_list, e) }
 	  { empty with env = env }
   | EQand(and_eq_list) -> par_equation_list and_eq_list
   | EQbefore(before_eq_list) ->
@@ -195,7 +196,7 @@ and equation ({ eq_desc = desc } as eq) =
      let ind_list, ind_ctx = par_fold index ind_list in
      let i_list, i_ctx = par_fold init i_list in
      let b_eq_list = block b_eq_list in
-     cons { eq with eq_desc =
+     add { eq with eq_desc =
 		       EQforall { body with for_index = ind_list;
 					    for_init = i_list;
 					    for_body = b_eq_list } }

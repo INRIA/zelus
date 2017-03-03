@@ -46,23 +46,26 @@ let print ff table =
 		   names l (if u then "true" else "false") in
   Env.iter entry table 
 
-(* mark all names in [r] to be useful *)
-let mark_useful r table =
-  let mark x table =
-    try
-      let { c_useful = u } as cont = Env.find x table in
-      cont.c_useful <- true;
-      table
-    with
-    | Not_found ->
-       Env.add x
-	       { c_vars = S.empty; c_useful = true; c_visited = false } table in
-  S.fold mark r table
-
-(** Add the entries [x <- x1; ...; x <- xn] in the table. If x already exists *)
-(* extends its definition. Otherwise, add the new entry *)
-(* when [is_useful = true], mark all read variables [x1,..., xn] to be useful *)
+(* Add the entries [x_j <- x1; ...; x_j <- xn] in the table. *)
+(* for any variable [x_j in w] *)
+(* if [x_j] already, extends the set of variables on which it depends. *)
+(* Otherwise, add the new entry *)
+(* when [is_useful = true], mark all read and write variables to be useful *)
 let add is_useful w r table =
+  (* mark all names in [set] to be useful *)
+  let mark_useful set table =
+    let mark x table =
+      try
+	let { c_useful = u } as cont = Env.find x table in
+	cont.c_useful <- true;
+	table
+      with
+      | Not_found ->
+	 Env.add x
+		 { c_vars = S.empty; c_useful = true;
+		   c_visited = false } table in
+    S.fold mark set table in
+  
   let add x table =
     try
       let { c_vars = l; c_useful = u } as cont = Env.find x table in
@@ -88,10 +91,10 @@ let extend table names =
 
 (** Fusion of two tables *)
 let merge table1 table2 =
-  let add x ({ c_vars = l1 } as cont1) table =
+  let add x ({ c_vars = l1; c_useful = u1 } as cont1) table =
     try
-      let ({ c_vars = l2 } as cont2) = Env.find x table in
-      cont2.c_vars <- S.union l1 l2;
+      let ({ c_vars = l2; c_useful = u2 } as cont2) = Env.find x table in
+      cont2.c_vars <- S.union l1 l2; cont2.c_useful <- u1 || u2;
       table
     with 
     | Not_found -> Env.add x cont1 table in

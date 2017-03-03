@@ -1,14 +1,25 @@
-let node f3(r, x) =
-  let rec
-    nat = if r then 0 else pnat + 1
-  and
-    pnat = 1 -> pre(nat) in
-  let rec
-    nat2 = nat + if r then 0 else pnat2 + nat
-  and
-    pnat2 = 1 -> pre(nat2) in
-  nat + nat2
-
+let node f (x_36, y_37, s_39) =
+   let rec (* dv = {k_40} *)
+   (k_40 : int) =
+      (if x_36 then 1
+       else (* defs: val m_63: int *)
+         let rec (m_63 : int) =
+                       0 -> ((* defs: last  mem m_62: int *)
+                              (let rec (m_62 : int) = s_39 in
+                               (m_62)) + 2) in
+          m_63) in
+   (* defs:  mem m_41: int *)
+   let rec (* dv = {m_41} *)
+     (m_41 : int) =
+         (if y_37 then k_40
+          else (* defs: val m_65: int *)
+              let rec (m_65 : int) =
+                          k_40 -> ((* defs: last  mem m_64: int *)
+                                    (let rec (m_64 : int) = 1 in
+                                     (m_64) + k_40)) in
+              m_65) in 
+    k_40 + m_41
+    
 (* let node f(x) =
   let rec
       forall i_42 in 0 .. 3, xi in x, yi in x

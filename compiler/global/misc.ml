@@ -227,10 +227,16 @@ module State =
       | Par(l1, l2) | Seq(l1, l2) -> (iter f l1; iter f l2)
       
     let fprint_t fprint_v ff s =
-      Format.fprintf ff "@[<hov>{@ ";
-      iter (fun v -> Format.fprintf ff "%a@ " fprint_v v) s;
-      Format.fprintf ff "}@]"
-
+      let rec print ff s =
+	match s with
+	| Empty -> Format.fprintf ff "{}"
+	| Cons(x, s) ->
+	   Format.fprintf ff "@[Cons(%a,@ %a)@]" fprint_v x print s
+	| Par(s1, s2) ->
+	   Format.fprintf ff "@[Par(%a,@ %a)@]" print s1 print s2
+	| Seq(s1, s2) ->
+	   Format.fprintf ff "@[Seq(%a,@ %a)@]" print s1 print s2 in
+      Format.fprintf ff "@[<hov>%a@]" print s
   end
 
 (* error during the whole process *)
