@@ -56,7 +56,7 @@ open Basics
 let piecewise = Gtkplot.piecewise
 let square    = Gtkplot.square
 let linear    = Gtkplot.linear
-let points x  = Gtkplot.points x
+let discrete points x  = Gtkplot.points x
 
 let node scope (yl, yu, (n1, t1, v1)) =
   let init s1 = Gtkplot.signal (n1, t1) in
