@@ -86,6 +86,7 @@ GENCODE = gencode/sol.cmo \
 	  gencode/cssa.cmo \
 	  gencode/obc.cmo \
 	  gencode/oprinter.cmo \
+	  gencode/o2mlprinter.cmo \
 	  gencode/translate.cmo \
 	  gencode/inout.cmo	  
 
