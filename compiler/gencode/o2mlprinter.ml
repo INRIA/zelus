@@ -389,7 +389,7 @@ let def_instance_function ff { i_name = n; i_machine = ei; i_kind = k;
  *   let f_step y = ... in
  *   let f_reset = ... in
  *   { alloc = f_alloc; step = f_step; reset = f_reset, ... } *)	     
-let machine ff f { ma_kind = k;
+let machine f ff { ma_kind = k;
                    ma_params = pat_list;
 		   ma_memories = memories;
                    ma_instances = instances;
@@ -424,7 +424,7 @@ let implementation ff impl = match impl with
   | Oletfun(n, pat_list, i) ->
      fprintf ff "@[<v 2>let %a %a =@ %a@.@.@]"
              shortname n pattern_list pat_list (inst 0) i
-  | Oletmachine(n, m) -> machine ff n m
+  | Oletmachine(n, m) -> machine n ff m
   | Oopen(s) ->
      fprintf ff "@[open %s@.@]" s
   | Otypedecl(l) ->

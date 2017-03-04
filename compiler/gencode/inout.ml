@@ -407,11 +407,11 @@ let simulate f =
 	   [varpat cvec (Initial.typ_array Initial.typ_float);
 	    varpat dvec (Initial.typ_array Initial.typ_float);
 	    varpat zin_vec (Initial.typ_array Initial.typ_int32);
-	    varpat time (Initial.typ_array Initial.typ_float)];
+	    varpat time Initial.typ_float];
          me_body =
            olets [Owildpat, call Ocin [local cvec; int_const 0];
 		  Owildpat, call Ozin [local zin_vec; int_const 0];
-		  Owildpat, call Ostep [local time; void];
+		  Owildpat, call Ostep [tuple [local time; void]];
 		  Owildpat, call Oclear_zin [];
 		  Owildpat, call Odzero [];
 		  Owildpat, call Ocout [local cvec; int_const 0]]
@@ -420,20 +420,20 @@ let simulate f =
          me_params =
 	   [varpat cvec (Initial.typ_array Initial.typ_float);
 	    varpat dvec (Initial.typ_array Initial.typ_float);
-	    varpat time (Initial.typ_array Initial.typ_float)];
+	    varpat time Initial.typ_float];
          me_body = 
            olets [Owildpat, call Ocin [local cvec; int_const 0];
-		  Owildpat, call Ostep [local time; void];
+		  Owildpat, call Ostep [tuple [local time; void]];
 		  Owildpat, call Odout [local dvec; int_const 0]]
 	 	 (Oexp(Oconst(Ovoid))) };
        { me_name = Ocrossings;
          me_params =
 	   [varpat cvec (Initial.typ_array Initial.typ_float);
 	    varpat zout_vec (Initial.typ_array Initial.typ_float);
-	    varpat time (Initial.typ_array Initial.typ_float)];
+	    varpat time Initial.typ_float];
          me_body = 
            olets [Owildpat, call Ocin [local cvec; int_const 0];
-		  Owildpat, call Ostep [local time; void];
+		  Owildpat, call Ostep [tuple [local time; void]];
 		  Owildpat, call Ozout [local zout_vec; int_const 0]]
 		 (Oexp(Oconst(Ovoid))) };
        { me_name = Oreset;

@@ -107,9 +107,9 @@ let disc e =
   else Zaux.on_op major_step (diff e (fby e e))
 
 (* Add an extra input parameter for hybrid nodes *)
-let extra_input time env pat_list = 
+let extra_input time env pat = 
   Env.add time { t_sort = Deftypes.value; t_typ = Initial.typ_float } env,
-  (float_varpat time) :: pat_list
+  Zaux.pairpat (float_varpat time) pat
 
 (** Translation of expressions. *)
 let rec expression time ({ e_desc = e_desc } as e) =
@@ -120,8 +120,11 @@ let rec expression time ({ e_desc = e_desc } as e) =
      (* for hybrid nodes, add the extra input [time] *)
      let op = expression time op in
      let e_list = List.map (expression time) e_list in
-     let e_list = if Types.is_hybrid op.e_typ then (float_var time) :: e_list
-		  else e_list in
+     let e_list =
+       if Types.is_hybrid op.e_typ then
+         let head, tail = Misc.firsts e_list in
+         head @ [Zaux.pair (float_var time) tail]
+       else e_list in
      { e with e_desc = Eapp(app, op, e_list) }
   | Etuple(e_list) ->
      { e with e_desc = Etuple(List.map (expression time) e_list) }
@@ -213,9 +216,10 @@ let implementation impl =
 		   f_body = e; f_env = f_env } as body)) ->
      let time = new_time () in
      let e = expression time e in
-     let f_env, pat_list = extra_input time f_env pat_list in
+     let head, tail = Misc.firsts pat_list in
+     let f_env, tail = extra_input time f_env tail in
      { impl with desc = 
-		   Efundecl(n, { body with f_args = pat_list; 
+		   Efundecl(n, { body with f_args = head @ [tail]; 
 					   f_body = e; f_env = f_env }) }
        
 let implementation_list impl_list = Misc.iter implementation impl_list

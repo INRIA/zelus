@@ -76,7 +76,7 @@ let emit_prelude ff ({ Lident.id = id } as qualid) k =
 
   | Deftypes.Tdiscrete(true) ->
      fprintf ff
-       "@[open Zlib@.\
+       "@[open Ztypes@.\
           (* simulation (discrete) function *)@.\
           let main = \
             @[let Node { alloc = alloc; step = step; reset = reset } = %s in @,\
@@ -89,7 +89,10 @@ let emit_prelude ff ({ Lident.id = id } as qualid) k =
      let m = Inout.simulate (Lident.Modname qualid) in
      (* emit the code *)
      Modules.initialize (String.capitalize_ascii id);
-     O2mlprinter.machine ff "main" m
+     fprintf ff
+             "@[open Ztypes@.\
+                (* simulation (continuous) function *)@.\
+                %a@]" (O2mlprinter.machine "main") m
 
 (* emited code for control-driven programs: the transition function *)
 (* is executed at full speed *)

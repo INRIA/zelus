@@ -40,22 +40,6 @@ and priority_inst = function
   | Osequence _ -> 1
   | Oexp(e) -> priority_exp e
 
-let immediate ff = function
-  | Oint i ->
-     if i < 0 then fprintf ff "(%a)" pp_print_int i else pp_print_int ff i
-  | Oint32 i ->
-     if i < 0
-     then fprintf ff "(%al)" pp_print_int i
-     else fprintf ff "%al"   pp_print_int i
-  | Ofloat f ->
-     if f < 0.0 then fprintf ff "(%a)" pp_print_float f
-     else pp_print_float ff f
-  | Obool b -> if b then fprintf ff "true" else fprintf ff "false"
-  | Ostring s -> fprintf ff "%S" s
-  | Ochar c -> fprintf ff "'%c'" c
-  | Ovoid -> pp_print_string ff "()"
-  | Oany -> fprintf ff "any"
-	     
 let kind = function
   | Deftypes.Tstatic _ | Deftypes.Tany | Deftypes.Tdiscrete _ -> "discrete"
   | Deftypes.Tcont -> "continuous"
@@ -104,6 +88,22 @@ let print_concrete_type ff ty =
 
 let ptype ff ty = Ptypes.output ff ty
       
+let immediate ff = function
+  | Oint i ->
+     if i < 0 then fprintf ff "(%a)" pp_print_int i else pp_print_int ff i
+  | Oint32 i ->
+     if i < 0
+     then fprintf ff "(%al)" pp_print_int i
+     else fprintf ff "%al"   pp_print_int i
+  | Ofloat f ->
+     if f < 0.0 then fprintf ff "(%a)" pp_print_float f
+     else pp_print_float ff f
+  | Obool b -> if b then fprintf ff "true" else fprintf ff "false"
+  | Ostring s -> fprintf ff "%S" s
+  | Ochar c -> fprintf ff "'%c'" c
+  | Ovoid -> pp_print_string ff "()"
+  | Oany -> fprintf ff "any"
+	     
 let rec pattern ff pat = match pat with
   | Owildpat -> fprintf ff "_"
   | Oconstpat(i) -> immediate ff i
@@ -334,9 +334,9 @@ let pmethod ff { me_name = m_name; me_params = p_list; me_body = i } =
           
 	  
 (** Print a machine *)
-let machine ff f { ma_kind = k; ma_params = pat_list;
-			 ma_memories = memories; ma_instances = instances;
-                         ma_methods = m_list } =
+let machine f ff { ma_kind = k; ma_params = pat_list;
+		   ma_memories = memories; ma_instances = instances;
+                   ma_methods = m_list } =
   fprintf ff
    "@[<hov 2>let %s = machine(%s)%a@ \
    {@, @[@[<v 2>memories@ @[%a@]@]@;@[<v 2>instances@ @[%a@]@]@;@[%a@]@]]}@.@]"
@@ -353,7 +353,7 @@ let implementation ff impl = match impl with
   | Oletfun(n, pat_list, i) ->
      fprintf ff "@[<v 2>let %a %a =@ %a@.@.@]"
              shortname n pattern_list pat_list (inst 0) i
-  | Oletmachine(n, m) -> machine ff n m
+  | Oletmachine(n, m) -> machine n ff m
   | Oopen(s) ->
      fprintf ff "@[open %s@.@]" s
   | Otypedecl(l) ->
