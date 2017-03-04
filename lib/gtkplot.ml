@@ -849,10 +849,10 @@ class window title initial_max_t (scs : scope list) =
 
   end
 
-let signal name ty       = new signal name ty
-let scope yl yu signals  = new scope yl yu signals
-let window imax_t scopes = new window imax_t scopes
+let signal (name, ty)       = new signal name ty
+let scope (yl, yu, signals)  = new scope yl yu signals
+let window (imax_t, scopes, scope_list) = new window imax_t scopes scope_list
 
-let update s v = s#sample v
-let tick w t = (w#tick t; w#draw)
+let update (s, v) = s#sample v
+let tick (w, t) = (w#tick t; w#draw)
 

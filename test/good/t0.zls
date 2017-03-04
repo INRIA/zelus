@@ -1,24 +1,8 @@
-let node f (x_36, y_37, s_39) =
-   let rec (* dv = {k_40} *)
-   (k_40 : int) =
-      (if x_36 then 1
-       else (* defs: val m_63: int *)
-         let rec (m_63 : int) =
-                       0 -> ((* defs: last  mem m_62: int *)
-                              (let rec (m_62 : int) = s_39 in
-                               (m_62)) + 2) in
-          m_63) in
-   (* defs:  mem m_41: int *)
-   let rec (* dv = {m_41} *)
-     (m_41 : int) =
-         (if y_37 then k_40
-          else (* defs: val m_65: int *)
-              let rec (m_65 : int) =
-                          k_40 -> ((* defs: last  mem m_64: int *)
-                                    (let rec (m_64 : int) = 1 in
-                                     (m_64) + k_40)) in
-              m_65) in 
-    k_40 + m_41
+open Basics
+
+let node scope2 (n1, n2, v1, v2) =
+  let init names = cons (n1, singleton n2) in
+  (names, cons (v1, singleton v2))
     
 (* let node f(x) =
   let rec

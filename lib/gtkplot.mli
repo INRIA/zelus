@@ -15,28 +15,28 @@ type window
 
 val signal :
      string         (* name *)
-  -> signal_type    (* type of plot *)
+  * signal_type    (* type of plot *)
   -> signal
 
 (* must have called allocate_signals first *)
-val update : signal -> float -> unit
+val update : signal * float -> unit
 
 (* A signal must only be added to a single scope *)
 val scope :
      float       (* minimum on y_axis *)
-  -> float       (* maximum on y_axis *)
-  -> signal list
+  * float       (* maximum on y_axis *)
+  * signal list
   -> scope
 
 (* A scope must only be added to a single window *)
 val window :
      string (* window title *)
-  -> float  (* initial maximum time *)
-  -> scope list
+  * float  (* initial maximum time *)
+  * scope list
   -> window
 
 val tick :
      window
-  -> float  (* current time *)
+  * float  (* current time *)
   -> unit
 

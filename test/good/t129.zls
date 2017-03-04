@@ -15,16 +15,16 @@ let node sum(n)(x, y) = z where
 (* accumulation des valeurs *)
 let node cumul(n)(x) = z where
   rec forall i in 0 .. n, xi in x do
-        z = last z + xi
-      initialize
+       z = last z + xi
+      where
         last z = 0 done
 
 (* produit scalaire de deux tableaux *)
 let node scalar(n)(x, y) = z where
   rec forall i in 0 .. n, xi in x, yi in y do
 	z = last z + xi * yi
-      initialize
-	last z = 0
+      where
+        last z = 0
       done
 
 (* somme de deux matrices *)
