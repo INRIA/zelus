@@ -89,7 +89,7 @@ let emit_prelude ff ({ Lident.id = id } as qualid) k =
      let m = Inout.simulate (Lident.Modname qualid) in
      (* emit the code *)
      Modules.initialize (String.capitalize_ascii id);
-     Oprinter.machine_as_functions ff "main" m
+     O2mlprinter.machine ff "main" m
 
 (* emited code for control-driven programs: the transition function *)
 (* is executed at full speed *)

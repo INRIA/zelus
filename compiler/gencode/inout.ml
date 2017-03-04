@@ -41,7 +41,7 @@ open Obc
 open Format
 
 let infinity = Oglobal(Modname(Initial.pervasives_name "infinity"))
-let varpat x ty = Ovarpat(x, ty)
+let varpat x ty = Ovarpat(x, Translate.type_expression_of_typ ty)
 let tuplepat p_list = Otuplepat(p_list)
 let wildpat = Owildpat
 let void = Oconst(Ovoid)
@@ -185,7 +185,7 @@ let horizon m_list instances =
     match k_opt, h_opt with
     | Some(Horizon), None -> Some(n)
     | Some(Horizon), Some _ ->
-       Misc.internal_error "Inout: two horizon" Oprinter.name n
+       Misc.internal_error "Inout: two horizon" Printer.name n
     | _ -> h_opt in
   let h_opt = List.fold_left find None m_list in
   let v = Ident.fresh "v" in

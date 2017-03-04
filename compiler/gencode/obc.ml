@@ -94,7 +94,7 @@ and immediate =
 and pattern = 
   | Owildpat
   | Otuplepat of pattern list
-  | Ovarpat of Ident.t * Deftypes.typ
+  | Ovarpat of Ident.t * type_expression
   | Oconstpat of immediate
   | Oaliaspat of pattern * Ident.t
   | Oconstr0pat of Lident.t

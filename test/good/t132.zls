@@ -21,7 +21,7 @@ let node sum(n)(f)(x, y) = z where
 let node accu(n)(x) = z where
   rec forall i in 0 .. n, xi in x do
 	z = last z + xi
-      initialize
+      where
 	last z = 0
       done
 

@@ -98,7 +98,7 @@ let compile modname filename =
   let write_implementation_list obc_list mlc =
     let mlc_ff = Format.formatter_of_out_channel mlc in
     pp_set_max_boxes mlc_ff max_int;
-    Oprinter.implementation_list mlc_ff true obc_list in
+    Oprinter.implementation_list mlc_ff obc_list in
 
   let write_lmm_list impl_list lmmc =
     let lmm_ff = Format.formatter_of_out_channel lmmc in
@@ -227,20 +227,20 @@ let compile modname filename =
      if !verbose
      then begin
 	 comment "Translation done. See below:";
-	 Oprinter.implementation_list info_ff false obc_list
+	 Oprinter.implementation_list info_ff obc_list
        end;
      let obc_list = Inout.implementation_list obc_list in
      if !verbose
      then begin
 	 comment "Represent continuous states and zero-crossings \
                   by vectors. See below:";
-         Oprinter.implementation_list info_ff false obc_list
+         Oprinter.implementation_list info_ff obc_list
        end;
      (* print OCaml code *)
      if !verbose
      then begin
 	 comment "Print OCaml code. See below:";
-	 Oprinter.implementation_list info_ff true obc_list
+	 O2mlprinter.implementation_list info_ff obc_list
        end;
      (* write OCaml code in the appropriate file *)
      let mlc = open_out ml_name in

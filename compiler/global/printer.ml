@@ -64,6 +64,12 @@ let constant ff = function
   | Cimmediate(i) -> immediate ff i
   | Cglobal(ln) -> longname ff ln 
 
+let print_opt_magic print ff = function
+  | None -> pp_print_string ff "Obj.magic ()"
+  | Some(e) -> print ff e
+
+
+
 let rec pattern ff ({ p_typ = ty; p_caus = caus_list } as pat) =
   let rec pattern ff pat =
     match pat.p_desc with
@@ -455,7 +461,7 @@ let open_module ff n =
   fprintf ff "@[open ";
   shortname ff n;
   fprintf ff "@.@]"
-    
+     
 let implementation ff impl =
   match impl.desc with
     | Eopen(n) -> open_module ff n

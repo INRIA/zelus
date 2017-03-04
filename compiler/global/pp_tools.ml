@@ -64,17 +64,6 @@ let print_opt print ff = function
   | None -> ()
   | Some(s) -> print ff s
 
-let print_opt_magic print ff = function
-  | None -> pp_print_string ff "Obj.magic ()"
-  | Some(e) -> print ff e
-
-
 let print_opt2 print sep ff = function
   | None -> ()
   | Some(s) -> fprintf ff "@[%s%a@]" sep print s
-
-let print_record print ff r =
-  fprintf ff "@[<hv2>%a@]" (print_list_r print "{ "";"" }") r
-
-let print_type_params ff pl =
-  print_list_r_empty (fun ff s -> fprintf ff "'%s" s) "("","") " ff pl

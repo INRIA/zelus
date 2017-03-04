@@ -71,7 +71,11 @@ and size { Zelus.desc = desc } =
      let operator = function Zelus.Splus -> Splus | Zelus.Sminus -> Sminus in
      Sop(operator op, size s1, size s2)
 
-		 
+(* translating an internal type into a type expression *)
+let type_expression_of_typ ty =
+  let ty_exp = Interface.type_expression_of_typ ty in
+  type_expression ty_exp
+
 (* The translation uses an environment to store information about identifiers *)
 type env = entry Env.t (* the symbol table *)
  and entry =
@@ -181,10 +185,13 @@ let def { e_typ = ty; e_sort = sort; e_size = ei_list } e ({ step = s } as code)
   | In _ -> assert false
   | Out(n, sort) ->
      match sort with
-     | Sstatic | Sval -> { code with step = Olet(Ovarpat(n, ty), e, s) }
+     | Sstatic | Sval ->
+        { code with step =
+                      Olet(Ovarpat(n, type_expression_of_typ ty), e, s) }
      | Svar _ ->
-	{ code with step = sequence
-			     (Oassign(left_value_index (Oleft_name n) ei_list, e))
+	{ code with step =
+                      sequence
+			(Oassign(left_value_index (Oleft_name n) ei_list, e))
 			     s }
      | Smem { m_kind = k } ->
 	{ code with step = sequence
@@ -200,7 +207,8 @@ let der { e_sort = sort; e_size = ei_list } e ({ step = s } as code) =
 		   sequence
 		     (Oassign_state(left_state_value_index
 				      (Oleft_state_primitive_access
-					 (Oleft_state_name(n), Oder)) ei_list, e))
+					 (Oleft_state_name(n), Oder)) ei_list,
+                                    e))
 		     s }
        
 (** Generate an if/then *)
@@ -387,9 +395,10 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      Orecord(label_e_list), code
   | Zelus.Erecord_access(e, longname) ->
      let e, code = exp env loop_path code e in Orecord_access(e, longname), code
-  | Zelus.Etypeconstraint(e, ty) ->
+  | Zelus.Etypeconstraint(e, ty_exp) ->
      let e, code = exp env loop_path code e in
-     Otypeconstraint(e, type_expression ty), code
+     let ty_exp = type_expression ty_exp in
+     Otypeconstraint(e, ty_exp), code
   | Zelus.Eop((Zelus.Eup | Zelus.Ehorizon), [e]) ->
      exp env loop_path code e
   | Zelus.Eop(Zelus.Eifthenelse, [e1; e2; e3]) ->
@@ -424,7 +433,7 @@ and pattern { Zelus.p_desc = desc; Zelus.p_typ = ty } =
   | Zelus.Econstpat(im) -> Oconstpat(immediate im)
   | Zelus.Econstr0pat(c0) -> Oconstr0pat(c0)
   | Zelus.Etuplepat(p_list) -> Otuplepat(List.map pattern p_list)
-  | Zelus.Evarpat(n) -> Ovarpat(n, ty)
+  | Zelus.Evarpat(n) -> Ovarpat(n, type_expression_of_typ ty)
   | Zelus.Erecordpat(label_pat_list) ->
      Orecordpat(List.map (fun (label, pat) -> (label, pattern pat))
 			 label_pat_list)

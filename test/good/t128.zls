@@ -40,7 +40,7 @@ let node map_g(t) = (map g (42+2)) t
 let f42 n t1 = t where rec
   forall i in 0 .. n, t_i in t1, t out t do
     t = t_i + 1 and x = 2
-  initialize last x = 0
+  where last x = 0
   done
 	
 
@@ -58,7 +58,7 @@ let node loop n () =
   and forall i in 0 .. n
       do
         m_i = last m_i + 1
-      initialize
+      where
         last m_i = last m + 1
       done in
   m
@@ -69,7 +69,7 @@ let node window n x =
   local t, m
   do forall i in 0 .. n, t_i out t do
        m = 0 fby (last m) and t_i = m
-     initialize
+     where
        last m = x
      done in
   t
@@ -78,7 +78,7 @@ let scalar n (t1, t2) =
   local o
   do forall i in 0 .. n, x in t1, y in t2 do
        o = last o + x * y
-     initialize
+     where
        last o = 0
      done
 in o

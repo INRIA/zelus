@@ -39,6 +39,8 @@ let print_list print_el sep ff l =
   in
     printrec ff l
 
+let print_record print ff r =
+  fprintf ff "@[<hv2>%a@]" (print_list_r print "{ "";"" }") r
 
 let arrow_tostring = function 
   | Tstatic(true) -> "-S->" | Tstatic(false) -> "-AS->"
@@ -99,6 +101,9 @@ let rec print prio ff ({ t_desc = desc } as ty) =
   if prio_current < prio then fprintf ff ")"  
 
 let print_scheme ff { typ_body = typ } = print 0 ff typ      
+
+let print_type_params ff pl =
+  print_list_r_empty (fun ff s -> fprintf ff "'%s" s) "("","") " ff pl
 
 let print_one_type_variable ff i =
   fprintf ff "'%s" (type_name#name i)

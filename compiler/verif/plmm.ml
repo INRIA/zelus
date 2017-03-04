@@ -59,7 +59,8 @@ let rec expression ff e =
   | Eapp(op, e_list) -> operator ff op e_list
   | Erecord_access(e, ln) -> fprintf ff "@[%a.%a@]" expression e longname ln
   | Erecord(ln_e_list) ->
-     print_record (print_couple longname expression """ =""") ff ln_e_list
+     Ptypes.print_record
+       (print_couple longname expression """ =""") ff ln_e_list
   | Etuple(e_list) ->
      fprintf ff "@[%a@]" (print_list_r expression "("", "")") e_list
 
@@ -112,7 +113,7 @@ let implementation ff { desc = desc } =
   | Efundecl(n, f) -> fundecl ff n f
   | Etypedecl(n, params, ty_decl) ->
      fprintf ff "@[<v 2>type %a %s %a@.@]"
-	     Pp_tools.print_type_params params n
+	     Ptypes.print_type_params params n
 	     Printer.type_decl ty_decl
 
 let implementation_list ff imp_list =
