@@ -111,6 +111,16 @@ and left_state_value ff left =
   | Oleft_state_primitive_access(left, a) ->
      fprintf ff "@[%a.%a@]" left_state_value left access a
 
+and assign ff left e =
+  match left with
+  | Oleft_name(n) ->
+     fprintf ff "@[<v 2>%a := %a@]" name n (exp 2) e
+  | _ ->
+     fprintf ff "@[<v 2>%a <- %a@]" left_value left (exp 2) e
+
+and assign_state ff left e =
+  fprintf ff "@[<v 2>%a <- %a@]" left_state_value left (exp 2) e
+
 and var ff n = fprintf ff "!%a" name n
 
 and letvar ff n ty e_opt i =
@@ -380,24 +390,24 @@ let def_instance_function ff { i_name = n; i_machine = ei; i_kind = k;
  *   let f_reset = ... in
  *   { alloc = f_alloc; step = f_step; reset = f_reset, ... } *)	     
 let machine ff f { ma_kind = k;
-                                ma_params = pat_list;
-				ma_memories = memories;
-                                ma_instances = instances;
-                                ma_methods = m_list } =
+                   ma_params = pat_list;
+		   ma_memories = memories;
+                   ma_instances = instances;
+                   ma_methods = m_list } =
   (* print either [(f)] *)
   (* or [k { alloc = f_alloc; m1 = f_m1; ...; mn = f_mn }] *)
   let tuple_of_methods ff m_list =
     match k with
     | Deftypes.Tstatic _ | Deftypes.Tany -> fprintf ff "%s" f
     | Deftypes.Tdiscrete _
-    | Deftypes.Tcont ->
+      | Deftypes.Tcont ->
        let method_name ff { me_name = me_name } =
 	 let m = method_name me_name in
 	 fprintf ff "@[%s = %s_%s@]" m f m in
        let k, _ = constructor_for_kind k in
        fprintf ff "@[%s { alloc = %s_alloc; %a }@]"
 	       k f (print_list_r method_name "" ";" "") m_list in
-		  
+  
   (* print the type for [f] *)
   def_type_for_a_machine ff f memories instances;
   (* print the code for [f] *)

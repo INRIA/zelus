@@ -98,7 +98,7 @@ let compile modname filename =
   let write_implementation_list obc_list mlc =
     let mlc_ff = Format.formatter_of_out_channel mlc in
     pp_set_max_boxes mlc_ff max_int;
-    Oprinter.implementation_list mlc_ff obc_list in
+    O2mlprinter.implementation_list mlc_ff obc_list in
 
   let write_lmm_list impl_list lmmc =
     let lmm_ff = Format.formatter_of_out_channel lmmc in
