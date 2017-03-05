@@ -64,9 +64,26 @@ type ('a, 'b) hybrid =
 	(* gives the next time horizon *)
 	} -> ('a, 'b) hybrid
 					
-(*
-csize : 's -> int;
-	(* the current size of the continuous state [cvec] *)
-	zsize : 's -> int;
-	 (* the current size of the zero-crossing vector [zinvec] *)
- *)
+type hsimu =
+    Hsim:
+      { alloc : unit -> 's;
+        (* allocate the initial state *)
+	maxsize : 's -> int * int;
+	(* returns the max length of the *)
+	(* cvector and zvector *)
+	csize : 's -> int;
+	(* returns the current length of the continuous state vector *)
+        zsize : 's -> int;
+	(* returns the current length of the zero-crossing vector *)
+        step : 's -> cvec -> zinvec -> unit;
+	(* computes a step *)
+	derivative : 's -> cvec -> dvec -> time -> unit;
+	(* computes the derivative *)
+	crossings : 's -> cvec -> zoutvec -> time -> unit;
+	(* computes the derivative *)
+	reset : 's -> unit;
+	(* resets the state *)
+	horizon : 's -> time;
+	(* gives the next time horizon *)
+	} -> hsimu
+				

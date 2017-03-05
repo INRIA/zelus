@@ -2,7 +2,8 @@ include ../../config
 
 ZLEXTRALIBS = $(ZLGTKLIBS)
 
-EXAMPLE=khalil.zls \
+EXAMPLE=count.zls \
+	khalil.zls \
         suspend01.zls \
 	ysquared.zls \
 	discontinuity.zls \
