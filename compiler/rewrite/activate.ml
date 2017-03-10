@@ -166,7 +166,8 @@ and scondpat ({ desc = desc } as scpat) =
 let implementation impl =
   match impl.desc with
     | Eopen _ | Etypedecl _ -> impl
-    | Econstdecl(n, e) -> { impl with desc = Econstdecl(n, exp e) }
+    | Econstdecl(n, is_static, e) ->
+       { impl with desc = Econstdecl(n, is_static, exp e) }
     | Efundecl(n, ({ f_body = e } as body)) ->
         { impl with desc = Efundecl(n, { body with f_body = exp e }) }
 

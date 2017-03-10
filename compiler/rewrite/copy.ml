@@ -34,9 +34,9 @@ let empty = { rel = Env.empty; defs = S.empty }
 let append new_rel ({ rel = rel } as renaming) =
   { renaming with rel = Env.append new_rel rel }
     
-(** Apply the renaming recursively. If [rel = [x1\x2, x2\x3]], then *)
-(** [rename n rel] = x3 *)
-(** A substitution [x\last m] is not performed when [m] belongs to [defs] *)
+(** Apply the renaming recursively. If [rel = [n\n1, n1\n2]], then *)
+(** [rename n rel] = n2 *)
+(** A substitution [n\last m] is not performed when [m] belongs to [defs] *)
 let rename n { rel = rel; defs = defs } =
   let rec rename n =
     try 

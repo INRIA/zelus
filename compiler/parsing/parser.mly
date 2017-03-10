@@ -252,7 +252,9 @@ implementation:
   | TYPE tp = type_params id = IDENT td = type_declaration
       { Etypedecl(id, tp, td) }
   | LET ide = IDENT EQUAL seq = seq_expression
-      { Econstdecl(ide, seq) }
+      { Econstdecl(ide, false, seq) }
+  | LET STATIC ide = IDENT EQUAL seq = seq_expression
+      { Econstdecl(ide, true, seq) }
   | LET ide = IDENT fn = simple_pattern_list EQUAL seq = seq_expression
       { Efundecl(ide, { f_kind = A; f_atomic = false;
 			f_args = fn; f_body = seq }) }
@@ -272,17 +274,17 @@ implementation:
 				 $startpos(seq) $endpos(eqs) }) }
 ;
 
-is_rec:
+%inline is_rec:
   | REC { true }
   |     { false }
 ;
 
-is_atomic:
+%inline is_atomic:
   | ATOMIC { true }
   | { false }
 ;
 
-is_let:
+%inline is_let:
   | LET { }
   | { }
 ;

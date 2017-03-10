@@ -74,7 +74,7 @@ and implementation = implementation_desc localized
 and implementation_desc =
     | Eopen of name
     | Etypedecl of name * name list * type_decl
-    | Econstdecl of name * exp
+    | Econstdecl of name * is_static * exp
     | Efundecl of name * funexp
 
 and funexp =
@@ -85,6 +85,8 @@ and funexp =
     
 and is_atomic = bool
 
+and is_static = bool
+                  
 and exp = desc localized
 
 and desc =

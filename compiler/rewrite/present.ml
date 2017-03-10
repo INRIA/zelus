@@ -363,8 +363,9 @@ and present_handlers signals eq_list handler_list b_opt =
 let implementation impl =
   match impl.desc with
     | Eopen _ | Etypedecl _ -> impl
-    | Econstdecl(n, e) ->
-        let e = exp Env.empty e in { impl with desc = Econstdecl(n, e) }
+    | Econstdecl(n, is_static, e) ->
+       let e = exp Env.empty e in
+       { impl with desc = Econstdecl(n, is_static, e) }
     | Efundecl(n, ({ f_args = p_list; f_body = e; f_env = f_env } as body)) ->
         let signals, _, f_env = build Env.empty f_env in
 	let p_list = List.map (pattern signals) p_list in

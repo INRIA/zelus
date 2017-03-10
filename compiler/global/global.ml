@@ -23,7 +23,7 @@ type 'a info = { qualid : Lident.qualident; info : 'a }
 (* values in the symbol table *)
 type value_desc =
     { mutable value_typ: Deftypes.typ_scheme; (* its type scheme *)
-      mutable value_atomic: bool; (* is-it an atomic value? *)
+      mutable value_static: bool; (* is-it a static value? *)
       mutable value_caus: Defcaus.tc_scheme option; (* its causality scheme *)
       mutable value_code: value_code; (* source code *)
     }
@@ -67,8 +67,8 @@ let value_name n ({ value_exp = value_exp; value_name = opt_name } as v) =
   match opt_name with
   | None -> { v with value_name = Some(n) }
   | Some _ -> v
-let value_desc is_atomic typs qualident = 
-  { value_typ = typs; value_atomic = is_atomic; value_caus = None; 
+let value_desc is_static typs qualident = 
+  { value_typ = typs; value_static = is_static; value_caus = None; 
     value_code = value_code (Vabstract(qualident)) }
 let set_causality { info = ({ value_caus = _ } as v) } typs = 
   v.value_caus <- Some(typs)

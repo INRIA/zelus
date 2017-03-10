@@ -617,7 +617,7 @@ let implementation { Zelus.desc = desc } =
   | Zelus.Eopen(n) -> Oopen(n)
   | Zelus.Etypedecl(n, params, ty_decl) ->
      Otypedecl([n, params, type_of_type_decl ty_decl])
-  | Zelus.Econstdecl(n, e) ->
+  | Zelus.Econstdecl(n, _, e) ->
      (* There should be no memory allocated by [e] *)
      let { step = s } = expression Env.empty e in
      Oletvalue(n, s)

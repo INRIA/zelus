@@ -38,16 +38,14 @@ inlining_level := -100000
 
 (** Decide whether a global function has to be inlined or not *)
 (** A function is inlined either because [is_inline = true] *)
-(** or it is small enough and it is not atomic *)
+(** or it is small enough *)
 let inline is_inline lname =
-  let { info = { value_atomic = is_atomic;
-		 value_code = { Global.value_exp = v };
+  let { info = { value_code = { Global.value_exp = v };
 		 value_typ = { Deftypes.typ_vars = l } } } = 
     Modules.find_value lname in
   match v with
   | Global.Vfun({ f_args = p_list; f_body = e } as body, _) ->
-     if is_atomic then raise No_inline
-     else if is_inline then body
+     if is_inline then body
      else if Cost.expression e (!inlining_level + List.length p_list) then body
      else raise No_inline
   | _ -> raise No_inline
@@ -373,9 +371,9 @@ and letin renaming env p_list e_list e =
 
 let implementation acc impl = 
   match impl.desc with
-    | Econstdecl(f, e) ->
+    | Econstdecl(f, is_static, e) ->
        let e = expression Env.empty e in
-       { impl with desc = Econstdecl(f, e) } :: acc
+       { impl with desc = Econstdecl(f, is_static, e) } :: acc
     | Efundecl(f, ({ f_args = p_list; f_body = e; f_env = f_env } as body)) ->
        let f_env, renaming = build f_env in
        let p_list = List.map (pattern renaming) p_list in

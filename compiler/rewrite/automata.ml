@@ -506,9 +506,9 @@ and automaton is_weak env eq_list handler_list se_opt =
 let implementation impl =
   match impl.desc with
     | Eopen _ | Etypedecl _ -> impl
-    | Econstdecl(n, e) ->
+    | Econstdecl(n, is_static, e) ->
         let e = exp e in
-        { impl with desc = Econstdecl(n, e) }
+        { impl with desc = Econstdecl(n, is_static, e) }
     | Efundecl(n, ({ f_body = e } as body)) ->
         { impl with desc = Efundecl(n, { body with f_body = exp e }) }
 

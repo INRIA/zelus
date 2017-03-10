@@ -342,7 +342,7 @@ let implementation impl_list impl =
   | Etypedecl(n, params, td) ->
      { Lmm.desc = Lmm.Etypedecl(n, params, td);
        Lmm.loc = no_location } :: impl_list
-  | Econstdecl(x, e) ->
+  | Econstdecl(x, _, e) ->
      { Lmm.desc = Lmm.Econstdecl(x, expression Ck_base Env.empty e);
        Lmm.loc = no_location } :: impl_list
   | Efundecl(n, { f_kind = k; f_args = p_list; f_body = e }) ->

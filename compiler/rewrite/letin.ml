@@ -242,7 +242,8 @@ let implementation impl =
     Zaux.make_let env eq_list e in
   match impl.desc with
   | Eopen _ | Etypedecl _ -> impl
-  | Econstdecl(n, e) -> { impl with desc = Econstdecl(n, make_let e) }
+  | Econstdecl(n, is_static, e) ->
+     { impl with desc = Econstdecl(n, is_static, make_let e) }
   | Efundecl(n, ({ f_kind = k; f_body = e } as body)) ->
      { impl with desc = Efundecl(n, { body with f_body = make_let e }) }
        

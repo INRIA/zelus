@@ -317,20 +317,19 @@ let typedecl ff loc ty_name ty_params typ =
     | Error(loc, k) -> message loc k
 
 (* analysing a value declaration *)
-let add_type_of_value ff loc name is_atomic ty_scheme =
+let add_type_of_value ff loc name is_static ty_scheme =
   try
-    add_value name (value_desc is_atomic ty_scheme (Modules.qualify name));
+    add_value name (value_desc is_static ty_scheme (Modules.qualify name));
     if !Misc.print_types then
       Ptypes.output_value_type_declaration ff [global name ty_scheme]
   with
     | Already_defined(x) -> message loc (Ealready_defined_value(x))
 
-let update_type_of_value ff loc name is_atomic ty_scheme =
-  update_value name (value_desc is_atomic ty_scheme (Modules.qualify name))
+let update_type_of_value ff loc name is_static ty_scheme =
+  update_value name (value_desc is_static ty_scheme (Modules.qualify name))
 
-(* adding the type signature for a constant and a function. By default *)
-(* [is_atomic = true] meaning that no inlining should be necessary to compile *)
-(* the callees *)
+(* adding the type signature for a constant and a function. *)
+(* [is_static = true] means that the identifier defines a compile-time value *)
 let constdecl ff loc name typ =
   add_type_of_value ff loc name true (scheme_of_type typ)
 

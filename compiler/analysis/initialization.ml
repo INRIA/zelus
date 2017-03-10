@@ -461,7 +461,7 @@ let implementation ff impl =
   try
     match impl.desc with
       | Eopen _ | Etypedecl _ -> ()
-      | Econstdecl(_, e) | Efundecl(_, { f_body = e }) -> 
+      | Econstdecl(_, _, e) | Efundecl(_, { f_body = e }) -> 
           exp_less_than_on_i Env.empty e izero
   with
     | Error(loc, kind) -> message loc kind

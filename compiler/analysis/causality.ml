@@ -555,7 +555,7 @@ let implementation ff { desc = desc } =
   try
     match desc with
     | Eopen _ | Etypedecl _ -> ()
-    | Econstdecl(_, e) ->
+    | Econstdecl(_, _, e) ->
        Misc.push_binding_level ();
        ignore (exp Deftypes.Tany (Causal.new_var ()) Env.empty e);
        Misc.pop_binding_level ()

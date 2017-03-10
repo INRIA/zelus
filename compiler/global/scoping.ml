@@ -904,8 +904,8 @@ let type_decls n_params_typdecl_list =
 let implementation imp =
   try
     let desc = match imp.desc with
-      | Econstdecl(n, e) ->
-         Zelus.Econstdecl(n, expression Rename.empty e)
+      | Econstdecl(n, is_static, e) ->
+         Zelus.Econstdecl(n, is_static, expression Rename.empty e)
       | Efundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
 		      f_body = e }) ->
          let _, env, p_list = pattern_list Rename.empty p_list in

@@ -1211,10 +1211,11 @@ let funtype loc expected_k pat_list ty_list ty_res =
   no_unbounded_name loc fv_in_ty_res ty_res
 
 (* The main entry functions *)
-let constdecl f e =
-  let ty = expression (Tstatic(true)) Env.empty e in
+let constdecl f is_static e =
+  let expected_k = if is_static then Tstatic(true) else Tdiscrete(false) in
+  let ty = expression expected_k Env.empty e in
   let tys = Types.gen (not (expansive e)) ty in
-  (f, true, tys)
+  tys
 
 let fundecl loc f ({ f_kind = k; f_atomic = is_atomic;
 		     f_args = pat_list; f_body = e } as body) =
@@ -1234,19 +1235,19 @@ let fundecl loc f ({ f_kind = k; f_atomic = is_atomic;
   Misc.pop_binding_level ();
   let ty_res = funtype loc expected_k pat_list ty_p_list ty_res in
   let tys = Types.gen true ty_res in
-  (f, is_atomic, tys)
+  tys
 
 let implementation ff is_first impl =
   try
     match impl.desc with
-    | Econstdecl(f, e) ->
-       let f, is_atomic, tys = constdecl f e in
-       if is_first then Interface.add_type_of_value ff impl.loc f is_atomic tys
-       else Interface.update_type_of_value ff impl.loc f is_atomic tys
+    | Econstdecl(f, is_static, e) ->
+       let tys = constdecl f is_static e in
+       if is_first then Interface.add_type_of_value ff impl.loc f is_static tys
+       else Interface.update_type_of_value ff impl.loc f is_static tys
     | Efundecl(f, body) ->
-       let f, is_atomic, tys = fundecl impl.loc f body in
-       if is_first then Interface.add_type_of_value ff impl.loc f is_atomic tys
-       else Interface.update_type_of_value ff impl.loc f is_atomic tys
+       let tys = fundecl impl.loc f body in
+       if is_first then Interface.add_type_of_value ff impl.loc f true tys
+       else Interface.update_type_of_value ff impl.loc f true tys
     | Eopen(modname) ->
        if is_first then Modules.open_module modname
     | Etypedecl(f, params, ty) ->

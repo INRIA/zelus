@@ -348,14 +348,14 @@ let implementation_list ff impl_list =
   (* for later steps of the compiler *)
   let implementation impl_defs impl = 
     match impl.desc with
-    | Econstdecl(f, e) ->
+    | Econstdecl(f, is_static, e) ->
        (* a global value must be a constant *)
        let v = Static.expression Env.empty e in
        (* add [f \ v] in the global symbol table *)
        let v = Global.value_name (Modules.qualify f) v in
        set_value_code f v;
        let e, { fundefs = fun_defs } = exp_of_value empty v in
-       { impl with desc = Econstdecl(f, e) } ::
+       { impl with desc = Econstdecl(f, is_static, e) } ::
 	 List.fold_right make fun_defs impl_defs
     | Efundecl(f, funexp) ->
        (* if [f] is marked to be reduced, reduce it *)

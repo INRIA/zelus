@@ -469,9 +469,9 @@ let implementation ff impl =
         fprintf ff "@[<v 2>type %a%s %a@.@.@]"
           print_type_params params
           n type_decl ty_decl
-    | Econstdecl(n, e) ->
-        fprintf ff "@[<v 2>let %s =@ %a@.@.@]"
-          n expression e 
+    | Econstdecl(n, is_static, e) ->
+        fprintf ff "@[<v 2>let %s%s =@ %a@.@.@]"
+          (if is_static then "static " else "") n expression e 
     | Efundecl(n, { f_kind = k; f_args = p_list; f_body = e; f_env = env }) ->
        fprintf ff "@[<v 2>let %s %s %a =@ %a%a@.@.@]"
 	       (match k with

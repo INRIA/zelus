@@ -10,3 +10,4 @@ let hybrid main () =
     Scope.window ("x", 10.0, t, s)
   else ()
 
+let static x = e

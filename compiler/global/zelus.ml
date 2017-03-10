@@ -61,7 +61,7 @@ and implementation = implementation_desc localized
 and implementation_desc =
   | Eopen of name
   | Etypedecl of name * name list * type_decl
-  | Econstdecl of name * exp
+  | Econstdecl of name * is_static * exp
   | Efundecl of name * funexp
 			 
 and funexp =
@@ -72,6 +72,8 @@ and funexp =
     mutable f_env: Deftypes.tentry Ident.Env.t }
     
 and is_atomic = bool
+
+and is_static = bool
 		  
 and exp = 
   { mutable e_desc: desc;
