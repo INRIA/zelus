@@ -349,12 +349,15 @@ let implementation_list ff impl_list =
   let implementation impl_defs impl = 
     match impl.desc with
     | Econstdecl(f, is_static, e) ->
-       (* a global value must be a constant *)
-       let v = Static.expression Env.empty e in
-       (* add [f \ v] in the global symbol table *)
-       let v = Global.value_name (Modules.qualify f) v in
-       set_value_code f v;
-       let e, { fundefs = fun_defs } = exp_of_value empty v in
+       (* is [is_static = true], f is a compile-time constant *)
+       let e, { fundefs = fun_defs } =
+         if is_static then
+           let v = Static.expression Env.empty e in
+           (* add [f \ v] in the global symbol table *)
+           let v = Global.value_name (Modules.qualify f) v in
+           set_value_code f v;
+           exp_of_value empty v
+         else expression Env.empty empty e in
        { impl with desc = Econstdecl(f, is_static, e) } ::
 	 List.fold_right make fun_defs impl_defs
     | Efundecl(f, funexp) ->

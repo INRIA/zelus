@@ -97,7 +97,7 @@ let check_is_vec loc actual_ty =
     let ty_arg, _ = Types.filter_vec actual_ty in ty_arg
   with
     | Types.Unify -> error loc Esize_of_vec_is_undetermined
-      
+                           
 (* An expression is expansive if it is not an immediate value *)
 let rec expansive { e_desc = desc } =
   match desc with
@@ -196,12 +196,18 @@ let pluseq loc h n =
     | _ -> typ
 	     
 (** Types for global identifiers *)
-let global loc lname =
-  let { qualid = qualid; info = { value_typ = tys } } = find_value loc lname in
+let global loc expected_k lname =
+  let { qualid = qualid;
+        info = { value_static = is_static;
+                 value_typ = tys } } = find_value loc lname in
+  less_than loc (if is_static then Tstatic true else expected_k) expected_k;
   qualid, Types.instance_of_type tys
 
-let global_with_instance loc lname =
-  let { qualid = qualid; info = { value_typ = tys } } = find_value loc lname in
+let global_with_instance loc expected_k lname =
+  let { qualid = qualid;
+        info = { value_static = is_static;
+                 value_typ = tys } } = find_value loc lname in
+  less_than loc (if is_static then Tstatic true else expected_k) expected_k;
   let typ_instance, typ_body = Types.instance_and_vars_of_type tys in
   qualid, typ_instance, typ_body
 
@@ -299,12 +305,12 @@ let combine loc expected_ty lname  =
   unify loc ty_combine ty
 	
 (* type checking of the declared default/init value *)
-let constant loc expected_ty = function
+let constant loc expected_k expected_ty = function
   | Cimmediate(i) ->
      let actual_ty = immediate(i) in
      unify loc expected_ty actual_ty
   | Cglobal(lname) ->
-     let qualid, actual_ty = global loc lname in 
+     let qualid, actual_ty = global loc expected_k lname in 
      unify loc expected_ty actual_ty
 	   
 (* Typing the declaration of variables. The result is a typing environment *)
@@ -316,11 +322,11 @@ let vardec_list expected_k n_list inames =
      (* the initialization must appear in a statefull function *)
      if not (Types.is_statefull_kind expected_k)
      then error loc Ekind_not_combinatorial;
-     constant loc expected_ty v;
+     constant loc expected_k expected_ty v;
      Deftypes.Smem
        (Deftypes.cmem c_opt { empty_mem with m_init = Some(Some(v)) })
   | Default(v) ->
-     constant loc expected_ty v;
+     constant loc expected_k expected_ty v;
      Deftypes.default (Some(v)) c_opt in		 
   (* typing every declaration *)
   let vardec h0
@@ -577,7 +583,8 @@ let rec expression expected_k h ({ e_desc = desc; e_loc = loc } as e) =
        sort_less_than loc sort expected_k;
        typ
     | Eglobal { lname = lname } -> 
-       let qualid, typ_instance, ty = global_with_instance loc lname in 
+       let qualid, typ_instance, ty =
+         global_with_instance loc expected_k lname in 
        e.e_desc <- Eglobal { lname = Lident.Modname(qualid);
 			     typ_instance = typ_instance }; ty
     | Elast(x) -> last loc h x
