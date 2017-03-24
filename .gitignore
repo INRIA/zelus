@@ -25,3 +25,5 @@ lib/symb.ml
 tools/diff_log
 tools/zltohtml*
 bin/zeluc
+test/good/*.ml
+test/bad/*.ml
