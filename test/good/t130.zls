@@ -4,7 +4,7 @@
 let node window(n)(x) = acc, t where
   rec forall i in 0 .. (n - 1), ti out t do
         acc = x fby last acc and ti = last acc
-      where
+      initialize
 	last acc = x
       done
 

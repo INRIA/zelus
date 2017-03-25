@@ -16,14 +16,14 @@ let node sum(n)(x, y) = z where
 let node cumul(n)(x) = z where
   rec forall i in 0 .. n, xi in x do
        z = last z + xi
-      where
+      initialize
         last z = 0 done
 
 (* produit scalaire de deux tableaux *)
 let node scalar(n)(x, y) = z where
   rec forall i in 0 .. n, xi in x, yi in y do
 	z = last z + xi * yi
-      where
+      initialize
         last z = 0
       done
 

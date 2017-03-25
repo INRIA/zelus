@@ -338,7 +338,8 @@ and icopy i =
   | Ivar ->
      if i.i_level = generic
      then
-       let v = new_var () in
+       let sup_list = List.map icopy i.i_sup in
+       let v = { (new_var ()) with i_sup = sup_list } in
        i.i_desc <- Ilink(v);
        save i;
        v

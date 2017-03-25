@@ -48,7 +48,32 @@ let constructor_for_kind = function
   | Deftypes.Tdiscrete(true) ->
      "Node", [ Ostep; Oreset ]
   | _ -> assert false
-		
+
+let print_concrete_type ff ty =
+  let priority =
+    function | Otypevar _ | Otypeconstr _ | Otypevec _ -> 2
+             | Otypetuple _ -> 2 | Otypefun _ -> 1 in
+  let rec ptype prio ff ty =
+    let prio_ty = priority ty in
+    if prio_ty < prio then fprintf ff "(";
+    begin match ty with
+    | Otypevar(s) -> fprintf ff "%s" s
+    | Otypefun(_, ty_arg, ty) ->
+       fprintf ff "@[<hov2>%a ->@ %a@]"
+               (ptype (prio_ty+1)) ty_arg (ptype prio_ty) ty
+    | Otypetuple(ty_list) ->
+       fprintf ff
+	       "@[<hov2>%a@]" (print_list_r (ptype prio_ty) "("" *"")") ty_list
+    | Otypeconstr(ln, ty_list) ->
+       fprintf ff "@[<hov2>%a@]%a"
+               (print_list_r_empty (ptype 2) "("","")") ty_list longname ln
+    | Otypevec(ty_arg, _) ->
+       fprintf ff "@[%a %a@]" (ptype prio_ty) ty_arg
+               longname (Lident.Modname Initial.array_ident)
+    end;
+    if prio_ty < prio then fprintf ff ")" in
+  ptype 0 ff ty
+
 let ptype ff ty =
   let ty = Types.remove_dependences ty in
   Ptypes.output ff ty

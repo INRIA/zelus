@@ -120,6 +120,7 @@ let block l lo eq_list startpos endpos =
 %token REC            /* "rec" */
 %token DER            /* "der" */
 %token INIT           /* "init" */
+%token INITIALIZE     /* "initialize" */
 %token DEFAULT        /* "default" */
 %token LOCAL          /* "local" */
 %token WHERE          /* "where" */
@@ -397,7 +398,7 @@ simple_equation_desc:
   | l = let_list lo = local_list DO eq_list = equation_empty_list DONE
     { block l lo eq_list $startpos $endpos }
   | FORALL i = index_list bo = block(equation_list)
-    WHERE inits = init_equation_list DONE
+    INITIALIZE inits = init_equation_list DONE
     { EQforall
 	{ for_indexes = i; for_init = inits; for_body = bo } }
   | FORALL i = index_list  bo = block(equation_list) DONE

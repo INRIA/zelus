@@ -1,22 +1,8 @@
-let static x = print_int 1
+let f(g)(x) = x + 1
 
-let static y = 2 + 1
+let h(x) = x + 1
 
-let node scope2 (n1, n2, v1, v2) =
-  let init names = Basics.cons (n1, Basics.singleton n2) in
-  (names, Basics.cons (v1, Basics.singleton v2))
-
-let f = 1 + 2
-    
-(* let node f(x) =
-  let rec
-      forall i_42 in 0 .. 3, xi in x, yi in x
-        do o = print_int xi;print_string " " and () = ()
-      initialize last o = () done
-   and y = 1
-  and t = y + 1 and () = print_int 42 before () = () in
-  print_newline (); print_int 1; print_int 2
- *)
+let main x = f h x
     
 (*
 let hybrid f (x) =

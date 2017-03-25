@@ -1,5 +1,5 @@
-val initialize : int -AD-> unit
-(** Initialize the generator, using the argument as a seed.
+val initialise : int -AD-> unit
+(** Initialise the generator, using the argument as a seed.
      The same seed will always yield the same sequence of numbers. *)
 
 val full_init : int array -AD-> unit

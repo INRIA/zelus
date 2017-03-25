@@ -68,12 +68,6 @@ let rec union l1 l2 =
     | x :: l1, l2 ->
         if mem x l2 then union l1 l2 else x :: union l1 l2
 
-let max_info i1 i2 =
-  match i1, i2 with
-  | None, None -> None
-  | Some _, _ -> i1
-  | _, Some _ -> i2
-		   
 (* path compression *)
 let rec crepr c =
   match c.c_desc with
@@ -114,7 +108,7 @@ let cpolarity pol c =
     | _ -> c.c_polarity <- Pplusminus
 
 (** check for cycles. Does [index] appears in the set of elements *)
-(* greater than [c] *)
+(* greater than [c]? *)
 let rec occur_check level index c =
   let rec check path c =
     match c.c_desc with
@@ -132,7 +126,7 @@ let rec unify cunify left_tc right_tc =
     | Cproduct(l1), Cproduct(l2) -> List.iter2 (unify cunify) l1 l2
     | Catom(c1), Catom(c2) -> cunify c1 c2
     | Cfun(tc_arg1, tc_res1), Cfun(tc_arg2, tc_res2) ->
-       unify cunify tc_arg1 tc_arg2; unify cunify tc_res1 tc_res2
+       unify cunify tc_res1 tc_res2; unify cunify tc_arg2 tc_arg1 
     | _ -> assert false
 
 let rec cunify left_c right_c =
@@ -352,7 +346,7 @@ let simplify c_set =
 	outputs)
     inputs    
     
-(* TEMPORARY SOLUTION for testing: *)
+(* TEMPORARY SOLUTION only used for testing: *)
 (* eliminate doublons, e.g., [c < b, b] and dependences to variables *)
 (* which are not input or outputs *)
 let useless c_set =
@@ -440,8 +434,9 @@ let rec copy tc ty =
   | Cfun(tc1, tc2), Tfun(_, _, ty1, ty2) ->
      funtype (copy tc1 ty1) (copy tc2 ty2)
   | Cproduct(tc_list), Tproduct(ty_list) ->
-     begin try product (List.map2 copy tc_list ty_list) with | _ -> assert false end
-  | Catom(c), _ -> skeleton_on_c c ty
+     begin try product (List.map2 copy tc_list ty_list)
+           with | _ -> assert false end
+  | Catom(c), _ -> skeleton_on_c (ccopy c) ty
   | _ -> assert false
 				 
 and ccopy c =
@@ -449,7 +444,8 @@ and ccopy c =
   | Cvar ->
      if c.c_level = generic
      then
-       let v = new_var () in
+       let sup_list = List.map ccopy c.c_sup in
+       let v = { (new_var ()) with c_sup = sup_list } in
        c.c_desc <- Clink(v);
        save c;
        v
@@ -469,7 +465,8 @@ let instance { value_caus = tcs_opt } ty =
     skeleton_on_c c ty in
   match tcs_opt with
     | None -> 
-       (* if no causality information has been entered, a default one is built *)
+       (* if no causality signature is declared, a default one is built *)
+       (* from the type signature *)
        default ty
     | Some(tcs) -> instance tcs ty
 
