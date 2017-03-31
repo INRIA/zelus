@@ -123,12 +123,12 @@ let rec occur_check level index c =
 (** Unification *)
 let rec unify cunify left_tc right_tc =
   match left_tc, right_tc with
-    | Cproduct(l1), Cproduct(l2) -> List.iter2 (unify cunify) l1 l2
-    | Catom(c1), Catom(c2) -> cunify c1 c2
-    | Cfun(tc_arg1, tc_res1), Cfun(tc_arg2, tc_res2) ->
-       unify cunify tc_res1 tc_res2; unify cunify tc_arg2 tc_arg1 
-    | _ -> assert false
-
+  | Cproduct(l1), Cproduct(l2) -> List.iter2 (unify cunify) l1 l2
+  | Catom(c1), Catom(c2) -> cunify c1 c2
+  | Cfun(tc_arg1, tc_res1), Cfun(tc_arg2, tc_res2) ->
+     unify cunify tc_res1 tc_res2; unify cunify tc_arg2 tc_arg1 
+  | _ -> assert false
+                
 let rec cunify left_c right_c =
   if left_c == right_c then ()
   else 
@@ -137,28 +137,28 @@ let rec cunify left_c right_c =
     if left_c == right_c then ()
     else
       match left_c.c_desc, right_c.c_desc with
-	| Cvar, Cvar ->
-            List.iter (occur_check left_c.c_level left_c.c_index) right_c.c_sup;
-	    List.iter (occur_check right_c.c_level right_c.c_index) left_c.c_sup;
-	    left_c.c_desc <- Clink(right_c);
-	    right_c.c_sup <- union left_c.c_sup right_c.c_sup
-	| _ -> assert false
-
+      | Cvar, Cvar ->
+         List.iter (occur_check left_c.c_level left_c.c_index) right_c.c_sup;
+	 List.iter (occur_check right_c.c_level right_c.c_index) left_c.c_sup;
+	 left_c.c_desc <- Clink(right_c);
+	 right_c.c_sup <- union left_c.c_sup right_c.c_sup
+      | _ -> assert false
+                    
 let rec cless left_c right_c =
   let left_c = crepr left_c in
   let right_c = crepr right_c in
   match left_c.c_desc, right_c.c_desc with
-    | Cvar, Cvar ->
-        occur_check left_c.c_level left_c.c_index right_c;
-        (* [left_c < .... set ...] with [left_c not in set] *)
-	(* Now [left_c < ... set + { right_c } *)
-	left_c.c_sup <- add right_c left_c.c_sup
-    | _ -> assert false
-
+  | Cvar, Cvar ->
+     occur_check left_c.c_level left_c.c_index right_c;
+     (* [left_c < .... set ...] with [left_c not in set] *)
+     (* Now [left_c < ... set + { right_c } *)
+     left_c.c_sup <- add right_c left_c.c_sup
+  | _ -> assert false
+                
 (* does it exist a strict path from [c1] to [c2]? *)
 let rec strict_path c1 c2 = List.exists (fun c1 -> path c1 c2) (sups c1) 
 and path c1 c2 = (equal c1 c2) || (strict_path c1 c2)
-    
+                                    
 (* the main entry functions for comparing causality types *)
 let type_before_type left_tc right_tc =
   try
@@ -248,7 +248,10 @@ let rec skeleton_on_c c ty =
     | Tvar -> atom c
     | Tproduct(ty_list) -> product (List.map (skeleton_on_c c) ty_list)
     | Tfun(_, _, ty_arg, ty) ->
-       funtype (skeleton_on_c c ty_arg) (skeleton_on_c c ty)
+       (* for a function, returns [ty_arg[a] -> ty[b] with a < b] *)
+       let c_arg = new_var () in
+       cless c_arg c;
+       funtype (skeleton_on_c c_arg ty_arg) (skeleton_on_c c ty)
     | Tconstr(_, _, _) | Tvec _ -> atom c
     | Tlink(ty) -> skeleton_on_c c ty
 

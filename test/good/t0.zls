@@ -1,4 +1,4 @@
-let f(g)(x) = x + 1
+let f(g)(x) = g(x + 1)
 
 let h(x) = x + 1
 
