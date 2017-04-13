@@ -1,25 +1,14 @@
-let f(g)(x) = g(x + 1)
+(* sum of two arrays [x] and [y] of size [l] *)
+let sum(x) = 1 where
+    rec
+      forall i in 0 .. 1, zi out z
+        do
+         zi = 1
+        done
 
-let h(x) = x + 1
+(* i : a1 | a2
 
-let main x = f h x
-    
-(*
-let hybrid f (x) =
-  let rec der o = x +. 1.0 init 0.0 in
-  let z = up(o +. x) in
-  let h = 1 + 2 in
-  let r = print_int h in
-  let t = r in
-  o, z
- *)
-  
-(*
-let node g(x) = x + 1
+z: z1 | z2
 
-let node f(g)(x, y) = run g 1 + 2
+zi: zi1 | zi2 *)
 
-let node hh y =
-  let rec o = 1 -> pre o + 1 in
-       f g (42, o) + f g (42, o)
-  *)  
