@@ -13,7 +13,7 @@
 (**************************************************************************)
 (* causality check *)
 
-(* C | H |-c e: ct [e] has causality [ct] with the invariant that *)
+(* C | H |- e: ct [e] < c has causality [ct] with the invariant that *)
 (* [forall ci in ct. ci < c]] *)
 (* [C] is a constraint and [H] is an environment *)
 
@@ -283,6 +283,8 @@ and equation_list expected_k before_c env eq_list =
     (fun acc eq ->
      Cenv.sup acc (equation expected_k before_c env eq)) Env.empty eq_list
 
+(* Typing of an equation. [env |-expected_k e : env_e < before_c] *)
+(* all computations must be performed before instant [before_c] *)
 and equation expected_k before_c env
     { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
   match desc with
@@ -413,7 +415,9 @@ and equation expected_k before_c env
        (* typing the declaration of indexes *)
        (* defines a local environment *)
        let expected_in_c = Causal.new_var () in
+       Causal.cannotate (Cname(Ident.fresh "forall_in")) expected_in_c;
        let expected_out_c = Causal.new_var () in
+       Causal.cannotate (Cname(Ident.fresh "forall_out")) expected_out_c;
        let index env { desc = desc } =
 	 match desc with
 	 | Einput(_, e) -> exp_before_on_c expected_k before_c env e expected_in_c
@@ -437,14 +441,27 @@ and equation expected_k before_c env
 	 | Einit_value(x, e, _) ->
 	    let tc = exp expected_k before_c env e in
 	    Env.add x { last = false; cur_tc = tc; last_tc = tc } init_env in
+       (* check that all variables read in the header [i in e1..e2,..., xi in e,...] *)
+       (* are available at time [expected_in_c] *)
        List.iter (index env) i_list;
+       (* build the typing environment for accummulation variables *)
        let init_env = List.fold_left init Env.empty init_list in
        let env = Env.append init_env env in
+       (* build the typing environment for read variables from the header *)
        let i_env = build_env_on_c expected_k expected_in_c i_env in
+       Format.eprintf "%a" Cenv.penv i_env;
+       Format.eprintf "------------\n";
        let env = Env.append i_env env in
+       (* build the typing environment for write variables from the header *)
        let o_env = build_env_on_c expected_k expected_out_c o_env in
+       Format.eprintf "%a" Cenv.penv o_env;
+       Format.eprintf "------------\n";
        let env = Env.append o_env env in
        let _, shared_env = block_eq_list expected_k before_c env b_eq_list in
+       Format.eprintf "%a" Cenv.penv shared_env;
+       Format.eprintf "------------\n";
+       Format.eprintf "%a" Cenv.penv env;
+       
        let shared_env =
 	 try
 	   Cenv.before shared_env env
