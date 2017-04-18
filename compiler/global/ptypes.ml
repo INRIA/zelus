@@ -95,7 +95,7 @@ let rec print prio ff ({ t_desc = desc } as ty) =
      fprintf ff "@[<hov 2>%a@ %s@ %a@]"
 	     print_arg ty_arg (arrow_tostring k) (print prio_current) ty_res
   | Tvec(ty, e) ->
-     fprintf ff "@[%a[%a]@]" (print prio_current) ty print_size e
+     fprintf ff "@[%a array[%a]@]" (print prio_current) ty print_size e
   | Tlink(link) -> print prio ff link
   end;
   if prio_current < prio then fprintf ff ")"  
