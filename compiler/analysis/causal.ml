@@ -506,7 +506,7 @@ module Cenv =
 	| Some { last = l1; cur_tc = tc1; last_tc = ltc1 },
 	  Some { last = l2; cur_tc = tc2; last_tc = ltc2 } ->
 	   if not l1 && l2 then raise (Error(ClashLast(x)))
-	   else type_before_type tc1 tc2; type_before_type ltc2 ltc1; left_opt in
+	   else type_before_type tc1 tc2; type_before_type ltc1 ltc2; left_opt in
       Env.merge before left_env right_env
 
     (* Computes the sup of two typing environments *)
