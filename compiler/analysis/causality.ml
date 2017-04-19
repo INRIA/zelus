@@ -409,23 +409,36 @@ and equation expected_k env
 		 for_in_env = i_env; for_out_env = o_env } ->
        (* typing the declaration of indexes *)
        (* defines a local environment *)
-       let expected_in_c = Causal.new_var () in
-       let expected_out_c = Causal.new_var () in
-       let index env { desc = desc } =
+       let in_c = Causal.new_var () in
+       let out_c = Causal.new_var () in
+
+       (* indexes and read array must be done before [in_c] *)
+       (* computes the set of pairs (oi, o) for outputs *)
+       let index env oi2o { desc = desc } =
 	 match desc with
-	 | Einput(_, e) -> exp_before_on_c expected_k env e expected_in_c
+	 | Einput(_, e) ->
+            exp_before_on_c expected_k env e in_c; oi2o
 	 | Eindex(_, e1, e2) ->
-	    exp_before_on_c expected_k env e1 expected_in_c;
-	    exp_before_on_c expected_k env e2 expected_in_c
-	 | Eoutput _ -> () in
-       (* replace every entry [x:ty|ty] by [xout:ty|ty] for [x out xout] *)
-       let out_env shared_env { desc = desc } =
-	 match desc with
-	 | Einput _ | Eindex _ -> shared_env
-	 | Eoutput(_, xout) ->
-	    let tc = Causal.atom expected_out_c in
-	    Env.add xout
-                    { last = false; cur_tc = tc; last_tc = tc } shared_env in
+	    exp_before_on_c expected_k env e1 in_c;
+	    exp_before_on_c expected_k env e2 in_c;
+            oi2o
+	 | Eoutput(oi, o) -> Env.add oi o oi2o in
+
+       (* replace an entry [oi, ty_i] by [o, atom out_c] *)
+       (* when [oi out o]. All vars xi in [ty_i] verify [xi < out_c] *)
+       (* Other entries are kept *)
+       let out oi2o shared_env =
+         let out oi ({ cur_tc = tc } as entry) env =
+	   try
+             let o = Env.find oi oi2o in
+             let cset = Causal.vars S.empty tc in
+             S.iter (fun c -> ctype_before_ctype c out_c) cset;
+             let tc = atom out_c in
+             Env.add o { last = false; cur_tc = tc; last_tc = fresh tc } env
+           with
+             Not_found -> Env.add oi entry env in
+         Env.fold out shared_env Env.empty in
+       
        (* typing the initialization *)
        let init init_env { desc = desc } =
 	 match desc with
@@ -434,28 +447,37 @@ and equation expected_k env
 	    Env.add x { last = true; cur_tc = fresh tc; last_tc = tc } init_env
 	 | Einit_value(x, e, _) ->
 	    let tc = exp expected_k env e in
-	    Env.add x { last = false; cur_tc = tc; last_tc = tc } init_env in
+	    Env.add x
+                    { last = false; cur_tc = tc; last_tc = fresh tc } init_env in
+
        (* check that all variables read in the header *)
        (* [i in e1..e2,..., xi in e,...] *)
        (* are available at time [expected_in_c] *)
-       List.iter (index env) i_list;
+       let oi2o = List.fold_left (index env) Env.empty i_list in
+
        (* build the typing environment for accummulation variables *)
        let init_env = List.fold_left init Env.empty init_list in
        let env = Env.append init_env env in
+
        (* build the typing environment for read variables from the header *)
-       let i_env = build_env_on_c expected_k expected_in_c i_env in
+       let i_env = build_env_on_c expected_k in_c i_env in
        let env = Env.append i_env env in
+
        (* build the typing environment for write variables from the header *)
-       let o_env = build_env_on_c expected_k expected_out_c o_env in
+       let o_env = build_env expected_k o_env in
        let env = Env.append o_env env in
+
+       (* type the body *)
        let _, shared_env = block_eq_list expected_k env b_eq_list in
        
        let shared_env =
 	 try
 	   Cenv.before shared_env env
 	 with Causal.Error err -> error loc env err in
-       let shared_env = List.fold_left out_env shared_env i_list in
-       Cenv.supc expected_in_c shared_env
+       (* replace an entry [oi, ty_i] by [o, ty_i] when [oi out o] *)
+       (* keep other entries *)
+       let shared_env = Cenv.supc in_c shared_env in
+       out oi2o shared_env       
 
 (* Typing a present handler for expressions *)
 (* The handler list is not be empty *)
