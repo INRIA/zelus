@@ -1,5 +1,5 @@
 (* sum of two arrays [x] and [y] of size [l] *)
-let sum(x)() = 1 where
+let sum(x)() = z where
     rec
       forall i in 0 .. x, zi out z
         do

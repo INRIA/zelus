@@ -477,7 +477,8 @@ and equation expected_k env
        (* replace an entry [oi, ty_i] by [o, ty_i] when [oi out o] *)
        (* keep other entries *)
        let shared_env = Cenv.supc in_c shared_env in
-       out oi2o shared_env       
+       let shared_env = out oi2o shared_env in
+       shared_env
 
 (* Typing a present handler for expressions *)
 (* The handler list is not be empty *)
