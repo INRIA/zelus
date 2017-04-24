@@ -1,14 +1,66 @@
+(* basic operations over arrays. *)
+
 (* sum of two arrays [x] and [y] of size [l] *)
-let sum(x)() = z where
+let sum(l)(x, y) = z where
     rec
-      forall i in 0 .. x, zi out z
+      forall i in 0 .. (l - 1), xi in x, yi in y, zi out z
         do
-         zi = 1
+         zi = xi + yi
         done
 
-(* i : a1 | a2
+(* sum of two matrices [m1] and [m2] of size [l1 * l2] *)
+let msum(l1)(l2)(m1, m2) = m3 where
+    rec
+      forall i in 0 .. (l1 - 1), m1i in m1, m2i in m2, m3i out m3 do
+        forall j in 0 .. (l2 - 1), m1ij in m1i, m2ij in m2i, m3ij out m3i do
+          m3ij = m1ij + m2ij
+        done
+      done
 
-z: z1 | z2
+(* the same but calling [vsum] *)
+let msum2(l1)(l2)(m1, m2) = m3 where
+    rec
+      forall i in 0 .. (l1 - 1), m1i in m1, m2i in m2, m3i out m3 do
+        m3i = sum(l2)(m1i, m2i)
+      done
 
-zi: zi1 | zi2 *)
+(* constant vector *)
+let const(l)(x0) = o where
+  rec forall i in 0 .. (l - 1), oi out o do oi = x0 done
 
+(* product of two vectors *)
+let node product(l)(x, y) = acc where
+    rec
+      forall i in 0 .. (l - 1), xi in x, yi in y
+        do
+          acc = (xi *. yi) +. last acc
+        initialize
+          last acc = 0.0
+        done
+
+(* product of a matrix and a vector *)
+let node mvproduct(l)(c)(m, v) = o where
+    rec
+      forall i in 0 .. (l - 1), mi in m, oi out o
+        do
+          oi = product(c)(mi, v)
+        done
+
+(* the same with two nested loops *)
+let node mvproduct2(l)(c)(m, v) = o where
+  rec
+      forall i in 0 .. (l - 1), mi in m, oi out o do
+        forall j in 0 ..(c - 1), mij in mi, vj in v do
+	  oi = (mij *. vj) +. last oi
+        initialize
+	  last oi = 0.0
+	done
+      done
+	    
+(* product of a matrix and a matrix *)
+let node mmproduct(l)(c)(m1, m2) = m3 where
+  rec
+      forall i in 0 .. (l - 1), m2i in m2, m3i out m3 do
+	m3i = mvproduct(l)(c)(m1, m2i)
+      done
+	  

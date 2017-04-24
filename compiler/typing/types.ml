@@ -92,12 +92,12 @@ let rec subst_in_type senv ({ t_desc = desc; t_index = index } as ty) =
   | Tlink(ty_link) -> subst_in_type  senv ty_link
   | Tfun(k, n_opt, ty_arg, ty_res) ->
      let ty_arg = subst_in_type senv ty_arg in
-     let ty_res =
+     let n_opt, ty_res =
        match n_opt with
-       | None -> subst_in_type senv ty_res
+       | None -> n_opt, subst_in_type senv ty_res
        | Some(n) ->
 	  let m = Ident.fresh (Ident.source n) in
-	  subst_in_type (Env.add n (Tname(m)) senv) ty_res in
+	  Some(m), subst_in_type (Env.add n (Tname(m)) senv) ty_res in
      funtype k n_opt ty_arg ty_res
 
 and subst_in_size senv si =
