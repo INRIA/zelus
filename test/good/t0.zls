@@ -1,13 +1,19 @@
-(* basic operations over arrays. *)
-
-(* sum of two arrays [x] and [y] of size [l] *)
-let sum(l)(x, y) = z where
+(* product of two vectors *)
+let node f x = x + 1
+let g x = f x + 1
+    
+let product(l)(x, y) = o where
     rec
-      forall i in 0 .. (l - 1), xi in x, yi in y, zi out z
+      forall i in 0 .. (l - 1), xi in x, yi in y, oi out o
         do
-         zi = xi + yi
+          acc = (xi *. yi) +. last acc and oi = acc
+        initialize
+          last acc = 0.0
         done
 
+let main(x) = product(42)(x, x)
+    
+(*
 (* sum of two matrices [m1] and [m2] of size [l1 * l2] *)
 let msum(l1)(l2)(m1, m2) = m3 where
     rec
@@ -64,3 +70,4 @@ let node mmproduct(l)(c)(m1, m2) = m3 where
 	m3i = mvproduct(l)(c)(m1, m2i)
       done
 	  
+*)

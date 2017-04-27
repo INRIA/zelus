@@ -142,7 +142,6 @@ let rec remove_dependences ({ t_desc = desc } as ty) =
 			    
 (* typing errors *)
 exception Unify
-exception Bounded of Ident.t
 
 (* comparing statefull and stateless expressions. A stateless one *)
 (* is allowed in a context where a statefull one is expected *)

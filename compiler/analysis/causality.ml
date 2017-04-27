@@ -457,22 +457,22 @@ and equation expected_k env
 
        (* build the typing environment for accummulation variables *)
        let init_env = List.fold_left init Env.empty init_list in
-       let env = Env.append init_env env in
 
        (* build the typing environment for read variables from the header *)
        let i_env = build_env_on_c expected_k in_c i_env in
-       let env = Env.append i_env env in
-
        (* build the typing environment for write variables from the header *)
        let o_env = build_env expected_k o_env in
-       let env = Env.append o_env env in
+       let i_o_env = Env.append i_env o_env in
 
+       let env = Env.append i_o_env env in
+       let read_env = Env.append init_env env in
+       
        (* type the body *)
-       let _, shared_env = block_eq_list expected_k env b_eq_list in
+       let _, shared_env = block_eq_list expected_k read_env b_eq_list in
        
        let shared_env =
 	 try
-	   Cenv.before shared_env env
+	   Cenv.before shared_env (Env.append (Cenv.unlast init_env) env)
 	 with Causal.Error err -> error loc env err in
        (* replace an entry [oi, ty_i] by [o, ty_i] when [oi out o] *)
        (* keep other entries *)

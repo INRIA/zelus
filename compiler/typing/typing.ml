@@ -84,7 +84,7 @@ let lift loc left_k right_k =
   try
     Types.lift left_k right_k
   with
-  | Types.Unify -> error loc (Ekind_clash(left_k, right_k))
+  | Types.Unify -> error loc (Ekind_clash(right_k, left_k))
 
 let sort_less_than loc sort expected_k =
   match expected_k, sort with
@@ -741,7 +741,7 @@ and apply loc is_statefull expected_k h e arg_list =
        let actual_k, n_opt, ty1, ty2 =
 	 try Types.filter_arrow intro_k ty_fct
 	 with Unify ->  error loc (Eapplication_of_non_function) in
-       let expected_k = lift e.e_loc expected_k actual_k in
+       let expected_k = lift loc expected_k actual_k in
        expect expected_k h arg ty1;
        let ty2 =
 	 match n_opt with

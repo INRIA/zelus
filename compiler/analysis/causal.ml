@@ -538,9 +538,9 @@ module Cenv =
       (* in a continuous context, [last x = x]. No constraint *)
       (* otherwise *)
       let make tc =
-	match expected_k with
-	| Tdiscrete(true) -> { last = true; cur_tc = tc; last_tc = fresh tc }
-	| _ -> { last = false; cur_tc = tc; last_tc = tc } in
+	let is_last =
+          match expected_k with | Tdiscrete(true) -> true | _ -> false in
+        { last = is_last; cur_tc = tc; last_tc = fresh tc } in
       Env.map make env
 
     (* All names from [defnames] are associated to fresh copies *)
@@ -552,6 +552,9 @@ module Cenv =
 	else Env.add n centry acc in
       Env.fold last env Env.empty
 
+    (* remove the field [last = true] from entries *)
+    let unlast env = Env.map (fun entry -> { entry with last = false }) env
+              
     let pcaus ff c =
       (* print a causality type with the associated relation *)
       let rel = relation (S.singleton c) in
