@@ -849,16 +849,16 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
        (* A non local variable [x] defined in the body of the loop must be *)
        (* either declared in the initialization part [initialize ...] *)
        (* or used to define an output array [x out t] *)
-       (* check that [n] appear in either [dv], [di] or [der] *)
+       (* check that [x] appear in either [dv], [di] or [der] *)
        let merge { dv = dv; di = di; der = der } init_h out_h =
 	 (* [di] must be empty *)
 	 if not (S.is_empty di)
 	 then error loc (Ealready_in_forall(S.choose di));
 	 (* all variables in [dv] and [der] must appear either *)
 	 (* in [init_h] or [out_h] *)
-	 let belong_to n =
-	   if not ((Env.mem n init_h) || (Env.mem n out_h))
-	   then error loc (Ealready_in_forall(n)) in
+	 let belong_to x =
+	   if not ((Env.mem x init_h) || (Env.mem x out_h))
+	   then error loc (Ealready_in_forall(x)) in
 	 S.iter belong_to dv;
 	 S.iter belong_to der in
 
