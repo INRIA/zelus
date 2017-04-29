@@ -1,20 +1,16 @@
-let hybrid f() = let der o = 1.0 in o
-
-let hybrid main(x,z) = o where rec der o = 1.0 init 0.0 reset up(z) -> 1.0
-    
-
-
-(*
 (* the same but with [x0] and [u], two floatting point vectors of size [n] *)
 let hybrid vint(n)(x0, u) = x where
   rec forall i in 0 .. 1, xi out x do
 	der xi = 1.0 init 0.0
       done
 								 
-(* product of two vectors *)
-let node f x = x + 1
-let g x = f x + 1
+let hybrid f() = let der o = 1.0 in o
+
+let hybrid main(x,z) = o where rec der o = 1.0 init 0.0 reset up(z) -> 1.0
     
+
+
+(* product of two vectors *)
 let product(l)(x, y) = o where
     rec
       forall i in 0 .. (l - 1), xi in x, yi in y, oi out o
@@ -24,8 +20,6 @@ let product(l)(x, y) = o where
           last acc = 0.0
         done
 
-let main(x) = product(42)(x, x)
-    *)
 (*
 (* sum of two matrices [m1] and [m2] of size [l1 * l2] *)
 let msum(l1)(l2)(m1, m2) = m3 where

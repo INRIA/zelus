@@ -851,16 +851,18 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
        (* or used to define an output array [x out t] *)
        (* check that [x] appear in either [dv], [di] or [der] *)
        let merge { dv = dv; di = di; der = der } init_h out_h =
-	 (* [di] must be empty *)
-	 if not (S.is_empty di)
-	 then error loc (Ealready_in_forall(S.choose di));
-	 (* all variables in [dv] and [der] must appear either *)
+	 (* all variables in [dv], [der] must appear either *)
 	 (* in [init_h] or [out_h] *)
-	 let belong_to x =
+	 (* all variables in [di] must appear in [out_h] and not in [init_h] *)
+         let belong_to_init_out x =
 	   if not ((Env.mem x init_h) || (Env.mem x out_h))
 	   then error loc (Ealready_in_forall(x)) in
-	 S.iter belong_to dv;
-	 S.iter belong_to der in
+	 let belong_to_out_not_init x =
+	   if not (Env.mem x out_h) || (Env.mem x init_h)
+	   then error loc (Ealready_in_forall(x)) in
+	 S.iter belong_to_init_out dv;
+	 S.iter belong_to_init_out der;
+         S.iter belong_to_out_not_init di in
 
        (* outputs are either shared or state variables *)
        let sort = if Types.is_statefull_kind expected_k

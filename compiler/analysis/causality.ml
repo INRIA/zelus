@@ -183,7 +183,7 @@ let rec exp expected_k env
       | Etypeconstraint(e, _) -> exp expected_k env e
       | Elet(l, e_let) ->
          let new_env = local expected_k env l in
-         let tc = exp expected_k (Env.append new_env env) e_let in
+         let tc = exp expected_k new_env e_let in
          tc
       | Eblock(b, e_block) ->
          let _, new_env = block_eq_list expected_k env b in
@@ -539,7 +539,7 @@ and block_eq_list expected_k env
     env, Cenv.suplist [shared_env]
   with Causal.Error err -> error loc env err
 
-(* Typing a local declaration. Returns the environment of local variables *)
+(* Typing a local declaration. Returns the extended environment *)
 and local expected_k env { l_eq = eq_list; l_env = l_env; l_loc = loc } =
   (* First extend the typing environment *)
   let l_env = build_env expected_k l_env in
@@ -547,8 +547,8 @@ and local expected_k env { l_eq = eq_list; l_env = l_env; l_loc = loc } =
   (* Then type the body *)
   try
     let new_env = equation_list expected_k env eq_list in
-    let new_env = Cenv.before new_env l_env in
-    new_env
+    let _ = Cenv.before new_env l_env in
+    env
   with Causal.Error err -> error loc env err
 
 (* Typing  a signal pattern. *)
