@@ -63,18 +63,16 @@ let message loc env kind =
     | ClashTypes(left_tc, right_tc, cycle) ->
        let cset = Cenv.vars env in
        let cycle = Causal.shrink cset cycle in
-       Format.eprintf "@[%aCausality error: this expression \
-                       may instantaneously depend on itself.@.\
-                       Here is an example of a cycle:@.@[%a@]@.@]"
-                      output_location loc
-                      Pcaus.cycle cycle;
-       if !Misc.verbose
-       then Format.eprintf "@[This expression has causality type@ @[%a@]@ \
+       Format.eprintf "@[%aCausality error: This expression \
+                            has causality type@ @[%a@]@ \
                             whereas it should be less than@ @[%a@]@.\
+                            Here is an example of a cycle:@.@[%a@]@.\
                             The current typing environment is:@.@[%a@]@]"
-			   Cenv.ptype left_tc
+			   output_location loc
+                           Cenv.ptype left_tc
 			   Cenv.ptype right_tc
-			   Cenv.penv env
+			   Pcaus.cycle cycle
+                           Cenv.penv env
   end;
   raise Misc.Error
 

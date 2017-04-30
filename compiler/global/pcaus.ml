@@ -51,9 +51,7 @@ let rec name ff c =
   | Cvar ->
      let index = c.c_index in
      let info = match c.c_info with None -> "_" | Some(i) -> info i in
-     if !Misc.verbose then
-       Format.fprintf ff "(%s:'%s)" info (type_name#name index)
-     else Format.fprintf ff "%s" info
+     Format.fprintf ff "(%s:'%s)" info (type_name#name index)
 
 let rec typ prio ff tc =
   let priority = function | Catom _ -> 3 | Cproduct _ -> 2 | Cfun _ -> 1 in
