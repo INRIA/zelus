@@ -1,3 +1,9 @@
+let f1 (x, o) = x + o
+    
+let f2 f x = let rec o = f (x, o+1) in o
+  
+let f3 x = f2 f1 x
+    
 let node f g y = let rec o1 = o2 + 1 and o2 = o1 + 2 in o1
 
 (* product of two vectors *)

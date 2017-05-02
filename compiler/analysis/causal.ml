@@ -505,7 +505,8 @@ module Cenv =
 	| Some { last = l1; cur_tc = tc1; last_tc = ltc1 },
 	  Some { last = l2; cur_tc = tc2; last_tc = ltc2 } ->
 	   if not l1 && l2 then raise (Error(ClashLast(x)))
-	   else type_before_type tc1 tc2; type_before_type ltc1 ltc2; left_opt in
+	   else
+             type_before_type tc1 tc2; type_before_type ltc1 ltc2; left_opt in
       Env.merge before left_env right_env
 
     (* Computes the sup of two typing environments *)
@@ -517,7 +518,8 @@ module Cenv =
 	| Some(entry), None -> Some(entry)
 	| Some({ last = l1; cur_tc = tc1; last_tc = ltc1 }), 
 	  Some({ last = l2; cur_tc = tc2; last_tc = ltc2 }) -> 
-	   Some({ last = l1 && l2; cur_tc = sup tc1 tc2; last_tc = sup ltc1 ltc2 }) in
+	   Some({ last = l1 && l2; cur_tc = sup tc1 tc2;
+                  last_tc = sup ltc1 ltc2 }) in
       Env.merge sup left_env right_env
 		
     let suplist env_list = List.fold_left sup Env.empty env_list
