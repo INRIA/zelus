@@ -118,7 +118,7 @@ and 'a default =
 
 and op =
     | Efby | Eunarypre | Eifthenelse | Eminusgreater 
-    | Eup | Einitial | Edisc | Etest | Eaccess
+    | Eup | Einitial | Edisc | Etest | Eaccess | Eupdate
 
 and immediate =
     | Eint of int

@@ -145,7 +145,7 @@ let state is_read n k =
 
 (* index in an array *)
 let rec index e =
-  function [] -> e | ei :: ei_list -> Oindex(index e ei_list, Olocal(ei))
+  function [] -> e | ei :: ei_list -> Oaccess(index e ei_list, Olocal(ei))
 
 let rec left_value_index lv =
   function
@@ -409,7 +409,14 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
   | Zelus.Eop(Zelus.Eaccess, [e1; e2]) ->
      let e1, code = exp env loop_path code e1 in
      let e2, code = exp env loop_path code e2 in
-     Oindex(e1, e2), code
+     Oaccess(e1, e2), code
+  | Zelus.Eop(Zelus.Eupdate, [e1; i; e2]) ->
+     let _, se = Types.filter_vec e1.Zelus.e_typ in
+     let se = size env se in
+     let e1, code = exp env loop_path code e1 in
+     let i, code = exp env loop_path code i in
+     let e2, code = exp env loop_path code e2 in
+     Oupdate(se, e1, i, e2), code
   | Zelus.Elet _ | Zelus.Eseq _ | Zelus.Eperiod _ 
   | Zelus.Eop _ | Zelus.Epresent _ | Zelus.Ematch _ | Zelus.Eblock _ ->
 						       assert false

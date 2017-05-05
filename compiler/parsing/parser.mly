@@ -476,7 +476,8 @@ automaton_handlers(X) :
 
 automaton_handler(X):
   | sp = state_pat MINUSGREATER b = block(X) DONE
-    { make { s_state = sp; s_block = b; s_until = []; s_unless = [] } $startpos $endpos}
+     { make { s_state = sp; s_block = b; s_until = []; s_unless = [] }
+            $startpos $endpos}
   | sp = state_pat MINUSGREATER b = block(X) THEN st = state
     { make { s_state = sp; s_block = b;
              s_until =
@@ -507,10 +508,12 @@ automaton_handler(X):
                           e_next_state = st}];
 	     s_unless = [] } $startpos $endpos }
   | sp = state_pat MINUSGREATER b = block(X) UNTIL e_until = escape_list
-     { make { s_state = sp; s_block = b; s_until = List.rev e_until; s_unless = [] }
+    { make
+       { s_state = sp; s_block = b; s_until = List.rev e_until; s_unless = [] }
        $startpos $endpos }
   | sp = state_pat MINUSGREATER b = block(X) UNLESS e_unless = escape_list
-    { make { s_state = sp; s_block = b; s_until = []; s_unless = List.rev e_unless }
+    { make
+       { s_state = sp; s_block = b; s_until = []; s_unless = List.rev e_unless }
       $startpos $endpos }
   | sp = state_pat MINUSGREATER b = block(X) UNTIL e_until = escape_list
 					     UNLESS e_unless = escape_list
@@ -844,6 +847,9 @@ expression_desc:
       { binop "||" e1 e2 ($startpos($2)) ($endpos($2)) }
   | p = PREFIX e = expression
       { unop p e ($startpos(p)) ($endpos(p)) }
+  | LBRACE e1 = simple_expression WITH i = simple_expression
+                                  EQUAL e2 = expression RBRACE
+      { Eop(Eupdate, [e1; i; e2]) }
   | e1 = expression DOT LPAREN e2 = expression RPAREN
       { Eop(Eaccess, [e1; e2]) } 
   | f = simple_expression l = simple_expression_list

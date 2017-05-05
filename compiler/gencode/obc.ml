@@ -20,7 +20,8 @@ open Ident
 type name = string
 
 (* a continuous state variable [x] is a pair *)
-(* with two fields: [x.der] for its derivative. [x.pos] for its current value. *)
+(* with two fields: [x.der] for its derivative. [x.pos] *)
+(* for its current value. *)
 (* a zero-crossing variable [x] has two field: [x.zin] is true when *)
 (* the solver has detected a zero-crossing. [x.zout] is the value *)
 (* to be observed for a zero-crossing *)
@@ -35,7 +36,8 @@ type exp =
   | Olocal of Ident.t (* read of local value *)
   | Ovar of Ident.t (* read of local variable *)
   | Ostate of left_state_value (* read of a state variable *)
-  | Oindex of exp * exp (* access in an array *)
+  | Oaccess of exp * exp (* access in an array *)
+  | Oupdate of exp * exp * exp * exp (* update of an array of size [e1] *)
   | Ovec of exp * exp (* e1[e2] build an array of size [e2] with value [e1] *)
   | Otuple of exp list (* tuples *)
   | Oapp of exp * exp list (* function application *)

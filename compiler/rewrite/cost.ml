@@ -53,12 +53,15 @@ let expression e max =
       | Epresent _ | Ematch _ -> assert false
   and cost_op op = 
     match op with 
-      | Efby | Eunarypre | Eminusgreater -> 2
-      | Edisc -> 4
-      | Einitial -> 2
-      | Eup -> -2
-      | Eifthenelse | Etest | Eaccess -> 1
-      | Ehorizon -> 1
+    | Efby | Eunarypre | Eminusgreater -> 2
+    | Edisc -> 4
+    | Einitial -> 2
+    | Eup -> -2
+    | Eifthenelse
+    | Etest
+    | Eaccess -> 1
+    | Ehorizon -> 1
+    | Eupdate -> 1 (* this is rough: after specialization, the size is known *)
   and cost_block { b_locals = l_list; b_body = eq_list } =
     List.iter cost_local l_list; List.iter cost_eq eq_list
   and cost_local { l_eq = eq_list } =

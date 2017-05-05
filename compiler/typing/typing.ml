@@ -591,11 +591,19 @@ let rec expression expected_k h ({ e_desc = desc; e_loc = loc } as e) =
     | Etuple(e_list) ->
        product (List.map (expression expected_k h) e_list)
     | Eop(Eaccess, [e1; e2]) ->
-      (* Special typing for [e1.(e2)]. [e1] must be of type [ty[size]]  *)
-      (* with [size] a known expression at that point *)
-      let ty = expression expected_k h e1 in
-      let ty_res = check_is_vec e1.e_loc ty in
-      expect expected_k h e2 Initial.typ_int; ty_res
+       (* Special typing for [e1.(e2)]. [e1] must be of type [ty[size]]  *)
+       (* with [size] a known expression at that point *)
+       let ty = expression expected_k h e1 in
+       let ty_arg = check_is_vec e1.e_loc ty in
+       expect expected_k h e2 Initial.typ_int; ty_arg
+    | Eop(Eupdate, [e1; i; e2]) ->
+       (* Special typing for [{ e1 with (i) = e2 }]. *)
+       (* [e1] must be of type [ty[size]]  *)
+       (* with [size] a known expression at that point *)
+       let ty = expression expected_k h e1 in
+       let ty_arg = check_is_vec e1.e_loc ty in
+       expect expected_k h i Initial.typ_int;
+       expect expected_k h e2 ty_arg; ty
     | Eop(op, e_list) ->
        operator expected_k h loc op e_list
     | Eapp({ app_statefull = is_statefull }, e, e_list) ->
@@ -698,7 +706,7 @@ and operator expected_k h loc op e_list =
         Tcont, [ty], Initial.typ_zero
     | Einitial ->
        Tcont, [], Initial.typ_zero
-    | Eaccess -> assert false in
+    | Eaccess | Eupdate -> assert false in
   less_than loc actual_k expected_k;
   List.iter2 (expect expected_k h) e_list ty_args;
   ty_res

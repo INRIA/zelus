@@ -193,6 +193,7 @@ let operator loc env = function
   | Edisc -> Zelus.Edisc
   | Etest -> Zelus.Etest
   | Eaccess -> Zelus.Eaccess
+  | Eupdate -> Zelus.Eupdate
   		 
 let period { p_phase = p1; p_period = p2 } = 
   { Zelus.p_phase = p1; Zelus.p_period = p2 }

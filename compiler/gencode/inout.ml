@@ -111,9 +111,9 @@ let set cvec idx e = make_set (solver_fn "set") cvec idx e
 let get cvec e = make_get (solver_fn "get_zin") cvec e
 
 (* Second solution (default): direct access to arrays *)
-let get cvec e = Oindex(Olocal(cvec), e)
+let get cvec e = Oaccess(Olocal(cvec), e)
 let set cvec idx e = Oassign(Oleft_index(Oleft_name(cvec), idx), e)
-let get_zin zvec e = oneq (Oindex(Olocal(zvec), e)) int32_0
+let get_zin zvec e = oneq (Oaccess(Olocal(zvec), e)) int32_0
 let rec letin p_e_list i =
   match p_e_list with
   | [] -> i

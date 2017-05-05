@@ -101,9 +101,16 @@ and desc =
   | Eblock of eq list block * exp
 
 and op =
-  | Efby | Eunarypre | Eifthenelse 
-  | Eminusgreater | Eup | Einitial | Edisc | Ehorizon
-  | Etest | Eaccess
+  | Efby | Eunarypre (* unit delay *)
+  | Eifthenelse (* mux *)
+  | Eminusgreater (* initialization *)
+  | Eup (* zero-crossing detection *)
+  | Einitial (* true at the very first instant *)
+  | Edisc (* discontinuity of a flow *)
+  | Ehorizon (* generate an event at a given horizon *)
+  | Etest (* test the present of a signal *)
+  | Eaccess (* access in an array: e.(e2) *)
+  | Eupdate (* array update: { e1 with i = e2 } *)
 
 and immediate = Deftypes.immediate
 

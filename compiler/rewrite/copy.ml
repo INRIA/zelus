@@ -53,7 +53,8 @@ let rename n { rel = rel; defs = defs } =
 let operator op =
   match op with
   | Efby | Eunarypre | Eifthenelse 
-  | Eminusgreater | Eup | Einitial | Edisc | Ehorizon | Etest | Eaccess -> op
+    | Eminusgreater | Eup | Einitial | Edisc
+    | Ehorizon | Etest | Eaccess | Eupdate -> op
     			     
 (** Build a substitution [x1\v1,...,xn\vn]. *)
 let rec build rel { eq_desc = desc } =

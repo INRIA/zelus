@@ -24,9 +24,9 @@ open Printer
        
 (** Priorities *)
 let rec priority_exp = function
-  | Oconst _ | Oconstr0 _| Oglobal _ | Olocal _ | Ovar _ | Ostate _ | Oindex _
+  | Oconst _ | Oconstr0 _| Oglobal _ | Olocal _ | Ovar _ | Ostate _ | Oaccess _
   | Orecord _ | Orecord_access _ | Otypeconstraint _ | Otuple _ -> 3
-  | Oconstr1 _ | Oapp _ | Omethodcall _ | Ovec _ -> 2
+  | Oconstr1 _ | Oapp _ | Omethodcall _ | Ovec _ | Oupdate _ -> 2
   | Oifthenelse _  -> 1
 
 and priority_inst = function
@@ -227,10 +227,13 @@ and exp prio ff e =
   | Olocal(n) -> local ff n
   | Ovar(n) -> var ff n
   | Ostate(l) -> left_state_value ff l
-  | Oindex(e, eidx) ->
+  | Oaccess(e, eidx) ->
      fprintf ff "%a.(@[%a@])" (exp prio_e) e (exp prio_e) eidx
   | Ovec(e, se) ->
      fprintf ff "%a[%a]" (exp prio_e) e (exp 0) se
+  | Oupdate(se, e1, i, e2) ->
+     fprintf ff "{%a:%a with %a = %a}"
+             (exp prio_e) e1 (exp prio_e) se (exp 0) i (exp 0) e2
   | Otuple(e_list) ->
      fprintf ff "@[<hov2>%a@]" (print_list_r (exp prio_e) "("","")") e_list
   | Oapp(e, e_list) ->

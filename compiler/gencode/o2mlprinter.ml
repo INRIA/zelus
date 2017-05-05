@@ -170,7 +170,7 @@ and exp prio ff e =
   | Olocal(n) -> local ff n
   | Ovar(n) -> var ff n
   | Ostate(l) -> left_state_value ff l
-  | Oindex(e, eidx) ->
+  | Oaccess(e, eidx) ->
       fprintf ff "%a.(@[%a@])" (exp prio_e) e (exp prio_e) eidx
   | Ovec(e, se) ->
      (* make a vector *)
@@ -185,6 +185,11 @@ and exp prio ff e =
        | _ -> fprintf ff "@[<hov 2>Array.init@ @[(%a)@]@ @[(fun _ -> %a)@]@]"
 		      (exp prio_e) se (exp prio_e) e in
      print_vec ff e se
+  | Oupdate(se, e1, i, e2) ->
+     (* returns a fresh vector [v] of size [se] equal to [e2] except at *)
+     (* [i] where it is equal to [e2] *)
+     fprintf ff "@[(let _t = Array.copy (%a) in@ _t.(%a) <- %a; _t)@]"
+             (exp 0) e1 (exp 0) i (exp 0) e2
   | Otuple(e_list) ->
       fprintf ff "@[<hov2>%a@]" (print_list_r (exp prio_e) "("","")") e_list
   | Oapp(e, e_list) ->

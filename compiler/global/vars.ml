@@ -51,7 +51,8 @@ let fv_match_handler fv_body m_h_list bounded acc =
 
 let operator acc = function
   | Efby | Eunarypre | Eifthenelse | Etest 
-  | Eminusgreater | Eup | Einitial | Edisc | Ehorizon | Eaccess -> acc
+    | Eminusgreater | Eup | Einitial | Edisc
+    | Ehorizon | Eaccess | Eupdate -> acc
 	   
 let rec fv bounded (last_acc, acc) e =
   match e.e_desc with

@@ -80,7 +80,7 @@ let rename x renaming =
 let operator renaming op =
   match op with
   | Eunarypre | Efby | Eminusgreater | Eifthenelse
-  | Eup | Etest | Edisc | Ehorizon | Einitial | Eaccess -> op
+  | Eup | Etest | Edisc | Ehorizon | Einitial | Eaccess | Eupdate -> op
   		       
 (** Renaming of type expressions *)
 let rec type_expression renaming ({ desc = desc } as ty_e) =

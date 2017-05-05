@@ -1,5 +1,6 @@
-let f1 (x, o) = x + o
-    
+let f1 (x : int[12]) = { x with (0) = 42 }
+
+    (*
 let f2 f x = let rec o = f (x, o+1) in o
   
 let f3 x = f2 f1 x
@@ -15,7 +16,7 @@ let product(l)(x, y) = o where
         initialize
           last acc = 0.0
         done
-
+*)
 (*
 (* sum of two matrices [m1] and [m2] of size [l1 * l2] *)
 let msum(l1)(l2)(m1, m2) = m3 where

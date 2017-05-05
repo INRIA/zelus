@@ -251,6 +251,11 @@ and operator expected_k env op ty e_list =
      exp_before_on_c expected_k env e1 c;
      exp_before_on_c expected_k env e2 c;
      Causal.skeleton_on_c c ty
+  | Eupdate, [e1; i; e2] ->
+     exp_before_on_c expected_k env e1 c;
+     exp_before_on_c expected_k env i c;
+     exp_before_on_c expected_k env e1 c;
+     Causal.skeleton_on_c c ty
   | _ -> assert false
      
 		    
