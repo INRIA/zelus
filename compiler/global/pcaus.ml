@@ -101,4 +101,4 @@ let cycle ff c_list =
 (* printing a declaration *)
 let declaration ff f tys =
   type_name#reset;
-  Format.fprintf ff "@[val %s : %a@.@]" f scheme tys    
+  Format.fprintf ff "@[<hov2>val %s :@ @[%a@]@.@]" f scheme tys    

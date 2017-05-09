@@ -50,22 +50,6 @@ let rec funtype_list tc_arg_list tc_res =
   | tc :: tc_arg_list ->
      funtype tc (funtype_list tc_arg_list tc_res)
 let atom c = Catom(c)
-let rec mem c l =
-  match l with | [] -> false | c1 :: l -> (c.c_index = c1.c_index) || (mem c l)
-let rec add c l = 
-  match l with 
-    | [] -> [c] 
-    | c1 :: l1 -> if c.c_index = c1.c_index then l else c1 :: (add c l1)
-let rec remove c l = 
-  match l with 
-    | [] -> [] 
-    | c1 :: l1 -> if c.c_index = c1.c_index then l1 else c1 :: (remove c l1)
-let rec union l1 l2 = 
-  match l1, l2 with
-    | [], l2 -> l2
-    | l1, [] -> l1
-    | x :: l1, l2 ->
-        if mem x l2 then union l1 l2 else x :: union l1 l2
 
 (* path compression *)
 let rec crepr c =
@@ -82,6 +66,22 @@ let equal c1 c2 =
   let c2 = crepr c2 in
   c1.c_index = c2.c_index
 
+let rec add c l = 
+  match l with 
+    | [] -> [c] 
+    | c1 :: l1 -> if equal c c1 then l else c1 :: (add c l1)
+
+let rec union l1 l2 = 
+  let rec mem c l =
+    match l with | [] -> false | c1 :: l -> (equal c c1) || (mem c l) in
+  match l1, l2 with
+  | [], l2 -> l2
+  | l1, [] -> l1
+  | c :: l1, l2 ->
+     if mem c l2 then union l1 l2 else c :: union l1 l2
+
+let set l = List.fold_left (fun acc c -> add c acc) [] l
+		      
 (* sups *)
 let sups c = let c = crepr c in c.c_sup
 		 
@@ -380,7 +380,7 @@ let relation cset =
     let c = crepr c in
     if S.mem c already then already, rel
     else if c.c_sup = [] then already, rel
-    else List.fold_left relation (S.add c already, (c, c.c_sup) :: rel) c.c_sup in
+    else List.fold_left relation (S.add c already, (c, set c.c_sup) :: rel) c.c_sup in
   let _, rel = S.fold (fun c acc -> relation acc c) cset (S.empty, []) in
   rel
 

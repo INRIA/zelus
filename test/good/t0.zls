@@ -1,13 +1,13 @@
 type saturation = Upper | Between | Lower
 
-let node forward_euler_complete(t)(upper, lower, res, k, x0, u) =
-   (output, sport, saturation) where
-   rec sport = x0 fby (output +. k *. t *. u)
-   and v = if res then x0 else sport
-   and (output, saturation) =
-     if v < lower then lower, Lower
-     else if v > upper then upper, Upper else v, Between
-
+let node backward_euler_complete(t)(upper, lower, res, k, x0, u) =
+   (output, state_port, saturation) where
+   rec state_port = x0 -> pre(output) +. k *. t *. u
+   and v = if res then x0 else state_port
+   and output, saturation =
+     if v < lower then lower, Lower else if v > upper then upper, Upper
+     else v, Between
+ 
     (*
 let f2 f x = let rec o = f (x, o+1) in o
   
