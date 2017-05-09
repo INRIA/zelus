@@ -758,7 +758,9 @@ simple_expression_desc:
   | c = constructor
       { Econstr0(c) }
   | i = ext_ident
-      { Evar i }
+          { Evar i }
+  | LAST i = ide
+          { Elast(i) }
   | a = atomic_constant
       { Econst a }
   | LBRACE l = label_expression_list RBRACE
@@ -847,8 +849,8 @@ expression_desc:
       { binop "||" e1 e2 ($startpos($2)) ($endpos($2)) }
   | p = PREFIX e = expression
       { unop p e ($startpos(p)) ($endpos(p)) }
-  | LBRACE e1 = expression WITH i = simple_expression
-                           EQUAL e2 = expression RBRACE
+  | LBRACE e1 = simple_expression WITH i = simple_expression
+                                  EQUAL e2 = expression RBRACE
       { Eop(Eupdate, [e1; i; e2]) }
   | e1 = expression DOT LPAREN e2 = expression RPAREN
       { Eop(Eaccess, [e1; e2]) } 
@@ -860,8 +862,6 @@ expression_desc:
       {  Eapp({ app_inline = false; app_statefull = true}, f, List.rev l) }
   | INLINE RUN f = simple_expression l = simple_expression_list
       {  Eapp({ app_inline = true; app_statefull = true}, f, List.rev l) }
-  | LAST i = ide
-      { Elast(i) }
   | e = expression DOT i = ext_ident
       { Erecord_access(e, i) }
   | LET defs = equation_list IN e = seq_expression  
