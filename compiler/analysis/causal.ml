@@ -348,9 +348,10 @@ let simplify c_set =
 	outputs)
     inputs    
     
-(* TEMPORARY SOLUTION only used for testing: *)
+(* WARNING: only used for testing: *)
 (* eliminate doublons, e.g., [c < b, b] and dependences to variables *)
 (* which are not input or outputs *)
+(**************************************************)
 let useless c_set =
   let rec remove_useless_variables c_set = S.iter remove_useless c_set 
   and remove_useless c = 
@@ -370,14 +371,16 @@ let useless c_set =
 let shrink cset c_list =
   let shrink c = S.mem c cset in
   List.filter shrink c_list
-    
+(**************************************************)
+	      
 (** Computes the dependence relation from a list of causality variables *)
-(* variables in [set] are disgarded *)
+(* variables in [already] are disgarded *)
 let relation cset =
-  let rec relation (cset, rel) c =
-    if S.mem c cset then cset, rel
-    else if c.c_sup = [] then S.add c cset, rel
-    else List.fold_left relation (S.add c cset, (c, c.c_sup) :: rel) c.c_sup in
+  let rec relation (already, rel) c =
+    let c = crepr c in
+    if S.mem c already then already, rel
+    else if c.c_sup = [] then already, rel
+    else List.fold_left relation (S.add c already, (c, c.c_sup) :: rel) c.c_sup in
   let _, rel = S.fold (fun c acc -> relation acc c) cset (S.empty, []) in
   rel
 
