@@ -420,7 +420,7 @@ let generalise tc =
   (* we compute useful variables *)
   let c_set = mark true S.empty tc in
   (* type simplification *)
-  simplify c_set;
+  useless c_set; (* simplify c_set; *)
   ignore (gen tc);
   let rel = relation c_set in
   { typ_vars = !list_of_vars; typ_rel = rel; typ = tc }

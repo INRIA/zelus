@@ -60,7 +60,7 @@ let rec typ prio ff tc =
   begin match tc with
 	| Catom(c) -> caus ff c
 	| Cfun(ty_arg, ty_res) ->
-	   Format.fprintf ff "@[%a -> %a@]" (typ (prio_current + 1)) ty_arg
+	   Format.fprintf ff "@[<hov2>%a ->@ %a@]" (typ (prio_current + 1)) ty_arg
 			  (typ prio_current) ty_res
 	| Cproduct(ty_list) ->
 	   print_list_r (typ (prio_current + 1)) "" " *" "" ff ty_list

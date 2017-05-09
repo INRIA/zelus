@@ -1,13 +1,35 @@
 type saturation = Upper | Between | Lower
 
-let node backward_euler_complete(t)(upper, lower, res, k, x0, u) =
-   (output, state_port, saturation) where
-   rec state_port = x0 -> pre(output) +. k *. t *. u
-   and v = if res then x0 else state_port
-   and output, saturation =
-     if v < lower then lower, Lower else if v > upper then upper, Upper
-     else v, Between
- 
+(* Integration with limit *)
+let hybrid limit_int(k, y0, upper, lower, r, u) = (y, sat) where
+  rec reset
+	init y = y0
+      and
+        automaton
+        | Between ->
+            (* regular mode. Integrate the signal *)
+	    do der y = k *. u and sat = Between
+	    unless up(last y -. upper) then Upper
+	    else up(-. (last y -. lower)) then Lower
+        | Upper ->
+            (* when the input [u] is negative *)
+            do y = upper and sat = Upper unless up(-. u) then Between
+        | Lower ->
+            (* when the input [u] is positive *)
+	    do y = lower and sat = Lower unless up(u) then Between
+        end
+      every r
+
+let hybrid limit_int2
+    (xlower, xupper, xlower', xupper', xres, xres', x0, x0', u) =
+  (x, x', xstatus, xstatus') where
+ rec
+  (x', xstatus') = limit_int(1.0, x0', xlower', xupper', xres', fu)
+ and
+  (x, xstatus) = limit_int(1.0, x0, xlower, xupper, xres, x')
+ and
+  fu = match xstatus with | Between -> u | Upper | Lower -> 0.0
+
     (*
 let f2 f x = let rec o = f (x, o+1) in o
   
