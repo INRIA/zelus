@@ -79,7 +79,7 @@ let relation ff rel =
 	       
 (* print a causality type signature *)
 let scheme ff { typ_rel = rel; typ = ty } = 
-  Format.fprintf ff "@[%a.%a@]" relation rel (typ 0) ty
+  Format.fprintf ff "@[<hov2>%a.@ %a@]" relation rel (typ 0) ty
 
    
 (* prints a dependence cycle *)

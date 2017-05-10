@@ -1,5 +1,5 @@
-type saturation = Upper | Between | Lower
-
+open T
+  
 (* Integration with limit *)
 let hybrid limit_int(k, y0, upper, lower, r, u) = (y, sat) where
   rec reset
@@ -28,7 +28,7 @@ let hybrid limit_int2
  and
   (x, xstatus) = limit_int(1.0, x0, xlower, xupper, xres, x')
  and
-  fu = match xstatus with | Between -> u | Upper | Lower -> 0.0
+  fu = match xstatus with | T.Between -> u | T.Upper | T.Lower -> 0.0
 
     (*
 let f2 f x = let rec o = f (x, o+1) in o
