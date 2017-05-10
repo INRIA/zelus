@@ -64,7 +64,7 @@ let rec expression env fun_defs ({ e_desc = desc } as e) =
        { e with e_desc = Erecord(l_e_list) }, fun_defs
   | Erecord_access(e_record, ln) ->
      let e_record, fun_defs = expression env fun_defs e_record in
-     { e_record with e_desc = Erecord_access(e, ln) }, fun_defs
+     { e_record with e_desc = Erecord_access(e_record, ln) }, fun_defs
   | Eapp(app, e_fun, e_list) ->
      (* [e_fun] is necessarily static *)
      (* [e_list] decomposes into (a possibly empty) sequence of 

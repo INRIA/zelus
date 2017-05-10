@@ -70,9 +70,9 @@ let value_name n ({ value_exp = value_exp; value_name = opt_name } as v) =
 let value_desc is_static typs qualident = 
   { value_typ = typs; value_static = is_static; value_caus = None; 
     value_code = value_code (Vabstract(qualident)) }
+let set_type { info = ({ value_typ = _ } as v) } typs = 
+  v.value_typ <- typs
 let set_causality { info = ({ value_caus = _ } as v) } typs = 
   v.value_caus <- Some(typs)
-let set_value_code { info = ({ value_code = _ } as v)} value_code = 
-  v.value_code <- value_code
 let set_value_code { info = ({ value_code = _ } as v)} value_code = 
   v.value_code <- value_code

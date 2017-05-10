@@ -1,6 +1,5 @@
-open T
-  
 (* Integration with limit *)
+(*
 let hybrid limit_int(k, y0, upper, lower, r, u) = (y, sat) where
   rec reset
 	init y = y0
@@ -19,10 +18,22 @@ let hybrid limit_int(k, y0, upper, lower, r, u) = (y, sat) where
 	    do y = lower and sat = Lower unless up(u) then Between
         end
       every r
+ *)
+  
+(*
+let static g = limit_int
+ *)
+type t = { x: int; }
 
-let static g = T.limit_int
-let static h = T.limit_int, T.limit_int
+let f x = 1
     
+    
+(*
+let static h = T.limit_int, T.limit_int
+
+let static gl = limit_int
+let static hl = limit_int, limit_int
+
 let hybrid limit_int2
     (xlower, xupper, xlower', xupper', xres, xres', x0, x0', u) =
   (x, x', xstatus, xstatus') where
@@ -32,7 +43,8 @@ let hybrid limit_int2
   (x, xstatus) = limit_int(1.0, x0, xlower, xupper, xres, x')
  and
   fu = match xstatus with | T.Between -> u | T.Upper | T.Lower -> 0.0
-
+ *)
+    
     (*
 let f2 f x = let rec o = f (x, o+1) in o
   

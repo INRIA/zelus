@@ -115,12 +115,10 @@ let initialize modname =
   current.name <- modname;
   List.iter open_module !default_used_modules
   
-let update_value f signature =
-  current.values <- E.add f signature current.values
-    
 let add_value f signature = 
   if E.mem f current.values then raise (Already_defined f);
-  update_value f signature
+  current.values <- E.add f signature current.values
+  
 let add_type f typ_desc =
   if E.mem f current.types then raise (Already_defined f);
   current.types <- E.add f typ_desc current.types

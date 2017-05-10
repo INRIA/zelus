@@ -615,4 +615,5 @@ let implementation ff { desc = desc } =
   | Error(loc, env, err) -> message loc env err
 
 let implementation_list ff impl_list =
-  List.iter (implementation ff) impl_list; impl_list
+  List.iter (implementation ff) impl_list;
+  impl_list

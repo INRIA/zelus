@@ -326,8 +326,12 @@ let add_type_of_value ff loc name is_static ty_scheme =
     | Already_defined(x) -> message loc (Ealready_defined_value(x))
 
 let update_type_of_value ff loc name is_static ty_scheme =
-  update_value name (value_desc is_static ty_scheme (Modules.qualify name))
-
+  try
+    let info = Modules.find_value (Lident.Name(name)) in
+    set_type info ty_scheme
+  with
+  | Not_found -> add_type_of_value ff loc name is_static ty_scheme
+                                   
 (* adding the type signature for a constant and a function. *)
 (* [is_static = true] means that the identifier defines a compile-time value *)
 let constdecl ff loc name typ =

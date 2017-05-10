@@ -40,8 +40,7 @@ let rec caus ff c =
   match c.c_desc with
   | Clink(link) -> caus ff link
   | Cvar ->
-     (* Format.fprintf ff "'%s" (type_name#name c.c_index) *)
-     Format.fprintf ff "'%s(%d)" (type_name#name c.c_index) c.c_level
+     Format.fprintf ff "'%s" (type_name#name c.c_index)
 				 
 let caus_list ff c_list = print_list_r_empty caus "" "" "" ff c_list
 
