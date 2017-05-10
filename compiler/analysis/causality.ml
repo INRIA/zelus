@@ -576,10 +576,14 @@ let implementation ff { desc = desc } =
   try
     match desc with
     | Eopen _ | Etypedecl _ -> ()
-    | Econstdecl(_, _, e) ->
+    | Econstdecl(f, _, e) ->
        Misc.push_binding_level ();
-       ignore (exp Deftypes.Tany Env.empty e);
-       Misc.pop_binding_level ()
+       let tc = exp Deftypes.Tany Env.empty e in
+       Misc.pop_binding_level ();
+       let tcs = generalise tc in
+       Global.set_causality (Modules.find_value (Lident.Name(f))) tcs;
+       (* output the signature *)
+       if !Misc.print_causality then Pcaus.declaration ff f tcs
     | Efundecl (f, { f_kind = k; f_atomic = atomic;
 		     f_args = pat_list; f_body = e; f_env = h0 }) ->
        Misc.push_binding_level ();

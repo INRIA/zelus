@@ -20,6 +20,9 @@ let hybrid limit_int(k, y0, upper, lower, r, u) = (y, sat) where
         end
       every r
 
+let static g = T.limit_int
+let static h = T.limit_int, T.limit_int
+    
 let hybrid limit_int2
     (xlower, xupper, xlower', xupper', xres, xres', x0, x0', u) =
   (x, x', xstatus, xstatus') where
