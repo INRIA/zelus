@@ -25,7 +25,9 @@ let static g = limit_int
  *)
 type t = { x: int; }
 
-let f x = 1
+let f g x = let rec o = g (o + 1) in o
+let h x = x + 2
+let m x = f h x
     
     
 (*

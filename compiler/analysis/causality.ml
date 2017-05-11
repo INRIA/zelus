@@ -61,7 +61,10 @@ let message loc env kind =
           while %s is not a continuous state variable nor piecewise constant.@.@]"
          output_location loc (Ident.source x) (Ident.source x)
     | ClashTypes(left_tc, right_tc, cycle) ->
+       (* keep only names in cycle that either appear in the *)
+       (* typing environment or one of the two types *)
        let cset = Cenv.vars env in
+       let cset = Causal.vars (Causal.vars cset left_tc) right_tc in
        let cycle = Causal.shrink cset cycle in
        Format.eprintf "@[%aCausality error: This expression \
                             has causality type@ @[%a@]@ \
@@ -69,8 +72,8 @@ let message loc env kind =
                             Here is an example of a cycle:@.@[%a@]@.\
                             The current typing environment is:@.@[%a@]@]"
 			   output_location loc
-                           Cenv.ptype left_tc
-			   Cenv.ptype right_tc
+                           Pcaus.ptype left_tc
+			   Pcaus.ptype right_tc
 			   Pcaus.cycle cycle
                            Cenv.penv env
   end;

@@ -45,32 +45,36 @@ let rec caus ff c =
 let caus_list ff c_list = print_list_r_empty caus "" "" "" ff c_list
 
 (* Print the causality with the source name *)
-let rec name ff c = 
+let rec caus_by_name ff c = 
   match c.c_desc with
-  | Clink(link) -> name ff link
+  | Clink(link) -> caus_by_name ff link
   | Cvar ->
      let index = c.c_index in
      let info = match c.c_info with None -> "_" | Some(i) -> info i in
      Format.fprintf ff "(%s:'%s)" info (type_name#name index)
 
-let rec typ prio ff tc =
+let rec ptype prio ff tc =
   let priority = function | Catom _ -> 3 | Cproduct _ -> 2 | Cfun _ -> 1 in
   let prio_current = priority tc in
   if prio_current < prio then fprintf ff "(";
   begin match tc with
 	| Catom(c) -> caus ff c
 	| Cfun(ty_arg, ty_res) ->
-	   Format.fprintf ff "@[<hov2>%a ->@ %a@]" (typ (prio_current + 1)) ty_arg
-			  (typ prio_current) ty_res
+	   Format.fprintf ff
+                          "@[<hov2>%a ->@ %a@]" (ptype (prio_current + 1)) ty_arg
+			  (ptype prio_current) ty_res
 	| Cproduct(ty_list) ->
-	   print_list_r (typ (prio_current + 1)) "" " *" "" ff ty_list
+	   print_list_r (ptype (prio_current + 1)) "" " *" "" ff ty_list
   end;
   if prio_current < prio then fprintf ff ")"  
-       
+
+let ptype ff tc = ptype 0 ff tc
+                    
 (* print a set of dependences *)
 let set ff s = Format.fprintf ff "@[{%a}@]" (fun ff s -> S.iter (caus ff) s) s
 			      
 (* Print the list of dependences ['a < 'b,...] *)
+(* doublons have normally be removed by the type generalisation *)
 let relation ff rel =
   let print ff (c, c_sup) =
     Format.fprintf
@@ -79,25 +83,21 @@ let relation ff rel =
 	       
 (* print a causality type signature *)
 let scheme ff { typ_rel = rel; typ = ty } = 
-  Format.fprintf ff "@[<hov2>%a.@ %a@]" relation rel (typ 0) ty
-
-   
+  Format.fprintf ff "@[<hov2>%a.@ %a@]" relation rel ptype ty
+                 
 (* prints a dependence cycle *)
 let cycle ff c_list =
-  (* remove intermediate nodes which are not associated to *)
   let rec print first ff l =
     match l with
-    | [] -> assert false
-    | [c] -> 
-       Format.fprintf ff "%a < %a" name c name first
+    | [] -> Format.fprintf ff "@[%a < %a@]" caus first caus first
+    | [c] -> Format.fprintf ff "@[%a < %a@]" caus c caus first
     | c1 :: ((c2 :: _) as l) -> 
-       Format.fprintf ff "@[%a < %a;@ %a@]"
-		      name c1 name c2 (print first) l in
+       Format.fprintf ff
+                      "@[<hov>%a < %a;@ %a@]" caus c1 caus c2 (print first) l in
   match c_list with
-  | [] -> ()
-  | first :: _ ->
-     Format.fprintf ff "@[[%a]@]" (print first) c_list
-		    
+  | [] -> () (* assert false *)
+  | (first :: _) as l -> print first ff l
+
 (* printing a declaration *)
 let declaration ff f tys =
   type_name#reset;

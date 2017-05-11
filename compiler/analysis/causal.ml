@@ -117,7 +117,7 @@ let rec occur_check level index c =
 	  then raise (Unify (List.rev path))
 	  else List.iter (check (c :: path)) c.c_sup
       | Clink(link) -> check path link
-  in check [] c
+  in check [c] c
 
 (** Unification *)
 let rec unify cunify left_tc right_tc =
@@ -420,7 +420,7 @@ let generalise tc =
   (* we compute useful variables *)
   let c_set = mark true S.empty tc in
   (* type simplification *)
-  useless c_set; (* simplify c_set; *)
+  (* useless c_set; *) simplify c_set;
   ignore (gen tc);
   let rel = relation c_set in
   { typ_vars = !list_of_vars; typ_rel = rel; typ = tc }
@@ -570,7 +570,7 @@ module Cenv =
       (* print a causality type with the associated relation *)
       let rel = relation (vars S.empty tc) in
       Format.fprintf
-        ff "@[%a with @[%a@]@]" (Pcaus.typ 0) tc Pcaus.relation rel
+        ff "@[%a with @[%a@]@]" Pcaus.ptype tc Pcaus.relation rel
 
     (* Computes the dependence relation for a set of causality types *)
     (* in a typing environment *)
@@ -582,7 +582,7 @@ module Cenv =
     let penv ff env =
       let one ff (n, { cur_tc = tc; last_tc = ltc }) =
 	Format.fprintf ff "@[%a: %a | %a@]"
-		       Printer.name n (Pcaus.typ 0) tc (Pcaus.typ 0) ltc in
+		       Printer.name n Pcaus.ptype tc Pcaus.ptype ltc in
       let cset = vars env in
       let rel = relation cset in
       let env = Env.bindings env in
