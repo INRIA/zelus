@@ -400,6 +400,7 @@ and cgen c =
   let c = crepr c in
   match c.c_desc with
   | Cvar ->
+     c.c_useful <- false;
      if c.c_level > !binding_level
      then 
        begin
@@ -559,23 +560,11 @@ module Cenv =
     (* remove the field [last = true] from entries *)
     let unlast env = Env.map (fun entry -> { entry with last = false }) env
               
-    let pcaus ff c =
-      (* print a causality type with the associated relation *)
-      let rel = relation (S.singleton c) in
-      Format.fprintf
-        ff "@[%a with @[%a@]@]" Pcaus.caus c Pcaus.relation rel
-
-    let ptype ff tc =
-      (* print a causality type with the associated relation *)
-      let rel = relation (vars S.empty tc) in
-      Format.fprintf
-        ff "@[%a with @[%a@]@]" Pcaus.ptype tc Pcaus.relation rel
-
     (* Computes the dependence relation for a set of causality types *)
     (* in a typing environment *)
-    let vars acc env =
+    let mark right acc env =
       let entry n { cur_tc = tc; last_tc = ltc } acc =
-	vars (vars acc tc) ltc in
+	mark right (mark right acc tc) ltc in
       Env.fold entry env acc
 		
     (* print the type environment. Only keep names in the dependence *)
@@ -583,7 +572,7 @@ module Cenv =
     (* the types in this environment *)
     let penv cset ff env =
       (* compute the set of useful variables *)
-      let cset = vars cset env in
+      let cset = mark true cset env in
       (* remove useless dependences *)
       useless cset;
       (* print every entry in the typing environment *)
