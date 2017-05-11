@@ -63,8 +63,8 @@ let message loc env kind =
     | ClashTypes(left_tc, right_tc, cycle) ->
        (* keep only names in cycle that either appear in the *)
        (* typing environment or one of the two types *)
-       let cset = Cenv.vars S.empty env in
-       let cset = Causal.vars (Causal.vars cset left_tc) right_tc in
+       let cset = Cenv.mark true S.empty env in
+       let cset = Causal.mark true (Causal.mark true cset left_tc) right_tc in
        let cycle = Causal.shrink_cycle cset cycle in
        Format.eprintf "@[%aCausality error: This expression \
                             has causality type@ @[%a@]@ \
