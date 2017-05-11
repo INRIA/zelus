@@ -348,10 +348,9 @@ let simplify c_set =
 	outputs)
     inputs    
     
-(* WARNING: only used for testing: *)
-(* eliminate doublons, e.g., [c < b, b] and dependences to variables *)
+(* Eliminate doublons, e.g., [c < b, b] and dependences to variables *)
 (* which are not input or outputs *)
-(**************************************************)
+(* used only when a type error occurs. *)
 let useless c_set =
   let rec remove_useless_variables c_set = S.iter remove_useless c_set 
   and remove_useless c = 
@@ -362,7 +361,7 @@ let useless c_set =
     let c_right = crepr c_right in
     match c_right.c_desc with
     | Cvar -> 
-       if c_right.c_useful then add c_right acc
+       if S.mem c_right c_set (* c_right.c_useful *) then add c_right acc
        else useful_list acc c_right.c_sup
     | Clink(link) -> useful acc link in
   remove_useless_variables c_set
@@ -371,7 +370,6 @@ let useless c_set =
 let shrink_cycle cset c_list =
   let shrink c = S.mem c cset in
   List.filter shrink c_list
-(**************************************************)
 	      
 (** Computes the dependence relation from a list of causality variables *)
 (* variables in [already] are disgarded *)
@@ -584,13 +582,19 @@ module Cenv =
     (* relation that are present either in [cset] or variables from *)
     (* the types in this environment *)
     let penv cset ff env =
-      let one ff (n, { cur_tc = tc; last_tc = ltc }) =
+      (* compute the set of useful variables *)
+      let cset = vars cset env in
+      (* remove useless dependences *)
+      useless cset;
+      (* print every entry in the typing environment *)
+      let pentry ff (n, { cur_tc = tc; last_tc = ltc }) =
 	Format.fprintf ff "@[%a: %a | %a@]"
 		       Printer.source_name n Pcaus.ptype tc Pcaus.ptype ltc in
-      let cset = vars cset env in
-      let rel = relation cset in
+      (* print the relation *)
       let env = Env.bindings env in
-      Format.fprintf ff "@[%a@.with@ @[%a@]@.@]"
-		     (Pp_tools.print_list_r one "[" ";" "]") env
+      let rel = relation cset in
+      Format.fprintf ff
+		     "@[<hov>%a@ with@ @[%a@]@.@]"
+		     (Pp_tools.print_list_r pentry "[" ";" "]") env
 		     Pcaus.relation rel
   end
