@@ -65,7 +65,7 @@ let message loc env kind =
        (* typing environment or one of the two types *)
        let cset = Cenv.vars env in
        let cset = Causal.vars (Causal.vars cset left_tc) right_tc in
-       let cycle = Causal.shrink cset cycle in
+       let cycle = Causal.shrink_cycle cset cycle in
        Format.eprintf "@[%aCausality error: This expression \
                             has causality type@ @[%a@]@ \
                             whereas it should be less than@ @[%a@]@.\
@@ -75,7 +75,7 @@ let message loc env kind =
                            Pcaus.ptype left_tc
 			   Pcaus.ptype right_tc
 			   Pcaus.cycle cycle
-                           Cenv.penv env
+                           (Cenv.penv cset) env
   end;
   raise Misc.Error
 

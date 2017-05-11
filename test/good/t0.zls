@@ -1,33 +1,42 @@
-(* Integration with limit *)
-(*
-let hybrid limit_int(k, y0, upper, lower, r, u) = (y, sat) where
-  rec reset
-	init y = y0
-      and
-        automaton
-        | Between ->
-            (* regular mode. Integrate the signal *)
-	    do der y = k *. u and sat = Between
-	    unless up(last y -. upper) then Upper
-	    else up(-. (last y -. lower)) then Lower
-        | Upper ->
-            (* when the input [u] is negative *)
-            do y = upper and sat = Upper unless up(-. u) then Between
-        | Lower ->
-            (* when the input [u] is positive *)
-	    do y = lower and sat = Lower unless up(u) then Between
-        end
-      every r
- *)
-  
-(*
-let static g = limit_int
- *)
-type t = { x: int; }
+(* constant vector *)
+let const(l)(x0) = o where
+  rec forall i in 0 .. (l - 1), oi out o do oi = x0 done
 
-let f g x = let rec o = g (o + 1) in o
-let h x = x + 2
-let m x = f h x
+let sum(l)(x, y) = z where
+    rec
+      forall i in 0 .. (l - 1), xi in x, yi in y, zi out z
+        do
+         zi = xi +. yi
+        done
+
+(* product of two vectors *)
+let product(l)(x, y) = acc where
+    rec
+      forall i in 0 .. (l - 1), xi in x, yi in y
+        do
+          acc = (xi *. yi) +. last acc
+        initialize
+          last acc = 0.0
+        done
+
+(* product of a matrix and a vector *)
+let mvproduct(l)(c)(m, v) = o where
+    rec
+      forall i in 0 .. (l - 1), mi in m, oi out o
+        do
+          oi = product(c)(mi, v)
+        done
+
+let hybrid vint(n)(x0, u) = x where
+  rec forall i in 0 .. (n - 1), x0i in x0, ui in u, xi out x do
+        der xi = ui init x0i done
+
+let hybrid state_space(n)(x0)(a)(b)(c)(d)(u) = y where
+  rec
+      x = vint(n)(const(n)(x0), sum(n)(mvproduct(n)(n)(a, x),
+			               mvproduct(n)(n)(b, u)))
+  and
+      y = sum(n)(mvproduct(n)(n)(c, x), mvproduct(n)(n)(d, u))
     
     
 (*

@@ -368,7 +368,7 @@ let useless c_set =
   remove_useless_variables c_set
 
 (* Shrink a cycle by keeping only names in [cset] *)
-let shrink cset c_list =
+let shrink_cycle cset c_list =
   let shrink c = S.mem c cset in
   List.filter shrink c_list
 (**************************************************)
@@ -380,7 +380,8 @@ let relation cset =
     let c = crepr c in
     if S.mem c already then already, rel
     else if c.c_sup = [] then already, rel
-    else List.fold_left relation (S.add c already, (c, set c.c_sup) :: rel) c.c_sup in
+    else List.fold_left
+           relation (S.add c already, (c, set c.c_sup) :: rel) c.c_sup in
   let _, rel = S.fold (fun c acc -> relation acc c) cset (S.empty, []) in
   rel
 
@@ -574,16 +575,19 @@ module Cenv =
 
     (* Computes the dependence relation for a set of causality types *)
     (* in a typing environment *)
-    let vars env =
+    let vars acc env =
       let entry n { cur_tc = tc; last_tc = ltc } acc =
 	vars (vars acc tc) ltc in
-      Env.fold entry env S.empty
+      Env.fold entry env acc
 		
-    let penv ff env =
+    (* print the type environment. Only keep names in the dependence *)
+    (* relation that are present either in [cset] or variables from *)
+    (* the types in this environment *)
+    let penv cset ff env =
       let one ff (n, { cur_tc = tc; last_tc = ltc }) =
 	Format.fprintf ff "@[%a: %a | %a@]"
-		       Printer.name n Pcaus.ptype tc Pcaus.ptype ltc in
-      let cset = vars env in
+		       Printer.source_name n Pcaus.ptype tc Pcaus.ptype ltc in
+      let cset = vars cset env in
       let rel = relation cset in
       let env = Env.bindings env in
       Format.fprintf ff "@[%a@.with@ @[%a@]@.@]"

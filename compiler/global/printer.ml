@@ -51,7 +51,9 @@ let longname ff ln =
         fprintf ff "%s.%s" m (parenthesis s)
 
 let name ff n = shortname ff (Ident.name n)
-          
+
+let source_name ff n = shortname ff (Ident.source n)
+
 let immediate ff = function 
   | Eint i -> fprintf ff "%d" i
   | Efloat f -> fprintf ff "%f" f
