@@ -1,103 +1,18 @@
 (* constant vector *)
-let hybrid f(l)(x0, x) = o where
-  rec forall i in 0 .. (l - 1), xi in x, oi out o do
-	der oi = xi init x0 done
+let node fix f x = let rec o = run f (x, o) in o
 
-let hybrid g(x0, x) = o where
-  rec der o = x init x0
+let node g (x, y) = x fby y + 1
 
-let hybrid h(x0, x) = o where
-  rec der o = x and init o = x0
-      
-(*
-let static h = T.limit_int, T.limit_int
-
-let static gl = limit_int
-let static hl = limit_int, limit_int
-
-let hybrid limit_int2
-    (xlower, xupper, xlower', xupper', xres, xres', x0, x0', u) =
-  (x, x', xstatus, xstatus') where
- rec
-  (x', xstatus') = limit_int(1.0, x0', xlower', xupper', xres', fu)
- and
-  (x, xstatus) = limit_int(1.0, x0, xlower, xupper, xres, x')
- and
-  fu = match xstatus with | T.Between -> u | T.Upper | T.Lower -> 0.0
- *)
+let node main x = fix g x
     
-    (*
-let f2 f x = let rec o = f (x, o+1) in o
-  
-let f3 x = f2 f1 x
-    
-let node f g y = let rec o1 = o2 + 1 and o2 = o1 + 2 in o1
+let f(x) = 
+  local o
+  do forall i in 0 .. 42, xi in x, oi out o do
+	oi = xi + i
+  done in
+  o
 
-(* product of two vectors *)
-let product(l)(x, y) = o where
-    rec
-      forall i in 0 .. (l - 1), xi in x, yi in y, oi out o
-        do
-          acc = (xi *. yi) +. last acc and oi = acc
-        initialize
-          last acc = 0.0
-        done
-*)
-(*
-(* sum of two matrices [m1] and [m2] of size [l1 * l2] *)
-let msum(l1)(l2)(m1, m2) = m3 where
-    rec
-      forall i in 0 .. (l1 - 1), m1i in m1, m2i in m2, m3i out m3 do
-        forall j in 0 .. (l2 - 1), m1ij in m1i, m2ij in m2i, m3ij out m3i do
-          m3ij = m1ij + m2ij
-        done
-      done
+(* let hybrid f(x0, x) = o where
+  rec forall i in 0 .. 4, xi in x, oi out o do
+	der oi = xi init x0 done *)
 
-(* the same but calling [vsum] *)
-let msum2(l1)(l2)(m1, m2) = m3 where
-    rec
-      forall i in 0 .. (l1 - 1), m1i in m1, m2i in m2, m3i out m3 do
-        m3i = sum(l2)(m1i, m2i)
-      done
-
-(* constant vector *)
-let const(l)(x0) = o where
-  rec forall i in 0 .. (l - 1), oi out o do oi = x0 done
-
-(* product of two vectors *)
-let node product(l)(x, y) = acc where
-    rec
-      forall i in 0 .. (l - 1), xi in x, yi in y
-        do
-          acc = (xi *. yi) +. last acc
-        initialize
-          last acc = 0.0
-        done
-
-(* product of a matrix and a vector *)
-let node mvproduct(l)(c)(m, v) = o where
-    rec
-      forall i in 0 .. (l - 1), mi in m, oi out o
-        do
-          oi = product(c)(mi, v)
-        done
-
-(* the same with two nested loops *)
-let node mvproduct2(l)(c)(m, v) = o where
-  rec
-      forall i in 0 .. (l - 1), mi in m, oi out o do
-        forall j in 0 ..(c - 1), mij in mi, vj in v do
-	  oi = (mij *. vj) +. last oi
-        initialize
-	  last oi = 0.0
-	done
-      done
-	    
-(* product of a matrix and a matrix *)
-let node mmproduct(l)(c)(m1, m2) = m3 where
-  rec
-      forall i in 0 .. (l - 1), m2i in m2, m3i out m3 do
-	m3i = mvproduct(l)(c)(m1, m2i)
-      done
-	  
-*)
