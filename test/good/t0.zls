@@ -1,44 +1,14 @@
 (* constant vector *)
-let const(l)(x0) = o where
-  rec forall i in 0 .. (l - 1), oi out o do oi = x0 done
+let hybrid f(l)(x0, x) = o where
+  rec forall i in 0 .. (l - 1), xi in x, oi out o do
+	der oi = xi init x0 done
 
-let sum(l)(x, y) = z where
-    rec
-      forall i in 0 .. (l - 1), xi in x, yi in y, zi out z
-        do
-         zi = xi +. yi
-        done
+let hybrid g(x0, x) = o where
+  rec der o = x init x0
 
-(* product of two vectors *)
-let product(l)(x, y) = acc where
-    rec
-      forall i in 0 .. (l - 1), xi in x, yi in y
-        do
-          acc = (xi *. yi) +. last acc
-        initialize
-          last acc = 0.0
-        done
-
-(* product of a matrix and a vector *)
-let mvproduct(l)(c)(m, v) = o where
-    rec
-      forall i in 0 .. (l - 1), mi in m, oi out o
-        do
-          oi = product(c)(mi, v)
-        done
-
-let hybrid vint(n)(x0, u) = x where
-  rec forall i in 0 .. (n - 1), x0i in x0, ui in u, xi out x do
-        der xi = ui init x0i done
-
-let hybrid state_space(n)(x0)(a)(b)(c)(d)(u) = y where
-  rec
-      x = vint(n)(const(n)(x0), sum(n)(mvproduct(n)(n)(a, x),
-			               mvproduct(n)(n)(b, u)))
-  and
-      y = sum(n)(mvproduct(n)(n)(c, x), mvproduct(n)(n)(d, u))
-    
-    
+let hybrid h(x0, x) = o where
+  rec der o = x and init o = x0
+      
 (*
 let static h = T.limit_int, T.limit_int
 

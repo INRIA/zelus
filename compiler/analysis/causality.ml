@@ -300,29 +300,31 @@ and equation expected_k env
     | EQder(n, e, e0_opt, h_e_list) ->
         (* no causality constraint for [e] *)
         ignore (exp expected_k env e);
-        (* type the initialization and handler *)
+        (* type the handler *)
         let tc_opt =
           match h_e_list with
           | [] -> None
           | _ ->
 	     Some(present_handler_exp_list expected_k env h_e_list None) in
-	let ltc_opt =
+	(* type the initialization *)
+        let itc_opt =
           Misc.optional_map
 	    (exp (Types.lift_to_discrete expected_k) env) e0_opt in
 	(* no environment is produced when only the derivative is defined *)
 	let env =
-	  match tc_opt, ltc_opt with
+	  match tc_opt, itc_opt with
 	  | None, None -> Env.empty
 	  | Some(tc), None ->
 	     Env.singleton n { last = true; cur_tc = tc; last_tc = fresh tc }
-	  | None, Some(ltc) ->
-	     Env.singleton n { last = true; cur_tc = fresh ltc; last_tc = ltc }
-	  | Some(tc), Some(ltc) ->
-	     Env.singleton n { last = true; cur_tc = tc; last_tc = ltc } in
+	  | None, Some(itc) ->
+	     Env.singleton n { last = true; cur_tc = itc; last_tc = itc }
+	  | Some(tc), Some(itc) ->
+	     Env.singleton n { last = true; cur_tc = Causal.sup itc tc;
+			       last_tc = itc } in
 	env
     | EQinit(n, e0) ->
        let ltc = Causal.annotate (Clast n) (exp expected_k env e0) in
-       let tc = Causal.annotate (Cname n) (fresh ltc) in
+       let tc = Causal.annotate (Cname n) ltc in
        Env.singleton n { last = true; cur_tc = tc; last_tc = ltc }
     | EQnext(n, e, e0_opt) ->
         ignore (exp expected_k env e);
@@ -412,29 +414,38 @@ and equation expected_k env
        let _, shared_env = block_eq_list expected_k env b_eq_list in
        shared_env
     | EQforall { for_index = i_list; for_init = init_list; for_body = b_eq_list;
-		 for_in_env = i_env; for_out_env = o_env } ->
-       (* typing the declaration of indexes *)
-       (* defines a local environment *)
-       let in_c = Causal.new_var () in
-       let out_c = Causal.new_var () in
-
-       (* indexes and read array must be done before [in_c] *)
-       (* computes the set of pairs (oi, o) for outputs *)
-       let index env oi2o { desc = desc } =
+		 for_out_env = o_env } ->
+       (* Build the typing environment for inputs/outputs *)
+       (* and build an association table [oi out o] for all output pairs *)
+       let index (io_env, oi2o) { desc = desc } =
 	 match desc with
-	 | Einput(_, e) ->
-            exp_before_on_c expected_k env e in_c; oi2o
-	 | Eindex(_, e1, e2) ->
+	 | Einput(x, e) ->
+            let in_c = Causal.new_var () in
+	    exp_before_on_c expected_k env e in_c;
+	    let ty_arg, _ = Types.filter_vec e.e_typ in
+	    let tc = Causal.skeleton_on_c in_c ty_arg in
+	    Env.add x { last = false; cur_tc = tc; last_tc = fresh tc } io_env,
+	    oi2o
+	 | Eindex(x, e1, e2) ->
+	    let in_c = Causal.new_var () in
 	    exp_before_on_c expected_k env e1 in_c;
 	    exp_before_on_c expected_k env e2 in_c;
-            oi2o
-	 | Eoutput(oi, o) -> Env.add oi o oi2o in
+            let tc = Causal.skeleton_on_c in_c e1.e_typ in
+	    Env.add x { last = false; cur_tc = tc; last_tc = fresh tc } io_env,
+	    oi2o
+	 | Eoutput(oi, o) ->
+	    let out_c = Causal.new_var () in
+	    let { t_typ = ty } = Env.find oi o_env in
+	    let tc = Causal.skeleton_on_c out_c ty in
+	    Env.add oi { last = false; cur_tc = tc; last_tc = fresh tc } io_env,
+	    Env.add oi o oi2o in
 
-       (* replace an entry [oi, ty_i] by [o, atom out_c] *)
-       (* when [oi out o]. All vars xi in [ty_i] verify [xi < out_c] *)
-       (* Other entries are kept *)
-       let out oi2o shared_env =
-         let out oi ({ cur_tc = tc } as entry) env =
+       (* replace an entry [oi, tc_i[out_c]] by [o, atom out_c] *)
+       (* when [oi out o]. *)
+       let out out_c oi2o shared_env =
+         (* all the outputs should be computed before [out_c] *)
+	 let out oi
+		 ({ last = last; cur_tc = tc; last_tc = ltc } as entry) env =
 	   try
              let o = Env.find oi oi2o in
              let cset = Causal.vars S.empty tc in
@@ -456,36 +467,30 @@ and equation expected_k env
 	    Env.add x
                     { last = false; cur_tc = tc; last_tc = fresh tc } init_env in
 
-       (* check that all variables read in the header *)
-       (* [i in e1..e2,..., xi in e,...] *)
-       (* are available at time [expected_in_c] *)
-       let oi2o = List.fold_left (index env) Env.empty i_list in
+       (* build the typing environment for read variables from the header *)
+       let io_env, oi2o = List.fold_left index (Env.empty, Env.empty) i_list in
 
        (* build the typing environment for accummulation variables *)
        let init_env = List.fold_left init Env.empty init_list in
 
-       (* build the typing environment for read variables from the header *)
-       let i_env = build_env_on_c expected_k in_c i_env in
-       (* build the typing environment for write variables from the header *)
-       let o_env = build_env expected_k o_env in
-       let i_o_env = Env.append i_env o_env in
-
-       let env = Env.append i_o_env env in
-       let read_env = Env.append init_env env in
-       
+       (* build the typing environment *)
+       let env = Env.append io_env env in
+       let env = Env.append init_env env in
+              
        (* type the body *)
-       let _, shared_env = block_eq_list expected_k read_env b_eq_list in
+       let _, shared_env = block_eq_list expected_k env b_eq_list in
        
        let shared_env =
 	 try
 	   Cenv.before shared_env (Env.append (Cenv.unlast init_env) env)
 	 with Causal.Error err -> error loc env err in
-       (* replace an entry [oi, ty_i] by [o, ty_i] when [oi out o] *)
-       (* keep other entries *)
-       let shared_env = Cenv.supc in_c shared_env in
-       let shared_env = out oi2o shared_env in
+       (* replace an entry [oi, ty_i[c]] by [o, atom(c)] when [oi out o] *)
+       (* keep other entries. All outputs must be computed before [out_c] *)
+       let out_c = Causal.new_var () in
+       let shared_env = out out_c oi2o shared_env in
        shared_env
 
+	 
 (* Typing a present handler for expressions *)
 (* The handler list is not be empty *)
 and present_handler_exp_list expected_k env p_h_list e_opt =

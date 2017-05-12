@@ -98,7 +98,7 @@ let rec vars acc = function
   | Catom(c) -> S.add (crepr c) acc
   | Cproduct(ty_list) -> List.fold_left vars acc ty_list
   | Cfun(ty_arg, ty_res) -> vars (vars acc ty_arg) ty_res
-
+			 
 (** Sets the polarity of a type. *)
 let cpolarity pol c =
   match pol, c.c_polarity with
@@ -361,7 +361,7 @@ let useless c_set =
     let c_right = crepr c_right in
     match c_right.c_desc with
     | Cvar -> 
-       if S.mem c_right c_set (* c_right.c_useful *) then add c_right acc
+       if c_right.c_useful then add c_right acc
        else useful_list acc c_right.c_sup
     | Clink(link) -> useful acc link in
   remove_useless_variables c_set
