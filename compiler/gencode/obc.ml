@@ -34,7 +34,7 @@ type exp =
   | Oconstr1 of Lident.t * exp list
   | Oglobal of Lident.t (* global variable *)
   | Olocal of Ident.t (* read of local value *)
-  | Ovar of Ident.t (* read of local variable *)
+  | Ovar of left_value (* read of local variable *)
   | Ostate of left_state_value (* read of a state variable *)
   | Oaccess of exp * exp (* access in an array *)
   | Oupdate of exp * exp * exp * exp (* update of an array of size [e1] *)
@@ -123,14 +123,14 @@ and mentry =
     m_value: exp option; (* its possible initial value *)
     m_typ: Deftypes.typ; (* its type *)
     m_kind: Deftypes.mkind option; (* the kind of the memory *)
-    m_size: exp list; (* it may be an array *)
+    m_size: exp path; (* it may be an array *)
   }
 
 and ientry =
   { i_name: Ident.t; (* its name *)
     i_machine: exp;  (* the machine it belongs to *)
     i_kind: Deftypes.kind; (* the kind of the machine *)
-    i_params: exp list; (* static parameters used at instance creation *)
+    i_params: exp path; (* static parameters used at instance creation *)
     i_size: exp list; (* it is possibly an array of instances *)
   }
     
@@ -143,7 +143,7 @@ and 'a method_desc =
 and method_call =
   { met_machine: Lident.t option; (* the class of the method *)
     met_name: method_name; (* the name of the method *)
-    met_instance: (Ident.t * exp list) option;
+    met_instance: (Ident.t * exp path) option;
     (* either a call to self (None) or to *)
     (* one instance o.(index_1)...(index_n).m(e_1,...,e_k) *)
     met_args: exp list }
@@ -157,11 +157,13 @@ and method_name =
   | Oreinit (* should we re-init the solver? *)
   | Ocin | Ocout (* copies the continuous state vector *)
   | Odout | Ozin | Oclear_zin | Ozout
-  (* copies derivatives and zero crossings *)
+    (* copies derivatives and zero crossings *)
   | Odzero (* resets the internal derivatives *)
   | Ocsize | Ozsize (* current size for cont. states and zero crossings *)
   | Ohorizon (* next horizon *)
-      
+
+and 'a path = 'a list
+                 
 and implementation_list = implementation list
 
 and implementation = 

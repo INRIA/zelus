@@ -225,7 +225,7 @@ and exp prio ff e =
              longname lname (print_list_r (exp prio_e) "("","")") e_list
   | Oglobal(ln) -> longname ff ln
   | Olocal(n) -> local ff n
-  | Ovar(n) -> var ff n
+  | Ovar(l) -> left_value ff l
   | Ostate(l) -> left_state_value ff l
   | Oaccess(e, eidx) ->
      fprintf ff "%a.(@[%a@])" (exp prio_e) e (exp prio_e) eidx

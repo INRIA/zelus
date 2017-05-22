@@ -159,14 +159,14 @@ let rec left_state_value_index lv = function
 						      
 (* read of a variable *)
 let var { e_sort = sort; e_size = ei_list } =
-  let e = match sort with
-    | In(e) -> e
-    | Out(n, sort) ->
-       match sort with
-       | Sstatic | Sval -> Olocal(n)
-       | Svar _ -> Ovar(n)
-       | Smem { m_kind = k } -> Ostate(state true n k) in
-  index e ei_list
+  match sort with
+  | In(e) -> index e ei_list
+  | Out(n, sort) ->
+     match sort with
+     | Sstatic | Sval -> index (Olocal(n)) ei_list
+     | Svar _ -> Ovar(left_value_index (Oleft_name(n)) ei_list)
+     | Smem { m_kind = k } ->
+        Ostate(left_state_value_index (state true n k) ei_list)
 
 (** Make an assignment according to the sort of a variable [n] *)
 let assign { e_sort = sort; e_size = ei_list } e =
@@ -280,13 +280,14 @@ let choose env ty =
       match ty_c with
         | Variant_type({ qualid = qualid } :: _) ->
             Oconstr0(Lident.Modname(qualid))
-        | Abstract_type | Variant_type _ -> eany
+        | Abstract_type -> eany
         | Record_type(l_list) ->
            Orecord(
 	       List.map 
                  (fun { qualid = qualid; info = { label_res = ty } } -> 
                   (Lident.Modname(qualid), value ty)) l_list)
         | Abbrev(_, ty) -> value ty
+        | Variant_type _ -> assert false
     with
       | Not_found -> eany
   and value ty =

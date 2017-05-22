@@ -123,6 +123,11 @@ and method_call ff { met_name = m; met_instance = i_opt; met_args = e_list } =
 	  instance_name i_opt m instance i_opt
 	  (print_list_r (exp 3) "" "" "") e_list
 
+and var ff left =
+  match left with
+  | Oleft_name(n) -> fprintf ff "@[!%a@]" name n
+  | _ -> left_value ff left
+
 and left_state_value ff left =
   match left with
   | Oself -> fprintf ff "self."
@@ -146,16 +151,20 @@ and assign ff left e =
 and assign_state ff left e =
   fprintf ff "@[<v 2>%a <- %a@]" left_state_value left (exp 2) e
 
-and var ff n = fprintf ff "!%a" name n
-
 and letvar ff n ty e_opt i =
   match e_opt with
   | None ->
      fprintf ff "@[<v 0>let %a = ref (Obj.magic (): %a) in@ %a@]"
 	     name n ptype ty (inst 0) i
   | Some(e0) ->
-     fprintf ff "@[<v 0>let %a = ref (%a:%a) in@ %a@]"
-	     name n (exp 0) e0 ptype ty (inst 0) i
+     (* in case of an array; no ref is generated *)
+     let rec is_vec { Deftypes.t_desc = desc } =
+       match desc with
+       | Deftypes.Tvec _ -> true | Deftypes.Tlink(link) -> is_vec link
+       | _ -> false in
+     fprintf ff "@[<v 0>let %a = %s(%a:%a) in@ %a@]"
+	     name n (if is_vec ty then "" else "ref ")
+             (exp 0) e0 ptype ty (inst 0) i
 
 and exp prio ff e =
   let prio_e = priority_exp e in
@@ -168,7 +177,7 @@ and exp prio ff e =
         longname lname (print_list_r (exp prio_e) "("","")") e_list
   | Oglobal(ln) -> longname ff ln
   | Olocal(n) -> local ff n
-  | Ovar(n) -> var ff n
+  | Ovar(l) -> var ff l
   | Ostate(l) -> left_state_value ff l
   | Oaccess(e, eidx) ->
       fprintf ff "%a.(@[%a@])" (exp prio_e) e (exp prio_e) eidx
