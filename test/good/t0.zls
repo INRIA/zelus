@@ -1,16 +1,8 @@
-(* constant vector *)
-let node fix f x = let rec o = run f (x, o) in o
-
-let node g (x, y) = x fby y + 1
-
-let node main x = fix g x
-    
 let f(x) = 
-  local o
-  do forall i in 0 .. 42, xi in x, oi out o do
-	oi = xi + i
-  done in
-  o
+  let forall i in 0 .. 42, oi out o, o'i out o' do
+	oi = i + 1 and o'i = i + 2
+      done in
+  o, o'
 
 (* let hybrid f(x0, x) = o where
   rec forall i in 0 .. 4, xi in x, oi out o do
