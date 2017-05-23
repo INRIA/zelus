@@ -1,8 +1,4 @@
-let f(x) = 
-  let forall i in 0 .. 42, oi out o, o'i out o' do
-	oi = i + 1 and o'i = i + 2
-      done in
-  o, o'
+let node fix(f)(x) = let rec y = f (x, y) in y
 
 (* let hybrid f(x0, x) = o where
   rec forall i in 0 .. 4, xi in x, oi out o do

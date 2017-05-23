@@ -285,6 +285,8 @@ let print_method ff { me_name = m_name; me_params = p_list; me_body = i } =
           (method_name m_name) pattern_list p_list (inst 0) i
           
 (** Define the data-type for the internal state of a machine *)
+(* A prefix "_" is added to the name of the machine to avoid *)
+(* name conflicts *)
 let def_type_for_a_machine ff f memories instances =
   let one_entry ff (n, m) =
     fprintf ff "@[mutable %a : '%s@]" name n m in
@@ -300,9 +302,9 @@ let def_type_for_a_machine ff f memories instances =
       instances (i, params, entries) in
   (* if the state is empty, produce the dummy state type [unit] *)
   if entries = []
-  then fprintf ff "@[type %s = unit@.@.@]" f
+  then fprintf ff "@[type _%s = unit@.@.@]" f
   else
-    fprintf ff "@[<v 2>type @[%a@] %s =@ { @[%a@] }@.@.@]"
+    fprintf ff "@[<v 2>type @[%a@] _%s =@ { @[%a@] }@.@.@]"
             (print_list_r (fun ff s -> fprintf ff "'%s" s) "("","")") params
             f
             (print_list_r one_entry """;""") entries
