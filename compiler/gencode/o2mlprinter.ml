@@ -151,20 +151,15 @@ and assign ff left e =
 and assign_state ff left e =
   fprintf ff "@[<v 2>%a <- %a@]" left_state_value left (exp 2) e
 
-and letvar ff n ty e_opt i =
+and letvar ff n is_mutable ty e_opt i =
+  let s = if is_mutable then "" else "ref " in
   match e_opt with
   | None ->
-     fprintf ff "@[<v 0>let %a = ref (Obj.magic (): %a) in@ %a@]"
-	     name n ptype ty (inst 0) i
+     fprintf ff "@[<v 0>let %a = %s(Obj.magic (): %a) in@ %a@]"
+	     name n s ptype ty (inst 0) i
   | Some(e0) ->
-     (* in case of an array; no ref is generated *)
-     let rec is_vec { Deftypes.t_desc = desc } =
-       match desc with
-       | Deftypes.Tvec _ -> true | Deftypes.Tlink(link) -> is_vec link
-       | _ -> false in
      fprintf ff "@[<v 0>let %a = %s(%a:%a) in@ %a@]"
-	     name n (if is_vec ty then "" else "ref ")
-             (exp 0) e0 ptype ty (inst 0) i
+	     name n s (exp 0) e0 ptype ty (inst 0) i
 
 and exp prio ff e =
   let prio_e = priority_exp e in
@@ -177,7 +172,8 @@ and exp prio ff e =
         longname lname (print_list_r (exp prio_e) "("","")") e_list
   | Oglobal(ln) -> longname ff ln
   | Olocal(n) -> local ff n
-  | Ovar(l) -> var ff l
+  | Ovar(is_mutable, n) ->
+     fprintf ff "@[%s%a@]" (if is_mutable then "" else "!") local n
   | Ostate(l) -> left_state_value ff l
   | Oaccess(e, eidx) ->
       fprintf ff "%a.(@[%a@])" (exp prio_e) e (exp prio_e) eidx
@@ -224,7 +220,7 @@ and inst prio ff i =
     match i with
     | Olet(p, e, i) ->
        fprintf ff "@[<v 0>let %a in@ %a@]" pat_exp (p, e) (inst (prio_i-1)) i
-    | Oletvar(x, ty, e_opt, i) -> letvar ff x ty e_opt i
+    | Oletvar(x, is_mutable, ty, e_opt, i) -> letvar ff x is_mutable ty e_opt i
     | Omatch(e, match_handler_l) ->
        fprintf ff "@[<v2>match %a with@ @[%a@]@]"
 	       (exp 0) e

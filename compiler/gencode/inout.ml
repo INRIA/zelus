@@ -47,7 +47,6 @@ let wildpat = Owildpat
 let void = Oconst(Ovoid)
 let int32_0 = Oconst(Oint32 0)
 let tuple e_list = Otuple(e_list)
-let var x = Ovar(x)
 let local x = Olocal(x)
 let state x = Ostate(Oleft_state_name(x))
 let int_const v = Oconst(Oint(v))
@@ -63,7 +62,6 @@ let onot e = Oapp(operator "not", [e])
 let oand e1 e2 = Oapp(operator "(&&)", [e1; e2])
 let oassign id e = Oassign(Oleft_name(id), e)
 let oassign_state id e = Oassign_state(Oleft_state_name(id), e)
-let oletvar id ty e_opt e = Oletvar(id, ty, e_opt, e)
 let owhile e1 e2 = Owhile(e1, e2)
 let call o m_name e_list = 
   Omethodcall({ met_machine = None; met_name = m_name;

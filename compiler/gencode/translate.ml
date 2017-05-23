@@ -71,6 +71,13 @@ and size { Zelus.desc = desc } =
      let operator = function Zelus.Splus -> Splus | Zelus.Sminus -> Sminus in
      Sop(operator op, size s1, size s2)
 
+(* is-it a mutable value? Only vectors are considered at the moment *)
+let rec is_mutable { t_desc = desc } =
+  match desc with
+  | Tvec _ -> true
+  | Tlink(link) -> is_mutable link
+  | _ -> false
+           
 (* translating an internal type into a type expression *)
 let type_expression_of_typ ty =
   let ty_exp = Interface.type_expression_of_typ ty in
@@ -158,13 +165,14 @@ let rec left_state_value_index lv = function
      Oleft_state_index(left_state_value_index lv ei_list, Olocal(ei))
 						      
 (* read of a variable *)
-let var { e_sort = sort; e_size = ei_list } =
+let var { e_sort = sort; e_typ = ty; e_size = ei_list } =
   match sort with
   | In(e) -> index e ei_list
   | Out(n, sort) ->
      match sort with
      | Sstatic | Sval -> index (Olocal(n)) ei_list
-     | Svar _ -> Ovar(left_value_index (Oleft_name(n)) ei_list)
+     | Svar _ ->
+        index (Ovar(is_mutable ty, n)) ei_list
      | Smem { m_kind = k } ->
         Ostate(left_state_value_index (state true n k) ei_list)
 
@@ -228,7 +236,8 @@ let letpat p e ({ step = s } as code) =
 let rec letvar l s =
   match l with
   | [] -> s
-  | (n, ty, v_opt) :: l -> Oletvar(n, ty, v_opt, letvar l s)
+  | (n, is_mutable, ty, v_opt) :: l ->
+     Oletvar(n, is_mutable, ty, v_opt, letvar l s)
 				  
 (** Compile an equation [n += e] *)
 let pluseq ({ e_sort = sort; e_size = ei_list } as entry)
@@ -331,7 +340,7 @@ let append loop_path l_env env =
 	 mem_acc, var_acc
       | Svar { v_default = v_opt } ->
 	 Env.add n { e_typ = ty; e_sort = Out(n, k); e_size = [] } env_acc,
-	 mem_acc, (n, ty, default env ty v_opt) :: var_acc
+	 mem_acc, (n, is_mutable ty, ty, default env ty v_opt) :: var_acc
       | Smem { m_kind = k_opt } ->
 	 Env.add n
 		 { e_typ = ty; e_sort = Out(n, k); e_size = loop_path } env_acc,

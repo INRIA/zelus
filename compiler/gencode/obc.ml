@@ -34,7 +34,7 @@ type exp =
   | Oconstr1 of Lident.t * exp list
   | Oglobal of Lident.t (* global variable *)
   | Olocal of Ident.t (* read of local value *)
-  | Ovar of left_value (* read of local variable *)
+  | Ovar of is_mutable * Ident.t (* read of local variable *)
   | Ostate of left_state_value (* read of a state variable *)
   | Oaccess of exp * exp (* access in an array *)
   | Oupdate of exp * exp * exp * exp (* update of an array of size [e1] *)
@@ -47,10 +47,15 @@ type exp =
   | Oifthenelse of exp * exp * exp
   | Omethodcall of method_call			       
 
+ (* when [is_mutable = true] a variable [x] is mutable which means that *)
+ (* x <- ... and ...x... are valid expression; otherwise a ref will be *)
+ (* added when translated into OCaml **)
+ and is_mutable = bool
+                    
  (* instructions *)
 and inst =
   | Olet of pattern * exp * inst
-  | Oletvar of Ident.t * Deftypes.typ * exp option * inst
+  | Oletvar of Ident.t * is_mutable * Deftypes.typ * exp option * inst
   | Ofor of bool * Ident.t * exp * exp * inst
   | Owhile of exp * inst
   | Omatch of exp * inst match_handler list

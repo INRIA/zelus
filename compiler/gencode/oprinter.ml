@@ -225,7 +225,7 @@ and exp prio ff e =
              longname lname (print_list_r (exp prio_e) "("","")") e_list
   | Oglobal(ln) -> longname ff ln
   | Olocal(n) -> local ff n
-  | Ovar(l) -> left_value ff l
+  | Ovar(_, n) -> local ff n
   | Ostate(l) -> left_state_value ff l
   | Oaccess(e, eidx) ->
      fprintf ff "%a.(@[%a@])" (exp prio_e) e (exp prio_e) eidx
@@ -260,7 +260,7 @@ and inst prio ff i =
     match i with
     | Olet(p, e, i) ->
        fprintf ff "@[<v 0>let %a in@ %a@]" pat_exp (p, e) (inst (prio_i-1)) i
-    | Oletvar(x, ty, e_opt, i) -> letvar ff x ty e_opt i
+    | Oletvar(x, _, ty, e_opt, i) -> letvar ff x ty e_opt i
     | Omatch(e, match_handler_l) ->
        fprintf ff "@[<v2>match %a with@ @[%a@]@]"
 	       (exp 0) e
