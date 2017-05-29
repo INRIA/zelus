@@ -247,7 +247,9 @@ let rec skeleton_on_c c ty =
     | Tvar -> atom c
     | Tproduct(ty_list) -> product (List.map (skeleton_on_c c) ty_list)
     | Tfun(_, _, ty_arg, ty) ->
-       funtype (skeleton_on_c c ty_arg) (skeleton_on_c c ty)
+       let c_left = new_var () in
+       cless c_left c;
+       funtype (skeleton_on_c c_left ty_arg) (skeleton_on_c c ty)
     | Tconstr(_, _, _) | Tvec _ -> atom c
     | Tlink(ty) -> skeleton_on_c c ty
 
