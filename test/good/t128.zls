@@ -1,8 +1,8 @@
 let node f n x = n -> pre(x) + 1
 
-let node compose f g x = f(g(x+x))
+let node compose f g x = run f(run g(x+x))
    
-let node higher f g x y = (f g) (x+y+1)
+let node higher f g x y = run (f g) (x+y+1)
 
 let node f3 n x = f 1 (x+3)
     
@@ -30,12 +30,12 @@ let node main(x, t) =
 
 let node map(f)(n)(t) = t' where
   rec forall i in 0 .. (n-1), ti in t, ti' out t' do
-	 ti' = f ti
+	 ti' = run f ti
       done
 
 let node g x = x + x
 
-let node map_g(t) = (map g (42+2)) t
+let node map_g(t) = map g (42+2) t
     
 let f42 n t1 = t where rec
   forall i in 0 .. n, t_i in t1, t out t do

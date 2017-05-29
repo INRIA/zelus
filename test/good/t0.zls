@@ -4,6 +4,11 @@ let node integr(x) = 0 fby x + 1
 
 let node f() =
   let rec o1 = integr(o2) and o2 = integr(o1) in o1
+
+let node g(f)() = let rec x = f x in 1
+let ff x = 0
+
+let node main() = g ff ()
     
 (* let hybrid f(x0, x) = o where
   rec forall i in 0 .. 4, xi in x, oi out o do
