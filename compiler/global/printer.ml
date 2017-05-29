@@ -398,7 +398,7 @@ and state_handler is_weak ff
     else 
       print_list_r escape 
 		   (if is_weak then "until " else "unless ") "" "" ff trans in
-  fprintf ff "@[<v 4>| %a -> %a@[<v>%a@,%a@]@]" 
+  fprintf ff "@[<v 4>| %a ->@ %a@[<v>%a@,%a@]@]" 
 	 statepat s print_env env (block_equation_list "do " "") b print trans
    
 
@@ -406,10 +406,10 @@ and escape ff { e_cond = scpat; e_reset = r; e_block = b_opt;
 		e_next_state = ns; e_env = env } =
   match b_opt with
     | None ->
-        fprintf ff "| %a %a%s %a"
+        fprintf ff "@[<v4>| %a %a%s@ %a@]"
           scondpat scpat print_env env (if r then "then" else "continue") state ns
     | Some(b) ->
-        fprintf ff "| %a %a%s %a in %a"
+        fprintf ff "@[<v4>| %a %a%s@ %a in %a@]"
           scondpat scpat print_env env (if r then "then" else "continue") 
           (block_equation_list "do " "") b state ns
 
