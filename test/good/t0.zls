@@ -1,5 +1,10 @@
 let node fix(f)(x) = let rec y = f (x, y) in y
 
+let node integr(x) = 0 fby x + 1
+
+let node f() =
+  let rec o1 = integr(o2) and o2 = integr(o1) in o1
+    
 (* let hybrid f(x0, x) = o where
   rec forall i in 0 .. 4, xi in x, oi out o do
 	der oi = xi init x0 done *)

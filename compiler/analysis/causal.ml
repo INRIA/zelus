@@ -247,10 +247,7 @@ let rec skeleton_on_c c ty =
     | Tvar -> atom c
     | Tproduct(ty_list) -> product (List.map (skeleton_on_c c) ty_list)
     | Tfun(_, _, ty_arg, ty) ->
-       (* for a function, returns [ty_arg[a] -> ty[b] with a < b] *)
-       let c_arg = new_var () in
-       cless c_arg c;
-       funtype (skeleton_on_c c_arg ty_arg) (skeleton_on_c c ty)
+       funtype (skeleton_on_c c ty_arg) (skeleton_on_c c ty)
     | Tconstr(_, _, _) | Tvec _ -> atom c
     | Tlink(ty) -> skeleton_on_c c ty
 
@@ -434,6 +431,19 @@ let cleanup () = List.iter (fun c -> c.c_desc <- Cvar) !links; links := []
 
 (* instanciation *)
 let rec copy tc ty =
+  let rec ccopy c =
+    match c.c_desc with
+    | Cvar ->
+       if c.c_level = generic
+       then
+	 let sup_list = List.map ccopy c.c_sup in
+	 let v = { (new_var ()) with c_sup = sup_list } in
+	 c.c_desc <- Clink(v);
+	 save c;
+	 v
+       else c
+    | Clink(link) -> if c.c_level = generic then link else ccopy link in
+
   let { t_desc = tydesc } as ty = Types.typ_repr ty in
   match tc, tydesc with
   | Cfun(tc1, tc2), Tfun(_, _, ty1, ty2) ->
@@ -443,19 +453,20 @@ let rec copy tc ty =
            with | _ -> assert false end
   | Catom(c), _ -> skeleton_on_c (ccopy c) ty
   | _ -> assert false
-				 
-and ccopy c =
-  match c.c_desc with
-  | Cvar ->
-     if c.c_level = generic
-     then
-       let sup_list = List.map ccopy c.c_sup in
-       let v = { (new_var ()) with c_sup = sup_list } in
-       c.c_desc <- Clink(v);
-       save c;
-       v
-     else c
-  | Clink(link) -> if c.c_level = generic then link else ccopy link
+
+
+(* subtyping *)
+let rec subtype right tc =
+  match tc with
+  | Cfun(tc1, tc2) ->
+     funtype (subtype (not right) tc1) (subtype right tc2)
+  | Cproduct(tc_list) ->
+     begin try product (List.map (subtype right) tc_list)
+           with | _ -> assert false end
+  | Catom(c) ->
+     let new_c = new_var () in
+     if right then cless c new_c else cless new_c c;
+     atom new_c
 
 let instance { typ = tc } ty =
   let tc = copy tc ty in
@@ -468,12 +479,13 @@ let instance { value_caus = tcs_opt } ty =
   let default ty =
     let c = new_var () in
     skeleton_on_c c ty in
-  match tcs_opt with
+  let tc = match tcs_opt with
     | None -> 
        (* if no causality signature is declared, a default one is built *)
        (* from the type signature *)
        default ty
-    | Some(tcs) -> instance tcs ty
+    | Some(tcs) -> instance tcs ty in
+  subtype true tc
 
 (* check that [tc] is of the form [tc1;...;tc_arity] *)
 let filter_product arity tc =

@@ -600,11 +600,13 @@ let implementation ff { desc = desc } =
          (* for an atomic node, all outputs depend on all inputs *)
          if atomic then
            (* first type the body *)
-	   let c_in = Causal.new_var () in
-	   let c_res = Causal.new_var () in
-	   Causal.ctype_before_ctype c_in c_res;
-	   List.map (fun p -> Causal.skeleton_on_c c_in p.p_typ) pat_list,
-           Causal.skeleton_on_c c_res e.e_typ
+	   let c = Causal.new_var () in
+	   let tc_arg_list =
+	     List.map
+	       (fun p -> subtype false (Causal.skeleton_on_c c p.p_typ))
+	       pat_list in
+	   let tc_res = subtype true (Causal.skeleton_on_c c e.e_typ) in
+	   tc_arg_list, tc_res
          else
            List.map (fun p -> Causal.skeleton p.p_typ) pat_list,
            Causal.skeleton e.e_typ in

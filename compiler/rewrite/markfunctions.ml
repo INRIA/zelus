@@ -41,7 +41,7 @@ let to_inline c_in_list c_out_list c_arg_list c_res_list =
     (* condition (1) *)
     List.exists
       (fun c_res ->
-	List.exists (Causal.strict_path c_res) c_arg_list) c_res_list in
+	List.exists (Causal.path c_res) c_arg_list) c_res_list in
   let i =
     if i then true
     else
@@ -59,9 +59,7 @@ let to_inline c_in_list c_out_list c_arg_list c_res_list =
     if not i then
       List.iter
 	(fun c_arg ->
-	  List.iter (fun c_res ->
-	    if not (Causal.path c_res c_arg) then Causal.cless c_arg c_res)
-	    c_res_list) c_arg_list;
+	 List.iter (fun c_res -> Causal.cless c_arg c_res) c_res_list) c_arg_list;
     i
   with
     | Causal.Unify(l) ->
