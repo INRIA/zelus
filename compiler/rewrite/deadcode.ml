@@ -157,7 +157,7 @@ and build_equation_list table eq_list =
 (** returns the set of useful variables *)
 (** [read] is a set of variables *)
 let visit read table =
-  let useful = ref read in
+  let useful = ref S.empty in
   (* recursively mark visited nodes which are useful *)
   let rec visit x ({ c_vars = l; c_useful = u; c_visited = v } as entry) = 
     if not v then
@@ -168,6 +168,7 @@ let visit read table =
 	S.iter visit_fathers l
       end
   and visit_fathers x =
+    useful := S.add x !useful;
     try
       let entry = Env.find x table in
       visit x entry
