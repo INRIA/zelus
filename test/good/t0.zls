@@ -1,3 +1,28 @@
+let node f x = o+z where
+  rec automaton
+  | S1 -> do o = 1 done
+  | S2(x) -> do o = x+2 done
+  end
+  and z = 0 fby z + 1
+
+(* let node micro_step_delay(x) = o where
+  rec automaton
+      | Await -> do r = 0 unless x(v) then Run(v)
+      | Run(v) -> do r = v unless true then do emit o = v in Await
+      end
+
+let node micro_step_delay_weak(x) = o where
+  rec automaton
+      | Await -> do r = 0 until x(v) then Run(v)
+      | Run(v) -> do r = v until true then do emit o = v in Await
+      end *)
+      
+let node g(x) = o where
+  rec automaton
+      | Await -> do o = 0 unless x(v) then Run(v)
+      | Run(v) -> do o = v unless true then Run(v+1)
+      end
+(* 
 let node fix(f)(x) = let rec y = f (x, y) in y
 
 let node integr(x) = 0 fby x + 1
@@ -5,12 +30,12 @@ let node integr(x) = 0 fby x + 1
 let node f() =
   let rec o1 = integr(o2) and o2 = integr(o1) in o1
 
-let node g(f)() = let rec x = f x in 1
-let ff x = 0
+let node g(f)() = let rec x = run f x in 1
+let node ff x = 0 fby x
 
 let node main() = g ff ()
     
-(* let hybrid f(x0, x) = o where
+let hybrid f(x0, x) = o where
   rec forall i in 0 .. 4, xi in x, oi out o do
 	der oi = xi init x0 done *)
 

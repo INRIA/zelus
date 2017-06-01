@@ -113,9 +113,30 @@ let make_let env eq_list e =
   match eq_list with
   | [] -> e | _ -> emake (Elet(make_local env eq_list, e)) e.e_typ
 
+let vardec i =
+  { vardec_name = i; vardec_default = None;
+    vardec_combine = None; vardec_loc = no_location }
+
+let vardec_from_entry i { t_sort = sort } =
+  let d_opt, c_opt =
+    match sort with
+      | Sstatic -> None, None
+      | Sval -> None, None
+      | Svar { v_default = None; v_combine = c_opt }
+      | Smem { m_init = (None | Some(None)); m_combine = c_opt } -> None, c_opt
+      | Svar { v_default = Some(c); v_combine = c_opt } ->
+         Some(Default(c)), c_opt
+      | Smem { m_init = Some(Some(c)); m_combine = c_opt } ->
+	Some(Init(c)), c_opt in
+  { vardec_name = i; vardec_default = d_opt;
+    vardec_combine = c_opt; vardec_loc = no_location }
+
 let make_block env eq_list =
-  { b_vars = []; b_locals = []; b_body = eq_list; b_loc = Location.no_location;
-    b_env = env; b_write = Deftypes.empty }
+  let b_vars =
+    Env.fold (fun i entry acc -> vardec_from_entry i entry :: acc)
+             env [] in
+  { b_vars = b_vars; b_locals = []; b_body = eq_list;
+    b_loc = Location.no_location; b_env = env; b_write = Deftypes.empty }
 
 let eq_make n e = eqmake (EQeq(varpat n e.e_typ, e))
 let eq_next n e = eqmake (EQnext(n, e, None))
@@ -140,20 +161,4 @@ let par eq_list =
 		
 let init i eq_list = (eq_init i etrue) :: (eq_make i efalse) :: eq_list
  
-let vardec i =
-  { vardec_name = i; vardec_default = None;
-    vardec_combine = None; vardec_loc = no_location }
 
-let vardec_from_entry i { t_sort = sort } =
-  let d_opt, c_opt =
-    match sort with
-      | Sstatic -> None, None
-      | Sval -> None, None
-      | Svar { v_default = None; v_combine = c_opt }
-      | Smem { m_init = (None | Some(None)); m_combine = c_opt } -> None, c_opt
-      | Svar { v_default = Some(c); v_combine = c_opt } -> Some(Default(c)), c_opt
-      | Smem { m_init = Some(Some(c)); m_combine = c_opt } ->
-	Some(Init(c)), c_opt in
-  { vardec_name = i; vardec_default = d_opt;
-    vardec_combine = c_opt; vardec_loc = no_location }
-    
