@@ -1,8 +1,13 @@
-let node f x = o where
+let node fix(f)(x) = let rec y = run f(x, y) in y
+let node f (x, y) = 0 -> pre (x + y)
+
+let node main(x) = fix(f)(x)
+    (*
+let node g x = o where
   rec automaton
   | S1 -> do o = 1 done
   | S2(x) -> do o = x+2 done
-  end
+  end*)
   
 
 (* let node micro_step_delay(x) = o where

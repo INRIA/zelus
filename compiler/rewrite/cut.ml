@@ -20,6 +20,25 @@ open Zelus
 open Ident
 open Zaux
 
+(* Build the dependence graph between equations. For that, only *)
+(* take data-dependences into account, no anti-dependences *)
+module Dependences =
+  Dependences.Make
+    (struct
+      let read eq = let _, l = Vars.read eq in l, S.empty
+      let def = Vars.def
+      let init = Vars.init
+      let nodep = Vars.nodep
+    end)
+
+(* take a list of equations, compute the data-dependences *)
+(* every time an equation [x = ... last y ...] is such that [x] *)
+(* data-depends on [y] then replace it by [x = ... ly ...] *)
+(* and add [ly = last y] *)
+let cut eq_list =
+  (* build the dependence graph *)
+  let graph = Dependences.build eq_list in
+  
 (* Make an equation [lx = last x] *)
 let eq_last lx x ty = eqmake (EQeq(pmake (Evarpat(lx)) ty, emake (Elast(x)) ty))
 

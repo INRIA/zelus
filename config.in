@@ -109,9 +109,8 @@ install_printer Oprinter.implementation
 install_printer Oprinter.ptype
 install_printer Oprinter.pattern
 install_printer Oprinter.expression
-install_printer Causal.Cenv.penv
-install_printer Causal.Cenv.pcaus
-install_printer Causal.Cenv.ptype
+install_printer Pcaus.caus
+install_printer Pcaus.ptype
 install_printer Deadcode.print
 
 endef

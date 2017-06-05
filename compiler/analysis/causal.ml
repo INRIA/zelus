@@ -20,9 +20,27 @@ open Global
 open Zelus
 
 (** a set of causality names *)
-module S = Set.Make(Defcaus)
+module S = struct
+  include (Set.Make(Defcaus))
+  let fprint_t ff s =
+    Format.fprintf ff "@[<hov>{@ ";
+    iter (fun e -> Format.fprintf ff "%a@ " Pcaus.caus e) s;
+    Format.fprintf ff "}@]"
+end
+       
 (** and a module to represent the successors of a causality variable *)
-module M = Map.Make(Defcaus)
+module M = struct
+  include (Map.Make(Defcaus))
+  let fprint_t fprint_v ff s =
+    Format.fprintf ff "@[<hov>{@ ";
+    iter (fun k v -> Format.fprintf ff "%a->%a@ " Pcaus.caus k fprint_v v) s;
+    Format.fprintf ff "}@]"
+end
+
+let fprint_t = S.fprint_t
+let fprint_tt = M.fprint_t S.fprint_t
+                           
+  
 
 let set c_list = List.fold_left (fun acc c -> S.add c acc) S.empty c_list
   
@@ -341,9 +359,10 @@ let simplify c_set =
 	(fun o ->
 	  let io_of_o = M.find o io_table in
 	  if not (equal i o)
-	  then if S.subset io_of_i io_of_o then
-		 if S.compare io_of_i io_of_o = 0 then set i o
-		 else less i o)
+	  then
+            if S.equal io_of_i io_of_o then set i o
+            else if S.subset io_of_i io_of_o then less i o
+            else if S.subset io_of_o io_of_i then less o i)
 	outputs)
     inputs    
     
