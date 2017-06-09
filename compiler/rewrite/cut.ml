@@ -35,10 +35,12 @@ module Dependences =
 (* every time an equation [x = ... last y ...] is such that [x] *)
 (* data-depends on [y] then replace it by [x = ... ly ...] *)
 (* and add [ly = last y] *)
+(*
 let cut eq_list =
   (* build the dependence graph *)
   let graph = Dependences.build eq_list in
-  
+  () *)
+    
 (* Make an equation [lx = last x] *)
 let eq_last lx x ty = eqmake (EQeq(pmake (Evarpat(lx)) ty, emake (Elast(x)) ty))
 
