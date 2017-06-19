@@ -1,7 +1,10 @@
-let node fix(f)(x) = let rec y = run f(x, y) in y
-let node f (x, y) = 0 -> pre (x + y)
-
-let node main(x) = fix(f)(x)
+let node f(x, y) =
+  reset
+    let rec o = (0 fby o) + 1 in
+    match true with
+    | true -> let rec r = y -> pre r + 2 in r | false -> 0
+  every x
+    
     (*
 let node g x = o where
   rec automaton
