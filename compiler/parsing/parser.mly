@@ -546,7 +546,7 @@ state :
   | c = CONSTRUCTOR LPAREN e = expression RPAREN
       { make (Estate1(c, [e])) $startpos $endpos }
   | c = CONSTRUCTOR LPAREN l = expression_comma_list RPAREN
-      { make (Estate1(c, l)) $startpos $endpos }
+      { make (Estate1(c, List.rev l)) $startpos $endpos }
 ;
 
 state_pat :
