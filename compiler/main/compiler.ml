@@ -156,6 +156,9 @@ let compile modname filename =
 	step "Re-typing done. See below:"
 	     (Typing.implementation_list info_ff false) impl_list in
       let impl_list =
+        step "Add copies for [last x] to remore false cycles. See below:"
+	     Cut.implementation_list impl_list in
+      let impl_list =
 	step "Translation of automata done. See below:"
 	     Automata.implementation_list impl_list in
       let impl_list =
@@ -195,9 +198,6 @@ let compile modname filename =
      let impl_list =
        step "Common sub-expression elimination. See below:"
 	    Cse.implementation_list impl_list in
-     let impl_list =
-       step "Add copies for [last x] to remore false cycles. See below:"
-	    Cut.implementation_list impl_list in
      let impl_list =
        step "Sharing of zero-crossings. See below:"
 	    Zopt.implementation_list impl_list in

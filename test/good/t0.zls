@@ -1,10 +1,10 @@
-let node f(x, y) =
-  reset
-    let rec o = (0 fby o) + 1 in
-    match true with
-    | true -> let rec r = y -> pre r + 2 in r | false -> 0
-  every x
-    
+let hybrid multi_micro_step_delay(x, k) = o where
+  rec automaton
+      | Await -> do unless x(v) then Run(v, k)
+      | Run(v, k0) ->
+	  do unless (init) then do emit o = v in Run(v, k0 - 1)
+      end
+      
     (*
 let node g x = o where
   rec automaton

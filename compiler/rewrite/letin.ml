@@ -164,8 +164,8 @@ and equation ({ eq_desc = desc } as eq) =
      let e, ctx_e = expression e in
      let { env = env; eqs = eqs } = par_equation_list res_eq_list in
      let res_eq_list = equations eqs in
-     add { eq with eq_desc = EQreset(res_eq_list, e) }
-	  { empty with env = env }
+     seq ctx_e (add { eq with eq_desc = EQreset(res_eq_list, e) }
+	            { empty with env = env })
   | EQand(and_eq_list) -> par_equation_list and_eq_list
   | EQbefore(before_eq_list) ->
      seq_equation_list before_eq_list     
