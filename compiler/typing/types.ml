@@ -554,11 +554,14 @@ let rec is_a_signal { t_desc = desc } =
     | _ -> None
 
 (** Is-it a combinatorial function? *)
-let is_combinatorial ty =
-  let ty = typ_repr ty in
-  match ty.t_desc with
-  | Tfun((Tdiscrete _ | Tcont), _, _, _) -> false
-  | _ -> true
+let rec is_combinatorial n ty =
+  if n = 0 then true
+  else
+    let ty = typ_repr ty in
+    match ty.t_desc with
+    | Tfun((Tdiscrete _ | Tcont), _, _, _) -> false
+    | Tfun(_, _, _, ty_res) -> is_combinatorial (n-1) ty_res
+    | _ -> false
 
 let is_hybrid ty =
   let ty = typ_repr ty in

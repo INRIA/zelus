@@ -24,7 +24,8 @@ open Zaux
 let rec exp { e_desc = desc } =
   match desc with
   | Eapp(_, e, e_list) ->
-     (not (Types.is_combinatorial e.e_typ))
+     (* look if (e e1...en) is combinatorial *)
+     (not (Types.is_combinatorial (List.length e_list) e.e_typ))
      || (exp e) || (List.exists exp e_list)
   | Erecord_access(e, _) | Etypeconstraint(e, _) -> exp e
   | Erecord(f_e_list) ->
