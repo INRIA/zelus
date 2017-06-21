@@ -23,5 +23,5 @@ let hybrid main () =
   let der x = x_v init x_0 in
   let (y, _, z) = ball(x, y_0) in
   let ok = present (period (0.04)) -> () | z -> () in
-  present ok() -> Showball.show (x fby x, y fby y, x, y);
+  present ok() -> Showball.show (x fby x) (y fby y) x y;
   ()
