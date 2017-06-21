@@ -1,9 +1,16 @@
-let hybrid multi_micro_step_delay(x, k) = o where
-  rec automaton
-      | Await -> do unless x(v) then Run(v, k)
-      | Run(v, k0) ->
-	  do unless (init) then do emit o = v in Run(v, k0 - 1)
-      end
+open Graphics
+
+let atomic discrete draw_pendulum1 (color, x0, y0, x, y) =
+  let x0 = truncate (10.0 *. x0) in
+  let x  = truncate (10.0 *. x)  in
+  let y0 = truncate (10.0 *. y0) in
+  let y  = truncate (10.0 *. y) in
+  set_color color;
+  moveto x0 y0;
+  lineto x y;
+  1 + x;
+  draw_circle x y 5
+
       
     (*
 let node g x = o where
