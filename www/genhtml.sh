@@ -197,6 +197,7 @@ for BIB in src/*.bib; do
 	-e 's/\[<a name="\([^0-9]*\)\([0-9]*\)">[^<]*<\/a>\]/<a id="\1\2" class="biblink">\1 \2<\/a>/' \
 	-e 's/.*<a href="\([^"]*\)">DOI<\/a>.*/<span class="bibref"><a href="\1"><i class="glyphicon glyphicon-globe"><\/i> DOI<\/a><\/span>/' \
 	-e 's/.*<a href="\([^"]*\)">.pdf<\/a>.*/<span class="bibref"><a href="\1"><i class="glyphicon glyphicon-file"><\/i> pdf<\/a><\/span>/' \
+	-e 's/.*<a href="\(https:\/\/hal.inria.fr[^"]*\/document\)">http<\/a>.*/<span class="bibref"><a href="\1"><i class="glyphicon glyphicon-file"><\/i> pdf<\/a><\/span>/' \
 	-e 's/.*<a href="\([^"]*\)">bib<\/a>.*/<span class="bibref"><a href="\1"><i class="glyphicon glyphicon-book"><\/i> bib<\/a><\/span>/' \
 	"${GENERATED}/${NAME}-raw.html" \
 	> "${GENERATED}/${NAME}.html"

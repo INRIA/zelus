@@ -1,4 +1,4 @@
-<!DOCTYPE html SYSTEM "about:legacy-compat">
+<!DOCTYPE html>
 <html lang="en">
 <head>
 
@@ -61,6 +61,7 @@ document.getElementById('title-papers').className = 'active';
 <li><a href="http://www.di.ens.fr/ParkasTeam.html">PARKAS Team</a></li>
 
 <li class="sidebar-nav-header">Papers</li>
+<li><a href="#NAHS2017">NAHS 2017</a></li>
 <li><a href="#CC2015">CC 2015</a></li>
 <li><a href="#HSCC2014">HSCC 2014</a></li>
 <li><a href="#HSCC2013">HSCC 2013</a></li>
@@ -97,6 +98,49 @@ the approach in the industrial Scade Suite KCG code generator of Scade 6.
 <div class="bib">
 
 <dl>
+
+<dt>
+<a id="NAHS2017" class="biblink">NAHS 2017</a>
+</dt>
+<dd>
+Albert Benveniste, Timothy Bourke, Benoît Caillaud, Bruno Pagano, and
+  Marc Pouzet.
+ A type-based analysis of causality loops in hybrid systems modelers.
+ <em>Nonlinear Analysis: Hybrid Systems</em>, 26:168–189, November 2017.<br>
+<span class="bibref"><a href="papers_bib.html#NAHS2017"><i class="glyphicon glyphicon-book"></i> bib</a></span>
+<span class="bibref"><a href="https://hal.inria.fr/hal-01549183/document"><i class="glyphicon glyphicon-file"></i> pdf</a></span>
+<div class="abstract"><p>
+
+    Explicit hybrid systems modelers like <em>Simulink/Stateflow</em> allow
+    for programming both discrete- and continuous-time behaviors with
+    complex interactions between them.  An important step in their
+    compilation is the static detection of algebraic or <em>causality</em>
+    loops.  Such loops can cause simulations to deadlock and prevent the
+    generation of statically scheduled code.</p><p>
+    This paper addresses this issue for a hybrid modeling language that
+    combines synchronous data-flow equations with Ordinary Differential
+    Equations (ODEs).  We introduce the operator <em>x</em> for the
+    left-limit of a signal <em>x</em>. The <em>x</em> operator is used to break
+    causality loops and permits a uniform treatment of discrete and
+    continuous state variables. The semantics of the language relies on
+    non-standard analysis, defining an execution as a sequence of
+    infinitesimally small steps.  A signal is deemed <em>causally correct</em>
+    when it can be computed sequentially and only changes infinitesimally
+    outside of announced discrete events like zero-crossings.  The causality
+    analysis takes the form of a type system that expresses dependencies
+    between signals. In well-typed programs, (<em>i</em>) signals are
+    <em>provably continuous during integration</em> provided that imported
+    external functions are also continuous, and (<em>ii</em>) <em>sequential
+    code can be generated</em>.</p><p>
+    The effectiveness of the system is illustrated with several examples
+    written in Zélus, a Lustre-like synchronous language extended with
+    ODEs.</p><p>
+    See also: <a href="http://zelus.di.ens.fr/nahs2016">http://zelus.di.ens.fr/nahs2016</a>.
+  
+</p></div>
+
+</dd>
+
 
 <dt>
 <a id="CC2015" class="biblink">CC 2015</a>
