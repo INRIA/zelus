@@ -254,7 +254,8 @@ and operator env op ty e_list =
      exp_less_than_on_i env e2 i;
      exp_less_than_on_i env e3 i;
      Init.skeleton_on_i i ty
-  | (Einitial | Eup | Etest | Edisc | Eaccess | Eupdate), e_list ->
+  | (Einitial | Eup | Etest | Edisc
+     | Eaccess | Eupdate | Eslice _ | Econcat), e_list ->
      List.iter (fun e -> exp_less_than_on_i env e izero) e_list;
      Init.skeleton_on_i izero ty
   | _ -> assert false

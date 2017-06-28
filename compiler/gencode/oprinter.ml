@@ -25,8 +25,9 @@ open Printer
 (** Priorities *)
 let rec priority_exp = function
   | Oconst _ | Oconstr0 _| Oglobal _ | Olocal _ | Ovar _ | Ostate _ | Oaccess _
-  | Orecord _ | Orecord_access _ | Otypeconstraint _ | Otuple _ -> 3
-  | Oconstr1 _ | Oapp _ | Omethodcall _ | Ovec _ | Oupdate _ -> 2
+    | Orecord _ | Orecord_access _ | Otypeconstraint _ | Otuple _ -> 3
+  | Oconstr1 _ | Oapp _ | Omethodcall _
+    | Ovec _ | Oupdate _ | Oslice _ | Oconcat _ -> 2
   | Oifthenelse _  -> 1
 
 and priority_inst = function
@@ -230,10 +231,16 @@ and exp prio ff e =
   | Oaccess(e, eidx) ->
      fprintf ff "%a.(@[%a@])" (exp prio_e) e (exp prio_e) eidx
   | Ovec(e, se) ->
-     fprintf ff "%a[%a]" (exp prio_e) e (exp 0) se
+     fprintf ff "%a[%a]" (exp prio_e) e (psize 0) se
   | Oupdate(se, e1, i, e2) ->
-     fprintf ff "{%a:%a with %a = %a}"
-             (exp prio_e) e1 (exp prio_e) se (exp 0) i (exp 0) e2
+     fprintf ff "@[<hov2>{%a:%a with@ %a = %a}@]"
+             (exp prio_e) e1 (psize prio_e) se (exp 0) i (exp 0) e2
+  | Oslice(e, s1, s2) ->
+     fprintf ff "%a{%a..%a}"
+             (exp prio_e) e (psize 0) s1 (psize 0) s2
+  | Oconcat(e1, s1, e2, s2) ->
+     fprintf ff "{%a:%a | %a:%a}"
+             (exp 0) e1 (psize 0) s1 (exp 0) e2 (psize 0) s2
   | Otuple(e_list) ->
      fprintf ff "@[<hov2>%a@]" (print_list_r (exp prio_e) "("","")") e_list
   | Oapp(e, e_list) ->

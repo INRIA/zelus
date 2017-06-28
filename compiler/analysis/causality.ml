@@ -139,10 +139,11 @@ let present_handlers scondpat body expected_k env p_h_list h_opt =
   let handler { p_cond = scpat; p_body = b } =
     let c, new_env = scondpat expected_k env scpat in
     let env = Env.append new_env env in
-    body (Types.lift_to_discrete expected_k) env b in
+    body (Types.lift_to_discrete expected_k) env c b in
   let tc_list = List.map handler p_h_list in
   match h_opt with
-  | None -> tc_list | Some(h) -> (body expected_k env h) :: tc_list
+  | None -> tc_list
+  | Some(h) -> (body expected_k env (Causal.new_var ()) h) :: tc_list
 
 (* [last x] is valid if [ltc < tc] *)
 let type_of_last loc expected_k ({ last_tc = ltc } as centry) =
@@ -259,6 +260,13 @@ and operator expected_k env op ty e_list =
      exp_before_on_c expected_k env i c;
      exp_before_on_c expected_k env e1 c;
      Causal.skeleton_on_c c ty
+  | Eslice _, [e] ->
+     exp_before_on_c expected_k env e c;
+     Causal.skeleton_on_c c ty
+  | Econcat, [e1; e2] ->
+     exp_before_on_c expected_k env e1 c;
+     exp_before_on_c expected_k env e2 c;
+     Causal.skeleton_on_c c ty     
   | _ -> assert false
      
 		    
@@ -494,15 +502,19 @@ and equation expected_k env
 (* Typing a present handler for expressions *)
 (* The handler list is not be empty *)
 and present_handler_exp_list expected_k env p_h_list e_opt =
+  (* [spat -> e]: the result both depend on [spat] and [e] *)
+  let body expected_k env c e =
+    Causal.supcset (S.singleton c) (exp expected_k env e) in
   let tc_list =
-    present_handlers scondpat exp expected_k env p_h_list e_opt in
+    present_handlers scondpat body expected_k env p_h_list e_opt in
   Causal.sup_list tc_list
 
 (* Typing a present handler for blocks *)
 and present_handler_block_eq_list expected_k env p_h_list p_h_opt =
-  let block_eq_list expected_k env b_eq_list =
+  (* [spat -> body]: all outputs from [body] depend on [spat] *)
+  let block_eq_list expected_k env c b_eq_list =
     let _, shared_env = block_eq_list expected_k env b_eq_list in
-    shared_env in
+    Cenv.supcset (S.singleton c) shared_env in
   let env_list =
     present_handlers
       scondpat block_eq_list expected_k env p_h_list p_h_opt in

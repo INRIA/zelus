@@ -49,10 +49,17 @@ let fv_match_handler fv_body m_h_list bounded acc =
       fv_body (names bounded env) acc b)
     acc m_h_list
 
+let rec size acc { desc = desc } =
+  match desc with
+  | Sconst _ | Sglobal _ -> acc
+  | Sname(n) -> S.add n acc
+  | Sop(_, s1, s2) -> size (size acc s1) s2
+                           
 let operator acc = function
   | Efby | Eunarypre | Eifthenelse | Etest 
     | Eminusgreater | Eup | Einitial | Edisc
-    | Ehorizon | Eaccess | Eupdate -> acc
+    | Ehorizon | Eaccess | Eupdate | Econcat -> acc
+    | Eslice(s1, s2) -> size (size acc s1) s2
 	   
 let rec fv bounded (last_acc, acc) e =
   match e.e_desc with

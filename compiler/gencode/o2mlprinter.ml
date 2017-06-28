@@ -183,18 +183,39 @@ and exp prio ff e =
        match e with
        | Oconst _ ->
 	  fprintf ff "@[<hov 2>Array.make@ (%a)@ (%a)@]"
-		  (exp prio_e) se (exp prio_e) e 
-       | Ovec(e1, e2) ->
+		  (psize prio_e) se (exp prio_e) e 
+       | Ovec(e1, s2) ->
 	  fprintf ff "@[<hov 2>Array.make_matrix@ (%a)@ (%a)@ (%a)@]"
-		  (exp prio_e) se (exp prio_e) e2 (exp prio_e) e1
+		  (psize prio_e) se (psize prio_e) s2 (exp prio_e) e1
        | _ -> fprintf ff "@[<hov 2>Array.init@ @[(%a)@]@ @[(fun _ -> %a)@]@]"
-		      (exp prio_e) se (exp prio_e) e in
+		      (psize prio_e) se (exp prio_e) e in
      print_vec ff e se
   | Oupdate(se, e1, i, e2) ->
-     (* returns a fresh vector [v] of size [se] equal to [e2] except at *)
+     (* returns a fresh vector [_t] of size [se] equal to [e2] except at *)
      (* [i] where it is equal to [e2] *)
      fprintf ff "@[(let _t = Array.copy (%a) in@ _t.(%a) <- %a; _t)@]"
              (exp 0) e1 (exp 0) i (exp 0) e2
+  | Oslice(e, s1, s2) ->
+     (* returns a fresh vector [_t] of size [s1+s2] *)
+     (* with _t.(i) = e.(i + s1) for all i in [0..s2-1] *)
+     fprintf ff "@[(let _t = Array.make %a %a.(0) in @ \
+                    for i = 0 to %a - 1 do @ \
+                      _t.(i) <- %a.(i+%a) done; @ \
+                    _t)@]"
+             (psize 2) s1 (exp 2) e
+             (psize 0) s2
+             (exp 2) e (psize 0) s1
+  | Oconcat(e1, s1, e2, s2) ->
+     (* returns a fresh vector [_t] of size [s1+s2] *)
+     (* with _t.(i) = e1.(i) forall i in [0..s1-1] and *)
+     (* _t.(i+s1) = e2.(i) forall i in [0..s2-1] *)
+     fprintf ff "@[(let _t = Array.make (%a+%a) %a.(0) in @ \
+                    Array.blit %a 0 _t 0 %a; @ \
+                    Array.blit %a 0 _t %a; @ \
+                    _t)@]"
+             (psize 0) s1 (psize 0) s2 (exp 2) e1
+             (exp 2) e1 (psize 0) s1
+             (exp 2) e2 (psize 0) s2
   | Otuple(e_list) ->
       fprintf ff "@[<hov2>%a@]" (print_list_r (exp prio_e) "("","")") e_list
   | Oapp(e, e_list) ->

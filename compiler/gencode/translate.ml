@@ -260,17 +260,30 @@ let out_of n env =
   | Out(x, sort) -> x, ty, sort, ix_list
 
 (** Translate size expressions *)
-let rec size env = function
-  | Tconst(i) -> Oconst(Oint(i))
-  | Tglobal(qualident) -> Oglobal(Lident.Modname(qualident))
-  | Tname n -> var (entry_of n env)
+let rec size_of_type = function
+  | Tconst(i) -> Sconst(i)
+  | Tglobal(q) -> Sglobal(Lident.Modname(q))
+  | Tname(n) -> Sname(n)
   | Top(op, s1, s2) ->
-     let e1 = size env s1 in
-     let e2 = size env s2 in
+     let e1 = size_of_type s1 in
+     let e2 = size_of_type s2 in
      match op with
-     | Tplus -> plus e1 e2
-     | Tminus -> minus e1 e2
-  
+     | Tplus -> Sop(Splus, e1, e2)
+     | Tminus -> Sop(Sminus, e1, e2)
+
+(** Translate size expressions *)
+let rec size { Zelus.desc = desc } =
+  match desc with
+  | Zelus.Sconst(i) -> Sconst(i)
+  | Zelus.Sglobal(ln) -> Sglobal(ln)
+  | Zelus.Sname n -> Sname(n)
+  | Zelus.Sop(op, s1, s2) ->
+     let s1 = size s1 in
+     let s2 = size s2 in
+     match op with
+     | Zelus.Splus -> Sop(Splus, s1, s2)
+     | Zelus.Sminus -> Sop(Sminus, s1, s2)
+
 (* makes an initial value from a type. returns None when it fails *)
 let choose env ty =
   let tuple l = Otuple(l) in
@@ -304,7 +317,7 @@ let choose env ty =
     | Tvar -> eany
     | Tproduct(ty_l) -> tuple (List.map value ty_l)
     | Tfun _ -> eany
-    | Tvec(ty, s) -> vec (value ty) (size env s)
+    | Tvec(ty, s) -> vec (value ty) (size_of_type s)
     | Tconstr(id, _, _) ->
        if id = Initial.int_ident then ezero
        else if id = Initial.bool_ident then efalse
@@ -422,11 +435,24 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      Oaccess(e1, e2), code
   | Zelus.Eop(Zelus.Eupdate, [e1; i; e2]) ->
      let _, se = Types.filter_vec e1.Zelus.e_typ in
-     let se = size env se in
+     let se = size_of_type se in
      let e1, code = exp env loop_path code e1 in
      let i, code = exp env loop_path code i in
      let e2, code = exp env loop_path code e2 in
      Oupdate(se, e1, i, e2), code
+  | Zelus.Eop(Zelus.Eslice(s1, s2), [e]) ->
+     let s1 = size s1 in
+     let s2 = size s2 in
+     let e, code = exp env loop_path code e in
+     Oslice(e, s1, s2), code
+  | Zelus.Eop(Zelus.Econcat, [e1; e2]) ->
+     let _, s1 = Types.filter_vec e1.Zelus.e_typ in
+     let _, s2 = Types.filter_vec e2.Zelus.e_typ in
+     let s1 = size_of_type s1 in
+     let s2 = size_of_type s2 in
+     let e1, code = exp env loop_path code e1 in
+     let e2, code = exp env loop_path code e2 in
+     Oconcat(e1, s1, e2, s2), code     
   | Zelus.Elet _ | Zelus.Eseq _ | Zelus.Eperiod _ 
   | Zelus.Eop _ | Zelus.Epresent _ | Zelus.Ematch _ | Zelus.Eblock _ ->
 						       assert false

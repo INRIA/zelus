@@ -76,12 +76,6 @@ let rename x renaming =
   with Not_found ->
     Misc.internal_error "Inline: unbound name" Printer.name x
 
-(** Rename an operator *)
-let operator renaming op =
-  match op with
-  | Eunarypre | Efby | Eminusgreater | Eifthenelse
-  | Eup | Etest | Edisc | Ehorizon | Einitial | Eaccess | Eupdate -> op
-  		       
 (** Renaming of type expressions *)
 let rec type_expression renaming ({ desc = desc } as ty_e) =
   match desc with
@@ -113,6 +107,14 @@ and size renaming ({ desc = desc } as s) =
   | Sop(op, s1, s2) ->
      { s with desc = Sop(op, size renaming s1, size renaming s2) }
 
+(** Rename an operator *)
+let operator renaming op =
+  match op with
+  | Eunarypre | Efby | Eminusgreater | Eifthenelse
+    | Eup | Etest | Edisc | Ehorizon | Einitial | Eaccess
+    | Eupdate | Econcat -> op
+  | Eslice(s1, s2) -> Eslice(size renaming s1, size renaming s2)
+  		       
 (** Renaming of patterns *)
 let rec pattern renaming ({ p_desc = desc } as p) =
   match desc with

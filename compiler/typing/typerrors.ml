@@ -122,10 +122,11 @@ let message loc kind =
         output_location loc
         (Ident.source s) (Ident.source s)
   | Elast_undefined(s) ->
-      eprintf "@[%aType error: %s is not a state variable so last %s is \
-              forbidden.@.@]"
-        output_location loc
-        (Ident.source s) (Ident.source s)
+     eprintf
+       "@[%aType error: last %s is forbidden. This is either @,\
+        because %s is not a state variable or the next value is set.@.@]"
+       output_location loc
+       (Ident.source s) (Ident.source s)
   | Eshould_be_a_signal(s, expected_ty) ->
       eprintf "@[%aType error: %s is a value of type %a,@ \
                but is expected to be a signal \
@@ -134,8 +135,9 @@ let message loc kind =
         (Ident.source s)
 	Ptypes.output expected_ty
   | Ecannot_be_set(is_next, s) ->
-      eprintf "@[%aType error: the %s value of %s cannot be set. This is either \
-               because the %s value is set or the last value is used.@.@]"
+      eprintf "@[%aType error: the %s value of %s cannot be set. @,\
+                 This is either because the %s value is set or \
+                 the last value is used.@.@]"
         output_location loc
         (if is_next then "next" else "current")
 	(Ident.source s)

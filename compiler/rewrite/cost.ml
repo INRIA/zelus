@@ -61,7 +61,8 @@ let expression e max =
     | Etest
     | Eaccess -> 1
     | Ehorizon -> 1
-    | Eupdate -> 1 (* this is rough: after specialization, the size is known *)
+    | Eupdate | Eslice _ | Econcat -> 1
+       (* this is rough: after specialization, the size is known *)
   and cost_block { b_locals = l_list; b_body = eq_list } =
     List.iter cost_local l_list; List.iter cost_eq eq_list
   and cost_local { l_eq = eq_list } =

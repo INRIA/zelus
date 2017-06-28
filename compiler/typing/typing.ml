@@ -94,7 +94,7 @@ let sort_less_than loc sort expected_k =
 
 let check_is_vec loc actual_ty =
   try
-    let ty_arg, _ = Types.filter_vec actual_ty in ty_arg
+    let ty_arg, size = Types.filter_vec actual_ty in ty_arg, size
   with
     | Types.Unify -> error loc Esize_of_vec_is_undetermined
                            
@@ -157,15 +157,7 @@ let incorporate_into_env first_h h =
        tentry.t_sort <- Smem { m with m_init = None }
     | _ -> () in
   Env.iter mark first_h
-
-(** Remove the sort "last" to the set [h] *)
-let remove_last_to_env h =
-  let remove ({ t_sort = sort } as t_entry) =
-    let sort = match sort with
-      | Sstatic | Sval | Svar _ -> sort | Smem _ -> Deftypes.value in
-    { t_entry with t_sort = sort } in
-  Env.map remove h
-
+           
 (** Variables in a pattern *)
 let vars pat = Vars.fv_pat S.empty S.empty pat
 
@@ -180,9 +172,10 @@ let last loc h n =
   let { t_sort = sort; t_typ = typ } as entry = var loc h n in 
   (* [last n] is allowed only if [n] is a state variable *)
   begin match sort with
-	| Sstatic | Sval | Svar _ -> error loc (Elast_undefined(n))
-	| Smem (m) ->
-	   entry.t_sort <- Smem { m with m_previous = true }
+  | Sstatic | Sval | Svar _ | Smem { m_next = Some(true) } ->
+     error loc (Elast_undefined(n))
+  | Smem (m) ->
+     entry.t_sort <- Smem { m with m_previous = true }
   end; typ
 
 let der loc h n = typ_of_var loc h n
@@ -263,9 +256,9 @@ let set is_next loc dv h =
     let { t_sort = sort } as entry = 
       try Env.find x h with Not_found -> assert false in
   match sort with
-  | Sstatic
-  | Sval
-  | Svar _ -> if is_next then error loc (Ecannot_be_set(is_next, x))
+  | Sstatic | Sval
+  | Svar _ | Smem { m_previous = true } ->
+     if is_next then error loc (Ecannot_be_set(is_next, x))
   | Smem ({ m_next = n_opt } as m) ->
      match n_opt with
      | None ->
@@ -594,16 +587,31 @@ let rec expression expected_k h ({ e_desc = desc; e_loc = loc } as e) =
        (* Special typing for [e1.(e2)]. [e1] must be of type [ty[size]]  *)
        (* with [size] a known expression at that point *)
        let ty = expression expected_k h e1 in
-       let ty_arg = check_is_vec e1.e_loc ty in
+       let ty_arg, _ = check_is_vec e1.e_loc ty in
        expect expected_k h e2 Initial.typ_int; ty_arg
     | Eop(Eupdate, [e1; i; e2]) ->
        (* Special typing for [{ e1 with (i) = e2 }]. *)
        (* [e1] must be of type [ty[size]]  *)
        (* with [size] a known expression at that point *)
        let ty = expression expected_k h e1 in
-       let ty_arg = check_is_vec e1.e_loc ty in
+       let ty_arg,_ = check_is_vec e1.e_loc ty in
        expect expected_k h i Initial.typ_int;
        expect expected_k h e2 ty_arg; ty
+    | Eop(Eslice(s1, s2), [e]) ->
+       (* Special typing for [e{ e1 .. e2}] *)
+       (* [e1] and [e2] must be size expressions *)
+       let s1 = size h s1 in
+       let s2 = size h s2 in
+       let ty = expression expected_k h e in
+       let ty_arg, _ = check_is_vec e.e_loc ty in
+       Types.vec ty_arg (Types.plus (Types.minus s2 s1) (Types.const 1))
+    | Eop(Econcat, [e1; e2]) ->
+       let ty1 = expression expected_k h e1 in
+       let ty_arg1, s1 = check_is_vec e1.e_loc ty1 in
+       let ty2 = expression expected_k h e2 in
+       let ty_arg2, s2 = check_is_vec e2.e_loc ty2 in
+       unify_expr e2 ty_arg1 ty_arg2;
+       Types.vec ty_arg1 (Types.plus s1 s2)
     | Eop(op, e_list) ->
        operator expected_k h loc op e_list
     | Eapp({ app_statefull = is_statefull }, e, e_list) ->
@@ -669,6 +677,28 @@ let rec expression expected_k h ({ e_desc = desc; e_loc = loc } as e) =
   e.e_typ <- ty;
   ty
 
+(** Typing a size expression *)
+and size h { desc = desc; loc = loc } =
+  match desc with
+  | Sconst(i) -> Types.const i
+  | Sglobal(ln) ->
+     let qualid, _, typ_body = global_with_instance loc (Tstatic(true)) ln in
+     unify loc Initial.typ_int typ_body;
+     Types.global(qualid)
+  | Sname(x) ->
+     let { t_typ = typ; t_sort = sort } = var loc h x in
+     sort_less_than loc sort (Tstatic(true));
+     unify loc Initial.typ_int typ;
+     Types.name x
+  | Sop(Splus, s1, s2) ->
+     let s1 = size h s1 in
+     let s2 = size h s2 in
+     Types.plus s1 s2
+  | Sop(Sminus, s1, s2) ->
+     let s1 = size h s1 in
+     let s2 = size h s2 in
+     Types.minus s1 s2
+                 
 (** Convert an expression into a size expression *)
 and size_of_exp { e_desc = desc; e_loc = loc } =
   match desc with
@@ -706,7 +736,7 @@ and operator expected_k h loc op e_list =
         Tcont, [ty], Initial.typ_zero
     | Einitial ->
        Tcont, [], Initial.typ_zero
-    | Eaccess | Eupdate -> assert false in
+    | Eaccess | Eupdate | Eslice _ | Econcat -> assert false in
   less_than loc actual_k expected_k;
   List.iter2 (expect expected_k h) e_list ty_args;
   ty_res
@@ -1009,8 +1039,6 @@ and local expected_k h ({ l_eq = eq_list } as l) =
   l.l_env <- h0;
   let new_h = Env.append h0 h in
   ignore (equation_list expected_k new_h eq_list);
-  (* outside of the block, last values cannot be accessed anymore *)
-  let h0 = remove_last_to_env h0 in
   Env.append h0 h
 
 (** Typing a signal condition *)

@@ -852,6 +852,11 @@ expression_desc:
   | LBRACE e1 = simple_expression WITH i = simple_expression
                                   EQUAL e2 = expression RBRACE
       { Eop(Eupdate, [e1; i; e2]) }
+  | e = simple_expression
+          LBRACE s1 = size_expression DOTDOT s2 = size_expression RBRACE
+      { Eop(Eslice(s1, s2), [e]) }
+  | LBRACE e1 = simple_expression BAR e2 = simple_expression RBRACE
+      { Eop(Econcat, [e1; e2]) }
   | e1 = expression DOT LPAREN e2 = expression RPAREN
       { Eop(Eaccess, [e1; e2]) } 
   | f = simple_expression l = simple_expression_list

@@ -50,12 +50,30 @@ let rename n { rel = rel; defs = defs } =
     with Not_found -> Elocal n in
   rename n
 
-let operator op =
+let rec size ({ rel = rel } as renaming) ({ desc = desc } as s) =
+  try
+    let s =
+      match desc with
+      | Sconst _ | Sglobal _ -> s
+      | Sname(n) ->
+         let n = Env.find n rel in
+         begin match n with
+         | Vlocal n -> { s with desc = Sname(n) }
+         | _ -> raise Not_found
+         end
+      | Sop(op, s1, s2) ->
+         { s with desc = Sop(op, size renaming s1, size renaming s2) } in
+    s
+  with
+    Not_found -> s
+
+let operator renaming op =
   match op with
   | Efby | Eunarypre | Eifthenelse 
     | Eminusgreater | Eup | Einitial | Edisc
-    | Ehorizon | Etest | Eaccess | Eupdate -> op
-    			     
+    | Ehorizon | Etest | Eaccess | Eupdate | Econcat -> op
+  | Eslice(s1, s2) -> Eslice(size renaming s1, size renaming s2)
+                            
 (** Build a substitution [x1\v1,...,xn\vn]. *)
 let rec build rel { eq_desc = desc } =
   match desc with
@@ -89,7 +107,7 @@ let rec expression renaming ({ e_desc = desc } as e) =
   | Erecord_access(e, ln) ->
      { e with e_desc = Erecord_access(expression renaming e, ln) }
   | Eop(op, e_list) ->
-     { e with e_desc = Eop(operator op,
+     { e with e_desc = Eop(operator renaming op,
 			   List.map (expression renaming) e_list) }
   | Eapp(app, e_op, e_list) ->
      let e_op = expression renaming e_op in

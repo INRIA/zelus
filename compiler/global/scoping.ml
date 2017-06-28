@@ -183,18 +183,6 @@ let default = function
   | Parsetree.Init(c) -> Zelus.Init(constant c)
   | Parsetree.Default(c) -> Zelus.Default(constant c)
     
-let operator loc env = function
-  | Eunarypre -> Zelus.Eunarypre
-  | Efby -> Zelus.Efby
-  | Eminusgreater -> Zelus.Eminusgreater
-  | Eifthenelse -> Zelus.Eifthenelse
-  | Eup -> Zelus.Eup
-  | Einitial -> Zelus.Einitial
-  | Edisc -> Zelus.Edisc
-  | Etest -> Zelus.Etest
-  | Eaccess -> Zelus.Eaccess
-  | Eupdate -> Zelus.Eupdate
-  		 
 let period { p_phase = p1; p_period = p2 } = 
   { Zelus.p_phase = p1; Zelus.p_period = p2 }
 
@@ -233,6 +221,20 @@ and size env si =
        Zelus.Sop(operator s_op, size env si1, size env si2) in
   { Zelus.desc = desc; Zelus.loc = si.loc }
 								  
+let operator loc env = function
+  | Eunarypre -> Zelus.Eunarypre
+  | Efby -> Zelus.Efby
+  | Eminusgreater -> Zelus.Eminusgreater
+  | Eifthenelse -> Zelus.Eifthenelse
+  | Eup -> Zelus.Eup
+  | Einitial -> Zelus.Einitial
+  | Edisc -> Zelus.Edisc
+  | Etest -> Zelus.Etest
+  | Eaccess -> Zelus.Eaccess
+  | Eupdate -> Zelus.Eupdate
+  | Eslice(s1, s2) -> Zelus.Eslice(size env s1, size env s2)
+  | Econcat -> Zelus.Econcat
+                 
 
 (** Build a renaming environment *)
 (** the list of names present in a pattern *)

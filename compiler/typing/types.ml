@@ -49,7 +49,9 @@ let minus si1 si2 =
     | _, Tconst(0) -> si1
     | _ -> Top(Tminus, si1, si2)
 let const i = Tconst i
-  
+let global ln = Tglobal(ln)
+let name n = Tname(n)
+                  
 let constr name ty_list abbrev = make (Tconstr(name, ty_list, abbrev))
 let nconstr name ty_list = constr name ty_list (ref Tnil)
 

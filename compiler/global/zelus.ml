@@ -111,6 +111,8 @@ and op =
   | Etest (* test the present of a signal *)
   | Eaccess (* access in an array: e.(e2) *)
   | Eupdate (* array update: { e1 with i = e2 } *)
+  | Eslice of size * size (* array slice: e{s0..s1} *)
+  | Econcat (* array concatenation: { t{0..42} | t'{2..25} } *)
 
 and immediate = Deftypes.immediate
 
