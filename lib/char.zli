@@ -17,12 +17,23 @@ val lowercase : char -> char
 val uppercase : char -> char
 (** Convert the given character to its equivalent uppercase character. *)
 
-val compare: char * char -> int
+val lowercase_ascii : char -> char
+(** Convert the given character to its equivalent lowercase character, *)
+(* using the US-ASCII character set. *)
+
+val uppercase_ascii : char -> char
+(** Convert the given character to its equivalent uppercase character, *)
+(* using the US-ASCII character set. *)
+
+type t = char 
+(** An alias for the type of characters. *)
+
+val compare: char -> char -> int
 (** The comparison function for characters, with the same specification as
     {!Pervasives.compare}.  Along with the type [t], this function [compare]
     allows the module [Char] to be passed as argument to the functors
     {!Set.Make} and {!Map.Make}. *)
 
+val equal : t -> t -> bool
+(** The equal function for chars. *)
 (**/**)
-
-val unsafe_chr : int -> char

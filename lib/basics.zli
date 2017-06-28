@@ -1,27 +1,28 @@
-val cons      : 'a * 'a list -> 'a list
-val nil       : 'a list
+val cons : 'a -> 'a list -> 'a list
+val nil : 'a list
 val singleton : 'a -> 'a list
-val append    : 'a list * 'a list -> 'a list
+val append : 'a list -> 'a list -> 'a list
 
-val output_strings	 : out_channel * string list -AD-> unit
-val output_quoted_strings : out_channel * string list -AD-> unit
-val output_floats	 : out_channel * float list  -AD-> unit
+val output_strings : out_channel -> string list -AD-> unit
+val output_quoted_strings : out_channel -> string list -AD-> unit
+val output_floats : out_channel -> float list  -AD-> unit
 
 val empty : 'a list -> bool
 
-val hd    : 'a list -> 'a
-val tl    : 'a list -> 'a list
+val hd : 'a list -> 'a
+val tl : 'a list -> 'a list
 
 (** [float_eq (max_relative_err, a, b)] returns true if
  *  [a] = [b] to within ((1 - max_relative_error) * 100)% *)
-val float_eq : float * float * float -AD-> bool
+val float_eq : float -> float -> float -AD-> bool
 
 (* to within 99.9999% *)
-val (=~=) : float * float -AD-> bool
+val (=~=) : float -> float -AD-> bool
 
-val major_step : unit -A-> zero
-val minor_step : unit -A-> zero
+(* access to the minor and major step. Warning: only for testing *)
+val major_step : unit -C-> zero
+val minor_step : unit -C-> zero
 
-(* discontinuous sgn function for testing *)
+(* discontinuous sgn. Warning: only for testing *)
 val bad_sgn : float -A-> float
 

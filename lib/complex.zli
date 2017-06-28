@@ -17,19 +17,19 @@ val neg: t -> t
 val conj: t -> t
 (** Conjugate: given the complex [x + i.y], returns [x - i.y]. *)
 
-val add: t * t -> t
+val add: t -> t -> t
 (** Addition *)
 
-val sub: t * t -> t
+val sub: t -> t -> t
 (** Subtraction *)
 
-val mul: t * t -> t
+val mul: t -> t -> t
 (** Multiplication *)
 
 val inv: t -> t
 (** Multiplicative inverse ([1/z]). *)
 
-val div: t * t -> t
+val div: t -> t -> t
 (** Division *)
 
 val sqrt: t -> t
@@ -50,7 +50,7 @@ val arg: t -> float
     [-pi] to [pi].  This function has a discontinuity along the
     negative real axis. *)
 
-val polar: float * float -> t
+val polar: float -> float -> t
 (** [polar norm arg] returns the complex having norm [norm]
     and argument [arg]. *)
 
@@ -60,5 +60,5 @@ val exp: t -> t
 val log: t -> t
 (** Natural logarithm (in base [e]). *)
 
-val pow: t * t -> t
+val pow: t -> t -> t
 (** Power function.  [pow z1 z2] returns [z1] to the [z2] power. *)

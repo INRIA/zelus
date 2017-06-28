@@ -67,7 +67,7 @@ let node scope (yl, yu, (n1, t1, v1)) =
 let node scope2 (yl, yu, (n1, t1, v1), (n2, t2, v2)) =
   let init s1 = Gtkplot.signal (n1, t1)
   and init s2 = Gtkplot.signal (n2, t2) in
-  let init sc = Gtkplot.scope (yl, yu, cons (s1, (singleton s2))) in
+  let init sc = Gtkplot.scope (yl, yu, cons s1 (singleton s2)) in
   Gtkplot.update (s1, v1);
   Gtkplot.update (s2, v2);
   sc
@@ -76,7 +76,7 @@ let node scope3 (yl, yu, (n1, t1, v1), (n2, t2, v2), (n3, t3, v3)) =
   let init s1 = Gtkplot.signal (n1, t1)
   and init s2 = Gtkplot.signal (n2, t2)
   and init s3 = Gtkplot.signal (n3, t3) in
-  let init sc = Gtkplot.scope (yl, yu, cons (s1, (cons (s2, singleton s3)))) in
+  let init sc = Gtkplot.scope (yl, yu, cons s1 (cons s2 (singleton s3))) in
   Gtkplot.update (s1, v1);
   Gtkplot.update (s2, v2);
   Gtkplot.update (s3, v3);
@@ -89,7 +89,7 @@ let node scope4 (yl, yu,
   and init s3 = Gtkplot.signal (n3, t3)
   and init s4 = Gtkplot.signal (n4, t4) in
   let init sc = Gtkplot.scope
-                  (yl, yu, cons (s1, (cons (s2, cons (s3, singleton s4))))) in
+                  (yl, yu, cons s1 (cons s2 (cons s3 (singleton s4)))) in
   Gtkplot.update (s1, v1);
   Gtkplot.update (s2, v2);
   Gtkplot.update (s3, v3);
@@ -101,21 +101,21 @@ let node window (title, imaxt, v, s1) =
   Gtkplot.tick (w, v)
 
 let node window2 (title, imaxt, v, s1, s2) =
-  let init w = Gtkplot.window (title, imaxt, cons (s1, singleton s2)) in
+  let init w = Gtkplot.window (title, imaxt, cons s1 (singleton s2)) in
   Gtkplot.tick (w, v)
 
 let node window3 (title, imaxt, v, s1, s2, s3) =
-  let init w = Gtkplot.window (title, imaxt, cons (s1, cons (s2, singleton s3)))
+  let init w = Gtkplot.window (title, imaxt, cons s1 (cons s2 (singleton s3)))
   in
   Gtkplot.tick (w, v)
 
 let node window4 (title, imaxt, v, s1, s2, s3, s4) =
   let init w = Gtkplot.window (title, imaxt,
-                               cons (s1, cons (s2, cons (s3, singleton s4)))) in
+                               cons s1 (cons s2 (cons s3 (singleton s4)))) in
   Gtkplot.tick (w, v)
 
 let node window5 (title, imaxt, v, s1, s2, s3, s4, s5) =
   let init w = Gtkplot.window (title, imaxt,
-                    cons (s1, cons (s2, cons (s3, cons (s4, singleton s5))))) in
+                    cons s1 (cons s2 (cons s3 (cons s4 (singleton s5))))) in
   Gtkplot.tick (w, v)
 

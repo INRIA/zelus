@@ -12,21 +12,21 @@ val minus_one : t
 val neg : t -> t
 (** Unary negation. *)
 
-val add : t * t -> t
+val add : t -> t -> t
 (** Addition. *)
 
-val sub : t * t -> t
+val sub : t -> t -> t
 (** Subtraction. *)
 
-val mul : t * t -> t
+val mul : t -> t -> t
 (** Multiplication. *)
 
-val div : t * t -> t
+val div : t -> t -> t
 (** Integer division.  Raise [Division_by_zero] if the second
    argument is zero.  This division rounds the real quotient of
    its arguments towards zero, as specified for {!Pervasives.(/)}. *)
 
-val rem : t * t -> t
+val rem : t -> t -> t
 (** Integer remainder.  If [y] is not zero, the result
    of [Int64.rem x y] satisfies the following property:
    [x = Int64.add (Int64.mul (Int64.div x y) y) (Int64.rem x y)].
@@ -47,29 +47,29 @@ val max_int : t
 val min_int : t
 (** The smallest representable 64-bit integer, -2{^63}. *)
 
-val logand : t * t -> t
+val logand : t -> t -> t
 (** Bitwise logical and. *)
 
-val logor : t * t -> t
+val logor : t -> t -> t
 (** Bitwise logical or. *)
 
-val logxor : t * t -> t
+val logxor : t -> t -> t
 (** Bitwise logical exclusive or. *)
 
 val lognot : t -> t
 (** Bitwise logical negation *)
 
-val shift_left : t * int -> t
+val shift_left : t -> int -> t
 (** [Int64.shift_left x y] shifts [x] to the left by [y] bits.
    The result is unspecified if [y < 0] or [y >= 64]. *)
 
-val shift_right : t * int -> t
+val shift_right : t -> int -> t
 (** [Int64.shift_right x y] shifts [x] to the right by [y] bits.
    This is an arithmetic shift: the sign bit of [x] is replicated
    and inserted in the vacated bits.
    The result is unspecified if [y < 0] or [y >= 64]. *)
 
-val shift_right_logical : t * int -> t
+val shift_right_logical : t -> int -> t
 (** [Int64.shift_right_logical x y] shifts [x] to the right by [y] bits.
    This is a logical shift: zeroes are inserted in the vacated bits
    regardless of the sign of [x].
@@ -151,7 +151,7 @@ val compare: t * t -> int
 
 (** {6 Deprecated functions} *)
 
-val format : string * t -> string
+val format : string -> t -> string
 (** [Int64.format fmt n] return the string representation of the
    64-bit integer [n] in the format specified by [fmt].
    [fmt] is a {!Printf}-style format consisting of exactly one

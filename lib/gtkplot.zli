@@ -3,8 +3,8 @@ type signal_type
 
 val points  : bool -AD-> signal_type
 val piecewise : signal_type
-val square    : signal_type
-val linear    : signal_type
+val square : signal_type
+val linear : signal_type
 
 type signal
 type scope
