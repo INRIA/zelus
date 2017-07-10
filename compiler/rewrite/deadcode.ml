@@ -191,6 +191,26 @@ let writes useful { dv = dv; di = di; der = der } =
   let filter set = S.filter (fun x -> S.mem x useful) set in
   { dv = filter dv; di = filter di; der = filter der }
 			
+(* remove useless names in a pattern *)
+let rec pattern useful ({ p_desc = desc } as p) =
+  match desc with
+  | Ewildpat | Econstpat _ | Econstr0pat _ -> p
+  | Etuplepat(p_list) ->
+     { p with p_desc = Etuplepat(List.map (pattern useful) p_list) }
+  | Evarpat(x) -> if S.mem x useful then p else { p with p_desc = Ewildpat }
+  | Ealiaspat(p_alias, x) ->
+     let p_alias = pattern useful p_alias in
+     if S.mem x useful then { p with p_desc = Ealiaspat(p_alias, x) } else p_alias
+  | Eorpat(p1, p2) ->
+     { p with p_desc = Eorpat(pattern useful p1, pattern useful p2) }
+  | Erecordpat(ln_pat_list) ->
+     { p with p_desc =
+                Erecordpat(List.map (fun (ln, p) ->
+                               (ln, pattern useful p)) ln_pat_list) }
+  | Etypeconstraintpat(p, ty_exp) ->
+     let p = pattern useful p in
+     { p with p_desc = Etypeconstraintpat(p, ty_exp) }
+
 (** Remove useless equations. [useful] is the set of useful names *)
 let rec remove_equation useful
 			({ eq_desc = desc; eq_write = w } as eq) eq_list =
@@ -198,7 +218,8 @@ let rec remove_equation useful
   | EQeq(p, e) ->
      let w = fv_pat S.empty S.empty p in
      if Unsafe.exp e || S.exists (fun x -> S.mem x useful) w
-     then (* the equation is useful *) eq :: eq_list else eq_list
+     then (* the equation is useful *)
+       { eq with eq_desc = EQeq(pattern useful p, e) } :: eq_list else eq_list
   | EQpluseq(n, e) | EQder(n, e, None, [])
   | EQinit(n, e) ->
      if Unsafe.exp e || S.mem n useful then eq :: eq_list else eq_list

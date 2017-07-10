@@ -1,10 +1,4 @@
-let static g x = 0
-
-let node f(n)(x) = o where
-   rec
-    forall i in 0 .. (n + 1 - 2), xi in x, oi out o do
-      oi = xi
-    done
+let f x = let y, z = x in y
 
     (*
 let node g x = o where
