@@ -19,12 +19,16 @@ open Bigarray
 type carray = (float, float64_elt, c_layout) Array1.t
 type zarray = (int32, int32_elt,   c_layout) Array1.t
 
+(* The same as Zlmachines except that the array for storing the *)
+(* derivative, position and zero-crossing are written in place *)
+(* from left to right. The worst size is less than [max_der] and *)
+(* [max_zero] but between two discrete steps, the valid values *)
+(* are between [0] and [cur_der] and [cur_zero] *)
+                                             
 (*
   open Ztypes
 
   let der = machine(derivative) {
-    memories
-      gindex : int = 0
     instances
       method alloc = { ... }
       method der (x': float) = ()
@@ -33,8 +37,6 @@ type zarray = (int32, int32_elt,   c_layout) Array1.t
   }
 
   let ders = machine(derivatives) {
-    memories
-      gindex : int = 0
     instances
       method alloc (n: int) = { ... }
       method der ((i: int), (x': float)) = ()
@@ -43,8 +45,6 @@ type zarray = (int32, int32_elt,   c_layout) Array1.t
   }
 
   let crossing = machine(zerocrossing) {
-    memories
-      gindex : int = 0
     instances
       method alloc = { ... }
       method set (e: float) = ()
@@ -52,8 +52,6 @@ type zarray = (int32, int32_elt,   c_layout) Array1.t
   }
 
   let crossings = machine(zerocrossings) {
-    memories
-      gindex : int = 0
     instances
       method alloc (n: int) = { ... }
       method set ((i: int), (e: float)) = ()
