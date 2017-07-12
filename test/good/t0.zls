@@ -2,6 +2,13 @@ let hybrid f (x, z) =
   let rec der o = x +. 1.0 init 42.0 reset z -> last o +. 1.0 in
   o +. 2.0
 
+let hybrid g () = o where
+  forall i in 0 .. 42, oi out o do
+    forall j in 0 .. 43, oij out oi do
+      der oij = 1.0 init 0.0
+    done
+  done
+      
     (*
 let hybrid g (x, z) =
   let rec present z -> do o = last o +. 1.0 done
