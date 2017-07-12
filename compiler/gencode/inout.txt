@@ -1,0 +1,59 @@
+(* B1 *)
+der x = vx   x = ex    ...x...
+if c then
+  (* B2 *) der y = vy y = ey ...y...
+else
+  (* B3 *)
+  ;
+(* B4 *)
+der z = vz  z = ez ...z...
+
+(* B1 *)
+der x = vx   x = ex ...x...
+dvec.(0) <- vx; cvec.(0) <- ex  ...cvec.(0)...
+if d on c then
+  (* B2 *) der y = vy y = ey ...y...
+  dvec.(1) <- vy; cvec.(1) <- ey ...cvec.(1)...
+else
+  (* B3 *)
+  ;
+(* B4 *)
+der z = vz  z = ez ...z...
+dvec.(2) <- vz; cvec.(2) <- ez ...cvec.(2)...
+
+Pendant l'integration, x.pos = cvec.(i), a ajouter au debut.
+Pendant le pas discret, cvec.(i) <- x.pos, a ajouter a la fin.
+
+local x default cvec.(i)
+  ...
+
+
+Pour chaque bloc local x in E ou x est une variable d'etat continue, on
+genere:
+
+(1) une variable d'etat x: Cont
+(2) le code sequentiel
+
+x.pos <- cvec.(i); (* if not d *)
+... E ...
+dvec.(i) <- x.der; (* if not d *)
+cvec.(i) <- x.pos; (* if d *)
+ci++
+
+Pour chaque block local m in ...m = up(e)... ou m est une variable de
+zero-crossing, on genere:
+
+(1) une variable d'etat x: Zero
+(2) le code sequentiel
+
+m.zin <- zin.(i); (* if not d *)
+... m.zout = d on m.zin ...
+zout.(i) <- e (* if not d; deadcode otherwise *)
+zi++
+
+Pour l'allocation, lorsque l'etat contient des variables d'etat continu,
+on incremente deux compteurs globaux: cmax et zmax.
+
+Pour les zero-crossing, eliminer l'utilisation de zin.
+
+m = (e >=0) && 
