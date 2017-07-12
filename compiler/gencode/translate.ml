@@ -220,7 +220,7 @@ let der { e_sort = sort; e_size = ei_list } e ({ step = s } as code) =
 		     s }
        
 (** Generate an if/then *)
-let ifthen r_e i_code s = sequence (Oif(r_e, i_code)) s
+let ifthen r_e i_code s = sequence (Oif(r_e, i_code, None)) s
 				   
 (** Generate a for loop *)
 let for_loop direction ix e1 e2 i_body =

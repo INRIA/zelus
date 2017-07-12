@@ -2,6 +2,7 @@ let hybrid f (x, z) =
   let rec der o = x +. 1.0 init 42.0 reset z -> last o +. 1.0 in
   o +. 2.0
 
+    (*
 let hybrid g (x, z) =
   let rec present z -> do o = last o +. 1.0 done
           else do der o = x +. 1.0 done
@@ -10,7 +11,7 @@ let hybrid g (x, z) =
 
 let hybrid h(x) =
   let rec o = up(x +. 1.0) in
-  o, o
+  o, o*)
     
     (*
 let node g x = o where

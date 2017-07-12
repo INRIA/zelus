@@ -287,7 +287,11 @@ and inst prio ff i =
        else
          fprintf ff "@[<hv>%a@]" (print_list_r (inst prio_i) "" ";" "") i_list
     | Oexp(e) -> exp prio ff e
-    | Oif(e, i) -> fprintf ff "@[<hov>if %a@ then@ %a@]" (exp 0) e (inst 1) i
+    | Oif(e, i1, None) ->
+       fprintf ff "@[<hov>if %a@ then@ %a@]" (exp 0) e (inst 1) i1
+    | Oif(e, i1, Some(i2)) ->
+       fprintf ff "@[<hov>if %a@ then@ %a@ else %a@]"
+	       (exp 0) e (inst 1) i1 (inst 1) i2
   end;
   if prio_i < prio then fprintf ff ")"
                                 
