@@ -78,7 +78,7 @@ let snd e = Oapp(operator "snd", [e])
 
 let for_loop i e1 e2 body = Ofor(true, i, e1, e2, body)
 
-let if_then ec body = Oif(ec, body)
+let if_then ec body = Oif(ec, body, None)
 
 (* arrays in which states are stored *)
 let cvec  = Ident.fresh "cvec" (* vector of positions *)

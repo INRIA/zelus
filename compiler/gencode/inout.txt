@@ -1,0 +1,119 @@
+(* B1 *)
+der x = vx   x = ex    ...x...
+if c then
+  (* B2 *) der y = vy y = ey ...y...
+else
+  (* B3 *)
+  ;
+(* B4 *)
+der z = vz  z = ez ...z...
+
+(* B1 *)
+der x = vx   x = ex ...x...
+dvec.(0) <- vx; cvec.(0) <- ex  ...cvec.(0)...
+if d on c then
+  (* B2 *) der y = vy y = ey ...y...
+  dvec.(1) <- vy; cvec.(1) <- ey ...cvec.(1)...
+else
+  (* B3 *)
+  ;
+(* B4 *)
+der z = vz  z = ez ...z...
+dvec.(2) <- vz; cvec.(2) <- ez ...cvec.(2)...
+
+Pendant l'integration, x.pos = cvec.(i), a ajouter au debut.
+Pendant le pas discret, cvec.(i) <- x.pos, a ajouter a la fin.
+
+local x default cvec.(i)
+  ...
+
+
+Pour chaque bloc local x in E ou x est une variable d'etat continue, on
+genere:
+
+(1) une variable d'etat x: Cont
+(2) le code sequentiel
+
+x.pos <- cvec.(i); (* if not d *)
+... E ...
+dvec.(i) <- x.der; (* if not d *)
+cvec.(i) <- x.pos; (* if d *)
+ci++
+
+Pour chaque block local m in ...m = up(e)... ou m est une variable de
+zero-crossing, on genere:
+
+(1) une variable d'etat x: Zero
+(2) le code sequentiel
+
+m.zin <- zin.(i); (* if not d *)
+... m.zout = d on m.zin ...
+zout.(i) <- e (* if not d; deadcode otherwise *)
+zi++
+
+Pour l'allocation, lorsque l'etat contient des variables d'etat continu,
+on incremente deux compteurs globaux: cmax et zmax.
+
+Pour les zero-crossing, eliminer l'utilisation de zin.
+
+m = (e >=0) && 
+
+let hybrid f (x, z) =
+  let rec der o = x +. 1.0 init 42.0 reset z -> last o +. 1.0 in
+  o +. 2.0
+
+type ('a, 'b) hybrid =
+    Hybrid:
+      { alloc : unit -> 's;
+        (* allocate the initial state *)
+	step : 's -> 'a -> 'b;
+	(* computes a step *)
+	reset : 's -> unit;
+	(* resets the state *)
+	} -> ('a, 'b) hybrid
+
+type ('c, 'b, 'a) _f =
+  { mutable h_19 : 'c; mutable h_17 : 'b; mutable o_13 : 'a }
+
+let cvec = ref [||]
+let dvec = ref [||]
+let zin = ref [||]
+let zout = ref [||]
+let cindex = ref 0
+let cmax = ref 0
+let zindex = ref 0
+let zmax = ref 0
+let discrete = ref true
+		   
+let cindex () = !cindex
+let cin x i = x.pos <- !cvec.(i)
+let cout x i = !cvec.(i) <- x.pos
+let zin x i = x.zin <- !zin.(i)
+let zout x i = !zout.(i) <- x.zout
+let dzero s i = for i = 0 to s - 1 do !dvec.(i) <- 0.0 done
+
+let f  =  
+  let f_alloc _ =
+    let v =
+      { h_19 = 1.0; h_17 = (0.:float); o_13 = { pos = 1.0; der = 1.0 } } in
+    incr cmax; v in
+  
+  let f_reset self  =
+    self.o_13.pos <- 42. in
+
+  let f_step self ((time_15:float), ((x_11:float), (z_12:zero))) =
+    let ci = cindex() in
+    if !discrete then dzero 1 ci else cin self.o_13 ci;
+    let h_18 = ref (infinity:float) in
+    let encore_16 = ref (false:bool) in
+    (match z_12 with
+       | true -> encore_16 := true; self.o_13.pos <- (+.) self.o_13.pos 1.
+       | _ -> () );
+    self.h_17 <- (if !encore_16 then 0. else infinity);
+    h_18 := min !h_18 self.h_17;
+    self.h_19 <- !h_18; self.o_13.der <- (+.) x_11 1.;
+    if !discrete then cout self.o_13 ci;
+    (+.) self.o_13.pos 2.
+  in
+  Hybrid { alloc = f_alloc;
+	   reset = f_reset; step = f_step }

@@ -61,7 +61,7 @@ and inst =
   | Ofor of bool * Ident.t * exp * exp * inst
   | Owhile of exp * inst
   | Omatch of exp * inst match_handler list
-  | Oif of exp * inst
+  | Oif of exp * inst * inst option
   | Oassign of left_value * exp
   | Oassign_state of left_state_value * exp
   | Osequence of inst list
