@@ -215,7 +215,8 @@ let machine f ({ ma_initialize = i_opt;
 		    (sequence (zin (ztable, zsize) zi) (cin (ctable, csize) ci)))
 	   (sequence body
 	      (ifthenelse discrete (cout (ctable, csize) ci)
-			  (zout (ztable, zsize) zi))))) in
+			  (sequence (zout (ztable, zsize) zi)
+			  (dout (ctable, csize) ci)))))) in
     { mach with ma_initialize = i_opt;
 		ma_methods = { mdesc with me_body = body } :: method_list }
   with

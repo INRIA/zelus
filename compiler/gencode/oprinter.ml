@@ -291,7 +291,7 @@ and inst prio ff i =
        fprintf ff "@[<hov>if %a@ then@ %a@]" (exp 0) e (inst 1) i1
     | Oif(e, i1, Some(i2)) ->
        fprintf ff "@[<hov>if %a@ then@ %a@ else %a@]"
-	       (exp 0) e (inst 1) i1 (inst 1) i2
+	       (exp 0) e (inst 1) i1 (inst 2) i2
   end;
   if prio_i < prio then fprintf ff ")"
                                 
@@ -349,7 +349,7 @@ let pmethod ff { me_name = m_name; me_params = p_list; me_body = i } =
 let pinitialize ff i_opt =
   match i_opt with
   | None -> ()
-  | Some(e) -> fprintf ff "@[<hov2>initialize@ %a@]" (inst 0) e
+  | Some(e) -> fprintf ff "@[<hov2>initialize@;%a@]" (inst 0) e
 		       
 (** Print a machine *)
 let machine f ff { ma_kind = k; ma_params = pat_list; ma_initialize = i_opt;
@@ -357,7 +357,7 @@ let machine f ff { ma_kind = k; ma_params = pat_list; ma_initialize = i_opt;
                    ma_methods = m_list } =
   fprintf ff
    "@[<hov 2>let %s = machine(%s)%a@ \
-   {@, @[@[<v 2>memories@ @[%a@]@]@;%a@;@[<v 2>instances@ @[%a@]@]@;@[%a@]@]]}@.@]"
+   {@, %a@,@[<v2>memories@ @[%a@]@]@;@[<v 2>instances@ @[%a@]@]@;@[%a@]@]]}@.@]"
    f
    (kind k)
    pattern_list pat_list

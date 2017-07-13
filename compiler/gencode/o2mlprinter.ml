@@ -42,9 +42,7 @@ let immediate ff = function
 	     
 let constructor_for_kind = function
   | Deftypes.Tcont ->
-     "Hybrid", [ Omaxsize; Ocin; Ocout; Odout;
-                 Ozin; Oclear_zin; Odzero; Ozout;
-                 Ostep; Oreset; Ohorizon ]
+     "Hybrid", [ Ostep; Oreset ]
   | Deftypes.Tdiscrete(true) ->
      "Node", [ Ostep; Oreset ]
   | _ -> assert false
@@ -265,7 +263,7 @@ and inst prio ff i =
        fprintf ff "@[<hov>if %a@ then@ %a@]" (exp 0) e (inst 1) i1
     | Oif(e, i1, Some(i2)) ->
        fprintf ff "@[<hov>if %a@ then@ %a@ else %a@]"
-	       (exp 0) e (inst 1) i1 (inst 1) i2
+	       (exp 0) e (inst 1) i1 (inst 2) i2
   end;
   if prio_i < prio then fprintf ff ")"
 
@@ -438,7 +436,12 @@ let def_instance_function ff { i_name = n; i_machine = ei; i_kind = k;
 	 fprintf ff "@[let %s { alloc = %a_alloc; %a } = %a %a in@]"
 		 k name n list_of_methods m_name_list
 		 (exp 0) ei (print_list_r (exp 1) "" " " "") e_list
-	         
+
+(* Print initialization code *)
+let print_initialize ff i_opt =
+  match i_opt with
+  | None -> () | Some(i) -> fprintf ff "%a;" (inst 0) i
+		    
 (** Print a machine as pieces with a type definition for the state *)
 (** and a collection of functions *)
 (* The general form is:
@@ -453,6 +456,7 @@ let def_instance_function ff { i_name = n; i_machine = ei; i_kind = k;
  *   { alloc = f_alloc; step = f_step; reset = f_reset, ... } *)	     
 let machine f ff { ma_kind = k;
                    ma_params = pat_list;
+		   ma_initialize = i_opt;
 		   ma_memories = memories;
                    ma_instances = instances;
                    ma_methods = m_list } =
@@ -473,8 +477,10 @@ let machine f ff { ma_kind = k;
   (* print the type for [f] *)
   def_type_for_a_machine ff f memories instances;
   (* print the code for [f] *)
-  fprintf ff "@[<hov 2>let %s %a = @ @[%a@]@ @[%a@]@ @[%a@]@ %a@.@.@]"
-	  f pattern_list pat_list
+  fprintf ff "@[<hov 2>let %s %a = @ @[%a@ @[%a@]@ @[%a@]@ @[%a@]@ %a@]@.@]"
+	  f
+	  pattern_list pat_list
+	  print_initialize i_opt
 	  (print_list_r def_instance_function "" "" "") instances
 	  (def_alloc_as_a_function f memories) instances
 	  (print_list_r (def_method_as_a_function f) """""") m_list

@@ -232,8 +232,8 @@ let compile modname filename =
      let obc_list = Inout.implementation_list obc_list in
      if !verbose
      then begin
-	 comment "Represent continuous states and zero-crossings \
-                  by vectors. See below:";
+	 comment "Add code to read/write continuous states and zero-crossings \
+                  vectors. See below:";
          Oprinter.implementation_list info_ff obc_list
        end;
      (* print OCaml code *)
