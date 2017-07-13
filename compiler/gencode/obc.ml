@@ -118,8 +118,9 @@ and 'a match_handler =
       
 (* implementation of a machine *)
 and 'a machine =
-  { ma_kind: Deftypes.kind;
+  { ma_kind: Deftypes.kind; (* combinatorial, continuous-time or discrete-time *)
     ma_params: pattern list; (* list of static parameters *)
+    ma_initialize: inst option; (* code to execute at the creation of the machine *)
     ma_memories: mentry list;(* memories *)
     ma_instances: ientry list; (* instances *)
     ma_methods: 'a method_desc list; (* methods *) 

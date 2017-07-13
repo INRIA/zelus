@@ -346,17 +346,22 @@ let pmethod ff { me_name = m_name; me_params = p_list; me_body = i } =
   fprintf ff "@[<hov 2>method %s %a =@ %a@]"
           (method_name m_name) pattern_list p_list (inst 0) i
           
-	  
+let pinitialize ff i_opt =
+  match i_opt with
+  | None -> ()
+  | Some(e) -> fprintf ff "@[<hov2>initialize@ %a@]" (inst 0) e
+		       
 (** Print a machine *)
-let machine f ff { ma_kind = k; ma_params = pat_list;
+let machine f ff { ma_kind = k; ma_params = pat_list; ma_initialize = i_opt;
 		   ma_memories = memories; ma_instances = instances;
                    ma_methods = m_list } =
   fprintf ff
    "@[<hov 2>let %s = machine(%s)%a@ \
-   {@, @[@[<v 2>memories@ @[%a@]@]@;@[<v 2>instances@ @[%a@]@]@;@[%a@]@]]}@.@]"
+   {@, @[@[<v 2>memories@ @[%a@]@]@;%a@;@[<v 2>instances@ @[%a@]@]@;@[%a@]@]]}@.@]"
    f
    (kind k)
    pattern_list pat_list
+   pinitialize i_opt
    (print_list_r_empty memory """;""") memories
    (print_list_r_empty instance """;""") instances
    (print_list_r pmethod """""") m_list

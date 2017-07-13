@@ -637,6 +637,7 @@ let machine n k pat_list { mem = m; instances = j; reset = r; step = s } =
     let body =
        { ma_kind = k;
 	 ma_params = pat_list;
+	 ma_initialize = None;
 	 ma_memories = State.list [] m;
 	 ma_instances = State.list [] j;
 	 ma_methods = 
