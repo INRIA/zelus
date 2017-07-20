@@ -117,13 +117,14 @@ and 'a match_handler =
       w_body : 'a; }
       
 (* implementation of a machine *)
-and 'a machine =
+and machine =
   { ma_kind: Deftypes.kind; (* combinatorial, continuous-time or discrete-time *)
     ma_params: pattern list; (* list of static parameters *)
-    ma_initialize: inst option; (* code to execute at the creation of the machine *)
+    ma_initialize: inst option;
+                             (* code to execute at the creation of the machine *)
     ma_memories: mentry list;(* memories *)
     ma_instances: ientry list; (* instances *)
-    ma_methods: 'a method_desc list; (* methods *) 
+    ma_methods: method_desc list; (* methods *) 
   }
 
 and mentry =
@@ -142,10 +143,11 @@ and ientry =
     i_size: exp list; (* it is possibly an array of instances *)
   }
     
-and 'a method_desc =
+and method_desc =
   { me_name: method_name; (* name of the method *)
     me_params: pattern list; (* list of input arguments *)
-    me_body: 'a; (* body *)
+    me_returns: exp; (* result *)
+    me_body: inst; (* body *)
   }
 
 and method_call =
@@ -177,7 +179,7 @@ and implementation_list = implementation list
 and implementation = 
   | Oletvalue of name * inst
   | Oletfun of name * pattern list * inst
-  | Oletmachine of name * inst machine
+  | Oletmachine of name * machine
   | Oopen of string
   | Otypedecl of (string * string list * type_decl) list
 

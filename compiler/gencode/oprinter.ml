@@ -342,9 +342,11 @@ let instance ff { i_name = n; i_machine = ei; i_kind = k;
 	     (print_with_braces (exp 0) "[" "]") "" "" "")
 	  i_size
           
-let pmethod ff { me_name = m_name; me_params = p_list; me_body = i } =
-  fprintf ff "@[<hov 2>method %s %a =@ %a@]"
-          (method_name m_name) pattern_list p_list (inst 0) i
+let pmethod ff
+            { me_name = m_name; me_params = p_list; me_returns = e;
+              me_body = i } =
+  fprintf ff "@[<hov 2>method %s %a returns %a@ %a@]"
+          (method_name m_name) pattern_list p_list (exp 2) e (inst 0) i
           
 let pinitialize ff i_opt =
   match i_opt with
