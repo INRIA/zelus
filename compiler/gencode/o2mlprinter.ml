@@ -260,13 +260,13 @@ and inst prio ff i =
        if i_list = []
        then fprintf ff "()"
        else fprintf
-              ff "@[<hv>%a@]" (print_list_r (inst prio_i) "" ";" "") i_list
+              ff "@[<hv>%a@]" (print_list_r (inst (prio_i + 1)) "" ";" "") i_list
     | Oexp(e) -> exp prio ff e
     | Oif(e, i1, None) ->
-       fprintf ff "@[<hov>if %a@ then@ %a@]" (exp 0) e (inst 1) i1
+       fprintf ff "@[<hov>if %a@ then@ %a@]" (exp 0) e (inst prio_i) i1
     | Oif(e, i1, Some(i2)) ->
        fprintf ff "@[<hov>if %a@ then@ %a@ else %a@]"
-	       (exp 0) e (inst 1) i1 (inst 2) i2
+	       (exp 0) e (inst prio_i) i1 (inst prio_i) i2
   end;
   if prio_i < prio then fprintf ff ")"
 
@@ -296,20 +296,6 @@ let print_memory ff { m_name = n; m_value = e_opt; m_typ = ty;
 	     (print_list_no_space (print_with_braces (exp 0) "[" "]") "" "" "")
 	     m_size ptype ty (exp 0) e
              
-let print_name_with_type ff (n, ty) =
-  fprintf ff "%a : %a" name n ptype ty
-
-let print_instance ff { i_name = n; i_machine = ei; i_kind = k;
-		      i_params = e_list; i_size = i_size } =
-  fprintf ff "@[%a : %s(%a)%a@]" name n (kind k) (exp 0) ei
-	  (print_list_no_space
-	     (print_with_braces (exp 0) "[" "]") "" "" "")
-	  i_size
-
-let print_method ff { me_name = m_name; me_params = p_list; me_body = i } =
-  fprintf ff "@[<hov 2>method %s %a =@ %a@]"
-          (method_name m_name) pattern_list p_list (inst 0) i
-          
 (** Define the data-type for the internal state of a machine *)
 (* A prefix "_" is added to the name of the machine to avoid *)
 (* name conflicts *)
@@ -336,12 +322,11 @@ let def_type_for_a_machine ff f memories instances =
             (print_list_r one_entry """;""") entries
             
             
-(** Define the method *)
-let def_method_as_a_function f ff
-                             { me_name = me_name; me_params = pat_list;
-                               me_body = i } =
-  fprintf ff "@[<v 2>let %s_%s self %a =@ %a in@]"
-          f (method_name me_name) pattern_list pat_list (inst 0) i
+(** Print the method as a function *)
+let pmethod f ff { me_name = me_name; me_params = pat_list;
+                   me_returns = e; me_body = i } =
+  fprintf ff "@[<v 2>let %s_%s self %a =@ %a;@ %a in@]"
+          f (method_name me_name) pattern_list pat_list (inst 1) i (exp 1) e
           
 (* create an array of type t[n_1]...[n_k] *)
 let array_make print arg ff ie_size =
@@ -370,8 +355,8 @@ let rec array_float ff =
 	     "@[<hov 2>Array.init %a@ (fun _ -> %a)@]"
 	     (exp 3) ie array_float ie_list
 
-(** Define the allocation function *)
-let def_alloc_as_a_function f memories ff instances =
+(** Print the allocation function *)
+let palloc f memories ff instances =
   let print_memory ff { m_name = n; m_value = e_opt;
 			m_typ = ty; m_kind = k_opt; m_size = m_size } =
     match k_opt with
@@ -485,8 +470,8 @@ let machine f ff { ma_kind = k;
 	  pattern_list pat_list
 	  print_initialize i_opt
 	  (print_list_r def_instance_function "" "" "") instances
-	  (def_alloc_as_a_function f memories) instances
-	  (print_list_r (def_method_as_a_function f) """""") m_list
+	  (palloc f memories) instances
+	  (print_list_r (pmethod f) """""") m_list
 	  tuple_of_methods m_list
 
 let implementation ff impl = match impl with

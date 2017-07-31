@@ -34,11 +34,11 @@ and priority_inst = function
   | Olet _
   | Oletvar _ -> 1
   | Ofor _ | Owhile _ -> 3
-  | Omatch _ -> 0
-  | Oif _ -> 0
+  | Omatch _ -> 1
+  | Oif _ -> 1
   | Oassign _ -> 2
   | Oassign_state _ -> 2
-  | Osequence _ -> 1
+  | Osequence _ -> 0
   | Oexp(e) -> priority_exp e
 
 let kind = function
@@ -288,13 +288,14 @@ and inst prio ff i =
        if i_list = []
        then fprintf ff "()"
        else
-         fprintf ff "@[<hv>%a@]" (print_list_r (inst prio_i) "" ";" "") i_list
+         fprintf ff
+                 "@[<hv>%a@]" (print_list_r (inst (prio_i + 1)) "" ";" "") i_list
     | Oexp(e) -> exp prio ff e
     | Oif(e, i1, None) ->
-       fprintf ff "@[<hov>if %a@ then@ %a@]" (exp 0) e (inst 1) i1
+       fprintf ff "@[<hov>if %a@ then@ %a@]" (exp 0) e (inst prio_i) i1
     | Oif(e, i1, Some(i2)) ->
        fprintf ff "@[<hov>if %a@ then@ %a@ else %a@]"
-	       (exp 0) e (inst 1) i1 (inst 2) i2
+	       (exp 0) e (inst prio_i) i1 (inst prio_i) i2
   end;
   if prio_i < prio then fprintf ff ")"
                                 

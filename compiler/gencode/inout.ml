@@ -118,6 +118,7 @@ let discrete = bang "discrete"
 
 let inout f args = Oapp(global(modname f), args)
 let get e i = inout "get" [e; i]
+let get_zin e i = inout "get_zin" [e; i]
 let set e i arg = inout "set" [e; i; arg]
                         
 let incr x i =
@@ -134,7 +135,7 @@ let cin x i =
                 get (bang "cvec") i)
 let zin x i =
   Oassign_state(Oleft_state_primitive_access(Oleft_state_name(x), Ozero_in),
-                get (bang "zinvec") i)
+                get_zin (bang "zinvec") i)
 let cout x i =
   set (bang "cvec") i (Ostate(Oleft_state_primitive_access(Oleft_state_name(x),
                                                            Ocont)))
