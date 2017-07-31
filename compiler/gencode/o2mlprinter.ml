@@ -147,7 +147,10 @@ and assign ff left e =
      fprintf ff "@[<v 2>%a <- %a@]" left_value left (exp 2) e
 
 and assign_state ff left e =
-  fprintf ff "@[<v 2>%a <- %a@]" left_state_value left (exp 2) e
+  match left with
+  | Oleft_state_global(gname) ->
+     fprintf ff "@[<v 2>%a := %a@]" longname gname (exp 2) e
+  | _ -> fprintf ff "@[<v 2>%a <- %a@]" left_state_value left (exp 2) e
 
 and letvar ff n is_mutable ty e_opt i =
   let s = if is_mutable then "" else "ref " in

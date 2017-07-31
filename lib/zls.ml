@@ -18,6 +18,19 @@ let get = Array1.get
 let set = Array1.set
 let get_zin v i = Array1.get v i <> 0l
 
+(* global variables read/write by the *)
+(* step functions *)
+let cvec = ref (cmake 0)
+let dvec = ref (cmake 0)
+let zinvec = ref (zmake 0)
+let zoutvec = ref (cmake 0)
+let cindex = ref 0
+let cmax = ref 0
+let zindex = ref 0
+let zmax = ref 0
+let discrete = ref true
+let horizon = ref infinity
+                  
 type 's f_alloc = unit -> 's
 type 's f_csize = 's -> int
 type 's f_zsize = 's -> int

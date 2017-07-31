@@ -21,24 +21,24 @@
 (* is modified by adding functions calls to read and write *)
 (* the continous state and zero-crossing vectors *)
 
-(* we suppose known the following functions and globals *)
-(*  val cindex : unit -> int
- *- val zindex : unit -> int
- *  val cmax : unit -> int
- *- val zmax : unit -> int
- *- val cint : cont -> int -> unit
+(* we suppose known the following globals *)
+(*  val cindex : int ref
+ *- val zindex : int ref
+ *  val cmax : int ref
+ *- val zmax : int ref
+ *- val cin : cont -> int -> unit
  *- val cout : cont -> int -> unit
  *- val zin : zero -> int -> unit
  *- val zout : zero -> int -> unit
  *- val dzero : int -> int -> unit
- *- val discrete : unit -> bool
- *- val horizon : unit -> float *)
+ *- val discrete : bool ref
+ *- val horizon : float ref *)
 
 
-(*- let cvec = ref [||]
- *- let dvec = ref [||]
- *- let zin = ref [||]
- *- let zout = ref [||]
+(*- let cvec = ref (Zls.cmake 0)
+ *- let dvec = ref (Zls.zmake 0)
+ *- let zinvec = ref (Zls.cmake 0)
+ *- let zoutvec = ref (Zls.zmake 0)
  *- let cindex = ref 0
  *- let cmax = ref 0
  *- let zindex = ref 0
@@ -50,12 +50,14 @@
  *- let zindex () = !zindex
  *- let cmax i = cmax := !cmax + i
  *- let zmax i = zmax := !zmax + i
- *- let cin x i = x.pos <- !cvec.(i)
- *- let cout x i = !cvec.(i) <- x.pos
- *- let dout x i = !dvec.(i) <- x.der
- *- let zin x i = x.zin <- !zin.(i)
- *- let zout x i = !zout.(i) <- x.zout
- *- let dzero i s = for i = i to s - 1 do !dvec.(i) <- 0.0 done
+ *- let cincr i = cindex := !cindex + i
+ *- let zincr i = zindex := !zindex + i
+ *- let cin x i = x.pos <- Zls.get !cvec i
+ *- let zin x i = x.zin <- Zls.get_zin !zinvec i
+ *- let cout x i = Zls.set !cvec i x.pos
+ *- let dout x i = Zls.set !dvec i x.der
+ *- let zout x i = Zls.set !zout i x.zout
+ *- let dzero c s = for i = c to s - 1 do Zls.set !dvec i 0.0 done
  *- let horizon h = horizon := !horizon +. h
  *- let hzero () = horizon := 0.0 *)
 
@@ -95,29 +97,58 @@ open Format
 
 let oletin p e1 i2 = Olet(p, e1, i2)
 let int_const v = Oconst(Oint(v))
+let float_const v = Oconst(Ofloat(v))
 let operator op = Oglobal(Modname (Initial.pervasives_name op))
 let oplus e1 e2 = Oapp(operator "(+)", [e1; e2])
+let ominus e1 e2 = Oapp(operator "(-)", [e1; e2])
 let local x = Olocal(x)
-let global x = Oglobal(Lident.Modname { Lident.qual = "Zls"; Lident.id = x })
+let modname x = Lident.Modname { Lident.qual = "Zls"; Lident.id = x }
+let global x = Oglobal(x)                      
 let varpat x ty = Ovarpat(x, Translate.type_expression_of_typ ty)
 let void = Oconst(Ovoid)
 let ifthenelse c i1 i2 = Oif(c, i1, Some(i2))
 let sequence i1 i2 = Osequence [i1; i2]
-				    
+let i = Ident.fresh "i"
+		    
 (* input/output functions *)
-let inout f args = Oapp(global f, args)
-let cin x i = inout "cin" [x; i]
-let cout x i = inout "cout" [x; i]
-let dout x i = inout "dout" [x; i]
-let zin x i = inout "zin" [x; i]
-let zout x i = inout "zout" [x; i]
-let dzero s i = inout "dout" [s; i]
-let cindex = inout "cindex" [void]
-let zindex = inout "zindex" [void]
-let discrete = inout "discrete" [void]
-let cmax i = inout "cmax" [i]
-let zmax i = inout "zmax" [i]
-		   
+let bang mname = Oapp(operator "!", [global (modname mname)])
+let cindex = bang "cindex"
+let zindex = bang "zindex"
+let discrete = bang "discrete"
+
+let inout f args = Oapp(global(modname f), args)
+let get e i = inout "get" [e; i]
+let set e i arg = inout "set" [e; i; arg]
+                        
+let incr x i =
+  Oassign_state(Oleft_state_global(modname x),
+                oplus (bang x) (int_const i))
+               
+let cmax i = incr "cmax" i
+let zmax i = incr "zmax" i
+let cincr i = incr "cindex" i
+let zincr i = incr "zindex" i
+                  
+let cin x i =
+  Oassign_state(Oleft_state_primitive_access(Oleft_state_name(x), Ocont),
+                get (bang "cvec") i)
+let zin x i =
+  Oassign_state(Oleft_state_primitive_access(Oleft_state_name(x), Ozero_in),
+                get (bang "zinvec") i)
+let cout x i =
+  set (bang "cvec") i (Ostate(Oleft_state_primitive_access(Oleft_state_name(x),
+                                                           Ocont)))
+let dout x i =
+  set (bang "dvec") i (Ostate(Oleft_state_primitive_access(Oleft_state_name(x),
+                                                           Oder)))
+let zout x i =
+  set (bang "zoutvec") i
+      (Ostate(Oleft_state_primitive_access(Oleft_state_name(x), Ozero_out)))
+
+let dzero c s =
+  Ofor(true, i, local c, ominus s (int_const 1),
+       Oexp(set (bang "dvec") (local i) (float_const 0.0)))
+
 (** Compute the index associated to a state variable [x] in the current block *)
 (* [build_index m_list = (ctable, csize), (ztable, zsize), m_list] *)
 let build_index m_list =
@@ -145,9 +176,9 @@ let build_index m_list =
 (* local memories. *)
 let cinout (table, size) call start =
   (* For every input (x, index) from [table] *)
-  (* run [call (local x) (start + index)] *)
+  (* [call (local x) (start + index)] *)
   let add x index acc =
-    Oexp (call (local x) (oplus (local start) (int_const index))) :: acc in
+    call x (oplus (local start) (int_const index)) :: acc in
   let c_list = Env.fold add table [] in
   Osequence(c_list)
 
@@ -156,11 +187,11 @@ let cin (table, size) start =
   cinout (table, size) call start
 
 let cout (table, size) start =
-  let assign x i = cout x i in
+  let assign x i = Oexp(cout x i) in
   cinout (table, size) assign start
 
 let dout (table, size) start =
-  let assign x i = dout x i in
+  let assign x i = Oexp(dout x i) in
   cinout (table, size) assign start
 
 let zin (table, size) start =
@@ -168,18 +199,18 @@ let zin (table, size) start =
   cinout (table, size) assign start
 
 let zout (table, size) start =
-  let assign x i = zout x i in
+  let assign x i = Oexp(zout x i) in
   cinout (table, size) assign start
 	
 (* Add a method dzero cstart which fill the vector of derivatives *)
 (* with zeros *)
-let dzero (ctable, csize) cstart = Oexp(dzero (int_const csize) (local cstart))
+let dzero (ctable, csize) cstart = dzero cstart (int_const csize)
 
 (* increments the maximum size of the continuous state vector and that of *)
 (* the zero-crossing vector *)
 let max call size i_opt =
   if size = 0 then i_opt
-  else let i = Oexp(call (int_const size)) in
+  else let i = call size in
        match i_opt with
        | None -> Some(i) | Some(i_old) -> Some(sequence i i_old)
     

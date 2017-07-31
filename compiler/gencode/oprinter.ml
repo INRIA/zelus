@@ -194,7 +194,10 @@ and assign ff left e =
      fprintf ff "@[<v 2>%a <- %a@]" left_value left (exp 2) e
 
 and assign_state ff left e =
-  fprintf ff "@[<v 2>%a <- %a@]" left_state_value left (exp 2) e
+  match left with
+  | Oleft_state_global(gname) ->
+     fprintf ff "@[<v 2>%a := %a@]" longname gname (exp 2) e
+  | _ -> fprintf ff "@[<v 2>%a <- %a@]" left_state_value left (exp 2) e
 
 and access ff a =
   let s =
@@ -345,7 +348,7 @@ let instance ff { i_name = n; i_machine = ei; i_kind = k;
 let pmethod ff
             { me_name = m_name; me_params = p_list; me_returns = e;
               me_body = i } =
-  fprintf ff "@[<hov 2>method %s %a returns %a@ %a@]"
+  fprintf ff "@[<hov 2>method %s %a@ returns %a@ %a@]"
           (method_name m_name) pattern_list p_list (exp 2) e (inst 0) i
           
 let pinitialize ff i_opt =
