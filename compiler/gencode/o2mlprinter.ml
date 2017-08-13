@@ -232,6 +232,7 @@ and exp prio ff e =
   | Oifthenelse(e, e1, e2) ->
       fprintf ff "@[<hv>if %a@ @[<hv 2>then@ %a@]@ @[<hv 2>else@ %a@]@]"
         (exp 0) e (exp prio_e) e1 (exp prio_e) e2
+  | Oinst(i) -> inst prio ff i
   end;
   if prio_e < prio then fprintf ff ")"
 
@@ -263,12 +264,21 @@ and inst prio ff i =
               ff "@[<hv>%a@]" (print_list_r (inst (prio_i + 1)) "" ";" "") i_list
     | Oexp(e) -> exp prio ff e
     | Oif(e, i1, None) ->
-       fprintf ff "@[<hov>if %a@ then@ %a@]" (exp 0) e (inst prio_i) i1
+       fprintf ff "@[<hov>if %a@ then@ %a@]" (exp 0) e sinst i1
     | Oif(e, i1, Some(i2)) ->
        fprintf ff "@[<hov>if %a@ then@ %a@ else %a@]"
-	       (exp 0) e (inst prio_i) i1 (inst prio_i) i2
+	       (exp 0) e sinst i1 sinst i2
   end;
   if prio_i < prio then fprintf ff ")"
+
+(* special treatment to add an extra parenthesis if [i] is a sequence *)
+and sinst ff i =
+  match i with
+  | Osequence(i_list) ->
+     if i_list = [] then fprintf ff "()"
+     else fprintf ff
+                  "@[<hv>%a@]" (print_list_r (inst 1) "(" ";" ")") i_list
+  | _ -> inst 0 ff i
 
 and pat_exp ff (p, e) =
   fprintf ff "@[@[%a@] =@ @[%a@]@]" pattern p (exp 0) e
@@ -324,9 +334,9 @@ let def_type_for_a_machine ff f memories instances =
             
 (** Print the method as a function *)
 let pmethod f ff { me_name = me_name; me_params = pat_list;
-                   me_returns = e; me_body = i } =
-  fprintf ff "@[<v 2>let %s_%s self %a =@ %a;@ %a in@]"
-          f (method_name me_name) pattern_list pat_list (inst 1) i (exp 1) e
+                   me_body = i; me_typ = ty } =
+  fprintf ff "@[<v 2>let %s_%s self %a =@ (%a:%a) in@]"
+          f (method_name me_name) pattern_list pat_list (inst 2) i ptype ty
           
 (* create an array of type t[n_1]...[n_k] *)
 let array_make print arg ff ie_size =

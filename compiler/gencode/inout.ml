@@ -77,11 +77,12 @@
  *-          (* computed by the zero-crossing detection *)
  *-          cin x1 ci;...; cin xn (ci+n));
  *-          (* sets the xi with the value of the input state vector *)
- *-    ...body...
+ *-    let result = ...body... in
  *-    if d then (cout x1 ci;...; cout xn (ci+n));
  *-        (* sets the output state vector with the xi *)
- *-    else (zout m1 zi;...; mout mk (zi+k))
- *-        (* store the argument of zero-crossing into the vector of zero-cross *)
+ *-    else (zout m1 zi;...; mout mk (zi+k));
+ *-      (* store the argument of zero-crossing into the vector of zero-cross *)
+ *-    result
  *-
  *- Add to the initialization code: 
  *-    cmax csize; 
@@ -227,7 +228,8 @@ let machine f ({ ma_initialize = i_opt;
        else let step, method_list = get method_list in
 	    step, mdesc :: method_list in
   try
-    let { me_body = body } as mdesc, method_list = get method_list in
+    let { me_body = body; me_typ = ty } as mdesc, method_list =
+      get method_list in
     (* associate an integer index to every continuous state *)
     (* variable and zero-crossing *)
     let (ctable, csize), (ztable, zsize) = build_index m_list in
@@ -238,17 +240,24 @@ let machine f ({ ma_initialize = i_opt;
     (* compute the current position of the cvector *)
     let ci = Ident.fresh "ci" in
     let zi = Ident.fresh "zi" in
+    let result = Ident.fresh "result" in
     let body =
-      oletin (varpat ci Initial.typ_int) cindex
+      oletin
+        (varpat ci Initial.typ_int) cindex
         (* compute the current position of the zvector *)
-        (oletin (varpat zi Initial.typ_int) zindex
-        (sequence
-	   (ifthenelse discrete (dzero (ctable, csize) ci)
-		    (sequence (zin (ztable, zsize) zi) (cin (ctable, csize) ci)))
-	   (sequence body
-	      (ifthenelse discrete (cout (ctable, csize) ci)
-			  (sequence (zout (ztable, zsize) zi)
-			  (dout (ctable, csize) ci)))))) in
+        (oletin
+           (varpat zi Initial.typ_int) zindex
+           (sequence
+	      (ifthenelse discrete (dzero (ctable, csize) ci)
+		          (sequence
+                             (zin (ztable, zsize) zi) (cin (ctable, csize) ci)))
+	      (oletin
+                 (varpat result ty) (Oinst(body))
+                 (sequence
+	            (ifthenelse discrete (cout (ctable, csize) ci)
+			        (sequence (zout (ztable, zsize) zi)
+			                  (dout (ctable, csize) ci)))
+                    (Oexp (local result)))))) in
     { mach with ma_initialize = i_opt;
 		ma_methods = { mdesc with me_body = body } :: method_list }
   with

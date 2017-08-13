@@ -101,12 +101,12 @@ type env = entry Env.t (* the symbol table *)
  and loop_path = Ident.t list
 			 
 type code =
-    { mem: mentry State.t; (* set of state variables *)
-      init: Obc.inst; (* sequence of initializations for [mem] *)
-      instances: ientry State.t; (* set of instances *)
-      reset: Obc.inst; (* sequence of equations for resetting the block *)
-      step: inst; (* body *)
-      }
+  { mem: mentry State.t; (* set of state variables *)
+    init: Obc.inst; (* sequence of initializations for [mem] *)
+    instances: ientry State.t; (* set of instances *)
+    reset: Obc.inst; (* sequence of equations for resetting the block *)
+    step: inst; (* body *)
+  }
 
 let empty_code = { mem = State.empty; init = Osequence [];
 		   instances = State.empty;
@@ -190,7 +190,8 @@ let assign { e_sort = sort; e_size = ei_list } e =
 	Oassign_state(left_state_value_index (state false n k) ei_list, e)
 
 (** Generate the code for a definition *)
-let def { e_typ = ty; e_sort = sort; e_size = ei_list } e ({ step = s } as code) =
+let def { e_typ = ty; e_sort = sort; e_size = ei_list } e
+        ({ step = s } as code) =
   match sort with
   | In _ -> assert false
   | Out(n, sort) ->
@@ -398,7 +399,7 @@ let apply k env loop_path e e_list
        
 (** Translation of expressions under an environment [env] *)
 (* [code] is the code already generated in the context. *)
-(* [exp env e code = code'] where [code'] extends [code] with new *)
+(* [exp env e code = e', code'] where [code'] extends [code] with new *)
 (* memory, instantiation and reset. The step field is untouched *)
 (* [loop_path = [i1;...;in]] is the loop path if [e] appears in *)
 (* a nested loop forall in ... forall i1 do ... e ... *)
@@ -511,7 +512,8 @@ let rec equation env loop_path { Zelus.eq_desc = desc } code =
      let r_e, code = exp env loop_path code r_e in
      let e, ({ init = i_code } as e_code) = exp env loop_path empty_code e in
      let { step = s } as code = seq e_code code in
-     { code with step = ifthen r_e (sequence (assign (entry_of x env) e) i_code) s }
+     { code with step =
+                   ifthen r_e (sequence (assign (entry_of x env) e) i_code) s }
   | Zelus.EQreset(eq_list, r_e) ->
      let r_e, code = exp env loop_path code r_e in
      let { init = i_code } as r_code =
@@ -582,7 +584,8 @@ let rec equation env loop_path { Zelus.eq_desc = desc } code =
 	   reset = r_code; step = s_code } =
        block env (ix :: loop_path) b_eq_list in
      (* transforms instances into arrays *)
-     let j_code = State.map (array_of_instance (plus (minus e2 e1) one)) j_code in
+     let j_code =
+       State.map (array_of_instance (plus (minus e2 e1) one)) j_code in
      let m_code = State.map (array_of_memory (plus (minus e2 e1) one)) m_code in
      (* generate the initialization code *)
      let initialization_list,
@@ -616,9 +619,9 @@ and local env loop_path { Zelus.l_eq = eq_list; Zelus.l_env = l_env } e =
   let env, mem_acc, var_acc = append loop_path l_env env in
   let e, code = exp env loop_path empty_code e in
   let { mem = m_code; step = s_code } as eq_code =
-    equation_list env loop_path eq_list code in
+    equation_list env loop_path eq_list { code with step = Oexp(e) } in
   { eq_code with mem = State.seq mem_acc m_code;
-                 step = letvar var_acc s_code }, e
+                 step = letvar var_acc s_code }
                                                    
 and block env loop_path { Zelus.b_body = eq_list; Zelus.b_env = n_env  } =
   let env, mem_acc, var_acc = append loop_path n_env env in
@@ -629,8 +632,7 @@ and block env loop_path { Zelus.b_body = eq_list; Zelus.b_env = n_env  } =
 
          
 (* Define a function or a machine according to a kind [k] *)
-let machine n k pat_list
-            { mem = m; instances = j; reset = r; step = s } e =
+let machine n k pat_list { mem = m; instances = j; reset = r; step = s } ty_res =
   let k = Interface.kindtype k in
   match k with
   | Deftypes.Tstatic _ | Deftypes.Tany
@@ -645,10 +647,10 @@ let machine n k pat_list
 	 ma_memories = State.list [] m;
 	 ma_instances = State.list [] j;
 	 ma_methods = 
-	   [ { me_name = Oreset; me_params = [];
-               me_body = r; me_returns = void };
-	     { me_name = Ostep; me_params = [p]; me_returns = e;
-               me_body = s } ] } in
+	   [ { me_name = Oreset; me_params = []; me_body = r;
+               me_typ = Initial.typ_unit };
+	     { me_name = Ostep; me_params = [p]; me_body = s;
+               me_typ = ty_res } ] } in
      Oletmachine(n, body)
  
 (* Translation of an expression. After normalisation *)
@@ -658,8 +660,7 @@ let expression env ({ Zelus.e_desc = desc } as e) =
   match desc with
   | Zelus.Elet(l, e_let) -> local env empty_path l e_let
   | _ -> let e, code = exp env empty_path empty_code e in
-	 code, e
-       
+	 { code with step = Oexp(e) }       
 
 (** Translation of a declaration *)
 let implementation { Zelus.desc = desc } =
@@ -669,13 +670,13 @@ let implementation { Zelus.desc = desc } =
      Otypedecl([n, params, type_of_type_decl ty_decl])
   | Zelus.Econstdecl(n, _, e) ->
      (* There should be no memory allocated by [e] *)
-     let { step = s }, e = expression Env.empty e in
-     Oletvalue(n, sequence s (Oexp e))
+     let { step = s } = expression Env.empty e in
+     Oletvalue(n, s)
   | Zelus.Efundecl(n, { Zelus.f_kind = k; Zelus.f_args = pat_list;
 			Zelus.f_body = e; Zelus.f_env = f_env }) ->
      let env, mem_acc, var_acc = append empty_path f_env Env.empty in
      let pat_list = List.map pattern pat_list in
-     let code, e = expression env e in
-     machine n k pat_list code e
+     let code = expression env e in
+     machine n k pat_list code e.Zelus.e_typ
 	     
 let implementation_list impl_list = Misc.iter implementation impl_list

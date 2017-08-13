@@ -48,7 +48,8 @@ type exp =
   | Otypeconstraint of exp * type_expression (* type constraint *)
   | Oifthenelse of exp * exp * exp
   | Omethodcall of method_call			       
-
+  | Oinst of inst
+                          
  (* when [is_mutable = true] a variable [x] is mutable which means that *)
  (* x <- ... and ...x... are valid expression; otherwise a ref will be *)
  (* added when translated into OCaml **)
@@ -146,8 +147,8 @@ and ientry =
 and method_desc =
   { me_name: method_name; (* name of the method *)
     me_params: pattern list; (* list of input arguments *)
-    me_returns: exp; (* result *)
     me_body: inst; (* body *)
+    me_typ: Deftypes.typ; (* type of the result *)
   }
 
 and method_call =

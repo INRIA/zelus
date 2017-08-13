@@ -28,14 +28,14 @@ let rec priority_exp = function
     | Orecord _ | Orecord_access _ | Otypeconstraint _ | Otuple _ -> 3
   | Oconstr1 _ | Oapp _ | Omethodcall _
     | Ovec _ | Oupdate _ | Oslice _ | Oconcat _ -> 2
-  | Oifthenelse _  -> 1
+  | Oifthenelse _  -> 0 | Oinst i -> priority_inst i
 
 and priority_inst = function
   | Olet _
-  | Oletvar _ -> 1
+  | Oletvar _ -> 0
   | Ofor _ | Owhile _ -> 3
-  | Omatch _ -> 1
-  | Oif _ -> 1
+  | Omatch _ -> 0
+  | Oif _ -> 0
   | Oassign _ -> 2
   | Oassign_state _ -> 2
   | Osequence _ -> 0
@@ -259,10 +259,11 @@ and exp prio ff e =
      fprintf ff "@[(%a : %a)@]" (exp prio_e) e print_concrete_type ty_e
   | Oifthenelse(e, e1, e2) ->
      fprintf ff "@[<hv>if %a@ @[<hv 2>then@ %a@]@ @[<hv 2>else@ %a@]@]"
-             (exp 0) e (exp prio_e) e1 (exp prio_e) e2
+             (exp 0) e (exp 1) e1 (exp 1) e2
+  | Oinst(i) -> inst prio ff i
   end;
   if prio_e < prio then fprintf ff ")"
-                                
+
 and inst prio ff i =
   let prio_i = priority_inst i in
   if prio_i < prio then fprintf ff "(";
@@ -289,16 +290,25 @@ and inst prio ff i =
        then fprintf ff "()"
        else
          fprintf ff
-                 "@[<hv>%a@]" (print_list_r (inst (prio_i + 1)) "" ";" "") i_list
+                 "@[<hv>%a@]" (print_list_r (inst 1) "" ";" "") i_list
     | Oexp(e) -> exp prio ff e
     | Oif(e, i1, None) ->
-       fprintf ff "@[<hov>if %a@ then@ %a@]" (exp 0) e (inst prio_i) i1
+       fprintf ff "@[<hov>if %a@ then@ %a@]" (exp 0) e sinst i1
     | Oif(e, i1, Some(i2)) ->
        fprintf ff "@[<hov>if %a@ then@ %a@ else %a@]"
-	       (exp 0) e (inst prio_i) i1 (inst prio_i) i2
+	       (exp 0) e sinst i1 sinst i2
   end;
   if prio_i < prio then fprintf ff ")"
-                                
+
+(* special treatment to add an extra parenthesis if [i] is a sequence *)
+and sinst ff i =
+  match i with
+  | Osequence(i_list) ->
+     if i_list = [] then fprintf ff "()"
+     else fprintf ff
+                  "@[<hv>%a@]" (print_list_r (inst 1) "(" ";" ")") i_list
+  | _ -> inst 0 ff i
+  
 and pat_exp ff (p, e) =
   fprintf ff "@[@[%a@] =@ @[%a@]@]" pattern p (exp 0) e
           
@@ -347,10 +357,9 @@ let instance ff { i_name = n; i_machine = ei; i_kind = k;
 	  i_size
           
 let pmethod ff
-            { me_name = m_name; me_params = p_list; me_returns = e;
-              me_body = i } =
-  fprintf ff "@[<hov 2>method %s %a@ returns %a@ %a@]"
-          (method_name m_name) pattern_list p_list (exp 2) e (inst 0) i
+            { me_name = m_name; me_params = p_list; me_body = i; me_typ = ty } =
+  fprintf ff "@[<hov 2>method %s %a@ =@ (%a:%a)@]"
+          (method_name m_name) pattern_list p_list (inst 2) i ptype ty
           
 let pinitialize ff i_opt =
   match i_opt with
