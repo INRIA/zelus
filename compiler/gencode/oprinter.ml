@@ -315,6 +315,8 @@ and pat_exp ff (p, e) =
 and exp_with_typ ff (e, ty) =
   fprintf ff "(%a:%a)" (exp 2) e ptype ty
 	  
+and expression ff e = exp 0 ff e
+
 and match_handler ff { w_pat = pat; w_body = b } =
   fprintf ff "@[<hov 4>| %a ->@ %a@]" pattern pat (inst 0) b
           

@@ -1,19 +1,23 @@
-let hybrid f (x, z) =
+(* let hybrid f (x, z) =
   let rec der o = x +. 1.0 init 42.0 reset z -> last o +. 1.0 in
   let o1 = up(x +. 3.0) in
   let der m = o +. 4.0 init 43.0 in
   o1, m +. o +. 2.0
+ *)
 
-(*
 let hybrid g () = o where
+  forall i in 0 .. 43, oi out o do
+    der oi = 1.0 and init oi = 0.0
+  done
+
+(* let hybrid h () = o where
   forall i in 0 .. 42, oi out o do
     forall j in 0 .. 43, oij out oi do
-      der oij = 1.0 init 0.0
+      der oij = 1.0 and init oij = 0.0
     done
-  done
- *)
-    
-    (*
+    done *)
+  	
+(*
 let hybrid g (x, z) =
   let rec present z -> do o = last o +. 1.0 done
           else do der o = x +. 1.0 done

@@ -131,7 +131,7 @@ let rec remove_dependences ({ t_desc = desc } as ty) =
   | Tproduct(ty_list) -> product(List.map remove_dependences ty_list)
   | Tconstr(gl, ty_list, a) ->
      constr gl (List.map remove_dependences ty_list) (ref (abbrev !a))
-  | Tvec(ty_arg, _) -> Initial.typ_array ty_arg
+  | Tvec(ty_arg, _) -> Initial.typ_array (remove_dependences ty_arg)
   | Tlink(ty_link) -> remove_dependences ty_link
   | Tfun(k, _, ty_arg, ty_res) ->
      let ty_arg = remove_dependences ty_arg in

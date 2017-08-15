@@ -884,12 +884,16 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
     | EQforall
 	({ for_index = i_list; for_init = init_list; for_body = b_eq_list }
 	 as body) ->
-       (* A non local variable [x] defined in the body of the loop must be *)
+       (* A non local variable [xi] defined in the body of the loop must be *)
        (* either declared in the initialization part [initialize ...] *)
-       (* or used to define an output array [x out t] *)
-       (* check that [x] appear in either [dv], [di] or [der] *)
-       let merge { dv = dv; di = di; der = der } init_h out_h =
-	 (* all variables in [dv], [der] must appear either *)
+       (* or used to define an output array [xi out x] *)
+       (* check that [xi] appear in either [dv], [di] or [der] *)
+       (* returns a new set [{ dv; di; der }] where [xi] is replaced by [x] *)
+       let merge { dv = dv; di = di; der = der } init_h out_h out_right =
+	 (* rename [xi] into [x] if [xi in x] appears in [out_right] *)
+         let out xi =
+           try Env.find xi out_right with Not_found -> xi in
+         (* all variables in [dv], [der] must appear either *)
 	 (* in [init_h] or [out_h] *)
 	 (* all variables in [di] must appear in [out_h] and not in [init_h] *)
          let belong_to_init_out x =
@@ -900,7 +904,10 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
 	   then error loc (Ealready_in_forall(x)) in
 	 S.iter belong_to_init_out dv;
 	 S.iter belong_to_init_out der;
-         S.iter belong_to_out_not_init di in
+         S.iter belong_to_out_not_init di;
+         (* all name [xi] from [defnames] such that [xi out x] *)
+         (* is replaced by [x] *)
+       { dv = S.map out dv; di = S.map out di; der = S.map out der } in
 
        (* outputs are either shared or state variables *)
        let sort = if Types.is_statefull_kind expected_k
@@ -930,7 +937,7 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
 	    let si = size_of loc size_opt in
 	    unify loc (Types.vec ty_i si) ty_j;
 	    in_h, Env.add i { t_typ = ty_i; t_sort = sort } out_h,
-	    S.add j out_right, size_opt
+	    Env.add i j out_right, size_opt
 	 | Eindex(i, e0, e1) ->
 	    expect (Tstatic(true)) h e0 Initial.typ_int;
 	    expect (Tstatic(true)) h e1 Initial.typ_int;
@@ -948,7 +955,7 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
 	    Env.add i { t_typ = Initial.typ_int; t_sort = Sval } in_h,
 	    out_h, out_right, size_opt in
 
-       (* returns the set of names returned by the loop *)
+       (* returns the set of names defined by the loop body *)
        let init init_h { desc = desc; loc = loc } =
 	 match desc with
 	 | Einit_last(i, e) ->
@@ -960,24 +967,21 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
 	    expect expected_k h e ty;
 	    Misc.optional_unit (combine loc) ty c_opt;
 	    Env.add i
-		    { t_typ = ty; t_sort = Deftypes.default None c_opt } init_h in
+		    { t_typ = ty; t_sort = Deftypes.default None c_opt }
+                    init_h in
+       let init_h = List.fold_left init Env.empty init_list in
 
        let in_h, out_h, out_right, _ =
-	 List.fold_left index (Env.empty, Env.empty, S.empty, None) i_list in
+	 List.fold_left index (Env.empty, Env.empty, Env.empty, None) i_list in
        body.for_in_env <- in_h;
        body.for_out_env <- out_h;
        
-       let init_h = List.fold_left init Env.empty init_list in
        (* the environment [h] is extended with [in_h], [out_h] and [init_h] *)
        let h = Env.append in_h (Env.append out_h (Env.append init_h h)) in
-       let _, ({ dv = dv } as defnames) =
+       let _, defnames =
 	 block_eq_list expected_k h b_eq_list in
        (* check that every name in defnames is initialized or an output *)
-       merge defnames init_h out_h;
-       (* remove names in [out_h] from [defnames] and add [out_right] *)
-       let out_left =
-	 Env.fold (fun n _ acc -> S.add n acc) out_h S.empty in
-       { defnames with dv = S.union (S.diff dv out_left) out_right } in
+       merge defnames init_h out_h out_right in
   (* set the names defined in the current equation *)
   eq.eq_write <- defnames;
   (* every equation must define at least a name *)
