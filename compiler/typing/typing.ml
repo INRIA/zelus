@@ -889,12 +889,12 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
        (* or used to define an output array [xi out x] *)
        (* check that [xi] appear in either [dv], [di] or [der] *)
        (* returns a new set [{ dv; di; der }] where [xi] is replaced by [x] *)
-       let merge { dv = dv; di = di; der = der } h init_h out_h out_right =
-	 (* rename [xi] into [x] if [xi out x] appears in [out_right] *)
+       let merge { dv = dv; di = di; der = der } h init_h out_h xi_out_x =
+	 (* rename [xi] into [x] if [xi out x] appears in [xi_out_x] *)
          let x_of_xi xi =
-           try Env.find xi out_right with Not_found -> xi in
+           try Env.find xi xi_out_x  with Not_found -> xi in
          let out xi acc =
-	   try S.add (Env.find xi out_right) acc with Not_found -> acc in
+	   try S.add (Env.find xi xi_out_x) acc with Not_found -> acc in
 	 (* all variables in [dv], [der] must appear either *)
 	 (* in [init_h] or [out_h] *)
 	 (* all variables in [di] must appear in [out_h] and not in [init_h] *)
@@ -925,26 +925,26 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
        (* computes the set of array names returned by the loop *)
        (* declarations are red from left to right. For [i in e0..e1], *)
        (* compute the size [(e1 - e0) + 1)] for the arrays *)
-       let index (in_h, out_h, out_right, size_opt)
+       let index (in_h, out_h, xi_out_x, size_opt)
 		 { desc = desc; loc = loc } =
 	 let size_of loc size_opt =
 	   match size_opt with
 	   | None -> error loc Esize_of_vec_is_undetermined
 	   | Some(actual_size) -> actual_size in
 	 match desc with
-	 | Einput(i, e) ->
+	 | Einput(xi, e) ->
 	    let ty = Types.new_var () in
 	    let si = size_of loc size_opt in
 	    expect Tany h e (Types.vec ty si);
-	    Env.add i { t_typ = ty; t_sort = Sval } in_h,
-	    out_h, out_right, size_opt
-	 | Eoutput(i, j) ->
-	    let ty_i = Types.new_var () in
-	    let ty_j = typ_of_var loc h j in
+	    Env.add xi { t_typ = ty; t_sort = Sval } in_h,
+	    out_h, xi_out_x, size_opt
+	 | Eoutput(xi, x) ->
+	    let ty_xi = Types.new_var () in
+	    let ty_x = typ_of_var loc h x in
 	    let si = size_of loc size_opt in
-	    unify loc (Types.vec ty_i si) ty_j;
-	    in_h, Env.add i { t_typ = ty_i; t_sort = sort } out_h,
-	    Env.add i j out_right, size_opt
+	    unify loc (Types.vec ty_xi si) ty_x;
+	    in_h, Env.add xi { t_typ = ty_xi; t_sort = sort } out_h,
+	    Env.add xi x xi_out_x, size_opt
 	 | Eindex(i, e0, e1) ->
 	    expect (Tstatic(true)) h e0 Initial.typ_int;
 	    expect (Tstatic(true)) h e1 Initial.typ_int;
@@ -960,7 +960,7 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
 		| Some(expected_size) ->
 		  equal_sizes loc expected_size actual_size; size_opt in
 	    Env.add i { t_typ = Initial.typ_int; t_sort = Sval } in_h,
-	    out_h, out_right, size_opt in
+	    out_h, xi_out_x, size_opt in
 
        (* returns the set of names defined by the loop body *)
        let init init_h { desc = desc; loc = loc } =
@@ -978,7 +978,7 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
                     init_h in
        let init_h = List.fold_left init Env.empty init_list in
 
-       let in_h, out_h, out_right, _ =
+       let in_h, out_h, xi_out_x, _ =
 	 List.fold_left index (Env.empty, Env.empty, Env.empty, None) i_list in
        body.for_in_env <- in_h;
        body.for_out_env <- out_h;
@@ -988,7 +988,7 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
        let _, defnames =
 	 block_eq_list expected_k h_eq_list b_eq_list in
        (* check that every name in defnames is initialized or an output *)
-       merge defnames h init_h out_h out_right in
+       merge defnames h init_h out_h xi_out_x in
   (* set the names defined in the current equation *)
   eq.eq_write <- defnames;
   (* every equation must define at least a name *)

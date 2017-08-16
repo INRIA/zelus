@@ -88,18 +88,18 @@ let rec equation ({ eq_desc = desc } as eq) =
        { eq with eq_desc = EQblock(b) }, defnames, shared_set
     | EQforall ({ for_index = i_list; for_init = init_list;
 		  for_body = b_eq_list } as body) ->
-       (* let [defnames_in_body] for the defined names in the loop body *)
-       (* if [xi in defnames_in_body] and [xi out x] then [x in defnames] *)
-       let index (out_left, out_right) ({ desc = desc } as ind) =
+       (* compute the association table [xi_out_x] from the *)
+       (* list of [xi out x] pairs *)
+       let index xi_out_x ({ desc = desc } as ind) =
 	 match desc with
 	 | Einput(i, e) ->
-	    { ind with desc = Einput(i, expression e) }, (out_left, out_right) 
+	    { ind with desc = Einput(i, expression e) }, xi_out_x 
 	 | Eindex(i, e1, e2) ->
 	    { ind with desc = Eindex(i, expression e1, expression e2) },
-	    (out_left, out_right) 
-	 | Eoutput(i, j) ->
-	    { ind with desc = Eoutput(i, j) },
-	    (S.add i out_left, S.add j out_right) in
+	    xi_out_x
+	 | Eoutput(xi, x) ->
+	    ind, Env.add xi x xi_out_x in
+       (* computes the set of initialized names [i_set] *)
        let init acc ({ desc = desc } as ini) =
 	 match desc with
 	 | Einit_last(i, e) ->
@@ -107,49 +107,19 @@ let rec equation ({ eq_desc = desc } as eq) =
 	 | Einit_value(i, e, c_opt) ->
 	    { ini with desc = Einit_value(i, expression e, c_opt) },
 	    S.add i acc in
-       let i_list, (out_left, out_right) =
-	 Misc.map_fold index (S.empty, S.empty) i_list in
-       let init_list, acc = Misc.map_fold init S.empty init_list in
-       (* all variables defined in the body of the loop are shared *)
-       let b_eq_list, ({ dv = dv } as defnames), shared_set = block b_eq_list in
-       let defnames =
-	 { defnames with dv =
-			   S.union (S.union (S.diff dv out_left) acc) out_right } in
-       let defnames, shared_set =
-	 merge (defnames, shared_set) (Deftypes.empty, S.empty) in
-       { eq with eq_desc =
-		   EQforall { body with for_index = i_list; for_init = init_list;
-					for_body = b_eq_list } },
-       defnames, shared_set
-    | EQforall ({ for_index = i_list; for_init = init_list;
-		  for_body = b_eq_list } as body) ->
-       (* let [defnames_in_body] for the defined names in the loop body *)
+       let i_list, xi_out_x = Misc.map_fold index Env.empty i_list in
+       let init_list, i_set = Misc.map_fold init S.empty init_list in
+       let b_eq_list, { dv = dv; di = di; der = der }, shared_set =
+	 block b_eq_list in
        (* if [xi in defnames_in_body] and [xi out x] then [x in defnames] *)
-       let index (out_left, out_right) ({ desc = desc } as ind) =
-	 match desc with
-	 | Einput(i, e) ->
-	    { ind with desc = Einput(i, expression e) }, (out_left, out_right) 
-	 | Eindex(i, e1, e2) ->
-	    { ind with desc = Eindex(i, expression e1, expression e2) },
-	    (out_left, out_right) 
-	 | Eoutput(i, j) ->
-	    { ind with desc = Eoutput(i, j) },
-	    (S.add i out_left, S.add j out_right) in
-       let init acc ({ desc = desc } as ini) =
-	 match desc with
-	 | Einit_last(i, e) ->
-	    { ini with desc = Einit_last(i, expression e) }, S.add i acc
-	 | Einit_value(i, e, c_opt) ->
-	    { ini with desc = Einit_value(i, expression e, c_opt) },
-	    S.add i acc in
-       let i_list, (out_left, out_right) =
-	 Misc.map_fold index (S.empty, S.empty) i_list in
-       let init_list, acc = Misc.map_fold init S.empty init_list in
-       (* all variables defined in the body of the loop are shared *)
-       let b_eq_list, defnames_in_body, shared_set = block b_eq_list in
+       (* if [xi in shared_set] and [xi out x] or [x in shared_set] *)
+       let x_of_xi xi =
+           try Env.find xi xi_out_x  with Not_found -> xi in
        let defnames =
-	 { defnames with dv =
-			   S.union (S.union (S.diff dv out_left) acc) out_right } in
+	 { dv = S.map x_of_xi dv; di = S.map x_of_xi di;
+	   der = S.map x_of_xi der } in
+       let shared_set = S.map x_of_xi shared_set in
+       (* all variables defined in the body of the loop are shared *)
        let defnames, shared_set =
 	 merge (defnames, shared_set) (Deftypes.empty, S.empty) in
        { eq with eq_desc =
