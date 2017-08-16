@@ -1,0 +1,5 @@
+let f n x = o where
+   forall i in 0 .. n, xi in x do
+     o += xi
+     initialize o = true with (+)
+   done
