@@ -14,9 +14,9 @@
 
 (* Type declarations and values that must be linked with *)
 (* the generated code *)
-type continuous = { mutable pos: float; mutable der: float }
+type 'a continuous = { mutable pos: 'a; mutable der: 'a }
 
-type zerocrossing = { mutable zin: bool; mutable zout: float }
+type 'a zerocrossing = { mutable zin: 'a; mutable zout: 'a }
 
 type 'a signal = 'a * bool
 type zero = bool
