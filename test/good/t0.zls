@@ -5,10 +5,13 @@
   o1, m +. o +. 2.0
  *)
 
-let hybrid g () = o where
+let hybrid g (c) = o where
+if c then
   forall i in 0 .. 43, oi out o do
     der oi = 1.0 and init oi = 0.0
   done
+else
+  forall i in 0 .. 43, oj out o do der oj = 2.0 and init oj = 1.0 done
 
 (* let hybrid h () = o where
   forall i in 0 .. 42, oi out o do
