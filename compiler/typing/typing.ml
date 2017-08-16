@@ -259,11 +259,11 @@ let set is_next loc dv h =
   | Sstatic | Sval
   | Svar _ | Smem { m_previous = true } ->
      if is_next then error loc (Ecannot_be_set(is_next, x))
-  | Smem ({ m_next = n_opt } as m) ->
-     match n_opt with
+  | Smem ({ m_next = m_opt } as m) ->
+     match m_opt with
      | None ->
 	entry.t_sort <- Smem { m with m_next = Some(is_next) }
-     | Some(n) -> if n <> is_next then error loc (Ecannot_be_set(is_next, x)) in
+     | Some(m) -> if m <> is_next then error loc (Ecannot_be_set(is_next, x)) in
   S.iter set dv
 
 (* set the variables from [dv] to be initialized *)
@@ -285,7 +285,7 @@ let set_derivative loc dv h =
   | Sstatic | Sval | Svar _ -> assert false
   | Smem m -> entry.t_sort <- Smem { m with m_kind = Some(Cont) } in
   S.iter set dv
-
+	 
 (** Typing a declaration *)
 	   
 (* type checking of the combination function *)
@@ -889,25 +889,32 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
        (* or used to define an output array [xi out x] *)
        (* check that [xi] appear in either [dv], [di] or [der] *)
        (* returns a new set [{ dv; di; der }] where [xi] is replaced by [x] *)
-       let merge { dv = dv; di = di; der = der } init_h out_h out_right =
-	 (* rename [xi] into [x] if [xi in x] appears in [out_right] *)
-         let out xi =
+       let merge { dv = dv; di = di; der = der } h init_h out_h out_right =
+	 (* rename [xi] into [x] if [xi out x] appears in [out_right] *)
+         let x_of_xi xi =
            try Env.find xi out_right with Not_found -> xi in
-         (* all variables in [dv], [der] must appear either *)
+         let out xi acc =
+	   try S.add (Env.find xi out_right) acc with Not_found -> acc in
+	 (* all variables in [dv], [der] must appear either *)
 	 (* in [init_h] or [out_h] *)
 	 (* all variables in [di] must appear in [out_h] and not in [init_h] *)
-         let belong_to_init_out x =
-	   if not ((Env.mem x init_h) || (Env.mem x out_h))
-	   then error loc (Ealready_in_forall(x)) in
-	 let belong_to_out_not_init x =
-	   if not (Env.mem x out_h) || (Env.mem x init_h)
-	   then error loc (Ealready_in_forall(x)) in
+         let belong_to_init_out xi =
+	   if not ((Env.mem xi init_h) || (Env.mem xi out_h))
+	   then error loc (Ealready_in_forall(xi)) in
+	 let belong_to_out_not_init xi =
+	   if not (Env.mem xi out_h) || (Env.mem xi init_h)
+	   then error loc (Ealready_in_forall(xi)) in
 	 S.iter belong_to_init_out dv;
 	 S.iter belong_to_init_out der;
          S.iter belong_to_out_not_init di;
-         (* all name [xi] from [defnames] such that [xi out x] *)
-         (* is replaced by [x] *)
-       { dv = S.map out dv; di = S.map out di; der = S.map out der } in
+         (* change the sort of [x] so that it is equal to that of [xi] *)
+	 set false loc (S.fold out dv S.empty) h;
+	 set_init loc (S.fold out di S.empty) h;
+	 set_derivative loc (S.fold out der S.empty) h;
+	 
+	 (* all name [xi] from [defnames] such that [xi out x] *)
+         (* is replaced by [x] in the new [defnames] *)
+	 { dv = S.map x_of_xi dv; di = S.map x_of_xi di; der = S.map x_of_xi der } in
 
        (* outputs are either shared or state variables *)
        let sort = if Types.is_statefull_kind expected_k
@@ -977,11 +984,11 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
        body.for_out_env <- out_h;
        
        (* the environment [h] is extended with [in_h], [out_h] and [init_h] *)
-       let h = Env.append in_h (Env.append out_h (Env.append init_h h)) in
+       let h_eq_list = Env.append in_h (Env.append out_h (Env.append init_h h)) in
        let _, defnames =
-	 block_eq_list expected_k h b_eq_list in
+	 block_eq_list expected_k h_eq_list b_eq_list in
        (* check that every name in defnames is initialized or an output *)
-       merge defnames init_h out_h out_right in
+       merge defnames h init_h out_h out_right in
   (* set the names defined in the current equation *)
   eq.eq_write <- defnames;
   (* every equation must define at least a name *)
