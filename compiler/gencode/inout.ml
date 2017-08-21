@@ -154,18 +154,33 @@ let dzero c s =
 (** Compute the index associated to a state variable [x] in the current block *)
 (* [build_index m_list = (ctable, csize), (ztable, zsize), m_list] *)
 let build_index m_list =
-  (* build two tables. The table [ctable] associates an integer index to *)
-  (* every continuous state variable; [ztable] do the same for zero-crossings *)
-  (* also return the size of every table *)
+  (* [increase size typ e_list = size'] such that
+   *- size' = size + (size_of typ) * s1 * ... * sn.
+   *- E.g., cont x[e1]...[en]: t is an vector of dimension l of a value t
+   *- t can itself be a floatting point vector of dimension k (size m1 * ... * mk).
+   *- In that case (size_of t = m1 * ... * mk
+   *- for the moment, the [ni] and [mi] must be integer constant *)
+  let value coeff e =
+    match e with
+    | Oconst(Oint(i)) -> coeff * i  | _ -> assert false in
+  let size typ e_list =
+    List.fold_left value (Types.size_of typ) e_list in
+  (* build two tables. The table [ctable] associates a pair (index, size)
+   *- to every continuous state variable; [ztable] do the same for zero-crossings
+   *- also return the size of every table *)
   let build ((ctable, csize), (ztable, zsize))
-	    { m_name = n; m_kind = m; m_value = e_opt } = 
+	    { m_typ = typ; m_name = n; m_kind = m; m_size = e_list } = 
     match m with
     | None -> (ctable, csize), (ztable, zsize)
     | Some(k) ->
        match k with
        | Horizon | Period | Encore -> (ctable, csize), (ztable, zsize)
-       | Zero -> (ctable, csize), (Env.add n zsize ztable, zsize + 1)
-       | Cont -> (Env.add n csize ctable, csize + 1), (ztable, zsize) in
+       | Zero ->
+	  let s = size typ e_list in
+	  (ctable, csize), (Env.add n (zsize, s) ztable, zsize + s)
+       | Cont ->
+	  let s = size typ e_list in
+	  (Env.add n (csize, s) ctable, csize + s), (ztable, zsize) in
   let (ctable, csize), (ztable, zsize) =
     List.fold_left build ((Env.empty, 0), (Env.empty, 0)) m_list in
   (ctable, csize), (ztable, zsize)

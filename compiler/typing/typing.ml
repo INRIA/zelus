@@ -698,7 +698,8 @@ and size h { desc = desc; loc = loc } =
      let s1 = size h s1 in
      let s2 = size h s2 in
      Types.minus s1 s2
-                 
+
+
 (** Convert an expression into a size expression *)
 and size_of_exp { e_desc = desc; e_loc = loc } =
   match desc with
