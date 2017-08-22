@@ -64,23 +64,31 @@
 (* Only the method "step" is changed and initialization code is added to
  *- set [cmax] and [zmax].
  *- suppose that [csize] is the length of the state vector of the current block;
- *- x1,..., xn are the continuous state variables;
- *- m1,..., mk are the zero-crossing variables;
- *- method step(x1,...,xn) = ...body... is the step method.
+ *- x1:size1,..., xn:sizen are the continuous state variables;
+ *- m1:size'1,..., mk:size'k are the zero-crossing variables;
+ *- method step(arg1,...,argl) = ...body... is the step method.
  *- rewrite it into:
- *- method step(x1,...,xn) =
+ *- method step(arg1,...,argl) =
  *-    let ci = cindex() in (* current position of the cvector *)
  *-    let zi = zindex() in (* current position of the zvector *)
+ *-    var cpos = ci in
+ *-    var zpos = zi in
  *-    if d then dzero s ci (* set all speeds to 0.0 *)
- *-    else (zin m1 zi;...; zout mk (zi+k);
+ *-    else (zin m1 zi;...; zout mk (zi+size'1+...+size'(k-1));
+ *-          ... zpos is incremented
  *-          (* sets de value of continuous zero-crossing with what has been *)
  *-          (* computed by the zero-crossing detection *)
- *-          cin x1 ci;...; cin xn (ci+n));
+ *-          cin x1 ci;...; cin xn (ci+size1+...+size(n-1)));
+ *-          ... cpos is incremented
  *-          (* sets the xi with the value of the input state vector *)
  *-    let result = ...body... in
- *-    if d then (cout x1 ci;...; cout xn (ci+n));
+ *-    cpos := ci;
+ *-    zpos := zi;
+ *-    if d then (cout x1 ci;...; cout xn (ci+size1+...+size(n-1));
+ *-               ... cpos is incremented)
  *-        (* sets the output state vector with the xi *)
- *-    else (zout m1 zi;...; mout mk (zi+k));
+ *-    else (zout m1 zi;...; mout mk (zi+size'1+...+size'(k-1));
+ *-          ... zpos is incremented)
  *-      (* store the argument of zero-crossing into the vector of zero-cross *)
  *-    result
  *-
@@ -97,20 +105,51 @@ open Obc
 open Format
 
 let oletin p e1 i2 = Olet(p, e1, i2)
+let oletvar x ty e1 i2 = Oletvar(x, false, ty, Some(e1), i2)
 let int_const v = Oconst(Oint(v))
 let float_const v = Oconst(Ofloat(v))
 let operator op = Oglobal(Modname (Initial.pervasives_name op))
-let oplus e1 e2 = Oapp(operator "(+)", [e1; e2])
-let ominus e1 e2 = Oapp(operator "(-)", [e1; e2])
+let oplus e1 e2 = Oapp(operator "+", [e1; e2])
+let omult e1 e2 = Oapp(operator "*", [e1; e2])
+let ominus e1 e2 = Oapp(operator "-", [e1; e2])
+let un = int_const 1
+let is_null e = match e with Oconst(Oint(0)) -> true | _ -> false
+let plus e1 e2 =
+  match e1, e2 with
+  | Oconst(Oint(0)), _ -> e2 | _, Oconst(Oint(0)) -> e1 | _ -> oplus e1 e2
+let minus e1 e2 =
+  match e1, e2 with | _, Oconst(Oint(0)) -> e1 | _ -> ominus e1 e2
+let mult e1 e2 =
+  match e1, e2 with
+  | Oconst(Oint(1)), _ -> e2 | _, Oconst(Oint(1)) -> e1 | _ -> omult e1 e2
 let local x = Olocal(x)
 let modname x = Lident.Modname { Lident.qual = "Zls"; Lident.id = x }
 let global x = Oglobal(x)                      
 let varpat x ty = Ovarpat(x, Translate.type_expression_of_typ ty)
+let var x = Ovar(false, x)
 let void = Oconst(Ovoid)
 let ifthenelse c i1 i2 = Oif(c, i1, Some(i2))
-let sequence i1 i2 = Osequence [i1; i2]
+let sequence i_list = Osequence i_list
+let rec left_state_access lv i_list =
+  match i_list with
+  | [] -> lv
+  | i :: i_list -> left_state_access (Oleft_state_index(lv, local i)) i_list
+				     
 let i = Ident.fresh "i"
-		    
+
+(* Convert a size into an expression *)
+let rec size s =
+  match s with
+  | Sconst(i) -> Oconst(Oint(i))
+  | Sglobal(ln) -> Oglobal(ln)
+  | Sname n -> Olocal(n)
+  | Sop(op, s1, s2) ->
+     let s1 = size s1 in
+     let s2 = size s2 in
+     match op with
+     | Splus -> plus s1 s2
+     | Sminus -> minus s1 s2
+
 (* input/output functions *)
 let bang mname = Oapp(operator "!", [global (modname mname)])
 let cindex = bang "cindex"
@@ -122,33 +161,52 @@ let get e i = inout "get" [e; i]
 let get_zin e i = inout "get_zin" [e; i]
 let set e i arg = inout "set" [e; i; arg]
                         
-let incr x i =
-  Oassign_state(Oleft_state_global(modname x),
-                oplus (bang x) (int_const i))
-               
-let cmax i = incr "cmax" i
-let zmax i = incr "zmax" i
-let cincr i = incr "cindex" i
-let zincr i = incr "zindex" i
-                  
-let cin x i =
-  Oassign_state(Oleft_state_primitive_access(Oleft_state_name(x), Ocont),
-                get (bang "cvec") i)
-let zin x i =
-  Oassign_state(Oleft_state_primitive_access(Oleft_state_name(x), Ozero_in),
-                get_zin (bang "zinvec") i)
-let cout x i =
-  set (bang "cvec") i (Ostate(Oleft_state_primitive_access(Oleft_state_name(x),
-                                                           Ocont)))
-let dout x i =
-  set (bang "dvec") i (Ostate(Oleft_state_primitive_access(Oleft_state_name(x),
-                                                           Oder)))
-let zout x i =
-  set (bang "zoutvec") i
-      (Ostate(Oleft_state_primitive_access(Oleft_state_name(x), Ozero_out)))
+(* [x := !x + 1] *)
+let incr_pos x = Oassign(Oleft_name x, oplus (var x) un)
+let set_pos x e = Oassign(Oleft_name x, e)
 
+(* [x := !x + i] *)
+let incr x ie = Oassign_state(Oleft_state_global(modname x), oplus (bang x) ie)
+               
+let cmax ie = incr "cmax" ie
+let zmax ie = incr "zmax" ie
+let cincr ie = incr "cindex" ie
+let zincr ie = incr "zindex" ie
+                  
+(* [x.(i1)....(in).(j1)...(jk) <- !cvec.(pos)] *)
+let cin x i_list j_list pos =
+  Oassign_state(left_state_access
+		  (left_state_access
+		     (Oleft_state_primitive_access(Oleft_state_name(x), Ocont))
+		     i_list) j_list,
+	        get (bang "cvec") (var pos))
+let zin x i_list j_list pos =
+  Oassign_state(left_state_access
+		  (left_state_access
+		     (Oleft_state_primitive_access(Oleft_state_name(x), Ozero_in))
+		     i_list) j_list,
+	        get (bang "zinvec") (var pos))
+(* [!cvec.(pos) <- x.(i1)....(in).(j1)...(jk)] *)
+let cout x i_list j_list pos =
+  set (bang "cvec") (var pos)
+      (Ostate(left_state_access
+		(left_state_access
+		   (Oleft_state_primitive_access(Oleft_state_name(x), Ocont))
+		i_list) j_list))
+let dout x i_list j_list pos =
+  set (bang "dvec") (var pos)
+      (Ostate(left_state_access
+		(left_state_access
+		   (Oleft_state_primitive_access(Oleft_state_name(x), Oder))
+		i_list) j_list))
+let zout x i_list j_list pos =
+  set (bang "zoutvec") (var pos)
+      (Ostate(left_state_access
+		(left_state_access
+		   (Oleft_state_primitive_access(Oleft_state_name(x), Ozero_out))
+		i_list) j_list))
 let dzero c s =
-  Ofor(true, i, local c, ominus s (int_const 1),
+  Ofor(true, i, local c, minus s un,
        Oexp(set (bang "dvec") (local i) (float_const 0.0)))
 
 (** Compute the index associated to a state variable [x] in the current block *)
@@ -156,80 +214,98 @@ let dzero c s =
 let build_index m_list =
   (* [increase size typ e_list = size'] such that
    *- size' = size + (size_of typ) * s1 * ... * sn.
-   *- E.g., cont x[e1]...[en]: t is an vector of dimension l of a value t
+   *- E.g., cont x[e1]...[en]: t is a vector of dimension l of a value t
    *- t can itself be a floatting point vector of dimension k (size m1 * ... * mk).
-   *- In that case (size_of t = m1 * ... * mk
-   *- for the moment, the [ni] and [mi] must be integer constant *)
-  let value coeff e =
-    match e with
-    | Oconst(Oint(i)) -> coeff * i  | _ -> assert false in
-  let size typ e_list =
-    List.fold_left value (Types.size_of typ) e_list in
-  (* build two tables. The table [ctable] associates a pair (index, size)
-   *- to every continuous state variable; [ztable] do the same for zero-crossings
-   *- also return the size of every table *)
-  let build ((ctable, csize), (ztable, zsize))
+   *- In that case (size_of t = [m1]...[mk] *)
+  (* build two tables. The table [ctable] associates a pair
+   *- ([m1]...[mk], [e1]...[en]) to every continuous state variable; 
+   *- [ztable] do the same for zero-crossings *)
+  let size s = size (Translate.size_of_type s) in
+  let build (ctable, ztable)
 	    { m_typ = typ; m_name = n; m_kind = m; m_size = e_list } = 
     match m with
-    | None -> (ctable, csize), (ztable, zsize)
+    | None -> ctable, ztable
     | Some(k) ->
        match k with
-       | Horizon | Period | Encore -> (ctable, csize), (ztable, zsize)
+       | Horizon | Period | Encore -> ctable, ztable
        | Zero ->
-	  let s = size typ e_list in
-	  (ctable, csize), (Env.add n (zsize, s) ztable, zsize + s)
+	  let s_list = Types.size_of typ in
+        ctable, Env.add n (List.map size s_list, e_list) ztable
        | Cont ->
-	  let s = size typ e_list in
-	  (Env.add n (csize, s) ctable, csize + s), (ztable, zsize) in
-  let (ctable, csize), (ztable, zsize) =
-    List.fold_left build ((Env.empty, 0), (Env.empty, 0)) m_list in
-  (ctable, csize), (ztable, zsize)
+	  let s_list = Types.size_of typ in
+	  Env.add n (List.map size s_list, e_list) ctable, ztable in
+  let ctable, ztable =
+    List.fold_left build (Env.empty, Env.empty) m_list in
+  ctable, ztable
 
+(* Compute the size of a table *)
+let size_of table =
+  let size _ (s_list, e_list) acc =
+    let s1 =
+      List.fold_left (fun acc s -> mult acc s) acc s_list in
+    List.fold_left mult s1 e_list in
+  Env.fold size table un
+	   
+(** Add a method to copy back and forth the internal representation
+ *- of the continuous state vector to the external flat representation
+ *- This function is generic: table contains the association table
+ *- [name, ([s1]...[sn], [e1]...[ek]). *)
+let cinout table call pos =
+  (* For every input x associated to ([s1]...[sn], [e1]...[ek])) from [table] *)
+  (* for i1 = 0 to s1 - 1 do
+   *-  ...
+   *-  for in = 0 to sn - 1 do
+   *-    for j1 = 0 to e1 do
+   *-    ...
+   *-      for jk = 0 to ek - 1 do
+   *-        call (local x) i1...in j1...jk pos; incr pos
+   *-      done
+   *-    done
+   *-  done
+   *- done *)
+  let rec copy i_list e_list body =
+    match i_list, e_list with
+    | [], [] -> body
+    | i :: i_list, e :: e_list ->
+       Ofor(true, i, int_const 0, e, copy i_list e_list body)
+    | _ -> assert false in
 
-(** Add a method to copy back and forth the internal representation *)
-(** of the continuous state vector to the external flat representation *)
-(* This function is generic: [table, size] contains the association table *)
-(* [name, index] with size [size]. [assign n index] does the copy for *)
-(* local memories. *)
-let cinout (table, size) call start =
-  (* For every input (x, index) from [table] *)
-  (* [call (local x) (start + index)] *)
-  let add x index acc =
-    call x (oplus (local start) (int_const index)) :: acc in
+  let add x (s_list, e_list) acc =
+    let i_list = List.map (fun _ -> Ident.fresh "i") s_list in
+    let j_list = List.map (fun _ -> Ident.fresh "j") e_list in
+    (copy i_list s_list
+	  (copy j_list e_list
+		(sequence [call x i_list j_list pos; incr_pos pos]))) :: acc in
   let c_list = Env.fold add table [] in
   Osequence(c_list)
 
-let cin (table, size) start =
-  let call x i = cin x i in
-  cinout (table, size) call start
+let cin table pos =
+  let call x i_list j_list pos = cin x i_list j_list pos in
+  cinout table call pos
 
-let cout (table, size) start =
-  let assign x i = Oexp(cout x i) in
-  cinout (table, size) assign start
+let cout table pos =
+  let assign x i_list j_list pos = Oexp(cout x i_list j_list pos) in
+  cinout table assign pos
 
-let dout (table, size) start =
-  let assign x i = Oexp(dout x i) in
-  cinout (table, size) assign start
+let dout table pos =
+  let assign x i_list j_list pos = Oexp(dout x i_list j_list pos) in
+  cinout table assign pos
 
-let zin (table, size) start =
-  let assign x i = zin x i in
-  cinout (table, size) assign start
+let zin table pos =
+  let assign x i_list j_list pos = zin x i_list j_list pos in
+  cinout table assign pos
 
-let zout (table, size) start =
-  let assign x i = Oexp(zout x i) in
-  cinout (table, size) assign start
+let zout table pos =
+  let assign x i_list j_list pos = Oexp(zout x i_list j_list pos) in
+  cinout table assign pos
 	
-(* Add a method dzero cstart which fill the vector of derivatives *)
-(* with zeros *)
-let dzero (ctable, csize) cstart = dzero cstart (int_const csize)
-
 (* increments the maximum size of the continuous state vector and that of *)
 (* the zero-crossing vector *)
-let max call size i_opt =
-  if size = 0 then i_opt
+let maxsize call size i_opt =
+  if is_null size then i_opt
   else let i = call size in
        match i_opt with
-       | None -> Some(i) | Some(i_old) -> Some(sequence i i_old)
+       | None -> Some(i) | Some(i_old) -> Some(sequence [i; i_old])
     
 (** Translate a continuous-time machine *)
 let machine f ({ ma_initialize = i_opt;
@@ -247,32 +323,44 @@ let machine f ({ ma_initialize = i_opt;
       get method_list in
     (* associate an integer index to every continuous state *)
     (* variable and zero-crossing *)
-    let (ctable, csize), (ztable, zsize) = build_index m_list in
+    let ctable, ztable = build_index m_list in
 
+    let csize = size_of ctable in
+    let zsize = size_of ztable in
+    
     (* add initialization code to [e_opt] *)
-    let i_opt = max cmax csize (max zmax zsize i_opt) in
+    let i_opt = maxsize cmax csize (maxsize zmax zsize i_opt) in
           
-    (* compute the current position of the cvector *)
     let ci = Ident.fresh "ci" in
     let zi = Ident.fresh "zi" in
+    let cpos = Ident.fresh "cpos" in
+    let zpos = Ident.fresh "zpos" in
     let result = Ident.fresh "result" in
     let body =
       oletin
-        (varpat ci Initial.typ_int) cindex
+        (* compute the current position of the cvector *)
+	(varpat ci Initial.typ_int) cindex
         (* compute the current position of the zvector *)
         (oletin
            (varpat zi Initial.typ_int) zindex
-           (sequence
-	      (ifthenelse discrete (dzero (ctable, csize) ci)
-		          (sequence
-                             (zin (ztable, zsize) zi) (cin (ctable, csize) ci)))
-	      (oletin
-                 (varpat result ty) (Oinst(body))
-                 (sequence
-	            (ifthenelse discrete (cout (ctable, csize) ci)
-			        (sequence (zout (ztable, zsize) zi)
-			                  (dout (ctable, csize) ci)))
-                    (Oexp (local result)))))) in
+           (oletvar cpos Initial.typ_int (local ci)
+		    (oletvar zpos Initial.typ_int (local zi)
+			     (sequence
+				[ifthenelse discrete (dzero ci csize)
+					    (sequence
+					       [zin ztable zpos;
+						cin ctable cpos]);
+				 oletin
+				   (varpat result ty) (Oinst(body))
+				   (sequence
+				      [set_pos cpos (local ci);
+				       set_pos zpos (local zi);
+				       ifthenelse discrete
+						  (cout ctable cpos)
+						  (sequence
+						     [zout ztable zpos;
+						      dout ctable cpos]);
+				       Oexp (local result)])])))) in
     { mach with ma_initialize = i_opt;
 		ma_methods = { mdesc with me_body = body } :: method_list }
   with

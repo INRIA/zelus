@@ -362,26 +362,19 @@ let rec copy ty =
        then vec (copy ty_arg) e
        else ty
 
-(** Compute the integer size of a type. For a vector, the size must be *)
-(* a value known at compile time *)
+(** Compute the size of an array type [t]. *)
+(* [t] is either a basic type float/int/bool or an nested *)
+(* array of that *)
 let size_of ty =
-  let operator = function Tminus -> (-) | Tplus -> (+) in
-  let rec value s =
-    match s with
-    | Tconst(i) -> i
-    | Tglobal _ | Tname _ -> assert false
-    | Top(op, s1, s2) -> operator op (value s1) (value s2) in
-  let rec size_of acc ty =
+  let rec size_of ty =
     match ty.t_desc with
-    | Tvar -> acc + 1
-    | Tlink(link) -> size_of acc link
-    | Tproduct(ty_list) -> List.fold_left size_of acc ty_list
-    | Tconstr _ -> acc + 1
-    | Tfun _ -> acc + 1
-    | Tvec(ty, e) ->
-       let s = size_of 0 ty in acc + (value e) * s in
-  size_of 0 ty
-						   
+    | Tvar | Tproduct _ | Tfun _ -> assert false
+    | Tlink(link) -> size_of link
+    | Tconstr _ -> []
+    | Tvec(ty, s) ->
+       s :: (size_of ty) in
+  List.rev (size_of ty)
+	      
 (* instanciation *)
 let instance_of_type { typ_body = typ_body } =
   let typ_body = copy typ_body in

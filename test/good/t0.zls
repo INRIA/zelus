@@ -5,10 +5,22 @@
   o1, m +. o +. 2.0
  *)
 
-let hybrid g (c) = o where
-forall i in 0 .. 43, oi out o do
-  der oi = 1.0 and init oi = 0.0
+let hybrid g c = (o, o5) where
+ rec forall i in 0 .. 43, oi out o do
+  forall j in 0 .. 42, oij out oi do
+    der oij = 1.0 and init oij = 0.0
   done
+  done and der o4 = o4 +. 1.0 init 0.0 and der o5 = o4 +. 2.0 init 0.0
+
+let sum(c) = o where
+  forall i in 0 .. 43, ci in c, oi out o do
+    forall j in 0 .. 42, cij in ci, oij out oi do
+      oij = cij +. 1.0
+    done
+  done
+
+let hybrid main(c) =
+  let o, _ = g(c) in sum(o)
 
 (* let hybrid h () = o where
   forall i in 0 .. 42, oi out o do

@@ -347,30 +347,26 @@ let array_make print arg ff ie_size =
 	       (exp 3) ie array_rec ie_size in
   array_rec ff ie_size
             
-let rec array_bool ff =
-  function
-  | [] -> fprintf ff "false"
-  | [ie] -> fprintf ff "Array.make %a false" (exp 3) ie
+let rec array_of e_opt ty ff ie_size =
+  let exp_of ff (e_opt, ty) =
+    match e_opt, ty with
+    | Some(e), _ -> exp 2 ff e
+    | _ -> fprintf ff "(Obj.magic (): %a)" ptype ty in
+  match ie_size with
+  | [] -> exp_of ff (e_opt, ty)
+  | [ie] -> fprintf ff "Array.make %a %a" (exp 3) ie exp_of (e_opt, ty)
   | ie :: ie_list ->
      fprintf ff
-	     "@[<hov 2>Array.init %a@ (fun _ -> %a)@]" (exp 3)
-             ie array_bool ie_list
-             
-let rec array_float ff =
-  function
-  | [] -> fprintf ff "1.0"
-  | [ie] -> fprintf ff "Array.create_float %a" (exp 3) ie
-  | ie :: ie_list ->
-     fprintf ff
-	     "@[<hov 2>Array.init %a@ (fun _ -> %a)@]"
-	     (exp 3) ie array_float ie_list
-
+	     "@[<hov 2>Array.init %a@ (fun _ -> %a)@]" (exp 3) ie
+	     (array_of e_opt ty) ie_list
+     
 (** Print the allocation function *)
 let palloc f memories ff instances =
   let print_memory ff { m_name = n; m_value = e_opt;
 			m_typ = ty; m_kind = k_opt; m_size = m_size } =
     match k_opt with
     | None ->
+       (* discrete state variable *)
        begin
 	 match e_opt with
          | None -> fprintf ff "@[%a = %a@]"
@@ -388,13 +384,13 @@ let palloc f memories ff instances =
        match m with
        | Deftypes.Zero ->
 	  fprintf ff "@[%a = @[<hov 2>{ zin = %a;@ zout = %a }@]@]"
-		  name n array_bool m_size array_float m_size
+		  name n (array_of e_opt ty) m_size (array_of e_opt ty) m_size
        | Deftypes.Cont ->
 	  fprintf ff "@[%a = @[<hov 2>{ pos = %a; der = %a }@]@]"
-		  name n array_float m_size array_float m_size
+		  name n (array_of e_opt ty) m_size (array_of e_opt ty) m_size
        | Deftypes.Horizon | Deftypes.Period ->
-	  fprintf ff "%a = %a" name n array_float m_size
-       | Deftypes.Encore -> fprintf ff "%a = %a" name n array_bool m_size in
+	  fprintf ff "%a = %a" name n (array_of e_opt ty) m_size
+       | Deftypes.Encore -> fprintf ff "%a = %a" name n (array_of e_opt ty) m_size in
   
   let print_instance ff { i_name = n; i_machine = ei;
 			  i_kind = k; i_params = e_list; i_size = ie_size } =
