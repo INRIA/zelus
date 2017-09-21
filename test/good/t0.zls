@@ -5,6 +5,19 @@
   o1, m +. o +. 2.0
  *)
 
+let f x = if x = 2 then 1 else 2
+  
+let node two(x, y) = o where
+  rec match x with
+      | true -> do init o = y + 1 and o = last o + 1 done
+      | false -> do o = last o - 1 done
+      end
+      
+let hybrid h(n) (x:int[n]) = o where
+  forall i in 0 .. (n-1), xi in x, oi out o do
+    oi = x.(42 - i)
+  done
+      
 let hybrid g c = (o, o5) where
  rec forall i in 0 .. 43, oi out o do
   forall j in 0 .. 42, oij out oi do
