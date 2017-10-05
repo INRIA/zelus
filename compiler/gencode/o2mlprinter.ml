@@ -384,13 +384,16 @@ let palloc f memories ff instances =
        match m with
        | Deftypes.Zero ->
 	  fprintf ff "@[%a = @[<hov 2>{ zin = %a;@ zout = %a }@]@]"
-		  name n (array_of e_opt ty) m_size (array_of e_opt ty) m_size
+		  name n (array_of e_opt Initial.typ_bool) m_size
+		  (array_of (Some(Oconst(Ofloat(1.0)))) Initial.typ_float)
+		  m_size
        | Deftypes.Cont ->
 	  fprintf ff "@[%a = @[<hov 2>{ pos = %a; der = %a }@]@]"
 		  name n (array_of e_opt ty) m_size (array_of e_opt ty) m_size
        | Deftypes.Horizon | Deftypes.Period ->
 	  fprintf ff "%a = %a" name n (array_of e_opt ty) m_size
-       | Deftypes.Encore -> fprintf ff "%a = %a" name n (array_of e_opt ty) m_size in
+       | Deftypes.Encore ->
+	  fprintf ff "%a = %a" name n (array_of e_opt ty) m_size in
   
   let print_instance ff { i_name = n; i_machine = ei;
 			  i_kind = k; i_params = e_list; i_size = ie_size } =
