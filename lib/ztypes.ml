@@ -16,7 +16,7 @@
 (* the generated code *)
 type 'a continuous = { mutable pos: 'a; mutable der: 'a }
 
-type 'a zerocrossing = { mutable zin: 'a; mutable zout: 'a }
+type ('a, 'b) zerocrossing = { mutable zin: 'a; mutable zout: 'b }
 
 type 'a signal = 'a * bool
 type zero = bool
