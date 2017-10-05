@@ -112,6 +112,7 @@ install_printer Oprinter.expression
 install_printer Pcaus.caus
 install_printer Pcaus.ptype
 install_printer Deadcode.print
+install_printer Translate.fprint
 
 endef
 export DEBUG_PRELUDE

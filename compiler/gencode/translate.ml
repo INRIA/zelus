@@ -108,6 +108,13 @@ type code =
     step: inst; (* body *)
   }
 
+let fprint ff env =
+  let fprint_entry ff { e_typ = ty; e_sort = sort; e_size = size } =
+    Format.fprintf ff "@[{ typ = %a;@,size = %a}@]"
+		   Ptypes.output ty
+		   (Pp_tools.print_list_r Printer.name "[" "," "]") size in
+  Ident.Env.fprint_t fprint_entry ff env
+		   
 let empty_code = { mem = State.empty; init = Osequence [];
 		   instances = State.empty;
 		   reset = Osequence []; step = Osequence [] }

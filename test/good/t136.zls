@@ -1,7 +1,9 @@
-let f n x = o where
-   forall i in 0 .. n, xi in x do
-     o += xi
+let f n x = o + z where
+   rec forall i in 0 .. n, xi in x do
+     o = xi
      initialize o = 0 with (+)
    done
+   and z = o + 1
+  
 
 let inst x = f 10 x
