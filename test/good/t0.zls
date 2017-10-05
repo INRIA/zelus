@@ -1,11 +1,21 @@
-(* let hybrid f (x, z) =
-  let rec der o = x +. 1.0 init 42.0 reset z -> last o +. 1.0 in
-  let o1 = up(x +. 3.0) in
-  let der m = o +. 4.0 init 43.0 in
-  o1, m +. o +. 2.0
- *)
+let f(x)(y) = o where
+  rec forall i in 0 .. x, yi in y do
+    o = last o + yi
+  initialize
+    last o = 42
+  done
+      
 
-let f x = if x = 2 then 1 else 2
+let h(y) = f(42)(y)
+
+    
+let hybrid g (x) =
+  let rec der o = 1.0 +. 0.1 *. o init 42.0 in
+  o
+
+
+(*
+let discrete f x = if x = 2 then 1 else 2
   
 let node two(x, y) = o where
   rec match x with
@@ -41,7 +51,8 @@ let hybrid main(c) =
       der oij = 1.0 and init oij = 0.0
     done
     done *)
-  	
+
+   *)
 (*
 let hybrid g (x, z) =
   let rec present z -> do o = last o +. 1.0 done
@@ -77,7 +88,7 @@ let node micro_step_delay_weak(x) = o where
 let node g(x) = o where
   rec automaton
       | Await -> do o = 0 unless x(v) then Run(v)
-      | Run(v) -> do o = v unless true then Run(v+1)
+o     | Run(v) -> do o = v unless true then Run(v+1)
       end
 *)
 
