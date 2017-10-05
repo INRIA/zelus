@@ -87,11 +87,12 @@ let emit_prelude ff ({ Lident.id = id } as qualid) k =
   | Deftypes.Tcont ->
      fprintf ff
        "@[open Ztypes@.\
+          open Zls@.\
           (* simulation (continuous) function *)@.\
           let main = \
             @[<v>let Hybrid { alloc = alloc; step = step; reset = reset } = %s in @,\
               @[<h2>let step mem c d z t = @,\
-                      cvec := c; dvec := d; zin := z;@ \
+                      cvec := c; dvec := d; zinvec := z;@ \
                       let output = step mem t in@ \
                       c := !cvec; d := !dvec;@ \
                       output in@]@,\
