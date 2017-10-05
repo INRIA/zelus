@@ -185,7 +185,7 @@ let zin x i_list j_list pos =
 		  (left_state_access
 		     (Oleft_state_primitive_access(Oleft_state_name(x), Ozero_in))
 		     i_list) j_list,
-	        get (bang "zinvec") (var pos))
+	        get_zin (bang "zinvec") (var pos))
 (* [!cvec.(pos) <- x.(i1)....(in).(j1)...(jk)] *)
 let cout x i_list j_list pos =
   set (bang "cvec") (var pos)
