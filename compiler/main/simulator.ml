@@ -89,25 +89,25 @@ let emit_prelude ff ({ Lident.id = id } as qualid) k =
        "@[open Ztypes@.\
           (* simulation (continuous) function *)@.\
           let main = \
-            @[let Hybrid { alloc = alloc; step = step; reset = reset } = %s in @,\
+            @[<v>let Hybrid { alloc = alloc; step = step; reset = reset } = %s in @,\
               @[<h2>let step mem c d z t = @,\
-                      cvec := c; dvec := d; zin := z;@,\
-                      let output = step mem t in@,\
-                      c := !cvec; d := !dvec;@,\
+                      cvec := c; dvec := d; zin := z;@ \
+                      let output = step mem t in@ \
+                      c := !cvec; d := !dvec;@ \
                       output in@]@,\
-              @[<h2>let derivative mem c d t = @,\
-                      cvec := c;@,\
-                      let _ = step mem t in@,\
+              @[<h2>let derivative mem c d t = @ \
+                      cvec := c;@ \
+                      let _ = step mem t in@ \
                       d := !dvec in@]@,\
-              @[<h2>let crossings mem c z t = @,\
-                      cvec := c;@,\
-                      let _ = step mem t in@,\
+              @[<h2>let crossings mem c z t = @ \
+                      cvec := c;@ \
+                      let _ = step mem t in@ \
                       zout := !z in@]@,\
               @[<h2>let maxsize mem = (!cmax, !zmax) in@]@,\
               @[<h2>let csize mem = !cindex in@]@,\
               @[<h2>let zsize mem = !zindex in@]@,\
               @[<h2>let horizon mem = !horizon in@]@,\
-              @[<h1>(alloc, step, derivative, crossings,@,\
+              @[<h1>(alloc, step, derivative, crossings,@ \
                      maxsize, csize, zsize, horizon)@]@];;@]" s
 
 (* emited code for control-driven programs: the transition function *)
