@@ -28,11 +28,13 @@ type ('a, 'b) node =
         reset : 's -> unit; (* reset/inialize the state *)
       } -> ('a, 'b) node
 
+open Bigarray
+
 type time = float
-type cvec = float array
-type dvec = float array
-type zinvec = int32 array
-type zoutvec = float array
+type cvec = (float, float64_elt, c_layout) Array1.t
+type dvec = (float, float64_elt, c_layout) Array1.t
+type zinvec = (int32, int32_elt,   c_layout) Array1.t
+type zoutvec = (float, float64_elt, c_layout) Array1.t
 
 type ('a, 'b) hybrid =
     Hybrid:
@@ -53,7 +55,7 @@ type hsimu =
         (* returns the current length of the continuous state vector *)
         zsize : 's -> int;
         (* returns the current length of the zero-crossing vector *)
-        step : 's -> cvec -> zinvec -> unit;
+        step : 's -> cvec -> zinvec -> time -> unit;
         (* computes a step *)
         derivative : 's -> cvec -> dvec -> time -> unit;
         (* computes the derivative *)
