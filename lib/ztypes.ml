@@ -33,35 +33,35 @@ type cvec = float array
 type dvec = float array
 type zinvec = int32 array
 type zoutvec = float array
-		    
+
 type ('a, 'b) hybrid =
     Hybrid:
       { alloc : unit -> 's;
         step : 's -> 'a -> 'b;
-	(* computes a step *)
-	reset : 's -> unit;
-	} -> ('a, 'b) hybrid
-					
+        (* computes a step *)
+        reset : 's -> unit;
+        } -> ('a, 'b) hybrid
+
 type hsimu =
     Hsim:
       { alloc : unit -> 's;
         (* allocate the initial state *)
-	maxsize : 's -> int * int;
-	(* returns the max length of the *)
-	(* cvector and zvector *)
-	csize : 's -> int;
-	(* returns the current length of the continuous state vector *)
+        maxsize : 's -> int * int;
+        (* returns the max length of the *)
+        (* cvector and zvector *)
+        csize : 's -> int;
+        (* returns the current length of the continuous state vector *)
         zsize : 's -> int;
-	(* returns the current length of the zero-crossing vector *)
+        (* returns the current length of the zero-crossing vector *)
         step : 's -> cvec -> zinvec -> unit;
-	(* computes a step *)
-	derivative : 's -> cvec -> dvec -> time -> unit;
-	(* computes the derivative *)
-	crossings : 's -> cvec -> zoutvec -> time -> unit;
-	(* computes the derivative *)
-	reset : 's -> unit;
-	(* resets the state *)
-	horizon : 's -> time;
-	(* gives the next time horizon *)
-	} -> hsimu
-				
+        (* computes a step *)
+        derivative : 's -> cvec -> dvec -> time -> unit;
+        (* computes the derivative *)
+        crossings : 's -> cvec -> zoutvec -> time -> unit;
+        (* computes the derivative *)
+        reset : 's -> unit;
+        (* resets the state *)
+        horizon : 's -> time;
+        (* gives the next time horizon *)
+        } -> hsimu
+
