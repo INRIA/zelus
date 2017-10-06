@@ -86,8 +86,15 @@ object (self)
   method stop () = self#clear_timer ()
 end
 
-let go (main_alloc, main_csize, main_zsize, main_horizon, main_maxsize,
-        main_ders, main_step, main_zero, main_reset) =
+let go (Ztypes.Hsim { alloc      = main_alloc;
+                      maxsize    = main_maxsize;
+                      csize      = main_csize;
+                      zsize      = main_zsize;
+                      step       = main_step;
+                      derivative = main_ders;
+                      crossings  = main_zero;
+                      reset      = main_reset;
+                      horizon    = main_horizon; }) =
   let w = GWindow.window
     ~title:"Simulator"
     ~width:250

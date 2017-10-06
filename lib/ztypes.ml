@@ -44,7 +44,7 @@ type ('a, 'b) hybrid =
         reset : 's -> unit;
         } -> ('a, 'b) hybrid
 
-type hsimu =
+type 'o hsimu =
     Hsim:
       { alloc : unit -> 's;
         (* allocate the initial state *)
@@ -55,7 +55,7 @@ type hsimu =
         (* returns the current length of the continuous state vector *)
         zsize : 's -> int;
         (* returns the current length of the zero-crossing vector *)
-        step : 's -> cvec -> zinvec -> time -> unit;
+        step : 's -> cvec -> zinvec -> time -> 'o;
         (* computes a step *)
         derivative : 's -> cvec -> dvec -> time -> unit;
         (* computes the derivative *)
@@ -65,5 +65,5 @@ type hsimu =
         (* resets the state *)
         horizon : 's -> time;
         (* gives the next time horizon *)
-        } -> hsimu
+      } -> 'o hsimu
 
