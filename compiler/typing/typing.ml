@@ -897,7 +897,7 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
          let out xi acc =
 	   try S.add (Env.find xi xi_out_x) acc with Not_found -> acc in
 	 (* all variables in [dv], [der] must appear either *)
-	 (* in [init_h] or [out_h] *)
+	 (* in [init_h] or [out_h] or as combined variables in [h] *)
 	 (* all variables in [di] must appear in [out_h] and not in [init_h] *)
          let belong_to_init_out xi =
 	   if not ((Env.mem xi init_h) || (Env.mem xi out_h))
