@@ -110,8 +110,12 @@ type defnames =
     }
 
 (* set of names. *)
-let names acc { dv = dv; di = di; der = der } =
-  Ident.S.union acc (Ident.S.union dv (Ident.S.union di der))
+let names acc { dv = dv; di = di; der = der; nv = nv; mv = mv } =
+  let acc = Ident.S.union dv acc in
+  let acc = Ident.S.union di acc in
+  let acc = Ident.S.union der acc in
+  let acc = Ident.S.union nv acc in
+  Ident.S.union mv acc
 
 let dv acc { dv = dv } = Ident.S.union acc dv
 				       

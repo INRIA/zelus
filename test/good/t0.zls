@@ -1,11 +1,6 @@
-let pi = 3.1415
+let node f(x) =
+  let rec next y = y in y
     
-let hybrid sine_wave(freq) = t where
-   rec der t = 1.0 init 0.0
-
-let hybrid main (freq) = () where
-  rec o = up(sine_wave(freq))
-
 (*
 let f(x)(y) = o where
   rec forall i in 0 .. x, yi in y do
