@@ -1,9 +1,12 @@
-let f n x = o + z where
-   rec forall i in 0 .. n, xi in x do
-     o = xi
-     initialize o = 0 with (+)
-   done
-   and z = o + 1
-  
+let node f n x =
+  local v with (+)
+  local o1
+  do
+    forall i in 0 .. n, xi in x, xo out o do
+      o1 = last o1 + 42 and vo += 4
+    initialize
+      last o1 = 0
+    done
+  in 1 + v
 
-let inst x = f 10 x
+let node inst x = f 10 x

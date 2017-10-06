@@ -104,11 +104,20 @@ let merge loc h defnames_list =
 
 (* Join two sets of names in a parallel composition. Check that names *)
 (* are only defined once. Moreover, reject [der x = ...] and [x = ...] *)
-let join loc 
+(* if a variable [x] appear twice, it must be given a combination function *)
+let join loc h
 	 { dv = dv1; di = di1; der = der1 } { dv = dv2; di = di2; der = der2 } =
+  let joinable n =
+    let { t_sort = sort } = try Env.find n h with Not_found -> assert false in
+    match sort with
+    | Svar { v_combine = Some _ } | Smem { m_combine = Some _ } -> true
+    | _ -> false in
   let join k names1 names2 =
     let joinrec n acc = 
-      if S.mem n names1 then error loc (Ealready(k, n)) else S.add n acc in
+      if S.mem n names1 then
+	match k with
+	| Current when joinable n -> acc
+	| _ -> error loc (Ealready(k, n)) else S.add n acc in
     S.fold joinrec names2 names1 in
   let disjoint k names1 names2 =
     let disjointrec n = 

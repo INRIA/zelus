@@ -915,7 +915,8 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
 	 
 	 (* all name [xi] from [defnames] such that [xi out x] *)
          (* is replaced by [x] in the new [defnames] *)
-	 { dv = S.map x_of_xi dv; di = S.map x_of_xi di; der = S.map x_of_xi der } in
+	 { dv = S.map x_of_xi dv; di = S.map x_of_xi di;
+	   der = S.map x_of_xi der } in
 
        (* outputs are either shared or state variables *)
        let sort = if Types.is_statefull_kind expected_k
@@ -1000,7 +1001,7 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
 and equation_list expected_k h eq_list =
   List.fold_left
     (fun defined_names eq -> 
-      Total.join eq.eq_loc (equation expected_k h eq) defined_names)
+      Total.join eq.eq_loc h (equation expected_k h eq) defined_names)
     Deftypes.empty eq_list
 
 (** Type a present handler when the body is an expression *)

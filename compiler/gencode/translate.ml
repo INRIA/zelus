@@ -108,7 +108,7 @@ type code =
     step: inst; (* body *)
   }
 
-let fprint ff env =
+let fprint ff (env: entry Env.t) =
   let fprint_entry ff { e_typ = ty; e_sort = sort; e_size = size } =
     Format.fprintf ff "@[{ typ = %a;@,size = %a}@]"
 		   Ptypes.output ty
@@ -125,10 +125,12 @@ let seq { mem = m1; init = i1; instances = j1; reset = r1; step = s1 }
     reset = sequence r1 r2; step = sequence s1 s2 }
 
 let empty_path = []
-
+	  
 (** Look for an entry in the environment *)
 let entry_of n env =
-  try Env.find n env with Not_found ->
+  try
+    Env.find n env
+  with Not_found ->
     Misc.internal_error "Unbound variable" Printer.name n
 
 
@@ -505,6 +507,7 @@ let rec equation env loop_path { Zelus.eq_desc = desc } code =
      let e, code = exp env loop_path code e in
      letpat (pattern p) e code
   | Zelus.EQpluseq(n, e) ->
+     Format.eprintf "@[+=@,%a@.@]" fprint env;
      let e, code = exp env loop_path code e in
      pluseq (entry_of n env) e code
   | Zelus.EQder(n, e, None, []) ->
