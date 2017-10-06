@@ -1,4 +1,5 @@
 
+open Ztypes
 open Bigarray
 
 (* Interfaces functions from within Zelus *)
@@ -32,14 +33,14 @@ let discrete = ref true
 let horizon = ref infinity
                   
 type 's f_alloc = unit -> 's
+type 's f_maxsize = 's -> int * int
 type 's f_csize = 's -> int
 type 's f_zsize = 's -> int
-type 's f_horizon = 's -> float
-type 's f_maxsize = 's -> int * int
+type ('s, 'o) f_step = 's -> carray -> zarray -> float -> 'o
 type 's f_ders = 's -> carray -> carray -> float -> unit
-type ('s, 'o) f_step = 's -> carray -> carray -> zarray -> float -> 'o
 type 's f_zero = 's -> carray -> carray -> float -> unit
-type 's f_reset = 's -> carray -> unit
+type 's f_reset = 's -> unit
+type 's f_horizon = 's -> float
 
 (* TODO: eliminate this ? *)
 (* Compare two floats for equality, see:
@@ -119,44 +120,9 @@ module type ZEROC_SOLVER =
     val find         : t -> ((float -> int -> unit) * carray) -> zarray -> float
   end
 
-(* TODO : use this to create RUNTIMEs *)
-module type ZELUS_PROG =
-sig
-  type state
-
-  val alloc   : unit -> state
-  val csize   : state -> int
-  val zsize   : state -> int
-  val maxsize : state -> int * int
-  val ders    : state -> carray -> carray -> float -> int
-  val step    : state -> carray -> carray -> zarray -> float -> float
-  val zero    : state -> carray -> carray -> float -> int
-  val reset   : state -> carray -> unit
-end
-
 module type RUNTIME =
 sig
-  val go : 's f_alloc
-           * 's f_csize
-           * 's f_zsize
-           * 's f_horizon
-           * 's f_maxsize
-           * 's f_ders
-           * ('s, 'o) f_step
-           * 's f_zero
-           * 's f_reset
-           -> unit
-
-  val check : 's f_alloc
-              * 's f_csize
-              * 's f_zsize
-              * 's f_horizon
-              * 's f_maxsize
-              * 's f_ders
-              * ('s, bool) f_step
-              * 's f_zero
-              * 's f_reset
-              -> int
-              -> unit
+  val go : unit hsimu -> unit
+  val check : bool hsimu -> int -> unit
 end
 

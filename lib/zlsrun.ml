@@ -52,8 +52,15 @@ let wait_next_instant =
   in
   wait_next_instant
 
-let go (main_alloc, main_csize, main_zsize, main_horizon, main_maxsize,
-        main_ders, main_step, main_zero, main_reset) =
+let go (Ztypes.Hsim { alloc      = main_alloc;
+                      maxsize    = main_maxsize;
+                      csize      = main_csize;
+                      zsize      = main_zsize;
+                      step       = main_step;
+                      derivative = main_ders;
+                      crossings  = main_zero;
+                      reset      = main_reset;
+                      horizon    = main_horizon; }) =
   let stepfn = Solver.step
         main_alloc
         main_csize
@@ -81,8 +88,15 @@ let go (main_alloc, main_csize, main_zsize, main_horizon, main_maxsize,
   in
   step ()
 
-let check (main_alloc, main_csize, main_zsize, main_horizon, main_maxsize,
-           main_ders, main_step, main_zero, main_reset) limit =
+let check (Ztypes.Hsim { alloc      = main_alloc;
+                         maxsize    = main_maxsize;
+                         csize      = main_csize;
+                         zsize      = main_zsize;
+                         step       = main_step;
+                         derivative = main_ders;
+                         crossings  = main_zero;
+                         reset      = main_reset;
+                         horizon    = main_horizon; }) limit =
   let stepfn = Solver.step
         main_alloc
         main_csize
