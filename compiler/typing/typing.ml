@@ -231,13 +231,16 @@ let rec get_all_labels loc ty =
 (** have been removed *)
 let check_definitions_for_every_name defined_names n_list =
   List.fold_left 
-    (fun { dv = dv; di = di; der = der }
+    (fun { dv = dv; di = di; der = der; nv = nv; mv = mv }
       { vardec_name = n; vardec_default = d_opt; vardec_loc = loc } ->
      let in_dv = S.mem n dv in
      let in_di = S.mem n di in
      let in_der = S.mem n der in
+     let in_nv = S.mem n nv in
+     let in_mv = S.mem n mv in
      (* check that n is defined by an equation *)
-     if not (in_dv || in_di || in_der)  then error loc (Eequation_is_missing(n));
+     if not (in_dv || in_di || in_der || in_nv || in_mv)
+     then error loc (Eequation_is_missing(n));
      (* check that it is not already initialized *)
      match d_opt with
        | Some(Init _) when in_di -> error loc (Ealready(Initial, n))
@@ -245,7 +248,9 @@ let check_definitions_for_every_name defined_names n_list =
 	  (* otherwise, remove local names *)
 	  { dv = if in_dv then S.remove n dv else dv;
 	    di = if in_di then S.remove n di else di;
-	    der = if in_der then S.remove n der else der })
+	    der = if in_der then S.remove n der else der;
+            nv = if in_nv then S.remove n nv else nv;
+            mv = if in_mv then S.remove n mv else mv })
     defined_names n_list
     
 (* sets that a variable is defined by an equation [x = ...] or [next x = ...] *)
@@ -393,7 +398,7 @@ let rec build (names, inames) { eq_desc = desc } =
        | Eoutput(_, n) -> S.add n names, inames in
      let init (names, inames) { desc = desc } =
        match desc with
-       | Einit_last(n, _) | Einit_value(n, _, _) -> S.add n names, inames in
+       | Einit_last(n, _) -> S.add n names, inames in
      let names, inames = List.fold_left index (names, inames) in_list in
      List.fold_left init (names, inames) init_list
 		    
@@ -806,9 +811,9 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
         let expected_ty = pluseq loc h n in 
         unify loc expected_ty actual_ty;
 	(* sets that every variable from [dv] has a current value *)
-	let dv = S.singleton n in
-	set false loc dv h;
-	{ Deftypes.empty with dv = dv }
+	let mv = S.singleton n in
+	set false loc mv h;
+	{ Deftypes.empty with mv = mv }
     | EQinit(n, e0) ->
         (* an initialization is valid only in a continuous or discrete context *)
         check_statefull loc expected_k;
@@ -824,14 +829,14 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
         let actual_ty = typ_of_var loc h n in
 	expect expected_k h e actual_ty;
 	(* sets that every variable from [dv] has a next value *)
-	let dv = S.singleton n in
-	set true loc dv h;
+	let nv = S.singleton n in
+	set true loc nv h;
 	let di = 
 	  match e0_opt with 
-	    | None -> S.empty | Some(e) -> expect expected_k h e actual_ty; dv in
+	    | None -> S.empty | Some(e) -> expect expected_k h e actual_ty; nv in
 	(* sets that every variable from [di] is initialized *)
 	set_init loc di h;
-	{ Deftypes.empty with dv = dv; di = di }
+	{ Deftypes.empty with nv = nv; di = di }
     | EQder(n, e, e0_opt, p_h_e_list) ->
         (* integration is only valid in a continuous context *)
         less_than loc Tcont expected_k;
@@ -853,7 +858,7 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
 	let dv = if p_h_e_list = [] then S.empty else der in
 	(* sets that every variable from [dv] has a current value *)
 	set false loc dv h;
-	{ dv = dv; di = di; der = der }
+	{ Deftypes.empty with dv = dv; di = di; der = der }
     | EQautomaton(is_weak, s_h_list, se_opt) ->
         (* automata are only valid in continuous or discrete context *)
         check_statefull loc expected_k;
@@ -888,9 +893,10 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
        (* A non local variable [xi] defined in the body of the loop must be *)
        (* either declared in the initialization part [initialize ...] *)
        (* or used to define an output array [xi out x] *)
-       (* check that [xi] appear in either [dv], [di] or [der] *)
-       (* returns a new set [{ dv; di; der }] where [xi] is replaced by [x] *)
-       let merge { dv = dv; di = di; der = der } h init_h out_h xi_out_x =
+       (* returns a new set [{ dv; di; der; nv; mv }] *)
+       (* where [xi] is replaced by [x] *)
+       let merge { dv = dv; di = di; der = der; nv = nv; mv = mv }
+                 h init_h out_h xi_out_x =
 	 (* rename [xi] into [x] if [xi out x] appears in [xi_out_x] *)
          let x_of_xi xi =
            try Env.find xi xi_out_x  with Not_found -> xi in
@@ -906,6 +912,7 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
 	   if not (Env.mem xi out_h) || (Env.mem xi init_h)
 	   then error loc (Ealready_in_forall(xi)) in
 	 S.iter belong_to_init_out dv;
+	 S.iter belong_to_init_out nv;
 	 S.iter belong_to_init_out der;
          S.iter belong_to_out_not_init di;
          (* change the sort of [x] so that it is equal to that of [xi] *)
@@ -916,7 +923,8 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
 	 (* all name [xi] from [defnames] such that [xi out x] *)
          (* is replaced by [x] in the new [defnames] *)
 	 { dv = S.map x_of_xi dv; di = S.map x_of_xi di;
-	   der = S.map x_of_xi der } in
+	   der = S.map x_of_xi der; nv = S.map x_of_xi nv;
+           mv = S.map x_of_xi mv } in
 
        (* outputs are either shared or state variables *)
        let sort = if Types.is_statefull_kind expected_k
@@ -970,14 +978,7 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
 	 | Einit_last(i, e) ->
 	    let ty = typ_of_var loc h i in
 	    expect expected_k h e ty;
-	    Env.add i { t_typ = ty; t_sort = Deftypes.memory } init_h
-	 | Einit_value(i, e, c_opt) ->
-	    let ty = typ_of_var loc h i in
-	    expect expected_k h e ty;
-	    Misc.optional_unit (combine loc) ty c_opt;
-	    Env.add i
-		    { t_typ = ty; t_sort = Deftypes.default None c_opt }
-                    init_h in
+	    Env.add i { t_typ = ty; t_sort = Deftypes.memory } init_h in
        let init_h = List.fold_left init Env.empty init_list in
 
        let in_h, out_h, xi_out_x, _ =
@@ -989,7 +990,8 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
        let h_eq_list = Env.append in_h (Env.append out_h (Env.append init_h h)) in
        let _, defnames =
 	 block_eq_list expected_k h_eq_list b_eq_list in
-       (* check that every name in defnames is initialized or an output *)
+       (* check that every name in defnames is either declared *)
+       (* in the initialize branch, an output or a multi-emitted value *)
        merge defnames h init_h out_h xi_out_x in
   (* set the names defined in the current equation *)
   eq.eq_write <- defnames;

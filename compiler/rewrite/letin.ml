@@ -189,10 +189,7 @@ and equation ({ eq_desc = desc } as eq) =
        match desc with
        | Einit_last(x, e) ->
 	  let e, ctx_e = expression e in
-	  { i with desc = Einit_last(x, e) }, ctx_e
-       | Einit_value(x, e, v_opt) ->
-	  let e, ctx_e = expression e in
-	  { i with desc = Einit_value(x, e, v_opt) }, ctx_e in
+	  { i with desc = Einit_last(x, e) }, ctx_e in
      let ind_list, ind_ctx = par_fold index ind_list in
      let i_list, i_ctx = par_fold init i_list in
      let b_eq_list = block b_eq_list in

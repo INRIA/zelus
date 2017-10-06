@@ -61,7 +61,7 @@ let eq_match total e l =
   let block_do_done =
     { b_vars = []; b_locals = []; b_body = []; b_loc = no_location;
       b_env = Env.empty; 
-      b_write = { dv = S.empty; di = S.empty; der = S.empty } } in
+      b_write = Deftypes.empty } in
   (* if [total = false] complete with an empty block [do done] *)
   let l = if total then l
 	else l @ [{ m_pat = wildpat; m_body = block_do_done; m_env = Env.empty;
@@ -237,9 +237,7 @@ and equation signals eq_list eq =
 	 { ind with desc = desc } in
        let init ({ desc = desc } as ini) =
 	 let desc = match desc with
-	   | Einit_last(x, e) -> Einit_last(x, exp signals e)
-	   | Einit_value(x, e, c_opt) ->
-	      Einit_value(x, exp signals e, c_opt) in
+	   | Einit_last(x, e) -> Einit_last(x, exp signals e) in
 	 { ini with desc = desc } in
        let _, b_eq_list = block signals b_eq_list in
        { eq with eq_desc =

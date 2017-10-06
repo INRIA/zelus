@@ -353,8 +353,7 @@ and build_equation defnames eq =
 	 List.fold_left index (S.empty, S.empty, S.empty) index_list in
        let init acc { desc = desc; loc = loc } =
 	 match desc with
-	 | Einit_last(n, _)
-	 | Einit_value(n, _, _) ->
+	 | Einit_last(n, _) ->
 	    if (S.mem n acc) || (S.mem n in_names) ||
 		 (S.mem n out_left) || (S.mem n out_right)
 	    then Error.error loc (Error.Enon_linear_forall(n))
@@ -776,10 +775,7 @@ and equation env_pat env eq_list { desc = desc; loc = loc } =
      let init { desc = desc; loc = loc } =
        let desc = match desc with
 	 | Einit_last(n, e) ->
-	    Zelus.Einit_last(name loc env_pat n, expression env e)
-       | Einit_value(n, e, c_opt) ->
-	  Zelus.Einit_value(name loc env_pat n, expression env e,
-			    Misc.optional_map longname c_opt) in
+	    Zelus.Einit_last(name loc env_pat n, expression env e) in
        { Zelus.desc = desc; Zelus.loc = loc } in
      let i_list = List.map index i_list in
      let init_list = List.map init init_list in

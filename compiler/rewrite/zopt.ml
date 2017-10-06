@@ -182,9 +182,7 @@ and rename_equation ren ({ eq_desc = desc } as eq) =
 	 { ind with desc = desc } in
        let init ({ desc = desc } as ini) =
 	 let desc = match desc with
-	   | Einit_last(x, e) -> Einit_last(x, rename_expression ren e)
-	   | Einit_value(x, e, c_opt) ->
-	      Einit_value(x, rename_expression ren e, c_opt) in
+	   | Einit_last(x, e) -> Einit_last(x, rename_expression ren e) in
 	 { ini with desc = desc } in
        let i_list = List.map index i_list in
        let init_list = List.map init init_list in

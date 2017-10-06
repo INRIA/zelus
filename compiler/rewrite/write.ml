@@ -103,21 +103,19 @@ let rec equation ({ eq_desc = desc } as eq) =
        let init acc ({ desc = desc } as ini) =
 	 match desc with
 	 | Einit_last(i, e) ->
-	    { ini with desc = Einit_last(i, expression e) }, S.add i acc
-	 | Einit_value(i, e, c_opt) ->
-	    { ini with desc = Einit_value(i, expression e, c_opt) },
-	    S.add i acc in
+	    { ini with desc = Einit_last(i, expression e) }, S.add i acc in
        let i_list, xi_out_x = Misc.map_fold index Env.empty i_list in
        let init_list, i_set = Misc.map_fold init S.empty init_list in
-       let b_eq_list, { dv = dv; di = di; der = der }, shared_set =
-	 block b_eq_list in
+       let b_eq_list, { dv = dv; di = di; der = der; nv = nv; mv = mv },
+           shared_set = block b_eq_list in
        (* if [xi in defnames_in_body] and [xi out x] then [x in defnames] *)
        (* if [xi in shared_set] and [xi out x] or [x in shared_set] *)
        let x_of_xi xi =
            try Env.find xi xi_out_x  with Not_found -> xi in
        let defnames =
 	 { dv = S.map x_of_xi dv; di = S.map x_of_xi di;
-	   der = S.map x_of_xi der } in
+	   der = S.map x_of_xi der; nv = S.map x_of_xi nv;
+           mv = S.map x_of_xi mv } in
        let shared_set = S.map x_of_xi shared_set in
        (* all variables defined in the body of the loop are shared *)
        let defnames, shared_set =
@@ -138,14 +136,16 @@ and equation_list acc eq_list =
 
 and block ({ b_env = b_env; b_locals = l_list; b_body = eq_list } as b) =
   let l_list = List.map local l_list in
-  let eq_list, ({ dv = dv; der = der; di = di }, shared_set) =
+  let eq_list, ({ dv = dv; der = der; di = di; nv = nv; mv = mv }, shared_set) =
     equation_list (Deftypes.empty, S.empty) eq_list in
   let bounded, b_env = filter_env shared_set b_env in
   let dv = S.diff dv bounded in
   let di = S.diff di bounded in
   let der = S.diff der bounded in
+  let nv = S.diff nv bounded in
+  let mv = S.diff mv bounded in
   let shared_set = S.diff shared_set bounded in
-  let local_defnames = { dv = dv; der = der; di = di } in
+  let local_defnames = { dv = dv; der = der; di = di; nv = nv; mv = mv } in
   { b with b_write = local_defnames; b_locals = l_list;
 	   b_env = b_env; b_body = eq_list },
   local_defnames, shared_set

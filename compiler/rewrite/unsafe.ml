@@ -57,7 +57,7 @@ let rec equation { eq_desc = desc } =
        | Eindex(_, e1, e2) -> exp e1 || exp e2 in
      let init { desc = desc } =
        match desc with
-       | Einit_last(_, e) | Einit_value(_, e, _) -> exp e in
+       | Einit_last(_, e) -> exp e in
      List.exists index i_list ||
        List.exists init init_list ||
 	 block_eq_list b_eq_list

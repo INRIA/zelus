@@ -260,9 +260,7 @@ and equation renaming ({ eq_desc = desc } as eq) =
        let init ({ desc = desc } as ini) =
 	 let desc = match desc with
 	   | Einit_last(x, e) -> Einit_last(rename x renaming,
-					    expression renaming e)
-	   | Einit_value(x, e, c_opt) ->
-	      Einit_value(rename x renaming, expression renaming e, c_opt) in
+					    expression renaming e) in
 	 { ini with desc = desc } in
        let _, b_eq_list = block renaming b_eq_list in
        EQforall { for_index = List.map index i_list;

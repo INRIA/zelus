@@ -118,14 +118,17 @@ let less_than loc actual_ty expected_ty =
 let initialized_last loc env defnames_list =
   (* computes the set of names which are partially defined *)
   let
-      (_, dv_partial), (_, di_partial), _ =
+      (_, dv_partial), (_, di_partial), _, (_, nv_partial), (_, mv_partial) =
     Total.merge_defnames_list defnames_list in
   (* check that all of them have a well-initialized initial value *)
   let check n =
     let { t_last = last } = try Env.find n env with Not_found -> assert false in
     if not last then error loc (Elast_uninitialized(n)) in
   S.iter check dv_partial;
-  S.iter check di_partial
+  S.iter check di_partial;
+  S.iter check nv_partial;
+  S.iter check mv_partial
+  
 
 (** Patterns *)
 let rec pattern env { p_desc = desc; p_loc = loc; p_typ = ty } =
@@ -404,12 +407,7 @@ and equation env { eq_desc = eq_desc; eq_loc = loc } =
 	    let ti = exp env e in
 	    let tzero = Init.skeleton_on_i izero e.e_typ in
 	    less_than e.e_loc ti tzero;
-	    Env.add x { t_last = true; t_typ = tzero } init_env
-	 | Einit_value(x, e, _) ->
-	    let ti = exp env e in
-	    let tzero = Init.skeleton_on_i izero e.e_typ in
-	    less_than e.e_loc ti tzero;
-	    Env.add x { t_last = false; t_typ = tzero } init_env in
+	    Env.add x { t_last = true; t_typ = tzero } init_env in
        List.iter (index env) i_list;
        let init_env = List.fold_left init Env.empty init_list in
        let env = build_env i_env env in

@@ -264,5 +264,4 @@ and indexes_desc =
 
 and init_desc =
   | Einit_last of name * exp
-  | Einit_value of name * exp * longname option
 					 

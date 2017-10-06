@@ -582,10 +582,7 @@ let rec equation env loop_path { Zelus.eq_desc = desc } code =
        match desc with
        | Zelus.Einit_last(x, e) ->
 	  let e, code = exp env loop_path code e in
-	  assign (entry_of x env) e, code
-       | Zelus.Einit_value(x, e, _) ->
-	  let e, code = exp env loop_path code e in
-	  assign (entry_of x env) e, code in
+	  assign (entry_of x env) e, code  in
      (* first compute the index [i in e1 .. e2] *)
      let (ix, e1, e2), code = index code i_list in
      (* extend the environment [env] with input and output variables *)

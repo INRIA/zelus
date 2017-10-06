@@ -179,10 +179,12 @@ let print_env ff env =
     fprintf ff "@[<v 0>(* defs: %a *)@ @]" 
       (print_list_r print_binding """;""") env
 
-let print_writes ff { dv = dv; di = di; der = der } =
+let print_writes ff { dv = dv; di = di; der = der; nv = nv; mv = mv } =
   let dv = Ident.S.elements dv in
   let di = Ident.S.elements di in
   let der = Ident.S.elements der in
+  let nv = Ident.S.elements nv in
+  let mv = Ident.S.elements mv in
   open_box 0;
   if dv <> [] then 
     fprintf ff
@@ -193,6 +195,12 @@ let print_writes ff { dv = dv; di = di; der = der } =
   if der <> [] then
     fprintf ff
 	    "@[<v 0>(* der = {@[%a@]} *)@ @]" (print_list_r name "" "," "") der;
+  if nv <> [] then
+    fprintf ff
+	    "@[<v 0>(* der = {@[%a@]} *)@ @]" (print_list_r name "" "," "") nv;
+  if mv <> [] then
+    fprintf ff
+	    "@[<v 0>(* der = {@[%a@]} *)@ @]" (print_list_r name "" "," "") mv;
   close_box ()
       
 (* print a block surrounded by two braces [po] and [pf] *)
@@ -369,10 +377,7 @@ and equation ff { eq_desc = desc; eq_write = w } =
        let init ff { desc = desc } =
 	 match desc with
 	 | Einit_last(i, e) ->
-	    fprintf ff "@[last %a = %a@]" name i expression e
-	 | Einit_value(i, e, c_opt) ->
-	    fprintf ff "@[%a = %a%a@]" name i expression e
-		    (Misc.optional_unit combine) c_opt in
+	    fprintf ff "@[last %a = %a@]" name i expression e in
        fprintf ff
 	       "@[<hov 2>forall %a@,@[<v>%a@,%a@,%a@ \
                 @[<v 1>initialize@ @[<v>%a@]@]@ done @]@]"

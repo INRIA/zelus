@@ -136,8 +136,7 @@ let rec build_equation table { eq_desc = desc } =
 	      (S.singleton i) (fve (fve S.empty e1) e2) table in
      let init table { desc = desc } =
        match desc with
-       | Einit_last(i, e)
-       | Einit_value(i, e, _) ->
+       | Einit_last(i, e) ->
 	  add (Unsafe.exp e) (S.singleton i) (fve S.empty e) table in
      let table = List.fold_left index table i_list in
      let table = List.fold_left init table init_list in
@@ -187,9 +186,10 @@ let is_empty_block { b_locals = l; b_body = eq_list } =
   (l = []) && (eq_list = [])
 
 (** remove useless names in write names *)
-let writes useful { dv = dv; di = di; der = der } =
+let writes useful { dv = dv; di = di; der = der; nv = nv; mv = mv } =
   let filter set = S.filter (fun x -> S.mem x useful) set in
-  { dv = filter dv; di = filter di; der = filter der }
+  { dv = filter dv; di = filter di; der = filter der;
+    nv = filter nv; mv = filter mv }
 			
 (* remove useless names in a pattern *)
 let rec pattern useful ({ p_desc = desc } as p) =
@@ -253,8 +253,7 @@ let rec remove_equation useful
 	  ind :: acc in
      let init acc ({ desc = desc } as ini) =
        match desc with
-       | Einit_last(i, e)
-       | Einit_value(i, e, _) ->
+       | Einit_last(i, e) ->
 	  if (Unsafe.exp e) || (S.mem i useful) then ini :: acc else acc in
      let i_list = List.fold_left index [] i_list in
      let init_list = List.fold_left init [] init_list in

@@ -469,11 +469,7 @@ and equation expected_k env
 	 match desc with
 	 | Einit_last(x, e) ->
 	    let tc = exp expected_k env e in
-	    Env.add x { last = true; cur_tc = fresh tc; last_tc = tc } init_env
-	 | Einit_value(x, e, _) ->
-	    let tc = exp expected_k env e in
-	    Env.add x
-                    { last = false; cur_tc = tc; last_tc = fresh tc } init_env in
+	    Env.add x { last = true; cur_tc = fresh tc; last_tc = tc } init_env in
 
        (* build the typing environment for read variables from the header *)
        let io_env, oi2o = List.fold_left index (Env.empty, Env.empty) i_list in

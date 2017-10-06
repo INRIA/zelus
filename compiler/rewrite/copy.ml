@@ -157,9 +157,7 @@ and equation ({ defs = defs } as renaming, eq_list)
 	 { ind with desc = desc } in
        let init ({ desc = desc } as i) =
 	 let desc = match desc with
-	   | Einit_last(i, e) -> Einit_last(i, expression renaming e)
-	   | Einit_value(i, e, c_opt) ->
-	      Einit_value(i, expression renaming e, c_opt) in
+	   | Einit_last(i, e) -> Einit_last(i, expression renaming e) in
 	 { i with desc = desc } in
        let i_list = List.map index i_list in
        let init_list = List.map init init_list in

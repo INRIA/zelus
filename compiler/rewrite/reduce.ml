@@ -241,10 +241,7 @@ and equation env fun_defs ({ eq_desc = desc } as eq) =
 	 match desc with
 	 | Einit_last(x, e) ->
 	    let e, fun_defs = expression env fun_defs e in
-	    { ini with desc = Einit_last(x, e) }, fun_defs
-	 | Einit_value(x, e, c_opt) ->
-	    let e, fun_defs = expression env fun_defs e in
-	    { ini with desc = Einit_value(x, e, c_opt) }, fun_defs in
+	    { ini with desc = Einit_last(x, e) }, fun_defs in
      let i_list, fun_defs = Misc.map_fold (index env) fun_defs i_list in
      let init_list, fun_defs = Misc.map_fold (init env) fun_defs init_list in
      let b_eq_list, fun_defs = block env fun_defs b_eq_list in

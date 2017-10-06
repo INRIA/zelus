@@ -275,6 +275,6 @@ and indexes_desc =
 
 and init_desc =
   | Einit_last of Ident.t * exp
-  | Einit_value of Ident.t * exp * Lident.t option
+
 					 
 

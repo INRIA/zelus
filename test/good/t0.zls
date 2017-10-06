@@ -1,3 +1,12 @@
+let pi = 3.1415
+    
+let hybrid sine_wave(freq) = t where
+   rec der t = 1.0 init 0.0
+
+let hybrid main (freq) = () where
+  rec o = up(sine_wave(freq))
+
+(*
 let f(x)(y) = o where
   rec forall i in 0 .. x, yi in y do
     o = last o + yi
@@ -12,7 +21,7 @@ let h(y) = f(42)(y)
 let hybrid g (x) =
   let rec der o = 1.0 +. 0.1 *. o init 42.0 in
   o
-
+*)
 
 (*
 let discrete f x = if x = 2 then 1 else 2

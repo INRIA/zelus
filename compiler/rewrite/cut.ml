@@ -124,9 +124,7 @@ and equation subst ({ eq_desc } as eq) =
      let init acc ({ desc = desc } as ini) =
        let desc, acc = match desc with
 	 | Einit_last(x, e) ->
-            Einit_last(x, exp subst e), add x e.e_typ acc
-	 | Einit_value(x, e, c_opt) ->
-	    Einit_value(x, exp subst e, c_opt), acc in
+            Einit_last(x, exp subst e), add x e.e_typ acc in
        { ini with desc = desc }, acc in
      (* [extend b env eq_list] returns a block in which [env] and [eq_list] *)
      (* has been to the environment and set of equations respectively *)

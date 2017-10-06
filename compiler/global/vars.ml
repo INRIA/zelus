@@ -114,8 +114,7 @@ and fv_eq bounded (last_acc, acc) { eq_desc = desc } =
      (* last x = e removes last x from the list of read variables *)
      let init (bounded, last_acc, acc) { desc = desc } =
        match desc with
-       | Einit_last(x, e)
-       | Einit_value(x, e, _) ->
+       | Einit_last(x, e) ->
 	  let last_acc, acc = fv bounded (last_acc, acc) e in
 	  (S.add x bounded, last_acc, acc) in
      let last_acc, acc = List.fold_left index (last_acc, acc) i_list in

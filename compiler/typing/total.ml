@@ -25,19 +25,23 @@ open Types
 
 (** Names written in a block *)
 let union 
-      { dv = dv1; di = di1; der = der1 } { dv = dv2; di = di2; der = der2 } =
-  { dv = S.union dv1 dv2; di = S.union di1 di2; der = S.union der1 der2 }
+      { dv = dv1; di = di1; der = der1; nv = nv1; mv = mv1 }
+      { dv = dv2; di = di2; der = der2; nv = nv2; mv = mv2 } =
+  { dv = S.union dv1 dv2; di = S.union di1 di2;
+    der = S.union der1 der2; nv = S.union nv1 nv2; mv = S.union mv1 mv2 }
 
 (* add two sets of names provided they are distinct *)
 let add loc 
-	{ dv = dv1; di = di1; der = der1 } { dv = dv2; di = di2; der = der2 } =
+	{ dv = dv1; di = di1; der = der1; nv = nv1; mv = mv1}
+        { dv = dv2; di = di2; der = der2; nv = nv2; mv = mv2  } =
   let add k set1 set2 =
     S.fold 
       (fun elt set -> 
 	if not (S.mem elt set) then S.add elt set
 	else error loc (Ealready(k, elt))) set1 set2 in
   { dv = add Current dv1 dv2; di = add Initial di1 di2;
-    der = add Derivative der1 der2 }
+    der = add Derivative der1 der2; nv = add Next nv1 nv2;
+    mv = add Multi mv1 mv2; }
 
 
 (* checks that every partial name defined at this level *)
@@ -78,18 +82,24 @@ let rec merge local_names_list =
         total, S.union partial1 partial2
   
 let merge_defnames_list defnames_list =
-  let split (acc_dv, acc_di, acc_der) { dv = dv; di = di; der = der } =
-    dv :: acc_dv, di :: acc_di, der :: acc_der in
-  let dv, di, der = List.fold_left split ([], [], []) defnames_list in
+  let split (acc_dv, acc_di, acc_der, acc_nv, acc_mv)
+            { dv = dv; di = di; der = der; nv = nv; mv = mv } =
+    dv :: acc_dv, di :: acc_di, der :: acc_der, nv :: acc_nv, mv :: acc_mv in
+  let dv, di, der, nv, mv =
+    List.fold_left split ([], [], [], [], []) defnames_list in
   let dv_total, dv_partial = merge dv in
   let di_total, di_partial = merge di in
   let der_total, der_partial = merge der in
-  (dv_total, dv_partial), (di_total, di_partial), (der_total, der_partial)
+  let nv_total, nv_partial = merge nv in
+  let mv_total, mv_partial = merge mv in
+  (dv_total, dv_partial), (di_total, di_partial),
+  (der_total, der_partial), (nv_total, nv_partial), (mv_total, mv_total)
 
 (* The main entry. Identify variables which are partially defined *)
 let merge loc h defnames_list =
   let
-      (dv_total, dv_partial), (di_total, di_partial), (der_total, der_partial) =
+    (dv_total, dv_partial), (di_total, di_partial),
+    (der_total, der_partial), (nv_total, nv_partial), (mv_total, mv_partial) =
     merge_defnames_list defnames_list in
   (* every partial variable must be defined as a memory or declared with *)
   (* a default value *)
@@ -99,14 +109,18 @@ let merge loc h defnames_list =
   then error loc (Einit_undefined(S.choose(di_partial)));
   (* the default equation for a derivative is [der x = 0] so nothing *)
   (* has to be done *)
-  add loc { dv = dv_partial; di = di_partial; der = der_partial }
-    { dv = dv_total; di = di_total; der = der_total }
+  add loc
+      { dv = dv_partial; di = di_partial; der = der_partial;
+        nv = nv_partial; mv  = mv_partial }
+      { dv = dv_total; di = di_total; der = der_total;
+        nv = nv_total; mv = mv_total }
 
 (* Join two sets of names in a parallel composition. Check that names *)
 (* are only defined once. Moreover, reject [der x = ...] and [x = ...] *)
 (* if a variable [x] appear twice, it must be given a combination function *)
 let join loc h
-	 { dv = dv1; di = di1; der = der1 } { dv = dv2; di = di2; der = der2 } =
+	 { dv = dv1; di = di1; der = der1; nv = nv1; mv = mv1 }
+         { dv = dv2; di = di2; der = der2; nv = nv2; mv = mv2 } =
   let joinable n =
     let { t_sort = sort } = try Env.find n h with Not_found -> assert false in
     match sort with
@@ -126,7 +140,8 @@ let join loc h
   disjoint CurrentDerivative dv1 der2;
   disjoint CurrentDerivative dv2 der1;
   { dv = join Current dv1 dv2; di = join Initial di1 di2;
-    der = join Derivative der1 der2 }
+    der = join Derivative der1 der2; nv = join Next nv1 nv2;
+    mv = join Multi mv1 mv2 }
   
 (** Check that every variable defined in an automaton *)
 (* has a definition or is a signal or its value can be implicitly kept *)

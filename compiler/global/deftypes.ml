@@ -101,10 +101,12 @@ and constant =
 
 (** Names written in a block *)
 type defnames = 
-    { dv: Ident.S.t; (* [x = ..., next x = ..., x += ...] *)
-      di: Ident.S.t; (* [init x = ...],[x = ... init ...], *)
-                     (* [x = present ... init ...]*)
-      der: Ident.S.t; (* [der x = ...] *)
+  { dv: Ident.S.t; (* [x = ...] *)
+    nv: Ident.S.t; (* [next x = ...] *)
+    mv: Ident.S.t; (* [ x += ...] *)
+    di: Ident.S.t; (* [init x = ...],[x = ... init ...], *)
+                   (* [x = present ... init ...]*)
+    der: Ident.S.t; (* [der x = ...] *)
     }
 
 (* set of names. *)
@@ -115,7 +117,9 @@ let dv acc { dv = dv } = Ident.S.union acc dv
 				       
 (* empty set of defined names *)
 (** Making values *)
-let empty = { dv = Ident.S.empty; di = Ident.S.empty; der = Ident.S.empty }
+let empty =
+  { dv = Ident.S.empty; di = Ident.S.empty; der = Ident.S.empty;
+    nv = Ident.S.empty; mv = Ident.S.empty }
 
 (* introduced names in the [initialization] phase are fully generalized *)
 let make desc =

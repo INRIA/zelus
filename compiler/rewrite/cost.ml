@@ -98,8 +98,7 @@ let expression e max =
 	   | Eindex(_, e1, e2) -> incr 1; cost e1; cost e2 in
 	 let init { desc = desc } =
 	   match desc with
-	   | Einit_last(_, e) -> incr 1; cost e
-	   | Einit_value(_, e, _) -> incr 1; cost e in
+	   | Einit_last(_, e) -> incr 1; cost e in
 	 List.iter index i_list;
 	 List.iter init init_list;
 	 incr (List.length i_list);

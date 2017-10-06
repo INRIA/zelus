@@ -445,8 +445,6 @@ opt_end:
 ;
 
 init_equation_desc:
-  | i = ide EQUAL e = expression oc = opt_combine
-     { Einit_value(i, e, oc) }	 
   | LAST i = ide EQUAL e = expression
      { Einit_last(i, e) }
   ;

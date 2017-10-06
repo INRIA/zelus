@@ -24,7 +24,8 @@ open Format
 
 type kind_of_global_ident = Value | Type | Constr | Label
 
-type kind_of_ident = Current | Initial | Derivative | CurrentDerivative
+type kind_of_ident =
+  Current | Initial | Next | Multi | Derivative | CurrentDerivative
 
 type error =
   | Evar_undefined of Ident.t
@@ -81,7 +82,9 @@ let kind_of_ident k =
   | Initial -> "initial value", ""
   | CurrentDerivative ->
      "value", " (a value and its derivative must occur in exclusive branches)"
-		
+  | Next -> "next", ""
+  | Multi -> "value", ""
+                        
 let kind_message kind =
   match kind with
   | Tstatic _ -> "static" 
