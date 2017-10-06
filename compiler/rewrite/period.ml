@@ -116,6 +116,8 @@ let rec expression time ({ e_desc = e_desc } as e) =
   match e_desc with
   | Eperiod(p) -> period time p
   | Eop(Edisc, [e]) -> disc (expression time e)
+  | Eop(op, e_list) ->
+     { e with e_desc = Eop(op, List.map (expression time) e_list) }
   | Eapp(app, op, e_list) ->
      (* for hybrid nodes, add the extra input [time] *)
      let op = expression time op in
@@ -141,7 +143,7 @@ let rec expression time ({ e_desc = e_desc } as e) =
      { e with e_desc = Eblock(block time b, expression time e) }
   | Eseq(e1, e2) ->
      { e with e_desc = Eseq(expression time e1, expression time e2) }
-  | Elocal _ | Eglobal _ | Eop _ | Econst _ | Econstr0 _ | Elast _ -> e
+  | Elocal _ | Eglobal _ | Econst _ | Econstr0 _ | Elast _ -> e
   | Epresent _ | Ematch _ -> assert false
 
 (* Translation of equations *)
