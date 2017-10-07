@@ -1,3 +1,11 @@
+let hybrid k1 (z) = s where rec
+   init s = 0.0
+   and automaton
+       | S1 ->
+	   do der s = 1.0 
+	   until z then do s = last s +. 1.0 in S1
+       end
+
 let node f(x) =
   let rec next y = y in y
 

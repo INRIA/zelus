@@ -168,26 +168,75 @@ let var loc h n =
 							 
 let typ_of_var loc h n = let { t_typ = typ } = var loc h n in typ
 
+(* Typing [last n] *)
 let last loc h n =
   let { t_sort = sort; t_typ = typ } as entry = var loc h n in 
   (* [last n] is allowed only if [n] is a state variable *)
   begin match sort with
   | Sstatic | Sval | Svar _ | Smem { m_next = Some(true) } ->
-     error loc (Elast_undefined(n))
+     error loc (Elast_forbidden(n))
   | Smem (m) ->
      entry.t_sort <- Smem { m with m_previous = true }
   end; typ
 
-let der loc h n = typ_of_var loc h n
+(* Typing [der n = ...] *)
+let derivative loc h n =
+  let { t_typ = typ; t_sort = sort } as entry = var loc h n in
+  match sort with
+  | Sstatic | Sval | Svar _ -> assert false
+  | Smem(m) -> entry.t_sort <- Smem { m with m_kind = Some(Cont) }; typ
 
+(* Typing [n += ...] *)
 let pluseq loc h n =
   (* check that a name [n] is declared with a combination function *)
-  let { t_typ = typ; t_sort = sort } = var loc h n in
-    match sort with
-    | Sval | Svar { v_combine = None } | Smem { m_combine = None } ->
-					  error loc (Ecombination_function(n))
-    | _ -> typ
+  let ({ t_typ = typ; t_sort = sort } as entry) = var loc h n in
+  match sort with
+  | Svar { v_combine = Some _ } -> typ
+  | Sstatic | Sval | Svar { v_combine = None } | Smem { m_combine = None } ->
+     error loc (Ecombination_function(n))
+  | Smem ({ m_next = n_opt } as m) ->
+     match n_opt with
+     | None -> entry.t_sort <- Smem { m with m_next = Some(false) }; typ
+     | Some(false) -> typ
+     | Some(true) -> error loc (Ealready_with_different_kinds(Next, Multi, n))
 	     
+(* Typing [init n = ...] *)
+let init loc h n =
+  (* set that [n] is initialized if it is not already at the definition point *)
+  let { t_typ = typ; t_sort = sort } as entry = var loc h n in
+  match sort with
+  | Sstatic | Sval | Svar _ -> assert false
+  | Smem ({ m_init = i_opt } as m) ->
+     match i_opt with
+     | None -> entry.t_sort <- Smem { m with m_init = Some(None) }; typ
+     | Some(None) -> typ
+     | Some(Some _) -> error loc (Ealready(Initial, n))
+
+(* Typing [next n = ...] *)
+let next loc h n =
+  let { t_typ = typ; t_sort = sort } as entry = var loc h n in
+  match sort with
+  | Sstatic | Sval | Svar _ -> assert false
+  | Smem { m_previous = true } -> error loc (Enext_forbidden(n))
+  | Smem ({ m_next = n_opt } as m) ->
+     match n_opt with
+     | None -> entry.t_sort <- Smem { m with m_next = Some(true) }; typ
+     | Some(true) -> typ
+     | Some(false) ->
+        error loc (Ealready_with_different_kinds(Current, Next, n))
+
+(* Typing [n = ...] *)
+let def loc h n =
+  let { t_sort = sort } as entry = var loc h n in
+  match sort with
+  | Sstatic | Sval | Svar _ -> ()
+  | Smem ({ m_next = n_opt } as m) ->
+     match n_opt with
+     | None -> entry.t_sort <- Smem { m with m_next = Some(false) }
+     | Some(false) -> ()
+     | Some(true) ->
+        error loc (Ealready_with_different_kinds(Next, Current, n))
+
 (** Types for global identifiers *)
 let global loc expected_k lname =
   let { qualid = qualid;
@@ -241,56 +290,14 @@ let check_definitions_for_every_name defined_names n_list =
      (* check that n is defined by an equation *)
      if not (in_dv || in_di || in_der || in_nv || in_mv)
      then error loc (Eequation_is_missing(n));
-     (* check that it is not already initialized *)
-     match d_opt with
-       | Some(Init _) when in_di -> error loc (Ealready(Initial, n))
-       | _ ->
-	  (* otherwise, remove local names *)
-	  { dv = if in_dv then S.remove n dv else dv;
-	    di = if in_di then S.remove n di else di;
-	    der = if in_der then S.remove n der else der;
-            nv = if in_nv then S.remove n nv else nv;
-            mv = if in_mv then S.remove n mv else mv })
+     (* remove local names *)
+     { dv = if in_dv then S.remove n dv else dv;
+       di = if in_di then S.remove n di else di;
+       der = if in_der then S.remove n der else der;
+       nv = if in_nv then S.remove n nv else nv;
+       mv = if in_mv then S.remove n mv else mv })
     defined_names n_list
     
-(* sets that a variable is defined by an equation [x = ...] or [next x = ...] *)
-(* when [is_next = true] then [x] must be defined by equation [next x = ...] *)
-(* [x = ...] otherwise *)
-let set is_next loc dv h =
-  let set x =
-    let { t_sort = sort } as entry = 
-      try Env.find x h with Not_found -> assert false in
-  match sort with
-  | Sstatic | Sval
-  | Svar _ | Smem { m_previous = true } ->
-     if is_next then error loc (Ecannot_be_set(is_next, x))
-  | Smem ({ m_next = m_opt } as m) ->
-     match m_opt with
-     | None ->
-	entry.t_sort <- Smem { m with m_next = Some(is_next) }
-     | Some(m) -> if m <> is_next then error loc (Ecannot_be_set(is_next, x)) in
-  S.iter set dv
-
-(* set the variables from [dv] to be initialized *)
-let set_init loc dv h =
-  let set x =
-    let { t_sort = sort } as entry = 
-      try Env.find x h with Not_found -> assert false in
-  match sort with
-  | Sstatic | Sval | Svar _ -> assert false
-  | Smem m -> entry.t_sort <- Smem { m with m_init = Some(None) } in
-  S.iter set dv
-
-(* set the variables from [dv] to be derivatives *)
-let set_derivative loc dv h =
-  let set x =
-    let { t_sort = sort } as entry = 
-      try Env.find x h with Not_found -> assert false in
-  match sort with
-  | Sstatic | Sval | Svar _ -> assert false
-  | Smem m -> entry.t_sort <- Smem { m with m_kind = Some(Cont) } in
-  S.iter set dv
-	 
 (** Typing a declaration *)
 	   
 (* type checking of the combination function *)
@@ -758,14 +765,6 @@ and expect expected_k h e expected_ty =
   let actual_ty = expression expected_k h e in
   unify_expr e expected_ty actual_ty
 
-(** Typing an optional expression with expected type [expected_type] *)
-(** [v] is the set of defined when the expression is present *)
-and optional_expect expected_k h e_opt expected_ty v =
-  match e_opt with
-    | None -> S.empty
-    | Some(e) -> 
-        expect expected_k h e expected_ty; v
-
 and apply loc is_statefull expected_k h e arg_list =
   (* the function [e] must be static *)
   let ty_fct = expression (Tstatic(true)) h e in
@@ -803,62 +802,47 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
         (* check that the pattern is total *)
         check_total_pattern p;
 	let dv = vars p in
-	(* sets that every variable from [dv] has a current value *)
-	set false loc dv h;
-	{ Deftypes.empty with dv = dv }
+	S.iter (def loc h) dv;
+        { Deftypes.empty with dv = dv }
     | EQpluseq(n, e) ->
         let actual_ty = expression expected_k h e in
         let expected_ty = pluseq loc h n in 
         unify loc expected_ty actual_ty;
-	(* sets that every variable from [dv] has a current value *)
-	let mv = S.singleton n in
-	set false loc mv h;
-	{ Deftypes.empty with mv = mv }
+	{ Deftypes.empty with mv = S.singleton n }
     | EQinit(n, e0) ->
         (* an initialization is valid only in a continuous or discrete context *)
         check_statefull loc expected_k;
-        let actual_ty = typ_of_var loc h n in
+        let actual_ty = init loc h n in
 	expect (Types.lift_to_discrete expected_k) h e0 actual_ty;
         (* sets that every variable from [di] is initialized *)
-	let di = S.singleton n in
-	set_init loc di h;
-	{ Deftypes.empty with di = di }
+	{ Deftypes.empty with di = S.singleton n }
     | EQnext(n, e, e0_opt) ->
         (* a next is valid only in a discrete context *)
         less_than loc (Tdiscrete(true)) expected_k;
-        let actual_ty = typ_of_var loc h n in
+        let actual_ty = next loc h n in
 	expect expected_k h e actual_ty;
-	(* sets that every variable from [dv] has a next value *)
-	let nv = S.singleton n in
-	set true loc nv h;
-	let di = 
-	  match e0_opt with 
-	    | None -> S.empty | Some(e) -> expect expected_k h e actual_ty; nv in
-	(* sets that every variable from [di] is initialized *)
-	set_init loc di h;
-	{ Deftypes.empty with nv = nv; di = di }
+	let di =
+          match e0_opt with 
+	  | None -> S.empty
+          | Some(e) ->
+             expect expected_k h e actual_ty; ignore (init loc h n); S.singleton n
+        in
+	{ Deftypes.empty with nv = S.singleton n; di = di }
     | EQder(n, e, e0_opt, p_h_e_list) ->
         (* integration is only valid in a continuous context *)
         less_than loc Tcont expected_k;
-        let actual_ty = der loc h n in
+        let actual_ty = derivative loc h n in
         unify loc Initial.typ_float actual_ty;
 	expect expected_k h e actual_ty;
-        (* written names *)
-	let der = S.singleton n in
-	let di = 
-	  optional_expect (Types.lift_to_discrete expected_k) h e0_opt 
-	    Initial.typ_float der in
-	(* sets that every variable from [di] is initialized *)
-	set_init loc di h;
-	(* sets that [n] is a derivative *)
-	set_derivative loc der h;
-	let _ = 
-	  present_handler_exp_list 
-	    loc expected_k h p_h_e_list None Initial.typ_float in
-	let dv = if p_h_e_list = [] then S.empty else der in
-	(* sets that every variable from [dv] has a current value *)
-	set false loc dv h;
-	{ Deftypes.empty with dv = dv; di = di; der = der }
+        let di =
+          match e0_opt with
+          | None -> S.empty
+          | Some(e) ->
+             expect (Types.lift_to_discrete expected_k) h e Initial.typ_float;
+             ignore (init loc h n); S.singleton n in
+        ignore (present_handler_exp_list 
+	          loc expected_k h p_h_e_list None Initial.typ_float);
+  	{ Deftypes.empty with dv = S.singleton n; di = di; der = S.singleton n }
     | EQautomaton(is_weak, s_h_list, se_opt) ->
         (* automata are only valid in continuous or discrete context *)
         check_statefull loc expected_k;
@@ -916,9 +900,9 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
 	 S.iter belong_to_init_out der;
          S.iter belong_to_out_not_init di;
          (* change the sort of [x] so that it is equal to that of [xi] *)
-	 set false loc (S.fold out dv S.empty) h;
-	 set_init loc (S.fold out di S.empty) h;
-	 set_derivative loc (S.fold out der S.empty) h;
+	 S.iter (def loc h) (S.fold out dv S.empty);
+	 S.iter (fun n -> ignore (init loc h n)) (S.fold out di S.empty);
+	 S.iter (fun n -> ignore (derivative loc h n)) (S.fold out der S.empty);
 	 
 	 (* all name [xi] from [defnames] such that [xi out x] *)
          (* is replaced by [x] in the new [defnames] *)
@@ -1003,7 +987,7 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
 and equation_list expected_k h eq_list =
   List.fold_left
     (fun defined_names eq -> 
-      Total.join eq.eq_loc h (equation expected_k h eq) defined_names)
+      Total.join eq.eq_loc (equation expected_k h eq) defined_names)
     Deftypes.empty eq_list
 
 (** Type a present handler when the body is an expression *)

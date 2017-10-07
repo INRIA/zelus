@@ -117,31 +117,27 @@ let merge loc h defnames_list =
 
 (* Join two sets of names in a parallel composition. Check that names *)
 (* are only defined once. Moreover, reject [der x = ...] and [x = ...] *)
-(* if a variable [x] appear twice, it must be given a combination function *)
-let join loc h
+let join loc
 	 { dv = dv1; di = di1; der = der1; nv = nv1; mv = mv1 }
          { dv = dv2; di = di2; der = der2; nv = nv2; mv = mv2 } =
-  let joinable n =
-    let { t_sort = sort } = try Env.find n h with Not_found -> assert false in
-    match sort with
-    | Svar { v_combine = Some _ } | Smem { m_combine = Some _ } -> true
-    | _ -> false in
   let join k names1 names2 =
     let joinrec n acc = 
-      if S.mem n names1 then
-	match k with
-	| Current when joinable n -> acc
-	| _ -> error loc (Ealready(k, n)) else S.add n acc in
+      if S.mem n names1 then error loc (Ealready(k, n)) else S.add n acc in
     S.fold joinrec names2 names1 in
-  let disjoint k names1 names2 =
+  let disjoint k1 k2 names1 names2 =
     let disjointrec n = 
-      if S.mem n names1 then error loc (Ealready(k, n)) in
+      if S.mem n names1 then
+        error loc (Ealready_with_different_kinds(k1, k2, n)) in
     S.iter disjointrec names2 in
-  disjoint CurrentDerivative dv1 der2;
-  disjoint CurrentDerivative dv2 der1;
+  disjoint Current Derivative dv1 der2;
+  disjoint Current Derivative dv2 der1;
+  disjoint Next Derivative nv1 der2;
+  disjoint Next Derivative nv2 der1;
+  disjoint Multi Derivative mv1 der2;
+  disjoint Multi Derivative mv2 der1;
   { dv = join Current dv1 dv2; di = join Initial di1 di2;
     der = join Derivative der1 der2; nv = join Next nv1 nv2;
-    mv = join Multi mv1 mv2 }
+    mv = S.union mv1 mv2 }
   
 (** Check that every variable defined in an automaton *)
 (* has a definition or is a signal or its value can be implicitly kept *)

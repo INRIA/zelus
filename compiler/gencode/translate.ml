@@ -507,7 +507,6 @@ let rec equation env loop_path { Zelus.eq_desc = desc } code =
      let e, code = exp env loop_path code e in
      letpat (pattern p) e code
   | Zelus.EQpluseq(n, e) ->
-     Format.eprintf "@[+=@,%a@.@]" fprint env;
      let e, code = exp env loop_path code e in
      pluseq (entry_of n env) e code
   | Zelus.EQder(n, e, None, []) ->
