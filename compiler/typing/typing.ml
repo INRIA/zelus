@@ -842,7 +842,7 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
              ignore (init loc h n); S.singleton n in
         ignore (present_handler_exp_list 
 	          loc expected_k h p_h_e_list None Initial.typ_float);
-  	{ Deftypes.empty with dv = S.singleton n; di = di; der = S.singleton n }
+  	{ Deftypes.empty with di = di; der = S.singleton n }
     | EQautomaton(is_weak, s_h_list, se_opt) ->
         (* automata are only valid in continuous or discrete context *)
         check_statefull loc expected_k;
