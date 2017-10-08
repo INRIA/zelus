@@ -1,13 +1,7 @@
-let hybrid k1 (z) = s where rec
-   init s = 0.0
-   and automaton
-       | S1 ->
-	   do der s = 1.0
-	   unless z then do s = last s +. 1.0 in S2
-       | S2 -> do s = 2.0 done
-       end
+let hybrid  f(x) =
+  let rec der y = y +. 1.0 and init y = 0.4 in y
 
-let node f(x) =
+let node g(x) =
   let rec next y = y in y
 
 (*

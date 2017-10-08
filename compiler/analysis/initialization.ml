@@ -27,7 +27,8 @@ open Init
 (** An entry in the type environment *)
 type tentry = 
     { t_typ: Definit.typ; (* the init type of x *)
-      t_last: bool; (* true when both [x] and [last x] are well initialized *) }
+      t_last: bool; (* true when both [x] and [last x] *)
+                    (* or [x] and [next x] are well initialized *) }
 
 (** Build an environment from a typing environment *)
 (* if [x] is defined by [init x = e] and [x = ex] then *)
@@ -37,7 +38,8 @@ let build_env l_env env =
   let entry { Deftypes.t_sort = sort; Deftypes.t_typ = ty } = 
     match sort with 
     | Deftypes.Smem { Deftypes.m_init = Some _ } | Deftypes.Svar _ ->
-       (* [x] and [last x] are initialized *)
+       (* [x] and [last x] or or [x] and [next x] *)
+       (* are well initialized *)
        { t_last = true; t_typ = Init.skeleton_on_i izero ty }
     | Deftypes.Smem { Deftypes.m_previous = true } ->
        (* [x] initialized; [last x] uninitialized *)
@@ -94,7 +96,7 @@ let message loc kind =
                         may not be well initialized.@."
 	  output_location loc
     | Elast_uninitialized(s) ->
-        Format.eprintf "%aInitialization error: the last value of name %s \
+        Format.eprintf "%aInitialization error: the last value of %s \
                         may not be well initialized.@."
 	  output_location loc
           (Ident.source s)
@@ -300,10 +302,9 @@ and equation env { eq_desc = eq_desc; eq_loc = loc } =
 	exp_less_than env e ty_n
     | EQder(n, e, e0_opt, p_h_e_list) ->
         let ty_n, is_last = 
-          begin try let { t_typ = ty1; t_last = is_last } = Env.find n env in 
-		    ty1, is_last 
-            with | Not_found -> assert false
-          end in
+          try let { t_typ = ty1; t_last = is_last1 } = Env.find n env in 
+	      ty1, is_last1 
+          with | Not_found -> assert false in
         exp_less_than env e ty_n;
         (match e0_opt with
 	  | None -> if not is_last then error loc (Elast_uninitialized(n))
@@ -312,12 +313,15 @@ and equation env { eq_desc = eq_desc; eq_loc = loc } =
     | EQinit(n, e0) ->
         exp_less_than_on_i env e0 izero
     | EQnext(n, e, e0_opt) ->
-        let ty_n = try let { t_typ = ty } = Env.find n env in ty
-		   with Not_found -> assert false in
+       let ty_n, is_last =
+         try let { t_typ = ty1; t_last = is_last1 } = Env.find n env in
+             ty1, is_last1
+	 with Not_found -> assert false in
 	exp_less_than env e ty_n;
-        ignore
-	  (Misc.optional_map (fun e -> exp_less_than env e ty_n) e0_opt);
-	unify e.e_loc ty_n (Init.skeleton_on_i izero e.e_typ)
+        (match e0_opt with
+         | None -> if not is_last then error loc (Elast_uninitialized(n))
+         | Some(e0) -> exp_less_than_on_i env e0 izero);
+        unify e.e_loc ty_n (Init.skeleton_on_i izero e.e_typ)
     | EQautomaton(is_weak, s_h_list, se_opt) ->
         (* state *)
         let state env { desc = desc } =
