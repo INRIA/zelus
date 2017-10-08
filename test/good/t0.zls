@@ -1,9 +1,6 @@
 let hybrid  f(x) =
   let rec der y = y +. 1.0 and init y = 0.4 in y
 
-let node g(x) =
-  let rec next y = y in y
-
 (*
 let f(x)(y) = o where
   rec forall i in 0 .. x, yi in y do

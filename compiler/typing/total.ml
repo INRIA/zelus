@@ -41,7 +41,7 @@ let add loc
 	else error loc (Ealready(k, elt))) set1 set2 in
   { dv = add Current dv1 dv2; di = add Initial di1 di2;
     der = add Derivative der1 der2; nv = add Next nv1 nv2;
-    mv = add Multi mv1 mv2; }
+    mv = S.union mv1 mv2; }
 
 
 (* checks that every partial name defined at this level *)
