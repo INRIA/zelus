@@ -114,7 +114,8 @@ let oplus e1 e2 = Oapp(operator "+", [e1; e2])
 let omult e1 e2 = Oapp(operator "*", [e1; e2])
 let ominus e1 e2 = Oapp(operator "-", [e1; e2])
 let omin e1 e2 = Oapp(operator "min", [e1; e2])
-let un = int_const 1
+let zero = int_const 0
+let one = int_const 1
 let is_null e = match e with Oconst(Oint(0)) -> true | _ -> false
 let plus e1 e2 =
   match e1, e2 with
@@ -168,7 +169,7 @@ let set_horizon h =
                 omin (global(modname "horizon")) (Ostate(Oleft_state_name(h))))
                           
 (* [x := !x + 1] *)
-let incr_pos x = Oassign(Oleft_name x, oplus (var x) un)
+let incr_pos x = Oassign(Oleft_name x, oplus (var x) one)
 let set_pos x e = Oassign(Oleft_name x, e)
 
 (* [x := !x + i] *)
@@ -214,7 +215,7 @@ let zout x i_list j_list pos =
 		   (Oleft_state_primitive_access(Oleft_state_name(x), Ozero_out))
 		i_list) j_list))
 let dzero c s =
-  Ofor(true, i, local c, minus s un,
+  Ofor(true, i, local c, minus s one,
        Oexp(set (bang "dvec") (local i) (float_const 0.0)))
 
 (** Compute the index associated to a state variable [x] in the current block *)
@@ -222,10 +223,12 @@ let dzero c s =
 let build_index m_list =
   (* [increase size typ e_list = size'] such that
    *- size' = size + (size_of typ) * s1 * ... * sn.
-   *- E.g., cont x[e1]...[en]: t is a vector of dimension l of a value t
-   *- t can itself be a floatting point vector of dimension k (size m1 * ... * mk).
-   *- In that case (size_of t = [m1]...[mk] *)
-  (* build two tables. The table [ctable] associates a pair
+   *- E.g., cont x[e1]...[en]: t is a vector of dimension n of a value t
+   *- t can itself be a floatting point vector of dimension k 
+      (size m1 * ... * mk).
+   *- In that case (size_of t = [m1]...[mk]
+   *- for cont x[]: t, the size is that of t
+         build two tables. The table [ctable] associates a pair
    *- ([m1]...[mk], [e1]...[en]) to every continuous state variable; 
    *- [ztable] do the same for zero-crossings
    * and the list of variables [h_list] which define the next horizon *)
@@ -252,9 +255,10 @@ let build_index m_list =
 let size_of table =
   let size _ (s_list, e_list) acc =
     let s1 =
-      List.fold_left (fun acc s -> mult acc s) acc s_list in
-    List.fold_left mult s1 e_list in
-  Env.fold size table un
+      List.fold_left (fun acc s -> mult acc s) one s_list in
+    let s2 = List.fold_left mult s1 e_list in
+    plus acc s2 in
+  Env.fold size table zero
 	   
 (** Add a method to copy back and forth the internal representation
  *- of the continuous state vector to the external flat representation
