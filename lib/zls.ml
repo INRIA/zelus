@@ -31,6 +31,9 @@ let zindex = ref 0
 let zmax = ref 0
 let discrete = ref true
 let horizon = ref infinity
+
+let set_horizon x =
+  horizon := min !horizon x
                   
 type 's f_alloc = unit -> 's
 type 's f_maxsize = 's -> int * int
