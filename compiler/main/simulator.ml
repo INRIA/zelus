@@ -91,8 +91,8 @@ let emit_prelude ff ({ Lident.id = id } as qualid) k =
           (* simulation (continuous) function *)@.\
           let main = \
             @[<v>let Hybrid { alloc = alloc; step = hstep; reset = reset } = %s in @,\
-              @[<h2>let step mem c z t = @,\
-                      discrete := true; cvec := c; zinvec := z;\
+              @[<h2>let step mem c d z t = @,\
+                      discrete := true; cvec := c; dvec := d; zinvec := z;\
                       hstep mem (t, ()) in@]@,\
               @[<h2>let derivative mem c d t = @,\
                       discrete :=false; cvec := c; dvec := d;\

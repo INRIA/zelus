@@ -55,7 +55,7 @@ type 'o hsimu =
         (* returns the current length of the continuous state vector *)
         zsize : 's -> int;
         (* returns the current length of the zero-crossing vector *)
-        step : 's -> cvec -> zinvec -> time -> 'o;
+        step : 's -> cvec -> dvec -> zinvec -> time -> 'o;
         (* computes a step *)
         derivative : 's -> cvec -> dvec -> time -> unit;
         (* computes the derivative *)

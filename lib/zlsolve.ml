@@ -330,11 +330,11 @@ struct (* {{{ *)
         if !log_dcalls then begin
           set_color before_loggedcall;
           carray_log "*DC:" t cstates;
-          let r = f_step dstate cstates rin t in
+          let r = f_step dstate cstates ignore_der rin t in
           set_color after_loggedcall;
           carray_log "*DR:" t cstates;
           r
-        end else f_step dstate cstates rin t
+        end else f_step dstate cstates ignore_der rin t
       in
       let t_horizon = f_horizon dstate in
       if t_horizon <= t then o, Goagain true
