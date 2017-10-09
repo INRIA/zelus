@@ -10,8 +10,9 @@ let yellow            = "\x1b[0;33m"
 let blue              = "\x1b[0;34m"
 let magenta           = "\x1b[0;35m"
 let cyan              = "\x1b[0;36m"
-let before_loggedcall = "\x1b[0;36m" (* cyan *)
-let after_loggedcall  = "\x1b[0;37m" (* gray *)
+let gray              = "\x1b[0;37m"
+let before_loggedcall = gray
+let after_loggedcall  = gray
 
 (* The simulation algorithm *)
 
