@@ -85,7 +85,8 @@
  *-    cpos := ci;
  *-    zpos := zi;
  *-    if d then (cout x1 ci;...; cout xn (ci+size1+...+size(n-1));
- *-               ... cpos is incremented)
+ *-               ... cpos is incremented;
+ *-               horizon := min (!horizon, h) (* h est l'horizon du bloc *))
  *-        (* sets the output state vector with the xi *)
  *-    else (zout m1 zi;...; mout mk (zi+size'1+...+size'(k-1));
  *-          ... zpos is incremented)
@@ -112,6 +113,7 @@ let operator op = Oglobal(Modname (Initial.pervasives_name op))
 let oplus e1 e2 = Oapp(operator "+", [e1; e2])
 let omult e1 e2 = Oapp(operator "*", [e1; e2])
 let ominus e1 e2 = Oapp(operator "-", [e1; e2])
+let omin e1 e2 = Oapp(operator "min", [e1; e2])
 let un = int_const 1
 let is_null e = match e with Oconst(Oint(0)) -> true | _ -> false
 let plus e1 e2 =
@@ -122,6 +124,7 @@ let minus e1 e2 =
 let mult e1 e2 =
   match e1, e2 with
   | Oconst(Oint(1)), _ -> e2 | _, Oconst(Oint(1)) -> e1 | _ -> omult e1 e2
+let min e1 e2 = Oapp(operator "min", [e1; e2])
 let local x = Olocal(x)
 let modname x = Lident.Modname { Lident.qual = "Zls"; Lident.id = x }
 let global x = Oglobal(x)                      
@@ -160,7 +163,10 @@ let inout f args = Oapp(global(modname f), args)
 let get e i = inout "get" [e; i]
 let get_zin e i = inout "get_zin" [e; i]
 let set e i arg = inout "set" [e; i; arg]
-                        
+let set_horizon h =
+  Oassign_state(Oleft_state_global(modname "horizon"),
+                omin (global(modname "horizon")) (Ostate(Oleft_state_name(h))))
+                          
 (* [x := !x + 1] *)
 let incr_pos x = Oassign(Oleft_name x, oplus (var x) un)
 let set_pos x e = Oassign(Oleft_name x, e)
@@ -175,30 +181,32 @@ let zincr ie = incr "zindex" ie
                   
 (* [x.(i1)....(in).(j1)...(jk) <- !cvec.(pos)] *)
 let cin x i_list j_list pos =
-  Oassign_state(left_state_access
-		  (left_state_access
-		     (Oleft_state_primitive_access(Oleft_state_name(x), Ocont))
-		     i_list) j_list,
-	        get (bang "cvec") (var pos))
+  Oassign_state
+    (left_state_access
+       (left_state_access
+	  (Oleft_state_primitive_access(Oleft_state_name(x), Ocont))
+	  i_list) j_list,
+     get (bang "cvec") (var pos))
 let zin x i_list j_list pos =
-  Oassign_state(left_state_access
-		  (left_state_access
-		     (Oleft_state_primitive_access(Oleft_state_name(x), Ozero_in))
-		     i_list) j_list,
-	        get_zin (bang "zinvec") (var pos))
+  Oassign_state
+    (left_state_access
+       (left_state_access
+	  (Oleft_state_primitive_access(Oleft_state_name(x), Ozero_in))
+	  i_list) j_list,
+     get_zin (bang "zinvec") (var pos))
 (* [!cvec.(pos) <- x.(i1)....(in).(j1)...(jk)] *)
 let cout x i_list j_list pos =
   set (bang "cvec") (var pos)
       (Ostate(left_state_access
 		(left_state_access
 		   (Oleft_state_primitive_access(Oleft_state_name(x), Ocont))
-		i_list) j_list))
+		   i_list) j_list))
 let dout x i_list j_list pos =
   set (bang "dvec") (var pos)
       (Ostate(left_state_access
 		(left_state_access
 		   (Oleft_state_primitive_access(Oleft_state_name(x), Oder))
-		i_list) j_list))
+		   i_list) j_list))
 let zout x i_list j_list pos =
   set (bang "zoutvec") (var pos)
       (Ostate(left_state_access
@@ -210,7 +218,7 @@ let dzero c s =
        Oexp(set (bang "dvec") (local i) (float_const 0.0)))
 
 (** Compute the index associated to a state variable [x] in the current block *)
-(* [build_index m_list = (ctable, csize), (ztable, zsize), m_list] *)
+(* [build_index m_list = (ctable, csize), (ztable, zsize), h_list] *)
 let build_index m_list =
   (* [increase size typ e_list = size'] such that
    *- size' = size + (size_of typ) * s1 * ... * sn.
@@ -219,24 +227,26 @@ let build_index m_list =
    *- In that case (size_of t = [m1]...[mk] *)
   (* build two tables. The table [ctable] associates a pair
    *- ([m1]...[mk], [e1]...[en]) to every continuous state variable; 
-   *- [ztable] do the same for zero-crossings *)
+   *- [ztable] do the same for zero-crossings
+   * and the list of variables [h_list] which define the next horizon *)
   let size s = size (Translate.size_of_type s) in
-  let build (ctable, ztable)
+  let build (ctable, ztable, h_list)
 	    { m_typ = typ; m_name = n; m_kind = m; m_size = e_list } = 
     match m with
-    | None -> ctable, ztable
+    | None -> ctable, ztable, h_list
     | Some(k) ->
        match k with
-       | Horizon | Period | Encore -> ctable, ztable
+       | Horizon -> ctable, ztable, n :: h_list
+       | Period | Encore -> ctable, ztable, h_list
        | Zero ->
 	  let s_list = Types.size_of typ in
-        ctable, Env.add n (List.map size s_list, e_list) ztable
+        ctable, Env.add n (List.map size s_list, e_list) ztable, h_list
        | Cont ->
 	  let s_list = Types.size_of typ in
-	  Env.add n (List.map size s_list, e_list) ctable, ztable in
-  let ctable, ztable =
-    List.fold_left build (Env.empty, Env.empty) m_list in
-  ctable, ztable
+	  Env.add n (List.map size s_list, e_list) ctable, ztable, h_list in
+  let ctable, ztable, h_list =
+    List.fold_left build (Env.empty, Env.empty, []) m_list in
+  ctable, ztable, h_list
 
 (* Compute the size of a table *)
 let size_of table =
@@ -306,7 +316,12 @@ let maxsize call size i_opt =
   else let i = call size in
        match i_opt with
        | None -> Some(i) | Some(i_old) -> Some(sequence [i; i_old])
-    
+
+(* If the current block contains an horizon state variable *)
+(* for every horizon state variable *)
+let set_horizon h_list =
+  sequence (List.map set_horizon h_list)
+           
 (** Translate a continuous-time machine *)
 let machine f ({ ma_initialize = i_opt;
 		 ma_memories = m_list; ma_methods = method_list } as mach) =
@@ -323,7 +338,7 @@ let machine f ({ ma_initialize = i_opt;
       get method_list in
     (* associate an integer index to every continuous state *)
     (* variable and zero-crossing *)
-    let ctable, ztable = build_index m_list in
+    let ctable, ztable, h_list = build_index m_list in
 
     let csize = size_of ctable in
     let zsize = size_of ztable in
@@ -349,11 +364,14 @@ let machine f ({ ma_initialize = i_opt;
 				[ifthenelse discrete (dzero ci csize)
 					    (sequence
 					       [zin ztable zpos;
-						cin ctable cpos]);
+						cin ctable cpos;
+                                                zincr zsize;
+                                                cincr csize]);
 				 oletin
 				   (varpat result ty) (Oinst(body))
 				   (sequence
-				      [set_pos cpos (local ci);
+				      [set_horizon h_list;
+                                       set_pos cpos (local ci);
 				       set_pos zpos (local zi);
 				       ifthenelse discrete
 						  (cout ctable cpos)
