@@ -116,15 +116,24 @@ let ominus e1 e2 = Oapp(operator "-", [e1; e2])
 let omin e1 e2 = Oapp(operator "min", [e1; e2])
 let zero = int_const 0
 let one = int_const 1
-let is_null e = match e with Oconst(Oint(0)) -> true | _ -> false
+let is_zero e = match e with Oconst(Oint(0)) -> true | _ -> false
 let plus e1 e2 =
   match e1, e2 with
-  | Oconst(Oint(0)), _ -> e2 | _, Oconst(Oint(0)) -> e1 | _ -> oplus e1 e2
+  | Oconst(Oint(0)), _ -> e2
+  | _, Oconst(Oint(0)) -> e1
+  | Oconst(Oint(v1)), Oconst(Oint(v2)) -> Oconst(Oint(v1 + v2))
+  | _ -> oplus e1 e2
 let minus e1 e2 =
-  match e1, e2 with | _, Oconst(Oint(0)) -> e1 | _ -> ominus e1 e2
+  match e1, e2 with
+  | _, Oconst(Oint(0)) -> e1
+  | Oconst(Oint(v1)), Oconst(Oint(v2)) -> Oconst(Oint(v1 - v2))
+  | _ -> ominus e1 e2
 let mult e1 e2 =
   match e1, e2 with
-  | Oconst(Oint(1)), _ -> e2 | _, Oconst(Oint(1)) -> e1 | _ -> omult e1 e2
+  | Oconst(Oint(1)), _ -> e2
+  | _, Oconst(Oint(1)) -> e1
+  | Oconst(Oint(v1)), Oconst(Oint(v2)) -> Oconst(Oint(v1 * v2))
+  | _ -> omult e1 e2
 let min e1 e2 = Oapp(operator "min", [e1; e2])
 let local x = Olocal(x)
 let modname x = Lident.Modname { Lident.qual = "Zls"; Lident.id = x }
@@ -132,8 +141,22 @@ let global x = Oglobal(x)
 let varpat x ty = Ovarpat(x, Translate.type_expression_of_typ ty)
 let var x = Ovar(false, x)
 let void = Oconst(Ovoid)
-let ifthenelse c i1 i2 = Oif(c, i1, Some(i2))
-let sequence i_list = Osequence i_list
+let ifthenelse c i1 i2 =
+  match i1, i2 with
+  | Oexp(Oconst(Ovoid)), Oexp(Oconst(Ovoid)) -> Oexp(Oconst(Ovoid))
+  | _, Oexp(Oconst(Ovoid)) -> Oif(c, i1, None)
+  | _ -> Oif(c, i1, Some(i2))
+let sequence i_list =
+  let seq i i_list =
+    match i, i_list with
+    | Oexp(Oconst(Ovoid)), _ -> i_list
+    | _, [] -> [i]
+    | _ -> i :: i_list in
+  let i_list = List.fold_right seq i_list [] in
+  match i_list with
+  | [] -> Oexp(void)
+  | _ -> Osequence i_list
+                   
 let rec left_state_access lv i_list =
   match i_list with
   | [] -> lv
@@ -166,7 +189,7 @@ let get_zin e i = inout "get_zin" [e; i]
 let set e i arg = inout "set" [e; i; arg]
 let set_horizon h =
   Oassign_state(Oleft_state_global(modname "horizon"),
-                omin (global(modname "horizon")) (Ostate(Oleft_state_name(h))))
+                omin (bang "horizon") (Ostate(Oleft_state_name(h))))
                           
 (* [x := !x + 1] *)
 let incr_pos x = Oassign(Oleft_name x, oplus (var x) one)
@@ -215,8 +238,9 @@ let zout x i_list j_list pos =
 		   (Oleft_state_primitive_access(Oleft_state_name(x), Ozero_out))
 		i_list) j_list))
 let dzero c s =
-  Ofor(true, i, local c, minus s one,
-       Oexp(set (bang "dvec") (local i) (float_const 0.0)))
+  if is_zero s then Oexp(void)
+  else Ofor(true, i, local c, minus s one,
+            Oexp(set (bang "dvec") (local i) (float_const 0.0)))
 
 (** Compute the index associated to a state variable [x] in the current block *)
 (* [build_index m_list = (ctable, csize), (ztable, zsize), h_list] *)
@@ -316,7 +340,7 @@ let zout table pos =
 (* increments the maximum size of the continuous state vector and that of *)
 (* the zero-crossing vector *)
 let maxsize call size i_opt =
-  if is_null size then i_opt
+  if is_zero size then i_opt
   else let i = call size in
        match i_opt with
        | None -> Some(i) | Some(i_old) -> Some(sequence [i; i_old])
@@ -347,6 +371,10 @@ let machine f ({ ma_initialize = i_opt;
     let csize = size_of ctable in
     let zsize = size_of ztable in
     
+    let c_is_not_zero = not (is_zero csize) in
+    let z_is_not_zero = not (is_zero zsize) in
+    let h_is_not_zero = not (List.length h_list = 0) in
+    
     (* add initialization code to [e_opt] *)
     let i_opt = maxsize cmax csize (maxsize zmax zsize i_opt) in
           
@@ -355,40 +383,63 @@ let machine f ({ ma_initialize = i_opt;
     let cpos = Ident.fresh "cpos" in
     let zpos = Ident.fresh "zpos" in
     let result = Ident.fresh "result" in
+
+    let oletin_only cond pat e body =
+      if cond then oletin pat e body else body in
+    let oletvar_only cond v ty e body =
+      if cond then oletvar v ty e body else body in
+    let only cond inst = if cond then inst else Oexp(void) in
+    let only_else cond inst1 inst2 = if cond then inst1 else inst2 in
+        
     let body =
-      oletin
+      oletin_only c_is_not_zero
         (* compute the current position of the cvector *)
 	(varpat ci Initial.typ_int) cindex
-        (* compute the current position of the zvector *)
-        (oletin
-           (varpat zi Initial.typ_int) zindex
-           (oletvar cpos Initial.typ_int (local ci)
-		    (oletvar zpos Initial.typ_int (local zi)
-			     (sequence
-				[ifthenelse discrete (dzero ci csize)
-					    (sequence
-					       [zin ztable zpos;
-						cin ctable cpos;
-                                                zincr zsize;
-                                                cincr csize]);
-				 oletin
-				   (varpat result ty) (Oinst(body))
-				   (sequence
-				      [set_horizon h_list;
-                                       set_pos cpos (local ci);
-				       set_pos zpos (local zi);
-				       ifthenelse discrete
-						  (cout ctable cpos)
-						  (sequence
-						     [zout ztable zpos;
-						      dout ctable cpos]);
-				       Oexp (local result)])])))) in
-    { mach with ma_initialize = i_opt;
-		ma_methods = { mdesc with me_body = body } :: method_list }
-  with
-    (* no get method is present *)
-    Not_found -> mach
-		   
+        (oletvar_only
+           c_is_not_zero cpos Initial.typ_int (local ci)
+	   (* compute the current position of the zvector *)
+           (oletin_only
+              z_is_not_zero (varpat zi Initial.typ_int) zindex
+              (oletvar_only
+                 z_is_not_zero zpos Initial.typ_int (local zi)
+		 (sequence
+		    [ifthenelse
+                       discrete (dzero ci csize)
+		       (sequence
+			  [only
+                             z_is_not_zero (zin ztable zpos);
+                           only
+                             z_is_not_zero (zincr zsize);
+                           only
+                             c_is_not_zero (cin ctable cpos);
+                           only
+                             c_is_not_zero (cincr csize)]);
+                     (only_else
+                        (c_is_not_zero || z_is_not_zero || h_is_not_zero)          
+                        (oletin
+		           (varpat result ty) (Oinst(body))
+		           (sequence
+			      [set_horizon h_list;
+                               only
+                                 c_is_not_zero (set_pos cpos (local ci));
+			       only
+                                 z_is_not_zero (set_pos zpos (local zi));
+			       ifthenelse discrete
+				          (only c_is_not_zero (cout ctable cpos))
+				          (sequence
+					     [only
+                                                z_is_not_zero (zout ztable zpos);
+					      only
+                                                c_is_not_zero (dout ctable cpos)]);
+			       Oexp (local result)]))
+                      body)])))) in
+            { mach with ma_initialize = i_opt;
+		        ma_methods = { mdesc with me_body = body } :: method_list }
+            with
+              (* no get method is present *)
+              Not_found -> mach
+
+                       
 (** The main entry. Add new methods to copy the continuous state vector *)
 (** back and forth into the internal state *)
 let implementation impl =
