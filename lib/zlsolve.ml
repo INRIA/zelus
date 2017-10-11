@@ -11,8 +11,8 @@ let blue              = "\x1b[0;34m"
 let magenta           = "\x1b[0;35m"
 let cyan              = "\x1b[0;36m"
 let gray              = "\x1b[0;37m"
-let before_loggedcall = gray
-let after_loggedcall  = gray
+let before_loggedcall = cyan
+let after_loggedcall  = cyan
 
 (* The simulation algorithm *)
 
@@ -310,7 +310,7 @@ struct (* {{{ *)
         carray_log "*FC:" t cs;
         ignore (f_ders dstate cs ds no_time_in_solver);
         set_color after_loggedcall;
-        carray_log "*FD:" t ds
+        carray_log " FD:" t ds
       end else ignore (f_ders dstate cs ds no_time_in_solver);
     in
 
@@ -333,7 +333,7 @@ struct (* {{{ *)
           carray_log "*DC:" t cstates;
           let r = f_step dstate cstates ignore_der rin t in
           set_color after_loggedcall;
-          carray_log "*DR:" t cstates;
+          carray_log " DR:" t cstates;
           r
         end else f_step dstate cstates ignore_der rin t
       in
