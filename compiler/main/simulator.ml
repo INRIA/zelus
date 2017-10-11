@@ -93,12 +93,15 @@ let emit_prelude ff ({ Lident.id = id } as qualid) k =
             @[<v>let Hybrid { alloc = alloc; step = hstep; reset = reset } = %s in @,\
               @[<h2>let step mem c d z t = @,\
                       discrete := true; cvec := c; dvec := d; zinvec := z;\
+                      cindex := 0; zindex := 0;\
                       hstep mem (t, ()) in@]@,\
               @[<h2>let derivative mem c d t = @,\
                       discrete :=false; cvec := c; dvec := d;\
+                      cindex := 0; zindex := 0;\
                       hstep mem (t, ()) in@]@,\
               @[<h2>let crossings mem c z t = @ \
                       discrete := false; cvec := c; zoutvec := z;\
+                      cindex := 0; zindex := 0;\
                       hstep mem (t, ()) in@]@,\
               @[<h2>let maxsize mem = (!cmax, !zmax) in@]@,\
               @[<h2>let csize mem = !cindex in@]@,\
