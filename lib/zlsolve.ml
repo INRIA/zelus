@@ -308,10 +308,10 @@ struct (* {{{ *)
       if !log_fcalls then begin
         set_color before_loggedcall;
         carray_log "*FC:" t cs;
-        ignore (f_ders dstate cs ds no_time_in_solver);
+        ignore (f_ders dstate cs ds no_roots_out no_time_in_solver);
         set_color after_loggedcall;
         carray_log " FD:" t ds
-      end else ignore (f_ders dstate cs ds no_time_in_solver);
+      end else ignore (f_ders dstate cs ds no_roots_out no_time_in_solver);
     in
 
     let g_main t cs rs =
