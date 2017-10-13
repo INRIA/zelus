@@ -57,9 +57,9 @@ type 'o hsimu =
         (* returns the current length of the zero-crossing vector *)
         step : 's -> cvec -> dvec -> zinvec -> time -> 'o;
         (* computes a step *)
-        derivative : 's -> cvec -> dvec -> zoutvec -> time -> unit;
+        derivative : 's -> cvec -> dvec -> zinvec -> zoutvec -> time -> unit;
         (* computes the derivative *)
-        crossings : 's -> cvec -> zoutvec -> time -> unit;
+        crossings : 's -> cvec -> zinvec -> zoutvec -> time -> unit;
         (* computes the derivative *)
         reset : 's -> unit;
         (* resets the state *)

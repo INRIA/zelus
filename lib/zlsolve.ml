@@ -308,20 +308,29 @@ struct (* {{{ *)
       if !log_fcalls then begin
         set_color before_loggedcall;
         carray_log "*FC:" t cs;
-        ignore (f_ders dstate cs ds no_roots_out no_time_in_solver);
+        ignore (f_ders dstate cs ds no_roots_in no_roots_out no_time_in_solver);
         set_color after_loggedcall;
         carray_log " FD:" t ds
-      end else ignore (f_ders dstate cs ds no_roots_out no_time_in_solver);
+      end else ignore (f_ders dstate cs ds no_roots_in no_roots_out no_time_in_solver);
     in
 
     let g_main t cs rs =
       if !log_gcalls then begin
         set_color before_loggedcall;
         carray_log "*ZC:" t cs;
-        ignore (f_zero dstate cs rs no_time_in_solver);
+        ignore (f_zero dstate cs no_roots_in rs no_time_in_solver);
         set_color after_loggedcall;
         carray_log " ZR:" t rs
-      end else ignore (f_zero dstate cs rs no_time_in_solver);
+      end else ignore (f_zero dstate cs no_roots_in rs no_time_in_solver);
+    in
+
+    let g_setup t cs ri =
+      if !log_gcalls then begin
+        set_color before_loggedcall;
+        carray_log "*ZS:" t cs;
+        ignore (f_zero dstate cs ri no_roots_out no_time_in_solver);
+        set_color after_loggedcall
+      end else ignore (f_zero dstate cs ri no_roots_out no_time_in_solver);
     in
 
     let d_main t rin =
@@ -331,11 +340,11 @@ struct (* {{{ *)
         if !log_dcalls then begin
           set_color before_loggedcall;
           carray_log "*DC:" t cstates;
-          let r = f_step dstate cstates ignore_der rin t in
+          let r = f_step dstate cstates ignore_der (* rin *) no_roots_in t in
           set_color after_loggedcall;
           carray_log " DR:" t cstates;
           r
-        end else f_step dstate cstates ignore_der rin t
+        end else f_step dstate cstates ignore_der (* rin *) no_roots_in t
       in
       let t_horizon = f_horizon dstate in
       if t_horizon <= t then o, Goagain true
@@ -352,8 +361,8 @@ struct (* {{{ *)
        later time, and then back interpolated for the requested time). In
        addition, when always_reinit=false, it is needed to set the value of
        pre_cstates. *)
-    let setup_discrete_step t =
-        g_main no_time_in_solver cstates no_roots_out;
+    let setup_discrete_step t roots =
+        g_setup no_time_in_solver cstates roots;
         if not !always_reinit then Bigarray.Array1.blit cstates pre_cstates
       in
 
@@ -463,7 +472,7 @@ struct (* {{{ *)
             if at_stop_time then (print_terminated t; SimF)
             else if event then begin
                 if has_roots then print_roots zs t roots;
-                setup_discrete_step t;
+                setup_discrete_step t roots;
                 SimD { params with t_sim = t;
                                    t_nextmesh = t_nextmesh;
                                    after_c = true;

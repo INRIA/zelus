@@ -40,8 +40,8 @@ type 's f_maxsize = 's -> int * int
 type 's f_csize = 's -> int
 type 's f_zsize = 's -> int
 type ('s, 'o) f_step = 's -> carray -> carray -> zarray -> float -> 'o
-type 's f_ders = 's -> carray -> carray -> carray -> float -> unit
-type 's f_zero = 's -> carray -> carray -> float -> unit
+type 's f_ders = 's -> carray -> carray -> zarray -> carray -> float -> unit
+type 's f_zero = 's -> carray -> zarray -> carray -> float -> unit
 type 's f_reset = 's -> unit
 type 's f_horizon = 's -> float
 
