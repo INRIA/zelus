@@ -74,9 +74,7 @@
  *-    var cpos = ci in
  *-    var zpos = zi in
  *-    if d then dzero s ci (* set all speeds to 0.0 *)
- *-    else (zin m1 zi;...; zout mk (zi+size'1+...+size'(k-1));
- *-          ... zpos is incremented
- *-          (* sets de value of continuous zero-crossing with what has been *)
+ *-    else ((* sets de value of continuous zero-crossing with what has been *)
  *-          (* computed by the zero-crossing detection *)
  *-          cin x1 ci;...; cin xn (ci+size1+...+size(n-1)));
  *-          ... cpos is incremented
@@ -88,7 +86,9 @@
  *-               ... cpos is incremented;
  *-               horizon := min (!horizon, h) (* h est l'horizon du bloc *))
  *-        (* sets the output state vector with the xi *)
- *-    else (zout m1 zi;...; mout mk (zi+size'1+...+size'(k-1));
+ *-    else (zin m1 zi;...; zout mk (zi+size'1+...+size'(k-1));
+ *-          ... zpos is incremented
+ *-          zout m1 zi;...; mout mk (zi+size'1+...+size'(k-1));
  *-          ... zpos is incremented)
  *-      (* store the argument of zero-crossing into the vector of zero-cross *)
  *-    result
@@ -407,10 +407,6 @@ let machine f ({ ma_initialize = i_opt;
                        discrete (dzero ci csize)
 		       (sequence
 			  [only
-                             z_is_not_zero (zin ztable zpos);
-                           only
-                             z_is_not_zero (zincr zsize);
-                           only
                              c_is_not_zero (cin ctable cpos);
                            only
                              c_is_not_zero (cincr csize)]);
@@ -428,6 +424,10 @@ let machine f ({ ma_initialize = i_opt;
 				          (only c_is_not_zero (cout ctable cpos))
 				          (sequence
 					     [only
+                                                z_is_not_zero (zin ztable zpos);
+                                              only
+                                                z_is_not_zero (zincr zsize);
+                                              only
                                                 z_is_not_zero (zout ztable zpos);
 					      only
                                                 c_is_not_zero (dout ctable cpos)]);

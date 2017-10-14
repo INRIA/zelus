@@ -22,8 +22,8 @@ OCAMLFIND ?= @OCAMLFIND@
 MENHIR    ?= @OCAMLBIN@menhir
 OTAGS	  ?= otags
 
-ZLLIB = lib
-TOOLS = tools
+ZLLIB = ../../lib
+TOOLS = ../../tools
 
 OCAMLFLAGS    ?= -annot 
 OCAMLOPTFLAGS ?= -annot 

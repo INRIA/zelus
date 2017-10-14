@@ -23,7 +23,7 @@
 (*  and z = time >= last h in *)
 (*  z *)
 
-(* [disc(e)] is translated into [false -> e <> last e] *)
+(* [disc(e)] is translated into [false -> d on (e <> last e)] *)
 
 (* [timer(v)] is translated into *)
 (* [local [horizon] h, z *)
@@ -98,7 +98,7 @@ let major_step =
 	     Initial.typ_zero
 let disc e =
   if Unsafe.exp e
-  then (* disc(e)] = [let x = e in x <> (x fby x)] *)
+  then (* disc(e)] = [let x = e in d on (x <> (x fby x))] *)
     let x = Ident.fresh "x" in
     let env = Env.singleton x { t_sort = Deftypes.value;
 				t_typ = e.e_typ } in
