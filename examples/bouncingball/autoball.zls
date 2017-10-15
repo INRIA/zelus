@@ -28,7 +28,7 @@ hybrid ball(x_0, y_0) = (x, y, y_start) where
       do 
         y = y0
       and
-        der x' = -0.8 *. x'
+        der x' = -0.2 *. x'
       until up(x -. x0) then do y_start = y in Bouncing
   end
       
