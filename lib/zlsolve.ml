@@ -472,7 +472,8 @@ struct (* {{{ *)
             if at_stop_time then (print_terminated t; SimF)
             else if event then begin
                 if has_roots then print_roots zs t roots;
-                setup_discrete_step t roots;
+                setup_discrete_step t (if has_roots
+                                       then roots else no_roots_in);
                 SimD { params with t_sim = t;
                                    t_nextmesh = t_nextmesh;
                                    after_c = true;
@@ -506,9 +507,7 @@ struct (* {{{ *)
           (* DISCRETE CALL *)
           Basics.set_major_step true;
 
-          let step_out, step_status =
-            d_main t_sim (if after_c && roots_valid
-                          then roots else no_roots_in) in
+          let step_out, step_status = d_main t_sim no_roots_in in
           simstate := (match step_status with
             | Continue (reset, t_horizon) -> begin
                   print_states "D : " t_sim cstates;
