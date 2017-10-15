@@ -35,6 +35,6 @@ hybrid ball(x_0, y_0) = (x, y, y_start) where
 (* Main entry point *)
 let hybrid main () =
   let (x, y, y_start) = ball(x_0, y_0) in
-  present (period (0.04)) -> Showball.show(x fby x, y fby y, x, y);
+  present (period (0.04)) -> Showball.show (x fby x) (y fby y) x y;
   ()
 
