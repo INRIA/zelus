@@ -81,16 +81,22 @@
  *-          (* sets the xi with the value of the input state vector *)
  *-    let result = ...body... in
  *-    cpos := ci;
- *-    zpos := zi;
- *-    if d then (cout x1 ci;...; cout xn (ci+size1+...+size(n-1));
- *-               ... cpos is incremented;
- *-               horizon := min (!horizon, h) (* h est l'horizon du bloc *))
+ *-    if d then 
+ *-        (cout x1 ci;...; xout ck (zi+size'1+...+size'(n-1));
+ *-        ... cpos is incremented)
+ *-        horizon := min (!horizon, h) (* h est l'horizon du bloc *))
  *-        (* sets the output state vector with the xi *)
+ *-        m1 <- false; ...; mk <- false;
+ *-        ... zpos is incremented
  *-    else (zin m1 zi;...; zout mk (zi+size'1+...+size'(k-1));
  *-          ... zpos is incremented
+ *-          zpos := zi;
  *-          zout m1 zi;...; mout mk (zi+size'1+...+size'(k-1));
  *-          ... zpos is incremented)
+ *-          dout x1 ci;...; xout ck (zi+size'1+...+size'(n-1));
+ *-          ... cpos is incremented);
  *-      (* store the argument of zero-crossing into the vector of zero-cross *)
+ *-    cindex <- cindex + csize; zindex <- zindex + zsize;
  *-    result
  *-
  *- Add to the initialization code: 
@@ -107,6 +113,7 @@ open Format
 
 let oletin p e1 i2 = Olet(p, e1, i2)
 let oletvar x ty e1 i2 = Oletvar(x, false, ty, Some(e1), i2)
+let bool v = Oconst(Obool(v))
 let int_const v = Oconst(Oint(v))
 let float_const v = Oconst(Ofloat(v))
 let operator op = Oglobal(Modname (Initial.pervasives_name op))
@@ -116,6 +123,7 @@ let ominus e1 e2 = Oapp(operator "-", [e1; e2])
 let omin e1 e2 = Oapp(operator "min", [e1; e2])
 let zero = int_const 0
 let one = int_const 1
+let ffalse = bool false
 let is_zero e = match e with Oconst(Oint(0)) -> true | _ -> false
 let plus e1 e2 =
   match e1, e2 with
@@ -237,6 +245,13 @@ let zout x i_list j_list pos =
 		(left_state_access
 		   (Oleft_state_primitive_access(Oleft_state_name(x), Ozero_out))
 		i_list) j_list))
+let zfalse x i_list j_list pos =
+  Oassign_state
+    (left_state_access
+       (left_state_access
+          (Oleft_state_primitive_access(Oleft_state_name(x), Ozero_in))
+          i_list) j_list,
+     ffalse)
 let dzero c s =
   if is_zero s then Oexp(void)
   else Ofor(true, i, local c, minus s one,
@@ -288,7 +303,7 @@ let size_of table =
  *- of the continuous state vector to the external flat representation
  *- This function is generic: table contains the association table
  *- [name, ([s1]...[sn], [e1]...[ek]). *)
-let cinout table call pos =
+let cinout table call pos incr =
   (* For every input x associated to ([s1]...[sn], [e1]...[ek])) from [table] *)
   (* for i1 = 0 to s1 - 1 do
    *-  ...
@@ -313,30 +328,34 @@ let cinout table call pos =
     let j_list = List.map (fun _ -> Ident.fresh "j") e_list in
     (copy i_list s_list
 	  (copy j_list e_list
-		(sequence [call x i_list j_list pos; incr_pos pos]))) :: acc in
+		(sequence [call x i_list j_list pos; incr pos]))) :: acc in
   let c_list = Env.fold add table [] in
-  Osequence(c_list)
+  sequence(c_list)
 
 let cin table pos =
   let call x i_list j_list pos = cin x i_list j_list pos in
-  cinout table call pos
+  cinout table call pos incr_pos
 
 let cout table pos =
   let assign x i_list j_list pos = Oexp(cout x i_list j_list pos) in
-  cinout table assign pos
+  cinout table assign pos incr_pos
 
 let dout table pos =
   let assign x i_list j_list pos = Oexp(dout x i_list j_list pos) in
-  cinout table assign pos
+  cinout table assign pos incr_pos
 
 let zin table pos =
   let assign x i_list j_list pos = zin x i_list j_list pos in
-  cinout table assign pos
+  cinout table assign pos incr_pos
 
 let zout table pos =
   let assign x i_list j_list pos = Oexp(zout x i_list j_list pos) in
-  cinout table assign pos
-	
+  cinout table assign pos incr_pos
+
+let zfalse table pos =
+   let assign x i_list j_list pos = zfalse x i_list j_list pos in
+   cinout table assign pos (fun _ -> Oexp(void))
+ 
 (* increments the maximum size of the continuous state vector and that of *)
 (* the zero-crossing vector *)
 let maxsize call size i_opt =
@@ -418,21 +437,31 @@ let machine f ({ ma_initialize = i_opt;
 			      [set_horizon h_list;
                                only
                                  c_is_not_zero (set_pos cpos (local ci));
-			       only
-                                 z_is_not_zero (set_pos zpos (local zi));
 			       ifthenelse discrete
-				          (only c_is_not_zero (cout ctable cpos))
+				          (sequence
+                                             [only
+                                                c_is_not_zero (cout ctable cpos);
+                                              only
+                                                z_is_not_zero
+                                                (zfalse ztable zpos)])
 				          (sequence
 					     [only
                                                 z_is_not_zero (zin ztable zpos);
                                               only
-                                                z_is_not_zero (zincr zsize);
-                                              only
+                                                z_is_not_zero
+                                                (set_pos zpos (local zi));
+			                      only
                                                 z_is_not_zero (zout ztable zpos);
 					      only
-                                                c_is_not_zero (dout ctable cpos)]);
-			       Oexp (local result)]))
-                      body)])))) in
+                                                c_is_not_zero (dout ctable cpos);
+                                              only
+                                                c_is_not_zero (cincr csize)]);
+			       only
+                                 c_is_not_zero (cincr zsize);
+                               only
+                                 z_is_not_zero (zincr zsize);
+                               Oexp (local result)]))
+                        body)])))) in
             { mach with ma_initialize = i_opt;
 		        ma_methods = { mdesc with me_body = body } :: method_list }
             with

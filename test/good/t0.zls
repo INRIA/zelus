@@ -1,5 +1,6 @@
 let hybrid f(x) =
-  let o = period 1.0 (2.0) in o
+  let o1 = period (1.0) in
+  o1
     
 (*
 let f(x)(y) = o where
