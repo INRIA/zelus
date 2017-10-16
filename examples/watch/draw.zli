@@ -1,4 +1,4 @@
-val unsafe draw_system :
+val draw_system :
   float *
   float *	
   float *
@@ -10,7 +10,7 @@ val unsafe draw_system :
   float * 
   float * 
   float * 
-  float -> unit
-val unsafe input : unit -> int
-val unsafe play_tic : unit -> unit
-val unsafe play_toc : unit -> unit
+  float -AD-> unit
+val input : unit -AD-> int
+val play_tic : unit -AD-> unit
+val play_toc : unit -AD-> unit

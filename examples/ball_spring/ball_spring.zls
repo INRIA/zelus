@@ -14,22 +14,22 @@ let discrete draw_ball_platform(z,z_platform,rad) =
   let z = truncate (z *. 10.0) in
   let z_platform = truncate (z_platform *. 10.0) in
   set_color red;
-  fill_circle (100, z, truncate(rad *. 10.0));
+  fill_circle 100 z (truncate(rad *. 10.0));
   set_color green;
-  moveto(10, z_platform);
-  lineto(190, z_platform);
+  moveto 10 z_platform;
+  lineto 190 z_platform;
   (* add spring zigzags *)
   let h = z_platform / 8 in
-  moveto( 20, z_platform);
-  lineto(180, z_platform - h);
-  lineto( 20, z_platform - 2 * h);
-  lineto(180, z_platform - 3 * h);
-  lineto( 20, z_platform - 4 * h);
-  lineto(180, z_platform - 5 * h);
-  lineto( 20, z_platform - 6 * h);
-  lineto(180, z_platform - 7 * h);
-  lineto( 20, z_platform - 8 * h);
-  lineto(180, z_platform - 9 * h);
+  moveto  20 z_platform;
+  lineto 180 (z_platform - h);
+  lineto  20 (z_platform - 2 * h);
+  lineto 180 (z_platform - 3 * h);
+  lineto  20 (z_platform - 4 * h);
+  lineto 180 (z_platform - 5 * h);
+  lineto  20 (z_platform - 6 * h);
+  lineto 180 (z_platform - 7 * h);
+  lineto  20 (z_platform - 8 * h);
+  lineto 180 (z_platform - 9 * h);
   synchronize ()
 
 (*physical constants for the ball*)

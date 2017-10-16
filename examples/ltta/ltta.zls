@@ -289,7 +289,7 @@ let hybrid delay2(c, tau_min, tau_max, eps) = dc where
              else do q = enqueue(dequeue(last q), d)
                   and t = -. front(last q) done
           and tau = arbitrary(tau_min, tau_max)
-          and d = max(eps, tau -. sum(last q) +. last t)
+          and d = max eps (tau -. sum(last q) +. last t)
           and emit dc = () done
       | up(last t) ->
           do if is_empty(last q) then do trans = false done
@@ -297,7 +297,7 @@ let hybrid delay2(c, tau_min, tau_max, eps) = dc where
           and emit dc = () done
       | c() ->
           local tau, d in
-          do if last trans then do  q = enqueue(last q, max(d, eps)) done
+          do if last trans then do  q = enqueue(last q, max d eps) done
               else do t = -. tau and trans = true done
           and tau = arbitrary(tau_min, tau_max)
           and d = tau -. sum(last q) +. last t done
