@@ -95,6 +95,7 @@ let emit_prelude ff ({ Lident.id = id } as qualid) k =
                       discrete := true; cvec := c;\
                       dvec := d; zinvec := zin;\
                       cindex := 0; zindex := 0;\
+                      horizon := infinity; \
                       hstep mem (t, ()) in@]@,\
               @[<h2>let derivative mem c d zin zout t = @,\
                       discrete :=false; cvec := c; dvec := d;\

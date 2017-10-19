@@ -71,6 +71,7 @@
  *- method step(arg1,...,argl) =
  *-    let ci = cindex() in (* current position of the cvector *)
  *-    let zi = zindex() in (* current position of the zvector *)
+ *-    cindex <- cindex + csize; zindex <- zindex + zsize;
  *-    var cpos = ci in
  *-    var zpos = zi in
  *-    if d then dzero s ci (* set all speeds to 0.0 *)
@@ -422,13 +423,13 @@ let machine f ({ ma_initialize = i_opt;
               (oletvar_only
                  z_is_not_zero zpos Initial.typ_int (local zi)
 		 (sequence
-		    [ifthenelse
+		    [only
+                       c_is_not_zero (cincr csize);
+                     only
+                       z_is_not_zero (zincr zsize);
+		     ifthenelse
                        discrete (dzero ci csize)
-		       (sequence
-			  [only
-                             c_is_not_zero (cin ctable cpos);
-                           only
-                             c_is_not_zero (cincr csize)]);
+		       (only c_is_not_zero (cin ctable cpos));
                      (only_else
                         (c_is_not_zero || z_is_not_zero || h_is_not_zero)          
                         (oletin
@@ -453,13 +454,7 @@ let machine f ({ ma_initialize = i_opt;
 			                      only
                                                 z_is_not_zero (zout ztable zpos);
 					      only
-                                                c_is_not_zero (dout ctable cpos);
-                                              only
-                                                c_is_not_zero (cincr csize)]);
-			       only
-                                 c_is_not_zero (cincr zsize);
-                               only
-                                 z_is_not_zero (zincr zsize);
+                                                c_is_not_zero (dout ctable cpos)]);
                                Oexp (local result)]))
                         body)])))) in
             { mach with ma_initialize = i_opt;
