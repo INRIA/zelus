@@ -40,10 +40,6 @@ end
 let fprint_t = S.fprint_t
 let fprint_tt = M.fprint_t S.fprint_t
                            
-  
-
-let set c_list = List.fold_left (fun acc c -> S.add c acc) S.empty c_list
-  
 type error =
   | ClashTypes of tc * tc * cycle
   | ClashLast of Ident.t
@@ -72,13 +68,13 @@ let atom c = Catom(c)
 (* path compression *)
 let rec crepr c =
   match c.c_desc with
-    | Clink(c_son) ->
-        let c_son = crepr c_son in
-        c.c_desc <- Clink(c_son);
-        c_son
-    | _ -> c
-
-(* equality of two nodes *)
+  | Clink(c_son) ->
+     let c_son = crepr c_son in
+     c.c_desc <- Clink(c_son);
+     c_son
+  | _ -> c
+           
+(* equality of two causality tags *)
 let equal c1 c2 =
   let c1 = crepr c1 in
   let c2 = crepr c2 in
@@ -86,8 +82,8 @@ let equal c1 c2 =
 
 let rec add c l = 
   match l with 
-    | [] -> [c] 
-    | c1 :: l1 -> if equal c c1 then l else c1 :: (add c l1)
+  | [] -> [c] 
+  | c1 :: l1 -> if equal c c1 then l else c1 :: (add c l1)
 
 let rec union l1 l2 = 
   let rec mem c l =
@@ -125,16 +121,16 @@ let cpolarity pol c =
     | _ -> c.c_polarity <- Pplusminus
 
 (** check for cycles. Does [index] appears in the set of elements *)
-(* greater than [c]? *)
+(** greater than [c]? *)
 let rec occur_check level index c =
   let rec check path c =
     match c.c_desc with
-      | Cvar -> 
-	  if c.c_level > level then c.c_level <- level;
-	  if c.c_index = index 
-	  then raise (Unify (List.rev path))
-	  else List.iter (check (c :: path)) c.c_sup
-      | Clink(link) -> check path link
+    | Cvar -> 
+       if c.c_level > level then c.c_level <- level;
+       if c.c_index = index 
+       then raise (Unify (List.rev path))
+       else List.iter (check (c :: path)) c.c_sup
+    | Clink(link) -> check path link
   in check [c] c
 
 (** Unification *)
@@ -369,6 +365,8 @@ let simplify c_set =
 (* Eliminate doublons, e.g., [c < b, b] and dependences to variables *)
 (* which are not input or outputs *)
 (* used only when a type error occurs. *)
+(* This function does not simplify as well as the function simplify. It *)
+(* is not used. *)
 let useless c_set =
   let rec remove_useless_variables c_set = S.iter remove_useless c_set 
   and remove_useless c = 
