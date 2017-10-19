@@ -62,12 +62,10 @@ let hybrid zigzag (zperiod, amplitude) = y where
       | Rising -> do
             der y = slope
           until (up(y -. amplitude)) then Falling
-          done
 
       | Falling -> do
             der y = -. slope
           until (up(-. amplitude -. y)) then Rising
-          done
 
 (* State-space equations *)
 

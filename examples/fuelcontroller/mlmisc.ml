@@ -21,7 +21,7 @@ let rec print_floats_2 f1 f2 =
   
 type ('x, 'y) lookup = 'x * 'y -> float
 
-let make_lookup (bpl1, bps1) (bpl2, bps2) table =
+let make_lookup ((bpl1, bps1), (bpl2, bps2), table) =
   Lookup.float_make_lookup_2d
   bpl1
   bpl2
@@ -32,5 +32,5 @@ let make_lookup (bpl1, bps1) (bpl2, bps2) table =
   table
   (fun y -> y)
 
-let use_lookup lup x = lup x
+let use_lookup (lup, x) = lup x
 
