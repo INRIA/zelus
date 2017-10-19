@@ -360,8 +360,13 @@ let rec array_of e_opt ty ff ie_size =
 	     "@[<hov 2>Array.init %a@ (fun _ -> %a)@]" (exp 3) ie
 	     (array_of e_opt ty) ie_list
      
+(* Print initialization code *)
+let print_initialize ff i_opt =
+  match i_opt with
+  | None -> fprintf ff "()" | Some(i) -> fprintf ff "%a" (inst 0) i
+		    
 (** Print the allocation function *)
-let palloc f memories ff instances =
+let palloc f i_opt memories ff instances =
   let print_memory ff { m_name = n; m_value = e_opt;
 			m_typ = ty; m_kind = k_opt; m_size = m_size } =
     match k_opt with
@@ -402,17 +407,19 @@ let palloc f memories ff instances =
 	    ie_size (kind k)  in
   if memories = []
   then if instances = []
-       then fprintf ff "@[let %s_alloc _ = () in@]" f
+       then fprintf ff "@[let %s_alloc _ = %a in@]" f print_initialize i_opt
        else
-         fprintf ff "@[<v 2>let %s_alloc _ =@ %a in@]"
-                 f (Ptypes.print_record print_instance) instances
+         fprintf ff "@[<v 2>let %s_alloc _ =@ @[%a;@,%a@] in@]"
+                 f print_initialize i_opt
+                 (Ptypes.print_record print_instance) instances
   else if instances = []
   then
-    fprintf ff "@[<v 2>let %s_alloc _ =@ %a in@]"
-            f (Ptypes.print_record print_memory) memories
+    fprintf ff "@[<v 2>let %s_alloc _ =@ @[%a;@,%a@] in@]"
+            f print_initialize i_opt (Ptypes.print_record print_memory) memories
   else
-    fprintf ff "@[<v 2>let %s_alloc _ =@ { @[%a@,%a@] } in@]"
+    fprintf ff "@[<v 2>let %s_alloc _ =@ @[%a;@,{ @[%a@,%a@] }@] in@]"
             f
+            print_initialize i_opt
             (print_list_r print_memory """;"";") memories
             (print_list_r print_instance """;""") instances
             
@@ -434,11 +441,6 @@ let def_instance_function ff { i_name = n; i_machine = ei; i_kind = k;
 		 k name n list_of_methods m_name_list
 		 (exp 0) ei (print_list_r (exp 1) "" " " "") e_list
 
-(* Print initialization code *)
-let print_initialize ff i_opt =
-  match i_opt with
-  | None -> () | Some(i) -> fprintf ff "%a;" (inst 0) i
-		    
 (** Print a machine as pieces with a type definition for the state *)
 (** and a collection of functions *)
 (* The general form is:
@@ -474,12 +476,11 @@ let machine f ff { ma_kind = k;
   (* print the type for [f] *)
   def_type_for_a_machine ff f memories instances;
   (* print the code for [f] *)
-  fprintf ff "@[<hov 2>let %s %a = @ @[%a@ @[%a@]@ @[%a@]@ @[%a@]@ %a@]@.@]"
+  fprintf ff "@[<hov 2>let %s %a = @ @[@[%a@]@ @[%a@]@ @[%a@]@ %a@]@.@]"
 	  f
 	  pattern_list pat_list
-	  print_initialize i_opt
 	  (print_list_r def_instance_function "" "" "") instances
-	  (palloc f memories) instances
+	  (palloc f i_opt memories) instances
 	  (print_list_r (pmethod f) """""") m_list
 	  tuple_of_methods m_list
 
