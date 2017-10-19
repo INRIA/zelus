@@ -29,7 +29,7 @@ let draw_gravity color =
   Graphics.set_color color;
   Graphics.fill_rect 0 0 width 5
 
-let show on last_h1 last_h2 h1 h2 =
+let show (on, last_h1, last_h2, h1, h2) =
   draw_gravity (if on then Graphics.yellow else background);
   draw_box background last_h1;
   draw_box background last_h2;
