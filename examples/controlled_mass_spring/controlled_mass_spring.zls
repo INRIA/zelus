@@ -39,11 +39,11 @@ let node draw_one_system { x0 = x0; y0 = y0; x = x; y = y } =
   let x  = truncate x  in
   let y0 = truncate y0 in
   let y  = truncate y  in
-  moveto(x0, y0);
-  lineto (x, y);
-  moveto (x0, (y0+100));
-  lineto (x0, (y0-100));
-  draw_circle (x, y, 20)
+  moveto x0 y0;
+  lineto  x y;
+  moveto  x0 (y0+100);
+  lineto  x0 (y0-100);
+  draw_circle x y 20
 
 let node clean_and_draw_system (system) = 
   clear_graph ();

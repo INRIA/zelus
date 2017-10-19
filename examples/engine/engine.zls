@@ -7,7 +7,7 @@ let hybrid timer v = t where
   rec der c = 1.0 init -.v reset t -> -.v
   and t = up(last c)
 
-let limit_to_positive x = max (0.0, x)
+let limit_to_positive x = max 0.0 x
 
 (*THROTTLE MANIFOLD *)
 let f(u) = r where r = 2.821 -. 0.05231*.u +. 0.10299*.u*.u -. 0.00063*.u*.u*.u

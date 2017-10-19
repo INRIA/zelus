@@ -30,7 +30,7 @@ let hybrid hand (ti, v) = t where
 
 let hybrid set hi = h where
   rec der h' = 0.5 init hi
-  and h = min(h0, h')
+  and h = min h0 h'
 
 let hybrid escapement theta = (tic, rtic, toc, rtoc) where
   rec present

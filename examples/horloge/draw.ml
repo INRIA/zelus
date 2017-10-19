@@ -137,7 +137,7 @@ let draw_digital h m s =
 
 
 
-let draw_system l tc t h0 h th thl twb twl hh mm ss =
+let draw_system (l, tc, t, h0, h, th, thl, twb, twl, hh, mm, ss) =
   clear_graph ();
   draw_big_wheel twb;
   draw_little_wheel twl;

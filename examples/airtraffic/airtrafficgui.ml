@@ -400,8 +400,8 @@ let sample ((window, model) : airtraffic) = window#where
 
 (* Work around a problem in the compilation of fby TPB:20110319 *)
 let state = ref (None : airtraffic option)
-let showupdate d dtheta r_alert r_protected delta_phi
-               mst xr yr theta_r v1 v2 t =
+let showupdate (d, dtheta, r_alert, r_protected, delta_phi,
+                mst, xr, yr, theta_r, v1, v2, t) =
   let st =
     match !state with
     | None -> let st = show d dtheta r_alert r_protected delta_phi in

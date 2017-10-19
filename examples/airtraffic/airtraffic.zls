@@ -60,7 +60,7 @@ let hybrid avoidance (x_i, y_i, theta_i, v_1, v_2) = (st, x, y, theta, show_t)
             and show_t = 0.0
           until up(sqr(alpha1) -. sqr(last x) -. sqr(last y))
             then do emit nxy = rotate(-. delta_phi, last x, last y)
-            in Left(d /. (max(v_1, v_2) *. sin(delta_phi)))
+            in Left(d /. ((max v_1 v_2) *. sin(delta_phi)))
       | Left(tmax) ->
           do
             t' = 1.0

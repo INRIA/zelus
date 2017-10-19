@@ -1,7 +1,7 @@
-val cons : 'a -> 'a list -> 'a list
+val cons : 'a * 'a list -> 'a list
 val nil : 'a list
 val singleton : 'a -> 'a list
-val append : 'a list -> 'a list -> 'a list
+val append : 'a list * 'a list -> 'a list
 
 val output_strings : out_channel -> string list -AD-> unit
 val output_quoted_strings : out_channel -> string list -AD-> unit
