@@ -1,6 +1,10 @@
 let hybrid f(x) =
-  let o1 = period (1.0) in
-  o1
+  let o1 = up(x) in o1
+
+let hybrid g(x) =
+  let o1 = f(x +. 1.0) in
+  let o2 = f(x +. 2.0) in
+  (o1, o2)
     
 (*
 let f(x)(y) = o where
