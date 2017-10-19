@@ -1,5 +1,5 @@
 
-let cons x xs = x :: xs
+let cons (x, xs) = x :: xs
 let nil = []
 
 let singleton x = [x]
@@ -10,7 +10,7 @@ let empty = function
 let hd = List.hd
 let tl = List.tl
 
-let append l1 l2 = List.append l1 l2
+let append (l1, l2) = List.append l1 l2
 
 let output_line output_item out ss =
   let pr s = (output_string out "\t"; output_item out s) in
