@@ -38,6 +38,7 @@ GLOBAL = global/misc.cmo \
 	global/zaux.cmo \
 	global/ptypes.cmo \
 	global/pcaus.cmo \
+	global/pinit.cmo \
 	global/printer.cmo \
 	global/scoping.cmo \
 	global/graph.cmo \

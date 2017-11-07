@@ -1,27 +1,19 @@
-let hybrid f(x) =
-  let o1 = up(x) in o1
+let node f(x) =
+  let rec f = x -> pre f + 1 in f
 
-let hybrid g(x) =
-  let o1 = f(x +. 1.0) in
-  let o2 = f(x +. 2.0) in
-  (o1, o2)
+let node h(x, y, z) = x + y, z + 2
+
+let node ff(x, y) = x fby (y+1)
     
-(*
-let f(x)(y) = o where
-  rec forall i in 0 .. x, yi in y do
-    o = last o + yi
+let node g(x) = o where
+  rec forall i in 0 .. 42, xi in x do
+    o = f(i) + last o
   initialize
-    last o = 42
+    last o = 0
   done
-      
 
-let h(y) = f(42)(y)
-
-    
-let hybrid g (x) =
-  let rec der o = 1.0 +. 0.1 *. o init 42.0 in
-  o
-*)
+let node fff gg f x y z =
+  (gg f)(x) + (gg f) (f y) + f(0 fby z)
 
 (*
 let discrete f x = if x = 2 then 1 else 2

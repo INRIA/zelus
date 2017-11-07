@@ -18,7 +18,7 @@
 (* type scheme *)
 type styp = 
     { typ_vars: init list; (* list of type variables *)
-      typ_res: typ;        (* type of the result *)
+      typ: typ;        (* type of the result *)
     }
 
  and typ =

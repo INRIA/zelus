@@ -318,7 +318,7 @@ let generalise ty =
   mark true true ty;
   shorten ty;
   gen ty;
-  { typ_vars = !list_of_vars; typ_res = ty }
+  { typ_vars = !list_of_vars; typ = ty }
 
 (** Instantiation of a type *)
 (* save and cleanup links *)
@@ -352,7 +352,7 @@ and icopy i =
      if i.i_level = generic then ione else i
 					     
 (* instanciation *)
-let instance { typ_vars = ty_list; typ_res = ty } =
+let instance { typ_vars = ty_list; typ = ty } =
   let ty = copy ty in
   cleanup ();
   ty
@@ -384,6 +384,6 @@ module Printer = struct
     | Iproduct(ty_list) ->
         fprintf ff "@[%a@]" (print_list_r typ "("" *"")") ty_list
 
-  let scheme ff { typ_res = ty } = typ ff ty
+  let scheme ff { typ = ty } = typ ff ty
 end
 
