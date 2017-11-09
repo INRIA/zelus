@@ -599,9 +599,9 @@ let implementation ff { desc = desc } =
        let tcs = generalise tc in
        Global.set_causality (Modules.find_value (Lident.Name(f))) tcs;
        (* output the signature *)
-       if !Misc.print_causality then Pcaus.declaration ff f tcs
+       if !Misc.print_causality_types then Pcaus.declaration ff f tcs
     | Efundecl (f, { f_kind = k; f_atomic = atomic;
-		     f_args = pat_list; f_body = e; f_env = h0 }) ->
+		     f_args = pat_list; f_body = e }) ->
        Misc.push_binding_level ();
        let expected_k = Interface.kindtype k in
        let tc_arg_list, tc_res =
@@ -628,7 +628,7 @@ let implementation ff { desc = desc } =
        (* then add the current entries in the global environment *)
        Global.set_causality (Modules.find_value (Lident.Name(f))) tcs;
        (* output the signature *)
-       if !Misc.print_causality then Pcaus.declaration ff f tcs
+       if !Misc.print_causality_types then Pcaus.declaration ff f tcs
   with
   | Error(loc, env, err) -> message loc env err
 

@@ -33,7 +33,8 @@ let compile file =
 let doc_verbose = " Set verbose mode"
 and doc_version = " The version of the compiler"
 and doc_print_types = " Print types"
-and doc_print_causality = " Print causality types"
+and doc_print_causality_types = " Print causality types"
+and doc_print_initialization_types = " Print initialization types"
 and doc_include = "<dir> Add <dir> to the list of include directories"
 and doc_stdlib = "<dir> Directory for the standard library"
 and doc_locate_stdlib = " Locate standard libray"
@@ -71,7 +72,9 @@ let main () =
         "-version", Arg.Unit show_version, doc_version;
         "-I", Arg.String add_include, doc_include;
         "-i", Arg.Set print_types, doc_print_types;
-        "-ic", Arg.Set print_causality, doc_print_causality;
+        "-ic", Arg.Set print_causality_types, doc_print_causality_types;
+        "-ii",
+	Arg.Set print_initialization_types, doc_print_initialization_types;
         "-where", Arg.Unit locate_stdlib, doc_locate_stdlib;
         "-stdlib", Arg.String set_stdlib, doc_stdlib;
         "-nopervasives", Arg.Unit set_no_pervasives, doc_no_pervasives;

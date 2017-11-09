@@ -1,19 +1,4 @@
-let node f(x) =
-  let rec f = x -> pre f + 1 in f
-
-let node h(x, y, z) = x + y, z + 2
-
-let node ff(x, y) = x fby (y+1)
-    
-let node g(x) = o where
-  rec forall i in 0 .. 42, xi in x do
-    o = f(i) + last o
-  initialize
-    last o = 0
-  done
-
-let node fff gg f x y z =
-  (gg f)(x) + (gg f) (f y) + f(0 fby z)
+let node f(x, y) = x + y
 
 (*
 let discrete f x = if x = 2 then 1 else 2

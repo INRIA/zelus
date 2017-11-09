@@ -16,30 +16,30 @@
 open Misc
 open Deftypes
 open Definit
-
+open Global
        
-(** Sets the polarity of a type. *)
-let polarity p i =
-  match p, i.i_polarity with
-    | _, Punknown -> i.i_polarity <- p
-    | Punknown, polarity -> ()
-    | _, polarity -> if p <> polarity then i.i_polarity <- Pplusminus
-
 (* typing errors *)
-exception Unify
+type error =
+  | Iless_than of ty * ty (* not (expected_ty < actual_ty) *) 
+  | Iless_than_i of t * t (* not (expected_i < actual_i) *) 
+  | Iunify of ty * ty (* not (expected_ty = actual_ty) *) 
+  | Iunify_i of t * t (* not (expected_i = actual_i) *) 
+  | Ilast of Ident.t (* [last x] is un-initialized *)
+
+exception Clash of error
 
 let new_var () = 
   { i_desc = Ivar; i_index = symbol#name; i_level = !binding_level;
     i_inf = []; i_sup = []; i_visited = -1; 
-    i_useful = true; i_polarity = Punknown }
+    i_useful = false; i_polarity = Punknown }
 let izero = 
   { i_desc = Izero; i_index = symbol#name; i_level = generic;
     i_inf = []; i_sup = [];
-    i_visited = -1; i_useful = true; i_polarity = Punknown }
+    i_visited = -1; i_useful = false; i_polarity = Punknown }
 let ione = 
   { i_desc = Ione; i_index = symbol#name; i_level = generic;
     i_inf = []; i_sup = [];
-    i_visited = -1; i_useful = true; i_polarity = Punknown   }
+    i_visited = -1; i_useful = false; i_polarity = Punknown   }
 let funtype ty1 ty2 = Ifun(ty1, ty2)
 let rec funtype_list ty_arg_list ty_res =
   match ty_arg_list with
@@ -49,15 +49,6 @@ let rec funtype_list ty_arg_list ty_res =
 let product l = Iproduct(l)
 let atom i = Iatom(i)
 
-let add i l = if List.memq i l then l else i :: l
-
-let rec union l1 l2 = 
-  match l1, l2 with
-    [], l2 -> l2
-  | l1, [] -> l1
-  | x :: l1, l2 ->
-      if List.memq x l2 then union l1 l2 else x :: union l1 l2
-
 (* basic operation on initialization values *)
 let rec irepr i =
   match i.i_desc with
@@ -66,6 +57,31 @@ let rec irepr i =
         i.i_desc <- Ilink(i_son);
         i_son
     | _ -> i
+
+(* equality of two initialization tags *)
+let equal i1 i2 =
+  let i1 = irepr i1 in
+  let i2 = irepr i2 in
+  i1.i_index = i2.i_index
+		 
+let rec add i l =
+  match l with
+  | [] -> [i]
+  | i1 :: l1 -> if equal i i1 then l else i1 :: (add i l1)
+
+let rec union l1 l2 = 
+  let rec mem i l =
+    match l with | [] -> false | i1 :: l -> (equal i i1) || (mem i l) in
+  match l1, l2 with
+  | [], l2 -> l2 | l1, [] -> l1
+  | i :: l1, l2 -> if mem i l2 then union l1 l2 else i :: union l1 l2
+							      
+(** Sets the polarity of a type. *)
+let polarity p i =
+  match p, i.i_polarity with
+    | _, Punknown -> i.i_polarity <- p
+    | Punknown, polarity -> ()
+    | _, polarity -> if p <> polarity then i.i_polarity <- Pplusminus
 
 (* saturate an initialization type. Every leaf must be initialized *)
 let rec initialize is_zero ty =
@@ -83,7 +99,7 @@ and iinitialize is_zero i =
         i.i_desc <- Ilink(if is_zero then izero else ione); 
         List.iter (iinitialize is_zero) (if is_zero then i.i_inf else i.i_sup)
     | Ilink(i) -> iinitialize is_zero i
-    | _ -> raise Unify
+    | _ -> raise (Clash(Iunify_i(i, if is_zero then izero else ione)))
 
 (** Sub-typing *)
 let rec less left_ty right_ty =
@@ -94,7 +110,7 @@ let rec less left_ty right_ty =
        less ty2 ty4; less ty3 ty1
     | Iproduct(l1), Iproduct(l2) -> List.iter2 less l1 l2
     | Iatom(i1), Iatom(i2) -> iless i1 i2
-    | _ -> raise Unify
+    | _ -> raise (Clash(Iless_than(left_ty, right_ty)))
 
 and iless left_i right_i =
   if left_i == right_i then ()
@@ -112,7 +128,7 @@ and iless left_i right_i =
          (* l1,...,lm < r < s1,...,sr *)
          right_i.i_inf <- add left_i right_i.i_inf;
          left_i.i_sup <- add right_i left_i.i_sup
-      | _ -> raise Unify
+      | _ -> raise (Clash(Iless_than_i(left_i, right_i)))
 		   
 (** Unification *)
 let rec unify left_ty right_ty =
@@ -122,7 +138,7 @@ let rec unify left_ty right_ty =
      List.iter2 unify ty_list1 ty_list2
   | Iatom(left_i), Iatom(right_i) ->
      iunify left_i right_i
-  | _ -> raise Unify
+  | _ -> raise (Clash(Iunify(left_ty, right_ty)))
 
 and iunify left_i right_i =
   if left_i == right_i then ()
@@ -149,7 +165,7 @@ and iunify left_i right_i =
       | Izero, Ivar -> iinitialize true right_i
       | Ione, Ivar -> iinitialize false right_i
       | (Izero, Izero) | (Ione, Ione) -> ()
-      | _ -> raise Unify
+      | _ -> raise (Clash(Iunify_i(left_i, right_i)))
 		   
 (** Computing an initialization type from a type *)
 let rec skeleton ty =
@@ -180,7 +196,7 @@ let rec iunify_stack stack i =
        if i_stack == i then ()
        else
          begin iunify i_stack i; iunify_stack stack i end
-                
+           
 (** Mark useful/useless types and sets the polarity *)
 (* reduces dependences by eliminating intermediate variables *)
 (* we first mark useful variables (variables which appear in *)
@@ -296,17 +312,17 @@ and igen i =
   match i.i_desc with
   | Izero | Ione -> i.i_level
   | Ivar ->
-     if i.i_level > !binding_level
-     then 
-       begin
-         i.i_level <- generic;
-         let level1 = gen_set i.i_inf in
-         let level2 = gen_set i.i_sup in
-         let level = min level1 level2 in
-         i.i_level <- level;
-         if level = generic then list_of_vars := i :: !list_of_vars
-       end;
-     i.i_level
+    if i.i_level > !binding_level
+    then 
+      begin
+        i.i_level <- generic;
+        let level1 = gen_set i.i_inf in
+        let level2 = gen_set i.i_sup in
+        let level = min level1 level2 in
+        i.i_level <- level;
+        if level = generic then list_of_vars := i :: !list_of_vars
+      end;
+    i.i_level
   | Ilink(link) -> igen link
 			
 and gen_set l = List.fold_left (fun acc i -> max (igen i) acc) generic l
@@ -316,7 +332,7 @@ let generalise ty =
   list_of_vars := [];
   (* we mark useful variables *)
   mark true true ty;
-  shorten ty;
+  (* shorten ty; *)
   gen ty;
   { typ_vars = !list_of_vars; typ = ty }
 
@@ -326,12 +342,16 @@ let links = ref []
     
 let save link = links := link :: !links
 let cleanup () = List.iter (fun i -> i.i_desc <- Ivar) !links; links := []
-
-let rec copy ty =
-  match ty with
-  | Ifun(ty1, ty2) -> funtype (copy ty1) (copy ty2)
-  | Iproduct(ty_list) -> product (List.map copy ty_list)
-  | Iatom(i) -> atom (icopy i)
+									  
+let rec copy ti ({ t_desc = t_desc } as ty) =
+  match ti, t_desc with
+  | Ifun(ti1, ti2), Tfun(_, _, ty1, ty2) ->
+     funtype (copy ti1 ty1) (copy ti2 ty2)
+  | Iproduct(ti_list), Tproduct(ty_list) ->
+     begin try product (List.map2 copy ti_list ty_list)
+	   with | _ -> assert false end
+  | Iatom(i), _ -> skeleton_on_i (icopy i) ty
+  | _ -> assert false
 
 and icopy i =
   match i.i_desc with
@@ -352,38 +372,26 @@ and icopy i =
      if i.i_level = generic then ione else i
 					     
 (* instanciation *)
-let instance { typ_vars = ty_list; typ = ty } =
-  let ty = copy ty in
+let instance { typ_vars = ti_list; typ = ti } ty =
+  let ti = copy ti ty in
   cleanup ();
-  ty
-  
+  ti
+
+(* type instance *)
+let instance { value_init = tis_opt } ty =
+  (* build a default signature *)
+  let default ty =
+    let i = new_var () in
+    skeleton_on_i i ty in
+  let ti = match tis_opt with
+    | None -> 
+       (* if no initialization signature is declared, a default one is built *)
+       (* from the type signature *)
+       default ty
+    | Some(tis) -> instance tis ty in
+  ti
+
 let filter_arrow ty =
   match ty with
   | Ifun(ty1, ty2) -> ty1, ty2
   | _ -> assert false
-		
-module Printer = struct
-  open Format
-  open Pp_tools
-
-  (* type variables are printed 'a, 'b,... *)
-  let type_name = new name_assoc_table int_to_alpha
-
-  let name ff index = fprintf ff "%s" (type_name#name index)
-
-  let rec init ff i = match i.i_desc with
-    | Izero -> fprintf ff "0"
-    | Ione -> fprintf ff "1"
-    | Ilink(i) -> init ff i
-    | Ivar -> name ff i.i_index
-
-  let rec typ ff = function
-    | Iatom(i) -> init ff i
-    | Ifun(ty1, ty2) ->
-       fprintf ff "@[<hov 2>%a ->@ %a@]" typ ty1 typ ty2
-    | Iproduct(ty_list) ->
-        fprintf ff "@[%a@]" (print_list_r typ "("" *"")") ty_list
-
-  let scheme ff { typ = ty } = typ ff ty
-end
-

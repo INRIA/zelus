@@ -18,6 +18,7 @@
 (* all their inputs and outputs initialized *)
 open Misc
 open Ident
+open Global
 open Zelus
 open Location
 open Deftypes
@@ -26,7 +27,7 @@ open Init
 
 (** An entry in the type environment *)
 type tentry = 
-    { t_typ: Definit.typ; (* the init type of x *)
+    { t_typ: Definit.ty; (* the init type of x *)
       t_last: bool; (* true when both [x] and [last x] *)
                     (* or [x] and [next x] are well initialized *) }
 
@@ -80,26 +81,46 @@ let split se_opt s_h_list =
         List.hd s_h_list, List.tl s_h_list
     | Some(se) -> splitrec (state se) s_h_list
 
-(* Main error message *)
-type error =
-  | Elast_uninitialized of Ident.t
-  | Eclash
+let print x = Misc.internal_error "unbound" Printer.name x
 
-exception Error of location * error
+(* Main error message *)
+exception Error of location * Init.error
 
 let error loc kind = raise (Error(loc, kind))
 
 let message loc kind =
-  begin match kind with
-    | Eclash ->
-        Format.eprintf "%aInitialization error: this expression \
-                        may not be well initialized.@."
-	  output_location loc
-    | Elast_uninitialized(s) ->
-        Format.eprintf "%aInitialization error: the last value of %s \
-                        may not be well initialized.@."
-	  output_location loc
-          (Ident.source s)
+  begin
+    match kind with
+    | Iless_than(expected_ty, actual_ty) ->
+       Format.eprintf
+	 "%aInitialization error: this expression \
+          has type %a which should be less than %a.@."
+	 output_location loc
+	 Pinit.ptype expected_ty Pinit.ptype actual_ty
+    | Iless_than_i(expected_i, actual_i) ->
+       Format.eprintf
+	 "%aInitialization error: this expression \
+          has type %a which should be less than %a.@."
+	 output_location loc
+	 Pinit.init expected_i Pinit.init actual_i
+    | Iunify(expected_ty, actual_ty) ->
+       Format.eprintf
+	 "%aInitialization error: this expression \
+          has type %a but should be %a.@."
+	 output_location loc
+	 Pinit.ptype expected_ty Pinit.ptype actual_ty
+    | Iunify_i(expected_i, actual_i) ->
+       Format.eprintf
+	 "%aInitialization error: this expression \
+          has type %a but should be %a.@."
+	 output_location loc
+	 Pinit.init expected_i Pinit.init actual_i
+    | Ilast(n) ->
+       Format.eprintf
+	 "%aInitialization error: the last value of %s \
+          may not be well initialized.@."
+	 output_location loc
+         (Ident.source n)
   end;
   raise Misc.Error
 
@@ -108,13 +129,13 @@ let unify loc actual_ty expected_ty =
   try
     Init.unify actual_ty expected_ty
   with
-    | Init.Unify -> error loc Eclash
+    | Init.Clash(kind) -> error loc kind
 
 let less_than loc actual_ty expected_ty =
   try
     Init.less actual_ty expected_ty
   with
-    | Init.Unify -> error loc Eclash
+    | Init.Clash(kind) -> error loc kind
 
 (** Check that partially defined names have a last value which is initialized *)
 let initialized_last loc env defnames_list =
@@ -125,7 +146,7 @@ let initialized_last loc env defnames_list =
   (* check that all of them have a well-initialized initial value *)
   let check n =
     let { t_last = last } = try Env.find n env with Not_found -> assert false in
-    if not last then error loc (Elast_uninitialized(n)) in
+    if not last then error loc (Ilast(n)) in
   S.iter check dv_partial;
   S.iter check di_partial;
   S.iter check nv_partial;
@@ -191,11 +212,16 @@ let rec exp env { e_desc = desc; e_typ = ty } =
   match desc with
   (* for the moment, no type signature is stored in the global *)
   (* environment. Arguments/results must always be initialized. *)
-  | Econst _ | Econstr0 _ | Eglobal _ | Eperiod _ -> 
-					 Init.skeleton_on_i (Init.new_var ()) ty
+  | Econst _
+  | Econstr0 _
+  | Eperiod _ -> 
+     Init.skeleton_on_i (Init.new_var ()) ty
+  | Eglobal { lname = lname } ->
+     let { info = info } = Modules.find_value lname in
+     Init.instance info ty
   | Elocal(x) -> 
      begin try let { t_typ = ty1 } = Env.find x env in ty1 
-           with | Not_found -> Init.skeleton_on_i izero ty
+           with | Not_found -> print x
      end
   | Elast(x) -> 
      begin try 
@@ -307,7 +333,7 @@ and equation env { eq_desc = eq_desc; eq_loc = loc } =
           with | Not_found -> assert false in
         exp_less_than env e ty_n;
         (match e0_opt with
-	  | None -> if not is_last then error loc (Elast_uninitialized(n))
+	  | None -> if not is_last then error loc (Ilast(n))
 	  | Some(e0) -> exp_less_than_on_i env e0 izero);
         present_handler_exp_list env p_h_e_list ty_n
     | EQinit(n, e0) ->
@@ -319,7 +345,7 @@ and equation env { eq_desc = eq_desc; eq_loc = loc } =
 	 with Not_found -> assert false in
 	exp_less_than env e ty_n;
         (match e0_opt with
-         | None -> if not is_last then error loc (Elast_uninitialized(n))
+         | None -> if not is_last then error loc (Ilast(n))
          | Some(e0) -> exp_less_than_on_i env e0 izero);
         unify e.e_loc ty_n (Init.skeleton_on_i izero e.e_typ)
     | EQautomaton(is_weak, s_h_list, se_opt) ->
@@ -464,8 +490,41 @@ let implementation ff impl =
   try
     match impl.desc with
       | Eopen _ | Etypedecl _ -> ()
-      | Econstdecl(_, _, e) | Efundecl(_, { f_body = e }) -> 
-          exp_less_than_on_i Env.empty e izero
+      | Econstdecl(f, _, e) ->
+	 let ty_zero = Init.skeleton_on_i izero e.e_typ in
+	 Misc.push_binding_level ();
+	 exp_less_than Env.empty e ty_zero;
+	 Misc.pop_binding_level ();
+	 let tys = generalise ty_zero in
+	 Global.set_init (Modules.find_value (Lident.Name(f))) tys;
+	 (* output the signature *)
+	 if !Misc.print_initialization_types then Pinit.declaration ff f tys
+      | Efundecl(f, { f_atomic = atomic; f_args = p_list;
+		      f_body = e; f_env = h0 }) -> 
+         Misc.push_binding_level ();
+	 let env = build_env h0 Env.empty in
+	 let ty_list = List.map (pattern env) p_list in
+	 let ty_res = exp env e in
+	 let actual_ty = funtype_list ty_list ty_res in
+	 (* when [atomic = true], the function is strict *)
+	 let expected_ty =
+           (* for an atomic node, all outputs depend on all inputs *)
+           if atomic then
+             (* first type the body *)
+	     let i = Init.new_var () in
+	     let ty_arg_list =
+	       List.map (fun p -> Init.skeleton_on_i i p.p_typ) p_list in
+	     let ty_res = Init.skeleton_on_i i e.e_typ in
+	     funtype_list ty_arg_list ty_res
+           else
+             funtype_list (List.map (fun p -> Init.skeleton p.p_typ) p_list)
+			  (Init.skeleton e.e_typ) in
+	 Init.less actual_ty expected_ty;
+	 Misc.pop_binding_level ();
+	 let tys = generalise actual_ty in
+	 Global.set_init (Modules.find_value (Lident.Name(f))) tys;
+	 (* output the signature *)
+	 if !Misc.print_initialization_types then Pinit.declaration ff f tys
   with
     | Error(loc, kind) -> message loc kind
 

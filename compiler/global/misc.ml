@@ -71,7 +71,8 @@ let dzero = ref false
 (* other options of the compiler *)
 let verbose = ref false
 let print_types = ref false
-let print_causality = ref false
+let print_causality_types = ref false
+let print_initialization_types = ref false
 let typeonly = ref false
 let use_gtk = ref false
 let no_causality = ref false

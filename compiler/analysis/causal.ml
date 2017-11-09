@@ -89,10 +89,8 @@ let rec union l1 l2 =
   let rec mem c l =
     match l with | [] -> false | c1 :: l -> (equal c c1) || (mem c l) in
   match l1, l2 with
-  | [], l2 -> l2
-  | l1, [] -> l1
-  | c :: l1, l2 ->
-     if mem c l2 then union l1 l2 else c :: union l1 l2
+  | [], l2 -> l2 | l1, [] -> l1
+  | c :: l1, l2 -> if mem c l2 then union l1 l2 else c :: union l1 l2
 
 let set l = List.fold_left (fun acc c -> add c acc) [] l
 		      
@@ -449,7 +447,7 @@ let save link = links := link :: !links
 let cleanup () = List.iter (fun c -> c.c_desc <- Cvar) !links; links := []
 
 (* instanciation *)
-let rec copy tc ty =
+let rec copy tc ({ t_desc = t_desc } as ty) =
   let rec ccopy c =
     match c.c_desc with
     | Cvar ->
@@ -463,8 +461,7 @@ let rec copy tc ty =
        else c
     | Clink(link) -> if c.c_level = generic then link else ccopy link in
 
-  let { t_desc = tydesc } as ty = Types.typ_repr ty in
-  match tc, tydesc with
+  match tc, t_desc with
   | Cfun(tc1, tc2), Tfun(_, _, ty1, ty2) ->
      funtype (copy tc1 ty1) (copy tc2 ty2)
   | Cproduct(tc_list), Tproduct(ty_list) ->
