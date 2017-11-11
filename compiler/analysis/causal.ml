@@ -447,7 +447,7 @@ let save link = links := link :: !links
 let cleanup () = List.iter (fun c -> c.c_desc <- Cvar) !links; links := []
 
 (* instanciation *)
-let rec copy tc ({ t_desc = t_desc } as ty) =
+let rec copy tc ty = 
   let rec ccopy c =
     match c.c_desc with
     | Cvar ->
@@ -461,6 +461,7 @@ let rec copy tc ({ t_desc = t_desc } as ty) =
        else c
     | Clink(link) -> if c.c_level = generic then link else ccopy link in
 
+  let { t_desc = t_desc } as ty = Types.typ_repr ty in
   match tc, t_desc with
   | Cfun(tc1, tc2), Tfun(_, _, ty1, ty2) ->
      funtype (copy tc1 ty1) (copy tc2 ty2)

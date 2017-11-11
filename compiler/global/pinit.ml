@@ -22,13 +22,16 @@ open Definit
 (* type variables are printed 'a, 'b,... *)
 let type_name = new name_assoc_table int_to_alpha
 
+(* print extra information *)
 let polarity = 
   function Punknown -> "" | Pplus -> "+" | Pminus -> "-" | Pplusminus -> "+-"
+let useful u = if u then "u" else ""
+let level l = string_of_int l
 
-let useful i = if i.i_useful then "u" else ""
+
+let extra { i_polarity = p; i_useful = u; i_level = l } =
+  if (* !Misc.verbose *) true then polarity p ^ useful u ^ level l else ""
     
-let level i = i.i_level
-                
 (* Print the causality *)
 let rec init ff i = 
   match i.i_desc with
@@ -37,8 +40,7 @@ let rec init ff i =
   | Ilink(link) -> init ff link
   | Ivar ->
     Format.fprintf
-      ff "%s(%d)(%s)'%s"
-      (useful i) (level i) (polarity i.i_polarity) (type_name#name i.i_index)
+      ff "%s'%s" (extra i) (type_name#name i.i_index)
 			   
 let rec ptype prio ff ti =
   let priority = function | Iatom _ -> 3 | Iproduct _ -> 2 | Ifun _ -> 1 in
@@ -59,22 +61,25 @@ let rec ptype prio ff ti =
 				      
 let ptype ff ti = ptype 0 ff ti
 			
-let relation ff i_list =
+let relation i_list =
   let rel =
     List.fold_left
       (fun acc i ->
        match i.i_sup with | [] -> acc | sup_list -> (i, sup_list) :: acc)
       [] i_list in
-  let rel = List.rev rel in
+  List.rev rel
+
+let prelation ff i_list =
   let print ff (i, i_list) =
     Format.fprintf
       ff "@[%a < %a@]" init i (print_list_r init "" "," "") i_list in
+  let rel = relation i_list in
   print_list_r print "{" ";" "}" ff rel
 	       
 (* print a type scheme *)
 (* { a1 < a2,...,ak; ...; }. ti *)
 let scheme ff { typ_vars = i_list; typ = ty } =
-  Format.fprintf ff "@[<hov2>%a.@ %a@]" relation i_list ptype ty
+  Format.fprintf ff "@[<hov2>%a.@ %a@]" prelation i_list ptype ty
                  
 (* printing a declaration *)
 let declaration ff f tys =

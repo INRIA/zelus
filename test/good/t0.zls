@@ -1,5 +1,21 @@
-let node f(x, y) = x + y
+(*
+let g f h x y z = f x + h y
+    *)
 
+(*let node f(x, y) = x + y
+
+let node ff g (x, y) =
+  let rec x1, x2 = run g (x1, x2) in x1 + x2 
+
+
+let node f4(x, y) = (x+1, y+1)
+
+let node fff (x, y) = ff f4 (x, y)
+ *)
+
+let node vide (x, y) = 0 -> pre(x+y)
+let node vide2 x = vide (pre 1, 2)
+    
 (*
 let discrete f x = if x = 2 then 1 else 2
   
