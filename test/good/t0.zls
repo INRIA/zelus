@@ -2,18 +2,23 @@
 let g f h x y z = f x + h y
     *)
 
-(*let node f(x, y) = x + y
+let node f(x, y) =
+  let rec o = pre(y) + 2
+  and z = 2 + o
+  and k =  pre(1->z) + 1 in
+  k, 0 -> pre x + 2
 
 let node ff g (x, y) =
   let rec x1, x2 = run g (x1, x2) in x1 + x2 
 
 
 let node f4(x, y) = (x+1, y+1)
+let node f5(x, y) = (0 fby x+1, 1 fby y+1)
 
-let node fff (x, y) = ff f4 (x, y)
- *)
+let node fff (x, y) = ff f5 (x, y)
 
-let node vide (x, y) = 0 -> pre(x+y)
+
+let node vide (x, y) = x + y
 let node vide2 x = vide (pre 1, 2)
     
 (*

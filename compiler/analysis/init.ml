@@ -22,8 +22,6 @@ open Global
 type error =
   | Iless_than of ty * ty (* not (expected_ty < actual_ty) *) 
   | Iless_than_i of t * t (* not (expected_i < actual_i) *) 
-  | Iunify of ty * ty (* not (expected_ty = actual_ty) *) 
-  | Iunify_i of t * t (* not (expected_i = actual_i) *) 
   | Ilast of Ident.t (* [last x] is un-initialized *)
 
 exception Clash of error
@@ -98,18 +96,22 @@ let rec initialize is_zero ty =
   match ty with
   | Ifun(ty1, ty2) -> initialize is_zero ty1; initialize is_zero ty2
   | Iproduct(ty_list) -> List.iter (initialize is_zero) ty_list
-  | Iatom(i) -> iinitialize is_zero i
+  | Iatom(i) -> initialize_i is_zero i
 
-and iinitialize is_zero i =
+and initialize_i is_zero i =
   let i = irepr i in
   match i.i_desc with
-    | Izero when is_zero -> ()
-    | Ione when not is_zero -> ()
-    | Ivar -> 
-        i.i_desc <- Ilink(if is_zero then izero else ione); 
-        List.iter (iinitialize is_zero) (if is_zero then i.i_inf else i.i_sup)
-    | Ilink(i) -> iinitialize is_zero i
-    | _ -> raise (Clash(Iunify_i(i, if is_zero then izero else ione)))
+  | Izero when is_zero -> ()
+  | Ione when not is_zero -> ()
+  | Ivar -> 
+    i.i_desc <- Ilink(if is_zero then izero else ione); 
+    List.iter (initialize_i is_zero) (if is_zero then i.i_inf else i.i_sup)
+  | Ilink(i) -> initialize_i is_zero i
+  | _ ->
+    let kind = if is_zero then Iless_than_i(ione, izero)
+      else Iless_than_i(izero, ione) in
+    raise (Clash(kind))
+  
 
 (** Sub-typing *)
 let rec less left_ty right_ty =
@@ -119,10 +121,10 @@ let rec less left_ty right_ty =
     | Ifun(ty1, ty2), Ifun(ty3, ty4) ->
        less ty2 ty4; less ty3 ty1
     | Iproduct(l1), Iproduct(l2) -> List.iter2 less l1 l2
-    | Iatom(i1), Iatom(i2) -> iless i1 i2
+    | Iatom(i1), Iatom(i2) -> less_i i1 i2
     | _ -> raise (Clash(Iless_than(left_ty, right_ty)))
 
-and iless left_i right_i =
+and less_i left_i right_i =
   if left_i == right_i then ()
   else
     let left_i = irepr left_i in
@@ -131,51 +133,15 @@ and iless left_i right_i =
     else
       match left_i.i_desc, right_i.i_desc with
       | (Izero, _) | (_, Ione) -> ()
-      | _, Izero -> iinitialize true left_i
-      | Ione, _ -> iinitialize false right_i
+      | _, Izero -> initialize_i true left_i
+      | Ione, _ -> initialize_i false right_i
       | Ivar, Ivar ->
          (* i1,...,in < i < j1,...,jk  with  *)
          (* l1,...,lm < r < s1,...,sr *)
          right_i.i_inf <- add left_i right_i.i_inf;
          left_i.i_sup <- add right_i left_i.i_sup
       | _ -> raise (Clash(Iless_than_i(left_i, right_i)))
-		   
-(** Unification *)
-let rec unify left_ty right_ty =
-  match left_ty, right_ty with
-  | Ifun(ty1, ty2), Ifun(ty3, ty4) -> unify ty1 ty3; unify ty2 ty4
-  | Iproduct(ty_list1), Iproduct(ty_list2) ->
-     List.iter2 unify ty_list1 ty_list2
-  | Iatom(left_i), Iatom(right_i) ->
-     iunify left_i right_i
-  | _ -> raise (Clash(Iunify(left_ty, right_ty)))
-
-and iunify left_i right_i =
-  if left_i == right_i then ()
-  else
-    let left_i = irepr left_i in
-    let right_i = irepr right_i in
-    if left_i == right_i then ()
-    else
-      match left_i.i_desc, right_i.i_desc with
-      | Ivar, Ivar ->
-         (* i1,...,in < i < j1,...,jk  with  *)
-         (* l1,...,lm < r < s1,...,sr *)
-         right_i.i_inf <- union left_i.i_inf right_i.i_inf;
-         right_i.i_sup <- union left_i.i_sup right_i.i_sup;
-         (* sets the level *)
-         if right_i.i_level > left_i.i_level 
-         then right_i.i_level <- left_i.i_level;
-         right_i.i_desc <- Ilink(left_i);
-         (* sets the polarity *)
-         increase_polarity right_i.i_polarity left_i
-      | Ivar, Izero -> iinitialize true left_i
-      | Ivar, Ione -> iinitialize false left_i
-      | Izero, Ivar -> iinitialize true right_i
-      | Ione, Ivar -> iinitialize false right_i
-      | (Izero, Izero) | (Ione, Ione) -> ()
-      | _ -> raise (Clash(Iunify_i(left_i, right_i)))
-		   
+	       
 (** Computing an initialization type from a type *)
 let rec skeleton ty =
   match ty.t_desc with
@@ -194,18 +160,37 @@ let rec skeleton_on_i i ty =
   | Tconstr(_, _, _) | Tvec _ -> atom i
   | Tlink(ty) -> skeleton_on_i i ty
 			       
-let rec iunify_stack stack i =
-  match stack with
-  | [] -> ()
-  | i_stack :: stack ->
-     if i_stack == i then ()
-     else
-       let i_stack = irepr i_stack in
-       let i = irepr i in
-       if i_stack == i then ()
-       else
-         begin iunify i_stack i; iunify_stack stack i end
-           
+(* Compute the infimum/supremum of two types *)
+let rec suptype is_right ty1 ty2 =
+  match ty1, ty2 with
+  | Ifun(left_ty1, right_ty1), Ifun(left_ty2, right_ty2) ->
+    Ifun(suptype (not is_right) left_ty1 left_ty2,
+         suptype is_right right_ty1 right_ty2)
+  | Iproduct(ty_list1), Iproduct(ty_list2) ->
+    let ty_list =
+      try List.map2 (suptype is_right) ty_list1 ty_list2
+      with Invalid_argument _ -> assert false in
+    Iproduct(ty_list)
+  | Iatom(i1), Iatom(i2) -> Iatom(sup_i is_right i1 i2)
+  | _ -> assert false
+
+and sup_i is_right i1 i2 =
+  let i1 = irepr i1 in
+  let i2 = irepr i2 in
+  if i1.i_index = i2.i_index then i1
+  else
+    match i1.i_desc, i2.i_desc, is_right with
+    | Izero, _, true -> i2 | _, Izero, true -> i1
+    | (Ione, _, true) | (_, Ione, true) -> ione
+    | Ione, _, false -> i2 | _, Ione, false -> i1
+    | (Izero, _, false) | (_, Izero, false) -> izero
+    | Ilink(i1), _ , _ -> sup_i is_right i1 i2
+    | _, Ilink(i2), _ -> sup_i is_right i1 i2
+    | Ivar, Ivar, _ ->
+      let i = new_var () in
+      if is_right then i.i_inf <- [i1; i2] else i.i_sup <- [i1; i2]; i
+
+ 
 (** Mark useful/useless types and sets the polarity *)
 (* reduces dependences by eliminating intermediate variables *)
 (* we first mark useful variables (variables which appear in *)
@@ -229,18 +214,9 @@ and imark useful right i =
        | _ -> ()
      else i.i_polarity <- Punknown
   | Izero | Ione | Ilink _ -> ()
-				
-(** Shorten/simplification an initialization type.*)
-(* For every type t, we recursively compute the set of t_inf s.t. t_inf < t *)
-(* and t < t_sup. If t belongs to t_inf, all types in relation are equal *)
-(* and unified. The same applies for t_sup. *)
-(* Two simplifications are made: *)
-(* - every useless (intermediate) variable is eliminated *)
-(* - a useful variable which can be generalized and has negative polarity a- *)
-(*   can be unified with 1. *)
-(* - a useful variable which can be generalized and has positive polarity a+ *)
-(*   can be unified with 0. *)
-(*
+                              
+(* Garbage collection: only keep dependences of the form a- < b+ *)
+(* this step is done after having called the function mark *)
 let rec shorten ty =
   match ty with
   | Ifun(ty1, ty2) -> shorten ty1; shorten ty2
@@ -254,175 +230,55 @@ and ishorten i =
   | Ilink(i) -> ishorten i
   | Ivar ->
      i.i_visited <- 0;
-     i.i_inf <- short_infs [i] [] i.i_inf;
-     i.i_sup <- short_sups [i] [] i.i_sup;
-     i.i_visited <- 1
-		      
-and short_infs stack acc i_list =
-  List.fold_left (short_inf stack) acc i_list
-		 
-and short_sups stack acc i_list =
-  List.fold_left (short_sup stack) acc i_list
-		 
-and short_inf stack acc i =
-  match i.i_desc with
-  | Izero | Ione -> acc
-  | Ilink(i) -> short_inf stack acc i
-  | Ivar when (i.i_polarity = Pplus) && (i.i_level > !binding_level) ->
-     iinitialize true i; acc
-  | Ivar when (i.i_polarity = Pminus) && (i.i_level > !binding_level) ->
-     iinitialize false i; acc
-  | Ivar ->
-     match i.i_visited with
-     | -1 -> (* never visited *)
-        i.i_visited <- 0;
-        short_infs (i :: stack) acc i.i_inf
-     | 0 -> (* currently visited *)
-        iunify_stack stack i; 
-        (* the variable is added only if it is useful *)
-        if i.i_useful then add i acc else acc
-     | _ -> (* visited in a previous pass *) 
-        union i.i_inf acc
-	      
-and short_sup stack acc i =
-  match i.i_desc with
-  | Izero | Ione -> acc
-  | Ilink(i) -> short_sup stack acc i
-  | Ivar when (i.i_polarity = Pplus) && (i.i_level > !binding_level) ->
-     iinitialize true i; acc
-  | Ivar when (i.i_polarity = Pminus) && (i.i_level > !binding_level) ->
-     iinitialize false i; acc
-  | Ivar ->
-     match i.i_visited with
-     | -1 -> (* never visited and *)
-        i.i_visited <- 0;
-        short_sups (i :: stack) acc i.i_sup
-     | 0 -> (* currently visited *)
-        iunify_stack stack i; 
-        (* the variable is added only if it is useful *)
-        if i.i_useful then add i acc else acc
-     | _ -> (* visited in a previous pass *) 
-        union i.i_sup acc
-        *)
-
-(* Remove cycles *)
-(* For every type t, we recursively compute the set of t_inf s.t. t_inf < t *)
-(* and t < t_sup. If t belongs to t_inf, all types in relation are equal *)
-(* and unified. The same applies for t_sup. *)
-let rec shorten ty =
-  match ty with
-  | Ifun(ty1, ty2) -> shorten ty1; shorten ty2
-  | Iproduct(ty_list) -> List.iter shorten ty_list
-  | Iatom(i) -> ishorten i
-
-and ishorten i =
-  let i = irepr i in
-  match i.i_desc with
-  | Izero | Ione -> ()
-  | Ilink(i) -> ishorten i
-  | Ivar ->
-     i.i_visited <- 0;
-     (* only keep a dependence a+ < b- *)
-     let inf = remove_polarities false (short_list true [i] [] i.i_inf) in
-     let sup = remove_polarities true (short_list false [i] [] i.i_sup) in
+     (* only keep a dependence a- < b+ *)
+     let inf, sup =
+       match i.i_polarity with
+       | Punknown -> assert false
+       | Pplus -> remove_polarity Pplus (short_list false [] i.i_inf), []
+       | Pminus -> [], remove_polarity Pminus (short_list true [] i.i_sup)
+       | Pplusminus ->
+         short_list false [] i.i_inf, short_list true [] i.i_sup in
      i.i_inf <- inf;
      i.i_sup <- sup;
      i.i_visited <- 1       
 		      
-and short_list is_right stack acc i_list =
-  List.fold_left (short is_right stack) acc i_list
+and short_list is_right acc i_list =
+  List.fold_left (short is_right) acc i_list
 
-(* only keep a dependence a+ < b- *)
-and remove_polarities right i_list =
-  let clear right acc i_right =
-    match i_right.i_polarity with
-    | Pminus when right -> acc
-    | Pplus when not right -> acc
+(* only keep a dependence a- < b+ *)
+and remove_polarity p i_list =
+  let clear acc i_right =
+    match p, i_right.i_polarity with
+    | (Pplus, Pplus) | (Pminus, Pminus) -> acc
     | _ -> i_right :: acc in
-  List.fold_left (clear right) [] i_list
+  List.fold_left clear [] i_list
     
-and short is_right stack acc i =
+and short is_right acc i =
   match i.i_desc with
   | Izero | Ione -> acc
-  | Ilink(i) -> short is_right stack acc i
+  | Ilink(i) -> short is_right acc i
   | Ivar ->
     match i.i_visited with
     | -1 -> (* never visited *)
       i.i_visited <- 0;
       let acc =
-        if i.i_useful then add i acc
-        else
-          short_list
-            is_right (i :: stack) acc (if is_right then i.i_sup else i.i_inf) in
+        short_list is_right acc (if is_right then i.i_sup else i.i_inf) in
+      let acc = if i.i_useful then add i acc else acc in
       i.i_visited <- -1;
       acc
     | 0 -> (* currently visited *)
-      iunify_stack stack i; 
       acc
     | _ -> (* visited in a previous pass *) 
       (* the variable is added only if it is useful *)
       if i.i_useful then add i acc else union i.i_inf acc  
 
-let rec shorten ty =
-  match ty with
-  | Ifun(ty1, ty2) -> shorten ty1; shorten ty2
-  | Iproduct(ty_list) -> List.iter shorten ty_list
-  | Iatom(i) -> ishorten i
-
-and ishorten i =
-  let i = irepr i in
-  match i.i_desc with
-  | Izero | Ione -> ()
-  | Ilink(i) -> ishorten i
-  | Ivar ->
-     i.i_visited <- 0;
-     (* only keep a dependence a+ < b- *)
-     let inf = remove_polarities false (short_list true [i] [] i.i_inf) in
-     let sup = remove_polarities true (short_list false [i] [] i.i_sup) in
-     i.i_inf <- inf;
-     i.i_sup <- sup;
-     i.i_visited <- 1       
-		      
-and short_list is_right stack acc i_list =
-  List.fold_left (short is_right stack) acc i_list
-
-(* only keep a dependence a+ < b- *)
-and remove_polarities right i_list =
-  let clear right acc i_right =
-    match i_right.i_polarity with
-    | Pminus when right -> acc
-    | Pplus when not right -> acc
-    | _ -> i_right :: acc in
-  List.fold_left (clear right) [] i_list
-    
-and short is_right stack acc i =
-  match i.i_desc with
-  | Izero | Ione -> acc
-  | Ilink(i) -> short is_right stack acc i
-  | Ivar ->
-    match i.i_visited with
-    | -1 -> (* never visited *)
-      i.i_visited <- 0;
-      let acc =
-        if i.i_useful then add i acc
-        else
-          short_list
-            is_right (i :: stack) acc (if is_right then i.i_sup else i.i_inf) in
-      i.i_visited <- -1;
-      acc
-    | 0 -> (* currently visited *)
-      iunify_stack stack i; 
-      acc
-    | _ -> (* visited in a previous pass *) 
-      (* the variable is added only if it is useful *)
-      if i.i_useful then add i acc else union i.i_inf acc  
-
-(* Simplification of a type *)
-(*- only keep a relation a- < b+; remove a+ < b *)
+                              
+(* Final simplification. *)
 (*- a variable a+ which has no inf. can be replaced by 0;
- *- if it has a single sup. b, it can be replaced by it
- *- if it has a single inf. b, it can be replaced by it;
- *- a variable a- which has no sup. can be replaced by 1 *)
+ *- a variable a- which has no sup. can be replaced by 1;
+ *- if a- has a single sup. b+, it can be replaced by it
+ *- if a+ has a single inf. b-, it can be replaced by it;
+ *)
 
 let rec simplify right ty =
   match ty with
@@ -454,7 +310,6 @@ and isimplify right i =
 (* the level of generalised type variables *)
 (* is set to [generic]. Returns [generic] when a sub-term *)
 (* can be generalised *)
-	      
 let list_of_vars = ref []
 		       
 let rec gen ty =
@@ -488,6 +343,7 @@ let generalise ty =
   list_of_vars := [];
   (* we mark useful variables *)
   mark true true ty;
+  (* garbage collect dependences *)
   shorten ty;
   let ty = simplify true ty in
   gen ty;
@@ -508,8 +364,8 @@ let rec copy ti ty =
   | Ifun(ti1, ti2), Tfun(_, _, ty1, ty2) ->
      funtype (copy ti1 ty1) (copy ti2 ty2)
   | Iproduct(ti_list), Tproduct(ty_list) ->
-     begin try product (List.map2 copy ti_list ty_list)
-	   with | _ -> assert false end
+    begin try product (List.map2 copy ti_list ty_list)
+      with | _ -> assert false end
   | Iatom(i), _ -> skeleton_on_i (icopy i) ty
   | _ -> assert false
 

@@ -103,18 +103,6 @@ let message loc kind =
           has type %a which should be less than %a.@."
 	 output_location loc
 	 Pinit.init expected_i Pinit.init actual_i
-    | Iunify(expected_ty, actual_ty) ->
-       Format.eprintf
-	 "%aInitialization error: this expression \
-          has type %a but should be %a.@."
-	 output_location loc
-	 Pinit.ptype expected_ty Pinit.ptype actual_ty
-    | Iunify_i(expected_i, actual_i) ->
-       Format.eprintf
-	 "%aInitialization error: this expression \
-          has type %a but should be %a.@."
-	 output_location loc
-	 Pinit.init expected_i Pinit.init actual_i
     | Ilast(n) ->
        Format.eprintf
 	 "%aInitialization error: the last value of %s \
@@ -123,14 +111,7 @@ let message loc kind =
          (Ident.source n)
   end;
   raise Misc.Error
-
-(* Unification and sub-typing relation *)
-let unify loc actual_ty expected_ty =
-  try
-    Init.unify actual_ty expected_ty
-  with
-    | Init.Clash(kind) -> error loc kind
-
+  
 let less_than loc actual_ty expected_ty =
   try
     Init.less actual_ty expected_ty
@@ -154,13 +135,14 @@ let initialized_last loc env defnames_list =
   
 
 (** Patterns *)
+(* [pattern env p = ty] when [ty] is the type of pattern [p] in [env] *)
 let rec pattern env { p_desc = desc; p_loc = loc; p_typ = ty } =
   match desc with
     | Ewildpat | Econstpat _ | Econstr0pat _ -> 
         Init.skeleton_on_i izero ty
     | Evarpat(x) -> 
         begin try let { t_typ = ty1 } = Env.find x env in ty1 
-          with | Not_found -> Init.skeleton_on_i izero ty
+          with | Not_found -> assert false
         end
     | Etuplepat(pat_list) ->
         product (List.map (pattern env) pat_list)
@@ -175,15 +157,14 @@ let rec pattern env { p_desc = desc; p_loc = loc; p_typ = ty } =
     | Eorpat(p1, p2) -> 
         let ty1 = pattern env p1 in
         let ty2 = pattern env p2 in
-        unify p1.p_loc ty1 ty2;
-        ty1
+        Init.suptype true ty1 ty2
     | Ealiaspat(p, n) -> 
         let ty_p = pattern env p in
         let ty_n = 
           begin try let { t_typ = ty1 } = Env.find n env in ty1 
-            with | Not_found -> Init.skeleton_on_i izero ty
+            with | Not_found -> assert false
           end in
-        unify p.p_loc ty_p ty_n;
+        less_than p.p_loc ty_n ty_p;
         ty_p
 
 (** Blocks *)
@@ -210,15 +191,13 @@ let present_handlers scondpat body env p_h_list =
 (** Initialization of an expression *)
 let rec exp env { e_desc = desc; e_typ = ty } =
   match desc with
-  (* for the moment, no type signature is stored in the global *)
-  (* environment. Arguments/results must always be initialized. *)
   | Econst _
   | Econstr0 _
-  | Eperiod _ -> 
-     Init.skeleton_on_i (Init.new_var ()) ty
+  | Eperiod _ -> Init.skeleton_on_i (Init.new_var ()) ty
   | Eglobal { lname = lname } ->
-     let { info = info } = Modules.find_value lname in
-     Init.instance info ty
+    let { info = info } =
+      try Modules.find_value lname with | Not_found -> assert false in
+    Init.instance info ty
   | Elocal(x) -> 
      begin try let { t_typ = ty1 } = Env.find x env in ty1 
            with | Not_found -> print x
@@ -256,15 +235,19 @@ let rec exp env { e_desc = desc; e_typ = ty } =
      ignore (exp env e1);
      exp env e2
   | Epresent(p_h_list, e_opt) ->
-     let ty = Init.skeleton_on_i (Init.new_var ()) ty in
-     let _ = Misc.optional_map (fun e -> exp_less_than env e ty) e_opt in
-     present_handler_exp_list env p_h_list ty;
-     ty
+    (* if [e] returns a tuple, all type element are synchronised, i.e., *)
+    (* if one is un-initialized, the whole is un-initialized *)
+    let ty = Init.skeleton_on_i (Init.new_var ()) ty in
+    let _ = Misc.optional_map (fun e -> exp_less_than env e ty) e_opt in
+    present_handler_exp_list env p_h_list ty;
+    ty
   | Ematch(_, e, m_h_list) ->
-     let ty = Init.skeleton_on_i (Init.new_var ()) ty in
-     exp_less_than_on_i env e izero;
-     match_handler_exp_list env m_h_list ty;
-     ty
+    (* we force [e] to be always initialized. This is overly constraining *)
+    (* but correct and simpler to justify *)
+    exp_less_than_on_i env e izero;
+    let ty = Init.skeleton_on_i (Init.new_var ()) ty in
+    match_handler_exp_list env m_h_list ty;
+    ty
        
 (** Typing an operator *)
 and operator env op ty e_list =
@@ -280,6 +263,7 @@ and operator env op ty e_list =
      let _ = exp env e2 in
      t1
   | Eifthenelse, [e1; e2; e3] ->
+     (* a conditional does not force all element to be initialized *)
      let i = Init.new_var () in
      exp_less_than_on_i env e1 i;
      exp_less_than_on_i env e2 i;
@@ -287,6 +271,7 @@ and operator env op ty e_list =
      Init.skeleton_on_i i ty
   | (Einitial | Eup | Etest | Edisc
      | Eaccess | Eupdate | Eslice _ | Econcat), e_list ->
+     (* here, we force the argument to be always initialized *)
      List.iter (fun e -> exp_less_than_on_i env e izero) e_list;
      Init.skeleton_on_i izero ty
   | _ -> assert false
@@ -347,7 +332,7 @@ and equation env { eq_desc = eq_desc; eq_loc = loc } =
         (match e0_opt with
          | None -> if not is_last then error loc (Ilast(n))
          | Some(e0) -> exp_less_than_on_i env e0 izero);
-        unify e.e_loc ty_n (Init.skeleton_on_i izero e.e_typ)
+        less_than e.e_loc (Init.skeleton_on_i izero e.e_typ) ty_n
     | EQautomaton(is_weak, s_h_list, se_opt) ->
         (* state *)
         let state env { desc = desc } =
@@ -408,7 +393,7 @@ and equation env { eq_desc = eq_desc; eq_loc = loc } =
         let ty_n = 
           try let { t_typ = ty1 } = Env.find n env in ty1
           with | Not_found -> assert false in
-        unify loc ty_n (Init.atom izero);
+        less_than loc (Init.atom izero) ty_n;
 	ignore
 	  (Misc.optional_map (fun e -> exp_less_than_on_i env e izero) e_opt)
     | EQblock(b_eq_list) ->
@@ -489,38 +474,38 @@ and scondpat env { desc = desc } =
 let implementation ff impl =
   try
     match impl.desc with
-      | Eopen _ | Etypedecl _ -> ()
-      | Econstdecl(f, _, e) ->
-	 let ty_zero = Init.skeleton_on_i izero e.e_typ in
-	 Misc.push_binding_level ();
-	 exp_less_than Env.empty e ty_zero;
-	 Misc.pop_binding_level ();
-	 let tys = generalise ty_zero in
-	 Global.set_init (Modules.find_value (Lident.Name(f))) tys;
-	 (* output the signature *)
-	 if !Misc.print_initialization_types then Pinit.declaration ff f tys
-      | Efundecl(f, { f_atomic = atomic; f_args = p_list;
-		      f_body = e; f_env = h0 }) -> 
-         Misc.push_binding_level ();
-	 let env = build_env h0 Env.empty in
-	 let ty_list = List.map (pattern env) p_list in
-	 let ty_res = exp env e in
-	 let actual_ty = funtype_list ty_list ty_res in
-	 (* when [atomic = true], the function is strict *)
-	 let expected_ty =
-           (* for an atomic node, all outputs depend on all inputs *)
-           if atomic then
-             (* first type the body *)
-	     let i = Init.new_var () in
-	     let ty_arg_list =
-	       List.map (fun p -> Init.skeleton_on_i i p.p_typ) p_list in
-	     let ty_res = Init.skeleton_on_i i e.e_typ in
-	     funtype_list ty_arg_list ty_res
+    | Eopen _ | Etypedecl _ -> ()
+    | Econstdecl(f, _, e) ->
+      (* the expression [e] must be initialized *)
+      let ty_zero = Init.skeleton_on_i izero e.e_typ in
+      Misc.push_binding_level ();
+      exp_less_than Env.empty e ty_zero;
+      Misc.pop_binding_level ();
+      let tys = generalise ty_zero in
+      Global.set_init (Modules.find_value (Lident.Name(f))) tys;
+      (* output the signature *)
+      if !Misc.print_initialization_types then Pinit.declaration ff f tys
+    | Efundecl(f, { f_atomic = atomic; f_args = p_list;
+		    f_body = e; f_env = h0 }) -> 
+      Misc.push_binding_level ();
+      let env = build_env h0 Env.empty in
+      let ty_list = List.map (pattern env) p_list in
+      let ty_res = exp env e in
+      let actual_ty = funtype_list ty_list ty_res in
+      (* for an atomic node, all outputs depend on all inputs *)
+      let expected_ty =
+        if atomic then
+          (* first type the body *)
+	  let i = Init.new_var () in
+          let ty_arg_list =
+            List.map (fun p -> Init.skeleton_on_i i p.p_typ) p_list in
+            let ty_res = Init.skeleton_on_i i e.e_typ in
+            funtype_list ty_arg_list ty_res
            else
              funtype_list (List.map (fun p -> Init.skeleton p.p_typ) p_list)
-			  (Init.skeleton e.e_typ) in
+	                  (Init.skeleton e.e_typ) in
 	 Init.less actual_ty expected_ty;
-	 Misc.pop_binding_level ();
+         Misc.pop_binding_level ();
 	 let tys = generalise actual_ty in
 	 Global.set_init (Modules.find_value (Lident.Name(f))) tys;
 	 (* output the signature *)

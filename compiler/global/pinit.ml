@@ -30,7 +30,7 @@ let level l = string_of_int l
 
 
 let extra { i_polarity = p; i_useful = u; i_level = l } =
-  if (* !Misc.verbose *) true then polarity p ^ useful u ^ level l else ""
+  if !Misc.verbose then polarity p ^ useful u ^ level l else ""
     
 (* Print the causality *)
 let rec init ff i = 
