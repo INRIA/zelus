@@ -13,9 +13,11 @@
 (**************************************************************************)
 (* initialization check *)
 
-(* we do very simple check. E.g., [init x = e] and [pre(e)] are *)
-(* valid if [e] is initialized. For the moment, nodes must have *)
-(* all their inputs and outputs initialized *)
+(* we do very simple check, following STTT'04.
+ *- E.g., [init x = e] and [pre(e)] are
+ *- valid if [e] is initialized.
+ *- when x is declared with [init x = e], then last x is 
+ *- marked to be initialized. Otherwise, it gets type 1 *)
 open Misc
 open Ident
 open Global
@@ -24,6 +26,35 @@ open Location
 open Deftypes
 open Definit
 open Init
+
+(* Main error message *)
+exception Error of location * Init.error
+
+let error loc kind = raise (Error(loc, kind))
+
+let message loc kind =
+  begin
+    match kind with
+    | Iless_than(expected_ty, actual_ty) ->
+       Format.eprintf
+	 "%aInitialization error: this expression \
+          has type %a which should be less than %a.@."
+	 output_location loc
+	 Pinit.ptype expected_ty Pinit.ptype actual_ty
+    | Iless_than_i(expected_i, actual_i) ->
+       Format.eprintf
+	 "%aInitialization error: this expression \
+          has type %a which should be less than %a.@."
+	 output_location loc
+	 Pinit.init expected_i Pinit.init actual_i
+    | Ilast(n) ->
+       Format.eprintf
+	 "%aInitialization error: the last value of %s \
+          may not be well initialized.@."
+	 output_location loc
+         (Ident.source n)
+  end;
+  raise Misc.Error
 
 (** An entry in the type environment *)
 type tentry = 
@@ -34,7 +65,6 @@ type tentry =
 (** Build an environment from a typing environment *)
 (* if [x] is defined by [init x = e] and [x = ex] then *)
 (* both [x] and [last x] are initialized, provided [ex] is initialized *)
-(* if [x] is a shared variable, it also hold as [x] is necessarily a signal *)
 let build_env l_env env =
   let entry { Deftypes.t_sort = sort; Deftypes.t_typ = ty } = 
     match sort with 
@@ -83,35 +113,6 @@ let split se_opt s_h_list =
 
 let print x = Misc.internal_error "unbound" Printer.name x
 
-(* Main error message *)
-exception Error of location * Init.error
-
-let error loc kind = raise (Error(loc, kind))
-
-let message loc kind =
-  begin
-    match kind with
-    | Iless_than(expected_ty, actual_ty) ->
-       Format.eprintf
-	 "%aInitialization error: this expression \
-          has type %a which should be less than %a.@."
-	 output_location loc
-	 Pinit.ptype expected_ty Pinit.ptype actual_ty
-    | Iless_than_i(expected_i, actual_i) ->
-       Format.eprintf
-	 "%aInitialization error: this expression \
-          has type %a which should be less than %a.@."
-	 output_location loc
-	 Pinit.init expected_i Pinit.init actual_i
-    | Ilast(n) ->
-       Format.eprintf
-	 "%aInitialization error: the last value of %s \
-          may not be well initialized.@."
-	 output_location loc
-         (Ident.source n)
-  end;
-  raise Misc.Error
-  
 let less_than loc actual_ty expected_ty =
   try
     Init.less actual_ty expected_ty
@@ -461,6 +462,8 @@ and local env { l_eq = eq_list; l_loc = loc; l_env = l_env } =
   (* then type the body *)
   List.iter (equation env) eq_list; env
   
+(* we force that the signal pattern be initialized. E.g.,
+*- [present s(x) -> ...] gives the type 0 to s and x *)
 and scondpat env { desc = desc } =
   match desc with
     | Econdand(sc1, sc2) | Econdor(sc1, sc2) -> 
