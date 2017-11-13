@@ -19,11 +19,8 @@ open Definit
 open Global
        
 (* typing errors *)
-type error =
-  | Iless_than of ty * ty (* not (expected_ty < actual_ty) *) 
-  | Iless_than_i of t * t (* not (expected_i < actual_i) *) 
-  | Ilast of Ident.t (* [last x] is un-initialized *)
-
+type error = Iless_than
+      
 exception Clash of error
 
 let new_var () = 
@@ -107,10 +104,7 @@ and initialize_i is_zero i =
     i.i_desc <- Ilink(if is_zero then izero else ione); 
     List.iter (initialize_i is_zero) (if is_zero then i.i_inf else i.i_sup)
   | Ilink(i) -> initialize_i is_zero i
-  | _ ->
-    let kind = if is_zero then Iless_than_i(ione, izero)
-      else Iless_than_i(izero, ione) in
-    raise (Clash(kind))
+  | _ -> raise (Clash(Iless_than))
   
 
 (** Sub-typing *)
@@ -122,7 +116,7 @@ let rec less left_ty right_ty =
        less ty2 ty4; less ty3 ty1
     | Iproduct(l1), Iproduct(l2) -> List.iter2 less l1 l2
     | Iatom(i1), Iatom(i2) -> less_i i1 i2
-    | _ -> raise (Clash(Iless_than(left_ty, right_ty)))
+    | _ -> raise (Clash(Iless_than))
 
 and less_i left_i right_i =
   if left_i == right_i then ()
@@ -140,7 +134,7 @@ and less_i left_i right_i =
          (* l1,...,lm < r < s1,...,sr *)
          right_i.i_inf <- add left_i right_i.i_inf;
          left_i.i_sup <- add right_i left_i.i_sup
-      | _ -> raise (Clash(Iless_than_i(left_i, right_i)))
+      | _ -> raise (Clash(Iless_than))
 	       
 (** Computing an initialization type from a type *)
 let rec skeleton ty =

@@ -28,7 +28,12 @@ open Definit
 open Init
 
 (* Main error message *)
-exception Error of location * Init.error
+type error =
+  | Iless_than of ty * ty (* not (expected_ty < actual_ty) *) 
+  | Iless_than_i of t * t (* not (expected_i < actual_i) *) 
+  | Ilast of Ident.t (* [last x] is un-initialized *)
+
+exception Error of location * error
 
 let error loc kind = raise (Error(loc, kind))
 
@@ -55,6 +60,12 @@ let message loc kind =
          (Ident.source n)
   end;
   raise Misc.Error
+
+let less_than loc actual_ty expected_ty =
+  try
+    Init.less actual_ty expected_ty
+  with
+    | Init.Clash _ -> error loc (Iless_than(actual_ty, expected_ty))
 
 (** An entry in the type environment *)
 type tentry = 
@@ -113,11 +124,6 @@ let split se_opt s_h_list =
 
 let print x = Misc.internal_error "unbound" Printer.name x
 
-let less_than loc actual_ty expected_ty =
-  try
-    Init.less actual_ty expected_ty
-  with
-    | Init.Clash(kind) -> error loc kind
 
 (** Check that partially defined names have a last value which is initialized *)
 let initialized_last loc env defnames_list =
