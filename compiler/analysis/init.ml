@@ -91,7 +91,7 @@ let increase_polarity p i =
   | Punknown -> i.i_polarity <- p
   | _ -> if p <> i.i_polarity then i.i_polarity <- Pplusminus
       
-(* saturate an initialization type. Every leaf must be initialized *)
+(* saturate an initialization type. *)
 let rec initialize is_zero ty =
   match ty with
   | Ifun(ty1, ty2) -> initialize is_zero ty1; initialize is_zero ty2
@@ -221,13 +221,13 @@ let rec shorten ty =
   match ty with
   | Ifun(ty1, ty2) -> shorten ty1; shorten ty2
   | Iproduct(ty_list) -> List.iter shorten ty_list
-  | Iatom(i) -> ishorten i
+  | Iatom(i) -> shorten_i i
 
-and ishorten i =
+and shorten_i i =
   let i = irepr i in
   match i.i_desc with
   | Izero | Ione -> ()
-  | Ilink(i) -> ishorten i
+  | Ilink(i) -> shorten_i i
   | Ivar ->
      i.i_visited <- 0;
      (* only keep a dependence a- < b+ *)
@@ -277,9 +277,7 @@ and short is_right acc i =
 (*- a variable a+ which has no inf. can be replaced by 0;
  *- a variable a- which has no sup. can be replaced by 1;
  *- if a- has a single sup. b+, it can be replaced by it
- *- if a+ has a single inf. b-, it can be replaced by it;
- *)
-
+ *- if a+ has a single inf. b-, it can be replaced by it. *)
 let rec simplify right ty =
   match ty with
   | Ifun(ty1, ty2) -> funtype (simplify (not right) ty1) (simplify right ty2)
