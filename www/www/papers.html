@@ -62,6 +62,7 @@ document.getElementById('title-papers').className = 'active';
 
 <li class="sidebar-nav-header">Papers</li>
 <li><a href="#NAHS2017">NAHS 2017</a></li>
+<li><a href="#EMSOFT2017">EMSOFT 2017</a></li>
 <li><a href="#CC2015">CC 2015</a></li>
 <li><a href="#HSCC2014">HSCC 2014</a></li>
 <li><a href="#HSCC2013">HSCC 2013</a></li>
@@ -136,6 +137,47 @@ Albert Benveniste, Timothy Bourke, Benoît Caillaud, Bruno Pagano, and
     written in Zélus, a Lustre-like synchronous language extended with
     ODEs.</p><p>
     See also: <a href="http://zelus.di.ens.fr/nahs2016">http://zelus.di.ens.fr/nahs2016</a>.
+  
+</p></div>
+
+</dd>
+
+
+<dt>
+<a id="EMSOFT2017" class="biblink">EMSOFT 2017</a>
+</dt>
+<dd>
+Timothy Bourke, Francois Carcenac, Jean-Louis Colaço, Bruno Pagano,
+  Cédric Pasteur, and Marc Pouzet.
+ A synchronous look at the simulink standard library.
+ In <em>ACM SIGBED Conference on Embedded Software (EMSOFT'17)</em>, page
+  Article 176, Seoul, South Korea, October 2017. ACM Press.<br>
+<span class="bibref"><a href="papers_bib.html#EMSOFT2017"><i class="glyphicon glyphicon-book"></i> bib</a></span>
+<span class="bibref"><a href="http://dx.doi.org/10.1145/3126516"><i class="glyphicon glyphicon-globe"></i> DOI</a></span>
+<span class="bibref"><a href="http://www.di.ens.fr/~pouzet/bib/emsoft17.pdf"><i class="glyphicon glyphicon-file"></i> pdf</a></span>
+<div class="abstract"><p>
+
+      Hybrid systems modelers like Simulink come with a rich collection of
+      discrete-time and continuous-time blocks. Most blocks are not defined
+      in terms of more elementary ones—and some cannot be—but are
+      instead written in imperative code and explained informally in a
+      reference manual. This raises the question of defining a minimal set
+      of orthogonal programming constructs such that most blocks can be
+      programmed directly and thereby given a specification that is
+      mathematically precise, and whose compiled version performs comparably
+      to handwritten code.
+      
+      In this paper, we show that a fairly large set of blocks of a standard
+      library like the one provided by Simulink can be programmed in a
+      precise, purely functional language using stream equations,
+      hierarchical automata, Ordinary Differential Equations (ODEs), and
+      deterministic synchronous parallel composition.  Some blocks cannot be
+      expressed in our setting as they mix discrete-time and continuous-time
+      signals in unprincipled ways that are statically forbidden by the type
+      checker.</p><p>
+      The experiment is conducted in Zélus, a synchronous language that
+      conservatively extends Lustre with ODEs to program systems that
+      mix discrete-time and continuous-time signals.
   
 </p></div>
 
@@ -317,7 +359,7 @@ Albert Benveniste, Timothy Bourke, Benoit Caillaud, and Marc Pouzet.
  A hybrid synchronous language with hierarchical automata: Static
   typing and translation to synchronous code.
  In <em>ACM SIGPLAN/SIGBED Conference on Embedded Software
-  (EMSOFT'11)</em>, Taipei, Taiwan, October 2011.<br>
+  (EMSOFT'11)</em>, pages 137–147, Taipei, Taiwan, October 2011.<br>
 <span class="bibref"><a href="papers_bib.html#EMSOFT2011"><i class="glyphicon glyphicon-book"></i> bib</a></span>
 <span class="bibref"><a href="http://dx.doi.org/10.1145/2038642.2038664"><i class="glyphicon glyphicon-globe"></i> DOI</a></span>
 <span class="bibref"><a href="http://www.di.ens.fr/~pouzet/bib/emsoft11.pdf"><i class="glyphicon glyphicon-file"></i> pdf</a></span>
@@ -362,7 +404,8 @@ Albert Benveniste, Timothy Bourke, Benoit Caillaud, and Marc Pouzet.
  Divide and recycle: types and compilation for a hybrid synchronous
   language.
  In <em>ACM SIGPLAN/SIGBED Conference on Languages, Compilers, Tools
-  and Theory for Embedded Systems (LCTES'11)</em>, Chicago, USA, April 2011.<br>
+  and Theory for Embedded Systems (LCTES'11)</em>, pages 61–70, Chicago, USA,
+  April 2011.<br>
 <span class="bibref"><a href="papers_bib.html#LCTES2011"><i class="glyphicon glyphicon-book"></i> bib</a></span>
 <span class="bibref"><a href="http://dx.doi.org/10.1145/1967677.1967687"><i class="glyphicon glyphicon-globe"></i> DOI</a></span>
 <span class="bibref"><a href="http://www.di.ens.fr/~pouzet/bib/lctes11.pdf"><i class="glyphicon glyphicon-file"></i> pdf</a></span>

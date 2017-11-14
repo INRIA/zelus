@@ -42,6 +42,7 @@
   address = {Chicago, USA},
   url = {<a href="http://www.di.ens.fr/~pouzet/bib/lctes11.pdf">http://www.di.ens.fr/~pouzet/bib/lctes11.pdf</a>},
   doi = {10.1145/1967677.1967687},
+  pages = {61--70},
   abstract = {
       Hybrid modelers such as Simulink have become corner stones of embedded
       systems development. They allow both \emph{discrete} controllers
@@ -86,6 +87,7 @@
   month = oct,
   year = 2011,
   address = {Taipei, Taiwan},
+  pages = {137--147},
   url = {<a href="http://www.di.ens.fr/~pouzet/bib/emsoft11.pdf">http://www.di.ens.fr/~pouzet/bib/emsoft11.pdf</a>},
   doi = {10.1145/2038642.2038664},
   abstract = {
@@ -340,6 +342,50 @@
     ODEs.
 
     See also: \url{http://zelus.di.ens.fr/nahs2016}.
+  }
+}
+</pre>
+
+<a name="EMSOFT2017"></a><pre>
+@inproceedings{EMSOFT2017,
+  author = {Timothy Bourke
+		 and Francois Carcenac
+		 and Jean-Louis Cola{\c{c}}o
+		 and Bruno Pagano
+		 and C{\'{e}}dric Pasteur
+		 and Marc Pouzet},
+  title = {A Synchronous Look at the Simulink Standard Library},
+  pages = {Article 176},
+  url = {<a href="http://www.di.ens.fr/~pouzet/bib/emsoft17.pdf">http://www.di.ens.fr/~pouzet/bib/emsoft17.pdf</a>},
+  doi = {10.1145/3126516},
+  booktitle = {ACM SIGBED Conference on Embedded Software (EMSOFT'17)},
+  year = 2017,
+  address = {Seoul, South Korea},
+  month = oct,
+  publisher = {ACM Press},
+  abstract = {
+      Hybrid systems modelers like Simulink come with a rich collection of
+      discrete-time and continuous-time blocks. Most blocks are not defined
+      in terms of more elementary ones---and some cannot be---but are
+      instead written in imperative code and explained informally in a
+      reference manual. This raises the question of defining a minimal set
+      of orthogonal programming constructs such that most blocks can be
+      programmed directly and thereby given a specification that is
+      mathematically precise, and whose compiled version performs comparably
+      to handwritten code.
+      
+      In this paper, we show that a fairly large set of blocks of a standard
+      library like the one provided by Simulink can be programmed in a
+      precise, purely functional language using stream equations,
+      hierarchical automata, Ordinary Differential Equations (ODEs), and
+      deterministic synchronous parallel composition.  Some blocks cannot be
+      expressed in our setting as they mix discrete-time and continuous-time
+      signals in unprincipled ways that are statically forbidden by the type
+      checker.
+
+      The experiment is conducted in Zélus, a synchronous language that
+      conservatively extends Lustre with ODEs to program systems that
+      mix discrete-time and continuous-time signals.
   }
 }
 </pre>
