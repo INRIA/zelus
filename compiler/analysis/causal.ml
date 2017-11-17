@@ -28,7 +28,7 @@ module S = struct
     Format.fprintf ff "}@]"
 end
        
-(** and a module to represent the successors of a causality variable *)
+(* a module to represent the set of successors of a causality variable *)
 module M = struct
   include (Map.Make(Defcaus))
   let fprint_t fprint_v ff s =
@@ -36,7 +36,7 @@ module M = struct
     iter (fun k v -> Format.fprintf ff "%a->%a@ " Pcaus.caus k fprint_v v) s;
     Format.fprintf ff "}@]"
 end
-
+  
 let fprint_t = S.fprint_t
 let fprint_tt = M.fprint_t S.fprint_t
                            
@@ -343,8 +343,20 @@ let simplify c_set =
   (* c1 < c2 iff io(c1) subset io(c2) *)
   (* moreover, variables are partitioned according to [io], i.e., *)
   (* [c1 eq c2 iff io(c1) = io(c2)] *)
-  let set left_c right_c = cunify_types left_c right_c in
-  let less left_c right_c = ctype_before_ctype left_c right_c in
+  let set left_c right_c =
+    let c = crepr left_c in
+    match c.c_desc with
+    | Cvar -> c.c_desc <- Clink(right_c)
+    | _ -> () in
+  let less left_c right_c =
+    let c = crepr left_c in
+    match c.c_desc with
+    | Cvar -> c.c_sup <- add right_c c.c_sup
+    | _ ->  () in
+
+  (* let set left_c right_c = cunify_types left_c right_c in
+     let less left_c right_c = ctype_before_ctype left_c right_c in *)
+  
   S.iter (fun c -> (crepr c).c_sup <- []) inputs_outputs;
   S.iter
     (fun i -> 
@@ -352,13 +364,13 @@ let simplify c_set =
       S.iter 
 	(fun o ->
 	  let io_of_o = M.find o io_table in
-	  if not (equal i o)
+          if not (equal i o)
 	  then
             if S.equal io_of_i io_of_o then set i o
             else if S.subset io_of_i io_of_o then less i o
             else if S.subset io_of_o io_of_i then less o i)
-	outputs)
-    inputs    
+	inputs_outputs)
+    inputs_outputs    
     
 (* Eliminate doublons, e.g., [c < b, b] and dependences to variables *)
 (* which are not input or outputs *)
