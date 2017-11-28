@@ -128,19 +128,19 @@ let compile modname filename =
     step "Scoping done. See below:" Scoping.implementation_list impl_list in
   let impl_list =
     step "Typing done." (Typing.implementation_list info_ff true) impl_list in
+  let impl_list =
+    if not !no_causality
+    then step "Causality check done"
+	(Causality.implementation_list info_ff) impl_list
+    else impl_list in
+  let impl_list =
+    if not !no_initialisation
+    then step "Initialization check done"
+	(Initialization.implementation_list info_ff) impl_list
+    else impl_list in
   if not !typeonly then
     begin
       (* continue if [typeonly = false] *)
-      let impl_list =
-	if not !no_causality
-	then step "Causality check done"
-		  (Causality.implementation_list info_ff) impl_list
-	else impl_list in
-      let impl_list =
-	if not !no_initialisation
-	then step "Initialization check done"
-		  (Initialization.implementation_list info_ff) impl_list
-	else impl_list in
       (* Start of source-to-source translation *)
       let impl_list =
 	step "Mark functions calls to be inlined. See below:"
