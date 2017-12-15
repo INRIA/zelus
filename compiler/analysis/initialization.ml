@@ -184,13 +184,15 @@ let block locals body env { b_locals = l_list; b_body = bo; b_env = b_env } =
 
 (** Match handler *)
 let match_handlers body env m_h_list =
-  let handler { m_body = b } =
+  let handler { m_env = m_env; m_body = b } =
+    let env = build_env m_env env in
     body env b in
   List.iter handler m_h_list
 
 (** Present handler *)
 let present_handlers scondpat body env p_h_list =
-  let handler { p_cond = scpat; p_body = b; p_env = h0 } =
+  let handler { p_cond = scpat; p_body = b; p_env = p_env } =
+    let env = build_env p_env env in
     scondpat env scpat;
     body env b in
   List.iter handler p_h_list
@@ -348,12 +350,16 @@ and equation env { eq_desc = eq_desc; eq_loc = loc } =
 	    | Estate1(_, e_list) -> 
 	      List.iter (fun e -> exp_less_than_on_i env e izero) e_list in
 	(* handler *)
-        let handler env { s_body = b; s_trans = trans } =
-          let escape env { e_cond = sc; e_block = b_opt; e_next_state = ns } =
+        let handler env { s_body = b; s_trans = trans; s_env = s_env } =
+          let escape env
+              { e_cond = sc; e_block = b_opt; e_next_state = ns;
+                e_env = e_env } =
+            let env = build_env e_env env in
             scondpat env sc;
 	    let env = 
 	      match b_opt with | None -> env | Some(b) -> block_eq_list env b in
 	    state env ns in
+          let env = build_env s_env env in
           let env = block_eq_list env b in
           List.iter (escape env) trans in
         (* do a special treatment for the initial state *)

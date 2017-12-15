@@ -77,11 +77,12 @@ let rec union l1 l2 =
   | i :: l1, l2 -> if mem i l2 then union l1 l2 else i :: union l1 l2
 							      
 (** Sets the polarity of a type. *)
-let polarity p i =
-  match p, i.i_polarity with
-    | _, Punknown -> i.i_polarity <- p
-    | Punknown, polarity -> ()
-    | _, polarity -> if p <> polarity then i.i_polarity <- Pplusminus
+let polarity_c i right =
+  match i.i_polarity, right with
+    | Punknown, true -> i.i_polarity <- Pplus
+    | Punknown, false -> i.i_polarity <- Pminus
+    | Pminus, true | Pplus, false -> i.i_polarity <- Pplusminus
+    | _ -> ()
 
 let increase_polarity p i =
   match p with
@@ -200,13 +201,7 @@ and imark useful right i =
   match i.i_desc with
   | Ivar ->
      i.i_useful <- useful;
-     if useful then
-       match i.i_polarity, right with
-       | Punknown, true -> i.i_polarity <- Pplus
-       | Punknown, false -> i.i_polarity <- Pminus
-       | (Pminus, true) | Pplus, false -> i.i_polarity <- Pplusminus
-       | _ -> ()
-     else i.i_polarity <- Punknown
+     if useful then polarity_c i right else i.i_polarity <- Punknown
   | Izero | Ione | Ilink _ -> ()
                               
 (* Garbage collection: only keep dependences of the form a- < b+ *)
@@ -357,7 +352,7 @@ let rec copy ti ty =
      funtype (copy ti1 ty1) (copy ti2 ty2)
   | Iproduct(ti_list), Tproduct(ty_list) ->
     begin try product (List.map2 copy ti_list ty_list)
-      with | _ -> assert false end
+      with | Invalid_argument _ -> assert false end
   | Iatom(i), _ -> skeleton_on_i (icopy i) ty
   | _ -> assert false
 
