@@ -17,15 +17,16 @@ open Ident
 open Zelus
 open Deftypes
 open Defcaus
-
+open Definit
+    
 type 'a info = { qualid : Lident.qualident; info : 'a }
 
 (* values in the symbol table *)
 type value_desc =
-    { mutable value_typ: Deftypes.typ_scheme; (* its type scheme *)
+    { mutable value_typ: typ_scheme; (* its type scheme *)
       mutable value_static: bool; (* is-it a static value? *)
-      mutable value_caus: Defcaus.tc_scheme option; (* its causality scheme *)
-      mutable value_init: Definit.ti_scheme option; (* its init. scheme *)
+      mutable value_caus: tc_scheme option; (* its causality scheme *)
+      mutable value_init: ti_scheme option; (* its init. scheme *)
       mutable value_code: value_code; (* source code *)
     }
 

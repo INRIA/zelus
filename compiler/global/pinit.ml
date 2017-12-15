@@ -29,8 +29,9 @@ let useful u = if u then "u" else ""
 let level l = string_of_int l
 
 
-let extra { i_polarity = p; i_useful = u; i_level = l } =
-  if !Misc.verbose then polarity p ^ useful u ^ level l else ""
+let extra { i_polarity = p; i_useful = u; i_level = l; i_index = i } =
+  if !Misc.verbose then polarity p ^ useful u ^ level l ^
+                        "(" ^ (string_of_int i) ^ ")" else ""
     
 (* Print the causality *)
 let rec init ff i = 

@@ -190,18 +190,18 @@ and sup_i is_right i1 i2 =
 (* reduces dependences by eliminating intermediate variables *)
 (* we first mark useful variables (variables which appear in *)
 (* the final type. We also compute polarities *)
-let rec mark useful right ty =
+let rec mark right ty =
   match ty with
-  | Ifun(ty1, ty2) -> mark useful right ty2; mark useful (not right) ty1
-  | Iproduct(ty_list) -> List.iter (mark useful right) ty_list
-  | Iatom(i) -> imark useful right i
+  | Ifun(ty1, ty2) -> mark right ty2; mark (not right) ty1
+  | Iproduct(ty_list) -> List.iter (mark right) ty_list
+  | Iatom(i) -> imark right i
 
-and imark useful right i =
+and imark right i =
   let i = irepr i in
   match i.i_desc with
   | Ivar ->
-     i.i_useful <- useful;
-     if useful then polarity_c i right else i.i_polarity <- Punknown
+      i.i_useful <- true;
+      polarity_c i right
   | Izero | Ione | Ilink _ -> ()
                               
 (* Garbage collection: only keep dependences of the form a- < b+ *)
@@ -279,18 +279,18 @@ and isimplify right i =
   | Izero | Ione  | Ilink _ -> i
   | Ivar ->
     if right then
-      match i.i_inf with
-      | [] when i.i_polarity = Pplus -> izero
-      | [i_inf] ->
+      match i.i_inf, i.i_polarity with
+      | [], Pplus -> izero
+      | [i_inf], Pplus ->
         increase_polarity Pplus i_inf;
-        i_inf.i_sup <- union (remove i i_inf.i_sup) i.i_sup; i_inf
+        i.i_useful <- false; i_inf
       | _ -> i
     else
-      match i.i_sup with
-      | [] when i.i_polarity = Pminus -> ione
-      | [i_sup] -> increase_polarity Pminus i_sup;
-        i_sup.i_inf <- union (remove i i_sup.i_inf) i.i_inf;
-        i_sup
+      match i.i_sup, i.i_polarity with
+      | [], Pminus -> ione
+      | [i_sup], Pminus ->
+          increase_polarity Pminus i_sup;
+          i.i_useful <- false; i_sup
       | _ -> i
       
 (** Generalisation of a type *)
@@ -329,13 +329,13 @@ and gen_set l = List.fold_left (fun acc i -> max (igen i) acc) generic l
 let generalise ty =
   list_of_vars := [];
   (* we mark useful variables *)
-  mark true true ty;
+  mark true ty;
   (* garbage collect dependences *)
   shorten ty;
   let ty = simplify true ty in
+  mark true ty;
+  shorten ty;
   gen ty;
-  let rel = Pinit.relation !list_of_vars in
-  ignore rel;
   { typ_vars = !list_of_vars; typ = ty }
 
 (** Instantiation of a type *)
@@ -345,16 +345,12 @@ let links = ref []
 let save link = links := link :: !links
 let cleanup () = List.iter (fun i -> i.i_desc <- Ivar) !links; links := []
 									  
-let rec copy ti ty =
-  let { t_desc = t_desc } as ty = Types.typ_repr ty in
-  match ti, t_desc with
-  | Ifun(ti1, ti2), Tfun(_, _, ty1, ty2) ->
-     funtype (copy ti1 ty1) (copy ti2 ty2)
-  | Iproduct(ti_list), Tproduct(ty_list) ->
-    begin try product (List.map2 copy ti_list ty_list)
-      with | Invalid_argument _ -> assert false end
-  | Iatom(i), _ -> skeleton_on_i (icopy i) ty
-  | _ -> assert false
+(* makes a copy of the type scheme *)
+let rec copy ti =
+  match ti with
+  | Ifun(ti1, ti2) -> funtype (copy ti1) (copy ti2)
+  | Iproduct(ti_list) -> product (List.map copy ti_list)
+  | Iatom(i) -> atom (icopy i)
 
 and icopy i =
   match i.i_desc with
@@ -373,12 +369,38 @@ and icopy i =
      if i.i_level = generic then izero else i
   | Ione ->
      if i.i_level = generic then ione else i
-					     
+
+(* instanciate the initialisation type according to the type *)
+let rec instance ti ty =
+  let { t_desc = t_desc } as ty = Types.typ_repr ty in
+  match ti, t_desc with
+  | Ifun(ti1, ti2), Tfun(_, _, ty1, ty2) ->
+     funtype (instance ti1 ty1) (instance ti2 ty2)
+  | Iproduct(ti_list), Tproduct(ty_list) ->
+    begin try product (List.map2 instance ti_list ty_list)
+      with | Invalid_argument _ -> assert false end
+  | Iatom(i), _ -> skeleton_on_i i ty
+  | _ -> assert false
+
+(* subtyping *)
+let rec subtype right ti =
+  match ti with
+  | Ifun(ti1, ti2) ->
+      funtype (subtype (not right) ti1) (subtype right ti2)
+  | Iproduct(ti_list) ->
+      begin try product (List.map (subtype right) ti_list)
+        with | Invalid_argument _ -> assert false end
+  | Iatom(i) ->
+      let new_i = new_var () in
+      if right then less_i i new_i else less_i new_i i;
+      atom new_i
+  
 (* instanciation *)
 let instance { typ_vars = ti_list; typ = ti } ty =
-  let ti = copy ti ty in
+  let ti = copy ti in
   cleanup ();
-  ti
+  let ti = subtype true ti in
+  instance ti ty
 
 (* type instance *)
 let instance { value_init = tis_opt } ty =
@@ -386,13 +408,12 @@ let instance { value_init = tis_opt } ty =
   let default ty =
     let i = new_var () in
     skeleton_on_i i ty in
-  let ti = match tis_opt with
-    | None -> 
-       (* if no initialization signature is declared, a default one is built *)
-       (* from the type signature *)
-       default ty
-    | Some(tis) -> instance tis ty in
-  ti
+  match tis_opt with
+  | None -> 
+      (* if no initialization signature is declared, *)
+      (* a default one is built from the type signature *)
+      subtype true (default ty)
+  | Some(tis) -> instance tis ty
 
 let filter_arrow ty =
   match ty with

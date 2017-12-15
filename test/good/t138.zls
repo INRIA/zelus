@@ -1,5 +1,5 @@
-let f n x = o where
-   forall i in 0 .. n, xi in x do
+let f n x =
+  local o default true with (+)
+  do forall i in 0 .. n, xi in x do
      o += xi
-     initialize o = true with (+)
-   done
+  done in o

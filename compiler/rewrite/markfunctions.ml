@@ -59,10 +59,11 @@ let to_inline c_in_list c_out_list c_arg_list c_res_list =
     if not i then
       List.iter
 	(fun c_arg ->
-	 List.iter (fun c_res -> Causal.cless c_arg c_res) c_res_list) c_arg_list;
+           List.iter
+             (fun c_res -> Causal.less_c c_arg c_res) c_res_list) c_arg_list;
     i
   with
-    | Causal.Unify(l) ->
+    | Causal.Clash(l) ->
       Misc.internal_error "Mark function (to inline)" Pcaus.cycle l
 	
 (* generic translation for match handlers *)

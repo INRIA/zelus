@@ -873,42 +873,51 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
        snd (block_eq_list expected_k h b_eq_list)
     | EQforall
 	({ for_index = i_list; for_init = init_list; for_body = b_eq_list }
-	 as body) ->
-       (* A non local variable [xi] defined in the body of the loop must be *)
-       (* either declared in the initialization part [initialize ...] *)
-       (* or used to define an output array [xi out x] *)
-       (* returns a new set [{ dv; di; der; nv; mv }] *)
-       (* where [xi] is replaced by [x] *)
-       let merge { dv = dv; di = di; der = der; nv = nv; mv = mv }
-                 h init_h out_h xi_out_x =
-	 (* rename [xi] into [x] if [xi out x] appears in [xi_out_x] *)
-         let x_of_xi xi =
-           try Env.find xi xi_out_x  with Not_found -> xi in
-         let out xi acc =
-	   try S.add (Env.find xi xi_out_x) acc with Not_found -> acc in
-	 (* all variables in [dv], [der] must appear either *)
-	 (* in [init_h] or [out_h] or as combined variables in [h] *)
-	 (* all variables in [di] must appear in [out_h] and not in [init_h] *)
-         let belong_to_init_out xi =
-	   if not ((Env.mem xi init_h) || (Env.mem xi out_h))
-	   then error loc (Ealready_in_forall(xi)) in
-	 let belong_to_out_not_init xi =
-	   if not (Env.mem xi out_h) || (Env.mem xi init_h)
-	   then error loc (Ealready_in_forall(xi)) in
-	 S.iter belong_to_init_out dv;
-	 S.iter belong_to_init_out nv;
-	 S.iter belong_to_init_out der;
-         S.iter belong_to_out_not_init di;
-         (* change the sort of [x] so that it is equal to that of [xi] *)
-	 S.iter (def loc h) (S.fold out dv S.empty);
-	 S.iter (fun n -> ignore (init loc h n)) (S.fold out di S.empty);
-	 S.iter (fun n -> ignore (derivative loc h n)) (S.fold out der S.empty);
-	 
-	 (* all name [xi] from [defnames] such that [xi out x] *)
-         (* is replaced by [x] in the new [defnames] *)
-	 { dv = S.map x_of_xi dv; di = S.map x_of_xi di;
-	   der = S.map x_of_xi der; nv = S.map x_of_xi nv;
-           mv = S.map x_of_xi mv } in
+          as body) ->
+        (* all output variables [xi] such that [xi ou x] *)
+        (* must have a declaration in the body *)
+        (* A non local variable [xi] defined in the body of the loop must be *)
+        (* either declared in the initialization part [initialize ...] *)
+        (* or used to define an output array [xi out x] *)
+        (* returns a new set [{ dv; di; der; nv; mv }] *)
+        (* where [xi] is replaced by [x] *)
+        let merge ({ dv = dv; di = di; der = der; nv = nv; mv = mv } as defnames)
+            h init_h out_h xi_out_x =
+	  (* check that all names in [out_h] are defined in defnames *)
+          let out_set = Env.fold (fun x _ acc -> S.add x acc) out_h S.empty in
+          let out_not_defined =
+            S.diff out_set (Deftypes.names S.empty defnames) in
+          if not (S.is_empty out_not_defined)
+          then error loc (Eequation_is_missing(S.choose out_not_defined));
+          (* rename [xi] into [x] if [xi out x] appears in [xi_out_x] *)
+          let x_of_xi xi =
+            try Env.find xi xi_out_x  with Not_found -> xi in
+          let out xi acc =
+	    try S.add (Env.find xi xi_out_x) acc with Not_found -> acc in
+	  (* all variables in [dv], [der] must appear either *)
+	  (* in [init_h] or [out_h] or as combined variables in [h] *)
+	  (* all variables in [di] must appear in [out_h] and not in [init_h] *)
+          let belong_to_init_out xi =
+	    if not ((Env.mem xi init_h) || (Env.mem xi out_h))
+            then error loc (Ealready_in_forall(xi)) in
+	  let belong_to_out_not_init xi =
+            if not (Env.mem xi out_h) || (Env.mem xi init_h)
+            then error loc (Ealready_in_forall(xi)) in
+	    S.iter belong_to_init_out dv;
+            S.iter belong_to_init_out nv;
+            S.iter belong_to_init_out der;
+            S.iter belong_to_out_not_init di;
+            (* change the sort of [x] so that it is equal to that of [xi] *)
+	    S.iter (def loc h) (S.fold out dv S.empty);
+	    S.iter (fun n -> ignore (init loc h n)) (S.fold out di S.empty);
+            S.iter
+              (fun n -> ignore (derivative loc h n)) (S.fold out der S.empty);
+     
+          (* all name [xi] from [defnames] such that [xi out x] *)
+          (* is replaced by [x] in the new [defnames] *)
+          { dv = S.map x_of_xi dv; di = S.map x_of_xi di;
+	    der = S.map x_of_xi der; nv = S.map x_of_xi nv;
+            mv = S.map x_of_xi mv } in
 
        (* outputs are either shared or state variables *)
        let sort = if Types.is_statefull_kind expected_k

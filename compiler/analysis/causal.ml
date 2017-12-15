@@ -27,7 +27,7 @@ module S = struct
     iter (fun e -> Format.fprintf ff "%a@ " Pcaus.caus e) s;
     Format.fprintf ff "}@]"
 end
-       
+
 (* a module to represent the set of successors of a causality variable *)
 module M = struct
   include (Map.Make(Defcaus))
@@ -40,20 +40,17 @@ end
 let fprint_t = S.fprint_t
 let fprint_tt = M.fprint_t S.fprint_t
                            
-type error =
-  | ClashTypes of tc * tc * cycle
-  | ClashLast of Ident.t
-	      
-and cycle = Defcaus.t list
+type cycle = Defcaus.t list
+
+type error = cycle
 
 (* typing errors *)
-exception Unify of cycle
-exception Error of error
+exception Clash of error
 				       
 let new_var () = 
   { c_desc = Cvar; c_index = symbol#name; c_level = !binding_level;
-    c_sup = []; c_useful = false; 
-    c_polarity = Punknown; c_info = None }
+    c_inf = []; c_sup = []; c_useful = false; 
+    c_polarity = Punknown; c_info = None; c_visited = -1 }
 let new_var_with_info { c_info = i } = { (new_var ()) with c_info = i }
 let product l = Cproduct(l)
 let funtype tc1 tc2 = Cfun(tc1, tc2)
@@ -85,6 +82,11 @@ let rec add c l =
   | [] -> [c] 
   | c1 :: l1 -> if equal c c1 then l else c1 :: (add c l1)
 
+let rec remove c l =
+  match l with
+  | [] -> []
+  | c1 :: l1 -> if equal c c1 then l1 else c1 :: (remove c l1)
+
 let rec union l1 l2 = 
   let rec mem c l =
     match l with | [] -> false | c1 :: l -> (equal c c1) || (mem c l) in
@@ -110,140 +112,100 @@ let rec vars acc = function
   | Catom(c) -> S.add (crepr c) acc
   | Cproduct(ty_list) -> List.fold_left vars acc ty_list
   | Cfun(ty_arg, ty_res) -> vars (vars acc ty_arg) ty_res
-			 
+  
 (** Sets the polarity of a type. *)
-let cpolarity pol c =
-  match pol, c.c_polarity with
-    | _, Punknown -> c.c_polarity <- if pol then Pplus else Pminus
-    | (true, Pplus) | (false, Pminus) -> ()
-    | _ -> c.c_polarity <- Pplusminus
+let polarity_c c right =
+  match c.c_polarity, right with
+    | Punknown, true -> c.c_polarity <- Pplus
+    | Punknown, false -> c.c_polarity <- Pminus
+    | Pminus, true | Pplus, false -> c.c_polarity <- Pplusminus
+    | _ -> ()
 
-(** check for cycles. Does [index] appears in the set of elements *)
-(** greater than [c]? *)
-let rec occur_check level index c =
-  let rec check path c =
-    match c.c_desc with
+let increase_polarity p c =
+  match p with
+  | Punknown -> c.c_polarity <- p
+  | _ -> if p <> c.c_polarity then c.c_polarity <- Pplusminus
+
+(** check for cycles. Does [left_c] appears in [right_c] and its *)
+(* greater elements *)
+let rec occur_check ({ c_level = level; c_index = index } as c_left) c_right =
+  let rec check path c_right =
+    match c_right.c_desc with
     | Cvar -> 
-       if c.c_level > level then c.c_level <- level;
-       if c.c_index = index 
-       then raise (Unify (List.rev path))
-       else List.iter (check (c :: path)) c.c_sup
+       if c_right.c_level > level then c_right.c_level <- level;
+       if c_right.c_index = index 
+       then raise (Clash(List.rev path))
+       else List.iter (check (c_right :: path)) c_right.c_sup
     | Clink(link) -> check path link
-  in check [c] c
+  in check [c_left] c_right
 
 (** Unification *)
-let rec unify cunify left_tc right_tc =
+let rec less left_tc right_tc =
   match left_tc, right_tc with
-  | Cproduct(l1), Cproduct(l2) -> List.iter2 (unify cunify) l1 l2
-  | Catom(c1), Catom(c2) -> cunify c1 c2
+  | Cproduct(l1), Cproduct(l2) -> List.iter2 less l1 l2
+  | Catom(c1), Catom(c2) -> less_c c1 c2
   | Cfun(tc_arg1, tc_res1), Cfun(tc_arg2, tc_res2) ->
-     unify cunify tc_res1 tc_res2; unify cunify tc_arg2 tc_arg1 
+     less tc_res1 tc_res2; less tc_arg2 tc_arg1 
   | _ -> assert false
                 
-let rec cunify left_c right_c =
-  if left_c == right_c then ()
-  else 
-    let left_c = crepr left_c in
-    let right_c = crepr right_c in
-    if left_c == right_c then ()
-    else
-      match left_c.c_desc, right_c.c_desc with
-      | Cvar, Cvar ->
-         List.iter (occur_check left_c.c_level left_c.c_index) right_c.c_sup;
-	 List.iter (occur_check right_c.c_level right_c.c_index) left_c.c_sup;
-	 left_c.c_desc <- Clink(right_c);
-	 right_c.c_sup <- union left_c.c_sup right_c.c_sup
-      | _ -> assert false
-                    
-let rec cless left_c right_c =
+and less_c left_c right_c =
   let left_c = crepr left_c in
   let right_c = crepr right_c in
   match left_c.c_desc, right_c.c_desc with
   | Cvar, Cvar ->
-     occur_check left_c.c_level left_c.c_index right_c;
+     occur_check left_c right_c;
      (* [left_c < .... set ...] with [left_c not in set] *)
      (* Now [left_c < ... set + { right_c } *)
-     left_c.c_sup <- add right_c left_c.c_sup
+     right_c.c_inf <- add left_c right_c.c_inf;
+     left_c.c_sup <- add right_c left_c.c_sup     
   | _ -> assert false
                 
 (* does it exist a strict path from [c1] to [c2]? *)
 let rec strict_path c1 c2 = List.exists (fun c1 -> path c1 c2) (sups c1) 
 and path c1 c2 = (equal c1 c2) || (strict_path c1 c2)
                                     
-(* the main entry functions for comparing causality types *)
-let type_before_type left_tc right_tc =
-  try
-    unify cless left_tc right_tc
-  with Unify(cycle) -> raise (Error (ClashTypes(left_tc, right_tc, cycle)))
-
-let ctype_before_ctype left_c right_c =
-  try
-    cless left_c right_c
-  with Unify(cycle) ->
-    raise (Error (ClashTypes(atom left_c, atom right_c, cycle)))
-
-let cunify_types left_c right_c =
-  try
-    cunify left_c right_c
-  with Unify(cycle) ->
-    raise (Error(ClashTypes(atom left_c, atom right_c, cycle)))
-
 (* Copy of a causality type *)
 let rec fresh tc =
   match tc with
   | Cfun(tc1, tc2) -> Cfun(fresh tc1, fresh tc2)
   | Cproduct(l) -> Cproduct(List.map fresh l)
   | Catom(c) -> Catom(new_var_with_info c)
-		     
-(* Returns a causality type that is structurally like [tc] but *)
-(* depends on both [tc] and [cset] *)
-let rec supcset cset tc =
-  match tc with
-    | Cproduct(l) -> Cproduct(List.map (supcset cset) l)
-    | Cfun(tc1, tc2) -> Cfun(tc1, supcset cset tc2)
-    | Catom(left_c) ->
-       let right_c = new_var () in
-       S.iter (fun c -> ctype_before_ctype c right_c) (S.add left_c cset);
-       Catom(right_c)
 
-let rec supc c tc = supcset (S.singleton c) tc
+let rec fresh_on_c c tc =
+  match tc with
+  | Cfun(tc1, tc2) -> Cfun(fresh_on_c c tc1, fresh_on_c c tc2)
+  | Cproduct(l) -> Cproduct(List.map (fresh_on_c c) l)
+  | Catom _ -> Catom(c)
 
 (* Compute the sup of two causality types *)
-let rec sup left_tc right_tc =
-  let rec supc left_c right_c =
+let rec suptype is_right left_tc right_tc =
+  match left_tc, right_tc with
+  | Cproduct(l1), Cproduct(l2) ->
+    let tc_list =
+      try List.map2 (suptype is_right) l1 l2
+      with Invalid_argument _ -> assert false in
+    Cproduct(tc_list)
+  | Catom(c1), Catom(c2) -> Catom(sup_c is_right c1 c2)
+  | Cfun(left_tc1, left_tc2), Cfun(right_tc1, right_tc2) ->
+    Cfun(suptype (not is_right) left_tc1 right_tc1,
+         suptype is_right left_tc2 right_tc2)
+  | _ -> assert false
+
+and sup_c is_right left_c right_c =
     let left_c = crepr left_c in
     let right_c = crepr right_c in
     let c = new_var () in
-    ctype_before_ctype left_c c; ctype_before_ctype right_c c;
-    c in
-  match left_tc, right_tc with
-  | Cproduct(l1), Cproduct(l2) when List.length l1 = List.length l2 -> 
-     Cproduct(List.map2 sup l1 l2)
-  | Catom(c1), Catom(c2) -> Catom(supc c1 c2)
-  | Cfun(left_tc1, left_tc2), Cfun(right_tc1, right_tc2) ->
-     Cfun(sup left_tc1 right_tc1, sup left_tc2 right_tc2)
-  | _ -> assert false
-
-let sup_list tc_list = 
+    if is_right then
+      begin less_c left_c c; less_c right_c c end
+    else
+      begin less_c c left_c; less_c c right_c end;
+    c
+  
+let suptype_list is_right tc_list = 
   match tc_list with
   | [] -> assert false
-  | hd :: tl -> List.fold_left sup hd tl
-
-		     
-(** Synchronise a type *)
-let synchronise left_c tc =
-  let rec csynchronise  right_c =
-    let right_c = crepr right_c in
-    match right_c.c_desc with
-    | Cvar -> cunify_types left_c right_c
-    | Clink(link) -> csynchronise link
-  and synchronise tc =
-    match tc with
-    | Cproduct(tc_list) -> List.iter synchronise tc_list
-    | Cfun(tc1, tc2) -> synchronise tc1; synchronise tc2
-    | Catom(right_c) -> csynchronise right_c in
-  synchronise tc
-
+  | hd :: tl -> List.fold_left (suptype is_right) hd tl
+                  
 (** Computing a causality type from a type *)
 let rec skeleton ty =
   match ty.t_desc with
@@ -260,29 +222,27 @@ let rec skeleton_on_c c ty =
     | Tproduct(ty_list) -> product (List.map (skeleton_on_c c) ty_list)
     | Tfun(_, _, ty_arg, ty) ->
        let c_left = new_var () in
-       cless c_left c;
+       less_c c_left c;
        funtype (skeleton_on_c c_left ty_arg) (skeleton_on_c c ty)
     | Tconstr(_, _, _) | Tvec _ -> atom c
     | Tlink(ty) -> skeleton_on_c c ty
 
 (** Simplification of types *)
-(* Mark useful/useless variables and returns them *)
-let rec mark right acc tc =
+(* Mark useful variables *)
+let rec mark right tc =
   match tc with
   | Cfun(tc1, tc2) ->
-     let acc = mark (not right) acc tc1 in
-     mark right acc tc2
-  | Cproduct(tc_list) -> List.fold_left (mark right) acc tc_list
-  | Catom(c) -> cmark right acc c
+     mark (not right) tc1; mark right tc2
+  | Cproduct(tc_list) -> List.iter (mark right) tc_list
+  | Catom(c) -> mark_c right c
 
-and cmark right acc c =
+and mark_c right c =
   let c = crepr c in
   match c.c_desc with
   | Cvar -> 
      c.c_useful <- true;
-     cpolarity right c;
-     S.add c acc
-  | Clink(link) -> cmark right acc link
+     polarity_c c right
+  | Clink(link) -> mark_c right link
   			
 (* we compute IO sets [see Pouzet and Raymond, EMSOFT'09] *)
 (* IO(c) = { i / i in I /\ i <_O c } and i <_O c iff O(c) subset O(i) *)
@@ -314,7 +274,8 @@ let rec out c =
   outrec S.empty c  
 
 (* simplifies a set of causalities *)
-let simplify c_set =
+let simplify_by_io ty =
+  let c_set = vars S.empty ty in
   (* is-it an output? *)
   let inputs, outputs = S.fold ins_and_outs c_set (S.empty, S.empty) in
   let inputs_outputs = S.union inputs outputs in
@@ -354,9 +315,6 @@ let simplify c_set =
     | Cvar -> c.c_sup <- add right_c c.c_sup
     | _ ->  () in
 
-  (* let set left_c right_c = cunify_types left_c right_c in
-     let less left_c right_c = ctype_before_ctype left_c right_c in *)
-  
   S.iter (fun c -> (crepr c).c_sup <- []) inputs_outputs;
   S.iter
     (fun i -> 
@@ -372,31 +330,97 @@ let simplify c_set =
 	inputs_outputs)
     inputs_outputs    
     
-(* Eliminate doublons, e.g., [c < b, b] and dependences to variables *)
-(* which are not input or outputs *)
-(* used only when a type error occurs. *)
-(* This function does not simplify as well as the function simplify. It *)
-(* is not used. *)
-let useless c_set =
-  let rec remove_useless_variables c_set = S.iter remove_useless c_set 
-  and remove_useless c = 
-    let c = crepr c in
-    c.c_sup <- useful_list [] c.c_sup
-  and useful_list acc l = List.fold_left useful acc l
-  and useful acc c_right =
-    let c_right = crepr c_right in
-    match c_right.c_desc with
-    | Cvar -> 
-       if c_right.c_useful then add c_right acc
-       else useful_list acc c_right.c_sup
-    | Clink(link) -> useful acc link in
-  remove_useless_variables c_set
+(* An other simplification method *)
+(* Garbage collection: only keep dependences of the form a- < b+ *)
+(* this step is done after having called the function mark *)
+let rec shorten ty =
+  match ty with
+  | Cfun(tc1, tc2) -> shorten tc1; shorten tc2
+  | Cproduct(tc_list) -> List.iter shorten tc_list
+  | Catom(c) -> shorten_c c
+
+and shorten_c c =
+  let c = crepr c in
+  match c.c_desc with
+  | Clink(c) -> shorten_c c
+  | Cvar ->
+     c.c_visited <- 0;
+     (* only keep a dependence a- < b+ *)
+     let inf, sup =
+       match c.c_polarity with
+       | Punknown -> assert false
+       | Pplus -> remove_polarity Pplus (short_list false [] c.c_inf), []
+       | Pminus -> [], remove_polarity Pminus (short_list true [] c.c_sup)
+       | Pplusminus ->
+         short_list false [] c.c_inf, short_list true [] c.c_sup in
+     c.c_inf <- inf;
+     c.c_sup <- sup;
+     c.c_visited <- 1       
+		      
+and short_list is_right acc c_list =
+  List.fold_left (short is_right) acc c_list
+
+(* only keep a dependence a- < b+ *)
+and remove_polarity p c_list =
+  let clear acc c_right =
+    match p, c_right.c_polarity with
+    | (Pplus, Pplus) | (Pminus, Pminus) -> acc
+    | _ -> c_right :: acc in
+  List.fold_left clear [] c_list
+    
+and short is_right acc c =
+  match c.c_desc with
+  | Clink(c) -> short is_right acc c
+  | Cvar ->
+      match c.c_visited with
+      | -1 -> (* never visited *)
+          c.c_visited <- 0;
+          let acc =
+            short_list is_right acc (if is_right then c.c_sup else c.c_inf) in
+          let acc = if c.c_useful then add c acc else acc in
+          c.c_visited <- -1;
+          acc
+      | 0 -> (* currently visited *)
+          acc
+      | _ -> (* visited in a previous pass *) 
+          (* the variable is added only if it is useful *)
+          if c.c_useful then add c acc else union c.c_inf acc  
+
+                              
+(* Final simplification. *)
+(*- if a- has a single sup. b+, it can be replaced by it
+ *- if a+ has a single inf. b-, it can be replaced by it. *)
+let rec simplify right tc =
+  match tc with
+  | Cfun(tc1, tc2) -> funtype (simplify (not right) tc1) (simplify right tc2)
+  | Cproduct(tc_list) -> product(List.map (simplify right) tc_list)
+  | Catom(c) -> Catom(csimplify right c)
+
+and csimplify right c =
+  let c = crepr c in
+  match c.c_desc with
+  | Clink _ -> c
+  | Cvar ->
+    if right then
+      match c.c_inf, c.c_polarity with
+      | [c_inf], Pplus ->
+          increase_polarity Pplus c_inf;
+          c.c_useful <- false; c_inf
+      | _ -> c
+    else
+      match c.c_sup, c.c_polarity with
+      | [c_sup], Pminus ->
+          increase_polarity Pminus c_sup; 
+          c.c_useful <- false; c_sup
+      | _ -> c
+
 
 (* Shrink a cycle by keeping only names in [cset] *)
 let shrink_cycle cset c_list =
   let shrink c = S.mem c cset in
   List.filter shrink c_list
-	      
+
+  
 (** Computes the dependence relation from a list of causality variables *)
 (* variables in [already] are disgarded *)
 let relation cset =
@@ -439,15 +463,24 @@ and cgen c =
   | Clink(link) -> cgen link
 			
 and gen_set l = List.fold_left (fun acc c -> max (cgen c) acc) generic l
-			       
+
+let simplify is_right tc =
+  shorten tc;
+  let tc = simplify is_right tc in
+  mark is_right tc;
+  shorten tc;
+  tc
+    
 (** Main generalisation function *)
 let generalise tc =
   list_of_vars := [];
   (* we compute useful variables *)
-  let c_set = mark true S.empty tc in
+  mark true tc;
   (* type simplification *)
-  (* useless c_set; *) simplify c_set;
-  ignore (gen tc);
+  (* let tc = simplify true tc in *)
+  simplify_by_io tc;
+  gen tc;
+  let c_set = vars S.empty tc in
   let rel = relation c_set in
   { typ_vars = !list_of_vars; typ_rel = rel; typ = tc }
 
@@ -458,7 +491,7 @@ let links = ref []
 let save link = links := link :: !links
 let cleanup () = List.iter (fun c -> c.c_desc <- Cvar) !links; links := []
 
-(* instanciation *)
+(* makes a copy of the type scheme *)
 let rec copy tc ty = 
   let rec ccopy c =
     match c.c_desc with
@@ -479,28 +512,60 @@ let rec copy tc ty =
      funtype (copy tc1 ty1) (copy tc2 ty2)
   | Cproduct(tc_list), Tproduct(ty_list) ->
      begin try product (List.map2 copy tc_list ty_list)
-           with | _ -> assert false end
+           with | Invalid_argument _ -> assert false end
   | Catom(c), _ -> skeleton_on_c (ccopy c) ty
   | _ -> assert false
 
+(* makes a copy of the type scheme *)
+let rec copy tc = 
+  let rec ccopy c =
+    match c.c_desc with
+    | Cvar ->
+       if c.c_level = generic
+       then
+	 let sup_list = List.map ccopy c.c_sup in
+	 let v = { (new_var ()) with c_sup = sup_list } in
+	 c.c_desc <- Clink(v);
+	 save c;
+	 v
+       else c
+    | Clink(link) -> if c.c_level = generic then link else ccopy link in
+
+  match tc with
+  | Cfun(tc1, tc2) -> funtype (copy tc1) (copy tc2)
+  | Cproduct(tc_list) -> product (List.map copy tc_list)
+  | Catom(c) -> atom (ccopy c)
+
+(* instanciate the causality type according to the type *)
+let rec instance tc ty = 
+  let { t_desc = t_desc } as ty = Types.typ_repr ty in
+  match tc, t_desc with
+  | Cfun(tc1, tc2), Tfun(_, _, ty1, ty2) ->
+     funtype (instance tc1 ty1) (instance tc2 ty2)
+  | Cproduct(tc_list), Tproduct(ty_list) ->
+     begin try product (List.map2 instance tc_list ty_list)
+           with | Invalid_argument _ -> assert false end
+  | Catom(c), _ -> skeleton_on_c c ty
+  | _ -> assert false
 
 (* subtyping *)
 let rec subtype right tc =
   match tc with
   | Cfun(tc1, tc2) ->
-     funtype (subtype (not right) tc1) (subtype right tc2)
+      funtype (subtype (not right) tc1) (subtype right tc2)
   | Cproduct(tc_list) ->
-     begin try product (List.map (subtype right) tc_list)
-           with | _ -> assert false end
+      begin try product (List.map (subtype right) tc_list)
+        with | Invalid_argument _ -> assert false end
   | Catom(c) ->
-     let new_c = new_var () in
-     if right then cless c new_c else cless new_c c;
-     atom new_c
-
+      let new_c = new_var () in
+      if right then less_c c new_c else less_c new_c c;
+      atom new_c
+        
 let instance { typ = tc } ty =
-  let tc = copy tc ty in
+  let tc = copy tc in
   cleanup ();
-  tc
+  let tc = subtype true tc in
+  instance tc ty
 
 (** Type instance *)
 let instance { value_caus = tcs_opt } ty =
@@ -508,13 +573,12 @@ let instance { value_caus = tcs_opt } ty =
   let default ty =
     let c = new_var () in
     skeleton_on_c c ty in
-  let tc = match tcs_opt with
+  match tcs_opt with
     | None -> 
        (* if no causality signature is declared, a default one is built *)
        (* from the type signature *)
-       default ty
-    | Some(tcs) -> instance tcs ty in
-  subtype true tc
+       subtype true (default ty)
+    | Some(tcs) -> instance tcs ty
 
 (* check that [tc] is of the form [tc1;...;tc_arity] *)
 let filter_product arity tc =
@@ -529,102 +593,121 @@ let filter_arrow tc =
   | _ -> assert false
 
 (* Environment for causality types *)
+type tentry = 
+  { t_typ: tc;      (* the causality type of x *)
+    t_last_typ: tc; (* [last x] is allowed *)
+  }
+
+(* Returns a causality type that is structurally like [tc] but *)
+(* depends on both [tc] and [cset] *)
+let rec sup_c_set cset tc =
+  match tc with
+    | Cproduct(l) -> Cproduct(List.map (sup_c_set cset) l)
+    | Cfun(tc1, tc2) -> Cfun(tc1, sup_c_set cset tc2)
+    | Catom(left_c) ->
+       let right_c = new_var () in
+       S.iter (fun c -> less_c c right_c) (S.add left_c cset);
+       Catom(right_c)
+
+let rec sup_on_c c tc = sup_c_set (S.singleton c) tc
+
 module Cenv =
-  struct
-    type centry =
-	{ mutable last: bool; (* [last x] is allowed *)
-	  cur_tc: Defcaus.tc; (* the causality type for [x] *)
-	  last_tc: Defcaus.tc; (* the causality type for [last x] *)
-	}
+struct
+  type env =
+    | Empty (* [] *)
+    | On of env * Defcaus.t (* H on c *)
+    | Append of env * tentry Env.t (* [x1: tentry1;...; xn: tentryn] *)
 
-    (* Ordering between two environments. This is done structurally *)
-    (* [x:tcx' | ltcx'] < [x: tcx | ltcx] iff *)
-    (* [tcx' < tcx & ltcx < ltcx' ] *)
-    (* only keeps names in [left_env] *)
-    let before left_env right_env =
-      let before x left_opt right_opt =
-	match left_opt, right_opt with
-	| None, _ -> None
-	| Some(entry), None -> Some(entry)
-	| Some { last = l1; cur_tc = tc1; last_tc = ltc1 },
-	  Some { last = l2; cur_tc = tc2; last_tc = ltc2 } ->
-	   if not l1 && l2 then raise (Error(ClashLast(x)))
-	   else
-             type_before_type tc1 tc2; type_before_type ltc1 ltc2; left_opt in
-      Env.merge before left_env right_env
+  let find x env =
+    let rec find path x env =
+      match env with
+      | Empty -> raise Not_found
+      | On(env, c) ->
+          let path, tentry = find path x env in
+          c :: path, tentry
+    | Append(env, env0) ->
+        try path, Env.find x env0 with | Not_found -> find path x env in
+    find [] x env
 
-    (* Computes the sup of two typing environments *)
-    let sup left_env right_env =
-      let sup x left_opt right_opt =
-	match left_opt, right_opt with
-	| None, None -> None
-	| None, Some(entry) -> Some(entry)
-	| Some(entry), None -> Some(entry)
-	| Some({ last = l1; cur_tc = tc1; last_tc = ltc1 }), 
-	  Some({ last = l2; cur_tc = tc2; last_tc = ltc2 }) -> 
-	   Some({ last = l1 && l2; cur_tc = sup tc1 tc2;
-                  last_tc = sup ltc1 ltc2 }) in
-      Env.merge sup left_env right_env
-		
-    let suplist env_list = List.fold_left sup Env.empty env_list
-					  
-    (* Computes the sup between a causality dependence *)
-    (* and an environment *)
-    let supcset cset env =
-      Env.map
-	(fun ({ cur_tc = tc } as centry) ->
-	 { centry with cur_tc = supcset cset tc })
-	env
-	
-    let supc c env = supcset (S.singleton c) env
-		      
-    (* Makes an environment for the causality type of [x] and [last x] *)
-    (* from a basic environment that containt the causality type of [x] *)
-    let make expected_k env =
-      (* in a continuous context, [last x = x]. No constraint *)
-      (* otherwise *)
-      let make tc =
-	let is_last =
-          match expected_k with | Tdiscrete(true) -> true | _ -> false in
-        { last = is_last; cur_tc = tc; last_tc = fresh tc } in
-      Env.map make env
+  let last x env =
+    let _, tentry = find x env in
+    tentry
 
-    (* All names from [defnames] are associated to fresh copies *)
-    (* and can be accessed through last *)
-    let last { dv = dv } env =
-      let last n ({ cur_tc = tc; last_tc = ltc } as centry) acc =
-	if Ident.S.mem n dv then
-	  Env.add n { last = false; cur_tc = fresh tc; last_tc = ltc } acc
-	else Env.add n centry acc in
-      Env.fold last env Env.empty
+  (* [before is_before path tc[c] = tc'] such that *)
+  (* path = [c1;...;cn] *)
+  (* if is_before then tc' = tc[c] with c1,...,cn < c *)
+  (*              else tc' = tc[c'] with c < c1,...,cn < c' *)
+  let rec before is_before path tc =
+    match tc with
+    | Catom(c) ->
+        if is_before then (List.iter (fun ci -> less_c ci c) path; atom c)
+        else
+          let c' = new_var () in
+          less_c c c'; List.iter (fun ci -> less_c c ci; less_c ci c') path;
+          atom c'
+    | Cproduct(tc_list) -> product (List.map (before is_before path) tc_list)
+    | Cfun(tc1, tc2) ->
+        funtype tc1 (before is_before path tc2)
+          
+  let empty = Empty
 
-    (* remove the field [last = true] from entries *)
-    let unlast env = Env.map (fun entry -> { entry with last = false }) env
-              
-    (* Computes the dependence relation for a set of causality types *)
-    (* in a typing environment *)
-    let mark right acc env =
-      let entry n { cur_tc = tc; last_tc = ltc } acc =
-	mark right (mark right acc tc) ltc in
-      Env.fold entry env acc
-		
-    (* print the type environment. Only keep names in the dependence *)
-    (* relation that are present either in [cset] or variables from *)
-    (* the types in this environment *)
-    let penv cset ff env =
-      (* compute the set of useful variables *)
-      let cset = mark true cset env in
-      (* remove useless dependences *)
-      useless cset;
-      (* print every entry in the typing environment *)
-      let pentry ff (n, { cur_tc = tc; last_tc = ltc }) =
-	Format.fprintf ff "@[%a: %a | %a@]"
-		       Printer.source_name n Pcaus.ptype tc Pcaus.ptype ltc in
-      (* print the relation *)
-      let env = Env.bindings env in
-      let rel = relation cset in
-      Format.fprintf ff
-		     "@[<hov>%a@ with@ @[%a@]@.@]"
-		     (Pp_tools.print_list_r pentry "[" ";" "]") env
-		     Pcaus.relation rel
-  end
+  let append env0 env =
+    if Env.is_empty env0 then env else Append(env, env0)
+
+  let on env c = On(env, c)
+
+  let push env = on env (new_var ())
+
+  let rec print pentry ff env =
+    match env with
+    | Empty -> ()
+    | On(env, c) ->
+        Format.fprintf ff "@[<hov 1>%a on %a@]"
+          (print pentry) env Pcaus.caus c
+    | Append(env, env0) ->
+        let l0 = Env.bindings env0 in
+        Format.fprintf ff "@[<hov 0>[%a]+@ [%a]@]"
+          (print pentry) env
+          (Pp_tools.print_list_r pentry "" ";" "") l0
+end
+   
+let rec mark_env acc env =
+  let mark _ { t_typ = tc; t_last_typ = ltc } acc =
+    mark false tc; mark false ltc; vars (vars acc tc) ltc in
+  match env with
+  | Cenv.Empty -> acc
+  | Cenv.On(env, c) -> mark_c false c; mark_env acc env
+  | Cenv.Append(env, env0) -> mark_env (Env.fold mark env0 acc) env
+
+let rec simplify_env env =
+  let entry { t_typ = tc; t_last_typ = ltc } =
+    { t_typ = simplify false tc; t_last_typ = simplify false ltc } in
+  match env with
+  | Cenv.Empty -> Cenv.Empty
+  | Cenv.On(env, c) -> Cenv.On(simplify_env env, c)
+  | Cenv.Append(env, env0) ->
+      Cenv.Append(simplify_env env, Env.map entry env0)
+
+ 
+(* print the type environment. Only keep names in the dependence *)
+(* relation that are present either in [cset] or variables from *)
+(* the types in this environment *)
+let penv cset ff env =
+  (* Computes the dependence relation for a set of causality types *)
+  (* in a typing environment *)
+  (* print every entry in the typing environment *)
+  let pentry ff (n, { t_typ = tc; t_last_typ = ltc }) =
+    Format.fprintf ff "@[%a: %a | %a@]"
+      Printer.source_name n Pcaus.ptype tc Pcaus.ptype ltc in
+  (* print the relation *)
+  let rel = relation cset in
+  Format.fprintf ff
+    "@[<hov>%a@ with@ @[%a@]@.@]"
+    (Cenv.print pentry) env
+    Pcaus.relation rel
+    
+let ppenv ff env =
+  let set = mark_env S.empty env in
+  let env = simplify_env env in
+  penv set ff env    
+

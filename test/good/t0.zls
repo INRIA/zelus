@@ -1,8 +1,69 @@
-let hybrid main x =
-  let rec der x = (last x) +. 1.0 init 0.0 in x
+let node ball_with_modes(x_0, y_0) = (x, y) where
+  rec init y_start = y_0
+  and automaton
+      | Bouncing ->
+	  (* the ball is falling with a possible bounce. *)
+	  do
+            y = 1.0 and x = 1.0
+	  unless true then Sliding(x, x)
+      | Sliding(x0, y0) ->
+	  do
+            y = y0 and x = x0
+	  unless (x = x0) then do y_start = y in Bouncing
+      end
 
-let g f h x y z = f x + h y
+  
+let hybrid water() =
+  let rec init x = 1.0
+  and automaton
+      | On ->
+          do der x = 1.0
+	  unless up(x) then On
+      end in
+  x
+    
+(* let node f(x) =
+  let rec (* init y = 0 and init z = 0
+    and *) match x with
+	| _ -> do y = last z and z = 1 done (*  | _ -> do z = 1 done *)
+  end in y, z
+ *)
 
+(*
+let node ff(x) =
+  let rec y = z + 1 and z = 1 + 2 in y, z
+    
+let hybrid fff(x) =
+  let rec init y = 0 and init z = 0
+    and match x with
+	| 2 -> do y = last z + 1 and z = y + 2 done
+	end in y, z
+ *)
+  
+(* 
+let node ffff(x) =
+  let rec init y = 0 and init z = 0
+    and match x with
+	| _ -> do y = z done
+  end in y, z
+
+let node g(x, y) = x + 1, y + 2
+
+let node fix g x =
+   let rec o = run g (x, o) in o
+   
+let node h (x, y) = x + 1 -> pre y
+   
+let node gg x = fix h x
+ *)
+    
+(*
+
+let hybrid main (c, x1) =
+   let rec der x = (last x) +. 1.0 init 0.0
+       and match c with | true -> do y = x done | false -> do y = x +. 1.0 done
+   in x    
+ 
 let node f(x, y) =
   let rec o = pre(y) + 2
   and z = 2 + o
@@ -10,7 +71,7 @@ let node f(x, y) =
   k, 0 -> pre x + 2
 
 let node ff g (x, y) =
-  let rec x1, x2 = run g (1 -> x1, x2) in x1 + x2 
+  let rec x1, x2 = run g (0 -> x1, x2) in 0 -> x1 + x2 
 
 
 let node f4(x, y) = (x+1, y+1)
@@ -21,7 +82,8 @@ let node fff (x, y) = ff f5 (x, y)
 
 let node vide (x, y) = x + y
 let node vide2 x = vide (pre 1, 2)
-    
+ *)
+
 (*
 let discrete f x = if x = 2 then 1 else 2
   

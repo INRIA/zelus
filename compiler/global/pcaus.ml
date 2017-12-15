@@ -34,14 +34,20 @@ let info i =
 			       
 let polarity = 
   function Punknown -> "" | Pplus -> "+" | Pminus -> "-" | Pplusminus -> "+-"
-									   
+let useful u = if u then "u" else ""
+let level l = string_of_int l
+
+let extra { c_polarity = p; c_useful = u; c_level = l; c_index = i } =
+  if !Misc.verbose
+  then polarity p ^ useful u ^ level l ^ "(" ^ (string_of_int i) ^ ")" else ""
+
   
 (* Print the causality *)
 let rec caus ff c = 
   match c.c_desc with
   | Clink(link) -> caus ff link
   | Cvar ->
-     Format.fprintf ff "'%s" (type_name#name c.c_index)
+     Format.fprintf ff "%s'%s" (extra c) (type_name#name c.c_index)
 				 
 let caus_list ff c_list = print_list_r_empty caus "" "" "" ff c_list
 

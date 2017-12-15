@@ -50,7 +50,7 @@ struct
 
   let fprint_t fprint_v ff s =
     Format.fprintf ff "@[<hov>{@ ";
-    iter (fun k v -> Format.fprintf ff "%a->%a@ " M.fprint k fprint_v v) s;
+    iter (fun k v -> Format.fprintf ff "@[%a: %a@]" M.fprint k fprint_v v) s;
     Format.fprintf ff "}@]"
 
   (* debugging printer for (Ident.t * Ident.t * Ident.t) Ident.Env.t *)

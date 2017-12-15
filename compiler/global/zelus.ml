@@ -266,7 +266,7 @@ and forall_handler =
     mutable for_in_env: Deftypes.tentry Ident.Env.t;
     (* def names from [id in e | id in e1..e2] *)
     mutable for_out_env: Deftypes.tentry Ident.Env.t;
-    (* def (left) names from [id ou id'] *) }
+    (* def (left) names from [id out id'] *) }
 
 and indexes_desc =
   | Einput of Ident.t * exp (* xi in t_input *)

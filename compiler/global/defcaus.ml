@@ -32,10 +32,12 @@ and t =
     { mutable c_desc: desc; (* its descriptor *)
       mutable c_level: int; (* its level *)
       mutable c_index: int; (* a unique ident associated to the variable *)
+      mutable c_inf: t list; (* infimum *)
       mutable c_sup: t list; (* supremum *)
       mutable c_useful: bool; (* is-it an intermediate variable ? *)
       mutable c_polarity: polarity; (* its polarity *)
       mutable c_info: info option; (* a possible concrete name *)
+      mutable c_visited: int; (* is-it visited already ? *)
     }
 
 and desc =
@@ -49,11 +51,4 @@ and info =
 and polarity = Punknown | Pplus | Pminus | Pplusminus
 
 let compare c1 c2 = Pervasives.compare c1.c_index c2.c_index
-
-(** A module to represent sets of causality variables *)
-
-type tentry = 
-    { t_tc: tc;   (* the causality type of x *)
-      t_last: bool; (* [last x] is allowed *)
-    }
 

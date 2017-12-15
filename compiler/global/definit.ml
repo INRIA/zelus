@@ -39,7 +39,7 @@ and t =
       mutable i_sup: t list; (* supremum *)
       mutable i_useful: bool; (* is-it an intermediate variable ? *)
       mutable i_polarity: polarity; (* its polarity *)
-      mutable i_visited: int; (* is-it a variable on a dependency cycle ? *)
+      mutable i_visited: int; (* is-it visited already ? *)
     }
 
 and desc = 
