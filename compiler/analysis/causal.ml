@@ -46,7 +46,7 @@ type error = cycle
 
 (* typing errors *)
 exception Clash of error
-				       
+                                       
 let new_var () = 
   { c_desc = Cvar; c_index = symbol#name; c_level = !binding_level;
     c_inf = []; c_sup = []; c_useful = false; 
@@ -95,10 +95,10 @@ let rec union l1 l2 =
   | c :: l1, l2 -> if mem c l2 then union l1 l2 else c :: union l1 l2
 
 let set l = List.fold_left (fun acc c -> add c acc) [] l
-		      
+                      
 (* sups *)
 let sups c = let c = crepr c in c.c_sup
-		 
+                 
 let rec annotate n = function
   | Catom(c) -> atom(cannotate n c)
   | Cproduct(ty_list) -> product(List.map (annotate n) ty_list)
@@ -243,14 +243,14 @@ and mark_c right c =
      c.c_useful <- true;
      polarity_c c right
   | Clink(link) -> mark_c right link
-  			
+                        
 (* we compute IO sets [see Pouzet and Raymond, EMSOFT'09] *)
 (* IO(c) = { i / i in I /\ i <_O c } and i <_O c iff O(c) subset O(i) *)
 (* Partition according to IO, i.e., two variables with the same IO *)
 (* get the same representative *)
 let is_an_output c =
   c.c_useful && ((c.c_polarity = Pplus) || (c.c_polarity = Pplusminus))
-		  
+                  
 (* compute the set of inputs and outputs *)
 let rec ins_and_outs c (inputs, outputs) =
   match c.c_desc with
@@ -261,7 +261,7 @@ let rec ins_and_outs c (inputs, outputs) =
      | Pminus -> S.add c inputs, outputs
      | Pplusminus -> S.add c inputs, S.add c outputs
      | _ -> inputs, outputs
-		      
+                      
 (* build O(c) *)
 let rec out c =
   let rec outrec acc c =
@@ -320,14 +320,14 @@ let simplify_by_io ty =
     (fun i -> 
       let io_of_i = M.find i io_table in
       S.iter 
-	(fun o ->
-	  let io_of_o = M.find o io_table in
+        (fun o ->
+          let io_of_o = M.find o io_table in
           if not (equal i o)
-	  then
+          then
             if S.equal io_of_i io_of_o then set i o
             else if S.subset io_of_i io_of_o then less i o
             else if S.subset io_of_o io_of_i then less o i)
-	inputs_outputs)
+        inputs_outputs)
     inputs_outputs    
     
 (* An other simplification method *)
@@ -356,7 +356,7 @@ and shorten_c c =
      c.c_inf <- inf;
      c.c_sup <- sup;
      c.c_visited <- 1       
-		      
+                      
 and short_list is_right acc c_list =
   List.fold_left (short is_right) acc c_list
 
@@ -454,14 +454,14 @@ and cgen c =
      if c.c_level > !binding_level
      then 
        begin
-	 c.c_level <- generic;
-	 let level = gen_set c.c_sup in
-	 c.c_level <- level;
-	 if level = generic then list_of_vars := c :: !list_of_vars
+         c.c_level <- generic;
+         let level = gen_set c.c_sup in
+         c.c_level <- level;
+         if level = generic then list_of_vars := c :: !list_of_vars
        end;
      c.c_level
   | Clink(link) -> cgen link
-			
+                        
 and gen_set l = List.fold_left (fun acc c -> max (cgen c) acc) generic l
 
 let simplify is_right tc =
@@ -498,11 +498,11 @@ let rec copy tc ty =
     | Cvar ->
        if c.c_level = generic
        then
-	 let sup_list = List.map ccopy c.c_sup in
-	 let v = { (new_var ()) with c_sup = sup_list } in
-	 c.c_desc <- Clink(v);
-	 save c;
-	 v
+         let sup_list = List.map ccopy c.c_sup in
+         let v = { (new_var ()) with c_sup = sup_list } in
+         c.c_desc <- Clink(v);
+         save c;
+         v
        else c
     | Clink(link) -> if c.c_level = generic then link else ccopy link in
 
@@ -523,11 +523,11 @@ let rec copy tc =
     | Cvar ->
        if c.c_level = generic
        then
-	 let sup_list = List.map ccopy c.c_sup in
-	 let v = { (new_var ()) with c_sup = sup_list } in
-	 c.c_desc <- Clink(v);
-	 save c;
-	 v
+         let sup_list = List.map ccopy c.c_sup in
+         let v = { (new_var ()) with c_sup = sup_list } in
+         c.c_desc <- Clink(v);
+         save c;
+         v
        else c
     | Clink(link) -> if c.c_level = generic then link else ccopy link in
 
@@ -669,26 +669,55 @@ struct
         Format.fprintf ff "@[<hov 0>[%a]+@ [%a]@]"
           (print pentry) env
           (Pp_tools.print_list_r pentry "" ";" "") l0
-end
    
-let rec mark_env acc env =
+let mark acc env =
   let mark _ { t_typ = tc; t_last_typ = ltc } acc =
     mark false tc; mark false ltc; vars (vars acc tc) ltc in
-  match env with
-  | Cenv.Empty -> acc
-  | Cenv.On(env, c) -> mark_c false c; mark_env acc env
-  | Cenv.Append(env, env0) -> mark_env (Env.fold mark env0 acc) env
+  let rec mark_env acc env =
+    match env with
+    | Empty -> acc
+    | On(env, c) -> mark_c false c; mark_env acc env
+    | Append(env, env0) -> mark_env (Env.fold mark env0 acc) env in
+  mark_env acc env
+    
+let shorten env =
+  let shorten _ { t_typ = tc; t_last_typ = ltc } =
+    shorten tc; shorten ltc in
+  let rec shorten_env env =
+    match env with
+    | Empty -> ()
+    | On(env, c) -> shorten_c c; shorten_env env
+    | Append(env, env0) ->
+        shorten_env env; Env.iter shorten env0 in
+  shorten_env env
 
-let rec simplify_env env =
+(* only keep entries in env whose causality names belong to [cset] *)
+let clean cset env =
+  let is_in n { t_typ = tc; t_last_typ = ltc } =
+    not (S.is_empty (S.inter cset (vars S.empty tc)) &&
+         (S.is_empty (S.inter cset (vars S.empty ltc)))) in
+  let rec clean env =
+    match env with
+    | Empty -> Empty
+    | On(env, c) ->
+        let env = clean env in
+        if env = Empty then Empty else On(env, c)
+    | Append(env, env0) ->
+        Append(clean env, Env.filter is_in env0) in
+  clean env
+
+let simplify env =
   let entry { t_typ = tc; t_last_typ = ltc } =
     { t_typ = simplify false tc; t_last_typ = simplify false ltc } in
-  match env with
-  | Cenv.Empty -> Cenv.Empty
-  | Cenv.On(env, c) -> Cenv.On(simplify_env env, c)
-  | Cenv.Append(env, env0) ->
-      Cenv.Append(simplify_env env, Env.map entry env0)
+  let rec simplify_env env =
+    match env with
+    | Empty -> Empty
+    | On(env, c) -> On(simplify_env env, c)
+    | Append(env, env0) ->
+        Append(simplify_env env, Env.map entry env0) in
+  simplify_env env
+ end
 
- 
 (* print the type environment. Only keep names in the dependence *)
 (* relation that are present either in [cset] or variables from *)
 (* the types in this environment *)
@@ -705,9 +734,9 @@ let penv cset ff env =
     "@[<hov>%a@ with@ @[%a@]@.@]"
     (Cenv.print pentry) env
     Pcaus.relation rel
-    
+
 let ppenv ff env =
-  let set = mark_env S.empty env in
-  let env = simplify_env env in
+  let set = Cenv.mark S.empty env in
+  let env = Cenv.simplify env in
   penv set ff env    
 

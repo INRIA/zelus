@@ -41,23 +41,23 @@ let message loc kind =
   begin
     match kind with
     | Iless_than(expected_ty, actual_ty) ->
-       Format.eprintf
-	 "%aInitialization error: this expression \
-          has type %a which should be less than %a.@."
-	 output_location loc
-	 Pinit.ptype expected_ty Pinit.ptype actual_ty
+        Format.eprintf
+          "%aInitialization error: this expression \
+           has type %a which should be less than %a.@."
+          output_location loc
+          Pinit.ptype expected_ty Pinit.ptype actual_ty
     | Iless_than_i(expected_i, actual_i) ->
-       Format.eprintf
-	 "%aInitialization error: this expression \
-          has type %a which should be less than %a.@."
-	 output_location loc
-	 Pinit.init expected_i Pinit.init actual_i
+        Format.eprintf
+          "%aInitialization error: this expression \
+           has type %a which should be less than %a.@."
+          output_location loc
+          Pinit.init expected_i Pinit.init actual_i
     | Ilast(n) ->
-       Format.eprintf
-	 "%aInitialization error: the last value of %s \
-          may not be well initialized.@."
-	 output_location loc
-         (Ident.source n)
+        Format.eprintf
+          "%aInitialization error: the last value of %s \
+           may not be well initialized.@."
+          output_location loc
+          (Ident.source n)
   end;
   raise Misc.Error
 
@@ -68,7 +68,7 @@ let less_than loc actual_ty expected_ty =
     | Init.Clash _ -> error loc (Iless_than(actual_ty, expected_ty))
 
 (** An entry in the type environment *)
-type tentry = 
+type tentry =
     { t_typ: Definit.ty; (* the init type of x *)
       t_last: bool; (* true when both [x] and [last x] *)
                     (* or [x] and [next x] are well initialized *) }
@@ -77,20 +77,20 @@ type tentry =
 (* if [x] is defined by [init x = e] and [x = ex] then *)
 (* both [x] and [last x] are initialized, provided [ex] is initialized *)
 let build_env l_env env =
-  let entry { Deftypes.t_sort = sort; Deftypes.t_typ = ty } = 
+  let entry { Deftypes.t_sort = sort; Deftypes.t_typ = ty } =
     match sort with 
     | Deftypes.Smem { Deftypes.m_init = Some _ } | Deftypes.Svar _ ->
-       (* [x] and [last x] or or [x] and [next x] *)
-       (* are well initialized *)
-       { t_last = true; t_typ = Init.skeleton_on_i izero ty }
+        (* [x] and [last x] or or [x] and [next x] *)
+        (* are well initialized *)
+        { t_last = true; t_typ = Init.skeleton_on_i izero ty }
     | Deftypes.Smem { Deftypes.m_previous = true } ->
-       (* [x] initialized; [last x] uninitialized *)
-       { t_last = false; t_typ = Init.skeleton_on_i izero ty }
+        (* [x] initialized; [last x] uninitialized *)
+        { t_last = false; t_typ = Init.skeleton_on_i izero ty }
     | Deftypes.Sstatic | Deftypes.Sval | Deftypes.Smem _ -> 
-       (* no constraint *)
-       { t_last = false; t_typ = Init.skeleton ty } in
+        (* no constraint *)
+        { t_last = false; t_typ = Init.skeleton ty } in
   Env.fold (fun n tentry acc -> Env.add n (entry tentry) acc) l_env env
-
+    
 (* change the status of last variables. This is useful when typing *)
 (* an automaton. Every variable defined in the initial state do have a *)
 (* well initialized last value in the remaining states, provided all *)
@@ -113,10 +113,10 @@ let split se_opt s_h_list =
     match s_h_list with
       | [] -> assert false
       | { s_state = spat } as s_h :: s_h_list -> 
-	  if s = statepat spat then s_h, s_h_list
-	  else 
-	    let s_h0, s_h_list = splitrec s s_h_list in
-	    s_h0, s_h :: s_h_list in
+          if s = statepat spat then s_h, s_h_list
+          else 
+            let s_h0, s_h_list = splitrec s s_h_list in
+            s_h0, s_h :: s_h_list in
   match se_opt with
     | None -> (* the starting state is the first in the list *)
         List.hd s_h_list, List.tl s_h_list
@@ -317,18 +317,18 @@ and equation env { eq_desc = eq_desc; eq_loc = loc } =
         exp_less_than env e ty_p
     | EQpluseq(n, e) ->
         let ty_n =
-	  try let { t_typ = ty } = Env.find n env in ty
-	  with Not_found -> assert false in
-	exp_less_than env e ty_n
+          try let { t_typ = ty } = Env.find n env in ty
+          with Not_found -> assert false in
+        exp_less_than env e ty_n
     | EQder(n, e, e0_opt, p_h_e_list) ->
         let ty_n, is_last = 
           try let { t_typ = ty1; t_last = is_last1 } = Env.find n env in 
-	      ty1, is_last1 
+              ty1, is_last1 
           with | Not_found -> assert false in
         exp_less_than env e ty_n;
         (match e0_opt with
-	  | None -> if not is_last then error loc (Ilast(n))
-	  | Some(e0) -> exp_less_than_on_i env e0 izero);
+          | None -> if not is_last then error loc (Ilast(n))
+          | Some(e0) -> exp_less_than_on_i env e0 izero);
         present_handler_exp_list env p_h_e_list ty_n
     | EQinit(n, e0) ->
         exp_less_than_on_i env e0 izero
@@ -336,8 +336,8 @@ and equation env { eq_desc = eq_desc; eq_loc = loc } =
        let ty_n, is_last =
          try let { t_typ = ty1; t_last = is_last1 } = Env.find n env in
              ty1, is_last1
-	 with Not_found -> assert false in
-	exp_less_than env e ty_n;
+         with Not_found -> assert false in
+        exp_less_than env e ty_n;
         (match e0_opt with
          | None -> if not is_last then error loc (Ilast(n))
          | Some(e0) -> exp_less_than_on_i env e0 izero);
@@ -345,58 +345,58 @@ and equation env { eq_desc = eq_desc; eq_loc = loc } =
     | EQautomaton(is_weak, s_h_list, se_opt) ->
         (* state *)
         let state env { desc = desc } =
-	  match desc with
-	    | Estate0 _ -> ()
-	    | Estate1(_, e_list) -> 
-	      List.iter (fun e -> exp_less_than_on_i env e izero) e_list in
-	(* handler *)
+          match desc with
+            | Estate0 _ -> ()
+            | Estate1(_, e_list) -> 
+              List.iter (fun e -> exp_less_than_on_i env e izero) e_list in
+        (* handler *)
         let handler env { s_body = b; s_trans = trans; s_env = s_env } =
           let escape env
               { e_cond = sc; e_block = b_opt; e_next_state = ns;
                 e_env = e_env } =
             let env = build_env e_env env in
             scondpat env sc;
-	    let env = 
-	      match b_opt with | None -> env | Some(b) -> block_eq_list env b in
-	    state env ns in
+            let env = 
+              match b_opt with | None -> env | Some(b) -> block_eq_list env b in
+            state env ns in
           let env = build_env s_env env in
           let env = block_eq_list env b in
           List.iter (escape env) trans in
         (* do a special treatment for the initial state *)
         let first_s_h, remaining_s_h_list = split se_opt s_h_list in
-	(* first type the initial branch *)
+        (* first type the initial branch *)
         handler env first_s_h;
         (* if the initial state has only weak transition then all *)
         (* variables from [defined_names] do have a last value *)
         let defnames = first_s_h.s_body.b_write in
         let env = if is_weak then add_last_to_env env defnames else env in
         List.iter (handler env) remaining_s_h_list;
-	(* every partially defined value must have an initialized value *)
-	let defnames_list =
-	  List.map (fun { s_body = { b_write = w } } -> w) remaining_s_h_list in
-	initialized_last loc env (defnames :: defnames_list);
-	(* finaly check the initialisation *)
-	ignore (Misc.optional_map (state env) se_opt)
+        (* every partially defined value must have an initialized value *)
+        let defnames_list =
+          List.map (fun { s_body = { b_write = w } } -> w) remaining_s_h_list in
+        initialized_last loc env (defnames :: defnames_list);
+        (* finaly check the initialisation *)
+        ignore (Misc.optional_map (state env) se_opt)
     | EQmatch(total, e, m_h_list) ->
         exp_less_than_on_i env e izero;
         match_handler_block_eq_list env m_h_list;
-	(* every partially defined value must have an initialized value *)
-	let defnames_list =
-	  List.map (fun { m_body = { b_write = w } } -> w) m_h_list in
-	let defnames_list = 
-	  if !total then defnames_list else Deftypes.empty :: defnames_list in
-	initialized_last loc env defnames_list
+        (* every partially defined value must have an initialized value *)
+        let defnames_list =
+          List.map (fun { m_body = { b_write = w } } -> w) m_h_list in
+        let defnames_list = 
+          if !total then defnames_list else Deftypes.empty :: defnames_list in
+        initialized_last loc env defnames_list
     | EQpresent(p_h_list, b_opt) ->
        let _ =
-	 Misc.optional_map (fun b -> ignore (block_eq_list env b)) b_opt in
+         Misc.optional_map (fun b -> ignore (block_eq_list env b)) b_opt in
         present_handler_block_eq_list env p_h_list;
-	(* every partially defined value must have an initialized value *)
-	let defnames =
-	  match b_opt with
-	  | None -> Deftypes.empty | Some { b_write = w } -> w in
-	let defnames_list =
-	  List.map (fun { p_body = { b_write = w } } -> w) p_h_list in
-	initialized_last loc env (defnames :: defnames_list)       
+        (* every partially defined value must have an initialized value *)
+        let defnames =
+          match b_opt with
+          | None -> Deftypes.empty | Some { b_write = w } -> w in
+        let defnames_list =
+          List.map (fun { p_body = { b_write = w } } -> w) p_h_list in
+        initialized_last loc env (defnames :: defnames_list)       
     | EQreset(eq_list, e) -> 
         exp_less_than_on_i env e izero;
         equation_list env eq_list
@@ -407,35 +407,35 @@ and equation env { eq_desc = eq_desc; eq_loc = loc } =
           try let { t_typ = ty1 } = Env.find n env in ty1
           with | Not_found -> assert false in
         less_than loc (Init.atom izero) ty_n;
-	ignore
-	  (Misc.optional_map (fun e -> exp_less_than_on_i env e izero) e_opt)
+        ignore
+          (Misc.optional_map (fun e -> exp_less_than_on_i env e izero) e_opt)
     | EQblock(b_eq_list) ->
        ignore (block_eq_list env b_eq_list)
     | EQforall { for_index = i_list; for_init = init_list; for_body = b_eq_list;
-		 for_in_env = i_env; for_out_env = o_env } ->
+                 for_in_env = i_env; for_out_env = o_env } ->
        (* typing the declaration of indexes *)
        (* all bounds must be initialized *)
        let index env { desc = desc; loc = loc } =
-	 match desc with
-	 | Einput(_, e) -> exp_less_than_on_i env e izero
-	 | Eindex(_, e1, e2) ->
-	    exp_less_than_on_i env e1 izero;
-	    exp_less_than_on_i env e2 izero
-	 | Eoutput(x, xout) ->
-	    let ti =
-	      try
-		let { t_typ = ti } = Env.find xout env in ti
+         match desc with
+         | Einput(_, e) -> exp_less_than_on_i env e izero
+         | Eindex(_, e1, e2) ->
+            exp_less_than_on_i env e1 izero;
+            exp_less_than_on_i env e2 izero
+         | Eoutput(x, xout) ->
+            let ti =
+              try
+                let { t_typ = ti } = Env.find xout env in ti
               with | Not_found -> assert false in
             less_than loc ti (Init.atom izero) in
        (* typing the initialization *)
        (* all right hand-side expressions must be initialized *)
        let init init_env { desc = desc } =
-	 match desc with
-	 | Einit_last(x, e) ->
-	    let ti = exp env e in
-	    let tzero = Init.skeleton_on_i izero e.e_typ in
-	    less_than e.e_loc ti tzero;
-	    Env.add x { t_last = true; t_typ = tzero } init_env in
+         match desc with
+         | Einit_last(x, e) ->
+            let ti = exp env e in
+            let tzero = Init.skeleton_on_i izero e.e_typ in
+            less_than e.e_loc ti tzero;
+            Env.add x { t_last = true; t_typ = tzero } init_env in
        List.iter (index env) i_list;
        let init_env = List.fold_left init Env.empty init_list in
        let env = build_env i_env env in
@@ -501,7 +501,7 @@ let implementation ff impl =
       (* output the signature *)
       if !Misc.print_initialization_types then Pinit.declaration ff f tys
     | Efundecl(f, { f_atomic = atomic; f_args = p_list;
-		    f_body = e; f_env = h0 }) -> 
+                    f_body = e; f_env = h0 }) -> 
       Misc.push_binding_level ();
       let env = build_env h0 Env.empty in
       let ty_list = List.map (pattern env) p_list in
@@ -511,20 +511,20 @@ let implementation ff impl =
       let expected_ty =
         if atomic then
           (* first type the body *)
-	  let i = Init.new_var () in
+          let i = Init.new_var () in
           let ty_arg_list =
             List.map (fun p -> Init.skeleton_on_i i p.p_typ) p_list in
             let ty_res = Init.skeleton_on_i i e.e_typ in
             funtype_list ty_arg_list ty_res
            else
              funtype_list (List.map (fun p -> Init.skeleton p.p_typ) p_list)
-	                  (Init.skeleton e.e_typ) in
-	 Init.less actual_ty expected_ty;
+                          (Init.skeleton e.e_typ) in
+         Init.less actual_ty expected_ty;
          Misc.pop_binding_level ();
-	 let tys = generalise actual_ty in
-	 Global.set_init (Modules.find_value (Lident.Name(f))) tys;
-	 (* output the signature *)
-	 if !Misc.print_initialization_types then Pinit.declaration ff f tys
+         let tys = generalise actual_ty in
+         Global.set_init (Modules.find_value (Lident.Name(f))) tys;
+         (* output the signature *)
+         if !Misc.print_initialization_types then Pinit.declaration ff f tys
   with
     | Error(loc, kind) -> message loc kind
 

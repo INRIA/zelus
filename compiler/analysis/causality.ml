@@ -68,15 +68,19 @@ let message loc kind =
          has causality type@ %a@ \
          whereas it should be less than@ @[%a@]@.\
          Here is an example of a cycle:@.@[%a@]@.@]"
-	output_location loc
+        output_location loc
         Pcaus.ptype left_tc
         Pcaus.ptype right_tc
         Pcaus.cycle cycle
     | Ccycle(n, tc, env, cycle) ->
         Causal.mark true tc;
         let cset = Causal.vars S.empty tc in
-        let cset = Causal.mark_env cset env in
-        let env = simplify_env env in
+        let _ = Cenv.mark S.empty env in
+        Cenv.shorten env;
+        let env = Cenv.simplify env in
+        let cset = Cenv.mark cset env in
+        Cenv.shorten env;
+        let env = Cenv.clean cset env in
         let cycle = Causal.shrink_cycle cset cycle in
         (* keep only names in cycle that either appear in the type *)
         Format.eprintf "@[%aCausality error: The variable %a \
@@ -85,7 +89,7 @@ let message loc kind =
                         environment@,\
                         %a@.\
                         Here is an example of a cycle:@.@[%a@]@.@]"
-	 output_location loc
+         output_location loc
          Printer.source_name n
          Pcaus.ptype tc
          (Causal.penv cset) env
@@ -189,7 +193,7 @@ let present_handlers scondpat body env p_h_list h_opt =
   match h_opt with
   | None -> tc_list
   | Some(h) -> (body env h) :: tc_list
-	       
+               
 (** causality of an expression. [C | H |- e: ct] *)
 let rec exp env ({ e_desc = desc; e_typ = ty; e_loc = loc } as e) =
   let tc = match desc with
@@ -201,7 +205,8 @@ let rec exp env ({ e_desc = desc; e_typ = ty; e_loc = loc } as e) =
         let { t_typ = tc } = try read loc x env with Not_found -> print x in
         tc
     | Elast(x) ->
-        let { t_last_typ = tc } = try Cenv.last x env with Not_found -> print x in
+        let { t_last_typ = tc } =
+          try Cenv.last x env with Not_found -> print x in
         tc
     | Etuple(e_list) ->
         product (List.map (exp env) e_list)
@@ -216,7 +221,7 @@ let rec exp env ({ e_desc = desc; e_typ = ty; e_loc = loc } as e) =
     | Erecord(l) ->
         let c = Causal.new_var () in
         List.iter
-	  (fun (_, e) -> exp_less_than_on_c env e c) l;
+          (fun (_, e) -> exp_less_than_on_c env e c) l;
         Causal.skeleton_on_c c ty
     | Etypeconstraint(e, _) -> exp env e
     | Elet(l, e_let) ->
@@ -410,27 +415,27 @@ and equation env { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
   | EQblock(b_eq_list) ->
       ignore (block_eq_list env b_eq_list)
   | EQforall { for_index = i_list; for_init = init_list; for_body = b_eq_list;
-	       for_out_env = o_env } ->
+               for_out_env = o_env } ->
       (* Build the typing environment for inputs/outputs *)
       (* and build an association table [oi out o] for all output pairs *)
       let index (io_env, oi2o) { desc = desc } =
         match desc with
         | Einput(x, e) ->
             let in_c = Causal.new_var () in
-	    exp_less_than_on_c env e in_c;
+            exp_less_than_on_c env e in_c;
             let ty_arg, _ = Types.filter_vec e.e_typ in
             let tc = Causal.skeleton_on_c in_c ty_arg in
             Env.add x { t_typ = tc; t_last_typ = fresh tc } io_env,
             oi2o
         | Eindex(x, e1, e2) ->
-	    let in_c = Causal.new_var () in
+            let in_c = Causal.new_var () in
             exp_less_than_on_c env e1 in_c;
             exp_less_than_on_c env e2 in_c;
             let tc = Causal.skeleton_on_c in_c e1.e_typ in
             Env.add x { t_typ = tc; t_last_typ = fresh tc } io_env,
             oi2o
       | Eoutput(oi, o) ->
-	let out_c = Causal.new_var () in
+        let out_c = Causal.new_var () in
         let { Deftypes.t_typ = ty } = Env.find oi o_env in
         let tc = Causal.skeleton_on_c out_c ty in
         Env.add oi { t_typ = tc; t_last_typ = fresh tc } io_env,
@@ -438,10 +443,10 @@ and equation env { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
         
        (* typing the initialization *)
        let init init_env { desc = desc } =
-	 match desc with
-	 | Einit_last(x, e) ->
-	    let tc = exp env e in
-	    Env.add x { t_typ = fresh tc; t_last_typ = tc } init_env in
+         match desc with
+         | Einit_last(x, e) ->
+            let tc = exp env e in
+            Env.add x { t_typ = fresh tc; t_last_typ = tc } init_env in
 
        (* build the typing environment for read variables from the header *)
        let io_env, oi2o = List.fold_left index (Env.empty, Env.empty) i_list in
@@ -542,7 +547,7 @@ let implementation ff { desc = desc } =
        (* output the signature *)
        if !Misc.print_causality_types then Pcaus.declaration ff f tcs
     | Efundecl (f, { f_kind = k; f_atomic = atomic;
-		     f_args = p_list; f_body = e; f_env = h0 }) ->
+                     f_args = p_list; f_body = e; f_env = h0 }) ->
        Misc.push_binding_level ();
        let env = build_env h0 Cenv.empty in
        let actual_ty_res = exp env e in
@@ -550,13 +555,13 @@ let implementation ff { desc = desc } =
          (* for an atomic node, all outputs depend on all inputs *)
          if atomic then
            (* first type the body *)
-	   let c = Causal.new_var () in
-	   let tc_arg_list =
-	     List.map
-	       (fun p -> subtype false (Causal.skeleton_on_c c p.p_typ))
-	       p_list in
-	   let tc_res = subtype true (Causal.skeleton_on_c c e.e_typ) in
-	   tc_arg_list, tc_res
+           let c = Causal.new_var () in
+           let tc_arg_list =
+             List.map
+               (fun p -> subtype false (Causal.skeleton_on_c c p.p_typ))
+               p_list in
+           let tc_res = subtype true (Causal.skeleton_on_c c e.e_typ) in
+           tc_arg_list, tc_res
          else
            List.map (fun p -> Causal.skeleton p.p_typ) p_list,
            Causal.skeleton e.e_typ in

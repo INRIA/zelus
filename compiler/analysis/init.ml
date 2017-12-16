@@ -58,7 +58,7 @@ let equal i1 i2 =
   let i1 = irepr i1 in
   let i2 = irepr i2 in
   i1.i_index = i2.i_index
-		 
+                 
 let rec add i l =
   match l with
   | [] -> [i]
@@ -75,7 +75,7 @@ let rec union l1 l2 =
   match l1, l2 with
   | [], l2 -> l2 | l1, [] -> l1
   | i :: l1, l2 -> if mem i l2 then union l1 l2 else i :: union l1 l2
-							      
+                                                              
 (** Sets the polarity of a type. *)
 let polarity_c i right =
   match i.i_polarity, right with
@@ -131,12 +131,12 @@ and less_i left_i right_i =
       | _, Izero -> initialize_i true left_i
       | Ione, _ -> initialize_i false right_i
       | Ivar, Ivar ->
-         (* i1,...,in < i < j1,...,jk  with  *)
-         (* l1,...,lm < r < s1,...,sr *)
-         right_i.i_inf <- add left_i right_i.i_inf;
-         left_i.i_sup <- add right_i left_i.i_sup
+          (* i1,...,in < i < j1,...,jk  with  *)
+          (* l1,...,lm < r < s1,...,sr *)
+          right_i.i_inf <- add left_i right_i.i_inf;
+          left_i.i_sup <- add right_i left_i.i_sup
       | _ -> raise (Clash(Iless_than))
-	       
+               
 (** Computing an initialization type from a type *)
 let rec skeleton ty =
   match ty.t_desc with
@@ -145,7 +145,7 @@ let rec skeleton ty =
   | Tproduct(ty_list) -> product (List.map skeleton ty_list)
   | Tconstr(_, _, _) | Tvec _ -> atom (new_var ())
   | Tlink(ty) -> skeleton ty
-			  
+                          
 let rec skeleton_on_i i ty =
   match ty.t_desc with
   | Tvar -> atom i
@@ -154,7 +154,7 @@ let rec skeleton_on_i i ty =
   | Tproduct(ty_list) -> product (List.map (skeleton_on_i i) ty_list)
   | Tconstr(_, _, _) | Tvec _ -> atom i
   | Tlink(ty) -> skeleton_on_i i ty
-			       
+                               
 (* Compute the infimum/supremum of two types *)
 let rec suptype is_right ty1 ty2 =
   match ty1, ty2 with
@@ -230,7 +230,7 @@ and shorten_i i =
      i.i_inf <- inf;
      i.i_sup <- sup;
      i.i_visited <- 1       
-		      
+                      
 and short_list is_right acc i_list =
   List.fold_left (short is_right) acc i_list
 
@@ -298,13 +298,13 @@ and isimplify right i =
 (* is set to [generic]. Returns [generic] when a sub-term *)
 (* can be generalised *)
 let list_of_vars = ref []
-		       
+                       
 let rec gen ty =
   match ty with
   | Ifun(ty1, ty2) -> gen ty1; gen ty2
   | Iproduct(ty_list) -> List.iter gen ty_list
   | Iatom(i) -> ignore (igen i)
-		       
+                       
 and igen i =
   let i = irepr i in
   match i.i_desc with
@@ -322,9 +322,9 @@ and igen i =
       end;
     i.i_level
   | Ilink(link) -> igen link
-			
+                        
 and gen_set l = List.fold_left (fun acc i -> max (igen i) acc) generic l
-			       
+                               
 (** Main generalisation function *)
 let generalise ty =
   list_of_vars := [];
@@ -344,7 +344,7 @@ let links = ref []
     
 let save link = links := link :: !links
 let cleanup () = List.iter (fun i -> i.i_desc <- Ivar) !links; links := []
-									  
+                                                                          
 (* makes a copy of the type scheme *)
 let rec copy ti =
   match ti with

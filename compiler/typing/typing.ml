@@ -123,7 +123,7 @@ let check_target_state loc expected_reset actual_reset =
     | None -> Some(actual_reset)
     | Some(expected_reset) -> 
         if expected_reset = actual_reset then Some(expected_reset)
-	else error loc (Ereset_target_state(actual_reset, expected_reset))
+        else error loc (Ereset_target_state(actual_reset, expected_reset))
 
 (* Every shared variable defined in the initial state of an automaton *)
 (* left weakly is considered to be an initialized state variable. *)
@@ -165,7 +165,7 @@ let vars pat = Vars.fv_pat S.empty S.empty pat
 let var loc h n =
   try Env.find n h
   with Not_found -> error loc (Evar_undefined(n))
-							 
+                                                         
 let typ_of_var loc h n = let { t_typ = typ } = var loc h n in typ
 
 (* Typing [last n] *)
@@ -199,7 +199,7 @@ let pluseq loc h n =
      | None -> entry.t_sort <- Smem { m with m_next = Some(false) }; typ
      | Some(false) -> typ
      | Some(true) -> error loc (Ealready_with_different_kinds(Next, Multi, n))
-	     
+             
 (* Typing [init n = ...] *)
 let init loc h n =
   (* set that [n] is initialized if it is not already at the definition point *)
@@ -272,7 +272,7 @@ let rec get_all_labels loc ty =
      end
   | Tlink(link) -> get_all_labels loc link
   | _ -> assert false
-		
+                
 (** Check that every declared name is associated to a *)
 (** defining equation and that an initialized state variable is *)
 (** not initialized again in the body *)
@@ -299,7 +299,7 @@ let check_definitions_for_every_name defined_names n_list =
     defined_names n_list
     
 (** Typing a declaration *)
-	   
+           
 (* type checking of the combination function *)
 let combine loc expected_ty lname  =
   let { qualid = qualid; info = { value_typ = tys } } = 
@@ -308,7 +308,7 @@ let combine loc expected_ty lname  =
   (* Its signature must be [expected_ty * expected_ty -A-> expected_ty] *)
   let ty_combine = Types.type_of_combine () in
   unify loc ty_combine ty
-	
+        
 (* type checking of the declared default/init value *)
 let constant loc expected_k expected_ty = function
   | Cimmediate(i) ->
@@ -317,7 +317,7 @@ let constant loc expected_k expected_ty = function
   | Cglobal(lname) ->
      let qualid, actual_ty = global loc expected_k lname in 
      unify loc expected_ty actual_ty
-	   
+           
 (* Typing the declaration of variables. The result is a typing environment *)
 (* [inames] is the set of initialized variables, that is, variable *)
 (* which appear in an [init x = e] equation *)
@@ -332,25 +332,25 @@ let vardec_list expected_k n_list inames =
        (Deftypes.cmem c_opt { empty_mem with m_init = Some(Some(v)) })
   | Default(v) ->
      constant loc expected_k expected_ty v;
-     Deftypes.default (Some(v)) c_opt in		 
+     Deftypes.default (Some(v)) c_opt in                 
   (* typing every declaration *)
   let vardec h0
-	     { vardec_name = n; vardec_default = d_opt; vardec_combine = c_opt;
-	       vardec_loc = loc } =
+             { vardec_name = n; vardec_default = d_opt; vardec_combine = c_opt;
+               vardec_loc = loc } =
     let expected_ty = Types.new_var () in
     Misc.optional_unit (combine loc) expected_ty c_opt;
     let sort =
       match d_opt with
       | Some(d) -> default loc expected_ty c_opt d
       | None ->
-	 match expected_k with
-	 | Tstatic _ -> Deftypes.static
-	 | Tany | Tdiscrete false -> Deftypes.default None c_opt
-	 | Tdiscrete true
-	 | Tcont ->
-	    Deftypes.Smem (Deftypes.cmem c_opt
-					 (if S.mem n inames then Deftypes.imem
-					  else Deftypes.empty_mem)) in
+         match expected_k with
+         | Tstatic _ -> Deftypes.static
+         | Tany | Tdiscrete false -> Deftypes.default None c_opt
+         | Tdiscrete true
+         | Tcont ->
+            Deftypes.Smem (Deftypes.cmem c_opt
+                                         (if S.mem n inames then Deftypes.imem
+                                          else Deftypes.empty_mem)) in
     Env.add n { t_typ = expected_ty; t_sort = sort } h0 in
   List.fold_left vardec Env.empty n_list
  
@@ -362,7 +362,7 @@ let rec build (names, inames) { eq_desc = desc } =
     let bounded = List.fold_left vardec S.empty b_vars in
     let (local_names, local_inames) = build_list (S.empty, S.empty) eq_list in
     bounded, (S.union names (S.diff local_names bounded),
-	      S.union inames (S.diff local_inames bounded)) in
+              S.union inames (S.diff local_inames bounded)) in
   let block (names, inames) b = snd (block_with_bounded (names, inames) b) in
   match desc with
   | EQeq(p, _) -> Vars.fv_pat S.empty names p, inames
@@ -391,9 +391,9 @@ let rec build (names, inames) { eq_desc = desc } =
      (* automaton handler *)
      let handler (names, inames) { s_body = b; s_trans = esc_list } =
        let bounded, (names, inames) =
-	 block_with_bounded (names, inames) b in
+         block_with_bounded (names, inames) b in
        let esc_names, esc_inames =
-	 List.fold_left escape (names, inames) esc_list in
+         List.fold_left escape (names, inames) esc_list in
        S.union names (if is_weak then S.diff esc_names bounded else esc_names),
        S.union inames (if is_weak then S.diff esc_inames bounded else esc_inames)
      in
@@ -408,7 +408,7 @@ let rec build (names, inames) { eq_desc = desc } =
        | Einit_last(n, _) -> S.add n names, inames in
      let names, inames = List.fold_left index (names, inames) in_list in
      List.fold_left init (names, inames) init_list
-		    
+                    
 and build_list (names, inames) eq_list =
   List.fold_left build (names, inames) eq_list
 
@@ -422,10 +422,10 @@ let env_of_eq_list expected_k eq_list =
        | Deftypes.Tany | Deftypes.Tdiscrete false -> Deftypes.variable
        | Deftypes. Tcont
        | Deftypes.Tdiscrete true ->
-	  if S.mem n inames then Deftypes.imemory
-	  else Deftypes.Smem (Deftypes.empty_mem) in 
+          if S.mem n inames then Deftypes.imemory
+          else Deftypes.Smem (Deftypes.empty_mem) in 
      Env.add n { t_typ = Types.new_var (); t_sort = sort } acc) names Env.empty
-	 
+         
 let env_of_scondpat scpat =
   let rec env_of acc { desc = desc } =
     match desc with
@@ -435,7 +435,7 @@ let env_of_scondpat scpat =
     | Econdpat(_, pat) -> Vars.fv_pat S.empty acc pat in
   let acc = env_of S.empty scpat in
   S.fold (fun n acc -> Env.add n { t_typ = Types.new_var (); t_sort = Sval } acc)
-	 acc Env.empty
+         acc Env.empty
 
 let env_of_statepat spat =
   let rec env_of acc { desc = desc } =
@@ -444,14 +444,14 @@ let env_of_statepat spat =
     | Estate1pat(_, l) -> List.fold_left (fun acc n -> S.add n acc) acc l in
   let acc = env_of S.empty spat in
   S.fold (fun n acc -> Env.add n { t_typ = Types.new_var (); t_sort = Sval } acc)
-	 acc Env.empty
-	 
+         acc Env.empty
+         
 let env_of_pattern is_static h0 pat =
   let acc = Vars.fv_pat S.empty S.empty pat in
   let sort = if is_static then Sstatic else Sval in
   S.fold (fun n acc ->
-	  Env.add n { t_typ = Types.new_var (); t_sort = sort } acc)
-	 acc h0
+          Env.add n { t_typ = Types.new_var (); t_sort = sort } acc)
+         acc h0
 
 (* the [n-1] first arguments are static. If [expected_k] is static *)
 (* the last one two *)
@@ -462,7 +462,7 @@ let env_of_pattern_list expected_k env p_list =
   env_of_pattern is_static env p
 
 let env_of_pattern pat = env_of_pattern false Env.empty pat
-					
+                                        
 (** Typing patterns *)
 (* the kind of variables in [p] must be equal to [expected_k] *)
 let rec pattern h ({ p_desc = desc; p_loc = loc } as pat) ty =
@@ -571,9 +571,9 @@ let present_handlers scondpat body loc expected_k h p_h_list b_opt expected_ty =
   (* treat the optional default case *)
   let defined_names_list =
     match b_opt with
-      | None -> Deftypes.empty :: defined_names_list
+    | None -> Deftypes.empty :: defined_names_list
       | Some(b) -> let defined_names = body expected_k h b expected_ty in
-                   defined_names :: defined_names_list in
+          defined_names :: defined_names_list in
 
   (* identify variables which are defined partially *)
   Total.merge loc h defined_names_list
@@ -584,133 +584,133 @@ let rec expression expected_k h ({ e_desc = desc; e_loc = loc } as e) =
   let ty = match desc with
     | Econst(i) -> immediate i  
     | Elocal(x) ->
-       let { t_typ = typ; t_sort = sort } = var loc h x in
-       sort_less_than loc sort expected_k;
-       typ
+        let { t_typ = typ; t_sort = sort } = var loc h x in
+        sort_less_than loc sort expected_k;
+        typ
     | Eglobal { lname = lname } -> 
-       let qualid, typ_instance, ty =
-         global_with_instance loc expected_k lname in 
-       e.e_desc <- Eglobal { lname = Lident.Modname(qualid);
-			     typ_instance = typ_instance }; ty
+        let qualid, typ_instance, ty =
+          global_with_instance loc expected_k lname in 
+        e.e_desc <- Eglobal { lname = Lident.Modname(qualid);
+                              typ_instance = typ_instance }; ty
     | Elast(x) -> last loc h x
     | Etuple(e_list) ->
-       product (List.map (expression expected_k h) e_list)
+        product (List.map (expression expected_k h) e_list)
     | Eop(Eaccess, [e1; e2]) ->
-       (* Special typing for [e1.(e2)]. [e1] must be of type [ty[size]]  *)
-       (* with [size] a known expression at that point *)
-       let ty = expression expected_k h e1 in
-       let ty_arg, _ = check_is_vec e1.e_loc ty in
-       expect expected_k h e2 Initial.typ_int; ty_arg
+        (* Special typing for [e1.(e2)]. [e1] must be of type [ty[size]]  *)
+        (* with [size] a known expression at that point *)
+        let ty = expression expected_k h e1 in
+        let ty_arg, _ = check_is_vec e1.e_loc ty in
+        expect expected_k h e2 Initial.typ_int; ty_arg
     | Eop(Eupdate, [e1; i; e2]) ->
-       (* Special typing for [{ e1 with (i) = e2 }]. *)
-       (* [e1] must be of type [ty[size]]  *)
-       (* with [size] a known expression at that point *)
-       let ty = expression expected_k h e1 in
-       let ty_arg,_ = check_is_vec e1.e_loc ty in
-       expect expected_k h i Initial.typ_int;
-       expect expected_k h e2 ty_arg; ty
+        (* Special typing for [{ e1 with (i) = e2 }]. *)
+        (* [e1] must be of type [ty[size]]  *)
+        (* with [size] a known expression at that point *)
+        let ty = expression expected_k h e1 in
+        let ty_arg,_ = check_is_vec e1.e_loc ty in
+        expect expected_k h i Initial.typ_int;
+        expect expected_k h e2 ty_arg; ty
     | Eop(Eslice(s1, s2), [e]) ->
-       (* Special typing for [e{ e1 .. e2}] *)
-       (* [e1] and [e2] must be size expressions *)
-       let s1 = size h s1 in
-       let s2 = size h s2 in
-       let ty = expression expected_k h e in
-       let ty_arg, _ = check_is_vec e.e_loc ty in
-       Types.vec ty_arg (Types.plus (Types.minus s2 s1) (Types.const 1))
+        (* Special typing for [e{ e1 .. e2}] *)
+        (* [e1] and [e2] must be size expressions *)
+        let s1 = size h s1 in
+        let s2 = size h s2 in
+        let ty = expression expected_k h e in
+        let ty_arg, _ = check_is_vec e.e_loc ty in
+        Types.vec ty_arg (Types.plus (Types.minus s2 s1) (Types.const 1))
     | Eop(Econcat, [e1; e2]) ->
-       let ty1 = expression expected_k h e1 in
-       let ty_arg1, s1 = check_is_vec e1.e_loc ty1 in
-       let ty2 = expression expected_k h e2 in
-       let ty_arg2, s2 = check_is_vec e2.e_loc ty2 in
-       unify_expr e2 ty_arg1 ty_arg2;
-       Types.vec ty_arg1 (Types.plus s1 s2)
+        let ty1 = expression expected_k h e1 in
+        let ty_arg1, s1 = check_is_vec e1.e_loc ty1 in
+        let ty2 = expression expected_k h e2 in
+        let ty_arg2, s2 = check_is_vec e2.e_loc ty2 in
+        unify_expr e2 ty_arg1 ty_arg2;
+        Types.vec ty_arg1 (Types.plus s1 s2)
     | Eop(op, e_list) ->
-       operator expected_k h loc op e_list
+        operator expected_k h loc op e_list
     | Eapp({ app_statefull = is_statefull }, e, e_list) ->
-       apply loc is_statefull expected_k h e e_list
+        apply loc is_statefull expected_k h e e_list
     | Econstr0(c0) ->
-       let qualid, { constr_res = ty_res } = constr loc c0 in
-       e.e_desc <- Econstr0(Lident.Modname(qualid)); ty_res
+        let qualid, { constr_res = ty_res } = constr loc c0 in
+        e.e_desc <- Econstr0(Lident.Modname(qualid)); ty_res
     | Erecord_access(e1, lab) ->
-       let qualid, { label_arg = ty_arg; label_res = ty_res } =
-         label loc lab in
-       expect expected_k h e1 ty_arg;
-       e.e_desc <- Erecord_access(e1, Lident.Modname(qualid)); ty_res    
+        let qualid, { label_arg = ty_arg; label_res = ty_res } =
+          label loc lab in
+        expect expected_k h e1 ty_arg;
+        e.e_desc <- Erecord_access(e1, Lident.Modname(qualid)); ty_res    
     | Erecord(label_e_list) ->
-       let ty = new_var () in
-       let label_e_list = 
-         List.map
-           (fun (lab, e_label) ->
-            let qualid, { label_arg = ty_arg; label_res = ty_res } =
-              label loc lab in
-            unify_expr e ty ty_arg;
-            expect expected_k h e_label ty_res;
-            (Lident.Modname(qualid), e_label)) label_e_list in
-       e.e_desc <- Erecord(label_e_list);
-       (* check that no field is missing *)
-       let label_desc_list = get_all_labels loc ty in
-       if List.length label_e_list <> List.length label_desc_list
-       then error loc Esome_labels_are_missing;
-       ty        
+        let ty = new_var () in
+        let label_e_list = 
+          List.map
+            (fun (lab, e_label) ->
+               let qualid, { label_arg = ty_arg; label_res = ty_res } =
+                 label loc lab in
+               unify_expr e ty ty_arg;
+               expect expected_k h e_label ty_res;
+               (Lident.Modname(qualid), e_label)) label_e_list in
+        e.e_desc <- Erecord(label_e_list);
+        (* check that no field is missing *)
+        let label_desc_list = get_all_labels loc ty in
+        if List.length label_e_list <> List.length label_desc_list
+        then error loc Esome_labels_are_missing;
+        ty        
     | Etypeconstraint(exp, typ_expr) ->
-       let expected_typ =
-         Types.instance_of_type (Interface.scheme_of_type typ_expr) in
-       expect expected_k h exp expected_typ;
-       expected_typ
+        let expected_typ =
+          Types.instance_of_type (Interface.scheme_of_type typ_expr) in
+        expect expected_k h exp expected_typ;
+        expected_typ
     | Elet(l, e) ->
-       let h = local expected_k h l in
-       expression expected_k h e
+        let h = local expected_k h l in
+        expression expected_k h e
     | Eblock(b, e) ->
-       let h, _ = block_eq_list expected_k h b in
-       expression expected_k h e
+        let h, _ = block_eq_list expected_k h b in
+        expression expected_k h e
     | Eseq(e1, e2) -> 
-       ignore (expression expected_k h e1);
-       expression expected_k h e2
+        ignore (expression expected_k h e1);
+        expression expected_k h e2
     | Eperiod(p) ->
-       (* periods are only valid in a continuous context *)
-       less_than loc Tcont expected_k;
-       period loc p;
-       Types.zero_type expected_k
+        (* periods are only valid in a continuous context *)
+        less_than loc Tcont expected_k;
+        period loc p;
+        Types.zero_type expected_k
     | Ematch(total, e, m_h_list) ->
-       let expected_pat_ty = expression expected_k h e in
-       let expected_ty = new_var () in
-       ignore
-	 (match_handler_exp_list
-	    loc expected_k h total m_h_list expected_pat_ty expected_ty);
-       expected_ty
+        let expected_pat_ty = expression expected_k h e in
+        let expected_ty = new_var () in
+        ignore
+          (match_handler_exp_list
+             loc expected_k h total m_h_list expected_pat_ty expected_ty);
+        expected_ty
     | Epresent(p_h_list, e_opt) ->
-       let expected_ty = new_var () in
-       ignore
-	 (present_handler_exp_list loc expected_k h p_h_list e_opt expected_ty);
-       expected_ty in
+        let expected_ty = new_var () in
+        ignore
+          (present_handler_exp_list loc expected_k h p_h_list e_opt expected_ty);
+        expected_ty in
   (* check that ty belongs to kind expected_k *)
   type_is_in_kind loc expected_k ty;
   (* type annotation *)
   e.e_typ <- ty;
   ty
-
+  
 (** Typing a size expression *)
 and size h { desc = desc; loc = loc } =
   match desc with
   | Sconst(i) -> Types.const i
   | Sglobal(ln) ->
-     let qualid, _, typ_body = global_with_instance loc (Tstatic(true)) ln in
-     unify loc Initial.typ_int typ_body;
-     Types.global(qualid)
+      let qualid, _, typ_body = global_with_instance loc (Tstatic(true)) ln in
+      unify loc Initial.typ_int typ_body;
+      Types.global(qualid)
   | Sname(x) ->
-     let { t_typ = typ; t_sort = sort } = var loc h x in
-     sort_less_than loc sort (Tstatic(true));
-     unify loc Initial.typ_int typ;
-     Types.name x
+      let { t_typ = typ; t_sort = sort } = var loc h x in
+      sort_less_than loc sort (Tstatic(true));
+      unify loc Initial.typ_int typ;
+      Types.name x
   | Sop(Splus, s1, s2) ->
-     let s1 = size h s1 in
-     let s2 = size h s2 in
-     Types.plus s1 s2
+      let s1 = size h s1 in
+      let s2 = size h s2 in
+      Types.plus s1 s2
   | Sop(Sminus, s1, s2) ->
-     let s1 = size h s1 in
-     let s2 = size h s2 in
-     Types.minus s1 s2
-
+      let s1 = size h s1 in
+      let s2 = size h s2 in
+      Types.minus s1 s2
+        
 
 (** Convert an expression into a size expression *)
 and size_of_exp { e_desc = desc; e_loc = loc } =
@@ -719,13 +719,13 @@ and size_of_exp { e_desc = desc; e_loc = loc } =
   | Elocal(n) -> Tname(n)
   | Eglobal { lname = Lident.Modname(qualid) } -> Tglobal(qualid)
   | Eapp(_, { e_desc = Eglobal { lname = Lident.Modname(qualid) } }, [e1; e2])
-       when qualid = Initial.pervasives_name "+" ->
-     Top(Tplus, size_of_exp e1, size_of_exp e2)
+    when qualid = Initial.pervasives_name "+" ->
+      Top(Tplus, size_of_exp e1, size_of_exp e2)
   | Eapp(_, { e_desc = Eglobal { lname = Lident.Modname(qualid) } }, [e1; e2])
-       when qualid = Initial.pervasives_name "-" ->
-     Top(Tminus, size_of_exp e1, size_of_exp e2)
+    when qualid = Initial.pervasives_name "-" ->
+      Top(Tminus, size_of_exp e1, size_of_exp e2)
   | _ -> error loc Enot_a_size_expression
-	       
+           
 (** The type of primitives and imported functions *)
 and operator expected_k h loc op e_list =
   let actual_k, ty_args, ty_res =
@@ -782,14 +782,14 @@ and apply loc is_statefull expected_k h e arg_list =
     | [] -> ty_fct
     | arg :: arg_list ->
        let actual_k, n_opt, ty1, ty2 =
-	 try Types.filter_arrow intro_k ty_fct
-	 with Unify ->  error loc (Eapplication_of_non_function) in
+         try Types.filter_arrow intro_k ty_fct
+         with Unify ->  error loc (Eapplication_of_non_function) in
        let expected_k = lift loc expected_k actual_k in
        expect expected_k h arg ty1;
        let ty2 =
-	 match n_opt with
-	 | None -> ty2
-	 | Some(n) -> subst_in_type (Env.singleton n (size_of_exp arg)) ty2 in
+         match n_opt with
+         | None -> ty2
+         | Some(n) -> subst_in_type (Env.singleton n (size_of_exp arg)) ty2 in
        args ty2 arg_list in
   args ty_fct arg_list
        
@@ -801,39 +801,40 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
         pattern h p ty_e; 
         (* check that the pattern is total *)
         check_total_pattern p;
-	let dv = vars p in
-	S.iter (def loc h) dv;
+        let dv = vars p in
+        S.iter (def loc h) dv;
         { Deftypes.empty with dv = dv }
     | EQpluseq(n, e) ->
         let actual_ty = expression expected_k h e in
         let expected_ty = pluseq loc h n in 
         unify loc expected_ty actual_ty;
-	{ Deftypes.empty with mv = S.singleton n }
+        { Deftypes.empty with mv = S.singleton n }
     | EQinit(n, e0) ->
         (* an initialization is valid only in a continuous or discrete context *)
         check_statefull loc expected_k;
         let actual_ty = init loc h n in
-	expect (Types.lift_to_discrete expected_k) h e0 actual_ty;
+        expect (Types.lift_to_discrete expected_k) h e0 actual_ty;
         (* sets that every variable from [di] is initialized *)
-	{ Deftypes.empty with di = S.singleton n }
+        { Deftypes.empty with di = S.singleton n }
     | EQnext(n, e, e0_opt) ->
         (* a next is valid only in a discrete context *)
         less_than loc (Tdiscrete(true)) expected_k;
         let actual_ty = next loc h n in
-	expect expected_k h e actual_ty;
-	let di =
+        expect expected_k h e actual_ty;
+        let di =
           match e0_opt with 
-	  | None -> S.empty
+          | None -> S.empty
           | Some(e) ->
-             expect expected_k h e actual_ty; ignore (init loc h n); S.singleton n
+              expect expected_k h e actual_ty; ignore (init loc h n);
+              S.singleton n
         in
-	{ Deftypes.empty with nv = S.singleton n; di = di }
+        { Deftypes.empty with nv = S.singleton n; di = di }
     | EQder(n, e, e0_opt, p_h_e_list) ->
         (* integration is only valid in a continuous context *)
         less_than loc Tcont expected_k;
         let actual_ty = derivative loc h n in
         unify loc Initial.typ_float actual_ty;
-	expect expected_k h e actual_ty;
+        expect expected_k h e actual_ty;
         let di =
           match e0_opt with
           | None -> S.empty
@@ -841,8 +842,8 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
              expect (Types.lift_to_discrete expected_k) h e Initial.typ_float;
              ignore (init loc h n); S.singleton n in
         ignore (present_handler_exp_list 
-	          loc expected_k h p_h_e_list None Initial.typ_float);
-  	{ Deftypes.empty with di = di; der = S.singleton n }
+                  loc expected_k h p_h_e_list None Initial.typ_float);
+        { Deftypes.empty with di = di; der = S.singleton n }
     | EQautomaton(is_weak, s_h_list, se_opt) ->
         (* automata are only valid in continuous or discrete context *)
         check_statefull loc expected_k;
@@ -850,7 +851,7 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
     | EQmatch(total, e, m_h_list) ->
         let expected_pat_ty = expression expected_k h e in
         match_handler_block_eq_list 
-	  loc expected_k h total m_h_list expected_pat_ty 
+          loc expected_k h total m_h_list expected_pat_ty 
     | EQpresent(p_h_list, b_opt) ->
         present_handler_block_eq_list loc expected_k h p_h_list b_opt
     | EQreset(eq_list, e) ->
@@ -872,7 +873,7 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
     | EQblock(b_eq_list) ->
        snd (block_eq_list expected_k h b_eq_list)
     | EQforall
-	({ for_index = i_list; for_init = init_list; for_body = b_eq_list }
+        ({ for_index = i_list; for_init = init_list; for_body = b_eq_list }
           as body) ->
         (* all output variables [xi] such that [xi ou x] *)
         (* must have a declaration in the body *)
@@ -883,7 +884,7 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
         (* where [xi] is replaced by [x] *)
         let merge ({ dv = dv; di = di; der = der; nv = nv; mv = mv } as defnames)
             h init_h out_h xi_out_x =
-	  (* check that all names in [out_h] are defined in defnames *)
+          (* check that all names in [out_h] are defined in defnames *)
           let out_set = Env.fold (fun x _ acc -> S.add x acc) out_h S.empty in
           let out_not_defined =
             S.diff out_set (Deftypes.names S.empty defnames) in
@@ -893,96 +894,96 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
           let x_of_xi xi =
             try Env.find xi xi_out_x  with Not_found -> xi in
           let out xi acc =
-	    try S.add (Env.find xi xi_out_x) acc with Not_found -> acc in
-	  (* all variables in [dv], [der] must appear either *)
-	  (* in [init_h] or [out_h] or as combined variables in [h] *)
-	  (* all variables in [di] must appear in [out_h] and not in [init_h] *)
+            try S.add (Env.find xi xi_out_x) acc with Not_found -> acc in
+          (* all variables in [dv], [der] must appear either *)
+          (* in [init_h] or [out_h] or as combined variables in [h] *)
+          (* all variables in [di] must appear in [out_h] and not in [init_h] *)
           let belong_to_init_out xi =
-	    if not ((Env.mem xi init_h) || (Env.mem xi out_h))
+            if not ((Env.mem xi init_h) || (Env.mem xi out_h))
             then error loc (Ealready_in_forall(xi)) in
-	  let belong_to_out_not_init xi =
+          let belong_to_out_not_init xi =
             if not (Env.mem xi out_h) || (Env.mem xi init_h)
             then error loc (Ealready_in_forall(xi)) in
-	    S.iter belong_to_init_out dv;
+            S.iter belong_to_init_out dv;
             S.iter belong_to_init_out nv;
             S.iter belong_to_init_out der;
             S.iter belong_to_out_not_init di;
             (* change the sort of [x] so that it is equal to that of [xi] *)
-	    S.iter (def loc h) (S.fold out dv S.empty);
-	    S.iter (fun n -> ignore (init loc h n)) (S.fold out di S.empty);
+            S.iter (def loc h) (S.fold out dv S.empty);
+            S.iter (fun n -> ignore (init loc h n)) (S.fold out di S.empty);
             S.iter
               (fun n -> ignore (derivative loc h n)) (S.fold out der S.empty);
      
           (* all name [xi] from [defnames] such that [xi out x] *)
           (* is replaced by [x] in the new [defnames] *)
           { dv = S.map x_of_xi dv; di = S.map x_of_xi di;
-	    der = S.map x_of_xi der; nv = S.map x_of_xi nv;
+            der = S.map x_of_xi der; nv = S.map x_of_xi nv;
             mv = S.map x_of_xi mv } in
 
        (* outputs are either shared or state variables *)
        let sort = if Types.is_statefull_kind expected_k
-		  then Deftypes.Smem Deftypes.empty_mem
-		  else Deftypes.variable in
+                  then Deftypes.Smem Deftypes.empty_mem
+                  else Deftypes.variable in
 
        (* bounds for loops must be static *)
        (* computes the set of array names returned by the loop *)
        (* declarations are red from left to right. For [i in e0..e1], *)
        (* compute the size [(e1 - e0) + 1)] for the arrays *)
        let index (in_h, out_h, xi_out_x, size_opt)
-		 { desc = desc; loc = loc } =
-	 let size_of loc size_opt =
-	   match size_opt with
-	   | None -> error loc Esize_of_vec_is_undetermined
-	   | Some(actual_size) -> actual_size in
-	 match desc with
-	 | Einput(xi, e) ->
-	    let ty = Types.new_var () in
-	    let si = size_of loc size_opt in
-	    expect Tany h e (Types.vec ty si);
-	    Env.add xi { t_typ = ty; t_sort = Sval } in_h,
-	    out_h, xi_out_x, size_opt
-	 | Eoutput(xi, x) ->
-	    let ty_xi = Types.new_var () in
-	    let ty_x = typ_of_var loc h x in
-	    let si = size_of loc size_opt in
-	    unify loc (Types.vec ty_xi si) ty_x;
-	    in_h, Env.add xi { t_typ = ty_xi; t_sort = sort } out_h,
-	    Env.add xi x xi_out_x, size_opt
-	 | Eindex(i, e0, e1) ->
-	    expect (Tstatic(true)) h e0 Initial.typ_int;
-	    expect (Tstatic(true)) h e1 Initial.typ_int;
-	    (* check that the size [(e1 - e0) + 1)] is the same for *)
-	    (* all indices *)
-	    let e0 = size_of_exp e0 in
-	    let e1 = size_of_exp e1 in
-	    let actual_size =
-	      Types.plus (Types.minus e1 e0) (Types.const 1) in
-	    let size_opt =
-	      match size_opt with
-		| None -> Some(actual_size)
-		| Some(expected_size) ->
-		  equal_sizes loc expected_size actual_size; size_opt in
-	    Env.add i { t_typ = Initial.typ_int; t_sort = Sval } in_h,
-	    out_h, xi_out_x, size_opt in
+                 { desc = desc; loc = loc } =
+         let size_of loc size_opt =
+           match size_opt with
+           | None -> error loc Esize_of_vec_is_undetermined
+           | Some(actual_size) -> actual_size in
+         match desc with
+         | Einput(xi, e) ->
+            let ty = Types.new_var () in
+            let si = size_of loc size_opt in
+            expect Tany h e (Types.vec ty si);
+            Env.add xi { t_typ = ty; t_sort = Sval } in_h,
+            out_h, xi_out_x, size_opt
+         | Eoutput(xi, x) ->
+            let ty_xi = Types.new_var () in
+            let ty_x = typ_of_var loc h x in
+            let si = size_of loc size_opt in
+            unify loc (Types.vec ty_xi si) ty_x;
+            in_h, Env.add xi { t_typ = ty_xi; t_sort = sort } out_h,
+            Env.add xi x xi_out_x, size_opt
+         | Eindex(i, e0, e1) ->
+            expect (Tstatic(true)) h e0 Initial.typ_int;
+            expect (Tstatic(true)) h e1 Initial.typ_int;
+            (* check that the size [(e1 - e0) + 1)] is the same for *)
+            (* all indices *)
+            let e0 = size_of_exp e0 in
+            let e1 = size_of_exp e1 in
+            let actual_size =
+              Types.plus (Types.minus e1 e0) (Types.const 1) in
+            let size_opt =
+              match size_opt with
+                | None -> Some(actual_size)
+                | Some(expected_size) ->
+                  equal_sizes loc expected_size actual_size; size_opt in
+            Env.add i { t_typ = Initial.typ_int; t_sort = Sval } in_h,
+            out_h, xi_out_x, size_opt in
 
        (* returns the set of names defined by the loop body *)
        let init init_h { desc = desc; loc = loc } =
-	 match desc with
-	 | Einit_last(i, e) ->
-	    let ty = typ_of_var loc h i in
-	    expect expected_k h e ty;
-	    Env.add i { t_typ = ty; t_sort = Deftypes.memory } init_h in
+         match desc with
+         | Einit_last(i, e) ->
+            let ty = typ_of_var loc h i in
+            expect expected_k h e ty;
+            Env.add i { t_typ = ty; t_sort = Deftypes.memory } init_h in
        let init_h = List.fold_left init Env.empty init_list in
 
        let in_h, out_h, xi_out_x, _ =
-	 List.fold_left index (Env.empty, Env.empty, Env.empty, None) i_list in
+         List.fold_left index (Env.empty, Env.empty, Env.empty, None) i_list in
        body.for_in_env <- in_h;
        body.for_out_env <- out_h;
        
        (* the environment [h] is extended with [in_h], [out_h] and [init_h] *)
        let h_eq_list = Env.append in_h (Env.append out_h (Env.append init_h h)) in
        let _, defnames =
-	 block_eq_list expected_k h_eq_list b_eq_list in
+         block_eq_list expected_k h_eq_list b_eq_list in
        (* check that every name in defnames is either declared *)
        (* in the initialize branch, an output or a multi-emitted value *)
        merge defnames h init_h out_h xi_out_x in
@@ -1023,8 +1024,8 @@ and match_handler_exp_list loc expected_k h total m_h_list pat_ty ty =
     loc expected_k h total m_h_list pat_ty ty
   
 and block_eq_list expected_k h 
-		  ({ b_vars = n_list; b_locals = l_list;
-		     b_body = eq_list } as b) =
+                  ({ b_vars = n_list; b_locals = l_list;
+                     b_body = eq_list } as b) =
   (* initialize the local environment *)
   let _, inames = build_list (S.empty, S.empty) eq_list in
   let h0 = vardec_list expected_k n_list inames in
@@ -1059,28 +1060,28 @@ and scondpat expected_k is_zero_type h scpat =
   let rec typrec expected_k is_zero_type scpat =
     match scpat.desc with
       | Econdand(sc1, sc2) -> 
-	  typrec expected_k is_zero_type sc1; 
-	  typrec expected_k is_zero_type sc2
+          typrec expected_k is_zero_type sc1; 
+          typrec expected_k is_zero_type sc2
       | Econdor(sc1, sc2) ->
-	  typrec expected_k is_zero_type sc1;
-	  typrec expected_k is_zero_type sc2
+          typrec expected_k is_zero_type sc1;
+          typrec expected_k is_zero_type sc2
       | Econdexp(e) ->
           let expected_ty = 
-	    if is_zero_type then Initial.typ_zero else Initial.typ_bool in
-	  ignore (expect expected_k h e  expected_ty)
+            if is_zero_type then Initial.typ_zero else Initial.typ_bool in
+          ignore (expect expected_k h e  expected_ty)
       | Econdpat(e_cond, pat) ->
-	  (* check that e is a signal *)
+          (* check that e is a signal *)
           let ty = new_var () in
           ignore (expect expected_k h e_cond (Initial.typ_signal ty));
           pattern h pat ty
       | Econdon(sc1, e) -> 
-	  typrec expected_k is_zero_type sc1; 
-	  ignore 
-	    (expect (Types.on_type expected_k) h e Initial.typ_bool)
+          typrec expected_k is_zero_type sc1; 
+          ignore 
+            (expect (Types.on_type expected_k) h e Initial.typ_bool)
   in
   typrec expected_k is_zero_type scpat
 
-	 
+         
 (* typing state expressions. [state] must be a stateless expression *)
 (* [is_reset = true] if [state] is entered by reset *)
 and typing_state h def_states actual_reset state =
@@ -1092,7 +1093,7 @@ and typing_state h def_states actual_reset state =
           if args <> []
           then error state.loc (Estate_arity_clash(s, 0, List.length args));
           r.s_reset <- 
-	    check_target_state state.loc expected_reset actual_reset
+            check_target_state state.loc expected_reset actual_reset
         with
           | Not_found -> error state.loc (Estate_unbound s)
         end
@@ -1107,7 +1108,7 @@ and typing_state h def_states actual_reset state =
             (fun e expected_ty -> ignore (expect Tany h e expected_ty))
             l args;
           r.s_reset <- 
-	    check_target_state state.loc expected_reset actual_reset
+            check_target_state state.loc expected_reset actual_reset
         with
           | Invalid_argument _ ->
               error state.loc
@@ -1147,9 +1148,9 @@ and automaton_handlers is_weak loc expected_k h state_handlers se_opt =
   begin match se_opt with
     | None -> 
         begin match statepat.desc with 
-	  | Estate1pat _ -> error statepat.loc Estate_initial
-	  | Estate0pat _ -> ()
-	end
+          | Estate1pat _ -> error statepat.loc Estate_initial
+          | Estate0pat _ -> ()
+        end
     | Some(se) -> typing_state h def_states true se
   end;      
 
@@ -1158,7 +1159,7 @@ and automaton_handlers is_weak loc expected_k h state_handlers se_opt =
     
   (* typing the body of the automaton *)
   let typing_handler h 
-	({ s_state = statepat; s_body = b; s_trans = trans } as s) =
+        ({ s_state = statepat; s_body = b; s_trans = trans } as s) =
     let escape source_state h expected_k 
         ({ e_cond = scpat; e_reset = r; e_block = b_opt; 
            e_next_state = state } as esc) =
@@ -1170,9 +1171,9 @@ and automaton_handlers is_weak loc expected_k h state_handlers se_opt =
       esc.e_zero <- is_zero_type;
       esc.e_env <- h0;
       let h, defined_names = 
-	match b_opt with 
-	  | None -> h, Deftypes.empty 
-	  | Some(b) -> block_eq_list (Tdiscrete(true)) h b in
+        match b_opt with 
+          | None -> h, Deftypes.empty 
+          | Some(b) -> block_eq_list (Tdiscrete(true)) h b in
       (* checks that [state] belond to the current set of [states] *)
       typing_state h def_states r state;
       (* checks that names are not defined twice in a state *)
@@ -1188,9 +1189,9 @@ and automaton_handlers is_weak loc expected_k h state_handlers se_opt =
       | Estate1pat(s, n_list) ->
           let { s_parameters = ty_list } = Env.find s def_states in
           List.iter2
-	    (fun n ty ->
-	     unify statepat.loc
-		   (typ_of_var statepat.loc h0 n) ty) n_list ty_list;
+            (fun n ty ->
+             unify statepat.loc
+                   (typ_of_var statepat.loc h0 n) ty) n_list ty_list;
     end;
     let h = Env.append h0 h in
     (* typing the body *)
@@ -1209,7 +1210,7 @@ and automaton_handlers is_weak loc expected_k h state_handlers se_opt =
   (* if the initial state has only weak transition then all *)
   (* variables from [defined_names] do have a last value *)
   let first_h, new_h = if is_weak then turn_vars_into_memories h defined_names 
-		       else Env.empty, h in
+                       else Env.empty, h in
 
   let defined_names_list = 
     List.map (typing_handler new_h) remaining_handlers in
@@ -1249,14 +1250,14 @@ let funtype loc expected_k pat_list ty_list ty_res =
     | [], [] -> [], fv_in_ty_res
     | pat :: pat_list, ty_arg :: ty_list ->
        let ty_res_list, fv_in_ty_res =
-	 arg pat_list ty_list fv_in_ty_res in
+         arg pat_list ty_list fv_in_ty_res in
        let fv_pat = Vars.fv_pat S.empty S.empty pat in
        let opt_name, fv_in_ty_res =
-	 let fv_inter = S.inter fv_pat fv_in_ty_res in
-	 if S.is_empty fv_inter then None, fv_in_ty_res
-	 else match pat.p_desc with
-	      | Evarpat(n) -> Some(n), S.remove n fv_in_ty_res
-	      | _ -> error pat.p_loc Esize_parameter_must_be_a_name in
+         let fv_inter = S.inter fv_pat fv_in_ty_res in
+         if S.is_empty fv_inter then None, fv_in_ty_res
+         else match pat.p_desc with
+              | Evarpat(n) -> Some(n), S.remove n fv_in_ty_res
+              | _ -> error pat.p_loc Esize_parameter_must_be_a_name in
        (opt_name, ty_arg) :: ty_res_list, fv fv_in_ty_res ty_arg
     | _ -> assert false in
   let ty_arg_list, fv_in_ty_res = arg pat_list ty_list (fv S.empty ty_res) in
@@ -1271,7 +1272,7 @@ let constdecl f is_static e =
   tys
 
 let fundecl loc f ({ f_kind = k; f_atomic = is_atomic;
-		     f_args = pat_list; f_body = e } as body) =
+                     f_args = pat_list; f_body = e } as body) =
   Misc.push_binding_level ();
   let expected_k = Interface.kindtype k in
   (* sets the kind of variables according to [k] *)
@@ -1307,7 +1308,7 @@ let implementation ff is_first impl =
        if is_first then Interface.typedecl ff impl.loc f params ty
   with
   | Typerrors.Error(loc, err) -> Typerrors.message loc err
-						   
+                                                   
 (* the main entry function *)
 let implementation_list ff is_first impl_list =
   List.iter (implementation ff is_first) impl_list; impl_list

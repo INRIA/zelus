@@ -1,17 +1,16 @@
-let node ball_with_modes(x_0, y_0) = (x, y) where
-  rec init y_start = y_0
-  and automaton
-      | Bouncing ->
-	  (* the ball is falling with a possible bounce. *)
-	  do
-            y = 1.0 and x = 1.0
-	  unless true then Sliding(x, x)
-      | Sliding(x0, y0) ->
-	  do
-            y = y0 and x = x0
-	  unless (x = x0) then do y_start = y in Bouncing
-      end
-
+let node f(x, k) =
+  let rec
+    match x with
+    | true -> do y = z + 1 and m = k + 1 done
+    | false -> do y = 1 and m = 2 done
+    end
+  and
+    match x with
+    | true -> do z = m + 1 and r = y + 2 done
+    | false -> do z = 1 and r = 2 done
+    end in
+  y, m, y, m
+    
   
 let hybrid water() =
   let rec init x = 1.0
