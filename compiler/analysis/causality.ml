@@ -74,13 +74,13 @@ let message loc kind =
         Pcaus.cycle cycle
     | Ccycle(n, tc, env, cycle) ->
         Causal.mark true tc;
-        let cset = Causal.vars S.empty tc in
+        let cset_tc = Causal.vars S.empty tc in
         let _ = Cenv.mark S.empty env in
         Cenv.shorten env;
         let env = Cenv.simplify env in
-        let cset = Cenv.mark cset env in
+        let cset = Cenv.mark cset_tc env in
         Cenv.shorten env;
-        let env = Cenv.clean cset env in
+        let env = Cenv.clean cset_tc env in
         let cycle = Causal.shrink_cycle cset cycle in
         (* keep only names in cycle that either appear in the type *)
         Format.eprintf "@[%aCausality error: The variable %a \

@@ -703,7 +703,10 @@ let clean cset env =
         let env = clean env in
         if env = Empty then Empty else On(env, c)
     | Append(env, env0) ->
-        Append(clean env, Env.filter is_in env0) in
+        let env = clean env in
+        let env0 = Env.filter is_in env0 in
+        if env = Empty && Env.is_empty env0 then Empty
+        else Append(env, env0) in
   clean env
 
 let simplify env =
