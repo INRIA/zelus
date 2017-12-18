@@ -171,7 +171,19 @@ let build_env_on_c c l_env env =
     Env.add n { t_typ = cur_tc; t_last_typ = last_tc } acc in
   Cenv.append (Env.fold entry l_env Env.empty) env
 
- 
+(** over constraint the causality so that a block is scheduled atomically *)
+(* that is, as if all output would depend on all inputs (free variables) *)
+(*
+let atomic env ({ eq_write = { dv = dv } } as eq) =
+  (* for every defined name [x1,...,xn] *)
+  (* introduce an environment [x1:ct1[c1];...;xn:ctn[c1]] *)
+  let new_env =
+    S.fold
+      (fun x acc ->
+         let { t_typ = ty; t_last_typ = ty_last } = Env.find x env in
+         Env.add x { t_typ = Causal.skeleton_on_c c()
+*)
+    
 (** Causality analysis of a match handler.*)
 let match_handlers body env m_h_list =
   let handler { m_pat = p; m_body = b; m_env = m_env } =
