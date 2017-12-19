@@ -635,16 +635,17 @@ struct
 
   (* [before is_before path tc[c] = tc'] such that *)
   (* path = [c1;...;cn] *)
-  (* if is_before then tc' = tc[c] with c1,...,cn < c *)
+  (* if is_before then tc' = tc[c'] with c1,...,cn, c' < c *)
   (*              else tc' = tc[c'] with c < c1,...,cn < c' *)
   let rec before is_before path tc =
     match tc with
     | Catom(c) ->
-        if is_before then (List.iter (fun ci -> less_c ci c) path; atom c)
+        let c' = new_var () in
+        if is_before then
+          (less_c c' c; List.iter (fun ci -> less_c ci c) path)
         else
-          let c' = new_var () in
-          less_c c c'; List.iter (fun ci -> less_c c ci; less_c ci c') path;
-          atom c'
+          (less_c c c'; List.iter (fun ci -> less_c c ci; less_c ci c') path);
+        atom c'
     | Cproduct(tc_list) -> product (List.map (before is_before path) tc_list)
     | Cfun(tc1, tc2) ->
         funtype tc1 (before is_before path tc2)
