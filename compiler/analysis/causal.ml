@@ -109,10 +109,12 @@ and cannotate n c =
 
 (* The set of variables of a causality type *)
 let rec vars acc = function
-  | Catom(c) -> S.add (crepr c) acc
+  | Catom(c) -> vars_c acc c
   | Cproduct(ty_list) -> List.fold_left vars acc ty_list
   | Cfun(ty_arg, ty_res) -> vars (vars acc ty_arg) ty_res
-  
+
+and vars_c acc c = S.add (crepr c) acc
+    
 (** Sets the polarity of a type. *)
 let polarity_c c right =
   match c.c_polarity, right with
@@ -274,8 +276,8 @@ let rec out c =
   outrec S.empty c  
 
 (* simplifies a set of causalities *)
-let simplify_by_io ty =
-  let c_set = vars S.empty ty in
+let simplify_by_io tc =
+  let c_set = vars S.empty tc in
   (* is-it an output? *)
   let inputs, outputs = S.fold ins_and_outs c_set (S.empty, S.empty) in
   let inputs_outputs = S.union inputs outputs in
@@ -328,7 +330,8 @@ let simplify_by_io ty =
             else if S.subset io_of_i io_of_o then less i o
             else if S.subset io_of_o io_of_i then less o i)
         inputs_outputs)
-    inputs_outputs    
+    inputs_outputs;
+  tc
     
 (* An other simplification method *)
 (* Garbage collection: only keep dependences of the form a- < b+ *)
@@ -478,7 +481,7 @@ let generalise tc =
   mark true tc;
   (* type simplification *)
   (* let tc = simplify true tc in *)
-  simplify_by_io tc;
+  let tc = simplify_by_io tc in
   gen tc;
   let c_set = vars S.empty tc in
   let rel = relation c_set in
@@ -595,7 +598,7 @@ let filter_arrow tc =
 (* Environment for causality types *)
 type tentry = 
   { t_typ: tc;      (* the causality type of x *)
-    t_last_typ: tc; (* [last x] is allowed *)
+    t_last_typ: tc option; (* [last x] is allowed *)
   }
 
 (* Returns a causality type that is structurally like [tc] but *)
@@ -663,17 +666,22 @@ struct
     match env with
     | Empty -> ()
     | On(env, c) ->
-        Format.fprintf ff "@[<hov 1>%a on %a@]"
-          (print pentry) env Pcaus.caus c
+        if !Misc.verbose
+        then
+          Format.fprintf ff "@[<hov 1>[%a] on %a@]"
+            (print pentry) env Pcaus.caus c
+        else
+          print pentry ff env
     | Append(env, env0) ->
         let l0 = Env.bindings env0 in
-        Format.fprintf ff "@[<hov 0>[%a]+@ [%a]@]"
+        Format.fprintf ff "@[<hov 0>%a@,%a@]"
           (print pentry) env
-          (Pp_tools.print_list_r pentry "" ";" "") l0
+          (Pp_tools.print_list_r pentry "" ";" "") l0          
    
 let mark acc env =
-  let mark _ { t_typ = tc; t_last_typ = ltc } acc =
-    mark false tc; mark false ltc; vars (vars acc tc) ltc in
+  let mark _ { t_typ = tc; t_last_typ = ltc_opt } acc =
+    mark false tc; Misc.optional_unit mark false ltc_opt;
+    Misc.optional vars (vars acc tc) ltc_opt in
   let rec mark_env acc env =
     match env with
     | Empty -> acc
@@ -682,8 +690,8 @@ let mark acc env =
   mark_env acc env
     
 let shorten env =
-  let shorten _ { t_typ = tc; t_last_typ = ltc } =
-    shorten tc; shorten ltc in
+  let shorten _ { t_typ = tc; t_last_typ = ltc_opt } =
+    shorten tc; Misc.optional_unit (fun _ tc -> shorten tc) () ltc_opt in
   let rec shorten_env env =
     match env with
     | Empty -> ()
@@ -694,9 +702,14 @@ let shorten env =
 
 (* only keep entries in env whose causality names belong to [cset] *)
 let clean cset env =
-  let is_in n { t_typ = tc; t_last_typ = ltc } =
-    not (S.is_empty (S.inter cset (vars S.empty tc)) &&
-         (S.is_empty (S.inter cset (vars S.empty ltc)))) in
+  let filter n ({ t_typ = tc; t_last_typ = ltc_opt } as tentry) acc =
+    let filter_tc = S.is_empty (S.inter cset (vars S.empty tc)) in
+    match ltc_opt with
+    | None -> if filter_tc then acc else Env.add n tentry acc
+    | Some(ltc) ->
+        let filter_ltc = S.is_empty (S.inter cset (vars S.empty ltc)) in
+        if filter_ltc then Env.add n { tentry with t_last_typ = None } acc
+        else Env.add n tentry acc in
   let rec clean env =
     match env with
     | Empty -> Empty
@@ -705,14 +718,15 @@ let clean cset env =
         if env = Empty then Empty else On(env, c)
     | Append(env, env0) ->
         let env = clean env in
-        let env0 = Env.filter is_in env0 in
+        let env0 = Env.fold filter env0 Env.empty in
         if env = Empty && Env.is_empty env0 then Empty
         else Append(env, env0) in
   clean env
 
 let simplify env =
-  let entry { t_typ = tc; t_last_typ = ltc } =
-    { t_typ = simplify false tc; t_last_typ = simplify false ltc } in
+  let entry { t_typ = tc; t_last_typ = ltc_opt } =
+    { t_typ = simplify false tc;
+      t_last_typ = Misc.optional_map (simplify false) ltc_opt } in
   let rec simplify_env env =
     match env with
     | Empty -> Empty
@@ -729,15 +743,19 @@ let penv cset ff env =
   (* Computes the dependence relation for a set of causality types *)
   (* in a typing environment *)
   (* print every entry in the typing environment *)
-  let pentry ff (n, { t_typ = tc; t_last_typ = ltc }) =
-    Format.fprintf ff "@[%a: %a | %a@]"
-      Printer.source_name n Pcaus.ptype tc Pcaus.ptype ltc in
+  let pentry ff (n, { t_typ = tc; t_last_typ = ltc_opt }) =
+    match ltc_opt with
+    | None -> Format.fprintf ff "@[%a: %a@]" Printer.source_name n Pcaus.ptype tc
+    | Some(ltc) ->
+        Format.fprintf ff "@[%a: %a | %a@]"
+          Printer.source_name n Pcaus.ptype tc Pcaus.ptype ltc in
   (* print the relation *)
   let rel = relation cset in
-  Format.fprintf ff
-    "@[<hov>%a@ with@ @[%a@]@.@]"
-    (Cenv.print pentry) env
-    Pcaus.relation rel
+  match rel with
+  | [] -> Format.fprintf ff "@[<hov>%a@]" (Cenv.print pentry) env
+  | _ ->
+      Format.fprintf ff
+        "@[<hov>%a@ with@ @[%a@]@]" (Cenv.print pentry) env Pcaus.relation rel
 
 let ppenv ff env =
   let set = Cenv.mark S.empty env in

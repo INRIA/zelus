@@ -266,20 +266,20 @@ let message loc kind =
 let warning loc w =
   match w with
   | Wpartial_matching(p) ->
-     Format.eprintf "%aType warning: this pattern-matching is not exhaustive.\n"
+     Format.eprintf "@[%aType warning: this pattern-matching is not exhaustive.@.@]"
 		    output_location loc;
-     Format.eprintf "Here is an example of a value that is not matched:\n%a\n"
+     Format.eprintf "@[Here is an example of a value that is not matched:@.%a@.@]"
 		    Printer.pattern p
   | Wunreachable_state(s) ->
      eprintf
-       "%aType warning: the state %s in this automaton is unreachable.@."
+       "@[%aType warning: the state %s in this automaton is unreachable.@.@]"
        output_location loc
        (Ident.source s)
   | Wmatch_unused(p) ->
-     Format.eprintf "Type warning: match case \"%a\" is unused.\n" Printer.pattern p
+     Format.eprintf "@[Type warning: match case \"%a\" is unused.@.@]" Printer.pattern p
   | Wequation_does_not_define_a_name ->
      eprintf
-       "%aType warning: this equation does not define a name.\n\
-          This looks like deadcode.@."
+       "@[%aType warning: this equation does not define a name.@.
+          This looks like deadcode.@.@]"
        output_location loc
      

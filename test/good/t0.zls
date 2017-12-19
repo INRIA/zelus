@@ -1,15 +1,15 @@
 let node f(x, k) =
   let rec 
-    match true with
-    | _ -> do (* y = 2 + 1 and *) m = k + 1 done
-    (* | false -> do y = 1 and m = 2 done *)
+    match x with
+    | _ -> do y = 2 + 1 and m = k + 1 done
+    | false -> do y = 1 and m = 2 done
     end
-  (* and
+  and
     match x with
     | true -> do z = m + 1 and r = y + 2 done
     | false -> do z = 1 and r = 2 done
-    end *) in
-  m (* , y, m *)
+    end in
+  m, y, r
     
   
 let hybrid water() =

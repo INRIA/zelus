@@ -46,7 +46,7 @@ let print x = Misc.internal_error "unbound" Printer.name x
 
 (* Main error message *)
 type error =
-  | Cless_than of tc * tc * cycle (* not (expected_ty < actual_ty) *)
+  | Cless_than of tc * tc * Cenv.env * cycle (* not (expected_ty < actual_ty) *)
   | Ccycle of Ident.t * tc * Cenv.env * cycle (* contains a cycle *)
                     
 (* dependence cycle and the current typing environment *)
@@ -57,22 +57,41 @@ let error loc kind = raise (Error(loc, kind))
 let message loc kind =
   begin
     match kind with
-    | Cless_than(left_tc, right_tc, cycle) ->
-      (* keep only names in cycle that either appear in the types *)
-      Causal.mark true left_tc;
-      Causal.mark true right_tc;
-      let cset = Causal.vars (Causal.vars S.empty left_tc) right_tc in
-      let cycle = Causal.shrink_cycle cset cycle in
-      Format.eprintf
-        "@[<hov 0>%aCausality error: This expression \
-         has causality type@ %a@ \
-         whereas it should be less than@ @[%a@]@.\
-         Here is an example of a cycle:@.@[%a@]@.@]"
-        output_location loc
-        Pcaus.ptype left_tc
-        Pcaus.ptype right_tc
-        Pcaus.cycle cycle
+    | Cless_than(left_tc, right_tc, env, cycle) ->
+        (* computes the set of names that appear in [cycle] *)
+        let cset_cycle = List.fold_left Causal.vars_c S.empty cycle in
+        (* only keep entries in the environment with type variables *)
+        (* that belong the [cset_cycle] *)
+        let env = Cenv.clean cset_cycle env in
+        (* keep only names in cycle that either appear in the types *)
+        Causal.mark true left_tc;
+        Causal.mark true right_tc;
+        let left_tc = simplify true left_tc in
+        let right_tc = simplify true right_tc in
+        let cset = Causal.vars (Causal.vars S.empty left_tc) right_tc in
+        let _ = Cenv.mark cset env in
+        Cenv.shorten env;
+        let env = Cenv.simplify env in
+        let cset = Cenv.mark cset env in
+        Cenv.shorten env;
+        let cycle = Causal.shrink_cycle cset cycle in
+        Format.eprintf
+          "@[%aCausality error: This expression has causality type@ %a,@ \
+           whereas it should be less than@ %a@.\
+           Here is an example of a cycle:@.%a@.\
+           in the current typing environment:@.%a@.@]"
+          output_location loc
+          Pcaus.ptype left_tc
+          Pcaus.ptype right_tc
+          Pcaus.cycle cycle
+          (Causal.penv cset) env
     | Ccycle(n, tc, env, cycle) ->
+        (* computes the set of names that appear in [cycle] *)
+        let cset_cycle = List.fold_left Causal.vars_c S.empty cycle in
+        (* only keep entries in the environment with type variables *)
+        (* that belong the [cset_cycle] *)
+        let env = Cenv.clean cset_cycle env in
+        (* simplify types and environment *)
         Causal.mark true tc;
         let cset_tc = Causal.vars S.empty tc in
         let _ = Cenv.mark S.empty env in
@@ -80,15 +99,14 @@ let message loc kind =
         let env = Cenv.simplify env in
         let cset = Cenv.mark cset_tc env in
         Cenv.shorten env;
-        let env = Cenv.clean cset_tc env in
         let cycle = Causal.shrink_cycle cset cycle in
         (* keep only names in cycle that either appear in the type *)
-        Format.eprintf "@[%aCausality error: The variable %a \
-                        cannot be given the causality type@,\
-                        %a@, because this would create a cycle in the current \
-                        environment@,\
-                        %a@.\
-                        Here is an example of a cycle:@.@[%a@]@.@]"
+        Format.eprintf
+         "@[%aCausality error: The variable %a \
+          cannot be given the causality type@,\
+          %a@, because this would create a cycle in the current environment: @,\
+          @[%a@]@.\
+          Here is an example of a cycle:@.@[%a@]@.@]"
          output_location loc
          Printer.source_name n
          Pcaus.ptype tc
@@ -97,12 +115,12 @@ let message loc kind =
   end;
   raise Misc.Error
 
-let less_than loc actual_ty expected_ty =
+let less_than loc env actual_ty expected_ty =
   try
     Causal.less actual_ty expected_ty
   with
   | Causal.Clash(cycle) ->
-      error loc (Cless_than(actual_ty, expected_ty, cycle))
+      error loc (Cless_than(actual_ty, expected_ty, env, cycle))
 
 let read loc x env =
   let path, ({ t_typ = tc } as tentry) = Cenv.find x env in
@@ -134,7 +152,7 @@ let rec pattern env ({ p_desc = desc; p_loc = loc; p_typ = ty } as p) =
         let pattern_less_than_on_c pat c =
           let actual_ty = pattern env pat in
           let expected_ty = Causal.skeleton_on_c c pat.p_typ in
-          less_than loc actual_ty expected_ty in
+          less_than loc env actual_ty expected_ty in
         let c = Causal.new_var () in
         List.iter (fun (_, p) -> pattern_less_than_on_c p c) l;
         Causal.skeleton_on_c c ty
@@ -149,7 +167,7 @@ let rec pattern env ({ p_desc = desc; p_loc = loc; p_typ = ty } as p) =
           begin try let { t_typ = ty1 } = write loc x env in ty1
             with | Not_found -> print x 
           end in
-        less_than p.p_loc ty_n ty_p;
+        less_than p.p_loc env ty_n ty_p;
         ty_p in
   (* annotate the pattern with causality information *)
   p.p_caus <- S.elements (Causal.vars S.empty tc);
@@ -159,16 +177,24 @@ let rec pattern env ({ p_desc = desc; p_loc = loc; p_typ = ty } as p) =
 let build_env l_env env =
   let entry n { Deftypes.t_typ = ty; Deftypes.t_sort = sort } acc =
     let cur_tc = Causal.annotate (Cname n) (Causal.skeleton ty) in
-    let last_tc = Causal.annotate (Clast n) (Causal.skeleton ty) in
-    Env.add n { t_typ = cur_tc; t_last_typ = last_tc } acc in
+    let last_tc_opt =
+      match sort with
+      | Smem { m_previous = true } ->
+          Some(Causal.annotate (Clast n) (Causal.skeleton ty))
+      | _ -> None in
+    Env.add n { t_typ = cur_tc; t_last_typ = last_tc_opt } acc in
   Cenv.append (Env.fold entry l_env Env.empty) env
     
 (** Build an environment with all entries synchronised on [c] *)
 let build_env_on_c c l_env env =
   let entry n { Deftypes.t_typ = ty; Deftypes.t_sort = sort } acc =
     let cur_tc = Causal.annotate (Cname n) (Causal.skeleton_on_c c ty) in
-    let last_tc = Causal.annotate (Clast n) (Causal.skeleton_on_c c ty) in
-    Env.add n { t_typ = cur_tc; t_last_typ = last_tc } acc in
+    let last_tc_opt =
+      match sort with
+      | Smem { m_previous = true } ->
+          Some(Causal.annotate (Clast n) (Causal.skeleton_on_c c ty))
+      | _ -> None in
+    Env.add n { t_typ = cur_tc; t_last_typ = last_tc_opt } acc in
   Cenv.append (Env.fold entry l_env Env.empty) env
 
 (** over constraint the causality so that a block is scheduled atomically *)
@@ -217,8 +243,9 @@ let rec exp env ({ e_desc = desc; e_typ = ty; e_loc = loc } as e) =
         let { t_typ = tc } = try read loc x env with Not_found -> print x in
         tc
     | Elast(x) ->
-        let { t_last_typ = tc } =
+        let { t_last_typ = tc_opt } =
           try Cenv.last x env with Not_found -> print x in
+        let tc = match tc_opt with | None -> assert false | Some(tc) -> tc in
         tc
     | Etuple(e_list) ->
         product (List.map (exp env) e_list)
@@ -321,13 +348,13 @@ and operator env op ty e_list =
 and exp_less_than_on_c env e expected_c =
   let actual_tc = exp env e in
   let expected_tc = Causal.skeleton_on_c expected_c e.e_typ in
-  less_than e.e_loc actual_tc expected_tc;
+  less_than e.e_loc env actual_tc expected_tc;
   (* annotate [e] with causality variables *)
   e.e_caus <- [expected_c]
 
 and exp_less_than env e expected_tc =
   let actual_tc = exp env e in
-  less_than e.e_loc actual_tc expected_tc;
+  less_than e.e_loc env actual_tc expected_tc;
   (* annotate [e] with causality variables *)
   e.e_caus <- S.elements (Causal.vars S.empty expected_tc)
 
@@ -356,7 +383,7 @@ and equation env { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
             (* [present_handler_exp_list] expects its arguments *)
             (* [h_e_list <> []] or [e0_opt <> None] *)            
             let actual_ty = present_handler_exp_list env h_e_list e0_opt in
-            less_than loc actual_ty expected_ty
+            less_than loc env actual_ty expected_ty
       end
   | EQinit(n, e0) ->
       let { t_typ = ty_n } =
@@ -423,7 +450,7 @@ and equation env { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
       let { t_typ = expected_ty } =
         try write loc n env with Not_found -> print n in
       let actual_ty = Causal.annotate (Cname n) (atom c) in
-      less_than loc actual_ty expected_ty
+      less_than loc env actual_ty expected_ty
   | EQblock(b_eq_list) ->
       ignore (block_eq_list env b_eq_list)
   | EQforall { for_index = i_list; for_init = init_list; for_body = b_eq_list;
@@ -437,20 +464,20 @@ and equation env { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
             exp_less_than_on_c env e in_c;
             let ty_arg, _ = Types.filter_vec e.e_typ in
             let tc = Causal.skeleton_on_c in_c ty_arg in
-            Env.add x { t_typ = tc; t_last_typ = fresh tc } io_env,
+            Env.add x { t_typ = tc; t_last_typ = Some(fresh tc) } io_env,
             oi2o
         | Eindex(x, e1, e2) ->
             let in_c = Causal.new_var () in
             exp_less_than_on_c env e1 in_c;
             exp_less_than_on_c env e2 in_c;
             let tc = Causal.skeleton_on_c in_c e1.e_typ in
-            Env.add x { t_typ = tc; t_last_typ = fresh tc } io_env,
+            Env.add x { t_typ = tc; t_last_typ = Some(fresh tc) } io_env,
             oi2o
       | Eoutput(oi, o) ->
         let out_c = Causal.new_var () in
         let { Deftypes.t_typ = ty } = Env.find oi o_env in
         let tc = Causal.skeleton_on_c out_c ty in
-        Env.add oi { t_typ = tc; t_last_typ = fresh tc } io_env,
+        Env.add oi { t_typ = tc; t_last_typ = Some(fresh tc) } io_env,
         Env.add oi o oi2o in
         
        (* typing the initialization *)
@@ -458,7 +485,7 @@ and equation env { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
          match desc with
          | Einit_last(x, e) ->
             let tc = exp env e in
-            Env.add x { t_typ = fresh tc; t_last_typ = tc } init_env in
+            Env.add x { t_typ = fresh tc; t_last_typ = Some(tc) } init_env in
 
        (* build the typing environment for read variables from the header *)
        let io_env, oi2o = List.fold_left index (Env.empty, Env.empty) i_list in
@@ -541,7 +568,7 @@ and scondpat env sc =
        exp_less_than_on_c env e expected_c;
        let actual_ty = pattern env p in
        let expected_ty = Causal.skeleton_on_c expected_c p.p_typ in
-       less_than p.p_loc actual_ty expected_ty in
+       less_than p.p_loc env actual_ty expected_ty in
   let expected_c = Causal.new_var () in
   scondpat sc expected_c;
   expected_c
@@ -577,10 +604,10 @@ let implementation ff { desc = desc } =
          else
            List.map (fun p -> Causal.skeleton p.p_typ) p_list,
            Causal.skeleton e.e_typ in
-       less_than e.e_loc actual_ty_res expected_ty_res;
+       less_than e.e_loc env actual_ty_res expected_ty_res;
        List.iter2
          (fun p expected_ty -> let actual_ty = pattern env p in
-           less_than p.p_loc expected_ty actual_ty) p_list expected_ty_list;
+           less_than p.p_loc env expected_ty actual_ty) p_list expected_ty_list;
        Misc.pop_binding_level ();
        let tcs =
          generalise (Causal.funtype_list expected_ty_list expected_ty_res) in
