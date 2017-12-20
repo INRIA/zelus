@@ -1,23 +1,18 @@
-let node f(x, k) =
-  let rec 
-    match x with
-    | _ -> do y = 2 + 1 and m = k + 1 done
-    | false -> do y = 1 and m = 2 done
-    end
-  and
-    match x with
-    | true -> do z = m + 1 and r = y + 2 done
-    | false -> do z = 1 and r = 2 done
-    end in
-  m, y, r
-    
-  
+let node water1() =
+  let rec init x = 1.0
+  and automaton
+      | On ->
+          do x = 1.0
+	  until (false -> pre (x = 2.0)) then On
+      end in
+  x
+
 let hybrid water() =
   let rec init x = 1.0
   and automaton
       | On ->
-          do der x = 1.0
-	  unless up(x) then On
+          do x = 1.0
+	  unless (let r = last x +. 1.0 in up(r)) then On
       end in
   x
     

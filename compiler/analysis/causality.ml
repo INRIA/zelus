@@ -411,7 +411,6 @@ and equation env { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
       (*   1. compute the body; 2. compute the next active state. *)
       (* the causality constraints must reproduce this scheduling *)
       let handler env { s_body = b; s_trans = trans; s_env = s_env } =
-        (* typing an escape. *)
         let escape env
             { e_cond = sc; e_block = b_opt; e_next_state = ns; e_env = e_env } =
           let env = build_env e_env env in
@@ -419,15 +418,20 @@ and equation env { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
           let env =
             Misc.optional
               (fun env b -> block_eq_list (Cenv.on env c_e) b) env b_opt in
-          state env ns in
+          state env ns; c_e in
         let env = build_env s_env env in
         if is_weak then
           let env = block_eq_list env b in
-          List.iter (escape (Cenv.push env)) trans
+          ignore (List.map (escape env) trans)
         else
-          let env = Cenv.push env in
-          let _ = List.iter (escape env) trans in
-          ignore (block_eq_list env b) in
+          let c0 = Causal.new_var () in
+          let c = Causal.new_var () in
+          Causal.less_c c0 c;
+          (* all the branches must be scheduled before the time stamp [c] *)
+          (* the comparision belows should not fail *)
+          let c_list = List.map (escape (Cenv.on env c0)) trans in
+          List.iter (fun ci -> Causal.less_c ci c) c_list;
+          ignore (block_eq_list (Cenv.on env c) b) in
       List.iter (handler env) s_h_list;
       Misc.optional_unit state env se_opt
   | EQmatch(_, e, m_h_list) ->
