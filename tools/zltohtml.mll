@@ -83,7 +83,7 @@ let store_string_char c =
 let get_stored_string () =
   let s = Bytes.sub (!string_buff) 0 (!string_index) in
     string_buff := initial_string_buffer;
-    "\"" ^ s ^ "\""
+    "\"" ^ (Bytes.to_string s) ^ "\""
 
 let startspan c s = print "<span class=\"";
                     print c;

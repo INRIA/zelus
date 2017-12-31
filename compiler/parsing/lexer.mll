@@ -118,7 +118,7 @@ let incr_linenum lexbuf =
 let store_string_char c =
   if !string_index >= Bytes.length (!string_buff) then begin
     let new_buff = Bytes.create (Bytes.length (!string_buff) * 2) in
-      String.blit (!string_buff) 0 new_buff 0 (Bytes.length (!string_buff));
+      Bytes.blit (!string_buff) 0 new_buff 0 (Bytes.length (!string_buff));
       string_buff := new_buff
   end;
   Bytes.set (!string_buff) (!string_index) c;
@@ -207,7 +207,7 @@ rule main = parse
                              Loc(string_start, string_end)))
         end;
         lexbuf.lex_start_pos <- string_start - lexbuf.lex_abs_pos;
-        STRING (get_stored_string()) }
+        STRING (Bytes.to_string(get_stored_string())) }
   | "'" [^ '\\' '\''] "'"
       { CHAR(Lexing.lexeme_char lexbuf 1) }
   | "'" '\\' ['\\' '\'' 'n' 't' 'b' 'r'] "'"
