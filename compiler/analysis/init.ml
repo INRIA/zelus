@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2017                                               *)
+(*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -18,6 +18,27 @@ open Deftypes
 open Definit
 open Global
        
+(** a set of initialization names *)
+module S = struct
+  include (Set.Make(Definit))
+  let fprint_t ff s =
+    Format.fprintf ff "@[<hov>{@ ";
+    iter (fun e -> Format.fprintf ff "%a@ " Pinit.init e) s;
+    Format.fprintf ff "}@]"
+end
+
+(* a module to represent the set of predecessors/successors of a variable *)
+module M = struct
+  include (Map.Make(Definit))
+  let fprint_t fprint_v ff s =
+    Format.fprintf ff "@[<hov>{@ ";
+    iter (fun k v -> Format.fprintf ff "%a->%a@ " Pinit.init k fprint_v v) s;
+    Format.fprintf ff "}@]"
+end
+
+let fprint_t = S.fprint_t
+let fprint_tt = M.fprint_t S.fprint_t
+
 (* typing errors *)
 type error = Iless_than
       
@@ -27,14 +48,13 @@ let new_var () =
   { i_desc = Ivar; i_index = symbol#name; i_level = !binding_level;
     i_inf = []; i_sup = []; i_visited = -1; 
     i_useful = false; i_polarity = Punknown }
-let izero = 
-  { i_desc = Izero; i_index = symbol#name; i_level = generic;
+let ivalue v = 
+  { i_desc = Ivalue(v); i_index = symbol#name; i_level = generic;
     i_inf = []; i_sup = [];
     i_visited = -1; i_useful = false; i_polarity = Punknown }
-let ione = 
-  { i_desc = Ione; i_index = symbol#name; i_level = generic;
-    i_inf = []; i_sup = [];
-    i_visited = -1; i_useful = false; i_polarity = Punknown   }
+let ione = ivalue Ione
+let ihalf = ivalue Ihalf
+let izero = ivalue Izero
 let funtype ty1 ty2 = Ifun(ty1, ty2)
 let rec funtype_list ty_arg_list ty_res =
   match ty_arg_list with
@@ -43,7 +63,7 @@ let rec funtype_list ty_arg_list ty_res =
   | ty :: ty_arg_list -> funtype ty (funtype_list ty_arg_list ty_res)
 let product l = Iproduct(l)
 let atom i = Iatom(i)
-
+    
 (* basic operation on initialization values *)
 let rec irepr i =
   match i.i_desc with
@@ -57,8 +77,12 @@ let rec irepr i =
 let equal i1 i2 =
   let i1 = irepr i1 in
   let i2 = irepr i2 in
-  i1.i_index = i2.i_index
-                 
+  if i1 == i2 then true
+  else match i1.i_desc, i2.i_desc with
+    | Ivalue(v1), Ivalue(v2) -> v1 = v2
+    | Ivar, Ivar -> i1.i_index = i2.i_index
+    | _ -> false
+    
 let rec add i l =
   match l with
   | [] -> [i]
@@ -76,13 +100,15 @@ let rec union l1 l2 =
   | [], l2 -> l2 | l1, [] -> l1
   | i :: l1, l2 -> if mem i l2 then union l1 l2 else i :: union l1 l2
                                                               
+let set l = List.fold_left (fun acc c -> add c acc) [] l
+
 (** Sets the polarity of a type. *)
 let polarity_c i right =
   match i.i_polarity, right with
-    | Punknown, true -> i.i_polarity <- Pplus
-    | Punknown, false -> i.i_polarity <- Pminus
-    | Pminus, true | Pplus, false -> i.i_polarity <- Pplusminus
-    | _ -> ()
+  | Punknown, true -> i.i_polarity <- Pplus
+  | Punknown, false -> i.i_polarity <- Pminus
+  | Pminus, true | Pplus, false -> i.i_polarity <- Pplusminus
+  | _ -> ()
 
 let increase_polarity p i =
   match p with
@@ -90,24 +116,22 @@ let increase_polarity p i =
   | _ -> if p <> i.i_polarity then i.i_polarity <- Pplusminus
       
 (* saturate an initialization type. *)
-let rec initialize is_zero ty =
-  match ty with
-  | Ifun(ty1, ty2) -> initialize is_zero ty1; initialize is_zero ty2
-  | Iproduct(ty_list) -> List.iter (initialize is_zero) ty_list
-  | Iatom(i) -> initialize_i is_zero i
-
-and initialize_i is_zero i =
+let rec saturate_i is_right i =
   let i = irepr i in
+  let iv = if is_right then Ione else Izero in
   match i.i_desc with
-  | Izero when is_zero -> ()
-  | Ione when not is_zero -> ()
-  | Ivar -> 
-    i.i_desc <- Ilink(if is_zero then izero else ione); 
-    List.iter (initialize_i is_zero) (if is_zero then i.i_inf else i.i_sup)
-  | Ilink(i) -> initialize_i is_zero i
+  | Ivalue(i) when i = iv -> ()
+  | Ivar ->
+      List.iter (saturate_i is_right) (if is_right then i.i_sup else i.i_inf);
+      i.i_desc <- Ilink(ivalue iv)      
+  | Ilink(i) -> saturate_i is_right i
   | _ -> raise (Clash(Iless_than))
   
-
+and less_v v1 v2 =
+  match v1, v2 with
+  | (Izero, _) | (_, Ione) | (Ihalf, Ihalf) -> true
+  | _ -> false
+    
 (** Sub-typing *)
 let rec less left_ty right_ty =
   if left_ty == right_ty then ()
@@ -127,9 +151,14 @@ and less_i left_i right_i =
     if left_i == right_i then ()
     else
       match left_i.i_desc, right_i.i_desc with
-      | (Izero, _) | (_, Ione) -> ()
-      | _, Izero -> initialize_i true left_i
-      | Ione, _ -> initialize_i false right_i
+      | (Ivalue(Izero), _) | (_, Ivalue(Ione))
+      | (Ivalue(Ihalf), Ivalue(Ihalf)) -> ()
+      | Ivalue(Ihalf), Ivar ->
+          right_i.i_inf <- add left_i right_i.i_inf
+      | Ivar, Ivalue(Ihalf) ->
+          left_i.i_sup <- add right_i left_i.i_sup
+      | Ivalue(Ione), Ivar -> saturate_i true right_i
+      | Ivar, Ivalue(Izero) -> saturate_i false left_i
       | Ivar, Ivar ->
           (* i1,...,in < i < j1,...,jk  with  *)
           (* l1,...,lm < r < s1,...,sr *)
@@ -155,6 +184,13 @@ let rec skeleton_on_i i ty =
   | Tconstr(_, _, _) | Tvec _ -> atom i
   | Tlink(ty) -> skeleton_on_i i ty
                                
+let rec fresh_on_i i ty =
+  match ty with
+  | Ifun(left_ty, right_ty) ->
+      funtype (fresh_on_i i left_ty) (fresh_on_i i right_ty)
+  | Iproduct(ty_list) -> product (List.map (fresh_on_i i) ty_list)
+  | Iatom _ -> atom i
+                 
 (* Compute the infimum/supremum of two types *)
 let rec suptype is_right ty1 ty2 =
   match ty1, ty2 with
@@ -172,20 +208,36 @@ let rec suptype is_right ty1 ty2 =
 and sup_i is_right i1 i2 =
   let i1 = irepr i1 in
   let i2 = irepr i2 in
-  if i1.i_index = i2.i_index then i1
+  if i1 == i2 then i1
   else
     match i1.i_desc, i2.i_desc, is_right with
-    | Izero, _, true -> i2 | _, Izero, true -> i1
-    | (Ione, _, true) | (_, Ione, true) -> ione
-    | Ione, _, false -> i2 | _, Ione, false -> i1
-    | (Izero, _, false) | (_, Izero, false) -> izero
+    | Ivalue(Izero), _, true -> i2 | _, Ivalue(Izero), true -> i1
+    | (Ivalue(Ione), _, true) | (_, Ivalue(Ione), true) -> ione
+    | Ivalue(Ione), _, false -> i2 | _, Ivalue(Ione), false -> i1
+    | (Ivalue(Izero), _, false) | (_, Ivalue(Izero), false) -> izero
+    | (Ivalue(Ihalf), Ivalue(Ihalf), _) -> ihalf
     | Ilink(i1), _ , _ -> sup_i is_right i1 i2
     | _, Ilink(i2), _ -> sup_i is_right i1 i2
-    | Ivar, Ivar, _ ->
-      let i = new_var () in
-      if is_right then i.i_inf <- [i1; i2] else i.i_sup <- [i1; i2]; i
+    | _ -> let i = new_var () in
+        if is_right then i.i_inf <- [i1; i2] else i.i_sup <- [i1; i2]; i
 
- 
+(* visit a type; [visit v ty] recursively mark *)
+(* all nodes with value [v] *) 
+let rec visit v ty =
+  match ty with
+  | Ifun(ty1, ty2) -> visit v ty1; visit v ty2
+  | Iproduct(ty_list) -> List.iter (visit v) ty_list
+  | Iatom(i) -> visit_i v i
+
+and visit_i v i =
+  match i.i_desc with
+  | Ivar ->
+      i.i_visited <- v;
+      List.iter (visit_i v) i.i_inf;
+      List.iter (visit_i v) i.i_sup
+  | Ivalue _ -> ()
+  | Ilink(i) -> visit_i v i
+                  
 (** Mark useful/useless types and sets the polarity *)
 (* reduces dependences by eliminating intermediate variables *)
 (* we first mark useful variables (variables which appear in *)
@@ -202,7 +254,7 @@ and imark right i =
   | Ivar ->
       i.i_useful <- true;
       polarity_c i right
-  | Izero | Ione | Ilink _ -> ()
+  | Ivalue _ | Ilink _ -> ()
                               
 (* Garbage collection: only keep dependences of the form a- < b+ *)
 (* this step is done after having called the function mark *)
@@ -215,7 +267,7 @@ let rec shorten ty =
 and shorten_i i =
   let i = irepr i in
   match i.i_desc with
-  | Izero | Ione -> ()
+  | Ivalue _ -> ()
   | Ilink(i) -> shorten_i i
   | Ivar ->
      i.i_visited <- 0;
@@ -229,7 +281,8 @@ and shorten_i i =
          short_list false [] i.i_inf, short_list true [] i.i_sup in
      i.i_inf <- inf;
      i.i_sup <- sup;
-     i.i_visited <- 1       
+     i.i_visited <- 1
+      
                       
 and short_list is_right acc i_list =
   List.fold_left (short is_right) acc i_list
@@ -244,7 +297,8 @@ and remove_polarity p i_list =
     
 and short is_right acc i =
   match i.i_desc with
-  | Izero | Ione -> acc
+  | Ivalue(Izero | Ione) -> acc
+  | Ivalue _ -> add i acc
   | Ilink(i) -> short is_right acc i
   | Ivar ->
     match i.i_visited with
@@ -276,7 +330,7 @@ let rec simplify right ty =
 and isimplify right i =
   let i = irepr i in
   match i.i_desc with
-  | Izero | Ione  | Ilink _ -> i
+  | Ivalue _ | Ilink _ -> i
   | Ivar ->
     if right then
       match i.i_inf, i.i_polarity with
@@ -308,7 +362,7 @@ let rec gen ty =
 and igen i =
   let i = irepr i in
   match i.i_desc with
-  | Izero | Ione -> i.i_level
+  | Ivalue _ -> i.i_level
   | Ivar ->
     if i.i_level > !binding_level
     then 
@@ -325,6 +379,19 @@ and igen i =
                         
 and gen_set l = List.fold_left (fun acc i -> max (igen i) acc) generic l
                                
+(** Computes the dependence relation from a list of initialisation variables *)
+(* variables in [already] are disgarded *)
+let relation i_list =
+  let rec relation (already, rel) i =
+    let i = irepr i in
+    if S.mem i already then already, rel
+    else if i.i_sup = [] then already, rel
+    else List.fold_left
+           relation (S.add i already, (i, set i.i_sup) :: rel) i.i_sup in
+  let _, rel =
+    List.fold_left (fun acc i -> relation acc i) (S.empty, []) i_list in
+  rel
+
 (** Main generalisation function *)
 let generalise ty =
   list_of_vars := [];
@@ -336,7 +403,8 @@ let generalise ty =
   mark true ty;
   shorten ty;
   gen ty;
-  { typ_vars = !list_of_vars; typ = ty }
+  let rel = relation !list_of_vars in
+  { typ_vars = !list_of_vars; typ_rel = rel; typ = ty }
 
 (** Instantiation of a type *)
 (* save and cleanup links *)
@@ -365,10 +433,8 @@ and icopy i =
      else i
   | Ilink(link) ->
      if i.i_level = generic then link else icopy link
-  | Izero ->
-     if i.i_level = generic then izero else i
-  | Ione ->
-     if i.i_level = generic then ione else i
+  | Ivalue(v) ->
+     if i.i_level = generic then ivalue v else i
 
 (* instanciate the initialisation type according to the type *)
 let rec instance ti ty =
@@ -396,7 +462,7 @@ let rec subtype right ti =
       atom new_i
   
 (* instanciation *)
-let instance { typ_vars = ti_list; typ = ti } ty =
+let instance { typ = ti } ty =
   let ti = copy ti in
   cleanup ();
   let ti = subtype true ti in
@@ -418,4 +484,9 @@ let instance { value_init = tis_opt } ty =
 let filter_arrow ty =
   match ty with
   | Ifun(ty1, ty2) -> ty1, ty2
+  | _ -> assert false
+
+let filter_product ty =
+  match ty with
+  | Iproduct(ty_list) -> ty_list
   | _ -> assert false
