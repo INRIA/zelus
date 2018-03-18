@@ -981,7 +981,8 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
        body.for_out_env <- out_h;
        
        (* the environment [h] is extended with [in_h], [out_h] and [init_h] *)
-       let h_eq_list = Env.append in_h (Env.append out_h (Env.append init_h h)) in
+       let h_eq_list =
+         Env.append in_h (Env.append out_h (Env.append init_h h)) in
        let _, defnames =
          block_eq_list expected_k h_eq_list b_eq_list in
        (* check that every name in defnames is either declared *)

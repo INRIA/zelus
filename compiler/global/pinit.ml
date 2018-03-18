@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2017                                               *)
+(*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -36,8 +36,12 @@ let extra { i_polarity = p; i_useful = u; i_level = l; i_index = i } =
 (* Print the causality *)
 let rec init ff i = 
   match i.i_desc with
-  | Izero -> fprintf ff "0"
-  | Ione -> fprintf ff "1"
+  | Ivalue(v) ->
+      begin match v with
+        | Izero -> fprintf ff "0"
+        | Ione -> fprintf ff "1"
+        | Ihalf -> fprintf ff "1/2"
+      end
   | Ilink(link) -> init ff link
   | Ivar ->
     Format.fprintf
@@ -62,25 +66,18 @@ let rec ptype prio ff ti =
 				      
 let ptype ff ti = ptype 0 ff ti
 			
-let relation i_list =
-  let rel =
-    List.fold_left
-      (fun acc i ->
-       match i.i_sup with | [] -> acc | sup_list -> (i, sup_list) :: acc)
-      [] i_list in
-  List.rev rel
-
-let prelation ff i_list =
+let prelation ff rel =
   let print ff (i, i_list) =
     Format.fprintf
       ff "@[%a < %a@]" init i (print_list_r init "" "," "") i_list in
-  let rel = relation i_list in
   print_list_r print "{" ";" "}" ff rel
 	       
 (* print a type scheme *)
 (* { a1 < a2,...,ak; ...; }. ti *)
-let scheme ff { typ_vars = i_list; typ = ty } =
-  Format.fprintf ff "@[<hov2>%a.@ %a@]" prelation i_list ptype ty
+let scheme ff { typ_rel = rel; typ = ty } =
+  match rel with
+  | [] -> ptype ff ty
+  | _ -> Format.fprintf ff "@[<hov2>%a.@ %a@]" prelation rel ptype ty
                  
 (* printing a declaration *)
 let declaration ff f tys =

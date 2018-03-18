@@ -146,14 +146,14 @@ let message loc kind =
        (Ident.source s) (Ident.source s) (Ident.source s)
   | Eshould_be_a_signal(s, expected_ty) ->
       eprintf "@[%aType error: %s is a value of type %a,@ \
-               but is expected to be a signal \
+               but is expected to be a signal @,\
                (maybe a default value or initialization is missing).@.@]"
         output_location loc
         (Ident.source s)
 	Ptypes.output expected_ty
   | Ecannot_be_set(is_next, s) ->
       eprintf "@[%aType error: the %s value of %s cannot be set. @,\
-                 This is either because the %s value is set or \
+                 This is either because the %s value is set or @,\
                  the last value is used.@.@]"
         output_location loc
         (if is_next then "next" else "current")

@@ -1,20 +1,64 @@
-let node water1() =
+let hybrid g(z, x) = present z -> x + 1 init 0
+
+let hybrid f(x) = (y, z) where
+  rec init y = 0
+  and init z = 0
+  and match x with
+  | true -> do y = last z + 1 done
+  | false -> do z = last y + 1 done
+  end
+
+      (*
+let node water1(y) =
   let rec init x = 1.0
   and automaton
       | On ->
-          do x = 1.0
+          do x = 1.0 +. y
 	  until (false -> pre (x = 2.0)) then On
       end in
-  x
+  x +. x
+
+
+let hybrid int(x0, x') =
+  let rec der x = x' init x0 reset up(1.0 +. last x) -> 0.0 in x +. last x
+
+let max = 0.2
+
+let hybrid ff x z =
+  let rec der o = x +. y +. y init 0.0
+  and y = o +. x +. o1 
+  and init y = 42.0
+  and init o1 = 4.0
+  and present z -> do o1 = 1.0 +. last o1 done in
+  o, y, o1
+ *)
+    
+(*
+
+let hybrid f x = present z -> 0 -> last x + 1 init 0
+
+x: -1 | 0
+ *)
+    
+(*
+let node water1(y) =
+  let rec init x = 1.0
+  and automaton
+      | On ->
+          do x = 1.0 +. y
+	  until (false -> pre (x = 2.0)) then On
+      end in
+  x +. y
 
 let hybrid water() =
   let rec init x = 1.0
   and automaton
       | On ->
-          do x = 1.0
-	  unless (let r = last x +. 1.0 in up(r)) then On
+          do der x = 1.0
+	  unless ((* let r = last x +. 1.0 in *) up(last x) ) then On
       end in
   x
+ *)
     
 (* let node f(x) =
   let rec (* init y = 0 and init z = 0
