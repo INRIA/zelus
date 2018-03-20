@@ -16,8 +16,9 @@
 (* we do very simple check, following STTT'04.
  *- E.g., [init x = e] and [pre(e)] are
  *- valid if [e] is initialized.
- *- when x is declared with [init x = e], then last x is 
- *- marked to be initialized. Otherwise, it gets type 1 *)
+ *- when x is declared with [init x = e], then last x is
+ *- marked to be initialized with type 0 if [x = ...] at discrete instants;
+ *- 1/2 otherwise. if x is not explicitly initialized, it gets type 1 *)
 open Misc
 open Ident
 open Global
@@ -76,16 +77,14 @@ let less_for_last loc n actual_i expected_i =
 (** An entry in the type environment *)
 type tentry =
     { t_typ: Definit.ty; (* the init type [ty] of x *)
-      t_last: Definit.t; (* v in [-1, 0, 1] so that last x: ty[v] *)
+      t_last: Definit.t; (* v in [0, 1/2, 1] so that last x: ty[v] *)
     }
     
 (** Build an environment from a typing environment *)
-(* if [x] is defined by [init x = e] and [x = ex] then *)
-(* both [x] and [last x] are initialized, provided [ex] is initialized *)
-(* if [is_continuous] is true, [last x: 0] and [x:-1] if [x] is initialized *)
-(*                             [last x: 1] and [x:-1] otherwise *)
-(* if [is_continuous] is false, [last x: 0] and [x:0] if [x] is initialized *)
-(*                             [last x: 1] and [x:0] otherwise *)
+(* if [x] is defined by [init x = e] then
+ *- [x] is initialized; [last x: 0] if [x] declared in a discrete
+ *- context; [last x: a] otherwise.
+ *- when [x = e] then [1/2 < a] if the equation is activated in discrete time *)
 let build_env is_continuous l_env env =
   let entry { Deftypes.t_sort = sort; Deftypes.t_typ = ty } =
     match sort with 
