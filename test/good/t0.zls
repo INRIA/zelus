@@ -2,6 +2,8 @@ let hybrid g(z, x) =
   let y = x + 1 and init y = 0 in
   (present z -> last y + 1 init 0), last y
 
+let node h(z, x) = present z -> last x + 1 init 0
+    
 let hybrid f(x) = (y, z) where
   rec init y = 0
   and init z = 0
