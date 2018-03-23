@@ -1,16 +1,19 @@
-let hybrid g(z, x) =
-  let y = x + 1 and init y = 0 in
-  (present z -> last y + 1 init 0), last y
+let hybrid hcount1 z = c where
+  rec init c = 0
+  and present z -> do c = ((0 -> pre c) + 1) done
 
-let node h(z, x) = present z -> last x + 1 init 0
-    
-let hybrid f(x) = (y, z) where
-  rec init y = 0
-  and init z = 0
-  and match x with
-  | true -> do y = last z + 1 done
-  | false -> do z = last y + 1 done
-  end
+let node f x = c where
+  rec c = (0.0 fby c) +. x
+
+let hybrid model p = q where
+  der q = p init 0.0
+
+let hybrid main () = () where
+   rec init x = 0.0
+   and init y = 0.0
+   and p = 0.0
+   and present up(p) -> do x = f(last y) done
+   and z = model(x) and y = z
 
       (*
 let node water1(y) =

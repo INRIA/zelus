@@ -284,10 +284,12 @@ let rec exp is_continuous env { e_desc = desc; e_typ = ty } =
 and operator is_continuous env op ty e_list =
   match op, e_list with
   | Eunarypre, [e] -> 
-     exp_less_than_on_i is_continuous env e izero; 
+      (* input of a unit delay must be of type 0 *)
+      exp_less_than_on_i is_continuous env e izero; 
      Init.skeleton_on_i ione ty
   | Efby, [e1;e2] ->
-     exp_less_than_on_i is_continuous env e2 izero;
+      (* right input of a initialized delay must be of type 0 *)
+      exp_less_than_on_i is_continuous env e2 izero;
      exp is_continuous env e1
   | Eminusgreater, [e1;e2] ->
      let t1 = exp is_continuous env e1 in
@@ -303,6 +305,8 @@ and operator is_continuous env op ty e_list =
   | (Einitial | Eup | Etest | Edisc
     | Eaccess | Eupdate | Eslice _ | Econcat), e_list ->
       (* here, we force the argument to be always initialized *)
+      (* this is necessary for [up(x)] and access functions to arrays; not *)
+      (* for the others *)
       let iv = izero in
       List.iter (fun e -> exp_less_than_on_i is_continuous env e iv) e_list;
      Init.skeleton_on_i iv ty
@@ -349,7 +353,7 @@ and equation is_continuous env
         with Not_found -> assert false in
       exp_less_than is_continuous env e ty_n
   | EQder(n, e, e0_opt, p_h_e_list) ->
-      (* e must be of type -1 *)
+      (* e must be of type 0 *)
       let ty_n, last = 
         try let { t_typ = ty1; t_last = last1 } = Env.find n env in 
           ty1, last1 
@@ -357,11 +361,11 @@ and equation is_continuous env
       exp_less_than is_continuous env e ty_n;
       less_than loc ty_n (Init.skeleton_on_i Init.izero e.e_typ);
       (match e0_opt with
-       | Some(e0) -> exp_less_than_on_i false env e0 izero
+       | Some(e0) -> exp_less_than_on_i false env e0 ihalf
        | None -> less_for_last loc n last izero);
       present_handler_exp_list is_continuous env p_h_e_list ty_n
   | EQinit(n, e0) ->
-      exp_less_than_on_i false env e0 izero
+      exp_less_than_on_i false env e0 ihalf
   | EQnext(n, e, e0_opt) ->
       let ty_n, last =
         try let { t_typ = ty1; t_last = last1 } = Env.find n env in
@@ -369,7 +373,7 @@ and equation is_continuous env
         with Not_found -> assert false in
       exp_less_than is_continuous env e ty_n;
       (match e0_opt with
-       | Some(e0) -> exp_less_than_on_i false env e0 izero
+       | Some(e0) -> exp_less_than_on_i false env e0 ihalf
        | None -> less_for_last loc n last izero);
       less_than e.e_loc (Init.skeleton_on_i izero e.e_typ) ty_n
   | EQautomaton(is_weak, s_h_list, se_opt) ->
@@ -443,7 +447,7 @@ and equation is_continuous env
       let ty_n = 
         try let { t_typ = ty1 } = Env.find n env in ty1
         with | Not_found -> assert false in
-      less_than loc (Init.atom izero) ty_n;
+      less_than loc ty_n (Init.atom izero);
       ignore
         (Misc.optional_map
            (fun e -> exp_less_than_on_i is_continuous env e izero) e_opt)
@@ -481,13 +485,16 @@ and equation is_continuous env
       let env = Env.append init_env env in
       ignore (block_eq_list is_continuous env b_eq_list)
         
-(* typing rule for a present statement where the body is an expression *)
-(* if [is_continuous = true] then the body must be of type less than 1/2 *)
+(* typing rule for a present statement where the body is an expression
+ *- if [is_continuous = true] this means that every handler [ze -> body]
+ *- is necessarily activated on a zero-crossing instant, thus discretely.
+ *- in that case, it is enough that the body has type 1/2 and the whole
+ *- present expression will get type 0 *)
 and present_handler_exp_list is_continuous env p_h_list ty =
   present_handlers is_continuous scondpat 
     (fun _ env e ->
        if is_continuous then exp_less_than_on_half env e ty
-       else exp_less_than true env e ty)
+       else exp_less_than is_continuous env e ty)
     env p_h_list
 
 (* typing of an expression which must be of type ty < t[1/2] *)
