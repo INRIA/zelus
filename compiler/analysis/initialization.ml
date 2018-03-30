@@ -102,7 +102,11 @@ let build_env is_continuous l_env env =
         let lv = if is_continuous then ihalf else izero in
         { t_last = lv; t_typ = Init.skeleton ty } in
   Env.fold (fun n tentry acc -> Env.add n (entry tentry) acc) l_env env
-    
+
+(* Given an environment [env], returns a new one the bottom type becomes *)
+(* 1/2 instead of 0 *)
+let half env = env
+  
 (* copy an environment where any name from [dv] does not have any *)
 (* constraint on its last value. This is useful in two cases:
  *- when typing all the branches of a control structures; a variable [x]
@@ -216,6 +220,7 @@ let present_handlers is_continuous scondpat body env p_h_list =
   let handler { p_cond = scpat; p_body = b; p_env = p_env } =
     let env = build_env is_continuous p_env env in
     scondpat is_continuous env scpat;
+    let env = if is_continuous then half env else env in
     body false env b in
   List.iter handler p_h_list
 
@@ -492,37 +497,15 @@ and equation is_continuous env
  *- present expression will get type 0 *)
 and present_handler_exp_list is_continuous env p_h_list ty =
   present_handlers is_continuous scondpat 
-    (fun _ env e ->
-       if is_continuous then exp_less_than_on_half env e ty
-       else exp_less_than is_continuous env e ty)
+    (fun is_continuous env e -> exp_less_than is_continuous env e ty)
     env p_h_list
 
-(* typing of an expression which must be of type ty < t[1/2] *)
-and exp_less_than_on_half env e ty =
-  let ty_0 = Init.fresh_on_i Init.ihalf ty in
-  less_than e.e_loc ty ty_0;
-  exp_less_than false env e ty_0
-    
-(* typing of a block of equations where every defined variable *)
-(* must be of type ty_i, with ty_i < ti[1/2] *)
-and block_eq_list_on_half env ({ b_loc = loc; b_write = { dv = dv } } as b) =
-  (* for every entry [x : ty[i]] in env, check that [i < 1/2] *)
-  (* and check that the body is well typed with [x: ty[1/2]] *)
-  let new_env =
-    Ident.S.fold
-      (fun x acc ->
-         let { t_typ = ty; t_last = last } = Env.find x env in
-         let ty_0 = Init.fresh_on_i Init.ihalf ty in
-         less_than loc ty ty_0;
-         Env.add x { t_typ = ty_0; t_last = last } acc) dv env in
-  block_eq_list false new_env b
-    
+(* typing of a block of equations *)
 and present_handler_block_eq_list is_continuous env defnames p_h_list =
   present_handlers is_continuous scondpat 
     (fun _ env b ->
        let env = add_last_to_env env defnames in
-       ignore (if is_continuous then block_eq_list_on_half env b
-               else block_eq_list true env b))
+       ignore (block_eq_list is_continuous env b))
     env p_h_list
 
 and match_handler_block_eq_list is_continuous env defnames m_h_list =
