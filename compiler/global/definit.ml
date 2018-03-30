@@ -45,6 +45,7 @@ and t =
       mutable i_index: int; (* a unique ident associated to the variable *)
       mutable i_inf: t list; (* infimun *)
       mutable i_sup: t list; (* supremum *)
+      mutable i_min: value; (* the minimum value *)
       mutable i_useful: bool; (* is-it an intermediate variable ? *)
       mutable i_polarity: polarity; (* its polarity *)
       mutable i_visited: int; (* is-it visited already ? *)

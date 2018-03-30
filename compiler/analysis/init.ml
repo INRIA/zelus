@@ -47,11 +47,11 @@ exception Clash of error
 let new_var () = 
   { i_desc = Ivar; i_index = symbol#name; i_level = !binding_level;
     i_inf = []; i_sup = []; i_visited = -1; 
-    i_useful = false; i_polarity = Punknown }
+    i_useful = false; i_polarity = Punknown; i_min = Izero }
 let ivalue v = 
   { i_desc = Ivalue(v); i_index = symbol#name; i_level = generic;
     i_inf = []; i_sup = [];
-    i_visited = -1; i_useful = false; i_polarity = Punknown }
+    i_visited = -1; i_useful = false; i_polarity = Punknown; i_min = Izero }
 let ione = ivalue Ione
 let ihalf = ivalue Ihalf
 let izero = ivalue Izero
@@ -460,7 +460,19 @@ let rec subtype right ti =
       let new_i = new_var () in
       if right then less_i i new_i else less_i new_i i;
       atom new_i
-  
+
+let rec halftype right ti =
+  match ti with
+  | Ifun(ti1, ti2) ->
+      funtype (halftype (not right) ti1) (halftype right ti2)
+  | Iproduct(ti_list) ->
+      begin try product (List.map (halftype right) ti_list)
+        with | Invalid_argument _ -> assert false end
+  | Iatom(i) ->
+      let new_i = { (new_var ()) with i_min = Ihalf } in
+      if right then less_i i new_i else less_i new_i i;
+      atom new_i
+
 (* instanciation *)
 let instance { typ = ti } ty =
   let ti = copy ti in

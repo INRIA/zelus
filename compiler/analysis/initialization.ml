@@ -105,7 +105,10 @@ let build_env is_continuous l_env env =
 
 (* Given an environment [env], returns a new one the bottom type becomes *)
 (* 1/2 instead of 0 *)
-let half env = env
+let half env =
+  let half { t_last = lv; t_typ = ty } =
+    { t_last = lv; t_typ = Init.subtype true ty } in
+  Env.map half env
   
 (* copy an environment where any name from [dv] does not have any *)
 (* constraint on its last value. This is useful in two cases:
