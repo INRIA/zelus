@@ -4,13 +4,18 @@
 
 let node f x = 0.0 -> pre(x)
 
+let hybrid int(x') = let der x = x' init 0.0 in x
+  
 (* let hybrid model p = q where
   der q = p init 0.0 *)
 
-let hybrid main (z) = (y) where
+let hybrid main (z) = (y, m) where
    rec init x = 0.0
-   and init y = 0.0
-   and present z -> do x = f(last x) and y = x done else do y = last x done
+   and init y = 0.0 and r = last x +. 1.0 and m = last r +. 1.0
+   and l = int(r)
+   and der t = r init 0.0
+   and present z -> do x = f(last x) +. f(r)
+		    and y = last r done else do y = last x done
 
       (*
 let node water1(y) =
