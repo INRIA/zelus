@@ -103,11 +103,11 @@ let build_env is_continuous l_env env =
         { t_last = lv; t_typ = Init.skeleton ty } in
   Env.fold (fun n tentry acc -> Env.add n (entry tentry) acc) l_env env
 
-(* Given an environment [env], returns a new one the bottom type becomes *)
-(* 1/2 instead of 0 *)
+(* Given an environment [env], returns a new one where every entry type *)
+(* [ti] is subtyped into [tj] which gets 1/2 as its minimum type *)
 let half env =
   let half { t_last = lv; t_typ = ty } =
-    { t_last = lv; t_typ = Init.subtype true ty } in
+    { t_last = lv; t_typ = Init.halftype true ty } in
   Env.map half env
   
 (* copy an environment where any name from [dv] does not have any *)
@@ -200,7 +200,7 @@ let rec pattern is_continuous env
           try let { t_typ = ty1; t_last = last } = Env.find n env in ty1, last
           with | Not_found -> assert false in
         less_than loc expected_ty ty_n;
-        if is_continuous then less_for_last loc n izero last
+        if is_continuous then less_for_last loc n ihalf last
 
 (** Blocks *)
 let block is_continuous
@@ -506,7 +506,7 @@ and present_handler_exp_list is_continuous env p_h_list ty =
 (* typing of a block of equations *)
 and present_handler_block_eq_list is_continuous env defnames p_h_list =
   present_handlers is_continuous scondpat 
-    (fun _ env b ->
+    (fun is_continuous env b ->
        let env = add_last_to_env env defnames in
        ignore (block_eq_list is_continuous env b))
     env p_h_list

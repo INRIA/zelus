@@ -1,19 +1,16 @@
-let hybrid hcount1 z = c where
+(* let hybrid hcount1 z = c where
   rec init c = 0
-  and present z -> do c = ((0 -> pre c) + 1) done
+  and present z -> do c = ((0 -> pre c) + 1) done *)
 
-let node f x = c where
-  rec c = (0.0 fby c) +. x
+let node f x = 0.0 -> pre(x)
 
-let hybrid model p = q where
-  der q = p init 0.0
+(* let hybrid model p = q where
+  der q = p init 0.0 *)
 
-let hybrid main () = () where
+let hybrid main (z) = (y) where
    rec init x = 0.0
    and init y = 0.0
-   and p = 0.0
-   and present up(p) -> do x = f(last y) done
-   and z = model(x) and y = z
+   and present z -> do x = f(last x) and y = x done else do y = last x done
 
       (*
 let node water1(y) =
