@@ -115,10 +115,13 @@ let increase_polarity p i =
   | Punknown -> i.i_polarity <- p
   | _ -> if p <> i.i_polarity then i.i_polarity <- Pplusminus
       
-(* saturate an initialization type. *)
+(* saturate an initialization type [i]. *)
+(* on the right, [i] and all types [j] such that [i < j] are replaced by 1. *)
+(* on the left, [i] and all types [j] such that [j < i] are replaced *)
+(* the min of [i]. The min is either 0 or 1/2 *)
 let rec saturate_i is_right i =
   let i = irepr i in
-  let iv = if is_right then Ione else Izero in
+  let iv = if is_right then Ione else i.i_min in
   match i.i_desc with
   | Ivalue(i) when i = iv -> ()
   | Ivar ->
@@ -448,7 +451,7 @@ let rec instance ti ty =
   | Iatom(i), _ -> skeleton_on_i i ty
   | _ -> assert false
 
-(* subtyping *)
+(* subtyping. [subtype right ti = tj] with ti < tj if right, else tj < ti *)
 let rec subtype right ti =
   match ti with
   | Ifun(ti1, ti2) ->
@@ -461,6 +464,7 @@ let rec subtype right ti =
       if right then less_i i new_i else less_i new_i i;
       atom new_i
 
+(* subtyping but the right one gets minimal bound 1/2 instead of 0 *)
 let rec halftype right ti =
   match ti with
   | Ifun(ti1, ti2) ->
