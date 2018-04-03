@@ -27,11 +27,16 @@ let polarity =
   function Punknown -> "" | Pplus -> "+" | Pminus -> "-" | Pplusminus -> "+-"
 let useful u = if u then "u" else ""
 let level l = string_of_int l
+let min = function Ihalf -> "1/2" | _ -> ""
 
+;;
 
-let extra { i_polarity = p; i_useful = u; i_level = l; i_index = i } =
+Misc.verbose := true;;
+
+let extra
+    { i_polarity = p; i_useful = u; i_level = l; i_index = i; i_min = m } =
   if !Misc.verbose then polarity p ^ useful u ^ level l ^
-                        "(" ^ (string_of_int i) ^ ")" else ""
+                        "(" ^ (string_of_int i) ^ min m ^ ")" else ""
     
 (* Print the causality *)
 let rec init ff i = 

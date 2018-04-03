@@ -118,15 +118,19 @@ let increase_polarity p i =
 (* saturate an initialization type [i]. *)
 (* on the right, [i] and all types [j] such that [i < j] are replaced by 1. *)
 (* on the left, [i] and all types [j] such that [j < i] are replaced *)
-(* the min of [i]. The min is either 0 or 1/2 *)
+(* by 0 if the min of [i] is 0. If it is 1/2, [i] is replaced by 1/2 only. *)
 let rec saturate_i is_right i =
   let i = irepr i in
-  let iv = if is_right then Ione else i.i_min in
+  let iv = if is_right then Ione else Izero in
   match i.i_desc with
   | Ivalue(i) when i = iv -> ()
   | Ivar ->
-      List.iter (saturate_i is_right) (if is_right then i.i_sup else i.i_inf);
-      i.i_desc <- Ilink(ivalue iv)      
+      if i.i_min = Ihalf && not is_right then i.i_desc <- Ilink(ivalue Ihalf)
+        else begin
+          List.iter
+            (saturate_i is_right) (if is_right then i.i_sup else i.i_inf);
+          i.i_desc <- Ilink(ivalue iv)
+        end
   | Ilink(i) -> saturate_i is_right i
   | _ -> raise (Clash(Iless_than))
   
