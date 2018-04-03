@@ -118,14 +118,14 @@ let increase_polarity p i =
 (* saturate an initialization type [i]. *)
 (* on the right, [i] and all types [j] such that [i < j] are replaced by 1. *)
 (* on the left, [i] and all types [j] such that [j < i] are replaced *)
-(* by 0 if the min of [i] is 0. If it is 1/2, [i] is replaced by 1/2 only. *)
+(* by 0 if the min of [i] is 0. If it is 1/2, [i < 1/2] *)
 let rec saturate_i is_right i =
   let i = irepr i in
   let iv = if is_right then Ione else Izero in
   match i.i_desc with
   | Ivalue(i) when i = iv -> ()
   | Ivar ->
-      if i.i_min = Ihalf && not is_right then i.i_desc <- Ilink(ivalue Ihalf)
+      if i.i_min = Ihalf && not is_right then i.i_sup <- add ihalf i.i_sup
         else begin
           List.iter
             (saturate_i is_right) (if is_right then i.i_sup else i.i_inf);
@@ -477,9 +477,11 @@ let rec halftype right ti =
       begin try product (List.map (halftype right) ti_list)
         with | Invalid_argument _ -> assert false end
   | Iatom(i) ->
-      let new_i = { (new_var ()) with i_min = Ihalf } in
-      if right then less_i i new_i else less_i new_i i;
-      atom new_i
+     atom (half_i right i)
+
+and half_i right i =
+  let new_i = { (new_var ()) with i_min = Ihalf } in
+  if right then less_i i new_i else less_i new_i i; new_i
 
 (* instanciation *)
 let instance { typ = ti } ty =

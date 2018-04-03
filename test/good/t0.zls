@@ -1,10 +1,13 @@
-(* let hybrid hcount1 z = c where
-  rec init c = 0
-  and present z -> do c = ((0 -> pre c) + 1) done *)
+let hybrid int(z, x0) =
+  let der x = x0 init x0 reset z -> x0 in x
 
-let hybrid f (z, x) = y where
-  present z -> do emit y = (x, x) done
+let hybrid combine(f)(g)(z) = (x,y) where
+  rec init x = 0.0
+  and init y = 0.0
+  and y = run f(z, last x) and x = run g(z, last y)
 
+let hybrid main(z) = combine(int)(int)(z)
+    
       (*
 let node water1(y) =
   let rec init x = 1.0

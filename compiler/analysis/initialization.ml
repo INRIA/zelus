@@ -107,7 +107,7 @@ let build_env is_continuous l_env env =
 (* [ti] is subtyped into [tj] which gets 1/2 as its minimum type *)
 let half env =
   let half { t_last = lv; t_typ = ty } =
-    { t_last = lv; t_typ = Init.halftype true ty } in
+    { t_last = Init.half_i true lv; t_typ = Init.halftype true ty } in
   Env.map half env
   
 (* copy an environment where any name from [dv] does not have any *)

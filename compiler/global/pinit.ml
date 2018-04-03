@@ -29,10 +29,6 @@ let useful u = if u then "u" else ""
 let level l = string_of_int l
 let min = function Ihalf -> "1/2" | _ -> ""
 
-;;
-
-Misc.verbose := true;;
-
 let extra
     { i_polarity = p; i_useful = u; i_level = l; i_index = i; i_min = m } =
   if !Misc.verbose then polarity p ^ useful u ^ level l ^
