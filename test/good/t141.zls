@@ -1,9 +1,18 @@
-let hybrid int(z, x0) =
-  let der x = 1.0 init x0 reset z -> x0 in x
+let hybrid int(z, x', x0) =
+  let der x = x' init x0 reset z -> x0 in
+  x
 
 let hybrid combine(f)(g)(z) = (x,y) where
-  rec init x = 0.0
+  rec init x = 42.0
   and init y = 0.0
-  and y = run f(z, last x) and x = run g(z, last y)
-
+  and y = run f (z, x, last x)
+  and x = run g (z, y, last y)
+      
 let hybrid main(z) = combine(int)(int)(z)
+
+let node fix(f)(x) = let rec o = run f(x, o) in o
+
+let node f(x, y) = 0 -> pre(x + y)
+
+let node main2(x) = fix(f)(x)
+    
