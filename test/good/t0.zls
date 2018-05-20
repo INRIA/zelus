@@ -1,4 +1,5 @@
-let node f(x) = 1 + last x
+let node f(x) =
+  let rec next o = x and init o = 0 in o
     
       (*
 let node water1(y) =
