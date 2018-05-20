@@ -87,6 +87,9 @@ type tentry =
 let build_env is_continuous l_env env =
   let entry { Deftypes.t_sort = sort; Deftypes.t_typ = ty } =
     match sort with 
+    | Deftypes.Smem { Deftypes.m_init = None; Deftypes.m_next = Some true } ->
+        (* no initialization and [next x = ...]. [t_last] is useless. *)
+        { t_last = ione; t_typ = Init.skeleton_on_i ione ty }
     | Deftypes.Smem { Deftypes.m_init = Some _ } | Deftypes.Svar _ ->
         (* [x] and [last x] or or [x] and [next x] *)
         (* are well initialized *)
@@ -374,15 +377,11 @@ and equation is_continuous env
   | EQinit(n, e0) ->
       exp_less_than_on_i false env e0 ihalf
   | EQnext(n, e, e0_opt) ->
-      let ty_n, last =
-        try let { t_typ = ty1; t_last = last1 } = Env.find n env in
-          ty1, last1
-        with Not_found -> assert false in
-      exp_less_than is_continuous env e ty_n;
+      (* [e] must always be well initialized *)
+      exp_less_than_on_i is_continuous env e izero;
       (match e0_opt with
        | Some(e0) -> exp_less_than_on_i false env e0 ihalf
-       | None -> less_for_last loc n last izero);
-      less_than e.e_loc (Init.skeleton_on_i izero e.e_typ) ty_n
+       | None -> ())
   | EQautomaton(is_weak, s_h_list, se_opt) ->
       (* state *)
       let state env { desc = desc } =
