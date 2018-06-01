@@ -90,12 +90,14 @@ let build_env is_continuous l_env env =
     | Deftypes.Smem { Deftypes.m_init = None; Deftypes.m_next = Some true } ->
         (* no initialization and [next x = ...]. [t_last] is useless. *)
         { t_last = ione; t_typ = Init.skeleton_on_i ione ty }
-    | Deftypes.Smem { Deftypes.m_init = Some _ } | Deftypes.Svar _ ->
+    | Deftypes.Smem { Deftypes.m_init = Some _ } ->
         (* [x] and [last x] or or [x] and [next x] *)
         (* are well initialized *)
         let lv, iv =
           if is_continuous then Init.new_var (), izero else izero, izero in
         { t_last = lv; t_typ = Init.skeleton_on_i iv ty }
+    | Deftypes.Svar _ ->
+        { t_last = izero; t_typ = Init.skeleton_on_i (Init.new_var ()) ty }
     | Deftypes.Smem { Deftypes.m_previous = true } ->
         (* [x] initialized; [last x] uninitialized *)
         { t_last = ione; t_typ = Init.skeleton_on_i izero ty }
