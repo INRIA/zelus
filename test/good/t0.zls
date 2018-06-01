@@ -1,5 +1,9 @@
-let node f(x) =
-  let rec next o = x and init o = 0 in o
+let r f x = let rec o = f(o) in o
+  
+(*
+let f (x1, x2, x3, x4, x5) =
+  x1*x2*x3,x1*x2*x3+x4,x1*x2*x3, x1+x5
+*)
     
       (*
 let node water1(y) =
