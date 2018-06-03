@@ -13,8 +13,6 @@
 (**************************************************************************)
 (* useful stuff *)
 
-
-
 (* version of the compiler *)
 let version = "Zélus Hybrid Synchronous language"
 let subversion = VERSION

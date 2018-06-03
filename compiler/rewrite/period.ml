@@ -94,13 +94,14 @@ let major_step =
 		   [Zaux.evoid]))
 	     Initial.typ_zero
 let disc e =
+  let on_op z e = Zaux.and_op z e in
   if Unsafe.exp e
   then (* disc(e)] = [let x = e in x <> (x fby x)] *)
     let x = Ident.fresh "x" in
     let env = Env.singleton x { t_sort = Deftypes.value;
 				t_typ = e.e_typ } in
     let xv = var x e.e_typ in
-    make_let env [eq_make x e] (Zaux.on_op major_step (diff xv (fby xv xv)))
+    make_let env [eq_make x e] (on_op major_step (diff xv (fby xv xv)))
   else Zaux.on_op major_step (diff e (fby e e))
 
 (* Add an extra input parameter for hybrid nodes *)
