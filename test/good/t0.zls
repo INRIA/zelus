@@ -1,9 +1,14 @@
-open Graphics
+let node f(x) = o where
+  rec o = x -> pre o +. 1.0
 
-let hybrid ff(x, e) =
-  reset
-    1
-  every disc(e)
+let hybrid int(x') = x where der x = x' init 0.0
+
+  
+let hybrid g(z) =
+  let rec o = present z -> int(t) init 0.0
+  and der t = 1.0 init 0.0 in
+  o
+
     
       (*
 let node f1 x =
