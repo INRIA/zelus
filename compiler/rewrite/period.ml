@@ -102,7 +102,7 @@ let disc e =
 				t_typ = e.e_typ } in
     let xv = var x e.e_typ in
     make_let env [eq_make x e] (on_op major_step (diff xv (fby xv xv)))
-  else Zaux.on_op major_step (diff e (fby e e))
+  else on_op major_step (diff e (fby e e))
 
 (* Add an extra input parameter for hybrid nodes *)
 let extra_input time env pat_list = 
