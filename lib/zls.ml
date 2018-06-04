@@ -147,3 +147,8 @@ sig
               -> unit
 end
 
+module type DISCRETE_RUNTIME =
+sig
+  val go : float -> (unit -> unit) -> unit
+end
+
