@@ -78,6 +78,7 @@ let plus e1 e2 = binop "+." e1 e2 Initial.typ_float
 let minus e1 e2 = binop "-." e1 e2 Initial.typ_float
 let diff e1 e2 = binop "<>" e1 e2 Initial.typ_float
 let or_op e1 e2 = binop "||" e1 e2 Initial.typ_bool
+let and_op e1 e2 = binop "&&" e1 e2 Initial.typ_bool
 let on_op e1 e2 = binop "on" e1 e2 Initial.typ_zero
 let min_op e1 e2 = binop "min" e1 e2 Initial.typ_float
 let greater_or_equal e1 e2 = binop ">=" e1 e2 Initial.typ_bool
