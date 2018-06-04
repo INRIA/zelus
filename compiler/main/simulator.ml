@@ -153,15 +153,12 @@ let emit_checked_code ff k n =
       
 let emit_gtkmain_code ff k sampling =
   match k with
-  | Deftypes.Tstatic _ | Deftypes.Tany
-  | Deftypes.Tdiscrete _ ->
-     fprintf ff
-     "@[(* simulation loop: sampled on period %f Hz *)\n\
-      (* compiles with unix.cma lablgtk.cma gtkInit.cmo reactpanel.cmo *)@.@]"
-             sampling;
-     fprintf ff
-     "@[Reactpanel.go %f (fun()-> (main (); false)) (fun()->()); exit(0)@.@]"
-     sampling
+  | Deftypes.Tstatic _ | Deftypes.Tany | Deftypes.Tdiscrete _ ->
+      fprintf ff
+        "@[(* simulation loop: sampled on period %f Hz *)\n@.@]" sampling;
+      fprintf ff "@[(* instantiate the discrete interface *)\n\
+                    module Runtime = Zlsrungtk.MakeDiscrete ()\n\
+                    let _ = Runtime.go %f main@.@]" sampling
   | Deftypes.Tcont ->
      fprintf ff "@[(* instantiate a numeric solver *)\n\
                  module Runtime = Zlsrungtk.Make (Defaultsolver)\n\
