@@ -202,6 +202,9 @@ let print_writes ff { dv = dv; di = di; der = der; nv = nv; mv = mv } =
 	    "@[<v 0>(* der = {@[%a@]} *)@ @]" (print_list_r name "" "," "") mv;
   close_box ()
       
+let print_eq_info ff { eq_write = w; eq_safe = s; eq_index = i } =
+  print_writes ff w
+
 (* print a block surrounded by two braces [po] and [pf] *)
 let block locals body po pf ff 
 	  { b_vars = vardec_list; b_locals = l; b_body = b;
@@ -298,8 +301,8 @@ and period ff { p_phase = opt_phase; p_period = p } =
     | None -> fprintf ff "@[(%f)@]" p
     | Some(phase) -> fprintf ff "@[%f(%f)@]" phase p
         
-and equation ff { eq_desc = desc; eq_write = w } =
-  print_writes ff w;
+and equation ff ({ eq_desc = desc } as eq) =
+  print_eq_info ff eq;
   match desc with
     | EQeq(p, e) ->
       fprintf ff "@[<hov 2>%a =@ %a@]" pattern p expression e
