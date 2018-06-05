@@ -140,9 +140,11 @@ and pdesc =
   | Etypeconstraintpat of pattern * type_expression
 
 and eq = 
-    { eq_desc: eqdesc;
-      eq_loc: location;
-      mutable eq_write: Deftypes.defnames }
+  { eq_desc: eqdesc; (* its descriptor *)
+    eq_loc: location; (* its location in the source file *)
+    eq_index: int; (* a unique index; used to build a partial order *)
+    eq_safe: bool; (* does it have a side effect *)
+    mutable eq_write: Deftypes.defnames; (* the set of names it defines *) }
 
 and eqdesc =
   | EQeq of pattern * exp
