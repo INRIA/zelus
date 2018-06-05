@@ -31,7 +31,8 @@ let emake desc ty =
 let pmake desc ty =
   { p_desc = desc; p_loc = no_location; p_typ = ty; p_caus = [] }
 let eqmake desc =
-  { eq_desc = desc; eq_loc = no_location; eq_write = Deftypes.empty }
+  { eq_desc = desc; eq_loc = no_location; eq_write = Deftypes.empty;
+    eq_safe = false; eq_index = -1 }
 
 let global lname =
   Eglobal { lname = lname; typ_instance = Deftypes.no_typ_instance }
@@ -96,6 +97,7 @@ let plus e1 e2 = binop "+." e1 e2 Initial.typ_float
 let minus e1 e2 = binop "-." e1 e2 Initial.typ_float
 let diff e1 e2 = binop "<>" e1 e2 Initial.typ_bool
 let or_op e1 e2 = binop "||" e1 e2 Initial.typ_bool
+let and_op e1 e2 = binop "&&" e1 e2 Initial.typ_bool
 let on_op e1 e2 = binop "on" e1 e2 Initial.typ_zero
 let min_op e1 e2 = binop "min" e1 e2 Initial.typ_float
 let greater_or_equal e1 e2 = binop ">=" e1 e2 Initial.typ_bool
