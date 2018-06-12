@@ -524,12 +524,13 @@ let rec equation env loop_path { Zelus.eq_desc = desc } code =
      { code with step =
                    ifthen r_e (sequence (assign (entry_of x env) e) i_code) s }
   | Zelus.EQreset(eq_list, r_e) ->
-     let r_e, code = exp env loop_path code r_e in
-     let { init = i_code } as r_code =
-       equation_list env loop_path eq_list empty_code in
-     (* execute the initialization code when [e] is true *)
-     let { step = s } as code = seq r_code code in
-     { code with step = ifthen r_e i_code s }
+      let { init = i_code } = code in
+      let { init = ri_code } as r_code =
+        equation_list env loop_path eq_list { code with init = Osequence [] } in
+      let r_e, r_code = exp env loop_path r_code r_e in
+      (* execute the initialization code when [e] is true *)
+     let { step = s } as code = seq r_code { empty_code with init = i_code } in
+     { code with step = ifthen r_e ri_code s }
   | Zelus.EQinit(x, e) ->
      let e_c, code = exp env loop_path code e in
      let x_e = assign (entry_of x env) e_c in
