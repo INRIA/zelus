@@ -1,5 +1,17 @@
-let r f x = let rec o = f(o) in o
-  
+let node r x = x, y where
+  rec reset
+        x = true
+      and y = 0 -> pre y + 2
+      every last x
+      and init x = true
+    
+(*
+let node r x =
+  let rec y = x + 1 and o = last y + 1 in
+  o + y (* let rec z = y + 2 and r = z + y in
+  o + z + r *)
+ *)
+    
 (*
 let f (x1, x2, x3, x4, x5) =
   x1*x2*x3,x1*x2*x3+x4,x1*x2*x3, x1+x5
