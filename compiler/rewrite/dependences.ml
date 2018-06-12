@@ -1,9 +1,8 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2017                                               *)
+(*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
@@ -12,92 +11,142 @@
 (*                                                                        *)
 (**************************************************************************)
 (* dependences between equations *)
-open Ident
 open Zelus
 open Graph
-
-module type READ =
-  sig
-    val read: eq -> S.t * S.t (* reads last and current variables *)
-    val def: eq -> S.t  (* defined variables *)
-    val init: eq -> bool (* [init x = e] must be scheduled before reads/writes *)
-    val nodep: eq -> bool (* [x = e] does not introduce any dependence for [x] *)
-  end
-
-module Make (Read:READ) =
-struct
-  let build eq_list =
-    (* associate a graph node for each name declaration *)
-    let rec nametograph g var_set n_to_graph_list =
-      let add n n_to_graph_list =
-	try
-	  let graph_list = Env.find n n_to_graph_list in
-	  Env.add n (g :: graph_list) (Env.remove n n_to_graph_list)
-	with
-	  Not_found -> Env.add n [g] n_to_graph_list in
-      S.fold add var_set n_to_graph_list in
-    
-    (* finds all the nodes associated to [n] *)
-    (* this is only necessary if [n] is written more than once *)
-    (* during a reaction. Otherwise, a single node is associated to [n] *)
-    let all n n_to_graph_list =
-      try
-	Env.find n n_to_graph_list
-      with
-	Not_found -> [] in
-    
-    (* first build the association table n_to_graph_list: *)
-    (* [n -> [node1,...,nodek]] for every defined variable *)
-    (* [eq_list] is the input list of equations *)
-    let init_graph (g_list, n_to_graph_list) eq =
-      let g = make eq in
-      let var_set = Read.def eq in
-      let n_to_graph_list = nametograph g var_set n_to_graph_list in
-      g :: g_list, n_to_graph_list in
-    
-    let make_graph g_list n_to_graph_list =
-      (* A node [g] that reads [n1,...,nk] must be scheduled after *)
-      (* all the nodes that compute the [ni] *)
-      (* when [is_last], reverse the dependence, i.e., [g] must be *)
-      (* scheduled before *)
-      let attach is_last n_to_graph_list g_node n =
-        let attach g_node g =
-          try
-	    if Read.nodep g.g_containt then ()
-	    else
-	      if (g == g_node) (* && is_last *) then ()
-	      else (* an equation [init x = e] must be done before *)
-		   (* [last x] and [x] are read *)
-		(* if Read.init g_node
-		then S.union (Read.def g_node) last_names else last_names in *)
-		if Read.init g.g_containt then add_depends g_node g
-		else if is_last
-		then add_depends g g_node else add_depends g_node g
-	  with | Not_found -> () in
-	let g_list = all n n_to_graph_list in
-        List.iter (attach g_node) g_list in
-      
-      let add_node g =
-	let g_node = containt g in
-	let last_names, names = Read.read g_node in
-        (* an equation [init x = e] must be done before *)
-	(* any equation [x = ...] *)
-	let last_names =
-	  if Read.init g_node
-	  then S.union (Read.def g_node) last_names else last_names in
-	(* reads of [x] after assignment to [x] *)
-	S.iter (attach false n_to_graph_list g) names;
-        (* reads of [last x] done before assignment to [x] *)
-	S.iter (attach true n_to_graph_list g) last_names in
-      
-      List.iter add_node g_list in
-    
-    (* build the association table *)
-    let g_list, n_to_graph_list =
-      List.fold_left init_graph ([], Env.empty) eq_list in
-    (* then the dependence graph *)
-    make_graph g_list n_to_graph_list;
-    g_list
-end
+   
+type 'a collection =
+  | And of 'a collection list (* parallel set of equations *)
+  | Before of 'a collection list (* sequentiel set of equations *)
+  | Leaf of 'a
 
 
+(** Read/writes of an equation. *)
+(* Control structures are treated as atomic blocks. Their set of write *)
+(* variables is removed the set of read variables *)
+let read ({ eq_write; eq_desc } as eq) =
+  let last_acc, acc =
+    Vars.fv_eq Ident.S.empty (Ident.S.empty, Ident.S.empty) eq in
+  match eq_desc with
+  | EQmatch(_, e, _) | EQreset(_, e) ->
+      let w = Deftypes.names Ident.S.empty eq_write in
+      let last_acc = Ident.S.diff last_acc w in
+      let acc = Ident.S.diff acc w in
+      Vars.fv Ident.S.empty (last_acc, acc) e
+  | _ -> last_acc, acc
+       
+let def { eq_write = { Deftypes.dv = dv; Deftypes.di = di } } =
+  (* derivatives are not taken into account *)
+  Ident.S.union dv di
+
+(** Initialization equations [init x = e] and reset [init x = e]... every ...] *)
+let rec init { eq_desc = desc } =
+  match desc with
+  | EQinit _ -> true
+  | EQreset(eq_list, _) -> List.for_all init eq_list
+  | _ -> false
+
+let nodep ({ eq_desc }) =
+  match eq_desc with
+  | EQeq(_, { e_desc = Eop(Eup, _) })
+  | EQder(_, _, None, []) -> true | _ -> false
+
+let index { eq_index = i } = i
+let unsafe = Unsafe.equation
+               
+(* associate a fresh index to every equation *)
+let rec fresh i eqs =
+  match eqs with
+  | Leaf(eq) -> Leaf { eq with eq_index = i }, i+1
+  | Before(eqs_list) ->
+      let eqs_list, i = Misc.map_fold fresh i eqs_list in
+      Before(eqs_list), i
+  | And(eqs_list) ->
+      let eqs_list, i = Misc.map_fold fresh i eqs_list in
+      And(eqs_list), i
+
+(* Given a collection of equations, computes the associations *)
+(* [xtable] associates the set of equation indexes [...x... = e] to [x] *)
+(* [itable] associates the set of equations indexes [init x = e] to [x] *)
+(* [eq_info_list] builds the list [index, eq, defs(eq), read(eq), last(eq)] *)
+let rec name_to_index (xtable, itable, eq_info_list) eqs =
+  match eqs with
+  | Leaf(eq) ->
+      let i = index eq in
+      let w = def eq in
+      let lv, v = read eq in
+      let eq_info_list = (i, eq, w, v, lv) :: eq_info_list in
+      if nodep eq then xtable, itable, eq_info_list
+      else
+        let update x t =
+          Ident.Env.update x
+            (function None -> Some (S.singleton i)
+                    | Some(set) -> Some(S.add i set)) t in
+        let xtable, itable =
+          Ident.S.fold
+            (fun x (xtable, itable) ->
+               if init eq then xtable, update x itable
+               else update x xtable, itable) w (xtable, itable) in
+        xtable, itable, eq_info_list
+  | Before(eq_list) | And(eq_list) ->
+      List.fold_left name_to_index (xtable, itable, eq_info_list) eq_list
+
+(* Build the dependence graph according to read/writes *)
+let make_read_write xtable itable eq_info_list =
+  (* find nodes according to a variable *)
+  let find x table = try Ident.Env.find x table with Not_found -> S.empty in
+  (* add dependences according to equation with index [n] *)
+  let rec make g (n, eq, w, v, lv) =
+    let g = Graph.add g n eq in
+    (* equation with index [n] must be scheduled *)
+    (* - after an equation [init x = e] where [x in w], excluding itself *)
+    let l =
+      S.remove n
+        (Ident.S.fold (fun x iw -> S.union (find x itable) iw) w S.empty) in
+    let g = Graph.add_before g l (S.singleton n) in
+    (* - after an equation [...x... = e] or [init x = e] where [x in v] *)
+    let l =
+      Ident.S.fold
+        (fun x iw -> S.union (find x xtable) (S.union (find x itable) iw))
+        v S.empty in
+    let g = Graph.add_before g l (S.singleton n) in
+    (* - before an equation [...x... = e] where [x in lv] excluding itself *)
+    let l =
+      S.remove n
+        (Ident.S.fold (fun x iw -> S.union (find x xtable) iw) lv S.empty) in
+     let g = Graph.add_before g (S.singleton n) l in
+    (* - after an equation [init x = e] where [x in lv] excluding itself *)
+    let l =
+      S.remove n
+        (Ident.S.fold (fun x iw -> S.union (find x itable) iw) lv S.empty) in
+    let g = Graph.add_before g l (S.singleton n) in
+    g in
+  List.fold_left make Graph.empty eq_info_list
+
+(* Add extra dependences due to unsafe operations *)
+let make_unsafes xtable itable g eqs =
+  let rec unsafes (g, uset) eqs =
+    match eqs with
+    | Leaf(eq) -> g, if unsafe eq then S.add (index eq) uset else uset
+    | And(eqs_list) ->
+        List.fold_left unsafes (g, uset) eqs_list
+    | Before(eqs_list) ->
+        let g, uset_of_eqs_list =
+          List.fold_left
+            (fun (g, uset) eqs ->
+             let g, uset_of_eqs = unsafes (g, S.empty) eqs in
+             Graph.add_before g uset uset_of_eqs,
+             if S.is_empty uset_of_eqs then uset
+             else uset_of_eqs) (g, S.empty) eqs_list in
+        g, S.union uset uset_of_eqs_list in
+  let g, _ = unsafes (g, S.empty) eqs in
+  g
+
+(* The main entry function. Build the dependence graph from a *)
+(* set of equations *)
+let make eqs =
+  let eqs, _ = fresh 0 eqs in
+  let xtable, itable, eq_info_list =
+    name_to_index (Ident.Env.empty, Ident.Env.empty, []) eqs in
+  let g = make_read_write xtable itable eq_info_list in
+  let g = make_unsafes xtable itable g eqs in
+  Graph.outputs g

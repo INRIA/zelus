@@ -3,146 +3,101 @@
 (*  The Zelus Hybrid Synchronous Language                                 *)
 (*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke    Marc Pouzet                                         *)
+(*  Marc Pouzet                                                           *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
 (*   This file is distributed under the terms of the CeCILL-C licence     *)
 (*                                                                        *)
 (**************************************************************************)
-(* graph manipulation *)
 
-(* a graph is a set of nodes and edges. [g_top] is the list of nodes with  *)
-(* no predecessors whereas [g_bot] is the list of nodes with no successors *)
+(* graph manipulations *)
+
+(* a node is a unique integer; precedence/successor is defined with it *)
+(* a association table associates a containt to an index *)
+type index = int
+
+module S = Set.Make(struct type t = int let compare = compare end)
+module E = Map.Make(struct type t = int let compare = compare end)
 
 type 'a graph =
-  { g_top: 'a node list;
-    g_bot: 'a node list }
+  { outputs: S.t ; (* the exits of a data-flow graph *)
+    succ: S.t E.t; (* the successor of a node *)
+    prec: S.t E.t; (* the predecessor of a node *)
+    containt: 'a E.t; (* the value associated to a node *)
+    nodes: S.t; (* the set of nodes *) }
+    
+type error = Cycle of index list
 
-and 'a node =
-  { g_containt: 'a;
-    g_tag: int;
-    mutable g_visited: bool;
-    mutable g_mark: int;
-    mutable g_depends_on: 'a node list;
-    mutable g_depends_by: 'a node list;
-  }
+exception Error of error
 
-exception Cycle of int (* returns the index of the node *)
+let empty = { outputs = S.empty; succ = E.empty; prec = E.empty;
+              containt = E.empty; nodes = S.empty }
 
-let tag = ref 0
-let new_tag () = incr tag; !tag
-let containt g = g.g_containt
-let linked g1 g2 =
-  (List.memq g2 g1.g_depends_on) || (List.memq g1 g2.g_depends_on)
-let make c =
-  { g_containt = c; g_tag = new_tag (); g_visited = false;
-    g_mark = - 1; g_depends_on = []; g_depends_by = [] }
+(* add a node to a graph *)
+let add ({ nodes; containt } as g) n v =
+  { g with nodes = S.add n nodes; containt = E.add n v containt }
 
-let union n_list1 n_list2 =
-  List.fold_left 
-    (fun acc node -> if List.memq node n_list1 then acc else node :: acc)
-    n_list1 n_list2
+(* given [n1 in set1] and [n2 in set2], add (n1, n2) to succ; (n2, n1) to prec *)
+let add_before ({ succ; prec } as g) set1 set2 =
+  let update set x rel =
+    E.update x
+      (function | None -> Some(set) | Some(set0) -> Some(S.union set0 set))
+      rel in
+  { g with succ = S.fold (update set2) set1 succ;
+           prec = S.fold (update set1) set2 prec }
 
-let add node n_list = if List.memq node n_list then n_list else node :: n_list
+(* [n1] is before [n2] *)
+let before { succ } n1 n2 = S.mem n2 (E.find n1 succ)
 
-(** Add a dependence. [add_depends node1 node2] makes [node1] also depend *)
-(** on [node2] *)
-let add_depends node1 node2 =
-  node1.g_depends_on <- add node2 node1.g_depends_on;
-  node2.g_depends_by <- add node1 node2.g_depends_by
+(* containt *)
+let containt { containt } n_list = List.map (fun n -> E.find n containt) n_list
 
-let graph top_list bot_list = { g_top = top_list; g_bot = bot_list }
-
-(* print a graph. *)
-let print { g_bot = bot_list } =
-  let rec print acc g =
-    if g.g_visited then acc
+(* computes outputs = nodes that have no successors *)
+let outputs ({ nodes; succ } as g) =
+  let outputs =
+    S.filter
+      (fun n -> try S.is_empty (E.find n succ) with Not_found -> true) nodes in
+  { g with outputs = outputs }
+        
+(** Well formation of a graph *)
+(* the graph must be a partial order, i.e., no cycle *)
+let check { outputs; succ; prec } =
+  (* check that a graph has no cycle; in case of error, return a path. *)
+  (* [grey] is the set of currently visited nodes; if the current *)
+  (* node is grey, then a path has been found *)
+  (* [black] is the set of nodes visited in the past *)
+  let rec cycle n (black, grey) =
+    if S.mem n grey then raise (Error(Cycle(S.elements grey)))
+    else if S.mem n black then black, grey
     else
-      begin
-        g.g_visited <- true;
-        let acc =
-          (containt g, g.g_mark, List.map containt g.g_depends_on) :: acc in
-        print_list acc g.g_depends_on
-      end
-  and print_list acc g_list = List.fold_left print acc g_list in
-  let acc = print_list [] bot_list in
-  let bot_list = List.map containt bot_list in
-  bot_list, acc
+      let black, grey =
+        S.fold cycle (E.find n prec) (black, S.add n grey) in
+      S.add n black, S.remove n grey in
+  ignore (S.fold cycle outputs (S.empty, S.empty))
 
-(** Topological sort *)
-let topological g_list =
-  let rec sortrec g_list seq =
-    match g_list with
-    | [] -> seq
-    | g :: g_list ->
-        if g.g_visited then sortrec g_list seq
-        else
-          begin
-            g.g_visited <- true;
-            let seq = sortrec g.g_depends_on seq in
-            sortrec g_list (g :: seq)
-          end in
-  let seq = sortrec g_list [] in
-  List.iter
-    (fun ({ g_visited = _ } as node) -> node.g_visited <- false) g_list;
+(** Topological sort. Must be applied to a well-formed graph *)
+let topological { outputs; prec; containt } =
+  let rec sortrec n (visited, seq) =
+    if S.mem n visited then visited, seq
+    else
+      let n_set = E.find n prec in
+      let visited, seq = S.fold sortrec n_set (visited, seq) in
+      S.add n visited, (E.find n containt) :: seq in      
+  let _, seq = S.fold sortrec outputs (S.empty, []) in
   List.rev seq
 
-(** Detection of cycles *)
-(* Mark nodes with: *)
-(*  - -1 initially, for unvisited nodes *)
-(*  - 0 for "opened" nodes, currently visited, while visiting its descendents*)
-(*  - 1 for "closed" nodes, visited once, no circuits found from it. *)
-(*  A circuit is found when a node marked with 0 is visited again.*)
-let cycle g_list =
-  (* store nodes in a stack *)
-  let s = Stack.create () in
-  (* flush the connected component *)
-  let rec flush index =
-    if Stack.is_empty s then []
-    else let v = Stack.pop s in
-    v.g_containt :: flush v.g_tag in
-
-  let rec visit g =
-    match g.g_mark with
-      | -1 ->
-          (* Unvisited yet *)
-          (* Open node *)
-          Stack.push g s;
-          g.g_mark <- 0;
-          (* Visit descendents *)
-          List.iter visit g.g_depends_on;
-          (* Close node *)
-          ignore (Stack.pop s);
-          g.g_mark <- 1
-      | 0 ->
-          (* Visit an opened node (visited and not close) : circuit *)
-          raise (Cycle g.g_tag)
-      | 1 | _ ->
-          (* Visit a closed node (no existing circuit) : pass *)
-          () in
-  try
-    List.iter visit g_list; None
-  with
-    | Cycle(index) -> Some(flush index)
-
-(** [accessible useful_nodes g_list] returns the list of
-    accessible nodes starting from useful_nodes and belonging to
-    g_list. *)
-let accessible useful_nodes g_list =
-  let rec follow g =
-    if not g.g_visited then
-      begin
-        g.g_visited <- true;
-        List.iter follow g.g_depends_on
-      end in
-  let read acc g =
-    if g.g_visited then begin g.g_visited <- false; g :: acc end else acc in
-  List.iter follow useful_nodes;
-  List.fold_left read [] g_list
-
-(** [exists_path nodes n1 n2] returns whether there is a path
-    from n1 to n2 in the graph. nodes is the list of all the nodes
-    in the graph. *)
-let exists_path nodes n1 n2 =
-  List.mem n2 (accessible [n1] nodes)
+(** Print *)
+let print p ff { nodes; prec; outputs; containt } =
+  let o_list = S.elements outputs in
+  let l =
+    S.fold
+      (fun n acc -> (n, E.find n containt, S.elements (E.find n prec)) :: acc)
+      nodes [] in
+  let one ff (n, v, n_list) =
+    Format.fprintf ff "%d: %a depends on %a"
+      n p v (Pp_tools.print_list_r Format.pp_print_int "" "," "") n_list in
+  Format.fprintf ff
+    "@[<0>@[<v2>dependences:@,%a@]@,@[<v2>outputs:@,%a@.@]"
+    (Pp_tools.print_list_l one "" "" "") l
+    (Pp_tools.print_list_r Format.pp_print_int "" "," "") o_list

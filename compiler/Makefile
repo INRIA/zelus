@@ -61,7 +61,6 @@ REWRITE = rewrite/markfunctions.cmo \
 	rewrite/cost.cmo \
 	rewrite/inline.cmo \
 	rewrite/reduce.cmo \
-	rewrite/dependences.cmo \
 	rewrite/write.cmo \
 	rewrite/unsafe.cmo \
 	rewrite/automata.cmo \
@@ -76,6 +75,7 @@ REWRITE = rewrite/markfunctions.cmo \
 	rewrite/aform.cmo \
 	rewrite/shared.cmo \
 	rewrite/control.cmo \
+	rewrite/dependences.cmo \
 	rewrite/cse.cmo \
 	rewrite/cut.cmo \
 	rewrite/zopt.cmo \

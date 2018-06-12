@@ -135,19 +135,3 @@ and fv_block_eq_list bounded acc b =
 					    
 let fve acc e =
   let acc_last, acc = fv S.empty (S.empty, acc) e in S.union acc_last acc
-
-(** The main entries *)
-let rec init { eq_desc = desc } =
-  match desc with
-  | EQinit _ -> true
-  | EQreset(eq_list, _) -> List.for_all init eq_list
-  | _ -> false
-
-let read eq = fv_eq S.empty (S.empty, S.empty) eq
-let def { eq_write = { Deftypes.dv = dv; Deftypes.di = di } } =
-  (* derivatives are not taken into account *)
-  S.union dv di
-let nodep ({ eq_desc }) =
-  match eq_desc with
-  | EQeq(_, { e_desc = Eop(Eup, _) })
-  | EQder(_, _, None, []) -> true | _ -> false
