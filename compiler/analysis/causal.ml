@@ -3,7 +3,7 @@
 (*  The Zelus Hybrid Synchronous Language                                 *)
 (*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke    Marc Pouzet                                         *)
+(*  Marc Pouzet Timothy Bourke                                            *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -61,7 +61,7 @@ let rec funtype_list tc_arg_list tc_res =
   | tc :: tc_arg_list ->
      funtype tc (funtype_list tc_arg_list tc_res)
 let atom c = Catom(c)
-
+  
 (* path compression *)
 let rec crepr c =
   match c.c_desc with
@@ -161,7 +161,10 @@ and less_c left_c right_c =
      right_c.c_inf <- add left_c right_c.c_inf;
      left_c.c_sup <- add right_c left_c.c_sup     
   | _ -> assert false
-                
+
+let intro_less_c right_c =
+  let left_c = new_var () in less_c left_c right_c; left_c
+  
 (* does it exist a strict path from [c1] to [c2]? *)
 let rec strict_path c1 c2 = List.exists (fun c1 -> path c1 c2) (sups c1) 
 and path c1 c2 = (equal c1 c2) || (strict_path c1 c2)
@@ -220,15 +223,31 @@ let rec skeleton ty =
 
 let rec skeleton_on_c c ty =
   match ty.t_desc with
-    | Tvar -> atom c
-    | Tproduct(ty_list) -> product (List.map (skeleton_on_c c) ty_list)
-    | Tfun(_, _, ty_arg, ty) ->
-       let c_left = new_var () in
-       less_c c_left c;
-       funtype (skeleton_on_c c_left ty_arg) (skeleton_on_c c ty)
-    | Tconstr(_, _, _) | Tvec _ -> atom c
-    | Tlink(ty) -> skeleton_on_c c ty
+  | Tvar -> atom c
+  | Tproduct(ty_list) -> product (List.map (skeleton_on_c c) ty_list)
+  | Tfun(_, _, ty_arg, ty) ->
+      let c_left = new_var () in
+      less_c c_left c;
+      funtype (skeleton_on_c c_left ty_arg) (skeleton_on_c c ty)
+  | Tconstr(_, _, _) | Tvec _ -> atom c
+  | Tlink(ty) -> skeleton_on_c c ty
 
+(* Returns a causality type that is structurally like [tc] but *)
+(* also depend on variables in [cset] *)
+let rec on_c is_right cset tc =
+  match tc with
+  | Cproduct(l) -> Cproduct(List.map (on_c is_right cset) l)
+  | Cfun(tc1, tc2) ->
+      Cfun(on_c (not is_right) cset tc1, on_c is_right cset tc2)
+  | Catom(left_c) ->
+      let right_c = new_var () in
+      let cset = S.add left_c cset in
+      if is_right then S.iter (fun c -> less_c c right_c) cset
+      else S.iter (fun c -> less_c right_c c) cset;
+      Catom(right_c)
+
+let on_c tc c = on_c true (S.singleton c) tc
+    
 (** Simplification of types *)
 (* Mark useful variables *)
 let rec mark right tc =
@@ -307,14 +326,17 @@ let simplify_by_io tc =
   (* moreover, variables are partitioned according to [io], i.e., *)
   (* [c1 eq c2 iff io(c1) = io(c2)] *)
   let set left_c right_c =
-    let c = crepr left_c in
-    match c.c_desc with
-    | Cvar -> c.c_desc <- Clink(right_c)
+    let left_c = crepr left_c in
+    match left_c.c_desc with
+    | Cvar ->
+        right_c.c_sup <- union left_c.c_sup right_c.c_sup;
+        right_c.c_inf <- union left_c.c_inf right_c.c_inf;
+        left_c.c_desc <- Clink(right_c)
     | _ -> () in
   let less left_c right_c =
-    let c = crepr left_c in
-    match c.c_desc with
-    | Cvar -> c.c_sup <- add right_c c.c_sup
+    let left_c = crepr left_c in
+    match left_c.c_desc with
+    | Cvar -> left_c.c_sup <- add right_c left_c.c_sup
     | _ ->  () in
 
   S.iter (fun c -> (crepr c).c_sup <- []) inputs_outputs;
@@ -417,30 +439,32 @@ and csimplify right c =
           c.c_useful <- false; c_sup
       | _ -> c
 
+let simplify is_right tc =
+  shorten tc;
+  let tc = simplify is_right tc in
+  mark is_right tc;
+  shorten tc;
+  tc
 
 (* Shrink a cycle by keeping only names in [cset] *)
 let shrink_cycle cset c_list =
   let shrink c = S.mem c cset in
   List.filter shrink c_list
-
   
 (** Computes the dependence relation from a list of causality variables *)
 (* variables in [already] are disgarded *)
-let relation cset =
+let relation (already, rel) cset =
   let rec relation (already, rel) c =
     let c = crepr c in
     if S.mem c already then already, rel
     else if c.c_sup = [] then already, rel
     else List.fold_left
-           relation (S.add c already, (c, set c.c_sup) :: rel) c.c_sup in
-  let _, rel = S.fold (fun c acc -> relation acc c) cset (S.empty, []) in
-  rel
+        relation (S.add c already, (c, set c.c_sup) :: rel) c.c_sup in
+  S.fold (fun c acc -> relation acc c) cset (already, [])
 
 (** Generalisation of a type *)
 (* the level of generalised type variables *)
-(* is set to [generic]. Returns [generic] when a sub-term *)
-(* can be generalised *)
-
+(* is set to [generic]. Returns [generic] when a sub-term can be generalised *)
 let list_of_vars = ref []
 
 let rec gen tc =
@@ -466,13 +490,6 @@ and cgen c =
   | Clink(link) -> cgen link
                         
 and gen_set l = List.fold_left (fun acc c -> max (cgen c) acc) generic l
-
-let simplify is_right tc =
-  shorten tc;
-  let tc = simplify is_right tc in
-  mark is_right tc;
-  shorten tc;
-  tc
     
 (** Main generalisation function *)
 let generalise tc =
@@ -481,10 +498,10 @@ let generalise tc =
   mark true tc;
   (* type simplification *)
   (* let tc = simplify true tc in *)
-  let tc = simplify_by_io tc in
+  let tc = if !Misc.no_simplify then tc else simplify_by_io tc in
   gen tc;
   let c_set = vars S.empty tc in
-  let rel = relation c_set in
+  let _, rel = relation (S.empty, []) c_set in
   { typ_vars = !list_of_vars; typ_rel = rel; typ = tc }
 
 (** Instantiation of a type *)
@@ -601,147 +618,35 @@ type tentry =
     t_last_typ: tc option; (* [last x] is allowed *)
   }
 
-(* Returns a causality type that is structurally like [tc] but *)
-(* depends on both [tc] and [cset] *)
-let rec sup_c_set cset tc =
-  match tc with
-    | Cproduct(l) -> Cproduct(List.map (sup_c_set cset) l)
-    | Cfun(tc1, tc2) -> Cfun(tc1, sup_c_set cset tc2)
-    | Catom(left_c) ->
-       let right_c = new_var () in
-       S.iter (fun c -> less_c c right_c) (S.add left_c cset);
-       Catom(right_c)
+(* simplifies a typing environment *)
+let simplify_by_io_env env expected_tc actual_tc =
+  let mark_env _ { t_typ = tc; t_last_typ = ltc_opt } =
+    mark false tc; Misc.optional_unit mark false ltc_opt in
+  let simplify_env { t_typ = tc; t_last_typ = ltc_opt } =
+    let tc = simplify_by_io tc in
+    let ltc_opt = Misc.optional_map simplify_by_io ltc_opt in
+    { t_typ = tc; t_last_typ = ltc_opt } in
+  Env.iter mark_env env;
+  mark true expected_tc;
+  mark true actual_tc;
+  let env = Env.map simplify_env env in
+  (* Computes the set of free variables and dependence relations *)
+  let cset =
+    Env.fold
+      (fun _ { t_typ = tc; t_last_typ = ltc_opt } acc ->
+         Misc.optional vars (vars acc tc) ltc_opt) env S.empty in
+  let cset = vars (vars cset expected_tc) actual_tc in
+  let already, rel = relation (S.empty, []) cset in
+  env, cset, rel, simplify_by_io expected_tc, simplify_by_io actual_tc
 
-let rec sup_on_c c tc = sup_c_set (S.singleton c) tc
-
-module Cenv =
-struct
-  type env =
-    | Empty (* [] *)
-    | On of env * Defcaus.t (* H on c *)
-    | Append of env * tentry Env.t (* [x1: tentry1;...; xn: tentryn] *)
-
-  let find x env =
-    let rec find path x env =
-      match env with
-      | Empty -> raise Not_found
-      | On(env, c) ->
-          let path, tentry = find path x env in
-          c :: path, tentry
-    | Append(env, env0) ->
-        try path, Env.find x env0 with | Not_found -> find path x env in
-    find [] x env
-
-  let last x env =
-    let _, tentry = find x env in
-    tentry
-
-  (* [before is_before path tc[c] = tc'] such that *)
-  (* path = [c1;...;cn] *)
-  (* if is_before then tc' = tc[c'] with c1,...,cn, c' < c *)
-  (*              else tc' = tc[c'] with c < c1,...,cn < c' *)
-  let rec before is_before path tc =
-    match tc with
-    | Catom(c) ->
-        let c' = new_var () in
-        if is_before then
-          (less_c c' c; List.iter (fun ci -> less_c ci c) path)
-        else
-          (less_c c c'; List.iter (fun ci -> less_c c ci; less_c ci c') path);
-        atom c'
-    | Cproduct(tc_list) -> product (List.map (before is_before path) tc_list)
-    | Cfun(tc1, tc2) ->
-        funtype tc1 (before is_before path tc2)
-          
-  let empty = Empty
-
-  let append env0 env =
-    if Env.is_empty env0 then env else Append(env, env0)
-
-  let on env c = On(env, c)
-
-  let push env = on env (new_var ())
-
-  let rec print pentry ff env =
-    match env with
-    | Empty -> ()
-    | On(env, c) ->
-        if !Misc.verbose
-        then
-          Format.fprintf ff "@[<hov 1>[%a] on %a@]"
-            (print pentry) env Pcaus.caus c
-        else
-          print pentry ff env
-    | Append(env, env0) ->
-        let l0 = Env.bindings env0 in
-        Format.fprintf ff "@[<hov 0>%a@,%a@]"
-          (print pentry) env
-          (Pp_tools.print_list_r pentry "" ";" "") l0          
-   
-let mark acc env =
-  let mark _ { t_typ = tc; t_last_typ = ltc_opt } acc =
-    mark false tc; Misc.optional_unit mark false ltc_opt;
-    Misc.optional vars (vars acc tc) ltc_opt in
-  let rec mark_env acc env =
-    match env with
-    | Empty -> acc
-    | On(env, c) -> mark_c false c; mark_env acc env
-    | Append(env, env0) -> mark_env (Env.fold mark env0 acc) env in
-  mark_env acc env
-    
-let shorten env =
-  let shorten _ { t_typ = tc; t_last_typ = ltc_opt } =
-    shorten tc; Misc.optional_unit (fun _ tc -> shorten tc) () ltc_opt in
-  let rec shorten_env env =
-    match env with
-    | Empty -> ()
-    | On(env, c) -> shorten_c c; shorten_env env
-    | Append(env, env0) ->
-        shorten_env env; Env.iter shorten env0 in
-  shorten_env env
-
-(* only keep entries in env whose causality names belong to [cset] *)
-let clean cset env =
-  let filter n ({ t_typ = tc; t_last_typ = ltc_opt } as tentry) acc =
-    let filter_tc = S.is_empty (S.inter cset (vars S.empty tc)) in
-    match ltc_opt with
-    | None -> if filter_tc then acc else Env.add n tentry acc
-    | Some(ltc) ->
-        let filter_ltc = S.is_empty (S.inter cset (vars S.empty ltc)) in
-        if filter_ltc then Env.add n { tentry with t_last_typ = None } acc
-        else Env.add n tentry acc in
-  let rec clean env =
-    match env with
-    | Empty -> Empty
-    | On(env, c) ->
-        let env = clean env in
-        if env = Empty then Empty else On(env, c)
-    | Append(env, env0) ->
-        let env = clean env in
-        let env0 = Env.fold filter env0 Env.empty in
-        if env = Empty && Env.is_empty env0 then Empty
-        else Append(env, env0) in
-  clean env
-
-let simplify env =
-  let entry { t_typ = tc; t_last_typ = ltc_opt } =
-    { t_typ = simplify false tc;
-      t_last_typ = Misc.optional_map (simplify false) ltc_opt } in
-  let rec simplify_env env =
-    match env with
-    | Empty -> Empty
-    | On(env, c) -> On(simplify_env env, c)
-    | Append(env, env0) ->
-        Append(simplify_env env, Env.map entry env0) in
-  simplify_env env
- end
-
-(* print the type environment. Only keep names in the dependence *)
-(* relation that are present either in [cset] or variables from *)
-(* the types in this environment *)
-let penv cset ff env =
-  (* Computes the dependence relation for a set of causality types *)
-  (* in a typing environment *)
+(* compute the dependence relations *)
+let prel ff rel =
+  match rel with
+  | [] -> ()
+  | _ -> Format.fprintf ff "@[<hov2>@ with@ @[%a@]@]" Pcaus.relation rel
+           
+(* compute the dependence relations *)
+let penv ff env =
   (* print every entry in the typing environment *)
   let pentry ff (n, { t_typ = tc; t_last_typ = ltc_opt }) =
     match ltc_opt with
@@ -749,16 +654,5 @@ let penv cset ff env =
     | Some(ltc) ->
         Format.fprintf ff "@[%a: %a | %a@]"
           Printer.source_name n Pcaus.ptype tc Pcaus.ptype ltc in
-  (* print the relation *)
-  let rel = relation cset in
-  match rel with
-  | [] -> Format.fprintf ff "@[<hov>%a@]" (Cenv.print pentry) env
-  | _ ->
-      Format.fprintf ff
-        "@[<hov>%a@ with@ @[%a@]@]" (Cenv.print pentry) env Pcaus.relation rel
-
-let ppenv ff env =
-  let set = Cenv.mark S.empty env in
-  let env = Cenv.simplify env in
-  penv set ff env    
-
+  let env = Env.bindings env in
+  Pp_tools.print_list_r pentry "{" ";" "}" ff env
