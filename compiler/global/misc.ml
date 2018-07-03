@@ -78,6 +78,7 @@ let no_causality = ref false
 let no_initialisation = ref false
 let no_opt = ref false
 let no_deadcode = ref false
+let no_simplify = ref false
 let lmm = ref false
 	      
 (* variable creation *)

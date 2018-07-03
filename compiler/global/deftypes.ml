@@ -3,7 +3,7 @@
 (*  The Zelus Hybrid Synchronous Language                                 *)
 (*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke    Marc Pouzet                                         *)
+(*  Marc Pouzet   Timothy Bourke                                          *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -116,8 +116,10 @@ let names acc { dv = dv; di = di; der = der; nv = nv; mv = mv } =
   let acc = Ident.S.union nv acc in
   Ident.S.union mv acc
 
-let dv acc { dv = dv } = Ident.S.union acc dv
-				       
+let cur_names acc { dv = dv; di = di } =
+  Ident.S.union (Ident.S.union acc di) dv
+
+
 (* empty set of defined names *)
 (** Making values *)
 let empty =

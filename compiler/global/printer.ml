@@ -196,7 +196,7 @@ let print_writes ff { dv = dv; di = di; der = der; nv = nv; mv = mv } =
 	    "@[<v 0>(* der = {@[%a@]} *)@ @]" (print_list_r name "" "," "") der;
   if nv <> [] then
     fprintf ff
-	    "@[<v 0>(* der = {@[%a@]} *)@ @]" (print_list_r name "" "," "") nv;
+	    "@[<v 0>(* next = {@[%a@]} *)@ @]" (print_list_r name "" "," "") nv;
   if mv <> [] then
     fprintf ff
 	    "@[<v 0>(* der = {@[%a@]} *)@ @]" (print_list_r name "" "," "") mv;

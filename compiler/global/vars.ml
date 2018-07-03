@@ -3,7 +3,7 @@
 (*  The Zelus Hybrid Synchronous Language                                 *)
 (*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke    Marc Pouzet                                         *)
+(*  Marc Pouzet       Timothy Bourke                                      *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -27,7 +27,8 @@ let rec fv_pat bounded acc p =
         if (S.mem x acc) || (S.mem x bounded) then acc else S.add x acc
     | Etuplepat(pat_list) -> List.fold_left (fv_pat bounded) acc pat_list
     | Erecordpat(label_pat_list) ->
-        List.fold_left (fun acc (_, p) -> fv_pat bounded acc p) acc label_pat_list
+        List.fold_left
+          (fun acc (_, p) -> fv_pat bounded acc p) acc label_pat_list
     | Ealiaspat(p, name) ->
         let acc = 
 	  if (S.mem name acc) || (S.mem name bounded)

@@ -59,8 +59,10 @@ struct
         (Pp_tools.print_list_r M.fprint "("","")") [id1; id2; id3] in
     fprint_t fprint_v ff s
 
+  (* let append env0 env = fold add env0 env *)
   let append env0 env =
-    fold (fun key v env -> add key v env) env0 env
+    fold (fun x v acc -> update x (function _ -> Some(v)) acc)
+      env0 env
 end
 
 module S = struct
