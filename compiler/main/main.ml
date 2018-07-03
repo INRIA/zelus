@@ -1,10 +1,9 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2017                                               *)
+(*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke                                                        *)
-(*  Marc Pouzet                                                           *)
+(*  Marc Pouzet  Timothy Bourke                                           *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -30,34 +29,36 @@ let compile file =
   else 
     raise (Arg.Bad ("don't know what to do with " ^ file))
 
-let doc_verbose = " Set verbose mode"
-and doc_version = " The version of the compiler"
-and doc_print_types = " Print types"
-and doc_print_causality_types = " Print causality types"
-and doc_print_initialization_types = " Print initialization types"
-and doc_include = "<dir> Add <dir> to the list of include directories"
-and doc_stdlib = "<dir> Directory for the standard library"
-and doc_locate_stdlib = " Locate standard libray"
-and doc_no_pervasives = " Do not load the pervasives module"
-and doc_typeonly = " Stop after typing"
-and doc_hybrid = " Select hybrid translation"
-and doc_simulation = "<node> Simulates the node <node> \
-                      and generates a file <node>.ml \n\t\t  \
-                      For hybrid programs, compile with:\n\t\t  \
-                bigarray.cma unix.cma -I +sundials sundials_cvode.cma zllib.cma"
-and doc_sampling = "<p> Sets the sampling period to p (float <= 1.0)"
-and doc_check = "<n> Check that the simulated node returns true for n steps"
-and doc_use_gtk = " Use lablgtk2 interface.\n\t\t  \
-                   Compile with: -I +lablgtk2 lablgtk.cma zllibgtk.cma"
-and doc_inlining_level = "<n> Level of inlining"
-and doc_dzero = " Turn on discrete zero-crossing detection"
-and doc_nocausality = " (undocumented)"
-and doc_no_opt = " (undocumented)"
-and doc_no_deadcode = " (undocumented)"
-and doc_noinitialisation = " (undocumented)"
-and doc_lmm = " Translate into Lustre--"
-and doc_red_name = " Static reduction for"
-and doc_all = " Compile all functions (including those with static parameters)"
+let doc_verbose = "\t Set verbose mode"
+and doc_version = "\t The version of the compiler"
+and doc_print_types = "\t Print types"
+and doc_print_causality_types = "\t Print causality types"
+and doc_print_initialization_types = "\t  Print initialization types"
+and doc_include = "<dir> \t Add <dir> to the list of include directories"
+and doc_stdlib = "<dir> \t Directory for the standard library"
+and doc_locate_stdlib = "\t  Locate standard libray"
+and doc_no_pervasives = "\t  Do not load the pervasives module"
+and doc_typeonly = "\t  Stop after typing"
+and doc_hybrid = "\t  Select hybrid translation"
+and doc_simulation =
+  "<node> \t Simulates the node <node> and generates a file <node>.ml \n\
+          \t           For hybrid programs, compile with:\n\
+          \t           bigarray.cma unix.cma -I +sundials sundials_cvode.cma zllib.cma"
+and doc_sampling = "<p> \t Sets the sampling period to p (float <= 1.0)"
+and doc_check = "<n> \t Check that the simulated node returns true for n steps"
+and doc_use_gtk = "\t Use lablgtk2 interface.\n\
+                   \t           Compile with: -I +lablgtk2 lablgtk.cma zllibgtk.cma"
+and doc_inlining_level = "<n> \t  Level of inlining"
+and doc_dzero = "\t  Turn on discrete zero-crossing detection"
+and doc_nocausality = "\t  (undocumented)"
+and doc_no_opt = "\t  (undocumented)"
+and doc_no_deadcode = "\t  (undocumented)"
+and doc_noinitialisation = "\t  (undocumented)"
+and doc_nosimplify = "\t  (undocumented)"
+and doc_lmm = "\t  Translate into Lustre--"
+and doc_red_name = "\t  Static reduction for"
+and doc_all =
+  "\t  Compile all functions (including those with static parameters)"
 let errmsg = "Options are:"
 
 let set_verbose () =
@@ -67,7 +68,7 @@ let set_verbose () =
 let main () =
   try
     Arg.parse (Arg.align
-      ([
+      [
         "-v", Arg.Unit set_verbose, doc_verbose;
         "-version", Arg.Unit show_version, doc_version;
         "-I", Arg.String add_include, doc_include;
@@ -89,10 +90,11 @@ let main () =
         "-nodeadcode", Arg.Set no_deadcode, doc_no_deadcode;
         "-noinit", Arg.Set no_initialisation, doc_noinitialisation;
         "-inline", Arg.Int set_inlining_level, doc_inlining_level;
-	"-lmm", Arg.Set lmm, doc_lmm;
+	"-nosimplify", Arg.Set no_simplify, doc_nosimplify;
+        "-lmm", Arg.Set lmm, doc_lmm;
 	"-all", Arg.Set all, doc_all;
         
-      ]))
+      ])
       compile
       errmsg;
     begin
