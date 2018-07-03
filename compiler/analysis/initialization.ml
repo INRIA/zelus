@@ -3,7 +3,7 @@
 (*  The Zelus Hybrid Synchronous Language                                 *)
 (*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke    Marc Pouzet                                         *)
+(*  Marc Pouzet  Timothy Bourke                                           *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -12,7 +12,8 @@
 (**************************************************************************)
 (* initialization check *)
 
-(* we do very simple check, following STTT'04.
+(* we do very simple check, following STTT'04, with a simple extension *)
+(* for constraining the left limit (last x) in continuous systems.
  *- E.g., [init x = e] and [pre(e)] are
  *- valid if [e] is initialized.
  *- when x is declared with [init x = e], then last x is
