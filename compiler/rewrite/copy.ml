@@ -3,8 +3,7 @@
 (*  The Zelus Hybrid Synchronous Language                                 *)
 (*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
-(*  Timothy Bourke                                                        *)
-(*  Marc Pouzet                                                           *)
+(*  Marc Pouzet   Timothy Bourke                                          *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -169,7 +168,7 @@ and equation ({ defs = defs } as renaming, eq_list)
        EQbefore(before_eq_list)
     | EQand _ | EQblock _ | EQautomaton _ | EQpresent _ 
     | EQemit _ | EQder _ | EQnext _ -> assert false in
-  { renaming with defs = Deftypes.dv defs w },
+  { renaming with defs = Deftypes.cur_names defs w },
   { eq with eq_desc = desc } :: eq_list
 
 and equation_list renaming eq_list =
