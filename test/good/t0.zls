@@ -1,10 +1,61 @@
-let node r x = x, y where
-  rec reset
-        x = true
-      and y = 0 -> pre y + 2
-      every last x
-      and init x = true
-    
+let node f (i,r) = (m) where
+  rec init m = 0
+  and automaton
+      | A -> do until true then B
+      | B ->
+          do until i then
+            do m = last m + 1 in B
+      end
+
+(* let node f(x,x') = z where
+  rec init z = 0 and init y = 0
+  and match x with
+      | true ->
+	  let r = last z + x' in do z = 1 + y and y = last y done
+      | false -> do y = z + 1 and z = last z done
+      end
+
+let node g(x,y) = z where
+  rec init z = 0 and init y = 0
+  and present
+      | (0 fby z = 0) -> do z = 1 + y done
+      | x -> do y = z + 1 done
+      end
+
+let hybrid h(x,y) = z where
+  rec init z = 0.0
+  and present x -> do z = 1.0 done
+      else do der z = last z +. 1.0 done
+
+let node auto(x) = z where
+   rec automaton
+       | S -> do z = last z + 1 until (z = x) then S2
+       | S2 -> do z = 1 done
+       end 
+*)
+(*
+let node f (x,y,w) = r where
+  rec automaton
+      | S -> let m = x in
+	     do r = 1 until (r = 0) then S
+      end
+
+let node g (x,y,w) = r where
+  rec init w = 0
+  and automaton
+      | S -> let m = x + w in
+	     do r = 1 until (r = 0) then do w = y + 1 in S2(w+x)
+      | S2(k) -> do r = k done
+      end
+       *)
+      
+(* let node h (x, y) = o1, o2 where
+  rec
+    match x with
+    | true -> do o1 = y and o2 = o1 done
+    | false -> do o1 = o2 and o2 = 1 done
+    end *)
+
 (*
 let node r x =
   let rec y = x + 1 and o = last y + 1 in
