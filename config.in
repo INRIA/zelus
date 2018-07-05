@@ -116,6 +116,7 @@ install_printer Causal.fprint_tt
 install_printer Causal.penv
 install_printer Causal.prel
 install_printer Pinit.init
+install_printer Init.penv
 install_printer Deadcode.print
 install_printer Translate.fprint
 
