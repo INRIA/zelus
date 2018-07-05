@@ -33,6 +33,7 @@ type error =
   | Iless_than of ty * ty (* not (expected_ty < actual_ty) *) 
   | Iless_than_i of t * t (* not (expected_i < actual_i) *) 
   | Ilast of Ident.t (* [last x] is un-initialized *)
+  | Ivar of Ident.t (* [x] is un-initialized *)
 
 exception Error of location * error
 
@@ -59,6 +60,12 @@ let message loc kind =
            may not be well initialized.@."
           output_location loc
           (Ident.source n)
+    | Ivar(n) ->
+        Format.eprintf
+          "%aInitialization error: the value of %s \
+           may not be well initialized.@."
+          output_location loc
+          (Ident.source n)
   end;
   raise Misc.Error
 
@@ -73,6 +80,12 @@ let less_for_last loc n actual_i expected_i =
     Init.less_i actual_i expected_i
   with
     | Init.Clash _ -> error loc (Ilast(n))
+
+let less_for_var loc n actual_ty expected_ty =
+  try
+    Init.less actual_ty expected_ty
+  with
+    | Init.Clash _ -> error loc (Ivar(n))
 
 (** Build an environment from a typing environment *)
 (* if [x] is defined by [init x = e] then
@@ -156,6 +169,14 @@ let split se_opt s_h_list =
     | Some(se) -> splitrec (state se) s_h_list
 
 let print x = Misc.internal_error "unbound" Printer.name x
+
+(** Check that partially defined names have a last value which is initialized *)
+let initialized loc env shared =
+  (* check that shared variable are initialialized *)
+  let check n =
+    let { t_typ = ti } = try Env.find n env with Not_found -> assert false in
+    less_for_var loc n ti (Init.fresh_on_i izero ti) in
+  Ident.S.iter check shared
 
 (** Patterns *)
 (* [pattern env p expected_ty] means that the type of [p] must be less *)
@@ -406,17 +427,24 @@ and equation is_continuous env
       let env =
         if is_weak then add_last_to_env is_continuous env last_names else env in
       List.iter (handler shared env) remaining_s_h_list;
+      (* every defined variable must be initialized *)
+      initialized loc env shared;
+      (* finaly check the initialisation *)
       ignore (Misc.optional_map (state env) se_opt)
   | EQmatch(total, e, m_h_list) ->
       exp_less_than_on_i is_continuous env e izero;
       let shared = Deftypes.cur_names Ident.S.empty defnames in
       match_handler_block_eq_list is_continuous shared env defnames m_h_list;
+      (* every defined variable must be initialized *)
+      initialized loc env shared
   | EQpresent(p_h_list, b_opt) ->
       let shared = Deftypes.cur_names Ident.S.empty defnames in
       ignore
         (Misc.optional_map
            (fun b -> ignore (block_eq_list shared is_continuous env b)) b_opt);
       present_handler_block_eq_list is_continuous shared env defnames p_h_list;
+      (* every defined variable must be initialized *)
+      initialized loc env shared
   | EQreset(eq_list, e) -> 
       exp_less_than_on_i is_continuous env e izero;
       equation_list is_continuous env eq_list
