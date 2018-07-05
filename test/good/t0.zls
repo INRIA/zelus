@@ -1,8 +1,8 @@
 let hybrid f(x) = o1, r where
-  rec match true with
+  rec init r = 0
+  and match true with
       | true -> do o1 = last r done | false -> do o1 = 2 done 
       end
-  and r = 1
       
       
 (* let node f(x,x') = z where
