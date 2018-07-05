@@ -406,7 +406,7 @@ and equation env c_free { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
         | Estate0 _ -> ()
         | Estate1(_, e_list) ->
             List.iter (fun e -> exp_less_than_on_c env c_free e c_e) e_list in
-      (* Compute the set of names defined names by a state *)
+      (* Compute the set of names defined by a state *)
       let cur_names_in_state b trans =
         let block acc { b_write = w } = Deftypes.cur_names acc w in
         let escape acc { e_block = b_opt } = Misc.optional block acc b_opt in
