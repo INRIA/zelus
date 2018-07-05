@@ -405,8 +405,12 @@ and equation env c_free { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
         match desc with
         | Estate0 _ -> ()
         | Estate1(_, e_list) ->
-            List.iter
-              (fun e -> exp_less_than_on_c env c_free e c_e) e_list in
+            List.iter (fun e -> exp_less_than_on_c env c_free e c_e) e_list in
+      (* Compute the set of names defined names by a state *)
+      let cur_names_in_state b trans =
+        let block acc { b_write = w } = Deftypes.cur_names acc w in
+        let escape acc { e_block = b_opt } = Misc.optional block acc b_opt in
+        block (List.fold_left escape Ident.S.empty trans) b in
       (* Typing of handlers *)
       (* scheduling is done this way: *)
       (* - Automata with strong preemption: *)
@@ -415,32 +419,37 @@ and equation env c_free { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
       (* - Automata with weak preemption: *)
       (*   1. compute the body; 2. compute the next active state. *)
       (* the causality constraints must reproduce this scheduling *)
-      let handler env shared c_free c_scpat
+      let escape shared env c_free c_spat
+          { e_cond = sc; e_block = b_opt; e_next_state = ns; e_env = e_env } =
+        let env = build_env e_env env in
+        let actual_c = scondpat env c_free sc in
+        less_than_c sc.loc env actual_c c_spat;
+        let env =
+          Misc.optional
+            (fun env b -> block_eq_list shared env c_free b) env b_opt in
+        state env c_free c_spat ns in
+      let weak shared env c_free c_scpat
           { s_body = b; s_trans = trans; s_env = s_env } =
-        let escape env c_free c_spat
-            { e_cond = sc; e_block = b_opt; e_next_state = ns; e_env = e_env } =
-          let env = build_env e_env env in
-          let actual_c = scondpat env c_free sc in
-          less_than_c sc.loc env actual_c c_spat;
-          let env =
-            Misc.optional
-              (fun env b -> block_eq_list shared env c_free b) env b_opt in
-          state env c_free c_spat ns in
-        if is_weak then
-          let env = build_env s_env env in
-          let env = block_eq_list shared env c_free b in
-          List.iter (escape env c_free c_scpat) trans
-        else
-          let env = build_env s_env env in
-          List.iter (escape env c_free c_scpat) trans;
-          ignore(block_eq_list shared env c_free b) in
+        (* remove from [shared] names defined in the current state *)
+        let shared = Ident.S.diff shared (cur_names_in_state b trans) in
+        let env = build_env s_env env in
+        let env = block_eq_list shared env c_free b in
+        List.iter (escape shared env c_free c_scpat) trans in
+      let strong shared env c_free c_scpat
+          { s_body = b; s_trans = trans; s_env = s_env } =
+        (* remove from [shared] names defined in the current state *)
+        let shared = Ident.S.diff shared (cur_names_in_state b trans) in
+        let env = build_env s_env env in
+        List.iter (escape shared env c_free c_scpat) trans;
+        ignore (block_eq_list shared env c_free b) in
       let c_body = Causal.intro_less_c c_free in
       Misc.optional_unit (state env c_free) c_body se_opt;
-      (* The automaton is considered to be executed atomically *)
+      (* Every branch of the automaton is considered to be executed atomically *)
       let shared, env = def_env_on_c defnames env c_body in
       (* the causality tag for the transition conditions *)
       let c_scpat = Causal.intro_less_c c_body in
-      List.iter (handler env shared c_body c_scpat) s_h_list      
+      if is_weak then List.iter (weak shared env c_free c_scpat) s_h_list
+      else List.iter (strong shared env c_free c_scpat) s_h_list
   | EQmatch(_, e, m_h_list) ->
       let c_body = Causal.intro_less_c c_free in
       let c_e = Causal.intro_less_c c_body in
