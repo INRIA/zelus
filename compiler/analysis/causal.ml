@@ -645,7 +645,7 @@ let prel ff rel =
   | [] -> ()
   | _ -> Format.fprintf ff "@[<hov2>@ with@ @[%a@]@]" Pcaus.relation rel
            
-(* compute the dependence relations *)
+(* prints the typing environment *)
 let penv ff env =
   (* print every entry in the typing environment *)
   let pentry ff (n, { t_typ = tc; t_last_typ = ltc_opt }) =

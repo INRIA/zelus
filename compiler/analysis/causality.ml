@@ -572,8 +572,7 @@ and match_handler_block_eq_list env shared c_body c_e m_h_list =
 (* completed with a default value. This is achieved by considering that *)
 (* the causality of [x] is that of [last x] *)
 and block_eq_list shared env c_free
-    { b_locals = l_list; b_body = eq_list;
-      b_env = b_env; b_loc = loc; b_write = defnames } =
+    { b_locals = l_list; b_body = eq_list; b_env = b_env; b_write = defnames } =
   (* shared variables depend on their last causality *)
   let env = last_env shared defnames env in
   (* typing local definitions *)
