@@ -1,11 +1,10 @@
-let node g x = y where
-   rec automaton
-       | A -> do y = x
-              unless (last y <= 0) then B
-       | B -> do y = 0
-              unless (last y = 0) then A
-       end
-
+let hybrid f(x) = o1, r where
+  rec match true with
+      | true -> do o1 = last r done | false -> do o1 = 2 done 
+      end
+  and r = 1
+      
+      
 (* let node f(x,x') = z where
   rec init z = 0 and init y = 0
   and match x with
