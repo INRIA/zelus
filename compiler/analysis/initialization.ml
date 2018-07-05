@@ -74,12 +74,6 @@ let less_for_last loc n actual_i expected_i =
   with
     | Init.Clash _ -> error loc (Ilast(n))
 
-(** An entry in the type environment *)
-type tentry =
-    { t_typ: Definit.ty; (* the init type [ty] of x *)
-      t_last: Definit.t; (* v in [0, 1/2, 1] so that last x: ty[v] *)
-    }
-    
 (** Build an environment from a typing environment *)
 (* if [x] is defined by [init x = e] then
  *- [x] is initialized; [last x: 0] if [x] declared in a discrete
@@ -92,7 +86,7 @@ let build_env is_continuous l_env env =
         (* no initialization and [next x = ...]. [t_last] is useless. *)
         { t_last = ione; t_typ = Init.skeleton_on_i ione ty }
     | Deftypes.Smem { Deftypes.m_init = Some _ } ->
-        (* [x] and [last x] or or [x] and [next x] *)
+        (* [x] and [last x] or [x] and [next x] *)
         (* are well initialized *)
         let lv, iv =
           if is_continuous then Init.new_var (), izero else izero, izero in
@@ -114,22 +108,32 @@ let half env =
   let half { t_last = lv; t_typ = ty } =
     { t_last = Init.half_i true lv; t_typ = Init.halftype true ty } in
   Env.map half env
-  
-(* copy an environment where any name from [dv] does not have any *)
-(* constraint on its last value. This is useful in two cases:
- *- when typing all the branches of a control structures; a variable [x]
- *- defined in one branch but not in an other one is such that [x = last x]
- *- in this branch, and thus, [last x: t] with no constraint on t.
- *- when typing an automaton. Every variable defined in the initial state 
- *- has a well initialized last value in the remaining states, provided all
- *- transitions in the initial state are weak. *)
-let add_last_to_env env { dv = dv } =
-  let add n env =
-    let { t_typ = typ } = Env.find n env in
-    Env.add n { t_typ = typ; t_last = Init.new_var () } env in
-  Ident.S.fold add dv env
-
     
+(** Build an environment from [env] by replacing the initialization *)
+(* type of [x] by the initialization of its last value for all *)
+(* [x in [shared\defnames] *)
+(* this is because an absent definition for [x] in the current branch *)
+(* is interpreted as if there were an equation [x = last x] *)
+(* or [x = default_x] if [x] is declared with a default value *)
+let last_env shared defnames env =
+  let add n acc =
+    let { t_typ = typ; t_last = i } = Env.find n env in
+    Env.add n { t_typ = Init.fresh_on_i izero typ; t_last = Init.new_var () } acc in
+  let names = Deftypes.cur_names Ident.S.empty defnames in
+  let env_defnames =
+    Ident.S.fold add (Ident.S.diff shared names) Env.empty in
+  Env.append env_defnames env
+
+(* Names from the set [last_names] are considered to be initialized *)
+let add_last_to_env is_continuous env last_names =
+  let add n acc =
+    let { t_typ = typ } = Env.find n env in
+    let lv = if is_continuous then Init.new_var () else izero in
+    Env.add n { t_typ = Init.fresh_on_i izero typ; t_last = lv } acc in
+  let env_last_names =
+    Ident.S.fold add last_names Env.empty in
+  Env.append env_last_names env
+            
 (* find the initial handler from an automaton. Returns it with its complement *)
 let split se_opt s_h_list =
   let statepat { desc = desc } =
@@ -152,23 +156,6 @@ let split se_opt s_h_list =
     | Some(se) -> splitrec (state se) s_h_list
 
 let print x = Misc.internal_error "unbound" Printer.name x
-
-
-(** Check that partially defined names have a last value which is initialized *)
-let initialized_last loc env defnames_list =
-  (* computes the set of names which are partially defined *)
-  let
-      (_, dv_partial), (_, di_partial), _, (_, nv_partial), (_, mv_partial) =
-    Total.merge_defnames_list defnames_list in
-  (* check that all of them have a well-initialized initial value *)
-  let check n =
-    let { t_last = last } = try Env.find n env with Not_found -> assert false in
-    less_for_last loc n last izero in
-  Ident.S.iter check dv_partial;
-  Ident.S.iter check di_partial;
-  Ident.S.iter check nv_partial;
-  Ident.S.iter check mv_partial
-  
 
 (** Patterns *)
 (* [pattern env p expected_ty] means that the type of [p] must be less *)
@@ -207,20 +194,11 @@ let rec pattern is_continuous env
         less_than loc expected_ty ty_n;
         if is_continuous then less_for_last loc n ihalf last
 
-(** Blocks *)
-let block is_continuous
-    locals body env { b_locals = l_list; b_body = bo; b_env = b_env } =
-  (* First extend the typing environment *)
-  let env = build_env is_continuous b_env env in
-  let env = locals is_continuous env l_list in
-  body is_continuous env bo;
-  env
-
 (** Match handler *)
 let match_handlers is_continuous body env m_h_list =
   let handler { m_env = m_env; m_body = b } =
     let env = build_env is_continuous m_env env in
-    body is_continuous env b in
+    ignore (body is_continuous env b) in
   List.iter handler m_h_list
 
 (** Present handler *)
@@ -229,7 +207,7 @@ let present_handlers is_continuous scondpat body env p_h_list =
     let env = build_env is_continuous p_env env in
     scondpat is_continuous env scpat;
     let env = if is_continuous then half env else env in
-    body false env b in
+    ignore (body false env b) in
   List.iter handler p_h_list
 
 (** Initialization of an expression *)
@@ -272,7 +250,7 @@ let rec exp is_continuous env { e_desc = desc; e_typ = ty } =
      let env = local is_continuous env l in
      exp is_continuous env e_let
   | Eblock(b, e_block) ->
-     let env = block_eq_list is_continuous env b in
+     let env = block_eq_list Ident.S.empty is_continuous env b in
      exp is_continuous env e_block
   | Eseq(e1, e2) -> 
      ignore (exp is_continuous env e1);
@@ -393,60 +371,52 @@ and equation is_continuous env
         | Estate1(_, e_list) -> 
             List.iter
               (fun e -> exp_less_than_on_i false env e izero) e_list in
+      (* Compute the set of names defined by a state *)
+      let cur_names_in_state b trans =
+        let block acc { b_write = w } = Deftypes.cur_names acc w in
+        let escape acc { e_block = b_opt } = Misc.optional block acc b_opt in
+        block (List.fold_left escape Ident.S.empty trans) b in
+      (* transitions *)
+      let escape shared env
+          { e_cond = sc; e_block = b_opt; e_next_state = ns; e_env = e_env } =
+        let env = build_env is_continuous e_env env in
+        scondpat is_continuous env sc;
+        let env = 
+          match b_opt with
+          | None -> env | Some(b) -> block_eq_list shared false env b in
+        state env ns in
       (* handler *)
-      let handler env { s_body = b; s_trans = trans; s_env = s_env } =
-        let escape env
-            { e_cond = sc; e_block = b_opt; e_next_state = ns;
-              e_env = e_env } =
-          let env = build_env is_continuous e_env env in
-          scondpat is_continuous env sc;
-          let env = 
-            match b_opt with
-            | None -> env | Some(b) -> block_eq_list false env b in
-          state env ns in
-        let env = add_last_to_env env defnames in
+      let handler shared env { s_body = b; s_trans = trans; s_env = s_env } =
+        (* remove from [shared] names defined in the current state *)
+        let shared = Ident.S.diff shared (cur_names_in_state b trans) in
         let env = build_env is_continuous s_env env in
-        let env = block_eq_list is_continuous env b in
-        List.iter (escape env) trans in
+        let env = block_eq_list shared is_continuous env b in
+        List.iter (escape shared env) trans in
+      (* compute the set of shared names *)
+      let shared = Deftypes.cur_names Ident.S.empty defnames in
       (* do a special treatment for the initial state *)
       let first_s_h, remaining_s_h_list = split se_opt s_h_list in
       (* first type the initial branch *)
-      handler env first_s_h;
+      handler shared env first_s_h;
       (* if the initial state has only weak transition then all *)
       (* variables from [defined_names] do have a last value *)
-      let defnames_initial_state = first_s_h.s_body.b_write in
+      (* in this version of the language, weak and strong cannot be mixed *)
+      let last_names =
+        Deftypes.cur_names Ident.S.empty first_s_h.s_body.b_write in
       let env =
-        if is_weak then add_last_to_env env defnames_initial_state else env in
-      List.iter (handler env) remaining_s_h_list;
-      (* every partially defined value must have an initialized value *)
-      let defnames_list =
-        List.map (fun { s_body = { b_write = w } } -> w) remaining_s_h_list in
-      initialized_last loc env (defnames_initial_state :: defnames_list);
-      (* finaly check the initialisation *)
+        if is_weak then add_last_to_env is_continuous env last_names else env in
+      List.iter (handler shared env) remaining_s_h_list;
       ignore (Misc.optional_map (state env) se_opt)
   | EQmatch(total, e, m_h_list) ->
       exp_less_than_on_i is_continuous env e izero;
-      match_handler_block_eq_list is_continuous env defnames m_h_list;
-      (* every partially defined value must have an initialized value *)
-      let defnames_list =
-        List.map (fun { m_body = { b_write = w } } -> w) m_h_list in
-      let defnames_list = 
-        if !total then defnames_list else Deftypes.empty :: defnames_list in
-      initialized_last loc env defnames_list
+      let shared = Deftypes.cur_names Ident.S.empty defnames in
+      match_handler_block_eq_list is_continuous shared env defnames m_h_list;
   | EQpresent(p_h_list, b_opt) ->
-      let _ =
-        Misc.optional_map
-          (fun b ->
-             let env = add_last_to_env env defnames in
-             ignore (block_eq_list is_continuous env b)) b_opt in
-      present_handler_block_eq_list is_continuous env defnames p_h_list;
-      (* every partially defined value must have an initialized value *)
-      let defnames =
-        match b_opt with
-        | None -> Deftypes.empty | Some { b_write = w } -> w in
-      let defnames_list =
-        List.map (fun { p_body = { b_write = w } } -> w) p_h_list in
-      initialized_last loc env (defnames :: defnames_list)       
+      let shared = Deftypes.cur_names Ident.S.empty defnames in
+      ignore
+        (Misc.optional_map
+           (fun b -> ignore (block_eq_list shared is_continuous env b)) b_opt);
+      present_handler_block_eq_list is_continuous shared env defnames p_h_list;
   | EQreset(eq_list, e) -> 
       exp_less_than_on_i is_continuous env e izero;
       equation_list is_continuous env eq_list
@@ -461,7 +431,7 @@ and equation is_continuous env
         (Misc.optional_map
            (fun e -> exp_less_than_on_i is_continuous env e izero) e_opt)
   | EQblock(b_eq_list) ->
-      ignore (block_eq_list is_continuous env b_eq_list)
+      ignore (block_eq_list Ident.S.empty is_continuous env b_eq_list)
   | EQforall { for_index = i_list; for_init = init_list; for_body = b_eq_list;
                for_in_env = i_env; for_out_env = o_env } ->
       (* typing the declaration of indexes *)
@@ -492,7 +462,7 @@ and equation is_continuous env
       let env = build_env is_continuous i_env env in
       let env = build_env is_continuous o_env env in
       let env = Env.append init_env env in
-      ignore (block_eq_list is_continuous env b_eq_list)
+      ignore (block_eq_list Ident.S.empty is_continuous env b_eq_list)
         
 (* typing rule for a present statement where the body is an expression
  *- if [is_continuous = true] this means that every handler [ze -> body]
@@ -505,29 +475,28 @@ and present_handler_exp_list is_continuous env p_h_list ty =
     env p_h_list
 
 (* typing of a block of equations *)
-and present_handler_block_eq_list is_continuous env defnames p_h_list =
+and present_handler_block_eq_list is_continuous shared env defnames p_h_list =
   present_handlers is_continuous scondpat 
-    (fun is_continuous env b ->
-       let env = add_last_to_env env defnames in
-       ignore (block_eq_list is_continuous env b))
-    env p_h_list
+    (block_eq_list shared) env p_h_list
 
-and match_handler_block_eq_list is_continuous env defnames m_h_list =
-  match_handlers is_continuous 
-    (fun is_continuous env b ->
-       let env = add_last_to_env env defnames in
-       ignore (block_eq_list is_continuous env b))
-    env m_h_list
+and match_handler_block_eq_list is_continuous shared env defnames m_h_list =
+  match_handlers is_continuous
+    (block_eq_list shared) env m_h_list
 
 and match_handler_exp_list is_continuous env m_h_list ty =
   match_handlers is_continuous 
     (fun is_continuous env e -> exp_less_than is_continuous env e ty)
     env m_h_list
 
-and block_eq_list is_continuous env b =
-  let locals is_continuous env l_list =
-    List.fold_left (local is_continuous) env l_list in
-  block is_continuous locals equation_list env b
+and block_eq_list shared is_continuous env
+    { b_locals = l_list; b_body = eq_list; b_env = b_env; b_write = defnames } =
+  (* shared variables depend on their last causality *)
+  let env = last_env shared defnames env in
+  let env = List.fold_left (local is_continuous) env l_list in
+  let env = build_env is_continuous b_env env in
+  equation_list is_continuous env eq_list;
+  env
+
 
 and local is_continuous env { l_eq = eq_list; l_loc = loc; l_env = l_env } =
   (* First extend the typing environment *)

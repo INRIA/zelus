@@ -511,3 +511,18 @@ let filter_product ty =
   match ty with
   | Iproduct(ty_list) -> ty_list
   | _ -> assert false
+
+(** An entry in the type environment *)
+type tentry =
+    { t_typ: Definit.ty; (* the init type [ty] of x *)
+      t_last: Definit.t; (* v in [0, 1/2, 1] so that last x: ty[v] *)
+    }
+    
+(* prints the typing environment *)
+let penv ff env =
+  (* print every entry in the typing environment *)
+  let pentry ff (n, { t_typ = ti; t_last = i }) =
+    Format.fprintf ff "@[%a: %a | %a@]"
+      Printer.source_name n Pinit.ptype ti Pinit.init i in
+  let env = Ident.Env.bindings env in
+  Pp_tools.print_list_r pentry "{" ";" "}" ff env
