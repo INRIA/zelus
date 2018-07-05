@@ -1,11 +1,10 @@
-let node f (i,r) = (m) where
-  rec init m = 0
-  and automaton
-      | A -> do until true then B
-      | B ->
-          do until i then
-            do m = last m + 1 in B
-      end
+let node g x = y where
+   rec automaton
+       | A -> do y = x
+              unless (last y <= 0) then B
+       | B -> do y = 0
+              unless (last y = 0) then A
+       end
 
 (* let node f(x,x') = z where
   rec init z = 0 and init y = 0
