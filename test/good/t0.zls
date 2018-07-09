@@ -1,8 +1,9 @@
-let hybrid f(x) = o1, r where
-  rec init r = 0
-  and match true with
-      | true -> do o1 = last r done | false -> do o1 = 2 done 
-      end
+let node edge(x) = o1+o2 where
+  rec match x with
+      | true,false -> local m do m = 0 fby m + 1 and o1 = 1 + m done
+      | false,false -> do o2 = 3 done
+  and init o1 = 42
+  and init o2 = 43
       
       
 (* let node f(x,x') = z where
