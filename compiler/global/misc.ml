@@ -3,7 +3,7 @@
 (*  The Zelus Hybrid Synchronous Language                                 *)
 (*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke    Marc Pouzet                                         *)
+(*  Marc Pouzet    Timothy Bourke                                         *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -19,6 +19,11 @@ let date = DATE
 
 let header_in_file =
   "The " ^ version ^ " compiler, version " ^ subversion ^ "\n\  (" ^ date ^ ")"
+
+(* generic data-structres for sets and symbol tables *)
+module S = Set.Make (struct type t = string let compare = compare end)
+module Env = Map.Make (struct type t = string let compare = compare end)
+
 
 (* standard module *)
 let pervasives_module = "Pervasives"
@@ -63,7 +68,8 @@ let set_sampling_period p = sampling_period := p
 (* level of inlining *)
 let inlining_level = ref 10
 let set_inlining_level l = inlining_level := l
-
+let inline_all = ref false
+    
 (* turn on the discrete zero-crossing detection *)
 let dzero = ref false
 
@@ -79,7 +85,10 @@ let no_initialisation = ref false
 let no_opt = ref false
 let no_deadcode = ref false
 let no_simplify = ref false
-let lmm = ref false
+
+let lmm_nodes = ref S.empty
+let set_lmm_nodes (n: string) =
+  lmm_nodes := S.add n !lmm_nodes
 	      
 (* variable creation *)
 (* generating names *)
@@ -226,7 +235,22 @@ module State =
       | Empty -> ()
       | Cons(x, l) -> (f x; iter f l)
       | Par(l1, l2) | Seq(l1, l2) -> (iter f l1; iter f l2)
-      
+
+    let rec partition f s =
+      match s with
+      | Empty -> Empty, Empty
+      | Cons(x, l) ->
+         let left, right = partition f l in
+         if f x then Cons(x, left), right else left, Cons(x, right)
+      | Par(l1, l2) ->
+         let left1, right1 = partition f l1 in
+         let left2, right2 = partition f l2 in
+         Par(left1, left2), Par(right1, right2)
+      | Seq(l1, l2) ->
+         let left1, right1 = partition f l1 in
+         let left2, right2 = partition f l2 in
+         Seq(left1, left2), Seq(right1, right2)
+
     let fprint_t fprint_v ff s =
       let rec print ff s =
 	match s with
@@ -247,8 +271,4 @@ exception Error
 let internal_error message printer input =
   Format.eprintf "@[Internal error (%s)@. %a@.@]" message printer input;
   raise Error
-
-(* generic data-structres for sets and symbol tables *)
-module S = Set.Make (struct type t = string let compare = compare end)
-module Env = Map.Make (struct type t = string let compare = compare end)
 

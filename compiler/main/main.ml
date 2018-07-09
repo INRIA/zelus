@@ -55,7 +55,7 @@ and doc_no_opt = "\t  (undocumented)"
 and doc_no_deadcode = "\t  (undocumented)"
 and doc_noinitialisation = "\t  (undocumented)"
 and doc_nosimplify = "\t  (undocumented)"
-and doc_lmm = "\t  Translate into Lustre--"
+and doc_lmm = "<n>\t  Translate the node into Lustre--"
 and doc_red_name = "\t  Static reduction for"
 and doc_all =
   "\t  Compile all functions (including those with static parameters)"
@@ -91,7 +91,7 @@ let main () =
         "-noinit", Arg.Set no_initialisation, doc_noinitialisation;
         "-inline", Arg.Int set_inlining_level, doc_inlining_level;
 	"-nosimplify", Arg.Set no_simplify, doc_nosimplify;
-        "-lmm", Arg.Set lmm, doc_lmm;
+        "-lmm", Arg.String set_lmm_nodes, doc_lmm;
 	"-all", Arg.Set all, doc_all;
         
       ])

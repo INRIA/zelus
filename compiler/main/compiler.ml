@@ -88,7 +88,7 @@ let compile modname filename =
   let source_name = filename ^ ".zls"
   and obj_interf_name = filename ^ ".zci"
   and ml_name = filename ^ ".ml"
-  and lmm_name = filename ^ ".lus" in
+  and lmm_name = filename ^ ".lmm" in
 
   (* standard output for printing types and clocks *)
   let info_ff = Format.formatter_of_out_channel stdout in
@@ -248,10 +248,9 @@ let compile modname filename =
      let itc = open_out_bin obj_interf_name in
      apply_with_close_out Modules.write itc;
 
-     (* translate into Lustre if asked for *)
-     if !lmm
-     then
-       let lmm_list = Zlus2lmm.implementation_list impl_list in
+     (* translate into L-- if asked for *)
+     let lmm_list = Zlus2lmm.implementation_list !Misc.lmm_nodes impl_list in
+     if lmm_list <> [] then
        let lmm = open_out lmm_name in
        apply_with_close_out (write_lmm_list lmm_list) lmm
     end
