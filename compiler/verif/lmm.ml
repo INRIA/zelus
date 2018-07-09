@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2015                                               *)
+(*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -15,56 +15,71 @@
 
 open Location
 open Ident
-open Deftypes
 
-type 'a localized = { desc: 'a; loc: Location.location }
+type name = string
 
-type kind = A | D
+type op =
+  | Lunarypre | Lfby | Lminusgreater | Lifthenelse | Lsharp | Lop of Lident.t
+
+type immediate =
+  | Lint of int
+  | Lfloat of float
+  | Lbool of bool
+  | Lchar of char
+  | Lstring of string
+  | Lvoid
 
 type exp =
-  | Elocal of Ident.t
-  | Elast of Ident.t
-  | Eglobal of Lident.t
-  | Econst of immediate
-  | Econstr0 of Lident.t
-  | Eapp of op * exp list
-  | Erecord_access of exp * Lident.t
-  | Erecord of (Lident.t * exp) list
-  | Etuple of exp list
-		  
- and op =
-   | Eunarypre | Eminusgreater | Eifthenelse | Esharp | Eop of Lident.t
-							
- and immediate = Deftypes.immediate
-		   
- and pattern =
-   | Etuplepat of pattern list
-   | Evarpat of Ident.t
-		  
- and eq =
-   { eq_lhs: pattern;
-     eq_rhs: exp;
-     eq_loc: location }
-     
- and funexp =
-   { f_kind: kind;
-     f_inputs: vardec list;
-     f_outputs: vardec list;
-     f_local: vardec list;
-     f_body: eq list;
-     f_assert: exp list }
+  | Llocal of Ident.t
+  | Llast of Ident.t
+  | Lglobal of Lident.t
+  | Lconst of immediate
+  | Lconstr0 of Lident.t
+  | Lapp of op * exp list
+  | Lrecord_access of exp * Lident.t
+  | Lrecord of (Lident.t * exp) list
+  | Lmerge of exp * (Lident.t * exp) list
+  | Lwhen of exp * Lident.t * exp
 
- and vardec =
-   { p_kind: pkind;
-     p_name: Ident.t;
-     p_typ: Deftypes.typ;
-     p_loc: location }
-     
- and pkind = | Estatic | Evar | Elast of immediate option
-			   
- and implementation = implementation_desc localized
-					  
- and implementation_desc =
-   | Econstdecl of name * exp
-   | Efundecl of name * funexp
-   | Etypedecl of name * name list * Zelus.type_decl
+type clock =
+  | Ck_base
+  | Ck_on of clock * exp
+
+type reset =
+  | Res_never
+  | Res_else of reset * exp
+
+type eq =
+    { eq_kind: kind;
+      eq_ident: Ident.t;
+      eq_exp: exp;
+      eq_clock: clock }
+
+and kind =
+  | Def
+  | Init of reset
+  | Next
+    
+type funexp =
+  { f_inputs: Ident.t list;
+    f_output: Ident.t;
+    f_env: tentry Env.t;
+    f_body: eq list;
+    f_assert: exp list; }
+  
+and tentry =
+  { t_typ: typ }
+  
+and implementation =
+  | Lconstdecl of name * exp
+  | Lfundecl of name * funexp
+  | Ltypedecl of name * type_decl
+                 
+and type_decl =
+  | Labstract_type
+  | Lvariant_type of name list
+  | Lrecord_type of (name * typ) list
+
+and typ =
+  | Tint | Tbool | Tfloat | Tchar | Tstring | Tunit
+  | Tconstr of Lident.qualident
