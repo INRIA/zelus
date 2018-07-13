@@ -1,7 +1,7 @@
 #************************************************************************#
 #                                                                        #
 #  The Zelus Hybrid Synchronous Language                                 #
-#  Copyright (C) 2012-2014                                               #
+#  Copyright (C) 2012-2018                                               #
 #                                                                        #
 #  Timothy Bourke                                                        #
 #  Marc Pouzet                                                           #
@@ -93,6 +93,7 @@ GENCODE = gencode/sol.cmo \
 
 VERIF = verif/lmm.cmo \
 	verif/plmm.cmo \
+	verif/match2condition.cmo \
 	verif/zlus2lmm.cmo
 
 MAIN = main/compiler.cmo \

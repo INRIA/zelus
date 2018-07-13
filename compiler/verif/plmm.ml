@@ -31,9 +31,11 @@ let immediate ff = function
   | Lchar c -> fprintf ff "'%c'" c
   | Lvoid -> fprintf ff "()"
 
+let constr0pat ff = function
+  | Lboolpat(b) -> fprintf ff "%s" (if b then "true" else "false")
+  | Lconstr0pat(ln) -> longname ff ln
+
 let rec expression ff e =
-  let handler ff (ln, e) =
-    fprintf ff "@[%a %a@]" longname ln expression e in
   match e with
   | Llocal(n) -> name ff n
   | Llast(n) -> fprintf ff "@[(last %a)@]" name n
@@ -44,13 +46,21 @@ let rec expression ff e =
       fprintf ff "@[(%a %a)@]" operator op expression_list e_list
   | Lrecord_access(e, ln) -> fprintf ff "@[%a.%a@]" expression e longname ln
   | Lrecord(ln_e_list) ->
+      let handler ff (ln, e) =
+        fprintf ff "@[%a %a@]" longname ln expression e in
       fprintf ff "@[(record@ %a)@]" (print_list_r handler "" "" "") ln_e_list
+  | Ltuple(e_list) ->
+      fprintf ff "@[(tuple@ %a)@]" (print_list_r expression "" "" "") e_list
+  | Lget(e, i) ->
+      fprintf ff "@[(get@ %a %d)@]" expression e i
   | Lmerge(e, ln_e_list) ->
+      let handler ff (cpat, e) =
+        fprintf ff "@[%a %a@]" constr0pat cpat expression e in
       fprintf ff "@[(merge@ %a@ %a)@]" expression e
 	(print_list_r handler "" "" "") ln_e_list
-  | Lwhen(e1, ln, e2) ->
+  | Lwhen(e1, cpat, e2) ->
       fprintf ff
-	"@[(when@ %a@ %a(%a)@]" expression e1 longname ln expression e2
+        "@[(when@ %a@ %a(%a)@]" expression e1 constr0pat cpat expression e2
  
 and expression_list ff e_list = print_list_r expression "" " " "" ff e_list
     
@@ -74,8 +84,9 @@ and reset_opt ff r =
 and clock ff ck =
   match ck with
   | Ck_base -> fprintf ff "true"
-  | Ck_on(ck, e) -> fprintf ff "@[(on %a %a)@]" clock ck expression e
-
+  | Ck_on(ck, cpat, e) ->
+      fprintf ff "@[(on %a %a(%a))@]" clock ck constr0pat cpat expression e
+  
 and clock_opt ff ck =
   match ck with
   | Ck_base -> () | _ -> fprintf ff "@[ on %a@]" clock ck
@@ -92,7 +103,7 @@ and operator ff op =
 let equation ff { eq_kind = k; eq_ident = x; eq_exp = e; eq_clock = ck } =
   fprintf ff "@[(%a %a = %a%a)@]" kind k name x expression e clock_opt ck
 
-let ptype ff ty =
+let rec ptype ff ty =
   match ty with
   | Tint -> fprintf ff "int"
   | Tbool -> fprintf ff "bool"
@@ -101,7 +112,8 @@ let ptype ff ty =
   | Tchar -> fprintf ff "char"
   | Tstring -> fprintf ff "string"
   | Tconstr(qualid) -> Ptypes.print_qualid ff qualid
-
+  | Tproduct(ty_list) -> Pp_tools.print_list_r ptype "(" " * " ")" ff ty_list
+                           
 let print_env ff env =
   print_list_r
     (fun ff (n,{ t_typ = ty }) -> fprintf ff "@[(%a %a)@]" name n ptype ty)

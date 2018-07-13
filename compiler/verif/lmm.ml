@@ -3,15 +3,18 @@
 (*  The Zelus Hybrid Synchronous Language                                 *)
 (*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke                                                        *)
-(*  Marc Pouzet                                                           *)
+(*  Marc Pouzet    Timothy Bourke                                         *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
 (*   This file is distributed under the terms of the CeCILL-C licence     *)
 (*                                                                        *)
 (**************************************************************************)
-(* Abstract syntax tree for a Lustre flat kernel *)
+
+(* Abstract syntax tree for a basic Lustre used for formal *)
+(* verification. No node instance; no constrol structure. *)
+(* clocks are kept in case of a translation into Lustre but are *)
+(* only necessary for the change of state variables *)
 
 open Location
 open Ident
@@ -19,7 +22,12 @@ open Ident
 type name = string
 
 type op =
-  | Lunarypre | Lfby | Lminusgreater | Lifthenelse | Lsharp | Lop of Lident.t
+  | Lunarypre (* un-initialized unit delay *)
+  | Lfby (* initialized unit delay *)
+  | Lminusgreater (* initialization *)
+  | Lifthenelse (* strict conditional *)
+  | Lsharp (* n-ary, pairwise xor *)
+  | Lop of Lident.t (* call of a combinatorial function *)
 
 type immediate =
   | Lint of int
@@ -28,6 +36,10 @@ type immediate =
   | Lchar of char
   | Lstring of string
   | Lvoid
+
+type constr0pat =
+  | Lconstr0pat of Lident.t
+  | Lboolpat of bool
 
 type exp =
   | Llocal of Ident.t
@@ -38,12 +50,14 @@ type exp =
   | Lapp of op * exp list
   | Lrecord_access of exp * Lident.t
   | Lrecord of (Lident.t * exp) list
-  | Lmerge of exp * (Lident.t * exp) list
-  | Lwhen of exp * Lident.t * exp
+  | Ltuple of exp list
+  | Lget of exp * int
+  | Lmerge of exp * (constr0pat * exp) list
+  | Lwhen of exp * constr0pat * exp
 
 type clock =
-  | Ck_base
-  | Ck_on of clock * exp
+  | Ck_base (* true *)
+  | Ck_on of clock * constr0pat * exp (* ck on C(c) *)
 
 type reset =
   | Res_never
@@ -82,4 +96,4 @@ and type_decl =
 
 and typ =
   | Tint | Tbool | Tfloat | Tchar | Tstring | Tunit
-  | Tconstr of Lident.qualident
+  | Tconstr of Lident.qualident | Tproduct of typ list

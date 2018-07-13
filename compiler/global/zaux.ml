@@ -37,10 +37,13 @@ let eqmake desc =
 let global lname =
   Eglobal { lname = lname; typ_instance = Deftypes.no_typ_instance }
 
-let evoid = emake (Econst(Evoid)) typ_unit
-let efalse = emake (Econst(Ebool(false))) typ_bool
-let etrue = emake (Econst(Ebool(true))) typ_bool
+let const c ty = emake (Econst c) ty
+let constr0 ln ty = emake (Econstr0 ln) ty
+let evoid = const Evoid typ_unit
+let efalse = const (Ebool(false)) typ_bool
+let etrue = const (Ebool(true)) typ_bool
 let truepat = pmake (Econstpat(Ebool(true))) typ_bool
+let falsepat = pmake (Econstpat(Ebool(false))) typ_bool
 let wildpat = pmake (Ewildpat) Deftypes.no_typ
 let zero = emake (Econst(Efloat(0.0))) Initial.typ_float
 let infinity = 
@@ -52,7 +55,9 @@ let tuplepat pat_list =
 let tuple e_list = 
   let ty_list = List.map (fun { e_typ = ty } -> ty) e_list in
   emake (Etuple(e_list)) (tproduct ty_list)
-
+let record l_list e_list ty =
+  emake (Erecord(List.map2 (fun l e -> (l, e)) l_list e_list)) ty
+    
 let rec orpat pat_list =
   match pat_list with
     | [] -> assert false
@@ -107,9 +112,13 @@ let minusgreater e1 e2 = emake (Eop(Eminusgreater, [e1;e2])) e1.e_typ
 let fby e1 e2 = emake (Eop(Efby, [e1;e2])) e1.e_typ
 let ifthenelse e1 e2 e3 =
   emake (Eop(Eifthenelse, [e1;e2;e3])) e2.e_typ
-
+let record_access e l ty = emake (Erecord_access(e, l)) ty
+    
+let extend_local env eq_list ({ l_eq = l_eq_list; l_env = l_env } as l) = 
+  { l with l_eq = eq_list @ l_eq_list; l_env = Env.append env l_env }
 let make_local env eq_list = 
-  { l_eq = eq_list; l_env = env; l_loc = Location.no_location }
+  extend_local env eq_list
+    { l_eq = []; l_env = Env.empty; l_loc = Location.no_location }
 let make_let env eq_list e =
   match eq_list with
   | [] -> e | _ -> emake (Elet(make_local env eq_list, e)) e.e_typ
@@ -132,12 +141,18 @@ let vardec_from_entry i { t_sort = sort } =
   { vardec_name = i; vardec_default = d_opt;
     vardec_combine = c_opt; vardec_loc = no_location }
 
-let make_block env eq_list =
+let extend_block env eq_list
+    ({ b_vars = b_vars; b_env = b_env; b_body = body_eq_list } as b) =
   let b_vars =
     Env.fold (fun i entry acc -> vardec_from_entry i entry :: acc)
-             env [] in
-  { b_vars = b_vars; b_locals = []; b_body = eq_list;
-    b_loc = Location.no_location; b_env = env; b_write = Deftypes.empty }
+             env b_vars in
+  { b with b_vars = b_vars; b_body = eq_list @ body_eq_list;
+    b_env = Env.append env b_env }
+
+let make_block env eq_list =
+  extend_block env eq_list
+    { b_vars = []; b_env = Env.empty; b_locals = [];
+      b_body = []; b_loc = Location.no_location; b_write = Deftypes.empty }
 
 let eq_make n e = eqmake (EQeq(varpat n e.e_typ, e))
 let eq_next n e = eqmake (EQnext(n, e, None))
@@ -149,6 +164,16 @@ let eq_match e l = eqmake (EQmatch(ref true, e, l))
 let eq_block b = eqmake (EQblock(b))
 let eq_der x e = eqmake (EQder(x, e, None, []))
 
+
+let handler p b =
+    { m_pat = p; m_body = b; m_env = Env.empty;
+      m_reset = false; m_zero = false }
+
+let eq_ifthenelse e b1 b2 =
+  eq_match e [handler truepat b1; handler falsepat b2]
+
+let eq_ifthen e b = eqmake (EQmatch(ref false, e, [handler truepat b]))
+    
 let before eq_list =
   match eq_list with
   | [] -> assert false
