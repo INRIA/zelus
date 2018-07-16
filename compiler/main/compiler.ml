@@ -249,11 +249,14 @@ let compile modname filename =
      apply_with_close_out Modules.write itc;
 
      (* translate into L-- if asked for *)
-     let impl_list =
+     if Misc.S.is_empty !Misc.lmm_nodes then ()
+     else
+       let impl_list =
 	step "Rewrite of pattern matchings into primitive ones done. See below:"
 	     Match2condition.implementation_list impl_list in
-     let lmm_list = Zlus2lmm.implementation_list !Misc.lmm_nodes impl_list in
-     if lmm_list <> [] then
-       let lmm = open_out lmm_name in
-       apply_with_close_out (write_lmm_list lmm_list) lmm
+       let lmm_list =
+         Zlus2lmm.implementation_list !Misc.lmm_nodes impl_list in
+       if lmm_list <> [] then
+         let lmm = open_out lmm_name in
+         apply_with_close_out (write_lmm_list lmm_list) lmm
     end
