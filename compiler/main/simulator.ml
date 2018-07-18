@@ -79,7 +79,7 @@ let emit_prelude ff ({ Lident.id = id } as qualid) k =
       (* first generate the top-level machine *)
       let m = Inout.simulate (Lident.Modname qualid) in
       (* emit the code *)
-      Modules.initialize (String.capitalize id);
+      Modules.initialize (String.capitalize_ascii id);
       Oprinter.machine_as_functions ff "main" m
 
 (* emited code for control-driven programs: the transition function *)

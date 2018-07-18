@@ -20,12 +20,12 @@ let compile file =
   if Filename.check_suffix file ".zls"
   then 
     let filename = Filename.chop_suffix file ".zls" in
-    let modname = String.capitalize(Filename.basename filename) in
+    let modname = String.capitalize_ascii(Filename.basename filename) in
     compile modname filename 
   else if Filename.check_suffix file ".zli"
   then
     let filename = Filename.chop_suffix file ".zli" in
-    let modname = String.capitalize(Filename.basename filename) in
+    let modname = String.capitalize_ascii(Filename.basename filename) in
     interface modname filename
   else 
     raise (Arg.Bad ("don't know what to do with " ^ file))
