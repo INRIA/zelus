@@ -1,0 +1,42 @@
+(* Commenter la prochaine ligne conduit à un bug très étrange:
+
+          zeluc -gtk2 -s main bug.zls
+          File "bug.zls", line 22, characters 17-23:
+          >  (t_loop (const(18., 22.), horizon(1.)) (inputs, x0))
+          >                 ^^^^^^
+          Type error: this expression has type
+          'a * 'b, but is expected to have type 'a.
+          Makefile:18: recipe for target 'bug_main.byte' failed
+          make: *** [bug_main.byte] Error 2
+
+
+   Pourtant la fonction fst_tuple n'est jamais appelée. Ce bug ne se produit
+   que lorsque l'autre bug est censé se produire.
+*)
+let fst_tuple (a,b) = a
+let snd_tuple (a,b) = b
+
+open Aux
+
+(* Erreur de compilation:
+      zeluc -gtk2 -s main bug.zls
+      File "bug.zls", line 13, characters 34-49:
+      >   Pourtant la fonction fst_tuple n'est jamais appelée. Ce bug semble dépendre
+      >                                  ^^^^^^^^^^^^^^^
+      Typing error: The value identifier i1 is unbound.
+      Makefile:18: recipe for target 'bug_main.byte' failed
+      make: *** [bug_main.byte] Error 2
+*)
+
+
+let hybrid gen_fun(inputs, x0) =
+  snd_tuple
+  (t_loop (const(18., 22.), horizon(1.)) (inputs, x0))
+
+let hybrid model(x) = 2. *. x
+
+let hybrid oracle(t, x1, x2) =
+  c_and(val_gt(0.)(t, x1), val_gt(0.)(t, x2))
+
+let hybrid main() =
+  let b = run_test(10.)(gen_fun)(model)(oracle)() in ()

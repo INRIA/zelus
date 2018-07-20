@@ -1,0 +1,68 @@
+(* TRACE COMBINATORS *)
+
+(* Cette fonction n'est jamais utilisée, mais si je l'enlève il n'y a
+   plus de bug*)
+let hybrid t_fby(t1, e, t2)(prev) = t where
+  rec init last_val = prev
+  and automaton
+  | NotSeenE -> do t = run t1 (last last_val)
+                until (run e t)() then
+                do last_val = t in SeenE
+  | SeenE    -> do t = run t2 (last last_val) done
+
+let hybrid t_loop(t_in, e)(prev) = t_res where
+  rec init last_val = prev
+  and automaton
+  | SeenE -> do t_res = run t_in (last last_val)
+             until (run e t_res)() then
+             do last_val = t_res in SeenE
+
+(* TRACE GENERATION *)
+
+let pick_float(i1, i2) = Random.float(i2 -. i1) +. i1
+
+let hybrid const(i1, i2)(inp_in, res_in) = inp, res where
+  init res = pick_float(i1, i2)
+  and inp = inp_in
+
+(* EVENT FUNCTIONS *)
+
+let hybrid horizon(h)(_) = e where
+  rec der t = 1. init 0.
+  and present up(t -. h) -> do emit e = () done
+
+  let hybrid val_gt_0(t, x) = r, e where
+    rec init r = (x > 0.)
+    and present
+      up(x)     -> do r = true  and emit e = (t, true)  done
+    | up(-. x)  -> do r = false and emit e = (t, false) done
+    | (disc(x)) -> do r = (x > 0.) and emit e = (t, x > 0.) done
+
+  let hybrid val_gt(f)(t, x) = val_gt_0(t, x -. f)
+
+  let hybrid c_and((rA, eA), (rB, eB)) = r, e where
+    rec r = rA && rB
+    and present
+    | eA(t, true) on (rB) | eB(t, true) on (rA) -> do emit e = (t, true) done
+    | eA(t, false)        | eB(t, false)        -> do emit e = (t, false) done
+
+    open Scope
+
+let hybrid run_test(dT)(gen_fun)(model)(oracle)() = b where
+  rec der global_t = 1. init 0.
+  and init t0 = 0. and t = global_t -. t0
+  and init i = 1
+
+  and automaton
+    | State ->
+      do  inputs = run gen_fun (t, 0.)
+      and outputs = run model inputs
+      and b, e = run oracle (t, inputs, outputs)
+      and present (period(0.1)) ->
+        do let s1 = scope(0., 1., ("oracle", linear, if b then 1. else 0.)) in
+        do () = window("Test " ^ string_of_int i, dT, t, s1) done done
+      until
+           up(t -. dT) then do  next t0 = global_t
+                            and next i  = i + 1 in State
+      else e(_, false) then Falsified
+    | Falsified -> do b = false done
