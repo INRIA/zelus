@@ -1,10 +1,9 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2017                                               *)
+(*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke                                                        *)
-(*  Marc Pouzet                                                           *)
+(*  Marc Pouzet   Timothy Bourke                                          *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -89,15 +88,17 @@ let rec expression env fun_defs ({ e_desc = desc } as e) =
 	  (* Or we directly inline the body of [f]. We take this solution *)
 	  (* for the moment *)
 	  match opt_name, v with
-	  | None, Vfun({ f_args = p_list; f_body = e; f_env = nenv }, env) ->
-	     let e, fun_defs = expression env fun_defs e in
-	     (* return [let p1 = ne1 in ... in pk = nek in e] *)
-	     (* all names in [e] must be renamed *)
-	     Inline.letin Env.empty nenv p_list ne_list e, fun_defs
+          | None,
+            Vfun({ f_args = p_list; f_body = e; f_env = nenv }, env_closure) ->
+	      (* [p_list] should now be a list of non static parameters *)
+              let e, fun_defs = expression env_closure fun_defs e in
+	      (* return [let p1 = ne1 in ... in pk = nek in e] *)
+	      (* all names in [e] must be renamed *)
+	      Inline.letin Env.empty nenv p_list ne_list e, fun_defs
 	  | _ -> (* returns an application *)
-	     let e_fun, fundefs = exp_of_value fun_defs v_fun in
-	     let e_fun = { e_fun with e_typ = ty_res } in
-	     { e with e_desc = Eapp(app, e_fun, ne_list) }, fun_defs in
+              let e_fun, fundefs = exp_of_value fun_defs v_fun in
+	      let e_fun = { e_fun with e_typ = ty_res } in
+	      { e with e_desc = Eapp(app, e_fun, ne_list) }, fun_defs in
      e, fun_defs
   | Eop(op, e_list) ->
      let e_list, fun_defs = Misc.map_fold (expression env) fun_defs e_list in
