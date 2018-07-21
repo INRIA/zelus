@@ -28,6 +28,11 @@ type exp_or_eq =
 exception NotStatic of exp_or_eq
 exception TypeError
 
+(** Remove entries in the type environment of a block *)
+(* for names that appear in the evaluation environment *)
+let remove tenv env_closure =
+  Env.filter (fun n _ -> not (Env.mem n env_closure)) tenv
+
 (** Pattern matching *)
 let record_access { value_exp = value_exp } ln =
   try
@@ -139,12 +144,15 @@ and app ({ value_exp = value_exp } as v) v_list =
   | _, [] ->
      (* if [v_list = []], the result is [v] *)
      v
-  | Vfun({ f_args = p_list; f_body = e } as funexp, env_closure),
+  | Vfun({ f_args = p_list; f_body = e; f_env = fenv } as funexp, env_closure),
     _ ->
      let p_list, env_closure = arguments env_closure p_list v_list in
      if p_list = [] then expression env_closure e
-     else Global.value_code
-	    (Vfun({ funexp with f_args = p_list }, env_closure))
+     else
+       (* remove entries from [fenv] that are in the environment of values *)
+       let fenv = remove fenv env_closure in
+       Global.value_code
+	    (Vfun({ funexp with f_args = p_list; f_env = fenv }, env_closure))
   | (* two integer arithmetic operations are implemented: *)
     (* addition and subtraction are used in array size expressions *)
     Vabstract(op),

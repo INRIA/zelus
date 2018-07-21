@@ -35,7 +35,7 @@ let empty = { fundefs =[] }
 (* Generate fresh symbol names for global values introduced during *)
 (* the reduction *)
 let num = ref 0
-let fresh () = num := !num + 1; "__" ^ (string_of_int !num)
+let gfresh () = num := !num + 1; "__" ^ (string_of_int !num)
 					 
 (** Simplify an expression. [expression env fun_defs e = e', fun_defs'] *)
 (* - env an environment of values;
@@ -313,7 +313,7 @@ and exp_of_value fun_defs { value_exp = v; value_name = opt_name } =
        | None ->
 	  let funexp, fun_defs = lambda env fun_defs funexp in
 	  (* introduce a new function *)
-	  let name = fresh () in
+	  let name = gfresh () in
 	  Zaux.global (Lident.Name(name)),
 	  { fundefs = (name, funexp) :: fun_defs.fundefs } in
     Zaux.emake desc Deftypes.no_typ, fun_defs
@@ -359,9 +359,6 @@ let implementation_list ff impl_list =
        { impl with desc = Econstdecl(f, is_static, e) } ::
 	 List.fold_right make fun_defs impl_defs
     | Efundecl(f, funexp) ->
-       (* if [f] is marked to be reduced, reduce it *)
-       (* if flag -redall is true, reduce it only if it has no more static *)
-       (* parameter *)
        let ({ info = { value_typ = tys } } as entry) =
 	 try Modules.find_value (Lident.Name(f))
 	 with Not_found -> assert false in
