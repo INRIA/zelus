@@ -1,10 +1,16 @@
+let f g (x, y) = (g 1) x + y
+
+let g x y = x + y
+
+let main x = f g (x, x)
+(*
 let node edge(x) = o1+o2 where
   rec match x with
       | true,false -> local m do m = 0 fby m + 1 and o1 = 1 + m done
       | false,false -> do o2 = 3 done
   and init o1 = 42
   and init o2 = 43
-      
+ *)
       
 (* let node f(x,x') = z where
   rec init z = 0 and init y = 0
