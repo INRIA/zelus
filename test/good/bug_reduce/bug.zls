@@ -5,14 +5,14 @@ open Aux
 
 let hybrid gen_fun(inputs, x0) =
   
-  (t_loop (const(18., 22.), horizon(1.)) (inputs, x0))
+  (t_loop   (const(18., 22.), horizon(1.)) (inputs, x0))
 
-    (*
 let hybrid model(x) = 2. *. x
+
 
 let hybrid oracle(t, x1, x2) =
   c_and(val_gt(0.)(t, x1), val_gt(0.)(t, x2))
 
+    (*
 let hybrid main() =
-  let b = run_test(10.)(gen_fun)(model)(oracle)() in ()
-*)
+  let b = run_test(10.)(gen_fun)(model)(oracle)() in ()*)

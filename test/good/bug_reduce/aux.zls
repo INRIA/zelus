@@ -21,7 +21,7 @@ let hybrid t_loop(t_in, e)(prev) = t_res where
 
 let pick_float(i1, i2) = Random.float(i2 -. i1) +. i1
 
-let hybrid const(i1, i2)(inp_in, res_in) = inp, res where
+let hybrid const (i1, i2) (inp_in, res_in) = inp, res where
   init res = pick_float(i1, i2)
   and inp = inp_in
 
