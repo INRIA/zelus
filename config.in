@@ -105,6 +105,7 @@ install_printer Printer.interface
 install_printer Printer.state_ident_typ
 install_printer Printer.state_eq
 install_printer Printer.local
+install_printer Printer.print_value_code
 install_printer Oprinter.implementation
 install_printer Oprinter.ptype
 install_printer Oprinter.pattern
