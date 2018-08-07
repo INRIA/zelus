@@ -17,6 +17,7 @@ open Misc
 open Zelus
 open Deftypes
 open Ptypes
+open Global
 open Modules
 open Pp_tools
 open Format
@@ -42,13 +43,15 @@ let parenthesis s =
       
 let shortname ff s = fprintf ff "%s" (parenthesis s)
 
+let qualident ff { Lident.qual = m; Lident.id = s } =
+  fprintf ff "%s.%s" m (parenthesis s)
+
 let longname ff ln =
   let ln = Initial.short (currentname ln) in
   match ln with
     | Lident.Name(m) -> shortname ff m
-    | Lident.Modname({ Lident.qual = m; Lident.id = s }) -> 
-        fprintf ff "%s.%s" m (parenthesis s)
-
+    | Lident.Modname(qual) -> qualident ff qual
+ 
 let name ff n = shortname ff (Ident.name n)
 
 let source_name ff n = shortname ff (Ident.source n)
@@ -474,6 +477,13 @@ let open_module ff n =
   shortname ff n;
   fprintf ff "@.@]"
      
+let funexp ff { f_kind = k; f_args = p_list; f_body = e; f_env = env } =
+  fprintf ff "@[<v 2>%s %a . @ %a%a@]"
+    (match k with
+     | S -> "sfun" | A -> "fun" | AD -> "dfun" | AS -> "asfun"
+     | D -> "node" | C -> "hybrid")
+    (pattern_list "" "" "") p_list print_env env expression e
+    
 let implementation ff impl =
   match impl.desc with
     | Eopen(n) -> open_module ff n
@@ -484,12 +494,8 @@ let implementation ff impl =
     | Econstdecl(n, is_static, e) ->
         fprintf ff "@[<v 2>let %s%s =@ %a@.@.@]"
           (if is_static then "static " else "") n expression e 
-    | Efundecl(n, { f_kind = k; f_args = p_list; f_body = e; f_env = env }) ->
-       fprintf ff "@[<v 2>let %s %s %a =@ %a%a@.@.@]"
-	       (match k with
-		| S -> "static" | A -> "fun" | AD -> "dfun" | AS -> "sfun"
-		| D -> "node" | C -> "hybrid")
-	       n (pattern_list "" "" "") p_list print_env env expression e
+    | Efundecl(n, body) ->
+       fprintf ff "@[<v 2>let %s =@ %a@.@]" n funexp body
 	       
 let implementation_list ff imp_list =
   List.iter (implementation ff) imp_list
@@ -507,4 +513,25 @@ let interface ff inter =
 
 let interface_list ff int_list =
   List.iter (interface ff) int_list
+
+(* Print a value from the global environment *)
+let rec print_value_code ff { value_exp = ve; value_name = vn } =
+  match vn with
+  | None -> print_value ff ve
+  | Some(qual) ->
+      Format.fprintf ff "@[{%a is %a}@]" print_value ve qualident qual
+                  
+and print_value ff ve =
+  match ve with
+  | Vconst(i) -> immediate ff i
+  | Vconstr0(qual) -> qualident ff qual
+  | Vtuple(vc_list) ->
+      fprintf ff "@[%a@]" (print_list_r print_value_code "("","")") vc_list
+  | Vrecord(ln_vc_list) ->
+      print_record (print_couple qualident print_value_code """ =""") ff ln_vc_list
+  | Vperiod(p) -> fprintf ff "@[period %a@]" period p
+  | Vfun(body, venv) ->
+      fprintf ff "@[<hov0><%a,@,%a>@]"
+        funexp body (Ident.Env.fprint_t print_value_code) venv
+  | Vabstract(qual) -> qualident ff qual
 
