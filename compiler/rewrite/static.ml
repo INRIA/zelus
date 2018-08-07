@@ -12,8 +12,6 @@
 (**************************************************************************)
 
 (** static evaluation of expressions *)
-(** The result is a collection of first-order monomorphic functions *)
-(** and a value *)
 
 open Ident
 open Deftypes
