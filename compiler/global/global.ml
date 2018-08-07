@@ -3,7 +3,7 @@
 (*  The Zelus Hybrid Synchronous Language                                 *)
 (*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke    Marc Pouzet                                         *)
+(*  Marc Pouzet    Timothy Bourke                                         *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -17,6 +17,7 @@ open Zelus
 open Deftypes
 open Defcaus
 open Definit
+
     
 type 'a info = { qualid : Lident.qualident; info : 'a }
 
@@ -36,7 +37,8 @@ and value_exp =
   | Vtuple of value_code list (* tuple *)
   | Vrecord of (Lident.qualident * value_code) list (* record *)
   | Vperiod of period (* period *)
-  | Vfun of funexp * value_code Env.t (* a closure *)
+  | Vfun of funexp * value_code Env.t
+        (* a closure: the function body; the environment of values *)
   | Vabstract of Lident.qualident (* no implementation is given *)
 
 and value_code =
@@ -79,3 +81,4 @@ let set_init { info = ({ value_init = _ } as v) } tys =
   v.value_init <- Some(tys)
 let set_value_code { info = ({ value_code = _ } as v)} value_code = 
   v.value_code <- value_code
+
