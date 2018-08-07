@@ -1,6 +1,6 @@
 let f g (x, y) = (g 1) x + y
 
-let g x y = x + y
+let g x y = x
 
 let main x = f g (x, x)
 (*
