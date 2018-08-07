@@ -1,10 +1,9 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2017                                               *)
+(*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke                                                        *)
-(*  Marc Pouzet                                                           *)
+(*  Marc Pouzet  Timothy Bourke                                           *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -105,34 +104,34 @@ and size renaming ({ desc = desc } as s) =
   | Sconst _ | Sglobal _ -> s
   | Sname(n) -> { s with desc = Sname(rename n renaming) }
   | Sop(op, s1, s2) ->
-     { s with desc = Sop(op, size renaming s1, size renaming s2) }
+      { s with desc = Sop(op, size renaming s1, size renaming s2) }
 
 (** Rename an operator *)
 let operator renaming op =
   match op with
   | Eunarypre | Efby | Eminusgreater | Eifthenelse
-    | Eup | Etest | Edisc | Ehorizon | Einitial | Eaccess
-    | Eupdate | Econcat -> op
+  | Eup | Etest | Edisc | Ehorizon | Einitial | Eaccess
+  | Eupdate | Econcat -> op
   | Eslice(s1, s2) -> Eslice(size renaming s1, size renaming s2)
   		       
 (** Renaming of patterns *)
 let rec pattern renaming ({ p_desc = desc } as p) =
   match desc with
-    | Ewildpat | Econstpat _ | Econstr0pat _ -> p
-    | Evarpat(n) ->  { p with p_desc = Evarpat(rename n renaming) }
-    | Etuplepat(p_list) ->
-        { p with p_desc = Etuplepat(List.map (pattern renaming) p_list) }
-    | Erecordpat(n_p_list) ->
-        { p with p_desc =
-		   Erecordpat(List.map (fun (ln, p) -> (ln, pattern renaming p))
-				       n_p_list) }
-    | Ealiaspat(p1, n) ->
-        let n = rename n renaming in
-        { p with p_desc = Ealiaspat(pattern renaming p1, n) }
-    | Eorpat(p1, p2) ->
-        { p with p_desc = Eorpat(pattern renaming p1, pattern renaming p2) }
-    | Etypeconstraintpat(p1, ty) ->
-       { p with p_desc = Etypeconstraintpat(pattern renaming p1,
+  | Ewildpat | Econstpat _ | Econstr0pat _ -> p
+  | Evarpat(n) ->  { p with p_desc = Evarpat(rename n renaming) }
+  | Etuplepat(p_list) ->
+      { p with p_desc = Etuplepat(List.map (pattern renaming) p_list) }
+  | Erecordpat(n_p_list) ->
+      { p with p_desc =
+		 Erecordpat(List.map (fun (ln, p) -> (ln, pattern renaming p))
+		n_p_list) }
+  | Ealiaspat(p1, n) ->
+      let n = rename n renaming in
+      { p with p_desc = Ealiaspat(pattern renaming p1, n) }
+  | Eorpat(p1, p2) ->
+      { p with p_desc = Eorpat(pattern renaming p1, pattern renaming p2) }
+  | Etypeconstraintpat(p1, ty) ->
+      { p with p_desc = Etypeconstraintpat(pattern renaming p1,
 					    type_expression renaming ty) }
 
 	
@@ -241,38 +240,12 @@ and equation renaming ({ eq_desc = desc } as eq) =
        EQemit(rename x renaming, Misc.optional_map (expression renaming) e_opt)
     | EQblock(b) ->
        let _, b = block renaming b in EQblock(b)
-    | EQforall { for_index = i_list; for_init = init_list;
-		 for_body = b_eq_list;
-		 for_in_env = in_env; for_out_env = out_env } ->
-       let in_env, renaming0 = build in_env in
-       let out_env, renaming1 = build out_env in
-       let renaming = Env.append renaming0 (Env.append renaming1 renaming) in
-       let index ({ desc = desc } as ind) =
-	 let desc = match desc with
-	   | Einput(x, e) -> Einput(rename x renaming,
-				    expression renaming e)
-	   | Eoutput(x, xout) -> Eoutput(rename x renaming,
-					 rename xout renaming)
-	   | Eindex(x, e1, e2) -> Eindex(rename x renaming,
-					 expression renaming e1,
-					 expression renaming e2) in
-	 { ind with desc = desc } in
-       let init ({ desc = desc } as ini) =
-	 let desc = match desc with
-	   | Einit_last(x, e) -> Einit_last(rename x renaming,
-					    expression renaming e) in
-	 { ini with desc = desc } in
-       let _, b_eq_list = block renaming b_eq_list in
-       EQforall { for_index = List.map index i_list;
-		  for_init = List.map init init_list;
-		  for_body = b_eq_list;
-		  for_in_env = in_env; for_out_env = out_env }       
     | EQautomaton(is_weak, s_h_list, se_opt) ->
        let build_state_names renaming { s_state = { desc = desc } } =
 	 match desc with
 	 | Estate0pat(n) | Estate1pat(n, _) ->
-			    let m = Ident.fresh (Ident.source n) in
-			    Env.add n m renaming in
+             let m = Ident.fresh (Ident.source n) in
+             Env.add n m renaming in
        let statepat renaming ({ desc = desc } as spat) =
 	 match desc with
 	 | Estate0pat(x) -> { spat with desc = Estate0pat(rename x renaming) }
@@ -314,8 +287,34 @@ and equation renaming ({ eq_desc = desc } as eq) =
        let renaming =
 	 List.fold_left build_state_names renaming s_h_list in
        let se_opt = Misc.optional_map (state_exp renaming) se_opt in
-       EQautomaton(is_weak, List.map (body renaming) s_h_list, se_opt) in
-  { eq with eq_desc = desc; eq_write = Deftypes.empty }
+       EQautomaton(is_weak, List.map (body renaming) s_h_list, se_opt)
+    | EQforall { for_index = i_list; for_init = init_list;
+		 for_body = b_eq_list;
+		 for_in_env = in_env; for_out_env = out_env } ->
+       let in_env, renaming0 = build in_env in
+       let out_env, renaming1 = build out_env in
+       let renaming = Env.append renaming0 (Env.append renaming1 renaming) in
+       let index ({ desc = desc } as ind) =
+	 let desc = match desc with
+	   | Einput(x, e) -> Einput(rename x renaming,
+				    expression renaming e)
+	   | Eoutput(x, xout) -> Eoutput(rename x renaming,
+					 rename xout renaming)
+	   | Eindex(x, e1, e2) -> Eindex(rename x renaming,
+					 expression renaming e1,
+					 expression renaming e2) in
+	 { ind with desc = desc } in
+       let init ({ desc = desc } as ini) =
+	 let desc = match desc with
+	   | Einit_last(x, e) -> Einit_last(rename x renaming,
+					    expression renaming e) in
+	 { ini with desc = desc } in
+       let _, b_eq_list = block renaming b_eq_list in
+       EQforall { for_index = List.map index i_list;
+		  for_init = List.map init init_list;
+		  for_body = b_eq_list;
+		  for_in_env = in_env; for_out_env = out_env } in       
+      { eq with eq_desc = desc; eq_write = Deftypes.empty }
       
 and scondpat renaming ({ desc = desc } as sc) =
   match desc with
