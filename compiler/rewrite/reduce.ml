@@ -50,6 +50,10 @@ let rename x renaming =
   try Env.find x renaming
   with Not_found -> Misc.internal_error "Reduce: unbound name" Printer.name x
 
+(** Remove entries in [venv] that are defined in [renaming] *)
+let remove rename venv =
+  Env.filter (fun x _ -> not (Env.mem x rename)) venv
+    
 (** type expressions *)
 let rec type_expression venv renaming ({ desc = desc } as ty_e) =
   match desc with
@@ -137,11 +141,6 @@ let rec expression venv renaming fun_defs ({ e_desc = desc } as e) =
         with Not_found ->
           { e with e_desc = Elocal(rename x renaming) }, fun_defs
       end
-  (* let x' = rename x renaming in
-     let e, fun_defs =
-      try exp_of_value fun_defs (Env.find x' venv)
-      with Not_found -> { e with e_desc = Elocal(x') }, fun_defs in
-           e, fun_defs *)
   | Elast(x) -> { e with e_desc = Elast(rename x renaming) }, fun_defs
   | Eperiod _ -> e, fun_defs
   | Etuple(e_list) ->
@@ -187,6 +186,7 @@ let rec expression venv renaming fun_defs ({ e_desc = desc } as e) =
             Vfun({ f_args = p_list; f_body = e; f_env = f_env }, venv_closure) ->
 	      (* [p_list] should now be a list of non static parameters *)
               let f_env, renaming0 = build f_env in
+              let venv = remove renaming0 venv in
               let renaming = Env.append renaming0 renaming in
               let p_list = List.map (pattern venv renaming) p_list in
               let e, fun_defs = expression venv_closure renaming fun_defs e in
@@ -236,6 +236,7 @@ and static venv fun_defs e =
 (** Simplify a local declaration *)
 and local venv (renaming, fun_defs) ({ l_eq = eq_list; l_env = env } as l) =
   let env, renaming0 = build env in
+  let venv = remove renaming0 venv in
   let renaming = Env.append renaming0 renaming in
   let eq_list, fun_defs =
     Misc.map_fold (equation venv renaming) fun_defs eq_list in
@@ -264,6 +265,7 @@ and equation venv renaming fun_defs ({ eq_desc = desc } as eq) =
     | EQder(x, e, e_opt, p_e_list) ->
         let body fun_defs ({ p_cond = scpat; p_body = e; p_env = env } as p_e) =
           let env, renaming0 = build env in
+          let venv = remove renaming0 venv in
           let renaming = Env.append renaming0 renaming in
           let scpat, fun_defs = scondpat venv renaming fun_defs scpat in
           let e, fun_defs = expression venv renaming fun_defs e in
@@ -276,6 +278,7 @@ and equation venv renaming fun_defs ({ eq_desc = desc } as eq) =
     | EQmatch(total, e, m_b_list) ->
         let body venv fun_defs ({ m_pat = p; m_body = b; m_env = env } as m_h) =
           let env, renaming0 = build env in
+          let venv = remove renaming0 venv in
           let renaming = Env.append renaming0 renaming in
           let b, (_, fun_defs) = block venv (renaming, fun_defs) b in
 	  { m_h with m_pat = pattern venv renaming p;
@@ -303,6 +306,7 @@ and equation venv renaming fun_defs ({ eq_desc = desc } as eq) =
     | EQpresent(p_h_list, b_opt) ->
         let body fun_defs ({ p_cond = scpat; p_body = b; p_env = env } as p_b) =
           let env, renaming0 = build env in
+          let venv = remove renaming0 venv in
           let renaming = Env.append renaming0 renaming in
           let scpat, fun_defs = scondpat venv renaming fun_defs scpat in
           let b, (renaming, fun_defs) = block venv (renaming, fun_defs) b in
@@ -339,6 +343,7 @@ and equation venv renaming fun_defs ({ eq_desc = desc } as eq) =
          ({ e_cond = scpat; e_block = b_opt;
 	    e_next_state = se; e_env = env } as esc) =
        let env, renaming0 = build env in
+       let venv = remove renaming0 venv in
        let renaming = Env.append renaming0 renaming in
        let renaming, fun_defs, b_opt =
 	 match b_opt with
@@ -355,6 +360,7 @@ and equation venv renaming fun_defs ({ eq_desc = desc } as eq) =
          ({ s_state = spat; s_body = b; s_trans = esc_list;
             s_env = env } as h) =
        let env, renaming0 = build env in
+       let venv = remove renaming0 venv in
        let renaming = Env.append renaming0 renaming in
        let spat = statepat renaming spat in
        let b, (renaming, fun_defs) = block venv (renaming, fun_defs) b in
@@ -373,7 +379,9 @@ and equation venv renaming fun_defs ({ eq_desc = desc } as eq) =
                for_body = b_eq_list;
 	       for_in_env = in_env; for_out_env = out_env }) ->
       let in_env, renaming0 = build in_env in
+      let venv = remove renaming0 venv in
       let out_env, renaming1 = build out_env in
+      let venv = remove renaming1 venv in
       let renaming = Env.append renaming0 (Env.append renaming1 renaming) in
       let index fun_defs ({ desc = desc } as ind) =
         let desc, fun_defs =
@@ -435,6 +443,7 @@ and block venv (renaming, fun_defs)
     ({ b_vars = n_list; b_locals = l_list; b_body = eq_list;
        b_env = n_env } as b) =
   let n_env, renaming0 = build n_env in
+  let venv = remove renaming0 venv in
   let renaming = Env.append renaming0 renaming in
   let n_list = List.map (vardec renaming) n_list in
   let l_list, (renaming, fun_defs) =
@@ -488,6 +497,7 @@ and exp_of_value fun_defs { value_exp = v; value_name = opt_name } =
 and lambda venv fun_defs
     ({ f_args = p_list; f_body = e; f_env = env } as funexp) =
   let env, renaming = build env in
+  let venv = remove renaming venv in
   let p_list = List.map (pattern venv renaming) p_list in
   let e, fun_defs = expression venv renaming fun_defs e in
   { funexp with f_args = p_list; f_body = e; f_env = env }, fun_defs
