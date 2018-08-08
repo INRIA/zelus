@@ -1,8 +1,10 @@
-let f g (x, y) = (g 1) x + y
-
-let g x y = x
-
-let main x = f g (x, x)
+let hybrid limit_int(c, x) = (y, z) where
+  rec init y = x
+      and init z = x
+      and automaton 
+	  | True -> do der y = 1.0 and z = 2.0 done
+          | False -> do y = last z +. 1.0 done
+	  end
 (*
 let node edge(x) = o1+o2 where
   rec match x with
