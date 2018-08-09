@@ -1,10 +1,40 @@
-let hybrid limit_int(c, x) = (y, z) where
+let hybrid f(c, x) = (y) where
+  rec init y = x
+   and automaton
+       | True -> do der y = 1.0 unless up(y) then False
+       | False -> do y = 1.0 done
+       end
+
+(* let hybrid limit_int(k, y0, upper, lower, r, u) = (y, sat) where
+  rec reset
+        init y = y0
+      and
+        automaton
+        | BetweenState ->
+            (* regular mode. Integrate the signal *)
+            do der y = k *. u and sat = 0
+            unless up(y -. upper) then UpperState
+            else up(-. (y -. lower)) then LowerState
+        | UpperState ->
+            (* when the input [u] is negative *)
+            do y = upper and sat = 1 unless up(-. u)
+            then BetweenState
+        | LowerState ->
+            (* when the input [u] is positive *)
+            do y = lower and sat = -1
+            unless up(u) then BetweenState
+        end
+      every r *)
+
+(* let hybrid f(c, x) = (y, z) where
   rec init y = x
       and init z = x
-      and automaton 
-	  | True -> do der y = 1.0 and z = 2.0 done
-          | False -> do y = last z +. 1.0 done
-	  end
+      and match c with
+	  | true -> do der y = 1.0 and z = 2.0 and r = up(y) done
+          | false -> do y = last z +. 1.0 and r = up(y) done
+	  end *)
+
+
 (*
 let node edge(x) = o1+o2 where
   rec match x with
