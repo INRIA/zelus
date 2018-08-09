@@ -133,7 +133,8 @@ and constant =
   | Cimmediate of immediate
   | Cglobal of longname
       
-(* a period is of the form [v](v). E.g., 0.2 (3.4) or (5.2) *)
+(* a period is of the form (v1) or v1(v2) with *)
+(* v1 and v2 two static expressions *)
 and period =
     { p_phase: float option;
       p_period: float }
