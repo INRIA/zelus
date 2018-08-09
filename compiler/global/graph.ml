@@ -54,6 +54,8 @@ let before { succ } n1 n2 = S.mem n2 (E.find n1 succ)
 let containt { containt } n_list = List.map (fun n -> E.find n containt) n_list
 
 (* computes outputs = nodes that have no successors *)
+(* warning: this definition makes that in case the graph is cyclic *)
+(* nodes on a cycle are not considered to be outputs *)
 let outputs ({ nodes; succ } as g) =
   let outputs =
     S.filter
@@ -62,7 +64,7 @@ let outputs ({ nodes; succ } as g) =
         
 (** Well formation of a graph *)
 (* the graph must be a partial order, i.e., no cycle *)
-let check { outputs; succ; prec } =
+let check { succ; prec } =
   (* check that a graph has no cycle; in case of error, return a path. *)
   (* [grey] is the set of currently visited nodes; if the current *)
   (* node is grey, then a path has been found *)
@@ -74,7 +76,7 @@ let check { outputs; succ; prec } =
       let black, grey =
         S.fold cycle (E.find n prec) (black, S.add n grey) in
       S.add n black, S.remove n grey in
-  ignore (S.fold cycle outputs (S.empty, S.empty))
+  ignore (E.fold (fun n _ acc -> cycle n acc) prec (S.empty, S.empty))
 
 (** Topological sort. Must be applied to a well-formed graph *)
 let topological { outputs; prec; containt } =
