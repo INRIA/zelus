@@ -374,7 +374,7 @@ and equation is_continuous env
       less_than loc ty_n (Init.skeleton_on_i Init.izero e.e_typ);
       (match e0_opt with
        | Some(e0) -> exp_less_than_on_i false env e0 ihalf
-       | None -> less_for_last loc n last izero);
+       | None -> ()); (* less_for_last loc n last izero); *)
       present_handler_exp_list is_continuous env p_h_e_list ty_n
   | EQinit(n, e0) ->
       exp_less_than_on_i false env e0 ihalf
