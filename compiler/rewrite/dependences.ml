@@ -150,3 +150,7 @@ let make eqs =
   let g = make_read_write xtable itable eq_info_list in
   let g = make_unsafes xtable itable g eqs in
   Graph.outputs g
+
+(* Print a graph of equations *)
+let print ff g = Graph.print Printer.equation ff g
+    
