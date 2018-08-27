@@ -1,6 +1,7 @@
 open Data
 open Misc
-
+open Aux
+  
 let dt = 0.01 (* s     *)
 let l = 15.0 (* m     *)
 let g = 10.0 (* m/s^2 *)
@@ -34,7 +35,7 @@ let node pendulum_with_loss (theta0, x0'', y0'') = theta where
       thetap = theta0 fby theta
   
 
-let atomic node mpendulum(theta0, x0, y0) =
+let atomic node pendulum_with_moving_bottom(theta0, x0, y0) =
 (* pendulum controled by hand:        *)
 (* x0, y0 are the botom coordinates   *)
   
@@ -51,10 +52,36 @@ let atomic node mpendulum(theta0, x0, y0) =
   
   let x = x0 +. l*. (sin theta) in
   let y = y0 +. l*. (cos theta) in
-  (x0, y0, x, y, theta)
-    
+  (x, y, theta)
+
+(* The main entry for the pendulum *)
+(* read of inputs *)
+(*- 's' for start;
+ *- 'f' for freeze;
+ *- 'r' for resume; *)
+let node mpendulum() = 
+   let key = Aux.input () in (* get inputs from the keybord *)
+   let x0, y0 = Data.get_cursor () in (* get current position of the mouse *)
+   local theta, x, y in
+   do  init theta = 0.0 (* initial angle is 0.0 *)
+   and init x = x0 (* initial value for x is x0 *)
+   and init y = y0 (* initial value for y is y0 *)
+   and automaton
+       | Await ->
+           (* await for the start button to be pressed *)
+           do until (key = Start) continue Running
+       | Running ->
+           (* run the pendulum *)
+	   do (x, y, theta) = pendulum_with_moving_bottom(last theta, x0, y0)
+           until (key = Freeze) continue Freeze
+       | Freeze ->
+           (* do nothing. When the resume button is pressed *)
+	   (* continue, that is, resume the running mode *)
+	   do until (key = Resume) continue Running
+       end in
+   (x0, y0, x, y, theta)
+   
 let node manual () =
-  let x0,y0 = get_cursor () in
-  let (x0, y0, x, y, _) = mpendulum(0.0, x0, y0) in 
+  let (x0, y0, x, y, _) = mpendulum() in
   let p = make_pend(x0, y0, x, y) in
   draw_pendulum(p, p -> pre p)
