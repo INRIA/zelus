@@ -111,18 +111,16 @@ let check_statefull loc expected_k =
   then error loc Ekind_not_combinatorial
 
 (** The type of states in automata *)
-(** We constraint the use of automata such that a state can be entered *)
-(** by reset of by history but with the constraint that *)
-(** all transitions on that state must agree on one kind of transition. *)
-(** Note that this is a restriction w.r.t Lucid Synchrone *)
+(** We emit a warning when a state is entered both by reset and history *)
 type state = { mutable s_reset: bool option; s_parameters: typ list }
 
 let check_target_state loc expected_reset actual_reset =
   match expected_reset with
     | None -> Some(actual_reset)
     | Some(expected_reset) -> 
-        if expected_reset = actual_reset then Some(expected_reset)
-        else error loc (Ereset_target_state(actual_reset, expected_reset))
+        if expected_reset <> actual_reset then
+          warning loc (Wreset_target_state(actual_reset, expected_reset));
+        Some(expected_reset)
 
 (* Every shared variable defined in the initial state of an automaton *)
 (* left weakly is considered to be an initialized state variable. *)
@@ -1083,7 +1081,7 @@ and scondpat expected_k is_zero_type h scpat =
 
          
 (* typing state expressions. [state] must be a stateless expression *)
-(* [is_reset = true] if [state] is entered by reset *)
+(* [actual_reset = true] if [state] is entered by reset *)
 and typing_state h def_states actual_reset state =
   match state.desc with
     | Estate0(s) ->
