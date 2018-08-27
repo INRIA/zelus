@@ -64,11 +64,11 @@ let discrete close (x0, y0, x, y) = (x -. x0 <= eps) && (y -. y0 <= eps)
 (*- 's' for start;
  *- 'f' for freeze;
  *- 'r' for resume; *)
-let node mpendulum() = 
+let node mpendulum(theta0) = 
    let key = Aux.input () in (* get inputs from the keybord *)
    let x0i, y0i = Data.get_cursor () in (* get current position of the mouse *)
    local theta, x, y, x0, y0
-   do  init theta = 0.0 (* initial angle is 0.0 *)
+   do  init theta = theta0 (* initial angle is 0.0 *)
    and init x = x0i (* initial value for x is x0i *)
    and init y = y0i (* initial value for y is y0i *)
    and init x0 = x0i (* initial value for x0 is x0i *)
@@ -76,20 +76,22 @@ let node mpendulum() =
    and automaton
        | Await ->
            (* await for the start button to be pressed *)
-           do until (key = Start) on (close(x0, y0, x0i, y0i)) continue Running
+           do until (key = Start) on (close(x0, y0, x0i, y0i)) then Running
        | Running ->
            (* run the pendulum *)
-	   do (x, y, theta) = pendulum_with_moving_bottom(last theta, x0i, y0i)
+	   do (x, y, theta) = pendulum_with_moving_bottom(theta0, x0i, y0i)
            and x0 = x0i and y0 = y0i
-	   until (key = Freeze) continue Freeze
+	   until (key = Freeze) then Freeze
        | Freeze ->
-           (* do nothing. When the resume button is pressed *)
+           let c = close(x0, y0, x0i, y0i) in
+	   (* do nothing. When the resume button is pressed *)
 	   (* continue, that is, resume the running mode *)
-	   do until (key = Resume) on (close(x0, y0, x0i, y0i)) continue Running
+	   do until (key = Resume) on c continue Running
+	   else (key = Start) on c then Running
        end in
    (x0, y0, x, y, theta)
    
 let node manual () =
-  let (x0, y0, x, y, _) = mpendulum() in
+  let (x0, y0, x, y, _) = mpendulum(0.0) in
   let p = make_pend(x0, y0, x, y) in
   draw_pendulum(p, p -> pre p)
