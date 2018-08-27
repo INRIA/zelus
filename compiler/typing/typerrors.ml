@@ -53,7 +53,6 @@ type error =
   | Eglobal_is_a_function of Lident.t
   | Eapplication_of_non_function
   | Eperiod_not_positive of float
-  | Ereset_target_state of bool * bool
   | Epattern_not_total
   | Ecombination_function of Ident.t
   | Esize_parameter_must_be_a_name
@@ -71,7 +70,8 @@ type warning =
   | Wunreachable_state of Ident.t
   | Wmatch_unused of Zelus.pattern
   | Wequation_does_not_define_a_name
-  		       
+  | Wreset_target_state of bool * bool
+    		       
 let kind_of_global_ident k = match k with
     | Value -> "value" | Type -> "type" 
     | Constr -> "constructor" | Label -> "label"
@@ -219,12 +219,6 @@ let message loc kind =
      eprintf 
        "@[%aType error: the period contains %f which is not strictly positive.@.@]"
        output_location loc f
- | Ereset_target_state(actual_reset, expected_reset) ->
-     eprintf
-       "@[%aType error: the target state is expected to be %s by is entered by %s.@.@]"
-       output_location loc
-       (if expected_reset then "reset" else "on history")
-       (if actual_reset then "reset" else "history")
  | Epattern_not_total ->
      eprintf
        "@[%aType error: this pattern must be total.@.@]"
@@ -278,7 +272,14 @@ let warning loc w =
      Format.eprintf "@[Type warning: match case \"%a\" is unused.@.@]" Printer.pattern p
   | Wequation_does_not_define_a_name ->
      eprintf
-       "@[%aType warning: this equation does not define a name.@.
+       "@[%aType warning: this equation does not define a name. \
           This looks like deadcode.@.@]"
        output_location loc
-     
+  | Wreset_target_state(actual_reset, expected_reset) ->
+      eprintf
+        "@[%aType warning: the target state is expected to be %s,@,\
+             but is entered by %s.@.@]"
+       output_location loc
+       (if expected_reset then "reset" else "on history")
+       (if actual_reset then "reset" else "history")
+ 
