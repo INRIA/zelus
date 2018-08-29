@@ -3,7 +3,7 @@
 (*  The Zelus Hybrid Synchronous Language                                 *)
 (*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke    Marc Pouzet                                         *)
+(*  Marc Pouzet       Timothy Bourke                                      *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -401,11 +401,10 @@ let rec check_pattern env p =
     | Etypeconstraintpat(p, ty) ->
         Zelus.Etypeconstraintpat(check_pattern env p, types env ty)
     | Erecordpat(l_p_list) ->
-       Zelus.Erecordpat
-         (List.map (fun (lname, p) -> (longname lname, check_pattern env p))
-		   l_p_list) in
-  { Zelus.p_desc = desc; Zelus.p_loc = p.loc;
-    Zelus.p_typ = Deftypes.no_typ; Zelus.p_caus = [] }
+        Zelus.Erecordpat
+          (List.map (fun (lname, p) -> (longname lname, check_pattern env p))
+	     l_p_list) in
+  pmake p.loc desc
 
 and check_pattern_list env p_list = List.map (check_pattern env) p_list
 
@@ -446,7 +445,8 @@ let present_handler_list scondpat body env_pat env p_h_list =
 (** Translate automata *)
 let state_handler_list 
     loc scondpat block_body block_in_escape expression env_pat env s_h_list se_opt =
-  (* build the environment of states and check that states are not defined twice *)
+  (* build the environment of states and check that states *)
+  (* are not defined twice *)
   let addname acc { desc = { s_state = statepat } } =
     match statepat.desc with
     | Estate0pat(n) | Estate1pat(n, _) ->
@@ -486,7 +486,8 @@ let state_handler_list
     let env, b_opt =
       match b_opt with 
 	| None -> env, None 
-	| Some(b) -> let env, b = block_in_escape env_pat env b in env, Some(b) in
+        | Some(b) ->
+            let env, b = block_in_escape env_pat env b in env, Some(b) in
     let se = state env se in
     { Zelus.e_cond = scpat; Zelus.e_reset = r; Zelus.e_block = b_opt;
       Zelus.e_next_state = se; Zelus.e_env = Rename.typ_env env_scpat;
@@ -610,9 +611,11 @@ let rec expression env { desc = desc; loc = loc } =
    | Epresent(handlers, e_opt) ->
         (* Translate a present expression into a present equation *)
         (* [present sc1 -> e1 | ... else e] into *)
-        (* [local res do present sc1 -> do res = e1 done|... else do res = e in res]*)
+        (* [local res do present sc1 -> do res = e1 done *)
+        (*               |... else do res = e in res]*)
         (* [present sc1 -> e1 | ... init e] into *)
-        (* [local res do present sc1 -> do res = e1 done| ...and init res = e in res]*)
+        (* [local res do present sc1 -> do res = e1 done *)
+        (*               | ...and init res = e in res]*)
         (* [present sc1 -> e1 ...] into *)
         (* [local res do present sc1 -> do emit res = e1 done] *)
         (* [emit e] returns either [emit x = e] or [x = e] according to *)
@@ -625,7 +628,8 @@ let rec expression env { desc = desc; loc = loc } =
 	        eqmake e.Zelus.e_loc (Zelus.EQemit(result, Some(e)))
 	    | Some(Init _)
 	    | Some(Default _) ->
-	       eqmake e.Zelus.e_loc (Zelus.EQeq(varpat e.Zelus.e_loc result, e)) in
+	        eqmake e.Zelus.e_loc
+                  (Zelus.EQeq(varpat e.Zelus.e_loc result, e)) in
 	let handlers = 
 	  present_handler_list
 	    scondpat 
@@ -820,11 +824,13 @@ and present_handler_exp_list env_pat env p_h_e_list =
 
 and present_handler_block_eq_list env_pat env p_h_b_eq_list =
   present_handler_list scondpat 
-    (fun env_pat env b -> snd (block_eq_list env_pat env b)) env_pat env p_h_b_eq_list
+    (fun env_pat env b -> snd (block_eq_list env_pat env b))
+    env_pat env p_h_b_eq_list
 
 and match_handler_block_eq_list env_pat env m_h_b_eq_list =
   match_handler_list 
-    (fun env_pat env b -> snd (block_eq_list env_pat env b)) env_pat env m_h_b_eq_list
+    (fun env_pat env b -> snd (block_eq_list env_pat env b))
+    env_pat env m_h_b_eq_list
 
 (** Translate a block when the body is a list of equations *)
 and block_eq_list env_pat env b = block locals equation_list env_pat env b
@@ -839,7 +845,8 @@ and scondpat env scpat =
   (* first build the set of names *)
   let rec build_scondpat acc { desc = desc; loc = loc } =
     match desc with
-    | Econdand(scpat1, scpat2) -> build_scondpat (build_scondpat acc scpat1) scpat2
+    | Econdand(scpat1, scpat2) ->
+        build_scondpat (build_scondpat acc scpat1) scpat2
     | Econdor(scpat1, scpat2) ->
        let orcond loc acc0 acc1 acc =
          let one key acc =

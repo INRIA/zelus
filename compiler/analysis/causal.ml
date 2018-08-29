@@ -3,7 +3,7 @@
 (*  The Zelus Hybrid Synchronous Language                                 *)
 (*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Marc Pouzet Timothy Bourke                                            *)
+(*  Marc Pouzet   Timothy Bourke                                          *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -116,7 +116,14 @@ let rec vars acc = function
 and vars_c acc c = S.add (crepr c) acc
     
 (** Sets the polarity of a type. *)
-let polarity_c c right =
+let rec polarity right tc =
+  match tc with
+  | Cfun(tc1, tc2) ->
+     polarity (not right) tc1; polarity right tc2
+  | Cproduct(tc_list) -> List.iter (polarity right) tc_list
+  | Catom(c) -> polarity_c right c
+
+and polarity_c right c =
   match c.c_polarity, right with
     | Punknown, true -> c.c_polarity <- Pplus
     | Punknown, false -> c.c_polarity <- Pminus
@@ -250,21 +257,22 @@ let on_c tc c = on_c true (S.singleton c) tc
     
 (** Simplification of types *)
 (* Mark useful variables *)
-let rec mark right tc =
+let rec mark tc =
   match tc with
   | Cfun(tc1, tc2) ->
-     mark (not right) tc1; mark right tc2
-  | Cproduct(tc_list) -> List.iter (mark right) tc_list
-  | Catom(c) -> mark_c right c
+     mark tc1; mark tc2
+  | Cproduct(tc_list) -> List.iter mark tc_list
+  | Catom(c) -> mark_c c
 
-and mark_c right c =
+and mark_c c =
   let c = crepr c in
   match c.c_desc with
   | Cvar -> 
      c.c_useful <- true;
-     polarity_c c right
-  | Clink(link) -> mark_c right link
-                        
+  | Clink(link) -> mark_c link
+
+let mark_and_polarity is_right tc = mark tc; polarity is_right tc
+    
 (* we compute IO sets [see Pouzet and Raymond, EMSOFT'09] *)
 (* IO(c) = { i / i in I /\ i <_O c } and i <_O c iff O(c) subset O(i) *)
 (* Partition according to IO, i.e., two variables with the same IO *)
@@ -282,7 +290,9 @@ let rec ins_and_outs c (inputs, outputs) =
      | Pminus -> S.add c inputs, outputs
      | Pplusminus -> S.add c inputs, S.add c outputs
      | _ -> inputs, outputs
-                      
+
+let ins_and_outs c_set = S.fold ins_and_outs c_set (S.empty, S.empty)
+    
 (* build O(c) *)
 let rec out c =
   let rec outrec acc c =
@@ -294,33 +304,39 @@ let rec out c =
        List.fold_left outrec acc c.c_sup in
   outrec S.empty c  
 
-(* simplifies a set of causalities *)
+(* compute io(c) *)
+(* io(c) = {i in I / O(c) subseteq O(i) } *)
+let rec io inputs o_table c =
+  let o = M.find c o_table in
+  S.fold
+    (fun i' acc ->
+       let o' = M.find i' o_table in
+       if S.subset o o' then S.add i' acc else acc)
+    inputs S.empty
+  
+(* build a table [c -> O(c)] *)
+let build_o_table c_set o_table =
+  S.fold (fun i acc -> M.add i (out i) acc) c_set o_table    
+
+(* build a table [c -> IO(c)] *)
+let build_io_table inputs o_table c_set io_table =
+  S.fold (fun i acc -> M.add i (io inputs o_table i) acc) c_set io_table
+
+(* simplifies a causality type *)
 let simplify_by_io tc =
   let c_set = vars S.empty tc in
   (* is-it an output? *)
-  let inputs, outputs = S.fold ins_and_outs c_set (S.empty, S.empty) in
+  let inputs, outputs = ins_and_outs c_set in
   let inputs_outputs = S.union inputs outputs in
 
   (* build the association table [i, O(i)] for every i in I and O *)
-  let o_table =
-    S.fold (fun i acc -> M.add i (out i) acc) inputs M.empty in
-  let o_table =
-    S.fold (fun i acc -> M.add i (out i) acc) outputs o_table in
-    
-  (* compute io(c) *)
-  (* io(c) = {i in I / O(c) subseteq O(i) } *)
-  let rec io c =
-    let o = M.find c o_table in
-    S.fold
-      (fun i' acc ->
-       let o' = M.find i' o_table in
-       if S.subset o o' then S.add i' acc else acc)
-      inputs S.empty in
-  
-  (* then the table of io for every input/output *)
-  let io_table = S.fold (fun i acc -> M.add i (io i) acc) inputs M.empty in
-  let io_table = S.fold (fun o acc -> M.add o (io o) acc) outputs io_table in
+  let o_table = build_o_table inputs M.empty in
+  let o_table = build_o_table outputs o_table in
 
+  (* then the table of io for every input/output *)
+  let io_table = build_io_table inputs o_table inputs M.empty in
+  let io_table = build_io_table inputs o_table outputs io_table in
+  
   (* finally, the dependence relation is that of [io], i.e., *)
   (* c1 < c2 iff io(c1) subset io(c2) *)
   (* moreover, variables are partitioned according to [io], i.e., *)
@@ -442,7 +458,8 @@ and csimplify right c =
 let simplify is_right tc =
   shorten tc;
   let tc = simplify is_right tc in
-  mark is_right tc;
+  mark tc;
+  polarity is_right tc;
   shorten tc;
   tc
 
@@ -477,25 +494,26 @@ and cgen c =
   let c = crepr c in
   match c.c_desc with
   | Cvar ->
-     c.c_useful <- false;
-     if c.c_level > !binding_level
-     then 
-       begin
-         c.c_level <- generic;
-         let level = gen_set c.c_sup in
-         c.c_level <- level;
-         if level = generic then list_of_vars := c :: !list_of_vars
-       end;
-     c.c_level
+      c.c_useful <- false;
+      if c.c_level > !binding_level
+      then 
+        begin
+          c.c_level <- generic;
+          let level = gen_set c.c_sup in
+          c.c_level <- level;
+          if level = generic then list_of_vars := c :: !list_of_vars
+        end;
+      c.c_level
   | Clink(link) -> cgen link
-                        
+                     
 and gen_set l = List.fold_left (fun acc c -> max (cgen c) acc) generic l
     
 (** Main generalisation function *)
 let generalise tc =
   list_of_vars := [];
   (* we compute useful variables *)
-  mark true tc;
+  mark tc;
+  polarity true tc;
   (* type simplification *)
   (* let tc = simplify true tc in *)
   let tc = if !Misc.no_simplify then tc else simplify_by_io tc in
@@ -621,14 +639,15 @@ type tentry =
 (* simplifies a typing environment *)
 let simplify_by_io_env env expected_tc actual_tc =
   let mark_env _ { t_typ = tc; t_last_typ = ltc_opt } =
-    mark false tc; Misc.optional_unit mark false ltc_opt in
+    mark_and_polarity true tc;
+    Misc.optional_unit mark_and_polarity true ltc_opt in
   let simplify_env { t_typ = tc; t_last_typ = ltc_opt } =
     let tc = simplify_by_io tc in
     let ltc_opt = Misc.optional_map simplify_by_io ltc_opt in
     { t_typ = tc; t_last_typ = ltc_opt } in
   Env.iter mark_env env;
-  mark true expected_tc;
-  mark true actual_tc;
+  mark_and_polarity true expected_tc;
+  mark_and_polarity true actual_tc;
   let env = Env.map simplify_env env in
   (* Computes the set of free variables and dependence relations *)
   let cset =

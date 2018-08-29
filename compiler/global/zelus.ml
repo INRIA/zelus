@@ -1,15 +1,19 @@
 (**************************************************************************)
 (*                                                                        *)
-(*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2018                                               *)
+(*                                Zelus                                   *)
+(*               A synchronous language for hybrid systems                *)
+(*                       http://zelus.di.ens.fr                           *)
 (*                                                                        *)
-(*  Timothy Bourke    Marc Pouzet                                         *)
+(*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
+(*  Copyright 2012 - 2018. All rights reserved.                           *)
 (*                                                                        *)
-(*   This file is distributed under the terms of the CeCILL-C licence     *)
+(*  This file is distributed under the terms of the CeCILL-C licence      *)
+(*                                                                        *)
+(*  Zelus is developed in the INRIA PARKAS team.                          *)
 (*                                                                        *)
 (**************************************************************************)
+
 (* Abstract syntax tree after scoping *)
 
 open Location
@@ -75,10 +79,12 @@ and is_atomic = bool
 and is_static = bool
 		  
 and exp = 
-  { mutable e_desc: desc;
-    e_loc: location;
-    mutable e_typ: Deftypes.typ;
-    mutable e_caus: Defcaus.t list }
+  { mutable e_desc: desc; (* descriptor *)
+    e_loc: location; (* location in the source code *)
+    mutable e_typ: Deftypes.typ; (* its type *)
+    mutable e_caus: Defcaus.tc; (* its causality type *)
+    mutable e_init: Definit.ti; (* its initialization type *)
+  }
     
 and desc =
   | Elocal of Ident.t
@@ -123,10 +129,12 @@ and period =
       p_period: float }
 
 and pattern =
-    { mutable p_desc: pdesc;
-      p_loc: location;
-      mutable p_typ: Deftypes.typ;
-      mutable p_caus: Defcaus.t list }
+  { mutable p_desc: pdesc; (* its descriptor *)
+    p_loc: location; (* where it is in the source code *)
+    mutable p_typ: Deftypes.typ; (* its type *)
+    mutable p_caus: Defcaus.tc; (* its causality type *)
+    mutable p_init: Definit.ti; (* its initialization type *)
+  }
 
 and pdesc =
   | Ewildpat

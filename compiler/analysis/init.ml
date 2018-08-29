@@ -54,12 +54,12 @@ let ivalue v =
 let ione = ivalue Ione
 let ihalf = ivalue Ihalf
 let izero = ivalue Izero
-let funtype ty1 ty2 = Ifun(ty1, ty2)
-let rec funtype_list ty_arg_list ty_res =
-  match ty_arg_list with
-  | [] -> ty_res
-  | [ty] -> funtype ty ty_res
-  | ty :: ty_arg_list -> funtype ty (funtype_list ty_arg_list ty_res)
+let funtype ti1 ti2 = Ifun(ti1, ti2)
+let rec funtype_list ti_arg_list ti_res =
+  match ti_arg_list with
+  | [] -> ti_res
+  | [ti] -> funtype ti ti_res
+  | ti :: ti_arg_list -> funtype ti (funtype_list ti_arg_list ti_res)
 let product l = Iproduct(l)
 let atom i = Iatom(i)
     
@@ -139,12 +139,12 @@ and less_v v1 v2 =
   | _ -> false
     
 (** Sub-typing *)
-let rec less left_ty right_ty =
-  if left_ty == right_ty then ()
+let rec less left_ti right_ti =
+  if left_ti == right_ti then ()
   else
-    match left_ty, right_ty with
-    | Ifun(ty1, ty2), Ifun(ty3, ty4) ->
-       less ty2 ty4; less ty3 ty1
+    match left_ti, right_ti with
+    | Ifun(ti1, ti2), Ifun(ti3, ti4) ->
+       less ti2 ti4; less ti3 ti1
     | Iproduct(l1), Iproduct(l2) -> List.iter2 less l1 l2
     | Iatom(i1), Iatom(i2) -> less_i i1 i2
     | _ -> raise (Clash(Iless_than))
@@ -173,41 +173,41 @@ and less_i left_i right_i =
       | _ -> raise (Clash(Iless_than))
                
 (** Computing an initialization type from a type *)
-let rec skeleton ty =
-  match ty.t_desc with
+let rec skeleton { t_desc = desc } =
+  match desc with
   | Tvar -> atom (new_var ())
-  | Tfun(_, _, ty1, ty2) -> funtype (skeleton ty1) (skeleton ty2)
-  | Tproduct(ty_list) -> product (List.map skeleton ty_list)
+  | Tfun(_, _, ti1, ti2) -> funtype (skeleton ti1) (skeleton ti2)
+  | Tproduct(ti_list) -> product (List.map skeleton ti_list)
   | Tconstr(_, _, _) | Tvec _ -> atom (new_var ())
-  | Tlink(ty) -> skeleton ty
+  | Tlink(ti) -> skeleton ti
                           
-let rec skeleton_on_i i ty =
-  match ty.t_desc with
+let rec skeleton_on_i i { t_desc = desc } =
+  match desc with
   | Tvar -> atom i
-  | Tfun(_, _, ty1, ty2) ->
-     funtype (skeleton_on_i i ty1) (skeleton_on_i i ty2)
-  | Tproduct(ty_list) -> product (List.map (skeleton_on_i i) ty_list)
+  | Tfun(_, _, ti1, ti2) ->
+     funtype (skeleton_on_i i ti1) (skeleton_on_i i ti2)
+  | Tproduct(ti_list) -> product (List.map (skeleton_on_i i) ti_list)
   | Tconstr(_, _, _) | Tvec _ -> atom i
-  | Tlink(ty) -> skeleton_on_i i ty
+  | Tlink(ti) -> skeleton_on_i i ti
                                
-let rec fresh_on_i i ty =
-  match ty with
-  | Ifun(left_ty, right_ty) ->
-      funtype (fresh_on_i i left_ty) (fresh_on_i i right_ty)
-  | Iproduct(ty_list) -> product (List.map (fresh_on_i i) ty_list)
+let rec fresh_on_i i ti =
+  match ti with
+  | Ifun(left_ti, right_ti) ->
+      funtype (fresh_on_i i left_ti) (fresh_on_i i right_ti)
+  | Iproduct(ti_list) -> product (List.map (fresh_on_i i) ti_list)
   | Iatom _ -> atom i
                  
 (* Compute the infimum/supremum of two types *)
-let rec suptype is_right ty1 ty2 =
-  match ty1, ty2 with
-  | Ifun(left_ty1, right_ty1), Ifun(left_ty2, right_ty2) ->
-    Ifun(suptype (not is_right) left_ty1 left_ty2,
-         suptype is_right right_ty1 right_ty2)
-  | Iproduct(ty_list1), Iproduct(ty_list2) ->
-    let ty_list =
-      try List.map2 (suptype is_right) ty_list1 ty_list2
+let rec suptype is_right ti1 ti2 =
+  match ti1, ti2 with
+  | Ifun(left_ti1, right_ti1), Ifun(left_ti2, right_ti2) ->
+    Ifun(suptype (not is_right) left_ti1 left_ti2,
+         suptype is_right right_ti1 right_ti2)
+  | Iproduct(ti_list1), Iproduct(ti_list2) ->
+    let ti_list =
+      try List.map2 (suptype is_right) ti_list1 ti_list2
       with Invalid_argument _ -> assert false in
-    Iproduct(ty_list)
+    Iproduct(ti_list)
   | Iatom(i1), Iatom(i2) -> Iatom(sup_i is_right i1 i2)
   | _ -> assert false
 
@@ -227,12 +227,12 @@ and sup_i is_right i1 i2 =
     | _ -> let i = new_var () in
         if is_right then i.i_inf <- [i1; i2] else i.i_sup <- [i1; i2]; i
 
-(* visit a type; [visit v ty] recursively mark *)
+(* visit a type; [visit v ti] recursively mark *)
 (* all nodes with value [v] *) 
-let rec visit v ty =
-  match ty with
-  | Ifun(ty1, ty2) -> visit v ty1; visit v ty2
-  | Iproduct(ty_list) -> List.iter (visit v) ty_list
+let rec visit v ti =
+  match ti with
+  | Ifun(ti1, ti2) -> visit v ti1; visit v ti2
+  | Iproduct(ti_list) -> List.iter (visit v) ti_list
   | Iatom(i) -> visit_i v i
 
 and visit_i v i =
@@ -248,10 +248,10 @@ and visit_i v i =
 (* reduces dependences by eliminating intermediate variables *)
 (* we first mark useful variables (variables which appear in *)
 (* the final type. We also compute polarities *)
-let rec mark right ty =
-  match ty with
-  | Ifun(ty1, ty2) -> mark right ty2; mark (not right) ty1
-  | Iproduct(ty_list) -> List.iter (mark right) ty_list
+let rec mark right ti =
+  match ti with
+  | Ifun(ti1, ti2) -> mark right ti2; mark (not right) ti1
+  | Iproduct(ti_list) -> List.iter (mark right) ti_list
   | Iatom(i) -> imark right i
 
 and imark right i =
@@ -264,10 +264,10 @@ and imark right i =
                               
 (* Garbage collection: only keep dependences of the form a- < b+ *)
 (* this step is done after having called the function mark *)
-let rec shorten ty =
-  match ty with
-  | Ifun(ty1, ty2) -> shorten ty1; shorten ty2
-  | Iproduct(ty_list) -> List.iter shorten ty_list
+let rec shorten ti =
+  match ti with
+  | Ifun(ti1, ti2) -> shorten ti1; shorten ti2
+  | Iproduct(ti_list) -> List.iter shorten ti_list
   | Iatom(i) -> shorten_i i
 
 and shorten_i i =
@@ -327,10 +327,10 @@ and short is_right acc i =
  *- a variable a- which has no sup. can be replaced by 1;
  *- if a- has a single sup. b+, it can be replaced by it
  *- if a+ has a single inf. b-, it can be replaced by it. *)
-let rec simplify right ty =
-  match ty with
-  | Ifun(ty1, ty2) -> funtype (simplify (not right) ty1) (simplify right ty2)
-  | Iproduct(ty_list) -> product(List.map (simplify right) ty_list)
+let rec simplify right ti =
+  match ti with
+  | Ifun(ti1, ti2) -> funtype (simplify (not right) ti1) (simplify right ti2)
+  | Iproduct(ti_list) -> product(List.map (simplify right) ti_list)
   | Iatom(i) -> Iatom(isimplify right i)
 
 and isimplify right i =
@@ -359,10 +359,10 @@ and isimplify right i =
 (* can be generalised *)
 let list_of_vars = ref []
                        
-let rec gen ty =
-  match ty with
-  | Ifun(ty1, ty2) -> gen ty1; gen ty2
-  | Iproduct(ty_list) -> List.iter gen ty_list
+let rec gen ti =
+  match ti with
+  | Ifun(ti1, ti2) -> gen ti1; gen ti2
+  | Iproduct(ti_list) -> List.iter gen ti_list
   | Iatom(i) -> ignore (igen i)
                        
 and igen i =
@@ -399,18 +399,18 @@ let relation i_list =
   rel
 
 (** Main generalisation function *)
-let generalise ty =
+let generalise ti =
   list_of_vars := [];
   (* we mark useful variables *)
-  mark true ty;
+  mark true ti;
   (* garbage collect dependences *)
-  shorten ty;
-  let ty = simplify true ty in
-  mark true ty;
-  shorten ty;
-  gen ty;
+  shorten ti;
+  let ti = simplify true ti in
+  mark true ti;
+  shorten ti;
+  gen ti;
   let rel = relation !list_of_vars in
-  { typ_vars = !list_of_vars; typ_rel = rel; typ = ty }
+  { typ_vars = !list_of_vars; typ_rel = rel; typ = ti }
 
 (** Instantiation of a type *)
 (* save and cleanup links *)
@@ -502,19 +502,19 @@ let instance { value_init = tis_opt } ty =
       subtype true (default ty)
   | Some(tis) -> instance tis ty
 
-let filter_arrow ty =
-  match ty with
-  | Ifun(ty1, ty2) -> ty1, ty2
+let filter_arrow ti =
+  match ti with
+  | Ifun(ti1, ti2) -> ti1, ti2
   | _ -> assert false
 
-let filter_product ty =
-  match ty with
-  | Iproduct(ty_list) -> ty_list
+let filter_product ti =
+  match ti with
+  | Iproduct(ti_list) -> ti_list
   | _ -> assert false
 
 (** An entry in the type environment *)
 type tentry =
-    { t_typ: Definit.ty; (* the init type [ty] of x *)
+    { t_typ: Definit.ti; (* the init type [ty] of x *)
       t_last: Definit.t; (* v in [0, 1/2, 1] so that last x: ty[v] *)
     }
     

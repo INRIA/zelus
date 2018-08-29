@@ -3,7 +3,7 @@
 (*  The Zelus Hybrid Synchronous Language                                 *)
 (*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Marc Pouzet                                                           *)
+(*  Marc Pouzet  Timothy Bourke                                           *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -51,3 +51,4 @@ and polarity = Punknown | Pplus | Pminus | Pplusminus
 
 let compare c1 c2 = Pervasives.compare c1.c_index c2.c_index
 
+let no_typ = Cproduct []

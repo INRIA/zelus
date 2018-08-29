@@ -248,8 +248,9 @@ let message loc kind =
         Ptypes.output_size actual_size
         Ptypes.output_size expected_size
  | Esize_parameter_cannot_be_generalized(n, ty) ->
-      eprintf "@[%aType error: this pattern has type@ %a,@ \
-                 which contains the variable %s that is bounded later or never.@.@]"
+     eprintf
+       "@[%aType error: this pattern has type@ %a,@ \
+        which contains the variable %s that is bounded later or never.@.@]"
 	output_location loc
         Ptypes.output ty
 	(Ident.name n)
@@ -259,17 +260,20 @@ let message loc kind =
 let warning loc w =
   match w with
   | Wpartial_matching(p) ->
-     Format.eprintf "@[%aType warning: this pattern-matching is not exhaustive.@.@]"
-		    output_location loc;
-     Format.eprintf "@[Here is an example of a value that is not matched:@.%a@.@]"
-		    Printer.pattern p
+      Format.eprintf
+        "@[%aType warning: this pattern-matching is not exhaustive.@.@]"
+	output_location loc;
+      Format.eprintf
+        "@[Here is an example of a value that is not matched:@.%a@.@]"
+	Printer.pattern p
   | Wunreachable_state(s) ->
      eprintf
        "@[%aType warning: the state %s in this automaton is unreachable.@.@]"
        output_location loc
        (Ident.source s)
   | Wmatch_unused(p) ->
-     Format.eprintf "@[Type warning: match case \"%a\" is unused.@.@]" Printer.pattern p
+      Format.eprintf
+        "@[Type warning: match case \"%a\" is unused.@.@]" Printer.pattern p
   | Wequation_does_not_define_a_name ->
      eprintf
        "@[%aType warning: this equation does not define a name. \

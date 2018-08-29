@@ -1,212 +1,326 @@
 (**************************************************************************)
 (*                                                                        *)
-(*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2017                                               *)
+(*                                Zelus                                   *)
+(*               A synchronous language for hybrid systems                *)
+(*                       http://zelus.di.ens.fr                           *)
 (*                                                                        *)
-(*  Timothy Bourke                                                        *)
-(*  Marc Pouzet                                                           *)
+(*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
+(*  Copyright 2012 - 2018. All rights reserved.                           *)
 (*                                                                        *)
-(*   This file is distributed under the terms of the CeCILL-C licence     *)
+(*  This file is distributed under the terms of the CeCILL-C licence      *)
+(*                                                                        *)
+(*  Zelus is developed in the INRIA PARKAS team.                          *)
 (*                                                                        *)
 (**************************************************************************)
 
-(* Mark functions to be inlined. *)
+(* Mark functions to be inlined. The analysis is based on the *)
+(* causality type system and use the causality tags to decide whether *)
+(* a function must be inlined or not *)
 
 open Zelus
 
-let causality_of_pattern_list p_list =
-  List.fold_left
-    (fun acc { p_caus = c_list } -> Causal.union acc c_list) [] p_list
+type info =
+  { inputs: Causal.S.t; (* the causality tags of inputs of the function *)
+    outputs: Causal.S.t; (* the causality tags of outputs *)
+    o_table: Causal.S.t Causal.M.t; (* outputs of a causality tag *)
+    io_table: Causal.S.t Causal.M.t; (* the IO relation for all *)
+                                     (* accessible causality tags in the body *)
+   }
+  
+(* For that purpose:
+ *- 1/ a first pass computes the set of causality tags
+ *- that appear in the body of a function; 
+ *- 2/ then the IO for all of them;
+ *- 3/ if a function call [f arg1...argn] has to be inlined, it 
+ *- is rewritten into [inline f arg1...argn].
+ *- the decision is made according to the following rule:
+ *- let [tc_in_list] and [tc_out] be the causality types of the 
+ *- inputs and output of the function in which this call appears. 
+ *- Let [(f (arg1: tc1) ... (argn: tcn)): tc_res] 
+ *- The function call in not inlined 
+ *- if forall ai, bj st ai in vars tc_arg_list, bj in vars tc_res. 
+ *-      io(ai) subseteq io(bj) 
+ *- where io(a) is the input/dependences of a, with i(a) a subset of names 
+ *- from vars tc_in_list and o(a) a subset of names from vars tc_out 
+ *- otherwise, the function is inlined 
+ *- In such a case, the function call is strict, that is, 
+ *- all outputs of the function call already depend 
+ *- on all of its inputs *)
 
-let causality_of_exp acc { e_caus = c_list } = Causal.union acc c_list
+(* compute the set of causality tags that appear in the body of a function *)
+let funexp_info { f_args = p_list; f_body = ({ e_caus = tc } as e) } =
+  let rec exp c_set { e_desc = desc; e_caus = tc } =
+    match desc with
+      | Elocal _ | Eglobal _ | Econst _
+      | Econstr0 _ | Elast _ | Eperiod _ | Eop _ -> c_set
+      | Eapp({ app_inline = i }, op, arg_list) ->
+          let c_set = List.fold_left exp (exp c_set op) arg_list in
+          (* only fully applied functions are considered for a possible *)
+          (* inline; all others with be statically reduced *)
+          if Types.fully_applied e.e_typ && not i
+          then let tc_arg_list =
+                 List.map (fun { e_caus = tc } -> tc) arg_list in
+               List.fold_left Causal.vars (Causal.vars c_set tc) tc_arg_list
+          else c_set
+    | Etuple(e_list) -> List.fold_left exp c_set e_list
+    | Erecord_access(e, _) | Etypeconstraint(e, _) -> exp c_set e
+    | Erecord(m_e_list) ->
+        List.fold_left (fun acc (_, e) -> exp acc e) c_set m_e_list
+    | Epresent(p_h_list, e_opt) ->
+        let c_set =
+          List.fold_left (fun acc { p_body = e } -> exp acc e) c_set p_h_list in
+        Misc.optional exp c_set e_opt
+    | Ematch(_, e, m_h_list) ->
+        List.fold_left
+          (fun acc { m_body = e } -> exp acc e) (exp c_set e) m_h_list
+    | Elet(l, e) -> exp (local c_set l) e
+    | Eblock(b, e) ->  exp (block_eq_list c_set b) e
+    | Eseq(e1, e2) -> exp (exp c_set e1) e2
+                        
+  and local c_set { l_eq = eq_list } = List.fold_left equation c_set eq_list
+      
+  and equation c_set { eq_desc = desc } =
+    match desc with
+    | EQeq(_, e) | EQpluseq(_, e) | EQinit(_, e) -> exp c_set e
+    | EQder(_, e, e_opt, p_h_list) ->
+        let c_set = Misc.optional exp (exp c_set e) e_opt in
+        List.fold_left (fun acc { p_body = e } -> exp acc e) c_set p_h_list
+    | EQnext(n, e, e_opt) ->
+        Misc.optional exp (exp c_set e) e_opt
+    | EQautomaton(_, s_h_list, se_opt) ->
+        let c_set =
+          List.fold_left
+            (fun acc { s_body = b_eq_list; s_trans = s_trans } ->
+               let acc = block_eq_list acc b_eq_list in
+               List.fold_left
+                 (fun acc
+                   { e_cond = scpat; e_block = b_opt; e_next_state = se } ->
+                   let c_set = scondpat acc scpat in
+                   let c_set = Misc.optional block_eq_list c_set b_opt in
+                   state c_set se)
+                 acc s_trans)
+            c_set s_h_list in
+        Misc.optional state c_set se_opt
+    | EQpresent(p_h_list, b_opt) ->
+        let c_set =
+          List.fold_left
+            (fun acc { p_cond = scpat; p_body = b_eq_list } ->
+               let acc = scondpat acc scpat in
+               block_eq_list acc b_eq_list) c_set p_h_list in
+        Misc.optional block_eq_list c_set b_opt
+    | EQmatch(_, e, m_h_list) ->
+        List.fold_left
+          (fun acc { m_body = b_eq_list } -> block_eq_list acc b_eq_list)
+          (exp c_set e) m_h_list
+    | EQreset(res_eq_list, e) ->
+        List.fold_left equation (exp c_set e) res_eq_list
+    | EQand(eq_list) | EQbefore(eq_list) ->
+        List.fold_left equation c_set eq_list
+    | EQemit(_, e_opt) -> Misc.optional exp c_set e_opt
+    | EQblock(b) -> block_eq_list c_set b
+    | EQforall({ for_index = i_list; for_init = init_list;
+	         for_body = b_eq_list }) ->
+        let index c_set { desc = desc } =
+	  match desc with
+          | Einput(_, e) -> exp c_set e
+          | Eindex(_, e1, e2) -> exp (exp c_set e1) e2
+          | Eoutput _ -> c_set in
+        let init c_set { desc = desc } =
+	  match desc with
+          | Einit_last(_, e) -> exp c_set e in
+        let c_set = List.fold_left index c_set i_list in
+        let c_set = List.fold_left init c_set init_list in
+        block_eq_list c_set b_eq_list
+        
+  and scondpat c_set { desc = desc } =
+    match desc with
+    | Econdand(sc1, sc2) | Econdor(sc1, sc2) ->
+        scondpat (scondpat c_set sc1) sc2
+    | Econdexp(e) | Econdpat(e, _) -> exp c_set e
+    | Econdon(sc, e) -> scondpat (exp c_set e) sc
+			  
+  and state c_set { desc = desc } =
+    match desc with
+    | Estate0 _ -> c_set
+    | Estate1(_, e_list) -> List.fold_left exp c_set e_list
+                              
+  and block_eq_list c_set { b_locals = l_list; b_body = eq_list } =
+    let c_set = List.fold_left local c_set l_list in
+    List.fold_left equation c_set eq_list in
 
-let causality_of_exp_list e_list = List.fold_left causality_of_exp [] e_list
-						  
-(* for a function call [res = f(arg)], with [res: r1,...,rn] *)
-(* [arg: a1,...,ak], inlining must be done if one of the two condition holds *)
-(* (1). exists rj, ai. rj < ai *)
-(* (2). exists input in and output out. *)
-        (* (in <= ai) & (rj <= out) & not (in <= out) *)
-(* otherwise, add a dependence ai < rj when ai <> rj, for all i, j. *)
-(* Nonetheless, because the simplification of causality types *)
-(* considers only inputs/outputs, it is very possible that there is no more *)
-(* link between inputs and arguments, and results and outputs *)
-(* (2) is implemented by the following definition *)
-(*     - exists ai, rj. not (o(ai) <= o(rj)) *)
-(*     said differently, adding an extra dependence would change the io rel. *)
-let to_inline c_in_list c_out_list c_arg_list c_res_list =
-  let i =
-    (* condition (1) *)
-    List.exists
-      (fun c_res ->
-	List.exists (Causal.path c_res) c_arg_list) c_res_list in
-  let i =
-    if i then true
-    else
-      (* condition (2) *)
-      let o_arg_list = List.map (fun c -> Causal.out c) c_arg_list in
-      let o_res_list = List.map (fun c -> Causal.out c) c_res_list in
-      List.exists
-	(fun o_arg ->
-	 List.exists
-	   (fun o_res -> not (Causal.S.subset o_res o_arg)) o_res_list)
-	o_arg_list in
-  (* strictification of the function application in case *)
-  (* inlining is useless *)
-  try
-    if not i then
-      List.iter
-	(fun c_arg ->
-           List.iter
-             (fun c_res -> Causal.less_c c_arg c_res) c_res_list) c_arg_list;
-    i
-  with
-    | Causal.Clash(l) ->
-      Misc.internal_error "Mark function (to inline)" Pcaus.cycle l
-	
-(* generic translation for match handlers *)
-let match_handler body ({ m_body = b } as m_h) = { m_h with m_body = body b }
+  (* First: compute the inputs/outputs of the main function *)
+  let tc_list = List.map (fun { p_caus = tc } -> tc) p_list in
+  (* mark inputs/outputs *)
+  List.iter (Causal.mark_and_polarity false) tc_list;
+  Causal.mark_and_polarity true tc;
+  let c_set =
+    Causal.vars (List.fold_left Causal.vars Causal.S.empty tc_list) tc in
+  let inputs, outputs = Causal.ins_and_outs c_set in
+  (* computes the set of causality tags that appear in [e] *)
+  let c_set = exp c_set e in
 
-(* generic translation function for present handlers *)
-let present_handler scondpat body ({ p_cond = sc; p_body = b } as p_h) =
-  { p_h with p_cond = scondpat sc; p_body = body b }
+  (* compute the table of outputs for all the variables *)
+  let o_table = Causal.build_o_table c_set Causal.M.empty in
 
-(* Mark function calls [y = f(e)] to be inlined *)
-(* [c_in] is the set of dependences variables for inputs; [c_out] for output *)
-let rec exp c_in c_out e =
-  let rec exp ({ e_desc = desc; e_caus = c_list } as e) =
+  (* then the table of io for every causality tag *)
+  let io_table = Causal.build_io_table inputs o_table c_set Causal.M.empty in
+  { inputs = inputs;
+    outputs = outputs;
+    io_table = io_table;
+    o_table = o_table }
+  
+(* The function which decides whether or not a function call *)
+(* [f(arg1,...,argn)] with input type [tc_arg_list] and result type *)
+(* [tc_res] must be inlined *)
+let to_inline
+    ({ inputs = inputs; outputs = outputs; io_table = io_table } as info)
+    tc_arg_list tc_res =
+  let j_set = List.fold_left Causal.vars Causal.S.empty tc_arg_list in
+  let k_set = Causal.vars Causal.S.empty tc_res in
+
+  not (Causal.S.for_all
+           (fun j ->
+              let io_of_j = Causal.M.find j io_table in
+              Causal.S.for_all
+                (fun k ->
+                   let io_of_k = Causal.M.find k io_table in
+                   not (Causal.strict_path k j) &&
+                   (Causal.S.subset io_of_j io_of_k))
+                k_set)
+           j_set)
+
+  
+(* Mark function calls to be inlined *)
+let funexp_mark_to_inline info ({ f_body = e } as funexp) =
+  (* generic translation for match handlers *)
+  let match_handler body ({ m_body = b } as m_h) =
+    { m_h with m_body = body b } in
+  
+  (* generic translation function for present handlers *)
+  let present_handler scondpat body ({ p_cond = sc; p_body = b } as p_h) =
+    { p_h with p_cond = scondpat sc; p_body = body b } in
+
+  (* expressions *)
+  let rec exp ({ e_desc = desc; e_caus = tc } as e) =
     let desc = match desc with
       | Elocal _ | Eglobal _ | Econst _
       | Econstr0 _ | Elast _ | Eperiod _ | Eop _ -> desc
       | Eapp({ app_inline = false } as app, op, arg_list)
-	   when Types.fully_applied e.e_typ ->
-	 (* only fully applied functions can be inlined *)
+          when Types.fully_applied e.e_typ ->
+            (* only fully applied functions can be inlined *)
 	 let op = exp op in
-	 let arg_list = List.map exp arg_list in
-	 let c_arg = causality_of_exp_list arg_list in
-	 let c_res = causality_of_exp [] e in
-	 let i = to_inline c_in c_out c_arg c_res in
+         let arg_list = List.map exp arg_list in
+         let tc_arg_list = List.map (fun { e_caus = tc } -> tc) arg_list in
+         let i = to_inline info tc_arg_list tc in
 	 Eapp({ app with app_inline = i }, op, arg_list)
       | Eapp(app, op, arg_list) ->
-	 let op = exp op in
-	 let arg_list = List.map exp arg_list in
-	 Eapp(app, op, arg_list)
+	  let op = exp op in
+          let arg_list = List.map exp arg_list in
+          Eapp(app, op, arg_list)
       | Etuple(e_list) -> Etuple(List.map exp e_list)
       | Erecord_access(e, m) -> Erecord_access(exp e, m)
       | Erecord(m_e_list) ->
 	 Erecord(List.map (fun (m, e) -> (m, exp e)) m_e_list)
       | Etypeconstraint(e, ty) -> Etypeconstraint(exp e, ty)
       | Epresent(p_h_list, e_opt) ->
-	 Epresent(List.map (present_handler (scondpat c_in c_out) exp) p_h_list,
-		  Misc.optional_map exp e_opt)
+	  Epresent(List.map (present_handler scondpat exp) p_h_list,
+	           Misc.optional_map exp e_opt)
       | Ematch(total, e, m_h_list) ->
 	 Ematch(total, exp e, List.map (match_handler exp) m_h_list)
-      | Elet(l, e) ->
-	 Elet(local c_in c_out l, exp e)
-      | Eblock(b, e) ->
-	 Eblock(block_eq_list c_in c_out b, exp e)
+      | Elet(l, e) -> Elet(local l, exp e)
+      | Eblock(b, e) -> Eblock(block_eq_list b, exp e)
       | Eseq(e1, e2) -> Eseq(exp e1, exp e2) in
-    { e with e_desc = desc } in
-  exp e
+    { e with e_desc = desc }
 
-and local c_in c_out ({ l_eq = eq_list } as l) =
-  { l with l_eq = List.map (equation c_in c_out) eq_list }
+  and local ({ l_eq = eq_list } as l) =
+  { l with l_eq = List.map equation eq_list }
 
-and equation c_in c_out ({ eq_desc = desc } as eq) =
-  let desc = match desc with
-    | EQeq(p, e) -> EQeq(p, exp c_in c_out e)
-    | EQpluseq(n, e) -> EQpluseq(n, exp c_in c_out e)
-    | EQder(n, e, e_opt, p_h_list) ->
-       EQder(n, exp c_in c_out e, Misc.optional_map (exp c_in c_out) e_opt,
-	     List.map
-	       (present_handler (scondpat c_in c_out) (exp c_in c_out))
-	       p_h_list)
-    | EQinit(n, e) -> EQinit(n, exp c_in c_out e)
-    | EQnext(n, e, e_opt) -> EQnext(n, exp c_in c_out e,
-				    Misc.optional_map (exp c_in c_out) e_opt)
-    | EQautomaton(is_weak, s_h_list, se_opt) ->
-       EQautomaton(is_weak, List.map (state_handler c_in c_out) s_h_list,
-		   Misc.optional_map (state c_in c_out) se_opt)
-    | EQpresent(p_h_list, b_opt) ->
-       EQpresent(List.map
-		   (present_handler (scondpat c_in c_out)
-				    (block_eq_list c_in c_out))
-		   p_h_list,
-		 Misc.optional_map (block_eq_list c_in c_out) b_opt)
-    | EQmatch(total, e, m_h_list) ->
-       EQmatch(total, exp c_in c_out e,
-	       List.map (match_handler (block_eq_list c_in c_out)) m_h_list)
-    | EQreset(res_eq_list, e) ->
-       EQreset(List.map (equation c_in c_out) res_eq_list, exp c_in c_out e)
-    | EQand(and_eq_list) ->
-       EQand(List.map (equation c_in c_out) and_eq_list)
-    | EQbefore(before_eq_list) ->
-       EQbefore(List.map (equation c_in c_out) before_eq_list)
-    | EQemit(n, e_opt) ->
-       EQemit(n, Misc.optional_map (exp c_in c_out) e_opt)
-    | EQblock(b) -> EQblock(block_eq_list c_in c_out b)
-    | EQforall({ for_index = i_list; for_init = init_list;
-		 for_body = b_eq_list } as body) ->
-       let index ({ desc = desc } as ind) =
-	 let desc = match desc with
-	 | Einput(x, e) -> Einput(x, exp c_in c_out e)
-	 | Eindex(x, e1, e2) ->
-	    Eindex(x, exp c_in c_out e1, exp c_in c_out e2)
-	 | Eoutput _ -> desc in
-	 { ind with desc = desc } in
-       let init ({ desc = desc } as ini) =
-	 let desc = match desc with
-	   | Einit_last(x, e) -> Einit_last(x, exp c_in c_out e) in
-	 { ini with desc = desc } in
-       let i_list = List.map index i_list in
-       let init_list = List.map init init_list in
-       let b_eq_list = block_eq_list c_in c_out b_eq_list in
-       EQforall { body with for_index = i_list; for_init = init_list;
-			    for_body = b_eq_list } in
-  { eq with eq_desc = desc }
+  and equation ({ eq_desc = desc } as eq) =
+    let desc = match desc with
+      | EQeq(p, e) -> EQeq(p, exp e)
+      | EQpluseq(n, e) -> EQpluseq(n, exp e)
+      | EQder(n, e, e_opt, p_h_list) ->
+          EQder(n, exp e, Misc.optional_map exp e_opt,
+	        List.map (present_handler scondpat exp) p_h_list)
+      | EQinit(n, e) -> EQinit(n, exp e)
+      | EQnext(n, e, e_opt) ->
+          EQnext(n, exp e, Misc.optional_map exp e_opt)
+      | EQautomaton(is_weak, s_h_list, se_opt) ->
+          EQautomaton(is_weak, List.map state_handler s_h_list,
+		      Misc.optional_map state se_opt)
+      | EQpresent(p_h_list, b_opt) ->
+          EQpresent(List.map (present_handler scondpat block_eq_list) p_h_list,
+		    Misc.optional_map block_eq_list b_opt)
+      | EQmatch(total, e, m_h_list) ->
+          EQmatch(total, exp e,
+	          List.map (match_handler block_eq_list) m_h_list)
+      | EQreset(res_eq_list, e) ->
+          EQreset(List.map equation res_eq_list, exp e)
+      | EQand(and_eq_list) ->
+          EQand(List.map equation and_eq_list)
+      | EQbefore(before_eq_list) ->
+          EQbefore(List.map equation before_eq_list)
+      | EQemit(n, e_opt) ->
+          EQemit(n, Misc.optional_map exp e_opt)
+      | EQblock(b) -> EQblock(block_eq_list b)
+      | EQforall({ for_index = i_list; for_init = init_list;
+		   for_body = b_eq_list } as body) ->
+          let index ({ desc = desc } as ind) =
+	    let desc = match desc with
+                | Einput(x, e) -> Einput(x, exp e)
+	        | Eindex(x, e1, e2) ->
+                     Eindex(x, exp e1, exp e2)
+	        | Eoutput _ -> desc in
+            { ind with desc = desc } in
+          let init ({ desc = desc } as ini) =
+	    let desc = match desc with
+	        | Einit_last(x, e) -> Einit_last(x, exp e) in
+            { ini with desc = desc } in
+          let i_list = List.map index i_list in
+          let init_list = List.map init init_list in
+          let b_eq_list = block_eq_list b_eq_list in
+          EQforall { body with for_index = i_list; for_init = init_list;
+			       for_body = b_eq_list } in
+    { eq with eq_desc = desc }
 
-and scondpat c_in c_out ({ desc = desc } as sc) =
-  let desc = match desc with
-    | Econdand(sc1, sc2) ->
-       Econdand(scondpat c_in c_out sc1, scondpat c_in c_out sc2)
-  | Econdor(sc1, sc2) ->
-     Econdor(scondpat c_in c_out sc1, scondpat c_in c_out sc2)
-  | Econdexp(e) -> Econdexp(exp c_in c_out e)
-  | Econdpat(e, p) -> Econdpat(exp c_in c_out e, p)
-  | Econdon(sc, e) -> Econdon(scondpat c_in c_out sc, exp c_in c_out e) in
-  { sc with desc = desc }     
-				   
-and state_handler c_in c_out ({ s_body = b; s_trans = trans } as sh) =
-  { sh with s_body = block_eq_list c_in c_out b;
-	    s_trans = List.map (escape c_in c_out) trans }
+  and scondpat ({ desc = desc } as sc) =
+    let desc = match desc with
+      | Econdand(sc1, sc2) -> Econdand(scondpat sc1, scondpat sc2)
+      | Econdor(sc1, sc2) -> Econdor(scondpat sc1, scondpat sc2)
+      | Econdexp(e) -> Econdexp(exp e)
+      | Econdpat(e, p) -> Econdpat(exp e, p)
+      | Econdon(sc, e) -> Econdon(scondpat sc, exp e) in
+    { sc with desc = desc }     
+    
+  and state_handler ({ s_body = b; s_trans = trans } as sh) =
+    { sh with s_body = block_eq_list b; s_trans = List.map escape trans }
+    
+  and state ({ desc = desc } as se) =
+    let desc = match desc with
+      | Estate0 _ -> desc
+      | Estate1(id, e_list) ->
+          Estate1(id, List.map exp e_list) in
+    { se with desc = desc }
+    
+  and block_eq_list ({ b_locals = l_list; b_body = eq_list } as b) =
+    { b with b_locals = List.map local l_list;
+	     b_body = List.map equation eq_list }
+    
+  and escape ({ e_cond = sc; e_block = b_opt; e_next_state = se } as esc) =
+    { esc with e_cond = scondpat sc;
+	       e_block = Misc.optional_map block_eq_list b_opt;
+	       e_next_state = state se } in
 
-and state c_in c_out ({ desc = desc } as se) =
-  let desc = match desc with
-    | Estate0 _ -> desc
-    | Estate1(id, e_list) -> Estate1(id, List.map (exp c_in c_out) e_list) in
-  { se with desc = desc }
-
-and block_eq_list c_in c_out ({ b_locals = l_list; b_body = eq_list } as b) =
-  { b with b_locals = List.map (local c_in c_out) l_list;
-	   b_body = List.map (equation c_in c_out) eq_list }
-
-and escape c_in c_out
-	   ({ e_cond = sc; e_block = b_opt; e_next_state = se } as esc) =
-  { esc with e_cond = scondpat c_in c_out sc;
-	     e_block = Misc.optional_map (block_eq_list c_in c_out) b_opt;
-	     e_next_state = state c_in c_out se }
+  { funexp with f_body = exp e }
     
 let implementation impl =
   match impl.desc with
   | Eopen _ | Etypedecl _ | Econstdecl _ -> impl
-  | Efundecl(n, ({ f_args = p_list; f_body = e } as body)) ->
-     let c_in = causality_of_pattern_list p_list in
-     let c_out = causality_of_exp [] e in
-     let e = exp c_in c_out e in
-     { impl with desc = Efundecl(n, { body with f_body = e }) }
+  | Efundecl(n, funexp) ->
+      let info = funexp_info funexp in
+      let funexp = funexp_mark_to_inline info funexp in
+      { impl with desc = Efundecl(n, funexp) }
 
 let implementation_list impl_list =
   Misc.iter implementation impl_list
-					      

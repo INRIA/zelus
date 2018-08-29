@@ -3,7 +3,7 @@
 (*  The Zelus Hybrid Synchronous Language                                 *)
 (*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Marc Pouzet Timothy Bourke                                            *)
+(*  Marc Pouzet   Timothy Bourke                                          *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -114,8 +114,8 @@ let rec pattern env ({ p_desc = desc; p_loc = loc; p_typ = ty } as p) =
           end in
         less_than p.p_loc env tc_n tc_p;
         tc_p in
-  (* annotate the pattern with causality information *)
-  p.p_caus <- S.elements (Causal.vars S.empty tc);
+  (* annotate the pattern with the causality type *)
+  p.p_caus <- tc;
   tc
   
 (** Build an environment from a typing environment. *)
@@ -273,9 +273,8 @@ let rec exp env c_free ({ e_desc = desc; e_typ = ty; e_loc = loc } as e) =
         let actual_tc = match_handler_exp_list env c_body c_e h_e_list in
         (* the result control depend on [e] *)
         on_c actual_tc c_body in
-  let cset = Causal.vars S.empty tc in
-  (* annotate [e] with causality variables *)
-  e.e_caus <- S.elements cset;
+  (* annotate [e] with the causality type *)
+  e.e_caus <- tc;
   tc
   
 (** Typing an application *)
@@ -345,15 +344,14 @@ and exp_less_than_on_c env c_free e expected_c =
   let actual_tc = exp env c_free e in
   let expected_tc = Causal.skeleton_on_c expected_c e.e_typ in
   less_than e.e_loc env actual_tc expected_tc;
-  (* annotate [e] with causality variables *)
-  e.e_caus <- [expected_c]
+  (* annotate [e] with the causality type *)
+  e.e_caus <- expected_tc
 
 and exp_less_than env c_free e expected_tc =
   let actual_tc = exp env c_free e in
   less_than e.e_loc env actual_tc expected_tc;
-  let cset = Causal.vars S.empty expected_tc in
-  (* annotate [e] with causality variables *)
-  e.e_caus <- S.elements cset;
+  (* annotate [e] with the causality type *)
+  e.e_caus <- expected_tc
 
 (** Typing a list of equations [env |-c eq list] *)
 and equation_list env c_free eq_list = List.iter (equation env c_free) eq_list
@@ -428,28 +426,37 @@ and equation env c_free { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
           Misc.optional
             (fun env b -> block_eq_list shared env c_free b) env b_opt in
         state env c_free c_spat ns in
-      let weak shared env c_free c_scpat
+      let weak shared env c_body c_trans c_scpat
           { s_body = b; s_trans = trans; s_env = s_env } =
         (* remove from [shared] names defined in the current state *)
         let shared = Ident.S.diff shared (cur_names_in_state b trans) in
         let env = build_env s_env env in
-        let env = block_eq_list shared env c_free b in
-        List.iter (escape shared env c_free c_scpat) trans in
-      let strong shared env c_free c_scpat
+        let env = block_eq_list shared env c_body b in
+        List.iter (escape shared env c_trans c_scpat) trans in
+      let strong shared env c_body c_trans c_scpat
           { s_body = b; s_trans = trans; s_env = s_env } =
         (* remove from [shared] names defined in the current state *)
         let shared = Ident.S.diff shared (cur_names_in_state b trans) in
         let env = build_env s_env env in
-        List.iter (escape shared env c_free c_scpat) trans;
-        ignore (block_eq_list shared env c_free b) in
-      let c_body = Causal.intro_less_c c_free in
-      Misc.optional_unit (state env c_free) c_body se_opt;
+        List.iter (escape shared env c_trans c_scpat) trans;
+        ignore (block_eq_list shared env c_body b) in
+      let c_automaton = Causal.intro_less_c c_free in
+      Misc.optional_unit (state env c_free) c_automaton se_opt;
       (* Every branch of the automaton is considered to be executed atomically *)
-      let shared, env = def_env_on_c defnames env c_body in
+      let shared, env = def_env_on_c defnames env c_automaton in
       (* the causality tag for the transition conditions *)
-      let c_scpat = Causal.intro_less_c c_body in
-      if is_weak then List.iter (weak shared env c_free c_scpat) s_h_list
-      else List.iter (strong shared env c_free c_scpat) s_h_list
+      if is_weak then
+        (* first the body; then the escape condition *)
+        let c_trans = Causal.intro_less_c c_automaton in
+        let c_scpat = Causal.intro_less_c c_trans in
+        let c_body = Causal.intro_less_c c_scpat in
+        List.iter (weak shared env c_body c_body c_scpat) s_h_list
+      else
+        (* first the escape condition; then the body *)
+        let c_body = Causal.intro_less_c c_automaton in
+        let c_trans = Causal.intro_less_c c_body in
+        let c_scpat = Causal.intro_less_c c_trans in
+        List.iter (strong shared env c_body c_body c_scpat) s_h_list
   | EQmatch(_, e, m_h_list) ->
       let c_body = Causal.intro_less_c c_free in
       let c_e = Causal.intro_less_c c_body in

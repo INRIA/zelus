@@ -3,7 +3,7 @@
 (*  The Zelus Hybrid Synchronous Language                                 *)
 (*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke    Marc Pouzet                                         *)
+(*  Marc Pouzet       Timothy Bourke                                      *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -184,7 +184,8 @@ module LANG =
     let rec eject internal_pat =
       let sensible_default pdesc = (* TODO: ask Marc *)
         { p_desc = pdesc; p_loc = Loc (0, 0);
-          p_typ = { t_desc = Tvar; t_index = 0; t_level = 0 }; p_caus = [] } in
+          p_typ = { t_desc = Tvar; t_index = 0; t_level = 0 };
+          p_caus = Defcaus.no_typ; p_init = Definit.no_typ } in
       match internal_pat with
         | Pany -> sensible_default Ewildpat
         | Por (l, r) -> sensible_default (Eorpat (eject l, eject r))

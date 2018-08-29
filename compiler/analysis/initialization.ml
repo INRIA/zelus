@@ -30,7 +30,7 @@ open Init
 
 (* Main error message *)
 type error =
-  | Iless_than of ty * ty (* not (expected_ty < actual_ty) *) 
+  | Iless_than of ti * ti (* not (expected_ty < actual_ty) *) 
   | Iless_than_i of t * t (* not (expected_i < actual_i) *) 
   | Ilast of Ident.t (* [last x] is un-initialized *)
   | Ivar of Ident.t (* [x] is un-initialized *)
@@ -42,12 +42,12 @@ let error loc kind = raise (Error(loc, kind))
 let message loc kind =
   begin
     match kind with
-    | Iless_than(expected_ty, actual_ty) ->
+    | Iless_than(expected_ti, actual_ti) ->
         Format.eprintf
           "%aInitialization error: this expression \
            has type %a which should be less than %a.@."
           output_location loc
-          Pinit.ptype expected_ty Pinit.ptype actual_ty
+          Pinit.ptype expected_ti Pinit.ptype actual_ti
     | Iless_than_i(expected_i, actual_i) ->
         Format.eprintf
           "%aInitialization error: this expression \
@@ -69,11 +69,11 @@ let message loc kind =
   end;
   raise Misc.Error
 
-let less_than loc actual_ty expected_ty =
+let less_than loc actual_ti expected_ti =
   try
-    Init.less actual_ty expected_ty
+    Init.less actual_ti expected_ti
   with
-    | Init.Clash _ -> error loc (Iless_than(actual_ty, expected_ty))
+    | Init.Clash _ -> error loc (Iless_than(actual_ti, expected_ti))
 
 let less_for_last loc n actual_i expected_i =
   try
@@ -81,9 +81,9 @@ let less_for_last loc n actual_i expected_i =
   with
     | Init.Clash _ -> error loc (Ilast(n))
 
-let less_for_var loc n actual_ty expected_ty =
+let less_for_var loc n actual_ti expected_ti =
   try
-    Init.less actual_ty expected_ty
+    Init.less actual_ti expected_ti
   with
     | Init.Clash _ -> error loc (Ivar(n))
 
@@ -118,8 +118,8 @@ let build_env is_continuous l_env env =
 (* Given an environment [env], returns a new one where every entry type *)
 (* [ti] is subtyped into [tj] which gets 1/2 as its minimum type *)
 let half env =
-  let half { t_last = lv; t_typ = ty } =
-    { t_last = Init.half_i true lv; t_typ = Init.halftype true ty } in
+  let half { t_last = lv; t_typ = ti } =
+    { t_last = Init.half_i true lv; t_typ = Init.halftype true ti } in
   Env.map half env
     
 (** Build an environment from [env] by replacing the initialization *)
@@ -130,8 +130,9 @@ let half env =
 (* or [x = default_x] if [x] is declared with a default value *)
 let last_env shared defnames env =
   let add n acc =
-    let { t_typ = typ; t_last = i } = Env.find n env in
-    Env.add n { t_typ = Init.fresh_on_i izero typ; t_last = Init.new_var () } acc in
+    let { t_typ = ti; t_last = i } = Env.find n env in
+    Env.add n { t_typ = Init.fresh_on_i izero ti; t_last = Init.new_var () }
+      acc in
   let names = Deftypes.cur_names Ident.S.empty defnames in
   let env_defnames =
     Ident.S.fold add (Ident.S.diff shared names) Env.empty in
@@ -140,9 +141,9 @@ let last_env shared defnames env =
 (* Names from the set [last_names] are considered to be initialized *)
 let add_last_to_env is_continuous env last_names =
   let add n acc =
-    let { t_typ = typ } = Env.find n env in
+    let { t_typ = ti } = Env.find n env in
     let lv = if is_continuous then Init.new_var () else izero in
-    Env.add n { t_typ = Init.fresh_on_i izero typ; t_last = lv } acc in
+    Env.add n { t_typ = Init.fresh_on_i izero ti; t_last = lv } acc in
   let env_last_names =
     Ident.S.fold add last_names Env.empty in
   Env.append env_last_names env
@@ -182,37 +183,39 @@ let initialized loc env shared =
 (* [pattern env p expected_ty] means that the type of [p] must be less *)
 (* than [expected_ty] *)
 let rec pattern is_continuous env
-    { p_desc = desc; p_loc = loc; p_typ = ty } expected_ty =
+    ({ p_desc = desc; p_loc = loc; p_typ = ty } as p) expected_ti =
+  (* annotate the pattern with the initialization type *)
+  p.p_init <- expected_ti;
   match desc with
     | Ewildpat | Econstpat _ | Econstr0pat _ -> ()
     | Evarpat(x) -> 
-        let ty1, last =
-          try let { t_typ = ty1; t_last = last } = Env.find x env in ty1, last 
+        let ti1, last =
+          try let { t_typ = ti1; t_last = last } = Env.find x env in ti1, last 
           with | Not_found -> assert false in
-        less_than loc expected_ty ty1;
+        less_than loc expected_ti ti1;
         (* an equation [x = e] in a continuous context is correct *)
         (* if x and e have the same type and [last x: t] with [1/2 <= t] *)
         if is_continuous then less_for_last loc x ihalf last
     | Etuplepat(pat_list) ->
-        let ty_list = Init.filter_product expected_ty in
+        let ty_list = Init.filter_product expected_ti in
         List.iter2 (pattern is_continuous env) pat_list ty_list
     | Erecordpat(l) -> 
         let pattern_less_than_on_i pat i =
-          let expected_ty = Init.skeleton_on_i i pat.p_typ in
-          pattern is_continuous env pat expected_ty in
+          let expected_ti = Init.skeleton_on_i i pat.p_typ in
+          pattern is_continuous env pat expected_ti in
         let i = Init.new_var () in
-        less_than loc expected_ty (Init.skeleton_on_i i ty);
+        less_than loc expected_ti (Init.skeleton_on_i i ty);
         List.iter (fun (_, p) -> pattern_less_than_on_i p i) l
-    | Etypeconstraintpat(p, _) -> pattern is_continuous env p expected_ty
+    | Etypeconstraintpat(p, _) -> pattern is_continuous env p expected_ti
     | Eorpat(p1, p2) -> 
-        pattern is_continuous env p1 expected_ty;
-        pattern is_continuous env p2 expected_ty
+        pattern is_continuous env p1 expected_ti;
+        pattern is_continuous env p2 expected_ti
     | Ealiaspat(p, n) -> 
-        pattern is_continuous env p expected_ty;
-        let ty_n, last = 
-          try let { t_typ = ty1; t_last = last } = Env.find n env in ty1, last
+        pattern is_continuous env p expected_ti;
+        let ti_n, last = 
+          try let { t_typ = ti1; t_last = last } = Env.find n env in ti1, last
           with | Not_found -> assert false in
-        less_than loc expected_ty ty_n;
+        less_than loc expected_ti ti_n;
         if is_continuous then less_for_last loc n ihalf last
 
 (** Match handler *)
@@ -232,65 +235,69 @@ let present_handlers is_continuous scondpat body env p_h_list =
   List.iter handler p_h_list
 
 (** Initialization of an expression *)
-let rec exp is_continuous env { e_desc = desc; e_typ = ty } =
-  match desc with
-  | Econst _
-  | Econstr0 _
-  | Eperiod _ -> Init.skeleton_on_i (Init.new_var ()) ty
-  | Eglobal { lname = lname } ->
-    let { info = info } =
-      try Modules.find_value lname with | Not_found -> assert false in
-    Init.instance info ty
-  | Elocal(x) -> 
-     begin try let { t_typ = ty1 } = Env.find x env in ty1 
-           with | Not_found -> print x
-     end
-  | Elast(x) -> 
-     begin try 
-         (* [last x] is initialized only if an equation [init x = e] *)
-         (* appears and [e] is also initialized *)
-         let { t_typ = typ; t_last = last } = Env.find x env in
-         Init.fresh_on_i last typ
-       with 
-       | Not_found -> Init.skeleton_on_i ione ty end
-  | Etuple(e_list) -> 
-     product (List.map (exp is_continuous env) e_list)
-  | Eop(op, e_list) -> operator is_continuous env op ty e_list
-  | Eapp(_, e, e_list) ->
-     app is_continuous env (exp is_continuous env e) e_list
-  | Erecord_access(e_record, _) -> 
-     let i = Init.new_var () in
-     exp_less_than_on_i is_continuous env e_record i;
-     Init.skeleton_on_i i ty
-  | Erecord(l) -> 
-     let i = Init.new_var () in
-     List.iter (fun (_, e) -> exp_less_than_on_i is_continuous env e i) l;
-     Init.skeleton_on_i i ty
-  | Etypeconstraint(e, _) -> exp is_continuous env e
-  | Elet(l, e_let) -> 
-     let env = local is_continuous env l in
-     exp is_continuous env e_let
-  | Eblock(b, e_block) ->
-     let env = block_eq_list Ident.S.empty is_continuous env b in
-     exp is_continuous env e_block
-  | Eseq(e1, e2) -> 
-     ignore (exp is_continuous env e1);
-     exp is_continuous env e2
-  | Epresent(p_h_list, e_opt) ->
-    (* if [e] returns a tuple, all type element are synchronised, i.e., *)
-    (* if one is un-initialized, the whole is un-initialized *)
-    let ty = Init.skeleton_on_i (Init.new_var ()) ty in
-    let _ =
-      Misc.optional_map (fun e -> exp_less_than is_continuous env e ty) e_opt in
-    present_handler_exp_list is_continuous env p_h_list ty;
-    ty
-  | Ematch(_, e, m_h_list) ->
-    (* we force [e] to be always initialized. This is overly constraining *)
-    (* but correct and simpler to justify *)
-    exp_less_than_on_i is_continuous env e izero;
-    let ty = Init.skeleton_on_i (Init.new_var ()) ty in
-    match_handler_exp_list is_continuous env m_h_list ty;
-    ty
+let rec exp is_continuous env ({ e_desc = desc; e_typ = ty } as e) =
+  let ti =
+    match desc with
+    | Econst _ | Econstr0 _
+    | Eperiod _ -> Init.skeleton_on_i (Init.new_var ()) ty
+    | Eglobal { lname = lname } ->
+        let { info = info } =
+          try Modules.find_value lname with | Not_found -> assert false in
+        Init.instance info ty
+    | Elocal(x) -> 
+        begin try let { t_typ = ti1 } = Env.find x env in ti1 
+          with | Not_found -> print x
+        end
+    | Elast(x) -> 
+        begin try 
+            (* [last x] is initialized only if an equation [init x = e] *)
+            (* appears and [e] is also initialized *)
+            let { t_typ = ti; t_last = last } = Env.find x env in
+            Init.fresh_on_i last ti
+          with 
+          | Not_found -> Init.skeleton_on_i ione ty end
+    | Etuple(e_list) -> 
+        product (List.map (exp is_continuous env) e_list)
+    | Eop(op, e_list) -> operator is_continuous env op ty e_list
+    | Eapp(_, e, e_list) ->
+        app is_continuous env (exp is_continuous env e) e_list
+    | Erecord_access(e_record, _) -> 
+        let i = Init.new_var () in
+        exp_less_than_on_i is_continuous env e_record i;
+        Init.skeleton_on_i i ty
+    | Erecord(l) -> 
+        let i = Init.new_var () in
+        List.iter (fun (_, e) -> exp_less_than_on_i is_continuous env e i) l;
+        Init.skeleton_on_i i ty
+    | Etypeconstraint(e, _) -> exp is_continuous env e
+    | Elet(l, e_let) -> 
+        let env = local is_continuous env l in
+        exp is_continuous env e_let
+    | Eblock(b, e_block) ->
+        let env = block_eq_list Ident.S.empty is_continuous env b in
+        exp is_continuous env e_block
+    | Eseq(e1, e2) -> 
+        ignore (exp is_continuous env e1);
+        exp is_continuous env e2
+    | Epresent(p_h_list, e_opt) ->
+        (* if [e] returns a tuple, all type element are synchronised, i.e., *)
+        (* if one is un-initialized, the whole is un-initialized *)
+        let ti = Init.skeleton_on_i (Init.new_var ()) ty in
+        let _ =
+          Misc.optional_map
+            (fun e -> exp_less_than is_continuous env e ti) e_opt in
+        present_handler_exp_list is_continuous env p_h_list ti;
+        ti
+    | Ematch(_, e, m_h_list) ->
+        (* we force [e] to be always initialized. This is overly constraining *)
+        (* but correct and simpler to justify *)
+        exp_less_than_on_i is_continuous env e izero;
+        let ti = Init.skeleton_on_i (Init.new_var ()) ty in
+        match_handler_exp_list is_continuous env m_h_list ti;
+        ti in
+  (* annotate the expression with the initialization type *)
+  e.e_init <- ti;
+  ti
        
 (** Typing an operator *)
 and operator is_continuous env op ty e_list =
@@ -326,28 +333,30 @@ and operator is_continuous env op ty e_list =
 
 
 (** Typing an application *)
-and app is_continuous env ty_fct arg_list =
+and app is_continuous env ti_fct arg_list =
   (* typing the list of arguments *)
-  let rec args ty_fct = function
-    | [] -> ty_fct
+  let rec args ti_fct = function
+    | [] -> ti_fct
     | arg :: arg_list ->
-       let ty1, ty2 = Init.filter_arrow ty_fct in
-       exp_less_than is_continuous env arg ty1;
-       args ty2 arg_list in
-  args ty_fct arg_list
+       let ti1, ti2 = Init.filter_arrow ti_fct in
+       exp_less_than is_continuous env arg ti1;
+       args ti2 arg_list in
+  args ti_fct arg_list
 
 and exp_less_than_on_i is_continuous env e expected_i =
-  let actual_ty = exp is_continuous env e in
-  less_than e.e_loc actual_ty (Init.skeleton_on_i expected_i e.e_typ)
+  let actual_ti = exp is_continuous env e in
+  less_than e.e_loc actual_ti (Init.skeleton_on_i expected_i e.e_typ);
 
 and opt_exp_less_than_on_i is_continuous env e_opt expected_i =
   match e_opt with
   | None -> ()
   | Some(e) -> exp_less_than_on_i is_continuous env e expected_i
 
-and exp_less_than is_continuous env e expected_ty =
+and exp_less_than is_continuous env e expected_ti =
   let actual_ty = exp is_continuous env e in
-  less_than e.e_loc actual_ty expected_ty
+  less_than e.e_loc actual_ty expected_ti;
+  (* annotate the expression with the type *)
+
 
 (** Checking equations *)
 and equation_list is_continuous env eq_list =
@@ -357,25 +366,25 @@ and equation is_continuous env
     { eq_desc = eq_desc; eq_loc = loc; eq_write = defnames } =
   match eq_desc with
   | EQeq(p, e) -> 
-      let ty = exp is_continuous env e in
-      pattern is_continuous env p ty
+      let ti = exp is_continuous env e in
+      pattern is_continuous env p ti
   | EQpluseq(n, e) ->
-      let ty_n =
-        try let { t_typ = ty } = Env.find n env in ty
+      let ti_n =
+        try let { t_typ = ti } = Env.find n env in ti
         with Not_found -> assert false in
-      exp_less_than is_continuous env e ty_n
+      exp_less_than is_continuous env e ti_n
   | EQder(n, e, e0_opt, p_h_e_list) ->
       (* e must be of type 0 *)
-      let ty_n, last = 
-        try let { t_typ = ty1; t_last = last1 } = Env.find n env in 
-          ty1, last1 
+      let ti_n, last = 
+        try let { t_typ = ti1; t_last = last1 } = Env.find n env in 
+          ti1, last1 
         with | Not_found -> assert false in
-      exp_less_than is_continuous env e ty_n;
-      less_than loc ty_n (Init.skeleton_on_i Init.izero e.e_typ);
+      exp_less_than is_continuous env e ti_n;
+      less_than loc ti_n (Init.skeleton_on_i Init.izero e.e_typ);
       (match e0_opt with
        | Some(e0) -> exp_less_than_on_i false env e0 ihalf
        | None -> ()); (* less_for_last loc n last izero); *)
-      present_handler_exp_list is_continuous env p_h_e_list ty_n
+      present_handler_exp_list is_continuous env p_h_e_list ti_n
   | EQinit(n, e0) ->
       exp_less_than_on_i false env e0 ihalf
   | EQnext(n, e, e0_opt) ->
@@ -451,10 +460,10 @@ and equation is_continuous env
   | EQand(eq_list)
   | EQbefore(eq_list) -> equation_list is_continuous env eq_list
   | EQemit(n, e_opt) ->
-      let ty_n = 
-        try let { t_typ = ty1 } = Env.find n env in ty1
+      let ti_n = 
+        try let { t_typ = ti1 } = Env.find n env in ti1
         with | Not_found -> assert false in
-      less_than loc ty_n (Init.atom izero);
+      less_than loc ti_n (Init.atom izero);
       ignore
         (Misc.optional_map
            (fun e -> exp_less_than_on_i is_continuous env e izero) e_opt)
@@ -550,41 +559,41 @@ let implementation ff impl =
     | Eopen _ | Etypedecl _ -> ()
     | Econstdecl(f, _, e) ->
         (* the expression [e] must be initialized *)
-        let ty_zero = Init.skeleton_on_i izero e.e_typ in
+        let ti_zero = Init.skeleton_on_i izero e.e_typ in
         Misc.push_binding_level ();
-        exp_less_than false Env.empty e ty_zero;
+        exp_less_than false Env.empty e ti_zero;
         Misc.pop_binding_level ();
-        let tys = generalise ty_zero in
-        Global.set_init (Modules.find_value (Lident.Name(f))) tys;
+        let tis = generalise ti_zero in
+        Global.set_init (Modules.find_value (Lident.Name(f))) tis;
         (* output the signature *)
-        if !Misc.print_initialization_types then Pinit.declaration ff f tys
+        if !Misc.print_initialization_types then Pinit.declaration ff f tis
     | Efundecl(f, { f_kind = k; f_atomic = atomic; f_args = p_list;
                     f_body = e; f_env = h0 }) -> 
         let is_continuous = match k with | C -> true | _ -> false in
         Misc.push_binding_level ();
         let env = build_env is_continuous h0 Env.empty in
-        let ty_list = List.map (fun p -> Init.skeleton p.p_typ) p_list in
-        List.iter2 (pattern is_continuous env) p_list ty_list;
-        let ty_res = exp is_continuous env e in
-        let actual_ty = funtype_list ty_list ty_res in
+        let ti_list = List.map (fun p -> Init.skeleton p.p_typ) p_list in
+        List.iter2 (pattern is_continuous env) p_list ti_list;
+        let ti_res = exp is_continuous env e in
+        let actual_ti = funtype_list ti_list ti_res in
         (* for an atomic node, all outputs depend on all inputs *)
-        let expected_ty =
+        let expected_ti =
           if atomic then
           (* first type the body *)
             let i = Init.new_var () in
-            let ty_arg_list =
+            let ti_arg_list =
               List.map (fun p -> Init.skeleton_on_i i p.p_typ) p_list in
-            let ty_res = Init.skeleton_on_i i e.e_typ in
-            funtype_list ty_arg_list ty_res
+            let ti_res = Init.skeleton_on_i i e.e_typ in
+            funtype_list ti_arg_list ti_res
           else
             funtype_list (List.map (fun p -> Init.skeleton p.p_typ) p_list)
               (Init.skeleton e.e_typ) in
-        Init.less actual_ty expected_ty;
+        Init.less actual_ti expected_ti;
         Misc.pop_binding_level ();
-        let tys = generalise actual_ty in
-        Global.set_init (Modules.find_value (Lident.Name(f))) tys;
+        let tis = generalise actual_ti in
+        Global.set_init (Modules.find_value (Lident.Name(f))) tis;
         (* output the signature *)
-        if !Misc.print_initialization_types then Pinit.declaration ff f tys
+        if !Misc.print_initialization_types then Pinit.declaration ff f tis
   with
   | Error(loc, kind) -> message loc kind
                           

@@ -3,7 +3,7 @@
 (*  The Zelus Hybrid Synchronous Language                                 *)
 (*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke    Marc Pouzet                                         *)
+(*  Marc Pouzet       Timothy Bourke                                      *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -27,9 +27,11 @@ let make x = { desc = x; loc = no_location }
 let prime_app = { app_inline = false; app_statefull = false }
 	    
 let emake desc ty =
-  { e_desc = desc; e_loc = no_location; e_typ = ty; e_caus = [] }
+  { e_desc = desc; e_loc = no_location;
+    e_typ = ty; e_caus = Defcaus.no_typ; e_init = Definit.no_typ }
 let pmake desc ty =
-  { p_desc = desc; p_loc = no_location; p_typ = ty; p_caus = [] }
+  { p_desc = desc; p_loc = no_location;
+    p_typ = ty; p_caus = Defcaus.no_typ; p_init = Definit.no_typ }
 let eqmake desc =
   { eq_desc = desc; eq_loc = no_location; eq_write = Deftypes.empty;
     eq_safe = false; eq_index = -1 }

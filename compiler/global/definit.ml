@@ -3,7 +3,7 @@
 (*  The Zelus Hybrid Synchronous Language                                 *)
 (*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke    Marc Pouzet                                         *)
+(*  Marc Pouzet       Timothy Bourke                                      *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -25,12 +25,12 @@
 type ti_scheme = 
     { typ_vars: t list; (* list of type variables *)
       typ_rel: (t * t list) list; (* the relation between variables *)
-      typ: ty;        (* type of the result *)
+      typ: ti;        (* type of the result *)
     }
 
- and ty =
-   | Ifun of ty * ty
-   | Iproduct of ty list
+ and ti =
+   | Ifun of ti * ti
+   | Iproduct of ti list
    | Iatom of t
 
 (* an initialization type t is associated to its left types t_infs *)
@@ -60,3 +60,5 @@ and value = | Izero | Ione | Ihalf
 and polarity = Punknown | Pplus | Pminus | Pplusminus
 
 let compare i1 i2 = Pervasives.compare i1.i_index i2.i_index
+
+let no_typ = Iproduct []

@@ -3,8 +3,7 @@
 (*  The Zelus Hybrid Synchronous Language                                 *)
 (*  Copyright (C) 2012-2017                                               *)
 (*                                                                        *)
-(*  Timothy Bourke                                                        *)
-(*  Marc Pouzet                                                           *)
+(*  Marc Pouzet    Timothy Bourke                                         *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -388,7 +387,7 @@ and automaton lnames is_weak handler_list se_opt =
          Econstr0pat(longident n),
          List.fold_left (fun acc m -> S.add m acc) lnames l in
     { p_desc = desc; p_loc = statepat.loc;
-      p_typ = statetype; p_caus = [] },
+      p_typ = statetype; p_caus = Defcaus.no_typ; p_init = Definit.no_typ },
   lnames in
 
   (* translating a state *)
@@ -400,12 +399,16 @@ and automaton lnames is_weak handler_list se_opt =
       | Estate0(n) -> 
           { e_desc = Econstr0(longident n);
             e_loc = loc;
-            e_typ = statetype; e_caus = [] }, []
+            e_typ = statetype;
+            e_caus = Defcaus.no_typ;
+            e_init = Definit.no_typ }, []
       | Estate1(n, e_list) ->
           let n_list = Env.find n n_to_parameters in
           { e_desc = Econstr0(longident n);
             e_loc = loc;
-            e_typ = statetype; e_caus = [] }, 
+            e_typ = statetype;
+            e_caus = Defcaus.no_typ;
+            e_init = Definit.no_typ }, 
           List.map2 eqmake n_list e_list in
 
   (* [state_name] is the target state computed in the current step *)
