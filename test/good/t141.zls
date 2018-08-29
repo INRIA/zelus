@@ -1,5 +1,5 @@
 let node loop1 ping pong x =
-  let rec z = run ping (x, y) and y = run pong (x, z) in
+  let rec z = run ping (x, y) + x and y = run pong (x, z) + x in
   (z, y)
 
 let node ping (x, y) = x + y

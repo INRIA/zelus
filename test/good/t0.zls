@@ -1,40 +1,106 @@
-let hybrid f(c, x) = (y) where
-  rec init y = x
-   and automaton
-       | True -> do der y = 1.0 unless up(y) then False
-       | False -> do y = 1.0 done
-       end
+let node g(h)(t)(x, y) =
+  let rec o1, o2 = run h (x, o3)
+  and o3, o4 = run t (o1, o2) in
+  o1 + y, o4
 
-(* let hybrid limit_int(k, y0, upper, lower, r, u) = (y, sat) where
-  rec reset
-        init y = y0
-      and
-        automaton
-        | BetweenState ->
-            (* regular mode. Integrate the signal *)
-            do der y = k *. u and sat = 0
-            unless up(y -. upper) then UpperState
-            else up(-. (y -. lower)) then LowerState
-        | UpperState ->
-            (* when the input [u] is negative *)
-            do y = upper and sat = 1 unless up(-. u)
-            then BetweenState
-        | LowerState ->
-            (* when the input [u] is positive *)
-            do y = lower and sat = -1
-            unless up(u) then BetweenState
-        end
-      every r *)
+let node f(x) = 0 fby x + 1
+let node l(x) = let rec r = f(2+1) in ()
 
-(* let hybrid f(c, x) = (y, z) where
-  rec init y = x
-      and init z = x
-      and match c with
-	  | true -> do der y = 1.0 and z = 2.0 and r = up(y) done
-          | false -> do y = last z +. 1.0 and r = up(y) done
-	  end *)
+let node h1 (x,y) = (x, y)
+let node h2 (x,y) = (x, y)
 
+let node gg(x, y) = g(h1)(h2)(x,y)
 
+(*  
+let node l2(x) = let rec o = f((0 fby o)+1) in o+1
+let node g(x) = 0 fby (x+1)
+let node h(x) = let rec o = g(o1) and o1 = 0 fby (o+1) in o+1
+let node h2(x) = let rec o = g((0 fby o)+1) in o+1
+let node h3(x) = let rec o = g(o+1) in o *)
+  
+(*
+si les sorties des entrees de o1 contiennent
+les sorties de o, il est inutile d'inliner, cad:
+
+O(o) subseteq O(I(o1))
+
+IO(o1) = {ax}
+IO(o) = {}
+ 
+x < o1  o < out alors x < out
+
+IO(x) subset IO(o1) et IO(o) subset IO(o) alors IO(x) subseteq IO(o) *)
+  
+let node int3(o) = 0 fby (o + 1)
+let node f3(y) =
+  let rec o = int3((0 fby o)+1) in o+1
+ 
+(*
+val int3 : {'a < 'b}. 'b -> 'a
+val f : {'a < 'b}. 'b -> 'a
+    *)
+		 
+(* let node int3(o) = 0 fby o + 1
+
+let node f(y) =
+  let rec o = int3((0 fby o)+1) in o
+ *)
+  
+(*
+let h = 0.1
+    
+let node int2(x0, xprime) = x where
+  rec x = x0 -> pre (x +. xprime *. h)
+   
+let node sin_cos() =
+  let rec si = int2(0.0, 0.0 fby co +. 0.0)
+  and co = -1.0 *. int2(1.0, si+.0.0) in
+  si, co
+    *)
+    
+   (*
+let node double2(f)(g)(x) =
+  let rec y = run f (z+x)
+  and z = run g (x+y) in
+  z, y
+		
+let node f1 x = 0 -> pre(x + 1)
+let node f2 x = x + 1
+
+let node f() =
+   let rec y = f2(x) and x = f1(y) in x, y
+   
+let node double_incr2(x) = double2(f1)(f2)(x)
+
+let h = 0.1
+
+let node int2(x0, xprime) = x where
+  rec x = x0 -> pre (x +. xprime *. h)
+
+let node sin_cos() =
+  let rec si = int2(0.0, co)
+  and co = -1.0 *. int2(1.0, si) in
+  si, co
+   *)
+  
+(* let node double(f)(g)(x) =
+  let rec z = run f (x,t)
+  and t = run g (x, z) in
+  z, t
+
+let node incr(x, y) = x -> pre y + 1
+
+let node plus(x,y) = x + y
+    
+let node double_incr(x) = double(incr)(plus)(x)
+
+let node double2(f)(g)(x) =
+  let rec y = run f (z+x)
+  and z = run g (x+y) in
+  z, y
+
+*)
+    
 (*
 let node edge(x) = o1+o2 where
   rec match x with
