@@ -83,11 +83,11 @@ The 3D visualization of the <a href="examples.html#stickysprings">Sticky
 Masses</a> example requires <a href="http://www.linux-nantes.org/~fmonnier/ocaml/GL/">glMLite</a>.
 </p>
 
-<p>The current version of Zélus is <strong>1.2.3</strong> (2017-01-07).</p>
+<p>The current version of Zélus is <strong>1.3.0</strong> (2018-09-16).</p>
 
 <div class="important-button">
-<a class="btn btn-large btn-primary" href="zelus-1.2.3-nosundials-byte.tar.gz">Download (internal solver)</a>
-<a class="btn btn-large btn-primary" href="zelus-1.2.3-sundials-byte.tar.gz">Download (supports sundials)</a>
+<a class="btn btn-large btn-primary" href="zelus-1.3.0-nosundials-byte.tar.gz">Download (internal solver)</a>
+<a class="btn btn-large btn-primary" href="zelus-1.3.0-sundials-byte.tar.gz">Download (supports sundials)</a>
 </div>
 
 <h2 id="dependencies" class="section">Dependencies</h2>
@@ -99,22 +99,22 @@ Masses</a> example requires <a href="http://www.linux-nantes.org/~fmonnier/ocaml
 </tr>
 
 <tr><td><a href="http://caml.inria.fr/download.en.html">OCaml</a></td>
-<td>Required. = 4.04.0</td>
+<td>Required. = 4.07.0</td>
 <td>Running the Zélus compiler and compiling examples.</td>
 </tr>
 
 <tr><td><a href="http://inria-parkas.github.io/sundialsml/">Sundials/ML</a></td>
-<td>Optional. = 2.7.0p0</td>
+<td>Optional. = 3.1.1p0</td>
 <td>Default solver for the “with sundials” distribution.</td>
 </tr>
 
 <tr><td><a href="http://projects.camlcity.org/projects/findlib.html">ocamlfind</a></td>
-<td>Optional. &gt;= 1.7.1</td>
+<td>Optional. &gt;= 1.8.0</td>
 <td>Recommended for compiling your own Zélus programs.</td>
 </tr>
 
 <tr><td><a href="http://lablgtk.forge.ocamlcore.org/">lablgtk2</a></td>
-<td>Optional. = 2.18.5</td>
+<td>Optional. = 2.18.6</td>
 <td>Required for the plotting control and hence many of the 
 examples.</td>
 </tr>
@@ -166,7 +166,7 @@ export PKG_CONFIG_PATH=/opt/X11/lib/pkgconfig
 
 <p>To install Sundials/ML</p>
 <pre>
-brew install homebrew/science/sundials
+brew install sundials
 opam install sundialsml
 </pre>
 
@@ -180,7 +180,7 @@ complicated.</p>
 sudo apt-get install opam m4
 # opam init                 # if this is your first time
 opam update &amp;&amp; opam upgrade # optionally
-opam switch 4.04.0
+opam switch 4.07.0
 eval `opam config env`
 opam install ocamlfind
 </pre>
