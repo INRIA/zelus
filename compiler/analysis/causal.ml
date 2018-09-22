@@ -277,6 +277,7 @@ let mark_and_polarity is_right tc = mark tc; polarity is_right tc
 (* IO(c) = { i / i in I /\ i <_O c } and i <_O c iff O(c) subset O(i) *)
 (* Partition according to IO, i.e., two variables with the same IO *)
 (* get the same representative *)
+
 let is_an_output c =
   c.c_useful && ((c.c_polarity = Pplus) || (c.c_polarity = Pplusminus))
                   
@@ -290,9 +291,21 @@ let rec ins_and_outs c (inputs, outputs) =
      | Pminus -> S.add c inputs, outputs
      | Pplusminus -> S.add c inputs, S.add c outputs
      | _ -> inputs, outputs
-
+    
 let ins_and_outs c_set = S.fold ins_and_outs c_set (S.empty, S.empty)
     
+let rec ins_and_outs_of_a_type is_right (inputs, outputs) tc =
+  match tc with
+  | Cfun(tc1, tc2) ->
+      ins_and_outs_of_a_type  is_right 
+        (ins_and_outs_of_a_type  (not is_right) (inputs, outputs) tc1) tc2
+  | Cproduct(tc_list) ->
+      List.fold_left
+        (ins_and_outs_of_a_type  is_right) (inputs, outputs) tc_list
+  | Catom(c) ->
+      if is_right then inputs, S.add c outputs
+      else S.add c inputs, outputs
+
 (* build O(c) *)
 let rec out c =
   let rec outrec acc c =
@@ -458,8 +471,7 @@ and csimplify right c =
 let simplify is_right tc =
   shorten tc;
   let tc = simplify is_right tc in
-  mark tc;
-  polarity is_right tc;
+  mark_and_polarity is_right tc;
   shorten tc;
   tc
 
@@ -512,8 +524,7 @@ and gen_set l = List.fold_left (fun acc c -> max (cgen c) acc) generic l
 let generalise tc =
   list_of_vars := [];
   (* we compute useful variables *)
-  mark tc;
-  polarity true tc;
+  mark_and_polarity true tc;
   (* type simplification *)
   (* let tc = simplify true tc in *)
   let tc = if !Misc.no_simplify then tc else simplify_by_io tc in

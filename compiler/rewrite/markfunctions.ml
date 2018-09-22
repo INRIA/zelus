@@ -151,6 +151,7 @@ let funexp_info { f_args = p_list; f_body = ({ e_caus = tc } as e) } =
 
   (* First: compute the inputs/outputs of the main function *)
   let tc_list = List.map (fun { p_caus = tc } -> tc) p_list in
+
   (* mark inputs/outputs *)
   List.iter (Causal.mark_and_polarity false) tc_list;
   Causal.mark_and_polarity true tc;
@@ -174,21 +175,25 @@ let funexp_info { f_args = p_list; f_body = ({ e_caus = tc } as e) } =
 (* [f(arg1,...,argn)] with input type [tc_arg_list] and result type *)
 (* [tc_res] must be inlined *)
 let to_inline
-    ({ inputs = inputs; outputs = outputs; io_table = io_table } as info)
+    ({ inputs = inputs; outputs = outputs;
+       io_table = io_table; o_table = o_table } as info)
     tc_arg_list tc_res =
-  let j_set = List.fold_left Causal.vars Causal.S.empty tc_arg_list in
-  let k_set = Causal.vars Causal.S.empty tc_res in
-
+  let in_set, out_set =
+    List.fold_left
+      (Causal.ins_and_outs_of_a_type false) (Causal.S.empty, Causal.S.empty)
+      tc_arg_list in
+  let in_set, out_set =
+    Causal.ins_and_outs_of_a_type true (in_set, out_set) tc_res in
   not (Causal.S.for_all
-           (fun j ->
-              let io_of_j = Causal.M.find j io_table in
+           (fun o ->
+              let io_of_o = Causal.M.find o io_table in
               Causal.S.for_all
-                (fun k ->
-                   let io_of_k = Causal.M.find k io_table in
-                   not (Causal.strict_path k j) &&
-                   (Causal.S.subset io_of_j io_of_k))
-                k_set)
-           j_set)
+                (fun i ->
+                   let io_of_i = Causal.M.find i io_table in
+                   not (Causal.strict_path o i) &&
+                   (Causal.S.subset io_of_o io_of_i))
+                in_set)
+           out_set)
 
   
 (* Mark function calls to be inlined *)
