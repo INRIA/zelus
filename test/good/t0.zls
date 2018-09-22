@@ -4,19 +4,27 @@ let node g(h)(t)(x, y) =
   o1 + y, o4
 
 let node f(x) = 0 fby x + 1
-let node l(x) = let rec r = f(2+1) in ()
-
+let node l(x) = let rec r = f(0 fby x+1) in r
+let node h(x) = let rec o = l(o+1) in o
+  
 let node h1 (x,y) = (x, y)
 let node h2 (x,y) = (x, y)
 
 let node gg(x, y) = g(h1)(h2)(x,y)
 
-(*  
-let node l2(x) = let rec o = f((0 fby o)+1) in o+1
+let node ff(x) = 0 fby x + 1
+let node l2(x) = let rec o = ff(o+1) (* (0 fby o)+1) *) in o+1
+(*
 let node g(x) = 0 fby (x+1)
 let node h(x) = let rec o = g(o1) and o1 = 0 fby (o+1) in o+1
 let node h2(x) = let rec o = g((0 fby o)+1) in o+1
-let node h3(x) = let rec o = g(o+1) in o *)
+let node h3(x) = let rec o = g(o+1) in o
+ *)
+(*
+let node int3(o) = 0 fby (o + 1)
+let node f3(y) =
+  let rec o = int3((0 fby o)+1) in o+1
+ *)
   
 (*
 si les sorties des entrees de o1 contiennent
@@ -31,9 +39,6 @@ x < o1  o < out alors x < out
 
 IO(x) subset IO(o1) et IO(o) subset IO(o) alors IO(x) subseteq IO(o) *)
   
-let node int3(o) = 0 fby (o + 1)
-let node f3(y) =
-  let rec o = int3((0 fby o)+1) in o+1
  
 (*
 val int3 : {'a < 'b}. 'b -> 'a
