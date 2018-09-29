@@ -527,7 +527,7 @@ let generalise tc =
   mark_and_polarity true tc;
   (* type simplification *)
   (* let tc = simplify true tc in *)
-  let tc = if !Misc.no_simplify then tc else simplify_by_io tc in
+  let tc = if !Misc.no_simplify_causality_type then tc else simplify_by_io tc in
   gen tc;
   let c_set = vars S.empty tc in
   let _, rel = relation (S.empty, []) c_set in

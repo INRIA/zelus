@@ -84,7 +84,8 @@ let no_causality = ref false
 let no_initialisation = ref false
 let no_opt = ref false
 let no_deadcode = ref false
-let no_simplify = ref false
+let no_simplify_causality_type = ref false
+let no_reduce = ref false
 
 let lmm_nodes = ref S.empty
 let set_lmm_nodes (n: string) =
