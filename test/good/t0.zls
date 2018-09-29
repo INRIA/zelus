@@ -1,3 +1,7 @@
+let node f x = o where rec o = 0 -> pre o + 1
+
+let node g x = if x then f else f
+
 let node g(h)(t)(x, y) =
   let rec o1, o2 = run h (x, o3)
   and o3, o4 = run t (o1, o2) in
