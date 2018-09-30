@@ -3,7 +3,7 @@
 (*  The Zelus Hybrid Synchronous Language                                 *)
 (*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke    Marc Pouzet                                         *)
+(*  Marc Pouzet     Timothy Bourke                                        *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -47,6 +47,8 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "period", PERIOD;
   "with", WITH;
   "end", END;
+  "exception", EXCEPTION;
+  "external", EXTERNAL;
   "static", STATIC;
   "fun", FUN;
   "node", NODE;
@@ -77,6 +79,7 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "true", BOOL(true); 
   "false", BOOL(false); 
   "or", OR;
+  "of", OF;
   "on", ON;
   "last", LAST;
   "run", RUN;

@@ -1,9 +1,9 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-201y                                               *)
+(*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke    Marc Pouzet                                         *)
+(*  Marc Pouzet    Timothy Bourke                                         *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -54,6 +54,15 @@ let block l lo eq_list startpos endpos =
   | [], [] -> EQand(eq_list)
   | _ -> EQblock(make { b_locals = l; b_vars = lo; b_body = eq_list }
 		      startpos endpos)
+
+(* Define the corresponding Zelus type from an Ocaml type. *)
+(* Only keeps what is representable: if a sum type has a constructor *)
+(* with an arity that is non nul, it becomes an abstract type *)
+let scalar_constr_type l =
+  let ok, l =
+    List.fold_right (fun (c, lc) (ok, l) -> ok && lc = [], c :: l)
+		    l (true, []) in
+  if ok then Eabstract_type else Evariant_type(l)
 
 %}
 
@@ -112,6 +121,8 @@ let block l lo eq_list startpos endpos =
 %token PRESENT        /* "present" */
 %token PERIOD         /* "period" */
 %token END            /* "end" */
+%token EXCEPTION      /* "exception" */
+%token EXTERNAL       /* "external" */
 %token IN             /* "in" */
 %token BEFORE         /* "before" */
 %token OUT            /* "out" */
@@ -126,6 +137,7 @@ let block l lo eq_list startpos endpos =
 %token AND            /* "and" */
 %token TYPE           /* "type" */
 %token STATIC         /* "static" */
+%token OF             /* "of" */
 %token FUN            /* "fun" */
 %token NODE           /* "node" */
 %token HYBRID         /* "hybrid" */
@@ -195,6 +207,9 @@ let block l lo eq_list startpos endpos =
 %start interface_file
 %type <Parsetree.interface list> interface_file
 
+%start scalar_interface_file
+%type <Parsetree.interface list> scalar_interface_file
+
 %%
 
 /** Tools **/
@@ -208,11 +223,15 @@ list_aux(S, X):
 %inline list_of(S, X):
    r = list_aux(S, X) { List.rev r }
 ;
-  
-/* Unseparated list (Kleene star) */
-star(S, X):
-| S X { [x] }
-| l = star(S, X) x = X { x :: l }
+
+/* Non separated list */
+list_aux_no_sep(X):
+| x = X { [x] }
+| r = list_aux_no_sep(X) x = X { x :: r }
+;
+
+%inline list_no_sep_of(X):
+   r = list_aux_no_sep(X) { List.rev r }
 ;
 
 /* Localization */
@@ -313,11 +332,34 @@ interface:
       { Einter_constdecl(i, t) }
 ;
 
+/* Scalar interface */
+scalar_interface_file:
+  | EOF
+      { [] }
+  | il = decl_list(scalar_interface) EOF
+      { List.rev (List.flatten il) }
+  ;
+    
+scalar_interface :
+  | OPEN c = CONSTRUCTOR
+      { [make (Einter_open(c)) $startpos $endpos] }
+  | TYPE tp = type_params i = IDENT td = scalar_type_declaration
+      { [make (Einter_typedecl(i, tp, td)) $startpos $endpos] }
+  | VAL i = ide COLON t = type_expression
+      { [make (Einter_constdecl(i, t)) $startpos $endpos] }
+  | EXTERNAL i = ide COLON t = type_expression EQUAL list_no_sep_of(STRING)
+      { [make (Einter_constdecl(i, t)) $startpos $endpos] }
+  | EXCEPTION constructor
+      { [] }
+  | EXCEPTION constructor OF type_expression
+      { [] }
+;
+
 type_declaration:
   | /* empty */
       { Eabstract_type }
-  | EQUAL e = list_of(BAR, CONSTRUCTOR)
-      { Evariant_type (e) }
+  | EQUAL l = list_of(BAR, CONSTRUCTOR)
+      { Evariant_type (l) }
   | EQUAL LBRACE s = label_list(label_type) RBRACE
       { Erecord_type (s) }
   | EQUAL t = type_expression
@@ -331,6 +373,17 @@ type_params :
       { [tv] }
   |
       { [] }
+;
+
+scalar_type_declaration:
+  | /* empty */
+      { Eabstract_type }
+  | EQUAL l = list_of(BAR, scalar_constr_decl)
+      { scalar_constr_type l }
+  | EQUAL LBRACE s = label_list(label_type) RBRACE
+      { Erecord_type (s) }
+  | EQUAL t = type_expression
+      { Eabbrev(t) }
 ;
 
 label_list(X):
@@ -347,6 +400,13 @@ label_type:
   { (i, t) }
 ;
 
+scalar_constr_decl:
+  | c = CONSTRUCTOR
+      { (c, []) }
+  | c = CONSTRUCTOR OF l = list_of(STAR, simple_type)
+      { (c, l) }
+;
+    
 equation_empty_list:
   | /* empty */
       { [] }

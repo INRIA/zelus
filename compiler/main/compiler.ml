@@ -46,6 +46,9 @@ let parse_implementation_file source_name =
 let parse_interface_file source_name =
   parse Parser.interface_file Lexer.main source_name
 
+let parse_scalar_interface_file source_name = 
+  parse Parser.scalar_interface_file Lexer.main source_name
+
 let compile_interface parse modname filename suffix =
   (* input and outputs *)
   let source_name = filename ^ suffix
@@ -72,7 +75,11 @@ let compile_interface parse modname filename suffix =
   with
   | x -> close_all_files (); raise x
 
-(* compiling an interface *)
+(* compiling a scalar interface *)
+let scalar_interface modname filename =
+  compile_interface parse_scalar_interface_file modname filename ".mli"
+
+(* compiling a Zelus interface *)
 let interface modname filename =
   compile_interface parse_interface_file modname filename ".zli"
 
