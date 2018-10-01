@@ -1,0 +1,20 @@
+val col_engine    : float array
+val line_engine   : float array
+val vals_engine   : float array array
+
+val col_interpup  : float array
+val line_interpup : float array
+val vals_interpup : float array array
+
+val col_interpdn  : float array
+val line_interpdn : float array
+val vals_interpdn : float array array
+
+val line_factork   : float array
+val vals_factork   : float array
+
+val line_torkratio : float array
+val vals_torkratio : float array
+
+val line_gear      : float array
+val vals_gear      : float array
