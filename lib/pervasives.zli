@@ -1,8 +1,6 @@
 (* the core module. taken from Ocaml *)
 (* to debut set arguments -nopervasives -i lib/pervasives.zli *)
 
-type 'a list
-
 val ( on ) : zero -> bool -> zero
 val orz : zero -> zero -> zero
 val ( = ) : 'a -> 'a -AD-> bool

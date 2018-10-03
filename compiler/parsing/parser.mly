@@ -23,6 +23,8 @@ let make desc start_pos end_pos =
 let make_name op start_pos end_pos =
   make (Evar(Name(op))) start_pos end_pos
 			 
+let pervasives_name n = Modname { qual = "Pervasives"; id = n }
+	  
 let unop op e start_pos end_pos =
   Eapp({ app_inline = false; app_statefull = false},
        make_name op start_pos end_pos, [e])
@@ -39,9 +41,25 @@ let unary_minus op e start_pos end_pos =
 let unary_minus_int x = -x
 and unary_minus_float x = -.x
 
+(* Representation of lists. [] for Pervasives.[] *)
+(* [e1;...;en] for Pervasives.(::) e1 (... Pervasives.[]) *)
+let nil_desc = Evar(pervasives_name "[]")
+			  
+let cons_desc x l start_pos end_pos =
+  Eapp({ app_inline = false; app_statefull = false },
+       make (Evar(pervasives_name "::")) start_pos end_pos, [x; l])
+
+let rec cons_list_desc l start_pos end_pos =
+  match l with
+  | [] -> nil_desc
+  | x :: l -> cons_desc x (cons_list l start_pos end_pos) start_pos end_pos
+
+and cons_list l start_pos end_pos =	  
+  make (cons_list_desc l start_pos end_pos) start_pos end_pos
+
 let scond_true start_pos end_pos =
   make (Econdexp(make (Econst(Ebool(true))) start_pos end_pos))
-    start_pos end_pos
+       start_pos end_pos
 
 (* Temporary solution: put a block arround a single equation *)
 let block_of_equation ({ desc = desc; loc = loc } as eq) =
@@ -815,9 +833,13 @@ simple_expression_desc:
   | c = constructor
       { Econstr0(c) }
   | i = ext_ident
-          { Evar i }
+      { Evar i }
+  | LBRACKET RBRACKET
+      { nil_desc }
+  | LBRACKET l = list_of(SEMI, expression) RBRACKET
+      { cons_list_desc l ($startpos($1)) ($endpos($3)) }		 
   | LAST i = ide
-          { Elast(i) }
+      { Elast(i) }
   | a = atomic_constant
       { Econst a }
   | LBRACE l = label_expression_list RBRACE

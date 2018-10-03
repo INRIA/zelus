@@ -3,7 +3,7 @@
 (*  The Zelus Hybrid Synchronous Language                                 *)
 (*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke    Marc Pouzet                                         *)
+(*  Marc Pouzet   Timothy Bourke                                          *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -28,7 +28,9 @@ let abbrev_type params (ty_parameters, ty) =
   { type_desc = Abbrev(ty_parameters, ty); type_parameters = params }
 let abbrev_type qualident params (ty_parameters, ty) =
   { qualid = qualident; info = abbrev_type params (ty_parameters, ty)}
-
+let value qualident tys =
+  { qualid = qualident; info = value_desc false tys qualident }
+  
 let int_ident = pervasives_name "int"
 let int32_ident = pervasives_name "int32"
 let int64_ident = pervasives_name "int64"
@@ -39,6 +41,7 @@ let char_ident = pervasives_name "char"
 let string_ident = pervasives_name "string"
 let sig_ident = pervasives_name "signal"
 let unit_ident = pervasives_name "unit"
+let list_ident = pervasives_name "list"
 
 let type_desc_int = abstract_type int_ident []
 let type_desc_int32 = abstract_type int32_ident []
@@ -50,14 +53,15 @@ let type_desc_char = abstract_type char_ident []
 let type_desc_string = abstract_type string_ident []
 let type_desc_unit = abstract_type unit_ident []
 let type_desc_signal = abstract_type sig_ident [generic]
+let type_desc_list = abstract_type list_ident [generic]
 
-(* sum types *)
+(* sum types. Not implemented in Zelus for the moment *)
 let constr id ty_list = make (Tconstr(id, ty_list, ref Tnil))
 
 (* the [array] type *)
 let array_ident = pervasives_name "array"
 let type_desc_array = abstract_type array_ident [generic]
-let empty_array_qualident = pervasives_name "[||]"
+let empty_array_ident = pervasives_name "[||]"
 
 let typ_int = constr int_ident []
 and typ_int32 = constr int32_ident []
@@ -70,6 +74,7 @@ and typ_float = constr float_ident []
 and typ_unit = constr unit_ident []
 and typ_signal ty = constr sig_ident [ty]
 and typ_array ty = constr array_ident [ty]
+and typ_list ty = constr list_ident [ty]
 
 (* global types loaded initially *)
 let tglobal =
@@ -83,10 +88,31 @@ let tglobal =
     type_desc_string;
     type_desc_unit;
     type_desc_signal;
-    type_desc_array ]
+    type_desc_array;
+    type_desc_list ]
 
 (* global constructed values loaded initially *)
 let cglobal = []
+
+let nil_ident = pervasives_name "[]"
+let cons_ident = pervasives_name "::"
+
+let value_desc_nil =
+  let ta = make Tvar in
+  value nil_ident { typ_vars = [ta]; typ_body = typ_list ta }
+    
+let value_desc_cons =
+  let ta = make Tvar in
+  let ta_list = typ_list ta in
+  value cons_ident
+    { typ_vars = [ta];
+      typ_body = make (Tfun(Tany, None, ta,
+                            make (Tfun(Tany, None, ta_list, ta_list)))) }
+  
+(* global values loaded initially *)
+let vglobal =
+  [ value_desc_nil;
+    value_desc_cons ]
 
 (* some names from the initial module can be used shortly *)
 let short =
@@ -113,5 +139,7 @@ let set_no_pervasives () =
   default_used_modules := [];
   (* build the initial environment *)
   List.iter (fun x -> add_type x.qualid.id x.info) tglobal;
-  List.iter (fun x -> add_constr x.qualid.id x.info) cglobal
+  List.iter (fun x -> add_constr x.qualid.id x.info) cglobal;
+  List.iter (fun x -> add_value x.qualid.id x.info) vglobal
+  
 
