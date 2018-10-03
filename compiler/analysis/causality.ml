@@ -620,7 +620,7 @@ and scondpat env c_free sc =
   scondpat sc expected_c;
   expected_c
 
-let implementation ff { desc = desc } =
+let implementation ff { desc = desc; loc = loc } =
   try
     match desc with
     | Eopen _ | Etypedecl _ -> ()
@@ -636,28 +636,19 @@ let implementation ff { desc = desc } =
                      f_args = p_list; f_body = e; f_env = h0 }) ->
        Misc.push_binding_level ();
        let env = build_env h0 Env.empty in
+       let actual_tc_list = List.map (pattern env) p_list in
        let actual_tc_res = exp env (Causal.new_var ()) e in
-       let expected_tc_list, expected_tc_res =
-         (* for an atomic node, all outputs depend on all inputs *)
+       let actual_tc = Causal.funtype_list actual_tc_list actual_tc_res in
+       (* for an atomic node, all outputs depend on all inputs *)
+       let actual_tc =
          if atomic then
-           (* first type the body *)
            let c_res = Causal.new_var () in
-           let tc_arg_list =
-             List.map
-               (fun p -> subtype false (Causal.skeleton_on_c c_res p.p_typ))
-               p_list in
-           let tc_res = subtype true (Causal.skeleton_on_c c_res e.e_typ) in
-           tc_arg_list, tc_res
-         else
-           List.map (fun p -> Causal.skeleton p.p_typ) p_list,
-           Causal.skeleton e.e_typ in
-       less_than e.e_loc env actual_tc_res expected_tc_res;
-       List.iter2
-         (fun p expected_tc -> let actual_tc = pattern env p in
-           less_than p.p_loc env expected_tc actual_tc) p_list expected_tc_list;
+           let expected_tc = Causal.fresh_on_c c_res actual_tc in
+           less_than loc env actual_tc (Causal.subtype true expected_tc);
+           expected_tc
+         else actual_tc in
        Misc.pop_binding_level ();
-       let tcs =
-         generalise (Causal.funtype_list expected_tc_list expected_tc_res) in
+       let tcs = generalise actual_tc in
        (* then add the current entries in the global environment *)
        Global.set_causality (Modules.find_value (Lident.Name(f))) tcs;
        (* output the signature *)

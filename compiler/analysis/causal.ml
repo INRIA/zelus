@@ -228,17 +228,30 @@ let rec skeleton ty =
   | Tconstr(_, _, _) | Tvec _ -> atom (new_var ())
   | Tlink(ty) -> skeleton ty
 
-let rec skeleton_on_c c ty =
+let skeleton_on_c c_right ty =
+  let c_left = new_var () in
+  less_c c_left c_right;
+  let rec skeleton_on_c is_right ty =
+    match ty.t_desc with
+    | Tvar | Tconstr(_, _, _) | Tvec _ ->
+        atom (if is_right then c_right else c_left)
+    | Tproduct(ty_list) -> product (List.map (skeleton_on_c is_right) ty_list)
+    | Tfun(_, _, ty_arg, ty) ->
+        funtype (skeleton_on_c (not is_right) ty_arg) (skeleton_on_c is_right ty)
+    | Tlink(ty) -> skeleton_on_c is_right ty in
+  skeleton_on_c true ty
+
+let rec skeleton_on_c c_right ty =
   match ty.t_desc with
-  | Tvar -> atom c
-  | Tproduct(ty_list) -> product (List.map (skeleton_on_c c) ty_list)
+  | Tvar | Tconstr(_, _, _) | Tvec _ -> atom c_right
+  | Tproduct(ty_list) ->
+      product (List.map (skeleton_on_c c_right) ty_list)
   | Tfun(_, _, ty_arg, ty) ->
       let c_left = new_var () in
-      less_c c_left c;
-      funtype (skeleton_on_c c_left ty_arg) (skeleton_on_c c ty)
-  | Tconstr(_, _, _) | Tvec _ -> atom c
-  | Tlink(ty) -> skeleton_on_c c ty
-
+      less_c c_left c_right;
+      funtype (skeleton_on_c c_left ty_arg) (skeleton_on_c c_right ty)
+  | Tlink(ty) -> skeleton_on_c c_right ty
+   
 (* Returns a causality type that is structurally like [tc] but *)
 (* also depend on variables in [cset] *)
 let rec on_c is_right cset tc =

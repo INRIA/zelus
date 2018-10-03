@@ -11,10 +11,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-(** compile-time elimination of static expressions *)
-(** this performs strong normalisation, i.e., reduction under lambdas *)
-(** for functions that only have dynamically known inputs. *)
-(** The result is a collection of first-order functions *)
+(** reduce expressions that are tagged to be static; leave other unchanged *)
 
 open Misc
 open Ident
@@ -79,6 +76,11 @@ let rec type_expression venv renaming ({ desc = desc } as ty_e) =
      { ty_e with desc = Etypefun(k, opt_name, ty_arg, ty_res) }
 
 and size venv renaming ({ desc = desc } as s) =
+  let operator op i1 i2 =
+    match op with
+    | Splus -> i1 + i2
+    | Sminus -> i1 - i2 in
+
   match desc with
   | Sconst _ | Sglobal _ -> s
   | Sname(n) ->
@@ -87,12 +89,18 @@ and size venv renaming ({ desc = desc } as s) =
           let { value_exp = v } = Env.find n venv in
           match v with
           | Vconst(Eint(i)) -> Sconst(i)
-          | _ -> raise Static.TypeError
+          | _ -> desc
         with
           Not_found -> Sname(rename n renaming) in
       { s with desc = desc }
   | Sop(op, s1, s2) ->
-      { s with desc = Sop(op, size venv renaming s1, size venv renaming s2) }
+      let s1 = size venv renaming s1 in
+      let s2 = size venv renaming s2 in
+      let desc =
+        match s1.desc, s2.desc with
+        | Sconst(i1), Sconst(i2) -> Sconst(operator op i1 i2)
+        | _ -> Sop(op, s1, s2) in
+      { s with desc = desc }
 
 (** Rename an operator *)
 let operator venv renaming op =
@@ -158,31 +166,32 @@ let rec expression venv renaming fun_defs ({ e_desc = desc } as e) =
       let e_record, fun_defs =
         expression venv renaming fun_defs e_record in
       { e_record with e_desc = Erecord_access(e_record, ln) }, fun_defs
-  | Eapp(app, e_fun, e_list) ->
-     (* [e_fun] is necessarily static *)
-     (* [e_list] decomposes into (a possibly empty) sequence of 
-      *- static arguments [s_list] and non static ones [ne_list] *)
-     let v_fun = Static.expression venv e_fun in
-     let s_list, ne_list, ty_res =
-       Types.split_arguments e_fun.e_typ e_list in
-     let { value_exp = v; value_name = opt_name } as v_fun =
-       Static.app v_fun (List.map (Static.expression venv) s_list) in
-     let e, fun_defs =
-       match ne_list with
-       | [] ->
-	  let e, fun_defs = exp_of_value fun_defs v_fun in
-	  { e with e_typ = ty_res }, fun_defs
-       | _ ->
-	  let ne_list, fun_defs =
-	    Misc.map_fold (expression venv renaming) fun_defs ne_list in
-	  (* two solutions are possible. Either we introduce a fresh *)
-	  (* function [f] for the result of [v_fun s1...sn] *)
-	  (* and return [f ne1...nek]. [f] could then be shared in case *)
-	  (* several instance of [v_fun s1...sn] exist *)
-	  (* Or we directly inline the body of [f]. We take this solution *)
-	  (* for the moment *)
-	  match opt_name, v with
-          | None,
+  | Eapp({ app_inline = inline } as app, e_fun, e_list) ->
+      (* [e_fun] is necessarily static. It needs to be an explicit value *)
+      (* only when [inline] is true *)
+      (* [e_list] decomposes into (a possibly empty) sequence of 
+       *- static arguments [s_list] and non static ones [ne_list] *)
+      let v_fun = Static.expression venv e_fun in
+      let s_list, ne_list, ty_res =
+        Types.split_arguments e_fun.e_typ e_list in
+      let { value_exp = v; value_name = opt_name } as v_fun =
+        Static.app v_fun (List.map (Static.expression venv) s_list) in
+      let e, fun_defs =
+        match ne_list with
+        | [] ->
+	    let e, fun_defs = exp_of_value fun_defs v_fun in
+            { e with e_typ = ty_res }, fun_defs
+        | _ ->
+	    let ne_list, fun_defs =
+            Misc.map_fold (expression venv renaming) fun_defs ne_list in
+            (* two solutions are possible. Either we introduce a fresh *)
+            (* function [f] for the result of [v_fun s1...sn] *)
+            (* and return [f ne1...nek]. [f] could then be shared in case *)
+            (* several instance of [v_fun s1...sn] exist *)
+	    (* Or we directly inline the body of [f]. We take this solution *)
+	    (* for the moment *)
+            match opt_name, v with
+            | None,
             Vfun({ f_args = p_list; f_body = e; f_env = f_env }, venv_closure) ->
 	      (* [p_list] should now be a list of non static parameters *)
               let f_env, renaming0 = build f_env in
@@ -502,8 +511,7 @@ and lambda venv fun_defs
   let e, fun_defs = expression venv renaming fun_defs e in
   { funexp with f_args = p_list; f_body = e; f_env = env }, fun_defs
 
-(* The main function. Reduce every definition according to [Misc.red_list] *)
-(* and [Misc.red_all]. This step may introduce extra function definitions *)
+(* The main function. Reduce every definition *)
 let implementation_list ff impl_list =
   let set_value_code name v =
     let ({ info = info } as entry) =
@@ -521,8 +529,6 @@ let implementation_list ff impl_list =
     Zaux.make (Efundecl(name, funexp)) :: impl_defs in
 
   (* [fun_defs] is the list of extra functions that have been introduced *)
-  (* at the moment only function with no parameters are kept *)
-  (* for later steps of the compiler *)
   let implementation impl_defs impl = 
     match impl.desc with
     | Econstdecl(f, is_static, e) ->
@@ -561,7 +567,7 @@ let implementation_list ff impl_list =
   | TypeError ->
      Format.eprintf
        "@[Internal error (static reduction):@,\
-        static evaluation failed be2cause of a typing error.@.@]";
+        the expression to be reduced is not static.@.@]";
      raise Error
   | NotStatic(exp_or_eq) ->
      let print ff = function
