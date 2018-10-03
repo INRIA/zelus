@@ -106,8 +106,8 @@ let value_desc_cons =
   let ta_list = typ_list ta in
   value cons_ident
     { typ_vars = [ta];
-      typ_body = make (Tfun(Tany, None, ta,
-                            make (Tfun(Tany, None, ta_list, ta_list)))) }
+      typ_body = make (Tfun(Tany, None, make (Tproduct [ta; ta_list]), ta_list))
+    }
   
 (* global values loaded initially *)
 let vglobal =

@@ -47,7 +47,8 @@ let nil_desc = Evar(pervasives_name "[]")
 			  
 let cons_desc x l start_pos end_pos =
   Eapp({ app_inline = false; app_statefull = false },
-       make (Evar(pervasives_name "::")) start_pos end_pos, [x; l])
+       make (Evar(pervasives_name "::")) start_pos end_pos,
+       [make (Etuple [x; l]) start_pos end_pos])
 
 let rec cons_list_desc l start_pos end_pos =
   match l with
