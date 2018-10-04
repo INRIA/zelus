@@ -1,10 +1,9 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2017                                               *)
+(*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke                                                        *)
-(*  Marc Pouzet                                                           *)
+(*  Marc Pouzet  Timothy Bourke                                           *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -164,7 +163,7 @@ and equation ({ eq_desc = desc } as eq) =
      let e, ctx_e = expression e in
      let { env = env; eqs = eqs } = par_equation_list res_eq_list in
      let res_eq_list = equations eqs in
-     seq ctx_e (add { eq with eq_desc = EQreset(res_eq_list, e) }
+     par ctx_e (add { eq with eq_desc = EQreset(res_eq_list, e) }
 	            { empty with env = env })
   | EQand(and_eq_list) -> par_equation_list and_eq_list
   | EQbefore(before_eq_list) ->
@@ -172,7 +171,7 @@ and equation ({ eq_desc = desc } as eq) =
   | EQblock { b_locals = l_list; b_env = b_env; b_body = eq_list } ->
      let l_ctx = local_list l_list in
      let eq_list_ctx = par_equation_list eq_list in
-     seq (seq l_ctx eq_list_ctx) { empty with env = State.singleton b_env }
+     par (seq l_ctx eq_list_ctx) { empty with env = State.singleton b_env }
   | EQforall ({ for_index = ind_list; for_init = i_list;
 		for_body = b_eq_list } as body) ->
      let index ({ desc = desc } as ind) =
@@ -197,7 +196,7 @@ and equation ({ eq_desc = desc } as eq) =
 		       EQforall { body with for_index = ind_list;
 					    for_init = i_list;
 					    for_body = b_eq_list } }
-	  (seq ind_ctx i_ctx)	  
+	  (par ind_ctx i_ctx)	  
   | EQder _ | EQautomaton _ | EQpresent _ | EQemit _ | EQnext _ -> assert false
 							       
 and par_equation_list eq_list =
