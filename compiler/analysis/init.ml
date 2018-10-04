@@ -126,9 +126,9 @@ let rec saturate_i is_right i =
   | Ivar ->
       if i.i_min = Ihalf && not is_right then i.i_sup <- add ihalf i.i_sup
         else begin
+          i.i_desc <- Ilink(ivalue iv);
           List.iter
-            (saturate_i is_right) (if is_right then i.i_sup else i.i_inf);
-          i.i_desc <- Ilink(ivalue iv)
+            (saturate_i is_right) (if is_right then i.i_sup else i.i_inf)
         end
   | Ilink(i) -> saturate_i is_right i
   | _ -> raise (Clash(Iless_than))
