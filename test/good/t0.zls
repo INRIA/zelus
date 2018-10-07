@@ -1,8 +1,18 @@
-let p f x = let rec o = f x o in o
+let h = 0.1
+    
+let node int2(x0, xprime) = x where
+  rec x = x0 -> pre (x +. xprime *. h)
 
+let node sin_cos() =
+  let rec si = int2(0.0, co)
+  and co = -1.0 *. int2(1.0, si) in
+  si, co
+
+    
+  (*
 let atomic fun f g x = g (x + 1)
 
-let atomic fun g x = x + 2, 3
+let atomic fun g x = x + 2, 3 *)
 
 (*
 let node g(h)(t)(x, y) =
