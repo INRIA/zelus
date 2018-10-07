@@ -167,13 +167,13 @@ let rec expression venv renaming fun_defs ({ e_desc = desc } as e) =
         expression venv renaming fun_defs e_record in
       { e_record with e_desc = Erecord_access(e_record, ln) }, fun_defs
   | Eapp({ app_inline = inline } as app, e_fun, e_list) ->
-      (* [e_fun] is necessarily static. It needs to be an explicit value *)
-      (* only when [inline] is true *)
+      (* [e_fun] is necessarily static. It needs to be a compile-time *)
+      (* non opaque value only when [inline] is true *)
       (* [e_list] decomposes into (a possibly empty) sequence of 
        *- static arguments [s_list] and non static ones [ne_list] *)
-      let v_fun = Static.expression venv e_fun in
       let s_list, ne_list, ty_res =
         Types.split_arguments e_fun.e_typ e_list in
+      let v_fun = Static.expression venv e_fun in
       let { value_exp = v; value_name = opt_name } as v_fun =
         Static.app v_fun (List.map (Static.expression venv) s_list) in
       let e, fun_defs =
@@ -235,13 +235,17 @@ let rec expression venv renaming fun_defs ({ e_desc = desc } as e) =
       { e with e_desc = Eblock(b, e_block) }, fun_defs
   | Epresent _ | Ematch _ -> assert false
 
-(* evaluate a static expression and turn it into an expression *)
-(* preserve the type of [e] *)
+(* evaluate a static expression [e] at compile-time if possible *)
+(* and turn it into an expression. Otherwise, returns [e] *)
+(* preserve the type of [e].  *)
 and static venv fun_defs e =
-  let v = Static.expression venv e in
-  let { e_desc = desc }, fun_defs = exp_of_value fun_defs v in
-  { e with e_desc = desc }, fun_defs
-       
+  try
+    let v = Static.expression venv e in
+    let { e_desc = desc }, fun_defs = exp_of_value fun_defs v in
+    { e with e_desc = desc }, fun_defs
+  with
+    Static.Error _ -> e, fun_defs
+                      
 (** Simplify a local declaration *)
 and local venv (renaming, fun_defs) ({ l_eq = eq_list; l_env = env } as l) =
   let env, renaming0 = build env in
@@ -554,7 +558,10 @@ let implementation_list ff impl_list =
 	   let funexp, { fundefs = fun_defs } = lambda Env.empty empty funexp in
 	   funexp, { impl with desc = Efundecl(f, funexp) } ::
 		     List.fold_right make fun_defs impl_defs
-	 else funexp, impl_defs in
+         else
+           (* for the moment, we reduce under the lambda wheither or *)
+           (* not the function has static parameters. *)
+           funexp, impl_defs in
        let v = Global.value_code (Global.Vfun(funexp, Env.empty)) in
        let v = Global.value_name (Modules.qualify f) v in
        set_value_code f v;
@@ -564,19 +571,22 @@ let implementation_list ff impl_list =
     let impl_list = List.fold_left implementation [] impl_list in
     List.rev impl_list
   with
-  | TypeError ->
-     Format.eprintf
-       "@[Internal error (static reduction):@,\
-        the expression to be reduced is not static.@.@]";
-     raise Error
-  | NotStatic(exp_or_eq) ->
-     let print ff = function
-       | Exp(e) -> Printer.expression ff e
-       | Eq(eq) -> Printer.equation ff eq in
-     Format.eprintf
-       "@[%aInternal error (static reduction):@,\
-        static evaluation failed because the expression is not static.@.@]"
-       print exp_or_eq;
-     raise Error
-
-	   
+  | Static.Error(error) ->
+      match error with
+      | TypeError ->
+          Format.eprintf
+            "@[Internal error (static reduction):@,\
+             the expression to be reduced is not static.@.@]";
+          raise Misc.Error
+      | NotStaticExp(e) ->
+          Format.eprintf
+            "@[%aInternal error (static reduction):@,\
+             static evaluation failed because the expression is not static.@.@]"
+            Printer.expression e;
+          raise Misc.Error
+      | NotStaticEq(eq) ->
+          Format.eprintf
+            "@[%aInternal error (static reduction):@,\
+             static evaluation failed because the equation is not static.@.@]"
+            Printer.equation eq;
+          raise Misc.Error
