@@ -49,6 +49,7 @@ and info =
 
 and polarity = Punknown | Pplus | Pminus | Pplusminus
 
-let compare c1 c2 = Pervasives.compare c1.c_index c2.c_index
-
+(* only compare indexes. *)
+let rec compare c1 c2 = Pervasives.compare c1.c_index c2.c_index 
+    
 let no_typ = Cproduct []

@@ -28,7 +28,7 @@ module S = struct
     Format.fprintf ff "}@]"
 end
 
-(* a module to represent the set of successors of a causality variable *)
+(* a module to represent values associated to a causality name *)
 module M = struct
   include (Map.Make(Defcaus))
   let fprint_t fprint_v ff s =
@@ -37,6 +37,9 @@ module M = struct
     Format.fprintf ff "}@]"
 end
   
+(* a module to represent values associated to sets of causality names *)
+module K = Map.Make(S)
+    
 let fprint_t = S.fprint_t
 let fprint_tt = M.fprint_t S.fprint_t
                            
@@ -52,6 +55,10 @@ let new_var () =
     c_inf = []; c_sup = []; c_useful = false; 
     c_polarity = Punknown; c_info = None; c_visited = -1 }
 let new_var_with_info { c_info = i } = { (new_var ()) with c_info = i }
+let new_gen_var () = 
+  { c_desc = Cvar; c_index = symbol#name; c_level = !binding_level+1;
+    c_inf = []; c_sup = []; c_useful = false; 
+    c_polarity = Punknown; c_info = None; c_visited = -1 }
 let product l = Cproduct(l)
 let funtype tc1 tc2 = Cfun(tc1, tc2)
 let rec funtype_list tc_arg_list tc_res =
@@ -72,10 +79,12 @@ let rec crepr c =
   | _ -> c
            
 (* equality of two causality tags *)
-let equal c1 c2 =
-  let c1 = crepr c1 in
-  let c2 = crepr c2 in
-  c1.c_index = c2.c_index
+(* must not physically change types ! *)
+let rec equal c1 c2 =
+  match c1.c_desc, c2.c_desc with
+  | Cvar, Cvar -> c1.c_index = c2.c_index
+  | Clink(c1), _ -> equal c1 c2
+  | _, Clink(c2) -> equal c1 c2
 
 let rec add c l = 
   match l with 
@@ -148,6 +157,17 @@ let rec occur_check ({ c_level = level; c_index = index } as c_left) c_right =
     | Clink(link) -> check path link
   in check [c_left] c_right
 
+(*
+let rec check_type tc =
+  match tc with
+  | Cproduct(tc_list) -> List.iter check_type tc_list
+  | Catom(c) ->
+      let c = crepr c in
+      List.iter (occur_check c) c.c_inf;      
+      List.iter (occur_check c) c.c_sup
+  | Cfun(tc_arg, tc_res) -> check_type tc_arg; check_type tc_res
+*)
+    
 (** Unification *)
 let rec less left_tc right_tc =
   match left_tc, right_tc with
@@ -316,8 +336,8 @@ let rec ins_and_outs_of_a_type is_right (inputs, outputs) tc =
       List.fold_left
         (ins_and_outs_of_a_type  is_right) (inputs, outputs) tc_list
   | Catom(c) ->
-      if is_right then inputs, S.add c outputs
-      else S.add c inputs, outputs
+      let c = crepr c in
+      if is_right then inputs, S.add c outputs else S.add c inputs, outputs
 
 (* build O(c) *)
 let rec out c =
@@ -348,6 +368,26 @@ let build_o_table c_set o_table =
 let build_io_table inputs o_table c_set io_table =
   S.fold (fun i acc -> M.add i (io inputs o_table i) acc) c_set io_table
 
+(* build a ki table [io -> c] with a unique variable per io set *)
+let build_ki_table io_table =
+  let ki_table =
+    M.fold
+      (fun i io acc ->
+         if K.mem io acc then acc else K.add io (new_gen_var ()) acc)
+      io_table K.empty in
+  (* then add relation between them according to io. *)
+  (* if ki(io1) = c1 and ki(io2) = c2, c1 < c2 iff io(c1) subset io(c2) *)
+  K.iter
+    (fun io_i ki_i ->
+       K.iter
+         (fun io_j ki_j ->
+            let c = S.compare io_i io_j in
+            if c = 0 then ()
+            else if S.subset io_i io_j then less_c ki_i ki_j)
+         ki_table)
+    ki_table;
+  ki_table
+    
 (* simplifies a causality type *)
 let simplify_by_io tc =
   let c_set = vars S.empty tc in
@@ -362,41 +402,16 @@ let simplify_by_io tc =
   (* then the table of io for every input/output *)
   let io_table = build_io_table inputs o_table inputs M.empty in
   let io_table = build_io_table inputs o_table outputs io_table in
-  
-  (* finally, the dependence relation is that of [io], i.e., *)
-  (* c1 < c2 iff io(c1) subset io(c2) *)
-  (* moreover, variables are partitioned according to [io], i.e., *)
-  (* [c1 eq c2 iff io(c1) = io(c2)] *)
-  let set left_c right_c =
-    let left_c = crepr left_c in
-    match left_c.c_desc with
-    | Cvar ->
-        right_c.c_sup <- union left_c.c_sup right_c.c_sup;
-        right_c.c_inf <- union left_c.c_inf right_c.c_inf;
-        left_c.c_desc <- Clink(right_c)
-    | _ -> () in
-  let less left_c right_c =
-    let left_c = crepr left_c in
-    match left_c.c_desc with
-    | Cvar -> left_c.c_sup <- add right_c left_c.c_sup
-    | _ ->  () in
 
-  S.iter (fun c -> (crepr c).c_sup <- []) inputs_outputs;
+  (* the ki table associates a unique variable per io set *)
+  let ki_table = build_ki_table io_table in 
+  
+  (* finally, replace every variable by its ki *)
   S.iter
-    (fun i -> 
-      let io_of_i = M.find i io_table in
-      S.iter 
-        (fun o ->
-          let io_of_o = M.find o io_table in
-          if not (equal i o)
-          then
-            if S.equal io_of_i io_of_o then set i o
-            else if S.subset io_of_i io_of_o then less i o
-            else if S.subset io_of_o io_of_i then less o i)
-        inputs_outputs)
+    (fun c -> c.c_desc <- Clink(K.find (M.find c io_table) ki_table))
     inputs_outputs;
   tc
-    
+  
 (* An other simplification method *)
 (* Garbage collection: only keep dependences of the form a- < b+ *)
 (* this step is done after having called the function mark *)
@@ -541,6 +556,7 @@ let generalise tc =
   (* type simplification *)
   (* let tc = simplify true tc in *)
   let tc = if !Misc.no_simplify_causality_type then tc else simplify_by_io tc in
+  (* check_type tc; *)
   gen tc;
   let c_set = vars S.empty tc in
   let _, rel = relation (S.empty, []) c_set in
