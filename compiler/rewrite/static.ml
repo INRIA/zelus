@@ -19,13 +19,13 @@ open Global
 open Zelus
 open Zaux
 
-type exp_or_eq =
-  | Exp of exp
-  | Eq of eq
+type error =
+  | NotStaticEq of eq
+  | NotStaticExp of exp
+  | TypeError
 
-exception NotStatic of exp_or_eq
-exception TypeError
-
+exception Error of error
+    
 (** Remove entries in the type environment of a block *)
 (* for names that appear in the evaluation environment *)
 let remove tenv env_closure =
@@ -36,16 +36,16 @@ let record_access { value_exp = value_exp } ln =
   try
     match value_exp with
     | Vrecord(l_v_list) -> List.assoc (Modules.qualident ln) l_v_list
-    | _ -> raise TypeError
+    | _ -> raise (Error(TypeError))
   with
-  | _ -> raise TypeError
+  | _ -> raise (Error(TypeError))
 	    
 (** Pattern matching. [matches env p v = env'] returns an extended *)
 (* environment [env'] such that [env'(p) = v] *)
 let rec matches env { p_desc = desc } ({ value_exp = v_exp } as v) =
   (* find the value associated to a label *)
   let rec find qid = function
-    | [] -> raise TypeError
+    | [] -> raise (Error(TypeError))
     | (qid_v, v) :: p_v_list ->
        if qid = qid_v then v else find qid p_v_list in
   match desc, v_exp with
@@ -54,21 +54,21 @@ let rec matches env { p_desc = desc } ({ value_exp = v_exp } as v) =
   | Econstr0pat(c1), Vconstr0(qid) when (Modules.qualident c1) = qid -> env
   | Etuplepat(p_list), Vtuple(v_list) ->
      begin try List.fold_left2 matches env p_list v_list
-	   with _ -> raise TypeError
+	   with _ -> raise (Error(TypeError))
      end
   | Evarpat(n), _ -> Env.add n v env
   | Ealiaspat(p, n), _ -> matches (Env.add n v env) p v
   | Eorpat(p1, p2), _ ->
-     begin try matches env p1 v with TypeError -> matches env p2 v end
+     begin try matches env p1 v with Error(TypeError) -> matches env p2 v end
   | Erecordpat(l_p_list), Vrecord(p_v_list) ->
      begin try
 	 List.fold_left
 	   (fun env (ln, p) ->
 	    matches env p (find (Modules.qualident ln) p_v_list)) env l_p_list
-       with _ -> raise TypeError
+       with _ -> raise (Error(TypeError))
      end
   | Etypeconstraintpat(p, _), _ -> matches env p v
-  | _ -> raise TypeError
+  | _ -> raise (Error(TypeError))
 
 (** [select env v m_b_list = b] where
  * - env is a environment;
@@ -77,12 +77,12 @@ let rec matches env { p_desc = desc } ({ value_exp = v_exp } as v) =
  * - b a block whose pattern matches v and is the first in the list *)
 let select env v m_b_list =
   let rec loop = function
-    | [] -> raise TypeError
+    | [] -> raise (Error(TypeError))
     | { m_pat = p; m_body = b } :: m_b_list ->
        try
 	 let env = matches env p v in env, b
        with
-       | TypeError -> loop m_b_list in
+       | Error(TypeError) -> loop m_b_list in
   loop m_b_list
 
 (** Evaluate an expression. [expression env e = v] *)
@@ -96,11 +96,11 @@ let rec expression env ({ e_desc = desc; e_loc = loc } as e) =
   | Eglobal { lname = lname } ->
      let { info = { value_code = v } } =
        try Modules.find_value lname
-       with Not_found -> raise (NotStatic (Exp e)) in
+       with Not_found -> raise (Error (NotStaticExp e)) in
      v
   | Elocal(n) ->
      let v =
-       try Env.find n env with Not_found -> raise (NotStatic (Exp e)) in v
+       try Env.find n env with Not_found -> raise (Error(NotStaticExp e)) in v
   | Etuple(e_list) ->
      Global.value_code (Vtuple(List.map (expression env) e_list))
   | Erecord(n_e_list) -> 
@@ -111,7 +111,7 @@ let rec expression env ({ e_desc = desc; e_loc = loc } as e) =
      Global.value_code v_exp
   | Erecord_access(e, ln) ->
      record_access (expression env e) ln
-  | Eop _ | Elast _ -> raise (NotStatic (Exp e))
+  | Eop _ | Elast _ -> raise (Error (NotStaticExp e))
   | Eapp(_, e, e_list) ->
      let v = expression env e in
      let v_list = List.map (expression env) e_list in
@@ -123,7 +123,7 @@ let rec expression env ({ e_desc = desc; e_loc = loc } as e) =
   | Elet(l, e_let) ->
      let env = local env l in
      expression env e_let
-  | Eblock _ -> raise (NotStatic (Exp e))
+  | Eblock _ -> raise (Error (NotStaticExp e))
   | Epresent _ | Ematch _ -> assert false
 	    
 (** Evaluate an application *)
@@ -136,7 +136,7 @@ and app ({ value_exp = value_exp } as v) v_list =
     | [], [] -> [], env_closure
     | p :: p_list, v :: v_list ->
        arguments (matches env_closure p v) p_list v_list
-    | [], _ -> raise TypeError
+    | [], _ -> raise (Error(TypeError))
     | p_list, [] -> p_list, env_closure in
   match value_exp, v_list with
   | _, [] ->
@@ -157,9 +157,9 @@ and app ({ value_exp = value_exp } as v) v_list =
     [{ value_exp = Vconst(Eint(i1)) }; { value_exp = Vconst(Eint(i2)) }] ->
      let i = if op = Initial.pervasives_name "+" then i1 + i2
 	     else if op = Initial.pervasives_name "-" then i1 - i2
-	     else raise TypeError in
+	     else raise (Error(TypeError)) in
      value_code (Vconst(Eint(i)))
-  | _ -> raise TypeError
+  | _ -> raise (Error(TypeError))
 
 (** Evaluate all the definitions and returns an environment *)
 and local env { l_eq = eq_list } =
@@ -178,7 +178,7 @@ and equation env ({ eq_desc = desc; eq_loc = loc } as eq) =
   | EQbefore(eq_list) -> List.fold_left equation env eq_list
   | EQpluseq _ | EQinit _ | EQnext _
   | EQder _ | EQreset _ | EQpresent _
-  | EQemit _ | EQautomaton _ | EQforall _ -> raise (NotStatic (Eq eq))
+  | EQemit _ | EQautomaton _ | EQforall _ -> raise (Error(NotStaticEq eq))
 						   
 and block env { b_locals = l_list; b_body = eq_list } =
   let env = List.fold_left local env l_list in
