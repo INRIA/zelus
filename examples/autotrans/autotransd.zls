@@ -1,6 +1,11 @@
 (*
   This example is adapted from a Simulink model:
   https://fr.mathworks.com/help/simulink/examples/modeling-an-automatic-transmission-controller.html
+
+  This is a discrete implementation of the automatic transmission controller.
+  
+  Refer to the diff_plots folder to see comparisons between the continuous
+  and the discrete versions of this model.
 *)
 
 (** constants **)

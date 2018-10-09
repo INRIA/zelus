@@ -6,43 +6,40 @@ ZLEXTRALIBS = $(ZLGTKLIBS)
 
 default: $(word 1, $(targets))
 all:  $(targets)
-byte: autotrans_test.byte autotrans_w_control.byte autotransd.byte
+byte: autotransc.byte autotrans_gui.byte autotransd.byte
 
 # ------------------------------------
 
-autotrans_w_control.byte: INCLUDES += $(LABLGTK2) $(SUNDIALS)
-autotrans_w_control.byte: ZELUCFLAGS += -gtk2 -nodeadcode
-autotrans_w_control.byte: utils.cmo consts.cmo draw.cmo common.cmo \
-    		 autotrans_core.cmo autotrans_w_control.cmo autotrans_w_control_main.cmo
+autotrans_gui.byte: INCLUDES += $(LABLGTK2) $(SUNDIALS)
+autotrans_gui.byte: ZELUCFLAGS += -gtk2 -nodeadcode
+autotrans_gui.byte: utils.cmo consts.cmo draw.cmo common.cmo \
+    		 autotransc.cmo autotrans_gui.cmo autotrans_gui_main.cmo
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
 	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) graphics.cma $(ZLGTKLIBS) $^
 
-autotrans_w_control.ml autotrans_w_control_main.ml: autotrans_w_control.zls \
-				 autotrans_core.zci draw.zci common.zci
+autotrans_gui.ml autotrans_gui_main.ml: autotrans_gui.zls \
+				 autotransc.zci draw.zci common.zci
 	$(ZELUC) $(ZELUCFLAGS) $(ZELUCEXTRAFLAGS) -s main $<
-	mv main.ml autotrans_w_control_main.ml
+	mv main.ml autotrans_gui_main.ml
 
-autotrans_w_control.cmi autotrans_w_control.cmo: INCLUDES += $(LABLGTK2)
-autotrans_w_control.cmo: autotrans_w_control.ml \
-				 autotrans_core.cmi draw.cmi common.cmi
+autotrans_gui.cmi autotrans_gui.cmo: INCLUDES += $(LABLGTK2)
+autotrans_gui.cmo: autotrans_gui.ml autotransc.cmi draw.cmi common.cmi
 
 # ------------------------------------
 
-autotrans_test.byte: INCLUDES += $(LABLGTK2) $(SUNDIALS)
-autotrans_test.byte: ZELUCFLAGS += -gtk2
-autotrans_test.byte: utils.cmo consts.cmo common.cmo \
-    		 autotrans_core.cmo autotrans_test.cmo autotrans_test_main.cmo
+autotransc.byte: INCLUDES += $(LABLGTK2) $(SUNDIALS)
+autotransc.byte: ZELUCFLAGS += -gtk2
+autotransc.byte: utils.cmo consts.cmo common.cmo \
+    		 autotransc.cmo autotransc.cmo autotransc_main.cmo
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
 	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $(ZLGTKLIBS) $^
 
-autotrans_test.ml autotrans_test_main.ml: autotrans_test.zls \
-         autotrans_core.zci common.zci
+autotransc.ml autotransc_main.ml: autotransc.zls common.zci
 	$(ZELUC) $(ZELUCFLAGS) $(ZELUCEXTRAFLAGS) -s main $<
-	mv main.ml autotrans_test_main.ml
+	mv main.ml autotransc_main.ml
 
-autotrans_test.cmi autotrans_test.cmo: INCLUDES += $(LABLGTK2)
-autotrans_test.cmo: autotrans_test.ml \
-			 	 autotrans_core.cmi common.cmi
+autotransc.cmi autotransc.cmo: INCLUDES += $(LABLGTK2)
+autotransc.cmo: autotransc.ml common.cmi
 
 # ------------------------------------
 
@@ -53,20 +50,12 @@ autotransd.byte: utils.cmo consts.cmo common.cmo \
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
 	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $(ZLGTKLIBS) $^
 
-autotransd.ml autotransd_main.ml: autotransd.zls \
-				 common.zci
+autotransd.ml autotransd_main.ml: autotransd.zls common.zci
 	$(ZELUC) $(ZELUCFLAGS) $(ZELUCEXTRAFLAGS) -s main $<
 	mv main.ml autotransd_main.ml
 
 autotransd.cmi autotransd.cmo: INCLUDES += $(LABLGTK2)
-autotransd.cmo: autotransd.ml \
-				 common.cmi
-
-# ------------------------------------
-
-autotrans_core.ml: autotrans_core.zls
-	$(ZELUC) $(ZELUCFLAGS) $<
-autotrans_core.cmo autotrans_core.cmi autotrans_core.zci: autotrans_core.ml
+autotransd.cmo: autotransd.ml common.cmi
 
 # ------------------------------------
 
@@ -88,11 +77,11 @@ export:
 		 autotrans.zls autotransd.zls Makefile $(DISTDIR)/autotrans/
 
 clean realclean cleanall:
-	-@rm -f autotrans_test_main.ml autotrans_test.ml
-	-@rm -f autotrans_w_control_main.ml autotrans_w_control.ml
+	-@rm -f autotransc_main.ml autotransc.ml
+	-@rm -f autotrans_gui_main.ml autotrans_gui.ml
 	-@rm -f autotransd_main.ml autotransd.ml
-	-@rm -f autotrans_core.ml common.ml
+	-@rm -f common.ml
 	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci
-	-@rm -f autotrans_test.byte autotrans_test.opt
-	-@rm -f autotrans_w_control.byte autotrans_w_control.opt
+	-@rm -f autotransc.byte autotransc.opt
+	-@rm -f autotrans_gui.byte autotrans_gui.opt
 	-@rm -f autotransd.byte autotransd.opt

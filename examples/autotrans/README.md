@@ -6,7 +6,6 @@ Files:
 - `utils.ml`: lookup tables functions
 - `draw.ml`: GUI to interact with the simulation
 - `common.zls`: common code for the continuous and the discrete versions
-- `autotrans_core.zls`: main functions for the continuous version
-- `autotrans_test.zls`: continuous version with a predefined input
-- `autotrans_w_control.zls`: continuous version using a GUI to get inputs (see draw.ml)
+- `autotransc.zls`: main functions for the continuous version
+- `autotrans_gui.zls`: continuous version using a GUI to get inputs (see draw.ml)
 - `autotransd.zls`: discrete version with a predefined input

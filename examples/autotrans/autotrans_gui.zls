@@ -1,4 +1,16 @@
-open Autotrans_core
+open Autotransc
+
+(*
+  This example is adapted from a Simulink model:
+  https://fr.mathworks.com/help/simulink/examples/modeling-an-automatic-transmission-controller.html
+
+  This is a continuous implementation of the automatic transmission controller.
+  The main node uses a GUI (see draw.ml) to get the inputs of the system.
+
+  Refer to the diff_plots folder to see comparisons between the continuous
+  and the discrete versions of this model.
+*)
+
 open Scope
 
 let hybrid main() =
