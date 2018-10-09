@@ -1,0 +1,32 @@
+open Autotransc
+
+(*
+  This example is adapted from a Simulink model:
+  https://fr.mathworks.com/help/simulink/examples/modeling-an-automatic-transmission-controller.html
+
+  This is a continuous implementation of the automatic transmission controller.
+  The main node uses a GUI (see draw.ml) to get the inputs of the system.
+
+  Refer to the diff_plots folder to see comparisons between the continuous
+  and the discrete versions of this model.
+*)
+
+open Scope
+
+let hybrid main() =
+  let rec der t = 1. init 0.
+
+  and throttle, brake_torque = Draw.get_inputs()
+  and rpm, gear, speed = autotrans(throttle, brake_torque) in
+
+  present (period(0.1)) ->
+    let () = Draw.draw(throttle, brake_torque, rpm, gear, speed) in
+
+    let s1 = scope2(0.  , 325. , ("throttle", linear, throttle),
+                                 ("brake torque", linear, brake_torque))
+    and s2 = scope (0.  , 4.   , ("gear", linear, gear))
+    and s3 = scope (0.  , 200. , ("speed", linear, speed))
+    and s4 = scope (600., 6000., ("rpm", linear, rpm)) in
+
+    window4("Autotrans (continuous)", 50., t, s1, s2, s3, s4)
+  else ()

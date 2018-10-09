@@ -1,0 +1,13 @@
+val get_inputs :
+    unit
+  -A->
+    float (* throttle *)
+  * float (* brake torque *)
+
+val draw :
+    float (* throttle (%) *)
+  * float (* brake torque (ft.lb) *)
+  * float (* engine rpm (rpm) *)
+  * float (* gear *)
+  * float (* speed (mph) *)
+  -A-> unit
