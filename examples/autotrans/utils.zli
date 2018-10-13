@@ -1,0 +1,12 @@
+val lookup1D :
+    float array (* x *)
+  * float array (* y *)
+  -A->
+    (float -A-> float) (* lookup function (linear interpolation and extrapolation) *)
+
+val lookup2D :
+    float array       (* x *)
+  * float array       (* y *)
+  * float array array (* z *)
+  -A->
+    (float * float -A-> float) (* lookup function (linear interpolation and extrapolation)*)
