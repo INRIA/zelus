@@ -219,6 +219,7 @@ let rec exp env c_free ({ e_desc = desc; e_typ = ty; e_loc = loc } as e) =
         Causal.instance info ty
     | Elocal(x) ->
         let { t_typ = tc } = try Env.find x env with Not_found -> print x in
+        let tc = subtype true tc in
         let cset = Causal.vars S.empty tc in
         (* all elements [ci in cset] are such that [ci < c_free] *)
         S.iter (fun ci -> less_than_c loc env ci c_free) cset;

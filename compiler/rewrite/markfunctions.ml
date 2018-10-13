@@ -34,14 +34,15 @@ type info =
  *- 2/ then the IO for all of them;
  *- 3/ if a function call [f arg1...argn] has to be inlined, it 
  *- is rewritten into [inline f arg1...argn].
- *- the decision is made according to the following rule:
- *- let [tc_in_list] and [tc_out] be the causality types of the 
- *- inputs and output of the function in which this call appears. 
- *- Let [(f (arg1: tc1) ... (argn: tcn)): tc_res] 
+ *- the decision is made according to the causality type.
+ *- (see the [to_inline] function)
+ *- Intuition:
+ *- let [f: tc0; arg1: tc1;...; argn: tcn] and [f arg1...argn : tc_res]
  *- The function call in not inlined 
- *- if forall ai, bj st ai in vars tc_arg_list, bj in vars tc_res. 
- *-      io(ai) subseteq io(bj) 
- *- where io(a) is the input/dependences of a, with i(a) a subset of names 
+ *- if forall ai, bj st ai in Out tcj, bj in tc_res.
+ *-      io(bj) subseteq io(ai) and not bj <* ai 
+ *- <* is the reflexive/transitive closure of <;
+ *- io(a) is the input/dependences of a, with i(a) a subset of names 
  *- from vars tc_in_list and o(a) a subset of names from vars tc_out 
  *- otherwise, the function is inlined 
  *- In such a case, the function call is strict, that is, 
@@ -52,17 +53,13 @@ type info =
 let funexp_info { f_args = p_list; f_body = ({ e_caus = tc } as e) } =
   let rec exp c_set { e_desc = desc; e_caus = tc } =
     match desc with
-      | Elocal _ | Eglobal _ | Econst _
-      | Econstr0 _ | Elast _ | Eperiod _ | Eop _ -> c_set
-      | Eapp({ app_inline = i }, op, arg_list) ->
-          let c_set = List.fold_left exp (exp c_set op) arg_list in
-          (* only fully applied functions are considered for a possible *)
-          (* inline; all others with be statically reduced *)
-          if Types.fully_applied e.e_typ && not i
-          then let tc_arg_list =
-                 List.map (fun { e_caus = tc } -> tc) arg_list in
-               List.fold_left Causal.vars (Causal.vars c_set tc) tc_arg_list
-          else c_set
+    | Elocal _ | Eglobal _ | Econst _
+    | Econstr0 _ | Elast _ | Eperiod _ | Eop _ -> c_set
+    | Eapp(_, op, arg_list) ->
+        let c_set = List.fold_left exp (exp c_set op) arg_list in
+        (* compute the set of causality tags *)
+        let tc_list = List.map (fun { e_caus = tc } -> tc) (op :: arg_list) in
+        List.fold_left Causal.vars (Causal.vars c_set tc) tc_list
     | Etuple(e_list) -> List.fold_left exp c_set e_list
     | Erecord_access(e, _) | Etypeconstraint(e, _) -> exp c_set e
     | Erecord(m_e_list) ->
@@ -172,30 +169,40 @@ let funexp_info { f_args = p_list; f_body = ({ e_caus = tc } as e) } =
     o_table = o_table }
   
 (* The function which decides whether or not a function call *)
-(* [f(arg1,...,argn)] with input type [tc_arg_list] and result type *)
-(* [tc_res] must be inlined *)
-let to_inline
-    ({ inputs = inputs; outputs = outputs;
-       io_table = io_table; o_table = o_table } as info)
-    tc_arg_list tc_res =
-  let in_set, out_set =
+(* [f(arg1,...,argn) : tc_res] with [f: t0; arg1: t1;...; argn: tn] *)
+let to_inline { io_table = io_table; o_table = o_table } tc_arg_list tc_res =
+  let _, out_of_inputs =
     List.fold_left
-      (Causal.ins_and_outs_of_a_type false) (Causal.S.empty, Causal.S.empty)
+      (Causal.ins_and_outs_of_a_type true) (Causal.S.empty, Causal.S.empty)
       tc_arg_list in
-  let in_set, out_set =
-    Causal.ins_and_outs_of_a_type true (in_set, out_set) tc_res in
-  not (Causal.S.for_all
+  let _, out_of_result =
+    Causal.ins_and_outs_of_a_type true (Causal.S.empty, Causal.S.empty)
+      tc_res in
+  let inline =
+    not (Causal.S.for_all
            (fun o ->
               let io_of_o = Causal.M.find o io_table in
               Causal.S.for_all
                 (fun i ->
                    let io_of_i = Causal.M.find i io_table in
-                   not (Causal.strict_path o i) &&
+                   not (Causal.path o i) &&
                    (Causal.S.subset io_of_o io_of_i))
-                in_set)
-           out_set)
-
-  
+                out_of_inputs)
+           out_of_result) in
+  (* inline if not [\/_{i in out_of_inputs} IO(i) 
+                    subset /\_{j in out_of_result} IO(j)] *)
+  (* or exists o in out_of_result, i in out_of_inputs. path o i *)
+  (* if [inline = false], add extra dependences so that all output of the *)
+  (* result depends on all inputs. This does not change the IO relation *)
+  try
+    if not inline then
+      Causal.S.iter
+        (fun i -> Causal.S.iter (fun o -> Causal.less_c i o) out_of_result)
+        out_of_inputs;
+    inline
+  with
+  | Causal.Clash _ -> assert false
+ 
 (* Mark function calls to be inlined *)
 let funexp_mark_to_inline info ({ f_body = e } as funexp) =
   (* generic translation for match handlers *)
@@ -211,18 +218,31 @@ let funexp_mark_to_inline info ({ f_body = e } as funexp) =
     let desc = match desc with
       | Elocal _ | Eglobal _ | Econst _
       | Econstr0 _ | Elast _ | Eperiod _ | Eop _ -> desc
-      | Eapp({ app_inline = false } as app, op, arg_list)
+      | Eapp({ app_inline = i } as app, op, arg_list) ->
+          (* only fully applied functions can be inlined *)
+	  let op = exp op in
+          let arg_list = List.map exp arg_list in
+          let i =
+            if i then true
+            else let tc_arg_list =
+                   List.map (fun { e_caus = tc } -> tc) (op :: arg_list) in
+                 to_inline info tc_arg_list tc in
+          Eapp({ app with app_inline = i }, op, arg_list)
+      (* | Eapp({ app_inline = false } as app, op, arg_list)
           when Types.fully_applied e.e_typ ->
             (* only fully applied functions can be inlined *)
 	 let op = exp op in
          let arg_list = List.map exp arg_list in
-         let tc_arg_list = List.map (fun { e_caus = tc } -> tc) arg_list in
+         let tc_arg_list =
+           List.map (fun { e_caus = tc } -> tc) (op :: arg_list) in
          let i = to_inline info tc_arg_list tc in
-	 Eapp({ app with app_inline = i }, op, arg_list)
-      | Eapp(app, op, arg_list) ->
+	 Eapp({ app with app_inline = i }, op, arg_list) *)
+      (*
+| Eapp(app, op, arg_list) ->
 	  let op = exp op in
           let arg_list = List.map exp arg_list in
           Eapp(app, op, arg_list)
+*)
       | Etuple(e_list) -> Etuple(List.map exp e_list)
       | Erecord_access(e, m) -> Erecord_access(exp e, m)
       | Erecord(m_e_list) ->

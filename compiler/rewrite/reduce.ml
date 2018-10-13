@@ -171,44 +171,53 @@ let rec expression venv renaming fun_defs ({ e_desc = desc } as e) =
       (* non opaque value only when [inline] is true *)
       (* [e_list] decomposes into (a possibly empty) sequence of 
        *- static arguments [s_list] and non static ones [ne_list] *)
-      let s_list, ne_list, ty_res =
-        Types.split_arguments e_fun.e_typ e_list in
-      let v_fun = Static.expression venv e_fun in
-      let { value_exp = v; value_name = opt_name } as v_fun =
-        Static.app v_fun (List.map (Static.expression venv) s_list) in
       let e, fun_defs =
-        match ne_list with
-        | [] ->
-	    let e, fun_defs = exp_of_value fun_defs v_fun in
-            { e with e_typ = ty_res }, fun_defs
-        | _ ->
-	    let ne_list, fun_defs =
-            Misc.map_fold (expression venv renaming) fun_defs ne_list in
-            (* two solutions are possible. Either we introduce a fresh *)
-            (* function [f] for the result of [v_fun s1...sn] *)
-            (* and return [f ne1...nek]. [f] could then be shared in case *)
-            (* several instance of [v_fun s1...sn] exist *)
-	    (* Or we directly inline the body of [f]. We take this solution *)
-	    (* for the moment *)
-            match opt_name, v with
-            | None,
-            Vfun({ f_args = p_list; f_body = e; f_env = f_env }, venv_closure) ->
-	      (* [p_list] should now be a list of non static parameters *)
-              let f_env, renaming0 = build f_env in
-              let venv = remove renaming0 venv in
-              let renaming = Env.append renaming0 renaming in
-              let p_list = List.map (pattern venv renaming) p_list in
-              let e, fun_defs = expression venv_closure renaming fun_defs e in
-	      (* return [let p1 = ne1 in ... in pk = nek in e] *)
-	      Zaux.make_let f_env
-                (List.map2
-                   (fun p ne -> Zaux.eqmake (EQeq(p, ne))) p_list ne_list) e,
-              fun_defs
-	  | _ -> (* returns an application *)
-              let e_fun, fundefs = exp_of_value fun_defs v_fun in
-	      let e_fun = { e_fun with e_typ = ty_res } in
-	      { e with e_desc = Eapp(app, e_fun, ne_list) }, fun_defs in
-     e, fun_defs
+        let s_list, ne_list, ty_res =
+          Types.split_arguments e_fun.e_typ e_list in
+        let ne_list, fun_defs =
+          Misc.map_fold (expression venv renaming) fun_defs ne_list in
+        try
+          let v_fun = Static.expression venv e_fun in
+          let { value_exp = v; value_name = opt_name } as v_fun =
+            Static.app v_fun (List.map (Static.expression venv) s_list) in
+          match ne_list with
+          | [] ->
+	      let e, fun_defs = exp_of_value fun_defs v_fun in
+              { e with e_typ = ty_res }, fun_defs
+          | _ ->
+	      (* two solutions are possible. Either we introduce a fresh *)
+              (* function [f] for the result of [v_fun s1...sn] *)
+              (* and return [f ne1...nek]. [f] could then be shared in case *)
+              (* several instance of [v_fun s1...sn] exist *)
+	      (* Or we directly inline the body of [f]. We take this solution *)
+	      (* for the moment *)
+              match opt_name, v with
+              | None,
+                Vfun({ f_args = p_list; f_body = e; f_env = f_env },
+                     venv_closure) ->
+	          (* [p_list] should now be a list of non static parameters *)
+                  let f_env, renaming0 = build f_env in
+                  let venv = remove renaming0 venv in
+                  let renaming = Env.append renaming0 renaming in
+                  let p_list = List.map (pattern venv renaming) p_list in
+                  let e, fun_defs =
+                    expression venv_closure renaming fun_defs e in
+	          (* return [let p1 = ne1 in ... in pk = nek in e] *)
+	          Zaux.make_let f_env
+                    (List.map2
+                     (fun p ne -> Zaux.eqmake (EQeq(p, ne))) p_list ne_list) e,
+                    fun_defs
+	      | _ -> (* returns an application *)
+                  let e_fun, fundefs = exp_of_value fun_defs v_fun in
+	          let e_fun = { e_fun with e_typ = ty_res } in
+	          { e with e_desc = Eapp(app, e_fun, ne_list) }, fun_defs
+        with
+          Static.Error _ ->
+            let e_fun, fun_defs = expression venv renaming fun_defs e_fun in
+            let s_list, fun_defs =
+              Misc.map_fold (expression venv renaming) fun_defs s_list in
+            { e with e_desc = Eapp(app, e_fun, s_list @ ne_list) }, fun_defs in
+      e, fun_defs
   | Eop(op, e_list) ->
       let e_list, fun_defs =
         Misc.map_fold (expression venv renaming) fun_defs e_list in
@@ -539,11 +548,14 @@ let implementation_list ff impl_list =
        (* is [is_static = true], f is a compile-time constant *)
        let e, { fundefs = fun_defs } =
          if is_static then
-           let v = Static.expression Env.empty e in
-           (* add [f \ v] in the global symbol table *)
-           let v = Global.value_name (Modules.qualify f) v in
-           set_value_code f v;
-           exp_of_value empty v
+           try
+             let v = Static.expression Env.empty e in
+             (* add [f \ v] in the global symbol table *)
+             let v = Global.value_name (Modules.qualify f) v in
+             set_value_code f v;
+             exp_of_value empty v
+           with
+             Static.Error _ -> expression Env.empty Env.empty empty e
          else expression Env.empty Env.empty empty e in
        { impl with desc = Econstdecl(f, is_static, e) } ::
 	 List.fold_right make fun_defs impl_defs
@@ -559,8 +571,6 @@ let implementation_list ff impl_list =
 	   funexp, { impl with desc = Efundecl(f, funexp) } ::
 		     List.fold_right make fun_defs impl_defs
          else
-           (* for the moment, we reduce under the lambda wheither or *)
-           (* not the function has static parameters. *)
            funexp, impl_defs in
        let v = Global.value_code (Global.Vfun(funexp, Env.empty)) in
        let v = Global.value_name (Modules.qualify f) v in

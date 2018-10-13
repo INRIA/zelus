@@ -96,9 +96,10 @@ let rec remove c l =
   | [] -> []
   | c1 :: l1 -> if equal c c1 then l1 else c1 :: (remove c l1)
 
+let rec mem c l =
+  match l with | [] -> false | c1 :: l -> (equal c c1) || (mem c l)
+
 let rec union l1 l2 = 
-  let rec mem c l =
-    match l with | [] -> false | c1 :: l -> (equal c c1) || (mem c l) in
   match l1, l2 with
   | [], l2 -> l2 | l1, [] -> l1
   | c :: l1, l2 -> if mem c l2 then union l1 l2 else c :: union l1 l2
@@ -107,7 +108,11 @@ let set l = List.fold_left (fun acc c -> add c acc) [] l
                       
 (* sups *)
 let sups c = let c = crepr c in c.c_sup
-                 
+let allsups acc c =
+  let rec allsups acc c =  add c (all_sups_list acc c.c_sup)
+  and all_sups_list acc l = List.fold_left allsups acc l in
+  all_sups_list acc (sups c)
+    
 let rec annotate n = function
   | Catom(c) -> atom(cannotate n c)
   | Cproduct(ty_list) -> product(List.map (annotate n) ty_list)
@@ -133,6 +138,7 @@ let rec polarity right tc =
   | Catom(c) -> polarity_c right c
 
 and polarity_c right c =
+  let c = crepr c in
   match c.c_polarity, right with
     | Punknown, true -> c.c_polarity <- Pplus
     | Punknown, false -> c.c_polarity <- Pminus
@@ -195,7 +201,8 @@ let intro_less_c right_c =
 (* does it exist a strict path from [c1] to [c2]? *)
 let rec strict_path c1 c2 = List.exists (fun c1 -> path c1 c2) (sups c1) 
 and path c1 c2 = (equal c1 c2) || (strict_path c1 c2)
-                                    
+
+ 
 (* Copy of a causality type *)
 let rec fresh tc =
   match tc with
@@ -248,29 +255,20 @@ let rec skeleton ty =
   | Tconstr(_, _, _) | Tvec _ -> atom (new_var ())
   | Tlink(ty) -> skeleton ty
 
-let skeleton_on_c c_right ty =
-  let c_left = new_var () in
-  less_c c_left c_right;
-  let rec skeleton_on_c is_right ty =
+let skeleton_on_c c ty =
+  let rec skeleton_on_c is_right c_right ty =
     match ty.t_desc with
-    | Tvar | Tconstr(_, _, _) | Tvec _ ->
-        atom (if is_right then c_right else c_left)
-    | Tproduct(ty_list) -> product (List.map (skeleton_on_c is_right) ty_list)
+    | Tvar | Tconstr(_, _, _) | Tvec _ -> atom c_right
+    | Tproduct(ty_list) ->
+        product (List.map (skeleton_on_c is_right c_right) ty_list)
     | Tfun(_, _, ty_arg, ty) ->
-        funtype (skeleton_on_c (not is_right) ty_arg) (skeleton_on_c is_right ty)
-    | Tlink(ty) -> skeleton_on_c is_right ty in
-  skeleton_on_c true ty
-
-let rec skeleton_on_c c_right ty =
-  match ty.t_desc with
-  | Tvar | Tconstr(_, _, _) | Tvec _ -> atom c_right
-  | Tproduct(ty_list) ->
-      product (List.map (skeleton_on_c c_right) ty_list)
-  | Tfun(_, _, ty_arg, ty) ->
-      let c_left = new_var () in
-      less_c c_left c_right;
-      funtype (skeleton_on_c c_left ty_arg) (skeleton_on_c c_right ty)
-  | Tlink(ty) -> skeleton_on_c c_right ty
+        let c_left = new_var () in
+        if is_right then less_c c_left c_right;
+        funtype
+          (skeleton_on_c (not is_right) c_left ty_arg)
+          (skeleton_on_c is_right c_right ty)
+    | Tlink(ty) -> skeleton_on_c is_right c_right ty in
+  skeleton_on_c true c ty
    
 (* Returns a causality type that is structurally like [tc] but *)
 (* also depend on variables in [cset] *)
