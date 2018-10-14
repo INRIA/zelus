@@ -53,10 +53,6 @@ let show_version () =
 let simulation_node = ref None
 let set_simulation_node (n:string) = simulation_node := Some(n)
 
-(* set the option [all]. When on, all nodes including ones with *)
-(* static parameters are compiled *)
-let all = ref false
-		 
 (* sets the checking flag *)
 let number_of_checks = ref 0
 let set_check (n: int) = number_of_checks := n

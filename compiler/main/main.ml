@@ -63,8 +63,6 @@ and doc_nosimplify = "\t  (undocumented)"
 and doc_noreduce = "\t  (undocumented)"
 and doc_lmm = "<n>\t  Translate the node into Lustre--"
 and doc_red_name = "\t  Static reduction for"
-and doc_all =
-  "\t  Compile all functions (including those with static parameters)"
 let errmsg = "Options are:"
 
 let set_verbose () =
@@ -98,8 +96,7 @@ let main () =
         "-inline", Arg.Int set_inlining_level, doc_inlining_level;
 	"-nosimplify", Arg.Set no_simplify_causality_type, doc_nosimplify;
         "-noreduce", Arg.Set no_reduce, doc_noreduce;
-        "-lmm", Arg.String set_lmm_nodes, doc_lmm;
-	"-all", Arg.Set all, doc_all;
+        "-lmm", Arg.String set_lmm_nodes, doc_lmm
         
       ])
       compile

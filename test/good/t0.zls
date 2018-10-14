@@ -1,4 +1,7 @@
-let f(x) = let o = 1 + (x + 1) in o
+let f(x) = 1 + 1
+
+let g(x) =
+  f(x+1); 1+2
     
   (*
 let atomic fun f g x = g (x + 1)
