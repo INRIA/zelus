@@ -282,7 +282,7 @@ let rec exp env c_free ({ e_desc = desc; e_typ = ty; e_loc = loc } as e) =
 and app env c_free tc_fct arg_list =
   (* typing the list of arguments *)
   let rec args tc_fct = function
-    | [] -> tc_fct
+    | [] -> subtype true tc_fct
     | arg :: arg_list ->
         let tc1, tc2 = Causal.filter_arrow tc_fct in
         exp_less_than env c_free arg tc1;

@@ -228,21 +228,6 @@ let funexp_mark_to_inline info ({ f_body = e } as funexp) =
                    List.map (fun { e_caus = tc } -> tc) (op :: arg_list) in
                  to_inline info tc_arg_list tc in
           Eapp({ app with app_inline = i }, op, arg_list)
-      (* | Eapp({ app_inline = false } as app, op, arg_list)
-          when Types.fully_applied e.e_typ ->
-            (* only fully applied functions can be inlined *)
-	 let op = exp op in
-         let arg_list = List.map exp arg_list in
-         let tc_arg_list =
-           List.map (fun { e_caus = tc } -> tc) (op :: arg_list) in
-         let i = to_inline info tc_arg_list tc in
-	 Eapp({ app with app_inline = i }, op, arg_list) *)
-      (*
-| Eapp(app, op, arg_list) ->
-	  let op = exp op in
-          let arg_list = List.map exp arg_list in
-          Eapp(app, op, arg_list)
-*)
       | Etuple(e_list) -> Etuple(List.map exp e_list)
       | Erecord_access(e, m) -> Erecord_access(exp e, m)
       | Erecord(m_e_list) ->
