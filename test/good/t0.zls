@@ -1,14 +1,7 @@
-let f(x) = 1 + 1
+let atomic fun f1 g x = g (x + 1)
 
-let g(x) =
-  f(x+1); 1+2
-    
-  (*
-let atomic fun f g x = g (x + 1)
+let atomic fun f2 x = x + 2, 3
 
-let atomic fun g x = x + 2, 3 *)
-
-(*
 let node g(h)(t)(x, y) =
   let rec o1, o2 = run h (x, o3)
   and o3, o4 = run t (o1, o2) in
@@ -25,4 +18,3 @@ let node gg(x, y) = g(h1)(h2)(x,y)
 
 let node ff(x) = 0 fby x + 1
 let node l2(x) = let rec o = ff(o+1) in o+1
- *)
