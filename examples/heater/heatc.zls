@@ -74,7 +74,7 @@ let hybrid main_no_graphics() =
   else ()
 
       
-let hybrid main() =
+let hybrid mainc() =
   let der t = 1.0 init 0.0 in
   let u, temp = system(19.0) in
   let temp1 =
