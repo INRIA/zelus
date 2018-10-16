@@ -14,21 +14,21 @@ heat.opt: heat.ml main.ml
         unix.cmxa bigarray.cmxa lablgtk.cmxa zllibgtk.cmxa \
         -linkpkg heat.ml main.ml
 
-heatc.byte: heat.ml main.ml
+heatc.byte: heat.ml heatc.ml main.ml
 	ocamlfind ocamlc -o heatc.byte -I `zeluc -where` -package lablgtk2 \
         -package sundialsml lablgtk.cma zllibgtk.cma \
-        -linkpkg heat.ml main.ml
+        -linkpkg heat.ml heatc.ml mainc.ml
 
-heatc.opt: heat.ml main.ml
+heatc.opt: heat.ml heatc.ml main.ml
 	ocamlfind ocamlopt -o heatc.opt -I `zeluc -where` -package lablgtk2 \
-        -package sundialsml lablgtk.cmxa zllibgtk.cmxa \
-        -linkpkg heat.ml main.ml
+        lablgtk.cmxa zllibgtk.cmxa \
+        -package sundialsml -linkpkg heat.ml heatc.ml mainc.ml
 
 heat.ml: heat.zls
 	zeluc -sampling 0.1 -gtk2 -s main heat.zls 
 
 heatc.ml: heatc.zls
-	zeluc -gtk2 -s main heatc.zls 
+	zeluc -gtk2 -s mainc heatc.zls 
 
 clean:
 	-@rm -f $(EXAMPLE:%.zls=%.byte)

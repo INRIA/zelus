@@ -4,21 +4,21 @@
 (* ouvrage "Systemes Temps reel -- Volume 1, 2006" *)
 (* adapte au cas 1er ordre *)
 
-let xor (a, b) = (a & not(b)) or (not(a) & b)
+let xor (a, b) = (a && not(b)) || (not(a) && b)
 
 let full_add (a, b, c) = (s, co) where
        s = xor (xor (a, b), c)
-   and co = (a & b) or (b & c) or (a & c)
+   and co = (a && b) || (b && c) || (a && c)
 
 let half_add (a,b) = (s, co) 
-  where s = xor (a, b) and co = a & b
+  where s = xor (a, b) and co = a && b
 
 let full_add2(a,b,c) = (s, co) where
   rec (s1, c1) = half_add(a,b)
   and (s, c2) = half_add(c, s1)
-  and co = c2 or c1
+  and co = c2 || c1
 
-let node edge c = false -> c & not (pre c)
+let node edge c = false -> c && not (pre c)
 
 let node count1 (d, t) = ok where
   rec ok = (cpt = d)
@@ -98,7 +98,7 @@ let node expect a = o where
   | S1 -> do o = false unless a then S2
   | S2 -> do o = true done
 
-let node abo (a, b) = (expect a) & (expect b)
+let node abo (a, b) = (expect a) && (expect b)
 
 let node abro (a, b, r) = o where
   reset
@@ -156,10 +156,10 @@ let node switch (low, high) = o where
       | Init -> do o = 0 then Up(1)
       | Up(u) ->
           do o = last o + u
-          unless low(v) then Down(v)
+          until low(v) then Down(v)
       | Down(v) ->
           do o = last o - v
-          unless high(w) then Up(w)
+          until high(w) then Up(w)
 
 (* module Misc *)
 let node integr (t, dx) = let rec x = 0.0 -> t *. dx +. pre x in x
@@ -196,9 +196,9 @@ let delay_off = 1
 
 let node count (d, t) = ok where
   rec ok = cpt = 1
-  and cpt = d -> if t & not (pre ok) then pre cpt - 1 else pre cpt
+  and cpt = d -> if t && not (pre ok) then pre cpt - 1 else pre cpt
 
-let node edge1 x = false -> not (pre x) & x
+let node edge1 x = false -> not (pre x) && x
 
 let node heat (expected_temp, actual_temp) = on_heat where
   rec on_heat = if actual_temp <= expected_temp - low then true
