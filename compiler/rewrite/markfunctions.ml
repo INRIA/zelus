@@ -185,7 +185,7 @@ let to_inline { io_table = io_table; o_table = o_table } tc_arg_list tc_res =
               Causal.S.for_all
                 (fun i ->
                    let io_of_i = Causal.M.find i io_table in
-                   not (Causal.path o i) &&
+                   not (Causal.strict_path o i) &&
                    (Causal.S.subset io_of_o io_of_i))
                 out_of_inputs)
            out_of_result) in
@@ -197,7 +197,10 @@ let to_inline { io_table = io_table; o_table = o_table } tc_arg_list tc_res =
   try
     if not inline then
       Causal.S.iter
-        (fun i -> Causal.S.iter (fun o -> Causal.less_c i o) out_of_result)
+        (fun i ->
+           Causal.S.iter
+             (fun o -> if not (Causal.equal i o) then Causal.less_c i o)
+             out_of_result)
         out_of_inputs;
     inline
   with
