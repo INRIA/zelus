@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2017                                               *)
+(*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -57,6 +57,12 @@ let emit e = e, etrue
 let presentpat pat = { pat with p_desc = Etuplepat[pat; truepat];
                                 p_typ = tproduct [pat.p_typ; typ_bool] }
 
+(* implementation of the presence test ? of a signal *)
+let test e = Eapp(Zaux.prime_app,
+                  Zaux.global_in_pervasives "snd"
+                    (maketype [e.e_typ] Initial.typ_bool),
+                  [e])
+    
 let eq_match total e l = 
   let block_do_done =
     { b_vars = []; b_locals = []; b_body = []; b_loc = no_location;
@@ -164,9 +170,7 @@ let rec exp signals ({ e_desc = desc } as e) =
        | Not_found -> desc
      end
   | Etuple(e_list) -> Etuple(List.map (exp signals) e_list)
-  | Eop(Etest, [e]) ->
-     Eapp(Zaux.prime_app, Zaux.global_in_pervasives "snd" Deftypes.no_typ,
-	  [exp signals e])
+  | Eop(Etest, [e]) -> test (exp signals e)
   | Eop(op, e_list) ->
      Eop(op, List.map (exp signals) e_list)
   | Eapp(app, e, e_list) ->
