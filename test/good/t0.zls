@@ -1,15 +1,25 @@
-let atomic fun f1 g x = g (x + 1)
+let node f4 x =
+  reset 1 every ?x
 
-let atomic fun f2 x = x + 2, 3
+let node fff x = 0 fby x + 1
+
+let node ggg(f) x = let rec o = fff ((x + o)) + 1 in o
+
+let f1 g x = g (x + 1)
+
+let f2 x = x + 2, 3
 
 let node g(h)(t)(x, y) =
   let rec o1, o2 = run h (x, o3)
   and o3, o4 = run t (o1, o2) in
   o1 + y, o4
 
-let node f(x) = 0 fby x + 1
-let node l(x) = let rec r = f(0 fby x+1) in r
-let node h(x) = let rec o = l(o+1) in o
+let node sin_cos() =
+  let rec sin = fff(cos) and cos = fff(sin) in sin, cos
+    
+let node f y (x) = 0 fby x + 1
+let node l y (x) = let rec r = f y (0 fby r+1) in r
+let node h(x) = let rec o = l 0 (o+1) in o
   
 let node h1 (x,y) = (x, y)
 let node h2 (x,y) = (x, y)
@@ -18,3 +28,14 @@ let node gg(x, y) = g(h1)(h2)(x,y)
 
 let node ff(x) = 0 fby x + 1
 let node l2(x) = let rec o = ff(o+1) in o+1
+
+(* let fix(f)(x) = let rec o = f(x, o) in o
+
+val fix : (a1 * #a2 -> a2) -> a1 -> a2
+
+let f (x, y) = x + y
+
+val f : a * b -> c  a, b <= c 
+
+not (a * b -> c  <= a1 * #a2 -> a2)
+*)
