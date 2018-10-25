@@ -31,11 +31,11 @@ let find name =
     | Not_found ->
         eprintf "The name %s is unbound.@." name;
       raise Misc.Error
-   
+
 (* the main node must be of type [expected_ty_arg_list] and the result of *)
 (* type [expected_ty_res_list] *)
-let check_type_of_main_node name 
-			    { qualid = qualid; info = { value_typ = tys } } 
+let check_type_of_main_node name
+			    { qualid = qualid; info = { value_typ = tys } }
 			    opt_name expected_ty_arg expected_ty_res =
   let actual_ty = Types.instance_of_type tys in
   let k, opt_name, actual_ty_arg, actual_ty_res =
@@ -135,10 +135,10 @@ let emit_checked_code ff k n =
   | Deftypes.Tstatic _ | Deftypes.Tany | Deftypes.Tdiscrete _ ->
       fprintf ff
           "@[(* (discrete) simulation loop *)
-           let ok = ref true in 
+           let ok = ref true in
            for i = 0 to %d - 1 do
-             let r = main () in 
-             if not r then begin 
+             let r = main () in
+             if not r then begin
                  print_string (\"error(\" ^ (string_of_int i) ^ \")\\n\");
                  exit(2)
                end
@@ -150,7 +150,7 @@ let emit_checked_code ff k n =
       fprintf ff "@[(* instantiate a numeric solver *)\n\
                     module Runtime = Zlsrun.Make (Defaultsolver)\n\
                     let _ = Runtime.check main %d@.@]" n
-      
+
 let emit_gtkmain_code ff k sampling =
   match k with
   | Deftypes.Tstatic _ | Deftypes.Tany | Deftypes.Tdiscrete _ ->
@@ -163,7 +163,7 @@ let emit_gtkmain_code ff k sampling =
      fprintf ff "@[(* instantiate a numeric solver *)\n\
                  module Runtime = Zlsrungtk.Make (Defaultsolver)\n\
                  let _ = Runtime.go main@.@]"
-	     
+
 (* emited code for event-driven programs: the transition function *)
 (* is executed every [1/sampling] seconds *)
 let emit_periodic_code ff k sampling =
@@ -184,7 +184,7 @@ let emit_periodic_code ff k sampling =
   | Deftypes.Tcont ->
      fprintf ff "@[(* instantiate a numeric solver *)
                  let _ = Zlsrun.go main@.@]"
-	     
+
 (** The main entry function. Simulation of a main function *)
 let main name sampling number_of_checks use_gtk =
   (* - open the module where main occurs
@@ -194,7 +194,7 @@ let main name sampling number_of_checks use_gtk =
   let filename = name ^ ".ml" in
   let info = find name in
   let qualid, k =
-    if number_of_checks > 0 then check_unit_bool name info 
+    if number_of_checks > 0 then check_unit_bool name info
     else check_unit_unit name info in
   let oc = open_out filename in
   let ff = Format.formatter_of_out_channel oc in
@@ -208,11 +208,10 @@ let main name sampling number_of_checks use_gtk =
     else
       emit_checked_code ff k number_of_checks
   else
-    if sampling < 0.0 then 
+    if sampling < 0.0 then
       eprintf "Do not use -sampling with a negative argument.@."
-    else if use_gtk then emit_gtkmain_code ff k sampling
+    else if use_gtk then emit_gtkmain_code ff k 1.
     else
       if sampling = 0.0 then emit_simulation_code ff k
       else emit_periodic_code ff k sampling;
   close_out oc
-	    

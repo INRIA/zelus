@@ -202,7 +202,7 @@ struct (* {{{ *)
 
 let _ = GMain.init () (* initialize lablgtk2 *)
 
-let start_playing = ref false
+let start_playing = ref true
 
 let destroy () = GMain.Main.quit ()
 
@@ -295,15 +295,14 @@ let go freq main_step =
   let stask = new step_task freq (fun () -> main_step (); false) in
 
   let s_speed_adj = GData.adjustment
-    ~lower:100.0
-    ~upper:10000.0
-    ~value:1000.0
-    ~step_incr:100.0
+    ~lower:1.0
+    ~upper:100.0
+    ~value:10.0
+    ~step_incr:1.0
     ()
   in
   let change_period x =
-    stask#set_period s_speed_adj#value;
-    ignore (stask#trigger_step ())
+    stask#set_period (10. /. s_speed_adj#value)
     in
   ignore (s_speed_adj#connect#value_changed change_period);
 
