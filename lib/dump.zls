@@ -50,7 +50,7 @@ let node window4 (title, imaxt, t, (n1, v1), (n2, v2), (n3, v3), (n4, v4)) =
   where
   rec init f = open_out (title ^ ".out")
   and init x = output_quoted_strings
-                 f (append (n1, (append (n2, (cons ("t", append (n3, n4)))))))
+                 f (cons ("t", append (n1, (append (n2, (append (n3, n4)))))))
 
 let node window5 (title, imaxt, t,
                   (n1, v1), (n2, v2), (n3, v3), (n4, v4), (n5, v5)) =
