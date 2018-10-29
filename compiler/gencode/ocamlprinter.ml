@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2017                                               *)
+(*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -56,9 +56,15 @@ let print_concrete_type ff ty =
     if prio_ty < prio then fprintf ff "(";
     begin match ty with
     | Otypevar(s) -> fprintf ff "%s" s
-    | Otypefun(_, ty_arg, ty) ->
-       fprintf ff "@[<hov2>%a ->@ %a@]"
-               (ptype (prio_ty+1)) ty_arg (ptype prio_ty) ty
+    | Otypefun(k, _, ty_arg, ty) ->
+        begin match k with
+          | Ofun ->
+              fprintf ff "@[<hov2>%a ->@ %a@]"
+                (ptype (prio_ty+1)) ty_arg (ptype prio_ty) ty
+          | Onode ->
+              fprintf ff "@[<hov2>(%a, %a) node@]"
+                (ptype (prio_ty+1)) ty_arg (ptype prio_ty) ty
+        end
     | Otypetuple(ty_list) ->
        fprintf ff
 	       "@[<hov2>%a@]" (print_list_r (ptype prio_ty) "("" *"")") ty_list

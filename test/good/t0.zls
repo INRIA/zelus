@@ -1,8 +1,65 @@
-let node f4 x =
-  reset 1 every ?x
+let atomic node f g h x =
+  let rec o1 = g (0 -> pre o2 + 1) and o2 = h(o1 + 1) in o1+1
 
-let node fff x = 0 fby x + 1
+let node ff g h x = let rec o = run (g h) (o + x) in o + 1
 
+let node fff g x = run g x
+
+let node f2 x = x + 1
+    
+let node ffff x = ff fff f2 x
+    
+let node h g h x = f g h x
+
+let node hh x = x + 1
+    
+let node gg f x = let o = run f (run f (x+1)) in o + 1
+
+let node ggg x = gg hh x
+    
+(*
+val f : {'a < 'b}. ('b -> 'a) -> 'b -> 'a
+
+(a1 -> a1) -> a1 -> a1
+
+f : (a2 -> a3) -> (a4 -> a5)
+
+a1 < a5 a4 < a1
+a3 < a1 a1 < a2
+
+a3-, a4- < a5+, a2+
+
+f (fun x -> x + 1)
+
+a -> b < a2 -> a3
+
+b < a3, a2 < a
+a < b
+=> a2 < a3, ce qui est contradictoire avec le fait que l'on importe une
+fonction stricte.
+
+a < a1 a1 < b
+
+
+b -> a < a1 -> a1
+
+a < a1 a1 < b
+
+a3 < a4
+a2 < a4
+a1 < a2
+
+a < a4
+a3 < b
+a2 < a
+b < a1
+
+a < b ? 
+
+a < a4
+ *)
+  
+(*
 let node ggg(f) x = let rec o = fff ((x + o)) + 1 in o
 
 let f1 g x = g (x + 1)
@@ -28,7 +85,8 @@ let node gg(x, y) = g(h1)(h2)(x,y)
 
 let node ff(x) = 0 fby x + 1
 let node l2(x) = let rec o = ff(o+1) in o+1
-
+ *)
+    
 (* let fix(f)(x) = let rec o = f(x, o) in o
 
 val fix : (a1 * #a2 -> a2) -> a1 -> a2

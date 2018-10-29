@@ -42,6 +42,11 @@ let sequence inst1 inst2 =
   | _, Osequence(l2) -> Osequence(inst1 :: l2)
   | _ -> Osequence [inst1; inst2]
 
+(** Translation of the kind *)
+let kind = function
+  | Zelus.S | Zelus.A | Zelus.AD | Zelus.AS -> Ofun
+  | Zelus.C | Zelus.D -> Onode
+    
 (** Translating type expressions. *)
 let rec type_expression { Zelus.desc = desc } =
   match desc with
@@ -52,8 +57,8 @@ let rec type_expression { Zelus.desc = desc } =
     Otypetuple(List.map type_expression ty_list)
   | Zelus.Etypevec(ty, s) ->
      Otypevec(type_expression ty, size s)
-  | Zelus.Etypefun(_, opt_name, ty_arg, ty_res) ->
-     Otypefun(opt_name, type_expression ty_arg, type_expression ty_res)
+  | Zelus.Etypefun(k, opt_name, ty_arg, ty_res) ->
+     Otypefun(kind k, opt_name, type_expression ty_arg, type_expression ty_res)
 
 and type_of_type_decl ty_decl =
   match ty_decl with

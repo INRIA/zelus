@@ -38,9 +38,9 @@ type info =
  *- (see the [to_inline] function)
  *- Intuition:
  *- let [f: tc0; arg1: tc1;...; argn: tcn] and [f arg1...argn : tc_res]
- *- The function call in not inlined 
+ *- The function call is not inlined 
  *- if forall ai, bj st ai in Out tcj, bj in tc_res.
- *-      io(bj) subseteq io(ai) and not bj <* ai 
+ *-      (io(bj) subseteq io(ai) or io(ai) subseteq io(bj)) and not bj <* ai 
  *- <* is the reflexive/transitive closure of <;
  *- io(a) is the input/dependences of a, with i(a) a subset of names 
  *- from vars tc_in_list and o(a) a subset of names from vars tc_out 
@@ -186,7 +186,8 @@ let to_inline { io_table = io_table; o_table = o_table } tc_arg_list tc_res =
                 (fun i ->
                    let io_of_i = Causal.M.find i io_table in
                    not (Causal.strict_path o i) &&
-                   (Causal.S.subset io_of_o io_of_i))
+                   ((Causal.S.subset io_of_o io_of_i) ||
+                    (Causal.S.subset io_of_i io_of_o)))
                 out_of_inputs)
            out_of_result) in
   (* inline if not [\/_{i in out_of_inputs} IO(i) 

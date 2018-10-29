@@ -45,13 +45,13 @@ let message loc kind =
     | Iless_than(expected_ti, actual_ti) ->
         Format.eprintf
           "%aInitialization error: this expression \
-           has type %a which should be less than %a.@."
+           has type %a@ which should be less than@ %a.@."
           output_location loc
           Pinit.ptype expected_ti Pinit.ptype actual_ti
     | Iless_than_i(expected_i, actual_i) ->
         Format.eprintf
           "%aInitialization error: this expression \
-           has type %a which should be less than %a.@."
+           has type@ %a which should be less than@ %a.@."
           output_location loc
           Pinit.init expected_i Pinit.init actual_i
     | Ilast(n) ->
@@ -588,7 +588,7 @@ let implementation ff impl =
           else
             funtype_list (List.map (fun p -> Init.skeleton p.p_typ) p_list)
               (Init.skeleton e.e_typ) in
-        Init.less actual_ti expected_ti;
+        less_than impl.loc actual_ti expected_ti;
         Misc.pop_binding_level ();
         let tis = generalise actual_ti in
         Global.set_init (Modules.find_value (Lident.Name(f))) tis;

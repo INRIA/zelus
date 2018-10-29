@@ -46,7 +46,7 @@ exception Error of location * error
 
 let error loc kind = raise (Error(loc, kind))
 
-let message loc kind =
+(* let message loc kind =
   begin
     match kind with
     | Cless_than(left_tc, right_tc, env, cycle) ->
@@ -61,9 +61,26 @@ let message loc kind =
           output_location loc
           Pcaus.ptype left_tc
           Pcaus.ptype right_tc
-          Pcaus.cycle cycle
+          (Pcaus.cycle false) cycle
           Causal.penv env
           Causal.prel rel
+  end;
+  raise Misc.Error *)
+
+let message loc kind =
+  begin
+    match kind with
+    | Cless_than(left_tc, right_tc, env, cycle) ->
+        let c_set = vars (vars S.empty left_tc) right_tc in
+        let cycle = Causal.keep_names_in_cycle c_set cycle in
+        Format.eprintf
+          "@[%aCausality error: This expression has causality type@ %a,\
+           @ whereas it should be less than@ %a@.\
+           Here is an example of a cycle:@.%a@.@]"
+          output_location loc
+          Pcaus.ptype left_tc
+          Pcaus.ptype right_tc
+          (Pcaus.cycle true) cycle
   end;
   raise Misc.Error
 
@@ -645,7 +662,7 @@ let implementation ff { desc = desc; loc = loc } =
          if atomic then
            let c_res = Causal.new_var () in
            let expected_tc = Causal.fresh_on_c c_res actual_tc in
-           less_than loc env actual_tc (Causal.subtype true expected_tc);
+           less_than loc env actual_tc expected_tc;
            expected_tc
          else actual_tc in
        Misc.pop_binding_level ();

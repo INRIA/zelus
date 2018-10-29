@@ -56,7 +56,7 @@ let new_var () =
     c_polarity = Punknown; c_info = None; c_visited = -1 }
 let new_var_with_info { c_info = i } = { (new_var ()) with c_info = i }
 let new_gen_var () = 
-  { c_desc = Cvar; c_index = symbol#name; c_level = !binding_level+1;
+  { c_desc = Cvar; c_index = symbol#name; c_level = !binding_level + 1;
     c_inf = []; c_sup = []; c_useful = false; 
     c_polarity = Punknown; c_info = None; c_visited = -1 }
 let product l = Cproduct(l)
@@ -163,7 +163,7 @@ let rec occur_check ({ c_level = level; c_index = index } as c_left) c_right =
     | Clink(link) -> check path link
   in check [c_left] c_right
 
-(*
+(* For debug purpose only *)
 let rec check_type tc =
   match tc with
   | Cproduct(tc_list) -> List.iter check_type tc_list
@@ -172,9 +172,8 @@ let rec check_type tc =
       List.iter (occur_check c) c.c_inf;      
       List.iter (occur_check c) c.c_sup
   | Cfun(tc_arg, tc_res) -> check_type tc_arg; check_type tc_res
-*)
     
-(** Unification *)
+(** order < between types *)
 let rec less left_tc right_tc =
   match left_tc, right_tc with
   | Cproduct(l1), Cproduct(l2) -> List.iter2 less l1 l2
@@ -212,7 +211,10 @@ let rec fresh tc =
 
 let rec fresh_on_c c tc =
   match tc with
-  | Cfun(tc1, tc2) -> Cfun(fresh_on_c c tc1, fresh_on_c c tc2)
+  | Cfun(tc1, tc2) ->
+      let c_left = new_var () in
+      less_c c_left c;
+      Cfun(fresh_on_c c_left tc1, fresh_on_c c tc2)
   | Cproduct(l) -> Cproduct(List.map (fresh_on_c c) l)
   | Catom _ -> Catom(c)
 
@@ -263,7 +265,7 @@ let skeleton_on_c c ty =
         product (List.map (skeleton_on_c is_right c_right) ty_list)
     | Tfun(_, _, ty_arg, ty) ->
         let c_left = new_var () in
-        if is_right then less_c c_left c_right;
+        (* if is_right then *) less_c c_left c_right;
         funtype
           (skeleton_on_c (not is_right) c_left ty_arg)
           (skeleton_on_c is_right c_right ty)
@@ -388,27 +390,27 @@ let build_ki_table io_table =
     
 (* simplifies a causality type *)
 let simplify_by_io tc =
-  let c_set = vars S.empty tc in
-  (* is-it an output? *)
-  let inputs, outputs = ins_and_outs c_set in
+  let inputs, outputs =
+    ins_and_outs_of_a_type true (S.empty, S.empty) tc in
   let inputs_outputs = S.union inputs outputs in
-
+  
   (* build the association table [i, O(i)] for every i in I and O *)
-  let o_table = build_o_table inputs M.empty in
-  let o_table = build_o_table outputs o_table in
+  let o_table = build_o_table inputs_outputs M.empty in
 
   (* then the table of io for every input/output *)
-  let io_table = build_io_table inputs o_table inputs M.empty in
-  let io_table = build_io_table inputs o_table outputs io_table in
+  let io_table = build_io_table inputs o_table inputs_outputs M.empty in
 
   (* the ki table associates a unique variable per io set *)
   let ki_table = build_ki_table io_table in 
   
-  (* finally, replace every variable by its ki *)
-  S.iter
-    (fun c -> c.c_desc <- Clink(K.find (M.find c io_table) ki_table))
-    inputs_outputs;
-  tc
+  (* finally, return a type where every variable is *)
+  (* replaced by its ki *)
+  let rec copy tc =
+    match tc with
+    | Cfun(tc1, tc2) -> Cfun(copy tc1, copy tc2)
+    | Cproduct(tc_list) -> Cproduct(List.map copy tc_list)
+    | Catom(c) -> Catom(K.find (M.find c io_table) ki_table) in
+  copy tc
   
 (* An other simplification method *)
 (* Garbage collection: only keep dependences of the form a- < b+ *)
@@ -505,6 +507,63 @@ let simplify is_right tc =
 let shrink_cycle cset c_list =
   let shrink c = S.mem c cset in
   List.filter shrink c_list
+
+(* Keep explicit names in a causality cycle *)
+let keep_names_in_cycle c_set c_list =
+  let keep_name c =
+    let c = crepr c in
+    match c.c_info with
+    | None -> false | Some(info) -> true in
+  let keep_var c = S.mem c c_set in
+  let c_filtered_list = List.filter keep_name c_list in
+  match c_filtered_list with
+  | [] -> List.filter keep_var c_list
+  | _ -> c_filtered_list
+
+(* compute the reduced closure of a graph. keeps only names in [cset] *)
+let reduce cset =
+  (* first compute the table [c * c' -> dist] which stored *)
+  (* the longuest path distance from [c] to [c'] *)
+  let module T =
+    Map.Make
+      (struct
+        type t = Defcaus.t * Defcaus.t
+        let compare (c1, c2) (c'1, c'2) =
+          let comp = Defcaus.compare c1 c'1 in
+          if comp = 0 then compare c2 c'2 else comp
+      end) in
+  let rec build (visited, table) c =
+    let c = crepr c in
+    if S.mem c visited then visited, table
+    else
+      let sups = c.c_sup in
+      let visited, table =
+        List.fold_left build (S.add c visited, table) sups in
+      let table =
+        List.fold_left
+          (fun table c1 ->
+             List.fold_left
+               (fun table c2 ->
+                  if equal c1 c2 then T.add (c, c1) 1 table
+                  else
+                    let d21 =
+                      try T.find (c2, c1) table with Not_found -> 0 in
+                    T.add (c, c1) (1 + d21) table)
+               table sups)
+          table sups in
+      visited, table in
+  let _, table = List.fold_left build (S.empty, T.empty) cset in
+  (* then, for every [c in cset] only keeps names [c' in sups(c)] *)
+  (* such that dist c c' = 1 *)
+  List.iter
+    (fun c1 ->
+       let sups =
+         List.filter
+           (fun c2 ->
+              try T.find (c1, c2) table = 1 with Not_found -> assert false)
+           c1.c_sup in
+       c1.c_sup <- sups)
+    cset
   
 (** Computes the dependence relation from a list of causality variables *)
 (* variables in [already] are disgarded *)
@@ -553,7 +612,8 @@ let generalise tc =
   mark_and_polarity true tc;
   (* type simplification *)
   (* let tc = simplify true tc in *)
-  let tc = if !Misc.no_simplify_causality_type then tc else simplify_by_io tc in
+  let tc =
+    if !Misc.no_simplify_causality_type then tc else simplify_by_io tc in
   (* check_type tc; *)
   gen tc;
   let c_set = vars S.empty tc in

@@ -104,7 +104,7 @@ let compile modname filename =
   let write_implementation_list obc_list mlc =
     let mlc_ff = Format.formatter_of_out_channel mlc in
     pp_set_max_boxes mlc_ff max_int;
-    O2mlprinter.implementation_list mlc_ff obc_list in
+    Ocamlprinter.implementation_list mlc_ff obc_list in
 
   let write_lmm_list impl_list lmmc =
     let lmm_ff = Format.formatter_of_out_channel lmmc in
@@ -247,7 +247,7 @@ let compile modname filename =
      if !verbose
      then begin
 	 comment "Print OCaml code. See below:";
-	 O2mlprinter.implementation_list info_ff obc_list
+	 Ocamlprinter.implementation_list info_ff obc_list
        end;
      (* write OCaml code in the appropriate file *)
      let mlc = open_out ml_name in

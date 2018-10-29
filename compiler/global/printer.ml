@@ -447,9 +447,10 @@ and state ff se = match se.desc with
 and locals ff l = 
   if l <> [] then fprintf ff "@[%a@]" (print_list_l local """""") l
 
-and local ff { l_eq = eq_list; l_env = env } = 
+and local ff { l_rec = is_rec; l_eq = eq_list; l_env = env } = 
+  let s = if is_rec then "rec " else "" in
   fprintf ff "@[<v 0>%alet %a@]"
-	  print_env env (equation_list "rec " " in") eq_list
+	  print_env env (equation_list s " in") eq_list
  
          
 let type_decl ff ty_decl =

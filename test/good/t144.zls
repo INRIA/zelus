@@ -1,3 +1,4 @@
+ 
 (* [output(0) = x0(0)]
   and [output(n) = output(n−1) + (k * t) * u(n−1)] *)
 let node forward_euler(t)(k, x0, u) = output where
@@ -18,7 +19,10 @@ let node generic_filter(int)(n)(h)(k, u) = udot where
 
 let node filter_forward(h)(n)(k, u) =
   generic_filter(forward_euler)(h)(n)(k, u)
-    
+
+(* let node filter_backward(h)(n)(k, u) =
+  generic_filter(backward_euler)(h)(n)(k, u) *)
+
 let node derivative(h)(k, u) = (u -. u fby u) /. h
 
 let node pid_par(h)(n)(p, i, d, u) = c where
@@ -57,7 +61,7 @@ let hybrid pid_c(n)(p, i, d, u) =
       
 let node fix(f)(x) = o where
   rec o = run f (x, o)
-
+	      
 let node incr(x, y) = x -> pre y + 1
 
 let node nat() = fix incr 0

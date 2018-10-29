@@ -120,7 +120,8 @@ let extend_local env eq_list ({ l_eq = l_eq_list; l_env = l_env } as l) =
   { l with l_eq = eq_list @ l_eq_list; l_env = Env.append env l_env }
 let make_local env eq_list = 
   extend_local env eq_list
-    { l_eq = []; l_env = Env.empty; l_loc = Location.no_location }
+    { l_rec = true; l_eq = [];
+      l_env = Env.empty; l_loc = Location.no_location }
 let make_let env eq_list e =
   match eq_list with
   | [] -> e | _ -> emake (Elet(make_local env eq_list, e)) e.e_typ

@@ -587,9 +587,10 @@ let rec expression env { desc = desc; loc = loc } =
         Zelus.Etypeconstraint(expression env e, types env ty)
     | Elet(is_rec, eq_list, e_let) ->
         let env_p, env, eq_list = letin is_rec env eq_list in
-        Zelus.Elet({ Zelus.l_eq = eq_list; 
-                      Zelus.l_loc = loc; 
-                      Zelus.l_env = Rename.typ_env env_p },
+        Zelus.Elet({ Zelus.l_rec = is_rec;
+                     Zelus.l_eq = eq_list; 
+                     Zelus.l_loc = loc; 
+                     Zelus.l_env = Rename.typ_env env_p },
                     expression env e_let)
     | Eseq(e1, e2) ->
         Zelus.Eseq(expression env e1, expression env e2)
@@ -799,7 +800,7 @@ and equation_list env_pat env eq_list =
 and local env { desc = (is_rec, eq_list); loc = loc } =
   let env_let, env, eq_list = letin is_rec env eq_list in
   env,
-  { Zelus.l_eq = eq_list; Zelus.l_loc = loc;
+  { Zelus.l_rec = is_rec; Zelus.l_eq = eq_list; Zelus.l_loc = loc;
     Zelus.l_env = Rename.typ_env env_let }
 
 and locals env l = 

@@ -57,9 +57,10 @@ let rec caus_by_name ff c =
   | Clink(link) -> caus_by_name ff link
   | Cvar ->
      let index = c.c_index in
-     let info = match c.c_info with None -> "_" | Some(i) -> info i in
-     Format.fprintf ff "(%s:'%s)" info (type_name#name index)
-
+     match c.c_info with
+     | None -> Format.fprintf ff "%s" (type_name#name index)
+     | Some(i) -> Format.fprintf ff "%s at '%s" (info i) (type_name#name index)
+                    
 let rec ptype prio ff tc =
   let priority = function | Catom _ -> 3 | Cproduct _ -> 2 | Cfun _ -> 1 in
   let prio_current = priority tc in
@@ -94,7 +95,8 @@ let scheme ff { typ_rel = rel; typ = ty } =
   Format.fprintf ff "@[<hov2>%a.@ %a@]" relation rel ptype ty
     
 (* prints a dependence cycle *)
-let cycle ff c_list =
+let cycle with_info ff c_list =
+  let caus = if with_info then caus_by_name else caus in
   let rec print first ff l =
     match l with
     | [] -> Format.fprintf ff "@[%a < %a@]" caus first caus first

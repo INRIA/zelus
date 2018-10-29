@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2017                                               *)
+(*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
 (*  Timothy Bourke                                                        *)
 (*  Marc Pouzet                                                           *)
@@ -187,7 +187,7 @@ and implementation =
 (* type declaration *)
 and type_expression = 
   | Otypevar of string
-  | Otypefun of Ident.t option * type_expression * type_expression
+  | Otypefun of kind * Ident.t option * type_expression * type_expression
   | Otypetuple of type_expression list
   | Otypeconstr of Lident.t * type_expression list
   | Otypevec of type_expression * size
@@ -199,7 +199,9 @@ and size =
   | Sop of size_op * size * size
       
 and size_op = Splus | Sminus
-    
+
+and kind = Ofun | Onode
+
 and type_decl =
   | Oabstract_type
   | Oabbrev of type_expression

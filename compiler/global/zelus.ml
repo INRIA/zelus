@@ -105,6 +105,8 @@ and desc =
   | Eperiod of period
   | Eblock of eq list block * exp
 
+and is_rec = bool
+
 and op =
   | Efby | Eunarypre (* unit delay *)
   | Eifthenelse (* mux *)
@@ -202,9 +204,10 @@ and 'a default =
 
 
 and local = 
-    { l_eq: eq list;
-      mutable l_env: Deftypes.tentry Ident.Env.t;
-      l_loc: location }
+  { l_rec: is_rec; (* is-it recursive *)
+    l_eq: eq list; (* the set of parallel equations *)
+    mutable l_env: Deftypes.tentry Ident.Env.t;
+    l_loc: location }
 
 and state_handler = 
     { s_loc: location;
