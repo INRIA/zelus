@@ -392,7 +392,8 @@ let rec build (names, inames) { eq_desc = desc } =
        let esc_names, esc_inames =
          List.fold_left escape (names, inames) esc_list in
        S.union names (if is_weak then S.diff esc_names bounded else esc_names),
-       S.union inames (if is_weak then S.diff esc_inames bounded else esc_inames)
+       S.union inames
+         (if is_weak then S.diff esc_inames bounded else esc_inames)
      in
      List.fold_left handler (names, inames) sh_list
   | EQforall { for_index = in_list; for_init = init_list } ->
@@ -431,7 +432,8 @@ let env_of_scondpat scpat =
     | Econdexp _ -> acc
     | Econdpat(_, pat) -> Vars.fv_pat S.empty acc pat in
   let acc = env_of S.empty scpat in
-  S.fold (fun n acc -> Env.add n { t_typ = Types.new_var (); t_sort = Sval } acc)
+  S.fold
+    (fun n acc -> Env.add n { t_typ = Types.new_var (); t_sort = Sval } acc)
          acc Env.empty
 
 let env_of_statepat spat =
@@ -440,7 +442,8 @@ let env_of_statepat spat =
     | Estate0pat _ -> acc
     | Estate1pat(_, l) -> List.fold_left (fun acc n -> S.add n acc) acc l in
   let acc = env_of S.empty spat in
-  S.fold (fun n acc -> Env.add n { t_typ = Types.new_var (); t_sort = Sval } acc)
+  S.fold
+    (fun n acc -> Env.add n { t_typ = Types.new_var (); t_sort = Sval } acc)
          acc Env.empty
          
 let env_of_pattern is_static h0 pat =
@@ -745,7 +748,10 @@ and operator expected_k h loc op e_list =
         let ty = new_var () in
         Tcont, [ty], Initial.typ_zero
     | Einitial ->
-       Tcont, [], Initial.typ_zero
+        Tcont, [], Initial.typ_zero
+    | Eatomic ->
+        let ty = new_var () in
+        expected_k, [ty], ty
     | Eaccess | Eupdate | Eslice _ | Econcat -> assert false in
   less_than loc actual_k expected_k;
   List.iter2 (expect expected_k h) e_list ty_args;

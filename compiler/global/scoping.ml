@@ -233,6 +233,7 @@ let operator loc env = function
   | Eupdate -> Zelus.Eupdate
   | Eslice(s1, s2) -> Zelus.Eslice(size env s1, size env s2)
   | Econcat -> Zelus.Econcat
+  | Eatomic -> Zelus.Eatomic
                  
 
 (** Build a renaming environment *)

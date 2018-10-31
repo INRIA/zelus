@@ -107,7 +107,7 @@ let operator venv renaming op =
   match op with
   | Eunarypre | Efby | Eminusgreater | Eifthenelse
   | Eup | Etest | Edisc | Ehorizon | Einitial | Eaccess
-  | Eupdate | Econcat -> op
+  | Eupdate | Econcat | Eatomic -> op
   | Eslice(s1, s2) -> Eslice(size venv renaming s1, size venv renaming s2)
   		       
 (** Renaming of patterns *)

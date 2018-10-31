@@ -58,7 +58,7 @@ let rec size acc { desc = desc } =
 let operator acc = function
   | Efby | Eunarypre | Eifthenelse | Etest 
     | Eminusgreater | Eup | Einitial | Edisc
-    | Ehorizon | Eaccess | Eupdate | Econcat -> acc
+    | Ehorizon | Eaccess | Eupdate | Econcat | Eatomic -> acc
     | Eslice(s1, s2) -> size (size acc s1) s2
 	   
 let rec fv bounded (last_acc, acc) e =

@@ -351,7 +351,11 @@ and operator env op c_free ty e_list =
   | Econcat, [e1; e2] ->
       exp_less_than_on_c env c_free e1 c_res;
       exp_less_than_on_c env c_free e2 c_res;
-      Causal.skeleton_on_c c_res ty     
+      Causal.skeleton_on_c c_res ty
+  | Eatomic, [e] ->
+      let c_arg = Causal.intro_less_c c_res in
+      exp_less_than_on_c env c_free e c_arg;
+      Causal.skeleton_on_c c_res ty
   | _ -> assert false
     
 

@@ -120,7 +120,8 @@ and op =
   | Eupdate (* array update: { e1 with i = e2 } *)
   | Eslice of size * size (* array slice: e{s0..s1} *)
   | Econcat (* array concatenation: { t{0..42} | t'{2..25} } *)
-
+  | Eatomic (* force its argument to be atomic *)
+    
 and immediate = Deftypes.immediate
 
 and app = { app_inline: bool; app_statefull: bool}

@@ -297,6 +297,8 @@ and operator ff op e_list =
   | Eupdate, [e1; i; e2] ->
      fprintf ff "@[{%a with@ (%a) = %a}@]"
              expression e1 expression i expression e2
+  | Eatomic, [e] ->
+      fprintf ff "atomic %a" expression e  
   | _ -> assert false
 
 and period ff { p_phase = opt_phase; p_period = p } =

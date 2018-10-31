@@ -216,7 +216,7 @@ let scalar_constr_type l =
 %left INFIX4
 %right prec_uminus
 %right FBY
-%right PRE UP DISC TEST
+%right PRE UP DISC TEST ATOMIC
 %right PREFIX
 %left DOT
 
@@ -881,6 +881,8 @@ expression_desc:
       { Etuple(List.rev e) }
   | e1 = expression FBY e2 = expression
       { Eop(Efby, [e1; e2]) }
+  | ATOMIC e = expression
+      { Eop(Eatomic, [e]) }
   | PRE e = expression
       { Eop(Eunarypre, [e]) }
   | INIT

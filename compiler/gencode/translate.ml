@@ -469,7 +469,9 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      let s2 = size_of_type s2 in
      let e1, code = exp env loop_path code e1 in
      let e2, code = exp env loop_path code e2 in
-     Oconcat(e1, s1, e2, s2), code     
+     Oconcat(e1, s1, e2, s2), code
+  | Zelus.Eop(Zelus.Eatomic, [e]) ->
+     exp env loop_path code e  
   | Zelus.Elet _ | Zelus.Eseq _ | Zelus.Eperiod _ 
   | Zelus.Eop _ | Zelus.Epresent _ | Zelus.Ematch _ | Zelus.Eblock _ ->
 						       assert false

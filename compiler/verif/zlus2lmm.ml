@@ -170,7 +170,7 @@ let operator loc op e_list =
   | Efby -> Lapp(Lfby, e_list)
   | Eup | Einitial | Edisc | Ehorizon -> error loc Ehybrid_operator
   | Eaccess | Eupdate | Econcat | Eslice _ -> error loc Earray_operator
-  | Etest -> assert false
+  | Etest | Eatomic -> assert false
 
 (* the set of shared variables from a set of defined names *)
 let shared_variables { dv = dv } = dv

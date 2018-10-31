@@ -70,7 +70,7 @@ let operator renaming op =
   match op with
   | Efby | Eunarypre | Eifthenelse 
     | Eminusgreater | Eup | Einitial | Edisc
-    | Ehorizon | Etest | Eaccess | Eupdate | Econcat -> op
+    | Ehorizon | Etest | Eaccess | Eupdate | Econcat | Eatomic -> op
   | Eslice(s1, s2) -> Eslice(size renaming s1, size renaming s2)
                             
 (** Build a substitution [x1\v1,...,xn\vn]. *)

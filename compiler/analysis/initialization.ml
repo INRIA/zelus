@@ -328,7 +328,11 @@ and operator is_continuous env op ty e_list =
       (* for the others *)
       let iv = izero in
       List.iter (fun e -> exp_less_than_on_i is_continuous env e iv) e_list;
-     Init.skeleton_on_i iv ty
+      Init.skeleton_on_i iv ty
+  | Eatomic, [e] ->
+      let i = Init.new_var () in
+      exp_less_than_on_i is_continuous env e i;
+      Init.skeleton_on_i i ty
   | _ -> assert false
 
 
