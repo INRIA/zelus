@@ -1,15 +1,28 @@
-Reimplementation of the Mathworks Fault Tolerant Fuel Controller example in
-Lucid Synchrone (v3).
+# Reimplementation of the Mathworks Fault Tolerant Fuel Controller example in Zélus v2
 
 Timothy Bourke, INRIA 2010.
+
+---
+
+Draw comparisons between the Simulink model and the Zélus one:
+
+```
+  make diff_plot
+```
+
+There are two scenarios:
+* `basicfuel` Normal behavior of the system
+* `mapfail` The map sensor fails between `t = 5` and `t = 9`
+
+---
 
 Library Routines
 ----------------
 
-* mlmisc.ml
+* `mlmisc.ml`
   Miscellaneous library routines in Ocaml.
 
-* lookup.ml
+* `lookup.ml`
   Implementation of the Simulink lookup block.
 
   Replicates most features for one and two dimensional blocks, including
@@ -19,50 +32,42 @@ Library Routines
   interpolation. Support for mixing different datatypes using a mix of
   functors and polymorphism.
 
-* lucylookup.ml
-  Wrapper around lookup.ml so that lucyc can produce an lci file (i.e. it
-  does not contain modules, signatures, or functors.
-
-* basics.zls
+* `library.zls`
   Miscellaneous Lucid Synchrone nodes, including IIR filters.
-
-* runge_kutta.zls
-  Basic implementation of a fixed-step fourth-order Runge-Kutta solver.
-  Continuous systems are expressed using 'Arrows-like' combinators, which
-  like Simulink, provide outputs and state derivatives at each step. Various
-  combinators and 'blocks' are provided.
 
   This library should be considered a first-draft prototype. It could be
   improved and many issues are not yet resolved.
-  
-  
+
+
 Case-study specific
 ---------------------
-* fuelc_data.ml
+* `fuelc_data.ml`
   Contains an Ocaml version of the Matlab file:
     toolbox/simulink/simdemos/automotive/sldemo_fuelsys_data.m
   With data for the simulation. Especially the four lookup tables.
 
-* fuelc_common.zls
-  Provides a handful of wrapper nodes for fuelc_data, and some other
+* `fuelc_common.zls`
+  Provides a handful of wrapper nodes for fuelc_data and lookup, and some other
   miscellaneous functions.
 
-* fuelc_engine.zls
+* `fuelc_engine.zls`
   Continuous model of the engine gas dynamics. Adapted from the Simulink
   original using the Runge Kutta combinators.
 
-* fuelc_logic.zls
+* `fuelc_logic.zls`
   Reimplementation of the Stateflow fuel controller block using a
   composition of automaton nodes.
 
-* fuelc_subsys.zls
+* `fuelc_subsys.zls`
   Reimplementation of the discrete dataflow components of the fuel
   controller.
 
-* fuelc.zls
+* `fuelc.zls`
   Combines the continuous and discrete models. Also provides a few test
   harnesses.
 
   This combination is not completely satisfactory. More work remains on how
   best to combine discrete and continuous components in feedback.
 
+* `dumpnode.zls`
+  Reimplementation of the main nodes using Dump instead of Scope.

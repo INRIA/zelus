@@ -1,0 +1,22 @@
+type fuel_mode   =  Disabled  | Rich  | Low
+type sensor_values
+   = {  ego: float;  pressure: float;  speed: float;  throttle: float }
+val string_of_fuel_mode : fuel_mode -> string
+val int_breakpoints : (int array, float, float) Lookup.breakpoint_lookup
+val float_breakpoints : (float array, float, float) Lookup.breakpoint_lookup
+val speed_bps :
+  (int array, float, float) Lookup.breakpoint_lookup * int array
+val throt_bps :
+  (int array, float, float) Lookup.breakpoint_lookup * int array
+val press_bps :
+  (float array, float, float) Lookup.breakpoint_lookup * float array
+val ramp_rate_kix_bps :
+  (Lookup.regular_int_breakpoints, float, float) Lookup.breakpoint_lookup *
+  Lookup.regular_int_breakpoints
+val ramp_rate_kiy_bps :
+  (Lookup.regular_float_breakpoints, float, float) Lookup.breakpoint_lookup *
+  Lookup.regular_float_breakpoints
+val lookup :
+  (('a, 'b, float) Lookup.breakpoint_lookup * 'a) *
+  (('c, 'd, float) Lookup.breakpoint_lookup * 'c) *
+  float array array * ('b * 'd) -D-> 'e

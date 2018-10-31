@@ -2,6 +2,10 @@ val input_line : in_channel -> string
 val print_float : float -> unit
 val print_floats : float list -> unit
 
+val print_floats_2 : float -> float -> unit
+val print_floats_4 : float -> float -> float -> float -> unit
+val print_floats_5 : float -> float -> float -> float -> float -> unit
+
 type ('a, 'b) lookup
 val make_lookup :
   (('a, 'x, float) Lookup.breakpoint_lookup * 'a) *
@@ -9,4 +13,3 @@ val make_lookup :
   float array array -> ('x, 'y) lookup
 
 val use_lookup : ('x, 'y) lookup * ('x * 'y) -> 'float
-
