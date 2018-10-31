@@ -1,7 +1,11 @@
-let atomic node f g h x =
+let node f1 f2 x = let rec o = (atomic f2)((atomic f2)(0 -> pre o + 1)) in o
+let f11 x = x + 1
+let node f111 x = f1 f11 x
+    
+let node f g h x =
   let rec o1 = g (0 -> pre o2 + 1) and o2 = h(o1 + 1) in o1+1
 
-let node ff g h x = let rec o = run (g h) (o + x) in o + 1
+let node ff g h x = let rec o = run (g h) (0 -> pre o + x) in o + 1
 
 let node fff g x = run g x
 
@@ -13,7 +17,7 @@ let node h g h x = f g h x
 
 let node hh x = x + 1
     
-let node gg f x = let o = run f (run f (x+1)) in o + 1
+let node gg f x = let o = run (atomic f) (run f (x+1)) in o + 1
 
 let node ggg x = gg hh x
     

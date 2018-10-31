@@ -10,12 +10,12 @@ let node backward_euler(t)(k, x0, u) = output where
   rec output = x0 -> (pre output) +. (k *. t) *. u
 
 let node filter(n)(h)(k, u) = udot where
-    rec udot = n *. (k *. u -. f)
-    and f = forward_euler(h)(n, 0.0, udot)
+  rec udot = n *. (k *. u -. f)
+  and f = forward_euler(h)(n, 0.0, udot)
 
 let node generic_filter(int)(n)(h)(k, u) = udot where
-    rec udot = n *. (k *. u -. f)
-    and f = run (int(h))(n, 0.0, udot)
+  rec udot = n *. (k *. u -. f)
+  and f = run (int(h))(n, 0.0, udot)
 
 let node filter_forward(h)(n)(k, u) =
   generic_filter(forward_euler)(h)(n)(k, u)
@@ -56,6 +56,8 @@ let hybrid gfilter(n)(int)(k, u) = udot where
    rec udot = n *. (u -. f)
    and f = run int (k, 0.0, udot)
 
+let node filter1(n)(h)(k, u) = generic_filter(backward_euler)(n)(h)(k,u)
+    
 let hybrid pid_c(n)(p, i, d, u) =
   gpid_c(int)(gfilter(n)(int))(p, i, d, u)
       
