@@ -860,7 +860,7 @@ simple_expression_list :
 	  { [e] }
   | l = simple_expression_list e = simple_expression 
 	  { e :: l }
-;
+  ;
 
 expression_comma_list :
   | ecl = expression_comma_list COMMA e = expression
@@ -881,6 +881,15 @@ expression_desc:
       { Etuple(List.rev e) }
   | e1 = expression FBY e2 = expression
       { Eop(Efby, [e1; e2]) }
+  | f = simple_expression l = simple_expression_list
+      {  Eapp({ app_inline = false; app_statefull = false}, f, List.rev l) }
+  | INLINE f = simple_expression l = simple_expression_list
+      {  Eapp({ app_inline = true; app_statefull = false}, f, List.rev l) }
+  | RUN f = simple_expression l = simple_expression_list
+      {  Eapp({ app_inline = false; app_statefull = true}, f, List.rev l) }
+  | INLINE RUN f = simple_expression l = simple_expression_list
+      {  Eapp({ app_inline = true; app_statefull = true}, f, List.rev l) }
+  /* | RUN f = simple_expression e = simple_expression  { Eop(Erun, [f; e]) } */
   | ATOMIC e = expression
       { Eop(Eatomic, [e]) }
   | PRE e = expression
@@ -941,14 +950,6 @@ expression_desc:
       { Eop(Econcat, [e1; e2]) }
   | e1 = expression DOT LPAREN e2 = expression RPAREN
       { Eop(Eaccess, [e1; e2]) } 
-  | f = simple_expression l = simple_expression_list
-      {  Eapp({ app_inline = false; app_statefull = false}, f, List.rev l) }
-  | INLINE f = simple_expression l = simple_expression_list
-      {  Eapp({ app_inline = true; app_statefull = false}, f, List.rev l) }
-  | RUN f = simple_expression l = simple_expression_list
-      {  Eapp({ app_inline = false; app_statefull = true}, f, List.rev l) }
-  | INLINE RUN f = simple_expression l = simple_expression_list
-      {  Eapp({ app_inline = true; app_statefull = true}, f, List.rev l) }
   | e = expression DOT i = ext_ident
       { Erecord_access(e, i) }
   | LET defs = equation_list IN e = seq_expression  
