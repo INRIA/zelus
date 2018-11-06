@@ -49,10 +49,6 @@ let node generic_system(controller)(reference) = (u, temp) where
 let node system(reference) = generic_system(relay)(reference)
 
     
-let node f x = 0 fby x + 1
-
-let node g x = let rec o' = f o and o = f o' in o, o'
-  
 let node main_no_graphics() =
   let u, temp = system(19.0) in
   print_string "u = "; print_string (if u then "true" else "false");

@@ -1,103 +1,12 @@
-let node f1 f2 x = let rec o = (atomic f2)((atomic f2)(0 -> pre o + 1)) in o
-let f11 x = x + 1
-let node f111 x = f1 f11 x
+let node f11 x = o where
+  o = 10 fby x + 1
+
+let node main () =
+ print_int (f11 42);
+  print_newline()
+
+    (*
     
-let node f g h x =
-  let rec o1 = g (0 -> pre o2 + 1) and o2 = h(o1 + 1) in o1+1
-
-let node ff g h x = let rec o = run (g h) (0 -> pre o + x) in o + 1
-
-let node fff g x = run g x
-
-let node f2 x = x + 1
-    
-let node ffff x = ff fff f2 x
-    
-let node h g h x = f g h x
-
-let node hh x = x + 1
-    
-let node gg f x = let o = run (atomic f) (run f (x+1)) in o + 1
-
-let node ggg x = gg hh x
-    
-(*
-val f : {'a < 'b}. ('b -> 'a) -> 'b -> 'a
-
-(a1 -> a1) -> a1 -> a1
-
-f : (a2 -> a3) -> (a4 -> a5)
-
-a1 < a5 a4 < a1
-a3 < a1 a1 < a2
-
-a3-, a4- < a5+, a2+
-
-f (fun x -> x + 1)
-
-a -> b < a2 -> a3
-
-b < a3, a2 < a
-a < b
-=> a2 < a3, ce qui est contradictoire avec le fait que l'on importe une
-fonction stricte.
-
-a < a1 a1 < b
-
-
-b -> a < a1 -> a1
-
-a < a1 a1 < b
-
-a3 < a4
-a2 < a4
-a1 < a2
-
-a < a4
-a3 < b
-a2 < a
-b < a1
-
-a < b ? 
-
-a < a4
- *)
-  
-(*
-let node ggg(f) x = let rec o = fff ((x + o)) + 1 in o
-
-let f1 g x = g (x + 1)
-
-let f2 x = x + 2, 3
-
-let node g(h)(t)(x, y) =
-  let rec o1, o2 = run h (x, o3)
-  and o3, o4 = run t (o1, o2) in
-  o1 + y, o4
-
-let node sin_cos() =
-  let rec sin = fff(cos) and cos = fff(sin) in sin, cos
-    
-let node f y (x) = 0 fby x + 1
-let node l y (x) = let rec r = f y (0 fby r+1) in r
-let node h(x) = let rec o = l 0 (o+1) in o
-  
-let node h1 (x,y) = (x, y)
-let node h2 (x,y) = (x, y)
-
-let node gg(x, y) = g(h1)(h2)(x,y)
-
-let node ff(x) = 0 fby x + 1
-let node l2(x) = let rec o = ff(o+1) in o+1
- *)
-    
-(* let fix(f)(x) = let rec o = f(x, o) in o
-
-val fix : (a1 * #a2 -> a2) -> a1 -> a2
-
-let f (x, y) = x + y
-
-val f : a * b -> c  a, b <= c 
-
-not (a * b -> c  <= a1 * #a2 -> a2)
+let hybrid f(b) = () where
+  present (disc(b)) -> do done
 *)

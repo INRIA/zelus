@@ -56,7 +56,7 @@ let hybrid gfilter(n)(int)(k, u) = udot where
    rec udot = n *. (u -. f)
    and f = run int (k, 0.0, udot)
 
-let node filter1(n)(h)(k, u) = generic_filter(backward_euler)(n)(h)(k,u)
+let node filter1(n)(h)(k, u) = generic_filter(forward_euler)(n)(h)(k,u)
     
 let hybrid pid_c(n)(p, i, d, u) =
   gpid_c(int)(gfilter(n)(int))(p, i, d, u)
