@@ -67,7 +67,7 @@ let schedule eq_list =
   let g = Dependences.make (collection eq_list) in
   try
     (* check that there is no cycle. This situation should not arrive *)
-    Graph.check g;
+    Graph.acyclic g;
     (* schedule it *)
     let eq_list = Graph.topological g in
     let eq_list = List.rev (fusion g (List.rev (fusion g eq_list))) in

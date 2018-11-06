@@ -520,7 +520,25 @@ let keep_names_in_cycle c_set c_list =
   | [] -> List.filter keep_var c_list
   | _ -> c_filtered_list
 
-(* compute the reduced closure of a graph. keeps only names in [cset] *)
+(* Compute the reduced closure of a graph. keeps only names in [cset] *)
+(* Algorithm in two steps. *)
+(* 1/ computes the longest path value [v] for every node; *)
+(* 2/ for every node [c], keeps the successors [c_next] with the *)
+(* longest path equal to 1 *)
+
+(* compute the longest path. For every element [c in cset], computes *)
+(* a table [c -> n] where [n] is the longest path *)
+let longest_path cset =
+  (* nodes that have no predecessor *)
+  let inputs =
+    S.elements (S.filter (fun c -> let c = crepr c in c.c_inf = []) cset) in
+  (* linear traversal. Computes the table [c -> n] *)
+  let rec longest length_table c =
+    let l =
+      List.fold_left (fun acc c -> acc + M.find c length_table) 0 c.c_inf in
+    List.fold_left longest (M.add c (l+1) length_table) c.c_sup in
+  List.fold_left longest M.empty inputs
+    
 let reduce cset =
   (* first compute the table [c * c' -> dist] which stored *)
   (* the longuest path distance from [c] to [c'] *)

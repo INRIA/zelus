@@ -11,16 +11,19 @@
 (*                                                                        *)
 (**************************************************************************)
 
-(* graph manipulations *)
+(* acyclic graph manipulations *)
 
 (* a node is a unique integer; precedence/successor is defined with it *)
 (* a association table associates a containt to an index *)
+(* a graph is well formed if the graph is acyclic; *)
+(* nodes in [outputs] have no successors; *)
+(* [succ] and [prec] are inverse of each other; [nodes] is the set of nodes *)
 type index = int
 
 module S = Set.Make(struct type t = int let compare = compare end)
 module E = Map.Make(struct type t = int let compare = compare end)
 
-type 'a graph =
+type 'a agraph =
   { outputs: S.t ; (* the exits of a data-flow graph *)
     succ: S.t E.t; (* the successor of a node *)
     prec: S.t E.t; (* the predecessor of a node *)
@@ -38,7 +41,8 @@ let empty = { outputs = S.empty; succ = E.empty; prec = E.empty;
 let add ({ nodes; containt } as g) n v =
   { g with nodes = S.add n nodes; containt = E.add n v containt }
 
-(* given [n1 in set1] and [n2 in set2], add (n1, n2) to succ; (n2, n1) to prec *)
+(* given [n1 in set1] and [n2 in set2], add (n1, n2) to succ; *)
+(* (n2, n1) to prec *)
 let add_before ({ succ; prec } as g) set1 set2 =
   let update set x rel =
     E.update x
@@ -54,7 +58,7 @@ let before { succ } n1 n2 = S.mem n2 (E.find n1 succ)
 let containt { containt } n_list = List.map (fun n -> E.find n containt) n_list
 
 (* computes outputs = nodes that have no successors *)
-(* warning: this definition makes that in case the graph is cyclic *)
+(* warning: the graph must be acyclic. In case it is cyclic *)
 (* nodes on a cycle are not considered to be outputs *)
 let outputs ({ nodes; succ } as g) =
   let outputs =
@@ -63,8 +67,8 @@ let outputs ({ nodes; succ } as g) =
   { g with outputs = outputs }
         
 (** Well formation of a graph *)
-(* the graph must be a partial order, i.e., no cycle *)
-let check { succ; prec } =
+(* the graph must be a partial order, i.e., acyclic *)
+let acyclic { succ; prec } =
   (* check that a graph has no cycle; in case of error, return a path. *)
   (* [grey] is the set of currently visited nodes; if the current *)
   (* node is grey, then a path has been found *)
@@ -79,16 +83,43 @@ let check { succ; prec } =
   ignore (E.fold (fun n _ acc -> cycle n acc) prec (S.empty, S.empty))
 
 (** Topological sort. Must be applied to a well-formed graph *)
-let topological { outputs; prec; containt } =
+let topological { outputs; prec } =
   let rec sortrec n (visited, seq) =
     if S.mem n visited then visited, seq
     else
       let n_set = E.find n prec in
       let visited, seq = S.fold sortrec n_set (visited, seq) in
-      S.add n visited, (E.find n containt) :: seq in      
+      S.add n visited, n :: seq in      
   let _, seq = S.fold sortrec outputs (S.empty, []) in
   List.rev seq
 
+let topological ({ containt } as g) =
+  let seq = topological g in
+  List.map (fun n -> E.find n containt) seq
+
+(** transitive reduction; returns the same acyclic graph where *)
+(* [prec] and [succ] are reduced *)
+let transitive_reduction ({ outputs; nodes; prec; succ } as g) =
+  (* three steps: the first step computes a topological sort *)
+  let l = topological g in
+  (* the second computes the longest path value [v] for every node *)
+  let length length_table n =
+    let v =
+      S.fold
+        (fun m acc -> acc + E.find m length_table)
+        (try E.find n prec with Not_found -> S.empty) 0 in
+    E.add n v length_table in
+  let length_table = List.fold_left length E.empty l in
+  (* the third step keeps the link from [source] to [target] *)
+  (* if length_table[target] = length_table[source] + 1 *)
+  let reduce new_prec n =
+    let v = E.find n length_table in
+    let l = E.find n succ in
+    let l = S.filter (fun m -> (E.find m length_table) = v + 1) l in
+    E.add n l new_prec in
+  let new_prec = List.fold_left reduce E.empty l in
+  { g with prec = new_prec }
+     
 (** Print *)
 let print p ff { nodes; prec; outputs; containt } =
   let o_list = S.elements outputs in
