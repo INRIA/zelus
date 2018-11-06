@@ -28,4 +28,3 @@ val ramp_rate_kiz : float array array
 
 val int_breakpoints   : (int array,   float, float) Lookup.breakpoint_lookup
 val float_breakpoints : (float array, float, float) Lookup.breakpoint_lookup
-

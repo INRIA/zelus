@@ -576,4 +576,3 @@ let dump_data () =
         set title 'throt_est'
         splot 'throt_est.log'
  *)
-

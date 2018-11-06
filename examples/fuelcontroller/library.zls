@@ -8,7 +8,7 @@ let node after (n, ev) =
   let rec x = 0 -> if ev then pre x + 1 else pre x in
   was (x >= n)
 
-let node redge (c) = c & not (false fby c)
+let node redge (c) = c && not (false fby c)
 let node fedge (c) = redge (not c)
 
 let node sample (n) =
@@ -69,7 +69,6 @@ let hybrid zigzag (zperiod, amplitude) = y where
 
 (* State-space equations *)
 
-let hybrid statespace ((a, b, c, d, is), u) = y where
+let hybrid statespace (a, b, c, d, is, u) = y where
   rec der s = a *. last s +. b *. u init is
   and y = c *. s +. d *. u
-

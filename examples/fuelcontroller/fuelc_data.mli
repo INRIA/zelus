@@ -37,4 +37,3 @@ val dump2d :
   (int -> 'b -> float * float * float) -> float array array -> unit
 
 val dump_data : unit -> unit
-

@@ -12,7 +12,7 @@ let node pumping_constant (x) =
   lookup (speed_bps, press_bps, pump_con, x)
 
 let node throttle_transient (x) =
-  iir_filter_2nd ((0.01, -.0.01), (-.0.8), x)
+  iir_filter_1st ((0.01, -.0.01), (-.0.8), x)
 
 let node ramp_rate_ki (x) =
   lookup (ramp_rate_kix_bps, ramp_rate_kiy_bps, ramp_rate_kiz, x)
@@ -27,7 +27,7 @@ let node airflow_calc ({throttle=throttle; speed=speed; pressure=press; ego=ego}
   and e0 = (if ego <= oxygen_sensor_switching_threshold then 0.5 else -. 0.5)
   and e1 = e0 *. ramp_rate_ki (speed, press)
 
-  and enable_integration = if o2_normal & fuel_mode = Low then e1 else 0.0
+  and enable_integration = if o2_normal && fuel_mode = Low then e1 else 0.0
   and fb_correction = forward_euler (0.0, 1.0, fuelc_period, enable_integration)
   (* Note: explicit constant 'fuelc_period' vs inherited sample
            time in Simulink *)
@@ -66,13 +66,5 @@ let node fuel_calc (est_airflow, fuel_mode, fb_correction) = fuel_rate where
 let node fuel_rate_control (sensors) = fuel_rate where
   rec (sensors', o2_normal, fuel_mode) = Fuelc_logic.control_logic (sensors)
   and (est_airflow, fb_correction) =
-        airflow_calc (sensors, o2_normal, fuel_mode)
-  and fuel_rate = fuel_calc (est_airflow, fuel_mode, fb_correction)
-
-let node fuel_rate_control (sensors) = fuel_rate where
-  rec
-  (sensors', o2_normal, fuel_mode) = Fuelc_logic.control_logic (sensors)
-  and (est_airflow, fb_correction) =
         airflow_calc (sensors', o2_normal, fuel_mode)
   and fuel_rate = fuel_calc (est_airflow, fuel_mode, fb_correction)
-
