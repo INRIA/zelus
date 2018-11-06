@@ -1,12 +1,11 @@
+let hybrid f(b) = () where
+  present (disc(b)) -> do done
+
+(*
 let node f11 x = o where
   o = 10 fby x + 1
 
 let node main () =
  print_int (f11 42);
   print_newline()
-
-    (*
-    
-let hybrid f(b) = () where
-  present (disc(b)) -> do done
 *)
