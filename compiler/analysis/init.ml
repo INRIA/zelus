@@ -189,7 +189,23 @@ let rec skeleton_on_i i { t_desc = desc } =
   | Tproduct(ti_list) -> product (List.map (skeleton_on_i i) ti_list)
   | Tconstr(_, _, _) | Tvec _ -> atom i
   | Tlink(ti) -> skeleton_on_i i ti
-                               
+
+(* For external values, the skeleton type is over constrained *)
+(* only combinatorial function get a polymorphic type signature. *)
+(* others must have all their inputs/outputs initialized *)
+let skeleton_for_external_values ty =
+  let rec skeleton_on_i i { t_desc = desc } =
+    match desc with
+    | Tvar -> atom i
+    | Tfun(k, _, ti1, ti2) ->
+        let i = match k with Tany | Tstatic _ -> i | _ -> izero in
+        funtype (skeleton_on_i i ti1) (skeleton_on_i i ti2)
+    | Tproduct(ti_list) -> product (List.map (skeleton_on_i i) ti_list)
+    | Tconstr(_, _, _) | Tvec _ -> atom i
+    | Tlink(ti) -> skeleton_on_i i ti in
+  let i = new_var () in
+  skeleton_on_i i ty
+ 
 let rec fresh_on_i i ti =
   match ti with
   | Ifun(left_ti, right_ti) ->
@@ -493,8 +509,7 @@ let instance { typ = ti } ty =
 let instance { value_init = tis_opt } ty =
   (* build a default signature *)
   let default ty =
-    let i = new_var () in
-    skeleton_on_i i ty in
+    skeleton_for_external_values ty in
   match tis_opt with
   | None -> 
       (* if no initialization signature is declared, *)
