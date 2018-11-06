@@ -1,0 +1,12 @@
+val clear : unit -AD-> unit
+val mouse_pos : unit -> int * int
+val draw_point : Graphics.color -> float list -AD-> unit
+val draw_point_dist : float list Distribution.t -AD-> unit
+val speed : float list
+val noise : float list
+val p_init : float list
+val observe_state : float * float -> float list
+val ( +: ) : float list -> float list -> float list
+val ( -: ) : float list -> float list -> float list
+val ( *: ) : float list -> float -> float list
+val norm : float list -> float

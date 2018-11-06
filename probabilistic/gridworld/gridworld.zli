@@ -1,0 +1,20 @@
+type option = Opt_no_reverse
+type action = L | R | U | D
+type loc = int * int
+type 'a feature
+type 'a map = { feature : loc -> 'a feature; x_lim : int; y_lim : int; }
+type state = { loc : loc; trace : loc list; }
+val in_grid : 'a map -> int * int -> bool
+val is_blocked_loc : 'a map -> loc -> bool
+val is_allowed_state : 'a map -> loc -> bool
+val move : 'a map -> state -> action -> state
+val map_of_array : 'a feature array array -> 'a map
+val init_state : loc -> state
+
+val print : ('a -> string) -> 'a map -> state -> unit
+val make_world_deterministic :
+  option list ->
+  ('a map -> state -> action -> state) * ('a map -> state -> action list)
+val string_of_action : action -> string
+
+val draw : 'a map -> state -> unit

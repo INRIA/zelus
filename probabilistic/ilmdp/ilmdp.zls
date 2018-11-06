@@ -1,0 +1,22 @@
+(* Integer Line MDP *)
+(* First example of https://agentmodels.org/chapters/3a-mdp.html *)
+
+
+let node agent (score, ()) = (score', p) where
+  rec action = (Random.int 3) - 1
+  and p = 0 -> pre p + action
+  and score' = score +. 100. *. exp (float (- abs (p - 10)))
+
+(* let node main () = *)
+(*   let p = Infer.plan 50 5 agent () in *)
+(*   print_string "p = "; print_int p; *)
+(*   print_newline () *)
+
+
+
+let node main () =
+  let p_dist = Infer.infer_depth 100 5 agent () in
+  let p = Distribution.draw p_dist in
+  print_string ("P("^(string_of_int p)^") = " ^
+                (string_of_float (exp (Distribution.score p_dist p))));
+  print_newline ()

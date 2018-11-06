@@ -1,0 +1,21 @@
+open Distribution
+
+let factor (acc, s) = acc +. s
+let sample d = Distribution.draw d
+
+let node model (score, (map, state_init)) = (score', state) where
+  rec state = state_init fby Restaurant_world.transition map state action
+  and action =
+    sample (uniform_list (Restaurant_world.possible_actions map state))
+  and score' =
+    factor
+      (factor (score, Restaurant_world.utility map state action),
+       0. -> if state = pre state then -100. else 10.)
+
+
+let node main () =
+  let state =
+    Infer.plan 50 7 model (Restaurant_world.map, Restaurant_world.state_init)
+  in
+  Restaurant_world.print Restaurant_world.map state;
+  Restaurant_world.draw Restaurant_world.map state

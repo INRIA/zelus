@@ -1,0 +1,74 @@
+open Distribution
+open Display
+open Infer
+
+let sample dist = Distribution.draw dist
+let factor (score, x) = score +. x
+
+(* noisy observation of the mouse position. It is a gaussian centered on the *)
+(* exact position *)
+let node sensor () = obs where
+  rec (x, y) = Display.mouse_pos ()
+  and in_bound = 0 < x && x < 400 && 0 < y && y < 400
+  and obs = present in_bound -> observe_state (float x, float y)
+
+let node display (obs, pos_dist) =
+  Display.clear ();
+  Display.draw_point_dist pos_dist;
+  Display.draw_point Graphics.red obs
+
+(* the expected position [p] of the mouse is searched arround the previous *)
+(* one supposing that the motion speed of the mouse is bounded *)
+let node hmm (score, obs) = (score', p) where
+  rec p = sample (sph_gaussian (obs fby p) speed)
+  and score' = factor (score, Distribution.score (sph_gaussian p noise) obs)
+
+let node once n = ok where
+  rec init cpt = 1 and cpt = if ok then 1 else last cpt + 1
+  and ok = last cpt = n
+
+let node hmm_momentum(score, obs) = (score', p) where
+  rec last_p = obs fby p
+  and momentum = (last_p -: (obs fby last_p)) *: 0.7
+  and p = sample (sph_gaussian (last_p +: momentum) speed)
+  and score' = factor(score, Distribution.score (sph_gaussian p noise) obs)
+
+let node hmm_reset_automaton(score, obs) = (score', p) where
+  rec automaton
+      | HMM(p_init) ->
+          do score', p = hmm_momentum(score, obs)
+          and last_obs = p_init fby obs
+          until
+            (norm (obs -: last_obs) > (norm(speed +: noise))) then HMM(obs)
+       init HMM(obs)
+
+let node hmm_reset(score, obs) = (score', p) where
+  rec reset score', p = hmm(score, obs)
+        and last_obs = obs fby obs
+        and n = norm (obs -: last_obs)
+      every false fby (n > norm(speed +: noise))
+  and p_init = Display.p_init -> obs
+
+let node main () =
+  let obs = sensor () in
+  present obs(o) ->
+    let pos_dist = infer 1000 hmm(true, o) in
+    display(o, pos_dist)
+  else ()
+
+(* let node every_n k = *)
+(*   let rec ok = false -> pre cpt = 0 *)
+(*   and cpt = k -> if ok then k else pre cpt - 1 in *)
+(*   ok *)
+		   
+(* let node main () = *)
+(*   let obs = sensor () in *)
+(*   present obs(o) -> *)
+(*     let pos_dist = *)
+(*       reset *)
+(* 	infer 1000 hmm_momentum(true, o) *)
+(*       every every_n 10 in *)
+(*     display(o, pos_dist) *)
+(*   else () *)
+
+	      

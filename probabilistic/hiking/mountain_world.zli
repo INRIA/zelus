@@ -1,0 +1,14 @@
+type mountain = { name : string; }
+type mountain_feature
+type mountain_map
+
+val utility : mountain_map -> Gridworld.state -> 'a -> float
+val print : mountain_map -> Gridworld.state -AD-> unit
+val draw : mountain_map -> Gridworld.state -AD-> unit
+val map : mountain_map
+val transition :
+  mountain_map ->
+  Gridworld.state -> Gridworld.action -> Gridworld.state
+val possible_actions :
+  mountain_map -> Gridworld.state -> Gridworld.action list
+val state_init : Gridworld.state
