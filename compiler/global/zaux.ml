@@ -92,6 +92,13 @@ let maketype ty_arg_list ty_res =
   let make ty = { t_desc = ty; t_level = generic; t_index = symbol#name } in
   make (Tfun(Tany, None, make (Tproduct(ty_arg_list)), ty_res))
 
+let rec funtype ty_arg_list ty_res =
+  let make ty = { t_desc = ty; t_level = generic; t_index = symbol#name } in
+  match ty_arg_list with
+  | [] -> ty_res
+  | ty_arg :: ty_arg_list ->
+      make (Tfun(Tany, None, ty_arg, funtype ty_arg_list ty_res))
+
 let unop op e ty =
   emake (Eapp(prime_app,
 	      global_in_pervasives op (maketype [e.e_typ] ty), [e])) ty

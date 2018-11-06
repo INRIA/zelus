@@ -3,8 +3,7 @@
 (*  The Zelus Hybrid Synchronous Language                                 *)
 (*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke                                                        *)
-(*  Marc Pouzet                                                           *)
+(*  Marc Pouzet        Timothy Bourke                                     *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -54,8 +53,9 @@ open Deftypes
 (** representation of signals *)
 (* a [signal] is a pair made of a value and a boolean *)
 let emit e = e, etrue
-let presentpat pat = { pat with p_desc = Etuplepat[pat; truepat];
-                                p_typ = tproduct [pat.p_typ; typ_bool] }
+let presentpat pat =
+  { pat with p_desc = Etuplepat[pat; truepat];
+             p_typ = tproduct [pat.p_typ; typ_bool] }
 
 (* implementation of the presence test ? of a signal *)
 let test e = Eapp(Zaux.prime_app,
@@ -70,8 +70,9 @@ let eq_match total e l =
       b_write = Deftypes.empty } in
   (* if [total = false] complete with an empty block [do done] *)
   let l = if total then l
-	else l @ [{ m_pat = wildpat; m_body = block_do_done; m_env = Env.empty;
-		   m_reset = false; m_zero = false }] in
+    else l @ [{ m_pat = { Zaux.wildpat with p_typ = e.e_typ };
+                m_body = block_do_done; m_env = Env.empty;
+		m_reset = false; m_zero = false }] in
   eqmake (EQmatch(ref true, e, l))
 
 (* build the environment for signals from a typing environment *)
@@ -324,14 +325,15 @@ and present_handlers signals eq_list handler_list b_opt =
     try
       (patrec spat) :: cont
     with
-        Not_found -> wildpat :: cont in
+      Not_found ->
+        { Zaux.wildpat with p_typ = se.e_typ } :: cont in
 
   (* build the pattern *)
   let pattern exps { p_cond = spat; p_body = b; p_env = h0 } =
     let pattern spat =
       let pat_list = List.fold_right (pat spat) exps [] in
       match pat_list with
-	| [] -> wildpat
+	| [] -> assert false
 	| [pat] -> pat
 	| _ -> tuplepat(pat_list) in
     (* extract the list of simple signals patterns without "|" (or) *)
@@ -358,7 +360,7 @@ and present_handlers signals eq_list handler_list b_opt =
     | Some(b) ->
        let _, b = block signals b in
        true, pat_block_list @ 
-	       [{ m_pat = wildpat; m_body = b; 
+	       [{ m_pat = { Zaux.wildpat with p_typ = e.e_typ }; m_body = b; 
 		  m_env = Env.empty; m_reset = false; m_zero = false }] in
   (eq_match total e pat_block_list) :: eq_list
 

@@ -575,7 +575,7 @@ let rec is_combinatorial n ty =
     match ty.t_desc with
     | Tfun((Tdiscrete _ | Tcont), _, _, _) -> false
     | Tfun(_, _, _, ty_res) -> is_combinatorial (n-1) ty_res
-    | _ -> false
+    | _ -> true
 
 let is_hybrid ty =
   let ty = typ_repr ty in
