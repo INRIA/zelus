@@ -1,0 +1,41 @@
+(* Une Smart chaudiere ! *)
+open Distribution
+open Heat
+
+let penality = 1.0
+    
+(* un controleur stupide: choisi une valeur de commande (vrai/faux) *)
+(* et donne un score d'autant plus grand que l'erreur est petite. *)
+let node stupid_controller(s, error) =
+  (* choisi une valeur 0 ou 1 aleatoirement *)
+  let u =  Distribution.draw (Distribution.bernoulli 0.5) in
+  let s = s -. (abs_float error) in
+  (* on favorise une commande stable *)
+  let s = if u <> u fby u then s else s -. penality in
+  s, u
+
+let node memoized_stupid_controller(s, error) =
+  Infer.memoize stupid_controller (s, error)
+  
+let node system(score, reference) = (score', (u, temp)) where
+  rec
+      error = reference -. temp
+  and
+      score', u = memoized_stupid_controller(score, error)
+  and
+      temp = heater(h)(c, alpha, beta, 0.0, 0.0, u)
+
+let node every_n k =
+  let rec ok = false -> pre cpt = 0
+  and cpt = k -> if ok then k else pre cpt - 1 in
+  ok
+
+
+let node system1(c, temp) =
+  Distribution.draw (Infer.infer 1000 system (true, temp))
+    
+let node mains () =
+  let u, temp = Infer.iterate 100 (false, 0.0) system1 (100, (true, 19.0)) in
+  print_string "u = "; print_string (if u then "true" else "false");
+  print_string " temp = "; print_float temp;
+  print_newline ()

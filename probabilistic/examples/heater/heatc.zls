@@ -1,0 +1,93 @@
+(* The Heater model presented by Nicolas Halbwachs during *)
+(* a tutorial on Lustre, College de France, 2010. *)
+(* This file give a continuous-time version of it. See model Heat for *)
+(* the (discrete-time) Lustre version written in Zelus syntax. *)
+
+(* Integrator *)
+let hybrid int(x0, xprime) = x where
+  rec der x = xprime init x0
+
+(* Model of a heater *)
+let hybrid heater(c, alpha, beta, temp_ext, temp0, u) = temp where
+  rec temp =
+    int(temp0,
+	if u then alpha *. (c -. temp) 
+	else beta *. (temp_ext -. temp))
+
+let hybrid heater2(c, alpha, beta, temp_ext, temp0, u) = temp where
+  rec der temp =
+        if u then alpha *. (c -. temp) 
+	else beta *. (temp_ext -. temp) init temp0
+    
+(* relay *)
+let hybrid relay_c(low, high, v) = u where
+  rec u = present
+          | up(low -. v) -> true
+          | up(v -. high) -> false init (v < high)
+		
+(* X-crossing *)
+let hybrid xup(x) =
+  present up(x) | (init) on (x >= 0.0) -> ()
+
+(* Relay with an automaton *)
+let hybrid relay_six(low, high, v) = u where
+  rec automaton
+      | Low -> do u = false unless (xup(low -. v))() then High
+      | High -> do u = true unless (xup(v -. high))() then Low
+      end
+      
+let low = 1.0
+let high = 1.0
+
+let c = 50.0
+
+let alpha = 0.1
+let beta = 0.1
+
+(* Main program *)
+let hybrid system(reference) = (u, temp) where
+  rec
+      u = relay_c(reference -. low, reference +. high, temp)
+  and
+      temp = heater(c, alpha, beta, 0.0, 0.0, u)
+
+let hybrid system_with_sampled_relay(reference) = (u, temp) where
+  rec
+      u = present
+            (period (0.1)) ->
+	       Heat.relay(reference -. low, reference +. high, temp)
+          init false
+  and
+      temp = heater(c, alpha, beta, 0.0, 0.0, u)
+
+let hybrid main_no_graphics() =
+  let der t = 1.0 init 0.0 in
+  let u, temp = system(19.0) in
+  present (period(0.1)) | (disc(u)) ->
+    (print_string "time = "; print_float t;
+     print_string "  ";
+     print_string "command = ";
+     print_string (if u then "true" else "false");
+     print_string "  ";
+     print_string "temp = "; print_float temp;
+     print_newline())
+  else ()
+
+      
+let hybrid mainc() =
+  let der t = 1.0 init 0.0 in
+  let u, temp = system(19.0) in
+  let temp1 =
+    present
+      (period(0.1)) ->
+	(let _, temp = Heat.system(19.0) in temp) init 0.0 in  
+  present (period(0.1)) | (disc(u)) ->
+    let s = Scope.scope3 (-1.0, 40.0, ("u", Scope.linear,
+				       if u then 1.0 else 0.0),
+                          ("temp", Scope.linear, temp),
+                          ("temp discrete", Scope.linear, temp1)
+			 ) in
+    Scope.window ("main_on_19", 10.0, t, s)
+  else ()
+
+

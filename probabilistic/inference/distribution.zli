@@ -1,0 +1,12 @@
+type proba = float
+type log_proba = float
+type 'a t
+val bernoulli : float -> bool t
+val gaussian : float -> float -> float t
+val draw : 'a t -> 'a
+val score : 'a t -> 'a -> float
+val draw_and_score : 'a t -> 'a * proba
+val multivariate : 'a t list -> 'a list t
+val sph_gaussian : float list -> float list -> float list t
+val uniform_list : 'a list -> 'a t
+val mean_float : float t -> float

@@ -1,0 +1,54 @@
+(* A probabilistic PID controller *)
+
+let sample dist = Distribution.draw dist
+let factor (score, x) = score +. x
+
+let node deriv(u) = o where
+  rec x = u
+  and o = 0.0 -> (x -. pre(x))
+
+let node integr(u) = o where
+  rec o = u fby (u +. o)
+
+(* let hybrid cderiv(u) = udot where *)
+(*   rec udot = (u -. f) *)
+(*   and der f = udot init 0. *)
+
+(* let hybrid cintegr(u) = v where *)
+(*   rec der v = u init 0. *)
+
+(* let hybrid cpid (p, i, d, r) = y where *)
+(*   rec e = r -. y *)
+(*   and y = p *. e +. i *. cintegr(e) +. d *. cderiv(e) *)
+
+let node pid (score, r) = (score', y) where
+  rec init p = sample(Distribution.gaussian 0. 1.)
+  and init i = sample(Distribution.gaussian 0. 1.)
+  and init d = sample(Distribution.gaussian 0. 1.)
+  and e = r -. (0.0 fby y)
+  and y = p *. e +. i *. integr(e) +. d *. deriv(e)
+  and score' = factor (score, -. (abs_float (y -. r)))
+
+let node periodic n =
+  let rec o = 1 fby (if ok then 1 else o + 1)
+  and ok = o = n in ok
+
+let node creneau(p, q) = o where
+  rec automaton
+      | Down(p) ->
+          do n = p fby (n - 1)
+          and o = 10.
+          until (n = 0) then Up(q)
+      | Up(q) ->
+          do n = p fby (n - 1)
+          and o = 1.
+          until (n=0) then Down(q)
+      init Down(q)
+
+
+
+let node main () =
+  let rec r = creneau(10, 10) in
+  let y = Infer.infer 1000 pid (true, r) in
+  let result = Distribution.mean_float y in
+  print_float result; print_newline ()

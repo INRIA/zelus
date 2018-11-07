@@ -1,0 +1,15 @@
+type restaurant = { name : string; }
+type restaurant_feature
+type restaurant_map
+
+val utility : restaurant_map -> Gridworld.state -> 'a -> float
+val print : restaurant_map -> Gridworld.state -AD-> unit
+val draw : restaurant_map -> Gridworld.state -AD-> unit
+
+val map : restaurant_map
+val transition :
+  restaurant_map ->
+  Gridworld.state -> Gridworld.action -> Gridworld.state
+val possible_actions :
+  restaurant_map -> Gridworld.state -> Gridworld.action list
+val state_init : Gridworld.state
