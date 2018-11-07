@@ -1,4 +1,5 @@
 all:
+	$(MAKE) -C gridworld
 	$(MAKE) -C heater
 	$(MAKE) -C hiking
 	$(MAKE) -C hmm
@@ -8,6 +9,7 @@ all:
 	$(MAKE) -C restaurants
 
 clean:
+	$(MAKE) -C gridworld clean
 	$(MAKE) -C heater clean
 	$(MAKE) -C hiking clean
 	$(MAKE) -C hmm clean
@@ -16,7 +18,8 @@ clean:
 	$(MAKE) -C pid clean
 	$(MAKE) -C restaurants clean
 
-cleanall:
+realclean cleanall:
+	$(MAKE) -C gridworld cleanall
 	$(MAKE) -C heater cleanall
 	$(MAKE) -C hiking cleanall
 	$(MAKE) -C hmm cleanall
