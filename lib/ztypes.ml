@@ -1,10 +1,9 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2017                                               *)
+(*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke                                                        *)
-(*  Marc Pouzet                                                           *)
+(*  Marc Pouzet  Timothy Bourke                                           *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -36,13 +35,19 @@ type dvec = (float, float64_elt, c_layout) Array1.t
 type zinvec = (int32, int32_elt,   c_layout) Array1.t
 type zoutvec = (float, float64_elt, c_layout) Array1.t
 
-type ('a, 'b) hybrid =
-    Hybrid:
-      { alloc : unit -> 's;
-        step : 's -> 'a -> 'b;
-        (* computes a step *)
-        reset : 's -> unit;
-        } -> ('a, 'b) hybrid
+type ('a, 'b) hnode =
+    Hnode:
+      { alloc : unit -> 's; (* allocate the state *)
+        csize : 's -> int; (* the number of current state variables *)
+        zsize : 's -> int; (* the number of current zero crossings *)
+        cmaxsize: 's -> int; (* the max number of state variables *)
+        zmaxsize: 's -> int; (* the max number of zero crossings *)
+        step : 's -> 'a -> 'b; (* compute a step *)
+        reset : 's -> unit; (* reset/inialize the state *)
+        derivative: 's -> cvec -> dvec -> unit; (* computes the derivative *)
+        crossings: 's -> cvec -> zinvec -> zoutvec -> unit; (* zero crossings *)
+        horizon: 's -> time; (* the next time horizon *)
+      } -> ('a, 'b) hnode
 
 type 'o hsimu =
     Hsim:
