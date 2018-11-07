@@ -44,8 +44,8 @@ depend: .depend
 	    > .depend
 # cleaning:
 clean:
-	-rm -f *.annot *.cm[iox] *.o
-	-rm -f inference.cma inference.cmxa
+	-rm -f *.annot *.cm[iox] *.o *.zci
+	-rm -f inference.cma inference.cmxa inference.a
 
 realclean cleanall: clean
 	-rm -f *~
