@@ -1,5 +1,20 @@
-let hybrid f(b) = () where
-  present (disc(b)) -> do done
+(*
+let node g x = true fby true fby true fby true
+
+let node h m =
+  let rec x = 1 in
+  let match g x with | true -> do done | false -> do done in
+  ()
+    *)
+
+let hybrid machin m =
+  up(m)
+    
+let hybrid f b =
+  let rec init m = b
+  and m = b
+  and r = 1
+  and present (machin m) -> do done in ()
 
 (*
 let node f11 x = o where
