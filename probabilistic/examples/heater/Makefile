@@ -5,6 +5,10 @@ all: byte
 byte: $(EXAMPLE:%.zls=%.byte)
 opt:  $(EXAMPLE:%.zls=%.opt)
 
+../../inference/inference.cma:
+	$(MAKE) -C ../../inference inference.cma
+
+.PHONY: ../../inference/inference.cma
 
 heat.byte: heat.ml
 	ocamlfind ocamlc -o heat.byte -I `zeluc -where` -package lablgtk2 unix.cma bigarray.cma lablgtk.cma zllibgtk.cma -linkpkg heat.ml main.ml
@@ -24,41 +28,35 @@ heatc.opt: heat.ml heatc.ml main.ml
         lablgtk.cmxa zllibgtk.cmxa -package sundialsml \
         -linkpkg heat.ml heatc.ml mainc.ml
 
-smartheat.byte: smartheat.ml
+smartheat.byte: smartheat.ml ../../inference/inference.cma
 	ocamlfind ocamlc -o smartheat.byte -I `zeluc -where` \
-        -I .. \
+        -I ../../inference \
         -package lablgtk2 \
         unix.cma bigarray.cma lablgtk.cma zllibgtk.cma -linkpkg \
-        ../distribution.ml \
-        ../normalize.ml \
-        ../infer.ml \
+        ../../inference/inference.cma \
         heat.ml smartheat.ml mains.ml
 
-smartheat.opt: smartheat.ml
+smartheat.opt: smartheat.ml ../../inference/inference.cmxa
 	ocamlfind ocamlopt -o smartheat.opt -I `zeluc -where` \
-        -I .. \
+        -I ../../inference \
         -package lablgtk2 \
         unix.cmxa bigarray.cmxa lablgtk.cmxa zllibgtk.cmxa -linkpkg \
-        ../distribution.ml \
-        ../normalize.ml \
-        ../infer.ml \
+        ../../inference/inference.cmxa \
         heat.ml smartheat.ml mains.ml
 
 smartheat.ml mains: smartheat.zls
-	zeluc -I .. -s mains smartheat.zls
+	zeluc -I ../../inference -s mains smartheat.zls
 
-smartheat2.byte: smartheat2.ml ../infer.ml
+smartheat2.byte: smartheat2.ml ../../inference/inference.cma
 	ocamlfind ocamlc -o smartheat2.byte -I `zeluc -where` \
-	-I .. \
+	-I ../../inference \
         -package lablgtk2 \
         unix.cma bigarray.cma lablgtk.cma zllibgtk.cma -linkpkg \
-        ../distribution.ml \
-        ../normalize.ml \
-        ../infer.ml \
+        ../../inference/inference.cma \
         heat.ml smartheat2.ml mains2.ml
 
 smartheat2.ml mains2: smartheat2.zls
-	zeluc -noreduce -I .. -sampling 0.1 -s mains2 smartheat2.zls
+	zeluc -noreduce -I ../../inference -sampling 0.1 -s mains2 smartheat2.zls
 
 heat.ml main.ml: heat.zls
 	zeluc -i -I `zeluc -where` -sampling 0.1 -gtk2 -s main heat.zls
@@ -74,3 +72,4 @@ clean:
 	-@rm -f main.ml mainc.ml mains.ml mains2.ml
 
 realclean cleanall: clean
+	-@rm -f *~
