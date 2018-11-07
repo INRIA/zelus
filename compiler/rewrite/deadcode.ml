@@ -113,6 +113,9 @@ let rec build_equation table { eq_desc = desc } =
      add (Unsafe.exp e) (S.singleton n) r table
   | EQmatch(_, e, m_h_list) ->
      let r = fve S.empty e in
+     let u = Unsafe.exp e in
+     (* mark read variables to be useful when [e] is potentially unsafe *)
+     let table = add u S.empty r table in
      let table_b =
        List.fold_left
 	 (fun table { m_body = b } -> build_block table b)
@@ -120,6 +123,9 @@ let rec build_equation table { eq_desc = desc } =
      merge table (extend table_b r)
   | EQreset(res_eq_list, e) ->
      let r = fve S.empty e in
+     let u = Unsafe.exp e in
+     (* mark read variables to be useful when [e] is potentially unsafe *)
+     let table = add u S.empty r table in
      let table_res = build_equation_list Env.empty res_eq_list in
      merge table (extend table_res r)
   | EQforall
@@ -199,7 +205,8 @@ let rec pattern useful ({ p_desc = desc } as p) =
   | Evarpat(x) -> if S.mem x useful then p else { p with p_desc = Ewildpat }
   | Ealiaspat(p_alias, x) ->
      let p_alias = pattern useful p_alias in
-     if S.mem x useful then { p with p_desc = Ealiaspat(p_alias, x) } else p_alias
+     if S.mem x useful then { p with p_desc = Ealiaspat(p_alias, x) }
+     else p_alias
   | Eorpat(p1, p2) ->
      { p with p_desc = Eorpat(pattern useful p1, pattern useful p2) }
   | Erecordpat(ln_pat_list) ->
@@ -260,11 +267,12 @@ let rec remove_equation useful
      let in_env = Env.filter (fun x entry -> S.mem x useful) in_env in
      let out_env = Env.filter (fun x entry -> S.mem x useful) out_env in
      if is_empty_block b_eq_list then eq_list
-     else { eq with eq_desc = EQforall { for_index = i_list;
-					 for_init = init_list;
-					 for_body = b_eq_list;
-					 for_in_env = in_env;
-					 for_out_env = out_env } } :: eq_list
+     else { eq with eq_desc =
+                      EQforall { for_index = i_list;
+				 for_init = init_list;
+				 for_body = b_eq_list;
+				 for_in_env = in_env;
+				 for_out_env = out_env } } :: eq_list
   | EQbefore(before_eq_list) ->
      let before_eq_list = remove_equation_list useful before_eq_list in
      (* remove the equation if the body is empty *)
@@ -282,10 +290,10 @@ and remove_equation_list useful eq_list =
   List.fold_right (remove_equation useful) eq_list []
 		  
 and remove_block useful 
-		 ({ b_vars = n_list; b_locals = l_list;
-		    b_body = eq_list; 
-		    b_write = ({ dv = w } as defnames);
-		    b_env = n_env } as b) =
+    ({ b_vars = n_list; b_locals = l_list;
+       b_body = eq_list; 
+       b_write = ({ dv = w } as defnames);
+       b_env = n_env } as b) =
   let l_list = List.map (remove_local useful) l_list in
   let eq_list = remove_equation_list useful eq_list in
   let n_list =
