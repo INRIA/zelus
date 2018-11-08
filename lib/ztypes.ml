@@ -27,6 +27,13 @@ type ('a, 'b) node =
         reset : 's -> unit; (* reset/inialize the state *)
       } -> ('a, 'b) node
 
+type ('a, 'b) hybrid =
+    Hybrid:
+      { alloc : unit -> 's; (* allocate the state *)
+        step : 's -> 'a -> 'b; (* compute a step *)
+        reset : 's -> unit; (* reset/inialize the state *)
+      } -> ('a, 'b) hybrid
+
 open Bigarray
 
 type time = float
