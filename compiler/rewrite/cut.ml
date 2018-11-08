@@ -3,8 +3,7 @@
 (*  The Zelus Hybrid Synchronous Language                                 *)
 (*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke                                                        *)
-(*  Marc Pouzet                                                           *)
+(*  Marc Pouzet   Timothy Bourke                                          *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -76,7 +75,9 @@ let rec exp subst ({ e_desc } as e) =
         let e = exp subst e in
         let m_h_list = match_handler_exp_list subst m_h_list in
         Ematch(total, e, m_h_list)
-    | Eblock(b, e) -> Eblock(block_eq_list subst b, exp subst e) in
+    | Eblock(b, e) ->
+        let subst, b = block_eq_list_with_substitution subst b in
+        Eblock(b, exp subst e) in
   { e with e_desc = e_desc }
     
 (** Translation of equations. *)
@@ -177,7 +178,7 @@ and equation subst ({ eq_desc } as eq) =
 and equation_list subst eq_list = List.map (equation subst) eq_list
 						 
 (* Translate a generic block *)
-and block_eq_list subst
+and block_eq_list_with_substitution subst
                   ({ b_locals = l_list; b_body = eq_list;
                      b_env = b_env } as b) =
   (* Identify variables [last x] in [b_env] *)
@@ -185,8 +186,12 @@ and block_eq_list subst
   let l_list, subst = locals subst l_list in
   (* translate the body. *)
   let eq_list = equation_list subst eq_list in
+  subst,
   { b with b_locals = l_list; b_body = eq_last_list @ eq_list; b_env = b_env }
-        
+
+and block_eq_list subst b =
+  let _, b = block_eq_list_with_substitution subst b in b
+    
 and present_handler_exp_list subst p_h_e_list =
   present_handlers (scondpat subst) (exp subst) p_h_e_list
                    
