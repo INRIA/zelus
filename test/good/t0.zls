@@ -1,26 +1,18 @@
-(*
-let node g x = true fby true fby true fby true
+let node f11 x = 10 fby x + 1
+let node f111 x = 
+  local o
+  do o = 1 and init o = 42 in
+  last o
 
-let node h m =
-  let rec x = 1 in
-  let match g x with | true -> do done | false -> do done in
-  ()
-    *)
+let node f1111 x = 
+  let rec
+      init o = 42 and o = 1 in
+  last o
 
-let hybrid machin m =
-  up(m)
+let node f11111 x =
+  let rec init o = 0 and next o = 1 in
+  o
     
-let hybrid f b =
-  let rec init m = b
-  and m = b
-  and r = 1
-  and present (machin m) -> do done in ()
-
-(*
-let node f11 x = o where
-  o = 10 fby x + 1
-
 let node main () =
  print_int (f11 42);
   print_newline()
-*)
