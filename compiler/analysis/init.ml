@@ -193,6 +193,9 @@ let rec skeleton_on_i i { t_desc = desc } =
 (* For external values, the skeleton type is over constrained *)
 (* only combinatorial function get a polymorphic type signature. *)
 (* others must have all their inputs/outputs initialized *)
+(* This function is not used for the moment as it would *)
+(* prevent to write [x = pre(x)] *)
+(*
 let skeleton_for_external_values ty =
   let rec skeleton_on_i i { t_desc = desc } =
     match desc with
@@ -205,7 +208,8 @@ let skeleton_for_external_values ty =
     | Tlink(ti) -> skeleton_on_i i ti in
   let i = new_var () in
   skeleton_on_i i ty
- 
+*)
+                   
 let rec fresh_on_i i ti =
   match ti with
   | Ifun(left_ti, right_ti) ->
@@ -509,7 +513,7 @@ let instance { typ = ti } ty =
 let instance { value_init = tis_opt } ty =
   (* build a default signature *)
   let default ty =
-    skeleton_for_external_values ty in
+    skeleton_on_i (new_var ()) ty in
   match tis_opt with
   | None -> 
       (* if no initialization signature is declared, *)
