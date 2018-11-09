@@ -23,7 +23,7 @@ type index = int
 module S = Set.Make(struct type t = int let compare = compare end)
 module E = Map.Make(struct type t = int let compare = compare end)
 
-type 'a agraph =
+type 'a graph =
   { outputs: S.t ; (* the exits of a data-flow graph *)
     succ: S.t E.t; (* the successor of a node *)
     prec: S.t E.t; (* the predecessor of a node *)
@@ -38,12 +38,12 @@ let empty = { outputs = S.empty; succ = E.empty; prec = E.empty;
               containt = E.empty; nodes = S.empty }
 
 (* add a node to a graph *)
-let add ({ nodes; containt } as g) n v =
+let add n v ({ nodes; containt } as g) =
   { g with nodes = S.add n nodes; containt = E.add n v containt }
 
 (* given [n1 in set1] and [n2 in set2], add (n1, n2) to succ; *)
 (* (n2, n1) to prec *)
-let add_before ({ succ; prec } as g) set1 set2 =
+let add_before set1 set2 ({ succ; prec } as g) =
   let update set x rel =
     E.update x
       (function | None -> Some(set) | Some(set0) -> Some(S.union set0 set))
@@ -97,7 +97,8 @@ let topological ({ containt } as g) =
   let seq = topological g in
   List.map (fun n -> E.find n containt) seq
 
-(** transitive reduction; returns the same acyclic graph where *)
+(** transitive reduction for an acyclic graph *)
+(* returns the same acyclic graph where *)
 (* [prec] and [succ] are reduced *)
 let transitive_reduction ({ outputs; nodes; prec; succ } as g) =
   (* three steps: the first step computes a topological sort *)
@@ -106,9 +107,9 @@ let transitive_reduction ({ outputs; nodes; prec; succ } as g) =
   let length length_table n =
     let v =
       S.fold
-        (fun m acc -> acc + E.find m length_table)
+        (fun m acc -> max acc (E.find m length_table))
         (try E.find n prec with Not_found -> S.empty) 0 in
-    E.add n v length_table in
+    E.add n (v+1) length_table in
   let length_table = List.fold_left length E.empty l in
   (* the third step keeps the link from [source] to [target] *)
   (* if length_table[target] = length_table[source] + 1 *)
@@ -121,16 +122,41 @@ let transitive_reduction ({ outputs; nodes; prec; succ } as g) =
   { g with prec = new_prec }
      
 (** Print *)
-let print p ff { nodes; prec; outputs; containt } =
+let print p ff { nodes; succ; outputs; containt } =
   let o_list = S.elements outputs in
   let l =
     S.fold
-      (fun n acc -> (n, E.find n containt, S.elements (E.find n prec)) :: acc)
+      (fun n acc ->
+         try
+           (n, E.find n containt, S.elements (E.find n succ)) :: acc
+         with
+         Not_found -> acc)
       nodes [] in
   let one ff (n, v, n_list) =
-    Format.fprintf ff "%d: %a depends on %a"
+    Format.fprintf ff "%d: %a before %a"
       n p v (Pp_tools.print_list_r Format.pp_print_int "" "," "") n_list in
   Format.fprintf ff
     "@[<0>@[<v2>dependences:@,%a@]@,@[<v2>outputs:@,%a@.@]"
     (Pp_tools.print_list_l one "" "" "") l
     (Pp_tools.print_list_r Format.pp_print_int "" "," "") o_list
+
+
+let print p ff { nodes; succ; outputs; containt } =
+  let o_list = S.elements outputs in
+  let l =
+    S.fold
+      (fun n acc ->
+         try
+           (n, E.find n containt, S.elements (E.find n succ)) :: acc
+         with
+         Not_found -> acc)
+      nodes [] in
+  let one ff (n, v, n_list) =
+    Format.fprintf ff "%d: %a before %a"
+      n p v (print_list_r pp_print_int "" "," "") n_list in
+  Format.fprintf ff
+    "@[<0>@[<v2>dependences:@,%a@]@,@[<v2>outputs:@,%a@.@]"
+    (print_list_l one "" "" "") l
+    (print_list_r Format.pp_print_int "" "," "") o_list
+
+

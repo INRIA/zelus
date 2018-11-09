@@ -96,29 +96,29 @@ let make_read_write xtable itable eq_info_list =
   let find x table = try Ident.Env.find x table with Not_found -> S.empty in
   (* add dependences according to equation with index [n] *)
   let rec make g (n, eq, w, v, lv) =
-    let g = Graph.add g n eq in
+    let g = Graph.add n eq g in
     (* equation with index [n] must be scheduled *)
     (* - after an equation [init x = e] where [x in w], excluding itself *)
     let l =
       S.remove n
         (Ident.S.fold (fun x iw -> S.union (find x itable) iw) w S.empty) in
-    let g = Graph.add_before g l (S.singleton n) in
+    let g = Graph.add_before l (S.singleton n) g in
     (* - after an equation [...x... = e] or [init x = e] where [x in v] *)
     let l =
       Ident.S.fold
         (fun x iw -> S.union (find x xtable) (S.union (find x itable) iw))
         v S.empty in
-    let g = Graph.add_before g l (S.singleton n) in
+    let g = Graph.add_before l (S.singleton n) g in
     (* - before an equation [...x... = e] where [x in lv] excluding itself *)
     let l =
       S.remove n
         (Ident.S.fold (fun x iw -> S.union (find x xtable) iw) lv S.empty) in
-     let g = Graph.add_before g (S.singleton n) l in
+     let g = Graph.add_before (S.singleton n) l g in
     (* - after an equation [init x = e] where [x in lv] excluding itself *)
     let l =
       S.remove n
         (Ident.S.fold (fun x iw -> S.union (find x itable) iw) lv S.empty) in
-    let g = Graph.add_before g l (S.singleton n) in
+    let g = Graph.add_before l (S.singleton n) g in
     g in
   List.fold_left make Graph.empty eq_info_list
 
@@ -134,7 +134,7 @@ let make_unsafes xtable itable g eqs =
           List.fold_left
             (fun (g, uset) eqs ->
              let g, uset_of_eqs = unsafes (g, S.empty) eqs in
-             Graph.add_before g uset uset_of_eqs,
+             Graph.add_before uset uset_of_eqs g,
              if S.is_empty uset_of_eqs then uset
              else uset_of_eqs) (g, S.empty) eqs_list in
         g, S.union uset uset_of_eqs_list in
