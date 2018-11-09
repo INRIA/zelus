@@ -87,7 +87,7 @@ let topological { outputs; prec } =
   let rec sortrec n (visited, seq) =
     if S.mem n visited then visited, seq
     else
-      let n_set = E.find n prec in
+      let n_set = try E.find n prec with Not_found -> S.empty in
       let visited, seq = S.fold sortrec n_set (visited, seq) in
       S.add n visited, n :: seq in      
   let _, seq = S.fold sortrec outputs (S.empty, []) in
@@ -113,13 +113,19 @@ let transitive_reduction ({ outputs; nodes; prec; succ } as g) =
   let length_table = List.fold_left length E.empty l in
   (* the third step keeps the link from [source] to [target] *)
   (* if length_table[target] = length_table[source] + 1 *)
-  let reduce new_prec n =
+  let reduce (new_prec, new_succ) n =
     let v = E.find n length_table in
-    let l = E.find n succ in
-    let l = S.filter (fun m -> (E.find m length_table) = v + 1) l in
-    E.add n l new_prec in
-  let new_prec = List.fold_left reduce E.empty l in
-  { g with prec = new_prec }
+    let l_prec = try E.find n prec with Not_found -> S.empty in
+    let l_prec = S.filter (fun m -> (E.find m length_table) = v - 1) l_prec in
+    let l_succ = try E.find n succ with Not_found -> S.empty in
+    let l_succ = S.filter (fun m -> (E.find m length_table) = v + 1) l_succ in
+    let new_prec =
+      if S.is_empty l_prec then new_prec else E.add n l_prec new_prec in
+    let new_succ =
+      if S.is_empty l_succ then new_succ else E.add n l_succ new_succ in
+    new_prec, new_succ in
+  let new_prec, new_succ = List.fold_left reduce (E.empty, E.empty) l in
+  { g with prec = new_prec; succ = new_succ }
      
 (** Print *)
 let print p ff { nodes; succ; outputs; containt } =
@@ -139,24 +145,3 @@ let print p ff { nodes; succ; outputs; containt } =
     "@[<0>@[<v2>dependences:@,%a@]@,@[<v2>outputs:@,%a@.@]"
     (Pp_tools.print_list_l one "" "" "") l
     (Pp_tools.print_list_r Format.pp_print_int "" "," "") o_list
-
-
-let print p ff { nodes; succ; outputs; containt } =
-  let o_list = S.elements outputs in
-  let l =
-    S.fold
-      (fun n acc ->
-         try
-           (n, E.find n containt, S.elements (E.find n succ)) :: acc
-         with
-         Not_found -> acc)
-      nodes [] in
-  let one ff (n, v, n_list) =
-    Format.fprintf ff "%d: %a before %a"
-      n p v (print_list_r pp_print_int "" "," "") n_list in
-  Format.fprintf ff
-    "@[<0>@[<v2>dependences:@,%a@]@,@[<v2>outputs:@,%a@.@]"
-    (print_list_l one "" "" "") l
-    (print_list_r Format.pp_print_int "" "," "") o_list
-
-
