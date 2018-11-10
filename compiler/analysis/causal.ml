@@ -520,69 +520,34 @@ let keep_names_in_cycle c_set c_list =
   | [] -> List.filter keep_var c_list
   | _ -> c_filtered_list
 
-(* Compute the reduced closure of a graph. keeps only names in [cset] *)
-(* Algorithm in two steps. *)
-(* 1/ computes the longest path value [v] for every node; *)
-(* 2/ for every node [c], keeps the successors [c_next] with the *)
-(* longest path equal to 1 *)
-
-(* compute the longest path. For every element [c in cset], computes *)
-(* a table [c -> n] where [n] is the longest path *)
-let longest_path cset =
-  (* nodes that have no predecessor *)
-  let inputs =
-    S.elements (S.filter (fun c -> let c = crepr c in c.c_inf = []) cset) in
-  (* linear traversal. Computes the table [c -> n] *)
-  let rec longest length_table c =
-    let l =
-      List.fold_left (fun acc c -> acc + M.find c length_table) 0 c.c_inf in
-    List.fold_left longest (M.add c (l+1) length_table) c.c_sup in
-  List.fold_left longest M.empty inputs
-    
+(* Compute the transitive reduction of the dependence relation *)
 let reduce cset =
-  (* first compute the table [c * c' -> dist] which stored *)
-  (* the longuest path distance from [c] to [c'] *)
-  let module T =
-    Map.Make
-      (struct
-        type t = Defcaus.t * Defcaus.t
-        let compare (c1, c2) (c'1, c'2) =
-          let comp = Defcaus.compare c1 c'1 in
-          if comp = 0 then compare c2 c'2 else comp
-      end) in
-  let rec build (visited, table) c =
-    let c = crepr c in
-    if S.mem c visited then visited, table
-    else
-      let sups = c.c_sup in
-      let visited, table =
-        List.fold_left build (S.add c visited, table) sups in
-      let table =
-        List.fold_left
-          (fun table c1 ->
-             List.fold_left
-               (fun table c2 ->
-                  if equal c1 c2 then T.add (c, c1) 1 table
-                  else
-                    let d21 =
-                      try T.find (c2, c1) table with Not_found -> 0 in
-                    T.add (c, c1) (1 + d21) table)
-               table sups)
-          table sups in
-      visited, table in
-  let _, table = List.fold_left build (S.empty, T.empty) cset in
-  (* then, for every [c in cset] only keeps names [c' in sups(c)] *)
-  (* such that dist c c' = 1 *)
-  List.iter
-    (fun c1 ->
+  (* build the graph *)
+  let c_to_i, g, _ =
+    S.fold (fun c (c_to_i, g, i) -> M.add c i c_to_i, Graph.add i c g, i+1)
+      cset (M.empty, Graph.empty, 0) in 
+  let g =
+    S.fold
+    (fun c g ->
+       let i = M.find c c_to_i in
        let sups =
-         List.filter
-           (fun c2 ->
-              try T.find (c1, c2) table = 1 with Not_found -> assert false)
-           c1.c_sup in
-       c1.c_sup <- sups)
+         List.fold_left
+           (fun acc c -> Graph.S.add (M.find c c_to_i) acc)
+           Graph.S.empty c.c_sup in
+       Graph.add_before (Graph.S.singleton i) sups g) cset g in
+    (* compute the transitive reduction *)
+  let g = Graph.transitive_reduction g in
+  (* reconstruct the relation *)
+  S.iter
+    (fun c ->
+       let i = M.find c c_to_i in
+       let sups =
+         Graph.S.fold (fun j acc -> (Graph.containt j g) :: acc)
+           (Graph.successors i g) [] in
+       c.c_sup <- sups)
     cset
-  
+ 
+    
 (** Computes the dependence relation from a list of causality variables *)
 (* variables in [already] are disgarded *)
 let relation (already, rel) cset =

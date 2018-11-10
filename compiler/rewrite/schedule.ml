@@ -38,7 +38,7 @@ let schedule eq_list =
 
     (* precedence relation *)
     let relation { eq_index = n1} { eq_index = n2 } =
-      (Graph.before g n1 n2) || (Graph.before g n2 n1) in
+      (Graph.is_before g n1 n2) || (Graph.is_before g n2 n1) in
   
     let rec recook = function
       | [] -> []

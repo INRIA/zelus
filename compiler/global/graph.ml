@@ -52,10 +52,13 @@ let add_before set1 set2 ({ succ; prec } as g) =
            prec = S.fold (update set1) set2 prec }
 
 (* [n1] is before [n2] *)
-let before { succ } n1 n2 = S.mem n2 (E.find n1 succ)
+let is_before { succ } n1 n2 = S.mem n2 (E.find n1 succ)
 
+(* successors *)
+let successors n { succ } = try E.find n succ with Not_found -> S.empty
+                                                                  
 (* containt *)
-let containt { containt } n_list = List.map (fun n -> E.find n containt) n_list
+let containt n { containt } = E.find n containt
 
 (* computes outputs = nodes that have no successors *)
 (* warning: the graph must be acyclic. In case it is cyclic *)
@@ -93,10 +96,6 @@ let topological { outputs; prec } =
   let _, seq = S.fold sortrec outputs (S.empty, []) in
   List.rev seq
 
-let topological ({ containt } as g) =
-  let seq = topological g in
-  List.map (fun n -> E.find n containt) seq
-
 (** transitive reduction for an acyclic graph *)
 (* returns the same acyclic graph where *)
 (* [prec] and [succ] are reduced *)
@@ -127,6 +126,10 @@ let transitive_reduction ({ outputs; nodes; prec; succ } as g) =
   let new_prec, new_succ = List.fold_left reduce (E.empty, E.empty) l in
   { g with prec = new_prec; succ = new_succ }
      
+let topological ({ containt } as g) =
+  let seq = topological g in
+  List.map (fun n -> E.find n containt) seq
+
 (** Print *)
 let print p ff { nodes; succ; outputs; containt } =
   let o_list = S.elements outputs in
