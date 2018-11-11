@@ -1,5 +1,5 @@
 ZELUC=zeluc
-ZLLIB=`$(ZELUC) -where`
+ZLLIB="`$(ZELUC) -where`"
 
 OCAMLDEP=ocamldep
 OCAMLC=ocamlc
