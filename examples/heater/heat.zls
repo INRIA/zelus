@@ -48,7 +48,32 @@ let node generic_system(controller)(reference) = (u, temp) where
 
 let node system(reference) = generic_system(relay)(reference)
 
-    
+(* Generation of a source. Constant *)
+let node piecewise_constant(low)(high)(z) = o where
+  rec reset
+    init o = Random.float high
+  every z
+
+let node linear_constant(h)(low)(slope)(z) = o where
+  rec reset
+     init o = Random.float low
+     and init s = Random.float slope
+     and o = last o +. h *. s
+   every z
+
+let node source(r) = piecewise_constant(0.0)(20.0)(r)
+let node source2(r) = linear_constant(0.1)(0.0)(20.0)(r)
+   
+(* Oracle. Define the expected property *)
+let node oracle(u, reference, measured) = true
+
+(* Test of the system: connect a source generator, the system *)
+(* and the oracle *)
+let node test () = (r) where
+   rec reference = source(r)
+   and (u, measured) = system(reference)
+   and r = oracle(u, reference, measured)
+      
 let node main_no_graphics() =
   let u, temp = system(19.0) in
   print_string "u = "; print_string (if u then "true" else "false");

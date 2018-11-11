@@ -526,6 +526,7 @@ let reduce cset =
   let c_to_i, g, _ =
     S.fold (fun c (c_to_i, g, i) -> M.add c i c_to_i, Graph.add i c g, i+1)
       cset (M.empty, Graph.empty, 0) in 
+  (* Format.printf "%a" (Graph.print Pcaus.caus) g; *)
   let g =
     S.fold
     (fun c g ->
@@ -535,8 +536,11 @@ let reduce cset =
            (fun acc c -> Graph.S.add (M.find c c_to_i) acc)
            Graph.S.empty c.c_sup in
        Graph.add_before (Graph.S.singleton i) sups g) cset g in
-    (* compute the transitive reduction *)
+  let g = Graph.outputs g in
+  (* compute the transitive reduction *)
+  (* Format.printf "%a" (Graph.print Pcaus.caus) g; *)
   let g = Graph.transitive_reduction g in
+  (* Format.printf "%a" (Graph.print Pcaus.caus) g; *)
   (* reconstruct the relation *)
   S.iter
     (fun c ->
@@ -600,6 +604,7 @@ let generalise tc =
   (* check_type tc; *)
   gen tc;
   let c_set = vars S.empty tc in
+  reduce c_set;
   let _, rel = relation (S.empty, []) c_set in
   { typ_vars = !list_of_vars; typ_rel = rel; typ = tc }
 

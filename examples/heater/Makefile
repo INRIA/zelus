@@ -1,4 +1,4 @@
-EXAMPLE=heat.zls heatc.zls smartheat.zls
+EXAMPLE=heat.zls heatc.zls
 
 all: byte opt
 
@@ -23,20 +23,6 @@ heatc.opt: heat.ml heatc.ml main.ml
 	ocamlfind ocamlopt -o heatc.opt -I `zeluc -where` -package lablgtk2 \
         lablgtk.cmxa zllibgtk.cmxa \
         -package sundialsml -linkpkg heat.ml heatc.ml mainc.ml
-
-smartheat.byte: smartheat.ml 
-	ocamlfind ocamlc -o smartheat.byte -I `zeluc -where` \
-        -I /Users/pouzet/article/paper/lustre/newyork/zelus \
-        -package lablgtk2 \
-        unix.cma bigarray.cma lablgtk.cma zllibgtk.cma -linkpkg \
-        /Users/pouzet/article/paper/lustre/newyork/zelus/distribution.ml \
-        /Users/pouzet/article/paper/lustre/newyork/zelus/normalize.ml \
-        /Users/pouzet/article/paper/lustre/newyork/zelus/infer.ml \
-        heat.ml smartheat.ml mains.ml
-
-smartheat.ml mains: smartheat.zls
-	zeluc -I /Users/pouzet/article/paper/lustre/newyork/zelus \
-              -sampling 0.1 -s mains smartheat.zls
 
 heat.ml main.ml: heat.zls
 	zeluc -sampling 0.1 -gtk2 -s main heat.zls 
