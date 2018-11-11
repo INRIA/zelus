@@ -33,7 +33,6 @@ type longname =
 
 type 'a localized = { desc: 'a; loc: Location.location }
 
-
 (** Types *)
 type type_expression = type_expression_desc localized
 
@@ -61,7 +60,7 @@ and interface_desc =
     | Einter_open of name
     | Einter_typedecl of name * name list * type_decl
     | Einter_constdecl of name * type_expression
-
+    
 and type_decl =
     | Eabstract_type
     | Eabbrev of type_expression
@@ -116,18 +115,18 @@ and 'a default =
   | Init of 'a | Default of 'a
 
 and op =
-    | Efby | Eunarypre | Eifthenelse | Eminusgreater 
-    | Eup | Einitial | Edisc | Etest | Eaccess | Eupdate
-    | Eslice of size * size | Econcat | Eatomic
+  | Efby | Eunarypre | Eifthenelse | Eminusgreater 
+  | Eup | Einitial | Edisc | Etest | Eaccess | Eupdate
+  | Eslice of size * size | Econcat | Eatomic
 
 
 and immediate =
-    | Eint of int
-    | Efloat of float
-    | Ebool of bool
-    | Echar of char
-    | Estring of string
-    | Evoid
+  | Eint of int
+  | Efloat of float
+  | Ebool of bool
+  | Echar of char
+  | Estring of string
+  | Evoid
 
 and constant =
   | Cimmediate of immediate
