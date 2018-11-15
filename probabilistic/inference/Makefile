@@ -29,7 +29,6 @@ inference.cmxa: $(OBJ_OPT)
 	$(OCAMLOPT) -a -o $@ $^
 
 %.cmo: %.ml
-	echo $(ZLLIB)
 	$(OCAMLC) -I $(ZLLIB) -c $<
 
 %.cmx: %.ml
