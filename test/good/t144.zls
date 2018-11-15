@@ -20,8 +20,8 @@ let node filter_forward(h)(n)(k, u) =
   generic_filter(forward_euler)(h)(n)(k, u)
 
 (* This program is not causal *)
-let node filter_backward(h)(n)(k, u) =
-  generic_filter(backward_euler)(h)(n)(k, u)
+(* let node filter_backward(h)(n)(k, u) =
+  generic_filter(backward_euler)(h)(n)(k, u) *)
 
 let node derivative(h)(k, u) = (u -. u fby u) /. h
 
@@ -89,7 +89,7 @@ let node int2(x0, xprime) = x where
 
 let node sin_cos() =
   let rec si = int2(0.0, co)
-  and co = 1.0 - 1.0 *. int2(0.0, si) in
+  and co = int2(1.0, -. si) in
   si, co
     
 let node double(f)(g)(x) =
