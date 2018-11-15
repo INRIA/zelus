@@ -1,5 +1,5 @@
 ZELUC=zeluc
-ZLLIB="`$(ZELUC) -where`"
+ZLLIB=$(shell $(ZELUC) -where)
 
 OCAMLDEP=ocamldep
 OCAMLC=ocamlc
@@ -29,6 +29,7 @@ inference.cmxa: $(OBJ_OPT)
 	$(OCAMLOPT) -a -o $@ $^
 
 %.cmo: %.ml
+	echo $(ZLLIB)
 	$(OCAMLC) -I $(ZLLIB) -c $<
 
 %.cmx: %.ml
