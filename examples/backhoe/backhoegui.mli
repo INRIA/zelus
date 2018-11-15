@@ -18,13 +18,13 @@ val update : backhoe
     -> unit
 
 val showupdate :
-       float    (* leg position *)
-    -> float    (* boom angle   *)
-    -> float    (* stick angle  *)
-    -> float    (* bucket angle *)
-    -> bool     (* alarm lamp   *)
-    -> bool     (* done lamp    *)
-    -> bool     (* cancel lamp  *)
+      float    (* leg position *)
+    * float    (* boom angle   *)
+    * float    (* stick angle  *)
+    * float    (* bucket angle *)
+    * bool     (* alarm lamp   *)
+    * bool     (* done lamp    *)
+    * bool     (* cancel lamp  *)
     -> unit
 val showsample : unit -> (bool * bool * bool)
 
@@ -32,4 +32,3 @@ val showsample : unit -> (bool * bool * bool)
  *   stop button, retract button, extend button
  *)
 val sample : backhoe -> (bool * bool * bool)
-

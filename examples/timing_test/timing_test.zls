@@ -1,4 +1,4 @@
-let node time () = (o, d) where
+let node time _ = (o, d) where
   rec o = Misc.get_time ()
   and po = 0.0 fby o
   and d = o -. po
@@ -14,6 +14,6 @@ let hybrid main () = () where
   and init diff = 0.0
 
   and present z
-      -> do date, diff = time ()
+      -> do date, diff = time t (* use t so it's not removed as deadcode *)
          and _ = print_endline (Misc.print (date, diff))
          done

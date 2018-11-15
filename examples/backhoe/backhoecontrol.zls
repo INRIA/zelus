@@ -1,5 +1,5 @@
 let node aftern (n, t) = (c = n) where
-  rec c = 0 fby min ((if t then c + 1 else c), n)
+  rec c = 0 fby min (if t then c + 1 else c) n
 
 let node blink (n, t) = x where
   automaton
@@ -11,8 +11,8 @@ let node blink2(ton, toff, t) = x where
   | On  -> do x = true  until (aftern (ton, t)) then Off
   | Off -> do x = false until (aftern (toff, t)) then On
 
-let node leg_controller 
-    ((legs_in, legs_out), (stop_button, retract_button, extend_button), second) = 
+let node leg_controller
+    ((legs_in, legs_out), (stop_button, retract_button, extend_button), second) =
     ((legs_extend, legs_retract, legs_stop), alarm, extended)
   where
   rec init alarm = false
@@ -158,9 +158,9 @@ let node sampled_controller
             until (finished) then Stable
 
 let hybrid main () = () where
-  rec init sensors = ((false, false), (false, false), 
+  rec init sensors = ((false, false), (false, false),
                       (false, false), (false, false))
-  
+
   and init boom_drive = false
   and init stick_drive = false
   and init bucket_drive = false
@@ -168,21 +168,21 @@ let hybrid main () = () where
   and init done_lamp = false
   and init cancel_lamp = false
 
-  and present sample -> 
+  and present sample ->
         do ((boom_push, boom_pull, boom_drive),
            (stick_push, stick_pull, stick_drive),
            (bucket_push, bucket_pull, bucket_drive),
            (legs_extend, legs_retract, legs_stop),
-           (alarm_lamp, done_lamp, cancel_lamp)) = 
-                          sampled_controller (last sensors, Backhoedyn.buttons (), second) 
+           (alarm_lamp, done_lamp, cancel_lamp)) =
+                          sampled_controller (last sensors, Backhoedyn.buttons (), second)
         done
-                
-  and sensors = 
+
+  and sensors =
         Backhoedyn.model ((boom_push, boom_pull, boom_drive),
                           (stick_push, stick_pull, stick_drive),
                           (bucket_push, bucket_pull, bucket_drive),
                           (legs_extend, legs_retract, legs_stop),
-                          (alarm_lamp, done_lamp, cancel_lamp)) 
+                          (alarm_lamp, done_lamp, cancel_lamp))
 
   and sample = period (0.2)
 
@@ -190,4 +190,3 @@ let hybrid main () = () where
   (* and second = present (init) | sample -> true fby not (second) init true *)
 
   and second = present sample -> true -> not (last second) init true
-

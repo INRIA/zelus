@@ -1,0 +1,68 @@
+(* How to use Input *)
+
+open Input
+open Scope
+
+let node discr () =
+  let rec t = 0. -> pre t +. 1.
+
+  (* define a window *)
+  and init w =
+    open_window
+      (frame "Main" (
+        vbox [ hbox [ make_int "x" (0, 11) 2; make_float "y" (0., 68.) 2. ];
+               make_sig "s";
+               make_bool "b" true ] ))
+
+  (* get values *)
+  and x = get_int  (w, "x")
+  and y = get_float(w, "y")
+  and s = get_sig  (w, "s")
+  and b = get_bool (w, "b")
+
+  (* show values *)
+
+  and sc = scope4(0., 100., ("x", linear, float_of_int x),
+                            ("y", linear, y),
+                            ("s", linear, present s() -> 70. else 50.),
+                            ("b", linear, if b then 100. else 80.)) in
+  window ("Test", 100., t, sc)
+
+let hybrid cont () =
+  let der t = 1. init 0. in
+
+  let x_init = 2  and x_range = (0 , 20 ) in
+  let y_init = 36. and y_range = (30., 50.) in
+  let b_init = true in
+
+  (* define a window *)
+  let init w =
+    open_window
+      (frame "Main" (
+        vbox [ hbox [ make_int "x" x_range x_init; make_float "y" y_range y_init ];
+               make_sig "s";
+               make_bool "b" b_init ] )) in
+
+  let
+  rec init x = x_init
+  and init y = y_init
+  and init b = b_init
+
+  (* read variables (every .. s) *)
+  and present (period(0.1)) -> do
+        x = get_int  (w, "x")
+    and y = get_float(w, "y")
+    and s = get_sig  (w, "s")
+    and b = get_bool (w, "b")
+  done in
+
+  present (period(0.1)) ->
+    (* show values *)
+    let sc = scope4(0., 100., ("x", square, float_of_int x),
+                              ("y", square, y),
+                              ("s", square, present s() -> 80. else 60.),
+                              ("b", square, if b then 110. else 90.)) in
+    window ("Test", 100., t, sc)
+  else ()
+
+let hybrid main () = cont ()

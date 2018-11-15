@@ -1,5 +1,5 @@
-let l = 330e-6
-let c =3.3e-6
+let l  = 330e-6
+let c  = 3.3e-6
 let vz = 56e0
 
 let hybrid lzc () = (u,v,w,j) where

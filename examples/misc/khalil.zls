@@ -9,5 +9,3 @@ let hybrid main () =
     let s = Scope.scope (1.0, 5.0, ("x", Scope.linear, x)) in
     Scope.window ("x", 10.0, t, s)
   else ()
-
-let static x = e
