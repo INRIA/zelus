@@ -133,6 +133,8 @@ let rec expression time ({ e_desc = e_desc } as e) =
      { e with e_desc = Eapp(app, op, e_list) }
   | Etuple(e_list) ->
      { e with e_desc = Etuple(List.map (expression time) e_list) }
+  | Econstr1(c, e_list) ->
+     { e with e_desc = Econstr1(c, List.map (expression time) e_list) }
   | Erecord_access(e, x) ->
      { e with e_desc = Erecord_access(expression time e, x) }
   | Erecord(l_e_list) ->

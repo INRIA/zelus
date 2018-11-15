@@ -99,6 +99,8 @@ let rec expression renaming ({ e_desc = desc } as e) =
   | Elocal(x) -> { e with e_desc = rename x renaming }
   | Etuple(e_list) ->
      { e with e_desc = Etuple(List.map (expression renaming) e_list) }
+  | Econstr1(c, e_list) ->
+     { e with e_desc = Econstr1(c, List.map (expression renaming) e_list) }
   | Erecord(n_e_list) -> 
      { e with e_desc =
 		Erecord(List.map (fun (ln, e) ->

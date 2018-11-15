@@ -37,7 +37,7 @@ let expression e max =
       | Eapp(_, e, e_list) ->
          incr (1 + List.length e_list);
 	 List.iter cost e_list; cost e
-      | Etuple(e_list) -> incr 1; List.iter cost e_list
+      | Econstr1(_, e_list) | Etuple(e_list) -> incr 1; List.iter cost e_list
       | Eop(op, e_list) -> incr (cost_op op); List.iter cost e_list
       | Erecord(n_e_list) ->
 	 incr 1; List.iter (fun (label, e) -> cost e) n_e_list

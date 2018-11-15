@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2017                                               *)
+(*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
 (*  Marc Pouzet    Timothy Bourke                                         *)
 (*                                                                        *)
@@ -103,12 +103,12 @@ struct
   let table_of_types = ref []
   let add tyname ty_desc =
     table_of_types := (tyname, ty_desc) :: !table_of_types
+  let make desc = { Zelus.desc = desc; Zelus.loc = no_location }
   let flush continuation =
     let translate (tyname, ty_desc) continuation =
       let n, params, ty_desc =
         Interface.type_decl_of_type_desc tyname ty_desc in
-      { Zelus.desc = Etypedecl(n, params, ty_desc); 
-        Zelus.loc = no_location } :: continuation
+      make (Etypedecl(n, params, ty_desc)) :: continuation
     in 
       let continuation = 
         List.fold_right translate !table_of_types continuation in
@@ -149,7 +149,8 @@ let intro_type s_h_list =
   let variants states type_res =
     let variant n =
       { qualid = Modules.qualify (Ident.name n);
-        info = { constr_res = type_res } } in
+        info = { constr_arg = []; constr_res = type_res;
+                 constr_arity = 0 } } in
     List.map variant states in
     
   (* build the result type *)
@@ -236,10 +237,12 @@ let rec exp lnames ({ e_desc = desc } as e) =
        if S.mem name lnames then Elast(name) else desc
     | Elast(name) -> Elast(name)
     | Etuple(e_list) -> Etuple(List.map (exp lnames) e_list)
+    | Econstr1(c, e_list) -> Econstr1(c, List.map (exp lnames) e_list)
     | Eapp(app, e, e_list) ->
        Eapp(app, exp lnames e, List.map (exp lnames) e_list)
     | Erecord(label_e_list) ->
-        Erecord(List.map (fun (label, e) -> (label, exp lnames e)) label_e_list)
+        Erecord(List.map
+                  (fun (label, e) -> (label, exp lnames e)) label_e_list)
     | Erecord_access(e, longname) -> Erecord_access(exp lnames e, longname)
     | Etypeconstraint(e, ty) -> Etypeconstraint(exp lnames e, ty)
     | Eseq(e1, e2) -> Eseq(exp lnames e1, exp lnames e2)

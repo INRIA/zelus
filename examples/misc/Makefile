@@ -3,14 +3,14 @@ include ../../config
 ZLEXTRALIBS = $(ZLGTKLIBS)
 
 EXAMPLE=count.zls \
-	khalil.zls \
-        suspend01.zls \
+	sincos.zls \
+	suspend01.zls \
 	ysquared.zls \
 	discontinuity.zls \
 	hybridaut.zls \
 	updown.zls \
 	heatingh20.zls \
-	sincos.zls \
+	khalil.zls \
 	sqrt.zls \
 	water.zls \
 	div_by_zero.zls \

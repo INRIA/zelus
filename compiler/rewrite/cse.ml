@@ -1,10 +1,9 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2017                                               *)
+(*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke                                                        *)
-(*  Marc Pouzet                                                           *)
+(*  Marc Pouzet  Timothy Bourke                                           *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -64,6 +63,8 @@ let rec exp subst e =
            with Not_found -> e end
   | Etuple(e_list) ->
      { e with e_desc = Etuple(List.map (exp subst) e_list) }
+  | Econstr1(c, e_list) ->
+     { e with e_desc = Econstr1(c, List.map (exp subst) e_list) }
   | Eop(op, e_list) ->
      let e_list = List.map (exp subst) e_list in
      { e with e_desc = Eop(op, e_list) }

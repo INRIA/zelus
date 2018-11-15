@@ -103,6 +103,9 @@ let rec expression ({ e_desc = desc } as e) =
   | Etuple(e_list) ->
      let e_list, ctx = par_fold expression e_list in
      { e with e_desc = Etuple(e_list) }, ctx
+  | Econstr1(c, e_list) ->
+     let e_list, ctx = par_fold expression e_list in
+     { e with e_desc = Econstr1(c, e_list) }, ctx
   | Erecord_access(e1, l) ->
      let e1, ctx = expression e1 in
      { e with e_desc = Erecord_access(e1, l) }, ctx

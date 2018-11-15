@@ -34,6 +34,7 @@ type value_desc =
 and value_exp =
   | Vconst of immediate (* constant *)
   | Vconstr0 of Lident.qualident (* constructor *)
+  | Vconstr1 of Lident.qualident * value_code list (* constructor *)
   | Vtuple of value_code list (* tuple *)
   | Vrecord of (Lident.qualident * value_code) list (* record *)
   | Vperiod of period (* period *)
@@ -47,7 +48,9 @@ and value_code =
                           (* when the value is defined globally *) }
 
 (* Value constructors *)
-type constr_desc = { constr_res: Deftypes.typ }
+type constr_desc = { constr_arg: Deftypes.typ list;
+                     constr_res: Deftypes.typ;
+                     constr_arity: int }
 
 and label_desc =
     { label_arg: Deftypes.typ; (* if x:arg then x.m: res *)

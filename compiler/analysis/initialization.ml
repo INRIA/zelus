@@ -196,16 +196,18 @@ let rec pattern is_continuous env
         (* an equation [x = e] in a continuous context is correct *)
         (* if x and e have the same type and [last x: t] with [1/2 <= t] *)
         if is_continuous then less_for_last loc x ihalf last
+    | Econstr1pat(_, pat_list) ->
+        let i = Init.new_var () in
+        less_than loc expected_ti (Init.skeleton_on_i i ty);
+        List.iter
+          (fun p -> pattern_less_than_on_i is_continuous env p i) pat_list
     | Etuplepat(pat_list) ->
         let ty_list = Init.filter_product expected_ti in
         List.iter2 (pattern is_continuous env) pat_list ty_list
     | Erecordpat(l) -> 
-        let pattern_less_than_on_i pat i =
-          let expected_ti = Init.skeleton_on_i i pat.p_typ in
-          pattern is_continuous env pat expected_ti in
         let i = Init.new_var () in
-        less_than loc expected_ti (Init.skeleton_on_i i ty);
-        List.iter (fun (_, p) -> pattern_less_than_on_i p i) l
+        List.iter
+          (fun (_, p) -> pattern_less_than_on_i is_continuous env p i) l
     | Etypeconstraintpat(p, _) -> pattern is_continuous env p expected_ti
     | Eorpat(p1, p2) -> 
         pattern is_continuous env p1 expected_ti;
@@ -218,6 +220,10 @@ let rec pattern is_continuous env
         less_than loc expected_ti ti_n;
         if is_continuous then less_for_last loc n ihalf last
 
+and pattern_less_than_on_i is_continuous env pat i =
+  let expected_ti = Init.skeleton_on_i i pat.p_typ in
+  pattern is_continuous env pat expected_ti
+        
 (** Match handler *)
 let match_handlers is_continuous body env m_h_list =
   let handler { m_env = m_env; m_body = b } =
@@ -258,6 +264,10 @@ let rec exp is_continuous env ({ e_desc = desc; e_typ = ty } as e) =
           | Not_found -> Init.skeleton_on_i ione ty end
     | Etuple(e_list) -> 
         product (List.map (exp is_continuous env) e_list)
+    | Econstr1(_, e_list) ->
+        let i = Init.new_var () in
+        List.iter (fun e -> exp_less_than_on_i is_continuous env e i) e_list;
+        Init.skeleton_on_i i ty
     | Eop(op, e_list) -> operator is_continuous env op ty e_list
     | Eapp(_, e, e_list) ->
         app is_continuous env (exp is_continuous env e) e_list

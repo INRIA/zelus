@@ -92,6 +92,8 @@ let rec exp e =
   | Elocal _ | Econst _ | Econstr0 _ | Eglobal _ | Elast _ | Eperiod _ -> e
   | Etuple(e_list) ->
      { e with e_desc = Etuple (List.map exp e_list) }
+  | Econstr1(c, e_list) ->
+     { e with e_desc = Econstr1(c, List.map exp e_list) }
   | Eop(Efby, [e1; e2]) ->
      let e1 = exp e1 in
      let e2 = exp e2 in

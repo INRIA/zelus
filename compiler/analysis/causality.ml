@@ -108,15 +108,15 @@ let rec pattern env ({ p_desc = desc; p_loc = loc; p_typ = ty } as p) =
         begin try let { t_typ = tc1 } = Env.find x env in tc1
           with | Not_found -> print x 
         end
+    | Econstr1pat(_, pat_list) ->
+        let c = Causal.new_var () in
+        List.iter (fun p -> pattern_less_than_on_c env p c) pat_list;
+        Causal.skeleton_on_c c ty
     | Etuplepat(pat_list) ->
         product(List.map (pattern env) pat_list)
     | Erecordpat(l) ->
-        let pattern_less_than_on_c pat c =
-          let actual_tc = pattern env pat in
-          let expected_tc = Causal.skeleton_on_c c pat.p_typ in
-          less_than loc env actual_tc expected_tc in
         let c = Causal.new_var () in
-        List.iter (fun (_, p) -> pattern_less_than_on_c p c) l;
+        List.iter (fun (_, p) -> pattern_less_than_on_c env p c) l;
         Causal.skeleton_on_c c ty
     | Etypeconstraintpat(p, _) -> pattern env p
     | Eorpat(p1, p2) ->
@@ -134,7 +134,12 @@ let rec pattern env ({ p_desc = desc; p_loc = loc; p_typ = ty } as p) =
   (* annotate the pattern with the causality type *)
   p.p_caus <- tc;
   tc
-  
+
+and pattern_less_than_on_c env pat c =
+  let actual_tc = pattern env pat in
+  let expected_tc = Causal.skeleton_on_c c pat.p_typ in
+  less_than pat.p_loc env actual_tc expected_tc
+        
 (** Build an environment from a typing environment. *)
 let build_env l_env env =
   let entry n { Deftypes.t_typ = ty; Deftypes.t_sort = sort } acc =
@@ -249,6 +254,10 @@ let rec exp env c_free ({ e_desc = desc; e_typ = ty; e_loc = loc } as e) =
         (* all elements [ci in cset] are such that [ci < c_free] *)
         S.iter (fun ci -> less_than_c loc env ci c_free) cset;
         tc
+    | Econstr1(_, e_list) ->
+        let c = Causal.new_var () in
+        exp_less_than_on_c env c_free e c;
+        Causal.skeleton_on_c c ty
     | Etuple(e_list) ->
         product (List.map (exp env c_free) e_list)
     | Eop(op, e_list) ->

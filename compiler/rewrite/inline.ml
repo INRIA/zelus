@@ -119,6 +119,8 @@ let rec pattern renaming ({ p_desc = desc } as p) =
   match desc with
   | Ewildpat | Econstpat _ | Econstr0pat _ -> p
   | Evarpat(n) ->  { p with p_desc = Evarpat(rename n renaming) }
+  | Econstr1pat(c, p_list) ->
+      { p with p_desc = Econstr1pat(c, List.map (pattern renaming) p_list) }
   | Etuplepat(p_list) ->
       { p with p_desc = Etuplepat(List.map (pattern renaming) p_list) }
   | Erecordpat(n_p_list) ->
@@ -143,6 +145,8 @@ let rec expression renaming ({ e_desc = desc } as e) =
   | Elast(n) -> { e with e_desc = Elast(rename n renaming) }
   | Etuple(e_list) ->
      { e with e_desc = Etuple(List.map (expression renaming) e_list) }
+  | Econstr1(c, e_list) ->
+     { e with e_desc = Econstr1(c, List.map (expression renaming) e_list) }
   | Erecord(n_e_list) -> 
      { e with e_desc =
 		Erecord(List.map (fun (ln, e) -> (ln, expression renaming e)) 

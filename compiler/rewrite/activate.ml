@@ -69,6 +69,7 @@ let rec exp e =
     | Elocal(name) -> Elocal(name)
     | Elast(name) -> Elast(name)
     | Etuple(e_list) -> Etuple(List.map exp e_list)
+    | Econstr1(c, e_list) -> Econstr1(c, List.map exp e_list)
     | Eapp(app, e, e_list) ->
        Eapp(app, exp e, List.map exp e_list)
     | Erecord(label_e_list) ->

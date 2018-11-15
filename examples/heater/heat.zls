@@ -82,10 +82,40 @@ let node main_no_graphics() =
   print_newline ();
   flush stdout
 
-let node main() =
+let node main2() =
   let u, temp = system(19.0) in
   let rec time = 0.0 -> pre time +. h in
   let s = Scope.scope2 (-1.0, 40.0, ("u", Scope.points true,
 				     if u then 1.0 else 0.0),
                         ("temp", Scope.points false, temp)) in
   Scope.window ("main_on_19", 10.0, time, s)
+
+(* A simple example to show what is computed by a *)
+(* fixed-sampled forward Euler integration scheme *)
+let node int2_forward(h)(x0, xprime) = x where
+  rec x = x0 -> pre (x +. xprime *. h)
+
+let node int2_backward(h)(x0, xprime) = x where
+  rec x = x0 -> pre (x) +. xprime *. h
+
+(* this one diverges; errors accumulate *)
+let node sin_cos2(h)() =
+  let rec si = int2_forward(h)(0.0, co)
+  and co = 1.0 -. int2_forward(h)(0.0, si) in
+  si, co
+
+(* this one is stable; errors compensate *)
+let node sin_cos(h)() =
+  let rec si = int2_forward(h)(0.0, co)
+  and co = 1.0 -. int2_backward(h)(0.0, si) in
+  si, co
+
+let node main() =
+  let si, co = sin_cos2(0.05)() in
+  let rec time = 0.0 -> pre time +. h in
+  let i = Input.get ... in
+  let s = Scope.scope2 (-1.0, 40.0, ("si", Scope.points false, si),
+			("co", Scope.points false, co)) in
+  Scope.window ("sin_cos", 10.0, time, s);
+  Scope.window ("sin_cos2", 10.0, time, s)
+  

@@ -60,12 +60,20 @@ and interface_desc =
     | Einter_open of name
     | Einter_typedecl of name * name list * type_decl
     | Einter_constdecl of name * type_expression
+
+and type_decl = type_decl_desc localized
     
-and type_decl =
+and type_decl_desc =
     | Eabstract_type
     | Eabbrev of type_expression
-    | Evariant_type of name list
+    | Evariant_type of constr_decl list
     | Erecord_type of (name * type_expression) list
+
+and constr_decl = constr_decl_desc localized
+    
+and constr_decl_desc =
+  | Econstr0decl of name
+  | Econstr1decl of name * type_expression list
 
 and implementation = implementation_desc localized
 
@@ -91,6 +99,7 @@ and desc =
   | Evar of longname
   | Econst of immediate
   | Econstr0 of constr
+  | Econstr1 of constr * exp list
   | Elast of name
   | Eapp of app * exp * exp list
   | Eop of op * exp list
@@ -148,6 +157,7 @@ and pdesc =
   | Ewildpat
   | Econstpat of immediate
   | Econstr0pat of longname
+  | Econstr1pat of longname * pattern list
   | Ealiaspat of pattern * name
   | Eorpat of pattern * pattern
   | Erecordpat of (longname * pattern) list

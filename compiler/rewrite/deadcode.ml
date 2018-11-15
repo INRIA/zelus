@@ -202,6 +202,8 @@ let rec pattern useful ({ p_desc = desc } as p) =
   | Ewildpat | Econstpat _ | Econstr0pat _ -> p
   | Etuplepat(p_list) ->
      { p with p_desc = Etuplepat(List.map (pattern useful) p_list) }
+  | Econstr1pat(c, p_list) ->
+     { p with p_desc = Econstr1pat(c, List.map (pattern useful) p_list) }
   | Evarpat(x) -> if S.mem x useful then p else { p with p_desc = Ewildpat }
   | Ealiaspat(p_alias, x) ->
      let p_alias = pattern useful p_alias in

@@ -158,14 +158,13 @@ module LANG =
                     find_variant_type_idents (Modname id)
                 | _ -> assert false in
             Pconstr (Tconstr (source s, 0, variants), [])
-        (*
-          | Econstr1pat (s, l) ->
-          Pconstr (Tconstr (source s, List.length l,
-          match p.p_ty.t_desc with
-          | Deftypes.Tconstr (id, _, _) ->
-          find_variant_type_idents (Modname id)
-          | _ -> assert false), List.map inject l)
-        *)
+        | Econstr1pat(s, l) ->
+            Pconstr (Tconstr (source s, List.length l,
+                              match p.p_typ.t_desc with
+                              | Deftypes.Tconstr (id, _, _) ->
+                                  find_variant_type_idents (Modname id)
+                              | _ -> assert false),
+                     List.map inject l)
         | Etypeconstraintpat (p, _) -> inject p
         | Erecordpat l ->
             let ll = find_record_type_fields p.p_typ in

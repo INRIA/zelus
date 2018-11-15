@@ -117,6 +117,9 @@ let rec pattern venv renaming ({ p_desc = desc } as p) =
   | Evarpat(n) ->  { p with p_desc = Evarpat(rename n renaming) }
   | Etuplepat(p_list) ->
       { p with p_desc = Etuplepat(List.map (pattern venv renaming) p_list) }
+  | Econstr1pat(c, p_list) ->
+      { p with p_desc =
+                 Econstr1pat(c, List.map (pattern venv renaming) p_list) }
   | Erecordpat(n_p_list) ->
       let n_p_list =
         List.map (fun (ln, p) -> (ln, pattern venv renaming p)) n_p_list in
@@ -155,6 +158,10 @@ let rec expression venv renaming fun_defs ({ e_desc = desc } as e) =
       let e_list, fun_defs =
         Misc.map_fold (expression venv renaming) fun_defs e_list in
      { e with e_desc = Etuple(e_list) }, fun_defs
+  | Econstr1(c, e_list) ->
+      let e_list, fun_defs =
+        Misc.map_fold (expression venv renaming) fun_defs e_list in
+     { e with e_desc = Econstr1(c, e_list) }, fun_defs
   | Erecord(l_e_list) -> 
       let l_e_list, fun_defs =
         Misc.map_fold
@@ -491,6 +498,10 @@ and exp_of_value fun_defs { value_exp = v; value_name = opt_name } =
        let v_list, fun_defs =
 	 Misc.map_fold exp_of_value fun_defs v_list in
        Etuple(v_list), fun_defs
+    | Vconstr1(qualident, v_list) ->
+       let v_list, fun_defs =
+	 Misc.map_fold exp_of_value fun_defs v_list in
+       Econstr1(Lident.Modname(qualident), v_list), fun_defs
     | Vrecord(l_v_list) ->
        let l_e_list, fun_defs =
 	 Misc.map_fold

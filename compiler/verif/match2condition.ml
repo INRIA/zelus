@@ -60,6 +60,7 @@ let rec filter return ({ p_desc = p_desc; p_typ = ty } as p) ({ e_desc } as e) =
       Zaux.etrue, with_eq (Zaux.eqmake (EQeq(p, e))) return
   | Econstpat(c), _ -> or_op (Zaux.const c ty) e, return
   | Econstr0pat(c), _ -> or_op (Zaux.constr0 c ty) e, return
+  | Econstr1pat _, _ -> assert false
   | Etuplepat(p_list), Etuple(e_list) -> filter_list return p_list e_list
   | Etuplepat(p_list), _ ->
       (* filter (p1,...,pn)  e *)
@@ -147,7 +148,7 @@ let rec expression ({ e_desc = desc } as e) =
       { e with e_desc = Etypeconstraint(expression e, ty) }
   | Etuple(e_list) ->
       { e with e_desc = Etuple(List.map expression e_list) }
-  | Ematch _ | Eseq _ | Elet _ | Eperiod _ | Eblock _ | Epresent _
+  | Econstr1 _ | Ematch _ | Eseq _ | Elet _ | Eperiod _ | Eblock _ | Epresent _
     -> assert false
     
 let rec equation return ({ eq_desc = desc } as eq) =

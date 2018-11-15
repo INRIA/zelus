@@ -139,27 +139,29 @@ let split spat =
 
 let rec pattern signals p =
   match p.p_desc with
-    | Ewildpat | Econstpat _ | Econstr0pat _ -> p
-    | Etuplepat(p_list) -> 
-        { p with p_desc = Etuplepat(List.map (pattern signals) p_list) }
-    | Evarpat(n) ->
-        begin try 
-            let nv, np, ty = Env.find n signals in
-            { p with p_desc = Etuplepat [varpat nv ty; varpat np typ_bool] }
-          with 
-          | Not_found -> p
-        end
-    | Ealiaspat(p1, n) ->
-        { p with p_desc = Ealiaspat(pattern signals p1, n) }
-    | Eorpat(p1, p2) ->
-        { p with p_desc = Eorpat(pattern signals p1, pattern signals p2) }
-    | Erecordpat(l_p_list) ->
-        let l_p_list = 
-          List.map (fun (l, p) -> (l, pattern signals p)) l_p_list in
-        { p with p_desc = Erecordpat(l_p_list) }
+  | Ewildpat | Econstpat _ | Econstr0pat _ -> p
+  | Etuplepat(p_list) -> 
+      { p with p_desc = Etuplepat(List.map (pattern signals) p_list) }
+  | Econstr1pat(c, p_list) -> 
+      { p with p_desc = Econstr1pat(c, List.map (pattern signals) p_list) }
+  | Evarpat(n) ->
+      begin try 
+          let nv, np, ty = Env.find n signals in
+          { p with p_desc = Etuplepat [varpat nv ty; varpat np typ_bool] }
+        with 
+        | Not_found -> p
+      end
+  | Ealiaspat(p1, n) ->
+      { p with p_desc = Ealiaspat(pattern signals p1, n) }
+  | Eorpat(p1, p2) ->
+      { p with p_desc = Eorpat(pattern signals p1, pattern signals p2) }
+  | Erecordpat(l_p_list) ->
+      let l_p_list = 
+        List.map (fun (l, p) -> (l, pattern signals p)) l_p_list in
+      { p with p_desc = Erecordpat(l_p_list) }
   | Etypeconstraintpat(p1, ty) ->
       { p with p_desc = Etypeconstraintpat(pattern signals p1, ty) }
-
+      
 let rec exp signals ({ e_desc = desc } as e) =
   let desc = match desc with
     | Econst _ | Econstr0 _ | Eglobal _ | Elast _ -> desc
@@ -170,89 +172,91 @@ let rec exp signals ({ e_desc = desc } as e) =
        with 
        | Not_found -> desc
      end
-  | Etuple(e_list) -> Etuple(List.map (exp signals) e_list)
-  | Eop(Etest, [e]) -> test (exp signals e)
-  | Eop(op, e_list) ->
-     Eop(op, List.map (exp signals) e_list)
-  | Eapp(app, e, e_list) ->
-     Eapp(app, exp signals e, List.map (exp signals) e_list)
-  | Erecord(label_e_list) ->
-     Erecord(List.map
-	       (fun (label, e) -> (label, exp signals e)) label_e_list)
-  | Erecord_access(e, longname) -> Erecord_access(exp signals e, longname)
-  | Etypeconstraint(e, ty) -> Etypeconstraint(exp signals e, ty)
-  | Eseq(e1, e2) -> Eseq(exp signals e1, exp signals e2)
-  | Eperiod(p) -> Eperiod(p)
-  | Elet(l, e) -> 
-     let signals, l = local signals l in Elet(l, exp signals e)
-  | Eblock(b, e) ->
-     let signals, b = block signals b in
-     Eblock(b, exp signals e)
-  | Epresent _ | Ematch _ -> assert false in
+    | Etuple(e_list) -> Etuple(List.map (exp signals) e_list)
+    | Econstr1(c, e_list) -> Econstr1(c, List.map (exp signals) e_list)
+    | Eop(Etest, [e]) -> test (exp signals e)
+    | Eop(op, e_list) ->
+        Eop(op, List.map (exp signals) e_list)
+    | Eapp(app, e, e_list) ->
+        Eapp(app, exp signals e, List.map (exp signals) e_list)
+    | Erecord(label_e_list) ->
+        Erecord(List.map
+	          (fun (label, e) -> (label, exp signals e)) label_e_list)
+    | Erecord_access(e, longname) -> Erecord_access(exp signals e, longname)
+    | Etypeconstraint(e, ty) -> Etypeconstraint(exp signals e, ty)
+    | Eseq(e1, e2) -> Eseq(exp signals e1, exp signals e2)
+    | Eperiod(p) -> Eperiod(p)
+    | Elet(l, e) -> 
+        let signals, l = local signals l in Elet(l, exp signals e)
+    | Eblock(b, e) ->
+        let signals, b = block signals b in
+        Eblock(b, exp signals e)
+    | Epresent _ | Ematch _ -> assert false in
   { e with e_desc = desc }
-
+  
 and equation signals eq_list eq =
   match eq.eq_desc with
-    | EQeq(pat, e) -> 
+  | EQeq(pat, e) -> 
       { eq with eq_desc =
-	  EQeq(pattern signals pat, exp signals e) } :: eq_list
-    | EQpluseq(x, e) -> 
+	          EQeq(pattern signals pat, exp signals e) } :: eq_list
+  | EQpluseq(x, e) -> 
       { eq with eq_desc = EQpluseq(x, exp signals e) } :: eq_list
-    | EQinit(x, e0) -> 
-        { eq with eq_desc = EQinit(x, exp signals e0) } :: eq_list
-    | EQnext(x, e, e0_opt) ->
-        { eq with eq_desc =
-	    EQnext(x, exp signals e, 
-		   optional_map (exp signals) e0_opt) } :: eq_list
-    | EQder(x, e, None, []) ->
-        { eq with eq_desc = EQder(x, exp signals e, None, []) } :: eq_list
-    | EQemit(name, e_opt) ->
-        (* essentially translate to [(namev,namep) = e] *)
-        let e = match e_opt with | None -> evoid | Some(e) -> exp signals e in
-        let nv, np, ty = Env.find name signals in
-        let ev, ep = emit e in
-	{ eq with eq_desc = EQeq(varpat nv ty, ev) } ::
-	  { eq with eq_desc = EQeq(varpat np typ_bool, ep) } :: eq_list
-    | EQmatch(total, e, match_handler_list) ->
-        { eq with eq_desc =
-            EQmatch(total, exp signals e, 
-                  List.map (match_handler signals) match_handler_list) } 
-        :: eq_list
-    | EQpresent(present_handler_list, b_opt) ->
-        present_handlers signals eq_list present_handler_list b_opt
-    | EQreset(res_eq_list, e) ->
-        let res_eq_list = equation_list signals res_eq_list in
-	{ eq with eq_desc = EQreset(res_eq_list, exp signals e) } :: eq_list
-    | EQand(and_eq_list) ->
-       { eq with eq_desc = EQand(equation_list signals and_eq_list) } :: eq_list
-    | EQbefore(before_eq_list) ->
-       { eq with eq_desc =
-		   EQbefore(equation_list signals before_eq_list) } :: eq_list
-    | EQblock(b) ->
-       let _, b = block signals b in
-       { eq with eq_desc = EQblock(b) } :: eq_list
-    | EQforall ({ for_index = i_list; for_init = init_list;
-		  for_body = b_eq_list } as body) ->
-       let index ({ desc = desc } as ind) =
-	 let desc = match desc with
-	   | Einput(x, e) -> Einput(x, exp signals e)
-	   | Eoutput _ -> desc
-	   | Eindex(x, e1, e2) ->
-	      Eindex(x, exp signals e1, exp signals e2) in
-	 { ind with desc = desc } in
-       let init ({ desc = desc } as ini) =
-	 let desc = match desc with
-	   | Einit_last(x, e) -> Einit_last(x, exp signals e) in
-	 { ini with desc = desc } in
-       let _, b_eq_list = block signals b_eq_list in
-       { eq with eq_desc =
-		   EQforall { body with for_index = List.map index i_list;
-					for_init = List.map init init_list;
-					for_body = b_eq_list } }
-       :: eq_list
-    | EQautomaton _ | EQder _ -> assert false
-
-and equation_list signals eq_list = List.fold_left (equation signals) [] eq_list
+  | EQinit(x, e0) -> 
+      { eq with eq_desc = EQinit(x, exp signals e0) } :: eq_list
+  | EQnext(x, e, e0_opt) ->
+      { eq with eq_desc =
+	          EQnext(x, exp signals e, 
+		  optional_map (exp signals) e0_opt) } :: eq_list
+  | EQder(x, e, None, []) ->
+      { eq with eq_desc = EQder(x, exp signals e, None, []) } :: eq_list
+  | EQemit(name, e_opt) ->
+      (* essentially translate to [(namev,namep) = e] *)
+      let e = match e_opt with | None -> evoid | Some(e) -> exp signals e in
+      let nv, np, ty = Env.find name signals in
+      let ev, ep = emit e in
+      { eq with eq_desc = EQeq(varpat nv ty, ev) } ::
+      { eq with eq_desc = EQeq(varpat np typ_bool, ep) } :: eq_list
+  | EQmatch(total, e, match_handler_list) ->
+      { eq with eq_desc =
+                  EQmatch(total, exp signals e, 
+                          List.map (match_handler signals) match_handler_list) } 
+      :: eq_list
+  | EQpresent(present_handler_list, b_opt) ->
+      present_handlers signals eq_list present_handler_list b_opt
+  | EQreset(res_eq_list, e) ->
+      let res_eq_list = equation_list signals res_eq_list in
+      { eq with eq_desc = EQreset(res_eq_list, exp signals e) } :: eq_list
+  | EQand(and_eq_list) ->
+      { eq with eq_desc = EQand(equation_list signals and_eq_list) } :: eq_list
+  | EQbefore(before_eq_list) ->
+      { eq with eq_desc =
+		  EQbefore(equation_list signals before_eq_list) } :: eq_list
+  | EQblock(b) ->
+      let _, b = block signals b in
+      { eq with eq_desc = EQblock(b) } :: eq_list
+  | EQforall ({ for_index = i_list; for_init = init_list;
+		for_body = b_eq_list } as body) ->
+      let index ({ desc = desc } as ind) =
+	let desc = match desc with
+          | Einput(x, e) -> Einput(x, exp signals e)
+          | Eoutput _ -> desc
+          | Eindex(x, e1, e2) ->  Eindex(x, exp signals e1, exp signals e2) in
+        { ind with desc = desc } in
+      let init ({ desc = desc } as ini) =
+	let desc = match desc with
+          | Einit_last(x, e) -> Einit_last(x, exp signals e) in
+        { ini with desc = desc } in
+      let _, b_eq_list = block signals b_eq_list in
+      { eq with eq_desc =
+		  EQforall
+                      { body with for_index = List.map index i_list;
+			          for_init = List.map init init_list;
+			          for_body = b_eq_list } }
+      :: eq_list
+  | EQautomaton _ | EQder _ -> assert false
+    
+and equation_list signals eq_list =
+  List.fold_left (equation signals) [] eq_list
 
 and local signals ({ l_eq = eq_list; l_env = l_env } as l) =
   (* for every signal [s] declared in [env], we introduce *)

@@ -190,6 +190,7 @@ let rec expression ck { e_desc = desc; e_loc = loc } =
   | Eglobal { lname = lid } -> Lglobal(lid)
   | Econst(im) -> Lconst(immediate im)
   | Econstr0(lid) -> Lconstr0(lid)
+  | Econstr1 _ -> assert false
   | Elast(x) -> Llast(x)
   | Eapp(_, { e_desc = Eglobal { lname = lid } }, e_list) ->
      Lapp(Lop(lid), List.map (expression ck) e_list)
@@ -297,10 +298,10 @@ let kind = function | S | AS | A | AD -> A | D -> D | C -> assert false
 
 (* translation of a type declaration *)
 let typedecl loc n params td =
-  let decl td =
-    match td with
+  let decl { desc = desc } =
+    match desc with
     | Eabstract_type -> Labstract_type
-    | Evariant_type(n_list) -> Lvariant_type(n_list)
+    | Evariant_type _ -> assert false
     | Erecord_type(n_ty_list) ->
        Lrecord_type
 	 (List.map (fun (n, ty) -> (n, type_expression loc ty)) n_ty_list)

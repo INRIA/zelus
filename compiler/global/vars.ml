@@ -25,7 +25,8 @@ let rec fv_pat bounded acc p =
     | Ewildpat | Econstr0pat _ | Econstpat _ -> acc
     | Evarpat(x) -> 
         if (S.mem x acc) || (S.mem x bounded) then acc else S.add x acc
-    | Etuplepat(pat_list) -> List.fold_left (fv_pat bounded) acc pat_list
+    | Econstr1pat(_, pat_list) | Etuplepat(pat_list) ->
+        List.fold_left (fv_pat bounded) acc pat_list
     | Erecordpat(label_pat_list) ->
         List.fold_left
           (fun acc (_, p) -> fv_pat bounded acc p) acc label_pat_list
@@ -66,7 +67,8 @@ let rec fv bounded (last_acc, acc) e =
   | Eop(op, e_list) ->
      let last_acc, acc = List.fold_left (fv bounded) (last_acc, acc) e_list in
      last_acc, operator acc op
-  | Etuple(e_list) -> List.fold_left (fv bounded) (last_acc, acc) e_list
+  | Econstr1(_, e_list) | Etuple(e_list) ->
+      List.fold_left (fv bounded) (last_acc, acc) e_list
   | Eapp(_, e, e_list) ->
      List.fold_left (fv bounded) (fv bounded (last_acc, acc) e) e_list
   | Elocal(n) ->

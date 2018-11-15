@@ -56,6 +56,11 @@ let rec matches env { p_desc = desc } ({ value_exp = v_exp } as v) =
      begin try List.fold_left2 matches env p_list v_list
 	   with _ -> raise (Error(TypeError))
      end
+  | Econstr1pat(c1, p_list), Vconstr1(qid, v_list)
+                                   when (Modules.qualident c1) = qid ->
+     begin try List.fold_left2 matches env p_list v_list
+	   with _ -> raise (Error(TypeError))
+     end
   | Evarpat(n), _ -> Env.add n v env
   | Ealiaspat(p, n), _ -> matches (Env.add n v env) p v
   | Eorpat(p1, p2), _ ->
@@ -103,6 +108,9 @@ let rec expression env ({ e_desc = desc; e_loc = loc } as e) =
        try Env.find n env with Not_found -> raise (Error(NotStaticExp e)) in v
   | Etuple(e_list) ->
      Global.value_code (Vtuple(List.map (expression env) e_list))
+  | Econstr1(c, e_list) ->
+      Global.value_code (Vconstr1(Modules.qualident c,
+                                  List.map (expression env) e_list))
   | Erecord(n_e_list) -> 
      let v_exp =
        Vrecord(List.map

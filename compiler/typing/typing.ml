@@ -475,11 +475,25 @@ let rec pattern h ({ p_desc = desc; p_loc = loc } as pat) ty =
      (* type annotation *)
      pat.p_typ <- ty
   | Econstr0pat(c0) ->
-     let qualid, { constr_res = ty_res } = constr loc c0 in
+     let qualid, { constr_res = ty_res; constr_arity = n } = constr loc c0 in
+     (* check the arity *)
+     if n <> 0 then error loc (Econstr_arity(c0, n, 0));
      unify_pat pat ty ty_res;
      pat.p_desc <- Econstr0pat(Lident.Modname(qualid));
      (* type annotation *)
      pat.p_typ <- ty
+  | Econstr1pat(c1, pat_list) ->
+     let qualid,
+         { constr_arg = ty_list; constr_res = ty_res; constr_arity = n } =
+       constr loc c1 in
+     (* check the arity *)
+     let actual_n = List.length pat_list in
+     if n <> actual_n then error loc (Econstr_arity(c1, n, actual_n));
+     unify_pat pat ty ty_res;
+     pat.p_desc <- Econstr0pat(Lident.Modname(qualid));
+     (* type annotation *)
+     pat.p_typ <- ty;
+     List.iter2 (pattern h) pat_list ty_list
   | Evarpat(x) -> 
      unify_pat pat ty (typ_of_var loc h x);
      (* type annotation *)
@@ -629,8 +643,19 @@ let rec expression expected_k h ({ e_desc = desc; e_loc = loc } as e) =
     | Eapp({ app_statefull = is_statefull }, e, e_list) ->
         apply loc is_statefull expected_k h e e_list
     | Econstr0(c0) ->
-        let qualid, { constr_res = ty_res } = constr loc c0 in
+        let qualid, { constr_res = ty_res; constr_arity = n } =
+          constr loc c0 in
+        if n <> 0 then error loc (Econstr_arity(c0, n, 0));
         e.e_desc <- Econstr0(Lident.Modname(qualid)); ty_res
+    | Econstr1(c1, e_list) ->
+        let qualid,
+            { constr_arg = ty_list; constr_res = ty_res; constr_arity = n } =
+          constr loc c1 in
+        let actual_arity = List.length e_list in
+        if n <> actual_arity then
+          error loc (Econstr_arity(c1, n, actual_arity));
+        List.iter2 (expect expected_k h) e_list ty_list;
+        e.e_desc <- Econstr1(Lident.Modname(qualid), e_list); ty_res
     | Erecord_access(e1, lab) ->
         let qualid, { label_arg = ty_arg; label_res = ty_res } =
           label loc lab in

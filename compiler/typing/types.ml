@@ -386,10 +386,12 @@ let instance_and_vars_of_type { typ_vars = typ_vars; typ_body = typ_body } =
   cleanup ();
   { typ_instance = typ_vars }, typ_body
 
-let constr_instance { constr_res = ty_res } =
+let constr_instance
+    { constr_arg = ty_list; constr_res = ty_res; constr_arity = n } =
+  let ty_list = List.map copy ty_list in
   let ty_res = copy ty_res in
     cleanup ();
-    { constr_res = ty_res }
+    { constr_arg = ty_list; constr_res = ty_res; constr_arity = n }
 
 let label_instance { label_arg = ty_arg; label_res = ty_res } =
   let ty_arg = copy ty_arg in

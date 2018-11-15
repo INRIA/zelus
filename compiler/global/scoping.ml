@@ -189,6 +189,7 @@ let kind = function
   | S -> Zelus.S | A -> Zelus.A | AS -> Zelus.AS
   | AD -> Zelus.AD | C -> Zelus.C | D -> Zelus.D
 
+(* translate types. [env] is used to renames dependent variables *)
 let rec types env ty =
   let desc = match ty.desc with
     | Etypevar(n) -> Zelus.Etypevar(n)
@@ -242,39 +243,38 @@ let operator loc env = function
 let rec build check_linear acc p =
   let rec build acc p =
     match p.desc with
-      | Ewildpat | Econstpat _ | Econstr0pat _ -> acc
-      | Etuplepat(p_list) -> build_list check_linear acc p_list
-      | Evarpat(n) ->
-	  if S.mem n acc then 
-	    if check_linear 
-	    then Error.error p.loc (Error.Enon_linear_pat(n)) else acc
-	  else S.add n acc
-      | Ealiaspat(p, n) ->
-	let acc = build acc p in
-	S.add n acc
-      | Eorpat(p1, p2) -> 
-	  let orpat loc acc0 acc1 acc =
-            let one key acc =
-              if S.mem key acc1 then
-		if S.mem key acc then
-		  if check_linear 
-		  then Error.error loc (Error.Enon_linear_pat(key)) else acc
-		else S.add key acc
-              else
-		Error.error loc (Error.Emissing_in_orpat(key)) in
-            S.fold one acc0 acc in
-	  let acc1 = build S.empty p1 in
-	  let acc2 = build S.empty p2 in
-	  let acc = orpat p.loc acc1 acc2 acc in
-	  acc
-      | Etypeconstraintpat(p, ty) -> build acc p
-      | Erecordpat(l_p_list) -> build_record_list p.loc acc l_p_list
+    | Ewildpat | Econstpat _ | Econstr0pat _ -> acc
+    | Econstr1pat(_, p_list) | Etuplepat(p_list) ->
+        build_list check_linear acc p_list
+    | Evarpat(n) ->
+	if S.mem n acc then 
+        if check_linear 
+        then Error.error p.loc (Error.Enon_linear_pat(n)) else acc
+        else S.add n acc
+    | Ealiaspat(p, n) ->
+	let acc = build acc p in S.add n acc
+    | Eorpat(p1, p2) -> 
+	let orpat loc acc0 acc1 acc =
+        let one key acc =
+          if S.mem key acc1 then
+            if S.mem key acc then
+	      if check_linear 
+              then Error.error loc (Error.Enon_linear_pat(key)) else acc
+	      else S.add key acc
+          else
+	    Error.error loc (Error.Emissing_in_orpat(key)) in
+        S.fold one acc0 acc in
+        let acc1 = build S.empty p1 in
+        let acc2 = build S.empty p2 in
+        let acc = orpat p.loc acc1 acc2 acc in acc
+    | Etypeconstraintpat(p, ty) -> build acc p
+    | Erecordpat(l_p_list) -> build_record_list p.loc acc l_p_list
 	
   and build_record_list loc acc label_pat_list =
     let rec buildrec acc labels label_pat_list =
       match label_pat_list with
-	| [] -> acc
-	| (lname, pat_label) :: label_pat_list ->
+      | [] -> acc
+      | (lname, pat_label) :: label_pat_list ->
 	  (* checks that the label appears only once *)
           let label = shortname lname in
           if S.mem label labels
@@ -285,7 +285,7 @@ let rec build check_linear acc p =
     buildrec acc S.empty label_pat_list in
   
   build acc p
-
+    
 and build_list check_linear acc p_list = 
   List.fold_left (build check_linear) acc p_list
 
@@ -393,6 +393,8 @@ let rec check_pattern env p =
     | Ewildpat -> Zelus.Ewildpat
     | Econstpat(im) -> Zelus.Econstpat(immediate im)
     | Econstr0pat(ln) -> Zelus.Econstr0pat(longname ln)
+    | Econstr1pat(ln, p_list) ->
+        Zelus.Econstr1pat(longname ln, check_pattern_list env p_list)
     | Etuplepat(p_list) -> Zelus.Etuplepat(check_pattern_list env p_list)
     | Evarpat(n) -> Zelus.Evarpat(name p.loc env n)
     | Ealiaspat(p, n) ->
@@ -409,7 +411,8 @@ let rec check_pattern env p =
 
 and check_pattern_list env p_list = List.map (check_pattern env) p_list
 
-(* renaming a pattern. Build the renaming environment then rename the pattern *)
+(* renaming a pattern. Build the renaming environment then rename *)
+(* the pattern *)
 let pattern env p =
   let acc = build true S.empty p in
   let env0 = Rename.make acc in
@@ -565,6 +568,8 @@ let rec expression env { desc = desc; loc = loc } =
     | Evar(lname) -> Zaux.global (longname lname)
     | Elast(n) -> Zelus.Elast(name loc env n)
     | Etuple(e_list) -> Zelus.Etuple(List.map (expression env) e_list)
+    | Econstr1(lname, e_list) ->
+        Zelus.Econstr1(longname lname, List.map (expression env) e_list)
     | Eop(op, e_list) ->
        Zelus.Eop(operator loc env op, List.map (expression env) e_list)
     | Eapp({ app_inline = i; app_statefull = r }, e, e_list) ->
@@ -663,10 +668,11 @@ let rec expression env { desc = desc; loc = loc } =
 	  eqmake e.Zelus.e_loc (Zelus.EQeq(varpat e.Zelus.e_loc result, e)) in
 	let is_weak, handlers, e_opt = 
 	  state_handler_list loc scondpat 
-	    (block locals (fun _ env e -> let e = expression env e in [emit e]))
-	    (block locals equation_list)
-	    expression 
-	    Rename.empty env handlers e_opt in
+           (block locals
+              (fun _ env e -> let e = expression env e in [emit e]))
+	   (block locals equation_list)
+              expression 
+	      Rename.empty env handlers e_opt in
 	let eq = eqmake loc (Zelus.EQautomaton(is_weak, handlers, e_opt)) in
 	Zelus.Eblock(block_with_result result [eq], var loc result)
     | Eblock(b, e) ->
@@ -891,18 +897,24 @@ and scondpat env scpat =
   env_scpat, env, scpat
 
 (* type declarations. *)
-let rec type_decl tydecl =
-  match tydecl with
+let rec type_decl { desc = desc; loc = loc } =
+  let desc = match desc with
   | Eabstract_type -> Zelus.Eabstract_type
   | Eabbrev(ty) -> Zelus.Eabbrev(types Rename.empty ty)
   | Evariant_type(constr_decl_list) ->
       Zelus.Evariant_type(List.map constr_decl constr_decl_list)
   | Erecord_type(n_ty_list) ->
       Zelus.Erecord_type
-      (List.map (fun (n, ty) -> (n, types Rename.empty ty)) n_ty_list)
+        (List.map (fun (n, ty) -> (n, types Rename.empty ty)) n_ty_list) in
+  { Zelus.desc = desc; Zelus.loc = loc }
 
-and constr_decl n = n
-
+and constr_decl { desc = desc; loc = loc } =
+  let desc = match desc with
+  | Econstr0decl(n) -> Zelus.Econstr0decl(n)
+  | Econstr1decl(n, ty_list) ->
+      Zelus.Econstr1decl(n, List.map (types Rename.empty) ty_list) in
+  { Zelus.desc = desc; Zelus.loc = loc }
+      
 let type_decls n_params_typdecl_list =
   List.map (fun (n, pars, typdecl) -> (n, pars, type_decl typdecl))
     n_params_typdecl_list

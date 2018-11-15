@@ -81,9 +81,11 @@ let rec pattern ff ({ p_typ = ty; p_caus = caus_list } as pat) =
     | Ewildpat -> fprintf ff "_"
     | Econstpat(im) -> immediate ff im
     | Econstr0pat(ln) -> longname ff ln
+    | Econstr1pat(ln, pat_list) ->
+        fprintf ff "@[%a%a@]" longname ln (pattern_list "(" "," ")") pat_list
     | Etuplepat(pat_list) -> pattern_list "(" "," ")" ff pat_list
     | Etypeconstraintpat(p, ty_exp) ->
-        fprintf ff "(%a:%a)" pattern p ptype ty_exp
+        fprintf ff "@[(%a:%a)@]" pattern p ptype ty_exp
     | Erecordpat(n_pat_list) ->
         print_record (print_couple longname pattern """ =""") ff n_pat_list
     | Ealiaspat(p, n) ->
@@ -244,6 +246,9 @@ let rec expression ff e =
        fprintf ff "@[(%s%s%a %a)@]"
 	       (if i then "inline " else "") (if r then "run " else "")
 	       expression e (print_list_r expression "" "" "") e_list
+    | Econstr1(ln, e_list) ->
+        fprintf ff "@[%a%a@]"
+          longname ln (print_list_r expression "("","")") e_list
     | Etuple(e_list) ->
         fprintf ff "@[%a@]" (print_list_r expression "("","")") e_list
     | Erecord_access(e, field) ->
@@ -445,7 +450,7 @@ and state ff se = match se.desc with
   | Estate0(n) -> name ff n
   | Estate1(n, e_list) ->
       fprintf ff "%a%a" name n (print_list_r expression "("","")") e_list
-
+        
 and locals ff l = 
   if l <> [] then fprintf ff "@[%a@]" (print_list_l local """""") l
 
@@ -453,15 +458,21 @@ and local ff { l_rec = is_rec; l_eq = eq_list; l_env = env } =
   let s = if is_rec then "rec " else "" in
   fprintf ff "@[<v 0>%alet %a@]"
 	  print_env env (equation_list s " in") eq_list
- 
+
+let constr_decl ff { desc = desc } =
+  match desc with
+  | Econstr0decl(n) -> fprintf ff "%s" n
+  | Econstr1decl(n, ty_list) ->
+      fprintf ff "@[%s of %a@]" n (print_list_l ptype "(" "* " ")") ty_list
          
-let type_decl ff ty_decl =
-  match ty_decl with
+let type_decl ff { desc = desc } =
+  match desc with
     | Eabstract_type -> ()
     | Eabbrev(ty) ->
         fprintf ff " = %a" ptype ty
-    | Evariant_type(tag_name_list) ->
-        fprintf ff " = %a" (print_list_l shortname "" "|" "") tag_name_list
+    | Evariant_type(constr_decl_list) ->
+        fprintf
+          ff " = %a" (print_list_l constr_decl "" "|" "") constr_decl_list
     | Erecord_type(n_ty_list) ->
         fprintf ff " = %a" 
           (print_record (print_couple shortname ptype """ :""")) n_ty_list
@@ -528,10 +539,14 @@ and print_value ff ve =
   match ve with
   | Vconst(i) -> immediate ff i
   | Vconstr0(qual) -> qualident ff qual
+  | Vconstr1(qual, vc_list) ->
+      fprintf ff "@[%a%a@]"
+        qualident qual (print_list_r print_value_code "("","")") vc_list
   | Vtuple(vc_list) ->
       fprintf ff "@[%a@]" (print_list_r print_value_code "("","")") vc_list
   | Vrecord(ln_vc_list) ->
-      print_record (print_couple qualident print_value_code """ =""") ff ln_vc_list
+      print_record
+        (print_couple qualident print_value_code """ =""") ff ln_vc_list
   | Vperiod(p) -> fprintf ff "@[period %a@]" period p
   | Vfun(body, venv) ->
       fprintf ff "@[<hov0><%a,@,%a>@]"

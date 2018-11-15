@@ -52,13 +52,21 @@ and interface_desc =
   | Einter_open of name
   | Einter_typedecl of name * name list * type_decl
   | Einter_constdecl of name * type_expression
-				 
-and type_decl =
+
+and type_decl = type_decl_desc localized
+    
+and type_decl_desc =
   | Eabstract_type
   | Eabbrev of type_expression
-  | Evariant_type of name list
+  | Evariant_type of constr_decl list
   | Erecord_type of (name * type_expression) list
 					     
+and constr_decl = constr_decl_desc localized
+
+and constr_decl_desc =
+  | Econstr0decl of name
+  | Econstr1decl of name * type_expression list
+
 and implementation = implementation_desc localized
 
 and implementation_desc =
@@ -91,6 +99,7 @@ and desc =
   | Eglobal of { lname : Lident.t; typ_instance : Deftypes.typ_instance }
   | Econst of immediate
   | Econstr0 of Lident.t
+  | Econstr1 of Lident.t * exp list
   | Elast of Ident.t
   | Eapp of app * exp * exp list
   | Eop of op * exp list
@@ -143,6 +152,7 @@ and pdesc =
   | Ewildpat
   | Econstpat of immediate
   | Econstr0pat of Lident.t
+  | Econstr1pat of Lident.t * pattern list
   | Etuplepat of pattern list
   | Evarpat of Ident.t
   | Ealiaspat of pattern * Ident.t

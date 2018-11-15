@@ -51,6 +51,7 @@ let rec exp subst ({ e_desc } as e) =
     | Elocal _ | Econst _ | Econstr0 _ | Eglobal _ | Eperiod _ -> e_desc
     | Etuple(e_list) ->
        Etuple (List.map (exp subst) e_list)
+    | Econstr1(c, e_list) -> Econstr1(c, List.map (exp subst) e_list)
     | Eop(op, e_list) -> Eop(op, List.map (exp subst) e_list)
     | Eapp(app, e_op, e_list) ->
        let e_list = List.map (exp subst) e_list in

@@ -185,19 +185,26 @@ let rec type_expression_of_typ typ =
 let type_decl_of_type_desc tyname
     { type_desc = ty_desc; type_parameters = ty_param } =
   (* variant types *)
-  let variant_type { qualid = qualid } = Modules.shortname qualid in
+  let variant_type
+      { qualid = qualid; info = { constr_arg = arg_l; constr_arity = arit } } =
+    let desc =
+      if arit = 0 then
+        Econstr0decl(Modules.shortname qualid)
+      else Econstr1decl(Modules.shortname qualid,
+                        List.map type_expression_of_typ arg_l) in
+    make desc in
   (* record types *)
   let record_type { qualid = qualid; info = { label_arg = arg } } =
     Modules.shortname qualid, type_expression_of_typ arg in
 
   let params = List.map (fun i -> "'a" ^ (string_of_int i)) ty_param in
-  let type_decl =
+  let type_decl_desc =
     match ty_desc with
       | Abstract_type -> Eabstract_type
       | Variant_type(c_list) -> Evariant_type(List.map variant_type c_list)
       | Record_type(l_list) -> Erecord_type(List.map record_type l_list)
       | Abbrev(_, ty) -> Eabbrev(type_expression_of_typ ty) in
-  (tyname, params, type_decl)
+  (tyname, params, make type_decl_desc)
 
 
 (* translating a declared type into an internal type *)
@@ -222,7 +229,7 @@ let check_no_repeated_constructor loc l =
   let rec checkrec cont l =
     match l with
       | [] -> ()
-      | s :: l ->
+      | ({ desc = Econstr0decl(s) } | { desc = Econstr1decl(s, _) }) :: l ->
           if List.mem s cont  then error loc (Erepeated_constructor(s))
           else checkrec (s :: cont) l in
     checkrec [] l
@@ -238,8 +245,14 @@ let check_no_repeated_label loc l =
 
 (* typing type definitions *)
 let type_variant_type typ_vars constr_decl_list final_typ =
-  let type_one_variant constr_decl =
-    global constr_decl { constr_res = final_typ } in
+  let type_one_variant { desc = desc } =
+    match desc with
+    | Econstr0decl(s) ->
+        global s { constr_arg = []; constr_res = final_typ; constr_arity = 0 }
+    | Econstr1decl(s, te_list) ->
+        let ty_list = List.map (typ_of_type_expression typ_vars) te_list in
+        global s { constr_arg = ty_list; constr_res = final_typ;
+                   constr_arity = List.length ty_list } in
   List.fold_left
     (fun l constr_decl -> (type_one_variant constr_decl) :: l)
     [] constr_decl_list
@@ -270,33 +283,33 @@ let type_one_typedecl loc gtype (typ_name, typ_params, typ) =
       (List.map (fun v -> List.assoc v typ_vars) typ_params) in
 
   let type_desc =
-    match typ with
-      | Eabstract_type -> Abstract_type
-      | Eabbrev(ty) ->
-          Abbrev(List.map (fun (_, v) -> v) typ_vars,
-                typ_of_type_expression typ_vars ty)
-      | Evariant_type constr_decl_list ->
-          check_no_repeated_constructor loc constr_decl_list;
-          let l = type_variant_type typ_vars constr_decl_list final_typ in
-            (* add the list of constructors to the symbol table *)
-            begin try
-                List.iter (fun g -> add_constr g.qualid.id g.info) l;
-              Variant_type l
-              with
-                | Modules.Already_defined (name) ->
-                    error loc (Ealready_defined_constr name)
-            end
-      | Erecord_type label_decl_list ->
-          check_no_repeated_label loc label_decl_list;
-          let l = type_record_type typ_vars label_decl_list final_typ in
-            (* add the list of record fields to the symbol table *)
-            begin try
-                List.iter (fun g -> add_label g.qualid.id g.info) l;
-              Record_type l
-              with
-                | Modules.Already_defined (name) ->
-                    error loc (Ealready_defined_label name)
-            end
+    match typ.desc with
+    | Eabstract_type -> Abstract_type
+    | Eabbrev(ty) ->
+        Abbrev(List.map (fun (_, v) -> v) typ_vars,
+               typ_of_type_expression typ_vars ty)
+    | Evariant_type constr_decl_list ->
+        check_no_repeated_constructor loc constr_decl_list;
+        let l = type_variant_type typ_vars constr_decl_list final_typ in
+        (* add the list of constructors to the symbol table *)
+        begin try
+            List.iter (fun g -> add_constr g.qualid.id g.info) l;
+            Variant_type l
+          with
+          | Modules.Already_defined (name) ->
+              error loc (Ealready_defined_constr name)
+        end
+    | Erecord_type label_decl_list ->
+        check_no_repeated_label loc label_decl_list;
+        let l = type_record_type typ_vars label_decl_list final_typ in
+        (* add the list of record fields to the symbol table *)
+        begin try
+            List.iter (fun g -> add_label g.qualid.id g.info) l;
+            Record_type l
+          with
+          | Modules.Already_defined (name) ->
+              error loc (Ealready_defined_label name)
+        end
   in
 
     (* modify the description associated to the declared type *)

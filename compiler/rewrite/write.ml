@@ -1,7 +1,7 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2017                                               *)
+(*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
 (*  Marc Pouzet  Timothy Bourke                                           *)
 (*                                                                        *)
@@ -164,6 +164,7 @@ and expression ({ e_desc = desc } as e) =
     | Eapp(app, op, e_list) ->
        Eapp(app, op, List.map expression e_list)
     | Etuple(e_list) -> Etuple(List.map expression e_list)
+    | Econstr1(c, e_list) -> Econstr1(c, List.map expression e_list)
     | Erecord_access(e, ln) -> Erecord_access(expression e, ln)
     | Erecord(l_e_list) ->
        Erecord(List.map (fun (l, e) -> (l, expression e)) l_e_list)

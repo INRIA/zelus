@@ -60,15 +60,21 @@ let rec type_expression { Zelus.desc = desc } =
   | Zelus.Etypefun(k, opt_name, ty_arg, ty_res) ->
      Otypefun(kind k, opt_name, type_expression ty_arg, type_expression ty_res)
 
-and type_of_type_decl ty_decl =
-  match ty_decl with
+and type_of_type_decl { Zelus.desc = desc } =
+  match desc with
   | Zelus.Eabstract_type -> Oabstract_type
   | Zelus.Eabbrev(ty) -> Oabbrev(type_expression ty)
-  | Zelus.Evariant_type(n_list) ->
-     Ovariant_type(List.map (fun n -> Oconstr0decl(n)) n_list)
+  | Zelus.Evariant_type(constr_decl_list) ->
+      Ovariant_type(List.map constr_decl constr_decl_list)
   | Zelus.Erecord_type(n_ty_list) ->
      Orecord_type(List.map (fun (n, ty) -> (n, type_expression ty)) n_ty_list)
 
+and constr_decl { desc = desc } =
+  match desc with
+  | Econstr0decl(n) -> Oconstr0decl(n)
+  | Econstr1decl(n, ty_list) ->
+      Oconstr1decl(n, List.map type_expression ty_list)
+      
 and size { Zelus.desc = desc } =
   match desc with
   | Zelus.Sconst(i) -> Sconst(i)
@@ -424,6 +430,9 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
   | Zelus.Elast(n) -> var (entry_of n env), code
   | Zelus.Eglobal { lname = ln } -> Oglobal(ln), code
   | Zelus.Econstr0(ln) -> Oconstr0(ln), code
+  | Zelus.Econstr1(ln, e_list) ->
+      let e_list, code = Misc.map_fold (exp env loop_path) code e_list in
+      Oconstr1(ln, e_list), code
   | Zelus.Etuple(e_list) ->
      let e_list, code = Misc.map_fold (exp env loop_path) code e_list in
      Otuple(e_list), code
@@ -494,6 +503,8 @@ and pattern { Zelus.p_desc = desc; Zelus.p_typ = ty } =
   | Zelus.Ewildpat -> Owildpat
   | Zelus.Econstpat(im) -> Oconstpat(immediate im)
   | Zelus.Econstr0pat(c0) -> Oconstr0pat(c0)
+  | Zelus.Econstr1pat(c1, p_list) ->
+      Oconstr1pat(c1, List.map pattern p_list)
   | Zelus.Etuplepat(p_list) -> Otuplepat(List.map pattern p_list)
   | Zelus.Evarpat(n) -> Ovarpat(n, type_expression_of_typ ty)
   | Zelus.Erecordpat(label_pat_list) ->

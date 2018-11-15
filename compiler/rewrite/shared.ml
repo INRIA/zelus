@@ -66,35 +66,38 @@ let add_locals_for_copies n_list n_env copies =
 (* in [dv] *)
 let rec pattern dv copies pat =
   match pat.p_desc with
-    | Ewildpat | Econstpat _ | Econstr0pat _ -> pat, copies
-    | Etuplepat(p_list) ->
-       let p_list, copies = Misc.map_fold (pattern dv) copies p_list in
-       { pat with p_desc = Etuplepat(p_list) }, copies
-    | Evarpat(n) -> 
+  | Ewildpat | Econstpat _ | Econstr0pat _ -> pat, copies
+  | Etuplepat(p_list) ->
+      let p_list, copies = Misc.map_fold (pattern dv) copies p_list in
+      { pat with p_desc = Etuplepat(p_list) }, copies
+  | Econstr1pat(c, p_list) ->
+      let p_list, copies = Misc.map_fold (pattern dv) copies p_list in
+      { pat with p_desc = Econstr1pat(c, p_list) }, copies
+  | Evarpat(n) -> 
+      if S.mem n dv then
+        let ncopy = Ident.fresh "copy" in
+        { pat with p_desc = Evarpat(ncopy) },
+	Env.add n (ncopy, true, pat.p_typ) copies
+      else pat, copies
+  | Erecordpat(label_pat_list) ->
+      let label_pat_list, copies =
+        Misc.map_fold
+	  (fun copies (label, p) -> 
+                 let p, copies = pattern dv copies p in
+                 (label, p), copies) copies label_pat_list in
+      { pat with p_desc = Erecordpat(label_pat_list) }, copies
+  | Etypeconstraintpat(p, ty) ->
+      let p, copies = pattern dv copies p in
+      { pat with p_desc = Etypeconstraintpat(p, ty) }, copies
+  | Ealiaspat(p, n) ->
+      let p, copies = pattern dv copies p in
+      let n, copies = 
         if S.mem n dv then
           let ncopy = Ident.fresh "copy" in
-          { pat with p_desc = Evarpat(ncopy) },
-	  Env.add n (ncopy, true, pat.p_typ) copies
-        else pat, copies
-    | Erecordpat(label_pat_list) ->
-        let label_pat_list, copies =
-          Misc.map_fold
-	    (fun copies (label, p) -> 
-              let p, copies = pattern dv copies p in
-              (label, p), copies) copies label_pat_list in
-        { pat with p_desc = Erecordpat(label_pat_list) }, copies
-    | Etypeconstraintpat(p, ty) ->
-        let p, copies = pattern dv copies p in
-        { pat with p_desc = Etypeconstraintpat(p, ty) }, copies
-    | Ealiaspat(p, n) ->
-        let p, copies = pattern dv copies p in
-        let n, copies = 
-          if S.mem n dv then
-            let ncopy = Ident.fresh "copy" in
-            ncopy, Env.add n (ncopy, true, p.p_typ) copies
-          else n, copies in
-        { pat with p_desc = Ealiaspat(p, n) }, copies
-    | Eorpat _ -> assert false
+          ncopy, Env.add n (ncopy, true, p.p_typ) copies
+        else n, copies in
+      { pat with p_desc = Ealiaspat(p, n) }, copies
+  | Eorpat _ -> assert false
 
 (* [dv] is the set of names possibly written in [eq] which are visible *)
 (* outside of the block or are memories *)

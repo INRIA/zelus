@@ -62,6 +62,21 @@ let scond_true start_pos end_pos =
   make (Econdexp(make (Econst(Ebool(true))) start_pos end_pos))
        start_pos end_pos
 
+(* constructors with arguments *)
+let app f l =
+  match f.desc, l with
+  | Econstr0(id), [{ desc = Etuple(arg_list) }] ->
+    (* C(e1,...,en) *) Econstr1(id, arg_list)
+  | Econstr0(id), [arg] ->
+     (* C(e) *) Econstr1(id, [arg])
+  | _ -> Eapp({ app_inline = true; app_statefull = false}, f, l)
+
+let constr c p =
+   match p with
+  | { desc = Etuplepat(arg_list) } ->
+    (* C(p1,...,pn) *) Econstr1pat(c, arg_list)
+  | _ -> (* C(e) *) Econstr1pat(c, [p])
+ 
 (* Temporary solution: put a block arround a single equation *)
 let block_of_equation ({ desc = desc; loc = loc } as eq) =
   match desc with
@@ -73,15 +88,6 @@ let block l lo eq_list startpos endpos =
   | [], [] -> EQand(eq_list)
   | _ -> EQblock(make { b_locals = l; b_vars = lo; b_body = eq_list }
 		      startpos endpos)
-
-(* Define the corresponding Zelus type from an Ocaml type. *)
-(* Only keeps what is representable: if a sum type has a constructor *)
-(* with an arity that is non nul, it becomes an abstract type *)
-let scalar_constr_type l =
-  let ok, l =
-    List.fold_right (fun (c, lc) (ok, l) -> ok && lc = [], c :: l)
-		    l (true, []) in
-  if ok then Eabstract_type else Evariant_type(l)
 
 %}
 
@@ -287,7 +293,7 @@ opt_semi_semi:
 implementation:
   | OPEN c = CONSTRUCTOR
       { Eopen c }
-  | TYPE tp = type_params id = IDENT td = type_declaration
+  | TYPE tp = type_params id = IDENT td = localized(type_declaration_desc)
       { Etypedecl(id, tp, td) }
   | LET ide = IDENT EQUAL seq = seq_expression
       { Econstdecl(ide, false, seq) }
@@ -345,7 +351,7 @@ interface_file:
 interface:
   | OPEN c = CONSTRUCTOR
       { Einter_open(c) }
-  | TYPE tp = type_params i = IDENT td = type_declaration
+  | TYPE tp = type_params i = IDENT td = localized(type_declaration_desc)
       { Einter_typedecl(i, tp, td) }
   | VAL i = ide COLON t = type_expression
       { Einter_constdecl(i, t) }
@@ -362,7 +368,7 @@ scalar_interface_file:
 scalar_interface :
   | OPEN c = CONSTRUCTOR
       { [make (Einter_open(c)) $startpos $endpos] }
-  | TYPE tp = type_params i = IDENT td = scalar_type_declaration
+  | TYPE tp = type_params i = IDENT td = localized(type_declaration_desc)
       { [make (Einter_typedecl(i, tp, td)) $startpos $endpos] }
   | VAL i = ide COLON t = type_expression
       { [make (Einter_constdecl(i, t)) $startpos $endpos] }
@@ -374,10 +380,10 @@ scalar_interface :
       { [] }
 ;
 
-type_declaration:
+type_declaration_desc:
   | /* empty */
       { Eabstract_type }
-  | EQUAL l = list_of(BAR, CONSTRUCTOR)
+  | EQUAL l = list_of(BAR, localized(constr_decl_desc))
       { Evariant_type (l) }
   | EQUAL LBRACE s = label_list(label_type) RBRACE
       { Erecord_type (s) }
@@ -394,17 +400,6 @@ type_params :
       { [] }
 ;
 
-scalar_type_declaration:
-  | /* empty */
-      { Eabstract_type }
-  | EQUAL l = list_of(BAR, scalar_constr_decl)
-      { scalar_constr_type l }
-  | EQUAL LBRACE s = label_list(label_type) RBRACE
-      { Erecord_type (s) }
-  | EQUAL t = type_expression
-      { Eabbrev(t) }
-;
-
 label_list(X):
   | x = X
       { [x] }
@@ -419,11 +414,11 @@ label_type:
   { (i, t) }
 ;
 
-scalar_constr_decl:
+constr_decl_desc:
   | c = CONSTRUCTOR
-      { (c, []) }
+      { Econstr0decl(c) }
   | c = CONSTRUCTOR OF l = list_of(STAR, simple_type)
-      { (c, l) }
+      { Econstr1decl(c, l) }
 ;
     
 equation_empty_list:
@@ -767,6 +762,8 @@ pattern:
       { make (Eorpat(p1, p2)) $startpos $endpos }
   | p = pattern_comma_list %prec prec_list
       { make (Etuplepat(List.rev p)) $startpos $endpos }
+  | c = constructor p = simple_pattern
+      { make (constr c p) $startpos $endpos }
 ;
 
 simple_pattern:
@@ -882,7 +879,7 @@ expression_desc:
   | e1 = expression FBY e2 = expression
       { Eop(Efby, [e1; e2]) }
   | f = simple_expression l = simple_expression_list
-      {  Eapp({ app_inline = false; app_statefull = false}, f, List.rev l) }
+      {  app f (List.rev l) }
   | INLINE f = simple_expression l = simple_expression_list
       {  Eapp({ app_inline = true; app_statefull = false}, f, List.rev l) }
   | RUN f = simple_expression l = simple_expression_list

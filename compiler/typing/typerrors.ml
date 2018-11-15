@@ -60,7 +60,7 @@ type error =
   | Esize_of_vec_is_undetermined
   | Esize_clash of size * size
   | Esize_parameter_cannot_be_generalized of Ident.t * typ
-							 
+  | Econstr_arity of Lident.t * int * int							 
 exception Error of location * error
 				
 let error loc kind = raise (Error(loc, kind))
@@ -254,6 +254,14 @@ let message loc kind =
 	output_location loc
         Ptypes.output ty
 	(Ident.name n)
+ | Econstr_arity(ln, expected_arity, actual_arity) ->
+     eprintf
+       "@[%aType error: the type constructor %a expects %d argument(s),\
+        but is here given %d arguments(s).\n"
+       output_location loc
+       Printer.longname ln
+       expected_arity
+       actual_arity
   end;
   raise Misc.Error
 

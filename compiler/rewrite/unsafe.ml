@@ -33,7 +33,7 @@ let rec exp { e_desc = desc } =
   | Elocal _ | Elast _ | Econst _ | Econstr0 _ 
   | Eglobal _ | Eperiod _ | Eop _ -> false
   | Elet _ | Eblock _ -> true
-  | Etuple(e_list) -> List.exists exp e_list
+  | Econstr1(_, e_list) | Etuple(e_list) -> List.exists exp e_list
   | Epresent _ | Ematch _ -> assert false
 				    
 let rec equation { eq_desc = desc } =

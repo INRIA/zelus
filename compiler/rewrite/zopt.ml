@@ -1,10 +1,9 @@
 (**************************************************************************)
 (*                                                                        *)
 (*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2017                                               *)
+(*  Copyright (C) 2012-2018                                               *)
 (*                                                                        *)
-(*  Timothy Bourke                                                        *)
-(*  Marc Pouzet                                                           *)
+(*  Marc Pouzet Timothy Bourke                                            *)
 (*                                                                        *)
 (*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
 (*                                                                        *)
@@ -125,6 +124,8 @@ let rec rename_expression ren ({ e_desc = desc } as e) =
   | Elast(x) -> { e with e_desc = Elast(apply x ren) }
   | Etuple(e_list) ->
      { e with e_desc = Etuple(List.map (rename_expression ren) e_list) }
+  | Econstr1(c, e_list) ->
+     { e with e_desc = Econstr1(c, List.map (rename_expression ren) e_list) }
   | Erecord(n_e_list) -> 
      { e with e_desc =
 		Erecord(List.map (fun (ln, e) ->
