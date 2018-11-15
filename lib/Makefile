@@ -27,7 +27,8 @@ LOBJ = pervasives.zci \
        basics.zci
 
 LOBJ_GTK = $(LOBJ) \
-	   gtkplot.zci
+	   gtkplot.zci \
+		 input.zci
 
 INCLUDES += -I solvers
 SOLVER_OBJS = solvers/illinois.cmo  \
@@ -44,6 +45,7 @@ OBJ = ztypes.cmo \
       zlsrun.cmo
 
 OBJ_GTK = gtkplot.cmo \
+		input.cmo \
 	  scope.cmo \
 	  zlsrungtk.cmo
 
@@ -84,6 +86,11 @@ gtkplot.zci: gtkplot.zli pervasives.zci
 gtkplot.cmi:
 gtkplot.cmo: INCLUDES += $(LABLGTK2)
 gtkplot.cmx: INCLUDES += $(LABLGTK2)
+
+input.zci: input.zli pervasives.zci
+input.cmi:
+input.cmo: INCLUDES += $(LABLGTK2)
+input.cmx: INCLUDES += $(LABLGTK2)
 
 scope.ml: scope.zls gtkplot.zci basics.zci
 	$(ZELUC) $(ZELUCFLAGS) scope.zls
