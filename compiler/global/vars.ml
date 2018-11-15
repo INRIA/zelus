@@ -76,7 +76,8 @@ let rec fv bounded (last_acc, acc) e =
   | Elast(n) ->
      (if (S.mem n last_acc) || (S.mem n bounded) 
       then last_acc else S.add n last_acc), acc
-  | Erecord_access(e, _) | Etypeconstraint(e, _) -> fv bounded (last_acc, acc) e
+  | Erecord_access(e, _) | Etypeconstraint(e, _) ->
+      fv bounded (last_acc, acc) e
   | Erecord(f_e_list) ->
      List.fold_left
        (fun acc (_, e) -> fv bounded acc e) (last_acc, acc) f_e_list
