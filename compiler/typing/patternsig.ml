@@ -154,16 +154,16 @@ module LANG =
         | Econstr0pat s ->
             let variants = 
               match (Types.typ_repr p.p_typ).t_desc with
-                | Deftypes.Tconstr (id, _, _) ->
+                | Deftypes.Tconstr(id, _, _) ->
                     find_variant_type_idents (Modname id)
                 | _ -> assert false in
             Pconstr (Tconstr (source s, 0, variants), [])
         | Econstr1pat(s, l) ->
-            Pconstr (Tconstr (source s, List.length l,
-                              match p.p_typ.t_desc with
-                              | Deftypes.Tconstr (id, _, _) ->
-                                  find_variant_type_idents (Modname id)
-                              | _ -> assert false),
+            Pconstr (Tconstr(source s, List.length l,
+                             match p.p_typ.t_desc with
+                             | Deftypes.Tconstr(id, _, _) ->
+                                 find_variant_type_idents (Modname id)
+                             | _ -> assert false),
                      List.map inject l)
         | Etypeconstraintpat (p, _) -> inject p
         | Erecordpat l ->
@@ -194,8 +194,8 @@ module LANG =
             sensible_default (Econstpat i)
         | Pconstr (Tconstr (id, 0, _), []) ->
             sensible_default (Econstr0pat (Name id))
-        (* | Pconstr (Tconstr (id, n, _), l) ->
-            sensible_default (Econstr1pat (Name id, List.map eject l)) *)
+        | Pconstr (Tconstr (id, n, _), l) ->
+            sensible_default (Econstr1pat (Name id, List.map eject l))
         | Pconstr (Trecord fl, l) ->
             let l =
               List.combine (List.map (fun s -> Name s) fl) (List.map eject l) in

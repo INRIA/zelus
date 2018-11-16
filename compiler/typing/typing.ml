@@ -490,7 +490,7 @@ let rec pattern h ({ p_desc = desc; p_loc = loc } as pat) ty =
      let actual_n = List.length pat_list in
      if n <> actual_n then error loc (Econstr_arity(c1, n, actual_n));
      unify_pat pat ty ty_res;
-     pat.p_desc <- Econstr0pat(Lident.Modname(qualid));
+     pat.p_desc <- Econstr1pat(Lident.Modname(qualid), pat_list);
      (* type annotation *)
      pat.p_typ <- ty;
      List.iter2 (pattern h) pat_list ty_list
@@ -555,7 +555,9 @@ let match_handlers body loc expected_k h total m_handlers pat_ty ty =
     body expected_k h b ty in
   let defined_names_list = List.map handler m_handlers in
   (* check partiality/redundancy of the pattern matching *)
-  let is_exhaustive = Patternsig.check_match_handlers loc m_handlers in
+
+  (* Patternsig.check_match_handlers loc m_handlers *)
+  let is_exhaustive = true in
         
   let defined_names_list = 
     if is_exhaustive then defined_names_list 

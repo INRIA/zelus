@@ -45,45 +45,49 @@ let message loc kind =
   begin
     match kind with
     | Eunbound_type_constr(longname) ->
-       eprintf "%aThe type constructor %s is unbound.@."
-	       output_location loc (modname longname)
+       eprintf "%aType error: The type constructor %s is unbound.@."
+	 output_location loc (modname longname)
     | Eunbound_global_value(longname) ->
-       eprintf "%aThe global value %s is unbound.@."
-	       output_location loc (modname longname)
+       eprintf "%aType error: The global value %s is unbound.@."
+	 output_location loc (modname longname)
     | Etype_constr_arity(longname, arit, arit') ->
-       eprintf "%aThe type constructor %s expects %d argument(s),\
+       eprintf "%aType error: The type constructor %s expects %d argument(s),@ \
                 but is here given %d argument(s).@."
-               output_location loc
-               (modname longname) arit arit'
+         output_location loc
+         (modname longname) arit arit'
     | Eunbound_type_var(n) ->
-       eprintf "%aThe type variable %s is unbound.@."
-               output_location loc
-               n
+       eprintf "%aType error: The type variable %s is unbound.@."
+         output_location loc
+         n
     | Erepeated_type_param(n) ->
-       eprintf "%aRepeated parameter in type declaration.@."
-               output_location loc
+       eprintf "%aType error: Repeated parameter in type declaration.@."
+         output_location loc
     | Erepeated_constructor(n) ->
-       eprintf "%aTwo constructors are named %s@."
-               output_location loc n
+       eprintf "%aType error: Two constructors are named %s@."
+         output_location loc n
     | Erepeated_label(n) ->
-       eprintf "%aTwo labels are named %s@."
-               output_location loc n
+       eprintf "%aType error: Two labels are named %s@."
+         output_location loc n
     | Ealready_defined_type(n) ->
-       eprintf "%aThe type %s already exists in the current module.@."
-               output_location loc n
+        eprintf
+          "%aType error: The type %s already exists in the current module.@."
+          output_location loc n
     | Ealready_defined_constr(n) ->
        eprintf
-         "%aThe constructor %s already exists in the current module.@."
+         "%aType error: The constructor %s already exists in \
+          the current module.@."
          output_location loc n
     | Ealready_defined_label(n) ->
-       eprintf "%aThe label %s already exists in the current module.@."
-               output_location loc n
+        eprintf
+          "%aType error: The label %s already exists in the current module.@."
+          output_location loc n
     | Ealready_defined_value(n) ->
-       eprintf "%aThe value %s already exists in the current module.@."
-               output_location loc n
+        eprintf
+          "%aType error: The value %s already exists in the current module.@."
+          output_location loc n
     | Ecyclic_abbreviation ->
-       eprintf "%aThis definition is cyclic.@."
-               output_location loc
+       eprintf "%aType error: This definition is cyclic.@."
+         output_location loc
   end;
   raise Misc.Error
 

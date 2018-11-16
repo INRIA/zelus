@@ -256,7 +256,7 @@ let message loc kind =
 	(Ident.name n)
  | Econstr_arity(ln, expected_arity, actual_arity) ->
      eprintf
-       "@[%aType error: the type constructor %a expects %d argument(s),\
+       "@[%aType error: the type constructor %a expects %d argument(s),@ \
         but is here given %d arguments(s).\n"
        output_location loc
        Printer.longname ln
