@@ -21,7 +21,7 @@ let hybrid sgn(x) = o where
   and z1 = up(x -. 0.01)
   and z2 = up(-. x -. 0.01)
   and automaton
-      | Up -> do until z1 then do o = 1.0 in Down 
+      | Up -> do until z1 then do o = 1.0 in Down
                   else z2 then do o = -1.0 in Up
       | Down -> do until z2 then do o = -1.0 in Up
 
@@ -32,10 +32,10 @@ let hybrid sgn(x) = o where
 let hybrid friction (v,f_sum) = f_friction where
   init f_friction = 0.0 and
   automaton
-  | Stuck -> 
-      do f_friction = min(f_static, abs_float(f_sum)) *. sgn(f_sum)
+  | Stuck ->
+      do f_friction = min f_static (abs_float f_sum) *. sgn(f_sum)
       until (up(abs_float(f_sum) -. f_static)) then Sliding
-  | Sliding -> 
+  | Sliding ->
       do f_friction = sgn(v) *. f_sliding
       until (up(f_static -. abs_float(f_sum))) on (v = 0.0) then Stuck
 

@@ -13,7 +13,7 @@ lzc.byte: lzc.cmo lzc_main.cmo
 
 lzc_main.cmo: lzc_main.ml
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
-	    -I $(ZLLIB)  -c $^
+	    -I $(ZLLIB) -c $^
 
 lzc.ml: lzc.zls
 	$(ZELUC) $(ZELUCFLAGS)  -gtk2 -s main -sampling 0 lzc.zls

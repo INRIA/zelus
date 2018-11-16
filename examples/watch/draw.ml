@@ -197,7 +197,7 @@ let draw_mechanism x0 y0 l angle =
     lineto (int_of_float x2) (int_of_float y2)
   done
 
-let draw_system x0 y0 l angle tc t h0 h th thl twb twl =
+let draw_system (x0, y0, l, angle, tc, t, h0, h, th, thl, twb, twl) =
   clear_graph ();
   draw_background x0 y0 l angle;
   draw_big_wheel x0 y0 l angle twb;

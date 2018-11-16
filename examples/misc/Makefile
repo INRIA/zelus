@@ -3,8 +3,13 @@ include ../../config
 ZLEXTRALIBS = $(ZLGTKLIBS)
 
 EXAMPLE=count.zls \
+<<<<<<< HEAD
 	sincos.zls \
 	suspend01.zls \
+=======
+	khalil.zls \
+  suspend01.zls \
+>>>>>>> v2-ismail
 	ysquared.zls \
 	discontinuity.zls \
 	hybridaut.zls \
@@ -14,16 +19,21 @@ EXAMPLE=count.zls \
 	sqrt.zls \
 	water.zls \
 	div_by_zero.zls \
-        hardstop_integr.zls \
+  hardstop_integr.zls \
 	derivative.zls \
-	zero.zls
-#	tabledep.zls
+	zero.zls \
+  tabledep.zls \
+	input_window.zls \
 
 
 default: $(word 1, $(targets))
 all:  $(targets)
 byte: $(EXAMPLE:%.zls=%.byte)
 opt:  $(EXAMPLE:%.zls=%.opt)
+
+zero.ml: zero.zls unsafe.zci
+zero.byte: INCLUDES += unsafe.cmo
+zero.byte: unsafe.cmo
 
 clean:
 	-@rm -f $(EXAMPLE:.zls=.ml) $(EXAMPLE:.zls=_main.ml)
@@ -38,4 +48,3 @@ realclean cleanall: clean
 .zls.ml:
 	$(ZELUC) $(ZELUCFLAGS) -s main -gtk2 $<
 	mv main.ml $(<:.zls=)_main.ml
-

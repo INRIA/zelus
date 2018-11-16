@@ -1,0 +1,73 @@
+(* How to use Input *)
+
+open Input
+open Scope
+
+let discrete make_window(title, (xrange, x_init), (yrange, y_init), b_init) =
+  let win_desc =
+     frame "Main" (
+       vbox [ hbox [ make_int "x" xrange x_init; make_float "y" yrange y_init ];
+              make_sig "s";
+              make_bool "b" b_init ] ) in
+
+  (* create and open the window *)
+  let w = open_window(title, win_desc) in
+
+  (* by default the size of the window is the smallest size possible *)
+  let _ = resize_window(w, 500, 100) in
+  w
+
+let discrete get_inputs (w) = (x, y, s, b) where
+      x = get_int  (w, "x")
+  and y = get_float(w, "y")
+  and s = get_sig  (w, "s")
+  and b = get_bool (w, "b")
+
+let node plot(t,x,y,s,b) =
+  (* show values *)
+  let sc = scope4(0., 100., ("x", square, float_of_int x),
+                            ("y", square, y),
+                            ("s", square, present s() -> 80. else 60.),
+                            ("b", square, if b then 110. else 90.)) in
+  window ("Test", 100., t, sc)
+
+(* DISCRETE TIME *)
+
+let node discr () =
+  let rec t = 0. -> pre t +. 1. in
+
+  (* define a window *)
+  let rec init w = make_window("Inputs", ((0 ,11 ), 2  ),
+                                         ((0.,68.), 50.),
+                                         true)
+  and (x,y,s,b) = get_inputs w
+  in
+
+  (* show values *)
+  plot(t,x,y,s,b)
+
+(* CONTINUOUS TIME *)
+
+let hybrid cont () =
+  let der t = 1. init 0. in
+
+  let xinit = 2   and xrange = (0 , 20 ) in
+  let yinit = 36. and yrange = (30., 50.) in
+  let binit = true in
+
+  (* define a window *)
+  let init w = make_window("Inputs", (xrange, xinit),
+                                     (yrange, yinit),
+                                     binit) in
+
+  let
+  rec init x = xinit
+  and init y = yinit
+  and init b = binit
+
+  (* read variables (every .. s) *)
+  and present (period(0.1)) -> do (x,y,s,b) = get_inputs w done in
+
+  present (period(0.1)) -> plot(t,x,y,s,b) else ()
+
+let hybrid main () = cont ()
