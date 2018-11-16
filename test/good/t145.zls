@@ -1,0 +1,8 @@
+type 'a t = A of int | B of int | C of bool * int
+
+let f x =
+  match x with
+  | A x -> x
+  | B _ -> 2
+  | C(true, 4) -> 3
+	
