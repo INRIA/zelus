@@ -17,13 +17,15 @@
 
 (** Useful functions *)
 let rec repeat n a = match n with | 0 -> [] | n -> a :: (repeat (n - 1) a)
-
+                                                        
+(* keep l n returns the rest l' such that l = p @ l' with p of size n *)
 let rec keep l n = match (l, n) with
   | (_, 0) -> invalid_arg "keep"
   | (h :: _, 1) -> h
   | (_ :: t, n) -> keep t (n - 1)
   | _ -> invalid_arg "keep"
 
+(* keep l n returns the prefix p of size n such that l = p @ l' *)
 let rec drop l n = match (l, n) with
   | (_, 0) -> invalid_arg "drop"
   | (_ :: t, 1) -> t
@@ -32,6 +34,7 @@ let rec drop l n = match (l, n) with
 
 let rec range n m = if n > m then [] else n :: (range (n + 1) m)
 
+(* split l into p and l' such that l = p @ l with p of size n *)
 let separate n l =
   let rec f acc n l = match (n, l) with
     | (0, _) -> (acc, l)
@@ -75,10 +78,11 @@ end
 
 module PATTERN_CHECKER = functor (S : SIG) ->
 struct
-  module SSet = Set.Make(struct
-                           type t = S.tag
-                           let compare = S.compare
-                         end)
+  module SSet =
+    Set.Make(struct
+      type t = S.tag
+      let compare = S.compare
+    end)
   (* Used for signature management. *)
   let uniq l = SSet.elements (List.fold_right SSet.add l SSet.empty)
 
@@ -297,4 +301,4 @@ struct
                     check_line ([(List.hd m')], []) (List.tl m') in
                   red;
                 end }
-end
+  end

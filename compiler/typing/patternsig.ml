@@ -130,11 +130,12 @@ module LANG =
         match (Modules.find_type s).info.type_desc with
           | Variant_type cdi ->
               let extract_name_and_arity cd =
-                (cd.qualid.id, 0 (* List.length cd.info.constr_arg *) ) in
+                (cd.qualid.id, List.length cd.info.constr_arg) in
               List.sort Pervasives.compare (List.map extract_name_and_arity cdi)
           | _ -> assert false
       and find_record_type_fields typ =
-        match typ.t_desc with
+        let { t_desc = desc } = Types.typ_repr typ in
+        match desc with
           | Deftypes.Tconstr (s, _, _) ->
               begin match (Modules.find_type (Modname s)).info.type_desc with
                 | Record_type cdi ->
@@ -153,14 +154,16 @@ module LANG =
         | Ealiaspat (p, _) -> inject p
         | Econstr0pat s ->
             let variants = 
-              match (Types.typ_repr p.p_typ).t_desc with
+              let { t_desc = desc } = Types.typ_repr p.p_typ in
+              match desc with
                 | Deftypes.Tconstr(id, _, _) ->
                     find_variant_type_idents (Modname id)
                 | _ -> assert false in
             Pconstr (Tconstr (source s, 0, variants), [])
         | Econstr1pat(s, l) ->
+            let { t_desc = desc } = Types.typ_repr p.p_typ in
             Pconstr (Tconstr(source s, List.length l,
-                             match p.p_typ.t_desc with
+                             match desc with
                              | Deftypes.Tconstr(id, _, _) ->
                                  find_variant_type_idents (Modname id)
                              | _ -> assert false),
