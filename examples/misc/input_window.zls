@@ -3,19 +3,7 @@
 open Input
 open Scope
 
-let discrete make_window(title, (xrange, x_init), (yrange, y_init), b_init) =
-  let win_desc =
-     frame "Main" (
-       vbox [ hbox [ make_int "x" xrange x_init; make_float "y" yrange y_init ];
-              make_sig "s";
-              make_bool "b" b_init ] ) in
-
-  (* create and open the window *)
-  let w = open_window(title, win_desc) in
-
-  (* by default the size of the window is the smallest size possible *)
-  let _ = resize_window(w, 500, 100) in
-  w
+let discrete make_window(title, (xrange, x_init), (yrange, y_init), b_init) = open_window (title, make_int "x" (0,11) 2)
 
 let discrete get_inputs (w) = (x, y, s, b) where
       x = get_int  (w, "x")
@@ -37,11 +25,17 @@ let node discr () =
   let rec t = 0. -> pre t +. 1. in
 
   (* define a window *)
-  let rec init w = make_window("Inputs", ((0 ,11 ), 2  ),
-                                         ((0.,68.), 50.),
-                                         true)
-  and (x,y,s,b) = get_inputs w
-  in
+  let rec init win_desc =
+     frame "Main" (
+       vbox [ hbox [ make_int "x" (0,11) 2; make_float "y" (0.,68.) 50. ];
+              make_sig "s";
+              make_bool "b" true ] )
+  (* create and open the window *)
+  and init w = open_window("Inputs", win_desc)
+  (* by default the size of the window is the smallest size possible *)
+  and init tmp = resize_window(w, 500, 100)
+  (* get inputs *)
+  and (x,y,s,b) = get_inputs w in
 
   (* show values *)
   plot(t,x,y,s,b)
@@ -56,9 +50,15 @@ let hybrid cont () =
   let binit = true in
 
   (* define a window *)
-  let init w = make_window("Inputs", (xrange, xinit),
-                                     (yrange, yinit),
-                                     binit) in
+  let rec init win_desc =
+     frame "Main" (
+       vbox [ hbox [ make_int "x" (0,11) 2; make_float "y" (0.,68.) 50. ];
+              make_sig "s";
+              make_bool "b" true ] )
+  (* create and open the window *)
+  and init w = open_window("Inputs", win_desc)
+  (* by default the size of the window is the smallest size possible *)
+  and init tmp = resize_window(w, 500, 100) in
 
   let
   rec init x = xinit
@@ -70,4 +70,5 @@ let hybrid cont () =
 
   present (period(0.1)) -> plot(t,x,y,s,b) else ()
 
+(* let node main () = discr () *)
 let hybrid main () = cont ()

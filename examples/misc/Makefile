@@ -3,13 +3,8 @@ include ../../config
 ZLEXTRALIBS = $(ZLGTKLIBS)
 
 EXAMPLE=count.zls \
-<<<<<<< HEAD
 	sincos.zls \
 	suspend01.zls \
-=======
-	khalil.zls \
-  suspend01.zls \
->>>>>>> v2-ismail
 	ysquared.zls \
 	discontinuity.zls \
 	hybridaut.zls \
@@ -23,8 +18,7 @@ EXAMPLE=count.zls \
 	derivative.zls \
 	zero.zls \
   tabledep.zls \
-	input_window.zls \
-
+	input_window.zls
 
 default: $(word 1, $(targets))
 all:  $(targets)
