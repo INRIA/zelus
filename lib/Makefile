@@ -24,7 +24,7 @@ LOBJ = pervasives.zci \
        random.zci \
        string.zci \
        graphics.zci \
-       basics.zci
+       basics.zci 
 
 LOBJ_GTK = $(LOBJ) \
 	   gtkplot.zci \

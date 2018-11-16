@@ -4,7 +4,7 @@ ZLEXTRALIBS = $(ZLGTKLIBS)
 
 EXAMPLE=count.zls \
 	khalil.zls \
-        suspend01.zls \
+  suspend01.zls \
 	ysquared.zls \
 	discontinuity.zls \
 	hybridaut.zls \
@@ -14,11 +14,11 @@ EXAMPLE=count.zls \
 	sqrt.zls \
 	water.zls \
 	div_by_zero.zls \
-        hardstop_integr.zls \
+  hardstop_integr.zls \
 	derivative.zls \
 	zero.zls \
-	input_window.zls
-#	tabledep.zls
+  tabledep.zls \
+	input_window.zls \
 
 
 default: $(word 1, $(targets))

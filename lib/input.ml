@@ -204,12 +204,14 @@ class input (env : (string, value) Hashtbl.t)
       self#make_widget ()
   end
 
-class window (win : input_win) =
+class window (title : string) (win : input_win) =
   let inputs = get_inputs win in
   let n_inputs = List.length inputs in
   let env = Hashtbl.create n_inputs in
 
   object (self)
+
+    val w = GWindow.window ~title:title ~allow_shrink:false ()
 
     method private make_window packing = function
       | Inp i ->
@@ -225,7 +227,12 @@ class window (win : input_win) =
         let vbox = GPack.vbox ~spacing:20 ~packing:packing () in
         List.iter (self#make_window vbox#pack) w_l
 
-    method private get_value name = Hashtbl.find env name
+    method private get_value name =
+      try
+        Hashtbl.find env name
+      with Not_found ->
+        Printf.eprintf "The value identifier %s is unbound\n"
+          name; exit 1
 
     method get_sig name =
       match self#get_value name with
@@ -253,12 +260,12 @@ class window (win : input_win) =
         Printf.eprintf "Cannot access variable (%s : %s) with method get_float\n"
           name (type_of_value v); exit 1
 
-    initializer
-      let screen = Gdk.Screen.default () in
-      let width = truncate (float (Gdk.Screen.width  ~screen:screen ()) *. 0.1) in
+    method resize width height =
+      w#resize ~width:width ~height:height
 
-      let w = GWindow.window ~title:"test" ~resizable:false ~width:width () in
+    initializer
       let align = GBin.alignment ~padding:(10, 10, 10, 10) ~packing:w#add () in
+
       self#make_window align#add win;
 
       ignore (w#connect#destroy ~callback:GMain.Main.quit);
@@ -282,7 +289,8 @@ let get_bool  (w, s)  = w#get_bool s
 let get_int   (w, s)  = w#get_int s
 let get_float (w, s)  = w#get_float s
 
-let open_window win = new window win
+let resize_window (w, width, height) = w#resize width height
+let open_window (title, win) = new window title win
 
 (* (* TEST *)
 

@@ -20,4 +20,5 @@ val get_bool : window * string -AD-> bool
 val get_int  : window * string -AD-> int
 val get_float: window * string -AD-> float
 
-val open_window : input_win -AD-> window
+val open_window  : string * input_win -AD-> window
+val resize_window: window * int * int -AD-> unit
