@@ -25,17 +25,16 @@ heatc.opt: heat.ml heatc.ml main.ml
         -package sundialsml -linkpkg heat.ml heatc.ml mainc.ml
 
 heat.ml main.ml: heat.zls
-	zeluc -sampling 0.1 -gtk2 -s main heat.zls 
+	zeluc -sampling 0.1 -gtk2 -s main heat.zls
 
 heatc.ml mainc.ml: heatc.zls
-	zeluc -gtk2 -s mainc heatc.zls 
+	zeluc -gtk2 -s mainc heatc.zls
 
 clean:
 	-@rm -f $(EXAMPLE:%.zls=%.byte)
 	-@rm -f $(EXAMPLE:%.zls=%.opt)
 	-@rm -f $(opt) $(EXAMPLE:.zls=.ml) $(EXAMPLE:.zls=_main.ml)
+	-@rm -f main.ml mainc.ml
 	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci
 
 realclean cleanall: clean
-
-

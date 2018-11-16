@@ -1,15 +1,15 @@
 val draw_system :
   float *
-  float *	
   float *
   float *
   float *
-  float * 
-  float * 
-  float * 
-  float * 
-  float * 
-  float * 
+  float *
+  float *
+  float *
+  float *
+  float *
+  float *
+  float *
   float -AD-> unit
 val input : unit -AD-> int
 val play_tic : unit -AD-> unit

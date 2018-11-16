@@ -100,7 +100,7 @@ class component ~points ~color ?(pivot=(0,0)) () =
       let x', y' = rotate pivot angle point in
       (x' + offset_x) / tractor_scale + origin_x,
       (y' + offset_y) / tractor_scale + origin_y
-      
+
     method draw (d : GDraw.drawable) =
       d#set_foreground color;
       d#polygon ~filled:true (List.map self#transform points)
@@ -431,8 +431,8 @@ let sample (_, tractor) =tractor#sample ()
 
 (* Work around a problem in the compilation of fby TPB:20110319 *)
 let state = ref (None : backhoe option)
-let showupdate leg_pos boom_angle stick_angle bucket_angle
-               alarm_lamp done_lamp cancel_lamp =
+let showupdate (leg_pos, boom_angle, stick_angle, bucket_angle,
+               alarm_lamp, done_lamp, cancel_lamp) =
   let st =
     match !state with
     | None -> let st = show () in
@@ -451,4 +451,3 @@ let runtest () =
   let tractor = show () in
   update tractor 25.0 0.0 (-. pi *. 0.666) (1.4 *. pi) true false true;
   GMain.Main.main ()
-

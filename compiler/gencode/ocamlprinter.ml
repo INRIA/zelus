@@ -22,7 +22,7 @@ open Format
 open Pp_tools
 open Printer
 open Oprinter
-      
+
 
 let immediate ff = function
   | Oint i ->
@@ -39,7 +39,7 @@ let immediate ff = function
   | Ochar c -> fprintf ff "'%c'" c
   | Ovoid -> pp_print_string ff "()"
   | Oany -> fprintf ff "Obj.magic ()"
-	     
+
 let constructor_for_kind = function
   | Deftypes.Tcont ->
      "Hybrid", [ Ostep; Oreset ]
@@ -81,7 +81,7 @@ let print_concrete_type ff ty =
 let ptype ff ty =
   let ty = Types.remove_dependences ty in
   Ptypes.output ff ty
-      
+
 let rec pattern ff pat = match pat with
   | Owildpat -> fprintf ff "_"
   | Oconstpat(i) -> immediate ff i
@@ -190,7 +190,7 @@ and exp prio ff e =
        match e with
        | Oconst _ ->
 	  fprintf ff "@[<hov 2>Array.make@ (%a)@ (%a)@]"
-		  (psize prio_e) se (exp prio_e) e 
+		  (psize prio_e) se (exp prio_e) e
        | Ovec(e1, s2) ->
 	  fprintf ff "@[<hov 2>Array.make_matrix@ (%a)@ (%a)@ (%a)@]"
 		  (psize prio_e) se (psize prio_e) s2 (exp prio_e) e1
@@ -251,7 +251,7 @@ and inst prio ff i =
        fprintf ff "@[<v 0>let %a in@ %a@]" pat_exp (p, e) (inst (prio_i-1)) i
     | Oletvar(x, is_mutable, ty, e_opt, i) -> letvar ff x is_mutable ty e_opt i
     | Omatch(e, match_handler_l) ->
-       fprintf ff "@[<v2>match %a with@ @[%a@]@]"
+        fprintf ff "@[<v2>begin @[match %a with@ @[%a@]@] end@]"
 	       (exp 0) e
 	       (print_list_l match_handler """""") match_handler_l
     | Ofor(is_to, n, e1, e2, i3) ->
@@ -291,7 +291,7 @@ and pat_exp ff (p, e) =
 
 and exp_with_typ ff (e, ty) =
   fprintf ff "(%a:%a)" (exp 2) e ptype ty
-	  
+
 and match_handler ff { w_pat = pat; w_body = b } =
   fprintf ff "@[<hov 4>| %a ->@ %a@]" pattern pat (inst 0) b
 
@@ -311,7 +311,7 @@ let print_memory ff { m_name = n; m_value = e_opt; m_typ = ty;
      fprintf ff "%s%a%a : %a = %a" (mem k_opt) name n
 	     (print_list_no_space (print_with_braces (exp 0) "[" "]") "" "" "")
 	     m_size ptype ty (exp 0) e
-             
+
 (** Define the data-type for the internal state of a machine *)
 (* A prefix "_" is added to the name of the machine to avoid *)
 (* name conflicts *)
@@ -336,23 +336,23 @@ let def_type_for_a_machine ff f memories instances =
             (print_list_r (fun ff s -> fprintf ff "'%s" s) "("","")") params
             f
             (print_list_r one_entry """;""") entries
-            
-            
+
+
 (** Print the method as a function *)
 let pmethod f ff { me_name = me_name; me_params = pat_list;
                    me_body = i; me_typ = ty } =
   fprintf ff "@[<v 2>let %s_%s self %a =@ (%a:%a) in@]"
           f (method_name me_name) pattern_list pat_list (inst 2) i ptype ty
-          
+
 (* create an array of type t[n_1]...[n_k] *)
 let array_make print arg ff ie_size =
   let rec array_rec ff = function
-    | [] -> fprintf ff "%a" print arg 
+    | [] -> fprintf ff "%a" print arg
     | ie :: ie_size ->
        fprintf ff "@[<hov>Array.init %a@ (fun _ -> %a)@]"
 	       (exp 3) ie array_rec ie_size in
   array_rec ff ie_size
-            
+
 let rec array_of e_opt ty ff ie_size =
   let exp_of ff (e_opt, ty) =
     match e_opt, ty with
@@ -365,12 +365,12 @@ let rec array_of e_opt ty ff ie_size =
      fprintf ff
 	     "@[<hov 2>Array.init %a@ (fun _ -> %a)@]" (exp 3) ie
 	     (array_of e_opt ty) ie_list
-     
+
 (* Print initialization code *)
 let print_initialize ff i_opt =
   match i_opt with
   | None -> fprintf ff "()" | Some(i) -> fprintf ff "%a" (inst 0) i
-		    
+
 (** Print the allocation function *)
 let palloc f i_opt memories ff instances =
   let print_memory ff { m_name = n; m_value = e_opt;
@@ -405,7 +405,7 @@ let palloc f i_opt memories ff instances =
 	  fprintf ff "%a = %a" name n (array_of e_opt ty) m_size
        | Deftypes.Encore ->
 	  fprintf ff "%a = %a" name n (array_of e_opt ty) m_size in
-  
+
   let print_instance ff { i_name = n; i_machine = ei;
 			  i_kind = k; i_params = e_list; i_size = ie_size } =
     fprintf ff "@[%a = %a (* %s *)@ @]" name n
@@ -428,7 +428,7 @@ let palloc f i_opt memories ff instances =
             print_initialize i_opt
             (print_list_r print_memory """;"";") memories
             (print_list_r print_instance """;""") instances
-            
+
 (* print an entry [let n_alloc, n_step, n_reset, ... = f ... in] *)
 (* for every instance *)
 let def_instance_function ff { i_name = n; i_machine = ei; i_kind = k;
@@ -437,9 +437,9 @@ let def_instance_function ff { i_name = n; i_machine = ei; i_kind = k;
   let method_name ff me_name =
     let m = method_name me_name in
     fprintf ff "%s = %a_%s" m name n m in
-  
+
   let list_of_methods ff m_list =  print_list_r method_name """;""" ff m_list in
-  
+
   match k with
   | Deftypes.Tstatic _ | Deftypes.Tany | Deftypes.Tdiscrete(false) -> ()
   | _ -> let k, m_name_list = constructor_for_kind k in
@@ -458,7 +458,7 @@ let def_instance_function ff { i_name = n; i_machine = ei; i_kind = k;
  *   let f_alloc () = ... in
  *   let f_step y = ... in
  *   let f_reset = ... in
- *   { alloc = f_alloc; step = f_step; reset = f_reset, ... } *)	     
+ *   { alloc = f_alloc; step = f_step; reset = f_reset, ... } *)
 let machine f ff { ma_kind = k;
                    ma_params = pat_list;
 		   ma_initialize = i_opt;
@@ -478,7 +478,7 @@ let machine f ff { ma_kind = k;
        let k, _ = constructor_for_kind k in
        fprintf ff "@[%s { alloc = %s_alloc; %a }@]"
 	       k f (print_list_r method_name "" ";" "") m_list in
-  
+
   (* print the type for [f] *)
   def_type_for_a_machine ff f memories instances;
   (* print the code for [f] *)
@@ -508,7 +508,7 @@ let implementation ff impl = match impl with
                           s type_decl ty_decl)
                 "type ""and """)
              l
-             
+
 let implementation_list ff impl_list =
   fprintf ff "@[(* %s *)@.@]" header_in_file;
   fprintf ff "@[open Ztypes@.@]";

@@ -202,7 +202,7 @@ struct (* {{{ *)
 
 let _ = GMain.init () (* initialize lablgtk2 *)
 
-let start_playing = ref true
+let start_playing = ref false
 
 let destroy () = GMain.Main.quit ()
 

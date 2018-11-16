@@ -7,7 +7,7 @@ let hybrid f () = (y, x) where
   rec init x = 1.0
   and init y = 1.0
   and automaton
-      | S1 -> do der y = sqrt(max(x, 0.0)) and der x = -1.0
+      | S1 -> do der y = sqrt(max x 0.0) and der x = -1.0
               until (up(-. x)) then do y = 0.0 in S2
       | S2 ->
               do der y = 1.0 and der x = 1.0
