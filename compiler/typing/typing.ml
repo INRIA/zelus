@@ -556,8 +556,8 @@ let match_handlers body loc expected_k h total m_handlers pat_ty ty =
   let defined_names_list = List.map handler m_handlers in
   (* check partiality/redundancy of the pattern matching *)
 
-  (* Patternsig.check_match_handlers loc m_handlers *)
-  let is_exhaustive = Patternsig.check_match_handlers loc m_handlers (* true *)in
+  let is_exhaustive =
+    !total || (Patternsig.check_match_handlers loc m_handlers) in
         
   let defined_names_list = 
     if is_exhaustive then defined_names_list 
