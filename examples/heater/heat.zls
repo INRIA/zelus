@@ -65,7 +65,12 @@ let node source(r) = piecewise_constant(0.0)(20.0)(r)
 let node source2(r) = linear_constant(0.1)(0.0)(20.0)(r)
    
 (* Oracle. Define the expected property *)
-let node oracle(u, reference, measured) = true
+let node oracle(u, reference, measured) =
+  (* first try: the error must be as close as possible to 0. *)
+  let distance_to_zero = abs_float (reference -. measured) in
+  (* favor commands such that u does not change *)
+  let rec change = (if u <> (u fby u) then 1 else 0) + 0 fby change in
+  true
 
 (* Test of the system: connect a source generator, the system *)
 (* and the oracle *)
