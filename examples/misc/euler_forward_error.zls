@@ -18,11 +18,12 @@ let node sin_cos(h)() =
   and co = int2_backward(h)(1.0, -. si) in
   si, co
 
+let h = 0.1
+    
 let node main() =
-  let si, co = sin_cos2(0.05)() in
+  let si, co = sin_cos(h)() in
   let rec time = 0.0 -> pre time +. h in
   let s = Scope.scope2 (-1.0, 40.0, ("si", Scope.points false, si),
 			("co", Scope.points false, co)) in
-  Scope.window ("sin_cos", 10.0, time, s);
-  Scope.window ("sin_cos2", 10.0, time, s)
+  Scope.window ("sin_cos", 10.0, time, s)
   
