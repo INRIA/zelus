@@ -1,0 +1,10 @@
+*.cmi
+*.cmo
+*.zci
+*.byte
+heat.ml
+main.ml
+mains.ml
+mains2.ml
+smartheat.ml
+smartheat2.ml
