@@ -1,5 +1,5 @@
 ZELUC=zeluc
-ZLLIB=`$(ZELUC) -where`
+ZLLIB=$(shell $(ZELUC) -where)
 INFERLIB=../../inference
 
 INFERENCE_CMA=$(INFERLIB)/inference.cma
