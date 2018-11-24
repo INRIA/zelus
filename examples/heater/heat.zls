@@ -89,18 +89,20 @@ let node main_no_graphics() =
 
 (* The main function. *)
 let node main() =
-   (* create a box for a inputs of type float; initially set at 19 degrees *)
-   let init win_desc = Input.frame "Main" (Input.make_float "expected_temp" (0.,68.) 19.) in
-   (* create and open the window *)
-   let init w = Input.open_window("Inputs", win_desc) in
-   (* by default the size of the window is the smallest size possible *)
-   let init tmp = Input.resize_window(w, 400, 100) in
-   (* read the input *)
-   let expected_temp = Input.get_float (w, "expected_temp") in
-   (* call the main function *)
-   let u, temp = system(expected_temp) in
-   let rec time = 0.0 -> pre time +. h in
-   (* output the command and actual temperature *)
-   let s = Scope.scope2 (-1.0, 40.0, ("u", Scope.points true, if u then 1.0 else 0.0),
-                        ("temp", Scope.linear, temp)) in
-   Scope.window ("The Heater with a relay controller", 10.0, time, s)
+  (* create a box for a inputs of type float; initially set at 19 degrees *)
+  let init win_desc =
+    Input.frame "Main" (Input.make_float "expected_temp" (0.,68.) 19.) in
+  (* create and open the window *)
+  let init w = Input.open_window("Inputs", win_desc) in
+  (* by default the size of the window is the smallest size possible *)
+  let init tmp = Input.resize_window(w, 400, 100) in
+  (* read the input *)
+  let expected_temp = Input.get_float (w, "expected_temp") in
+  (* call the main function *)
+  let u, temp = system(expected_temp) in
+  let rec time = 0.0 -> pre time +. h in
+  (* output the command and actual temperature *)
+  let s =
+    Scope.scope2 (-1.0, 40.0, ("u", Scope.points true, if u then 1.0 else 0.0),
+                  ("temp", Scope.linear, temp)) in
+  Scope.window ("The Heater with a relay controller", 10.0, time, s)
