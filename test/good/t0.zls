@@ -1,7 +1,7 @@
-type 'a t = A of int | B of bool
-
-let f x =
-  match x with
-  | A x -> x
-  | B _ -> 0
-  | A 0 -> 1
+let node f(x,y) =
+  let rec n = 0 -> pre(n+x+y) in
+  n, y + n
+    
+let node g(x, y) =
+  let rec z, t = f(z,t) in z + t
+    
