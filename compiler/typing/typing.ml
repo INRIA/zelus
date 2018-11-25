@@ -1,15 +1,19 @@
 (**************************************************************************)
 (*                                                                        *)
-(*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2018                                               *)
+(*                                Zelus                                   *)
+(*               A synchronous language for hybrid systems                *)
+(*                       http://zelus.di.ens.fr                           *)
 (*                                                                        *)
-(*  Timothy Bourke    Marc Pouzet                                         *)
+(*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
+(*  Copyright 2012 - 2018. All rights reserved.                           *)
 (*                                                                        *)
-(*   This file is distributed under the terms of the CeCILL-C licence     *)
+(*  This file is distributed under the terms of the CeCILL-C licence      *)
+(*                                                                        *)
+(*  Zelus is developed in the INRIA PARKAS team.                          *)
 (*                                                                        *)
 (**************************************************************************)
+
 (* type checking *)
 
 (* H  |-{k} e : t  and H, W |-{k} D *)
@@ -696,7 +700,7 @@ let rec expression expected_k h ({ e_desc = desc; e_loc = loc } as e) =
     | Eperiod(p) ->
         (* periods are only valid in a continuous context *)
         less_than loc Tcont expected_k;
-        period loc p;
+        period expected_k h p;
         Types.zero_type expected_k
     | Ematch(total, e, m_h_list) ->
         let expected_pat_ty = expression expected_k h e in
@@ -785,10 +789,9 @@ and operator expected_k h loc op e_list =
   ty_res
 
 
-and period loc { p_phase = p1_opt; p_period = p2 } =
-  (* check that all immediate values are strictly positive *)
-  let check v = if v <= 0.0 then error loc (Eperiod_not_positive(v)) in
-  check p2
+and period expected_k h { p_phase = p1_opt; p_period = p2 } =
+  expect expected_k h p2 Initial.typ_float;
+  match p1_opt with None -> () | Some(p1) -> expect expected_k h p1 Initial.typ_float
 
 (** Typing an expression with expected type [expected_type] *)
 and expect expected_k h e expected_ty =
@@ -1342,4 +1345,7 @@ let implementation ff is_first impl =
                                                    
 (* the main entry function *)
 let implementation_list ff is_first impl_list =
-  List.iter (implementation ff is_first) impl_list; impl_list
+  Misc.no_warning := not is_first;
+  List.iter (implementation ff is_first) impl_list;
+  Misc.no_warning := not is_first;
+  impl_list

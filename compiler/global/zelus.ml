@@ -135,10 +135,11 @@ and immediate = Deftypes.immediate
 
 and app = { app_inline: bool; app_statefull: bool}
 				    
-(* a period is an expression of the form [v] (v). E.g., 0.2 (3.4) or (4.5) *)
+(* a period is of the form period(v1) or period(v1|v2) where v1 is the phase *)
+(* v1 and v2 two static expressions. v1 and v2 of type float. E.g., period (0.2|3.4) *)
 and period =
-    { p_phase: float option;
-      p_period: float }
+  { p_phase: exp option; (* the two expressions must be static *)
+    p_period: exp }
 
 and pattern =
   { mutable p_desc: pdesc; (* its descriptor *)

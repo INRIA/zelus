@@ -1,15 +1,19 @@
 (**************************************************************************)
 (*                                                                        *)
-(*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2018                                               *)
+(*                                Zelus                                   *)
+(*               A synchronous language for hybrid systems                *)
+(*                       http://zelus.di.ens.fr                           *)
 (*                                                                        *)
-(*  Timothy Bourke    Marc Pouzet                                         *)
+(*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
+(*  Copyright 2012 - 2018. All rights reserved.                           *)
 (*                                                                        *)
-(*   This file is distributed under the terms of the CeCILL-C licence     *)
+(*  This file is distributed under the terms of the CeCILL-C licence      *)
+(*                                                                        *)
+(*  Zelus is developed in the INRIA PARKAS team.                          *)
 (*                                                                        *)
 (**************************************************************************)
+
 (* Abstract syntax tree after parsing *)
 
 open Location
@@ -141,11 +145,11 @@ and constant =
   | Cimmediate of immediate
   | Cglobal of longname
       
-(* a period is of the form (v1) or v1(v2) with *)
+(* a period is of the form (v1) or v1|(v2) where v1 is the phase *)
 (* v1 and v2 two static expressions *)
 and period =
-    { p_phase: float option;
-      p_period: float }
+  { p_phase: exp option; (* the two expressions must be static *)
+    p_period: exp }
 
 and constr = longname
 

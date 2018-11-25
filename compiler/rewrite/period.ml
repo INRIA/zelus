@@ -1,16 +1,19 @@
 (**************************************************************************)
 (*                                                                        *)
-(*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2017                                               *)
+(*                                Zelus                                   *)
+(*               A synchronous language for hybrid systems                *)
+(*                       http://zelus.di.ens.fr                           *)
 (*                                                                        *)
-(*  Timothy Bourke                                                        *)
-(*  Marc Pouzet                                                           *)
+(*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
+(*  Copyright 2012 - 2018. All rights reserved.                           *)
 (*                                                                        *)
-(*   This file is distributed under the terms of the CeCILL-C licence     *)
+(*  This file is distributed under the terms of the CeCILL-C licence      *)
+(*                                                                        *)
+(*  Zelus is developed in the INRIA PARKAS team.                          *)
 (*                                                                        *)
 (**************************************************************************)
+
 (* elimation of periods. *)
 
 (* For every function, an extra input [time] is added. Every period *)
@@ -74,16 +77,15 @@ let period time { p_phase = p1_opt; p_period = p2 } =
   let horizon = Deftypes.horizon Deftypes.imem in
   let h = Ident.fresh "h" in
   let z = Ident.fresh "z" in
-  let p1 = match p1_opt with | None -> 0.0 | Some(p1) -> p1 in
+  let p1 = match p1_opt with | None -> Zaux.zero | Some(p1) -> p1 in
   let env =
     Env.add h (Deftypes.entry horizon Initial.typ_float)
 	    (Env.add z { t_sort = Deftypes.value;
 			 t_typ = Initial.typ_bool } Env.empty) in
   let eq_list = 
-    [eq_make h (ifthenelse (bool_var z)
-			   (plus (float_last h) (float p2))
+    [eq_make h (ifthenelse (bool_var z) (plus (float_last h) p2)
 			   (float_last h));
-     eq_init h (plus (float_var time) (float p1));
+     eq_init h (plus (float_var time) p1);
      eq_make z (greater_or_equal (float_var time) (float_last h))] in
   make_let env eq_list (bool_var z)
 
@@ -117,7 +119,9 @@ let extra_input time env pat =
 (** Translation of expressions. *)
 let rec expression time ({ e_desc = e_desc } as e) =
   match e_desc with
-  | Eperiod(p) -> period time p
+  | Eperiod({ p_phase = opt_p1; p_period = p2 }) ->
+     period time { p_phase = Misc.optional_map (expression time) opt_p1;
+		   p_period = expression time p2 }
   | Eop(Edisc, [e]) -> disc (expression time e)
   | Eop(op, e_list) ->
      { e with e_desc = Eop(op, List.map (expression time) e_list) }

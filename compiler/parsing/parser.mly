@@ -1,13 +1,16 @@
 (**************************************************************************)
 (*                                                                        *)
-(*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2018                                               *)
+(*                                Zelus                                   *)
+(*               A synchronous language for hybrid systems                *)
+(*                       http://zelus.di.ens.fr                           *)
 (*                                                                        *)
-(*  Marc Pouzet    Timothy Bourke                                         *)
+(*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
+(*  Copyright 2012 - 2018. All rights reserved.                           *)
 (*                                                                        *)
-(*   This file is distributed under the terms of the CeCILL-C licence     *)
+(*  This file is distributed under the terms of the CeCILL-C licence      *)
+(*                                                                        *)
+(*  Zelus is developed in the INRIA PARKAS team.                          *)
 (*                                                                        *)
 (**************************************************************************)
 
@@ -976,20 +979,10 @@ expression_desc:
 
 /* Periods */
 period_expression:
-  | phase = phase LPAREN period = period RPAREN
-      { { p_phase = phase; p_period = period } }
-;
-
-phase:
-  | /* empty */
-      { None }
-  | f = FLOAT
-      { Some(f) }
-;
-
-period:
-  | f = FLOAT
-      { f }
+  | LPAREN per = expression RPAREN /* period */
+      { { p_phase = None; p_period = per } }
+  | LPAREN ph = expression BAR per = expression RPAREN /* period */
+      { { p_phase = Some(ph); p_period = per } }
 ;
 
 constructor:
