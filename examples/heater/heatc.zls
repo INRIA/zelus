@@ -19,15 +19,19 @@ let hybrid heater2(c, alpha, beta, temp_ext, temp0, u) = temp where
         if u then alpha *. (c -. temp) 
 	else beta *. (temp_ext -. temp) init temp0
     
-(* relay *)
-let hybrid relay_c(low, high, v) = u where
+(* relay. Warning: this model has a critical race! up(.) only detect *)
+(* zero-crossing during integration, that is its argument is suposed to *)
+(* to have a discontinuity. In case, low, high or v *)
+(* have a discontinuous jump outside of integration, it is not taken into account *)
+let hybrid relay_cc(low, high, v) = u where
   rec u = present
           | up(low -. v) -> true
           | up(v -. high) -> false init (v < high)
-		
-(* X-crossing *)
-let hybrid xup(x) =
-  present up(x) | (init) on (x >= 0.0) -> ()
+
+(* Discrete X-crossing *)
+let hybrid dcross(x) = present (disc(x)) | (init) -> (x > 0.0)
+(* X-crossing discrete and continuous *)
+let hybrid xup(x) = present up(x) | (dcross(x))(true) -> ()
 
 (* Relay with an automaton *)
 let hybrid relay_six(low, high, v) = u where
@@ -35,7 +39,14 @@ let hybrid relay_six(low, high, v) = u where
       | Low -> do u = false unless (xup(low -. v))() then High
       | High -> do u = true unless (xup(v -. high))() then Low
       end
-      
+
+(* Relay in direct form *)
+let hybrid relay_c(low, high, v) = u where
+  rec u = present
+          | up(low -. v)  | (disc(low -. v)) on (low >= v) -> true
+          | up(v -. high) | (disc(v -. high)) on (v >= high) -> false
+          init (v < high)
+
 let low = 1.0
 let high = 1.0
 
@@ -63,7 +74,7 @@ let hybrid system_with_sampled_relay(reference) = (u, temp) where
 let hybrid main_no_graphics() =
   let der t = 1.0 init 0.0 in
   let u, temp = system(19.0) in
-  present (period(0.1))) | (disc(u)) ->
+  present (period(0.1)) | (disc(u)) ->
     (print_string "time = "; print_float t;
      print_string "  ";
      print_string "command = ";
