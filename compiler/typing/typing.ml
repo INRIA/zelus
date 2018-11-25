@@ -700,7 +700,8 @@ let rec expression expected_k h ({ e_desc = desc; e_loc = loc } as e) =
     | Eperiod(p) ->
         (* periods are only valid in a continuous context *)
         less_than loc Tcont expected_k;
-        period expected_k h p;
+        (* a period must be a static expression *)
+	period (Tstatic(true)) h p;
         Types.zero_type expected_k
     | Ematch(total, e, m_h_list) ->
         let expected_pat_ty = expression expected_k h e in
