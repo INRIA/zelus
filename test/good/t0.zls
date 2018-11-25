@@ -3,5 +3,5 @@ let node f(x,y) =
   n, y + n
     
 let node g(x, y) =
-  let rec z, t = f(z,t) in z + t
+  let rec z, t = f(z,y) in z + t
     

@@ -7,7 +7,7 @@ let hybrid f y = w where
       | false -> do der w = -1.0 done
 
 let hybrid main () = () where
-  rec p = period 0.2 (1.0)
+  rec p = period (0.2 | 1.0)
   and 
   o = f p
 

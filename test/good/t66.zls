@@ -5,7 +5,7 @@ let hybrid nested z = x where
            | S0 -> 
               do
                 p = 1
-              until (period 1.0(1.0)) then S1(3)
+              until (period (1.0 | 1.0)) then S1(3)
            | S1(t) ->
               do
                 p = 2

@@ -4,12 +4,12 @@ let hybrid nested z = x where
   x = (let automaton
            | S0 -> 
               do
-                p = period 1.0(1.0)
+                p = period (1.0 | 1.0)
               until z then S1(3)
 
            | S1(t) ->
               do
-                p = period 2.0(2.0)
+                p = period (2.0 | 2.0)
               done
            end
        in p)
