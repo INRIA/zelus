@@ -63,7 +63,7 @@ let hybrid system_with_sampled_relay(reference) = (u, temp) where
 let hybrid main_no_graphics() =
   let der t = 1.0 init 0.0 in
   let u, temp = system(19.0) in
-  present (period(0.1)) | (disc(u)) ->
+  present (period(0.1))) | (disc(u)) ->
     (print_string "time = "; print_float t;
      print_string "  ";
      print_string "command = ";
