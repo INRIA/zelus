@@ -1,0 +1,40 @@
+(* A library of generators and observers *)
+
+(* Generation of a source. Constant *)
+let node piecewise_constant(low)(high)(z) = o where
+  rec reset
+    init o = Random.float high
+  every z
+
+let node linear_constant(h)(low)(slope)(z) = o where
+  rec reset
+     init o = Random.float low
+     and init s = Random.float slope
+     and o = last o +. h *. s
+   every z
+
+(* checks that when [start] is true *)
+(* [answer] is true before the timer initialized to deadline is zero *)
+let node watchdog(deadline, start, answer) = ok where
+  rec ok = present
+            start -> let rec cpt = max (deadline -> pre cpt - 1) 0 in cpt > 0
+           init true
+
+(* check that an input is true for at least [max_time] seconds *)
+let node count(h)(max_time, c) =
+   let n = int_of_float (max_time /. h) in
+   let rec co = n -> if c then pre co + 1 else n in
+   co = 0
+   
+(* does it oscillate *)
+let node oscillate(x) =
+  let px = x fby x in
+  let ppx = x fby px in
+  (x <> px) && (px <> ppx)
+
+(* decrease *)
+let node decrease(x) = true -> x < pre x    
+
+(* constant *)
+let node constant(x) = true -> x = pre x
+    
