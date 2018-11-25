@@ -37,4 +37,6 @@ let node decrease(x) = true -> x < pre x
 
 (* constant *)
 let node constant(x) = true -> x = pre x
-    
+
+(* edge detector *)
+let node edge(x) = x -> x && not (pre x)
