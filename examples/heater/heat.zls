@@ -38,6 +38,8 @@ let beta = 0.1
 
 let h = 0.1
 
+let max_time = 10.0 (* in secondes *)
+    
 (* Main program *)
 
 let node generic_system(controller)(reference) = (u, temp) where
@@ -48,36 +50,30 @@ let node generic_system(controller)(reference) = (u, temp) where
 
 let node system(reference) = generic_system(relay)(reference)
 
-(* Generation of a source. Constant *)
-let node piecewise_constant(low)(high)(z) = o where
-  rec reset
-    init o = Random.float high
-  every z
+let node source(r) = Observers.piecewise_constant(0.0)(20.0)(r)
+let node source2(r) = Observers.linear_constant(0.1)(0.0)(20.0)(r)
 
-let node linear_constant(h)(low)(slope)(z) = o where
-  rec reset
-     init o = Random.float low
-     and init s = Random.float slope
-     and o = last o +. h *. s
-   every z
-
-let node source(r) = piecewise_constant(0.0)(20.0)(r)
-let node source2(r) = linear_constant(0.1)(0.0)(20.0)(r)
-   
 (* Oracle. Define the expected property *)
-let node oracle(u, reference, measured) =
-  (* first try: the error must be as close as possible to 0. *)
-  let distance_to_zero = abs_float (reference -. measured) in
-  (* favor commands such that u does not change *)
-  let rec change = (if u <> (u fby u) then 1 else 0) + 0 fby change in
-  true
-
+let node oracle(low, high, u, reference, measured) =
+  (* inside the bound *)
+  let outside = (measured < high) && (measured > low) in
+  (* u must not oscillate *)
+  let ok1 = not (Observers.oscillate(u)) in
+  (* when [measured] is outside of the interval [low, high] and the reference *)
+  (* does not change, the error must decrease *)
+  let ok2 = if outside && (Observers.constant reference)
+   then Observers.decrease(abs_float(reference -. measured)) else true in
+  let ok3 = ok1 && ok2 in
+  (* computes a new test when [measured] is inside for at least [enough] instants *)
+  let inside_enough = Observers.count(h)(max_time, not outside) in
+  ok3, inside_enough
+ 
 (* Test of the system: connect a source generator, the system *)
 (* and the oracle *)
-let node test () = (r) where
-   rec reference = source(r)
+let node test () = (u, measured, ok) where
+   rec reference = source(true fby enough)
    and (u, measured) = system(reference)
-   and r = oracle(u, reference, measured)
+   and ok, enough = oracle(low, high, u, reference, measured)
       
 let node main_no_graphics() =
   let u, temp = system(19.0) in
