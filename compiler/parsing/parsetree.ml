@@ -145,7 +145,7 @@ and constant =
   | Cimmediate of immediate
   | Cglobal of longname
       
-(* a period is of the form (v1) or v1|(v2) where v1 is the phase *)
+(* a period is of the form period (v1) or period (v1|v2) where v1 is the phase *)
 (* v1 and v2 two static expressions *)
 and period =
   { p_phase: exp option; (* the two expressions must be static *)
