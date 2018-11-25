@@ -61,11 +61,11 @@ let discrete close (x0, y0, x, y) = (x -. x0 <= eps) && (y -. y0 <= eps)
 
 (* The main entry for the pendulum *)
 (* read of inputs *)
-(*- 's' for start;
- *- 'f' for freeze;
- *- 'r' for resume; *)
+(*- 's' to start;
+ *- 'f' to freeze;
+ *- 'r' to resume; *)
 let node mpendulum(theta0) = 
-   let key = Aux.input () in (* get inputs from the keybord *)
+   let key = Aux.input () in (* get inputs from the keyboard *)
    let x0i, y0i = Data.get_cursor () in (* get current position of the mouse *)
    local theta, x, y, x0, y0
    do  init theta = theta0 (* initial angle is 0.0 *)
@@ -91,6 +91,21 @@ let node mpendulum(theta0) =
        end in
    (x0, y0, x, y, theta)
    
+(* do something once; for the moment, the language forces *)
+(* global declarations to be of the form [let name = ... ]. We could add *)
+(* either [let pat = ...] or expressions at top level or both. *)
+
+let n =
+  print_string
+    "Press 's' to start; \
+           'f' to freeze; \
+           'r' to resume; \
+           'q' to quit\n";
+  print_string
+    "To be effective, the mouse pointer must be \n\
+     close to the base of the pendulum";
+  print_newline ()
+		   
 let node manual () =
   let (x0, y0, x, y, _) = mpendulum(0.0) in
   let p = make_pend(x0, y0, x, y) in
