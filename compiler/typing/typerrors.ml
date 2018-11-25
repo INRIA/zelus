@@ -1,15 +1,19 @@
 (**************************************************************************)
 (*                                                                        *)
-(*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2018                                               *)
+(*                                Zelus                                   *)
+(*               A synchronous language for hybrid systems                *)
+(*                       http://zelus.di.ens.fr                           *)
 (*                                                                        *)
-(*  Timothy Bourke    Marc Pouzet                                         *)
+(*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
+(*  Copyright 2012 - 2018. All rights reserved.                           *)
 (*                                                                        *)
-(*   This file is distributed under the terms of the CeCILL-C licence     *)
+(*  This file is distributed under the terms of the CeCILL-C licence      *)
+(*                                                                        *)
+(*  Zelus is developed in the INRIA PARKAS team.                          *)
 (*                                                                        *)
 (**************************************************************************)
+
 (* Printing of error messages during typing *)
 (* messages are displayed on the standard error output *)
 
@@ -52,7 +56,6 @@ type error =
   | Eequation_is_missing of Ident.t
   | Eglobal_is_a_function of Lident.t
   | Eapplication_of_non_function
-  | Eperiod_not_positive of float
   | Epattern_not_total
   | Ecombination_function of Ident.t
   | Esize_parameter_must_be_a_name
@@ -215,10 +218,6 @@ let message loc kind =
  | Eapplication_of_non_function ->
      eprintf "@[%aType error: this is not a function.@.@]"
         output_location loc
- | Eperiod_not_positive(f) ->
-     eprintf 
-       "@[%aType error: the period contains %f which is not strictly positive.@.@]"
-       output_location loc f
  | Epattern_not_total ->
      eprintf
        "@[%aType error: this pattern must be total.@.@]"
@@ -266,6 +265,7 @@ let message loc kind =
   raise Misc.Error
 
 let warning loc w =
+  if not !Misc.no_warning then
   match w with
   | Wpartial_matching(p) ->
       Format.eprintf

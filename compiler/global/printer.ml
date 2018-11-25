@@ -1,15 +1,19 @@
 (**************************************************************************)
 (*                                                                        *)
-(*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2018                                               *)
+(*                                Zelus                                   *)
+(*               A synchronous language for hybrid systems                *)
+(*                       http://zelus.di.ens.fr                           *)
 (*                                                                        *)
-(*  Timothy Bourke    Marc Pouzet                                         *)
+(*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
+(*  Copyright 2012 - 2018. All rights reserved.                           *)
 (*                                                                        *)
-(*   This file is distributed under the terms of the CeCILL-C licence     *)
+(*  This file is distributed under the terms of the CeCILL-C licence      *)
+(*                                                                        *)
+(*  Zelus is developed in the INRIA PARKAS team.                          *)
 (*                                                                        *)
 (**************************************************************************)
+
 (* the printer *)
 
 open Location
@@ -308,8 +312,8 @@ and operator ff op e_list =
 
 and period ff { p_phase = opt_phase; p_period = p } =
   match opt_phase with
-    | None -> fprintf ff "@[(%f)@]" p
-    | Some(phase) -> fprintf ff "@[%f(%f)@]" phase p
+    | None -> fprintf ff "@[(%a)@]" expression p
+    | Some(phase) -> fprintf ff "@[(%a|%a)@]" expression phase expression p
         
 and equation ff ({ eq_desc = desc } as eq) =
   print_eq_info ff eq;

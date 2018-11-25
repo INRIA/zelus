@@ -1,21 +1,25 @@
 (**************************************************************************)
 (*                                                                        *)
-(*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2018                                               *)
+(*                                Zelus                                   *)
+(*               A synchronous language for hybrid systems                *)
+(*                       http://zelus.di.ens.fr                           *)
 (*                                                                        *)
-(*  Marc Pouzet       Timothy Bourke                                      *)
+(*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
+(*  Copyright 2012 - 2018. All rights reserved.                           *)
 (*                                                                        *)
-(*   This file is distributed under the terms of the CeCILL-C licence     *)
+(*  This file is distributed under the terms of the CeCILL-C licence      *)
+(*                                                                        *)
+(*  Zelus is developed in the INRIA PARKAS team.                          *)
 (*                                                                        *)
 (**************************************************************************)
+
 (* scoping. introduces unique indexes for local names and replace global   *)
 (* names by qualified names *)
 (* the module checks the following: *)
-(* - every pattern and record is linear *)
-(* - name states in automata are defined once. *)
-(* - local names are binded. *)
+(* - every pattern and record must be linear *)
+(* - name states in automata must be defined once. *)
+(* - a local name must be binded to a binded. *)
 
 open Misc
 open Location
@@ -182,9 +186,6 @@ let default = function
   | Parsetree.Init(c) -> Zelus.Init(constant c)
   | Parsetree.Default(c) -> Zelus.Default(constant c)
     
-let period { p_phase = p1; p_period = p2 } = 
-  { Zelus.p_phase = p1; Zelus.p_period = p2 }
-
 let kind = function
   | S -> Zelus.S | A -> Zelus.A | AS -> Zelus.AS
   | AD -> Zelus.AD | C -> Zelus.C | D -> Zelus.D
@@ -600,7 +601,8 @@ let rec expression env { desc = desc; loc = loc } =
                     expression env e_let)
     | Eseq(e1, e2) ->
         Zelus.Eseq(expression env e1, expression env e2)
-    | Eperiod(p) -> Zelus.Eperiod(period p)
+    | Eperiod(p) ->
+       Zelus.Eperiod(period env p)
     (* control structures are turned into equations *)
     | Ematch(e1, handlers) ->
         (* match e with P -> e1 => 
@@ -681,6 +683,9 @@ let rec expression env { desc = desc; loc = loc } =
        Zelus.Eblock(b, e) in
   emake loc desc
 
+and period env { p_phase = p1; p_period = p2 } = 
+  { Zelus.p_phase = Misc.optional_map (expression env) p1;
+    Zelus.p_period = expression env p2 }
 
 (* renaming an equation. [env_pat] is used for renamming names *)
 (* appearing in patterns while [env] is used for right-hand side expressions *)

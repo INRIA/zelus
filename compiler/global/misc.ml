@@ -1,13 +1,16 @@
 (**************************************************************************)
 (*                                                                        *)
-(*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2018                                               *)
+(*                                Zelus                                   *)
+(*               A synchronous language for hybrid systems                *)
+(*                           zelus.di.ens.fr                              *)
 (*                                                                        *)
-(*  Marc Pouzet    Timothy Bourke                                         *)
+(*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
+(*  Copyright 2012 - 2018. All rights reserved.                           *)
 (*                                                                        *)
-(*   This file is distributed under the terms of the CeCILL-C licence     *)
+(*  This file is distributed under the terms of the CeCILL-C licence      *)
+(*                                                                        *)
+(*  Zelus is developed in the INRIA PARKAS team.                          *)
 (*                                                                        *)
 (**************************************************************************)
 (* useful stuff *)
@@ -82,6 +85,7 @@ let no_opt = ref false
 let no_deadcode = ref false
 let no_simplify_causality_type = ref false
 let no_reduce = ref false
+let no_warning = ref false
 
 let lmm_nodes = ref S.empty
 let set_lmm_nodes (n: string) =
