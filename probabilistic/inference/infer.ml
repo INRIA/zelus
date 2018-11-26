@@ -107,6 +107,7 @@ let plan_step n k model_step =
       Array.mapi (fun i state -> (state, scores.(i), values.(i))) states
     in
     Normalize.resample (states, scores, states_scores_values);
+    Hashtbl.clear table;
     states_scores_values
   in
   step
