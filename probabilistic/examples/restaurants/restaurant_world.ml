@@ -55,6 +55,16 @@ let () =
   Graphics.auto_synchronize false;
   ()
 
+let debug_state =
+  let tbl = Hashtbl.create 7 in
+  fun state ->
+  let (x, y) = state.loc in
+  if not (Hashtbl.mem tbl (x, y)) then begin
+    Hashtbl.add tbl (x, y) ();
+    Format.printf "(%d, %d)@." x y;
+  end;
+  state
+
 (** Tests *)
 
 (* let () = *)

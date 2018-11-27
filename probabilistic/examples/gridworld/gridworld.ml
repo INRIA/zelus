@@ -28,7 +28,7 @@ type state =
 (** Map *)
 
 let in_grid map (x, y) =
-  (0 <= x && x < map.x_lim) && (0 <= y && y < map.x_lim)
+  (0 <= x && x < map.x_lim) && (0 <= y && y < map.y_lim)
 
 let is_blocked_loc map loc =
   map.feature loc = Wall

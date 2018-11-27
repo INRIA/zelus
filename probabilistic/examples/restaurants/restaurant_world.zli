@@ -13,3 +13,4 @@ val transition :
 val possible_actions :
   restaurant_map -> Gridworld.state -> Gridworld.action list
 val state_init : Gridworld.state
+val debug_state : Gridworld.state -> Gridworld.state
