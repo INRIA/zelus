@@ -72,7 +72,7 @@ let app f l =
     (* C(e1,...,en) *) Econstr1(id, arg_list)
   | Econstr0(id), [arg] ->
      (* C(e) *) Econstr1(id, [arg])
-  | _ -> Eapp({ app_inline = true; app_statefull = false}, f, l)
+  | _ -> Eapp({ app_inline = false; app_statefull = false}, f, l)
 
 let constr c p =
    match p with
