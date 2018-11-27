@@ -608,7 +608,7 @@ let generalise tc =
   (* check_type tc; *)
   gen tc;
   let c_set = vars S.empty tc in
-  reduce c_set;
+  if not !Misc.no_simplify_causality_type then reduce c_set;
   let _, rel = relation (S.empty, []) c_set in
   { typ_vars = !list_of_vars; typ_rel = rel; typ = tc }
 
