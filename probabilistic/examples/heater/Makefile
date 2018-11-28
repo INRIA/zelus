@@ -28,7 +28,7 @@ heatc.opt: heat.ml heatc.ml main.ml
         lablgtk.cmxa zllibgtk.cmxa -package sundialsml \
         -linkpkg heat.ml heatc.ml mainc.ml
 
-smartheat.byte: smartheat.ml ../../inference/inference.cma
+smartheat.byte: smartheat.ml ../../inference/inference.cma 
 	ocamlfind ocamlc -o smartheat.byte -I `zeluc -where` \
         -I ../../inference \
         -package lablgtk2 \
