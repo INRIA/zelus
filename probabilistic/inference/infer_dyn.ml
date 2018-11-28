@@ -37,7 +37,8 @@ Que doit faire infer k f n ?
 4. On continue l'execution, en reinialisant r_i a 0.0
 *)
 
-
+open Ztypes
+    
 (* iterate a stateful node a bounded number of times *)
 (* val iterate : int -S-> 'b -S-> ('a -D-> 'b) -D-> int * 'a -D-> 'b *)
 (* iterate n default f m x iterates f (max n m) times *)
@@ -96,7 +97,7 @@ let infer_dyn =
     let Pair { state; trans } =
       match !s with
       | None ->
-          let Node { alloc; reset; step } = infer n node in
+          let Node { alloc; reset; step } = Infer.infer n node in
           let v = Pair { state = alloc (); trans = step } in
           s := Some(v); v
       | Some(v) -> v in
