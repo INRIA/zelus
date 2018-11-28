@@ -7,7 +7,8 @@ OCAMLOPT=ocamlopt
 
 ML_SRC=distribution.ml \
 	normalize.ml \
-	infer.ml
+	infer.ml \
+	infer_dyn.ml
 
 ZLI_SRC=distribution.zli \
 	infer.zli
