@@ -30,13 +30,18 @@ let node every_n k =
   and cpt = k -> if ok then k else pre cpt - 1 in
   ok
 
-
+(*
 let node system1(c, temp) =
   Distribution.draw (Infer.infer 1000 system (true, temp))
+ *)
     
+(*
 let node mains () =
   let u, temp =
     Infer_dyn.iterate 100 (false, 0.0) system1 (100, (true, 19.0)) in
   print_string "u = "; print_string (if u then "true" else "false");
   print_string " temp = "; print_float temp;
   print_newline ()
+ *)
+let node mains () = ()
+    
