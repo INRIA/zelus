@@ -1,10 +1,9 @@
-
 (* A zelus discrete node is implemented by a value of the following type *)
-(*
-type ('a, 'b) node =
-    Node: { alloc : unit -> 's; (* 's est l'etat interne *)
-            reset: 's -> unit; (* initialise l'etat *)
-            step: 's -> 'a -> 'b; (* *)
+(* see module Ztypes *)
+(* type ('a, 'b) node =
+    Node: { alloc : unit -> 's;   (* 's is the internal state *)
+            reset: 's -> unit;    (* initializes the state *)
+            step: 's -> 'a -> 'b; (* the step function *)
           } -> ('a, 'b) node
 *)
 
@@ -112,7 +111,8 @@ let plan_step n k model_step =
   in
   step
 
-
+(* [plan n k f x] runs n instances of [f] on the input stream *)
+(* [x] but at each step, do a prediction of depth k *)
 let plan n k (Node model : (float * 't1, float * 't2) Ztypes.node) =
   let alloc () = ref (model.alloc ()) in
   let reset state = model.reset !state in
