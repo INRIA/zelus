@@ -64,7 +64,8 @@ let node oracle(low, high, u, reference, measured) =
   let ok2 = if outside && (Observers.constant reference)
    then Observers.decrease(abs_float(reference -. measured)) else true in
   let ok3 = ok1 && ok2 in
-  (* computes a new test when [measured] is inside for at least [enough] instants *)
+  (* computes a new test when [measured] is inside for at least [enough] *)
+  (* instants *)
   let inside_enough = Observers.count(h)(max_time, not outside) in
   ok3, inside_enough
  

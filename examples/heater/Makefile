@@ -18,12 +18,12 @@ heat.opt: observers.ml heat.ml main.ml
 heatc.byte: heat.ml heatc.ml main.ml
 	ocamlfind ocamlc -o heatc.byte -I `zeluc -where` -package lablgtk2 \
         -package sundialsml lablgtk.cma zllibgtk.cma \
-        -linkpkg heat.ml heatc.ml mainc.ml
+        -linkpkg observers.ml heat.ml heatc.ml mainc.ml
 
 heatc.opt: heat.ml heatc.ml main.ml
 	ocamlfind ocamlopt -o heatc.opt -I `zeluc -where` -package lablgtk2 \
         lablgtk.cmxa zllibgtk.cmxa \
-        -package sundialsml -linkpkg heat.ml heatc.ml mainc.ml
+        -package sundialsml -linkpkg observers.ml heat.ml heatc.ml mainc.ml
 
 heat.ml main.ml: heat.zls
 	zeluc -sampling 0.1 -gtk2 -s main heat.zls
