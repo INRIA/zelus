@@ -44,14 +44,17 @@
  *-    mutable cpos : int;
  *-    mutable zpos : int;
  *-    mutable cmax : int;
- *-    mutable zmax : int }                                *)
+ *-    mutable zmax : int;
+ *-    mutable horizon : float }                           *)
 
 (* The main class takes an extra static argument
  *- suppose that [csize] is the length of the state vector of the current block;
  *- x1:float[size1],..., xn:float[sizen] are the continuous state variables;
  *- m1:zero[size'1],..., mk:zero[size'k] are the zero-crossing variables;
  *- method step(arg1,...,argl) = ...body... is the step method.
+ *-
  *- rewrite it into:
+ *-
  *- method step(arg1,...,argl) =
  *-    let c_start = g.cpos in (* current position of the cvector *)
  *-    var cpos = c_start in
@@ -169,20 +172,6 @@ let rec size s =
      | Splus -> plus s1 s2
      | Sminus -> minus s1 s2
 
-(* input/output functions *)
-(*
-let bang mname = Oapp(operator "!", [global (modname mname)])
-let cindex = bang "cindex"
-let zindex = bang "zindex"
-let discrete = bang "discrete"
-*)
-                   
-(*
-let inout f args = Oapp(global(modname f), args)
-let get e i = inout "get" [e; i]
-let get_zin e i = inout "get_zin" [e; i]
-let set e i arg = inout "set" [e; i; arg]
-*)
 let set_horizon g h =
   Oassign(Oleft_record_access(Oleft_name(g), Name "horizon"),
           omin (Orecord_access(var g, Name "horizon"))
@@ -199,64 +188,52 @@ let incr g field ie =
                
 let cmax g ie = incr g "cmax" ie
 let zmax g ie = incr g "zmax" ie
-let cincr g ie = incr g "cindex" ie
-let zincr g ie = incr g "zindex" ie
+let cincr g ie = incr g "cpos" ie
+let zincr g ie = incr g "zpos" ie
                   
-(* [x.(i1)....(in).(j1)...(jk) <- g.cvec.(pos)] *)
+(* [x.cont.(i1)....(in).(j1)...(jk) <- g.cvec.(pos)] *)
+(* x.zero_in.(i1)...(in).(j1)...(jk) <- g.zin.(pos) *)
+let write_into_internal_state (x, cont) i_list j_list (g, field) pos =
+  Oassign_state
+    (left_state_access
+       (left_state_access
+	  (Oleft_state_primitive_access(Oleft_state_name(x), cont))
+	  i_list) j_list, Oaccess(Orecord_access(var g, Name(field)), var pos))
 let cin g x i_list j_list pos =
-  Oassign_state
-    (left_state_access
-       (left_state_access
-	  (Oleft_state_primitive_access(Oleft_state_name(x), Ocont))
-	  i_list) j_list,
-     Oaccess(Orecord_access(var g, Name("cvec")), var pos))
-(* [g.cvec.(pos) <- (x.cont.(i1)....(in)).(j1)...(jk)] *)
-let cout g x i_list j_list pos =
-  Oassign
-    (Oleft_index(Oleft_record_access(Oleft_name(g), Name("cvec")), var pos),
-     (Ostate
-         (left_state_access
-           (left_state_access
-              (Oleft_state_primitive_access(Oleft_state_name(x), Ocont))
-	      i_list) j_list)))
-(* [g.dvec.(pos) <- (x.der.(i1)....(in)).(j1)...(jk)] *)
-let dout g x i_list j_list pos =
-  Oassign
-    (Oleft_index(Oleft_record_access(Oleft_name(g), Name("dvec")), var pos),
-     (Ostate
-         (left_state_access
-           (left_state_access
-              (Oleft_state_primitive_access(Oleft_state_name(x), Oder))
-	      i_list) j_list)))
-(* x.(i1)...(in).(j1)...(jk) <- g.zin.(pos) *)
+  write_into_internal_state (x, Ocont) i_list j_list (g, "cvec") pos
 let zin g x i_list j_list pos =
-  Oassign_state
-    (left_state_access
-       (left_state_access
-	  (Oleft_state_primitive_access(Oleft_state_name(x), Ozero_in))
-	  i_list) j_list,
-     (Oaccess(Orecord_access(var g, Name("zin")), var pos)))
+  write_into_internal_state (x, Ozero_in) i_list j_list (g, "zin") pos
+
+(* [g.cvec.(pos) <- (x.cont.(i1)....(in)).(j1)...(jk)] *)
+(* [g.dvec.(pos) <- (x.der.(i1)....(in)).(j1)...(jk)] *)
 (* [g.zout.(pos) <- (x.zout.(i1)....(in)).(j1)...(jk)] *)
-let zout g x i_list j_list pos =
+let write_from_internal_state (g, field) (x, cont) i_list j_list pos =
   Oassign
-    (Oleft_index(Oleft_record_access(Oleft_name(g), Name("zout")), var pos),
+    (Oleft_index(Oleft_record_access(Oleft_name(g), Name(field)), var pos),
      (Ostate
          (left_state_access
            (left_state_access
-              (Oleft_state_primitive_access(Oleft_state_name(x), Ozero_out))
+              (Oleft_state_primitive_access(Oleft_state_name(x), cont))
 	      i_list) j_list)))
- let set_zin_to_false x i_list j_list pos =
+let cout g x i_list j_list pos =
+  write_from_internal_state (g, "cvec") (x, Ocont) i_list j_list pos
+let dout g x i_list j_list pos =
+  write_from_internal_state (g, "dvec") (x, Oder) i_list j_list pos
+let zout g x i_list j_list pos =
+  write_from_internal_state (g, "zout") (x, Ozero_out) i_list j_list pos
+let set_zin_to_false x i_list j_list pos =
   Oassign_state
     (left_state_access
        (left_state_access
           (Oleft_state_primitive_access(Oleft_state_name(x), Ozero_in))
           i_list) j_list,
      ffalse)
-let set_dvec_to_zero g_dvec c_start csize =
+let set_dvec_to_zero g c_start csize =
   if is_zero csize then Oexp(void)
   else Ofor(true, i, local c_start, minus csize one,
-            Oassign(Oleft_index(g_dvec, local i),
-                    float_const 0.0))
+            Oassign(Oleft_index(Oleft_record_access(Oleft_name(g), Name "dvec"),
+				local i),
+            float_const 0.0))
 
 (** Compute the index associated to a state variable [x] in the current block *)
 (* [build_index m_list = (ctable, csize), (ztable, zsize), h_list] *)
