@@ -45,7 +45,8 @@
  *-    mutable zpos : int;
  *-    mutable cmax : int;
  *-    mutable zmax : int;
- *-    mutable horizon : float }                           *)
+ *-    mutable horizon : float;
+ *-    mutable discrete : bool }                           *)
 
 (* The main class takes an extra static argument
  *- suppose that [csize] is the length of the state vector of the current block;
@@ -190,7 +191,9 @@ let cmax g ie = incr g "cmax" ie
 let zmax g ie = incr g "zmax" ie
 let cincr g ie = incr g "cpos" ie
 let zincr g ie = incr g "zpos" ie
-                  
+
+let discrete g = Orecord_access(var g, Name("discrete"))
+			
 (* [x.cont.(i1)....(in).(j1)...(jk) <- g.cvec.(pos)] *)
 (* x.zero_in.(i1)...(in).(j1)...(jk) <- g.zin.(pos) *)
 let write_into_internal_state (x, cont) i_list j_list (g, field) pos =
@@ -330,7 +333,7 @@ let zout table g pos =
   let call x i_list j_list pos = zout g x i_list j_list pos in
   cinout table call pos incr_pos
 
-let set_sin_to_false table pos =
+let set_zin_to_false table pos =
    let call x i_list j_list pos = set_zin_to_false x i_list j_list pos in
    cinout table call pos (fun _ -> Oexp(void))
  
@@ -373,12 +376,12 @@ let machine f ({ ma_initialize = i_opt;
     let h_is_not_zero = not (List.length h_list = 0) in
     
     (* add initialization code to [e_opt] *)
-    let i_opt = maxsize cmax csize (maxsize zmax zsize i_opt) in
+    (* let i_opt = maxsize cmax csize (maxsize zmax zsize i_opt) in *)
           
     let c_start = Ident.fresh "c_start" in
     let z_start = Ident.fresh "z_start" in
-    let g_cpos = Orecord_access(g, Name("cpos")) in
-    let g_zpos = Orecord_access(g, Name("zpos")) in
+    let g_cpos = Orecord_access(var g, Name("cpos")) in
+    let g_zpos = Orecord_access(var g, Name("zpos")) in
     
     let cpos = Ident.fresh "cpos" in
     let zpos = Ident.fresh "zpos" in
@@ -399,40 +402,40 @@ let machine f ({ ma_initialize = i_opt;
            c_is_not_zero cpos Initial.typ_int (local c_start)
 	   (* compute the current position of the zvector *)
            (oletin_only
-              z_is_not_zero (varpat z_start Initial.typ_int) g_cpos
+              z_is_not_zero (varpat z_start Initial.typ_int) g_zpos
               (oletvar_only
                  z_is_not_zero zpos Initial.typ_int (local z_start)
 		 (sequence
-		    [only c_is_not_zero (cincr g csize);
-                     only z_is_not_zero (zincr g zsize);
+		    [only c_is_not_zero (incr g "csize" csize);
+                     only z_is_not_zero (incr g "zsize" zsize);
 		     ifthenelse
-                       discrete (dzero ci csize)
-		       (only c_is_not_zero (cin ctable cpos));
+                       (discrete g) (set_dvec_to_zero g c_start csize)
+		       (only c_is_not_zero (cin ctable g cpos));
                      (only_else
                         (c_is_not_zero || z_is_not_zero || h_is_not_zero)          
                         (oletin
 		           (varpat result ty) (Oinst(body))
 		           (sequence
-			      [set_horizon h_list;
+			      [set_horizon g h_list;
                                only
-                                 c_is_not_zero (set_pos cpos (local ci));
-			       ifthenelse discrete
+                                 c_is_not_zero (set_pos cpos (local c_start));
+			       ifthenelse (discrete g)
 				          (sequence
                                              [only
-                                                c_is_not_zero (cout ctable cpos);
+                                                c_is_not_zero (cout ctable g cpos);
                                               only
                                                 z_is_not_zero
-                                                (zfalse ztable zpos)])
+                                                (set_zin_to_false ztable zpos)])
 				          (sequence
 					     [only
-                                                z_is_not_zero (zin ztable zpos);
+                                                z_is_not_zero (zin ztable g zpos);
                                               only
                                                 z_is_not_zero
-                                                (set_pos zpos (local zi));
+                                                (set_pos zpos (local z_start));
 			                      only
-                                                z_is_not_zero (zout ztable zpos);
+                                                z_is_not_zero (zout ztable g zpos);
 					      only
-                                                c_is_not_zero (dout ctable cpos)]);
+                                                c_is_not_zero (dout ctable g cpos)]);
                                Oexp (local result)]))
                         body)])))) in
             { mach with ma_initialize = i_opt;
