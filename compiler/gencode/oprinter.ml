@@ -355,8 +355,11 @@ let memory ff { m_name = n; m_value = e_opt; m_typ = ty;
 	     m_size ptype ty (exp 0) e
              
 let instance ff { i_name = n; i_machine = ei; i_kind = k;
-		        i_params = e_list; i_size = i_size } =
-  fprintf ff "@[%a : %s(%a)%a@]" name n (kind k) (exp 0) ei
+		  i_params = e_list; i_size = i_size } =
+  fprintf ff "@[%a : %s(%a)%a%a@]" name n (kind k) (exp 0) ei
+	  (print_list_no_space
+	     (print_with_braces (exp 0) "(" ")") "" "" "")
+	  e_list
 	  (print_list_no_space
 	     (print_with_braces (exp 0) "[" "]") "" "" "")
 	  i_size
