@@ -99,6 +99,8 @@ open Deftypes
 open Obc
 open Format
 
+let typ_cstate = Otypeconstr(Modname {qual = "Ztype"; id = "cstate" }, [])
+
 let oletin p e1 i2 = Olet(p, e1, i2)
 let oletvar x ty e1 i2 = Oletvar(x, false, ty, Some(e1), i2)
 let bool v = Oconst(Obool(v))
@@ -351,8 +353,8 @@ let set_horizon g h_list =
   sequence (List.map (set_horizon g) h_list)
            
 (** Translate a continuous-time machine *)
-let machine f ({ ma_initialize = i_opt;
-		 ma_memories = m_list; ma_methods = method_list } as mach) g =
+let machine f ({ ma_params = params; ma_initialize = i_opt; ma_memories = m_list;
+		 ma_instances = mi_list; ma_methods = method_list } as mach) g =
   (* auxiliary function. Find the method "step" in the list of methods *)
   let rec find_step method_list =
     match method_list with
@@ -361,6 +363,10 @@ let machine f ({ ma_initialize = i_opt;
        if m = Ostep then mdesc, method_list
        else let step, method_list = find_step method_list in
 	    step, mdesc :: method_list in
+  (* for every instance of a continuous machine, pass the extra argument [g] *)
+  let add_extra_param ({ i_kind = k; i_params = params } as ientry) =
+    match k with
+    | Tcont -> { ientry with i_params = (var g) :: params } | _ -> ientry in
   try
     let { me_body = body; me_typ = ty } as mdesc, method_list =
       find_step method_list in
@@ -438,11 +444,13 @@ let machine f ({ ma_initialize = i_opt;
                                                 c_is_not_zero (dout ctable g cpos)]);
                                Oexp (local result)]))
                         body)])))) in
-            { mach with ma_initialize = i_opt;
-		        ma_methods = { mdesc with me_body = body } :: method_list }
-            with
-              (* no get method is present *)
-              Not_found -> mach
+    { mach with ma_params = (Ovarpat(g, typ_cstate)) :: params;
+		ma_initialize = i_opt;
+		ma_methods = { mdesc with me_body = body } :: method_list;
+		ma_instances = List.map add_extra_param mi_list }
+  with
+    (* no get method is present *)
+    Not_found -> mach
 
                        
 (** The main entry. Add new methods to copy the continuous state vector *)
@@ -451,7 +459,8 @@ let implementation impl =
   match impl with
   | Oletmachine(f, ({ ma_kind = Deftypes.Tcont } as mach)) -> 
      (* only continuous machines are concerned *)
-     Oletmachine(f, machine f mach)
+     let g = Ident.fresh "g" in
+     Oletmachine(f, machine f mach g)
   | Oletmachine _ | Oletvalue _ | Oletfun _ | Oopen _ | Otypedecl _ -> impl
 									 
 let implementation_list impl_list = Misc.iter implementation impl_list
