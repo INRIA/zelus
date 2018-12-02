@@ -1,6 +1,7 @@
-let hybrid int(v)(x0, xsecond) = x where
+let hybrid int(v)(x0, xsecond) = x, p where
   rec der x = xprime init x0
   and der xprime = xsecond init 0.0
+  and p = period (4.2 | 5.2)
 
 let hybrid int2(x0, xsecond) =
   int(0.0)(x0, xsecond)
