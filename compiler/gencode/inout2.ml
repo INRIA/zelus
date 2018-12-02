@@ -366,7 +366,8 @@ let machine f ({ ma_params = params; ma_initialize = i_opt; ma_memories = m_list
   (* for every instance of a continuous machine, pass the extra argument [g] *)
   let add_extra_param ({ i_kind = k; i_params = params } as ientry) =
     match k with
-    | Tcont -> { ientry with i_params = (var g) :: params } | _ -> ientry in
+    | Tcont -> { ientry with i_params = (var g) :: params }
+    | _ -> ientry in
   try
     let { me_body = body; me_typ = ty } as mdesc, method_list =
       find_step method_list in
@@ -449,7 +450,7 @@ let machine f ({ ma_params = params; ma_initialize = i_opt; ma_memories = m_list
 		ma_methods = { mdesc with me_body = body } :: method_list;
 		ma_instances = List.map add_extra_param mi_list }
   with
-    (* no get method is present *)
+    (* no step method is present *)
     Not_found -> mach
 
                        
