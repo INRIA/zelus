@@ -1,6 +1,4 @@
-let copy : 'a. 'a -> 'a =
-  fun x -> Obj.obj (Obj.dup (Obj.repr x))
-
+(** [copy v] creates a deep copy of the value [v]. *)
 let copy : 'a. 'a -> 'a =
   fun x -> Marshal.from_bytes (Marshal.to_bytes x [Marshal.Closures]) 0
 
@@ -14,6 +12,8 @@ let rec list_replace_assoc x f l =
         (y, v) :: list_replace_assoc x f l
   end
 
+(** [normalize values] creates a distribution corresponding to the
+    array of values [values]. *)
 let normalize values =
   let norm = float (Array.length values) in
   let return_histogram =
@@ -28,6 +28,8 @@ let normalize values =
   Distribution.Dist_support
     (List.map (fun (v, n) -> (v, float n /. norm)) return_histogram)
 
+(** [resample scores]
+*)
 let resample (states, scores, values) =
   let weights, norm =
     let sum = ref 0. in
