@@ -1,0 +1,17 @@
+open Distribution
+
+let node coin (score, b) = (score', theta) where
+  rec init theta = Infer.sample (uniform_float 0. 1.)
+  and score' = Infer.factor (score,
+                             Distribution.score (bernoulli theta) b)
+
+let node flips (nb_true, n) = b where
+  rec cpt = (0 fby cpt + 1) mod n
+  and b = cpt < nb_true
+
+let node main () =
+  let b = flips (1, 10) in
+  let o = Infer.infer 1000 coin (true, b) in
+  let result = Distribution.mean_float o in
+  print_float result; print_newline ()
+
