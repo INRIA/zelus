@@ -10,7 +10,9 @@
 open Ztypes
 
 
-let factor f f0 = f +. f0
+let factor (f, f0) = f +. f0
+let sample = Distribution.draw
+
 
 let infer n (Node { alloc; reset; step }) =
     (* val infer :
@@ -33,9 +35,9 @@ let infer n (Node { alloc; reset; step }) =
     let values =
       Array.mapi
         (fun i state ->
-           let score, value = step state (scores.(i), input) in
-           scores.(i) <- score;
-           value)
+          let score, value = step state (scores.(i), input) in
+          scores.(i) <- score;
+          value)
         states
     in
     if c then Normalize.resample (states, scores, values);
@@ -51,16 +53,18 @@ let memoize_step step (s, table) x =
     Hashtbl.find table (s, x)
   with
   | Not_found ->
-    let sc = Normalize.copy s in
-    let o = step s x in
-    Hashtbl.add table (sc, x) o;
-    o
+      let sc = Normalize.copy s in
+      let o = step s x in
+      Hashtbl.add table (sc, x) o;
+      o
 
 let memoize (Node { alloc; reset; step }) =
   let alloc () =
-    alloc (), Hashtbl.create 7 in
+    alloc (), Hashtbl.create 7
+  in
   let reset (s, table) =
-    reset s; Hashtbl.clear table in
+    reset s; Hashtbl.clear table
+  in
   Node { alloc = alloc; reset = reset; step = memoize_step step }
 
 
@@ -80,12 +84,12 @@ let plan_step n k model_step =
       let score' =
         Array.iteri
           (fun i state ->
-             let score, _ = model_step state (scores.(i), input) in
-             let eu =
-               memoize_step
-                 expected_utility ((state, score), table) (ttl - 1, input)
-             in
-             scores.(i) <- eu)
+            let score, _ = model_step state (scores.(i), input) in
+            let eu =
+              memoize_step
+                expected_utility ((state, score), table) (ttl - 1, input)
+            in
+            scores.(i) <- eu)
           states;
         let scores' = Array.copy scores in
         Normalize.resample (states, scores, scores');
@@ -97,9 +101,9 @@ let plan_step n k model_step =
     let values =
       Array.mapi
         (fun i state ->
-           let score, value = model_step state (scores.(i), input) in
-           scores.(i) <- expected_utility (state, score) (k, input);
-           value)
+          let score, value = model_step state (scores.(i), input) in
+          scores.(i) <- expected_utility (state, score) (k, input);
+          value)
         states
     in
     let states_scores_values =
@@ -130,8 +134,8 @@ let plan n k (Node model : (float * 't1, float * 't2) Ztypes.node) =
 
 
 type 'state infd_state =
-  { infd_states : 'state array;
-    infd_scores : float array; }
+    { infd_states : 'state array;
+      infd_scores : float array; }
 
 let infer_depth n k (Node model) =
   let alloc () =

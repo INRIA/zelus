@@ -1,3 +1,6 @@
+val sample : 'a Distribution.t -> 'a
+val factor : float * float -> float
+
 val infer :
   int -S-> (float * 'a -D-> float * 'b) -S-> bool * 'a -D-> 'b Distribution.t
 val infer_dyn :
