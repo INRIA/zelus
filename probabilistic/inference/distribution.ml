@@ -105,6 +105,24 @@ let multivariate dists =
 let sph_gaussian mus sigmas =
   multivariate (List.map2 gaussian mus sigmas)
 
+let uniform_int low up =
+  let draw () =
+    Random.int (up - low + 1) + low
+  in
+  let score n =
+    -. log (float (up - low))
+  in
+  Dist_sampler (draw, score)
+
+let uniform_float low up =
+  let draw () =
+      Random.float (up -. low) +. low
+  in
+  let score n =
+    -. log (up -. low)
+  in
+  Dist_sampler (draw, score)
+
 let uniform_list l =
   let p = 1. /. float (List.length l) in
   Dist_support (List.map (fun x -> (x, p)) l)

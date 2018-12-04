@@ -8,5 +8,7 @@ val score : 'a t -> 'a -> float
 val draw_and_score : 'a t -> 'a * proba
 val multivariate : 'a t list -> 'a list t
 val sph_gaussian : float list -> float list -> float list t
+val uniform_int : int -> int -> int t
+val uniform_float : float -> float -> float t
 val uniform_list : 'a list -> 'a t
 val mean_float : float t -> float
