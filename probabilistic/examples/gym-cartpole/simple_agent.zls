@@ -1,0 +1,31 @@
+open Cart_pole
+
+let init_obs = cart_reset ()
+
+let node dummy_controller () = action where
+  rec half = true fby (not half)
+  and action = if half then Left else Right
+
+(* let node main () = *)
+(*    let action = dummy_controller () in *)
+(*    let obs, reward = cart_step action true in *)
+(*    print_cart_observation obs; () *)
+
+let node controller obs = action where
+  rec init k1 = Infer.sample(Distribution.gaussian 0. 1.)
+  and init k2 = Infer.sample(Distribution.gaussian 0. 1.)
+  and init k3 = Infer.sample(Distribution.gaussian 0. 1.)
+  and init k4 = Infer.sample(Distribution.gaussian 0. 1.)
+  and r = copysign 1. (k1 *. obs.cart_position +.
+                          k2 *. obs.cart_velocity +.
+                          k3 *. obs.pole_angle +.
+                          k4 *. obs.pole_velocity)
+  and action = if r > 0. then Right else Left
+
+let node model (score, (obs, reward)) = score', action where
+  rec action = controller obs
+  and score' = Infer.factor (score, -. reward)
+
+let node main () = () where
+  rec obs, reward = (init_obs, 0.) fby (cart_step action true)
+  and action = Infer.plan 100 0 model (obs, reward)

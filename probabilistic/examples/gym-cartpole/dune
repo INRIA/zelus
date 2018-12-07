@@ -1,0 +1,25 @@
+(env
+  (dev
+    (flags (:standard -warn-error -A))))
+
+(executables
+ (names main cart_pole)
+ (libraries gym-http zelus yojson)
+ (link_flags -linkall)
+ (ocamlc_flags -I ../../../../inference inference.cma)
+ (ocamlopt_flags -I ../../../../inference inference.cmxa))
+
+(alias
+ (name   runtest)
+ (deps   (:x main.exe))
+ (action (run %{x})))
+
+(rule
+ (targets simple_agent.ml main.ml)
+ (deps    (:src simple_agent.zls) cart_pole.zci)
+ (action  (run zeluc -I ../../../../inference -s main %{src})))
+
+(rule
+ (targets cart_pole.zci)
+ (deps (:src cart_pole.zli))
+ (action (run zeluc %{src})))

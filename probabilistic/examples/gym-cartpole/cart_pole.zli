@@ -1,0 +1,14 @@
+val copysign: float -> float -> float
+
+type cart_observation = {
+  cart_position: float;
+  cart_velocity: float;
+  pole_angle: float;
+  pole_velocity: float;
+}
+
+type cart_action = Left | Right
+
+val cart_reset: unit -> cart_observation
+val cart_step: cart_action -> bool -> cart_observation * float
+val print_cart_observation: cart_observation -AD-> unit
