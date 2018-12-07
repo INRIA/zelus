@@ -43,10 +43,12 @@ let cart_reset: unit -> cart_observation = begin
   fun () -> cart_observation_of_json (env_reset instance_id).observation
 end
 
-let cart_step: cart_action -> bool -> cart_observation * float = begin
+let cart_step: cart_action -> bool -> cart_observation * float * bool = begin
   fun action render ->
     let step_response = env_step instance_id (action_of_cart_action action) render in
-    cart_observation_of_json step_response.step_observation, step_response.step_reward
+    cart_observation_of_json step_response.step_observation,
+    step_response.step_reward,
+    step_response.step_done
 end
 
 let print_cart_observation obs =

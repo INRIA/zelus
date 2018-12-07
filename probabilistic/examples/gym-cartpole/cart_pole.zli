@@ -10,5 +10,5 @@ type cart_observation = {
 type cart_action = Left | Right
 
 val cart_reset: unit -> cart_observation
-val cart_step: cart_action -> bool -> cart_observation * float
+val cart_step: cart_action -> bool -> cart_observation * float * bool
 val print_cart_observation: cart_observation -AD-> unit

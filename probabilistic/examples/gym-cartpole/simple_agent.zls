@@ -22,10 +22,14 @@ let node controller obs = action where
                           k4 *. obs.pole_velocity)
   and action = if r > 0. then Right else Left
 
-let node model (score, (obs, reward)) = score', action where
-  rec action = controller obs
-  and score' = Infer.factor (score, -. reward)
+let node model (score, (obs, reward, stop)) = score', action where
+  reset action = controller obs
+        and score' = Infer.factor (score, -. reward)
+  every stop
 
 let node main () = () where
-  rec obs, reward = (init_obs, 0.) fby (cart_step action true)
-  and action = Infer.plan 100 0 model (obs, reward)
+  rec automaton
+      | Run ->
+          do obs, reward, stop = cart_step action true
+          until stop then do emit toto = print_endline "Stop"; cart_reset () in Run
+  and action = Infer.plan 100 0 model ((init_obs, 0., false) fby (obs, reward, stop))
