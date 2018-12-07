@@ -4,7 +4,7 @@
 
 (executables
  (names main cart_pole)
- (libraries gym-http zelus yojson)
+ (libraries openai-gym zelus yojson)
  (link_flags -linkall)
  (ocamlc_flags -I ../../../../inference inference.cma)
  (ocamlopt_flags -I ../../../../inference inference.cmxa))

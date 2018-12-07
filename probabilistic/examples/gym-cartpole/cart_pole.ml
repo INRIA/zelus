@@ -1,4 +1,4 @@
-open Gym_http
+open Openai_gym
 open Gym_client
 open Gym_j
 open Gym_t
