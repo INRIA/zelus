@@ -38,6 +38,14 @@ let cart_observation_of_json : json -> cart_observation = begin
 end
 
 let instance_id = env_create "CartPole-v1"
+let () =
+  Sys.set_signal
+    Sys.sigint
+    (Sys.Signal_handle
+       (fun _ ->
+          Format.eprintf "closing instante %s@." instance_id.instance_id;
+          env_close instance_id;
+          exit 0))
 
 let cart_reset: unit -> cart_observation = begin
   fun () ->
