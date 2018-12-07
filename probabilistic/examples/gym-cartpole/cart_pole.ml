@@ -40,7 +40,10 @@ end
 let instance_id = env_create "CartPole-v1"
 
 let cart_reset: unit -> cart_observation = begin
-  fun () -> cart_observation_of_json (env_reset instance_id).observation
+  fun () ->
+    let obs = env_reset instance_id in
+    Format.eprintf "-----------@.%s@." (string_of_observation obs);
+    cart_observation_of_json obs.observation
 end
 
 let cart_step: cart_action -> bool -> cart_observation * float * bool = begin
