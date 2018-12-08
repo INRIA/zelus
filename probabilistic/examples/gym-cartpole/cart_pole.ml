@@ -43,14 +43,16 @@ let () =
     Sys.sigint
     (Sys.Signal_handle
        (fun _ ->
-          Format.eprintf "closing instante %s@." instance_id.instance_id;
+          Format.eprintf "Closing instance %s@." instance_id.instance_id;
           env_close instance_id;
           exit 0))
 
+let episod = ref 0
 let cart_reset: unit -> cart_observation = begin
   fun () ->
+    incr episod;
     let obs = env_reset instance_id in
-    Format.eprintf "-----------@.%s@." (string_of_observation obs);
+    Format.eprintf "Episode %d @." !episod;
     cart_observation_of_json obs.observation
 end
 
@@ -61,7 +63,3 @@ let cart_step: cart_action -> bool -> cart_observation * float * bool = begin
     step_response.step_reward,
     step_response.step_done
 end
-
-let print_cart_observation obs =
-  Format.printf "Cart Position: %f Cart Velocity: %f@." obs.cart_position obs.cart_velocity;
-  Format.printf "Pole Angle: %f    Pole Velocity: %f@." obs.pole_angle obs.pole_velocity
