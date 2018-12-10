@@ -39,11 +39,16 @@ end
 
 let instance_id = env_create "CartPole-v1"
 let () =
+  Gym_client.env_monitor_start instance_id "/tmp/gym-results" true false
+
+let () =
   Sys.set_signal
     Sys.sigint
     (Sys.Signal_handle
        (fun _ ->
-          Format.eprintf "Closing instance %s@." instance_id.instance_id;
+          Format.eprintf "closing monitor@.";
+          Gym_client.env_monitor_close instance_id;
+          Format.eprintf "closing instante %s@." instance_id.instance_id;
           env_close instance_id;
           exit 0))
 
