@@ -18,10 +18,10 @@ let node controller (obs, stop) = action where
           and init k2 = Infer.sample(Distribution.gaussian k2_init 1.)
           and init k3 = Infer.sample(Distribution.gaussian k3_init 1.)
           and init k4 = Infer.sample(Distribution.gaussian k4_init 1.)
-          and r = copysign 1. (k1 *. obs.cart_position +.
-                          k2 *. obs.cart_velocity +.
-                          k3 *. obs.pole_angle +.
-                          k4 *. obs.pole_velocity)
+          and r = k1 *. obs.cart_position +.
+              k2 *. obs.cart_velocity +.
+              k3 *. obs.pole_angle +.
+              k4 *. obs.pole_velocity
           and action = if r > 0. then Right else Left
           until stop then Run(k1, k2, k3, k4)
        init Run(0., 0., 0., 0.)
