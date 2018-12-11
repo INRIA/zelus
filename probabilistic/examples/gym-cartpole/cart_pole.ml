@@ -48,7 +48,7 @@ let () =
        (fun _ ->
           Format.eprintf "closing monitor@.";
           Gym_client.env_monitor_close instance_id;
-          Format.eprintf "closing instante %s@." instance_id.instance_id;
+          Format.eprintf "closing instance %s@." instance_id.instance_id;
           env_close instance_id;
           exit 0))
 
