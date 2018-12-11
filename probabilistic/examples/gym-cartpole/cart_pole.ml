@@ -3,7 +3,7 @@ open Gym_client
 open Gym_j
 open Gym_t
 
-let copysign = copysign
+type instance_id = Gym_t.instance_id
 
 type cart_observation = {
   cart_position: float;
@@ -37,32 +37,34 @@ let cart_observation_of_json : json -> cart_observation = begin
     end
 end
 
-let instance_id = env_create "CartPole-v1"
-let () =
-  Gym_client.env_monitor_start instance_id "/tmp/gym-results" true false
+let cart_init: unit -> instance_id =  begin
+  fun () -> env_create "CartPole-v1"
+end
 
-let () =
-  Sys.set_signal
-    Sys.sigint
-    (Sys.Signal_handle
-       (fun _ ->
-          Format.eprintf "closing monitor@.";
-          Gym_client.env_monitor_close instance_id;
-          Format.eprintf "closing instance %s@." instance_id.instance_id;
-          env_close instance_id;
-          exit 0))
+(* let () = *)
+(*   Gym_client.env_monitor_start instance_id "/tmp/gym-results" true false *)
 
-let episod = ref 0
-let cart_reset: unit -> cart_observation = begin
-  fun () ->
-    incr episod;
+(* let () = *)
+(*   Sys.set_signal *)
+(*     Sys.sigint *)
+(*     (Sys.Signal_handle *)
+(*        (fun _ -> *)
+(*           Format.eprintf "closing monitor@."; *)
+(*           Gym_client.env_monitor_close instance_id; *)
+(*           Format.eprintf "closing instance %s@." instance_id.instance_id; *)
+(*           env_close instance_id; *)
+(*           exit 0)) *)
+
+
+
+let cart_reset: instance_id -> cart_observation = begin
+  fun instance_id ->
     let obs = env_reset instance_id in
-    Format.eprintf "Episode %d @." !episod;
     cart_observation_of_json obs.observation
 end
 
-let cart_step: cart_action -> bool -> cart_observation * float * bool = begin
-  fun action render ->
+let cart_step: instance_id -> cart_action -> bool -> cart_observation * float * bool = begin
+  fun instance_id action render ->
     let step_response = env_step instance_id (action_of_cart_action action) render in
     cart_observation_of_json step_response.step_observation,
     step_response.step_reward,

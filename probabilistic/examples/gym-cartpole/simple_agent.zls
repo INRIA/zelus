@@ -1,15 +1,28 @@
 open Cart_pole
 
-let init_obs = cart_reset ()
+(* let init_obs = cart_reset () *)
 
-let node dummy_controller () = action where
-  rec half = true fby (not half)
-  and action = if half then Left else Right
+(* let node dummy_controller () = action where *)
+(*   rec half = true fby (not half) *)
+(*   and action = if half then Left else Right *)
 
 (* let node main () = *)
 (*    let action = dummy_controller () in *)
 (*    let obs, reward = cart_step action true in *)
 (*    print_cart_observation obs; () *)
+
+
+let node cart_pole render action = obs, reward, stop where
+  rec init instance_id = cart_init ()
+  and automaton
+      | Reset ->
+          do obs, reward, stop = cart_reset instance_id, 1., false
+          then Run
+      | Run ->
+          do obs, reward, stop = cart_step instance_id action render
+          until stop then Reset
+
+
 
 let node controller (obs, stop) = action where
   rec automaton
@@ -18,24 +31,29 @@ let node controller (obs, stop) = action where
           and init k2 = Infer.sample(Distribution.gaussian k2_init 1.)
           and init k3 = Infer.sample(Distribution.gaussian k3_init 1.)
           and init k4 = Infer.sample(Distribution.gaussian k4_init 1.)
-          and r = k1 *. obs.cart_position +.
-              k2 *. obs.cart_velocity +.
-              k3 *. obs.pole_angle +.
-              k4 *. obs.pole_velocity
+          and r = k1 *. obs.cart_position
+              +. k2 *. obs.cart_velocity
+              +. k3 *. obs.pole_angle
+              +. k4 *. obs.pole_velocity
           and action = if r > 0. then Right else Left
           until stop then Run(k1, k2, k3, k4)
        init Run(0., 0., 0., 0.)
 
 let node model (score, (obs, reward, stop)) = score', action where
   rec action = controller (obs, stop)
-  and score' = Infer.factor (score, -. reward)
+  and score' = Infer.factor(score, reward)
+  (* and score' = if false -> (p_action <> (Right fby action)) *)
+  (*              then Infer.factor (score, 10.0) *)
+  (*              else Infer.factor (score, -. reward) *)
 
 let node main () = () where
-  rec automaton
-      | Run ->
-          do obs, reward, stop = cart_step action true
-          until stop then Reset
-      | Reset ->
-          do obs, reward, stop = cart_reset (), 0., false
-          then Run
-  and action = Infer.plan 500 0 model ((init_obs, 0., false) fby (obs, reward, stop))
+  rec obs, reward, stop = cart_pole true (Right fby action)
+  (* rec automaton *)
+  (*     | Run -> *)
+  (*         do dummy = print_endline(string_of_float reward) *)
+  (*         and obs, reward, stop = cart_step action true *)
+  (*         until stop then Reset *)
+  (*     | Reset -> *)
+  (*         do obs, reward, stop = cart_reset (), 0., false *)
+  (*         then Run *)
+  and action = Infer.plan 1000 0 model (obs, reward, stop)

@@ -1,5 +1,3 @@
-val copysign: float -> float -> float
-
 type cart_observation = {
   cart_position: float;
   cart_velocity: float;
@@ -9,6 +7,9 @@ type cart_observation = {
 
 type cart_action = Left | Right
 
-val cart_reset: unit -AD-> cart_observation
-val cart_step: cart_action -> bool -> cart_observation * float * bool
+type instance_id
+
+val cart_init: unit -AD-> instance_id
+val cart_reset: instance_id -AD-> cart_observation
+val cart_step: instance_id -> cart_action -> bool -> cart_observation * float * bool
 val print_cart_observation: cart_observation -AD-> unit
