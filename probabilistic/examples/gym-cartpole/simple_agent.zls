@@ -1,59 +1,99 @@
 open Cart_pole
 
-(* let init_obs = cart_reset () *)
+let pi = 3.1415
+let gravity = 9.8
+let masscart = 1.0
+let masspole = 0.1
+let total_mass = (masspole +. masscart)
+let length = 0.5
+let polemass_length = (masspole *. length)
+let force_mag = 10.0
+let tau = 0.02
 
-(* let node dummy_controller () = action where *)
-(*   rec half = true fby (not half) *)
-(*   and action = if half then Left else Right *)
+let theta_threshold_radians = 12. *. 2. *. pi /. 360.
+let x_threshold = 2.4
 
-(* let node main () = *)
-(*    let action = dummy_controller () in *)
-(*    let obs, reward = cart_step action true in *)
-(*    print_cart_observation obs; () *)
+let node integr(x0, x') = x where
+  rec x = x0 -> tau *. x' +. (pre x)
+
+let node pendulum (obs0, action) = obs, reward, stop where
+  rec force = if action = Right then force_mag else -. force_mag
+  and temp = (force +. polemass_length *. p_theta_dot *. p_theta_dot *. sin p_theta) /. total_mass
+  and theta_acc = (gravity *. sin p_theta -. cos p_theta *. temp) /. (length *. (4.0 /. 3.0 -. masspole *. cos p_theta *. cos p_theta /. total_mass))
+  and x_acc = temp -. polemass_length *. theta_acc *. cos p_theta /. total_mass
+
+  and theta_dot = integr(obs0.pole_velocity, theta_acc)
+  and theta = integr(obs0.pole_angle, theta_dot)
+  and x_dot = integr(obs0.cart_velocity, x_acc)
+  and x = integr(obs0.cart_position, x_dot)
+  and cart_pos = integr(obs0.cart_position, x_dot)
+
+  and p_theta = obs0.pole_angle fby theta
+  and p_theta_dot = obs0.pole_velocity fby theta_dot
+  and p_theta_acc = 0. fby theta_acc
+  and p_x_acc = 0. fby x_acc
+
+  and obs = { cart_position = cart_pos;
+              cart_velocity = x_dot;
+              pole_angle = theta;
+              pole_velocity = theta_dot; }
+  and stop = (x < -. x_threshold) or (x > x_threshold) or (theta < -. theta_threshold_radians) or (theta > theta_threshold_radians)
+  and reward = if not stop then 1. else 0.
 
 
-let node cart_pole render action = obs, reward, stop where
+
+let node cart_pole_gym render action = obs, reward, stop where
   rec init instance_id = cart_init ()
+  and init r = 0.
   and automaton
-      | Reset ->
+      | Reset -> local dummy
           do obs, reward, stop = cart_reset instance_id, 1., false
+          and dummy = print_endline ("Episode reward: "^(string_of_float (last r)))
+          and r = 0.
           then Run
       | Run ->
           do obs, reward, stop = cart_step instance_id action render
+          and r = reward +. (0. fby r)
+          until stop then Reset
+
+
+let node cart_pole_zls (obs0, action) = obs, reward, stop where
+  rec automaton
+      | Reset ->
+          do obs, reward, stop = pendulum (obs0, action)
           until stop then Reset
 
 
 
-let node controller (obs, stop) = action where
-  rec automaton
-      | Run(k1_init, k2_init, k3_init, k4_init) ->
-          do init k1 = Infer.sample(Distribution.gaussian k1_init 1.)
-          and init k2 = Infer.sample(Distribution.gaussian k2_init 1.)
-          and init k3 = Infer.sample(Distribution.gaussian k3_init 1.)
-          and init k4 = Infer.sample(Distribution.gaussian k4_init 1.)
-          and r = k1 *. obs.cart_position
-              +. k2 *. obs.cart_velocity
-              +. k3 *. obs.pole_angle
-              +. k4 *. obs.pole_velocity
-          and action = if r > 0. then Right else Left
-          until stop then Run(k1, k2, k3, k4)
-       init Run(0., 0., 0., 0.)
+type net = { k1: float; k2: float; k3: float; k4: float}
+let linear (net, obs) =
+  net.k1 *. obs.cart_position
+    +. net.k2 *. obs.cart_velocity
+    +. net.k3 *. obs.pole_angle
+    +. net.k4 *. obs.pole_velocity
 
-let node model (score, (obs, reward, stop)) = score', action where
-  rec action = controller (obs, stop)
-  and score' = Infer.factor(score, reward)
-  (* and score' = if false -> (p_action <> (Right fby action)) *)
-  (*              then Infer.factor (score, 10.0) *)
-  (*              else Infer.factor (score, -. reward) *)
+let node controller (net, obs) = action where
+  rec force = linear (net, obs)
+  and action = if force > 0. then Right else Left
+
+
+let node model (score, obs_gym) = score', net where
+  rec init net = {
+    k1 = Infer.sample(Distribution.gaussian 0. 1.);
+    k2 = Infer.sample(Distribution.gaussian 0. 1.);
+    k3 = Infer.sample(Distribution.gaussian 0. 1.);
+    k4 = Infer.sample(Distribution.gaussian 0. 1.);
+  }
+  and obs, reward, stop = cart_pole_zls (obs_gym, (Right fby action))
+  and automaton
+      | Run ->
+          do action = controller (net, obs)
+          and score' = Infer.factor(score, 10. *. reward)
+          until stop then Run
 
 let node main () = () where
-  rec obs, reward, stop = cart_pole true (Right fby action)
-  (* rec automaton *)
-  (*     | Run -> *)
-  (*         do dummy = print_endline(string_of_float reward) *)
-  (*         and obs, reward, stop = cart_step action true *)
-  (*         until stop then Reset *)
-  (*     | Reset -> *)
-  (*         do obs, reward, stop = cart_reset (), 0., false *)
-  (*         then Run *)
-  and action = Infer.plan 1000 0 model (obs, reward, stop)
+  rec net_dist = Infer.infer 1000 model (true, obs)
+  and net = Distribution.draw net_dist
+  and obs, _, stop = cart_pole_gym true (Right fby action)
+  and force = linear (net, obs)
+  and action = if force > 0. then Right else Left

@@ -5,6 +5,8 @@ open Gym_t
 
 type instance_id = Gym_t.instance_id
 
+let () = Random.self_init ()
+
 type cart_observation = {
   cart_position: float;
   cart_velocity: float;
