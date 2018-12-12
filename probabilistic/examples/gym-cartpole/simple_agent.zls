@@ -1,5 +1,7 @@
 open Cart_pole
 
+(** Simulated pendulum in Zelus**)
+
 let pi = 3.1415
 let gravity = 9.8
 let masscart = 1.0
@@ -9,12 +11,13 @@ let length = 0.5
 let polemass_length = (masspole *. length)
 let force_mag = 10.0
 let tau = 0.02
-
 let theta_threshold_radians = 12. *. 2. *. pi /. 360.
 let x_threshold = 2.4
 
+
 let node integr(x0, x') = x where
   rec x = x0 -> tau *. x' +. (pre x)
+
 
 let node pendulum (obs0, action) = obs, reward, stop where
   rec force = if action = Right then force_mag else -. force_mag
@@ -41,6 +44,36 @@ let node pendulum (obs0, action) = obs, reward, stop where
   and reward = if not stop then 1. else 0.
 
 
+let node cart_pole_zls (obs0, action) = obs, reward, stop where
+  rec automaton
+      | Reset ->
+          do obs, reward, stop = pendulum (obs0, action)
+          until stop then Reset
+
+(** Probabilistic model training one neuron **)
+
+type net = { k1: float; k2: float; k3: float; k4: float}
+let node controller (net, obs) = action where
+  rec force = net.k1 *. obs.cart_position
+      +. net.k2 *. obs.cart_velocity
+      +. net.k3 *. obs.pole_angle
+      +. net.k4 *. obs.pole_velocity
+  and  action = if force > 0. then Right else Left
+
+
+let node model (score, obs_gym) = score', net where
+  rec init net = {
+    k1 = Infer.sample(Distribution.gaussian 0. 1.);
+    k2 = Infer.sample(Distribution.gaussian 0. 1.);
+    k3 = Infer.sample(Distribution.gaussian 0. 1.);
+    k4 = Infer.sample(Distribution.gaussian 0. 1.);
+  }
+  and obs, reward, stop = cart_pole_zls (obs_gym, (Right fby action))
+  and action = controller (net, obs)
+  and score' = Infer.factor(score, 10. *. reward)
+
+
+(** Connect with the physical model of the openai gym **)
 
 let node cart_pole_gym render action = obs, reward, stop where
   rec init instance_id = cart_init ()
@@ -56,44 +89,10 @@ let node cart_pole_gym render action = obs, reward, stop where
           and r = reward +. (0. fby r)
           until stop then Reset
 
-
-let node cart_pole_zls (obs0, action) = obs, reward, stop where
-  rec automaton
-      | Reset ->
-          do obs, reward, stop = pendulum (obs0, action)
-          until stop then Reset
-
-
-
-type net = { k1: float; k2: float; k3: float; k4: float}
-let linear (net, obs) =
-  net.k1 *. obs.cart_position
-    +. net.k2 *. obs.cart_velocity
-    +. net.k3 *. obs.pole_angle
-    +. net.k4 *. obs.pole_velocity
-
-let node controller (net, obs) = action where
-  rec force = linear (net, obs)
-  and action = if force > 0. then Right else Left
-
-
-let node model (score, obs_gym) = score', net where
-  rec init net = {
-    k1 = Infer.sample(Distribution.gaussian 0. 1.);
-    k2 = Infer.sample(Distribution.gaussian 0. 1.);
-    k3 = Infer.sample(Distribution.gaussian 0. 1.);
-    k4 = Infer.sample(Distribution.gaussian 0. 1.);
-  }
-  and obs, reward, stop = cart_pole_zls (obs_gym, (Right fby action))
-  and automaton
-      | Run ->
-          do action = controller (net, obs)
-          and score' = Infer.factor(score, 10. *. reward)
-          until stop then Run
+(** Infer the neuron using the Zelus model and simulate with the openai gym**)
 
 let node main () = () where
   rec net_dist = Infer.infer 1000 model (true, obs)
   and net = Distribution.draw net_dist
-  and obs, _, stop = cart_pole_gym true (Right fby action)
-  and force = linear (net, obs)
-  and action = if force > 0. then Right else Left
+  and obs, _, _ = cart_pole_gym true (Right fby action)
+  and action = controller (net, obs)
