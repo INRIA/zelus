@@ -41,7 +41,6 @@ let node pendulum (obs0, action) = obs, reward, stop where
   and reward = if not stop then 1. else 0.
 
 
-
 let node cart_pole_gym render action = obs, reward, stop where
   rec init instance_id = cart_init ()
   and init r = 0.
@@ -64,28 +63,19 @@ let node cart_pole_zls (obs0, action) = obs, reward, stop where
           until stop then Reset
 
 
-let node controller (net, obs) = action where
-  rec force = linear (net, obs)
-  and action = if force > 0. then Right else Left
+let node controller (obs) = action where
+  rec action =
+    if Infer.sample (Distribution.bernoulli 0.5) then Right else Left
 
 
-let node model (score, obs_gym) = score', net where
-  rec init net = {
-    k1 = Infer.sample(Distribution.gaussian 0. 1.);
-    k2 = Infer.sample(Distribution.gaussian 0. 1.);
-    k3 = Infer.sample(Distribution.gaussian 0. 1.);
-    k4 = Infer.sample(Distribution.gaussian 0. 1.);
-  }
-  and obs, reward, stop = cart_pole_zls (obs_gym, (Right fby action))
+let node model (score, obs_gym) = score', action where
+  rec obs, reward, stop = cart_pole_zls (obs_gym, (Right fby action))
   and automaton
       | Run ->
-          do action = controller (net, obs)
-          and score' = Infer.factor(score, 10. *. reward)
+          do action = controller obs
+          and score' = Infer.factor (score, -10. *. (abs_float (obs.pole_angle)))
           until stop then Run
 
-let node main () = () where
-  rec net_dist = Infer.infer 1000 model (true, obs)
-  and net = Distribution.draw net_dist
+let node smart_main () = () where
+  rec action = Infer.plan 2 22 model obs
   and obs, _, stop = cart_pole_gym true (Right fby action)
-  and force = linear (net, obs)
-  and action = if force > 0. then Right else Left
