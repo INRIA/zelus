@@ -4,7 +4,7 @@ open Pendulum
 let node cart_pole_zls (obs0, action) = obs, reward, stop where
   rec automaton
       | Reset ->
-          do obs, reward, stop = pendulum (obs0, action)
+          do obs, reward, stop = simple_pendulum (obs0, action)
           until stop then Reset
 
 (** Probabilistic model training one neuron **)
