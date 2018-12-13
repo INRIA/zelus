@@ -16,12 +16,8 @@ let node cart_pole_gym render action = obs, reward, stop where
           until stop then Reset
 
 
-let node cart_pole_zls (obs0, action) = obs, reward, stop where
-  rec automaton
-      | Reset ->
-          do obs, reward, stop = simple_pendulum (obs0, action)
-          until stop then Reset
-
+let node cart_pole_zls (obs0, action) = obs where
+  rec obs, _, _ = simple_pendulum (obs0, action)
 
 let node controller (obs) = action where
   rec action =
@@ -29,7 +25,7 @@ let node controller (obs) = action where
 
 
 let node model (score, obs_gym) = score', action where
-  rec obs, reward, stop = cart_pole_zls (obs_gym, (Right fby action))
+  rec obs = cart_pole_zls (obs_gym, (Right fby action))
   and action = controller obs
   and score' = Infer.factor (score, -10. *. (abs_float (obs.pole_angle)))
 
