@@ -77,5 +77,6 @@ let node model (score, obs_gym) = score', action where
           until stop then Run
 
 let node smart_main () = () where
-  rec action = Infer.plan 2 22 model obs
+  rec reset action = Infer.plan 4 10 model obs
+      every true
   and obs, _, stop = cart_pole_gym true (Right fby action)
