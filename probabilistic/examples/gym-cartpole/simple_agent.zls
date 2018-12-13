@@ -1,48 +1,5 @@
 open Cart_pole
-
-(** Simulated pendulum in Zelus**)
-
-let pi = 3.1415
-let gravity = 9.8
-let masscart = 1.0
-let masspole = 0.1
-let total_mass = (masspole +. masscart)
-let length = 0.5
-let polemass_length = (masspole *. length)
-let force_mag = 10.0
-let tau = 0.02
-let theta_threshold_radians = 12. *. 2. *. pi /. 360.
-let x_threshold = 2.4
-
-
-let node integr(x0, x') = x where
-  rec x = x0 -> tau *. x' +. (pre x)
-
-
-let node pendulum (obs0, action) = obs, reward, stop where
-  rec force = if action = Right then force_mag else -. force_mag
-  and temp = (force +. polemass_length *. p_theta_dot *. p_theta_dot *. sin p_theta) /. total_mass
-  and theta_acc = (gravity *. sin p_theta -. cos p_theta *. temp) /. (length *. (4.0 /. 3.0 -. masspole *. cos p_theta *. cos p_theta /. total_mass))
-  and x_acc = temp -. polemass_length *. theta_acc *. cos p_theta /. total_mass
-
-  and theta_dot = integr(obs0.pole_velocity, theta_acc)
-  and theta = integr(obs0.pole_angle, theta_dot)
-  and x_dot = integr(obs0.cart_velocity, x_acc)
-  and x = integr(obs0.cart_position, x_dot)
-  and cart_pos = integr(obs0.cart_position, x_dot)
-
-  and p_theta = obs0.pole_angle fby theta
-  and p_theta_dot = obs0.pole_velocity fby theta_dot
-  and p_theta_acc = 0. fby theta_acc
-  and p_x_acc = 0. fby x_acc
-
-  and obs = { cart_position = cart_pos;
-              cart_velocity = x_dot;
-              pole_angle = theta;
-              pole_velocity = theta_dot; }
-  and stop = (x < -. x_threshold) or (x > x_threshold) or (theta < -. theta_threshold_radians) or (theta > theta_threshold_radians)
-  and reward = if not stop then 1. else 0.
-
+open Pendulum
 
 let node cart_pole_zls (obs0, action) = obs, reward, stop where
   rec automaton

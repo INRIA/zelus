@@ -16,15 +16,20 @@
 
 (rule
  (targets simple_agent.ml main.ml)
- (deps    (:src simple_agent.zls) cart_pole.zci)
+ (deps    (:src simple_agent.zls) cart_pole.zci pendulum.zci)
  (action  (run zeluc -I ../../../../inference -s main %{src})))
 
 (rule
  (targets smart_agent.ml smart_main.ml)
- (deps    (:src smart_agent.zls) cart_pole.zci)
+ (deps    (:src smart_agent.zls) cart_pole.zci pendulum.zci)
  (action  (run zeluc -I ../../../../inference -s smart_main %{src})))
 
 (rule
  (targets cart_pole.zci)
  (deps (:src cart_pole.zli))
+ (action (run zeluc %{src})))
+
+(rule
+ (targets pendulum.zci pendulum.ml)
+ (deps (:src pendulum.zls))
  (action (run zeluc %{src})))
