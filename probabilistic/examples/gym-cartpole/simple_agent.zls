@@ -1,12 +1,6 @@
 open Cart_pole
 open Pendulum
 
-let node cart_pole_zls (obs0, action) = obs, reward, stop where
-  rec automaton
-      | Reset ->
-          do obs, reward, stop = simple_pendulum (obs0, action)
-          until stop then Reset
-
 (** Probabilistic model training one neuron **)
 
 type net = { k1: float; k2: float; k3: float; k4: float}
@@ -25,9 +19,9 @@ let node model (score, obs_gym) = score', net where
     k3 = Infer.sample(Distribution.gaussian 0. 1.);
     k4 = Infer.sample(Distribution.gaussian 0. 1.);
   }
-  and obs, reward, stop = cart_pole_zls (obs_gym, (Right fby action))
+  and obs = simple_pendulum (obs_gym, (Right fby action))
   and action = controller (net, obs)
-  and score' = Infer.factor(score, 10. *. reward)
+  and score' = Infer.factor(score, -10. *. abs_float (obs.pole_angle))
 
 
 (** Connect with the physical model of the openai gym **)
