@@ -3,7 +3,7 @@
     (flags (:standard -warn-error -A))))
 
 (executables
- (names main cart_pole)
+ (names main smart_main)
  (libraries openai-gym zelus yojson)
  (link_flags -linkall)
  (ocamlc_flags -I ../../../../inference inference.cma)
@@ -18,6 +18,11 @@
  (targets simple_agent.ml main.ml)
  (deps    (:src simple_agent.zls) cart_pole.zci)
  (action  (run zeluc -I ../../../../inference -s main %{src})))
+
+(rule
+ (targets smart_agent.ml smart_main.ml)
+ (deps    (:src smart_agent.zls) cart_pole.zci)
+ (action  (run zeluc -I ../../../../inference -s smart_main %{src})))
 
 (rule
  (targets cart_pole.zci)
