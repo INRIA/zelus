@@ -86,7 +86,7 @@ let node cart_pole_gym render action = obs, reward, stop where
           then Run
       | Run ->
           do obs, reward, stop = cart_step instance_id action render
-          and r = reward +. (0. fby r)
+          and r = reward +. last r
           until stop then Reset
 
 (** Infer the neuron using the Zelus model and simulate with the openai gym**)

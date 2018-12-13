@@ -52,7 +52,7 @@ let node cart_pole_gym render action = obs, reward, stop where
           then Run
       | Run ->
           do obs, reward, stop = cart_step instance_id action render
-          and r = reward +. (0. fby r)
+          and r = reward +. last r
           until stop then Reset
 
 
@@ -70,11 +70,8 @@ let node controller (obs) = action where
 
 let node model (score, obs_gym) = score', action where
   rec obs, reward, stop = cart_pole_zls (obs_gym, (Right fby action))
-  and automaton
-      | Run ->
-          do action = controller obs
-          and score' = Infer.factor (score, -10. *. (abs_float (obs.pole_angle)))
-          until stop then Run
+  and action = controller obs
+  and score' = Infer.factor (score, -10. *. (abs_float (obs.pole_angle)))
 
 let node smart_main () = () where
   rec reset action = Infer.plan 4 10 model obs
