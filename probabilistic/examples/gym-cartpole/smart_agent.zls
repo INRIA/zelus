@@ -19,7 +19,7 @@ let node cart_pole_gym render action = obs, reward, stop where
 let node cart_pole_zls (obs0, action) = obs, reward, stop where
   rec automaton
       | Reset ->
-          do obs, reward, stop = pendulum (obs0, action)
+          do obs, reward, stop = simple_pendulum (obs0, action)
           until stop then Reset
 
 
