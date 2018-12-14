@@ -853,6 +853,13 @@ simple_expression_desc:
       { e.desc }
   | LPAREN e = simple_expression COLON t = type_expression RPAREN
       { Etypeconstraint(e, t) }
+  | e = simple_expression DOT i = ext_ident
+      { Erecord_access(e, i) }
+  | LBRACE e1 = simple_expression BAR e2 = simple_expression RBRACE
+      { Eop(Econcat, [e1; e2]) }
+  | LBRACE e1 = simple_expression WITH i = simple_expression
+					     EQUAL e2 = expression RBRACE
+      { Eop(Eupdate, [e1; i; e2]) }
 ;
 
 simple_expression_list :
@@ -940,18 +947,11 @@ expression_desc:
       { binop "||" e1 e2 ($startpos($2)) ($endpos($2)) }
   | p = PREFIX e = expression
       { unop p e ($startpos(p)) ($endpos(p)) }
-  | LBRACE e1 = simple_expression WITH i = simple_expression
-                                  EQUAL e2 = expression RBRACE
-      { Eop(Eupdate, [e1; i; e2]) }
   | e = simple_expression
           LBRACE s1 = size_expression DOTDOT s2 = size_expression RBRACE
       { Eop(Eslice(s1, s2), [e]) }
-  | LBRACE e1 = simple_expression BAR e2 = simple_expression RBRACE
-      { Eop(Econcat, [e1; e2]) }
-  | e1 = expression DOT LPAREN e2 = expression RPAREN
+  | e1 = simple_expression DOT LPAREN e2 = expression RPAREN
       { Eop(Eaccess, [e1; e2]) } 
-  | e = expression DOT i = ext_ident
-      { Erecord_access(e, i) }
   | LET defs = equation_list IN e = seq_expression  
       { Elet(false, defs, e) }
   | LET REC defs = equation_list IN e = seq_expression 
