@@ -896,9 +896,9 @@ and scondpat env scpat =
   (* first build the environment for pattern variables *)
   let acc_scpat = build_scondpat S.empty scpat in
   let env_scpat = Rename.make acc_scpat in
-  let env = Rename.append env_scpat env in
   (* rename *)
   let scpat = scondpat env_scpat env scpat in
+  let env = Rename.append env_scpat env in
   env_scpat, env, scpat
 
 (* type declarations. *)
