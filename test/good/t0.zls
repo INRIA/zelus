@@ -1,3 +1,9 @@
+type t = { x: int }
+
+let g x = x + 1
+    
+let f y = g y.x
+
 let hybrid int(v)(x0, xsecond) = x, p where
   rec der x = xprime init x0
   and der xprime = xsecond init 0.0
