@@ -1,0 +1,5 @@
+open Symbolic
+
+val sample : (env * 'a exp_fam * float list) -> env * ('var, 'a) exp
+val factor : (env * ('var, float) exp) -> env
+(* val infer : (env * 'a -D-> env * ('var, 'b) exp) -S-> 'a -D-> env * ('var, 'b) exp *)
