@@ -77,11 +77,11 @@ let env subst b_env =
   let change x ({ t_typ = ty; t_sort = sort } as entry)
       (env, subst, x_lx_eq_list) =
     match sort with
-    | Smem ({ m_next = Some(true) } as m) -> 
+    | Smem ({ m_next = Some(true) } as m) ->
         let nx = Ident.fresh "nx" in
         Env.add x { entry with t_sort = Sval }
           (Env.add nx { entry with t_sort =
-                                     Smem { m with m_next = Some(false); 
+                                     Smem { m with m_next = Some(false);
 					           m_previous = true } } env),
       Env.add x nx subst, (eq_make x (last nx ty)) :: x_lx_eq_list
     | Sstatic | Sval | Svar _ | Smem _ ->
@@ -90,7 +90,7 @@ let env subst b_env =
 
 
 (** Translation of expressions. *)
-let rec exp e = 
+let rec exp e =
   match e.e_desc with
   | Elocal _ | Econst _ | Econstr0 _ | Eglobal _ | Elast _ | Eperiod _ -> e
   | Etuple(e_list) ->
@@ -127,20 +127,20 @@ let rec exp e =
      { e with e_desc = Erecord_access(exp e1, longname) }
   | Etypeconstraint(e1, ty) ->
      { e with e_desc = Etypeconstraint(exp e1, ty) }
-  | Elet(l, e) -> 
+  | Elet(l, e) ->
      let l = local l in { e with e_desc = Elet(l, exp e) }
-  | Eblock(b, e) -> 
+  | Eblock(b, e) ->
      let b = block Env.empty b in { e with e_desc = Eblock(b, exp e) }
-  | Eseq(e1, e2) -> 
+  | Eseq(e1, e2) ->
      { e with e_desc = Eseq(exp e1, exp e2) }
   | Epresent _ | Ematch _ -> assert false
-	
+
 (** Translation of equations. *)
 and equation subst eq_list ({ eq_desc = desc } as eq) =
   match desc with
-  | EQeq(p, e) -> 
+  | EQeq(p, e) ->
      { eq with eq_desc = EQeq(p, exp e) } :: eq_list
-  | EQpluseq(x, e) -> 
+  | EQpluseq(x, e) ->
      { eq with eq_desc = EQpluseq(x, exp e) } :: eq_list
   | EQnext(x, e, None) ->
      let nx = try Env.find x subst with Not_found -> assert false in
@@ -149,15 +149,15 @@ and equation subst eq_list ({ eq_desc = desc } as eq) =
      let e = exp e in
      let e0 = exp e0 in
      let nx = try Env.find x subst with Not_found -> assert false in
-     { eq with eq_desc = EQinit(nx, e0) } :: 
+     { eq with eq_desc = EQinit(nx, e0) } ::
        { eq with eq_desc = EQeq(varpat nx e.e_typ, e) } :: eq_list
   | EQinit(x, e0) ->
      let nx = try Env.find x subst with Not_found -> x in
      { eq with eq_desc = EQinit(nx, exp e0) } :: eq_list
   | EQmatch(total, e, p_h_list) ->
-     let p_h_list = 
+     let p_h_list =
        List.map (fun ({ m_body = b } as h) -> let b = block subst b in
-					      { h with m_body = b }) 
+					      { h with m_body = b })
 		p_h_list in
      { eq with eq_desc = EQmatch(total, exp e, p_h_list) } :: eq_list
   | EQreset(res_eq_list, e) ->
@@ -168,8 +168,9 @@ and equation subst eq_list ({ eq_desc = desc } as eq) =
   | EQbefore(before_eq_list) ->
      { eq with eq_desc =
 		 EQbefore(equation_list subst [] before_eq_list) } :: eq_list
-  | EQder(n, e, None, []) ->
-     { eq with eq_desc = EQder(n, exp e, None, []) } :: eq_list
+  | EQder(x, e, None, []) ->
+     let nx = try Env.find x subst with Not_found -> x in
+     { eq with eq_desc = EQder(nx, exp e, None, []) } :: eq_list
   | EQblock(b) -> let b = block subst b in
 		  { eq with eq_desc = EQblock(b) } :: eq_list
   | EQforall ({ for_index = i_list; for_init = init_list;
@@ -194,7 +195,7 @@ and equation subst eq_list ({ eq_desc = desc } as eq) =
 				      for_body = b_eq_list } }
      :: eq_list
     | EQpresent _ | EQautomaton _ | EQder _ | EQemit _ -> assert false
-							       
+
 and equation_list subst new_eq_list eq_list =
   List.fold_left (equation subst) new_eq_list eq_list
 
@@ -205,7 +206,7 @@ and block subst ({ b_locals = l_list; b_body = eq_list; b_env = b_env } as b) =
   let l_list = List.map local l_list in
   let eq_list = equation_list subst x_lx_eq_list eq_list in
   { b with b_locals = l_list; b_body = eq_list; b_env = b_env }
-  
+
 and local ({ l_eq = l_eq_list; l_env = l_env } as l) =
   let l_env, subst, x_lx_eq_list = env Env.empty l_env in
   let l_eq_list = equation_list subst x_lx_eq_list l_eq_list in
@@ -216,5 +217,5 @@ let implementation impl =
   | Eopen _ | Etypedecl _ | Econstdecl _ | Efundecl(_, { f_kind = A }) -> impl
   | Efundecl(n, ({ f_body = e; f_env = f_env } as body)) ->
      { impl with desc = Efundecl(n, { body with f_body = exp e }) }
-       
+
 let implementation_list impl_list = Misc.iter implementation impl_list
