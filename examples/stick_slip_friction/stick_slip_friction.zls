@@ -54,7 +54,7 @@ let hybrid main () =
 
 (* The input (cf. pdf file) *)
   let f_in' = present (period(10.0)) -> 1.0
-      | (period 5.0(10.0)) -> -1.0
+      | (period (5.0 | 10.0)) -> -1.0
       init 1.0 in
   let der f_in = f_in' init 0.0 in
 

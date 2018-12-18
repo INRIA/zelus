@@ -10,7 +10,7 @@ let hybrid testengineonly () =
   and (o2_out, map, air_fuel_ratio) =
     engine_gas_dynamics (300.0, throttle_signal, fuel_rate)
   and init fuel_rate = 0.0
-  and present (init) | (period 0.0 (0.001)) ->
+  and present (init) | (period (0.0 | 0.001)) ->
     do fuel_rate = read_floats "fuel.in" done
   and der t = 1.0 init 0.0
   in
@@ -19,7 +19,7 @@ let hybrid testengineonly () =
 (* Test: feed the discrete controller with values logged from Simulink *)
 let hybrid testcontrolleronly () =
   let der t = 1.0 init 0.0 in
-  present (init) | (period 0.0 (0.001)) ->
+  present (init) | (period (0.0 | 0.001)) ->
       let
       rec air_fuel_ratio = read_floats "airfuel.in"
       and o2_out         = read_floats "o2out.in"
@@ -102,7 +102,7 @@ let hybrid basicfuel () =
   let rec init sensors = sensors_baseline ()
   and (t, fuelc_rate, o2_out, map, air_fuel_ratio) =
     simulation (sensors) in
-  present (init) | (period (0.01)) ->
+  present (init) | (period (0.05)) ->
     plot(t, "basicfuel",
             sensors,
             fuelc_rate,
@@ -117,7 +117,7 @@ let hybrid mapfail () =
   and (t, fuelc_rate, o2_out, map, air_fuel_ratio) = simulation (sensors)
   and present (period (0.01)) -> do sensors = sensors_mapfail () done
   in
-  present (init) | (period (0.01)) ->
+  present (init) | (period (0.05)) ->
       plot(t, "mapfail",
               sensors,
               fuelc_rate,

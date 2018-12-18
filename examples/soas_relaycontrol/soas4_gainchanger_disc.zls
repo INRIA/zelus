@@ -14,8 +14,7 @@ let hybrid main () = () where
   and y = process(u, highgain)
 
   and automaton
-      | Low  -> do highgain = false until (period 25.0 (25.0)) then High
+      | Low  -> do highgain = false until (period (25.0 | 25.0)) then High
       | High -> do highgain = true done
 
   and () = plot ("SOAS with lead network and gain changer", y, y_m, u, e)
-

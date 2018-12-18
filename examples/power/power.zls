@@ -5,7 +5,9 @@ let r = 1000.0
 let c = 10e-6
 
 let hybrid count(clk) = o where
-  rec o = present clk | (init) -> (0 -> (pre o + 1)) init 0
+  rec init o = 0
+  and present clk | (init) ->
+    do o = (0 fby o + 1) done
 
 (* A version counting on a periodic timer *)
 let hybrid power1() = (p, t, float cpt) where
@@ -17,26 +19,26 @@ let hybrid power1() = (p, t, float cpt) where
           and p = 0.01
           until clk on (cpt = 8) then Low
       | Low ->
-          do cpt = count clk 
+          do cpt = count clk
           and p = 0.0
           until clk on (cpt = 5) then High
-  
+
 (* A version using two locals integrators *)
 let hybrid power() = (p, t, cpt) where
   rec der t = (p /. c) -. (t /. (r *. c)) init t0
   and automaton
       | High ->
-          do der cpt = 1.0 init -0.080 
+          do der cpt = 1.0 init -0.080
           and p = 0.01
           until up(cpt) then Low
       | Low ->
-          do der cpt = 1.0 init -0.050 
+          do der cpt = 1.0 init -0.050
           and p = 0.0
           until up(cpt) then High
- 
+
 (* Main entry point *)
 let hybrid main () =
-        let der time = 1.0 init 0.0 in 
+        let der time = 1.0 init 0.0 in
         let (p, t, cpt) = power () in
         present (period (0.001)) ->
         let s = Scope.scope3 (-0.5, 1.2,
@@ -47,5 +49,3 @@ let hybrid main () =
                 ) in
                 Scope.window ("power", 0.5, time, s)
         else ()
-
-

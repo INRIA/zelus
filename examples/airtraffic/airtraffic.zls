@@ -94,7 +94,7 @@ let hybrid noavoidance (x_i, y_i, theta_i, v_1, v_2) = (0, x, y, theta, t) where
 open Airtrafficgui
 
 let hybrid main () = () where
-  rec p = period 0.1(0.1)
+  rec p = period (0.1 | 0.1)
 
   and (click, (nxr, nyr), (ntheta_r, nd)) =
     present p -> sample ()
@@ -112,4 +112,3 @@ let hybrid main () = () where
                                    st, xr, yr, theta_r,
                                    aircraft1_v *. 3600.0,
                                    aircraft2_v *. 3600.0, t)
-

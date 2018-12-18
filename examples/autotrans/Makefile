@@ -11,7 +11,7 @@ byte: autotransc.byte autotrans_gui.byte autotransd.byte
 # ------------------------------------
 
 autotrans_gui.byte: INCLUDES += $(LABLGTK2) $(SUNDIALS)
-autotrans_gui.byte: ZELUCFLAGS += -gtk2 -nodeadcode
+autotrans_gui.byte: ZELUCFLAGS += -gtk2
 autotrans_gui.byte: utils.cmo consts.cmo draw.cmo common.cmo \
     		 autotransc.cmo autotrans_gui.cmo autotrans_gui_main.cmo
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \

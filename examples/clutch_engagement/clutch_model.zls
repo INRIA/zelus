@@ -76,7 +76,7 @@ let hybrid clutch (f_n, t_in) = t_fmaxs, t_fmaxk, w_e, w_v, w where
               up(l_torque -. t_fmaxs)
             then do w_e = w and w_v = w in Slipping
       end
-      
+
 let hybrid simulation () =
   (t, t_in, f_n, t_fmaxs, t_fmaxk, w_e, w_v, w) where
   rec der t = 1.0 init 0.0
@@ -114,20 +114,19 @@ let hybrid simulation_with_period () =
   rec der time = 1.0 init 0.0
   and automaton
       | High -> do t_in = 2.0
-                until (period 5.0(5.0)) then Falling
+                until (period (5.0 | 5.0)) then Falling
       | Falling -> do t_in = 2.0 -. 2.0 *. (time -. 5.0)
-                   until (period 1.0(1.0)) then Low
+                   until (period (1.0 | 1.0)) then Low
       | Low     -> do t_in = 0.0 done
       end
   and automaton
       | Rising  -> do f_n = 0.8 *. time
-                   until (period 2.0(2.0)) then Flat
+                   until (period (2.0 | 2.0)) then Flat
       | Flat -> do f_n = 1.6
-                until (period 3.0(3.0)) then Falling
+                until (period (3.0 | 3.0)) then Falling
       | Falling -> do f_n = 1.6 -. 0.8 *. (time -. 5.0)
-                   until (period 2.0(2.0)) then Low
+                   until (period (2.0 | 2.0)) then Low
       | Low -> do f_n = 0.0 done
       end
   (* The Clutch *)
   and t_fmaxs, t_fmaxk, w_e, w_v, w = clutch(f_n,t_in)
-

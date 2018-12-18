@@ -145,7 +145,7 @@ let hybrid main() =
   and throttle, brake_torque = passing_maneuver()
   and rpm, gear, speed = autotrans(throttle, brake_torque) in
 
-  present (period(0.01)) ->
+  present (period(0.1)) ->
     let s1 = scope2(0.  , 325. , ("throttle", linear, throttle),
                                  ("brake torque", linear, brake_torque))
     and s2 = scope (0.  , 4.   , ("gear", linear, gear))
