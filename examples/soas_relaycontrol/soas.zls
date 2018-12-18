@@ -49,8 +49,8 @@ let hybrid reference u =
 
 let hybrid command () = u where
   automaton
-  | S0 -> do u = 1.0  until (period 17.5 (17.5)) then S1
-  | S1 -> do u = -1.0 until (period 35.0 (35.0)) then S2
+  | S0 -> do u = 1.0  until (period (17.5 | 17.5)) then S1
+  | S1 -> do u = -1.0 until (period  (35.0 | 35.0)) then S2
   | S2 -> do u = 1.0 done
 
 (* compensation network
