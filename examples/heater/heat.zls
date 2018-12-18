@@ -76,7 +76,8 @@ let node test (manual_mode, input) = (u, reference, measured, ok) where
       present manual_mode -> source(true -> last enough) else input
   and (u, measured) = system(reference)
   and ok, enough = oracle(low, high, u, reference, measured)
-      
+
+ 
 let node main_no_graphics() =
   let u, temp = system(19.0) in
   print_string "u = "; print_string (if u then "true" else "false");
@@ -87,7 +88,7 @@ let node main_no_graphics() =
 
 (* The main function. *)
 let node main() =
-  (* create a box for a inputs of type float; initially set at 19 degrees *)
+  (* create a box for an inputsof type float; initially set at 19 degrees *)
   let init win_desc =
     Input.frame "Main"
       (Input.vbox [Input.make_float "temperature reference" (0.,68.) 19.;
@@ -100,7 +101,9 @@ let node main() =
   let reference_temp = Input.get_float (w, "temperature reference") in
   let manual_mode = Input.get_bool (w, "manual mode") in
   (* call the main function *)
-  let u, reference_temp, measured_temp, ok = test(manual_mode, reference_temp) in
+  (* let u, reference_temp, measured_temp, ok = test(manual_mode, reference_temp) in *)
+  let (u, measured_temp) = system(19.0) in
+  let ok = false in
   let rec time = 0.0 -> pre time +. h in
   (* output the command and actual temperature *)
   let s =
