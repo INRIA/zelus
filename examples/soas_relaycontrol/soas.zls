@@ -50,7 +50,7 @@ let hybrid reference u =
 let hybrid command () = u where
   automaton
   | S0 -> do u = 1.0  until (period (17.5 | 17.5)) then S1
-  | S1 -> do u = -1.0 until (period  (35.0 | 35.0)) then S2
+  | S1 -> do u = -1.0 until (period (35.0 | 35.0)) then S2
   | S2 -> do u = 1.0 done
 
 (* compensation network
@@ -105,7 +105,7 @@ let hybrid gain_changer (d1, d2, e_l, e) = d where
 *)
 let hybrid process u = y where
   rec automaton
-      | G5  -> do b1 = 4.0 and c3 = 3.750 until (period 25.0 (25.0)) then G15
+      | G5  -> do b1 = 4.0 and c3 = 3.750 until (period (25.0 | 25.0)) then G15
       | G15 -> do b1 = 8.0 and c3 = 9.375 done
   and y = siso_3o ((-21.0, -5.0, 0.0,
                       4.0,  0.0, 0.0,
