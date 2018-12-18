@@ -325,16 +325,14 @@ let choose env ty =
       let { info = { type_desc = ty_c } } = 
         Modules.find_type (Lident.Modname(id)) in
       match ty_c with
-        | Variant_type({ qualid = qualid } :: _) ->
-            Oconstr0(Lident.Modname(qualid))
-        | Abstract_type -> eany
+      | Variant_type(g_list) -> value_from_variant_list g_list
+      | Abstract_type -> eany
         | Record_type(l_list) ->
            Orecord(
 	       List.map 
                  (fun { qualid = qualid; info = { label_res = ty } } -> 
                   (Lident.Modname(qualid), value ty)) l_list)
         | Abbrev(_, ty) -> value ty
-        | Variant_type _ -> assert false
     with
       | Not_found -> eany
   and value ty =
@@ -355,7 +353,23 @@ let choose env ty =
          (* try to find a value from its type definition *)
          (* we do not consider type instantiation here *)
          value_from_deftype id 
-    | Tlink(link) -> value link in
+    | Tlink(link) -> value link
+  and value_from_variant_list g_list =
+    let rec findrec g_list =
+      match g_list with
+      | [] -> raise Not_found
+      | { qualid = qualid; info = { constr_arity = arity } } :: g_list ->
+          if arity = 0 then Oconstr0(Lident.Modname(qualid))
+          else findrec g_list in
+    try
+      (* look for a constructor with arity 0 *)
+      findrec g_list
+    with
+    | Not_found ->
+        (* otherwise, pick one *)
+        let { qualid = qualid; info = { constr_arg = ty_list } } =
+                                      List.hd g_list in
+        Oconstr1(Lident.Modname(qualid), List.map value ty_list) in
   Some(value ty)
 
 (** Computes a default value *)

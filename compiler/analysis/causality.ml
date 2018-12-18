@@ -260,7 +260,7 @@ let rec exp env c_free ({ e_desc = desc; e_typ = ty; e_loc = loc } as e) =
         tc
     | Econstr1(_, e_list) ->
         let c = Causal.new_var () in
-        exp_less_than_on_c env c_free e c;
+        List.iter (fun e -> exp_less_than_on_c env c_free e c) e_list;
         Causal.skeleton_on_c c ty
     | Etuple(e_list) ->
         product (List.map (exp env c_free) e_list)

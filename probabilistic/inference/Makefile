@@ -8,10 +8,14 @@ OCAMLOPT=ocamlopt
 ML_SRC=distribution.ml \
 	normalize.ml \
 	infer.ml \
-	infer_dyn.ml
+	infer_dyn.ml \
+	symbolic.ml \
+	infer_adf.ml
 
 ZLI_SRC=distribution.zli \
-	infer.zli
+	infer.zli \
+	symbolic.zli \
+	infer_adf.zli
 
 OBJ=$(ML_SRC:%.ml=%.cmo)
 OBJ_OPT=$(OBJ:%.cmo=%.cmx)
