@@ -11,6 +11,10 @@ val empty : 'a list -> bool
 
 val hd : 'a list -> 'a
 val tl : 'a list -> 'a list
+val list_map : ('a -A-> 'b) -S-> 'a list -A-> 'b list
+val list_foldl : ('a * 'b -> 'a) -S-> 'a -A-> 'b list -A-> 'a
+val list_foldr : ('a * 'b -> 'b) -S-> 'a list -A-> 'b -A-> 'b
+val list_split : ('a * 'b) list -A-> 'a list * 'b list
 
 (** [float_eq (max_relative_err, a, b)] returns true if
  *  [a] = [b] to within ((1 - max_relative_error) * 100)% *)
@@ -25,4 +29,3 @@ val minor_step : unit -C-> zero
 
 (* discontinuous sgn. Warning: only for testing *)
 val bad_sgn : float -A-> float
-

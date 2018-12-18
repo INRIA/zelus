@@ -248,7 +248,7 @@ class image_selection_box
   let make_rect (x, y, x', y') =
     let x, y = min x x', min y y'
     and w, h = abs (x - x'), abs (y - y')
-    in (x, y, w, h) in 
+    in (x, y, w, h) in
 
   let no_last_coords = (0, 0, 0, 0) in
 
@@ -265,8 +265,8 @@ class image_selection_box
     val mutable width  = 0
     val mutable height = 0
 
-    val fill_hor = fill_horizontally 
-    val fill_ver = fill_vertically 
+    val fill_hor = fill_horizontally
+    val fill_ver = fill_vertically
 
     method image = image
 
@@ -472,7 +472,7 @@ class scope (yl : float) (yu : float) (sigs : signal list) =
        | Some (yu, yl) -> (min_y <- max min_y (ptov yl);
                            max_y <- min max_y (ptov yu)));
       zoom_in_hor hor_range
-    
+
     method draw_y_axis context =
       let pixmap = (yaxis_image#pixmap :> GDraw.drawable) in
       let w, h = pixmap#size in
@@ -647,7 +647,7 @@ class window title initial_max_t (scs : scope list) =
       nsamples <- min (nsamples + 1) time_len;
 
       let prev_idx = if nsamples = 1 then 0 else nsamples - 2 in
-        
+
       let t_delta = t -. self#time prev_idx in
 
       if (t_delta > 0.0 && t > max_t) then begin
@@ -849,10 +849,14 @@ class window title initial_max_t (scs : scope list) =
 
   end
 
-let signal (name, ty)       = new signal name ty
+let getSignals l = List.map (fun (a,b,_) -> (a,b)) l
+let getValues l = List.map (fun (_,_,a) -> a) l
+
+let signal (name, ty) = new signal name ty
+let signal_l l = List.map (fun (name, ty) -> signal (name, ty)) l
 let scope (yl, yu, signals)  = new scope yl yu signals
 let window (imax_t, scopes, scope_list) = new window imax_t scopes scope_list
 
 let update (s, v) = s#sample v
+let update_l (ls, l) = List.iter2 (fun s v -> update (s, v)) ls l
 let tick (w, t) = (w#tick t; w#draw)
-

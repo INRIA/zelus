@@ -58,81 +58,46 @@ let square    = Gtkplot.square
 let linear    = Gtkplot.linear
 let discrete points x  = Gtkplot.points x
 
-let node scope (yl, yu, (n1, t1, v1)) =
-  let init s1 = Gtkplot.signal (n1, t1) in
-  let init sc = Gtkplot.scope (yl, yu, singleton s1) in
-  Gtkplot.update (s1, v1);
+let node scopen (yl, yu, l) =
+  let init ls = Gtkplot.signal_l (Gtkplot.getSignals l) in
+  let init sc = Gtkplot.scope (yl, yu, ls) in
+  Gtkplot.update_l (ls, Gtkplot.getValues l);
   sc
+
+let node scope (yl, yu, (n1, t1, v1)) =
+  scopen (yl, yu, [ (n1, t1, v1) ])
 
 let node scope2 (yl, yu, (n1, t1, v1), (n2, t2, v2)) =
-  let init s1 = Gtkplot.signal (n1, t1)
-  and init s2 = Gtkplot.signal (n2, t2) in
-  let init sc = Gtkplot.scope (yl, yu, cons (s1, singleton s2)) in
-  Gtkplot.update (s1, v1);
-  Gtkplot.update (s2, v2);
-  sc
+  scopen (yl, yu, [ (n1, t1, v1); (n2, t2, v2) ])
 
 let node scope3 (yl, yu, (n1, t1, v1), (n2, t2, v2), (n3, t3, v3)) =
-  let init s1 = Gtkplot.signal (n1, t1)
-  and init s2 = Gtkplot.signal (n2, t2)
-  and init s3 = Gtkplot.signal (n3, t3) in
-  let init sc = Gtkplot.scope (yl, yu, cons (s1, cons (s2, singleton s3))) in
-  Gtkplot.update (s1, v1);
-  Gtkplot.update (s2, v2);
-  Gtkplot.update (s3, v3);
-  sc
+  scopen (yl, yu, [ (n1, t1, v1); (n2, t2, v2); (n3, t3, v3) ])
 
 let node scope4 (yl, yu,
                  (n1, t1, v1), (n2, t2, v2), (n3, t3, v3), (n4, t4, v4)) =
-  let init s1 = Gtkplot.signal (n1, t1)
-  and init s2 = Gtkplot.signal (n2, t2)
-  and init s3 = Gtkplot.signal (n3, t3)
-  and init s4 = Gtkplot.signal (n4, t4) in
-  let init sc = Gtkplot.scope
-                  (yl, yu, cons (s1, cons (s2, cons (s3, singleton s4)))) in
-  Gtkplot.update (s1, v1);
-  Gtkplot.update (s2, v2);
-  Gtkplot.update (s3, v3);
-  Gtkplot.update (s4, v4);
-  sc
+  scopen (yl, yu, [ (n1, t1, v1); (n2, t2, v2); (n3, t3, v3); (n4, t4, v4) ])
 
 let node scope5 (yl, yu,
                  (n1, t1, v1), (n2, t2, v2), (n3, t3, v3), (n4, t4, v4),
                  (n5, t5, v5)) =
-  let init s1 = Gtkplot.signal (n1, t1)
-  and init s2 = Gtkplot.signal (n2, t2)
-  and init s3 = Gtkplot.signal (n3, t3)
-  and init s4 = Gtkplot.signal (n4, t4)
-  and init s5 = Gtkplot.signal (n5, t5) in
-  let init sc = Gtkplot.scope
-                  (yl, yu, cons (s1, cons (s2, cons (s3, cons (s4,
-                    singleton s5))))) in
-  Gtkplot.update (s1, v1);
-  Gtkplot.update (s2, v2);
-  Gtkplot.update (s3, v3);
-  Gtkplot.update (s4, v4);
-  Gtkplot.update (s5, v5);
-  sc
+  scopen (yl, yu,
+    [ (n1, t1, v1); (n2, t2, v2); (n3, t3, v3); (n4, t4, v4); (n5, t5, v5) ])
+
+let node windown (title, imaxt, v, ls) =
+  let init w = Gtkplot.window (title, imaxt, ls) in
+  Gtkplot.tick (w, v)
 
 let node window (title, imaxt, v, s1) =
-  let init w = Gtkplot.window (title, imaxt, singleton s1) in
-  Gtkplot.tick (w, v)
+  windown (title, imaxt, v, [ s1 ])
 
 let node window2 (title, imaxt, v, s1, s2) =
-  let init w = Gtkplot.window (title, imaxt, cons (s1, singleton s2)) in
-  Gtkplot.tick (w, v)
+  windown (title, imaxt, v, [ s1; s2 ])
 
 let node window3 (title, imaxt, v, s1, s2, s3) =
-  let init w = Gtkplot.window (title, imaxt, cons (s1, cons (s2, singleton s3)))
-  in
-  Gtkplot.tick (w, v)
+  windown (title, imaxt, v, [ s1; s2; s3 ])
 
 let node window4 (title, imaxt, v, s1, s2, s3, s4) =
-  let init w = Gtkplot.window (title, imaxt,
-                               cons (s1, cons (s2, cons (s3, singleton s4)))) in
-  Gtkplot.tick (w, v)
+  windown (title, imaxt, v, [ s1; s2; s3; s4 ])
 
 let node window5 (title, imaxt, v, s1, s2, s3, s4, s5) =
-  let init w = Gtkplot.window (title, imaxt,
-                    cons (s1, cons (s2, cons (s3, cons (s4, singleton s5))))) in
-  Gtkplot.tick (w, v)
+  windown (title, imaxt, v, [ s1; s2; s3; s4; s5 ])

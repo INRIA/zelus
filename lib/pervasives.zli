@@ -28,8 +28,8 @@ val ( * ) : int -> int -> int
 val ( / ) : int -> int -> int
 val ( mod ) : int -> int -> int
 val abs : int -> int
-val max_int : int 
-val min_int : int 
+val max_int : int
+val min_int : int
 val ( land ) : int -> int -> int
 val ( lor ) : int -> int -> int
 val ( lxor ) : int -> int -> int
@@ -44,8 +44,8 @@ val ( *. ) : float -> float -> float
 val ( /. ) : float -> float -> float
 val ( ** ) : float -> float -> float
 val sqrt : float -> float
-val exp : float -> float 
-val log : float -> float 
+val exp : float -> float
+val log : float -> float
 val log10 : float -> float
 val cos : float -> float
 val sin : float -> float
@@ -92,13 +92,13 @@ val string_of_int : int -> string
 val int_of_string : string -> int
 val string_of_float : float -> string
 val float_of_string : string -> float
-val fst : 'a -> 'b -> 'a
-val snd : 'a -> 'b -> 'b
+val fst : 'a * 'b -> 'a
+val snd : 'a * 'b -> 'b
 type in_channel
 type out_channel
-val stdin : in_channel 
-val stdout : out_channel 
-val stderr : out_channel 
+val stdin : in_channel
+val stdout : out_channel
+val stderr : out_channel
 val print_char : char -AD-> unit
 val print_string : string -AD-> unit
 val print_int : int -AD-> unit

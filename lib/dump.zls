@@ -10,10 +10,17 @@ let square    = ()
 let linear    = ()
 let points x  = ()
 
+let fun getName (n, _, _) = n
+let fun getValue (_, _, v) = v
+
+let node scopen (yl, yu, l) =
+  let init names = list_map getName l in
+  (names, list_map getValue l)
+
 let node scope (yl, yu, (n1, t1, v1)) =
   let init names = singleton n1 in
   (names, singleton v1)
-  
+
 let node scope2 (yl, yu, (n1, t1, v1), (n2, t2, v2)) =
   let init names = cons (n1, singleton n2) in
   (names, cons (v1, singleton v2))
@@ -27,6 +34,13 @@ let node scope4 (yl, yu,
                  (n1, t1, v1), (n2, t2, v2), (n3, t3, v3), (n4, t4, v4)) =
   let init names = cons (n1, cons (n2, cons (n3, singleton n4))) in
   (names, cons (v1, cons (v2, cons (v3, singleton v4))))
+
+let node windown (title, imaxt, t, l) =
+    output_floats f (cons (t, v)) where
+  rec init f = open_out (title ^ ".out")
+  and init x = output_quoted_strings f (cons ("t", n))
+  and init n = list_foldl append [] (fst (list_split l))
+  and init v = list_foldl append [] (snd (list_split l))
 
 let node window (title, imaxt, t, (n1, v1)) = output_floats f (cons (t, v1))
   where
@@ -60,4 +74,3 @@ let node window5 (title, imaxt, t,
   rec f = open_out (title ^ ".out")
   and x = output_quoted_strings f
             (cons ("t", append (n1, append (n2, append (n3, append (n4, n5))))))
-

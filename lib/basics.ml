@@ -9,6 +9,10 @@ let empty = function
 
 let hd = List.hd
 let tl = List.tl
+let list_map = List.map
+let list_foldl f a l = List.fold_left (fun a b -> f (a,b)) a l
+let list_foldr f l b = List.fold_right (fun a b -> f (a, b)) l b
+let list_split = List.split
 
 let append (l1, l2) = List.append l1 l2
 
@@ -19,7 +23,7 @@ let output_line output_item out ss =
   output_string out "\n"
 
 let output_strings out ss = output_line output_string out ss
-                                 
+
 let output_quoted_strings out ss =
   output_line (fun oc s -> (Printf.fprintf oc "\"%s\"" s; flush oc)) out ss
 let output_floats out ss =
@@ -53,4 +57,3 @@ let minor_step () = not !is_major_step
 let on x y = x && y
 
 let bad_sgn e = if e = 0.0 then 0.0 else if e > 0.0 then 1.0 else -1.0
-
