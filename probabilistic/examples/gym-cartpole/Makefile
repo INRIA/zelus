@@ -12,4 +12,4 @@ exec_smart:
 clean:
 	dune clean
 cleanall: clean
-	rm -r *~
+	rm -f *~

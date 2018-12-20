@@ -25,8 +25,10 @@ let node model (score, obs_gym) = score', action where
   rec obs = simple_pendulum (obs_gym, (Right fby action))
   and action = controller obs
   and score' = Infer.factor (score, -10. *. (abs_float (obs.pole_angle)))
+  and display = draw_obs_back obs
 
 let node smart_main () = () where
-  rec reset action = Infer.plan 4 10 model obs
+  rec reset action = Infer.plan 10 10 model obs
       every true
   and obs, _, stop = cart_pole_gym true (Right fby action)
+  and display = draw_obs_front obs

@@ -72,3 +72,42 @@ let cart_step: instance_id -> cart_action -> bool -> cart_observation * float * 
     step_response.step_reward,
     step_response.step_done
 end
+
+
+(* Graphics *)
+
+let with_graphics = ref true
+let size_x_div_2 = 300.
+
+let init_graph () =
+  let size_x = string_of_int ((int_of_float size_x_div_2) * 2) in
+  Graphics.open_graph (" "^size_x^"x400");
+  Graphics.auto_synchronize false;
+  ()
+
+let () =
+  if !with_graphics then init_graph ()
+
+let draw_obs obs =
+  let pole_length = 100. in
+  let x0 = obs.cart_position *. 100. +. size_x_div_2 in
+  let y0 = 100. in
+  let x1 = x0 +. pole_length *. sin obs.pole_angle in
+  let y1 = y0 +. pole_length *. cos obs.pole_angle in
+  Graphics.draw_segments
+    [| int_of_float x0, int_of_float y0,
+       int_of_float x1, int_of_float y1 |]
+
+let draw_obs_back obs =
+  Graphics.set_color Graphics.black;
+  draw_obs obs;
+  (* Graphics.synchronize (); *)
+  ()
+
+
+let draw_obs_front obs =
+  Graphics.set_color Graphics.red;
+  draw_obs obs;
+  Graphics.synchronize ();
+  Graphics.clear_graph();
+  ()

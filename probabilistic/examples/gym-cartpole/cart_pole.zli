@@ -13,3 +13,7 @@ val cart_init: unit -AD-> instance_id
 val cart_reset: instance_id -AD-> cart_observation
 val cart_step: instance_id -> cart_action -> bool -> cart_observation * float * bool
 val print_cart_observation: cart_observation -AD-> unit
+val init_graph: unit -AD-> unit
+val draw_obs: cart_observation -AD-> unit
+val draw_obs_back: cart_observation -AD-> unit
+val draw_obs_front: cart_observation -AD-> unit

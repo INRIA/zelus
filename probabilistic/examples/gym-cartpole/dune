@@ -4,7 +4,7 @@
 
 (executables
  (names main smart_main)
- (libraries openai-gym zelus yojson)
+ (libraries openai-gym zelus yojson graphics)
  (link_flags -linkall)
  (ocamlc_flags -I ../../../../inference inference.cma)
  (ocamlopt_flags -I ../../../../inference inference.cmxa))
