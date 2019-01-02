@@ -3,9 +3,11 @@
 (* and a email discussion with Gregoire Hamon, 1/01/09 *)
 (* who suggested to encode pull streams with higher-order functions *)
 
-(* Zelus is only "push based" and not "pull based". This is no clock *)
-(* to constrain an input to be present only on some condition *)
-(* as suggested by Gregoire Hamon, it can be simulated with higher-order functions *)
+(* Zelus is only "push based" and not "pull based". With clocks of LS v1 *)
+(* it would be possible to encode pull based stream by *)
+(* constraining an input to be present only on some condition. *)
+(* As suggested by Gregoire Hamon, it can be simulated with higher-order *)
+(* functions in a simpler way *)
 
 type 'a sorted = { tag: int; value: 'a }
       
