@@ -69,7 +69,7 @@ let print_concrete_type ff ty =
     let prio_ty = priority ty in
     if prio_ty < prio then fprintf ff "(";
     begin match ty with
-    | Otypevar(s) -> fprintf ff "%s" s
+    | Otypevar(s) -> fprintf ff "'%s" s
     | Otypefun(k, opt_name, ty_arg, ty) ->
        let arg prio ff (opt_name, ty) =
 	 match opt_name with
