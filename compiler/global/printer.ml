@@ -118,7 +118,7 @@ and ptype ff ty =
 	  (psize prio_op) e1 (operator op) (psize prio_op) e2;
 	if prio > prio_op then fprintf ff ")" in
   match ty.desc with
-    | Etypevar(s) -> fprintf ff "%s" s
+    | Etypevar(s) -> fprintf ff "'%s" s
     | Etypeconstr(ln, ty_list) -> 
         fprintf ff "@[<hov2>%a@]%a" 
           (print_list_r_empty ptype "("","")") ty_list 
@@ -507,7 +507,7 @@ let implementation ff impl =
     | Eopen(n) -> open_module ff n
     | Etypedecl(n, params, ty_decl) ->
         fprintf ff "@[<v 2>type %a%s %a@.@.@]"
-          print_type_params params
+          Ptypes.print_type_params params
           n type_decl ty_decl
     | Econstdecl(n, is_static, e) ->
         fprintf ff "@[<v 2>let %s%s =@ %a@.@.@]"
@@ -523,7 +523,7 @@ let interface ff inter =
     | Einter_open(n) -> open_module ff n
     | Einter_typedecl(n, params, ty_decl) ->
         fprintf ff "@[<v 2>type %a%s %a@.@.@]"
-          print_type_params params
+          Ptypes.print_type_params params
           n type_decl ty_decl
     | Einter_constdecl(n, ty) ->
         fprintf ff "@[<v 2>val %s : %a@.@.@]"
