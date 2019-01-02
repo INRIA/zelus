@@ -117,7 +117,11 @@ let print_type_name ff (tc,ta) = match ta with
 
 (* prints one variant *)
 let print_one_variant ff { qualid = qualid; info = constr_desc } =
-  fprintf ff "@ |@[<3>@ %a@]" print_qualid qualid
+  if constr_desc.constr_arity = 0
+  then fprintf ff "@ |@[<3>@ %a@]" print_qualid qualid
+  else fprintf ff "@ |@[<3>@ %a of@,%a@]"
+      print_qualid qualid
+      (print_list_l (print 1) "(" "* " ")") constr_desc.constr_arg
 
 
 (* prints one label *)
