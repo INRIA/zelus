@@ -1,6 +1,7 @@
-let f x1 x =
-  present
-    x1(x) on (x = 4) -> 1
+type t = A of int
+ let node f (x: t) = o where
+   rec o = x fby x
+
     
 (*
 type cstate =
