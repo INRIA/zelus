@@ -1,12 +1,10 @@
 open Distribution
 open Mountain_world
 
-let sample d = Distribution.draw d
-
-let node model (score, (map, state_init)) = score', state where
+let node model (pstate, (map, state_init)) = state where
   rec state = state_init fby transition map state action
-  and action = sample (uniform_list (possible_actions map state))
-  and score' = utility map state action
+  and action = Infer.sample (pstate, uniform_list (possible_actions map state))
+  and unit = Infer.factor(pstate, utility map state action)
 
 let node main () =
   let state = Infer.plan 30 5 model (map, state_init) in

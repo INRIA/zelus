@@ -1,11 +1,9 @@
 (* Une Smart chaudiere ! *)
 open Distribution
 open Heat
+open Infer
 
 let penality = 1.0
-
-let sample d = Distribution.draw d
-let factor (s, v) = s +. v
 
 let sq x = x *. x
 
@@ -17,27 +15,26 @@ let node room_model (temp_ext, u) = temp where
   rec temp = temp_ext -> (pre temp +. if u then 0.5
                                              else -. 0.5)
 
-let node smart_controller (score, (reference, temp_ext)) = (score, u) where
-  rec u =  sample (Distribution.bernoulli 0.5)
+let node smart_controller (pstate, (reference, temp_ext)) = u where
+  rec u =  sample (pstate, Distribution.bernoulli 0.5)
 
-let node smart_controller1 (score, (reference, temp_ext)) = (score', u) where
-  rec u =  sample (Distribution.bernoulli 0.5)
-  and score' = factor (score, -. 1000. *. (sq (reference -. temp)))
+let node smart_controller1 (pstate, (reference, temp_ext)) = u where
+  rec u = sample (pstate, Distribution.bernoulli 0.5)
+  and () = factor (pstate, -. 1000. *. (sq (reference -. temp)))
   and temp = room_model(temp_ext, u)
 
-let node smart_controller2 (score, (reference, temp_ext)) = (score'', u) where
-  rec u =  sample (Distribution.bernoulli 0.5)
-  and score' = factor (score, -. (abs_float (reference -. temp)))
+let node smart_controller2 (pstate, (reference, temp_ext)) = u where
+  rec u =  sample (pstate, Distribution.bernoulli 0.5)
+  and () = factor (pstate, -. (abs_float (reference -. temp)))
   and temp = room_model(temp_ext, u)
-  and score'' = factor (score', if u <> u fby u then -1. else 0.)
-
+  and () = factor (pstate, if u <> u fby u then -1. else 0.)
 
 let node controller (reference, temp_ext) = u where
-  rec u_dist = Infer.infer 1000 smart_controller1 (true, (reference, temp_ext))
+  rec u_dist = infer 1000 smart_controller1 (true, (reference, temp_ext))
   and u =
     (* print_string "P(true) = "; *)
     (* print_endline (string_of_float (exp (Distribution.score u_dist true))); *)
-    sample u_dist
+    Distribution.draw u_dist
 
 (* let node mains2 () = *)
 (*   let u = controller (15.0, 5.0) in *)
@@ -60,10 +57,10 @@ let node controller (reference, temp_ext) = u where
 (* let node smart_ctrl_planning (reference, temp_ext) = u where *)
 (*   rec u = sample (Distribution.bernoulli 0.5) *)
 
-let node smart_ctrl_planning (utility, (reference, temp_ext)) = (utility', u) where
-  rec u = sample (Distribution.bernoulli 0.5)
+let node smart_ctrl_planning (pstate, (reference, temp_ext)) = u where
+  rec u = sample (pstate, Distribution.bernoulli 0.5)
   and temp = room_model(temp_ext, u)
-  and utility' = utility -. 0.1 *. sq (reference -. temp)
+  and () = factor(pstate, -. 0.1 *. sq (reference -. temp))
 
 (* let node controller_plan (reference, temp_ext) = u where *)
 (*   rec u_dist = *)
@@ -79,7 +76,7 @@ let node smart_ctrl_planning (utility, (reference, temp_ext)) = (utility', u) wh
 (*   and u = sample u_dist *)
 
 let node controller_plan (reference, temp_ext) = u where
-  rec u = Infer.plan 10 5 smart_ctrl_planning (reference, temp_ext)
+  rec u = plan 10 5 smart_ctrl_planning (reference, temp_ext)
 
 
 let node mains2 () =

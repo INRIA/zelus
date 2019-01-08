@@ -1,9 +1,9 @@
 open Distribution
 
-let node coin (score, flip) = (score', theta) where
-  rec init theta = Infer.sample (uniform_float 0. 1.)
-  and score' = Infer.factor (score,
-                             Distribution.score (bernoulli theta) flip)
+let node coin (pstate, flip) = theta where
+  rec init theta = Infer.sample (pstate, uniform_float 0. 1.)
+  and unit = Infer.factor (pstate,
+                           Distribution.score (bernoulli theta) flip)
 
 let node cheater_detector flip = (cheater, m) where
   rec automaton

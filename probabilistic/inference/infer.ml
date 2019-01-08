@@ -9,34 +9,45 @@
 
 open Ztypes
 
+type pstate = {
+  idx : int; (** particle index *)
+  scores : float array; (** score of each particle *)
+}
 
-let factor (f, f0) = f +. f0
-let sample = Distribution.draw
+let factor (pstate, f0) =
+  pstate.scores.(pstate.idx) <- pstate.scores.(pstate.idx) +. f0
 
+let sample (pstate, dist) =
+  Distribution.draw dist
+
+type 'a infer_state = {
+  infer_states : 'a array;
+  infer_scores : float array;
+}
 
 let infer n (Node { alloc; reset; step }) =
     (* val infer :
-         int -S-> (score * 'a -D-> score * 'b)
+         int -S-> (pstate * 'a -D-> 'b)
              -S-> bool * 'a -D-> 'b Distribution.t *)
     (* The infer function takes a number of particles, a node, and
-       returns a node.  The node in argument takes as argument a score
-       and an input and returns the updated score.  The node in output
-       takes as argument a boolen indiacting to the instants to
-       resample and the input and returns the infered output. *)
+       returns a node.  The node in argument takes as argument a state
+       for the inference and an input and returns the output.
+       The node in output takes as argument a boolen indiacting to the
+       instants to resample and the input and returns the infered
+       output. *)
   let alloc () =
-    Array.init n (fun _ -> alloc ()),
-    Array.make n 0.0
+    { infer_states = Array.init n (fun _ -> alloc ());
+      infer_scores = Array.make n 0.0; }
   in
-  let reset (states, scores) =
-    Array.iter reset states;
-    Array.fill scores 0 n 0.0
+  let reset state =
+    Array.iter reset state.infer_states;
+    Array.fill state.infer_scores 0 n 0.0
   in
-  let step (states, scores) (c, input) =
+  let step { infer_states = states; infer_scores = scores } (c, input) =
     let values =
       Array.mapi
         (fun i state ->
-          let score, value = step state (scores.(i), input) in
-          scores.(i) <- score;
+          let value = step state ({ idx = i; scores = scores; }, input) in
           value)
         states
     in
@@ -84,7 +95,8 @@ let plan_step n k model_step =
       let score' =
         Array.iteri
           (fun i state ->
-            let score, _ = model_step state (scores.(i), input) in
+            let _ = model_step state ({ idx = i; scores = scores; }, input) in
+            let score = scores.(i) in
             let eu =
               memoize_step
                 expected_utility ((state, score), table) (ttl - 1, input)
@@ -97,11 +109,12 @@ let plan_step n k model_step =
       in
       score +. score'
   in
-  let step states scores input =
+  let step { infer_states = states; infer_scores = scores; } input =
     let values =
       Array.mapi
         (fun i state ->
-          let score, value = model_step state (scores.(i), input) in
+          let value = model_step state ({ idx = i; scores = scores; }, input) in
+          let score = scores.(i) in
           scores.(i) <- expected_utility (state, score) (k, input);
           value)
         states
@@ -117,14 +130,16 @@ let plan_step n k model_step =
 
 (* [plan n k f x] runs n instances of [f] on the input stream *)
 (* [x] but at each step, do a prediction of depth k *)
-let plan n k (Node model : (float * 't1, float * 't2) Ztypes.node) =
+let plan n k (Node model : (pstate * 't1, 't2) Ztypes.node) =
   let alloc () = ref (model.alloc ()) in
   let reset state = model.reset !state in
-  let step_XXXX = plan_step n k model.step in
+  let step_body = plan_step n k model.step in
   let step plan_state input =
     let states = Array.init n (fun _ -> Normalize.copy !plan_state) in
     let scores = Array.make n 0.0 in
-    let states_scores_values = step_XXXX states scores input in
+    let states_scores_values =
+      step_body { infer_states = states; infer_scores = scores; } input
+    in
     let dist = Normalize.normalize states_scores_values in
     let state', _, value = Distribution.draw dist in
     plan_state := state';
@@ -149,7 +164,8 @@ let infer_depth n k (Node model) =
   let step infd_state input =
     let states_scores_values =
       plan_step n k
-        model.step infd_state.infd_states infd_state.infd_scores input
+        model.step { infer_states = infd_state.infd_states;
+                     infer_scores = infd_state.infd_scores; } input
     in
     let values = Array.map (fun (_, _, v) -> v) states_scores_values in
     Normalize.normalize values

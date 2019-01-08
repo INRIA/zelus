@@ -3,25 +3,25 @@ open Distribution
 open Heat
 
 let penality = 1.0
-    
+
 (* un controleur stupide: choisi une valeur de commande (vrai/faux) *)
 (* et donne un score d'autant plus grand que l'erreur est petite. *)
-let node stupid_controller(s, error) =
+let node stupid_controller(pstate, error) =
   (* choisi une valeur 0 ou 1 aleatoirement *)
   let u =  Distribution.draw (Distribution.bernoulli 0.5) in
-  let s = s -. (abs_float error) in
+  Infer.factor(pstate, -. (abs_float error));
   (* on favorise une commande stable *)
-  let s = if u <> u fby u then s else s -. penality in
-  s, u
+  Infer.factor(pstate, if u <> u fby u then 0. else -. penality);
+  u
 
 let node memoized_stupid_controller(s, error) =
   Infer.memoize stupid_controller (s, error)
-  
-let node system(score, reference) = (score', (u, temp)) where
+
+let node system(pstate, reference) = (u, temp) where
   rec
       error = reference -. temp
   and
-      score', u = memoized_stupid_controller(score, error)
+      u = memoized_stupid_controller(pstate, error)
   and
       temp = heater(h)(c, alpha, beta, 0.0, 0.0, u)
 
@@ -34,7 +34,7 @@ let node every_n k =
 let node system1(c, temp) =
   Distribution.draw (Infer.infer 1000 system (true, temp))
  *)
-    
+
 (*
 let node mains () =
   let u, temp =
@@ -44,4 +44,3 @@ let node mains () =
   print_newline ()
  *)
 let node mains () = ()
-    

@@ -1,16 +1,13 @@
 open Distribution
+open Infer
 
-let factor (acc, s) = acc +. s
-let sample d = Distribution.draw d
-
-let node model (score, (map, state_init)) = (score', state) where
+let node model (pstate, (map, state_init)) = state where
   rec state = state_init fby Restaurant_world.transition map state action
   and action =
-    sample (uniform_list (Restaurant_world.possible_actions map state))
-  and score' =
-    factor
-      (factor (score, Restaurant_world.utility map state action),
-       0. -> if state = pre state then -100. else 10.)
+    sample (pstate, uniform_list (Restaurant_world.possible_actions map state))
+  and () =
+    factor (pstate, 0. -> if state = pre state then -100. else 10.);
+    factor (pstate, Restaurant_world.utility map state action)
 
 
 let node main () =

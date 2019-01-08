@@ -2,9 +2,6 @@ open Distribution
 open Display
 open Infer
 
-let sample dist = Distribution.draw dist
-let factor (score, x) = score +. x
-
 (* noisy observation of the mouse position. It is a gaussian centered on the *)
 (* exact position *)
 let node sensor () = obs where
@@ -19,31 +16,31 @@ let node display (obs, pos_dist) =
 
 (* the expected position [p] of the mouse is searched arround the previous *)
 (* one supposing that the motion speed of the mouse is bounded *)
-let node hmm (score, obs) = (score', p) where
-  rec p = sample (sph_gaussian (obs fby p) speed)
-  and score' = factor (score, Distribution.score (sph_gaussian p noise) obs)
+let node hmm (pstate, obs) = p where
+  rec p = sample (pstate, sph_gaussian (obs fby p) speed)
+  and unit = factor (pstate, Distribution.score (sph_gaussian p noise) obs)
 
 let node once n = ok where
   rec init cpt = 1 and cpt = if ok then 1 else last cpt + 1
   and ok = last cpt = n
 
-let node hmm_momentum(score, obs) = (score', p) where
+let node hmm_momentum(pstate, obs) = p where
   rec last_p = obs fby p
   and momentum = (last_p -: (obs fby last_p)) *: 0.7
-  and p = sample (sph_gaussian (last_p +: momentum) speed)
-  and score' = factor(score, Distribution.score (sph_gaussian p noise) obs)
+  and p = sample (pstate, sph_gaussian (last_p +: momentum) speed)
+  and unit = factor(pstate, Distribution.score (sph_gaussian p noise) obs)
 
-let node hmm_reset_automaton(score, obs) = (score', p) where
+let node hmm_reset_automaton(pstate, obs) = p where
   rec automaton
       | HMM(p_init) ->
-          do score', p = hmm_momentum(score, obs)
+          do p = hmm_momentum(pstate, obs)
           and last_obs = p_init fby obs
           until
             (norm (obs -: last_obs) > (norm(speed +: noise))) then HMM(obs)
        init HMM(obs)
 
-let node hmm_reset(score, obs) = (score', p) where
-  rec reset score', p = hmm(score, obs)
+let node hmm_reset(pstate, obs) = p where
+  rec reset p = hmm(pstate, obs)
         and last_obs = obs fby obs
         and n = norm (obs -: last_obs)
       every false fby (n > norm(speed +: noise))
@@ -52,7 +49,7 @@ let node hmm_reset(score, obs) = (score', p) where
 let node main () =
   let obs = sensor () in
   present obs(o) ->
-    let pos_dist = infer 1000 hmm_momentum(true, o) in
+    let pos_dist = infer 1000 hmm(true, o) in
     display(o, pos_dist)
   else ()
 

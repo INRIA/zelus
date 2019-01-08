@@ -1,5 +1,6 @@
 all:
 	$(MAKE) -C gridworld
+	$(MAKE) -C coin
 	$(MAKE) -C heater
 	$(MAKE) -C hiking
 	$(MAKE) -C hmm
@@ -10,6 +11,7 @@ all:
 
 clean:
 	$(MAKE) -C gridworld clean
+	$(MAKE) -C coin clean
 	$(MAKE) -C heater clean
 	$(MAKE) -C hiking clean
 	$(MAKE) -C hmm clean
@@ -20,6 +22,7 @@ clean:
 
 realclean cleanall:
 	$(MAKE) -C gridworld cleanall
+	$(MAKE) -C coin cleanall
 	$(MAKE) -C heater cleanall
 	$(MAKE) -C hiking cleanall
 	$(MAKE) -C hmm cleanall

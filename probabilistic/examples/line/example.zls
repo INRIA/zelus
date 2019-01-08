@@ -1,11 +1,9 @@
 (* A first example *)
-let sample dist = Distribution.draw dist
-let factor (score, x) = score +. x
 
-let node model (score, obs) = (score', a) where
-  rec a = sample (Distribution.gaussian 1. 2.) fby a
+let node model (pstate, obs) = a where
+  rec a = Infer.sample (pstate, Distribution.gaussian 1. 2.) fby a
   and cpt = 0. fby cpt +. a
-  and score' = factor (score, -. (abs_float (obs -. cpt)))
+  and unit = Infer.factor (pstate, -. (abs_float (obs -. cpt)))
 
 let node periodic n =
   let rec o = 1 fby (if ok then 1 else o + 1)
