@@ -4,6 +4,7 @@ open Pendulum
 (** Probabilistic model training one neuron **)
 
 type net = { k1: float; k2: float; k3: float; k4: float}
+
 let node controller (net, obs) = action where
   rec force = net.k1 *. obs.cart_position
       +. net.k2 *. obs.cart_velocity
@@ -12,14 +13,14 @@ let node controller (net, obs) = action where
   and  action = if force > 0. then Right else Left
 
 
-let node model (score, obs_gym) = score', net where
+let node model (score, obs_init) = score', net where
   rec init net = {
     k1 = Infer.sample(Distribution.gaussian 0. 1.);
     k2 = Infer.sample(Distribution.gaussian 0. 1.);
     k3 = Infer.sample(Distribution.gaussian 0. 1.);
     k4 = Infer.sample(Distribution.gaussian 0. 1.);
   }
-  and obs = simple_pendulum (obs_gym, (Right fby action))
+  and obs = simple_pendulum (obs_init, (Right fby action))
   and action = controller (net, obs)
   and score' = Infer.factor(score, -10. *. abs_float (obs.pole_angle))
   and display = draw_obs_back obs
@@ -44,7 +45,7 @@ let node cart_pole_gym render action = obs, reward, stop where
 (** Infer the neuron using the Zelus model and simulate with the openai gym**)
 
 let node main () = () where
-  rec net_dist = Infer.infer 2000 model (true, obs)
+  rec net_dist = Infer.infer 3000 model (true, obs)
   and net = Distribution.draw net_dist
   and obs, _, _ = cart_pole_gym true (Right fby action)
   and action = controller (net, obs)

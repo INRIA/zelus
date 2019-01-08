@@ -1,17 +1,50 @@
 open Distribution
 
-let node coin (score, b) = (score', theta) where
+let node coin (score, flip) = (score', theta) where
   rec init theta = Infer.sample (uniform_float 0. 1.)
   and score' = Infer.factor (score,
-                             Distribution.score (bernoulli theta) b)
+                             Distribution.score (bernoulli theta) flip)
+
+let node cheater_detector flip = (cheater, m) where
+  rec automaton
+  | Observe -> local theta_dist
+      do theta_dist = Infer.infer 1000 coin (true, flip)
+      and m = Distribution.mean_float theta_dist
+      and cheater = false
+      until (m < 0.25 or m > 0.75) then Cheater(m)
+  | Cheater(cheating) ->
+      do cheater = true
+      and m = cheating
+      done
 
 let node flips (nb_true, n) = b where
   rec cpt = (0 fby cpt + 1) mod n
   and b = cpt < nb_true
 
-let node main () =
-  let b = flips (1, 10) in
-  let o = Infer.infer 1000 coin (true, b) in
-  let result = Distribution.mean_float o in
-  print_float result; print_newline ()
+let node print_bool b =
+  let s = if b then "true " else "false" in
+  print_string s
+
+(* let node main () = *)
+(*   let b = flips (1, 10) in *)
+(*   let o = Infer.infer 1000 coin (true, b) in *)
+(*   let result = Distribution.mean_float o in *)
+(*   print_float result; print_newline () *)
+
+let node main () = dummy where
+  rec b = (* flips (1, 10) *) Distribution.draw (bernoulli 0.2)
+  and cheater, m = cheater_detector b
+  and automaton
+  | Run ->
+      do
+        dummy = print_bool b; print_string " : "; print_float m; print_newline ()
+      until cheater then Cheating
+  | Cheating ->
+      do
+        dummy = print_endline "Cheating!!!"
+      until true then Stop
+  | Stop ->
+      do
+        dummy = ()
+      done
 

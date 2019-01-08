@@ -5,7 +5,6 @@ type ('var, 'a) exp =
   | Const of 'a
   | Pow of ('var, 'a) exp * int
   | Unop of unop * ('var, 'a) exp
-  | Unit (* TODO: Remove. Some weird Zelus thing needs this *)
 
 and unop = Log
 

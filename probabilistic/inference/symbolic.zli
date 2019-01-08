@@ -6,7 +6,6 @@ type ('var, 'a) exp =
   | Prod of ('var, 'a) exp list
   | Const of 'a
   | Unop of unop * ('var, 'a) exp
-  | Unit
 
 val var : 'var -> ('var, 'a) exp
 val sum : ('var, 'a) exp list -> ('var, 'a) exp
