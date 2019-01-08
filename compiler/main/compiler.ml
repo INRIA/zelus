@@ -192,6 +192,9 @@ let compile modname filename =
 	step "Compilation of initialization and resets done. See below:"
 	     Reset.implementation_list impl_list in
       let impl_list =
+	step "Actualize write variables in blocks. See below:"
+	     Write.implementation_list impl_list in
+      let impl_list =
 	step "Add an extra discrete step for weak transitions. See below:"
 	    Encore.implementation_list impl_list in
      let impl_list =
@@ -203,7 +206,7 @@ let compile modname filename =
      let impl_list =
 	step "Actualize write variables in blocks. See below:"
 	     Write.implementation_list impl_list in
-      let impl_list =
+     let impl_list =
        step "Naming shared variables and memories done. See below:"
 	    Shared.implementation_list impl_list in
      let impl_list =

@@ -38,7 +38,7 @@ let encore env { dv = dv } =
     let { t_sort = sort } =
       try Env.find x env
       with Not_found ->
-	Misc.internal_error "Period: unbound name" Printer.name x in
+	Misc.internal_error "Encore: unbound name" Printer.name x in
       match sort with
       | Smem { m_previous = previous } -> previous | _ -> false in
   S.exists write_on_last dv
