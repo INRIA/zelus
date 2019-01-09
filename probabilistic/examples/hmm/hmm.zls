@@ -29,7 +29,7 @@ let node hmm_momentum(pstate, obs) = p where
   rec last_p = obs fby p
   and momentum = (last_p -: (obs fby last_p)) *: 0.7
   and p = sample (pstate, sph_gaussian (last_p +: momentum) speed)
-  and unit = factor(pstate, Distribution.score (sph_gaussian p noise) obs)
+  and () = factor(pstate, Distribution.score (sph_gaussian p noise) obs)
 
 let node hmm_reset_automaton(pstate, obs) = p where
   rec automaton

@@ -5,7 +5,7 @@
 let node agent (pstate, ()) = p where
   rec action = Infer.sample (pstate, Distribution.uniform_int (-1) 1)
   and p = 0 -> pre p + action
-  and unit = Infer.factor(pstate, 100. *. exp (float (- abs (p - 10))))
+  and () = Infer.factor(pstate, 100. *. exp (float (- abs (p - 10))))
 
 (* let node main () = *)
 (*   let p = Infer.plan 50 5 agent () in *)

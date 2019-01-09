@@ -24,7 +24,7 @@ let node pid (pstate, r) = y where
   and init d = Infer.sample(pstate, Distribution.gaussian 0. 1.)
   and e = r -. (0.0 fby y)
   and y = p *. e +. i *. integr(e) +. d *. deriv(e)
-  and unit = Infer.factor (pstate, -. (abs_float (y -. r)))
+  and () = Infer.factor (pstate, -. (abs_float (y -. r)))
 
 let node periodic n =
   let rec o = 1 fby (if ok then 1 else o + 1)
