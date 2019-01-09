@@ -1,11 +1,6 @@
 type unop = Log
 
-type ('var, 'a) exp =
-    Var of 'var
-  | Sum of ('var, 'a) exp list
-  | Prod of ('var, 'a) exp list
-  | Const of 'a
-  | Unop of unop * ('var, 'a) exp
+type ('var, 'a) exp
 
 val var : 'var -> ('var, 'a) exp
 val sum : ('var, 'a) exp list -> ('var, 'a) exp
