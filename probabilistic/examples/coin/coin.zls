@@ -11,7 +11,7 @@ let node cheater_detector flip = (cheater, m) where
       do theta_dist = Infer.infer 1000 coin (true, flip)
       and m = Distribution.mean_float theta_dist
       and cheater = false
-      until (m < 0.25 or m > 0.75) then Cheater(m)
+      until (m < 0.25 || m > 0.75) then Cheater(m)
   | Cheater(cheating) ->
       do cheater = true
       and m = cheating
