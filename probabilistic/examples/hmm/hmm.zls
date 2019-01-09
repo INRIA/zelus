@@ -1,6 +1,7 @@
 open Distribution
 open Display
 open Infer
+(* open Infer_importance *)
 
 (* noisy observation of the mouse position. It is a gaussian centered on the *)
 (* exact position *)
@@ -18,7 +19,7 @@ let node display (obs, pos_dist) =
 (* one supposing that the motion speed of the mouse is bounded *)
 let node hmm (pstate, obs) = p where
   rec p = sample (pstate, sph_gaussian (obs fby p) speed)
-  and unit = factor (pstate, Distribution.score (sph_gaussian p noise) obs)
+  and () = factor (pstate, Distribution.score (sph_gaussian p noise) obs)
 
 let node once n = ok where
   rec init cpt = 1 and cpt = if ok then 1 else last cpt + 1
