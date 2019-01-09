@@ -5,7 +5,7 @@ val sample : pstate * 'a Distribution.t -AD-> 'a
 val factor : pstate * float -AD-> unit
 
 val infer :
-  int -S-> (pstate * 'a -D-> 'b) -S-> bool * 'a -D-> 'b Distribution.t
+  int -S-> (pstate * 'a -D-> 'b) -S-> 'a -D-> 'b Distribution.t
 
 val plan :
     int -S-> int -S->
@@ -18,3 +18,7 @@ val infer_depth :
         't1 -D-> 't2 Distribution.t
 
 val memoize : ('a -D-> 'b) -S-> 'a -D-> 'b
+
+val infer_subresample :
+  int -S-> (pstate * 'a -D-> 'b) -S-> bool * 'a -D-> 'b Distribution.t
+

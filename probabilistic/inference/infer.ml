@@ -25,7 +25,7 @@ type 'a infer_state = {
   infer_scores : float array;
 }
 
-let infer n (Node { alloc; reset; step }) =
+let infer_subresample n (Node { alloc; reset; step }) =
     (* val infer :
          int -S-> (pstate * 'a -D-> 'b)
              -S-> bool * 'a -D-> 'b Distribution.t *)
@@ -55,6 +55,12 @@ let infer n (Node { alloc; reset; step }) =
     Normalize.normalize values
   in
   Node { alloc = alloc; reset = reset; step = step }
+
+let infer n node =
+  let Node { alloc; reset; step } = infer_subresample n node in
+  Node { alloc;
+         reset;
+         step = (fun state input -> step state (true, input)); }
 
 
 (* [memoize f x] is functionally equivalent to [f x] but stores *)

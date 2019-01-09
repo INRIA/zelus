@@ -45,7 +45,7 @@ let node cart_pole_gym render action = obs, reward, stop where
 (** Infer the neuron using the Zelus model and simulate with the openai gym**)
 
 let node main () = () where
-  rec net_dist = Infer.infer 3000 model (true, obs)
+  rec net_dist = Infer.infer 3000 model obs
   and net = Distribution.draw net_dist
   and obs, _, _ = cart_pole_gym true (Right fby action)
   and action = controller (net, obs)

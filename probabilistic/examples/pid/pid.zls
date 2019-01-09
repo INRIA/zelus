@@ -46,7 +46,7 @@ let node creneau(p, q) = o where
 
 let node main () =
   let rec r = creneau(10, 10) in
-  let y = Infer.infer 1000 pid (true, r) in
+  let y = Infer.infer 1000 pid r in
   let result = Distribution.mean_float y in
   print_string "r = "; print_float r; print_newline ();
   print_string "result = "; print_float result; print_newline ()
