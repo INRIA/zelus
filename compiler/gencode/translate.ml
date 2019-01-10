@@ -327,12 +327,12 @@ let choose env ty =
       match ty_c with
       | Variant_type(g_list) -> value_from_variant_list g_list
       | Abstract_type -> eany
-        | Record_type(l_list) ->
-           Orecord(
-	       List.map 
-                 (fun { qualid = qualid; info = { label_res = ty } } -> 
-                  (Lident.Modname(qualid), value ty)) l_list)
-        | Abbrev(_, ty) -> value ty
+      | Record_type(l_list) ->
+          Orecord(
+	    List.map 
+              (fun { qualid = qualid; info = { label_res = ty } } -> 
+                 (Lident.Modname(qualid), value ty)) l_list)
+      | Abbrev(_, ty) -> value ty
     with
       | Not_found -> eany
   and value ty =
