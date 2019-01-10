@@ -128,7 +128,11 @@ let uniform_list l =
   Dist_support (List.map (fun x -> (x, p)) l)
 
 let mean_float d =
-  let n = 100000 in
-  let acc = ref 0. in
-  for i = 1 to n do acc := !acc +. draw d done;
-  !acc /. (float n)
+  match d with
+  | Dist_sampler _ ->
+    let n = 100000 in
+    let acc = ref 0. in
+    for i = 1 to n do acc := !acc +. draw d done;
+    !acc /. (float n)
+  | Dist_support sup ->
+    List.fold_left (fun acc (v, w) -> acc +. v *. w) 0. sup

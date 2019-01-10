@@ -30,7 +30,7 @@ let node smart_controller2 (pstate, (reference, temp_ext)) = u where
   and () = factor (pstate, if u <> u fby u then -1. else 0.)
 
 let node controller (reference, temp_ext) = u where
-  rec u_dist = infer 1000 smart_controller1 (true, (reference, temp_ext))
+  rec u_dist = infer 1000 smart_controller1 (reference, temp_ext)
   and u =
     (* print_string "P(true) = "; *)
     (* print_endline (string_of_float (exp (Distribution.score u_dist true))); *)

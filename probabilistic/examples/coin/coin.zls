@@ -8,7 +8,7 @@ let node coin (pstate, flip) = theta where
 let node cheater_detector flip = (cheater, m) where
   rec automaton
   | Observe -> local theta_dist
-      do theta_dist = Infer.infer 1000 coin (true, flip)
+      do theta_dist = Infer.infer 1000 coin flip
       and m = Distribution.mean_float theta_dist
       and cheater = false
       until (m < 0.25 || m > 0.75) then Cheater(m)

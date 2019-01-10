@@ -32,7 +32,7 @@ let node every_n k =
 
 (*
 let node system1(c, temp) =
-  Distribution.draw (Infer.infer 1000 system (true, temp))
+  Distribution.draw (Infer.infer 1000 system temp)
  *)
 
 (*

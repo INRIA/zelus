@@ -13,6 +13,6 @@ let f = 1
 
 let node main () =
   let rec cpt = 0. fby cpt +. 0.5 in
-  let o = Infer.infer 1000 model (true, cpt) in
+  let o = Infer.infer 1000 model cpt in
   let result = Distribution.mean_float o in
   print_float result; print_newline ()

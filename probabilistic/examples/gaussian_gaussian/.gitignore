@@ -1,0 +1,10 @@
+*.zci
+*.cmi
+*.cmo
+*.cmx
+*.o
+*.byte
+*.opt
+gaussian_gaussian
+gaussian_gaussian.ml
+main.ml
