@@ -9,7 +9,7 @@ let node int2_backward(h)(x0, xprime) = x where
 (* this one diverges; errors accumulate *)
 let node sin_cos2(h)() =
   let rec si = int2_forward(h)(0.0, co)
-  and co = 1.0 -. int2_forward(h)(0.0, si) in
+  and co = int2_forward(h)(1.0, -. si) in
   si, co
 
 (* this one is stable; errors compensate *)
