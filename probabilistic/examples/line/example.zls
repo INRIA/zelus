@@ -1,9 +1,12 @@
+open Infer
+(* open Infer_importance *)
+
 (* A first example *)
 
 let node model (pstate, obs) = a where
-  rec a = Infer.sample (pstate, Distribution.gaussian 1. 2.) fby a
+  rec a = sample (pstate, Distribution.gaussian 1. 2.) fby a
   and cpt = 0. fby cpt +. a
-  and () = Infer.factor (pstate, -. (abs_float (obs -. cpt)))
+  and () = factor (pstate, -. (abs_float (obs -. cpt)))
 
 let node periodic n =
   let rec o = 1 fby (if ok then 1 else o + 1)
@@ -13,6 +16,6 @@ let f = 1
 
 let node main () =
   let rec cpt = 0. fby cpt +. 0.5 in
-  let o = Infer.infer 1000 model cpt in
+  let o = infer 1000 model cpt in
   let result = Distribution.mean_float o in
   print_float result; print_newline ()

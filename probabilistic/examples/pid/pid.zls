@@ -1,5 +1,8 @@
 (* A probabilistic PID controller *)
 
+open Infer
+(* open Infer_importance *)
+
 let node deriv(u) = o where
   rec x = u
   and o = 0.0 -> (x -. pre(x))
@@ -19,12 +22,12 @@ let node integr(u) = o where
 (*   and y = p *. e +. i *. cintegr(e) +. d *. cderiv(e) *)
 
 let node pid (pstate, r) = y where
-  rec init p = Infer.sample(pstate, Distribution.gaussian 0. 1.)
-  and init i = Infer.sample(pstate, Distribution.gaussian 0. 1.)
-  and init d = Infer.sample(pstate, Distribution.gaussian 0. 1.)
+  rec init p = sample(pstate, Distribution.gaussian 0. 1.)
+  and init i = sample(pstate, Distribution.gaussian 0. 1.)
+  and init d = sample(pstate, Distribution.gaussian 0. 1.)
   and e = r -. (0.0 fby y)
   and y = p *. e +. i *. integr(e) +. d *. deriv(e)
-  and () = Infer.factor (pstate, -. (abs_float (y -. r)))
+  and () = factor (pstate, -. (abs_float (y -. r)))
 
 let node periodic n =
   let rec o = 1 fby (if ok then 1 else o + 1)
@@ -46,7 +49,7 @@ let node creneau(p, q) = o where
 
 let node main () =
   let rec r = creneau(10, 10) in
-  let y = Infer.infer 1000 pid r in
+  let y = infer 1000 pid r in
   let result = Distribution.mean_float y in
   print_string "r = "; print_float r; print_newline ();
   print_string "result = "; print_float result; print_newline ()

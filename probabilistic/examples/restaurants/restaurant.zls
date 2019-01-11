@@ -12,7 +12,7 @@ let node model (pstate, (map, state_init)) = state where
 
 let node main () =
   let state =
-    Infer.plan 50 7 model (Restaurant_world.map, Restaurant_world.state_init)
+    plan 50 7 model (Restaurant_world.map, Restaurant_world.state_init)
   in
   Restaurant_world.print Restaurant_world.map state;
   Restaurant_world.draw Restaurant_world.map state
