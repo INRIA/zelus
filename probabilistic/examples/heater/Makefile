@@ -1,4 +1,4 @@
-EXAMPLE=heat.zls smartheat.zls smartheat2.zls
+EXAMPLE=heat.zls smartheat.zls
 
 all: byte
 
@@ -28,35 +28,16 @@ heatc.opt: heat.ml heatc.ml main.ml
         lablgtk.cmxa zllibgtk.cmxa -package sundialsml \
         -linkpkg heat.ml heatc.ml mainc.ml
 
-smartheat.byte: smartheat.ml ../../inference/inference.cma 
+smartheat.byte: smartheat.ml ../../inference/inference.cma
 	ocamlfind ocamlc -o smartheat.byte -I `zeluc -where` \
-        -I ../../inference \
-        -package lablgtk2 \
-        unix.cma bigarray.cma lablgtk.cma zllibgtk.cma -linkpkg \
-        ../../inference/inference.cma \
-        heat.ml smartheat.ml mains.ml
-
-smartheat.opt: smartheat.ml ../../inference/inference.cmxa
-	ocamlfind ocamlopt -o smartheat.opt -I `zeluc -where` \
-        -I ../../inference \
-        -package lablgtk2 \
-        unix.cmxa bigarray.cmxa lablgtk.cmxa zllibgtk.cmxa -linkpkg \
-        ../../inference/inference.cmxa \
-        heat.ml smartheat.ml mains.ml
-
-smartheat.ml mains: smartheat.zls
-	zeluc -I ../../inference -s mains smartheat.zls
-
-smartheat2.byte: smartheat2.ml ../../inference/inference.cma
-	ocamlfind ocamlc -o smartheat2.byte -I `zeluc -where` \
 	-I ../../inference \
         -package lablgtk2 \
         unix.cma bigarray.cma lablgtk.cma zllibgtk.cma -linkpkg \
         ../../inference/inference.cma \
-        heat.ml smartheat2.ml mains2.ml
+        heat.ml smartheat.ml mains.ml
 
-smartheat2.ml mains2: smartheat2.zls
-	zeluc -noreduce -I ../../inference -sampling 0.1 -s mains2 smartheat2.zls
+smartheat.ml mains: smartheat.zls
+	zeluc -I ../../inference  -gtk2 -s mains smartheat.zls
 
 heat.ml main.ml: heat.zls
 	zeluc -i -I `zeluc -where` -sampling 0.1 -gtk2 -s main heat.zls
@@ -69,7 +50,7 @@ clean:
 	-@rm -f $(EXAMPLE:%.zls=%.opt)
 	-@rm -f $(opt) $(EXAMPLE:.zls=.ml) $(EXAMPLE:.zls=_main.ml)
 	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci
-	-@rm -f main.ml mainc.ml mains.ml mains2.ml
+	-@rm -f main.ml mainc.ml mains.ml mains.ml
 
 realclean cleanall: clean
 	-@rm -f *~

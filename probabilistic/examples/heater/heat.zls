@@ -8,26 +8,26 @@ let node euler(h)(x0, xprime) = x
 (* Model of a heater *)
 let node heater(h)(c, alpha, beta, temp_ext, temp0, u) = temp where
   rec temp =
-    euler(h)(temp0, 
-             if u then alpha *. (c -. temp) 
+    euler(h)(temp0,
+             if u then alpha *. (c -. temp)
              else beta *. (temp_ext -. temp))
 
 (* Relay (low/high threshold; a single boolean output *)
 (* discrete time *)
 let node relay(low, high, v) = u where
   rec u = if v < low then true
-	  else if v > high then false
-	  else false -> pre u
+          else if v > high then false
+          else false -> pre u
 
 let node relay_bis(low, high, v) = u where
   rec u = present (v < low) -> true | (v > high) -> false init false
-      
+
 let node relay_six(low, high, v) = u where
   rec automaton
       | Low -> do u = false unless (v <= low) then High
       | High -> do u = true unless (v >= high) then Low
       end
-      
+
 let low = 1.0
 let high = 1.0
 
@@ -47,10 +47,6 @@ let node generic_system(controller)(reference) = (u, temp) where
 
 let node system(reference) = generic_system(relay)(reference)
 
-let node f x = 0 fby x + 1
-
-let node g x = let rec o' = f o and o = f o' in o, o'
-  
 let node main_no_graphics() =
   let u, temp = system(19.0) in
   print_string "u = "; print_string (if u then "true" else "false");
@@ -63,9 +59,9 @@ let node main() =
   let u, temp = system(19.0) in
   let rec time = 0.0 -> pre time +. h in
   let s = Scope.scope2 (-1.0, 40.0, ("u", Scope.points true,
-				     if u then 1.0 else 0.0),
+                                     if u then 1.0 else 0.0),
                         ("temp", Scope.points false, temp)) in
   Scope.window ("main_on_19", 10.0, time, s)
 
-let node heater_h(c, alpha, beta, temp_ext, temp0, u) =
-  heater(h)(c, alpha, beta, temp_ext, temp0, u)
+(* let node heater_h(c, alpha, beta, temp_ext, temp0, u) = *)
+(*   heater(h)(c, alpha, beta, temp_ext, temp0, u) *)
