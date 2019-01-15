@@ -136,3 +136,14 @@ let mean_float d =
     !acc /. (float n)
   | Dist_support sup ->
     List.fold_left (fun acc (v, w) -> acc +. v *. w) 0. sup
+
+let exponential lambda =
+  let draw () =
+    let u = Random.float 1. in
+    -. log u /. lambda
+  in
+  let score x =
+    if x >= 0. then log lambda -. lambda *. x
+    else neg_infinity
+  in
+  Dist_sampler (draw, score)
