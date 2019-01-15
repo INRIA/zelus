@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -37,10 +37,10 @@
 (* entries from the following data-structure               *)
 (* on the global parameter cstate                          *)
 (* type cstate =
- *-  { dvec : float array;
- *-    cvec : float array;
- *-    zin : bool array;
- *-    zout : float array;
+ *-  { mutable dvec : float array;
+ *-    mutable cvec : float array;
+ *-    mutable zin : bool array;
+ *-    mutable zout : float array;
  *-    mutable cpos : int;
  *-    mutable zpos : int;
  *-    mutable cmax : int;
@@ -57,34 +57,42 @@
  *- rewrite it into:
  *-
  *- method step(arg1,...,argl) =
- *-    let c_start = g.cpos in (* current position of the cvector *)
+ *-    let c_start = cstate.cpos in (* current position of the cvector *)
  *-    var cpos = c_start in
- *-    let z_start = g.zpos in (* current position of the zvector *)
- *-    g.cpos <- g.cpos + csize; g.zpos <- g.zpos + zsize;
+ *-    let z_start = cstate.zpos in (* current position of the zvector *)
+ *-    cstate.cpos <- cstate.cpos + csize; cstate.zpos <- cstate.zpos + zsize;
  *-    var zpos = z_start in
- *-    if d then dzero g.dvec c_start csize (* set all speeds to 0.0 *)
- *-    else ((* sets de value of continuous zero-crossing with what has been *)
- *-          (* computed by the zero-crossing detection *)
- *-          cin g x1 ci;...; cin xn (ci+size1+...+size(n-1)));
+ *-    if cstate.discrete then 
+ *-        dzero cstate.dvec c_start csize (* set all speeds to 0.0 *)
+ *-    else ((* copy the value of the continuous state vector of the solver *)
+ *-          (* into the local continuous state variables *)
+ *-          cin cstate x1 ci;...; cin xn (ci+size1+...+size(n-1)));
  *-          ... cpos is incremented
  *-    let result = ...body... in
  *-    cpos <- c_start;
- *-    if d then 
- *-        (cout g x1 ci;...; cout g ck (zi+size'1+...+size'(n-1));
- *-        ... cpos is incremented)
- *-        g.horizon <- min g.horizon h 
- *-              (* h is the horizon of the block *)
- *-        (* sets the output state vector with the xi *)
- *-        m1 <- false; ...; mk <- false;
- *-        ... zpos is incremented
- *-    else (zin g m1 zi;...; zin g mk (zi+size'1+...+size'(k-1));
+ *-    if cstate.discrete then 
+ *-        ((* copy the local continuous state variables into *)
+ *-         (* the continuous state vector of the solver *)
+ *-         cout cstate x1 ci;...; cout cstate ck (zi+size'1+...+size'(n-1));
+ *-        ... cpos is incremented
+ *-         (* h is the horizon of the block *)
+ *-         cstate.horizon <- min cstate.horizon h 
+ *-         (* the zero-crossing variables are set to false *)
+ *-         m1 <- false; ...; mk <- false;
+ *-         ... zpos is incremented)
+ *-    else ((* copy the zero-crossing vector of the solver into the local *)
+ *-          (* zero-crossing variables *)
+ *-          zin cstate m1 zi;...; zin cstate mk (zi+size'1+...+size'(k-1));
  *-          ... zpos is incremented
  *-          zpos <- z_start;
- *-          zout m1 zi;...; mout mk (zi+size'1+...+size'(k-1));
+ *-          (* copy the local zero-crossing variables into the *)
+ *-          (* zero-crossing vector of the solver *)
+ *-          zout cstate m1 zi;...; zout cstate mk (zi+size'1+...+size'(k-1));
  *-          ... zpos is incremented
- *-          dout g x1 ci;...; xout ck (zi+size'1+...+size'(n-1));
- *-          ... zpos is incremented);
- *-      (* store the argument of zero-crossing into the vector of zero-cross *)
+ *-          (* copy the local derivatives into the vector of derivative *)
+ *-          (* of the solver *)
+ *-          dout cstate x1 ci;...; dout cstate ck (zi+size'1+...+size'(n-1));
+ *-          ... cpos is incremented);
  *-    result
  *-
  *- Add to the initialization code: 
@@ -138,6 +146,7 @@ let modname x = Lident.Modname { Lident.qual = "Zls"; Lident.id = x }
 let global x = Oglobal(x)                      
 let varpat x ty = Ovarpat(x, Translate.type_expression_of_typ ty)
 let var x = Ovar(false, x)
+let varmut x = Ovar(true, x)
 let void = Oconst(Ovoid)
 let ifthenelse c i1 i2 =
   match i1, i2 with
@@ -175,57 +184,58 @@ let rec size s =
      | Splus -> plus s1 s2
      | Sminus -> minus s1 s2
 
-let set_horizon g h =
-  Oassign(Oleft_record_access(Oleft_name(g), Name "horizon"),
-          omin (Orecord_access(var g, Name "horizon"))
+let set_horizon cstate h =
+  Oassign(Oleft_record_access(Oleft_name(cstate), Name "horizon"),
+          omin (Orecord_access(varmut cstate, Name "horizon"))
             (Ostate(Oleft_state_name h)))
                    
 (* [x := !x + 1] *)
 let incr_pos x = Oassign(Oleft_name x, oplus (var x) one)
 let set_pos x e = Oassign(Oleft_name x, e)
 
-(* [g.field <- g.field + i] *)
-let incr g field ie =
-  Oassign(Oleft_record_access(Oleft_name g, Name(field)),
-          oplus (Orecord_access(Olocal(g), Name(field))) ie)
-               
-let cmax g ie = incr g "cmax" ie
-let zmax g ie = incr g "zmax" ie
-let cincr g ie = incr g "cpos" ie
-let zincr g ie = incr g "zpos" ie
+(* [cstate.field <- cstate.field + i] *)
+let incr cstate field ie =
+  Oassign(Oleft_record_access(Oleft_name cstate, Name(field)),
+          oplus (Orecord_access(Olocal(cstate), Name(field))) ie)
+             
+let cmax cstate ie = incr cstate "cmax" ie
+let zmax cstate ie = incr cstate "zmax" ie
+let cincr cstate ie = incr cstate "cpos" ie
+let zincr cstate ie = incr cstate "zpos" ie
 
-let discrete g = Orecord_access(var g, Name("discrete"))
+let discrete cstate = Orecord_access(varmut cstate, Name("discrete"))
 			
-(* [x.cont.(i1)....(in).(j1)...(jk) <- g.cvec.(pos)] *)
-(* x.zero_in.(i1)...(in).(j1)...(jk) <- g.zin.(pos) *)
-let write_into_internal_state (x, cont) i_list j_list (g, field) pos =
+(* [x.cont.(i1)....(in).(j1)...(jk) <- cstate.cvec.(pos)] *)
+(* [x.zero_in.(i1)...(in).(j1)...(jk) <- cstate.zin.(pos)] *)
+let write_into_internal_state (x, cont) i_list j_list (cstate, field) pos =
   Oassign_state
     (left_state_access
        (left_state_access
 	  (Oleft_state_primitive_access(Oleft_state_name(x), cont))
-	  i_list) j_list, Oaccess(Orecord_access(var g, Name(field)), var pos))
-let cin g x i_list j_list pos =
-  write_into_internal_state (x, Ocont) i_list j_list (g, "cvec") pos
-let zin g x i_list j_list pos =
-  write_into_internal_state (x, Ozero_in) i_list j_list (g, "zin") pos
+          i_list) j_list,
+     Oaccess(Orecord_access(varmut cstate, Name(field)), var pos))
+let cin cstate x i_list j_list pos =
+  write_into_internal_state (x, Ocont) i_list j_list (cstate, "cvec") pos
+let zin cstate x i_list j_list pos =
+  write_into_internal_state (x, Ozero_in) i_list j_list (cstate, "zin") pos
 
-(* [g.cvec.(pos) <- (x.cont.(i1)....(in)).(j1)...(jk)] *)
-(* [g.dvec.(pos) <- (x.der.(i1)....(in)).(j1)...(jk)] *)
-(* [g.zout.(pos) <- (x.zout.(i1)....(in)).(j1)...(jk)] *)
-let write_from_internal_state (g, field) (x, cont) i_list j_list pos =
+(* [cstate.cvec.(pos) <- (x.cont.(i1)....(in)).(j1)...(jk)] *)
+(* [cstate.dvec.(pos) <- (x.der.(i1)....(in)).(j1)...(jk)] *)
+(* [cstate.zout.(pos) <- (x.zout.(i1)....(in)).(j1)...(jk)] *)
+let write_from_internal_state (cstate, field) (x, cont) i_list j_list pos =
   Oassign
-    (Oleft_index(Oleft_record_access(Oleft_name(g), Name(field)), var pos),
+    (Oleft_index(Oleft_record_access(Oleft_name(cstate), Name(field)), var pos),
      (Ostate
          (left_state_access
            (left_state_access
               (Oleft_state_primitive_access(Oleft_state_name(x), cont))
 	      i_list) j_list)))
-let cout g x i_list j_list pos =
-  write_from_internal_state (g, "cvec") (x, Ocont) i_list j_list pos
-let dout g x i_list j_list pos =
-  write_from_internal_state (g, "dvec") (x, Oder) i_list j_list pos
-let zout g x i_list j_list pos =
-  write_from_internal_state (g, "zout") (x, Ozero_out) i_list j_list pos
+let cout cstate x i_list j_list pos =
+  write_from_internal_state (cstate, "cvec") (x, Ocont) i_list j_list pos
+let dout cstate x i_list j_list pos =
+  write_from_internal_state (cstate, "dvec") (x, Oder) i_list j_list pos
+let zout cstate x i_list j_list pos =
+  write_from_internal_state (cstate, "zout") (x, Ozero_out) i_list j_list pos
 let set_zin_to_false x i_list j_list pos =
   Oassign_state
     (left_state_access
@@ -233,10 +243,11 @@ let set_zin_to_false x i_list j_list pos =
           (Oleft_state_primitive_access(Oleft_state_name(x), Ozero_in))
           i_list) j_list,
      ffalse)
-let set_dvec_to_zero g c_start csize =
+let set_dvec_to_zero cstate c_start csize =
   if is_zero csize then Oexp(void)
   else Ofor(true, i, local c_start, minus csize one,
-            Oassign(Oleft_index(Oleft_record_access(Oleft_name(g), Name "dvec"),
+            Oassign(Oleft_index(Oleft_record_access(Oleft_name(cstate),
+                                                    Name "dvec"),
 				local i),
             float_const 0.0))
 
@@ -315,24 +326,24 @@ let cinout table call pos incr =
   let c_list = Env.fold add table [] in
   sequence(c_list)
 
-let cin table g pos =
-  let call x i_list j_list pos = cin g x i_list j_list pos in
+let cin table cstate pos =
+  let call x i_list j_list pos = cin cstate x i_list j_list pos in
   cinout table call pos incr_pos
 
-let cout table g pos =
-  let call x i_list j_list pos = cout g x i_list j_list pos in
+let cout table cstate pos =
+  let call x i_list j_list pos = cout cstate x i_list j_list pos in
   cinout table call pos incr_pos
 
-let dout table g pos =
-  let call x i_list j_list pos = dout g x i_list j_list pos in
+let dout table cstate pos =
+  let call x i_list j_list pos = dout cstate x i_list j_list pos in
   cinout table call pos incr_pos
 
-let zin table g pos =
-  let call x i_list j_list pos = zin g x i_list j_list pos in
+let zin table cstate pos =
+  let call x i_list j_list pos = zin cstate x i_list j_list pos in
   cinout table call pos incr_pos
 
-let zout table g pos =
-  let call x i_list j_list pos = zout g x i_list j_list pos in
+let zout table cstate pos =
+  let call x i_list j_list pos = zout cstate x i_list j_list pos in
   cinout table call pos incr_pos
 
 let set_zin_to_false table pos =
@@ -349,12 +360,13 @@ let maxsize call size i_opt =
 
 (* If the current block contains an horizon state variable *)
 (* for every horizon state variable *)
-let set_horizon g h_list =
-  sequence (List.map (set_horizon g) h_list)
+let set_horizon cstate h_list =
+  sequence (List.map (set_horizon cstate) h_list)
            
 (** Translate a continuous-time machine *)
-let machine f ({ ma_params = params; ma_initialize = i_opt; ma_memories = m_list;
-		 ma_instances = mi_list; ma_methods = method_list } as mach) g =
+let machine f
+    ({ ma_params = params; ma_initialize = i_opt; ma_memories = m_list;
+       ma_instances = mi_list; ma_methods = method_list } as mach) cstate =
   (* auxiliary function. Find the method "step" in the list of methods *)
   let rec find_step method_list =
     match method_list with
@@ -363,10 +375,11 @@ let machine f ({ ma_params = params; ma_initialize = i_opt; ma_memories = m_list
        if m = Ostep then mdesc, method_list
        else let step, method_list = find_step method_list in
 	    step, mdesc :: method_list in
-  (* for every instance of a continuous machine, pass the extra argument [g] *)
+  (* for every instance of a continuous machine () *)
+  (* pass the extra argument [cstate] *)
   let add_extra_param ({ i_kind = k; i_params = params } as ientry) =
     match k with
-    | Tcont -> { ientry with i_params = (var g) :: params }
+    | Tcont -> { ientry with i_params = (varmut cstate) :: params }
     | _ -> ientry in
   try
     let { me_body = body; me_typ = ty } as mdesc, method_list =
@@ -383,12 +396,13 @@ let machine f ({ ma_params = params; ma_initialize = i_opt; ma_memories = m_list
     let h_is_not_zero = not (List.length h_list = 0) in
     
     (* add initialization code to [e_opt] *)
-    (* let i_opt = maxsize cmax csize (maxsize zmax zsize i_opt) in *)
+    let i_opt =
+      maxsize (cmax cstate) csize (maxsize (zmax cstate) zsize i_opt) in
           
     let c_start = Ident.fresh "c_start" in
     let z_start = Ident.fresh "z_start" in
-    let g_cpos = Orecord_access(var g, Name("cpos")) in
-    let g_zpos = Orecord_access(var g, Name("zpos")) in
+    let cstate_cpos = Orecord_access(varmut cstate, Name("cpos")) in
+    let cstate_zpos = Orecord_access(varmut cstate, Name("zpos")) in
     
     let cpos = Ident.fresh "cpos" in
     let zpos = Ident.fresh "zpos" in
@@ -404,48 +418,49 @@ let machine f ({ ma_params = params; ma_initialize = i_opt; ma_memories = m_list
     let body =
       oletin_only c_is_not_zero
         (* compute the current position of the cvector *)
-	(varpat c_start Initial.typ_int) g_cpos
+	(varpat c_start Initial.typ_int) cstate_cpos
         (oletvar_only
            c_is_not_zero cpos Initial.typ_int (local c_start)
 	   (* compute the current position of the zvector *)
            (oletin_only
-              z_is_not_zero (varpat z_start Initial.typ_int) g_zpos
+              z_is_not_zero (varpat z_start Initial.typ_int) cstate_zpos
               (oletvar_only
                  z_is_not_zero zpos Initial.typ_int (local z_start)
 		 (sequence
-		    [only c_is_not_zero (incr g "csize" csize);
-                     only z_is_not_zero (incr g "zsize" zsize);
+		    [only c_is_not_zero (incr cstate "csize" csize);
+                     only z_is_not_zero (incr cstate "zsize" zsize);
 		     ifthenelse
-                       (discrete g) (set_dvec_to_zero g c_start csize)
-		       (only c_is_not_zero (cin ctable g cpos));
+                       (discrete cstate) (set_dvec_to_zero cstate c_start csize)
+		       (only c_is_not_zero (cin ctable cstate cpos));
                      (only_else
-                        (c_is_not_zero || z_is_not_zero || h_is_not_zero)          
+                        (c_is_not_zero || z_is_not_zero || h_is_not_zero)
                         (oletin
 		           (varpat result ty) (Oinst(body))
 		           (sequence
-			      [set_horizon g h_list;
+			      [set_horizon cstate h_list;
                                only
                                  c_is_not_zero (set_pos cpos (local c_start));
-			       ifthenelse (discrete g)
-				          (sequence
-                                             [only
-                                                c_is_not_zero (cout ctable g cpos);
-                                              only
-                                                z_is_not_zero
-                                                (set_zin_to_false ztable zpos)])
-				          (sequence
-					     [only
-                                                z_is_not_zero (zin ztable g zpos);
-                                              only
-                                                z_is_not_zero
-                                                (set_pos zpos (local z_start));
-			                      only
-                                                z_is_not_zero (zout ztable g zpos);
-					      only
-                                                c_is_not_zero (dout ctable g cpos)]);
-                               Oexp (local result)]))
+	                       ifthenelse
+                                 (discrete cstate)
+				 (sequence
+                                   [only
+                                      c_is_not_zero (cout ctable cstate cpos);
+                                    only
+                                      z_is_not_zero
+                                      (set_zin_to_false ztable zpos)])
+                                 (sequence
+				    [only
+                                       z_is_not_zero (zin ztable cstate zpos);
+                                     only
+                                       z_is_not_zero
+                                       (set_pos zpos (local z_start));
+	                             only
+                                       z_is_not_zero (zout ztable cstate zpos);
+	                             only
+                                       c_is_not_zero (dout ctable cstate cpos)]);
+                        Oexp (local result)]))
                         body)])))) in
-    { mach with ma_params = (Ovarpat(g, typ_cstate)) :: params;
+    { mach with ma_params = (Ovarpat(cstate, typ_cstate)) :: params;
 		ma_initialize = i_opt;
 		ma_methods = { mdesc with me_body = body } :: method_list;
 		ma_instances = List.map add_extra_param mi_list }
@@ -460,8 +475,8 @@ let implementation impl =
   match impl with
   | Oletmachine(f, ({ ma_kind = Deftypes.Tcont } as mach)) -> 
      (* only continuous machines are concerned *)
-     let g = Ident.fresh "g" in
-     Oletmachine(f, machine f mach g)
+     let cstate = Ident.fresh "cstate" in
+     Oletmachine(f, machine f mach cstate)
   | Oletmachine _ | Oletvalue _ | Oletfun _ | Oopen _ | Otypedecl _ -> impl
 									 
 let implementation_list impl_list = Misc.iter implementation impl_list
