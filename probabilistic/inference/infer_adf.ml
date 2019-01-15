@@ -62,5 +62,3 @@ let factor (env, exp) =
 
 (* let node infer model i = (env, o) where *)
 (*     rec env, o =  model ([] fby env, i) *)
-
-

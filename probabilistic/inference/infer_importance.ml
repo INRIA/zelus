@@ -8,7 +8,7 @@ let factor = Infer.factor
 
 
 
-let infer n (Node { alloc; reset; step }) =
+let infer_decay n decay (Node { alloc; reset; step }) =
   let alloc () =
     { infer_states = Array.init n (fun _ -> alloc ());
       infer_scores = Array.make n 0.0; }
@@ -36,7 +36,14 @@ let infer n (Node { alloc; reset; step }) =
         scores;
       (!acc, !sum)
     in
+    if decay <> 1. then
+      Array.iteri (fun i score -> scores.(i) <- decay *. score) scores;
     Distribution.Dist_support
       (List.map (fun (b, w) -> (b, w /. norm)) weights)
   in
   Node { alloc = alloc; reset = reset; step = step }
+
+
+let infer n node =
+  infer_decay n 1. node
+
