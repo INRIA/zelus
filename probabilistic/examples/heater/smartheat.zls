@@ -1,46 +1,33 @@
 (* Une Smart chaudiere ! *)
 open Distribution
 open Heat
+open Infer
 
-let penality = 1.0
+let node room_model (temp_init, temp_ext, u) = temp where
+  rec temp = (temp_init -> pre temp) +. if u then 0.5 else -. 0.1
 
-(* un controleur stupide: choisi une valeur de commande (vrai/faux) *)
-(* et donne un score d'autant plus grand que l'erreur est petite. *)
-let node stupid_controller(pstate, error) =
-  (* choisi une valeur 0 ou 1 aleatoirement *)
-  let u =  Distribution.draw (Distribution.bernoulli 0.5) in
-  Infer.factor(pstate, -. (abs_float error));
-  (* on favorise une commande stable *)
-  Infer.factor(pstate, if u <> u fby u then 0. else -. penality);
-  u
+let node controller (pstate, (reference, temp_room, temp_ext)) = u where
+  rec u = sample (pstate, Distribution.bernoulli 0.5)
+  and temp = room_model(temp_room, temp_ext, u)
+  and effect = abs_float (reference -. temp_room ) -. abs_float (reference -. temp)
+  and score = if  effect > 0. then 0. else -20.
+  and () = factor(pstate, score)
+  (* and () = factor(pstate, 0. -> if u <> pre u then -20. else 0.) *)
 
-let node memoized_stupid_controller(s, error) =
-  Infer.memoize stupid_controller (s, error)
+let node simulator(temp_target, temp_init, temp_ext) = u, temp_room where
+  rec reset u = plan 20 4 controller (temp_target, temp_room, temp_ext) every true
+  and temp_room = heater(h)(c, alpha, beta, temp_ext, temp_init, u)
 
-let node system(pstate, reference) = (u, temp) where
-  rec
-      error = reference -. temp
-  and
-      u = memoized_stupid_controller(pstate, error)
-  and
-      temp = heater(h)(c, alpha, beta, 0.0, 0.0, u)
-
-let node every_n k =
-  let rec ok = false -> pre cpt = 0
-  and cpt = k -> if ok then k else pre cpt - 1 in
-  ok
-
-(*
-let node system1(c, temp) =
-  Distribution.draw (Infer.infer 1000 system temp)
- *)
-
-(*
-let node mains () =
-  let u, temp =
-    Infer_dyn.iterate 100 (false, 0.0) system1 (100, (true, 19.0)) in
+let node mains_no_graphics () =
+  let u, temp = simulator (19.0, 8.0, 5.0) in
   print_string "u = "; print_string (if u then "true" else "false");
-  print_string " temp = "; print_float temp;
+  print_string "\ttemp = "; print_float temp;
   print_newline ()
- *)
-let node mains () = ()
+
+let node mains() =
+  let u, temp = simulator (19.0, 8.0, 5.0) in
+  let rec time = 0.0 -> pre time +. h in
+  let s = Scope.scope2 (-1.0, 40.0, ("u", Scope.points true,
+                                     if u then 1.0 else 0.0),
+                        ("temp", Scope.points false, temp)) in
+  Scope.window ("main_on_19", 10.0, time, s)

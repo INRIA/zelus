@@ -1,21 +1,23 @@
 open Distribution
+open Infer
+(* open Infer_importance *)
 
 let node coin (pstate, flip) = theta where
-  rec init theta = Infer.sample (pstate, uniform_float 0. 1.)
-  and () = Infer.factor (pstate,
-                         Distribution.score (bernoulli theta) flip)
+  rec init theta = sample (pstate, uniform_float 0. 1.)
+  and () = factor (pstate,
+                   Distribution.score (bernoulli theta) flip)
 
 let node cheater_detector flip = (cheater, m) where
   rec automaton
-  | Observe -> local theta_dist
-      do theta_dist = Infer.infer 1000 coin flip
-      and m = Distribution.mean_float theta_dist
-      and cheater = false
-      until (m < 0.25 || m > 0.75) then Cheater(m)
-  | Cheater(cheating) ->
-      do cheater = true
-      and m = cheating
-      done
+      | Observe -> local theta_dist
+          do theta_dist = infer 1000 coin flip
+          and m = Distribution.mean_float theta_dist
+          and cheater = false
+          until (m < 0.25 || m > 0.75) then Cheater(m)
+      | Cheater(cheating) ->
+          do cheater = true
+          and m = cheating
+          done
 
 let node flips (nb_true, n) = b where
   rec cpt = (0 fby cpt + 1) mod n
@@ -27,7 +29,7 @@ let node print_bool b =
 
 (* let node main () = *)
 (*   let b = flips (1, 10) in *)
-(*   let o = Infer.infer 1000 coin (true, b) in *)
+(*   let o = infer 1000 coin (true, b) in *)
 (*   let result = Distribution.mean_float o in *)
 (*   print_float result; print_newline () *)
 

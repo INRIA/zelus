@@ -8,6 +8,7 @@ all:
 	$(MAKE) -C line
 	$(MAKE) -C pid
 	$(MAKE) -C restaurants
+	$(MAKE) -C gaussian_gaussian
 
 clean:
 	$(MAKE) -C gridworld clean
@@ -19,6 +20,7 @@ clean:
 	$(MAKE) -C line clean
 	$(MAKE) -C pid clean
 	$(MAKE) -C restaurants clean
+	$(MAKE) -C gaussian_gaussian clean
 
 realclean cleanall:
 	$(MAKE) -C gridworld cleanall
@@ -30,4 +32,5 @@ realclean cleanall:
 	$(MAKE) -C line cleanall
 	$(MAKE) -C pid cleanall
 	$(MAKE) -C restaurants cleanall
+	$(MAKE) -C gaussian_gaussian cleanall
 	-rm -f *~
