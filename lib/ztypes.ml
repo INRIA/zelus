@@ -79,3 +79,19 @@ type 'o hsimu =
         (* gives the next time horizon *)
       } -> 'o hsimu
 
+(* The interface with the solver *)
+(* Warning: this interface is not used for the moment *)
+type cstate =
+  { mutable dvec : dvec; (* the vector of derivatives *)
+    mutable cvec : cvec; (* the vector of positions *)
+    mutable zin : zinvec; (* the vector of boolean; true when the
+                             solver has detected a zero-crossing *)
+    mutable zout : zoutvec; (* the corresponding vector that define
+                               zero-crossings *)
+    mutable cpos : int; (* the start position in the vector of positions *)
+    mutable zpos : int; (* the start position in the vector of zero-crossings *)
+    mutable cmax : int; (* the maximum size of the vector of positions *)
+    mutable zmax : int; (* the maximum number of zero-crossings *)
+    mutable horizon : float; (* the next horizon *)
+    mutable discrete : bool; (* integration when true *)
+  } 
