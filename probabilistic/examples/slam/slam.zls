@@ -90,7 +90,9 @@ let node slam_obs real_map dir = (obs, x) where
           do x = max 0 (if wheel_slip then last x else last x - 1) done
       end
   and wheel_slip = Distribution.draw (Distribution.bernoulli 0.1)
-  and obs = Array_misc.get real_map x
+  and sensor_error = Distribution.draw (Distribution.bernoulli 0.1)
+  and b = Array_misc.get real_map x
+  and obs =if sensor_error then not b else b
 
 
 let real_map =
