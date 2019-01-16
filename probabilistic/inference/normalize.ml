@@ -9,7 +9,7 @@ let normalize values =
   let return_histogram =
     Array.fold_left
       (fun acc v ->
-         Misc.list_replace_assoc v
+         Misc_lib.list_replace_assoc v
            (function None -> 1
                    | Some n -> n + 1)
            acc)

@@ -5,7 +5,7 @@ OCAMLDEP=ocamldep
 OCAMLC=ocamlc
 OCAMLOPT=ocamlopt
 
-ML_SRC=misc.ml \
+ML_SRC=misc_lib.ml \
 	distribution.ml \
 	normalize.ml \
 	infer.ml \

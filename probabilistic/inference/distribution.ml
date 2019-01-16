@@ -128,8 +128,8 @@ let split dist =
                | Some p' -> p +. p'
                end
              in
-             (Misc.list_replace_assoc a add_p acc1,
-              Misc.list_replace_assoc b add_p acc2))
+             (Misc_lib.list_replace_assoc a add_p acc1,
+              Misc_lib.list_replace_assoc b add_p acc2))
           support
           ([], [])
       in
@@ -165,7 +165,7 @@ let split_array dist =
            Array.iteri
              (fun i v ->
                 supports.(i) <-
-                  Misc.list_replace_assoc v add_p supports.(i))
+                  Misc_lib.list_replace_assoc v add_p supports.(i))
              a)
         support;
       Array.map (fun supp -> Dist_support supp) supports
@@ -225,8 +225,8 @@ let beta =
     else
       let d = shape -. 1. /. 3. in
       let c = 1. /. sqrt (9. *. d) in
-      let x = ref 0. in
-      let v = ref min_float in
+      let x = ref (draw (gaussian 0. 1.)) in
+      let v = ref (1. +. c *. !x) in
       let rec loop () =
         while !v <= 0. do
           x := draw (gaussian 0. 1.);
