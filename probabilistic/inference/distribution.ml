@@ -18,37 +18,22 @@
 (*                                                                    *)
 (**********************************************************************)
 
+(** {2 Type definitions} *)
+
+(** Probabilities (must be in the interval [0, 1]). *)
 type proba = float
+
+(** Logarithm of probabilities *)
 type log_proba = float
 
+(** Type of distributions *)
 type 'a t =
   | Dist_sampler of ((unit -> 'a) * ('a -> log_proba))
   | Dist_support of ('a * proba) list
 
-let bernoulli p =
-  assert (0. <= p && p <= 1.);
-  Dist_support [
-    (true, p);
-    (false, 1. -. p);
-  ]
+(** {2 Draw and score}*)
 
-let gaussian mu sigma =
-  let two_pi = 2.0 *. 3.14159265358979323846 in
-  let rec rand_pair () =
-    let u1 = Random.float 1.0 in
-    let u2 = Random.float 1.0 in
-    if u1 < epsilon_float then rand_pair ()
-    else u1, u2
-  in
-  Dist_sampler
-    ((fun () ->
-        let u1, u2 = rand_pair() in
-        let z = sqrt (-.2. *. log u1) *. cos (two_pi *. u2) in
-        z *. sigma +. mu),
-     (fun x ->
-        -. 0.5 *. log (two_pi *. sigma ** 2.) -.
-        (x -. mu) ** 2. /. (2. *. sigma ** 2.)))
-
+(** [draw dist] draws a value form the distribution [dist] *)
 let draw dist =
   begin match dist with
     | Dist_sampler (sampler, _) -> sampler ()
@@ -66,6 +51,9 @@ let draw dist =
       draw 0. sup
   end
 
+(** [score dist x] returns the log probability of the value [x] in the
+    distribution [dist].
+*)
 let score dist x =
   begin match dist with
     | Dist_sampler (_, scorer) -> scorer x
@@ -74,6 +62,9 @@ let score dist x =
            with Not_found -> 0.)
   end
 
+(** [draw dist] draws a value form the distribution [dist] and returns
+    its log probability.
+*)
 let draw_and_score dist =
   begin match dist with
     | Dist_sampler (sampler, scorer) ->
@@ -93,6 +84,12 @@ let draw_and_score dist =
       draw  0. sup
   end
 
+
+(** {2 Opreations on distributions} *)
+
+(** [multivariate dists] builds a multivariate distribution from a
+    list of distributions.
+*)
 let multivariate dists =
   Dist_sampler
     ((fun () -> List.map (fun dist -> draw dist) dists),
@@ -102,31 +99,7 @@ let multivariate dists =
           1.0
           dists xs))
 
-let sph_gaussian mus sigmas =
-  multivariate (List.map2 gaussian mus sigmas)
-
-let uniform_int low up =
-  let draw () =
-    Random.int (up - low + 1) + low
-  in
-  let score n =
-    -. log (float (up - low))
-  in
-  Dist_sampler (draw, score)
-
-let uniform_float low up =
-  let draw () =
-      Random.float (up -. low) +. low
-  in
-  let score n =
-    -. log (up -. low)
-  in
-  Dist_sampler (draw, score)
-
-let uniform_list l =
-  let p = 1. /. float (List.length l) in
-  Dist_support (List.map (fun x -> (x, p)) l)
-
+(** [mean_float d] computes the mean of a [float Distribution.t]. *)
 let mean_float d =
   match d with
   | Dist_sampler _ ->
@@ -137,18 +110,9 @@ let mean_float d =
   | Dist_support sup ->
     List.fold_left (fun acc (v, w) -> acc +. v *. w) 0. sup
 
-let exponential lambda =
-  let draw () =
-    let u = Random.float 1. in
-    -. log u /. lambda
-  in
-  let score x =
-    if x >= 0. then log lambda -. lambda *. x
-    else neg_infinity
-  in
-  Dist_sampler (draw, score)
-
-
+(** [split dist] turns a distribution of pairs into a pair of
+    distributions.
+*)
 let split dist =
   begin match dist with
   | Dist_sampler (draw, score) ->
@@ -172,6 +136,9 @@ let split dist =
       (Dist_support s1, Dist_support s2)
   end
 
+(** [split_array dist] turns a distribution of arrays into an array of
+    distributions.
+*)
 let split_array dist =
   begin match dist with
   | Dist_sampler (draw, score) ->
@@ -203,4 +170,162 @@ let split_array dist =
         support;
       Array.map (fun supp -> Dist_support supp) supports
   end
+
+
+(** {2 Distributions} *)
+
+(** [bernoulli theta] is a bernoulli distribution of parameter theta.
+    @see<https://en.wikipedia.org/wiki/Bernoulli_distribution>
+ *)
+let bernoulli p =
+  assert (0. <= p && p <= 1.);
+  Dist_support [
+    (true, p);
+    (false, 1. -. p);
+  ]
+
+
+(** [gaussian mu sigma] is a normal distribution of mean [mu] and
+    standard deviation [sigma].
+    @see<https://en.wikipedia.org/wiki/Normal_distribution>
+*)
+let gaussian mu sigma =
+  let two_pi = 2.0 *. 3.14159265358979323846 in
+  let rec rand_pair () =
+    let u1 = Random.float 1.0 in
+    let u2 = Random.float 1.0 in
+    if u1 < epsilon_float then rand_pair ()
+    else u1, u2
+  in
+  Dist_sampler
+    ((fun () ->
+        let u1, u2 = rand_pair() in
+        let z = sqrt (-.2. *. log u1) *. cos (two_pi *. u2) in
+        z *. sigma +. mu),
+     (fun x ->
+        -. 0.5 *. log (two_pi *. sigma ** 2.) -.
+        (x -. mu) ** 2. /. (2. *. sigma ** 2.)))
+
+
+(** [beta a b] is a beta distribution of parameters [a] and [b].
+    @see<https://en.wikipedia.org/wiki/Beta_distribution>
+ *)
+let beta =
+  let rec exp_gamma_sample shape scale =
+    if (shape < 1.) then
+     let r =
+       exp_gamma_sample (1. +. shape) scale +. log (Random.float 1.) /. shape
+     in
+     if r = neg_infinity then
+       (* log gamma sample underflow, rounded to nearest representable
+          support value *)
+       min_float
+     else
+       r
+    else
+      let d = shape -. 1. /. 3. in
+      let c = 1. /. sqrt (9. *. d) in
+      let x = ref 0. in
+      let v = ref min_float in
+      let rec loop () =
+        while !v <= 0. do
+          x := draw (gaussian 0. 1.);
+          v := 1. +. c *. !x
+        done;
+        let log_v = 3. *. log !v in
+        v := !v *. !v *. !v;
+        let u = Random.float 1. in
+        if ((u < 1. -. 0.331 *. !x *. !x *. !x *. !x)
+            || (log u < 0.5 *. !x *. !x +. d *. (1. -. !v +. log !v))) then
+          log scale +. log d +. log_v
+        else
+          loop ()
+      in
+      loop ()
+  in
+  let log_gamma x = assert false (* XXX TODO XXX *) in
+  let log_beta a b =
+    log_gamma a +. log_gamma b -. log_gamma (a +. b)
+  in
+  fun a b ->
+    assert (a > 0.);
+    assert (b > 0.);
+    let draw () =
+      let log_x = exp_gamma_sample a 1. in
+      let log_y = exp_gamma_sample b 1. in
+      let v = 1. /. (1. +. exp (log_y -. log_x)) in
+      if v = 0. then
+        (* beta sample underflow, rounded to nearest representable
+           support value *)
+        min_float
+      else if v = 1. then
+        (* beta sample overflow, rounded to nearest representable
+           support value *)
+        1. -. epsilon_float /. 2.
+      else v
+    in
+    let score x =
+    if x > 0. && x < 1. then
+      (a -. 1.) *. log x +. (b -. 1.) *. log (1. -. x) -. log_beta a b
+    else
+        neg_infinity
+    in
+    Dist_sampler (draw, score)
+
+(** [sph_gaussian mus sigmas] is a multivariate normal distribution.
+    @see<https://en.wikipedia.org/wiki/Multivariate_normal_distribution>
+*)
+let sph_gaussian mus sigmas =
+  multivariate (List.map2 gaussian mus sigmas)
+
+
+(** [uniform_int low up] is a uniform distribution over integers
+    between [low] and [up] included.
+    @see<https://en.wikipedia.org/wiki/Discrete_uniform_distribution>
+*)
+let uniform_int low up =
+  let draw () =
+    Random.int (up - low + 1) + low
+  in
+  let score n =
+    -. log (float (up - low))
+  in
+  Dist_sampler (draw, score)
+
+(** [uniform_float low up] is a uniform distribution over floating
+    points number between [low] and [up] included.
+    @see<https://en.wikipedia.org/wiki/Uniform_distribution_(continuous)>
+*)
+let uniform_float low up =
+  let draw () =
+      Random.float (up -. low) +. low
+  in
+  let score n =
+    -. log (up -. low)
+  in
+  Dist_sampler (draw, score)
+
+
+(** [uniform_list l] is a categorical distribution where each element
+    is equiprobable.
+    @see<https://en.wikipedia.org/wiki/Categorical_distribution>
+*)
+let uniform_list l =
+  let p = 1. /. float (List.length l) in
+  Dist_support (List.map (fun x -> (x, p)) l)
+
+(** [exponential lambda] is an exponential distribution of parameter lambda.
+    @see<https://en.wikipedia.org/wiki/Exponential_distribution>
+ *)
+let exponential lambda =
+  assert (lambda > 0.);
+  let draw () =
+    let u = Random.float 1. in
+    -. log u /. lambda
+  in
+  let score x =
+    if x >= 0. then log lambda -. lambda *. x
+    else neg_infinity
+  in
+  Dist_sampler (draw, score)
 
