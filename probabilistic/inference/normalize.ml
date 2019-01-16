@@ -2,16 +2,6 @@
 let copy : 'a. 'a -> 'a =
   fun x -> Marshal.from_bytes (Marshal.to_bytes x [Marshal.Closures]) 0
 
-let rec list_replace_assoc x f l =
-  begin match l with
-    | [] -> [ (x, f None) ]
-    | (y, v) :: l ->
-      if x = y then
-        (x, f (Some v)) :: l
-      else
-        (y, v) :: list_replace_assoc x f l
-  end
-
 (** [normalize values] creates a distribution corresponding to the
     array of values [values]. *)
 let normalize values =
@@ -19,7 +9,7 @@ let normalize values =
   let return_histogram =
     Array.fold_left
       (fun acc v ->
-         list_replace_assoc v
+         Misc.list_replace_assoc v
            (function None -> 1
                    | Some n -> n + 1)
            acc)

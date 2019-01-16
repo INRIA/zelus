@@ -4,5 +4,5 @@ val set : 'a t -> int -> 'a -> 'a t
 val of_list : 'a list -> 'a t
 val make : int -> 'a -> 'a t
 val split : int -> bool Distribution.t -> bool Distribution.t array
-val print : ('a -> string) -> 'a array -> unit
-val print_map_dist : bool Distribution.t array -> unit
+val print : ('a -> string) -> 'a t -> unit
+val print_map_dist : (float * float) t Distribution.t -> unit

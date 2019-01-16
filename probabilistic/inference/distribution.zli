@@ -13,3 +13,5 @@ val uniform_float : float -> float -> float t
 val uniform_list : 'a list -> 'a t
 val mean_float : float t -> float
 val split : ('a * 'b) t -> 'a t * 'b t
+val split_array : 'a array t -> 'a t array
+

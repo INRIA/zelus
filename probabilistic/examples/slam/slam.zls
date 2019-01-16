@@ -67,8 +67,8 @@ let update_weight (map, x_new, obs_new) =
 
 let node slam (prob, (obs, dir)) = (map, x) where
   rec x = sample_x (prob, 0, dir)
-  and map = update (map_init fby map, obs, 0 fby x)
-  and () = factor(prob, update_weight(map_init fby map, 0 fby x, obs))
+  and map = update (map_init fby map, obs, x)
+  and () = factor(prob, update_weight(map_init fby map, x, obs))
   and init map_init = Array_misc.make (max_pos + 1) (0., 0.)
 
 let node slam_ctrl x = dir where
@@ -80,7 +80,6 @@ let node slam_ctrl x = dir where
           do dir = Left
           unless (x = 0) then Incr
       end
-
 
 let node slam_obs real_map dir = (obs, x) where
   rec init x = 0
@@ -103,9 +102,9 @@ let real_map =
       true; false; true ]
 
 let node main () =
-  let rec map_dist, pos_dist = Distribution.split (infer 1 slam (obs, dir))
+  let rec map_dist, pos_dist = Distribution.split (infer 100 slam (obs, dir))
   and x = Distribution.draw pos_dist
   and dir = slam_ctrl (0 fby x)
   and (obs, real_x) = slam_obs real_map dir in
-  print_endline ("("^(string_of_int real_x)^", "^(string_of_int x)^")")
-  (* Array_misc.print_map_dist map_dist *)
+  print_endline ("("^(string_of_int real_x)^", "^(string_of_int x)^")");
+  Array_misc.print_map_dist map_dist

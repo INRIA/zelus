@@ -35,14 +35,12 @@ let print to_string a =
   Array.iter
     (fun x -> Format.printf "%s;@ " (to_string x))
     a;
-  Format.printf "@]]"
+  Format.printf "@]]@."
 
 let print_map_dist a =
   print
     (fun d ->
-       begin match d with
-       | Dist_support [ (true, p_true); (false, p_false) ] ->
-           "(true, "^(string_of_float p_true)^"), ( false, "^(string_of_float p_true)^")"
-       | _ -> assert false
-       end)
-    a
+       let d_true, d_false = Distribution.split d in
+       "("^(string_of_float (mean_float d_true))^", "
+       ^(string_of_float (mean_float d_false))^")")
+    (Distribution.split_array a)

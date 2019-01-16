@@ -157,10 +157,50 @@ let split dist =
   | Dist_support support ->
       let s1, s2 =
         List.fold_right
-          (fun ((a, b), p) (acc1, acc2) -> ((a, p) :: acc1, (b, p) :: acc2))
+          (fun ((a, b), p) (acc1, acc2) ->
+             let add_p o =
+               begin match o with
+               | None -> p
+               | Some p' -> p +. p'
+               end
+             in
+             (Misc.list_replace_assoc a add_p acc1,
+              Misc.list_replace_assoc b add_p acc2))
           support
           ([], [])
       in
       (Dist_support s1, Dist_support s2)
+  end
+
+let split_array dist =
+  begin match dist with
+  | Dist_sampler (draw, score) ->
+      (* We assume that all arrays in the distribution have the same length. *)
+      let len = Array.length (draw ()) in
+      Array.init len
+        (fun i ->
+           let draw () = (draw ()).(i) in
+           let score _ = assert false in
+           Dist_sampler (draw, score))
+  | Dist_support [] -> Array.make 0 (Dist_support [])
+  | Dist_support (((a0, p) :: _) as support) ->
+      let supports =
+        Array.make (Array.length a0) []
+      in
+      List.iter
+        (fun (a, p) ->
+           let add_p o =
+             begin match o with
+               | None -> p
+               | Some p' -> p +. p'
+             end
+           in
+           Array.iteri
+             (fun i v ->
+                supports.(i) <-
+                  Misc.list_replace_assoc v add_p supports.(i))
+             a)
+        support;
+      Array.map (fun supp -> Dist_support supp) supports
   end
 
