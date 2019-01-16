@@ -147,3 +147,20 @@ let exponential lambda =
     else neg_infinity
   in
   Dist_sampler (draw, score)
+
+
+let split dist =
+  begin match dist with
+  | Dist_sampler (draw, score) ->
+      Dist_sampler ((fun () -> fst (draw ())), (fun _ -> assert false)),
+      Dist_sampler ((fun () -> snd (draw ())), (fun _ -> assert false))
+  | Dist_support support ->
+      let s1, s2 =
+        List.fold_right
+          (fun ((a, b), p) (acc1, acc2) -> ((a, p) :: acc1, (b, p) :: acc2))
+          support
+          ([], [])
+      in
+      (Dist_support s1, Dist_support s2)
+  end
+

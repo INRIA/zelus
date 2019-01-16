@@ -1,0 +1,111 @@
+open Infer
+
+type direction = Left | Right
+
+let max_pos = 10
+let mt_prior = log 0.5
+let mf_prior = log 0.5
+let macc_likelihood = log 0.9
+let minacc_likelihood = log 0.1
+
+let log_sum_exp (a, b) =
+  let max_exp = max a b in
+  let sum = exp (a -. max_exp) +. exp (b -. max_exp) in
+  log sum +. max_exp
+
+
+let node sample_x (prob, x_init, dir) = x where
+  rec init x = x_init
+  and match dir with
+      | Right ->
+          do x = min max_pos (if wheel_slip then last x else last x + 1) done
+      | Left ->
+          do x = max 0 (if wheel_slip then last x else last x - 1) done
+      end
+  and wheel_slip = sample (prob, Distribution.bernoulli 0.1)
+
+let update (map, obs, x) =
+  let (ntrue, nfalse) = Array_misc.get map x in
+  Array_misc.set map x
+    (if obs then (ntrue +. 1., nfalse) else (ntrue, nfalse +. 1.))
+
+let update_weight (map, x_new, obs_new) =
+  let (filtersum_true, filtersum_false) =
+    Array_misc.get map x_new
+  in
+
+  (* Pr(m[x[t0]], y{t: t < t0 && x[t] == x[t0]} |  x{t: t < t0}) *)
+  let mjoint_true =
+    mt_prior +. macc_likelihood *. filtersum_true
+      +. minacc_likelihood *. filtersum_false
+  in
+  let mjoint_false =
+    mf_prior +. macc_likelihood *. filtersum_false
+      +. minacc_likelihood *. filtersum_true
+  in
+
+  (* Pr(y{t: t < t0 && x[t] == x[t0]} |  x{t: t < t0}) *)
+  let mmarg = log_sum_exp (mjoint_true, mjoint_false) in
+
+  (* Pr(m[x[t0]] | y{t: t < t0 && x[t] == x[t0]}, x{t: t < t0}) *)
+  let mpost_true = mjoint_true -. mmarg in
+  let mpost_false = mjoint_false -. mmarg in
+
+  (* Pr(y[t0] | y{t: t < t0 && x[t] == x[t0]}, x{t: t < t0}) *)
+  let ypred_true =
+    log_sum_exp
+      (mpost_true +. macc_likelihood,
+       mpost_false +. minacc_likelihood)
+  in
+  let ypred_false =
+    log_sum_exp
+      (mpost_true +. minacc_likelihood,
+       mpost_false +. macc_likelihood)
+  in
+  if obs_new then ypred_true else ypred_false
+
+
+let node slam (prob, (obs, dir)) = (map, x) where
+  rec x = sample_x (prob, 0, dir)
+  and map = update (map_init fby map, obs, 0 fby x)
+  and () = factor(prob, update_weight(map_init fby map, 0 fby x, obs))
+  and init map_init = Array_misc.make (max_pos + 1) (0., 0.)
+
+let node slam_ctrl x = dir where
+  rec automaton
+      | Incr ->
+          do dir = Right
+          unless (x = max_pos) then Decr
+      | Decr ->
+          do dir = Left
+          unless (x = 0) then Incr
+      end
+
+
+let node slam_obs real_map dir = (obs, x) where
+  rec init x = 0
+  and match dir with
+      | Right ->
+          do x = min max_pos (if wheel_slip then last x else last x + 1) done
+      | Left ->
+          do x = max 0 (if wheel_slip then last x else last x - 1) done
+      end
+  and wheel_slip = Distribution.draw (Distribution.bernoulli 0.1)
+  and obs = Array_misc.get real_map x
+
+
+let real_map =
+  Array_misc.of_list
+    [ true; false;
+      true; false;
+      true; false;
+      true; false;
+      true; false; true ]
+
+let node main () =
+  let rec map_dist, pos_dist = Distribution.split (infer 1 slam (obs, dir))
+  and x = Distribution.draw pos_dist
+  and dir = slam_ctrl (0 fby x)
+  and (obs, real_x) = slam_obs real_map dir in
+  print_endline ("("^(string_of_int real_x)^", "^(string_of_int x)^")")
+  (* Array_misc.print_map_dist map_dist *)
