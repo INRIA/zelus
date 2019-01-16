@@ -1,17 +1,20 @@
 type proba = float
 type log_proba = float
-type 'a t
-val bernoulli : float -> bool t
-val gaussian : float -> float -> float t
+type 'a t =
+    Dist_sampler of ((unit -> 'a) * ('a -> log_proba))
+  | Dist_support of ('a * proba) list
 val draw : 'a t -> 'a
-val score : 'a t -> 'a -> float
-val draw_and_score : 'a t -> 'a * proba
+val score : 'a t -> 'a -> log_proba
+val draw_and_score : 'a t -> 'a * log_proba
 val multivariate : 'a t list -> 'a list t
+val mean_float : float t -> float
+val split : ('a * 'b) t -> 'a t * 'b t
+val split_array : 'a array t -> 'a t array
+val bernoulli : proba -> bool t
+val gaussian : float -> float -> float t
+val beta : float -> float -> float t
 val sph_gaussian : float list -> float list -> float list t
 val uniform_int : int -> int -> int t
 val uniform_float : float -> float -> float t
 val uniform_list : 'a list -> 'a t
-val mean_float : float t -> float
-val split : ('a * 'b) t -> 'a t * 'b t
-val split_array : 'a array t -> 'a t array
-
+val exponential : float -> float t
