@@ -21,12 +21,12 @@ opt: $(NAME).opt
 
 $(NAME): $(INFERENCE_CMA) $(NAME).ml main.ml array_misc.ml
 	$(OCAMLC) -o $(NAME) -I $(ZLLIB) -I $(INFERLIB) \
-		$(INFERENCE_CMA) \
+		$(INFERENCE_CMA) graphics.cma\
 		array_misc.ml $(NAME).ml main.ml
 
 $(NAME).opt: $(INFERENCE_CMXA) $(NAME).ml main.ml array_misc.ml
 	$(OCAMLOPT) -o $(NAME).opt -I $(ZLLIB) -I $(INFERLIB) \
-		$(INFERENCE_CMXA) \
+		$(INFERENCE_CMXA) graphics.cmxa\
 		array_misc.ml $(NAME).ml main.ml
 
 $(NAME).ml main.ml: $(INFERENCE_ZCI) array_misc.zci $(NAME).zls

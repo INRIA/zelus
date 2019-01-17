@@ -44,3 +44,38 @@ let print_map_dist a =
        "("^(string_of_float (mean_float d_true))^", "
        ^(string_of_float (mean_float d_false))^")")
     (Distribution.split_array a)
+
+
+let () =
+  Graphics.open_graph " 550x50";
+  Graphics.auto_synchronize false
+
+let clear () =
+  Graphics.synchronize ();
+  Graphics.clear_graph ()
+
+let wait_event () =
+  ignore (Graphics.read_key ())
+
+let width = 50
+let height = 50
+    
+let draw_bot x =
+  Graphics.set_color (Graphics.red);
+  Graphics.fill_circle (x * width + width / 2) (height / 2) 10
+
+let draw_map_dist map_dist =
+  let mw = Array.map
+    (fun d ->
+      let d_true, d_false = Distribution.split d in
+      let n_t, n_f = mean_float d_true, mean_float d_false in
+      n_t /. (n_t +. n_f))
+    (Distribution.split_array map_dist)
+  in
+  Array.iteri (fun i w ->
+    let gray = int_of_float (w *. 255.) in
+    Graphics.set_color (Graphics.rgb gray gray gray);
+    Graphics.fill_rect (i * width)  0  width height)
+    mw;
+
+

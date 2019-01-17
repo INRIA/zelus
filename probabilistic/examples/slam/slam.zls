@@ -108,5 +108,9 @@ let node main () =
   and x = Distribution.draw pos_dist
   and dir = slam_ctrl (0 fby x)
   and (obs, real_x) = slam_obs real_map dir in
+  Array_misc.wait_event ();
   print_endline ("("^(string_of_int real_x)^", "^(string_of_int x)^")");
-  Array_misc.print_map_dist map_dist
+  Array_misc.print_map_dist map_dist;
+  Array_misc.clear ();
+  Array_misc.draw_map_dist map_dist;
+  Array_misc.draw_bot x
