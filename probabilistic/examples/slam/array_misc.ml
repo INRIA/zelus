@@ -31,7 +31,7 @@ let print_map_dist a =
 
 
 let () =
-  Graphics.open_graph " 550x50";
+  Graphics.open_graph " 550x100";
   Graphics.auto_synchronize false
 
 let clear () =
@@ -59,7 +59,7 @@ let draw_position_dist d =
              (x * width + width / 2) (height / 2)
              (1 + int_of_float (10. *. p)))
         support
-
+	
 let draw_map_dist map_dist =
   let mw = Array.map
     (fun d ->
@@ -74,6 +74,16 @@ let draw_map_dist map_dist =
     Graphics.fill_rect (i * width)  0  width height)
     mw
 
+let draw_pos_dist pd =
+  match pd with
+  | Dist_sampler _  -> assert false
+  | Dist_support sup ->
+    List.iter (fun (x, p) ->
+      Graphics.set_color (Graphics.red);
+      let w = int_of_float (p *. 10.) in
+      Graphics.fill_circle (x * width + width / 2) (height / 4) w)
+      sup
+      
 let random n theta =
   Array.init n
     (fun _ -> Distribution.draw (Distribution.bernoulli theta))

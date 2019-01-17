@@ -11,3 +11,4 @@ val draw_position: int -AD-> unit
 val draw_position_dist: int Distribution.t -AD-> unit
 val draw_map_dist:  (float * float) t Distribution.t -AD-> unit
 val random : int -> float -> bool t
+val draw_pos_dist: int Distribution.t -AD-> unit
