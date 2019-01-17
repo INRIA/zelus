@@ -45,7 +45,7 @@ let width = 50
 let height = 100
 
 let draw_position x =
-  Graphics.set_color (Graphics.red);
+  Graphics.set_color (Graphics.blue);
   Graphics.fill_circle (x * width + width / 2) (3 * height / 4) 10
 
 let draw_position_dist d =
@@ -54,7 +54,7 @@ let draw_position_dist d =
   | Distribution.Dist_support support ->
       List.iter
         (fun (x, p) ->
-           Graphics.set_color (Graphics.blue);
+           Graphics.set_color (Graphics.red);
            Graphics.fill_circle
              (x * width + width / 2) (height / 4)
              (1 + int_of_float (10. *. p)))
