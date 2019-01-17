@@ -9,6 +9,8 @@ all:
 	$(MAKE) -C pid
 	$(MAKE) -C restaurants
 	$(MAKE) -C gaussian_gaussian
+	$(MAKE) -C beta_bernoulli
+	$(MAKE) -C slam
 
 clean:
 	$(MAKE) -C gridworld clean
@@ -21,6 +23,8 @@ clean:
 	$(MAKE) -C pid clean
 	$(MAKE) -C restaurants clean
 	$(MAKE) -C gaussian_gaussian clean
+	$(MAKE) -C beta_bernoulli clean
+	$(MAKE) -C slam clean
 
 realclean cleanall:
 	$(MAKE) -C gridworld cleanall
@@ -33,4 +37,6 @@ realclean cleanall:
 	$(MAKE) -C pid cleanall
 	$(MAKE) -C restaurants cleanall
 	$(MAKE) -C gaussian_gaussian cleanall
+	$(MAKE) -C beta_bernoulli cleanall
+	$(MAKE) -C slam cleanall
 	-rm -f *~
