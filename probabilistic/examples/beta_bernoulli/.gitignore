@@ -1,0 +1,10 @@
+*.zci
+*.cmi
+*.cmo
+*.cmx
+*.o
+*.byte
+*.opt
+beta_bernoulli
+beta_bernoulli.ml
+main.ml
