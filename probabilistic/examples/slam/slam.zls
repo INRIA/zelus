@@ -113,4 +113,5 @@ let node main () =
   Array_misc.print_map_dist map_dist;
   Array_misc.clear ();
   Array_misc.draw_map_dist map_dist;
-  Array_misc.draw_bot x
+  Array_misc.draw_bot real_x;
+  Array_misc.draw_belief x

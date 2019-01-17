@@ -64,6 +64,10 @@ let draw_bot x =
   Graphics.set_color (Graphics.red);
   Graphics.fill_circle (x * width + width / 2) (height / 2) 10
 
+let draw_belief x =
+  Graphics.set_color (Graphics.red);
+  Graphics.draw_circle (x * width + width / 2) (height / 2) 10
+
 let draw_map_dist map_dist =
   let mw = Array.map
     (fun d ->
