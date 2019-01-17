@@ -42,11 +42,11 @@ let wait_event () =
   ignore (Graphics.read_key ())
 
 let width = 50
-let height = 50
+let height = 100
 
 let draw_position x =
   Graphics.set_color (Graphics.red);
-  Graphics.fill_circle (x * width + width / 2) (height / 2) 10
+  Graphics.fill_circle (x * width + width / 2) (3 * height / 4) 10
 
 let draw_position_dist d =
   match d with
@@ -55,8 +55,8 @@ let draw_position_dist d =
       List.iter
         (fun (x, p) ->
            Graphics.set_color (Graphics.blue);
-           Graphics.draw_circle
-             (x * width + width / 2) (height / 2)
+           Graphics.fill_circle
+             (x * width + width / 2) (height / 4)
              (1 + int_of_float (10. *. p)))
         support
 	
@@ -73,16 +73,6 @@ let draw_map_dist map_dist =
     Graphics.set_color (Graphics.rgb gray gray gray);
     Graphics.fill_rect (i * width)  0  width height)
     mw
-
-let draw_pos_dist pd =
-  match pd with
-  | Dist_sampler _  -> assert false
-  | Dist_support sup ->
-    List.iter (fun (x, p) ->
-      Graphics.set_color (Graphics.red);
-      let w = int_of_float (p *. 10.) in
-      Graphics.fill_circle (x * width + width / 2) (height / 4) w)
-      sup
       
 let random n theta =
   Array.init n
