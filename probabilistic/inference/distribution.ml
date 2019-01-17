@@ -225,12 +225,12 @@ let beta =
     else
       let d = shape -. 1. /. 3. in
       let c = 1. /. sqrt (9. *. d) in
-      let x = ref (draw (gaussian 0. 1.)) in
-      let v = ref (1. +. c *. !x) in
       let rec loop () =
+        let x = ref (draw (gaussian 0. 1.)) in
+        let v = ref (1. +. c *. !x) in
         while !v <= 0. do
           x := draw (gaussian 0. 1.);
-          v := 1. +. c *. !x
+          v := 1. +. c *. !x;
         done;
         let log_v = 3. *. log !v in
         v := !v *. !v *. !v;
@@ -328,4 +328,3 @@ let exponential lambda =
     else neg_infinity
   in
   Dist_sampler (draw, score)
-
