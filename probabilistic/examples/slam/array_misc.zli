@@ -3,11 +3,11 @@ val get : 'a t -> int -> 'a
 val set : 'a t -> int -> 'a -> 'a t
 val of_list : 'a list -> 'a t
 val make : int -> 'a -> 'a t
-val split : int -> bool Distribution.t -> bool Distribution.t array
 val print : ('a -> string) -> 'a t -> unit
 val print_map_dist : (float * float) t Distribution.t -AD-> unit
 val clear : unit -AD-> unit
 val wait_event: unit -AD-> unit
-val draw_bot: int -AD-> unit
-val draw_belief: int -AD-> unit
+val draw_position: int -AD-> unit
+val draw_position_dist: int Distribution.t -AD-> unit
 val draw_map_dist:  (float * float) t Distribution.t -AD-> unit
+val random : int -> float -> bool t

@@ -1,4 +1,5 @@
 open Infer
+(* open Infer_importance *)
 
 type direction = Left | Right
 
@@ -96,12 +97,13 @@ let node slam_obs real_map dir = (obs, x) where
 
 
 let real_map =
-  Array_misc.of_list
-    [ true; false;
-      true; false;
-      true; false;
-      true; false;
-      true; false; true ]
+  (* Array_misc.of_list *)
+  (*   [ true; false; *)
+  (*     true; false; *)
+  (*     true; false; *)
+  (*     true; false; *)
+  (*     true; false; true ] *)
+  Array_misc.random (max_pos + 1) 0.6
 
 let node main () =
   let rec map_dist, pos_dist = Distribution.split (infer 100 slam (obs, dir))
@@ -113,5 +115,5 @@ let node main () =
   Array_misc.print_map_dist map_dist;
   Array_misc.clear ();
   Array_misc.draw_map_dist map_dist;
-  Array_misc.draw_bot real_x;
-  Array_misc.draw_belief x
+  Array_misc.draw_position real_x;
+  Array_misc.draw_position_dist pos_dist

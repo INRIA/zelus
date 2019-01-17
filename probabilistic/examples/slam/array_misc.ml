@@ -14,22 +14,6 @@ let make = Array.make
 
 open Distribution
 
-let split n d =
-  begin match d with
-  | Dist_sampler (draw, score) -> assert false
-  | Dist_support support ->
-      Array.init n
-        (fun i ->
-           let p_true, p_false =
-             List.fold_left
-               (fun (p_true, p_false) (b, p) ->
-                  if b.(i) then (p_true +. p, p_false)
-                  else (p_true, p_false +. p))
-               (0., 0.) support
-           in
-           Dist_support [ (true, p_true); (false, p_false) ])
-  end
-
 let print to_string a =
   Format.printf "[ @[";
   Array.iter
@@ -59,14 +43,22 @@ let wait_event () =
 
 let width = 50
 let height = 50
-    
-let draw_bot x =
+
+let draw_position x =
   Graphics.set_color (Graphics.red);
   Graphics.fill_circle (x * width + width / 2) (height / 2) 10
 
-let draw_belief x =
-  Graphics.set_color (Graphics.red);
-  Graphics.draw_circle (x * width + width / 2) (height / 2) 10
+let draw_position_dist d =
+  match d with
+  | Distribution.Dist_sampler _ -> assert false
+  | Distribution.Dist_support support ->
+      List.iter
+        (fun (x, p) ->
+           Graphics.set_color (Graphics.blue);
+           Graphics.draw_circle
+             (x * width + width / 2) (height / 2)
+             (1 + int_of_float (10. *. p)))
+        support
 
 let draw_map_dist map_dist =
   let mw = Array.map
@@ -80,6 +72,8 @@ let draw_map_dist map_dist =
     let gray = int_of_float (w *. 255.) in
     Graphics.set_color (Graphics.rgb gray gray gray);
     Graphics.fill_rect (i * width)  0  width height)
-    mw;
+    mw
 
-
+let random n theta =
+  Array.init n
+    (fun _ -> Distribution.draw (Distribution.bernoulli theta))
