@@ -5,10 +5,12 @@ val of_list : 'a list -> 'a t
 val make : int -> 'a -> 'a t
 val print : ('a -> string) -> 'a t -> unit
 val print_map_dist : (float * float) t Distribution.t -AD-> unit
+val init_graph: int-AD-> unit
 val clear : unit -AD-> unit
-val wait_event: unit -AD-> unit
-val draw_position: int -AD-> unit
+val wait_event: unit -> int
+val draw_bot: int -> bool -AD-> unit
 val draw_position_dist: int Distribution.t -AD-> unit
+val draw_map: bool t -AD-> unit
 val draw_map_dist:  (float * float) t Distribution.t -AD-> unit
 val random : int -> float -> bool t
 val draw_pos_dist: int Distribution.t -AD-> unit
