@@ -81,7 +81,7 @@ type 'o hsimu =
 
 (* The interface with the solver *)
 (* Warning: this interface is not used for the moment *)
-type cstate =
+(* type cstate =
   { mutable dvec : dvec; (* the vector of derivatives *)
     mutable cvec : cvec; (* the vector of positions *)
     mutable zin : zinvec; (* the vector of boolean; true when the
@@ -94,4 +94,4 @@ type cstate =
     mutable zmax : int; (* the maximum number of zero-crossings *)
     mutable horizon : float; (* the next horizon *)
     mutable discrete : bool; (* integration when true *)
-  } 
+  }  *)
