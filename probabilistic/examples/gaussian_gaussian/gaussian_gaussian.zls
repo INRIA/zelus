@@ -16,27 +16,24 @@
 (* ------------------------------------------------------- *)
 
 open Symbolic
-let node infer model i = (env, o) where
-    rec env, o = run model (empty_env fby env, i)
 
-let node model (env, ()) = (env', mu) where
+let node model (pstate, ()) = mu where
   rec automaton
-      | Init -> do
-          (env1, mu) = Infer_adf.sample (env,
-                                         Symbolic.normal_ef,
-                                         Symbolic.normal_nat_params 0. 100.)
-      until true then Run(mu)
-      | Run(mu0) -> do
-              env1 = env
-          and mu = mu0
-      done
-  and env' = Infer_adf.factor(env1,
-                              (const 0.) fby
-                                ((Symbolic.gaussian_ll
-                                    (prod [(const 2.); mu])
-                                    (const 1.)
-                                    (const 3.5))))
+      | Init ->
+          do mu = Infer_adf.sample (pstate,
+                                    (Symbolic.normal_ef,
+                                     Symbolic.normal_nat_params 0. 100.))
+          until true then Run(mu)
+      | Run(mu0) ->
+          do mu = mu0
+          done
+  and () = Infer_adf.factor(pstate,
+                            (const 0.) fby
+                              ((Symbolic.gaussian_ll
+                                  (prod [(const 2.); mu])
+                                  (const 1.)
+                                  (const 3.5))))
 
 let node main () =
-  let env, d = infer model () in
+  let env, d = Infer_adf.infer model () in
   print_endline ("mu = "^(get_dist env d))
