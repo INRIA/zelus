@@ -3,7 +3,7 @@ open Infer
 
 type direction = Left | Right
 
-let max_pos = 20
+let max_pos = 10
 let mt_prior = log 0.5
 let mf_prior = log 0.5
 let macc_likelihood = log 0.9
@@ -77,7 +77,7 @@ let node slam_ctrl (event, pos_dist) = dir where
   and match event with
       | 1 -> do dir = Right done
       | -1 -> do dir = Left done
-      | _ -> do  automaton
+      | _ -> do automaton
         | Incr ->
             do dir = Right
             unless (x = max_pos) then Decr
@@ -112,7 +112,7 @@ let real_map =
 
 
 let node main_no_graphics () =
-  let rec map_dist, pos_dist = Distribution.split (infer 100 slam (obs, dir))
+  let rec map_dist, pos_dist = Distribution.split (infer 1000 slam (obs, dir))
   and dir = Right -> (slam_ctrl (0, (Distribution.Dist_support []) fby pos_dist))
   and (obs, real_x) = slam_obs real_map dir in
   Array_misc.print_map_dist map_dist
@@ -120,7 +120,7 @@ let node main_no_graphics () =
 
 let node main () =
   let init pouet = Array_misc.init_graph max_pos in
-  let rec map_dist, pos_dist = Distribution.split (infer 100 slam (obs, dir))
+  let rec map_dist, pos_dist = Distribution.split (infer 1000 slam (obs, dir))
   and dir = Right -> (slam_ctrl (event, (Distribution.Dist_support []) fby pos_dist))
   and (obs, real_x) = slam_obs real_map dir
   and event = Array_misc.wait_event () in
