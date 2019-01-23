@@ -1,3 +1,4 @@
+open Infer
 val pi : float
 type motion_type = Stationary | Walking | Running
 type walker = {
@@ -6,6 +7,15 @@ type walker = {
   motion_type : motion_type;
 }
 val pos_noise : float
-val coast : float -> walker -> walker
+val coast : (pstate * (float * walker)) -AD-> walker
 val motion_type_transition : motion_type -> (float * motion_type) list
-val init_velocity : motion_type -> float * float
+val init_velocity : (pstate * motion_type) -AD-> float * float
+val motion : (pstate * (float * walker)) -AD-> walker
+val real_motion : (float * walker) -> walker
+val position_std_dev : float
+val walker_measure : pstate * (walker * (float * float)) -AD-> unit
+val walker_gen_measurement : walker -> float * float
+val walker_step : pstate * (float * (float * float) * walker) -AD-> walker
+val walker_init : pstate * unit -AD-> walker
+val real_walker_init : unit -> walker
+val print : (motion_type * (float * float)) Distribution.t -AD-> unit
