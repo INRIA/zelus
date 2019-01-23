@@ -1,0 +1,84 @@
+(* On chercher a resoudre les deux equations:
+ *-    der x1 = f1(x1, x2) init x1_0
+ *-    and
+ *-    der x2 = f2(x2, x1) init x2_0 *)
+
+let hybrid quantizer_0(quantum)(tau)(x) = (y, z) where
+   rec
+     init t = 0.0 and init y = x
+   and
+     present
+       | up(x -. quantum /. 2.0 -. y)
+       | up(y -. quantum /. 2.0 -. x)
+       | up(t -. tau) -> do y = x and t = 0.0 and emit z = () done
+     else
+      do der t = 1.0 done
+
+let hybrid estimator(y, z) = w where
+  rec w = present z() -> y init y   
+   
+let hybrid qss(quantum)(tau)(f)(y1_0)(x2, z2) = (x1, z1) where
+  rec
+      y2 = estimator(x2, z2)
+  and
+      (x1, z1) = quantizer_0(quantum)(tau)(y1)
+  and
+      der y1 = f (y1, y2) init y1_0
+
+let hybrid compose(quantum)(tau)(f1)(f2)(y1_0)(y2_0)() = (x1, z1, x2, z2) where
+  rec
+      (x1, z1) = run (qss(quantum)(tau)(f1)(y1_0))(x2, z2)
+  and
+      (x2, z2) = run (qss(quantum)(tau)(f2)(y2_0))(x1, z1)
+  
+
+(* Oscillateur de Van der Pol *)
+
+let mu = 5.0
+
+let f1 (x, y) = y
+
+let f2(y, x) = mu *. (1.0 -. x *. x) *. y -. x
+
+let quantum = 0.1
+let tau = 1.0
+    
+let hybrid van_der_pol_qss() = compose(quantum)(tau)(f1)(f2)(1.0)(1.0)()
+
+let hybrid van_der_pol2() = (x, y) where
+  rec
+      der x = y init 1.0
+  and
+      der y = (mu *. (1.0 -. (x *. x)) *. y) -. x init 1.0
+
+let hybrid van_der_pol() = (x, y) where
+  rec
+      der x = f1(x, y) init 1.0
+  and
+      der y = f2(y, x) init 1.0
+
+  
+let hybrid main() =
+  let der t = 1.0 init 0.0 in
+  let x1, z1, x2, z2 = van_der_pol_qss() in
+  let y1, y2 = van_der_pol() in
+  present z1() | z2() ->
+    let s = Scope.scope4 (-1.0, 40.0,
+			  ("x1", Scope.linear, x1),
+                          ("x2", Scope.linear, x2),
+			  ("y1", Scope.linear, y1),
+                          ("y2", Scope.linear, y2)) in
+    Scope.window ("Van der Pol", 10.0, t, s)
+  else ()
+
+let hybrid main1() =
+  let der t = 1.0 init 0.0 in
+  let y1, y2 = van_der_pol() in
+  present (period(0.0 | 0.1)) ->
+    let s = Scope.scope2 (-1.0, 40.0,
+			  ("y1", Scope.linear, y1),
+                          ("y2", Scope.linear, y2)) in
+    Scope.window ("Van der Pol", 10.0, t, s)
+  else ()
+
+  
