@@ -1,0 +1,11 @@
+val pi : float
+type motion_type = Stationary | Walking | Running
+type walker = {
+  position : float * float;
+  velocity : float * float;
+  motion_type : motion_type;
+}
+val pos_noise : float
+val coast : float -> walker -> walker
+val motion_type_transition : motion_type -> (float * motion_type) list
+val init_velocity : motion_type -> float * float

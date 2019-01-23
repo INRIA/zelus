@@ -1,0 +1,83 @@
+open Infer
+open Distribution
+open Walker_misc
+
+(* default units are seconds *)
+(* motion :: Double -> Walker -> RVar Walker *)
+let node motion (dt, w) = w
+(* do *)
+(*   tTransition <- exponential (sum (map (recip . fst) transLam)) *)
+(*   if tTransition > dt *)
+(*     then coast dt w *)
+(*     else do *)
+(*       w' <- coast tTransition w *)
+(*       mt <- Data.Random.sample (Cat.fromWeightedList transLam) *)
+(*       vel <- initVelocity mt *)
+(*       motion (dt - tTransition) (w' { velocity = vel, motionType = mt }) *)
+(*   where *)
+(*   transLam = map (first (\x -> log 2 / x)) $ motionTypeTransition (motionType w) *)
+
+let position_std_dev = 10.
+
+(* walkerMeasure :: Walker -> (Double, Double) -> PProg a () *)
+let node walker_measure (prob, (w, (mx, my))) =
+  let (x, y) = w.position in
+  factor (prob, score (gaussian x (position_std_dev ** 2.)) mx);
+  factor (prob, score (gaussian y (position_std_dev ** 2.)) my)
+
+(* walkerGenMeasurement :: Walker -> RVar (Double, Double) *)
+let node walker_gen_measurement w = (mx, my) where
+  rec mx = draw (gaussian x position_std_dev)
+  and my = draw (gaussian y position_std_dev)
+  and (x, y) = w.position
+
+(* walkerStep :: Double -> (Double, Double) -> Walker -> PProg a Walker *)
+let node walker_step (prob, (dt, measured_position, w)) = w' where
+  rec w' = sample (prob, motion (dt, w))
+  and () = walker_measure (prob, (w', measured_position))
+
+(* walkerInit :: RVar Walker *)
+let walker_init () =
+  let mt =
+    (* draw (Cat.fromWeightedList [(0.7 :: Double, Stationary), (0.25, Walking), (0.05, Running)]) *)
+    Stationary
+  in
+  let vel = init_velocity mt in
+   { position = (0., 0.); velocity = vel; motion_type = mt }
+
+(* generateWalker :: Int -> RVar [(Double, (Double, Double))] *)
+let node generate_walker n = (dt, mpos) where
+  rec init w = walker_init ()
+  and w = motion (dt, last w)
+  and mpos = walker_gen_measurement w
+  and dt = 10.
+
+(* walkerSimulate :: [(Double, (Double, Double))] -> PProg Walker Walker *)
+(* let walker_simulate (prob, measurements) = w where *)
+(*   w <- sample' walkerInit *)
+(*   go w measurements *)
+(*   where *)
+(*   go w [] = return w *)
+(*   go w ((dt, measPos) : xs) = do *)
+(*     w' <- walkerStep dt measPos w *)
+(*     pyield w' *)
+(*     go w' xs *)
+
+(* frequencies :: (Eq a, Ord a) => [a] -> [(Double, a)] *)
+(* frequencies = Cat.toList . Cat.fromObservations *)
+
+(* runOurFilter :: PProg Walker a -> IO () *)
+(* runOurFilter = void . runMStream (print . summarize) . particles 1000 *)
+(*   where *)
+(*   summarize :: [Walker] -> ([(Double, MotionType)], (Double, Double), (Double, Double)) *)
+(*   summarize ws = *)
+(*     (frequencies (map motionType ws), averagingBoth position, averagingBoth velocity) *)
+(*     where *)
+(*     averagingBoth f = (averaging (fst . f), averaging (snd . f)) *)
+(*     averaging f = average (map f ws) *)
+
+(* main :: IO () *)
+(* main = do *)
+(*   g <- getStdGen *)
+(*   let (measurements, _) = sampleState (generateWalker 1000) g *)
+(*   runOurFilter $ walkerSimulate measurements *)
