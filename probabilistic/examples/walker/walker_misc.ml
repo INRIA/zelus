@@ -74,8 +74,8 @@ let position_std_dev = 10.
 (* walkerMeasure :: Walker -> (Double, Double) -> PProg a () *)
 let walker_measure (prob, (w, (mx, my))) =
   let (x, y) = w.position in
-  factor (prob, score (gaussian x (position_std_dev ** 2.)) mx);
-  factor (prob, score (gaussian y (position_std_dev ** 2.)) my)
+  factor (prob, score (gaussian x position_std_dev) mx);
+  factor (prob, score (gaussian y position_std_dev) my)
 
 (* walkerGenMeasurement :: Walker -> RVar (Double, Double) *)
 let walker_gen_measurement w =
