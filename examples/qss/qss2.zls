@@ -1,0 +1,209 @@
+(* On chercher a resoudre les deux equations:
+ *- avec un schema d'ordre 2.
+ *-    der x1 = f1(x1, x2) init x1_0
+ *-    and
+ *-    der x2 = f2(x2, x1) init x2_0 *)
+
+(*
+type p = { pos: float; vit: float; acc: float }
+      
+let hybrid f1_record(x1_0){ pos = x2; vit = x2prime; acc = x2second } =
+  { pos = x1; vit = x1prime; acc = x1second } where
+  rec der x1 = x2 init x1_0
+  and x1prime = x2
+  and x1second = x2prime
+
+let hybrid f2_record(mu)(x2_0){ pos = x1; vit = x1prime; acc = x1second } =
+  { pos = x2; vit = x2prime; acc = x2second } where
+  rec der x2 = x2prime init x2_0
+  and x2prime = mu *. (1.0 -. x1 *. x1) *. x2 -. x1
+  and x2second = -. mu *. x1 *. x2 *. x1prime +.
+      mu *. (1.0 -. x1 *. x1) *. x2prime -. x1prime
+ *)
+
+let hybrid f1(x1_0)(x2, x2prime, x2second) = (x1, x1prime, x1second) where
+  rec der x1 = x2 init x1_0
+  and x1prime = x2
+  and x1second = x2prime
+
+let hybrid f2(mu)(x2_0)(x1, x1prime, x1second) = (x2, x2prime, x2second) where
+  rec der x2 = x2prime init x2_0
+  and x2prime = mu *. (1.0 -. x1 *. x1) *. x2 -. x1
+  and x2second = -. mu *. x1 *. x2 *. x1prime +.
+      mu *. (1.0 -. x1 *. x1) *. x2prime -. x1prime
+
+
+let hybrid estimator_function(x, xprime, xsecond, t) = w where
+  rec w = x +. xprime *. t +. (xsecond *. t *. t) /. 2.0
+
+let hybrid quantizer_1(quantum)(tau)(x, xprime, xsecond) =
+  (y, yprime, ysecond, z) where
+   rec
+       init t = 0.0 and init y = x
+   and
+       init yprime = xprime and init ysecond = xsecond
+   and
+       w = estimator_function(y, yprime, ysecond, t)
+   and
+     present
+       | up(x -. quantum /. 2.0 -. w)
+       | up(w -. quantum /. 2.0 -. x)
+       | up(t -. tau) ->
+	   do y = x and yprime = xprime
+	   and ysecond = xsecond and t = 0.0 and emit z = () done
+     else
+      do der t = 1.0 done
+
+let hybrid estimator(y, yprime, ysecond, z) = (w, vprime, vsecond) where
+  rec w = estimator_function(u, uprime, usecond, t)
+  and der t = 1.0 init 0.0 reset z() -> 0.0
+  and (u, uprime, usecond) =
+            present z() -> (y, yprime, ysecond) init (y, yprime, ysecond)
+  and
+      vprime = uprime +. usecond *. t
+  and
+      vsecond = usecond
+
+let hybrid qss(quantum)(tau)(f)(y1_0)(x2, x2prime, x2second, z2) =
+      (x1, x1prime, x1second, z1) where
+  rec
+      (y2, y2prime, y2second) = estimator(x2, x2prime, x2second, z2)
+  and
+      (x1, x1prime, x1second, z1) =
+            quantizer_1(quantum)(tau)(y1, y1prime, y1second)
+  and
+      (y1, y1prime, y1second) = run (f y1_0)(y2, y2prime, y2second)
+
+let hybrid compose(quantum)(tau)(f1)(f2)(y1_0)(y2_0)() = (x1, z1, x2, z2) where
+  rec
+      (x1, x1prime, x1second, z1) =
+            run (qss(quantum)(tau)(f1)(y1_0))(x2, x2prime, x2second, z2)
+  and
+      (x2, x2prime, x2second, z2) =
+            run (qss(quantum)(tau)(f2)(y2_0))(x1, x1prime, x1second, z1)
+  
+let static quantum = 0.1
+let static tau = 1.0
+let static mu = 5.0
+
+let hybrid van_der_pol_qss() = compose(quantum)(tau)(f1)(f2(mu))(1.0)(1.0)()
+
+let x1_0 = 1.0
+let x2_0 = 1.0
+    
+(* let hybrid van_der_pol1() = (x1, x2) where
+  rec
+      x1 = f1(x1_0)(x2)
+  and
+      x2 = f2(mu)(x2_0)(x1) *)
+
+let hybrid van_der_pol() = (x1, x2) where
+  rec
+      x1, x1prime, x1second = f1(x1_0)(x2, x2prime, x2second)
+  and
+      x2, x2prime, x2second = f2(mu)(x2_0)(x1, x1prime, x1second)
+
+      
+let hybrid main1() =
+  let der t = 1.0 init 0.0 in
+  let x1, x2 = van_der_pol() in
+  present (period(0.0 | 0.1)) ->
+    let s = Scope.scope2 (-1.0, 40.0,
+			  ("x1", Scope.linear, x1),
+                          ("x2", Scope.linear, x2)) in
+    Scope.window ("Van der Pol", 10.0, t, s)
+  else ()
+
+let hybrid main() =
+  let der t = 1.0 init 0.0 in
+  let x1, z1, x2, z2 = van_der_pol_qss() in
+  let y1, y2 = van_der_pol() in
+  present z1() | z2() ->
+    let s = Scope.scope4 (-1.0, 40.0,
+			  ("x1", Scope.linear, x1),
+                          ("x2", Scope.linear, x2),
+			  ("y1", Scope.linear, y1),
+                          ("y2", Scope.linear, y2)) in
+    Scope.window ("Van der Pol", 10.0, t, s)
+  else ()
+
+(*
+let hybrid quantizer_0(quantum)(tau)(x) = (y, z) where
+   rec
+     init t = 0.0 and init y = x
+   and
+     present
+       | up(x -. quantum /. 2.0 -. y)
+       | up(y -. quantum /. 2.0 -. x)
+       | up(t -. tau) -> do y = x and t = 0.0 and emit z = () done
+     else
+      do der t = 1.0 done
+
+let hybrid estimator(y, z) = w where
+  rec w = present z() -> y init y   
+   
+let hybrid qss(quantum)(tau)(f)(y1_0)(x2, z2) = (x1, z1) where
+  rec
+      y2 = estimator(x2, z2)
+  and
+      (x1, z1) = quantizer_0(quantum)(tau)(y1)
+  and
+      der y1 = f (y1, y2) init y1_0
+
+let hybrid compose(quantum)(tau)(f1)(f2)(y1_0)(y2_0)() = (x1, z1, x2, z2) where
+  rec
+      (x1, z1) = run (qss(quantum)(tau)(f1)(y1_0))(x2, z2)
+  and
+      (x2, z2) = run (qss(quantum)(tau)(f2)(y2_0))(x1, z1)
+  
+
+(* Oscillateur de Van der Pol *)
+
+let mu = 5.0
+
+let f1 (x, y) = y
+
+let f2(y, x) = mu *. (1.0 -. x *. x) *. y -. x
+
+let quantum = 0.1
+let tau = 1.0
+    
+let hybrid van_der_pol_qss() = compose(quantum)(tau)(f1)(f2)(1.0)(1.0)()
+
+let hybrid van_der_pol2() = (x, y) where
+  rec
+      der x = y init 1.0
+  and
+      der y = (mu *. (1.0 -. (x *. x)) *. y) -. x init 1.0
+
+let hybrid van_der_pol() = (x, y) where
+  rec
+      der x = f1(x, y) init 1.0
+  and
+      der y = f2(y, x) init 1.0
+
+      
+let hybrid main() =
+  let der t = 1.0 init 0.0 in
+  let x1, z1, x2, z2 = van_der_pol_qss() in
+  let y1, y2 = van_der_pol() in
+  present z1() | z2() ->
+    let s = Scope.scope4 (-1.0, 40.0,
+			  ("x1", Scope.linear, x1),
+                          ("x2", Scope.linear, x2),
+			  ("y1", Scope.linear, y1),
+                          ("y2", Scope.linear, y2)) in
+    Scope.window ("Van der Pol", 10.0, t, s)
+  else ()
+
+let hybrid main1() =
+  let der t = 1.0 init 0.0 in
+  let y1, y2 = van_der_pol() in
+  present (period(0.0 | 0.1)) ->
+    let s = Scope.scope2 (-1.0, 40.0,
+			  ("y1", Scope.linear, y1),
+                          ("y2", Scope.linear, y2)) in
+    Scope.window ("Van der Pol", 10.0, t, s)
+  else ()
+
+ *)
