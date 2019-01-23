@@ -17,4 +17,5 @@ val sph_gaussian : float list -> float list -> float list t
 val uniform_int : int -> int -> int t
 val uniform_float : float -> float -> float t
 val uniform_list : 'a list -> 'a t
+val weighted_list : (float * 'a) list -> 'a t
 val exponential : float -> float t

@@ -314,6 +314,15 @@ let uniform_list l =
   let p = 1. /. float (List.length l) in
   Dist_support (List.map (fun x -> (x, p)) l)
 
+    
+(** [weighted_list l] is a categorical distribution where each element
+    (x_i, w_i) has the probability w_i / (sum_i w_i) *)
+
+let weighted_list l =
+  let n = List.fold_left (fun n (w, x) -> n +. w) 0. l in
+  Dist_support (List.map (fun (w, x) -> x, w /. n) l)
+
+    
 (** [exponential lambda] is an exponential distribution of parameter lambda.
     @see<https://en.wikipedia.org/wiki/Exponential_distribution>
  *)
