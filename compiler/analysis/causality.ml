@@ -142,8 +142,10 @@ let rec pattern env ({ p_desc = desc; p_loc = loc; p_typ = ty } as p) =
 and pattern_less_than_on_c env pat c =
   let actual_tc = pattern env pat in
   let expected_tc = Causal.skeleton_on_c c pat.p_typ in
-  less_than pat.p_loc env actual_tc expected_tc
-        
+  (* the order [expected_tc < actual_tc] is mandatory, *)
+  (* not the converse *)
+  less_than pat.p_loc env expected_tc actual_tc
+
 (** Build an environment from a typing environment. *)
 let build_env l_env env =
   let entry n { Deftypes.t_typ = ty; Deftypes.t_sort = sort } acc =
