@@ -218,7 +218,8 @@ type 'a exp_fam =
     mle : float list -> float list; }
 
 type env =
-  (int * (float exp_fam * float list)) list
+  (id * (float exp_fam * float list)) list
+and id = int
 
 let empty_env = []
 

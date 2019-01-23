@@ -1,5 +1,7 @@
 open Symbolic
 
-val sample : (env * 'a exp_fam * float list) -> env * ('var, 'a) exp
-val factor : (env * ('var, float) exp) -> env
-(* val infer : (env * 'a -D-> env * ('var, 'b) exp) -S-> 'a -D-> env * ('var, 'b) exp *)
+type pstate
+
+val sample : (pstate * (float exp_fam * float list)) -AD-> (id, float) exp
+val factor : (pstate * (id, float) exp) -AD-> unit
+val infer : (pstate * 'a -D-> (id, 'b) exp) -S-> 'a -D-> env * (id, 'b) exp

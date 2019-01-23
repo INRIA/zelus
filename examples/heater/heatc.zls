@@ -85,6 +85,20 @@ let hybrid main_no_graphics() =
   else ()
 
       
+(* let hybrid mainc() =
+  let der t = 1.0 init 0.0 in
+  let u, temp = system(19.0) in
+  let temp1 = 0.0 in 
+  present (period(0.1)) | (disc(u)) ->
+    let s = Scope.scope3 (-1.0, 40.0, ("u", Scope.linear,
+				       if u then 1.0 else 0.0),
+                          ("temp", Scope.linear, temp),
+                          ("temp discrete", Scope.linear, temp1)
+			 ) in
+    Scope.window ("main_on_19", 10.0, t, s)
+  else ()
+ *)
+  
 let hybrid mainc() =
   let der t = 1.0 init 0.0 in
   let u, temp = system(19.0) in

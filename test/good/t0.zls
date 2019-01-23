@@ -1,12 +1,8 @@
-let hybrid f x =
-  let rec der y = y +. 1.0 init 0.0 in
-  x +. y
-
-let hybrid g x =
-  (f (x +. 1.0)) +. (f (x +. 2.0))
-
-let hybrid main () =
-  g 0.0
+let hybrid f(z) =
+  let rec init x = 0
+  and present z -> do x = 1 done and t = x
+  and present (disc(last t)) -> do () = print_int x done in
+  k
     
 (*
 type cstate =

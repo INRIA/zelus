@@ -8,6 +8,7 @@ val prod : ('var, 'a) exp list -> ('var, 'a) exp
 val const : 'var -> ('a, 'var) exp
 val unop : unop -> ('var, 'a) exp -> ('var, 'a) exp
 
+type id
 type env
 
 val empty_env : env
