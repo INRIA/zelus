@@ -41,15 +41,21 @@ let h = 0.1
 let max_time = 10.0 (* in secondes *)
     
 (* Main program *)
+let node system(reference) = (u, temp) where
+  rec
+      u = relay(reference -. low, reference +. high, temp)
+  and
+      temp = heater(h)(c, alpha, beta, 0.0, 0.0, u)
 
-let node generic_system(controller)(reference) = (u, temp) where
+(* let node generic_system(controller)(reference) = (u, temp) where
   rec
       u = run controller(reference -. low, reference +. high, temp)
   and
       temp = heater(h)(c, alpha, beta, 0.0, 0.0, u)
 
 let node system(reference) = generic_system(relay)(reference)
-
+    *)
+      
 let node source(r) = Observers.piecewise_constant(0.0)(20.0)(r)
 let node source2(r) = Observers.linear_constant(0.1)(0.0)(20.0)(r)
 
