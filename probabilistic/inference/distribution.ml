@@ -191,6 +191,7 @@ let bernoulli p =
 *)
 let gaussian mu sigma =
   let two_pi = 2.0 *. 3.14159265358979323846 in
+  let sigma2 = sigma ** 2. in
   let rec rand_pair () =
     let u1 = Random.float 1.0 in
     let u2 = Random.float 1.0 in
@@ -203,8 +204,8 @@ let gaussian mu sigma =
         let z = sqrt (-.2. *. log u1) *. cos (two_pi *. u2) in
         z *. sigma +. mu),
      (fun x ->
-        -. 0.5 *. log (two_pi *. sigma ** 2.) -.
-        (x -. mu) ** 2. /. (2. *. sigma ** 2.)))
+        -. 0.5 *. log (two_pi *. sigma2) -.
+        (x -. mu) ** 2. /. (2. *. sigma2)))
 
 
 (** [beta a b] is a beta distribution of parameters [a] and [b].
@@ -314,15 +315,15 @@ let uniform_list l =
   let p = 1. /. float (List.length l) in
   Dist_support (List.map (fun x -> (x, p)) l)
 
-    
-(** [weighted_list l] is a categorical distribution where each element
-    (x_i, w_i) has the probability w_i / (sum_i w_i) *)
 
+(** [weighted_list l] is a categorical distribution where each element
+    (x_i, w_i) has the probability w_i / (sum_i w_i)
+ *)
 let weighted_list l =
   let n = List.fold_left (fun n (w, x) -> n +. w) 0. l in
-  Dist_support (List.map (fun (w, x) -> x, w /. n) l)
+  Dist_support (List.rev_map (fun (w, x) -> x, w /. n) l)
 
-    
+
 (** [exponential lambda] is an exponential distribution of parameter lambda.
     @see<https://en.wikipedia.org/wiki/Exponential_distribution>
  *)
