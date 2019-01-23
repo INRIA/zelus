@@ -57,7 +57,7 @@ let hybrid van_der_pol() = (x, y) where
   and
       der y = f2(y, x) init 1.0
 
-  
+      
 let hybrid main() =
   let der t = 1.0 init 0.0 in
   let x1, z1, x2, z2 = van_der_pol_qss() in
