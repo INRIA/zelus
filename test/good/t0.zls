@@ -1,11 +1,24 @@
-type t = { x: int; y: int }
+let node f1(x, y) = (z, t) where
+   rec z = 0 fby x + 1
+   and t = z
 
-let f x = { x = x.x + 1; y = 2 }
+let node main () = (o1, o2) where
+  rec
+   o1 = f1(o2)
+  and
+   o2 = f1(o1)
+   
+let hybrid f(z) = o where
+   automaton
+   | A -> do o = 1.0 until z then B
+   | B -> do der o = 1.0 done
+   end
 
-(*
 let hybrid h(x) = o where
   der o = 1.0
 
+     
+(*
 let hybrid g(z) =
   let rec init x = 0
   and present z -> do x = 1 done
