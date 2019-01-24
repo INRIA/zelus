@@ -14,10 +14,9 @@ type walker = {
 let pos_noise = 0.01
 
 let coast (prob, (dt, w)) =
-  let both2 f (x, y) (x', y') = (f x x', f y y') in
-  let both f (x, y) = (f x, f y) in
   let std_dev = sqrt dt *. pos_noise in
-  let (x', y') = both2 (+.) w.position (both ( ( *. ) dt) w.velocity) in
+  let { position = (x, y); velocity = (vx, vy) } = w in
+  let (x', y') = (x +. dt *. vx, y +. dt *. vy)  in
   let x'' = sample (prob, gaussian x' std_dev) in
   let y'' = sample (prob, gaussian y' std_dev) in
   { w with position = (x'', y'') }
@@ -55,9 +54,13 @@ let rec motion (prob, (dt, w)) =
       (motion_type_transition w.motion_type)
   in
   let st =
-    List.fold_left (fun acc (t, mt) -> acc +. 1. /. t) 0. trans_lam
+    (* XXX TODO: check with Ben XXX *)
+    (* List.fold_left (fun acc (t, mt) -> acc +. 1. /. t) 0. trans_lam *)
+    List.fold_left (fun acc (t, mt) -> acc +. t) 0. trans_lam
   in
-  let t_transition = sample (prob, exponential st) in
+  (* XXX TODO: check with Ben XXX *)
+  (* let t_transition = sample (prob, exponential st) in *)
+  let t_transition = sample (prob, exponential (1. /. st)) in
   if t_transition > dt then coast (prob, (dt, w))
   else
     let w' = coast (prob, (t_transition, w)) in
