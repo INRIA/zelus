@@ -1,6 +1,6 @@
 type 'a t
 val get : 'a t -> int -> 'a
-val set : 'a t -> int -> 'a -> 'a t
+val set : 'a t -> int -> 'a -AD-> unit
 val of_list : 'a list -> 'a t
 val make : int -> 'a -> 'a t
 val print : ('a -> string) -> 'a t -> unit

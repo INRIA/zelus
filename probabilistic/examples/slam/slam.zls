@@ -25,7 +25,7 @@ let node sample_x (prob, x_init, dir) = x where
       end
   and wheel_slip = sample (prob, Distribution.bernoulli 0.1)
 
-let update (map, obs, x) =
+let node update (map, obs, x) =
   let (ntrue, nfalse) = Array_misc.get map x in
   Array_misc.set map x
     (if obs then (ntrue +. 1., nfalse) else (ntrue, nfalse +. 1.))
@@ -66,11 +66,12 @@ let update_weight (map, x_new, obs_new) =
   if obs_new then ypred_true else ypred_false
 
 
-let node slam (prob, (obs, dir)) = (map, x) where
-  rec x = sample_x (prob, 0, dir)
-  and map = update (map_init fby map, obs, x)
-  and () = factor(prob, update_weight(map_init fby map, x, obs))
-  and init map_init = Array_misc.make (max_pos + 1) (0., 0.)
+let node slam (prob, (obs, dir)) =
+  let init map = Array_misc.make (max_pos + 1) (0., 0.) in
+  let x = sample_x (prob, 0, dir) in
+  update (map, obs, x);
+  factor(prob, update_weight(map, x, obs));
+  (map, x)
 
 let node slam_ctrl (event, pos_dist) = dir where
   rec x = Distribution.draw pos_dist

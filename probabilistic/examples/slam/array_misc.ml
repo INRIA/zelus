@@ -4,9 +4,7 @@ let get a i =
   a.(i)
 
 let set a i v =
-  let a' = Array.copy a in
-  a'.(i) <- v;
-  a'
+  a.(i) <- v
 
 let of_list = Array.of_list
 
