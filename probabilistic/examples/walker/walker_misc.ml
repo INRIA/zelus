@@ -54,13 +54,9 @@ let rec motion (prob, (dt, w)) =
       (motion_type_transition w.motion_type)
   in
   let st =
-    (* XXX TODO: check with Ben XXX *)
-    (* List.fold_left (fun acc (t, mt) -> acc +. 1. /. t) 0. trans_lam *)
     List.fold_left (fun acc (t, mt) -> acc +. t) 0. trans_lam
   in
-  (* XXX TODO: check with Ben XXX *)
-  (* let t_transition = sample (prob, exponential st) in *)
-  let t_transition = sample (prob, exponential (1. /. st)) in
+  let t_transition = sample (prob, exponential st) in
   if t_transition > dt then coast (prob, (dt, w))
   else
     let w' = coast (prob, (t_transition, w)) in
