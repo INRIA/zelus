@@ -1,9 +1,9 @@
 (* open Infer *)
 (* (\* open Infer_importance *\) *)
 
-(* let node model (pstate, ()) = mu where *)
-(*   rec init mu = sample (pstate, Distribution.gaussian 0. (sqrt 100.)) *)
-(*   and () = factor(pstate, *)
+(* let node model (prob, ()) = mu where *)
+(*   rec init mu = sample (prob, Distribution.gaussian 0. (sqrt 100.)) *)
+(*   and () = factor(prob, *)
 (*                   0. fby *)
 (*                     (Distribution.score *)
 (*                        (Distribution.gaussian (2. *. mu) 1.) *)
@@ -17,11 +17,11 @@
 
 open Symbolic
 
-let node model (pstate, ()) = mu where
-  rec init mu = Infer_adf.sample (pstate,
+let node model (prob, ()) = mu where
+  rec init mu = Infer_adf.sample (prob,
                                   (Symbolic.normal_ef,
                                    Symbolic.normal_nat_params 0. 100.))
-  and () = Infer_adf.factor(pstate,
+  and () = Infer_adf.factor(prob,
                             (const 0.) fby
                               ((Symbolic.gaussian_ll
                                   (prod [(const 2.); mu])

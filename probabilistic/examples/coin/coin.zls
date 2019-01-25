@@ -2,9 +2,9 @@ open Distribution
 open Infer
 (* open Infer_importance *)
 
-let node coin (pstate, flip) = theta where
-  rec init theta = sample (pstate, uniform_float 0. 1.)
-  and () = factor (pstate,
+let node coin (prob, flip) = theta where
+  rec init theta = sample (prob, uniform_float 0. 1.)
+  and () = factor (prob,
                    Distribution.score (bernoulli theta) flip)
 
 let node cheater_detector flip = (cheater, m) where

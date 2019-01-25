@@ -94,12 +94,12 @@ let walker_step (prob, (dt, measured_position, w)) =
   w'
 
 (* walkerInit :: RVar Walker *)
-let walker_init (pstate, ()) =
+let walker_init (prob, ()) =
   let mt =
-    sample (pstate,
+    sample (prob,
             weighted_list [(0.7, Stationary); (0.25, Walking); (0.05, Running)])
   in
-  let vel = init_velocity (pstate, mt) in
+  let vel = init_velocity (prob, mt) in
   { position = (0., 0.); velocity = vel; motion_type = mt }
 
 let real_walker_init () =
