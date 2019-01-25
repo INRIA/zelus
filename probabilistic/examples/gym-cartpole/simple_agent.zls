@@ -1,5 +1,6 @@
 open Cart_pole
 open Pendulum
+open Gym
 
 (** Probabilistic model training one neuron **)
 
@@ -25,22 +26,6 @@ let node model (pstate, obs_init) = net where
   and () = Infer.factor(pstate, -10. *. abs_float (obs.pole_angle))
   and display = draw_obs_back obs
 
-
-(** Connect with the physical model of the openai gym **)
-
-let node cart_pole_gym render action = obs, reward, stop where
-  rec init instance_id = cart_init ()
-  and init r = 0.
-  and automaton
-      | Reset -> local dummy
-          do obs, reward, stop = cart_reset instance_id, 1., false
-          and dummy = print_endline ("Episode reward: "^(string_of_float (last r)))
-          and r = 0.
-          then Run
-      | Run ->
-          do obs, reward, stop = cart_step instance_id action render
-          and r = reward +. last r
-          until stop then Reset
 
 (** Infer the neuron using the Zelus model and simulate with the openai gym**)
 

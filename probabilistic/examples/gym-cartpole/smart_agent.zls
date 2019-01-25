@@ -1,19 +1,6 @@
 open Cart_pole
 open Pendulum
-
-let node cart_pole_gym render action = obs, reward, stop where
-  rec init instance_id = cart_init ()
-  and init r = 0.
-  and automaton
-      | Reset -> local dummy
-          do obs, reward, stop = cart_reset instance_id, 1., false
-          and dummy = print_endline ("Episode reward: "^(string_of_float (last r)))
-          and r = 0.
-          then Run
-      | Run ->
-          do obs, reward, stop = cart_step instance_id action render
-          and r = reward +. last r
-          until stop then Reset
+open Gym
 
 let node controller (pstate, obs) = action where
   rec action =
