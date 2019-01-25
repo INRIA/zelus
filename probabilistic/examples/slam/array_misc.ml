@@ -1,3 +1,12 @@
+let with_graphics, max_pos =
+  let with_graphics = ref true in
+  let n = ref 10 in
+  Arg.parse
+    [ "-nox", Arg.Clear with_graphics, "Disable the graphics interface";
+      "-n", Arg.Set_int n, "Set the size of the map"; ]
+    (fun _ -> ()) "options:";
+  !with_graphics, !n - 1
+
 type 'a t = 'a array
 
 let get a i =
@@ -61,7 +70,7 @@ let draw_bot x obs =
   if obs then Graphics.set_color (Graphics.white)
   else Graphics.set_color (Graphics.black);
   Graphics.fill_circle (x * width + width / 2) (3 * height / 2) 5
-  
+
 
 let draw_position_dist d =
   match d with
@@ -74,7 +83,7 @@ let draw_position_dist d =
              (x * width + width / 2) (height / 2)
              (1 + int_of_float (10. *. p)))
         support
-	
+
 let draw_map_dist map_dist =
   let mw = Array.map
     (fun d ->
@@ -95,7 +104,28 @@ let draw_map m =
     else Graphics.set_color (Graphics.black);
     Graphics.fill_rect (i * width)  height  width height)
     m
-    
+
 let random n theta =
   Array.init n
     (fun _ -> Distribution.draw (Distribution.bernoulli theta))
+
+let () =
+  if with_graphics then init_graph max_pos
+
+let input =
+  if with_graphics then
+    wait_event
+  else
+    (fun () -> 0)
+
+let output =
+  if with_graphics then
+    (fun real_map real_x obs map_dist pos_dist ->
+       draw_map real_map;
+       draw_bot real_x obs;
+       draw_map_dist map_dist;
+       draw_position_dist pos_dist;
+       clear ())
+  else
+    (fun real_map real_x obs map_dist pos_dist ->
+       print_map_dist map_dist)

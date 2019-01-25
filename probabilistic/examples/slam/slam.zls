@@ -3,7 +3,7 @@ open Infer
 
 type direction = Left | Right
 
-let max_pos = 10
+let max_pos = Array_misc.max_pos
 let mt_prior = log 0.5
 let mf_prior = log 0.5
 let macc_likelihood = log 0.9
@@ -111,24 +111,10 @@ let real_map =
   (*     true; false; true ] *)
   Array_misc.random (max_pos + 1) 0.6
 
-
-let node main_no_graphics () =
-  let rec map_dist, pos_dist = Distribution.split (infer 1000 slam (obs, dir))
-  and dir = Right -> (slam_ctrl (0, (Distribution.Dist_support []) fby pos_dist))
-  and (obs, real_x) = slam_obs real_map dir in
-  Array_misc.print_map_dist map_dist
-
-
 let node main () =
-  let init pouet = Array_misc.init_graph max_pos in
   let rec map_dist, pos_dist = Distribution.split (infer 1000 slam (obs, dir))
   and dir = Right -> (slam_ctrl (event, (Distribution.Dist_support []) fby pos_dist))
   and (obs, real_x) = slam_obs real_map dir
-  and event = Array_misc.wait_event () in
-  (* print_endline ("("^(string_of_int real_x)^", "^(string_of_int x)^")"); *)
-  (* Array_misc.print_map_dist map_dist; *)
-  Array_misc.draw_map real_map;
-  Array_misc.draw_bot real_x obs;
-  Array_misc.draw_map_dist map_dist;
-  Array_misc.draw_position_dist pos_dist;
-  Array_misc.clear ()
+  and event = Array_misc.input ()
+  in
+  Array_misc.output real_map real_x obs map_dist pos_dist

@@ -14,3 +14,8 @@ val draw_map: bool t -AD-> unit
 val draw_map_dist:  (float * float) t Distribution.t -AD-> unit
 val random : int -> float -> bool t
 val draw_pos_dist: int Distribution.t -AD-> unit
+val max_pos : int
+val with_graphics : bool
+val input : unit -AD-> int
+val output : bool t -> int ->
+    bool -> (float * float) t Distribution.t -> int Distribution.t -AD-> unit
