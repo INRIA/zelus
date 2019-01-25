@@ -11,6 +11,7 @@ all:
 	$(MAKE) -C gaussian_gaussian
 	$(MAKE) -C beta_bernoulli
 	$(MAKE) -C slam
+	$(MAKE) -C walker
 
 clean:
 	$(MAKE) -C gridworld clean
@@ -25,6 +26,7 @@ clean:
 	$(MAKE) -C gaussian_gaussian clean
 	$(MAKE) -C beta_bernoulli clean
 	$(MAKE) -C slam clean
+	$(MAKE) -C walker clean
 
 realclean cleanall:
 	$(MAKE) -C gridworld cleanall
@@ -39,4 +41,5 @@ realclean cleanall:
 	$(MAKE) -C gaussian_gaussian cleanall
 	$(MAKE) -C beta_bernoulli cleanall
 	$(MAKE) -C slam cleanall
+	$(MAKE) -C walker cleanall
 	-rm -f *~

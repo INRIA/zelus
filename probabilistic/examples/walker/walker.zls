@@ -14,22 +14,7 @@ let node walker_simulate (prob, measurements) = (w.motion_type, w.position) wher
   rec w = walker_init (prob, ()) fby walker_step (prob, (dt, meas_pos, w))
   and (dt, meas_pos) = measurements
 
-(* frequencies :: (Eq a, Ord a) => [a] -> [(Double, a)] *)
-(* frequencies = Cat.toList . Cat.fromObservations *)
-
-(* runOurFilter :: PProg Walker a -> IO () *)
-(* let run_our_filter = void . runMStream (print . summarize) . particles 1000 *)
-(*   where *)
-(*   summarize :: [Walker] -> ([(Double, MotionType)], (Double, Double), (Double, Double)) *)
-(*   summarize ws = *)
-(*     (frequencies (map motionType ws), averagingBoth position, averagingBoth velocity) *)
-(*     where *)
-(*     averagingBoth f = (averaging (fst . f), averaging (snd . f)) *)
-(*     averaging f = average (map f ws) *)
-
 (* main :: IO () *)
 let node main () =
   let measurements = generate_walker () in
-  print (infer 1000 walker_simulate measurements);
-  let (_, (x, y)) = measurements in
-  print_float x; print_newline ()
+  print (infer 1000 walker_simulate measurements)
