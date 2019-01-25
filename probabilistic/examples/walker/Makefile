@@ -12,7 +12,7 @@ OCAMLOPT=ocamlopt
 
 NAME=walker
 
-all: byte opt
+all: opt
 
 .PHONY: $(INFERENCE_CMA) $(INFERENCE_CMXA)
 
