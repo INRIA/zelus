@@ -57,7 +57,7 @@ val blit : string -> int -> string -> int -> int -> unit
    designate a valid substring of [src], or if [dstoff] and [len]
    do not designate a valid substring of [dst]. *)
 
-val concat : string * string list -> string
+val concat : string -> string list -> string
 (** [String.concat sep sl] concatenates the list of strings [sl],
    inserting the separator string [sep] between each. *)
 
@@ -137,7 +137,7 @@ val uncapitalize_ascii : string -> string
 (** Return a copy of the argument, with the first character set to *)
 (* lowercase, using the US-ASCII character set. *)
 
-type t = string 
+type t = string
 (** An alias for the type of strings. *)
 
 val compare : t -> t -> int
