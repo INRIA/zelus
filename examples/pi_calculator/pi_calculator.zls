@@ -1,0 +1,142 @@
+(*
+    https://www.youtube.com/watch?v=jsYwFizhncE
+*)
+
+type collision = M | W
+
+let precision = 1
+
+let m1 = 1.
+let m2 = 100. ** (float_of_int precision)
+let static m1size = 20.
+let static m2size = 50.
+
+let static x1_0 = 50.
+let static x2_0 = 400.
+let static v1_0 = 0.
+let static v2_0 = -100.
+let max_v = sqrt(m2 /. m1) *. (abs_float v2_0)
+
+
+let msum = m1 +. m2
+let a11  = (m1 -. m2) /. msum
+let a12  = (2. *. m2) /. msum
+let a21  = (2. *. m1) /. msum
+let a22  = (m2 -. m1) /. msum
+
+(* taken from https://prajwalsouza.github.io/Experiments/Colliding-Blocks.html
+   implementation
+*)
+let collide (v1, v2) = (v'1, v'2) where
+        v'1 = a11 *. v1 +. a12 *. v2
+    and v'2 = a21 *. v1 +. a22 *. v2
+
+hybrid model () = (x1, x2, v1, v2, collision, count) where
+    rec der x1 = v1 init x1_0
+    and der x2 = v2 init x2_0
+
+    and init v1 = v1_0 and init v2 = v2_0
+    and present
+        | up((x1 +. m1size) -. (x2 -. m2size)) -> do
+                v1, v2 = collide (last v1, last v2)
+            and emit collision = M done
+        | up(-. (x1 -. m1size)) -> do
+                v1 = -. (last v1)
+            and emit collision = W done
+
+    and count = present collision(_) -> last count + 1 init 0
+
+(* GRAPHICAL INTERFACE *)
+
+open Graphics
+
+let w = 900 (* screen width *)
+let h = 300 (* screen height *)
+let off_x = 60 (* left offset *)
+let off_y = 60 (* bottom offset *)
+let text_fontsize = 10
+
+discrete draw_line((x1, y1), (x2, y2)) =
+    let _ = moveto x1 y1 in
+    let _ = lineto x2 y2 in
+    ()
+discrete draw_centered (x, y, string) =
+    let size = fst (text_size string) in
+    let x = x - size / 2 in
+    moveto x y;
+    draw_string string;
+    ()
+discrete draw_alignr(x, y, string) =
+    let size = fst (text_size string) in
+    moveto (x - size) y;
+    draw_string string;
+    ()
+(* v = 0 : blue, v = maxv : red *)
+discrete get_color (v, maxv) =
+    let v = abs_float v in
+    let red = v /. maxv *. 255. in
+    let green = 0. in
+    let blue = (1. -. v /. maxv) *. 255. in
+    truncate red, truncate green, truncate blue
+discrete draw_mass (x, size) =
+    let size = truncate size in
+    let x = off_x + truncate x in
+    let y = off_y + size in
+    draw_rect (x - size) (y - size) (2 * size) (2 * size);
+    x,y
+discrete draw_speed (x, y, v) =
+    let r,g,b = get_color (v, max_v) in
+    let v = truncate v in
+    set_color (rgb r g b);
+    draw_line ((x, y), ((x + v), y));
+    set_color (rgb 0 0 0);
+    ()
+discrete write_mass (x, y, mass) =
+    draw_centered (x, y, "Mass: " ^ (string_of_float mass) ^ " kg")
+discrete write_speed (x, y, mass) =
+    draw_centered (x, y, "Speed: " ^ (string_of_float mass) ^ " m/s")
+
+node show(t, x1, x2, v1, v2, count) =
+    (* Create window *)
+    let init g = open_graph "" in
+
+    (* Set params *)
+    let init tmp1 = set_window_title "Pi calculator"
+    and init tmp2 = resize_window w h
+    and init tmp3 = auto_synchronize false in
+
+    (* Main loop *)
+
+    (* clear *)
+    let _ = clear_graph () in
+
+    (* axis *)
+    let _ = draw_line ((off_x, off_y), (off_x, h)) in
+    let _ = draw_line ((off_x, off_y), (w, off_y)) in
+
+    (* m1 *)
+    let x,y = draw_mass (x1, m1size) in
+    let _ = write_mass (x, 45, m1) in
+    let _ = draw_speed (x, y, v1) in
+    let _ = write_speed (x, 30, v1) in
+
+    (* m2 *)
+    let x,y = draw_mass (x2, m2size) in
+    let _ = write_mass (x, 15, m2) in
+    let _ = draw_speed (x, y, v2) in
+    let _ = write_speed (x, 0, v2) in
+
+    (* draw collision count *)
+    let _ = draw_alignr (w - 10, h - text_fontsize - 10, "Collision count: " ^ (string_of_int count)) in
+
+    (* sync *)
+    synchronize ()
+
+hybrid main () =
+    let der t = 1. init 0. in
+
+    let x1, x2, v1, v2, collision, count = model () in
+
+    present (period(0.01)) | collision(_) ->
+        show(t, x1, x2, v1, v2, count)
+    else ()
