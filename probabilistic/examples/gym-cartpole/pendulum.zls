@@ -18,6 +18,9 @@ let x_threshold = 2.4
 let node integr(x0, x') = x where
   rec x = x0 -> tau *. x' +. (pre x)
 
+let node deriv(u) = o where
+  rec x = u
+  and o = 0.0 -> (x -. pre(x))
 
 let node pendulum (obs0, action) = obs, reward, stop where
   rec force = if action = Right then force_mag else -. force_mag

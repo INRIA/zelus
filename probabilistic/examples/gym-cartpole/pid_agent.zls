@@ -1,0 +1,23 @@
+open Cart_pole
+open Pendulum
+open Gym
+
+
+let node pid (prob, r) = y where
+  rec init p = Infer.sample(prob, Distribution.gaussian 0. 1.)
+  and init i = Infer.sample(prob, Distribution.gaussian 0. 1.)
+  and init d = Infer.sample(prob, Distribution.gaussian 0. 1.)
+  and e = r -. (0.0 fby y)
+  and y = p *. e +. i *. integr(0., e) +. d *. deriv(e)
+
+
+let node model(prob, obs_init) = action where
+  rec obs = simple_pendulum (obs_init,  Right fby action)
+  and action = if pid(prob, obs.pole_angle) > 0. then Right else Left
+  and () = Infer.factor(prob, -10. *. abs_float (obs.pole_angle))
+
+let node pid_main () = () where
+  rec reset action = Infer.plan 10 10 model obs
+      every true
+  and obs, _, _ = cart_pole_gym true (Right fby action)
+  and display = draw_obs_front obs
