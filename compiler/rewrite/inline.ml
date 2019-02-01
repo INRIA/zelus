@@ -296,9 +296,9 @@ and equation renaming ({ eq_desc = desc } as eq) =
 	 List.fold_left build_state_names renaming s_h_list in
        let se_opt = Misc.optional_map (state_exp renaming) se_opt in
        EQautomaton(is_weak, List.map (body renaming) s_h_list, se_opt)
-    | EQforall { for_index = i_list; for_init = init_list;
+    | EQforall({ for_index = i_list; for_init = init_list;
 		 for_body = b_eq_list;
-		 for_in_env = in_env; for_out_env = out_env } ->
+		 for_in_env = in_env; for_out_env = out_env } as f_body) ->
        let in_env, renaming0 = build in_env in
        let out_env, renaming1 = build out_env in
        let renaming = Env.append renaming0 (Env.append renaming1 renaming) in
@@ -318,10 +318,11 @@ and equation renaming ({ eq_desc = desc } as eq) =
 					    expression renaming e) in
 	 { ini with desc = desc } in
        let _, b_eq_list = block renaming b_eq_list in
-       EQforall { for_index = List.map index i_list;
+       EQforall { f_body with
+                  for_index = List.map index i_list;
 		  for_init = List.map init init_list;
 		  for_body = b_eq_list;
-		  for_in_env = in_env; for_out_env = out_env } in       
+		  for_in_env = in_env; for_out_env = out_env } in
       { eq with eq_desc = desc; eq_write = Deftypes.empty }
       
 and scondpat renaming ({ desc = desc } as sc) =
