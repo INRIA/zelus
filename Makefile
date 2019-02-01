@@ -116,11 +116,13 @@ install:
 	@mkdir -p $(libdir)
 	@printf "libdir: $(libdir)\n"
 	@cp `ls lib/*.cma lib/*.cmxa lib/*.a lib/*.cmi lib/*.zci` $(libdir)/
+	$(OCAMLFIND) install zelus META || true
 
 uninstall:
 	rm $(bindir)/$(BIN)
 	rm $(libdir)/*.cma $(libdir)/*.cmxa $(libdir)/*.cmi
 	rm $(libdir)/*.a $(libdir)/*.zci
+	$(OCAMLFIND) remove zelus || true
 	rmdir $(libdir)
 
 opam-dist:
