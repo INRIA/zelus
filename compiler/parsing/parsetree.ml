@@ -91,7 +91,8 @@ and funexp =
   { f_kind: kind;
     f_atomic: is_atomic;
     f_args: pattern list;
-    f_body: exp }
+    f_body: exp;
+    f_loc: location }
     
 and is_atomic = bool
 

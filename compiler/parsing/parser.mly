@@ -20,8 +20,10 @@ open Lexing
 open Location
 open Parsetree
 
+let localise start_pos end_pos = Loc(start_pos.pos_cnum, end_pos.pos_cnum)
+
 let make desc start_pos end_pos =
-  { desc = desc; loc = Loc(start_pos.pos_cnum, end_pos.pos_cnum) }
+  { desc = desc; loc = localise start_pos end_pos }
 
 let make_name op start_pos end_pos =
   make (Evar(Name(op))) start_pos end_pos
@@ -304,21 +306,26 @@ implementation:
       { Econstdecl(ide, true, seq) }
   | LET ide = IDENT fn = simple_pattern_list EQUAL seq = seq_expression
       { Efundecl(ide, { f_kind = A; f_atomic = false;
-			f_args = fn; f_body = seq }) }
+			f_args = fn; f_body = seq;
+			f_loc = localise $startpos(fn) $endpos(seq) }) }
   | LET ide = IDENT fn = simple_pattern_list EQUAL
 	seq = seq_expression WHERE r = is_rec eqs = equation_list
       { Efundecl(ide, { f_kind = A; f_atomic = false; f_args = fn;
 			f_body = make(Elet(r, eqs, seq))
-				 $startpos(seq) $endpos(eqs) }) }
+				 $startpos(seq) $endpos(eqs);
+		       f_loc = localise $startpos(fn) $endpos(eqs) }) }
   | is_let a = is_atomic k = kind ide = IDENT fn = simple_pattern_list
 					EQUAL seq = seq_expression
-      { Efundecl(ide, { f_kind = k; f_atomic = a; f_args = fn; f_body = seq }) }
+      { Efundecl(ide,
+		 { f_kind = k; f_atomic = a; f_args = fn; f_body = seq;
+		  f_loc = localise $startpos(fn) $endpos(seq) }) }
   | is_let a = is_atomic k = kind ide = IDENT
 	  fn = simple_pattern_list EQUAL seq = seq_expression
           WHERE r = is_rec eqs = equation_list
       { Efundecl(ide, { f_kind = k; f_atomic = a; f_args = fn;
 			f_body = make(Elet(r, eqs, seq))
-				 $startpos(seq) $endpos(eqs) }) }
+				 $startpos(seq) $endpos(eqs);
+			f_loc = localise $startpos(fn) $endpos(eqs) }) }
 ;
 
 %inline is_rec:

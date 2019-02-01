@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -80,7 +80,8 @@ and funexp =
     f_atomic: is_atomic;
     f_args: pattern list;
     f_body: exp;
-    mutable f_env: Deftypes.tentry Ident.Env.t }
+    mutable f_env: Deftypes.tentry Ident.Env.t;
+    f_loc: location }
     
 and is_atomic = bool
 
@@ -290,7 +291,8 @@ and forall_handler =
     mutable for_in_env: Deftypes.tentry Ident.Env.t;
     (* def names from [id in e | id in e1..e2] *)
     mutable for_out_env: Deftypes.tentry Ident.Env.t;
-    (* def (left) names from [id out id'] *) }
+    (* def (left) names from [id out id'] *)
+    for_loc: location }
 
 and indexes_desc =
   | Einput of Ident.t * exp (* xi in t_input *)
