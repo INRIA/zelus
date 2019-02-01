@@ -86,7 +86,9 @@ let static quantum = 0.1
 let static tau = 1.0
 let static mu = 5.0
 
-let hybrid van_der_pol_qss() = compose(quantum)(tau)(f1)(f2(mu))(1.0)(1.0)()
+let static f2' = f2 5.0
+    
+let hybrid van_der_pol_qss() = compose(quantum)(tau)(f1)(f2')(1.0)(1.0)()
 
 let x1_0 = 1.0
 let x2_0 = 1.0
