@@ -128,8 +128,8 @@ let rec build_equation table { eq_desc = desc } =
      let table = add u S.empty r table in
      let table_res = build_equation_list Env.empty res_eq_list in
      merge table (extend table_res r)
-  | EQforall
-      { for_index = i_list; for_init = init_list; for_body = b_eq_list } ->
+  | EQforall { for_index = i_list; for_init = init_list;
+               for_body = b_eq_list } ->
      let index table { desc = desc } =
        match desc with
        | Einput(i, e) ->
@@ -248,8 +248,8 @@ let rec remove_equation useful
      if not (Unsafe.exp e) && res_eq_list = [] then eq_list
      else { eq with eq_desc = EQreset(res_eq_list, e);
 		    eq_write = writes useful w } :: eq_list
-  | EQforall { for_index = i_list; for_init = init_list; for_body = b_eq_list;
-	       for_in_env = in_env; for_out_env = out_env } ->
+  | EQforall({ for_index = i_list; for_init = init_list; for_body = b_eq_list;
+	       for_in_env = in_env; for_out_env = out_env } as f_body) ->
      let index acc ({ desc = desc } as ind) =
        match desc with
        | Einput(i, e) ->
@@ -270,7 +270,8 @@ let rec remove_equation useful
      let out_env = Env.filter (fun x entry -> S.mem x useful) out_env in
      if is_empty_block b_eq_list then eq_list
      else { eq with eq_desc =
-                      EQforall { for_index = i_list;
+                      EQforall { f_body with
+                                 for_index = i_list;
 				 for_init = init_list;
 				 for_body = b_eq_list;
 				 for_in_env = in_env;
