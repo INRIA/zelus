@@ -8,7 +8,7 @@ let node controller (angle, (p,i,d)) = action where
   and theta = p *. e +. i *. integr(0., e) +. d *. deriv(e)
   and action = if theta > 0. then Right else Left
 
-let node model (prob, obs_init) = p,i,d where
+let node model (prob, obs_init) = p,d where
   rec init p = Infer.sample(prob, Distribution.gaussian 0. 1.)
   and init i = Infer.sample(prob, Distribution.gaussian 0. 1.)
   and init d = Infer.sample(prob, Distribution.gaussian 0. 1.)
@@ -16,9 +16,28 @@ let node model (prob, obs_init) = p,i,d where
   and action = controller (obs.pole_angle, (p,i,d))
   and () = Infer.factor(prob, -10. *. abs_float (obs.pole_angle))
 
+
+
+let node every_n n = o where
+  rec automaton
+      | False -> local cpt in
+          do o = false
+          and cpt = n fby (cpt - 1)
+          until (cpt = 0) then True
+      | True -> do o = true then False
+
 let node pid_main () = () where
-  rec pid_dist = Infer.infer 3000 model obs
-  and pid = Distribution.draw pid_dist
-  and obs, _, _ = cart_pole_gym true (Right fby action)
-  and action = controller (obs.pole_angle, pid)
-  and display = draw_obs_front obs
+  rec pd_dist = Infer.infer 3000 model obs
+  and (p, d) = Distribution.draw pd_dist
+  and obs, _, stop = cart_pole_gym true (Right fby action)
+  and action = controller (obs.pole_angle, (p, 0., d))
+  (* and display = draw_obs_front obs *)
+
+  and p_dist, d_dist = Distribution.split pd_dist
+  and mp, sp = Distribution.stats_float p_dist
+  and () =
+    print_string "p mean: ";
+    print_float mp;
+    print_string " p var: ";
+    print_float sp;
+    print_newline ()
