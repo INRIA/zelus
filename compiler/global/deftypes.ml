@@ -89,7 +89,9 @@ and var =
 
 and mem =
   { m_kind: mkind option;
-    m_next: bool option; (* is-it set with [x = ...] or [next x = ...]? *)
+    m_next: bool option; (* None when not set *)
+                         (* Some(false) when [... x... = ...] *)
+                         (* Some(true) when [next x = ...] *)
     m_previous: bool; (* [last x] or [x] is used *)
     m_init: constant option option; (* is-it initialized? *)
     m_combine: Lident.t option; (* combination function *)
