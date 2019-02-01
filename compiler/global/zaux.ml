@@ -180,8 +180,8 @@ let eq_der x e = eqmake (EQder(x, e, None, []))
 
 
 let handler p b =
-    { m_pat = p; m_body = b; m_env = Env.empty;
-      m_reset = false; m_zero = false }
+  { m_pat = p; m_body = b; m_env = Env.empty;
+    m_reset = false; m_zero = false }
 
 let eq_ifthenelse e b1 b2 =
   eq_match e [handler truepat b1; handler falsepat b2]
