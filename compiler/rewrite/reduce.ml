@@ -409,7 +409,7 @@ and equation venv renaming fun_defs ({ eq_desc = desc } as eq) =
      EQautomaton(is_weak, s_h_list, se_opt), fun_defs
   | EQforall({ for_index = i_list; for_init = init_list;
                for_body = b_eq_list;
-	       for_in_env = in_env; for_out_env = out_env }) ->
+	       for_in_env = in_env; for_out_env = out_env } as f_body ) ->
       let in_env, renaming0 = build in_env in
       let venv = remove renaming0 venv in
       let out_env, renaming1 = build out_env in
@@ -440,11 +440,12 @@ and equation venv renaming fun_defs ({ eq_desc = desc } as eq) =
      let init_list, fun_defs =
        Misc.map_fold init fun_defs init_list in
      let b_eq_list, (_, fun_defs) = block venv (renaming, fun_defs) b_eq_list in
-     EQforall { for_index = i_list;
-	        for_init = init_list;
-	        for_body = b_eq_list;
-		for_in_env = in_env;
-                for_out_env = out_env }, fun_defs in
+      EQforall { f_body with
+                 for_index = i_list;
+	         for_init = init_list;
+	         for_body = b_eq_list;
+		 for_in_env = in_env;
+                 for_out_env = out_env }, fun_defs in
   { eq with eq_desc = desc; eq_write = Deftypes.empty }, fun_defs
 
 and scondpat venv renaming fun_defs ({ desc = desc } as scpat) =
