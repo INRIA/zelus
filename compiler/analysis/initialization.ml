@@ -38,7 +38,7 @@ type error =
   | Iless_than_i of t * t (* not (expected_i < actual_i) *) 
   | Ilast of Ident.t (* [last x] is un-initialized *)
   | Ivar of Ident.t (* [x] is un-initialized *)
-
+  | Ider of Ident.t (* equation [der x = ...] appear with no initialisation *)
 exception Error of location * error
 
 let error loc kind = raise (Error(loc, kind))
@@ -70,6 +70,12 @@ let message loc kind =
            may not be well initialized.@."
           output_location loc
           (Ident.source n)
+    | Ider(n) ->
+        Format.eprintf
+          "%aInitialization error: the derivative of %s \
+           is given but it is not initialized.@."
+          output_location loc
+          (Ident.source n)
   end;
   raise Misc.Error
 
@@ -96,28 +102,32 @@ let less_for_var loc n actual_ti expected_ti =
  *- [x] is initialized; [last x: 0] if [x] declared in a discrete
  *- context; [last x: a] otherwise.
  *- when [x = e] then [1/2 < a] if the equation is activated in discrete time *)
-let build_env is_continuous l_env env =
-  let entry { Deftypes.t_sort = sort; Deftypes.t_typ = ty } =
-    match sort with 
-    | Deftypes.Smem { Deftypes.m_init = None; Deftypes.m_next = Some true } ->
+let build_env loc is_continuous l_env env =
+  let entry x { Deftypes.t_sort = sort; Deftypes.t_typ = ty } =
+    match sort with
+    | Smem { m_kind = Some(Cont); m_init = None; m_next = None } ->
+        (* if an equation [der x = ...] is given but no initialisation *)
+        (* either through [init x = ...] or [x = ...], [x] is not initialized *)
+        error loc (Ider(x))
+    | Smem { m_init = None; m_next = Some true } ->
         (* no initialization and [next x = ...]. [t_last] is useless. *)
         { t_last = ione; t_typ = Init.skeleton_on_i ione ty }
-    | Deftypes.Smem { Deftypes.m_init = Some _ } ->
+    | Smem { m_init = Some _ } ->
         (* [x] and [last x] or [x] and [next x] *)
         (* are well initialized *)
         let lv, iv =
           if is_continuous then Init.new_var (), izero else izero, izero in
         { t_last = lv; t_typ = Init.skeleton_on_i iv ty }
-    | Deftypes.Svar _ ->
+    | Svar _ ->
         { t_last = izero; t_typ = Init.skeleton_on_i (Init.new_var ()) ty }
-    | Deftypes.Smem { Deftypes.m_previous = true } ->
+    | Smem { m_previous = true } ->
         (* [x] initialized; [last x] uninitialized *)
         { t_last = ione; t_typ = Init.skeleton_on_i izero ty }
-    | Deftypes.Sstatic | Deftypes.Sval | Deftypes.Smem _ -> 
+    | Sstatic | Sval | Smem _ -> 
         (* no constraint *)
         let lv = if is_continuous then ihalf else izero in
         { t_last = lv; t_typ = Init.skeleton ty } in
-  Env.fold (fun n tentry acc -> Env.add n (entry tentry) acc) l_env env
+  Env.fold (fun n tentry acc -> Env.add n (entry n tentry) acc) l_env env
 
 (* Given an environment [env], returns a new one where every entry type *)
 (* [ti] is subtyped into [tj] which gets 1/2 as its minimum type *)
@@ -230,15 +240,15 @@ and pattern_less_than_on_i is_continuous env pat i =
         
 (** Match handler *)
 let match_handlers is_continuous body env m_h_list =
-  let handler { m_env = m_env; m_body = b } =
-    let env = build_env is_continuous m_env env in
+  let handler { m_pat = pat; m_env = m_env; m_body = b } =
+    let env = build_env pat.p_loc is_continuous m_env env in
     ignore (body is_continuous env b) in
   List.iter handler m_h_list
 
 (** Present handler *)
 let present_handlers is_continuous scondpat body env p_h_list =
   let handler { p_cond = scpat; p_body = b; p_env = p_env } =
-    let env = build_env is_continuous p_env env in
+    let env = build_env scpat.loc is_continuous p_env env in
     scondpat is_continuous env scpat;
     let env = if is_continuous then half env else env in
     ignore (body false env b) in
@@ -427,17 +437,18 @@ and equation is_continuous env
       (* transitions *)
       let escape shared env
           { e_cond = sc; e_block = b_opt; e_next_state = ns; e_env = e_env } =
-        let env = build_env is_continuous e_env env in
+        let env = build_env sc.loc is_continuous e_env env in
         scondpat is_continuous env sc;
         let env = 
           match b_opt with
           | None -> env | Some(b) -> block_eq_list shared false env b in
         state env ns in
       (* handler *)
-      let handler shared env { s_body = b; s_trans = trans; s_env = s_env } =
+      let handler shared env
+          { s_state = state; s_body = b; s_trans = trans; s_env = s_env } =
         (* remove from [shared] names defined in the current state *)
         let shared = Ident.S.diff shared (cur_names_in_state b trans) in
-        let env = build_env is_continuous s_env env in
+        let env = build_env state.loc is_continuous s_env env in
         let env = block_eq_list shared is_continuous env b in
         List.iter (escape shared env) trans in
       (* compute the set of shared names *)
@@ -488,7 +499,7 @@ and equation is_continuous env
   | EQblock(b_eq_list) ->
       ignore (block_eq_list Ident.S.empty is_continuous env b_eq_list)
   | EQforall { for_index = i_list; for_init = init_list; for_body = b_eq_list;
-               for_in_env = i_env; for_out_env = o_env } ->
+               for_in_env = i_env; for_out_env = o_env; for_loc = loc } ->
       (* typing the declaration of indexes *)
       (* all bounds must be initialized *)
       let index env { desc = desc; loc = loc } =
@@ -514,8 +525,8 @@ and equation is_continuous env
             Env.add x { t_last = izero; t_typ = tzero } init_env in
       List.iter (index env) i_list;
       let init_env = List.fold_left init Env.empty init_list in
-      let env = build_env is_continuous i_env env in
-      let env = build_env is_continuous o_env env in
+      let env = build_env loc is_continuous i_env env in
+      let env = build_env loc is_continuous o_env env in
       let env = Env.append init_env env in
       ignore (block_eq_list Ident.S.empty is_continuous env b_eq_list)
         
@@ -544,18 +555,19 @@ and match_handler_exp_list is_continuous env m_h_list ty =
     env m_h_list
 
 and block_eq_list shared is_continuous env
-    { b_locals = l_list; b_body = eq_list; b_env = b_env; b_write = defnames } =
+    { b_loc = loc; b_locals = l_list; b_body = eq_list;
+      b_env = b_env; b_write = defnames } =
   (* shared variables depend on their last causality *)
   let env = last_env shared defnames env in
   let env = List.fold_left (local is_continuous) env l_list in
-  let env = build_env is_continuous b_env env in
+  let env = build_env loc is_continuous b_env env in
   equation_list is_continuous env eq_list;
   env
 
 
 and local is_continuous env { l_eq = eq_list; l_loc = loc; l_env = l_env } =
   (* First extend the typing environment *)
-  let env = build_env is_continuous l_env env in
+  let env = build_env loc is_continuous l_env env in
   (* then type the body *)
   List.iter (equation is_continuous env) eq_list; env
   
@@ -586,10 +598,10 @@ let implementation ff impl =
         (* output the signature *)
         if !Misc.print_initialization_types then Pinit.declaration ff f tis
     | Efundecl(f, { f_kind = k; f_atomic = atomic; f_args = p_list;
-                    f_body = e; f_env = h0 }) -> 
+                    f_body = e; f_env = h0; f_loc = loc }) -> 
         let is_continuous = match k with | C -> true | _ -> false in
         Misc.push_binding_level ();
-        let env = build_env is_continuous h0 Env.empty in
+        let env = build_env loc is_continuous h0 Env.empty in
         let ti_list = List.map (fun p -> Init.skeleton p.p_typ) p_list in
         List.iter2 (pattern is_continuous env) p_list ti_list;
         let ti_res = exp is_continuous env e in
