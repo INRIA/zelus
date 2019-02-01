@@ -1,5 +1,7 @@
 EXAMPLE=qss1.zls qss2.zls
 
+ZELUC=../../compiler/zeluc.byte -I ../../lib
+
 all: byte opt
 
 byte: $(EXAMPLE:%.zls=%.byte)
@@ -17,7 +19,7 @@ qss1.opt: qss1.ml main.ml
         -package sundialsml -linkpkg qss1.ml main.ml
 
 qss1.ml: qss1.zls
-	zeluc -gtk2 -s main qss1.zls
+	$(ZELUC) -gtk2 -s main qss1.zls
 
 qss2.byte: qss2.ml main.ml
 	ocamlfind ocamlc -o qss2.byte -I `zeluc -where` -package lablgtk2 \
@@ -30,7 +32,7 @@ qss2.opt: qss2.ml main.ml
         -package sundialsml -linkpkg qss2.ml main.ml
 
 qss2.ml: qss2.zls
-	zeluc -gtk2 -s main qss2.zls
+	$(ZELUC) -gtk2 -s main qss2.zls
 
 clean:
 	-@rm -f $(EXAMPLE:%.zls=%.byte)
