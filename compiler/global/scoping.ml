@@ -802,7 +802,8 @@ and equation env_pat env eq_list { desc = desc; loc = loc } =
 		   { Zelus.for_index = i_list; Zelus.for_init = init_list;
 		     Zelus.for_body = b_eq_forall_list;
 		     Zelus.for_in_env = Rename.typ_env env_in_names;
-		     Zelus.for_out_env = Rename.typ_env env_out_left})
+                     Zelus.for_out_env = Rename.typ_env env_out_left;
+                     Zelus.for_loc = loc })
      :: eq_list
 	      
 and equation_list env_pat env eq_list = 
@@ -931,12 +932,13 @@ let implementation imp =
       | Econstdecl(n, is_static, e) ->
          Zelus.Econstdecl(n, is_static, expression Rename.empty e)
       | Efundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
-		      f_body = e }) ->
+		      f_body = e; f_loc = loc }) ->
          let _, env, p_list = pattern_list Rename.empty p_list in
          Zelus.Efundecl(n, { Zelus.f_kind = kind k; Zelus.f_atomic = is_atomic;
                              Zelus.f_args = p_list;
 			     Zelus.f_body = expression env e;
-                             Zelus.f_env = Rename.typ_env env })
+                             Zelus.f_env = Rename.typ_env env;
+                             Zelus.f_loc = loc })
       | Eopen(n) -> Zelus.Eopen(n)
       | Etypedecl(n, params, tydecl) ->
          Zelus.Etypedecl(n, params, type_decl tydecl) in
