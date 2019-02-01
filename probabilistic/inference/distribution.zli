@@ -7,6 +7,7 @@ val draw : 'a t -> 'a
 val score : 'a t -> 'a -> float
 val draw_and_score : 'a t -> 'a * float
 val multivariate : 'a t list -> 'a list t
+val stats_float: float t -> float * float
 val mean_float : float t -> float
 val split : ('a * 'b) t -> 'a t * 'b t
 val split_array : 'a array t -> 'a t array

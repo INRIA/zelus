@@ -99,6 +99,38 @@ let multivariate dists =
           1.0
           dists xs))
 
+
+(** [stats_float d] computes the mean and stddev of a [float
+    Distribution.t]. 
+*)
+let stats_float d =
+  match d with
+  | Dist_sampler _ ->
+    let rec stats n sum sq_sum =
+      begin match n with
+      | 100000 -> 
+	let mean = sum /. (float n) in
+	let stddev = sqrt (sq_sum /. (float n) -. mean *. mean) in
+	mean, stddev
+      | _ ->
+	let x = draw d in
+	stats (n+1) (sum +. x) (sq_sum +. x*.x)
+      end
+    in stats 0 0. 0.
+  | Dist_support sup ->
+    let rec stats sup sum sq_sum =
+      begin match sup with
+      | [] ->
+	let mean = sum in
+	let stddev = sqrt (sq_sum -. mean *. mean) in
+	mean, stddev
+      | (v,w) :: t ->
+	stats t (sum +. v *. w) (sq_sum +. w *. v *. v)
+      end
+    in stats sup 0. 0.
+
+
+
 (** [mean_float d] computes the mean of a [float Distribution.t]. *)
 let mean_float d =
   match d with
