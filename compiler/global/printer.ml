@@ -163,7 +163,7 @@ let print_binding ff (n, { t_sort = sort; t_typ = typ }) =
     match i_opt with
     | None -> fprintf ff " initialized"
     | Some(c) -> fprintf ff " init %a" constant c in
-  let next ff is_n = if is_n then fprintf ff "next " in
+  let next ff is_n = fprintf ff "%s" (if is_n then "next " else "cur ") in
   let previous p = if p then "last " else "" in
   let kind ff k = fprintf ff "%s" (kind k) in
   match sort with
