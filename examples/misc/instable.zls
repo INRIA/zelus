@@ -1,0 +1,19 @@
+(* Un exemple donne par Sebastien Furic aux JFLA'19 - 1/02/2019.
+let hybrid f () =
+  let rec der x = -1.0 init 1.0 in
+  let zc = up(-. x) in
+  let rec der y = 0.0 init 1.0 reset zc -> -. x in
+  let rec der z = -. z /. y init 1.0 in
+  (x, y, z, zc)
+        
+let hybrid main() =
+  let der t = 1.0 init 0.0 in
+  let (x, y, z, zc) = f () in
+  present (period (0.0 | 0.1)) ->
+    let s = Scope.scope3 (-1.0, 40.0,
+			  ("x", Scope.linear, x),
+			  ("y", Scope.linear, y),
+			  ("z", Scope.linear, z)) in
+    Scope.window ("f", 10.0, t, s)
+  else ()
+      

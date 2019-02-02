@@ -19,7 +19,8 @@ EXAMPLE=count.zls \
 	zero.zls \
 	tabledep.zls \
 	input_window.zls \
-	euler_forward_error.zls
+	euler_forward_error.zls \
+	instable.zls
 
 default: $(word 1, $(targets))
 all:  $(targets)
