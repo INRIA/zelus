@@ -1,4 +1,4 @@
-(* Un exemple donne par Sebastien Furic aux JFLA'19 - 1/02/2019.
+(* Un exemple donne par Sebastien Furic aux JFLA'19 - 1/02/2019. *)
 let hybrid f () =
   let rec der x = -1.0 init 1.0 in
   let zc = up(-. x) in
