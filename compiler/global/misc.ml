@@ -56,6 +56,10 @@ let show_version () =
 let simulation_node = ref None
 let set_simulation_node (n:string) = simulation_node := Some(n)
 
+(* sets the output filepath *)
+let outname = ref None
+let set_outname (n:string) = outname := Some(n)
+
 (* sets the checking flag *)
 let number_of_checks = ref 0
 let set_check (n: int) = number_of_checks := n
@@ -68,7 +72,7 @@ let set_sampling_period p = sampling_period := p
 let inlining_level = ref 10
 let set_inlining_level l = inlining_level := l
 let inline_all = ref false
-    
+
 (* turn on the discrete zero-crossing detection *)
 let dzero = ref false
 
@@ -90,7 +94,7 @@ let no_warning = ref false
 let lmm_nodes = ref S.empty
 let set_lmm_nodes (n: string) =
   lmm_nodes := S.add n !lmm_nodes
-	      
+
 (* variable creation *)
 (* generating names *)
 class name_generator =
@@ -181,7 +185,7 @@ let from i =
     | 0 -> acc
     | _ -> fromrec ( i :: acc) (i - 1) in
   fromrec [] i
-	  
+
 let map_fold f acc l =
   let rec maprec acc = function
     | [] -> [], acc
@@ -196,7 +200,7 @@ let rec firsts = function
     | [] -> assert false
     | [p] -> [], p
     | p :: l -> let head, tail = firsts l in p :: head, tail
-  
+
 (** The data-structure to represent a state *)
 module State =
   struct
@@ -207,11 +211,11 @@ module State =
 	| Seq of 'a t * 'a t
     let singleton x = Cons(x, Empty)
     let cons x s = Cons(x, s)
-    let seq s1 s2 = 
+    let seq s1 s2 =
       match s1, s2 with
         | (Empty, s) | (s, Empty) -> s
         | _ -> Seq(s1, s2)
-    let par s1 s2 = 
+    let par s1 s2 =
       match s1, s2 with
         | (Empty, s) | (s, Empty) -> s
         | _ -> Par(s1, s2)
@@ -272,4 +276,3 @@ exception Error
 let internal_error message printer input =
   Format.eprintf "@[Internal error (%s)@. %a@.@]" message printer input;
   raise Error
-

@@ -191,12 +191,13 @@ let emit_periodic_code ff k sampling =
                  let _ = Zlsrun.go main@.@]"
 
 (** The main entry function. Simulation of a main function *)
-let main name sampling number_of_checks use_gtk =
+let main outname name sampling number_of_checks use_gtk =
   (* - open the module where main occurs
      - makes a module of that name
      - instanciate main inside it
      - compile it *)
-  let filename = name ^ ".ml" in
+  let outname = match outname with None -> name | Some s -> s in
+  let filename = outname ^ ".ml" in
   let info = find name in
   let qualid, k =
     if number_of_checks > 0 then check_unit_bool name info

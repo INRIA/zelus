@@ -21,5 +21,5 @@ clean:
 	rm -f pi_calculator.ml main.ml cli.ml
 	rm -f *.cmi *.cmo *.zci
 
-cleanall: clean
+realclean cleanall: clean
 	rm -f pi_calculator.cli pi_calculator.plot

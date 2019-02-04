@@ -22,10 +22,10 @@ open Compiler
 
 let compile file =
   if Filename.check_suffix file ".zls" || Filename.check_suffix file ".zlus"
-  then 
+  then
     let filename = Filename.chop_extension file in
     let modname = String.capitalize_ascii (Filename.basename filename) in
-    compile modname filename 
+    compile modname filename
   else if Filename.check_suffix file ".zli"
   then
     let filename = Filename.chop_suffix file ".zli" in
@@ -36,11 +36,12 @@ let compile file =
     let filename = Filename.chop_suffix file ".mli" in
     let modname = String.capitalize_ascii (Filename.basename filename) in
     scalar_interface modname filename
-  else 
+  else
     raise (Arg.Bad ("don't know what to do with " ^ file))
 
 let doc_verbose = "\t Set verbose mode"
 and doc_version = "\t The version of the compiler"
+and doc_outname = "\t Simulation file name"
 and doc_print_types = "\t Print types"
 and doc_print_causality_types = "\t Print causality types"
 and doc_print_initialization_types = "\t  Print initialization types"
@@ -51,7 +52,9 @@ and doc_no_pervasives = "\t  Do not load the pervasives module"
 and doc_typeonly = "\t  Stop after typing"
 and doc_hybrid = "\t  Select hybrid translation"
 and doc_simulation =
-  "<node> \t Simulates the node <node> and generates a file <node>.ml \n\
+  "<node> \t Simulates the node <node> and generates a file <out>.ml\n\
+          \t           where <out> is equal to the argument of -o if the flag\n\
+          \t           has been set, or <node> otherwise\n\
           \t           For hybrid programs, compile with:\n\
           \t           bigarray.cma unix.cma -I +sundials sundials_cvode.cma zllib.cma"
 and doc_sampling = "<p> \t Sets the sampling period to p (float <= 1.0)"
@@ -80,6 +83,7 @@ let main () =
       [
         "-v", Arg.Unit set_verbose, doc_verbose;
         "-version", Arg.Unit show_version, doc_version;
+        "-o", Arg.String set_outname, doc_outname;
         "-I", Arg.String add_include, doc_include;
         "-i", Arg.Set print_types, doc_print_types;
         "-ic", Arg.Set print_causality_types, doc_print_causality_types;
@@ -102,14 +106,14 @@ let main () =
 	"-nosimplify", Arg.Set no_simplify_causality_type, doc_nosimplify;
         "-noreduce", Arg.Set no_reduce, doc_noreduce;
         "-lmm", Arg.String set_lmm_nodes, doc_lmm
-        
+
       ])
       compile
       errmsg;
     begin
       match !simulation_node with
-        | Some(name) -> 
-	    Simulator.main name !sampling_period !number_of_checks !use_gtk
+        | Some(name) ->
+	    Simulator.main !outname name !sampling_period !number_of_checks !use_gtk
         | _ -> ()
     end
   with
@@ -117,4 +121,3 @@ let main () =
 
 main ();;
 exit 0;;
-
