@@ -25,27 +25,31 @@ let node print_stats name (m, s) =
   print_newline ()
 
 
-let node pid_bayes_update particles obs = action where
+let node pid_bayes_update particles (obs, stop) = action where
   rec init p_stats = 0., 1.
   and init d_stats = 0., 1.
   and (p, d) = Distribution.draw pd_dist
   and action = controller (obs.pole_angle, (p, 0., d))
+  and reset score = 0 fby score + 1 every stop
   and automaton
       | Learn ->
           do pd_dist = Infer.infer particles model (obs, gaussian p_stats, gaussian d_stats)
           and p_dist, d_dist = Distribution.split pd_dist
           and ps = Distribution.stats_float p_dist
           and ds = Distribution.stats_float d_dist
-          until (snd ps < 0.00001) then Control
-          else ((snd ps < snd p_stats /. 2.) || (snd ds < snd d_stats /. 2.)) then
-            do () = print_stats "p" ps in Update(ps, ds)
+          until (snd ps < 0.1) then do () = print_endline "End Learning" in Control
+          else ((snd ps < snd p_stats /. 2.) || (snd ds < snd d_stats /. 2.)) then  Update(ps, ds)
       | Update(ps, ds) ->
            do p_stats = ps
            and d_stats = ds
            then Learn
-      | Control -> do done
+      | Control -> local cpt in
+           do init cpt = 0
+           and present (stop && score < 100) -> do cpt = (last cpt + 1) done
+           until (cpt > 3) then do () = print_endline "Restart Learning" in Update((0., 1.), (0., 1.))
+
 
 
 let node pid_main () = () where
   rec obs, _, stop = cart_pole_gym true (Right fby action)
-  and action = pid_bayes_update 2000 obs
+  and action = pid_bayes_update 2000 (obs, stop)
