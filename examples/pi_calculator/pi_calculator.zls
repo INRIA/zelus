@@ -2,7 +2,7 @@
     https://www.youtube.com/watch?v=jsYwFizhncE
 *)
 
-let precision = 5
+let precision = 3
 
 (* for printing purposes only: show red text if collision count is different
    than expected
@@ -171,9 +171,12 @@ hybrid cli () =
                 print_endline (col ^
                     "Pi approximation: " ^ (string_of_float (pi_approx)) ^
                     "\027[0m");
-                exit 0
+                print_string "Press Ctrl + C to exit ...";
+                flush stdout;
+                input_line stdin;
+                ()
             )
         | collision(_) ->
-            print_string ("Counting collisions ... " ^ (string_of_int count) ^
+            print_string ("Counting collisions ... " ^ (string_of_int (count + 1)) ^
                 " / " ^ (string_of_int real_approx_pi) ^ "\r")
     else ()
