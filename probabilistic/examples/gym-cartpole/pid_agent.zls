@@ -17,10 +17,10 @@ let node controller (angle, (p,i,d)) = action where
   and theta = p *. e +. i *. integr(0., e) +. d *. deriv(e)
   and action = if theta > 0. then Right else Left
 
-let node model (prob, (obs_init, p_dist, i_dist, d_dist)) = p, (i, d) where
-  rec init p = Infer.sample(prob, p_dist)
-  and init d = Infer.sample(prob, d_dist)
-  and init i = Infer.sample(prob, i_dist)
+let node model (prob, (obs_init, p_prior, i_prior, d_prior)) = p, (i, d) where
+  rec init p = Infer.sample(prob, p_prior)
+  and init d = Infer.sample(prob, d_prior)
+  and init i = Infer.sample(prob, i_prior)
   and obs = simple_pendulum (obs_init,  Right fby action)
   and action = controller (obs.pole_angle, (p,i,d))
   and () = Infer.factor(prob, -10. *. abs_float (obs.pole_angle))
@@ -42,8 +42,6 @@ let node pid_bayes_update particles (obs, stop) = pid_dist where
           do p_stats = ps and d_stats = ds and i_stats = is
           then Learn
 
-
-
 let node learn_control particles (obs, stop) = action where
   rec (p, (i, d)) = Distribution.draw pid_dist
   and action = controller (obs.pole_angle, (p, i, d))
@@ -62,5 +60,4 @@ let node learn_control particles (obs, stop) = action where
 
 let node pid_main () = () where
   rec obs, _, stop = cart_pole_gym true (Right fby action)
-      (* and action = pid_bayes_update 2000 (obs, stop) *)
   and action = learn_control 2000 (obs, stop)
