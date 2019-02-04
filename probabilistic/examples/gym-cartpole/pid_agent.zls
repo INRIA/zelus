@@ -42,32 +42,32 @@ let node pid_bayes_update particles (obs, stop) = pid_dist where
           do p_stats = ps and d_stats = ds and i_stats = is
           then Learn
 
-
-let node model2 (prob, (obs_init, update, p_stats, i_stats, d_stats)) = p, (i, d) where
-  rec obs = simple_pendulum (obs_init,  Right fby action)
-  and action = controller (obs.pole_angle, (p,i,d))
-  and () = Infer.factor(prob, -10. *. abs_float (obs.pole_angle))
-  and reset init p = Infer.sample(prob, gaussian p_stats)
-        and init i = Infer.sample(prob, gaussian i_stats)
-        and init d = Infer.sample(prob, gaussian d_stats)
-      every update
+let node model2 (prob, (obs_init, ps, is, ds)) = p, (i, d) where
+  rec init p_stats = ps
+  and init p = Infer.sample(prob, gaussian ps)
+  and init i = Infer.sample(prob, gaussian is)
+  and init d = Infer.sample(prob, gaussian ds)
+  and automaton
+      | Learn ->
+          do obs = simple_pendulum (obs_init,  Right fby action)
+          and action = controller (obs.pole_angle, (p,i,d))
+          and () = Infer.factor(prob, -10. *. abs_float (obs.pole_angle))
+          until (snd ps < snd p_stats /. 2.) then Update
+      | Update ->
+          do p_stats = ps
+          and p = Infer.sample(prob, gaussian ps)
+          and i = Infer.sample(prob, gaussian is)
+          and d = Infer.sample(prob, gaussian ds)
+          then Learn
 
 
 let node pid_bayes_update2 particles (obs, stop) = pid_dist where
-  rec init p_stats = 0., 1.
-  and init i_stats = 0., 0.01
-  and init d_stats = 0., 1.
-  and update = (snd ps < snd (last p_stats) /. 2.)
-  and pid_dist = Infer.infer particles model2 (obs, false fby update, last p_stats, last i_stats, last d_stats)
+  rec pid_dist = Infer.infer particles model2 (obs, ps, is, ds)
   and p_dist, id_dist = Distribution.split pid_dist
   and i_dist, d_dist = Distribution.split id_dist
-  and ps = Distribution.stats_float p_dist
-  and ds = Distribution.stats_float d_dist
-  and is = Distribution.stats_float i_dist
-  and present update -> do () = print_stats "p" ps
-                        and p_stats = ps
-                        and i_stats = is
-                        and d_stats = ds done
+  and ps = (0., 1.) fby Distribution.stats_float p_dist
+  and is = (0., 0.01) fby Distribution.stats_float i_dist
+  and ds = (0., 1.) fby Distribution.stats_float d_dist
 
 
 let node learn_control particles (pid_model: int -S-> 'a -D-> 'b Distribution.t) (obs, stop) = action where
@@ -87,4 +87,4 @@ let node learn_control particles (pid_model: int -S-> 'a -D-> 'b Distribution.t)
 
 let node pid_main () = () where
   rec obs, _, stop = cart_pole_gym true (Right fby action)
-  and action = learn_control 2000 pid_bayes_update (obs, stop)
+  and action = learn_control 2000 pid_bayes_update2 (obs, stop)
