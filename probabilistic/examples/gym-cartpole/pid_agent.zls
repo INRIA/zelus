@@ -19,8 +19,8 @@ let node controller (angle, (p,i,d)) = action where
 
 let node model (prob, (obs_init, p_prior, i_prior, d_prior)) = p, (i, d) where
   rec init p = Infer.sample(prob, p_prior)
-  and init d = Infer.sample(prob, d_prior)
   and init i = Infer.sample(prob, i_prior)
+  and init d = Infer.sample(prob, d_prior)
   and obs = simple_pendulum (obs_init,  Right fby action)
   and action = controller (obs.pole_angle, (p,i,d))
   and () = Infer.factor(prob, -10. *. abs_float (obs.pole_angle))
@@ -42,12 +42,40 @@ let node pid_bayes_update particles (obs, stop) = pid_dist where
           do p_stats = ps and d_stats = ds and i_stats = is
           then Learn
 
-let node learn_control particles (obs, stop) = action where
+
+let node model2 (prob, (obs_init, update, p_stats, i_stats, d_stats)) = p, (i, d) where
+  rec obs = simple_pendulum (obs_init,  Right fby action)
+  and action = controller (obs.pole_angle, (p,i,d))
+  and () = Infer.factor(prob, -10. *. abs_float (obs.pole_angle))
+  and reset init p = Infer.sample(prob, gaussian p_stats)
+        and init i = Infer.sample(prob, gaussian i_stats)
+        and init d = Infer.sample(prob, gaussian d_stats)
+      every update
+
+
+let node pid_bayes_update2 particles (obs, stop) = pid_dist where
+  rec init p_stats = 0., 1.
+  and init i_stats = 0., 0.01
+  and init d_stats = 0., 1.
+  and update = (snd ps < snd (last p_stats) /. 2.)
+  and pid_dist = Infer.infer particles model2 (obs, false fby update, last p_stats, last i_stats, last d_stats)
+  and p_dist, id_dist = Distribution.split pid_dist
+  and i_dist, d_dist = Distribution.split id_dist
+  and ps = Distribution.stats_float p_dist
+  and ds = Distribution.stats_float d_dist
+  and is = Distribution.stats_float i_dist
+  and present update -> do () = print_stats "p" ps
+                        and p_stats = ps
+                        and i_stats = is
+                        and d_stats = ds done
+
+
+let node learn_control particles (pid_model: int -S-> 'a -D-> 'b Distribution.t) (obs, stop) = action where
   rec (p, (i, d)) = Distribution.draw pid_dist
   and action = controller (obs.pole_angle, (p, i, d))
   and automaton
       | Learn ->
-          do pid_dist = pid_bayes_update particles (obs, stop)
+          do pid_dist = pid_model particles (obs, stop)
           and p_dist, _ =  Distribution.split pid_dist
           and ps = Distribution.stats_float p_dist
           until (snd ps < 0.1) then do () = print_endline "End Learning" in Control
@@ -57,7 +85,6 @@ let node learn_control particles (obs, stop) = action where
           until (cpt > 3) then do () = print_endline "Restart Learning" in Learn
 
 
-
 let node pid_main () = () where
   rec obs, _, stop = cart_pole_gym true (Right fby action)
-  and action = learn_control 2000 (obs, stop)
+  and action = learn_control 2000 pid_bayes_update (obs, stop)
