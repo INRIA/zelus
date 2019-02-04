@@ -2,9 +2,15 @@
     https://www.youtube.com/watch?v=jsYwFizhncE
 *)
 
-type collision = M | W
+let precision = 5
 
-let precision = 1
+(* for printing purposes only: show red text if collision count is different
+   than expected
+*)
+let static pi = 3.1415926535897932384626433832795028841971693993751058209749445
+let real_approx_pi = truncate (pi *. (10. ** (float_of_int precision)))
+
+type collision = Mass | Wall
 
 let m1 = 1.
 let m2 = 100. ** (float_of_int precision)
@@ -15,7 +21,7 @@ let static x1_0 = 50.
 let static x2_0 = 400.
 let static v1_0 = 0.
 let static v2_0 = -100.
-let max_v = sqrt(m2 /. m1) *. (abs_float v2_0)
+let max_v = sqrt(m2) *. (abs_float v2_0)
 
 
 let msum = m1 +. m2
@@ -39,10 +45,10 @@ hybrid model () = (x1, x2, v1, v2, collision, count) where
     and present
         | up((x1 +. m1size) -. (x2 -. m2size)) -> do
                 v1, v2 = collide (last v1, last v2)
-            and emit collision = M done
+            and emit collision = Mass done
         | up(-. (x1 -. m1size)) -> do
                 v1 = -. (last v1)
-            and emit collision = W done
+            and emit collision = Wall done
 
     and count = present collision(_) -> last count + 1 init 0
 
@@ -84,11 +90,13 @@ discrete draw_mass (x, size) =
     let y = off_y + size in
     draw_rect (x - size) (y - size) (2 * size) (2 * size);
     x,y
-discrete draw_speed (x, y, v) =
-    let r,g,b = get_color (v, max_v) in
-    let v = truncate v in
+discrete draw_speed (x, y, m, v) =
+    let r,g,b = get_color (sqrt(m) *. v, max_v) in
+    let x' =
+        if v >= 0. then min (x + truncate v) (w - off_x / 2)
+        else max (x + truncate v) (off_x / 2) in
     set_color (rgb r g b);
-    draw_line ((x, y), ((x + v), y));
+    draw_line ((x, y), (x', y));
     set_color (rgb 0 0 0);
     ()
 discrete write_mass (x, y, mass) =
@@ -117,13 +125,13 @@ node show(t, x1, x2, v1, v2, count) =
     (* m1 *)
     let x,y = draw_mass (x1, m1size) in
     let _ = write_mass (x, 45, m1) in
-    let _ = draw_speed (x, y, v1) in
+    let _ = draw_speed (x, y, m1, v1) in
     let _ = write_speed (x, 30, v1) in
 
     (* m2 *)
     let x,y = draw_mass (x2, m2size) in
     let _ = write_mass (x, 15, m2) in
-    let _ = draw_speed (x, y, v2) in
+    let _ = draw_speed (x, y, m2, v2) in
     let _ = write_speed (x, 0, v2) in
 
     (* draw collision count *)
@@ -139,4 +147,33 @@ hybrid main () =
 
     present (period(0.01)) | collision(_) ->
         show(t, x1, x2, v1, v2, count)
+    else ()
+
+hybrid cli () =
+    let init tmp = print_endline ("Precision: " ^ (string_of_int precision)) in
+
+    let der t = 1. init 0. in
+
+    let x1, x2, v1, v2, collision, count = model () in
+
+    present
+        | collision(_) on (v1 > 0. && v2 > 0. && v2 > v1) ->
+            let pi_approx =
+                (float_of_int count) /. (10. ** (float_of_int precision)) in
+            let col = "\027[1m" ^
+                if count = real_approx_pi
+                then "\027[32m"
+                else "\027[31m"
+            in
+            (
+                print_newline ();
+                print_endline ("Done at t = " ^ (string_of_float t) ^ "s");
+                print_endline (col ^
+                    "Pi approximation: " ^ (string_of_float (pi_approx)) ^
+                    "\027[0m");
+                exit 0
+            )
+        | collision(_) ->
+            print_string ("Counting collisions ... " ^ (string_of_int count) ^
+                " / " ^ (string_of_int real_approx_pi) ^ "\r")
     else ()
