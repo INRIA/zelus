@@ -27,8 +27,8 @@ open Initial
 (* Translation of automata. *)
 (* Strong transitions: *)
 (* automaton
-   | S1 -> locals in 
-           do eq_list 
+   | S1 -> locals in
+           do eq_list
            unless | c'1 then do eq_list''1 in S''1(e'1) | ...
    | S2(p) -> ...p... | c2 then ...p...
    ...
@@ -43,7 +43,7 @@ is translated into:
    match last state with
    | S1 -> reset
              present
-             | c'1 -> eq_list''1 
+             | c'1 -> eq_list''1
                       and state = S''1 and p1 = e'1 and res = true
              | ...
              else res = false
@@ -59,8 +59,8 @@ is translated into:
 
 (* Weak transitions: *)
 (* automaton
-   | S1 -> locals in 
-           do eq_list 
+   | S1 -> locals in
+           do eq_list
            until | c1 then do eq_list'1 in S'1(e1) | ... | ck then S'k(ek)
    | S2(p) -> ...p... | c2 then ...
    ...
@@ -76,7 +76,7 @@ is translated into:
               locals
             and
               present
-              | c1 -> eq_list1 and 
+              | c1 -> eq_list1 and
                       state = S'1 and next p1 = e1 and res = true
               | ...
               else res = false
@@ -87,12 +87,15 @@ is translated into:
 2. Builds a local table table_of_types for every new type
 *)
 
-let eblock eq_list = 
-  { b_vars = []; b_locals = []; b_body = eq_list; b_loc = no_location; 
+let moduleident n =
+  { n with source = (Modules.current_module ()) ^ "_" ^ n.source }
+
+let eblock eq_list =
+  { b_vars = []; b_locals = []; b_body = eq_list; b_loc = no_location;
     b_write = Deftypes.empty; b_env = Env.empty }
-let eq_present l_true l_false = 
-  match l_true, l_false with 
-  | [], _ -> l_false 
+let eq_present l_true l_false =
+  match l_true, l_false with
+  | [], _ -> l_false
   | _, [] -> [eqmake (EQpresent(l_true, None))]
   | _ -> [eqmake (EQpresent(l_true, Some(eblock l_false)))]
 
@@ -113,8 +116,8 @@ struct
       let n, params, ty_desc =
         Interface.type_decl_of_type_desc tyname ty_desc in
       make (Etypedecl(n, params, ty_desc)) :: continuation
-    in 
-      let continuation = 
+    in
+      let continuation =
         List.fold_right translate !table_of_types continuation in
       table_of_types := [];
       continuation
@@ -136,7 +139,7 @@ let intro_type s_h_list =
 
   (* we introduce a new type *)
   let name = "state__" ^ (string_of_int(symbol#name)) in
-  
+
   (* introduce a new name for every parameterized state. *)
   (* for the moment, we do not share them *)
   (* [states] is a set of names [n1;...;nk] and *)
@@ -144,9 +147,9 @@ let intro_type s_h_list =
   let states_and_variables_for_parameters s_h_list =
     let variable (states, n_to_parameters) { s_state = statepat } =
       match statepat.desc with
-        | Estate0pat(n) -> n :: states, n_to_parameters
+        | Estate0pat(n) -> (moduleident n) :: states, n_to_parameters
         | Estate1pat(n, n_list) ->
-            n :: states, Env.add n n_list n_to_parameters in
+            (moduleident n) :: states, Env.add n n_list n_to_parameters in
     List.fold_left variable ([], Env.empty) s_h_list in
 
   (* build variants *)
@@ -156,7 +159,7 @@ let intro_type s_h_list =
         info = { constr_arg = []; constr_res = type_res;
                  constr_arity = 0 } } in
     List.map variant states in
-    
+
   (* build the result type *)
   let type_res = constr name [] in
   let states, n_to_parameters = states_and_variables_for_parameters s_h_list in
@@ -164,19 +167,19 @@ let intro_type s_h_list =
   let typ_desc = { type_desc = Variant_type(v_list); type_parameters = [] } in
   (* we add it to the global environment *)
   Modules.add_type name typ_desc;
-  List.iter2 
+  List.iter2
     (fun n { info = v } -> Modules.add_constr (Ident.name n) v) states v_list;
   (* and the environment of state types *)
   TableOfTypes.add name typ_desc;
   (* compute the set of variables needed for storing parameters *)
   type_res, n_to_parameters
 
-let state_value ty = 
+let state_value ty =
   let mem = Deftypes.previous Deftypes.empty_mem in
   { Deftypes.t_sort = Deftypes.Smem (Deftypes.initialized mem);
     Deftypes.t_typ = ty }
 
-let state_parameter is_init ty = 
+let state_parameter is_init ty =
   let mem = Deftypes.previous Deftypes.empty_mem in
   { Deftypes.t_sort =
       Deftypes.Smem (if is_init then Deftypes.initialized mem else mem);
@@ -195,7 +198,7 @@ let env_of_parameters n_to_parameters s_h_list se_opt =
   (* different state handlers. Every parameter becomes a state variable *)
   let entry is_init n { Deftypes.t_typ = ty } acc =
     Env.add n (state_parameter is_init ty) acc in
-  let add acc { s_state = statepat; s_env = env } = 
+  let add acc { s_state = statepat; s_env = env } =
     let is_init = equalstate se_opt statepat in
     Env.fold (entry is_init) env acc in
   (* define an environment *)
@@ -205,7 +208,7 @@ let env_of_parameters n_to_parameters s_h_list se_opt =
   (* add equations [init p1 = e1 and ... and pn = en] *)
   let eq_list =
     match se_opt with
-      | None | Some({ desc = Estate0 _ }) -> 
+      | None | Some({ desc = Estate0 _ }) ->
           (* the initial state is the first one or has no parameter *)
           []
       | Some({ desc = Estate1(n, e_list) }) ->
@@ -262,23 +265,23 @@ let rec exp lnames ({ e_desc = desc } as e) =
         let m_h_list = match_handler_exp_list lnames m_h_list in
         Ematch(total, e, m_h_list) in
     { e with e_desc = desc }
-            
+
 (** Translating an equation. [lnames] defines names [x] that must be *)
 (* renamed into [last x] *)
 and equation lnames ({ eq_desc = desc } as eq) =
   match desc with
   | EQeq(pat, e) -> { eq with eq_desc = EQeq(pat, exp lnames e) }
   | EQpluseq(n, e) -> { eq with eq_desc = EQpluseq(n, exp lnames e) }
-  | EQinit(n, e0) -> 
+  | EQinit(n, e0) ->
      { eq with eq_desc = EQinit(n, exp lnames e0) }
-  | EQnext(n, e, e0_opt) -> 
+  | EQnext(n, e, e0_opt) ->
      { eq with eq_desc = EQnext(n, exp lnames e,
                                 optional_map (exp lnames) e0_opt) }
   | EQder(n, e, e0_opt, p_h_e_list) ->
      { eq with eq_desc =
-                 EQder(n, exp lnames e, optional_map (exp lnames) e0_opt, 
+                 EQder(n, exp lnames e, optional_map (exp lnames) e0_opt,
                        present_handler_exp_list lnames p_h_e_list) }
-  | EQemit(name, e_opt) -> 
+  | EQemit(name, e_opt) ->
      { eq with eq_desc = EQemit(name, optional_map (exp lnames) e_opt) }
   | EQmatch(total, e, m_h_list) ->
      let m_h_list = match_handler_block_eq_list lnames m_h_list in
@@ -286,7 +289,7 @@ and equation lnames ({ eq_desc = desc } as eq) =
   | EQpresent(p_h_b_eq_list, b_opt) ->
      let p_h_b_eq_list =
        present_handler_block_eq_list lnames p_h_b_eq_list in
-     let b_opt = 
+     let b_opt =
        match b_opt with
        | None -> None | Some(b) -> Some(block_eq_list lnames b) in
      { eq with eq_desc = EQpresent(p_h_b_eq_list, b_opt) }
@@ -320,8 +323,8 @@ and equation lnames ({ eq_desc = desc } as eq) =
      let b_eq_list = block_eq_list lnames b_eq_list in
      { eq with eq_desc = EQforall { body with for_index = i_list;
 					      for_init = init_list;
-					      for_body = b_eq_list } }  
-       
+					      for_body = b_eq_list } }
+
 and equation_list lnames eq_list = List.map (equation lnames) eq_list
 
 and block_eq_list lnames b =
@@ -336,18 +339,18 @@ and present_handler_block_eq_list lnames p_h_b_eq_list =
   present_handlers (scondpat lnames) (block_eq_list lnames) p_h_b_eq_list
 
 and match_handler_exp_list lnames m_h_list =
-  List.map 
-    (fun ({ m_body = e } as handler) -> 
-      { handler with m_body = exp lnames e }) m_h_list    
+  List.map
+    (fun ({ m_body = e } as handler) ->
+      { handler with m_body = exp lnames e }) m_h_list
 
 and match_handler_block_eq_list lnames m_h_list =
-  List.map 
-    (fun ({ m_body = b } as handler) -> 
-      { handler with m_body = block_eq_list lnames b }) m_h_list    
+  List.map
+    (fun ({ m_body = b } as handler) ->
+      { handler with m_body = block_eq_list lnames b }) m_h_list
 
 and local lnames ({ l_eq = eq_list } as l) =
   { l with l_eq = equation_list lnames eq_list }
-       
+
 and scondpat lnames ({ desc = desc } as scpat) =
     let desc = match desc with
       | Econdand(scpat1, scpat2) ->
@@ -358,7 +361,7 @@ and scondpat lnames ({ desc = desc } as scpat) =
       | Econdpat(e, p) -> Econdpat(exp lnames e, p)
       | Econdon(scpat, e) -> Econdon(scondpat lnames scpat, exp lnames e) in
     { scpat with desc = desc }
-      
+
 (** Translating an automaton *)
 (** [eq_list] is a list of equations. The translation returns *)
 (** an extended list containing [eq_list] and new equations *)
@@ -373,7 +376,7 @@ and automaton lnames is_weak handler_list se_opt =
   let env, eq_list =
     env_of_parameters n_to_parameters handler_list se_opt  in
 
-  let longident n = Modules.longname (Ident.name n) in
+  let longident n = Modules.longname (Ident.name (moduleident n)) in
 
   (* the name of the initial state *)
   let initial =
@@ -403,7 +406,7 @@ and automaton lnames is_weak handler_list se_opt =
     let eqmake n e =
       eqmake (EQeq(varpat n e.e_typ, exp lnames e)) in
     match desc with
-      | Estate0(n) -> 
+      | Estate0(n) ->
           { e_desc = Econstr0(longident n);
             e_loc = loc;
             e_typ = statetype;
@@ -415,21 +418,21 @@ and automaton lnames is_weak handler_list se_opt =
             e_loc = loc;
             e_typ = statetype;
             e_caus = Defcaus.no_typ;
-            e_init = Definit.no_typ }, 
+            e_init = Definit.no_typ },
           List.map2 eqmake n_list e_list in
 
   (* [state_name] is the target state computed in the current step *)
   (* [reset_name] is the target reset bit computed in the current step *)
   let state_name = Ident.fresh "s" in
   let reset_name = Ident.fresh "r" in
-  
+
   let state_var n = var n statetype in
   let bool_var n = var n typ_bool in
   let state_last n = last n statetype in
   let bool_last n = last n typ_bool in
-  
+
   (* Translation of an escape handler *)
-  let escape lnames { e_cond = e; e_reset = r; e_block = b_opt; 
+  let escape lnames { e_cond = e; e_reset = r; e_block = b_opt;
 	       e_next_state = se; e_env = h0; e_zero = zero } =
     let e = scondpat lnames e in
     let b_opt = Misc.optional_map (block_eq_list lnames) b_opt in
@@ -440,7 +443,7 @@ and automaton lnames is_weak handler_list se_opt =
           ((eq_make state_name se) ::
              (eq_make reset_name (bool r)) :: eq_list_se) b_opt;
       p_zero = zero } in
-  
+
   (* Translation of strong transitions *)
   let strong lnames { s_state = statepat; s_body = b; s_trans = trans } =
     let pat, snames = translate_statepat lnames statepat in
@@ -451,7 +454,7 @@ and automaton lnames is_weak handler_list se_opt =
       eblock [eq_reset (eq_present p_h_list
 			  [eq_make reset_name efalse])
                        (bool_last reset_name)] in
-    let handler_for_current_active_state = 
+    let handler_for_current_active_state =
       let b = block_eq_list lnames b in
       eblock [eq_reset [eq_block b] (bool_var reset_name)] in
     (pat, handler_to_compute_current_state),
@@ -467,16 +470,16 @@ and automaton lnames is_weak handler_list se_opt =
       eq_present p_h_list [eq_make reset_name efalse] in
     let b = { b with b_body = eq_next_state @ b.b_body } in
     pat, eblock [eq_reset [eq_block b] (bool_last reset_name)] in
-  
+
   (* the code generated for automata with strong transitions *)
   let strong_automaton lnames handler_list eq_list =
     let handlers = List.map (strong lnames) handler_list in
     let handler_to_compute_current_state_list,
         handler_for_current_active_state_list = List.split handlers in
     (eq_match (state_last state_name)
-              (List.map 
+              (List.map
                  (fun (pat, body) ->
-                   { m_pat = pat; m_body = body; m_env = Env.empty; 
+                   { m_pat = pat; m_body = body; m_env = Env.empty;
                      m_reset = false; m_zero = false })
                  handler_to_compute_current_state_list)) ::
        (eq_match (state_var state_name)
@@ -490,7 +493,7 @@ and automaton lnames is_weak handler_list se_opt =
     (eq_match (state_last state_name)
               (List.map
                  (fun (pat, body) ->
-                   { m_pat = pat; m_body = body; m_env = Env.empty; 
+                   { m_pat = pat; m_body = body; m_env = Env.empty;
                      m_reset = false; m_zero = false }) handlers)) :: eq_list in
   (* the result *)
   let statetype_entry = state_value statetype in
@@ -503,11 +506,11 @@ and automaton lnames is_weak handler_list se_opt =
     if is_weak then weak_automaton lnames handler_list eq_list
     else strong_automaton lnames handler_list eq_list in
   (* initial state and reset value *)
-  let eq_list = 
+  let eq_list =
     (eq_init state_name (emake (Econstr0(initial)) statetype)) ::
     (eq_init reset_name efalse) :: eq_list in
   Zaux.eq_block (Zaux.make_block env eq_list)
-    
+
 let implementation impl =
   match impl.desc with
     | Eopen _ | Etypedecl _ -> impl
@@ -520,4 +523,3 @@ let implementation impl =
 let implementation_list impl_list =
   let impl_list = Misc.iter implementation impl_list in
   TableOfTypes.flush impl_list
-
