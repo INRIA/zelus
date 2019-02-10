@@ -1,0 +1,67 @@
+(* http://www.vergenet.net/~conrad/boids/pseudocode.html *)
+
+type cord = { x: int; y: int }
+
+type boid = { position: coord; speed: cord }
+      
+let (+:) { x = x1; y = y1 } { x = x2; y = y2 } =
+  { x = x1 + x2; y = y1 + y2 }
+
+let (-:) { x = x1; y = y1 } { x = x2; y = y2 } =
+  { x = x1 - x2; y = y1 - y2 }
+    
+let (/:) { x = x1; y = y1 } n = { x = x1 / n; y = y1 / n }
+
+let distance { x = x1; y = y1 } { x = x2; y = y2 } =
+  sqrt ((float (x2 - x1)) ** 2.0 +. (float (y2 - y1)) ** 2.0)
+    
+let zero = { x = 0; y = 0 }
+    
+let node rule1(n)(bj, all) =
+  let forall i in 0 .. (n-1), bi in all
+        do
+          if bj <> bi then do center = last center +: b.position done
+	initialize
+	  last center = zero
+	done in
+  let center = center /: (n - 1) in
+  (center - bj.position) /: 100
+
+let rule2(n)(bj, all) =
+  let forall i in 0 .. (n-1), bi in all 
+        do
+          if bi <> bj then
+	    if distance bi.position bj.position < 100.0
+	    then do c = last c -: (bi.position -: bj.position) done
+	initialize
+	 last c = zero
+	done in 
+  c
+
+let rule3(n)(bj, all) =
+  let forall i in 0 .. (n-1), bi in all 
+        do
+          if bi <> bj then
+	    do pvj = last pvj +: bi.velocity done
+	initialize
+	 last pvj = zero
+	done in 
+  ((pvj /: (n-1)) -: bj.velocity) /: 8
+
+
+let mode_all_boids(n)(binit) =
+  forall i in 0 .. (n-1), binitj in binit, bj out b
+    local v1, v2, v3
+    do
+      v1 = rule1(n)(last bj, last b)
+    and
+      v2 = rule2(n)(last bj, last b)
+    and
+      v3 = rule3(n)(last bj, last b)
+    and
+      position = last position +: velocity
+    and
+      velocity = last velocity +: v1 +: v2 +: v3
+    and
+      bj = { position = pos; velocity = velocity }
+    done
