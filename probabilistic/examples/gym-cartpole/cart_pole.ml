@@ -76,7 +76,7 @@ end
 
 (* Graphics *)
 
-let with_graphics = ref false
+let with_graphics = ref true
 let size_x_div_2 = 300.
 
 let init_graph () =
