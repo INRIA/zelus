@@ -3,6 +3,9 @@
  *-    and
  *-    der x2 = f2(x2, x1) init x2_0 *)
 
+(* un echantillonneur qui detecte quand x atteint une certaine valeur *)
+(* x - y > quantum / 2 *)
+(* ou que l'on a integre sur une duree tau *)
 let hybrid quantizer_0(quantum)(tau)(x) = (y, z) where
    rec
      init t = 0.0 and init y = x
@@ -14,9 +17,12 @@ let hybrid quantizer_0(quantum)(tau)(x) = (y, z) where
      else
       do der t = 1.0 done
 
+(* w est constant par morceaux. On le gele a chaque fois que z est present *)
 let hybrid estimator(y, z) = w where
   rec w = present z() -> y init y   
    
+(* integrer f avec un qss d'ordre 1 *)
+(* il est integrer avec une valeurde x2 qui est constante *)
 let hybrid qss(quantum)(tau)(f)(y1_0)(x2, z2) = (x1, z1) where
   rec
       y2 = estimator(x2, z2)

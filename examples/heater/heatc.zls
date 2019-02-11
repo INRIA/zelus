@@ -85,7 +85,7 @@ let hybrid main_no_graphics() =
   else ()
 
       
-(* let hybrid mainc() =
+let hybrid main() =
   let der t = 1.0 init 0.0 in
   let u, temp = system(19.0) in
   let temp1 = 0.0 in 
@@ -97,18 +97,21 @@ let hybrid main_no_graphics() =
 			 ) in
     Scope.window ("main_on_19", 10.0, t, s)
   else ()
- *)
   
 let hybrid mainc() =
   let der t = 1.0 init 0.0 in
+  (* the system where both the controller and the plant are *)
+  (* continuous time *)
   let u, temp = system(19.0) in
-  let temp1 =
-    present
-      (period(0.1)) ->
-	(let _, temp = Heat.system(19.0) in temp) init 0.0 in  
+  (* the system in discrete-time *)
+  let u1, temp1 =
+    present (period(0.1)) -> Heat.system(19.0) init (false, 0.0) in  
   present (period(0.1)) | (disc(u)) ->
-    let s = Scope.scope3 (-1.0, 40.0, ("u", Scope.linear,
-				       if u then 1.0 else 0.0),
+    let s = Scope.scope4 (-1.0, 40.0,
+			  ("u", Scope.linear,
+			   if u then 1.0 else 0.0),
+                          ("u1", Scope.linear,
+			   if u1 then 1.0 else 0.0),
                           ("temp", Scope.linear, temp),
                           ("temp discrete", Scope.linear, temp1)
 			 ) in
