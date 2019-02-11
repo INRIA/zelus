@@ -1,0 +1,72 @@
+(* Property taken from
+ *
+ * Hoxha, B., Abbas, H., and Fainekos, G. E. (2014).
+ * Benchmarks for temporal logic requirements for automotive systems.
+ * In ARCH@CPSWeek.
+ *
+ * page 28
+*)
+
+(* Recommended values:
+   max_rpm  : 4500, 5000, 5200, 5500
+   max_speed:  120,  160,  170,  200
+   t        :    4,    8,   10,   20
+*)
+
+let static tstep     = 0.05
+let static maxt      = 30.0
+let static max_rpm   = 4500.
+let static max_speed = 120.
+let static t         = 4.
+
+open Maneuvers
+
+node maneuver tstep = passing_maneuver_d tstep
+
+(*
+    (g1 ∧ ◇_[0,10] (g4 ∧ ◇_[0,2] (w >= w̄))) ⇒ □_[0,10] (g4 ∧ (w > w̄) ⇒ (v >= v̄))
+  = ¬g1 ∨ □_[0,10] (g4 ⇒ □_[0,2] (w < w̄)) ∨ □_[0,10] (g4 ∧ (w > w̄) ⇒ (v >= v̄))
+*)
+
+open Obs
+
+open Spec
+
+node apply2_list2tuple f (tstep, list) =
+    run f (tstep, (Basics.list_nth list 0, Basics.list_nth list 1))
+
+node notC x = not x
+
+node phi8(throttle, brake_torque, rpm, gear, speed) =
+    let g1 = gear = 1. in
+    let g4 = gear = 4. in
+    let phi = d_por (d_or
+                (select_apply 0 (apply2_list2tuple (d_trigger_l 10. (d_always_l 2.))))
+                (select_apply 1 (select_apply 0 (d_always_l 10.))))
+                (tstep, (not g1,
+                [
+                 [g4; rpm < max_rpm];
+                 [   (not g4)
+                  || (rpm > max_rpm)
+                  || (speed > max_speed)]
+                ])) in
+    present phi(b) ->
+    match b with | true -> Some 1. | false -> Some (-1.)
+    init Some 0.
+
+open Scope
+
+node show(t, throttle, brake_torque, rpm, gear, speed, prop_state) =
+    let s1 = scope2(0.  , 325. , ("throttle", linear, throttle),
+                                   ("brake torque", linear, brake_torque))
+    and s2 = scope (0.  , 4.   , ("gear", linear, gear))
+    and s3 = scope2(0.  , 200. , ("speed", linear, speed),
+                                 ("max_speed", linear, max_speed))
+    and s4 = scope2(600., 6000., ("rpm", linear, rpm),
+                                 ("max_rpm", linear, max_rpm))
+    and s5 = scope ( -1.,    1., ("(g1 ∧ ◇<sub>[0,10]</sub> (g4 ∧ ◇<sub>[0,2]</sub> (rpm ≥ max_rpm))) ⇒ □<sub>[0,10]</sub> (g4 ∧ (rpm &#60; max_rpm) ⇒ (speed ≥ max_speed))", linear, prop_state)) in
+
+    window5("Autotrans spec", 50., t, s1, s2, s3, s4, s5)
+
+node cli  () = cli  maneuver phi8 maxt tstep
+node plot () = plot maneuver phi8 show tstep

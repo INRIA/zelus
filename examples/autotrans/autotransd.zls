@@ -14,16 +14,16 @@ let static timestep = 0.05
 
 (** utils **)
 
-let node integrate_and_saturate(dx, x0, xmin, xmax) = x where
+let node integrate_and_saturate(timestep, dx, x0, xmin, xmax) = x where
   rec aux = x0 -> (pre aux +. dx *. timestep)
   and x = max xmin (min xmax aux)
 
 (** algorithm **)
 
-let node engine(ti, throttle) = rpm where
+let node engine(timestep, ti, throttle) = rpm where
   rec te = Common.lookup_engine(throttle, pre rpm)
   and drpm = te -. ti
-  and rpm = integrate_and_saturate (Common.engine_feedback_gain *. drpm, 1000., 600., 6000.)
+  and rpm = integrate_and_saturate (timestep, Common.engine_feedback_gain *. drpm, 1000., 600., 6000.)
 
 let node gearlogic(shift) = gear where
   rec init gear = 1.
@@ -49,7 +49,7 @@ let node gearlogic(shift) = gear where
           until shift(Common.DOWN)
             then do next gear = 3. in Third
 
-let node shiftlogic(speed, throttle) = gear where
+let node shiftlogic(timestep, speed, throttle) = gear where
   rec up_th = Common.lookup_interpup(throttle, gear)
   and dn_th = Common.lookup_interpdn(throttle, gear)
 
@@ -79,7 +79,7 @@ let node shiftlogic(speed, throttle) = gear where
           else (t > Common.twait)
             then do emit shift = Common.UP in SteadyState
 
-let node vehicle(out_torque, brake_torque) = (speed, trans_rpm) where
+let node vehicle(timestep, out_torque, brake_torque) = (speed, trans_rpm) where
   rec final_drive_ratio = Common.p_final_drive_ratio *. out_torque
   and aux1 = final_drive_ratio -. (0. -> pre signed_load)
   and vehicle_inertia = Common.iv_inv *. aux1
@@ -95,57 +95,22 @@ let node vehicle(out_torque, brake_torque) = (speed, trans_rpm) where
   and trans_rpm = Common.p_final_drive_ratio *. wheel_speed
   and speed = mph
 
-let node autotrans(throttle, brake_torque) = (rpm, gear, speed) where
-  rec rpm = engine(ti, throttle)
-  and gear = shiftlogic(speed, throttle)
+let node autotrans(timestep, throttle, brake_torque) = (rpm, gear, speed) where
+  rec rpm = engine(timestep, ti, throttle)
+  and gear = shiftlogic(timestep, speed, throttle)
   and ti, out_torque = Common.transmission(1000. -> pre rpm,
                                            1. -> pre gear,
                                            1000. -> pre trans_rpm)
-  and speed, trans_rpm = vehicle(out_torque, brake_torque)
+  and speed, trans_rpm = vehicle(timestep, out_torque, brake_torque)
 
-let node passing_maneuver() = throttle, brake_torque where
-  rec brake_torque = 0.
-  and throttle = 60. -> (pre throttle +. pre dthrottle *. timestep)
-  and automaton
-      | State1 ->
-          do
-            dthrottle = -20. /. 14.9
-          unless (throttle < 40.)
-            then State2
-      | State2 ->
-          do
-            dthrottle = 600.
-          unless (throttle > 100.)
-            then State3
-      | State3 ->
-          do
-            dthrottle = (58.8235 -. 100.) /. (50. -. 15.)
-          unless (throttle <= 0.)
-            then State4
-      | State4 ->
-          do
-            dthrottle = 0.
-          done
-
-let node gradual_acceleration() = throttle, 0. where
-  rec derthrottle = (24. -. 13.4) /. 50.
-  and throttle = 13.4 -> (pre throttle +. timestep *. derthrottle)
-
-let node hard_braking(t) = throttle, brake_torque where
-      throttle = if t >= 5.1 then 1. else 50.
-  and brake_torque = if t >= 10. then 325. else 0.
-
-let node coasting(t) = throttle, brake_torque where
-      throttle = if t >= 4.8 then 1. else 80.
-  and brake_torque = 0.
-
+open Maneuvers
 open Scope
 
 let node main() =
   let rec t = 0. -> (pre t +. timestep)
 
-  and throttle, brake_torque = passing_maneuver()
-  and rpm, gear, speed = autotrans(throttle, brake_torque) in
+  and throttle, brake_torque = passing_maneuver_d(timestep)
+  and rpm, gear, speed = autotrans(timestep, throttle, brake_torque) in
 
   let s1 = scope2(0., 325., ("throttle", linear, throttle),
                             ("brake torque", linear, brake_torque))

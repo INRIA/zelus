@@ -1,0 +1,59 @@
+(* Property taken from
+ *
+ * Hoxha, B., Abbas, H., and Fainekos, G. E. (2014).
+ * Benchmarks for temporal logic requirements for automotive systems.
+ * In ARCH@CPSWeek.
+ *
+ * page 28
+*)
+
+(* Recommended values:
+   max_rpm  : 4500, 5000, 5200, 5500
+   max_speed:  120,  160,  170,  200
+   t        :    4,    8,   10,   20
+*)
+
+let static tstep     = 0.05
+let static maxt      = 30.0
+let static max_rpm   = 5200.
+let static max_speed = 170.
+let static cT        = 10.
+
+open Maneuvers
+
+node maneuver tstep = passing_maneuver_d tstep
+
+(*
+    ¬(◇_[0,T] (v >= v̄) ∧ □(w < w̄))
+  = □_[0,T] (v < v̄) ∨ ◇(w >= w̄)
+*)
+
+open Obs
+
+open Spec
+
+node phi6(throttle, brake_torque, rpm, gear, speed) =
+    let phi = d_or
+        (select_apply 0 (d_always_l cT))
+        (select_apply 1 d_next_ub)
+        (tstep, [speed < max_speed; rpm >= max_rpm]) in
+    present phi(b) ->
+    match b with | true -> Some 1. | false -> Some (-1.)
+    init Some 0.
+
+open Scope
+
+node show(t, throttle, brake_torque, rpm, gear, speed, prop_state) =
+    let s1 = scope2(0.  , 325. , ("throttle", linear, throttle),
+                                   ("brake torque", linear, brake_torque))
+    and s2 = scope (0.  , 4.   , ("gear", linear, gear))
+    and s3 = scope2(0.  , 200. , ("speed", linear, speed),
+                                 ("max_speed", linear, max_speed))
+    and s4 = scope2(600., 6000., ("rpm", linear, rpm),
+                                 ("max_rpm", linear, max_rpm))
+    and s5 = scope ( -1.,    1., ("¬(◇<sub>[0," ^ (string_of_float cT) ^ "]</sub> (speed ≥ max_speed) ∧ □(rpm &#60; max_rpm))", linear, prop_state)) in
+
+    window5("Autotrans spec", 50., t, s1, s2, s3, s4, s5)
+
+node cli  () = cli  maneuver phi6 maxt tstep
+node plot () = plot maneuver phi6 show tstep

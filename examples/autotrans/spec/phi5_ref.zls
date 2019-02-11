@@ -1,0 +1,84 @@
+(* Property taken from
+ *
+ * Hoxha, B., Abbas, H., and Fainekos, G. E. (2014).
+ * Benchmarks for temporal logic requirements for automotive systems.
+ * In ARCH@CPSWeek.
+ *
+ * page 28
+*)
+
+let static tstep   = 0.05
+let static maxt    = 30.0
+let static epsilon = 0.01
+
+open Maneuvers
+open Scope
+
+let node maneuver t = hard_braking_d t
+
+(*
+    When shifting into any gear, there should be no shift from that gear to
+    any other gear within 2.5sec.
+
+    ∧^4_i=1 □((¬gi ∧ X gi) ⇒ □_[0,2.5] gi)
+*)
+
+open Spec
+
+let static dur = 2.5
+
+node phi_i(i)(gear) =
+    let rec t = 0. -> pre t +. tstep in
+
+    let gi = -. abs_float (gear -. i) in
+
+    let rec init aux = 0.
+    and automaton
+        | Init(v) ->
+            do res = v
+            until ((false -> (pre gi < 0.)) && (gi >= 0.))
+            then Main(t)
+        | Main(t0) ->
+            do
+                aux = gi -> min (pre aux) gi
+                and res = Some aux
+            until (gi < 0.)                then False(res)
+            else  (t > t0 +. dur -. tstep) then Init(res)
+        | False(v) ->
+            let init_val = match v with None -> gi | Some f -> min f gi in
+            do
+                aux = init_val -> min (pre aux) gi
+                and res = Some aux
+            done
+    init Init(None) in
+    res
+
+let min_opt (x, y) =
+    match x, y with
+    | None, _ -> y
+    | _, None -> x
+    | Some x, Some y -> Some (min x y)
+
+node phi5(throttle, brake_torque, rpm, gear, speed) =
+    let phi_1 = phi_i(1.)(gear) in
+    let phi_2 = phi_i(2.)(gear) in
+    let phi_3 = phi_i(3.)(gear) in
+    let phi_4 = phi_i(4.)(gear) in
+
+    min_opt(min_opt(min_opt(phi_1, phi_2), phi_3), phi_4)
+
+open Scope
+
+node show(t, throttle, brake_torque, rpm, gear, speed, prop_state) =
+    let s1 = scope2(0.  , 325. , ("throttle", linear, throttle),
+                                 ("brake torque", linear, brake_torque))
+    and s2 = scope (0.  , 4.   , ("gear", linear, gear))
+    and s3 = scope (0.  , 200. , ("speed", linear, speed))
+    and s4 = scope (600., 6000., ("rpm", linear, rpm))
+    and s5 = scope2( -4.,    4., ("∧<sup>4</sup><sub>i=1</sub> □((¬gi ∧ X gi) ⇒ □<sub>[0," ^ (string_of_float dur) ^ "]</sub> gi)", linear, prop_state),
+                                 ("zero", linear, 0.)) in
+
+    window5("Autotrans: phi5", 50., t, s1, s2, s3, s4, s5)
+
+let node cli  () = cli  maneuver phi5 maxt tstep
+let node plot () = plot maneuver phi5 show tstep

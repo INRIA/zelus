@@ -1,0 +1,75 @@
+let hybrid passing_maneuver_c() = throttle, brake_torque where
+    rec brake_torque = 0.
+    and init throttle = 60.
+    and automaton
+    | State1 ->
+        do
+            der throttle = -20. /. 14.9
+        unless up(40. -. throttle) then State2
+    | State2 ->
+        do
+            der throttle = 600.
+        unless up(throttle -. 100.) then State3
+    | State3 ->
+        do
+            der throttle = (58.8235 -. 100.) /. (50. -. 15.)
+        unless up(-.throttle)
+        then do next throttle = 0. in State4
+    | State4 ->
+        do
+            der throttle = 0.
+        done
+
+let hybrid gradual_acceleration_c() = throttle, 0. where
+    der throttle = (24. -. 13.4) /. 50. init 13.4
+
+let hybrid hard_braking_c() = throttle, brake_torque where
+    rec der t = 1. init 0.
+    and init throttle = 50.
+    and init brake_torque = 0.
+    and present up(t -. 5.1) -> do throttle = 1. done
+    and present up(t -. 10.) -> do brake_torque = 325. done
+
+let hybrid coasting_c() = throttle, brake_torque where
+    rec der t = 1. init 0.
+    and init throttle = 80.
+    and init brake_torque = 0.
+    and present up(t -. 4.8) -> do throttle = 1. done
+
+let node passing_maneuver_d(tstep) = throttle, brake_torque where
+    rec brake_torque = 0.
+    and throttle = 60. -> (pre throttle +. pre dthrottle *. tstep)
+    and automaton
+        | State1 ->
+            do
+              dthrottle = -20. /. 14.9
+            unless (throttle < 40.)
+              then State2
+        | State2 ->
+            do
+              dthrottle = 600.
+            unless (throttle > 100.)
+              then State3
+        | State3 ->
+            do
+              dthrottle = (58.8235 -. 100.) /. (50. -. 15.)
+            unless (throttle <= 0.)
+              then State4
+        | State4 ->
+            do
+              dthrottle = 0.
+            done
+
+let node gradual_acceleration_d(tstep) = throttle, 0. where
+    rec derthrottle = (24. -. 13.4) /. 50.
+    and throttle = 13.4 -> (pre throttle +. tstep *. derthrottle)
+
+let node hard_braking_d(tstep) = throttle, brake_torque where
+    rec t = 0. fby (t +. tstep)
+    and throttle = if t >= 5.1 then 1. else 50.
+    and brake_torque = if t >= 10. then 325. else 0.
+
+let node coasting_d(tstep) = throttle, brake_torque where
+    rec t = 0. fby (t +. tstep)
+    and throttle = if t >= 4.8 then 1. else 80.
+    and brake_torque = 0.

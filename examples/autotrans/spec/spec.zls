@@ -1,0 +1,118 @@
+(*  *)
+(* open Obstypes *)
+(* open Autotransc *)
+open Autotransd
+
+(* let hybrid cli (input) (prop) () =
+    let rec der t = 1. init 0.
+
+    and throttle, brake_torque = run input ()
+    and rpm, gear, speed = autotrans(throttle, brake_torque)
+    and phi = run prop (throttle, brake_torque, rpm, gear, speed) in
+
+    present
+        | phi(False) ->
+            (print_string "Falsified at t = ";
+             print_float t;
+             print_newline (); exit 1)
+        | phi(True) ->
+            (print_string "Got True at t = ";
+             print_float t;
+             print_newline (); exit 0)
+    else ()
+
+let hybrid plot (input) (prop) (show) () =
+    let rec der t = 1. init 0.
+
+    and throttle, brake_torque = run input ()
+    and rpm, gear, speed = autotrans(throttle, brake_torque)
+    and phi = run prop (throttle, brake_torque, rpm, gear, speed) in
+
+    let rec phi_val = firstvalue_of_obsval phi
+    and phi_float = float_of_val phi_val in
+
+    present
+      | (period(0.1)) | phi(True) | phi(NotYet) ->
+        run show (t, throttle, brake_torque, rpm, gear, speed, phi_float)
+      | phi(False) ->
+        (print_string "Got False at t = ";
+         print_float t;
+         print_endline "\nPress any key to exit ...";
+         input_line stdin;
+         exit 1)
+    else () *)
+
+type 'a option = None | Some of 'a
+
+let node clamp (lo, hi) v = if v < lo then lo else if v > hi then hi else v
+
+node falsified (t, v) =
+    print_string "Falsified at t = "; print_float t;
+    print_string " with value "; print_float v;
+    print_newline ();
+    Specutils.falsified ()
+
+node timeout (t, v) =
+    print_string "Timed out: t = "; print_float t;
+    print_string " with value "; print_float v;
+    print_newline ();
+    Specutils.timeout ()
+
+let node cli maneuver phi maxt tstep =
+    let rec t = 0. -> pre t +. tstep in
+
+    let (throttle, brake_torque) = run maneuver tstep in
+    let (rpm, gear, speed) = Autotransd.autotrans(tstep, throttle, brake_torque) in
+
+    let v =
+        match run phi (throttle, brake_torque, rpm, gear, speed) with
+        | None -> infinity
+        | Some f -> f
+    in
+
+    if v < 0. then
+        falsified (t, v)
+    else if t > maxt then
+        timeout (t, v)
+    else ()
+
+let node plot maneuver phi show tstep =
+    let rec t = 0. -> pre t +. tstep in
+
+    let (throttle, brake_torque) = run maneuver tstep in
+    let (rpm, gear, speed) = Autotransd.autotrans(tstep, throttle, brake_torque) in
+
+    let v = run phi (throttle, brake_torque, rpm, gear, speed) in
+
+    run show (
+        t,
+        throttle,
+        brake_torque,
+        rpm,
+        gear,
+        speed,
+        clamp (-10000., 10000.) (match v with None -> infinity | Some f -> f)
+    );
+    ()
+
+    (* let rec stop = false -> pre (v < 0. || (false -> pre stop)) in
+
+    let rec actual_t = if stop then t -> pre actual_t else t in
+    let rec actual_throttle = if stop then throttle -> pre actual_throttle else throttle in
+    let rec actual_brake = if stop then brake_torque -> pre actual_brake else brake_torque in
+    let rec actual_rpm = if stop then rpm -> pre actual_rpm else rpm in
+    let rec actual_gear = if stop then gear -> pre actual_gear else gear in
+    let rec actual_speed = if stop then speed -> pre actual_speed else speed in
+    let rec actual_v = if stop then v -> pre actual_v else v in
+
+    run show (
+        actual_t,
+        actual_throttle,
+        actual_brake,
+        actual_rpm,
+        actual_gear,
+        actual_speed,
+        clamp (-10000., 10000.) actual_v
+    );
+
+    if (stop && (false -> not (pre stop))) then finalize (actual_t, actual_v) else () *)

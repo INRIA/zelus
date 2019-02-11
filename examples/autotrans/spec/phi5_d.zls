@@ -1,0 +1,66 @@
+(* Property taken from
+ *
+ * Hoxha, B., Abbas, H., and Fainekos, G. E. (2014).
+ * Benchmarks for temporal logic requirements for automotive systems.
+ * In ARCH@CPSWeek.
+ *
+ * page 28
+*)
+
+let static tstep   = 0.05
+let static maxt    = 30.0
+let static epsilon = 0.01
+
+open Maneuvers
+
+node maneuver tstep = hard_braking_d tstep
+
+(*
+    For i in [1;4], if the car switches from any gear but i to gear i, it will
+    stay in gear i for at least 2.5 seconds
+
+    ∧^4_i=1 □((¬gi ∧ ◇_[0,eps] gi) ⇒ □_[0,2.5] gi)
+              \__________________\  -> going from any gear but i to gear i
+  = ∧^4_i=1 □(¬gi ⇒ (□_[0,eps] ¬gi ∨ □_[0,2.5] gi))
+*)
+
+open Obs
+
+open Spec
+
+node stay_in_gear (tstep, gear) =
+    (d_trigger
+        (d_or
+            (select_apply 0 (d_always_l epsilon))
+            (select_apply 1 (d_always_l     2.5))))
+            (tstep, (not gear, [not gear; gear]))
+
+node phi5(throttle, brake_torque, rpm, gear, speed) =
+    let g1 = gear = 1. in
+    let g2 = gear = 2. in
+    let g3 = gear = 3. in
+    let g4 = gear = 4. in
+    let phi = d_and (d_and (d_and
+                (select_apply 0 stay_in_gear)
+                (select_apply 1 stay_in_gear))
+                (select_apply 2 stay_in_gear))
+                (select_apply 3 stay_in_gear)
+                (tstep, [g1; g2; g3; g4]) in
+    present phi(b) ->
+    match b with | true -> Some 1. | false -> Some (-1.)
+    init Some 0.
+
+open Scope
+
+node show(t, throttle, brake_torque, rpm, gear, speed, prop_state) =
+    let s1 = scope2(0.  , 325. , ("throttle", linear, throttle),
+                                   ("brake torque", linear, brake_torque))
+    and s2 = scope (0.  , 4.   , ("gear", linear, gear))
+    and s3 = scope (0.  , 200. , ("speed", linear, speed))
+    and s4 = scope (600., 6000., ("rpm", linear, rpm))
+    and s5 = scope ( -1.,    1., ("⋀<sup>4</sup><sub>i=1</sub> □((¬gi ∧ ◇<sub>[0," ^ (string_of_float epsilon) ^ "]</sub> gi) ⇒ □<sub>[0,2.5]</sub> gi)", linear, prop_state)) in
+
+    window5("Autotrans spec", 50., t, s1, s2, s3, s4, s5)
+
+node cli  () = cli  maneuver phi5 maxt tstep
+node plot () = plot maneuver phi5 show tstep
