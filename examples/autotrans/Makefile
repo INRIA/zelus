@@ -3,13 +3,13 @@ include ../../config
 .PHONY: test debug
 
 OCAMLFLAGS += -I ../../lib
+OCAMLOPTFLAGS += -I ../../lib
 ZLEXTRALIBS = $(ZLGTKLIBS)
 
 default: $(word 1, $(targets))
 all:  $(targets)
 byte: autotransc.byte autotrans_gui.byte autotransd.byte
-opt:
-	@echo $(S_RED)TODO:$(S_NORMAL) implement rule opt
+opt: autotransc.opt autotrans_gui.opt autotransd.opt
 
 # ------------------------------------
 
@@ -21,6 +21,14 @@ autotrans_gui.byte: maneuvers.cmo utils.cmo consts.cmo draw.cmo common.cmo \
 	    $(ZLSTDLIBS) $(ZLEXTRALIBS) graphics.cma \
 			$(INCLUDES) $^
 
+autotrans_gui.opt: ZLEXTRALIBS = $(ZLGTKLIBS)
+autotrans_gui.opt: ZELUCFLAGS += -gtk2
+autotrans_gui.opt: maneuvers.cmx utils.cmx consts.cmx draw.cmx common.cmx \
+    		 autotransc.cmx autotrans_gui.cmx autotrans_gui_main.cmx
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ \
+	    $(ZLSTDLIBS:.cma=.cmxa) $(ZLEXTRALIBS:.cma=.cmxa) graphics.cmxa \
+			$(INCLUDES:.cma=.cmxa) $^
+
 autotrans_gui.ml autotrans_gui_main.ml: autotrans_gui.zls \
 				 autotransc.zci draw.zci common.zci
 	$(ZELUC) $(ZELUCFLAGS) $(ZELUCEXTRAFLAGS) -s main $<
@@ -29,8 +37,11 @@ autotrans_gui.ml autotrans_gui_main.ml: autotrans_gui.zls \
 autotrans_gui.cmo: common.cmo
 autotrans_gui_main.cmo: autotrans_gui.cmo
 
-autotrans_gui.cmi autotrans_gui.cmo: INCLUDES += $(LABLGTK2)
-autotrans_gui.cmo: autotrans_gui.ml autotransc.cmi draw.cmi common.cmi
+autotrans_gui.cmx: common.cmx
+autotrans_gui_main.cmx: autotrans_gui.cmx
+
+autotrans_gui.cmi autotrans_gui.cmo autotrans_gui.cmx: INCLUDES += $(LABLGTK2)
+autotrans_gui.cmo autotrans_gui.cmx: autotrans_gui.ml autotransc.cmi draw.cmi common.cmi
 
 # ------------------------------------
 
@@ -42,6 +53,14 @@ autotransc.byte: maneuvers.cmo utils.cmo consts.cmo common.cmo \
 	   $(ZLSTDLIBS) $(ZLEXTRALIBS) \
 		 $(INCLUDES) $^
 
+autotransc.opt: ZLEXTRALIBS = $(ZLGTKLIBS)
+autotransc.opt: ZELUCFLAGS += -gtk2
+autotransc.opt: maneuvers.cmx utils.cmx consts.cmx common.cmx \
+    		 autotransc.cmx autotransc_main.cmx
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ \
+	   $(ZLSTDLIBS:.cma=.cmxa) $(ZLEXTRALIBS:.cma=.cmxa) \
+		 $(INCLUDES:.cma=.cmxa) $^
+
 autotransc.ml autotransc_main.ml: autotransc.zls common.zci
 	$(ZELUC) $(ZELUCFLAGS) $(ZELUCEXTRAFLAGS) -s main $<
 	mv main.ml autotransc_main.ml
@@ -49,8 +68,10 @@ autotransc.ml autotransc_main.ml: autotransc.zls common.zci
 autotransc.cmo: common.cmo
 autotransc_main.cmo: autotransc.cmo
 
-autotransc.cmi autotransc.cmo:
-autotransc.cmo: autotransc.ml common.cmi
+autotransc.cmx: common.cmx
+autotransc_main.cmx: autotransc.cmx
+
+autotransc.cmo autotransc.cmx: autotransc.ml common.cmi
 
 # ------------------------------------
 
@@ -62,6 +83,14 @@ autotransd.byte: maneuvers.cmo utils.cmo consts.cmo common.cmo \
 	    $(ZLSTDLIBS) $(ZLEXTRALIBS) \
 			$(INCLUDES) $^
 
+autotransd.opt: ZLEXTRALIBS = $(ZLGTKLIBS)
+autotransd.opt: ZELUCFLAGS += -gtk2
+autotransd.opt: maneuvers.cmx utils.cmx consts.cmx common.cmx \
+    		 autotransd.cmx autotransd_main.cmx
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ \
+	    $(ZLSTDLIBS:.cma=.cmxa) $(ZLEXTRALIBS:.cma=.cmxa) \
+			$(INCLUDES:.cma=.cmxa) $^
+
 autotransd.ml autotransd_main.ml: autotransd.zls common.zci
 	$(ZELUC) $(ZELUCFLAGS) $(ZELUCEXTRAFLAGS) -s main $<
 	mv main.ml autotransd_main.ml
@@ -69,20 +98,23 @@ autotransd.ml autotransd_main.ml: autotransd.zls common.zci
 autotransd.cmo: common.cmo
 autotransd_main.cmo: autotransd.cmo
 
-autotransd.cmi autotransd.cmo: INCLUDES += $(LABLGTK2)
-autotransd.cmo: autotransd.ml common.cmi
+autotransd.cmx: common.cmx
+autotransd_main.cmx: autotransd.cmx
+
+autotransd.cmi autotransd.cmo autotransd.cmx: INCLUDES += $(LABLGTK2)
+autotransd.cmo autotransd.cmx: autotransd.ml common.cmi
 
 # ------------------------------------
 
 common.ml: common.zls consts.zci utils.zci
 	$(ZELUC) $(ZELUCFLAGS) $<
-common.cmo common.cmi common.zci: common.ml consts.cmi utils.cmi
+common.cmx common.cmo common.cmi common.zci: common.ml consts.cmi utils.cmi
 
 # ------------------------------------
 
-consts.cmo consts.cmi: consts.ml
-draw.cmo draw.cmi: draw.ml
-utils.cmo utils.cmi: utils.ml
+consts.cmx consts.cmo consts.cmi: consts.ml
+draw.cmx draw.cmo draw.cmi: draw.ml
+utils.cmx utils.cmo utils.cmi: utils.ml
 
 # ------------------------------------
 

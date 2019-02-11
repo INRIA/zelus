@@ -15,8 +15,16 @@ timing_test.byte: misc.cmo timing_test.cmo timing_test_main.cmo
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
 	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLGTKLIBS) $^
 
+timing_test.opt: misc.cmx timing_test.cmx timing_test_main.cmx
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) $(ZLGTKLIBS:.cma=.cmxa) $^
+
 timing_test_main.cmo: misc.cmo timing_test_main.ml
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) -c $^
+
+timing_test_main.cmx: misc.cmx timing_test_main.ml
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
 	    -I $(ZLLIB) -c $^
 
 timing_test.ml: misc.zci timing_test.zls

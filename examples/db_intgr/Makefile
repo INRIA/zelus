@@ -11,8 +11,16 @@ test.byte: test.cmo test_main.cmo
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
 	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLGTKLIBS) $^
 
+test.opt: test.cmx test_main.cmx
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) $(ZLGTKLIBS:.cma=.cmxa) $^
+
 test_main.cmo: test_main.ml
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) -c $^
+
+test_main.cmx: test_main.ml
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
 	    -I $(ZLLIB) -c $^
 
 test.ml: test.zls

@@ -10,10 +10,10 @@ all:  $(targets)
 byte: $(EXAMPLE:%.zls=%.byte)
 opt:  $(EXAMPLE:%.zls=%.opt)
 
-pendulum.byte: ZLEXTRALIBS += graphics.cma $(OCAMLOBJ) $(OBJ) 
+pendulum.byte: ZLEXTRALIBS += graphics.cma $(OCAMLOBJ) $(OBJ)
 pendulum.byte: $(OCAMLOBJ) $(OBJ)
 
-pendulum.opt: ZLEXTRALIBS += graphics.cmxa $(OCAMLOBJ) $(OBJ:.cmo=.cmx)
+pendulum.opt: ZLEXTRALIBS += graphics.cmxa $(OCAMLOBJ:.cmo=.cmx) $(OBJ:.cmo=.cmx)
 pendulum.opt: $(OCAMLOBJ:%.cmo=%.cmx) $(OBJ:%.cmo=%.cmx)
 
 pendulum.ml pendulum_main.ml: $(OCAMLOBJ:%.cmo=%.zci) $(EXAMPLE)
@@ -37,4 +37,3 @@ realclean cleanall: clean
 
 # Dependencies
 pendulum.ml: misc.ml data.ml aux.ml
-

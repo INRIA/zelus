@@ -11,8 +11,16 @@ lzc.byte: lzc.cmo lzc_main.cmo
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
 	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLGTKLIBS)  $^
 
+lzc.opt: lzc.cmx lzc_main.cmx
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) $(ZLGTKLIBS:.cma=.cmxa)  $^
+
 lzc_main.cmo: lzc_main.ml
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) -c $^
+
+lzc_main.cmx: lzc_main.ml
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
 	    -I $(ZLLIB) -c $^
 
 lzc.ml: lzc.zls

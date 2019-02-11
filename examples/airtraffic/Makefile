@@ -13,22 +13,28 @@ airtraffic.byte: INCLUDES += $(LABLGTK2) $(SUNDIALS)
 airtraffic.byte: simplevector.cmo a330.cmo airtrafficgui.cmo \
     		 airtraffic.cmo airtraffic_main.cmo
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
-	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $(ZLGTKLIBS) $^ 
+	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $(ZLGTKLIBS) $^
+
+airtraffic.opt: INCLUDES += $(LABLGTK2) $(SUNDIALS)
+airtraffic.opt: simplevector.cmx a330.cmx airtrafficgui.cmx \
+    		 airtraffic.cmx airtraffic_main.cmx
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) $(ZLEXTRALIBS:.cma=.cmxa) $(ZLGTKLIBS:.cma=.cmxa) $^
 
 airtraffic.zls: airtrafficgui.zci
 
-airtrafficgui.cmi airtrafficgui.cmo: INCLUDES += $(LABLGTK2)
+airtrafficgui.cmi airtrafficgui.cmo airtrafficgui.cmx: INCLUDES += $(LABLGTK2)
 airtrafficgui.cmi: airtrafficgui.mli
-airtrafficgui.cmo: airtrafficgui.ml airtrafficgui.cmi simplevector.cmi a330.cmi
+airtrafficgui.cmo airtrafficgui.cmx: airtrafficgui.ml airtrafficgui.cmi simplevector.cmi a330.cmi
 
-a330.cmo a330.cmi: a330.ml simplevector.cmi
+a330.cmx a330.cmo a330.cmi: a330.ml simplevector.cmi
 
 #a330.ml: a330-simple.svg
 #	./svgtoocaml.py $< > $@
 
 airtrafficgui.zci: airtrafficgui.zli
 
-airtraffic.cmi airtraffic.cmo: airtraffic.ml
+airtraffic.cmi airtraffic.cmo airtraffic.cmx: airtraffic.ml
 
 test: airtrafficgui.cmi a330.ml
 	@cp airtrafficgui.ml airtrafficgui_test.ml
@@ -50,7 +56,13 @@ airtrafficrot.byte: INCLUDES += $(LABLGTK2) $(SUNDIALS)
 airtrafficrot.byte: simplevector.cmo a330.cmo airtrafficgui.cmo \
 		    airtrafficrot.cmo airtrafficrot_main.cmo
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
-	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $(ZLGTKLIBS) $^ 
+	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $(ZLGTKLIBS) $^
+
+airtrafficrot.opt: INCLUDES += $(LABLGTK2) $(SUNDIALS)
+airtrafficrot.opt: simplevector.cmx a330.cmx airtrafficgui.cmx \
+		    airtrafficrot.cmx airtrafficrot_main.cmx
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) $(ZLEXTRALIBS:.cma=.cmxa) $(ZLGTKLIBS:.cma=.cmxa) $^
 
 airtrafficrot.ml airtrafficrot_main.ml: airtrafficrot.zls airtrafficgui.zci
 	$(ZELUC) $(ZELUCFLAGS) -gtk2 -s main $<
@@ -64,7 +76,13 @@ airtraffictpb.byte: INCLUDES += -I $(LABLGTK2) $(SUNDIALS)
 airtraffictpb.byte: simplevector.cmo a330.cmo airtrafficgui.cmo \
 		    airtraffictpb.cmo airtraffictpb_main.cmo
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
-	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $(ZLGTKLIBS) $^ 
+	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $(ZLGTKLIBS) $^
+
+airtraffictpb.opt: INCLUDES += -I $(LABLGTK2) $(SUNDIALS)
+airtraffictpb.opt: simplevector.cmx a330.cmx airtrafficgui.cmx \
+		    airtraffictpb.cmx airtraffictpb_main.cmx
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) $(ZLEXTRALIBS:.cma=.cmxa) $(ZLGTKLIBS:.cma=.cmxa) $^
 
 airtraffictpb.ml airtraffictpb_main.ml: airtraffictpb.zls airtrafficgui.zci
 	$(ZELUC) $(ZELUCFLAGS) -gtk2 -s main $<
@@ -88,4 +106,3 @@ clean realclean cleanall:
 	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci
 	-@rm -f airtraffic.byte airtraffic.opt test
 	-@if [ -d slides ]; then make -s -C slides clean; fi
-
