@@ -1,67 +1,61 @@
 (* http://www.vergenet.net/~conrad/boids/pseudocode.html *)
+(* + code RML de Baudart et Mandel *)
 
-type cord = { x: int; y: int }
+open Utils
+  
+(* Rules *)
 
-type boid = { position: coord; speed: cord }
-      
-let (+:) { x = x1; y = y1 } { x = x2; y = y2 } =
-  { x = x1 + x2; y = y1 + y2 }
-
-let (-:) { x = x1; y = y1 } { x = x2; y = y2 } =
-  { x = x1 - x2; y = y1 - y2 }
-    
-let (/:) { x = x1; y = y1 } n = { x = x1 / n; y = y1 / n }
-
-let distance { x = x1; y = y1 } { x = x2; y = y2 } =
-  sqrt ((float (x2 - x1)) ** 2.0 +. (float (y2 - y1)) ** 2.0)
-    
-let zero = { x = 0; y = 0 }
-    
-let node rule1(n)(bj, all) =
-  let forall i in 0 .. (n-1), bi in all
+(* Rule 1: fly towards the center of mass *)
+let node rule1(n)(bj, all) = (center_aux -: bj.position) /: (float 100) where
+  rec
+      forall i in 0 .. (n-1), bi in all
         do
-          if bj <> bi then do center = last center +: b.position done
+          if bj <> bi then do center = last center +: bi.position done
 	initialize
-	  last center = zero
-	done in
-  let center = center /: (n - 1) in
-  (center - bj.position) /: 100
+	  last center = vzero
+	done
+  and
+      center_aux = center /: (float (n - 1))
 
-let rule2(n)(bj, all) =
-  let forall i in 0 .. (n-1), bi in all 
+(* Rule 2: keep a small distance from other objects *)
+let node rule2(n)(bj, all) = c where
+  rec forall i in 0 .. (n-1), bi in all 
         do
           if bi <> bj then
-	    if distance bi.position bj.position < 100.0
+	    if vnorm (bi.position -: bj.position) < 100.0
 	    then do c = last c -: (bi.position -: bj.position) done
 	initialize
-	 last c = zero
-	done in 
-  c
+	  last c = vzero
+	done
 
-let rule3(n)(bj, all) =
-  let forall i in 0 .. (n-1), bi in all 
+(* Rule 3: try to match velocity of other boids *)
+let node rule3(n)(bj, all) = ((pvj /: float (n-1)) -: bj.speed) /: 8.0 where
+  rec forall i in 0 .. (n-1), bi in all 
         do
           if bi <> bj then
-	    do pvj = last pvj +: bi.velocity done
+	    do pvj = last pvj +: bi.speed done
 	initialize
-	 last pvj = zero
-	done in 
-  ((pvj /: (n-1)) -: bj.velocity) /: 8
+	 last pvj = vzero
+	done
 
-
-let mode_all_boids(n)(binit) =
-  forall i in 0 .. (n-1), binitj in binit, bj out b
-    local v1, v2, v3
-    do
-      v1 = rule1(n)(last bj, last b)
-    and
-      v2 = rule2(n)(last bj, last b)
-    and
-      v3 = rule3(n)(last bj, last b)
-    and
-      position = last position +: velocity
-    and
-      velocity = last velocity +: v1 +: v2 +: v3
-    and
-      bj = { position = pos; velocity = velocity }
-    done
+let node move_all_boids(n)(binit) = b where
+  rec
+      all = binit fby b
+  and
+      forall i in 0 .. (n-1), bi in all, bi_out out b
+        local v1, v2, v3, speed, position
+        do
+	  v1 = rule1(n)(bi, all)
+	and
+	  v2 = rule2(n)(bi, all)
+	and
+	  v3 = rule3(n)(bi, all)
+	and
+	  speed = (vzero fby speed) +: v1 +: v2 +: v3
+	and
+	  position = (vzero fby position) +: speed
+	and
+	  bi_out = { id = 0; family = 0; position = position;
+		     speed = speed; acceleration = vzero }
+	done
+		
