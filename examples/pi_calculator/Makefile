@@ -32,7 +32,9 @@ pi_calculator.ml main.ml: pi_calculator.zls
 
 clean:
 	rm -f pi_calculator.ml main.ml cli.ml
-	rm -f *.cmi *.cmo *.zci
+	rm -f *.cmi *.cmo *.cmxi *.cmx *.zci
+	rm -f *.cli *.opt *.plot
+	rm -f *.o	
 
 realclean cleanall: clean
 	rm -f pi_calculator.cli pi_calculator.plot
