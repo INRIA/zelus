@@ -38,18 +38,35 @@ let node rule3(n)(bj, all) = ((pvj /: float (n-1)) -: bj.speed) /: 8.0 where
 	 last pvj = vzero
 	done
 
+(* Rule 4: bounding the position *)
+let node rule4(n)(b, all) = { x = vx; y = vy } where
+  rec
+    if b.position.x < bounds.xmin then
+      do vx = 10.0 done
+    else if b.position.x > bounds.xmax then
+      do vx = -10.0  done
+    else do vx = 0.0 done
+  and
+    if b.position.y < bounds.ymin then
+      do vy = 10.0  done
+    else if b.position.y > bounds.ymax then
+      do vy = -10.0  done
+    else do vy = 0.0 done
+	  
 let node move_all_boids(n)(binit) = b where
   rec
       all = binit fby b
   and
       forall i in 0 .. (n-1), bi in all, bi_out out b
-        local v1, v2, v3, speed, position
+        local v1, v2, v3, v4, speed, position
         do
 	  v1 = rule1(n)(bi, all)
 	and
 	  v2 = rule2(n)(bi, all)
 	and
 	  v3 = rule3(n)(bi, all)
+	and
+	  v4 = rule4(n)(bi, all)
 	and
 	  speed = (vzero fby speed) +: v1 +: v2 +: v3
 	and
