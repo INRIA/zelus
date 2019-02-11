@@ -26,7 +26,7 @@ pi_calculator.opt: pi_calculator.ml main.ml
 
 
 pi_calculator.ml main.ml: pi_calculator.zls
-	../../bin/zeluc -s main pi_calculator.zls
+	../../bin/zeluc -gtk2 -s main pi_calculator.zls
 	../../bin/zeluc -s cli pi_calculator.zls
 
 
