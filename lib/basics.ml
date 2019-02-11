@@ -13,6 +13,7 @@ let list_map = List.map
 let list_foldl f a l = List.fold_left (fun a b -> f (a,b)) a l
 let list_foldr f l b = List.fold_right (fun a b -> f (a, b)) l b
 let list_split = List.split
+let list_nth = List.nth
 
 let append (l1, l2) = List.append l1 l2
 

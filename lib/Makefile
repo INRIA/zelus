@@ -24,7 +24,7 @@ LOBJ = pervasives.zci \
        random.zci \
        string.zci \
        graphics.zci \
-       basics.zci 
+       basics.zci
 
 LOBJ_GTK = $(LOBJ) \
 	   gtkplot.zci \
@@ -42,7 +42,8 @@ OBJ = ztypes.cmo \
       $(SOLVER_OBJS) \
       defaultsolver.cmo \
       dump.cmo \
-      zlsrun.cmo
+      zlsrun.cmo \
+			obs.cmo
 
 OBJ_GTK = gtkplot.cmo \
 		input.cmo \
@@ -92,6 +93,9 @@ input.cmi:
 input.cmo: INCLUDES += $(LABLGTK2)
 input.cmx: INCLUDES += $(LABLGTK2)
 
+obs.ml: obs.zls basics.zci
+		$(ZELUC) $(ZELUCFLAGS) obs.zls
+
 scope.ml: scope.zls gtkplot.zci basics.zci
 	$(ZELUC) $(ZELUCFLAGS) scope.zls
 
@@ -109,6 +113,7 @@ depend: .depend
 clean:
 	-@rm -f *.cm[iox] *.annot *~ *.o
 	-@rm -f scope.ml scope.obc
+	-@rm -f obs.ml obs.obc
 	-@rm -f dump.ml dump.obc
 	-@rm -f *.zci *.cma *.cmxa *.a
 	-@rm -f solvers/*.cm[iox] solvers/*.annot solvers/*~ solvers/*.o

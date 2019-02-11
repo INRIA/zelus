@@ -1,0 +1,196 @@
+type value = NotYet | True | False
+type obsval = value signal
+
+node select_apply(n)(f)(t, l) =
+    run f (t, Basics.list_nth l n)
+
+node float_of_obsval e =
+    present
+        | e(true)  ->  1.
+        | e(false) -> -1.
+    else 0.
+
+node state_of_obsval e =
+    present
+        | e(true)  ->  1.
+        | e(false) -> -1.
+    init 0.
+
+
+(* PREDICATES = args -> bool *)
+
+node p_lt r (_, x) = x < r
+node p_gt r (_, x) = x > r
+node p_le r (_, x) = x <= r
+node p_ge r (_, x) = x >= r
+
+node p_not p (t, x) = not (run p (t, x))
+node p_and p1 p2 (t, x) = (run p1 (t, x)) && (run p2 (t, x))
+node p_or p1 p2 (t, x) = (run p1 (t, x)) || (run p2 (t, x))
+
+(* FORMULAS : tstep * args -> bool *)
+
+(*
+    Next(r) ≡ ♦_[0,r]
+*)
+node d_next r (tstep, p) = e where
+    rec t = 0. fby (t +. tstep)
+    and automaton
+    | I ->
+        do until (p) on (t <= r)
+            then do emit e = true in Sink
+        else (t > r)
+            then do emit e = false in Sink
+    | Sink -> do done
+
+node d_next_ub (tstep, p) = d_next infinity (tstep, p) (* WARNING *)
+
+(*
+    AlwaysL(r) ≡ □_[0,r]
+*)
+node d_always_l r (tstep, p) = e where
+    rec t = 0. fby (t +. tstep)
+    and automaton
+    | I ->
+        do until (t > r)
+            then do emit e = true in Sink
+        else (not p) on (t <= r)
+            then do emit e = false in Sink
+    | Sink -> do done
+
+(*
+    AlwaysR(r) ≡ □_[r,+∞[
+*)
+node d_always_r r (tstep, p) = e where
+    rec t = 0. fby (t +. tstep)
+    and automaton
+    | I ->
+        do until (not p) on (t >= r)
+            then do emit e = false in Sink
+    | Sink -> do done
+
+node d_always (tstep, p) = d_always_r 0. (tstep, p)
+
+node d_pand  phi (tstep, (p, x)) = e where
+    automaton
+    | I ->
+        do until (true fby false) on (not p)
+            then do emit e = false in Sink
+        else (true fby false) on (p)
+            then Main
+    | Main ->
+        do
+            do e = run phi (tstep, x) done
+        done
+    | Sink -> do done
+
+node d_por phi (tstep, (p, x)) = e where
+    automaton
+    | I ->
+        do until (true fby false) on (p)
+            then do emit e = true in Sink
+        else (true fby false) on (not p)
+            then Main
+    | Main ->
+        do
+            do e = run phi (tstep, x) done
+        done
+    | Sink -> do done
+
+(*
+    And(phi1, phi2)(x) ≡ phi1(x) ∧ phi2(x)
+*)
+node d_and phi1 phi2 (tstep, x) = e where
+    rec e1 = run phi1 (tstep, x)
+    and e2 = run phi2 (tstep, x)
+    and automaton
+    | I ->
+        do until e1(false) | e2(false) then do emit e = false in Sink
+        else e2(true) then S1
+        else e1(true) then S2
+    | S1 -> do until e1(b) then do emit e = b in Sink
+    | S2 -> do until e2(b) then do emit e = b in Sink
+    | Sink -> do done
+
+(*
+    Or(phi1, phi2)(x) ≡ phi1(x) ∨ phi2(x)
+*)
+node d_or phi1 phi2 (tstep, x) = e where
+    rec e1 = run phi1 (tstep, x)
+    and e2 = run phi2 (tstep, x)
+    and automaton
+    | I ->
+        do until e1(true) | e2(true) then do emit e = true in Sink
+        else e2(false) then S1
+        else e1(false) then S2
+    | S1 -> do until e1(b) then do emit e = b in Sink
+    | S2 -> do until e2(b) then do emit e = b in Sink
+    | Sink -> do done
+
+(*
+    TriggerL(r)(phi)(p, x) ≡ □_[0,r](p ⇒ phi)
+*)
+node d_trigger_l r phi (tstep, (p, x)) = e where
+    rec t = 0. fby (t +. tstep)
+    and automaton
+    | I ->
+        do
+        until (p) on (t <= r) then S
+        else (t > r) then do emit e = true in Sink
+    | S ->
+        let e' = run phi (tstep, x) in
+        do
+        until e'(true) on (t < r) then I
+        else e'(true) on (t >= r)
+            then do emit e = true in Sink
+        else e'(false)
+            then do emit e = false in Sink
+    | Sink -> do done
+
+node d_trigger phi (tstep, (p, x)) = d_trigger_l infinity phi (tstep, (p, x))
+
+(*
+    TriggerR(r)(phi)(p, x) ≡ □_[r,+∞[(p ⇒ phi)
+*)
+node d_trigger_r r phi (tstep, (p, x)) = e where
+    rec t = 0. fby (t +. tstep)
+    and automaton
+    | I ->
+        do until (p) on (t >= r) then S
+    | S ->
+        let e' = run phi (tstep, x) in
+        do
+        until e'(true) then I
+        else e'(false) then do emit e = false in Sink
+    | Sink -> do done
+
+(*
+    Always_or_l(r)(phi1, phi2)(x) ≡ □_[0,r](phi1 ∨ phi2)
+*)
+node d_always_l_or r phi1 phi2 (tstep, x) = e where
+    rec t = 0. fby (t +. tstep)
+    and automaton
+    | I ->
+        let e' = run (d_or phi1 phi2) (tstep, x) in
+        do
+        until e'(true) on (t <= r)
+            then I
+        else e'(true) on (t > r)
+            then do emit e = true in Sink
+        else e'(false)
+            then do emit e = false in Sink
+    | Sink -> do done
+
+(*
+    Always_or_r(r)(phi1, phi2)(x) ≡ □_[r, +∞[(phi1 ∨ phi2)
+*)
+
+node d_always_r_or r phi1 phi2 (tstep, x) = e where
+    rec t = 0. fby (t +. tstep)
+    and automaton
+    | I -> do until (t > r) then S
+    | S ->
+        let e' = run (d_or phi1 phi2) (tstep, x) in
+        do until e'(false) then do emit e = false in Sink
+        else e'(true) then S
+    | Sink -> do done
