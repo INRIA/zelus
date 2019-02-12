@@ -110,7 +110,7 @@ clean:
 	@rm -rf spec.ml spec.cmi spec.cmo spec.zci spec.annot
 	@rm -rf specutils.cmi specutils.cmo specutils.zci specutils.annot
 
-cleanall realclean: clean
+realclean cleanall: clean
 	@rm -rf $(OBSERVERS) $(OBSERVERS:=.plot) $(OBSERVERS:=.cli)
 	@rm -rf $(REFERENCE) $(REFERENCE:=.plot) $(REFERENCE:=.cli)
 

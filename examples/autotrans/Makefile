@@ -134,8 +134,10 @@ clean:
 	-@rm -f autotransd_main.ml autotransd.ml
 	-@rm -f common.ml
 	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci
+	$(MAKE) -C spec clean
 
-cleanall: clean
+realclean cleanall: clean
 	-@rm -f autotransc.byte autotransc.opt
 	-@rm -f autotrans_gui.byte autotrans_gui.opt
 	-@rm -f autotransd.byte autotransd.opt
+	$(MAKE) -C spec cleanall
