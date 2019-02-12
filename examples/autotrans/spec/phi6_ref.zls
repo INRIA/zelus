@@ -32,11 +32,6 @@ let node maneuver t = passing_maneuver_d tstep
 
 open Spec
 
-node gt_f_opt (f, opt) =
-    match opt with
-    | None -> true
-    | Some f' -> f > f'
-
 node phi6(throttle, brake_torque, rpm, gear, speed) =
     let rec t = 0. -> pre t +. tstep in
 
@@ -56,17 +51,17 @@ node phi6(throttle, brake_torque, rpm, gear, speed) =
 
     automaton
         | Init ->
-            do Some w_phi
+            do w_phi, Obs.NotYet
             unless (first) on (w_phi >= 0.) then Sv
             else   (first) on (w_phi < 0.) then Done(-. w_phi)
         | Sv ->
-            do Some alw_v
+            do alw_v, Obs.NotYet
             unless (w_phi < 0.) then Done(-. w_phi)
-        | Done(final) -> do Some final done
+        | Done(final) -> do final, Obs.Done done
 
 open Scope
 
-node show(t, throttle, brake_torque, rpm, gear, speed, prop_state) =
+node show(t, throttle, brake_torque, rpm, gear, speed, phi_r, phi_s) =
     let s1 = scope2(0.  , 325. , ("throttle", linear, throttle),
                                  ("brake torque", linear, brake_torque))
     and s2 = scope (0.  , 4.   , ("gear", linear, gear))
@@ -74,7 +69,8 @@ node show(t, throttle, brake_torque, rpm, gear, speed, prop_state) =
                                  ("max_speed", linear, max_speed))
     and s4 = scope2(600., 6000., ("rpm", linear, rpm),
                                  ("max_rpm", linear, max_rpm))
-    and s5 = scope2(-100., 200., ("(□<sub>[0," ^ (string_of_float cT) ^ "]</sub> (v >= v̄)) ∨ (◇(w >= w̄))", linear, prop_state),
+    and s5 = scope3(-100., 200., ("(□<sub>[0," ^ (string_of_float cT) ^ "]</sub> (v >= v̄)) ∨ (◇(w >= w̄))", linear, phi_r),
+                                 ("[state: 0 = NotYet 100 = Done]", linear, 100. *. phi_s),
                                  ("zero", linear, 0.)) in
 
     window5("Autotrans: phi6", 50., t, s1, s2, s3, s4, s5)

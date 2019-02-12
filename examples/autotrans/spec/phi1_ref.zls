@@ -28,18 +28,19 @@ let node maneuver t = passing_maneuver_d tstep
 
 node phi1(throttle, brake_torque, rpm, gear, speed) =
     let rec phi = (max_rpm -. rpm) -> min (pre phi) (max_rpm -. rpm) in
-    Some phi
+    phi, if phi >= 0. then Obs.NotYet else Obs.Done
 
 open Scope
 
-node show(t, throttle, brake_torque, rpm, gear, speed, prop_state) =
+node show(t, throttle, brake_torque, rpm, gear, speed, phi_r, phi_s) =
     let s1 = scope2(0.  , 325. , ("throttle", linear, throttle),
                                    ("brake torque", linear, brake_torque))
     and s2 = scope (0.  , 4.   , ("gear", linear, gear))
     and s3 = scope (0.  , 200. , ("speed", linear, speed))
     and s4 = scope2(600., 6000., ("rpm", linear, rpm),
                                  ("max_rpm", linear, max_rpm))
-    and s5 = scope2(  0., 4600., ("□(rpm &#60; max_rpm)", linear, prop_state),
+    and s5 = scope3(  0., 4600., ("□(rpm &#60; max_rpm)", linear, phi_r),
+                                 ("[state: 0 = NotYet 4600 = Done]", linear, 4600. *. phi_s),
                                  ("zero", linear, 0.)) in
 
     window5("Autotrans: phi1", 50., t, s1, s2, s3, s4, s5)

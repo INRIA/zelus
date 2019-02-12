@@ -42,22 +42,21 @@ node phi7(throttle, brake_torque, rpm, gear, speed) =
         | Init ->
             do
                 let rec res = v_phi -> max (pre res) v_phi in
-                Some res
+                res, Obs.NotYet
             unless (v_phi >= 0. && w_phi >= 0. && t <= cT) then Main
-            else   (v_phi < 0. && t > cT) then Ok
+            else   (t > cT) then False(v_phi)
         | Main ->
             do
                 let rec res = w_phi -> min (pre res) w_phi in
-                Some res
+                res, Obs.NotYet
             unless (w_phi < 0. && t <= cT) then Init
-            else   (w_phi < 0. && t > cT)  then FalseW
-        | Ok -> do Some infinity done
-        | FalseW -> do Some w_phi done
+            else   (w_phi < 0. && t > cT)  then False(w_phi)
+        | False(f) -> do f, Obs.Done done
 
 
 open Scope
 
-node show(t, throttle, brake_torque, rpm, gear, speed, prop_state) =
+node show(t, throttle, brake_torque, rpm, gear, speed, phi_r, phi_s) =
     let s1 = scope2(0.  , 325. , ("throttle", linear, throttle),
                                  ("brake torque", linear, brake_torque))
     and s2 = scope (0.  , 4.   , ("gear", linear, gear))
@@ -65,7 +64,8 @@ node show(t, throttle, brake_torque, rpm, gear, speed, prop_state) =
                                  ("max_speed", linear, max_speed))
     and s4 = scope2(600., 6000., ("rpm", linear, rpm),
                                  ("max_rpm", linear, max_rpm))
-    and s5 = scope2(-200., 200., ("◇<sub>[0," ^ (string_of_float cT) ^ "]</sub> (v > v̄ ∧ □(w &#60; w̄))", linear, prop_state),
+    and s5 = scope3(-200., 200., ("◇<sub>[0," ^ (string_of_float cT) ^ "]</sub> (v > v̄ ∧ □(w &#60; w̄))", linear, phi_r),
+                                 ("[state: 0 = NotYet 100 = Done]", linear, 100. *. phi_s),
                                  ("zero", linear, 0.)) in
 
     window5("Autotrans: phi7", 50., t, s1, s2, s3, s4, s5)

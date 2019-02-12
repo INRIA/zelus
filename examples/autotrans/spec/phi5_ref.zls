@@ -30,52 +30,49 @@ let static dur = 2.5
 node phi_i(i)(gear) =
     let rec t = 0. -> pre t +. tstep in
 
-    let gi = -. abs_float (gear -. i) in
+    let gi = min (gear -. i -. 0.5) (i +. 0.5 -. gear) in
 
-    let rec init aux = 0.
-    and automaton
-        | Init(v) ->
-            do res = v
+    let rec automaton
+        | Init ->
+            do res = (-. gi) -> min (pre res) (-. gi)
+            and state = Obs.NotYet
             until ((false -> (pre gi < 0.)) && (gi >= 0.))
             then Main(t)
         | Main(t0) ->
             do
-                aux = gi -> min (pre aux) gi
-                and res = Some aux
+                res = gi -> min (pre res) gi
+                and state = Obs.NotYet
             until (gi < 0.)                then False(res)
-            else  (t > t0 +. dur -. tstep) then Init(res)
-        | False(v) ->
-            let init_val = match v with None -> gi | Some f -> min f gi in
+            else  (t > t0 +. dur -. tstep) then Init
+        | False(f) ->
             do
-                aux = init_val -> min (pre aux) gi
-                and res = Some aux
+                res = (min f gi) -> min (pre res) gi
+                and state = Obs.Done
             done
-    init Init(None) in
-    res
-
-let min_opt (x, y) =
-    match x, y with
-    | None, _ -> y
-    | _, None -> x
-    | Some x, Some y -> Some (min x y)
+    in res, state
 
 node phi5(throttle, brake_torque, rpm, gear, speed) =
-    let phi_1 = phi_i(1.)(gear) in
-    let phi_2 = phi_i(2.)(gear) in
-    let phi_3 = phi_i(3.)(gear) in
-    let phi_4 = phi_i(4.)(gear) in
+    let phi1, s1 = phi_i(1.)(gear) in
+    let phi2, s2 = phi_i(2.)(gear) in
+    let phi3, s3 = phi_i(3.)(gear) in
+    let phi4, s4 = phi_i(4.)(gear) in
 
-    min_opt(min_opt(min_opt(phi_1, phi_2), phi_3), phi_4)
+    min (min (min phi1 phi2) phi3) phi4,
+    if (s1 = Obs.Done) && (s2 = Obs.Done) &&
+       (s3 = Obs.Done) && (s4 = Obs.Done)
+    then Obs.Done
+    else Obs.NotYet
 
 open Scope
 
-node show(t, throttle, brake_torque, rpm, gear, speed, prop_state) =
+node show(t, throttle, brake_torque, rpm, gear, speed, phi_r, phi_s) =
     let s1 = scope2(0.  , 325. , ("throttle", linear, throttle),
                                  ("brake torque", linear, brake_torque))
     and s2 = scope (0.  , 4.   , ("gear", linear, gear))
     and s3 = scope (0.  , 200. , ("speed", linear, speed))
     and s4 = scope (600., 6000., ("rpm", linear, rpm))
-    and s5 = scope2( -4.,    4., ("∧<sup>4</sup><sub>i=1</sub> □((¬gi ∧ X gi) ⇒ □<sub>[0," ^ (string_of_float dur) ^ "]</sub> gi)", linear, prop_state),
+    and s5 = scope3( -4.,    4., ("∧<sup>4</sup><sub>i=1</sub> □((¬gi ∧ X gi) ⇒ □<sub>[0," ^ (string_of_float dur) ^ "]</sub> gi)", linear, phi_r),
+                                 ("[state: 0 = NotYet 1 = Done]", linear, phi_s),
                                  ("zero", linear, 0.)) in
 
     window5("Autotrans: phi5", 50., t, s1, s2, s3, s4, s5)
