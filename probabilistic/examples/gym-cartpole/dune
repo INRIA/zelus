@@ -3,7 +3,7 @@
     (flags (:standard -warn-error -A))))
 
 (executables
- (names main smart_main pid_main)
+ (names main smart_main pid_main smart_pid_main)
  (libraries openai-gym zelus yojson graphics)
  (link_flags -linkall)
  (ocamlc_flags -I ../../../../inference inference.cma)
@@ -28,6 +28,11 @@
  (targets pid_agent.ml pid_main.ml)
  (deps    (:src pid_agent.zls) cart_pole.zci pendulum.zci gym.zci)
  (action  (run zeluc -I ../../../../inference -s pid_main %{src})))
+
+(rule
+ (targets smart_pid_agent.ml smart_pid_main.ml)
+ (deps    (:src smart_pid_agent.zls) cart_pole.zci pendulum.zci gym.zci)
+ (action  (run zeluc -I ../../../../inference -s smart_pid_main %{src})))
 
 (rule
  (targets gym.ml gym.zci)
