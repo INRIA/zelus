@@ -1,0 +1,38 @@
+open Scope
+open Obs
+
+let static tstep = 0.1
+
+node main () =
+    let rec t = 0. fby (t +. tstep) in
+
+    let x =
+             if (t > 5.) then sin(t) +. 2.
+        else if (t > 4.) then sin(t) -. 2.
+        else sin(t) +. 2.
+    in
+
+    let r1, s1 = d_always_l 3. (tstep, x) in
+    let r2, s2 = d_always_l 5. (tstep, x) in
+    let st1 = float_of_state s1 in
+    let st2 = float_of_state s2 in
+
+    let r3, s3 = d_always_r 6. (tstep, x) in
+    let r4, s4 = d_always_r 3. (tstep, x) in
+    let st3 = float_of_state s3 in
+    let st4 = float_of_state s4 in
+
+    let s1 = scope(-3., 3., ("x", linear, x)) in
+    let s2 = scope2(-3., 3.,
+        ("alwaysL(3) x", linear, r1),
+        ("[state: 0 = NotYet 1 = Done]", linear, st1)) in
+    let s3 = scope2(-3., 3.,
+        ("alwaysL(5) x", linear, r2),
+        ("[state: 0 = NotYet 1 = Done]", linear, st2)) in
+    let s4 = scope2(-3., 3.,
+        ("alwaysR(6) x", linear, r3),
+        ("[state: 0 = NotYet 1 = Done]", linear, st3)) in
+    let s5 = scope2(-3., 3.,
+        ("alwaysR(3) x", linear, r4),
+        ("[state: 0 = NotYet 1 = Done]", linear, st4)) in
+    window5("Always", 10., t, s1, s2, s3, s4, s5)
