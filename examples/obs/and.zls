@@ -1,0 +1,58 @@
+open Scope
+open Obs
+
+let static tstep = 0.1
+
+node main () =
+    let rec t = 0. fby (t +. tstep) in
+
+    let v_true1  = sin(t) +. 2. in
+    let v_false1 = sin(t) -. 2. in
+    let v_true2  = cos(t) +. 2. in
+    let v_false2 = cos(t) -. 2. in
+
+    let x =
+             if (t > 5.) then v_false1
+        else if (t > 4.) then v_true1
+        else v_false1
+    in
+    let y =
+             if (t > 5.)  then v_true2
+        else if (t > 4.)  then v_false2
+        else if (t > 3.5) then v_true2
+        else if (t > 3.)  then v_false2
+        else v_true2
+    in
+
+    let r1, s1 =
+        d_and
+            (select_apply 0 (d_next 5.))
+            (select_apply 1 (d_always_l 2.))
+            (tstep, [x; y])
+    in
+    let r11, _ = d_next 5. (tstep, x) in
+    let r12, _ = d_always_l 2. (tstep, y) in
+    let r2, s2 =
+        d_and
+            (select_apply 0 (d_next 3.))
+            (select_apply 1 (d_always_l 2.))
+            (tstep, [x; y])
+    in
+    let r21, _ = d_next 3. (tstep, x) in
+    let r22, _ = d_always_l 2. (tstep, y) in
+
+    let st1 = float_of_state s1 in
+    let st2 = float_of_state s2 in
+
+    let s1 = scope2(-3., 3., ("x", linear, x), ("y", linear, y)) in
+    let s2 = scope4(-3., 3.,
+        ("(next(5) x) and (alwaysL(2) y)", linear, r1),
+        ("next(5) x", linear, r11),
+        ("alwaysL(2) y", linear, r12),
+        ("[state: 0 = NotYet 1 = Done]", linear, st1)) in
+    let s3 = scope4(-3., 3.,
+        ("(next(3) x) and (alwaysL(2) y)", linear, r2),
+        ("next(3) x", linear, r21),
+        ("alwaysL(2) y", linear, r22),
+        ("[state: 0 = NotYet 1 = Done]", linear, st2)) in
+    window3("And", 10., t, s1, s2, s3)
