@@ -48,20 +48,17 @@ node phi7(throttle, brake_torque, rpm, gear, speed) =
         diférence: ici dès la première occurence de v > v̄, on a que
         w < w̄
     *)
-    let phi = d_and
-                (select_apply 0 (select_apply 0 (d_next cT)))
-                (select_apply 1 (apply2_list2tuple (d_trigger_l cT d_always)))
-                (tstep, [
-                 [speed > max_speed];
-                 [speed > max_speed; rpm < max_rpm]
-                ]) in
-    present phi(b) ->
-    match b with | true -> Some 1. | false -> Some (-1.)
-    init Some 0.
+    d_and
+        (select_apply 0 (select_apply 0 (d_next cT)))
+        (select_apply 1 (apply2_list2tuple (d_trigger_l cT d_always)))
+        (tstep, [
+         [p_gt max_speed speed];
+         [p_gt max_speed speed; p_lt max_rpm rpm]
+        ])
 
 open Scope
 
-node show(t, throttle, brake_torque, rpm, gear, speed, prop_state) =
+node show(t, throttle, brake_torque, rpm, gear, speed, phi_r, phi_s) =
     let s1 = scope2(0.  , 325. , ("throttle", linear, throttle),
                                    ("brake torque", linear, brake_torque))
     and s2 = scope (0.  , 4.   , ("gear", linear, gear))
@@ -69,7 +66,8 @@ node show(t, throttle, brake_torque, rpm, gear, speed, prop_state) =
                                  ("max_speed", linear, max_speed))
     and s4 = scope2(600., 6000., ("rpm", linear, rpm),
                                  ("max_rpm", linear, max_rpm))
-    and s5 = scope ( -1.,    1., ("◇<sub>[0," ^ (string_of_float cT) ^ "]</sub>(speed > max_speed ∧ □(rpm &#60; max_rpm))", linear, prop_state)) in
+    and s5 = scope2(-120.,  10., ("◇<sub>[0," ^ (string_of_float cT) ^ "]</sub>(speed > max_speed ∧ □(rpm &#60; max_rpm))", linear, phi_r),
+                                  ("[state: -60 = NotYet 10 = Done]", linear, 70. *. phi_s -. 60.)) in
 
     window5("Autotrans spec", 50., t, s1, s2, s3, s4, s5)
 

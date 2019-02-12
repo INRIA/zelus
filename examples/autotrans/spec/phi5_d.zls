@@ -25,40 +25,34 @@ node maneuver tstep = hard_braking_d tstep
 *)
 
 open Obs
-
 open Spec
 
-node stay_in_gear (tstep, gear) =
+node stay_in_gear i (tstep, gear) =
+    let gi = p_eqi i gear in
+    let ngi = p_not (p_eqi i) gear in
     (d_trigger
         (d_or
             (select_apply 0 (d_always_l epsilon))
             (select_apply 1 (d_always_l     2.5))))
-            (tstep, (not gear, [not gear; gear]))
+        (tstep, (ngi, [ngi; gi]))
 
 node phi5(throttle, brake_torque, rpm, gear, speed) =
-    let g1 = gear = 1. in
-    let g2 = gear = 2. in
-    let g3 = gear = 3. in
-    let g4 = gear = 4. in
-    let phi = d_and (d_and (d_and
-                (select_apply 0 stay_in_gear)
-                (select_apply 1 stay_in_gear))
-                (select_apply 2 stay_in_gear))
-                (select_apply 3 stay_in_gear)
-                (tstep, [g1; g2; g3; g4]) in
-    present phi(b) ->
-    match b with | true -> Some 1. | false -> Some (-1.)
-    init Some 0.
+    d_and (d_and (d_and (stay_in_gear 1.)
+                        (stay_in_gear 2.))
+                        (stay_in_gear 3.))
+                        (stay_in_gear 4.)
+    (tstep, gear)
 
 open Scope
 
-node show(t, throttle, brake_torque, rpm, gear, speed, prop_state) =
+node show(t, throttle, brake_torque, rpm, gear, speed, phi_r, phi_s) =
     let s1 = scope2(0.  , 325. , ("throttle", linear, throttle),
                                    ("brake torque", linear, brake_torque))
     and s2 = scope (0.  , 4.   , ("gear", linear, gear))
     and s3 = scope (0.  , 200. , ("speed", linear, speed))
     and s4 = scope (600., 6000., ("rpm", linear, rpm))
-    and s5 = scope ( -1.,    1., ("⋀<sup>4</sup><sub>i=1</sub> □((¬gi ∧ ◇<sub>[0," ^ (string_of_float epsilon) ^ "]</sub> gi) ⇒ □<sub>[0,2.5]</sub> gi)", linear, prop_state)) in
+    and s5 = scope2( -3.,    2., ("⋀<sup>4</sup><sub>i=1</sub> □((¬gi ∧ ◇<sub>[0," ^ (string_of_float epsilon) ^ "]</sub> gi) ⇒ □<sub>[0,2.5]</sub> gi)", linear, phi_r),
+                                  ("[state: 0 = NotYet 1 = Done]", linear, phi_s)) in
 
     window5("Autotrans spec", 50., t, s1, s2, s3, s4, s5)
 

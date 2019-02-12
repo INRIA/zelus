@@ -1,7 +1,7 @@
 type state = NotYet | Done
 
-node select_apply(n)(f)(t, l) =
-    run f (t, Basics.list_nth l n)
+node p_select_apply(n)(p)(l) = run p (Basics.list_nth l n)
+node select_apply(n)(f)(t, l) = run f (t, Basics.list_nth l n)
 
 node string_of_state st = match st with | NotYet -> "Not yet" | Done -> "Done"
 node float_of_state st = match st with | NotYet -> 0. | Done -> 1.
@@ -50,6 +50,8 @@ node d_always_l r (tstep, p) = v, state where
         else (p < 0.) on (t <= r) then Sink(v)
     | Sink(f) -> do v = f and state = Done done
 
+node d_always (tstep, p) = d_always_l infinity (tstep, p)
+
 (*
     AlwaysR(r) ≡ □_[r,+∞[
 *)
@@ -66,8 +68,6 @@ node d_always_r r (tstep, p) = v, state where
         and state = NotYet
         until (p < 0.) then Sink(v)
     | Sink(f) -> do v = f and state = Done done
-
-node d_always (tstep, p) = d_always_r 0. (tstep, p)
 
 node d_pand  phi (tstep, (p, x)) =
     let init p_init = p in
@@ -139,6 +139,8 @@ node d_trigger_l r phi (tstep, (p, x)) = v, state where
         else (state' = Done) then Sink(v)
     | Sink(f) -> do v = f and state = Done done
 
+node d_trigger phi (tstep, (p, x)) = d_trigger_l infinity phi (tstep, (p, x))
+
 (*
     TriggerR(r)(phi)(p, x) ≡ □_[r,+∞[(p ⇒ phi)
 *)
@@ -154,8 +156,6 @@ node d_trigger_r r phi (tstep, (p, x)) = v, state where
         until (state' = Done) on (v > 0.) then I
         else (state' = Done) on (v < 0.) then Sink(v)
     | Sink(f) -> do v = f and state = Done done
-
-node d_trigger phi (tstep, (p, x)) = d_trigger_r 0. phi (tstep, (p, x))
 
 (*
     Always_or_l(r)(phi1, phi2)(x) ≡ □_[0,r](phi1 ∨ phi2)

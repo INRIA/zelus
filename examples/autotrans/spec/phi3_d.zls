@@ -25,30 +25,28 @@ node maneuver tstep = hard_braking_d tstep
 *)
 
 open Obs
-
 open Spec
 
 node phi3(throttle, brake_torque, rpm, gear, speed) =
-    let g1 = gear = 1. in
-    let g2 = gear = 2. in
-    let phi = d_trigger
-                (d_or
-                    (select_apply 0 (d_always_l epsilon))
-                    (select_apply 1 (d_always_l     2.5)))
-                (tstep, (g2, [not g1; not g2])) in
-    present phi(b) ->
-    match b with true -> Some 1. | false -> Some (-1.)
-    init Some 0.
+    let ng1 = p_not (p_eqi 1.) gear in
+    let ng2 = p_not (p_eqi 2.) gear in
+    let g2 = p_eqi 2. gear in
+    d_trigger
+        (d_or
+            (select_apply 0 (d_always_l epsilon))
+            (select_apply 1 (d_always_l     2.5)))
+        (tstep, (g2, [ng1; ng2]))
 
 open Scope
 
-node show(t, throttle, brake_torque, rpm, gear, speed, prop_state) =
+node show(t, throttle, brake_torque, rpm, gear, speed, phi_r, phi_s) =
     let s1 = scope2(0.  , 325. , ("throttle", linear, throttle),
                                    ("brake torque", linear, brake_torque))
     and s2 = scope (0.  , 4.   , ("gear", linear, gear))
     and s3 = scope (0.  , 200. , ("speed", linear, speed))
     and s4 = scope (600., 6000., ("rpm", linear, rpm))
-    and s5 = scope ( -1.,    1., ("□((g2 ∧ ◇<sub>[0," ^ (string_of_float epsilon) ^ "]</sub> g1) ⇒ □<sub>[0,2.5]</sub> ¬g2)", linear, prop_state)) in
+    and s5 = scope2( -1.,    1., ("□((g2 ∧ ◇<sub>[0," ^ (string_of_float epsilon) ^ "]</sub> g1) ⇒ □<sub>[0,2.5]</sub> ¬g2)", linear, phi_r),
+                                  ("[state: 0 = NotYet 1 = Done]", linear, phi_s)) in
 
     window5("Autotrans spec", 50., t, s1, s2, s3, s4, s5)
 

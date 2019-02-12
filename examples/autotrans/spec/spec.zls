@@ -1,5 +1,4 @@
-(*  *)
-(* open Obstypes *)
+
 (* open Autotransc *)
 open Autotransd
 
@@ -42,21 +41,25 @@ let hybrid plot (input) (prop) (show) () =
          exit 1)
     else () *)
 
-type 'a option = None | Some of 'a
-
 let node clamp (lo, hi) v = if v < lo then lo else if v > hi then hi else v
 
-node falsified (t, v) =
+node finish_falsified (t, v) =
     print_string "Falsified at t = "; print_float t;
     print_string " with value "; print_float v;
     print_newline ();
-    Specutils.falsified ()
+    Specutils.finish_falsified ()
 
-node timeout (t, v) =
+node finish_done (t, v) =
+    print_string "Done: t = "; print_float t;
+    print_string " with value "; print_float v;
+    print_newline ();
+    Specutils.finish_done ()
+
+node finish_timeout (t, v) =
     print_string "Timed out: t = "; print_float t;
     print_string " with value "; print_float v;
     print_newline ();
-    Specutils.timeout ()
+    Specutils.finish_timeout ()
 
 let node cli maneuver phi maxt tstep =
     let rec t = 0. -> pre t +. tstep in
@@ -64,16 +67,14 @@ let node cli maneuver phi maxt tstep =
     let (throttle, brake_torque) = run maneuver tstep in
     let (rpm, gear, speed) = Autotransd.autotrans(tstep, throttle, brake_torque) in
 
-    let v =
-        match run phi (throttle, brake_torque, rpm, gear, speed) with
-        | None -> infinity
-        | Some f -> f
-    in
+    let r, s = run phi (throttle, brake_torque, rpm, gear, speed) in
 
-    if v < 0. then
-        falsified (t, v)
+    if (s = Obs.Done) && (r < 0.) then
+        finish_falsified (t, r)
+    else if (s = Obs.Done && (r > 0.)) then
+        finish_done (t, r)
     else if t > maxt then
-        timeout (t, v)
+        finish_timeout (t, r)
     else ()
 
 let node plot maneuver phi show tstep =
@@ -82,7 +83,7 @@ let node plot maneuver phi show tstep =
     let (throttle, brake_torque) = run maneuver tstep in
     let (rpm, gear, speed) = Autotransd.autotrans(tstep, throttle, brake_torque) in
 
-    let v = run phi (throttle, brake_torque, rpm, gear, speed) in
+    let r, s = run phi (throttle, brake_torque, rpm, gear, speed) in
 
     run show (
         t,
@@ -91,7 +92,8 @@ let node plot maneuver phi show tstep =
         rpm,
         gear,
         speed,
-        clamp (-10000., 10000.) (match v with None -> infinity | Some f -> f)
+        clamp (-10000., 10000.) r,
+        Obs.float_of_state s
     );
     ()
 

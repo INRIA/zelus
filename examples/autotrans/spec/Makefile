@@ -7,7 +7,7 @@ REFERENCE = phi1_ref phi2_ref phi3_ref phi4_ref phi5_ref phi6_ref phi7_ref phi8_
 
 ZELUCFLAGS += -I ../../../lib -I ../
 OCAMLFLAGS += -I ../../../lib -I ../
-INCLUDES += specutils.cmo # mlutils.cmo obsdutils.cmo obsd.cmo
+INCLUDES += specutils.cmo
 
 ZLEXTRALIBS = $(ZLGTKLIBS)
 

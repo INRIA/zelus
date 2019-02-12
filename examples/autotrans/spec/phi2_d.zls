@@ -26,23 +26,19 @@ node maneuver tstep = passing_maneuver_d tstep
 *)
 
 open Obs
-
 open Spec
 
 node phi2(throttle, brake_torque, rpm, gear, speed) =
-    let phi = d_always
-                (tstep,
-                 p_and
-                    (select_apply 0 (p_lt max_rpm))
-                    (select_apply 1 (p_lt max_speed))
-                 (tstep, [rpm; speed])) in
-    present phi(b) ->
-    match b with | true -> Some 1. | false -> Some (-1.)
-    init Some 0.
+    d_always
+        (tstep,
+         p_and
+            (p_select_apply 0 (p_lt max_rpm))
+            (p_select_apply 1 (p_lt max_speed))
+            [rpm; speed])
 
 open Scope
 
-node show(t, throttle, brake_torque, rpm, gear, speed, prop_state) =
+node show(t, throttle, brake_torque, rpm, gear, speed, phi_r, phi_s) =
     let s1 = scope2(0.  , 325. , ("throttle", linear, throttle),
                                    ("brake torque", linear, brake_torque))
     and s2 = scope (0.  , 4.   , ("gear", linear, gear))
@@ -50,7 +46,8 @@ node show(t, throttle, brake_torque, rpm, gear, speed, prop_state) =
                                  ("max_speed", linear, max_speed))
     and s4 = scope2(600., 6000., ("rpm", linear, rpm),
                                  ("max_rpm", linear, max_rpm))
-    and s5 = scope ( -1.,    1., ("□((rpm &#60; max_rpm) ∧ (speed &#60; max_speed))", linear, prop_state)) in
+    and s5 = scope2(-20.,  200., ("□((rpm &#60; max_rpm) ∧ (speed &#60; max_speed))", linear, phi_r),
+                                  ("[state: 0 = NotYet 100 = Done]", linear, 100. *. phi_s)) in
 
     window5("Autotrans spec", 50., t, s1, s2, s3, s4, s5)
 

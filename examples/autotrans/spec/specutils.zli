@@ -1,2 +1,3 @@
-val falsified: unit -AD-> unit
-val timeout: unit -AD-> unit
+val finish_falsified: unit -AD-> unit
+val finish_timeout: unit -AD-> unit
+val finish_done: unit -AD-> unit
