@@ -8,14 +8,17 @@ node float_of_state st = match st with | NotYet -> 0. | Done -> 1.
 
 (* PREDICATES = tstep * float -> float *)
 
-node p_lt r (_, x) = r -. x
-node p_gt r (_, x) = x -. r
-node p_le r (_, x) = r -. x
-node p_ge r (_, x) = x -. r
+node p_lt r x = r -. x
+node p_gt r x = x -. r
+node p_le r x = r -. x
+node p_ge r x = x -. r
 
-node p_not p     (t, x) = -. (run p (t, x))
-node p_and p1 p2 (t, x) = min (run p1 (t, x)) (run p2 (t, x))
-node p_or  p1 p2 (t, x) = max (run p1 (t, x)) (run p2 (t, x))
+node p_not p     x = -. (run p x)
+node p_and p1 p2 x = min (run p1 x) (run p2 x)
+node p_or  p1 p2 x = max (run p1 x) (run p2 x)
+
+(* i is a float with integer values, i = r <=> i > r - 0.5 && i < r + 0.5 *)
+node p_eqi r i = min (i -. r +. 0.5) (r +. 0.5 -. i)
 
 (* FORMULAS : tstep * args -> bool *)
 

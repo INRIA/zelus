@@ -6,25 +6,26 @@ let static tstep = 0.1
 let node main () =
     let rec t = 0. -> (pre t +. tstep) in
 
-    let inp1 =
+    let x =
              if (t > 7.) then 3.
         else if (t > 6.) then 2.
         else if (t > 5.) then 1.
         else if (t > 4.) then 0.
         else 3.
     in
-    let x = inp1 in
 
-    let r1 = p_gt 1. (tstep, inp1) in
-    let r2 = p_ge 1. (tstep, inp1) in
-    let r3 = p_lt 1. (tstep, inp1) in
-    let r4 = p_le 1. (tstep, inp1) in
-    let r5 = p_not (p_gt 1.) (tstep, inp1) in
+    let r1 = p_gt 1. x in
+    let r2 = p_ge 1. x in
+    let r3 = p_lt 1. x in
+    let r4 = p_le 1. x in
+    let r5 = p_eqi 1. x in
+    let r6 = p_not (p_eqi 1.) x in
 
     let s1 = scope( 0., 3., ("x", linear, x)) in
     let s2 = scope(-3., 3., ("x > 1", linear, r1)) in
     let s3 = scope(-3., 3., ("x ≥ 1", linear, r2)) in
     let s4 = scope(-3., 3., ("x &#60; 1", linear, r3)) in
     let s5 = scope(-3., 3., ("x ≤ 1", linear, r4)) in
-    let s6 = scope(-3., 3., ("not (x > 1)", linear, r5)) in
-    windown("AlwaysOr", 10., t, [s1; s2; s3; s4; s5; s6])
+    let s6 = scope(-3., 3., ("x = 1", linear, r5)) in
+    let s7 = scope(-3., 3., ("x ≠ 1", linear, r6)) in
+    windown("AlwaysOr", 10., t, [s1; s2; s3; s4; s5; s6; s7])
