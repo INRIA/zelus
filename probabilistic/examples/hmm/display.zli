@@ -10,3 +10,8 @@ val ( +: ) : float list -> float list -> float list
 val ( -: ) : float list -> float list -> float list
 val ( *: ) : float list -> float -> float list
 val norm : float list -> float
+
+type trajectory
+val traj_init : unit -> trajectory
+val traj_add : trajectory * float list -> trajectory
+val traj_draw : trajectory -AD-> unit

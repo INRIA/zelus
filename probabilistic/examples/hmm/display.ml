@@ -16,7 +16,7 @@ let draw_point color pos =
   begin match pos with
     | [ x ; y ] ->
       Graphics.set_color color;
-      Graphics.draw_circle (int_of_float x) (int_of_float y) 2;
+      Graphics.fill_circle (int_of_float x) (int_of_float y) 2;
   | _ -> assert false
   end
 
@@ -44,7 +44,7 @@ let draw_point_dist dist =
            draw_point (Graphics.rgb !color !color !color) pos)
         support
   end
-
+    
 let () = Random.self_init()
 let speed = [7.0; 7.0]
 let noise = [5.0; 5.0]
@@ -58,3 +58,19 @@ let ( +: ) a b = List.map2 (fun x y -> x +. y) a b
 let ( -: ) a b = List.map2 (fun x y -> x -. y) a b
 let ( *: ) a y = List.map (fun x -> x *. y) a
 let norm a = sqrt (List.fold_left (fun acc x -> acc +. (x *. x)) 0. a)
+
+
+type trajectory = (float list) list
+let traj_init () = []
+let traj_add (t, p) = p::t
+let traj_draw t =
+  Graphics.set_color (Graphics.rgb 133 189 255);
+  let l = List.map (fun p ->
+    match p with
+    | [x; y] -> (int_of_float x), (int_of_float y)
+    | _ -> assert false)
+    (List.tl t)
+  in
+  let a = Array.of_list l in
+  Graphics.draw_poly_line a
+ 
