@@ -1,0 +1,107 @@
+open Cart_pole
+open Pendulum
+open Gym
+
+(** MISC **)
+
+let gaussian (m, s) = Distribution.gaussian m s
+
+let node print_stats name (m, s) =
+  print_string ("("^name^": mean =  ");
+  print_float m;
+  print_string " var = ";
+  print_float s;
+  print_string ")";
+  print_newline ()
+
+let node print_coefs (p, i, d) =
+  print_string " p = ";
+  print_float p;
+  print_string " i = ";
+  print_float i;
+  print_string " d = ";
+  print_float d;
+  print_newline ()
+
+
+
+(** Smart controller for the cart-pole example **)
+
+let node smart_controller (prob, obs) = action where
+  rec action =
+    if Infer.sample (prob, Distribution.bernoulli 0.5) then Right else Left
+
+let node smart_model (prob, obs_gym) = action where
+  rec obs = simple_pendulum (obs_gym, (Right fby action))
+  and action = smart_controller (prob, obs)
+  and () = Infer.factor (prob, -10. *. (abs_float (obs.pole_angle)))
+  and display = draw_obs_back obs
+
+
+(** PID controller for the cart-pole example **)
+
+(* A Discrete PID controller *)
+let node pid_controller (angle, (p,i,d)) = action where
+  rec e = angle -. (0.0 fby theta)
+  and theta = p *. e +. i *. integr(0., e) +. d *. deriv(e)
+  and action = if theta > 0. then Right else Left
+
+(* Sample coefs from given priors *)
+let node pid_model (prob, (obs, ctrl_action, p_prior, i_prior, d_prior)) = p, (i, d) where
+  rec init p = Infer.sample(prob, p_prior)
+  and init i = Infer.sample(prob, i_prior)
+  and init d = Infer.sample(prob, d_prior)
+  and action = pid_controller (obs.pole_angle, (p,i,d))
+  and () = Infer.factor(prob, if action = ctrl_action then 0. else -0.2)
+
+
+
+let node smart_pid_main () = () where
+  rec reset action_smart = Infer.plan 10 10 smart_model obs_smart
+      every true
+  and obs_smart, _, _ = cart_pole_gym true (Right fby action_smart)
+  and pid_dist = Infer.infer 1000 pid_model (obs_smart, action_smart, p_init, i_init, d_init)
+  and () = draw_obs_front obs_smart
+  and p_init = gaussian (0., 0.1)
+  and i_init = gaussian (0., 0.1)
+  and d_init = gaussian (0., 0.1)
+  and (p, (i, d)) = Distribution.draw pid_dist
+  and obs, _, _ = cart_pole_gym true (Right fby action)
+  and action = pid_controller (obs.pole_angle, (p, i, d))
+  (* and () = draw_obs_front obs *)
+  and () = print_coefs (p, i, d)
+
+
+
+(* (\* Modular restart: discard coefs for episods with score < 100. *)
+(*    When stddev of p_dist < 0.1 fix coefs. *)
+(*    In fixed mode, after three episods with score < 100 restart learning *\) *)
+(* let node learn_control particles *)
+(*     (pid_model: int -S-> 'a -D-> 'b Distribution.t) (priors_init, obs, stop) = action where *)
+(*   rec init priors = priors_init *)
+(*   and (p, (i, d)) = Distribution.draw pid_dist *)
+(*   and action = controller (obs.pole_angle, (p, i, d)) *)
+(*   and reset score = 0 fby (score + 1) every stop *)
+(*   and present fix() -> do () = print_coefs (p, i, d) done *)
+(*   and automaton *)
+(*       | Learn -> *)
+(*           do pid_dist = pid_model particles (priors, obs, stop) *)
+(*           and p_dist, _ =  Distribution.split pid_dist *)
+(*           and ps = Distribution.stats_float p_dist *)
+(*           until (stop && (0 fby score < 50)) then Learn *)
+(*           else (snd ps < 0.01) then *)
+(*             do () = print_endline "End Learning" *)
+(*             and emit fix *)
+(*           in Control *)
+(*       | Control -> local cpt in *)
+(*           do cpt = 0 fby if stop && (0 fby score < 100) then cpt + 1 else cpt *)
+(*           until (cpt > 3) then do () = print_endline "Restart Learning" in Learn *)
+
+
+(* let node pid_main () = () where *)
+(*   rec p_init = (0., 0.1) *)
+(*   and i_init = (0., 0.1) *)
+(*   and d_init = (0., 0.1) *)
+(*   and obs, _, stop = cart_pole_gym true (Right fby action) *)
+(*   and action = learn_control 2000 pid_bayes_update2 ((p_init, i_init, d_init), obs, stop) *)
+(*   and display = draw_obs_front obs *)
