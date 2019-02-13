@@ -70,7 +70,7 @@ let node smart_pid_main () = () where
   and reset action = pid_controller (obs.pole_angle, (p, i, d))
       every stop
   (* and () = draw_obs_front obs *)
-  and () = print_coefs (p, i, d)
+  (* and () = print_coefs (p, i, d) *)
 
 
 
