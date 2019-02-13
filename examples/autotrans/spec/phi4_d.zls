@@ -13,7 +13,7 @@ let static epsilon = 0.01
 
 open Maneuvers
 
-node maneuver tstep = hard_braking_d tstep
+node maneuver t = hard_braking_d t
 
 (*
     If the car switches from any gear to gear 1, then it will stay in gear 1
@@ -27,7 +27,7 @@ node maneuver tstep = hard_braking_d tstep
 open Obs
 open Spec
 
-node phi4(throttle, brake_torque, rpm, gear, speed) =
+node phi4((throttle, brake_torque), (rpm, gear, speed)) =
     let g1 = p_eqi 1. gear in
     let ng1 = p_not (p_eqi 1.) gear in
     d_trigger
@@ -38,7 +38,7 @@ node phi4(throttle, brake_torque, rpm, gear, speed) =
 
 open Scope
 
-node show(t, throttle, brake_torque, rpm, gear, speed, phi_r, phi_s) =
+node show(t, (throttle, brake_torque), (rpm, gear, speed), (phi_r, phi_s)) =
     let s1 = scope2(0.  , 325. , ("throttle", linear, throttle),
                                    ("brake torque", linear, brake_torque))
     and s2 = scope (0.  , 4.   , ("gear", linear, gear))
@@ -49,5 +49,5 @@ node show(t, throttle, brake_torque, rpm, gear, speed, phi_r, phi_s) =
 
     window5("Autotrans spec", 50., t, s1, s2, s3, s4, s5)
 
-node cli  () = cli  maneuver phi4 maxt tstep
-node plot () = plot maneuver phi4 show tstep
+node cli  () = cli  maneuver phi4 Autotransd.autotrans maxt tstep
+node plot () = plot maneuver phi4 Autotransd.autotrans show tstep

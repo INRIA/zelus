@@ -13,7 +13,7 @@ let static epsilon = 0.01
 
 open Maneuvers
 
-node maneuver tstep = hard_braking_d tstep
+node maneuver t = hard_braking_d t
 
 (*
     For i in [1;4], if the car switches from any gear but i to gear i, it will
@@ -36,7 +36,7 @@ node stay_in_gear i (tstep, gear) =
             (select_apply 1 (d_always_l     2.5))))
         (tstep, (ngi, [ngi; gi]))
 
-node phi5(throttle, brake_torque, rpm, gear, speed) =
+node phi5((throttle, brake_torque), (rpm, gear, speed)) =
     d_and (d_and (d_and (stay_in_gear 1.)
                         (stay_in_gear 2.))
                         (stay_in_gear 3.))
@@ -45,7 +45,7 @@ node phi5(throttle, brake_torque, rpm, gear, speed) =
 
 open Scope
 
-node show(t, throttle, brake_torque, rpm, gear, speed, phi_r, phi_s) =
+node show(t, (throttle, brake_torque), (rpm, gear, speed), (phi_r, phi_s)) =
     let s1 = scope2(0.  , 325. , ("throttle", linear, throttle),
                                    ("brake torque", linear, brake_torque))
     and s2 = scope (0.  , 4.   , ("gear", linear, gear))
@@ -56,5 +56,5 @@ node show(t, throttle, brake_torque, rpm, gear, speed, phi_r, phi_s) =
 
     window5("Autotrans spec", 50., t, s1, s2, s3, s4, s5)
 
-node cli  () = cli  maneuver phi5 maxt tstep
-node plot () = plot maneuver phi5 show tstep
+node cli  () = cli  maneuver phi5 Autotransd.autotrans maxt tstep
+node plot () = plot maneuver phi5 Autotransd.autotrans show tstep

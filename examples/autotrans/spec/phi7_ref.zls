@@ -21,7 +21,7 @@ let static cT        = 4.
 
 open Maneuvers
 
-let node maneuver t = passing_maneuver_d tstep
+let node maneuver t = passing_maneuver_d t
 
 (*
     Within T sec the vehicle speed is above v̄ and from that point on the
@@ -32,7 +32,7 @@ let node maneuver t = passing_maneuver_d tstep
 
 open Spec
 
-node phi7(throttle, brake_torque, rpm, gear, speed) =
+node phi7((throttle, brake_torque), (rpm, gear, speed)) =
     let rec t = 0. -> pre t +. tstep in
 
     let w_phi = max_rpm -. rpm in
@@ -56,7 +56,7 @@ node phi7(throttle, brake_torque, rpm, gear, speed) =
 
 open Scope
 
-node show(t, throttle, brake_torque, rpm, gear, speed, phi_r, phi_s) =
+node show(t, (throttle, brake_torque), (rpm, gear, speed), (phi_r, phi_s)) =
     let s1 = scope2(0.  , 325. , ("throttle", linear, throttle),
                                  ("brake torque", linear, brake_torque))
     and s2 = scope (0.  , 4.   , ("gear", linear, gear))
@@ -70,5 +70,5 @@ node show(t, throttle, brake_torque, rpm, gear, speed, phi_r, phi_s) =
 
     window5("Autotrans: phi7", 50., t, s1, s2, s3, s4, s5)
 
-let node cli  () = cli  maneuver phi7 maxt tstep
-let node plot () = plot maneuver phi7 show tstep
+let node cli  () = cli  maneuver phi7 Autotransd.autotrans maxt tstep
+let node plot () = plot maneuver phi7 Autotransd.autotrans show tstep

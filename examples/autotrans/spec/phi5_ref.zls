@@ -51,7 +51,7 @@ node phi_i(i)(gear) =
             done
     in res, state
 
-node phi5(throttle, brake_torque, rpm, gear, speed) =
+node phi5((throttle, brake_torque), (rpm, gear, speed)) =
     let phi1, s1 = phi_i(1.)(gear) in
     let phi2, s2 = phi_i(2.)(gear) in
     let phi3, s3 = phi_i(3.)(gear) in
@@ -65,7 +65,7 @@ node phi5(throttle, brake_torque, rpm, gear, speed) =
 
 open Scope
 
-node show(t, throttle, brake_torque, rpm, gear, speed, phi_r, phi_s) =
+node show(t, (throttle, brake_torque), (rpm, gear, speed), (phi_r, phi_s)) =
     let s1 = scope2(0.  , 325. , ("throttle", linear, throttle),
                                  ("brake torque", linear, brake_torque))
     and s2 = scope (0.  , 4.   , ("gear", linear, gear))
@@ -77,5 +77,5 @@ node show(t, throttle, brake_torque, rpm, gear, speed, phi_r, phi_s) =
 
     window5("Autotrans: phi5", 50., t, s1, s2, s3, s4, s5)
 
-let node cli  () = cli  maneuver phi5 maxt tstep
-let node plot () = plot maneuver phi5 show tstep
+let node cli  () = cli  maneuver phi5 Autotransd.autotrans maxt tstep
+let node plot () = plot maneuver phi5 Autotransd.autotrans show tstep

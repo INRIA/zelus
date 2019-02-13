@@ -21,7 +21,7 @@ let static cT        = 10.
 
 open Maneuvers
 
-let node maneuver t = passing_maneuver_d tstep
+let node maneuver t = passing_maneuver_d t
 
 (*
     A gear increase from first to fourth in under cT secs, ending in an RPM
@@ -33,7 +33,7 @@ let node maneuver t = passing_maneuver_d tstep
 
 open Spec
 
-node phi8(throttle, brake_torque, rpm, gear, speed) =
+node phi8((throttle, brake_torque), (rpm, gear, speed)) =
     let rec t = 0. -> pre t +. tstep in
 
     let g1 = min (gear -. 0.5) (1.5 -. gear) in
@@ -59,7 +59,7 @@ node phi8(throttle, brake_torque, rpm, gear, speed) =
 
 open Scope
 
-node show(t, throttle, brake_torque, rpm, gear, speed, phi_r, phi_s) =
+node show(t, (throttle, brake_torque), (rpm, gear, speed), phi_r, phi_s) =
     let s1 = scope2(0.  , 325. , ("throttle", linear, throttle),
                                  ("brake torque", linear, brake_torque))
     and s2 = scope (0.  , 4.   , ("gear", linear, gear))
@@ -73,5 +73,5 @@ node show(t, throttle, brake_torque, rpm, gear, speed, phi_r, phi_s) =
 
     window5("Autotrans: phi8", 50., t, s1, s2, s3, s4, s5)
 
-let node cli  () = cli  maneuver phi8 maxt tstep
-let node plot () = plot maneuver phi8 show tstep
+let node cli  () = cli  maneuver phi8 Autotransd.autotrans maxt tstep
+let node plot () = plot maneuver phi8 Autotransd.autotrans show tstep

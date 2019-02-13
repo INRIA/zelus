@@ -21,7 +21,7 @@ let static t         = 4.
 
 open Maneuvers
 
-node maneuver tstep = passing_maneuver_d tstep
+node maneuver t = passing_maneuver_d t
 
 (*
     (g1 ∧ ◇_[0,10] (g4 ∧ ◇_[0,2] (w >= w̄))) ⇒ □_[0,10] (g4 ∧ (w > w̄) ⇒ (v >= v̄))
@@ -37,7 +37,7 @@ node apply2_list2tuple f (tstep, list) =
 
 node notC x = not x
 
-node phi8(throttle, brake_torque, rpm, gear, speed) =
+node phi8((throttle, brake_torque), (rpm, gear, speed)) =
     let ng1 = p_not (p_eqi 1.) gear in
     let g4 = p_eqi 4. gear in
     let disj2 =
@@ -57,7 +57,7 @@ node phi8(throttle, brake_torque, rpm, gear, speed) =
 
 open Scope
 
-node show(t, throttle, brake_torque, rpm, gear, speed, phi_r, phi_s) =
+node show(t, (throttle, brake_torque), (rpm, gear, speed), (phi_r, phi_s)) =
     let s1 = scope2(0.  , 325. , ("throttle", linear, throttle),
                                    ("brake torque", linear, brake_torque))
     and s2 = scope (0.  , 4.   , ("gear", linear, gear))
@@ -70,5 +70,5 @@ node show(t, throttle, brake_torque, rpm, gear, speed, phi_r, phi_s) =
 
     window5("Autotrans spec", 50., t, s1, s2, s3, s4, s5)
 
-node cli  () = cli  maneuver phi8 maxt tstep
-node plot () = plot maneuver phi8 show tstep
+node cli  () = cli  maneuver phi8 Autotransd.autotrans maxt tstep
+node plot () = plot maneuver phi8 Autotransd.autotrans show tstep

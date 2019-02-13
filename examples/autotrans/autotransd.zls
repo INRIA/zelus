@@ -8,22 +8,19 @@
   and the discrete versions of this model.
 *)
 
-(** constants **)
-
-let static timestep = 0.05
-
 (** utils **)
 
-let node integrate_and_saturate(timestep, dx, x0, xmin, xmax) = x where
-  rec aux = x0 -> (pre aux +. dx *. timestep)
+let node integrate_and_saturate(t, dx, x0, xmin, xmax) = x where
+  rec timestep = t -> (t -. pre t)
+  and aux = x0 -> (pre aux +. dx *. timestep)
   and x = max xmin (min xmax aux)
 
 (** algorithm **)
 
-let node engine(timestep, ti, throttle) = rpm where
+let node engine(t, ti, throttle) = rpm where
   rec te = Common.lookup_engine(throttle, pre rpm)
   and drpm = te -. ti
-  and rpm = integrate_and_saturate (timestep, Common.engine_feedback_gain *. drpm, 1000., 600., 6000.)
+  and rpm = integrate_and_saturate (t, Common.engine_feedback_gain *. drpm, 1000., 600., 6000.)
 
 let node gearlogic(shift) = gear where
   rec init gear = 1.
@@ -49,7 +46,7 @@ let node gearlogic(shift) = gear where
           until shift(Common.DOWN)
             then do next gear = 3. in Third
 
-let node shiftlogic(timestep, speed, throttle) = gear where
+let node shiftlogic(t, speed, throttle) = gear where
   rec up_th = Common.lookup_interpup(throttle, gear)
   and dn_th = Common.lookup_interpdn(throttle, gear)
 
@@ -59,28 +56,25 @@ let node shiftlogic(timestep, speed, throttle) = gear where
       | SteadyState  ->
           do
           until (speed < dn_th)
-            then DownShifting
+            then DownShifting(t)
           else (speed > up_th)
-            then UpShifting
-      | DownShifting ->
-          local t in
+            then UpShifting(t)
+      | DownShifting(t0) ->
           do
-            t = 0. -> (pre t +. timestep)
           until (speed > dn_th)
             then SteadyState
-          else (t > Common.twait)
+          else (t > t0 +. Common.twait)
             then do emit shift = Common.DOWN in SteadyState
-      | UpShifting   ->
-          local t in
+      | UpShifting(t0)   ->
           do
-            t = 0. -> (pre t +. timestep)
           until (speed < up_th)
             then SteadyState
-          else (t > Common.twait)
+          else (t > t0 +. Common.twait)
             then do emit shift = Common.UP in SteadyState
 
-let node vehicle(timestep, out_torque, brake_torque) = (speed, trans_rpm) where
-  rec final_drive_ratio = Common.p_final_drive_ratio *. out_torque
+let node vehicle(t, out_torque, brake_torque) = (speed, trans_rpm) where
+  rec timestep = t -> (t -. pre t)
+  and final_drive_ratio = Common.p_final_drive_ratio *. out_torque
   and aux1 = final_drive_ratio -. (0. -> pre signed_load)
   and vehicle_inertia = Common.iv_inv *. aux1
   and wheel_speed = Common.p_initial_wheel_speed ->
@@ -95,22 +89,24 @@ let node vehicle(timestep, out_torque, brake_torque) = (speed, trans_rpm) where
   and trans_rpm = Common.p_final_drive_ratio *. wheel_speed
   and speed = mph
 
-let node autotrans(timestep, throttle, brake_torque) = (rpm, gear, speed) where
-  rec rpm = engine(timestep, ti, throttle)
-  and gear = shiftlogic(timestep, speed, throttle)
+let node autotrans(t, (throttle, brake_torque)) = (rpm, gear, speed) where
+  rec rpm = engine(t, ti, throttle)
+  and gear = shiftlogic(t, speed, throttle)
   and ti, out_torque = Common.transmission(1000. -> pre rpm,
                                            1. -> pre gear,
                                            1000. -> pre trans_rpm)
-  and speed, trans_rpm = vehicle(timestep, out_torque, brake_torque)
+  and speed, trans_rpm = vehicle(t, out_torque, brake_torque)
 
 open Maneuvers
 open Scope
 
+let static timestep = 0.05
+
 let node main() =
   let rec t = 0. -> (pre t +. timestep)
 
-  and throttle, brake_torque = passing_maneuver_d(timestep)
-  and rpm, gear, speed = autotrans(timestep, throttle, brake_torque) in
+  and throttle, brake_torque = passing_maneuver_d(t)
+  and rpm, gear, speed = autotrans(t, (throttle, brake_torque)) in
 
   let s1 = scope2(0., 325., ("throttle", linear, throttle),
                             ("brake torque", linear, brake_torque))

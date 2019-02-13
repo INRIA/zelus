@@ -21,7 +21,7 @@ let static cT        = 10.
 
 open Maneuvers
 
-node maneuver tstep = passing_maneuver_d tstep
+node maneuver t = passing_maneuver_d t
 
 (*
     ¬(◇_[0,T] (v >= v̄) ∧ □(w < w̄))
@@ -31,7 +31,7 @@ node maneuver tstep = passing_maneuver_d tstep
 open Obs
 open Spec
 
-node phi6(throttle, brake_torque, rpm, gear, speed) =
+node phi6((throttle, brake_torque), (rpm, gear, speed)) =
     d_or
         (select_apply 0 (d_always_l cT))
         (select_apply 1 d_next_ub)
@@ -39,7 +39,7 @@ node phi6(throttle, brake_torque, rpm, gear, speed) =
 
 open Scope
 
-node show(t, throttle, brake_torque, rpm, gear, speed, phi_r, phi_s) =
+node show(t, (throttle, brake_torque), (rpm, gear, speed), (phi_r, phi_s)) =
     let s1 = scope2(0.  , 325. , ("throttle", linear, throttle),
                                    ("brake torque", linear, brake_torque))
     and s2 = scope (0.  , 4.   , ("gear", linear, gear))
@@ -52,5 +52,5 @@ node show(t, throttle, brake_torque, rpm, gear, speed, phi_r, phi_s) =
 
     window5("Autotrans spec", 50., t, s1, s2, s3, s4, s5)
 
-node cli  () = cli  maneuver phi6 maxt tstep
-node plot () = plot maneuver phi6 show tstep
+node cli  () = cli  maneuver phi6 Autotransd.autotrans maxt tstep
+node plot () = plot maneuver phi6 Autotransd.autotrans show tstep
