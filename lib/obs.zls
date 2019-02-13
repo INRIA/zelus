@@ -6,6 +6,8 @@ node select_apply(n)(f)(t, l) = run f (t, Basics.list_nth l n)
 node string_of_state st = match st with | NotYet -> "Not yet" | Done -> "Done"
 node float_of_state st = match st with | NotYet -> 0. | Done -> 1.
 
+node lift (_, p) = p, Done
+
 (* PREDICATES = tstep * float -> float *)
 
 node p_lt r x = r -. x
@@ -27,13 +29,8 @@ node p_eqi r i = min (i -. r +. 0.5) (r +. 0.5 -. i)
 *)
 node d_next r (tstep, p) = v, state where
     rec t = 0. fby (t +. tstep)
-    and automaton
-        | I ->
-            do v = p -> max (pre v) p
-            and state = NotYet
-            until (p > 0.) on (t <= r) then Sink(v)
-            else (t > r) then Sink(v)
-        | Sink(f) -> do v = f and state = Done done
+    and v = p -> (if t > r then pre v else max (pre v) p)
+    and state = if v > 0. || t > r then Done else NotYet
 
 node d_next_ub (tstep, p) = d_next infinity (tstep, p) (* WARNING *)
 
@@ -42,13 +39,8 @@ node d_next_ub (tstep, p) = d_next infinity (tstep, p) (* WARNING *)
 *)
 node d_always_l r (tstep, p) = v, state where
     rec t = 0. fby (t +. tstep)
-    and automaton
-    | I ->
-        do v = p -> min (pre v) p
-        and state = NotYet
-        until (t > r) then Sink(v)
-        else (p < 0.) on (t <= r) then Sink(v)
-    | Sink(f) -> do v = f and state = Done done
+    and v = p -> (if t > r then pre v else min (pre v) p)
+    and state = if v < 0. || t > r then Done else NotYet
 
 node d_always (tstep, p) = d_always_l infinity (tstep, p)
 
@@ -57,34 +49,9 @@ node d_always (tstep, p) = d_always_l infinity (tstep, p)
 *)
 node d_always_r r (tstep, p) = v, state where
     rec t = 0. fby (t +. tstep)
-    and automaton
-    | I ->
-        do v = infinity
-        and state = NotYet
-        until (t >= r) on (p > 0.) then Main
-        else (t >= r) on (p < 0.) then Sink(p)
-    | Main ->
-        do v = p -> min (pre v) p
-        and state = NotYet
-        until (p < 0.) then Sink(v)
-    | Sink(f) -> do v = f and state = Done done
-
-node d_pand  phi (tstep, (p, x)) =
-    let init p_init = p in
-    let v, state = run phi (tstep, x) in
-    if p_init < 0. then p_init, Done else (min p_init v), state
-    (* automaton
-    | I ->
-        do v = p
-        until (true fby false) on (not p) then Sink(p)
-        else (true fby false) on (p) then Main
-    | Main -> do v = run phi (tstep, x) done
-    | Sink(f) -> do v = f done *)
-
-node d_por phi (tstep, (p, x)) =
-    let init p_init = p in
-    let v, state = run phi (tstep, x) in
-    if p_init > 0. then p_init, Done else (max p_init v), state
+    and v = if t < r then infinity
+    else p -> min (pre v) p
+    and state = if v < 0. then Done else NotYet
 
 (*
     And(phi1, phi2)(x) ≡ phi1(x) ∧ phi2(x)
@@ -119,6 +86,26 @@ node d_or phi1 phi2 (tstep, x) =
     | S1 -> do NotYet until (state1 = Done) then Sink
     | S2 -> do NotYet until (state2 = Done) then Sink
     | Sink -> do Done done
+
+(*
+    PAnd(phi)(p, x) ≡ p ∧ phi(x)
+*)
+node d_pand phi (tstep, (p, x)) =
+    d_and (select_apply 0 phi) (select_apply 1 lift) (tstep, [x; p])
+    (* let init p_init = p in
+    let v, state = run phi (tstep, x) in
+    min p_init v,
+    if p_init < 0. then Done else state *)
+
+(*
+    POr(phi)(p, x) ≡ p ∨ phi(x)
+*)
+node d_por phi (tstep, (p, x)) =
+    d_or (select_apply 0 phi) (select_apply 1 lift) (tstep, [x; p])
+    (* let init p_init = p in
+    let v, state = run phi (tstep, x) in
+    max p_init v,
+    if p_init > 0. then Done else state *)
 
 (*
     TriggerL(r)(phi)(p, x) ≡ □_[0,r](p ⇒ phi)

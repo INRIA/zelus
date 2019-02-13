@@ -6,10 +6,13 @@ let static tstep = 0.1
 node main () =
     let rec t = 0. fby (t +. tstep) in
 
+    let v_true  = cos(t) +. 2. in
+    let v_false = sin(t) -. 2. in
+
     let x =
-             if (t > 5.) then sin(t) -. 2.
-        else if (t > 4.) then sin(t) +. 2.
-        else sin(t) -. 2.
+             if (t > 5.) then v_false
+        else if (t > 4.) then v_true
+        else v_false
     in
 
     let r1, s1 = d_next 5. (tstep, x) in
