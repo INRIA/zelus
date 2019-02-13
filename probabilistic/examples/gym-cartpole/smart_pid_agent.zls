@@ -66,8 +66,9 @@ let node smart_pid_main () = () where
   and i_init = gaussian (0., 0.1)
   and d_init = gaussian (0., 0.1)
   and (p, (i, d)) = Distribution.draw pid_dist
-  and obs, _, _ = cart_pole_gym true (Right fby action)
-  and action = pid_controller (obs.pole_angle, (p, i, d))
+  and obs, _, stop = cart_pole_gym true (Right fby action)
+  and reset action = pid_controller (obs.pole_angle, (p, i, d))
+      every stop
   (* and () = draw_obs_front obs *)
   and () = print_coefs (p, i, d)
 
