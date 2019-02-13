@@ -40,6 +40,7 @@ let node model (prob, (obs_init, p_prior, i_prior, d_prior)) = p, (i, d) where
   and obs = simple_pendulum (obs_init,  Right fby action)
   and action = controller (obs.pole_angle, (p,i,d))
   and () = Infer.factor(prob, -10. *. abs_float (obs.pole_angle))
+  and () = draw_obs_back obs
 
 (* Restart inference with updated priors when stddev of p_dist is halved *)
 let node pid_bayes_update particles (priors, obs, stop) = pid_dist where
@@ -65,6 +66,24 @@ let node pid_bayes_update particles (priors, obs, stop) = pid_dist where
           then Learn
 
 
+(* let node pid_bayes_update particles ((p_init, i_init, d_init), obs, stop) = pid_dist where *)
+(*   rec init p_stats = p_init *)
+(*   and init p_prior = gaussian p_init *)
+(*   and init i_prior = gaussian i_init *)
+(*   and init d_prior = gaussian d_init *)
+(*   and pid_dist = Infer.infer particles model (obs, last p_prior, last i_prior, last d_prior) *)
+(*   and p_dist, id_dist = Distribution.split pid_dist *)
+(*   and i_dist, d_dist = Distribution.split id_dist *)
+(*   and ps = Distribution.stats_float p_dist *)
+(*   and ds = Distribution.stats_float d_dist *)
+(*   and is = Distribution.stats_float i_dist *)
+(*   and present (snd ps < snd (last p_stats) /. 2.) -> *)
+(*         do p_stats = ps *)
+(*         and p_prior = gaussian ps *)
+(*         and i_prior = gaussian is *)
+(*         and d_prior = gaussian ds done *)
+
+
 (* Alternative implementation: push the automaton in the model,
    estimate distributions stats outside *)
 let node model2 (prob, (obs_init, ps, is, ds)) = p, (i, d) where
@@ -82,6 +101,18 @@ let node model2 (prob, (obs_init, ps, is, ds)) = p, (i, d) where
           and () = draw_obs_back obs
           until (snd ps < snd p_stats /. 2.) then Update
 
+(* let node model2 (prob, (obs_init, (ps, is, ds), update)) = p, (i, d) where *)
+(*   rec init p = Infer.sample(prob, gaussian ps) *)
+(*   and init i = Infer.sample(prob, gaussian is) *)
+(*   and init d = Infer.sample(prob, gaussian ds) *)
+(*   and obs = simple_pendulum (obs_init,  Right fby action) *)
+(*   and action = controller (obs.pole_angle, (p,i,d)) *)
+(*   and () = Infer.factor(prob, -10. *. abs_float (obs.pole_angle)) *)
+(*   and present update(ps, is, ds) -> *)
+(*       do p = Infer.sample(prob, gaussian ps) *)
+(*       and i = Infer.sample(prob, gaussian is) *)
+(*       and d = Infer.sample(prob, gaussian ds) done *)
+
 
 (* At each step: compute the distribution and the corresponding stats *)
 let node pid_bayes_update2 particles (priors, obs, stop) = pid_dist where
@@ -94,19 +125,6 @@ let node pid_bayes_update2 particles (priors, obs, stop) = pid_dist where
   and ds = d_init fby Distribution.stats_float d_dist
 
 
-(* let node model3 (prob, (obs_init, update)) = p, (i, d) where *)
-(*   rec init p_stats = ps *)
-(*   and init p = Infer.sample(prob, gaussian ps) *)
-(*   and init i = Infer.sample(prob, gaussian is) *)
-(*   and init d = Infer.sample(prob, gaussian ds) *)
-(*   and obs = simple_pendulum (obs_init,  Right fby action) *)
-(*   and action = controller (obs.pole_angle, (p,i,d)) *)
-(*   and () = Infer.factor(prob, -10. *. abs_float (obs.pole_angle)) *)
-(*   and present update(ps, is, ds) -> *)
-(*       do p = Infer.sample(prob, gaussian ps) *)
-(*       and i = Infer.sample(prob, gaussian is) *)
-(*       and d = Infer.sample(prob, gaussian ds) done *)
-
 
 (* Modular restart: discard coefs for episods with score < 100.
    When stddev of p_dist < 0.1 fix coefs.
@@ -115,7 +133,7 @@ let node learn_control particles
     (pid_model: int -S-> 'a -D-> 'b Distribution.t) (priors_init, obs, stop) = action where
   rec init priors = priors_init
   and (p, (i, d)) = Distribution.draw pid_dist
-  and action = controller (obs.pole_angle, (p, i, d))
+  and reset action = controller (obs.pole_angle, (p, i, d)) every stop
   and reset score = 0 fby (score + 1) every stop
   and present fix() -> do () = print_coefs (p, i, d) done
   and automaton
@@ -133,10 +151,18 @@ let node learn_control particles
           until (cpt > 3) then do () = print_endline "Restart Learning" in Learn
 
 
+(*
+p = 0.005 i = 0. d = 0.01
+p = 0.04 i = 0.04 d = 0.07
+*)
+
 let node pid_main () = () where
-  rec p_init = (0., 0.1)
-  and i_init = (0., 0.1)
-  and d_init = (0., 0.1)
+  (* rec p_init = (0., 1.) *)
+  (* and i_init = (0., 0.001) *)
+  (* and d_init = (0., 0.001) *)
+  rec p_init = (0.055, 0.001)
+  and i_init = (-0.011, 0.001)
+  and d_init = (0.059, 0.001)
   and obs, _, stop = cart_pole_gym true (Right fby action)
-  and action = learn_control 2000 pid_bayes_update2 ((p_init, i_init, d_init), obs, stop)
+  and action = learn_control 2000 pid_bayes_update ((p_init, i_init, d_init), obs, stop)
   and display = draw_obs_front obs
