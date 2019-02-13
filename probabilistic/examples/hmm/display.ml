@@ -62,15 +62,20 @@ let norm a = sqrt (List.fold_left (fun acc x -> acc +. (x *. x)) 0. a)
 
 type trajectory = (float list) list
 let traj_init () = []
-let traj_add (t, p) = p::t
+let traj_add (t, p) =
+  if List.length t < 30 then p :: t
+  else p :: (List.rev (List.tl (List.rev t)))
+      
 let traj_draw t =
-  Graphics.set_color (Graphics.rgb 133 189 255);
-  let l = List.map (fun p ->
-    match p with
-    | [x; y] -> (int_of_float x), (int_of_float y)
-    | _ -> assert false)
-    (List.tl t)
-  in
-  let a = Array.of_list l in
-  Graphics.draw_poly_line a
+  if List.length t > 1 then begin
+    Graphics.set_color (Graphics.rgb 133 189 255);
+    let l = List.map (fun p ->
+      match p with
+      | [x; y] -> (int_of_float x), (int_of_float y)
+      | _ -> assert false)
+      (List.tl t)
+    in
+    let a = Array.of_list l in
+    Graphics.draw_poly_line a
+  end
  

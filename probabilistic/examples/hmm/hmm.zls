@@ -17,16 +17,16 @@ let node display (obs, pos_dist) =
 
 (* the expected position [p] of the mouse is searched arround the previous *)
 (* one supposing that the motion speed of the mouse is bounded *)
-(* let node hmm (prob, obs) = p where *)
-(*   rec p = sample (prob, sph_gaussian (obs fby p) speed) *)
-(*   and () = factor (prob, Distribution.score (sph_gaussian p noise) obs) *)
-(*   and init t = traj_init () *)
-(*   and traj = traj_add (t, p) *)
-(*   and () = traj_draw t *)
+let node hmm (prob, obs) = p where
+  rec p = sample (prob, sph_gaussian (obs fby p) speed)
+  and () = factor (prob, Distribution.score (sph_gaussian p noise) obs)
+  and init t = traj_init ()
+  and t = traj_add (last t, p)
+  and () = traj_draw t
 
-(* let node once n = ok where *)
-(*   rec init cpt = 1 and cpt = if ok then 1 else last cpt + 1 *)
-(*   and ok = last cpt = n *)
+let node once n = ok where
+  rec init cpt = 1 and cpt = if ok then 1 else last cpt + 1
+  and ok = last cpt = n
 
 let node hmm_momentum(prob, obs) = p where
   rec last_p = obs fby p
@@ -47,12 +47,12 @@ let node hmm_reset_automaton(prob, obs) = p where
             (norm (obs -: last_obs) > (2. *. norm(speed +: noise))) then HMM(obs)
        init HMM(obs)
 
-(* let node hmm_reset(prob, obs) = p where *)
-(*   rec reset p = hmm(prob, obs) *)
-(*         and last_obs = obs fby obs *)
-(*         and n = norm (obs -: last_obs) *)
-(*       every false fby (n > norm(speed +: noise)) *)
-(*   and p_init = Display.p_init -> obs *)
+let node hmm_reset(prob, obs) = p where
+  rec reset p = hmm(prob, obs)
+        and last_obs = obs fby obs
+        and n = norm (obs -: last_obs)
+      every false fby (n > norm(speed +: noise))
+  and p_init = Display.p_init -> obs
 
 let node main () =
   let obs = sensor () in
