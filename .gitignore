@@ -22,6 +22,8 @@ compiler/parsing/parser.ml*
 lib/defaultsolver.ml
 lib/dump.ml
 lib/symb.ml
+lib/scope.ml
+lib/obs.ml
 tools/diff_log
 tools/zltohtml*
 bin/zeluc
