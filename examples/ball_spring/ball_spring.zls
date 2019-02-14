@@ -1,6 +1,6 @@
 
 open Graphics
-let start =
+node start () =
   open_graph " 200x500";
   auto_synchronize false;
   set_line_width 4
@@ -64,7 +64,8 @@ let hybrid simu (x_init) = x, xp where
     ()
 
 let hybrid main () = () where
-  rec t = period (0.1)
+  rec init tmp = start ()
+  and t = period (0.1)
   and x, xp = simu(10.)
   and z = x +. base_level
   and zp = xp +. base_level -. radius

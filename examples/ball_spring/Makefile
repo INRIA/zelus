@@ -1,6 +1,7 @@
 include ../../config
 
 EXAMPLE=ball_spring.zls
+ZLEXTRALIBS = $(ZLGTKLIBS)
 
 default: $(word 1, $(targets))
 all:  $(targets)
@@ -12,6 +13,21 @@ ball_spring.byte: $(OBJ)
 
 ball_spring.opt: ZLEXTRALIBS += graphics.cmxa $(OBJ:.cmo=.cmx)
 ball_spring.opt: $(OBJ:%.cmo=%.cmx)
+
+spec: byte spec.byte spec.opt
+spec.cmo: ZLEXTRALIBS += $(EXAMPLE:.zls=.cmo)
+spec.cmo: ZELUCFLAGS += -gtk2
+spec.cmx: ZLEXTRALIBS += $(EXAMPLE:.zls=.cmx)
+spec.cmx: ZELUCFLAGS += -gtk2
+
+spec.byte: ball_spring.cmo spec.cmo
+	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) graphics.cma \
+	    $^ spec_main.ml
+spec.opt: ball_spring.cmx spec.cmx
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) $(ZLEXTRALIBS:.cma=.cmxa) graphics.cmxa \
+	    $^ spec_main.ml
 
 ball_spring.out: ball_spring.byte
 	./ball_spring.byte -maxt 25 -fullspeed
@@ -48,4 +64,3 @@ realclean cleanall: clean
 .zls.ml:
 	$(ZELUC) $(ZELUCFLAGS) -s main $<
 	mv main.ml $(<:.zls=)_main.ml
-

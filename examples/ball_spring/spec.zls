@@ -1,0 +1,36 @@
+open Obs
+
+let static sampling = 0.05
+let static small_time = 0.1
+let static small_space = 0.1
+
+let static base_level = 15.0
+
+let bounce_en = "When the distance between the ball and the spring is " ^
+                "smaller than " ^ (string_of_float small_space) ^
+                ", it becomes bigger than " ^ (string_of_float small_space) ^
+                " in less than " ^ (string_of_float small_time) ^ " seconds"
+let bounce_phi = "□(|xp - x| > ε<sub>x</sub> ⇒ ◇<sub>[0, ε<sub>t</sub>]</sub>(x - xp > ε<sub>x</sub>))"
+
+node bounce(x, xp) =
+    let dist = x -. xp in
+    d_trigger
+        (d_next small_time)
+        (sampling, (p_lt small_space (abs_float dist), p_gt small_space dist))
+
+open Scope
+
+hybrid main() =
+    let der t = 1. init 0. in
+
+    let x_init = 10. in
+    let x, xp = Ball_spring.simu(x_init) in
+
+    present (period(sampling)) ->
+        let r, s = bounce(x, xp) in
+        let sc1 = scope2 (0.0, 35.0, ("ball", linear, x +. base_level),
+                                      ("platform", linear, xp +. base_level)) in
+        let sc2 = scope2 (0.0, 10.0, (bounce_phi, linear, r),
+                                      ("done?", linear, float_of_state s)) in
+        window2("Spec", 50., t, sc1, sc2)
+    else ()
