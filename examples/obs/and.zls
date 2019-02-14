@@ -25,18 +25,12 @@ node main () =
     in
 
     let r1, s1 =
-        d_and
-            (select_apply 0 (d_next 5.))
-            (select_apply 1 (d_always_l 2.))
-            (tstep, [x; y])
+        d_and (d_next 5.) (d_always_l 2.) (tstep, (x, y))
     in
     let r11, _ = d_next 5. (tstep, x) in
     let r12, _ = d_always_l 2. (tstep, y) in
     let r2, s2 =
-        d_and
-            (select_apply 0 (d_next 3.))
-            (select_apply 1 (d_always_l 2.))
-            (tstep, [x; y])
+        d_and (d_next 3.) (d_always_l 2.) (tstep, (x, y))
     in
     let r21, _ = d_next 3. (tstep, x) in
     let r22, _ = d_always_l 2. (tstep, y) in

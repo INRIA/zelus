@@ -27,28 +27,16 @@ node main () =
     in
 
     let r1, s1 =
-        d_always_l_or 5.
-            (select_apply 0 (d_next 0.3))
-            (select_apply 1 (d_always_l 0.3))
-            (tstep, [x; y])
+        d_always_l_or 5. (d_next 0.3) (d_always_l 0.3) (tstep, (x, y))
     in
     let r2, s2 =
-        d_always_l_or 5.
-            (select_apply 0 (d_next 0.3))
-            (select_apply 1 (d_always_l 5.))
-            (tstep, [x; y])
+        d_always_l_or 5. (d_next 0.3) (d_always_l 5.) (tstep, (x, y))
     in
     let r3, s3 =
-        d_always_r_or 4.
-            (select_apply 0 (d_next 0.3))
-            (select_apply 1 (d_always_l 0.3))
-            (tstep, [x; y])
+        d_always_r_or 4. (d_next 0.3) (d_always_l 0.3) (tstep, (x, y))
     in
     let r4, s4 =
-        d_always_r_or 4.
-            (select_apply 0 (d_next 0.3))
-            (select_apply 1 (d_always_l 5.))
-            (tstep, [x; y])
+        d_always_r_or 4. (d_next 0.3) (d_always_l 5.) (tstep, (x, y))
     in
     let st1 = float_of_state s1 in
     let st2 = float_of_state s2 in

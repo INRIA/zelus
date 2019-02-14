@@ -8,7 +8,7 @@ node float_of_state st = match st with | NotYet -> 0. | Done -> 1.
 
 node lift (_, p) = p, Done
 
-(* PREDICATES = tstep * float -> float *)
+(* PREDICATES = float -> float *)
 
 node p_lt r x = r -. x
 node p_gt r x = x -. r
@@ -56,16 +56,16 @@ node d_always_r r (tstep, p) = v, state where
 (*
     And(phi1, phi2)(x) ≡ phi1(x) ∧ phi2(x)
 *)
-node d_and phi1 phi2 (tstep, x) =
-    let v1, state1 = run phi1 (tstep, x)
-    and v2, state2 = run phi2 (tstep, x) in
+node d_and phi1 phi2 (tstep, (x1, x2)) =
+    let v1, state1 = run phi1 (tstep, x1)
+    and v2, state2 = run phi2 (tstep, x2) in
     min v1 v2,
     automaton
     | I ->
         do NotYet until (state1 = Done) on (v1 < 0.)
                       | (state2 = Done) on (v2 < 0.) then Sink
-        else (state2 = Done) on (v2 > 0.) then S1
-        else (state1 = Done) on (v1 > 0.) then S2
+        else (state2 = Done) on (v2 >= 0.) then S1
+        else (state1 = Done) on (v1 >= 0.) then S2
     | S1 -> do NotYet until (state1 = Done) then Sink
     | S2 -> do NotYet until (state2 = Done) then Sink
     | Sink -> do Done done
@@ -73,9 +73,9 @@ node d_and phi1 phi2 (tstep, x) =
 (*
     Or(phi1, phi2)(x) ≡ phi1(x) ∨ phi2(x)
 *)
-node d_or phi1 phi2 (tstep, x) =
-    let v1, state1 = run phi1 (tstep, x)
-    and v2, state2 = run phi2 (tstep, x) in
+node d_or phi1 phi2 (tstep, (x1, x2)) =
+    let v1, state1 = run phi1 (tstep, x1)
+    and v2, state2 = run phi2 (tstep, x2) in
     max v1 v2,
     automaton
     | I ->
@@ -91,7 +91,7 @@ node d_or phi1 phi2 (tstep, x) =
     PAnd(phi)(p, x) ≡ p ∧ phi(x)
 *)
 node d_pand phi (tstep, (p, x)) =
-    d_and (select_apply 0 phi) (select_apply 1 lift) (tstep, [x; p])
+    d_and phi lift (tstep, (p, x))
     (* let init p_init = p in
     let v, state = run phi (tstep, x) in
     min p_init v,
@@ -101,7 +101,7 @@ node d_pand phi (tstep, (p, x)) =
     POr(phi)(p, x) ≡ p ∨ phi(x)
 *)
 node d_por phi (tstep, (p, x)) =
-    d_or (select_apply 0 phi) (select_apply 1 lift) (tstep, [x; p])
+    d_or phi lift (tstep, (p, x))
     (* let init p_init = p in
     let v, state = run phi (tstep, x) in
     max p_init v,
@@ -121,9 +121,9 @@ node d_trigger_l r phi (tstep, (p, x)) = v, state where
     | S ->
         let v', state' = run phi (tstep, x) in
         do v = min p v' and state = NotYet
-        until (state' = Done) on (t < r) then I
-        else (state' = Done) on (t >= r) then Sink(v)
-        else (state' = Done) then Sink(v)
+        until (state' = Done) on (v > 0. && t < r) then I
+        else (state' = Done) on (v > 0. && t >= r) then Sink(v)
+        else (state' = Done) on (v < 0.) then Sink(v)
     | Sink(f) -> do v = f and state = Done done
 
 node d_trigger phi (tstep, (p, x)) = d_trigger_l infinity phi (tstep, (p, x))
@@ -147,11 +147,11 @@ node d_trigger_r r phi (tstep, (p, x)) = v, state where
 (*
     Always_or_l(r)(phi1, phi2)(x) ≡ □_[0,r](phi1 ∨ phi2)
 *)
-node d_always_l_or r phi1 phi2 (tstep, x) = v, state where
+node d_always_l_or r phi1 phi2 (tstep, (x1, x2)) = v, state where
     rec t = 0. fby (t +. tstep)
     and automaton
     | I ->
-        let v', state' = run (d_or phi1 phi2) (tstep, x) in
+        let v', state' = run (d_or phi1 phi2) (tstep, (x1, x2)) in
         do v = v' and state = NotYet
         until (state' = Done) on (v' > 0.) on (t <= r) then I
         else (state' = Done) on (v' > 0.) on (t > r) then Sink(v)
@@ -162,14 +162,14 @@ node d_always_l_or r phi1 phi2 (tstep, x) = v, state where
     Always_or_r(r)(phi1, phi2)(x) ≡ □_[r, +∞[(phi1 ∨ phi2)
 *)
 
-node d_always_r_or r phi1 phi2 (tstep, x) = v, state where
+node d_always_r_or r phi1 phi2 (tstep, (x1, x2)) = v, state where
     rec t = 0. fby (t +. tstep)
     and automaton
     | I ->
         do v = infinity and state = NotYet
         until (t > r) then S
     | S ->
-        let v', state' = run (d_or phi1 phi2) (tstep, x) in
+        let v', state' = run (d_or phi1 phi2) (tstep, (x1, x2)) in
         do v = v' and state = NotYet
         until (state' = Done) on (v > 0.) then S
         else (state' = Done) on (v < 0.) then Sink(v)

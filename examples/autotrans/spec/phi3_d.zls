@@ -32,10 +32,8 @@ node phi3((throttle, brake_torque), (rpm, gear, speed)) =
     let ng2 = p_not (p_eqi 2.) gear in
     let g2 = p_eqi 2. gear in
     d_trigger
-        (d_or
-            (select_apply 0 (d_always_l epsilon))
-            (select_apply 1 (d_always_l     2.5)))
-        (tstep, (g2, [ng1; ng2]))
+        (d_or (d_always_l epsilon) (d_always_l 2.5))
+        (tstep, (g2, (ng1, ng2)))
 
 open Scope
 

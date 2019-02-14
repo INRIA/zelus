@@ -49,12 +49,12 @@ node phi7((throttle, brake_torque), (rpm, gear, speed)) =
         w < w̄
     *)
     d_and
-        (select_apply 0 (select_apply 0 (d_next cT)))
-        (select_apply 1 (apply2_list2tuple (d_trigger_l cT d_always)))
-        (tstep, [
-         [p_gt max_speed speed];
-         [p_gt max_speed speed; p_lt max_rpm rpm]
-        ])
+        (d_next cT)
+        (d_trigger_l cT d_always)
+        (tstep,
+         (p_gt max_speed speed,
+         (p_gt max_speed speed, p_lt max_rpm rpm))
+        )
 
 open Scope
 
