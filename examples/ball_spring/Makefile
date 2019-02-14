@@ -2,6 +2,7 @@ include ../../config
 
 EXAMPLE=ball_spring.zls
 ZLEXTRALIBS = $(ZLGTKLIBS)
+MAINNODE = main
 
 default: $(word 1, $(targets))
 all:  $(targets)
@@ -14,20 +15,32 @@ ball_spring.byte: $(OBJ)
 ball_spring.opt: ZLEXTRALIBS += graphics.cmxa $(OBJ:.cmo=.cmx)
 ball_spring.opt: $(OBJ:%.cmo=%.cmx)
 
-spec: byte spec.byte spec.opt
-spec.cmo: ZLEXTRALIBS += $(EXAMPLE:.zls=.cmo)
-spec.cmo: ZELUCFLAGS += -gtk2
-spec.cmx: ZLEXTRALIBS += $(EXAMPLE:.zls=.cmx)
-spec.cmx: ZELUCFLAGS += -gtk2
+spec: spec_byte spec_opt spec_plot_byte spec_plot_opt
+spec_byte: byte spec.byte
+spec_opt: opt spec.opt
+spec_plot_byte: byte spec_plot.byte
+spec_plot_opt: opt spec_plot.opt
 
-spec.byte: ball_spring.cmo spec.cmo
+spec_plot.ml: ZLEXTRALIBS += $(EXAMPLE:.zls=.cmo)
+spec_plot.ml: ZELUCFLAGS += -gtk2
+
+spec.byte: ball_spring.cmo spec.cmo spec_main.ml
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
 	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) graphics.cma \
-	    $^ spec_main.ml
-spec.opt: ball_spring.cmx spec.cmx
+	    $^
+spec.opt: ball_spring.cmx spec.cmx spec_main.ml
 	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
 	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) $(ZLEXTRALIBS:.cma=.cmxa) graphics.cmxa \
-	    $^ spec_main.ml
+	    $^
+
+spec_plot.byte: ball_spring.cmo spec.cmo spec_plot.ml
+	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) graphics.cma \
+	    $^
+spec_plot.opt: ball_spring.cmx spec.cmx spec_plot.ml
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) $(ZLEXTRALIBS:.cma=.cmxa) graphics.cmxa \
+	    $^
 
 ball_spring.out: ball_spring.byte
 	./ball_spring.byte -maxt 25 -fullspeed
@@ -52,15 +65,16 @@ export:
 #
 
 clean:
-	-@rm -f *~ *.cmi *.cmo *.cmx *.annot *.o *.zci *.obc *.ml *.out *.byte *.opt
+	-@rm -f *~ *.cmi *.cmo *.cmx *.annot *.o *.zci *.obc *.ml *.out
 	-@rm -f ball_spring.ps
 
 realclean cleanall: clean
-	-@rm -f $(EXAMPLE:%.zls=%.opt) $(EXAMPLE:%.zls=%.byte)
+	-@rm -f *.byte *.opt
 
 # Common rules
 .SUFFIXES : .ml .zls .byte
 
-.zls.ml:
-	$(ZELUC) $(ZELUCFLAGS) -s main $<
-	mv main.ml $(<:.zls=)_main.ml
+spec_%.ml: spec.zls
+	$(ZELUC) $(ZELUCFLAGS) -o $(<:.zls=)_$(@:spec_%.ml=%) -s $(@:spec_%.ml=%) $<
+%.ml: %.zls
+	$(ZELUC) $(ZELUCFLAGS) -o $(<:.zls=)_main -s main $<
