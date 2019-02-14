@@ -17,6 +17,8 @@ val list_foldr : ('a * 'b -> 'b) -S-> 'a list -A-> 'b -A-> 'b
 val list_split : ('a * 'b) list -A-> 'a list * 'b list
 val list_nth   : 'a list -> int -> 'a
 
+val stdform_of_float : int -> int -> float -> string
+
 (** [float_eq (max_relative_err, a, b)] returns true if
  *  [a] = [b] to within ((1 - max_relative_error) * 100)% *)
 val float_eq : float -> float -> float -AD-> bool

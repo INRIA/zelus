@@ -15,6 +15,13 @@ let list_foldr f l b = List.fold_right (fun a b -> f (a, b)) l b
 let list_split = List.split
 let list_nth = List.nth
 
+let stdform_of_float pref suf f =
+  Printf.sprintf
+    (Scanf.format_from_string
+       (Printf.sprintf "%%%d.%de" pref suf)
+       "%e")
+    f
+
 let append (l1, l2) = List.append l1 l2
 
 let output_line output_item out ss =
