@@ -16,7 +16,7 @@ let draw_point color pos =
   begin match pos with
     | [ x ; y ] ->
       Graphics.set_color color;
-      Graphics.fill_circle (int_of_float x) (int_of_float y) 2;
+      Graphics.fill_circle (int_of_float x) (int_of_float y) 3;
   | _ -> assert false
   end
 
