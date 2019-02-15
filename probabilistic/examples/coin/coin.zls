@@ -2,6 +2,15 @@ open Distribution
 open Infer
 (* open Infer_importance *)
 
+
+let node print_stats name (m, s) =
+  print_string ("("^name^": mean =  ");
+  print_float m;
+  print_string " std = ";
+  print_float s;
+  print_string ")";
+  print_newline ()
+
 let node coin (prob, flip) = theta where
   rec init theta = sample (prob, uniform_float 0. 1.)
   and () = factor (prob,
@@ -11,6 +20,7 @@ let node cheater_detector flip = (cheater, m) where
   rec automaton
       | Observe -> local theta_dist
           do theta_dist = infer 1000 coin flip
+          and () = print_stats "theta" (Distribution.stats_float theta_dist)
           and m = Distribution.mean_float theta_dist
           and cheater = false
           until (m < 0.25 || m > 0.75) then Cheater(m)
@@ -33,20 +43,14 @@ let node print_bool b =
 (*   let result = Distribution.mean_float o in *)
 (*   print_float result; print_newline () *)
 
-let node main () = dummy where
+
+ let node main () = () where
   rec b = (* flips (1, 10) *) Distribution.draw (bernoulli 0.2)
   and cheater, m = cheater_detector b
+  and init dummy = ()
   and automaton
   | Run ->
       do
-        dummy = print_bool b; print_string " : "; print_float m; print_newline ()
-      until cheater then Cheating
-  | Cheating ->
-      do
-        dummy = print_endline "Cheating!!!"
-      until true then Stop
-  | Stop ->
-      do
-        dummy = ()
-      done
-
+      until cheater then
+        do dummy = print_endline "Cheating!!!" in Stop
+  | Stop -> do done
