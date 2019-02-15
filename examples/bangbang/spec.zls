@@ -1,0 +1,56 @@
+open Obs
+
+let static sampling = 0.1
+let static tol = 2.
+let reference = 20.
+
+let in_range_en = "Once the temperature is within a " ^
+                (string_of_float tol) ^ " degrees range of the referenceerence " ^
+                "temperature (" ^ (string_of_float reference) ^ "°C)" ^
+                ", it stays within that range"
+let in_range_phi = "□(|temp - reference| &#60; " ^ (string_of_float tol) ^ " ⇒ □(|temp - reference| &#60; " ^ (string_of_float tol) ^ "))"
+
+node in_range(temp) =
+    let diff = abs_float (temp -. reference) in
+    let diff_lt_tol = p_lt tol diff in
+    d_trigger (d_always) (sampling, (diff_lt_tol, diff_lt_tol))
+
+open Scope
+
+hybrid plot() =
+    let der t = 1. init 0. in
+
+    let x_init = 10. in
+    let led, on_off, temp = Bangbang.model() in
+
+
+    present (period(sampling)) ->
+        let r, s = in_range(temp) in
+        let sc1 = scope2 (14.0, 21.0, ("temp", linear, temp),
+                                      ("reference", linear, reference)) in
+        let sc2 = scope2 (-1., 3., (in_range_phi, linear, r),
+                                      ("done?", linear, float_of_state s)) in
+        window2("Spec", 50., t, sc1, sc2)
+    else ()
+
+hybrid main() =
+    let der t = 1. init 0. in
+
+    let x_init = 10. in
+    let led, on_off, temp = Bangbang.model() in
+
+    present (period(sampling)) ->
+        let r, s = in_range(temp) in
+
+        if r < 0. && s = Obs.NotYet then
+            print_endline ("Warning: at t = " ^ (string_of_float t) ^
+                " with values temp = " ^ (string_of_float temp) ^
+                " and reference = " ^ (string_of_float reference) ^
+                ", intermediary robustness was " ^ (string_of_float r))
+        else
+            (print_string ("t = " ^ (Basics.stdform_of_float 2 2 t) ^
+                        "\t\t| temp = " ^ (Basics.stdform_of_float 2 2 temp) ^
+                       "\t\t| reference = " ^ (Basics.stdform_of_float 2 2 reference) ^ "\r");
+             flush stdout)
+        (* phi will never end, s will never be Obs.Done *)
+    else ()

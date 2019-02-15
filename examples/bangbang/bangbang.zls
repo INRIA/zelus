@@ -87,16 +87,16 @@ let node controller (ref, temp) = (led, boiler) where
 
 (* ** main ** *)
 
-let reference = fixdt (5.0 /. 256.0 /. 0.05, -. 0.75 /. 0.05, 20.0)
+    let reference = fixdt (5.0 /. 256.0 /. 0.05, -. 0.75 /. 0.05, 20.0)
 
 let hybrid model () = (led, on_off, actual_temp) where
   rec init led = red
   and init on_off = false
   and init digital_temp = 0
   and trigger = period (0.01)
-  and present trigger -> 
+  and present trigger ->
          do (led, on_off) = controller(reference, last digital_temp) done
-  and present trigger -> 
+  and present trigger ->
          do digital_temp = digital_thermometer (actual_temp) done
   and actual_temp = boiler(on_off)
 
@@ -110,7 +110,8 @@ let node plot (led, boiler, temp) =
   let s2 =
     scope (0.0, 1.0, ("boiler (0=OFF, 1=ON)", points true, bool_to_float(boiler))) in
   let s3 =
-    scope (11.0, 25.0, ("temperature (degC)", linear, temp)) in
+    scope2(11.0, 25.0, ("temperature (degC)", linear, temp),
+                       ("reference (degC)", linear, float_of_int reference)) in
   let rec t = 0.0 fby t +. 1.0 in
   window3 ("bangbang", 1600.0, t, s1, s2, s3)
 
@@ -118,4 +119,3 @@ let hybrid main () =
   let (led, on_off, actual_temp) = model () in
   let trigger = period (0.01) in
   present trigger -> plot (led, on_off, actual_temp) else ()
-
