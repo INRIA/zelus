@@ -510,10 +510,10 @@ let implementation ff impl =
           Ptypes.print_type_params params
           n type_decl ty_decl
     | Econstdecl(n, is_static, e) ->
-        fprintf ff "@[<v 2>let %s%s =@ %a@.@.@]"
-          (if is_static then "static " else "") n expression e 
+        fprintf ff "@[<v 2>let %s%a =@ %a@.@.@]"
+          (if is_static then "static " else "") shortname n expression e 
     | Efundecl(n, body) ->
-       fprintf ff "@[<v 2>let %s =@ %a@.@]" n funexp body
+       fprintf ff "@[<v 2>let %a =@ %a@.@]" shortname n funexp body
 	       
 let implementation_list ff imp_list =
   List.iter (implementation ff) imp_list
@@ -526,8 +526,8 @@ let interface ff inter =
           Ptypes.print_type_params params
           n type_decl ty_decl
     | Einter_constdecl(n, ty) ->
-        fprintf ff "@[<v 2>val %s : %a@.@.@]"
-          n ptype ty
+        fprintf ff "@[<v 2>val %a : %a@.@.@]"
+          shortname n ptype ty
 
 let interface_list ff int_list =
   List.iter (interface ff) int_list

@@ -300,26 +300,26 @@ implementation:
       { Eopen c }
   | TYPE tp = type_params id = IDENT td = localized(type_declaration_desc)
       { Etypedecl(id, tp, td) }
-  | LET ide = IDENT EQUAL seq = seq_expression
+  | LET ide = ide EQUAL seq = seq_expression
       { Econstdecl(ide, false, seq) }
-  | LET STATIC ide = IDENT EQUAL seq = seq_expression
+  | LET STATIC ide = ide EQUAL seq = seq_expression
       { Econstdecl(ide, true, seq) }
-  | LET ide = IDENT fn = simple_pattern_list EQUAL seq = seq_expression
+  | LET ide = ide fn = simple_pattern_list EQUAL seq = seq_expression
       { Efundecl(ide, { f_kind = A; f_atomic = false;
 			f_args = fn; f_body = seq;
 			f_loc = localise $startpos(fn) $endpos(seq) }) }
-  | LET ide = IDENT fn = simple_pattern_list EQUAL
+  | LET ide = ide fn = simple_pattern_list EQUAL
 	seq = seq_expression WHERE r = is_rec eqs = equation_list
       { Efundecl(ide, { f_kind = A; f_atomic = false; f_args = fn;
 			f_body = make(Elet(r, eqs, seq))
 				 $startpos(seq) $endpos(eqs);
 		       f_loc = localise $startpos(fn) $endpos(eqs) }) }
-  | is_let a = is_atomic k = kind ide = IDENT fn = simple_pattern_list
+  | is_let a = is_atomic k = kind ide = ide fn = simple_pattern_list
 					EQUAL seq = seq_expression
       { Efundecl(ide,
 		 { f_kind = k; f_atomic = a; f_args = fn; f_body = seq;
 		  f_loc = localise $startpos(fn) $endpos(seq) }) }
-  | is_let a = is_atomic k = kind ide = IDENT
+  | is_let a = is_atomic k = kind ide = ide
 	  fn = simple_pattern_list EQUAL seq = seq_expression
           WHERE r = is_rec eqs = equation_list
       { Efundecl(ide, { f_kind = k; f_atomic = a; f_args = fn;
