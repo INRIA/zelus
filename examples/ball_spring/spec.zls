@@ -52,7 +52,7 @@ hybrid main() =
         else
             (print_string ("t = " ^ (Basics.stdform_of_float 2 2 t) ^
                         "\t\t| x = " ^ (Basics.stdform_of_float 2 2 (x +. base_level)) ^
-                       "\t\t| xp = " ^ (Basics.stdform_of_float 2 2 (x +. base_level)) ^ "\r");
+                       "\t\t| xp = " ^ (Basics.stdform_of_float 2 2 (xp +. base_level)) ^ "\r");
              flush stdout)
         (* phi will never end, s will never be Obs.Done *)
     else ()
