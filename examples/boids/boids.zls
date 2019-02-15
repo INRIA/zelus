@@ -2,7 +2,71 @@
 (* + code RML de Baudart et Mandel *)
 
 open Utils
-  
+
+let set_color boid =
+  match boid.family with
+  | -1 -> Graphics.set_color Graphics.white
+  | 0 -> Graphics.set_color Graphics.red
+  | 1 -> Graphics.set_color Graphics.blue
+  | 2 -> Graphics.set_color Graphics.green
+  | 3 | _ -> Graphics.set_color Graphics.black
+  end
+
+let node draw_boid boid =
+  let init x =
+    let pos = boid.position in
+    set_color boid;
+    Graphics.fill_circle
+      (int_of_float pos.x)
+      (int_of_float pos.y)
+      2 in
+  let automaton
+  | Draw ->
+      let _ = set_color boid in
+      let _ =
+	Graphics.fill_circle
+	  (int_of_float pos.x)
+	  (int_of_float pos.y)
+	  1 in
+      let rec cpt = 1 -> pre cpt + 1 in
+      do done
+  | Stop -> do done in
+  ()
+
+let node read_inputs mouse_click = key where
+  rec if Graphics.key_pressed() then
+	do emit key = Graphics.read_key() done
+      else
+	let click = Graphics.button_down() in
+	do if click & not (false fby click) then
+	  do emit mouse_click = vmouse () done done
+
+let in_bounds (min_x, max_x, min_y, max_y) boid =
+  min_x <= boid.position.x && boid.position.x <= max_x &&
+  min_y <= boid.position.y && boid.position.y <= max_y
+
+let check_bounds ((min_x, max_x, min_y, max_y), boid) =
+  let pos_x, v_x =
+    if boid.position.x < min_x then (min_x, abs_float boid.speed.x)
+    else if boid.position.x > max_x then (max_x, -. (abs_float boid.speed.x))
+    else (boid.position.x, boid.speed.x)
+  in
+  let pos_y, v_y =
+    if boid.position.y < min_y then (min_y, abs_float boid.speed.y)
+    else if boid.position.y > max_y then (max_y, -.(abs_float boid.speed.y))
+    else (boid.position.y, boid.speed.y)
+  in
+  { boid with
+    position = { x = pos_x ; y = pos_y; };
+    speed = { x = v_x; y = v_y; }; }
+
+let in_sight angle me boid =
+  (me.id = boid.id) or
+  let dir = me.speed in
+  dir = vzero or
+  let sep = boid.position -: me.position in
+  (vcos dir sep) > angle
+
 (* Rules *)
 
 (* Rule 1: fly towards the center of mass *)
