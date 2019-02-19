@@ -114,6 +114,7 @@ clean:
 	-@rm -f ball_main.ml ball.ml
 	-@rm -f autoball_main.ml autoball.ml
 	-@rm -f flatball_main.ml flatball.ml
+	-@rm -f spec_main.ml spec_plot.ml spec.ml
 	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci
 	-@rm -f $(EXAMPLE:%.zls=%.byte) $(EXAMPLE:%.zls=%.opt)
 	-@rm -f .depend
