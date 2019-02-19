@@ -25,10 +25,10 @@ realclean cleanall: clean
 	-@rm -rf *.byte *.opt
 
 spec: spec_byte spec_opt spec_plot_byte spec_plot_opt
-spec_byte: byte spec.byte
-spec_opt: opt spec.opt
-spec_plot_byte: byte spec_plot.byte
-spec_plot_opt: opt spec_plot.opt
+spec_byte: clean byte spec.byte
+spec_opt: clean opt spec.opt
+spec_plot_byte: clean byte spec_plot.byte
+spec_plot_opt: clean opt spec_plot.opt
 
 spec_plot.ml: ZLEXTRALIBS += $(EXAMPLE:.zls=.cmo)
 spec_plot.ml: ZELUCFLAGS += -gtk2
@@ -56,5 +56,7 @@ spec_plot.opt: bangbang.cmx spec.cmx spec_plot.ml
 
 spec_%.ml: spec.zls
 	$(ZELUC) $(ZELUCFLAGS) -o $(<:.zls=)_$(@:spec_%.ml=%) -s $(@:spec_%.ml=%) $<
-%.ml: %.zls
+spec.ml: spec.zls
+	$(ZELUC) $(ZELUCFLAGS) -o $(<:.zls=)_main -s main $<
+bangbang.ml: bangbang.zls
 	$(ZELUC) $(ZELUCFLAGS) -gtk2 -o $(<:.zls=)_main -s main $<
