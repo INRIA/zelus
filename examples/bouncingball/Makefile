@@ -3,6 +3,8 @@ include ../../config
 EXAMPLE=ball.zls autoball.zls flatball.zls
 ML=showball.ml world.ml
 
+ZLEXTRALIBS = $(ZLGTKLIBS)
+
 default: $(word 1, $(targets))
 all:  $(targets)
 byte: $(EXAMPLE:%.zls=%.byte)
@@ -58,6 +60,39 @@ flatball.ml flatball_main.ml: showball.zci flatworld.zci flatball.zls
 	mv main.ml flatball_main.ml
 
 #
+
+spec: spec_byte spec_opt spec_plot_byte spec_plot_opt
+spec_byte: byte spec.byte
+spec_opt: opt spec.opt
+spec_plot_byte: byte spec_plot.byte
+spec_plot_opt: opt spec_plot.opt
+
+spec_plot.ml: ZLEXTRALIBS += $(EXAMPLE:.zls=.cmo)
+spec_plot.ml: ZELUCFLAGS += -gtk2
+
+spec.byte: showball.cmo flatworld.cmo flatball.cmo spec.cmo spec_main.ml
+	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) graphics.cma \
+	    $^
+spec.opt: showball.cmx flatworld.cmx flatball.cmx spec.cmx spec_main.ml
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) $(ZLEXTRALIBS:.cma=.cmxa) graphics.cmxa \
+	    $^
+
+spec_plot.byte: showball.cmo flatworld.cmo flatball.cmo spec.cmo spec_plot.ml
+	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) graphics.cma \
+	    $^
+spec_plot.opt: showball.cmx flatworld.cmx flatball.cmx spec.cmx spec_plot.ml
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) $(ZLEXTRALIBS:.cma=.cmxa) graphics.cmxa \
+	    $^
+
+spec_%.ml: spec.zls
+	$(ZELUC) $(ZELUCFLAGS) -o $(<:.zls=)_$(@:spec_%.ml=%) -s $(@:spec_%.ml=%) $<
+%.ml: %.zls
+	$(ZELUC) $(ZELUCFLAGS) -o $(<:.zls=)_main -s main $<
+
 
 # ##
 

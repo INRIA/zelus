@@ -1,0 +1,62 @@
+open Obs
+
+let static sampling = 0.05
+let static small_time = 0.1
+let static small_space = 0.1
+
+let static base_level = 15.0
+
+let bounce_en = "When the distance between the ball and the ground is " ^
+                "smaller than " ^ (string_of_float small_space) ^
+                ", it becomes bigger than 0 in less than " ^
+                (string_of_float small_time) ^ " seconds"
+let bounce_phi = "□(|xp - x| &#60; " ^ (string_of_float small_space) ^
+                 " ⇒ ◇<sub>[0, " ^ (string_of_float small_time) ^
+                 "]</sub>(x - xp > 0))"
+
+node bounce(x, xp) =
+    let dist = x -. xp in
+    d_trigger
+        (d_next small_time)
+        (sampling, (p_lt (abs_float dist, small_space), p_gt (dist, 0.)))
+
+open Scope
+
+hybrid plot() =
+    let der t = 1. init 0. in
+
+    let x_0 = 5. and y_0 = 10. in
+    let (y, _, _) = Flatball.ball(x_0, y_0) in
+    let ground = Flatball.ground x_0 in
+
+    present (period(sampling)) ->
+        let r, s = bounce(y, Flatball.ground x_0) in
+        let sc1 = scope2 (0.0, 35.0, ("ball", linear, y),
+                                      ("platform", linear, ground)) in
+        let sc2 = scope2 (0.0, 10.0, (bounce_phi, linear, r),
+                                      ("done?", linear, float_of_state s)) in
+        window2("Spec", 50., t, sc1, sc2)
+    else ()
+
+hybrid main() =
+    let der t = 1. init 0. in
+
+    let x_0 = 5. and y_0 = 10. in
+    let (y, _, _) = Flatball.ball(x_0, y_0) in
+    let ground = Flatball.ground x_0 in
+
+    present (period(sampling)) ->
+        let r, s = bounce(y, ground) in
+
+        if r < 0. && s = Obs.NotYet then
+            print_endline ("Warning: at t = " ^ (string_of_float t) ^
+                " with values y = " ^ (string_of_float y) ^
+                " and ground = " ^ (string_of_float ground) ^
+                ", intermediary robustness was " ^ (string_of_float r))
+        else
+            (print_string ("t = " ^ (Basics.stdform_of_float 2 2 t) ^
+                        "\t\t| y = " ^ (Basics.stdform_of_float 2 2 y) ^
+                       "\t\t| ground = " ^ (Basics.stdform_of_float 2 2 ground) ^ "\r");
+             flush stdout)
+        (* phi will never end, s will never be Obs.Done *)
+    else ()
