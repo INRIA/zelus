@@ -10,7 +10,9 @@ let bounce_en = "When the distance between the ball and the spring is " ^
                 "smaller than " ^ (string_of_float small_space) ^
                 ", it becomes bigger than " ^ (string_of_float small_space) ^
                 " in less than " ^ (string_of_float small_time) ^ " seconds"
-let bounce_phi = "□(|xp - x| &#60; ε<sub>x</sub> ⇒ ◇<sub>[0, ε<sub>t</sub>]</sub>(x - xp > ε<sub>x</sub>))"
+let bounce_phi = "□(|xp - x| &#60; " ^ (string_of_float small_space) ^
+                 " ⇒ ◇<sub>[0, " ^ (string_of_float small_time) ^
+                 "]</sub>(x - xp > " ^ (string_of_float small_space) ^ "))"
 
 node bounce(x, xp) =
     let dist = x -. xp in

@@ -2,7 +2,6 @@ include ../../config
 
 EXAMPLE=ball_spring.zls
 ZLEXTRALIBS = $(ZLGTKLIBS)
-MAINNODE = main
 
 default: $(word 1, $(targets))
 all:  $(targets)
