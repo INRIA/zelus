@@ -33,7 +33,7 @@ open Spec
 
 node phi6((throttle, brake_torque), (rpm, gear, speed)) =
     d_or (d_always_l cT) d_next_ub
-        (tstep, (p_lt max_speed speed, p_ge max_rpm rpm))
+        (tstep, (p_lt (speed, max_speed), p_ge (rpm, max_rpm)))
 
 open Scope
 

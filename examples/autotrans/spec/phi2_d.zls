@@ -31,10 +31,7 @@ open Spec
 node phi2((throttle, brake_torque), (rpm, gear, speed)) =
     d_always
         (tstep,
-         p_and
-            (p_select_apply 0 (p_lt max_rpm))
-            (p_select_apply 1 (p_lt max_speed))
-            [rpm; speed])
+         p_and (p_lt (rpm, max_rpm), p_lt (speed, max_speed)))
 
 open Scope
 

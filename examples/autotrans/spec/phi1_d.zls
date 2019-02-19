@@ -27,7 +27,7 @@ open Obs
 open Spec
 
 node phi1((throttle, brake_torque), (rpm, gear, speed)) =
-    d_always (tstep, p_lt max_rpm rpm)
+    d_always (tstep, p_lt (rpm, max_rpm))
 
 open Scope
 

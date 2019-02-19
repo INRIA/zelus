@@ -52,8 +52,8 @@ node phi7((throttle, brake_torque), (rpm, gear, speed)) =
         (d_next cT)
         (d_trigger_l cT d_always)
         (tstep,
-         (p_gt max_speed speed,
-         (p_gt max_speed speed, p_lt max_rpm rpm))
+         (p_gt (speed, max_speed),
+         (p_gt (speed, max_speed), p_lt (rpm, max_rpm)))
         )
 
 open Scope

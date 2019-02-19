@@ -2,7 +2,7 @@ include ../../../config
 
 ZELUC = ../../../bin/zeluc
 
-OBSERVERS = phi1_d phi2_d phi3_d phi4_d phi5_d phi6_d phi7_d # phi8_d
+OBSERVERS = phi1_d phi2_d phi3_d phi4_d phi5_d phi6_d phi7_d phi8_d
 REFERENCE = phi1_ref phi2_ref phi3_ref phi4_ref phi5_ref phi6_ref phi7_ref # phi8_ref
 
 ZELUCFLAGS += -I ../../../lib -I ../

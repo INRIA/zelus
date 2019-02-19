@@ -14,12 +14,13 @@ let node main () =
         else 3.
     in
 
-    let r1 = p_gt 1. x in
-    let r2 = p_ge 1. x in
-    let r3 = p_lt 1. x in
-    let r4 = p_le 1. x in
-    let r5 = p_eqi 1. x in
-    let r6 = p_not (p_eqi 1.) x in
+    let r1 = p_gt (x, 0.5) in
+    let r2 = p_ge (x, 0.5) in
+    let r3 = p_lt (x, 0.5) in
+    let r4 = p_le (x, 0.5) in
+    let r5 = p_eqi (x,  0.5) in
+    let r6 = p_not r5 in
+    let r7 = p_edge r1 in
 
     let s1 = scope( 0., 3., ("x", linear, x)) in
     let s2 = scope(-3., 3., ("x > 1", linear, r1)) in
@@ -28,4 +29,5 @@ let node main () =
     let s5 = scope(-3., 3., ("x ≤ 1", linear, r4)) in
     let s6 = scope(-3., 3., ("x = 1", linear, r5)) in
     let s7 = scope(-3., 3., ("x ≠ 1", linear, r6)) in
-    windown("AlwaysOr", 10., t, [s1; s2; s3; s4; s5; s6; s7])
+    let s8 = scope(-3., 3., ("edge (x > 1)", linear, r7)) in
+    windown("Predicates", 10., t, [s1; s2; s3; s4; s5; s6; s7; s8])

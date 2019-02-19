@@ -16,7 +16,7 @@ node bounce(x, xp) =
     let dist = x -. xp in
     d_trigger
         (d_next small_time)
-        (sampling, (p_lt small_space (abs_float dist), p_gt small_space dist))
+        (sampling, (p_lt (abs_float dist, small_space), p_gt (dist, small_space)))
 
 open Scope
 
