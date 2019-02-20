@@ -1,5 +1,7 @@
 include ../../config
 
+INCLUDES += graphics.cma
+
 all:stick_slip.byte
 
 stick_slip.byte: stick_slip.ml stick_slip_main.ml
