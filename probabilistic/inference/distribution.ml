@@ -372,14 +372,18 @@ let exponential lambda =
   Dist_sampler (draw, score)
 
 
-(* XXXXXXXXX *)
+(** [alias_method support] is a discrete distribution where each
+    element of [support] is a pair [(x, p)] of a value [x] of
+    probability [p].
+    @see<https://en.wikipedia.org/wiki/Alias_method>
+*)
 let alias_method support =
-  let support = Array.of_list support in
-  let size = Array.length support in
+  let support_a = Array.of_list support in
+  let size = Array.length support_a in
   let size_f = float size in
-  let alias = Array.make size 0 in
+  let probabilities = Array.map (fun (_, p) -> p) support_a in
   let probability = Array.create_float size in
-  let probabilities = Array.map (fun (_, p) -> p) support in
+  let alias = Array.make size 0 in
   let average = 1.0 /. size_f in
   let _, small, large =
     Array.fold_left
@@ -410,9 +414,10 @@ let alias_method support =
   let draw () =
     let column = Random.int size in
     let coin_toss = Random.float 1. < probability.(column) in
-    if coin_toss then fst (support.(column)) else fst (support.(alias.(column)))
+    if coin_toss then fst (support_a.(column)) else fst (support_a.(alias.(column)))
   in
   let score x =
-    assert false (* XXX TODO XXX *)
+    log (try List.assoc x support
+         with Not_found -> 0.)
   in
   Dist_sampler (draw, score)
