@@ -41,7 +41,8 @@ let resample (states, scores, values) =
     List.sort (fun (_, x) (_, y) -> compare y x)
       (List.rev_map (fun (b, w) -> (b, w /. norm)) weights)
   in
-  let dist = Distribution.Dist_support support in
+  (* let dist = Distribution.Dist_support support in *)
+  let dist = Distribution.alias_method support in
   Array.iteri
     (fun i _ ->
        let state, value = copy (Distribution.draw dist) in
