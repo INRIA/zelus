@@ -370,3 +370,49 @@ let exponential lambda =
     else neg_infinity
   in
   Dist_sampler (draw, score)
+
+
+(* XXXXXXXXX *)
+let alias_method support =
+  let support = Array.of_list support in
+  let size = Array.length support in
+  let size_f = float size in
+  let alias = Array.make size 0 in
+  let probability = Array.create_float size in
+  let probabilities = Array.map (fun (_, p) -> p) support in
+  let average = 1.0 /. size_f in
+  let _, small, large =
+    Array.fold_left
+      (fun (i, small, large) p ->
+         if p >= average then (i + 1, small, i :: large)
+         else (i + 1, i :: small, large))
+      (0, [], []) probabilities
+  in
+  let rec while_ small large =
+    begin match small, large with
+    | [], [] -> ()
+    | less :: small, more :: large ->
+        probability.(less) <- probabilities.(less) *. size_f;
+        alias.(less) <- more;
+        probabilities.(more) <-
+          (probabilities.(more) +. probabilities.(less)) -. average;
+        if (probabilities.(more) >= 1.0 /. size_f) then while_ small (more :: large)
+        else while_ (more :: small) large
+    | less :: small, [] ->
+        probability.(less) <- 1.0;
+        while_ small []
+    | [], more :: large ->
+        probability.(more) <- 1.0;
+        while_ [] large
+    end
+  in
+  while_ small large;
+  let draw () =
+    let column = Random.int size in
+    let coin_toss = Random.float 1. < probability.(column) in
+    if coin_toss then fst (support.(column)) else fst (support.(alias.(column)))
+  in
+  let score x =
+    assert false (* XXX TODO XXX *)
+  in
+  Dist_sampler (draw, score)
