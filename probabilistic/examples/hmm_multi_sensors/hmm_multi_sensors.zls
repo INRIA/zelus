@@ -1,0 +1,53 @@
+open Distribution
+open Display
+open Infer
+(* open Infer_importance *)
+
+let tau = 1.
+let float2 (x, y) = (float x, float y)
+
+let node integr((x0, y0), (x', y')) = (x, y) where
+  rec x = x0 -> tau *. x' +. (pre x)
+  and y = y0 -> tau *. y' +. (pre y)
+
+let node deriv(x, y) = (x', y') where
+  rec x' = 0.0 -> (x -. pre x)
+  and y' = 0.0 -> (y -. pre y)
+
+
+(* noisy observation of the mouse position. It is a gaussian centered on the *)
+(* exact position *)
+let node sensors () = (pos, acc) where
+  rec (x, y) = float2 (Display.mouse_pos ())
+  and (vx, vy) = deriv (x, y)
+  and (ax, ay) = deriv (vx, vy)
+  and in_bound = 0. < x && x < 400. && 0. < y && y < 400.
+  and present in_bound -> do
+    automaton
+    | Emit -> do emit pos = observe_pos (x, y) then Wait
+    | Wait -> local cpt do cpt = 0 -> pre cpt + 1 until (cpt = 500) then Emit
+  done end
+  and acc = observe_acc (ax, ay)
+
+let node display (obs, pos_dist) =
+  Display.clear ();
+  Display.draw_point_dist pos_dist;
+  present obs(p) -> Display.draw_obs Graphics.red p else ()
+
+let node hmm (prob, (pos_init, obs_p, obs_a)) = p where
+  rec p = sample (prob, sph_gaussian (pos_init fby p) speed)
+  and v_estimate = integr((0., 0.), to_pair obs_a)
+  and automaton
+      | Estimate(o) ->
+          do (x, y) = integr (o, v_estimate)
+          until obs_p(o) then Estimate(to_pair o)
+      init Estimate(to_pair p)
+  and () = factor (prob, Distribution.score (sph_gaussian p p_noise) [x; y])
+
+let node main () =
+  let (p_obs, a_obs) = sensors () in
+  let p_init =
+    present p_obs(p) -> p else [0.; 0.]
+  in
+  let pos_dist = infer 1000 hmm (p_init, p_obs, a_obs) in
+  display(p_obs, pos_dist)

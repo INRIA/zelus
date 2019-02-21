@@ -1,0 +1,10 @@
+*.zci
+*.cmi
+*.cmo
+*.cmx
+*.o
+*.byte
+*.opt
+hmm_multi_sensors
+hmm_multi_sensors.ml
+main.ml
