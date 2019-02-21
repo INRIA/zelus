@@ -1,0 +1,35 @@
+val length  : 'a array -A-> int
+val get     : 'a array -> int -A-> 'a
+val set     : 'a array -> int -> 'a -A-> unit
+val make    : int -> 'a -A-> 'a array
+val iter    : ('a -AD-> 'b) -S-> 'a array -> unit
+val map     : ('a -> 'b) -S-> 'a array -> 'b array
+val mapi    : ('int * 'a -> 'b) -S-> 'a array -> 'b array
+val to_list : 'a array -> 'a list
+val of_list : 'a list -> 'a array
+
+val ( +: ) : float array -> float array -A-> float array
+val ( -: ) : float array -> float array -A-> float array
+val ( *: ) : float array -> float array -A-> float array
+val ( /: ) : float array -> float array -A-> float array
+
+val ( +.: ) : float -> float array -A-> float array
+val ( -.: ) : float -> float array -A-> float array
+val ( *.: ) : float -> float array -A-> float array
+val ( /.: ) : float -> float array -A-> float array
+
+val ( +:. ) : float array -> float -A-> float array
+val ( -:. ) : float array -> float -A-> float array
+val ( *:. ) : float array -> float -A-> float array
+val ( /:. ) : float array -> float -A-> float array
+
+val norm : float array -A-> float
+
+val ( ^^ ) : 'a array -> int -> 'a
+
+val mapc :
+    int -S-> ('a -C-> 'b) -S-> 'a array -C-> 'b array
+val mapd :
+    int -S-> ('a -D-> 'b) -S-> 'a array -D-> 'b array
+
+val ignore : 'a -> unit

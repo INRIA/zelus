@@ -1,0 +1,219 @@
+(*
+    Simple version of the powertrain with one rotating mass,
+    taken from
+
+    A. Lagerberg. A benchmark on hybrid control of an automotive powertrain
+    with backlash.
+    Technical Report R005/2007, Signals and Systems,
+    Chalmers University of Technology, 2007.
+*)
+
+(* System description (copied from paper above):
+
+    The powertrain model under consideration in this benchmark is seen in
+    Figure 1 (simple_powertrain.jpg), and the following notation is used:
+    The indices m and l refer to motor and load respectively. J_m , J_l [kg.m-2]
+    are moments of inertia and b m and b l [Nm.s.rad-1] are viscous friction
+    constants. k [Nm.rad-1] is the shaft stiffness. T_m , T_g , T_s and T_l [Nm]
+    are torques at the engine output, at the gearbox input, at the gearbox
+    output and the load input, and the road load respectively. u [Nm] is
+    the requested engine torque. i [rad/rad] is the gearbox ratio. 2α [rad]
+    is the backlash gap size. θ_m and θ_l [rad] are the angular positions of
+    motor and load. θ_1 , θ_2 and θ_3 [rad] are the angular positions of
+    the indicated positions on the shaft.
+
+    As seen in the figure, the powertrain consists of two rotating masses,
+    one representing the engine flywheel (motor) and one representing
+    the vehicle mass (load) respectively:
+                        J_m * θ_m'' + b_m * θ_m' = T_m − T_g
+                        J_l * θ_l'' + b_l * θ_l' = T_s − T_l
+
+    The masses are connected by a gearbox (with fixed gear ratio),
+                                   T_g = T_s / i
+                                     θ_3 = θ_l
+                                   θ_1 = θ_m / i
+
+    and a flexible shaft with a backlash of size 2α. With the backlash modeled
+    as a dead-zone nonlinearity, the shaft torque is described by:
+
+          | θ_1 - θ_3 - α           if theta_d >= alpha            - state POS
+    T_s = | 0.                      if - alpha <= theta_d <= alpha - state BL
+          | θ_1 - θ_3 + α           if theta_d <= - alpha          - state NEG
+
+    where the three modes are referred to as the positive contact (co+),
+    backlash (bl) and negative contact (co−) modes respectively.
+
+    The engine dynamics is modeled as a first order system with time constant
+    τ_eng :
+                                T_m' = (u − T_m )/τ_eng
+
+    Define ω_m = θ_m', ω_l = θ_l' and θ_d = θ_1 - θ_3 = θ_m / i - θ_l,
+    and the state vector x = [ω_m, ω_l, θ_d, T_m]
+*)
+
+(* System dynamics:
+
+    x = [wm, wl, theta_d, tm]
+
+            | Aco+ * x + B * u + fco+ if theta_d >= alpha            - state POS
+    der x = |  Abl * x + B * u + fco- if - alpha <= theta_d <= alpha - state BL
+            | Aco- * x + B * u + fco- if theta_d <= - alpha          - state NEG
+
+    Aco+ =
+        | - bm / Jm        0      - k / (Jm * i)   1 / Jm     |
+        |     0       - bl / Jl     k / Jl           0        |
+        |    1 / i        - 1         0              0        |
+        |     0            0          0          - 1 / taueng |
+
+    Aco- = Aco+
+
+    Abl =
+        | - bm / Jm        0          0            1 / Jm     |
+        |     0       - bl / Jl       0              0        |
+        |    1 / i        - 1         0              0        |
+        |     0            0          0          - 1 / taueng |
+
+    B =
+        |      0     |
+        |      0     |
+        |      0     |
+        | 1 / taueng |
+
+    fco+ =
+        |  k * alpha / (Jm * i)   |
+        | (- k * alpha - Tl) / Jl |
+        |            0            |
+        |            0            |
+
+    fco- =
+        |  - k * alpha / (Jm * i) |
+        |  (k * alpha - Tl) / Jl  |
+        |            0            |
+        |            0            |
+
+    fbl =
+        |     0     |
+        | - Tl / Jl |
+        |     0     |
+        |     0     |
+*)
+
+(* Model variables:
+θ_1     Angular position of shaft at gearbox end                             rad
+θ_2     Angular position of shaft-side of backlash                           rad
+θ_3     Angular position of wheel-side of backlash                           rad
+θ_d     Total shaft displacement, including backlash, θ_1 - θ_3              rad
+θ_l     Angular position of wheels (load)                                    rad
+θ_m     Angular position of engine flywheel (motor)                          rad
+ω_(·)   Angular or longitudinal velocity corresponding to θ_(·)  rad.s-1 | m.s-1
+a_(·)   Acceleration corresponding to θ_(·)                      rad.s-2 | m.s-2
+u       Control signal, requested engine torque                               Nm
+x       State variable vector
+T_g     Gearbox input torque                                                  Nm
+T_l     Load torque                                                           Nm
+T_m     Engine torque                                                         Nm
+T_s     Shaft torque (equal at positions 1,2,3)                               Nm
+*)
+
+(* Model parameters:
+α            0.03   rad            Backash size (half gap width)
+τ_eng        0.1    sec            Engine time constant
+b_l          5.6    Nm.s.rad^-1    Viscous friction of wheels
+b_m          0.0    Nm.s.rad^-1    Viscous friction of engine
+h            0.1    sec            Discretization sample time
+i           12.0    rad.rad^-1     Transmission ratio 0_m / 0_
+k        10000.0    Nm.rad^-1      Shaft stiffness
+r_wheel      0.33   meters         Wheel radius
+J_l        140.0    kg.m^2         Moment of inertia of wheels and vehicle mass
+J_m          0.3    kg.m^2         Moment of inertia of engine flywheel
+*)
+
+(* Note concerning T_l:
+    Here, the load disturbance, T l , is taken as a constant. Control synthesis methods that are based
+    on a discrete-time system description should use zero order hold discretization of the PWA model
+    above with a sample time h.
+*)
+
+(* Note: initial values are not defined in the paper *)
+
+type mode = POS | BL | NEG
+
+let static alpha  =     0.03
+let static taueng =     0.1
+let static bl     =     5.6
+let static bm     =     0.0
+let static h      =     0.1
+let static i      =    12.0
+let static k      = 10000.0
+let static rw     =     0.33
+let static jl     =   140.0
+let static jm     =     0.3
+
+let static tl = 0.
+
+let derivatives ((wm, wl, theta_d, tm), u, mode) =
+        (wm', wl', theta_d', tm') where
+    rec wm'      = a11 *. wm +.              a13 *. theta_d +. a14 *. tm +. f1
+    and wl'      =              a22 *. wl +. a23 *. theta_d              +. f2
+    and theta_d' = a31 *. wm +. a32 *. wl
+    and tm'      =                                             a44 *. tm +. b4 *. u
+
+    and a11, a14, a22, a31, a32, a44, b4 =
+        (-. bm /. jm), (1. /. jm), (-. bl /. jm), (1. /. i), -1.,
+        (-1. /. taueng), (1. /. taueng)
+    and a13, a23, f1, f2 =
+        match mode with
+        | POS -> ((-. k /. (jm *. i)), (k /. jl),
+                 ((k *. alpha) /. (jm *. i)), ((-. k *. alpha -. tl) /. jl))
+        | BL  -> (0., 0.,
+                 (-. (k *. alpha) /. (jm *. i)), ((k *. alpha -. tl) /. jl))
+        | NEG -> ((-. k /. (jm *. i)), (k /. jl),
+                 0., (-. tl /. jl))
+
+hybrid compute_mode theta_d =
+    present
+        | up(theta_d -. alpha)
+        | (disc(theta_d)) on (theta_d >= alpha) -> POS
+        | up(alpha -. theta_d) | up(theta_d +. alpha)
+        | (disc(theta_d)) on (-. alpha <= theta_d && theta_d <= alpha) -> BL
+        | up(-. alpha -. theta_d)
+        | (disc(theta_d)) on (theta_d <= -. alpha) -> NEG
+    init
+             if theta_d >= alpha then POS
+        else if -. alpha <= theta_d && theta_d <= alpha then BL
+        else NEG
+
+hybrid powertrainc ((wm0, wl0, theta_d0, tm0), u) = (t, (wm, wl, theta_d, tm)) where
+    rec der t = 1. init 0.
+    and (wm', wl', theta_d', tm') = derivatives((wm, wl, theta_d, tm), u, mode)
+    and mode = compute_mode(theta_d)
+
+    and der wm      = wm'      init wm0
+    and der wl      = wl'      init wl0
+    and der theta_d = theta_d' init theta_d0
+    and der tm      = tm'      init tm0
+
+open Scope
+
+node show (t, (wm, wl, theta_d, tm), u) =
+    let rec alph_not_alph = alpha fby (-. alpha) fby alph_not_alph in
+    let s1 = scope2(0., 1., ("wm / i [m/s]", linear, wm /. i),
+                            ("wl [m/s]", linear, wl)) in
+    let s2 = scope2(-0.1, 0.2, ("theta_d [rad]", linear, theta_d),
+                               ("alpha", points false, alph_not_alph)) in
+    let s3 = scope2(-100., 200., ("u [Nm]", linear, u),
+                                 ("tm [Nm]", linear, tm)) in
+    window3("Simple powertrain", 0.5, t, s1, s2, s3)
+
+hybrid main () =
+    let wm0      = 0. in
+    let wl0      = 0. in
+    let theta_d0 = 0. in
+    let tm0      = 0. in
+
+    let rec u = present up(t -. 0.2) -> 100. init 20.
+    and (t, x) = powertrainc ((wm0, wl0, theta_d0, tm0), u) in
+
+    present (period(0.001)) ->
+        show (t, x, u)
+    else ()

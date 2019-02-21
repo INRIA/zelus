@@ -1,0 +1,172 @@
+open Zlarray
+
+type sin_cos = { sin: float; cos: float }
+
+type loglvl = NONE | INFO | DEBUG
+let static loglvl = INFO
+
+(* <= relation for loglvl with order NONE <= INFO <= DEBUG *)
+let cmp_loglvl l1 l2 =
+    match l1, l2 with
+    | NONE, _ -> true
+    | INFO, NONE -> false
+    | INFO, _ -> true
+    | DEBUG, DEBUG -> true
+    | DEBUG, _ -> false
+
+let discrete log lvl msg =
+    if cmp_loglvl lvl loglvl then print_endline msg
+    else ()
+
+let discrete string_of_array a =
+    String.concat ", " (Basics.list_map string_of_float (to_list a))
+
+
+(*
+    Fixed time step: h
+    y' = f(t, y)   y(t0) = y0
+*)
+
+(* Dormand-Prince method's coefs (https://en.wikipedia.org/wiki/Dormand%E2%80%93Prince_method)
+    0      |
+    1/5    | 1/5
+    3/10   | 3/40        9/40
+    4/5    | 44/45      -56/15         32/9
+    8/9    | 19372/6561 -25360/2187    64448/6561   -212/729
+    1      | 9017/3168  -355/33        46732/5247   49/176    -5103/18656
+    1      | 35/384 	0 	           500/1113     125/192   -2187/6784    11/84
+    ----------------------------------------------------------------------------
+           | 35/384     0              500/1113     125/192   -2187/6784    11/84    0
+		   | 5179/57600 0              7571/16695   393/640   -92097/339200 187/2100 1/40
+*)
+
+let c1 = 0.
+let c2 = 1. /. 5.
+let c3 = 3. /. 10.
+let c4 = 4. /. 5.
+let c5 = 8. /. 9.
+let c6 = 1.
+let c7 = 1.
+
+let a21 =     1. /. 5.
+let a31 =     3. /. 40.   let a32 =      9. /. 40.
+let a41 =    44. /. 45.   let a42 =    -56. /. 15.   let a43 =    32. /. 9.
+let a51 = 19372. /. 6561. let a52 = -25360. /. 2187. let a53 = 64448. /. 6561. let a54 =  -212. /. 729.
+let a61 =  9017. /. 3168. let a62 =   -355. /. 33.   let a63 = 46732. /. 5247. let a64 =    49. /. 176. let a65 = -5103. /. 18656.
+let a71 =    35. /. 384.  let a72 =     0.           let a73 =   500. /. 1113. let a74 =   125. /. 192. let a75 = -2187. /. 6784.   let a76 = 11. /. 84.
+
+let b1  =   35. /. 384.   let b2  = 0. let b3  =  500. /. 1113.  let b4  = 125. /. 192. let b5  =  -2187. /. 6784.   let b6  =  11. /. 84.   let b7  = 0.
+let b1' = 5179. /. 57600. let b2' = 0. let b3' = 7571. /. 16695. let b4' = 393. /. 640. let b5' = -92097. /. 339200. let b6' = 187. /. 2100. let b7' = 1. /. 40.
+
+
+(* ugly hack: f1 f2 f3 f4 f5 f6 f7 are the same function *)
+let node dopri maxstep eps f1 f2 f3 f4 f5 f6 f7 h0 t0 (y0, u) = t, y where
+    rec realstep = 0 fby realstep + 1
+    and numstep  = 0 fby (if again then numstep else numstep + 1)
+
+    and y = y0 fby (if again then y else y')
+    and h = h0 fby (min h' maxstep)
+    and t = t0 fby (if again then t else t')
+
+    and x1 = y
+    and x2 = y +: h *.: (a21 *.: k1)
+    and x3 = y +: h *.: (a31 *.: k1 +: a32 *.: k2)
+    and x4 = y +: h *.: (a41 *.: k1 +: a42 *.: k2 +: a43 *.: k3)
+    and x5 = y +: h *.: (a51 *.: k1 +: a52 *.: k2 +: a53 *.: k3 +: a54 *.: k4)
+    and x6 = y +: h *.: (a61 *.: k1 +: a62 *.: k2 +: a63 *.: k3 +: a64 *.: k4
+                             +: a65 *.: k5)
+    and x7 = y +: h *.: (a71 *.: k1 +: a72 *.: k2 +: a73 *.: k3 +: a74 *.: k4
+                             +: a75 *.: k5 +: a76 *.: k6)
+
+    and k1 = f1 (t           , u, x1)
+    and k2 = f2 (t +. c2 *. h, u, x2)
+    and k3 = f3 (t +. c3 *. h, u, x3)
+    and k4 = f4 (t +. c4 *. h, u, x4)
+    and k5 = f5 (t +. c5 *. h, u, x5)
+    and k6 = f6 (t +. c6 *. h, u, x6)
+    and k7 = f7 (t +. c7 *. h, u, x7)
+
+    and e_vec = (b1 -. b1') *.: k1
+             +: (b2 -. b2') *.: k2
+             +: (b3 -. b3') *.: k3
+             +: (b4 -. b4') *.: k4
+             +: (b5 -. b5') *.: k5
+             +: (b6 -. b6') *.: k6
+             +: (b7 -. b7') *.: k7
+    and e = norm e_vec
+    and again = e > eps
+
+    and t' = t +. h
+    and y' = y +: h *.: ystep
+
+    (*
+        h' formula taken from a python's implementation of dopri :
+        https://web.archive.org/web/20150907215914/http://adorio-research.org/wordpress/?p=6565
+    *)
+    and delta = 0.84 *. (eps /. e) ** 0.2
+    and h' =      if delta <= 0.1 then 0.1 *. h
+             else if delta >= 4.0 then 4.0 *. h
+             else delta *. h
+
+    and ystep = b1 *.: k1 +: b2 *.: k2 +: b3 *.: k3 +: b4 *.: k4 +: b5 *.: k5
+             +: b6 *.: k6 +: b7 *.: k7
+
+    and () = Zlarray.ignore (
+    log INFO ("| -------- step " ^ (string_of_int numstep) ^
+              "(" ^ (string_of_int realstep) ^ ")");
+    log INFO ("| y   : " ^ (string_of_array y) ^ " --> " ^ (string_of_array y'));
+
+    log DEBUG ("\t-->    k1 : " ^ (string_of_array k1));
+    log DEBUG ("\t-->    k2 : " ^ (string_of_array k2));
+    log DEBUG ("\t-->    k3 : " ^ (string_of_array k3));
+    log DEBUG ("\t-->    k4 : " ^ (string_of_array k4));
+    log DEBUG ("\t-->    k5 : " ^ (string_of_array k5));
+    log DEBUG ("\t-->    k6 : " ^ (string_of_array k6));
+    log DEBUG ("\t-->    k7 : " ^ (string_of_array k7));
+    log DEBUG ("\t--> ystep : " ^ (string_of_array ystep));
+    log DEBUG ""; (* <-- new line *)
+
+    log INFO ("| e   : " ^ (string_of_float e));
+    log INFO ("| h   : " ^ (string_of_float h) ^ " --> " ^ (string_of_float h'));
+    log INFO ("| t   : " ^ (string_of_float t) ^ " --> " ^ (string_of_float t'));
+    ())
+
+
+
+
+
+(* Test *)
+
+(* let f0 = of_list [0.; 1.]
+
+let f (_, u, sin_cos) = of_list [ (sin_cos^^1); -. (sin_cos^^0)]
+
+let static t0 = 0.
+let static h0 = 0.01
+let static maxstep = 1.0
+let static eps = 1.0e-5
+
+open Scope
+node show (t, sin_cos) =
+    let s1 = scope2(-1., 1., ("sin", linear, (sin_cos^^0)),
+                             ("real sin", linear, 6. *. sin t)) in
+    let s2 = scope2(-1., 1., ("cos", linear, (sin_cos^^1)),
+                             ("real cos", linear, 6. *. cos t)) in
+    window2("Test", 50., t, s1, s2)
+
+node test () =
+    let u = 6. in
+    let rec t, sin_cos = dopri maxstep eps f f f f f f f h0 t0 (f0, u) in
+    show (t, sin_cos)
+
+hybrid testh () =
+    let rec der t = 1. init 0.
+    and der mysin = mycos init 0.
+    and der mycos = -. mysin init 1. in
+    present (period(0.1)) ->
+        let s1 = scope2(-1., 1., ("sin", linear, mysin),
+                                 ("real sin", linear, 6. *. sin t)) in
+        let s2 = scope2(-1., 1., ("cos", linear, mycos),
+                                 ("real cos", linear, 6. *. cos t)) in
+        window2 ("Test", 50., t, s1, s2)
+    else () *)

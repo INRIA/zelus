@@ -1,0 +1,465 @@
+#!/usr/bin/env python
+
+def integrate(varname, val):
+    return """der %s = %s
+        init initials.%s""" % \
+            (varname,
+             val if len(val) <= 60 else "\n        %s" % val,
+             varname)
+
+def integrate_list(l):
+    return "\n    and ".join([integrate(*el) for el in l])
+
+def make_der(varname, val):
+    return """%s_der = %s""" % \
+        (varname,
+         val if len(val) <= 60 else "\n        %s" % val)
+
+def make_ders(l):
+    return "\n    and ".join([make_der(*el) for el in l])
+
+def common(args):
+    theta = args.theta
+    o_thetas = args.thetas | args.allout
+    o_theta_ders = args.theta_ders | args.allout
+    o_torques = args.torques | args.allout
+
+    if theta <= 0:
+        print("Theta should be greater than 0")
+        exit(1)
+
+    tm = [["tm"], ["float"]]
+    theta_m = [["theta_m"], ["float"]]
+    ts = [["ts"], ["float"]]
+    theta_s = [["theta_s"], ["float"]]
+    theta_l = [["theta_l"], ["float"]]
+    theta_1 = [["theta_1"], ["float"]]
+    thetas = [[], []]
+    theta_ders = [[], []]
+    torques = [[], []]
+
+    tm = True
+    ts = True
+    theta_m = True
+    theta_s = True
+    theta_l = True
+    theta_1 = True
+    theta_m_der = False
+    theta_s_der = False
+    theta_l_der = False
+    theta_1_der = False
+    thetas = False
+    theta_ders = False
+    torques = False
+
+    if o_thetas:
+        thetas = True
+        theta_1 = False
+    if o_theta_ders:
+        theta_m_der = True
+        theta_s_der = True
+        theta_l_der = True
+        theta_ders = True
+        if not o_thetas: theta_1_der = True
+    if o_torques:
+        torques = True
+
+    outputs = [ elt for elt in [
+        "tm" if tm else "",
+        "ts" if ts else "",
+        "theta_m" if theta_m else "",
+        "theta_s" if theta_s else "",
+        "theta_l" if theta_l else "",
+        "theta_1" if theta_1 else "",
+        "theta_m_der" if theta_m_der else "",
+        "theta_s_der" if theta_s_der else "",
+        "theta_l_der" if theta_l_der else "",
+        "theta_1_der" if theta_1_der else "",
+        "thetas" if thetas else "",
+        "theta_ders" if theta_ders else "",
+        "torques" if torques else "",
+    ] if elt != ""]
+
+    out_types = [ elt for elt in [
+        "float" if tm else "",
+        "float" if ts else "",
+        "float" if theta_m else "",
+        "float" if theta_s else "",
+        "float" if theta_l else "",
+        "float" if theta_1 else "",
+        "float" if theta_m_der else "",
+        "float" if theta_s_der else "",
+        "float" if theta_l_der else "",
+        "float" if theta_1_der else "",
+        "float array" if thetas else "",
+        "float array" if theta_ders else "",
+        "float array" if torques else "",
+    ] if elt != ""]
+
+    return theta, o_thetas, o_theta_ders, o_torques, outputs, out_types
+
+def mainc(args):
+    theta, o_thetas, o_theta_ders, o_torques, outputs, out_types = \
+        common(args)
+
+    zls = """
+hybrid powertrainc (initials, ks, alpha, u) =
+    (%s) where """ % (", ".join(outputs)) + \
+    """
+
+    (* outputs *)
+
+    rec tm = x2
+    and ts = ks *. (x1 -. alpha)
+    and theta_m = theta_s *. gamma
+    and theta_s = x1 +. x8
+    and theta_l = x5 """ + \
+    ("""
+    and theta_1 = x8 """
+        if not o_thetas else "") + \
+    \
+    ("""
+    and theta_m_der = x7
+    and theta_s_der = x0 +. x9
+    and theta_l_der = x6 """ + \
+        ("""
+    and theta_1_der = x9 """
+            if not o_thetas else "")
+        if o_theta_ders else "")
+
+    if o_thetas:
+        zls += """
+
+    and init thetas = make %d 0. """ % theta
+
+        for i in range(1, theta + 1):
+            zls += """
+    and () = set thetas %d x%d """ % (i - 1, 2 * i + 6)
+
+    if o_theta_ders:
+        zls += """
+
+    and init theta_ders = make %d 0. """ % theta
+
+        for i in range(1, theta + 1):
+            zls += """
+    and () = set theta_ders %d x%d """ % (i - 1, 2 * i + 7)
+
+    if o_torques:
+        zls += """
+
+    and init torques = make %d 0. """ % theta
+
+        for i in range(1, theta):
+            zls += """
+    and () = set torques %d (ki *. (x%d -. x%d)) """ % (i - 1, 2 * i + 6, 2 * i + 8)
+
+        zls += """
+    and () = set torques %d (ki *. (x%d -. x5)) """ % (theta - 1, 2 * theta + 6)
+
+    zls += """
+
+    (* end of outputs *)
+
+    and x0 = x7 /. gamma -. x9
+    and """ + \
+    integrate_list([
+        ("x1", "x0"),
+        ("x2", """(kP *. (gamma *. x4 -. x7)
+      +. kI *. (gamma *. x3 -. gamma *. (x1 +. x8))
+      +. kD *. (gamma *. u
+      -. (x2 -. ks *. (x1 -. alpha) /. gamma -. bm *. x7) /. jm)
+      -. x2) /. tau_eng"""),
+        ("x3", "x4"),
+        ("x4", "u"),
+        ("x5", "x6"),
+        ("x6", "(ki *. (x%d -. x5) -. bl *. x6) /. jl" % (2 * theta + 6)),
+        ("x7", "(x2 -. ks *. (x1 -. alpha) /. gamma -. bm *. x7) /. jm"),
+        ("x8", "x9"),
+        ("x9", "(ks *. (x1 -. alpha) -. ki *. (x8 -. x%d) -. bi *. x9) /. ji" % \
+            (10 if theta > 1 else 5))
+    ])
+
+    for i in range(2, theta):
+        zls += "\n    and " + integrate_list([
+            ("x%d" % (2 * i + 6), "x%d" % (2 * i + 7)),
+            ("x%d" % (2 * i + 7),
+             "(ki *. (x%d -. x%d) -. ki *. (x%d -. x%d) -. bi *. x%d) /. ji" % \
+                (2 * i + 4,
+                 2 * i + 6,
+                 2 * i + 6,
+                 5, # 2 * i + 8,
+                 2 * i + 7))
+        ])
+
+    if theta > 1:
+        zls += "\n    and " + integrate_list([
+            ("x%d" % (2 * theta + 6), "x%d" % (2 * theta + 7)),
+            ("x%d" % (2 * theta + 7),
+             "(ki *. (x%d -. x%d) -. ki *. (x%d -. x5) -. bi *. x%d) /. ji" % \
+                (2 * theta + 4,
+                 2 * theta + 6,
+                 2 * theta + 6,
+                 2 * theta + 7))
+    ])
+
+    zli = """val powertrainc :
+    initials
+    -S->
+    float * float * float
+    -C->
+    %s
+    """ % (" * ".join(out_types))
+
+    return zls, zli
+
+def maind(args):
+    theta, o_thetas, o_theta_ders, o_torques, outputs, out_types = \
+        common(args)
+
+    main_node = """
+node powertraind h0 maxstep eps (initials, ks, alpha, u) =
+    (t, %s) where """ % (", ".join(outputs)) + \
+    """
+
+    (* initial vals *)
+
+    rec
+    let init f0 = make %d 0. in
+    let """ % (2 * theta + 7) +\
+    "\n    and ".join(
+        ["init tmp%-2d = set f0 %d initials.x%d " % (i, i, i + 1)
+            for i in range(2 * theta + 7)])
+
+    main_node += """ in
+
+    (* outputs *)
+
+    do  tm = (x^^1)
+    and ts = ks *. ((x^^0) -. alpha)
+    and theta_m = theta_s *. gamma
+    and theta_s = (x^^0) +. (x^^7)
+    and theta_l = (x^^6) """ + \
+    ("""
+    and theta_1 = (x^^7) """
+        if not o_thetas else "") + \
+    \
+    ("""
+    and x0 = (x^^6) /. gamma -. (x^^8)
+    and theta_m_der = (x^^6)
+    and theta_s_der = x0 +. (x^^8)
+    and theta_l_der = (x^^5) """ + \
+        ("""
+    and theta_1_der = (x^^8) """
+            if not o_thetas else "")
+        if o_theta_ders else "")
+
+    if o_thetas:
+        main_node += """
+
+    and init thetas = make %d 0. """ % theta
+
+        for i in range(1, theta + 1):
+            main_node += """
+    and () = set thetas %d (x^^%d) """ % (i - 1, 2 * i + 5)
+
+    if o_theta_ders:
+        main_node += """
+
+    and init theta_ders = make %d 0. """ % theta
+
+        for i in range(1, theta + 1):
+            main_node += """
+    and () = set theta_ders %d (x^^%d) """ % (i - 1, 2 * i + 6)
+
+    if o_torques:
+        main_node += """
+
+    and init torques = make %d 0. """ % theta
+
+        for i in range(1, theta):
+            main_node += """
+    and () = set torques %d (ki *. ((x^^%d) -. (x^^%d))) """ % (i - 1, 2 * i + 5, 2 * i + 7)
+
+        main_node += """
+    and () = set torques %d (ki *. ((x^^%d) -. (x^^4))) """ % (theta - 1, 2 * theta + 5)
+
+    main_node += """
+
+    (* end of outputs *)
+
+    and t, x = dopri maxstep eps
+                     powertraind_der
+                     powertraind_der
+                     powertraind_der
+                     powertraind_der
+                     powertraind_der
+                     powertraind_der
+                     powertraind_der
+                     h0 0. (f0, (ks, alpha, u))
+    done"""
+
+    der_node = """let powertraind_der (t, (ks, alpha, u), x) =
+    let rec x0 = (x^^6) /. gamma -. (x^^8)
+    and """ + \
+    make_ders([
+        ("x1", "x0"),
+        ("x2", """(kP *. (gamma *. (x^^3) -. (x^^6))
+      +. kI *. (gamma *. (x^^2) -. gamma *. ((x^^0) +. (x^^7)))
+      +. kD *. (gamma *. u
+      -. ((x^^1) -. ks *. ((x^^0) -. alpha) /. gamma -. bm *. (x^^6)) /. jm)
+      -. (x^^1)) /. tau_eng"""),
+        ("x3", "x^^3"),
+        ("x4", "u"),
+        ("x5", "x^^5"),
+        ("x6", "(ki *. ((x^^%d) -. (x^^4)) -. bl *. (x^^5)) /. jl" % (2 * theta + 5)),
+        ("x7", "((x^^1) -. ks *. ((x^^0) -. alpha) /. gamma -. bm *. (x^^6)) /. jm"),
+        ("x8", "x^^8"),
+        ("x9", "(ks *. ((x^^0) -. alpha) -. ki *. ((x^^7) -. (x^^%d)) -. bi *. (x^^8)) /. ji" % \
+            (9 if theta > 1 else 4))
+    ])
+
+    for i in range(2, theta):
+        der_node += "\n    and " + make_ders([
+            ("x%d" % (2 * i + 6), "(x^^%d)" % (2 * i + 6)),
+            ("x%d" % (2 * i + 7),
+             "(ki *. ((x^^%d) -. (x^^%d)) -. ki *. ((x^^%d) -. (x^^%d)) -. bi *. (x^^%d)) /. ji" % \
+                (2 * i + 5,
+                 2 * i + 5,
+                 2 * i + 5,
+                 4, # 2 * i + 7,
+                 2 * i + 6))
+        ])
+
+    if theta > 1:
+        der_node += "\n    and " + make_ders([
+            ("x%d" % (2 * theta + 6), "(x^^%d)" % (2 * theta + 6)),
+            ("x%d" % (2 * theta + 7),
+             "(ki *. ((x^^%d) -. (x^^%d)) -. ki *. ((x^^%d) -. (x^^4)) -. bi *. (x^^%d)) /. ji" % \
+                (2 * theta + 3,
+                 2 * theta + 5,
+                 2 * theta + 5,
+                 2 * theta + 6))
+    ])
+
+    der_node += """ in
+
+    of_list [%s]
+    """ % ("; ".join(["x%d_der" % i for i in range(1, 2 * theta + 8)]))
+
+    zls = "%s\n\n%s" % \
+        (der_node, main_node)
+
+    zli = """val powertraind :
+    float -S-> float -S-> float -S-> initials
+    -S->
+    float * float * float
+    -C->
+    float * %s
+    """ % (" * ".join(out_types))
+
+    return zls, zli
+
+usage = """usage: gen_pwtrn THETA
+
+    THETA: number of rotating masses
+"""
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Generate powertrain model')
+    parser.add_argument('theta', metavar='THETA', type=int,
+                        help='number of rotating masses')
+    parser.add_argument('-o', '--output', dest='out', type=str,
+                        default="powertrain",
+                        help='name of output files (default: powertrain)')
+    parser.add_argument('-a', '--output_all', dest='allout', action="store_const",
+                        const=True, default=False,
+                        help='output as much variables as possible (default: false)')
+    parser.add_argument('-T', '--torques', dest='torques', action="store_const",
+                        const=True, default=False,
+                        help='output intermediate torques (default: false)')
+    parser.add_argument('-t', '--thetas', dest='thetas', action="store_const",
+                        const=True, default=False,
+                        help='output intermediate thetas (default: false)')
+    parser.add_argument('-dt', '--dthetas', dest='theta_ders', action="store_const",
+                        const=True, default=False,
+                        help='output theta derivatives (default: false)')
+
+    args = parser.parse_args()
+
+    zls_c, zli_c = mainc(args)
+    zls_d, zli_d = maind(args)
+
+    zls = """(*
+    Powertrain model adapted from:
+
+    M. Althoff and B. H. Krogh. Avoiding geometric intersection operations
+    in reachability analysis of hybrid systems.
+    In Hybrid Systems: Computation and Control, HSCC'12, Beijing, China,
+    April 17-19, 2012, pages 45-54, 2012.
+
+    see powertrain.png
+*)
+
+open Zlarray
+open Fixed_step_solvers
+
+type initials = {
+    %s
+}
+""" % ("\n    ".join(
+    ["""x%-3d : float;""" % i for i in range(1, 2 * args.theta + 8)]
+)) + \
+"""
+(* constants *)
+
+let static theta = %3d (* number of rotating masses *)
+let static n     = %3d (* number of dimensions (ie. state variables) *)
+
+let static gamma   =     12.00 (* gearbox ratio *)
+let static tau_eng =      0.10 (* time constant *)
+let static bl      =      5.60 (* Nm.s/rad *)
+let static bm      =      0.00 (* Nm.s/rad *)
+let static bi      =      1.00 (* Nm.s/rad *)
+let static ki      = 100000.00 (* Nm/rad *)
+let static jl      =    140.00 (* kg.m^2 *)
+let static jm      =      0.30 (* kg.m^2 *)
+let static ji      =      0.01 (* kg.m^2 *)
+let static kP      =      0.50 (* PID parameter P *)
+let static kI      =      0.50 (* PID parameter I *)
+let static kD      =      0.50 (* PID parameter D *)
+
+%s
+
+%s """ % (args.theta, 2 * args.theta + 7, zls_c, zls_d)
+
+    zli = """
+type initials
+
+val theta   : int
+val n       : int
+val gamma   : float
+val tau_eng : float
+val bl      : float
+val bm      : float
+val bi      : float
+val ki      : float
+val jl      : float
+val jm      : float
+val ji      : float
+val kP      : float
+val kI      : float
+val kD      : float
+%s
+%s """ % (zli_c, zli_d)
+
+    prefix = args.out[-4:] if args.out.endswith(".zls") or args.out.endswith(".zls") else args.out
+    zlsout = prefix + ".zls"
+    zliout = prefix + ".zli"
+
+    with open(zlsout, 'w+') as f:
+        f.write(zls)
+    with open(zliout, 'w+') as f:
+        f.write(zli)
