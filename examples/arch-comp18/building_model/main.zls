@@ -1,0 +1,44 @@
+(*
+    Quote from "Large-Scale Linear Systems from Order-Reduction (Benchmark Proposal)"
+
+    The building model is a model of the Los Angeles University Hospital with
+    8 floors, each of which has 3 degrees of freedom. This system has 48 state
+    variables in which we are mostly interested in the twenty-fifth state
+    x25(t), which is the motion of the first coordinate.
+
+    G.Frehse and M.Althoff (eds.), ARCH16 (EPiC Series in Computing, vol. 43),
+    pp. 60–67
+
+    Quote from "ARCH-COMP18 Category Report:Continuous and Hybrid Systems withLinear Continuous Dynamics":
+
+    There are two versions of this benchmark:
+        - BLDF01: The inputs can change arbitrarily over time: ∀t: u(t) ∈ U.
+        - BLDC01 (constant inputs):
+            The inputs are uncertain only in their initial value,
+            and constant over time: u(0) ∈ U, u'(t) = 0.
+
+    G. Frehse (ed.), ARCH18 (EPiC Series in Computing, vol. 54), pp. 23–52
+*)
+
+(* u1 ∈ [0.8, 1] *)
+hybrid bldf01 model input (initials) = run model (initials, run input ())
+hybrid bldc01 model (initials) = run model (initials, 0.8)
+
+open Scope
+
+hybrid plot_bldc01 title model () =
+    let der t = 1. init 0. in
+    let initials = Models.initial_state () in
+    let y1 = bldc01 model initials in
+
+    present (period(0.01)) ->
+        let s1 = scope(-0.01, 0.01, ("y1", linear, y1)) in
+        window("Building model: " ^ title, 10., t, s1)
+    else ()
+
+hybrid build6_bldc01  () = plot_bldc01 "build_6" Models.build_6 ()
+hybrid build15_bldc01 () = plot_bldc01 "build_15" Models.build_15 ()
+hybrid build25_bldc01 () = plot_bldc01 "build_25" Models.build_25 ()
+
+(* 8 floors *)
+hybrid build48_bldc01 () = plot_bldc01 "build_48" Models.build_48 ()
