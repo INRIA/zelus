@@ -372,16 +372,12 @@ let exponential lambda =
   Dist_sampler (draw, score)
 
 
-(** [alias_method support] is a discrete distribution where each
-    element of [support] is a pair [(x, p)] of a value [x] of
-    probability [p].
-    @see<https://en.wikipedia.org/wiki/Alias_method>
+(** [alias_method_unsafe values probabilities] is the [alias_method]
+    where the arrays [values] and [probabilities] are not copied.
 *)
-let alias_method support =
-  let support_a = Array.of_list support in
-  let size = Array.length support_a in
+let alias_method_unsafe values probabilities =
+  let size = Array.length values in
   let size_f = float size in
-  let probabilities = Array.map (fun (_, p) -> p) support_a in
   let probability = Array.create_float size in
   let alias = Array.make size 0 in
   let average = 1.0 /. size_f in
@@ -414,10 +410,39 @@ let alias_method support =
   let draw () =
     let column = Random.int size in
     let coin_toss = Random.float 1. < probability.(column) in
-    if coin_toss then fst (support_a.(column)) else fst (support_a.(alias.(column)))
+    if coin_toss then values.(column) else values.(alias.(column))
   in
   let score x =
-    log (try List.assoc x support
-         with Not_found -> 0.)
+    let exception Idx of int in
+    try
+      Array.iteri (fun i v -> if x = v then raise (Idx i)) values;
+      log 0.
+    with Idx i ->
+      log (probabilities.(i))
   in
   Dist_sampler (draw, score)
+
+
+(** [alias_method support] is the [alias_method] where [support] is a
+    pair [(x, p)] of a value [x] of probability [p].
+*)
+let alias_method_list support =
+  let size = List.length support in
+  let values =
+    begin match support with
+    | [] -> assert false
+    | (d, _) :: _ -> Array.make size d
+    end
+  in
+  let probabilities = Array.create_float size in
+  List.iteri (fun i (v, p) -> values.(i) <- v; probabilities.(i) <- p) support;
+  alias_method_unsafe values probabilities
+
+(** [alias_method values probabilities] is a discrete distribution where
+    the value [value.(i)] has the probability [probabilities.(i)].
+    @see<https://en.wikipedia.org/wiki/Alias_method>
+*)
+let alias_method values probabilities =
+  let values = Array.copy values in
+  let probabilities = Array.copy probabilities in
+  alias_method_unsafe values probabilities

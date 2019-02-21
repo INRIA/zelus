@@ -26,27 +26,26 @@ let normalize values =
 (** [resample scores]
 *)
 let resample (states, scores, values) =
-  let weights, norm =
+  let size = Array.length states in
+  let states_values = Array.make size (states.(0), values.(0)) in
+  let probabilities = Array.create_float size in
+  let norm =
     let sum = ref 0. in
-    let acc = ref [] in
     Array.iteri
       (fun i score ->
          let w = max (exp score) epsilon_float in
-         acc := ((states.(i), values.(i)), w) :: !acc;
+         probabilities.(i) <- w;
+         states_values.(i) <- (states.(i), values.(i));
          sum := !sum +. w)
       scores;
-    (!acc, !sum)
+    !sum
   in
-  let support =
-    List.sort (fun (_, x) (_, y) -> compare y x)
-      (List.rev_map (fun (b, w) -> (b, w /. norm)) weights)
-  in
-  (* let dist = Distribution.Dist_support support in *)
-  let dist = Distribution.alias_method support in
+  Array.iteri (fun i w -> probabilities.(i) <- w /. norm) probabilities;
+  let dist = Distribution.alias_method_unsafe states_values probabilities in
   Array.iteri
     (fun i _ ->
-       let state, value = copy (Distribution.draw dist) in
-       states.(i) <- state;
+       let state, value = Distribution.draw dist in
+       states.(i) <- copy state;
        values.(i) <- value;
        scores.(i) <- 0.)
     states

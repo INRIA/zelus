@@ -7,7 +7,7 @@ INFERENCE_CMXA=$(INFERLIB)/inference.cmxa
 INFERENCE_ZCI=$(INFERLIB)/distribution.zci $(INFERLIB)/infer.zci
 
 OCAMLDEP=ocamldep
-OCAMLC=ocamlc -g
+OCAMLC=ocamlc
 OCAMLOPT=ocamlopt
 
 NAME=slam
