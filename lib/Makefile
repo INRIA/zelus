@@ -43,7 +43,8 @@ OBJ = ztypes.cmo \
       defaultsolver.cmo \
       dump.cmo \
       zlsrun.cmo \
-			obs.cmo
+			obs.cmo \
+			gen.cmo
 
 OBJ_GTK = gtkplot.cmo \
 		input.cmo \
@@ -93,8 +94,13 @@ input.cmi:
 input.cmo: INCLUDES += $(LABLGTK2)
 input.cmx: INCLUDES += $(LABLGTK2)
 
+random.zci: int32.zci nativeint.zci int64.zci
+
 obs.ml: obs.zls basics.zci
 		$(ZELUC) $(ZELUCFLAGS) obs.zls
+
+gen.ml: gen.zls random.zci
+		$(ZELUC) $(ZELUCFLAGS) gen.zls
 
 scope.ml: scope.zls gtkplot.zci basics.zci
 	$(ZELUC) $(ZELUCFLAGS) scope.zls
@@ -114,6 +120,7 @@ clean:
 	-@rm -f *.cm[iox] *.annot *~ *.o
 	-@rm -f scope.ml scope.obc
 	-@rm -f obs.ml obs.obc
+	-@rm -f gen.ml gen.obc
 	-@rm -f dump.ml dump.obc
 	-@rm -f *.zci *.cma *.cmxa *.a
 	-@rm -f solvers/*.cm[iox] solvers/*.annot solvers/*~ solvers/*.o

@@ -1,0 +1,16 @@
+open Scope
+
+let static tstep = 0.1
+
+node main () =
+    let initial = 0. in
+    let rec t = 0. fby (t +. tstep) in
+
+    let const  = Gen.const(0., 1.)(tstep, initial) in
+    let linear = Gen.linear(0., 1.)(tstep, initial) in
+    let bounded_affine = Gen.bounded_affine(0., 1.)(1.)(tstep, initial) in
+
+    let s1 = scope(0., 10., ("constant(0, 1)", Scope.linear, const))
+    and s2 = scope(0., 10., ("linear(0, 1)", Scope.linear, linear))
+    and s3 = scope(0., 1.,  ("bounded_affine(0, 1)(1)", Scope.linear, bounded_affine)) in
+    window3("Trace generation", 10., t, s1, s2, s3)

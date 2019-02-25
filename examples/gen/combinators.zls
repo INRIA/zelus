@@ -1,0 +1,19 @@
+open Scope
+open Gen
+
+let static tstep = 0.1
+
+node main () =
+    let initial = 0. in
+    let rec t = 0. fby (t +. tstep) in
+
+    let followedby = t_fby(linear(0., 1.), linear(1., 2.))(t < 3., (tstep, 0.)) in
+    let loop = t_loop(linear(0., 1.))(clock 1. tstep, (tstep, 0.)) in
+    let switch = t_switch(linear(0., 1.), linear(2., 3.))(t < 3., (tstep, 0.)) in
+    let rand_switch = t_rand_switch(0.5)(linear(0., 1.), linear(2., 3.))(tstep, 0.) in
+
+    let s1 = scope(0., 17., ("linear(0, 1) fby linear(1, 2) on (t > 3) init 0.", Scope.linear, followedby))
+    and s2 = scope(0., 10., ("loop linear(0, 1) every (clock 1) init 0.", Scope.linear, loop))
+    and s3 = scope(0., 30., ("switch linear(0, 1) or linear(2, 3) on (t > 3) init 0.", Scope.linear, switch))
+    and s4 = scope(0., 30.,  ("rand_switch(0.5) linear(0, 1) or linear(2, 3) init 0.", Scope.linear, rand_switch)) in
+    window4("Trace generation", 10., t, s1, s2, s3, s4)
