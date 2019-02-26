@@ -1,0 +1,103 @@
+type loc = NoLoc | Loc1 | Loc2 | Loc3
+
+let static pi    = 3.14159265359
+let static twopi = 6.28318530718
+
+let static alpha   =      0.030
+let static ks      =  10000.000
+let static tstep   =      0.005
+
+hybrid is_lt (x, y) =
+    present
+        | up(y -. x)
+        | (disc(x)) on (x < y)
+        | (disc(y)) on (x < y) -> ()
+
+hybrid is_le (x, y) =
+    present
+        | up(y -. x)
+        | (disc(x)) on (x <= y)
+        | (disc(y)) on (x <= y) -> ()
+
+hybrid is_gt (x, y) =
+    present
+        | up(x -. y)
+        | (disc(x)) on (x > y)
+        | (disc(y)) on (x > y) -> ()
+
+hybrid is_ge (x, y) =
+    present
+        | up(x -. y)
+        | (disc(x)) on (x >= y)
+        | (disc(y)) on (x >= y) -> ()
+
+hybrid loc_c x1 =
+    automaton
+        | Init ->
+            do NoLoc
+            unless (init) on (x1 >= alpha) then Loc1
+            else   (init) on (x1 < alpha && x1 > -. alpha) then Loc2
+            else   (init) on (x1 <= -. alpha) then Loc3
+        | Loc1 ->
+            do Loc1
+            unless (is_lt(x1, alpha))() on (x1 > -. alpha) then Loc2
+            else   (is_lt(x1, alpha))() on (x1 <= -. alpha) then Loc3
+        | Loc2 ->
+            do Loc2
+            unless (is_ge(x1, alpha))() then Loc1
+            else   (is_le(x1, -. alpha))() then Loc3
+        | Loc3 ->
+            do Loc3
+            unless (is_gt(x1, -. alpha))() on (x1 >= alpha) then Loc3
+            else   (is_gt(x1, -. alpha))() on (x1 < alpha) then Loc2
+
+node loc_d x1 =
+    if x1 >= alpha then Loc1
+    else if x1 <= -. alpha then Loc3
+    else Loc2
+
+open Scope
+open Zlarray
+open Powertrain
+
+node plot title (t, u, x) =
+    let s = scope(0., 120., ("x3 = theta_ref", linear, x.x3)) in
+    window ("Powertrain : x = x1", 0.4, x.x1, s);
+    let s1 = scope(-5., 5., ("u", linear, u)) in
+    let s2 = scope(29., 34., ("x6 = theta_l_der", linear, x.x6)) in
+    let s3 = scope(350., 400., ("x7 = theta_m_der", linear, x.x7)) in
+    let s4 = scope(29., 34., ("x9 = theta_1_der", linear, x.x9)) in
+    window4("Powertrain : x = time", 2.5, t, s1, s2, s3, s4)
+
+hybrid inputc t =
+    automaton
+        | S1 -> do -5. unless up(t -. 0.2) then S2
+        | S2 -> do  5. done
+
+node inputd t =
+    if t < 0.2 then -5. else if t < 2.0 then 5. else 0.
+
+let hybrid mainc () =
+    let rec der t = 1. init 0.
+    and cur_loc = loc_c (x.x1)
+    and ks' = match cur_loc with Loc2 -> 0. | _ -> ks
+    and alpha' = match cur_loc with Loc3 -> -. alpha | _ -> alpha
+    and u = inputc t
+    and x = powertrainc (initial_state 0., ks', alpha', u)
+    in
+    present (period(tstep)) ->
+        plot "continuous" (t, u, x)
+    else ()
+
+let static h0      = 0.0005
+let static maxstep = 1.0
+let static eps     = 1.0e-4
+
+let node maind () =
+    let rec cur_loc = loc_d (x.x1)
+    and ks' = match cur_loc with Loc2 -> 0. | _ -> ks
+    and alpha' = match cur_loc with Loc3 -> -. alpha | _ -> alpha
+    and u = inputd t
+    and (t, x) = powertraind h0 maxstep eps (initial_state 0., ks', alpha', u)
+    in
+    plot "discrete" (t, u, x)

@@ -6,8 +6,7 @@ ZLLIB = ../../../lib
 ZELUCFLAGS += -nodeadcode
 ZLEXTRALIBS=$(ZLGTKLIBS)
 
-THETA=3
-PWTRNFLAGS=-dt
+THETA=1
 SAMPLING=0.1
 
 all: byte
@@ -16,42 +15,40 @@ byte: main
 
 main: mainc.byte maind.byte
 
-model.ml: zlarray.zci fixed_step_solvers.zci powertrain.zci model.zls
-	$(ZELUC) $(ZELUCFLAGS) model.zls
+main.ml: zlarray.zci disc_solvers.zci powertrain.zci main.zls
+	$(ZELUC) $(ZELUCFLAGS) main.zls
 
-main%.ml: zlarray.zci fixed_step_solvers.zci powertrain.zci model.zls
-	$(ZELUC) $(ZELUCFLAGS) -gtk2 -s $(@:.ml=) model.zls
+main%.ml: zlarray.zci disc_solvers.zci powertrain.zci main.zls
+	$(ZELUC) $(ZELUCFLAGS) -gtk2 -s $(@:.ml=) main.zls
 
-mainc.byte: zlarray.cmo fixed_step_solvers.cmo powertrain.cmo model.ml mainc.ml
+mainc.byte: zlarray.cmo disc_solvers.cmo powertrain.cmo main.ml mainc.ml
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
 	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) \
-			zlarray.cmo fixed_step_solvers.cmo powertrain.ml model.ml mainc.ml
+			zlarray.cmo disc_solvers.cmo powertrain.ml main.ml mainc.ml
 
-maind.byte: zlarray.cmo fixed_step_solvers.cmo powertrain.cmo model.ml maind.ml
+maind.byte: zlarray.cmo disc_solvers.cmo powertrain.cmo main.ml maind.ml
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
 	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) \
-			zlarray.cmo fixed_step_solvers.cmo powertrain.ml model.ml maind.ml
+			zlarray.cmo disc_solvers.cmo powertrain.ml main.ml maind.ml
 
-simple_main: simple_powertrain.byte
+spaceex_main: spaceex_powertrain.byte
 
-simple_powertrain.ml:
-	$(ZELUC) $(ZELUCFLAGS) -gtk2 -s main -o simple_powertrain_main simple_powertrain.zls
+spaceex_powertrain.ml:
+	$(ZELUC) $(ZELUCFLAGS) -gtk2 -s main -o spaceex_powertrain_main spaceex_powertrain.zls
 
 %.ml: %.zls
 	$(ZELUC) $(ZELUCFLAGS) $<
 
-fixed_step_solvers.ml: zlarray.zci
+disc_solvers.ml: zlarray.zci
 powertrain.ml: zlarray.zci
 
 powertrain.zls:
-	./gen_pwtrn $(PWTRNFLAGS) $(THETA)
+	./gen_pwtrn $(THETA)
 
 clean:
-	-@rm -f mainc.ml maind.ml mainc_main.ml maind_main.ml
-	-@rm -f powertrain.ml
-	-@rm -f model.ml main.ml mainc.ml
-	-@rm -f simple_powertrain.ml simple_powertrain_main.ml
-	-@rm -f fixed_step_solvers.ml
+	-@rm -f main.ml mainc.ml maind.ml mainc_main.ml maind_main.ml
+	-@rm -f spaceex_powertrain.ml spaceex_powertrain_main.ml
+	-@rm -f powertrain.ml disc_solvers.ml
 	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci
 
 realclean cleanall: clean

@@ -3,7 +3,7 @@ open Zlarray
 type sin_cos = { sin: float; cos: float }
 
 type loglvl = NONE | INFO | DEBUG
-let static loglvl = INFO
+let static loglvl = NONE
 
 (* <= relation for loglvl with order NONE <= INFO <= DEBUG *)
 let cmp_loglvl l1 l2 =
@@ -131,9 +131,9 @@ let node dopri maxstep eps f1 f2 f3 f4 f5 f6 f7 h0 t0 (y0, u) = t, y where
     log INFO ("| t   : " ^ (string_of_float t) ^ " --> " ^ (string_of_float t'));
     ())
 
-
-
-
+let node euler f h0 t0 (y0, u) = t, y where
+    rec t = t0 fby (t +. h0)
+    and y = y0 fby (y +: h0 *.: f(t, u, y))
 
 (* Test *)
 
