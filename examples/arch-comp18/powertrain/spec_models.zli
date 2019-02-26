@@ -1,0 +1,21 @@
+type values_2 = { v2_x1: float; v2_x2: float; v2_x3: float; v2_x4: float;
+    v2_x5: float; v2_x6: float; v2_x7: float; v2_x8: float; v2_x9: float;
+    v2_x10: float; v2_x11: float; }
+val initial_state_2 : float -> values_2
+val powertrainc_2 : values_2 * float * float * float -C-> values_2
+
+type values_22 = { v22_x1: float; v22_x2: float; v22_x3: float; v22_x4: float;
+    v22_x5: float; v22_x6: float; v22_x7: float; v22_x8: float; v22_x9: float;
+    v22_x10: float; v22_x11: float; v22_x12: float; v22_x13: float;
+    v22_x14: float; v22_x15: float; v22_x16: float; v22_x17: float;
+    v22_x18: float; v22_x19: float; v22_x20: float; v22_x21: float;
+    v22_x22: float; v22_x23: float; v22_x24: float; v22_x25: float;
+    v22_x26: float; v22_x27: float; v22_x28: float; v22_x29: float;
+    v22_x30: float; v22_x31: float; v22_x32: float; v22_x33: float;
+    v22_x34: float; v22_x35: float; v22_x36: float; v22_x37: float;
+    v22_x38: float; v22_x39: float; v22_x40: float; v22_x41: float;
+    v22_x42: float; v22_x43: float; v22_x44: float; v22_x45: float;
+    v22_x46: float; v22_x47: float; v22_x48: float; v22_x49: float;
+    v22_x50: float; v22_x51: float; }
+val initial_state_22 : float -> values_22
+val powertrainc_22 : values_22 * float * float * float -C-> values_22

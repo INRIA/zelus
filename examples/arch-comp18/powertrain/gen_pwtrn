@@ -82,7 +82,7 @@ hybrid powertrainc (initials, ks, alpha, u) = x where
                  2 * theta + 7))
     ])
 
-    zli = """val powertrainc : values -S-> float * float * float -C-> values """
+    zli = """val powertrainc : values * float * float * float -C-> values """
 
     return zls, zli
 
@@ -180,9 +180,8 @@ node powertraind h0 maxstep eps (initials, ks, alpha, u) =
         (der_node, zls)
 
     zli = """val powertraind :
-    float -S-> float -S-> float -S-> values
-    -S->
-    float * float * float -C-> float * values
+    float -S-> float -S-> float -S->
+    values * float * float * float -C-> float * values
     """
 
     return zls, zli
@@ -274,7 +273,7 @@ let static kD      =      0.50 (* PID parameter D *)
 %s """ % (args.theta, 2 * args.theta + 7, zls_c, zls_d)
 
     zli = """
-type initials
+type values
 
 val theta   : int
 val n       : int

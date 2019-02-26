@@ -1,0 +1,198 @@
+(* constants *)
+
+let static gamma   =     12.00 (* gearbox ratio *)
+let static tau_eng =      0.10 (* time constant *)
+let static bl      =      5.60 (* Nm.s/rad *)
+let static bm      =      0.00 (* Nm.s/rad *)
+let static bi      =      1.00 (* Nm.s/rad *)
+let static ki      = 100000.00 (* Nm/rad *)
+let static jl      =    140.00 (* kg.m^2 *)
+let static jm      =      0.30 (* kg.m^2 *)
+let static ji      =      0.01 (* kg.m^2 *)
+let static kP      =      0.50 (* PID parameter P *)
+let static kI      =      0.50 (* PID parameter I *)
+let static kD      =      0.50 (* PID parameter D *)
+
+(* THETA = 2*)
+
+type values_2 = { v2_x1: float; v2_x2: float; v2_x3: float; v2_x4: float;
+    v2_x5: float; v2_x6: float; v2_x7: float; v2_x8: float; v2_x9: float;
+    v2_x10: float; v2_x11: float; }
+
+(*
+    The set X0 of initial states is defined by
+    X0 = { c + alpha * g | alpha in [-1, 1] }
+    c = [ -0.0432,  -11,  0, 30,  0, 30, 360, -0.0013, 30, ..., -0.0013, 30]
+    g = [  0.0056, 4.67,  0, 10,  0, 10, 120,  0.0006, 10, ...,  0.0006, 10]
+*)
+let initial_state_2 alpha =
+    let x8 = -0.0013 +. alpha *. 0.0006
+    and x9 = 30. +. alpha *. 10. in
+    {
+        v2_x1 = -0.0432 +. alpha *. 0.0056; v2_x2 = -11. +. alpha *. 4.67;
+        v2_x3 = 0.0; v2_x4 = x9; v2_x5 = 0.0; v2_x6 = x9; v2_x7 = 12.0 *. x9;
+        v2_x8 = x8; v2_x9 = x9; v2_x10 = x8; v2_x11 = x9;
+    }
+
+hybrid powertrainc_2 (initials, ks, alpha, u) = x where
+
+    (* outputs *)
+
+    rec x = { v2_x1 = x1; v2_x2 = x2; v2_x3 = x3; v2_x4 = x4; v2_x5 = x5;
+        v2_x6 = x6; v2_x7 = x7; v2_x8 = x8; v2_x9 = x9; v2_x10 = x10;
+        v2_x11 = x11; }
+
+    (* end of outputs *)
+
+    and x0 = x7 /. gamma -. x9
+    and der x1 = x0 init initials.v2_x1
+    and der x2 =
+        (kP *. (gamma *. x4 -. x7) +. kI *. (gamma *. x3 -. gamma *. (x1 +. x8))
+      +. kD *. (gamma *. u
+      -. (x2 -. ks *. (x1 -. alpha) /. gamma -. bm *. x7) /. jm)
+      -. x2) /. tau_eng init initials.v2_x2
+    and der x3 = x4 init initials.v2_x3
+    and der x4 = u init initials.v2_x4
+    and der x5 = x6 init initials.v2_x5
+    and der x6 = (ki *. (x10 -. x5) -. bl *. x6) /. jl init initials.v2_x6
+    and der x7 = (x2 -. ks *. (x1 -. alpha) /. gamma -. bm *. x7) /. jm
+        init initials.v2_x7
+    and der x8 = x9 init initials.v2_x8
+    and der x9 = (ks *. (x1 -. alpha) -. ki *. (x8 -. x10) -. bi *. x9) *. ji
+        init initials.v2_x9
+    and der x10 = x11 init initials.v2_x10
+    and der x11 = (ki *. (x8 -. x10) -. ki *. (x10 -. x5) -. bi *. x11) *. ji
+        init initials.v2_x11
+
+(* THETA = 22 *)
+
+type values_22 = { v22_x1: float; v22_x2: float; v22_x3: float; v22_x4: float;
+    v22_x5: float; v22_x6: float; v22_x7: float; v22_x8: float; v22_x9: float;
+    v22_x10: float; v22_x11: float; v22_x12: float; v22_x13: float;
+    v22_x14: float; v22_x15: float; v22_x16: float; v22_x17: float;
+    v22_x18: float; v22_x19: float; v22_x20: float; v22_x21: float;
+    v22_x22: float; v22_x23: float; v22_x24: float; v22_x25: float;
+    v22_x26: float; v22_x27: float; v22_x28: float; v22_x29: float;
+    v22_x30: float; v22_x31: float; v22_x32: float; v22_x33: float;
+    v22_x34: float; v22_x35: float; v22_x36: float; v22_x37: float;
+    v22_x38: float; v22_x39: float; v22_x40: float; v22_x41: float;
+    v22_x42: float; v22_x43: float; v22_x44: float; v22_x45: float;
+    v22_x46: float; v22_x47: float; v22_x48: float; v22_x49: float;
+    v22_x50: float; v22_x51: float; }
+
+let initial_state_22 alpha =
+    let x8 = -0.0013 +. alpha *. 0.0006
+    and x9 = 30. +. alpha *. 10. in
+    {
+        v22_x1 = -0.0432 +. alpha *. 0.0056; v22_x2 = -11. +. alpha *. 4.67;
+        v22_x3 = 0.0; v22_x4 = x9; v22_x5 = 0.0; v22_x6 = x9; v22_x7 = 12.0 *. x9;
+        v22_x8 = x8; v22_x9 = x9; v22_x10 = x8; v22_x11 = x9; v22_x12 = x8;
+        v22_x13 = x9; v22_x14 = x8; v22_x15 = x9; v22_x16 = x8; v22_x17 = x9;
+        v22_x18 = x8; v22_x19 = x9; v22_x20 = x8; v22_x21 = x9; v22_x22 = x8;
+        v22_x23 = x9; v22_x24 = x8; v22_x25 = x9; v22_x26 = x8; v22_x27 = x9;
+        v22_x28 = x8; v22_x29 = x9; v22_x30 = x8; v22_x31 = x9; v22_x32 = x8;
+        v22_x33 = x9; v22_x34 = x8; v22_x35 = x9; v22_x36 = x8; v22_x37 = x9;
+        v22_x38 = x8; v22_x39 = x9; v22_x40 = x8; v22_x41 = x9; v22_x42 = x8;
+        v22_x43 = x9; v22_x44 = x8; v22_x45 = x9; v22_x46 = x8; v22_x47 = x9;
+        v22_x48 = x8; v22_x49 = x9; v22_x50 = x8; v22_x51 = x9; }
+
+hybrid powertrainc_22 (initials, ks, alpha, u) = x where
+
+    (* outputs *)
+
+    rec x = { v22_x1 = x1; v22_x2 = x2; v22_x3 = x3; v22_x4 = x4; v22_x5 = x5;
+        v22_x6 = x6; v22_x7 = x7; v22_x8 = x8; v22_x9 = x9; v22_x10 = x10;
+        v22_x11 = x11; v22_x12 = x12; v22_x13 = x13; v22_x14 = x14;
+        v22_x15 = x15; v22_x16 = x16; v22_x17 = x17; v22_x18 = x18;
+        v22_x19 = x19; v22_x20 = x20; v22_x21 = x21; v22_x22 = x22;
+        v22_x23 = x23; v22_x24 = x24; v22_x25 = x25; v22_x26 = x26;
+        v22_x27 = x27; v22_x28 = x28; v22_x29 = x29; v22_x30 = x30;
+        v22_x31 = x31; v22_x32 = x32; v22_x33 = x33; v22_x34 = x34;
+        v22_x35 = x35; v22_x36 = x36; v22_x37 = x37; v22_x38 = x38;
+        v22_x39 = x39; v22_x40 = x40; v22_x41 = x41; v22_x42 = x42;
+        v22_x43 = x43; v22_x44 = x44; v22_x45 = x45; v22_x46 = x46;
+        v22_x47 = x47; v22_x48 = x48; v22_x49 = x49; v22_x50 = x50;
+        v22_x51 = x51; }
+
+    (* end of outputs *)
+
+    and x0 = x7 /. gamma -. x9
+    and der x1 = x0 init initials.v22_x1
+    and der x2 =
+        (kP *. (gamma *. x4 -. x7) +. kI *. (gamma *. x3 -. gamma *. (x1 +. x8))
+      +. kD *. (gamma *. u
+      -. (x2 -. ks *. (x1 -. alpha) /. gamma -. bm *. x7) /. jm)
+      -. x2) /. tau_eng
+        init initials.v22_x2
+    and der x3 = x4 init initials.v22_x3
+    and der x4 = u init initials.v22_x4
+    and der x5 = x6 init initials.v22_x5
+    and der x6 = (ki *. (x50 -. x5) -. bl *. x6) /. jl init initials.v22_x6
+    and der x7 = (x2 -. ks *. (x1 -. alpha) /. gamma -. bm *. x7) /. jm
+        init initials.v22_x7
+    and der x8 = x9 init initials.v22_x8
+    and der x9 = (ks *. (x1 -. alpha) -. ki *. (x8 -. x10) -. bi *. x9) *. ji
+        init initials.v22_x9
+    and der x10 = x11 init initials.v22_x10
+    and der x11 = (ki *. (x8 -. x10) -. ki *. (x10 -. x5) -. bi *. x11) *. ji
+        init initials.v22_x11
+    and der x12 = x13 init initials.v22_x12
+    and der x13 = (ki *. (x10 -. x12) -. ki *. (x12 -. x5) -. bi *. x13) *. ji
+        init initials.v22_x13
+    and der x14 = x15 init initials.v22_x14
+    and der x15 = (ki *. (x12 -. x14) -. ki *. (x14 -. x5) -. bi *. x15) *. ji
+        init initials.v22_x15
+    and der x16 = x17 init initials.v22_x16
+    and der x17 = (ki *. (x14 -. x16) -. ki *. (x16 -. x5) -. bi *. x17) *. ji
+        init initials.v22_x17
+    and der x18 = x19 init initials.v22_x18
+    and der x19 = (ki *. (x16 -. x18) -. ki *. (x18 -. x5) -. bi *. x19) *. ji
+        init initials.v22_x19
+    and der x20 = x21 init initials.v22_x20
+    and der x21 = (ki *. (x18 -. x20) -. ki *. (x20 -. x5) -. bi *. x21) *. ji
+        init initials.v22_x21
+    and der x22 = x23 init initials.v22_x22
+    and der x23 = (ki *. (x20 -. x22) -. ki *. (x22 -. x5) -. bi *. x23) *. ji
+        init initials.v22_x23
+    and der x24 = x25 init initials.v22_x24
+    and der x25 = (ki *. (x22 -. x24) -. ki *. (x24 -. x5) -. bi *. x25) *. ji
+        init initials.v22_x25
+    and der x26 = x27 init initials.v22_x26
+    and der x27 = (ki *. (x24 -. x26) -. ki *. (x26 -. x5) -. bi *. x27) *. ji
+        init initials.v22_x27
+    and der x28 = x29 init initials.v22_x28
+    and der x29 = (ki *. (x26 -. x28) -. ki *. (x28 -. x5) -. bi *. x29) *. ji
+        init initials.v22_x29
+    and der x30 = x31 init initials.v22_x30
+    and der x31 = (ki *. (x28 -. x30) -. ki *. (x30 -. x5) -. bi *. x31) *. ji
+        init initials.v22_x31
+    and der x32 = x33 init initials.v22_x32
+    and der x33 = (ki *. (x30 -. x32) -. ki *. (x32 -. x5) -. bi *. x33) *. ji
+        init initials.v22_x33
+    and der x34 = x35 init initials.v22_x34
+    and der x35 = (ki *. (x32 -. x34) -. ki *. (x34 -. x5) -. bi *. x35) *. ji
+        init initials.v22_x35
+    and der x36 = x37 init initials.v22_x36
+    and der x37 = (ki *. (x34 -. x36) -. ki *. (x36 -. x5) -. bi *. x37) *. ji
+        init initials.v22_x37
+    and der x38 = x39 init initials.v22_x38
+    and der x39 = (ki *. (x36 -. x38) -. ki *. (x38 -. x5) -. bi *. x39) *. ji
+        init initials.v22_x39
+    and der x40 = x41 init initials.v22_x40
+    and der x41 = (ki *. (x38 -. x40) -. ki *. (x40 -. x5) -. bi *. x41) *. ji
+        init initials.v22_x41
+    and der x42 = x43 init initials.v22_x42
+    and der x43 = (ki *. (x40 -. x42) -. ki *. (x42 -. x5) -. bi *. x43) *. ji
+        init initials.v22_x43
+    and der x44 = x45 init initials.v22_x44
+    and der x45 = (ki *. (x42 -. x44) -. ki *. (x44 -. x5) -. bi *. x45) *. ji
+        init initials.v22_x45
+    and der x46 = x47 init initials.v22_x46
+    and der x47 = (ki *. (x44 -. x46) -. ki *. (x46 -. x5) -. bi *. x47) *. ji
+        init initials.v22_x47
+    and der x48 = x49 init initials.v22_x48
+    and der x49 = (ki *. (x46 -. x48) -. ki *. (x48 -. x5) -. bi *. x49) *. ji
+        init initials.v22_x49
+    and der x50 = x51 init initials.v22_x50
+    and der x51 = (ki *. (x48 -. x50) -. ki *. (x50 -. x5) -. bi *. x51) *. ji
+        init initials.v22_x51

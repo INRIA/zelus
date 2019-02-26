@@ -1,0 +1,9 @@
+type loc = NoLoc | Loc1 | Loc2 | Loc3
+
+val loc_c : float -C-> loc
+val loc_d : float -D-> loc
+
+val is_lt : float * float -C-> unit signal
+val is_le : float * float -C-> unit signal
+val is_gt : float * float -C-> unit signal
+val is_ge : float * float -C-> unit signal

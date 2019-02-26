@@ -1,8 +1,5 @@
 type loc = NoLoc | Loc1 | Loc2 | Loc3
 
-let static pi    = 3.14159265359
-let static twopi = 6.28318530718
-
 let static alpha   =      0.030
 let static ks      =  10000.000
 let static tstep   =      0.005
