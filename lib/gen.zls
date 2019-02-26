@@ -4,23 +4,23 @@
    while e is true, T = T1 with initial value prev and when e becomes false
    (at t = t0), T = T2 with initial value T(t0-)
 *)
-node t_fby(t1, t2)(e, (tstep, prev)) = t where
+node t_fby(t1, t2)(e, (tstep, prev)) = res where
   rec init last_val = prev
   and automaton
-  | NotSeenE -> do t = run t1 (tstep, last last_val)
+  | NotSeenE -> do res = run t1 (tstep, last last_val)
                 until e then
-                do last_val = t in SeenE
-  | SeenE    -> do t = run t2 (tstep, last last_val) done
+                do last_val = res in SeenE
+  | SeenE    -> do res = run t2 (tstep, last last_val) done
 
 (* Loop:
    loop(T)(e)(prev) = fby(T, loop(T)(e))(e, prev)
 *)
-node t_loop(t_in)(e, (tstep, prev)) = t_res where
+node t_loop(t_in)(e, (tstep, prev)) = res where
   rec init last_val = prev
   and automaton
-  | SeenE -> do t_res = run t_in (tstep, last last_val)
+  | SeenE -> do res = run t_in (tstep, last last_val)
              until e then
-             do last_val = t_res in SeenE
+             do last_val = res in SeenE
 
 (* Switch:
    switch(T1, T2)(e, prev) = T1 with initial value prev if e
