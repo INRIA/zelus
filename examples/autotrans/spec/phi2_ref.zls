@@ -17,10 +17,9 @@ let static maxt      = 30.0
 let static max_rpm   = 5200.
 let static max_speed = 170.
 
-open Maneuvers
 open Spec
 
-let node maneuver t = passing_maneuver_d t
+node maneuver tstep = scenario tstep
 
 (*
     The engine and the vehicle speed never reach ω̄ and v̄, resp.

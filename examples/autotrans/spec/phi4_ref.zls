@@ -10,10 +10,9 @@
 let static tstep = 0.05
 let static maxt  = 30.0
 
-open Maneuvers
 open Spec
 
-let node maneuver t = hard_braking_d t
+node maneuver tstep = scenario tstep
 
 (*
     After shifting into gear one, there should be no shift from gear one to

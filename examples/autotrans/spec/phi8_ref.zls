@@ -19,9 +19,9 @@ let static max_rpm   = 4500.
 let static max_speed = 120.
 let static cT        = 10.
 
-open Maneuvers
+open Spec
 
-let node maneuver t = passing_maneuver_d t
+node maneuver tstep = scenario tstep
 
 (*
     A gear increase from first to fourth in under cT secs, ending in an RPM
@@ -30,8 +30,6 @@ let node maneuver t = passing_maneuver_d t
 
     (g1 ∧ ◇_[0,10] (g4 ∧ ◇_[0,2] (w >= w̄))) ⇒ □_[0,10] (g4 ∧ (w > w̄) ⇒ (v >= v̄))
 *)
-
-open Spec
 
 node phi8((throttle, brake_torque), (rpm, gear, speed)) =
     let rec t = 0. -> pre t +. tstep in

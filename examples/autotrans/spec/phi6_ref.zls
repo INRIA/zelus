@@ -19,9 +19,9 @@ let static max_rpm   = 5200.
 let static max_speed = 170.
 let static cT        = 10.
 
-open Maneuvers
+open Spec
 
-let node maneuver t = passing_maneuver_d t
+node maneuver tstep = scenario tstep
 
 (*
     If engine speed is always less than ω̄, then vehicle speed can not exceed v̄
@@ -29,8 +29,6 @@ let node maneuver t = passing_maneuver_d t
 
     ¬(◇_[0,T] (v >= v̄) ∧ □(w < w̄))
 *)
-
-open Spec
 
 node phi6((throttle, brake_torque), (rpm, gear, speed)) =
     let rec t = 0. -> pre t +. tstep in

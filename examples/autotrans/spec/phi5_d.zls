@@ -11,9 +11,10 @@ let static tstep   = 0.05
 let static maxt    = 30.0
 let static epsilon = 0.07
 
-open Maneuvers
+open Obs
+open Spec
 
-node maneuver t = hard_braking_d t
+node maneuver tstep = scenario tstep
 
 (*
     For i in [1;4], if the car switches from any gear but i to gear i, it will
@@ -23,9 +24,6 @@ node maneuver t = hard_braking_d t
               \__________________\  -> going from any gear but i to gear i
   = ∧^4_i=1 □(edge gi ⇒ □_[0,2.5] gi)
 *)
-
-open Obs
-open Spec
 
 node stay_in_gear i (tstep, gear) =
     let gi = p_eqi (gear, i) in

@@ -19,9 +19,10 @@ let static max_rpm   = 4500.
 let static max_speed = 120.
 let static cT        = 4.
 
-open Maneuvers
+open Obs
+open Spec
 
-node maneuver t = passing_maneuver_d t
+node maneuver tstep = scenario tstep
 
 (*
     Within T sec the vehicle speed is above v̄ and from that point on the
@@ -31,11 +32,6 @@ node maneuver t = passing_maneuver_d t
 
     pas expressible dans la logique.
 *)
-
-
-open Obs
-
-open Spec
 
 node apply2_list2tuple f (tstep, list) =
     run f (tstep, (Basics.list_nth list 0, Basics.list_nth list 1))

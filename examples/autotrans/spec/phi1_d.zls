@@ -15,16 +15,14 @@ let static tstep   = 0.05
 let static maxt    = 30.0
 let static max_rpm = 4500.
 
-open Maneuvers
+open Obs
+open Spec
 
-node maneuver t = passing_maneuver_d t
+node maneuver tstep = scenario tstep
 
 (*
     □(ω < ω̄)
 *)
-
-open Obs
-open Spec
 
 node phi1((throttle, brake_torque), (rpm, gear, speed)) =
     d_always (tstep, p_lt (rpm, max_rpm))

@@ -19,19 +19,16 @@ let static max_rpm   = 4500.
 let static max_speed = 120.
 let static t         = 4.
 
-open Maneuvers
+open Obs
+open Spec
 
-node maneuver t = passing_maneuver_d t
+node maneuver tstep = scenario tstep
 
 (*
     g1 ∧ ◇_[0,10] (g4 ∧ ◇_[0,2] (w >= w̄))) ⇒ □_[0,10] (g4 ∧ (w > w̄) ⇒ (v >= v̄)
   = g1 ∧ (□_[0,10] (¬g4 ∨ □_[0,2] (w < w̄))) ∨ □_[0,10] (g4 ∧ (w > w̄) ⇒ (v >= v̄)))
   = g1 ∧ (□_[0,10] (g4 ⇒ □_[0,2] (w < w̄)) ∨ □_[0,10] (g4 ∧ (w > w̄) ⇒ (v >= v̄)))
 *)
-
-open Obs
-
-open Spec
 
 node phi8((throttle, brake_torque), (rpm, gear, speed)) =
     let g1 = p_eqi (gear, 1.) in

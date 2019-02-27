@@ -1,5 +1,38 @@
 open Autotransd
 
+let node const2((i11, i12), (i21, i22))(tstep, _) = res1, res2 where
+  rec res1 = Gen.const(i11, i12)(tstep, 0.)
+  and res2 = Gen.const(i21, i22)(tstep, 0.)
+  and init tmp =
+    print_endline ("Picked values " ^ (Basics.stdform_of_float 2 2 res1) ^
+                   " and " ^ (Basics.stdform_of_float 2 2 res2))
+
+let node rand_horizon(h1, h2)(tstep, _) = e where
+  rec t = 0. fby (t +. tstep)
+  and init h = Gen.pick_float(h1, h2)
+  and init tmp =
+    print_endline ("Picked horizon " ^ (Basics.stdform_of_float 2 2 h))
+  and ev = (t > h) && (true -> (pre t < h))
+  and present ev -> do emit e = () done
+
+let node rand_inputs(tstep) = throttle, brake where
+  throttle, brake =
+    Gen.t_fby(const2((0., 100.), (0., 0.)),
+      rand_horizon(0., 10.),
+      Gen.t_fby(const2((0., 0.), (0., 350.)),
+        rand_horizon(0., 10.),
+        Gen.t_fby(const2((0., 100.), (0., 0.)),
+          rand_horizon(0., 10.),
+          Gen.t_fby(const2((0., 0.), (0., 350.)),
+            rand_horizon(0., 10.),
+            const2((0., 0.), (0., 0.))
+          )
+        )
+      )
+    ) (tstep, (0., 0.))
+
+node scenario(tstep) = rand_inputs(tstep)
+
 let node clamp (lo, hi) v = if v < lo then lo else if v > hi then hi else v
 
 node finish_falsified (t, v) =
@@ -21,6 +54,8 @@ node finish_timeout (t, v) =
     Specutils.finish_timeout ()
 
 let node cli input_fun formula model maxt tstep =
+    let init tmp = Random.self_init () in
+
     let rec t = 0. -> pre t +. tstep in
 
     let input = run input_fun t in
@@ -37,9 +72,11 @@ let node cli input_fun formula model maxt tstep =
     else ()
 
 let node plot input_fun formula model show tstep =
+    let init tmp = Random.self_init () in
+
     let rec t = 0. -> pre t +. tstep in
 
-    let input = run input_fun t in
+    let input = run input_fun tstep in
     let output = run model (t, input) in
 
     let r, s = run formula (input, output) in

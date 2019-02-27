@@ -10,9 +10,10 @@
 let static tstep   = 0.05
 let static maxt    = 30.0
 
-open Maneuvers
+open Obs
+open Spec
 
-node maneuver t = hard_braking_d t
+node maneuver tstep = scenario tstep
 
 (*
     If the car switches from gear 2 to gear 1, then it will never come back
@@ -22,9 +23,6 @@ node maneuver t = hard_braking_d t
       \_________________\  -> going from gear 2 to gear 1
   = □((edge g1 ∧ pre g2) ⇒ □_[0,2.5] ¬g2)
 *)
-
-open Obs
-open Spec
 
 node phi3((throttle, brake_torque), (rpm, gear, speed)) =
     let g1 = p_eqi (gear, 1.) in

@@ -11,10 +11,10 @@ let static tstep   = 0.05
 let static maxt    = 30.0
 let static epsilon = 0.01
 
-open Maneuvers
 open Scope
+open Spec
 
-let node maneuver t = hard_braking_d t
+node maneuver tstep = scenario tstep
 
 (*
     When shifting into any gear, there should be no shift from that gear to
@@ -23,7 +23,6 @@ let node maneuver t = hard_braking_d t
     ∧^4_i=1 □((¬gi ∧ X gi) ⇒ □_[0,2.5] gi)
 *)
 
-open Spec
 
 let static dur = 2.5
 
