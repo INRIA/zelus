@@ -1,42 +1,52 @@
 (* TRACE COMBINATORS *)
 
 (* Followed by:
-   while e is true, T = T1 with initial value prev and when e becomes false
-   (at t = t0), T = T2 with initial value T(t0-)
+   while e(res) is true, res = T1 with initial value prev and when e becomes false
+   (at t = t0), res = T2 with initial value res(t0-)
 *)
-node t_fby(t1, t2)(e, (tstep, prev)) = res where
+node t_fby(t1, e, t2)(tstep, prev) = res where
   rec init last_val = prev
   and automaton
   | NotSeenE -> do res = run t1 (tstep, last last_val)
-                until e then
+                and ev = run e (tstep, res)
+                until ev() then
                 do last_val = res in SeenE
   | SeenE    -> do res = run t2 (tstep, last last_val) done
 
 (* Loop:
-   loop(T)(e)(prev) = fby(T, loop(T)(e))(e, prev)
+   loop(T, e)(prev) = fby(T, e, loop(T, e))(prev)
 *)
-node t_loop(t_in)(e, (tstep, prev)) = res where
+node t_loop(t, e)(tstep, prev) = res where
   rec init last_val = prev
+  and ev = run e (tstep, res)
   and automaton
-  | SeenE -> do res = run t_in (tstep, last last_val)
-             until e then
+  | SeenE -> do res = run t (tstep, last last_val)
+             until ev() then
              do last_val = res in SeenE
 
 (* Switch:
-   switch(T1, T2)(e, prev) = T1 with initial value prev if e
-   switch(T1, T2)(e, prev) = T2 with initial value prev if not e
+   switch(T1, e, T2)(prev) = T1 with initial value prev if e
+   switch(T1, e, T2)(prev) = T2 with initial value prev if not e
 *)
-node t_switch(t1, t2)(e, (tstep, prev)) =
+node t_switch(e, t1, t2)(tstep, prev) =
     let res1 = run t1 (tstep, prev) in
     let res2 = run t2 (tstep, prev) in
-    if e then res1 else res2
+
+    let rec cond = run e (tstep, res)
+    and res = if cond then res1 else res2 in
+
+    res
 
 (* Random switch
    switch(p)(T1, T2) = T1 with probability p or T2 with probability (1-p)
 *)
 node t_rand_switch(p)(t1, t2)(tstep, prev) =
+  let res1 = run t1 (tstep, prev) in
+  let res2 = run t2 (tstep, prev) in
+
   let init b = Random.float(1.) < p in
-  t_switch(t1, t2)(b, (tstep, prev))
+
+  if b then res1 else res2
 
 (* TRACE GENERATION *)
 
@@ -72,26 +82,26 @@ node bounded_affine(i1, i2)(slope_mag)(tstep, prev) = res where
 
 (* EVENT FUNCTIONS *)
 
+(* node no_evt(_) = e where present up(1.) -> do emit e = () done *)
+
 (* clock t0 tstep = true every instant n such as :
    exists k, (n-1) * tstep < (k *. t0)
         and  n * tstep >= k *. t0
 
     ie true at most once every t0 instant on a clock with speed tstep
 *)
-node clock(t0)(tstep) =
+node clock(t0)(tstep, _) = e where
     automaton
         | I ->
             let rec t = 0. fby (t +. tstep) in
-            do true fby false
-            until (t >= t0) then I
+            do until (t >= t0) then do emit e = () in I
 
+node horizon(h)(tstep, _) = e where
+  rec t = 0. fby (t +. tstep)
+  and ev = (t > h) && (true -> (pre t < h))
+  and present ev -> do emit e = () done
 
-(* node no_evt(_) = e where present up(1.) -> do emit e = () done
-
-node horizon(h)(_) = e where
-  rec der t = 1. init 0.
-  and present up(t -. h) -> do emit e = () done
-
+(*
 node rand_horizon(h1, h2)(_) = e where
   rec der t = 1. init 0.
   and init h = pick_float(h1, h2)
