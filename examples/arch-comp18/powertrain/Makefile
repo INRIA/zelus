@@ -6,8 +6,10 @@ ZLLIB = ../../../lib
 ZELUCFLAGS +=
 ZLEXTRALIBS=$(ZLGTKLIBS)
 
-THETA=1
+THETA ?= 1
 SAMPLING=0.1
+
+SPECINSTANCES=dtn01 dtn02 dtn03 dtn04 dtn05 dtn06
 
 all: byte
 
@@ -36,15 +38,15 @@ spaceex_main: spaceex_powertrain.byte
 spaceex_powertrain.ml:
 	$(ZELUC) $(ZELUCFLAGS) -gtk2 -s main -o spaceex_powertrain_main spaceex_powertrain.zls
 
-spec: spec.byte
+spec: $(SPECINSTANCES:%=instance_%.byte)
 
-spec.ml: spec_models.zci main.zci
-	$(ZELUC) $(ZELUCFLAGS) -gtk2 -s main -o spec_main spec.zls
+instance_%.ml: spec_models.zci main.zci
+	$(ZELUC) $(ZELUCFLAGS) -gtk2 -s $(@:.ml=) -o $(@:.ml=) instances.zls
 
-spec.byte: spec_models.cmo spec.ml
+instance_%.byte: spec_models.cmo spec.cmo instances.ml instance_%.ml
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
 	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) \
-			spec_models.cmo spec.ml spec_main.ml
+			$^
 
 %.ml: %.zls
 	$(ZELUC) $(ZELUCFLAGS) $<
@@ -59,10 +61,15 @@ clean:
 	-@rm -f main.ml mainc.ml maind.ml mainc_main.ml maind_main.ml
 	-@rm -f spaceex_powertrain.ml spaceex_powertrain_main.ml
 	-@rm -f spec.ml spec_main.ml
+	-@rm -f instances.ml $(SPECINSTANCES:%=instance_%.ml)
 	-@rm -f powertrain.ml disc_solvers.ml
 	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci
 
 realclean cleanall: clean
 	-@rm -f mainc.byte maind.byte mainc.byte maind.byte
+	-@rm -f $(SPECINSTANCES:%=instance_%.byte)
 	-@rm -f simple_powertrain.byte spaceex_powertrain.byte spec.byte
 	-@rm -f powertrain.zls powertrain.zli
+
+.SECONDARY: spec.cmo
+.PRECIOUS: spec.cmo

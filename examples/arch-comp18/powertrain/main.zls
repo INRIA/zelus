@@ -80,7 +80,20 @@ let hybrid mainc () =
     and ks' = match cur_loc with Loc2 -> 0. | _ -> ks
     and alpha' = match cur_loc with Loc3 -> -. alpha | _ -> alpha
     and u = inputc t
-    and x = powertrainc (initial_state 0., ks', alpha', u)
+    and alpha = 0.
+    and initials = initial_state alpha
+
+    and init tmp = print_endline
+    ("Chosen alpha: " ^ (Basics.stdform_of_float 2 2 alpha) ^
+        "\nInitial values:" ^
+        "\n  x1 = " ^ (Basics.stdform_of_float 2 2 x.x1) ^
+        "\n  x2 = " ^ (Basics.stdform_of_float 2 2 x.x2) ^
+        "\n  x7 = " ^ (Basics.stdform_of_float 2 2 x.x7) ^
+        "\n  x8 = " ^ (Basics.stdform_of_float 2 2 x.x8) ^
+        "\n  x9 = " ^ (Basics.stdform_of_float 2 2 x.x9)
+    )
+
+    and x = powertrainc (initials, ks', alpha', u)
     in
     present (period(tstep)) ->
         plot "continuous" (t, u, x)
@@ -95,6 +108,19 @@ let node maind () =
     and ks' = match cur_loc with Loc2 -> 0. | _ -> ks
     and alpha' = match cur_loc with Loc3 -> -. alpha | _ -> alpha
     and u = inputd t
-    and (t, x) = powertraind h0 maxstep eps (initial_state 0., ks', alpha', u)
+    and alpha = 0.
+    and initials = initial_state alpha
+
+    and init tmp = print_endline
+    ("Chosen alpha: " ^ (Basics.stdform_of_float 2 2 alpha) ^
+        "\nInitial values:" ^
+        "\n  x1 = " ^ (Basics.stdform_of_float 2 2 x.x1) ^
+        "\n  x2 = " ^ (Basics.stdform_of_float 2 2 x.x2) ^
+        "\n  x7 = " ^ (Basics.stdform_of_float 2 2 x.x7) ^
+        "\n  x8 = " ^ (Basics.stdform_of_float 2 2 x.x8) ^
+        "\n  x9 = " ^ (Basics.stdform_of_float 2 2 x.x9)
+    )
+
+    and (t, x) = powertraind h0 maxstep eps (initials, ks', alpha', u)
     in
     plot "discrete" (t, u, x)

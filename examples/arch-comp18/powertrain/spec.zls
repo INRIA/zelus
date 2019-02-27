@@ -68,10 +68,10 @@ open Obs
         phi2 = □(z3 ⇒ □(¬z2))
 
     Final formula:
-        □(edge(t > 2) ⇒ (◇(z2) ∧ □(z2 ⇒ (◇(z3) ∧ (□(z3 ⇒ □(¬z2)))))))
+        □(edge(t > 0.2) ⇒ (◇(z2) ∧ □(z2 ⇒ (◇(z3) ∧ (□(z3 ⇒ □(¬z2)))))))
 *)
 
-let static phi_desc = "□(edge(t > 2) ⇒ (◇(z2) ∧ □(z2 ⇒ (◇(z3) ∧ (□(z3 ⇒ □(¬z2)))))))"
+let static phi_desc = "□(edge(t > 0.2) ⇒ (◇(z2) ∧ □(z2 ⇒ (◇(z3) ∧ (□(z3 ⇒ □(¬z2)))))))"
 
 node spec(t, x1) =
     let tstep = t -> (t -. pre t) in
@@ -165,11 +165,15 @@ node plot(t, u, x1, (r, s)) =
     let s3 = scope2(-0.2, 0.2, (phi_desc, linear, r), ("done?", linear, Obs.float_of_state s)) in
     window3("Powertrain : x = time", 2.5, t, s1, s2, s3)
 
-hybrid main () =
-    let der t = 1. init 0. in
-    let initials, input, x = dtn01 0. in
+hybrid main_2 instance () =
+    let init tmp = Random.self_init () in
 
-    let init tmp = print_endline ("Initial values:" ^
+    let der t = 1. init 0. in
+    let alpha = Gen.pick_float (-1., 1.) in
+    let initials, input, x = run instance alpha in
+
+    let init tmp = print_endline ("Chosen alpha: " ^ (Basics.stdform_of_float 2 2 alpha) ^
+        "\nInitial values:" ^
         "\n  x1 = " ^ (Basics.stdform_of_float 2 2 x.v2_x1) ^
         "\n  x2 = " ^ (Basics.stdform_of_float 2 2 x.v2_x2) ^
         "\n  x7 = " ^ (Basics.stdform_of_float 2 2 x.v2_x7) ^
@@ -180,4 +184,25 @@ hybrid main () =
     present (period(tstep)) ->
         let phi = spec(t, x.v2_x1) in
         plot (t, input, x.v2_x1, phi)
+    else ()
+
+hybrid main_22 instance () =
+    let init tmp = Random.self_init () in
+
+    let der t = 1. init 0. in
+    let alpha = Gen.pick_float (-1., 1.) in
+    let initials, input, x = run instance alpha in
+
+    let init tmp = print_endline ("Chosen alpha: " ^ (Basics.stdform_of_float 2 2 alpha) ^
+        "\nInitial values:" ^
+        "\n  x1 = " ^ (Basics.stdform_of_float 2 2 x.v22_x1) ^
+        "\n  x2 = " ^ (Basics.stdform_of_float 2 2 x.v22_x2) ^
+        "\n  x7 = " ^ (Basics.stdform_of_float 2 2 x.v22_x7) ^
+        "\n  x8 = " ^ (Basics.stdform_of_float 2 2 x.v22_x8) ^
+        "\n  x9 = " ^ (Basics.stdform_of_float 2 2 x.v22_x9)
+    ) in
+
+    present (period(tstep)) ->
+        let phi = spec(t, x.v22_x1) in
+        plot (t, input, x.v22_x1, phi)
     else ()
