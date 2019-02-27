@@ -70,6 +70,9 @@ open Obs
     Final formula:
         □(edge(t > 2) ⇒ (◇(z2) ∧ □(z2 ⇒ (◇(z3) ∧ (□(z3 ⇒ □(¬z2)))))))
 *)
+
+let static phi_desc = "□(edge(t > 2) ⇒ (◇(z2) ∧ □(z2 ⇒ (◇(z3) ∧ (□(z3 ⇒ □(¬z2)))))))"
+
 node spec(t, x1) =
     let tstep = t -> (t -. pre t) in
     let z1 = p_lt(x1, -.alpha) in
@@ -159,7 +162,7 @@ node plot(t, u, x1, (r, s)) =
     let s1 = scope(-5., 5., ("u", linear, u)) in
     let s2 = scope2(-0.2, 0.2, ("x1", linear, x1),
                                  ("alpha and -alpha", points false, alternating_alpha)) in
-    let s3 = scope2(-0.2, 0.2, ("phi", linear, r), ("done?", linear, Obs.float_of_state s)) in
+    let s3 = scope2(-0.2, 0.2, (phi_desc, linear, r), ("done?", linear, Obs.float_of_state s)) in
     window3("Powertrain : x = time", 2.5, t, s1, s2, s3)
 
 hybrid main () =
