@@ -1,0 +1,198 @@
+open Obs
+
+(* After q, it is never the case that p holds *)
+node absence (tstep, (q, p)) =
+    d_trigger d_always (tstep, (p_edge q, p_not p))
+
+(* T seconds after q is first satisfied, it is never the
+   case that p holds *)
+node absence_timed t0 (tstep, (q, p)) =
+    d_trigger (d_always_r t0) (tstep, (p_edge q, p_not p))
+
+(* After q, it is always the case that once p becomes
+   satisfied, it holds for at least T seconds *)
+node minimum_duration t0 (tstep, (q, p)) =
+    d_trigger (d_trigger (d_always_l t0)) (tstep, (p_edge q, (p_edge p, p)))
+
+(* After q, it is always the case that once p becomes
+   satisfied, it holds for at most T seconds *)
+node maximum_duration t0 (tstep, (q, p)) =
+    d_trigger (d_trigger (d_next t0)) (tstep, (p_edge q, (p_edge p, p_not p)))
+
+(* After q, it is always the case that p holds at least
+   every T seconds *)
+node bounded_recurrence t0 (tstep, (q, p)) =
+    d_trigger (d_always_next (infinity, t0)) (tstep, (p_edge q, p))
+
+(* After q, it is always the case that if p holds, then
+   s holds after at most T seconds *)
+node bounded_response t0 (tstep, (q, p, s)) =
+    d_trigger (d_trigger (d_next t0)) (tstep, (p_edge q, (p_edge p, s)))
+
+(* After q, it is always the case that if p holds then s
+   holds for at least T seconds *)
+node bounded_invariance t0 (tstep, (q, p, s)) =
+    d_trigger (d_trigger (d_always_l t0)) (tstep, (p_edge q, (p_edge p, s)))
+
+open Scope
+
+let static tstep = 0.05
+
+let clamp (minv, maxv) v = min (max v minv) maxv
+
+node scope_of_formula (b1, b2) (formula_str, (rob, is_done)) =
+    scope2(b1, b2, (formula_str, linear, clamp (b1, b2) rob),
+                   ("is_done?", linear, if is_done then b2 else 0.))
+
+node test_absence () =
+    let rec t = 0. fby (t +. tstep) in
+
+    let q = p_and(p_gt(t, 2.5), p_lt(t, 2.7)) in
+    let p1 = p_lt(t, 2.) in
+    let p2 = p_lt(t, 3.) in
+
+    let phi_ok = absence (tstep, (q, p1)) in
+    let phi_notok = absence (tstep, (q, p2)) in
+
+    let s1 = scope4(-10., 10., ("q", linear, q),
+                               ("p1", linear, p1),
+                               ("p2", linear, p2),
+                               ("", linear, 0.)) in
+    let s2 = scope_of_formula (-10., 10.)
+        ("After q, it is never the case that p1 holds", phi_ok) in
+    let s3 = scope_of_formula (-10., 10.)
+        ("After q, it is never the case that p2 holds", phi_notok) in
+
+    window3("Absence", 10., t, s1, s2, s3)
+
+node test_absence_timed () =
+    let rec t = 0. fby (t +. tstep) in
+
+    let q = p_and(p_gt(t, 2.5), p_lt(t, 2.7)) in
+    let p = p_lt(t, 3.) in
+
+    let phi_ok = absence_timed 1. (tstep, (q, p)) in
+    let phi_notok = absence_timed 0.2 (tstep, (q, p)) in
+
+    let s1 = scope3(-10., 10., ("q", linear, q),
+                               ("p", linear, p),
+                               ("", linear, 0.)) in
+    let s2 = scope_of_formula (-10., 10.)
+        ("1 second after q is first satisfied, it is never the case that p holds ",
+        phi_ok) in
+    let s3 = scope_of_formula (-10., 10.)
+        ("0.1 seconds after q is first satisfied, it is never the case that p holds ",
+        phi_notok) in
+
+    window3("Absence", 10., t, s1, s2, s3)
+
+node test_minimum_duration () =
+    let rec t = 0. fby (t +. tstep) in
+
+    let q = p_and(p_gt(t, 2.5), p_lt(t, 2.7)) in
+    let p = p_and(p_gt(t, 3.5), p_lt(t, 4.)) in
+
+    let phi_ok = minimum_duration 0.2 (tstep, (q, p)) in
+    let phi_notok = minimum_duration 1. (tstep, (q, p)) in
+
+    let s1 = scope3(-10., 10., ("q", linear, q),
+                               ("p", linear, p),
+                               ("", linear, 0.)) in
+    let s2 = scope_of_formula (-10., 10.)
+        ("After q, it is always the case that once p becomes satisfied, it holds for at least 0.2 seconds",
+        phi_ok) in
+    let s3 = scope_of_formula (-10., 10.)
+        ("After q, it is always the case that once p becomes satisfied, it holds for at least 1 second",
+        phi_notok) in
+
+    window3("Absence", 10., t, s1, s2, s3)
+
+node test_maximum_duration () =
+    let rec t = 0. fby (t +. tstep) in
+
+    let q = p_and(p_gt(t, 2.5), p_lt(t, 2.7)) in
+    let p = p_and(p_gt(t, 3.5), p_lt(t, 4.)) in
+
+    let phi_ok = maximum_duration 1. (tstep, (q, p)) in
+    let phi_notok = maximum_duration 0.2 (tstep, (q, p)) in
+
+    let s1 = scope3(-10., 10., ("q", linear, q),
+                               ("p", linear, p),
+                               ("", linear, 0.)) in
+    let s2 = scope_of_formula (-10., 10.)
+        ("After q, it is always the case that once p becomes satisfied, it holds for at most 1 second",
+        phi_ok) in
+    let s3 = scope_of_formula (-10., 10.)
+        ("After q, it is always the case that once p becomes satisfied, it holds for at most 0.2 seconds",
+        phi_notok) in
+
+    window3("Absence", 10., t, s1, s2, s3)
+
+node test_bounded_recurrence () =
+    let rec t = 0. fby (t +. tstep) in
+
+    let q = p_and(p_gt(t, 2.5), p_lt(t, 2.7)) in
+    let p = p_or (p_or (p_and(p_gt(t, 2.6), p_lt(t, 2.7)),
+                        p_and(p_gt(t, 2.8), p_lt(t, 2.9))),
+                  p_and(p_gt(t, 3.5), p_lt(t, 3.6))) in
+
+    let phi_ok = bounded_recurrence 1. (tstep, (q, p)) in
+    let phi_notok = bounded_recurrence 0.2 (tstep, (q, p)) in
+
+    let s1 = scope3(-10., 10., ("q", linear, q),
+                               ("p", linear, p),
+                               ("", linear, 0.)) in
+    let s2 = scope_of_formula (-10., 10.)
+        ("After q, it is always the case that p holds at least every 1 second",
+        phi_ok) in
+    let s3 = scope_of_formula (-10., 10.)
+        ("After q, it is always the case that p holds at least every 0.2 seconds",
+        phi_notok) in
+
+    window3("Absence", 10., t, s1, s2, s3)
+
+node test_bounded_response () =
+    let rec t = 0. fby (t +. tstep) in
+
+    let q = p_and(p_gt(t, 2.5), p_lt(t, 2.7)) in
+    let p = p_and(p_gt(t, 3.5), p_lt(t, 4.)) in
+    let s = p_and(p_gt(t, 3.9), p_lt(t, 4.)) in
+
+    let phi_ok = bounded_response 1. (tstep, (q, p, s)) in
+    let phi_notok = bounded_response 0.2 (tstep, (q, p, s)) in
+
+    let s1 = scope4(-10., 10., ("q", linear, q),
+                               ("p", linear, p),
+                               ("s", linear, s),
+                               ("", linear, 0.)) in
+    let s2 = scope_of_formula (-10., 10.)
+        ("After q, it is always the case that if p holds, then s holds after at most 1 second",
+        phi_ok) in
+    let s3 = scope_of_formula (-10., 10.)
+        ("After q, it is always the case that if p holds, then s holds after at most 0.2 seconds",
+        phi_notok) in
+
+    window3("Absence", 10., t, s1, s2, s3)
+
+node test_bounded_invariance () =
+    let rec t = 0. fby (t +. tstep) in
+
+    let q = p_and(p_gt(t, 2.5), p_lt(t, 2.7)) in
+    let p = p_and(p_gt(t, 3.5), p_lt(t, 3.8)) in
+    let s = p_and(p_gt(t, 3.5), p_lt(t, 4.)) in
+
+    let phi_ok = bounded_invariance 0.2 (tstep, (q, p, s)) in
+    let phi_notok = bounded_invariance 1. (tstep, (q, p, s)) in
+
+    let s1 = scope4(-10., 10., ("q", linear, q),
+                               ("p", linear, p),
+                               ("s", linear, s),
+                               ("", linear, 0.)) in
+    let s2 = scope_of_formula (-10., 10.)
+        ("After q, it is always the case that if p holds then s holds for at least 0.2 seconds",
+        phi_ok) in
+    let s3 = scope_of_formula (-10., 10.)
+        ("After q, it is always the case that if p holds then s holds for at least 1 second",
+        phi_notok) in
+
+    window3("Absence", 10., t, s1, s2, s3)

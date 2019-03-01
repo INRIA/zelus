@@ -38,8 +38,8 @@ node phi8((throttle, brake_torque), (rpm, gear, speed)) =
                     p_gt (rpm, max_rpm)),
               p_gt (speed, max_speed))
     in
-    d_pand (d_or (d_trigger_l 10. (d_always_l 2.))
-                (d_always_l 10.))
+    d_and lift (d_or (d_trigger_l 10. (d_always_l 2.))
+                     (d_always_l 10.))
           (tstep, (g1, ((g4, p_lt (rpm, max_rpm)), disj2)))
 
 open Scope

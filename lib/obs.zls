@@ -1,11 +1,9 @@
 let static verbose = true
 
-type state = NotYet | Done
+node string_of_state st = match st with | false -> "Not yet" | true -> "Done"
+node float_of_state st = match st with | false -> 0. | true -> 1.
 
-node string_of_state st = match st with | NotYet -> "Not yet" | Done -> "Done"
-node float_of_state st = match st with | NotYet -> 0. | Done -> 1.
-
-node lift (_, p) = p, Done
+node lift (_, p) = p, true
 
 
 (* PREDICATES = float *)
@@ -22,96 +20,97 @@ node p_not (x)      = -. x
 node p_and (x1, x2) = min x1 x2
 node p_or  (x1, x2) = max x1 x2
 
-(* x1 and x2 are floats with integer values, x1 = x2 <=> x1 > x2 - 0.5 && x1 < x2 + 0.5 *)
-node p_eqi (x1, x2) = min (x1 -. x2 +. 0.5) (x2 +. 0.5 -. x1)
+(* x1 and x2 are floats with integer values,
+   x1 = x2 <=> x1 > x2 - 0.5 && x1 < x2 + 0.5 *)
+node p_eqi (x1, x2) = p_and (x1 -. x2 +. 0.5, x2 +. 0.5 -. x1)
 
-node p_edge (x) = p_false -> (p_and (p_not (pre x), x))
+node p_edge (x) = x -> (p_and (p_not (pre x), x))
 
 (* FORMULAS : tstep * args -> bool *)
 
 (*
     Next(r) ≡ ♦_[0,r]
 *)
-node d_next r (tstep, p) = v, state where
+node d_next r (tstep, p) = v, is_done where
     rec t = 0. fby (t +. tstep)
     and v = p -> (if t > r then pre v else p_or (pre v, p))
-    and state = if v > 0. || t > r then Done else NotYet
+    and is_done = v > 0. || t > r
 
-node d_next_ub (tstep, p) = d_next infinity (tstep, p) (* WARNING *)
+node d_next_ub (tstep, p) = d_next infinity (tstep, p)
 
 (*
     AlwaysL(r) ≡ □_[0,r]
 *)
-node d_always_l r (tstep, p) = v, state where
+node d_always_l r (tstep, p) = v, is_done where
     rec t = 0. fby (t +. tstep)
     and v = p -> (if t > r then pre v else p_and (pre v, p))
-    and state = if v < 0. || t > r then Done else NotYet
+    and is_done = v < 0. || t > r
 
 node d_always (tstep, p) = d_always_l infinity (tstep, p)
 
 (*
     AlwaysR(r) ≡ □_[r,+∞[
 *)
-node d_always_r r (tstep, p) = v, state where
+node d_always_r r (tstep, p) = v, is_done where
     rec t = 0. fby (t +. tstep)
     and v = if t < r then p_true
     else p -> p_and (pre v, p)
-    and state = if v < 0. then Done else NotYet
+    and is_done = v < 0.
 
 (*
     And(phi1, phi2)(x) ≡ phi1(x) ∧ phi2(x)
 *)
 node d_and phi1 phi2 (tstep, (x1, x2)) =
-    let v1, state1 = run phi1 (tstep, x1)
-    and v2, state2 = run phi2 (tstep, x2) in
-    min v1 v2,
-    match state1, state2 with
-    | Done, Done -> Done
-    | _, _ -> NotYet
+    let v1, is_done1 = run phi1 (tstep, x1)
+    and v2, is_done2 = run phi2 (tstep, x2) in
+    min v1 v2, is_done1 && is_done2
 
 (*
     Or(phi1, phi2)(x) ≡ phi1(x) ∨ phi2(x)
 *)
 node d_or phi1 phi2 (tstep, (x1, x2)) =
-    let v1, state1 = run phi1 (tstep, x1)
-    and v2, state2 = run phi2 (tstep, x2) in
-    max v1 v2,
-    match state1, state2 with
-    | Done, Done -> Done
-    | _, _ -> NotYet
+    let v1, is_done1 = run phi1 (tstep, x1)
+    and v2, is_done2 = run phi2 (tstep, x2) in
+    max v1 v2, is_done1 && is_done2
 
 (*
     PAnd(phi)(p, x) ≡ p ∧ phi(x)
 *)
-node d_pand phi (tstep, (p, x)) =
-    d_and lift phi (tstep, (p, x))
+(* node d_pand phi (tstep, (p, x)) =
+    d_and lift phi (tstep, (p, x)) *)
 
 (*
     POr(phi)(p, x) ≡ p ∨ phi(x)
 *)
-node d_por phi (tstep, (p, x)) =
-    d_or lift phi (tstep, (p, x))
+(* node d_por phi (tstep, (p, x)) =
+    d_or lift phi (tstep, (p, x)) *)
 
 (*
     TriggerL(r)(phi)(p, x) ≡ □_[0,r](p ⇒ phi)
 *)
-node d_trigger_l r phi (tstep, (p, x)) = v, state where
+node d_trigger_l r phi (tstep, (p, x)) = v, is_done where
     rec t = 0. fby (t +. tstep)
+
+    (* watch phi(tstep, x) and reset it every time it is done or
+       rst is trigered
+
+       Note: there is a delay here,
+    *)
     and
-        reset v', state' = run phi (tstep, x)
+        reset v', is_done' = run phi (tstep, x)
         every (false fby rst_bool)
     and rst_bool =
-        (present rst() -> true else false) || (state' = Done)
+        (present rst() -> true else false) || is_done'
 
     (* final value: min for t in [0, r] of (max -p phi)
-       the value is updated when state' = Done, meaning that the value for
+       the value is updated when is_done' is true, meaning that the value for
        phi is a good guess of the real robustness *)
     and init v_final = max (-. p) v'
     and present update(v_interm) ->
         do v_final = min (last v_final) v_interm done
 
-    (* we wait to see an occurence of (p > 0.), we reset the observer
-       for phi and we wait for it to tell us whether rob(phi) > 0 or not
+    (* we wait to see an occurence of (p > 0.), we trigger rst and we wait
+       for it to tell us whether rob(phi) > 0 or not
        then we go back to looking for p if p < 0. or we start again
        immediately if p > 0.
        Once we're done we go to Sink and return v_final.
@@ -121,27 +120,26 @@ node d_trigger_l r phi (tstep, (p, x)) = v, state where
     and automaton
         | I ->
             let v_interm = max (-. p) v' in
-            do v = v_interm and state = NotYet
-            until (p > 0.) on (t <= r && state' = Done && v' > 0.)
-                then do emit rst in I
-            else (p > 0.) on (t <= r && state' = Done && v' < 0.)
-                then do emit update = v' in Sink
+            do v = v_interm and is_done = false
+            until (p > 0.) on (t <= r && is_done' && v' > 0.)
+                then do emit rst and emit update = v' in I
             else (p > 0.) on (t <= r)
                 then do emit rst in S(p)
-            else (t > r)
+            else (p > 0.) on (t <= r && is_done' && v' < 0.)
+               | (t > r)
                 then do emit update = v_interm in Sink
         | S(p0) ->
             let v_interm = max (-. p0) v' in
-            do v = v_interm and state = NotYet
-            until (state' = Done) on (v' > 0. && t <= r && p < 0.)
+            do v = v_interm and is_done = false
+            until (is_done') on (v' > 0. && t <= r && p < 0.)
                 then do emit update = v_interm in I
-            else (state' = Done) on (v' > 0. && t <= r && p > 0.)
+            else (is_done') on (v' > 0. && t <= r && p > 0.)
                 then do emit update = v_interm and emit rst in S(p)
-            else (state' = Done) on (v' > 0. && t > r)
+            else (is_done') on (v' > 0. && t > r)
                 then do emit update = v_interm in Sink
-            else (state' = Done) on (v' < 0.)
+            else (is_done') on (v' < 0.)
                 then do emit update = v' in Sink
-        | Sink -> do v = last v_final and state = Done done
+        | Sink -> do v = last v_final and is_done = true done
 
 node d_trigger phi (tstep, (p, x)) = d_trigger_l infinity phi (tstep, (p, x))
 
@@ -151,36 +149,40 @@ node d_trigger phi (tstep, (p, x)) = d_trigger_l infinity phi (tstep, (p, x))
 node d_trigger_r r phi (tstep, (p, x)) =
     let rec t = 0. fby (t +. tstep) in
     automaton
-    | I -> do p_true, NotYet unless (t >= r) then S
+    | I -> do p_true, false unless (t >= r) then S
     | S -> do d_trigger phi (tstep, (p, x)) done
 
 (*
     Always_or_l(r)(phi1, phi2)(x) ≡ □_[0,r](phi1 ∨ phi2)
 *)
-node d_always_l_or r phi1 phi2 (tstep, (x1, x2)) = v, state where
+node d_always_l_or r phi1 phi2 (tstep, (x1, x2)) = v, is_done where
     rec t = 0. fby (t +. tstep)
     and automaton
     | I ->
-        let v', state' = run (d_or phi1 phi2) (tstep, (x1, x2)) in
-        do v = v' and state = NotYet
-        until (state' = Done) on (v' > 0.) on (t <= r) then I
-        else (state' = Done) on (v' > 0.) on (t > r) then Sink(v)
-        else (state' = Done) on (v' < 0.) then Sink(v)
-    | Sink(f) -> do v = f and state = Done done
+        let v', is_done' = run (d_or phi1 phi2) (tstep, (x1, x2)) in
+        do v = v' and is_done = false
+        until (is_done') on (v' > 0. && t <= r) then I
+        else (is_done') on (v' > 0. && t > r) then Sink(v)
+        else (is_done') on (v' < 0.) then Sink(v)
+    | Sink(f) -> do v = f and is_done = true done
 
 (*
     Always_or_r(r)(phi1, phi2)(x) ≡ □_[r, +∞[(phi1 ∨ phi2)
 *)
-
-node d_always_r_or r phi1 phi2 (tstep, (x1, x2)) = v, state where
-    rec t = 0. fby (t +. tstep)
-    and automaton
-    | I ->
-        do v = p_true and state = NotYet
-        until (t > r) then S
+node d_always_r_or r phi1 phi2 (tstep, (x1, x2)) =
+    let rec t = 0. fby (t +. tstep) in
+    automaton
+    | I -> do p_true, false until (t > r) then S
     | S ->
-        let v', state' = run (d_or phi1 phi2) (tstep, (x1, x2)) in
-        do v = v' and state = NotYet
-        until (state' = Done) on (v > 0.) then S
-        else (state' = Done) on (v < 0.) then Sink(v)
-    | Sink(f) -> do v = f and state = Done done
+        let v', is_done' = run (d_or phi1 phi2) (tstep, (x1, x2)) in
+        do v', false
+        until (is_done') on (v' > 0.) then S
+        else (is_done') on (v' < 0.) then Sink(v')
+    | Sink(f) -> do f, true done
+
+(* MACROS *)
+
+node d_always_next (r1, r2) (tstep, p) =
+    d_and (d_next r2)
+          (d_trigger_l r1 (d_next r2))
+          (tstep, (p, (p_edge (p_not p), p)))

@@ -49,13 +49,13 @@ node phi6((throttle, brake_torque), (rpm, gear, speed)) =
 
     automaton
         | Init ->
-            do w_phi, Obs.NotYet
+            do w_phi, false
             unless (first) on (w_phi >= 0.) then Sv
             else   (first) on (w_phi < 0.) then Done(-. w_phi)
         | Sv ->
-            do alw_v, Obs.NotYet
+            do alw_v, false
             unless (w_phi < 0.) then Done(-. w_phi)
-        | Done(final) -> do final, Obs.Done done
+        | Done(final) -> do final, true done
 
 open Scope
 

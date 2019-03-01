@@ -33,7 +33,7 @@ node phi2((throttle, brake_torque), (rpm, gear, speed)) =
 
     let
     rec phi = (min w_phi v_phi) -> min (pre phi) (min w_phi v_phi) in
-    phi, if phi >= 0. then Obs.NotYet else Obs.Done
+    phi, phi >= 0.
 
 open Scope
 

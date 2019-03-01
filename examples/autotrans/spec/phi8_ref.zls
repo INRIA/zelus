@@ -45,14 +45,14 @@ node phi8((throttle, brake_torque), (rpm, gear, speed)) =
 
     automaton
         | Init ->
-            do infinity, Obs.NotYet
+            do infinity, false
             until (w_phi >= 0. &&
                    last_g4 <= 2. &&
                    last_g1 <= (cT +. 2.) &&
                    last_g1 <= last_g4 &&
                    v_phi < 0.)
             then False(v_phi)
-        | False(f) -> do f, Obs.Done done
+        | False(f) -> do f, true done
 
 
 open Scope

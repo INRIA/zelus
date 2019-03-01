@@ -27,7 +27,7 @@ node maneuver tstep = scenario tstep
 
 node phi1((throttle, brake_torque), (rpm, gear, speed)) =
     let rec phi = (max_rpm -. rpm) -> min (pre phi) (max_rpm -. rpm) in
-    phi, if phi >= 0. then Obs.NotYet else Obs.Done
+    phi, phi >= 0.
 
 open Scope
 

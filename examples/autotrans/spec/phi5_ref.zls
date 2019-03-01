@@ -34,21 +34,21 @@ node phi_i(i)(gear) =
     let rec automaton
         | Init ->
             do res = (-. gi) -> min (pre res) (-. gi)
-            and state = Obs.NotYet
+            and is_done = false
             until ((false -> (pre gi < 0.)) && (gi >= 0.))
             then Main(t)
         | Main(t0) ->
             do
                 res = gi -> min (pre res) gi
-                and state = Obs.NotYet
+                and is_done = false
             until (gi < 0.)                then False(res)
             else  (t > t0 +. dur -. tstep) then Init
         | False(f) ->
             do
                 res = (min f gi) -> min (pre res) gi
-                and state = Obs.Done
+                and is_done = true
             done
-    in res, state
+    in res, is_done
 
 node phi5((throttle, brake_torque), (rpm, gear, speed)) =
     let phi1, s1 = phi_i(1.)(gear) in
@@ -57,10 +57,7 @@ node phi5((throttle, brake_torque), (rpm, gear, speed)) =
     let phi4, s4 = phi_i(4.)(gear) in
 
     min (min (min phi1 phi2) phi3) phi4,
-    if (s1 = Obs.Done) && (s2 = Obs.Done) &&
-       (s3 = Obs.Done) && (s4 = Obs.Done)
-    then Obs.Done
-    else Obs.NotYet
+    s1 && s2 && s3 && s4
 
 open Scope
 
