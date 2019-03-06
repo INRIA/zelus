@@ -32,7 +32,7 @@ node phi4((throttle, brake_torque), (rpm, gear, speed)) =
 open Scope
 
 node show(t, (throttle, brake_torque), (rpm, gear, speed), (phi_r, phi_s)) =
-    let s1 = scope2(0.  , 325. , ("throttle", linear, throttle),
+    let s1 = scope2(0.  , 350. , ("throttle", linear, throttle),
                                    ("brake torque", linear, brake_torque))
     and s2 = scope (0.  , 4.   , ("gear", linear, gear))
     and s3 = scope (0.  , 200. , ("speed", linear, speed))

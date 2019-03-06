@@ -84,7 +84,9 @@ let hybrid mainc () =
     and initials = initial_state alpha
 
     and init tmp = print_endline
-    ("Chosen alpha: " ^ (Basics.stdform_of_float 2 2 alpha) ^
+    ("Theta = " ^ (string_of_int Powertrain.theta) ^
+        "\nDim = " ^ (string_of_int Powertrain.n) ^
+        "\nChosen alpha: " ^ (Basics.stdform_of_float 2 2 alpha) ^
         "\nInitial values:" ^
         "\n  x1 = " ^ (Basics.stdform_of_float 2 2 x.x1) ^
         "\n  x2 = " ^ (Basics.stdform_of_float 2 2 x.x2) ^
@@ -112,7 +114,9 @@ let node maind () =
     and initials = initial_state alpha
 
     and init tmp = print_endline
-    ("Chosen alpha: " ^ (Basics.stdform_of_float 2 2 alpha) ^
+    ("Theta = " ^ (string_of_int Powertrain.theta) ^
+        "\nDim = " ^ (string_of_int Powertrain.n) ^
+        "\nChosen alpha: " ^ (Basics.stdform_of_float 2 2 alpha) ^
         "\nInitial values:" ^
         "\n  x1 = " ^ (Basics.stdform_of_float 2 2 x.x1) ^
         "\n  x2 = " ^ (Basics.stdform_of_float 2 2 x.x2) ^
