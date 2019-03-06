@@ -54,7 +54,7 @@ node test_absence () =
     let phi_ok = absence (tstep, (q, p1)) in
     let phi_notok = absence (tstep, (q, p2)) in
 
-    let s1 = scope4(-10., 10., ("q", linear, q),
+    let s1 = scope4(-5., 2., ("q", linear, q),
                                ("p1", linear, p1),
                                ("p2", linear, p2),
                                ("", linear, 0.)) in
@@ -74,7 +74,7 @@ node test_absence_timed () =
     let phi_ok = absence_timed 1. (tstep, (q, p)) in
     let phi_notok = absence_timed 0.2 (tstep, (q, p)) in
 
-    let s1 = scope3(-10., 10., ("q", linear, q),
+    let s1 = scope3(-5., 2., ("q", linear, q),
                                ("p", linear, p),
                                ("", linear, 0.)) in
     let s2 = scope_of_formula (-10., 10.)
@@ -84,7 +84,7 @@ node test_absence_timed () =
         ("0.1 seconds after q is first satisfied, it is never the case that p holds ",
         phi_notok) in
 
-    window3("Absence", 10., t, s1, s2, s3)
+    window3("Absence (timed)", 10., t, s1, s2, s3)
 
 node test_minimum_duration () =
     let rec t = 0. fby (t +. tstep) in
@@ -95,7 +95,7 @@ node test_minimum_duration () =
     let phi_ok = minimum_duration 0.2 (tstep, (q, p)) in
     let phi_notok = minimum_duration 1. (tstep, (q, p)) in
 
-    let s1 = scope3(-10., 10., ("q", linear, q),
+    let s1 = scope3(-5., 2., ("q", linear, q),
                                ("p", linear, p),
                                ("", linear, 0.)) in
     let s2 = scope_of_formula (-10., 10.)
@@ -105,7 +105,7 @@ node test_minimum_duration () =
         ("After q, it is always the case that once p becomes satisfied, it holds for at least 1 second",
         phi_notok) in
 
-    window3("Absence", 10., t, s1, s2, s3)
+    window3("Minimum duration", 10., t, s1, s2, s3)
 
 node test_maximum_duration () =
     let rec t = 0. fby (t +. tstep) in
@@ -116,7 +116,7 @@ node test_maximum_duration () =
     let phi_ok = maximum_duration 1. (tstep, (q, p)) in
     let phi_notok = maximum_duration 0.2 (tstep, (q, p)) in
 
-    let s1 = scope3(-10., 10., ("q", linear, q),
+    let s1 = scope3(-5., 2., ("q", linear, q),
                                ("p", linear, p),
                                ("", linear, 0.)) in
     let s2 = scope_of_formula (-10., 10.)
@@ -126,7 +126,7 @@ node test_maximum_duration () =
         ("After q, it is always the case that once p becomes satisfied, it holds for at most 0.2 seconds",
         phi_notok) in
 
-    window3("Absence", 10., t, s1, s2, s3)
+    window3("Maximum duration", 10., t, s1, s2, s3)
 
 node test_bounded_recurrence () =
     let rec t = 0. fby (t +. tstep) in
@@ -139,7 +139,7 @@ node test_bounded_recurrence () =
     let phi_ok = bounded_recurrence 1. (tstep, (q, p)) in
     let phi_notok = bounded_recurrence 0.2 (tstep, (q, p)) in
 
-    let s1 = scope3(-10., 10., ("q", linear, q),
+    let s1 = scope3(-5., 2., ("q", linear, q),
                                ("p", linear, p),
                                ("", linear, 0.)) in
     let s2 = scope_of_formula (-10., 10.)
@@ -149,7 +149,7 @@ node test_bounded_recurrence () =
         ("After q, it is always the case that p holds at least every 0.2 seconds",
         phi_notok) in
 
-    window3("Absence", 10., t, s1, s2, s3)
+    window3("Bounded recurrence", 10., t, s1, s2, s3)
 
 node test_bounded_response () =
     let rec t = 0. fby (t +. tstep) in
@@ -161,7 +161,7 @@ node test_bounded_response () =
     let phi_ok = bounded_response 1. (tstep, (q, p, s)) in
     let phi_notok = bounded_response 0.2 (tstep, (q, p, s)) in
 
-    let s1 = scope4(-10., 10., ("q", linear, q),
+    let s1 = scope4(-5., 2., ("q", linear, q),
                                ("p", linear, p),
                                ("s", linear, s),
                                ("", linear, 0.)) in
@@ -172,7 +172,7 @@ node test_bounded_response () =
         ("After q, it is always the case that if p holds, then s holds after at most 0.2 seconds",
         phi_notok) in
 
-    window3("Absence", 10., t, s1, s2, s3)
+    window3("Bounded response", 10., t, s1, s2, s3)
 
 node test_bounded_invariance () =
     let rec t = 0. fby (t +. tstep) in
@@ -184,7 +184,7 @@ node test_bounded_invariance () =
     let phi_ok = bounded_invariance 0.2 (tstep, (q, p, s)) in
     let phi_notok = bounded_invariance 1. (tstep, (q, p, s)) in
 
-    let s1 = scope4(-10., 10., ("q", linear, q),
+    let s1 = scope4(-5., 2., ("q", linear, q),
                                ("p", linear, p),
                                ("s", linear, s),
                                ("", linear, 0.)) in
@@ -195,4 +195,4 @@ node test_bounded_invariance () =
         ("After q, it is always the case that if p holds then s holds for at least 1 second",
         phi_notok) in
 
-    window3("Absence", 10., t, s1, s2, s3)
+    window3("Bounded invariance", 10., t, s1, s2, s3)

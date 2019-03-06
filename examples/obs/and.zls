@@ -50,3 +50,62 @@ node main () =
         ("alwaysL(2) y", linear, r22),
         ("[state: 0 = NotYet 1 = Done]", linear, st2)) in
     window3("And", 10., t, s1, s2, s3)
+
+hybrid main_c () =
+    let der t = 1. init 0. in
+
+    let v_true1  = sin(t) +. 2. in
+    let v_true_der1 = cos(t) in
+
+    let v_false1 = sin(t) -. 2. in
+    let v_false_der1 = cos(t) in
+
+    let v_true2  = cos(t) +. 2. in
+    let v_true_der2 = -. sin(t) in
+
+    let v_false2 = cos(t) -. 2. in
+    let v_false_der2 = -. sin(t) in
+
+    let x_bool = present
+        | up(t -. 5.) -> false
+        | up(t -. 4.) -> true
+        init false
+    in
+    let x = if x_bool then v_true1 else v_false1 in
+    let x_der = if x_bool then v_true_der1 else v_false_der1 in
+
+    let y_bool = present
+        | up(t -. 5.)  -> true
+        | up(t -. 4.)  -> false
+        | up(t -. 3.5) -> true
+        | up(t -. 3.)  -> false
+        init true
+    in
+    let y = if y_bool then v_true2 else v_false2 in
+    let y_der = if y_bool then v_true_der2 else v_false_der2 in
+
+    let r1, st1 =
+        c_and (c_next 5.) (c_always_l 2.) ((x, x_der), (y, y_der))
+    in
+    let r11, _ = c_next 5. (x, x_der) in
+    let r12, _ = c_always_l 2. (y, y_der) in
+    let r2, st2 =
+        c_and (c_next 3.) (c_always_l 2.) ((x, x_der), (y, y_der))
+    in
+    let r21, _ = c_next 3. (x, x_der) in
+    let r22, _ = c_always_l 2. (y, y_der) in
+
+    present (period(tstep)) ->
+        let s1 = scope2(-3., 3., ("x", linear, x), ("y", linear, y)) in
+        let s2 = scope4(-3., 3.,
+            ("(next(5) x) and (alwaysL(2) y)", linear, r1),
+            ("next(5) x", linear, r11),
+            ("alwaysL(2) y", linear, r12),
+            ("[state: 0 = NotYet 1 = Done]", linear, float_of_state st1)) in
+        let s3 = scope4(-3., 3.,
+            ("(next(3) x) and (alwaysL(2) y)", linear, r2),
+            ("next(3) x", linear, r21),
+            ("alwaysL(2) y", linear, r22),
+            ("[state: 0 = NotYet 1 = Done]", linear, float_of_state st2)) in
+        window3("Continuous And", 10., t, s1, s2, s3)
+    else ()

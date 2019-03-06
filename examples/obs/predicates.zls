@@ -31,3 +31,46 @@ let node main () =
     let s7 = scope(-3., 3., ("x ≠ 1", linear, r6)) in
     let s8 = scope(-3., 3., ("edge (x > 1)", linear, r7)) in
     windown("Predicates", 10., t, [s1; s2; s3; s4; s5; s6; s7; s8])
+
+let hybrid main_c () =
+    let der t = 1. init 0. in
+
+    let rec der sin = cos init 0.
+    and der cos = -. sin init 1. in
+
+    let p1 = sin -. 0.1 *. t in
+    let p1_der = cos -. 0.1 in
+    let p2 = sin +. 0.1 *. t in
+    let p2_der = cos +. 0.1 in
+
+    let v_true  = cos +. 2. in
+    let v_true_der = -. sin in
+    let v_false = sin -. 2. in
+    let v_false_der = cos in
+
+    let some_bool = present
+        | up(t -. 5.) -> false
+        | up(t -. 4.) -> true
+        init false
+    in
+    let p3 = if some_bool then v_false else v_true in
+    let p3_der = if some_bool then v_false_der else v_true_der in
+    let p4 = if some_bool then v_true else v_false in
+    let p4_der = if some_bool then v_true_der else v_false_der in
+
+    let r1 = c_min (p1, p1_der) in
+    let r2 = c_max (p2, p2_der) in
+    let r3 = c_min (p3, p3_der) in
+    let r4 = c_max (p4, p4_der) in
+
+    present (period(0.1)) ->
+        let s1 = scope2(-6., 1., ("p1", linear, p1),
+                                 ("min p1", linear, r1)) in
+        let s2 = scope2(-1., 6., ("p2", linear, p2),
+                                 ("max p2", linear, r2)) in
+        let s3 = scope2(-3., 3., ("p3", linear, p3),
+                                 ("min p3", linear, r3)) in
+        let s4 = scope2(-3., 3., ("p4", linear, p4),
+                                 ("max p4", linear, r4)) in
+        window4("Continuous extremum", 50., t, s1, s2, s3, s4)
+    else ()
