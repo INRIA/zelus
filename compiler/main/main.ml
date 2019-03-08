@@ -40,6 +40,7 @@ let compile file =
     raise (Arg.Bad ("don't know what to do with " ^ file))
 
 let doc_verbose = "\t Set verbose mode"
+let doc_vverbose = "\t Set even more verbose mode"
 and doc_version = "\t The version of the compiler"
 and doc_outname = "\t Simulation file name"
 and doc_print_types = "\t Print types"
@@ -77,11 +78,16 @@ let set_verbose () =
   verbose := true;
   Printexc.record_backtrace true
 
+let set_vverbose () =
+  vverbose := true;
+  set_verbose ()
+
 let main () =
   try
     Arg.parse (Arg.align
       [
         "-v", Arg.Unit set_verbose, doc_verbose;
+        "-vv", Arg.Unit set_vverbose, doc_vverbose;
         "-version", Arg.Unit show_version, doc_version;
         "-o", Arg.String set_outname, doc_outname;
         "-I", Arg.String add_include, doc_include;
