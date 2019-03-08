@@ -1,14 +1,14 @@
 open Infer_importance
 
-let node geometric (prob, p) = geom where
+let node geometric (prob, p) = n where
   rec automaton
       | Incr ->
-          do geom = 0. -> pre geom +. 1.
-          until (sample (prob, Distribution.bernoulli p)) then Stop(geom)
-      | Stop(n) -> do geom = n done
+          do n = 0. -> pre n +. 1.
+          until (sample (prob, Distribution.bernoulli p)) then Stop(n)
+      | Stop(v) -> do n = v done
       end
 
 let node main() =
-  let d = infer 1000 geometric 0.1 in
+  let d = infer 100000 geometric 0.1 in
   let mean, std = Distribution.stats_float d in
   print_float mean; print_string " "; print_float std; print_newline ()
