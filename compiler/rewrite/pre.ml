@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -92,7 +92,7 @@ let env subst b_env =
 (** Translation of expressions. *)
 let rec exp e =
   match e.e_desc with
-  | Elocal _ | Econst _ | Econstr0 _ | Eglobal _ | Elast _ | Eperiod _ -> e
+  | Elocal _ | Econst _ | Econstr0 _ | Eglobal _ | Elast _ -> e
   | Etuple(e_list) ->
      { e with e_desc = Etuple (List.map exp e_list) }
   | Econstr1(c, e_list) ->
@@ -133,6 +133,9 @@ let rec exp e =
      let b = block Env.empty b in { e with e_desc = Eblock(b, exp e) }
   | Eseq(e1, e2) ->
      { e with e_desc = Eseq(exp e1, exp e2) }
+  | Eperiod { p_phase = p1; p_period = p2 } ->
+     { e with e_desc = Eperiod
+                         { p_phase = Misc.optional_map exp p1; p_period = exp p2 } }
   | Epresent _ | Ematch _ -> assert false
 
 (** Translation of equations. *)

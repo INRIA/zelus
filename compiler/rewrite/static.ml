@@ -130,7 +130,10 @@ let rec expression env ({ e_desc = desc; e_loc = loc } as e) =
   | Etypeconstraint(e, _) -> expression env e
   | Eseq(e1, e2) ->
      ignore (expression env e1); expression env e2
-  | Eperiod(p) -> Global.value_code (Vperiod(p))
+  | Eperiod { p_phase = p1; p_period = p2 } ->
+     Global.value_code
+       (Vperiod { p_phase = Misc.optional_map (expression env) p1;
+                  p_period = expression env p2 })
   | Elet(l, e_let) ->
      let env = local env l in
      expression env e_let

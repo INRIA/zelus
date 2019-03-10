@@ -189,7 +189,9 @@ let rec exp signals ({ e_desc = desc } as e) =
     | Erecord_access(e, longname) -> Erecord_access(exp signals e, longname)
     | Etypeconstraint(e, ty) -> Etypeconstraint(exp signals e, ty)
     | Eseq(e1, e2) -> Eseq(exp signals e1, exp signals e2)
-    | Eperiod(p) -> Eperiod(p)
+    | Eperiod { p_phase = p1; p_period = p2 } ->
+       Eperiod { p_phase = Misc.optional_map (exp signals) p1;
+                 p_period = exp signals p2 }
     | Elet(l, e) -> 
         let signals, l = local signals l in Elet(l, exp signals e)
     | Eblock(b, e) ->

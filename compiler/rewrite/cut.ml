@@ -52,7 +52,7 @@ let rec exp subst ({ e_desc } as e) =
   let e_desc = match e_desc with
     | Elast(x) ->
        begin try Elocal(Env.find x subst) with Not_found -> e_desc end
-    | Elocal _ | Econst _ | Econstr0 _ | Eglobal _ | Eperiod _ -> e_desc
+    | Elocal _ | Econst _ | Econstr0 _ | Eglobal _ -> e_desc
     | Etuple(e_list) ->
        Etuple (List.map (exp subst) e_list)
     | Econstr1(c, e_list) -> Econstr1(c, List.map (exp subst) e_list)
@@ -82,7 +82,9 @@ let rec exp subst ({ e_desc } as e) =
         Ematch(total, e, m_h_list)
     | Eblock(b, e) ->
         let subst, b = block_eq_list_with_substitution subst b in
-        Eblock(b, exp subst e) in
+        Eblock(b, exp subst e)
+    | Eperiod { p_phase = p1; p_period = p2 } ->
+       Eperiod { p_phase = Misc.optional_map (exp subst) p1; p_period = exp subst p2 } in
   { e with e_desc = e_desc }
     
 (** Translation of equations. *)

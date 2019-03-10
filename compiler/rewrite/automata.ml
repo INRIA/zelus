@@ -253,7 +253,9 @@ let rec exp lnames ({ e_desc = desc } as e) =
     | Erecord_access(e, longname) -> Erecord_access(exp lnames e, longname)
     | Etypeconstraint(e, ty) -> Etypeconstraint(exp lnames e, ty)
     | Eseq(e1, e2) -> Eseq(exp lnames e1, exp lnames e2)
-    | Eperiod(p) -> Eperiod(p)
+    | Eperiod { p_phase = p1; p_period = p2 } ->
+       Eperiod { p_phase = Misc.optional_map (exp lnames) p1;
+                 p_period = exp lnames p2 }
     | Elet(l, e) -> Elet(local lnames l, exp lnames e)
     | Eblock(b, e) -> Eblock(block_eq_list lnames b, exp lnames e)
     | Epresent(p_h_list, e_opt) ->

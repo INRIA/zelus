@@ -81,7 +81,8 @@ let rec exp e =
     | Erecord_access(e, longname) -> Erecord_access(exp e, longname)
     | Etypeconstraint(e, ty) -> Etypeconstraint(exp e, ty)
     | Eseq(e1, e2) -> Eseq(exp e1, exp e2)
-    | Eperiod(p) -> Eperiod(p)
+    | Eperiod { p_phase = p1; p_period = p2 } ->
+       Eperiod { p_phase = Misc.optional_map exp p1; p_period = exp p2 }
     | Elet(l, e) -> Elet(local l, exp e)
     | Eblock(b, e) -> Eblock(block b, exp e)
     | Epresent _ | Ematch _ -> assert false in

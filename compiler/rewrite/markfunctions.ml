@@ -54,7 +54,7 @@ let funexp_info { f_args = p_list; f_body = ({ e_caus = tc } as e) } =
   let rec exp c_set { e_desc = desc; e_caus = tc } =
     match desc with
     | Elocal _ | Eglobal _ | Econst _
-    | Econstr0 _ | Elast _ | Eperiod _ | Eop _ -> c_set
+    | Econstr0 _ | Elast _ | Eop _ -> c_set
     | Eapp(_, op, arg_list) ->
         let c_set = List.fold_left exp (exp c_set op) arg_list in
         (* compute the set of causality tags *)
@@ -75,6 +75,9 @@ let funexp_info { f_args = p_list; f_body = ({ e_caus = tc } as e) } =
     | Elet(l, e) -> exp (local c_set l) e
     | Eblock(b, e) ->  exp (block_eq_list c_set b) e
     | Eseq(e1, e2) -> exp (exp c_set e1) e2
+    | Eperiod  { p_phase = p1; p_period = p2 }  ->
+       let c_set = Misc.optional exp c_set p1 in
+       exp c_set p2
                         
   and local c_set { l_eq = eq_list } = List.fold_left equation c_set eq_list
       

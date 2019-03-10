@@ -156,7 +156,10 @@ let rec expression venv renaming fun_defs ({ e_desc = desc } as e) =
           { e with e_desc = Elocal(rename x renaming) }, fun_defs
       end
   | Elast(x) -> { e with e_desc = Elast(rename x renaming) }, fun_defs
-  | Eperiod _ -> e, fun_defs
+  | Eperiod { p_phase = p1; p_period = p2 } ->
+     let p1, fun_defs = Misc.optional_with_map (expression venv renaming) fun_defs p1 in
+     let p2, fun_defs = expression venv renaming fun_defs p2 in
+     { e with e_desc = Eperiod { p_phase = p1; p_period = p2 } }, fun_defs
   | Etuple(e_list) ->
       let e_list, fun_defs =
         Misc.map_fold (expression venv renaming) fun_defs e_list in
@@ -514,7 +517,11 @@ and exp_of_value fun_defs { value_exp = v; value_name = opt_name } =
 	    (Lident.Modname(qid), v), fun_defs)
 	   fun_defs l_v_list in
        Erecord(l_e_list), fun_defs
-    | Vperiod(p) -> Eperiod(p), fun_defs
+    | Vperiod { p_phase = p1; p_period = p2 } ->
+       let p1, fun_defs =
+         Misc.optional_with_map exp_of_value fun_defs p1 in
+       let p2, fun_defs = exp_of_value fun_defs p2 in
+       Eperiod { p_phase = p1; p_period = p2 }, fun_defs
     | Vabstract(qualident) ->
        Zaux.global (Lident.Modname(qualident)), fun_defs
     | Vfun(funexp, venv) ->

@@ -180,7 +180,9 @@ let rec expression renaming ({ e_desc = desc } as e) =
      { e with e_desc = Etypeconstraint(expression renaming e1, ty) }      
   | Eseq(e1, e2) ->
      { e with e_desc = Eseq(expression renaming e1, expression renaming e2) }
-  | Eperiod _ -> e
+  | Eperiod { p_phase = p1; p_period = p2 } ->
+     { e with e_desc = Eperiod { p_phase = Misc.optional_map (expression renaming) p1;
+                                 p_period = expression renaming p2 } }
   | Elet(l, e_let) ->
      let renaming, l = local renaming l in
      { e with e_desc = Elet(l, expression renaming e_let) }

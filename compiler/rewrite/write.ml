@@ -164,7 +164,7 @@ and expression ({ e_desc = desc } as e) =
   let desc =
     match desc with
     | Elocal _ | Eglobal _ | Eop _
-    | Econst _ | Econstr0 _ | Elast _ | Eperiod _ -> desc
+    | Econst _ | Econstr0 _ | Elast _ -> desc
     | Eapp(app, op, e_list) ->
        Eapp(app, op, List.map expression e_list)
     | Etuple(e_list) -> Etuple(List.map expression e_list)
@@ -176,6 +176,8 @@ and expression ({ e_desc = desc } as e) =
     | Elet(l, e) -> Elet(local l, expression e)
     | Eblock(b, e) -> let b, _, _ = block b in Eblock(b, expression e)
     | Eseq(e1, e2) -> Eseq(expression e1, expression e2)
+    | Eperiod { p_phase = p1; p_period = p2 } ->
+       Eperiod { p_phase = Misc.optional_map expression p1; p_period = expression p2 }
     | Epresent _ | Ematch _ -> assert false in
   { e with e_desc = desc }
 

@@ -46,7 +46,7 @@ let expression e max =
       | Erecord_access(e, _) -> cost e
       | Eseq(e1, e2) -> cost e1; cost e2
       | Eperiod({ p_phase = p1_opt; p_period = p2 }) -> 
-          incr (match p1_opt with | None -> 1 | Some _ -> 2)
+          incr 1; ignore (Misc.optional_map cost p1_opt); cost p2
       | Etypeconstraint(e, _) -> cost e
       | Elet(local, e_let) ->
           cost_local local; cost e_let
