@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -261,6 +261,7 @@ let rec skeleton ty =
   | Tconstr(_, _, _) | Tvec _ -> atom (new_var ())
   | Tlink(ty) -> skeleton ty
 
+(* the type is synchronised on [c] *)
 let skeleton_on_c c ty =
   let rec skeleton_on_c is_right c_right ty =
     match ty.t_desc with
@@ -275,7 +276,19 @@ let skeleton_on_c c ty =
           (skeleton_on_c is_right c_right ty)
     | Tlink(ty) -> skeleton_on_c is_right c_right ty in
   skeleton_on_c true c ty
-   
+
+(* the skeleton for the type of a variable. no constraint for function types *)
+(* only for other types *)
+let skeleton_for_variables ty =
+  let c = new_var () in
+  let rec skeleton_rec ty =
+    match ty.t_desc with
+    | Tvar | Tconstr(_, _, _) | Tvec _ -> atom c
+    | Tproduct(ty_list) -> product (List.map skeleton_rec ty_list)
+    | Tfun _ -> skeleton ty
+    | Tlink(ty) -> skeleton_rec ty in
+  skeleton_rec ty
+
 (* Returns a causality type that is structurally like [tc] but *)
 (* also depend on variables in [cset] *)
 let rec on_c is_right cset tc =

@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -102,49 +102,58 @@ let less_than_c loc env actual_c expected_c =
   | Causal.Clash(cycle) ->
       error loc (Cless_than(atom actual_c, atom expected_c, env, cycle))
 
-(** Typing a pattern. [pattern env p = tc] when [tc] is the type *)
+(** Typing a pattern. [pattern env p = tc] where [tc] is the type *)
 (* of pattern [p] in [env] *)
-let rec pattern env ({ p_desc = desc; p_loc = loc; p_typ = ty } as p) =
-  let tc = match desc with
+let pattern env pat =
+  (* check that the type of pat is less than a type synchronised on [c] *)
+  let rec pattern_less_than_on_c pat c =
+    let actual_tc = pattern pat in
+    let expected_tc = Causal.skeleton_on_c c pat.p_typ in
+    (* the order [expected_tc < actual_tc] is mandatory, *)
+    (* not the converse *)
+    less_than pat.p_loc env expected_tc actual_tc
+
+  and pattern ({ p_desc = desc; p_loc = loc; p_typ = ty } as pat) =
+    let tc = match desc with
     | Ewildpat | Econstpat _ | Econstr0pat _ ->
         Causal.skeleton_on_c (Causal.new_var ()) ty
     | Evarpat(x) ->
-        begin try let { t_typ = tc1 } = Env.find x env in tc1
-          with | Not_found -> print x 
-        end
+       let { t_typ = actual_tc } =
+         try Env.find x env with | Not_found -> print x in
+       (* every variable that is not a function has an atomic type *)
+       let expected_tc = Causal.skeleton_for_variables pat.p_typ in
+       less_than loc env expected_tc actual_tc;
+       expected_tc
     | Econstr1pat(_, pat_list) ->
         let c = Causal.new_var () in
-        List.iter (fun p -> pattern_less_than_on_c env p c) pat_list;
+        List.iter (fun pat -> pattern_less_than_on_c pat c) pat_list;
         Causal.skeleton_on_c c ty
     | Etuplepat(pat_list) ->
-        product(List.map (pattern env) pat_list)
+        product(List.map pattern pat_list)
     | Erecordpat(l) ->
-        let c = Causal.new_var () in
-        List.iter (fun (_, p) -> pattern_less_than_on_c env p c) l;
-        Causal.skeleton_on_c c ty
-    | Etypeconstraintpat(p, _) -> pattern env p
+       (* from the causality point of view, a record is considered to be atomic *)
+       let c = Causal.new_var () in
+       List.iter (fun (_, p) -> pattern_less_than_on_c p c) l;
+       Causal.skeleton_on_c c ty
+    | Etypeconstraintpat(p, _) -> pattern p
     | Eorpat(p1, p2) ->
-        let tc1 = pattern env p1 in
-        let tc2 = pattern env p2 in
+        let tc1 = pattern p1 in
+        let tc2 = pattern p2 in
         Causal.suptype true tc1 tc2
     | Ealiaspat(p, x) ->
-        let tc_p = pattern env p in
+        let tc_p = pattern p in
         let tc_n =
-          begin try let { t_typ = tc1 } = Env.find x env in tc1
-            with | Not_found -> print x 
-          end in
+          let { t_typ = actual_tc } = try Env.find x env with | Not_found -> print x  in
+          (* every variable that is not a function has an atomic type *)
+          let expected_tc = Causal.skeleton_for_variables pat.p_typ in
+          less_than loc env expected_tc actual_tc;
+          expected_tc in
         less_than p.p_loc env tc_n tc_p;
         tc_p in
   (* annotate the pattern with the causality type *)
-  p.p_caus <- tc;
-  tc
-
-and pattern_less_than_on_c env pat c =
-  let actual_tc = pattern env pat in
-  let expected_tc = Causal.skeleton_on_c c pat.p_typ in
-  (* the order [expected_tc < actual_tc] is mandatory, *)
-  (* not the converse *)
-  less_than pat.p_loc env expected_tc actual_tc
+  pat.p_caus <- tc;
+  tc in
+  pattern pat
 
 (** Build an environment from a typing environment. *)
 let build_env l_env env =
@@ -657,6 +666,7 @@ and scondpat env c_free sc =
   scondpat sc expected_c;
   expected_c
 
+(* The main function *)
 let implementation ff { desc = desc; loc = loc } =
   try
     match desc with
