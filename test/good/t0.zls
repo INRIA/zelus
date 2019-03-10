@@ -1,8 +1,20 @@
-let hybrid f(z) = o where
-   automaton
-   | A -> do o = 1.0 until z then B
-   | B -> do der o = 1.0 done
-   end
+type t = int
+
+
+let f (x: t) = x + 1
+    
+    (*
+
+let node f(x26, y26) =
+  let rec
+      a22, b23 = e21
+  and
+      y25 = a22
+  and
+      e21 = (x26, y26)
+  and
+      e22 = a22 + b23 in
+  a22, b23, y25, e21, e22 *)
 
 (* let node f1(x, y) = (z, t) where
    rec z = 0 fby x + 1
