@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -414,8 +414,7 @@ let abbreviation q abbrev ty_list =
       match ty_desc.type_desc with
       | Abbrev(ty_list, ty) -> ty_list, ty
       | _ -> raise Not_found in
-  try
-    let arg_list, ty =
+  let arg_list, ty =
       match !abbrev with
       | Tnil ->
          let (arg_list, ty) = find q in
@@ -428,8 +427,6 @@ let abbreviation q abbrev ty_list =
     cleanup ();
     List.iter2 subst new_arg_list ty_list;
     new_ty
-  with
-    Not_found -> raise Unify
 
 
 (* same constructed types *)
@@ -462,12 +459,15 @@ let rec unify expected_ty actual_ty =
              with
              | Invalid_argument _ -> raise Unify
            end
-	| Tconstr(n1, ty_l1, abbrev), _ ->
-           let expected_ty = abbreviation n1 abbrev ty_l1 in
-           unify expected_ty actual_ty
-	| _, Tconstr(n2, ty_l2, abbrev) ->
-           let actual_ty = abbreviation n2 abbrev ty_l2 in
-           unify expected_ty actual_ty
+	| Tconstr(n1, ty_l1, abbrev1), Tconstr(n2, ty_l2, abbrev2) ->
+           begin try
+             let expected_ty = abbreviation n1 abbrev1 ty_l1 in
+             unify expected_ty actual_ty
+             with Not_found ->
+               try let actual_ty = abbreviation n2 abbrev2 ty_l2 in
+                   unify expected_ty actual_ty
+               with Not_found -> raise Unify
+           end	
 	| Tfun(k1, None, ty_arg1, ty_res1),
 	  Tfun(k2, None, ty_arg2, ty_res2) ->
 	   if k1 = k2 then
