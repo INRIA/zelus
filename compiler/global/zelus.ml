@@ -112,7 +112,7 @@ and desc =
   | Ematch of total ref * exp * exp match_handler list
   | Elet of local * exp
   | Eseq of exp * exp
-  | Eperiod of period
+  | Eperiod of exp period
   | Eblock of eq list block * exp
 
 and is_rec = bool
@@ -138,9 +138,9 @@ and app = { app_inline: bool; app_statefull: bool}
 				    
 (* a period is of the form period(v1) or period(v1|v2) where v1 is the phase *)
 (* v1 and v2 two static expressions. v1 and v2 of type float. E.g., period (0.2|3.4) *)
-and period =
-  { p_phase: exp option; (* the two expressions must be static *)
-    p_period: exp }
+and 'a period =
+  { p_phase: 'a option; (* the two expressions must be static *)
+    p_period: 'a }
 
 and pattern =
   { mutable p_desc: pdesc; (* its descriptor *)
