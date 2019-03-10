@@ -241,6 +241,11 @@ let present_handler scondpat body ff { p_cond = scpat; p_body = b; p_env = env }
   fprintf ff "@[<hov 2>| (%a) ->@ @[<v 0>%a%a@]@]"
     scondpat scpat print_env env body b
 
+let period expression ff { p_phase = opt_phase; p_period = p } =
+  match opt_phase with
+    | None -> fprintf ff "@[(%a)@]" expression p
+    | Some(phase) -> fprintf ff "@[(%a|%a)@]" expression phase expression p
+
 let rec expression ff e =
   if Deftypes.is_no_typ e.e_typ && !vverbose then
     fprintf ff "@[(* %a *)@]" Ptypes.output e.e_typ;
@@ -274,7 +279,7 @@ let rec expression ff e =
     | Eseq(e1, e2) ->
         fprintf ff "@[%a;@,%a@]" expression e1 expression e2
     | Eperiod(p) ->
-        fprintf ff "@[period %a@]" period p
+        fprintf ff "@[period %a@]" (period expression) p
     | Ematch(total, e, match_handler_list) ->
         fprintf ff "@[<v>@[<hov 2>%smatch %a with@ @[%a@]@]@]"
           (if !total then "total " else "")
@@ -314,11 +319,6 @@ and operator ff op e_list =
   | Eatomic, [e] ->
       fprintf ff "atomic %a" expression e
   | _ -> assert false
-
-and period ff { p_phase = opt_phase; p_period = p } =
-  match opt_phase with
-    | None -> fprintf ff "@[(%a)@]" expression p
-    | Some(phase) -> fprintf ff "@[(%a|%a)@]" expression phase expression p
 
 and equation ff ({ eq_desc = desc } as eq) =
   print_eq_info ff eq;
@@ -556,7 +556,7 @@ and print_value ff ve =
   | Vrecord(ln_vc_list) ->
       print_record
         (print_couple qualident print_value_code """ =""") ff ln_vc_list
-  | Vperiod(p) -> fprintf ff "@[period %a@]" period p
+  | Vperiod(p) -> fprintf ff "@[period %a@]" (period print_value_code) p
   | Vfun(body, venv) ->
       fprintf ff "@[<hov0><%a,@,%a>@]"
         funexp body (Ident.Env.fprint_t print_value_code) venv
