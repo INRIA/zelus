@@ -41,7 +41,7 @@ and value_exp =
   | Vconstr1 of Lident.qualident * value_code list (* constructor *)
   | Vtuple of value_code list (* tuple *)
   | Vrecord of (Lident.qualident * value_code) list (* record *)
-  | Vperiod of period (* period *)
+  | Vperiod of value_code period (* period *)
   | Vfun of funexp * value_code Env.t
         (* a closure: the function body; the environment of values *)
   | Vabstract of Lident.qualident (* no implementation is given *)
