@@ -39,7 +39,7 @@ let infer_decay n decay (Node { alloc; reset; step }) =
     if decay <> 1. then
       Array.iteri (fun i score -> scores.(i) <- decay *. score) scores;
     Distribution.Dist_support
-      (List.map (fun (b, w) -> (b, w /. norm)) weights)
+      (List.rev_map (fun (b, w) -> (b, w /. norm)) weights)
   in
   Node { alloc = alloc; reset = reset; step = step }
 
