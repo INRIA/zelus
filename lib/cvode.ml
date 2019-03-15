@@ -1,5 +1,6 @@
 open Ztypes
-
+open Sundials
+   
 type cstate =
        { mutable cvec: float array;
          mutable dvec: float array;
@@ -22,7 +23,7 @@ let lift f =
       discrete = false;
       horizon = 0.0 } in
 
-  let Node { alloc; step; reset } = f cstate in
+  let Node { alloc; step; reset }, cmax, zmax = f cstate in
   (* the vector of derivatives *)
 
   (* the derivative *)
@@ -32,30 +33,34 @@ let lift f =
     ignore (step s input) in
   
   (* the zero-crossing function *)
-  let g s time y yd =
+  let g s time y zyout =
     cstate.cvec <- y;
-    cstate.zvec <- yd;
+    cstate.zoutvec <- zyout;
     ignore (step s input) in
   
   (* the step function *)
-  let step s time y yd =
+  let step s time y zyin =
     cstate.cvec <- y;
-    cstate.zvec <- yd;
+    cstate.zinvec <- zyin;
     ignore (step s input) in
   
   let yd = Array.make cmax 0.0 in
-  let y = Array.wrap yd in
+  let y = Array.make cmax 0.0 in
   
   (* the solver steps *)
   let s =
     Cvode.(init Adams Functional
              (SStolerances (1e-4, 1e-8)) f (zmax, g) 0.0 y) in
 
+  Cvode.set_stop_time s 10.0;
+  Cvode.set_all_root_directions s RootDirs.Increasing;
+
   let step s (t, r, x) =
-    let next_t, r = Cvode.solve_normal s t y in
     match r with
-    | Cvode.Success ->
+    | Cvode.Success -> Cvode.solve_normal s t y
     | Cvode.RootsFound ->
+       ignore (step s t y zyin);
+       Cvode.reinit s t y
     | Cvode.StopTimeReached -> next_t, r in
 
   let reset s = () in
