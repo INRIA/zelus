@@ -1,3 +1,5 @@
+open Ztypes
+
 type cstate =
        { mutable cvec: float array;
          mutable dvec: float array;
