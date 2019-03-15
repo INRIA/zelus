@@ -1,0 +1,18 @@
+open Infer_ds
+
+let node delay_kalman (prob, (m, b, yobs)) = xt where
+  rec automaton
+      | Init ->
+          do xt = assume_constant "x1" (mgaussian 0. 1.)
+          then Run
+      | Run ->
+          do xt = assume_conditional ("x" ^ string_of_int t) (last xt) (affine_mean_gaussian m b 1.)
+          done
+      end
+  and () = observe_conditional prob ("y" ^ string_of_int t) xt (gaussian_mean_gaussian 1.) yobs
+  and t = 1 fby (t + 1)
+
+let node main () =
+  let rec t = 1. fby (t +. 1.) in
+  let x = infer delay_kalman (1., 1., t) in
+  print_state x
