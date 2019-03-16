@@ -59,8 +59,8 @@ let go f stop_time =
   
   (* the solver steps *)
   let s =
-    Cvode.init Cvode.Adams Cvode.Functional
-             (Cvode.SStolerances (1e-4, 1e-8)) f (zmax, g) 0.0 y in
+    Cvode.(init Adams Functional
+             (SStolerances (1e-4, 1e-8)) f ~roots:(cstate.zend, g) 0.0 y) in
 
   Cvode.set_stop_time s 10.0;
   Cvode.set_all_root_directions s RootDirs.Increasing;
