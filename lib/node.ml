@@ -47,7 +47,9 @@ type solver_status =
   | Cascade (* a new event occur in zero-time *)
   | StopTimeReached (* the end of simulation time is reached *)
   | Error of error
-           
+
+type horizon = float
+             
 (* convert the result made by cvode into a result *)
 let convert_cvode_status r =
   match r with
@@ -87,8 +89,8 @@ let input = function None -> raise Cvode.IllInput | Some(v) -> v
 (* Lift a hybrid function (type 'a -C-> 'b) into a node ('a -D-> 'b) *)
 (* Its Zelus interface is:
  *- val go: ('a -C-> 'b) -S-> horizon 
- *-                      -S-> horizon * 'a -D-> horizon * status * 'b signal *)
-let go f (stop_time:horizon) =
+ *-                      -S-> horizon * 'a -D-> horizon * solver_status * 'b option *)
+let go f (stop_time: horizon) =
   let cstate =
     { cvec = cmake 0;
       dvec = cmake 0;
@@ -147,7 +149,7 @@ let go f (stop_time:horizon) =
 
   let reset { s } = reset s in
   
-  let step ({ state; yinit; zinit; sstate; status } as s) ((time:horizon), input) =
+  let step ({ state; yinit; zinit; sstate; status } as s) ((time: horizon), input) =
     try
       match status with
       | Success ->
