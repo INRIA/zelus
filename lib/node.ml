@@ -1,16 +1,55 @@
-(* ocamlfind ocamlc bigarray.cma sundials.cma cvode.ml -package sundialsml *)
+(**************************************************************************)
+(*                                                                        *)
+(*                                Zelus                                   *)
+(*               A synchronous language for hybrid systems                *)
+(*                       http://zelus.di.ens.fr                           *)
+(*                                                                        *)
+(*                    Marc Pouzet and Timothy Bourke                      *)
+(*                                                                        *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
+(*                                                                        *)
+(*  This file is distributed under the terms of the CeCILL-C licence      *)
+(*                                                                        *)
+(*  Zelus is developed in the INRIA PARKAS team.                          *)
+(*                                                                        *)
+(**************************************************************************)
+
+(* This module provides functions to lift a *)
+(* hybrid function (with type 'a -C-> 'b) into a node (with type 'a -D-> 'b) *)
+(* it builts on Sundials cvode; we may provide a more generic version in the future *)
+
+(* compile with ocamlfind ocamlc bigarray.cma sundials.cma node.ml -package sundialsml *)
 open Ztypes
 open Bigarray
 open Sundials
 
-(* the result of step by the solver *)
+(* turn error exception raises by cvode (see the Sundials.Cvode module) into a value *)
+type error =
+  | IllInput
+  | TooClose
+  | TooMuchWork
+  | TooMuchAccuracy
+  | ErrFailure
+  | ConvergenceFailure
+  | LinearInitFailure
+  | LinearSetupFailure
+  | LinearSolveFailure
+  | RhsFuncFailure
+  | FirstRhsFuncFailure
+  | RepeatedRhsFuncFailure
+  | UnrecoverableRhsFuncFailure
+  | RootFuncFailure
+  
+(* the result of a step made by the solver *)
 type result =
   | Success (* the integration has reached the expected horizon *)
   | RootsFound (* a Root has been found during integration *)
   | Cascade (* a new event occur in zero-time *)
   | StopTimeReached (* the end of simulation time is reached *)
-
-let result r =
+  | Error of error
+           
+(* convert the result made by cvode into a result *)
+let convert_cvode_result r =
   match r with
   | Cvode.Success -> Success
   | Cvode.RootsFound -> RootsFound
@@ -53,6 +92,8 @@ type ('a, 'b) state =
   
   
 (* Lift a hybrid function (type 'a -C-> 'b) into a node ('a -D-> 'b) *)
+(* Its Zelus interface is:
+ *- val go: ('a -C-> 'b) -S-> horizon -S-> horizon * result * 'a -D-> horizon * result *)
 let go f stop_time =
   let cstate =
     { cvec = cmake 0;
@@ -110,22 +151,38 @@ let go f stop_time =
     { state = state; yinit = yinit; zinit = zinit; sstate = sstate } in
     
   let step { state; yinit; zinit; sstate } (time, r, x) =
-    match r with
-    | Success ->
-       cstate.discrete <- false;
-       let next_t, r = Cvode.solve_normal sstate time yinit in
-       next_t, result r
-    | RootsFound ->
-       Cvode.get_root_info sstate zinit;
-       cstate.cvec <- Nvector_serial.unwrap yinit;
-       zwrap cstate.zend zinit cstate.zinvec;
-       cstate.discrete <- true;
-       ignore (step state ());
-       if cstate.horizon = 0.0 then time, Cascade
-       else
-         (Cvode.reinit sstate time yinit; time, Success)
-    | StopTimeReached -> time, r in
-
+    try
+      match r with
+      | Success ->
+         cstate.discrete <- false;
+         let next_t, r = Cvode.solve_normal sstate time yinit in
+         next_t, convert_cvode_result r
+      | RootsFound ->
+         Cvode.get_root_info sstate zinit;
+         cstate.cvec <- Nvector_serial.unwrap yinit;
+         zwrap cstate.zend zinit cstate.zinvec;
+         cstate.discrete <- true;
+         ignore (step state ());
+         if cstate.horizon = 0.0 then time, Cascade
+         else
+           (Cvode.reinit sstate time yinit; time, Success)
+      | StopTimeReached | Error _ -> time, r
+    with
+    | Cvode.IllInput -> time, Error IllInput 
+    | Cvode.TooClose -> time, Error TooClose
+    | Cvode.TooMuchWork -> time, Error TooMuchWork
+    | Cvode.TooMuchAccuracy -> time, Error TooMuchAccuracy
+    | Cvode.ErrFailure -> time, Error ErrFailure
+    | Cvode.ConvergenceFailure -> time, Error ConvergenceFailure
+    | Cvode.LinearInitFailure -> time, Error LinearInitFailure
+    | Cvode.LinearSetupFailure -> time, Error LinearSetupFailure
+    | Cvode.LinearSolveFailure -> time, Error LinearSolveFailure
+    | Cvode.RhsFuncFailure -> time, Error RhsFuncFailure
+    | Cvode.FirstRhsFuncFailure -> time, Error FirstRhsFuncFailure
+    | Cvode.RepeatedRhsFuncFailure -> time, Error RepeatedRhsFuncFailure
+    | Cvode.UnrecoverableRhsFuncFailure -> time, Error UnrecoverableRhsFuncFailure
+    | Cvode.RootFuncFailure -> time, Error RootFuncFailure in
+  
   let reset { state; yinit; sstate } =
     reset state;
     Cvode.reinit sstate 0.0 yinit in
