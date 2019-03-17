@@ -77,14 +77,18 @@ type ('a, 'b) state =
   { state: 'a; 
     yinit: (Nvector_serial.data, Nvector_serial.kind) Nvector.t;
     zinit: Roots.t;
-    sstate: 'b }
+    sstate: 'b;
+    mutable status: solver_status }
   
-type ('a, 'b) s = { s: 'a; mutable x: 'b }
+type ('a, 'b) s = { s: 'a; mutable x: 'b option }
 
+let input = function None -> raise Cvode.IllInput | Some(v) -> v
+                                         
 (* Lift a hybrid function (type 'a -C-> 'b) into a node ('a -D-> 'b) *)
 (* Its Zelus interface is:
- *- val go: ('a -C-> 'b) -S-> horizon -S-> horizon * result * 'a -D-> horizon * result *)
-let go f stop_time =
+ *- val go: ('a -C-> 'b) -S-> horizon 
+ *-                      -S-> horizon * 'a -D-> horizon * status * 'b signal *)
+let go f (stop_time:horizon) =
   let cstate =
     { cvec = cmake 0;
       dvec = cmake 0;
@@ -104,17 +108,17 @@ let go f stop_time =
   let f { s; x } time y yd =
     cstate.cvec <- y;
     cstate.dvec <- yd;
-    ignore (step s x) in
+    ignore (step s (input x)) in
   
   (* the zero-crossing function *)
   let g { s; x } time y zyout =
     cstate.cvec <- y;
     cstate.zoutvec <- zyout;
-    ignore (step s x) in
+    ignore (step s (input x)) in
   
   (* the step function *)
   let step ({ s; x } as sx) input =
-    sx.x <- input; step s input in
+    sx.x <- Some(input); step s input in
   
   (* the alloc function *)
   let alloc () =
@@ -129,7 +133,7 @@ let go f stop_time =
     
     let zinit = Roots.create cstate.zend in
     
-    let state = { s = alloc (); x = () } in
+    let state = { s = alloc (); x = None } in
 
     (* the solver state *)
     let sstate =
@@ -139,18 +143,20 @@ let go f stop_time =
 
     Cvode.set_stop_time sstate stop_time;
     Cvode.set_all_root_directions sstate RootDirs.Increasing;
-    { state = state; yinit = yinit; zinit = zinit; sstate = sstate } in
+    { state = state; yinit = yinit; zinit = zinit; sstate = sstate; status = RootsFound } in
 
   let reset { s } = reset s in
   
-  let step { state; yinit; zinit; sstate } (time, status, input) =
+  let step ({ state; yinit; zinit; sstate; status } as s) ((time:horizon), input) =
     try
       match status with
       | Success ->
          (* make one step of integration *)
          cstate.discrete <- false;
          let next_t, status = Cvode.solve_normal sstate time yinit in
-         next_t, None, convert_cvode_status status
+         let status = convert_cvode_status status in
+         s.status <- status;
+         next_t, None, status
       | RootsFound ->
          (* a root has been found; set the zinvec and make a step *)
          Cvode.get_root_info sstate zinit;
@@ -160,13 +166,16 @@ let go f stop_time =
          let result = step state input in
          (* sets the all entries in zinvec to zero *)
          zzero cstate.zend zinit cstate.zinvec;
+         s.status <- Cascade;
          time, Some(result), Cascade
       | Cascade ->
          (* a cascade occur, that is, a event is triggered without time passing *)
          cstate.discrete <- true;
          let result = step state input in
-         if cstate.horizon = 0.0 then time, Some(result), Cascade
-         else (Cvode.reinit sstate time yinit; time, Some(result), Success)
+         if cstate.horizon = 0.0 then
+           (s.status <- Cascade; time, Some(result), Cascade)
+         else
+           (Cvode.reinit sstate time yinit; s.status <- Success; time, Some(result), Success)
       | StopTimeReached | Error _ -> time, None, status
     with
     | Cvode.IllInput -> time, None, Error IllInput 
