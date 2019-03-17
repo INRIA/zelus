@@ -64,12 +64,12 @@ let zmake n =
   let r = Array1.create int32 c_layout n in
   Array1.fill r 0l; r
 (* sets the zin vector *)
-let zwrap length zinit zinvec =
+let zwrite zinvec length zinit=
   for i = 0 to length - 1 do
     if Roots.rising zinit i then zinvec.{i} <- 1l else zinvec.{i} <- 0l
   done
 (* fill zinvec with zeros *)
-let zzero length zinit zinvec =
+let zzero zinvec length zinit =
   for i = 0 to length - 1 do
     zinvec.{i} <- 0l
   done
@@ -77,7 +77,7 @@ let zzero length zinit zinvec =
   
 type ('a, 'b) state =
   { state: 'a; 
-    yinit: (Nvector_serial.data, Nvector_serial.kind) Nvector.t;
+    mutable yinit: (Nvector_serial.data, Nvector_serial.kind) Nvector.t;
     zinit: Roots.t;
     sstate: 'b;
     mutable status: solver_status }
@@ -162,12 +162,11 @@ let go f (stop_time: horizon) =
       | RootsFound ->
          (* a root has been found; set the zinvec and make a step *)
          Cvode.get_root_info sstate zinit;
-         cstate.cvec <- Nvector_serial.unwrap yinit;
-         zwrap cstate.zend zinit cstate.zinvec;
+         zwrite cstate.zinvec cstate.zend zinit;
          cstate.discrete <- true;
          let result = step state input in
          (* sets the all entries in zinvec to zero *)
-         zzero cstate.zend zinit cstate.zinvec;
+         zzero cstate.zinvec cstate.zend zinit;
          s.status <- Cascade;
          time, Some(result), Cascade
       | Cascade ->
@@ -177,8 +176,9 @@ let go f (stop_time: horizon) =
          if cstate.horizon = 0.0 then
            (s.status <- Cascade; time, Some(result), Cascade)
          else
-           (Cvode.reinit sstate
-              ?iter: (Some(Cvode.Functional)) ~roots:(cstate.zend, g state) time yinit;
+           (s.yinit <- Nvector_serial.wrap cstate.cvec;
+            Cvode.reinit sstate
+              ~iter: Cvode.Functional ~roots:(cstate.zend, g state) time s.yinit;
             s.status <- Success; time, Some(result), Success)
       | StopTimeReached | Error _ -> time, None, status
     with
