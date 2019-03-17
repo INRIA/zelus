@@ -1,0 +1,47 @@
+(**************************************************************************)
+(*                                                                        *)
+(*                                Zelus                                   *)
+(*               A synchronous language for hybrid systems                *)
+(*                       http://zelus.di.ens.fr                           *)
+(*                                                                        *)
+(*                    Marc Pouzet and Timothy Bourke                      *)
+(*                                                                        *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
+(*                                                                        *)
+(*  This file is distributed under the terms of the CeCILL-C licence      *)
+(*                                                                        *)
+(*  Zelus is developed in the INRIA PARKAS team.                          *)
+(*                                                                        *)
+(**************************************************************************)
+
+(* Error exception raised by cvode (see the Sundials.Cvode module) *)
+type error =
+  | IllInput
+  | TooClose
+  | TooMuchWork
+  | TooMuchAccuracy
+  | ErrFailure
+  | ConvergenceFailure
+  | LinearInitFailure
+  | LinearSetupFailure
+  | LinearSolveFailure
+  | RhsFuncFailure
+  | FirstRhsFuncFailure
+  | RepeatedRhsFuncFailure
+  | UnrecoverableRhsFuncFailure
+  | RootFuncFailure
+  
+(* the result of a step made by the solver *)
+type solver_status =
+  | Success (* the integration has reached the expected horizon *)
+  | RootsFound (* a Root has been found during integration *)
+  | Cascade (* a new event occur in zero-time *)
+  | StopTimeReached (* the end of simulation time is reached *)
+  | Error of error
+
+type horizon = float
+
+(* convert a hybrid function into a node. To be used this way: *)
+(* next_t, status, r_opt = go f max_time (h, x) *)
+val go: ('a -C-> 'b) -S-> horizon
+                     -S-> horizon * 'a -D-> horizon * solver_status * 'b option
