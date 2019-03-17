@@ -1,13 +1,16 @@
 (**************************************************************************)
 (*                                                                        *)
-(*  The Zelus Hybrid Synchronous Language                                 *)
-(*  Copyright (C) 2012-2018                                               *)
+(*                                Zelus                                   *)
+(*               A synchronous language for hybrid systems                *)
+(*                       http://zelus.di.ens.fr                           *)
 (*                                                                        *)
-(*  Marc Pouzet  Timothy Bourke                                           *)
+(*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Universite Pierre et Marie Curie - Ecole normale superieure - INRIA   *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
-(*   This file is distributed under the terms of the CeCILL-C licence     *)
+(*  This file is distributed under the terms of the CeCILL-C licence      *)
+(*                                                                        *)
+(*  Zelus is developed in the INRIA PARKAS team.                          *)
 (*                                                                        *)
 (**************************************************************************)
 
@@ -41,6 +44,22 @@ type cvec = (float, float64_elt, c_layout) Array1.t
 type dvec = (float, float64_elt, c_layout) Array1.t
 type zinvec = (int32, int32_elt,   c_layout) Array1.t
 type zoutvec = (float, float64_elt, c_layout) Array1.t
+
+(* The interface with the solver *)
+type cstate =
+  { mutable dvec : dvec; (* the vector of derivatives *)
+    mutable cvec : cvec; (* the vector of positions *)
+    mutable zinvec : zinvec; (* the vector of boolean; true when the
+                             solver has detected a zero-crossing *)
+    mutable zoutvec : zoutvec; (* the corresponding vector that define
+                               zero-crossings *)
+    mutable cstart : int; (* the start position in the vector of positions *)
+    mutable zstart : int; (* the start position in the vector of zero-crossings *)
+    mutable cend : int; (* the maximum size of the vector of positions *)
+    mutable zend : int; (* the maximum number of zero-crossings *)
+    mutable horizon : float; (* the next horizon *)
+    mutable discrete : bool; (* integration iff [discrete = false] *)
+  }
 
 type ('a, 'b) hnode =
     Hnode:
