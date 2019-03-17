@@ -2,7 +2,33 @@
 open Ztypes
 open Bigarray
 open Sundials
-   
+
+(* the result of step by the solver *)
+type result =
+  | Success (* the integration has reached the expected horizon *)
+  | RootsFound (* a Root has been found during integration *)
+  | Cascade (* a new event occur in zero-time *)
+  | StopTimeReached (* the end of simulation time is reached *)
+
+let result r =
+  match r with
+  | Cvode.Success -> Success
+  | Cvode.RootsFound -> RootsFound
+  | Cvode.StopTimeReached -> StopTimeReached
+
+(* allocate the state vector *)
+let cmake = Array1.create float64 c_layout
+(* allocate the vector of zero-crossings *)
+let zmake n =
+  let r = Array1.create int32 c_layout n in
+  Array1.fill r 0l; r
+(* sets the zin vector *)
+let zwrap length zinit zinvec =
+  for i = 0 to length - 1 do
+    if Roots.rising zinit i then zinvec.{i} <- 1l else zinvec.{i} <- 0l
+  done
+
+  
 (* The interface with the solver *)
 type cstate =
   { mutable dvec : dvec; (* the vector of derivatives *)
@@ -18,18 +44,25 @@ type cstate =
     mutable horizon : float; (* the next horizon *)
     mutable discrete : bool; (* integration iff [discrete = false] *)
   }
+
+type ('a, 'b) state =
+  { state: 'a; 
+    yinit: (Nvector_serial.data, Nvector_serial.kind) Nvector.t;
+    zinit: Roots.t;
+    sstate: 'b }
+  
   
 (* Lift a hybrid function (type 'a -C-> 'b) into a node ('a -D-> 'b) *)
 let go f stop_time =
   let cstate =
-    { cvec = Array1.create Float64 c_layout 0;
-      dvec = Array1.create Float64 c_layout 0;
+    { cvec = cmake 0;
+      dvec = cmake 0;
       cstart = 0;
       cend = 0;
       zstart = 0;
       zend = 0;
-      zinvec = Array1.create Int32 c_layout 0;
-      zoutvec = Array1.create Float64 c_layout 0;
+      zinvec = zmake 0;
+      zoutvec = cmake 0;
       discrete = false;
       horizon = 0.0 } in
 
@@ -40,40 +73,62 @@ let go f stop_time =
   let f s time y yd =
     cstate.cvec <- y;
     cstate.dvec <- yd;
-    ignore (step s input) in
+    ignore (step s ()) in
   
   (* the zero-crossing function *)
   let g s time y zyout =
     cstate.cvec <- y;
     cstate.zoutvec <- zyout;
-    ignore (step s input) in
+    ignore (step s ()) in
   
   (* the step function *)
-  let step s time y zyin =
-    cstate.cvec <- y;
-    cstate.zinvec <- zyin;
-    ignore (step s input) in
+  let step = step in
   
-  let yd = RealArray.make cstate.cend 0.0 in
-  let y = Nvector_serial.wrap yd in
-  
-  (* the solver steps *)
-  let s =
-    Cvode.(init Adams Functional
-             (SStolerances (1e-4, 1e-8)) f ~roots:(cstate.zend, g) 0.0 y) in
+  (* the alloc function *)
+  let alloc () =
+    cstate.cvec <- cmake cstate.cend;
+    cstate.dvec <- cmake cstate.cend;
+    cstate.zoutvec <- cmake cstate.zend;
+    cstate.zinvec <- zmake cstate.zend;
+    cstate.horizon <- 0.0;
+    cstate.discrete <- true;
 
-  Cvode.set_stop_time s 10.0;
-  Cvode.set_all_root_directions s RootDirs.Increasing;
+    let yinit = Nvector_serial.wrap cstate.cvec in
+    
+    let zinit = Roots.create cstate.zend in
+    
+    let state = alloc () in
 
-  let step s (t, r, x) =
+    (* the solver state *)
+    let sstate =
+      Cvode.(init Adams Functional
+               (SStolerances (1e-4, 1e-8))
+               (f state) ~roots:(cstate.zend, (g state)) 0.0 yinit) in
+
+    Cvode.set_stop_time sstate stop_time;
+    Cvode.set_all_root_directions sstate RootDirs.Increasing;
+    { state = state; yinit = yinit; zinit = zinit; sstate = sstate } in
+    
+  let step { state; yinit; zinit; sstate } (time, r, x) =
     match r with
-    | Cvode.Success -> Cvode.solve_normal s t y
-    | Cvode.RootsFound ->
-       ignore (step s t y zyin);
-       Cvode.reinit s Cvode.Adams (zmax, g) t y
-    | Cvode.StopTimeReached -> next_t, r in
+    | Success ->
+       cstate.discrete <- false;
+       let next_t, r = Cvode.solve_normal sstate time yinit in
+       next_t, result r
+    | RootsFound ->
+       Cvode.get_root_info sstate zinit;
+       cstate.cvec <- Nvector_serial.unwrap yinit;
+       zwrap cstate.zend zinit cstate.zinvec;
+       cstate.discrete <- true;
+       ignore (step state ());
+       if cstate.horizon = 0.0 then time, Cascade
+       else
+         (Cvode.reinit sstate time yinit; time, Success)
+    | StopTimeReached -> time, r in
 
-  let reset s = () in
+  let reset { state; yinit; sstate } =
+    reset state;
+    Cvode.reinit sstate 0.0 yinit in
 
   Node { alloc = alloc; step = step; reset = reset }
     
