@@ -141,7 +141,7 @@ let go f (stop_time: horizon) =
     let sstate =
       Cvode.init Cvode.Adams Cvode.Functional
                (Cvode.SStolerances (1e-4, 1e-8))
-               (f state) ~roots:(cstate.zend, (g state)) 0.0 yinit in
+               (f state) ~roots:(cstate.zend, g state) 0.0 yinit in
 
     Cvode.set_stop_time sstate stop_time;
     Cvode.set_all_root_directions sstate RootDirs.Increasing;
@@ -177,7 +177,9 @@ let go f (stop_time: horizon) =
          if cstate.horizon = 0.0 then
            (s.status <- Cascade; time, Some(result), Cascade)
          else
-           (Cvode.reinit sstate time yinit; s.status <- Success; time, Some(result), Success)
+           (Cvode.reinit sstate
+              ?iter: (Some(Cvode.Functional)) ~roots:(cstate.zend, g state) time yinit;
+            s.status <- Success; time, Some(result), Success)
       | StopTimeReached | Error _ -> time, None, status
     with
     | Cvode.IllInput -> time, None, Error IllInput 
