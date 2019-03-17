@@ -23,7 +23,7 @@ open Ztypes
 open Bigarray
 open Sundials
 
-(* turn error exception raises by cvode (see the Sundials.Cvode module) into a value *)
+(* Error exception raised by cvode (see the Sundials.Cvode module) *)
 type error =
   | IllInput
   | TooClose
@@ -41,7 +41,7 @@ type error =
   | RootFuncFailure
   
 (* the result of a step made by the solver *)
-type result =
+type solver_status =
   | Success (* the integration has reached the expected horizon *)
   | RootsFound (* a Root has been found during integration *)
   | Cascade (* a new event occur in zero-time *)
@@ -49,7 +49,7 @@ type result =
   | Error of error
            
 (* convert the result made by cvode into a result *)
-let convert_cvode_result r =
+let convert_cvode_status r =
   match r with
   | Cvode.Success -> Success
   | Cvode.RootsFound -> RootsFound
@@ -66,31 +66,21 @@ let zwrap length zinit zinvec =
   for i = 0 to length - 1 do
     if Roots.rising zinit i then zinvec.{i} <- 1l else zinvec.{i} <- 0l
   done
+(* fill zinvec with zeros *)
+let zzero length zinit zinvec =
+  for i = 0 to length - 1 do
+    zinvec.{i} <- 0l
+  done
 
   
-(* The interface with the solver *)
-type cstate =
-  { mutable dvec : dvec; (* the vector of derivatives *)
-    mutable cvec : cvec; (* the vector of positions *)
-    mutable zinvec : zinvec; (* the vector of boolean; true when the
-                             solver has detected a zero-crossing *)
-    mutable zoutvec : zoutvec; (* the corresponding vector that define
-                               zero-crossings *)
-    mutable cstart : int; (* the start position in the vector of positions *)
-    mutable zstart : int; (* the start position in the vector of zero-crossings *)
-    mutable cend : int; (* the maximum size of the vector of positions *)
-    mutable zend : int; (* the maximum number of zero-crossings *)
-    mutable horizon : float; (* the next horizon *)
-    mutable discrete : bool; (* integration iff [discrete = false] *)
-  }
-
 type ('a, 'b) state =
   { state: 'a; 
     yinit: (Nvector_serial.data, Nvector_serial.kind) Nvector.t;
     zinit: Roots.t;
     sstate: 'b }
   
-  
+type ('a, 'b) s = { s: 'a; mutable x: 'b }
+
 (* Lift a hybrid function (type 'a -C-> 'b) into a node ('a -D-> 'b) *)
 (* Its Zelus interface is:
  *- val go: ('a -C-> 'b) -S-> horizon -S-> horizon * result * 'a -D-> horizon * result *)
@@ -108,22 +98,23 @@ let go f stop_time =
       horizon = 0.0 } in
 
   (* create a node *)
-  let Node { alloc; step; reset }, cmax, zmax = f cstate in
+  let Node { alloc; step; reset } = f cstate in
   
   (* the derivative *)
-  let f s time y yd =
+  let f { s; x } time y yd =
     cstate.cvec <- y;
     cstate.dvec <- yd;
-    ignore (step s ()) in
+    ignore (step s x) in
   
   (* the zero-crossing function *)
-  let g s time y zyout =
+  let g { s; x } time y zyout =
     cstate.cvec <- y;
     cstate.zoutvec <- zyout;
-    ignore (step s ()) in
+    ignore (step s x) in
   
   (* the step function *)
-  let step = step in
+  let step ({ s; x } as sx) input =
+    sx.x <- input; step s input in
   
   (* the alloc function *)
   let alloc () =
@@ -138,50 +129,60 @@ let go f stop_time =
     
     let zinit = Roots.create cstate.zend in
     
-    let state = alloc () in
+    let state = { s = alloc (); x = () } in
 
     (* the solver state *)
     let sstate =
-      Cvode.(init Adams Functional
-               (SStolerances (1e-4, 1e-8))
-               (f state) ~roots:(cstate.zend, (g state)) 0.0 yinit) in
+      Cvode.init Cvode.Adams Cvode.Functional
+               (Cvode.SStolerances (1e-4, 1e-8))
+               (f state) ~roots:(cstate.zend, (g state)) 0.0 yinit in
 
     Cvode.set_stop_time sstate stop_time;
     Cvode.set_all_root_directions sstate RootDirs.Increasing;
     { state = state; yinit = yinit; zinit = zinit; sstate = sstate } in
-    
-  let step { state; yinit; zinit; sstate } (time, r, x) =
+
+  let reset { s } = reset s in
+  
+  let step { state; yinit; zinit; sstate } (time, status, input) =
     try
-      match r with
+      match status with
       | Success ->
+         (* make one step of integration *)
          cstate.discrete <- false;
-         let next_t, r = Cvode.solve_normal sstate time yinit in
-         next_t, convert_cvode_result r
+         let next_t, status = Cvode.solve_normal sstate time yinit in
+         next_t, None, convert_cvode_status status
       | RootsFound ->
+         (* a root has been found; set the zinvec and make a step *)
          Cvode.get_root_info sstate zinit;
          cstate.cvec <- Nvector_serial.unwrap yinit;
          zwrap cstate.zend zinit cstate.zinvec;
          cstate.discrete <- true;
-         ignore (step state ());
-         if cstate.horizon = 0.0 then time, Cascade
-         else
-           (Cvode.reinit sstate time yinit; time, Success)
-      | StopTimeReached | Error _ -> time, r
+         let result = step state input in
+         (* sets the all entries in zinvec to zero *)
+         zzero cstate.zend zinit cstate.zinvec;
+         time, Some(result), Cascade
+      | Cascade ->
+         (* a cascade occur, that is, a event is triggered without time passing *)
+         cstate.discrete <- true;
+         let result = step state input in
+         if cstate.horizon = 0.0 then time, Some(result), Cascade
+         else (Cvode.reinit sstate time yinit; time, Some(result), Success)
+      | StopTimeReached | Error _ -> time, None, status
     with
-    | Cvode.IllInput -> time, Error IllInput 
-    | Cvode.TooClose -> time, Error TooClose
-    | Cvode.TooMuchWork -> time, Error TooMuchWork
-    | Cvode.TooMuchAccuracy -> time, Error TooMuchAccuracy
-    | Cvode.ErrFailure -> time, Error ErrFailure
-    | Cvode.ConvergenceFailure -> time, Error ConvergenceFailure
-    | Cvode.LinearInitFailure -> time, Error LinearInitFailure
-    | Cvode.LinearSetupFailure -> time, Error LinearSetupFailure
-    | Cvode.LinearSolveFailure -> time, Error LinearSolveFailure
-    | Cvode.RhsFuncFailure -> time, Error RhsFuncFailure
-    | Cvode.FirstRhsFuncFailure -> time, Error FirstRhsFuncFailure
-    | Cvode.RepeatedRhsFuncFailure -> time, Error RepeatedRhsFuncFailure
-    | Cvode.UnrecoverableRhsFuncFailure -> time, Error UnrecoverableRhsFuncFailure
-    | Cvode.RootFuncFailure -> time, Error RootFuncFailure in
+    | Cvode.IllInput -> time, None, Error IllInput 
+    | Cvode.TooClose -> time, None, Error TooClose
+    | Cvode.TooMuchWork -> time, None, Error TooMuchWork
+    | Cvode.TooMuchAccuracy -> time, None, Error TooMuchAccuracy
+    | Cvode.ErrFailure -> time, None, Error ErrFailure
+    | Cvode.ConvergenceFailure -> time, None, Error ConvergenceFailure
+    | Cvode.LinearInitFailure -> time, None, Error LinearInitFailure
+    | Cvode.LinearSetupFailure -> time, None, Error LinearSetupFailure
+    | Cvode.LinearSolveFailure -> time, None, Error LinearSolveFailure
+    | Cvode.RhsFuncFailure -> time, None, Error RhsFuncFailure
+    | Cvode.FirstRhsFuncFailure -> time, None, Error FirstRhsFuncFailure
+    | Cvode.RepeatedRhsFuncFailure -> time, None, Error RepeatedRhsFuncFailure
+    | Cvode.UnrecoverableRhsFuncFailure -> time, None, Error UnrecoverableRhsFuncFailure
+    | Cvode.RootFuncFailure -> time, None, Error RootFuncFailure in
   
   let reset { state; yinit; sstate } =
     reset state;
