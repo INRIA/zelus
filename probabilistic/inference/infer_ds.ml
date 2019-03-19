@@ -1,8 +1,6 @@
 (** Inference with delayed sampling *)
 
-type pstate = {
-  mutable score : float;
-}
+type pstate = Infer.pstate
 
 type mgaussiant = float
 type mbetat = float
@@ -43,8 +41,7 @@ and 'b node_from =
 and ('a, 'b) node' = ('a, 'b) node
 
 
-let factor (prob, f) =
-  prob.score <- prob.score +. f
+let factor = Infer.factor
 
 let mdistr_to_distr (type a): a mdistr -> a Distribution.t = fun mdistr ->
   begin match mdistr with
@@ -120,10 +117,10 @@ let assume_conditional (type a) (type b) (type c):
   string -> (a,b) node -> (b, c) cdistr -> (b, c) node =
   fun str par cdistr ->
   let child =
-    { name = str
-    ; children = []
-    ; state = Initialized
-    ; distr = CDistr (par, cdistr) }
+    { name = str;
+      children = [];
+      state = Initialized;
+      distr = CDistr (par, cdistr); }
   in
   par.children <- NodeFrom child :: par.children;
   child
@@ -269,27 +266,7 @@ let observe_conditional (type a) (type b) (type c):
   let y = assume_conditional str n cdistr in
   obs prob observation y
 
-
-open Ztypes
-
-type 'a infer_state =
-  { znode_state : 'a;
-    pstate : pstate; }
-
-let infer (Node { alloc; reset; step }) =
-  let alloc () =
-    { znode_state = alloc ();
-      pstate = { score = 0. }; }
-  in
-  let reset state =
-    reset state.znode_state;
-    state.pstate.score <- 0.
-  in
-  let step state input =
-    step state.znode_state (state.pstate, input)
-  in
-  Node { alloc; reset; step }
-
+let infer = Infer.infer
 
 
 (* (\* ----------------------------------------------------------------------- *\) *)
