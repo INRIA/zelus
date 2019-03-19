@@ -2,18 +2,19 @@
 let copy : 'a. 'a -> 'a =
   fun x -> Marshal.from_bytes (Marshal.to_bytes x [Marshal.Closures]) 0
 
-
 (** [histogram_of_array l] create a histogram from an array of values. *)
 let histogram_of_array l =
   let tbl = Hashtbl.create 7 in
   Array.iter
     (fun x ->
+       (* XXX TODO: look if we can share marshaling with copy XXX *)
+       let k = Marshal.to_bytes x [Marshal.Closures] in
        try
-         let n = Hashtbl.find tbl x in
-         Hashtbl.replace tbl x (n + 1)
-       with Not_found -> Hashtbl.add tbl x 1)
+         let (_, n) = Hashtbl.find tbl k in
+         Hashtbl.replace tbl k (x, n + 1)
+       with Not_found -> Hashtbl.add tbl k (x, 1))
     l;
-  Hashtbl.fold (fun x n acc -> (x, n)::acc) tbl []
+  Hashtbl.fold (fun _ (x, n) acc -> (x, n)::acc) tbl []
 
 (** [normalize values] creates a distribution corresponding to the
     array of values [values]. *)
