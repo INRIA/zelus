@@ -14,15 +14,16 @@ val assume_conditional :
   string -> ('a, 'b) node' -> ('b, 'c) cdistr -> ('b, 'c) node'
 
 val obs : pstate -> 'a -> ('b, 'a) node' -AD-> unit
-val get_value : ('a, 'b) node' -> 'b
 
+val get_value : ('a, 'b) node' -> 'b
 val print_state : ('a, float) node' -AD-> unit
+
 val mgaussian : float -> float -> float mdistr
 val affine_mean_gaussian : float -> float -> float -> (float, float) cdistr
 val observe_conditional : pstate -> string -> ('a, 'b) node' -> ('b, 'c) cdistr -> 'c -AD-> unit
 
 val infer :
-  (pstate * 'a -D-> 'b) -S-> 'a -D-> 'b
+  int -S-> (pstate * 'a -D-> 'b) -S-> 'a -D-> 'b Distribution.t
 
 
 (* type pstate *)

@@ -14,5 +14,5 @@ let node delay_kalman (prob, (m, b, yobs)) = xt where
 
 let node main () =
   let rec t = 1. fby (t +. 1.) in
-  let x = infer delay_kalman (1., 1., t) in
-  print_state x
+  let x_d = infer 10 delay_kalman (1., 1., t) in
+  print_state (Distribution.draw x_d)
