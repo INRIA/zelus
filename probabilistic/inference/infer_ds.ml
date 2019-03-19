@@ -128,7 +128,7 @@ let assume_conditional (type a) (type b) (type c):
 
 let marginalize (type a) (type b): (a, b) node -> unit =
   fun n ->
-  (* Format.printf "marginalize: %s@." n.name; *)
+  (* Format.eprintf "marginalize: %s@." n.name; *)
   begin match n.state, n.distr with
     | Initialized, CDistr (par, cdistr) ->
         let marg =
@@ -156,7 +156,7 @@ let rec delete n l =
 
 let realize (type a) (type b): b mtype -> (a, b) node -> unit =
   fun val_ n ->
-  (* Format.printf "realize: %s@." n.name; *)
+  (* Format.eprintf "realize: %s@." n.name; *)
   (* ioAssert (isTerminal n) *)
   begin match n.distr with
     | UDistr _ -> ()
@@ -172,9 +172,10 @@ let realize (type a) (type b): b mtype -> (a, b) node -> unit =
   n.state <- Realized val_;
   n.children <- []
 
+
 let sample (type a) (type b) : (a, b) node -> unit =
   fun n ->
-  (* Format.printf "sample: %s@." n.name; *)
+  (* Format.eprintf "sample: %s@." n.name; *)
   (* ioAssert (isTerminal n) *)
   begin match n.state with
     | Marginalized m ->
@@ -207,7 +208,7 @@ let marginal_child (type a) (type b): (a, b) node -> b node_from option =
     n.children
 
 let rec prune : 'a 'b. ('a, 'b) node -> unit = function n ->
-  (* Format.printf "prune: %s@." n.name; *)
+  (* Format.eprintf "prune: %s@." n.name; *)
   (* assert (isMarginalized (state n)) $ do *)
   begin match marginal_child n with
     | Some (NodeFrom child) ->
@@ -218,7 +219,7 @@ let rec prune : 'a 'b. ('a, 'b) node -> unit = function n ->
   sample n
 
 let rec graft : 'a 'b. ('a, 'b) node -> unit = function n ->
-  (* Format.printf "graft %s@." n.name; *)
+  (* Format.eprintf "graft %s@." n.name; *)
   begin match n.state with
   | Marginalized _ ->
       begin match marginal_child n with
@@ -248,6 +249,35 @@ let rec get_value: 'a 'b. ('a, 'b) node -> 'b mtype =
         sample n;
         get_value n
   end
+
+(* forget' :: IORef (Node a b) -> IO () *)
+let forget (type a) (type b): (a, b) node -> unit =
+  fun n ->
+  (* Format.eprintf "forget: %s@." n.name; *)
+  begin match n.state with
+    | Realized _ -> ()
+    | Initialized -> assert false (* error "forget" *)
+    | Marginalized marg ->
+        List.iter
+          (fun (NodeFrom c) ->
+             begin match c.distr with
+               | UDistr d -> ()
+               | CDistr (cdistr, par) ->
+                   begin match c.state with
+                     | Marginalized marg -> c.distr <- UDistr marg
+                     | _ -> assert false (* error "forget" *)
+                   end
+             end)
+          n.children;
+        begin match n.distr with
+          | UDistr _ -> ()
+          | CDistr (cdistr, par) ->
+              assert false (* error "forget: Shouldn't have parents?" *)
+        end;
+        n.distr <- UDistr marg
+  end;
+  n.children <- []
+
 
 let print_state n =   (* XXX TODO XXX *)
   Format.printf "%s: " n.name;

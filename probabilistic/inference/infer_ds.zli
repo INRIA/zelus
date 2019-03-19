@@ -25,6 +25,7 @@ val observe_conditional : pstate -> string -> ('a, 'b) node' -> ('b, 'c) cdistr 
 val infer :
   int -S-> (pstate * 'a -D-> 'b) -S-> 'a -D-> 'b Distribution.t
 
+val forget : ('a, 'b) node' -AD-> unit
 
 (* type pstate *)
 (* type 'a pdistr *)
