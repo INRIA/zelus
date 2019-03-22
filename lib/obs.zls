@@ -1,403 +1,101 @@
-let static verbose = true
+let q_true = infinity
+let q_false = neg_infinity
 
-node string_of_state st = match st with | false -> "Not yet" | true -> "Done"
-node float_of_state st = match st with | false -> 0. | true -> 1.
+let q_gt (p1, p2) = p1 -. p2
+let q_ge (p1, p2) = p1 -. p2
+let q_lt (p1, p2) = p2 -. p1
+let q_le (p1, p2) = p2 -. p1
 
-node lift (_, p) = p', true where init p' = p
+let q_not p = -. p
+let q_or (p1, p2) = max p1 p2
+let q_and (p1, p2) = min p1 p2
 
-(* PREDICATES = float *)
+let q_if (cond, p1, p2) = q_or (q_and (cond, p1), q_and (q_not cond, p2))
+let implies (a, b) = q_or(q_not a, b)
 
-let p_false = neg_infinity
-let p_true = infinity
+node q_up p = p -> q_and (q_lt (pre p, 0.), q_gt (p, 0.))
+node b_up p = p -> (not (pre p) && p)
 
-let p_lt (x1, x2) = x2 -. x1
-let p_gt (x1, x2) = x1 -. x2
-let p_le (x1, x2) = x2 -. x1
-let p_ge (x1, x2) = x1 -. x2
+node counter t (tstep, start) =
+    let rec cpt = if start then t else -1. -> (pre cpt -. tstep) in cpt
 
-let p_not (x)      = -. x
-let p_and (x1, x2) = min x1 x2
-let p_or  (x1, x2) = max x1 x2
+node once p = res where rec res = p -> q_or (pre res, p)
+node once_timed t (tstep, p) =
+    let cpt = counter t (tstep, true fby false) in
+    implies (q_lt (cpt, 0.), once p)
 
-(* Float equality with precision prec *)
-let p_eq prec (x1, x2) = p_and (x1 -. x2 +. prec, x2 +. prec -. x1)
-
-(* Integer floats equality: x1 and x2 have integer values
-   x1 = x2 <=> x1 > x2 - 0.5 && x1 < x2 + 0.5 *)
-let p_eqi (x1, x2) = p_eq 0.5 (x1, x2)
-
-node p_edge (x) = x -> (p_and (p_not (pre x), x))
-hybrid p_up (x) = present (init) on (x > 0.) | up(x) -> x else -. (abs_float x)
-
-(* DISCRETE FORMULAS : tstep * args -> bool *)
+node always p = res where rec res = p -> q_and (pre res, p)
+node always_timed t (tstep, p) =
+    let cpt = counter t (tstep, true fby false) in
+    implies (q_gt (cpt, 0.), always p)
 
 (*
-    Next(r) ≡ ♦_[0,r]
+node always p = q_not (once (q_not p))
+node always_timed t (tstep, p) = q_not (once_timed t (tstep, q_not p))
 *)
-node d_next r (tstep, p) = v, is_done where
-    rec t = 0. fby (t +. tstep)
-    and v = p -> (if t > r then pre v else p_or (pre v, p))
-    and is_done = v >= 0. || t > r
 
-node d_next_ub (tstep, p) = d_next infinity (tstep, p)
+node never p = q_not (once p)
+node never_timed t (tstep, p) =
+    let cpt = counter t (tstep, true fby false) in
+    implies(p, q_gt(cpt, 0.))
 
 (*
-    AlwaysL(r) ≡ □_[0,r]
-*)
-node d_always_l r (tstep, p) = v, is_done where
-    rec t = 0. fby (t +. tstep)
-    and v = p -> (if t > r then pre v else p_and (pre v, p))
-    and is_done = v < 0. || t > r
-
-node d_always (tstep, p) = d_always_l infinity (tstep, p)
-
-(*
-    AlwaysR(r) ≡ □_[r,+∞[
-*)
-node d_always_r r (tstep, p) = v, is_done where
-    rec t = 0. fby (t +. tstep)
-    and v = if t < r then p_true
-    else p -> p_and (pre v, p)
-    and is_done = v < 0.
-
-(*
-    And(phi1, phi2)(x) ≡ phi1(x) ∧ phi2(x)
-*)
-node d_and phi1 phi2 (tstep, (x1, x2)) =
-    let v1, is_done1 = run phi1 (tstep, x1)
-    and v2, is_done2 = run phi2 (tstep, x2) in
-    min v1 v2, is_done1 && is_done2
-
-(*
-    Or(phi1, phi2)(x) ≡ phi1(x) ∨ phi2(x)
-*)
-node d_or phi1 phi2 (tstep, (x1, x2)) =
-    let v1, is_done1 = run phi1 (tstep, x1)
-    and v2, is_done2 = run phi2 (tstep, x2) in
-    max v1 v2, is_done1 && is_done2
-
-(*
-    PAnd(phi)(p, x) ≡ p ∧ phi(x)
-*)
-(* node d_pand phi (tstep, (p, x)) =
-    d_and lift phi (tstep, (p, x)) *)
-
-(*
-    POr(phi)(p, x) ≡ p ∨ phi(x)
-*)
-(* node d_por phi (tstep, (p, x)) =
-    d_or lift phi (tstep, (p, x)) *)
-
-(*
-    TriggerL(r)(phi)(p, x) ≡ □_[0,r](p ⇒ phi)
-*)
-node d_trigger_l r phi (tstep, (p, x)) = v, is_done where
-    rec t = 0. fby (t +. tstep)
-
-    (* watch phi(tstep, x) and reset it every time it is done or
-       rst is trigered
-
-       Note: there is a delay here,
-    *)
-    and
-        reset v', is_done' = run phi (tstep, x)
-        every (false fby rst_bool)
-    and rst_bool =
-        (present rst() -> true else false) || is_done'
-
-    (* final value: min for t in [0, r] of (max -p phi)
-       the value is updated when is_done' is true, meaning that the value for
-       phi is a good guess of the real robustness *)
-    and init v_final = max (-. p) v'
-    and present update(v_interm) ->
-        do v_final = min (last v_final) v_interm done
-
-
-    (* we wait to see an occurence of (p > 0.), we trigger rst and we wait
-       for it to tell us whether rob(phi) > 0 or not
-       then we go back to looking for p if p < 0. or we start again
-       immediately if p > 0.
-       Once we're done we go to Sink and return v_final.
-       v_interm is the current approximation of the robustness, it can be seen
-       as an optimistic robustness of the prefix we already saw *)
-
-    and automaton
-        | I ->
-            let v_interm = max (-. p) v' in
-            do v = v_interm and is_done = false
-            until (p >= 0.) on (t <= r && is_done' && v' >= 0.)
-                then do emit update = v' in I
-            else (p >= 0.) on (t <= r && is_done' && v' < 0.)
-               | (t > r)
-                then do emit update = v_interm fby v_interm in Sink
-            else (p >= 0.) on (t <= r)
-                then do emit rst in S(p)
-        | S(p0) ->
-            let v_interm = max (-. p0) v' in
-            do v = v_interm and is_done = false
-            until (is_done') on (v' >= 0. && t <= r && p <= 0.)
-                then do emit update = v_interm in I
-            else (is_done') on (v' >= 0. && t <= r && p >= 0.)
-                then do emit update = v_interm and emit rst in S(p)
-            else (is_done') on (v' >= 0. && t > r)
-                then do emit update = v_interm in Sink
-            else (is_done') on (v' < 0.)
-                then do emit update = v' in Sink
-        | Sink -> do v = last v_final and is_done = true done
-
-node d_trigger phi (tstep, (p, x)) = d_trigger_l infinity phi (tstep, (p, x))
-
-(*
-    TriggerR(r)(phi)(p, x) ≡ □_[r,+∞[(p ⇒ phi)
-*)
-node d_trigger_r r phi (tstep, (p, x)) =
-    let rec t = 0. fby (t +. tstep) in
-    automaton
-    | I -> do p_true, false unless (t >= r) then S
-    | S -> do d_trigger phi (tstep, (p, x)) done
-
-(*
-    Always_or_l(r)(phi1, phi2)(x) ≡ □_[0,r](phi1 ∨ phi2)
-*)
-node d_always_l_or r phi1 phi2 (tstep, (x1, x2)) = v, is_done where
-    rec t = 0. fby (t +. tstep)
-    and automaton
-    | I ->
-        let v', is_done' = run (d_or phi1 phi2) (tstep, (x1, x2)) in
-        do v = v' and is_done = false
-        until (is_done') on (v' >= 0. && t <= r) then I
-        else (is_done') on (v' >= 0. && t > r) then Sink(v)
-        else (is_done') on (v' < 0.) then Sink(v)
-    | Sink(f) -> do v = f and is_done = true done
-
-(*
-    Always_or_r(r)(phi1, phi2)(x) ≡ □_[r, +∞[(phi1 ∨ phi2)
-*)
-node d_always_r_or r phi1 phi2 (tstep, (x1, x2)) =
-    let rec t = 0. fby (t +. tstep) in
-    automaton
-    | I -> do p_true, false until (t > r) then S
-    | S ->
-        let v', is_done' = run (d_or phi1 phi2) (tstep, (x1, x2)) in
-        do v', false
-        until (is_done') on (v' >= 0.) then S
-        else (is_done') on (v' < 0.) then Sink(v')
-    | Sink(f) -> do f, true done
-
-(* MACROS *)
-
-node d_always_next (r1, r2) (tstep, p) =
-    d_and (d_next r2)
-          (d_trigger_l r1 (d_next r2))
-          (tstep, (p, (p_edge (p_not p), p)))
-
-(* CONTINUOUS FORMULAS : tstep * args -> bool *)
-
-hybrid c_min (v, der_v) = res where
-    rec automaton
-        | S(last_min) ->
-            do res = min last_min w
-            and der w = if falling then der_v else 0. init v
-            and falling = present
-                | up(w -. v) on (der_v <= 0.) | up(-. der_v) on (w >= v) -> true
-                | up(der_v) -> false
-                init (der_v <= 0.)
-            until (disc(v)) | (disc(der_v)) then S(res)
-    init S(v)
-
-hybrid c_max (v, der_v) = res where
-    rec automaton
-        | S(last_max) ->
-            do res = max last_max w
-            and der w = if rising then der_v else 0. init v
-            and rising = present
-                | up(v -. w) on (der_v > 0.) | up(der_v) on (v >= w) -> true
-                | up(-. der_v) -> false
-                init (der_v >= 0.)
-            until (disc(v)) | (disc(der_v)) then S(res)
-    init S(v)
-
-(*
-  Next(r) ≡ ♦_[0,r]
-*)
-hybrid c_next r (p, der_p) = v, is_done where
-    rec der t = 1. init 0.
-    and automaton
-        | During ->
-            do v = c_max (p, der_p)
-            and is_done = present
-                | (init) on (v >= 0.)
-                | up(v)
-                | (disc(v)) on (v >= 0.) -> true
-                init false
-            until up(t -. r) then Done(v)
-        | Done(v0) -> do v = v0 and is_done = true done
-
-hybrid c_next_ub (p, der_p) = c_next infinity (p, der_p)
-
-(*
-  AlwaysL(r) ≡ □_[0,r]
+node never p = always (q_not p)
+node never_timed t (tstep, p) = always_timed t (tstep, q_not p)
 *)
 
-hybrid c_always_l r (p, der_p) = v, is_done where
-    rec der t = 1. init 0.
-    and automaton
-        | During ->
-            do v = c_min (p, der_p)
-            and is_done = present
-                | (init) on (v <= 0.)
-                | up(v)
-                | (disc(v)) on (v <= 0.) -> true
-                init false
-            until up(t -. r) then Done(v)
-        | Done(v0) -> do v = v0 and is_done = true done
+node since (x, y) =
+    let rec xsincey = q_if (y, x, q_true -> q_or (x, pre xsincey)) in
+    xsincey
 
-hybrid c_always (p, der_p) = c_always_l infinity (p, der_p)
+(* TODO: vérifier ça *)
+node since_timed t (tstep, x, y) =
+    let cpt = counter t (tstep, b_up (y >= 0.)) in
+    implies(q_le (cpt, 0.), since (x, y))
 
-(*
-  AlwaysR(r) ≡ □_[r,+∞[
-*)
-hybrid c_always_r r (p, der_p) = v, is_done where
-  rec der t = 1. init 0.
-  and automaton
-    | Wait ->
-        do v = p_true and is_done = false
-        until up(t -. r) then During
-    | During ->
-        do v = c_min (p, der_p)
-        and is_done = present
-            | (init) on (v <= 0.)
-            | up(v)
-            | (disc(v)) on (v <= 0.) -> true
-            init false
-        done
-(*
-  And(phi1, phi2)(x) ≡ phi1(x) ∧ phi2(x)
-*)
-hybrid c_and phi1 phi2 ((x1, x1_der), (x2, x2_der)) =
-  let v1, is_done1 = run phi1 (x1, x1_der)
-  and v2, is_done2 = run phi2 (x2, x2_der) in
-  min v1 v2, is_done1 && is_done2
+node watchdog delay (tstep, start, obs) =
+    let cpt = counter delay (tstep, start) in
+    let seenObs = reset once obs every start in
+    q_or (q_ge (cpt, 0.), seenObs)
 
-(*
-  Or(phi1, phi2)(x) ≡ phi1(x) ∨ phi2(x)
-*)
-hybrid c_or phi1 phi2 ((x1, x1_der), (x2, x2_der)) =
-  let v1, is_done1 = run phi1 (x1, x1_der)
-  and v2, is_done2 = run phi2 (x2, x2_der) in
-  max v1 v2, is_done1 && is_done2
+(* B a été vrai au moins une fois t secondes après la dernières fois où A a été
+   vrai
 
-(*
-  PAnd(phi)(p, x) ≡ p ∧ phi(x)
-*)
-(* hybrid c_pand phi ((p, x)) =
-  c_and lift phi ((p, x)) *)
+   Note: si A n'a jamais été vrai, le résultat sera negatif
 
-(*
-  POr(phi)(p, x) ≡ p ∨ phi(x)
-*)
-(* hybrid c_por phi ((p, x)) =
-  c_or lift phi ((p, x)) *)
+   Note: différent de "chaque ocurence de a est suivie d'une occurence de b
+         après moins de t secondes" *)
+node onceBfromA delay (tstep, a, b) =
+    watchdog delay (tstep, a, b)
 
-(*
-  TriggerL(r)(phi)(p, x) ≡ □_[0,r](p ⇒ phi)
-*)
-(* hybrid c_trigger_l r phi ((p, x)) = v, is_done where
-  rec der t = 1. init 0.
+(* depuis le premier moment où a a été vrai et le dernier moment où c a été vrai,
+   b a été vrai au moins une fois *)
+node onceBfromfirstAtoC(a, b, c) =
+    implies(c, q_or (never a, since(b, a)))
 
-  (* watch phi(x) and reset it every time it is done or
-     rst is trigered
+node neverBfromAtoC (a, b, c) = implies (c, q_not (since (b, a)))
 
-     Note: there is a delay here,
-  *)
-  and
-      reset v', is_done' = run phi (x)
-      every (false fby rst_bool)
-  and rst_bool =
-      (present rst() -> true else false) || is_done'
+(* Pattern templates *)
 
-  (* final value: min for t in [0, r] of (max -p phi)
-     the value is updated when is_done' is true, meaning that the value for
-     phi is a good guess of the real robustness *)
-  and init v_final = max (-. p) v'
-  and present update(v_interm) ->
-      do v_final = min (last v_final) v_interm done
+node absence p = never p
 
+node absence_timed t (tstep, p) = never_timed t (tstep, p)
 
-  (* we wait to see an occurence of (p > 0.), we trigger rst and we wait
-     for it to tell us whether rob(phi) > 0 or not
-     then we go back to looking for p if p < 0. or we start again
-     immediately if p > 0.
-     Once we're done we go to Sink and return v_final.
-     v_interm is the current approximation of the robustness, it can be seen
-     as an optimistic robustness of the prefix we already saw *)
+node minimum_duration t (tstep, p) =
+    let cpt = counter t (tstep, b_up (p >= 0.)) in
+    implies (q_not p, q_lt(cpt, 0.))
 
-  and automaton
-      | I ->
-          let v_interm = max (-. p) v' in
-          do v = v_interm and is_done = false
-          until (p >= 0.) on (t <= r && is_done' && v' >= 0.)
-              then do emit update = v' in I
-          else (p >= 0.) on (t <= r && is_done' && v' < 0.)
-             | (t > r)
-              then do emit update = v_interm fby v_interm in Sink
-          else (p >= 0.) on (t <= r)
-              then do emit rst in S(p)
-      | S(p0) ->
-          let v_interm = max (-. p0) v' in
-          do v = v_interm and is_done = false
-          until (is_done') on (v' >= 0. && t <= r && p <= 0.)
-              then do emit update = v_interm in I
-          else (is_done') on (v' >= 0. && t <= r && p >= 0.)
-              then do emit update = v_interm and emit rst in S(p)
-          else (is_done') on (v' >= 0. && t > r)
-              then do emit update = v_interm in Sink
-          else (is_done') on (v' < 0.)
-              then do emit update = v' in Sink
-      | Sink -> do v = last v_final and is_done = true done *)
+node maximum_duration t (tstep, p) =
+    let cpt = counter t (tstep, b_up (p >= 0.)) in
+    implies (p, q_ge(cpt, 0.))
 
-(* hybrid c_trigger phi ((p, x)) = c_trigger_l infinity phi ((p, x)) *)
+node bounded_recurrence t (tstep, p) =
+    let cpt = counter t (tstep, true -> b_up (p >= 0.)) in
+    q_ge (cpt, 0.)
 
-(*
-  TriggerR(r)(phi)(p, x) ≡ □_[r,+∞[(p ⇒ phi)
-*)
-(* hybrid c_trigger_r r phi ((p, x)) =
-  let der t = 1. init 0. in
-  automaton
-  | I -> do p_true, false unless (t >= r) then S
-  | S -> do c_trigger phi ((p, x)) done *)
+node bounded_response t (tstep, p, s) =
+    q_or (never p, onceBfromA t (tstep, b_up (p >= 0.), s))
 
-(*
-  Always_or_l(r)(phi1, phi2)(x) ≡ □_[0,r](phi1 ∨ phi2)
-*)
-(* hybrid c_always_l_or r phi1 phi2 ((x1, x2)) = v, is_done where
-  der t = 1. init 0.
-  and automaton
-  | I ->
-      let v', is_done' = run (c_or phi1 phi2) ((x1, x2)) in
-      do v = v' and is_done = false
-      until (is_done') on (v' >= 0. && t <= r) then I
-      else (is_done') on (v' >= 0. && t > r) then Sink(v)
-      else (is_done') on (v' < 0.) then Sink(v)
-  | Sink(f) -> do v = f and is_done = true done *)
-
-(*
-  Always_or_r(r)(phi1, phi2)(x) ≡ □_[r, +∞[(phi1 ∨ phi2)
-*)
-(* hybrid c_always_r_or r phi1 phi2 ((x1, x2)) =
-  let der t = 1. init 0. in
-  automaton
-  | I -> do p_true, false until (t > r) then S
-  | S ->
-      let v', is_done' = run (c_or phi1 phi2) ((x1, x2)) in
-      do v', false
-      until (is_done') on (v' >= 0.) then S
-      else (is_done') on (v' < 0.) then Sink(v')
-  | Sink(f) -> do f, true done *)
-
-(* MACROS *)
-
-(* hybrid c_always_next (r1, r2) (p) =
-  c_and (c_next r2)
-        (c_trigger_l r1 (c_next r2))
-        ((p, (p_edge (p_not p), p))) *)
+node bounded_invariance t (tstep, p, s) =
+    let cpt = counter t (tstep, b_up (p >= 0. && s >= 0.)) in
+    q_or (s, (q_le (cpt, 0.)))
