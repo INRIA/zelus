@@ -6,15 +6,17 @@ OCAMLFLAGS += -I ../../lib
 OCAMLOPTFLAGS += -I ../../lib
 ZLEXTRALIBS = $(ZLGTKLIBS)
 
-SRC = predicates.zls next.zls always.zls and.zls or.zls trigger.zls \
-		  always_or.zls macros.zls
+# SRC = predicates.zls next.zls always.zls and.zls or.zls trigger.zls \
+# 		  always_or.zls macros.zls
 TEST = absence absence_timed minimum_duration maximum_duration \
 			 bounded_recurrence bounded_response bounded_invariance
 
 default: $(word 1, $(targets))
 all:  $(targets)
-byte: $(SRC:.zls=.byte)
-opt: $(SRC:.zls=.opt)
+# byte: $(SRC:.zls=.byte)
+# opt: $(SRC:.zls=.opt)
+byte: templates_byte
+opt: templates_opt
 
 templates: templates_byte
 templates_byte: $(TEST:%=test_%.byte)
