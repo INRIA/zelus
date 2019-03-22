@@ -27,16 +27,16 @@ let make desc start_pos end_pos =
 
 let make_name op start_pos end_pos =
   make (Evar(Name(op))) start_pos end_pos
-			 
+
 let pervasives_name n = Modname { qual = "Pervasives"; id = n }
-	  
+
 let unop op e start_pos end_pos =
   Eapp({ app_inline = false; app_statefull = false},
        make_name op start_pos end_pos, [e])
 let binop op e1 e2 start_pos end_pos =
   Eapp({ app_inline = false; app_statefull = false},
        make_name op start_pos end_pos, [e1; e2])
-      
+
 let unary_minus op e start_pos end_pos =
   match op, e.desc with
     | "-", Econst(Eint v) -> Econst(Eint(-v))
@@ -49,7 +49,7 @@ and unary_minus_float x = -.x
 (* Representation of lists. [] for Pervasives.[] *)
 (* [e1;...;en] for Pervasives.(::) e1 (... Pervasives.[]) *)
 let nil_desc = Evar(pervasives_name "[]")
-			  
+
 let cons_desc x l start_pos end_pos =
   Eapp({ app_inline = false; app_statefull = false },
        make (Evar(pervasives_name "::")) start_pos end_pos,
@@ -60,7 +60,7 @@ let rec cons_list_desc l start_pos end_pos =
   | [] -> nil_desc
   | x :: l -> cons_desc x (cons_list l start_pos end_pos) start_pos end_pos
 
-and cons_list l start_pos end_pos =	  
+and cons_list l start_pos end_pos =
   make (cons_list_desc l start_pos end_pos) start_pos end_pos
 
 let scond_true start_pos end_pos =
@@ -81,7 +81,7 @@ let constr c p =
   | { desc = Etuplepat(arg_list) } ->
     (* C(p1,...,pn) *) Econstr1pat(c, arg_list)
   | _ -> (* C(e) *) Econstr1pat(c, [p])
- 
+
 (* Temporary solution: put a block arround a single equation *)
 let block_of_equation ({ desc = desc; loc = loc } as eq) =
   match desc with
@@ -349,7 +349,7 @@ simple_pattern_list:
   | p = simple_pattern sp = simple_pattern_list
      { p :: sp }
 ;
-    
+
 /* Interface */
 interface_file:
   | EOF
@@ -374,7 +374,7 @@ scalar_interface_file:
   | il = decl_list(scalar_interface) EOF
       { List.rev (List.flatten il) }
   ;
-    
+
 scalar_interface :
   | OPEN c = CONSTRUCTOR
       { [make (Einter_open(c)) $startpos $endpos] }
@@ -394,6 +394,8 @@ type_declaration_desc:
   | /* empty */
       { Eabstract_type }
   | EQUAL l = list_of(BAR, localized(constr_decl_desc))
+      { Evariant_type (l) }
+  | EQUAL BAR l = list_of(BAR, localized(constr_decl_desc))
       { Evariant_type (l) }
   | EQUAL LBRACE s = label_list(label_type) RBRACE
       { Erecord_type (s) }
@@ -430,7 +432,7 @@ constr_decl_desc:
   | c = CONSTRUCTOR OF l = list_of(STAR, simple_type)
       { Econstr1decl(c, l) }
 ;
-    
+
 equation_empty_list:
   | /* empty */
       { [] }
@@ -446,7 +448,7 @@ optional_init:
 ;
 
 %inline equation_list:
-  | l = list_of(AND, equation) { l } 
+  | l = list_of(AND, equation) { l }
 ;
 
 %inline equation:
@@ -488,10 +490,10 @@ simple_equation_desc:
     { EQforall
 	{ for_indexes = i; for_init = []; for_body = bo } }
   ;
-    
+
 equation_desc:
   | eq = simple_equation_desc
-    { eq } 
+    { eq }
   | p = pattern EQUAL e = seq_expression
     { EQeq(p, e) }
   | i = ide PLUSEQUAL e = seq_expression
@@ -519,7 +521,7 @@ equation_desc:
 
 opt_end:
   | { () } %prec prec_no_end
-  | END { () } 
+  | END { () }
 ;
 
 /* initialization in a for loop */
@@ -545,8 +547,8 @@ index_desc:
   | i = ide IN e1 = simple_expression DOTDOT e2 = simple_expression
      { Eindex(i, e1, e2) }
 ;
-   
-    
+
+
 /* states of an automaton in an equation*/
 automaton_handlers(X) :
   | a = automaton_handler(X)
@@ -641,8 +643,8 @@ state_pat :
 scondpat :
   | sc = localized(scondpat_desc) { sc }
 ;
-  
-scondpat_desc :		      
+
+scondpat_desc :
   | e = simple_expression p = simple_pattern
       { Econdpat(e, p) }
   | e = simple_expression
@@ -695,13 +697,13 @@ local_list:
   | LOCAL o = list_of(COMMA, one_local) opt_in l = local_list
       { o @ l }
 ;
-  
+
 opt_in:
     /* epsilon */
   | {}
   | IN { () }
 ;
-    
+
 one_local:
   | i = ide v = optional(default_or_init) c = opt_combine
     { make { vardec_name = i; vardec_default = v; vardec_combine = c }
@@ -845,7 +847,7 @@ simple_expression_desc:
   | LBRACKET RBRACKET
       { nil_desc }
   | LBRACKET l = list_of(SEMI, expression) RBRACKET
-      { cons_list_desc l ($startpos($1)) ($endpos($3)) }		 
+      { cons_list_desc l ($startpos($1)) ($endpos($3)) }
   | LAST i = ide
       { Elast(i) }
   | a = atomic_constant
@@ -872,7 +874,7 @@ simple_expression_desc:
 simple_expression_list :
   | e = simple_expression
 	  { [e] }
-  | l = simple_expression_list e = simple_expression 
+  | l = simple_expression_list e = simple_expression
 	  { e :: l }
   ;
 
@@ -958,10 +960,10 @@ expression_desc:
           LBRACE s1 = size_expression DOTDOT s2 = size_expression RBRACE
       { Eop(Eslice(s1, s2), [e]) }
   | e1 = simple_expression DOT LPAREN e2 = expression RPAREN
-      { Eop(Eaccess, [e1; e2]) } 
-  | LET defs = equation_list IN e = seq_expression  
+      { Eop(Eaccess, [e1; e2]) }
+  | LET defs = equation_list IN e = seq_expression
       { Elet(false, defs, e) }
-  | LET REC defs = equation_list IN e = seq_expression 
+  | LET REC defs = equation_list IN e = seq_expression
       { Elet(true, defs, e) }
   | PERIOD p = period_expression
       { Eperiod(p) }
@@ -1093,7 +1095,7 @@ size_expression_desc:
   | s1 = size_expression MINUS s2 = size_expression
      { Sop(Sminus, s1, s2) }
 ;
-    
+
 type_expression:
   | t = simple_type
       { t }
@@ -1105,7 +1107,7 @@ type_expression:
 			    a = arrow t_res = type_expression
       { make(Etypefun(a, Some(id), t_arg, t_res)) $startpos $endpos}
 ;
-    
+
 simple_type:
   | t = type_var
       { make (Etypevar t) $startpos $endpos }
