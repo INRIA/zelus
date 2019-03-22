@@ -18,27 +18,26 @@ type ('m1, 'm2) cdistr =
   | AffineMeanGaussian: float * float * float -> (mgaussiant, mgaussiant) cdistr
   | CBernoulli : (mbetat, mbernoullit) cdistr
 
-(** Node state *)
-type 'a state =
+(** Random variable *)
+type ('a, 'b) random_var =
+  { name : string;
+    mutable children : 'b rv_from list;
+    mutable state : 'b rv_state;
+    mutable distr : ('a, 'b) dsdistr;
+  }
+
+and 'a rv_state =
   | Initialized
   | Marginalized of 'a mdistr
   | Realized of 'a mtype
 
-type ('a, 'b) dsdistr =
+and ('a, 'b) dsdistr =
   | UDistr :  'b mdistr -> ('a, 'b) dsdistr
-  | CDistr : ('z, 'm1) node * ('m1, 'm2) cdistr -> ('m1, 'm2) dsdistr
+  | CDistr : ('z, 'm1) random_var * ('m1, 'm2) cdistr -> ('m1, 'm2) dsdistr
 
-and ('a, 'b) node =
-  { name : string;
-    mutable children : 'b node_from list;
-    mutable state : 'b state;
-    mutable distr : ('a, 'b) dsdistr;
-  }
 
-and 'b node_from =
-  NodeFrom : ('b, 'c) node -> 'b node_from
-
-and ('a, 'b) node' = ('a, 'b) node
+and 'b rv_from =
+  RV_from : ('b, 'c) random_var -> 'b rv_from
 
 
 let factor = Infer.factor
@@ -50,7 +49,8 @@ let mdistr_to_distr (type a): a mdistr -> a Distribution.t = fun mdistr ->
     | MBernoulli p -> Distribution.bernoulli p
   end
 
-let cdistr_to_mdistr (type m) (type m'): (m, m') cdistr -> m mtype -> m' mdistr =
+let cdistr_to_mdistr (type m) (type m'):
+  (m, m') cdistr -> m mtype -> m' mdistr =
   fun cdistr obs ->
   begin match cdistr with
     | AffineMeanGaussian (m, b, obsvar) ->
@@ -104,7 +104,7 @@ let make_conditional (type a) (type b):
 
 
 (* initialize without parent node *)
-let assume_constant (type a) (type z): string -> a mdistr -> (z, a) node =
+let assume_constant (type a) (type z): string -> a mdistr -> (z, a) random_var =
   fun n d ->
   { name = n;
     children = [];
@@ -112,9 +112,8 @@ let assume_constant (type a) (type z): string -> a mdistr -> (z, a) node =
     distr = UDistr d; }
 
 (* initialize with parent node *)
-(* newConditional' :: String -> IORef (Node a b) -> CDistr b c -> IO (IORef (Node b c)) *)
 let assume_conditional (type a) (type b) (type c):
-  string -> (a,b) node -> (b, c) cdistr -> (b, c) node =
+  string -> (a,b) random_var -> (b, c) cdistr -> (b, c) random_var =
   fun str par cdistr ->
   let child =
     { name = str;
@@ -122,11 +121,11 @@ let assume_conditional (type a) (type b) (type c):
       state = Initialized;
       distr = CDistr (par, cdistr); }
   in
-  par.children <- NodeFrom child :: par.children;
+  par.children <- RV_from child :: par.children;
   child
 
 
-let marginalize (type a) (type b): (a, b) node -> unit =
+let marginalize (type a) (type b): (a, b) random_var -> unit =
   fun n ->
   (* Format.eprintf "marginalize: %s@." n.name; *)
   begin match n.state, n.distr with
@@ -135,8 +134,8 @@ let marginalize (type a) (type b): (a, b) node -> unit =
           begin match par.state with
             | Realized x ->
                 cdistr_to_mdistr cdistr x
-            | Marginalized parMarginal ->
-                make_marginal parMarginal cdistr
+            | Marginalized par_marginal ->
+                make_marginal par_marginal cdistr
             | Initialized -> assert false (* error "marginalize'" *)
           end
         in
@@ -146,15 +145,17 @@ let marginalize (type a) (type b): (a, b) node -> unit =
         assert false
   end
 
-let rec delete n l =
+let rec delete :
+  'a 'b. ('a, 'b) random_var -> 'a rv_from list -> 'a rv_from list =
+  fun n l ->
   begin match l with
     | [] -> assert false
-    | NodeFrom x :: l ->
+    | RV_from x :: l ->
         if Obj.repr x == Obj.repr n then l
-        else NodeFrom x :: (delete n l)
+        else RV_from x :: (delete n l)
   end
 
-let realize (type a) (type b): b mtype -> (a, b) node -> unit =
+let realize (type a) (type b): b mtype -> (a, b) random_var -> unit =
   fun val_ n ->
   (* Format.eprintf "realize: %s@." n.name; *)
   (* ioAssert (isTerminal n) *)
@@ -168,12 +169,12 @@ let realize (type a) (type b): b mtype -> (a, b) node -> unit =
         | _ -> assert false
         end
   end;
-  List.iter (fun (NodeFrom c) -> marginalize c) n.children;
+  List.iter (fun (RV_from c) -> marginalize c) n.children;
   n.state <- Realized val_;
   n.children <- []
 
 
-let sample (type a) (type b) : (a, b) node -> unit =
+let sample (type a) (type b) : (a, b) random_var -> unit =
   fun n ->
   (* Format.eprintf "sample: %s@." n.name; *)
   (* ioAssert (isTerminal n) *)
@@ -184,7 +185,7 @@ let sample (type a) (type b) : (a, b) node -> unit =
     | _ -> assert false (* error "sample" *)
   end
 
-let observe (type a) (type b): pstate -> b mtype -> (a, b) node -> unit =
+let observe (type a) (type b): pstate -> b mtype -> (a, b) random_var -> unit =
   fun prob x n ->
   (* io $ ioAssert (isTerminal n) *)
   begin match n.state with
@@ -201,29 +202,29 @@ let is_marginalized state =
   end
 
 (* Invariant 2: A node always has at most one marginal Child *)
-let marginal_child (type a) (type b): (a, b) node -> b node_from option =
+let marginal_child (type a) (type b): (a, b) random_var -> b rv_from option =
   fun n ->
   List.find_opt
-    (fun (NodeFrom x) -> is_marginalized x.state)
+    (fun (RV_from x) -> is_marginalized x.state)
     n.children
 
-let rec prune : 'a 'b. ('a, 'b) node -> unit = function n ->
+let rec prune : 'a 'b. ('a, 'b) random_var -> unit = function n ->
   (* Format.eprintf "prune: %s@." n.name; *)
   (* assert (isMarginalized (state n)) $ do *)
   begin match marginal_child n with
-    | Some (NodeFrom child) ->
+    | Some (RV_from child) ->
         prune child
     | None ->
         ()
   end;
   sample n
 
-let rec graft : 'a 'b. ('a, 'b) node -> unit = function n ->
+let rec graft : 'a 'b. ('a, 'b) random_var -> unit = function n ->
   (* Format.eprintf "graft %s@." n.name; *)
   begin match n.state with
   | Marginalized _ ->
       begin match marginal_child n with
-        | Some (NodeFrom child) -> prune child
+        | Some (RV_from child) -> prune child
         | None -> ()
       end
   | _ ->
@@ -235,12 +236,12 @@ let rec graft : 'a 'b. ('a, 'b) node -> unit = function n ->
       end
   end
 
-let obs (type a) (type b): pstate -> b mtype -> (a, b) node -> unit =
+let obs (type a) (type b): pstate -> b mtype -> (a, b) random_var -> unit =
   fun prob x n ->
   graft n;
   observe prob x n
 
-let rec get_value: 'a 'b. ('a, 'b) node -> 'b mtype =
+let rec get_value: 'a 'b. ('a, 'b) random_var -> 'b mtype =
   fun n ->
   begin match n.state with
     | Realized x -> x
@@ -251,7 +252,7 @@ let rec get_value: 'a 'b. ('a, 'b) node -> 'b mtype =
   end
 
 (* forget' :: IORef (Node a b) -> IO () *)
-let forget (type a) (type b): (a, b) node -> unit =
+let forget (type a) (type b): (a, b) random_var -> unit =
   fun n ->
   (* Format.eprintf "forget: %s@." n.name; *)
   begin match n.state with
@@ -259,7 +260,7 @@ let forget (type a) (type b): (a, b) node -> unit =
     | Initialized -> assert false (* error "forget" *)
     | Marginalized marg ->
         List.iter
-          (fun (NodeFrom c) ->
+          (fun (RV_from c) ->
              begin match c.distr with
                | UDistr d -> ()
                | CDistr (cdistr, par) ->
@@ -291,7 +292,7 @@ let print_state n =   (* XXX TODO XXX *)
   Format.printf "@."
 
 let observe_conditional (type a) (type b) (type c):
-  pstate -> string -> (a, b) node -> (b, c) cdistr -> c mtype -> unit =
+  pstate -> string -> (a, b) random_var -> (b, c) cdistr -> c mtype -> unit =
   fun prob str n cdistr observation ->
   let y = assume_conditional str n cdistr in
   obs prob observation y
@@ -299,8 +300,9 @@ let observe_conditional (type a) (type b) (type c):
 let infer = Infer.infer
 
 
-(* (\* ----------------------------------------------------------------------- *\) *)
-(* (\* Examples *\) *)
+(* ----------------------------------------------------------------------- *)
+(* Examples *)
+
 (* let delay_triplet zobs = *)
 (*   let prob = { score = 0. } in *)
 (*   let x = assume_constant "x" (MGaussian (0., 1.)) in *)
@@ -319,3 +321,16 @@ let infer = Infer.infer
 (*   Random.self_init (); *)
 (*   delay_triplet 42. *)
 
+(* let obs_sample xobs = *)
+(*   let prob = { Infer.scores = [| 0. |]; idx = 0 } in *)
+(*   let x = assume_constant "x" (MGaussian (0., 1.)) in *)
+(*   Format.printf "x created@."; *)
+(*   obs prob xobs x; *)
+(*   Format.printf "x observed@."; *)
+(*   sample x; *)
+(*   Format.printf "x sampled@."; *)
+(*   Format.printf "%f@." (get_value x) *)
+
+(* let () = *)
+(*   Random.self_init (); *)
+(*   obs_sample 42. *)
