@@ -251,6 +251,17 @@ let rec get_value: 'a 'b. ('a, 'b) random_var -> 'b mtype =
         get_value n
   end
 
+let draw (type a) (type b) : (a, b) random_var -> b mtype =
+  fun n ->
+  (* Format.eprintf "draw: %s@." n.name; *)
+  graft n;
+  (* ioAssert (isTerminal n) *)
+  begin match n.state with
+    | Marginalized m ->
+        Distribution.draw (mdistr_to_distr m)
+    | _ -> assert false (* error "sample" *)
+  end
+
 (* forget' :: IORef (Node a b) -> IO () *)
 let forget (type a) (type b): (a, b) random_var -> unit =
   fun n ->

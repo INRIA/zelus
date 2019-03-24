@@ -13,14 +13,18 @@ ML_SRC=misc_lib.ml \
 	symbolic.ml \
 	infer_adf.ml \
 	infer_importance.ml \
-	infer_ds.ml
+	infer_ds.ml \
+	distribution_ds.ml \
+	infer_dshl.ml
 
 ZLI_SRC=distribution.zli \
 	infer.zli \
 	symbolic.zli \
 	infer_adf.zli \
 	infer_importance.zli \
-	infer_ds.zli
+	infer_ds.zli \
+	distribution_ds.zli \
+	infer_dshl.zli
 
 OBJ=$(ML_SRC:%.ml=%.cmo)
 OBJ_OPT=$(OBJ:%.cmo=%.cmx)
