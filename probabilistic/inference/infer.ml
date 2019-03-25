@@ -52,7 +52,7 @@ let infer_subresample n (Node { alloc; reset; step }) =
         states
     in
     if c then Normalize.resample (states, scores, values);
-    Normalize.normalize values
+    Normalize.normalize values scores
   in
   Node { alloc = alloc; reset = reset; step = step }
 
@@ -61,6 +61,14 @@ let infer n node =
   Node { alloc;
          reset;
          step = (fun state input -> step state (true, input)); }
+
+let infer_noresample n node =
+  let Node { alloc; reset; step } = infer_subresample n node in
+  Node { alloc;
+         reset;
+         step = (fun state input -> step state (false, input)); }
+
+
 
 
 (* [memoize f x] is functionally equivalent to [f x] but stores *)
@@ -146,7 +154,7 @@ let plan n k (Node model : (pstate * 't1, 't2) Ztypes.node) =
     let states_scores_values =
       step_body { infer_states = states; infer_scores = scores; } input
     in
-    let dist = Normalize.normalize states_scores_values in
+    let dist = Normalize.normalize states_scores_values scores in
     let state', _, value = Distribution.draw dist in
     plan_state := state';
     value
