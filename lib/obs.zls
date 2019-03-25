@@ -77,25 +77,35 @@ node neverBfromAtoC (a, b, c) = implies (c, q_not (since (b, a)))
 
 (* Pattern templates *)
 
+(* it is never the case that p holds *)
 node absence p = never p
 
+(* during the first T seconds, it is never the case that p holds *)
 node absence_timed t (tstep, p) = never_timed t (tstep, p)
 
+(* it is always the case that once p becomes satisfied, it holds for at
+   least T seconds *)
 node minimum_duration t (tstep, p) =
     let cpt = counter t (tstep, b_up (p >= 0.)) in
     implies (q_not p, q_lt(cpt, 0.))
 
+(* it is always the case that once p becomes satisfied, it holds for at
+   most T seconds *)
 node maximum_duration t (tstep, p) =
     let cpt = counter t (tstep, b_up (p >= 0.)) in
     implies (p, q_ge(cpt, 0.))
 
+(* it is always the case that p holds at least every T seconds *)
 node bounded_recurrence t (tstep, p) =
     let cpt = counter t (tstep, true -> b_up (p >= 0.)) in
     q_ge (cpt, 0.)
 
+(* it is always the case that if p holds, then s holds after at
+   most T seconds *)
 node bounded_response t (tstep, p, s) =
     q_or (never p, onceBfromA t (tstep, b_up (p >= 0.), s))
 
+(* it is always the case that if p holds then s holds for at least T seconds *)
 node bounded_invariance t (tstep, p, s) =
     let cpt = counter t (tstep, b_up (p >= 0. && s >= 0.)) in
     q_or (s, (q_le (cpt, 0.)))
