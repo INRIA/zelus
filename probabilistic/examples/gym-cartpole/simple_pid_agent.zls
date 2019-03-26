@@ -1,0 +1,25 @@
+open Cart_pole
+open Gym
+
+let h = 0.02
+
+let node integr(x0, x') = x where
+  rec x = x0 -> h *. x' +. (pre x)
+
+let node deriv(u) = o where
+  rec x = u
+  and o = 0.0 -> (x -. pre(x))
+
+let node controller (angle, (p,i,d)) = action where
+  rec e = angle -. (0.0 fby theta)
+  and theta = p *. e +. i *. integr(0., e) +. d *. deriv(e)
+  and action = if theta > 0. then Right else Left
+
+let p = 0.0403884114239
+let i = 0.041460471604
+let d = 0.0705417538223
+
+node simple_pid_main () = () where
+  rec obs, _, stop = cart_pole_gym true (Right -> pre action)
+  and reset action = controller (obs.pole_angle, (p, i, d))
+      every stop

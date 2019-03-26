@@ -157,12 +157,9 @@ p = 0.04 i = 0.04 d = 0.07
 *)
 
 let node pid_main () = () where
-  (* rec p_init = (0., 1.) *)
-  (* and i_init = (0., 0.001) *)
-  (* and d_init = (0., 0.001) *)
-  rec p_init = (0.055, 0.001)
-  and i_init = (-0.011, 0.001)
-  and d_init = (0.059, 0.001)
+  rec p_init = (0., 0.1)
+  and i_init = (0., 0.1)
+  and d_init = (0., 0.1)
   and obs, _, stop = cart_pole_gym true (Right fby action)
   and action = learn_control 2000 pid_bayes_update ((p_init, i_init, d_init), obs, stop)
   and display = draw_obs_front obs

@@ -15,6 +15,9 @@ exec_pid:
 exec_smart_pid:
 	dune exec ./smart_pid_main.exe
 
+exec_simple_pid:
+	dune exec ./simple_pid_main.exe
+
 clean:
 	dune clean
 cleanall: clean
