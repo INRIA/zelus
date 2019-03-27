@@ -9,10 +9,11 @@ let node room_model (temp_init, temp_ext, u) = temp where
 let node controller (prob, (reference, temp_room, temp_ext)) = u where
   rec u = sample (prob, Distribution.bernoulli 0.5)
   and temp = room_model(temp_room, temp_ext, u)
-  and effect = abs_float (reference -. temp_room ) -. abs_float (reference -. temp)
-  and score = if  effect > 0. then 0. else -20.
-  and () = factor(prob, score)
-  (* and () = factor(prob, 0. -> if u <> pre u then -20. else 0.) *)
+  and dist = abs_float (reference -. temp)
+  and () = factor(prob, if dist -. last dist < 0. then 0. else -20.)
+  (* and effect = abs_float (reference -. last temp) -. abs_float (reference -. temp) *)
+  (* and score = if  effect > 0. then 0. else -20. *)
+  (* and () = factor(prob, score) *)
 
 let node simulator(temp_target, temp_init, temp_ext) = u, temp_room where
   rec reset u = plan 20 4 controller (temp_target, temp_room, temp_ext) every true

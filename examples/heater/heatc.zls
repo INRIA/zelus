@@ -53,7 +53,7 @@ let high = 1.0
 let c = 50.0
 
 let alpha = 0.1
-let beta = 0.1
+let beta = 0.05
 
 (* Main program *)
 let hybrid system(reference) = (u, temp) where
