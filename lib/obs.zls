@@ -1,6 +1,14 @@
 let q_true = infinity
 let q_false = neg_infinity
 
+discrete q_istrue p = p >= 0.
+discrete q_isfalse p = p < 0.
+
+node q_istrue_now p = let init res = q_istrue p in res
+node q_isfalse_now p = let init res = q_isfalse p in res
+
+node freeze p = let init res = p in res
+
 let q_gt (p1, p2) = p1 -. p2
 let q_ge (p1, p2) = p1 -. p2
 let q_lt (p1, p2) = p2 -. p1
@@ -10,72 +18,129 @@ let q_not p = -. p
 let q_or (p1, p2) = max p1 p2
 let q_and (p1, p2) = min p1 p2
 
+(* x1 =_precision x2 <=> abs(x1 - x2) < precision *)
+let q_eq precision (x1, x2) = precision -. (abs_float (x1 -. x2))
+
+let q_eqi (i1, i2) = q_eq 0.5 (i1, i2)
+
 let q_if (cond, p1, p2) = q_or (q_and (cond, p1), q_and (q_not cond, p2))
 let implies (a, b) = q_or(q_not a, b)
 
 node q_up p = p -> q_and (q_lt (pre p, 0.), q_gt (p, 0.))
 node b_up p = p -> (not (pre p) && p)
 
-node counter t (tstep, start) =
-    let rec cpt = if start then t else -1. -> (pre cpt -. tstep) in cpt
-
-node once p = res where rec res = p -> q_or (pre res, p)
-node once_timed t (tstep, p) =
-    let cpt = counter t (tstep, true fby false) in
-    implies (q_lt (cpt, 0.), once p)
+let static min_cpt = -1.
+node counter delay (tstep, start) =
+    let rec cpt = if start then delay else min_cpt -> (pre cpt -. tstep) in
+    cpt
 
 node always p = res where rec res = p -> q_and (pre res, p)
-node always_timed t (tstep, p) =
-    let cpt = counter t (tstep, true fby false) in
-    implies (q_gt (cpt, 0.), always p)
-
-(*
-node always p = q_not (once (q_not p))
-node always_timed t (tstep, p) = q_not (once_timed t (tstep, q_not p))
-*)
-
-node never p = q_not (once p)
-node never_timed t (tstep, p) =
-    let cpt = counter t (tstep, true fby false) in
-    implies(p, q_gt(cpt, 0.))
-
-(*
 node never p = always (q_not p)
-node never_timed t (tstep, p) = always_timed t (tstep, q_not p)
-*)
+node once p = res where rec res = p -> q_or (pre res, p)
 
-node since (x, y) =
+(* X since last Y : X est a été vrai au moins une fois depuis le dernier instant
+   où Y a été vrai (inclus) *)
+node sincelast (x, y) =
     let rec xsincey = q_if (y, x, q_true -> q_or (x, pre xsincey)) in
     xsincey
+(* X since last Y : X est a été vrai au moins une fois depuis le premier instant
+    où Y a été vrai (inclus) *)
+node sincefirst (x, y) =
+    let rec firstSeenY = q_up (once y) in
+    sincelast(x, firstSeenY)
+node since (x, y) = sincelast (x, y)
 
-(* TODO: vérifier ça *)
-node since_timed t (tstep, x, y) =
-    let cpt = counter t (tstep, b_up (y >= 0.)) in
-    implies(q_le (cpt, 0.), since (x, y))
+(* onceBfromlastAtoC :
 
-node watchdog delay (tstep, start, obs) =
-    let cpt = counter delay (tstep, start) in
-    let seenObs = reset once obs every start in
-    q_or (q_ge (cpt, 0.), seenObs)
+   entre le premier instant où a a été vraie (inclus)
+   et le dernier instant où c a été vraie (inclus),
+   b a été vraie au moins une fois
 
-(* B a été vrai au moins une fois t secondes après la dernières fois où A a été
-   vrai
+   code de onceBfromlastAtoC pris dans
+   Synchronous Programming of Reactive Systems - Nicolas Halbwachs *)
+node onceBfromlastAtoC(a, b, c) = implies(c, q_or (never a, sincelast(b, a)))
+node onceBfromfirstAtoC(a, b, c) = implies(c, q_or (never a, sincefirst(b, a)))
+node onceBfromAtoC(a, b, c) = onceBfromlastAtoC(a, b, c)
 
-   Note: si A n'a jamais été vrai, le résultat sera negatif
+node alwaysBfromlastAtoC(a, b, c) =
+    implies (c, q_or (never a, q_not (sincelast (q_not b, a))))
+node alwaysBfromfirstAtoC (a, b, c) =
+    implies (c, q_or (never a, q_not (sincefirst (q_not b, a))))
+node alwaysBfromAtoC (a, b, c) =
+    alwaysBfromlastAtoC(a, b, c)
+
+node neverBfromlastAtoC (a, b, c) = alwaysBfromlastAtoC(a, q_not b, c)
+node neverBfromfirstAtoC (a, b, c) = alwaysBfromfirstAtoC(a, q_not b, c)
+node neverBfromAtoC (a, b, c) = alwaysBfromAtoC(a, q_not b, c)
+
+node horizon_triggered delay (tstep, start) =
+    let cpt = counter delay (tstep, start) in q_lt (cpt, 0.)
+node horizon delay tstep =
+    horizon_triggered delay (tstep, true fby false)
+
+node once_timed delay (tstep, p) =
+    onceBfromAtoC(q_true fby q_false, p, horizon delay tstep)
+node always_timed delay (tstep, p) =
+    let cpt = counter delay (tstep, true fby false) in
+    implies (q_gt (cpt, 0.), always p)
+node never_timed delay (tstep, p) = always_timed delay (tstep, q_not p)
+
+(* Autre façon de les écrire (plus naturelle) mais qui donne une robustesse
+   moins intéressante selon moi. En particulier, avec cette version,
+   la sortie du noeud n'est pas fausse le plus tôt possible. Elle devient
+   fausse une fois que le compteur est à 0
+
+    node always_timed delay (tstep, p) =
+        alwaysBfromAtoC(q_true fby q_false, p, horizon delay tstep)
+*)
+
+node onceBfromlastA (a, b) = q_or (never a, sincelast (b, a))
+node onceBfromfirstA (a, b) = q_or (never a, sincefirst (b, a))
+node onceBfromA (a, b) = onceBfromlastA (a, b)
+
+node alwaysBfromlastA (a, b) = q_or (never a, q_not (sincelast (q_not b, a)))
+node alwaysBfromfirstA (a, b) = q_or (never a, q_not (sincefirst (q_not b, a)))
+node alwaysBfromA (a, b) = alwaysBfromlastA(a, b)
+
+node neverBfromlastA (a, b) = alwaysBfromlastA (a, q_not b)
+node neverBfromfirstA (a, b) = alwaysBfromfirstA (a, q_not b)
+node neverBfromA (a, b) = alwaysBfromA (a, q_not b)
+
+(* onceBfromlastA_timed delay
+
+   durant delay secondes après le premier instant où A a été vrai (inclus),
+   b a été vrai au moins une fois
+
+   Note: si A n'a jamais été vraie, le résultat sera negatif
 
    Note: différent de "chaque ocurence de a est suivie d'une occurence de b
          après moins de t secondes" *)
-node onceBfromA delay (tstep, a, b) =
-    watchdog delay (tstep, a, b)
+node onceBfromlastA_timed delay (tstep, a, b) =
+    onceBfromlastAtoC (a, b, horizon_triggered delay (tstep, q_istrue a))
+node onceBfromfirstA_timed delay (tstep, a, b) =
+    onceBfromfirstAtoC (a, b, horizon_triggered delay (tstep, q_istrue a))
+node onceBfromA_timed delay (tstep, a, b) =
+    onceBfromAtoC (a, b, horizon_triggered delay (tstep, q_istrue a))
 
-(* depuis le premier moment où a a été vrai et le dernier moment où c a été vrai,
-   b a été vrai au moins une fois *)
-node onceBfromfirstAtoC(a, b, c) =
-    implies(c, q_or (never a, since(b, a)))
+node alwaysBfromlastA_timed delay (tstep, a, b) =
+    alwaysBfromlastAtoC (a, b, horizon_triggered delay (tstep, q_istrue a))
+node alwaysBfromfirstA_timed delay (tstep, a, b) =
+    alwaysBfromfirstAtoC (a, b, horizon_triggered delay (tstep, q_istrue a))
+node alwaysBfromA_timed delay (tstep, a, b) =
+    alwaysBfromAtoC (a, b, horizon_triggered delay (tstep, q_istrue a))
 
-node neverBfromAtoC (a, b, c) = implies (c, q_not (since (b, a)))
+node neverBfromlastA_timed delay (tstep, a, b) =
+    alwaysBfromlastA_timed delay (tstep, a, q_not b)
+node neverBfromfirstA_timed delay (tstep, a, b) =
+    alwaysBfromfirstA_timed delay (tstep, a, q_not b)
+node neverBfromA_timed delay (tstep, a, b) =
+    alwaysBfromA_timed delay (tstep, a, q_not b)
 
-(* Pattern templates *)
+(*
+    -----------------------------
+    Pattern templates
+    -----------------------------
+*)
 
 (* it is never the case that p holds *)
 node absence p = never p
@@ -86,26 +151,27 @@ node absence_timed t (tstep, p) = never_timed t (tstep, p)
 (* it is always the case that once p becomes satisfied, it holds for at
    least T seconds *)
 node minimum_duration t (tstep, p) =
-    let cpt = counter t (tstep, b_up (p >= 0.)) in
+    let cpt = counter t (tstep, b_up (q_istrue p)) in
     implies (q_not p, q_lt(cpt, 0.))
 
 (* it is always the case that once p becomes satisfied, it holds for at
    most T seconds *)
 node maximum_duration t (tstep, p) =
-    let cpt = counter t (tstep, b_up (p >= 0.)) in
+    let cpt = counter t (tstep, b_up (q_istrue p)) in
     implies (p, q_ge(cpt, 0.))
 
 (* it is always the case that p holds at least every T seconds *)
 node bounded_recurrence t (tstep, p) =
-    let cpt = counter t (tstep, true -> b_up (p >= 0.)) in
+    let cpt = counter t (tstep, true -> b_up (q_istrue p)) in
     q_ge (cpt, 0.)
 
 (* it is always the case that if p holds, then s holds after at
    most T seconds *)
 node bounded_response t (tstep, p, s) =
-    q_or (never p, onceBfromA t (tstep, b_up (p >= 0.), s))
+    reset q_or (never p, onceBfromfirstA_timed t (tstep, q_up p, s))
+    every (q_istrue s)
 
 (* it is always the case that if p holds then s holds for at least T seconds *)
 node bounded_invariance t (tstep, p, s) =
-    let cpt = counter t (tstep, b_up (p >= 0. && s >= 0.)) in
+    let cpt = counter t (tstep, b_up (q_istrue p && q_istrue s)) in
     q_or (s, (q_le (cpt, 0.)))

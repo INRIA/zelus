@@ -1,94 +1,73 @@
 include ../../config
 
-ZELUCFLAGS += -nodeadcode
-
-OCAMLFLAGS += -I ../../lib
+OCAMLFLAGS += -I ../../lib -w +a-4-6-7-9-27-29-32..42-44-45-48-50-60
 OCAMLOPTFLAGS += -I ../../lib
 ZLEXTRALIBS = $(ZLGTKLIBS)
 
-# SRC = predicates.zls next.zls always.zls and.zls or.zls trigger.zls \
-# 		  always_or.zls macros.zls
-TEST = absence absence_timed minimum_duration maximum_duration \
-			 bounded_recurrence bounded_response bounded_invariance
+BASICS = counter since always always_timed once once_timed \
+			   onceBfromlastA onceBfromfirstA \
+			   alwaysBfromlastA alwaysBfromfirstA \
+				 onceBfromlastAtoC onceBfromfirstAtoC \
+				 alwaysBfromlastAtoC alwaysBfromfirstAtoC
+
+TEMPLATES = absence absence_timed minimum_duration maximum_duration \
+			 			bounded_recurrence bounded_response bounded_invariance
 
 default: $(word 1, $(targets))
 all:  $(targets)
-# byte: $(SRC:.zls=.byte)
-# opt: $(SRC:.zls=.opt)
-byte: templates_byte
-opt: templates_opt
+byte: basics_byte templates_byte
+opt: basics_opt templates_opt
 
 templates: templates_byte
-templates_byte: $(TEST:%=test_%.byte)
-templates_opt: $(TEST:%=test_%.opt)
+templates_byte: $(TEMPLATES:=.byte)
+templates_opt: $(TEMPLATES:=.opt)
 
-$(SRC:.zls=.byte):
-	$(MAKE) $(@:.byte=.ml) $(@:.byte=_main.ml)
-	$(OCAMLC) $(OCAMLFLAGS) -o $@ \
-	    $(ZLSTDLIBS) $(ZLEXTRALIBS) $(INCLUDES) $(@:.byte=.ml) $(@:.byte=_main.ml)
+basics: basics_byte
+basics_byte: $(BASICS:=.byte)
+basics_opt: $(BASICS:=.opt)
 
-$(SRC:.zls=.opt):
-	$(MAKE) $(@:.opt=.ml) $(@:.opt=_main.ml)
-	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ \
-	    $(ZLSTDLIBS:.cma=.cmxa) $(ZLEXTRALIBS:.cma=.cmxa) \
-			$(INCLUDES:.cma=.cmxa) $(@:.opt=.ml) $(@:.opt=_main.ml)
+basic_obs.ml: basic_obs.zls
+	$(ZELUC) $(ZELUCFLAGS) $(ZELUCEXTRAFLAGS) $<
 
-$(SRC:.zls=_c.byte):
-	$(MAKE) $(@:.byte=.ml) $(@:_c.byte=_main_c.ml)
-	$(OCAMLC) $(OCAMLFLAGS) -o $@ \
-	    $(ZLSTDLIBS) $(ZLEXTRALIBS) $(INCLUDES) $(@:_c.byte=.ml) $(@:_c.byte=_main_c.ml)
+$(BASICS:=.ml): basic_obs.zls
+	$(ZELUC) $(ZELUCFLAGS) $(ZELUCEXTRAFLAGS) -gtk2 -s $(@:%.ml=test_%) \
+					 -o $(@:.ml=) $<
 
-$(SRC:.zls=_c.opt):
-	$(MAKE) $(@:.opt=.ml) $(@:_c.opt=_main_c.ml)
-	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ \
-	    $(ZLSTDLIBS:.cma=.cmxa) $(ZLEXTRALIBS:.cma=.cmxa) \
-			$(INCLUDES:.cma=.cmxa) $(@:_c.opt=.ml) $(@:_c.opt=_main_c.ml)
-
-$(SRC:.zls=.ml):
-	$(ZELUC) $(ZELUCFLAGS) $(ZELUCEXTRAFLAGS) -gtk2 -s main -o $(@:.ml=_main) $(@:.ml=.zls)
-
-$(SRC:.zls=_main.ml):
-	$(ZELUC) $(ZELUCFLAGS) $(ZELUCEXTRAFLAGS) -gtk2 -s main -o $(@:.ml=) $(@:_main.ml=.zls)
-
-$(SRC:.zls=_c.ml):
-	$(ZELUC) $(ZELUCFLAGS) $(ZELUCEXTRAFLAGS) -gtk2 -s main_c -o $(@:_c.ml=_main_c) $(@:_c.ml=.zls)
-
-$(SRC:.zls=_main_c.ml):
-	$(ZELUC) $(ZELUCFLAGS) $(ZELUCEXTRAFLAGS) -gtk2 -s main_c -o $(@:_c.ml=_main_c) $(@:_main_c.ml=.zls)
-
-pattern_templates.ml: pattern_templates.zls
-	$(ZELUC) $(ZELUCFLAGS) $(ZELUCEXTRAFLAGS) pattern_templates.zls
-
-$(TEST:%=test_%.ml): pattern_templates.zls
-	$(ZELUC) $(ZELUCFLAGS) $(ZELUCEXTRAFLAGS) -gtk2 -s $(@:%.ml=%) \
-			pattern_templates.zls
-
-$(TEST:%=test_%.byte):
-	$(MAKE) pattern_templates.ml $(@:.byte=.ml)
+$(BASICS:=.byte): basic_obs.ml
+	$(MAKE) $(@:.byte=.ml)
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ \
 	    $(ZLSTDLIBS) $(ZLEXTRALIBS) $(INCLUDES) \
-			pattern_templates.ml $(@:.byte=.ml)
+			$< $(@:.byte=.ml)
 
-$(TEST:%=test_%.opt):
-	$(MAKE) pattern_templates.ml $(@:.opt=.ml)
+$(BASICS:=.opt): basic_obs.ml
+	$(MAKE) $(@:.opt=.ml)
 	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ \
 	    $(ZLSTDLIBS:.cma=.cmxa) $(ZLEXTRALIBS:.cma=.cmxa) \
-			$(INCLUDES:.cma=.cmxa) pattern_templates.ml $(@:.opt=.ml)
+			$(INCLUDES:.cma=.cmxa) $< $(@:.opt=.ml)
 
-test:
-test_formula.byte: formula.ml
-	$(OCAMLC) $(OCAMLFLAGS) -o $@ $^
-test_formula.opt: formula.ml
-	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $^
+pattern_templates.ml: pattern_templates.zls
+	$(ZELUC) $(ZELUCFLAGS) $(ZELUCEXTRAFLAGS) $<
+
+$(TEMPLATES:=.ml): pattern_templates.zls
+	$(ZELUC) $(ZELUCFLAGS) $(ZELUCEXTRAFLAGS) -gtk2 -s $(@:%.ml=test_%) \
+					 -o $(@:.ml=) $<
+
+$(TEMPLATES:=.byte): pattern_templates.ml
+	$(MAKE) $(@:.byte=.ml)
+	$(OCAMLC) $(OCAMLFLAGS) -o $@ \
+	    $(ZLSTDLIBS) $(ZLEXTRALIBS) $(INCLUDES) \
+			$< $(@:.byte=.ml)
+
+$(TEMPLATES:=.opt): pattern_templates.ml
+	$(MAKE) $(@:.opt=.ml)
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ \
+	    $(ZLSTDLIBS:.cma=.cmxa) $(ZLEXTRALIBS:.cma=.cmxa) \
+			$(INCLUDES:.cma=.cmxa) $< $(@:.opt=.ml)
 
 clean:
-	-@rm -f $(SRC:.zls=.ml) $(SRC:.zls=_main.ml)
-	-@rm -f $(SRC:.zls=_c.ml) $(SRC:.zls=_main_c.ml)
-	-@rm -f pattern_templates.ml pattern_templates_main.ml $(TEST:%=test_%.ml)
+	-@rm -f pattern_templates.ml pattern_templates_main.ml $(TEMPLATES:=.ml)
+	-@rm -f basics_obs.ml basics_obs_main.ml $(BASICS:=.ml)
 	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci
 
 realclean cleanall: clean
-	-@rm -f $(SRC:.zls=.byte) $(SRC:.zls=.opt)
-	-@rm -f $(SRC:.zls=_c.byte) $(SRC:.zls=_c.opt)
-	-@rm -f $(TEST:%=test_%.byte) $(TEST:%=test_%.opt)
-	-@rm -f test_formula.byte test_formula.opt
+	-@rm -f *.byte *.opt
