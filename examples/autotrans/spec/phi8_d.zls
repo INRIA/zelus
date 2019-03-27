@@ -17,7 +17,6 @@ let static tstep     = 0.05
 let static maxt      = 30.0
 let static max_rpm   = 4500.
 let static max_speed = 120.
-let static t         = 4.
 
 open Obs
 open Spec
@@ -35,20 +34,29 @@ node maneuver tstep = scenario tstep
 *)
 
 node phi8((throttle, brake_torque), (rpm, gear, speed)) =
-    let g1 = p_eqi (gear, 1.) in
-    let g4 = p_eqi (gear, 4.) in
-    let disj2 =
-        p_or (p_or (p_not g4,
-                    p_le (rpm, max_rpm)),
-              p_ge (speed, max_speed))
-    in
-    d_or lift (d_or (d_trigger_l 10. (d_always_l 2.))
-                     (d_always_l 10.))
-          (tstep, (p_not g1, ((p_edge g4, p_lt (rpm, max_rpm)), disj2)))
+    let g1 = q_eqi (gear, 1.) in
+    let g4 = q_eqi (gear, 4.) in
+    let init_g1 = freeze g1 in
+
+    (* from g1 to g4 in under 10. seconds *)
+    let g1_to_g4 = q_and (init_g1, once_timed 10. (tstep, g4)) in
+
+    (* rpm > max_rpm 2 seconds after g4 *)
+    let rpm_gt_max_after_g4 =
+        onceBfromfirstA_timed 2. (tstep, g4, q_gt (rpm, max_rpm)) in
+
+    let speed_gt_max_speed_after_g4 =
+        onceBfromfirstA_timed 2. (tstep, g4, q_gt (speed, max_speed)) in
+
+    (* from g1 to g4 && rpm > max_rpm 2 seconds after g4
+       =>
+       speed > max_speed 2 seconds after g4
+    *)
+    implies (q_and (g1_to_g4, rpm_gt_max_after_g4), speed_gt_max_speed_after_g4)
 
 open Scope
 
-node show(t, (throttle, brake_torque), (rpm, gear, speed), (phi_r, phi_s)) =
+node show(t, (throttle, brake_torque), (rpm, gear, speed), phi) =
     let s1 = scope2(0.  , 350. , ("throttle", linear, throttle),
                                    ("brake torque", linear, brake_torque))
     and s2 = scope (0.  , 4.   , ("gear", linear, gear))
@@ -56,8 +64,8 @@ node show(t, (throttle, brake_torque), (rpm, gear, speed), (phi_r, phi_s)) =
                                  ("max_speed", linear, max_speed))
     and s4 = scope2(600., 6000., ("rpm", linear, rpm),
                                  ("max_rpm", linear, max_rpm))
-    and s5 = scope2( 0.,  4000., ("(g1 ∧ ◇<sub>[0,10]</sub> (g4 ∧ ◇<sub>[0,2]</sub> (rpm ≥ max_rpm))) ⇒ □<sub>[0,10]</sub> (g4 ∧ (rpm ≥ max_rpm) ⇒ (speed ≥ max_speed))", linear, phi_r),
-                                  ("[state: 0 = NotYet 1000 = Done]", linear, 1000. *. phi_s)) in
+    and s5 = scope2( -4.,  4.,   ("(g1 ∧ ◇<sub>[0,10]</sub> (g4 ∧ ◇<sub>[0,2]</sub> (rpm ≥ max_rpm))) ⇒ □<sub>[0,10]</sub> (g4 ∧ (rpm ≥ max_rpm) ⇒ (speed ≥ max_speed))", linear, phi),
+                                 ("", linear, 0.)) in
 
     window5("Autotrans spec", 50., t, s1, s2, s3, s4, s5)
 

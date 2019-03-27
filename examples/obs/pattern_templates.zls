@@ -76,16 +76,16 @@ node test_maximum_duration () =
 
     let p = q_and(q_gt(t, 3.5), q_lt(t, 8.)) in
 
-    let phi_ok = maximum_duration 10. (tstep, p) in
-    let phi_notok = maximum_duration 0.2 (tstep, p) in
+    let phi_ok = maximum_duration 5. (tstep, p) in
+    let phi_notok = maximum_duration 1. (tstep, p) in
 
     let s1 = scope2(-5., 1., ("p", linear, p),
                              ("", linear, 0.)) in
     let s2 = scope_of_formula (-10., 10.)
-        ("it is always the case that once p becomes satisfied, it holds for at most 1 second",
+        ("it is always the case that once p becomes satisfied, it holds for at most 5 second",
         phi_ok) in
     let s3 = scope_of_formula (-10., 10.)
-        ("it is always the case that once p becomes satisfied, it holds for at most 0.2 seconds",
+        ("it is always the case that once p becomes satisfied, it holds for at most 1 seconds",
         phi_notok) in
 
     window3("Maximum duration", 10., t, s1, s2, s3)

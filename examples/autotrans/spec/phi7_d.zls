@@ -30,31 +30,25 @@ node maneuver tstep = scenario tstep
 
     ◇_[0,T] (v > v̄ ∧ □(w < w̄))  <-- weird
 
-    pas expressible dans la logique.
+    propriété proche mais différente:
+    ◇_[0,T] (v > v̄) ∧ □_[0,T] (v > v̄ ⇒ □(w < w̄))
+
+    diférence: ici dès la première occurence de v > v̄, on a que
+    w < w̄
 *)
 
-node apply2_list2tuple f (tstep, list) =
-    run f (tstep, (Basics.list_nth list 0, Basics.list_nth list 1))
-
 node phi7((throttle, brake_torque), (rpm, gear, speed)) =
-    (*
-        propriété proche mais différente:
-        ◇_[0,T] (v > v̄) ∧ □_[0,T] (v > v̄ ⇒ □(w < w̄))
-
-        diférence: ici dès la première occurence de v > v̄, on a que
-        w < w̄
-    *)
-    d_and
-        (d_next cT)
-        (d_trigger_l cT d_always)
-        (tstep,
-         (p_gt (speed, max_speed),
-         (p_gt (speed, max_speed), p_lt (rpm, max_rpm)))
-        )
+    let speed_gt_max = once_timed cT (tstep, q_gt (speed, max_speed)) in
+    let engine_lt_max =
+        reset
+            always (q_lt (rpm, max_rpm))
+        every (speed_gt_max >= 0.) in
+    q_and (speed_gt_max,
+           alwaysBfromA(speed_gt_max, engine_lt_max))
 
 open Scope
 
-node show(t, (throttle, brake_torque), (rpm, gear, speed), (phi_r, phi_s)) =
+node show(t, (throttle, brake_torque), (rpm, gear, speed), phi) =
     let s1 = scope2(0.  , 350. , ("throttle", linear, throttle),
                                    ("brake torque", linear, brake_torque))
     and s2 = scope (0.  , 4.   , ("gear", linear, gear))
@@ -62,8 +56,8 @@ node show(t, (throttle, brake_torque), (rpm, gear, speed), (phi_r, phi_s)) =
                                  ("max_speed", linear, max_speed))
     and s4 = scope2(600., 6000., ("rpm", linear, rpm),
                                  ("max_rpm", linear, max_rpm))
-    and s5 = scope2(-120.,  10., ("◇<sub>[0," ^ (string_of_float cT) ^ "]</sub>(speed > max_speed ∧ □(rpm &#60; max_rpm))", linear, phi_r),
-                                  ("[state: -60 = NotYet 10 = Done]", linear, 70. *. phi_s -. 60.)) in
+    and s5 = scope2(-10.,  100., ("◇<sub>[0," ^ (string_of_float cT) ^ "]</sub>(speed > max_speed ∧ □(rpm &#60; max_rpm))", linear, phi),
+                                   ("", linear, 0.)) in
 
     window5("Autotrans spec", 50., t, s1, s2, s3, s4, s5)
 

@@ -8,13 +8,19 @@
 *)
 
 let static tstep   = 0.05
-let static maxt    = 30.0
+let static maxt    = 50.0
 let static epsilon = 0.01
 
 open Obs
 open Spec
 
-node maneuver tstep = scenario tstep
+node maneuver tstep =
+    Gen.t_fby(const2((90., 100.), (0., 10.)),
+              rand_horizon(1., 5.),
+    Gen.t_fby(const2((0., 10.), (320., 350.)),
+              rand_horizon(30., 40.),
+              const2((90., 100.), (0., 10.))
+    )) (tstep, (0., 0.))
 
 (*
     If the car switches from any gear to gear 1, then it will stay in gear 1
@@ -26,19 +32,20 @@ node maneuver tstep = scenario tstep
 *)
 
 node phi4((throttle, brake_torque), (rpm, gear, speed)) =
-    let g1 = p_eqi (gear, 1.) in
-    d_trigger (d_always_l 2.5) (tstep, (p_edge g1, g1))
+    let start = q_true fby q_false in
+    let switch = q_and(q_not start, q_up (q_eqi (gear, 1.))) in
+    alwaysBfromA_timed 2.5 (tstep, switch, q_eqi(gear, 1.))
 
 open Scope
 
-node show(t, (throttle, brake_torque), (rpm, gear, speed), (phi_r, phi_s)) =
+node show(t, (throttle, brake_torque), (rpm, gear, speed), phi) =
     let s1 = scope2(0.  , 350. , ("throttle", linear, throttle),
                                    ("brake torque", linear, brake_torque))
     and s2 = scope (0.  , 4.   , ("gear", linear, gear))
     and s3 = scope (0.  , 200. , ("speed", linear, speed))
     and s4 = scope (600., 6000., ("rpm", linear, rpm))
-    and s5 = scope2( -2.,    2., ("□(edge g1 ⇒ □<sub>[0,2.5]</sub> g1)", linear, phi_r),
-                                  ("[state: 0 = NotYet 1 = Done]", linear, phi_s)) in
+    and s5 = scope2( -2.,    2., ("□(edge g1 ⇒ □<sub>[0,2.5]</sub> g1)", linear, phi),
+                                 ("", linear, 0.)) in
 
     window5("Autotrans spec", 50., t, s1, s2, s3, s4, s5)
 

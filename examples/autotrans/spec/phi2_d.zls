@@ -27,13 +27,11 @@ node maneuver tstep = scenario tstep
 *)
 
 node phi2((throttle, brake_torque), (rpm, gear, speed)) =
-    d_always
-        (tstep,
-         p_and (p_lt (rpm, max_rpm), p_lt (speed, max_speed)))
+    always (q_and (q_lt (rpm, max_rpm), q_lt (speed, max_speed)))
 
 open Scope
 
-node show(t, (throttle, brake_torque), (rpm, gear, speed), (phi_r, phi_s)) =
+node show(t, (throttle, brake_torque), (rpm, gear, speed), phi) =
     let s1 = scope2(0.  , 350. , ("throttle", linear, throttle),
                                    ("brake torque", linear, brake_torque))
     and s2 = scope (0.  , 4.   , ("gear", linear, gear))
@@ -41,8 +39,8 @@ node show(t, (throttle, brake_torque), (rpm, gear, speed), (phi_r, phi_s)) =
                                  ("max_speed", linear, max_speed))
     and s4 = scope2(600., 6000., ("rpm", linear, rpm),
                                  ("max_rpm", linear, max_rpm))
-    and s5 = scope2(-20.,  200., ("□((rpm &#60; max_rpm) ∧ (speed &#60; max_speed))", linear, phi_r),
-                                  ("[state: 0 = NotYet 100 = Done]", linear, 100. *. phi_s)) in
+    and s5 = scope2(-20.,  200., ("□((rpm &#60; max_rpm) ∧ (speed &#60; max_speed))", linear, phi),
+                                  ("", linear, 0.)) in
 
     window5("Autotrans spec", 50., t, s1, s2, s3, s4, s5)
 

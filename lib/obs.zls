@@ -74,7 +74,8 @@ node neverBfromfirstAtoC (a, b, c) = alwaysBfromfirstAtoC(a, q_not b, c)
 node neverBfromAtoC (a, b, c) = alwaysBfromAtoC(a, q_not b, c)
 
 node horizon_triggered delay (tstep, start) =
-    let cpt = counter delay (tstep, start) in q_lt (cpt, 0.)
+    let cpt = counter delay (tstep, start) in
+    q_up (q_lt (cpt, 0.))
 node horizon delay tstep =
     horizon_triggered delay (tstep, true fby false)
 

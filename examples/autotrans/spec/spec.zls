@@ -61,12 +61,10 @@ let node cli input_fun formula model maxt tstep =
     let input = run input_fun t in
     let output = run model (t, input) in
 
-    let r, is_done = run formula (input, output) in
+    let r = run formula (input, output) in
 
-    if is_done && (r < 0.) then
+    if r < 0. then
         finish_falsified (t, r)
-    else if (is_done && (r > 0.)) then
-        finish_done (t, r)
     else if t > maxt then
         finish_timeout (t, r)
     else ()
@@ -79,12 +77,12 @@ let node plot input_fun formula model show tstep =
     let input = run input_fun tstep in
     let output = run model (t, input) in
 
-    let r, is_done = run formula (input, output) in
+    let r = run formula (input, output) in
 
     run show (
         t,
         input,
         output,
-        (clamp (-10000., 10000.) r, Obs.float_of_state is_done)
+        clamp (-10000., 10000.) r
     );
     ()
