@@ -76,27 +76,43 @@ module type STATE_SOLVER =
     (* A session with the solver. *)
     type t
 
+    (* The type of vectors used internally by the solver. *)
     type nvec
+
+    (* Create a vector of the given size. *)
     val cmake : int -> nvec
+
+    (* Unwrap a vector returning an array of continuous-state values. *)
     val unvec : nvec -> carray
 
+    (* A right-hand-side function called by the solver to calculate the
+       instantaneous derivatives: [f t cvec dvec].
+       - t, the current simulation time (input)
+       - cvec, current values for continuous states (input)
+       - dvec, the vector of instantaneous derivatives (output) *)
     type rhsfn = float -> carray -> carray -> unit
+
+    (* An interpolation function: [df cvec t k]
+       - cvec, a vector for storing the interpolated continuous states (output)
+       - t, the time to interpolate at,
+       - k, the derivative to interpolate *)
     type dkyfn = nvec -> float -> int -> unit
 
-    (* [init f c] creates a solver session from a function [f] and an initial
-       state vector [c]. *)
+    (* [initialize f c] creates a solver session from a function [f] and
+       an initial state vector [c]. *)
     val initialize : rhsfn -> nvec -> t
 
-    (* [reinit s t c] reinitializes the solver with the given time [t] and
-       vector of continuous states [c]. *)
+    (* [reinitialize s t c] reinitializes the solver with the given time
+       [t] and vector of continuous states [c]. *)
     val reinitialize : t -> float -> nvec -> unit
 
     (* [t' = step s tl c] given a state vector [c], takes a step to the next
-       'mesh-point', or the given time limit [tl] (whichever is sooner). *)
+       'mesh-point', or the given time limit [tl] (whichever is sooner),
+       updating [c]. *)
     val step : t -> float -> nvec -> float
 
-    (* [get_dky s t k c] for any time [t] since the last mesh-point, or initial
-       instant, put [k]th derivatives into [c]. *)
+    (* Returns an interpolation function that can produce results for any
+       time [t] since the last mesh-point or the initial instant. *)
     val get_dky : t -> dkyfn
 
     (* generic solver parameters *)
@@ -108,20 +124,55 @@ module type STATE_SOLVER =
 
 module type ZEROC_SOLVER =
   sig
-    (* A session with the solver *)
+    (* A session with the solver. A zero-crossing solver has two internal
+       continuous-state vectors, called 'before' and 'now'. *)
     type t
 
+    (* Zero-crossing function: [g t cvec zout]
+       - t, simulation time (input)
+       - cvec, vector of continuous states (input)
+       - zout, values of zero-crossing expressions (output) *)
     type zcfn  = float -> carray -> carray -> unit
 
+    (* Create a session with the zero-crossing solver:
+       [initialize nroots g cvec0]
+       - nroots, number of zero-crossing expressions
+       - g, function to calculate zero-crossing expressions
+       - cvec0, initial continuous state
+
+       Sets the 'now' vector to cvec0. *)
     val initialize   : int -> zcfn -> carray -> t
+
+    (* Reinitialize the zero-crossing solver after a discrete step that
+       updates the continuous states directly: [reinitialize s t cvec].
+       - s, a session with the zero-crossing solver
+       - t, the current simultation time
+       - cvec, the current continuous state vector
+
+       Resets the 'now' vector to cvec. *)
     val reinitialize : t -> float -> carray -> unit
 
+    (* Advance the zero-crossing solver after a continuous step:
+       [step s t cvec].
+       - s, a session with the zero-crossing solver
+       - t, the current simultation time
+       - cvec, the current continuous state vector
+
+       Moves the current 'now' vector to 'before', then sets 'now' to cvec. *)
     val step         : t -> float -> carray -> unit
 
+    (* Compares the 'before' and 'now' vectors and returns true only if
+       there exists an i, such that before[i] < 0 and now[i] >= 0. *)
     val has_roots    : t -> bool
 
-    (* In [t = find s (f, c) zin], the get_dky function [f] must update the
-       given array [c]. *)
+    (* Locates the time of the zero-crossing closest to the 'before' vector.
+       Call after [has_roots] indicates the existence of a zero-crossing:
+       [t = find s (f, c) zin].
+       - The [get_dky] function [f] is provided by the state solver and is
+         expected to update the array [c] with the interpolated state.
+       - zin, is populated with the status of all zero-crossings
+       - the returned values is the simulation time of the earliest
+         zero-crossing that was found. *)
     val find         : t -> ((float -> int -> unit) * carray) -> zarray -> float
   end
 
