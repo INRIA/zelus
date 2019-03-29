@@ -1,7 +1,11 @@
-type t = int
+let hybrid f(x) =
+  let rec der z = x +. 1.0 +. x init 0.0 in
+  let rec der k = z +. 3.0 init 0.0 reset up(z) -> 42.0 in
+  k +. z +. 2.0
 
-
-let f (x: t) = x + 1
+let hybrid main () =
+  let o = f(0.0) in
+  present (period (0.0 | 1.0)) -> print_float o init ()
     
     (*
 
