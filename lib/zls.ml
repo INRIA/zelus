@@ -106,20 +106,55 @@ module type STATE_SOLVER =
 
 module type ZEROC_SOLVER =
   sig
-    (* A session with the solver *)
+    (* A session with the solver. A zero-crossing solver has two internal
+       continuous-state vectors, called 'before' and 'now'. *)
     type t
 
+    (* Zero-crossing function: g t cvec zout
+       - t, simulation time (input)
+       - cvec, vector of continuous states (input)
+       - zout, values of zero-crossing expressions (output) *)
     type zcfn  = float -> carray -> carray -> unit
 
+    (* Create a session with the zero-crossing solver:
+       initialize nroots g cvec0
+       - nroots, number of zero-crossing expressions
+       - g, function to calculate zero-crossing expressions
+       - cvec0, initial continuous state
+
+       Sets the 'now' vector to cvec0. *)
     val initialize   : int -> zcfn -> carray -> t
+
+    (* Reinitialize the zero-crossing solver after a discrete step that
+       updates the continuous states directly: reinitialize s t cvec.
+       - s, a session with the zero-crossing solver
+       - t, the current simultation time
+       - cvec, the current continuous state vector
+
+       Resets the 'now' vector to cvec. *)
     val reinitialize : t -> float -> carray -> unit
 
+    (* Advance the zero-crossing solver after a continuous step:
+       step s t cvec.
+       - s, a session with the zero-crossing solver
+       - t, the current simultation time
+       - cvec, the current continuous state vector
+
+       Moves the current 'now' vector to 'before', then sets 'now' to cvec. *)
     val step         : t -> float -> carray -> unit
 
+    (* Compares the 'before' and 'now' vectors and returns true only if
+       there exists an i, such that before[i] < 0 and now[i] >= 0. *)
     val has_roots    : t -> bool
 
-    (* In [t = find s (f, c) zin], the get_dky function [f] must update the
-       given array [c]. *)
+    (* Locates the time of the zero-crossing closest to the 'before' vector.
+       Call after [has_roots] indicates the existence of a zero-crossing:
+       [t = find s (f, c) zin].
+       - The [get_dky] function [f] is provided by the state solver and is
+         expected to update the array [c] with the interpolated state.
+       - zin, is populated with the status of all zero-crossings
+       - the returned values is the simulation time of the earliest
+         zero-crossing that was found. *)
     val find         : t -> ((float -> int -> unit) * carray) -> zarray -> float
   end
 
