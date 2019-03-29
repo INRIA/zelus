@@ -243,7 +243,7 @@ let compile modname filename =
 	 comment "Translation done. See below:";
 	 Oprinter.implementation_list info_ff obc_list
        end;
-     let obc_list = Inout.implementation_list obc_list in
+     let obc_list = Inout2.implementation_list obc_list in
      if !verbose
      then begin
 	 comment "Add code to read/write continuous states and zero-crossings \
