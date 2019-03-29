@@ -23,19 +23,21 @@ type ('a, 'b) zerocrossing = { mutable zin: 'a; mutable zout: 'b }
 type 'a signal = 'a * bool
 type zero = bool
 
-type ('a, 'b) node =
-    Node:
-      { alloc : unit -> 's; (* allocate the state *)
-        step : 's -> 'a -> 'b; (* compute a step *)
-        reset : 's -> unit; (* reset/inialize the state *)
-      } -> ('a, 'b) node
-
+(*
 type ('a, 'b) hybrid =
     Hybrid:
       { alloc : unit -> 's; (* allocate the state *)
         step : 's -> 'a -> 'b; (* compute a step *)
         reset : 's -> unit; (* reset/inialize the state *)
       } -> ('a, 'b) hybrid
+ *)
+	      
+type ('a, 'b) node =
+    Node:
+      { alloc : unit -> 's; (* allocate the state *)
+        step : 's -> 'a -> 'b; (* compute a step *)
+        reset : 's -> unit; (* reset/inialize the state *)
+      } -> ('a, 'b) node
 
 open Bigarray
 
