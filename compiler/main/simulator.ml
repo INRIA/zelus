@@ -94,30 +94,54 @@ let emit_prelude ff ({ Lident.id = id } as qualid) k =
        "@[open Ztypes@.\
           open Zls@.\
           (* simulation (continuous) function *)@.\
-          let main = \
-            @[<v>let Hybrid { alloc = alloc; step = hstep; reset = reset } = %s in @,\
-              @[<h2>let step mem c d zin t = @,\
-                      discrete := true; cvec := c;\
-                      dvec := d; zinvec := zin;\
-                      cindex := 0; zindex := 0;\
-                      horizon := infinity; \
-                      hstep mem (t, ()) in@]@,\
-              @[<h2>let derivative mem c d zin zout t = @,\
-                      discrete :=false; cvec := c; dvec := d;\
-                      zinvec := zin; zoutvec := zout;\
-                      cindex := 0; zindex := 0;\
-                      hstep mem (t, ()) in@]@,\
-              @[<h2>let crossings mem c zin zout t = @ \
-                      discrete := false; cvec := c;\
-                      zinvec := zin; zoutvec := zout;\
-                      cindex := 0; zindex := 0;\
-                      hstep mem (t, ()) in@]@,\
-              @[<h2>let maxsize mem = (!cmax, !zmax) in@]@,\
-              @[<h2>let csize mem = !cindex in@]@,\
-              @[<h2>let zsize mem = !zindex in@]@,\
-              @[<h2>let horizon mem = !horizon in@]@,\
-              @[<h1>Hsim {alloc; step; reset; derivative; crossings;@ \
-                     maxsize; csize; zsize; horizon}@]@];;@]" s
+          @[<hov2>let main = @,\
+            @[<v>\
+              @[<hov2>let cstate = @,\
+                       @[<hov2>{ dvec = cmake 0; cvec = cmake 0; @,\
+                         zinvec = zmake 0; zoutvec = cmake 0; @,\
+                         cstart = 0; zstart = 0; @,\
+                         cend = 0; zend = 0; @,\
+                         discrete = false; horizon = 0.0 }@] in@] @,\
+              @[<hov2>let Node \
+                 { alloc = alloc; step = hstep; reset = reset } = \ 
+                     %s cstate in@] @,\
+              @[<hov2>let step mem cvec dvec zin t = @,\
+                      @[cstate.discrete <- true; @,\
+                        cstate.cvec <- cvec; @,\
+                        cstate.dvec <- dvec; @,\
+                        cstate.cstart <- 0; @,\
+                        cstate.zstart <- 0; @,\
+                        cstate.cend <- 0; @,\
+                        cstate.zend <- 0; @,\
+                        cstate.horizon <- infinity;  @,\
+                        hstep mem (t, ()) in@]@]@,\
+              @[<hov2>let derivative mem cvec dvec zin zout t = @,\
+                      @[cstate.discrete <- false;  @,\
+                        cstate.cvec <- cvec; @,\
+                        cstate.dvec <- dvec; @,\
+                        cstate.zinvec <- zin; @,\
+                        cstate.zoutvec <- zout; @,\
+                        cstate.cstart <- 0; @,\
+                        cstate.zstart <- 0; @,\
+                        cstate.cend <- 0; @,\
+                        cstate.zend <- 0; @,\
+                        ignore (hstep mem (t, ())) in@]@]@,\
+              @[<hov2>let crossings mem cvec zin zout t = @ \
+                      @[cstate.discrete <- false;  @,\
+                        cstate.cvec <- cvec; @,\
+                        cstate.zinvec <- zin; @,\
+                        cstate.zoutvec <- zout; @,\
+                        cstate.cstart <- 0; @,\
+                        cstate.zstart <- 0; @,\
+                        ignore (hstep mem (t, ())) in@]@]@,\
+              @[<hov2>let maxsize mem = cstate.cend, cstate.zend in@]@,\
+              @[<hov2>let csize mem = cstate.cend in@]@,\
+              @[<hov2>let zsize mem = cstate.zend in@]@,\
+              @[<hov2>let horizon mem = cstate.horizon in@]@,\
+              @[<hov1>Hsim @[<hov2>{ alloc;@ step;@ reset;@ derivative; @,\
+                                     crossings; @,\
+                                     maxsize; @ csize; @ zsize; @,\
+                                     horizon }@]@]@];;@]@.@]" s
 
 (* emited code for control-driven programs: the transition function *)
 (* is executed at full speed *)
