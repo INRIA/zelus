@@ -107,7 +107,7 @@ open Deftypes
 open Obc
 open Format
 
-let typ_cstate = Otypeconstr(Modname {qual = "Ztype"; id = "cstate" }, [])
+let typ_cstate = Otypeconstr(Modname {qual = "Ztypes"; id = "cstate" }, [])
 
 let oletin p e1 i2 = Olet(p, e1, i2)
 let oletvar x ty e1 i2 = Oletvar(x, false, ty, Some(e1), i2)
@@ -198,44 +198,63 @@ let incr cstate field ie =
   Oassign(Oleft_record_access(Oleft_name cstate, Name(field)),
           oplus (Orecord_access(Olocal(cstate), Name(field))) ie)
              
-let cmax cstate ie = incr cstate "cmax" ie
-let zmax cstate ie = incr cstate "zmax" ie
-let cincr cstate ie = incr cstate "cpos" ie
-let zincr cstate ie = incr cstate "zpos" ie
+let cend cstate ie = incr cstate "cend" ie
+let zend cstate ie = incr cstate "zend" ie
+let cincr cstate ie = incr cstate "cstart" ie
+let zincr cstate ie = incr cstate "zstartpos" ie
 
 let discrete cstate = Orecord_access(varmut cstate, Name("discrete"))
 			
 (* [x.cont.(i1)....(in).(j1)...(jk) <- cstate.cvec.(pos)] *)
 (* [x.zero_in.(i1)...(in).(j1)...(jk) <- cstate.zin.(pos)] *)
-let write_into_internal_state (x, cont) i_list j_list (cstate, field) pos =
+
+let write_into_internal_state (x, cont) i_list j_list get pos =
   Oassign_state
     (left_state_access
        (left_state_access
 	  (Oleft_state_primitive_access(Oleft_state_name(x), cont))
-          i_list) j_list,
-     Oaccess(Orecord_access(varmut cstate, Name(field)), var pos))
+          i_list) j_list, get (var pos))
+    
+let app f args = Oapp(global(modname f), args)
+let getc cstate pos =
+  app "get" [Orecord_access(varmut cstate, Name("cvec")); pos]
+let get_zin cstate pos =
+  app "get_zin" [Orecord_access(varmut cstate, Name("zinvec")); pos]
+let setc cstate pos e =
+  app "set" [Orecord_access(varmut cstate, Name("cvec")); pos; e]
+let setd cstate pos e =
+  app "set" [Orecord_access(varmut cstate, Name("dvec")); pos; e]
+let set_zout cstate pos e =
+    app "set" [Orecord_access(varmut cstate, Name("zoutvec")); pos; e]
+
 let cin cstate x i_list j_list pos =
-  write_into_internal_state (x, Ocont) i_list j_list (cstate, "cvec") pos
+  let getc pos = getc cstate pos in
+  write_into_internal_state (x, Ocont) i_list j_list getc pos
+			    
 let zin cstate x i_list j_list pos =
-  write_into_internal_state (x, Ozero_in) i_list j_list (cstate, "zin") pos
+  let get_zin pos = get_zin cstate pos in
+  write_into_internal_state (x, Ozero_in) i_list j_list get_zin pos
 
 (* [cstate.cvec.(pos) <- (x.cont.(i1)....(in)).(j1)...(jk)] *)
 (* [cstate.dvec.(pos) <- (x.der.(i1)....(in)).(j1)...(jk)] *)
 (* [cstate.zout.(pos) <- (x.zout.(i1)....(in)).(j1)...(jk)] *)
-let write_from_internal_state (cstate, field) (x, cont) i_list j_list pos =
-  Oassign
-    (Oleft_index(Oleft_record_access(Oleft_name(cstate), Name(field)), var pos),
-     (Ostate
-         (left_state_access
-           (left_state_access
-              (Oleft_state_primitive_access(Oleft_state_name(x), cont))
-	      i_list) j_list)))
+let write_from_internal_state set (x, cont) i_list j_list pos =
+  Oexp
+    (set (var pos)
+	 (Ostate
+	    (left_state_access
+               (left_state_access
+		  (Oleft_state_primitive_access(Oleft_state_name(x), cont))
+		  i_list) j_list)))
 let cout cstate x i_list j_list pos =
-  write_from_internal_state (cstate, "cvec") (x, Ocont) i_list j_list pos
+  let setc pos e = setc cstate pos e in
+  write_from_internal_state setc (x, Ocont) i_list j_list pos
 let dout cstate x i_list j_list pos =
-  write_from_internal_state (cstate, "dvec") (x, Oder) i_list j_list pos
+  let setd pos e = setd cstate pos e in
+  write_from_internal_state setd (x, Oder) i_list j_list pos
 let zout cstate x i_list j_list pos =
-  write_from_internal_state (cstate, "zout") (x, Ozero_out) i_list j_list pos
+  let set_zout pos e = set_zout cstate pos e in
+  write_from_internal_state set_zout (x, Ozero_out) i_list j_list pos
 let set_zin_to_false x i_list j_list pos =
   Oassign_state
     (left_state_access
@@ -243,13 +262,11 @@ let set_zin_to_false x i_list j_list pos =
           (Oleft_state_primitive_access(Oleft_state_name(x), Ozero_in))
           i_list) j_list,
      ffalse)
+
 let set_dvec_to_zero cstate c_start csize =
   if is_zero csize then Oexp(void)
   else Ofor(true, i, local c_start, minus csize one,
-            Oassign(Oleft_index(Oleft_record_access(Oleft_name(cstate),
-                                                    Name "dvec"),
-				local i),
-            float_const 0.0))
+            Oexp(setd cstate (local i) (float_const 0.0)))
 
 (** Compute the index associated to a state variable [x] in the current block *)
 (* [build_index m_list = (ctable, csize), (ztable, zsize), h_list] *)
@@ -397,12 +414,12 @@ let machine f
     
     (* add initialization code to [e_opt] *)
     let i_opt =
-      maxsize (cmax cstate) csize (maxsize (zmax cstate) zsize i_opt) in
+      maxsize (cend cstate) csize (maxsize (zend cstate) zsize i_opt) in
           
     let c_start = Ident.fresh "c_start" in
     let z_start = Ident.fresh "z_start" in
-    let cstate_cpos = Orecord_access(varmut cstate, Name("cpos")) in
-    let cstate_zpos = Orecord_access(varmut cstate, Name("zpos")) in
+    let cstate_cpos = Orecord_access(varmut cstate, Name("cstart")) in
+    let cstate_zpos = Orecord_access(varmut cstate, Name("zstart")) in
     
     let cpos = Ident.fresh "cpos" in
     let zpos = Ident.fresh "zpos" in
@@ -427,8 +444,8 @@ let machine f
               (oletvar_only
                  z_is_not_zero zpos Initial.typ_int (local z_start)
 		 (sequence
-		    [only c_is_not_zero (incr cstate "csize" csize);
-                     only z_is_not_zero (incr cstate "zsize" zsize);
+		    [only c_is_not_zero (incr cstate "cend" csize);
+                     only z_is_not_zero (incr cstate "zend" zsize);
 		     ifthenelse
                        (discrete cstate) (set_dvec_to_zero cstate c_start csize)
 		       (only c_is_not_zero (cin ctable cstate cpos));
