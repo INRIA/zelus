@@ -44,7 +44,7 @@ let immediate ff = function
 
 let constructor_for_kind = function
   | Deftypes.Tcont ->
-     "Hybrid", [ Ostep; Oreset ]
+     "Node", [ Ostep; Oreset ]
   | Deftypes.Tdiscrete(true) ->
      "Node", [ Ostep; Oreset ]
   | _ -> assert false
