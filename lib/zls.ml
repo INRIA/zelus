@@ -21,6 +21,7 @@ let get_zin v i = Array1.get v i <> 0l
 
 (* global variables read/write by the *)
 (* step functions *)
+(*
 let cvec = ref (cmake 0)
 let dvec = ref (cmake 0)
 let zinvec = ref (zmake 0)
@@ -34,7 +35,8 @@ let horizon = ref infinity
 
 let set_horizon x =
   horizon := min !horizon x
-                  
+ *)
+				      
 type 's f_alloc = unit -> 's
 type 's f_maxsize = 's -> int * int
 type 's f_csize = 's -> int
