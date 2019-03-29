@@ -105,7 +105,7 @@ node alwaysBfromA (a, b) = alwaysBfromlastA(a, b)
 
 node neverBfromlastA (a, b) = alwaysBfromlastA (a, q_not b)
 node neverBfromfirstA (a, b) = alwaysBfromfirstA (a, q_not b)
-node neverBfromA (a, b) = alwaysBfromA (a, q_not b)
+node neverBfromA (a, b) = neverBfromlastA (a, b)
 
 (* onceBfromlastA_timed delay
 
@@ -117,12 +117,13 @@ node neverBfromA (a, b) = alwaysBfromA (a, q_not b)
    Note: différent de "chaque ocurence de a est suivie d'une occurence de b
          après moins de t secondes" *)
 node onceBfromlastA_timed delay (tstep, a, b) =
-    onceBfromlastAtoC (a, b, horizon_triggered delay (tstep, q_istrue a))
+    let cpt = counter delay (tstep, q_istrue a) in
+    onceBfromlastAtoC (a, b, q_lt (cpt, 0.))
 node onceBfromfirstA_timed delay (tstep, a, b) =
     onceBfromfirstAtoC (a, b,
         horizon_triggered delay (tstep, q_istrue (q_up (once a))))
 node onceBfromA_timed delay (tstep, a, b) =
-    onceBfromAtoC (a, b, horizon_triggered delay (tstep, q_istrue a))
+    onceBfromlastA_timed delay (tstep, a, b)
 
 node alwaysBfromlastA_timed delay (tstep, a, b) =
     let cpt = counter delay (tstep, q_istrue a) in
@@ -131,7 +132,7 @@ node alwaysBfromfirstA_timed delay (tstep, a, b) =
     let cpt = counter delay (tstep, b_up (once a >= 0.)) in
     implies (q_gt (cpt, 0.), q_not (sincefirst (q_not b, a)))
 node alwaysBfromA_timed delay (tstep, a, b) =
-    alwaysBfromAtoC (a, b, horizon_triggered delay (tstep, q_istrue a))
+    alwaysBfromlastA_timed delay (tstep, a, b)
 
 (*
     De même que always_timed
@@ -149,44 +150,4 @@ node neverBfromlastA_timed delay (tstep, a, b) =
 node neverBfromfirstA_timed delay (tstep, a, b) =
     alwaysBfromfirstA_timed delay (tstep, a, q_not b)
 node neverBfromA_timed delay (tstep, a, b) =
-    alwaysBfromA_timed delay (tstep, a, q_not b)
-
-(*
-    -----------------------------
-    Pattern templates
-    -----------------------------
-*)
-
-(* it is never the case that p holds *)
-node absence p = never p
-
-(* after the first T seconds, it is never the case that p holds *)
-node absence_timed t (tstep, p) = neverBfromA (horizon t tstep, p)
-
-(* it is always the case that once p becomes satisfied, it holds for at
-   least T seconds *)
-node minimum_duration t (tstep, p) =
-    let cpt = counter t (tstep, b_up (q_istrue p)) in
-    implies (q_not p, q_lt(cpt, 0.))
-
-(* it is always the case that once p becomes satisfied, it holds for at
-   most T seconds *)
-node maximum_duration t (tstep, p) =
-    let cpt = counter t (tstep, b_up (q_istrue p)) in
-    implies (p, q_ge(cpt, 0.))
-
-(* it is always the case that p holds at least every T seconds *)
-node bounded_recurrence t (tstep, p) =
-    let cpt = counter t (tstep, true -> b_up (q_istrue p)) in
-    q_ge (cpt, 0.)
-
-(* it is always the case that if p holds, then s holds after at
-   most T seconds *)
-node bounded_response t (tstep, p, s) =
-    reset q_or (never p, onceBfromfirstA_timed t (tstep, p, s))
-    every (q_istrue s)
-
-(* it is always the case that if p holds then s holds for at least T seconds *)
-node bounded_invariance t (tstep, p, s) =
-    let cpt = counter t (tstep, b_up (q_istrue p && q_istrue s)) in
-    q_or (s, (q_le (cpt, 0.)))
+    neverBfromlastA_timed delay (tstep, a, b)
