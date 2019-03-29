@@ -92,7 +92,7 @@ GENCODE = gencode/sol.cmo \
 	  gencode/oprinter.cmo \
 	  gencode/ocamlprinter.cmo \
 	  gencode/translate.cmo \
-	  gencode/inout.cmo	  
+	  gencode/inout2.cmo	  
 
 VERIF = verif/lmm.cmo \
 	verif/plmm.cmo \
