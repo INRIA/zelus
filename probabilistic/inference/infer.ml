@@ -52,7 +52,7 @@ let infer_subresample n (Node { alloc; reset; step }) =
         states
     in
     if c then Normalize.resample (states, scores, values);
-    Normalize.normalize values scores
+    Normalize.normalize values 
   in
   Node { alloc = alloc; reset = reset; step = step }
 
@@ -154,7 +154,7 @@ let plan n k (Node model : (pstate * 't1, 't2) Ztypes.node) =
     let states_scores_values =
       step_body { infer_states = states; infer_scores = scores; } input
     in
-    let dist = Normalize.normalize states_scores_values scores in
+    let dist = Normalize.normalize states_scores_values in
     let state', _, value = Distribution.draw dist in
     plan_state := state';
     value

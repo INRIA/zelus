@@ -1,20 +1,59 @@
 (** Inference with delayed sampling *)
 open Ztypes
 
-type pstate = Infer.pstate;;
+type pstate = {
+    idx : int;
+    scores : float array;
+};;
+
+type 'a infer_state = {
+    states : 'a array;
+    scores : float array;
+};;
 
 let infer n (Node {alloc; reset; step}) =
-    let tmp_node = Node {
-        alloc = (fun () -> alloc ());
-        reset = (fun s -> reset s);
-        step = (fun s (prob, input) -> 
-            let ret = step s (prob, input) in
+    let normalize scores =
+        let logsumexp s =
+            let maxs = Array.fold_right max s neg_infinity in
+            let exps = Array.map (fun si -> exp (si -. maxs)) s in
+            let sumexps = Array.fold_right (fun a b -> a +. b) exps 0.0 in
+            maxs +. (log sumexps)
+        in
+        let norm_const = logsumexp scores in
+        Array.iteri (fun i s -> Array.set scores i (s -. norm_const)) scores
+    in
+
+    let ret = Node {
+        alloc = begin fun () -> 
+            {
+                states = Array.init n (fun _ -> alloc ());
+                scores = Array.make n 0.0;
+            }
+        end;
+        reset = begin fun s -> 
+            Array.iter reset s.states;
+            Array.fill s.scores 0 n 0.0;
+        end;
+        step = (fun s (c, input) -> 
+            let new_state = {
+                states = Array.mapi (fun i state ->
+                    step state ({idx = i; scores = s.scores;}, input)
+                ) s.states;
+                scores = s.scores;
+            } in
+            normalize new_state.scores;
             Gc.full_major ();
-            ret
+            Distribution.Dist_support (List.mapi (fun i s ->
+                (Array.get new_state.states i, s)
+            ) (Array.to_list new_state.scores))
         )
     } in
-    (* XXX Need to figure out how to get resampling to work with Weak pointers XXX *)
-    Infer.infer_noresample n tmp_node
+    ret
+;;
+
+let factor ((prob : pstate), s) =
+    let cur_score = Array.get prob.scores prob.idx in
+    Array.set prob.scores prob.idx (cur_score +. s)
 ;;
 
 type mgaussiant = float
@@ -54,8 +93,6 @@ and ('a, 'b) dsdistr =
 
 and 'b rv_from =
   RV_from : ('b, 'c) random_var -> 'b rv_from
-
-let factor = Infer.factor
 
 let mdistr_to_distr (type a): a mdistr -> a Distribution.t = fun mdistr ->
   begin match mdistr with
@@ -123,6 +160,76 @@ let finalfn (type a) (type b): (a, b) random_var -> unit =
         print_string ("Finalizing: " ^ rvar.name ^ " \n")
 ;;
 *)
+
+  (*
+let clone (type a) (type b) : ('a, 'b) random_var -> ('a, 'b) random_var = fun n ->
+    let rec clone_helper (type a) (type b) : ('a, 'b) random_var -> unit =
+        begin fun n ->
+            let {name; shadow; children; marginalized_parent; state; distr} = n in
+            assert (shadow = None);
+            let ret = 
+                {
+                    name = name;
+                    shadow = None;
+                    children = Weak.create (Weak.length n.children);
+                    marginalized_parent = Weak.create 1;
+                    state = begin match n.state with
+                        | Marginalized (dist, Some child) -> 
+                            Marginalized (dist, clone_helper child)
+                        | _ -> n.state
+                    end ;
+                    distr = begin match n.distr with
+                        | CDistr (par, distr) -> CDistr (clone_helper par, distr)
+                        | _ -> n.distr
+                    end;
+                }
+            in
+            n.shadow = Some ret;
+        end
+    in
+
+    (* To be called with the _original_ node *)
+    let rec set_weak (type a) (type b) : ('a, 'b) random_var -> unit =
+        fun n ->
+            let {name; shadow; children; marginalized_parent; state; distr} = n in
+            begin match distr with
+                | CDistr (par, _) -> set_weak par
+                | _ -> ()
+            end;
+
+            begin match shadow with
+                | Some n_s ->
+                    let get n =
+                        match n with
+                        | Some o -> o
+                        | None -> assert false
+                    in
+                    begin match Weak.get marginalized_parent 0 with
+                        | Some par ->
+                            Weak.set n_s.marginalized_parent 0 (Some (get par.shadow))
+                        | None -> ()
+                    end;
+
+                    let rec set_children n = if n = Weak.length then () else
+                        begin match Weak.get children n with
+                            | Some child ->
+                                Weak.set n_s.children n (Some (get child.shadow))
+                            | None -> ()
+                        end
+                    in
+                    set_children 0;
+                | None -> assert false
+            end
+    in
+    clone_helper;
+    set_weak;
+    begin match n.shadow with
+    | Some n -> n
+    | None -> assert false
+    end
+;;
+*)
+
 
 (* initialize without parent node *)
 let assume_constant (type a) (type z): string -> a mdistr -> (z, a) random_var =
@@ -215,7 +322,7 @@ let realize (type a) (type b): b mtype -> (a, b) random_var -> unit =
   
   n.state <- Realized val_;
     
-  let rec marginalize_children i = if i == Weak.length n.children then () else
+  let rec marginalize_children i = if i = Weak.length n.children then () else
       begin match Weak.get n.children i with
       | None -> ()
       | Some (RV_from c) -> 
