@@ -1,4 +1,4 @@
-type pstate = Infer.pstate
+type pstate = Infer_ds.pstate
 
 type 'a random =
     | LLRand : ('a, 'b) Infer_ds.random_var -> 'b random
