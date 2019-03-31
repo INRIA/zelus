@@ -52,6 +52,7 @@ clean:
 	-rm -f *.cm* *.o
 	-rm -f $(NAME).ml main.ml
 	-rm -f gen_data.ml main.ml
+	-rm -f *.pyc
 
 cleanall: clean
 	-rm -f $(NAME) $(NAME).opt $(NAME).zls

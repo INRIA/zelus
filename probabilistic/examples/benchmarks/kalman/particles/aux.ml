@@ -21,6 +21,11 @@ let get_mean (type a) : (a, float) random_var -> float =
         | _ -> assert false (* error *)
 ;;
 
+let random_init : unit -> unit =
+    fun _ ->
+        Random.self_init ()
+;;
+
 let collect_garbage : unit -> unit =
     fun _ -> Gc.full_major ()
 ;;

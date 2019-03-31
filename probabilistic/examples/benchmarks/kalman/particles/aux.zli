@@ -1,6 +1,7 @@
 val read_val : unit -> (float * float)
 val get_mean : ('a, float) Infer_ds_nogc.random_var -> float
 val collect_garbage : unit -> unit
+val random_init : unit -> unit
 val get_memory : unit -> float
 val get_time : unit -> float
 val parts : unit -> int
