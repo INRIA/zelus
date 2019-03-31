@@ -1,0 +1,34 @@
+open Infer
+
+let node coin (prob, yobs) =
+  let rec automaton
+      | Init ->
+          do xt = sample (prob, Distribution.beta 1. 1.)
+          then Run
+      | Run ->
+          do xt = (last xt)
+          done
+      end
+  and () = factor (prob, Distribution.score (Distribution.bernoulli xt) yobs)
+  in
+  xt
+
+
+let node main () =
+  let (tr, observed) = Aux.read_val () in
+  let rec t = 1. fby (t +. 1.) in
+  let ret = (Aux.init_random (); Aux.collect_garbage ()) -> Aux.collect_garbage () in
+
+  let x_d = infer parts coin observed in
+
+  let est_mean, _ = Distribution.stats_float x_d in
+  let error = (est_mean -. tr) ** 2. in
+  let rec total_error = error -> (pre total_error) +. error in
+  let mse = total_error /. t in
+
+  let memory = Aux.get_memory () in
+  let rec time = (Aux.get_time ()) -> (Aux.get_time ()) -. (pre time) in
+
+  print_string ((string_of_float mse) ^ ", " ^ (string_of_float memory) ^ ", " ^ (string_of_float time) ^ "\n");
+  ret
+
