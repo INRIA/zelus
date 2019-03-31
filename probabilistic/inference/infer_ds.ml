@@ -11,46 +11,6 @@ type 'a infer_state = {
     scores : float array;
 };;
 
-let infer n (Node {alloc; reset; step}) =
-    let normalize scores =
-        let logsumexp s =
-            let maxs = Array.fold_right max s neg_infinity in
-            let exps = Array.map (fun si -> exp (si -. maxs)) s in
-            let sumexps = Array.fold_right (fun a b -> a +. b) exps 0.0 in
-            maxs +. (log sumexps)
-        in
-        let norm_const = logsumexp scores in
-        Array.iteri (fun i s -> Array.set scores i (s -. norm_const)) scores
-    in
-
-    let ret = Node {
-        alloc = begin fun () -> 
-            {
-                states = Array.init n (fun _ -> alloc ());
-                scores = Array.make n 0.0;
-            }
-        end;
-        reset = begin fun s -> 
-            Array.iter reset s.states;
-            Array.fill s.scores 0 n 0.0;
-        end;
-        step = (fun s input -> 
-            let new_state = {
-                states = Array.mapi (fun i state ->
-                    step state ({idx = i; scores = s.scores;}, input)
-                ) s.states;
-                scores = s.scores;
-            } in
-            normalize new_state.scores;
-            Gc.full_major ();
-            Distribution.Dist_support (List.mapi (fun i s ->
-                (Array.get new_state.states i, exp s)
-            ) (Array.to_list new_state.scores))
-        )
-    } in
-    ret
-;;
-
 let factor ((prob : pstate), s) =
     let cur_score = Array.get prob.scores prob.idx in
     Array.set prob.scores prob.idx (cur_score +. s)
@@ -76,6 +36,7 @@ type ('m1, 'm2) cdistr =
 type ('a, 'b) random_var =
   { name : string;
     mutable children : 'b rv_from Weak.t;
+    mutable shadow : ('a, 'b) random_var option;
     (* Parent pointer is a singleton weak array *)
     mutable marginalized_parent : ('a, 'b) dsdistr Weak.t;
     mutable state : 'b rv_state;
@@ -159,11 +120,10 @@ let finalfn (type a) (type b): (a, b) random_var -> unit =
         print_string ("Finalizing: " ^ rvar.name ^ " \n")
 ;;
 
-  (*
-let clone (type a) (type b) : ('a, 'b) random_var -> ('a, 'b) random_var = fun n ->
-    let rec clone_helper (type a) (type b) : ('a, 'b) random_var -> unit =
+let clone : 'a 'b. ('a, 'b) random_var -> ('a, 'b) random_var = fun n ->
+    let rec clone_helper  : 'a 'b. ('a, 'b) random_var -> ('a, 'b) random_var =
         begin fun n ->
-            let {name; shadow; children; marginalized_parent; state; distr} = n in
+            let {name = name; shadow = shadow; children = children; marginalized_parent = marginalized_parent; state = state; distr = distr;} = n in
             assert (shadow = None);
             let ret = 
                 {
@@ -172,28 +132,36 @@ let clone (type a) (type b) : ('a, 'b) random_var -> ('a, 'b) random_var = fun n
                     children = Weak.create (Weak.length n.children);
                     marginalized_parent = Weak.create 1;
                     state = begin match n.state with
-                        | Marginalized (dist, Some child) -> 
-                            Marginalized (dist, clone_helper child)
+                        | Marginalized (dist, Some (RV_from child)) -> 
+                            Marginalized (dist, Some (RV_from (clone_helper child)))
                         | _ -> n.state
                     end ;
                     distr = begin match n.distr with
-                        | CDistr (par, distr) -> CDistr (clone_helper par, distr)
+                        | CDistr (par, d) -> 
+                            CDistr ((clone_helper par), d)
                         | _ -> n.distr
                     end;
                 }
             in
-            n.shadow = Some ret;
+            n.shadow <- Some ret;
+            ret
         end
     in
 
     (* To be called with the _original_ node *)
-    let rec set_weak (type a) (type b) : ('a, 'b) random_var -> unit =
+    let rec set_weak : 'a 'b. ('a, 'b) random_var -> unit =
         fun n ->
             let {name; shadow; children; marginalized_parent; state; distr} = n in
             begin match distr with
                 | CDistr (par, _) -> set_weak par
                 | _ -> ()
             end;
+
+            begin match state with
+            | Marginalized(dist, Some (RV_from child)) -> set_weak child
+            | _ -> ()
+            end;
+
 
             begin match shadow with
                 | Some n_s ->
@@ -203,15 +171,15 @@ let clone (type a) (type b) : ('a, 'b) random_var -> ('a, 'b) random_var = fun n
                         | None -> assert false
                     in
                     begin match Weak.get marginalized_parent 0 with
-                        | Some par ->
-                            Weak.set n_s.marginalized_parent 0 (Some (get par.shadow))
-                        | None -> ()
+                        | Some (CDistr (par, distr)) ->
+                            Weak.set n_s.marginalized_parent 0 (Some (CDistr (get par.shadow, distr)))
+                        | _ -> ()
                     end;
 
-                    let rec set_children n = if n = Weak.length then () else
+                    let rec set_children n = if n = Weak.length children then () else
                         begin match Weak.get children n with
-                            | Some child ->
-                                Weak.set n_s.children n (Some (get child.shadow))
+                            | Some (RV_from child) ->
+                                Weak.set n_s.children n (Some (RV_from (get child.shadow)))
                             | None -> ()
                         end
                     in
@@ -219,14 +187,70 @@ let clone (type a) (type b) : ('a, 'b) random_var -> ('a, 'b) random_var = fun n
                 | None -> assert false
             end
     in
-    clone_helper;
-    set_weak;
-    begin match n.shadow with
-    | Some n -> n
-    | None -> assert false
-    end
+    let ret = clone_helper n in
+    set_weak n;
+    ret
 ;;
-*)
+
+let infer n (Node {alloc; reset; step}) =
+    let normalize scores =
+        let logsumexp s =
+            let maxs = Array.fold_right max s neg_infinity in
+            let exps = Array.map (fun si -> exp (si -. maxs)) s in
+            let sumexps = Array.fold_right (fun a b -> a +. b) exps 0.0 in
+            maxs +. (log sumexps)
+        in
+        let norm_const = logsumexp scores in
+        Array.iteri (fun i s -> Array.set scores i (s -. norm_const)) scores
+    in
+
+    let ret = Node {
+        alloc = begin fun () -> 
+            {
+                states = Array.init n (fun _ -> alloc ());
+                scores = Array.make n 0.0;
+            }
+        end;
+        reset = begin fun s -> 
+            Array.iter reset s.states;
+            Array.fill s.scores 0 n 0.0;
+        end;
+        step = (fun s input -> 
+            let new_state = {
+                states = Array.mapi (fun i state ->
+                    step state ({idx = i; scores = s.scores;}, input)
+                ) s.states;
+                scores = s.scores;
+            } in
+            normalize new_state.scores;
+            Gc.full_major ();
+
+            let ret = 
+                Distribution.Dist_support (List.mapi (fun i s ->
+                    (Array.get new_state.states i, exp s)
+                ) (Array.to_list new_state.scores))
+            in
+
+
+            let idx_distr =
+                Distribution.Dist_support (List.mapi (fun i s ->
+                    (i, exp s)
+                ) (Array.to_list new_state.scores))
+            in
+
+            let states' = Array.init n (fun _ ->
+                clone (Array.get new_state.states (Distribution.draw idx_distr))
+            ) in
+
+            Array.blit states' 0 new_state.states 0 n;
+            Array.fill new_state.scores 0 n 0.0;
+
+            ret
+        )
+    } in
+    ret
+;;
+
 
 
 (* initialize without parent node *)
@@ -236,6 +260,7 @@ let assume_constant (type a) (type z): string -> a mdistr -> (z, a) random_var =
   let ret = 
   { name = n;
     children = Weak.create 0;
+    shadow = None;
     marginalized_parent = Weak.create 1;
     state = Marginalized (d, None);
     distr = UDistr d; }
@@ -253,6 +278,7 @@ let assume_conditional (type a) (type b) (type c):
   let child =
     { name = str;
       children = Weak.create 0;
+      shadow = None;
       marginalized_parent = Weak.create 1;
       state = Initialized;
       distr = CDistr (par, cdistr); }

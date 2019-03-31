@@ -23,7 +23,7 @@ val affine_mean_gaussian : float -> float -> float -> (float, float) cdistr
 val observe_conditional : pstate -> string -> ('a, 'b) random_var -> ('b, 'c) cdistr -> 'c -AD-> unit
 
 val infer :
-  int -S-> (pstate * 'a -D-> 'b) -S-> 'a -D-> 'b Distribution.t
+  int -S-> (pstate * 'a -D-> (('z, 'b) random_var)) -S-> 'a -D-> (('z, 'b) random_var) Distribution.t
 
 val forget : ('a, 'b) random_var -AD-> unit
 
