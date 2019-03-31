@@ -1,60 +1,6 @@
 (** Inference with delayed sampling *)
-open Ztypes
 
-type pstate = {
-    idx : int;
-    scores : float array;
-};;
-
-type 'a infer_state = {
-    states : 'a array;
-    scores : float array;
-};;
-
-let infer n (Node {alloc; reset; step}) =
-    let normalize scores =
-        let logsumexp s =
-            let maxs = Array.fold_right max s neg_infinity in
-            let exps = Array.map (fun si -> exp (si -. maxs)) s in
-            let sumexps = Array.fold_right (fun a b -> a +. b) exps 0.0 in
-            maxs +. (log sumexps)
-        in
-        let norm_const = logsumexp scores in
-        Array.iteri (fun i s -> Array.set scores i (s -. norm_const)) scores
-    in
-
-    let ret = Node {
-        alloc = begin fun () -> 
-            {
-                states = Array.init n (fun _ -> alloc ());
-                scores = Array.make n 0.0;
-            }
-        end;
-        reset = begin fun s -> 
-            Array.iter reset s.states;
-            Array.fill s.scores 0 n 0.0;
-        end;
-        step = (fun s input -> 
-            let new_state = {
-                states = Array.mapi (fun i state ->
-                    step state ({idx = i; scores = s.scores;}, input)
-                ) s.states;
-                scores = s.scores;
-            } in
-            normalize new_state.scores;
-            Gc.full_major ();
-            Distribution.Dist_support (List.mapi (fun i s ->
-                (Array.get new_state.states i, exp s)
-            ) (Array.to_list new_state.scores))
-        )
-    } in
-    ret
-;;
-
-let factor ((prob : pstate), s) =
-    let cur_score = Array.get prob.scores prob.idx in
-    Array.set prob.scores prob.idx (cur_score +. s)
-;;
+type pstate = Infer.pstate
 
 type mgaussiant = float
 type mbetat = float
@@ -75,24 +21,26 @@ type ('m1, 'm2) cdistr =
 (** Random variable *)
 type ('a, 'b) random_var =
   { name : string;
-    mutable children : 'b rv_from Weak.t;
-    (* Parent pointer is a singleton weak array *)
-    mutable marginalized_parent : ('a, 'b) dsdistr Weak.t;
+    mutable children : 'b rv_from list;
     mutable state : 'b rv_state;
     mutable distr : ('a, 'b) dsdistr;
   }
 
 and 'a rv_state =
   | Initialized
-  | Marginalized of ('a mdistr * ('a rv_from option))
+  | Marginalized of 'a mdistr
   | Realized of 'a mtype
 
 and ('a, 'b) dsdistr =
   | UDistr :  'b mdistr -> ('a, 'b) dsdistr
   | CDistr : ('z, 'm1) random_var * ('m1, 'm2) cdistr -> ('m1, 'm2) dsdistr
 
+
 and 'b rv_from =
   RV_from : ('b, 'c) random_var -> 'b rv_from
+
+
+let factor = Infer.factor
 
 let mdistr_to_distr (type a): a mdistr -> a Distribution.t = fun mdistr ->
   begin match mdistr with
@@ -154,120 +102,27 @@ let make_conditional (type a) (type b):
     | _, _ -> assert false (* error "impossible" *)
   end
 
-let finalfn (type a) (type b): (a, b) random_var -> unit =
-    fun rvar ->
-        print_string ("Finalizing: " ^ rvar.name ^ " \n")
-;;
-
-  (*
-let clone (type a) (type b) : ('a, 'b) random_var -> ('a, 'b) random_var = fun n ->
-    let rec clone_helper (type a) (type b) : ('a, 'b) random_var -> unit =
-        begin fun n ->
-            let {name; shadow; children; marginalized_parent; state; distr} = n in
-            assert (shadow = None);
-            let ret = 
-                {
-                    name = name;
-                    shadow = None;
-                    children = Weak.create (Weak.length n.children);
-                    marginalized_parent = Weak.create 1;
-                    state = begin match n.state with
-                        | Marginalized (dist, Some child) -> 
-                            Marginalized (dist, clone_helper child)
-                        | _ -> n.state
-                    end ;
-                    distr = begin match n.distr with
-                        | CDistr (par, distr) -> CDistr (clone_helper par, distr)
-                        | _ -> n.distr
-                    end;
-                }
-            in
-            n.shadow = Some ret;
-        end
-    in
-
-    (* To be called with the _original_ node *)
-    let rec set_weak (type a) (type b) : ('a, 'b) random_var -> unit =
-        fun n ->
-            let {name; shadow; children; marginalized_parent; state; distr} = n in
-            begin match distr with
-                | CDistr (par, _) -> set_weak par
-                | _ -> ()
-            end;
-
-            begin match shadow with
-                | Some n_s ->
-                    let get n =
-                        match n with
-                        | Some o -> o
-                        | None -> assert false
-                    in
-                    begin match Weak.get marginalized_parent 0 with
-                        | Some par ->
-                            Weak.set n_s.marginalized_parent 0 (Some (get par.shadow))
-                        | None -> ()
-                    end;
-
-                    let rec set_children n = if n = Weak.length then () else
-                        begin match Weak.get children n with
-                            | Some child ->
-                                Weak.set n_s.children n (Some (get child.shadow))
-                            | None -> ()
-                        end
-                    in
-                    set_children 0;
-                | None -> assert false
-            end
-    in
-    clone_helper;
-    set_weak;
-    begin match n.shadow with
-    | Some n -> n
-    | None -> assert false
-    end
-;;
-*)
-
 
 (* initialize without parent node *)
 let assume_constant (type a) (type z): string -> a mdistr -> (z, a) random_var =
   fun n d ->
-  (* Format.eprintf "assume_constant %s@." n; *)
-  let ret = 
   { name = n;
-    children = Weak.create 0;
-    marginalized_parent = Weak.create 1;
-    state = Marginalized (d, None);
+    children = [];
+    state = Marginalized d;
     distr = UDistr d; }
-  in
-  (* Gc.finalise finalfn ret; *)
-  ret
-;;
 
 (* initialize with parent node *)
 let assume_conditional (type a) (type b) (type c):
   string -> (a,b) random_var -> (b, c) cdistr -> (b, c) random_var =
   fun str par cdistr ->
-  (* Format.eprintf "assume_conditional %s@." str; *)
-
   let child =
     { name = str;
-      children = Weak.create 0;
-      marginalized_parent = Weak.create 1;
+      children = [];
       state = Initialized;
       distr = CDistr (par, cdistr); }
   in
-
-  let num_children = Weak.length par.children in
-  let new_children = Weak.create (num_children + 1) in
-  Weak.blit par.children 0 new_children 0 num_children;
-  par.children <- new_children;
-  Weak.set par.children num_children (Some (RV_from child));
-
-  (* Gc.finalise finalfn child; *)
-
+  par.children <- RV_from child :: par.children;
   child
-;;
 
 
 let marginalize (type a) (type b): (a, b) random_var -> unit =
@@ -275,20 +130,16 @@ let marginalize (type a) (type b): (a, b) random_var -> unit =
   (* Format.eprintf "marginalize: %s@." n.name; *)
   begin match n.state, n.distr with
     | Initialized, CDistr (par, cdistr) ->
-        let marg, new_parstate =
+        let marg =
           begin match par.state with
             | Realized x ->
-                (cdistr_to_mdistr cdistr x, Realized x)
-            | Marginalized (par_marginal, None) ->
-                (make_marginal par_marginal cdistr, Marginalized (par_marginal, Some (RV_from n)))
-            | Marginalized (_, _)
+                cdistr_to_mdistr cdistr x
+            | Marginalized par_marginal ->
+                make_marginal par_marginal cdistr
             | Initialized -> assert false (* error "marginalize'" *)
           end
         in
-        n.state <- Marginalized (marg, None);
-        n.distr <- UDistr marg;
-        Weak.set n.marginalized_parent 0 (Some (CDistr (par, cdistr)));
-        par.state <- new_parstate
+        n.state <- Marginalized marg
     | state, _ ->
         Format.eprintf "Error: marginalize %s@." n.name;
         assert false
@@ -308,32 +159,19 @@ let realize (type a) (type b): b mtype -> (a, b) random_var -> unit =
   fun val_ n ->
   (* Format.eprintf "realize: %s@." n.name; *)
   (* ioAssert (isTerminal n) *)
-  begin match Weak.get n.marginalized_parent 0 with
-    | Some (UDistr _)
-    | None -> ()
-    | Some (CDistr (p, cdistr)) ->
-      begin match p.state with
-        | Marginalized (marg, _) ->
-          let new_distr = make_conditional marg cdistr val_ in
-          p.distr <- UDistr new_distr;
-          p.state <- Marginalized (new_distr, None);
-        | _ -> assert false (* error "realize" *)
-      end
+  begin match n.distr with
+    | UDistr _ -> ()
+    | CDistr (p, cdistr) ->
+        begin match p.state with
+        | Marginalized marg ->
+            p.state <- Marginalized (make_conditional marg cdistr val_);
+            p.children <- delete n p.children
+        | _ -> assert false
+        end
   end;
-  
+  List.iter (fun (RV_from c) -> marginalize c) n.children;
   n.state <- Realized val_;
-    
-  let rec marginalize_children i = if i = Weak.length n.children then () else
-      begin match Weak.get n.children i with
-      | None -> ()
-      | Some (RV_from c) -> 
-          marginalize c;
-      end
-  in
-
-  marginalize_children 0;
-
-  n.children <- Weak.create 0
+  n.children <- []
 
 
 let sample (type a) (type b) : (a, b) random_var -> unit =
@@ -341,7 +179,7 @@ let sample (type a) (type b) : (a, b) random_var -> unit =
   (* Format.eprintf "sample: %s@." n.name; *)
   (* ioAssert (isTerminal n) *)
   begin match n.state with
-    | Marginalized (m, _) ->
+    | Marginalized m ->
         let x = Distribution.draw (mdistr_to_distr m) in
         realize x n
     | _ -> assert false (* error "sample" *)
@@ -351,7 +189,7 @@ let observe (type a) (type b): pstate -> b mtype -> (a, b) random_var -> unit =
   fun prob x n ->
   (* io $ ioAssert (isTerminal n) *)
   begin match n.state with
-    | Marginalized (marg, _) ->
+    | Marginalized marg ->
         factor (prob, Distribution.score (mdistr_to_distr marg) x);
         realize x n
     | _ -> assert false (* error "observe'" *)
@@ -366,10 +204,9 @@ let is_marginalized state =
 (* Invariant 2: A node always has at most one marginal Child *)
 let marginal_child (type a) (type b): (a, b) random_var -> b rv_from option =
   fun n ->
-  match n.state with
-  | Marginalized (_, mchild) -> mchild
-  |_ -> assert false (* error "marginal_child" *)
-;;
+  List.find_opt
+    (fun (RV_from x) -> is_marginalized x.state)
+    n.children
 
 let rec prune : 'a 'b. ('a, 'b) random_var -> unit = function n ->
   (* Format.eprintf "prune: %s@." n.name; *)
@@ -414,18 +251,6 @@ let rec get_value: 'a 'b. ('a, 'b) random_var -> 'b mtype =
         get_value n
   end
 
-let draw (type a) (type b) : (a, b) random_var -> b mtype =
-  fun n ->
-  (* Format.eprintf "draw: %s@." n.name; *)
-  graft n;
-  (* ioAssert (isTerminal n) *)
-  begin match n.state with
-    | Marginalized (m, _) ->
-        Distribution.draw (mdistr_to_distr m)
-    | _ -> assert false (* error "sample" *)
-  end
-
-  (*
 (* forget' :: IORef (Node a b) -> IO () *)
 let forget (type a) (type b): (a, b) random_var -> unit =
   fun n ->
@@ -440,7 +265,7 @@ let forget (type a) (type b): (a, b) random_var -> unit =
                | UDistr d -> ()
                | CDistr (cdistr, par) ->
                    begin match c.state with
-                     | Marginalized (marg, _) -> c.distr <- UDistr marg
+                     | Marginalized marg -> c.distr <- UDistr marg
                      | _ -> assert false (* error "forget" *)
                    end
              end)
@@ -453,27 +278,26 @@ let forget (type a) (type b): (a, b) random_var -> unit =
         n.distr <- UDistr marg
   end;
   n.children <- []
-*)
+
 
 let print_state n =   (* XXX TODO XXX *)
   Format.printf "%s: " n.name;
   begin match n.state with
   | Initialized -> Format.printf "Initialized"
-  | Marginalized (MGaussian (mu, var), None) ->
-      Format.printf "Marginalized (MGaussian (%f, %f), None)" mu var
-  | Marginalized (MGaussian (mu, var), Some _) ->
-      Format.printf "Marginalized (MGaussian (%f, %f), Some)" mu var
+  | Marginalized (MGaussian (mu, var)) ->
+      Format.printf "Marginalized (MGaussian (%f, %f))" mu var
   | Marginalized _ -> Format.printf "Marginalized"
   | Realized x -> Format.printf "Realized %f" x
   end;
   Format.printf "@."
-
 
 let observe_conditional (type a) (type b) (type c):
   pstate -> string -> (a, b) random_var -> (b, c) cdistr -> c mtype -> unit =
   fun prob str n cdistr observation ->
   let y = assume_conditional str n cdistr in
   obs prob observation y
+
+let infer = Infer.infer
 
 
 (* ----------------------------------------------------------------------- *)

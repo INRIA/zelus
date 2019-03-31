@@ -1,0 +1,45 @@
+type pstate
+type 'a mdistr
+type ('m1, 'm2) cdistr
+type ('a, 'b) random_var
+
+val factor : pstate * float -AD-> unit
+
+val gaussian_conditioning : float -> float -> float -> float -> float * float
+val gaussian_mean_gaussian : float -> (float, float) cdistr
+
+val assume_constant : string -> 'a mdistr -> ('b, 'a) random_var
+
+val assume_conditional :
+  string -> ('a, 'b) random_var -> ('b, 'c) cdistr -> ('b, 'c) random_var
+
+val obs : pstate -> 'a -> ('b, 'a) random_var -AD-> unit
+
+val get_value : ('a, 'b) random_var -> 'b
+val print_state : ('a, float) random_var -AD-> unit
+
+val mgaussian : float -> float -> float mdistr
+val affine_mean_gaussian : float -> float -> float -> (float, float) cdistr
+val observe_conditional : pstate -> string -> ('a, 'b) random_var -> ('b, 'c) cdistr -> 'c -AD-> unit
+
+val infer :
+  int -S-> (pstate * 'a -D-> 'b) -S-> 'a -D-> 'b Distribution.t
+
+val forget : ('a, 'b) random_var -AD-> unit
+
+(* type pstate *)
+(* type 'a pdistr *)
+(* type 'a expr *)
+(* type 'a result = *)
+(*   | RConst of 'a *)
+(*   | RMarginal of 'a mdistr *)
+
+(* val force : 'a expr -> 'a *)
+
+(* val sample : pstate * 'a pdistr -AD-> 'a expr *)
+
+(* val factor : pstate * float -AD-> unit *)
+
+(* val infer : *)
+(*   (pstate * 'a -D-> 'b) -S-> 'a -D-> 'b pdistr *)
+
