@@ -1,3 +1,5 @@
+open Aux;;
+
 let rec read_file _ =
     try 
         let s = Scanf.scanf ("%f, %f\n") (fun t o -> (t, o)) in
@@ -26,6 +28,29 @@ let run inp res =
             Gc.full_major ();
     done
 in
+
+let runacc inp =
+    let Node{alloc; reset; step} = Kalman_particles.main () in
+    let state = alloc () in
+    reset state;
+    Random.self_init ();
+    let iref = ref inp in
+    let idx = ref 0 in
+    let ret = ref "" in
+
+    while not (!iref = []) do
+        match !iref with
+        | [] -> assert false
+        | i :: rest ->
+            let st = step state i in
+            iref := rest;
+            ret := st;
+            idx := ((!idx) + 1);
+            Gc.full_major ();
+    done;
+    Scanf.sscanf !ret "%f, %f" (fun mse mem -> mse)
+in
+
 
 let runperf inp res idx =
     let Node{alloc; reset; step} = Kalman_particles.main () in
@@ -62,6 +87,25 @@ let stats arr =
     (Array.get arr lower_idx, Array.get arr middle_idx, Array.get arr upper_idx)
 in
 
+let do_runacc inp =
+    let num_runs = 100 in
+    let ret : float array = Array.make num_runs 0.0 in
+
+    
+    let idx = ref 0 in
+    while not (!idx = num_runs)  do
+        let acc = runacc inp in
+        Array.set ret !idx acc;
+        idx := !idx + 1
+    done;
+    assert (!idx = num_runs);
+
+
+
+    stats ret
+in
+
+
 let do_runperf inp =
     let steps = List.length inp in
     let num_runs = 50 in
@@ -85,11 +129,13 @@ let rec do_runs n inp ret =
 in
 
 let inp = read_file () in
+let tmp : string array = Array.make (List.length inp) ("") in
+do_runs !Aux.warmup inp tmp;
+
 if !Aux.perf then
     (
-        let tmp : string array = Array.make (List.length inp) ("") in
-        do_runs !Aux.warmup inp tmp;
-
+        print_string "Performance Testing\n";
+        flush stdout;
         let min_particles = 1 in
         let max_particles = 50 in
         let rec perftest i =
@@ -105,6 +151,21 @@ if !Aux.perf then
         perftest min_particles 
     )
 else
-    assert false (* TODO *)
+    print_string "Accuracy Testing\n";
+    flush stdout;
+
+    let min_particles = 1 in
+    let max_particles = 50 in
+    let rec test i =
+        if (i = max_particles) then () else
+            Aux.parts := i;
+
+            let low, mid, high = do_runacc inp in
+            do_runs 1 inp tmp;
+            Printf.printf "%d, %f, %f, %f\n" i mid low high;
+            flush stdout;
+            test (i+1)
+    in
+    test min_particles
 
 

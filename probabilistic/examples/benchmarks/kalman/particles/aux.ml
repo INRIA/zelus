@@ -1,9 +1,12 @@
 open Infer_ds_nogc;;
 
 let warmup = ref 0 ;;
-let perf = ref true;;
+let perf = ref false;;
 
-Arg.parse[("-w", Set_int warmup, "Numberof warmup iterations"); ("-perf", Unit (fun _ -> perf := true), "Performance testing")];;
+Arg.parse[
+    ("-w", Set_int warmup, "Numberof warmup iterations"); 
+    ("-perf", Unit (fun _ -> perf := true), "Performance testing")
+] (fun _ -> ()) "Kalman particles test harness";;
 
 let parts = ref 10;;
 
