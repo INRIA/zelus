@@ -4,4 +4,4 @@ val collect_garbage : unit -> unit
 val random_init : unit -> unit
 val get_memory : unit -> float
 val get_time : unit -> float
-val parts : unit -> int
+val particles : unit -S-> int

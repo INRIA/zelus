@@ -19,6 +19,9 @@ all: opt
 byte: $(NAME)
 opt: $(NAME).opt
 
+bench : $(NAME).opt
+	python2 run.py
+
 $(NAME): $(INFERENCE_CMA) $(NAME).ml aux.ml run.ml
 	$(OCAMLC) -o $(NAME) -I $(ZLLIB) -I $(INFERLIB) \
 		$(INFERENCE_CMA) \
@@ -49,12 +52,13 @@ $(INFERENCE_ZCI):
 
 clean:
 	-rm -f *.zc*
+	-rm -f *.pyc
 	-rm -f *.cm* *.o
-	-rm -f $(NAME).ml 
 	-rm -f gen_data.ml 
+	-rm -f $(NAME).ml
 	-rm -f *.pyc
 
 cleanall: clean
-	-rm -f $(NAME) $(NAME).opt $(NAME).zls
+	-rm -f $(NAME) $(NAME).opt 
 	-rm -f gen_data gen_data.opt
 	-rm -f *~

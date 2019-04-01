@@ -1,5 +1,17 @@
 open Infer_ds_nogc;;
 
+let warmup = ref 0 ;;
+let perf = ref true;;
+
+Arg.parse[("-w", Set_int warmup, "Numberof warmup iterations"); ("-perf", Unit (fun _ -> perf := true), "Performance testing")];;
+
+let parts = ref 10;;
+
+let particles _ =
+    !parts
+;;
+
+
 (*
 let read_val : unit -> (float * float) option =
     fun _ ->
