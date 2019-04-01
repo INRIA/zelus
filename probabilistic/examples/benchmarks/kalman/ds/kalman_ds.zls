@@ -25,7 +25,7 @@ let node main (tr, observed) =
   let mse = total_error /. t in
 
   let memory = Aux.get_memory () in
-  let rec time = (Aux.get_time ()) -> (Aux.get_time ()) -. (pre time) in
+  (*let rec time = (Aux.get_time ()) -> (Aux.get_time ()) -. (pre time) in*)
 
-  ((string_of_float mse) ^ ", " ^ (string_of_float memory) ^ ", " ^ (string_of_float time) ^ "\n")
+  ((string_of_float mse) ^ ", " ^ (string_of_float memory) (* ^ ", " ^ (string_of_float time) ^ "\n"*))
 

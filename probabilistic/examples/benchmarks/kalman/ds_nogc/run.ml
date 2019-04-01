@@ -19,12 +19,14 @@ let run inp res =
         match !iref with
         | [] -> assert false
         | i :: rest ->
+            let time_pre = Sys.time () in
             let st = step state i in
+            let time = Sys.time () -. time_pre in
             iref := rest;
-            Array.set res !idx st;
+            Array.set res !idx (st ^ ", " ^ (string_of_float time) ^ "\n");
             idx := ((!idx) + 1);
             Gc.full_major ();
-    done;
+    done
 in
 
 let rec do_runs n inp ret =
