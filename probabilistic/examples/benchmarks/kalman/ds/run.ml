@@ -8,37 +8,37 @@ let rec read_file _ =
     with End_of_file -> []
 in
 
-let run inp =
+let run inp res =
     let Node{alloc; reset; step} = Kalman_ds.main in
     let state = alloc () in
     reset state;
     let iref = ref inp in
-    let resref = ref "" in
+    let idx = ref 0 in
 
     while not (!iref = []) do
         match !iref with
         | [] -> assert false
         | i :: rest ->
             let st = step state i in
-            resref := !resref ^ st;
-            iref := rest
+            iref := rest;
+            Array.set res !idx st;
+            idx := ((!idx) + 1);
     done;
-    !resref
 in
 
-let rec do_runs n inp =
+let rec do_runs n inp ret =
     if n = 0 then ()
     else (
-        run inp;
-        print_string ("Warmup " ^ (string_of_int n));
-        do_runs (n - 1) inp
+        run inp ret;
+        do_runs (n - 1) inp ret
     )
 in
 
 
 let inp = read_file () in
-print_string "Starting Warmup";
-do_runs !warmup inp;
-let res = run inp in
-do_runs 1 inp;
-print_string res
+let ret : string array = Array.make (List.length inp) ("") in
+let tmp : string array = Array.make (List.length inp) ("") in
+do_runs !warmup inp ret;
+run inp ret;
+do_runs 1 inp tmp;
+print_string (String.concat "" (Array.to_list ret))
