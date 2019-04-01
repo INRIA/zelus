@@ -274,12 +274,14 @@ let assume_conditional (type a) (type b) (type c):
   string -> (a,b) random_var -> (b, c) cdistr -> (b, c) random_var =
   fun str par cdistr ->
   (* Format.eprintf "assume_conditional %s@." str; *)
+  let childs = Weak.create 0 in
+  let mparent = Weak.create 1 in
 
   let child =
     { name = str;
-      children = Weak.create 0;
+      children = childs;
       shadow = None;
-      marginalized_parent = Weak.create 1;
+      marginalized_parent = mparent;
       state = Initialized;
       distr = CDistr (par, cdistr); }
   in

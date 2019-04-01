@@ -1,6 +1,6 @@
 ZELUC=zeluc
 ZLLIB=$(shell $(ZELUC) -where)
-INFERLIB=../../../../inference
+INFERLIB=../../../inference
 
 INFERENCE_CMA=$(INFERLIB)/inference.cma
 INFERENCE_CMXA=$(INFERLIB)/inference.cmxa
@@ -10,7 +10,7 @@ OCAMLDEP=ocamldep
 OCAMLC=ocamlc -g
 OCAMLOPT=ocamlopt
 
-NAME=kalman_ds_nogc
+NAME=gen_data
 
 all: opt
 
@@ -19,18 +19,20 @@ all: opt
 byte: $(NAME)
 opt: $(NAME).opt
 
-$(NAME): $(INFERENCE_CMA) $(NAME).ml aux.ml run.ml
+$(NAME): $(INFERENCE_CMA) $(NAME).ml main.ml 
 	$(OCAMLC) -o $(NAME) -I $(ZLLIB) -I $(INFERLIB) \
 		$(INFERENCE_CMA) \
-		aux.ml $(NAME).ml run.ml
+		$(NAME).ml main.ml
 
-$(NAME).opt: $(INFERENCE_CMXA) $(NAME).ml aux.ml
+
+$(NAME).opt: $(INFERENCE_CMXA) $(NAME).ml main.ml 
 	$(OCAMLOPT) -o $(NAME).opt -I $(ZLLIB) -I $(INFERLIB) \
 		$(INFERENCE_CMXA) \
-		aux.ml $(NAME).ml run.ml
+		$(NAME).ml main.ml 
 
-$(NAME).ml: $(INFERENCE_ZCI) aux.zci $(NAME).zls
-	zeluc -I $(INFERLIB) $(NAME).zls
+
+$(NAME).ml main.ml: $(INFERENCE_ZCI) $(NAME).zls
+	zeluc -I $(INFERLIB) -s main $(NAME).zls
 
 %.zci: %.zli
 	zeluc -I $(INFERLIB) $<
@@ -50,8 +52,8 @@ $(INFERENCE_ZCI):
 clean:
 	-rm -f *.zc*
 	-rm -f *.cm* *.o
-	-rm -f $(NAME).ml 
-	-rm -f gen_data.ml 
+	-rm -f $(NAME).ml main.ml
+	-rm -f gen_data.ml main.ml
 
 cleanall: clean
 	-rm -f $(NAME) $(NAME).opt

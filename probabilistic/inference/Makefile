@@ -2,7 +2,7 @@ ZELUC=zeluc
 ZLLIB=$(shell $(ZELUC) -where)
 
 OCAMLDEP=ocamldep
-OCAMLC=ocamlc
+OCAMLC=ocamlc -g
 OCAMLOPT=ocamlopt
 
 ML_SRC=misc_lib.ml \
@@ -14,6 +14,7 @@ ML_SRC=misc_lib.ml \
 	infer_adf.ml \
 	infer_importance.ml \
 	infer_ds.ml \
+	infer_ds_nogc.ml \
 	distribution_ds.ml \
 	infer_dshl.ml
 
@@ -23,6 +24,7 @@ ZLI_SRC=distribution.zli \
 	infer_adf.zli \
 	infer_importance.zli \
 	infer_ds.zli \
+	infer_ds_nogc.zli \
 	distribution_ds.zli \
 	infer_dshl.zli
 

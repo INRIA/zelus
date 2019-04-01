@@ -19,18 +19,18 @@ all: opt
 byte: $(NAME)
 opt: $(NAME).opt
 
-$(NAME): $(INFERENCE_CMA) $(NAME).ml main.ml aux.ml
+$(NAME): $(INFERENCE_CMA) $(NAME).ml aux.ml run.ml
 	$(OCAMLC) -o $(NAME) -I $(ZLLIB) -I $(INFERLIB) \
 		$(INFERENCE_CMA) \
-		aux.ml $(NAME).ml main.ml
+		aux.ml $(NAME).ml run.ml
 
-$(NAME).opt: $(INFERENCE_CMXA) $(NAME).ml main.ml aux.ml
+$(NAME).opt: $(INFERENCE_CMXA) $(NAME).ml aux.ml run.ml
 	$(OCAMLOPT) -o $(NAME).opt -I $(ZLLIB) -I $(INFERLIB) \
 		$(INFERENCE_CMXA) \
-		aux.ml $(NAME).ml main.ml 
+		aux.ml $(NAME).ml run.ml 
 
-$(NAME).ml main.ml: $(INFERENCE_ZCI) aux.zci $(NAME).zls
-	zeluc -I $(INFERLIB) -s main $(NAME).zls
+$(NAME).ml: $(INFERENCE_ZCI) aux.zci $(NAME).zls
+	zeluc -I $(INFERLIB) $(NAME).zls
 
 %.zci: %.zli
 	zeluc -I $(INFERLIB) $<

@@ -1,6 +1,6 @@
 import os
 import csv
-import statistics
+import numpy as np
 name = "kalman_particles"
 
 def get_max_mse(num):
@@ -27,13 +27,13 @@ def run(particles):
     mse_list = []
     for i in range(0,100):
         os.system("cat ../data | ./" + name + ".opt > data/" + str(particles))
-        mse_list += [float(get_max_mse(particles))]
-    return (statistics.mean(mse_list), statistics.stdev(mse_list))
+        mse_list += [float(get_max_mse(particles)) / 1.0]
+    return (np.quantile(mse_list, 0.1), np.quantile(mse_list, 0.5), np.quantile(mse_list, 0.9))
 
 ret = ""
 for i in range(1,51):
-    mean, std = run(i)
-    ret += str(i) + ", "+ str(mean) + ", " + str(std) + "\n"
+    low, mid, high = run(i)
+    ret += str(i) + ", "+ str(mid) + ", " + str(low) + ", " + str(high) + "\n"
     out = open("data/summary", "w")
     out.write(ret)
     out.close()
