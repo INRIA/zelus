@@ -27,11 +27,11 @@ let collect_garbage : unit -> unit =
 
 let get_memory : unit -> float =
     fun _ ->
-        let st = Gc.stat () in
-        float_of_int st.live_words
+        (*let st = Gc.stat () in
+        float_of_int st.live_words*) 0.0
 ;;
 
 let get_time : unit -> float =
     fun _ ->
-        Sys.time ()
+        (* Sys.time () *) 0.0
 ;;

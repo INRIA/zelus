@@ -23,9 +23,8 @@ let run inp res =
             let st = step state i in
             let time = Sys.time () -. time_pre in
             iref := rest;
-            Array.set res !idx (st ^ ", " ^ (string_of_float time) ^ "\n");
+            Array.set res !idx ((string_of_float (time *. 1000.)) ^ "\n");
             idx := ((!idx) + 1);
-            Gc.full_major ();
     done
 in
 
@@ -69,7 +68,6 @@ let runperf inp res idx =
             iref := rest;
             Array.set res !idx time;
             idx := ((!idx) + 1);
-            Gc.full_major ();
     done
 in
 
@@ -132,40 +130,49 @@ let inp = read_file () in
 let tmp : string array = Array.make (List.length inp) ("") in
 do_runs !Aux.warmup inp tmp;
 
-if !Aux.perf then
-    (
-        print_string "Performance Testing\n";
+match !Aux.select_particle with
+| Some p ->
+    let ret : string array = Array.make (List.length inp) ("") in
+    let tmp : string array = Array.make (List.length inp) ("") in
+    run inp ret;
+    do_runs 1 inp tmp;
+    print_string (String.concat "" (Array.to_list ret));
+    flush stdout
+| None ->
+    if !Aux.perf then
+        (
+            print_string "Performance Testing\n";
+            flush stdout;
+            let min_particles = 1 in
+            let max_particles = 50 in
+            let rec perftest i =
+                if (i = max_particles) then () else
+                    Aux.parts := i;
+
+                    let (low, mid, high) = do_runperf inp in
+                    do_runs 1 inp tmp;
+                    print_string ((string_of_int i) ^ ", " ^ (string_of_float low) ^ ", " ^ (string_of_float mid) ^ ", " ^ (string_of_float high) ^ "\n");
+                    flush stdout;
+                    perftest (i+1)
+            in
+            perftest min_particles 
+        )
+    else
+        print_string "Accuracy Testing\n";
         flush stdout;
+
         let min_particles = 1 in
         let max_particles = 50 in
-        let rec perftest i =
+        let rec test i =
             if (i = max_particles) then () else
                 Aux.parts := i;
 
-                let (low, mid, high) = do_runperf inp in
+                let low, mid, high = do_runacc inp in
                 do_runs 1 inp tmp;
-                print_string ((string_of_int i) ^ ", " ^ (string_of_float low) ^ ", " ^ (string_of_float mid) ^ ", " ^ (string_of_float high) ^ "\n");
+                Printf.printf "%d, %f, %f, %f\n" i mid low high;
                 flush stdout;
-                perftest (i+1)
+                test (i+1)
         in
-        perftest min_particles 
-    )
-else
-    print_string "Accuracy Testing\n";
-    flush stdout;
-
-    let min_particles = 1 in
-    let max_particles = 50 in
-    let rec test i =
-        if (i = max_particles) then () else
-            Aux.parts := i;
-
-            let low, mid, high = do_runacc inp in
-            do_runs 1 inp tmp;
-            Printf.printf "%d, %f, %f, %f\n" i mid low high;
-            flush stdout;
-            test (i+1)
-    in
-    test min_particles
+        test min_particles
 
 

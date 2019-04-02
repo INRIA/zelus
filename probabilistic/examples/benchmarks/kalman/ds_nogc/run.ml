@@ -23,9 +23,8 @@ let run inp res =
             let st = step state i in
             let time = Sys.time () -. time_pre in
             iref := rest;
-            Array.set res !idx (st ^ ", " ^ (string_of_float time) ^ "\n");
+            Array.set res !idx ((string_of_float (time *. 1000.)) ^ "\n");
             idx := ((!idx) + 1);
-            Gc.full_major ();
     done
 in
 

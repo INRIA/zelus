@@ -2,10 +2,12 @@ open Infer_ds_nogc;;
 
 let warmup = ref 0 ;;
 let perf = ref false;;
+let select_particle = ref None;;
 
 Arg.parse[
     ("-w", Set_int warmup, "Numberof warmup iterations"); 
-    ("-perf", Unit (fun _ -> perf := true), "Performance testing")
+    ("-perf", Unit (fun _ -> perf := true), "Performance testing");
+    ("-particles", Int (fun i -> select_particle := Some i), "Number of particles (single run)")
 ] (fun _ -> ()) "Kalman particles test harness";;
 
 let parts = ref 10;;
@@ -42,16 +44,17 @@ let random_init : unit -> unit =
 ;;
 
 let collect_garbage : unit -> unit =
-    fun _ -> Gc.full_major ()
+    fun _ -> (*Gc.full_major ()*)()
 ;;
 
 let get_memory : unit -> float =
     fun _ ->
-        let st = Gc.stat () in
-        float_of_int st.live_words
+        (*let st = Gc.stat () in
+        float_of_int st.live_words*)
+        0.0
 ;;
 
 let get_time : unit -> float =
     fun _ ->
-        Sys.time ()
+        (*Sys.time ()*)0.0
 ;;

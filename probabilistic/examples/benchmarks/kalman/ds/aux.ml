@@ -17,18 +17,19 @@ let read_val : unit ->  float * float =
 
 let get_mean (type a) : (a, float) random_var -> float =
     fun r ->
-        match r.distr with
+        match (Infer_ds.get_conditional r).distr with
         | UDistr (MGaussian (mu, sigma)) -> mu
         | _ -> assert false (* error *)
 ;;
 
 let get_memory : unit -> float =
     fun _ ->
-        let st = Gc.stat () in
-        float_of_int st.live_words
+        (*let st = Gc.stat () in
+        float_of_int st.live_words*)
+        0.0
 ;;
 
 let get_time : unit -> float =
     fun _ ->
-        Sys.time ()
+        (*Sys.time ()*) 0.0
 ;;

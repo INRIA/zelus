@@ -1,15 +1,21 @@
 let warmup = ref 0 in
 let perf = ref false in
+let input = ref "" in
+
 Arg.parse [
     ("-w", Set_int warmup, "Numberof warmup iterations");
     ("-perf", Unit (fun _ -> perf := true), "Performance testing")
-] (fun _ -> ()) "";
+] (fun s -> input := s) "";
 
-let rec read_file _ =
-    try 
-        let s = Scanf.scanf ("%f, %f\n") (fun t o -> (t, o)) in
-        s :: read_file ()
-    with End_of_file -> []
+let read_file fname =
+    let stream = Scanf.Scanning.open_in fname in
+    let rec read_file_helper _ =
+        try 
+            let s = Scanf.bscanf stream ("%f, %f\n") (fun t o -> (t, o)) in
+            s :: read_file_helper ()
+        with End_of_file -> []
+    in
+    read_file_helper ()
 in
 
 let run inp res =
@@ -24,10 +30,10 @@ let run inp res =
         | [] -> assert false
         | i :: rest ->
             let time_pre = Sys.time () in
-            let st = step state i in
+            let node, mse = step state i in
             let time = Sys.time () -. time_pre in
             iref := rest;
-            Array.set res !idx (st ^ ", " ^ (string_of_float time) ^ "\n");
+            Array.set res !idx ((string_of_float (time *. 1000.)) ^ "\n");
             idx := ((!idx) + 1);
     done
 in
@@ -49,7 +55,6 @@ let runperf inp res idx =
             iref := rest;
             Array.set res !idx time;
             idx := ((!idx) + 1);
-            Gc.full_major ();
     done
 in
 
@@ -91,7 +96,7 @@ let rec do_runs n inp ret =
 in
 
 
-let inp = read_file () in
+let inp = read_file !input in
 if !perf then
     let tmp : string array = Array.make (List.length inp) ("") in
     do_runs !warmup inp tmp;

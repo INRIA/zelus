@@ -12,21 +12,10 @@ def get_max_mse(num):
 
     return ret[0]
 
-
-
 def run(particles):
-    src = open(name + ".zls.pre", "r")
-    src_str = src.read()
-    out = open(name + ".zls","w")
-    out.write("let parts = " + str(particles) + "\n" + src_str)
-    src.close()
-    out.close()
-
-    os.system("make opt")
-
     mse_list = []
     for i in range(0,100):
-        os.system("cat ../data | ./" + name + ".opt > data/" + str(particles))
+        os.system("cat ../data | ./" + name + ".opt -p " + str(particles) + " > data/" + str(particles))
         mse_list += [float(get_max_mse(particles)) / 1.0]
     return (np.quantile(mse_list, 0.1), np.quantile(mse_list, 0.5), np.quantile(mse_list, 0.9))
 
