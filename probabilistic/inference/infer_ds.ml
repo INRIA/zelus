@@ -1,20 +1,11 @@
 (** Inference with delayed sampling *)
 open Ztypes
 
-type pstate = {
-    idx : int;
-    scores : float array;
-};;
+type pstate = Infer.pstate;;
 
-type 'a infer_state = {
-    states : 'a array;
-    scores : float array;
-};;
+let factor = Infer.factor;; 
 
-let factor ((prob : pstate), s) =
-    let cur_score = Array.get prob.scores prob.idx in
-    Array.set prob.scores prob.idx (cur_score +. s)
-;;
+let infer = Infer.infer;
 
 type mgaussiant = float
 type mbetat = float
@@ -145,66 +136,6 @@ let finalfn (type a) (type b): (a, b) random_var -> unit =
         print_string ("Finalizing: " ^ rvar.name ^ " \n")
 ;;
 
-let infer n (Node {alloc; reset; step}) =
-    let normalize scores =
-        let logsumexp s =
-            let maxs = Array.fold_right max s neg_infinity in
-            let exps = Array.map (fun si -> exp (si -. maxs)) s in
-            let sumexps = Array.fold_right (fun a b -> a +. b) exps 0.0 in
-            maxs +. (log sumexps)
-        in
-        let norm_const = logsumexp scores in
-        Array.iteri (fun i s -> Array.set scores i (s -. norm_const)) scores
-    in
-
-    let ret = Node {
-        alloc = begin fun () -> 
-            {
-                states = Array.init n (fun _ -> alloc ());
-                scores = Array.make n 0.0;
-            }
-        end;
-        reset = begin fun s -> 
-            Array.iter reset s.states;
-            Array.fill s.scores 0 n 0.0;
-        end;
-        step = (fun s input -> 
-            let new_state = {
-                states = Array.mapi (fun i state ->
-                    step state ({idx = i; scores = s.scores;}, input)
-                ) s.states;
-                scores = s.scores;
-            } in
-            normalize new_state.scores;
-
-            let ret = 
-                Distribution.Dist_support (List.mapi (fun i s ->
-                    (Array.get new_state.states i, exp s)
-                ) (Array.to_list new_state.scores))
-            in
-
-
-            (*
-            let idx_distr =
-                Distribution.Dist_support (List.mapi (fun i s ->
-                    (i, exp s)
-                ) (Array.to_list new_state.scores))
-            in
-
-            let states' = Array.init n (fun _ ->
-                clone (Array.get new_state.states (Distribution.draw idx_distr))
-            ) in
-
-            Array.blit states' 0 new_state.states 0 n;
-            Array.fill new_state.scores 0 n 0.0;
-            *)
-
-            ret
-        )
-    } in
-    ret
-;;
-
 
 
 (* initialize without parent node *)
@@ -217,7 +148,7 @@ let assume_constant (type a) (type z): string -> a mdistr -> (z, a) random_var =
     state = Marginalized None;
     distr = UDistr d; }
   in
-  Gc.finalise finalfn ret;
+  (*Gc.finalise finalfn ret;*)
   ret
 ;;
 
@@ -225,7 +156,7 @@ let assume_constant (type a) (type z): string -> a mdistr -> (z, a) random_var =
 let assume_conditional (type a) (type b) (type c):
   string -> (a,b) random_var -> (b, c) cdistr -> (b, c) random_var =
   fun str par cdistr ->
-  Format.eprintf "assume_conditional %s@." str;
+  (*Format.eprintf "assume_conditional %s@." str;*)
 
   let child =
     { name = str;
@@ -234,13 +165,13 @@ let assume_conditional (type a) (type b) (type c):
       distr = CDistr (par, cdistr); }
   in
   
-  Gc.finalise finalfn child;
+  (*Gc.finalise finalfn child;*)
 
   child
 ;;
 
 let do_condition node =
-    Format.eprintf "do_condition: %s@." node.name;
+    (*Format.eprintf "do_condition: %s@." node.name;*)
     begin match node.state, node.distr with
     | (Marginalized (Some (cdistr, c)), UDistr pardistr) ->
         begin match c.state with
@@ -256,7 +187,7 @@ let do_condition node =
 
 let marginalize (type a) (type b): (a, b) random_var -> unit =
   fun n ->
-  Format.eprintf "marginalize: %s@." n.name;
+  (*Format.eprintf "marginalize: %s@." n.name;*)
   begin match n.state, n.distr with
     | Initialized, CDistr (par, cdistr) ->
         let marg, new_parstate =
@@ -273,7 +204,7 @@ let marginalize (type a) (type b): (a, b) random_var -> unit =
         n.distr <- UDistr marg;
         par.state <- new_parstate
     | state, _ ->
-        Format.eprintf "Error: marginalize %s@." n.name;
+        (*Format.eprintf "Error: marginalize %s@." n.name;*)
         assert false
   end
 
@@ -289,7 +220,7 @@ let rec delete :
 
 let realize (type a) (type b): b mtype -> (a, b) random_var -> unit =
   fun val_ n ->
-  Format.eprintf "realize: %s@." n.name;
+  (*Format.eprintf "realize: %s@." n.name;*)
   (* ioAssert (isTerminal n) *)
   (*
   begin match Weak.get n.marginalized_parent 0 with
@@ -355,7 +286,7 @@ let sample (type a) (type b) : (a, b) random_var -> unit =
 let observe (type a) (type b): pstate -> b mtype -> (a, b) random_var -> unit =
   fun prob x n ->
   (* io $ ioAssert (isTerminal n) *)
-  Format.eprintf "observe %s@." n.name; 
+  (*Format.eprintf "observe %s@." n.name; *)
   begin match n.state, n.distr with
     | (Marginalized None, UDistr m) ->
         factor (prob, Distribution.score (mdistr_to_distr m) x);
@@ -371,7 +302,7 @@ let is_marginalized state =
   end
 
 let rec prune : 'a 'b. ('a, 'b) random_var -> unit = function n ->
-  Format.eprintf "prune: %s@." n.name;
+  (*Format.eprintf "prune: %s@." n.name;*)
   (* assert (isMarginalized (state n)) $ do *)
   begin match n.state with
   | Marginalized (Some (distr, mchild)) ->
@@ -391,8 +322,7 @@ let rec prune : 'a 'b. ('a, 'b) random_var -> unit = function n ->
 
 
 let rec graft : 'a 'b. ('a, 'b) random_var -> unit = function n ->
-  Format.eprintf "graft %s@." n.name; 
-  print_state n;
+  (*Format.eprintf "graft %s@." n.name; *)
   begin match n.state with
   | Marginalized _ ->
       prune n;
@@ -414,8 +344,7 @@ let get_conditional (type a) (type b):  (a, b) random_var -> (a, b) random_var =
 
 let obs (type a) (type b): pstate -> b mtype -> (a, b) random_var -> unit =
   fun prob x n ->
-  Format.eprintf "obs %s@." n.name;
-  print_state n;
+  (*Format.eprintf "obs %s@." n.name;*)
   graft n;
   observe prob x n
 
