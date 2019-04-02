@@ -4,6 +4,8 @@ val sample : pstate * 'a Distribution.t -AD-> 'a
 
 val factor : pstate * float -AD-> unit
 
+val observe : pstate * 'a Distribution.t * 'a -AD-> unit
+
 val infer :
   int -S-> (pstate * 'a -D-> 'b) -S-> 'a -D-> 'b Distribution.t
 

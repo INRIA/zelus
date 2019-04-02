@@ -17,6 +17,9 @@ type pstate = {
 let factor (pstate, f0) =
   pstate.scores.(pstate.idx) <- pstate.scores.(pstate.idx) +. f0
 
+let observe (pstate, d, v) =
+  factor (pstate, Distribution.score d v)
+
 let sample (pstate, dist) =
   Distribution.draw dist
 
