@@ -24,6 +24,9 @@ let normalize values =
   Distribution.Dist_support
     (List.map (fun (v, n) -> (v, float n /. norm)) return_histogram)
 
+let normalize_nohist values scores =
+    let logsumexp = 
+
 (** [resample scores]
 *)
 let resample (states, scores, values) =

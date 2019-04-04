@@ -19,6 +19,10 @@ val get_value : ('a, 'b) random_var -> 'b
 val print_state : ('a, float) random_var -AD-> unit
 
 val mgaussian : float -> float -> float mdistr
+val mbeta : float -> float -> float mdistr
+
+val cbernoulli : (float, bool) cdistr
+
 val affine_mean_gaussian : float -> float -> float -> (float, float) cdistr
 val observe_conditional : pstate -> string -> ('a, 'b) random_var -> ('b, 'c) cdistr -> 'c -AD-> unit
 

@@ -64,6 +64,7 @@ let mgaussian mu var = MGaussian (mu, var)
 let mbeta alpha beta = MBeta (alpha, beta)
 let mbernoulli theta = MBernoulli theta
 
+let cbernoulli = CBernoulli
 let affine_mean_gaussian m b var = AffineMeanGaussian (m, b, var)
 
 let gaussian_mean_gaussian: float -> (mgaussiant, mgaussiant) cdistr =
