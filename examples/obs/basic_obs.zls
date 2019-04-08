@@ -22,22 +22,77 @@ node test_counter () =
                              ("start", points false, if start then 2.5 else 0.)) in
     window("Counter", 20., t, s)
 
-node test_since () =
+node test_sincefirst () =
     let rec t = 0. fby (t +. tstep) in
 
-    let x = q_or (q_or (q_lt (t, 2.), q_and(q_gt(t, 3.5), q_lt(t, 3.8))),
-                  q_and (q_gt (t, 5.), q_lt (t, 5.5))) in
-    let y = q_or (q_and(q_gt(t, 3.5), q_lt(t, 4.)),
-                  q_and(q_gt(t, 6.), q_lt(t, 6.5))) in
+    let true_value = 1. in
+    let false_value = -1. in
 
-    let since = since (x, y) in
+    let x =
+        present
+            | (b_up (t >= 2.))  -> 1. *. true_value
+            | (b_up (t >= 3.))  -> 1. *. false_value
+            | (b_up (t >= 6.))  -> 1. *. true_value
+            | (b_up (t >= 6.4)) -> 1. *. false_value
+        init 1. *. false_value
+    and y =
+        present
+            | (b_up (t >= 0.5)) -> 2. *. true_value
+            | (b_up (t >= 1.5)) -> 2. *. false_value
+            | (b_up (t >= 2.))  -> 2. *. true_value
+            | (b_up (t >= 3.5)) -> 2. *. false_value
+            | (b_up (t >= 6.))  -> 2. *. true_value
+            | (b_up (t >= 7.))  -> 2. *. false_value
+        init 2. *. false_value
+    in
 
-    let s1 = scope3(-5., 1., ("x", linear, x), ("y", linear, y),
-                             ("", linear, 0.)) in
-    let s2 = scope2(-5., 1., ("x since y", linear, since),
-                             ("", linear, 0.)) in
+    let since = sincefirst (x, y) in
 
-    window2("Since", 10., t, s1, s2)
+    let s1 = scope3(2. *. false_value, 2. *. true_value,
+                    ("x", linear, x),
+                    ("y", linear, y),
+                    ("", linear, 0.)) in
+    let s2 = scope2(2. *. false_value, 2. *. true_value,
+                    ("x sincefirst y", linear, since),
+                    ("", linear, 0.)) in
+
+    window2("Since first", 10., t, s1, s2)
+
+node test_sincelast () =
+    let rec t = 0. fby (t +. tstep) in
+
+    let true_value = 1. in
+    let false_value = -1. in
+
+    let x =
+        present
+            | (b_up (t >= 2.))  -> 1. *. true_value
+            | (b_up (t >= 3.))  -> 1. *. false_value
+            | (b_up (t >= 6.))  -> 1. *. true_value
+            | (b_up (t >= 6.4)) -> 1. *. false_value
+        init 1. *. false_value
+    and y =
+        present
+            | (b_up (t >= 0.5)) -> 2. *. true_value
+            | (b_up (t >= 1.5)) -> 2. *. false_value
+            | (b_up (t >= 2.))  -> 2. *. true_value
+            | (b_up (t >= 3.5)) -> 2. *. false_value
+            | (b_up (t >= 6.))  -> 2. *. true_value
+            | (b_up (t >= 7.))  -> 2. *. false_value
+        init 2. *. false_value
+    in
+
+    let since = sincelast (x, y) in
+
+    let s1 = scope3(2. *. false_value, 2. *. true_value,
+                    ("x", linear, x),
+                    ("y", linear, y),
+                    ("", linear, 0.)) in
+    let s2 = scope2(2. *. false_value, 2. *. true_value,
+                    ("x sincelast y", linear, since),
+                    ("", linear, 0.)) in
+
+    window2("Since last", 10., t, s1, s2)
 
 node test_always () =
     let rec t = 0. fby (t +. tstep) in
@@ -115,27 +170,29 @@ node test_onceBfromlastA () =
 
     let a =
         present
-            | (b_up (t >= 2.)) -> true_value
-            | (b_up (t >= 3.)) -> false_value
-            | (b_up (t >= 6.)) -> true_value
-            | (b_up (t >= 6.4)) -> false_value
-        init false_value
+            | (b_up (t >= 2.))  -> 1. *. true_value
+            | (b_up (t >= 3.))  -> 1. *. false_value
+            | (b_up (t >= 6.))  -> 1. *. true_value
+            | (b_up (t >= 6.4)) -> 1. *. false_value
+        init 1. *. false_value
     and b =
         present
-            | (b_up (t >= 0.5)) -> true_value
-            | (b_up (t >= 1.5)) -> false_value
-            | (b_up (t >= 4.)) -> true_value
-            | (b_up (t >= 4.5)) -> false_value
-        init false_value
+            | (b_up (t >= 0.5)) -> 2. *. true_value
+            | (b_up (t >= 1.5)) -> 2. *. false_value
+            | (b_up (t >= 4.))  -> 2. *. true_value
+            | (b_up (t >= 4.5)) -> 2. *. false_value
+        init 2. *. false_value
     in
 
     let phi = onceBfromlastA(a, b) in
 
-    let s1 = scope2(false_value, true_value, ("a", linear, a),
-                                             ("", linear, 0.)) in
-    let s2 = scope2(false_value, true_value, ("b", linear, b),
-                                             ("", linear, 0.)) in
-    let s3 = scope2(false_value, true_value,
+    let s1 = scope2(2. *. false_value, 2. *. true_value,
+                    ("a", linear, a),
+                    ("", linear, 0.)) in
+    let s2 = scope2(2. *. false_value, 2. *.true_value,
+                    ("b", linear, b),
+                    ("", linear, 0.)) in
+    let s3 = scope2(2. *. false_value, 2. *. true_value,
                     ("phi", linear, phi),
                     ("", linear, 0.)) in
 
@@ -149,27 +206,29 @@ node test_onceBfromfirstA () =
 
     let a =
         present
-            | (b_up (t >= 2.)) -> true_value
-            | (b_up (t >= 3.)) -> false_value
-            | (b_up (t >= 6.)) -> true_value
-            | (b_up (t >= 6.4)) -> false_value
-        init false_value
+            | (b_up (t >= 2.))  -> 1. *. true_value
+            | (b_up (t >= 3.))  -> 1. *. false_value
+            | (b_up (t >= 6.))  -> 1. *. true_value
+            | (b_up (t >= 6.4)) -> 1. *. false_value
+        init 1. *. false_value
     and b =
         present
-            | (b_up (t >= 0.5)) -> true_value
-            | (b_up (t >= 1.5)) -> false_value
-            | (b_up (t >= 4.)) -> true_value
-            | (b_up (t >= 4.5)) -> false_value
-        init false_value
+            | (b_up (t >= 0.5)) -> 2. *. true_value
+            | (b_up (t >= 1.5)) -> 2. *. false_value
+            | (b_up (t >= 4.))  -> 2. *. true_value
+            | (b_up (t >= 4.5)) -> 2. *. false_value
+        init 2. *. false_value
     in
 
     let phi = onceBfromfirstA(a, b) in
 
-    let s1 = scope2(false_value, true_value, ("a", linear, a),
-                                             ("", linear, 0.)) in
-    let s2 = scope2(false_value, true_value, ("b", linear, b),
-                                             ("", linear, 0.)) in
-    let s3 = scope2(false_value, true_value,
+    let s1 = scope2(2. *. false_value, 2. *. true_value,
+                    ("a", linear, a),
+                    ("", linear, 0.)) in
+    let s2 = scope2(2. *. false_value, 2. *. true_value,
+                    ("b", linear, b),
+                    ("", linear, 0.)) in
+    let s3 = scope2(2. *. false_value, 2. *. true_value,
                     ("phi", linear, phi),
                     ("", linear, 0.)) in
 
@@ -183,29 +242,31 @@ node test_alwaysBfromlastA () =
 
     let a =
         present
-            | (b_up (t >= 2.)) -> true_value
-            | (b_up (t >= 3.)) -> false_value
-            | (b_up (t >= 6.)) -> true_value
-            | (b_up (t >= 6.4)) -> false_value
-        init false_value
+            | (b_up (t >= 2.))  -> 1. *. true_value
+            | (b_up (t >= 3.))  -> 1. *. false_value
+            | (b_up (t >= 6.))  -> 1. *. true_value
+            | (b_up (t >= 6.4)) -> 1. *. false_value
+        init 1. *. false_value
     and b =
         present
-            | (b_up (t >= 0.5)) -> true_value
-            | (b_up (t >= 1.5)) -> false_value
-            | (b_up (t >= 2.)) -> true_value
-            | (b_up (t >= 2.5)) -> false_value
-            | (b_up (t >= 6.2)) -> true_value
-            | (b_up (t >= 7.)) -> false_value
-        init false_value
+            | (b_up (t >= 0.5)) -> 2. *. true_value
+            | (b_up (t >= 1.5)) -> 2. *. false_value
+            | (b_up (t >= 2.))  -> 2. *. true_value
+            | (b_up (t >= 2.5)) -> 2. *. false_value
+            | (b_up (t >= 6.2)) -> 2. *. true_value
+            | (b_up (t >= 7.))  -> 2. *. false_value
+        init 2. *. false_value
     in
 
     let phi = alwaysBfromlastA(a, b) in
 
-    let s1 = scope2(false_value, true_value, ("a", linear, a),
-                                             ("", linear, 0.)) in
-    let s2 = scope2(false_value, true_value, ("b", linear, b),
-                                             ("", linear, 0.)) in
-    let s3 = scope2(false_value, true_value,
+    let s1 = scope2(2. *. false_value, 2. *. true_value,
+                    ("a", linear, a),
+                    ("", linear, 0.)) in
+    let s2 = scope2(2. *. false_value, 2. *. true_value,
+                    ("b", linear, b),
+                    ("", linear, 0.)) in
+    let s3 = scope2(2. *. false_value, 2. *. true_value,
                     ("phi", linear, phi),
                     ("", linear, 0.)) in
 
@@ -219,29 +280,31 @@ node test_alwaysBfromfirstA () =
 
     let a =
         present
-            | (b_up (t >= 2.)) -> true_value
-            | (b_up (t >= 3.)) -> false_value
-            | (b_up (t >= 6.)) -> true_value
-            | (b_up (t >= 6.4)) -> false_value
-        init false_value
+            | (b_up (t >= 2.))  -> 1. *. true_value
+            | (b_up (t >= 3.))  -> 1. *. false_value
+            | (b_up (t >= 6.))  -> 1. *. true_value
+            | (b_up (t >= 6.4)) -> 1. *. false_value
+        init 1. *. false_value
     and b =
         present
-            | (b_up (t >= 0.5)) -> true_value
-            | (b_up (t >= 1.5)) -> false_value
-            | (b_up (t >= 2.)) -> true_value
-            | (b_up (t >= 2.5)) -> false_value
-            | (b_up (t >= 6.2)) -> true_value
-            | (b_up (t >= 7.)) -> false_value
-        init false_value
+            | (b_up (t >= 0.5)) -> 2. *. true_value
+            | (b_up (t >= 1.5)) -> 2. *. false_value
+            | (b_up (t >= 2.))  -> 2. *. true_value
+            | (b_up (t >= 2.5)) -> 2. *. false_value
+            | (b_up (t >= 6.2)) -> 2. *. true_value
+            | (b_up (t >= 7.))  -> 2. *. false_value
+        init 2. *. false_value
     in
 
     let phi = alwaysBfromfirstA(a, b) in
 
-    let s1 = scope2(false_value, true_value, ("a", linear, a),
-                                             ("", linear, 0.)) in
-    let s2 = scope2(false_value, true_value, ("b", linear, b),
-                                             ("", linear, 0.)) in
-    let s3 = scope2(false_value, true_value,
+    let s1 = scope2(2. *. false_value, 2. *. true_value,
+                    ("a", linear, a),
+                    ("", linear, 0.)) in
+    let s2 = scope2(2. *. false_value, 2. *. true_value,
+                    ("b", linear, b),
+                    ("", linear, 0.)) in
+    let s3 = scope2(2. *. false_value, 2. *. true_value,
                     ("phi", linear, phi),
                     ("", linear, 0.)) in
 
@@ -255,26 +318,28 @@ node test_onceBfromlastA_timed () =
 
     let a =
         present
-            | (b_up (t >= 2.)) -> true_value
-            | (b_up (t >= 3.)) -> false_value
-            | (b_up (t >= 6.)) -> true_value
-            | (b_up (t >= 6.4)) -> false_value
-        init false_value
+            | (b_up (t >= 2.))  -> 1. *. true_value
+            | (b_up (t >= 3.))  -> 1. *. false_value
+            | (b_up (t >= 6.))  -> 1. *. true_value
+            | (b_up (t >= 6.4)) -> 1. *. false_value
+        init 1. *. false_value
     and b =
         present
-            | (b_up (t >= 0.5)) -> true_value
-            | (b_up (t >= 1.5)) -> false_value
-            | (b_up (t >= 4.)) -> true_value
-            | (b_up (t >= 4.5)) -> false_value
-        init false_value
+            | (b_up (t >= 0.5)) -> 2. *. true_value
+            | (b_up (t >= 1.5)) -> 2. *. false_value
+            | (b_up (t >= 4.))  -> 2. *. true_value
+            | (b_up (t >= 4.5)) -> 2. *. false_value
+        init 2. *. false_value
     in
 
     let phi = onceBfromlastA_timed 2. (tstep, a, b) in
 
-    let s1 = scope2(-2., 2., ("a", linear, a),
-                             ("", linear, 0.)) in
-    let s2 = scope2(-2., 2., ("b", linear, b),
-                             ("", linear, 0.)) in
+    let s1 = scope2(-2., 2.,
+                    ("a", linear, a),
+                    ("", linear, 0.)) in
+    let s2 = scope2(-2., 2.,
+                    ("b", linear, b),
+                    ("", linear, 0.)) in
     let s3 = scope2(-2., 2.,
                     ("phi", linear, phi),
                     ("", linear, 0.)) in
@@ -289,18 +354,18 @@ node test_onceBfromfirstA_timed () =
 
     let a =
         present
-            | (b_up (t >= 2.)) -> true_value
-            | (b_up (t >= 3.)) -> false_value
-            | (b_up (t >= 6.)) -> true_value
-            | (b_up (t >= 6.4)) -> false_value
-        init false_value
+            | (b_up (t >= 2.))  -> 1. *. true_value
+            | (b_up (t >= 3.))  -> 1. *. false_value
+            | (b_up (t >= 6.))  -> 1. *. true_value
+            | (b_up (t >= 6.4)) -> 1. *. false_value
+        init 1. *. false_value
     and b =
         present
-            | (b_up (t >= 0.5)) -> true_value
-            | (b_up (t >= 1.5)) -> false_value
-            | (b_up (t >= 4.)) -> true_value
-            | (b_up (t >= 4.5)) -> false_value
-        init false_value
+            | (b_up (t >= 0.5)) -> 2. *. true_value
+            | (b_up (t >= 1.5)) -> 2. *. false_value
+            | (b_up (t >= 4.))  -> 2. *. true_value
+            | (b_up (t >= 4.5)) -> 2. *. false_value
+        init 2. *. false_value
     in
 
     let phi = onceBfromfirstA_timed 2.5 (tstep, a, b) in
@@ -323,29 +388,31 @@ node test_alwaysBfromlastA_timed () =
 
     let a =
         present
-            | (b_up (t >= 2.)) -> true_value
-            | (b_up (t >= 3.)) -> false_value
-            | (b_up (t >= 6.)) -> true_value
-            | (b_up (t >= 6.4)) -> false_value
-        init false_value
+            | (b_up (t >= 2.))  -> 1. *. true_value
+            | (b_up (t >= 3.))  -> 1. *. false_value
+            | (b_up (t >= 6.))  -> 1. *. true_value
+            | (b_up (t >= 6.4)) -> 1. *. false_value
+        init 1. *. false_value
     and b =
         present
-            | (b_up (t >= 0.5)) -> true_value
-            | (b_up (t >= 1.5)) -> false_value
-            | (b_up (t >= 2.)) -> true_value
-            | (b_up (t >= 2.5)) -> false_value
-            | (b_up (t >= 6.2)) -> true_value
-            | (b_up (t >= 7.)) -> false_value
-        init false_value
+            | (b_up (t >= 0.5)) -> 2. *. true_value
+            | (b_up (t >= 1.5)) -> 2. *. false_value
+            | (b_up (t >= 2.))  -> 2. *. true_value
+            | (b_up (t >= 2.5)) -> 2. *. false_value
+            | (b_up (t >= 6.2)) -> 2. *. true_value
+            | (b_up (t >= 7.))  -> 2. *. false_value
+        init 2. *. false_value
     in
 
     let phi = alwaysBfromlastA_timed 1. (tstep, a, b) in
 
-    let s1 = scope2(false_value, true_value, ("a", linear, a),
-                                             ("", linear, 0.)) in
-    let s2 = scope2(false_value, true_value, ("b", linear, b),
-                                             ("", linear, 0.)) in
-    let s3 = scope2(false_value, true_value,
+    let s1 = scope2(3. *. false_value, 3. *. true_value,
+                    ("a", linear, a),
+                    ("", linear, 0.)) in
+    let s2 = scope2(3. *. false_value, 3. *. true_value,
+                    ("b", linear, b),
+                    ("", linear, 0.)) in
+    let s3 = scope2(3. *. false_value, 3. *. true_value,
                     ("phi", linear, phi),
                     ("", linear, 0.)) in
 
@@ -359,30 +426,32 @@ node test_alwaysBfromfirstA_timed () =
 
     let a =
         present
-            | (b_up (t >= 2.)) -> true_value
-            | (b_up (t >= 3.)) -> false_value
-            | (b_up (t >= 6.)) -> true_value
-            | (b_up (t >= 6.4)) -> false_value
-        init false_value
+            | (b_up (t >= 2.))  -> 1. *. true_value
+            | (b_up (t >= 3.))  -> 1. *. false_value
+            | (b_up (t >= 6.))  -> 1. *. true_value
+            | (b_up (t >= 6.4)) -> 1. *. false_value
+        init 1. *. false_value
     and b =
         present
-            | (b_up (t >= 0.5)) -> true_value
-            | (b_up (t >= 1.5)) -> false_value
-            | (b_up (t >= 2.)) -> true_value
-            | (b_up (t >= 2.5)) -> false_value
-            | (b_up (t >= 2.7)) -> true_value
-            | (b_up (t >= 2.9)) -> false_value
-            | (b_up (t >= 6.2)) -> true_value
-            | (b_up (t >= 7.)) -> false_value
-        init false_value
+            | (b_up (t >= 0.5)) -> 2. *. true_value
+            | (b_up (t >= 1.5)) -> 2. *. false_value
+            | (b_up (t >= 2.))  -> 2. *. true_value
+            | (b_up (t >= 2.5)) -> 2. *. false_value
+            | (b_up (t >= 2.7)) -> 2. *. true_value
+            | (b_up (t >= 2.9)) -> 2. *. false_value
+            | (b_up (t >= 6.2)) -> 2. *. true_value
+            | (b_up (t >= 7.))  -> 2. *. false_value
+        init 2. *. false_value
     in
 
     let phi = alwaysBfromfirstA_timed 1. (tstep, a, b) in
 
-    let s1 = scope2(-2., 2., ("a", linear, a),
-                             ("", linear, 0.)) in
-    let s2 = scope2(-2., 2., ("b", linear, b),
-                             ("", linear, 0.)) in
+    let s1 = scope2(-2., 2.,
+                    ("a", linear, a),
+                    ("", linear, 0.)) in
+    let s2 = scope2(-2., 2.,
+                    ("b", linear, b),
+                    ("", linear, 0.)) in
     let s3 = scope2(-2., 2.,
                     ("phi", linear, phi),
                     ("", linear, 0.)) in
@@ -397,38 +466,41 @@ node test_onceBfromlastAtoC () =
 
     let a =
         present
-            | (b_up (t >= 2.)) -> true_value
-            | (b_up (t >= 3.)) -> false_value
-            | (b_up (t >= 6.)) -> true_value
-            | (b_up (t >= 6.4)) -> false_value
-        init false_value
+            | (b_up (t >= 2.))  -> 1. *. true_value
+            | (b_up (t >= 3.))  -> 1. *. false_value
+            | (b_up (t >= 6.))  -> 1. *. true_value
+            | (b_up (t >= 6.4)) -> 1. *. false_value
+        init 1. *. false_value
     and b =
         present
-            | (b_up (t >= 0.5)) -> true_value
-            | (b_up (t >= 1.5)) -> false_value
-            | (b_up (t >= 4.)) -> true_value
-            | (b_up (t >= 4.5)) -> false_value
-        init false_value
+            | (b_up (t >= 0.5)) -> 2. *. true_value
+            | (b_up (t >= 1.5)) -> 2. *. false_value
+            | (b_up (t >= 4.))  -> 2. *. true_value
+            | (b_up (t >= 4.5)) -> 2. *. false_value
+        init 2. *. false_value
     and c =
         present
-            | (b_up (t >= 3.)) -> true_value
-            | (b_up (t >= 4.)) -> false_value
-            | (b_up (t >= 5.5)) -> true_value
-            | (b_up (t >= 5.6)) -> false_value
-            | (b_up (t >= 6.5)) -> true_value
-            | (b_up (t >= 6.6)) -> false_value
-        init false_value
+            | (b_up (t >= 3.))  -> 3. *. true_value
+            | (b_up (t >= 4.))  -> 3. *. false_value
+            | (b_up (t >= 5.5)) -> 3. *. true_value
+            | (b_up (t >= 5.6)) -> 3. *. false_value
+            | (b_up (t >= 6.5)) -> 3. *. true_value
+            | (b_up (t >= 6.6)) -> 3. *. false_value
+        init 3. *. false_value
     in
 
     let phi = onceBfromlastAtoC(a, b, c) in
 
-    let s1 = scope2(false_value, true_value, ("a", linear, a),
-                                             ("", linear, 0.)) in
-    let s2 = scope2(false_value, true_value, ("b", linear, b),
-                                             ("", linear, 0.)) in
-    let s3 = scope2(false_value, true_value, ("c", linear, c),
-                                             ("", linear, 0.)) in
-    let s4 = scope2(false_value, true_value,
+    let s1 = scope2(3. *. false_value, 3. *. true_value,
+                    ("a", linear, a),
+                    ("", linear, 0.)) in
+    let s2 = scope2(3. *. false_value, 3. *. true_value,
+                    ("b", linear, b),
+                    ("", linear, 0.)) in
+    let s3 = scope2(3. *. false_value, 3. *. true_value,
+                    ("c", linear, c),
+                    ("", linear, 0.)) in
+    let s4 = scope2(3. *. false_value, 3. *. true_value,
                     ("phi", linear, phi),
                     ("", linear, 0.)) in
 
@@ -442,38 +514,41 @@ node test_onceBfromfirstAtoC () =
 
     let a =
         present
-            | (b_up (t >= 2.)) -> true_value
-            | (b_up (t >= 3.)) -> false_value
-            | (b_up (t >= 6.)) -> true_value
-            | (b_up (t >= 6.4)) -> false_value
-        init false_value
+            | (b_up (t >= 2.))  -> 1. *. true_value
+            | (b_up (t >= 3.))  -> 1. *. false_value
+            | (b_up (t >= 6.))  -> 1. *. true_value
+            | (b_up (t >= 6.4)) -> 1. *. false_value
+        init 1. *. false_value
     and b =
         present
-            | (b_up (t >= 0.5)) -> true_value
-            | (b_up (t >= 1.5)) -> false_value
-            | (b_up (t >= 4.)) -> true_value
-            | (b_up (t >= 4.5)) -> false_value
-        init false_value
+            | (b_up (t >= 0.5)) -> 2. *. true_value
+            | (b_up (t >= 1.5)) -> 2. *. false_value
+            | (b_up (t >= 4.))  -> 2. *. true_value
+            | (b_up (t >= 4.5)) -> 2. *. false_value
+        init 2. *. false_value
     and c =
         present
-            | (b_up (t >= 3.)) -> true_value
-            | (b_up (t >= 4.)) -> false_value
-            | (b_up (t >= 5.5)) -> true_value
-            | (b_up (t >= 5.6)) -> false_value
-            | (b_up (t >= 6.5)) -> true_value
-            | (b_up (t >= 6.6)) -> false_value
-        init false_value
+            | (b_up (t >= 3.))  -> 3. *. true_value
+            | (b_up (t >= 4.))  -> 3. *. false_value
+            | (b_up (t >= 5.5)) -> 3. *. true_value
+            | (b_up (t >= 5.6)) -> 3. *. false_value
+            | (b_up (t >= 6.5)) -> 3. *. true_value
+            | (b_up (t >= 6.6)) -> 3. *. false_value
+        init 3. *. false_value
     in
 
     let phi = onceBfromfirstAtoC(a, b, c) in
 
-    let s1 = scope2(false_value, true_value, ("a", linear, a),
-                               ("", linear, 0.)) in
-    let s2 = scope2(false_value, true_value, ("b", linear, b),
-                               ("", linear, 0.)) in
-    let s3 = scope2(false_value, true_value, ("c", linear, c),
-                               ("", linear, 0.)) in
-    let s4 = scope2(false_value, true_value,
+    let s1 = scope2(3. *. false_value, 3. *. true_value,
+                    ("a", linear, a),
+                    ("", linear, 0.)) in
+    let s2 = scope2(3. *. false_value, 3. *. true_value,
+                    ("b", linear, b),
+                    ("", linear, 0.)) in
+    let s3 = scope2(3. *. false_value, 3. *. true_value,
+                    ("c", linear, c),
+                    ("", linear, 0.)) in
+    let s4 = scope2(3. *. false_value, 3. *. true_value,
                     ("phi", linear, phi),
                     ("", linear, 0.)) in
 
@@ -487,40 +562,43 @@ node test_alwaysBfromlastAtoC () =
 
     let a =
         present
-            | (b_up (t >= 2.)) -> true_value
-            | (b_up (t >= 3.)) -> false_value
-            | (b_up (t >= 6.)) -> true_value
-            | (b_up (t >= 6.4)) -> false_value
-        init false_value
+            | (b_up (t >= 2.))  -> 1. *. true_value
+            | (b_up (t >= 3.))  -> 1. *. false_value
+            | (b_up (t >= 6.))  -> 1. *. true_value
+            | (b_up (t >= 6.4)) -> 1. *. false_value
+        init 1. *. false_value
     and b =
         present
-            | (b_up (t >= 0.5)) -> true_value
-            | (b_up (t >= 1.5)) -> false_value
-            | (b_up (t >= 2.4)) -> true_value
-            | (b_up (t >= 3.5)) -> false_value
-            | (b_up (t >= 6.)) -> true_value
-            | (b_up (t >= 7.)) -> false_value
-        init false_value
+            | (b_up (t >= 0.5)) -> 2. *. true_value
+            | (b_up (t >= 1.5)) -> 2. *. false_value
+            | (b_up (t >= 2.4)) -> 2. *. true_value
+            | (b_up (t >= 3.5)) -> 2. *. false_value
+            | (b_up (t >= 6.))  -> 2. *. true_value
+            | (b_up (t >= 7.))  -> 2. *. false_value
+        init 2. *. false_value
     and c =
         present
-            | (b_up (t >= 3.)) -> true_value
-            | (b_up (t >= 4.)) -> false_value
-            | (b_up (t >= 6.5)) -> true_value
-            | (b_up (t >= 6.6)) -> false_value
-            | (b_up (t >= 8.5)) -> true_value
-            | (b_up (t >= 8.6)) -> false_value
-        init false_value
+            | (b_up (t >= 3.))  -> 3. *. true_value
+            | (b_up (t >= 4.))  -> 3. *. false_value
+            | (b_up (t >= 6.5)) -> 3. *. true_value
+            | (b_up (t >= 6.6)) -> 3. *. false_value
+            | (b_up (t >= 8.5)) -> 3. *. true_value
+            | (b_up (t >= 8.6)) -> 3. *. false_value
+        init 3. *. false_value
     in
 
     let phi = alwaysBfromlastAtoC(a, b, c) in
 
-    let s1 = scope2(false_value, true_value, ("a", linear, a),
-                               ("", linear, 0.)) in
-    let s2 = scope2(false_value, true_value, ("b", linear, b),
-                               ("", linear, 0.)) in
-    let s3 = scope2(false_value, true_value, ("c", linear, c),
-                               ("", linear, 0.)) in
-    let s4 = scope2(false_value, true_value,
+    let s1 = scope2(3. *. false_value, 3. *. true_value,
+                    ("a", linear, a),
+                    ("", linear, 0.)) in
+    let s2 = scope2(3. *. false_value, 3. *. true_value,
+                    ("b", linear, b),
+                    ("", linear, 0.)) in
+    let s3 = scope2(3. *. false_value, 3. *. true_value,
+                    ("c", linear, c),
+                    ("", linear, 0.)) in
+    let s4 = scope2(3. *. false_value, 3. *. true_value,
                     ("phi ", linear, phi),
                     ("", linear, 0.)) in
 
@@ -534,40 +612,43 @@ node test_alwaysBfromfirstAtoC () =
 
     let a =
         present
-            | (b_up (t >= 2.)) -> true_value
-            | (b_up (t >= 3.)) -> false_value
-            | (b_up (t >= 6.)) -> true_value
-            | (b_up (t >= 6.4)) -> false_value
-        init false_value
+            | (b_up (t >= 2.))  -> 1. *. true_value
+            | (b_up (t >= 3.))  -> 1. *. false_value
+            | (b_up (t >= 6.))  -> 1. *. true_value
+            | (b_up (t >= 6.4)) -> 1. *. false_value
+        init 1. *. false_value
     and b =
         present
-            | (b_up (t >= 0.5)) -> true_value
-            | (b_up (t >= 1.5)) -> false_value
-            | (b_up (t >= 2.)) -> true_value
-            | (b_up (t >= 3.5)) -> false_value
-            | (b_up (t >= 6.)) -> true_value
-            | (b_up (t >= 7.)) -> false_value
-        init false_value
+            | (b_up (t >= 0.5)) -> 2. *. true_value
+            | (b_up (t >= 1.5)) -> 2. *. false_value
+            | (b_up (t >= 2.))  -> 2. *. true_value
+            | (b_up (t >= 3.5)) -> 2. *. false_value
+            | (b_up (t >= 6.))  -> 2. *. true_value
+            | (b_up (t >= 7.))  -> 2. *. false_value
+        init 2. *. false_value
     and c =
         present
-            | (b_up (t >= 3.)) -> true_value
-            | (b_up (t >= 4.)) -> false_value
-            | (b_up (t >= 6.5)) -> true_value
-            | (b_up (t >= 6.6)) -> false_value
-            | (b_up (t >= 8.5)) -> true_value
-            | (b_up (t >= 8.6)) -> false_value
-        init false_value
+            | (b_up (t >= 3.))  -> 3. *. true_value
+            | (b_up (t >= 4.))  -> 3. *. false_value
+            | (b_up (t >= 6.5)) -> 3. *. true_value
+            | (b_up (t >= 6.6)) -> 3. *. false_value
+            | (b_up (t >= 8.5)) -> 3. *. true_value
+            | (b_up (t >= 8.6)) -> 3. *. false_value
+        init 3. *. false_value
     in
 
     let phi = alwaysBfromfirstAtoC(a, b, c) in
 
-    let s1 = scope2(false_value, true_value, ("a", linear, a),
-                               ("", linear, 0.)) in
-    let s2 = scope2(false_value, true_value, ("b", linear, b),
-                               ("", linear, 0.)) in
-    let s3 = scope2(false_value, true_value, ("c", linear, c),
-                               ("", linear, 0.)) in
-    let s4 = scope2(false_value, true_value,
+    let s1 = scope2(3. *. false_value, 3. *. true_value,
+                    ("a", linear, a),
+                    ("", linear, 0.)) in
+    let s2 = scope2(3. *. false_value, 3. *. true_value,
+                    ("b", linear, b),
+                    ("", linear, 0.)) in
+    let s3 = scope2(3. *. false_value, 3. *. true_value,
+                    ("c", linear, c),
+                    ("", linear, 0.)) in
+    let s4 = scope2(3. *. false_value, 3. *. true_value,
                     ("phi", linear, phi),
                     ("", linear, 0.)) in
 
