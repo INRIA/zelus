@@ -1,10 +1,13 @@
 include ../../config
 
-OCAMLFLAGS += -I ../../lib 
+OCAMLFLAGS += -I ../../lib
 OCAMLOPTFLAGS += -I ../../lib
 ZLEXTRALIBS = $(ZLGTKLIBS)
 
-BASICS = counter since always always_timed once once_timed \
+BASICS = counter \
+				 sincefirst sincelast \
+				 always always_timed \
+				 once once_timed \
 			   onceBfromlastA onceBfromfirstA \
 			   alwaysBfromlastA alwaysBfromfirstA \
 			   onceBfromlastA_timed onceBfromfirstA_timed \

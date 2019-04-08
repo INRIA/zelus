@@ -61,7 +61,7 @@ open Obs
     defined by the scenario
         phi  = □(edge(t > 2) ⇒ phi1)
     `... the powertrain completely passes the dead zone ...`, ie it enters the
-    deadzone and when it leaves with x1 > alpha
+    deadzone and it leaves with x1 > alpha
         phi1 = ◇(z2) ∧ □(z2 ⇒ (◇(z3) ∧ phi2))
     `... the powertrain should not re-enter the dead zone`, ie when we reach
     z3, we never come back to z2
@@ -75,15 +75,15 @@ let static phi_desc = "□(edge(t > 0.2) ⇒ (◇(z2) ∧ □(z2 ⇒ (◇(z3) �
 
 node spec(t, x1) =
     let tstep = t -> (t -. pre t) in
-    let z1 = p_lt(x1, -.alpha) in
-    let z2 = p_and (p_lt(x1, alpha), p_gt(x1, -.alpha)) in
-    let z3 = p_gt(x1, alpha) in
-    d_trigger
-        (d_and d_next_ub
-               (d_trigger
-                   (d_and d_next_ub
-                          (d_trigger d_always))))
-        (tstep, (p_edge(p_gt(t, 0.2)), (z2, (z2, (z3, (z3, p_not z2))))))
+    let t0 = q_lt(t, 0.2) in
+    (* let z1 = q_lt(x1, -.alpha) in *)
+    let z2 = q_and (q_lt(x1, alpha), q_gt(x1, -.alpha)) in
+    let z3 = q_gt(x1, alpha) in
+    alwaysBfromfirstA(t0,
+        q_and (once z2,
+               alwaysBfromfirstA(z2,
+                   q_and (once z3,
+                          neverBfromfirstA(z3, z2)))))
 
 open Spec_models
 
@@ -157,12 +157,12 @@ let static tstep = 0.005
 
 open Scope
 
-node plot(t, u, x1, (r, s)) =
+node plot(t, u, x1, r) =
     let rec alternating_alpha = alpha fby -. alpha fby alternating_alpha in
     let s1 = scope(-5., 5., ("u", linear, u)) in
     let s2 = scope2(-0.2, 0.2, ("x1", linear, x1),
                                  ("alpha and -alpha", points false, alternating_alpha)) in
-    let s3 = scope2(-0.2, 0.2, (phi_desc, linear, r), ("done?", linear, Obs.float_of_state s)) in
+    let s3 = scope2(-0.2, 0.2, (phi_desc, linear, r), ("", linear, 0.)) in
     window3("Powertrain : x = time", 2.5, t, s1, s2, s3)
 
 hybrid main_2 instance () =

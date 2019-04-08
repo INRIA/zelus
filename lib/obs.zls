@@ -29,6 +29,12 @@ let implies (a, b) = q_or(q_not a, b)
 node q_up p = p -> q_and (q_lt (pre p, 0.), q_gt (p, 0.))
 node b_up p = p -> (not (pre p) && p)
 
+
+
+
+
+
+
 let static min_cpt = -1.
 node counter delay (tstep, start) =
     let rec cpt = if start then delay else min_cpt -> (pre cpt -. tstep) in
@@ -73,14 +79,13 @@ node neverBfromlastAtoC (a, b, c) = alwaysBfromlastAtoC(a, q_not b, c)
 node neverBfromfirstAtoC (a, b, c) = alwaysBfromfirstAtoC(a, q_not b, c)
 node neverBfromAtoC (a, b, c) = alwaysBfromAtoC(a, q_not b, c)
 
-node horizon_triggered delay (tstep, start) =
-    let cpt = counter delay (tstep, start) in
-    q_up (q_lt (cpt, 0.))
 node horizon delay tstep =
-    horizon_triggered delay (tstep, true fby false)
+    let cpt = counter delay (tstep, true fby false) in
+    q_lt (cpt, 0.)
 
 node once_timed delay (tstep, p) =
-    onceBfromAtoC(q_true fby q_false, p, horizon delay tstep)
+    let cpt = counter delay (tstep, true fby false) in
+    onceBfromAtoC(q_true fby q_false, p, q_lt (cpt, 0.))
 node always_timed delay (tstep, p) =
     let cpt = counter delay (tstep, true fby false) in
     implies (q_gt (cpt, 0.), always p)
@@ -120,8 +125,8 @@ node onceBfromlastA_timed delay (tstep, a, b) =
     let cpt = counter delay (tstep, q_istrue a) in
     onceBfromlastAtoC (a, b, q_lt (cpt, 0.))
 node onceBfromfirstA_timed delay (tstep, a, b) =
-    onceBfromfirstAtoC (a, b,
-        horizon_triggered delay (tstep, q_istrue (q_up (once a))))
+    let cpt = counter delay (tstep, b_up (q_istrue (once a))) in
+    onceBfromfirstAtoC (a, b, q_lt (cpt, 0.))
 node onceBfromA_timed delay (tstep, a, b) =
     onceBfromlastA_timed delay (tstep, a, b)
 
@@ -129,7 +134,7 @@ node alwaysBfromlastA_timed delay (tstep, a, b) =
     let cpt = counter delay (tstep, q_istrue a) in
     implies (q_gt (cpt, 0.), q_not (sincelast (q_not b, a)))
 node alwaysBfromfirstA_timed delay (tstep, a, b) =
-    let cpt = counter delay (tstep, b_up (once a >= 0.)) in
+    let cpt = counter delay (tstep, b_up (q_istrue (once a))) in
     implies (q_gt (cpt, 0.), q_not (sincefirst (q_not b, a)))
 node alwaysBfromA_timed delay (tstep, a, b) =
     alwaysBfromlastA_timed delay (tstep, a, b)
