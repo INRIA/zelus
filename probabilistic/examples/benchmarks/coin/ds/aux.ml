@@ -1,4 +1,4 @@
-open Infer_ds_nogc;;
+open Infer_ds;;
 
 (*
 let read_val : unit -> (float * float) option =
@@ -14,24 +14,23 @@ let read_val : unit ->  float * float =
         Scanf.scanf "%f, %f\n" (fun t o -> (t, o))
 ;;
 
+
 let get_mean (type a) : (a, float) random_var -> float =
     fun r ->
-        match r.state with
-        | Marginalized (MBeta (a, b)) -> a /. (a +. b)
+        match (Infer_ds.get_conditional r).distr with
+        | UDistr (MBeta (a, b)) -> 
+            a /. (a +. b)
         | _ -> assert false (* error *)
-;;
-
-let collect_garbage : unit -> unit =
-    fun _ -> Gc.full_major ()
 ;;
 
 let get_memory : unit -> float =
     fun _ ->
         (*let st = Gc.stat () in
-        float_of_int st.live_words*) 0.0
+        float_of_int st.live_words*)
+        0.0
 ;;
 
 let get_time : unit -> float =
     fun _ ->
-        (* Sys.time () *) 0.0
+        (*Sys.time ()*) 0.0
 ;;

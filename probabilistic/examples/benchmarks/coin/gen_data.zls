@@ -1,0 +1,6 @@
+open Distribution
+
+let node main () =
+    let init x0 = Distribution.draw (beta 1. 1.) in
+    let y = (Distribution.draw (bernoulli x0)) in
+    print_string ((string_of_float x0) ^ ", " ^ (string_of_bool y) ^ "\n")
