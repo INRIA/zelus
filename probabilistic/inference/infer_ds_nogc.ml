@@ -298,7 +298,7 @@ let observe_conditional (type a) (type b) (type c):
   let y = assume_conditional str n cdistr in
   obs prob observation y
 
-let infer = Infer.infer
+let infer = Infer.infer_dyn_resample
 
 
 (* ----------------------------------------------------------------------- *)

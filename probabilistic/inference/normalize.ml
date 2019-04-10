@@ -25,7 +25,17 @@ let normalize values =
     (List.map (fun (v, n) -> (v, float n /. norm)) return_histogram)
 
 let normalize_nohist values scores =
-    let logsumexp = 
+  let logsumexp scores = 
+    let mscore = Array.fold_right (fun a b -> (max a b)) scores neg_infinity in
+    let expscores = Array.map (fun score -> exp (score -. mscore)) scores in
+    let sumexpscores = Array.fold_right (fun a b -> a+.b) expscores 0.0 in
+    mscore +. (log sumexpscores)
+  in
+  let norm = logsumexp scores in
+  let scores' = Array.map (fun score -> exp (score -. norm)) scores in
+  Distribution.Dist_support
+    (Array.to_list (Array.map2 (fun value score -> (value, score)) values scores'))
+;;
 
 (** [resample scores]
 *)

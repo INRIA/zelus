@@ -5,7 +5,7 @@ type pstate = Infer.pstate;;
 
 let factor = Infer.factor;; 
 
-let infer = Infer.infer;
+let infer = Infer.infer_dyn_resample;
 
 type mgaussiant = float
 type mbetat = float

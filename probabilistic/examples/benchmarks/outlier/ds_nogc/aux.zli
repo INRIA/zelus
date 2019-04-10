@@ -1,0 +1,8 @@
+val read_val : unit -> (float * float)
+val get_mean : (bool * ('a, float) Infer_ds_nogc.random_var) Distribution.t -> float
+val particles_tostring : (bool * ('a, float) Infer_ds_nogc.random_var) Distribution.t -> string
+val collect_garbage : unit -> unit
+val random_init : unit -> unit
+val get_memory : unit -> float
+val get_time : unit -> float
+val particles : unit -S-> int
