@@ -5,7 +5,7 @@ type pstate = Infer.pstate;;
 
 let factor = Infer.factor;; 
 
-let infer = Infer.infer;
+let infer = Infer.infer_dyn_resample;
 
 type mgaussiant = float
 type mbetat = float
@@ -93,6 +93,7 @@ let mgaussian mu var = MGaussian (mu, var)
 let mbeta alpha beta = MBeta (alpha, beta)
 let mbernoulli theta = MBernoulli theta
 
+let cbernoulli = CBernoulli
 let affine_mean_gaussian m b var = AffineMeanGaussian (m, b, var)
 
 let gaussian_mean_gaussian: float -> (mgaussiant, mgaussiant) cdistr =
