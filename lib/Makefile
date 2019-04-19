@@ -97,7 +97,7 @@ input.cmx: INCLUDES += $(LABLGTK2)
 
 random.zci: int32.zci nativeint.zci int64.zci random.zli
 
-obs.ml: obs.zls basics.zci dual.zci
+obs.ml: obs.zls basics.zci
 		$(ZELUC) $(ZELUCFLAGS) obs.zls
 
 vbool.ml: vbool.zls
