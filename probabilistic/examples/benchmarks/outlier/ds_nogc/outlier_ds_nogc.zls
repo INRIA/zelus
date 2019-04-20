@@ -22,10 +22,10 @@ let node outlier (prob, yobs) =
   in
   (get_value is_outlier, xt)
 
-let node main (tr, observed) =
+let node main particles (tr, observed) =
   let rec t = 1. fby (t +. 1.) in
 
-  let x_d = infer (Aux.particles ()) outlier observed in
+  let x_d = infer particles outlier observed in
   let res = Aux.get_mean x_d in
 
   let error = (res  -. tr) ** 2. in

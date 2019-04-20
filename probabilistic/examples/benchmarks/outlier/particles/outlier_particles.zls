@@ -15,10 +15,10 @@ let node outlier (prob, yobs) =
         factor (prob, Distribution.score (gaussian x 1.) yobs)) in
     (is_clutter, x)
 
-let node main (tr, observed) =
+let node main particles (tr, observed) =
     let rec t = 1. fby (t +. 1.) in
   
-    let x_d = infer_dyn_resample (Aux.particles ()) outlier observed in
+    let x_d = infer (Aux.particles ()) outlier observed in
     let res = Aux.get_mean x_d in
   
     let error = (res  -. tr) ** 2. in
