@@ -33,10 +33,10 @@ $(NAME).opt: $(INFERENCE_CMXA) $(NAME).ml aux.ml run.ml
 		aux.ml $(NAME).ml run.ml
 
 $(NAME).ml : $(INFERENCE_ZCI) aux.zci $(NAME).zls
-	zeluc -I $(INFERLIB) $(NAME).zls
+	zeluc -I $(INFERLIB) -noreduce $(NAME).zls
 
 %.zci: %.zli
-	zeluc -I $(INFERLIB) $<
+	zeluc -I $(INFERLIB) -noreduce $<
 
 %.cmo: %.ml
 	ocamlc -c -I $(ZLLIB) -I $(INFERLIB) $<

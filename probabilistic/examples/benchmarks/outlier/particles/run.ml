@@ -8,7 +8,7 @@ let rec read_file _ =
 in
 
 let run inp res =
-    let Node{alloc; reset; step} = Outlier_particles.main () in
+    let Node{alloc; reset; step} = Outlier_particles.main (Aux.particles ()) in
     let state = alloc () in
     reset state;
     Random.self_init ();
@@ -30,7 +30,7 @@ in
 
 
 let runmem inp =
-    let Node{alloc; reset; step} = Outlier_particles.main () in
+    let Node{alloc; reset; step} = Outlier_particles.main (Aux.particles ()) in
     let state = alloc () in
     reset state;
     let iref = ref inp in
@@ -54,7 +54,7 @@ in
 
 
 let runacc inp =
-    let Node{alloc; reset; step} = Outlier_particles.main () in
+    let Node{alloc; reset; step} = Outlier_particles.main (Aux.particles ()) in
     let state = alloc () in
     reset state;
     Random.self_init ();
@@ -76,7 +76,7 @@ in
 
 
 let runperf inp res idx =
-    let Node{alloc; reset; step} = Outlier_particles.main () in
+    let Node{alloc; reset; step} = Outlier_particles.main (Aux.particles ()) in
     let state = alloc () in
     reset state;
     Random.self_init ();
