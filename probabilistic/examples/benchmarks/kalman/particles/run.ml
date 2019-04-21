@@ -110,7 +110,7 @@ let stats arr =
 in
 
 let do_runacc inp =
-    let num_runs = 1000 in
+    let num_runs = 100 in
     let ret : float array = Array.make num_runs 0.0 in
 
     
@@ -130,7 +130,7 @@ in
 
 let do_runperf inp =
     let steps = List.length inp in
-    let num_runs = 1000 in
+    let num_runs = 100 in
     let len = (steps * num_runs) in
 
     let ret : float array = Array.make len 0.0 in
@@ -145,7 +145,7 @@ in
 
 let do_runperf_step inp =
     let steps = List.length inp in
-    let num_runs = 1000 in
+    let num_runs = 100 in
     let len = (steps * num_runs) in
 
     let ret : float array = Array.make len 0.0 in
