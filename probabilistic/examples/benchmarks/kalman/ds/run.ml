@@ -1,11 +1,13 @@
 let warmup = ref 0 in
 let perf = ref false in
+let perf_all = ref false in
 let input = ref "" in
 let mem = ref false in
 
 Arg.parse [
     ("-w", Set_int warmup, "Numberof warmup iterations");
     ("-perf", Unit (fun _ -> perf := true), "Performance testing");
+    ("-perf-all", Unit (fun _ -> perf_all := true), "Performance testing, aggregate of runs and steps");
     ("-mem", Unit (fun _ -> mem := true), "Memory performance testing");
 ] (fun s -> input := s) "";
 
@@ -121,6 +123,20 @@ let do_runperf inp =
     agg
 in
 
+let do_runperf_all inp =
+    let steps = List.length inp in
+    let num_runs = 100 in
+    let len = (steps * num_runs) in
+
+    let ret : float array = Array.make len 0.0 in
+    let idx = ref 0 in
+    while not (!idx = len) do
+        runperf inp ret idx
+    done;
+    assert (!idx = len);
+
+    stats ret
+in
 
 let rec do_runs n inp ret =
     if n = 0 then ()
@@ -144,11 +160,16 @@ if !perf then (
         runmem inp;
         do_runs 1 inp tmp;
     ) else (
-        let ret : string array = Array.make (List.length inp) ("") in
-        let tmp : string array = Array.make (List.length inp) ("") in
-        run inp ret;
-        do_runs 1 inp tmp;
-        print_string (String.concat "" (Array.to_list ret));
-        flush stdout;
+        if !perf_all then (
+            let low, mid, high = do_runperf_all inp in
+            Printf.printf "%f, %f, %f\n" mid low high;
+        ) else (
+            let ret : string array = Array.make (List.length inp) ("") in
+            let tmp : string array = Array.make (List.length inp) ("") in
+            run inp ret;
+            do_runs 1 inp tmp;
+            print_string (String.concat "" (Array.to_list ret));
+            flush stdout;
+        )
     )
 );;
