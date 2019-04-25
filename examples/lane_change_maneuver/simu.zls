@@ -1,0 +1,36 @@
+(* Author: François Bidet *)
+
+let to_string(v) =
+    let (x,y,_,_,_,_) = v in
+    (string_of_float x) ^ ",\t" ^ (string_of_float y)
+
+let speed(v) =
+    let (_,_,_,vx,_,_) = v in
+    (string_of_float vx)
+
+let to_string_pos(t, x_rear, x_int, x_lead, x_merg) =
+    (string_of_float t) ^ ",\t" ^ to_string(x_rear) ^ ",\t" ^ to_string(x_int) ^ ",\t" ^ to_string(x_lead) ^ ",\t" ^ to_string(x_merg)
+
+let to_string_speed(t, x_rear, x_int, x_lead, x_merg) =
+    (string_of_float t) ^ "\t" ^ speed(x_rear) ^ "\t" ^ speed(x_int) ^ "\t" ^ speed(x_lead) ^ "\t" ^ speed(x_merg)
+
+let node display(t, x_rear, x_int, x_lead, x_merg) =
+    print_endline (to_string_pos(t,x_rear,x_int,x_lead,x_merg));
+    Draw.draw t x_rear x_int x_lead x_merg
+
+let hybrid four_vehicles() =
+    let der t = 1. init 0. in
+    let rear_init = (0., 3.5, 0., Constants.v_des, 0., 0.) in
+    let int_init = (Constants.gap, 3.5, 0., Constants.v_des, 0., 0.) in
+    let lead_init = (2. *. Constants.gap, 3.5, 0., Constants.v_des, 0., 0.) in
+    let merg_init = (2. *. Constants.gap, 0., 0., Constants.v_des /. 2., 0., 0.) in
+    let rec x_rear = Rear.vehicle(rear_init, x_int, x_merg)
+        and x_int = Interior.vehicle(int_init, x_lead, x_rear, x_merg)
+        and x_lead = Leader.vehicle(lead_init, x_int)
+        and x_merg = Merging.vehicle(merg_init, x_rear, x_int)
+    in
+    present(period(Constants.dt)) -> display(t, x_rear, x_int, x_lead, x_merg);
+    ()
+
+let hybrid main() =
+    four_vehicles()
