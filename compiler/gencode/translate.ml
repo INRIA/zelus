@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -171,8 +171,8 @@ let state is_read n k =
      | Deftypes.Zero ->
 	Oleft_state_primitive_access
 	  (Oleft_state_name(n), if is_read then Ozero_in else Ozero_out)
-     | Deftypes.Horizon | Deftypes.Period | Deftypes.Encore ->
-					     Oleft_state_name(n)
+     | Deftypes.Horizon | Deftypes.Period
+     | Deftypes.Encore | Deftypes.Major -> Oleft_state_name(n)
 
 (* index in an array *)
 let rec index e =
@@ -314,9 +314,10 @@ let choose env ty =
   let tuple l = Otuple(l) in
   let efalse = Oconst(Obool(false)) in
   let echar0 = Oconst(Ochar('a')) in
-  let ezero = Oconst(Oint(0)) in
-  let efzero = Oconst(Ofloat(0.0)) in
-  let estring0 = Oconst(Ostring("")) in
+  (* on purpose, take an initial value different from zero *)
+  let ezero = Oconst(Oint(42)) in
+  let efzero = Oconst(Ofloat(42.0)) in
+  let estring0 = Oconst(Ostring("aaaaaaa")) in
   let evoid = Oconst(Ovoid) in
   let eany = Oconst(Oany) in
   let vec e s = Ovec(e, s) in
