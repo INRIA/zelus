@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -97,8 +97,21 @@ and mem =
     m_combine: Lident.t option; (* combination function *)
   }
 
-and mkind = Cont | Zero | Horizon | Period | Encore
-			    
+(* the different kinds of internal state variables *)
+and mkind =
+  | Cont (* continous state variable; position + derivative *)
+  | Zero (* zero-crossing *)
+  | Horizon (* an event defined as an horizon *)
+  | Period (* an event defined as a period *)
+  | Encore (* a cascade event *)
+  | Major (* true in discrete mode; could we use Encore instead? *)
+
+and minit =
+  | NoInit (* no initialisation given *)
+  | Default of constant (* the state variable has a default value *)
+  | InitInBody (* the initial value is given in the body of equations *)
+  | InitInDeclaration of constant (* it is given at the declaration point *)
+      
 and constant =
   | Cimmediate of immediate
   | Cglobal of Lident.t
@@ -155,6 +168,7 @@ let previous mem = { mem with m_next = Some(false); m_previous = true }
 let next mem = { mem with m_next = Some(true); m_previous = false }
 let zero mem = Smem { mem with m_kind = Some Zero }
 let horizon mem = Smem (previous { mem with m_kind = Some Horizon })
+let major () = Smem { empty_mem with m_kind = Some Major }
 let default v_opt c_opt = Svar { v_combine = c_opt; v_default = v_opt }
 let imem = initialized empty_mem
 let cmem c_opt mem = { mem with m_combine = c_opt }
