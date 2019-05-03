@@ -182,6 +182,9 @@ let compile modname filename =
 	step "Translation of periods done. See below:"
 	     Period.implementation_list impl_list in
       let impl_list =
+	step "Translation of disc done. See below:"
+	     Disc.implementation_list impl_list in
+      let impl_list =
 	step
 	  "Compilation of memories (fby/pre/next) into (init/last). See below:"
 	     Pre.implementation_list impl_list in
@@ -243,7 +246,7 @@ let compile modname filename =
 	 comment "Translation done. See below:";
 	 Oprinter.implementation_list info_ff obc_list
        end;
-     let obc_list = Inout2.implementation_list obc_list in
+     let obc_list = Inout.implementation_list obc_list in
      if !verbose
      then begin
 	 comment "Add code to read/write continuous states and zero-crossings \
