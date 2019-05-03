@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -155,7 +155,8 @@ let print_vardec_list ff vardec_list =
 let kind k =
   match k with
   | Cont -> "cont" | Zero -> "zero"
-  | Period -> "period" | Horizon -> "horizon" | Encore -> "encore"
+  | Period -> "period" | Horizon -> "horizon"
+  | Encore -> "encore" | Major -> "major"
 
 let print_binding ff (n, { t_sort = sort; t_typ = typ }) =
   let default ff v = fprintf ff " default %a" constant v in
@@ -273,7 +274,7 @@ let rec expression ff e =
         fprintf ff "@[<v 0>%a@ %a@]" local l expression e
     | Eblock(b, e) ->
        fprintf ff "@[<v 0>%a@ %a@]"
-	       (block_equation_list "do " "in") b expression e
+	       (block_equation_list "do " " in") b expression e
     | Etypeconstraint(e, typ) ->
         fprintf ff "@[(%a: %a)@]" expression e ptype typ
     | Eseq(e1, e2) ->
