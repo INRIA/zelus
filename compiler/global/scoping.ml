@@ -734,20 +734,22 @@ and equation env_pat env eq_list { desc = desc; loc = loc } =
       pmake Location.no_location (Zelus.Econstpat(Deftypes.Ebool(true))) in
     let pfalse =
       pmake Location.no_location (Zelus.Econstpat(Deftypes.Ebool(false))) in
+    let e = expression env e in
     let true_handler = { Zelus.m_pat = ptrue; 
 			 Zelus.m_body = snd (block_eq_list env_pat env b1);
 			 Zelus.m_env = Env.empty;
 			 Zelus.m_reset = false; Zelus.m_zero = false } in
-    let false_handler =
+    let total, handlers =
       match b2_opt with
-      | None -> []
-      | Some(b2) -> [{ Zelus.m_pat = pfalse; 
-		       Zelus.m_body = snd (block_eq_list env_pat env b2);
-		       Zelus.m_env = Env.empty;
-		       Zelus.m_reset = false; Zelus.m_zero = false }] in
-    eqmake loc
-	   (Zelus.EQmatch(ref true, expression env e,
-		     true_handler :: false_handler)) :: eq_list
+      | None -> false, [true_handler]	 
+      | Some(b2) ->
+	 let false_handler =
+	   { Zelus.m_pat = pfalse; 
+	      Zelus.m_body = snd (block_eq_list env_pat env b2);
+	      Zelus.m_env = Env.empty;
+	      Zelus.m_reset = false; Zelus.m_zero = false } in
+	 true, [true_handler; false_handler] in
+    eqmake loc (Zelus.EQmatch(ref total, e, handlers)) :: eq_list
   | EQpresent(p_h_list, b_opt) ->
      let b_opt =
        optional_map (fun b -> snd (block_eq_list env_pat env b)) b_opt in
