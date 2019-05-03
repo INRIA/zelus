@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -382,15 +382,13 @@ let palloc f i_opt memories ff instances =
        (* discrete state variable *)
        begin
 	 match e_opt with
-         | None -> fprintf ff "@[%a = %a@]"
-			   name n
-			   (array_make
-			      (fun ff _ -> fprintf ff "(Obj.magic (): %a)"
-						   ptype ty) ())
-			   m_size
+         | None ->
+	    fprintf ff "@[%a = %a@]" name n
+		    (array_make (fun ff _ -> fprintf ff "(Obj.magic (): %a)"
+						     ptype ty) ())
+		    m_size
          | Some(e) ->
-	    fprintf ff "@[%a = %a@]"
-		    name n
+	    fprintf ff "@[%a = %a@]" name n
 		    (array_make exp_with_typ (e, ty)) m_size
        end
     | Some(m) ->
@@ -402,10 +400,11 @@ let palloc f i_opt memories ff instances =
 		  m_size
        | Deftypes.Cont ->
 	  fprintf ff "@[%a = @[<hov 2>{ pos = %a; der = %a }@]@]"
-		  name n (array_of e_opt ty) m_size (array_of e_opt ty) m_size
-       | Deftypes.Horizon | Deftypes.Period ->
-	  fprintf ff "%a = %a" name n (array_of e_opt ty) m_size
-       | Deftypes.Encore ->
+		  name n (array_of e_opt ty) m_size
+		  (* the default value of a derivative must be zero *)
+		  (array_of (Some(Oconst(Ofloat(0.0)))) ty) m_size
+       | Deftypes.Horizon | Deftypes.Period
+       | Deftypes.Encore | Deftypes.Major ->
 	  fprintf ff "%a = %a" name n (array_of e_opt ty) m_size in
 
   let print_instance ff { i_name = n; i_machine = ei;
@@ -431,6 +430,75 @@ let palloc f i_opt memories ff instances =
             (print_list_r print_memory """;"";") memories
             (print_list_r print_instance """;""") instances
 
+(* An attempt for a copy method that recursively copy an internal state. *)
+(* This solution does not work at the moment when the program has *)
+(* forall loops. *)
+(* [copy source dest] recursively copies the containt of [source] into [dest] *)
+let pcopy f memories ff instances =
+  (* copy a memory [n] which is an array t[s1]...[sn] *)
+  let array_copy print ff ie_size =
+    let rec array_rec print ff = function
+      | [] -> print ff ()
+      | _ :: ie_size ->
+	 fprintf ff "@[<hov>Array.map (fun xi -> %a) %a@]"
+		 (array_rec (fun ff _ -> fprintf ff "xi")) ie_size print () in
+    match ie_size with
+    | [] -> print ff ()
+    | _ -> array_rec print ff ie_size in
+  
+  let copy_memory ff
+		  { m_name = n; m_kind = k_opt; m_typ = ty; m_size = m_size } =
+    match k_opt with
+    | None ->
+       (* discrete state variable *)
+       fprintf ff "@[dest.%a <- %a@]" name n
+	       (array_copy (fun ff _ -> fprintf ff "source.%a" name n)) m_size
+    | Some(m) ->
+       match m with
+       | Deftypes.Zero ->
+	  fprintf ff "@[<hov0>dest.%a.zin <- %a;@,dest.%a.zout <- %a }@]"
+		  name n
+		  (array_copy (fun ff _ -> fprintf ff "source.%a.zin" name n))
+		  m_size
+		  name n
+		  (array_copy (fun ff _ -> fprintf ff "source.%a.zout" name n))
+		  m_size
+       | Deftypes.Cont ->
+	  fprintf ff "@[<hov0>dest.%a.pos <- %a;@,dest.%a.der <- %a }@]"
+		  name n
+		  (array_copy (fun ff _ -> fprintf ff "source.%a.pos" name n))
+		  m_size
+		  name n
+		  (array_copy (fun ff _ -> fprintf ff "source.%a.der" name n))
+		  m_size
+       | Deftypes.Horizon | Deftypes.Period
+       | Deftypes.Encore | Deftypes.Major ->
+	  fprintf ff "@[dest.%a <- source.%a@]" name n name n in
+  let copy_instance ff { i_name = n; i_machine = ei;
+			  i_kind = k; i_params = e_list; i_size = ie_size } =
+    fprintf ff "@[%a (* %s *)@]"
+	    (array_make
+	       (fun ff n ->
+		fprintf ff "@[%a_copy source.%a dest.%a@]" name n name n name n)
+	       n)
+	    ie_size (kind k)  in
+  if memories = []
+  then if instances = []
+       then fprintf ff "@[let %s_copy source dest = () in@]" f
+       else
+         fprintf ff "@[<v 2>let %s_copy source dest =@ @[%a@] in@]"
+                 f (Ptypes.print_record copy_instance) instances
+  else if instances = []
+  then
+    fprintf ff "@[<v 2>let %s_copy source dest =@ @[%a@] in@]"
+            f (print_list_r copy_memory "" ";" "") memories
+  else
+    fprintf ff "@[<v 2>let %s_copy source dest =@ @[%a@,%a@] in@]"
+            f
+            (print_list_r copy_memory "" ";" ";") memories
+            (print_list_r copy_instance "" ";" "") instances
+
+	    
 (* print an entry [let n_alloc, n_step, n_reset, ... = f ... in] *)
 (* for every instance *)
 let def_instance_function ff { i_name = n; i_machine = ei; i_kind = k;
@@ -445,7 +513,8 @@ let def_instance_function ff { i_name = n; i_machine = ei; i_kind = k;
   match k with
   | Deftypes.Tstatic _ | Deftypes.Tany | Deftypes.Tdiscrete(false) -> ()
   | _ -> let k, m_name_list = constructor_for_kind k in
-	 fprintf ff "@[let %s { alloc = %a_alloc; %a } = %a %a in@]"
+	 fprintf ff
+		 "@[let %s { alloc = %a_alloc; %a } = %a %a in@]"
 		 k name n list_of_methods m_name_list
 		 (exp 0) ei (print_list_r (exp 1) "" " " "") e_list
 
@@ -489,6 +558,7 @@ let machine f ff { ma_kind = k;
 	  pattern_list pat_list
 	  (print_list_r def_instance_function "" "" "") instances
 	  (palloc f i_opt memories) instances
+	  (* (pcopy f memories) instances *)
 	  (print_list_r (pmethod f) """""") m_list
 	  tuple_of_methods m_list
 
