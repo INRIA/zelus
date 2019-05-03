@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -86,7 +86,7 @@ let emit_prelude ff ({ Lident.id = id } as qualid) k =
           let main = \
             @[let Node { alloc = alloc; step = step; reset = reset } = %s in @,\
               let mem = alloc () in @,\
-              reset mem;@,\
+              reset mem; @,\
               fun _ -> step mem ();;@]@.@]" s
 
   | Deftypes.Tcont ->
@@ -99,42 +99,39 @@ let emit_prelude ff ({ Lident.id = id } as qualid) k =
               @[<hov2>let cstate = @,\
                        @[<hov2>{ dvec = cmake 0; cvec = cmake 0; @,\
                          zinvec = zmake 0; zoutvec = cmake 0; @,\
-                         cstart = 0; zstart = 0; @,\
+                         cindex = 0; zindex = 0; @,\
                          cend = 0; zend = 0; @,\
-                         discrete = false; horizon = 0.0 }@] in@] @,\
+                         cmax = 0; zmax = 0; @,\
+                         major = false; horizon = 0.0 }@] in@] @,\
               @[<hov2>let Node \
                  { alloc = alloc; step = hstep; reset = reset } = \ 
                      %s cstate in@] @,\
               @[<hov2>let step mem cvec dvec zin t = @,\
-                      @[cstate.discrete <- true; @,\
+                      @[cstate.major <- true; @,\
                         cstate.cvec <- cvec; @,\
                         cstate.dvec <- dvec; @,\
-                        cstate.cstart <- 0; @,\
-                        cstate.zstart <- 0; @,\
-                        cstate.cend <- 0; @,\
-                        cstate.zend <- 0; @,\
+                        cstate.cindex <- 0; @,\
+                        cstate.zindex <- 0; @,\
                         cstate.horizon <- infinity;  @,\
                         hstep mem (t, ()) in@]@]@,\
               @[<hov2>let derivative mem cvec dvec zin zout t = @,\
-                      @[cstate.discrete <- false;  @,\
+                      @[cstate.major <- false;  @,\
                         cstate.cvec <- cvec; @,\
                         cstate.dvec <- dvec; @,\
                         cstate.zinvec <- zin; @,\
                         cstate.zoutvec <- zout; @,\
-                        cstate.cstart <- 0; @,\
-                        cstate.zstart <- 0; @,\
-                        cstate.cend <- 0; @,\
-                        cstate.zend <- 0; @,\
+                        cstate.cindex <- 0; @,\
+                        cstate.zindex <- 0; @,\
                         ignore (hstep mem (t, ())) in@]@]@,\
               @[<hov2>let crossings mem cvec zin zout t = @ \
-                      @[cstate.discrete <- false;  @,\
+                      @[cstate.major <- false;  @,\
                         cstate.cvec <- cvec; @,\
                         cstate.zinvec <- zin; @,\
                         cstate.zoutvec <- zout; @,\
-                        cstate.cstart <- 0; @,\
-                        cstate.zstart <- 0; @,\
+                        cstate.cindex <- 0; @,\
+                        cstate.zindex <- 0; @,\
                         ignore (hstep mem (t, ())) in@]@]@,\
-              @[<hov2>let maxsize mem = cstate.cend, cstate.zend in@]@,\
+              @[<hov2>let maxsize mem = cstate.cmax, cstate.zmax in@]@,\
               @[<hov2>let csize mem = cstate.cend in@]@,\
               @[<hov2>let zsize mem = cstate.zend in@]@,\
               @[<hov2>let horizon mem = cstate.horizon in@]@,\
