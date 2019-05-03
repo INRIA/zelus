@@ -101,7 +101,7 @@ let less_for_var loc n actual_ti expected_ti =
 (* if [x] is defined by [init x = e] then
  *- [x] is initialized; [last x: 0] if [x] declared in a discrete
  *- context; [last x: a] otherwise.
- *- when [x = e] then [1/2 < a] if the equation is activated in discrete time *)
+ *- when [x = e] then [1/2 < a] if the equation is activated in continuous time *)
 let build_env loc is_continuous l_env env =
   let entry x { Deftypes.t_sort = sort; Deftypes.t_typ = ty } =
     match sort with
@@ -118,6 +118,9 @@ let build_env loc is_continuous l_env env =
         let lv, iv =
           if is_continuous then Init.new_var (), izero else izero, izero in
         { t_last = lv; t_typ = Init.skeleton_on_i iv ty }
+    | Svar { v_default = Some _ } ->
+       (* [t_last] is useless. *)
+       { t_last = ione; t_typ = Init.skeleton_on_i (Init.new_var ()) ty }
     | Svar _ ->
         { t_last = izero; t_typ = Init.skeleton_on_i (Init.new_var ()) ty }
     | Smem { m_previous = true } ->
