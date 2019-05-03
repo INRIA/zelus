@@ -28,10 +28,13 @@ hybrid ball(x_0, y_0) = (x, y, y_start) where
       do 
         y = y0
       and
-        der x' = -0.2 *. x'
+          automaton
+	  | Slide -> do der x' = -0.1 until up(-0.01 -. x') then Stop
+	  | Stop -> do x' = 0.0 done
+	  end
       until up(x -. x0) then do y_start = y in Bouncing
   end
-      
+
 (* Main entry point *)
 let hybrid main () =
   let (x, y, y_start) = ball(x_0, y_0) in

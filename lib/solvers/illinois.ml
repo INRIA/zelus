@@ -101,26 +101,28 @@ let reinitialize ({ g; f1 = f1; t1 = t1 } as s) t c =
                   log_limit s.f1);
   s.bothf_valid  <- false
 
+let initialize_only nroots g c =
+  {
+    g = g;
+    bothf_valid  = false;
+    
+    f0 = Zls.cmake nroots;
+    t0 = 0.0;
+    
+    f1 = Zls.cmake nroots;
+    t1 = 0.0;
+    
+    fta = Zls.cmake nroots;
+    ftb = Zls.cmake nroots;
+    
+    calc_zc = get_check_root Up;
+  }
+
 let initialize nroots g c =
-  let s =
-    {
-        g = g;
-        bothf_valid  = false;
-
-        f0 = Zls.cmake nroots;
-        t0 = 0.0;
-
-        f1 = Zls.cmake nroots;
-        t1 = 0.0;
-
-        fta = Zls.cmake nroots;
-        ftb = Zls.cmake nroots;
-
-        calc_zc = get_check_root Up;
-    }
-  in
+  let s = initialize_only nroots g c in
   reinitialize s 0.0 c;
   s
+
 
 let num_roots { f0 } = Zls.length f0
 

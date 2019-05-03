@@ -1,4 +1,4 @@
-type t2 = bool
+type t2 = int
 
 let ff(x:t2) = 1 + x
 

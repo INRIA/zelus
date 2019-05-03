@@ -18,24 +18,11 @@ let length = Array1.dim
 let get = Array1.get
 let set = Array1.set
 let get_zin v i = Array1.get v i <> 0l
-
-(* global variables read/write by the *)
-(* step functions *)
-(*
-let cvec = ref (cmake 0)
-let dvec = ref (cmake 0)
-let zinvec = ref (zmake 0)
-let zoutvec = ref (cmake 0)
-let cindex = ref 0
-let cmax = ref 0
-let zindex = ref 0
-let zmax = ref 0
-let discrete = ref true
-let horizon = ref infinity
-
-let set_horizon x =
-  horizon := min !horizon x
- *)
+(* fill zinvec with zeros *)
+let zzero zinvec length =
+  for i = 0 to length - 1 do
+    Array1.set zinvec i 0l
+  done
 				      
 type 's f_alloc = unit -> 's
 type 's f_maxsize = 's -> int * int
@@ -142,6 +129,9 @@ module type ZEROC_SOLVER =
 
        Sets the 'now' vector to cvec0. *)
     val initialize   : int -> zcfn -> carray -> t
+
+    (* The same but does not run [g] at initialization time *)
+    val initialize_only   : int -> zcfn -> carray -> t
 
     (* Reinitialize the zero-crossing solver after a discrete step that
        updates the continuous states directly: [reinitialize s t cvec].

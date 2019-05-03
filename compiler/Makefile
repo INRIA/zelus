@@ -6,7 +6,7 @@
 #                                                                        #
 #                    Marc Pouzet and Timothy Bourke                      #
 #                                                                        #
-#  Copyright 2012 - 2018. All rights reserved.                           #
+#  Copyright 2012 - 2019. All rights reserved.                           #
 #                                                                        #
 #  This file is distributed under the terms of the CeCILL-C licence      #
 #                                                                        #
@@ -70,6 +70,7 @@ REWRITE = rewrite/markfunctions.cmo \
         rewrite/activate.cmo \
 	rewrite/present.cmo \
 	rewrite/period.cmo \
+	rewrite/disc.cmo \
 	rewrite/pre.cmo \
 	rewrite/letin.cmo \
 	rewrite/reset.cmo \
@@ -92,7 +93,7 @@ GENCODE = gencode/sol.cmo \
 	  gencode/oprinter.cmo \
 	  gencode/ocamlprinter.cmo \
 	  gencode/translate.cmo \
-	  gencode/inout2.cmo	  
+	  gencode/inout.cmo	  
 
 VERIF = verif/lmm.cmo \
 	verif/plmm.cmo \

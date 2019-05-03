@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -41,6 +41,7 @@ type error =
   | Ealready_in_forall of Ident.t
   | Einit_undefined of Ident.t
   | Elast_forbidden of Ident.t
+  | Eder_forbidden of Ident.t
   | Enext_forbidden of Ident.t
   | Eshould_be_a_signal of Ident.t * typ
   | Ecannot_be_set of bool * Ident.t
@@ -137,7 +138,13 @@ let message loc kind =
   | Elast_forbidden(s) ->
      eprintf
        "@[%aType error: last %s is forbidden. This is either @,\
-        because %s is not a state variable or the next value is set.@.@]"
+        because %s is not a state variable or next %s is defined.@.@]"
+       output_location loc
+       (Ident.source s) (Ident.source s) (Ident.source s)
+  | Eder_forbidden(s) ->
+     eprintf
+       "@[%aType error: der %s is forbidden because \
+        %s is not a state variable.@.@]"
        output_location loc
        (Ident.source s) (Ident.source s)
   | Enext_forbidden(s) ->

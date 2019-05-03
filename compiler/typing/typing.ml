@@ -175,7 +175,7 @@ let last loc h n =
   (* [last n] is allowed only if [n] is a state variable *)
   begin match sort with
   | Sstatic | Sval | Svar _ | Smem { m_next = Some(true) } ->
-     error loc (Elast_forbidden(n))
+			       error loc (Elast_forbidden(n))
   | Smem (m) ->
      entry.t_sort <- Smem { m with m_previous = true }
   end; typ
@@ -183,8 +183,10 @@ let last loc h n =
 (* Typing [der n = ...] *)
 let derivative loc h n =
   let { t_typ = typ; t_sort = sort } as entry = var loc h n in
+  (* [der n] is allowed only if [n] is a state variable *)
   match sort with
-  | Sstatic | Sval | Svar _ -> assert false
+  | Sstatic | Sval | Svar _ ->
+		      error loc (Eder_forbidden(n))
   | Smem(m) -> entry.t_sort <- Smem { m with m_kind = Some(Cont) }; typ
 
 (* Typing [n += ...] *)

@@ -14,7 +14,7 @@ let hybrid g () = (sin, cos, sin_cos) where
           do sin = 0.0 and cos = 0.0
           until z then Mode1
       end
-  and z = period (100.0)
+  and z = period (10.0|100.0)
   and sin_cos = sin *. sin +. cos *. cos
     
 open Scope

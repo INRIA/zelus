@@ -1,12 +1,27 @@
-let hybrid f(x) =
-  let rec der z = x +. 1.0 +. x init 0.0 in
-  let rec der k = z +. 3.0 init 0.0 reset up(z) -> 42.0 in
-  k +. z +. 2.0
-
-let hybrid main () =
-  let o = f(0.0) in
-  present (period (0.0 | 1.0)) -> print_float o init ()
-    
+let hybrid g(c1, c2) =
+  local x init 45.0
+  do
+    reset
+      automaton
+      | Zero -> do until c1 then One
+      | One -> do der x = 1.0 done
+      end
+    every c2
+  in x
+  
+(*
+let node integr (dt, x') = x where
+  rec x = 0.0 -> dt *. x' +. (pre x)
+		  *)
+      
+(*
+let node main () =
+  let rec next_t, r = Node.solve f 20.0 (20.0, 20.0) in
+  match r with
+  | Node.Cascade(v) -> (print_float v; print_newline ())
+  | _ -> (print_string "Horizon = "; print_float next_t; print_newline ())
+ *)
+  
     (*
 
 let node f(x26, y26) =

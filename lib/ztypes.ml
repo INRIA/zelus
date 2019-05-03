@@ -22,16 +22,6 @@ type ('a, 'b) zerocrossing = { mutable zin: 'a; mutable zout: 'b }
 
 type 'a signal = 'a * bool
 type zero = bool
-
-(*
-type ('a, 'b) hybrid =
-    Hybrid:
-      { alloc : unit -> 's; (* allocate the state *)
-        step : 's -> 'a -> 'b; (* compute a step *)
-        reset : 's -> unit; (* reset/inialize the state *)
-      } -> ('a, 'b) hybrid
- *)
-	      
 type ('a, 'b) node =
     Node:
       { alloc : unit -> 's; (* allocate the state *)
@@ -55,12 +45,14 @@ type cstate =
                              solver has detected a zero-crossing *)
     mutable zoutvec : zoutvec; (* the corresponding vector that define
                                zero-crossings *)
-    mutable cstart : int; (* the start position in the vector of positions *)
-    mutable zstart : int; (* the start position in the vector of zero-crossings *)
-    mutable cend : int; (* the maximum size of the vector of positions *)
-    mutable zend : int; (* the maximum number of zero-crossings *)
+    mutable cindex : int; (* the position in the vector of positions *)
+    mutable zindex : int; (* the position in the vector of zero-crossings *)
+    mutable cend : int; (* the end of the vector of positions *)
+    mutable zend : int; (* the end of the zero-crossing vector *)
+    mutable cmax : int; (* the maximum size of the vector of positions *)
+    mutable zmax : int; (* the maximum number of zero-crossings *)
     mutable horizon : float; (* the next horizon *)
-    mutable discrete : bool; (* integration iff [discrete = false] *)
+    mutable major : bool; (* integration iff [major = false] *)
   }
 
 type ('a, 'b) hnode =
@@ -99,20 +91,3 @@ type 'o hsimu =
         horizon : 's -> time;
         (* gives the next time horizon *)
       } -> 'o hsimu
-
-(* The interface with the solver *)
-(* Warning: this interface is not used for the moment *)
-(* type cstate =
-  { mutable dvec : dvec; (* the vector of derivatives *)
-    mutable cvec : cvec; (* the vector of positions *)
-    mutable zin : zinvec; (* the vector of boolean; true when the
-                             solver has detected a zero-crossing *)
-    mutable zout : zoutvec; (* the corresponding vector that define
-                               zero-crossings *)
-    mutable cpos : int; (* the start position in the vector of positions *)
-    mutable zpos : int; (* the start position in the vector of zero-crossings *)
-    mutable cmax : int; (* the maximum size of the vector of positions *)
-    mutable zmax : int; (* the maximum number of zero-crossings *)
-    mutable horizon : float; (* the next horizon *)
-    mutable discrete : bool; (* integration when true *)
-  }  *)

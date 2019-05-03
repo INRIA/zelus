@@ -13,7 +13,6 @@ let node model (prob, obs_gym) = action where
   and display = draw_obs_back obs
 
 let node smart_main () = () where
-  rec reset action = Infer.plan 10 10 model obs
-      every true
+  rec reset action = Infer.plan 10 10 model obs  every true
   and obs, _, stop = cart_pole_gym true (Right fby action)
   and display = draw_obs_front obs

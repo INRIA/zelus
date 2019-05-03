@@ -1,4 +1,4 @@
-ZELUC=../../../bin/zeluc
+ZELUC=zeluc
 ZLLIB=$(shell $(ZELUC) -where)
 INFERLIB=../../inference
 
