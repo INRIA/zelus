@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -25,8 +25,6 @@
 (*  and h = if z then last h + v2 else last h + (time - last time) *)
 (*  and z = time >= last h in *)
 (*  z *)
-
-(* [disc(e)] is translated into [false -> d on (e <> last e)] *)
 
 (* [timer(v)] is translated into *)
 (* [local [horizon] h, z *)
@@ -89,28 +87,6 @@ let period time { p_phase = p1_opt; p_period = p2 } =
      eq_make z (greater_or_equal (float_var time) (float_last h))] in
   make_let env eq_list (bool_var z)
 
-(* Translation of discrete zero-crossings into synchronous code *)
-(* Use an unsafe construction "major_step" *)
-let major_step =
-  Zaux.emake (Eapp(Zaux.prime_app,
-		   Zaux.emake
-                         (Zaux.global (Modname { qual = "Basics";
-					         id = "major_step" }))
-                         (Zaux.maketype [Initial.typ_unit] Initial.typ_zero),
-                   [Zaux.evoid])) 
-    Initial.typ_zero
-    
-let disc e =
-  let on_op z e = Zaux.and_op z e in
-  if Unsafe.exp e
-  then (* disc(e)] = [let x = e in d on (x <> (x fby x))] *)
-    let x = Ident.fresh "x" in
-    let env = Env.singleton x { t_sort = Deftypes.value;
-				t_typ = e.e_typ } in
-    let xv = var x e.e_typ in
-    make_let env [eq_make x e] (on_op major_step (diff xv (fby xv xv)))
-  else on_op major_step (diff e (fby e e))
-
 (* Add an extra input parameter for hybrid nodes *)
 let extra_input time env pat = 
   Env.add time { t_sort = Deftypes.value; t_typ = Initial.typ_float } env,
@@ -122,7 +98,6 @@ let rec expression time ({ e_desc = e_desc } as e) =
   | Eperiod({ p_phase = opt_p1; p_period = p2 }) ->
      period time { p_phase = Misc.optional_map (expression time) opt_p1;
 		   p_period = expression time p2 }
-  | Eop(Edisc, [e]) -> disc (expression time e)
   | Eop(op, e_list) ->
      { e with e_desc = Eop(op, List.map (expression time) e_list) }
   | Eapp(app, op, e_list) ->

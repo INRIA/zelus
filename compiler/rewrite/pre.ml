@@ -16,7 +16,7 @@
 
 (* Translation of fby/pre/next/up into init/last *)
 (* After this pass equations are of the form: *)
-(* eq ::= x = e | x = e | der x = e | x = up(e) *)
+(* eq ::= x = e | x = e | der x = e | x = up(e) | y = f(e) *)
 (*              | init x = e *)
 (*              | match e with P1 -> b1 | ... Pn -> bn *)
 (*
@@ -33,6 +33,8 @@
     [e1 -> e2] => [let x = e1 -> e2 in x]
 
     [horizon(e)] => [let x = horizon(e) in x]
+
+    [f(e)] => let x = f(e) in x
 *)
 
 open Misc
@@ -43,6 +45,11 @@ open Ident
 open Zaux
 
 (* Defines a value [let x = e in e_let] *)
+let let_value e =
+  let x = Ident.fresh "x" in
+  let l_env = Env.singleton x (Deftypes.entry Sval e.e_typ) in
+  Zaux.make_let l_env [Zaux.eq_make x e] (var x e.e_typ)
+
 let let_value e =
   let x = Ident.fresh "x" in
   let l_env = Env.singleton x (Deftypes.entry Sval e.e_typ) in
@@ -106,6 +113,15 @@ let rec exp e =
      let e_list = List.map exp e_list in
      (* turns it into [let m = op(e1,...,en) in x] *)
      let_value { e with e_desc = Eop(op, e_list) }
+  | Eop(Eifthenelse, [e1; e2; e3]) ->
+     let e1 = exp e1 in
+     let e2 = exp e2 in
+     let e3 = exp e3 in
+     (* if [e2] (and [e3]) is stateful, name the result *)
+     { e with e_desc =
+		Eop(Eifthenelse,
+		    [e1; if Unsafe.exp e2 then let_value e2 else e2;
+		     if Unsafe.exp e3 then let_value e3 else e3]) }
   | Eop(Eunarypre, [e1]) ->
      let e1 = exp e1 in
      (* turns it into [let rec m = e1 and x = last m in x] *)

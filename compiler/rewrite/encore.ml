@@ -107,7 +107,7 @@ let expression env ({ e_desc = desc } as e) =
        match encore_opt with
        | None -> { l with l_eq = eq_list; l_env = l_env }
        | Some(encore) ->
-	 (* declaration of [encore: bool default infinity] *)
+	 (* declaration of [encore: bool default false] *)
 	 let sort =
 	   Deftypes.default
 	     (Some(Deftypes.Cimmediate(Deftypes.Ebool(false)))) None in

@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -967,9 +967,9 @@ expression_desc:
       { Elet(true, defs, e) }
   | PERIOD p = period_expression
       { Eperiod(p) }
-  | AUTOMATON opt_bar a = automaton_handlers(expression)
+  | AUTOMATON opt_bar a = automaton_handlers(seq_expression)
       { Eautomaton(List.rev a, None) }
-  | AUTOMATON opt_bar a = automaton_handlers(expression) INIT s = state
+  | AUTOMATON opt_bar a = automaton_handlers(seq_expression) INIT s = state
       { Eautomaton(List.rev a, Some(s)) }
   | MATCH e = seq_expression WITH opt_bar m = match_handlers(expression) opt_end
       { Ematch(e, List.rev m) }
@@ -977,7 +977,7 @@ expression_desc:
       { Epresent(List.rev pe, None) }
   | PRESENT opt_bar pe = present_handlers(expression) INIT e = expression
       { Epresent(List.rev pe, Some(Init(e))) }
-  | PRESENT opt_bar pe = present_handlers(expression) ELSE e = expression opt_end
+  | PRESENT opt_bar pe = present_handlers(expression) ELSE e = seq_expression opt_end
       { Epresent(List.rev pe, Some(Default(e))) }
   | RESET e = seq_expression EVERY r = expression
       { Ereset(e, r) }
