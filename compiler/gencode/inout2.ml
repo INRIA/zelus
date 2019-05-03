@@ -15,6 +15,7 @@
 (**************************************************************************)
 
 (* add extra code for in-place modification of the continuous state vector *)
+(* see Ztypes.ml *)
 
 (* A continuous machine of the form                *)
 (* machine m s1 ... =                              *)
@@ -30,8 +31,6 @@
 (*    instance (discrete (j_i: f_i)_{i in J}               *)
 (*    instance (continuous (j_i: f'_i cstate)_{i in J'}    *)
 (*    method (meth_l p_l = e_l')_{l in L}                  *)
-(*    method csize = ...                                   *)
-(*    method zsize = ...                                   *)
 (*                                                         *)
 (* the body of the step method is extended to read/write   *)
 (* entries from the following data-structure               *)
@@ -39,10 +38,12 @@
 (* type cstate =
  *-  { mutable dvec : float array;
  *-    mutable cvec : float array;
- *-    mutable zin : bool array;
- *-    mutable zout : float array;
- *-    mutable cpos : int;
- *-    mutable zpos : int;
+ *-    mutable zinvec : bool array;
+ *-    mutable zoutvec : float array;
+ *-    mutable cindex : int;
+ *-    mutable zindex : int;
+ *-    mutable cend : int;
+ *-    mutable zend : int;
  *-    mutable cmax : int;
  *-    mutable zmax : int;
  *-    mutable horizon : float;
@@ -57,10 +58,11 @@
  *- rewrite it into:
  *-
  *- method step(arg1,...,argl) =
- *-    let c_start = cstate.cpos in (* current position of the cvector *)
+ *-    let c_start = cstate.cindex in (* current position of the cvector *)
  *-    var cpos = c_start in
- *-    let z_start = cstate.zpos in (* current position of the zvector *)
- *-    cstate.cpos <- cstate.cpos + csize; cstate.zpos <- cstate.zpos + zsize;
+ *-    let z_start = cstate.zindex in (* current position of the zvector *)
+ *-    cstate.cindex <- cstate.cindex + csize; 
+ *-    cstate.zindex <- cstate.zindex + zsize;
  *-    var zpos = z_start in
  *-    if cstate.discrete then 
  *-        dzero cstate.dvec c_start csize (* set all speeds to 0.0 *)
@@ -198,10 +200,10 @@ let incr cstate field ie =
   Oassign(Oleft_record_access(Oleft_name cstate, Name(field)),
           oplus (Orecord_access(Olocal(cstate), Name(field))) ie)
              
-let cend cstate ie = incr cstate "cend" ie
-let zend cstate ie = incr cstate "zend" ie
-let cincr cstate ie = incr cstate "cstart" ie
-let zincr cstate ie = incr cstate "zstartpos" ie
+let cmax cstate ie = incr cstate "cmax" ie
+let zmax cstate ie = incr cstate "zmax" ie
+let cincr cstate ie = incr cstate "cindex" ie
+let zincr cstate ie = incr cstate "zindex" ie
 
 let discrete cstate = Orecord_access(varmut cstate, Name("discrete"))
 			
@@ -414,12 +416,12 @@ let machine f
     
     (* add initialization code to [e_opt] *)
     let i_opt =
-      maxsize (cend cstate) csize (maxsize (zend cstate) zsize i_opt) in
+      maxsize (cmax cstate) csize (maxsize (zmax cstate) zsize i_opt) in
           
-    let c_start = Ident.fresh "c_start" in
-    let z_start = Ident.fresh "z_start" in
-    let cstate_cpos = Orecord_access(varmut cstate, Name("cstart")) in
-    let cstate_zpos = Orecord_access(varmut cstate, Name("zstart")) in
+    let c_start = Ident.fresh "cindex" in
+    let z_start = Ident.fresh "zindex" in
+    let cstate_cpos = Orecord_access(varmut cstate, Name("cindex")) in
+    let cstate_zpos = Orecord_access(varmut cstate, Name("zindex")) in
     
     let cpos = Ident.fresh "cpos" in
     let zpos = Ident.fresh "zpos" in
@@ -444,8 +446,8 @@ let machine f
               (oletvar_only
                  z_is_not_zero zpos Initial.typ_int (local z_start)
 		 (sequence
-		    [only c_is_not_zero (incr cstate "cend" csize);
-                     only z_is_not_zero (incr cstate "zend" zsize);
+		    [only c_is_not_zero (incr cstate "cindex" csize);
+                     only z_is_not_zero (incr cstate "zindex" zsize);
 		     ifthenelse
                        (discrete cstate) (set_dvec_to_zero cstate c_start csize)
 		       (only c_is_not_zero (cin ctable cstate cpos));
