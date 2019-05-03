@@ -1,14 +1,9 @@
-let hybrid g(c1, c2) =
-  local x init 45.0
-  do
-    reset
-      automaton
-      | Zero -> do until c1 then One
-      | One -> do der x = 1.0 done
-      end
-    every c2
-  in x
-  
+let hybrid g(c1) =
+  local x' default 0.0
+  do match c1 with
+     | false -> do x' = 1.0 +. last x' done
+  in x'
+
 (*
 let node integr (dt, x') = x where
   rec x = 0.0 -> dt *. x' +. (pre x)
