@@ -1,0 +1,77 @@
+type vbool = bool * float
+
+discrete check_vbool (b,f) = f >= 0.
+
+(* *)
+
+let top = (true, infinity)
+let bottom = (false, neg_infinity)
+
+let good f = (true, f)
+let bad f = (true, f)
+
+let howTrue (b, f) = if b then (1. +. f) else (-1. -. f)
+
+(* constructors *)
+
+discrete lt (x,y) = if x <  y then (true, y -. x) else (false, x -. y)
+discrete le (x,y) = if x <= y then (true, y -. x) else (false, x -. y)
+discrete gt (x,y) = if x >  y then (true, x -. y) else (false, y -. x)
+discrete ge (x,y) = if x >= y then (true, x -. y) else (false, y -. x)
+
+(* common operators *)
+
+let neg (b,v) = (not b, v)
+let scale (k, (b,v)) = (b, v *. k)
+
+(* used for plus_always *)
+let temporal_scale (k, (b,v)) = if b then (b, v *. k) else (b, v /. k)
+
+(* generic operators *)
+
+let generic_and (combine_true, combine_false) ((b1,v1), (b2,v2)) =
+    match b1, b2 with
+    | false, false -> (false, combine_false(v1, v2))
+    | false, true  -> (false, v1)
+    | true, false  -> (false, v2)
+    | true, true   -> (true, combine_true(v1, v2))
+node generic_always (combine_true, combine_false) v = res where
+    rec res = v -> generic_and (combine_true, combine_false) (v, v fby res)
+
+let generic_or (combine_true, combine_false) (v1, v2) =
+    neg (generic_and (combine_true, combine_false) (neg v1, neg v2))
+node generic_eventually (combine_true, combine_false) v =
+    neg (generic_always (combine_true, combine_false) (neg v))
+
+(* *)
+
+(* S-TaLiRo like *)
+
+let staliro_combine_false (v1, v2) = max v1 v2
+let staliro_combine_true  (v1, v2) = min v1 v2
+
+let staliro_and (v1, v2) =
+    generic_and (staliro_combine_true, staliro_combine_false) (v1, v2)
+node staliro_always v =
+    generic_always (staliro_combine_true, staliro_combine_false) v
+
+let staliro_or  (v1, v2) = neg (staliro_and (neg v1, neg v2))
+let staliro_imply (v1, v2) = staliro_or (neg v1, v2)
+node staliro_eventually v = neg (staliro_always (neg v))
+
+(* + semantic *)
+
+let plus_combine_false (v1, v2) = v1 +. v2
+let plus_combine_true  (v1, v2) = 1. /. (1./.v1 +. 1./.v2)
+
+let plus_and (v1, v2) =
+    generic_and (plus_combine_true, plus_combine_false) (v1, v2)
+node plus_always (deltaT, v) =
+    temporal_scale (deltaT, generic_always (plus_combine_true, plus_combine_false) v)
+
+let plus_or  (v1, v2) = neg (plus_and (neg v1, neg v2))
+(* k an arbitrary constant to give a penalty to trivially true implications
+   k = 10 000 in Koen's paper *)
+let plus_imply_k k (v1, v2) = plus_or (neg (scale (k, v1)), v2)
+let plus_imply (v1, v2) = plus_imply_k 10000. (v1, v2)
+node plus_eventually (deltaT, v) = neg (plus_always (deltaT, v))

@@ -1,0 +1,69 @@
+(* Specification take from Koen Claessen's paper :
+    Using Valued Booleans to Find Simpler Counterexamples in Random Testing of
+    Cyber-Physical Systems
+
+   Adapted from the paper and the source code at github.com/koengit/RealTesting,
+   specifically in simulink/HeaterQC.hs
+*)
+
+
+hybrid input () =
+    let der t = 1. init 0. in
+
+    let init tmp = Random.self_init () in
+    let init rand_duration = 10. +. Random.float 90. in
+    let init tmp = print_endline ("Random duration: " ^ (string_of_float rand_duration)) in
+
+    present up(t -. rand_duration) -> 10. init 30.
+
+
+
+open Scope
+
+let static tstep = 1.
+
+hybrid main() =
+    let der t = 1. init 0. in
+
+    (* MODEL
+        r: setpoint temperature
+        h: heater temperature
+        y: room temperature
+    *)
+    let r = input () in
+    let (h, y, l) = Advanced_heater.model r in
+
+    present (period(tstep)) ->
+        (* PROP : If the setpoint temperature has been constant (steady) for
+                  50 minutes, then the difference between the setpoint
+                  temperature and the actual room temperature should be
+                  at most 1°C
+        *)
+
+        let rec y_der = y -> abs_float (pre y -. y)
+        and diff = abs_float (r -. y)
+
+        and steady_time = 0. -> if big_change then 0. else (pre steady_time +. tstep)
+        and big_change = false -> (r <> pre r) (* setpoint changed *)
+
+        (* taken from HeaterQC.hs in github.com/koengit/RealTesting/simulink *)
+        and phi =
+            if steady_time >= 50. then Vbool.le (diff, 1.)
+            else Vbool.good (min steady_time 0.) (* <-- always equal to 0, this is
+                                    exactly what is written in koen's file, I don't
+                                    understand why yet *)
+        in
+
+        (* PLOT *)
+
+        let s1 = scope3(-10., 60.,
+                        ("setpoint temperature", linear, r),
+                        ("heater temperature", linear, h),
+                        ("room temperature", linear, y))
+        and s2 = scope (0., 1., ("pump level", linear, l))
+        and s3 = scope3(-2., 2.,
+                        ("phi", linear, Vbool.howTrue phi),
+                        ("steady?", linear, if steady_time >= 50. then 1. else -1.),
+                        ("", linear, 0.)) in
+        window3("Advanced Heater spec", 300., t, s1, s2, s3)
+    else ()

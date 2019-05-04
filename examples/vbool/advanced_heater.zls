@@ -1,0 +1,83 @@
+(* Model take from Koen Claessen's paper :
+    Using Valued Booleans to Find Simpler Counterexamples in Random Testing of
+    Cyber-Physical Systems
+
+   Adapted from the paper and the simulink model at
+   github.com/koengit/RealTesting/simulink/Heater.slx
+*)
+
+(* constants *)
+
+let static c_OT = -5.  (* outside temperature *)
+let static c_BT = 90.  (* boiler temperature *)
+let static c_HC = 0.1  (* heater coefficient *)
+let static c_OC = 0.05 (* outside coefficient *)
+
+(* not the same kP in paper and in the simulink model, this is the one used
+   in the simulink model *)
+let static kP = 0.005       (* proportional gain *)
+let static kI = 1.144689e-4 (* integral gain *)
+let static kD = 0.005       (* derivative gain *)
+
+let static filterN = 100.
+
+let static tstep = 1. (* sampling period in case of discrete controller *)
+
+let pid_formula (error, integral, derivative) =
+    kP *. error +. kI *. integral +. kD *. derivative
+
+let pid_formula_saturate (bot,top) (e,i,d) =
+    min top (max bot (pid_formula(e,i,d)))
+
+(* notations *)
+(*
+    r : setpoint temperature
+    l : pump level
+    h : heater temperature
+    y : room temperature
+*)
+
+hybrid heater l = h, (y, y_der) where
+    rec h_der = (-. h *. (l +. c_HC) +. l *. c_BT +. y *. c_HC) /. (1. +. c_HC)
+    and y_der = (-. y *. (c_HC +. c_OC) +. c_HC *. h +. c_OC *. c_OT) /. (1. +. c_HC +. c_OC)
+    and der h = h_der init c_OT
+    and der y = y_der init c_OT
+
+hybrid controller (r, (y, y_der)) = l where
+    rec error = r -. y
+    and der integral = error init 0.
+    and derivative = y_der
+    and l = pid_formula_saturate (0.,1.) (error, integral, derivative)
+
+node discrete_controller (dt, r, y) = l where
+    rec error = r -. y
+    and integral = 0. -> (pre integral) +. error *. dt
+    and derivative = 0. -> (error -. pre error) /. dt
+    and l = pid_formula_saturate (0.,1.) (error, integral, derivative)
+
+hybrid model r = (h, y, l) where
+    rec h, (y, y_der) = heater l
+
+    (* continuous controller *)
+    and l = controller (r, (y, y_der))
+
+    (* discrete controller *)
+    (* and l = present (period(tstep)) -> discrete_controller (tstep, r, y) init 0. *)
+
+
+open Scope
+
+hybrid main () =
+    let der t = 1. init 0. in
+
+    let r = 25. in
+
+    let (h, y, l) = model r in
+
+    present (period(tstep)) ->
+        let s1 = scope3(-10., 60.,
+                        ("setpoint temperature", linear, r),
+                        ("heater temperature", linear, h),
+                        ("room temperature", linear, y)) in
+        window("Advanced heater", 300., t, s1)
+    else ()

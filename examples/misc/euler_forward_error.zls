@@ -15,7 +15,7 @@ let node sin_cos2(h)() =
 (* this one is stable; errors compensate *)
 let node sin_cos(h)() =
   let rec si = int2_forward(h)(0.0, co)
-  and co = int2_forward(h)(1.0, -. si) in
+  and co = int2_backward(h)(1.0, -. si) in
   si, co
 
 let h = 0.1
