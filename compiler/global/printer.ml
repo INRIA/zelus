@@ -163,8 +163,9 @@ let print_binding ff (n, { t_sort = sort; t_typ = typ }) =
   let combine ff v = fprintf ff " with %a" longname v in
   let init ff i_opt =
     match i_opt with
-    | None -> fprintf ff " initialized"
-    | Some(c) -> fprintf ff " init %a" constant c in
+    | Noinit -> ()
+    | InitEq -> fprintf ff " init"
+    | InitDecl(c) -> fprintf ff " init %a" constant c in
   let next ff is_n = fprintf ff "%s" (if is_n then "next " else "cur ") in
   let previous p = if p then "last " else "" in
   let kind ff k = fprintf ff "%s" (kind k) in
@@ -180,7 +181,7 @@ let print_binding ff (n, { t_sort = sort; t_typ = typ }) =
      fprintf ff "@[%a%s%a mem %a: %a%a%a@,@]"
 	     (Misc.optional_unit next) n_opt (previous p)
 	     (Misc.optional_unit kind) k name n Ptypes.output typ
-	     (Misc.optional_unit init) i_opt
+	     init i_opt
 	     (Misc.optional_unit combine) c_opt
 
 let print_env ff env =

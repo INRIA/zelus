@@ -132,8 +132,8 @@ let turn_vars_into_memories h { dv = dv } =
   let add n acc =
     let ({ t_sort = sort; t_typ = typ } as tentry) = Env.find n h in
     match sort with
-    | Smem({ m_init = None } as m) ->
-       Env.add n { tentry with t_sort = Smem { m with m_init = Some None } } acc
+    | Smem({ m_init = Noinit } as m) ->
+       Env.add n { tentry with t_sort = Smem { m with m_init = InitEq } } acc
     | Sstatic | Sval | Svar _ | Smem _ -> acc  in
   let first_h = S.fold add dv Env.empty in
   first_h, Env.append first_h h
@@ -154,8 +154,8 @@ let incorporate_into_env first_h h =
   let mark n { t_sort = sort } =
     let tentry = Env.find n h in
     match sort with
-    | Smem({ m_init = Some None } as m) ->
-       tentry.t_sort <- Smem { m with m_init = None }
+    | Smem({ m_init = InitEq } as m) ->
+       tentry.t_sort <- Smem { m with m_init = Noinit }
     | _ -> () in
   Env.iter mark first_h
 
@@ -209,11 +209,11 @@ let init loc h n =
   let { t_typ = typ; t_sort = sort } as entry = var loc h n in
   match sort with
   | Sstatic | Sval | Svar _ -> assert false
-  | Smem ({ m_init = i_opt } as m) ->
-     match i_opt with
-     | None -> entry.t_sort <- Smem { m with m_init = Some(None) }; typ
-     | Some(None) -> typ
-     | Some(Some _) -> error loc (Ealready(Initial, n))
+  | Smem ({ m_init = i } as m) ->
+     match i with
+     | Noinit -> entry.t_sort <- Smem { m with m_init = InitEq }; typ
+     | InitEq -> typ
+     | InitDecl _ -> error loc (Ealready(Initial, n))
 
 (* Typing [next n = ...] *)
 let next loc h n =
@@ -332,7 +332,7 @@ let vardec_list expected_k n_list inames =
      then error loc Ekind_not_combinatorial;
      constant loc expected_k expected_ty v;
      Deftypes.Smem
-       (Deftypes.cmem c_opt { empty_mem with m_init = Some(Some(v)) })
+       (Deftypes.cmem c_opt { empty_mem with m_init = InitDecl(v) })
   | Default(v) ->
      constant loc expected_k expected_ty v;
      Deftypes.default (Some(v)) c_opt in

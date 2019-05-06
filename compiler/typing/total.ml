@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -54,8 +54,8 @@ let all_last loc h set =
     let ({ t_sort = sort; t_typ = ty } as tentry) =
       try Env.find elt h with | Not_found -> assert false in
     match sort with
-    | Smem { m_init = Some _; m_next = Some(true) } -> ()
-    | Smem ({ m_init = Some _ } as m) ->
+    | Smem { m_init = (InitEq | InitDecl _); m_next = Some(true) } -> ()
+    | Smem ({ m_init = (InitEq | InitDecl _) } as m) ->
        tentry.t_sort <- Smem { m with m_previous = true }
     | Svar { v_default = Some _ } -> ()
     | Sstatic | Sval | Svar { v_default = None }

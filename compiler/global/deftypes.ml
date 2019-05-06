@@ -93,7 +93,7 @@ and mem =
                          (* Some(false) when [... x... = ...] *)
                          (* Some(true) when [next x = ...] *)
     m_previous: bool; (* [last x] or [x] is used *)
-    m_init: constant option option; (* is-it initialized? *)
+    m_init: minit; (* is-it initialized? *)
     m_combine: Lident.t option; (* combination function *)
   }
 
@@ -107,10 +107,9 @@ and mkind =
   | Major (* true in discrete mode; could we use Encore instead? *)
 
 and minit =
-  | NoInit (* no initialisation given *)
-  | Default of constant (* the state variable has a default value *)
-  | InitInBody (* the initial value is given in the body of equations *)
-  | InitInDeclaration of constant (* it is given at the declaration point *)
+  | Noinit (* no initialisation given *)
+  | InitEq (* the initial value is given in the body of equations *)
+  | InitDecl of constant (* it is given at the declaration point *)
       
 and constant =
   | Cimmediate of immediate
@@ -162,8 +161,8 @@ let static = Sstatic
 let value = Sval
 let variable = Svar { v_combine = None; v_default = None }
 let empty_mem = { m_kind = None; m_next = None; m_previous = false;
-		  m_init = None; m_combine = None }
-let initialized mem = { mem with m_init = Some(None) }
+		  m_init = Noinit; m_combine = None }
+let initialized mem = { mem with m_init = InitEq }
 let previous mem = { mem with m_next = Some(false); m_previous = true }
 let next mem = { mem with m_next = Some(true); m_previous = false }
 let zero mem = Smem { mem with m_kind = Some Zero }

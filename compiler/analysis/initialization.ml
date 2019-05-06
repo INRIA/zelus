@@ -105,14 +105,14 @@ let less_for_var loc n actual_ti expected_ti =
 let build_env loc is_continuous l_env env =
   let entry x { Deftypes.t_sort = sort; Deftypes.t_typ = ty } =
     match sort with
-    | Smem { m_kind = Some(Cont); m_init = None; m_next = None } ->
+    | Smem { m_kind = Some(Cont); m_init = Noinit; m_next = None } ->
         (* if an equation [der x = ...] is given but no initialisation *)
         (* either through [init x = ...] or [x = ...], [x] is not initialized *)
         error loc (Ider(x))
-    | Smem { m_init = None; m_next = Some true } ->
+    | Smem { m_init = Noinit; m_next = Some true } ->
         (* no initialization and [next x = ...]. [t_last] is useless. *)
         { t_last = ione; t_typ = Init.skeleton_on_i ione ty }
-    | Smem { m_init = Some _ } ->
+    | Smem { m_init = (InitEq | InitDecl _) } ->
         (* [x] and [last x] or [x] and [next x] *)
         (* are well initialized *)
         let lv, iv =
