@@ -147,11 +147,12 @@ let vardec_from_entry i { t_sort = sort } =
       | Sstatic -> None, None
       | Sval -> None, None
       | Svar { v_default = None; v_combine = c_opt }
-      | Smem { m_init = (None | Some(None)); m_combine = c_opt } -> None, c_opt
+      | Smem { m_init = (Noinit | InitEq); m_combine = c_opt } ->
+	 None, c_opt
+      | Smem { m_init = InitDecl(c); m_combine = c_opt } ->
+	 Some(Init(c)), c_opt
       | Svar { v_default = Some(c); v_combine = c_opt } ->
-         Some(Default(c)), c_opt
-      | Smem { m_init = Some(Some(c)); m_combine = c_opt } ->
-	Some(Init(c)), c_opt in
+         Some(Default(c)), c_opt in
   { vardec_name = i; vardec_default = d_opt;
     vardec_combine = c_opt; vardec_loc = no_location }
 
