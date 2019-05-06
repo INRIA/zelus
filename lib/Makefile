@@ -46,9 +46,9 @@ OBJ = ztypes.cmo \
       defaultsolver.cmo \
       dump.cmo \
       zlsrun.cmo \
-			obs.cmo \
-			gen.cmo \
-			vbool.cmo
+      obs.cmo \
+      gen.cmo \
+      vbool.cmo
 
 OBJ_GTK = gtkplot.cmo \
 	  input.cmo \
