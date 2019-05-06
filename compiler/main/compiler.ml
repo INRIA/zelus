@@ -198,6 +198,9 @@ let compile modname filename =
 	step "Actualize write variables in blocks. See below:"
 	     Write.implementation_list impl_list in
       let impl_list =
+	step "Complete equations with [der x = 0.0]. See below:"
+	    Complete.implementation_list impl_list in
+     let impl_list =
 	step "Add an extra discrete step for weak transitions. See below:"
 	    Encore.implementation_list impl_list in
      let impl_list =
