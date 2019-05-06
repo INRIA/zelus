@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -41,7 +41,7 @@ let filter_env shared_set b_env =
     let entry =
       match sort with
 	| (Svar { v_combine = None; v_default = None }
-	  | Smem { m_kind = None; m_init = None; m_previous = false;
+	  | Smem { m_kind = None; m_init = Noinit; m_previous = false;
 		   m_combine = None })
 	    when not (S.mem n shared_set) -> { entry with t_sort = Sval }
 	| _ -> entry in
