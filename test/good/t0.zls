@@ -1,8 +1,10 @@
 let hybrid g(c1) =
-  local x' default 0.0
-  do match c1 with
-     | false -> do x' = 1.0 +. last x' done
-  in x'
+  local x init 0.0
+  do automaton
+     | A -> do until c1 then B
+     | B -> do der x = 4.0 until c1 then C
+     | C -> do until c1 then A
+     end in x
 
 (*
 let node integr (dt, x') = x where
