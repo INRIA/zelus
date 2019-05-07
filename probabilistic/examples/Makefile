@@ -1,7 +1,7 @@
 all:
 	$(MAKE) -C gridworld
 	$(MAKE) -C coin
-	$(MAKE) -C heater
+	echo "Ignore:" $(MAKE) -C heater
 	$(MAKE) -C hiking
 	$(MAKE) -C hmm
 	$(MAKE) -C ilmdp
