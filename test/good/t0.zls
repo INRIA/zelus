@@ -1,14 +1,18 @@
-let hybrid g(c1, c2, c) =
-  let rec
-      present
-      c1 -> do done | c1 -> do x = 2.0 done | c1 -> do x = 4.0 and y = 0.0 done
-  and init x = 0.0 and init y = 0.0 in x
+let i1 j = k where
+  match true with
+  | true -> match true with
+            | true -> do emit k = () done
+	    | false -> do done
+            end
+  | false -> do done
+
 
 (*
 let node integr (dt, x') = x where
   rec x = 0.0 -> dt *. x' +. (pre x)
 		  *)
-      
+
+    
 (*
 let node main () =
   let rec next_t, r = Node.solve f 20.0 (20.0, 20.0) in
