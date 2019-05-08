@@ -505,6 +505,35 @@ opt_end:
   | END { () }
 ;
 
+%inline simple_equation:
+   eq = localized(simple_equation_desc) { eq }
+;
+
+simple_equation_desc:
+  | AUTOMATON opt_bar a = automaton_handlers(equation_empty_list) END
+    { EQautomaton(List.rev a, None) }
+  | AUTOMATON opt_bar a = automaton_handlers(equation_empty_list)
+    INIT s = state
+    { EQautomaton(List.rev a, Some(s)) }
+  | MATCH e = seq_expression WITH opt_bar
+    m = match_handlers(block_of_equation_list) END
+    { EQmatch(e, List.rev m) }
+  | PRESENT opt_bar p = present_handlers(block_of_equation_list) END
+    { EQpresent(List.rev p, None) }
+  | PRESENT opt_bar p = present_handlers(block_of_equation_list)
+    ELSE b = block_of_equation_list END
+    { EQpresent(List.rev p, Some(b)) }
+  | RESET eq = equation_list EVERY e = expression
+    { EQreset(eq, e) }
+  | FORALL i = index_list bo = block(equation_list)
+    INITIALIZE inits = init_equation_list DONE
+    { EQforall
+	{ for_indexes = i; for_init = inits; for_body = bo } }
+  | FORALL i = index_list  bo = block(equation_list) DONE
+    { EQforall
+	{ for_indexes = i; for_init = []; for_body = bo } }
+;
+    
 /* initialization in a for loop */
 %inline init_equation_list:
   | l = list_of(AND, localized(init_equation_desc)) { l }
@@ -647,6 +676,8 @@ block(X):
 ;
 
 block_of_equation_list:
+  | eq = simple_equation
+      { block [] [] [eq] $startpos $endpos }
   | l = let_list lo = local_list DO eq_list = equation_empty_list DONE
       { block l lo eq_list $startpos $endpos }
 ;
