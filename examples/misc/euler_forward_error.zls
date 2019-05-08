@@ -21,7 +21,7 @@ let node sin_cos(h)() =
 let h = 0.1
     
 let node main() =
-  let si, co = sin_cos(h)() in
+  let si, co = sin_cos2(h)() in
   let rec time = 0.0 -> pre time +. h in
   let s =
     Scope.scope2
