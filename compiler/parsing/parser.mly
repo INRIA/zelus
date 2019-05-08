@@ -82,17 +82,8 @@ let constr c p =
     (* C(p1,...,pn) *) Econstr1pat(c, arg_list)
   | _ -> (* C(e) *) Econstr1pat(c, [p])
 
-(* Temporary solution: put a block arround a single equation *)
-let block_of_equation ({ desc = desc; loc = loc } as eq) =
-  match desc with
-    | EQblock(b) -> b
-    | _ -> { desc = { b_locals = []; b_vars = []; b_body = [eq] }; loc = loc }
-
 let block l lo eq_list startpos endpos =
-  match l, lo with
-  | [], [] -> EQand(eq_list)
-  | _ -> EQblock(make { b_locals = l; b_vars = lo; b_body = eq_list }
-		      startpos endpos)
+  make { b_locals = l; b_vars = lo; b_body = eq_list } startpos endpos
 
 %}
 
@@ -209,7 +200,6 @@ let block l lo eq_list startpos endpos =
 %left INIT
 %left UNTIL
 %left UNLESS
-%nonassoc THEN
 %nonassoc ELSE
 %right BEFORE
 %left  AS
@@ -455,33 +445,29 @@ optional_init:
    eq = localized(equation_desc) { eq }
 ;
 
-%inline simple_equation:
-   eq = localized(simple_equation_desc) { eq }
-;
-
-simple_equation_desc:
+equation_desc:
   | AUTOMATON opt_bar a = automaton_handlers(equation_empty_list) opt_end
     { EQautomaton(List.rev a, None) }
   | AUTOMATON opt_bar a = automaton_handlers(equation_empty_list)
     INIT s = state
     { EQautomaton(List.rev a, Some(s)) }
   | MATCH e = seq_expression WITH opt_bar
-    m = match_handlers(block_of_equation) opt_end
+    m = match_handlers(block_of_equation_list) opt_end
     { EQmatch(e, List.rev m) }
-  | IF e = seq_expression THEN b1 = block_of_equation
-    ELSE b2 = block_of_equation opt_end
+  | IF e = seq_expression THEN b1 = block_of_equation_list
+    ELSE b2 = block_of_equation_list opt_end
     { EQifthenelse(e, b1, Some b2) }
-  | IF e = seq_expression THEN b1 = block_of_equation
+  | IF e = seq_expression THEN b1 = block_of_equation_list
       { EQifthenelse(e, b1, None) }
-  | PRESENT opt_bar p = present_handlers(block_of_equation) opt_end
+  | PRESENT opt_bar p = present_handlers(block_of_equation_list) opt_end
     { EQpresent(List.rev p, None) }
-  | PRESENT opt_bar p = present_handlers(block_of_equation)
-    ELSE b = block_of_equation opt_end
+  | PRESENT opt_bar p = present_handlers(block_of_equation_list)
+    ELSE b = block_of_equation_list opt_end
     { EQpresent(List.rev p, Some(b)) }
   | RESET eq = equation_list EVERY e = expression
     { EQreset(eq, e) }
   | l = let_list lo = local_list DO eq_list = equation_empty_list DONE
-    { block l lo eq_list $startpos $endpos }
+    { EQblock(block l lo eq_list $startpos $endpos) }
   | FORALL i = index_list bo = block(equation_list)
     INITIALIZE inits = init_equation_list DONE
     { EQforall
@@ -489,11 +475,6 @@ simple_equation_desc:
   | FORALL i = index_list  bo = block(equation_list) DONE
     { EQforall
 	{ for_indexes = i; for_init = []; for_body = bo } }
-  ;
-
-equation_desc:
-  | eq = simple_equation_desc
-    { eq }
   | p = pattern EQUAL e = seq_expression
     { EQeq(p, e) }
   | i = ide PLUSEQUAL e = seq_expression
@@ -665,8 +646,9 @@ block(X):
       { make { b_locals = l; b_vars = lo; b_body = x } $startpos $endpos }
 ;
 
-block_of_equation:
-  | eq = simple_equation { block_of_equation(eq) }
+block_of_equation_list:
+  | l = let_list lo = local_list DO eq_list = equation_empty_list DONE
+      { block l lo eq_list $startpos $endpos }
 ;
 
 
