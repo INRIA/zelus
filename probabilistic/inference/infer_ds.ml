@@ -1,336 +1,222 @@
 (** Inference with delayed sampling *)
 
-type pstate = Infer.pstate
+type pstate = Infer_ds_ll.pstate
 
-type mgaussiant = float
-type mbetat = float
-type mbernoullit = bool
-type 'a mtype = 'a
+let factor = Infer_ds_ll.factor
 
-(** Marginalized distribution *)
-type 'a mdistr =
-  | MGaussian : float * float -> mgaussiant mdistr
-  | MBeta : float * float -> mbetat mdistr
-  | MBernoulli : float -> bool mdistr
+type 'a random_var =
+ RV : ('b, 'a) Infer_ds_ll.rv -> 'a random_var
 
-(** Conditionned distribution *)
-type ('m1, 'm2) cdistr =
-  | AffineMeanGaussian: float * float * float -> (mgaussiant, mgaussiant) cdistr
-  | CBernoulli : (mbetat, mbernoullit) cdistr
+type _ expr =
+  | Econst : 'a -> 'a expr
+  | Ervar : 'a random_var -> 'a expr
+  | Eplus : float expr * float expr -> float expr
+  | Emult : float expr * float expr -> float expr
 
-(** Random variable *)
-type ('a, 'b) random_var =
-  { name : string;
-    mutable children : 'b rv_from list;
-    mutable state : 'b rv_state;
-    mutable distr : ('a, 'b) dsdistr;
-  }
-
-and 'a rv_state =
-  | Initialized
-  | Marginalized of 'a mdistr
-  | Realized of 'a mtype
-
-and ('a, 'b) dsdistr =
-  | UDistr :  'b mdistr -> ('a, 'b) dsdistr
-  | CDistr : ('z, 'm1) random_var * ('m1, 'm2) cdistr -> ('m1, 'm2) dsdistr
+type 'a distribution =
+  | DS_gaussian of float expr * float
 
 
-and 'b rv_from =
-  RV_from : ('b, 'c) random_var -> 'b rv_from
+let rec eval_expr (type t): t expr -> t =
+  function e ->
+    begin match e with
+    | Econst v -> v
+    | Ervar (RV x) -> Infer_ds_ll.get_value x
+    | Eplus (e1, e2) -> eval_expr e1 +. eval_expr e2
+    | Emult (e1, e2) -> eval_expr e1 *. eval_expr e2
+    end
 
+(* *)
+type 'a pdistribution =
+  { isample : (pstate -> 'a expr);
+    iobserve : (pstate * 'a -> unit); }
 
-let factor = Infer.factor
+let pdistr_of_distr d =
+  { isample = (fun prob -> Econst (Distribution.draw d));
+    iobserve = (fun (prob, obs) -> factor (prob, Distribution.score d obs)); }
 
-let mdistr_to_distr (type a): a mdistr -> a Distribution.t = fun mdistr ->
-  begin match mdistr with
-    | MGaussian (mu, var) -> Distribution.gaussian mu (sqrt var)
-    | MBeta (alpha, beta) -> Distribution.beta alpha beta
-    | MBernoulli p -> Distribution.bernoulli p
-  end
-
-let cdistr_to_mdistr (type m) (type m'):
-  (m, m') cdistr -> m mtype -> m' mdistr =
-  fun cdistr obs ->
-  begin match cdistr with
-    | AffineMeanGaussian (m, b, obsvar) ->
-        MGaussian (m *. obs +. b, obsvar)
-    | CBernoulli ->
-        MBernoulli obs
-  end
-
-
-let mgaussian mu var = MGaussian (mu, var)
-let mbeta alpha beta = MBeta (alpha, beta)
-let mbernoulli theta = MBernoulli theta
-
-let affine_mean_gaussian m b var = AffineMeanGaussian (m, b, var)
-
-let gaussian_mean_gaussian: float -> (mgaussiant, mgaussiant) cdistr =
-  fun x ->
-  AffineMeanGaussian (1., 0., x)
-
-let make_marginal (type a) (type b): a mdistr -> (a, b) cdistr -> b mdistr =
-  fun mdistr cdistr ->
-  begin match mdistr, cdistr with
-    | MGaussian (mu, var), AffineMeanGaussian(m, b, obsvar) ->
-        MGaussian (m *. mu +. b, m ** 2. *. var +. obsvar)
-    | MBeta (a, b),  CBernoulli ->
-        MBernoulli (a /. (a +. b))
-    | _ -> assert false (* error "impossible" *)
-  end
-
-let make_conditional (type a) (type b):
-  a mdistr -> (a, b) cdistr -> b mtype -> a mdistr =
-  let gaussian_conditioning mu var obs obsvar =
-    let ivar = 1. /. var in
-    let iobsvar = 1. /. obsvar in
-    let inf = ivar +. iobsvar in
-    let var' = 1. /. inf in
-    let mu' = (ivar *. mu +. iobsvar *. obs) /. inf in
-    (mu', var')
+let pdistr_with_fallback d is iobs =
+  let pd = pdistr_of_distr d in
+  let is' prob =
+    begin match is prob with
+    | None -> pd.isample prob
+    | Some x -> x
+    end
   in
-  fun mdistr cdistr obs ->
-  begin match mdistr, cdistr with
-    | MGaussian(mu, var), AffineMeanGaussian(m, b, obsvar) ->
-        let (mu', var') =
-          gaussian_conditioning mu var ((obs -. b) /. m) (obsvar /. m ** 2.)
-        in
-        MGaussian(mu', var')
-    | MBeta (a, b),  CBernoulli ->
-        if obs then MBeta (a +. 1., b) else MBeta (a, b +. 1.)
-    | _, _ -> assert false (* error "impossible" *)
-  end
-
-
-(* initialize without parent node *)
-let assume_constant (type a) (type z): string -> a mdistr -> (z, a) random_var =
-  fun n d ->
-  { name = n;
-    children = [];
-    state = Marginalized d;
-    distr = UDistr d; }
-
-(* initialize with parent node *)
-let assume_conditional (type a) (type b) (type c):
-  string -> (a,b) random_var -> (b, c) cdistr -> (b, c) random_var =
-  fun str par cdistr ->
-  let child =
-    { name = str;
-      children = [];
-      state = Initialized;
-      distr = CDistr (par, cdistr); }
+  let iobs' (prob, obs) =
+    begin match iobs (prob, obs) with
+    | None -> pd.iobserve (prob, obs)
+    | Some () -> ()
+    end
   in
-  par.children <- RV_from child :: par.children;
-  child
+  { isample = is'; iobserve = iobs'; }
 
 
-let marginalize (type a) (type b): (a, b) random_var -> unit =
-  fun n ->
-  (* Format.eprintf "marginalize: %s@." n.name; *)
-  begin match n.state, n.distr with
-    | Initialized, CDistr (par, cdistr) ->
-        let marg =
-          begin match par.state with
-            | Realized x ->
-                cdistr_to_mdistr cdistr x
-            | Marginalized par_marginal ->
-                make_marginal par_marginal cdistr
-            | Initialized -> assert false (* error "marginalize'" *)
-          end
-        in
-        n.state <- Marginalized marg
-    | state, _ ->
-        Format.eprintf "Error: marginalize %s@." n.name;
-        assert false
-  end
+let union_assoc =
+  let rec union_assoc_sorted f l1 l2 =
+    begin match l1, l2 with
+      | [], l | l, [] -> l
+      | (k1, v1) :: l1', (k2, v2) :: l2' ->
+          if k1 = k2 then
+            (k1, f k1 v1 v2) :: union_assoc_sorted f l1' l2'
+          else if k1 < k2 then
+            (k1, v1) :: union_assoc_sorted f l1' l2
+          else
+            (k2, v2) :: union_assoc_sorted f l1 l2'
+    end
+  in
+  fun f l1 l2 ->
+    union_assoc_sorted f (List.sort compare l1) (List.sort compare l2)
 
-let rec delete :
-  'a 'b. ('a, 'b) random_var -> 'a rv_from list -> 'a rv_from list =
-  fun n l ->
-  begin match l with
-    | [] -> assert false
-    | RV_from x :: l ->
-        if Obj.repr x == Obj.repr n then l
-        else RV_from x :: (delete n l)
-  end
-
-let realize (type a) (type b): b mtype -> (a, b) random_var -> unit =
-  fun val_ n ->
-  (* Format.eprintf "realize: %s@." n.name; *)
-  (* ioAssert (isTerminal n) *)
-  begin match n.distr with
-    | UDistr _ -> ()
-    | CDistr (p, cdistr) ->
-        begin match p.state with
-        | Marginalized marg ->
-            p.state <- Marginalized (make_conditional marg cdistr val_);
-            p.children <- delete n p.children
-        | _ -> assert false
+(* getAffine :: Num a => Expr a -> Maybe (Map (Maybe (RefNodeToT a)) a) *)
+let rec get_affine e =
+    begin match e with
+    | Econst x -> Some [None, x]
+    | Ervar i -> Some [Some i, 1.]
+    | Eplus (e1, e2) ->
+        begin match get_affine e1, get_affine e2 with
+        | Some a1, Some a2 ->
+            Some (union_assoc (fun _ v1 v2 -> v1 +. v2) a1 a2)
+        | _, _ -> None
         end
-  end;
-  List.iter (fun (RV_from c) -> marginalize c) n.children;
-  n.state <- Realized val_;
-  n.children <- []
+    | Emult (e1, e2) ->
+        begin match get_affine e1, get_affine e2 with
+        | Some a1, Some a2 ->
+            let exception Stop in
+            let mult (x1, v1) (x2, v2) =
+              begin match x1, x2 with
+              | None, None -> None, v1 *. v2
+              | Some x, None | None, Some x -> Some x, v1 *. v2
+              | Some _, Some _ -> raise Stop
+              end
+            in
+            begin try
+              Some
+                (List.fold_left
+                   (fun acc (x1, v1) ->
+                      let l =
+                        List.map (fun (x2, v2) -> mult (x1, v2) (x2, v2)) a2
+                      in
+                      union_assoc (fun _ v1 v2 -> v1 +. v2) acc l)
+                   [] a1)
+            with Stop -> None
+            end
+            (* Some (union_assoc (fun _ x y -> x +. y) a1 a2) *)
+        | _, _ -> None
+        end
+    end
 
-
-let sample (type a) (type b) : (a, b) random_var -> unit =
-  fun n ->
-  (* Format.eprintf "sample: %s@." n.name; *)
-  (* ioAssert (isTerminal n) *)
-  begin match n.state with
-    | Marginalized m ->
-        let x = Distribution.draw (mdistr_to_distr m) in
-        realize x n
-    | _ -> assert false (* error "sample" *)
+(* toAffine :: Num v => Map (Maybe k) v -> Maybe (v, Maybe (k, v)) *)
+let to_affine p =
+  begin match p with
+  | None -> None
+  | Some [] -> Some (0., None)
+  | Some [ (None, v) ] -> Some (v, None)
+  | Some [ (Some x, v) ] -> Some (0., Some (x, v))
+  | Some [ (None, v); (Some x, vx) ]
+  | Some [ (Some x, vx); (None, v) ] -> Some (v, Some (x, v))
+  | _ -> None
   end
 
-let observe (type a) (type b): pstate -> b mtype -> (a, b) random_var -> unit =
-  fun prob x n ->
-  (* io $ ioAssert (isTerminal n) *)
-  begin match n.state with
-    | Marginalized marg ->
-        factor (prob, Distribution.score (mdistr_to_distr marg) x);
-        realize x n
-    | _ -> assert false (* error "observe'" *)
-  end
-
-let is_marginalized state =
-  begin match state with
-  | Marginalized _ -> true
-  | _ -> false
-  end
-
-(* Invariant 2: A node always has at most one marginal Child *)
-let marginal_child (type a) (type b): (a, b) random_var -> b rv_from option =
-  fun n ->
-  List.find_opt
-    (fun (RV_from x) -> is_marginalized x.state)
-    n.children
-
-let rec prune : 'a 'b. ('a, 'b) random_var -> unit = function n ->
-  (* Format.eprintf "prune: %s@." n.name; *)
-  (* assert (isMarginalized (state n)) $ do *)
-  begin match marginal_child n with
-    | Some (RV_from child) ->
-        prune child
-    | None ->
-        ()
-  end;
-  sample n
-
-let rec graft : 'a 'b. ('a, 'b) random_var -> unit = function n ->
-  (* Format.eprintf "graft %s@." n.name; *)
-  begin match n.state with
-  | Marginalized _ ->
-      begin match marginal_child n with
-        | Some (RV_from child) -> prune child
-        | None -> ()
-      end
-  | _ ->
-      begin match n.distr with
-        | UDistr _ -> assert false (* error "graft" *)
-        | CDistr (par, cdistr) ->
-            graft par;
-            marginalize n
-      end
-  end
-
-let obs (type a) (type b): pstate -> b mtype -> (a, b) random_var -> unit =
-  fun prob x n ->
-  graft n;
-  observe prob x n
-
-let rec get_value: 'a 'b. ('a, 'b) random_var -> 'b mtype =
-  fun n ->
-  begin match n.state with
-    | Realized x -> x
-    | _ ->
-        graft n;
-        sample n;
-        get_value n
-  end
-
-(* forget' :: IORef (Node a b) -> IO () *)
-let forget (type a) (type b): (a, b) random_var -> unit =
-  fun n ->
-  (* Format.eprintf "forget: %s@." n.name; *)
-  begin match n.state with
-    | Realized _ -> ()
-    | Initialized -> assert false (* error "forget" *)
-    | Marginalized marg ->
-        List.iter
-          (fun (RV_from c) ->
-             begin match c.distr with
-               | UDistr d -> ()
-               | CDistr (cdistr, par) ->
-                   begin match c.state with
-                     | Marginalized marg -> c.distr <- UDistr marg
-                     | _ -> assert false (* error "forget" *)
-                   end
-             end)
-          n.children;
-        begin match n.distr with
-          | UDistr _ -> ()
-          | CDistr (cdistr, par) ->
-              assert false (* error "forget: Shouldn't have parents?" *)
-        end;
-        n.distr <- UDistr marg
-  end;
-  n.children <- []
+let get_affine1 e = to_affine (get_affine e)
 
 
-let print_state n =   (* XXX TODO XXX *)
-  Format.printf "%s: " n.name;
-  begin match n.state with
-  | Initialized -> Format.printf "Initialized"
-  | Marginalized (MGaussian (mu, var)) ->
-      Format.printf "Marginalized (MGaussian (%f, %f))" mu var
-  | Marginalized _ -> Format.printf "Marginalized"
-  | Realized x -> Format.printf "Realized %f" x
-  end;
-  Format.printf "@."
+(* realizedToConst :: Expr a -> IO (Expr a) *)
+let const_of_realized =
+  let var_map rvar =
+    begin match rvar with
+    | RV { state = Realized x } -> Some x
+    | _ -> None
+    end
+  in
+  let rec f expr =
+    begin match expr with
+      | Econst x -> Econst x
+      | Ervar i ->
+          begin match var_map i with
+            | None -> Ervar i
+            | Some k -> Econst k
+          end
+      | Eplus (x, y) -> Eplus (f x, f y)
+      | Emult (x, y) -> Emult (f x, f y)
+    end
+  in
+  f
 
-let observe_conditional (type a) (type b) (type c):
-  pstate -> string -> (a, b) random_var -> (b, c) cdistr -> c mtype -> unit =
-  fun prob str n cdistr observation ->
-  let y = assume_conditional str n cdistr in
-  obs prob observation y
+(* forgettableVar :: IORef (Node a b) -> M (Expr (MType b)) *)
+let forgettable_var rv =
+  Ervar (RV rv)
 
-let infer = Infer.infer
+let type_of_random_var (RV rv) =
+  Infer_ds_ll.type_of_dsdistr rv.distr
+
+(* gaussianPD :: Expr Double -> Double -> PDistrF Double *)
+let gaussian_pd mu std =
+  let d = Distribution.gaussian (eval_expr mu) std in
+  let is prob =
+    let mu' = const_of_realized mu in
+    begin match get_affine1 mu' with
+      | None -> None
+      | Some (b, mx) ->
+          begin match mx with
+            | None ->
+               let rv = Infer_ds_ll.assume_constant "" (MGaussian(b, std)) in
+               Some (forgettable_var rv)
+            | Some (RV par, m) ->
+                let ty = type_of_random_var (RV par) in
+                begin match ty with
+                | MGaussianT ->
+                    let nref = Infer_ds_ll.assume_conditional "" par (AffineMeanGaussian(m, b, std)) in
+                    Some (forgettable_var nref)
+                | _ -> None
+                end
+          end
+    end
+  in
+  let iobs (prob, obs) =
+    let mu' = const_of_realized mu in
+    begin match get_affine1 mu' with
+      | None -> None
+      | Some (b, None) -> None
+      | Some (b, Some (RV par, m)) ->
+          let ty= type_of_random_var (RV par) in
+          begin match ty with
+          | MGaussianT -> Some (Infer_ds_ll.observe_conditional prob "" par (AffineMeanGaussian(m, b, std)) obs)
+          | _ -> None
+          end
+    end
+  in
+  pdistr_with_fallback d is iobs
 
 
-(* ----------------------------------------------------------------------- *)
-(* Examples *)
+(* betaPD :: Double -> Double -> PDistrF Double *)
+let beta_pd a b =
+  let d = Distribution.beta a b in
+  let is prob = Some (forgettable_var (Infer_ds_ll.assume_constant "" (MBeta (a, b)))) in
+  let iobs (pstate, obs) = None in
+  pdistr_with_fallback d is iobs
 
-(* let delay_triplet zobs = *)
-(*   let prob = { score = 0. } in *)
-(*   let x = assume_constant "x" (MGaussian (0., 1.)) in *)
-(*   Format.printf "x created@."; *)
-(*   let y = assume_conditional "y"  x (gaussian_mean_gaussian 1.) in *)
-(*   Format.printf "y created@."; *)
-(*   let z = assume_conditional "z" y (gaussian_mean_gaussian 1.) in *)
-(*   Format.printf "z created@."; *)
-(*   obs prob zobs z; *)
-(*   Format.printf "z observed@."; *)
-(*   Format.printf "%f@." (get_value z); *)
-(*   Format.printf "%f@." (get_value x); *)
-(*   Format.printf "%f@." (get_value y) *)
-
-(* let () = *)
-(*   Random.self_init (); *)
-(*   delay_triplet 42. *)
-
-(* let obs_sample xobs = *)
-(*   let prob = { Infer.scores = [| 0. |]; idx = 0 } in *)
-(*   let x = assume_constant "x" (MGaussian (0., 1.)) in *)
-(*   Format.printf "x created@."; *)
-(*   obs prob xobs x; *)
-(*   Format.printf "x observed@."; *)
-(*   sample x; *)
-(*   Format.printf "x sampled@."; *)
-(*   Format.printf "%f@." (get_value x) *)
-
-(* let () = *)
-(*   Random.self_init (); *)
-(*   obs_sample 42. *)
+(* bernoulliPD :: Expr Double -> PDistrF Bool *)
+let bernoulli_pd p =
+  let d = Distribution.bernoulli (eval_expr p) in
+  let with_beta_prior f =
+    begin match p with
+      | Ervar (RV par) ->
+          let ty = type_of_random_var (RV par) in
+          begin match ty with
+            | MBetaT -> Some (f (RV par))
+            | _ -> None
+          end
+      | _ -> None
+    end
+  in
+  let is prob =
+    with_beta_prior
+      (fun (RV par) ->
+         forgettable_var (Infer_ds_ll.assume_conditional "" par Infer_ds_ll.CBernoulli))
+  in
+  let iobs (prob, obs) =
+    with_beta_prior
+      (fun (RV par) -> Infer_ds_ll.observe_conditional prob "" par Infer_ds_ll.CBernoulli obs)
+  in
+  pdistr_with_fallback d is iobs

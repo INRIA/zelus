@@ -14,7 +14,7 @@ zeluc: constants.zci draw.zci
 ocamlc: constants.cmo draw.cmo
 	ocamlfind ocamlc -o simu \
 		-package zelus.gtk \
-		-linkpkg /home/bidet/.opam/4.07.0/lib/ocaml/graphics.cma \
+		graphics.cma \
 		$^ noise.ml vehicle.ml leader.ml rear.ml interior.ml merging.ml simu.ml main.ml
 
 
