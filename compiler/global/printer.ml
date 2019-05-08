@@ -188,10 +188,9 @@ let print_env ff env =
   if !vverbose then begin
     let env = Ident.Env.bindings env in
     if env <> [] then
-      fprintf ff "@[<v 0>(* defs: %a *)@ @]"
+      fprintf ff "@[<v 0>(* defs: %a *)@,@]"
         (print_list_r print_binding """;""") env
   end
-
 let print_writes ff { dv = dv; di = di; der = der; nv = nv; mv = mv } =
   if !vverbose then begin
     let dv = Ident.S.elements dv in
@@ -234,13 +233,13 @@ let block locals body po pf ff
 
 let match_handler body ff { m_pat = pat; m_body = b; m_env = env;
 			    m_reset = r; m_zero = z } =
-  fprintf ff "@[<hov 4>| %a -> %s%s@ %a%a@]"
+  fprintf ff "@[<hov 4>| %a -> %s%s@,%a%a@]"
     pattern pat (if r then "(* reset *)" else "")
                 (if z then "(* zero *)" else "")
     print_env env body b
 
 let present_handler scondpat body ff { p_cond = scpat; p_body = b; p_env = env } =
-  fprintf ff "@[<hov 2>| (%a) ->@ @[<v 0>%a%a@]@]"
+  fprintf ff "@[<hov4>| (%a) ->@ @[<v 0>%a%a@]@]"
     scondpat scpat print_env env body b
 
 let period expression ff { p_phase = opt_phase; p_period = p } =
@@ -274,8 +273,8 @@ let rec expression ff e =
     | Elet(l, e) ->
         fprintf ff "@[<v 0>%a@ %a@]" local l expression e
     | Eblock(b, e) ->
-       fprintf ff "@[<v 0>%a@ %a@]"
-	       (block_equation_list "do " " in") b expression e
+       fprintf ff "@[<v 0>%a in@ %a@]"
+	       (block_equation_list "do " "") b expression e
     | Etypeconstraint(e, typ) ->
         fprintf ff "@[(%a: %a)@]" expression e ptype typ
     | Eseq(e1, e2) ->
@@ -340,40 +339,40 @@ and equation ff ({ eq_desc = desc } as eq) =
         (print_list_l (present_handler scondpat expression) """""")
 	present_handler_list
     | EQinit(n, e0) ->
-      fprintf ff "@[<hov 2>init %a =@ %a@]" name n expression e0
+      fprintf ff "@[<hov2>init %a =@ %a@]" name n expression e0
     | EQpluseq(n, e) ->
-      fprintf ff "@[<hov 2>%a +=@ %a@]" name n expression e
+      fprintf ff "@[<hov2>%a +=@ %a@]" name n expression e
     | EQnext(n, e, None) ->
       fprintf ff "@[<hov 2>next %a =@ %a@]"
 	name n expression e
     | EQnext(n, e, Some(e0)) ->
-      fprintf ff "@[<hov 2>next %a =@ @[%a@ init %a@]@]"
+      fprintf ff "@[<hov2>next %a =@ @[%a@ init %a@]@]"
 	name n expression e expression e0
     | EQautomaton(is_weak, s_h_list, e_opt) ->
-      fprintf ff "@[<v>@[<hov 0>automaton%s@ @[%a@]@]%a@]"
+      fprintf ff "@[<hov0>automaton%s@ @[%a@]@,%a@]"
 	      (if is_weak then "(* weak *)" else "(* strong *)")
 	      (state_handler_list is_weak) s_h_list
 	      (print_opt (print_with_braces state " init" "")) e_opt
     | EQmatch(total, e, match_handler_list) ->
-      fprintf ff "@[<v>@[<hov 0>%smatch %a with@ @[%a@]@]@]"
+      fprintf ff "@[<hov0>%smatch %a with@ @[%a@]@]"
         (if !total then "total " else "")
         expression e
 	(print_list_l
 	   (match_handler (block_equation_list "do " " done")) """""")
 	match_handler_list
     | EQpresent(present_handler_list, None) ->
-      fprintf ff "@[<v>@[<hov 0>present@ @[%a@]@]@]"
+      fprintf ff "@[<hov0>present@ @[%a@]@]"
         (print_list_l
 	   (present_handler scondpat (block_equation_list "do " " done"))
 	   """""") present_handler_list
     | EQpresent(present_handler_list, Some(b)) ->
-      fprintf ff "@[<v>@[<hov 0>present@ @[%a@]@]@ else @[%a@]@]"
+      fprintf ff "@[<hov0>present@ @[%a@]@ else @[%a@]@]"
         (print_list_l
 	   (present_handler scondpat (block_equation_list "do " " done"))
 	   """""")  present_handler_list
         (block_equation_list "do " " done")  b
     | EQreset(eq_list, e) ->
-      fprintf ff "@[<v>@[<hov 2>reset@ @[%a@]@]@ @[<hov 2>every@ %a@]@]"
+      fprintf ff "@[<hov2>reset@ @[%a@]@ @[<hov 2>every@ %a@]@]"
         (equation_list "" "") eq_list expression e
     | EQemit(n, opt_e) ->
       begin match opt_e with
@@ -383,7 +382,7 @@ and equation ff ({ eq_desc = desc } as eq) =
       end
     | EQblock(b_eq_list) -> block_equation_list "do " " done" ff b_eq_list
     | EQand(and_eq_list) ->
-       print_list_l equation "do " "and " "done" ff and_eq_list
+       print_list_l equation "do " "and " " done" ff and_eq_list
     | EQbefore(before_eq_list) ->
        print_list_l equation "" "before " "" ff before_eq_list
     | EQforall { for_index = i_list; for_init = init_list; for_body = b_eq_list;
@@ -414,7 +413,10 @@ and equation ff ({ eq_desc = desc } as eq) =
 and block_equation_list po pf ff b = block locals equation_list po pf ff b
 
 and equation_list po pf ff eq_list =
-  print_list_l equation po "and " pf ff eq_list
+  match eq_list with
+  | [] -> fprintf ff "%s%s" po pf
+  | [eq] -> equation ff eq
+  | _ -> print_list_l equation po "and " pf ff eq_list
 
 and state_handler_list is_weak ff s_h_list =
   print_list_l (state_handler is_weak) """""" ff s_h_list
