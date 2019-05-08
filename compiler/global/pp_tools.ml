@@ -29,13 +29,14 @@ let print_list_no_space print po sep pf ff l =
        fprintf ff "@[%a%s%a@]" print x sep printrec l in
   fprintf ff "@[%s%a%s@]" po printrec l pf
 
+(* prints [po body [sep body]+ pf] *)
 let print_list_r print po sep pf ff l =
   let rec printrec ff l =
     match l with
     | [] -> ()
     | [x] -> print ff x
     | x :: l ->
-       fprintf ff "@[<hov>%a%s@ @[%a@]@]" print x sep printrec l in
+       fprintf ff "@[<hov 0>%a@ %s@ @[%a@]@]" print x sep printrec l in
   fprintf ff "@[%s%a%s@]" po printrec l pf
 
 (* prints in a row a [po body [sep body]+ pf] *)
