@@ -32,7 +32,7 @@ let der_eq_zero x = eqmake (EQder(x, Zaux.zero, None, []))
 
 (* complete a set of equations with default equations for every *)
 (* variable from [eq_write] which is not defined in [eq_write_block] *)
-let complete { der = der } ({ der = der_l } as b_write_local) eq_list =
+let complete_eq_list { der = der } ({ der = der_l } as b_write_local) eq_list =
   let l = S.diff der der_l in
   let eq_list = S.fold (fun x acc -> (der_eq_zero x) :: acc) l eq_list in
   eq_list, { b_write_local with der = der }		       
@@ -64,7 +64,7 @@ let rec exp ({ e_desc } as e) =
         let m_h_list = match_handler_exp_list m_h_list in
         Ematch(total, e, m_h_list)
     | Eblock(b, e) ->
-        let b = block_eq_list Deftypes.empty b in
+        let b = block_eq_list b in
         Eblock(b, exp e)
     | Eperiod _ | Epresent _ -> assert false in
   { e with e_desc = e_desc }
@@ -93,7 +93,7 @@ and equation ({ eq_desc; eq_write } as eq) =
   | EQbefore(before_eq_list) ->
      { eq with eq_desc =
 		 EQbefore(equation_list before_eq_list) }
-  | EQblock(b) -> { eq with eq_desc = EQblock(block_eq_list eq_write b) }
+  | EQblock(b) -> { eq with eq_desc = EQblock(block_eq_list b) }
   | EQforall ({ for_index = i_list; for_init = init_list;
 		for_body = b_eq_list } as body) ->
      let index ({ desc = desc } as ind) =
@@ -109,7 +109,7 @@ and equation ({ eq_desc; eq_write } as eq) =
        { ini with desc = desc } in
      let i_list = List.map index i_list in
      let init_list = List.map init init_list in
-     let b_eq_list = block_eq_list Deftypes.empty b_eq_list in
+     let b_eq_list = block_eq_list b_eq_list in
      { eq with eq_desc =
 		 EQforall { body with for_index = i_list;
 				      for_init = init_list;
@@ -120,22 +120,26 @@ and equation_list eq_list = List.map equation eq_list
 						 
 (* Translate a block of equation. [eq_write] is the set of globally *)
 (* written variable. The block is completed with missing equations *)
-and block_eq_list eq_write
-		  ({ b_locals = l_list; b_body = eq_list;
-		     b_write = eq_write_block  } as b) =
+and block_eq_list ({ b_locals = l_list; b_body = eq_list } as b) =
   let l_list = locals l_list in
   (* translate the body. *)
   let eq_list = equation_list eq_list in
-  let eq_list, eq_write_block = complete eq_write eq_write_block eq_list in
-  { b with b_locals = l_list; b_body = eq_list; b_write = eq_write_block }
-                   
+  { b with b_locals = l_list; b_body = eq_list }
+
+and complete eq_write ({ b_body = eq_list; b_write = eq_write_block } as b) =
+  let eq_list, eq_write_block =
+    complete_eq_list eq_write eq_write_block eq_list in
+  { b with b_body = eq_list; b_write = eq_write_block }
+  
 and match_handler_exp_list m_h_list =
   List.map (fun ({ m_body = e } as handler) -> 
       { handler with m_body = exp e }) m_h_list    
     
 and match_handler_block_eq_list eq_write m_h_list =
-  List.map (fun ({ m_body = b } as handler) -> 
-      { handler with m_body = block_eq_list eq_write b }) m_h_list    
+  List.map (fun ({ m_zero = zero; m_body = b } as handler) -> 
+	    let b = block_eq_list b in
+	    let b = if zero then b else complete eq_write b in
+	    { handler with m_body = b }) m_h_list    
   
 and local ({ l_eq = l_eq_list; l_env = l_env } as l) =
   let l_eq_list = equation_list l_eq_list in
