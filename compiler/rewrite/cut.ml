@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -38,8 +38,18 @@ let env subst b_env =
     match sort with
     | Smem { m_previous = true } -> add x ty (env, subst, eq_list)
     | Sstatic | Sval | Svar _ | Smem _ -> env, subst, eq_list in
-  Env.fold last b_env (b_env, subst, [])
+  Env.fold last b_env (Env.empty, subst, [])
     
+(* [extend b env eq_list] returns a block in which [env] and [eq_list] *)
+(* are added to the environment and the set of equations *)
+let extend ({ b_vars = b_vars; b_env = b_env; b_body = body_eq_list } as b)
+           env eq_list =
+  let b_vars =
+    Env.fold (fun i entry acc -> Zaux.vardec_from_entry i entry :: acc)
+             env b_vars in
+  { b with b_vars = b_vars; b_env = Env.append env b_env;
+           b_body = eq_list @ body_eq_list }
+	 
 (* translating a present statement *)
 let present_handlers scondpat body p_h_list =
   List.map
@@ -84,7 +94,8 @@ let rec exp subst ({ e_desc } as e) =
         let subst, b = block_eq_list_with_substitution subst b in
         Eblock(b, exp subst e)
     | Eperiod { p_phase = p1; p_period = p2 } ->
-       Eperiod { p_phase = Misc.optional_map (exp subst) p1; p_period = exp subst p2 } in
+       Eperiod { p_phase = Misc.optional_map (exp subst) p1;
+		 p_period = exp subst p2 } in
   { e with e_desc = e_desc }
     
 (** Translation of equations. *)
@@ -134,15 +145,6 @@ and equation subst ({ eq_desc } as eq) =
 	 | Einit_last(x, e) ->
             Einit_last(x, exp subst e), add x e.e_typ acc in
        { ini with desc = desc }, acc in
-     (* [extend b env eq_list] returns a block in which [env] and [eq_list] *)
-     (* has been to the environment and set of equations respectively *)
-     let extend ({ b_vars = b_vars; b_env = b_env; b_body = body } as b)
-                env eq_list =
-       let b_vars =
-         Env.fold (fun i entry acc -> vardec_from_entry i entry :: acc)
-                  env b_vars in
-       { b with b_vars = b_vars; b_env = Env.append env b_env;
-                b_body = eq_list @ body } in
      let i_list = List.map index i_list in
      let init_list, (env, subst, eq_list) =
        Misc.map_fold init (Env.empty, subst, []) init_list in
@@ -186,15 +188,17 @@ and equation_list subst eq_list = List.map (equation subst) eq_list
 						 
 (* Translate a generic block *)
 and block_eq_list_with_substitution subst
-                  ({ b_locals = l_list; b_body = eq_list;
-                     b_env = b_env } as b) =
+				    ({ b_vars = vardec_list;
+				       b_locals = l_list; b_body = eq_list;
+				       b_env = b_env } as b) =
   (* Identify variables [last x] in [b_env] *)
-  let b_env, subst, eq_last_list = env subst b_env in
+  let b_env_last_list, subst, eq_last_list = env subst b_env in
   let l_list, subst = locals subst l_list in
   (* translate the body. *)
   let eq_list = equation_list subst eq_list in
   subst,
-  { b with b_locals = l_list; b_body = eq_last_list @ eq_list; b_env = b_env }
+  extend { b with b_locals = l_list; b_body = eq_list }
+	 b_env_last_list eq_last_list
 
 and block_eq_list subst b =
   let _, b = block_eq_list_with_substitution subst b in b
@@ -214,9 +218,10 @@ and match_handler_block_eq_list subst m_h_list =
       { handler with m_body = block_eq_list subst b }) m_h_list    
 
 and local subst ({ l_eq = l_eq_list; l_env = l_env } as l) =
-  let l_env, subst, eq_last_list = env subst l_env in
+  let l_env_last_list, subst, eq_last_list = env subst l_env in
   let l_eq_list = equation_list subst l_eq_list in
-  { l with l_eq = eq_last_list @ l_eq_list; l_env = l_env }, subst
+  { l with l_eq = eq_last_list @ l_eq_list;
+	   l_env = Env.append l_env_last_list l_env }, subst
 
 and locals subst l_list =
   match l_list with
