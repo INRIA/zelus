@@ -1,10 +1,8 @@
-let hybrid g(c1) =
-  local x init 0.0
-  do automaton
-     | A -> do until c1 then B
-     | B -> do der x = 4.0 until c1 then C
-     | C -> do until c1 then A
-     end in x
+let hybrid g(c1, c2, c) =
+  let rec
+      present
+      c1 -> do done | c1 -> do x = 2.0 done | c1 -> do x = 4.0 and y = 0.0 done
+  and init x = 0.0 and init y = 0.0 in x
 
 (*
 let node integr (dt, x') = x where
