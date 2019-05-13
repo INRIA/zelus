@@ -100,48 +100,6 @@ let multivariate dists =
           dists xs))
 
 
-(** [stats_float d] computes the mean and stddev of a [float
-    Distribution.t]. 
-*)
-let stats_float d =
-  match d with
-  | Dist_sampler _ ->
-    let rec stats n sum sq_sum =
-      begin match n with
-      | 100000 -> 
-	let mean = sum /. (float n) in
-	let stddev = sqrt (sq_sum /. (float n) -. mean *. mean) in
-	mean, stddev
-      | _ ->
-	let x = draw d in
-	stats (n+1) (sum +. x) (sq_sum +. x*.x)
-      end
-    in stats 0 0. 0.
-  | Dist_support sup ->
-    let rec stats sup sum sq_sum =
-      begin match sup with
-      | [] ->
-	let mean = sum in
-	let stddev = sqrt (sq_sum -. mean *. mean) in
-	mean, stddev
-      | (v,w) :: t ->
-	stats t (sum +. v *. w) (sq_sum +. w *. v *. v)
-      end
-    in stats sup 0. 0.
-
-
-
-(** [mean_float d] computes the mean of a [float Distribution.t]. *)
-let mean_float d =
-  match d with
-  | Dist_sampler _ ->
-    let n = 100000 in
-    let acc = ref 0. in
-    for i = 1 to n do acc := !acc +. draw d done;
-    !acc /. (float n)
-  | Dist_support sup ->
-    List.fold_left (fun acc (v, w) -> acc +. v *. w) 0. sup
-
 (** [split dist] turns a distribution of pairs into a pair of
     distributions.
 *)
@@ -202,6 +160,91 @@ let split_array dist =
         support;
       Array.map (fun supp -> Dist_support supp) supports
   end
+
+
+(** [split_list dist] turns a distribution of lists into a list of
+    distributions.
+*)
+let split_list dist =
+  begin match dist with
+  | Dist_sampler (draw, score) ->
+      assert false (* XXX TODO XXX *)
+  | Dist_support [] -> []
+  | Dist_support sup ->
+      let rec map2' f1 f2 f12 l1 l2 =
+        begin match l1, l2 with
+        | l1, [] -> List.map f1 l1
+        | [], l2 -> List.map f2 l2
+        | x1::l1, x2::l2 -> f12 x1 x2 :: (map2' f1 f2 f12 l1 l2)
+        end
+      in
+      let split =
+        List.fold_left
+          (fun accs (l, w) ->
+             map2'
+               (fun acc -> acc)
+               (fun v -> [(v, w)])
+               (fun acc v -> (v, w)::acc)
+               accs l)
+          [] sup
+      in
+      List.map (fun l -> Dist_support l) split
+  end
+
+(** [stats_float d] computes the mean and stddev of a [float
+    Distribution.t].
+*)
+let stats_float d =
+  match d with
+  | Dist_sampler _ ->
+    let rec stats n sum sq_sum =
+      begin match n with
+      | 100000 ->
+	let mean = sum /. (float n) in
+	let stddev = sqrt (sq_sum /. (float n) -. mean *. mean) in
+	mean, stddev
+      | _ ->
+	let x = draw d in
+	stats (n+1) (sum +. x) (sq_sum +. x*.x)
+      end
+    in stats 0 0. 0.
+  | Dist_support sup ->
+    let rec stats sup sum sq_sum =
+      begin match sup with
+      | [] ->
+	let mean = sum in
+	let stddev = sqrt (sq_sum -. mean *. mean) in
+	mean, stddev
+      | (v,w) :: t ->
+	stats t (sum +. v *. w) (sq_sum +. w *. v *. v)
+      end
+    in stats sup 0. 0.
+
+
+
+(** [mean_float d] computes the mean of a [float Distribution.t]. *)
+let mean_float d =
+  match d with
+  | Dist_sampler _ ->
+    let n = 100000 in
+    let acc = ref 0. in
+    for i = 1 to n do acc := !acc +. draw d done;
+    !acc /. (float n)
+  | Dist_support sup ->
+    List.fold_left (fun acc (v, w) -> acc +. v *. w) 0. sup
+
+
+(** [stats_float_list d] computes the mean and stddev of a
+    [float list Distribution.t].
+*)
+let stats_float_list d =
+  let ls = split_list d in
+  List.map (fun l -> stats_float l) ls
+
+(** [mean_float_list d] computes the means of a [float list Distribution.t]. *)
+let mean_float_list d =
+  let ls = split_list d in
+  List.map (fun l -> mean_float l) ls
 
 
 (** {2 Distributions} *)
