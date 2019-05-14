@@ -1,0 +1,31 @@
+open Infer_ds_ll
+
+let node coin (prob, yobs) =
+  let rec automaton
+      | Init ->
+          do xt = assume_constant "x" (mbeta 1. 1.)
+          then Run
+      | Run ->
+          do xt = (last xt)
+          done
+      end
+  and t = 1 fby (t + 1)
+  and y = assume_conditional ("y" ^ string_of_int t) xt (cbernoulli)
+  and () = obs prob yobs y
+  in
+  xt
+
+
+let node main (tr, observed) =
+  let rec t = 1. fby (t +. 1.) in
+  let ret = Aux.collect_garbage () in
+
+  let x_d = infer 1 coin observed in
+
+  let est_mean = Aux.get_mean (Distribution.draw x_d) in
+  let error = (est_mean -. tr) ** 2. in
+  let rec total_error = error -> (pre total_error) +. error in
+  let mse = total_error /. t in
+
+
+  est_mean, mse

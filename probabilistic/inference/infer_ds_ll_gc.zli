@@ -1,5 +1,3 @@
-(** Inference with delayed sampling low level interface *)
-
 type pstate
 type 'a mdistr
 type ('m1, 'm2) cdistr
@@ -24,7 +22,6 @@ val mgaussian : float -> float -> float mdistr
 val mbeta : float -> float -> float mdistr
 
 val cbernoulli : (float, bool) cdistr
-
 val affine_mean_gaussian : float -> float -> float -> (float, float) cdistr
 val observe_conditional : pstate -> string -> ('a, 'b) random_var -> ('b, 'c) cdistr -> 'c -AD-> unit
 

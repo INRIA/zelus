@@ -9,6 +9,12 @@ val observe : pstate * 'a Distribution.t * 'a -AD-> unit
 val infer :
   int -S-> (pstate * 'a -D-> 'b) -S-> 'a -D-> 'b Distribution.t
 
+val infer_dyn_resample :
+  int -S-> (pstate * 'a -D-> 'b) -S-> 'a -D-> 'b Distribution.t
+
+val infer_noresample :
+  int -S-> (pstate * 'a -D-> 'b) -S-> 'a -D-> 'b Distribution.t
+
 val plan :
     int -S-> int -S->
       (pstate * 't1 -D-> 't2) -S->
