@@ -1,0 +1,77 @@
+open Zlutils
+
+type 'a option = None | Some of 'a
+(* input generation defined in Koen Claessen's paper : we generate a
+   piecewise constant function *)
+
+hybrid interp_input inp = cur_val where
+    rec der t = 1. init 0. reset up (t -. dur) -> 0.
+
+    and init cur_chunk =
+        if List.length inp = 0 then (-1., Constant 548.)
+        else List.hd inp
+    and init next_chunks =
+        if List.length inp = 0 then []
+        else List.tl inp
+
+    and dur = fst cur_chunk
+    and typ = snd cur_chunk
+
+    and init cur_val = 0.
+    and match typ with
+    | Zero -> do cur_val = 0. done
+    | Constant v -> do cur_val = v done
+    | Linear v -> do der cur_val = (v -. cur_val) /. (dur -. t) done
+
+    and present up(t -. dur) -> do
+        next cur_chunk =
+            if List.length next_chunks = 0 then (-1., Constant cur_val)
+            else List.hd next_chunks
+        and next next_chunks =
+            if List.length next_chunks = 0 then []
+            else List.tl next_chunks
+    done
+
+node simpl_chunk (dur, typ) =
+    match typ with
+    | Zero -> None
+    | Constant v -> let new_c = (dur, Zero) in Some new_c
+    | Linear v -> let new_c = (dur, Constant v) in Some new_c
+
+node simpl_input inp =
+    let random_index = Random.int (List.length inp - 1) in
+    let () = print_endline ("Simplifying chunk " ^ (string_of_int random_index)) in
+    match simpl_chunk (List.nth inp random_index) with
+    | None -> delete_in_list inp random_index
+    | Some c -> replace_in_list inp random_index c
+
+(* TEST INPUT INTERP *)
+
+let test_input =
+    [ (1., Linear 0.5); (2., Constant 1.); (2., Linear 2.); (2., Linear 1.); (1., Zero) ]
+
+open Scope
+
+hybrid main () =
+    let init tmp = Random.self_init () in
+
+    let der t = 1. init 0. in
+
+    let init input1 = test_input in
+    let init input2 = (simpl_input input1) in
+    let init input3 = (simpl_input input2) in
+    let init input4 = (simpl_input input3) in
+
+    let interp_input1 = interp_input input1 in
+    let interp_input2 = interp_input input2 in
+    let interp_input3 = interp_input input3 in
+    let interp_input4 = interp_input input4 in
+
+
+    present (period(0.1)) ->
+        let s1 = scope (0., 2., ("input1", linear, interp_input1)) in
+        let s2 = scope (0., 2., ("input2 = simpl input1", linear, interp_input2)) in
+        let s3 = scope (0., 2., ("input3 = simpl input2", linear, interp_input3)) in
+        let s4 = scope (0., 2., ("input4 = simpl input3", linear, interp_input4)) in
+        window4 ("Test input", 10., t, s1, s2, s3, s4)
+    else ()

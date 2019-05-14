@@ -1,0 +1,22 @@
+type duration = float
+type value = float
+
+type input_type =
+    | Zero
+    | Constant of value (* value *)
+    | Linear of value (* target value *)
+type input_chunk = duration * input_type (* duration * chunk type *)
+type input = input_chunk list
+
+val random_float : float * float -> float
+val random_chunk : duration * duration -> value * value -> input_chunk
+val random_chunks : int -> float * float -> float * float -> input
+
+val string_of_chunk : input_chunk -> string
+val string_of_input : input -> string
+
+val delete_in_list : 'a list -> int -> 'a list
+val replace_in_list : 'a list -> int -> 'a -> 'a list
+
+val passed : float -AD-> 'a
+val falsified : float -> float -AD-> 'a
