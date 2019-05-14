@@ -23,11 +23,8 @@ let static filterN = 100.
 
 let static tstep = 1. (* sampling period in case of discrete controller *)
 
-let pid_formula (error, integral, derivative) =
-    kP *. error +. kI *. integral +. kD *. derivative
-
-let pid_formula_saturate (bot,top) (e,i,d) =
-    min top (max bot (pid_formula(e,i,d)))
+let saturate (bot,top) f =
+    min top (max bot f)
 
 (* notations *)
 (*
@@ -37,29 +34,40 @@ let pid_formula_saturate (bot,top) (e,i,d) =
     y : room temperature
 *)
 
-hybrid heater l = h, (y, y_der) where
+hybrid heater l = h, y where
     rec h_der = (-. h *. (l +. c_HC) +. l *. c_BT +. y *. c_HC) /. (1. +. c_HC)
     and y_der = (-. y *. (c_HC +. c_OC) +. c_HC *. h +. c_OC *. c_OT) /. (1. +. c_HC +. c_OC)
-    and der h = h_der init c_OT
+    and der h = h_der init 20. (* paper says init at c_OT but simulink models sets the initial value to 20 *)
     and der y = y_der init c_OT
 
-hybrid controller (r, (y, y_der)) = l where
+hybrid controller (r, y) = l where
     rec error = r -. y
-    and der integral = error init 0.
-    and derivative = y_der
-    and l = pid_formula_saturate (0.,1.) (error, integral, derivative)
 
-node discrete_controller (dt, r, y) = l where
+    and res = propGain +. intGain +. filterCoeff
+
+    and propGain = kP *. error
+
+    and der intGain = kI *. error init 0.
+
+    (* filtered derivative as defined in Simulink *)
+    and filterCoeff = filterN *. sumD
+    and sumD = derGain -. filterState
+    and derGain = kD *. error
+    and der filterState = filterCoeff init 0.
+
+    and l = saturate (0.,1.) (res)
+
+(* node discrete_controller (dt, r, y) = l where
     rec error = r -. y
     and integral = 0. -> (pre integral) +. error *. dt
     and derivative = 0. -> (error -. pre error) /. dt
-    and l = pid_formula_saturate (0.,1.) (error, integral, derivative)
+    and l = saturate (0.,1.) (kP *. error +. kI *. integral +. kD *. derivative) *)
 
 hybrid model r = (h, y, l) where
-    rec h, (y, y_der) = heater l
+    rec h, y = heater l
 
     (* continuous controller *)
-    and l = controller (r, (y, y_der))
+    and l = controller (r, y)
 
     (* discrete controller *)
     (* and l = present (period(tstep)) -> discrete_controller (tstep, r, y) init 0. *)
@@ -79,5 +87,7 @@ hybrid main () =
                         ("setpoint temperature", linear, r),
                         ("heater temperature", linear, h),
                         ("room temperature", linear, y)) in
-        window("Advanced heater", 300., t, s1)
+        let s2 = scope (0., 1.,
+                        ("pump level", linear, l)) in
+        window2("Advanced heater", 300., t, s1, s2)
     else ()
