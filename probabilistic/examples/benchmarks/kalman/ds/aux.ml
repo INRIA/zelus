@@ -1,4 +1,4 @@
-open Infer_ds;;
+open Infer_ds_ll_gc;;
 
 (*
 let read_val : unit -> (float * float) option =
@@ -17,7 +17,7 @@ let read_val : unit ->  float * float =
 
 let get_mean (type a) : (a, float) random_var -> float =
     fun r ->
-        match (Infer_ds.get_conditional r).distr with
+        match (Infer_ds_ll_gc.get_conditional r).distr with
         | UDistr (MGaussian (mu, sigma)) -> mu
         | _ -> assert false (* error *)
 ;;

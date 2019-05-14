@@ -1,4 +1,4 @@
-open Infer_ds_nogc
+open Infer_ds_ll
 
 let node outlier (prob, yobs) =
   let rec automaton

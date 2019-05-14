@@ -1,4 +1,4 @@
 val read_val : unit -> (float * float)
-val get_mean : ('a, float) Infer_ds.random_var -> float
+val get_mean : ('a, float) Infer_ds_ll_gc.random_var -> float
 val get_memory : unit -> float
 val get_time : unit -> float

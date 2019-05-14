@@ -1,4 +1,4 @@
-open Infer_ds_nogc;;
+open Infer_ds_ll;;
 
 let warmup = ref 0 ;;
 let perf = ref false;;
