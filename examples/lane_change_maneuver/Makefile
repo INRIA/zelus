@@ -13,8 +13,9 @@ zeluc: constants.zci draw.zci
 
 ocamlc: constants.cmo draw.cmo
 	ocamlfind ocamlc -o simu \
-		-package zelus.gtk \
 		graphics.cma \
+		-I `zeluc -where` \
+		-package lablgtk2 -package sundialsml lablgtk.cma zllibgtk.cma -linkpkg \
 		$^ noise.ml vehicle.ml leader.ml rear.ml interior.ml merging.ml simu.ml main.ml
 
 
@@ -34,5 +35,5 @@ clean:
 	rm -f simu.ml main.ml vehicle.ml leader.ml rear.ml interior.ml merging.ml noise.ml
 	rm -f *.c* *.zci *.zli
 
-mrproper cleanall realclean: clean
+mrproper: clean
 	rm -f simu
