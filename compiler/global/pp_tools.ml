@@ -36,7 +36,7 @@ let print_list_r print po sep pf ff l =
     | [] -> ()
     | [x] -> print ff x
     | x :: l ->
-       fprintf ff "@[<hov 0>%a@ %s@ @[%a@]@]" print x sep printrec l in
+       fprintf ff "@[<hov>%a@ %s@ @[%a@]@]" print x sep printrec l in
   fprintf ff "@[%s%a%s@]" po printrec l pf
 
 (* prints in a row a [po body [sep body]+ pf] *)
