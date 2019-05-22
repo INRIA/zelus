@@ -1,0 +1,34 @@
+open Types
+
+let hybrid derivatives (state, ctrlLimits) =
+    let autopilot_state, _ =
+        GcasAutopilot.state_logic
+            (state.f16.alpha, state.f16.phi, state.f16.theta, state.f16.p)
+    in
+    let nz_ref, ps_ref, ny_r_ref, throttle_ref =
+        GcasAutopilot.get_u_ref
+            (autopilot_state, ctrlLimits, LowLevelController.x_equil.vt,
+             state.f16.vt, state.f16.alpha, state.f16.phi, state.f16.theta,
+             state.f16.p, state.f16.q)
+    in
+    let x_ctrl, u_deg =
+        LowLevelController.get_u_deg (ctrlLimits, throttle_ref, state)
+    in
+
+    let xd_model, ny, nz = Subf16_model.derivatives(state.f16, u_deg) in
+    let ps = x_ctrl.f16.p *. (cos x_ctrl.f16.alpha) +.
+             x_ctrl.f16.r *. (sin x_ctrl.f16.alpha)
+    in
+    let ny_r = ny +. x_ctrl.f16.r in
+
+    let nzd, psd, ny_rd =
+        LowLevelController.get_integrator_derivatives
+            (nz_ref, ps_ref, ny_r_ref, state)
+    in
+
+    {
+        f16 = xd_model;
+        nz = nzd;
+        ps = psd;
+        ny_r = ny_rd;
+    }

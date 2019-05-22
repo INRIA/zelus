@@ -1,0 +1,40 @@
+type ctrlLimits = {
+    throttleMax : float;
+    throttleMin : float;
+    elevatorMaxDeg : float;
+    elevatorMinDeg : float;
+    aileronMaxDeg : float;
+    aileronMinDeg : float;
+    rudderMaxDeg : float;
+    rudderMinDeg : float;
+    maxBankDeg : float;
+    nzMax : float;
+    nzMin : float;
+}
+
+let defaultCtrlLimits = {
+    throttleMax = 1.;
+    throttleMin = 0.;
+    elevatorMaxDeg = 25.;
+    elevatorMinDeg = -25.;
+    aileronMaxDeg = 21.5;
+    aileronMinDeg = -21.5;
+    rudderMaxDeg = 30.;
+    rudderMinDeg = -30.;
+    maxBankDeg = 60.;
+    nzMax = 6.;
+    nzMin = -1.;
+}
+
+type f16_state = {
+    vt : float; alpha : float; beta : float; phi : float; theta : float;
+    psi : float; p : float; q : float; r : float; x9 : float;
+    x10 : float; alt : float; power : float;
+}
+
+type solver_state = {
+    f16 : f16_state;
+    nz : float; ps : float; ny_r : float;
+}
+
+type input = { thtlc : float; el : float; ail : float; rdr: float; }

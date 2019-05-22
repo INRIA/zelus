@@ -1,0 +1,7 @@
+type 'a t
+
+val create : int -> int -> 'a -> 'a t
+val get : 'a t -> int -> int -> 'a
+val set : 'a t -> int -> int -> 'a -> unit
+
+val set_row_from_list : 'a t -> int -> 'a list -> unit

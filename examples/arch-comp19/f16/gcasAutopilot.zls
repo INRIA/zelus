@@ -1,0 +1,74 @@
+let static pi =  3.14159265359
+let static rtod = 57.29578    (* rad to deg coefficient *)
+let static dtor = 1.745329e-2 (* deg to rad coefficient *)
+
+type state = Start | Roll | Pull | Done
+
+let hybrid state_logic (alpha, phi, theta, p) =
+    let der t = 1. init 0. in
+
+    let eps_phi = 5. *. dtor in
+    let eps_p = 1. *. dtor in
+    let path_goal = 0. *. dtor in
+    let man_start = 2. in
+
+    let automaton
+    | Start ->
+        do state = Start
+        until up(t -. man_start) then do emit trans in Roll
+    | Roll ->
+        let radsFromWingsLevel = Utils.hybrid_round (phi /. pi) in
+        do state = Roll
+        until
+              up(eps_phi -. (phi -. pi *. radsFromWingsLevel)) on (abs_float p < eps_p)
+            | up(p -. eps_p) on (phi -. pi *. radsFromWingsLevel < eps_phi)
+            | up(-. eps_p -. p) on (phi -. pi *. radsFromWingsLevel < eps_phi)
+        then do emit trans in Pull
+    | Pull ->
+        let radsFromNoseLevel = Utils.hybrid_round ((theta -. alpha) /. (2. *. pi)) in
+        do state = Pull
+        until up(theta -. alpha -. 2. *. pi *. radsFromNoseLevel -. path_goal)
+        then do emit trans in Done
+    | Done -> do state = Done done
+    in
+
+    state, (present trans() -> true else false)
+
+let hybrid get_u_ref (state, ctrlLimits, xequil_vt, vt, alpha, phi, theta, p, q) =
+    nz, ps, ny_r, throttle where rec
+
+    match state with
+    | Start -> do nz = 0. and ps = 0. done
+    | Roll ->
+        local radsFromWingsLevel, k_prop, k_der
+        do
+            radsFromWingsLevel = Utils.hybrid_round (phi /. pi)
+            and k_prop = 4.
+            and k_der = k_prop *. 0.3
+            and ps = -. (phi -. pi *. radsFromWingsLevel) *. k_prop -. p *. k_der
+            and nz = 0.
+        done
+    | Pull ->
+        do
+            nz = min 5. ctrlLimits.Types.nzMax
+            and ps = 0.
+        done
+    | Done ->
+        local radsFromWingsLevel, radsFromNoseLevel,
+              k_prop, k_der, k_prop2, k_der2
+        do
+            k_prop = 1.
+            and k_der = k_prop *. 0.3
+            and radsFromWingsLevel = Utils.hybrid_round (phi /. p)
+            and ps = -. (phi -. pi *. radsFromWingsLevel) *. k_prop -. p *. k_der
+            and k_prop2 = 2.
+            and k_der2 = k_prop2 *. 0.3
+            and radsFromNoseLevel = Utils.hybrid_round ((theta -. alpha) /. pi)
+            and nz = -. (theta -. alpha -. pi *. radsFromNoseLevel) *. k_prop2
+                     -. p *. k_der2
+        done
+
+    and ny_r = 0.
+
+    and k_vt = 0.25
+    and throttle = -. k_vt *. (vt -. xequil_vt)
