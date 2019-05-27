@@ -64,5 +64,3 @@ let lut2d table i_f j_f =
   let s = (get table i j) *. cdi +. (get table (i+1) j) *. di in
   let t = (get table i (j+1)) *. cdi +. (get table (i+1) (j+1)) *. di in
   s +. (t -. s) *. dj
-
-let unsafe_print_endline s = print_endline s
