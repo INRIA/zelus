@@ -48,20 +48,32 @@ let dampp_a =
     mat
 
 let saturate (x, low, high) = max (min x high) low
+let discrete round f =
+    let frac, i = modf f in if frac >= 0.5 then i +. 1. else i
 
-(* let hybrid hybrid_ge (x,y) =
+(* ATTENTION : problèmes de décolages eventuels *)
+let hybrid hybrid_ge (x,y) =
     present | up(x -. y) -> true | up(y -. x) -> false init (x >= y)
 let hybrid hybrid_gt (x,y) =
     present | up(x -. y) -> true | up(y -. x) -> false init (x > y)
 let hybrid hybrid_le (x,y) =
     present | up(x -. y) -> false | up(y -. x) -> true init (x <= y)
 let hybrid hybrid_lt (x,y) =
-    present | up(x -. y) -> false | up(y -. x) -> true init (x < y) *)
+    present | up(x -. y) -> false | up(y -. x) -> true init (x < y)
+let hybrid hybrid_round x = round_x where
+    rec init ceil_x = ceil x
+    and init floor_x = floor x
+    and init round_x = round x
+    and present up(x -. ceil_x) | up(floor_x -. x) -> do
+        ceil_x = ceil x and floor_x = floor x and round_x = round x
+    done
 
-let hybrid hybrid_ge(x,y) = present(period(0.1)) -> x >= y init x >= y
+(* sampled version *)
+(* let hybrid hybrid_ge(x,y) = present(period(0.1)) -> x >= y init x >= y
 let hybrid hybrid_gt(x,y) = present(period(0.1)) -> x > y init x > y
 let hybrid hybrid_le(x,y) = present(period(0.1)) -> x <= y init x <= y
 let hybrid hybrid_lt(x,y) = present(period(0.1)) -> x < y init x < y
+let hybrid hybrid_round x = present (period(0.1)) -> round x init round x *)
 
 let hybrid hybrid_sign x = if hybrid_ge (x, 0.) then 1. else -1.
 let hybrid hybrid_abs_float x = (hybrid_sign x) *. x

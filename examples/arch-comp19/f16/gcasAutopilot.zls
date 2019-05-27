@@ -10,11 +10,6 @@ let string_of_state state =
     | Start -> "Start" | Roll -> "Roll" | Pull -> "Pull" | Done -> "Done"
     end
 
-let node round f =
-    let frac, i = modf f in
-    if frac >= 0.5 then i +. 1. else i
-let hybrid hybrid_round x = present (period(0.1)) -> round x init round x
-
 let hybrid state_logic (alpha, phi, theta, p) =
     let der t = 1. init 0. in
 
@@ -28,7 +23,7 @@ let hybrid state_logic (alpha, phi, theta, p) =
         do state = Start
         until up(t -. man_start) then do emit trans in Roll
     | Roll ->
-        let radsFromWingsLevel = hybrid_round (phi /. pi) in
+        let radsFromWingsLevel = Utils.hybrid_round (phi /. pi) in
         let wings_are_level =
             present up(eps_phi -. (phi -. pi *. radsFromWingsLevel))
             | up((phi -. pi *. radsFromWingsLevel) -. eps_phi) -> ()
@@ -49,7 +44,7 @@ let hybrid state_logic (alpha, phi, theta, p) =
             | rate_is_small() on (abs_float (phi -. pi *. radsFromWingsLevel) < eps_phi)
         then do emit trans in Pull
     | Pull ->
-        let radsFromNoseLevel = hybrid_round ((theta -. alpha) /. (2. *. pi)) in
+        let radsFromNoseLevel = Utils.hybrid_round ((theta -. alpha) /. (2. *. pi)) in
         do state = Pull
         until up(theta -. alpha -. 2. *. pi *. radsFromNoseLevel -. path_goal)
         then do emit trans in Done
@@ -65,7 +60,7 @@ let hybrid get_u_ref (state, ctrlLimits, x_equil, x) = u_ref where rec
     | Roll ->
         local radsFromWingsLevel, k_prop, k_der
         do
-            radsFromWingsLevel = hybrid_round (x.phi /. pi)
+            radsFromWingsLevel = Utils.hybrid_round (x.phi /. pi)
             and k_prop = 4.
             and k_der = k_prop *. 0.3
             and ps = -. (x.phi -. pi *. radsFromWingsLevel) *. k_prop -. x.p *. k_der
@@ -82,11 +77,11 @@ let hybrid get_u_ref (state, ctrlLimits, x_equil, x) = u_ref where rec
         do
             k_prop = 1.
             and k_der = k_prop *. 0.3
-            and radsFromWingsLevel = hybrid_round (x.phi /. pi)
+            and radsFromWingsLevel = Utils.hybrid_round (x.phi /. pi)
             and ps = -. (x.phi -. pi *. radsFromWingsLevel) *. k_prop -. x.p *. k_der
             and k_prop2 = 2.
             and k_der2 = k_prop2 *. 0.3
-            and radsFromNoseLevel = hybrid_round ((x.theta -. x.alpha) /. pi)
+            and radsFromNoseLevel = Utils.hybrid_round ((x.theta -. x.alpha) /. pi)
             and nz = -. (x.theta -. x.alpha -. pi *. radsFromNoseLevel) *. k_prop2
                      -. x.p *. k_der2
         done

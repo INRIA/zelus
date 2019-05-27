@@ -1,52 +1,3 @@
-(*
-    This model is used in the ARCH competition of 2019.
-    It has been described by Peter Heidlauf, Alexander Collins,
-    Michael Bolender and Stanley Bak in "Verification Challenges in F-16
-    Ground Collision Avoidance and Other Automated Maneuvers"
-
-    The current folder implemens the 3rd case described in the paper :
-    the outer-loop performs Ground-Collision Avoidance.
-
-    Adapted by Ismail Bennani (ismail.lahkim.bennani@ens.fr)
-*)
-
-(* Naming conventions :
-    Variables starting with c_ are constants
-*)
-
-(* State variables
-    0   vt = air speed, VT    (ft/sec)
-    1   alpha = angle of attack, alpha  (rad)
-    2   beta = angle of sideslip, beta (rad)
-    3   phi = roll angle, phi  (rad)
-    4   theta = pitch angle, theta  (rad)
-    5   psi = yaw angle, psi  (rad)
-    6   p = roll rate, P  (rad/sec)
-    7   q = pitch rate, Q  (rad/sec)
-    8   r = yaw rate, R  (rad/sec)
-    9   x9 = northward horizontal displacement, pn  (feet)
-    10  x10 = eastward horizontal displacement, pe  (feet)
-    11  alt = altitude, h  (feet)
-    12  power = engine thrust dynamics lag state, pow
-*)
-
-(* Input variables
-    thtlc = throttle command  0.0 < u(1) < 1.0
-    el = elevator command in degrees
-    ail = aileron command in degrees
-    rdr = rudder command in degrees
-*)
-
-(*
-    cxt is the x-axis aerodynamic force coefficient
-    cyt is the sideforce coefficient
-    czt is the z-axis force coefficient
-
-    clt is a sum of the rolling moment coefficients
-    cmt is the pitching moment coefficient
-    cnt is a sum of the yawing moment coefficients
-*)
-
 let static s = 300.
 let static b = 30.
 let static cbar = 11.32
@@ -71,6 +22,34 @@ open Utils
 open Types
 
 let hybrid derivatives(state, inp) = res, ny, nz where
+    (* State variables in state
+        0   vt = air speed, VT    (ft/sec)
+        1   alpha = angle of attack, alpha  (rad)
+        2   beta = angle of sideslip, beta (rad)
+        3   phi = roll angle, phi  (rad)
+        4   theta = pitch angle, theta  (rad)
+        5   psi = yaw angle, psi  (rad)
+        6   p = roll rate, P  (rad/sec)
+        7   q = pitch rate, Q  (rad/sec)
+        8   r = yaw rate, R  (rad/sec)
+        9   x9 = northward horizontal displacement, pn  (feet)
+        10  x10 = eastward horizontal displacement, pe  (feet)
+        11  alt = altitude, h  (feet)
+        12  power = engine thrust dynamics lag state, pow
+    *)
+
+    (* Input variables in inp
+        thtlc = throttle command  0.0 < u(1) < 1.0
+        el = elevator command in degrees
+        ail = aileron command in degrees
+        rdr = rudder command in degrees
+    *)
+
+    (* Outputs variables
+        res = state derivatives
+        ny = side acceleration
+        nz = upward acceleration
+    *)
   rec der time = 1. init 0.
 
   (* air data computer and engine model *)
@@ -78,7 +57,16 @@ let hybrid derivatives(state, inp) = res, ny, nz where
   and cpow = tgear(inp.thtlc)
   and t = thrust(state.power, state.alt, amach)
 
-  (* morelli model (polynomial version) *)
+  (* morelli model (polynomial version)
+
+    cxt is the x-axis aerodynamic force coefficient
+    cyt is the sideforce coefficient
+    czt is the z-axis force coefficient
+
+    clt is a sum of the rolling moment coefficients
+    cmt is the pitching moment coefficient
+    cnt is a sum of the yawing moment coefficients
+  *)
   and cxt, cyt, czt, clt, cmt, cnt =
     morellif16(state.alpha, state.beta, inp.el *. dtor, inp.ail *. dtor,
                inp.rdr *. dtor, state.p, state.q, state.r, cbar, b, state.vt,
