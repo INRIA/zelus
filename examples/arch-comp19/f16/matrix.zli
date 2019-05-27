@@ -5,3 +5,9 @@ val get : 'a t -> int -> int -> 'a
 val set : 'a t -> int -> int -> 'a -> unit
 
 val set_row_from_list : 'a t -> int -> 'a list -> unit
+
+val lut1d_row : float t -> float -> int -> float -> float
+val lut1d_col : float t -> int -> float -> float
+val lut2d : float t -> float -> float -> float
+
+val unsafe_print_endline : string -> unit

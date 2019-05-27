@@ -1,0 +1,37 @@
+open Types
+open Scope
+
+let static pi = 3.14159265359
+let static rtod = 57.29578    (* rad to deg coefficient *)
+let static dtor = 1.745329e-2 (* deg to rad coefficient *)
+
+(* for printing and drawing *)
+let static tstep = 0.1
+
+let hybrid main () =
+    let der t = 1. init 0. in
+
+    let initial_cond_f16 = {
+        vt = 540.;
+        alpha = 2.1215 *. dtor; beta = 0.;
+        phi = pi /. 4.; theta = (-2. *. pi /. 5.); psi = -. pi /. 4.;
+        p = 0.; q = 0.; r = 0.;
+        x9 = 0.; x10 = 0.;
+        alt = 3600.; power = 9.;
+    } in
+    let initial_cond = {
+        f16 = initial_cond_f16;
+        nz = 0.; ps = 0.; ny_r = 0.;
+    } in
+    let ctrlLimits = defaultCtrlLimits in
+
+    let u, u_ref, state = Controlledf16.model (initial_cond, ctrlLimits) in
+
+    present (period(tstep)) ->
+        let s1 = scope (0., 15000., ("altitude", linear, state.f16.alt)) in
+        let s2 = scope3(-2.*.pi, 2.*.pi,
+                        ("phi (rad)", linear, state.f16.phi),
+                        ("theta (rad)", linear, state.f16.theta),
+                        ("psi (rad)", linear, state.f16.psi)) in
+        window2("Controlled F16", 50., t, s1, s2)
+    else ()

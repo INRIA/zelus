@@ -1,8 +1,19 @@
+open Types
+
 let static pi =  3.14159265359
 let static rtod = 57.29578    (* rad to deg coefficient *)
 let static dtor = 1.745329e-2 (* deg to rad coefficient *)
 
 type state = Start | Roll | Pull | Done
+let string_of_state state =
+    match state with
+    | Start -> "Start" | Roll -> "Roll" | Pull -> "Pull" | Done -> "Done"
+    end
+
+let node round f =
+    let frac, i = modf f in
+    if frac >= 0.5 then i +. 1. else i
+let hybrid hybrid_round x = present (period(0.1)) -> round x init round x
 
 let hybrid state_logic (alpha, phi, theta, p) =
     let der t = 1. init 0. in
@@ -17,15 +28,28 @@ let hybrid state_logic (alpha, phi, theta, p) =
         do state = Start
         until up(t -. man_start) then do emit trans in Roll
     | Roll ->
-        let radsFromWingsLevel = Utils.hybrid_round (phi /. pi) in
+        let radsFromWingsLevel = hybrid_round (phi /. pi) in
+        let wings_are_level =
+            present up(eps_phi -. (phi -. pi *. radsFromWingsLevel))
+            | up((phi -. pi *. radsFromWingsLevel) -. eps_phi) -> ()
+        and rate_is_small =
+            present up(p -. eps_p) | up(eps_p -. p) -> ()
+        in
         do state = Roll
+        (* and present (period(0.1)) -> do
+            () = (print_string (
+            "| phi = " ^ (string_of_float phi) ^
+            "| phi /. pi = " ^ (string_of_float (phi /. pi)) ^
+            "| radsFromWingsLevel = " ^ (string_of_float (radsFromWingsLevel)) ^
+            "| wings_are_level = " ^ (string_of_float (eps_phi -. (phi -. pi *. radsFromWingsLevel))) ^
+            "\r"); flush stdout)
+        done *)
         until
-              up(eps_phi -. (phi -. pi *. radsFromWingsLevel)) on (abs_float p < eps_p)
-            | up(p -. eps_p) on (phi -. pi *. radsFromWingsLevel < eps_phi)
-            | up(-. eps_p -. p) on (phi -. pi *. radsFromWingsLevel < eps_phi)
+              wings_are_level() on (abs_float p < eps_p)
+            | rate_is_small() on (abs_float (phi -. pi *. radsFromWingsLevel) < eps_phi)
         then do emit trans in Pull
     | Pull ->
-        let radsFromNoseLevel = Utils.hybrid_round ((theta -. alpha) /. (2. *. pi)) in
+        let radsFromNoseLevel = hybrid_round ((theta -. alpha) /. (2. *. pi)) in
         do state = Pull
         until up(theta -. alpha -. 2. *. pi *. radsFromNoseLevel -. path_goal)
         then do emit trans in Done
@@ -34,18 +58,17 @@ let hybrid state_logic (alpha, phi, theta, p) =
 
     state, (present trans() -> true else false)
 
-let hybrid get_u_ref (state, ctrlLimits, xequil_vt, vt, alpha, phi, theta, p, q) =
-    nz, ps, ny_r, throttle where rec
+let hybrid get_u_ref (state, ctrlLimits, x_equil, x) = u_ref where rec
 
     match state with
     | Start -> do nz = 0. and ps = 0. done
     | Roll ->
         local radsFromWingsLevel, k_prop, k_der
         do
-            radsFromWingsLevel = Utils.hybrid_round (phi /. pi)
+            radsFromWingsLevel = hybrid_round (x.phi /. pi)
             and k_prop = 4.
             and k_der = k_prop *. 0.3
-            and ps = -. (phi -. pi *. radsFromWingsLevel) *. k_prop -. p *. k_der
+            and ps = -. (x.phi -. pi *. radsFromWingsLevel) *. k_prop -. x.p *. k_der
             and nz = 0.
         done
     | Pull ->
@@ -59,16 +82,20 @@ let hybrid get_u_ref (state, ctrlLimits, xequil_vt, vt, alpha, phi, theta, p, q)
         do
             k_prop = 1.
             and k_der = k_prop *. 0.3
-            and radsFromWingsLevel = Utils.hybrid_round (phi /. p)
-            and ps = -. (phi -. pi *. radsFromWingsLevel) *. k_prop -. p *. k_der
+            and radsFromWingsLevel = hybrid_round (x.phi /. pi)
+            and ps = -. (x.phi -. pi *. radsFromWingsLevel) *. k_prop -. x.p *. k_der
             and k_prop2 = 2.
             and k_der2 = k_prop2 *. 0.3
-            and radsFromNoseLevel = Utils.hybrid_round ((theta -. alpha) /. pi)
-            and nz = -. (theta -. alpha -. pi *. radsFromNoseLevel) *. k_prop2
-                     -. p *. k_der2
+            and radsFromNoseLevel = hybrid_round ((x.theta -. x.alpha) /. pi)
+            and nz = -. (x.theta -. x.alpha -. pi *. radsFromNoseLevel) *. k_prop2
+                     -. x.p *. k_der2
         done
 
     and ny_r = 0.
 
     and k_vt = 0.25
-    and throttle = -. k_vt *. (vt -. xequil_vt)
+    and throttle = -. k_vt *. (x.vt -. x_equil.vt)
+
+    and u_ref = {
+        thtlc_ref = throttle; nz_ref = nz; ps_ref = ps; ny_r_ref = ny_r
+    }

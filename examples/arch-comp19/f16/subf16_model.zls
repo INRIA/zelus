@@ -77,8 +77,6 @@ let hybrid derivatives(state, inp) = res, ny, nz where
   and amach, qbar = adc(state.vt, state.alt)
   and cpow = tgear(inp.thtlc)
   and t = thrust(state.power, state.alt, amach)
-  and dail = inp.ail /. 20.
-  and drdr = inp.rdr /. 30.
 
   (* morelli model (polynomial version) *)
   and cxt, cyt, czt, clt, cmt, cnt =
@@ -93,6 +91,7 @@ let hybrid derivatives(state, inp) = res, ny, nz where
 
   (* get ready for state equations *)
   and d0, d1, d2, d3, d4, d5, d6, d7, d8 = dampp(state.alpha *. rtod)
+
   and cxt' = cxt +. cq *. d0
   and cyt' = cyt +. b2v *. (d1 *. state.r +. d2 *. state.p)
   and czt' = czt +. cq *. d3
@@ -185,3 +184,25 @@ let hybrid derivatives(state, inp) = res, ny, nz where
       theta = der_theta; psi = der_psi; p = der_p; q = der_q; r = der_r;
       x9 = der_x9; x10 = der_x10; alt = der_alt; power = der_power;
   }
+
+let hybrid model (init_cond, inp) = x, ny, nz where
+    rec x = {
+        vt = vt; alpha = alpha; beta = beta; phi = phi;
+        theta = theta; psi = psi; p = p; q = q; r = r;
+        x9 = x9; x10 = x10; alt = alt; power = power;
+    }
+    and xd, ny, nz = derivatives(x, inp)
+
+    and der vt = xd.vt init init_cond.vt
+    and der alpha = xd.alpha init init_cond.alpha
+    and der beta = xd.beta init init_cond.beta
+    and der phi = xd.phi init init_cond.phi
+    and der theta = xd.theta init init_cond.theta
+    and der psi = xd.psi init init_cond.psi
+    and der p = xd.p init init_cond.p
+    and der q = xd.q init init_cond.q
+    and der r = xd.r init init_cond.r
+    and der x9 = xd.x9 init init_cond.x9
+    and der x10 = xd.x10 init init_cond.x10
+    and der alt = xd.alt init init_cond.alt
+    and der power = xd.power init init_cond.power

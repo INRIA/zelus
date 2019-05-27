@@ -1,18 +1,21 @@
 open Types
 
+let static dtor = 1.745329e-2 (* deg to rad coefficient *)
+
+(* change autopilot by opening another one *)
+open GcasAutopilot
+
 let hybrid derivatives (state, ctrlLimits) =
     let autopilot_state, _ =
-        GcasAutopilot.state_logic
+        state_logic
             (state.f16.alpha, state.f16.phi, state.f16.theta, state.f16.p)
     in
-    let nz_ref, ps_ref, ny_r_ref, throttle_ref =
-        GcasAutopilot.get_u_ref
-            (autopilot_state, ctrlLimits, LowLevelController.x_equil.vt,
-             state.f16.vt, state.f16.alpha, state.f16.phi, state.f16.theta,
-             state.f16.p, state.f16.q)
+    let u_ref =
+        get_u_ref
+            (autopilot_state, ctrlLimits, LowLevelController.x_equil, state.f16)
     in
     let x_ctrl, u_deg =
-        LowLevelController.get_u_deg (ctrlLimits, throttle_ref, state)
+        LowLevelController.get_u_deg (ctrlLimits, u_ref.thtlc_ref, state)
     in
 
     let xd_model, ny, nz = Subf16_model.derivatives(state.f16, u_deg) in
@@ -23,12 +26,44 @@ let hybrid derivatives (state, ctrlLimits) =
 
     let nzd, psd, ny_rd =
         LowLevelController.get_integrator_derivatives
-            (nz_ref, ps_ref, ny_r_ref, state)
+            (u_ref, nz, ps, ny_r)
     in
+    let u_rad = {
+        thtlc = u_deg.thtlc;
+        el = u_deg.el *. dtor; ail = u_deg.ail *. dtor; rdr = u_deg.rdr *. dtor;
+    } in
 
+    u_rad,
+    u_ref,
     {
         f16 = xd_model;
         nz = nzd;
         ps = psd;
         ny_r = ny_rd;
     }
+
+let hybrid model (initial_cond, ctrlLimits) = u, u_ref, x where
+    rec f16_state = {
+        vt = vt; alpha = alpha; beta = beta; phi = phi; theta = theta;
+        psi = psi; p = p; q = q; r = r; x9 = x9;
+        x10 = x10; alt = alt; power = power;
+    }
+    and x = { f16 = f16_state; nz = nz; ps = ps; ny_r = ny_r; }
+    and u, u_ref, xd = derivatives (x, ctrlLimits)
+
+    and der vt = xd.f16.vt init initial_cond.f16.vt
+    and der alpha = xd.f16.alpha init initial_cond.f16.alpha
+    and der beta = xd.f16.beta init initial_cond.f16.beta
+    and der phi = xd.f16.phi init initial_cond.f16.phi
+    and der theta = xd.f16.theta init initial_cond.f16.theta
+    and der psi = xd.f16.psi init initial_cond.f16.psi
+    and der p = xd.f16.p init initial_cond.f16.p
+    and der q = xd.f16.q init initial_cond.f16.q
+    and der r = xd.f16.r init initial_cond.f16.r
+    and der x9 = xd.f16.x9 init initial_cond.f16.x9
+    and der x10 = xd.f16.x10 init initial_cond.f16.x10
+    and der alt = xd.f16.alt init initial_cond.f16.alt
+    and der power = xd.f16.power init initial_cond.f16.power
+    and der nz = xd.nz init initial_cond.nz
+    and der ps = xd.ps init initial_cond.ps
+    and der ny_r = xd.ny_r init initial_cond.ny_r

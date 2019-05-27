@@ -19,11 +19,11 @@ let k_lqr =
 
     set mat 1 3 (get k_lqr_lat 0 0); set mat 1 4 (get k_lqr_lat 0 1);
     set mat 1 5 (get k_lqr_lat 0 2); set mat 1 6 (get k_lqr_lat 0 3);
-    set mat 1 7 (get k_lqr_lat 0 5);
+    set mat 1 7 (get k_lqr_lat 0 4);
 
     set mat 2 3 (get k_lqr_lat 1 0); set mat 2 4 (get k_lqr_lat 1 1);
     set mat 2 5 (get k_lqr_lat 1 2); set mat 2 6 (get k_lqr_lat 1 3);
-    set mat 2 7 (get k_lqr_lat 1 5);
+    set mat 2 7 (get k_lqr_lat 1 4);
 
     mat
 
@@ -109,13 +109,13 @@ let get_u_deg (ctrlLimits, throttle_ref, state) =
 
     { f16 = x_ctrl; nz = state.nz; ps = state.ps; ny_r = state.ny_r },
     {
-        thtlc = Utils.saturate (thtlc, ctrlLimits.throttleMax, ctrlLimits.throttleMin);
-        el = Utils.saturate (el, ctrlLimits.elevatorMaxDeg, ctrlLimits.elevatorMinDeg);
-        ail = Utils.saturate (ail, ctrlLimits.aileronMaxDeg, ctrlLimits.aileronMinDeg);
-        rdr = Utils.saturate (rdr, ctrlLimits.rudderMaxDeg, ctrlLimits.rudderMinDeg);
+        thtlc = Utils.saturate (thtlc, ctrlLimits.throttleMin, ctrlLimits.throttleMax);
+        el = Utils.saturate (el, ctrlLimits.elevatorMinDeg, ctrlLimits.elevatorMaxDeg);
+        ail = Utils.saturate (ail, ctrlLimits.aileronMinDeg, ctrlLimits.aileronMaxDeg);
+        rdr = Utils.saturate (rdr, ctrlLimits.rudderMinDeg, ctrlLimits.rudderMaxDeg);
     }
 
-let get_integrator_derivatives (nz_ref, ps_ref, ny_r_ref, state) =
-    (state.nz -. nz_ref,
-     state.ps -. ps_ref,
-     state.ny_r -. ny_r_ref)
+let get_integrator_derivatives (u_ref, nz, ps, ny_r) =
+    (nz -. u_ref.nz_ref,
+     ps -. u_ref.ps_ref,
+     ny_r -. u_ref.ny_r_ref)

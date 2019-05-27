@@ -1,0 +1,34 @@
+open Types
+open Scope
+
+let static pi = 3.14159265359
+let static rtod = 57.29578    (* rad to deg coefficient *)
+let static dtor = 1.745329e-2 (* deg to rad coefficient *)
+
+let hybrid main () =
+    let der t = 1. init 0. in
+
+    let initial_cond = {
+        vt = 540.;
+        alpha = 2.1215 *. dtor; beta = 0.;
+        phi = pi /. 4.; theta = (-2. *. pi /. 5.); psi = -. pi /. 4.;
+        p = 0.; q = 0.; r = 0.;
+        x9 = 0.; x10 = 0.;
+        alt = 3600.; power = 9.;
+    } in
+    let inp = { thtlc = 0.; el = 0.; ail = 0.; rdr= 0. } in
+
+    let state, _, _ = Subf16_model.model (initial_cond, inp) in
+
+    present (period(0.1)) ->
+        let s1 = scope (-2000., 4000., ("alititude", linear, state.alt)) in
+        let s2 = scope (0., 700., ("speed", linear, state.vt)) in
+        let s3 = scope (0., 10., ("power", linear, state.power)) in
+        let s4 = scope5(-7., 3.,
+                        ("phi (rad)", linear, state.phi),
+                        ("theta (rad)", linear, state.theta),
+                        ("psi (rad)", linear, state.psi),
+                        ("alpha (rad)", linear, state.alpha),
+                        ("beta (rad)", linear, state.beta)) in
+        window4("Subf16_model", 50., t, s1, s2, s3, s4)
+    else ()

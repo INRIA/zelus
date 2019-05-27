@@ -1,0 +1,24 @@
+let table1 =
+    let mat = Matrix.create 1 5 0. in
+    Matrix.set_row_from_list mat 0 [ 1.; 3.; 2.; 5.; 2. ];
+    mat
+let table2 =
+    let mat = Matrix.create 5 1 0. in
+    Matrix.set mat 0 0 1.;
+    Matrix.set mat 1 0 3.;
+    Matrix.set mat 2 0 2.;
+    Matrix.set mat 3 0 5.;
+    Matrix.set mat 4 0 2.;
+    mat
+
+open Scope
+
+let hybrid test_lut () =
+    let der t = 1. init 0. in
+    let v1 = Matrix.lut1d_col table1 0 t in
+    let v2 = Matrix.lut1d_row table2 t 0 in
+    present(period(0.01)) ->
+        let s1 = scope (0., 5., ("lut table1", linear, v1)) in
+        let s2 = scope (0., 5., ("lut table2", linear, v2)) in
+        window2("Test LUT", 5., t, s1, s2)
+    else ()
