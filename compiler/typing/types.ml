@@ -176,15 +176,16 @@ let run_type expected_k =
   funtype expected_k None ty_arg ty_res
 
 							      
-(* Check that a type has itself kind k. If forbids function unless k = S *)
+(* Check that a type has itself kind k. *)
+(***** removed the constraint: it forbids function unless k = S *)
 let rec kind k { t_desc = desc } =
   match desc with
   | Tvar -> ()
   | Tproduct(ty_list) | Tconstr(_, ty_list, _) -> List.iter (kind k) ty_list
   | Tvec(ty_arg, _) -> kind k ty_arg
   | Tlink(ty_link) -> kind k ty_link
-  | Tfun _ when (k = Tstatic(true)) -> ()
-  | _ -> raise Unify
+  | Tfun _ -> ()
+(***** when (k = Tstatic(true)) -> () | _ -> raise Unify *)
 
 let fully_applied ty = try kind Tany ty; true with Unify -> false
 				   
