@@ -31,7 +31,7 @@ LOBJ = pervasives.zci \
 
 LOBJ_GTK = $(LOBJ) \
 	   gtkplot.zci \
-		 input.zci
+	   input.zci
 
 INCLUDES += -I solvers
 SOLVER_OBJS = solvers/illinois.cmo  \
@@ -48,7 +48,8 @@ OBJ = ztypes.cmo \
       zlsrun.cmo \
       obs.cmo \
       gen.cmo \
-      vbool.cmo
+      vbool.cmo \
+      node.cmo \
 
 OBJ_GTK = gtkplot.cmo \
 	  input.cmo \
@@ -98,22 +99,19 @@ input.cmi:
 input.cmo: INCLUDES += $(LABLGTK2)
 input.cmx: INCLUDES += $(LABLGTK2)
 
+# extra dependences
+
 random.zci: int32.zci nativeint.zci int64.zci random.zli
 
 obs.ml: obs.zls basics.zci
-		$(ZELUC) $(ZELUCFLAGS) obs.zls
 
 vbool.ml: vbool.zls
-		$(ZELUC) $(ZELUCFLAGS) vbool.zls
 
 gen.ml: gen.zls random.zci
-		$(ZELUC) $(ZELUCFLAGS) gen.zls
 
 scope.ml: scope.zls gtkplot.zci basics.zci
-	$(ZELUC) $(ZELUCFLAGS) scope.zls
 
-dump.ml: dump.zls basics.zci
-	$(ZELUC) $(ZELUCFLAGS) dump.zls
+dump.ml: dump.zls basics.zci list.zci
 
 defaultsolver.ml: ../config
 	@printf "(* This file is generated automatically by make. *)\n" > $@
