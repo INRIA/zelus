@@ -127,7 +127,7 @@ export DEBUG_PRELUDE
 
 # implicit rules
 
-.SUFFIXES : .mli .ml .cmi .cmo .cmx .mll .mly .zli .zli .byte .opt
+.SUFFIXES : .mli .ml .cmi .cmo .cmx .mll .mly .zls .zli .byte .opt
 
 %.cmi: %.mli
 	$(OCAMLC) $(OCAMLFLAGS) -c $(INCLUDES) $<
@@ -139,6 +139,9 @@ export DEBUG_PRELUDE
 	$(OCAMLOPT) $(OCAMLOPTFLAGS) -I $(ZLLIB) -c $(INCLUDES:.cma=.cmxa) $<
 
 %.zci: %.zli
+	$(ZELUC) $(ZELUCFLAGS) $<
+
+%.ml: %.zls
 	$(ZELUC) $(ZELUCFLAGS) $<
 
 %.ml: %.mll
