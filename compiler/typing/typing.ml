@@ -101,7 +101,7 @@ let check_is_vec loc actual_ty =
   with
     | Types.Unify -> error loc Esize_of_vec_is_undetermined
 
-(* An expression is expansive if it is not an immediate value *)
+(* An expression is expansive if it is an application *)
 let rec expansive { e_desc = desc } =
   match desc with
     | Elocal _ | Eglobal _ | Econst _ | Econstr0 _ -> false
@@ -1304,7 +1304,9 @@ let funtype loc expected_k pat_list ty_list ty_res =
 (* The main entry functions *)
 let constdecl f is_static e =
   let expected_k = if is_static then Tstatic(true) else Tdiscrete(false) in
+  Misc.push_binding_level ();
   let ty = expression expected_k Env.empty e in
+  Misc.pop_binding_level ();
   let tys = Types.gen (not (expansive e)) ty in
   tys
 
