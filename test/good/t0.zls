@@ -1,12 +1,35 @@
-let i1 j = k where
-  match true with
-  | true -> match true with
-            | true -> do emit k = () done
-	    | false -> do done
-            end
-  | false -> do done
+(*
+ocamlfind ocamlc bigarray.cma -package sundialsml sundials.cma zls.cmo -I solvers solvers/illinois.cmo solvers/sundials_cvode.cmo ztypes.ml node.ml
+  *)
 
+open Node
 
+    
+let hybrid f() = (x, o +. o1) where
+  rec der x = 1.0 init 42.0
+  and o = present (period (0.0|0.2)) -> x init 0.0 
+  and o1 = 1.0 (* present up(x) -> 1.0 init 0.0 *)
+
+let node main2() =
+  let stop_time, res = solve f 10.0 () (2.0, ()) in
+  match res with
+  | Success -> print_string "success\n"
+  | RootsFound -> print_string "root\n"
+  | Horizon -> print_string "horizon\n"
+  | Cascade(r) ->
+      let x, o = r in
+      (print_string "x = "; print_float x;
+       print_newline ();
+       print_string "o = "; print_float o;
+       print_newline ())
+  | StopTimeReached -> print_string "finished\n"
+  | Error -> print_string "error"
+
+(* let hybrid main () =
+  let o = f() in
+  present (period(0.0|2.0)) -> print_float o init ()
+ *)
+	
 (*
 let node integr (dt, x') = x where
   rec x = 0.0 -> dt *. x' +. (pre x)
