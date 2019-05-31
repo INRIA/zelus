@@ -114,6 +114,7 @@ let block l lo eq_list startpos endpos =
 %token DOT            /* "." */
 %token DOTDOT         /* ".." */
 %token COLON          /* ":" */
+%token COLONCOLON     /* "::" */
 %token LBRACE         /* "{" */
 %token BAR            /* "|" */
 %token RBRACE         /* "}" */
@@ -211,6 +212,7 @@ let block l lo eq_list startpos endpos =
 %left AMPERSAND AMPERAMPER
 %left INFIX0 EQUAL
 %right INFIX1
+%right COLONCOLON
 %left INFIX2 PLUS SUBTRACTIVE MINUS
 %left STAR INFIX3
 %left ON
@@ -908,6 +910,8 @@ expression_desc:
       { e }
   | e = expression_comma_list %prec prec_list
       { Etuple(List.rev e) }
+  | e1 = simple_expression COLONCOLON e2 = expression
+      { cons_desc e1 e2 ($startpos(e1)) ($endpos(e2)) }
   | e1 = expression FBY e2 = expression
       { Eop(Efby, [e1; e2]) }
   | f = simple_expression l = simple_expression_list

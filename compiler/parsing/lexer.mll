@@ -165,6 +165,7 @@ rule main = parse
   | "{"  { LBRACE }
   | "}"  { RBRACE }
   | ":"  { COLON }
+  | "::"  { COLONCOLON }
   | "="  { EQUAL }
   | "==" { EQUALEQUAL }
   | "+=" { PLUSEQUAL }
