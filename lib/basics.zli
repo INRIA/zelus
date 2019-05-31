@@ -1,21 +1,7 @@
-val cons : 'a * 'a list -> 'a list
-val nil : 'a list
-val singleton : 'a -> 'a list
-val append : 'a list * 'a list -> 'a list
 
 val output_strings : out_channel -> string list -AD-> unit
 val output_quoted_strings : out_channel -> string list -AD-> unit
 val output_floats : out_channel -> float list  -AD-> unit
-
-val empty : 'a list -> bool
-
-val hd : 'a list -> 'a
-val tl : 'a list -> 'a list
-val list_map : ('a -A-> 'b) -S-> 'a list -A-> 'b list
-val list_foldl : ('a * 'b -> 'a) -S-> 'a -A-> 'b list -A-> 'a
-val list_foldr : ('a * 'b -> 'b) -S-> 'a list -A-> 'b -A-> 'b
-val list_split : ('a * 'b) list -A-> 'a list * 'b list
-val list_nth   : 'a list -> int -> 'a
 
 val stdform_of_float : int -> int -> float -> string
 
@@ -25,10 +11,6 @@ val float_eq : float -> float -> float -AD-> bool
 
 (* to within 99.9999% *)
 val (=~=) : float -> float -AD-> bool
-
-(* access to the minor and major step. Warning: only for testing *)
-val major_step : unit -C-> zero
-val minor_step : unit -C-> zero
 
 (* discontinuous sgn. Warning: only for testing *)
 val bad_sgn : float -A-> float

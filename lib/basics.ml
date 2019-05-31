@@ -1,28 +1,9 @@
-
-let cons (x, xs) = x :: xs
-let nil = []
-
-let singleton x = [x]
-
-let empty = function
-  | [] -> true | _ -> false
-
-let hd = List.hd
-let tl = List.tl
-let list_map = List.map
-let list_foldl f a l = List.fold_left (fun a b -> f (a,b)) a l
-let list_foldr f l b = List.fold_right (fun a b -> f (a, b)) l b
-let list_split = List.split
-let list_nth = List.nth
-
 let stdform_of_float pref suf f =
   Printf.sprintf
     (Scanf.format_from_string
        (Printf.sprintf "%%%d.%de" pref suf)
        "%e")
     f
-
-let append (l1, l2) = List.append l1 l2
 
 let output_line output_item out ss =
   let pr s = (output_string out "\t"; output_item out s) in
@@ -53,14 +34,6 @@ let float_eq max_relative_error f1 f2 =
 
 (* 99.9999% accuracy *)
 let (=~=) = float_eq 0.000001
-
-(* Horrible hack to get at the major time step without holding a reference to
-   the current solver. *)
-let is_major_step = ref false
-
-let set_major_step x = is_major_step := x
-let major_step () = !is_major_step
-let minor_step () = not !is_major_step
 
 let on x y = x && y
 
