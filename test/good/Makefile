@@ -84,22 +84,22 @@ ifdef VERBOSE
 	-@cat $(<:.zls=.translation)
 endif
 
-%.compilation: %.ml FORCE
+%.compilation: %.translation FORCE
 	-@$(OCAMLC) $(OCAMLFLAGS) -c -I $(ZLLIB) $(INCLUDES)		\
-	    $< 2>$(<:.ml=.compilation);					\
+	    $(<:.translation=.ml) 2>$(<:.translation=.compilation);					\
 	if [ $$? -eq 0 ]; then						\
-	    if [ `cat $(<:.ml=.compilation) | wc -l` -ne 0 ];		\
+	    if [ `cat $(<:.translation=.compilation) | wc -l` -ne 0 ];		\
 	    then WARN=" (with warnings)"; else WARN=""; fi;		\
-	    printf -- "--good/$(<:.ml=): $(S_GREEN)compilation ok$(S_NORMAL)\n"; \
-	    touch "$(<:.ml=.compilation.ok)";				\
+	    printf -- "--good/$(<:.translation=): $(S_GREEN)compilation ok$(S_NORMAL)\n"; \
+	    touch "$(<:.translation=.compilation.ok)";				\
 	elif [ ! -e $< ]; then						\
-	    printf -- "--good/$(<:.ml=): compilation not tested\n";	\
-	    rm -f "$(<:.ml=.compilation.ok)";				\
+	    printf -- "--good/$(<:.translation=): compilation not tested\n";	\
+	    rm -f "$(<:.translation=.compilation.ok)";				\
 	else					  			\
-	    printf -- "--good/$(<:.ml=): $(S_RED)compilation fail$(S_NORMAL) (see $(<:.ml=.compilation))\n"; \
-	    rm -f "$(<:.ml=.compilation.ok)";				\
+	    printf -- "--good/$(<:.translation=): $(S_RED)compilation fail$(S_NORMAL) (see $(<:.translation=.compilation))\n"; \
+	    rm -f "$(<:.translation=.compilation.ok)";				\
 	fi
 ifdef VERBOSE
-	-@cat $(<:.ml=.compilation)
+	-@cat $(<:.translation=.compilation)
 endif
 
