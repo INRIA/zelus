@@ -37,7 +37,7 @@ type dvec = (float, float64_elt, c_layout) Array1.t
 type zinvec = (int32, int32_elt,   c_layout) Array1.t
 type zoutvec = (float, float64_elt, c_layout) Array1.t
 
-(* The interface with the solver *)
+(* The interface with the ODE solver *)
 type cstate =
   { mutable dvec : dvec; (* the vector of derivatives *)
     mutable cvec : cvec; (* the vector of positions *)
@@ -55,21 +55,11 @@ type cstate =
     mutable major : bool; (* integration iff [major = false] *)
   }
 
-type ('a, 'b) hnode =
-    Hnode:
-      { alloc : unit -> 's; (* allocate the state *)
-        csize : 's -> int; (* the number of current state variables *)
-        zsize : 's -> int; (* the number of current zero crossings *)
-        cmaxsize: 's -> int; (* the max number of state variables *)
-        zmaxsize: 's -> int; (* the max number of zero crossings *)
-        step : 's -> 'a -> 'b; (* compute a step *)
-        reset : 's -> unit; (* reset/inialize the state *)
-        derivative: 's -> cvec -> dvec -> unit; (* computes the derivative *)
-        crossings: 's -> cvec -> zinvec -> zoutvec -> unit; (* zero crossings *)
-        horizon: 's -> time; (* the next time horizon *)
-      } -> ('a, 'b) hnode
-
-type 'o hsimu =
+(* A hybrid node is a node that is parameterised by a continuous state *)
+(* all instances points to this global parameter and read/write on it *)
+type ('a, 'b) hnode = cstate -> ('a, 'b) node
+					 
+type 'b hsimu =
     Hsim:
       { alloc : unit -> 's;
         (* allocate the initial state *)
@@ -80,7 +70,7 @@ type 'o hsimu =
         (* returns the current length of the continuous state vector *)
         zsize : 's -> int;
         (* returns the current length of the zero-crossing vector *)
-        step : 's -> cvec -> dvec -> zinvec -> time -> 'o;
+        step : 's -> cvec -> dvec -> zinvec -> time -> 'b;
         (* computes a step *)
         derivative : 's -> cvec -> dvec -> zinvec -> zoutvec -> time -> unit;
         (* computes the derivative *)
@@ -90,4 +80,4 @@ type 'o hsimu =
         (* resets the state *)
         horizon : 's -> time;
         (* gives the next time horizon *)
-      } -> 'o hsimu
+      } -> 'b hsimu
