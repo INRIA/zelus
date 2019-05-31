@@ -15,32 +15,41 @@
 (**************************************************************************)
 
 (* This module provides functions for lifting a hybrid function into *)
-(* a discrete one. Embeds the numerical solver into the internal state *)
+(* a discrete one. This the so-called "co-simulation" of a *)
+(* continuous or hybrid model in which the numerical solver *)
+(* and zero-crossing detection mechanism is embedded into the step function *)
 
 (* compile with:
-*- ocamlfind ocamlc bigarray.cma sundials.cma ztypes.ml node2.ml *)
+ *- ocamlfind ocamlc bigarray.cma sundials.cma ztypes.ml node.ml *)
+(*- ocamlfind ocamlc bigarray.cma -package sundialsml sundials.cma
+    zls.cmo -I solvers solvers/illinois.cmo solvers/sundials_cvode.cmo 
+    ztypes.ml node.ml *)
 open Ztypes
 
-
-type 'a return =
-      | Success (* the integration has reached the expected horizon *)
-      | RootsFound (* a Root has been found during integration *)
-      | Cascade of 'a (* a new event occur in zero-time *)
-      | StopTimeReached (* the end of simulation time is reached *)
-      | Init
-      | Error
-
+type 'a simu =
+  | SimInit (* initial state of the simulation *)
+  | SimIntegration (* integrate the signals *)
+  | SimDiscrete of 'a return (* make a step *)
+      
+and 'a return =
+   | Success (* the integration has succeed; no step *)
+   | RootsFound (* a root has been found *)
+   | Horizon (* the integration has succeed; an horizon is reached *)
+   | Cascade of 'a (* a cascade *)
+   | StopTimeReached (* the end of simulation time is reached *)
+   | Error (* something went wrong during integration *)
+       
 module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
   struct
-    (* the status return by one step of computation *)
     (* the type that define the internal state of the node *)
-    type ('a, 's) sstate =
+    type ('a, 'b, 's) sstate =
 	{ state: 's; (* the discrete state *)
 	  zstate: ZSolver.t; (* the solver state *)
 	  sstate: SSolver.t; (* the zero-crossing solver state *)
-	  yinit_nvec: SSolver.nvec; (* the state vector for the solver *)
-	  mutable time: float; (* the current time of the simulation *)
-	  mutable result: 'a return; (* the result of the simulation step *)
+	  yinit_nvec: SSolver.nvec;
+	                     (* the continuous state vector for the solver *)
+	  mutable time: float;  (* the current time of the simulation *)
+	  mutable simu: 'a simu; (* the current state of the simulation *)
 	}
   
     let take = function | None -> assert false | Some(v) -> v
@@ -48,50 +57,56 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
     (* Lift a hybrid node into a node *)
     (* [solve f stop_time (input, t) = next_t, result]
        - f : 'a -C-> 'b is the hybrid node;
-       - stop_time : float is the stop time of the simulation;
+       - stop_time : float is the stop time (end) of the simulation;
        - input : 'a is a stream;
        - t : float is a stream of horizons that must be increasing
              (forall n in Nat. t(n) <= t(n+1))
        - result : 'b return is a stream of results;
        - next_t : float is a stream of achieved horizons *)
-    let solve f (stop_time: float) =
+    let solve f (stop_time: float) default =
       let cstate =
 	{ cvec = Zls.cmake 0; dvec = Zls.cmake 0; cindex = 0; zindex = 0;
 	  cend = 0; zend = 0; cmax = 0; zmax = 0;
 	  zinvec = Zls.zmake 0; zoutvec = Zls.cmake 0;
-	  major = false; horizon = 0.0 } in
+	  major = false; horizon = stop_time } in
 
-      let input = ref None in
+      let input = ref (Some(default)) in
 
       (* create a node *)
       let Node { alloc; step; reset } = f cstate in
       
       (* the derivative *)
       let f s time cvec dvec =
+	cstate.major <- false;
 	cstate.cvec <- cvec;
 	cstate.dvec <- dvec;
 	cstate.cindex <- 0;
-	cstate.major <- false;
+	cstate.zindex <- 0;
 	ignore (step s (time, take !input)) in
   
       (* the zero-crossing function *)
       let g s time cvec zoutvec =
+	cstate.major <- false;
 	cstate.cvec <- cvec;
 	cstate.zoutvec <- zoutvec;
 	cstate.cindex <- 0;
-	cstate.major <- false;
+	cstate.zindex <- 0;
 	ignore (step s (time, take !input)) in
   
       (* the minorstep function *)
       let minorstep s time =
-	cstate.cindex <- 0;
 	cstate.major <- false;
+	cstate.cindex <- 0;
+	cstate.zindex <- 0;
 	step s (time, take !input) in
 
       (* the majorstep function *)
-      let majorstep s time i =
-	cstate.cindex <- 0;
+      let majorstep s time cvec i =
 	cstate.major <- true;
+	cstate.horizon <- infinity;
+	cstate.cvec <- cvec;
+	cstate.cindex <- 0;
+	cstate.zindex <- 0;
 	step s (time, i) in
 
       (* the alloc function *)
@@ -107,7 +122,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	cstate.dvec <- Zls.cmake cstate.cmax;
 	cstate.zoutvec <- Zls.cmake cstate.zmax;
 	cstate.zinvec <- Zls.zmake cstate.zmax;
-	
+
 	(* the solver state *)
 	let sstate = SSolver.initialize (f s) yinit_nvec in
 	SSolver.set_stop_time sstate stop_time;
@@ -116,7 +131,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	let zstate = ZSolver.initialize_only cstate.zmax (g s) cstate.cvec in
 
 	{ state = s; sstate = sstate; zstate = zstate;
-	  yinit_nvec = yinit_nvec; time = 0.0; result = Init } in
+	  yinit_nvec = yinit_nvec; time = 0.0; simu = SimInit } in
 
       let reset { state; sstate; zstate; yinit_nvec; time = time } =
 	reset state;
@@ -124,66 +139,81 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	ZSolver.reinitialize zstate time cstate.cvec in
 
       let step
-	    ({ state; yinit_nvec; sstate; zstate; result; time } as s)
+	    ({ state; yinit_nvec; sstate; zstate; simu; time } as s)
 	       (horizon, i) =
 	try
-	  (* store the current input *)
+	(* store the current input *)
 	  input := Some(i);
 	  (* make a step *)
-	  match result with
-	  | Success ->
-             print_string "two\n"; flush stdout;
-	     (* make one step of integration *)
-             let next_time = SSolver.step sstate time yinit_nvec in
-             (* is there a zero-crossing? *)
-	     ZSolver.step zstate next_time cstate.cvec;
-	     let stop_time, result =
+	  match simu with
+	  | SimIntegration | SimDiscrete(Success) ->
+             (* make one step of integration *)
+             let achieved_time = SSolver.step sstate time yinit_nvec in
+             print_string "time = "; print_float time;
+	     print_newline ();
+	     print_string "achieved time = "; print_float achieved_time;
+	     print_newline ();
+	     (* is there a zero-crossing? *)
+	     cstate.cvec <- SSolver.unvec yinit_nvec;
+	     ZSolver.step zstate achieved_time cstate.cvec;
+	     let achieved_time, result =
 	       if ZSolver.has_roots zstate then
-		 let stop_time =
+		 let achieved_time =
 		   ZSolver.find zstate
 				(SSolver.get_dky sstate yinit_nvec, cstate.cvec)
 				cstate.zinvec in
 		 (* one more step to actualize left limits *)
 		 (* and the zero-crossing state variables *)
-		 minorstep state time;
-		 stop_time, RootsFound
-	       else next_time, Success in
-	     s.result <- RootsFound; 
-	     s.time <- stop_time;
+		 minorstep state achieved_time;
+		 achieved_time, RootsFound
+	       else
+		 if achieved_time >= stop_time
+		 then stop_time, StopTimeReached
+		 else if achieved_time = s.time
+		 then achieved_time, Horizon
+		 else achieved_time, Success in
+	     s.time <- time;
+	     s.simu <- SimDiscrete(result);
 	     stop_time, result
-	  | RootsFound ->
-             print_string "three\n"; flush stdout;
-	     (* a root has been found. *)
-	     (* make a discrete step *)
-	     let r = majorstep state time i in
-	     print_string "three 2\n"; flush stdout;
+	  | SimDiscrete(RootsFound | Horizon) -> 
+             (* make a discrete step *)
+	     let result = majorstep state time (SSolver.unvec yinit_nvec) i in
 	     (* sets all the entries in zinvec to zero *)
              Zls.zzero cstate.zinvec cstate.zmax;
-             let r = Cascade(r) in
-	     s.result <- r;
-             time, r
-	  | Init | Cascade _ ->
-             print_string "four\n"; flush stdout;
-	     (* a cascade occur, i.e., an event is triggered in zero-time *)
-             let r = majorstep state time i in
-             if cstate.horizon = 0.0 then
-               let r = Cascade(r) in
-	       s.result <- r;
-	       time, r
+             let result = Cascade(result) in
+	     s.simu <- SimDiscrete(result);
+             time, result
+	  | SimInit | SimDiscrete(Cascade _) ->
+             (* a cascade occur, i.e., an event is triggered in zero-time *)
+             let result = majorstep state time (SSolver.unvec yinit_nvec) i in
+             print_string "time = "; print_float time;
+	     print_newline ();
+	     print_string "horizon = "; print_float cstate.horizon;
+	     print_newline ();
+	     if cstate.horizon = 0.0 then
+               let result = Cascade(result) in
+		s.simu <- SimDiscrete(result);
+		time, result
              else
-               begin
-		 SSolver.reinitialize sstate time yinit_nvec;
-		 ZSolver.reinitialize zstate time cstate.cvec;
-		 s.time <- s.time +. cstate.horizon;
-		 s.result <- Success;
-		 s.time, Success
-	       end
-	  | StopTimeReached
-	  | Error -> print_string "five\n"; flush stdout;
-		     time, result
+               if s.time >= stop_time
+	       then
+		 begin
+		   s.simu <- SimDiscrete(StopTimeReached);
+		   s.time, StopTimeReached
+		 end
+	       else
+		 begin
+		   SSolver.reinitialize sstate time yinit_nvec;
+		   ZSolver.reinitialize zstate time cstate.cvec;
+		   let time =
+		     max (s.time +. min horizon cstate.horizon) stop_time in
+		   s.time <- time;
+		   s.simu <- SimIntegration;
+		   s.time, Success
+		 end
+	  | SimDiscrete(r) -> time, r
 	with
-	| x -> print_string "six\n"; flush stdout;
-	       raise x; time, Error in
+	| x -> raise x (* time, Error *) in
 
       Node { alloc = alloc; step = step; reset = reset }
   end

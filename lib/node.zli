@@ -15,10 +15,12 @@
 (**************************************************************************)
 
 type 'a return =
-      | Success (* the integration has reached the expected horizon *)
-      | RootsFound (* a Root has been found during integration *)
-      | Cascade of 'a (* a new event occur in zero-time *)
-      | StopTimeReached (* the end of simulation time is reached *)
-      | Error
+   | Success (* the integration has succeed; no step *)
+   | RootsFound (* a root has been found *)
+   | Horizon (* the integration has succeed; an horizon is reached *)
+   | Cascade of 'a (* a cascade *)
+   | StopTimeReached (* the end of simulation time is reached *)
+   | Error (* something went wrong during integration *)
 
-val solve : ('a -C-> 'b) -S-> float -S-> float * 'a -D-> float * 'b return
+val solve :
+  ('a -C-> 'b) -S-> float -S-> 'a -S-> float * 'a -D-> float * 'b return
