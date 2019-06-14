@@ -129,9 +129,6 @@ let num_roots { f0 } = Zls.length f0
 (* f0/t0 take the previous values of f1/t1, f1/t1 are refreshed by g *)
 let step ({ g; f0 = f0; f1 = f1; t1 = t1 } as s) t c =
   (* swap f0 and f1; f0 takes the previous value of f1 *)
-  if !debug then
-    (printf "z|---------- step(%.24e, %.24e)----------@." s.t0 s.t1;
-     log_limits s.f0 s.f1);
   s.f0 <- f1;
   s.t0 <- t1;
   s.f1 <- f0;
