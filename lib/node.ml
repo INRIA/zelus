@@ -206,15 +206,15 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 
 	       carray_log "I :" 0.0 cvec;
 			  
+	       (* initial major step *)
+	       let result = majorstep state 0.0 cvec input in
+
 	       (* the solver state *)
 	       let sstate = SSolver.initialize (f state input) nvec in
 
 	       carray_log "I :" 0.0 cvec;
 	       
 	       f_reset state;
-
-	       (* initial major step *)
-	       let result = majorstep state 0.0 cvec input in
 
 	       (* the zero-crossing solver state *)
 	       (* print_string "Number of zeros = ";
