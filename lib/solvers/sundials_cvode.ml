@@ -2,7 +2,7 @@
 type t = Nvector_serial.kind Cvode.serial_session
 
 type nvec = Nvector_serial.t
-let cmake n = Nvector_serial.wrap (Sundials.RealArray.create n)
+let cmake n = Nvector_serial.make n 0.0
 let unvec = Nvector.unwrap
 
 type rhsfn = float -> Zls.carray -> Zls.carray -> unit
