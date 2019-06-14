@@ -91,7 +91,8 @@ let no_deadcode = ref false
 let no_simplify_causality_type = ref false
 let no_reduce = ref false
 let no_warning = ref false
-
+let zsign = ref false (* implement the zero-crossing with the sign function *)
+		
 let lmm_nodes = ref S.empty
 let set_lmm_nodes (n: string) =
   lmm_nodes := S.add n !lmm_nodes
