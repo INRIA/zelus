@@ -55,6 +55,13 @@
 (* do init h = time and z = mod_float (time - last h) v2 = v1 *)
 (* and h = if z then time + v2 else last h in z *)
 
+(* A zero-crossing cannot be true twice without time passing *)
+(* up(x) =>
+    let rec init ztime = -1.0
+        and ztime = if z then time else last ztime
+        and z = up(if time > last ztime then x else 1.0) in
+    z *)
+  
 open Misc
 open Location
 open Ident
@@ -66,7 +73,6 @@ open Zaux
 
 
 let new_time () = Ident.fresh "time"
-	  
 
 (* The main translation function for periods *)
 let period time { p_phase = p1_opt; p_period = p2 } =
@@ -87,7 +93,27 @@ let period time { p_phase = p1_opt; p_period = p2 } =
      eq_make z (greater_or_equal (float_var time) (float_last h))] in
   make_let env eq_list (bool_var z)
 
-(* Add an extra input parameter for hybrid nodes *)
+(* Ensure that a zero-crossing cannot be done *)
+(* twice without time passing *)
+let up time e =
+  let z = Ident.fresh "z" in
+  let ztime = Ident.fresh "ztime" in
+  let env =
+    Env.add ztime (Deftypes.entry imemory Initial.typ_float)
+	    (Env.add z (Deftypes.entry Sval Initial.typ_float)
+		     Env.empty) in
+  let eq_list =
+    [eq_init ztime minus_one;
+     eq_make ztime
+	     (ifthenelse (float_var z) (float_var time) (float_last ztime));
+     eq_make z
+	     (Zaux.up (ifthenelse (greater (float_var time) (float_last ztime))
+				e one))] in
+  make_let env eq_list (float_var z)
+
+let up time e = e
+
+(* Add the extra input parameter "time" for hybrid nodes *)
 let extra_input time env pat = 
   Env.add time { t_sort = Deftypes.value; t_typ = Initial.typ_float } env,
   Zaux.pairpat (float_varpat time) pat
@@ -98,6 +124,7 @@ let rec expression time ({ e_desc = e_desc } as e) =
   | Eperiod({ p_phase = opt_p1; p_period = p2 }) ->
      period time { p_phase = Misc.optional_map (expression time) opt_p1;
 		   p_period = expression time p2 }
+  | Eop(Eup, [e_arg]) -> { e with e_desc = Eop(Eup, [expression time e_arg]) }
   | Eop(op, e_list) ->
      { e with e_desc = Eop(op, List.map (expression time) e_list) }
   | Eapp(app, op, e_list) ->
