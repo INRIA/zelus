@@ -126,7 +126,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	cstate.cvec <- cvec;
 	cstate.cindex <- 0;
 	cstate.zindex <- 0;
-	f_step s (time, input) in
+	ignore (f_step s (time, input)) in
 
       (* the function which compute a discrete step *)
       let majorstep s time cvec input =
