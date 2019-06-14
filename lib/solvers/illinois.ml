@@ -1,5 +1,5 @@
 
-let printf = Printf.printf
+let printf = Format.printf
 
 type root_direction = Up | Down | Either | Ignore
 
@@ -48,11 +48,11 @@ let clear_roots roots =
   done
 
 let log_limits f0 f1 =
-  let logf i _ = Printf.printf "z| g[% 2d]: % .24e --> % .24e\n" i in
+  let logf i _ = printf "z| g[% 2d]: % .24e --> % .24e@." i in
   fold_zxzx logf () f0 f1
 
 let log_limit f0 =
-  let logf i _ x _ = Printf.printf "z| g[% 2d]: % .24e\n" i x in
+  let logf i _ x _ = printf "z| g[% 2d]: % .24e@." i x in
   fold_zxzx logf () f0 f0
 
 let debug = ref true
@@ -97,7 +97,7 @@ type t = {
 let reinitialize ({ g; f1 = f1; t1 = t1 } as s) t c =
   s.t1 <- t;
   g t1 c f1;   (* fill f1, because it is immediately copied into f0 by next_mesh *)
-  if !debug then (printf "z|---------- init(%.24e, ... ----------\n" t;
+  if !debug then (printf "z|---------- init(%.24e, ... ----------@." t;
                   log_limit s.f1);
   s.bothf_valid  <- false
 
@@ -130,7 +130,7 @@ let num_roots { f0 } = Zls.length f0
 let step ({ g; f0 = f0; f1 = f1; t1 = t1 } as s) t c =
   (* swap f0 and f1; f0 takes the previous value of f1 *)
   if !debug then
-    (printf "z|---------- step(%.24e, %.24e)----------\n" s.t0 s.t1;
+    (printf "z|---------- step(%.24e, %.24e)----------@." s.t0 s.t1;
      log_limits s.f0 s.f1);
   s.f0 <- f1;
   s.t0 <- t1;
@@ -142,7 +142,7 @@ let step ({ g; f0 = f0; f1 = f1; t1 = t1 } as s) t c =
   s.bothf_valid <- true;
 
   if !debug then
-    (printf "z|---------- step(%.24e, %.24e)----------\n" s.t0 s.t1;
+    (printf "z|---------- step(%.24e, %.24e)----------@." s.t0 s.t1;
      log_limits s.f0 s.f1)
 
 type root_interval = SearchLeft | FoundMid | SearchRight
@@ -188,7 +188,7 @@ let find ({ g = g; bothf_valid = bothf_valid;
 
     if !debug then
       (printf
-          "z|---------- stall(%.24e, %.24e) {interval < %.24e !}--\n"
+          "z|---------- stall(%.24e, %.24e) {interval < %.24e !}--@."
           t_left t_right ttol;
        log_limits f_left (get_f_right f_right'));
 
@@ -254,20 +254,20 @@ let find ({ g = g; bothf_valid = bothf_valid;
 
         match check_interval calc_zc f_left f_mid with
         | SearchLeft  ->
-            if !debug then printf "z| (%.24e -- %.24e]   %.24e\n"
+            if !debug then printf "z| (%.24e -- %.24e]   %.24e@."
                            t_left t_mid t_right;
             let alpha = if i >= 1 then alpha *. 0.5 else alpha in
             let n_mid = f_mid_from_f_right f_right' in
             seek (t_left, f_left, n_mid,  t_mid,   Some f_mid, alpha, i + 1)
 
         | SearchRight ->
-            if !debug then printf "z|  %.24e   (%.24e -- %.24e]\n"
+            if !debug then printf "z|  %.24e   (%.24e -- %.24e]@."
                            t_left t_mid t_right;
             let alpha = if i >= 1 then alpha *. 2.0 else alpha in
             seek (t_mid,  f_mid,  f_left, t_right, f_right',   alpha, i + 1)
 
         | FoundMid    ->
-            if !debug then printf "z|  %.24e   [%.24e]   %.24e\n"
+            if !debug then printf "z|  %.24e   [%.24e]   %.24e@."
                            t_left t_mid t_right;
             ignore (update_roots calc_zc f_left f_mid roots);
             let f_tmp = f_mid_from_f_right f_right' in
@@ -278,7 +278,7 @@ let find ({ g = g; bothf_valid = bothf_valid;
   if not bothf_valid then (clear_roots roots; assert false)
   else begin
     if !debug then
-      printf "z|\nz|---------- find(%.24e, %.24e)----------\n" t0 t1;
+      printf "z|\nz|---------- find(%.24e, %.24e)----------@." t0 t1;
 
     match check_interval calc_zc f0 f1 with
     | SearchRight -> begin
@@ -288,7 +288,7 @@ let find ({ g = g; bothf_valid = bothf_valid;
       end
 
     | FoundMid    -> begin
-        if !debug then printf "z| zero-crossing at limit (%.24e)\n" t1;
+        if !debug then printf "z| zero-crossing at limit (%.24e)@." t1;
         ignore (update_roots calc_zc f0 f1 roots);
         s.bothf_valid <- false;
         t1
