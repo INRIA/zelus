@@ -55,7 +55,7 @@ let log_limit f0 =
   let logf i _ x _ = printf "z| g[% 2d]: % .24e@." i x in
   fold_zxzx logf () f0 f0
 
-let debug = ref true
+let debug = ref false
 
 type zcfn  = float -> Zls.carray -> Zls.carray -> unit
 
