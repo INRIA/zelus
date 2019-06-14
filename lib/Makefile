@@ -38,8 +38,7 @@ SOLVER_OBJS = solvers/illinois.cmo  \
 	      solvers/odexx.cmo     \
 	      $(OPTIONAL_SOLVER_OBJS)
 
-OBJ = ztypes.cmo \
-      zls.cmo \
+OBJ = zls.cmo \
       basics.cmo \
       zlsolve.cmo \
       $(SOLVER_OBJS) \
