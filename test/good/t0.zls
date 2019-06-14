@@ -1,22 +1,36 @@
 (*
-ocamlfind ocamlc bigarray.cma -package sundialsml sundials.cma zls.cmo -I solvers solvers/illinois.cmo solvers/sundials_cvode.cmo ztypes.ml node.ml
-  *)
+../../compiler/zeluc.byte -v -s main2 t0.zls
+
+ocamlfind ocamlc bigarray.cma -package sundialsml sundials.cma zllib.cma -I ../../lib t0.ml main2.ml *)
 
 open Node
 
     
-let hybrid f() = (x, o +. o1) where
-  rec der x = 1.0 init 42.0
-  and o = present (period (0.0|0.2)) -> x init 0.0 
-  and o1 = 1.0 (* present up(x) -> 1.0 init 0.0 *)
+let hybrid f() = (x, o) where
+  rec der x = 1.0 init -1.0
+  and o = present up(x) -> 42.0 init 0.0
+
+let node ff () =
+  let { time = time; status = status; result = (x, o) } =
+    Node.solve f 10.0 (10.0, ()) in
+  match status with
+  | _ -> print_string "x = "; print_float x; print_newline ();
+         print_string "o = "; print_float o; print_newline ()
+    
+(*
+
+let hybrid g() =
+  let rec der x = 1.0 init -1.0
+  and o = present up(x) -> (print_float x; print_newline ()) init () in
+  ()
 
 let node main2() =
-  let stop_time, res = solve f 10.0 () (2.0, ()) in
-  match res with
+  let { time = time; status = status; result = r } = solve f 10.0 (100.0, ()) in
+  match status with
   | Success -> print_string "success\n"
   | RootsFound -> print_string "root\n"
-  | Horizon -> print_string "horizon\n"
-  | Cascade(r) ->
+  | Horizon _ -> print_string "horizon\n"
+  | Cascade ->
       let x, o = r in
       (print_string "x = "; print_float x;
        print_newline ();
@@ -24,7 +38,8 @@ let node main2() =
        print_newline ())
   | StopTimeReached -> print_string "finished\n"
   | Error -> print_string "error"
-
+ *)
+	
 (* let hybrid main () =
   let o = f() in
   present (period(0.0|2.0)) -> print_float o init ()
