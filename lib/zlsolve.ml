@@ -240,7 +240,7 @@ struct (* {{{ *)
       ("-lfcalls",
        Arg.Set log_fcalls,
        " Log differential function calls to stdout.");
-
+                    
       ("-ldcalls",
        Arg.Set log_dcalls,
        " Log discrete function calls to stdout.");
@@ -445,7 +445,8 @@ struct (* {{{ *)
             then SSolver.step ss (add_margin t_limit) cstates_nv
             else t_nextmesh in
 
-          let t = if t_limit < t_nextmesh
+          (* interpolation if the mesh point has passed the time limit *)
+	  let t = if t_limit < t_nextmesh
                   then (SSolver.get_dky ss cstates_nv t_limit 0; t_limit)
                   else t_nextmesh
           in
