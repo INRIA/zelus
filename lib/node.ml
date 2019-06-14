@@ -158,9 +158,9 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 
 	let print_info { start; limit } =
 	  print_string "start = "; print_float start;
-	     print_newline ();
-	     print_string "limit = "; print_float limit;
-	     print_newline () in
+	  print_newline ();
+	  print_string "limit = "; print_float limit;
+	  print_newline () in
 	    
 	let precise_logging = ref true in
 	
@@ -185,7 +185,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	  done;
 	  print_newline () in
 
-  (* the step function *)
+	(* the step function *)
 	let step ({ state; solver } as s) (horizon, input) =
 	  try
 	    (* make a step *)
@@ -198,8 +198,12 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	       
 	       f_reset state;
 
+	       carray_log "I :" 0.0 cvec;
+			  
 	       (* the solver state *)
 	       let sstate = SSolver.initialize (f state input) nvec in
+
+	       carray_log "I :" 0.0 cvec;
 	       
 	       f_reset state;
 
@@ -210,6 +214,8 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	       let zstate =
 		 ZSolver.initialize n_zeros (g state input) cvec in
 
+	       carray_log "I :" 0.0 cvec;
+	       
 	       SSolver.set_stop_time sstate stop_time;
 	       
 	       f_reset state;
