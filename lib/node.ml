@@ -161,7 +161,30 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	     print_string "limit = "; print_float limit;
 	     print_newline () in
 	    
-	(* the step function *)
+	let precise_logging = ref true in
+	
+	let printf = Printf.printf in
+
+	let carray_log l t c =
+	  let pr x =
+	    if !precise_logging then
+	      printf "\tx = % .15e" x else printf "\tx = % e" x in
+	  if !precise_logging then printf "%s t = %.15e" l t
+	  else printf "%s t = %e" l t;
+	  for i = 0 to Bigarray.Array1.dim c - 1 do
+	    pr c.{i}
+	  done;
+	  print_newline () in
+
+	let zarray_log l t z =
+	  if !precise_logging then printf "%s%.15e" l t
+	  else printf "%s%e" l t;
+	  for i = 0 to Bigarray.Array1.dim z - 1 do
+	    printf "\t%s" (Int32.to_string z.{i})
+	  done;
+	  print_newline () in
+
+  (* the step function *)
 	let step ({ state; solver } as s) (horizon, input) =
 	  try
 	    (* make a step *)
@@ -174,7 +197,6 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	       
 	       (* the solver state *)
 	       let sstate = SSolver.initialize (f state input) nvec in
-	       SSolver.set_stop_time sstate stop_time;
 	       
 	       (* the zero-crossing solver state *)
 	       (* print_string "Number of zeros = ";
@@ -183,9 +205,13 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	       let zstate =
 		 ZSolver.initialize n_zeros (g state input) cvec in
 
+	       SSolver.set_stop_time sstate stop_time;
+	       
+	       carray_log "C:" 0.0 cvec;
 	       (* initial major step *)
 	       let result = majorstep state 0.0 cvec input in
 	       
+	       carray_log "C:" 0.0 cvec;
 	       if cstate.horizon = 0.0 then
 		 let solver =
 		   { sstate = sstate; zstate = zstate;
@@ -227,7 +253,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		   s.next <- Integrate;
 		   Horizon(h) in
 	       { time = s.start; status = status; result = s.output }
-            | Running ({ next = StepCascade; start } as s) ->
+            | Running ({ next = StepCascade; zstate; sstate; start } as s) ->
 	       print_string "Step Cascade"; print_newline ();
 	       print_info s;
 	       (* make a discrete step *)
@@ -239,6 +265,8 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		 then begin s.next <- StepCascade; Cascade end
 		 else
 		   let h = min stop_time cstate.horizon in
+		   SSolver.reinitialize sstate start nvec;
+		   ZSolver.reinitialize zstate start cvec;
 		   s.limit <- h;
 		   s.next <- Integrate;
 		   Horizon(h) in
@@ -247,7 +275,9 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		({ next = Integrate; zstate; sstate; limit } as s) ->
 	       print_string "Integrate"; print_newline ();
 	       print_info s;
+	       carray_log "C :" limit cvec;
 	       let t_nextmesh = SSolver.step sstate limit nvec in
+	       carray_log "C :" limit cvec;
 	       print_string "Time nextmesh = "; print_float t_nextmesh;
 	       print_newline ();
 	       (* interpolate if the mesh point has passed the time limit *)
@@ -274,7 +304,13 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		   s.next <- StepRootsFound;
 		   RootsFound
 		 else
-		   begin
+		   if t >= limit then
+		     begin
+		       s.start <- t;
+		       s.next <- StepCascade;
+		       Success
+		     end
+		   else begin
 		     s.start <- t;
                      s.next <- Integrate;
 		     Success
