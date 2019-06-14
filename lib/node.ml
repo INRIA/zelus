@@ -79,10 +79,11 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	  major = false; horizon = stop_time } in
 
       (* create a node *)
-      let Node { alloc; step; reset } = f_to_lift cstate in
+      let Node { alloc = f_alloc; step = f_step; reset = f_reset } =
+	f_to_lift cstate in
       
       (* allocate the state of [f] *)
-      let s = alloc () in
+      let s = f_alloc () in
       
       let n_zeros = cstate.zmax in
       let n_cstates = cstate.cmax in
@@ -103,7 +104,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	cstate.dvec <- dvec;
 	cstate.cindex <- 0;
 	cstate.zindex <- 0;
-	ignore (step s (time, input)) in
+	ignore (f_step s (time, input)) in
   
       (* the function that compute the zero-crossings *)
       let g s input time cvec zoutvec =
@@ -114,7 +115,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	cstate.cvec <- cvec;
 	cstate.cindex <- 0;
 	cstate.zindex <- 0;
-	ignore (step s (time, input)) in
+	ignore (f_step s (time, input)) in
 
       (* the function which compute the output *)
       let minorstep s input time cvec zinvec =
@@ -125,7 +126,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	cstate.cvec <- cvec;
 	cstate.cindex <- 0;
 	cstate.zindex <- 0;
-	step s (time, input) in
+	f_step s (time, input) in
 
       (* the function which compute a discrete step *)
       let majorstep s time cvec input =
@@ -137,7 +138,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	cstate.cvec <- cvec;
 	cstate.cindex <- 0;
 	cstate.zindex <- 0;
-	step s (time, input) in
+	f_step s (time, input) in
 
       (* the allocation function *)
       let alloc () =
@@ -148,7 +149,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	{ state = s; solver = Init } in
       
 	let reset { state; solver } =
-	  reset state;
+	  f_reset state;
 	  match solver with
 	  | Init -> ()
 	  | Running { zstate; sstate; start } ->
@@ -195,9 +196,13 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	       (* allocate the vector of continuous state variables *)
 	       (* and zero-crossings *)
 	       
+	       f_reset state;
+
 	       (* the solver state *)
 	       let sstate = SSolver.initialize (f state input) nvec in
 	       
+	       f_reset state;
+
 	       (* the zero-crossing solver state *)
 	       (* print_string "Number of zeros = ";
 	          print_int cstate.zmax;	     	
@@ -207,10 +212,15 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 
 	       SSolver.set_stop_time sstate stop_time;
 	       
+	       f_reset state;
 	       carray_log "C:" 0.0 cvec;
 	       (* initial major step *)
 	       let result = majorstep state 0.0 cvec input in
-	       
+
+	       let x, c = result in
+	       print_string "xxx = "; print_float x; print_newline ();
+	       print_string "ccc = "; print_float c; print_newline ();
+	       print_float x; print_newline ();
 	       carray_log "C:" 0.0 cvec;
 	       if cstate.horizon = 0.0 then
 		 let solver =
@@ -272,12 +282,12 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		   Horizon(h) in
 	       { time = s.start; status = status; result = s.output }  
 	    | Running
-		({ next = Integrate; zstate; sstate; limit } as s) ->
+		({ next = Integrate; zstate; sstate; start; limit } as s) ->
 	       print_string "Integrate"; print_newline ();
 	       print_info s;
-	       carray_log "C :" limit cvec;
+	       carray_log "C :" start cvec;
 	       let t_nextmesh = SSolver.step sstate limit nvec in
-	       carray_log "C :" limit cvec;
+	       carray_log "C :" t_nextmesh cvec;
 	       print_string "Time nextmesh = "; print_float t_nextmesh;
 	       print_newline ();
 	       (* interpolate if the mesh point has passed the time limit *)
