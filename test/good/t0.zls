@@ -6,16 +6,20 @@ ocamlfind ocamlc bigarray.cma -package sundialsml sundials.cma zllib.cma -I ../.
 open Node
 
     
-let hybrid f() = (x, o) where
-  rec der x = 1.0 init -1.0
-  and o = present up(x) -> 42.0 init 0.0
-
+let hybrid f() =
+  let rec der x = 1.0 init -1.0
+  and o = present up(x) -> 42.0 init 0.0 in
+  (present (period(0.0|2.0)) -> (print_string "x at period = ";
+				 print_float x;print_newline ())
+      init ());
+  (x, o)
+      
 let node ff () =
   let { time = time; status = status; result = (x, o) } =
     Node.solve f 10.0 (10.0, ()) in
   match status with
-  | _ -> print_string "x = "; print_float x; print_newline ();
-         print_string "o = "; print_float o; print_newline ()
+  | _ -> () (* print_string "x = "; print_float x; print_newline ();
+         print_string "o = "; print_float o; print_newline () *)
     
 (*
 
