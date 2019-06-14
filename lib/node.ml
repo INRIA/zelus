@@ -34,6 +34,33 @@
 (*- ocamlfind ocamlc bigarray.cma -package sundialsml sundials.cma
     zls.cmo -I solvers solvers/illinois.cmo solvers/sundials_cvode.cmo 
     ztypes.ml node.ml *)
+
+
+let precise_logging = ref true
+	
+let printf x = Printf.printf x
+
+	
+let carray_log l t c =
+  let pr x =
+    if !precise_logging then
+      printf "\tx = % .15e" x else printf "\tx = % e" x in
+  if !precise_logging then printf "%s t = %.15e" l t
+  else printf "%s t = %e" l t;
+  for i = 0 to Bigarray.Array1.dim c - 1 do
+    pr c.{i}
+  done;
+  print_newline ()
+		
+let zarray_log l t z =
+  if !precise_logging then printf "%s%.15e" l t
+  else printf "%s%e" l t;
+  for i = 0 to Bigarray.Array1.dim z - 1 do
+    printf "\t%s" (Int32.to_string z.{i})
+  done;
+  print_newline ()
+		
+
 open Ztypes
 
 type status =
@@ -95,6 +122,8 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
       let cvec = SSolver.unvec nvec in
       let ignore_der = Zls.cmake n_cstates in
 
+      carray_log "OOO :" 0.0 cvec;
+      
       (* the function that compute the derivatives *)
       let f s input time cvec dvec =
 	cstate.major <- false;
@@ -162,29 +191,6 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	  print_string "limit = "; print_float limit;
 	  print_newline () in
 	    
-	let precise_logging = ref true in
-	
-	let printf = Printf.printf in
-
-	let carray_log l t c =
-	  let pr x =
-	    if !precise_logging then
-	      printf "\tx = % .15e" x else printf "\tx = % e" x in
-	  if !precise_logging then printf "%s t = %.15e" l t
-	  else printf "%s t = %e" l t;
-	  for i = 0 to Bigarray.Array1.dim c - 1 do
-	    pr c.{i}
-	  done;
-	  print_newline () in
-
-	let zarray_log l t z =
-	  if !precise_logging then printf "%s%.15e" l t
-	  else printf "%s%e" l t;
-	  for i = 0 to Bigarray.Array1.dim z - 1 do
-	    printf "\t%s" (Int32.to_string z.{i})
-	  done;
-	  print_newline () in
-
 	(* the step function *)
 	let step ({ state; solver } as s) (horizon, input) =
 	  try
@@ -206,6 +212,9 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	       carray_log "I :" 0.0 cvec;
 	       
 	       f_reset state;
+
+	       (* initial major step *)
+	       let result = majorstep state 0.0 cvec input in
 
 	       (* the zero-crossing solver state *)
 	       (* print_string "Number of zeros = ";
