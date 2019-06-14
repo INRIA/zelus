@@ -7,7 +7,11 @@ open Bigarray
 type carray = (float, float64_elt, c_layout) Array1.t
 type zarray = (int32, int32_elt,   c_layout) Array1.t
 
-let cmake = Array1.create float64 c_layout
+let cmake n =
+  let r = Array1.create float64 c_layout n in
+  Array1.fill r 0.0;
+  r
+		      
 let zmake n =
   let r = Array1.create int32 c_layout n in
   Array1.fill r 0l;
