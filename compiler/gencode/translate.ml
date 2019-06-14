@@ -465,7 +465,11 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      let e, code = exp env loop_path code e in
      let ty_exp = type_expression ty_exp in
      Otypeconstraint(e, ty_exp), code
-  | Zelus.Eop((Zelus.Eup | Zelus.Ehorizon), [e]) ->
+  | Zelus.Eop(Zelus.Eup, [e]) ->
+     (* implement the zero-crossing up(x) by up(if x >=0 then 1 else -1) *)
+     let e = if !Misc.zsign then Zaux.sgn e else e in 
+     exp env loop_path code e
+  | Zelus.Eop(Zelus.Ehorizon, [e]) ->
      exp env loop_path code e
   | Zelus.Eop(Zelus.Eifthenelse, [e1; e2; e3]) ->
      let e1, code = exp env loop_path code e1 in
