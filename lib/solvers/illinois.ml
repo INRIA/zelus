@@ -55,7 +55,7 @@ let log_limit f0 =
   let logf i _ x _ = Printf.printf "z| g[% 2d]: % .24e\n" i x in
   fold_zxzx logf () f0 f0
 
-let debug = ref false
+let debug = ref true
 
 type zcfn  = float -> Zls.carray -> Zls.carray -> unit
 
@@ -129,6 +129,9 @@ let num_roots { f0 } = Zls.length f0
 (* f0/t0 take the previous values of f1/t1, f1/t1 are refreshed by g *)
 let step ({ g; f0 = f0; f1 = f1; t1 = t1 } as s) t c =
   (* swap f0 and f1; f0 takes the previous value of f1 *)
+  if !debug then
+    (printf "z|---------- step(%.24e, %.24e)----------\n" s.t0 s.t1;
+     log_limits s.f0 s.f1);
   s.f0 <- f1;
   s.t0 <- t1;
   s.f1 <- f0;
@@ -168,6 +171,7 @@ let check_interval calc_zc f_left f_mid =
     resolve_intervals r r' in
   fold_zxzx check SearchRight f_left f_mid
 
+(* locates the zero-crossing *)
 let find ({ g = g; bothf_valid = bothf_valid;
             f0 = f0; t0 = t0; f1 = f1; t1 = t1;
             fta = fta; ftb = ftb; calc_zc = calc_zc } as s) (dky, c) roots =
