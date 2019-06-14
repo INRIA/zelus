@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -72,6 +72,7 @@ and doc_nosimplify = "\t  (undocumented)"
 and doc_noreduce = "\t  (undocumented)"
 and doc_lmm = "<n>\t  Translate the node into Lustre--"
 and doc_red_name = "\t  Static reduction for"
+and doc_zsign = "\t  Use the sign function for the zero-crossing argument"
 let errmsg = "Options are:"
 
 let set_verbose () =
@@ -111,7 +112,8 @@ let main () =
         "-inline", Arg.Int set_inlining_level, doc_inlining_level;
 	"-nosimplify", Arg.Set no_simplify_causality_type, doc_nosimplify;
         "-noreduce", Arg.Set no_reduce, doc_noreduce;
-        "-lmm", Arg.String set_lmm_nodes, doc_lmm
+        "-zsign", Arg.Set zsign, doc_zsign;
+	"-lmm", Arg.String set_lmm_nodes, doc_lmm
 
       ])
       compile
