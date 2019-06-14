@@ -93,7 +93,6 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
       let nvec = SSolver.cmake n_cstates in
       let cvec = SSolver.unvec nvec in
       let ignore_der = Zls.cmake n_cstates in
-      let ignore_zout = Zls.cmake n_zeros in
 
       (* the function that compute the derivatives *)
       let f s input time cvec dvec =
@@ -118,11 +117,12 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	ignore (step s (time, input)) in
 
       (* the function which compute the output *)
-      let minorstep s input time zinvec =
+      let minorstep s input time cvec zinvec =
 	cstate.major <- false;
-	cstate.zinvec <- zinvec;
-	cstate.zoutvec <- ignore_zout;
+	cstate.zoutvec <- no_roots_out;
 	cstate.dvec <- ignore_der;
+	cstate.zinvec <- zinvec;
+	cstate.cvec <- cvec;
 	cstate.cindex <- 0;
 	cstate.zindex <- 0;
 	step s (time, input) in
@@ -269,7 +269,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 				  roots in
 		   (* one more step to actualize left limits *)
 		   (* and the zero-crossing state variables *)
-		   minorstep state s.input t roots;
+		   minorstep state s.input t cvec roots;
 		   s.start <- t;
 		   s.next <- StepRootsFound;
 		   RootsFound
