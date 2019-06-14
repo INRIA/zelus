@@ -184,6 +184,8 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		     start = 0.0; limit = 0.0; input = input;
 		     output = result; next = StepCascade } in
 		 s.solver <- Running solver;
+		 print_string "horizon = "; print_float 0.0;
+		 print_newline ();
 		 { time = 0.0; status = Cascade; result = result }
 	       else
 		 if stop_time <= 0.0 then
@@ -193,6 +195,8 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		       input = input; output = result;
 		       next = StepStopTimeReached } in
 		   s.solver <- Running solver;
+		   print_string "horizon = "; print_float 0.0;
+		   print_newline ();
 		   { time = 0.0; status = StopTimeReached; result = result }
 		 else
 		   let h = min stop_time cstate.horizon in
@@ -201,6 +205,8 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		       start = 0.0; limit = h;
 		       input = input; output = result; next = Integrate } in
 		   s.solver <- Running solver;
+		   print_string "horizon = "; print_float 0.0;
+		   print_newline ();
 		   { time = 0.0; status = Horizon(h);
 		     result = result }
 	    | Running ({ next = StepRootsFound; start } as s) ->
