@@ -14,13 +14,16 @@
 (*                                                                        *)
 (**************************************************************************)
 
+type status =
+  | Success (* the integration has succeed *)
+  | RootsFound (* a root has been found *)
+  | Horizon of float (* the integration has succeed; returns the next horizon *)
+  | Cascade (* a cascade *)
+  | StopTimeReached (* the end of simulation time is reached *)
+  | Error (* something went wrong during integration *)
+
 type 'a return =
-   | Success (* the integration has succeed; no step *)
-   | RootsFound (* a root has been found *)
-   | Horizon (* the integration has succeed; an horizon is reached *)
-   | Cascade of 'a (* a cascade *)
-   | StopTimeReached (* the end of simulation time is reached *)
-   | Error (* something went wrong during integration *)
+    { time: float; status: status; result: 'a }
 
 val solve :
-  ('a -C-> 'b) -S-> float -S-> 'a -S-> float * 'a -D-> float * 'b return
+  ('a -C-> 'b) -S-> float -S-> float * 'a -D-> 'b return
