@@ -36,33 +36,9 @@
     ztypes.ml node.ml *)
 
 
-let precise_logging = ref true
-	
-let printf x = Printf.printf x
-
-	
-let carray_log l t c =
-  let pr x =
-    if !precise_logging then
-      printf "\tx = % .15e" x else printf "\tx = % e" x in
-  if !precise_logging then printf "%s t = %.15e" l t
-  else printf "%s t = %e" l t;
-  for i = 0 to Bigarray.Array1.dim c - 1 do
-    pr c.{i}
-  done;
-  print_newline ()
-		
-let zarray_log l t z =
-  if !precise_logging then printf "%s%.15e" l t
-  else printf "%s%e" l t;
-  for i = 0 to Bigarray.Array1.dim z - 1 do
-    printf "\t%s" (Int32.to_string z.{i})
-  done;
-  print_newline ()
-		
-
 open Ztypes
-
+open Zlsolve
+ 
 type status =
   | Success (* the integration has succeed *)
   | RootsFound (* a root has been found *)
@@ -98,7 +74,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
     type ('a, 'b) state = { state: 'a; mutable solver: 'b }      
 			    
     (* the main lifting function *)
-    let solve f_to_lift (stop_time: float) =
+    let solve f (stop_time: float) =
       let cstate =
 	{ cvec = Zls.cmake 0; dvec = Zls.cmake 0; cindex = 0; zindex = 0;
 	  cend = 0; zend = 0; cmax = 0; zmax = 0;
@@ -106,8 +82,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	  major = false; horizon = stop_time } in
 
       (* create a node *)
-      let Node { alloc = f_alloc; step = f_step; reset = f_reset } =
-	f_to_lift cstate in
+      let Node { alloc = f_alloc; step = f_step; reset = f_reset } = f cstate in
       
       (* allocate the state of [f] *)
       let s = f_alloc () in
@@ -122,10 +97,8 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
       let cvec = SSolver.unvec nvec in
       let ignore_der = Zls.cmake n_cstates in
 
-      carray_log "OOO :" 0.0 cvec;
-      
       (* the function that compute the derivatives *)
-      let f s input time cvec dvec =
+      let derivative s input time cvec dvec =
 	cstate.major <- false;
 	cstate.zinvec <- no_roots_in;
 	cstate.zoutvec <- no_roots_out;
@@ -136,7 +109,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	ignore (f_step s (time, input)) in
   
       (* the function that compute the zero-crossings *)
-      let g s input time cvec zoutvec =
+      let zcrossing s input time cvec zoutvec =
 	cstate.major <- false;
 	cstate.zinvec <- no_roots_in;
 	cstate.dvec <- ignore_der;
@@ -185,58 +158,26 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	     SSolver.reinitialize sstate start nvec;
 	     ZSolver.reinitialize zstate start cvec in
 
-	let print_info { start; limit } =
-	  print_string "start = "; print_float start;
-	  print_newline ();
-	  print_string "limit = "; print_float limit;
-	  print_newline () in
-	    
 	(* the step function *)
 	let step ({ state; solver } as s) (horizon, input) =
 	  try
 	    (* make a step *)
 	    match solver with
 	    | Init ->
-	       print_string "Init";
-	       print_newline ();
-	       (* allocate the vector of continuous state variables *)
-	       (* and zero-crossings *)
-	       
-	       f_reset state;
-
-	       carray_log "I :" 0.0 cvec;
-			  
+	       print_string "Init"; print_newline ();
 	       (* initial major step *)
 	       let result = majorstep state 0.0 cvec input in
 
-	       (* the solver state *)
-	       let sstate = SSolver.initialize (f state input) nvec in
+	       (* Allocate the solver *)
+	       let sstate =
+		 SSolver.initialize (derivative state input) nvec in
 
-	       carray_log "I :" 0.0 cvec;
-	       
-	       f_reset state;
-
-	       (* the zero-crossing solver state *)
-	       (* print_string "Number of zeros = ";
-	          print_int cstate.zmax;	     	
-	          print_newline ();      *)
+	       (* Allocate the zsolver *)
 	       let zstate =
-		 ZSolver.initialize n_zeros (g state input) cvec in
+		 ZSolver.initialize n_zeros (zcrossing state input) cvec in
 
-	       carray_log "I :" 0.0 cvec;
-	       
 	       SSolver.set_stop_time sstate stop_time;
 	       
-	       f_reset state;
-	       carray_log "C:" 0.0 cvec;
-	       (* initial major step *)
-	       let result = majorstep state 0.0 cvec input in
-
-	       let x, c = result in
-	       print_string "xxx = "; print_float x; print_newline ();
-	       print_string "ccc = "; print_float c; print_newline ();
-	       print_float x; print_newline ();
-	       carray_log "C:" 0.0 cvec;
 	       if cstate.horizon = 0.0 then
 		 let solver =
 		   { sstate = sstate; zstate = zstate;
@@ -263,8 +204,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		   { time = 0.0; status = Horizon(h);
 		     result = result }
 	    | Running ({ next = StepRootsFound; start } as s) ->
-	       print_string "Step RootFound"; print_newline ();
-	       print_info s;
+	       print_string "Running StepRootsFound"; print_newline ();
 	       (* make a discrete step *)
 	       let result = majorstep state start cvec input in
 	       s.output <- result;
@@ -279,8 +219,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		   Horizon(h) in
 	       { time = s.start; status = status; result = s.output }
             | Running ({ next = StepCascade; zstate; sstate; start } as s) ->
-	       print_string "Step Cascade"; print_newline ();
-	       print_info s;
+	       print_string "Running StepCascade"; print_newline ();
 	       (* make a discrete step *)
 	       let result = majorstep state start cvec input in
 	       s.output <- result;
@@ -290,33 +229,31 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		 then begin s.next <- StepCascade; Cascade end
 		 else
 		   let h = min stop_time cstate.horizon in
-		   SSolver.reinitialize sstate start nvec;
-		   ZSolver.reinitialize zstate start cvec;
-		   s.limit <- h;
-		   s.next <- Integrate;
-		   Horizon(h) in
+		   if h = stop_time then
+		     begin
+		       s.next <- StepStopTimeReached;
+		       Horizon(h)
+		     end
+		   else
+		     begin
+		       SSolver.reinitialize sstate start nvec;
+		       ZSolver.reinitialize zstate start cvec;
+		       s.limit <- h;
+		       s.next <- Integrate;
+		       Horizon(h)
+		     end in
 	       { time = s.start; status = status; result = s.output }  
 	    | Running
 		({ next = Integrate; zstate; sstate; start; limit } as s) ->
-	       print_string "Integrate"; print_newline ();
-	       print_info s;
-	       carray_log "C :" start cvec;
+	       print_string "Running Integrate"; print_newline ();
 	       let t_nextmesh = SSolver.step sstate limit nvec in
-	       carray_log "C :" t_nextmesh cvec;
-	       print_string "Time nextmesh = "; print_float t_nextmesh;
-	       print_newline ();
 	       (* interpolate if the mesh point has passed the time limit *)
  	       let t = if limit < t_nextmesh
 		       then (SSolver.get_dky sstate nvec limit 0; limit)
 		       else t_nextmesh in
 	       (* is there a zero-crossing? *)
-	       print_string "Time interpolated = "; print_float t;
-	       print_newline ();
 	       ZSolver.step zstate t cvec;
 	       let has_roots = ZSolver.has_roots zstate in
-	       print_string "Has root = ";
-	       print_string (if has_roots then "true" else "false");
-	       print_newline ();
 	       let status =
 		 if has_roots then
 		   let t =
@@ -327,7 +264,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		   minorstep state s.input t cvec roots;
 		   s.start <- t;
 		   s.next <- StepRootsFound;
-		   RootsFound
+		   Success
 		 else
 		   if t >= limit then
 		     begin
@@ -342,6 +279,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		   end in
 	       { time = s.start; status = status; result = s.output }
             | Running({ next = StepStopTimeReached } as s) ->
+	       print_string "Running StepStopTimeReached"; print_newline ();
 	       { time = s.start; status = StopTimeReached; result = s.output }
 	  with
 	  | x -> raise x (* time, Error *) in
