@@ -1,7 +1,7 @@
 (*
-../../compiler/zeluc.byte -v -s main2 t0.zls
+../../compiler/zeluc.byte -v -s ff t0.zls
 
-ocamlfind ocamlc bigarray.cma -package sundialsml sundials.cma zllib.cma -I ../../lib t0.ml main2.ml *)
+ocamlfind ocamlc bigarray.cma -package sundialsml sundials.cma zllib.cma -I ../../lib t0.ml ff.ml *)
 
 open Node
 
