@@ -1,5 +1,6 @@
-
-let printf = Format.printf
+let debug = ref false
+		
+let printf x = Format.printf x
 
 type root_direction = Up | Down | Either | Ignore
 
@@ -54,8 +55,6 @@ let log_limits f0 f1 =
 let log_limit f0 =
   let logf i _ x _ = printf "z| g[% 2d]: % .24e@." i x in
   fold_zxzx logf () f0 f0
-
-let debug = ref false
 
 type zcfn  = float -> Zls.carray -> Zls.carray -> unit
 
