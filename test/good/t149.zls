@@ -1,0 +1,20 @@
+(* Lifting of a continous-time node into a discrete-time node *)
+(* ocamlfind ocamlc bigarray.cma -package sundialsml \
+   sundials.cma zllib.cma -I ../../lib t149.ml main.ml *)
+
+let hybrid f() =
+  let rec der x = 1.0 init -1.0 reset up(x -. 0.5) -> -1.0
+  and present (period(0.0|2.0)) -> do o = last o + 1 done
+  and init o = 0 in
+  (x, o)
+
+let node main () =
+  let { Node.time = time; Node.status = status; Node.result = x, o } =
+    Node.solve f 10.0 (10.0, ()) in
+  print_string "time = "; print_float time;
+  print_newline ();
+  print_string "x = "; print_float x;
+  print_newline ();
+  print_string "o = "; print_int o;
+  print_newline ()
+    
