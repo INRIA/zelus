@@ -1,70 +1,3 @@
-(*
-../../compiler/zeluc.byte -v -s ff t0.zls
-
-ocamlfind ocamlc bigarray.cma -package sundialsml sundials.cma zllib.cma -I ../../lib t0.ml ff.ml *)
-
-open Node
-
-    
-let hybrid f() =
-  let rec der x = 1.0 init -1.0
-  and o = present up(x +. 0.2) -> 42.0 init 0.0 in
-  (present (period(0.0|2.0)) -> (print_string "x at period = ";
-				 print_float x;print_newline ();flush stdout)
-      init ());
-  (x, o)
-      
-let node ff () =
-  let { time = time; status = status; result = (x, o) } =
-    Node.solve f 10.0 (10.0, ()) in
-  match status with
-  | _ -> () (* print_string "x = "; print_float x; print_newline ();
-         print_string "o = "; print_float o; print_newline () *)
-    
-(*
-
-let hybrid g() =
-  let rec der x = 1.0 init -1.0
-  and o = present up(x) -> (print_float x; print_newline ()) init () in
-  ()
-
-let node main2() =
-  let { time = time; status = status; result = r } = solve f 10.0 (100.0, ()) in
-  match status with
-  | Success -> print_string "success\n"
-  | RootsFound -> print_string "root\n"
-  | Horizon _ -> print_string "horizon\n"
-  | Cascade ->
-      let x, o = r in
-      (print_string "x = "; print_float x;
-       print_newline ();
-       print_string "o = "; print_float o;
-       print_newline ())
-  | StopTimeReached -> print_string "finished\n"
-  | Error -> print_string "error"
- *)
-	
-(* let hybrid main () =
-  let o = f() in
-  present (period(0.0|2.0)) -> print_float o init ()
- *)
-	
-(*
-let node integr (dt, x') = x where
-  rec x = 0.0 -> dt *. x' +. (pre x)
-		  *)
-
-    
-(*
-let node main () =
-  let rec next_t, r = Node.solve f 20.0 (20.0, 20.0) in
-  match r with
-  | Node.Cascade(v) -> (print_float v; print_newline ())
-  | _ -> (print_string "Horizon = "; print_float next_t; print_newline ())
- *)
-  
-    (*
-
 let node f(x26, y26) =
   let rec
       a22, b23 = e21
@@ -74,7 +7,7 @@ let node f(x26, y26) =
       e21 = (x26, y26)
   and
       e22 = a22 + b23 in
-  a22, b23, y25, e21, e22 *)
+  a22, b23, y25, e21, e22
 
 (* let node f1(x, y) = (z, t) where
    rec z = 0 fby x + 1
