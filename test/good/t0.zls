@@ -8,7 +8,7 @@ open Node
     
 let hybrid f() =
   let rec der x = 1.0 init -1.0
-  and o = present up(x) -> 42.0 init 0.0 in
+  and o = present up(x +. 0.2) -> 42.0 init 0.0 in
   (present (period(0.0|2.0)) -> (print_string "x at period = ";
 				 print_float x;print_newline ();flush stdout)
       init ());
