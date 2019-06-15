@@ -155,6 +155,7 @@ let pop_binding_level () =
   assert (!binding_level > generic)
 let reset_binding_level () = binding_level := 0
 
+(* general iterators and functions *)
 let optional f acc = function
   | None -> acc
   | Some x -> f acc x
