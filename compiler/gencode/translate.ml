@@ -138,7 +138,7 @@ let seq { mem = m1; init = i1; instances = j1; reset = r1; step = s1 }
     reset = sequence r1 r2; step = sequence s1 s2 }
 
 let empty_path = []
-	  
+
 (** Look for an entry in the environment *)
 let entry_of n env =
   try
@@ -664,21 +664,21 @@ and match_handlers env loop_path p_h_list =
 and local env loop_path { Zelus.l_eq = eq_list; Zelus.l_env = l_env } e =
   let env, mem_acc, var_acc = append loop_path l_env env in
   let e, code = exp env loop_path empty_code e in
-  let { mem = m_code; step = s_code } as eq_code =
+  let eq_code =
     equation_list env loop_path eq_list { code with step = Oexp(e) } in
-  { eq_code with mem = State.seq mem_acc m_code;
-                 step = letvar var_acc s_code }
-                                                   
+  add_mem_vars_to_code eq_code mem_acc var_acc
+    
 and block env loop_path { Zelus.b_body = eq_list; Zelus.b_env = n_env  } =
   let env, mem_acc, var_acc = append loop_path n_env env in
-  let { mem = m_code; step = s_code } as eq_code =
-    equation_list env loop_path eq_list empty_code in
-  { eq_code with mem = State.seq mem_acc m_code;
-		 step = letvar var_acc s_code }
+  let eq_code = equation_list env loop_path eq_list empty_code in
+  add_mem_vars_to_code eq_code mem_acc var_acc
 
+and add_mem_vars_to_code ({ mem; step } as code) mem_acc var_acc =
+  { code with mem = State.seq mem_acc mem; step = letvar var_acc step }
          
 (* Define a function or a machine according to a kind [k] *)
-let machine n k pat_list { mem = m; instances = j; reset = r; step = s } ty_res =
+let machine n k pat_list { mem = m; instances = j; reset = r; step = s }
+	    ty_res =
   let k = Interface.kindtype k in
   match k with
   | Deftypes.Tstatic _ | Deftypes.Tany
@@ -707,7 +707,7 @@ let expression env ({ Zelus.e_desc = desc } as e) =
   | Zelus.Elet(l, e_let) -> local env empty_path l e_let
   | _ -> let e, code = exp env empty_path empty_code e in
 	 { code with step = Oexp(e) }       
-
+ 
 (** Translation of a declaration *)
 let implementation { Zelus.desc = desc } =
   match desc with
@@ -720,9 +720,10 @@ let implementation { Zelus.desc = desc } =
      Oletvalue(n, s)
   | Zelus.Efundecl(n, { Zelus.f_kind = k; Zelus.f_args = pat_list;
 			Zelus.f_body = e; Zelus.f_env = f_env }) ->
-     let env, mem_acc, var_acc = append empty_path f_env Env.empty in
      let pat_list = List.map pattern pat_list in
+     let env, mem_acc, var_acc = append empty_path f_env Env.empty in
      let code = expression env e in
+     let code = add_mem_vars_to_code code mem_acc var_acc in
      machine n k pat_list code e.Zelus.e_typ
 	     
 let implementation_list impl_list = Misc.iter implementation impl_list
