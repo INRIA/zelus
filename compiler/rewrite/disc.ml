@@ -29,13 +29,6 @@ open Zaux
 
 (* [disc(x)] is translated into [let x = e in major on (x <> (x fby x)] *)
 
-let new_major () =
-  let m = Ident.fresh "major" in
-  let env = Env.singleton m { t_sort = Deftypes.major ();
-			      t_typ = Initial.typ_bool } in
-  let major = var m Initial.typ_bool in
-  env, major
-	 
 let disc major e =
   let on_op z e = Zaux.and_op z e in
   if Unsafe.exp e
@@ -46,13 +39,7 @@ let disc major e =
     let xv = var x e.e_typ in
     make_let env [eq_make x e] (on_op major (diff xv (fby xv xv)))
   else on_op major (diff e (fby e e))
-
-let letin env ({ e_desc } as e) =
-  match e_desc with
-  | Elet({l_env = l_env } as l, e_local) ->
-     { e with e_desc = Elet({ l with l_env = Env.append env l_env }, e_local) }
-  | _ -> { e with e_desc = Elet(Zaux.make_local env [], e) }
-     
+    
 (** Translation of expressions. *)
 let rec expression major ({ e_desc = e_desc } as e) =
   match e_desc with
@@ -149,12 +136,11 @@ let implementation impl =
   match impl.desc with
   | Eopen _ | Etypedecl _ | Econstdecl _  
   | Efundecl(_, { f_kind = (S | AS | A | AD | D) }) -> impl
-  | Efundecl(n, ({ f_kind = C; f_body = e } as body)) ->
-     let env, major = new_major () in
+  | Efundecl(n, ({ f_kind = C; f_body = e; f_env = f_env } as body)) ->
+     let f_env, major = Zaux.major f_env in
      let e = expression major e in
-     let e = letin env e in
      { impl with desc = 
-		   Efundecl(n, { body with f_body = e }) }
+		   Efundecl(n, { body with f_body = e; f_env = f_env }) }
        
 let implementation_list impl_list = Misc.iter implementation impl_list
   
