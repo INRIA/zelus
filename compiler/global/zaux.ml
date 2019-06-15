@@ -206,5 +206,27 @@ let par eq_list =
   | _ -> eqmake (EQand(eq_list))
 		
 let init i eq_list = (eq_init i etrue) :: (eq_make i efalse) :: eq_list
- 
+
+(* find the major step in the current environment *)
+(* If it already exist in the environment *)
+(* returns it. Otherwise, create one *)
+let new_major env =
+  let m = Ident.fresh "major" in
+  let env =
+    Env.add m { t_sort = Deftypes.major (); t_typ = Initial.typ_bool } env in
+  let major = var m Initial.typ_bool in
+  env, major
+	 
+let major env =
+  let exception Return of Zelus.exp in
+  let find x t =
+    match t with
+    | { t_sort = Smem { m_kind = Some(Major) }; t_typ = typ } ->
+       raise (Return(var x typ))
+    | _ -> () in
+  try
+    Env.iter find env;
+    new_major env
+  with
+  | Return(x) -> env, x 
 
