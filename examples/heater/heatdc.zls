@@ -1,0 +1,23 @@
+(* The heater model. In this form, we lift the continuous-time *)
+(* Heatc.system into a discrete-time one that internalize the solver *)
+
+(* compile with: 
+ *- ocamlfind ocamlc bigarray.cma -package sundialsml \
+    sundials.cma zllib.cma -I ../../lib heatc.ml heatdc.ml *)
+
+open Heatc
+    
+let node main () =
+  let reference_temp = 19.0 in
+  let { Node.time = time; Node.status = status;
+	Node.result = (u, measured_temp) } =
+    Node.solve system 100.0 (100.0, reference_temp) in
+  let ok = false in
+  let s =
+    Scope.scope4
+      (-1.0, 40.0,
+       ("u", Scope.points true, if u then 1.0 else 0.0),
+       ("input temp", Scope.linear, reference_temp),
+       ("measured temp", Scope.linear, measured_temp),
+       ("ok", Scope.points true, if ok then 1.0 else 0.0)) in
+  Scope.window ("The Heater with a relay controller", 10.0, time, s)
