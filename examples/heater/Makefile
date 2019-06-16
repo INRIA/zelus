@@ -1,4 +1,4 @@
-EXAMPLE=heat.zls heatc.zls
+EXAMPLE=heat.zls heatc.zls heatdc.zls
 AUX=observers.zls
 
 all: byte opt
@@ -25,11 +25,24 @@ heatc.opt: heat.ml heatc.ml main.ml
         lablgtk.cmxa zllibgtk.cmxa \
         -package sundialsml -linkpkg observers.ml heat.ml heatc.ml mainc.ml
 
+heatdc.byte: observers.ml heat.ml heatc.ml heatdc.ml
+	ocamlfind ocamlc -o heatdc.byte -I `zeluc -where` -package lablgtk2 \
+        -package sundialsml lablgtk.cma zllibgtk.cma \
+        -linkpkg observers.ml heat.ml heatc.ml heatdc.ml maindc.ml
+
+heatdc.opt: observers.ml heat.ml heatc.ml heatdc.ml
+	ocamlfind ocamlopt -o heatdc.opt -I `zeluc -where` -package lablgtk2 \
+        -package sundialsml lablgtk.cmxa zllibgtk.cmxa \
+        -linkpkg observers.ml heat.ml heatc.ml heatdc.ml maindc.ml
+
 heat.ml main.ml: heat.zls
 	zeluc -sampling 0.1 -gtk2 -s main heat.zls
 
 heatc.ml mainc.ml: heatc.zls
 	zeluc -gtk2 -s mainc heatc.zls
+
+heatdc.ml maindc.ml: heatdc.zls
+	zeluc -sampling 0.1 -gtk2 -s maindc heatdc.zls
 
 observers.ml: observers.zls
 	zeluc observers.zls
