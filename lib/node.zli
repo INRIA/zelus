@@ -25,5 +25,4 @@ type status =
 type 'a return =
     { time: float; status: status; result: 'a }
 
-val solve :
-  ('a -C-> 'b) -S-> float -S-> float * 'a -D-> 'b return
+val solve : ('a -C-> 'b) -S-> float -S-> float * 'a -D-> 'b return
