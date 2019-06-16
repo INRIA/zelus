@@ -59,7 +59,7 @@ struct (* {{{ *)
 
   (* increment a given horizon by a small margin *)
   let add_margin h = h +. (2.0 *. epsilon_float *. h)
-
+						  
   (** Configurable settings **)
 
   let max_sim_time    = ref None
