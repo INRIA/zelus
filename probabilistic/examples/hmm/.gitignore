@@ -7,4 +7,5 @@
 *.opt
 hmm
 hmm.ml
+hmm_ds.ml
 main.ml
