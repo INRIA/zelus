@@ -99,7 +99,7 @@ let infer_dyn_resample n (Node { alloc; reset; step }) =
     let norm = logsumexp scores in
     let scores' = Array.map (fun score -> (score -. norm)) scores in
 
-    let str = String.concat ", " (Array.to_list (Array.map (fun x -> (string_of_float x)) scores')) in
+    (* let str = String.concat ", " (Array.to_list (Array.map (fun x -> (string_of_float x)) scores')) in *)
 
     let num = (((Array.fold_right (fun a b -> a +. b) (Array.map (fun x -> (exp x)) scores')) 0.) ** 2.) in
     let den = ((Array.fold_right (fun a b -> a +. b) (Array.map (fun x -> (exp x) ** 2.) scores')) 0.) in

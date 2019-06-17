@@ -2,6 +2,7 @@ open Distribution
 
 let () =
   Graphics.open_graph " 400x400";
+  Graphics.set_window_title "Mouse tracker" ;
   Graphics.auto_synchronize false
 
 let clear () =
@@ -44,15 +45,52 @@ let draw_point_dist dist =
            draw_point (Graphics.rgb !color !color !color) pos)
         support
   end
-    
+
+let draw_point_dist_ds dist =
+  begin match dist with
+  | Dist_sampler (_, _) -> assert false
+  | Dist_support support ->
+      let support =
+        List.sort (fun (_, prob1) (_, prob2) -> compare prob1 prob2) support
+      in
+      let len = 1 + (List.length support / 200) in
+      let color = ref (List.length support / len + 1)  in
+      List.iteri
+        (fun i (pos, prob) ->
+           if i mod len = 0 then decr color;
+           let open Infer_ds in
+           begin match pos with
+           | Econst x, Econst y ->
+               draw_point (Graphics.rgb !color !color !color) [x; y]
+           | Ervar (RV x), Ervar (RV y) ->
+               let open Infer_ds_ll in
+               begin match x.state, y.state with
+               | Marginalized (MGaussian (x, _)), Marginalized (MGaussian (y, _)) ->
+                   draw_point (Graphics.rgb !color !color !color) [x; y]
+               | _ ->
+                   assert false
+               end
+           | _ -> assert false
+           end)
+        support
+  end
+
 let () = Random.self_init()
-let speed = [7.0; 7.0]
-let noise = [5.0; 5.0]
-let p_init = [0.; 0.]
+let speed_x = 7.0
+let speed_y = 7.0
+let speed = [speed_x; speed_y]
+let noise_x = 5.0
+let noise_y = 5.0
+let noise = [noise_x; noise_y]
+let p_init = [200.; 200.]
+
+let observe_state_xy (x, y) =
+  (Distribution.draw (Distribution.gaussian x 5.),
+   Distribution.draw (Distribution.gaussian y 5.))
 
 let observe_state (x, y) =
-  [ Distribution.draw (Distribution.gaussian x 5.);
-    Distribution.draw (Distribution.gaussian y 5.) ]
+  let ox, oy = observe_state_xy (x, y) in
+  [ ox; oy ]
 
 let ( +: ) a b = List.map2 (fun x y -> x +. y) a b
 let ( -: ) a b = List.map2 (fun x y -> x -. y) a b

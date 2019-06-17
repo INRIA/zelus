@@ -1,3 +1,35 @@
 (** Inference with delayed sampling *)
 
+type pstate = Infer_ds_ll.pstate
 
+val factor : Infer.pstate * float -> unit
+
+type 'a random_var
+type 'a expr
+type 'a distribution
+val eval_expr : float expr -> float
+type 'a pdistribution
+
+val const : 'a -> 'a expr
+val rvar : 'a random_var -> 'a expr
+val plus : float expr -> float expr -> float expr
+val mult : float expr -> float expr -> float expr
+
+val sample : (pstate * 'a pdistribution -> 'a expr)
+val observe : (pstate * 'a pdistribution * 'a -> unit)
+
+val pdistr_of_distr : 'a Distribution.t -> 'a pdistribution
+(*
+val pdistr_with_fallback :
+  'a Distribution.t ->
+  (pstate -> 'a expr option) ->
+  (pstate * 'a -> unit option) -> 'a pdistribution
+*)
+val gaussian_pd : float expr -> float -> float pdistribution
+val beta_pd : float -> float -> Infer_ds_ll.mbetat pdistribution
+val bernoulli_pd :
+  float expr -> Infer_ds_ll.mbernoullit pdistribution
+
+
+val infer :
+  int -S-> (pstate * 'a -D-> 'b) -S-> 'a -D-> 'b Distribution.t

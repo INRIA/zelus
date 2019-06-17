@@ -1,0 +1,42 @@
+open Distribution
+open Display
+open Infer_ds
+(* open Infer_importance *)
+
+(* noisy observation of the mouse position. It is a gaussian centered on the *)
+(* exact position *)
+let node sensor () = obs where
+  rec (x, y) = Display.mouse_pos ()
+  and in_bound = 0 < x && x < 400 && 0 < y && y < 400
+  and obs = present in_bound -> observe_state_xy (float x, float y)
+
+let node display ((obs_x, obs_y), pos_dist) =
+  Display.draw_point_dist_ds pos_dist;
+  Display.draw_point Graphics.red [obs_x; obs_y];
+  Display.clear ()
+
+(* the expected position [p] of the mouse is searched arround the previous *)
+(* one supposing that the motion speed of the mouse is bounded *)
+(* let node hmm (prob, obs) = p where *)
+(*   rec p = sample (prob, sph_gaussian (obs fby p) speed) *)
+(*   and () = factor (prob, Distribution.score (sph_gaussian p noise) obs) *)
+(*   and init t = traj_init () *)
+(*   and t = traj_add (last t, p) *)
+(*   and () = traj_draw t *)
+
+let node hmm (prob, (obs_x, obs_y)) = (p_x, p_y) where
+  rec p_x = sample (prob, gaussian_pd (const obs_x fby p_x) speed_x)
+  and p_y = sample (prob, gaussian_pd (const obs_y fby p_y) speed_y)
+  and () = observe (prob, gaussian_pd p_x noise_x, obs_x)
+  and () = observe (prob, gaussian_pd p_y noise_y, obs_y)
+  (* and init t = traj_init () *)
+  (* and t = traj_add (last t, p) *)
+  (* and () = traj_draw t *)
+
+
+let node main () =
+  let obs = sensor () in
+  present obs(o) ->
+    let pos_dist = infer 1000 hmm o in
+    display(o, pos_dist)
+  else ()

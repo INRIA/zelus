@@ -4,6 +4,8 @@ type pstate = Infer_ds_ll.pstate
 
 let factor = Infer_ds_ll.factor
 
+let infer = Infer_ds_ll.infer
+
 type 'a random_var =
  RV : ('b, 'a) Infer_ds_ll.rv -> 'a random_var
 
@@ -12,6 +14,11 @@ type _ expr =
   | Ervar : 'a random_var -> 'a expr
   | Eplus : float expr * float expr -> float expr
   | Emult : float expr * float expr -> float expr
+
+let const v = Econst v
+let rvar x = Ervar x
+let plus e1 e2 = Eplus (e1, e2)
+let mult e1 e2 = Emult (e1, e2)
 
 type 'a distribution =
   | DS_gaussian of float expr * float
@@ -30,6 +37,12 @@ let rec eval_expr (type t): t expr -> t =
 type 'a pdistribution =
   { isample : (pstate -> 'a expr);
     iobserve : (pstate * 'a -> unit); }
+
+let sample (prob, pdistr) =
+  pdistr.isample prob
+
+let observe (prob, pdistr) o =
+  pdistr.iobserve(prob, o)
 
 let pdistr_of_distr d =
   { isample = (fun prob -> Econst (Distribution.draw d));

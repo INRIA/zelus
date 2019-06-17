@@ -1,5 +1,10 @@
 (** Inference with delayed sampling low level interface *)
 
+type mgaussiant = float
+type mbetat = float
+type mbernoullit = bool
+type 'a mtype = 'a
+
 type pstate
 type 'a mdistr
 type ('m1, 'm2) cdistr

@@ -57,7 +57,7 @@ let node hmm_reset(prob, obs) = p where
 let node main () =
   let obs = sensor () in
   present obs(o) ->
-    let pos_dist = infer 1000 hmm_reset_automaton o in
+    let pos_dist = infer 1000 hmm(* _reset_automaton *) o in
     display(o, pos_dist)
   else ()
 
