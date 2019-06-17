@@ -20,6 +20,9 @@ type status =
   | Horizon of float (* the integration has succeed; returns the next horizon *)
   | Cascade (* a cascade *)
   | StopTimeReached (* the end of simulation time is reached *)
+  | TimeHasPassed (* an output at time [h] is expected but *)
+                  (* [h < start] where [start] is the last restart time *)
+                  (* of the solver *)
   | Error (* something went wrong during integration *)
 
 type 'a return =
