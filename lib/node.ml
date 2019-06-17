@@ -50,6 +50,9 @@ type status =
   | Horizon of float (* the integration has succeed; returns the next horizon *)
   | Cascade (* a cascade *)
   | StopTimeReached (* the end of simulation time is reached *)
+  | TimeHasPassed (* an output at time [h] is expected but *)
+                  (* [h < start] where [start] is the last restart time *)
+                  (* of the solver *)
   | Error (* something went wrong during integration *)
 
 type 'a return =
@@ -205,7 +208,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		   log_info "horizon = " 0.0;
 		   { time = 0.0; status = StopTimeReached; result = result }
 		 else
-		   let h = min stop_time (min horizon cstate.horizon) in
+		   let h = min stop_time cstate.horizon in
 		   let solver =
 		     { sstate = sstate; zstate = zstate;
 		       start = 0.0; limit = h;
@@ -217,85 +220,100 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	    | Running ({ next = StepRootsFound; sstate; zstate; start } as s) ->
 	       log_info "StepRootsFound: start = " start;
 	       (* make a discrete step *)
-	       let result = majorstep state start cvec input in
-	       s.output <- result;
-	       (* according to the horizon, either cascade or integration *)
-	       let status =
-		 if cstate.horizon = 0.0
-		 then begin s.next <- StepCascade; Cascade end
-		 else
-		   let h = min stop_time (min horizon cstate.horizon) in
-		   SSolver.reinitialize sstate start nvec;
-		   ZSolver.reinitialize zstate start cvec;
-		   s.limit <- h;
-		   s.next <- Integrate;
-		   Horizon(h) in
-	       { time = s.start; status = status; result = s.output }
+	       if horizon < start then
+		 { time = s.start; status = TimeHasPassed; result = s.output }
+	       else
+		 let result = majorstep state start cvec input in
+		 s.output <- result;
+		 (* according to the horizon, either cascade or integration *)
+		 let status =
+		   if cstate.horizon = 0.0
+		   then begin s.next <- StepCascade; Cascade end
+		   else
+		     let h = min stop_time cstate.horizon in
+		     SSolver.reinitialize sstate start nvec;
+		     ZSolver.reinitialize zstate start cvec;
+		     s.limit <- h;
+		     s.next <- Integrate;
+		     Horizon(h) in
+		 { time = s.start; status = status; result = s.output }
             | Running ({ next = StepCascade; zstate; sstate; start } as s) ->
 	       log_info "StepCascade: start = " start;
 	       (* make a discrete step *)
-	       let result = majorstep state start cvec input in
-	       s.output <- result;
-	       let h = cstate.horizon in
-	       log_info "horizon = " h;
-	       (* according to the horizon, either cascade or integration *)
-	       let status =
-		 if h = 0.0
-		 then begin s.next <- StepCascade; Cascade end
-		 else
-		   if start = stop_time then
-		     begin
-		       s.next <- StepStopTimeReached;
-		       Horizon(stop_time)
-		     end
+	       if horizon < start then
+		 { time = s.start; status = TimeHasPassed; result = s.output }
+	       else
+		 let result = majorstep state start cvec input in
+		 s.output <- result;
+		 let h = cstate.horizon in
+		 log_info "horizon = " h;
+		 (* according to the horizon, either cascade or integration *)
+		 let status =
+		   if h = 0.0
+		   then begin s.next <- StepCascade; Cascade end
 		   else
-		     let h = min stop_time h in
-		     SSolver.reinitialize sstate start nvec;
-		     ZSolver.reinitialize zstate start cvec;
-		     s.limit <- min horizon h;
-		     s.next <- Integrate;
-		     Horizon(h) in
-	       { time = s.start; status = status; result = s.output }  
+		     if start = stop_time then
+		       begin
+			 s.next <- StepStopTimeReached;
+			 Horizon(stop_time)
+		       end
+		     else
+		       let h = min stop_time h in
+		       SSolver.reinitialize sstate start nvec;
+		       ZSolver.reinitialize zstate start cvec;
+		       s.limit <- h;
+		       s.next <- Integrate;
+		       Horizon(h) in
+		 { time = s.start; status = status; result = s.output }  
 	    | Running
 		({ next = Integrate; zstate; sstate; start; limit } as s) ->
 	       log_info "Integrate: start = " start;
-	       let t_nextmesh = SSolver.step sstate (add_margin limit) nvec in
-	       (* interpolate if the mesh point has passed the time limit *)
- 	       log_info "t_nextmesh = " t_nextmesh;
-	       let t = if limit < t_nextmesh
-		       then (SSolver.get_dky sstate nvec limit 0; limit)
-		       else t_nextmesh in
-	       log_info "time = " t;
-	       (* is there a zero-crossing? *)
-	       ZSolver.step zstate t cvec;
-	       let has_roots = ZSolver.has_roots zstate in
-	       let status =
-		 if has_roots then
-		   let t =
-		     ZSolver.find zstate (SSolver.get_dky sstate nvec, cvec)
-				  roots in
-		   (* one more step to actualize left limits *)
-		   (* and the zero-crossing state variables *)
-		   minorstep state t s.input cvec roots;
-		   s.start <- t;
-		   s.next <- StepRootsFound;
-		   Success
-		 else
-		   if t >= limit then
-		     begin
-		       s.start <- t;
-		       s.next <- StepCascade;
-		       Success
-		     end
-		   else begin
+	       if horizon < start then
+		 { time = s.start; status = TimeHasPassed; result = s.output }
+	       else
+		 let t_nextmesh =
+		   (* integrate up to the time limit but do not pass *)
+		   (* the given horizon *)
+		   SSolver.step sstate (add_margin (max limit horizon)) nvec in
+		 (* interpolate if the mesh point has passed the time limit *)
+ 		 log_info "t_nextmesh = " t_nextmesh;
+		 let t = if limit < t_nextmesh
+			 then (SSolver.get_dky sstate nvec limit 0; limit)
+			 else t_nextmesh in
+		 log_info "time = " t;
+		 (* is there a zero-crossing? *)
+		 ZSolver.step zstate t cvec;
+		 let has_roots = ZSolver.has_roots zstate in
+		 let status =
+		   if has_roots then
+		     let t =
+		       ZSolver.find zstate (SSolver.get_dky sstate nvec, cvec)
+				    roots in
+		     (* one more step to actualize left limits *)
+		     (* and the zero-crossing state variables *)
+		     minorstep state t s.input cvec roots;
 		     s.start <- t;
-                     s.next <- Integrate;
+		     s.next <- StepRootsFound;
 		     Success
-		   end in
-	       { time = s.start; status = status; result = s.output }
-            | Running({ next = StepStopTimeReached } as s) ->
+		   else
+		     if t >= limit then
+		       begin
+			 s.start <- t;
+			 s.next <- StepCascade;
+			 Success
+		       end
+		     else begin
+			 s.start <- t;
+			 s.next <- Integrate;
+			 Success
+		       end in
+		 { time = s.start; status = status; result = s.output }
+            | Running({ next = StepStopTimeReached; start } as s) ->
 	       log_info "StepStopTimeReached" stop_time;
-	       { time = s.start; status = StopTimeReached; result = s.output }
+	       if horizon < start then
+		 { time = s.start; status = TimeHasPassed; result = s.output }
+	       else
+		 { time = s.start; status = StopTimeReached; result = s.output }
 	  with
 	  | x -> raise x in
 	Node { alloc = alloc; step = step; reset = reset }
