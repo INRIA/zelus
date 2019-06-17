@@ -9,13 +9,29 @@ let hybrid f() =
   and init o = 0 in
   (x, o)
 
+let h = 0.5
+
 let node main () =
-  let { Node.time = time; Node.status = status; Node.result = x, o } =
-    Node.solve f 10.0 (10.0, ()) in
-  print_string "time = "; print_float time;
-  print_newline ();
-  print_string "x = "; print_float x;
-  print_newline ();
-  print_string "o = "; print_int o;
-  print_newline ()
+  let rec
+      (* integrate [f] *)
+      { Node.time = actual_time; Node.status = status; Node.result = x,o } =
+         present step -> Node.solve f 10.0 (expected_time, ())
+         init
+           { Node.time = 0.0; Node.status = Node.Error; Node.result = 0.0, 0 } 
+  and
+      (* ask for a new input every time [actual_time = expected_time] *)
+      ok = (actual_time = expected_time)
+   and
+      expected_time =
+          h -> if pre(ok) then pre(expected_time) +. h else pre(expected_time)
+   and
+      step = true fby ok in
+   print_string "expected time = "; print_float expected_time;
+   print_newline ();
+   print_string "actual time = "; print_float actual_time;
+   print_newline ();
+   print_string "x = "; print_float x;
+   print_newline ();
+   print_string "o = "; print_int o;
+   print_newline ()
     
