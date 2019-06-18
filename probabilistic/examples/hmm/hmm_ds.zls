@@ -1,4 +1,3 @@
-open Distribution
 open Display
 open Infer_ds
 (* open Infer_importance *)
@@ -11,6 +10,8 @@ let node sensor () = obs where
   and obs = present in_bound -> observe_state_xy (float x, float y)
 
 let node display ((obs_x, obs_y), pos_dist) =
+  let rec cpt = (0 -> pre cpt + 1) mod 1000 in
+  Display.gc cpt;
   Display.draw_point_dist_ds pos_dist;
   Display.draw_point Graphics.red [obs_x; obs_y];
   Display.clear ()
@@ -25,10 +26,10 @@ let node display ((obs_x, obs_y), pos_dist) =
 (*   and () = traj_draw t *)
 
 let node hmm (prob, (obs_x, obs_y)) = (p_x, p_y) where
-  rec p_x = sample (prob, gaussian_pd (const obs_x fby p_x) speed_x)
-  and p_y = sample (prob, gaussian_pd (const obs_y fby p_y) speed_y)
-  and () = observe (prob, gaussian_pd p_x noise_x, obs_x)
-  and () = observe (prob, gaussian_pd p_y noise_y, obs_y)
+  rec p_x = sample (prob, gaussian (const obs_x fby p_x) speed_x)
+  and p_y = sample (prob, gaussian (const obs_y fby p_y) speed_y)
+  and () = observe (prob, gaussian p_x noise_x, obs_x)
+  and () = observe (prob, gaussian p_y noise_y, obs_y)
   (* and init t = traj_init () *)
   (* and t = traj_add (last t, p) *)
   (* and () = traj_draw t *)

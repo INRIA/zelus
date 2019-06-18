@@ -21,3 +21,5 @@ type trajectory
 val traj_init : unit -> trajectory
 val traj_add : trajectory * float list -> trajectory
 val traj_draw : trajectory -AD-> unit
+
+val gc : int -AD-> unit

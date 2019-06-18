@@ -23,7 +23,7 @@ val assume_conditional :
 val obs : pstate -> 'a -> ('b, 'a) random_var -AD-> unit
 
 val get_value : ('a, 'b) random_var -> 'b
-val print_state : ('a, float) random_var -AD-> unit
+val print_rv : ('a, float) random_var -AD-> unit
 
 val mgaussian : float -> float -> float mdistr
 val mbeta : float -> float -> float mdistr

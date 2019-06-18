@@ -56,23 +56,18 @@ let draw_point_dist_ds dist =
       let len = 1 + (List.length support / 200) in
       let color = ref (List.length support / len + 1)  in
       List.iteri
-        (fun i (pos, prob) ->
+        (fun i ((pos_x, pos_y), prob) ->
            if i mod len = 0 then decr color;
            let open Infer_ds in
-           begin match pos with
-           | Econst x, Econst y ->
+           begin match marginal pos_x, marginal pos_y with
+           | Some r1, Some r2 ->
+               let x = mean r1 in
+               let y = mean r2 in
                draw_point (Graphics.rgb !color !color !color) [x; y]
-           | Ervar (RV x), Ervar (RV y) ->
-               let open Infer_ds_ll in
-               begin match x.state, y.state with
-               | Marginalized (MGaussian (x, _)), Marginalized (MGaussian (y, _)) ->
-                   draw_point (Graphics.rgb !color !color !color) [x; y]
-               | _ ->
-                   assert false
-               end
            | _ -> assert false
            end)
-        support
+        support;
+      ()
   end
 
 let () = Random.self_init()
@@ -116,4 +111,11 @@ let traj_draw t =
     let a = Array.of_list l in
     Graphics.draw_poly_line a
   end
- 
+
+
+let gc cpt =
+  if cpt = 0 then
+    (Gc.full_major();
+     Gc.compact ();
+     Gc.print_stat stdout;
+     print_endline "-------------------")

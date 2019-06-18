@@ -7,6 +7,7 @@ type mbetat = float
 type mbernoullit = bool
 type 'a mtype = 'a
 
+(** Family of marginal distributions (used as kind) *)
 type marginal_t =
   | MGaussianT
   | MBetaT
@@ -23,7 +24,7 @@ type ('m1, 'm2) cdistr =
   | AffineMeanGaussian: float * float * float -> (mgaussiant, mgaussiant) cdistr
   | CBernoulli : (mbetat, mbernoullit) cdistr
 
-(** Random variable *)
+(** Random variable of type ['b] and with parent of type ['a]  *)
 type ('a, 'b) rv =
   { name : string;
     mutable children : 'b rv_from list;
@@ -38,7 +39,9 @@ and 'a rv_state =
 
 and ('a, 'b) dsdistr =
   | UDistr :  'b mdistr -> ('a, 'b) dsdistr
+    (** unconditional distribution *)
   | CDistr : ('z, 'm1) rv * ('m1, 'm2) cdistr -> ('m1, 'm2) dsdistr
+    (** conditional distribution *)
 
 
 and 'b rv_from =
@@ -46,7 +49,6 @@ and 'b rv_from =
 
 let factor = Infer.factor
 
-(* typeOfMDistr :: MDistr b -> SMarginalT b *)
 let type_of_mdistr (type a): a mdistr -> marginal_t =
   fun mdistr ->
   begin match mdistr with
@@ -61,8 +63,6 @@ let type_of_cdistr (type a b): (a, b) cdistr -> marginal_t =
     | AffineMeanGaussian _ -> MGaussianT
     | CBernoulli -> MBernoulliT
   end
-
-;;
 
 let type_of_dsdistr (type a) (type b): (a, b) dsdistr -> marginal_t =
   fun dsdistr ->
@@ -308,17 +308,57 @@ let forget (type a) (type b): (a, b) rv -> unit =
   end;
   n.children <- []
 
+let fprint_mdistr (type a): Format.formatter -> a mdistr -> unit =
+  fun ff mdistr ->
+  begin match mdistr with
+  | MGaussian(m, s) ->
+      Format.fprintf ff "MGaussian(%f, %f)" m s
+  | MBeta(a, b) ->
+      Format.fprintf ff "MBeta(%f, %f)" a b
+  | MBernoulli(t) ->
+      Format.fprintf ff "MBernoulli(%f)" t
+  end
 
-let print_state n =   (* XXX TODO XXX *)
-  Format.printf "%s: " n.name;
-  begin match n.state with
-  | Initialized -> Format.printf "Initialized"
+let fprint_cdistr (type a) (type b): Format.formatter -> (a, b) cdistr -> unit =
+  fun ff cdistr ->
+  begin match cdistr with
+  | AffineMeanGaussian(a, b, c) ->
+      Format.fprintf ff "AffineMeanGaussian(%f, %f, %f)" a b c
+  | CBernoulli ->
+      Format.fprintf ff "CBernoulli"
+  end
+
+let fprint_state (type a): Format.formatter -> a rv_state -> unit =
+  fun ff state ->
+  begin match state with
+  | Initialized -> Format.fprintf ff "Initialized"
   | Marginalized (MGaussian (mu, var)) ->
-      Format.printf "Marginalized (MGaussian (%f, %f))" mu var
-  | Marginalized _ -> Format.printf "Marginalized"
-  | Realized x -> Format.printf "Realized %f" x
-  end;
-  Format.printf "@."
+      Format.fprintf ff "Marginalized (MGaussian (%f, %f))" mu var
+  | Marginalized _ -> Format.fprintf ff "Marginalized"
+  | Realized x -> Format.fprintf ff "Realized" (* x *)
+  end
+
+let fprint_dsdistr (type a) (type b): Format.formatter -> (a, b) dsdistr -> unit =
+  fun ff dsdistr ->
+  begin match dsdistr with
+  | UDistr mdistr ->
+      Format.fprintf ff "Unconditional(@[%a@])" fprint_mdistr mdistr
+  | CDistr (rv, cdistr) ->
+      (* Format.fprintf ff "Conditional(@[%a,@ %a@])" *)
+      (*   fprint_rv rv *)
+      Format.fprintf ff "Conditional(@[%a@])"
+        fprint_cdistr cdistr
+  end
+
+let fprint_rv (type a) (type b): Format.formatter -> (a, b) rv -> unit =
+  fun ff rv ->
+  Format.fprintf ff "%s: { @[state: @[%a@];@ distr: @[%a@];@] }"
+    rv.name
+    fprint_state rv.state
+    fprint_dsdistr rv.distr
+
+let print_rv n =
+  Format.printf "%a@." fprint_rv n
 
 let observe_conditional (type a) (type b) (type c):
   pstate -> string -> (a, b) rv -> (b, c) cdistr -> c mtype -> unit =
@@ -327,6 +367,37 @@ let observe_conditional (type a) (type b) (type c):
   obs prob observation y
 
 let infer = Infer.infer_dyn_resample
+(* let infer = Infer.infer *)
+
+
+let rec stale : 'a 'b. ('a, 'b) rv -> bool =
+  fun n ->
+  begin match n.state with
+    | Realized _ -> false
+    | Initialized ->
+        begin match n.distr with
+        | UDistr _ -> false
+        | CDistr (par, _) -> stale par
+        end
+    | Marginalized d -> None <> marginal_child n
+  end
+
+(* initializedMarginal :: MonadState Heap m => Ref (Node a b) -> m (MDistr b) *)
+let rec initialized_marginal : 'a 'b. ('a, 'b) rv -> 'b mdistr =
+  fun n ->
+  begin match n.distr with
+  | UDistr d -> d
+  | CDistr (par, cd) ->
+      let pard = initialized_marginal par in
+      make_marginal pard cd
+  end
+
+
+let mdistr_mean m =
+  begin match m with
+  | MGaussian (mu, var) -> mu
+  | MBeta (a, b) -> a /. (a +. b)
+  end
 
 (* ----------------------------------------------------------------------- *)
 (* Examples *)

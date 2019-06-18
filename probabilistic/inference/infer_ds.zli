@@ -2,33 +2,33 @@
 
 type pstate = Infer_ds_ll.pstate
 
-val factor : Infer.pstate * float -> unit
+val factor : Infer.pstate * float -AD-> unit
 
 type 'a random_var
 type 'a expr
 type 'a distribution
 val eval_expr : float expr -> float
-type 'a pdistribution
+type 'a ds_distribution
 
 val const : 'a -> 'a expr
 val rvar : 'a random_var -> 'a expr
 val plus : float expr -> float expr -> float expr
 val mult : float expr -> float expr -> float expr
 
-val sample : (pstate * 'a pdistribution -> 'a expr)
-val observe : (pstate * 'a pdistribution * 'a -> unit)
+val sample : (pstate * 'a ds_distribution -AD-> 'a expr)
+val observe : (pstate * 'a ds_distribution * 'a -AD-> unit)
 
-val pdistr_of_distr : 'a Distribution.t -> 'a pdistribution
+val ds_distr_of_distr : 'a Distribution.t -> 'a ds_distribution
 (*
 val pdistr_with_fallback :
   'a Distribution.t ->
   (pstate -> 'a expr option) ->
   (pstate * 'a -> unit option) -> 'a pdistribution
 *)
-val gaussian_pd : float expr -> float -> float pdistribution
-val beta_pd : float -> float -> Infer_ds_ll.mbetat pdistribution
-val bernoulli_pd :
-  float expr -> Infer_ds_ll.mbernoullit pdistribution
+val gaussian : float expr -> float -> float ds_distribution
+val beta : float -> float -> Infer_ds_ll.mbetat ds_distribution
+val bernoulli :
+  float expr -> Infer_ds_ll.mbernoullit ds_distribution
 
 
 val infer :
