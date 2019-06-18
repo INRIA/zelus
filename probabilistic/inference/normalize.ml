@@ -16,6 +16,21 @@ let histogram_of_array l =
     l;
   Hashtbl.fold (fun _ (x, n) acc -> (x, n)::acc) tbl []
 
+(** [log_sum_exp scores] computes the logarithm of the sum of the
+    exponentials of the arguments.:
+    [log_sum_exp [| x1; ... xn|] = exp(x1) + ... + exp(xn)]
+*)
+let log_sum_exp scores =
+  let max_score =
+    Array.fold_right (fun s acc -> (max s acc)) scores neg_infinity
+  in
+  let sum_exp_scores =
+    Array.fold_right
+      (fun score acc -> exp (score -. max_score) +. acc)
+      scores 0.0
+  in
+  max_score +. (log sum_exp_scores)
+
 (** [normalize values] creates a distribution corresponding to the
     array of values [values]. *)
 let normalize values =
@@ -25,13 +40,7 @@ let normalize values =
     (List.map (fun (v, n) -> (v, float n /. norm)) return_histogram)
 
 let normalize_nohist values scores =
-  let logsumexp scores = 
-    let mscore = Array.fold_right (fun a b -> (max a b)) scores neg_infinity in
-    let expscores = Array.map (fun score -> exp (score -. mscore)) scores in
-    let sumexpscores = Array.fold_right (fun a b -> a+.b) expscores 0.0 in
-    mscore +. (log sumexpscores)
-  in
-  let norm = logsumexp scores in
+  let norm = log_sum_exp scores in
   let scores' = Array.map (fun score -> exp (score -. norm)) scores in
   Distribution.Dist_support
     (Array.to_list (Array.map2 (fun value score -> (value, score)) values scores'))

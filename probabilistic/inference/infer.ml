@@ -60,6 +60,7 @@ let infer_subresample n (Node { alloc; reset; step }) =
   in
   Node { alloc = alloc; reset = reset; step = step }
 
+
 let infer_dyn_resample n (Node { alloc; reset; step }) =
     (* val infer :
          int -S-> (pstate * 'a -D-> 'b)
@@ -78,6 +79,18 @@ let infer_dyn_resample n (Node { alloc; reset; step }) =
     Array.iter reset state.infer_states;
     Array.fill state.infer_scores 0 n 0.0
   in
+  let do_resampling scores =
+    let norm = Normalize.log_sum_exp scores in
+    let scores' = Array.map (fun score -> (score -. norm)) scores in
+    let num =
+      (Array.fold_right (fun x acc -> exp x +. acc) scores' 0.) ** 2.
+    in
+    let den =
+      Array.fold_right (fun x acc -> (exp x) ** 2. +. acc) scores' 0.
+    in
+    let ess = num /. den in
+    ess < 0.8 *. (float_of_int n)
+  in
   let step { infer_states = states; infer_scores = scores } (input) =
     let values =
       Array.mapi
@@ -87,41 +100,18 @@ let infer_dyn_resample n (Node { alloc; reset; step }) =
         states
     in
     let ret = Normalize.normalize_nohist values scores in
-
-
-    let logsumexp scores = 
-        let mscore = Array.fold_right (fun a b -> (max a b)) scores neg_infinity in
-        let expscores = Array.map (fun score -> exp (score -. mscore)) scores in
-        let sumexpscores = Array.fold_right (fun a b -> a+.b) expscores 0.0 in
-        mscore +. (log sumexpscores)
-    in
-
-    let norm = logsumexp scores in
-    let scores' = Array.map (fun score -> (score -. norm)) scores in
-
-    (* let str = String.concat ", " (Array.to_list (Array.map (fun x -> (string_of_float x)) scores')) in *)
-
-    let num = (((Array.fold_right (fun a b -> a +. b) (Array.map (fun x -> (exp x)) scores')) 0.) ** 2.) in
-    let den = ((Array.fold_right (fun a b -> a +. b) (Array.map (fun x -> (exp x) ** 2.) scores')) 0.) in
-
-    let ess = num /. den in
-
-
-    if (ess < 0.3 *. (float_of_int n)) then  (
-        Normalize.resample (states, scores, values);
-    ) else ();
+    if (do_resampling scores) then Normalize.resample (states, scores, values);
     ret
   in
   Node { alloc = alloc; reset = reset; step = step }
-
-
 
 let infer n node =
   let Node { alloc; reset; step } = infer_subresample n node in
   Node { alloc;
          reset;
          step = (fun state input -> step state (true, input)); }
-(* let infer = infer_dyn_resample  *)
+
+let infer = infer_dyn_resample
 
 let infer_noresample n node =
   let Node { alloc; reset; step } = infer_subresample n node in
