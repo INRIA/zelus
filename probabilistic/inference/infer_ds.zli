@@ -26,7 +26,7 @@ val pdistr_with_fallback :
   (pstate * 'a -> unit option) -> 'a pdistribution
 *)
 val gaussian : float expr -> float -> float ds_distribution
-val beta : float -> float -> Infer_ds_ll.mbetat ds_distribution
+val beta : float -> float -> float ds_distribution
 val bernoulli :
   float expr -> Infer_ds_ll.mbernoullit ds_distribution
 
