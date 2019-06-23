@@ -40,20 +40,24 @@ let read_val : unit ->  float * float =
         Scanf.scanf "%f, %f\n" (fun t o -> (t, o))
 ;;
 
-let get_mean (type a) :(bool * (a, float) random_var) Distribution.t -> float =
+let get_mean (type a) : (bool * float Infer_ds.expr) Distribution.t -> float =
     fun d ->
         begin match d with
         | Distribution.Dist_support sup ->
             let rec avg lst =
                 begin match lst with
                 | [] -> 0.
-                | ((_, v), p) :: rst ->
-                    graft v;
-                    begin match v.state with
-                    | Marginalized distr -> 
-                        begin match distr with
-                        | MGaussian (mu, sigma) ->
-                            (mu *. p) +. (avg rst)
+                | ((_, e), p) :: rst ->
+                    begin match e with
+                    | Infer_ds.Ervar (RV v) ->
+                        graft v;
+                        begin match v.state with
+                        | Marginalized distr -> 
+                            begin match distr with
+                            | MGaussian (mu, sigma) ->
+                                (mu *. p) +. (avg rst)
+                            | _ -> assert false
+                            end
                         | _ -> assert false
                         end
                     | _ -> assert false
@@ -65,24 +69,27 @@ let get_mean (type a) :(bool * (a, float) random_var) Distribution.t -> float =
         end
 ;;
 
-let particles_tostring (type a) : (bool * (a, float) random_var) Distribution.t -> string =
+let particles_tostring (type a) : (bool * float Infer_ds.expr) Distribution.t -> string =
     fun d ->
         begin match d with
         | Distribution.Dist_support sup ->
             let rec str lst =
                 begin match lst with
                 | [] -> ""
-                | ((outl, v), p) :: rst ->
-                    graft v;
-                    begin match v.state with
-                    | Marginalized distr -> 
-                        begin match distr with
-                        | MGaussian (mu, sigma) ->
-                            ("(" ^ (string_of_bool outl) ^ ", " ^ (string_of_float mu ^", " ^ (string_of_float p) ^ "); " ^ (str rst)))
+                | ((outl, e), p) :: rst ->
+                    match e with
+                    | Infer_ds.Ervar (RV v) ->
+                        graft v;
+                        begin match v.state with
+                        | Marginalized distr -> 
+                            begin match distr with
+                            | MGaussian (mu, sigma) ->
+                                ("(" ^ (string_of_bool outl) ^ ", " ^ (string_of_float mu ^", " ^ (string_of_float p) ^ "); " ^ (str rst)))
+                            | _ -> assert false
+                            end
                         | _ -> assert false
                         end
                     | _ -> assert false
-                    end
                 end
             in
             str sup

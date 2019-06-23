@@ -24,14 +24,22 @@ type 'a distribution =
   | DS_gaussian of float expr * float
 
 
-let rec eval_expr (type t): t expr -> t =
+let rec eval_float : float expr -> float =
   function e ->
     begin match e with
     | Econst v -> v
     | Ervar (RV x) -> Infer_ds_ll.get_value x
-    | Eplus (e1, e2) -> eval_expr e1 +. eval_expr e2
-    | Emult (e1, e2) -> eval_expr e1 *. eval_expr e2
+    | Eplus (e1, e2) -> eval_float e1 +. eval_float e2
+    | Emult (e1, e2) -> eval_float e1 *. eval_float e2
     end
+
+let eval_bool : bool expr -> bool =
+    function e ->
+    begin match e with
+    | Econst v -> v
+    | Ervar (RV x) -> Infer_ds_ll.get_value x
+    end
+
 
 (* High level delayed sampling distribution (pdistribution in Haskell) *)
 type 'a ds_distribution =
@@ -175,7 +183,7 @@ let type_of_random_var (RV rv) =
 
 (** Gaussian distribution (gaussianPD in Haskell) *)
 let gaussian mu std =
-  let d () = Distribution.gaussian (eval_expr mu) std in
+  let d () = Distribution.gaussian (eval_float mu) std in
   let is prob =
     let mu' = const_of_realized mu in
     begin match get_affine1 mu' with
@@ -225,7 +233,7 @@ let beta a b =
 
 (** Bernoulli distribution (bernoulliPD in Haskell) *)
 let bernoulli p =
-  let d () = Distribution.bernoulli (eval_expr p) in
+  let d () = Distribution.bernoulli (eval_float p) in
   let with_beta_prior f =
     begin match p with
       | Ervar (RV par) ->

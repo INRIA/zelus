@@ -7,7 +7,8 @@ val factor : Infer.pstate * float -AD-> unit
 type 'a random_var
 type 'a expr
 type 'a distribution
-val eval_expr : float expr -> float
+val eval_float : float expr -> float
+val eval_bool : bool expr -> bool
 type 'a ds_distribution
 
 val const : 'a -> 'a expr
@@ -28,7 +29,7 @@ val pdistr_with_fallback :
 val gaussian : float expr -> float -> float ds_distribution
 val beta : float -> float -> float ds_distribution
 val bernoulli :
-  float expr -> Infer_ds_ll.mbernoullit ds_distribution
+  float expr -> bool ds_distribution
 
 
 val infer :
