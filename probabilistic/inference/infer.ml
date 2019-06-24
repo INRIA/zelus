@@ -111,7 +111,7 @@ let infer n node =
          reset;
          step = (fun state input -> step state (true, input)); }
 
-let infer = infer_dyn_resample
+(* let infer = infer_dyn_resample *)
 
 let infer_noresample n node =
   let Node { alloc; reset; step } = infer_subresample n node in

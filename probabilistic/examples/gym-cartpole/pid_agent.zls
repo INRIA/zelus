@@ -161,5 +161,5 @@ let node pid_main () = () where
   and i_init = (0., 0.1)
   and d_init = (0., 0.1)
   and obs, _, stop = cart_pole_gym true (Right fby action)
-  and action = learn_control 2000 pid_bayes_update ((p_init, i_init, d_init), obs, stop)
+  and action = learn_control 200 pid_bayes_update ((p_init, i_init, d_init), obs, stop)
   and display = draw_obs_front obs
