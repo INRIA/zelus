@@ -108,20 +108,28 @@ let split dist =
   | Dist_sampler (draw, score) ->
       Dist_sampler ((fun () -> fst (draw ())), (fun _ -> assert false)),
       Dist_sampler ((fun () -> snd (draw ())), (fun _ -> assert false))
+  (* | Dist_support support -> *)
+  (*     let s1, s2 = *)
+  (*       List.fold_right *)
+  (*         (fun ((a, b), p) (acc1, acc2) -> *)
+  (*            let add_p o = *)
+  (*              begin match o with *)
+  (*              | None -> p *)
+  (*              | Some p' -> p +. p' *)
+  (*              end *)
+  (*            in *)
+  (*            (Misc_lib.list_replace_assoc a add_p acc1, *)
+  (*             Misc_lib.list_replace_assoc b add_p acc2)) *)
+  (*         support *)
+  (*         ([], []) *)
+  (*     in *)
+  (*     (Dist_support s1, Dist_support s2) *)
   | Dist_support support ->
       let s1, s2 =
-        List.fold_right
-          (fun ((a, b), p) (acc1, acc2) ->
-             let add_p o =
-               begin match o with
-               | None -> p
-               | Some p' -> p +. p'
-               end
-             in
-             (Misc_lib.list_replace_assoc a add_p acc1,
-              Misc_lib.list_replace_assoc b add_p acc2))
-          support
+        List.fold_left
+          (fun (acc1, acc2) ((a, b), p) -> ((a,p)::acc1, (b,p)::acc2))
           ([], [])
+          support
       in
       (Dist_support s1, Dist_support s2)
   end

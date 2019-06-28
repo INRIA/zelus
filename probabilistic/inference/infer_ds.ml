@@ -4,6 +4,8 @@ type pstate = Infer_ds_ll.pstate
 
 let factor = Infer_ds_ll.factor
 
+let infer = Infer_ds_ll.infer
+
 type 'a random_var =
  RV : ('b, 'a) Infer_ds_ll.rv -> 'a random_var
 
@@ -13,39 +15,68 @@ type _ expr =
   | Eplus : float expr * float expr -> float expr
   | Emult : float expr * float expr -> float expr
 
+let const v = Econst v
+let rvar x = Ervar x
+let plus e1 e2 = Eplus (e1, e2)
+let mult e1 e2 = Emult (e1, e2)
+
 type 'a distribution =
   | DS_gaussian of float expr * float
 
 
-let rec eval_expr (type t): t expr -> t =
+let rec eval_float : float expr -> float =
   function e ->
     begin match e with
     | Econst v -> v
     | Ervar (RV x) -> Infer_ds_ll.get_value x
-    | Eplus (e1, e2) -> eval_expr e1 +. eval_expr e2
-    | Emult (e1, e2) -> eval_expr e1 *. eval_expr e2
+    | Eplus (e1, e2) -> eval_float e1 +. eval_float e2
+    | Emult (e1, e2) -> eval_float e1 *. eval_float e2
     end
 
-(* *)
-type 'a pdistribution =
+let eval_bool : bool expr -> bool =
+    function e ->
+    begin match e with
+    | Econst v -> v
+    | Ervar (RV x) -> Infer_ds_ll.get_value x
+    end
+
+
+(* High level delayed sampling distribution (pdistribution in Haskell) *)
+type 'a ds_distribution =
   { isample : (pstate -> 'a expr);
     iobserve : (pstate * 'a -> unit); }
 
-let pdistr_of_distr d =
+let sample (prob, ds_distr) =
+  ds_distr.isample prob
+
+let observe (prob, ds_distr, o) =
+  ds_distr.iobserve(prob, o)
+
+let ds_distr_of_distr d =
   { isample = (fun prob -> Econst (Distribution.draw d));
     iobserve = (fun (prob, obs) -> factor (prob, Distribution.score d obs)); }
 
-let pdistr_with_fallback d is iobs =
-  let pd = pdistr_of_distr d in
+let ds_distr_with_fallback d is iobs =
+  let dsd =
+    let state = ref None in
+    (fun () ->
+       begin match !state with
+       | None ->
+           let dsd = ds_distr_of_distr (d()) in
+           state := Some dsd;
+           dsd
+       | Some dsd -> dsd
+       end)
+  in
   let is' prob =
     begin match is prob with
-    | None -> pd.isample prob
+    | None -> (dsd()).isample prob
     | Some x -> x
     end
   in
   let iobs' (prob, obs) =
     begin match iobs (prob, obs) with
-    | None -> pd.iobserve (prob, obs)
+    | None -> (dsd()).iobserve (prob, obs)
     | Some () -> ()
     end
   in
@@ -150,9 +181,9 @@ let forgettable_var rv =
 let type_of_random_var (RV rv) =
   Infer_ds_ll.type_of_dsdistr rv.distr
 
-(* gaussianPD :: Expr Double -> Double -> PDistrF Double *)
-let gaussian_pd mu std =
-  let d = Distribution.gaussian (eval_expr mu) std in
+(** Gaussian distribution (gaussianPD in Haskell) *)
+let gaussian mu std =
+  let d () = Distribution.gaussian (eval_float mu) std in
   let is prob =
     let mu' = const_of_realized mu in
     begin match get_affine1 mu' with
@@ -176,29 +207,33 @@ let gaussian_pd mu std =
   let iobs (prob, obs) =
     let mu' = const_of_realized mu in
     begin match get_affine1 mu' with
-      | None -> None
-      | Some (b, None) -> None
+      | None ->
+          None
+      | Some (b, None) ->
+          None
       | Some (b, Some (RV par, m)) ->
-          let ty= type_of_random_var (RV par) in
+          let ty = type_of_random_var (RV par) in
           begin match ty with
-          | MGaussianT -> Some (Infer_ds_ll.observe_conditional prob "" par (AffineMeanGaussian(m, b, std)) obs)
-          | _ -> None
+          | MGaussianT ->
+              Some (Infer_ds_ll.observe_conditional prob "" par (AffineMeanGaussian(m, b, std)) obs)
+          | _ ->
+              None
           end
     end
   in
-  pdistr_with_fallback d is iobs
+  ds_distr_with_fallback d is iobs
 
 
-(* betaPD :: Double -> Double -> PDistrF Double *)
-let beta_pd a b =
-  let d = Distribution.beta a b in
+(** Beta distribution (betaPD in Haskell) *)
+let beta a b =
+  let d () = Distribution.beta a b in
   let is prob = Some (forgettable_var (Infer_ds_ll.assume_constant "" (MBeta (a, b)))) in
   let iobs (pstate, obs) = None in
-  pdistr_with_fallback d is iobs
+  ds_distr_with_fallback d is iobs
 
-(* bernoulliPD :: Expr Double -> PDistrF Bool *)
-let bernoulli_pd p =
-  let d = Distribution.bernoulli (eval_expr p) in
+(** Bernoulli distribution (bernoulliPD in Haskell) *)
+let bernoulli p =
+  let d () = Distribution.bernoulli (eval_float p) in
   let with_beta_prior f =
     begin match p with
       | Ervar (RV par) ->
@@ -219,4 +254,71 @@ let bernoulli_pd p =
     with_beta_prior
       (fun (RV par) -> Infer_ds_ll.observe_conditional prob "" par Infer_ds_ll.CBernoulli obs)
   in
-  pdistr_with_fallback d is iobs
+  ds_distr_with_fallback d is iobs
+
+(** Computation on expressions *)
+type 'a result =
+  | RConst of 'a
+  | RMarginal of 'a Infer_ds_ll.mdistr
+
+let mean r =
+  begin match r with
+  | RConst x -> x
+  | RMarginal m -> Infer_ds_ll.mdistr_mean m
+  end
+
+let add_result r1 r2 =
+  begin match r1, r2 with
+  | RConst x, RConst y -> Some (RConst (x +. y))
+  | RConst x, RMarginal (MGaussian (mu, var))
+  | RMarginal (MGaussian (mu, var)), RConst x ->
+      Some (RMarginal (MGaussian (mu +. x, var)))
+  | _, _ -> None
+  end
+
+let negate_result r =
+  begin match r with
+  | RConst x -> Some (RConst (-. x))
+  | RMarginal (MGaussian (mu, var)) -> Some (RMarginal (MGaussian (-. mu, var)))
+  | _ -> None
+  end
+
+let mult_result r1 r2 =
+  begin match r1, r2 with
+  | RConst x, RConst y -> Some (RConst (x *. y))
+  | RConst x, RMarginal (MGaussian (mu, var))
+  | RMarginal (MGaussian (mu, var)), RConst x ->
+      Some (RMarginal (MGaussian (mu *. x, x *. x *. var)))
+  | _, _ -> None
+  end
+
+
+(* This is currently unsound *)
+(* Consider *)
+(* x <- normal(0, 1) *)
+(* pure (x + (- x)) *)
+let rec marginal e =
+  begin match e with
+  | Econst x -> Some (RConst x)
+  | Ervar (RV n) ->
+      begin match n.state with
+      | Infer_ds_ll.Realized x -> Some (RConst x)
+      | Marginalized d ->
+          if Infer_ds_ll.stale n then None else Some (RMarginal d)
+      | Initialized -> Some (RMarginal (Infer_ds_ll.initialized_marginal n))
+      end
+  | Eplus (x, y) -> (* XXX unsound XXX *)
+      let mx = marginal x in
+      let my = marginal y in
+      begin match mx, my with
+      | Some mx, Some my -> add_result mx my
+      | _ -> None
+      end
+  | Emult (x, y) -> (* XXX unsound XXX *)
+      let mx = marginal x in
+      let my = marginal y in
+      begin match mx, my with
+      | Some mx, Some my -> mult_result mx my
+      | _ -> None
+      end
+  end

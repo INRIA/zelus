@@ -1,17 +1,16 @@
-open Infer_ds_ll
+open Infer_ds
 
 let node coin (prob, yobs) =
   let rec automaton
       | Init ->
-          do xt = assume_constant "x" (mbeta 1. 1.)
+          do xt = sample (prob, beta 1. 1.)
           then Run
       | Run ->
           do xt = (last xt)
           done
       end
   and t = 1 fby (t + 1)
-  and y = assume_conditional ("y" ^ string_of_int t) xt (cbernoulli)
-  and () = obs prob yobs y
+  and () = observe (prob, bernoulli xt, yobs)
   in
   xt
 
