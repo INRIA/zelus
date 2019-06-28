@@ -28,4 +28,15 @@ type status =
 type 'a return =
     { time: float; status: status; result: 'a }
 
+(* lift a continuous-time function into a stream function *)
+(* [solve stop_time f (h, x) = r] where
+ *- [stop_time] is the stop (final) time of the simulation
+ *- [f] is the continuous time function (with derivatives and/or zero-crossings)
+ *- [(h,x)] is a stream of pairs where [h] is the horizon to reach and
+ *- [x] is the current input
+ *- the result [r.time] is the achieved time (r.time <= h)
+ *- [r.status] is the status of the step
+ *- [r.result] is the result. The result only change at a zero-crossing or
+ *- cascade event *)
+
 val solve : ('a -C-> 'b) -S-> float -S-> float * 'a -D-> 'b return
