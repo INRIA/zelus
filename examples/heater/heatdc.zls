@@ -8,7 +8,8 @@
 open Heatc
 open Node
 
-let node cascades status =
+(* counts the number of consecutive stops *)
+let node stops status =
   let rec init c = 0
   and match status with
       | Success | StopTimeReached | TimeHasPassed | Error -> do c = 0 done
@@ -28,7 +29,7 @@ let node maindc () =
   and next_horizon =
     h -> if pre time >= pre (next_horizon) then pre(next_horizon) +. h
     else pre(next_horizon) in
-  let jumps = cascades status in
+  let s = 0 fby stops status in
   (* draw only when time change *)
   match step (stop_time, time) with
   | true ->
@@ -38,7 +39,7 @@ let node maindc () =
 	   ("u", Scope.points true, if u then 1.0 else 0.0),
 	   ("input temp", Scope.linear, reference_temp),
 	   ("measured temp", Scope.linear, measured_temp),
-	   ("jumps", Scope.points true, float_of_int jumps)) in
+	   ("stops", Scope.points true, float_of_int s)) in
       Scope.window ("The Heater with a relay controller", 10.0, time, s)
   | _ -> ()
 	
