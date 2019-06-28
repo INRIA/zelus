@@ -14,6 +14,7 @@ let hybrid heater(c, alpha, beta, temp_ext, temp0, u) = temp where
 	if u then alpha *. (c -. temp) 
 	else beta *. (temp_ext -. temp))
 
+(* The same but without calling the function [int] *)
 let hybrid heater2(c, alpha, beta, temp_ext, temp0, u) = temp where
   rec der temp =
         if u then alpha *. (c -. temp) 
@@ -22,16 +23,15 @@ let hybrid heater2(c, alpha, beta, temp_ext, temp0, u) = temp where
 (* relay. Warning: this model has a critical race! up(.) only detect *)
 (* zero-crossing during integration, that is its argument is suposed to *)
 (* to have a discontinuity. In case, low, high or v *)
-(* have a discontinuous jump outside of integration, it is not taken into account *)
+(* have a discontinuous jump outside of integration, it is not taken *)
+(* into account *)
 let hybrid relay_cc(low, high, v) = u where
   rec u = present
           | up(low -. v) -> true
           | up(v -. high) -> false init (v < high)
 
-(* Discrete X-crossing *)
-let hybrid dcross(x) = present (disc(x)) | (init) -> (x > 0.0)
 (* X-crossing discrete and continuous *)
-let hybrid xup(x) = present up(x) | (dcross(x))(true) -> ()
+let hybrid xup(x) = present up(x) | (disc(x)) on (x >= 0.0) -> ()
 
 (* Relay with an automaton *)
 let hybrid relay_six(low, high, v) = u where
@@ -43,8 +43,8 @@ let hybrid relay_six(low, high, v) = u where
 (* Relay in direct form *)
 let hybrid relay_c(low, high, v) = u where
   rec u = present
-          | up(low -. v)  | (disc(low -. v)) on (low >= v) -> true
-          | up(v -. high) | (disc(v -. high)) on (v >= high) -> false
+          | (xup(low -. v))() -> true
+          | (xup(v -. high))() -> false
           init (v < high)
 
 let low = 1.0
@@ -55,6 +55,8 @@ let c = 50.0
 let alpha = 0.1
 let beta = 0.05
 
+let h = 0.1
+
 (* Main program *)
 let hybrid system(reference) = (u, temp) where
   rec
@@ -62,10 +64,10 @@ let hybrid system(reference) = (u, temp) where
   and
       temp = heater(c, alpha, beta, 0.0, 0.0, u)
 
-let hybrid system_with_sampled_relay(reference) = (u, temp) where
+let hybrid system_with_sampled_relay(h)(reference) = (u, temp) where
   rec
       u = present
-            (period (0.1)) ->
+            (period (h)) ->
 	       Heat.relay(reference -. low, reference +. high, temp)
           init false
   and
@@ -88,25 +90,10 @@ let hybrid main_no_graphics() =
 let hybrid main() =
   let der t = 1.0 init 0.0 in
   let u, temp = system(19.0) in
-  let temp1 = 0.0 in 
-  present (period(0.1)) | (disc(u)) ->
-    let s = Scope.scope3 (-1.0, 40.0, ("u", Scope.linear,
-				       if u then 1.0 else 0.0),
-                          ("temp", Scope.linear, temp),
-                          ("temp discrete", Scope.linear, temp1)
-			 ) in
-    Scope.window ("main_on_19", 10.0, t, s)
-  else ()
-  
-let hybrid mainc() =
-  let der t = 1.0 init 0.0 in
-  (* the system where both the controller and the plant are *)
-  (* continuous time *)
-  let u, temp = system(19.0) in
   (* the system in discrete-time *)
   let u1, temp1 =
-    present (period(0.1)) -> Heat.system(19.0) init (false, 0.0) in  
-  present (period(0.1)) | (disc(u)) ->
+    present (period(h)) -> Heat.system(19.0) init (false, 0.0) in  
+  present (period(h)) | (disc(u)) ->
     let s = Scope.scope4 (-1.0, 40.0,
 			  ("u", Scope.linear,
 			   if u then 1.0 else 0.0),
@@ -118,4 +105,31 @@ let hybrid mainc() =
     Scope.window ("main_on_19", 10.0, t, s)
   else ()
 
+(* the system where both the controller and the plant are *)
+(* continuous time *)
+let hybrid mainc() =
+  (* create a box for an input of type float; initially set at 19 degrees *)
+  let init win_desc =
+    Input.frame "Main"
+      (Input.vbox [Input.make_float "temperature reference" (0.,68.) 19.;
+		   Input.make_bool "manual mode" false]) in
+  (* create and open the window *)
+  let init w = Input.open_window("Inputs", win_desc) in
+  (* by default the size of the window is the smallest size possible *)
+  let init tmp = Input.resize_window(w, 400, 100) in
+  (* read the input *)
+  let reference, mode =
+    present (period (0.5)) ->
+      (Input.get_float (w, "temperature reference"),
+       Input.get_bool (w, "manual mode"))
+    init (19.0, false) in
+  let der t = 1.0 init 0.0 in
+  let u, temp = system(reference) in
+  present (period(h)) | (disc(u)) ->
+    let s = Scope.scope2 (-1.0, 40.0, ("u", Scope.linear,
+				       if u then 1.0 else 0.0),
+                          ("temp", Scope.linear, temp)) in
+    Scope.window ("main_on_19", 10.0, t, s)
+  else ()
+  
 

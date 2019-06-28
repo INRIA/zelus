@@ -97,7 +97,7 @@ let node main_no_graphics() =
 
 (* The main function. *)
 let node main() =
-  (* create a box for an inputsof type float; initially set at 19 degrees *)
+  (* create a box for an input of type float; initially set at 19 degrees *)
   let init win_desc =
     Input.frame "Main"
       (Input.vbox [Input.make_float "temperature reference" (0.,68.) 19.;
