@@ -6,17 +6,29 @@
     sundials.cma zllib.cma -I ../../lib heatc.ml heatdc.ml *)
 
 open Heatc
+open Node
 
+let node cascades status =
+  let rec init c = 0
+  and match status with
+      | Success | StopTimeReached | TimeHasPassed | Error -> do c = 0 done
+      | RootsFound | Horizon _ | Cascade -> do c = last c + 1 done
+  in c
+    
 let node step (stop_time, time) = ok where
   rec ok = true -> (pre time < time) && (time < stop_time)
 		    
+let reference_temp = 19.0
+let stop_time = 100.0
+let h = 5.0
+    
 let node maindc () =
-  let reference_temp = 19.0 in
-  let stop_time = 100.0 in
-  let { Node.time = time; Node.status = status;
-	Node.result = (u, measured_temp) } =
-    Node.solve system 100.0 (stop_time, reference_temp) in
-  let ok = false in
+  let rec { time = time; status = status; result = (u, measured_temp) } =
+    Node.solve Heatc.system 100.0 (next_horizon, reference_temp)
+  and next_horizon =
+    h -> if pre time >= pre (next_horizon) then pre(next_horizon) +. h
+    else pre(next_horizon) in
+  let jumps = cascades status in
   (* draw only when time change *)
   match step (stop_time, time) with
   | true ->
@@ -26,7 +38,7 @@ let node maindc () =
 	   ("u", Scope.points true, if u then 1.0 else 0.0),
 	   ("input temp", Scope.linear, reference_temp),
 	   ("measured temp", Scope.linear, measured_temp),
-	   ("ok", Scope.points true, if ok then 1.0 else 0.0)) in
+	   ("jumps", Scope.points true, float_of_int jumps)) in
       Scope.window ("The Heater with a relay controller", 10.0, time, s)
   | _ -> ()
 	
