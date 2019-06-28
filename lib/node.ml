@@ -208,7 +208,8 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		   log_info "horizon = " 0.0;
 		   { time = 0.0; status = StopTimeReached; result = result }
 		 else
-		   let h = min stop_time cstate.horizon in
+		   let h =
+		     min stop_time (min cstate.horizon horizon) in
 		   let solver =
 		     { sstate = sstate; zstate = zstate;
 		       start = 0.0; limit = h;
@@ -230,7 +231,8 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		   if cstate.horizon = 0.0
 		   then begin s.next <- StepCascade; Cascade end
 		   else
-		     let h = min stop_time cstate.horizon in
+		     let h =
+		       min stop_time (min cstate.horizon horizon) in
 		     SSolver.reinitialize sstate start nvec;
 		     ZSolver.reinitialize zstate start cvec;
 		     s.limit <- h;
@@ -258,7 +260,8 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 			 Horizon(stop_time)
 		       end
 		     else
-		       let h = min stop_time h in
+		       let h =
+			 min stop_time (min cstate.horizon horizon) in
 		       SSolver.reinitialize sstate start nvec;
 		       ZSolver.reinitialize zstate start cvec;
 		       s.limit <- h;
