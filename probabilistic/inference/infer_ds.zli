@@ -34,3 +34,15 @@ val bernoulli :
 
 val infer :
   int -S-> (pstate * 'a -D-> 'b) -S-> 'a -D-> 'b Distribution.t
+
+type 'a result
+val mean : float result -> float
+(* val add_result : *)
+(*   float result -> float result -> float result option *)
+(* val negate_result : float result -> float result option *)
+(* val mult_result : *)
+(*   float result -> *)
+(*   float result -> float result option *)
+(* val marginal_opt : float expr -> float result option *)
+
+val marginal : float expr -> float result

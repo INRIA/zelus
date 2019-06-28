@@ -99,6 +99,13 @@ let multivariate dists =
           1.0
           dists xs))
 
+(** [of_pair dist1 dist2] builds a distribution from a pair
+    of distributions.
+*)
+let of_pair dist1 dist2 =
+  Dist_sampler
+    ((fun () -> (draw dist1, draw dist2)),
+     (fun (x, y) -> 1. +. score dist1 x +. score dist2 y))
 
 (** [split dist] turns a distribution of pairs into a pair of
     distributions.
