@@ -261,16 +261,23 @@ let mean_float_list d =
   let ls = split_list d in
   List.map (fun l -> mean_float l) ls
 
-let mean meanfn d =
-  match d with
-  | Dist_sampler _ ->
-    let n = 100000 in
-    let acc = ref 0. in
-    for i = 1 to n do acc := !acc +. (meanfn (draw d)) done;
-    !acc /. (float n)
-  | Dist_support sup ->
-    List.fold_left (fun acc (v, w) -> acc +. v *. (meanfn w)) 0. sup
+let mean (type a) : (a -> float) -> a t -> float =
+  begin fun meanfn d  ->
+    match d with
+    | Dist_sampler _ ->
+      let n = 100000 in
+      let acc = ref 0. in
+      for i = 1 to n do acc := !acc +. (meanfn (draw d)) done;
+      !acc /. (float n)
+    | Dist_support sup ->
+      List.fold_left (fun acc (v, w) -> acc +. w *. (meanfn v)) 0. sup
+  end
 
+let mean_list (type a) : (a -> float) -> a list t -> float list =
+    begin fun meanfn d ->
+        let ls = split_list d in
+        List.map (fun l -> mean meanfn l) ls
+    end
 
 
 (** {2 Distributions} *)
