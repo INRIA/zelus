@@ -257,6 +257,7 @@ let bernoulli p =
   ds_distr_with_fallback d is iobs
 
 (** Computation on expressions *)
+
 type 'a result =
   | RConst of 'a
   | RMarginal of 'a Infer_ds_ll.mdistr
@@ -297,7 +298,7 @@ let mult_result r1 r2 =
 (* Consider *)
 (* x <- normal(0, 1) *)
 (* pure (x + (- x)) *)
-let rec marginal e =
+let rec marginal_opt e =
   begin match e with
   | Econst x -> Some (RConst x)
   | Ervar (RV n) ->
@@ -308,17 +309,24 @@ let rec marginal e =
       | Initialized -> Some (RMarginal (Infer_ds_ll.initialized_marginal n))
       end
   | Eplus (x, y) -> (* XXX unsound XXX *)
-      let mx = marginal x in
-      let my = marginal y in
+      let mx = marginal_opt x in
+      let my = marginal_opt y in
       begin match mx, my with
       | Some mx, Some my -> add_result mx my
       | _ -> None
       end
   | Emult (x, y) -> (* XXX unsound XXX *)
-      let mx = marginal x in
-      let my = marginal y in
+      let mx = marginal_opt x in
+      let my = marginal_opt y in
       begin match mx, my with
       | Some mx, Some my -> mult_result mx my
       | _ -> None
       end
+  end
+
+
+let marginal e =
+  begin match marginal_opt e with
+  | Some x -> x
+  | None -> (RConst 0.) (* assert false *) (* XXX TODO XXX *)
   end
