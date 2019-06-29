@@ -25,7 +25,7 @@ let node van_der_pol_discrete(h)() = (x, y) where
 		 
 let h = 0.1
 
-(* The main simulation loop *)
+(* The main simulation loop in discrete-time *)
 let node maind() =
   let x, y = van_der_pol_discrete(h)() in
   let rec time = 0.0 -> pre time +. h in
@@ -34,7 +34,7 @@ let node maind() =
                        ("y", Scope.linear, y)) in
     Scope.window ("Van der Pol", 10.0, time, s)
   
-(* The main simulation loop *)
+(* The main simulation loop in continuous time *)
 let hybrid mainc() =
   let der time = 1.0 init 0.0 in
   let x, y = van_der_pol_continuous() in
