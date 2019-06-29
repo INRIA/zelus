@@ -1,0 +1,46 @@
+(* The Van der Pol oscillator *)
+let mu = 5.0
+    
+(* The oscillator in continuous time *)
+let hybrid van_der_pol_continuous() = (x, y) where
+  rec
+      der x = y init 1.0
+  and
+      der y = (mu *. (1.0 -. (x *. x)) *. y) -. x init 1.0
+
+(* Euler forward and backward *)
+let node forward(h)(x0, xprime) = x where
+  rec x = x0 fby (x +. h *. xprime)
+
+let node backward(h)(x0, xprime) = x where
+  rec x = x0 -> pre x +. h *. xprime
+
+(* The oscillator in discrete time *)
+let node van_der_pol_discrete(h)() = (x, y) where
+  rec
+      x = backward(h)(1.0, y)
+  and
+      y = forward(h)(1.0, (mu *. (1.0 -. (x *. x)) *. y) -. x)
+
+		 
+let h = 0.1
+
+(* The main simulation loop *)
+let node maind() =
+  let x, y = van_der_pol_discrete(h)() in
+  let rec time = 0.0 -> pre time +. h in
+  let s = Scope.scope2 (-1.0, 40.0,
+		       ("x", Scope.linear, x),
+                       ("y", Scope.linear, y)) in
+    Scope.window ("Van der Pol", 10.0, time, s)
+  
+(* The main simulation loop *)
+let hybrid mainc() =
+  let der time = 1.0 init 0.0 in
+  let x, y = van_der_pol_continuous() in
+  present (period(0.1)) ->
+    let s = Scope.scope2 (-1.0, 40.0,
+			  ("x", Scope.linear, x),
+                          ("y", Scope.linear, y)) in
+    Scope.window ("Van der Pol", 10.0, time, s)
+  else ()
