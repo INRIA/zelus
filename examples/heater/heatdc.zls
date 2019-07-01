@@ -23,12 +23,14 @@ let reference_temp = 19.0
 let stop_time = 100.0
 let h = 5.0
     
+(* The main function *)
 let node maindc () =
+  (* Compute the dynamics of the system. Draw an observation *)
+  (* at times [n * h] with n in Nat or when a zero-crossing occurs *)
   let rec { time = time; status = status; result = (u, measured_temp) } =
     Node.solve Heatc.system 100.0 (next_horizon, reference_temp)
   and next_horizon =
-    h -> if pre time >= pre (next_horizon) then pre(next_horizon) +. h
-    else pre(next_horizon) in
+    h fby (if time >= next_horizon then next_horizon +. h else next_horizon) in
   let s = 0 fby stops status in
   (* draw only when time change *)
   match step (stop_time, time) with
