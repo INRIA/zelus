@@ -175,6 +175,8 @@ let to_affine p =
 let get_affine1 e = to_affine (get_affine e)
 
 
+
+
 (* realizedToConst :: Expr a -> IO (Expr a) *)
 let const_of_realized =
   let var_map rvar =
@@ -197,6 +199,46 @@ let const_of_realized =
   in
   f
 
+(* An affine_expr is either a constant or an affine transformation of a
+ * random variable *)
+type affine_expr =
+    (* Interpretation (m, x, b) such that the output is m * x + b *)
+    | AErvar of float * float random_var * float
+    | AEconst of float
+    | AEnone
+
+(* Performs constant propagation and extracts affine transformations from
+ * expressions *)
+let rec ae_of_expr : float expr -> affine_expr =
+    begin fun e ->
+        begin match e with
+        | Econst v -> AEconst v
+        | Ervar var ->
+            begin match var with
+            | RV ({state = Realized x}) -> AEconst x
+            | _ -> AErvar (1., var, 0.)
+            end
+        | Eplus (e1, e2) ->
+            begin match (ae_of_expr e1, ae_of_expr e2) with
+            | (AErvar(m, x, b), AEconst v)
+            | (AEconst v, AErvar(m, x, b)) ->
+                AErvar(m, x, b +. v)
+            | (AEconst v1, AEconst v2) -> AEconst (v1 +. v2)
+            | _ -> AEnone
+            end
+        | Emult (e1, e2) ->
+            begin match (ae_of_expr e1, ae_of_expr e2) with
+            | (AErvar(m, x, b), AEconst v)
+            | (AEconst v, AErvar(m, x, b)) ->
+                AErvar(m *. v, x, b)
+            | (AEconst v1, AEconst v2) -> AEconst (v1 *. v2)
+            | _ -> AEnone
+            end
+        end
+    end
+
+
+
 (* forgettableVar :: IORef (Node a b) -> M (Expr (MType b)) *)
 let forgettable_var rv =
   Ervar (RV rv)
@@ -208,6 +250,7 @@ let type_of_random_var (RV rv) =
 let gaussian mu std =
   let d () = Distribution.gaussian (eval_float mu) std in
   let is prob =
+    (*
     let mu' = const_of_realized mu in
     begin match get_affine1 mu' with
       | None -> None
@@ -226,8 +269,25 @@ let gaussian mu std =
                 end
           end
     end
+    *)
+
+    begin match ae_of_expr mu with
+    | AEconst v ->
+      let rv = Infer_ds_ll.assume_constant "" (MGaussian(v, std)) in
+      Some (forgettable_var rv)
+    | AErvar (m, RV x, b) ->
+      let ty = type_of_random_var (RV x) in
+      begin match ty with
+      | MGaussianT ->
+        let rv = Infer_ds_ll.assume_conditional "" x (AffineMeanGaussian(m, b, std)) in
+        Some (forgettable_var rv)
+      | _ -> None
+      end
+    | _ -> None
+    end
   in
   let iobs (prob, obs) =
+    (*
     let mu' = const_of_realized mu in
     begin match get_affine1 mu' with
       | None ->
@@ -242,6 +302,19 @@ let gaussian mu std =
           | _ ->
               None
           end
+    end
+    *)
+    begin match ae_of_expr mu with
+    | AEconst v ->
+      None
+    | AErvar (m, RV x, b) ->
+      let ty = type_of_random_var (RV x) in
+      begin match ty with
+      | MGaussianT ->
+        Some (Infer_ds_ll.observe_conditional prob "" x (AffineMeanGaussian(m, b, std)) obs)
+      | _ -> None
+      end
+    | _ -> None
     end
   in
   ds_distr_with_fallback d is iobs
