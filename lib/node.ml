@@ -45,14 +45,14 @@ let log_info s i =
   if !debug then begin print_string s; print_float i; print_newline () end
 					   
 type status =
-  | Success (* the integration has succeed *)
+  | Success (* one integration step *)
   | RootsFound (* a root has been found *)
   | Horizon of float (* the integration has succeed; returns the next horizon *)
   | Cascade (* a cascade *)
   | StopTimeReached (* the end of simulation time is reached *)
   | TimeHasPassed (* an output at time [h] is expected but *)
-                  (* [h < start] where [start] is the last restart time *)
-                  (* of the solver *)
+                  (* [h < start] where [start] *)
+                  (* is the last restart time of the solver *)
   | Error (* something went wrong during integration *)
 
 type 'a return =
