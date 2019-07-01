@@ -40,6 +40,29 @@ let eval_bool : bool expr -> bool =
     | Ervar (RV x) -> Infer_ds_ll.get_value x
     end
 
+let rec string_of_expr e = 
+    begin match e with
+    | Econst v -> string_of_float v
+    | Ervar (RV x) -> "Random"
+    | Eplus (e1, e2) -> "(" ^ string_of_expr e1 ^ " + " ^ string_of_expr e2 ^ ")"
+    | Emult (e1, e2) -> "(" ^ string_of_expr e1 ^ " * " ^ string_of_expr e2 ^ ")"
+    end
+    
+
+let rec mean_expr : float expr -> float =
+  function e ->
+    begin match e with
+    | Econst v -> v
+    | Ervar (RV x) -> Infer_ds_ll.mean x
+    | Eplus (e1, e2) -> mean_expr e1 +. mean_expr e2
+    | Emult (e, Econst m)
+    | Emult (Econst m, e) ->
+        m *. mean_expr e
+    | Emult (_, _) ->
+      (print_string "Cannot compute the mean of multiplication.\n");
+      assert false
+    end
+
 
 (* High level delayed sampling distribution (pdistribution in Haskell) *)
 type 'a ds_distribution =

@@ -47,6 +47,41 @@ and ('a, 'b) dsdistr =
 and 'b rv_from =
   RV_from : ('b, 'c) rv -> 'b rv_from
 
+let mdistr_mean : float mdistr -> float =
+  function mdist ->
+    begin match mdist with
+    | MGaussian (mu, sigma) -> mu
+    | MBeta (a, b) -> a /. (a +. b)
+    end
+
+let mean : (_, float) rv -> float =
+  function rand ->
+    begin match rand.state with
+    | Initialized -> 
+      begin match rand.distr with 
+      | UDistr mdist -> mdistr_mean mdist
+      | CDistr (_, _) ->
+        (print_string "Unable to find the mean of initialized node without forcing\n");
+        assert false
+      end
+    | Marginalized mdistr ->
+      let has_marg_children = 
+          List.exists (fun child ->
+              let RV_from ch_inner = child in
+              match ch_inner.state with
+              | Marginalized _ -> true
+              | _ -> false
+          ) rand.children
+      in
+      if has_marg_children then(
+            (print_string "Unable to find the mean of marginalized node without forcing\n");
+            assert false
+      )
+      else
+          mdistr_mean mdistr
+    | Realized x -> x
+    end
+
 let factor = Infer.factor
 
 let type_of_mdistr (type a): a mdistr -> marginal_t =
