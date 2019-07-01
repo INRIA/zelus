@@ -21,7 +21,7 @@ let node main (tr, observed) =
 
   let x_d = infer 1 coin observed in
 
-  let est_mean = Aux.get_mean (Distribution.draw x_d) in
+  let est_mean = Aux.get_mean x_d in
   let error = (est_mean -. tr) ** 2. in
   let rec total_error = error -> (pre total_error) +. error in
   let mse = total_error /. t in
