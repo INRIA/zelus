@@ -14,16 +14,10 @@ let read_val : unit ->  float * float =
         Scanf.scanf "%f, %f\n" (fun t o -> (t, o))
 ;;
 
-let get_mean (type a) : float Infer_ds.expr -> float =
-    fun e ->
-        begin match e with
-        | Ervar (RV r) ->
-            begin match r.state with
-            | Marginalized (MGaussian (mu, sigma)) -> mu
-            | _ -> assert false (* error *)
-            end
-        | _ -> assert false
-        end
+let get_mean (type a) : float Infer_ds.expr Distribution.t -> float =
+    begin fun d ->
+        Distribution.mean (Infer_ds.mean_expr) d
+    end
 ;;
 
 let collect_garbage : unit -> unit =

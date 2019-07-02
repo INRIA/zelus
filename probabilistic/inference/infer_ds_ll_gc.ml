@@ -12,6 +12,12 @@ type mbetat = float
 type mbernoullit = bool
 type 'a mtype = 'a
 
+
+type marginal_t =
+  | MGaussianT
+  | MBetaT
+  | MBernoulliT
+
 (** Marginalized distribution *)
 type 'a mdistr =
   | MGaussian : float * float -> mgaussiant mdistr
@@ -69,7 +75,27 @@ let print_state n =   (* XXX TODO XXX *)
   Format.printf "@."
 
 
+let type_of_mdistr (type a): a mdistr -> marginal_t =
+  fun mdistr ->
+  begin match mdistr with
+    | MGaussian _ -> MGaussianT
+    | MBeta _ -> MBetaT
+    | MBernoulli _ -> MBernoulliT
+  end
 
+let type_of_cdistr (type a b): (a, b) cdistr -> marginal_t =
+  fun  cdist ->
+  begin match cdist with
+    | AffineMeanGaussian _ -> MGaussianT
+    | CBernoulli -> MBernoulliT
+  end
+
+let type_of_dsdistr (type a) (type b): (a, b) dsdistr -> marginal_t =
+  fun dsdistr ->
+  begin match dsdistr with
+  | UDistr d -> type_of_mdistr d
+  | CDistr (_, d) -> type_of_cdistr d
+  end
 
 let mdistr_to_distr (type a): a mdistr -> a Distribution.t = fun mdistr ->
   begin match mdistr with
@@ -337,6 +363,34 @@ let rec graft : 'a 'b. ('a, 'b) random_var -> unit = function n ->
   end
 ;;
 
+(* Turn as many nodes into terminal nodes as we can without sampling *)
+let rec nondestructive_graft : 'a 'b. ('a, 'b) random_var -> unit = fun n ->
+    let rec nondestructive_prune : 'a 'b. ('a, 'b) random_var -> unit = fun n ->
+        begin match n.state with
+        | Marginalized (Some (distr, mchild)) ->
+            begin match mchild.state with
+            | Marginalized _ ->
+                nondestructive_prune mchild
+            | Realized x ->
+                do_condition n
+            | Initialized -> ()
+            end
+        | Marginalized None -> ()
+        | _ -> assert false
+        end
+    in
+
+    begin match n.state with
+    | Marginalized _ -> nondestructive_prune n
+    | _ ->
+        begin match n.distr with
+        | UDistr _ -> ()
+        | CDistr (par, cdistr) ->
+            nondestructive_graft par
+        end
+    end
+;;
+
 let get_conditional (type a) (type b):  (a, b) random_var -> (a, b) random_var =
     fun rv ->
       graft rv;
@@ -405,6 +459,37 @@ let observe_conditional (type a) (type b) (type c):
   fun prob str n cdistr observation ->
   let y = assume_conditional str n cdistr in
   obs prob observation y
+
+let mdistr_mean : float mdistr -> float =
+  function mdist ->
+    begin match mdist with
+    | MGaussian (mu, sigma) -> mu
+    | MBeta (a, b) -> a /. (a +. b)
+    end
+
+let mean : (_, float) random_var -> float =
+  function rand ->
+    (nondestructive_graft rand);
+    begin match rand.state with
+    | Initialized -> 
+      begin match rand.distr with 
+      | UDistr mdist -> mdistr_mean mdist
+      | CDistr (_, _) ->
+        (print_string "Unable to find the mean of initialized node without forcing\n");
+        assert false
+      end
+    | Marginalized None ->
+        begin match rand.distr with
+        | UDistr mdist -> mdistr_mean mdist
+        | CDistr (_, _) -> assert false (* Never happens *)
+        end
+    | Marginalized (Some _) ->
+        (print_string "Unable to find the mean of marginalized node without forcing\n");
+        assert false
+    | Realized x -> x
+    end
+
+
 
 
 (* ----------------------------------------------------------------------- *)

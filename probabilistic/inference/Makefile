@@ -16,6 +16,7 @@ ML_SRC=misc_lib.ml \
 	infer_ds_ll.ml \
 	infer_ds.ml \
 	infer_ds_ll_gc.ml \
+	infer_ds_gc.ml \
 	distribution_ds.ml
 
 ZLI_SRC=distribution.zli \
@@ -26,6 +27,7 @@ ZLI_SRC=distribution.zli \
 	infer_ds_ll.zli \
 	infer_ds.zli \
 	infer_ds_ll_gc.zli \
+	infer_ds_gc.zli \
 	distribution_ds.zli
 
 OBJ=$(ML_SRC:%.ml=%.cmo)
