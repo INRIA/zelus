@@ -6,7 +6,7 @@
     sundials.cma zllib.cma -I ../../lib heatc.ml heatdc.ml *)
 
 open Heatc
-open Node2
+open Node
 
 (* counts the number of consecutive stops *)
 let node steps status =
@@ -16,7 +16,7 @@ let node steps status =
       | Interpolate | StopTimeReached
       | TimeHasPassed | Error ->
 	  do nb_jumps = 0 done
-      | Success ->
+      | Success _ ->
 	  do nb_integr = last nb_integr + 1 and nb_jumps = 0 done
       | RootsFound | Horizon _ | Cascade ->
 	  do nb_jumps = last nb_jumps + 1 done
@@ -24,8 +24,8 @@ let node steps status =
 
 		    
 let reference_temp = 19.0
-let stop_time = 100.0
-let h = 0.000001
+let stop_time = 50.0
+let h = 0.2
     
 (* The main function *)
 let node maindc () =
@@ -34,7 +34,7 @@ let node maindc () =
   automaton
   | Run ->
       let rec { time = time; status = status; result = (u, measured_temp) } =
-	Node2.solve Heatc.system 50.0 (next_horizon, reference_temp)
+	Node.solve Heatc.system stop_time (next_horizon, reference_temp)
       and next_horizon =
 	h fby (if time >= next_horizon then next_horizon +. h
 	       else next_horizon) in
@@ -58,7 +58,8 @@ let node maindc () =
 	print_newline ();
 	print_string "nb_jumps = ";
 	print_int nb_jumps;
-	print_newline ()
+	print_newline ();
+	Basics.exit 0
       done
       
   (* let s =

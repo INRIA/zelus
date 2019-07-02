@@ -39,9 +39,9 @@ let c = 50.0
 let alpha = 0.1
 let beta = 0.05
 
-let h = 0.1
+let h = 0.0000001
 
-let max_time = 10.0 (* in secondes *)
+let stop_time = 50.0 (* in secondes *)
     
 (* Main program *)
 let node system(reference) = (u, temp) where
@@ -66,7 +66,7 @@ let node oracle(low, high, u, reference, measured) =
   let ok3 = ok1 && ok2 in
   (* computes a new test when [measured] is inside for at least [enough] *)
   (* instants *)
-  let inside_enough = Observers.count(h)(max_time, not outside) in
+  let inside_enough = Observers.count(h)(stop_time, not outside) in
   ok3, inside_enough
  
 (* Test of the system: connect a source generator, the system *)
@@ -78,16 +78,28 @@ let node test (manual_mode, input) = (u, reference, measured, ok) where
   and ok, enough = oracle(low, high, u, reference, measured)
 
  
-let node main_no_graphics() =
-  let u, temp = system(19.0) in
-  print_string "u = "; print_string (if u then "true" else "false");
-  print_string "   ";
-  print_string "temp = "; print_float temp;
-  print_newline ();
-  flush stdout
+let node main () (* _no_graphics() *) =
+  automaton
+    Run ->
+      let u, temp = system(19.0) in
+      let rec t = 0.0 fby t +. h in
+      let rec cpt = 0 fby cpt + 1 in
+      do () until (t >= stop_time) then Stop(cpt)
+  | Stop(cpt) ->
+      do print_string "Fin"; print_newline ();
+	print_string "nb_points = "; print_int cpt;
+	print_newline ();
+	Basics.exit 0
+      done
+
+	  (* print_string "u = "; print_string (if u then "true" else "false");
+      print_string "   ";
+      print_string "temp = "; print_float temp;
+      print_newline ();
+      flush stdout *)
 
 (* The main function. *)
-let node main() =
+let node main42() =
   (* create a box for an input of type float; initially set at 19 degrees *)
   let init win_desc =
     Input.frame "Main"

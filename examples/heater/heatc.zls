@@ -55,7 +55,7 @@ let c = 50.0
 let alpha = 0.1
 let beta = 0.05
 
-let h = 0.1
+let h = 0.000001
 
 (* Both the environment and the controller in continuous-time *)
 let hybrid system(reference) = (u, temp) where
