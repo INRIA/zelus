@@ -38,3 +38,6 @@ let (=~=) = float_eq 0.000001
 let on x y = x && y
 
 let bad_sgn e = if e = 0.0 then 0.0 else if e > 0.0 then 1.0 else -1.0
+
+let exit n = exit n
+		  

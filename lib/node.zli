@@ -15,9 +15,10 @@
 (**************************************************************************)
 
 type status =
-  | Success (* the integration has succeed *)
+  | Interpolate (* no integration was necessary *)
+  | Success of float (* the integration succeed; limit time for correctness *)
   | RootsFound (* a root has been found *)
-  | Horizon of float (* the integration has succeed; returns the next horizon *)
+  | Horizon of float (* returns the next horizon (time event) *)
   | Cascade (* a cascade *)
   | StopTimeReached (* the end of simulation time is reached *)
   | TimeHasPassed (* an output at time [h] is expected but *)
@@ -25,8 +26,8 @@ type status =
                   (* of the solver *)
   | Error (* something went wrong during integration *)
 
-type 'b return =
-    { time: float; status: status; result: 'b }
+type 'a return =
+    { time: float; status: status; result: 'a }
 
 (* lift a continuous-time function into a stream function *)
 (* [solve stop_time f (h, x) = r] where

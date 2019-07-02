@@ -14,3 +14,6 @@ val (=~=) : float -> float -AD-> bool
 
 (* discontinuous sgn. Warning: only for testing *)
 val bad_sgn : float -A-> float
+
+(* exit. Warning: use it carrefully (mainly for testing) *)
+val exit : int -AD-> unit
