@@ -38,7 +38,7 @@
 
 open Ztypes
 
-let debug = ref true
+let debug = ref false
 
 let log_info s i =
   if !debug then begin print_string s; print_float i; print_newline () end
@@ -260,8 +260,11 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		   | Integrate ->
 		      log_info "Integrate: t_mesh = " t_mesh;
 		      if t_mesh >= stop_time then
-			{ time = stop_time; status = StopTimeReached;
-			  result = s.output }
+			begin
+			  s.next <- End;
+			  { time = stop_time; status = StopTimeReached;
+			    result = s.output }
+			end
 		      else
 			let t_nextmesh =
 			  (* integrate *)
@@ -295,7 +298,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 			    Success in			    
 			{ time = s.t_start; status = status; result = s.output }
 		   | End ->
-		      log_info "TimeReached: t_mesh = " stop_time;
+		      log_info "End: t_mesh = " stop_time;
 		      { time = s.t_start; status = StopTimeReached;
 			result = s.output }
 	  with
