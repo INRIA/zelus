@@ -4,7 +4,6 @@ type pstate = Infer_ds_ll_gc.pstate
 
 val factor : Infer.pstate * float -AD-> unit
 
-type 'a random_var
 type 'a expr
 type 'a distribution
 val eval_float : float expr -> float
@@ -12,7 +11,6 @@ val eval_bool : bool expr -> bool
 type 'a ds_distribution
 
 val const : 'a -> 'a expr
-val rvar : 'a random_var -> 'a expr
 val plus : float expr -> float expr -> float expr
 val mult : float expr -> float expr -> float expr
 
@@ -36,3 +34,5 @@ val infer :
   int -S-> (pstate * 'a -D-> 'b) -S-> 'a -D-> 'b Distribution.t
 
 val mean_expr : float expr -> float
+
+
