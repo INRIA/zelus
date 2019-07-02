@@ -6,12 +6,13 @@
     sundials.cma zllib.cma -I ../../lib heatc.ml heatdc.ml *)
 
 open Heatc
-open Node
+open Node2
 
 (* counts the number of consecutive stops *)
 let node stops status =
   let rec init c = 0
   and match status with
+      | Interpolate
       | Success | StopTimeReached | TimeHasPassed | Error -> do c = 0 done
       | RootsFound | Horizon _ | Cascade -> do c = last c + 1 done
   in c
@@ -21,18 +22,23 @@ let node step (stop_time, time) = ok where
 		    
 let reference_temp = 19.0
 let stop_time = 100.0
-let h = 5.0
+let h = 0.1
     
 (* The main function *)
 let node maindc () =
   (* Compute the dynamics of the system. Draw an observation *)
   (* at times [n * h] with n in Nat or when a zero-crossing occurs *)
   let rec { time = time; status = status; result = (u, measured_temp) } =
-    Node.solve Heatc.system 100.0 (next_horizon, reference_temp)
+    Node2.solve Heatc.system 100.0 (next_horizon, reference_temp)
   and next_horizon =
     h fby (if time >= next_horizon then next_horizon +. h else next_horizon) in
   let s = 0 fby stops status in
   (* draw only when time change *)
+  print_string "time = "; print_float time; print_newline ();
+  print_string "u = "; print_string (if u then "true" else "false");
+  print_newline ();
+  print_string "measured_temp = "; print_float measured_temp;
+  print_newline ();
   match step (stop_time, time) with
   | true ->
       let s =
