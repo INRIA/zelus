@@ -39,7 +39,7 @@ let c = 50.0
 let alpha = 0.1
 let beta = 0.05
 
-let h = 0.0000001
+let h = 0.1
 
 let stop_time = 50.0 (* in secondes *)
     
@@ -78,7 +78,7 @@ let node test (manual_mode, input) = (u, reference, measured, ok) where
   and ok, enough = oracle(low, high, u, reference, measured)
 
  
-let node main () (* _no_graphics() *) =
+let node main_no_graphics() =
   automaton
     Run ->
       let u, temp = system(19.0) in
@@ -99,7 +99,7 @@ let node main () (* _no_graphics() *) =
       flush stdout *)
 
 (* The main function. *)
-let node main42() =
+let node main() =
   (* create a box for an input of type float; initially set at 19 degrees *)
   let init win_desc =
     Input.frame "Main"
@@ -114,7 +114,7 @@ let node main42() =
   let manual_mode = Input.get_bool (w, "manual mode") in
   (* call the main function *)
   (* let u, reference_temp, measured_temp, ok = test(manual_mode, reference_temp) in *)
-  let (u, measured_temp) = system(19.0) in
+  let (u, measured_temp) = system(reference_temp) in
   let ok = false in
   let rec time = 0.0 -> pre time +. h in
   (* output the command and actual temperature *)

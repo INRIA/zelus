@@ -35,16 +35,14 @@ heatdc.opt: observers.ml heat.ml heatc.ml heatdc.ml
         -package sundialsml lablgtk.cmxa zllibgtk.cmxa \
         -linkpkg observers.ml heat.ml heatc.ml heatdc.ml maindc.ml
 
-#	zeluc -sampling 0.1 -gtk2 -s main heat.zls
 heat.ml main.ml: heat.zls
-	zeluc -s main heat.zls
+	zeluc -sampling 0.1 -gtk2 -s main heat.zls
 
 heatc.ml mainc.ml: heatc.zls
 	zeluc -gtk2 -s mainc heatc.zls
 
-#zeluc -sampling 0.1 -gtk2 -s maindc heatdc.zls
 heatdc.ml maindc.ml: heatdc.zls
-	zeluc -s maindc heatdc.zls
+	zeluc -gtk2 -s maindc heatdc.zls
 
 observers.ml: observers.zls
 	zeluc observers.zls
