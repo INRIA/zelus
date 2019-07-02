@@ -58,14 +58,18 @@ let draw_point_dist_ds dist =
       List.iteri
         (fun i ((pos_x, pos_y), prob) ->
            if i mod len = 0 then decr color;
-           let open Infer_ds in
-           begin match marginal pos_x, marginal pos_y with
-           | Some r1, Some r2 ->
-               let x = mean r1 in
-               let y = mean r2 in
-               draw_point (Graphics.rgb !color !color !color) [x; y]
-           | _ -> assert false
-           end)
+           let open Infer_ds_gc in
+           let x = mean_expr pos_x in
+           let y = mean_expr pos_y in
+           draw_point (Graphics.rgb !color !color !color) [x; y]
+           (* begin match marginal pos_x, marginal pos_y with *)
+           (* | Some r1, Some r2 -> *)
+           (*     let x = mean r1 in *)
+           (*     let y = mean r2 in *)
+           (*     draw_point (Graphics.rgb !color !color !color) [x; y] *)
+           (* | _ -> assert false *)
+           (* end *)
+        )
         support;
       ()
   end

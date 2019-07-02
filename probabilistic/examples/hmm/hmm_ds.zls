@@ -1,6 +1,5 @@
 open Display
-open Infer_ds
-(* open Infer_importance *)
+open Infer_ds_gc
 
 (* noisy observation of the mouse position. It is a gaussian centered on the *)
 (* exact position *)
