@@ -25,8 +25,8 @@ type status =
                   (* of the solver *)
   | Error (* something went wrong during integration *)
 
-type 'a return =
-    { time: float; status: status; result: 'a }
+type 'b return =
+    { time: float; status: status; result: 'b }
 
 (* lift a continuous-time function into a stream function *)
 (* [solve stop_time f (h, x) = r] where
