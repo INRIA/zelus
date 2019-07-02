@@ -80,7 +80,9 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
        }
 
      and simulation_state =
-       | Integrate | StepRootsFound | StepCascade | StepStopTimeReached
+       | Integrate (* integrate the signal *)
+       | Discrete of bool (* true means zero-crossing; false a cascade *)
+       | End (* end of the simulation; stop_time has been reached *)
 							
     type ('a, 'b) state = { state: 'a; mutable solver: 'b }      
 			    
@@ -170,9 +172,9 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	  f_reset state;
 	  match solver with
 	  | Init -> ()
-	  | Running { zstate; sstate; t_start } ->
-	     SSolver.reinitialize sstate t_start nvec;
-	     ZSolver.reinitialize zstate t_start cvec in
+	  | Running { zstate; sstate; t_mesh } ->
+	     SSolver.reinitialize sstate t_mesh nvec;
+	     ZSolver.reinitialize zstate t_mesh cvec in
 
 	(* the step function *)
 	let step ({ state; solver } as s) (horizon, input) =
@@ -196,7 +198,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		 let solver =
 		   { sstate = sstate; zstate = zstate;
 		     t_start = 0.0; t_limit = 0.0; t_mesh = 0.0; input = input;
-		     output = result; next = StepCascade } in
+		     output = result; next = Discrete(false) } in
 		 s.solver <- Running solver;
 		 log_info "horizon = " 0.0;
 		 { time = 0.0; status = Cascade; result = result }
@@ -206,7 +208,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		     { sstate = sstate; zstate = zstate; 
 		       t_start = 0.0; t_limit = 0.0; t_mesh = 0.0;
 		       input = input; output = result;
-		       next = StepStopTimeReached } in
+		       next = End } in
 		   s.solver <- Running solver;
 		   log_info "horizon = " 0.0;
 		   { time = 0.0; status = StopTimeReached; result = result }
@@ -232,63 +234,68 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		 if horizon <= t_mesh
 		 then
 		   let _ = SSolver.get_dky sstate nvec horizon 0 in
-		   let result = minorstep state input cvec roots in
+		   let result = minorstep state input cvec no_roots_in in
 		   s.output <- result;
 		   { time = horizon; status = Interpolate; result = result }
 		 else
 	    	   match next with
-		   | StepRootsFound | StepCascade ->
+		   | Discrete(is_zero_crossing) ->
 		      log_info "StepRootsFound or StepCascade: time = " t_mesh;
+		      if is_zero_crossing
+		      then ignore (minorstep state input cvec roots);
 		      let result = majorstep state t_mesh cvec input in
 		      s.output <- result;
 		      let status =
 			if cstate.horizon = 0.0
-			then begin s.next <- StepCascade; Cascade end
+			then begin s.next <- Discrete(false); Cascade end
 			else
-			  let _ = SSolver.reinitialize sstate t_mesh nvec in
-			  let _ = ZSolver.reinitialize zstate t_mesh cvec in
 			  let t_limit = min stop_time cstate.horizon in
-		     	  s.t_start <- t_mesh;
+		     	  let _ = SSolver.reinitialize sstate t_mesh nvec in
+			  let _ = ZSolver.reinitialize zstate t_mesh cvec in
+			  s.t_start <- t_mesh;
 			  s.t_limit <- t_limit;
-			  s.next <-
-			    if t_limit < stop_time then Integrate
-			    else StepStopTimeReached;
+			  s.next <- Integrate;
 			  Horizon(t_limit) in
 		      { time = t_mesh; status = status; result = s.output }
 		   | Integrate ->
-		      log_info "Integrate: time = " t_mesh;
-		      let t_nextmesh =
-			(* integrate *)
-			SSolver.step sstate (add_margin t_limit) nvec in
-		      (* interpolate if the mesh point has passed the *)
-		      (* time limit *)
- 		      log_info "t_nextmesh = " t_nextmesh;
-		      let t =
-			if t_limit < t_nextmesh
-			then (SSolver.get_dky sstate nvec t_limit 0; t_limit)
-			else t_nextmesh in
-		      log_info "time = " t;
-		      (* is there a zero-crossing? *)
-		      ZSolver.step zstate t cvec;
-		      let has_roots = ZSolver.has_roots zstate in
-		      let status =
-			if has_roots then
-			  let t =
-			    ZSolver.find
-			      zstate (SSolver.get_dky sstate nvec, cvec)
-			      roots in
-			  s.t_mesh <- t;
-			  s.next <- StepRootsFound;
-			  Success
-			else
-			  let next =
-			    if t = t_limit then StepCascade else Integrate in
-			  s.t_mesh <- t;
-			  s.next <- next;
-			  Success in			    
-		      { time = s.t_start; status = status; result = s.output }
-		   | StepStopTimeReached ->
-		      log_info "StepStopTimeReached" stop_time;
+		      log_info "Integrate: t_mesh = " t_mesh;
+		      if t_mesh >= stop_time then
+			{ time = stop_time; status = StopTimeReached;
+			  result = s.output }
+		      else
+			let t_nextmesh =
+			  (* integrate *)
+			  SSolver.step sstate (add_margin t_limit) nvec in
+			(* interpolate if the mesh point has passed the *)
+			(* time limit *)
+ 			log_info "t_nextmesh = " t_nextmesh;
+			let t =
+			  if t_limit < t_nextmesh
+			  then (SSolver.get_dky sstate nvec t_limit 0; t_limit)
+			  else t_nextmesh in
+			log_info "t_nextmesh = " t;
+			(* is there a zero-crossing? *)
+			ZSolver.step zstate t cvec;
+			let has_roots = ZSolver.has_roots zstate in
+			let status =
+			  if has_roots then
+			    let t =
+			      ZSolver.find
+				zstate (SSolver.get_dky sstate nvec, cvec)
+				roots in
+			    s.t_mesh <- t;
+			    s.next <- Discrete(true);
+			    Success
+			  else
+			    let next =
+			      if t = t_limit then Discrete(false)
+			      else Integrate in
+			    s.t_mesh <- t;
+			    s.next <- next;
+			    Success in			    
+			{ time = s.t_start; status = status; result = s.output }
+		   | End ->
+		      log_info "TimeReached: t_mesh = " stop_time;
 		      { time = s.t_start; status = StopTimeReached;
 			result = s.output }
 	  with
@@ -297,6 +304,6 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
   end
     
 module Solver = Make (Sundials_cvode) (Illinois)
-
+		     
 let solve = Solver.solve 
 
