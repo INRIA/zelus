@@ -4,7 +4,6 @@ type pstate = Infer_ds_ll.pstate
 
 val factor : Infer.pstate * float -AD-> unit
 
-type 'a random_var
 type 'a expr
 type 'a distribution
 val eval_float : float expr -> float
@@ -12,7 +11,6 @@ val eval_bool : bool expr -> bool
 type 'a ds_distribution
 
 val const : 'a -> 'a expr
-val rvar : 'a random_var -> 'a expr
 val plus : float expr -> float expr -> float expr
 val mult : float expr -> float expr -> float expr
 
@@ -37,14 +35,4 @@ val infer :
 
 val mean_expr : float expr -> float
 
-type 'a result
-val mean : float result -> float
-(* val add_result : *)
-(*   float result -> float result -> float result option *)
-(* val negate_result : float result -> float result option *)
-(* val mult_result : *)
-(*   float result -> *)
-(*   float result -> float result option *)
-(* val marginal_opt : float expr -> float result option *)
 
-val marginal : float expr -> float result
