@@ -318,7 +318,9 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	Node { alloc = alloc; step = step; reset = reset }
   end
     
-module Solver = Make (Sundials_cvode) (Illinois)
-		     
-let solve = Solver.solve 
+module SundialsSolver = Make (Sundials_cvode) (Illinois)
+module Ode23Solver = Make (Odexx.Ode23) (Illinois)
+module Ode45Solver = Make (Odexx.Ode45) (Illinois)
+
+let solve = SundialsSolver.solve 
 
