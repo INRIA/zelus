@@ -30,6 +30,14 @@ let get_check_root rdir =
   | Either -> check_either
   | Ignore -> no_check
 
+(* returns true if a signal has moved from zero to a stritly positive value *)
+let takeoff f0 f1 =
+  let n = Zls.length f0 in
+  let rec fold acc i =
+    if i = n then acc
+    else if acc then acc else fold ((f0.{i} = 0.0) && (f1.{i} > 0.0)) (i + 1)
+  in fold false 0
+	
 (* return a function that looks for zero-crossings between f0 and f1 *)
 let make_check_root rdir f0 f1 =
   let check = get_check_root rdir in
@@ -304,8 +312,11 @@ let find ({ g = g; bothf_valid = bothf_valid;
       end
     end
 
+let takeoff { bothf_valid = bothf_valid; f0; f1 } =
+  bothf_valid && (takeoff f0 f1)
+								
 let has_roots { bothf_valid = bothf_valid; t0; f0; t1; f1; calc_zc = calc_zc }
   = bothf_valid && (check_interval calc_zc f0 f1 <> SearchRight)
-
+		    
 let set_root_directions s rd = (s.calc_zc <- get_check_root rd)
 
