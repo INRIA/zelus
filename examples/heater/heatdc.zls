@@ -24,9 +24,17 @@ let node steps status =
 		    
 let reference_temp = 19.0
 let stop_time = 50.0
-let h = 0.2
+let h = 10.0
     
-(* The main function *)
+let node system(reference) = (time, u) where
+  (* Compute the dynamics of the system. Draw an observation *)
+  (* at times [n * h] with n in Nat or when a zero-crossing occurs *)
+  rec { time = time; status = status; result = u } =
+    Node.solve Heatc.system stop_time (next_horizon, reference)
+  and next_horizon =
+    h fby (if time >= next_horizon then next_horizon +. h else next_horizon)
+
+   
 let node maindc () =
   (* Compute the dynamics of the system. Draw an observation *)
   (* at times [n * h] with n in Nat or when a zero-crossing occurs *)
@@ -37,25 +45,64 @@ let node maindc () =
       and next_horizon =
 	h fby (if time >= next_horizon then next_horizon +. h
 	       else next_horizon) in
+      let rec outside =
+	0.0 ->
+	  let eps = measured_temp -. reference_temp -. 1.0 in
+	  if eps > 0.0 then max (pre outside) eps
+	  else pre outside in
       let nb_points, nb_integr, nb_jumps = steps status in
-      let s =
-	Scope.scope4
-	  (-1.0, 40.0,
-	   ("u", Scope.points true, if u then 1.0 else 0.0),
-	   ("input temp", Scope.linear, reference_temp),
-	   ("measured temp", Scope.linear, measured_temp),
-	   ("stops", Scope.points true, float_of_int nb_jumps)) in
+      do ()
+      until (status = StopTimeReached)
+      then Stop(nb_points, nb_integr, nb_jumps, outside)
+  | Stop(nb_points, nb_integr, nb_jumps, outside) ->
+      do print_string "nb_points = ";
+	print_int nb_points; print_newline ();
+	print_string "nb_integr = ";
+	print_int nb_integr;
+	print_newline ();
+	print_string "nb_jumps = ";
+	print_int nb_jumps;
+	print_newline ();
+	print_string "outside = ";
+	print_float outside;
+	print_newline ();
+	Basics.exit 0
+      done
+      
+(* The main function *)
+let node maindc' () =
+  (* Compute the dynamics of the system. Draw an observation *)
+  (* at times [n * h] with n in Nat or when a zero-crossing occurs *)
+  automaton
+  | Run ->
+      let rec { time = time; status = status; result = (u, measured_temp) } =
+	Node.solve Heatc.system stop_time (next_horizon, reference_temp)
+      and next_horizon =
+	h fby (if time >= next_horizon then next_horizon +. h
+	       else next_horizon) in
+      let nb_points, nb_integr, nb_jumps = steps status in
       do
-	Scope.window ("The Heater with a relay controller", stop_time, time, s)
-        (* print_string "time = ";
-	print_float time; print_newline ();
-	print_string "u = ";
-	print_string (if u then "true" else "false");
-	print_newline ();
-	print_string "measured_temp = "; print_float measured_temp;
-	print_newline ();
-	print_string "nb_jumps = "; print_int nb_jumps;
-	print_newline () *)
+	match time >= 0.0 fby time with
+	| true ->
+	    let s =
+	      Scope.scope4
+		(-1.0, 40.0,
+		 ("u", Scope.points true, if u then 1.0 else 0.0),
+		 ("input temp", Scope.linear, reference_temp),
+		 ("measured temp", Scope.linear, measured_temp),
+		 ("stops", Scope.points true, float_of_int nb_jumps)) in
+	    Scope.window
+	      ("The Heater with a relay controller", stop_time, time, s);
+            print_string "time = ";
+	    print_float time; print_newline ();
+	    print_string "u = ";
+	    print_string (if u then "true" else "false");
+	    print_newline ();
+	    print_string "measured_temp = "; print_float measured_temp;
+	    print_newline ();
+	    print_string "nb_jumps = "; print_int nb_jumps;
+	    print_newline ()
+	| false -> ()
       until (status = StopTimeReached)
       then Stop(nb_points, nb_integr, nb_jumps)
   | Stop(nb_points, nb_integr, nb_jumps) ->
