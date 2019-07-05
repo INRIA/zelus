@@ -24,7 +24,7 @@ let node steps status =
 		    
 let reference_temp = 19.0
 let stop_time = 50.0
-let h = 10.0
+let h = 1.0
     
 let node system(reference) = (time, u) where
   (* Compute the dynamics of the system. Draw an observation *)
