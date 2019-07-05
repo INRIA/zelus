@@ -155,6 +155,8 @@ module type ZEROC_SOLVER =
        Moves the current 'now' vector to 'before', then sets 'now' to cvec. *)
     val step         : t -> float -> carray -> unit
 
+    val takeoff      : t -> bool
+    (* Returns true if one zero-crossing signal moves from 0 to v > 0 *)
     (* Compares the 'before' and 'now' vectors and returns true only if
        there exists an i, such that before[i] < 0 and now[i] >= 0. *)
     val has_roots    : t -> bool
