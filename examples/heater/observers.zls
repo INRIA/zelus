@@ -13,13 +13,27 @@ let node linear_constant(h)(low)(slope)(z) = o where
      and o = last o +. h *. s
    every z
 
-(* checks that when [start] is true *)
+(* checks that when [start(deadline)] is present *)
 (* [answer] is true before the timer initialized to deadline is zero *)
-let node watchdog(deadline, start, answer) = ok where
-  rec ok = present
-            start -> let rec cpt = max (deadline -> pre cpt - 1) 0 in cpt > 0
-           init true
+let node watchdog(h)(start) = ok where
+  rec ok = automaton
+	   | Await ->
+	       do true unless start(deadline) then Run(deadline)
+           | Run(deadline) ->
+	       let rec cpt = 0 fby cpt + 1 in
+	       do (cpt <= deadline) unless start(deadline) then Run(deadline)
+	   
 
+(*
+let node lustre_watchdog(h)(start) = ok where
+  rec init t_limit = max_int
+  and init cpt = 0
+  and cpt = present
+              start(deadline) -> do t_limit = deadline and cpt = 0 done
+            else do cpt = last cpt + 1 done
+  and ok = (cpt <= t_limit)
+*)
+  
 (* check that an input is true for at least [max_time] seconds *)
 let node count(h)(max_time, c) =
    let n = int_of_float (max_time /. h) in
@@ -32,6 +46,16 @@ let node oscillate(x) =
   let ppx = x fby px in
   (x <> px) && (px <> ppx)
 
+(* a signal is constant during [k] consecutive steps *)
+(*
+let node constant(h)(k)(x) =
+   let rec init m = x
+   and init cpt = 1
+   and if x = last m then do cpt = last cpt + 1 done
+       else do m = x and cpt = 1 done in
+   cpt >= k
+*)
+      
 (* decrease *)
 let node decrease(x) = true -> x < pre x    
 

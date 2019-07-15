@@ -47,7 +47,7 @@ type status =
   | Interpolate (* no integration was necessary *)
   | Success of float (* the integration succeed; limit time for correctness *)
   | RootsFound (* a root has been found *)
-  | Horizon of float (* the integration has succeed; returns the next horizon *)
+  | Horizon of float (* discrete step; returns the next horizon *)
   | Cascade (* a cascade *)
   | StopTimeReached (* the end of simulation time is reached *)
   | TimeHasPassed (* an output at time [h] is expected but *)
