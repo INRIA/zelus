@@ -41,11 +41,11 @@ heat.ml main.ml: heat.zls
 heatc.ml mainc.ml: heatc.zls
 	zeluc -gtk2 -s mainc heatc.zls
 
-#heatdc.ml maindc.ml: heatdc.zls
-#	zeluc -sampling 0.1 -gtk2 -s maindc heatdc.zls
-
 heatdc.ml maindc.ml: heatdc.zls
-	zeluc -s maindc heatdc.zls
+	zeluc -gtk2 -s maindc heatdc.zls
+
+#heatdc.ml maindc.ml: heatdc.zls
+#	zeluc -s maindc heatdc.zls
 
 observers.ml: observers.zls
 	zeluc observers.zls
