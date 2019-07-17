@@ -38,7 +38,7 @@
 
 open Ztypes
 
-let debug = ref false
+let debug = ref true
 
 let log_info s i =
   if !debug then begin print_string s; print_float i; print_newline () end
@@ -47,7 +47,7 @@ type status =
   | Interpolate (* no integration was necessary *)
   | Success of float (* the integration succeed; limit time for correctness *)
   | RootsFound (* a root has been found *)
-  | Horizon of float (* discrete step; returns the next horizon *)
+  | Horizon of float (* returns the next horizon (time event) *)
   | Cascade (* a cascade *)
   | StopTimeReached (* the end of simulation time is reached *)
   | TimeHasPassed (* an output at time [h] is expected but *)
@@ -57,7 +57,8 @@ type status =
 
 type 'a return =
     { time: float; status: status; result: 'a }
-      
+
+
 module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
   struct
     (* the state of the solver. Either never called (allocated) or running *)
@@ -91,105 +92,37 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 
     (* the main lifting function *)
     let solve f (stop_time: float) =
-      let cstate =
-	{ cvec = Zls.cmake 0; dvec = Zls.cmake 0; cindex = 0; zindex = 0;
-	  cend = 0; zend = 0; cmax = 0; zmax = 0;
-	  zinvec = Zls.zmake 0; zoutvec = Zls.cmake 0;
-	  major = false; horizon = stop_time } in
+      (* convert the internal representation of a hybrid node *)
+      (* into one that can be used by an ODE/Zero-crossing solver *)
+      let Hnode
+	    { state; zsize; csize; derivative; crossing;
+	      output; setroots; majorstep; reset; horizon } = Lift.lift f in
 
-      (* create a node *)
-      let Node { alloc = f_alloc; step = f_step; reset = f_reset } = f cstate in
-      
-      (* allocate the state of [f] *)
-      let s = f_alloc () in
-      
-      let n_zeros = cstate.zmax in
-      let n_cstates = cstate.cmax in
-
-      let no_roots_in = Zls.zmake n_zeros in
-      let no_roots_out = Zls.cmake n_zeros in
-      let roots = Zls.zmake n_zeros in
-      let nvec = SSolver.cmake n_cstates in
+      (* allocate the vectors for continuous state variables *)
+      (* and that for the zero-crossing detection *)
+      let roots = Zls.zmake zsize in
+      let nvec = SSolver.cmake csize in
       let cvec = SSolver.unvec nvec in
-      let ignore_der = Zls.cmake n_cstates in
       
-      let no_time = -1.0 in
-      
-      (* the function that compute the derivatives *)
-      let derivative s input time cvec dvec =
-	cstate.major <- false;
-	cstate.zinvec <- no_roots_in;
-	cstate.zoutvec <- no_roots_out;
-	cstate.cvec <- cvec;
-	cstate.dvec <- dvec;
-	cstate.cindex <- 0;
-	cstate.zindex <- 0;
-	ignore (f_step s (no_time, input)) in
-  
-      (* the function that compute the zero-crossings *)
-      let crossing s input time cvec zoutvec =
-	cstate.major <- false;
-	cstate.zinvec <- no_roots_in;
-	cstate.dvec <- ignore_der;
-	cstate.zoutvec <- zoutvec;
-	cstate.cvec <- cvec;
-	cstate.cindex <- 0;
-	cstate.zindex <- 0;
-	ignore (f_step s (no_time, input)) in
-
-      (* the function which compute the output during integration *)
-      let output s input cvec =
-	cstate.major <- false;
-	cstate.zoutvec <- no_roots_out;
-	cstate.dvec <- ignore_der;
-	cstate.zinvec <- no_roots_in;
-	cstate.cvec <- cvec;
-	cstate.cindex <- 0;
-	cstate.zindex <- 0;
-	f_step s (no_time, input) in
-
-      (* the function which sets the zinvector into the *)
-      (* internal zero-crossing variables *)
-      let setroots s input cvec zinvec =
-	cstate.major <- false;
-	cstate.zoutvec <- no_roots_out;
-	cstate.dvec <- ignore_der;
-	cstate.zinvec <- zinvec;
-	cstate.cvec <- cvec;
-	cstate.cindex <- 0;
-	cstate.zindex <- 0;
-	ignore (f_step s (no_time, input)) in
-
-      (* the function which compute a discrete step *)
-      let majorstep s time cvec input =
-	cstate.major <- true;
-	cstate.horizon <- infinity;
-	cstate.zinvec <- no_roots_in;
-	cstate.zoutvec <- no_roots_out;
-	cstate.dvec <- ignore_der;
-	cstate.cvec <- cvec;
-	cstate.cindex <- 0;
-	cstate.zindex <- 0;
-	f_step s (time, input) in
-
       (* the allocation function *)
       let alloc () =
 	(* At this point, we do not allocate the solver states yet. *)
 	(* this is due to the way we compile and will change once *)
 	(* slicing is done to obtain an [f] (derivative) and [g] *)
 	(* (zero-crossing) that do not need the [input] argument *)
-	{ state = s; solver = Init } in
+	{ state = state; solver = Init } in
       
 	let reset { state; solver } =
-	  f_reset state;
+	  reset state;
 	  match solver with
 	  | Init -> ()
 	  | Running { zstate; sstate; t_mesh } ->
+	     (* reset the ODE solver and Zero-crossing solver *)
 	     SSolver.reinitialize sstate t_mesh nvec;
 	     ZSolver.reinitialize zstate t_mesh cvec in
 
 	(* the step function *)
-	let step ({ state; solver } as s) (horizon, input) =
+	let step ({ state; solver } as s) (expected_time, input) =
 	  try
 	    (* make a step *)
 	    match solver with
@@ -203,10 +136,11 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		 SSolver.initialize (derivative state input) nvec in
 	       (* Allocate the zsolver *)
 	       let zstate =
-		 ZSolver.initialize n_zeros (crossing state input) cvec in
+		 ZSolver.initialize zsize (crossing state input) cvec in
 	       SSolver.set_stop_time sstate stop_time;
 	       
-	       if cstate.horizon = 0.0 then
+	       let horizon = horizon state in
+	       if horizon = 0.0 then
 		 let solver =
 		   { sstate = sstate; zstate = zstate;
 		     t_start = 0.0; t_limit = 0.0; t_mesh = 0.0; input = input;
@@ -225,8 +159,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		   log_info "horizon = " 0.0;
 		   { time = 0.0; status = StopTimeReached; result = result }
 		 else
-		   let t_limit =
-		     min stop_time cstate.horizon in
+		   let t_limit = min stop_time horizon in
 		   let solver =
 		     { sstate = sstate; zstate = zstate;
 		       t_start = 0.0; t_limit = t_limit; t_mesh = 0.0;
@@ -238,17 +171,17 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	    | Running({ next; sstate; zstate; t_start; t_mesh; t_limit } as s)
 	      ->
 	       (* time has passed *)
-	       if horizon < t_start then
+	       if expected_time < t_start then
 		 { time = t_start; status = TimeHasPassed; result = s.output }
 	       else
 		 (* interpolate the state at that instant *)
 		 (* compute the current output *)
-		 if horizon <= t_mesh
+		 if expected_time <= t_mesh
 		 then
-		   let _ = SSolver.get_dky sstate nvec horizon 0 in
+		   let _ = SSolver.get_dky sstate nvec expected_time 0 in
 		   let result = output state input cvec in
 		   s.output <- result;
-		   { time = horizon; status = Interpolate; result = result }
+		   { time = expected_time; status = Interpolate; result = result }
 		 else
 	    	   match next with
 		   | Discrete(is_zero_crossing) ->
@@ -258,19 +191,22 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		      let result = majorstep state t_mesh cvec input in
 		      s.output <- result;
 		      let status =
-			if cstate.horizon = 0.0
+			let horizon = horizon state in
+			if horizon = 0.0
 			then begin s.next <- Discrete(false); Cascade end
 			else
-			  let t_limit = min stop_time cstate.horizon in
-		     	  let _ = SSolver.reinitialize sstate t_mesh nvec in
+			  let _ = SSolver.reinitialize sstate t_mesh nvec in
 			  let _ = ZSolver.reinitialize zstate t_mesh cvec in
-			  s.t_start <- t_mesh;
+			  let t_limit = min stop_time horizon in
+		     	  s.t_start <- t_mesh;
 			  s.t_limit <- t_limit;
 			  s.next <- Integrate;
 			  Horizon(t_limit) in
 		      { time = t_mesh; status = status; result = s.output }
 		   | Integrate ->
 		      log_info "Integrate: t_mesh = " t_mesh;
+		      (* the new start point [t_start] is now [t_mesh] *)
+		      s.t_start <- t_mesh;
 		      if t_mesh >= stop_time then
 			begin
 			  s.next <- End;

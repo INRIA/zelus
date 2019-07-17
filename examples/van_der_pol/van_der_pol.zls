@@ -1,3 +1,5 @@
+open Node
+
 (* The Van der Pol oscillator *)
 let mu = 5.0
     
@@ -23,8 +25,9 @@ let node van_der_pol_discrete(h)() = (x, y) where
       y = forward(h)(1.0, (mu *. (1.0 -. (x *. x)) *. y) -. x)
 
 		 
-let h = 0.1
-
+let h = 1.0
+let stop_time = 50.0
+    
 (* The main simulation loop in discrete-time *)
 let node maind() =
   let x, y = van_der_pol_discrete(h)() in
@@ -32,10 +35,9 @@ let node maind() =
   let s = Scope.scope2 (-1.0, 40.0,
 		       ("x", Scope.linear, x),
                        ("y", Scope.linear, y)) in
-    Scope.window ("Van der Pol", 10.0, time, s)
+    Scope.window ("Van der Pol", stop_time, time, s)
   
-(* The main simulation loop in continuous time *)
-let hybrid mainc() =
+(* let hybrid mainc() =
   let der time = 1.0 init 0.0 in
   let x, y = van_der_pol_continuous() in
   present (period(0.1)) ->
@@ -43,4 +45,20 @@ let hybrid mainc() =
 			  ("x", Scope.linear, x),
                           ("y", Scope.linear, y)) in
     Scope.window ("Van der Pol", 10.0, time, s)
-  else ()
+  else () *)
+
+(* The main simulation loop in continuous time *)
+let node mainc() =
+  let rec { time = time; status = status; result = (x, y) } =
+    Node.solve van_der_pol_continuous stop_time (next_horizon, ())
+  and next_horizon =
+    h fby (if time >= next_horizon then next_horizon +. h
+    else next_horizon) in
+  match (true -> time >= pre(time)) with
+  | true ->
+      let s = Scope.scope2 (-1.0, 40.0,
+			    ("x", Scope.linear, x),
+                            ("y", Scope.linear, y)) in
+      Scope.window ("Van der Pol", stop_time, time, s)
+  | false -> ()
+	

@@ -22,6 +22,9 @@ type ('a, 'b) zerocrossing = { mutable zin: 'a; mutable zout: 'b }
 
 type 'a signal = 'a * bool
 type zero = bool
+
+(* a synchronous stream function with type 'a -D-> 'b *)
+(* is represented by an OCaml value of type ('a, 'b) node *)
 type ('a, 'b) node =
     Node:
       { alloc : unit -> 's; (* allocate the state *)
@@ -57,7 +60,7 @@ type cstate =
 
 (* A hybrid node is a node that is parameterised by a continuous state *)
 (* all instances points to this global parameter and read/write on it *)
-type ('a, 'b) hnode = cstate -> ('a, 'b) node
+type ('a, 'b) hnode = cstate -> (time * 'a, 'b) node
 					 
 type 'b hsimu =
     Hsim:
@@ -75,9 +78,33 @@ type 'b hsimu =
         derivative : 's -> cvec -> dvec -> zinvec -> zoutvec -> time -> unit;
         (* computes the derivative *)
         crossings : 's -> cvec -> zinvec -> zoutvec -> time -> unit;
-        (* computes the derivative *)
+        (* computes the zero-crossings *)
         reset : 's -> unit;
         (* resets the state *)
         horizon : 's -> time;
         (* gives the next time horizon *)
       } -> 'b hsimu
+
+type ('a, 'b) hsnode =
+    Hnode:
+      { state : 's;
+	(* the discrete state *)
+        zsize : int;
+	(* the maximum size of the zero-crossing vector *)
+	csize : int;
+	(* the maximum size of the continuous state vector (positions) *)
+	derivative : 's -> 'a -> time -> cvec -> dvec -> unit;
+        (* computes the derivative *)
+        crossing : 's -> 'a -> time -> cvec -> zoutvec -> unit;
+        (* computes the derivative *)
+        output : 's -> 'a -> cvec -> 'b;
+        (* computes the zero-crossings *)
+        setroots : 's -> 'a -> cvec -> zinvec -> unit;
+        (* returns the zero-crossings *)
+        majorstep : 's -> time -> cvec -> 'a -> 'b;
+        (* computes a step *)
+        reset : 's -> unit;
+        (* resets the state *)
+        horizon : 's -> time;
+        (* gives the next time horizon *)
+      } -> ('a, 'b) hsnode
