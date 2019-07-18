@@ -42,7 +42,7 @@ heatc.ml mainc.ml: heatc.zls
 	zeluc -gtk2 -s mainc heatc.zls
 
 heatdc.ml maindc.ml: heatdc.zls
-	zeluc -gtk2 -s maindc heatdc.zls
+	zeluc -s maindc heatdc.zls
 
 #heatdc.ml maindc.ml: heatdc.zls
 #	zeluc -s maindc heatdc.zls

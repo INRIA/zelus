@@ -25,7 +25,7 @@ let node van_der_pol_discrete(h)() = (x, y) where
       y = forward(h)(1.0, (mu *. (1.0 -. (x *. x)) *. y) -. x)
 
 		 
-let h = 1.0
+let h = 0.1
 let stop_time = 50.0
     
 (* The main simulation loop in discrete-time *)

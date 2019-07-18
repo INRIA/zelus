@@ -24,7 +24,7 @@ let node steps status =
 		    
 let reference_temp = 19.0
 let stop_time = 50.0
-let h = 1.0
+let h = 0.001
     
 let node system(reference) = (time, u) where
   (* Compute the dynamics of the system. Draw an observation *)
@@ -35,7 +35,7 @@ let node system(reference) = (time, u) where
     h fby (if time >= next_horizon then next_horizon +. h else next_horizon)
 
    
-let node maindc2 () =
+let node maindc () =
   (* Compute the dynamics of the system. Draw an observation *)
   (* at times [n * h] with n in Nat or when a zero-crossing occurs *)
   automaton
@@ -70,7 +70,7 @@ let node maindc2 () =
       done
       
 (* The main function *)
-let node maindc () =
+let node maindc2 () =
   (* Compute the dynamics of the system. Draw an observation *)
   (* at times [n * h] with n in Nat or when a zero-crossing occurs *)
   automaton

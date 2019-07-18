@@ -38,6 +38,7 @@ type 'a return =
  *- the result [r.time] is the achieved time (r.time <= h)
  *- [r.status] is the status of the step
  *- [r.result] is the result. The result only change at a zero-crossing or
- *- cascade event *)
+ *- cascade event.
+ *- if h is increasing then r.time is also increasing *)
 
 val solve : ('a -C-> 'b) -S-> float -S-> float * 'a -D-> 'b return
