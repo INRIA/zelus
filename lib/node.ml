@@ -55,8 +55,8 @@ type status =
                   (* is the last restart time of the solver *)
   | Error (* something went wrong during integration *)
 
-type 'a return =
-    { time: float; status: status; result: 'a }
+(* output *)
+type 'b return = { time: float; status: status; result: 'b }
 
 
 module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
@@ -107,9 +107,10 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
       (* the allocation function *)
       let alloc () =
 	(* At this point, we do not allocate the solver states yet. *)
-	(* this is due to the way we compile and will change once *)
-	(* slicing is done to obtain an [f] (derivative) and [g] *)
-	(* (zero-crossing) that do not need the [input] argument *)
+	(* this is due to the way we compile which expect the derivative *)
+	(* and zero-crossing function to expect an input *)
+	(* We will change this once those two functions are obtained *)
+	(* through slicing and will not need an input *)
 	{ state = state; solver = Init } in
       
 	let reset { state; solver } =
@@ -181,6 +182,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		   let _ = SSolver.get_dky sstate nvec expected_time 0 in
 		   let result = output state input cvec in
 		   s.output <- result;
+		   log_info "Interpolate: time = " expected_time;
 		   { time = expected_time; status = Interpolate; result = result }
 		 else
 	    	   match next with
