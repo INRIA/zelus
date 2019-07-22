@@ -38,7 +38,7 @@
 
 open Ztypes
 
-let debug = ref true
+let debug = ref false
 
 let log_info s i =
   if !debug then begin print_string s; print_float i; print_newline () end
