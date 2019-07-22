@@ -132,18 +132,6 @@ let memoize_step step (s, table) x =
       Hashtbl.add table (sc, x) o;
       o
 
-(* [memoize_infer_step_body f (prob, x)] is functionally equivalent to [f (prob, x)] but stores *)
-(* all the pairs (state, input) and the associated result *)
-let memoize_infer_step_body step (s, table) (prob, x) =
-  try
-    Hashtbl.find table (s, x)
-  with
-  | Not_found ->
-      let sc = Normalize.copy s in
-      let o = step s (prob, x) in
-      Hashtbl.add table (sc, x) o;
-      o
-
 (* [memoize f x] is functionally equivalent to [f x] but stores *)
 (* all the pairs (state, input) and the associated result *)
 let memoize (Node { alloc; reset; step }) =
@@ -154,31 +142,6 @@ let memoize (Node { alloc; reset; step }) =
     reset s; Hashtbl.clear table
   in
   Node { alloc = alloc; reset = reset; step = memoize_step step }
-
-
-let infer_memoized n (Node { alloc = alloc_node; reset = reset_node; step = step_node }) =
-  let Node { alloc = alloc_infer; reset = reset_infer; step = step_infer; } =
-    infer n
-      (Node { alloc = alloc_node;
-              reset = reset_node;
-              step =
-                (fun s (prob, (i, table)) ->
-                   memoize_infer_step_body step_node (s, table) (prob, i)) })
-  in
-  let alloc () =
-    alloc_infer (), Hashtbl.create 7
-  in
-  let reset (s, table) =
-    reset_infer s; Hashtbl.clear table
-  in
-  let step (s, table) i =
-    (* let stats = Hashtbl.stats table in *)
-    (* Format.printf "bindings: %d, buckets: %d, bucket len: %d@." *)
-    (*   stats.num_bindings stats.num_buckets stats.max_bucket_length; *)
-    Hashtbl.clear table;
-    step_infer s (i, table)
-  in
-  Node { alloc; reset; step }
 
 
 let expectation scores =
