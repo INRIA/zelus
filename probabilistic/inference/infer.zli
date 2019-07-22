@@ -9,6 +9,9 @@ val observe : pstate * 'a Distribution.t * 'a -AD-> unit
 val infer :
   int -S-> (pstate * 'a -D-> 'b) -S-> 'a -D-> 'b Distribution.t
 
+val infer_memoized :
+  int -S-> (pstate * 'a -D-> 'b) -S-> 'a -D-> 'b Distribution.t
+
 val infer_dyn_resample :
   int -S-> (pstate * 'a -D-> 'b) -S-> 'a -D-> 'b Distribution.t
 
