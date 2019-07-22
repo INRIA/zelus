@@ -1,7 +1,10 @@
-(* The Heater model presented by Nicolas Halbwachs during *)
-(* a tutorial on Lustre, College de France, 2010. *)
+(* The Heater model presented by Nicolas Halbwachs for *)
+(* his tutorial on Lustre, College de France, 2010. *)
+
 (* This file give a continuous-time version of it. Module Heat *)
 (* is the synchronous discrete-time version written in Zelus. *)
+
+open Constants
 
 (* Integrator *)
 let hybrid int(x0, xprime) = x where
@@ -28,7 +31,7 @@ let hybrid heater2(c, alpha, beta, temp_ext, temp0, u) = temp where
 let hybrid relay_cc(low, high, v) = u where
   rec u = present
           | up(low -. v) -> true
-          | up(v -. high) -> false init (v < high)
+          | up(v -. high) -> false init (v < low)
 
 (* X-crossing discrete and continuous *)
 let hybrid xup(x) = present up(x) | (disc(x)) on (x >= 0.0) -> ()
@@ -45,25 +48,15 @@ let hybrid relay_c(low, high, v) = u where
   rec u = present
           | (xup(low -. v))() -> true
           | (xup(v -. high))() -> false
-          init (v < high)
+          init (v < low)
 
-
-let low = 1.0
-let high = 1.0
-
-let c = 50.0
-
-let alpha = 0.1
-let beta = 0.05
-
-let h = 0.1
-
+	      
 (* Both the environment and the controller in continuous-time *)
 let hybrid system(reference) = (u, temp) where
   rec
       u = relay_c(reference -. low, reference +. high, temp)
   and
-      temp = heater(c, alpha, beta, 0.0, 0.0, u)
+      temp = heater(c, alpha, beta, temp_ext, temp_0, u)
 
 (* The environment in continuous-time but with a periodically *)
 (* sampled discrete-time controller *)
@@ -74,65 +67,4 @@ let hybrid system_with_sampled_relay(h)(reference) = (u, temp) where
 	       Heat.relay(reference -. low, reference +. high, temp)
           init false
   and
-      temp = heater(c, alpha, beta, 0.0, 0.0, u)
-
-let hybrid main_no_graphics() =
-  let der t = 1.0 init 0.0 in
-  let u, temp = system(19.0) in
-  present (period(0.1)) | (disc(u)) ->
-    (print_string "time = "; print_float t;
-     print_string "  ";
-     print_string "command = ";
-     print_string (if u then "true" else "false");
-     print_string "  ";
-     print_string "temp = "; print_float temp;
-     print_newline())
-  else ()
-
-      
-(* Simulation with a constant temperature reference *)
-let hybrid main() =
-  let der t = 1.0 init 0.0 in
-  let u, temp = system(19.0) in
-  (* the system in discrete-time *)
-  let u1, temp1 =
-    present (period(h)) -> Heat.system(19.0) init (false, 0.0) in  
-  present (period(h)) | (disc(u)) ->
-    let s = Scope.scope4 (-1.0, 40.0,
-			  ("u", Scope.linear,
-			   if u then 1.0 else 0.0),
-                          ("u1", Scope.linear,
-			   if u1 then 1.0 else 0.0),
-                          ("temp", Scope.linear, temp),
-                          ("temp discrete", Scope.linear, temp1)
-			 ) in
-    Scope.window ("main_on_19", 10.0, t, s)
-  else ()
-
-(* The reference for the temperature can be changed *)
-let hybrid mainc() =
-  (* create a box for an input of type float; initially set at 19 degrees *)
-  let init win_desc =
-    Input.frame "Main"
-      (Input.vbox [Input.make_float "temperature reference" (0.,68.) 19.]) in
-  (* create and open the window *)
-  let init w = Input.open_window("Inputs", win_desc) in
-  (* by default the size of the window is the smallest size possible *)
-  let init tmp = Input.resize_window(w, 400, 100) in
-  (* read the input every 0.5 seconds *)
-  let reference =
-    present (period (0.5)) -> (Input.get_float (w, "temperature reference"))
-    init 19.0 in
-  (* the system *)
-  let u, temp = system(reference) in
-  (* draw observations every h second or if u has a discontinuity *)
-  (* The time line *)
-  let der time = 1.0 init 0.0 in
-  present (period(h)) | (disc(u)) ->
-    let s = Scope.scope2 (-1.0, 40.0, ("u", Scope.linear,
-				       if u then 1.0 else 0.0),
-                          ("temp", Scope.linear, temp)) in
-    Scope.window ("The Heater in Continuous Time", 10.0, time, s)
-  else ()
-  
-
+      temp = heater(c, alpha, beta, temp_ext, temp_0, u)

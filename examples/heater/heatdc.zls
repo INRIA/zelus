@@ -1,119 +1,17 @@
-(* The heater model. In this form, we lift the continuous-time *)
-(* function Heatc.system into a discrete-time one that internalize the solver *)
+(* The heater model. In this version, the solver for *)
+(* ODEs and zero-crossings is embedded into a discrete-time node *)
+(* this is the so-called "co-simulation" form *)
 
+
+open Constants
 open Heatc
 open Node
 
-(* Compute information about what the solver did.
- *- the number of points that have been computed;
- *- the number of time the solver has been called;
- *- the number of successive jumps *)
-let node steps status =
-  let rec nb_points = 0 fby nb_points + 1 in
-  let rec init nb_integr = 0 and init nb_jumps = 0
-  and match status with
-      | Interpolate | StopTimeReached
-      | TimeHasPassed | Error ->
-	  do nb_jumps = 0 done
-      | Success _ ->
-	  do nb_integr = last nb_integr + 1 and nb_jumps = 0 done
-      | RootsFound | Horizon _ | Cascade ->
-	  do nb_jumps = last nb_jumps + 1 done
-  in (nb_points, nb_integr, nb_jumps)
-
-		    
-let reference_temp = 19.0
-let stop_time = 50.0
-let h = 0.001
-    
-let node system(reference) = (time, u) where
+let node system(reference) = (time, u, temp, status) where
   (* Compute the dynamics of the system. Draw an observation *)
   (* at times [n * h] with n in Nat or when a zero-crossing occurs *)
-  rec { time = time; result = u } =
-    solve Heatc.system stop_time (next_horizon, reference)
+  rec { time = time; status = status; result = u, temp } =
+    Node.solve Heatc.system stop_time (next_horizon, reference)
   and next_horizon =
     h fby (if time >= next_horizon then next_horizon +. h else next_horizon)
 
-   
-let node maindc () =
-  (* Compute the dynamics of the system. Draw an observation *)
-  (* at times [n * h] with n in Nat or when a zero-crossing occurs *)
-  automaton
-  | Run ->
-      let rec { time = time; status = status; result = (u, measured_temp) } =
-	solve Heatc.system stop_time (next_horizon, reference_temp)
-      and next_horizon =
-	h fby (if time >= next_horizon then next_horizon +. h
-	       else next_horizon) in
-      let rec outside =
-	0.0 ->
-	  let eps = measured_temp -. reference_temp -. 1.0 in
-	  if eps > 0.0 then max (pre outside) eps
-	  else pre outside in
-      let nb_points, nb_integr, nb_jumps = steps status in
-      do ()
-      until (status = StopTimeReached)
-      then Stop(nb_points, nb_integr, nb_jumps, outside)
-  | Stop(nb_points, nb_integr, nb_jumps, outside) ->
-      do print_string "nb_points = ";
-	print_int nb_points; print_newline ();
-	print_string "nb_integr = ";
-	print_int nb_integr;
-	print_newline ();
-	print_string "nb_jumps = ";
-	print_int nb_jumps;
-	print_newline ();
-	print_string "outside = ";
-	print_float outside;
-	print_newline ();
-	Basics.exit 0
-      done
-      
-(* The main function *)
-let node maindc2 () =
-  (* Compute the dynamics of the system. Draw an observation *)
-  (* at times [n * h] with n in Nat or when a zero-crossing occurs *)
-  automaton
-  | Run ->
-      let rec { time = time; status = status; result = (u, measured_temp) } =
-	solve Heatc.system stop_time (next_horizon, reference_temp)
-      and next_horizon =
-	h fby (if time >= next_horizon then next_horizon +. h
-	       else next_horizon) in
-      let nb_points, nb_integr, nb_jumps = steps status in
-      do
-	match time >= 0.0 fby time with
-	| true ->
-	    let s =
-	      Scope.scope4
-		(-1.0, 40.0,
-		 ("u", Scope.points true, if u then 1.0 else 0.0),
-		 ("input temp", Scope.linear, reference_temp),
-		 ("measured temp", Scope.linear, measured_temp),
-		 ("stops", Scope.points true, float_of_int nb_jumps)) in
-	    Scope.window
-	      ("The Heater with a relay controller", stop_time, time, s);
-            print_string "time = ";
-	    print_float time; print_newline ();
-	    print_string "u = ";
-	    print_string (if u then "true" else "false");
-	    print_newline ();
-	    print_string "measured_temp = "; print_float measured_temp;
-	    print_newline ();
-	    print_string "nb_jumps = "; print_int nb_jumps;
-	    print_newline ()
-	| false -> ()
-      until (status = StopTimeReached)
-      then Stop(nb_points, nb_integr, nb_jumps)
-  | Stop(nb_points, nb_integr, nb_jumps) ->
-      do print_string "nb_points = ";
-	print_int nb_points; print_newline ();
-	print_string "nb_integr = ";
-	print_int nb_integr;
-	print_newline ();
-	print_string "nb_jumps = ";
-	print_int nb_jumps;
-	print_newline ();
-	Basics.exit 0
-      done
-      

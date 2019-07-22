@@ -1,61 +1,117 @@
-EXAMPLE=heat.zls heatc.zls heatdc.zls
-AUX=observers.zls
+FILES = constants.zls io.zls \
+	heat.zls heatc.zls heatdc.zls \
+	main_heat.zls main_heatc.zls main_heatdc.zls
+
+TARGET= maind mainc maindc 
+
+OCAMLC=ocamlc -I `zeluc -where`
+OCAMLOPT=ocamlopt -I `zeluc -where`
+ZELUC=zeluc -I `zeluc -where`
 
 all: byte opt
 
-byte: $(EXAMPLE:%.zls=%.byte)
-opt:  $(EXAMPLE:%.zls=%.opt)
+byte: $(TARGET:%=%.byte)
+opt:  $(TARGET:%=%.opt)
 
+maind.byte: constants.cmo io.cmo heat.cmo main_heat.cmo maind.cmo
+	ocamlfind ocamlc -o maind.byte \
+	-I `zeluc -where` \
+	-package lablgtk2 unix.cma bigarray.cma \
+	lablgtk.cma zllibgtk.cma -linkpkg \
+	constants.cmo io.cmo heat.cmo main_heat.cmo maind.cmo
 
-heat.byte: observers.ml heat.ml
-	ocamlfind ocamlc -o heat.byte -I `zeluc -where` -package lablgtk2 unix.cma bigarray.cma lablgtk.cma zllibgtk.cma -linkpkg observers.ml heat.ml main.ml
+maind.opt: constants.cmx heat.cmx io.cmx main_heat.cmx maind.cmx
+	ocamlfind ocamlopt -o maind.opt \
+	-I `zeluc -where` \
+	-package lablgtk2 unix.cmxa bigarray.cmxa \
+	lablgtk.cmxa zllibgtk.cmxa -linkpkg \
+	constants.cmx io.cmx heat.cmx main_heat.cmx maind.cmx
 
-heat.opt: observers.ml heat.ml main.ml
-	ocamlfind ocamlopt -o heat.opt -I `zeluc -where` -package lablgtk2 \
-        unix.cmxa bigarray.cmxa lablgtk.cmxa zllibgtk.cmxa \
-        -linkpkg observers.ml heat.ml main.ml
+mainc.byte: constants.cmo io.cmo heatc.cmo main_heatc.cmo mainc.cmo
+	ocamlfind ocamlc -o mainc.byte \
+	-I `zeluc -where` \
+	-package lablgtk2 \
+	-package sundialsml lablgtk.cma zllibgtk.cma -linkpkg \
+	constants.cmo io.cmo heat.cmo heatc.cmo main_heatc.cmo mainc.cmo
 
-heatc.byte: heat.ml heatc.ml main.ml
-	ocamlfind ocamlc -o heatc.byte -I `zeluc -where` -package lablgtk2 \
-        -package sundialsml lablgtk.cma zllibgtk.cma \
-        -linkpkg observers.ml heat.ml heatc.ml mainc.ml
+mainc.opt: constants.cmx io.cmx heatc.cmx main_heatc.cmx mainc.cmx
+	ocamlfind ocamlopt -o mainc.opt \
+	-I `zeluc -where` \
+	-package lablgtk2 \
+	-package sundialsml lablgtk.cmxa zllibgtk.cmxa -linkpkg \
+	constants.cmx io.cmx heat.cmx heatc.cmx main_heatc.cmx mainc.cmx
 
-heatc.opt: heat.ml heatc.ml main.ml
-	ocamlfind ocamlopt -o heatc.opt -I `zeluc -where` -package lablgtk2 \
-        lablgtk.cmxa zllibgtk.cmxa \
-        -package sundialsml -linkpkg observers.ml heat.ml heatc.ml mainc.ml
+maindc.byte: constants.cmo io.cmo heatdc.cmo main_heatdc.cmo maindc.cmo
+	ocamlfind ocamlc -o maindc.byte \
+	-I `zeluc -where` \
+	-package lablgtk2 \
+	-package sundialsml lablgtk.cma zllibgtk.cma -linkpkg \
+	constants.cmo io.cmo heatc.cmo heatdc.cmo main_heatdc.cmo maindc.cmo
 
-heatdc.byte: observers.ml heat.ml heatc.ml heatdc.ml
-	ocamlfind ocamlc -o heatdc.byte -I `zeluc -where` -package lablgtk2 \
-        -package sundialsml lablgtk.cma zllibgtk.cma \
-        -linkpkg observers.ml heat.ml heatc.ml heatdc.ml maindc.ml
+maindc.opt: constants.cmx io.cmx heatdc.cmx main_heatdc.cmx maindc.cmx
+	ocamlfind ocamlopt -o maindc.opt \
+	-I `zeluc -where` \
+	-package lablgtk2 \
+	-package sundialsml lablgtk.cmxa zllibgtk.cmxa -linkpkg \
+	constants.cmx io.cmx heatc.cmx heatdc.cmx main_heatdc.cmx maindc.cmx
 
-heatdc.opt: observers.ml heat.ml heatc.ml heatdc.ml
-	ocamlfind ocamlopt -o heatdc.opt -I `zeluc -where` -package lablgtk2 \
-        -package sundialsml lablgtk.cmxa zllibgtk.cmxa \
-        -linkpkg observers.ml heat.ml heatc.ml heatdc.ml maindc.ml
+# maindc_no_graphics.byte: constants.cmo io.cmo heatdc.cmo main_heatdc.cmo maindc_nographics.cmo
+# 	ocamlfind ocamlc -o maindc.byte \
+# 	-I `zeluc -where` \
+# 	-package lablgtk2 \
+# 	-package sundialsml lablgtk.cma zllibgtk.cma -linkpkg \
+# 	constants.cmo io.cmo heatc.cmo heatdc.cmo main_heatdc.cmo maindc.cmo
 
-heat.ml main.ml: heat.zls
-	zeluc -sampling 0.1 -gtk2 -s main heat.zls
+# maindc_no_graphics.opt: constants.cmx io.cmx heatdc.cmx main_heatdc.cmx maindc_no_graphics.cmx
+# 	ocamlfind ocamlopt -o maindc_no_graphics.opt \
+# 	-I `zeluc -where` \
+# 	-package lablgtk2 \
+# 	-package sundialsml lablgtk.cmxa zllibgtk.cmxa -linkpkg \
+# 	constants.cmx io.cmx heatc.cmx heatdc.cmx main_heatdc.cmx maindc_no_graphics.cmx
 
-heatc.ml mainc.ml: heatc.zls
-	zeluc -gtk2 -s mainc heatc.zls
+# dependences
+heat.ml: constants.ml
+heatc.ml: constants.ml
+heatdc.ml: constants.ml heatc.ml
+main_heat.ml: constants.ml io.ml heat.ml
+main_heatc.ml: constants.ml io.ml heat.ml heatc.ml
+main_heatdc.ml: constants.ml io.ml heatdc.ml
 
-heatdc.ml maindc.ml: heatdc.zls
-	zeluc -s maindc heatdc.zls
+maind.ml main_heat.ml: main_heat.zls
+	$(ZELUC) -gtk2 -s main -sampling 0.1 -o maind main_heat.zls
 
-#heatdc.ml maindc.ml: heatdc.zls
-#	zeluc -s maindc heatdc.zls
+mainc.ml main_heatc.ml: heatc.ml main_heatc.zls
+	$(ZELUC) -gtk2 -s main -o mainc main_heatc.zls
 
-observers.ml: observers.zls
-	zeluc observers.zls
+maindc.ml main_heatdc.ml: main_heatdc.zls
+	$(ZELUC) -s main -o maindc main_heatdc.zls
+
+# maindc_no_graphics.ml main_heatdc.ml: main_heatdc.zls
+# 	$(ZELUC) -gtk2 -s main -o maindc_no_graphics main_heatdc.zls
+
+# implicit rules
+.SUFFIXES : .mli .ml .cmi .cmo .cmx .zls .zli *.zci
+
+%.cmi: %.mli
+	$(OCAMLC) -c $<
+
+%.cmo %.cmi: %.ml
+	$(OCAMLC) -c $<
+
+%.cmx %.cmi: %.ml
+	$(OCAMLOPT) -c $<
+
+%.zci: %.zli
+	$(ZELUC) $<
+
+%.ml: %.zls
+	$(ZELUC) $<
 
 clean:
-	-@rm -f $(EXAMPLE:%.zls=%.byte)
-	-@rm -f $(EXAMPLE:%.zls=%.opt)
-	-@rm -f $(opt) $(EXAMPLE:.zls=.ml) $(EXAMPLE:.zls=_main.ml)
-	-@rm -f $(opt) $(AUX:.zls=.ml) $(AUX:.zls=_main.ml)
-	-@rm -f main.ml mainc.ml
+	-@rm -f $(TARGET:%=%.ml)
+	-@rm -f $(TARGET:%=%.byte)
+	-@rm -f $(TARGET:%=%.opt)
+	-@rm -f $(FILES:.zls=.ml) $(FILES:.zls=_main.ml)
 	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci
 
 realclean cleanall: clean

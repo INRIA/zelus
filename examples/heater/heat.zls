@@ -1,10 +1,12 @@
-(* The Heater model presented by Nicolas Halbwachs during *)
-(* a tutorial on Lustre, College de France, 2010. *)
+(* The Heater model presented by Nicolas Halbwachs for *)
+(* his tutorial on Lustre, College de France, 2010. *)
+
+open Constants
 
 (* Integrator Euler (forward) *)
 (* for all n in Nat. x(0) = x0(0) and x(n) = x(n-1) + h * xprime(n-1) *)
 let node euler(h)(x0, xprime) = x
-  where rec x = x0 -> pre(x +. h *. xprime)
+  where rec x = x0 -> pre (x +. h *. xprime)
 
 (* Model of a heater *)
 (* (temp(n+1) - temp(n)) / h = alpha(n) * (c(n) - temp(n)) if u(n) *)
@@ -30,99 +32,12 @@ let node relay_six(low, high, v) = u where
       | Low -> do u = false unless (v <= low) then High
       | High -> do u = true unless (v >= high) then Low
       end
-      
-let low = 1.0
-let high = 1.0
 
-let c = 50.0
-
-let alpha = 0.1
-let beta = 0.05
-
-let h = 0.1
-
-let stop_time = 50.0 (* in secondes *)
-    
+     
 (* Main program *)
 let node system(reference) = (u, temp) where
   rec
       u = relay(reference -. low, reference +. high, temp)
   and
-      temp = heater(h)(c, alpha, beta, 0.0, 0.0, u)
+      temp = heater(h)(c, alpha, beta, temp_ext, temp_0, u)
 
-let node source(r) = Observers.piecewise_constant(0.0)(20.0)(r)
-let node source2(r) = Observers.linear_constant(0.1)(0.0)(20.0)(r)
-
-(* Oracle. Define the expected property *)
-let node oracle(low, high, u, reference, measured) =
-  (* inside the bound *)
-  let outside = (measured < high) && (measured > low) in
-  (* u must not oscillate *)
-  let ok1 = not (Observers.oscillate(u)) in
-  (* when [measured] is outside of the interval [low, high] and the reference *)
-  (* does not change, the error must decrease *)
-  let ok2 = if outside && (Observers.constant reference)
-   then Observers.decrease(abs_float(reference -. measured)) else true in
-  let ok3 = ok1 && ok2 in
-  (* computes a new test when [measured] is inside for at least [enough] *)
-  (* instants *)
-  let inside_enough = Observers.count(h)(stop_time, not outside) in
-  ok3, inside_enough
- 
-(* Test of the system: connect a source generator, the system *)
-(* and the oracle *)
-let node test (manual_mode, input) = (u, reference, measured, ok) where
-  rec reference =
-      present manual_mode -> source(true -> last enough) else input
-  and (u, measured) = system(reference)
-  and ok, enough = oracle(low, high, u, reference, measured)
-
- 
-let node main_no_graphics() =
-  automaton
-    Run ->
-      let u, temp = system(19.0) in
-      let rec t = 0.0 fby t +. h in
-      let rec cpt = 0 fby cpt + 1 in
-      do () until (t >= stop_time) then Stop(cpt)
-  | Stop(cpt) ->
-      do print_string "Fin"; print_newline ();
-	print_string "nb_points = "; print_int cpt;
-	print_newline ();
-	Basics.exit 0
-      done
-
-	  (* print_string "u = "; print_string (if u then "true" else "false");
-      print_string "   ";
-      print_string "temp = "; print_float temp;
-      print_newline ();
-      flush stdout *)
-
-(* The main function. *)
-let node main() =
-  (* create a box for an input of type float; initially set at 19 degrees *)
-  let init win_desc =
-    Input.frame "Main"
-      (Input.vbox [Input.make_float "temperature reference" (0.,68.) 19.;
-		   Input.make_bool "manual mode" false]) in
-  (* create and open the window *)
-  let init w = Input.open_window("Inputs", win_desc) in
-  (* by default the size of the window is the smallest size possible *)
-  let init tmp = Input.resize_window(w, 400, 100) in
-  (* read the input *)
-  let reference_temp = Input.get_float (w, "temperature reference") in
-  let manual_mode = Input.get_bool (w, "manual mode") in
-  (* call the main function *)
-  (* let u, reference_temp, measured_temp, ok = test(manual_mode, reference_temp) in *)
-  let (u, measured_temp) = system(reference_temp) in
-  let ok = false in
-  let rec time = 0.0 -> pre time +. h in
-  (* output the command and actual temperature *)
-  let s =
-    Scope.scope4
-      (-1.0, 40.0,
-       ("u", Scope.points true, if u then 1.0 else 0.0),
-       ("input temp", Scope.linear, reference_temp),
-       ("measured temp", Scope.linear, measured_temp),
-       ("ok", Scope.points true, if ok then 1.0 else 0.0)) in
-  Scope.window ("The Heater with a relay controller", 10.0, time, s)
