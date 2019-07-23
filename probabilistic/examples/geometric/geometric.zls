@@ -1,4 +1,5 @@
 open Infer_importance
+(* open Infer_pf *)
 
 let node geometric (prob, p) = n where
   rec automaton

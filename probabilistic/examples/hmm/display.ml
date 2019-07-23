@@ -84,8 +84,8 @@ let noise = [noise_x; noise_y]
 let p_init = [200.; 200.]
 
 let observe_state_xy (x, y) =
-  (Distribution.draw (Distribution.gaussian x 5.),
-   Distribution.draw (Distribution.gaussian y 5.))
+  (Distribution.draw (Distribution.gaussian (x, 5.)),
+   Distribution.draw (Distribution.gaussian (y, 5.)))
 
 let observe_state (x, y) =
   let ox, oy = observe_state_xy (x, y) in

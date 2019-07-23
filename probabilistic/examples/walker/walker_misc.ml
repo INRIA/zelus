@@ -1,4 +1,4 @@
-open Infer
+open Infer_pf
 open Distribution
 
 let pi = 3.14
@@ -17,8 +17,8 @@ let coast (prob, (dt, w)) =
   let std_dev = sqrt dt *. pos_noise in
   let { position = (x, y); velocity = (vx, vy) } = w in
   let (x', y') = (x +. dt *. vx, y +. dt *. vy)  in
-  let x'' = sample (prob, gaussian x' std_dev) in
-  let y'' = sample (prob, gaussian y' std_dev) in
+  let x'' = sample (prob, gaussian (x', std_dev)) in
+  let y'' = sample (prob, gaussian (y', std_dev)) in
   { w with position = (x'', y'') }
 
 (* half lives of changing the motion type, in seconds *)
@@ -32,16 +32,16 @@ let motion_type_transition mt =
 
 let init_velocity (prob, mt) =
   let speed_at_random_direction speed =
-    let angle = sample (prob, uniform_float 0. (2. *. pi)) in
+    let angle = sample (prob, uniform_float (0., 2. *. pi)) in
     (speed *. cos angle, speed *. sin angle)
   in
   begin match mt with
   | Stationary -> (0., 0.)
   | Walking ->
-      let speed = sample (prob, uniform_float 0. 2.) in
+      let speed = sample (prob, uniform_float (0., 2.)) in
       speed_at_random_direction speed
   | Running ->
-      let speed = sample (prob, uniform_float 2. 7.) in
+      let speed = sample (prob, uniform_float (2., 7.)) in
       speed_at_random_direction speed
   end
 
@@ -73,14 +73,14 @@ let position_std_dev = 10.
 (* walkerMeasure :: Walker -> (Double, Double) -> PProg a () *)
 let walker_measure (prob, (w, (mx, my))) =
   let (x, y) = w.position in
-  factor (prob, score (gaussian x position_std_dev) mx);
-  factor (prob, score (gaussian y position_std_dev) my)
+  factor (prob, score (gaussian (x, position_std_dev), mx));
+  factor (prob, score (gaussian (y, position_std_dev), my))
 
 (* walkerGenMeasurement :: Walker -> RVar (Double, Double) *)
 let walker_gen_measurement w =
   let (x, y) = w.position in
-  let mx = draw (gaussian x position_std_dev) in
-  let my = draw (gaussian y position_std_dev) in
+  let mx = draw (gaussian (x, position_std_dev)) in
+  let my = draw (gaussian (y, position_std_dev)) in
   (mx, my)
 
 (* walkerStep :: Double -> (Double, Double) -> Walker -> PProg a Walker *)

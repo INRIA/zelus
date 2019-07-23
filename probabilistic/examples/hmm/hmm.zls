@@ -1,6 +1,6 @@
 open Distribution
 open Display
-open Infer
+open Infer_pf
 (* open Infer_importance *)
 
 (* noisy observation of the mouse position. It is a gaussian centered on the *)
@@ -18,8 +18,8 @@ let node display (obs, pos_dist) =
 (* the expected position [p] of the mouse is searched arround the previous *)
 (* one supposing that the motion speed of the mouse is bounded *)
 let node hmm (prob, obs) = p where
-  rec p = sample (prob, sph_gaussian (obs fby p) speed)
-  and () = factor (prob, Distribution.score (sph_gaussian p noise) obs)
+  rec p = sample (prob, sph_gaussian(obs fby p, speed))
+  and () = factor (prob, Distribution.score(sph_gaussian(p, noise), obs))
   and init t = traj_init ()
   and t = traj_add (last t, p)
   and () = traj_draw t
@@ -31,8 +31,8 @@ let node once n = ok where
 let node hmm_momentum(prob, obs) = p where
   rec last_p = obs fby p
   and momentum = (last_p -: (obs fby last_p)) *: 0.7
-  and p = sample (prob, sph_gaussian (last_p +: momentum) speed)
-  and () = factor(prob, Distribution.score (sph_gaussian p noise) obs)
+  and p = sample (prob, sph_gaussian(last_p +: momentum, speed))
+  and () = factor(prob, Distribution.score (sph_gaussian(p, noise), obs))
   and init t = traj_init ()
   and t = traj_add (last t, p)
   and () = traj_draw t

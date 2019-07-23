@@ -1,4 +1,4 @@
-open Infer_ds_nogc;;
+(* open Infer_ds_nogc;; *)
 
 let warmup = ref 0 ;;
 let perf = ref false;;
@@ -40,12 +40,12 @@ let read_val : unit ->  float * float =
         Scanf.scanf "%f, %f\n" (fun t o -> (t, o))
 ;;
 
-let get_mean (type a) : (a, float) random_var -> float =
-    fun r ->
-        match r.state with
-        | Marginalized (MGaussian (mu, sigma)) -> mu
-        | _ -> assert false (* error *)
-;;
+(* let get_mean (type a) : (a, float) random_var -> float = *)
+(*     fun r -> *)
+(*         match r.state with *)
+(*         | Marginalized (MGaussian (mu, sigma)) -> mu *)
+(*         | _ -> assert false (\* error *\) *)
+(* ;; *)
 
 let random_init : unit -> unit =
     fun _ ->

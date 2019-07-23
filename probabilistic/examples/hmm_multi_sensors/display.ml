@@ -60,12 +60,12 @@ let a_noise = [0.5; 0.5]
 let p_init = [0.; 0.]
 
 let observe_pos (x, y) =
-  [ Distribution.draw (Distribution.gaussian x 5.);
-    Distribution.draw (Distribution.gaussian y 5.) ]
+  [ Distribution.draw (Distribution.gaussian (x, 5.));
+    Distribution.draw (Distribution.gaussian (y, 5.)) ]
 
 let observe_acc (x, y) =
-  [ Distribution.draw (Distribution.gaussian x 0.01);
-    Distribution.draw (Distribution.gaussian y 0.01) ]
+  [ Distribution.draw (Distribution.gaussian (x, 0.01));
+    Distribution.draw (Distribution.gaussian (y, 0.01)) ]
 
 let ( +: ) a b = List.map2 (fun x y -> x +. y) a b
 let ( -: ) a b = List.map2 (fun x y -> x -. y) a b

@@ -107,7 +107,7 @@ let observe (prob, ds_distr, o) =
 
 let ds_distr_of_distr d =
   { isample = (fun prob -> const (Distribution.draw d));
-    iobserve = (fun (prob, obs) -> factor (prob, Distribution.score d obs)); }
+    iobserve = (fun (prob, obs) -> factor (prob, Distribution.score(d, obs))); }
 
 let ds_distr_with_fallback d is iobs =
   let dsd =
@@ -170,7 +170,7 @@ let rec affine_of_expr : float expr -> affine_expr option =
 
 (** Gaussian distribution (gaussianPD in Haskell) *)
 let gaussian mu std =
-  let d () = Distribution.gaussian (eval_float mu) std in
+  let d () = Distribution.gaussian(eval_float mu, std) in
   let is prob =
     (*
     let mu' = const_of_realized mu in
@@ -243,8 +243,8 @@ let gaussian mu std =
 
 
 (** Beta distribution (betaPD in Haskell) *)
-let beta a b =
-  let d () = Distribution.beta a b in
+let beta(a, b) =
+  let d () = Distribution.beta(a, b) in
   let is prob = Some {value = Ervar (RV (Infer_ds_ll_gc.assume_constant "" (MBeta (a, b)))) } in
   let iobs (pstate, obs) = None in
   ds_distr_with_fallback d is iobs

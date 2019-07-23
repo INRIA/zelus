@@ -1,5 +1,5 @@
 open Distribution
-open Infer
+open Infer_pf
 
 let node model (prob, (map, state_init)) = state where
   rec state = state_init fby Restaurant_world.transition map state action
@@ -9,6 +9,8 @@ let node model (prob, (map, state_init)) = state where
     factor (prob, 0. -> if state = pre state then -100. else 10.);
     factor (prob, Restaurant_world.utility map state action)
 
+
+let random_init = Random.self_init()
 
 let node main () =
   let state =

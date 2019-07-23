@@ -1,12 +1,16 @@
 open Distribution
 
-let node main () =
-    let init x0 = Distribution.draw (gaussian 0. 100.) in
-    let init clutter_prob = Distribution.draw (beta 100. 1000.) in
+let random_init = Random.self_init ()
 
-    let rec x = x0 -> Distribution.draw (gaussian (pre x) 1.) in
-    let clutter = Distribution.draw (gaussian 0. 100.) in
+let node main () =
+    let init x0 = Distribution.draw (gaussian (0., 100.)) in
+    let init clutter_prob = Distribution.draw (beta (100., 1000.)) in
+
+    let rec x = x0 -> Distribution.draw (gaussian (pre x, 1.)) in
+    let clutter = Distribution.draw (gaussian (0., 100.)) in
     let is_clutter = Distribution.draw (bernoulli clutter_prob) in
 
-    let y = if is_clutter then (Distribution.draw (gaussian 0. 100.)) else (Distribution.draw (gaussian x 1.)) in
+    let y =
+      if is_clutter then (Distribution.draw (gaussian (0., 100.)))
+      else (Distribution.draw (gaussian (x, 1.))) in
     print_string ((string_of_float clutter_prob) ^ ", " ^ (string_of_float x) ^ ", " ^ (string_of_float y) ^ "\n")

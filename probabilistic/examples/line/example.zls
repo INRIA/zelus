@@ -1,10 +1,10 @@
-open Infer
+open Infer_pf
 (* open Infer_importance *)
 
 (* A first example *)
 
 let node model (prob, obs) = a where
-  rec a = sample (prob, Distribution.gaussian 1. 2.) fby a
+  rec a = sample (prob, Distribution.gaussian (1., 2.)) fby a
   and cpt = 0. fby cpt +. a
   and () = factor (prob, -. (abs_float (obs -. cpt)))
 
@@ -12,7 +12,7 @@ let node periodic n =
   let rec o = 1 fby (if ok then 1 else o + 1)
   and ok = o = n in ok
 
-let f = 1
+let random_init = Random.self_init()
 
 let node main () =
   let rec cpt = 0. fby cpt +. 0.5 in

@@ -8,27 +8,20 @@ OCAMLOPT=ocamlopt
 ML_SRC=misc_lib.ml \
 	distribution.ml \
 	normalize.ml \
-	infer.ml \
-	infer_dyn.ml \
-	symbolic.ml \
-	infer_adf.ml \
+	infer_pf.ml \
 	infer_importance.ml \
 	infer_ds_ll.ml \
 	infer_ds.ml \
 	infer_ds_ll_gc.ml \
-	infer_ds_gc.ml \
-	distribution_ds.ml
+	infer_ds_gc.ml
 
 ZLI_SRC=distribution.zli \
-	infer.zli \
-	symbolic.zli \
-	infer_adf.zli \
+	infer_pf.zli \
 	infer_importance.zli \
 	infer_ds_ll.zli \
 	infer_ds.zli \
 	infer_ds_ll_gc.zli \
-	infer_ds_gc.zli \
-	distribution_ds.zli
+	infer_ds_gc.zli
 
 OBJ=$(ML_SRC:%.ml=%.cmo)
 OBJ_OPT=$(OBJ:%.cmo=%.cmx)

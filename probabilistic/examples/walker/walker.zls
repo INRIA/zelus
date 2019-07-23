@@ -1,4 +1,4 @@
-open Infer
+open Infer_pf
 open Distribution
 open Walker_misc
 

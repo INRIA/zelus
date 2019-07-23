@@ -31,7 +31,7 @@ $(NAME).opt: $(INFERENCE_CMXA) $(NAME).ml main.ml
 		$(NAME).ml main.ml 
 
 
-$(NAME).ml main.ml: $(INFERENCE_ZCI) aux.zci $(NAME).zls
+$(NAME).ml main.ml: $(INFERENCE_ZCI) $(NAME).zls
 	zeluc -I $(INFERLIB) -s main $(NAME).zls
 
 %.zci: %.zli

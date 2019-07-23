@@ -1,7 +1,0 @@
-open Symbolic
-
-type pstate
-
-val sample : (pstate * (float exp_fam * float list)) -AD-> (id, float) exp
-val factor : (pstate * (id, float) exp) -AD-> unit
-val infer : (pstate * 'a -D-> (id, 'b) exp) -S-> 'a -D-> env * (id, 'b) exp

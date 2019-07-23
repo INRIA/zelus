@@ -3,18 +3,20 @@
 
 
 let node agent (prob, ()) = p where
-  rec action = Infer.sample (prob, Distribution.uniform_int (-1) 1)
+  rec action = Infer_pf.sample (prob, Distribution.uniform_int (-1, 1))
   and p = 0 -> pre p + action
-  and () = Infer.factor(prob, 100. *. exp (float (- abs (p - 10))))
+  and () = Infer_pf.factor(prob, 100. *. exp (float (- abs (p - 10))))
 
 (* let node main () = *)
-(*   let p = Infer.plan 50 5 agent () in *)
+(*   let p = Infer_pf.plan 50 5 agent () in *)
 (*   print_string "p = "; print_int p; *)
 (*   print_newline () *)
 
+let random_init = Random.self_init()
+
 let node main () =
-  let p_dist = Infer.infer_depth 100 5 agent () in
+  let p_dist = Infer_pf.infer_depth 100 5 agent () in
   let p = Distribution.draw p_dist in
   print_string ("P("^(string_of_int p)^") = " ^
-                (string_of_float (exp (Distribution.score p_dist p))));
+                (string_of_float (exp (Distribution.score (p_dist, p)))));
   print_newline ()

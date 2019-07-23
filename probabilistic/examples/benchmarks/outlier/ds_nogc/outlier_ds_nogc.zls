@@ -3,18 +3,18 @@ open Infer_ds
 let node outlier (prob, yobs) =
   let rec automaton
       | Init ->
-          do xt = sample (prob, gaussian (const 0.) 100.) and
-          outlier_prob = sample (prob, beta 100. 1000.)
+          do xt = sample (prob, gaussian (const 0., 100.)) and
+          outlier_prob = sample (prob, beta (100., 1000.))
           then Run
       | Run ->
-          do xt = sample (prob, gaussian (last xt) 1.)
+          do xt = sample (prob, gaussian (last xt, 1.))
           and outlier_prob = last outlier_prob
           done
       end
   and is_outlier = sample (prob, bernoulli outlier_prob)
-  and outlier = gaussian (const 0.) 100.
+  and outlier = gaussian (const 0., 100.)
   and y = if (eval_bool is_outlier) then
-    gaussian xt 1. else
+    gaussian (xt, 1.) else
     outlier
   and () = observe (prob, y, yobs)
   and t = 1 fby (t + 1)

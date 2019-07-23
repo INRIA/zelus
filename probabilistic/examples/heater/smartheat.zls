@@ -1,7 +1,7 @@
 (* Une Smart chaudiere ! *)
 open Distribution
 open Heat
-open Infer
+open Infer_pf
 
 let node room_model (temp_init, temp_ext, u) = temp where
   rec temp = (temp_init -> pre temp) +. if u then 0.5 else -. 0.1

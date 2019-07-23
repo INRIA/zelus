@@ -1,6 +1,6 @@
 open Distribution
 open Display
-open Infer
+open Infer_pf
 (* open Infer_importance *)
 
 let tau = 1.
@@ -35,14 +35,14 @@ let node display (obs, pos_dist) =
   present obs(p) -> Display.draw_obs Graphics.red p else ()
 
 let node hmm (prob, (pos_init, obs_p, obs_a)) = p where
-  rec p = sample (prob, sph_gaussian (pos_init fby p) speed)
+  rec p = sample (prob, sph_gaussian (pos_init fby p, speed))
   and v_estimate = integr((0., 0.), to_pair obs_a)
   and automaton
       | Estimate(o) ->
           do (x, y) = integr (o, v_estimate)
           until obs_p(o) then Estimate(to_pair o)
       init Estimate(to_pair p)
-  and () = factor (prob, Distribution.score (sph_gaussian p p_noise) [x; y])
+  and () = factor (prob, Distribution.score (sph_gaussian (p, p_noise), [x; y]))
 
 let node main () =
   let (p_obs, a_obs) = sensors () in

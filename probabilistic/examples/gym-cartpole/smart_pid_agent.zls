@@ -1,10 +1,9 @@
 open Cart_pole
 open Pendulum
 open Gym
+open Distribution
 
 (** MISC **)
-
-let gaussian (m, s) = Distribution.gaussian m s
 
 let node print_stats name (m, s) =
   print_string ("("^name^": mean =  ");
@@ -29,12 +28,12 @@ let node print_coefs (p, i, d) =
 
 let node smart_controller (prob, obs) = action where
   rec action =
-    if Infer.sample (prob, Distribution.bernoulli 0.5) then Right else Left
+    if Infer_pf.sample (prob, Distribution.bernoulli 0.5) then Right else Left
 
 let node smart_model (prob, obs_gym) = action where
   rec obs = simple_pendulum (obs_gym, (Right fby action))
   and action = smart_controller (prob, obs)
-  and () = Infer.factor (prob, -10. *. (abs_float (obs.pole_angle)))
+  and () = Infer_pf.factor (prob, -10. *. (abs_float (obs.pole_angle)))
   and display = draw_obs_back obs
 
 
@@ -48,18 +47,18 @@ let node pid_controller (angle, (p,i,d)) = action where
 
 (* Sample coefs from given priors *)
 let node pid_model (prob, (obs, ctrl_action)) = p, (i, d) where
-  rec init p = Infer.sample(prob, Distribution.gaussian 0. 0.1)
-  and init i = Infer.sample(prob, Distribution.gaussian 0. 0.1)
-  and init d = Infer.sample(prob, Distribution.gaussian 0. 0.1)
+  rec init p = Infer_pf.sample(prob, gaussian (0., 0.1))
+  and init i = Infer_pf.sample(prob, gaussian (0., 0.1))
+  and init d = Infer_pf.sample(prob, gaussian (0., 0.1))
   and action = pid_controller (obs.pole_angle, (p,i,d))
-  and () = Infer.factor(prob, if action = ctrl_action then 0. else -0.2)
+  and () = Infer_pf.factor(prob, if action = ctrl_action then 0. else -0.2)
 
 
 let node smart_pid_main () = () where
-  rec reset action_smart = Infer.plan 10 10 smart_model obs_smart
+  rec reset action_smart = Infer_pf.plan 10 10 smart_model obs_smart
       every true
   and obs_smart, _, _ = cart_pole_gym true (Right fby action_smart)
-  and pid_dist = Infer.infer 1000 pid_model (obs_smart, action_smart)
+  and pid_dist = Infer_pf.infer 1000 pid_model (obs_smart, action_smart)
   and () = draw_obs_front obs_smart
   and (p, (i, d)) = Distribution.draw pid_dist
   and obs, _, stop = cart_pole_gym true (Right fby action)

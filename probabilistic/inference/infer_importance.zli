@@ -9,15 +9,3 @@ val infer :
 
 val infer_decay :
   int -S-> float -S-> (pstate * 'a -D-> 'b) -S-> 'a -D-> 'b Distribution.t
-
-(* val plan : *)
-(*     int -S-> int -S-> *)
-(*       (pstate * 't1 -D-> 't2) -S-> *)
-(*         't1 -D-> 't2 *)
-
-(* val infer_depth : *)
-(*     int -S-> int -S-> *)
-(*       (pstate * 't1 -D-> 't2) -S-> *)
-(*         't1 -D-> 't2 Distribution.t *)
-
-(* val memoize : ('a -D-> 'b) -S-> 'a -D-> 'b *)

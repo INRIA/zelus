@@ -3,13 +3,13 @@ open Infer_ds
 let node delay_kalman (prob, (m, b, yobs)) =
   let rec automaton
       | Init ->
-          do xt = sample (prob, gaussian (const 0.) 100.)
+          do xt = sample (prob, gaussian (const 0., 100.))
           then Run
       | Run ->
-          do xt = sample (prob, gaussian (last xt) 1.)
+          do xt = sample (prob, gaussian (last xt, 1.))
           done
       end
-  and () = observe (prob, gaussian xt 1., yobs)
+  and () = observe (prob, gaussian (xt, 1.), yobs)
   and t = 1 fby (t + 1)
   (* and init xt = assume_constant "x0" (mgaussian 0. 1.) *)
   in

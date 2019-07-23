@@ -1,4 +1,4 @@
-open Infer
+open Infer_pf
 (* open Infer_importance *)
 
 type direction = Left | Right
@@ -101,6 +101,7 @@ let node slam_obs real_map dir = (obs, x) where
   and b = Array_misc.get real_map x
   and obs = if sensor_error then not b else b
 
+let random_init = Random.self_init ()
 
 let real_map =
   (* Array_misc.of_list *)

@@ -1,11 +1,12 @@
 (** Inference with delayed sampling *)
 open Ztypes
 
-type pstate = Infer.pstate;;
+type pstate = Infer_pf.pstate
 
-let factor = Infer.factor;; 
+let factor = Infer_pf.factor
 
-let infer = Infer.infer_dyn_resample;
+let infer = Infer_pf.infer
+let infer_ess_resample = Infer_pf.infer_ess_resample
 
 type mgaussiant = float
 type mbetat = float
@@ -99,8 +100,8 @@ let type_of_dsdistr (type a) (type b): (a, b) dsdistr -> marginal_t =
 
 let mdistr_to_distr (type a): a mdistr -> a Distribution.t = fun mdistr ->
   begin match mdistr with
-    | MGaussian (mu, var) -> Distribution.gaussian mu (sqrt var)
-    | MBeta (alpha, beta) -> Distribution.beta alpha beta
+    | MGaussian (mu, var) -> Distribution.gaussian(mu, sqrt var)
+    | MBeta (alpha, beta) -> Distribution.beta(alpha, beta)
     | MBernoulli p -> Distribution.bernoulli p
   end
 
@@ -316,7 +317,7 @@ let observe (type a) (type b): pstate -> b mtype -> (a, b) random_var -> unit =
   (*Format.eprintf "observe %s@." n.name; *)
   begin match n.state, n.distr with
     | (Marginalized None, UDistr m) ->
-        factor (prob, Distribution.score (mdistr_to_distr m) x);
+        factor (prob, Distribution.score(mdistr_to_distr m, x));
         realize x n
     | _ -> assert false (* error "observe'" *)
   end
@@ -514,7 +515,7 @@ let mean : (_, float) random_var -> float =
 (*   delay_triplet 42. *)
 
 (* let obs_sample xobs = *)
-(*   let prob = { Infer.scores = [| 0. |]; idx = 0 } in *)
+(*   let prob = { Infer_pf.scores = [| 0. |]; idx = 0 } in *)
 (*   let x = assume_constant "x" (MGaussian (0., 1.)) in *)
 (*   Format.printf "x created@."; *)
 (*   obs prob xobs x; *)

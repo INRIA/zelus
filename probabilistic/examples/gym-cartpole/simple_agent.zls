@@ -16,21 +16,21 @@ let node controller (net, obs) = action where
 
 let node model (pstate, obs_init) = net where
   rec init net = {
-    k1 = Infer.sample(pstate, Distribution.gaussian 0. 1.);
-    k2 = Infer.sample(pstate, Distribution.gaussian 0. 1.);
-    k3 = Infer.sample(pstate, Distribution.gaussian 0. 1.);
-    k4 = Infer.sample(pstate, Distribution.gaussian 0. 1.);
+    k1 = Infer_pf.sample(pstate, Distribution.gaussian (0., 1.));
+    k2 = Infer_pf.sample(pstate, Distribution.gaussian (0., 1.));
+    k3 = Infer_pf.sample(pstate, Distribution.gaussian (0., 1.));
+    k4 = Infer_pf.sample(pstate, Distribution.gaussian (0., 1.));
   }
   and obs = simple_pendulum (obs_init, (Right fby action))
   and action = controller (net, obs)
-  and () = Infer.factor(pstate, -10. *. abs_float (obs.pole_angle))
+  and () = Infer_pf.factor(pstate, -10. *. abs_float (obs.pole_angle))
   and display = draw_obs_back obs
 
 
 (** Infer the neuron using the Zelus model and simulate with the openai gym**)
 
 let node main () = () where
-  rec net_dist = Infer.infer 3000 model obs
+  rec net_dist = Infer_pf.infer 3000 model obs
   and net = Distribution.draw net_dist
   and obs, _, _ = cart_pole_gym true (Right fby action)
   and action = controller (net, obs)

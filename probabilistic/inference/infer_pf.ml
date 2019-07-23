@@ -18,7 +18,7 @@ let factor (pstate, f0) =
   pstate.scores.(pstate.idx) <- pstate.scores.(pstate.idx) +. f0
 
 let observe (pstate, d, v) =
-  factor (pstate, Distribution.score d v)
+  factor (pstate, Distribution.score(d, v))
 
 let sample (pstate, dist) =
   Distribution.draw dist
@@ -28,16 +28,19 @@ type 'a infer_state = {
   infer_scores : float array;
 }
 
-let infer_subresample n (Node { alloc; reset; step }) =
-    (* val infer :
+(** [infer nb_particles f (b, i)]
+    val infer :
          int -S-> (pstate * 'a -D-> 'b)
-             -S-> bool * 'a -D-> 'b Distribution.t *)
-    (* The infer function takes a number of particles, a node, and
-       returns a node.  The node in argument takes as argument a state
-       for the inference and an input and returns the output.
-       The node in output takes as argument a boolen indiacting to the
-       instants to resample and the input and returns the infered
-       output. *)
+             -S-> bool * 'a -D-> 'b Distribution.t
+
+  The infer function takes a number of particles, a node, a stream of
+  booleans and inputs, and returns a node.  The node in argument takes
+  as argument a state for the inference and an input and returns the
+  output.  The node in output takes as argument a boolen indiacting to
+  the instants to resample and the input and returns the infered
+  output.
+*)
+let infer_subresample n (Node { alloc; reset; step }) =
   let alloc () =
     { infer_states = Array.init n (fun _ -> alloc ());
       infer_scores = Array.make n 0.0; }
@@ -61,16 +64,10 @@ let infer_subresample n (Node { alloc; reset; step }) =
   Node { alloc = alloc; reset = reset; step = step }
 
 
-let infer_dyn_resample n (Node { alloc; reset; step }) =
-    (* val infer :
-         int -S-> (pstate * 'a -D-> 'b)
-             -S-> bool * 'a -D-> 'b Distribution.t *)
-    (* The infer function takes a number of particles, a node, and
-       returns a node.  The node in argument takes as argument a state
-       for the inference and an input and returns the output.
-       The node in output takes as argument a boolen indiacting to the
-       instants to resample and the input and returns the infered
-       output. *)
+(** [infer_ess_resample nb_particles threshold f i] inference with
+    resampling when the effective sample size goes below [threshold].
+*)
+let infer_ess_resample n threshold (Node { alloc; reset; step }) =
   let alloc () =
     { infer_states = Array.init n (fun _ -> alloc ());
       infer_scores = Array.make n 0.0; }
@@ -89,7 +86,7 @@ let infer_dyn_resample n (Node { alloc; reset; step }) =
       Array.fold_right (fun x acc -> (exp x) ** 2. +. acc) scores' 0.
     in
     let ess = num /. den in
-    ess < 0.8 *. (float_of_int n)
+    ess < threshold *. (float_of_int n)
   in
   let step { infer_states = states; infer_scores = scores } (input) =
     let values =
@@ -111,7 +108,6 @@ let infer n node =
          reset;
          step = (fun state input -> step state (true, input)); }
 
-(* let infer = infer_dyn_resample *)
 
 let infer_noresample n node =
   let Node { alloc; reset; step } = infer_subresample n node in
@@ -235,6 +231,3 @@ let infer_depth n k (Node model) =
     Normalize.normalize values
   in
   Node { alloc = alloc; reset = reset; step = step }
-
-
-let () = Random.self_init ()

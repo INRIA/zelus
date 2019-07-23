@@ -1,5 +1,0 @@
-type ('a, 'b) dist
-
-val gaussian : float -> (float, float) dist
-val beta : float -> float -> (unit, float) dist
-val bernoulli : (float, bool) dist

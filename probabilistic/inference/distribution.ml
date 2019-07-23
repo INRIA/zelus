@@ -51,10 +51,10 @@ let draw dist =
       draw 0. sup
   end
 
-(** [score dist x] returns the log probability of the value [x] in the
+(** [score(dist, x)] returns the log probability of the value [x] in the
     distribution [dist].
 *)
-let score dist x =
+let score (dist, x) =
   begin match dist with
     | Dist_sampler (_, scorer) -> scorer x
     | Dist_support sup ->
@@ -87,25 +87,25 @@ let draw_and_score dist =
 
 (** {2 Opreations on distributions} *)
 
-(** [multivariate dists] builds a multivariate distribution from a
+(** [of_list dists] builds a distribution of list from a
     list of distributions.
 *)
-let multivariate dists =
+let of_list dists =
   Dist_sampler
     ((fun () -> List.map (fun dist -> draw dist) dists),
      (fun xs ->
         List.fold_left2
-          (fun acc dist x -> acc +. ((score dist) x))
+          (fun acc dist x -> acc +. score(dist, x))
           1.0
           dists xs))
 
-(** [of_pair dist1 dist2] builds a distribution from a pair
+(** [of_pair (dist1, dist2)] builds a distribution from a pair
     of distributions.
 *)
-let of_pair dist1 dist2 =
+let of_pair (dist1, dist2) =
   Dist_sampler
     ((fun () -> (draw dist1, draw dist2)),
-     (fun (x, y) -> 1. +. score dist1 x +. score dist2 y))
+     (fun (x, y) -> 1. +. score(dist1, x) +. score(dist2, y)))
 
 (** [split dist] turns a distribution of pairs into a pair of
     distributions.
@@ -293,11 +293,11 @@ let bernoulli p =
   ]
 
 
-(** [gaussian mu sigma] is a normal distribution of mean [mu] and
+(** [gaussian(mu, sigma)] is a normal distribution of mean [mu] and
     standard deviation [sigma].
     @see<https://en.wikipedia.org/wiki/Normal_distribution>
 *)
-let gaussian mu sigma =
+let gaussian (mu, sigma) =
   let two_pi = 2.0 *. 3.14159265358979323846 in
   let sigma2 = sigma ** 2. in
   let rec rand_pair () =
@@ -316,7 +316,7 @@ let gaussian mu sigma =
         (x -. mu) ** 2. /. (2. *. sigma2)))
 
 
-(** [beta a b] is a beta distribution of parameters [a] and [b].
+(** [beta(a, b)] is a beta distribution of parameters [a] and [b].
     @see<https://en.wikipedia.org/wiki/Beta_distribution>
  *)
 let beta =
@@ -335,10 +335,10 @@ let beta =
       let d = shape -. 1. /. 3. in
       let c = 1. /. sqrt (9. *. d) in
       let rec loop () =
-        let x = ref (draw (gaussian 0. 1.)) in
+        let x = ref (draw (gaussian(0., 1.))) in
         let v = ref (1. +. c *. !x) in
         while !v <= 0. do
-          x := draw (gaussian 0. 1.);
+          x := draw (gaussian(0., 1.));
           v := 1. +. c *. !x;
         done;
         let log_v = 3. *. log !v in
@@ -356,7 +356,7 @@ let beta =
   let log_beta a b =
     log_gamma a +. log_gamma b -. log_gamma (a +. b)
   in
-  fun a b ->
+  fun (a, b) ->
     assert (a > 0.);
     assert (b > 0.);
     let draw () =
@@ -381,18 +381,18 @@ let beta =
     in
     Dist_sampler (draw, score)
 
-(** [sph_gaussian mus sigmas] is a multivariate normal distribution.
+(** [sph_gaussian(mus, sigmas)] is a spherical normal distribution.
     @see<https://en.wikipedia.org/wiki/Multivariate_normal_distribution>
 *)
-let sph_gaussian mus sigmas =
-  multivariate (List.map2 gaussian mus sigmas)
+let sph_gaussian (mus, sigmas) =
+  of_list (List.map2 (fun mu sigma -> gaussian(mu, sigma)) mus sigmas)
 
 
-(** [uniform_int low up] is a uniform distribution over integers
+(** [uniform_int(low, up)] is a uniform distribution over integers
     between [low] and [up] included.
     @see<https://en.wikipedia.org/wiki/Discrete_uniform_distribution>
 *)
-let uniform_int low up =
+let uniform_int (low, up) =
   let draw () =
     Random.int (up - low + 1) + low
   in
@@ -401,11 +401,11 @@ let uniform_int low up =
   in
   Dist_sampler (draw, score)
 
-(** [uniform_float low up] is a uniform distribution over floating
+(** [uniform_float(low, up)] is a uniform distribution over floating
     points number between [low] and [up] included.
     @see<https://en.wikipedia.org/wiki/Uniform_distribution_(continuous)>
 *)
-let uniform_float low up =
+let uniform_float (low, up) =
   let draw () =
       Random.float (up -. low) +. low
   in

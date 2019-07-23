@@ -36,6 +36,9 @@ val observe_conditional : pstate -> string -> ('a, 'b) random_var -> ('b, 'c) cd
 val infer :
   int -S-> (pstate * 'a -D-> 'b) -S-> 'a -D-> 'b Distribution.t
 
+val infer_ess_resample :
+  int -S-> float -S-> (pstate * 'a -D-> 'b) -S-> 'a -D-> 'b Distribution.t
+
 val mean : ('a, float) random_var -> float
 
 val forget : ('a, 'b) random_var -AD-> unit

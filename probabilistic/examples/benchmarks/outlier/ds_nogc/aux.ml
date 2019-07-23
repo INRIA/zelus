@@ -48,7 +48,7 @@ let get_mean (type a) : (bool * float Infer_ds.expr) Distribution.t -> float =
                 begin match lst with
                 | [] -> 0.
                 | ((_, e), p) :: rst ->
-                    begin match e with
+                    begin match e.Infer_ds.value with
                     | Infer_ds.Ervar (RV v) ->
                         graft v;
                         begin match v.state with
@@ -77,7 +77,7 @@ let particles_tostring (type a) : (bool * float Infer_ds.expr) Distribution.t ->
                 begin match lst with
                 | [] -> ""
                 | ((outl, e), p) :: rst ->
-                    match e with
+                    match e.Infer_ds.value with
                     | Infer_ds.Ervar (RV v) ->
                         graft v;
                         begin match v.state with

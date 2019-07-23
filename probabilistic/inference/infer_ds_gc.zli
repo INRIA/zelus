@@ -2,7 +2,7 @@
 
 type pstate = Infer_ds_ll_gc.pstate
 
-val factor : Infer.pstate * float -AD-> unit
+val factor : Infer_pf.pstate * float -AD-> unit
 
 type 'a expr
 type 'a distribution

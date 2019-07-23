@@ -10,7 +10,7 @@ OCAMLDEP=ocamldep
 OCAMLC=ocamlc
 OCAMLOPT=ocamlopt
 
-NAME=delay_hl_kalman
+NAME=ex2_ds
 
 all: opt
 

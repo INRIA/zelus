@@ -1,15 +1,15 @@
-open Infer
+open Infer_pf
 
 let node delay_kalman (prob, yobs) =
   let rec automaton
       | Init ->
-          do xt = sample (prob, Distribution.gaussian 0. 100.)
+          do xt = sample (prob, Distribution.gaussian (0., 100.))
           then Run
       | Run ->
-          do xt = sample (prob, Distribution.gaussian (last xt) 1.)
+          do xt = sample (prob, Distribution.gaussian (last xt, 1.))
           done
       end
-  and () = factor (prob, Distribution.score (Distribution.gaussian xt 1.) yobs)
+  and () = factor (prob, Distribution.score (Distribution.gaussian (xt, 1.), yobs))
   and t = 1 fby (t + 1)
   (* and init xt = assume_constant "x0" (mgaussian 0. 1.) *)
   in

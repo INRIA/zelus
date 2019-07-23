@@ -1,18 +1,18 @@
 open Distribution
-open Infer
+open Infer_pf
 
 let node outlier (prob, yobs) =
-    let init x0 = Distribution.draw (gaussian 0. 100.) in
-    let init clutter_prob = Distribution.draw (beta 100. 1000.) in
+    let init x0 = Distribution.draw (gaussian (0., 100.)) in
+    let init clutter_prob = Distribution.draw (beta (100., 1000.)) in
 
-    let rec x = x0 -> Distribution.draw (gaussian (pre x) 1.) in
-    let clutter = Distribution.draw (gaussian 0. 100.) in
+    let rec x = x0 -> Distribution.draw (gaussian (pre x, 1.)) in
+    let clutter = Distribution.draw (gaussian (0., 100.)) in
     let is_clutter = Distribution.draw (bernoulli clutter_prob) in
 
     let () = (if is_clutter then
-        factor (prob, Distribution.score (gaussian 0. 100.) yobs)
+        factor (prob, Distribution.score (gaussian (0., 100.), yobs))
     else
-        factor (prob, Distribution.score (gaussian x 1.) yobs)) in
+        factor (prob, Distribution.score (gaussian (x, 1.), yobs))) in
     (is_clutter, x)
 
 let node main particles (tr, observed) =

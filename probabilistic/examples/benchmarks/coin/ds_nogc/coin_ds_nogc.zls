@@ -3,7 +3,7 @@ open Infer_ds
 let node coin (prob, yobs) =
   let rec automaton
       | Init ->
-          do xt = sample (prob, beta 1. 1.)
+          do xt = sample (prob, beta (1., 1.))
           then Run
       | Run ->
           do xt = (last xt)

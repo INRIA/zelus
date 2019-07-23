@@ -1,11 +1,11 @@
 open Ztypes
-open Infer
+open Infer_pf
 
-type pstate = Infer.pstate
+type pstate = Infer_pf.pstate
 
-let sample = Infer.sample
-let factor = Infer.factor
-
+let sample = Infer_pf.sample
+let factor = Infer_pf.factor
+let observe = Infer_pf.observe
 
 
 let infer_decay n decay (Node { alloc; reset; step }) =

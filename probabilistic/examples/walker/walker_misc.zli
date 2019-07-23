@@ -1,4 +1,4 @@
-open Infer
+open Infer_pf
 val pi : float
 type motion_type = Stationary | Walking | Running
 type walker = {

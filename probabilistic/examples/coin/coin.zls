@@ -1,5 +1,5 @@
 open Distribution
-open Infer
+open Infer_pf
 (* open Infer_importance *)
 
 
@@ -12,9 +12,9 @@ let node print_stats name (m, s) =
   print_newline ()
 
 let node coin (prob, flip) = theta where
-  rec init theta = sample (prob, uniform_float 0. 1.)
+  rec init theta = sample (prob, uniform_float(0.,1.))
   and () = factor (prob,
-                   Distribution.score (bernoulli theta) flip)
+                   Distribution.score (bernoulli theta, flip))
 
 let node cheater_detector flip = (cheater, m) where
   rec automaton
@@ -43,8 +43,9 @@ let node print_bool b =
 (*   let result = Distribution.mean_float o in *)
 (*   print_float result; print_newline () *)
 
+let random_init = Random.self_init ()
 
- let node main () = () where
+let node main () = () where
   rec b = (* flips (1, 10) *) Distribution.draw (bernoulli 0.2)
   and cheater, m = cheater_detector b
   and init dummy = ()
