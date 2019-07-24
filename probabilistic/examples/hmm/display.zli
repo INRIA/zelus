@@ -2,7 +2,7 @@ val clear : unit -AD-> unit
 val mouse_pos : unit -> int * int
 val draw_point : Graphics.color -> float list -AD-> unit
 val draw_point_dist : float list Distribution.t -AD-> unit
-val draw_point_dist_ds : (float Infer_ds.expr * float Infer_ds.expr) Distribution.t -AD-> unit
+val draw_point_dist_ds : (float * float) Distribution.t -AD-> unit
 val speed_x : float
 val speed_y : float
 val speed : float list

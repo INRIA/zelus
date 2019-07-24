@@ -43,7 +43,6 @@ and ('a, 'b) dsdistr =
   | CDistr : ('z, 'm1) rv * ('m1, 'm2) cdistr -> ('m1, 'm2) dsdistr
     (** conditional distribution *)
 
-
 and 'b rv_from =
   RV_from : ('b, 'c) rv -> 'b rv_from
 
@@ -305,15 +304,20 @@ let obs (type a) (type b): pstate -> b mtype -> (a, b) rv -> unit =
   graft n;
   observe prob x n
 
-let rec get_value: 'a 'b. ('a, 'b) rv -> 'b mtype =
+let rec value: 'a 'b. ('a, 'b) rv -> 'b mtype =
   fun n ->
   begin match n.state with
     | Realized x -> x
     | _ ->
         graft n;
         sample n;
-        get_value n
+        value n
   end
+
+let fvalue: 'a 'b. ('a, 'b) rv -> 'b mtype =
+  fun n ->
+  value (Normalize.copy n)
+
 
 (* forget' :: IORef (Node a b) -> IO () *)
 let forget (type a) (type b): (a, b) rv -> unit =
@@ -401,9 +405,8 @@ let observe_conditional (type a) (type b) (type c):
   let y = assume_conditional str n cdistr in
   obs prob observation y
 
-let infer = Infer_pf.infer
-let infer_ess_resample = Infer_pf.infer_ess_resample
-
+(* let infer = Infer_pf.infer *)
+(* let infer_ess_resample = Infer_pf.infer_ess_resample *)
 
 let rec stale : 'a 'b. ('a, 'b) rv -> bool =
   fun n ->

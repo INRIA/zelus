@@ -2,29 +2,34 @@
 
 type pstate = Infer_ds_ll.pstate
 
-val factor : Infer_pf.pstate * float -AD-> unit
-
 type 'a expr
-type 'a distribution
-val eval_float : float expr -> float
-val eval_bool : bool expr -> bool
-type 'a ds_distribution
 
 val const : 'a -> 'a expr
-val plus : float expr -> float expr -> float expr
-val mult : float expr -> float expr -> float expr
+val plus : float expr * float expr -> float expr
+val ( +~ ) : float expr -> float expr -> float expr
+val mult : float expr * float expr -> float expr
+val ( *~ ) : float expr -> float expr -> float expr
+val app : ('a -> 'b) expr * 'a expr -> 'b expr
+val ( @@~ ) : ('a -> 'b) expr -> 'a expr -> 'b expr
+val pair : 'a expr * 'b expr -> ('a * 'b) expr
 
+val eval : 'a expr -> 'a
+
+type 'a ds_distribution
+
+val of_distribution : 'a Distribution.t -> 'a ds_distribution
+val gaussian : float expr * float -> float ds_distribution
+val beta : float * float -> float ds_distribution
+val bernoulli : float expr -> bool ds_distribution
+
+val factor : Infer_pf.pstate * float -AD-> unit
 val sample : (pstate * 'a ds_distribution -AD-> 'a expr)
 val observe : (pstate * 'a ds_distribution * 'a -AD-> unit)
 
-val ds_distr_of_distr : 'a Distribution.t -> 'a ds_distribution
-val gaussian : float expr * float -> float ds_distribution
-val beta : float * float -> float ds_distribution
-val bernoulli :
-  float expr -> bool ds_distribution
-
-
 val infer :
-  int -S-> (pstate * 'a -D-> 'b) -S-> 'a -D-> 'b Distribution.t
+  int -S-> (pstate * 'a -D-> 'b expr) -S-> 'a -D-> 'b Distribution.t
+
+val infer_ess_resample :
+  int -S-> float -S-> (pstate * 'a -D-> 'b expr) -S-> 'a -D-> 'b Distribution.t
 
 val mean_expr : float expr -> float

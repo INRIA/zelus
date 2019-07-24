@@ -1,10 +1,9 @@
 (** Inference with delayed sampling *)
+open Ztypes
 
 type pstate = Infer_ds_ll.pstate
 
 let factor = Infer_ds_ll.factor
-
-let infer = Infer_ds_ll.infer
 
 type 'a random_var = RV : ('b, 'a) Infer_ds_ll.rv -> 'a random_var
 
@@ -13,71 +12,98 @@ type _ expr_tree =
     | Ervar : 'a random_var -> 'a expr_tree
     | Eplus : float expr * float expr -> float expr_tree
     | Emult : float expr * float expr -> float expr_tree
+    | Eapp : ('a -> 'b) expr * 'a expr -> 'b expr_tree
+    | Epair : 'a expr * 'b expr -> ('a * 'b) expr_tree
 and 'a expr = {
-    mutable value : 'a expr_tree;
+  mutable value : 'a expr_tree;
 }
 
-let const : 'a. 'a -> 'a expr = 
+let const : 'a. 'a -> 'a expr =
     begin fun v ->
-        {
-            value = Econst v;
-        }
+        { value = Econst v; }
     end
 
-let plus : float expr -> float expr -> float expr =
-    begin fun e1 e2 ->
-        {
-            value = Eplus (e1, e2);
-        }
+let plus : float expr * float expr -> float expr =
+    begin fun (e1, e2) ->
+      begin match e1.value, e2.value with
+      | Econst x, Econst y -> { value = Econst (x +. y); }
+      | _ -> { value = Eplus (e1, e2); }
+      end
     end
 
-let mult : float expr -> float expr -> float expr =
-    begin fun e1 e2 ->
-        {
-            value = Emult(e1,e2);
-        }
+let ( +~ ) x y = plus (x, y)
+
+let mult : float expr * float expr -> float expr =
+    begin fun (e1, e2) ->
+      begin match e1.value, e2.value with
+      | Econst x, Econst y -> { value = Econst (x *. y); }
+      | Ervar x, Econst y -> { value = Emult(e2, e1); }
+      | _ -> { value = Emult(e1, e2); }
+      end
     end
 
-type 'a distribution =
-  | DS_gaussian of float expr * float
+let ( *~ ) x y = mult (x, y)
 
-let rec eval_float : float expr -> float =
+let app  : type t1 t2. (t1 -> t2) expr * t1 expr -> t2 expr =
+    begin fun (e1, e2) ->
+      begin match e1.value, e2.value with
+      | Econst f, Econst x -> { value = Econst (f x); }
+      | _ -> { value = Eapp(e1, e2); }
+      end
+    end
+
+let ( @@~ ) f e = app (f, e)
+
+let pair (e1, e2) =
+  { value = Epair (e1, e2) }
+
+let rec eval : type t. t expr -> t =
     begin fun e ->
-        let ret = 
-            begin match e.value with
-            | Econst v -> v
-            | Ervar (RV x) -> Infer_ds_ll.get_value x
-            | Eplus (e1, e2) -> eval_float e1 +. eval_float e2
-            | Emult (e1, e2) -> eval_float e1 *. eval_float e2
-            end
-        in
-
-        e.value <- Econst ret;
-        ret
+      begin match e.value with
+        | Econst v -> v
+        | Ervar (RV x) ->
+            let v = Infer_ds_ll.value x in
+            e.value <- Econst v;
+            v
+        | Eplus (e1, e2) ->
+            let v = eval e1 +. eval e2 in
+            e.value <- Econst v;
+            v
+        | Emult (e1, e2) ->
+            let v = eval e1 *. eval e2 in
+            e.value <- Econst v;
+            v
+        | Eapp (e1, e2) ->
+            let v = (eval e1) (eval e2) in
+            e.value <- Econst v;
+            v
+        | Epair (e1, e2) ->
+            let v = (eval e1, eval e2) in
+            e.value <- Econst v;
+            v
+      end
     end
 
-let eval_bool : bool expr -> bool =
+let rec fval : type t. t expr -> t =
     begin fun e ->
-        let ret =
-            begin match e.value with
-            | Econst v -> v
-            | Ervar (RV x) -> Infer_ds_ll.get_value x
-            end
-        in
-
-        e.value <- Econst ret;
-        ret
+      begin match e.value with
+        | Econst v -> v
+        | Ervar (RV x) -> Infer_ds_ll.fvalue x
+        | Eplus (e1, e2) -> fval e1 +. fval e2
+        | Emult (e1, e2) -> fval e1 *. fval e2
+        | Eapp (e1, e2) -> (fval e1) (fval e2)
+        | Epair (e1, e2) -> (fval e1, fval e2)
+      end
     end
 
-
-let rec string_of_expr e = 
+let rec string_of_expr e =
     begin match e.value with
     | Econst v -> string_of_float v
     | Ervar (RV x) -> "Random"
     | Eplus (e1, e2) -> "(" ^ string_of_expr e1 ^ " + " ^ string_of_expr e2 ^ ")"
     | Emult (e1, e2) -> "(" ^ string_of_expr e1 ^ " * " ^ string_of_expr e2 ^ ")"
+    | Eapp (e1, e2) -> "App"
     end
-    
 
 let rec mean_expr : float expr -> float =
   function e ->
@@ -91,8 +117,10 @@ let rec mean_expr : float expr -> float =
     | Emult (_, _) ->
       (print_string "Cannot compute the mean of multiplication.\n");
       assert false
+    | Eapp (_, _) ->
+      (print_string "Cannot compute the mean of an application.\n");
+      assert false
     end
-
 
 (* High level delayed sampling distribution (pdistribution in Haskell) *)
 type 'a ds_distribution =
@@ -105,7 +133,7 @@ let sample (prob, ds_distr) =
 let observe (prob, ds_distr, o) =
   ds_distr.iobserve(prob, o)
 
-let ds_distr_of_distr d =
+let of_distribution d =
   { isample = (fun prob -> const (Distribution.draw d));
     iobserve = (fun (prob, obs) -> factor (prob, Distribution.score(d, obs))); }
 
@@ -115,7 +143,7 @@ let ds_distr_with_fallback d is iobs =
     (fun () ->
        begin match !state with
        | None ->
-           let dsd = ds_distr_of_distr (d()) in
+           let dsd = of_distribution (d()) in
            state := Some dsd;
            dsd
        | Some dsd -> dsd
@@ -163,6 +191,7 @@ let rec affine_of_expr : float expr -> affine_expr option =
             | (Some (AEconst v), Some (AErvar (m, x, b))) -> Some (AErvar (m *. v, x, b *. v))
             | _ -> None
             end
+        | Eapp (e1, e2) -> None
         end
     end
 
@@ -170,29 +199,8 @@ let rec affine_of_expr : float expr -> affine_expr option =
 
 (** Gaussian distribution (gaussianPD in Haskell) *)
 let gaussian(mu, std) =
-  let d () = Distribution.gaussian(eval_float mu, std) in
+  let d () = Distribution.gaussian(eval mu, std) in
   let is prob =
-    (*
-    let mu' = const_of_realized mu in
-    begin match get_affine1 mu' with
-      | None -> None
-      | Some (b, mx) ->
-          begin match mx with
-            | None ->
-               let rv = Infer_ds_ll.assume_constant "" (MGaussian(b, std)) in
-               Some (forgettable_var rv)
-            | Some (RV par, m) ->
-                let ty = type_of_random_var (RV par) in
-                begin match ty with
-                | MGaussianT ->
-                    let nref = Infer_ds_ll.assume_conditional "" par (AffineMeanGaussian(m, b, std)) in
-                    Some (forgettable_var nref)
-                | _ -> None
-                end
-          end
-    end
-    *)
-
     begin match affine_of_expr mu with
     | Some (AEconst v) ->
       let rv = Infer_ds_ll.assume_constant "" (MGaussian(v, std)) in
@@ -209,23 +217,6 @@ let gaussian(mu, std) =
     end
   in
   let iobs (prob, obs) =
-    (*
-    let mu' = const_of_realized mu in
-    begin match get_affine1 mu' with
-      | None ->
-          None
-      | Some (b, None) ->
-          None
-      | Some (b, Some (RV par, m)) ->
-          let ty = type_of_random_var (RV par) in
-          begin match ty with
-          | MGaussianT ->
-              Some (Infer_ds_ll.observe_conditional prob "" par (AffineMeanGaussian(m, b, std)) obs)
-          | _ ->
-              None
-          end
-    end
-    *)
     begin match affine_of_expr mu with
     | Some (AEconst v) ->
       None
@@ -251,7 +242,7 @@ let beta(a, b) =
 
 (** Bernoulli distribution (bernoulliPD in Haskell) *)
 let bernoulli p =
-  let d () = Distribution.bernoulli (eval_float p) in
+  let d () = Distribution.bernoulli (eval p) in
   let with_beta_prior f =
     begin match p.value with
       | Ervar (RV par) ->
@@ -275,3 +266,10 @@ let bernoulli p =
   ds_distr_with_fallback d is iobs
 
 
+let infer n (Node { alloc; reset; step; }) =
+  let step state (prob, x) = fval (step state (prob, x)) in
+  Infer_pf.infer n (Node { alloc; reset; step; })
+
+let infer_ess_resample n threshold (Node { alloc; reset; step; }) =
+  let step state (prob, x) = fval (step state (prob, x)) in
+  Infer_pf.infer_ess_resample n threshold (Node { alloc; reset; step; })

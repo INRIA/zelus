@@ -404,15 +404,20 @@ let obs (type a) (type b): pstate -> b mtype -> (a, b) random_var -> unit =
   graft n;
   observe prob x n
 
-let rec get_value: 'a 'b. ('a, 'b) random_var -> 'b mtype =
+let rec value: 'a 'b. ('a, 'b) random_var -> 'b mtype =
   fun n ->
   begin match n.state with
     | Realized x -> x
     | _ ->
         graft n;
         sample n;
-        get_value n
+        value n
   end
+
+let fvalue: 'a 'b. ('a, 'b) random_var -> 'b mtype =
+  fun n ->
+  value (Normalize.copy n)
+
 
 let draw (type a) (type b) : (a, b) random_var -> b mtype =
   fun n ->
