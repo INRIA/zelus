@@ -30,11 +30,14 @@ type log_proba = float
 type 'a t =
   | Dist_sampler of ((unit -> 'a) * ('a -> log_proba))
   | Dist_support of ('a * proba) list
+  (* | Dist_mixture of ('a t) t *)
+  | Dist_mixture of ('a t * proba) list
 
 (** {2 Draw and score}*)
 
 (** [draw dist] draws a value form the distribution [dist] *)
-let draw dist =
+let rec draw : type a. a t -> a =
+  fun dist ->
   begin match dist with
     | Dist_sampler (sampler, _) -> sampler ()
     | Dist_support sup ->
@@ -49,17 +52,29 @@ let draw dist =
         end
       in
       draw 0. sup
+    | Dist_mixture l ->
+      let d' = draw (Dist_support l) in
+      draw d'
   end
 
 (** [score(dist, x)] returns the log probability of the value [x] in the
     distribution [dist].
 *)
-let score (dist, x) =
+let rec score : type a. a t * a -> log_proba =
+  fun (dist, x) ->
   begin match dist with
     | Dist_sampler (_, scorer) -> scorer x
     | Dist_support sup ->
       log (try List.assoc x sup
            with Not_found -> 0.)
+    | Dist_mixture (l) ->
+        let p =
+          List.fold_left
+            (fun acc (d', p) -> acc +. p *. exp(score (d', x)))
+            1. l
+        in
+        log p
+
   end
 
 (** [draw dist] draws a value form the distribution [dist] and returns
@@ -82,6 +97,9 @@ let draw_and_score dist =
         end
       in
       draw  0. sup
+    | Dist_mixture l ->
+        let x = draw dist in
+        x, (score (dist, x))
   end
 
 
@@ -110,7 +128,7 @@ let of_pair (dist1, dist2) =
 (** [split dist] turns a distribution of pairs into a pair of
     distributions.
 *)
-let split dist =
+let rec split dist =
   begin match dist with
   | Dist_sampler (draw, score) ->
       Dist_sampler ((fun () -> fst (draw ())), (fun _ -> assert false)),
@@ -139,12 +157,22 @@ let split dist =
           support
       in
       (Dist_support s1, Dist_support s2)
+  | Dist_mixture l ->
+      let s1, s2 =
+        List.fold_left
+          (fun (acc1, acc2) (d, p) ->
+             let d1, d2 = split d in
+             ((d1,p)::acc1, (d2,p)::acc2))
+          ([], [])
+          l
+      in
+      (Dist_mixture s1, Dist_mixture s2)
   end
 
 (** [split_array dist] turns a distribution of arrays into an array of
     distributions.
 *)
-let split_array dist =
+let rec split_array dist =
   begin match dist with
   | Dist_sampler (draw, score) ->
       (* We assume that all arrays in the distribution have the same length. *)
@@ -156,9 +184,7 @@ let split_array dist =
            Dist_sampler (draw, score))
   | Dist_support [] -> Array.make 0 (Dist_support [])
   | Dist_support (((a0, p) :: _) as support) ->
-      let supports =
-        Array.make (Array.length a0) []
-      in
+      let supports = Array.make (Array.length a0) [] in
       List.iter
         (fun (a, p) ->
            let add_p o =
@@ -174,25 +200,36 @@ let split_array dist =
              a)
         support;
       Array.map (fun supp -> Dist_support supp) supports
+  | Dist_mixture [] -> Array.make 0 (Dist_mixture [])
+  | Dist_mixture ((d0, p0) :: l) ->
+      let a0 = split_array d0 in
+      let accs = Array.map (fun d -> [(d,p0)]) a0 in
+      List.iter
+        (fun (di, pi) ->
+           let ai = split_array di in
+           Array.iteri (fun i d -> accs.(i) <- (d, pi) :: accs.(i)) ai)
+        l;
+      Array.map (fun acc -> Dist_mixture acc) accs
   end
 
 
 (** [split_list dist] turns a distribution of lists into a list of
     distributions.
 *)
-let split_list dist =
+let rec split_list =
+  let rec map2' f1 f2 f12 l1 l2 =
+    begin match l1, l2 with
+      | l1, [] -> List.map f1 l1
+      | [], l2 -> List.map f2 l2
+      | x1::l1, x2::l2 -> f12 x1 x2 :: (map2' f1 f2 f12 l1 l2)
+    end
+  in
+  fun dist ->
   begin match dist with
   | Dist_sampler (draw, score) ->
       assert false (* XXX TODO XXX *)
   | Dist_support [] -> []
   | Dist_support sup ->
-      let rec map2' f1 f2 f12 l1 l2 =
-        begin match l1, l2 with
-        | l1, [] -> List.map f1 l1
-        | [], l2 -> List.map f2 l2
-        | x1::l1, x2::l2 -> f12 x1 x2 :: (map2' f1 f2 f12 l1 l2)
-        end
-      in
       let split =
         List.fold_left
           (fun accs (l, w) ->
@@ -204,14 +241,29 @@ let split_list dist =
           [] sup
       in
       List.map (fun l -> Dist_support l) split
+  | Dist_mixture [] -> []
+  | Dist_mixture (l) ->
+      let l =
+        List.fold_left
+          (fun accs (d, w) ->
+             let l = split_list d in
+             map2'
+               (fun acc -> acc)
+               (fun d -> [(d, w)])
+               (fun acc d -> (d, w)::acc)
+               accs l)
+          [] l
+      in
+      List.map (fun l -> Dist_mixture l) l
   end
+
 
 (** [stats_float d] computes the mean and stddev of a [float
     Distribution.t].
 *)
-let stats_float d =
-  match d with
-  | Dist_sampler _ ->
+let rec stats_float dist =
+  begin match dist with
+  | Dist_sampler (draw, _) ->
     let rec stats n sum sq_sum =
       begin match n with
       | 100000 ->
@@ -219,7 +271,7 @@ let stats_float d =
 	let stddev = sqrt (sq_sum /. (float n) -. mean *. mean) in
 	mean, stddev
       | _ ->
-	let x = draw d in
+	let x = draw () in
 	stats (n+1) (sum +. x) (sq_sum +. x*.x)
       end
     in stats 0 0. 0.
@@ -234,19 +286,39 @@ let stats_float d =
 	stats t (sum +. v *. w) (sq_sum +. w *. v *. v)
       end
     in stats sup 0. 0.
-
+  | Dist_mixture l ->
+      (* https://stats.stackexchange.com/questions/16608/what-is-the-variance-of-the-weighted-mixture-of-two-gaussians *)
+      let rec stats l sum sq_sum sq_var_sum =
+        begin match l with
+        | [] ->
+            let mean = sum in
+            let std = sqrt (sq_var_sum +. sq_sum -. sum *. sum) in
+            (mean, std)
+        | (d, w) :: l ->
+            let m, s = stats_float d in
+            stats l
+              (sum +. w *. m)
+              (sq_sum +. w *. m *. m)
+              (sq_var_sum +. w *. s *. s)
+        end
+      in
+      stats l 0. 0. 0.
+  end
 
 
 (** [mean_float d] computes the mean of a [float Distribution.t]. *)
-let mean_float d =
-  match d with
-  | Dist_sampler _ ->
+let rec mean_float d =
+  begin match d with
+  | Dist_sampler (draw, _) ->
     let n = 100000 in
     let acc = ref 0. in
-    for i = 1 to n do acc := !acc +. draw d done;
+    for i = 1 to n do acc := !acc +. draw () done;
     !acc /. (float n)
   | Dist_support sup ->
     List.fold_left (fun acc (v, w) -> acc +. v *. w) 0. sup
+  | Dist_mixture l ->
+    List.fold_left (fun acc (d, w) -> acc +. w *. mean_float d) 0. l
+  end
 
 
 (** [stats_float_list d] computes the mean and stddev of a
@@ -261,16 +333,18 @@ let mean_float_list d =
   let ls = split_list d in
   List.map (fun l -> mean_float l) ls
 
-let mean (type a) : (a -> float) -> a t -> float =
-  begin fun meanfn d  ->
-    match d with
-    | Dist_sampler _ ->
+let rec mean : type a. (a -> float) -> a t -> float =
+  begin fun meanfn dist  ->
+    match dist with
+    | Dist_sampler (draw, _) ->
       let n = 100000 in
       let acc = ref 0. in
-      for i = 1 to n do acc := !acc +. (meanfn (draw d)) done;
+      for i = 1 to n do acc := !acc +. (meanfn (draw ())) done;
       !acc /. (float n)
     | Dist_support sup ->
       List.fold_left (fun acc (v, w) -> acc +. w *. (meanfn v)) 0. sup
+    | Dist_mixture l ->
+      List.fold_left (fun acc (d, w) -> acc +. w *. mean meanfn d) 0. l
   end
 
 let mean_list (type a) : (a -> float) -> a list t -> float list =
