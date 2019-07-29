@@ -304,7 +304,7 @@ let obs (type a) (type b): pstate -> b mtype -> (a, b) rv -> unit =
   graft n;
   observe prob x n
 
-let rec value: 'a 'b. ('a, 'b) rv -> 'b mtype =
+let rec value: 'a 'b. ('a, 'b) rv -> 'b =
   fun n ->
   begin match n.state with
     | Realized x -> x
@@ -314,10 +314,18 @@ let rec value: 'a 'b. ('a, 'b) rv -> 'b mtype =
         value n
   end
 
-let fvalue: 'a 'b. ('a, 'b) rv -> 'b mtype =
+let fvalue: 'a 'b. ('a, 'b) rv -> 'b =
   fun n ->
   value (Normalize.copy n)
 
+let distribution_of_rv : 'a 'b. ('a, 'b) rv -> 'b Distribution.t =
+  fun n ->
+  let x = Normalize.copy n in
+  let draw () = fvalue x in
+  let score v =
+    assert false (* XXX TODO XXX *)
+  in
+  Dist_sampler(draw, score)
 
 (* forget' :: IORef (Node a b) -> IO () *)
 let forget (type a) (type b): (a, b) rv -> unit =

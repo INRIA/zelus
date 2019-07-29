@@ -418,6 +418,14 @@ let fvalue: 'a 'b. ('a, 'b) random_var -> 'b mtype =
   fun n ->
   value (Normalize.copy n)
 
+let distribution_of_rv : 'a 'b. ('a, 'b) random_var -> 'b Distribution.t =
+  fun n ->
+  let x = Normalize.copy n in
+  let draw () = fvalue x in
+  let score v =
+    assert false (* XXX TODO XXX *)
+  in
+  Dist_sampler(draw, score)
 
 let draw (type a) (type b) : (a, b) random_var -> b mtype =
   fun n ->

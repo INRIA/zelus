@@ -266,10 +266,78 @@ let bernoulli p =
   ds_distr_with_fallback d is iobs
 
 
+(** Inference *)
+
+type _ expr_dist =
+    | EDconst : 'a -> 'a expr_dist
+    | EDdistr : 'a Distribution.t -> 'a expr_dist
+    | EDplus : float expr_dist * float expr_dist -> float expr_dist
+    | EDmult : float expr_dist * float expr_dist -> float expr_dist
+    | EDapp : ('a -> 'b) expr_dist * 'a expr_dist -> 'b expr_dist
+    | EDpair : 'a expr_dist * 'b expr_dist -> ('a * 'b) expr_dist
+
+
+let rec expr_dist_of_expr : type a. a expr -> a expr_dist =
+  fun expr ->
+  begin match expr.value with
+  | Econst c -> EDconst c
+  | Ervar (RV x) -> EDdistr (Infer_ds_ll.distribution_of_rv x)
+  | Eplus (e1, e2) -> EDplus(expr_dist_of_expr e1, expr_dist_of_expr e2)
+  | Emult (e1, e2) -> EDmult(expr_dist_of_expr e1, expr_dist_of_expr e2)
+  | Eapp (e1, e2) -> EDapp(expr_dist_of_expr e1, expr_dist_of_expr e2)
+  | Epair (e1, e2) -> EDpair(expr_dist_of_expr e1, expr_dist_of_expr e2)
+  end
+
+let distribution_of_expr : type a. a expr -> a Distribution.t =
+  let rec draw : type a. a expr_dist -> a =
+    fun exprd ->
+      begin match exprd with
+      | EDconst c -> c
+      | EDdistr d -> Distribution.draw d
+      | EDplus (ed1, ed2) -> draw ed1 +. draw ed2
+      | EDmult (ed1, ed2) -> draw ed1 *. draw ed2
+      | EDapp (ed1, ed2) -> (draw ed1) (draw ed2)
+      | EDpair (ed1, ed2) -> (draw ed1, draw ed2)
+      end
+  in
+  let rec score : type a. a expr_dist * a -> float =
+    fun (exprd, v) ->
+    begin match exprd with
+    | EDconst c -> if c = v then 0. else log 0.
+    | EDdistr d -> Distribution.score (d, v)
+    | EDplus (EDconst c, ed) -> score (ed, v -. c)
+    | EDplus (ed, EDconst c) -> score (ed, v -. c)
+    | EDplus (ed1, ed2) -> assert false (* do not know how to inverse *)
+    | EDmult (EDconst c, ed) -> score (ed, v /. c)
+    | EDmult (ed, EDconst c) -> score (ed, v /. c)
+    | EDmult (ed1, ed2) -> assert false (* do not know how to inverse *)
+    | EDapp (ed1, ed2) -> assert false (* do not know how to inverse ed1 *)
+    | EDpair (ed1, ed2) ->
+        (* XXX TO CHECK XXX *)
+        let v1, v2 = v in
+        score (ed1, v1) +. score (ed2, v2)
+    end
+  in
+  fun expr ->
+    let exprd = expr_dist_of_expr expr in
+    Dist_sampler ((fun () -> draw exprd), (fun v -> score(exprd, v)))
+
 let infer n (Node { alloc; reset; step; }) =
-  let step state (prob, x) = fval (step state (prob, x)) in
-  Infer_pf.infer n (Node { alloc; reset; step; })
+  let step state (prob, x) = distribution_of_expr (step state (prob, x)) in
+  let Node {alloc = infer_alloc; reset = infer_reset; step = infer_step;} =
+    Infer_pf.infer n (Node { alloc; reset; step; })
+  in
+  let infer_step state i =
+    Distribution.to_mixture (infer_step state i)
+  in
+  Node {alloc = infer_alloc; reset = infer_reset; step = infer_step;}
 
 let infer_ess_resample n threshold (Node { alloc; reset; step; }) =
-  let step state (prob, x) = fval (step state (prob, x)) in
-  Infer_pf.infer_ess_resample n threshold (Node { alloc; reset; step; })
+  let step state (prob, x) = distribution_of_expr (step state (prob, x)) in
+  let Node {alloc = infer_alloc; reset = infer_reset; step = infer_step;} =
+    Infer_pf.infer_ess_resample n threshold (Node { alloc; reset; step; })
+  in
+  let infer_step state i =
+    Distribution.to_mixture (infer_step state i)
+  in
+  Node {alloc = infer_alloc; reset = infer_reset; step = infer_step;}

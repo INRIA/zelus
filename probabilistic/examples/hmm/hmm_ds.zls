@@ -39,6 +39,6 @@ let node hmm (prob, (obs_x, obs_y)) = pair (p_x, p_y) where
 let node main () =
   let obs = sensor () in
   present obs(o) ->
-    let pos_dist = infer 1000 hmm o in
+    let pos_dist = infer 10 hmm o in
     display(o, pos_dist)
   else ()

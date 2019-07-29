@@ -44,6 +44,7 @@ let draw_point_dist dist =
            if i mod len = 0 then decr color;
            draw_point (Graphics.rgb !color !color !color) pos)
         support
+  | Dist_mixture _ -> assert false
   end
 
 let draw_point_dist_ds dist =
@@ -70,6 +71,24 @@ let draw_point_dist_ds dist =
            (* (\*     draw_point (Graphics.rgb !color !color !color) [x; y] *\) *)
            (* (\* | _ -> assert false *\) *)
            (* (\* end *\) *)
+        )
+        support;
+      ()
+  | Dist_mixture support ->
+      let support =
+        List.sort (fun (_, prob1) (_, prob2) -> compare prob1 prob2) support
+      in
+      let len = 1 + (List.length support / 200) in
+      let color = ref (List.length support / len + 1)  in
+      Format.eprintf "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX@.";
+      List.iteri
+        (fun i (pos, prob) ->
+           let pos_x, pos_y = Distribution.split pos in
+           if i mod len = 0 then decr color;
+           let x = mean_float pos_x in
+           let y = mean_float pos_y in
+           Format.eprintf "XXXXXXX %f %f@." x y;
+           draw_point (Graphics.rgb !color !color !color) [x; y]
         )
         support;
       ()

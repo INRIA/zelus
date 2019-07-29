@@ -258,6 +258,20 @@ let rec split_list =
   end
 
 
+(** [to_mixture d] turns a distribution of distributions into a
+    mixture distribution.
+    https://en.wikipedia.org/wiki/Mixture_distribution
+ *)
+let rec to_mixture d =
+  begin match d with
+  | Dist_sampler (draw, score) ->
+      assert false (* XXX TODO XXX *)
+  | Dist_support l ->
+      Dist_mixture l
+  | Dist_mixture l ->
+      Dist_mixture (List.map (fun (d, w) -> (to_mixture d, w)) l)
+  end
+
 (** [stats_float d] computes the mean and stddev of a [float
     Distribution.t].
 *)
