@@ -27,11 +27,13 @@ type proba = float
 type log_proba = float
 
 (** Type of distributions *)
-type 'a t =
-  | Dist_sampler of ((unit -> 'a) * ('a -> log_proba))
-  | Dist_support of ('a * proba) list
+type _ t =
+  | Dist_sampler : ((unit -> 'a) * ('a -> log_proba)) -> 'a t
+  | Dist_sampler_float :
+      ((unit -> float) * (float -> log_proba) * (unit -> float * float)) -> float t
+  | Dist_support : ('a * proba) list -> 'a t
   (* | Dist_mixture of ('a t) t *)
-  | Dist_mixture of ('a t * proba) list
+  | Dist_mixture : ('a t * proba) list -> 'a t
 
 (** {2 Draw and score}*)
 
@@ -40,6 +42,7 @@ let rec draw : type a. a t -> a =
   fun dist ->
   begin match dist with
     | Dist_sampler (sampler, _) -> sampler ()
+    | Dist_sampler_float (sampler, _, _) -> sampler ()
     | Dist_support sup ->
       let sample = Random.float 1.0 in
       (* TODO data structure for more efficient sampling *)
@@ -64,6 +67,7 @@ let rec score : type a. a t * a -> log_proba =
   fun (dist, x) ->
   begin match dist with
     | Dist_sampler (_, scorer) -> scorer x
+    | Dist_sampler_float (_, scorer, _) -> scorer x
     | Dist_support sup ->
       log (try List.assoc x sup
            with Not_found -> 0.)
@@ -82,7 +86,8 @@ let rec score : type a. a t * a -> log_proba =
 *)
 let draw_and_score dist =
   begin match dist with
-    | Dist_sampler (sampler, scorer) ->
+    | Dist_sampler (sampler, scorer)
+    | Dist_sampler_float (sampler, scorer, _) ->
       let x = sampler () in
       x, (scorer x)
     | Dist_support sup ->
@@ -131,7 +136,7 @@ let of_pair (dist1, dist2) =
 let rec split dist =
   begin match dist with
   | Dist_sampler (draw, score) ->
-      Dist_sampler ((fun () -> fst (draw ())), (fun _ -> assert false)),
+     Dist_sampler ((fun () -> fst (draw ())), (fun _ -> assert false)),
       Dist_sampler ((fun () -> snd (draw ())), (fun _ -> assert false))
   (* | Dist_support support -> *)
   (*     let s1, s2 = *)
@@ -289,6 +294,8 @@ let rec stats_float dist =
 	stats (n+1) (sum +. x) (sq_sum +. x*.x)
       end
     in stats 0 0. 0.
+  | Dist_sampler_float (_, _, stats) ->
+      stats ()
   | Dist_support sup ->
     let rec stats sup sum sq_sum =
       begin match sup with
@@ -328,6 +335,7 @@ let rec mean_float d =
     let acc = ref 0. in
     for i = 1 to n do acc := !acc +. draw () done;
     !acc /. (float n)
+  | Dist_sampler_float (_, _, stats) -> fst (stats())
   | Dist_support sup ->
     List.fold_left (fun acc (v, w) -> acc +. v *. w) 0. sup
   | Dist_mixture l ->
@@ -351,6 +359,11 @@ let rec mean : type a. (a -> float) -> a t -> float =
   begin fun meanfn dist  ->
     match dist with
     | Dist_sampler (draw, _) ->
+      let n = 100000 in
+      let acc = ref 0. in
+      for i = 1 to n do acc := !acc +. (meanfn (draw ())) done;
+      !acc /. (float n)
+    | Dist_sampler_float (draw, _ , _) ->
       let n = 100000 in
       let acc = ref 0. in
       for i = 1 to n do acc := !acc +. (meanfn (draw ())) done;
@@ -394,14 +407,15 @@ let gaussian (mu, sigma) =
     if u1 < epsilon_float then rand_pair ()
     else u1, u2
   in
-  Dist_sampler
+  Dist_sampler_float
     ((fun () ->
         let u1, u2 = rand_pair() in
         let z = sqrt (-.2. *. log u1) *. cos (two_pi *. u2) in
         z *. sigma +. mu),
      (fun x ->
         -. 0.5 *. log (two_pi *. sigma2) -.
-        (x -. mu) ** 2. /. (2. *. sigma2)))
+        (x -. mu) ** 2. /. (2. *. sigma2)),
+     (fun () -> mu, sigma))
 
 
 (** [beta(a, b)] is a beta distribution of parameters [a] and [b].
@@ -467,7 +481,11 @@ let beta =
     else
         neg_infinity
     in
-    Dist_sampler (draw, score)
+    let stats () =
+      (a /. (a +. b),
+       a *. b /. ((a +. b) *. (a +. b) *. (a +. b +. 1.)))
+    in
+    Dist_sampler_float (draw, score, stats)
 
 (** [sph_gaussian(mus, sigmas)] is a spherical normal distribution.
     @see<https://en.wikipedia.org/wiki/Multivariate_normal_distribution>
