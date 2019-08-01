@@ -34,6 +34,7 @@ type _ t =
   | Dist_support : ('a * proba) list -> 'a t
   (* | Dist_mixture of ('a t) t *)
   | Dist_mixture : ('a t * proba) list -> 'a t
+  | Dist_pair : 'a t * 'b t -> ('a * 'b) t
 
 (** {2 Draw and score}*)
 
@@ -58,6 +59,8 @@ let rec draw : type a. a t -> a =
     | Dist_mixture l ->
       let d' = draw (Dist_support l) in
       draw d'
+    | Dist_pair (d1, d2) ->
+        (draw d1, draw d2)
   end
 
 (** [score(dist, x)] returns the log probability of the value [x] in the
@@ -78,15 +81,21 @@ let rec score : type a. a t * a -> log_proba =
             1. l
         in
         log p
-
+    | Dist_pair (d1, d2) ->
+        (* XXX TO CHECK XXX *)
+        let v1, v2 = x in
+        score (d1, v1) +. score (d2, v2)
   end
 
 (** [draw dist] draws a value form the distribution [dist] and returns
     its log probability.
 *)
-let draw_and_score dist =
+let draw_and_score : type a. a t -> a * log_proba =
+  fun dist ->
   begin match dist with
-    | Dist_sampler (sampler, scorer)
+    | Dist_sampler (sampler, scorer) ->
+      let x = sampler () in
+      x, (scorer x)
     | Dist_sampler_float (sampler, scorer, _) ->
       let x = sampler () in
       x, (scorer x)
@@ -103,8 +112,11 @@ let draw_and_score dist =
       in
       draw  0. sup
     | Dist_mixture l ->
-        let x = draw dist in
-        x, (score (dist, x))
+      let x = draw dist in
+      x, (score (dist, x))
+    | Dist_pair _ ->
+      let x = draw dist in
+      x, (score (dist, x))
   end
 
 
@@ -126,9 +138,7 @@ let of_list dists =
     of distributions.
 *)
 let of_pair (dist1, dist2) =
-  Dist_sampler
-    ((fun () -> (draw dist1, draw dist2)),
-     (fun (x, y) -> 1. +. score(dist1, x) +. score(dist2, y)))
+  Dist_pair (dist1, dist2)
 
 (** [split dist] turns a distribution of pairs into a pair of
     distributions.
@@ -172,6 +182,8 @@ let rec split dist =
           l
       in
       (Dist_mixture s1, Dist_mixture s2)
+  | Dist_pair (d1, d2) ->
+      d1, d2
   end
 
 (** [split_array dist] turns a distribution of arrays into an array of
@@ -372,6 +384,8 @@ let rec mean : type a. (a -> float) -> a t -> float =
       List.fold_left (fun acc (v, w) -> acc +. w *. (meanfn v)) 0. sup
     | Dist_mixture l ->
       List.fold_left (fun acc (d, w) -> acc +. w *. mean meanfn d) 0. l
+    | Dist_pair (d1, d2) ->
+        assert false (* XXX TODO XXX *)
   end
 
 let mean_list (type a) : (a -> float) -> a list t -> float list =
