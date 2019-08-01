@@ -318,14 +318,24 @@ let fvalue: 'a 'b. ('a, 'b) rv -> 'b =
   fun n ->
   value (Normalize.copy n)
 
-let distribution_of_rv : 'a 'b. ('a, 'b) rv -> 'b Distribution.t =
+let distribution_of_rv : type a b. (a, b) rv -> b Distribution.t =
   fun n ->
-  let x = Normalize.copy n in
-  let draw () = fvalue x in
-  let score v =
-    assert false (* XXX TODO XXX *)
-  in
-  Dist_sampler(draw, score)
+    begin match n.state with
+    | Realized x -> Distribution.Dist_support [ (x, 1.) ]
+    | _ ->
+        let n = Normalize.copy n in
+        graft n;
+        begin match n.state with
+        | Marginalized m ->
+            begin match m with
+            | MGaussian (mu, sigma) -> Distribution.gaussian(mu, sigma)
+            | MBeta (a, b) -> Distribution.beta(a, b)
+            | MBernoulli p -> Distribution.bernoulli p
+            end
+        | _ -> assert false
+        end
+  end
+
 
 (* forget' :: IORef (Node a b) -> IO () *)
 let forget (type a) (type b): (a, b) rv -> unit =

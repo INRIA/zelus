@@ -117,6 +117,7 @@ let print_mt_dist mt_dist =
         sup;
       Format.printf "])"
   | Dist_sampler _ -> assert false
+  | Dist_mixture _ -> assert false
   end
 
 let print_pos_dist pos_dist =

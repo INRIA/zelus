@@ -51,6 +51,7 @@ let draw_point_dist dist =
            if i mod len = 0 then decr color;
            draw_point (Graphics.rgb !color !color !color) pos)
         support
+  | Dist_mixture _ -> assert false
   end
 
 let () = Random.self_init()

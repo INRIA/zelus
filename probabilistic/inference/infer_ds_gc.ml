@@ -287,7 +287,7 @@ let rec expr_dist_of_expr : type a. a expr -> a expr_dist =
   | Epair (e1, e2) -> EDpair(expr_dist_of_expr e1, expr_dist_of_expr e2)
   end
 
-let distribution_of_expr : type a. a expr -> a Distribution.t =
+let rec distribution_of_expr_dist : type a. a expr_dist -> a Distribution.t =
   let rec draw : type a. a expr_dist -> a =
     fun exprd ->
       begin match exprd with
@@ -317,9 +317,20 @@ let distribution_of_expr : type a. a expr -> a Distribution.t =
         score (ed1, v1) +. score (ed2, v2)
     end
   in
-  fun expr ->
-    let exprd = expr_dist_of_expr expr in
-    Dist_sampler ((fun () -> draw exprd), (fun v -> score(exprd, v)))
+  fun exprd ->
+    begin match exprd with
+    | EDconst c -> Dist_support [(c, 1.)]
+    | EDdistr d -> d
+    | EDpair (ed1, ed2) ->
+        let d1 = distribution_of_expr_dist ed1 in
+        let d2 = distribution_of_expr_dist ed2 in
+        Dist_pair(d1, d2)
+    | exprd ->
+        Dist_sampler ((fun () -> draw exprd), (fun v -> score(exprd, v)))
+    end
+
+let distribution_of_expr expr =
+  distribution_of_expr_dist (expr_dist_of_expr expr)
 
 let infer n (Node { alloc; reset; step; }) =
   let step state (prob, x) = distribution_of_expr (step state (prob, x)) in

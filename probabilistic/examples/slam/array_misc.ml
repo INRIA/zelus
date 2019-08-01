@@ -83,6 +83,7 @@ let draw_position_dist d =
              (x * width + width / 2) (height / 2)
              (1 + int_of_float (10. *. p)))
         support
+  | Distribution.Dist_mixture _ -> assert false
 
 let draw_map_dist map_dist =
   let mw = Array.map
