@@ -5,7 +5,7 @@ type 'a t =
   | Dist_sampler_float of ((unit -> 'a) * ('a -> float) * (unit -> float * float))
   | Dist_support of ('a * float) list
   | Dist_mixture of ('a t * float) list
-  | Dist_pair of ('a t * 'b t) -> ('a * 'b) t
+  (* | Dist_pair of ('a t * 'b t) -> ('a * 'b) t *)
 val draw : 'a t -> 'a
 val score : 'a t * 'a -> float
 val draw_and_score : 'a t -> 'a * float
