@@ -1,42 +1,18 @@
+open Distribution
 open Infer_ds
 
-let node outlier (prob, yobs) =
-  let rec automaton
-      | Init ->
-          do xt = sample (prob, gaussian (const 0., 100.)) and
-          outlier_prob = sample (prob, beta (100., 1000.))
-          then Run
-      | Run ->
-          do xt = sample (prob, gaussian (last xt, 1.))
-          and outlier_prob = last outlier_prob
-          done
-      end
+let node outlier (prob, yobs) = pair (is_outlier, xt) where
+  rec xt =  sample (prob, gaussian ((const 0., 100.) -> (pre xt, 1.)))
+  and init outlier_prob = sample (prob, beta (100., 1000.))
   and is_outlier = sample (prob, bernoulli outlier_prob)
-  and outlier = gaussian (const 0., 100.)
-  and y = if (eval_bool is_outlier) then
-    gaussian (xt, 1.) else
-    outlier
-  and () = observe (prob, y, yobs)
-  and t = 1 fby (t + 1)
-  (* and init xt = assume_constant "x0" (mgaussian 0. 1.) *)
-  in
-  (eval_bool is_outlier, xt)
+  and () = present (eval is_outlier) -> observe (prob, gaussian (const 0., 100.), yobs)
+           else observe (prob, gaussian (xt, 1.), yobs)
 
 let node main particles (tr, observed) =
-  let rec t = 1. fby (t +. 1.) in
-
-  let x_d = infer particles outlier observed in
-  let res = Aux.get_mean x_d in
-
-  let error = (res  -. tr) ** 2. in
-  let rec total_error = error -> (pre total_error) +. error in
-  let mse = total_error /. t in
-
-  let memory = Aux.get_memory () in
-  (*let rec time = (Aux.get_time ()) -> (Aux.get_time ()) -. (pre time) in*)
-
-  
-  (Aux.particles_tostring x_d), mse
-
-  (*((string_of_float mse) ^ ", " ^ (string_of_float memory) (* ^ ", " ^ (string_of_float time) ^ "\n"*))*)
-
+    let rec t = 1. fby (t +. 1.) in
+    let _, x_d = split (infer particles outlier observed) in
+    let res = mean_float x_d in
+    let error = (res  -. tr) ** 2. in
+    let rec total_error = error -> (pre total_error) +. error in
+    let mse = total_error /. t in
+    x_d, mse
