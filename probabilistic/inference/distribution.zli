@@ -15,7 +15,7 @@ val stats_float: float t -> float * float
 val mean_float : float t -> float
 val stats_float_list: float list t -> (float * float) list
 val mean_float_list : float list t -> float list
-val mean : ('a -D-> float) -S-> 'a t -> float
+val mean : ('a -> float) -S-> 'a t -> float
 val split : ('a * 'b) t -> 'a t * 'b t
 val split_array : 'a array t -> 'a t array
 val split_list : 'a list t -> 'a t list
