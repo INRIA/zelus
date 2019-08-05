@@ -1,10 +1,16 @@
+PPL-ZELUS=$(HOME)/probabilistic/mit-ibm/ppl-zelus
 ZELUC=zeluc
 ZLLIB=$(shell $(ZELUC) -where)
 INFERLIB=../../../../inference
+BENCHLIB=../../harness
 
 INFERENCE_CMA=$(INFERLIB)/inference.cma
 INFERENCE_CMXA=$(INFERLIB)/inference.cmxa
 INFERENCE_ZCI=$(INFERLIB)/distribution.zci $(INFERLIB)/infer.zci
+
+BENCHLIB_CMA=$(BENCHLIB)/benchlib.cma
+BENCHLIB_CMXA=$(BENCHLIB)/benchlib.cmxa
+
 
 OCAMLDEP=ocamldep
 OCAMLC=ocamlc -g
@@ -14,29 +20,47 @@ NAME=coin_ds
 
 all: opt
 
-.PHONY: $(INFERENCE_CMA) $(INFERENCE_CMXA)
+.PHONY: $(INFERENCE_CMA) $(INFERENCE_CMXA) $(BENCHLIB_CMA) $(BENCHLIB_CMXA) \
+	perf.csv perf-step.csv mem.csv accuracy.csv bench publish
 
 byte: $(NAME)
 opt: $(NAME).opt
 
-$(NAME): $(INFERENCE_CMA) $(NAME).ml aux.ml run.ml
-	$(OCAMLC) -o $(NAME) -I $(ZLLIB) -I $(INFERLIB) \
-		$(INFERENCE_CMA) \
-		aux.ml $(NAME).ml run.ml
+publish: perf.csv perf-step.csv mem.csv accuracy.csv
+	cp $+ $(PPL-ZELUS)/data/coin/ds
 
-$(NAME).opt: $(INFERENCE_CMXA) $(NAME).ml aux.ml run.ml
-	$(OCAMLOPT) -o $(NAME).opt -I $(ZLLIB) -I $(INFERLIB) \
-		$(INFERENCE_CMXA) \
-		aux.ml $(NAME).ml run.ml 
+bench: perf.csv perf-step.csv mem.csv accuracy.csv
 
-$(NAME).ml: $(INFERENCE_ZCI) aux.zci $(NAME).zls
+perf.csv: $(NAME).opt
+	cat ../data | ./$(NAME).opt -perf > $@
+
+perf-step.csv: $(NAME).opt
+	cat ../data | ./$(NAME).opt -perf-step -particles 50 > $@
+
+mem.csv: $(NAME).opt
+	cat ../data | ./$(NAME).opt -mem > $@
+
+accuracy.csv: $(NAME).opt
+	cat ../data | ./$(NAME).opt > $@
+
+
+$(NAME): $(INFERENCE_CMA) $(BENCHLIB_CMA) $(NAME).ml run.ml
+	$(OCAMLC) -o $(NAME) -I $(ZLLIB) -I $(INFERLIB) -I $(BENCHLIB) \
+		$(INFERENCE_CMA) $(BENCHLIB_CMA) \
+		$(NAME).ml run.ml
+
+$(NAME).opt: $(INFERENCE_CMXA) $(BENCHLIB_CMXA) $(NAME).ml run.ml
+	$(OCAMLOPT) -o $(NAME).opt -I $(ZLLIB) -I $(INFERLIB) -I $(BENCHLIB) \
+		$+
+
+$(NAME).ml : $(INFERENCE_ZCI) $(NAME).zls
 	zeluc -I $(INFERLIB) -noreduce $(NAME).zls
 
 %.zci: %.zli
-	zeluc -I $(INFERLIB) -noreduce $<
+	zeluc -I $(INFERLIB) $<
 
 %.cmo: %.ml
-	ocamlc -c -I $(ZLLIB) -I $(INFERLIB) $<
+	ocamlc -c -I $(ZLLIB) -I $(INFERLIB) -noreduce $<
 
 $(INFERENCE_CMA):
 	$(MAKE) -C $(INFERLIB) inference.cma
@@ -49,9 +73,11 @@ $(INFERENCE_ZCI):
 
 clean:
 	-rm -f *.zc*
+	-rm -f *.pyc
 	-rm -f *.cm* *.o
-	-rm -f $(NAME).ml main.ml
-	-rm -f gen_data.ml main.ml
+	-rm -f gen_data.ml
+	-rm -f $(NAME).ml
+	-rm -f *.pyc
 
 cleanall: clean
 	-rm -f $(NAME) $(NAME).opt

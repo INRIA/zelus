@@ -13,22 +13,36 @@ OCAMLOPT=ocamlopt
 NAME=gen_data
 
 all: opt
+	$(MAKE) -C particles
+	$(MAKE) -C ds
+	$(MAKE) -C ds_nogc
 
-.PHONY: $(INFERENCE_CMA) $(INFERENCE_CMXA)
+publish:
+	$(MAKE) -C particles publish
+	$(MAKE) -C ds publish
+	$(MAKE) -C ds_nogc publish
+
+bench:
+	$(MAKE) -C particles bench
+	$(MAKE) -C ds bench
+	$(MAKE) -C ds_nogc bench
+
+
+.PHONY: $(INFERENCE_CMA) $(INFERENCE_CMXA) publish bench
 
 byte: $(NAME)
 opt: $(NAME).opt
 
-$(NAME): $(INFERENCE_CMA) $(NAME).ml main.ml 
+$(NAME): $(INFERENCE_CMA) $(NAME).ml main.ml
 	$(OCAMLC) -o $(NAME) -I $(ZLLIB) -I $(INFERLIB) \
 		$(INFERENCE_CMA) \
 		$(NAME).ml main.ml
 
 
-$(NAME).opt: $(INFERENCE_CMXA) $(NAME).ml main.ml 
+$(NAME).opt: $(INFERENCE_CMXA) $(NAME).ml main.ml
 	$(OCAMLOPT) -o $(NAME).opt -I $(ZLLIB) -I $(INFERLIB) \
 		$(INFERENCE_CMXA) \
-		$(NAME).ml main.ml 
+		$(NAME).ml main.ml
 
 
 $(NAME).ml main.ml: $(INFERENCE_ZCI) $(NAME).zls
@@ -54,8 +68,14 @@ clean:
 	-rm -f *.cm* *.o
 	-rm -f $(NAME).ml main.ml
 	-rm -f gen_data.ml main.ml
+	$(MAKE) -C particles clean
+	$(MAKE) -C ds clean
+	$(MAKE) -C ds_nogc clean
 
 cleanall: clean
 	-rm -f $(NAME) $(NAME).opt
 	-rm -f gen_data gen_data.opt
 	-rm -f *~
+	$(MAKE) -C particles cleanall
+	$(MAKE) -C ds cleanall
+	$(MAKE) -C ds_nogc cleanall
