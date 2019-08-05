@@ -26,8 +26,8 @@ all: opt
 byte: $(NAME)
 opt: $(NAME).opt
 
-publish: perf-step.csv
-	cp $+ $(PPL-ZELUS)/data/coin/ds_nogc
+publish:
+	cp perf-step.csv $(PPL-ZELUS)/data/coin/ds_nogc
 
 bench: perf-step.csv
 

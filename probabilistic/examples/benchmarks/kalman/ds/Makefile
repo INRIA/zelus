@@ -26,8 +26,9 @@ all: opt
 byte: $(NAME)
 opt: $(NAME).opt
 
-publish: perf.csv perf-step.csv mem.csv accuracy.csv
-	cp $+ $(PPL-ZELUS)/data/kalman/ds
+publish:
+	cp perf.csv perf-step.csv mem.csv accuracy.csv \
+		$(PPL-ZELUS)/data/kalman/ds
 
 bench: perf.csv perf-step.csv mem.csv accuracy.csv
 

@@ -26,8 +26,9 @@ all: opt
 byte: $(NAME)
 opt: $(NAME).opt
 
-publish: perf.csv perf-step.csv mem.csv accuracy.csv
-	cp $+ $(PPL-ZELUS)/data/coin/particle
+publish:
+	cp perf.csv perf-step.csv mem.csv accuracy.csv \
+		$(PPL-ZELUS)/data/coin/particle
 
 bench: perf.csv perf-step.csv mem.csv accuracy.csv
 

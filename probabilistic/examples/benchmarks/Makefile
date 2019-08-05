@@ -9,6 +9,11 @@ bench:
 	$(MAKE) -C kalman bench
 	$(MAKE) -C outlier bench
 
+publish:
+	$(MAKE) -C coin publish
+	$(MAKE) -C kalman publish
+	$(MAKE) -C outlier publish
+
 clean:
 	$(MAKE) -C harness clean
 	$(MAKE) -C coin clean
