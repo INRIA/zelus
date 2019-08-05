@@ -155,7 +155,7 @@ let make_conditional (type a) (type b):
         in
         MGaussian(mu', var')
     | MBeta (a, b),  CBernoulli ->
-        if obs then MBeta (a, b +. 1.) else MBeta (a +. 1., b)
+        if obs then MBeta (a +. 1., b) else MBeta (a, b +. 1.)
     | _, _ -> assert false (* error "impossible" *)
   end
 
