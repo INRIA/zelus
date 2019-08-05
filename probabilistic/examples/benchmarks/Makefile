@@ -5,7 +5,6 @@ all:
 	$(MAKE) -C outlier
 
 bench:
-	$(MAKE) -C harness bench
 	$(MAKE) -C coin bench
 	$(MAKE) -C kalman bench
 	$(MAKE) -C outlier bench
