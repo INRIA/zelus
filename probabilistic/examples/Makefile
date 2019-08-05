@@ -1,5 +1,6 @@
 all:
 	$(MAKE) -C gridworld
+	$(MAKE) -C benchmarks
 	$(MAKE) -C beta_bernoulli
 	$(MAKE) -C coin
 	$(MAKE) -C ds
@@ -19,6 +20,7 @@ all:
 
 clean:
 	$(MAKE) -C gridworld clean
+	$(MAKE) -C benchmarks clean
 	$(MAKE) -C beta_bernoulli clean
 	$(MAKE) -C coin clean
 	$(MAKE) -C ds clean
@@ -38,6 +40,7 @@ clean:
 
 realclean cleanall:
 	$(MAKE) -C gridworld cleanall
+	$(MAKE) -C benchmarks cleanall
 	$(MAKE) -C beta_bernoulli cleanall
 	$(MAKE) -C coin cleanall
 	$(MAKE) -C ds cleanall
