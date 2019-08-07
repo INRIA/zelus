@@ -17,6 +17,7 @@ OCAMLC=ocamlc -g
 OCAMLOPT=ocamlopt
 
 NAME=outlier_particles
+PARTICLES=50
 
 all: opt
 
@@ -36,10 +37,10 @@ perf.csv: $(NAME).opt
 	cat ../data | ./$(NAME).opt -perf > $@
 
 perf-step.csv: $(NAME).opt
-	cat ../data | ./$(NAME).opt -perf-step -particles 50 > $@
+	cat ../data | ./$(NAME).opt -perf-step -particles $(PARTICLES) > $@
 
 mem.csv: $(NAME).opt
-	cat ../data | ./$(NAME).opt -mem > $@
+	cat ../data | ./$(NAME).opt -mem -particles $(PARTICLES) > $@
 
 accuracy.csv: $(NAME).opt
 	cat ../data | ./$(NAME).opt > $@

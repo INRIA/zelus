@@ -17,6 +17,7 @@ OCAMLC=ocamlc -g
 OCAMLOPT=ocamlopt
 
 NAME=kalman_ds_nogc
+PARTICLES=50
 
 all: opt
 
@@ -27,13 +28,15 @@ byte: $(NAME)
 opt: $(NAME).opt
 
 publish:
-	cp perf-step.csv $(PPL-ZELUS)/data/kalman/ds_nogc
+	cp perf-step.csv mem.csv $(PPL-ZELUS)/data/kalman/ds_nogc
 
-bench: perf-step.csv
+bench: perf-step.csv  mem.csv
 
 perf-step.csv: $(NAME).opt
-	cat ../data | ./$(NAME).opt -perf-step -particles 50 > $@
+	cat ../data | ./$(NAME).opt -perf-step -particles $(PARTICLES) > $@
 
+mem.csv: $(NAME).opt
+	cat ../data | ./$(NAME).opt -mem -particles $(PARTICLES) > $@
 
 
 $(NAME): $(INFERENCE_CMA) $(BENCHLIB_CMA) $(NAME).ml run.ml
