@@ -128,8 +128,7 @@ let gc_stat () =
   | Some _ ->
     let st = Gc.stat () in
     let words = float_of_int (st.live_words) in
-    (* words /. 1000. *)
-    words
+    words /. 1000.
   | None -> 0.
   end
 
@@ -252,7 +251,7 @@ let output_perf_step file times_runs_particles =
 
 let output_mem file mems_runs_particles =
   let stats = stats_per_step mems_runs_particles in
-  output_stats_per_step file !Config.parts "live heap words" (array_assoc !Config.parts stats)
+  output_stats_per_step file !Config.parts "thousands live heap words" (array_assoc !Config.parts stats)
 
 let rec seq min incr max =
   if min > max then []

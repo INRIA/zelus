@@ -33,7 +33,7 @@ opt: $(NAME).opt
 publish:
 	cp perf-step.csv mem.csv $(PPL-ZELUS)/data/outlier/ds_nogc
 
-bench: bench_per_particles bench_per_steps
+bench: bench_per_steps
 
 bench_per_particles: $(NAME).opt
 	time cat ../data | ./$(NAME).opt \

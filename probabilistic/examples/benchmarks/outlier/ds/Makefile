@@ -33,6 +33,9 @@ opt: $(NAME).opt
 publish:
 	cp $(CSV_FILES) $(PPL-ZELUS)/data/outlier/ds
 
+
+bench: bench_per_particles bench_per_steps
+
 bench_per_particles: $(NAME).opt
 	time cat ../data | ./$(NAME).opt \
 			-min-particles $(MIN) \
