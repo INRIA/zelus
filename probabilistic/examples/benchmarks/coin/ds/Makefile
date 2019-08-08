@@ -17,34 +17,31 @@ OCAMLC=ocamlc -g
 OCAMLOPT=ocamlopt
 
 NAME=coin_ds
-PARTICLES=50
+MIN=1
+MAX=100
+INCR=2
+CSV_FILES=perf.csv perf-step.csv mem.csv accuracy.csv
 
 all: opt
 
 .PHONY: $(INFERENCE_CMA) $(INFERENCE_CMXA) $(BENCHLIB_CMA) $(BENCHLIB_CMXA) \
-	perf.csv perf-step.csv mem.csv accuracy.csv bench publish
+	bench publish
 
 byte: $(NAME)
 opt: $(NAME).opt
 
 publish:
-	cp perf.csv perf-step.csv mem.csv accuracy.csv \
-		$(PPL-ZELUS)/data/coin/ds
+	cp $(CSV_FILES) $(PPL-ZELUS)/data/coin/ds
 
-bench: perf.csv perf-step.csv mem.csv accuracy.csv
-
-perf.csv: $(NAME).opt
-	cat ../data | ./$(NAME).opt -perf > $@
-
-perf-step.csv: $(NAME).opt
-	cat ../data | ./$(NAME).opt -perf-step -particles $(PARTICLES) > $@
-
-mem.csv: $(NAME).opt
-	cat ../data | ./$(NAME).opt -mem -particles $(PARTICLES) > $@
-
-accuracy.csv: $(NAME).opt
-	cat ../data | ./$(NAME).opt > $@
-
+bench: $(NAME).opt
+	time cat ../data | ./$(NAME).opt \
+			-min-particles $(MIN) \
+			-max-particles $(MAX) \
+			-incr $(INCR) \
+			-perf perf.csv \
+			-perf-step perf-step.csv \
+			-mem-step mem.csv \
+			-acc accuracy.csv
 
 $(NAME): $(INFERENCE_CMA) $(BENCHLIB_CMA) $(NAME).ml run.ml
 	$(OCAMLC) -o $(NAME) -I $(ZLLIB) -I $(INFERLIB) -I $(BENCHLIB) \

@@ -1,32 +1,108 @@
 module Config = struct
 
-  let warmup = ref 0 ;;
-  let perf = ref false;;
-  let perf_step = ref false;;
-  let mem = ref false;;
-  let select_particle = ref None;;
+  let warmup = ref 1
+  let accuracy = ref None
+  let perf = ref None
+  let perf_step = ref None
+  let mem = ref None
+  let min_particles = ref 1
+  let max_particles = ref 100
+  let increment = ref 1
+
+  let select_particle = ref None
+  let num_runs = ref 10
+  let seed = ref None
+  let upper_quantile = 0.9
+  let lower_quantile = 0.1
+  let middle_quantile = 0.5
+
+  let args =
+    Arg.align [
+      ("-w", Set_int warmup,
+       "n Number of warmup iterations");
+      ("-acc", String (fun file -> accuracy := Some file),
+       "file Accuracy testing" );
+      ("-perf", String (fun file -> perf := Some file),
+       "file Performance testing");
+      ("-perf-step", String (fun file -> perf_step := Some file),
+       "file Performance testing on a per step basis");
+      ("-mem-step", String (fun file -> mem := Some file),
+       " Memory testing on a per step basis");
+      ("-particles", Int (fun i -> select_particle := Some i),
+       "n Number of particles (single run)");
+      ("-min-particles", Int (fun i -> min_particles := i),
+       "n Lower bound of the particles interval");
+      ("-max-particles", Int (fun i -> max_particles := i),
+       "n Upper bound of the particles interval");
+      ("-incr", Int (fun i -> increment := i),
+       "n Increment in the particles interval");
+      ("-seed", Int (fun i -> seed := Some i),
+       "n Set seed of random number generator");
+    ]
 
   let () =
-    Arg.parse[
-      ("-w", Set_int warmup, "Numberof warmup iterations");
-      ("-perf", Unit (fun _ -> perf := true), "Performance testing");
-      ("-perf-step", Unit (fun _ -> perf_step := true), "Performance testing on a per step basis");
-      ("-mem", Unit (fun _ -> mem := true), "Memory performance testing");
-      ("-particles", Int (fun i -> select_particle := Some i), "Number of particles (single run)")
-    ] (fun _ -> ()) "particles test harness";;
+    Arg.parse args (fun _ -> ()) "particles test harness"
 
-  let parts =
-    ref
-      begin match !select_particle with
-        | Some i -> i
-        | None -> 10
-      end
+  let () =
+    begin match !seed with
+    | None -> Random.self_init()
+    | Some i -> Random.init i
+    end
+
+  let () =
+    begin match !select_particle with
+    | Some i -> min_particles := i; max_particles := i
+    | None -> ()
+    end
+
+  let parts = ref !min_particles
 
   let particles _ =
     !parts
 
+  let () =
+    if !accuracy = None && !perf = None && !mem = None && !perf_step = None then begin
+      Arg.usage args "No tests perfomed: -acc, -perf, -perf-step, or -mem required";
+      exit 1
+    end
+
 end
 
+let option_iter f o =
+  begin match o with
+  | Some x -> f x
+  | None -> ()
+  end
+
+let array_flatten arr =
+  let l1 = Array.length arr in
+  let l2 = Array.length arr.(0) in
+  let res = Array.make (l1 * l2) arr.(0).(0) in
+  for i = 0 to l1 - 1 do
+    for j = 0 to l2 - 1 do
+      res.(i * l1 + j) <- arr.(i).(j)
+    done
+  done;
+  res
+
+let array_transpose arr =
+  let l1 = Array.length arr in
+  let l2 = Array.length arr.(0) in
+  Array.init l2
+    (fun i ->
+       Array.init l1
+         (fun j ->
+            arr.(j).(i)))
+
+let array_assoc x a =
+  let res = ref None in
+  Array.iter
+    (fun (y, v) -> if x = y then res := Some v)
+    a;
+  begin match !res with
+  | None -> raise Not_found
+  | Some v -> v
+  end
 
 module Make(M: sig
     type input
@@ -47,154 +123,155 @@ let rec read_file _ =
     s :: read_file ()
   with End_of_file -> []
 
+let gc_stat () =
+  begin match !Config.mem with
+  | Some _ ->
+    let st = Gc.stat () in
+    let words = float_of_int (st.live_words) in
+    (* words /. 1000. *)
+    words
+  | None -> 0.
+  end
 
-let run inp res =
+let do_warmup n inp =
   let step = get_step () in
-  Random.self_init ();
+  Gc.compact ();
+  for i = 1 to n do
+    List.iter
+      (fun i ->
+         let _, _ = step i in
+         ())
+      inp
+  done
+
+let run inp =
+  let step = get_step () in
+  let len = List.length inp in
+  let times = Array.make len 0. in
+  let mems = Array.make len 0. in
+  let final_mse = ref 0. in
   List.iteri
     (fun idx i ->
        let time_pre = Sys.time () in
-       let ret, mse = step i in
+       let v, mse = step i in
        let time = Sys.time () -. time_pre in
-       Array.set res idx
-         ((string_of_float mse) ^ ", " ^ (string_of_float (time *. 1000.)) ^ "\n"))
-    inp
-
-let runmem inp =
-  let step = get_step () in
-  List.iteri
-    (fun idx i ->
-       let node, mse = step i in
-       Gc.full_major ();
-       let st = Gc.stat () in
-       let major_words = float_of_int (st.live_words) in
-       let space = major_words /. 1000. in
-       Format.printf "%f, %f@." mse space)
-    inp
-
-let runacc inp =
-  let step = get_step () in
-  let ret = ref 0. in
-  Random.self_init ();
-  List.iteri
-    (fun idx i ->
-       let n, mse = step i in
-       ret := mse)
+       times.(idx) <- time *. 1000.;
+       mems.(idx) <- gc_stat();
+       final_mse := mse)
     inp;
-  !ret
+  (!final_mse, times, mems)
 
-let runperf inp res idx_init =
-  let step = get_step () in
-  Random.self_init ();
+let do_runs num_runs inp =
+  let mse_runs = Array.make num_runs 0.0 in
+  let times_runs = Array.make num_runs [||] in
+  let mems_runs = Array.make num_runs [||] in
+  for idx = 0 to num_runs - 1 do
+    let mse, times, mems = run inp in
+    mse_runs.(idx) <- mse;
+    times_runs.(idx) <- times;
+    mems_runs.(idx) <- mems
+  done;
+  mse_runs, times_runs, mems_runs
+
+let do_runs_particlues particles_list num_runs inp =
+  let len = List.length particles_list in
+  let mse_runs_particles = Array.make len (0, [||]) in
+  let times_runs_particles = Array.make len (0, [||]) in
+  let mems_runs_particles = Array.make len (0, [||]) in
   List.iteri
-    (fun idx i ->
-       let time_pre = Sys.time () in
-       let _ = step i in
-       let time = Sys.time () -. time_pre in
-       Array.set res (idx_init + idx) (time *. 1000.))
-    inp
+    (fun idx particles ->
+       Config.parts := particles;
+       do_warmup !Config.warmup inp;
+       let mse_runs, times_runs, mems_runs = do_runs num_runs inp in
+       mse_runs_particles.(idx) <- (particles, mse_runs);
+       times_runs_particles.(idx) <- (particles, times_runs);
+       mems_runs_particles.(idx) <- (particles, mems_runs))
+    particles_list;
+  mse_runs_particles, times_runs_particles, mems_runs_particles
 
 let stats arr =
-  let upper_quantile = 0.9 in
-  let lower_quantile = 0.1 in
-  let middle_quantile = 0.5 in
   let len = float_of_int (Array.length arr) in
   Array.sort compare arr;
-  let upper_idx = truncate (len *. upper_quantile +. 0.5) in
-  let lower_idx = truncate (len *. lower_quantile +. 0.5) in
-  let middle_idx = truncate (len *. middle_quantile +. 0.5) in
+  let upper_idx = truncate (len *. Config.upper_quantile +. 0.5) in
+  let lower_idx = truncate (len *. Config.lower_quantile +. 0.5) in
+  let middle_idx = truncate (len *. Config.middle_quantile +. 0.5) in
   (Array.get arr lower_idx, Array.get arr middle_idx, Array.get arr upper_idx)
 
-let do_runacc inp =
-  let num_runs = 100 in
-  let ret : float array =
-    Array.init num_runs (fun idx -> runacc inp)
+let stats_per_particles x_runs_particles =
+  Array.map
+    (fun (particles, runs) ->
+       (particles, stats (array_flatten runs)))
+    x_runs_particles
+
+let stats_per_step x_runs_particles =
+  Array.map
+    (fun (particles, runs) ->
+       let steps = array_transpose runs in
+       (particles, Array.map (fun a -> stats a) steps))
+    x_runs_particles
+
+let output_stats_per_particles file value stats =
+  let ch = open_out file in
+  let fmt = Format.formatter_of_out_channel ch in
+  Format.fprintf fmt
+    "number of particles, %s lower quantile (%f), median, upper quantile (%f)@."
+    value Config.lower_quantile Config.upper_quantile;
+  Array.iter
+    (fun (particles, (low, mid, high)) ->
+       Format.fprintf fmt "%d, %f, %f, %f@." particles low mid high)
+    stats;
+  close_out ch
+
+let output_stats_per_step file particles value stats =
+  let ch = open_out file in
+  let fmt = Format.formatter_of_out_channel ch in
+  Format.fprintf fmt
+    "step (%d particles), %s lower quantile (%f), median, upper quantile (%f)@."
+    particles value Config.lower_quantile Config.upper_quantile;
+  Array.iteri
+    (fun idx (low, mid, high) ->
+       Format.fprintf fmt "%d, %f, %f, %f@." idx low mid high)
+    stats;
+  close_out ch
+
+let output_perf file times_runs_particles =
+  let stats = stats_per_particles times_runs_particles in
+  output_stats_per_particles file "time in ms" stats
+
+let output_accuracy file mse_runs_particles =
+  let stats =
+    Array.map
+      (fun (particles, runs) -> (particles, stats runs))
+      mse_runs_particles
   in
-  stats ret
+  output_stats_per_particles file "mse" stats
 
-let do_runperf inp =
-  let steps = List.length inp in
-  let num_runs = 100 in
-  let len = steps * num_runs in
-  let ret : float array = Array.make len 0.0 in
-  for idx = 0 to num_runs - 1 do
-    runperf inp ret (idx * steps)
-  done;
-  stats ret
+let output_perf_step file times_runs_particles =
+  let stats = stats_per_step times_runs_particles in
+  output_stats_per_step file !Config.parts "time in ms" (array_assoc !Config.parts stats)
 
-let do_runperf_step inp =
-  let steps = List.length inp in
-  let num_runs = 100 in
-  let len = steps * num_runs in
-  let ret : float array = Array.make len 0.0 in
-  for idx = 0 to num_runs - 1 do
-    runperf inp ret (idx * steps)
-  done;
-  let agg : (float * float * float) array =
-    Array.init steps
-      (fun step ->
-         let tmp : float array =
-           Array.init num_runs (fun run -> Array.get ret (run * steps + step))
-         in
-         stats tmp)
-  in
-  agg
+let output_mem file mems_runs_particles =
+  let stats = stats_per_step mems_runs_particles in
+  output_stats_per_step file !Config.parts "live heap words" (array_assoc !Config.parts stats)
 
-
-let rec do_runs n inp ret =
-  for i = 1 to n do
-    run inp ret
-  done
+let rec seq min incr max =
+  if min > max then []
+  else
+    min :: seq (min + incr) incr max
 
 let run () =
   let inp = read_file () in
-  let tmp : string array = Array.make (List.length inp) ("") in
-  do_runs !Config.warmup inp tmp;
-
-  begin match !Config.select_particle with
-  | Some p ->
-      if !Config.perf_step then (
-        Format.printf "Performance Testing on a per step basis@.";
-        Array.iteri (fun i (low, mid, high) ->
-            Format.printf "%i, %f, %f, %f@." i mid low high)
-          (do_runperf_step inp)
-      ) else (
-        if !Config.mem then (
-          runmem inp;
-          do_runs 1 inp tmp;
-        ) else (
-          let ret : string array = Array.make (List.length inp) ("") in
-          let tmp : string array = Array.make (List.length inp) ("") in
-          run inp ret;
-          do_runs 1 inp tmp;
-          Format.printf "%s@." (String.concat "" (Array.to_list ret))
-        )
-      )
-  | None ->
-      if !Config.perf then (
-        Format.printf "Performance Testing@.";
-        let min_particles = 1 in
-        let max_particles = 50 in
-        for i = min_particles to max_particles do
-          Config.parts := i;
-          let (low, mid, high) = do_runperf inp in
-          do_runs 1 inp tmp;
-          Format.printf "%d, %f, %f, %f@." i low mid high;
-        done
-      )
-      else (
-        print_string "Accuracy Testing\n";
-        flush stdout;
-
-        let min_particles = 1 in
-        let max_particles = 100 in
-        for i = min_particles to max_particles do
-          Config.parts := i;
-          let low, mid, high = do_runacc inp in
-          do_runs 1 inp tmp;
-          Format.printf "%d, %f, %f, %f@." i mid low high;
-        done
-      )
-  end
+  let particles_list = seq !Config.min_particles !Config.increment !Config.max_particles in
+  let mse_runs_particles, times_runs_particles, mems_runs_particles =
+    do_runs_particlues particles_list !Config.num_runs inp
+  in
+  option_iter
+    (fun file -> output_accuracy file mse_runs_particles) !Config.accuracy;
+  option_iter
+    (fun file -> output_perf file times_runs_particles) !Config.perf;
+  option_iter
+    (fun file -> output_perf_step file times_runs_particles) !Config.perf_step;
+  option_iter
+    (fun file -> output_mem file mems_runs_particles) !Config.mem
 
 end

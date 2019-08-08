@@ -17,12 +17,15 @@ OCAMLC=ocamlc -g
 OCAMLOPT=ocamlopt
 
 NAME=kalman_ds_nogc
-PARTICLES=50
+MIN=100
+MAX=100
+INCR=2
+CSV_FILES=perf.csv perf-step.csv mem.csv accuracy.csv
 
 all: opt
 
 .PHONY: $(INFERENCE_CMA) $(INFERENCE_CMXA) $(BENCHLIB_CMA) $(BENCHLIB_CMXA) \
-	perf.csv perf-step.csv mem.csv accuracy.csv bench publish
+	bench publish
 
 byte: $(NAME)
 opt: $(NAME).opt
@@ -30,14 +33,15 @@ opt: $(NAME).opt
 publish:
 	cp perf-step.csv mem.csv $(PPL-ZELUS)/data/kalman/ds_nogc
 
-bench: perf-step.csv  mem.csv
-
-perf-step.csv: $(NAME).opt
-	cat ../data | ./$(NAME).opt -perf-step -particles $(PARTICLES) > $@
-
-mem.csv: $(NAME).opt
-	cat ../data | ./$(NAME).opt -mem -particles $(PARTICLES) > $@
-
+bench: $(NAME).opt
+	time cat ../data | ./$(NAME).opt \
+			-min-particles $(MIN) \
+			-max-particles $(MAX) \
+			-incr $(INCR) \
+			-perf perf.csv \
+			-perf-step perf-step.csv \
+			-mem-step mem.csv \
+			-acc accuracy.csv
 
 $(NAME): $(INFERENCE_CMA) $(BENCHLIB_CMA) $(NAME).ml run.ml
 	$(OCAMLC) -o $(NAME) -I $(ZLLIB) -I $(INFERLIB) -I $(BENCHLIB) \
