@@ -27,6 +27,15 @@ bench:
 	$(MAKE) -C ds bench
 	$(MAKE) -C ds_nogc bench
 
+bench_per_particles:
+	$(MAKE) -C particles bench_per_particles
+	$(MAKE) -C ds bench_per_particles
+	$(MAKE) -C ds_nogc bench_per_particles
+
+bench_per_steps:
+	$(MAKE) -C steps bench_per_steps
+	$(MAKE) -C ds bench_per_steps
+	$(MAKE) -C ds_nogc bench_per_steps
 
 .PHONY: $(INFERENCE_CMA) $(INFERENCE_CMXA) publish bench
 

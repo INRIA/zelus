@@ -9,6 +9,16 @@ bench:
 	$(MAKE) -C kalman bench
 	$(MAKE) -C outlier bench
 
+bench_per_particles:
+	$(MAKE) -C coin bench_per_particles
+	$(MAKE) -C kalman bench_per_particles
+	$(MAKE) -C outlier bench_per_particles
+
+bench_per_steps:
+	$(MAKE) -C coin bench_per_steps
+	$(MAKE) -C kalman bench_per_steps
+	$(MAKE) -C outlier bench_per_steps
+
 publish:
 	$(MAKE) -C coin publish
 	$(MAKE) -C kalman publish
