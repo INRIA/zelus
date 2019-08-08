@@ -25,7 +25,7 @@ CSV_FILES=perf.csv perf-step.csv mem.csv accuracy.csv
 all: opt
 
 .PHONY: $(INFERENCE_CMA) $(INFERENCE_CMXA) $(BENCHLIB_CMA) $(BENCHLIB_CMXA) \
-	bench publish
+	bench_per_particles bench_per_steps bench publish
 
 byte: $(NAME)
 opt: $(NAME).opt
@@ -33,15 +33,21 @@ opt: $(NAME).opt
 publish:
 	cp perf-step.csv mem.csv $(PPL-ZELUS)/data/coin/ds_nogc
 
-bench: $(NAME).opt
+bench: bench_per_steps
+
+bench_per_particles: $(NAME).opt
 	time cat ../data | ./$(NAME).opt \
 			-min-particles $(MIN) \
 			-max-particles $(MAX) \
 			-incr $(INCR) \
 			-perf perf.csv \
+			-acc accuracy.csv
+
+bench_per_steps: $(NAME).opt
+	time cat ../data | ./$(NAME).opt \
+			-particles $(MAX) \
 			-perf-step perf-step.csv \
 			-mem-step mem.csv \
-			-acc accuracy.csv
 
 $(NAME): $(INFERENCE_CMA) $(BENCHLIB_CMA) $(NAME).ml run.ml
 	$(OCAMLC) -o $(NAME) -I $(ZLLIB) -I $(INFERLIB) -I $(BENCHLIB) \
