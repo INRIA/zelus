@@ -31,5 +31,3 @@ val infer :
 
 val infer_ess_resample :
   int -S-> float -S-> (pstate * 'a -D-> 'b expr) -S-> 'a -D-> 'b Distribution.t
-
-val mean_expr : float expr -> float

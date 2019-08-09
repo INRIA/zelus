@@ -24,10 +24,9 @@ type ('m1, 'm2) cdistr =
   | AffineMeanGaussian: float * float * float -> (mgaussiant, mgaussiant) cdistr
   | CBernoulli : (mbetat, mbernoullit) cdistr
 
-(** Random variable of type ['b] and with parent of type ['a]  *)
+(** Random variable of type ['b] and with parent of type ['a] *)
 type ('a, 'b) rv =
-  { name : string;
-    mutable children : 'b rv_from list;
+  { mutable children : 'b rv_from list;
     mutable state : 'b rv_state;
     mutable distr : ('a, 'b) dsdistr;
   }
@@ -45,43 +44,6 @@ and ('a, 'b) dsdistr =
 
 and 'b rv_from =
   RV_from : ('b, 'c) rv -> 'b rv_from
-
-let mdistr_mean : float mdistr -> float =
-  function mdist ->
-    begin match mdist with
-    | MGaussian (mu, sigma) -> mu
-    | MBeta (a, b) -> a /. (a +. b)
-    end
-
-let mean : (_, float) rv -> float =
-  function rand ->
-    begin match rand.state with
-    | Initialized -> 
-      begin match rand.distr with 
-      | UDistr mdist -> mdistr_mean mdist
-      | CDistr (_, _) ->
-        (print_string "Unable to find the mean of initialized node without forcing\n");
-        assert false
-      end
-    | Marginalized mdistr ->
-      let has_marg_children = 
-          List.exists (fun child ->
-              let RV_from ch_inner = child in
-              match ch_inner.state with
-              | Marginalized _ -> true
-              | _ -> false
-          ) rand.children
-      in
-      if has_marg_children then(
-            (print_string "Unable to find the mean of marginalized node without forcing\n");
-            assert false
-      )
-      else
-          mdistr_mean mdistr
-    | Realized x -> x
-    end
-
-let factor = Infer_pf.factor
 
 let type_of_mdistr (type a): a mdistr -> marginal_t =
   fun mdistr ->
@@ -168,20 +130,18 @@ let make_conditional (type a) (type b):
 
 
 (* initialize without parent node *)
-let assume_constant (type a) (type z): string -> a mdistr -> (z, a) rv =
-  fun n d ->
-  { name = n;
-    children = [];
+let assume_constant (type a) (type z): a mdistr -> (z, a) rv =
+  fun d ->
+  { children = [];
     state = Marginalized d;
     distr = UDistr d; }
 
 (* initialize with parent node *)
 let assume_conditional (type a) (type b) (type c):
-  string -> (a,b) rv -> (b, c) cdistr -> (b, c) rv =
-  fun str par cdistr ->
+  (a,b) rv -> (b, c) cdistr -> (b, c) rv =
+  fun par cdistr ->
   let child =
-    { name = str;
-      children = [];
+    { children = [];
       state = Initialized;
       distr = CDistr (par, cdistr); }
   in
@@ -204,12 +164,12 @@ let marginalize (type a) (type b): (a, b) rv -> unit =
         in
         n.state <- Marginalized marg
     | state, _ ->
-        Format.eprintf "Error: marginalize %s@." n.name;
+        Format.eprintf "Error: marginalize@.";
         assert false
   end
 
 let rec delete :
-  'a 'b. ('a, 'b) rv -> 'a rv_from list -> 'a rv_from list =
+  type a b. (a, b) rv -> a rv_from list -> a rv_from list =
   fun n l ->
   begin match l with
     | [] -> assert false
@@ -247,6 +207,8 @@ let sample (type a) (type b) : (a, b) rv -> unit =
         realize x n
     | _ -> assert false (* error "sample" *)
   end
+
+let factor = Infer_pf.factor
 
 let observe (type a) (type b): pstate -> b mtype -> (a, b) rv -> unit =
   fun prob x n ->
@@ -409,8 +371,7 @@ let fprint_dsdistr (type a) (type b): Format.formatter -> (a, b) dsdistr -> unit
 
 let fprint_rv (type a) (type b): Format.formatter -> (a, b) rv -> unit =
   fun ff rv ->
-  Format.fprintf ff "%s: { @[state: @[%a@];@ distr: @[%a@];@] }"
-    rv.name
+  Format.fprintf ff "{ @[state: @[%a@];@ distr: @[%a@];@] }"
     fprint_state rv.state
     fprint_dsdistr rv.distr
 
@@ -418,13 +379,10 @@ let print_rv n =
   Format.printf "%a@." fprint_rv n
 
 let observe_conditional (type a) (type b) (type c):
-  pstate -> string -> (a, b) rv -> (b, c) cdistr -> c mtype -> unit =
-  fun prob str n cdistr observation ->
-  let y = assume_conditional str n cdistr in
+  pstate -> (a, b) rv -> (b, c) cdistr -> c mtype -> unit =
+  fun prob n cdistr observation ->
+  let y = assume_conditional n cdistr in
   obs prob observation y
-
-(* let infer = Infer_pf.infer *)
-(* let infer_ess_resample = Infer_pf.infer_ess_resample *)
 
 let rec stale : 'a 'b. ('a, 'b) rv -> bool =
   fun n ->

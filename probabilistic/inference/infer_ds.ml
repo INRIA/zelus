@@ -105,22 +105,6 @@ let rec string_of_expr e =
     | Eapp (e1, e2) -> "App"
     end
 
-let rec mean_expr : float expr -> float =
-  function e ->
-    begin match e.value with
-    | Econst v -> v
-    | Ervar (RV x) -> Infer_ds_ll.mean x
-    | Eplus (e1, e2) -> mean_expr e1 +. mean_expr e2
-    | Emult (e, {value = Econst m})
-    | Emult ({value = Econst m}, e) ->
-        m *. mean_expr e
-    | Emult (_, _) ->
-      (print_string "Cannot compute the mean of multiplication.\n");
-      assert false
-    | Eapp (_, _) ->
-      (print_string "Cannot compute the mean of an application.\n");
-      assert false
-    end
 
 (* High level delayed sampling distribution (pdistribution in Haskell) *)
 type 'a ds_distribution =
@@ -203,13 +187,15 @@ let gaussian(mu, std) =
   let is prob =
     begin match affine_of_expr mu with
     | Some (AEconst v) ->
-      let rv = Infer_ds_ll.assume_constant "" (MGaussian(v, std)) in
+      let rv = Infer_ds_ll.assume_constant (MGaussian(v, std)) in
       Some { value = (Ervar (RV rv)) }
     | Some (AErvar (m, RV x, b)) ->
       let ty = type_of_random_var (RV x) in
       begin match ty with
       | MGaussianT ->
-        let rv = Infer_ds_ll.assume_conditional "" x (AffineMeanGaussian(m, b, std)) in
+        let rv =
+          Infer_ds_ll.assume_conditional x (AffineMeanGaussian(m, b, std))
+        in
         Some { value = (Ervar (RV rv)) }
       | _ -> None
       end
@@ -224,7 +210,7 @@ let gaussian(mu, std) =
       let ty = type_of_random_var (RV x) in
       begin match ty with
       | MGaussianT ->
-        Some (Infer_ds_ll.observe_conditional prob "" x (AffineMeanGaussian(m, b, std)) obs)
+        Some (Infer_ds_ll.observe_conditional prob x (AffineMeanGaussian(m, b, std)) obs)
       | _ -> None
       end
     | None -> None
@@ -236,7 +222,9 @@ let gaussian(mu, std) =
 (** Beta distribution (betaPD in Haskell) *)
 let beta(a, b) =
   let d () = Distribution.beta(a, b) in
-  let is prob = Some {value = Ervar (RV (Infer_ds_ll.assume_constant "" (MBeta (a, b)))) } in
+  let is prob =
+    Some {value = Ervar (RV (Infer_ds_ll.assume_constant (MBeta (a, b)))) }
+  in
   let iobs (pstate, obs) = None in
   ds_distr_with_fallback d is iobs
 
@@ -257,11 +245,11 @@ let bernoulli p =
   let is prob =
     with_beta_prior
       (fun (RV par) ->
-          { value = Ervar (RV (Infer_ds_ll.assume_conditional "" par Infer_ds_ll.CBernoulli)) })
+          { value = Ervar (RV (Infer_ds_ll.assume_conditional par Infer_ds_ll.CBernoulli)) })
   in
   let iobs (prob, obs) =
     with_beta_prior
-      (fun (RV par) -> Infer_ds_ll.observe_conditional prob "" par Infer_ds_ll.CBernoulli obs)
+      (fun (RV par) -> Infer_ds_ll.observe_conditional prob par Infer_ds_ll.CBernoulli obs)
   in
   ds_distr_with_fallback d is iobs
 
