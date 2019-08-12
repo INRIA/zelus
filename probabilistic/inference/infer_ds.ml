@@ -340,3 +340,7 @@ let infer_ess_resample n threshold (Node { alloc; reset; step; }) =
     Distribution.to_mixture (infer_step state i)
   in
   Node {alloc = infer_alloc; reset = infer_reset; step = infer_step;}
+
+let infer_bounded n (Node { alloc; reset; step; }) =
+  let step state (prob, x) = eval (step state (prob, x)) in
+  Infer_pf.infer n (Node { alloc; reset; step; })

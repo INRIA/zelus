@@ -1,0 +1,19 @@
+open Distribution
+open Infer_ds_gc
+
+let node coin (prob, yobs) = xt where
+  rec init xt = sample (prob, beta (1., 1.))
+  and () = observe (prob, bernoulli xt, yobs)
+
+
+let node main particles (tr, observed) =
+  let rec t = 1. fby (t +. 1.) in
+
+  let x_d = infer_bounded particles coin observed in
+
+  let est_mean, _ = stats_float x_d in
+  let error = (est_mean -. tr) ** 2. in
+  let rec total_error = error -> (pre total_error) +. error in
+  let mse = total_error /. t in
+
+  est_mean, mse
