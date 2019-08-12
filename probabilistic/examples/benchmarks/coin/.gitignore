@@ -3,3 +3,4 @@ main.ml
 particles/coin_particles.ml
 ds/coin_ds.ml
 ds_nogc/coin_ds_nogc.ml
+ds_bounded/coin_ds_bounded.ml
