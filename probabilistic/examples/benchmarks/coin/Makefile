@@ -37,7 +37,7 @@ bench_per_particles:
 	$(MAKE) -C ds_bounded bench_per_particles
 
 bench_per_steps:
-	$(MAKE) -C steps bench_per_steps
+	$(MAKE) -C particles bench_per_steps
 	$(MAKE) -C ds bench_per_steps
 	$(MAKE) -C ds_nogc bench_per_steps
 	$(MAKE) -C ds_bounded bench_per_steps
