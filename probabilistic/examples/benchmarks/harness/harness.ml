@@ -5,6 +5,7 @@ module Config = struct
   let perf = ref None
   let perf_step = ref None
   let mem = ref None
+  let mem_ideal = ref None
   let min_particles = ref 1
   let max_particles = ref 100
   let increment = ref 1
@@ -20,6 +21,8 @@ module Config = struct
     Arg.align [
       ("-w", Set_int warmup,
        "n Number of warmup iterations");
+      ("-num-runs", Set_int num_runs,
+       "n Number of runs");
       ("-acc", String (fun file -> accuracy := Some file),
        "file Accuracy testing" );
       ("-perf", String (fun file -> perf := Some file),
@@ -28,6 +31,8 @@ module Config = struct
        "file Performance testing on a per step basis");
       ("-mem-step", String (fun file -> mem := Some file),
        " Memory testing on a per step basis");
+      ("-mem_ideal-step", String (fun file -> mem_ideal := Some file),
+       " Memory testing on a per step basis with GC at each step");
       ("-particles", Int (fun i -> select_particle := Some i),
        "n Number of particles (single run)");
       ("-min-particles", Int (fun i -> min_particles := i),
@@ -61,8 +66,10 @@ module Config = struct
     !parts
 
   let () =
-    if !accuracy = None && !perf = None && !mem = None && !perf_step = None then begin
-      Arg.usage args "No tests perfomed: -acc, -perf, -perf-step, or -mem required";
+    if !accuracy = None && !perf = None &&
+       !mem = None && !mem_ideal = None && !perf_step = None then begin
+      Arg.usage args
+        "No tests perfomed: -acc, -perf, -perf-step, -mem-step, or -mem-ideal-step required";
       exit 1
     end
 
@@ -124,12 +131,18 @@ let rec read_file _ =
   with End_of_file -> []
 
 let gc_stat () =
-  begin match !Config.mem with
-  | Some _ ->
+  begin match !Config.mem, !Config.mem_ideal with
+  | Some _, None ->
     let st = Gc.stat () in
     let words = float_of_int (st.live_words) in
     words /. 1000.
-  | None -> 0.
+  | None, Some _ ->
+      let () = Gc.compact () in
+    let st = Gc.stat () in
+    let words = float_of_int (st.live_words) in
+    words /. 1000.
+  | None, None -> 0.
+  | Some _, Some _ -> assert false
   end
 
 let do_warmup n inp =
@@ -271,6 +284,8 @@ let run () =
   option_iter
     (fun file -> output_perf_step file times_runs_particles) !Config.perf_step;
   option_iter
-    (fun file -> output_mem file mems_runs_particles) !Config.mem
+    (fun file -> output_mem file mems_runs_particles) !Config.mem;
+  option_iter
+    (fun file -> output_mem file mems_runs_particles) !Config.mem_ideal
 
 end

@@ -20,6 +20,7 @@ NAME=outlier_ds
 MIN=1
 MAX=100
 INCR=2
+NUMRUNS=10
 CSV_FILES=perf.csv perf-step.csv mem.csv accuracy.csv
 
 all: opt
@@ -38,6 +39,7 @@ bench: bench_per_particles bench_per_steps
 
 bench_per_particles: $(NAME).opt
 	time cat ../data | ./$(NAME).opt \
+			-num-runs $(NUMRUNS) \
 			-min-particles $(MIN) \
 			-max-particles $(MAX) \
 			-incr $(INCR) \
@@ -46,6 +48,7 @@ bench_per_particles: $(NAME).opt
 
 bench_per_steps: $(NAME).opt
 	time cat ../data | ./$(NAME).opt \
+			-num-runs $(NUMRUNS) \
 			-particles $(MAX) \
 			-perf-step perf-step.csv \
 			-mem-step mem.csv \
