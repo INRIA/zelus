@@ -37,6 +37,12 @@ bench_per_steps:
 	$(MAKE) -C ds bench_per_steps
 	$(MAKE) -C ds_nogc bench_per_steps
 
+bench_mem_ideal:
+	$(MAKE) -C particles bench_mem_ideal
+	$(MAKE) -C ds bench_mem_ideal
+	$(MAKE) -C ds_nogc bench_mem_ideal
+	$(MAKE) -C ds_bounded bench_mem_ideal
+
 .PHONY: $(INFERENCE_CMA) $(INFERENCE_CMXA) publish bench
 
 byte: $(NAME)

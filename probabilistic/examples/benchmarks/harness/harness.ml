@@ -31,7 +31,7 @@ module Config = struct
        "file Performance testing on a per step basis");
       ("-mem-step", String (fun file -> mem := Some file),
        " Memory testing on a per step basis");
-      ("-mem_ideal-step", String (fun file -> mem_ideal := Some file),
+      ("-mem-ideal-step", String (fun file -> mem_ideal := Some file),
        " Memory testing on a per step basis with GC at each step");
       ("-particles", Int (fun i -> select_particle := Some i),
        "n Number of particles (single run)");

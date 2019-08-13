@@ -21,12 +21,12 @@ MIN=1
 MAX=100
 INCR=2
 NUMRUNS=10
-CSV_FILES=perf.csv perf-step.csv mem.csv accuracy.csv
+CSV_FILES=perf.csv perf-step.csv mem.csv mem-ideal.csv accuracy.csv
 
 all: opt
 
 .PHONY: $(INFERENCE_CMA) $(INFERENCE_CMXA) $(BENCHLIB_CMA) $(BENCHLIB_CMXA) \
-	bench_per_particles bench_per_steps bench publish
+	bench_per_particles bench_per_steps bench_mem_ideal bench publish
 
 byte: $(NAME)
 opt: $(NAME).opt
@@ -35,7 +35,7 @@ publish:
 	cp $(CSV_FILES) $(PPL-ZELUS)/data/outlier/ds
 
 
-bench: bench_per_particles bench_per_steps
+bench: bench_per_particles bench_per_steps bench_mem_ideal
 
 bench_per_particles: $(NAME).opt
 	time cat ../data | ./$(NAME).opt \
@@ -53,6 +53,11 @@ bench_per_steps: $(NAME).opt
 			-perf-step perf-step.csv \
 			-mem-step mem.csv \
 
+bench_mem_ideal: $(NAME).opt
+	time cat ../data | ./$(NAME).opt \
+			-num-runs $(NUMRUNS) \
+			-particles $(MAX) \
+			-mem-ideal-step mem-ideal.csv
 
 $(NAME): $(INFERENCE_CMA) $(BENCHLIB_CMA) $(NAME).ml run.ml
 	$(OCAMLC) -o $(NAME) -I $(ZLLIB) -I $(INFERLIB) -I $(BENCHLIB) \

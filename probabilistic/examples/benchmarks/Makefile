@@ -19,6 +19,11 @@ bench_per_steps:
 	$(MAKE) -C kalman bench_per_steps
 	$(MAKE) -C outlier bench_per_steps
 
+bench_mem_ideal:
+	$(MAKE) -C coin bench_mem_ideal
+	$(MAKE) -C kalman bench_mem_ideal
+	$(MAKE) -C outlier bench_mem_ideal
+
 publish:
 	$(MAKE) -C coin publish
 	$(MAKE) -C kalman publish
