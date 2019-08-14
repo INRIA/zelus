@@ -16,26 +16,32 @@ all: opt
 	$(MAKE) -C particles
 	$(MAKE) -C ds
 	$(MAKE) -C ds_nogc
+	$(MAKE) -C ds_bounded
 
 publish:
 	$(MAKE) -C particles publish
 	$(MAKE) -C ds publish
 	$(MAKE) -C ds_nogc publish
+	$(MAKE) -C ds_bounded publish
 
 bench:
 	$(MAKE) -C particles bench
 	$(MAKE) -C ds bench
 	$(MAKE) -C ds_nogc bench
+	$(MAKE) -C ds_bounded bench
 
 bench_per_particles:
 	$(MAKE) -C particles bench_per_particles
 	$(MAKE) -C ds bench_per_particles
 	$(MAKE) -C ds_nogc bench_per_particles
+	$(MAKE) -C ds_bounded bench_per_particles
 
 bench_per_steps:
 	$(MAKE) -C particles bench_per_steps
 	$(MAKE) -C ds bench_per_steps
 	$(MAKE) -C ds_nogc bench_per_steps
+	$(MAKE) -C ds_bounded bench_per_steps
+	$(MAKE) -C ds_bounded bench_per_steps
 
 bench_mem_ideal:
 	$(MAKE) -C particles bench_mem_ideal
