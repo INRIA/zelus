@@ -34,7 +34,7 @@ opt: $(NAME).opt
 publish:
 	cp perf-step.csv mem.csv mem-ideal.csv $(PPL-ZELUS)/data/coin/ds_nogc
 
-bench: bench_per_steps
+bench: bench_per_steps bench_mem_ideal
 
 bench_per_particles: $(NAME).opt
 	time cat ../data | ./$(NAME).opt \
@@ -54,7 +54,7 @@ bench_per_steps: $(NAME).opt
 
 bench_mem_ideal: $(NAME).opt
 	time cat ../data | ./$(NAME).opt \
-			-num-runs $(NUMRUNS) \
+			-num-runs 1 \
 			-particles $(MAX) \
 			-mem-ideal-step mem-ideal.csv
 

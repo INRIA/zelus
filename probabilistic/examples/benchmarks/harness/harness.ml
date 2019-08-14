@@ -202,11 +202,12 @@ let do_runs_particlues particles_list num_runs inp =
   mse_runs_particles, times_runs_particles, mems_runs_particles
 
 let stats arr =
-  let len = float_of_int (Array.length arr) in
+  let len_i = Array.length arr in
+  let len = float_of_int len_i in
   Array.sort compare arr;
-  let upper_idx = truncate (len *. Config.upper_quantile +. 0.5) in
-  let lower_idx = truncate (len *. Config.lower_quantile +. 0.5) in
-  let middle_idx = truncate (len *. Config.middle_quantile +. 0.5) in
+  let upper_idx = min (len_i - 1) (truncate (len *. Config.upper_quantile +. 0.5)) in
+  let lower_idx = min (len_i - 1) (truncate (len *. Config.lower_quantile +. 0.5)) in
+  let middle_idx = min (len_i - 1) (truncate (len *. Config.middle_quantile +. 0.5)) in
   (Array.get arr lower_idx, Array.get arr middle_idx, Array.get arr upper_idx)
 
 let stats_per_particles x_runs_particles =

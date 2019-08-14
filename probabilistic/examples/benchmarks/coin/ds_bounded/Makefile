@@ -54,7 +54,7 @@ bench_per_steps: $(NAME).opt
 
 bench_mem_ideal: $(NAME).opt
 	time cat ../data | ./$(NAME).opt \
-			-num-runs $(NUMRUNS) \
+			-num-runs 1 \
 			-particles $(MAX) \
 			-mem-ideal-step mem-ideal.csv
 
