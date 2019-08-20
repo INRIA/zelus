@@ -14,4 +14,3 @@ let node system(reference) = (time, u, temp, status) where
     Node.solve Heatc.system stop_time (next_horizon, reference)
   and next_horizon =
     h fby (if time >= next_horizon then next_horizon +. h else next_horizon)
-
