@@ -14,6 +14,12 @@
 *#
 *.ok
 a.out
+*.log
+*.nav
+*.out
+*.snm
+*.vrb
+*.tmp
 config
 config.log
 META
