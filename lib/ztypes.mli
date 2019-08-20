@@ -85,6 +85,8 @@ type 'b hsimu =
         (* gives the next time horizon *)
       } -> 'b hsimu
 
+(* a function with type 'a -C-> 'b, when given to a solver, is *)
+(* represented by an OCaml value of type ('a, 'b) hsnode *)
 type ('a, 'b) hsnode =
     Hnode:
       { state : 's;
