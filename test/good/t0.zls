@@ -1,25 +1,16 @@
-let node f(x26, y26) =
-  let rec
-      a22, b23 = e21
-  and
-      y25 = a22
-  and
-      e21 = (x26, y26)
-  and
-      e22 = a22 + b23 in
-  a22, b23, y25, e21, e22
-
-(* let node f1(x, y) = (z, t) where
-   rec z = 0 fby x + 1
-   and t = z
-
-let node main () = (o1, o2) where
-  rec
-   o1 = f1(o2)
-  and
-   o2 = f1(o1) *)
-   
-    
+let node two (on) = x where
+  rec automaton
+     | A -> do emit x = 1 done
+     | B -> do done
+(* let node f x = o where
+  rec forall i in 0 .. 3 cross j in 0 .. 4, xij in x by i by j, oji by j by i
+      do
+	oi = xi + 1
+      and
+	x = last x + 1
+      and
+	m = returns array of odone *)
+      
 (*
 let hybrid g(z) =
   let rec init x = 0
