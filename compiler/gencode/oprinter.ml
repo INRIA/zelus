@@ -133,24 +133,7 @@ and pattern_list ff pat_list =
 and pattern_comma_list ff pat_list =
   print_list_r pattern "("","")" ff pat_list
                
-and method_name m_name =
-  match m_name with
-  | Ostep -> "step"
-  | Oreset -> "reset"
-  | Oderivatives -> "derivatives"
-  | Ocrossings -> "crossings"
-  | Omaxsize -> "maxsize"
-  | Oreinit -> "reinit"
-  | Ocin -> "cin"
-  | Ocout -> "cout"
-  | Ozin -> "zin"
-  | Oclear_zin -> "clear_zin"
-  | Ozout -> "zout"
-  | Odout -> "dout"
-  | Odzero -> "dzero"
-  | Ocsize -> "csize"
-  | Ozsize -> "zsize"
-  | Ohorizon -> "horizon"
+and method_name m_name = m_name
 
 (** Print the call to a method *)
 and method_call ff { met_name = m; met_instance = i_opt; met_args = e_list } =
