@@ -108,68 +108,12 @@ open Ident
 open Lident
 open Deftypes
 open Obc
-
+open Oaux
+       
 let typ_cstate = Otypeconstr(Modname {qual = "Ztypes"; id = "cstate" }, [])
 
-let oletin p e1 i2 = Olet(p, e1, i2)
-let oletvar x ty e1 i2 = Oletvar(x, false, ty, Some(e1), i2)
-let bool v = Oconst(Obool(v))
-let int_const v = Oconst(Oint(v))
-let float_const v = Oconst(Ofloat(v))
-let operator op = Oglobal(Modname (Initial.pervasives_name op))
-let oplus e1 e2 = Oapp(operator "+", [e1; e2])
-let omult e1 e2 = Oapp(operator "*", [e1; e2])
-let ominus e1 e2 = Oapp(operator "-", [e1; e2])
-let omin e1 e2 = Oapp(operator "min", [e1; e2])
-let zero = int_const 0
-let one = int_const 1
-let ffalse = bool false
-let is_zero e = match e with Oconst(Oint(0)) -> true | _ -> false
-let plus e1 e2 =
-  match e1, e2 with
-  | Oconst(Oint(0)), _ -> e2
-  | _, Oconst(Oint(0)) -> e1
-  | Oconst(Oint(v1)), Oconst(Oint(v2)) -> Oconst(Oint(v1 + v2))
-  | _ -> oplus e1 e2
-let minus e1 e2 =
-  match e1, e2 with
-  | _, Oconst(Oint(0)) -> e1
-  | Oconst(Oint(v1)), Oconst(Oint(v2)) -> Oconst(Oint(v1 - v2))
-  | _ -> ominus e1 e2
-let mult e1 e2 =
-  match e1, e2 with
-  | Oconst(Oint(1)), _ -> e2
-  | _, Oconst(Oint(1)) -> e1
-  | Oconst(Oint(v1)), Oconst(Oint(v2)) -> Oconst(Oint(v1 * v2))
-  | _ -> omult e1 e2
-let min e1 e2 = Oapp(operator "min", [e1; e2])
-let local x = Olocal(x)
-let modname x = Lident.Modname { Lident.qual = "Zls"; Lident.id = x }
-let global x = Oglobal(x)                      
 let varpat x ty = Ovarpat(x, Translate.type_expression_of_typ ty)
-let var x = Ovar(false, x)
-let varmut x = Ovar(true, x)
-let void = Oconst(Ovoid)
-let ifthenelse c i1 i2 =
-  match i1, i2 with
-  | Oexp(Oconst(Ovoid)), Oexp(Oconst(Ovoid)) -> Oexp(Oconst(Ovoid))
-  | _, Oexp(Oconst(Ovoid)) -> Oif(c, i1, None)
-  | _ -> Oif(c, i1, Some(i2))
-let sequence i_list =
-  let seq i i_list =
-    match i, i_list with
-    | Oexp(Oconst(Ovoid)), _ -> i_list
-    | _, [] -> [i]
-    | _ -> i :: i_list in
-  let i_list = List.fold_right seq i_list [] in
-  match i_list with
-  | [] -> Oexp(void)
-  | _ -> Osequence i_list
-                   
-let rec left_state_access lv i_list =
-  match i_list with
-  | [] -> lv
-  | i :: i_list -> left_state_access (Oleft_state_index(lv, local i)) i_list
+let modname x = Lident.Modname { Lident.qual = "Zls"; Lident.id = x }
 				     
 let i = Ident.fresh "i"
 
@@ -183,25 +127,25 @@ let rec size s =
      let s1 = size s1 in
      let s2 = size s2 in
      match op with
-     | Splus -> plus s1 s2
-     | Sminus -> minus s1 s2
+     | Splus -> plus_opt s1 s2
+     | Sminus -> minus_opt s1 s2
 
 let set_horizon cstate h =
   Oassign(Oleft_record_access(Oleft_name(cstate), Name "horizon"),
-          omin (Orecord_access(varmut cstate, Name "horizon"))
+          min (Orecord_access(varmut cstate, Name "horizon"))
             (Ostate(Oleft_state_name h)))
 
 let set_major cstate m =
   Oassign_state(Oleft_state_name(m), Orecord_access(varmut cstate, Name "major"))
 	       
 (* [x := !x + 1] *)
-let incr_pos x = Oassign(Oleft_name x, oplus (var x) one)
+let incr_pos x = Oassign(Oleft_name x, Oaux.plus_opt (var x) one)
 let set_pos x e = Oassign(Oleft_name x, e)
 
 (* [cstate.field <- cstate.field + i] *)
 let incr cstate field ie =
   Oassign(Oleft_record_access(Oleft_name cstate, Name(field)),
-          oplus (Orecord_access(Olocal(cstate), Name(field))) ie)
+          Oaux.plus_opt (Orecord_access(Olocal(cstate), Name(field))) ie)
              
 let cmax cstate ie = incr cstate "cmax" ie
 let zmax cstate ie = incr cstate "zmax" ie
@@ -270,7 +214,7 @@ let set_zin_to_false x i_list j_list pos =
 
 let set_dvec_to_zero cstate c_start csize =
   if is_zero csize then Oexp(void)
-  else Ofor(true, i, local c_start, minus csize one,
+  else Ofor(true, i, local c_start, minus_opt csize one,
             Oexp(setd cstate (local i) (float_const 0.0)))
 
 (** Compute the index associated to a state variable [x] in the current block *)
@@ -318,9 +262,9 @@ let build_index m_list =
 let size_of table =
   let size _ (s_list, e_list) acc =
     let s1 =
-      List.fold_left (fun acc s -> mult acc s) one s_list in
-    let s2 = List.fold_left mult s1 e_list in
-    plus acc s2 in
+      List.fold_left (fun acc s -> mult_opt acc s) one s_list in
+    let s2 = List.fold_left mult_opt s1 e_list in
+    plus_opt acc s2 in
   Env.fold size table zero
 	   
 (** Add a method to copy back and forth the internal representation
@@ -408,7 +352,7 @@ let machine f
     match method_list with
     | [] -> raise Not_found
     | { me_name = m } as mdesc :: method_list ->
-       if m = Ostep then mdesc, method_list
+       if m = Oaux.step then mdesc, method_list
        else let step, method_list = find_step method_list in
 	    step, mdesc :: method_list in
   (* for every instance of a continuous machine () *)
@@ -445,23 +389,23 @@ let machine f
     let zpos = Ident.fresh "zpos" in
     let result = Ident.fresh "result" in
 
-    let oletin_only cond pat e body =
-      if cond then oletin pat e body else body in
-    let oletvar_only cond v ty e body =
-      if cond then oletvar v ty e body else body in
+    let letin_only cond pat e body =
+      if cond then letin pat e body else body in
+    let letvar_only cond v ty e body =
+      if cond then letvar v ty e body else body in
     let only cond inst = if cond then inst else Oexp(void) in
     let only_else cond inst1 inst2 = if cond then inst1 else inst2 in
         
     let body =
-      oletin_only c_is_not_zero
+      letin_only c_is_not_zero
         (* compute the current position of the cvector *)
 	(varpat c_start Initial.typ_int) cstate_cpos
-        (oletvar_only
+        (letvar_only
            c_is_not_zero cpos Initial.typ_int (local c_start)
 	   (* compute the current position of the zvector *)
-           (oletin_only
+           (letin_only
               z_is_not_zero (varpat z_start Initial.typ_int) cstate_zpos
-              (oletvar_only
+              (letvar_only
                  z_is_not_zero zpos Initial.typ_int (local z_start)
 		 (sequence
 		    [only c_is_not_zero (incr cstate "cindex" csize);
@@ -472,7 +416,7 @@ let machine f
 		       (only c_is_not_zero (cin ctable cstate cpos));
                      (only_else
                         (c_is_not_zero || z_is_not_zero || h_is_not_zero)
-                        (oletin
+                        (letin
 		           (varpat result ty) (Oinst(body))
 		           (sequence
 			      [set_horizon cstate h_opt;

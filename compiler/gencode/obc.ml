@@ -163,20 +163,8 @@ and method_call =
     (* one instance o.(index_1)...(index_n).m(e_1,...,e_k) *)
     met_args: exp list }
 
-and method_name = 
-  | Ostep (* computes values and possible changes of states *)
-  | Oreset (* resets the discrete state *)
-  | Oderivatives (* computes the values of derivatives *)
-  | Ocrossings (* computes the zero-crossing functions *)
-  | Omaxsize (* returns the size of the cvector and zvector *)
-  | Oreinit (* should we re-init the solver? *)
-  | Ocin | Ocout (* copies the continuous state vector *)
-  | Odout | Ozin | Oclear_zin | Ozout
-    (* copies derivatives and zero crossings *)
-  | Odzero (* resets the internal derivatives *)
-  | Ocsize | Ozsize (* current size for cont. states and zero crossings *)
-  | Ohorizon (* next horizon *)
-
+and method_name = name
+		    
 and 'a path = 'a list
                  
 and implementation_list = implementation list
