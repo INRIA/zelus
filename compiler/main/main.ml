@@ -57,12 +57,15 @@ and doc_simulation =
           \t           where <out> is equal to the argument of -o if the flag\n\
           \t           has been set, or <node> otherwise\n\
           \t           For hybrid programs, compile with:\n\
-          \t           bigarray.cma unix.cma -I +sundials sundials_cvode.cma zllib.cma"
+          \t           bigarray.cma unix.cma -I +sundials sundials_cvode.cma \n\
+          \t           zllib.cma"
 and doc_sampling = "<p> \t Sets the sampling period to p (float <= 1.0)"
 and doc_check = "<n> \t Check that the simulated node returns true for n steps"
 and doc_use_gtk = "\t Use lablgtk2 interface.\n\
-                   \t           Compile with: -I +lablgtk2 lablgtk.cma zllibgtk.cma"
+                   \t           Compile with: -I +lablgtk2 lablgtk.cma \n\
+                   \t                         zllibgtk.cma"
 and doc_inlining_level = "<n> \t  Level of inlining"
+and doc_inline_all = "Inline all function calls"
 and doc_dzero = "\t  Turn on discrete zero-crossing detection"
 and doc_nocausality = "\t  (undocumented)"
 and doc_no_opt = "\t  (undocumented)"
@@ -110,6 +113,7 @@ let main () =
         "-nodeadcode", Arg.Set no_deadcode, doc_no_deadcode;
         "-noinit", Arg.Set no_initialisation, doc_noinitialisation;
         "-inline", Arg.Int set_inlining_level, doc_inlining_level;
+	"-inlineall", Arg.Set inline_all, doc_inline_all;
 	"-nosimplify", Arg.Set no_simplify_causality_type, doc_nosimplify;
         "-noreduce", Arg.Set no_reduce, doc_noreduce;
         "-zsign", Arg.Set zsign, doc_zsign;
