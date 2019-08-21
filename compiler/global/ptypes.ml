@@ -38,9 +38,6 @@ let print_list print_el sep ff l =
   in
     printrec ff l
 
-let print_record print ff r =
-  fprintf ff "@[<hv2>%a@]" (print_list_r print "{ "";"" }") r
-
 let arrow_tostring = function 
   | Tstatic(true) -> "-S->" | Tstatic(false) -> "-AS->"
   | Tany -> "->" | Tcont -> "-C->" 
