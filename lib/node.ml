@@ -125,12 +125,12 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 	  | Init -> ()
 	  | Running ({ nvec; cvec; zstate; sstate; t_time } as s) ->
 	     (* reset the ODE solver and Zero-crossing solver *)
-	     let t_mesh = t_time in
-	     let _ = SSolver.get_dky sstate nvec t_mesh 0 in
-	     SSolver.reinitialize sstate t_mesh nvec;
-	     ZSolver.reinitialize zstate t_mesh cvec;
-	     s.t_start <- t_mesh;
-	     s.t_mesh <- t_mesh in
+	     let _ = SSolver.get_dky sstate nvec 0.0 0 in
+	     SSolver.reinitialize sstate 0.0 nvec;
+	     ZSolver.reinitialize zstate 0.0 cvec;
+	     s.t_start <- 0.0;
+	     s.t_time <- 0.0;
+	     s.t_mesh <- 0.0 in
 	
 	(* the step function *)
 	let step ({ state; solver } as s) (expected_time, input) =
@@ -186,9 +186,9 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		 { time = t_start; status = TimeHasPassed; result = s.output }
 	       else
 		 (* if the input did not change since the last reset *)
-		 (* and expected_time is less than t_mesh *)
-		 (* interpolate the state at expected_time *)
-		 let input_does_not_change =  !minput = input in
+		 (* of the solvers and expected_time is less than t_mesh *)
+		 (* interpolate the state at the expected_time *)
+		 let input_does_not_change = !minput = input in
   		 s.t_time <- expected_time;
 		 if expected_time <= t_mesh then
 		   if input_does_not_change then
@@ -202,12 +202,11 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		   else (* if the input has changed since the last step *)
 		     (* the solution estimated by the solver is wrong and *)
 		     (* must be cancelled *)
-		     let t_mesh = t_time in
-		     let _ = SSolver.get_dky sstate nvec t_mesh 0 in
-		     log_info "Change of the input at t_time = " t_mesh;
-		     let result = majorstep state t_mesh cvec input in
-		     s.t_start <- t_mesh;
-		     s.t_mesh <- t_mesh;
+		     let _ = SSolver.get_dky sstate nvec t_time 0 in
+		     log_info "Change of the input at t_time = " t_time;
+		     let result = majorstep state t_time cvec input in
+		     s.t_start <- t_time;
+		     s.t_mesh <- t_time;
 		     s.minput := input;
 		     s.output <- result;
 		     let status =
@@ -293,7 +292,7 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 			  Horizon(t_limit) in
 		      { time = t_mesh; status = status; result = s.output }
 		   | End ->
-		      log_info "End: t_mesh = " stop_time;
+		      log_info "End: stop_time = " stop_time;
 		      { time = s.t_start; status = StopTimeReached;
 			result = s.output }
 	  with
