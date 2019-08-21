@@ -41,14 +41,21 @@ let immediate ff = function
   | Ochar c -> fprintf ff "'%c'" c
   | Ovoid -> pp_print_string ff "()"
   | Oany -> fprintf ff "Obj.magic ()"
+		    
+		    
+let default_list_of_methods = [Oaux.step; Oaux.reset]
 
 let constructor_for_kind = function
-  | Deftypes.Tcont ->
-     "Node", [ Ostep; Oreset ]
-  | Deftypes.Tdiscrete(true) ->
-     "Node", [ Ostep; Oreset ]
+  | Deftypes.Tcont
+  | Deftypes.Tdiscrete(true) -> if !Misc.with_copy then "Cnode" else "Node"
   | _ -> assert false
-
+let extra_methods m_list =
+  if !Misc.with_copy then Oaux.copy :: m_list else m_list
+let expected_list_of_methods = function
+  | Deftypes.Tcont
+  | Deftypes.Tdiscrete(true) -> extra_methods default_list_of_methods
+  | _ -> assert false
+     
 let print_concrete_type ff ty =
   let priority =
     function | Otypevar _ | Otypeconstr _ | Otypevec _ -> 2
@@ -435,7 +442,7 @@ let palloc f i_opt memories ff instances =
             (print_list_r print_memory """;"";") memories
             (print_list_r print_instance """;""") instances
 
-(* An attempt for a copy method that recursively copy an internal state. *)
+(* A copy method that recursively copy an internal state. *)
 (* This solution does not work at the moment when the program has *)
 (* forall loops. *)
 (* [copy source dest] recursively copies the containt of [source] into [dest] *)
@@ -492,7 +499,7 @@ let pcopy f memories ff instances =
        then fprintf ff "@[let %s_copy source dest = () in@]" f
        else
          fprintf ff "@[<v 2>let %s_copy source dest =@ @[%a@] in@]"
-                 f (print_record copy_instance) instances
+                 f (print_list_r copy_instance "" ";" "") instances
   else if instances = []
   then
     fprintf ff "@[<v 2>let %s_copy source dest =@ @[%a@] in@]"
@@ -517,7 +524,8 @@ let def_instance_function ff { i_name = n; i_machine = ei; i_kind = k;
 
   match k with
   | Deftypes.Tstatic _ | Deftypes.Tany | Deftypes.Tdiscrete(false) -> ()
-  | _ -> let k, m_name_list = constructor_for_kind k in
+  | _ -> let m_name_list = expected_list_of_methods k in
+	 let k = constructor_for_kind k in
 	 fprintf ff
 		 "@[let %s { alloc = %a_alloc; %a } = %a %a in@]"
 		 k name n list_of_methods m_name_list
@@ -543,27 +551,39 @@ let machine f ff { ma_kind = k;
                    ma_methods = m_list } =
   (* print either [(f)] *)
   (* or [k { alloc = f_alloc; m1 = f_m1; ...; mn = f_mn }] *)
-  let tuple_of_methods ff m_list =
+  let tuple_of_methods ff m_name_list =
     match k with
     | Deftypes.Tstatic _ | Deftypes.Tany -> fprintf ff "%s" f
     | Deftypes.Tdiscrete _
-      | Deftypes.Tcont ->
-       let method_name ff { me_name = me_name } =
+    | Deftypes.Tcont ->
+       let method_name ff me_name =
 	 let m = method_name me_name in
 	 fprintf ff "@[%s = %s_%s@]" m f m in
-       let k, _ = constructor_for_kind k in
+       let k = constructor_for_kind k in
+       let m_name_list =
+	 List.map (fun { me_name = me_name } -> me_name) m_list in
+       let m_name_list = extra_methods m_name_list in
        fprintf ff "@[%s { alloc = %s_alloc; %a }@]"
-	       k f (print_list_r method_name "" ";" "") m_list in
+	       k f (print_list_r method_name "" ";" "") m_name_list in
 
   (* print the type for [f] *)
   def_type_for_a_machine ff f memories instances;
   (* print the code for [f] *)
-  fprintf ff "@[<hov 2>let %s %a = @ @[@[%a@]@ @[%a@]@ @[%a@]@ %a@]@.@]"
+  if !Misc.with_copy then
+    fprintf ff "@[<hov 2>let %s %a = @ @[@[%a@]@ @[%a@]@ @[%a@]@ @[%a@]@ %a@]@.@]"
 	  f
 	  pattern_list pat_list
 	  (print_list_r def_instance_function "" "" "") instances
 	  (palloc f i_opt memories) instances
-	  (* (pcopy f memories) instances *)
+	  (pcopy f memories) instances
+	  (print_list_r (pmethod f) """""") m_list
+	  tuple_of_methods m_list
+  else
+    fprintf ff "@[<hov 2>let %s %a = @ @[@[%a@]@ @[%a@]@ @[%a@]@ %a@]@.@]"
+	  f
+	  pattern_list pat_list
+	  (print_list_r def_instance_function "" "" "") instances
+	  (palloc f i_opt memories) instances
 	  (print_list_r (pmethod f) """""") m_list
 	  tuple_of_methods m_list
 
