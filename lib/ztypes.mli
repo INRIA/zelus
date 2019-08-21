@@ -32,6 +32,15 @@ type ('a, 'b) node =
         reset : 's -> unit; (* reset/inialize the state *)
       } -> ('a, 'b) node
 
+(* the same with a method copy *)
+type ('a, 'b) cnode =
+    Cnode:
+      { alloc : unit -> 's; (* allocate the state *)
+        copy : 's -> 's -> unit; (* copy the source into the destination *)
+	step : 's -> 'a -> 'b; (* compute a step *)
+        reset : 's -> unit; (* reset/inialize the state *)
+      } -> ('a, 'b) cnode
+
 open Bigarray
 
 type time = float
