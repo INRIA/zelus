@@ -22,17 +22,6 @@ open Global
 open Deftypes
 open Obc
        
-(* Basic constants *)
-let one = Oconst(Oint(1))
-		 
-let void = Oconst(Ovoid)
-
-(* addition, subtraction *)
-let plus e1 e2 =
-  Oapp(Oglobal(Lident.Modname(Initial.pervasives_name "+")),[e1; e2])
-let minus e1 e2 =
-  Oapp(Oglobal(Lident.Modname(Initial.pervasives_name "-")),[e1; e2])
-
 (* application *)
 let app e_fun e_list =
   match e_list with | [] -> e_fun | _ -> Oapp(e_fun, e_list)
@@ -424,10 +413,10 @@ let apply k env loop_path e e_list
      let j_code = { i_name = o; i_machine = e; i_kind = k;
 		    i_params = se_list; i_size = [] } in
      let reset_code =
-       Omethodcall({ met_machine = f_opt; met_name = Oreset;
+       Omethodcall({ met_machine = f_opt; met_name = Oaux.reset;
 		     met_instance = Some(o, loop_path); met_args = [] }) in
      let step_code =
-       Omethodcall({ met_machine = f_opt; met_name = Ostep;
+       Omethodcall({ met_machine = f_opt; met_name = Oaux.step;
 		     met_instance = Some(o, loop_path); met_args = [arg] }) in
      step_code,
      { code with instances = State.cons j_code j;
@@ -641,8 +630,11 @@ let rec equation env loop_path { Zelus.eq_desc = desc } code =
        block env (ix :: loop_path) b_eq_list in
      (* transforms instances into arrays *)
      let j_code =
-       State.map (array_of_instance (plus (minus e2 e1) one)) j_code in
-     let m_code = State.map (array_of_memory (plus (minus e2 e1) one)) m_code in
+       State.map
+	 (array_of_instance (Oaux.plus (Oaux.minus e2 e1) Oaux.one)) j_code in
+     let m_code =
+       State.map
+	 (array_of_memory (Oaux.plus (Oaux.minus e2 e1) Oaux.one)) m_code in
      (* generate the initialization code *)
      let initialization_list,
 	 { mem = m; instances = j; init = i; reset = r; step = s } =
@@ -703,9 +695,9 @@ let machine n k pat_list { mem = m; instances = j; reset = r; step = s }
 	 ma_memories = State.list [] m;
 	 ma_instances = State.list [] j;
 	 ma_methods = 
-	   [ { me_name = Oreset; me_params = []; me_body = r;
+	   [ { me_name = Oaux.reset; me_params = []; me_body = r;
                me_typ = Initial.typ_unit };
-	     { me_name = Ostep; me_params = [p]; me_body = s;
+	     { me_name = Oaux.step; me_params = [p]; me_body = s;
                me_typ = ty_res } ] } in
      Oletmachine(n, body)
  
