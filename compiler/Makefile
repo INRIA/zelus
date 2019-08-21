@@ -91,6 +91,7 @@ REWRITE = rewrite/markfunctions.cmo \
 GENCODE = gencode/sol.cmo \
 	  gencode/cssa.cmo \
 	  gencode/obc.cmo \
+	  gencode/oaux.cmo \
 	  gencode/oprinter.cmo \
 	  gencode/ocamlprinter.cmo \
 	  gencode/translate.cmo \
