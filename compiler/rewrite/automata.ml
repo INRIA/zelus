@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -250,7 +250,12 @@ let rec exp lnames ({ e_desc = desc } as e) =
     | Erecord(label_e_list) ->
         Erecord(List.map
                   (fun (label, e) -> (label, exp lnames e)) label_e_list)
-    | Erecord_access(e, longname) -> Erecord_access(exp lnames e, longname)
+    | Erecord_access(e_record, longname) ->
+       Erecord_access(exp lnames e_record, longname)
+    | Erecord_with(e_record, label_e_list) ->
+       Erecord_with(exp lnames e_record,
+		    List.map
+                      (fun (label, e) -> (label, exp lnames e)) label_e_list)
     | Etypeconstraint(e, ty) -> Etypeconstraint(exp lnames e, ty)
     | Eseq(e1, e2) -> Eseq(exp lnames e1, exp lnames e2)
     | Eperiod { p_phase = p1; p_period = p2 } ->

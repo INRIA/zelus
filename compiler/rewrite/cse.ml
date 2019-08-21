@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -78,8 +78,13 @@ let rec exp subst e =
   | Erecord(label_e_list) ->
      { e with e_desc = 
 		Erecord(List.map (fun (l, e) -> l, exp subst e) label_e_list) }
-  | Erecord_access(e1, longname) ->
-     { e with e_desc = Erecord_access(exp subst e1, longname) }
+  | Erecord_access(e_record, longname) ->
+     { e with e_desc = Erecord_access(exp subst e_record, longname) }
+  | Erecord_with(e_record,label_e_list) ->
+     { e with e_desc = 
+		Erecord_with(exp subst e_record,
+			     List.map
+			       (fun (l, e) -> l, exp subst e) label_e_list) }
   | Etypeconstraint(e1, ty) ->
      { e with e_desc = Etypeconstraint(exp subst e1, ty) }
   | Eseq(e1, e2) ->

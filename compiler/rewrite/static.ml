@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -120,8 +120,26 @@ let rec expression env ({ e_desc = desc; e_loc = loc } as e) =
 		 (fun (ln, e) -> (Modules.qualident ln, expression env e))
 		 n_e_list) in
      Global.value_code v_exp
-  | Erecord_access(e, ln) ->
-     record_access (expression env e) ln
+  | Erecord_with(e_record, n_e_list) -> 
+     let { value_exp = v_exp } = expression env e_record in
+     let n_v_list =
+       List.map
+	 (fun (ln, e) -> (Modules.qualident ln, expression env e)) n_e_list in
+     let v_exp =
+       match v_exp with
+       | Vrecord(l_v_list) ->
+	  Vrecord(List.map
+		    (fun (ln, v) ->
+		     (ln,
+		      try
+			List.assoc ln n_v_list
+		      with
+		      | Not_found -> v))
+		    l_v_list)
+       | _ -> raise (Error(TypeError)) in
+     Global.value_code v_exp
+  | Erecord_access(e_record, ln) ->
+     record_access (expression env e_record) ln
   | Eop _ | Elast _ -> raise (Error (NotStaticExp e))
   | Eapp(_, e, e_list) ->
      let v = expression env e in

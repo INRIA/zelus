@@ -577,19 +577,11 @@ let rec expression env { desc = desc; loc = loc } =
        Zelus.Eapp({ Zelus.app_inline = i; Zelus.app_statefull = r },
 		  expression env e, List.map (expression env) e_list)
     | Erecord(label_e_list) ->
-        let rec recordrec labels label_e_list =
-          match label_e_list with
-          | [] -> []
-          | (lname, e) :: label_e_list ->
-              (* check that labels are all different *)
-              let label = shortname lname in
-              if S.mem label labels
-              then Error.error loc (Error.Enon_linear_record(label))
-              else (longname lname, expression env e) ::
-              recordrec (S.add label labels) label_e_list in
-        Zelus.Erecord(recordrec S.empty label_e_list)
+        Zelus.Erecord(recordrec loc env label_e_list)
     | Erecord_access(e1, lname) ->
         Zelus.Erecord_access(expression env e1, longname lname)
+    | Erecord_with(e, label_e_list) ->
+       Zelus.Erecord_with(expression env e, recordrec loc env label_e_list)
     | Etypeconstraint(e, ty) ->
         Zelus.Etypeconstraint(expression env e, types env ty)
     | Elet(is_rec, eq_list, e_let) ->
@@ -683,6 +675,20 @@ let rec expression env { desc = desc; loc = loc } =
        Zelus.Eblock(b, e) in
   emake loc desc
 
+and recordrec loc env label_e_list =
+  (* check that a label name appear only once *)
+  let rec recordrec labels label_e_list =
+    match label_e_list with
+    | [] -> []
+    | (lname, e) :: label_e_list ->
+       (* check that labels are all different *)
+       let label = shortname lname in
+       if S.mem label labels
+       then Error.error loc (Error.Enon_linear_record(label))
+       else (longname lname, expression env e) ::
+              recordrec (S.add label labels) label_e_list in
+  recordrec S.empty label_e_list
+    
 and period env { p_phase = p1; p_period = p2 } = 
   { Zelus.p_phase = Misc.optional_map (expression env) p1;
     Zelus.p_period = expression env p2 }

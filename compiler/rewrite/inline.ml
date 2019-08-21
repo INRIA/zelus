@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -15,8 +15,8 @@
 (**************************************************************************)
 
 (* static expansion of function calls (inlining) *)
-(* input: any source code *)
-(* output: any source code *)
+(* input: source code *)
+(* output: source code *)
 (* inlining is done according to the following: *)
 (* - calls to atomic functions are not inlined. *)
 (* - function calls annotated with [inline] are systematically inlined *)
@@ -155,8 +155,14 @@ let rec expression renaming ({ e_desc = desc } as e) =
      { e with e_desc =
 		Erecord(List.map (fun (ln, e) -> (ln, expression renaming e)) 
 				 n_e_list) }
-  | Erecord_access(e, ln) ->
-     { e with e_desc = Erecord_access(expression renaming e, ln) }
+  | Erecord_access(e_record, ln) ->
+     { e with e_desc = Erecord_access(expression renaming e_record, ln) }
+  | Erecord_with(e_record, n_e_list) -> 
+     { e with e_desc =
+		Erecord_with(expression renaming e_record,
+			     List.map
+			       (fun (ln, e) -> (ln, expression renaming e)) 
+			       n_e_list) }
   | Eop(op, e_list) ->
      { e with e_desc = Eop(operator renaming op,
 			   List.map (expression renaming) e_list) }
@@ -164,7 +170,8 @@ let rec expression renaming ({ e_desc = desc } as e) =
 	 ({ e_desc = Eglobal { lname = f } } as op), e_list) ->
      let e_list = List.map (expression renaming) e_list in
      begin try
-         let { f_args = p_list; f_body = e; f_env = env } = inline i f in
+         let { f_args = p_list; f_body = e; f_env = env } =
+	   inline (!Misc.inline_all || i) f in
          letin renaming env p_list e_list e
        with
        | No_inline ->

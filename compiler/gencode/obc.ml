@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -48,6 +48,7 @@ type exp =
   | Oapp of exp * exp list (* function application *)
   | Orecord of (Lident.t * exp) list (* record *)
   | Orecord_access of exp * Lident.t (* access to a record field *)
+  | Orecord_with of exp * (Lident.t * exp) list (* record with copy *)
   | Otypeconstraint of exp * type_expression (* type constraint *)
   | Oifthenelse of exp * exp * exp
   | Omethodcall of method_call			       

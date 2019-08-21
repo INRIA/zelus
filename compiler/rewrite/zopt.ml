@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -134,8 +134,14 @@ let rec rename_expression ren ({ e_desc = desc } as e) =
      { e with e_desc =
 		Erecord(List.map (fun (ln, e) ->
 				  (ln, rename_expression ren e)) n_e_list) }
-  | Erecord_access(e, ln) ->
-     { e with e_desc = Erecord_access(rename_expression ren e, ln) }
+  | Erecord_access(e_record, ln) ->
+     { e with e_desc = Erecord_access(rename_expression ren e_record, ln) }
+  | Erecord_with(e_record, n_e_list) -> 
+     { e with e_desc =
+		Erecord_with(rename_expression ren e_record,
+			     List.map
+			       (fun (ln, e) ->
+				(ln, rename_expression ren e)) n_e_list) }
   | Eop(op, e_list) ->
      { e with e_desc = Eop(op, List.map (rename_expression ren) e_list) }
   | Eapp(app, e_op, e_list) ->

@@ -100,7 +100,7 @@ let rec pattern ff pat = match pat with
   | Otypeconstraintpat(p, ty_exp) ->
       fprintf ff "@[(%a: %a)@]" pattern p print_concrete_type ty_exp
   | Orecordpat(n_pat_list) ->
-      Ptypes.print_record (print_couple longname pattern """ =""") ff n_pat_list
+      print_record (print_couple longname pattern """ =""") ff n_pat_list
 
 and pattern_list ff pat_list =
   print_list_r pattern """""" ff pat_list
@@ -232,9 +232,14 @@ and exp prio ff e =
         (exp (prio_e + 1)) e (print_list_r (exp (prio_e + 1)) """""") e_list
   | Omethodcall m -> method_call ff m
   | Orecord(r) ->
-      Ptypes.print_record (print_couple longname (exp prio_e) """ =""") ff r
-  | Orecord_access(e, lname) ->
-      fprintf ff "%a.%a" (exp prio_e) e longname lname
+      print_record (print_couple longname (exp prio_e) """ =""") ff r
+  | Orecord_access(e_record, lname) ->
+      fprintf ff "%a.%a" (exp prio_e) e_record longname lname
+  | Orecord_with(e_record, r) ->
+     fprintf ff "@[{ %a with %a }@]"
+	     (exp prio_e) e_record
+	     (print_list_r
+		(print_couple longname (exp prio_e) """ =""") "" ";" "") r
   | Otypeconstraint(e, ty_e) ->
       fprintf ff "@[(%a : %a)@]" (exp prio_e) e print_concrete_type ty_e
   | Oifthenelse(e, e1, e2) ->
@@ -418,11 +423,11 @@ let palloc f i_opt memories ff instances =
        else
          fprintf ff "@[<v 2>let %s_alloc _ =@ @[%a;@,%a@] in@]"
                  f print_initialize i_opt
-                 (Ptypes.print_record print_instance) instances
+                 (print_record print_instance) instances
   else if instances = []
   then
     fprintf ff "@[<v 2>let %s_alloc _ =@ @[%a;@,%a@] in@]"
-            f print_initialize i_opt (Ptypes.print_record print_memory) memories
+            f print_initialize i_opt (print_record print_memory) memories
   else
     fprintf ff "@[<v 2>let %s_alloc _ =@ @[%a;@,{ @[%a@,%a@] }@] in@]"
             f
@@ -487,7 +492,7 @@ let pcopy f memories ff instances =
        then fprintf ff "@[let %s_copy source dest = () in@]" f
        else
          fprintf ff "@[<v 2>let %s_copy source dest =@ @[%a@] in@]"
-                 f (Ptypes.print_record copy_instance) instances
+                 f (print_record copy_instance) instances
   else if instances = []
   then
     fprintf ff "@[<v 2>let %s_copy source dest =@ @[%a@] in@]"

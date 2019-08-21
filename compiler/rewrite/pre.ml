@@ -139,8 +139,12 @@ let rec exp e =
       let label_e_list =
         List.map (fun (l, e) -> (l, exp e)) label_e_list in
      { e with e_desc = Erecord(label_e_list) }
-  | Erecord_access(e1, longname) ->
-     { e with e_desc = Erecord_access(exp e1, longname) }
+  | Erecord_access(e_record, longname) ->
+     { e with e_desc = Erecord_access(exp e_record, longname) }
+  | Erecord_with(e_record, label_e_list) ->
+      let label_e_list =
+        List.map (fun (l, e) -> (l, exp e)) label_e_list in
+     { e with e_desc = Erecord_with(exp e_record, label_e_list) }
   | Etypeconstraint(e1, ty) ->
      { e with e_desc = Etypeconstraint(exp e1, ty) }
   | Elet(l, e) ->

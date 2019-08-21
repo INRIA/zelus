@@ -84,6 +84,10 @@ let rec fv bounded (last_acc, acc) e =
   | Erecord(f_e_list) ->
      List.fold_left
        (fun acc (_, e) -> fv bounded acc e) (last_acc, acc) f_e_list
+  | Erecord_with(e, f_e_list) ->
+     let last_acc, acc = fv bounded (last_acc, acc) e in
+     List.fold_left
+       (fun acc (_, e) -> fv bounded acc e) (last_acc, acc) f_e_list
   | Elet(local, e) ->
      let bounded, acc = fv_local (bounded, (last_acc, acc)) local in
      fv bounded acc e

@@ -270,6 +270,12 @@ let rec expression ff e =
         fprintf ff "@[%a.%a@]" expression e longname field
     | Erecord(ln_e_list) ->
         print_record (print_couple longname expression """ =""") ff ln_e_list
+    | Erecord_with(e, ln_e_list) ->
+       fprintf ff "@[{ %a with %a }@]"
+	       expression e
+	       (print_list_r
+		  (print_couple longname expression """ =""") "" ";" "")
+	       ln_e_list
     | Elet(l, e) ->
         fprintf ff "@[<v 0>%a@ %a@]" local l expression e
     | Eblock(b, e) ->

@@ -108,6 +108,8 @@ let rec expansive { e_desc = desc } =
     | Etuple(e_list) -> List.exists expansive e_list
     | Erecord(l_e_list) -> List.exists (fun (_, e) -> expansive e) l_e_list
     | Erecord_access(e, _) | Etypeconstraint(e, _) -> expansive e
+    | Erecord_with(e, l_e_list) ->
+       expansive e || List.exists (fun (_, e) -> expansive e) l_e_list
     | _ -> true
 
 let check_statefull loc expected_k =
@@ -685,6 +687,19 @@ let rec expression expected_k h ({ e_desc = desc; e_loc = loc } as e) =
         if List.length label_e_list <> List.length label_desc_list
         then error loc Esome_labels_are_missing;
         ty
+    | Erecord_with(e1, label_e_list) ->
+       let ty = new_var () in
+        let label_e_list =
+          List.map
+            (fun (lab, e_label) ->
+               let qualid, { label_arg = ty_arg; label_res = ty_res } =
+                 label loc lab in
+               unify_expr e ty ty_arg;
+               expect expected_k h e_label ty_res;
+               (Lident.Modname(qualid), e_label)) label_e_list in
+	expect expected_k h e1 ty;
+        e.e_desc <- Erecord_with(e1, label_e_list);
+	ty
     | Etypeconstraint(exp, typ_expr) ->
         let expected_typ =
           Types.instance_of_type (Interface.scheme_of_type typ_expr) in

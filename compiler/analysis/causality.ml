@@ -131,7 +131,8 @@ let pattern env pat =
     | Etuplepat(pat_list) ->
         product(List.map pattern pat_list)
     | Erecordpat(l) ->
-       (* from the causality point of view, a record is considered to be atomic *)
+       (* from the causality point of view, a record is considered to be *)
+       (* atomic *)
        let c = Causal.new_var () in
        List.iter (fun (_, p) -> pattern_less_than_on_c p c) l;
        Causal.skeleton_on_c c ty
@@ -143,7 +144,8 @@ let pattern env pat =
     | Ealiaspat(p, x) ->
         let tc_p = pattern p in
         let tc_n =
-          let { t_typ = actual_tc } = try Env.find x env with | Not_found -> print x  in
+          let { t_typ = actual_tc } =
+	    try Env.find x env with | Not_found -> print x  in
           (* every variable that is not a function has an atomic type *)
           let expected_tc = Causal.skeleton_for_variables pat.p_typ in
           less_than loc env expected_tc actual_tc;
@@ -285,6 +287,12 @@ let rec exp env c_free ({ e_desc = desc; e_typ = ty; e_loc = loc } as e) =
         Causal.skeleton_on_c c_record ty
     | Erecord(l) ->
         let c_record = Causal.new_var () in
+        List.iter
+          (fun (_, e) -> exp_less_than_on_c env c_free e c_record) l;
+        Causal.skeleton_on_c c_record ty
+    | Erecord_with(e_record, l) ->
+        let c_record = Causal.new_var () in
+        exp_less_than_on_c env c_free e_record c_record;
         List.iter
           (fun (_, e) -> exp_less_than_on_c env c_free e c_record) l;
         Causal.skeleton_on_c c_record ty

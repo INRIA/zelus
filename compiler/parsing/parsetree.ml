@@ -111,6 +111,7 @@ and desc =
   | Etuple of exp list
   | Erecord_access of exp * longname
   | Erecord of (longname * exp) list
+  | Erecord_with of exp * (longname * exp) list
   | Etypeconstraint of exp * type_expression
   | Elet of is_rec * eq list * exp
   | Eseq of exp * exp
@@ -146,8 +147,8 @@ and constant =
   | Cimmediate of immediate
   | Cglobal of longname
       
-(* a period is of the form period (v1) or period (v1|v2) where v1 is the phase *)
-(* v1 and v2 two static expressions *)
+(* a period is of the form period (v1) or period (v1|v2) *)
+(* where v1 is the phase. v1 and v2 two static expressions *)
 and period =
   { p_phase: exp option; (* the two expressions must be static *)
     p_period: exp }

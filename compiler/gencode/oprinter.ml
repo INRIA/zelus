@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -27,7 +27,8 @@ open Printer
 (** Priorities *)
 let rec priority_exp = function
   | Oconst _ | Oconstr0 _| Oglobal _ | Olocal _ | Ovar _ | Ostate _ | Oaccess _
-    | Orecord _ | Orecord_access _ | Otypeconstraint _ | Otuple _ -> 3
+  | Orecord _ | Orecord_access _ | Orecord_with _
+  | Otypeconstraint _ | Otuple _ -> 3
   | Oconstr1 _ | Oapp _ | Omethodcall _
     | Ovec _ | Oupdate _ | Oslice _ | Oconcat _ -> 2
   | Oifthenelse _  -> 0 | Oinst i -> priority_inst i
@@ -124,7 +125,7 @@ let rec pattern ff pat = match pat with
   | Otypeconstraintpat(p, ty_exp) ->
      fprintf ff "@[(%a: %a)@]" pattern p print_concrete_type ty_exp
   | Orecordpat(n_pat_list) ->
-     Ptypes.print_record (print_couple longname pattern """ =""") ff n_pat_list
+     print_record (print_couple longname pattern """ =""") ff n_pat_list
                   
 and pattern_list ff pat_list =
   print_list_r pattern """""" ff pat_list
@@ -255,9 +256,14 @@ and exp prio ff e =
              e_list
   | Omethodcall m -> method_call ff m
   | Orecord(r) ->
-     Ptypes.print_record (print_couple longname (exp prio_e) """ =""") ff r
-  | Orecord_access(e, lname) ->
-     fprintf ff "%a.%a" (exp prio_e) e longname lname
+     print_record (print_couple longname (exp prio_e) """ =""") ff r
+  | Orecord_access(e_record, lname) ->
+     fprintf ff "%a.%a" (exp prio_e) e_record longname lname
+  | Orecord_with(e_record, r) ->
+     fprintf ff "@[{ %a with %a }@]"
+	     (exp prio_e) e_record
+	     (print_list_r
+		(print_couple longname (exp prio_e) """ =""") "" ";" "") r
   | Otypeconstraint(e, ty_e) ->
      fprintf ff "@[(%a : %a)@]" (exp prio_e) e print_concrete_type ty_e
   | Oifthenelse(e, e1, e2) ->
@@ -330,7 +336,7 @@ let rec type_decl ff = function
   | Ovariant_type(constr_decl_list) ->
      print_list_l constr_decl """| """ ff constr_decl_list
   | Orecord_type(s_ty_list) ->
-     Ptypes.print_record
+     print_record
        (print_couple pp_print_string print_concrete_type """ :""") ff s_ty_list
        
 and constr_decl ff = function

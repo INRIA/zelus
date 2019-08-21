@@ -145,12 +145,16 @@ let rec expression major time ({ e_desc = e_desc } as e) =
      { e with e_desc = Etuple(List.map (expression major time) e_list) }
   | Econstr1(c, e_list) ->
      { e with e_desc = Econstr1(c, List.map (expression major time) e_list) }
-  | Erecord_access(e, x) ->
-     { e with e_desc = Erecord_access(expression major time e, x) }
+  | Erecord_access(e_record, x) ->
+     { e with e_desc = Erecord_access(expression major time e_record, x) }
   | Erecord(l_e_list) ->
      let l_e_list =
        List.map (fun (l, e) -> (l, expression major time e)) l_e_list in
      { e with e_desc = Erecord(l_e_list) }
+  | Erecord_with(e_record, l_e_list) ->
+     let l_e_list =
+       List.map (fun (l, e) -> (l, expression major time e)) l_e_list in
+     { e with e_desc = Erecord_with(expression major time e_record, l_e_list) }
   | Etypeconstraint(e, ty) ->
      { e with e_desc = Etypeconstraint(expression major time e, ty) }
   | Elet(l, e) ->

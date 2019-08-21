@@ -109,14 +109,21 @@ let rec expression ({ e_desc = desc } as e) =
   | Econstr1(c, e_list) ->
      let e_list, ctx = par_fold expression e_list in
      { e with e_desc = Econstr1(c, e_list) }, ctx
-  | Erecord_access(e1, l) ->
-     let e1, ctx = expression e1 in
-     { e with e_desc = Erecord_access(e1, l) }, ctx
+  | Erecord_access(e_record, l) ->
+     let e_record, ctx = expression e_record in
+     { e with e_desc = Erecord_access(e_record, l) }, ctx
   | Erecord(l_e_list) ->
      let l_e_list, ctx =
        par_fold
 	 (fun (l, e) -> let e, ctx = expression e in (l, e), ctx) l_e_list in
      { e with e_desc = Erecord(l_e_list) }, ctx
+  | Erecord_with(e_record, l_e_list) ->
+     let e_record, ctx_record = expression e_record in
+     let l_e_list, ctx =
+       par_fold
+	 (fun (l, e) -> let e, ctx = expression e in (l, e), ctx) l_e_list in
+     { e with e_desc = Erecord_with(e_record, l_e_list) },
+     par ctx_record ctx
   | Etypeconstraint(e1, ty) ->
      let e1, ctx = expression e1 in
      { e with e_desc = Etypeconstraint(e1, ty) }, ctx

@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -64,6 +64,9 @@ let funexp_info { f_args = p_list; f_body = ({ e_caus = tc } as e) } =
     | Erecord_access(e, _) | Etypeconstraint(e, _) -> exp c_set e
     | Erecord(m_e_list) ->
         List.fold_left (fun acc (_, e) -> exp acc e) c_set m_e_list
+    | Erecord_with(e_record, m_e_list) ->
+       List.fold_left (fun acc (_, e) -> exp acc e)
+		      (exp c_set e_record) m_e_list
     | Epresent(p_h_list, e_opt) ->
         let c_set =
           List.fold_left
@@ -238,9 +241,12 @@ let funexp_mark_to_inline info ({ f_body = e } as funexp) =
           Eapp({ app with app_inline = i }, op, arg_list)
       | Etuple(e_list) -> Etuple(List.map exp e_list)
       | Econstr1(c, e_list) -> Econstr1(c, List.map exp e_list)
-      | Erecord_access(e, m) -> Erecord_access(exp e, m)
+      | Erecord_access(e_record, m) -> Erecord_access(exp e_record, m)
       | Erecord(m_e_list) ->
 	 Erecord(List.map (fun (m, e) -> (m, exp e)) m_e_list)
+      | Erecord_with(e_record, m_e_list) ->
+	 Erecord_with(exp e_record,
+		      List.map (fun (m, e) -> (m, exp e)) m_e_list)
       | Etypeconstraint(e, ty) -> Etypeconstraint(exp e, ty)
       | Epresent(p_h_list, e_opt) ->
 	  Epresent(List.map (present_handler scondpat exp) p_h_list,

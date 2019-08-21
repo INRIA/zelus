@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -32,6 +32,8 @@ let rec exp { e_desc = desc } =
   | Erecord_access(e, _) | Etypeconstraint(e, _) -> exp e
   | Erecord(f_e_list) ->
      List.exists (fun (_, e) -> exp e) f_e_list
+  | Erecord_with(e, f_e_list) ->
+     exp e || List.exists (fun (_, e) -> exp e) f_e_list
   | Eseq(e1, e2) -> (exp e1) || (exp e2)
   | Elocal _ | Elast _ | Econst _ | Econstr0 _ 
   | Eglobal _ | Eperiod _ | Eop _ -> false

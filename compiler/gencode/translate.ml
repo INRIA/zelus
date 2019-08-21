@@ -459,8 +459,18 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
 	 (fun code (l, e) -> let e, code = exp env loop_path code e in
 			     (l, e), code) code label_e_list in
      Orecord(label_e_list), code
-  | Zelus.Erecord_access(e, longname) ->
-     let e, code = exp env loop_path code e in Orecord_access(e, longname), code
+  | Zelus.Erecord_access(e_record, longname) ->
+     let e_record, code =
+       exp env loop_path code e_record in
+     Orecord_access(e_record, longname), code
+  | Zelus.Erecord_with(e_record, label_e_list) ->
+     let e_record, code =
+       exp env loop_path code e_record in
+     let label_e_list, code =
+       Misc.map_fold
+	 (fun code (l, e) -> let e, code = exp env loop_path code e in
+			     (l, e), code) code label_e_list in
+     Orecord_with(e_record, label_e_list), code
   | Zelus.Etypeconstraint(e, ty_exp) ->
      let e, code = exp env loop_path code e in
      let ty_exp = type_expression ty_exp in

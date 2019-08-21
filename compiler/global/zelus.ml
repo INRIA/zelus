@@ -107,6 +107,7 @@ and desc =
   | Etuple of exp list
   | Erecord_access of exp * Lident.t
   | Erecord of (Lident.t * exp) list
+  | Erecord_with of exp * (Lident.t * exp) list
   | Etypeconstraint of exp * type_expression
   | Epresent of exp present_handler list * exp option
   | Ematch of total ref * exp * exp match_handler list
@@ -127,9 +128,9 @@ and op =
   | Ehorizon (* generate an event at a given horizon *)
   | Etest (* test the present of a signal *)
   | Eaccess (* access in an array: e.(e2) *)
-  | Eupdate (* array update: { e1 with i = e2 } *)
+  | Eupdate (* array update: [| e1 with i = e2 |] *)
   | Eslice of size * size (* array slice: e{s0..s1} *)
-  | Econcat (* array concatenation: { t{0..42} | t'{2..25} } *)
+  | Econcat (* array concatenation: [| t{0..42} | t'{2..25} |] *)
   | Eatomic (* force its argument to be atomic *)
     
 and immediate = Deftypes.immediate
@@ -137,7 +138,8 @@ and immediate = Deftypes.immediate
 and app = { app_inline: bool; app_statefull: bool}
 				    
 (* a period is of the form period(v1) or period(v1|v2) where v1 is the phase *)
-(* v1 and v2 two static expressions. v1 and v2 of type float. E.g., period (0.2|3.4) *)
+(* v1 and v2 two static expressions. v1 and v2 of type float. *)
+(* E.g., period (0.2|3.4) *)
 and 'a period =
   { p_phase: 'a option; (* the two expressions must be static *)
     p_period: 'a }

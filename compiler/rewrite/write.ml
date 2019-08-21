@@ -169,15 +169,19 @@ and expression ({ e_desc = desc } as e) =
        Eapp(app, op, List.map expression e_list)
     | Etuple(e_list) -> Etuple(List.map expression e_list)
     | Econstr1(c, e_list) -> Econstr1(c, List.map expression e_list)
-    | Erecord_access(e, ln) -> Erecord_access(expression e, ln)
+    | Erecord_access(e_record, ln) -> Erecord_access(expression e_record, ln)
     | Erecord(l_e_list) ->
        Erecord(List.map (fun (l, e) -> (l, expression e)) l_e_list)
+    | Erecord_with(e_record, l_e_list) ->
+       Erecord_with(expression e_record,
+		    List.map (fun (l, e) -> (l, expression e)) l_e_list)
     | Etypeconstraint(e, ty) -> Etypeconstraint(expression e, ty)
     | Elet(l, e) -> Elet(local l, expression e)
     | Eblock(b, e) -> let b, _, _ = block b in Eblock(b, expression e)
     | Eseq(e1, e2) -> Eseq(expression e1, expression e2)
     | Eperiod { p_phase = p1; p_period = p2 } ->
-       Eperiod { p_phase = Misc.optional_map expression p1; p_period = expression p2 }
+       Eperiod
+	 { p_phase = Misc.optional_map expression p1; p_period = expression p2 }
     | Epresent _ | Ematch _ -> assert false in
   { e with e_desc = desc }
 

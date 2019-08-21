@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -83,7 +83,8 @@ let eq_match total e l =
 (* every signal [x: t sig] is associated to a pair [xv, xp] of two fresh *)
 (* names. [xv: t] and [xp: bool] *)
 let build signals l_env =
-  let make n ({ t_typ = ty; t_sort = sort } as tentry) (signals, n_list, new_env) = 
+  let make n ({ t_typ = ty; t_sort = sort } as tentry)
+	   (signals, n_list, new_env) = 
     match Types.is_a_signal ty with
       | Some(ty) ->
 	  let xv = Ident.fresh ((Ident.source n) ^ "v") in
@@ -109,9 +110,9 @@ let build signals l_env =
 (* we restrict to simple cases *)
 let equal e1 e2 =
   match e1.e_desc, e2.e_desc with
-    | Econst(i), Econst(j) when i = j -> true
-    | Elocal(i), Elocal(j) when i = j -> true
-    | Elast(i), Elast(j) when i = j -> true
+    | Econst(i), Econst(j) when (i = j) -> true
+    | Elocal(i), Elocal(j) when (i = j) -> true
+    | Elast(i), Elast(j) when (i = j) -> true
     | _ -> false
 
 (* the member function *)
@@ -151,7 +152,7 @@ let rec pattern signals p =
   | Evarpat(n) ->
       begin try 
           let nv, np, ty = Env.find n signals in
-          { p with p_desc = Etuplepat [varpat nv ty; varpat np typ_bool] }
+	  { p with p_desc = Etuplepat [varpat nv ty; varpat np typ_bool] }
         with 
         | Not_found -> p
       end
@@ -168,14 +169,21 @@ let rec pattern signals p =
       
 let rec exp signals ({ e_desc = desc } as e) =
   let desc = match desc with
-    | Econst _ | Econstr0 _ | Eglobal _ | Elast _ -> desc
-    | Elocal(name) as desc -> 
+    | Econst _ | Econstr0 _ | Eglobal _ -> desc
+    | Elast(name) ->
+       begin try 
+           let nv, np, ty = Env.find name signals in
+           Etuple [last nv ty; last np typ_bool]
+       with 
+       | Not_found -> desc
+       end
+    | Elocal(name)-> 
        begin try 
            let nv, np, ty = Env.find name signals in
            Etuple [var nv ty; var np typ_bool]
        with 
        | Not_found -> desc
-     end
+       end
     | Etuple(e_list) -> Etuple(List.map (exp signals) e_list)
     | Econstr1(c, e_list) -> Econstr1(c, List.map (exp signals) e_list)
     | Eop(Etest, [e]) -> test (exp signals e)
@@ -186,7 +194,12 @@ let rec exp signals ({ e_desc = desc } as e) =
     | Erecord(label_e_list) ->
         Erecord(List.map
 	          (fun (label, e) -> (label, exp signals e)) label_e_list)
-    | Erecord_access(e, longname) -> Erecord_access(exp signals e, longname)
+    | Erecord_access(e_record, longname) ->
+       Erecord_access(exp signals e_record, longname)
+    | Erecord_with(e_record, label_e_list) ->
+       Erecord_with(exp signals e_record,
+		    List.map
+	              (fun (label, e) -> (label, exp signals e)) label_e_list)
     | Etypeconstraint(e, ty) -> Etypeconstraint(exp signals e, ty)
     | Eseq(e1, e2) -> Eseq(exp signals e1, exp signals e2)
     | Eperiod { p_phase = p1; p_period = p2 } ->

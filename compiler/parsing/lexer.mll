@@ -161,6 +161,8 @@ rule main = parse
   | ")"  { RPAREN }
   | "["  { LBRACKET }
   | "]"  { RBRACKET }
+  | "[|" { LBRACKETBAR }
+  | "|]" { RBRACKETBAR }
   | "*"  { STAR }
   | "{"  { LBRACE }
   | "}"  { RBRACE }

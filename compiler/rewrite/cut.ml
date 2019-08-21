@@ -74,8 +74,12 @@ let rec exp subst ({ e_desc } as e) =
        let label_e_list =
 	 List.map (fun (l, e) -> (l, exp subst e)) label_e_list in
        Erecord(label_e_list)
-    | Erecord_access(e1, longname) ->
-       Erecord_access(exp subst e1, longname)
+    | Erecord_access(e_record, longname) ->
+       Erecord_access(exp subst e_record, longname)
+    | Erecord_with(e_record, label_e_list) ->
+       let label_e_list =
+	 List.map (fun (l, e) -> (l, exp subst e)) label_e_list in
+       Erecord_with(exp subst e_record, label_e_list)
     | Etypeconstraint(e1, ty) ->
        Etypeconstraint(exp subst e1, ty)
     | Elet(l, e) -> 

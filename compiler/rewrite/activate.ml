@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -78,7 +78,11 @@ let rec exp e =
        Eapp(app, exp e, List.map exp e_list)
     | Erecord(label_e_list) ->
       Erecord(List.map (fun (label, e) -> (label, exp e)) label_e_list)
-    | Erecord_access(e, longname) -> Erecord_access(exp e, longname)
+    | Erecord_access(e_record, longname) ->
+       Erecord_access(exp e_record, longname)
+    | Erecord_with(e_record, label_e_list) ->
+       Erecord_with(exp e_record,
+		    List.map (fun (label, e) -> (label, exp e)) label_e_list)
     | Etypeconstraint(e, ty) -> Etypeconstraint(exp e, ty)
     | Eseq(e1, e2) -> Eseq(exp e1, exp e2)
     | Eperiod { p_phase = p1; p_period = p2 } ->

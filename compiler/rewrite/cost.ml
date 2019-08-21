@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -44,6 +44,8 @@ let expression e max =
       | Erecord(n_e_list) ->
 	 incr 1; List.iter (fun (label, e) -> cost e) n_e_list
       | Erecord_access(e, _) -> cost e
+      | Erecord_with(e, n_e_list) ->
+	 cost e; incr 1; List.iter (fun (label, e) -> cost e) n_e_list
       | Eseq(e1, e2) -> cost e1; cost e2
       | Eperiod({ p_phase = p1_opt; p_period = p2 }) -> 
           incr 1; ignore (Misc.optional_map cost p1_opt); cost p2

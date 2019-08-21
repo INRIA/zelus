@@ -118,6 +118,8 @@ let block l lo eq_list startpos endpos =
 %token LBRACE         /* "{" */
 %token BAR            /* "|" */
 %token RBRACE         /* "}" */
+%token LBRACKETBAR    /* "[|" */
+%token RBRACKETBAR    /* "|]" */
 %token UNDERSCORE     /* "_" */
 %token TEST           /* "?" */
 %token <string> CONSTRUCTOR
@@ -869,6 +871,8 @@ simple_expression_desc:
       { Econst a }
   | LBRACE l = label_expression_list RBRACE
       { Erecord(l) }
+  | LBRACE e = simple_expression WITH l = label_expression_list RBRACE
+      { Erecord_with(e, l) }
   | LPAREN RPAREN
       { Econst Evoid }
   | LPAREN e = expression_comma_list RPAREN
@@ -879,10 +883,10 @@ simple_expression_desc:
       { Etypeconstraint(e, t) }
   | e = simple_expression DOT i = ext_ident
       { Erecord_access(e, i) }
-  | LBRACE e1 = simple_expression BAR e2 = simple_expression RBRACE
+  | LBRACKETBAR e1 = simple_expression BAR e2 = simple_expression RBRACKETBAR
       { Eop(Econcat, [e1; e2]) }
-  | LBRACE e1 = simple_expression WITH i = simple_expression
-					     EQUAL e2 = expression RBRACE
+  | LBRACKETBAR e1 = simple_expression WITH i = simple_expression
+					     EQUAL e2 = expression RBRACKETBAR
       { Eop(Eupdate, [e1; i; e2]) }
 ;
 

@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -179,6 +179,15 @@ let rec expression venv renaming fun_defs ({ e_desc = desc } as e) =
       let e_record, fun_defs =
         expression venv renaming fun_defs e_record in
       { e_record with e_desc = Erecord_access(e_record, ln) }, fun_defs
+  | Erecord_with(e_record, l_e_list) -> 
+     let e_record, fun_defs =
+       expression venv renaming fun_defs e_record in
+     let l_e_list, fun_defs =
+        Misc.map_fold
+	  (fun fun_defs (ln, e) ->
+            let e, fun_defs = expression venv renaming fun_defs e in
+            (ln, e), fun_defs) fun_defs l_e_list in
+      { e with e_desc = Erecord_with(e_record, l_e_list) }, fun_defs
   | Eapp({ app_inline = inline } as app, e_fun, e_list) ->
       (* [e_fun] is necessarily static. It needs to be a compile-time *)
       (* non opaque value only when [inline] is true *)

@@ -6,7 +6,7 @@
 (*                                                                        *)
 (*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
-(*  Copyright 2012 - 2018. All rights reserved.                           *)
+(*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
 (*  This file is distributed under the terms of the CeCILL-C licence      *)
 (*                                                                        *)
@@ -294,6 +294,11 @@ let rec exp is_continuous env ({ e_desc = desc; e_typ = ty } as e) =
         Init.skeleton_on_i i ty
     | Erecord(l) -> 
         let i = Init.new_var () in
+        List.iter (fun (_, e) -> exp_less_than_on_i is_continuous env e i) l;
+        Init.skeleton_on_i i ty
+    | Erecord_with(e_record, l) -> 
+        let i = Init.new_var () in
+        exp_less_than_on_i is_continuous env e_record i;
         List.iter (fun (_, e) -> exp_less_than_on_i is_continuous env e i) l;
         Init.skeleton_on_i i ty
     | Etypeconstraint(e, _) -> exp is_continuous env e
