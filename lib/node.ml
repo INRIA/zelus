@@ -38,7 +38,7 @@
 
 open Ztypes
 
-let debug = ref true
+let debug = ref false
 
 let log_info s i =
   if !debug then
@@ -188,12 +188,18 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		 (* if the input did not change since the last reset *)
 		 (* and expected_time is less than t_mesh *)
 		 (* interpolate the state at expected_time *)
-		 let input_change =
-		   (expected_time > t_time) && not (!minput = input) in
+		 let input_does_not_change =  !minput = input in
   		 s.t_time <- expected_time;
 		 if expected_time <= t_mesh then
-		   if input_change then
-		     (* if the input has changed since the last step *)
+		   if input_does_not_change then
+		     (* interpolation *)
+		     let _ = SSolver.get_dky sstate nvec expected_time 0 in
+		     let result = output state input cvec in
+		     s.output <- result;
+		     log_info "Interpolate: time = " expected_time;
+		     { time = expected_time; status = Interpolate;
+		       result = result }
+		   else (* if the input has changed since the last step *)
 		     (* the solution estimated by the solver is wrong and *)
 		     (* must be cancelled *)
 		     let t_mesh = t_time in
@@ -217,14 +223,6 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 			 s.next <- Integrate;
 			 Horizon(t_limit) in
 		     { time = t_mesh; status = status; result = s.output }
-		   else
-		     (* interpolation *)
-		     let _ = SSolver.get_dky sstate nvec expected_time 0 in
-		     let result = output state input cvec in
-		     s.output <- result;
-		     log_info "Interpolate: time = " expected_time;
-		     { time = expected_time; status = Interpolate;
-		       result = result }
 		 else 
 		   match next with
 		   | Integrate ->
