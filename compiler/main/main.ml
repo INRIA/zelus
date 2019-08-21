@@ -42,7 +42,7 @@ let compile file =
 let doc_verbose = "\t Set verbose mode"
 let doc_vverbose = "\t Set even more verbose mode"
 and doc_version = "\t The version of the compiler"
-and doc_outname = "\t Simulation file name"
+and doc_outname = "<name> \t Simulation file name <name>"
 and doc_print_types = "\t Print types"
 and doc_print_causality_types = "\t Print causality types"
 and doc_print_initialization_types = "\t  Print initialization types"
@@ -54,28 +54,30 @@ and doc_typeonly = "\t  Stop after typing"
 and doc_hybrid = "\t  Select hybrid translation"
 and doc_simulation =
   "<node> \t Simulates the node <node> and generates a file <out>.ml\n\
-          \t           where <out> is equal to the argument of -o if the flag\n\
-          \t           has been set, or <node> otherwise\n\
-          \t           For hybrid programs, compile with:\n\
-          \t           bigarray.cma unix.cma -I +sundials sundials_cvode.cma \n\
-          \t           zllib.cma"
+          \t\t   where <out> is equal to the argument of -o if the flag\n\
+          \t\t   has been set, or <node> otherwise\n\
+          \t\t   For hybrid programs, compile with:\n\
+          \t\t   bigarray.cma unix.cma -I +sundials sundials_cvode.cma \n\
+          \t\t   zllib.cma"
 and doc_sampling = "<p> \t Sets the sampling period to p (float <= 1.0)"
 and doc_check = "<n> \t Check that the simulated node returns true for n steps"
-and doc_use_gtk = "\t Use lablgtk2 interface.\n\
-                   \t           Compile with: -I +lablgtk2 lablgtk.cma \n\
-                   \t                         zllibgtk.cma"
-and doc_inlining_level = "<n> \t  Level of inlining"
-and doc_inline_all = "Inline all function calls"
-and doc_dzero = "\t  Turn on discrete zero-crossing detection"
-and doc_nocausality = "\t  (undocumented)"
-and doc_no_opt = "\t  (undocumented)"
-and doc_no_deadcode = "\t  (undocumented)"
-and doc_noinitialisation = "\t  (undocumented)"
-and doc_nosimplify = "\t  (undocumented)"
-and doc_noreduce = "\t  (undocumented)"
-and doc_lmm = "<n>\t  Translate the node into Lustre--"
-and doc_red_name = "\t  Static reduction for"
-and doc_zsign = "\t  Use the sign function for the zero-crossing argument"
+and doc_use_gtk =
+  "\t Use lablgtk2 interface.\n\
+   \t\t   Compile with: -I +lablgtk2 lablgtk.cma \n\
+   \t\t   zllibgtk.cma"
+and doc_inlining_level = "<n> \t Level of inlining"
+and doc_inline_all = "\t Inline all function calls"
+and doc_dzero = "\t Turn on discrete zero-crossing detection"
+and doc_nocausality = "\t (undocumented)"
+and doc_no_opt = "\t (undocumented)"
+and doc_no_deadcode = "\t (undocumented)"
+and doc_noinitialisation = "\t (undocumented)"
+and doc_nosimplify = "\t (undocumented)"
+and doc_noreduce = "\t (undocumented)"
+and doc_lmm = "<n>\t Translate the node into Lustre--"
+and doc_red_name = "\t Static reduction for"
+and doc_zsign = "\t Use the sign function for the zero-crossing argument"
+and doc_with_copy = "\t Add of a copy method for the state"
 let errmsg = "Options are:"
 
 let set_verbose () =
@@ -117,8 +119,8 @@ let main () =
 	"-nosimplify", Arg.Set no_simplify_causality_type, doc_nosimplify;
         "-noreduce", Arg.Set no_reduce, doc_noreduce;
         "-zsign", Arg.Set zsign, doc_zsign;
+	"-copy", Arg.Set with_copy, doc_with_copy;
 	"-lmm", Arg.String set_lmm_nodes, doc_lmm
-
       ])
       compile
       errmsg;
