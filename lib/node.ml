@@ -188,10 +188,11 @@ module Make (SSolver: Zls.STATE_SOLVER) (ZSolver: Zls.ZEROC_SOLVER) =
 		 (* if the input did not change since the last reset *)
 		 (* of the solvers and expected_time is less than t_mesh *)
 		 (* interpolate the state at the expected_time *)
-		 let input_does_not_change = !minput = input in
+		 let input_change =
+		   (expected_time > t_time) && not (!minput = input) in
   		 s.t_time <- expected_time;
 		 if expected_time <= t_mesh then
-		   if input_does_not_change then
+		   if not input_change then
 		     (* interpolation *)
 		     let _ = SSolver.get_dky sstate nvec expected_time 0 in
 		     let result = output state input cvec in

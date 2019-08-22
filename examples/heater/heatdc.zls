@@ -7,6 +7,8 @@ open Constants
 open Heatc
 open Node
 
+let h = 0.01
+    
 let node system(reference) = (time, u, temp, status) where
   (* Compute the dynamics of the system. Draw an observation *)
   (* at times [n * h] with n in Nat or when a zero-crossing occurs *)
