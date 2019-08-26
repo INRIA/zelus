@@ -1,3 +1,6 @@
+let node one (o1, o2) = o where
+  o = present o1(x) | o2(y) -> x + y init 42
+      
 let node two x = o where
   rec o = 1 -> pre o + pre o + x
 
