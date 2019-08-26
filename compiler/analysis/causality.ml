@@ -43,8 +43,14 @@ let print x = Misc.internal_error "unbound" Printer.name x
 
 (* Main error message *)
 type error =
-  | Cless_than of tc * tc * Causal.tentry Env.t * cycle
-                    
+    { kind: kind;
+      cycle: cycle;
+      env: Causal.tentry Env.t }
+	       
+ and kind =
+   | Cless_than of tc * tc
+   | Cless_than_name of Ident.t * tc * tc
+
 (* dependence cycle and the current typing environment *)
 exception Error of location * error
 
@@ -71,10 +77,10 @@ let error loc kind = raise (Error(loc, kind))
   end;
   raise Misc.Error *)
 
-let message loc kind =
+let message loc { kind; cycle } =
   begin
     match kind with
-    | Cless_than(left_tc, right_tc, env, cycle) ->
+    | Cless_than(left_tc, right_tc) ->
         let c_set = vars (vars S.empty left_tc) right_tc in
         let cycle = Causal.keep_names_in_cycle c_set cycle in
         Format.eprintf
@@ -85,22 +91,46 @@ let message loc kind =
           Pcaus.ptype left_tc
           Pcaus.ptype right_tc
           (Pcaus.cycle true) cycle
+    | Cless_than_name(name, left_tc, right_tc) ->
+        let c_set = vars (vars S.empty left_tc) right_tc in
+        let cycle = Causal.keep_names_in_cycle c_set cycle in
+        Format.eprintf
+          "@[%aCausality error: The variable %s has causality type@ %a,\
+           @ whereas it should be less than@ %a@.\
+           Here is an example of a cycle:@.%a@.@]"
+          output_location loc
+          (Ident.source name)
+	  Pcaus.ptype left_tc
+          Pcaus.ptype right_tc
+          (Pcaus.cycle true) cycle
   end;
   raise Misc.Error
 
-let less_than loc env actual_ty expected_ty =
+let less_than loc env actual_tc expected_tc =
   try
-    Causal.less actual_ty expected_ty
+    Causal.less actual_tc expected_tc
   with
   | Causal.Clash(cycle) ->
-      error loc (Cless_than(actual_ty, expected_ty, env, cycle))
+     error loc
+	   { kind = Cless_than(actual_tc, expected_tc); env = env; cycle = cycle }
+
+let less_than_name loc env name actual_tc expected_tc =
+  try
+    Causal.less actual_tc expected_tc
+  with
+  | Causal.Clash(cycle) ->
+     error loc
+	   { kind = Cless_than_name(name, actual_tc, expected_tc);
+	     env = env; cycle = cycle }
 
 let less_than_c loc env actual_c expected_c =
   try
     Causal.less_c actual_c expected_c
   with
   | Causal.Clash(cycle) ->
-      error loc (Cless_than(atom actual_c, atom expected_c, env, cycle))
+     error loc
+	   { kind = Cless_than(atom actual_c, atom expected_c);
+	     env = env; cycle = cycle }
 
 (** Typing a pattern. [pattern env p = tc] where [tc] is the type *)
 (* of pattern [p] in [env] *)
@@ -183,11 +213,11 @@ let build_env_on_c c l_env env =
 
 (** Build an environment for a set of written variables *)
 (* [x1:ct1;...; xn:tcn] with [cti < ct'i] where [env(xi) = ct'i] *)
-let def_env defnames env =
+let def_env loc defnames env =
     let add x acc =
       let { t_typ = tc } as tentry = Env.find x env in
       let ltc = Causal.fresh tc in
-      Causal.less ltc tc;
+      less_than_name loc env x ltc tc;
       Env.add x { tentry with t_typ = ltc  } acc in
     let env_defnames =
       Ident.S.fold add (Deftypes.cur_names Ident.S.empty defnames) Env.empty in
@@ -197,11 +227,11 @@ let def_env defnames env =
 (* such that their causality types are *)
 (* [x1:ct1[c];...; xn:tcn[c]] where [cti[c] < ct'i] *)
 (* for all xi such that [env(xi) = ct'i] *)
-let def_env_on_c defnames env c =
+let def_env_on_c loc defnames env c =
   let add x acc =
       let { t_typ = tc } as tentry = Env.find x env in
       let ltc = Causal.fresh_on_c c tc in
-      Causal.less ltc tc;
+      less_than_name loc env x ltc tc;
       Env.add x { tentry with t_typ = ltc  } acc in
   let shared = Deftypes.cur_names Ident.S.empty defnames in
   let env_defnames = Ident.S.fold add shared Env.empty in
@@ -497,7 +527,7 @@ and equation env c_free { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
       let c_automaton = Causal.intro_less_c c_free in
       Misc.optional_unit (state env c_free) c_automaton se_opt;
       (* Every branch of the automaton is considered to be executed atomically *)
-      let shared, env = def_env_on_c defnames env c_automaton in
+      let shared, env = def_env_on_c loc defnames env c_automaton in
       (* the causality tag for the transition conditions *)
       if is_weak then
         (* first the body; then the escape condition *)
@@ -515,7 +545,7 @@ and equation env c_free { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
       let c_body = Causal.intro_less_c c_free in
       let c_e = Causal.intro_less_c c_body in
       exp_less_than_on_c env c_free e c_e;
-      let shared, env = def_env_on_c defnames env c_body in
+      let shared, env = def_env_on_c loc defnames env c_body in
       (* the [match/with] is considered to be atomic, i.e., all of *)
       (* its outputs depend on all of its free variable. *)
       (* This is done by typing the body in an environment where *)
@@ -526,17 +556,17 @@ and equation env c_free { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
       let c_body = Causal.intro_less_c c_free in
       let c_scpat = Causal.intro_less_c c_body in
       (* the [present/with] is considered to be executed atomically *)
-      let shared, env = def_env_on_c defnames env c_body in
+      let shared, env = def_env_on_c loc defnames env c_body in
       present_handler_block_eq_list
         env shared c_free c_scpat c_body p_h_list b_opt      
   | EQreset(eq_list, e) ->
       let c_e = Causal.intro_less_c c_free in
       exp_less_than_on_c env c_free e c_e;
       (* the [reset] block is considered to be executed atomically *)
-      let _, env = def_env_on_c defnames env c_e in
+      let _, env = def_env_on_c loc defnames env c_e in
       (* do it one more so that the causality tag of defined variables *)
       (* is strictly less than [c_e] *)
-      let env = def_env defnames env in
+      let env = def_env loc defnames env in
       equation_list env c_e eq_list
   | EQand(and_eq_list) ->
       equation_list env c_free and_eq_list 
@@ -633,7 +663,8 @@ and match_handler_block_eq_list env shared c_body c_e m_h_list =
 (* completed with a default value. This is achieved by considering that *)
 (* the causality of [x] is that of [last x] *)
 and block_eq_list shared env c_free
-    { b_locals = l_list; b_body = eq_list; b_env = b_env; b_write = defnames } =
+		  { b_locals = l_list; b_body = eq_list;
+		    b_env = b_env; b_write = defnames; b_loc = loc } =
   (* shared variables depend on their last causality *)
   let env = last_env shared defnames env in
   (* typing local definitions *)
@@ -641,7 +672,7 @@ and block_eq_list shared env c_free
   (* Build the typing environment for names introduced by a *)
   (* [local x1,..., xn in ...] *)
   let env = build_env b_env env in
-  let env = def_env defnames env in
+  let env = def_env loc defnames env in
   equation_list env c_free eq_list;
   env
 
