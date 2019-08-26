@@ -1,11 +1,13 @@
-let node one (o1, o2) = o where
-  o = present o1(x) | o2(y) -> x + y init 42
+let node d_trigger_l () = let rec reset v = true every (v) in v
+
+(* let node one (o1, o2) = o where
+  o = present o1(x) | o2(x) -> x + x init 42
       
 let node two x = o where
   rec o = 1 -> pre o + pre o + x
 
 let node double_two x =
-  two (x+1) + two (x+2) + (0 fby x)
+  two (x+1) + two (x+2) + (0 fby x) *)
     
 (* let node f x = o where
   rec forall i in 0 .. 3 cross j in 0 .. 4, xij in x by i by j, oji by j by i
