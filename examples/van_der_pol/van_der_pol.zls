@@ -25,40 +25,65 @@ let node van_der_pol_discrete(h)() = (x, y) where
       y = forward(h)(1.0, (mu *. (1.0 -. (x *. x)) *. y) -. x)
 
 		 
-let h = 0.1
+let h_discrete_old = 0.000001
+let h_discrete = 0.14
 let stop_time = 50.0
-    
+    (* 50 000 000 *)
+
 (* The main simulation loop in discrete-time *)
-let node maind() =
-  let x, y = van_der_pol_discrete(h)() in
-  let rec time = 0.0 -> pre time +. h in
+let node maindgraphics() =
+  let x, y = van_der_pol_discrete(h_discrete)() in
+  let rec time = 0.0 -> pre time +. h_discrete in
   let s = Scope.scope2 (-1.0, 40.0,
 		       ("x", Scope.linear, x),
                        ("y", Scope.linear, y)) in
     Scope.window ("Van der Pol", stop_time, time, s)
-  
-(* let hybrid mainc() =
-  let der time = 1.0 init 0.0 in
-  let x, y = van_der_pol_continuous() in
-  present (period(0.1)) ->
-    let s = Scope.scope2 (-1.0, 40.0,
-			  ("x", Scope.linear, x),
-                          ("y", Scope.linear, y)) in
-    Scope.window ("Van der Pol", 10.0, time, s)
-  else () *)
+   
+(* plot "outputc.dat" using 1:2 with lines,"outputc.dat" using 1:3 with lines *)
+let discrete print_x_y (time, x, y) =
+   print_float time; print_string "\t"; print_float x;
+   print_string "\t"; print_float y;
+   print_newline ()
 
-(* The main simulation loop in continuous time *)
+let node maind() =
+  let x, y = van_der_pol_discrete(h_discrete)() in
+  let rec time = 0.0 -> pre time +. h_discrete in
+  print_x_y (time, x, y)
+   
+   
+let h_continuous = 0.5
+
+(* The main simulation loop in discrete-time but with the model *)
+(* in continuous-time and simulated with a variable step numeric solver *)
+let node maincgraphics() =
+  let rec { time = time; status = status; result = (x, y) } =
+    Node.solve van_der_pol_continuous stop_time (next_horizon, ())
+  and next_horizon =
+    h_continuous fby (if time >= next_horizon then next_horizon +. h_continuous
+           else next_horizon) in
+  let s = Scope.scope2 (-1.0, 40.0,
+			("x", Scope.linear, x),
+                        ("y", Scope.linear, y)) in
+  Scope.window ("Van der Pol", stop_time, time, s)
+
+let node steps status =
+  let rec nb_points = 0 fby nb_points + 1 in
+  let rec init nb_integr = 0 and init nb_jumps = 0
+  and match status with
+      | Interpolate | StopTimeReached
+      | TimeHasPassed | Error ->
+	  do nb_jumps = 0 done
+      | Success _ ->
+	  do nb_integr = last nb_integr + 1 and nb_jumps = 0 done
+      | RootsFound | Horizon _ | Cascade ->
+	  do nb_jumps = last nb_jumps + 1 done
+  in (nb_points, nb_integr, nb_jumps)
+
+
 let node mainc() =
   let rec { time = time; status = status; result = (x, y) } =
     Node.solve van_der_pol_continuous stop_time (next_horizon, ())
   and next_horizon =
-    h fby (if time >= next_horizon then next_horizon +. h
-    else next_horizon) in
-  match (true -> time >= pre(time)) with
-  | true ->
-      let s = Scope.scope2 (-1.0, 40.0,
-			    ("x", Scope.linear, x),
-                            ("y", Scope.linear, y)) in
-      Scope.window ("Van der Pol", stop_time, time, s)
-  | false -> ()
-	
+    h_continuous fby (if time >= next_horizon then next_horizon +. h_continuous
+           else next_horizon) in
+  print_x_y (time, x, y)
