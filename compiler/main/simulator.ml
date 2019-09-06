@@ -84,10 +84,11 @@ let emit_prelude ff ({ Lident.id = id } as qualid) k =
        "@[open Ztypes@.\
           (* simulation (discrete) function *)@.\
           let main = \
-            @[let Node { alloc = alloc; step = step; reset = reset } = %s in @,\
+            @[let %s { alloc = alloc; step = step; reset = reset } = %s in @,\
               let mem = alloc () in @,\
               reset mem; @,\
-              fun _ -> step mem ();;@]@.@]" s
+              fun _ -> step mem ();;@]@.@]"
+       (if !Misc.with_copy then "Cnode" else "Node") s
 
   | Deftypes.Tcont ->
      fprintf ff
@@ -103,8 +104,8 @@ let emit_prelude ff ({ Lident.id = id } as qualid) k =
                          cend = 0; zend = 0; @,\
                          cmax = 0; zmax = 0; @,\
                          major = false; horizon = 0.0 }@] in@] @,\
-              @[<hov2>let Node \
-                 { alloc = alloc; step = hstep; reset = reset } = \ 
+              @[<hov2>let %s \
+                 { alloc = alloc; step = hstep; reset = reset } = \
                      %s cstate in@] @,\
               @[<hov2>let step mem cvec dvec zin t = @,\
                       @[cstate.major <- true; @,\
@@ -138,7 +139,8 @@ let emit_prelude ff ({ Lident.id = id } as qualid) k =
               @[<hov1>Hsim @[<hov2>{ alloc;@ step;@ reset;@ derivative; @,\
                                      crossings; @,\
                                      maxsize; @ csize; @ zsize; @,\
-                                     horizon }@]@]@];;@]@.@]" s
+                                     horizon }@]@]@];;@]@.@]"
+       (if !Misc.with_copy then "Cnode" else "Node") s
 
 (* emited code for control-driven programs: the transition function *)
 (* is executed at full speed *)
