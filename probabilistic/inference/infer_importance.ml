@@ -8,7 +8,7 @@ let factor = Infer_pf.factor
 let observe = Infer_pf.observe
 
 
-let infer_decay n decay (Node { alloc; reset; step }) =
+let infer_decay n decay (Cnode { alloc; reset; copy; step }) =
   let alloc () =
     { infer_states = Array.init n (fun _ -> alloc ());
       infer_scores = Array.make n 0.0; }
@@ -41,7 +41,13 @@ let infer_decay n decay (Node { alloc; reset; step }) =
     Distribution.Dist_support
       (List.rev_map (fun (b, w) -> (b, w /. norm)) weights)
   in
-  Node { alloc = alloc; reset = reset; step = step }
+  let copy src dst =
+    for i = 0 to n - 1 do
+      copy src.infer_states.(i) dst.infer_states.(i);
+      dst.infer_scores.(i) <- src.infer_scores.(i)
+    done
+  in
+  Cnode { alloc = alloc; reset = reset; copy = copy; step = step }
 
 
 let infer n node =

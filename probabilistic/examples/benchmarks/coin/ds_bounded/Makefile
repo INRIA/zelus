@@ -1,5 +1,5 @@
 PPL-ZELUS=$(HOME)/probabilistic/mit-ibm/ppl-zelus
-ZELUC=zeluc
+ZELUC=zeluc -copy
 ZLLIB=$(shell $(ZELUC) -where)
 INFERLIB=../../../../inference
 BENCHLIB=../../harness
@@ -68,10 +68,10 @@ $(NAME).opt: $(INFERENCE_CMXA) $(BENCHLIB_CMXA) $(NAME).ml run.ml
 		$+
 
 $(NAME).ml : $(INFERENCE_ZCI) $(NAME).zls
-	zeluc -I $(INFERLIB) -noreduce $(NAME).zls
+	$(ZELUC) -I $(INFERLIB) -noreduce $(NAME).zls
 
 %.zci: %.zli
-	zeluc -I $(INFERLIB) $<
+	$(ZELUC) -I $(INFERLIB) $<
 
 %.cmo: %.ml
 	ocamlc -c -I $(ZLLIB) -I $(INFERLIB) -noreduce $<

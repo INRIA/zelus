@@ -1,4 +1,4 @@
-ZELUC=zeluc
+ZELUC=zeluc -copy
 ZLLIB=$(shell $(ZELUC) -where)
 
 OCAMLDEP=ocamldep

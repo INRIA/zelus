@@ -1,9 +1,10 @@
 (* A zelus discrete node is implemented by a value of the following type *)
 (* see module Ztypes *)
 (* type ('a, 'b) node =
-    Node: { alloc : unit -> 's;   (* 's is the internal state *)
+    Cnode: { alloc : unit -> 's;   (* 's is the internal state *)
             reset: 's -> unit;    (* initializes the state *)
             step: 's -> 'a -> 'b; (* the step function *)
+            copy: 's -> 's -> unit; (* copy state *)
           } -> ('a, 'b) node
 *)
 
@@ -40,7 +41,7 @@ type 'a infer_state = {
   the instants to resample and the input and returns the infered
   output.
 *)
-let infer_subresample n (Node { alloc; reset; step }) =
+let infer_subresample n (Cnode { alloc; reset; copy; step }) =
   let alloc () =
     { infer_states = Array.init n (fun _ -> alloc ());
       infer_scores = Array.make n 0.0; }
@@ -58,16 +59,22 @@ let infer_subresample n (Node { alloc; reset; step }) =
         states
     in
     let ret = Normalize.normalize_nohist values scores in
-    if c then Normalize.resample (states, scores, values);
+    if c then Normalize.resample copy (states, scores, values);
     ret
   in
-  Node { alloc = alloc; reset = reset; step = step }
+  let copy src dst =
+    for i = 0 to n - 1 do
+      copy src.infer_states.(i) dst.infer_states.(i);
+      dst.infer_scores.(i) <- src.infer_scores.(i)
+    done
+  in
+  Cnode { alloc = alloc; reset = reset; copy = copy; step = step }
 
 
 (** [infer_ess_resample nb_particles threshold f i] inference with
     resampling when the effective sample size goes below [threshold].
 *)
-let infer_ess_resample n threshold (Node { alloc; reset; step }) =
+let infer_ess_resample n threshold (Cnode { alloc; reset; copy; step }) =
   let alloc () =
     { infer_states = Array.init n (fun _ -> alloc ());
       infer_scores = Array.make n 0.0; }
@@ -97,23 +104,32 @@ let infer_ess_resample n threshold (Node { alloc; reset; step }) =
         states
     in
     let ret = Normalize.normalize_nohist values scores in
-    if (do_resampling scores) then Normalize.resample (states, scores, values);
+    if (do_resampling scores) then
+      Normalize.resample copy (states, scores, values);
     ret
   in
-  Node { alloc = alloc; reset = reset; step = step }
+  let copy src dst =
+    for i = 0 to n - 1 do
+      copy src.infer_states.(i) dst.infer_states.(i);
+      dst.infer_scores.(i) <- src.infer_scores.(i)
+    done
+  in
+  Cnode { alloc = alloc; reset = reset; copy = copy; step = step }
 
 let infer n node =
-  let Node { alloc; reset; step } = infer_subresample n node in
-  Node { alloc;
-         reset;
-         step = (fun state input -> step state (true, input)); }
+  let Cnode { alloc; reset; copy; step } = infer_subresample n node in
+  Cnode { alloc;
+          reset;
+          copy;
+          step = (fun state input -> step state (true, input)); }
 
 
 let infer_noresample n node =
-  let Node { alloc; reset; step } = infer_subresample n node in
-  Node { alloc;
-         reset;
-         step = (fun state input -> step state (false, input)); }
+  let Cnode { alloc; reset; copy; step } = infer_subresample n node in
+  Cnode { alloc;
+          reset;
+          copy;
+          step = (fun state input -> step state (false, input)); }
 
 
 (* [memoize_step f x] is functionally equivalent to [f x] but stores *)
@@ -128,24 +144,12 @@ let memoize_step step (s, table) x =
       Hashtbl.add table (sc, x) o;
       o
 
-(* [memoize f x] is functionally equivalent to [f x] but stores *)
-(* all the pairs (state, input) and the associated result *)
-let memoize (Node { alloc; reset; step }) =
-  let alloc () =
-    alloc (), Hashtbl.create 7
-  in
-  let reset (s, table) =
-    reset s; Hashtbl.clear table
-  in
-  Node { alloc = alloc; reset = reset; step = memoize_step step }
-
-
 let expectation scores =
   let s = Array.fold_left (+.) 0. scores in
   s /. float (Array.length scores)
 
 
-let plan_step n k model_step =
+let plan_step n k model_step model_copy =
   let table = Hashtbl.create 7 in
   let rec expected_utility (state, score) (ttl, input) =
     if ttl < 1 then score
@@ -164,7 +168,7 @@ let plan_step n k model_step =
             scores.(i) <- eu)
           states;
         let scores' = Array.copy scores in
-        Normalize.resample (states, scores, scores');
+        Normalize.resample model_copy (states, scores, scores');
         expectation scores'
       in
       score +. score'
@@ -182,7 +186,7 @@ let plan_step n k model_step =
     let states_scores_values =
       Array.mapi (fun i state -> (state, scores.(i), values.(i))) states
     in
-    Normalize.resample (states, scores, states_scores_values);
+    Normalize.resample model_copy (states, scores, states_scores_values);
     Hashtbl.clear table;
     states_scores_values
   in
@@ -190,10 +194,11 @@ let plan_step n k model_step =
 
 (* [plan n k f x] runs n instances of [f] on the input stream *)
 (* [x] but at each step, do a prediction of depth k *)
-let plan n k (Node model : (pstate * 't1, 't2) Ztypes.node) =
+let plan n k (Cnode model : (pstate * 't1, 't2) Ztypes.cnode) =
   let alloc () = ref (model.alloc ()) in
   let reset state = model.reset !state in
-  let step_body = plan_step n k model.step in
+  let copy src dst = model.copy !src !dst in
+  let step_body = plan_step n k model.step model.copy in
   let step plan_state input =
     let states = Array.init n (fun _ -> Normalize.copy !plan_state) in
     let scores = Array.make n 0.0 in
@@ -205,14 +210,14 @@ let plan n k (Node model : (pstate * 't1, 't2) Ztypes.node) =
     plan_state := state';
     value
   in
-  Node { alloc = alloc; reset = reset; step = step }
+  Cnode { alloc = alloc; reset = reset; copy = copy; step = step }
 
 
 type 'state infd_state =
     { infd_states : 'state array;
       infd_scores : float array; }
 
-let infer_depth n k (Node model) =
+let infer_depth n k (Cnode model) =
   let alloc () =
     { infd_states = Array.init n (fun _ -> model.alloc ());
       infd_scores = Array.make n 0.0; }
@@ -221,13 +226,20 @@ let infer_depth n k (Node model) =
     Array.iter model.reset state.infd_states;
     Array.fill state.infd_scores 0 n 0.0
   in
+  let copy src dst =
+    for i = 0 to n - 1 do
+      model.copy src.infd_states.(i) dst.infd_states.(i);
+      dst.infd_scores.(i) <- src.infd_scores.(i)
+    done
+  in
   let step infd_state input =
     let states_scores_values =
       plan_step n k
-        model.step { infer_states = infd_state.infd_states;
-                     infer_scores = infd_state.infd_scores; } input
+        model.step model.copy
+        { infer_states = infd_state.infd_states;
+          infer_scores = infd_state.infd_scores; } input
     in
     let values = Array.map (fun (_, _, v) -> v) states_scores_values in
     Normalize.normalize values
   in
-  Node { alloc = alloc; reset = reset; step = step }
+  Cnode { alloc = alloc; reset = reset; copy = copy; step = step }

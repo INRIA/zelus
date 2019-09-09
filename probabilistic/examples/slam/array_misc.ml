@@ -12,8 +12,13 @@ type 'a t = 'a array
 let get a i =
   a.(i)
 
+(* let set a i v = *)
+(*   a.(i) <- v *)
+
 let set a i v =
-  a.(i) <- v
+  let a = Array.copy a in
+  a.(i) <- v;
+  a
 
 let of_list = Array.of_list
 

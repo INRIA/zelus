@@ -17,40 +17,40 @@
 (rule
  (targets simple_agent.ml main.ml)
  (deps    (:src simple_agent.zls) cart_pole.zci pendulum.zci gym.zci)
- (action  (run zeluc -I ../../../../inference -s main %{src})))
+ (action  (run zeluc -copy -I ../../../../inference -s main %{src})))
 
 (rule
  (targets smart_agent.ml smart_main.ml)
  (deps    (:src smart_agent.zls) cart_pole.zci pendulum.zci gym.zci)
- (action  (run zeluc -I ../../../../inference -s smart_main %{src})))
+ (action  (run zeluc -copy -I ../../../../inference -s smart_main %{src})))
 
 (rule
  (targets pid_agent.ml pid_main.ml)
  (deps    (:src pid_agent.zls) cart_pole.zci pendulum.zci gym.zci)
- (action  (run zeluc -I ../../../../inference -s pid_main %{src})))
+ (action  (run zeluc -copy -I ../../../../inference -s pid_main %{src})))
 
 (rule
  (targets smart_pid_agent.ml smart_pid_main.ml)
  (deps    (:src smart_pid_agent.zls) cart_pole.zci pendulum.zci gym.zci)
- (action  (run zeluc -I ../../../../inference -s smart_pid_main %{src})))
+ (action  (run zeluc -copy -I ../../../../inference -s smart_pid_main %{src})))
 
 (rule
  (targets simple_pid_agent.ml simple_pid_main.ml)
  (deps    (:src simple_pid_agent.zls) cart_pole.zci gym.zci)
- (action  (run zeluc -s simple_pid_main %{src})))
+ (action  (run zeluc -copy -s simple_pid_main %{src})))
 
 
 (rule
  (targets gym.ml gym.zci)
  (deps    (:src gym.zls) cart_pole.zci)
- (action  (run zeluc %{src})))
+ (action  (run zeluc -copy %{src})))
 
 (rule
  (targets cart_pole.zci)
  (deps (:src cart_pole.zli))
- (action (run zeluc %{src})))
+ (action (run zeluc -copy %{src})))
 
 (rule
  (targets pendulum.zci pendulum.ml)
  (deps (:src pendulum.zls))
- (action (run zeluc %{src})))
+ (action (run zeluc -copy %{src})))

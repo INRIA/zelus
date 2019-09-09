@@ -37,13 +37,13 @@ smartheat.byte: smartheat.ml ../../inference/inference.cma
         heat.ml smartheat.ml mains.ml
 
 smartheat.ml mains: smartheat.zls
-	zeluc -I ../../inference  -gtk2 -s mains smartheat.zls
+	zeluc -copy -I ../../inference  -gtk2 -s mains smartheat.zls
 
 heat.ml main.ml: heat.zls
-	zeluc -i -I `zeluc -where` -sampling 0.1 -gtk2 -s main heat.zls
+	zeluc -copy -i -I `zeluc -where` -sampling 0.1 -gtk2 -s main heat.zls
 
 heatc.ml mainc.ml: heatc.zls
-	zeluc -gtk2 -s mainc heatc.zls
+	zeluc -copy -gtk2 -s mainc heatc.zls
 
 clean:
 	-@rm -f $(EXAMPLE:%.zls=%.byte)

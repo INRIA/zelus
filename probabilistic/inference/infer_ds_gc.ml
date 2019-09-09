@@ -315,26 +315,70 @@ let rec distribution_of_expr_dist : type a. a expr_dist -> a Distribution.t =
 let distribution_of_expr expr =
   distribution_of_expr_dist (expr_dist_of_expr expr)
 
-let infer n (Node { alloc; reset; step; }) =
-  let step state (prob, x) = distribution_of_expr (step state (prob, x)) in
-  let Node {alloc = infer_alloc; reset = infer_reset; step = infer_step;} =
-    Infer_pf.infer n (Node { alloc; reset; step; })
+(* let infer n (Cnode { alloc; reset; copy; step; }) = *)
+(*   let step state (prob, x) = distribution_of_expr (step state (prob, x)) in *)
+(*   let Cnode {alloc = infer_alloc; reset = infer_reset; *)
+(*              copy = infer_copy; step = infer_step;} = *)
+(*     Infer_pf.infer n (Cnode { alloc; reset; copy; step; }) *)
+(*   in *)
+(*   let infer_step state i = *)
+(*     Distribution.to_mixture (infer_step state i) *)
+(*   in *)
+(*   Cnode {alloc = infer_alloc; reset = infer_reset; *)
+(*          copy = infer_copy;  step = infer_step;} *)
+
+(* let infer_ess_resample n threshold (Cnode { alloc; reset; copy; step; }) = *)
+(*   let step state (prob, x) = distribution_of_expr (step state (prob, x)) in *)
+(*   let Cnode {alloc = infer_alloc; reset = infer_reset; *)
+(*              copy = infer_copy; step = infer_step;} = *)
+(*     Infer_pf.infer_ess_resample n threshold *)
+(*       (Cnode { alloc; reset; copy; step; }) *)
+(*   in *)
+(*   let infer_step state i = *)
+(*     Distribution.to_mixture (infer_step state i) *)
+(*   in *)
+(*   Cnode {alloc = infer_alloc; reset = infer_reset; *)
+(*          copy = infer_copy; step = infer_step;} *)
+
+(* let infer_bounded n (Cnode { alloc; reset; copy; step; }) = *)
+(*   let step state (prob, x) = eval (step state (prob, x)) in *)
+(*   Infer_pf.infer n (Cnode { alloc; reset; copy; step; }) *)
+
+let infer n (Cnode { alloc; reset; copy; step; }) =
+  let alloc () = ref (alloc ()) in
+  let reset state = reset !state in
+  let step state (prob, x) = distribution_of_expr (step !state (prob, x)) in
+  let copy src dst = dst := Normalize.copy !src in
+  let Cnode {alloc = infer_alloc; reset = infer_reset;
+             copy = infer_copy; step = infer_step;} =
+    Infer_pf.infer n (Cnode { alloc; reset; copy = copy; step; })
   in
   let infer_step state i =
     Distribution.to_mixture (infer_step state i)
   in
-  Node {alloc = infer_alloc; reset = infer_reset; step = infer_step;}
+  Cnode {alloc = infer_alloc; reset = infer_reset;
+         copy = infer_copy;  step = infer_step; }
 
-let infer_ess_resample n threshold (Node { alloc; reset; step; }) =
-  let step state (prob, x) = distribution_of_expr (step state (prob, x)) in
-  let Node {alloc = infer_alloc; reset = infer_reset; step = infer_step;} =
-    Infer_pf.infer_ess_resample n threshold (Node { alloc; reset; step; })
+
+let infer_ess_resample n threshold (Cnode { alloc; reset; copy; step; }) =
+  let alloc () = ref (alloc ()) in
+  let reset state = reset !state in
+  let step state (prob, x) = distribution_of_expr (step !state (prob, x)) in
+  let copy src dst = dst := Normalize.copy !src in
+  let Cnode {alloc = infer_alloc; reset = infer_reset;
+             copy = infer_copy; step = infer_step;} =
+    Infer_pf.infer_ess_resample n threshold
+      (Cnode { alloc; reset; copy; step; })
   in
   let infer_step state i =
     Distribution.to_mixture (infer_step state i)
   in
-  Node {alloc = infer_alloc; reset = infer_reset; step = infer_step;}
+  Cnode {alloc = infer_alloc; reset = infer_reset;
+         copy = infer_copy; step = infer_step;}
 
-let infer_bounded n (Node { alloc; reset; step; }) =
-  let step state (prob, x) = eval (step state (prob, x)) in
-  Infer_pf.infer n (Node { alloc; reset; step; })
+let infer_bounded n (Cnode { alloc; reset; copy; step; }) =
+  let alloc () = ref (alloc ()) in
+  let reset state = reset !state in
+  let step state (prob, x) = eval (step !state (prob, x)) in
+  let copy src dst = dst := Normalize.copy !src in
+  Infer_pf.infer n (Cnode { alloc; reset; copy; step; })

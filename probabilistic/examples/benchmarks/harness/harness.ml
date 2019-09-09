@@ -115,11 +115,11 @@ module Make(M: sig
     type input
     type output
     val read_input : unit -> input
-    val main : int -> (input, output * float) Ztypes.node
+    val main : int -> (input, output * float) Ztypes.cnode
 end) = struct
 
 let get_step () =
-  let Node{alloc; reset; step} = M.main (Config.particles ()) in
+  let Cnode {alloc; reset; step} = M.main (Config.particles ()) in
   let state = alloc () in
   reset state;
   fun i -> step state i

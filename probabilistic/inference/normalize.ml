@@ -48,7 +48,7 @@ let normalize_nohist values scores =
 
 (** [resample scores]
 *)
-let resample (states, scores, values) =
+let resample copy (states, scores, values) =
   let size = Array.length states in
   let states_values = Array.make size (states.(0), values.(0)) in
   let probabilities = Array.create_float size in
@@ -68,7 +68,7 @@ let resample (states, scores, values) =
   Array.iteri
     (fun i _ ->
        let state, value = Distribution.draw dist in
-       states.(i) <- copy state;
+       copy state states.(i);
        values.(i) <- value;
        scores.(i) <- 0.)
     states
