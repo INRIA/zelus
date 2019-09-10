@@ -1,0 +1,4 @@
+type vector
+type matrix
+val mvgaussian : vector -> matrix -> vector Distribution.t
+val print_vector : vector -AD-> unit
