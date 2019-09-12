@@ -1,0 +1,14 @@
+open Infer_pf
+open Distribution
+
+let node accuracy (f, p) =
+  Util.run_cmd (f ^ " " ^ string_of_float p)
+
+let node tune f (prob, ()) = p where
+  rec s = accuracy(f, p)
+  and p = sample(prob, gaussian(0., 1.))
+  and () = factor(prob, log(s))
+
+let node main () = () where
+  rec p_dist = infer 20 (tune "python simple_model.py --gamma") ()
+  and () = print_float (mean_float p_dist); print_newline ()
