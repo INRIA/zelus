@@ -3,7 +3,10 @@ from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from sklearn.svm import SVC
+<<<<<<< HEAD
 # import matplotlib.pyplot as plt
+=======
+>>>>>>> small updates
 
 iris = datasets.load_iris()
 digits = datasets.load_digits()
@@ -15,25 +18,25 @@ parser.add_argument('--gamma', type=float, default=0.001)
 parser.add_argument('--C', type=float, default=100.)
 args=parser.parse_args()
 
-clf=SVC(gamma=args.gamma, C=args.C)
-clf.fit(X_train, y_train)
+def fit_predict(gamma, C):
+    clf=SVC(gamma=gamma, C=C)
+    clf.fit(X_train, y_train)
+    predictions=clf.predict(X_test)
+    return accuracy_score(y_test, predictions)
 
-predictions=clf.predict(X_test)
-accuracy=accuracy_score(y_test, predictions)
-print(accuracy)
-
+print(fit_predict(args.gamma, args.C))
 
 # Grid search over gamma for future reference 
-
 # accuracies = []
-# for gamma in [10**(-n) for n in range(10)]:
-#     clf = SVC(gamma=gamma, C=100.)
-#     clf.fit(X_train, y_train)
-#     predictions=clf.predict(X_test)
-#     accuracy = accuracy_score(y_test, predictions)
+# gamma = 0.00001
+# C = 100.
+# # for gamma in [10**(-n) for n in range(10)]:
+# for C in range(1,100):
+#     accuracy = fit_predict(gamma, C)
 #     accuracies.append(accuracy)
-#     print(f'gamma={gamma}, accuracy={accuracy}')
-     
+#     print(f'gamma={gamma}, C={C}, accuracy={accuracy}')
+
+# import matplotlib.pyplot as plt   
 # plt.plot(accuracies)
 # plt.show()
  
