@@ -3,7 +3,7 @@ from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from sklearn.svm import SVC
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 iris = datasets.load_iris()
 digits = datasets.load_digits()
