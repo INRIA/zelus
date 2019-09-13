@@ -15,14 +15,35 @@ type pstate = {
   scores : float array; (** score of each particle *)
 }
 
-let factor (pstate, f0) =
+let factor' (pstate, f0) =
   pstate.scores.(pstate.idx) <- pstate.scores.(pstate.idx) +. f0
 
-let observe (pstate, d, v) =
-  factor (pstate, Distribution.score(d, v))
+let factor =
+  let alloc () = () in
+  let reset state = () in
+  let copy src dst = () in
+  let step state input =
+    factor' input
+  in
+  Cnode { alloc; reset; copy; step; }
 
-let sample (pstate, dist) =
-  Distribution.draw dist
+let observe =
+  let alloc () = () in
+  let reset state = () in
+  let copy src dst = () in
+  let step state (pstate, d, v) =
+    factor' (pstate, Distribution.score(d, v))
+  in
+  Cnode { alloc; reset; copy; step; }
+
+let sample =
+  let alloc () = () in
+  let reset state = () in
+  let copy src dst = () in
+  let step state (pstate, dist) =
+    Distribution.draw dist
+  in
+  Cnode { alloc; reset; copy; step; }
 
 type 'a infer_state = {
   infer_states : 'a array;

@@ -26,11 +26,11 @@ let node display ((obs_x, obs_y), pos_dist) =
 (*   and t = traj_add (last t, p) *)
 (*   and () = traj_draw t *)
 
-let node hmm (prob, (obs_x, obs_y)) = pair (p_x, p_y) where
-  rec p_x = sample (prob, gaussian (const obs_x fby p_x, speed_x))
-  and p_y = sample (prob, gaussian (const obs_y fby p_y, speed_y))
-  and () = observe (prob, gaussian (p_x, noise_x), obs_x)
-  and () = observe (prob, gaussian (p_y, noise_y), obs_y)
+let proba hmm (obs_x, obs_y) = pair (p_x, p_y) where
+  rec p_x = sample (gaussian (const obs_x fby p_x, speed_x))
+  and p_y = sample (gaussian (const obs_y fby p_y, speed_y))
+  and () = observe (gaussian (p_x, noise_x), obs_x)
+  and () = observe (gaussian (p_y, noise_y), obs_y)
   (* and init t = traj_init () *)
   (* and t = traj_add (last t, p) *)
   (* and () = traj_draw t *)

@@ -214,6 +214,7 @@ let sample (type a) (type b) : (a, b) rv -> unit =
     | _ -> assert false (* error "sample" *)
   end
 
+let factor' = Infer_pf.factor'
 let factor = Infer_pf.factor
 
 let observe (type a) (type b): pstate -> b mtype -> (a, b) rv -> unit =
@@ -222,7 +223,7 @@ let observe (type a) (type b): pstate -> b mtype -> (a, b) rv -> unit =
   (*Format.eprintf "observe %s@." n.name; *)
   begin match n.state, n.distr with
     | (Marginalized None, UDistr m) ->
-        factor (prob, Distribution.score(mdistr_to_distr m, x));
+        factor' (prob, Distribution.score(mdistr_to_distr m, x));
         realize x n
     | _ -> assert false (* error "observe'" *)
   end

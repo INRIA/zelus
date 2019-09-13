@@ -3,6 +3,8 @@ open Ztypes
 
 type pstate = Infer_ds_ll.pstate
 
+let factor' = Infer_ds_ll.factor'
+
 let factor = Infer_ds_ll.factor
 
 type 'a random_var = RV : ('b, 'a) Infer_ds_ll.rv -> 'a random_var
@@ -111,15 +113,27 @@ type 'a ds_distribution =
   { isample : (pstate -> 'a expr);
     iobserve : (pstate * 'a -> unit); }
 
-let sample (prob, ds_distr) =
-  ds_distr.isample prob
+let sample =
+  let alloc () = () in
+  let reset state = () in
+  let copy src dst = () in
+  let step state (prob, ds_distr) =
+    ds_distr.isample prob
+  in
+  Cnode { alloc; reset; copy; step; }
 
-let observe (prob, ds_distr, o) =
-  ds_distr.iobserve(prob, o)
+let observe =
+  let alloc () = () in
+  let reset state = () in
+  let copy src dst = () in
+  let step state (prob, (ds_distr, o)) =
+    ds_distr.iobserve(prob, o)
+  in
+  Cnode { alloc; reset; copy; step; }
 
 let of_distribution d =
   { isample = (fun prob -> const (Distribution.draw d));
-    iobserve = (fun (prob, obs) -> factor (prob, Distribution.score(d, obs))); }
+    iobserve = (fun (prob, obs) -> factor' (prob, Distribution.score(d, obs))); }
 
 let ds_distr_with_fallback d is iobs =
   let dsd =

@@ -208,6 +208,7 @@ let sample (type a) (type b) : (a, b) rv -> unit =
     | _ -> assert false (* error "sample" *)
   end
 
+let factor' = Infer_pf.factor'
 let factor = Infer_pf.factor
 
 let observe (type a) (type b): pstate -> b mtype -> (a, b) rv -> unit =
@@ -215,7 +216,7 @@ let observe (type a) (type b): pstate -> b mtype -> (a, b) rv -> unit =
   (* io $ ioAssert (isTerminal n) *)
   begin match n.state with
     | Marginalized marg ->
-        factor (prob, Distribution.score(mdistr_to_distr marg, x));
+        factor' (prob, Distribution.score(mdistr_to_distr marg, x));
         realize x n
     | _ -> assert false (* error "observe'" *)
   end

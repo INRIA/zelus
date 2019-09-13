@@ -1,30 +1,27 @@
-type pstate
+val sample : 'a Distribution.t ~D~> 'a
 
-val sample : pstate * 'a Distribution.t -AD-> 'a
+val factor : float ~D~> unit
 
-val factor : pstate * float -AD-> unit
-
-val observe : pstate * 'a Distribution.t * 'a -AD-> unit
+val observe : 'a Distribution.t * 'a ~D~> unit
 
 val infer :
-  int -S-> (pstate * 'a -D-> 'b) -S-> 'a -D-> 'b Distribution.t
+  int -S-> ('a ~D~> 'b) -S-> 'a -D-> 'b Distribution.t
 
 val infer_ess_resample :
-  int -S-> float -S-> (pstate * 'a -D-> 'b) -S-> 'a -D-> 'b Distribution.t
+  int -S-> float -S-> ('a ~D~> 'b) -S-> 'a -D-> 'b Distribution.t
 
 val infer_noresample :
-  int -S-> (pstate * 'a -D-> 'b) -S-> 'a -D-> 'b Distribution.t
+  int -S-> ('a ~D~> 'b) -S-> 'a -D-> 'b Distribution.t
 
 val plan :
     int -S-> int -S->
-      (pstate * 't1 -D-> 't2) -S->
+      ('t1 ~D~> 't2) -S->
         't1 -D-> 't2
 
 val infer_depth :
     int -S-> int -S->
-      (pstate * 't1 -D-> 't2) -S->
+      ('t1 ~D~> 't2) -S->
         't1 -D-> 't2 Distribution.t
 
 val infer_subresample :
-  int -S-> (pstate * 'a -D-> 'b) -S-> bool * 'a -D-> 'b Distribution.t
-
+  int -S-> ('a ~D~> 'b) -S-> bool * 'a -D-> 'b Distribution.t

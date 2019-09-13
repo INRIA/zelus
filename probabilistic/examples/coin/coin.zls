@@ -11,10 +11,9 @@ let node print_stats name (m, s) =
   print_string ")";
   print_newline ()
 
-let node coin (prob, flip) = theta where
-  rec init theta = sample (prob, uniform_float(0.,1.))
-  and () = factor (prob,
-                   Distribution.score (bernoulli theta, flip))
+let proba coin flip = theta where
+  rec init theta = sample (uniform_float(0.,1.))
+  and () = factor (Distribution.score (bernoulli theta, flip))
 
 let node cheater_detector flip = (cheater, m) where
   rec automaton
