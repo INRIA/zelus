@@ -132,7 +132,7 @@ and ptype ff ty =
 	 | None -> () | Some(n) -> fprintf ff "(%a : %a)" name n ptype ty_arg in
        let s = match k with
 	 | S -> "-S->" | A -> "-A->" | AD -> "-AD->" | D -> "-D->"
-	 | C -> "-C->" | AS -> "-AS->" in
+	 | C -> "-C->" | AS -> "-AS->" | P -> "~D~>" in
        fprintf ff "@[<hov2>%a %s %a@]" pas (n_opt, ty_arg) s ptype ty_res
     | Etypevec(ty_arg, size) ->
        fprintf ff "@[%a[%a]@]" ptype ty_arg (psize 0) size
@@ -514,7 +514,7 @@ let funexp ff { f_kind = k; f_args = p_list; f_body = e; f_env = env } =
   fprintf ff "@[<v 2>%s %a . @ %a%a@]"
     (match k with
      | S -> "sfun" | A -> "fun" | AD -> "dfun" | AS -> "asfun"
-     | D -> "node" | C -> "hybrid")
+     | D -> "node" | C -> "hybrid" | P -> "proba")
     (pattern_list "" "" "") p_list print_env env expression e
 
 let implementation ff impl =

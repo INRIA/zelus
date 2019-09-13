@@ -36,7 +36,7 @@ let sequence inst1 inst2 =
 (** Translation of the kind *)
 let kind = function
   | Zelus.S | Zelus.A | Zelus.AD | Zelus.AS -> Ofun
-  | Zelus.C | Zelus.D -> Onode
+  | Zelus.C | Zelus.D -> Onode | Zelus.P -> Onode
     
 (** Translating type expressions. *)
 let rec type_expression { Zelus.desc = desc } =
@@ -403,7 +403,8 @@ let apply k env loop_path e e_list
   | Deftypes.Tstatic _
   | Deftypes.Tany | Deftypes.Tdiscrete(false) -> Oapp(e, e_list), code
   | Deftypes.Tdiscrete(true)
-  | Deftypes.Tcont ->
+  | Deftypes.Tcont
+  | Deftypes.Tproba ->
      (* the first [n-1] arguments are static *)
      let se_list, arg = Misc.firsts e_list in
      let f_opt = match e with | Oglobal(g) -> Some(g) | _ -> None in
@@ -685,7 +686,7 @@ let machine n k pat_list { mem = m; instances = j; reset = r; step = s }
   match k with
   | Deftypes.Tstatic _ | Deftypes.Tany
   | Deftypes.Tdiscrete(false) -> Oletfun(n, pat_list, s)
-  | Deftypes.Tdiscrete(true) | Deftypes.Tcont ->
+  | Deftypes.Tdiscrete(true) | Deftypes.Tcont | Deftypes.Tproba ->
     (* the [n-1] parameters are static *)
     let pat_list, p = Misc.firsts pat_list in
     let body =

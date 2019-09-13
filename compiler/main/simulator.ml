@@ -43,15 +43,18 @@ let check_type_of_main_node name
 			    { qualid = qualid; info = { value_typ = tys } }
 			    opt_name expected_ty_arg expected_ty_res =
   let actual_ty = Types.instance_of_type tys in
-  let k, opt_name, actual_ty_arg, actual_ty_res =
+  let actual_k, opt_name, actual_ty_arg, actual_ty_res =
     try
       Types.filter_actual_arrow actual_ty
     with
     | _ ->  eprintf "@[The name %s must define a function.@.@]" name;
 	    raise Misc.Error in
-  let expected_ty = Types.funtype k opt_name actual_ty_arg actual_ty_res in
+  let expected_k =
+    match actual_k with | Tproba -> Tdiscrete(true) | _ -> actual_k in
+  let expected_ty =
+    Types.funtype expected_k opt_name actual_ty_arg actual_ty_res in
   try
-    Types.unify expected_ty actual_ty; qualid, k
+    Types.unify expected_ty actual_ty; qualid, expected_k
   with
   | Types.Unify ->
      eprintf "@[The name %s has type@ %a,@ \
@@ -89,7 +92,6 @@ let emit_prelude ff ({ Lident.id = id } as qualid) k =
               reset mem; @,\
               fun _ -> step mem ();;@]@.@]"
        (if !Misc.with_copy then "Cnode" else "Node") s
-
   | Deftypes.Tcont ->
      fprintf ff
        "@[open Ztypes@.\
@@ -141,7 +143,8 @@ let emit_prelude ff ({ Lident.id = id } as qualid) k =
                                      maxsize; @ csize; @ zsize; @,\
                                      horizon }@]@]@];;@]@.@]"
        (if !Misc.with_copy then "Cnode" else "Node") s
-
+  | Tproba -> assert false
+		       
 (* emited code for control-driven programs: the transition function *)
 (* is executed at full speed *)
 let emit_simulation_code ff k =
@@ -155,7 +158,8 @@ let emit_simulation_code ff k =
       fprintf ff "@[(* instantiate a numeric solver *)\n\
                     module Runtime = Zlsrun.Make (Defaultsolver)\n\
                     let _ = Runtime.go main@.@]"
-
+  | Deftypes.Tproba -> assert false
+			      
 (* emited code for bounded checking. Check that the function returns [true] *)
 (* during [n] steps *)
 let emit_checked_code ff k n =
@@ -178,7 +182,8 @@ let emit_checked_code ff k n =
       fprintf ff "@[(* instantiate a numeric solver *)\n\
                     module Runtime = Zlsrun.Make (Defaultsolver)\n\
                     let _ = Runtime.check main %d@.@]" n
-
+  | Deftypes.Tproba -> assert false
+			      
 let emit_gtkmain_code ff k sampling =
   match k with
   | Deftypes.Tstatic _ | Deftypes.Tany | Deftypes.Tdiscrete _ ->
@@ -191,7 +196,8 @@ let emit_gtkmain_code ff k sampling =
      fprintf ff "@[(* instantiate a numeric solver *)\n\
                  module Runtime = Zlsrungtk.Make (Defaultsolver)\n\
                  let _ = Runtime.go main@.@]"
-
+  | Deftypes.Tproba -> assert false
+			      
 (* emited code for event-driven programs: the transition function *)
 (* is executed every [1/sampling] seconds *)
 let emit_periodic_code ff k sampling =
@@ -208,11 +214,11 @@ let emit_periodic_code ff k sampling =
               in Sys.set_signal Sys.sigalrm (Sys.Signal_handle main);
               while true do Unix.sleep 1 done;;
               periodic();exit(0)@.@]" sampling
-
   | Deftypes.Tcont ->
      fprintf ff "@[(* instantiate a numeric solver *)
                  let _ = Zlsrun.go main@.@]"
-
+  | Deftypes.Tproba -> assert false
+			      
 (** The main entry function. Simulation of a main function *)
 let main outname name sampling number_of_checks use_gtk =
   (* - open the module where main occurs

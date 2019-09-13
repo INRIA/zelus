@@ -73,6 +73,7 @@ REWRITE = rewrite/markfunctions.cmo \
 	rewrite/disc.cmo \
 	rewrite/pre.cmo \
 	rewrite/letin.cmo \
+	rewrite/proba.cmo \
 	rewrite/complete.cmo \
 	rewrite/reset.cmo \
 	rewrite/encore.cmo \

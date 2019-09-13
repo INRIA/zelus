@@ -58,6 +58,7 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "node", NODE;
   "hybrid", HYBRID;
   "discrete", DISCRETE;
+  "proba", PROBA;
   "init", INIT;
   "initialize", INITIALIZE;
   "default", DEFAULT;
@@ -185,6 +186,7 @@ rule main = parse
   | "-AS->" { ASFUN }
   | "-C->" { CFUN }
   | "-S->" { SFUN }
+  | "~D~>" { PFUN }
   | "|"  { BAR }
   | "-"  { MINUS }
   | "+"  { PLUS }

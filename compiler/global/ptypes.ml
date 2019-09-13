@@ -41,7 +41,8 @@ let print_list print_el sep ff l =
 let arrow_tostring = function 
   | Tstatic(true) -> "-S->" | Tstatic(false) -> "-AS->"
   | Tany -> "->" | Tcont -> "-C->" 
-  | Tdiscrete(s) -> if s then "-D->" else "-AD->" 
+  | Tdiscrete(s) -> if s then "-D->" else "-AD->"
+  | Tproba -> "~D~>"
 
 let print_size ff si =
   let operator = function Tplus -> "+" | Tminus -> "-" in

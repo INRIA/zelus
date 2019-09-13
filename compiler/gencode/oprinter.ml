@@ -46,7 +46,7 @@ and priority_inst = function
 
 let kind = function
   | Deftypes.Tstatic _ | Deftypes.Tany | Deftypes.Tdiscrete _ -> "discrete"
-  | Deftypes.Tcont -> "continuous"
+  | Deftypes.Tcont -> "continuous" | Deftypes.Tproba -> "proba"
 
 let rec psize prio ff si =
   let operator = function Splus -> "+" | Sminus -> "-" in

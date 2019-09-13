@@ -117,7 +117,7 @@ let expression ({ e_desc = desc } as e) =
 let implementation impl =
   match impl.desc with
   | Eopen _ | Etypedecl _ | Econstdecl _  
-  | Efundecl(_, { f_kind = (S | A | AS | AD | D) }) -> impl
+  | Efundecl(_, { f_kind = (S | A | AS | AD | D | P) }) -> impl
   | Efundecl(n, ({ f_kind = C; f_body = e } as body)) ->
      { impl with desc = Efundecl(n, { body with f_body = expression e }) }
        

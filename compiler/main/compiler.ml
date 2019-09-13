@@ -185,6 +185,9 @@ let compile modname filename =
 	step "Translation of disc done. See below:"
 	     Disc.implementation_list impl_list in
       let impl_list =
+	step "Translation of probabilistic nodes. See below:"
+	     Proba.implementation_list impl_list in
+      let impl_list =
 	step
 	  "Compilation of memories (fby/pre/next) into (init/last). See below:"
 	     Pre.implementation_list impl_list in

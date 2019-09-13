@@ -233,7 +233,7 @@ and local major time ({ l_eq = eq_list } as l) =
 let implementation impl =
   match impl.desc with
   | Eopen _ | Etypedecl _ | Econstdecl _  
-  | Efundecl(_, { f_kind = (S | AS | A | AD | D) }) -> impl
+  | Efundecl(_, { f_kind = (S | AS | A | AD | D | P) }) -> impl
   | Efundecl(n, ({ f_kind = C; f_args = pat_list;
 		   f_body = e; f_env = f_env } as body)) ->
      let time = new_time () in

@@ -111,6 +111,7 @@ let block l lo eq_list startpos endpos =
 %token DFUN           /* "-D->" */
 %token CFUN           /* "-C->" */
 %token SFUN           /* "-S->" */
+%token PFUN           /* "~D~>" */
 %token DOT            /* "." */
 %token DOTDOT         /* ".." */
 %token COLON          /* ":" */
@@ -165,6 +166,7 @@ let block l lo eq_list startpos endpos =
 %token FUN            /* "fun" */
 %token NODE           /* "node" */
 %token HYBRID         /* "hybrid" */
+%token PROBA          /* "proba" */
 %token DISCRETE       /* "discrete" */
 %token FBY            /* "fby" */
 %token NEXT           /* "next" */
@@ -209,7 +211,7 @@ let block l lo eq_list startpos endpos =
 %left  BAR
 %left COMMA
 %left RPAREN
-%right MINUSGREATER SFUN DFUN CFUN AFUN ADFUN ASFUN
+%right MINUSGREATER SFUN DFUN CFUN AFUN ADFUN ASFUN PFUN
 %left OR BARBAR
 %left AMPERSAND AMPERAMPER
 %left INFIX0 EQUAL
@@ -1100,6 +1102,8 @@ infx:
       { Parsetree.S }
   | ASFUN
       { Parsetree.AS }
+  | PFUN
+      { Parsetree.P }
 ;
 
 size_expression:
@@ -1174,4 +1178,6 @@ type_comma_list :
       { A }
   | STATIC
       { S }
+  | PROBA
+      { P }
 ;

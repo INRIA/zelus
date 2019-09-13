@@ -352,8 +352,9 @@ let vardec_list expected_k n_list inames =
          | Tstatic _ -> Deftypes.static
          | Tany | Tdiscrete false -> Deftypes.default None c_opt
          | Tdiscrete true
-         | Tcont ->
-            Deftypes.Smem (Deftypes.cmem c_opt
+         | Tcont 
+         | Tproba ->
+	    Deftypes.Smem (Deftypes.cmem c_opt
                                          (if S.mem n inames then Deftypes.imem
                                           else Deftypes.empty_mem)) in
     Env.add n { t_typ = expected_ty; t_sort = sort } h0 in
@@ -362,7 +363,8 @@ let vardec_list expected_k n_list inames =
 (** Computes the set of names defined in a list of definitions *)
 let rec build (names, inames) { eq_desc = desc } =
   (* block *)
-  let block_with_bounded (names, inames) { b_vars = b_vars; b_body = eq_list } =
+  let block_with_bounded (names, inames)
+			 { b_vars = b_vars; b_body = eq_list } =
     let vardec acc { vardec_name = n } = S.add n acc in
     let bounded = List.fold_left vardec S.empty b_vars in
     let (local_names, local_inames) = build_list (S.empty, S.empty) eq_list in
@@ -427,8 +429,9 @@ let env_of_eq_list expected_k eq_list =
        | Deftypes.Tstatic _ -> Deftypes.static
        | Deftypes.Tany | Deftypes.Tdiscrete false -> Deftypes.variable
        | Deftypes. Tcont
-       | Deftypes.Tdiscrete true ->
-          if S.mem n inames then Deftypes.imemory
+       | Deftypes.Tdiscrete true
+       | Deftypes.Tproba ->
+	  if S.mem n inames then Deftypes.imemory
           else Deftypes.Smem (Deftypes.empty_mem) in
      Env.add n { t_typ = Types.new_var (); t_sort = sort } acc) names Env.empty
 

@@ -19,7 +19,7 @@
 open Location
 open Misc
 
-type kind = S | A | C | D | AD | AS
+type kind = S | A | C | D | AD | AS | P
 type name = string
 
 type 'a localized = { desc: 'a; loc: Location.location }

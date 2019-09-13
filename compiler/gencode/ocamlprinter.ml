@@ -47,13 +47,15 @@ let default_list_of_methods = [Oaux.step; Oaux.reset]
 
 let constructor_for_kind = function
   | Deftypes.Tcont
-  | Deftypes.Tdiscrete(true) -> if !Misc.with_copy then "Cnode" else "Node"
+  | Deftypes.Tdiscrete(true)
+  | Deftypes.Tproba -> if !Misc.with_copy then "Cnode" else "Node"
   | _ -> assert false
 let extra_methods m_list =
   if !Misc.with_copy then Oaux.copy :: m_list else m_list
 let expected_list_of_methods = function
   | Deftypes.Tcont
-  | Deftypes.Tdiscrete(true) -> extra_methods default_list_of_methods
+  | Deftypes.Tdiscrete(true)
+  | Deftypes.Tproba -> extra_methods default_list_of_methods
   | _ -> assert false
      
 let print_concrete_type ff ty =
@@ -468,7 +470,7 @@ let pcopy f memories ff instances =
     | Some(m) ->
        match m with
        | Deftypes.Zero ->
-	  fprintf ff "@[<hov0>dest.%a.zin <- %a;@,dest.%a.zout <- %a }@]"
+	  fprintf ff "@[<hov0>dest.%a.zin <- %a;@,dest.%a.zout <- %a @]"
 		  name n
 		  (array_copy (fun ff _ -> fprintf ff "source.%a.zin" name n))
 		  m_size
@@ -476,7 +478,7 @@ let pcopy f memories ff instances =
 		  (array_copy (fun ff _ -> fprintf ff "source.%a.zout" name n))
 		  m_size
        | Deftypes.Cont ->
-	  fprintf ff "@[<hov0>dest.%a.pos <- %a;@,dest.%a.der <- %a }@]"
+	  fprintf ff "@[<hov0>dest.%a.pos <- %a;@,dest.%a.der <- %a @]"
 		  name n
 		  (array_copy (fun ff _ -> fprintf ff "source.%a.pos" name n))
 		  m_size
@@ -555,7 +557,8 @@ let machine f ff { ma_kind = k;
     match k with
     | Deftypes.Tstatic _ | Deftypes.Tany -> fprintf ff "%s" f
     | Deftypes.Tdiscrete _
-    | Deftypes.Tcont ->
+    | Deftypes.Tcont 
+    | Deftypes.Tproba ->
        let method_name ff me_name =
 	 let m = method_name me_name in
 	 fprintf ff "@[%s = %s_%s@]" m f m in
@@ -570,7 +573,8 @@ let machine f ff { ma_kind = k;
   def_type_for_a_machine ff f memories instances;
   (* print the code for [f] *)
   if !Misc.with_copy then
-    fprintf ff "@[<hov 2>let %s %a = @ @[@[%a@]@ @[%a@]@ @[%a@]@ @[%a@]@ %a@]@.@]"
+    fprintf ff
+	    "@[<hov 2>let %s %a = @ @[@[%a@]@ @[%a@]@ @[%a@]@ @[%a@]@ %a@]@.@]"
 	  f
 	  pattern_list pat_list
 	  (print_list_r def_instance_function "" "" "") instances

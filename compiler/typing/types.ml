@@ -125,6 +125,9 @@ let rec remove_dependences ({ t_desc = desc } as ty) =
   let typ_hybrid ty_arg ty_res =
     Initial.constr { qual = current_module (); id = "hybrid" }
 		   [ty_arg; ty_res] in
+  let typ_proba ty_arg ty_res =
+    Initial.constr { qual = current_module (); id = "proba" }
+		   [ty_arg; ty_res] in
   let abbrev = function
     | Tnil -> Tnil
     | Tcons(ty_list, ty) ->
@@ -140,10 +143,11 @@ let rec remove_dependences ({ t_desc = desc } as ty) =
      let ty_arg = remove_dependences ty_arg in
      let ty_res = remove_dependences ty_res in
      match k with
-     | Tany
-     | Tstatic _ | Tdiscrete false -> funtype Tany None ty_arg ty_res
+     | Tany | Tstatic _ | Tdiscrete false ->
+			   funtype Tany None ty_arg ty_res
      | Tdiscrete true -> typ_node ty_arg ty_res
      | Tcont -> typ_hybrid ty_arg ty_res
+     | Tproba -> typ_proba ty_arg ty_res
 			    
 (* typing errors *)
 exception Unify
@@ -153,9 +157,10 @@ exception Unify
 let less_than actual_k expected_k =
   match actual_k, expected_k with
   | (Tstatic(true), _)
-  | (Tany, (Tany | Tdiscrete _ | Tcont))
+  | (Tany, (Tany | Tdiscrete _ | Tcont | Tproba))
   | (Tcont, Tcont) -> ()
   | (Tdiscrete(s1), Tdiscrete(s2)) -> if not (s1 <= s2) then raise Unify
+  | (Tdiscrete _, Tproba) | (Tproba, Tproba) -> ()
   | _ -> raise Unify
 
 (* If a function with type t1 -k2-> t2 is used in a context with kind k1 *)
@@ -168,7 +173,7 @@ let lift k1 k2 =
 
 (* function types introduced in a context [k] must be combinatorial *)
 let intro = function
-  | (Tstatic _ | Tany) as k -> k | Tdiscrete _ | Tcont -> Tany
+  | (Tstatic _ | Tany) as k -> k | Tdiscrete _ | Tcont | Tproba -> Tany
 
 let run_type expected_k =
   let ty_arg = new_var () in
@@ -193,7 +198,7 @@ let fully_applied ty = try kind Tany ty; true with Unify -> false
 (** context. [bool] otherwise. *)
 let zero_type expected_k =
   match expected_k with
-    | Tstatic _ | Tany | Tdiscrete _ -> Initial.typ_bool 
+    | Tstatic _ | Tany | Tdiscrete _ | Tproba -> Initial.typ_bool 
     | Tcont -> Initial.typ_zero
 
 (* The kind on the right of a [scpat on e] signal pattern. *)
@@ -208,24 +213,28 @@ let on_type expected_k =
 
 let is_combinatorial_kind expected_k = 
   match expected_k with
-  | Tany -> true | Tstatic _ | Tcont | Tdiscrete _ -> false
+  | Tany -> true | Tstatic _ | Tcont | Tdiscrete _ | Tproba -> false
 
 let is_discrete_kind expected_k =
-  match expected_k with | Tdiscrete(true) -> true | _ -> false
+  match expected_k with
+  | Tdiscrete(true) | Tproba -> true
+  | Tcont | Tdiscrete(false) | Tany | Tstatic _ -> false
 
 let is_continuous_kind expected_k =
   match expected_k with
-    | Tstatic _ | Tany | Tdiscrete _ -> false | Tcont -> true
+    | Tstatic _ | Tany | Tdiscrete _ | Tproba -> false | Tcont -> true
 
 let is_statefull_kind expected_k =
   match expected_k with
-    | Tdiscrete(true) | Tcont -> true | _ -> false
+  | Tdiscrete(true) | Tcont | Tproba -> true
+  | Tdiscrete false | Tstatic _ | Tany -> false
 
 (** Make a discrete sort. *)
 let lift_to_discrete expected_k =
   match expected_k with
-    | Tcont | Tdiscrete(true) -> Tdiscrete(true)
-    | Tstatic _ | Tany | Tdiscrete _ -> expected_k
+  | Tcont | Tdiscrete(true) -> Tdiscrete(true)
+  | Tproba -> Tproba 
+  | Tstatic _ | Tany | Tdiscrete _ -> expected_k
 
 (* shortening types *)
 let rec typ_repr ty =
@@ -589,6 +598,11 @@ let is_hybrid ty =
   match ty.t_desc with
     | Tfun(Tcont, _, _, _) -> true | _ -> false
 
+let is_probabilistic ty =
+  let ty = typ_repr ty in
+  match ty.t_desc with
+  | Tfun(Tproba, _, _, _) -> true | _ -> false
+					   
 (** Is-it stateless? *)
 let is_stateless ty =
   let ty = typ_repr ty in

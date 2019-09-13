@@ -189,6 +189,7 @@ let default = function
 let kind = function
   | S -> Zelus.S | A -> Zelus.A | AS -> Zelus.AS
   | AD -> Zelus.AD | C -> Zelus.C | D -> Zelus.D
+  | P -> Zelus.P
 
 (* translate types. [env] is used to renames dependent variables *)
 let rec types env ty =

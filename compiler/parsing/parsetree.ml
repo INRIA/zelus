@@ -18,9 +18,11 @@
 
 open Location
 
-type kind = | S | AS | A | C | AD | D
+type kind = | S | AS | A | C | AD | D | P
 
-(*  D   C  
+(*  P
+    |
+    D   C  
      \ /   
       A   S
       \  / 

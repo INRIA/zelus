@@ -127,12 +127,14 @@ let constr_name loc s arity =
 let kindtype = function
   | S -> Tstatic(true) | A -> Tany | C -> Tcont
   | AD -> Tdiscrete(false) | D -> Tdiscrete(true)
-  | AS -> Tstatic(false)
+  | AS -> Tstatic(false) | P -> Tproba
 		 
 let kindoftype = function
   | Tstatic(s) -> if s then S else AS
-  | Tany -> A | Tcont -> C | Tdiscrete(s) -> if s then D else AD
-
+  | Tany -> A | Tcont -> C
+  | Tdiscrete(s) -> if s then D else AD
+  | Tproba -> P
+		
 let typ_of_type_expression typ_vars typ =
   let rec typrec typ =
     match typ.desc with

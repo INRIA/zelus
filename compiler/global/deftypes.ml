@@ -68,7 +68,8 @@ and typ_instance = { typ_instance : typ list }
 and kind =
   | Tstatic of bool (* the argument can be static or not *)
   | Tany | Tcont | Tdiscrete of bool (* statefull or stateless *)
-
+  | Tproba
+      
 (* entry in the typing environment *)
 type tentry = 
     { mutable t_sort: tsort; (* its sort *)

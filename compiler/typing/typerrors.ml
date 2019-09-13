@@ -94,7 +94,8 @@ let kind_message kind =
   | Tcont -> "continuous"
   | Tany -> "combinatorial"
   | Tdiscrete(s) -> if s then "discrete" else "stateless discrete"
-						      
+  | Tproba -> "probabilistic"
+		
 let message loc kind =
   begin match kind with
   | Evar_undefined(name) ->
