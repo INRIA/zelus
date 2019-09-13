@@ -192,7 +192,7 @@ and size =
       
 and size_op = Splus | Sminus
 
-and kind = Ofun | Onode
+and kind = Ofun | Onode 
 
 and type_decl =
   | Oabstract_type
