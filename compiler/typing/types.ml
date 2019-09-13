@@ -589,7 +589,7 @@ let rec is_combinatorial n ty =
   else
     let ty = typ_repr ty in
     match ty.t_desc with
-    | Tfun((Tdiscrete _ | Tcont), _, _, _) -> false
+    | Tfun((Tdiscrete _ | Tcont | Tproba), _, _, _) -> false
     | Tfun(_, _, _, ty_res) -> is_combinatorial (n-1) ty_res
     | _ -> true
 
