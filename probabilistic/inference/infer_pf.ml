@@ -27,21 +27,27 @@ let factor =
   in
   Cnode { alloc; reset; copy; step; }
 
+let observe' (pstate, (d, v)) =
+  factor' (pstate, Distribution.score(d, v))
+
 let observe =
   let alloc () = () in
   let reset state = () in
   let copy src dst = () in
-  let step state (pstate, d, v) =
-    factor' (pstate, Distribution.score(d, v))
+  let step state input =
+    observe' input
   in
   Cnode { alloc; reset; copy; step; }
+
+let sample' (pstate, dist) =
+  Distribution.draw dist
 
 let sample =
   let alloc () = () in
   let reset state = () in
   let copy src dst = () in
-  let step state (pstate, dist) =
-    Distribution.draw dist
+  let step state input =
+    sample' input
   in
   Cnode { alloc; reset; copy; step; }
 

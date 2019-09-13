@@ -1,12 +1,12 @@
 open Distribution
 open Infer_pf
 
-let node outlier (prob, yobs) = (is_outlier, xt) where
-  rec xt =  sample (prob, gaussian ((0., 100.) -> (pre xt, 1.)))
-  and init outlier_prob = sample (prob, beta (100., 1000.))
-  and is_outlier = sample (prob, bernoulli outlier_prob)
-  and () = present is_outlier -> observe (prob, gaussian (0., 100.), yobs)
-           else  observe (prob, gaussian (xt, 1.), yobs)
+let proba outlier yobs = (is_outlier, xt) where
+  rec xt =  sample (gaussian ((0., 100.) -> (pre xt, 1.)))
+  and init outlier_prob = sample (beta (100., 1000.))
+  and is_outlier = sample (bernoulli outlier_prob)
+  and () = present is_outlier -> observe (gaussian (0., 100.), yobs)
+           else  observe (gaussian (xt, 1.), yobs)
 
 
 let node main particles (tr, observed) =

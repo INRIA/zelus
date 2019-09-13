@@ -1,3 +1,5 @@
+(* https://peterroelants.github.io/posts/multivariate-normal-primer/ *)
+
 open Owl
 open Distribution
 

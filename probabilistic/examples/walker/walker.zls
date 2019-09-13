@@ -10,8 +10,8 @@ let node generate_walker n = (dt, mpos) where
   and dt = 10.
 
 (* walkerSimulate :: [(Double, (Double, Double))] -> PProg Walker Walker *)
-let node walker_simulate (prob, measurements) = (w.motion_type, w.position) where
-  rec w = walker_init (prob, ()) fby walker_step (prob, (dt, meas_pos, w))
+let proba walker_simulate measurements = (w.motion_type, w.position) where
+  rec w = walker_init () fby walker_step (dt, meas_pos, w)
   and (dt, meas_pos) = measurements
 
 (* main :: IO () *)

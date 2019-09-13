@@ -1,9 +1,9 @@
 open Distribution
 open Infer_pf
 
-let node coin (prob, yobs) = xt where
-  rec init xt = sample (prob, beta (1., 1.))
-  and () = observe (prob, bernoulli xt, yobs)
+let proba coin yobs = xt where
+  rec init xt = sample (beta (1., 1.))
+  and () = observe (bernoulli xt, yobs)
 
 
 let node main particles (tr, observed) =

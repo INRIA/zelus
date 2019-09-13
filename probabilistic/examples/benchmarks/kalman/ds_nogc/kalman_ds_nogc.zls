@@ -1,9 +1,9 @@
 open Distribution
 open Infer_ds
 
-let node delay_kalman (prob, yobs) = xt where
-  rec  xt =  sample (prob, gaussian ((const 0., 100.) -> (pre xt, 1.)))
-  and () = observe (prob, gaussian (xt, 1.), yobs)
+let proba delay_kalman yobs = xt where
+  rec  xt =  sample (gaussian ((const 0., 100.) -> (pre xt, 1.)))
+  and () = observe (gaussian (xt, 1.), yobs)
 
 
 let node main particles (tr, observed) =
