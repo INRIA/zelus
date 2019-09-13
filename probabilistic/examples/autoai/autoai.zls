@@ -3,16 +3,44 @@ open Infer_pf
 let node accuracy (f, p) =
   Util.run_cmd (f ^ " " ^ string_of_float p)
 
-let node tune f (prob, ()) = p where
-  rec s = accuracy(f, p)
-  and p = sample (prob, Distribution.uniform_float (0., 0.05)) ->
-          (* sample (prob, Distribution.beta (alpha, beta)) *)
-          abs_float (sample (prob, Distribution.gaussian (pre p, sigma)))
-  and alpha = abs_float (pre p /. sigma)
-  and beta = abs_float (1. -. pre p /. sigma)
-  and sigma = 0.001
-  and () = factor(prob, 10. *. log s)
+(* let proba tune f () = p where *)
+(*   rec s = accuracy(f, p) *)
+(*   and p = sample (Distribution.uniform_float (0., 0.05)) -> *)
+(*           (\* sample (Distribution.beta (alpha, beta)) *\) *)
+(*           abs_float (sample (Distribution.gaussian (pre p, sigma))) *)
+(*   and alpha = abs_float (pre p /. sigma) *)
+(*   and beta = abs_float (1. -. pre p /. sigma) *)
+(*   and sigma = 0.001 *)
+(*   and () = factor(10. *. log s) *)
+
+let proba tune model p_dist = p where
+  rec s = accuracy(model, p)
+  and (_, sigma)= Distribution.stats_float p_dist
+  and p = abs_float (sample (p_dist -> Distribution.gaussian (pre p, sigma)))
+  and () = factor(10. *. log s)
 
 let node main () = () where
-  rec p_dist = infer 10 (tune "python simple_model.py --gamma") ()
+  rec init p_dist = Distribution.uniform_float (0., 0.05)
+  and p_dist = infer 10 (tune "python simple_model.py --gamma") (last p_dist)
   and () = print_float (Distribution.mean_float p_dist); print_newline ()
+
+
+(* let node accuracy (f, p) = *)
+(*   Util.run_cmd_half (f ^ " " ^ string_of_float p) *)
+
+(* let proba tune model p_dist = p where *)
+(*   rec automaton *)
+(*       | Compute -> *)
+(*           do s = accuracy(model, last p) *)
+(*           until s(acc) then Move(acc) *)
+(*       | Move(acc) -> local sigma in *)
+(*           do (_, sigma)= Distribution.stats_float p_dist *)
+(*           and p = abs_float (sample (p_dist -> Distribution.gaussian (pre p, sigma))) *)
+(*           and () = factor(10. *. log acc) *)
+(*           then Compute *)
+(*   and init p = sample(Distribution.uniform_float (0., 0.05)) *)
+
+(* let node main () = () where *)
+(*   rec init p_dist = Distribution.uniform_float (0., 0.05) *)
+(*   and p_dist = infer 10 (tune "python simple_model.py --gamma") (last p_dist) *)
+(*   and () = print_float (Distribution.mean_float p_dist); print_newline () *)
