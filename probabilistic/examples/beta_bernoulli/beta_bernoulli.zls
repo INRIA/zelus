@@ -1,9 +1,9 @@
 open Infer_pf
 
-let node model (prob, ()) = pr where
-  rec init pr = sample (prob, Distribution.beta(1., 1.))
-  and b = sample (prob, Distribution.bernoulli 0.7)
-  and () = factor (prob, if b then log pr else log (1. -. pr))
+let proba model () = pr where
+  rec init pr = sample (Distribution.beta(1., 1.))
+  and b = sample (Distribution.bernoulli 0.7)
+  and () = factor (if b then log pr else log (1. -. pr))
 
 let random_init = Random.self_init()
 

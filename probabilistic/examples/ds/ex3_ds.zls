@@ -1,8 +1,8 @@
 open Infer_ds_gc
 
-let node verybad(prob, ()) = x where
-  rec x = sample(prob, gaussian(const 0. -> pre x, 1.))
-  and () = observe(prob, gaussian(x, 1.), 42.)
+let proba verybad () = x where
+  rec x = sample(gaussian(const 0. -> pre x, 1.))
+  and () = observe(gaussian(x, 1.), 42.)
 
 let node main () = () where
   rec x_d = infer 1000 verybad ()

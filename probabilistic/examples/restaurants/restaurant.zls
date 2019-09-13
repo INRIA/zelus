@@ -1,13 +1,13 @@
 open Distribution
 open Infer_pf
 
-let node model (prob, (map, state_init)) = state where
+let proba model (map, state_init) = state where
   rec state = state_init fby Restaurant_world.transition map state action
   and action =
-    sample (prob, uniform_list (Restaurant_world.possible_actions map state))
+    sample (uniform_list (Restaurant_world.possible_actions map state))
   and () =
-    factor (prob, 0. -> if state = pre state then -100. else 10.);
-    factor (prob, Restaurant_world.utility map state action)
+    factor (0. -> if state = pre state then -100. else 10.);
+    factor (Restaurant_world.utility map state action)
 
 
 let random_init = Random.self_init()

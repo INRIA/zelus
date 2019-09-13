@@ -6,14 +6,14 @@ open Infer_pf
 let node room_model (temp_init, temp_ext, u) = temp where
   rec temp = (temp_init -> pre temp) +. if u then 0.5 else -. 0.1
 
-let node controller (prob, (reference, temp_room, temp_ext)) = u where
-  rec u = sample (prob, Distribution.bernoulli 0.5)
+let proba controller (reference, temp_room, temp_ext) = u where
+  rec u = sample (Distribution.bernoulli 0.5)
   and temp = room_model(temp_room, temp_ext, u)
   and dist = abs_float (reference -. temp)
-  and () = factor(prob, if dist -. last dist < 0. then 0. else -20.)
+  and () = factor(if dist -. last dist < 0. then 0. else -20.)
   (* and effect = abs_float (reference -. last temp) -. abs_float (reference -. temp) *)
   (* and score = if  effect > 0. then 0. else -20. *)
-  (* and () = factor(prob, score) *)
+  (* and () = factor(score) *)
 
 let node simulator(temp_target, temp_init, temp_ext) = u, temp_room where
   rec reset u = plan 20 4 controller (temp_target, temp_room, temp_ext) every true

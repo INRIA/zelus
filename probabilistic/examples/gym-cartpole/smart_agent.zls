@@ -2,14 +2,14 @@ open Cart_pole
 open Pendulum
 open Gym
 
-let node controller (prob, obs) = action where
+let proba controller obs = action where
   rec action =
-    if Infer_pf.sample (prob, Distribution.bernoulli 0.5) then Right else Left
+    if Infer_pf.sample (Distribution.bernoulli 0.5) then Right else Left
 
-let node model (prob, obs_gym) = action where
+let proba model obs_gym = action where
   rec obs = simple_pendulum (obs_gym, (Right fby action))
-  and action = controller (prob, obs)
-  and () = Infer_pf.factor (prob, -10. *. (abs_float (obs.pole_angle)))
+  and action = controller (obs)
+  and () = Infer_pf.factor (-10. *. (abs_float (obs.pole_angle)))
   and display = draw_obs_back obs
 
 let node smart_main () = () where

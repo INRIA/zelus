@@ -15,7 +15,7 @@ let log_sum_exp (a, b) =
   log sum +. max_exp
 
 
-let node sample_x (prob, x_init, dir) = x where
+let proba sample_x (x_init, dir) = x where
   rec init x = x_init
   and match dir with
       | Right ->
@@ -23,7 +23,7 @@ let node sample_x (prob, x_init, dir) = x where
       | Left ->
           do x = max 0 (if wheel_slip then last x else last x - 1) done
       end
-  and wheel_slip = sample (prob, Distribution.bernoulli 0.1)
+  and wheel_slip = sample (Distribution.bernoulli 0.1)
 
 let node update (map, obs, x) =
   let (ntrue, nfalse) = Array_misc.get map x in
@@ -66,11 +66,11 @@ let update_weight (map, x_new, obs_new) =
   if obs_new then ypred_true else ypred_false
 
 
-let node slam (prob, (obs, dir)) = (map, x) where
+let proba slam (obs, dir) = (map, x) where
   rec init map = Array_misc.make (max_pos + 1) (0., 0.)
-  and x = sample_x (prob, 0, dir)
+  and x = sample_x (0, dir)
   and map = update (last map, obs, x)
-  and () = factor(prob, update_weight(map, x, obs))
+  and () = factor(update_weight(map, x, obs))
 
 let node slam_ctrl (event, pos_dist) = dir where
   rec x = Distribution.draw pos_dist

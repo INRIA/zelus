@@ -3,10 +3,10 @@ open Infer_pf
 
 (* A first example *)
 
-let node model (prob, obs) = a where
-  rec a = sample (prob, Distribution.gaussian (1., 2.)) fby a
+let proba model (obs) = a where
+  rec a = sample (Distribution.gaussian (1., 2.)) fby a
   and cpt = 0. fby cpt +. a
-  and () = factor (prob, -. (abs_float (obs -. cpt)))
+  and () = factor (-. (abs_float (obs -. cpt)))
 
 let node periodic n =
   let rec o = 1 fby (if ok then 1 else o + 1)

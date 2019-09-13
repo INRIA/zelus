@@ -1,8 +1,8 @@
 open Infer_ds
 
-let node f (prob, ()) = x0 where
-  rec init x0 = sample(prob, gaussian (const 0.) 1.)
-  and () = observe(prob, gaussian x0 1., 0.1)
+let proba f () = x0 where
+  rec init x0 = sample(gaussian (const 0.) 1.)
+  and () = observe(gaussian x0 1., 0.1)
 
 let node main () = () where
   rec x_d = infer 1000 f ()

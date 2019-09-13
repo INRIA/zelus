@@ -1,11 +1,11 @@
 open Infer_importance
 (* open Infer_pf *)
 
-let node geometric (prob, p) = n where
+let proba geometric p = n where
   rec automaton
       | Incr ->
           do n = 0. -> pre n +. 1.
-          until (sample (prob, Distribution.bernoulli p)) then Stop(n)
+          until (sample (Distribution.bernoulli p)) then Stop(n)
       | Stop(v) -> do n = v done
       end
 

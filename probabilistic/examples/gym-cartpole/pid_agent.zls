@@ -32,13 +32,13 @@ let node controller (angle, (p,i,d)) = action where
   and action = if theta > 0. then Right else Left
 
 (* Sample coefs from given priors *)
-let node model (prob, (obs_init, p_prior, i_prior, d_prior)) = p, (i, d) where
-  rec init p = Infer_pf.sample(prob, p_prior)
-  and init i = Infer_pf.sample(prob, i_prior)
-  and init d = Infer_pf.sample(prob, d_prior)
+let proba model (obs_init, p_prior, i_prior, d_prior) = p, (i, d) where
+  rec init p = Infer_pf.sample(p_prior)
+  and init i = Infer_pf.sample(i_prior)
+  and init d = Infer_pf.sample(d_prior)
   and obs = simple_pendulum (obs_init,  Right fby action)
   and action = controller (obs.pole_angle, (p,i,d))
-  and () = Infer_pf.factor(prob, -10. *. abs_float (obs.pole_angle))
+  and () = Infer_pf.factor(-10. *. abs_float (obs.pole_angle))
   and () = draw_obs_back obs
 
 (* Restart inference with updated priors when stddev of p_dist is halved *)
@@ -85,32 +85,32 @@ let node pid_bayes_update particles (priors, obs, stop) = pid_dist where
 
 (* Alternative implementation: push the automaton in the model,
    estimate distributions stats outside *)
-let node model2 (prob, (obs_init, ps, is, ds)) = p, (i, d) where
+let proba model2 (obs_init, ps, is, ds) = p, (i, d) where
   rec automaton
       | Update ->
           do p_stats = ps
-          and p = Infer_pf.sample(prob, gaussian ps)
-          and i = Infer_pf.sample(prob, gaussian is)
-          and d = Infer_pf.sample(prob, gaussian ds)
+          and p = Infer_pf.sample(gaussian ps)
+          and i = Infer_pf.sample(gaussian is)
+          and d = Infer_pf.sample(gaussian ds)
           then Learn
       | Learn -> local action, obs in
           do obs = simple_pendulum (obs_init,  Right fby action)
           and action = controller (obs.pole_angle, (p,i,d))
-          and () = Infer_pf.factor(prob, -10. *. abs_float (obs.pole_angle))
+          and () = Infer_pf.factor(-10. *. abs_float (obs.pole_angle))
           and () = draw_obs_back obs
           until (snd ps < snd p_stats /. 2.) then Update
 
-(* let node model2 (prob, (obs_init, (ps, is, ds), update)) = p, (i, d) where *)
-(*   rec init p = Infer_pf.sample(prob, gaussian ps) *)
-(*   and init i = Infer_pf.sample(prob, gaussian is) *)
-(*   and init d = Infer_pf.sample(prob, gaussian ds) *)
+(* let proba model2 (obs_init, (ps, is, ds), update) = p, (i, d) where *)
+(*   rec init p = Infer_pf.sample(gaussian ps) *)
+(*   and init i = Infer_pf.sample(gaussian is) *)
+(*   and init d = Infer_pf.sample(gaussian ds) *)
 (*   and obs = simple_pendulum (obs_init,  Right fby action) *)
 (*   and action = controller (obs.pole_angle, (p,i,d)) *)
-(*   and () = Infer_pf.factor(prob, -10. *. abs_float (obs.pole_angle)) *)
+(*   and () = Infer_pf.factor(-10. *. abs_float (obs.pole_angle)) *)
 (*   and present update(ps, is, ds) -> *)
-(*       do p = Infer_pf.sample(prob, gaussian ps) *)
-(*       and i = Infer_pf.sample(prob, gaussian is) *)
-(*       and d = Infer_pf.sample(prob, gaussian ds) done *)
+(*       do p = Infer_pf.sample(gaussian ps) *)
+(*       and i = Infer_pf.sample(gaussian is) *)
+(*       and d = Infer_pf.sample(gaussian ds) done *)
 
 
 (* At each step: compute the distribution and the corresponding stats *)

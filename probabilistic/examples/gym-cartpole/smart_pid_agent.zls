@@ -26,14 +26,14 @@ let node print_coefs (p, i, d) =
 
 (** Smart controller for the cart-pole example **)
 
-let node smart_controller (prob, obs) = action where
+let proba smart_controller obs = action where
   rec action =
-    if Infer_pf.sample (prob, Distribution.bernoulli 0.5) then Right else Left
+    if Infer_pf.sample (Distribution.bernoulli 0.5) then Right else Left
 
-let node smart_model (prob, obs_gym) = action where
+let proba smart_model (obs_gym) = action where
   rec obs = simple_pendulum (obs_gym, (Right fby action))
-  and action = smart_controller (prob, obs)
-  and () = Infer_pf.factor (prob, -10. *. (abs_float (obs.pole_angle)))
+  and action = smart_controller (obs)
+  and () = Infer_pf.factor (-10. *. (abs_float (obs.pole_angle)))
   and display = draw_obs_back obs
 
 
@@ -46,12 +46,12 @@ let node pid_controller (angle, (p,i,d)) = action where
   and action = if theta > 0. then Right else Left
 
 (* Sample coefs from given priors *)
-let node pid_model (prob, (obs, ctrl_action)) = p, (i, d) where
-  rec init p = Infer_pf.sample(prob, gaussian (0., 0.1))
-  and init i = Infer_pf.sample(prob, gaussian (0., 0.1))
-  and init d = Infer_pf.sample(prob, gaussian (0., 0.1))
+let proba pid_model (obs, ctrl_action) = p, (i, d) where
+  rec init p = Infer_pf.sample(gaussian (0., 0.1))
+  and init i = Infer_pf.sample(gaussian (0., 0.1))
+  and init d = Infer_pf.sample(gaussian (0., 0.1))
   and action = pid_controller (obs.pole_angle, (p,i,d))
-  and () = Infer_pf.factor(prob, if action = ctrl_action then 0. else -0.2)
+  and () = Infer_pf.factor(if action = ctrl_action then 0. else -0.2)
 
 
 let node smart_pid_main () = () where

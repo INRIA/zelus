@@ -2,10 +2,10 @@
 (* First example of https://agentmodels.org/chapters/3a-mdp.html *)
 
 
-let node agent (prob, ()) = p where
-  rec action = Infer_pf.sample (prob, Distribution.uniform_int (-1, 1))
+let proba agent () = p where
+  rec action = Infer_pf.sample (Distribution.uniform_int (-1, 1))
   and p = 0 -> pre p + action
-  and () = Infer_pf.factor(prob, 100. *. exp (float (- abs (p - 10))))
+  and () = Infer_pf.factor(100. *. exp (float (- abs (p - 10))))
 
 (* let node main () = *)
 (*   let p = Infer_pf.plan 50 5 agent () in *)
