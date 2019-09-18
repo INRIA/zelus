@@ -159,7 +159,7 @@ let realize : type a b.
           begin match p.ds_node_state with
             | Marginalized (p_mdistr, edge) ->
                 let mdistr = make_conditional p_mdistr cdistr obs in
-                p.ds_node_state <- Marginalized (mdistr, None);
+                p.ds_node_state <- Marginalized (mdistr, edge);
                 p.ds_node_children <- delete n p.ds_node_children
             | Initialized _ | Realized _ -> assert false
           end
@@ -285,7 +285,7 @@ let get_distr_kind : type a b.
     begin match n.ds_node_state with
       | Initialized (_, AffineMeanGaussian _) -> KGaussian
       | Marginalized (MGaussian _, _) -> KGaussian
-      | Initialized(_, CBernoulli) -> KBernoulli
+      | Initialized (_, CBernoulli) -> KBernoulli
       | Marginalized (MBernoulli _, _) -> KBernoulli
       | Marginalized (MBeta _, _) -> KBeta
       | Realized _ -> assert false
