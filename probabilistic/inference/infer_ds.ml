@@ -1,5 +1,6 @@
 (** Inference with delayed sampling *)
 open Ztypes
+open Ds_distribution
 
 type pstate = Infer_ds_ll.pstate
 
@@ -256,11 +257,11 @@ let bernoulli p =
   let is prob =
     with_beta_prior
       (fun (RV par) ->
-         { value = Ervar (RV (Infer_ds_ll.assume_conditional par Infer_ds_ll.CBernoulli)) })
+         { value = Ervar (RV (Infer_ds_ll.assume_conditional par CBernoulli)) })
   in
   let iobs (prob, obs) =
     with_beta_prior
-      (fun (RV par) -> Infer_ds_ll.observe_conditional prob par Infer_ds_ll.CBernoulli obs)
+      (fun (RV par) -> Infer_ds_ll.observe_conditional prob par CBernoulli obs)
   in
   ds_distr_with_fallback d is iobs
 

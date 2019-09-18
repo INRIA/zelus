@@ -1,23 +1,9 @@
-(** Inference with streaming delayed sampling *)
+open Ds_distribution
+
+(** Inference with delayed sampling *)
 
 type pstate = Infer_pf.pstate
 
-(** Marginalized distribution *)
-type 'a mdistr =
-  | MGaussian : float * float -> float mdistr
-  | MBeta : float * float -> float mdistr
-  | MBernoulli : float -> bool mdistr
-
-(** Family of marginal distributions (used as kind) *)
-type kdistr =
-  | KGaussian
-  | KBeta
-  | KBernoulli
-
-(** Conditionned distribution *)
-type ('m1, 'm2) cdistr =
-  | AffineMeanGaussian: float * float * float -> (float, float) cdistr
-  | CBernoulli : (float, bool) cdistr
 
 (** Random variable of type ['b] and with parent of type ['a] *)
 type ('p, 'a) ds_node =
@@ -66,7 +52,7 @@ let make_marginal : type a b.
           MGaussian (m *. mu +. b, m ** 2. *. var +. obsvar)
       | MBeta (a, b),  CBernoulli ->
           MBernoulli (a /. (a +. b))
-      | _ -> assert false (* error "impossible" *)
+      | _ -> assert false
     end
 
 let make_conditional : type a b.
@@ -88,7 +74,7 @@ let make_conditional : type a b.
           MGaussian(mu', var')
       | MBeta (a, b),  CBernoulli ->
           if obs then MBeta (a +. 1., b) else MBeta (a, b +. 1.)
-      | _ -> assert false (* error "impossible" *)
+      | _ -> assert false
     end
 
 
@@ -123,7 +109,6 @@ let assume_conditional : type a b c.
 let marginalize : type a b.
   (a, b) ds_node -> unit =
   fun n ->
-    (* Format.eprintf "marginalize: %s@." n.name; *)
     begin match n.ds_node_state with
       | Initialized (p, cdistr) ->
           begin match p.ds_node_state with
@@ -151,8 +136,6 @@ let rec delete : type a b.
 let realize : type a b.
   b -> (a, b) ds_node -> unit =
   fun obs n ->
-    (* Format.eprintf "realize: %s@." n.name; *)
-    (* ioAssert (isTerminal n) *)
     begin match n.ds_node_state with
       | Marginalized (mdistr, None) -> ()
       | Marginalized (mdistr, Some (p, cdistr)) ->
@@ -172,8 +155,6 @@ let realize : type a b.
 let sample : type a b.
   (a, b) ds_node -> unit =
   fun n ->
-    (* Format.eprintf "sample: %s@." n.name; *)
-    (* ioAssert (isTerminal n) *)
     begin match n.ds_node_state with
       | Marginalized (m, _) ->
           let x = Distribution.draw (mdistr_to_distr m) in
@@ -187,7 +168,6 @@ let factor = Infer_pf.factor
 let observe : type a b.
   pstate -> b -> (a, b) ds_node -> unit =
   fun prob x n ->
-    (* io $ ioAssert (isTerminal n) *)
     begin match n.ds_node_state with
       | Marginalized (mdistr, _) ->
           factor' (prob, Distribution.score(mdistr_to_distr mdistr, x));
@@ -212,8 +192,6 @@ let marginal_child : type a b.
 let rec prune : type a b.
   (a, b) ds_node -> unit =
   function n ->
-    (* Format.eprintf "prune: %s@." n.name; *)
-    (* assert (isMarginalized (state n)) $ do *)
     begin match marginal_child n with
       | Some (Child child) -> prune child
       | None -> ()
@@ -223,7 +201,6 @@ let rec prune : type a b.
 let rec graft : type a b.
   (a, b) ds_node -> unit =
   function n ->
-    (* Format.eprintf "graft %s@." n.name; *)
     begin match n.ds_node_state with
       | Realized _ -> assert false
       | Marginalized _ ->
@@ -250,7 +227,6 @@ let rec value: type a b.
 let rec get_mdistr : type a b.
   (a, b) ds_node -> b mdistr =
   function n ->
-    (* Format.eprintf "graft %s@." n.name; *)
     begin match n.ds_node_state with
       | Marginalized (m, _) -> m
       | Initialized (p, cdistr) ->

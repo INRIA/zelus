@@ -10,6 +10,7 @@ ML_SRC=misc_lib.ml \
 	normalize.ml \
 	infer_pf.ml \
 	infer_importance.ml \
+	ds_distribution.ml \
 	infer_ds_ll.ml \
 	infer_ds.ml \
 	infer_ds_ll_gc.ml \
@@ -18,9 +19,7 @@ ML_SRC=misc_lib.ml \
 ZLI_SRC=distribution.zli \
 	infer_pf.zli \
 	infer_importance.zli \
-	infer_ds_ll.zli \
 	infer_ds.zli \
-	infer_ds_ll_gc.zli \
 	infer_ds_gc.zli
 
 OBJ=$(ML_SRC:%.ml=%.cmo)

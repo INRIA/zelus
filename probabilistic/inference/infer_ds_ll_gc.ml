@@ -1,23 +1,8 @@
-(** Inference with delayed sampling with less pointers low level interface *)
+open Ds_distribution
+
+(** Inference with streaming delayed sampling *)
 
 type pstate = Infer_pf.pstate
-
-(** Marginalized distribution *)
-type 'a mdistr =
-  | MGaussian : float * float -> float mdistr
-  | MBeta : float * float -> float mdistr
-  | MBernoulli : float -> bool mdistr
-
-(** Family of marginal distributions (used as kind) *)
-type kdistr =
-  | KGaussian
-  | KBeta
-  | KBernoulli
-
-(** Conditionned distribution *)
-type ('m1, 'm2) cdistr =
-  | AffineMeanGaussian: float * float * float -> (float, float) cdistr
-  | CBernoulli : (float, bool) cdistr
 
 (** Random variable of type ['b] and with parent of type ['a] *)
 type ('p, 'a) ds_node =
@@ -32,60 +17,6 @@ and ('p, 'a) ds_state =
       'a mdistr * (('a, 'z) ds_node * ('a, 'z) cdistr) option
     -> ('p, 'a) ds_state
   | Realized of 'a
-
-
-(** {2 Distribution manipulations} *)
-
-let mdistr_to_distr : type a.
-  a mdistr -> a Distribution.t = fun mdistr ->
-  begin match mdistr with
-    | MGaussian (mu, var) -> Distribution.gaussian(mu, sqrt var)
-    | MBeta (alpha, beta) -> Distribution.beta(alpha, beta)
-    | MBernoulli p -> Distribution.bernoulli p
-  end
-
-let cdistr_to_mdistr : type a b.
-  (a, b) cdistr -> a -> b mdistr =
-  fun cdistr obs ->
-    begin match cdistr with
-      | AffineMeanGaussian (m, b, obsvar) ->
-          MGaussian (m *. obs +. b, obsvar)
-      | CBernoulli ->
-          MBernoulli obs
-    end
-
-let make_marginal : type a b.
-  a mdistr -> (a, b) cdistr -> b mdistr =
-  fun mdistr cdistr ->
-    begin match mdistr, cdistr with
-      | MGaussian (mu, var), AffineMeanGaussian(m, b, obsvar) ->
-          MGaussian (m *. mu +. b, m ** 2. *. var +. obsvar)
-      | MBeta (a, b),  CBernoulli ->
-          MBernoulli (a /. (a +. b))
-      | _ -> assert false (* error "impossible" *)
-    end
-
-let make_conditional : type a b.
-  a mdistr -> (a, b) cdistr -> b -> a mdistr =
-  let gaussian_conditioning mu var obs obsvar =
-    let ivar = 1. /. var in
-    let iobsvar = 1. /. obsvar in
-    let inf = ivar +. iobsvar in
-    let var' = 1. /. inf in
-    let mu' = (ivar *. mu +. iobsvar *. obs) /. inf in
-    (mu', var')
-  in
-  fun mdistr cdistr obs ->
-    begin match mdistr, cdistr with
-      | MGaussian(mu, var), AffineMeanGaussian(m, b, obsvar) ->
-          let (mu', var') =
-            gaussian_conditioning mu var ((obs -. b) /. m) (obsvar /. m ** 2.)
-          in
-          MGaussian(mu', var')
-      | MBeta (a, b),  CBernoulli ->
-          if obs then MBeta (a +. 1., b) else MBeta (a, b +. 1.)
-      | _, _ -> assert false (* error "impossible" *)
-    end
 
 
 (** {2 Graph manipulations} *)
@@ -116,7 +47,6 @@ let assume_conditional : type a b c.
 let marginalize : type a b.
   (a, b) ds_node -> unit =
   fun n ->
-    (* Format.eprintf "marginalize: %s@." n.name; *)
     begin match n.ds_node_state with
       | Initialized (p, cdistr) ->
           begin match p.ds_node_state with
@@ -127,15 +57,7 @@ let marginalize : type a b.
                 p.ds_node_state <- Marginalized (p_mdistr, Some(n, cdistr));
                 let mdistr = make_marginal p_mdistr cdistr in
                 n.ds_node_state <- Marginalized(mdistr, None)
-            | Marginalized(p_mdistr, Some(c, c_cdistr)) ->
-                assert false;
-                begin match c.ds_node_state with
-                  | Realized x ->
-                      let mdistr = make_conditional p_mdistr c_cdistr x in
-                      p.ds_node_state <- Marginalized(mdistr, Some(n, cdistr))
-                  | _ -> assert false
-                end
-            | Initialized _ -> assert false
+            | Initialized _ | Marginalized (_, Some _)-> assert false
           end
       | Realized _ | Marginalized _ ->
           Format.eprintf "Error: marginalize@.";
@@ -145,8 +67,6 @@ let marginalize : type a b.
 let realize : type a b.
   b -> (a, b) ds_node -> unit =
   fun obs n ->
-    (* Format.eprintf "realize: %s@." n.name; *)
-    (* ioAssert (isTerminal n) *)
     assert begin match n.ds_node_state with
       | Marginalized (mdistr, None) -> true
       | Initialized _ | Realized _ | Marginalized (_, Some _) -> false
@@ -185,7 +105,6 @@ let factor = Infer_pf.factor
 let observe : type a b.
   pstate -> b -> (a, b) ds_node -> unit =
   fun prob x n ->
-    (* io $ ioAssert (isTerminal n) *)
     force_condition n;
     begin match n.ds_node_state with
       | Marginalized (mdistr, None) ->
@@ -197,8 +116,6 @@ let observe : type a b.
 let rec prune : type a b.
   (a, b) ds_node -> unit =
   function n ->
-    (* Format.eprintf "prune: %s@." n.name; *)
-    (* assert (isMarginalized (state n)) $ do *)
     begin match n.ds_node_state with
       | Marginalized(_, Some(c, _)) -> prune c
       | Initialized _ | Realized _ | Marginalized (_, None) -> ()
@@ -208,7 +125,6 @@ let rec prune : type a b.
 let rec graft : type a b.
   (a, b) ds_node -> unit =
   function n ->
-    (* Format.eprintf "graft %s@." n.name; *)
     begin match n.ds_node_state with
       | Marginalized (_, None) -> ()
       | Marginalized (_, Some(c, _)) -> prune c
@@ -233,7 +149,6 @@ let rec value: type a b.
 let rec get_mdistr : type a b.
   (a, b) ds_node -> b mdistr =
   function n ->
-    (* Format.eprintf "graft %s@." n.name; *)
     force_condition n;
     begin match n.ds_node_state with
       | Marginalized (m, _) -> m
