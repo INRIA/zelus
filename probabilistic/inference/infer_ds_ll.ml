@@ -135,7 +135,7 @@ let marginalize : type a b.
                 n.ds_node_state <- Marginalized (mdistr, Some(p, cdistr))
             | Initialized _ -> assert false
           end
-      | _ -> assert false
+      | Marginalized _ | Realized _ -> assert false
     end
 
 let rec delete : type a b.
@@ -165,8 +165,8 @@ let realize : type a b.
           end
       | Initialized _ | Realized _ -> assert false
     end;
-    List.iter (fun (Child c) -> marginalize c) n.ds_node_children;
     n.ds_node_state <- Realized obs;
+    List.iter (fun (Child c) -> marginalize c) n.ds_node_children;
     n.ds_node_children <- []
 
 let sample : type a b.
