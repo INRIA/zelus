@@ -1,0 +1,16 @@
+open Infer_ds_gc
+
+let proba f () = const x where
+  rec init x0 = sample(gaussian(const 0., 1.))
+  and init x1 = sample(gaussian(x0, 1.))
+  and init x2 = sample(gaussian(x1, 1.))
+  and automaton
+      | S0 -> do x = eval x1 then S1
+      | S1 -> do x = eval x0 then S2
+      | S2 -> do x = eval x2 done
+
+
+let node main () = () where
+  rec x_d = infer 1 f ()
+  and x = Distribution.draw x_d
+  and () = print_float x; print_newline()
