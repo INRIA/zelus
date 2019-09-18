@@ -20,20 +20,23 @@ type ('m1, 'm2) cdistr =
   | CBernoulli : (float, bool) cdistr
 
 (** Random variable of type ['b] and with parent of type ['a] *)
-type ('parent, 'a) ds_node =
+type ('p, 'a) ds_node =
   { ds_node_id : int;
     mutable ds_node_children : 'a ds_child list;
-    mutable ds_node_state : ('parent, 'a) ds_state; }
+    mutable ds_node_state : ('p, 'a) ds_state; }
 
-and ('parent, 'a) ds_state =
+and ('p, 'a) ds_state =
   | Initialized:
-      ('z, 'parent) ds_node * ('parent, 'a) cdistr -> ('parent, 'a) ds_state
+      ('z, 'p) ds_node * ('p, 'a) cdistr
+    -> ('p, 'a) ds_state
   | Marginalized:
-      'a mdistr * (('z, 'parent) ds_node * ('parent, 'a) cdistr) option -> ('parent, 'a) ds_state
+      'a mdistr * (('z, 'p) ds_node * ('p, 'a) cdistr) option
+    -> ('p, 'a) ds_state
   | Realized of 'a
 
 and 'b ds_child =
     Child : ('b, 'c) ds_node -> 'b ds_child
+
 
 (** {2 Distribution manipulations} *)
 
@@ -85,9 +88,8 @@ let make_conditional : type a b.
           MGaussian(mu', var')
       | MBeta (a, b),  CBernoulli ->
           if obs then MBeta (a +. 1., b) else MBeta (a, b +. 1.)
-      | _, _ -> assert false (* error "impossible" *)
+      | _ -> assert false (* error "impossible" *)
     end
-
 
 
 (** {2 Graph manipulations} *)
@@ -99,8 +101,8 @@ let fresh_id =
     !cpt
 
 (* initialize without parent node *)
-let assume_constant : type a parent.
-  a mdistr -> (parent, a) ds_node =
+let assume_constant : type a p.
+  a mdistr -> (p, a) ds_node =
   fun d ->
     { ds_node_id = fresh_id ();
       ds_node_children = [];
@@ -109,13 +111,13 @@ let assume_constant : type a parent.
 (* initialize with parent node *)
 let assume_conditional : type a b c.
   (a, b) ds_node -> (b, c) cdistr -> (b, c) ds_node =
-  fun par cdistr ->
+  fun p cdistr ->
     let child =
       { ds_node_id = fresh_id ();
         ds_node_children = [];
-        ds_node_state = Initialized (par, cdistr); }
+        ds_node_state = Initialized (p, cdistr); }
     in
-    par.ds_node_children <- Child child :: par.ds_node_children;
+    p.ds_node_children <- Child child :: p.ds_node_children;
     child
 
 let marginalize : type a b.
@@ -123,31 +125,27 @@ let marginalize : type a b.
   fun n ->
     (* Format.eprintf "marginalize: %s@." n.name; *)
     begin match n.ds_node_state with
-      | Initialized (par, cdistr) ->
-          let mdistr =
-            begin match par.ds_node_state with
-              | Realized x ->
-                  cdistr_to_mdistr cdistr x
-              | Marginalized (par_mdistr, _) ->
-                  make_marginal par_mdistr cdistr
-              | Initialized _ -> assert false (* error "marginalize'" *)
-            end
-          in
-          n.ds_node_state <-
-            Marginalized (mdistr, Some(par, cdistr))
-      | _ ->
-          Format.eprintf "Error: marginalize@.";
-          assert false
+      | Initialized (p, cdistr) ->
+          begin match p.ds_node_state with
+            | Realized x ->
+                let mdistr = cdistr_to_mdistr cdistr x in
+                n.ds_node_state <- Marginalized (mdistr, None)
+            | Marginalized (p_mdistr, _) ->
+                let mdistr = make_marginal p_mdistr cdistr in
+                n.ds_node_state <- Marginalized (mdistr, Some(p, cdistr))
+            | Initialized _ -> assert false
+          end
+      | _ -> assert false
     end
 
 let rec delete : type a b.
   (a, b) ds_node -> a ds_child list -> a ds_child list =
   fun n l ->
     begin match l with
-      | [] -> assert false
       | Child x :: l ->
           if n.ds_node_id = x.ds_node_id then l
           else Child x :: (delete n l)
+      | [] -> assert false
     end
 
 let realize : type a b.
@@ -156,17 +154,16 @@ let realize : type a b.
     (* Format.eprintf "realize: %s@." n.name; *)
     (* ioAssert (isTerminal n) *)
     begin match n.ds_node_state with
-      | Initialized _ -> assert false
-      | Realized _ -> assert false
       | Marginalized (mdistr, None) -> ()
-      | Marginalized (mdistr, Some (par, cdistr)) ->
-          begin match par.ds_node_state with
-            | Marginalized (par_mdistr, edge) ->
-                let mdistr = make_conditional par_mdistr cdistr obs in
-                par.ds_node_state <- Marginalized (mdistr, None);
-                par.ds_node_children <- delete n par.ds_node_children
-            | _ -> assert false
+      | Marginalized (mdistr, Some (p, cdistr)) ->
+          begin match p.ds_node_state with
+            | Marginalized (p_mdistr, edge) ->
+                let mdistr = make_conditional p_mdistr cdistr obs in
+                p.ds_node_state <- Marginalized (mdistr, None);
+                p.ds_node_children <- delete n p.ds_node_children
+            | Initialized _ | Realized _ -> assert false
           end
+      | Initialized _ | Realized _ -> assert false
     end;
     List.iter (fun (Child c) -> marginalize c) n.ds_node_children;
     n.ds_node_state <- Realized obs;
@@ -181,7 +178,7 @@ let sample : type a b.
       | Marginalized (m, _) ->
           let x = Distribution.draw (mdistr_to_distr m) in
           realize x n
-      | _ -> assert false (* error "sample" *)
+      | Initialized _ | Realized _ -> assert false
     end
 
 let factor' = Infer_pf.factor'
@@ -195,7 +192,7 @@ let observe : type a b.
       | Marginalized (mdistr, _) ->
           factor' (prob, Distribution.score(mdistr_to_distr mdistr, x));
           realize x n
-      | _ -> assert false (* error "observe'" *)
+      | Initialized _ | Realized _ -> assert false
     end
 
 (* Invariant 2: A node always has at most one marginal Child *)
@@ -203,8 +200,8 @@ let marginal_child : type a b.
   (a, b) ds_node -> b ds_child option =
   let is_marginalized state =
     begin match state with
+      | Initialized _ | Realized _ -> false
       | Marginalized _ -> true
-      | _ -> false
     end
   in
   fun n ->
@@ -228,15 +225,15 @@ let rec graft : type a b.
   function n ->
     (* Format.eprintf "graft %s@." n.name; *)
     begin match n.ds_node_state with
+      | Realized _ -> assert false
       | Marginalized _ ->
           begin match marginal_child n with
             | Some (Child child) -> prune child
             | None -> ()
           end
-      | Initialized (par, cdistr) ->
-          graft par;
+      | Initialized (p, cdistr) ->
+          graft p;
           marginalize n
-      | Realized _ -> assert false
     end
 
 let rec value: type a b.
@@ -244,7 +241,7 @@ let rec value: type a b.
   fun n ->
     begin match n.ds_node_state with
       | Realized x -> x
-      | _ ->
+      | Marginalized _ | Initialized _ ->
           graft n;
           sample n;
           value n
@@ -256,9 +253,9 @@ let rec get_mdistr : type a b.
     (* Format.eprintf "graft %s@." n.name; *)
     begin match n.ds_node_state with
       | Marginalized (m, _) -> m
-      | Initialized (par, cdistr) ->
-          let par_mdistr = get_mdistr par in
-          make_marginal par_mdistr cdistr
+      | Initialized (p, cdistr) ->
+          let p_mdistr = get_mdistr p in
+          make_marginal p_mdistr cdistr
       | Realized _ -> assert false
     end
 
@@ -267,7 +264,7 @@ let get_distr : type a b.
   fun n ->
     begin match n.ds_node_state with
       | Realized x -> Distribution.Dist_support [ (x, 1.) ]
-      | _ ->
+      | Initialized _ | Marginalized _ ->
           begin match get_mdistr n with
             | MGaussian (mu, sigma) -> Distribution.gaussian(mu, sigma)
             | MBeta (a, b) -> Distribution.beta(a, b)
@@ -277,8 +274,8 @@ let get_distr : type a b.
 
 let observe_conditional : type a b c.
   pstate -> (a, b) ds_node -> (b, c) cdistr -> c -> unit =
-  fun prob par cdistr obs ->
-    let n = assume_conditional par cdistr in
+  fun prob p cdistr obs ->
+    let n = assume_conditional p cdistr in
     graft n;
     observe prob obs n
 
@@ -287,9 +284,9 @@ let get_distr_kind : type a b.
   fun n  ->
     begin match n.ds_node_state with
       | Initialized (_, AffineMeanGaussian _) -> KGaussian
-      | Initialized(_, CBernoulli) -> KBernoulli
       | Marginalized (MGaussian _, _) -> KGaussian
-      | Marginalized (MBeta _, _) -> KBeta
+      | Initialized(_, CBernoulli) -> KBernoulli
       | Marginalized (MBernoulli _, _) -> KBernoulli
+      | Marginalized (MBeta _, _) -> KBeta
       | Realized _ -> assert false
     end
