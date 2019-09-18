@@ -1,18 +1,17 @@
-open Infer_ds_gc
+open Infer_ds
+
+let proba f () = x where
+  rec init x0 = sample(gaussian (const 0., 1.))
+  and x = sample(gaussian (x0 -> pre x, 1.))
+  and () = observe(gaussian(x, 1.), 42.)
 
 (* let proba f () = x where *)
-(*   rec init x0 = sample(gaussian (const 0.) 1.) *)
-(*   and x = sample(gaussian (x0 -> pre x) 1.) *)
-(*   and () = observe(gaussian x 1., 42.) *)
-
-
-let node proba f () = x where
-  rec x0 = sample(gaussian (const 0.) 1.) fby x
-  and x = sample(gaussian (x0 -> pre x) 1.)
-  and () = observe(gaussian x 1., 42.)
+(*   rec x0 = sample(gaussian (const 0., 1.)) fby x0 *)
+(*   and x = sample(gaussian (x0 -> pre x, 1.)) *)
+(*   and () = observe(gaussian(x, 1.), 42.) *)
 
 
 let node main () = () where
   rec x_d = infer 1000 f ()
-  and mean = mean_expr (Distribution.draw x_d)
+  and mean = Distribution.mean_float x_d
   and () = print_float mean; print_newline()

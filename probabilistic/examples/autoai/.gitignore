@@ -1,0 +1,10 @@
+*.zci
+*.cmi
+*.cmo
+*.cmx
+*.o
+*.byte
+*.opt
+autoai
+autoai.ml
+main.ml
