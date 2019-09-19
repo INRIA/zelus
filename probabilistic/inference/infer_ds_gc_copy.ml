@@ -6,8 +6,8 @@ open Ds_distribution
 type 'a random_var = { rv_id : int; }
 type ('a, 'b) ds_node = ('a, 'b) Infer_ds_ll_gc.ds_node
 
-(* module Gnodes = Ephemeron.K1.Make(struct *)
-module Gnodes = Hashtbl.Make(struct
+module Gnodes = Ephemeron.K1.Make(struct
+(* module Gnodes = Hashtbl.Make(struct *)
     type t = Obj.t (* random_var *)
     let equal x y = (Obj.obj x).rv_id = (Obj.obj y).rv_id
     let hash x = Hashtbl.hash (Obj.obj x).rv_id
@@ -421,31 +421,21 @@ let infer n (Cnode { alloc; reset; copy; step; }) =
       { pf_state = pf_prob;
         ds_graph = state.node_graph; }
     in
-    Format.printf "step %d {" prob.pf_state.idx;
-    Gnodes.iter (fun x _ -> Format.printf " %d" (Obj.obj x).rv_id) state.node_graph;
-    Format.printf "}@.";
     distribution_of_expr prob (step state.node_state (prob, x))
   in
   let copy src dst =
-    Format.printf "Copy@.";
-    copy src.node_state dst.node_state;
-    dst.node_graph <- Gnodes.create 11;
-    Format.printf "src {";
-    Gnodes.iter (fun x _ -> Format.printf " %d" (Obj.obj x).rv_id) src.node_graph;
-    Format.printf "}@.";
-
-    let tbl = Hashtbl.create 11 in
-    Gnodes.iter
-      (fun x y ->
-         Gnodes.add dst.node_graph
-           x
-           (Obj.repr (Infer_ds_ll_gc.copy_node' tbl (Obj.obj y))))
-      src.node_graph;
-
-    Format.printf "dst {";
-    Gnodes.iter (fun x _ -> Format.printf " %d" (Obj.obj x).rv_id) dst.node_graph;
-    Format.printf "}@.";
-
+    if src == dst then ()
+    else begin
+      copy src.node_state dst.node_state;
+      dst.node_graph <- Gnodes.create 11;
+      let tbl = Hashtbl.create 11 in
+      Gnodes.iter
+        (fun x y ->
+           Gnodes.add dst.node_graph
+             x
+             (Obj.repr (Infer_ds_ll_gc.copy_node' tbl (Obj.obj y))))
+        src.node_graph
+    end
     (* dst.node_graph <- Gnodes.copy src.node_graph;
        let tbl = Hashtbl.create 11 in
        Gnodes.filter_map_inplace
@@ -489,8 +479,18 @@ let infer_ess_resample n threshold (Cnode { alloc; reset; copy; step; }) =
     distribution_of_expr prob (step state.node_state (prob, x))
   in
   let copy src dst =
-    copy src.node_state dst.node_state;
-    dst.node_graph <- Gnodes.copy src.node_graph
+    if src == dst then ()
+    else begin
+      copy src.node_state dst.node_state;
+      dst.node_graph <- Gnodes.create 11;
+      let tbl = Hashtbl.create 11 in
+      Gnodes.iter
+        (fun x y ->
+           Gnodes.add dst.node_graph
+             x
+             (Obj.repr (Infer_ds_ll_gc.copy_node' tbl (Obj.obj y))))
+        src.node_graph
+    end
   in
   let Cnode {alloc = infer_alloc; reset = infer_reset;
              copy = infer_copy; step = infer_step;} =
@@ -520,7 +520,17 @@ let infer_bounded n (Cnode { alloc; reset; copy; step; }) =
     eval' prob (step state.node_state (prob, x))
   in
   let copy src dst =
-    copy src.node_state dst.node_state;
-    dst.node_graph <- Gnodes.copy src.node_graph
+    if src == dst then ()
+    else begin
+      copy src.node_state dst.node_state;
+      dst.node_graph <- Gnodes.create 11;
+      let tbl = Hashtbl.create 11 in
+      Gnodes.iter
+        (fun x y ->
+           Gnodes.add dst.node_graph
+             x
+             (Obj.repr (Infer_ds_ll_gc.copy_node' tbl (Obj.obj y))))
+        src.node_graph
+    end
   in
   Infer_pf.infer n (Cnode { alloc; reset; copy; step; })
