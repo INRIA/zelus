@@ -16,7 +16,8 @@ let proba controller (reference, temp_room, temp_ext) = u where
   (* and () = factor(score) *)
 
 let node simulator(temp_target, temp_init, temp_ext) = u, temp_room where
-  rec reset u = plan 20 4 controller (temp_target, temp_room, temp_ext) every true
+  rec reset u = plan 20 4 controller (temp_target, temp_room, temp_ext)
+      every true
   and temp_room = heater(h)(c, alpha, beta, temp_ext, temp_init, u)
 
 let node mains_no_graphics () =
