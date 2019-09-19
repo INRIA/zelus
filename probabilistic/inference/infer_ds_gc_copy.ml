@@ -6,7 +6,8 @@ open Ds_distribution
 type 'a random_var = { rv_id : int; }
 type ('a, 'b) ds_node = ('a, 'b) Infer_ds_ll_gc.ds_node
 
-module Gnodes = Ephemeron.K1.Make(struct
+(* module Gnodes = Ephemeron.K1.Make(struct *)
+module Gnodes = Hashtbl.Make(struct
     type t = Obj.t (* random_var *)
     let equal x y = (Obj.obj x).rv_id = (Obj.obj y).rv_id
     let hash x = Hashtbl.hash (Obj.obj x).rv_id
@@ -21,7 +22,9 @@ let rv_node : type a p.
   fun prob x ->
     let g = prob.ds_graph in
     begin match Gnodes.find_opt g (Obj.repr x) with
-      | None -> assert false
+      | None ->
+          Format.printf "Failed %d@." x.rv_id;
+          assert false
       | Some o -> Obj.obj o
     end
 
@@ -400,56 +403,64 @@ let rec distribution_of_expr_dist : type a. a expr_dist -> a Distribution.t =
 let distribution_of_expr prob expr =
   distribution_of_expr_dist (expr_dist_of_expr prob expr)
 
-(* let infer n (Cnode { alloc; reset; copy; step; }) = *)
-(*   let step state (prob, x) = distribution_of_expr (step state (prob, x)) in *)
-(*   let Cnode {alloc = infer_alloc; reset = infer_reset; *)
-(*              copy = infer_copy; step = infer_step;} = *)
-(*     Infer_pf.infer n (Cnode { alloc; reset; copy; step; }) *)
-(*   in *)
-(*   let infer_step state i = *)
-(*     Distribution.to_mixture (infer_step state i) *)
-(*   in *)
-(*   Cnode {alloc = infer_alloc; reset = infer_reset; *)
-(*          copy = infer_copy;  step = infer_step;} *)
-
-(* let infer_ess_resample n threshold (Cnode { alloc; reset; copy; step; }) = *)
-(*   let step state (prob, x) = distribution_of_expr (step state (prob, x)) in *)
-(*   let Cnode {alloc = infer_alloc; reset = infer_reset; *)
-(*              copy = infer_copy; step = infer_step;} = *)
-(*     Infer_pf.infer_ess_resample n threshold *)
-(*       (Cnode { alloc; reset; copy; step; }) *)
-(*   in *)
-(*   let infer_step state i = *)
-(*     Distribution.to_mixture (infer_step state i) *)
-(*   in *)
-(*   Cnode {alloc = infer_alloc; reset = infer_reset; *)
-(*          copy = infer_copy; step = infer_step;} *)
-
-(* let infer_bounded n (Cnode { alloc; reset; copy; step; }) = *)
-(*   let step state (prob, x) = eval (step state (prob, x)) in *)
-(*   Infer_pf.infer n (Cnode { alloc; reset; copy; step; }) *)
-
 type 'a node_state =
   { node_state: 'a;
-    node_graph: Obj.t Gnodes.t; }
+    mutable node_graph: Obj.t Gnodes.t; }
 
 let infer n (Cnode { alloc; reset; copy; step; }) =
   let alloc () =
-    ref { node_state = alloc ();
-          node_graph = Gnodes.create 11; }
+    { node_state = alloc ();
+      node_graph = Gnodes.create 11; }
   in
   let reset state =
-    reset !state.node_state;
-    Gnodes.clear !state.node_graph
+    reset state.node_state;
+    Gnodes.clear state.node_graph
   in
   let step state (pf_prob, x) =
     let prob =
       { pf_state = pf_prob;
-        ds_graph = !state.node_graph; }
+        ds_graph = state.node_graph; }
     in
-    distribution_of_expr prob (step !state.node_state (prob, x))
+    Format.printf "step %d {" prob.pf_state.idx;
+    Gnodes.iter (fun x _ -> Format.printf " %d" (Obj.obj x).rv_id) state.node_graph;
+    Format.printf "}@.";
+    distribution_of_expr prob (step state.node_state (prob, x))
   in
-  let copy src dst = dst := Normalize.copy !src in
+  let copy src dst =
+    Format.printf "Copy@.";
+    copy src.node_state dst.node_state;
+    dst.node_graph <- Gnodes.create 11;
+    Format.printf "src {";
+    Gnodes.iter (fun x _ -> Format.printf " %d" (Obj.obj x).rv_id) src.node_graph;
+    Format.printf "}@.";
+
+    let tbl = Hashtbl.create 11 in
+    Gnodes.iter
+      (fun x y ->
+         Gnodes.add dst.node_graph
+           x
+           (Obj.repr (Infer_ds_ll_gc.copy_node' tbl (Obj.obj y))))
+      src.node_graph;
+
+    Format.printf "dst {";
+    Gnodes.iter (fun x _ -> Format.printf " %d" (Obj.obj x).rv_id) dst.node_graph;
+    Format.printf "}@.";
+
+    (* dst.node_graph <- Gnodes.copy src.node_graph;
+       let tbl = Hashtbl.create 11 in
+       Gnodes.filter_map_inplace
+       (fun x y -> Some (Obj.repr (Infer_ds_ll_gc.copy_node' tbl (Obj.obj y))))
+       dst.node_graph *)
+
+    (* Gnodes.reset dst.node_graph;
+       let tbl = Hashtbl.create 11 in
+       Gnodes.iter
+       (fun x y ->
+         Gnodes.add dst.node_graph
+           x
+           (Obj.repr (Infer_ds_ll_gc.copy_node' tbl (Obj.obj y))))
+       src.node_graph *)
+  in
   let Cnode {alloc = infer_alloc; reset = infer_reset;
              copy = infer_copy; step = infer_step;} =
     Infer_pf.infer n (Cnode { alloc; reset; copy = copy; step; })
@@ -463,21 +474,24 @@ let infer n (Cnode { alloc; reset; copy; step; }) =
 
 let infer_ess_resample n threshold (Cnode { alloc; reset; copy; step; }) =
   let alloc () =
-    ref { node_state = alloc ();
-          node_graph = Gnodes.create 11; }
+    { node_state = alloc ();
+      node_graph = Gnodes.create 11; }
   in
   let reset state =
-    reset !state.node_state;
-    Gnodes.clear !state.node_graph
+    reset state.node_state;
+    Gnodes.clear state.node_graph
   in
   let step state (pf_prob, x) =
     let prob =
       { pf_state = pf_prob;
-        ds_graph = !state.node_graph; }
+        ds_graph = state.node_graph; }
     in
-    distribution_of_expr prob (step !state.node_state (prob, x))
+    distribution_of_expr prob (step state.node_state (prob, x))
   in
-  let copy src dst = dst := Normalize.copy !src in
+  let copy src dst =
+    copy src.node_state dst.node_state;
+    dst.node_graph <- Gnodes.copy src.node_graph
+  in
   let Cnode {alloc = infer_alloc; reset = infer_reset;
              copy = infer_copy; step = infer_step;} =
     Infer_pf.infer_ess_resample n threshold
@@ -488,10 +502,25 @@ let infer_ess_resample n threshold (Cnode { alloc; reset; copy; step; }) =
   in
   Cnode {alloc = infer_alloc; reset = infer_reset;
          copy = infer_copy; step = infer_step;}
-(*
+
 let infer_bounded n (Cnode { alloc; reset; copy; step; }) =
-  let alloc () = ref (alloc ()) in
-  let reset state = reset !state in
-  let step state (prob, x) = eval' prob (step !state (prob, x)) in
-  let copy src dst = dst := Normalize.copy !src in
-  Infer_pf.infer n (Cnode { alloc; reset; copy; step; }) *)
+  let alloc () =
+    { node_state = alloc ();
+      node_graph = Gnodes.create 11; }
+  in
+  let reset state =
+    reset state.node_state;
+    Gnodes.clear state.node_graph
+  in
+  let step state (pf_prob, x) =
+    let prob =
+      { pf_state = pf_prob;
+        ds_graph = state.node_graph; }
+    in
+    eval' prob (step state.node_state (prob, x))
+  in
+  let copy src dst =
+    copy src.node_state dst.node_state;
+    dst.node_graph <- Gnodes.copy src.node_graph
+  in
+  Infer_pf.infer n (Cnode { alloc; reset; copy; step; })

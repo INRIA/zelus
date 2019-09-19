@@ -9,6 +9,7 @@ type kdistr =
   | KGaussian
   | KBeta
   | KBernoulli
+  | KValue
 
 (** Conditionned distribution *)
 type ('m1, 'm2) cdistr =

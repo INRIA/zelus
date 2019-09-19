@@ -1,0 +1,34 @@
+(** Inference with delayed sampling *)
+
+type 'a expr
+
+val const : 'a -> 'a expr
+val plus : float expr * float expr -> float expr
+val ( +~ ) : float expr -> float expr -> float expr
+val mult : float expr * float expr -> float expr
+val ( *~ ) : float expr -> float expr -> float expr
+val app : ('a -> 'b) expr * 'a expr -> 'b expr
+val ( @@~ ) : ('a -> 'b) expr -> 'a expr -> 'b expr
+val pair : 'a expr * 'b expr -> ('a * 'b) expr
+
+val eval : 'a expr -> 'a
+
+type 'a ds_distribution
+
+val of_distribution : 'a Distribution.t -> 'a ds_distribution
+val gaussian : float expr * float -> float ds_distribution
+val beta : float * float -> float ds_distribution
+val bernoulli : float expr -> bool ds_distribution
+
+val factor : float ~D~> unit
+val sample : 'a ds_distribution ~D~> 'a expr
+val observe : 'a ds_distribution * 'a ~D~> unit
+
+val infer :
+  int -S-> ('a ~D~> 'b expr) -S-> 'a -D-> 'b Distribution.t
+
+val infer_ess_resample :
+  int -S-> float -S-> ('a ~D~> 'b expr) -S-> 'a -D-> 'b Distribution.t
+
+val infer_bounded :
+  int -S-> ('a ~D~> 'b expr) -S-> 'a -D-> 'b Distribution.t

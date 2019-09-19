@@ -188,7 +188,7 @@ let get_distr_kind : type a b.
       | Initialized(_, CBernoulli) -> KBernoulli
       | Marginalized (MBernoulli _, _) -> KBernoulli
       | Marginalized (MBeta _, _) -> KBeta
-      | Realized _ -> assert false
+      | Realized _ -> KValue
     end
 
 
