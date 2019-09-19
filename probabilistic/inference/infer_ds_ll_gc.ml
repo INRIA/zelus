@@ -74,7 +74,8 @@ let realize : type a b.
     n.ds_node_state <- Realized obs
 
 
-let force_condition =
+let force_condition : type a b.
+  (a, b) ds_node -> unit =
   fun n ->
     begin match n.ds_node_state with
       | Marginalized (mdistr, Some(child, cdistr)) ->
@@ -188,4 +189,66 @@ let get_distr_kind : type a b.
       | Marginalized (MBernoulli _, _) -> KBernoulli
       | Marginalized (MBeta _, _) -> KBeta
       | Realized _ -> assert false
+    end
+
+
+(** Test Copy *)
+
+let rec copy_node : type a b.
+  (a, b) ds_node -> (a, b) ds_node =
+  fun n  ->
+    let copy_state =
+      begin match n.ds_node_state with
+        | Realized x -> Realized x
+        | Marginalized (mdistr, None) -> Marginalized (mdistr, None)
+        | Marginalized (mdistr, Some (c, cdistr)) ->
+            assert begin match c.ds_node_state with
+              | Initialized _ -> false
+              | _ -> true
+            end;
+            let c_copy = copy_node c in
+            Marginalized (mdistr, Some (c_copy, cdistr))
+        | Initialized (p, cdistr) ->
+            assert begin match p.ds_node_state with
+              | Marginalized (_, Some (c, _)) -> c.ds_node_id <> n.ds_node_id
+              | _ -> true
+            end;
+            let p_copy = copy_node p in
+            Initialized (p_copy, cdistr)
+      end
+    in
+    { n with ds_node_state = copy_state }
+
+let rec copy_node' : type a b.
+  (int, Obj.t) Hashtbl.t -> (a, b) ds_node -> (a, b) ds_node =
+  fun tbl n  ->
+    begin match Hashtbl.find_opt tbl n.ds_node_id with
+      | None ->
+          let state =
+            begin match n.ds_node_state with
+              | Realized x -> Realized x
+              | Marginalized (mdistr, None) -> Marginalized (mdistr, None)
+              | Marginalized (mdistr, Some (c, cdistr)) ->
+                  assert begin match c.ds_node_state with
+                    | Initialized _ -> false
+                    | _ -> true
+                  end;
+                  let c_copy = copy_node' tbl c in
+                  Marginalized (mdistr, Some (c_copy, cdistr))
+              | Initialized (p, cdistr) ->
+                  assert begin match p.ds_node_state with
+                    | Marginalized (_, Some (c, _)) -> c.ds_node_id <> n.ds_node_id
+                    | _ -> true
+                  end;
+                  let p_copy = copy_node' tbl p in
+                  Initialized (p_copy, cdistr)
+            end
+          in
+          let n =
+            { ds_node_id = n.ds_node_id;
+              ds_node_state = state }
+          in
+          Hashtbl.add tbl n.ds_node_id (Obj.repr n);
+          n
+      | Some o -> (Obj.obj o: (a, b) ds_node)
     end
