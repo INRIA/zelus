@@ -11,7 +11,7 @@ val app : ('a -> 'b) expr * 'a expr -> 'b expr
 val ( @@~ ) : ('a -> 'b) expr -> 'a expr -> 'b expr
 val pair : 'a expr * 'b expr -> ('a * 'b) expr
 
-val eval : 'a expr -> 'a
+val eval : 'a expr ~D~> 'a
 
 type 'a ds_distribution
 
