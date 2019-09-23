@@ -68,7 +68,7 @@ let resample copy (states, scores, values) =
   Array.iteri
     (fun i _ ->
        let state, value = Distribution.draw dist in
-       if state == state then ()
+       if state == states.(i) then ()
        else begin
          copy state states.(i);
          values.(i) <- value

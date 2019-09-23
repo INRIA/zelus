@@ -18,22 +18,22 @@ module Gnodes = struct
 
   (* type t = (Obj.t random_var, (Obj.t, Obj.t) ds_node) E.t  M.t ref *)
   type ephemeron = (Obj.t random_var, unit) E.t
-  type t = 
+  type t =
     { live_nodes : (ephemeron * (Obj.t, Obj.t) ds_node) M.t;
       mutable ephemeron_pool: ephemeron list; }
 
-  let create _ = 
+  let create _ =
     { live_nodes = M.create 11;
       ephemeron_pool = []; }
 
-  let new_ephemeron g = 
+  let new_ephemeron g =
     begin match g.ephemeron_pool with
-      | [] ->  E.create () 
+      | [] ->  E.create ()
       | e::p -> g.ephemeron_pool <- p; e
     end
 
   let add: type a p.
-    t -> a random_var -> (p, a) ds_node -> unit = 
+    t -> a random_var -> (p, a) ds_node -> unit =
     fun g x y ->
       let e = new_ephemeron g in
       E.set_key e (Obj.magic x: Obj.t random_var);
@@ -41,34 +41,34 @@ module Gnodes = struct
       let n =  (Obj.magic y: (Obj.t, Obj.t) ds_node) in
       M.add g.live_nodes x.rv_id (e, n)
 
-  let find_opt: type a p. 
-    t -> a random_var -> (p, a) ds_node option =  
+  let find_opt: type a p.
+    t -> a random_var -> (p, a) ds_node option =
     fun g x ->
       let k = (Obj.magic x: Obj.t random_var).rv_id in
       begin match M.find_opt g.live_nodes k with
         | None -> None
-        | Some (e, n) -> Some (Obj.magic n: (p, a) ds_node)          
+        | Some (e, n) -> Some (Obj.magic n: (p, a) ds_node)
       end
 
-  let clear: t -> unit = 
-    fun g -> 
-      g.ephemeron_pool <- 
-        M.fold 
-          (fun _ (e, _) acc -> E.unset_key e; e::acc) 
-          g.live_nodes 
+  let clear: t -> unit =
+    fun g ->
+      g.ephemeron_pool <-
+        M.fold
+          (fun _ (e, _) acc -> E.unset_key e; e::acc)
+          g.live_nodes
           g.ephemeron_pool;
       M.clear g.live_nodes
 
   let clean: t -> unit =
     fun g ->
       M.filter_map_inplace
-        (fun _ (e, n) -> 
+        (fun _ (e, n) ->
            let b = E.check_key e in
-           if not b then begin 
-             g.ephemeron_pool <- e::g.ephemeron_pool; 
+           if not b then begin
+             g.ephemeron_pool <- e::g.ephemeron_pool;
              None
            end
-           else Some (e, n)) 
+           else Some (e, n))
         g.live_nodes
 
   let copy: t -> t -> unit =
@@ -76,13 +76,13 @@ module Gnodes = struct
       let tbl = Hashtbl.create 11 in
       clean src;
       clear dst;
-      M.iter (fun k (e, n) ->      
+      M.iter (fun k (e, n) ->
           let e' = new_ephemeron dst in
           begin match E.get_key e with
-            | Some x ->  E.set_key e' x; 
+            | Some x ->  E.set_key e' x;
             | _ -> ()
-          end; 
-          let n' = Infer_ds_ll_gc.copy_node tbl n in  
+          end;
+          let n' = Infer_ds_ll_gc.copy_node tbl n in
           M.add dst.live_nodes k (e', n'))
         src.live_nodes
 end
@@ -98,22 +98,22 @@ end
 
    (* type t = (Obj.t random_var, (Obj.t, Obj.t) ds_node) E.t  M.t ref *)
    type ephemeron = (Obj.t random_var, unit) E.t
-   type t = 
+   type t =
     { mutable live_nodes : (ephemeron * (Obj.t, Obj.t) ds_node) M.t;
       mutable ephemeron_pool: ephemeron list; }
 
-   let create _ = 
+   let create _ =
     { live_nodes = M.empty;
       ephemeron_pool = []; }
 
-   let new_ephemeron g = 
+   let new_ephemeron g =
     begin match g.ephemeron_pool with
-      | [] ->  E.create () 
+      | [] ->  E.create ()
       | e::p -> g.ephemeron_pool <- p; e
     end
 
    let add: type a p.
-    t -> a random_var -> (p, a) ds_node -> unit = 
+    t -> a random_var -> (p, a) ds_node -> unit =
     fun g x y ->
       let e = new_ephemeron g in
       E.set_key e (Obj.magic x: Obj.t random_var);
@@ -121,31 +121,31 @@ end
       let n =  (Obj.magic y: (Obj.t, Obj.t) ds_node) in
       g.live_nodes <- M.add x.rv_id (e, n) g.live_nodes
 
-   let find_opt: type a p. 
-    t -> a random_var -> (p, a) ds_node option =  
+   let find_opt: type a p.
+    t -> a random_var -> (p, a) ds_node option =
     fun g x ->
       let k = (Obj.magic x: Obj.t random_var).rv_id in
       begin match M.find_opt k g.live_nodes with
         | None -> None
-        | Some (e, n) -> Some (Obj.magic n: (p, a) ds_node)          
+        | Some (e, n) -> Some (Obj.magic n: (p, a) ds_node)
       end
 
-   let clear: t -> unit = 
-    fun g -> 
-      g.ephemeron_pool <- 
-        M.fold 
-          (fun _ (e, _) acc -> E.unset_key e; e::acc) 
-          g.live_nodes 
+   let clear: t -> unit =
+    fun g ->
+      g.ephemeron_pool <-
+        M.fold
+          (fun _ (e, _) acc -> E.unset_key e; e::acc)
+          g.live_nodes
           g.ephemeron_pool;
       g.live_nodes <- M.empty
 
    let clean: t -> unit =
     fun g ->
-      g.live_nodes <- M.filter 
-          (fun _ (e, _) -> 
+      g.live_nodes <- M.filter
+          (fun _ (e, _) ->
              let b = E.check_key e in
-             if not b then g.ephemeron_pool <- e::g.ephemeron_pool; 
-             b) 
+             if not b then g.ephemeron_pool <- e::g.ephemeron_pool;
+             b)
           g.live_nodes
 
    let copy: t -> t -> unit =
@@ -153,16 +153,16 @@ end
       let tbl = Hashtbl.create 11 in
       clean src;
       clear dst;
-      dst.live_nodes <- M.map (fun (e, n) ->      
+      dst.live_nodes <- M.map (fun (e, n) ->
           let e' = new_ephemeron dst in
           begin match E.get_key e with
-            | Some x ->  E.set_key e' x; 
+            | Some x ->  E.set_key e' x;
             | _ -> ()
-          end; 
-          let n' = Infer_ds_ll_gc.copy_node tbl n in  
+          end;
+          let n' = Infer_ds_ll_gc.copy_node tbl n in
           (e', n'))
           src.live_nodes
-   end *)
+ end *)
 
 (* module Gnodes = Ephemeron.K1.Make(struct
    (* module Gnodes = Hashtbl.Make(struct *)
@@ -582,33 +582,8 @@ let infer n (Cnode { alloc; reset; copy; step; }) =
     distribution_of_expr prob (step state.node_state (prob, x))
   in
   let copy src dst =
-    if src == dst then ()
-    else begin
-      copy src.node_state dst.node_state;
-      Gnodes.copy src.node_graph dst.node_graph
-      (* dst.node_graph <- Gnodes.create 11;
-         let tbl = Hashtbl.create 11 in
-         Gnodes.iter
-         (fun x y ->
-           Gnodes.add dst.node_graph
-             x
-             (Obj.repr (Infer_ds_ll_gc.copy_node' tbl (Obj.obj y))))
-         src.node_graph *)
-    end
-    (* dst.node_graph <- Gnodes.copy src.node_graph;
-       let tbl = Hashtbl.create 11 in
-       Gnodes.filter_map_inplace
-       (fun x y -> Some (Obj.repr (Infer_ds_ll_gc.copy_node' tbl (Obj.obj y))))
-       dst.node_graph *)
-
-  (* Gnodes.reset dst.node_graph;
-     let tbl = Hashtbl.create 11 in
-     Gnodes.iter
-     (fun x y ->
-       Gnodes.add dst.node_graph
-         x
-         (Obj.repr (Infer_ds_ll_gc.copy_node' tbl (Obj.obj y))))
-     src.node_graph *)
+    copy src.node_state dst.node_state;
+    Gnodes.copy src.node_graph dst.node_graph
   in
   let Cnode {alloc = infer_alloc; reset = infer_reset;
              copy = infer_copy; step = infer_step;} =
@@ -638,19 +613,8 @@ let infer_ess_resample n threshold (Cnode { alloc; reset; copy; step; }) =
     distribution_of_expr prob (step state.node_state (prob, x))
   in
   let copy src dst =
-    if src == dst then ()
-    else begin
-      copy src.node_state dst.node_state;
-      Gnodes.copy src.node_graph dst.node_graph
-      (* dst.node_graph <- Gnodes.create 11;
-         let tbl = Hashtbl.create 11 in
-         Gnodes.iter
-         (fun x y ->
-           Gnodes.add dst.node_graph
-             x
-             (Obj.repr (Infer_ds_ll_gc.copy_node' tbl (Obj.obj y))))
-         src.node_graph *)
-    end
+    copy src.node_state dst.node_state;
+    Gnodes.copy src.node_graph dst.node_graph
   in
   let Cnode {alloc = infer_alloc; reset = infer_reset;
              copy = infer_copy; step = infer_step;} =
@@ -680,18 +644,7 @@ let infer_bounded n (Cnode { alloc; reset; copy; step; }) =
     eval' prob (step state.node_state (prob, x))
   in
   let copy src dst =
-    if src == dst then ()
-    else begin
-      copy src.node_state dst.node_state;
-      Gnodes.copy src.node_graph dst.node_graph
-      (* dst.node_graph <- Gnodes.create 11;
-         let tbl = Hashtbl.create 11 in
-         Gnodes.iter
-         (fun x y ->
-           Gnodes.add dst.node_graph
-             x
-             (Obj.repr (Infer_ds_ll_gc.copy_node' tbl (Obj.obj y))))
-         src.node_graph *)
-    end
+    copy src.node_state dst.node_state;
+    Gnodes.copy src.node_graph dst.node_graph
   in
   Infer_pf.infer n (Cnode { alloc; reset; copy; step; })
