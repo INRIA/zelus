@@ -6,62 +6,163 @@ open Ds_distribution
 type 'a random_var = { rv_id : int; }
 type ('a, 'b) ds_node = ('a, 'b) Infer_ds_ll_gc.ds_node
 
-
-
 module Gnodes = struct
   module E = Ephemeron.K1
 
-  module M = Map.Make(struct
+  module M = Hashtbl.Make(struct
       type t = int
-      let compare (x:int) (y:int) = compare x y
+      let equal (x: int) (y: int) = (x = y)
+      let hash (x: int) = Hashtbl.hash x
+      (* let compare (x:int) (y:int) = compare x y *)
     end)
 
-  type t = (Obj.t random_var, (Obj.t, Obj.t) ds_node) E.t  M.t ref
+  (* type t = (Obj.t random_var, (Obj.t, Obj.t) ds_node) E.t  M.t ref *)
+  type ephemeron = (Obj.t random_var, unit) E.t
+  type t = 
+    { live_nodes : (ephemeron * (Obj.t, Obj.t) ds_node) M.t;
+      mutable ephemeron_pool: ephemeron list; }
 
-  let create _ = ref M.empty
+  let create _ = 
+    { live_nodes = M.create 11;
+      ephemeron_pool = []; }
+
+  let new_ephemeron g = 
+    begin match g.ephemeron_pool with
+      | [] ->  E.create () 
+      | e::p -> g.ephemeron_pool <- p; e
+    end
 
   let add: type a p.
     t -> a random_var -> (p, a) ds_node -> unit = 
     fun g x y ->
-      let e = E.create () in
+      let e = new_ephemeron g in
       E.set_key e (Obj.magic x: Obj.t random_var);
-      E.set_data e (Obj.magic y: (Obj.t, Obj.t) ds_node);
-      g := M.add x.rv_id e !g
+      (* E.set_data e (Obj.magic y: (Obj.t, Obj.t) ds_node); *)
+      let n =  (Obj.magic y: (Obj.t, Obj.t) ds_node) in
+      M.add g.live_nodes x.rv_id (e, n)
 
   let find_opt: type a p. 
     t -> a random_var -> (p, a) ds_node option =  
     fun g x ->
-      begin match M.find_opt (Obj.magic x: Obj.t random_var).rv_id !g with
+      let k = (Obj.magic x: Obj.t random_var).rv_id in
+      begin match M.find_opt g.live_nodes k with
         | None -> None
-        | Some e -> begin match E.get_data e with
-            | None -> None
-            | Some o -> Some (Obj.magic o: (p, a) ds_node)          
-          end
+        | Some (e, n) -> Some (Obj.magic n: (p, a) ds_node)          
       end
 
   let clear: t -> unit = 
-    fun g -> g := M.empty
+    fun g -> 
+      g.ephemeron_pool <- 
+        M.fold 
+          (fun _ (e, _) acc -> E.unset_key e; e::acc) 
+          g.live_nodes 
+          g.ephemeron_pool;
+      M.clear g.live_nodes
 
   let clean: t -> unit =
     fun g ->
-      g := M.filter (fun _ e -> E.check_key e) !g
+      M.filter_map_inplace
+        (fun _ (e, n) -> 
+           let b = E.check_key e in
+           if not b then begin 
+             g.ephemeron_pool <- e::g.ephemeron_pool; 
+             None
+           end
+           else Some (e, n)) 
+        g.live_nodes
 
   let copy: t -> t -> unit =
     fun src dst ->
       let tbl = Hashtbl.create 11 in
       clean src;
-      dst := M.map (fun e -> 
-          let e' = E.create () in
-          begin match E.get_key e, E.get_data e with
-            | Some x, Some d -> 
-                let d' = Infer_ds_ll_gc.copy_node tbl d in
-                E.set_key e' x; 
-                E.set_data e' d'
+      clear dst;
+      M.iter (fun k (e, n) ->      
+          let e' = new_ephemeron dst in
+          begin match E.get_key e with
+            | Some x ->  E.set_key e' x; 
             | _ -> ()
           end; 
-          e')
-          !src
+          let n' = Infer_ds_ll_gc.copy_node tbl n in  
+          M.add dst.live_nodes k (e', n'))
+        src.live_nodes
 end
+
+
+(* module Gnodes = struct
+   module E = Ephemeron.K1
+
+   module M = Map.Make(struct
+      type t = int
+      let compare (x:int) (y:int) = compare x y
+    end)
+
+   (* type t = (Obj.t random_var, (Obj.t, Obj.t) ds_node) E.t  M.t ref *)
+   type ephemeron = (Obj.t random_var, unit) E.t
+   type t = 
+    { mutable live_nodes : (ephemeron * (Obj.t, Obj.t) ds_node) M.t;
+      mutable ephemeron_pool: ephemeron list; }
+
+   let create _ = 
+    { live_nodes = M.empty;
+      ephemeron_pool = []; }
+
+   let new_ephemeron g = 
+    begin match g.ephemeron_pool with
+      | [] ->  E.create () 
+      | e::p -> g.ephemeron_pool <- p; e
+    end
+
+   let add: type a p.
+    t -> a random_var -> (p, a) ds_node -> unit = 
+    fun g x y ->
+      let e = new_ephemeron g in
+      E.set_key e (Obj.magic x: Obj.t random_var);
+      (* E.set_data e (Obj.magic y: (Obj.t, Obj.t) ds_node); *)
+      let n =  (Obj.magic y: (Obj.t, Obj.t) ds_node) in
+      g.live_nodes <- M.add x.rv_id (e, n) g.live_nodes
+
+   let find_opt: type a p. 
+    t -> a random_var -> (p, a) ds_node option =  
+    fun g x ->
+      let k = (Obj.magic x: Obj.t random_var).rv_id in
+      begin match M.find_opt k g.live_nodes with
+        | None -> None
+        | Some (e, n) -> Some (Obj.magic n: (p, a) ds_node)          
+      end
+
+   let clear: t -> unit = 
+    fun g -> 
+      g.ephemeron_pool <- 
+        M.fold 
+          (fun _ (e, _) acc -> E.unset_key e; e::acc) 
+          g.live_nodes 
+          g.ephemeron_pool;
+      g.live_nodes <- M.empty
+
+   let clean: t -> unit =
+    fun g ->
+      g.live_nodes <- M.filter 
+          (fun _ (e, _) -> 
+             let b = E.check_key e in
+             if not b then g.ephemeron_pool <- e::g.ephemeron_pool; 
+             b) 
+          g.live_nodes
+
+   let copy: t -> t -> unit =
+    fun src dst ->
+      let tbl = Hashtbl.create 11 in
+      clean src;
+      clear dst;
+      dst.live_nodes <- M.map (fun (e, n) ->      
+          let e' = new_ephemeron dst in
+          begin match E.get_key e with
+            | Some x ->  E.set_key e' x; 
+            | _ -> ()
+          end; 
+          let n' = Infer_ds_ll_gc.copy_node tbl n in  
+          (e', n'))
+          src.live_nodes
+   end *)
 
 (* module Gnodes = Ephemeron.K1.Make(struct
    (* module Gnodes = Hashtbl.Make(struct *)
