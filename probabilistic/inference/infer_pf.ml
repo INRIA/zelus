@@ -85,8 +85,11 @@ let infer_subresample n (Cnode { alloc; reset; copy; step }) =
           value)
         states
     in
-    let ret = Normalize.normalize_nohist values scores in
-    if c then Normalize.resample copy (states, scores, values);
+    let probabilities, ret = Normalize.normalize_nohist values scores in
+    if c then begin
+      Normalize.resample copy n probabilities states;
+      Array.fill scores 0 n 0.0
+    end;
     ret
   in
   let copy src dst =
@@ -130,9 +133,11 @@ let infer_ess_resample n threshold (Cnode { alloc; reset; copy; step }) =
           value)
         states
     in
-    let ret = Normalize.normalize_nohist values scores in
-    if (do_resampling scores) then
-      Normalize.resample copy (states, scores, values);
+    let probabilities, ret = Normalize.normalize_nohist values scores in
+    if (do_resampling scores) then begin
+      Normalize.resample copy n probabilities states;
+      Array.fill scores 0 n 0.0
+    end;
     ret
   in
   let copy src dst =
@@ -194,11 +199,19 @@ let plan_step n k model_step model_copy =
             in
             scores.(i) <- eu)
           states;
-        let scores' = Array.copy scores in
-        Normalize.resample model_copy (states, scores, scores');
-        expectation scores'
+        (* let norm = Normalize.log_sum_exp scores in *)
+        (* let probabilities = Array.map (fun score -> exp (score -. norm)) scores in *)
+        (* let scores' = Array.copy scores in *)
+        (* Normalize.resample model_copy n probabilities states; *)
+        (* Array.fill scores 0 n 0.0; *)
+        (* expectation scores' *)
+        expectation scores
       in
       score +. score'
+  in
+  let state_value_copy (src_st, src_val) (dst_st, dst_val) =
+    model_copy src_st dst_st;
+    dst_val := !src_val
   in
   let step { infer_states = states; infer_scores = scores; } input =
     let values =
@@ -210,12 +223,15 @@ let plan_step n k model_step model_copy =
           value)
         states
     in
-    let states_scores_values =
-      Array.mapi (fun i state -> (state, scores.(i), values.(i))) states
+    let states_values =
+      Array.mapi (fun i state -> (state, ref values.(i))) states
     in
-    Normalize.resample model_copy (states, scores, states_scores_values);
+    let norm = Normalize.log_sum_exp scores in
+    let probabilities = Array.map (fun score -> exp (score -. norm)) scores in
+    Normalize.resample state_value_copy n probabilities states_values;
+    Array.fill scores 0 n 0.0;
     Hashtbl.clear table;
-    states_scores_values
+    states_values
   in
   step
 
@@ -229,13 +245,13 @@ let plan n k (Cnode model : (pstate * 't1, 't2) Ztypes.cnode) =
   let step plan_state input =
     let states = Array.init n (fun _ -> Normalize.copy !plan_state) in
     let scores = Array.make n 0.0 in
-    let states_scores_values =
+    let states_values =
       step_body { infer_states = states; infer_scores = scores; } input
     in
-    let dist = Normalize.normalize states_scores_values in
-    let state', _, value = Distribution.draw dist in
+    let dist = Normalize.normalize states_values in
+    let state', value = Distribution.draw dist in
     plan_state := state';
-    value
+    !value
   in
   Cnode { alloc = alloc; reset = reset; copy = copy; step = step }
 
@@ -260,13 +276,13 @@ let infer_depth n k (Cnode model) =
     done
   in
   let step infd_state input =
-    let states_scores_values =
+    let states_values =
       plan_step n k
         model.step model.copy
         { infer_states = infd_state.infd_states;
           infer_scores = infd_state.infd_scores; } input
     in
-    let values = Array.map (fun (_, _, v) -> v) states_scores_values in
+    let values = Array.map (fun (_, v) -> !v) states_values in
     Normalize.normalize values
   in
   Cnode { alloc = alloc; reset = reset; copy = copy; step = step }

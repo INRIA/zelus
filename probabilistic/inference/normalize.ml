@@ -41,37 +41,55 @@ let normalize values =
 
 let normalize_nohist values scores =
   let norm = log_sum_exp scores in
-  let scores' = Array.map (fun score -> exp (score -. norm)) scores in
-  Distribution.Dist_support
-    (Array.to_list (Array.map2 (fun value score -> (value, score)) values scores'))
-;;
+  let probabilities = Array.map (fun score -> exp (score -. norm)) scores in
+  (probabilities,
+   Distribution.Dist_support
+     (Array.to_list (Array.map2 (fun value prob -> (value, prob)) values probabilities)))
 
-(** [resample scores]
-*)
-let resample copy (states, scores, values) =
-  let size = Array.length states in
-  let states_values = Array.make size (states.(0), values.(0)) in
-  let probabilities = Array.create_float size in
-  let norm =
-    let sum = ref 0. in
-    Array.iteri
-      (fun i score ->
-         let w = max (exp score) epsilon_float in
-         probabilities.(i) <- w;
-         states_values.(i) <- (states.(i), values.(i));
-         sum := !sum +. w)
-      scores;
-    !sum
+(** [resample copy size probabilities states] resample the array of
+    states [states] of length [size] according the probabilities distribution
+    [probabilities]. The states are copied using the [copy] function.
+ *)
+
+let resample copy size probabilities states =
+  let states_idx = Array.init size (fun i -> i) in
+  let dist = Distribution.alias_method_unsafe states_idx probabilities in
+  let mapping = Array.make size 0 in
+  for _ = 1 to size do
+    let i = Distribution.draw dist in
+    mapping.(i) <- mapping.(i) + 1
+  done;
+  let _, to_remove, to_add =
+    Array.fold_left
+      (fun (i, to_remove, to_add) n ->
+         begin match n with
+         | 1 -> (i + 1, to_remove, to_add)
+         | 0 ->
+             begin match to_add with
+             | [] -> (i + 1, i :: to_remove, to_add)
+             | (j, 1) :: to_add ->
+                 copy states.(j) states.(i);
+                 (i + 1, to_remove, to_add)
+             | (j, n) :: to_add ->
+                 assert (n > 1);
+                 copy states.(j) states.(i);
+                 (i + 1, to_remove, (j, n - 1) :: to_add)
+             end
+         | n ->
+             assert (n > 1);
+             let rec fill n to_remove =
+               begin match n, to_remove with
+               | 0, _ -> (to_remove, to_add)
+               | _, [] -> ([], (i, n) :: to_add)
+               | _, j :: to_remove ->
+                   copy states.(i) states.(j);
+                   fill (n - 1) to_remove
+               end
+             in
+             let to_remove, to_add = fill (n - 1) to_remove in
+             (i + 1, to_remove, to_add)
+         end)
+      (0, [], []) mapping
   in
-  Array.iteri (fun i w -> probabilities.(i) <- w /. norm) probabilities;
-  let dist = Distribution.alias_method_unsafe states_values probabilities in
-  Array.iteri
-    (fun i _ ->
-       let state, value = Distribution.draw dist in
-       if state == states.(i) then ()
-       else begin
-         copy state states.(i);
-         values.(i) <- value
-       end;
-       scores.(i) <- 0.)
-    states
+  assert (to_remove = [] && to_add = []);
+  ()
