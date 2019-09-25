@@ -3,7 +3,7 @@ ZLLIB=$(shell $(ZELUC) -where)
 
 OCAMLDEP=ocamldep
 OCAMLC=ocamlc -g
-OCAMLOPT=ocamlopt
+OCAMLOPT=ocamlopt -noassert
 
 ML_SRC=misc_lib.ml \
 	distribution.ml \
