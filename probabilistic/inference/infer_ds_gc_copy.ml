@@ -74,7 +74,7 @@ type ('a, 'b) ds_node = ('a, 'b) Infer_ds_ll_gc.ds_node
 (*   let copy: t -> t -> unit = *)
 (*     fun src dst -> *)
 (*       let tbl = Hashtbl.create 11 in *)
-(*       clean src; *)
+(*       (\* clean src; *\) *)
 (*       clear dst; *)
 (*       M.iter (fun k (e, n) -> *)
 (*           let e' = new_ephemeron dst in *)
@@ -140,18 +140,18 @@ module Gnodes = struct
       g.live_nodes <- M.empty
 
    let clean: t -> unit =
-    fun g ->
-      g.live_nodes <- M.filter
-          (fun _ (e, _) ->
-             let b = E.check_key e in
-             if not b then g.ephemeron_pool <- e::g.ephemeron_pool;
-             b)
-          g.live_nodes
+     fun g ->
+     g.live_nodes <- M.filter
+         (fun _ (e, _) ->
+            let b = E.check_key e in
+            if not b then g.ephemeron_pool <- e::g.ephemeron_pool;
+            b)
+         g.live_nodes
 
    let copy: t -> t -> unit =
     fun src dst ->
       let tbl = Hashtbl.create 11 in
-      clean src;
+      (* clean src; *)
       clear dst;
       dst.live_nodes <- M.map (fun (e, n) ->
           let e' = new_ephemeron dst in
@@ -164,12 +164,49 @@ module Gnodes = struct
           src.live_nodes
  end
 
-(* module Gnodes = Ephemeron.K1.Make(struct
-   (* module Gnodes = Hashtbl.Make(struct *)
-    type t = Obj.t (* random_var *)
-    let equal x y = (Obj.obj x).rv_id = (Obj.obj y).rv_id
-    let hash x = Hashtbl.hash (Obj.obj x).rv_id
-   end) *)
+(* module Gnodes = struct *)
+(*    module E = Ephemeron.K1 *)
+
+(*    module H = Ephemeron.K1.Make(struct *)
+(*        (\* module Gnodes = Hashtbl.Make(struct *\) *)
+(*        type t = Obj.t random_var (\* random_var *\) *)
+(*        let equal x y = x.rv_id = y.rv_id *)
+(*        let hash x = Hashtbl.hash x.rv_id *)
+(*      end) *)
+
+(*    type t = (Obj.t, Obj.t) ds_node H.t *)
+
+(*    let create n = H.create n *)
+
+(*    let add: type a p. *)
+(*      t -> a random_var -> (p, a) ds_node -> unit = *)
+(*      fun g x y -> *)
+(*      let n = (Obj.magic y: (Obj.t, Obj.t) ds_node) in *)
+(*      H.add g (Obj.magic x: Obj.t random_var) n *)
+
+(*    let find_opt: type a p. *)
+(*     t -> a random_var -> (p, a) ds_node option = *)
+(*     fun g x -> *)
+(*       let k = (Obj.magic x: Obj.t random_var) in *)
+(*       begin match H.find_opt g k with *)
+(*         | None -> None *)
+(*         | Some n -> Some (Obj.magic n: (p, a) ds_node) *)
+(*       end *)
+
+(*    let clear: t -> unit = H.clear *)
+
+(*    let clean: t -> unit = H.clean *)
+
+(*    let copy: t -> t -> unit = *)
+(*     fun src dst -> *)
+(*       let tbl = Hashtbl.create 11 in *)
+(*       (\* clean src; *\) *)
+(*       clear dst; *)
+(*       H.iter *)
+(*         (fun k n -> H.add dst k (Infer_ds_ll_gc.copy_node tbl n)) *)
+(*         src *)
+(*  end *)
+
 
 type pstate =
   { pf_state: Infer_ds_ll_gc.pstate;
@@ -579,7 +616,9 @@ let infer n (Cnode { alloc; reset; copy; step; }) =
       { pf_state = pf_prob;
         ds_graph = state.node_graph; }
     in
-    distribution_of_expr prob (step state.node_state (prob, x))
+    let d = distribution_of_expr prob (step state.node_state (prob, x)) in
+    Gnodes.clean state.node_graph;
+    d
   in
   let copy src dst =
     copy src.node_state dst.node_state;
@@ -610,7 +649,9 @@ let infer_ess_resample n threshold (Cnode { alloc; reset; copy; step; }) =
       { pf_state = pf_prob;
         ds_graph = state.node_graph; }
     in
-    distribution_of_expr prob (step state.node_state (prob, x))
+    let d = distribution_of_expr prob (step state.node_state (prob, x)) in
+    Gnodes.clean state.node_graph;
+    d
   in
   let copy src dst =
     copy src.node_state dst.node_state;
@@ -641,7 +682,9 @@ let infer_bounded n (Cnode { alloc; reset; copy; step; }) =
       { pf_state = pf_prob;
         ds_graph = state.node_graph; }
     in
-    eval' prob (step state.node_state (prob, x))
+    let v = eval' prob (step state.node_state (prob, x)) in
+    Gnodes.clean state.node_graph;
+    v
   in
   let copy src dst =
     copy src.node_state dst.node_state;
