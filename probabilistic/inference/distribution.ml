@@ -120,7 +120,7 @@ let draw_and_score : type a. a t -> a * log_proba =
   end
 
 
-(** {2 Opreations on distributions} *)
+(** {2 Operations on distributions} *)
 
 (** [of_list dists] builds a distribution of list from a
     list of distributions.
@@ -393,6 +393,39 @@ let mean_list (type a) : (a -> float) -> a list t -> float list =
         let ls = split_list d in
         List.map (fun l -> mean meanfn l) ls
     end
+
+
+(** [mean_bool d] computes the mean of a [bool Distribution.t]. *)
+let rec mean_bool (d: bool t) =
+  begin match d with
+  | Dist_sampler (draw, _) ->
+    let n = 100000 in
+    let acc = ref 0 in
+    for i = 1 to n do
+      if draw () then acc := !acc + 1 done;
+    float !acc /. float n
+  | Dist_support sup ->
+    List.fold_left (fun acc (v, w) -> if v then acc +. w else acc) 0. sup
+  | Dist_mixture l ->
+    List.fold_left (fun acc (d, w) -> acc +. w *. mean_bool d) 0. l
+  end
+
+(** [mean_signal_present d] computes the mean of the presence of ['a signal Distribution.t]. *)
+let rec mean_signal_present (d: (_ * bool) t) =
+  begin match d with
+  | Dist_sampler (draw, _) ->
+    let n = 100000 in
+    let acc = ref 0 in
+    for i = 1 to n do
+      if snd (draw ()) then acc := !acc + 1 done;
+    float !acc /. float n
+  | Dist_support sup ->
+    List.fold_left (fun acc ((_, b), w) -> if b then acc +. w else acc) 0. sup
+  | Dist_mixture l ->
+    List.fold_left (fun acc (d, w) -> acc +. w *. mean_signal_present d) 0. l
+  | Dist_pair _ -> assert false
+  end
+
 
 
 (** {2 Distributions} *)
