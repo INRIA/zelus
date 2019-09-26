@@ -1,0 +1,79 @@
+open Infer_ds
+
+type direction = Left | Right
+
+let max_pos = Array_misc.max_pos
+let mt_prior = log 0.5
+let mf_prior = log 0.5
+let macc_likelihood = log 0.9
+let minacc_likelihood = log 0.1
+
+let proba move (x_init, cmd) = x where
+  rec init x = x_init
+  and match cmd with
+      | Right ->
+          do x = min max_pos (if eval wheel_slip then last x else last x + 1) done
+      | Left ->
+          do x = max 0 (if eval wheel_slip then last x else last x - 1) done
+      end
+  and wheel_slip = sample (bernoulli (const 0.1))
+
+
+let proba read (obs) = o where
+  rec error = sample (bernoulli (const 0.1))
+  and o = if eval error then obs else not obs
+
+let proba beta_priors i = sample (beta (1., 1.))
+
+let proba slam (obs, cmd) = pair (const map, const x) where
+  rec init map = Array_misc.ini (max_pos + 1) beta_priors
+  and x = move (0, cmd)
+  and o = Array_misc.get map x
+  and () = observe (bernoulli o, read(obs))
+
+let node slam_ctrl (event, pos_dist) = dir where
+  rec x = Distribution.draw pos_dist
+  and match event with
+      | 1 -> do dir = Right done
+      | -1 -> do dir = Left done
+      | _ -> do automaton
+        | Incr ->
+            do dir = Right
+            unless (x = max_pos) then Decr
+        | Decr ->
+            do dir = Left
+            unless (x = 0) then Incr
+        end done
+      end
+
+let node slam_obs real_map dir = (obs, x) where
+  rec init x = 0
+  and match dir with
+      | Right ->
+          do x = min max_pos (if wheel_slip then last x else last x + 1) done
+      | Left ->
+          do x = max 0 (if wheel_slip then last x else last x - 1) done
+      end
+  and wheel_slip = Distribution.draw (Distribution.bernoulli 0.1)
+  and sensor_error = Distribution.draw (Distribution.bernoulli 0.1)
+  and b = Array_misc.get real_map x
+  and obs = if sensor_error then not b else b
+
+let random_init = Random.self_init ()
+
+let real_map =
+  (* Array_misc.of_list *)
+  (*   [ true; false; *)
+  (*     true; false; *)
+  (*     true; false; *)
+  (*     true; false; *)
+  (*     true; false; true ] *)
+  Array_misc.random (max_pos + 1) 0.6
+
+let node main () =
+  let rec map_dist, pos_dist = Distribution.split (infer 1000 slam (obs, dir))
+  and dir = Right -> (slam_ctrl (event, (Distribution.Dist_support []) fby pos_dist))
+  and (obs, real_x) = slam_obs real_map dir
+  and event = Array_misc.input ()
+  in ()
+  (* Array_misc.output real_map real_x obs map_dist pos_dist *)
