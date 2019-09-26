@@ -16,6 +16,7 @@ type _ expr_tree =
   | Emult : float expr * float expr -> float expr_tree
   | Eapp : ('a -> 'b) expr * 'a expr -> 'b expr_tree
   | Epair : 'a expr * 'b expr -> ('a * 'b) expr_tree
+  | Earray : 'a expr array -> 'a array expr_tree
 and 'a expr = {
   mutable value : 'a expr_tree;
 }
@@ -59,6 +60,9 @@ let ( @@~ ) f e = app (f, e)
 let pair (e1, e2) =
   { value = Epair (e1, e2) }
 
+let array a =
+  { value = Earray a }
+
 let rec eval : type t. t expr -> t =
   begin fun e ->
     begin match e.value with
@@ -83,6 +87,8 @@ let rec eval : type t. t expr -> t =
           let v = (eval e1, eval e2) in
           e.value <- Econst v;
           v
+      | Earray a ->
+          Array.map eval a
     end
   end
 
@@ -268,6 +274,7 @@ type _ expr_dist =
   | EDmult : float expr_dist * float expr_dist -> float expr_dist
   | EDapp : ('a -> 'b) expr_dist * 'a expr_dist -> 'b expr_dist
   | EDpair : 'a expr_dist * 'b expr_dist -> ('a * 'b) expr_dist
+  | EDarray : 'a expr_dist array -> 'a array expr_dist
 
 
 let rec expr_dist_of_expr : type a. a expr -> a expr_dist =
@@ -279,6 +286,7 @@ let rec expr_dist_of_expr : type a. a expr -> a expr_dist =
       | Emult (e1, e2) -> EDmult(expr_dist_of_expr e1, expr_dist_of_expr e2)
       | Eapp (e1, e2) -> EDapp(expr_dist_of_expr e1, expr_dist_of_expr e2)
       | Epair (e1, e2) -> EDpair(expr_dist_of_expr e1, expr_dist_of_expr e2)
+      | Earray a -> EDarray (Array.map expr_dist_of_expr a)
     end
 
 let rec distribution_of_expr_dist : type a. a expr_dist -> a Distribution.t =
@@ -291,6 +299,7 @@ let rec distribution_of_expr_dist : type a. a expr_dist -> a Distribution.t =
         | EDmult (ed1, ed2) -> draw ed1 *. draw ed2
         | EDapp (ed1, ed2) -> (draw ed1) (draw ed2)
         | EDpair (ed1, ed2) -> (draw ed1, draw ed2)
+        | EDarray a -> Array.map (fun ed -> draw ed) a
       end
   in
   let rec score : type a. a expr_dist * a -> float =
@@ -309,6 +318,17 @@ let rec distribution_of_expr_dist : type a. a expr_dist -> a Distribution.t =
             (* XXX TO CHECK XXX *)
             let v1, v2 = v in
             score (ed1, v1) +. score (ed2, v2)
+        | EDarray a ->
+            (* XXX TO CHECK XXX *)
+            let len = Array.length a in
+            if Array.length v = len then
+              let acc = ref 0. in
+              for i = 0 to len - 1 do
+                acc := !acc +. score (a.(i), v.(i))
+              done;
+              !acc
+            else
+              log 0.
       end
   in
   fun exprd ->
