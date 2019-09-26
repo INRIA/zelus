@@ -29,36 +29,21 @@ open Infer_pf
 
 (** Parallel *)
 
-(* let node accuracy (f, p) = *)
-(*   Util.run_cmd_half (f ^ " " ^ string_of_float p) *)
-
-(* let proba tune model p_dist = p where *)
-(*   rec automaton *)
-(*       | Compute -> local sigma in *)
-(*           do (_, sigma)= Distribution.stats_float p_dist *)
-(*           and p = abs_float (sample (Distribution.gaussian (last p, sigma))) *)
-(*           and s = accuracy(model, p) *)
-(*           until s(acc) then Move(acc) *)
-(*       | Move(acc) -> *)
-(*           do () = factor(10. *. log acc) *)
-(*           then Compute *)
-(*   and init p = sample(p_dist) *)
-
-(* let node every_3 () = b where *)
-(*   rec cpt = 0 fby (cpt + 1) mod 3 *)
-(*   and b = cpt = 2 *)
-
-(* let node main () = () where *)
-(*   rec init p_dist = Distribution.uniform_float (0., 0.05) *)
-(*   and p_dist = infer_subresample 10 *)
-(*       (tune "python simple_model.py --gamma") (every_3 (), last p_dist) *)
-(*   and () = print_float (Distribution.mean_float p_dist); print_newline () *)
-
-
-(** Parallel with signals *)
+let node run_cmd cmd = o where
+  rec automaton
+      | Launch -> local ch in
+          do ch = Util.open_process_in cmd
+          and () = print_endline ("Launch: "^cmd)
+          then Wait(ch)
+      | Wait(ch) ->
+          local v in
+          do v = input_line ch
+          and emit o = float_of_string v
+          and () = print_endline ("Result: "^v^" ("^cmd^")")
+          then do () = close_in ch in Launch
 
 let node accuracy (f, p) =
-  Util.run_cmd_half (f ^ " " ^ string_of_float p)
+  run_cmd (f ^ " " ^ string_of_float p)
 
 let proba tune model (prior, s_dist) = o where
   rec automaton
