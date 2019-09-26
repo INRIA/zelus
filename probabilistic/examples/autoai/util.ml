@@ -42,7 +42,7 @@ type state = { mutable ch : in_channel option }
 (*   in *)
 (*   Cnode { alloc; reset; copy; step } *)
 
-let run_cmd_half cmd =
+let run_cmd_half =
   let alloc () = { ch = None } in
   let reset state =
     oiter close_in state.ch;
@@ -55,7 +55,9 @@ let run_cmd_half cmd =
         (4012., false)
     | Some ch ->
         let x = float_of_string (input_line ch) in
+        Format.printf "XXXXXXXXXXX %s accuracy = %f@." cmd x;
         close_in ch;
+        state.ch <- None;
         (x, true)
     end
   in
