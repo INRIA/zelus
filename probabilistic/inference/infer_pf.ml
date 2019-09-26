@@ -134,7 +134,7 @@ let infer_ess_resample n threshold (Cnode { alloc; reset; copy; step }) =
         states
     in
     let probabilities, ret = Normalize.normalize_nohist values scores in
-    if (do_resampling scores) then begin
+    if do_resampling scores then begin
       Normalize.resample copy n probabilities states;
       Array.fill scores 0 n 0.0
     end;

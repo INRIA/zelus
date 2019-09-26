@@ -410,7 +410,8 @@ let rec mean_bool (d: bool t) =
     List.fold_left (fun acc (d, w) -> acc +. w *. mean_bool d) 0. l
   end
 
-(** [mean_signal_present d] computes the mean of the presence of ['a signal Distribution.t]. *)
+(** [mean_signal_present d] computes the mean of the presence of ['a
+    signal Distribution.t]. *)
 let rec mean_signal_present (d: (_ * bool) t) =
   begin match d with
   | Dist_sampler (draw, _) ->
@@ -426,6 +427,51 @@ let rec mean_signal_present (d: (_ * bool) t) =
   | Dist_pair _ -> assert false
   end
 
+(** [to_signal d] turns a distribution of signals into a signal that
+    containts the distribution of present values. *)
+let rec to_signal (d: ('a * bool) t) : 'a t * bool =
+  begin match d with
+  | Dist_sampler (draw, score) ->
+      let rec sample n =
+        begin match draw () with
+          | (v, true) -> v
+          | (v, false) -> sample ()
+        end
+      in
+      let rec pres n =
+        if n <= 0 then false
+        else
+          begin match draw () with
+            | (v, true) -> true
+            | (v, false) -> pres (n - 1)
+          end
+      in
+      (Dist_sampler((fun () -> sample ()), (fun x -> score (x, true))),
+       pres 10000)
+  | Dist_support sup ->
+      let pres, norm, sup =
+        List.fold_left
+          (fun (pres, sum, sup) ((v, b), w) ->
+             if b then
+               (true, sum +. w, (v, w) :: sup)
+             else
+               (pres, sum, sup))
+          (false, 0., []) sup
+      in
+      (Dist_support (List.map (fun (v, w) -> (v, w /. norm)) sup), pres)
+  | Dist_mixture l ->
+      let pres, norm, l =
+        List.fold_left
+          (fun (pres, sum, l) (d, w) ->
+             begin match to_signal d with
+             | d', true -> true, sum +. w, (d', w) :: l
+             | _, false -> pres, sum, l
+             end)
+          (false, 0., []) l
+      in
+      (Dist_mixture l, pres)
+  | Dist_pair _ -> assert false
+  end
 
 
 (** {2 Distributions} *)
