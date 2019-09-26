@@ -37,10 +37,10 @@ let node run_cmd cmd = o where
           then Wait(ch)
       | Wait(ch) ->
           local v in
-          do v = input_line ch
+          do v = let v = input_line ch in close_in ch; v
           and emit o = float_of_string v
           and () = print_endline ("Result: "^v^" ("^cmd^")")
-          then do () = close_in ch in Launch
+          then Launch
 
 let node accuracy (f, p) =
   run_cmd (f ^ " " ^ string_of_float p)
