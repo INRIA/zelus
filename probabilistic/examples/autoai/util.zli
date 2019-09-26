@@ -1,2 +1,3 @@
 val run_cmd : string -AD-> float
 val run_cmd_half : string -D-> float signal
+val open_process_in : string -> in_channel

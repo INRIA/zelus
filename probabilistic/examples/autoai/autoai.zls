@@ -10,20 +10,24 @@ open Infer_pf
 (*   and sigma = 0.001 *)
 (*   and () = factor(10. *. log s) *)
 
-let node accuracy (f, p) =
-  Util.run_cmd (f ^ " " ^ string_of_float p)
+(** Sequential *)
 
-let proba tune model p_dist = p where
-  rec s = accuracy(model, p)
-  and (_, sigma)= Distribution.stats_float p_dist
-  and p = abs_float (sample (p_dist -> Distribution.gaussian (pre p, sigma)))
-  and () = factor(10. *. log s)
+(* let node accuracy (f, p) = *)
+(*   Util.run_cmd (f ^ " " ^ string_of_float p) *)
 
-let node main () = () where
-  rec init p_dist = Distribution.uniform_float (0., 0.05)
-  and p_dist = infer 10 (tune "python simple_model.py --gamma") (last p_dist)
-  and () = print_float (Distribution.mean_float p_dist); print_newline ()
+(* let proba tune model p_dist = p where *)
+(*   rec s = accuracy(model, p) *)
+(*   and (_, sigma)= Distribution.stats_float p_dist *)
+(*   and p = abs_float (sample (p_dist -> Distribution.gaussian (pre p, sigma))) *)
+(*   and () = factor(10. *. log s) *)
 
+(* let node main () = () where *)
+(*   rec init p_dist = Distribution.uniform_float (0., 0.05) *)
+(*   and p_dist = infer 10 (tune "python simple_model.py --gamma") (last p_dist) *)
+(*   and () = print_float (Distribution.mean_float p_dist); print_newline () *)
+
+
+(** Parallel *)
 
 (* let node accuracy (f, p) = *)
 (*   Util.run_cmd_half (f ^ " " ^ string_of_float p) *)
@@ -49,3 +53,43 @@ let node main () = () where
 (*   and p_dist = infer_subresample 10 *)
 (*       (tune "python simple_model.py --gamma") (every_3 (), last p_dist) *)
 (*   and () = print_float (Distribution.mean_float p_dist); print_newline () *)
+
+
+(** Parallel with signals *)
+
+let node accuracy (f, p) =
+  Util.run_cmd_half (f ^ " " ^ string_of_float p)
+
+let proba tune model (prior, s_dist) = o where
+  rec automaton
+      | Compute(sigma) ->
+          do  p = abs_float (sample (Distribution.gaussian (last p, sigma)))
+          and s = accuracy(model, p)
+          until s(acc) then Factor(acc)
+      | Factor(acc) ->
+          do () = factor(10. *. log acc)
+          then do emit o = p in Wait
+      | Wait ->
+          do until s_dist(p_dist)
+          then Compute(snd (Distribution.stats_float p_dist))
+      init Compute(snd (Distribution.stats_float prior))
+  and init p = sample(prior)
+
+
+let node absent v = s where
+  rec automaton
+      | Forever -> do until (false) then Never
+      | Never -> do emit s = v done
+
+
+let node main () = () where
+  rec init prior = Distribution.uniform_float (0., 0.05)
+  and dist = infer_subresample 10
+      (tune "python simple_model.py --gamma")
+      (false -> pre? s_dist, (prior, absent prior -> pre s_dist))
+  and s_dist = Distribution.to_signal dist
+  and present s_dist(d) ->
+        do () = print_float (Distribution.mean_float prior); print_newline ()
+        done
+      else do () = print_endline "--------------" done
+

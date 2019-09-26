@@ -51,11 +51,12 @@ let run_cmd_half =
   let step state cmd =
     begin match state.ch with
     | None ->
+        Format.printf "XXXXXXXXXXX %s@." cmd;
         state.ch <- Some (Unix.open_process_in cmd);
         (4012., false)
     | Some ch ->
         let x = float_of_string (input_line ch) in
-        Format.printf "XXXXXXXXXXX %s accuracy = %f@." cmd x;
+        Format.printf "XXXXXXXXXXX accuracy = %f (%s)@." x cmd;
         close_in ch;
         state.ch <- None;
         (x, true)
@@ -68,3 +69,5 @@ let run_cmd_half =
     end
   in
   Cnode { alloc; reset; copy; step }
+
+let open_process_in = Unix.open_process_in
