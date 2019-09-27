@@ -1,4 +1,5 @@
-open Infer_ds_gc
+open Distribution
+open Infer_pf
 
 type direction = Left | Right
 
@@ -12,20 +13,20 @@ let proba move (x_init, cmd) = x where
   rec init x = x_init
   and match cmd with
       | Right ->
-          do x = min max_pos (if eval wheel_slip then last x else last x + 1) done
+          do x = min max_pos (if wheel_slip then last x else last x + 1) done
       | Left ->
-          do x = max 0 (if eval wheel_slip then last x else last x - 1) done
+          do x = max 0 (if wheel_slip then last x else last x - 1) done
       end
-  and wheel_slip = sample (bernoulli (const 0.1))
+  and wheel_slip = sample (bernoulli 0.1)
 
 
 let proba read (obs) = o where
-  rec error = sample (bernoulli (const 0.1))
-  and o = if eval error then obs else not obs
+  rec error = sample (bernoulli 0.1)
+  and o = if error then obs else not obs
 
 let proba beta_priors i = sample (beta (1., 1.))
 
-let proba slam (obs, cmd) = pair (array map, const x) where
+let proba slam (obs, cmd) = (map, x) where
   rec init map = (Array_misc.ini (max_pos + 1) beta_priors) ()
   and x = move (0, cmd)
   and o = Array_misc.get map x

@@ -100,7 +100,12 @@ let draw_position_dist d =
              (x * width + width / 2) (height / 2)
              (1 + int_of_float (10. *. p)))
         support
-  | Distribution.Dist_mixture _ -> assert false
+  | Distribution.Dist_mixture l ->
+      let x = Distribution.draw d in
+      Graphics.set_color (Graphics.red);
+      Graphics.fill_circle
+        (x * width + width / 2) (height / 2)
+        10
 
 let draw_map_dist map_dist =
   let mw = Array.map
@@ -108,6 +113,17 @@ let draw_map_dist map_dist =
       let d_true, d_false = Distribution.split d in
       let n_t, n_f = mean_float d_true, mean_float d_false in
       n_t /. (n_t +. n_f))
+    (Distribution.split_array map_dist)
+  in
+  Array.iteri (fun i w ->
+    let gray = int_of_float (w *. 255.) in
+    Graphics.set_color (Graphics.rgb gray gray gray);
+    Graphics.fill_rect (i * width)  0  width height)
+    mw
+
+let draw_map_dist_ds map_dist =
+  let mw = Array.map
+    (fun d -> 1. -. Distribution.mean_float d)
     (Distribution.split_array map_dist)
   in
   Array.iteri (fun i w ->
@@ -147,3 +163,16 @@ let output =
   else
     (fun real_map real_x obs map_dist pos_dist ->
        print_map_dist map_dist)
+
+let output_ds =
+  if with_graphics then
+    (fun real_map real_x obs map_dist pos_dist ->
+       draw_map real_map;
+       draw_bot real_x obs;
+       draw_map_dist_ds map_dist;
+       draw_position_dist pos_dist;
+       clear ())
+  else
+    (fun _ -> assert false)
+    (* (fun real_map real_x obs map_dist pos_dist -> *)
+    (*    print_map_dist map_dist) *)

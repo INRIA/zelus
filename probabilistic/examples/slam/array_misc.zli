@@ -21,3 +21,6 @@ val with_graphics : bool
 val input : unit -AD-> int
 val output : bool t -> int ->
     bool -> (float * float) t Distribution.t -> int Distribution.t -AD-> unit
+
+val output_ds : bool t -> int ->
+    bool -> float t Distribution.t -> int Distribution.t -AD-> unit
