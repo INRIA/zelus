@@ -81,7 +81,7 @@ let rec score : type a. a t * a -> log_proba =
         let p =
           List.fold_left
             (fun acc (d', p) -> acc +. p *. exp(score (d', x)))
-            1. l
+            0. l
         in
         log p
     | Dist_pair (d1, d2) ->
