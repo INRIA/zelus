@@ -133,7 +133,7 @@ let rec graft : type a b.
           graft p;
           force_condition p;
           marginalize n
-      | Realized _ -> assert false
+      | Realized _ -> ()
     end
 
 let rec value: type a b.
