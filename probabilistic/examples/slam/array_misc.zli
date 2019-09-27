@@ -1,10 +1,10 @@
-type 'a t
+type 'a t = 'a array
 val get : 'a t -> int -> 'a
 (* val set : 'a t -> int -> 'a -AD-> unit *)
 val set : 'a t -> int -> 'a -AD-> 'a t
 val of_list : 'a list -> 'a t
 val make : int -> 'a -> 'a t
-val ini : int -> (int ~D~> 'a) -> 'a t
+val ini : int -S-> (int ~D~> 'a) -S-> unit ~D~> 'a t
 val print : ('a -> string) -> 'a t -> unit
 val print_map_dist : (float * float) t Distribution.t -AD-> unit
 val init_graph: int-AD-> unit
