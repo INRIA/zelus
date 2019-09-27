@@ -30,3 +30,6 @@ val uniform_float : float * float -> float t
 val uniform_list : 'a list -> 'a t
 val weighted_list : (float * 'a) list -> 'a t
 val exponential : float -> float t
+val plus : float t * float t -> float t
+val mult : float t * float t -> float t
+val app : ('a -> 'b) t * 'a t -> 'b t

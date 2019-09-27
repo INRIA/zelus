@@ -40,7 +40,59 @@ type _ t =
   | Dist_mult : float t * float t -> float t
   | Dist_app : ('a -> 'b) t * 'a t -> 'b t
 
+
+module Map_float = Map.Make(struct
+    type key = float
+    type t = float
+    let compare x y = compare x y
+  end)
+
 (** {2 Draw and score}*)
+
+
+let rec to_dist_support : type a. a t -> a t =
+  let flatten op s1 s2 =
+    let support =
+      List.fold_left
+        (fun acc (v1, p1) ->
+           let m =
+             List.fold_left
+               (fun acc (v2, p2) -> Map_float.add (op v1 v2) (p1 +. p2) acc)
+               Map_float.empty
+               s2
+           in
+           Map_float.union (fun k p1 p2 -> Some(p1 +. p2)) acc m)
+        Map_float.empty
+        s1
+    in
+    Map_float.fold (fun v p acc -> (v, p)::acc) support []
+  in
+  fun dist ->
+  begin match dist with
+  | Dist_sampler (_, _) -> assert false
+  | Dist_sampler_float (_, _, _) -> assert false
+  | Dist_support _ -> dist
+  | Dist_mixture _ ->
+      assert false (* XXX TODO XXX *)
+  | Dist_pair(d1, d2) ->
+      assert false (* XXX TODO XXX *)
+  | Dist_array _ ->
+      assert false (* XXX TODO XXX *)
+  | Dist_plus (d1, d2) ->
+      begin match to_dist_support d1, to_dist_support d2 with
+      | Dist_support s1, Dist_support s2 ->
+          Dist_support (flatten ( +. ) s1 s2)
+      | _, _ -> assert false
+      end
+  | Dist_mult (d1, d2) ->
+      begin match to_dist_support d1, to_dist_support d2 with
+      | Dist_support s1, Dist_support s2 ->
+          Dist_support (flatten ( *. ) s1 s2)
+      | _, _ -> assert false
+      end
+  | Dist_app (d1, d2) ->
+      assert false (* XXX TODO XXX *)
+  end
 
 (** [draw dist] draws a value form the distribution [dist] *)
 let rec draw : type a. a t -> a =
@@ -110,10 +162,10 @@ let rec score : type a. a t * a -> log_proba =
           log 0.
     | Dist_plus (Dist_support [c, 1.], d) -> score (d, x -. c)
     | Dist_plus (d, Dist_support [c, 1.]) -> score (d, x -. c)
-    | Dist_plus (d1, d2) -> assert false (* do not know how to inverse *)
+    | Dist_plus (_, _) -> score (to_dist_support dist, x)
     | Dist_mult (Dist_support [c, 1.], d) -> score (d, x /. c)
     | Dist_mult (d, Dist_support [c, 1.]) -> score (d, x /. c)
-    | Dist_mult (d1, d2) -> assert false (* do not know how to inverse *)
+    | Dist_mult (_, _) -> score (to_dist_support dist, x)
     | Dist_app (d1, d2) -> assert false (* do not know how to inverse d1 *)
 
   end
@@ -126,10 +178,10 @@ let draw_and_score : type a. a t -> a * log_proba =
   begin match dist with
     | Dist_sampler (sampler, scorer) ->
       let x = sampler () in
-      x, (scorer x)
+      (x, scorer x)
     | Dist_sampler_float (sampler, scorer, _) ->
       let x = sampler () in
-      x, (scorer x)
+      (x, scorer x)
     | Dist_support sup ->
       let sample = Random.float 1.0 in
       (* TODO data structure for more efficient sampling *)
@@ -144,22 +196,22 @@ let draw_and_score : type a. a t -> a * log_proba =
       draw  0. sup
     | Dist_mixture l ->
       let x = draw dist in
-      x, (score (dist, x))
+      (x, score (dist, x))
     | Dist_pair _ ->
       let x = draw dist in
-      x, (score (dist, x))
+      (x, score (dist, x))
     | Dist_array _ ->
       let x = draw dist in
-      x, (score (dist, x))
+      (x, score (dist, x))
     | Dist_plus _ ->
       let x = draw dist in
-      x, (score (dist, x))
+      (x, score (dist, x))
     | Dist_mult _ ->
       let x = draw dist in
-      x, (score (dist, x))
+      (x, score (dist, x))
     | Dist_app _ ->
       let x = draw dist in
-      x, (score (dist, x))
+      (x, score (dist, x))
   end
 
 
@@ -820,3 +872,42 @@ let alias_method values probabilities =
   let values = Array.copy values in
   let probabilities = Array.copy probabilities in
   alias_method_unsafe values probabilities
+
+
+(** [plus (d1, d2)] is the sum of two distributions. *)
+let plus : float t * float t -> float t =
+  fun (dist1, dist2) ->
+  begin match dist1, dist2 with
+  | Dist_support _, Dist_support _ ->
+      to_dist_support (Dist_plus (dist1, dist2))
+  | (Dist_support _, _) | (_, Dist_support _)
+  | (Dist_sampler _, _) | (_, Dist_sampler _)
+  | (Dist_sampler_float _, _) | (_, Dist_sampler_float _)
+  | (Dist_mixture _, _) | (_, Dist_mixture _)
+  | (Dist_plus (_, _), _) | (_, Dist_plus (_, _))
+  | (Dist_mult (_, _), _) | (_, Dist_mult (_, _))
+  | (Dist_app (_, _), _) | (_, Dist_app (_, _)) ->
+      (* XXX TODO XXX *)
+      Dist_plus (dist1, dist2)
+  end
+
+(** [mult (d1, d2)] is the multiplication of two distributions. *)
+let mult : float t * float t -> float t =
+  fun (dist1, dist2) ->
+  begin match dist1, dist2 with
+  | Dist_support _, Dist_support _ ->
+      to_dist_support (Dist_mult (dist1, dist2))
+  | (Dist_support _, _) | (_, Dist_support _)
+  | (Dist_sampler _, _) | (_, Dist_sampler _)
+  | (Dist_sampler_float _, _) | (_, Dist_sampler_float _)
+  | (Dist_mixture _, _) | (_, Dist_mixture _)
+  | (Dist_plus (_, _), _) | (_, Dist_plus (_, _))
+  | (Dist_mult (_, _), _) | (_, Dist_mult (_, _))
+  | (Dist_app (_, _), _) | (_, Dist_app (_, _)) ->
+      Dist_mult (dist1, dist2)
+  end
+
+(** [app (d1, d2)] is the application of two distributions. *)
+let app : ('a -> 'b) t * 'a t -> 'b t =
+  fun (dist1, dist2) ->
+  Dist_app (dist1, dist2)
