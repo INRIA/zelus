@@ -65,6 +65,7 @@ let rec expression prob ({ e_desc = e_desc } as e) =
   | Eop(op, e_list) ->
      { e with e_desc = Eop(op, List.map (expression prob) e_list) }
   | Eapp(app, op, e_list) ->
+     let op = expression prob op in
      let e_list = List.map (expression prob) e_list in
      let e_list =
        if Types.is_probabilistic op.e_typ then
