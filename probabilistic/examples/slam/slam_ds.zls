@@ -2,11 +2,9 @@ open Infer_ds_gc
 
 type direction = Left | Right
 
+let sensor_noise = 0.1
+let wheel_noise = 0.1
 let max_pos = Array_misc.max_pos
-let mt_prior = log 0.5
-let mf_prior = log 0.5
-let macc_likelihood = log 0.9
-let minacc_likelihood = log 0.1
 
 let proba move (x_init, cmd) = x where
   rec init x = x_init
@@ -16,11 +14,11 @@ let proba move (x_init, cmd) = x where
       | Left ->
           do x = max 0 (if eval wheel_slip then last x else last x - 1) done
       end
-  and wheel_slip = sample (bernoulli (const 0.1))
+  and wheel_slip = sample (bernoulli (const wheel_noise))
 
 
 let proba read (obs) = o where
-  rec error = sample (bernoulli (const 0.1))
+  rec error = sample (bernoulli (const sensor_noise))
   and o = if eval error then obs else not obs
 
 let proba beta_priors i = sample (beta (1., 1.))
@@ -54,8 +52,8 @@ let node slam_obs real_map dir = (obs, x) where
       | Left ->
           do x = max 0 (if wheel_slip then last x else last x - 1) done
       end
-  and wheel_slip = Distribution.draw (Distribution.bernoulli 0.1)
-  and sensor_error = Distribution.draw (Distribution.bernoulli 0.1)
+  and wheel_slip = Distribution.draw (Distribution.bernoulli wheel_noise)
+  and sensor_error = Distribution.draw (Distribution.bernoulli sensor_noise)
   and b = Array_misc.get real_map x
   and obs = if sensor_error then not b else b
 

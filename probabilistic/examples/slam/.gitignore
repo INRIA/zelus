@@ -6,5 +6,5 @@
 *.byte
 *.opt
 slam
-slam.ml
+slam_*.ml
 main.ml

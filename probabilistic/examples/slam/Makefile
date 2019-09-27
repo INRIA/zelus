@@ -10,7 +10,7 @@ OCAMLDEP=ocamldep
 OCAMLC=ocamlc
 OCAMLOPT=ocamlopt
 
-NAME=slam
+NAME=slam_ds
 
 all: opt
 
