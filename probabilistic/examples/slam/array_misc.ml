@@ -1,5 +1,5 @@
 open Ztypes
-    
+
 let with_graphics, max_pos =
   let with_graphics = ref true in
   let n = ref 10 in
@@ -31,7 +31,7 @@ let ini n (Cnode f)  =
   let reset state = f.reset state in
   let copy src dst = f.copy src dst in
   let step state (proba, arg) =
-    Array.init n (fun i -> f.step state (proba, arg)) 
+    Array.init n (fun i -> f.step state (proba, i))
   in
   Cnode { alloc; reset; copy; step; }
 
