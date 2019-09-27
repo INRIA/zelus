@@ -593,22 +593,28 @@ let rec is_combinatorial n ty =
     | Tfun(_, _, _, ty_res) -> is_combinatorial (n-1) ty_res
     | _ -> true
 
-let is_hybrid ty =
-  let ty = typ_repr ty in
-  match ty.t_desc with
-    | Tfun(Tcont, _, _, _) -> true | _ -> false
+let rec res_type n ty =
+  if n = 0 then ty
+  else
+    let ty = typ_repr ty in
+    match ty.t_desc with
+    | Tfun(_, _, _, ty_res) -> res_type (n-1) ty_res
+    | _ -> assert false
 
-let is_probabilistic ty =
+let is_hybrid n ty =
+  let ty = res_type n ty in
+  let ty = typ_repr ty in
+    match ty.t_desc with
+    | Tfun(Tcont, _, _, _) -> true
+    | _ -> false
+	     
+let is_probabilistic n ty =
+  let ty = res_type n ty in
   let ty = typ_repr ty in
   match ty.t_desc with
-  | Tfun(Tproba, _, _, _) -> true | _ -> false
-					   
-(** Is-it stateless? *)
-let is_stateless ty =
-  let ty = typ_repr ty in
-  match ty.t_desc with
-  | Tfun((Tstatic _ | Tany | Tdiscrete(false)), _, _, _) -> true | _ -> false
-
+  | Tfun(Tproba, _, _, _) -> true
+  | _ -> false
+	   
 (** Is-it a node ? *)
 let is_a_node_name lname =
   let { info = { value_typ = { typ_body = typ_body } } } = 

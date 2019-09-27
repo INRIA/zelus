@@ -136,7 +136,7 @@ let rec expression major time ({ e_desc = e_desc } as e) =
      let op = expression major time op in
      let e_list = List.map (expression major time) e_list in
      let e_list =
-       if Types.is_hybrid op.e_typ then
+       if Types.is_hybrid (List.length e_list - 1) op.e_typ then
          let head, tail = Misc.firsts e_list in
          head @ [Zaux.pair (float_var time) tail]
        else e_list in

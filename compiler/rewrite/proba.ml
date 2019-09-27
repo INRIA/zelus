@@ -68,7 +68,7 @@ let rec expression prob ({ e_desc = e_desc } as e) =
      let op = expression prob op in
      let e_list = List.map (expression prob) e_list in
      let e_list =
-       if Types.is_probabilistic op.e_typ then
+       if Types.is_probabilistic (List.length e_list - 1) op.e_typ then
          let head, tail = Misc.firsts e_list in
          head @ [Zaux.pair (prob_var prob) tail]
        else e_list in
