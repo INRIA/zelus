@@ -90,22 +90,15 @@ let draw_bot x obs =
 
 
 let draw_position_dist d =
-  match d with
-  | Distribution.Dist_sampler _ -> assert false
-  | Distribution.Dist_support support ->
-      List.iter
-        (fun (x, p) ->
-           Graphics.set_color (Graphics.red);
-           Graphics.fill_circle
-             (x * width + width / 2) (height / 2)
-             (1 + int_of_float (10. *. p)))
-        support
-  | Distribution.Dist_mixture l ->
-      let x = Distribution.draw d in
+  for x = 0 to max_pos do
+    let p = exp (Distribution.score (d, x)) in
+    if p > 0. then begin
       Graphics.set_color (Graphics.red);
       Graphics.fill_circle
         (x * width + width / 2) (height / 2)
-        10
+        (1 + int_of_float (10. *. p))
+    end
+  done
 
 let draw_map_dist map_dist =
   let mw = Array.map
