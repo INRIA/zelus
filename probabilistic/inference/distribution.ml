@@ -35,6 +35,7 @@ type _ t =
   (* | Dist_mixture of ('a t) t *)
   | Dist_mixture : ('a t * proba) list -> 'a t
   | Dist_pair : 'a t * 'b t -> ('a * 'b) t
+  | Dist_array : 'a t array -> 'a array t
 
 (** {2 Draw and score}*)
 
@@ -61,6 +62,8 @@ let rec draw : type a. a t -> a =
       draw d'
     | Dist_pair (d1, d2) ->
         (draw d1, draw d2)
+    | Dist_array a ->
+        Array.map (fun ed -> draw ed) a
   end
 
 (** [score(dist, x)] returns the log probability of the value [x] in the
@@ -85,6 +88,17 @@ let rec score : type a. a t * a -> log_proba =
         (* XXX TO CHECK XXX *)
         let v1, v2 = x in
         score (d1, v1) +. score (d2, v2)
+    | Dist_array a ->
+        (* XXX TO CHECK XXX *)
+        let len = Array.length a in
+        if Array.length x = len then
+          let acc = ref 0. in
+          for i = 0 to len - 1 do
+            acc := !acc +. score (a.(i), x.(i))
+          done;
+          !acc
+        else
+          log 0.
   end
 
 (** [draw dist] draws a value form the distribution [dist] and returns
@@ -115,6 +129,9 @@ let draw_and_score : type a. a t -> a * log_proba =
       let x = draw dist in
       x, (score (dist, x))
     | Dist_pair _ ->
+      let x = draw dist in
+      x, (score (dist, x))
+    | Dist_array _ ->
       let x = draw dist in
       x, (score (dist, x))
   end
@@ -227,6 +244,7 @@ let rec split_array dist =
            Array.iteri (fun i d -> accs.(i) <- (d, pi) :: accs.(i)) ai)
         l;
       Array.map (fun acc -> Dist_mixture acc) accs
+  | Dist_array a -> a
   end
 
 
@@ -347,7 +365,8 @@ let rec mean_float d =
     let acc = ref 0. in
     for i = 1 to n do acc := !acc +. draw () done;
     !acc /. (float n)
-  | Dist_sampler_float (_, _, stats) -> fst (stats())
+  | Dist_sampler_float (_, _, stats) ->
+      fst (stats())
   | Dist_support sup ->
     List.fold_left (fun acc (v, w) -> acc +. v *. w) 0. sup
   | Dist_mixture l ->
@@ -386,6 +405,9 @@ let rec mean : type a. (a -> float) -> a t -> float =
       List.fold_left (fun acc (d, w) -> acc +. w *. mean meanfn d) 0. l
     | Dist_pair (d1, d2) ->
         assert false (* XXX TODO XXX *)
+    | Dist_array a ->
+        assert false (* XXX TODO XXX *)
+        (* Array.fold_left (fun acc d -> acc +. mean meanfn d) 0. a *)
   end
 
 let mean_list (type a) : (a -> float) -> a list t -> float list =

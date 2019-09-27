@@ -339,6 +339,8 @@ let rec distribution_of_expr_dist : type a. a expr_dist -> a Distribution.t =
           let d1 = distribution_of_expr_dist ed1 in
           let d2 = distribution_of_expr_dist ed2 in
           Dist_pair(d1, d2)
+      | EDarray a ->
+          Dist_array (Array.map distribution_of_expr_dist a)
       | exprd ->
           Dist_sampler ((fun () -> draw exprd), (fun v -> score(exprd, v)))
     end
