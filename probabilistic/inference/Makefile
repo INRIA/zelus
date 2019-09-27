@@ -12,8 +12,9 @@ ML_SRC=misc_lib.ml \
 	infer_importance.ml \
 	ds_distribution.ml \
 	infer_ds_ll.ml \
-	infer_ds.ml \
 	infer_ds_ll_gc.ml \
+	infer_ds_hl.ml \
+	infer_ds.ml \
 	infer_ds_gc.ml \
 	infer_ds_gc_copy.ml
 
