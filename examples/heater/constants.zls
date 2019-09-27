@@ -11,7 +11,7 @@ let temp_ext = 0.0
 
 let temp_0 = 0.0
     
-let h = 0.1
+let h = 0.2
 
 let stop_time = 50.0 (* in seconds *)
     

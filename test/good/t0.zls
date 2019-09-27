@@ -1,10 +1,8 @@
-let proba f x1 x2 x =
-  let rec init o = 1 in
-  x + 1
-
-let proba g x1 x2 x =
-  let rec init o = 1 in
-  f x1 x2 (x) + o
+let node f(x1, x2, x3) =
+  (x1 + x2,
+   x1 + x2,
+   x1 + x2 + x3,
+   x2 + x3)
 
     
 (* let node one (o1, o2) = o where

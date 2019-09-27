@@ -7,7 +7,7 @@ open Constants
 open Heatc
 open Node
 
-let h = 0.01
+let h = 0.5
     
 let node system(reference) = (time, u, temp, status) where
   (* Compute the dynamics of the system. Draw an observation *)
