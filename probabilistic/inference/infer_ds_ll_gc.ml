@@ -57,7 +57,7 @@ let marginalize : type a b.
                 p.ds_node_state <- Marginalized (p_mdistr, Some(n, cdistr));
                 let mdistr = make_marginal p_mdistr cdistr in
                 n.ds_node_state <- Marginalized(mdistr, None)
-            | Initialized _ | Marginalized (_, Some _)-> assert false
+            | Initialized _ | Marginalized (_, Some _) -> assert false
           end
       | Realized _ | Marginalized _ ->
           Format.eprintf "Error: marginalize@.";
@@ -83,7 +83,7 @@ let force_condition : type a b.
             | Realized x ->
                 let mdistr = make_conditional mdistr cdistr x in
                 n.ds_node_state <- Marginalized(mdistr, None)
-            | _ -> ()
+            | Initialized _ | Marginalized _ -> ()
           end
       | Initialized _ | Realized _ | Marginalized (_, None) -> ()
     end
@@ -127,13 +127,12 @@ let rec graft : type a b.
   (a, b) ds_node -> unit =
   function n ->
     begin match n.ds_node_state with
-      | Marginalized (_, None) -> ()
+      | Marginalized (_, None) | Realized _  -> ()
       | Marginalized (_, Some(c, _)) -> prune c
       | Initialized (p, cdistr) ->
           graft p;
           force_condition p;
           marginalize n
-      | Realized _ -> ()
     end
 
 let rec value: type a b.
@@ -206,14 +205,16 @@ let rec copy_node : type a b.
               | Marginalized (mdistr, Some (c, cdistr)) ->
                   assert begin match c.ds_node_state with
                     | Initialized _ -> false
-                    | _ -> true
+                    | Marginalized _ | Realized _ -> true
                   end;
                   let c_copy = copy_node tbl c in
                   Marginalized (mdistr, Some (c_copy, cdistr))
               | Initialized (p, cdistr) ->
                   assert begin match p.ds_node_state with
-                    | Marginalized (_, Some (c, _)) -> c.ds_node_id <> n.ds_node_id
-                    | _ -> true
+                    | Marginalized (_, Some (c, _)) ->
+                        c.ds_node_id <> n.ds_node_id
+                    | Initialized _ | Marginalized (_, None) | Realized _ ->
+                        true
                   end;
                   let p_copy = copy_node tbl p in
                   Initialized (p_copy, cdistr)
