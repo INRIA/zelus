@@ -36,6 +36,9 @@ type _ t =
   | Dist_mixture : ('a t * proba) list -> 'a t
   | Dist_pair : 'a t * 'b t -> ('a * 'b) t
   | Dist_array : 'a t array -> 'a array t
+  | Dist_plus : float t * float t -> float t
+  | Dist_mult : float t * float t -> float t
+  | Dist_app : ('a -> 'b) t * 'a t -> 'b t
 
 (** {2 Draw and score}*)
 
@@ -64,6 +67,12 @@ let rec draw : type a. a t -> a =
         (draw d1, draw d2)
     | Dist_array a ->
         Array.map (fun ed -> draw ed) a
+    | Dist_plus (d1, d2) ->
+        draw d1 +. draw d2
+    | Dist_mult (d1, d2) ->
+        draw d1 *. draw d2
+    | Dist_app (d1, d2) ->
+        (draw d1) (draw d2)
   end
 
 (** [score(dist, x)] returns the log probability of the value [x] in the
@@ -99,6 +108,14 @@ let rec score : type a. a t * a -> log_proba =
           !acc
         else
           log 0.
+    | Dist_plus (Dist_support [c, 1.], d) -> score (d, x -. c)
+    | Dist_plus (d, Dist_support [c, 1.]) -> score (d, x -. c)
+    | Dist_plus (d1, d2) -> assert false (* do not know how to inverse *)
+    | Dist_mult (Dist_support [c, 1.], d) -> score (d, x /. c)
+    | Dist_mult (d, Dist_support [c, 1.]) -> score (d, x /. c)
+    | Dist_mult (d1, d2) -> assert false (* do not know how to inverse *)
+    | Dist_app (d1, d2) -> assert false (* do not know how to inverse d1 *)
+
   end
 
 (** [draw dist] draws a value form the distribution [dist] and returns
@@ -132,6 +149,15 @@ let draw_and_score : type a. a t -> a * log_proba =
       let x = draw dist in
       x, (score (dist, x))
     | Dist_array _ ->
+      let x = draw dist in
+      x, (score (dist, x))
+    | Dist_plus _ ->
+      let x = draw dist in
+      x, (score (dist, x))
+    | Dist_mult _ ->
+      let x = draw dist in
+      x, (score (dist, x))
+    | Dist_app _ ->
       let x = draw dist in
       x, (score (dist, x))
   end
@@ -201,6 +227,9 @@ let rec split dist =
       (Dist_mixture s1, Dist_mixture s2)
   | Dist_pair (d1, d2) ->
       d1, d2
+  | Dist_app (d1, d2) ->
+      Dist_sampler ((fun () -> fst ((draw d1) (draw d2))), (fun _ -> assert false)),
+      Dist_sampler ((fun () -> snd ((draw d1) (draw d2))), (fun _ -> assert false))
   end
 
 (** [split_array dist] turns a distribution of arrays into an array of
@@ -245,6 +274,14 @@ let rec split_array dist =
         l;
       Array.map (fun acc -> Dist_mixture acc) accs
   | Dist_array a -> a
+  | Dist_app (d1, d2) ->
+      (* We assume that all arrays in the distribution have the same length. *)
+      let len = Array.length (draw dist) in
+      Array.init len
+        (fun i ->
+           let draw () = (draw dist).(i) in
+           let score _ = assert false in
+           Dist_sampler (draw, score))
   end
 
 
@@ -290,6 +327,8 @@ let rec split_list =
           [] l
       in
       List.map (fun l -> Dist_mixture l) l
+  | Dist_app (d1, d2) ->
+      assert false (* XXX TODO XXX *)
   end
 
 
@@ -305,6 +344,8 @@ let rec to_mixture d =
       Dist_mixture l
   | Dist_mixture l ->
       Dist_mixture (List.map (fun (d, w) -> (to_mixture d, w)) l)
+  | Dist_app _ ->
+      assert false (* XXX TODO XXX *)
   end
 
 (** [stats_float d] computes the mean and stddev of a [float
@@ -354,6 +395,16 @@ let rec stats_float dist =
         end
       in
       stats l 0. 0. 0.
+  | Dist_plus (d1, d2) ->
+      let m1, s1 = stats_float d1 in
+      let m2, s2 = stats_float d2 in
+      m1 +. m2, s1 +. s2
+  | Dist_mult (d1, d2) ->
+      let m1, s1 = stats_float d1 in
+      let m2, s2 = stats_float d2 in
+      m1 *. m2, s1 *. s2 +. s1 *. m2 ** 2. +. m2 *. m1 ** 2.
+  | Dist_app (d1, d2) as d ->
+      stats_float (Dist_sampler ((fun () -> draw d), (fun _ -> assert false)))
   end
 
 
@@ -371,6 +422,16 @@ let rec mean_float d =
     List.fold_left (fun acc (v, w) -> acc +. v *. w) 0. sup
   | Dist_mixture l ->
     List.fold_left (fun acc (d, w) -> acc +. w *. mean_float d) 0. l
+  | Dist_plus (d1, d2) ->
+      let m1= mean_float d1 in
+      let m2 = mean_float d2 in
+      m1 +. m2
+  | Dist_mult (d1, d2) ->
+      let m1 = mean_float d1 in
+      let m2 = mean_float d2 in
+      m1 *. m2
+  | Dist_app (_, _) ->
+      mean_float (Dist_sampler ((fun () -> draw d), (fun _ -> assert false)))
   end
 
 
@@ -408,6 +469,16 @@ let rec mean : type a. (a -> float) -> a t -> float =
     | Dist_array a ->
         assert false (* XXX TODO XXX *)
         (* Array.fold_left (fun acc d -> acc +. mean meanfn d) 0. a *)
+  | Dist_plus (d1, d2) ->
+      let m1= mean meanfn d1 in
+      let m2 = mean meanfn d2 in
+      m1 +. m2
+  | Dist_mult (d1, d2) ->
+      let m1 = mean meanfn d1 in
+      let m2 = mean meanfn d2 in
+      m1 *. m2
+  | Dist_app (_, _) as d ->
+      mean meanfn (Dist_sampler ((fun () -> draw d), (fun _ -> assert false)))
   end
 
 let mean_list (type a) : (a -> float) -> a list t -> float list =
@@ -430,6 +501,8 @@ let rec mean_bool (d: bool t) =
     List.fold_left (fun acc (v, w) -> if v then acc +. w else acc) 0. sup
   | Dist_mixture l ->
     List.fold_left (fun acc (d, w) -> acc +. w *. mean_bool d) 0. l
+  | Dist_app (_, _) ->
+      mean_bool (Dist_sampler ((fun () -> draw d), (fun _ -> assert false)))
   end
 
 (** [mean_signal_present d] computes the mean of the presence of ['a
@@ -447,6 +520,9 @@ let rec mean_signal_present (d: (_ * bool) t) =
   | Dist_mixture l ->
     List.fold_left (fun acc (d, w) -> acc +. w *. mean_signal_present d) 0. l
   | Dist_pair _ -> assert false
+  | Dist_app (_, _) ->
+      mean_signal_present
+        (Dist_sampler ((fun () -> draw d), (fun _ -> assert false)))
   end
 
 (** [to_signal d] turns a distribution of signals into a signal that
@@ -493,6 +569,7 @@ let rec to_signal (d: ('a * bool) t) : 'a t * bool =
       in
       (Dist_mixture l, pres)
   | Dist_pair _ -> assert false
+  | Dist_app _ -> assert false
   end
 
 

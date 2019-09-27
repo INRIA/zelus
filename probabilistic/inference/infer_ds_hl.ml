@@ -65,7 +65,7 @@ module Make(DS_ll: DS_ll_S) = struct
 
   let ( *~ ) x y = mult (x, y)
 
-  let app  : type t1 t2. (t1 -> t2) expr * t1 expr -> t2 expr =
+  let app : type t1 t2. (t1 -> t2) expr * t1 expr -> t2 expr =
     begin fun (e1, e2) ->
       begin match e1.value, e2.value with
         | Econst f, Econst x -> { value = Econst (f x); }
@@ -293,105 +293,23 @@ module Make(DS_ll: DS_ll_S) = struct
     | EDarray : 'a expr_dist array -> 'a array expr_dist
 
 
-  let rec expr_dist_of_expr : type a. a expr -> a expr_dist =
+  let rec distribution_of_expr : type a. a expr -> a Distribution.t =
     fun expr ->
     begin match expr.value with
-      | Econst c -> EDconst c
-      | Ervar (RV x) -> EDdistr (DS_ll.get_distr x)
-      | Eplus (e1, e2) -> EDplus(expr_dist_of_expr e1, expr_dist_of_expr e2)
-      | Emult (e1, e2) -> EDmult(expr_dist_of_expr e1, expr_dist_of_expr e2)
-      | Eapp (e1, e2) -> EDapp(expr_dist_of_expr e1, expr_dist_of_expr e2)
-      | Epair (e1, e2) -> EDpair(expr_dist_of_expr e1, expr_dist_of_expr e2)
-      | Earray a -> EDarray (Array.map expr_dist_of_expr a)
+      | Econst c -> Dist_support [c, 1.]
+      | Ervar (RV x) -> DS_ll.get_distr x
+      | Eplus (e1, e2) ->
+          Dist_plus (distribution_of_expr e1, distribution_of_expr e2)
+      | Emult (e1, e2) ->
+          Dist_mult (distribution_of_expr e1, distribution_of_expr e2)
+      | Eapp (e1, e2) ->
+          Dist_app (distribution_of_expr e1, distribution_of_expr e2)
+      | Epair (e1, e2) ->
+          Dist_pair (distribution_of_expr e1, distribution_of_expr e2)
+      | Earray a ->
+          Dist_array (Array.map distribution_of_expr a)
     end
 
-  let rec distribution_of_expr_dist : type a. a expr_dist -> a Distribution.t =
-    let rec draw : type a. a expr_dist -> a =
-      fun exprd ->
-        begin match exprd with
-          | EDconst c -> c
-          | EDdistr d -> Distribution.draw d
-          | EDplus (ed1, ed2) -> draw ed1 +. draw ed2
-          | EDmult (ed1, ed2) -> draw ed1 *. draw ed2
-          | EDapp (ed1, ed2) -> (draw ed1) (draw ed2)
-          | EDpair (ed1, ed2) -> (draw ed1, draw ed2)
-          | EDarray a -> Array.map (fun ed -> draw ed) a
-        end
-    in
-    let rec score : type a. a expr_dist * a -> float =
-      fun (exprd, v) ->
-        begin match exprd with
-          | EDconst c -> if c = v then 0. else log 0.
-          | EDdistr d -> Distribution.score (d, v)
-          | EDplus (EDconst c, ed) -> score (ed, v -. c)
-          | EDplus (ed, EDconst c) -> score (ed, v -. c)
-          | EDplus (ed1, ed2) -> assert false (* do not know how to inverse *)
-          | EDmult (EDconst c, ed) -> score (ed, v /. c)
-          | EDmult (ed, EDconst c) -> score (ed, v /. c)
-          | EDmult (ed1, ed2) -> assert false (* do not know how to inverse *)
-          | EDapp (ed1, ed2) -> assert false (* do not know how to inverse ed1 *)
-          | EDpair (ed1, ed2) ->
-              (* XXX TO CHECK XXX *)
-              let v1, v2 = v in
-              score (ed1, v1) +. score (ed2, v2)
-          | EDarray a ->
-              (* XXX TO CHECK XXX *)
-              let len = Array.length a in
-              if Array.length v = len then
-                let acc = ref 0. in
-                for i = 0 to len - 1 do
-                  acc := !acc +. score (a.(i), v.(i))
-                done;
-                !acc
-              else
-                log 0.
-        end
-    in
-    fun exprd ->
-      begin match exprd with
-        | EDconst c -> Dist_support [(c, 1.)]
-        | EDdistr d -> d
-        | EDpair (ed1, ed2) ->
-            let d1 = distribution_of_expr_dist ed1 in
-            let d2 = distribution_of_expr_dist ed2 in
-            Dist_pair(d1, d2)
-        | EDarray a ->
-            Dist_array (Array.map distribution_of_expr_dist a)
-        | exprd ->
-            Dist_sampler ((fun () -> draw exprd), (fun v -> score(exprd, v)))
-      end
-
-  let distribution_of_expr expr =
-    distribution_of_expr_dist (expr_dist_of_expr expr)
-
-  (* let infer n (Cnode { alloc; reset; copy; step; }) = *)
-  (*   let step state (prob, x) = distribution_of_expr (step state (prob, x)) in *)
-  (*   let Cnode {alloc = infer_alloc; reset = infer_reset; *)
-  (*              copy = infer_copy; step = infer_step;} = *)
-  (*     Infer_pf.infer n (Cnode { alloc; reset; copy; step; }) *)
-  (*   in *)
-  (*   let infer_step state i = *)
-  (*     Distribution.to_mixture (infer_step state i) *)
-  (*   in *)
-  (*   Cnode {alloc = infer_alloc; reset = infer_reset; *)
-  (*          copy = infer_copy;  step = infer_step;} *)
-
-  (* let infer_ess_resample n threshold (Cnode { alloc; reset; copy; step; }) = *)
-  (*   let step state (prob, x) = distribution_of_expr (step state (prob, x)) in *)
-  (*   let Cnode {alloc = infer_alloc; reset = infer_reset; *)
-  (*              copy = infer_copy; step = infer_step;} = *)
-  (*     Infer_pf.infer_ess_resample n threshold *)
-  (*       (Cnode { alloc; reset; copy; step; }) *)
-  (*   in *)
-  (*   let infer_step state i = *)
-  (*     Distribution.to_mixture (infer_step state i) *)
-  (*   in *)
-  (*   Cnode {alloc = infer_alloc; reset = infer_reset; *)
-  (*          copy = infer_copy; step = infer_step;} *)
-
-  (* let infer_bounded n (Cnode { alloc; reset; copy; step; }) = *)
-  (*   let step state (prob, x) = eval (step state (prob, x)) in *)
-  (*   Infer_pf.infer n (Cnode { alloc; reset; copy; step; }) *)
 
   let infer n (Cnode { alloc; reset; copy; step; }) =
     let alloc () = ref (alloc ()) in
