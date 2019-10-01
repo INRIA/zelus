@@ -467,7 +467,7 @@ let gaussian (mu, std) =
   let is prob =
     begin match affine_of_expr mu with
       | Some (AEconst v) ->
-          let rv = assume_constant prob(MGaussian(v, std)) in
+          let rv = assume_constant prob (Dist_gaussian(v, std)) in
           Some { value = (Ervar rv) }
       | Some (AErvar (m, x, b)) ->
           begin match rv_kind prob x with
@@ -499,7 +499,9 @@ let gaussian (mu, std) =
 (** Beta distribution (betaPD in Haskell) *)
 let beta (a, b) =
   let d prob = Distribution.beta(a, b) in
-  let is prob = Some {value = Ervar (assume_constant prob (MBeta (a, b))) } in
+  let is prob =
+    Some { value = Ervar (assume_constant prob (Dist_beta (a, b))) }
+  in
   let iobs (prob, obs) = None in
   ds_distr_with_fallback d is iobs
 

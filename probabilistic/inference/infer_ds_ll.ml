@@ -103,7 +103,7 @@ let sample : type a b.
   fun n ->
     begin match n.ds_node_state with
       | Marginalized (m, _) ->
-          let x = Distribution.draw (mdistr_to_distr m) in
+          let x = Distribution.draw m in
           realize x n
       | Initialized _ | Realized _ -> assert false
     end
@@ -116,7 +116,7 @@ let observe : type a b.
   fun prob x n ->
     begin match n.ds_node_state with
       | Marginalized (mdistr, _) ->
-          factor' (prob, Distribution.score(mdistr_to_distr mdistr, x));
+          factor' (prob, Distribution.score(mdistr, x));
           realize x n
       | Initialized _ | Realized _ -> assert false
     end
@@ -186,12 +186,7 @@ let get_distr : type a b.
   fun n ->
     begin match n.ds_node_state with
       | Realized x -> Distribution.Dist_support [ (x, 1.) ]
-      | Initialized _ | Marginalized _ ->
-          begin match get_mdistr n with
-            | MGaussian (mu, sigma) -> Distribution.gaussian(mu, sigma)
-            | MBeta (a, b) -> Distribution.beta(a, b)
-            | MBernoulli p -> Distribution.bernoulli p
-          end
+      | Initialized _ | Marginalized _ -> get_mdistr n
     end
 
 let observe_conditional : type a b c.
@@ -206,9 +201,22 @@ let get_distr_kind : type a b.
   fun n  ->
     begin match n.ds_node_state with
       | Initialized (_, AffineMeanGaussian _) -> KGaussian
-      | Marginalized (MGaussian _, _) -> KGaussian
+      | Marginalized (Dist_gaussian _, _) -> KGaussian
       | Initialized (_, CBernoulli) -> KBernoulli
-      | Marginalized (MBernoulli _, _) -> KBernoulli
-      | Marginalized (MBeta _, _) -> KBeta
+      | Marginalized (Dist_bernoulli _, _) -> KBernoulli
+      | Marginalized (Dist_beta _, _) -> KBeta
+      | Marginalized (( Dist_sampler _
+                      | Dist_support _), _) -> KOthers
+      | Marginalized (Dist_sampler_float _, _) -> KOthers
+      | Marginalized (Dist_mixture _, _) -> KOthers
+      | Marginalized (Dist_pair _, _) -> KOthers
+      | Marginalized (Dist_list _, _) -> KOthers
+      | Marginalized (Dist_array _, _) -> KOthers
+      | Marginalized (Dist_uniform_int _, _) -> KOthers
+      | Marginalized (Dist_uniform_float _, _) -> KOthers
+      | Marginalized (Dist_exponential _, _) -> KOthers
+      | Marginalized (Dist_plus _, _) -> KOthers
+      | Marginalized (Dist_mult _, _) -> KOthers
+      | Marginalized (Dist_app _, _) -> KOthers
       | Realized _ -> assert false
     end

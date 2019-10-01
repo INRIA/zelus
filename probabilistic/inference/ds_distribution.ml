@@ -1,8 +1,5 @@
 (** Marginalized distribution *)
-type 'a mdistr =
-  | MGaussian : float * float -> float mdistr
-  | MBeta : float * float -> float mdistr
-  | MBernoulli : float -> bool mdistr
+type 'a mdistr = 'a Distribution.t
 
 (** Family of marginal distributions (used as kind) *)
 type kdistr =
@@ -10,6 +7,7 @@ type kdistr =
   | KBeta
   | KBernoulli
   | KValue
+  | KOthers
 
 (** Conditionned distribution *)
 type ('m1, 'm2) cdistr =
@@ -19,32 +17,25 @@ type ('m1, 'm2) cdistr =
 
 (** {2 Distribution manipulations} *)
 
-let mdistr_to_distr : type a.
-  a mdistr -> a Distribution.t = fun mdistr ->
-  begin match mdistr with
-    | MGaussian (mu, var) -> Distribution.gaussian(mu, sqrt var)
-    | MBeta (alpha, beta) -> Distribution.beta(alpha, beta)
-    | MBernoulli p -> Distribution.bernoulli p
-  end
-
 let cdistr_to_mdistr : type a b.
   (a, b) cdistr -> a -> b mdistr =
   fun cdistr obs ->
     begin match cdistr with
       | AffineMeanGaussian (m, b, obsvar) ->
-          MGaussian (m *. obs +. b, obsvar)
+          Distribution.gaussian (m *. obs +. b, obsvar)
       | CBernoulli ->
-          MBernoulli obs
+          Distribution.bernoulli obs
     end
 
 let make_marginal : type a b.
   a mdistr -> (a, b) cdistr -> b mdistr =
   fun mdistr cdistr ->
     begin match mdistr, cdistr with
-      | MGaussian (mu, var), AffineMeanGaussian(m, b, obsvar) ->
-          MGaussian (m *. mu +. b, m ** 2. *. var +. obsvar)
-      | MBeta (a, b),  CBernoulli ->
-          MBernoulli (a /. (a +. b))
+      | Dist_gaussian (mu, var), AffineMeanGaussian(m, b, obsvar) ->
+          Distribution.gaussian (m *. mu +. b,
+                                 m ** 2. *. var +. obsvar)
+      | Dist_beta (a, b),  CBernoulli ->
+          Distribution.bernoulli (a /. (a +. b))
       | _ -> assert false
     end
 
@@ -60,12 +51,14 @@ let make_conditional : type a b.
   in
   fun mdistr cdistr obs ->
     begin match mdistr, cdistr with
-      | MGaussian(mu, var), AffineMeanGaussian(m, b, obsvar) ->
+      | Dist_gaussian(mu, var), AffineMeanGaussian(m, b, obsvar) ->
           let (mu', var') =
-            gaussian_conditioning mu var ((obs -. b) /. m) (obsvar /. m ** 2.)
+            gaussian_conditioning mu var
+              ((obs -. b) /. m) (obsvar /. m ** 2.)
           in
-          MGaussian(mu', var')
-      | MBeta (a, b),  CBernoulli ->
-          if obs then MBeta (a +. 1., b) else MBeta (a, b +. 1.)
+          Dist_gaussian (mu', var')
+      | Dist_beta (a, b),  CBernoulli ->
+          if obs then Dist_beta (a +. 1., b)
+          else Dist_beta (a, b +. 1.)
       | _, _ -> assert false
     end

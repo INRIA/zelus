@@ -222,7 +222,7 @@ module Make(DS_ll: DS_ll_S) = struct
     let is prob =
       begin match affine_of_expr mu with
         | Some (AEconst v) ->
-            let rv = DS_ll.assume_constant (MGaussian(v, std)) in
+            let rv = DS_ll.assume_constant (Dist_gaussian(v, std)) in
             Some { value = (Ervar (RV rv)) }
         | Some (AErvar (m, RV x, b)) ->
             begin match DS_ll.get_distr_kind x with
@@ -253,7 +253,9 @@ module Make(DS_ll: DS_ll_S) = struct
   (** Beta distribution (betaPD in Haskell) *)
   let beta(a, b) =
     let d () = Distribution.beta(a, b) in
-    let is prob = Some {value = Ervar (RV (DS_ll.assume_constant (MBeta (a, b)))) } in
+    let is prob =
+      Some { value = Ervar (RV (DS_ll.assume_constant (Dist_beta (a, b)))) }
+    in
     let iobs (pstate, obs) = None in
     ds_distr_with_fallback d is iobs
 
