@@ -1,35 +1,93 @@
+(* type proba = float *)
 type log_proba = float
 type 'a t =
     Dist_sampler of ((unit -> 'a) * ('a -> float))
-  | Dist_sampler_float of ((unit -> 'a) * ('a -> float) * (unit -> float * float))
+  | Dist_sampler_float of
+      ((unit -> float) * (float -> float) * (unit -> float * float))
   | Dist_support of ('a * float) list
   | Dist_mixture of ('a t * float) list
-  (* | Dist_pair of ('a t * 'b t) -> ('a * 'b) t *)
+  (* | Dist_pair of 'a t * 'b t -> ('a * 'b) t *)
+  | Dist_list of 'a t list
+  | Dist_array of 'a t array
+  | Dist_gaussian of float * float
+  | Dist_beta of float * float
+  | Dist_bernoulli of float
+  | Dist_uniform_int of int * int
+  | Dist_uniform_float of float * float
+  | Dist_exponential of float
+  | Dist_plus of float t * float t
+  | Dist_mult of float t * float t
+  (* | Dist_app : ('a -> 'b) t * 'a t -> 'b t *)
+
 val draw : 'a t -> 'a
 val score : 'a t * 'a -> float
 val draw_and_score : 'a t -> 'a * float
-val of_list : 'a t list -> 'a list t
-val of_pair : 'a t * 'b t -> ('a * 'b) t
-val stats_float: float t -> float * float
+
+val stats_float : float t -> float * float
 val mean_float : float t -> float
-val mean_bool : bool t -> float
-val mean_signal_present : 'a signal t -> float
-val to_signal : 'a signal t -> 'a t signal
-val stats_float_list: float list t -> (float * float) list
+val stats_float_list : float list t -> (float * float) list
 val mean_float_list : float list t -> float list
-val mean : ('a -> float) -S-> 'a t -> float
-val split : ('a * 'b) t -> 'a t * 'b t
-val split_array : 'a array t -> 'a t array
-val split_list : 'a list t -> 'a t list
+val mean : ('a -> float) -> 'a t -> float
+val mean_list : ('a -> float) -> 'a list t -> float list
+val mean_bool : bool t -> float
+val mean_signal_present : ('a * bool) t -> float
+
+val bernoulli_draw : float -> bool
+val bernoulli_score : float -> bool -> float
+val bernoulli_mean : 'a -> 'a
+val bernoulli_variance : float -> float
 val bernoulli : float -> bool t
+
+val gaussian_draw : float -> float -> float
+val gaussian_score : float -> float -> float -> float
+val gaussian_mean : 'a -> 'b -> 'a
+val gaussian_variance : 'a -> float -> float
 val gaussian : float * float -> float t
+
+val beta_draw : float -> float -> float
+val beta_score : float -> float -> float -> float
+val beta_mean : float -> float -> float
+val beta_variance : float -> float -> float
 val beta : float * float -> float t
+
 val sph_gaussian : float list * float list -> float list t
+
+val uniform_int_draw : int -> int -> int
+val uniform_int_score : int -> int -> int -> float
+val uniform_int_mean : int -> int -> float
+val uniform_int_variance : int -> int -> float
 val uniform_int : int * int -> int t
+
+val uniform_float_draw : float -> float -> float
+val uniform_float_score : float -> float -> float -> float
+val uniform_float_mean : float -> float -> float
+val uniform_float_variance : float -> float -> float
 val uniform_float : float * float -> float t
+
 val uniform_list : 'a list -> 'a t
+
 val weighted_list : (float * 'a) list -> 'a t
+
+val exponential_draw : float -> float
+val exponential_score : float -> float -> float
+val exponential_mean : float -> float
+val exponential_variance : float -> float
 val exponential : float -> float t
+
+val alias_method_unsafe : 'a array -> float array -> 'a t
+val alias_method_list : ('a * float) list -> 'a t
+val alias_method : 'a array -> float array -> 'a t
+
 val plus : float t * float t -> float t
 val mult : float t * float t -> float t
 val app : ('a -> 'b) t * 'a t -> 'b t
+
+val to_dist_support : 'a t -> 'a t
+
+val of_list : 'a t list -> 'a list t
+val of_pair : 'a t * 'b t -> ('a * 'b) t
+val split : ('a * 'b) t -> 'a t * 'b t
+val split_array : 'a array t -> 'a t array
+val split_list : 'a list t -> 'a t list
+val to_mixture : 'a t t -> 'a t
+val to_signal : ('a * bool) t -> 'a t * bool
