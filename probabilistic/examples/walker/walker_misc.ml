@@ -141,8 +141,7 @@ let print_mt_dist mt_dist =
         Format.std_formatter
         sup;
       Format.printf "])"
-  | Dist_sampler _ -> assert false
-  | Dist_mixture _ -> assert false
+  | _ -> assert false
   end
 
 let print_pos_dist pos_dist =
