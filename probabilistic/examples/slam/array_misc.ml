@@ -116,7 +116,7 @@ let draw_map_dist map_dist =
 
 let draw_map_dist_ds map_dist =
   let mw = Array.map
-    (fun d -> 1. -. Distribution.mean_float d)
+    (fun d -> Distribution.mean_float d)
     (Distribution.split_array map_dist)
   in
   Array.iteri (fun i w ->

@@ -23,17 +23,7 @@ let draw_point color pos =
 
 let draw_point_dist dist =
   begin match dist with
-  | Dist_sampler (_, _) -> assert false
   | Dist_support support ->
-      (* List.iter *)
-      (*   (fun (pos, prob) -> *)
-      (*      let color = *)
-      (*        let n = int_of_float (255. *. (1. -. max 0.4 prob)) in *)
-      (*        if prob > 0.003 then Graphics.black *)
-      (*        else Graphics.rgb n n n *)
-      (*      in *)
-      (*      draw_point color pos *)
-      (*   ) support *)
       let support =
         List.sort (fun (_, prob1) (_, prob2) -> compare prob1 prob2) support
       in
@@ -44,12 +34,11 @@ let draw_point_dist dist =
            if i mod len = 0 then decr color;
            draw_point (Graphics.rgb !color !color !color) pos)
         support
-  | Dist_mixture _ -> assert false
+  | _ -> assert false
   end
 
 let draw_point_dist_ds dist =
   begin match dist with
-  | Dist_sampler (_, _) -> assert false
   | Dist_support support ->
       let support =
         List.sort (fun (_, prob1) (_, prob2) -> compare prob1 prob2) support
@@ -59,19 +48,7 @@ let draw_point_dist_ds dist =
       List.iteri
         (fun i ((pos_x, pos_y), prob) ->
            if i mod len = 0 then decr color;
-           draw_point (Graphics.rgb !color !color !color) [pos_x; pos_y]
-           (* let open Infer_ds_gc in *)
-           (* let x = mean_expr pos_x in *)
-           (* let y = mean_expr pos_y in *)
-           (* draw_point (Graphics.rgb !color !color !color) [x; y] *)
-           (* (\* begin match marginal pos_x, marginal pos_y with *\) *)
-           (* (\* | Some r1, Some r2 -> *\) *)
-           (* (\*     let x = mean r1 in *\) *)
-           (* (\*     let y = mean r2 in *\) *)
-           (* (\*     draw_point (Graphics.rgb !color !color !color) [x; y] *\) *)
-           (* (\* | _ -> assert false *\) *)
-           (* (\* end *\) *)
-        )
+           draw_point (Graphics.rgb !color !color !color) [pos_x; pos_y])
         support;
       ()
   | Dist_mixture support ->
@@ -86,11 +63,10 @@ let draw_point_dist_ds dist =
            if i mod len = 0 then decr color;
            let x = mean_float pos_x in
            let y = mean_float pos_y in
-           draw_point (Graphics.rgb !color !color !color) [x; y]
-        )
+           draw_point (Graphics.rgb !color !color !color) [x; y])
         support;
       ()
-  | Dist_pair _ -> assert false
+  | _ -> assert false
   end
 
 let () = Random.self_init()
@@ -121,7 +97,7 @@ let traj_init () = []
 let traj_add (t, p) =
   if List.length t < 30 then p :: t
   else p :: (List.rev (List.tl (List.rev t)))
-      
+
 let traj_draw t =
   if List.length t > 1 then begin
     Graphics.set_color (Graphics.rgb 133 189 255);
