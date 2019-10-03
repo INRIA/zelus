@@ -29,6 +29,7 @@ val stats_float_list : float list t -> (float * float) list
 val mean_float_list : float list t -> float list
 val mean : ('a -> float) -> 'a t -> float
 val mean_list : ('a -> float) -> 'a list t -> float list
+val mean_int : int t -> float
 val mean_bool : bool t -> float
 val mean_signal_present : ('a * bool) t -> float
 

@@ -997,6 +997,24 @@ let mean_list (type a) : (a -> float) -> a list t -> float list =
         List.map (fun l -> mean meanfn l) ls
     end
 
+(** [mean_int d] computes the mean of a [int Distribution.t]. *)
+let rec mean_int (d: int t) =
+  begin match d with
+  | Dist_sampler (draw, _) ->
+    let n = 100000 in
+    let acc = ref 0 in
+    for i = 1 to n do
+      acc := !acc + draw ();
+    done;
+    float !acc /. float n
+  | Dist_support sup ->
+    List.fold_left (fun acc (v, w) -> acc +. float v *. w) 0. sup
+  | Dist_mixture l ->
+    List.fold_left (fun acc (d, w) -> acc +. w *. mean_int d) 0. l
+  | Dist_app (_, _) ->
+      mean_int (Dist_sampler ((fun () -> draw d), (fun _ -> assert false)))
+  | Dist_uniform_int (a, b) -> uniform_int_mean a b
+  end
 
 (** [mean_bool d] computes the mean of a [bool Distribution.t]. *)
 let rec mean_bool (d: bool t) =
