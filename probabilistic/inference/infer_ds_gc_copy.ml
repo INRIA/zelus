@@ -150,7 +150,7 @@ module Gnodes = struct
 
    let copy: t -> t -> unit =
     fun src dst ->
-      let tbl = Hashtbl.create 11 in
+      let tbl = Hashtbl.create 41 in
       (* clean src; *)
       clear dst;
       dst.live_nodes <- M.map (fun (e, n) ->
@@ -254,6 +254,7 @@ type _ expr_tree =
   | Emult : float expr * float expr -> float expr_tree
   | Eapp : ('a -> 'b) expr * 'a expr -> 'b expr_tree
   | Epair : 'a expr * 'b expr -> ('a * 'b) expr_tree
+  | Earray : 'a expr array -> 'a array expr_tree
 and 'a expr = { mutable value : 'a expr_tree; }
 
 let const : 'a. 'a -> 'a expr =
@@ -295,6 +296,9 @@ let ( @@~ ) f e = app (f, e)
 let pair (e1, e2) =
   { value = Epair (e1, e2) }
 
+let array a =
+  { value = Earray a }
+
 let rec eval' : type t.
   pstate -> t expr -> t =
   begin fun prob e ->
@@ -321,6 +325,8 @@ let rec eval' : type t.
           let v = (eval' prob e1, eval' prob e2) in
           e.value <- Econst v;
           v
+      | Earray a ->
+          Array.map (eval' prob) a
     end
   end
 
@@ -531,74 +537,22 @@ let bernoulli p =
 
 (** Inference *)
 
-type _ expr_dist =
-  | EDconst : 'a -> 'a expr_dist
-  | EDdistr : 'a Distribution.t -> 'a expr_dist
-  | EDplus : float expr_dist * float expr_dist -> float expr_dist
-  | EDmult : float expr_dist * float expr_dist -> float expr_dist
-  | EDapp : ('a -> 'b) expr_dist * 'a expr_dist -> 'b expr_dist
-  | EDpair : 'a expr_dist * 'b expr_dist -> ('a * 'b) expr_dist
-
-
-let rec expr_dist_of_expr : type a. pstate -> a expr -> a expr_dist =
+let rec distribution_of_expr : type a. pstate -> a expr -> a Distribution.t =
   fun prob expr ->
-    begin match expr.value with
-      | Econst c -> EDconst c
-      | Ervar x -> EDdistr (rv_distr prob x)
-      | Eplus (e1, e2) ->
-          EDplus(expr_dist_of_expr prob e1, expr_dist_of_expr prob e2)
-      | Emult (e1, e2) ->
-          EDmult(expr_dist_of_expr prob e1, expr_dist_of_expr prob e2)
-      | Eapp (e1, e2) ->
-          EDapp(expr_dist_of_expr prob e1, expr_dist_of_expr prob e2)
-      | Epair (e1, e2) ->
-          EDpair(expr_dist_of_expr prob e1, expr_dist_of_expr prob e2)
-    end
-
-let rec distribution_of_expr_dist : type a. a expr_dist -> a Distribution.t =
-  let rec draw : type a. a expr_dist -> a =
-    fun exprd ->
-      begin match exprd with
-        | EDconst c -> c
-        | EDdistr d -> Distribution.draw d
-        | EDplus (ed1, ed2) -> draw ed1 +. draw ed2
-        | EDmult (ed1, ed2) -> draw ed1 *. draw ed2
-        | EDapp (ed1, ed2) -> (draw ed1) (draw ed2)
-        | EDpair (ed1, ed2) -> (draw ed1, draw ed2)
-      end
-  in
-  let rec score : type a. a expr_dist * a -> float =
-    fun (exprd, v) ->
-      begin match exprd with
-        | EDconst c -> if c = v then 0. else log 0.
-        | EDdistr d -> Distribution.score (d, v)
-        | EDplus (EDconst c, ed) -> score (ed, v -. c)
-        | EDplus (ed, EDconst c) -> score (ed, v -. c)
-        | EDplus (ed1, ed2) -> assert false (* do not know how to inverse *)
-        | EDmult (EDconst c, ed) -> score (ed, v /. c)
-        | EDmult (ed, EDconst c) -> score (ed, v /. c)
-        | EDmult (ed1, ed2) -> assert false (* do not know how to inverse *)
-        | EDapp (ed1, ed2) -> assert false (* do not know how to inverse ed1 *)
-        | EDpair (ed1, ed2) ->
-            (* XXX TO CHECK XXX *)
-            let v1, v2 = v in
-            score (ed1, v1) +. score (ed2, v2)
-      end
-  in
-  fun exprd ->
-    begin match exprd with
-      | EDconst c -> Dist_support [(c, 1.)]
-      | EDdistr d -> d
-      | EDpair (ed1, ed2) ->
-          let d1 = distribution_of_expr_dist ed1 in
-          let d2 = distribution_of_expr_dist ed2 in
-          Dist_pair(d1, d2)
-      | exprd ->
-          Dist_sampler ((fun () -> draw exprd), (fun v -> score(exprd, v)))
-    end
-
-let distribution_of_expr prob expr =
-  distribution_of_expr_dist (expr_dist_of_expr prob expr)
+  begin match expr.value with
+    | Econst c -> Dist_support [c, 1.]
+    | Ervar x -> rv_distr prob x
+    | Eplus (e1, e2) ->
+        Dist_plus (distribution_of_expr prob e1, distribution_of_expr prob e2)
+    | Emult (e1, e2) ->
+        Dist_mult (distribution_of_expr prob e1, distribution_of_expr prob e2)
+    | Eapp (e1, e2) ->
+        Dist_app (distribution_of_expr prob e1, distribution_of_expr prob e2)
+    | Epair (e1, e2) ->
+        Dist_pair (distribution_of_expr prob e1, distribution_of_expr prob e2)
+    | Earray a ->
+        Dist_array (Array.map (distribution_of_expr prob) a)
+  end
 
 type 'a node_state =
   { node_state: 'a;

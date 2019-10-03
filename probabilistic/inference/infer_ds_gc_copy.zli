@@ -10,6 +10,7 @@ val ( *~ ) : float expr -> float expr -> float expr
 val app : ('a -> 'b) expr * 'a expr -> 'b expr
 val ( @@~ ) : ('a -> 'b) expr -> 'a expr -> 'b expr
 val pair : 'a expr * 'b expr -> ('a * 'b) expr
+val array : 'a expr array -> 'a array expr
 
 val eval : 'a expr ~D~> 'a
 

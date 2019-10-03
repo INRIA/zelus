@@ -285,16 +285,6 @@ module Make(DS_ll: DS_ll_S) = struct
 
   (** Inference *)
 
-  type _ expr_dist =
-    | EDconst : 'a -> 'a expr_dist
-    | EDdistr : 'a Distribution.t -> 'a expr_dist
-    | EDplus : float expr_dist * float expr_dist -> float expr_dist
-    | EDmult : float expr_dist * float expr_dist -> float expr_dist
-    | EDapp : ('a -> 'b) expr_dist * 'a expr_dist -> 'b expr_dist
-    | EDpair : 'a expr_dist * 'b expr_dist -> ('a * 'b) expr_dist
-    | EDarray : 'a expr_dist array -> 'a array expr_dist
-
-
   let rec distribution_of_expr : type a. a expr -> a Distribution.t =
     fun expr ->
     begin match expr.value with
