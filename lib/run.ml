@@ -1,4 +1,6 @@
-(* Higher-order operator to apply a stream of stream function *)
+(* Higher-order operator to apply a stream of stream functions *)
+
+open Ztypes
 
 type 'a mem = { mutable m: 'a }
 
