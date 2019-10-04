@@ -1,5 +1,5 @@
 (* An example where a valued signal carries a node *)
-(* an a application that is reset every time the signal is present *)
+(* the application is reset every time the signal is present *)
 
 (* function which computes integers greater (smaller) than an initial value *)
 let node increase x = let rec o = x fby o + 1 in o
