@@ -27,7 +27,8 @@ LOBJ = pervasives.zci \
        string.zci \
        graphics.zci \
        basics.zci \
-       node.zci
+       node.zci \
+       run.zci
 
 
 LOBJ_GTK = $(LOBJ) \
@@ -50,7 +51,8 @@ OBJ = zls.cmo \
       gen.cmo \
       vbool.cmo \
       lift.cmo \
-      node.cmo
+      node.cmo \
+      run.cmo
 
 OBJ_GTK = gtkplot.cmo \
 	  input.cmo \
