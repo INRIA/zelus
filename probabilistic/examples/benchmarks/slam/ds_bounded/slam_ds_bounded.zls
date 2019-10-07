@@ -1,0 +1,35 @@
+open Infer_ds
+
+let sensor_noise = Array_misc.sensor_noise
+let wheel_noise = Array_misc.wheel_noise
+let max_pos = Array_misc.max_pos
+
+let proba move (x_init, cmd) = x where
+  rec init x = x_init
+  and x =
+    max 0 (min max_pos (if eval wheel_slip then last x else last x + cmd))
+  and wheel_slip = sample (bernoulli (const wheel_noise))
+
+let proba read (obs) = o where
+  rec error = sample (bernoulli (const sensor_noise))
+  and o = if eval error then obs else not obs
+
+let proba beta_priors i = sample (beta (1., 1.))
+
+let proba slam (obs, cmd) = pair (array map, const x) where
+  rec init map = (Array_misc.ini (max_pos + 1) beta_priors) ()
+  and x = move (0, cmd)
+  and o = Array_misc.get map x
+  and () = observe (bernoulli o, read(obs))
+
+let node main particles (tr, observed) =
+  let rec t = 1. fby (t +. 1.) in
+
+  let d = infer_bounded particles slam observed in
+  let d_map, x_d = Distribution.split d in
+  let map_d = Distribution.split_array d_map in
+  let error = Array_misc.error tr map_d x_d in
+  let rec total_error = error -> (pre total_error) +. error in
+  let mse = total_error /. t in
+
+  (), mse

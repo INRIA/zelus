@@ -1,0 +1,32 @@
+val sensor_noise : float
+val wheel_noise : float
+type 'a t = 'a array
+val get : 'a t -> int -> 'a
+(* val set : 'a t -> int -> 'a -AD-> unit *)
+val set : 'a t -> int -> 'a -AD-> 'a t
+val of_list : 'a list -> 'a t
+val make : int -> 'a -> 'a t
+val ini : int -S-> (int ~D~> 'a) -S-> unit ~D~> 'a t
+val print : ('a -> string) -> 'a t -> unit
+val print_map_dist : (float * float) t Distribution.t -AD-> unit
+val init_graph: int-AD-> unit
+val clear : unit -AD-> unit
+val wait_event: unit -> int
+val draw_bot: int -> bool -AD-> unit
+val draw_position_dist: int Distribution.t -AD-> unit
+val draw_map: bool t -AD-> unit
+val draw_map_dist:  (float * float) t Distribution.t -AD-> unit
+val random : int -> float -> bool t
+val draw_pos_dist: int Distribution.t -AD-> unit
+val max_pos : int
+val with_graphics : bool
+val input : unit -AD-> int
+val output : bool t -> int ->
+    bool -> (float * float) t Distribution.t -> int Distribution.t -AD-> unit
+
+val output_ds : bool t -> int ->
+    bool -> float t Distribution.t -> int Distribution.t -AD-> unit
+val error : bool array * int -> float Distribution.t array -> int Distribution.t -> float
+
+val print_bool : bool -AD-> unit
+val print_map : bool array -AD-> unit

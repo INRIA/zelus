@@ -1,0 +1,100 @@
+ZELUC=zeluc
+ZLLIB=$(shell $(ZELUC) -where)
+INFERLIB=../../../inference
+
+INFERENCE_CMA=$(INFERLIB)/inference.cma
+INFERENCE_CMXA=$(INFERLIB)/inference.cmxa
+INFERENCE_ZCI=$(INFERLIB)/distribution.zci $(INFERLIB)/infer.zci
+
+OCAMLDEP=ocamldep
+OCAMLC=ocamlc -g
+OCAMLOPT=ocamlopt
+
+NAME=gen_data
+
+all: opt
+	$(MAKE) -C particles
+	$(MAKE) -C ds
+	$(MAKE) -C ds_nogc
+	$(MAKE) -C ds_bounded
+
+publish:
+	$(MAKE) -C particles publish
+	$(MAKE) -C ds publish
+	$(MAKE) -C ds_nogc publish
+	$(MAKE) -C ds_bounded publish
+
+bench:
+	$(MAKE) -C particles bench
+	$(MAKE) -C ds bench
+	$(MAKE) -C ds_nogc bench
+	$(MAKE) -C ds_bounded bench
+
+bench_per_particles:
+	$(MAKE) -C particles bench_per_particles
+	$(MAKE) -C ds bench_per_particles
+	echo "Skip:" $(MAKE) -C ds_nogc bench_per_particles
+	$(MAKE) -C ds_bounded bench_per_particles
+
+bench_per_steps:
+	$(MAKE) -C particles bench_per_steps
+	$(MAKE) -C ds bench_per_steps
+	$(MAKE) -C ds_nogc bench_per_steps
+	$(MAKE) -C ds_bounded bench_per_steps
+
+bench_mem_ideal:
+	$(MAKE) -C particles bench_mem_ideal
+	$(MAKE) -C ds bench_mem_ideal
+	$(MAKE) -C ds_nogc bench_mem_ideal
+	$(MAKE) -C ds_bounded bench_mem_ideal
+
+.PHONY: $(INFERENCE_CMA) $(INFERENCE_CMXA) publish bench
+
+byte: $(NAME)
+opt: $(NAME).opt
+
+$(NAME): $(INFERENCE_CMA) array_misc.ml $(NAME).ml main.ml
+	$(OCAMLC) -o $(NAME) -I $(ZLLIB) -I $(INFERLIB) \
+		$+
+
+$(NAME).opt: $(INFERENCE_CMXA) array_misc.ml $(NAME).ml main.ml
+	$(OCAMLOPT) -o $(NAME).opt -I $(ZLLIB) -I $(INFERLIB) \
+		$+
+
+
+$(NAME).ml main.ml: $(INFERENCE_ZCI) array_misc.zci $(NAME).zls
+	zeluc -I $(INFERLIB) -s main $(NAME).zls
+
+%.zci: %.zli
+	zeluc -I $(INFERLIB) $<
+
+%.cmo: %.ml
+	ocamlc -c -I $(ZLLIB) -I $(INFERLIB) $<
+
+$(INFERENCE_CMA):
+	$(MAKE) -C $(INFERLIB) inference.cma
+
+$(INFERENCE_CMXA):
+	$(MAKE) -C $(INFERLIB) inference.cmxa
+
+$(INFERENCE_ZCI):
+	$(MAKE) -C $(INFERLIB) byte
+
+clean:
+	-rm -f *.zc*
+	-rm -f *.cm* *.o
+	-rm -f $(NAME).ml main.ml
+	-rm -f gen_data.ml main.ml
+	$(MAKE) -C particles clean
+	$(MAKE) -C ds clean
+	$(MAKE) -C ds_nogc clean
+	$(MAKE) -C ds_bounded clean
+
+cleanall: clean
+	-rm -f $(NAME) $(NAME).opt
+	-rm -f gen_data gen_data.opt
+	-rm -f *~
+	$(MAKE) -C particles cleanall
+	$(MAKE) -C ds cleanall
+	$(MAKE) -C ds_nogc cleanall
+	$(MAKE) -C ds_bounded cleanall
