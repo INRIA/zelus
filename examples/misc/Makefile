@@ -1,5 +1,3 @@
-include ../../config
-
 ZLEXTRALIBS = $(ZLGTKLIBS)
 
 EXAMPLE=count.zls \
@@ -44,3 +42,6 @@ realclean cleanall: clean
 .zls.ml:
 	$(ZELUC) $(ZELUCFLAGS) -s main -gtk2 $<
 	mv main.ml $(<:.zls=)_main.ml
+
+include ../../config
+
