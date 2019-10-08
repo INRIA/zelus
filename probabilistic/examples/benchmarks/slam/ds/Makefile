@@ -32,7 +32,7 @@ byte: $(NAME)
 opt: $(NAME).opt
 
 publish:
-	cp $(CSV_FILES) $(PPL-ZELUS)/data/coin/ds
+	cp $(CSV_FILES) $(PPL-ZELUS)/data/slam/ds
 
 bench: bench_per_particles bench_per_steps bench_mem_ideal
 
