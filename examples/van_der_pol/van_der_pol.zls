@@ -26,7 +26,7 @@ let node van_der_pol_discrete(h)() = (x, y) where
 
 		 
 let h_discrete_old = 0.000001
-let h_discrete = 0.14
+let h_discrete = 0.15
 let stop_time = 50.0
     (* 50 000 000 *)
 
@@ -51,8 +51,8 @@ let node maind() =
   print_x_y (time, x, y)
    
    
-let h_continuous = 0.5
-
+let h_continuous = 1.0
+    
 (* The main simulation loop in discrete-time but with the model *)
 (* in continuous-time and simulated with a variable step numeric solver *)
 let node maincgraphics() =
