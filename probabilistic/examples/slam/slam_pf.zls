@@ -73,7 +73,7 @@ let real_map =
 
 let node main () =
   let rec map_dist, pos_dist = Distribution.split (infer 1000 slam (obs, dir))
-  and dir = Right -> (slam_ctrl (event, (Distribution.Dist_support []) fby pos_dist))
+  and dir = Right -> (slam_ctrl (event,  Distribution.uniform_int(0, max_pos) fby pos_dist))
   and (obs, real_x) = slam_obs real_map dir
   and event = Array_misc.input ()
   in
