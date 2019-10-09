@@ -87,7 +87,7 @@ let array_flatten arr =
   let res = Array.make (l1 * l2) arr.(0).(0) in
   for i = 0 to l1 - 1 do
     for j = 0 to l2 - 1 do
-      res.(i * l1 + j) <- arr.(i).(j)
+      res.(i * l2 + j) <- arr.(i).(j)
     done
   done;
   res
