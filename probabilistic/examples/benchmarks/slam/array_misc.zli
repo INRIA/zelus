@@ -30,3 +30,4 @@ val error : bool array * int -> float Distribution.t array -> int Distribution.t
 
 val print_bool : bool -AD-> unit
 val print_map : bool array -AD-> unit
+val print_map_d : float Distribution.t array -AD-> unit

@@ -180,6 +180,7 @@ module Make(M: sig
     let mems_runs = Array.make num_runs [||] in
     for idx = 0 to num_runs - 1 do
       let mse, times, mems = run inp in
+      Format.printf ".@?";
       mse_runs.(idx) <- mse;
       times_runs.(idx) <- times;
       mems_runs.(idx) <- mems
@@ -193,6 +194,8 @@ module Make(M: sig
     let mems_runs_particles = Array.make len (0, [||]) in
     List.iteri
       (fun idx particles ->
+         Format.printf "@.%d: start %d runs (+%d warmups) for %d particles@?"
+           idx num_runs !Config.warmup particles;
          Config.parts := particles;
          do_warmup !Config.warmup inp;
          let mse_runs, times_runs, mems_runs = do_runs num_runs inp in

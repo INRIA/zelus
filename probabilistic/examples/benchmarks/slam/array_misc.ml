@@ -3,7 +3,7 @@ open Ztypes
 let sensor_noise = 0.1
 let wheel_noise = 0.1
 
-let max_pos = 50
+let max_pos = 10
 
 type 'a t = 'a array
 
@@ -57,6 +57,10 @@ let random n theta =
 let float_of_bool b =
   if b then 1. else 0.
 
+let color_diff expected actual =
+  let b = actual > 0.5 in
+  if expected = b then 0. else 1.
+
 let error (map, x) map_d d_x =
   let len = Array.length map in
   let e = ref ((float x -. Distribution.mean_int d_x) ** 2.) in
@@ -70,3 +74,8 @@ let print_bool b =
 
 let print_map map =
   Array.iter (fun b -> print_bool b;  print_string ", ") map
+
+
+let print_map_d d_map =
+  let m = Array.map (fun d -> mean_float d > 0.5) d_map in
+  print_map m

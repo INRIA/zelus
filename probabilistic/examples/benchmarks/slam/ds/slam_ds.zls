@@ -12,7 +12,7 @@ let proba move (x_init, cmd) = x where
 
 let proba read (obs) = o where
   rec error = sample (bernoulli (const sensor_noise))
-  and o = if eval error then obs else not obs
+  and o = if eval error then not obs else obs
 
 let proba beta_priors i = sample (beta (1., 1.))
 
@@ -31,5 +31,7 @@ let node main particles (tr, observed) =
   let error = Array_misc.error tr map_d x_d in
   let rec total_error = error -> (pre total_error) +. error in
   let mse = total_error /. t in
-
+  (* print_float t; print_string ": "; *)
+  (* Array_misc.print_map_d map_d; *)
+  (* (\* print_float mse; *\) print_newline (); *)
   (), mse

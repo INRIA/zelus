@@ -12,7 +12,7 @@ let proba move (x_init, cmd) = x where
 
 let proba read (obs) = o where
   rec error = sample (bernoulli (const sensor_noise))
-  and o = if eval error then obs else not obs
+  and o = if eval error then not obs else obs
 
 let proba beta_priors i = sample (beta (1., 1.))
 
