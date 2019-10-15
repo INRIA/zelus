@@ -85,9 +85,11 @@ let array_flatten arr =
   let l1 = Array.length arr in
   let l2 = Array.length arr.(0) in
   let res = Array.make (l1 * l2) arr.(0).(0) in
+  let k = ref 0 in
   for i = 0 to l1 - 1 do
     for j = 0 to l2 - 1 do
-      res.(i * l2 + j) <- arr.(i).(j)
+      res.(!k) <- arr.(i).(j);
+      incr k;
     done
   done;
   res
@@ -146,6 +148,35 @@ module Make(M: sig
       | Some _, Some _ -> assert false
     end
 
+  let stats arr =
+    (* Format.printf "XXXXXX "; *)
+    (* let carr = Array.copy arr in *)
+    (* (\* Array.sort compare carr; *\) *)
+    (* Array.iter (fun x -> Format.printf "%f, " x) carr; *)
+    (* Format.printf "XXXXXX@."; *)
+
+    let len_i = Array.length arr in
+    let len = float_of_int len_i in
+    Array.sort compare arr;
+    let upper_idx = min (len_i - 1) (truncate (len *. Config.upper_quantile +. 0.5)) in
+    let lower_idx = min (len_i - 1) (truncate (len *. Config.lower_quantile +. 0.5)) in
+    let middle_idx = min (len_i - 1) (truncate (len *. Config.middle_quantile +. 0.5)) in
+    (Array.get arr lower_idx, Array.get arr middle_idx, Array.get arr upper_idx)
+
+  let stats_per_particles x_runs_particles =
+    Array.map
+      (fun (particles, runs) ->
+         (particles, stats (array_flatten runs)))
+      x_runs_particles
+
+  let stats_per_step x_runs_particles =
+    Array.map
+      (fun (particles, runs) ->
+         let steps = array_transpose runs in
+         (particles, Array.map (fun a -> stats a) steps))
+      x_runs_particles
+
+
   let do_warmup n inp =
     let step = get_step () in
     Gc.compact ();
@@ -194,38 +225,20 @@ module Make(M: sig
     let mems_runs_particles = Array.make len (0, [||]) in
     List.iteri
       (fun idx particles ->
-         Format.printf "@.%d: start %d runs (+%d warmups) for %d particles@?"
+         Format.printf "%d: start %d runs (+%d warmups) for %d particles@?"
            idx num_runs !Config.warmup particles;
          Config.parts := particles;
          do_warmup !Config.warmup inp;
          let mse_runs, times_runs, mems_runs = do_runs num_runs inp in
          mse_runs_particles.(idx) <- (particles, mse_runs);
          times_runs_particles.(idx) <- (particles, times_runs);
-         mems_runs_particles.(idx) <- (particles, mems_runs))
+         mems_runs_particles.(idx) <- (particles, mems_runs);
+         let _, mse_mean, _ = stats (Array.copy mse_runs) in
+         let _, time_mean, _ = stats (array_flatten times_runs) in
+         Format.printf "\nMeans: accuracy = %f, times = %f@."
+           mse_mean time_mean)
       particles_list;
     mse_runs_particles, times_runs_particles, mems_runs_particles
-
-  let stats arr =
-    let len_i = Array.length arr in
-    let len = float_of_int len_i in
-    Array.sort compare arr;
-    let upper_idx = min (len_i - 1) (truncate (len *. Config.upper_quantile +. 0.5)) in
-    let lower_idx = min (len_i - 1) (truncate (len *. Config.lower_quantile +. 0.5)) in
-    let middle_idx = min (len_i - 1) (truncate (len *. Config.middle_quantile +. 0.5)) in
-    (Array.get arr lower_idx, Array.get arr middle_idx, Array.get arr upper_idx)
-
-  let stats_per_particles x_runs_particles =
-    Array.map
-      (fun (particles, runs) ->
-         (particles, stats (array_flatten runs)))
-      x_runs_particles
-
-  let stats_per_step x_runs_particles =
-    Array.map
-      (fun (particles, runs) ->
-         let steps = array_transpose runs in
-         (particles, Array.map (fun a -> stats a) steps))
-      x_runs_particles
 
   let output_stats_per_particles file value stats =
     let ch = open_out file in

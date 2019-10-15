@@ -21,6 +21,8 @@ MIN=100
 MAX=100
 INCR=2
 NUMRUNS=10
+WARMUP=1
+
 CSV_FILES=perf.csv perf-step.csv mem.csv mem-ideal.csv accuracy.csv
 
 all: opt
@@ -38,6 +40,7 @@ bench: bench_per_steps bench_mem_ideal
 
 bench_per_particles: $(NAME).opt
 	time cat ../data | ./$(NAME).opt \
+			-w $(WARMUP) \
 			-num-runs $(NUMRUNS) \
 			-min-particles $(MIN) \
 			-max-particles $(MAX) \
@@ -47,6 +50,7 @@ bench_per_particles: $(NAME).opt
 
 bench_per_steps: $(NAME).opt
 	time cat ../data | ./$(NAME).opt \
+			-w $(WARMUP) \
 			-num-runs $(NUMRUNS) \
 			-particles $(MAX) \
 			-perf-step perf-step.csv \
@@ -54,6 +58,7 @@ bench_per_steps: $(NAME).opt
 
 bench_mem_ideal: $(NAME).opt
 	time cat ../data | ./$(NAME).opt \
+			-w 0 \
 			-num-runs 1 \
 			-particles $(MAX) \
 			-mem-ideal-step mem-ideal.csv

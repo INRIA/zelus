@@ -32,6 +32,6 @@ let node main particles (tr, observed) =
   let rec total_error = error -> (pre total_error) +. error in
   let mse = total_error /. t in
   (* print_float t; print_string ": "; *)
-  (* Array_misc.print_map_d map_d; *)
-  (* (\* print_float mse; *\) print_newline (); *)
+  (* print_float mse; print_newline (); *)
+  (* Array_misc.print_map_d map_d; print_newline (); *)
   (), mse
