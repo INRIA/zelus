@@ -836,7 +836,7 @@ let rec to_signal (d: ('a * bool) t) : 'a t * bool =
   end
 
 
-(** [stats_float d] computes the mean and stddev of a [float
+(** [stats_float d] computes the mean and variance of a [float
     Distribution.t].
 *)
 let rec stats_float dist =
@@ -846,8 +846,8 @@ let rec stats_float dist =
       begin match n with
       | 100000 ->
 	let mean = sum /. (float n) in
-	let stddev = sqrt (sq_sum /. (float n) -. mean *. mean) in
-	mean, stddev
+	let var = sq_sum /. (float n) -. mean *. mean in
+	mean, var
       | _ ->
 	let x = draw () in
 	stats (n+1) (sum +. x) (sq_sum +. x*.x)
@@ -868,8 +868,8 @@ let rec stats_float dist =
       begin match sup with
       | [] ->
 	let mean = sum in
-	let stddev = sqrt (sq_sum -. mean *. mean) in
-	mean, stddev
+	let var = sq_sum -. mean *. mean in
+	mean, var
       | (v,w) :: t ->
 	stats t (sum +. v *. w) (sq_sum +. w *. v *. v)
       end
@@ -880,8 +880,8 @@ let rec stats_float dist =
         begin match l with
         | [] ->
             let mean = sum in
-            let std = sqrt (sq_var_sum +. sq_sum -. sum *. sum) in
-            (mean, std)
+            let var = sq_var_sum +. sq_sum -. sum *. sum in
+            (mean, var)
         | (d, w) :: l ->
             let m, s = stats_float d in
             stats l
@@ -934,7 +934,7 @@ let rec mean_float d =
   end
 
 
-(** [stats_float_list d] computes the mean and stddev of a
+(** [stats_float_list d] computes the mean and variance of a
     [float list Distribution.t].
 *)
 let stats_float_list d =
