@@ -24,3 +24,5 @@ val output : bool t -> int ->
 
 val output_ds : bool t -> int ->
     bool -> float t Distribution.t -> int Distribution.t -AD-> unit
+
+val error : bool array * int -> float Distribution.t array -> int Distribution.t -> float

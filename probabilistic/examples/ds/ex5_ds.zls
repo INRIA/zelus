@@ -1,0 +1,20 @@
+open Distribution
+(* open Infer_ds_gc *)
+
+
+open Infer_pf
+let const x = x
+
+
+let proba f () = x where
+  rec x = sample(gaussian (const 0., 1.) fby gaussian(x, 1.))
+
+(* let proba f () = sample x where *)
+(*   rec x = gaussian (const 0., 1.) fby gaussian(sample(x), 1.) *)
+
+let node main () =
+  let d = infer 100000 f () in
+  let mean, var = stats_float d in
+  print_float mean; print_string " ";
+  print_float var; print_newline()
+

@@ -57,6 +57,7 @@ let print_map_dist a =
 let init_graph max_pos =
   let size = " "^(string_of_int ((max_pos + 1) * 50))^"x100" in
   Graphics.open_graph size;
+  Graphics.set_window_title "SLAM";
   Graphics.auto_synchronize false;
   Format.printf "Press in the graphic window:@.";
   Format.printf "- 'l' to go left@.";
@@ -169,3 +170,18 @@ let output_ds =
     (fun _ -> assert false)
     (* (fun real_map real_x obs map_dist pos_dist -> *)
     (*    print_map_dist map_dist) *)
+
+let float_of_bool b =
+  if b then 1. else 0.
+
+let color_diff expected actual =
+  let b = actual > 0.5 in
+  if expected = b then 0. else 1.
+
+let error (map, x) map_d d_x =
+  let len = Array.length map in
+  let e = ref ((float x -. Distribution.mean_int d_x) ** 2.) in
+  for i = 0 to len - 1 do
+    e := !e +. (float_of_bool map.(i) -. mean_float map_d.(i)) ** 2.
+  done;
+  !e

@@ -86,9 +86,9 @@ let real_map =
   (*     true; false; *)
   (*     true; false; *)
   (*     true; false; true ] *)
-  Array_misc.of_list
-    [ false; true; true; true; true; false; false; true; false; true; true ]
-  (* Array_misc.random (max_pos + 1) 0.6 *)
+  (* Array_misc.of_list *)
+  (*   [ false; true; true; true; true; false; false; true; false; true; true ] *)
+  Array_misc.random (max_pos + 1) 0.6
 
 let node main () =
   let rec map_dist, pos_dist = Distribution.split (infer 600 slam (obs, dir))

@@ -10,7 +10,7 @@ OCAMLDEP=ocamldep
 OCAMLC=ocamlc
 OCAMLOPT=ocamlopt
 
-NAME=ex3_ds
+NAME=ex5_ds
 
 all: opt
 

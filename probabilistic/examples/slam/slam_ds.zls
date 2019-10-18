@@ -66,12 +66,20 @@ let real_map =
   (*     true; false; *)
   (*     true; false; *)
   (*     true; false; true ] *)
+  (* Array_misc.of_list *)
+  (*   [ false; true; true; true; true; false; false; true; false; true; true ] *)
   Array_misc.random (max_pos + 1) 0.6
 
 let node main () =
-  let rec map_dist, pos_dist = Distribution.split (infer 1000 slam (obs, dir))
+  let rec map_dist, pos_dist = Distribution.split (infer 600 slam (obs, dir))
   and dir = Right -> (slam_ctrl (event, Distribution.uniform_int(0, max_pos) fby pos_dist))
   and (obs, real_x) = slam_obs real_map dir
   and event = Array_misc.input ()
   in
+  let rec t = 1. fby (t +. 1.) in
+  let map_d = Distribution.split_array map_dist in
+  let error = Array_misc.error (real_map, real_x) map_d pos_dist in
+  let rec total_error = error -> (pre total_error) +. error in
+  let mse = total_error /. t in
+  print_float t; print_string ": "; print_float mse; print_newline();
   Array_misc.output_ds real_map real_x obs map_dist pos_dist
