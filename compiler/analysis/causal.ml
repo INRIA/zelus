@@ -357,16 +357,17 @@ let rec ins_and_outs_of_a_type is_right (inputs, outputs) tc =
       if is_right then inputs, S.add c outputs else S.add c inputs, outputs
 
 (* build O(c) *)
-let rec out c =
-  let rec outrec acc c =
-    let c = crepr c in
-    match c.c_desc with
-    | Clink(link) -> outrec acc link
-    | Cvar ->
-       let acc = if is_an_output c then S.add c acc else acc in
-       List.fold_left outrec acc c.c_sup in
-  outrec S.empty c  
+let rec outrec acc c =
+  let c = crepr c in
+  match c.c_desc with
+  | Clink(link) -> outrec acc link
+  | Cvar ->
+     let acc = if is_an_output c then S.add c acc else acc in
+     List.fold_left outrec acc c.c_sup
 
+let out c = outrec S.empty c  
+let outset cset = S.fold (fun c acc -> outrec acc c) cset S.empty
+		      
 (* compute io(c) *)
 (* io(c) = {i in I / O(c) subseteq O(i) } *)
 let rec io inputs o_table c =
@@ -385,26 +386,71 @@ let build_o_table c_set o_table =
 let build_io_table inputs o_table c_set io_table =
   S.fold (fun i acc -> M.add i (io inputs o_table i) acc) c_set io_table
 
-(* build a ki table [io -> c] with a unique variable per io set *)
+(*
 let build_ki_table io_table =
   let ki_table =
     M.fold
       (fun i io acc ->
-         if K.mem io acc then acc else K.add io (new_gen_var ()) acc)
+       if K.mem io acc then acc
+       else K.add io (new_gen_var ()) acc)
       io_table K.empty in
   (* then add relation between them according to io. *)
-  (* if ki(io1) = c1 and ki(io2) = c2, c1 < c2 iff io(c1) subset io(c2) *)
+  (* if ki(io1) = c1 and ki(io2) = c2, c1 < c2 iff (io(c1) subset io(c2)) *)
   K.iter
     (fun io_i ki_i ->
        K.iter
          (fun io_j ki_j ->
             let c = S.compare io_i io_j in
             if c = 0 then ()
-            else if S.subset io_i io_j then less_c ki_i ki_j)
+            else
+	      if S.subset io_i io_j then less_c ki_i ki_j)
          ki_table)
     ki_table;
   ki_table
-    
+ *)
+
+(* build a ki table [io -> c] with a unique variable per io set *)
+(* and for every [c] the set of greater elements *)
+let build_ki_table io_table =
+  let ki_table =
+    M.fold
+      (fun i io acc ->
+       if K.mem io acc then acc
+       else K.add io (new_gen_var ()) acc)
+      io_table K.empty in
+  (* then add relation between them according to io. *)
+  (* if ki(io1) = c1 and ki(io2) = c2, c1 < c2 iff (io(c1) subset io(c2)) *)
+  let dep =
+    K.fold
+    (fun io_i ki_i acc ->
+       K.fold
+         (fun io_j ki_j acc ->
+            let c = S.compare io_i io_j in
+            if c = 0 then acc
+            else
+	      if S.subset io_i io_j then
+		try
+		  let c_set = M.find ki_i acc in
+		  M.add ki_i (S.add ki_j c_set) acc
+		with Not_found -> M.add ki_i (S.singleton ki_j) acc
+	      else acc)
+	 ki_table acc)
+    ki_table M.empty in
+  ki_table, dep
+
+(* Given a depdence relation [ai < ai1,..., ain] *)
+(* keep only dependences [a-k < b+k'] *)
+let filter dep =
+  (* only keep a dependence a-k < b+k' *)
+  let keep c_left c_right =
+    let c_left = crepr c_left in
+    let c_right = crepr c_right in
+    match c_left.c_polarity, c_right.c_polarity with
+    | (Pminus | Pplusminus), (Pplus | Pplusminus) -> true | _ -> false in
+  M.fold
+    (fun c_left c_set acc -> M.add c_left (S.filter (keep c_left) c_set) acc)
+    dep M.empty
+
 (* simplifies a causality type *)
 let simplify_by_io tc =
   let inputs, outputs =
@@ -418,17 +464,27 @@ let simplify_by_io tc =
   let io_table = build_io_table inputs o_table inputs_outputs M.empty in
 
   (* the ki table associates a unique variable per io set *)
-  let ki_table = build_ki_table io_table in 
+  let ki_table, dep = build_ki_table io_table in 
   
-  (* finally, return a type where every variable is *)
-  (* replaced by its ki *)
+  (* computes a type where every variable is replaced by its ki *)
   let rec copy tc =
     match tc with
     | Cfun(tc1, tc2) -> Cfun(copy tc1, copy tc2)
     | Cproduct(tc_list) -> Cproduct(List.map copy tc_list)
     | Catom(c) -> Catom(K.find (M.find c io_table) ki_table) in
-  copy tc
-  
+
+  let tc = copy tc in
+  (* computes polarities *)
+  polarity true tc;
+  (* final clean: only keep dependences [a-k < b+k'] *)
+  let dep = filter dep in
+  (* physically apply the dependences *)
+  M.iter
+    (fun c_left c_set ->
+     S.iter (fun c_right -> less_c c_left c_right) c_set) dep;
+  tc
+
+   
 (* An other simplification method *)
 (* Garbage collection: only keep dependences of the form a- < b+ *)
 (* this step is done after having called the function mark *)
