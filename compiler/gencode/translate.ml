@@ -503,8 +503,8 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
   | Zelus.Eop(Zelus.Eatomic, [e]) ->
      exp env loop_path code e  
   | Zelus.Elet _ | Zelus.Eseq _ | Zelus.Eperiod _ 
-  | Zelus.Eop _ | Zelus.Epresent _ | Zelus.Ematch _ | Zelus.Eblock _ ->
-						       assert false
+  | Zelus.Eop _ | Zelus.Epresent _
+  | Zelus.Ematch _ | Zelus.Eblock _ -> assert false
   | Zelus.Eapp(_, e_fun, e_list) ->
      (* compute the sequence of static arguments and non static ones *)
      let se_list, ne_list, ty_res =
