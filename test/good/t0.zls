@@ -1,8 +1,16 @@
-let node f(x1, x2, x3) =
-  (x1 + x2,
-   x1 + x2,
-   x1 + x2 + x3,
-   x2 + x3)
+let node f(x) =
+  local y init 0
+  do
+    y = last y + 1
+  in y + 1
+
+let node g(x) =
+  local y default 0
+  do
+    match x with | true -> do y = 1 done | false -> do done
+  in y + 1
+
+    
 
     
 (* let node one (o1, o2) = o where
