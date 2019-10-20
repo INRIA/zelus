@@ -386,29 +386,6 @@ let build_o_table c_set o_table =
 let build_io_table inputs o_table c_set io_table =
   S.fold (fun i acc -> M.add i (io inputs o_table i) acc) c_set io_table
 
-(*
-let build_ki_table io_table =
-  let ki_table =
-    M.fold
-      (fun i io acc ->
-       if K.mem io acc then acc
-       else K.add io (new_gen_var ()) acc)
-      io_table K.empty in
-  (* then add relation between them according to io. *)
-  (* if ki(io1) = c1 and ki(io2) = c2, c1 < c2 iff (io(c1) subset io(c2)) *)
-  K.iter
-    (fun io_i ki_i ->
-       K.iter
-         (fun io_j ki_j ->
-            let c = S.compare io_i io_j in
-            if c = 0 then ()
-            else
-	      if S.subset io_i io_j then less_c ki_i ki_j)
-         ki_table)
-    ki_table;
-  ki_table
- *)
-
 (* build a ki table [io -> c] with a unique variable per io set *)
 (* and for every [c] the set of greater elements *)
 let build_ki_table io_table =
