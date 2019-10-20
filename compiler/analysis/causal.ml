@@ -415,7 +415,7 @@ let build_ki_table io_table =
     ki_table M.empty in
   ki_table, dep
 
-(* Given a depdence relation [ai < ai1,..., ain] *)
+(* Given a dependence relation [ai < ai1,..., ain] *)
 (* keep only dependences [a-k < b+k'] *)
 let filter dep =
   (* only keep a dependence a-k < b+k' *)
