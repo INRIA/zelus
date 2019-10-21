@@ -23,6 +23,7 @@ type _ t =
   | Dist_uniform_int : int * int -> int t
   | Dist_uniform_float : float * float -> float t
   | Dist_exponential : float -> float t
+  | Dist_poisson : float -> int t
   | Dist_plus : float t * float t -> float t
   | Dist_mult : float t * float t -> float t
   | Dist_app : ('a -> 'b) t * 'a t -> 'b t
@@ -36,7 +37,9 @@ module Map_float = Map.Make(struct
     let compare x y = compare x y
   end)
 
-let two_pi = 2.0 *. 3.14159265358979323846
+let pi = 4. *. atan 1.
+let two_pi = 2.0 *. pi
+let sqrt_two_pi = sqrt two_pi
 
 let flatten_suport op s1 s2 =
   let support =
@@ -53,6 +56,30 @@ let flatten_suport op s1 s2 =
       s1
   in
   Map_float.fold (fun v p acc -> (v, p)::acc) support []
+
+
+module Stirling = struct
+  let e = exp 1.
+
+  (* Stirling method *)
+  let gamma z =
+    sqrt_two_pi /. sqrt z *. (z /. e) ** z
+end
+
+module Stirling2 = struct
+  (* Extended Stirling method seen in Abramowitz and Stegun *)
+  let d = [| 1./.12.; 1./.288.; -139./.51840.; -571./.2488320. |]
+
+  let rec corr z x n =
+    if n < Array.length d - 1 then d.(n) /. x +. corr z (x *. z) (succ n)
+    else d.(n) /. x
+
+  let gamma z = Stirling.gamma z *. (1. +. corr z z 0)
+end
+
+let log_gamma x =
+  (* XXX TODO: better implementation XXX *)
+  log (Stirling2.gamma x)
 
 (** {2 Distributions} *)
 
@@ -272,6 +299,32 @@ let exponential lambda =
   Dist_exponential lambda
 
 
+(** [poisson lambda] is an poisson distribution of parameter lambda.
+    @see<https://en.wikipedia.org/wiki/Poisson_distribution>
+ *)
+
+let poisson_draw lambda =
+  let rec draw t k =
+    let t = t +. exponential_draw lambda in
+    if t > 1. then k
+    else draw t (k+1)
+  in
+  draw 0. 0
+
+let poisson_score lambda x =
+   float_of_int x *. log lambda -. lambda -. log_gamma (float_of_int (x + 1))
+
+let poisson_mean lambda =
+  lambda
+
+let poisson_variance lambda =
+  lambda
+
+let poisson lambda =
+  assert (lambda > 0.);
+  Dist_poisson lambda
+
+
 (** [alias_method_unsafe values probabilities] is the [alias_method]
     where the arrays [values] and [probabilities] are not copied.
 *)
@@ -421,6 +474,7 @@ let rec to_dist_support : type a. a t -> a t =
       Dist_support (build b [])
   | Dist_uniform_float (_, _) -> assert false
   | Dist_exponential _ -> assert false
+  | Dist_poisson _ -> assert false
   | Dist_plus (d1, d2) ->
       begin match to_dist_support d1, to_dist_support d2 with
       | Dist_support s1, Dist_support s2 ->
@@ -464,6 +518,7 @@ let rec draw : type a. a t -> a =
     | Dist_uniform_int (a, b) -> uniform_int_draw a b
     | Dist_uniform_float (a, b) -> uniform_float_draw a b
     | Dist_exponential lambda -> exponential_draw lambda
+    | Dist_poisson lambda -> poisson_draw lambda
     | Dist_pair (d1, d2) ->
         (draw d1, draw d2)
     | Dist_list a ->
@@ -502,6 +557,7 @@ let rec score : type a. a t * a -> log_proba =
     | Dist_uniform_int (a, b) -> uniform_int_score a b x
     | Dist_uniform_float (a, b) -> uniform_float_score a b x
     | Dist_exponential lambda -> exponential_score lambda x
+    | Dist_poisson lambda -> poisson_score lambda x
     | Dist_pair (d1, d2) ->
         (* XXX TO CHECK XXX *)
         let v1, v2 = x in
@@ -588,6 +644,9 @@ let draw_and_score : type a. a t -> a * log_proba =
       let x = draw dist in
       (x, score (dist, x))
     | Dist_exponential _ ->
+      let x = draw dist in
+      (x, score (dist, x))
+    | Dist_poisson _ ->
       let x = draw dist in
       (x, score (dist, x))
     | Dist_plus _ ->
@@ -968,6 +1027,8 @@ let rec mean : type a. (a -> float) -> a t -> float =
         sample_mean meanfn (fun () -> uniform_float_draw a b)
     | Dist_exponential lambda ->
         sample_mean meanfn (fun () -> exponential_draw lambda)
+    | Dist_poisson lambda ->
+        sample_mean meanfn (fun () -> poisson_draw lambda)
     | Dist_support sup ->
       List.fold_left (fun acc (v, w) -> acc +. w *. (meanfn v)) 0. sup
     | Dist_mixture l ->
@@ -1014,6 +1075,8 @@ let rec mean_int (d: int t) =
   | Dist_app (_, _) ->
       mean_int (Dist_sampler ((fun () -> draw d), (fun _ -> assert false)))
   | Dist_uniform_int (a, b) -> uniform_int_mean a b
+  | Dist_poisson a ->
+      poisson_mean a
   end
 
 (** [mean_bool d] computes the mean of a [bool Distribution.t]. *)

@@ -75,6 +75,12 @@ val exponential_mean : float -> float
 val exponential_variance : float -> float
 val exponential : float -> float t
 
+val poisson_draw : float -> int
+val poisson_score : float -> float -> float
+val poisson_mean : float -> float
+val poisson_variance : float -> float
+val poisson : float -> int t
+
 val alias_method_unsafe : 'a array -> float array -> 'a t
 val alias_method_list : ('a * float) list -> 'a t
 val alias_method : 'a array -> float array -> 'a t
