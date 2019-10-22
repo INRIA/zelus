@@ -57,27 +57,27 @@ bench_mem_ideal:
 byte: $(NAME)
 opt: $(NAME).opt
 
-$(NAME): $(INFERENCE_CMA) util.ml listD.ml $(NAME).ml main.ml
+$(NAME): $(INFERENCE_CMA) util.ml listP.ml $(NAME).ml main.ml
 	ocamlfind $(OCAMLC) -o $(NAME) -I $(ZLLIB) -I $(INFERLIB) \
 		-I $(OWLLIB) -I $(OWLLIB)/_build/default \
 		-I $(OWLLIB)/_build/default/.zelus_owl.objs/byte \
 		-I $(OWLLIB)/_build/default/.zelus_owl.objs/native \
 		-linkpkg  -package owl \
 		$(INFERENCE_CMA) zelus_owl.cma \
-		util.ml $(NAME).ml main.ml
+		util.ml listP.ml $(NAME).ml main.ml
 
 
-$(NAME).opt: $(INFERENCE_CMXA) util.ml listD.ml $(NAME).ml main.ml
+$(NAME).opt: $(INFERENCE_CMXA) util.ml listP.ml $(NAME).ml main.ml
 	ocamlfind $(OCAMLOPT) -o $(NAME).opt -I $(ZLLIB) -I $(INFERLIB) \
 		-I $(OWLLIB) -I $(OWLLIB)/_build/default \
 		-I $(OWLLIB)/_build/default/.zelus_owl.objs/byte \
 		-I $(OWLLIB)/_build/default/.zelus_owl.objs/native \
 		-linkpkg  -package owl \
 		$(INFERENCE_CMXA) zelus_owl.cmxa \
-		util.ml listD.ml $(NAME).ml main.ml
+		util.ml listP.ml $(NAME).ml main.ml
 
 
-$(NAME).ml main.ml: $(INFERENCE_ZCI) util.zci listD.zci $(NAME).zls
+$(NAME).ml main.ml: $(INFERENCE_ZCI) util.zci listP.zci $(NAME).zls
 	$(ZELUC) -I $(INFERLIB) -I $(OWLLIB) -s main $(NAME).zls
 
 %.zci: %.zli
