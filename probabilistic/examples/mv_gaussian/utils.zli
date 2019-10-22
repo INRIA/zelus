@@ -1,0 +1,2 @@
+val mu : Owl_distribution.vector
+val sigma : Owl_distribution.matrix

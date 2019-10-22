@@ -3,7 +3,7 @@ ZLLIB=$(shell $(ZELUC) -where)
 INFERLIB=../inference
 
 
-all: byte opt owl_distribution.zci
+all: byte opt zelus_owl.zci owl_distribution.zci
 
 .phony: byte opt
 

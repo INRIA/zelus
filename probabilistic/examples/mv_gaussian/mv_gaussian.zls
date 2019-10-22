@@ -1,0 +1,11 @@
+open Zelus_owl
+open Owl_distribution
+open Infer_pf
+open Utils
+
+let proba f mu = o where
+  rec o = sample (mvgaussian(mu, sigma))
+
+let node main () =
+  let d = infer 10 f mu in
+  print_vector (Distribution.draw d)

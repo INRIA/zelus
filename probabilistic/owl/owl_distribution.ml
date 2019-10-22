@@ -18,7 +18,7 @@ let mvgaussian_scorer mu sigma x =
   -. 0.5 *. log (two_pi ** d *. Linalg.D.det sigma)
   -. 0.5 *. Mat.(get (transpose (Linalg.D.linsolve sigma x_m) *@ x_m) 0 0)
 
-let mvgaussian mu sigma =
+let mvgaussian (mu, sigma) =
   Dist_sampler (mvgaussian_sampler mu sigma, mvgaussian_scorer mu sigma)
 
 let print_vector v =
