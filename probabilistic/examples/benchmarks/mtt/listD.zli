@@ -1,0 +1,3 @@
+val map : ('a -D-> 'b) -S-> 'a list -D-> 'b list
+
+val ini : int -> (int -D-> 'a) -D-> 'a list
