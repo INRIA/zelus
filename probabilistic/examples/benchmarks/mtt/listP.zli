@@ -1,0 +1,4 @@
+val map : ('a ~D~> 'b) -S-> 'a list ~D~> 'b list
+val ini : (int ~D~> 'a) -S-> int ~D~> 'a list
+val filter : ('a ~D~> bool) -S-> 'a list ~D~> 'a list
+val iter2 : ('a * 'b ~D~> unit) -S-> ('a list * 'b list) ~D~> unit
