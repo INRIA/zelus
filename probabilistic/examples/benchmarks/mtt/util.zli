@@ -1,0 +1,14 @@
+val lst_init : int -> (int -> 'a) -> 'a list
+
+val p_dead : float
+val mu_new : Owl_distribution.vector
+val sigma_new : Owl_distribution.matrix
+val a_u : Owl_distribution.matrix
+val b_u : Owl_distribution.vector
+val sigma_update : Owl_distribution.matrix
+val mu_clutter : Owl_distribution.vector
+val sigma_clutter : Owl_distribution.matrix
+val mu_init : Owl_distribution.vector
+val sigma_init : Owl_distribution.matrix
+
+val shuffle : 'a list -> ('a list) Distribution.t

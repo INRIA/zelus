@@ -1,0 +1,16 @@
+
+let proba model inp = t where
+  rec t_survived = filter(\_. sample bernoulli p_dead)
+  and n_new = sample poisson(lambda_new)
+  and t_new = init(\_. sample mv_gaussian(mu_new, sigma_new), n_new)
+  and t_tot = t_survived ++ t_new
+  and t = map (\x. sample gaussian(A_u * x + b_u, sigma_update))
+  and obs = map (\x. gaussian(A_o * x + b_o, sigma_obs))
+  and n_clutter = inp - obs
+  and if n_clutter >= 0  then () else factor -inf
+  and clutter = present (n_clutter > 0) -> init(\_. mv_gaussian (mu_clutter, sigma_clutter), n_new)
+  and obs_shuffled = present(clutter) -> shuffle (append (obs clutter))
+  and () = present(obs_shuffled) -> iter2(\obs, inp. observe(obs, inp), obs_shuffled, inp)
+  and () = present(n_clutter >= 0) -> observe(poisson(lambda_clutter), n_clutter)
+
+

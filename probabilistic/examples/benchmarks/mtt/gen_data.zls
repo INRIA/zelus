@@ -1,0 +1,25 @@
+open Util
+open Distribution
+open Infer_pf
+
+let death_fn _ = sample (bernoulli p_dead)
+let new_track_init_fn _ = sample mv_gaussian(mu_new, sigma_new)
+
+let state_update_fn tr = sample mv_gaussian(a_u * tr + b_u, sigma_update)
+let observe_fn tr = sample mv_gaussian(a_o * tr + b_o, sigma_obs)
+
+let clutter_init_fn = mv_gaussian (mu_clutter, sigma_clutter)
+
+let track_init_fn = mv_gaussian (mu_init, sigma_init)
+
+let proba model () = obs_shuffled where
+  rec init t = lst_iter
+  and t_survived = List.filter death_fn (pre t)
+  and n_new = sample poisson lambda_new
+  and t_new = lst_init n_new new_track_init_fn
+  and t_tot = List.append t_survived t_new
+  and t = List.map state_update_fn t_tot
+  and obs = List.map observe_fn t
+  and n_clutter = sample poisson lambda_clutter
+  and clutter = lst_init n_clutter clutter_init_fn
+  and obs_shuffled = shuffle (List.append obs clutter)
