@@ -9,7 +9,7 @@ let node int2_backward(h)(x0, xprime) = x where
 (* this one diverges; errors accumulate *)
 let node sin_cos2(h)() =
   let rec si = int2_forward(h)(0.0, co)
-  and co = int2_forward(h)(1.0, -. si) in
+  and co = -. int2_forward(h)(1.0, si) in
   si, co
 
 (* this one is stable; errors compensate *)
@@ -18,10 +18,15 @@ let node sin_cos(h)() =
   and co = int2_backward(h)(1.0, -. si) in
   si, co
 
+let node sin_cos3(h)() =
+  let rec si = 0.0 -> pre(si +. co *. h)
+  and co = 1.0 -> pre(co -. si *. h) in
+  (si, co)
+    
 let h = 0.1
     
 let node main() =
-  let si, co = sin_cos2(h)() in
+  let si, co = sin_cos(h)() in
   let rec time = 0.0 -> pre time +. h in
   let s =
     Scope.scope2
