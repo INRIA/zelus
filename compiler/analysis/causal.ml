@@ -455,6 +455,7 @@ let simplify_by_io tc =
   polarity true tc;
   (* final clean: only keep dependences [a-k < b+k'] *)
   let dep = filter dep in
+  
   (* physically apply the dependences *)
   M.iter
     (fun c_left c_set ->
