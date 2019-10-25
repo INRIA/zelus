@@ -7,9 +7,11 @@ type vector = Mat.mat
 type matrix = Mat.mat
 
 let mvgaussian_sampler mu sigma () =
+  let u, s, _ = Linalg.Generic.svd sigma in 
+  let a = Mat.(u *@ (sqrt (diagm s))) in 
   let n = (Arr.shape mu).(0) in
   let xs = Arr.gaussian ~mu:0. ~sigma:1. [| n; 1 |] in
-  Mat.(mu + Linalg.D.chol sigma *@ xs)
+  Mat.(mu + a *@ xs)
 
 let mvgaussian_scorer mu sigma x =
   let two_pi = 2.0 *. 3.14159265358979323846 in
