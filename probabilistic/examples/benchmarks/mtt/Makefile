@@ -68,7 +68,7 @@ $(NAME): $(INFERENCE_CMA) util.ml listP.ml $(NAME).ml main.ml
 
 
 $(NAME).opt: $(INFERENCE_CMXA) util.ml listP.ml $(NAME).ml main.ml
-	ocamlfind $(OCAMLOPT) -o $(NAME).opt -I $(ZLLIB) -I $(INFERLIB) \
+	ocamlfind $(OCAMLOPT) -g -o $(NAME).opt -I $(ZLLIB) -I $(INFERLIB) \
 		-I $(OWLLIB) -I $(OWLLIB)/_build/default \
 		-I $(OWLLIB)/_build/default/.zelus_owl.objs/byte \
 		-I $(OWLLIB)/_build/default/.zelus_owl.objs/native \

@@ -4,8 +4,6 @@ open Zelus_owl
 open Owl_distribution
 open Infer_pf
 
-let tdiff = 1.
-
 let death_fn _ =
   draw (bernoulli p_dead)
 
@@ -15,21 +13,20 @@ let new_track_init_fn _ =
 let state_update_fn tr = 
     draw (mvgaussian(a_u *@ tr +@ b_u, sigma_update))
 
-(* let observe_fn tr = sample mv_gaussian(a_o * tr + b_o, sigma_obs) *)
+let observe_fn tr = 
+    draw (mvgaussian (proj_pos *@ tr, sigma_obs))
 
 let clutter_init_fn _ =
   draw (mvgaussian (mu_clutter, sigma_clutter))
 
-let track_init_fn _ = draw (mvgaussian (mu_init, sigma_init))
-
-let node model (obs) = obs_shuffled where
+let node model () = obs_shuffled where
   rec init t = []  (* lst_iter *)
   and t_survived = List.filter death_fn (last t)
   and n_new = draw (poisson (birth_rate *. tdiff))
   and t_new = list_init n_new new_track_init_fn
   and t_tot = List.append t_survived t_new
   and t = List.map state_update_fn t_tot
-  (* and obs = List.map observe_fn t *)
+  and obs = List.map observe_fn t
   and n_clutter = draw (poisson lambda_clutter)
   and clutter = list_init n_clutter clutter_init_fn
   and obs_shuffled = shuffle (List.append obs clutter)
@@ -37,4 +34,6 @@ let node model (obs) = obs_shuffled where
   and lambda_clutter = 1.
 
 
-let node main () = ()
+let node main () = () where
+  rec obs = model ()
+  and () = print_string (string_of_vec2_list obs)
