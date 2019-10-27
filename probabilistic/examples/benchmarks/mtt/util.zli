@@ -5,11 +5,13 @@ val list_init : int -> (int -> 'a) -> 'a list
 val tdiff : float
 
 val p_dead : float
+val lambda_new : float
 val mu_new : vector
 val sigma_new : matrix
 val a_u : matrix
 val b_u : vector
 val sigma_update : matrix
+val lambda_clutter : float
 val mu_clutter : vector
 val sigma_clutter : matrix
 val sigma_obs : matrix
