@@ -29,7 +29,7 @@ $(NAME).opt: $(INFERENCE_CMXA) utils.ml $(NAME).ml main.ml
 		-I ../../owl -I ../../owl/_build/default \
 		-I ../../owl/_build/default/.zelus_owl.objs/byte \
 		-I ../../../../owl/_build/default/.zelus_owl.objs/native \
-		-linkpkg  -package owl \
+		-linkpkg  -package owl graphics.cmxa \
 		zelus_owl.cmxa $+
 
 $(NAME).ml main.ml: $(INFERENCE_ZCI) utils.zci $(NAME).zls

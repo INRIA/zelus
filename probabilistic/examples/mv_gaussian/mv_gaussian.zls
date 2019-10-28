@@ -4,8 +4,12 @@ open Infer_pf
 open Utils
 
 let proba f mu = o where
-  rec o = sample (mvgaussian(mu, sigma))
+  rec o = sample (mvgaussian(mu, sigma x))
+  and init x = 0.
+  and automaton
+      | Up -> do x = last x +. 0.1 until (x >= 0.99) then Down
+      | Down -> do x = last x -. 0.1 until (x <= -0.99) then Up
 
 let node main () =
-  let d = infer 10 f mu in
-  print_vector (Distribution.draw d)
+  let d = infer 10000 f mu in
+  display_mvg d

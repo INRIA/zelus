@@ -1,2 +1,4 @@
 val mu : Owl_distribution.vector
-val sigma : Owl_distribution.matrix
+val sigma : float -> Owl_distribution.matrix
+
+val display_mvg : Owl_distribution.vector Distribution.t -AD-> unit
