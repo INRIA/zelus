@@ -1,0 +1,19 @@
+(env
+  (dev
+    (flags (:standard -warn-error -A))))
+
+(executable
+ (name main)
+ (libraries zelus core stdio str)
+ (ocamlc_flags -I ../../../../inference inference.cma)
+ (ocamlopt_flags -I ../../../../inference inference.cmxa))
+
+(rule
+ (targets gender_bias.ml main.ml)
+ (deps    (:src gender_bias.zls) utils.zci)
+ (action  (run zeluc -copy -I ../../../../inference -s main %{src})))
+ 
+(rule
+ (targets utils.zci)
+ (deps (:src utils.zli))
+ (action (run zeluc -copy %{src})))
