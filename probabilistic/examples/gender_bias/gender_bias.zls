@@ -1,3 +1,4 @@
+open Probzelus
 open Distribution
 open Infer_ds_gc
 open Utils
