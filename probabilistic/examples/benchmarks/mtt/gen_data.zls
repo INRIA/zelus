@@ -1,23 +1,25 @@
+open Probzelus
+open Mttlib
 open Util
 open Distribution
 open Zelus_owl
-open Owl_distribution
+open Distribution
 open Infer_pf
 
 let death_fn _ =
   draw (bernoulli p_dead)
 
 let new_track_init_fn _ =
-  draw (mvgaussian(mu_new, sigma_new))
+  draw (mv_gaussian(mu_new, sigma_new))
 
-let state_update_fn tr = 
-    draw (mvgaussian(a_u *@ tr +@ b_u, sigma_update))
+let state_update_fn tr =
+    draw (mv_gaussian(a_u *@ tr +@ b_u, sigma_update))
 
-let observe_fn tr = 
-    draw (mvgaussian (proj_pos *@ tr, sigma_obs))
+let observe_fn tr =
+    draw (mv_gaussian (proj_pos *@ tr, sigma_obs))
 
 let clutter_init_fn _ =
-  draw (mvgaussian (mu_clutter, sigma_clutter))
+  draw (mv_gaussian (mu_clutter, sigma_clutter))
 
 let node model () = t, obs_shuffled where
   rec init t = []  (* lst_iter *)

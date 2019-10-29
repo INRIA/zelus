@@ -1,21 +1,13 @@
-ZELUC=zeluc -copy
-ZLLIB=$(shell $(ZELUC) -where)
 INFERLIB=../../../inference
 OWLLIB=../../../owl
+ZELUC=zeluc -copy -I $(INFERLIB) -I $(OWLLIB) -I mttlib
 
-INFERENCE_CMA=$(INFERLIB)/inference.cma
-INFERENCE_CMXA=$(INFERLIB)/inference.cmxa
-INFERENCE_ZCI=$(INFERLIB)/distribution.zci $(INFERLIB)/infer.zci
-
-OWL_ZCI=
-
-OCAMLDEP=ocamldep
-OCAMLC=ocamlc -g
-OCAMLOPT=ocamlopt
+ZLI=$(wildcard mttlib/*.zli)
+ZCI=$(ZLI:zli=zci)
 
 NAME=gen_data
 
-all: opt
+all: build
 	$(MAKE) -C particles
 	$(MAKE) -C ds
 	$(MAKE) -C ds_nogc
@@ -36,14 +28,13 @@ bench:
 bench_per_particles:
 	$(MAKE) -C particles bench_per_particles
 	$(MAKE) -C ds bench_per_particles
-	$(MAKE) -C ds_nogc bench_per_particles
+	echo "Skip:" $(MAKE) -C ds_nogc bench_per_particles
 	$(MAKE) -C ds_bounded bench_per_particles
 
 bench_per_steps:
 	$(MAKE) -C particles bench_per_steps
 	$(MAKE) -C ds bench_per_steps
 	$(MAKE) -C ds_nogc bench_per_steps
-	$(MAKE) -C ds_bounded bench_per_steps
 	$(MAKE) -C ds_bounded bench_per_steps
 
 bench_mem_ideal:
@@ -52,62 +43,32 @@ bench_mem_ideal:
 	$(MAKE) -C ds_nogc bench_mem_ideal
 	$(MAKE) -C ds_bounded bench_mem_ideal
 
-.PHONY: $(INFERENCE_CMA) $(INFERENCE_CMXA) publish bench
+.PHONY: publish bench build
 
-byte: $(NAME)
-opt: $(NAME).opt
+build: $(ZCI) main.ml
+	dune build main.exe
 
-$(NAME): $(INFERENCE_CMA) util.ml listP.ml $(NAME).ml main.ml
-	ocamlfind $(OCAMLC) -o $(NAME) -I $(ZLLIB) -I $(INFERLIB) \
-		-I $(OWLLIB) -I $(OWLLIB)/_build/default \
-		-I $(OWLLIB)/_build/default/.zelus_owl.objs/byte \
-		-I $(OWLLIB)/_build/default/.zelus_owl.objs/native \
-		-linkpkg  -package owl \
-		$(INFERENCE_CMA) zelus_owl.cma \
-		util.ml listP.ml $(NAME).ml main.ml
-
-
-$(NAME).opt: $(INFERENCE_CMXA) util.ml listP.ml $(NAME).ml main.ml
-	ocamlfind $(OCAMLOPT) -g -o $(NAME).opt -I $(ZLLIB) -I $(INFERLIB) \
-		-I $(OWLLIB) -I $(OWLLIB)/_build/default \
-		-I $(OWLLIB)/_build/default/.zelus_owl.objs/byte \
-		-I $(OWLLIB)/_build/default/.zelus_owl.objs/native \
-		-linkpkg  -package owl \
-		$(INFERENCE_CMXA) zelus_owl.cmxa \
-		util.ml listP.ml $(NAME).ml main.ml
-
-
-$(NAME).ml main.ml: $(INFERENCE_ZCI) util.zci listP.zci $(NAME).zls
-	$(ZELUC) -I $(INFERLIB) -I $(OWLLIB) -s main $(NAME).zls
 
 %.zci: %.zli
-	$(ZELUC) -I $(INFERLIB) -I $(OWLLIB) $<
+	$(ZELUC) $<
 
-%.cmo: %.ml
-	ocamlc -c -I $(ZLLIB) -I $(INFERLIB) $<
 
-$(INFERENCE_CMA):
-	$(MAKE) -C $(INFERLIB) inference.cma
-
-$(INFERENCE_CMXA):
-	$(MAKE) -C $(INFERLIB) inference.cmxa
-
-$(INFERENCE_ZCI):
-	$(MAKE) -C $(INFERLIB) byte
+$(NAME).ml main.ml: $(NAME).zls
+	$(ZELUC) -s main $(NAME).zls
 
 clean:
 	-rm -f *.zc*
-	-rm -f *.cm* *.o
 	-rm -f $(NAME).ml main.ml
-	-rm -f gen_data.ml main.ml
+	$(MAKE) -C mttlib clean
 	$(MAKE) -C particles clean
 	$(MAKE) -C ds clean
 	$(MAKE) -C ds_nogc clean
+	$(MAKE) -C ds_bounded clean
 
 cleanall: clean
-	-rm -f $(NAME) $(NAME).opt
-	-rm -f gen_data gen_data.opt
 	-rm -f *~
+	dune clean
 	$(MAKE) -C particles cleanall
 	$(MAKE) -C ds cleanall
 	$(MAKE) -C ds_nogc cleanall
+	$(MAKE) -C ds_bounded cleanall

@@ -1,4 +1,5 @@
-open Owl_distribution
+open Probzelus
+open Maths
 
 val list_init : int -> (int -> 'a) -> 'a list
 
