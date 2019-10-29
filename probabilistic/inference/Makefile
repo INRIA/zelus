@@ -27,9 +27,9 @@ cleanall: clean
 	make -C ../owl
 
 # Dependencies
-distribution.zci: ../owl/zelus_owl.zci
-infer_ds.zci: distribution.zci ../owl/zelus_owl.zci
-infer_ds_gc.zci: distribution.zci  ../owl/zelus_owl.zci
+distribution.zci: maths.zci
+infer_ds.zci: distribution.zci
+infer_ds_gc.zci: distribution.zci
 infer_ds_gc_copy.zci: distribution.zci
 infer_importance.zci: distribution.zci
 infer_pf.zci: distribution.zci
