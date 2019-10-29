@@ -1,3 +1,5 @@
+open Maths
+
 (* type proba = float *)
 type log_proba = float
 type 'a t (* = *)
@@ -44,6 +46,8 @@ val gaussian_score : float -> float -> float -> float
 val gaussian_mean : 'a -> 'b -> 'a
 val gaussian_variance : 'a -> float -> float
 val gaussian : float * float -> float t
+
+val mv_gaussian : vector * matrix -> vector t
 
 val beta_draw : float -> float -> float
 val beta_score : float -> float -> float -> float

@@ -24,6 +24,7 @@ cleanall: clean
 
 
 # Dependencies
+distribution.zci: maths.zci
 infer_ds.zci: distribution.zci
 infer_ds_gc.zci: distribution.zci
 infer_ds_gc_copy.zci: distribution.zci
