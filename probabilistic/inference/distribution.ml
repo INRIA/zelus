@@ -1,5 +1,8 @@
 (** {2 Type definitions} *)
 
+open Zelus_owl
+open Owl_distribution
+
 (** Probabilities (must be in the interval [0, 1]). *)
 type proba = float
 
@@ -27,6 +30,7 @@ type _ t =
   | Dist_plus : float t * float t -> float t
   | Dist_mult : float t * float t -> float t
   | Dist_app : ('a -> 'b) t * 'a t -> 'b t
+  | Dist_mv_gaussian : Maths.vector * Maths.matrix -> Maths.vector t
 
 
 (** {2 Utils}*)
@@ -129,6 +133,15 @@ let gaussian_variance _mu sigma =
 
 let gaussian (mu, sigma) =
   Dist_gaussian (mu, sigma)
+
+(** [mv_gaussian(mu, sigma)] is a multivariate normal distribution of
+    mean [mu] and standard deviation [sigma].
+    @see<https://en.wikipedia.org/wiki/Multivariate_normal_distribution>
+*)
+
+let mv_gaussian (mu, sigma) =
+  Dist_mv_gaussian (mu, sigma)
+
 
 
 (** [beta(a, b)] is a beta distribution of parameters [a] and [b].
@@ -417,6 +430,8 @@ let plus : float t * float t -> float t =
   | (Dist_app (_, _), _) | (_, Dist_app (_, _)) ->
       (* XXX TODO XXX *)
       Dist_plus (dist1, dist2)
+  | (Dist_mv_gaussian (_, _), Dist_mv_gaussian (_, _)) ->
+      assert false (* XXX TODO XXX *)
   end
 
 (** [mult (d1, d2)] is the multiplication of two distributions. *)
@@ -437,6 +452,8 @@ let mult : float t * float t -> float t =
   | (Dist_mult (_, _), _) | (_, Dist_mult (_, _))
   | (Dist_app (_, _), _) | (_, Dist_app (_, _)) ->
       Dist_mult (dist1, dist2)
+  | (Dist_mv_gaussian (_, _), Dist_mv_gaussian (_, _)) ->
+      assert false (* XXX TODO XXX *)
   end
 
 (** [app (d1, d2)] is the application of two distributions. *)
@@ -458,6 +475,8 @@ let rec to_dist_support : type a. a t -> a t =
   | Dist_list _ -> assert false (* XXX TODO XXX *)
   | Dist_array _ -> assert false (* XXX TODO XXX *)
   | Dist_gaussian (_, _) -> assert false
+  | Dist_mv_gaussian (_, _) ->
+      assert false (* XXX TODO XXX *)
   | Dist_beta (_, _) -> assert false
   | Dist_bernoulli p ->
       Dist_support [ (true, p); (false, 1. -. p); ]
@@ -510,6 +529,7 @@ let rec draw : type a. a t -> a =
       let d' = draw (Dist_support l) in
       draw d'
     | Dist_gaussian (mu, sigma) -> gaussian_draw mu sigma
+    | Dist_mv_gaussian (mu, sigma) -> mv_gaussian_draw mu sigma
     | Dist_beta (a, b) -> beta_draw a b
     | Dist_bernoulli p -> bernoulli_draw p
     | Dist_uniform_int (a, b) -> uniform_int_draw a b
@@ -549,6 +569,7 @@ let rec score : type a. a t * a -> log_proba =
         in
         log p
     | Dist_gaussian (mu, sigma) -> gaussian_score mu sigma x
+    | Dist_mv_gaussian (mu, sigma) -> mv_gaussian_score mu sigma x
     | Dist_beta (a, b) -> beta_score a b x
     | Dist_bernoulli p -> bernoulli_score p x
     | Dist_uniform_int (a, b) -> uniform_int_score a b x
@@ -628,6 +649,9 @@ let draw_and_score : type a. a t -> a * log_proba =
     | Dist_gaussian _ ->
       let x = draw dist in
       (x, score (dist, x))
+    | Dist_mv_gaussian _ ->
+      let x = draw dist in
+      (x, score (dist, x))
     | Dist_beta _ ->
       let x = draw dist in
       (x, score (dist, x))
@@ -681,7 +705,8 @@ let of_pair (dist1, dist2) =
 (** [split dist] turns a distribution of pairs into a pair of
     distributions.
 *)
-let rec split dist =
+let rec split : type a b. (a * b) t -> a t * b t =
+  fun dist ->
   begin match dist with
   | Dist_sampler (draw, _score) ->
      Dist_sampler ((fun () -> fst (draw ())), (fun _ -> assert false)),
@@ -725,12 +750,14 @@ let rec split dist =
   | Dist_app (d1, d2) ->
       Dist_sampler ((fun () -> fst ((draw d1) (draw d2))), (fun _ -> assert false)),
       Dist_sampler ((fun () -> snd ((draw d1) (draw d2))), (fun _ -> assert false))
+  | Dist_mv_gaussian (_, _) -> assert false
   end
 
 (** [split_array dist] turns a distribution of arrays into an array of
     distributions.
 *)
-let rec split_array dist =
+let rec split_array : type a. a array t -> a t array =
+  fun dist ->
   begin match dist with
   | Dist_sampler (draw, _score) ->
       (* We assume that all arrays in the distribution have the same length. *)
@@ -777,13 +804,14 @@ let rec split_array dist =
            let draw () = (draw dist).(i) in
            let score _ = assert false (* XXX TODO XXX *) in
            Dist_sampler (draw, score))
+  | Dist_mv_gaussian (_, _) -> assert false
   end
 
 
 (** [split_list dist] turns a distribution of lists into a list of
     distributions.
 *)
-let rec split_list =
+let rec split_list : type a. a list t -> a t list =
   let rec map2' f1 f2 f12 l1 l2 =
     begin match l1, l2 with
       | l1, [] -> List.map f1 l1
@@ -825,6 +853,7 @@ let rec split_list =
   | Dist_list l -> l
   | Dist_app (_, _) ->
       assert false (* XXX TODO XXX *)
+  | Dist_mv_gaussian (_, _) -> assert false
   end
 
 
@@ -832,7 +861,8 @@ let rec split_list =
     mixture distribution.
     https://en.wikipedia.org/wiki/Mixture_distribution
  *)
-let rec to_mixture d =
+let rec to_mixture : type a. a t t -> a t =
+  fun d ->
   begin match d with
   | Dist_sampler (_draw, _score) ->
       assert false (* XXX TODO XXX *)
@@ -842,11 +872,13 @@ let rec to_mixture d =
       Dist_mixture (List.map (fun (d, w) -> (to_mixture d, w)) l)
   | Dist_app _ ->
       assert false (* XXX TODO XXX *)
+  | Dist_mv_gaussian (_, _) -> assert false
   end
 
 (** [to_signal d] turns a distribution of signals into a signal that
     containts the distribution of present values. *)
-let rec to_signal (d: ('a * bool) t) : 'a t * bool =
+let rec to_signal : type a. (a * bool) t -> a t * bool =
+  fun d ->
   begin match d with
   | Dist_sampler (draw, score) ->
       let rec sample () =
@@ -889,13 +921,15 @@ let rec to_signal (d: ('a * bool) t) : 'a t * bool =
       (Dist_mixture (List.map (fun (v, w) -> (v, w /. norm)) l), pres)
   | Dist_pair _ -> assert false
   | Dist_app _ -> assert false
+  | Dist_mv_gaussian (_, _) -> assert false
   end
 
 
 (** [stats_float d] computes the mean and variance of a [float
     Distribution.t].
 *)
-let rec stats_float dist =
+let rec stats_float : float t -> float * float =
+  fun dist ->
   begin match dist with
   | Dist_sampler (draw, _) ->
     let rec stats n sum sq_sum =
@@ -957,6 +991,7 @@ let rec stats_float dist =
       m1 *. m2, s1 *. s2 +. s1 *. m2 ** 2. +. m2 *. m1 ** 2.
   | Dist_app (_, _) as d ->
       stats_float (Dist_sampler ((fun () -> draw d), (fun _ -> assert false)))
+  | Dist_mv_gaussian (_, _) -> assert false
   end
 
 (** [mean_float d] computes the mean of a [float Distribution.t]. *)
@@ -987,6 +1022,7 @@ let rec mean_float d =
       m1 *. m2
   | Dist_app (_, _) ->
       mean_float (Dist_sampler ((fun () -> draw d), (fun _ -> assert false)))
+  | Dist_mv_gaussian (_, _) -> assert false
   end
 
 
@@ -1015,6 +1051,8 @@ let rec mean : type a. (a -> float) -> a t -> float =
     | Dist_sampler_float (draw, _ , _) -> sample_mean meanfn draw
     | Dist_gaussian (mu, sigma) ->
         sample_mean meanfn (fun () -> gaussian_draw mu sigma)
+    | Dist_mv_gaussian (mu, sigma) ->
+        sample_mean meanfn (fun () -> mv_gaussian_draw mu sigma)
     | Dist_beta (a, b) -> beta_draw a b
     | Dist_bernoulli p ->
         sample_mean meanfn (fun () -> bernoulli_draw p)
@@ -1074,6 +1112,7 @@ let rec mean_int (d: int t) =
   | Dist_uniform_int (a, b) -> uniform_int_mean a b
   | Dist_poisson a ->
       poisson_mean a
+  | Dist_mv_gaussian (_, _) -> assert false
   end
 
 (** [mean_bool d] computes the mean of a [bool Distribution.t]. *)
@@ -1092,11 +1131,13 @@ let rec mean_bool (d: bool t) =
     List.fold_left (fun acc (d, w) -> acc +. w *. mean_bool d) 0. l
   | Dist_app (_, _) ->
       mean_bool (Dist_sampler ((fun () -> draw d), (fun _ -> assert false)))
+  | Dist_mv_gaussian (_, _) -> assert false
   end
 
 (** [mean_signal_present d] computes the mean of the presence of ['a
     signal Distribution.t]. *)
-let rec mean_signal_present (d: (_ * bool) t) =
+let rec mean_signal_present : type a. (a * bool) t -> float =
+  fun d ->
   begin match d with
   | Dist_sampler (draw, _) ->
     let n = 100000 in
@@ -1112,5 +1153,6 @@ let rec mean_signal_present (d: (_ * bool) t) =
   | Dist_app (_, _) ->
       mean_signal_present
         (Dist_sampler ((fun () -> draw d), (fun _ -> assert false)))
+  | Dist_mv_gaussian (_, _) -> assert false
   end
 

@@ -1,3 +1,5 @@
+open Maths
+
 module type DS_ll_S = sig
   type pstate = Infer_pf.pstate
   type ('p, 'a) ds_node
@@ -14,6 +16,8 @@ module type DS_ll_S = sig
   val assume_constant : 'a Ds_distribution.mdistr -> ('p, 'a) ds_node
   val assume_conditional :
     ('a, 'b) ds_node -> ('b, 'c) Ds_distribution.cdistr -> ('b, 'c) ds_node
+
+  val shape : ('a, vector) ds_node -> int
 end
 
 module Make(DS_ll: DS_ll_S) = struct
@@ -35,6 +39,9 @@ module Make(DS_ll: DS_ll_S) = struct
     | Eapp : ('a -> 'b) expr * 'a expr -> 'b expr_tree
     | Epair : 'a expr * 'b expr -> ('a * 'b) expr_tree
     | Earray : 'a expr array -> 'a array expr_tree
+    | Eplus_vect : vector expr * vector expr -> vector expr_tree
+    | Escalar_mul : float expr * vector expr -> vector expr_tree
+    | Edot : matrix expr * vector expr -> vector expr_tree
   and 'a expr = {
     mutable value : 'a expr_tree;
   }
@@ -81,6 +88,35 @@ module Make(DS_ll: DS_ll_S) = struct
   let array a =
     { value = Earray a }
 
+  let plus_vect : (vector expr * vector expr) -> vector expr =
+    begin fun (e1, e2) ->
+        begin match e1.value, e2.value with
+        | Econst x, Econst y ->  { value = Econst (Mat.add x y) }
+        | _ -> { value = Eplus_vect (e1, e2) }
+        end
+    end
+
+  let ( +@~ ) x y = plus_vect (x, y)
+
+  let scalar_mult_vect : float expr * vector expr -> vector expr =
+    fun (e1, e2) ->
+    begin match e1.value, e2.value with
+      | Econst x, Econst y ->  { value = Econst (Mat.scalar_mul x y) }
+      | _ -> { value = Escalar_mul (e1, e2) }
+    end
+
+  let ( $*~ ) x y = scalar_mult_vect (x, y)
+
+  let vec_dot : matrix expr * vector expr -> vector expr =
+    fun (e1, e2) ->
+    begin match e1.value, e2.value with
+      | Econst x, Econst y ->  { value = Econst (Mat.dot x y) }
+      | _ -> { value = Edot (e1, e2) }
+    end
+
+  let ( *@~ ) x y = vec_dot (x, y)
+
+
   let rec eval : type t. t expr -> t =
     begin fun e ->
       begin match e.value with
@@ -107,7 +143,18 @@ module Make(DS_ll: DS_ll_S) = struct
             v
         | Earray a ->
             Array.map eval a
-      end
+        | Eplus_vect (e1, e2) ->
+            let v = Mat.add (eval e1) (eval e2) in
+            e.value <- Econst v;
+            v
+        | Escalar_mul (e1, e2) ->
+            let v = Mat.scalar_mul (eval e1) (eval e2) in
+            e.value <- Econst v;
+            v
+        | Edot (e1, e2) ->
+            let v = Mat.dot (eval e1) (eval e2) in
+            e.value <- Econst v;
+            v      end
     end
 
   (* let rec fval : type t. t expr -> t =
@@ -122,7 +169,8 @@ module Make(DS_ll: DS_ll_S) = struct
       end
      end *)
 
-  let rec string_of_expr e =
+  let rec string_of_expr : float expr -> string =
+    fun e ->
     begin match e.value with
       | Econst v -> string_of_float v
       | Ervar (RV _) -> "Random"
@@ -131,6 +179,9 @@ module Make(DS_ll: DS_ll_S) = struct
       | Emult (e1, e2) ->
           "(" ^ string_of_expr e1 ^ " * " ^ string_of_expr e2 ^ ")"
       | Eapp (_e1, _e2) -> "App"
+      | Eplus_vect (_, _) -> assert false
+      | Escalar_mul (_, _) -> assert false
+      | Edot (_, _) -> assert false
     end
 
   (* High level delayed sampling distribution (pdistribution in Haskell) *)
@@ -192,12 +243,12 @@ module Make(DS_ll: DS_ll_S) = struct
 
   (* An affine_expr is either a constant or an affine transformation of a
    * random variable *)
-  type affine_expr =
+  type 'a affine_expr =
     (* Interpretation (m, x, b) such that the output is m * x + b *)
-    | AErvar of float * float random_var * float
-    | AEconst of float
+    | AErvar of 'a * 'a random_var * 'a
+    | AEconst of 'a
 
-  let rec affine_of_expr : float expr -> affine_expr option =
+  let rec affine_of_expr : float expr -> float affine_expr option =
     begin fun expr ->
       begin match expr.value with
         | Econst v -> Some (AEconst v)
@@ -215,6 +266,9 @@ module Make(DS_ll: DS_ll_S) = struct
               | _ -> None
             end
         | Eapp (_, _) -> None
+        | Eplus_vect (_, _) -> assert false
+        | Escalar_mul (_, _) -> assert false
+        | Edot (_, _) -> assert false
       end
     end
 
@@ -250,6 +304,80 @@ module Make(DS_ll: DS_ll_S) = struct
       end
     in
     ds_distr_with_fallback d is iobs
+
+
+  let rec affine_vec_of_vec : vector expr -> vector affine_expr option =
+    fun expr ->
+    begin match expr.value with
+      | Econst c -> Some (AEconst c)
+      | Ervar (RV var) ->
+          let sz = DS_ll.shape var in
+          Some (AErvar (Mat.eye sz, (RV var), Mat.zeros sz 1))
+      | Eplus_vect (e1, e2) ->
+          begin match affine_vec_of_vec e1, affine_vec_of_vec e2 with
+            | (Some (AErvar (m, x, b)), Some (AEconst c))
+            | (Some (AEconst c), Some (AErvar (m, x, b))) ->
+                Some (AErvar(m, x, Mat.add b c))
+            | (Some (AEconst c1), Some (AEconst c2)) ->
+                Some (AEconst (Mat.add c1 c2))
+            | _ -> None
+          end
+      | Escalar_mul (e1, e2) ->
+          begin match e1.value, affine_vec_of_vec e2 with
+            | Econst v1, Some (AErvar (m, x, b)) ->
+                Some (AErvar (Mat.scalar_mul v1 m, x, Mat.scalar_mul v1 b))
+            | Econst v1, Some (AEconst v2) ->
+                Some (AEconst (Owl.Mat.scalar_mul v1 v2))
+            | _ -> None
+          end
+      | Edot (e1, e2) ->
+          begin match e1.value, affine_vec_of_vec e2 with
+            | Econst m1, Some (AErvar (m, x, b)) ->
+                Some (AErvar (Mat.dot m1 m, x, Mat.dot m1 b))
+            | Econst m1, Some (AEconst v2) ->
+                Some (AEconst (Owl.Mat.dot m1 v2))
+            | _ -> None
+            end
+      | _ -> None
+    end
+
+let mv_gaussian : vector expr * matrix -> vector ds_distribution =
+  begin fun (mu, sigma) ->
+    let d () = Distribution.mv_gaussian(eval mu, sigma) in
+      let is _prob =
+        begin match affine_vec_of_vec mu with
+          | Some (AEconst v) ->
+              let rv = DS_ll.assume_constant (Dist_mv_gaussian(v, sigma)) in
+              Some { value = (Ervar (RV rv)) }
+          | Some (AErvar (m, RV x, b)) ->
+              begin match DS_ll.get_distr_kind x with
+                | KMVGaussian ->
+                    let rv =
+                      DS_ll.assume_conditional x
+                        (AffineMeanGaussianMV(m, b, sigma))
+                    in
+                    Some { value = (Ervar (RV rv)) }
+                | _ -> None
+              end
+          | None -> None
+        end
+    in
+    let iobs (prob, obs) =
+      begin match affine_vec_of_vec mu with
+        | Some (AEconst _) ->
+            None
+        | Some (AErvar (m, RV x, b)) ->
+            begin match DS_ll.get_distr_kind x with
+              | KMVGaussian ->
+                  Some (DS_ll.observe_conditional prob x
+                          (AffineMeanGaussianMV(m, b, sigma)) obs)
+              | _ -> None
+            end
+        | None -> None
+      end
+    in
+    ds_distr_with_fallback d is iobs
+  end
 
 
   (** Beta distribution (betaPD in Haskell) *)
@@ -302,6 +430,12 @@ module Make(DS_ll: DS_ll_S) = struct
           Dist_pair (distribution_of_expr e1, distribution_of_expr e2)
       | Earray a ->
           Dist_array (Array.map distribution_of_expr a)
+      | Eplus_vect (_, _) ->
+          assert false (* XXX TODO XXX *)
+      | Escalar_mul (_e1, _e2) ->
+          assert false (* XXX TODO XXX *)
+      | Edot (_e1, _e2) ->
+          assert false (* XXX TODO XXX *)
     end
 
 

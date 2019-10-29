@@ -1,3 +1,4 @@
+open Maths
 open Ds_distribution
 
 (** Inference with streaming delayed sampling *)
@@ -179,6 +180,8 @@ let get_distr_kind : type a b.
     begin match n.ds_node_state with
       | Initialized (_, AffineMeanGaussian _) -> KGaussian
       | Marginalized (Dist_gaussian _, _) -> KGaussian
+      | Initialized (_, AffineMeanGaussianMV (_, _, _)) -> KMVGaussian
+      | Marginalized (Dist_mv_gaussian (_, _), _) -> KMVGaussian
       | Initialized (_, CBernoulli) -> KBernoulli
       | Marginalized (Dist_bernoulli _, _) -> KBernoulli
       | Marginalized (Dist_beta _, _) -> KBeta
@@ -197,6 +200,19 @@ let get_distr_kind : type a b.
       | Marginalized (Dist_mult _, _) -> KOthers
       | Marginalized (Dist_app _, _) -> KOthers
       | Realized _ -> assert false
+    end
+
+let shape : type a. ((a, vector) ds_node) -> int =
+    fun r ->
+    begin match r.ds_node_state with
+      | Initialized (_, AffineMeanGaussianMV (_, b, _)) ->
+	  let rows, _ = Owl.Mat.shape b in rows
+      | Marginalized (Dist_mv_gaussian(mu, _), _) ->
+	  let rows, _ = Owl.Mat.shape mu in rows
+      | Realized v ->
+	  let rows, _ = Owl.Mat.shape v in rows
+      | Initialized (_, _) -> assert false
+      | Marginalized (_, _) -> assert false
     end
 
 (** Test Copy *)
