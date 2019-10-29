@@ -1,5 +1,7 @@
 include ../../Makefile.common-config
-ZELUC+=-I ../mttlib
+OWLLIB=../../../../owl
+ZELUC=zeluc -copy -I $(INFERLIB) -I $(OWLLIB) -I ../mttlib/
+
 
 NAME=mtt_particles
 RUN=$(BROOT)/mtt/particles/run.exe

@@ -31,7 +31,7 @@ let node model () = t, obs_shuffled where
   and obs = List.map observe_fn t
   and n_clutter = draw (poisson lambda_clutter)
   and clutter = list_init n_clutter clutter_init_fn
-  and obs_shuffled = shuffle (List.append obs clutter)
+  and obs_shuffled = Util.shuffle (List.append obs clutter)
 
 
 let node main () = () where

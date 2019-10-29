@@ -1,5 +1,6 @@
 INFERLIB=../../../../inference
-ZELUC=zeluc -copy -I $(INFERLIB)
+OWLLIB=../../../../owl
+ZELUC=zeluc -copy -I $(INFERLIB) -I $(OWLLIB)
 
 
 ZLI=$(wildcard *.zli)

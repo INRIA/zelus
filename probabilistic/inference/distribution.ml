@@ -299,6 +299,21 @@ let weighted_list l =
   let n = List.fold_left (fun n (w, _) -> n +. w) 0. l in
   Dist_support (List.rev_map (fun (w, x) -> x, w /. n) l)
 
+let shuffle l = 
+  let sample_fn _ =
+    let arr = Array.of_list l in
+    for n = Array.length arr - 1 downto 1 do
+      let k = Random.int (n + 1) in
+      let tmp = arr.(n) in
+      arr.(n) <- arr.(k);
+      arr.(k) <- tmp
+    done;
+    Array.to_list arr
+  in
+
+  let obs_fn _ = assert false in (* XXX: Implement *)
+
+  Dist_sampler (sample_fn, obs_fn)
 
 (** [exponential lambda] is an exponential distribution of parameter lambda.
     @see<https://en.wikipedia.org/wiki/Exponential_distribution>

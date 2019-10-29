@@ -74,6 +74,8 @@ val uniform_list : 'a list -> 'a t
 
 val weighted_list : (float * 'a) list -> 'a t
 
+val shuffle : 'a list -> 'a list t
+
 val exponential_draw : float -> float
 val exponential_score : float -> float -> float
 val exponential_mean : float -> float

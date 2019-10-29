@@ -1,16 +1,43 @@
+open Mttlib
+open Probzelus
+open Util
+open Distribution
+open Zelus_owl
+open Infer_pf
+
+let proba death_fn _ =
+  sample (bernoulli p_dead)
+
+let proba new_track_init_fn _ =
+  sample (mv_gaussian(mu_new, sigma_new))
+
+let proba state_update_fn tr = 
+  sample (mv_gaussian(a_u *@ tr +@ b_u, sigma_update))
+
+let observe_fn tr = 
+  (mv_gaussian (proj_pos *@ tr, sigma_obs))
+
+let clutter_init_fn _ =
+  (mv_gaussian (mu_clutter, sigma_clutter))
+
+let proba obsfn (var, value) = 
+  observe (var, value)
 
 let proba model inp = t where
-  rec t_survived = filter(\_. sample bernoulli p_dead)
-  and n_new = sample poisson(lambda_new)
-  and t_new = init(\_. sample mv_gaussian(mu_new, sigma_new), n_new)
-  and t_tot = t_survived ++ t_new
-  and t = map (\x. sample gaussian(A_u * x + b_u, sigma_update))
-  and obs = map (\x. gaussian(A_o * x + b_o, sigma_obs))
-  and n_clutter = inp - obs
-  and if n_clutter >= 0  then () else factor -inf
-  and clutter = present (n_clutter > 0) -> init(\_. mv_gaussian (mu_clutter, sigma_clutter), n_new)
-  and obs_shuffled = present(clutter) -> shuffle (append (obs clutter))
-  and () = present(obs_shuffled) -> iter2(\obs, inp. observe(obs, inp), obs_shuffled, inp)
-  and () = present(n_clutter >= 0) -> observe(poisson(lambda_clutter), n_clutter)
+  rec init t = []  (* lst_iter *)
+  and t_survived = ListP.filter death_fn (last t)
+  and n_new = draw (poisson lambda_new)
+  and t_new = ListP.ini new_track_init_fn n_new
+  and t_tot = List.append t_survived t_new
+  and t = ListP.map state_update_fn t_tot
+  and obs = List.map observe_fn t
+  and n_clutter = (List.length inp) - (List.length obs)
+  and () = observe(poisson lambda_clutter, n_clutter)
+  and clutter = list_init n_clutter clutter_init_fn
+  and obs_shuffled = sample (shuffle (List.append obs clutter))
+  and () = ListP.iter2 obsfn (obs_shuffled, inp)
 
 
+let node main (truth, obs) = () where
+  rec tr_obs_distr = infer 1000 model obs 
+  (* and () = print_string ((string_of_vec2_list tr) ^ " : " ^ (string_of_vec2_list obs) ^ "\n") *)
