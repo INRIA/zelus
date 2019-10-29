@@ -1,3 +1,6 @@
+open Benchlib
+open Probzelus
+
 module M = struct
   type input = float * float
   type output = float Distribution.t

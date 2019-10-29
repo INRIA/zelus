@@ -1,4 +1,5 @@
 open Ztypes
+open Probzelus
 
 let sensor_noise = 0.1
 let wheel_noise = 0.1

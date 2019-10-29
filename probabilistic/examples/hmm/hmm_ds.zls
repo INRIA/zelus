@@ -1,3 +1,4 @@
+open Probzelus
 open Display
 (* open Infer_ds *)
 open Infer_ds_gc
@@ -36,7 +37,7 @@ let proba hmm (obs_x, obs_y) = pair (p_x, p_y) where
   (* and () = traj_draw t *)
 
 
-let node main () =
+let node main_ds () =
   let obs = sensor () in
   present obs(o) ->
     let pos_dist = infer 10 hmm o in

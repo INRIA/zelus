@@ -1,0 +1,40 @@
+.PHONY: build bench_per_particles bench_per_steps bench_mem_ideal bench publish
+
+build: $(NAME).ml
+	dune build run.exe
+
+bench_per_particles: build
+	time cat ../data | $(RUN) \
+			-num-runs $(NUMRUNS) \
+			-min-particles $(MIN) \
+			-max-particles $(MAX) \
+			-incr $(INCR) \
+			-perf perf.csv \
+			-acc accuracy.csv
+
+bench_per_steps: build
+	time cat ../data | $(RUN) \
+			-num-runs $(NUMRUNS) \
+			-particles $(MAX) \
+			-perf-step perf-step.csv \
+			-mem-step mem.csv
+
+bench_mem_ideal: build
+	time cat ../data | $(RUN) \
+			-num-runs 1 \
+			-particles $(MAX) \
+			-mem-ideal-step mem-ideal.csv
+
+$(NAME).ml : $(NAME).zls
+	$(ZELUC) -noreduce $(NAME).zls
+
+%.zci: %.zli
+	$(ZELUC) $<
+
+clean:
+	-rm -f *.zc*
+	-rm -f $(NAME).ml
+
+cleanall: clean
+	dune clean
+	-rm -f *~

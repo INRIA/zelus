@@ -68,7 +68,7 @@ let realize : type a b.
   b -> (a, b) ds_node -> unit =
   fun obs n ->
     assert begin match n.ds_node_state with
-      | Marginalized (mdistr, None) -> true
+      | Marginalized (_mdistr, None) -> true
       | Initialized _ | Realized _ | Marginalized (_, Some _) -> false
     end;
     n.ds_node_state <- Realized obs
@@ -96,7 +96,7 @@ let sample : type a b.
       | Marginalized (m, None) ->
           let x = Distribution.draw m in
           realize x n
-      | Realized x -> ()
+      | Realized _ -> ()
       | Initialized _  | Marginalized (_, Some _) -> assert false
     end
 
@@ -129,7 +129,7 @@ let rec graft : type a b.
     begin match n.ds_node_state with
       | Marginalized (_, None) | Realized _  -> ()
       | Marginalized (_, Some(c, _)) -> prune c
-      | Initialized (p, cdistr) ->
+      | Initialized (p, _cdistr) ->
           graft p;
           force_condition p;
           marginalize n

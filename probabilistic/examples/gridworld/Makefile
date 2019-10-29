@@ -1,44 +1,23 @@
 ZELUC=zeluc -copy
-ZLLIB=$(shell $(ZELUC) -where)
 
-OCAMLDEP=ocamldep
-OCAMLC=ocamlc
-OCAMLOPT=ocamlopt
+ZLI=$(wildcard *.zli)
+ZCI=$(ZLI:zli=zci)
 
-ML_SRC=gridworld.ml
-ZLI_SRC=gridworld.zli
+all: $(ZCI) byte opt
 
-OBJ=$(ML_SRC:%.ml=%.cmo)
-OBJ_OPT=$(OBJ:%.cmo=%.cmx)
-ZCI=$(ZLI_SRC:%.zli=%.zci)
+.phony: byte opt
 
-all: byte opt
+byte:
+	dune build gridworld.cma
 
-byte: $(OBJ) $(ZCI)
-
-opt: $(OBJ_OPT) $(ZCI)
-
-
-%.cmo: %.ml
-	$(OCAMLC) -I $(ZLLIB) -c $<
-
-%.cmx: %.ml
-	$(OCAMLOPT) -I $(ZLLIB) -c $<
+opt:
+	dune build gridworld.cmxa
 
 %.zci: %.zli
 	$(ZELUC) $<
 
-depend: .depend
-
-.depend:
-	$(OCAMLDEP) $(ML_SRC) \
-	    > .depend
-# cleaning:
 clean:
-	-rm -f *.annot *.cm[iox] *.o *.zci
-
-realclean cleanall: clean
-	-rm -f *~
-	-rm -f .depend
-
--include .depend
+	dune clean
+	-rm -f *.zci
+cleanall: clean
+	rm -f *~

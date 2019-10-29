@@ -122,7 +122,7 @@ module Make(M: sig
   open Ztypes
 
   let get_step () =
-    let Cnode {alloc; reset; step} = M.main (Config.particles ()) in
+    let Cnode {alloc; reset; step; copy = _} = M.main (Config.particles ()) in
     let state = alloc () in
     reset state;
     fun i -> step state i
@@ -180,7 +180,7 @@ module Make(M: sig
   let do_warmup n inp =
     let step = get_step () in
     Gc.compact ();
-    for i = 1 to n do
+    for _ = 1 to n do
       List.iter
         (fun i ->
            let _, _ = step i in
@@ -197,7 +197,7 @@ module Make(M: sig
     List.iteri
       (fun idx i ->
          let time_pre = Sys.time () in
-         let v, mse = step i in
+         let _, mse = step i in
          let time = Sys.time () -. time_pre in
          times.(idx) <- time *. 1000.;
          mems.(idx) <- gc_stat();

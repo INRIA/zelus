@@ -127,7 +127,7 @@ module Gnodes = struct
       let k = (Obj.magic x: Obj.t random_var).rv_id in
       begin match M.find_opt k g.live_nodes with
         | None -> None
-        | Some (e, n) -> Some (Obj.magic n: (p, a) ds_node)
+        | Some (_e, n) -> Some (Obj.magic n: (p, a) ds_node)
       end
 
    let clear: t -> unit =
@@ -240,9 +240,9 @@ let rv_distr prob rv =
 let factor' (prob, s) = Infer_ds_ll_gc.factor' (prob.pf_state, s)
 let factor =
   let alloc () = () in
-  let reset state = () in
-  let copy src dst = () in
-  let step state input =
+  let reset _state = () in
+  let copy _src _dst = () in
+  let step _state input =
     factor' input
   in
   Cnode { alloc; reset; copy; step; }
@@ -276,7 +276,7 @@ let mult : float expr * float expr -> float expr =
   begin fun (e1, e2) ->
     begin match e1.value, e2.value with
       | Econst x, Econst y -> { value = Econst (x *. y); }
-      | Ervar x, Econst y -> { value = Emult(e2, e1); }
+      | Ervar _, Econst _ -> { value = Emult(e2, e1); }
       | _ -> { value = Emult(e1, e2); }
     end
   end
@@ -332,9 +332,9 @@ let rec eval' : type t.
 
 let eval =
   let alloc () = () in
-  let reset state = () in
-  let copy src dst = () in
-  let step state (prob, input) =
+  let reset _state = () in
+  let copy _src _dst = () in
+  let step _state (prob, input) =
     eval' prob input
   in
   Cnode { alloc; reset; copy; step; }
@@ -358,7 +358,7 @@ let rec string_of_expr e =
     | Ervar x -> "RV_" ^ string_of_int x.rv_id
     | Eplus (e1, e2) -> "(" ^ string_of_expr e1 ^ " + " ^ string_of_expr e2 ^ ")"
     | Emult (e1, e2) -> "(" ^ string_of_expr e1 ^ " * " ^ string_of_expr e2 ^ ")"
-    | Eapp (e1, e2) -> "App"
+    | Eapp (_, _) -> "App"
   end
 
 (* High level delayed sampling distribution (pdistribution in Haskell) *)
@@ -368,24 +368,24 @@ type 'a ds_distribution =
 
 let sample =
   let alloc () = () in
-  let reset state = () in
-  let copy src dst = () in
-  let step state (prob, ds_distr) =
+  let reset _state = () in
+  let copy _src _dst = () in
+  let step _state (prob, ds_distr) =
     ds_distr.isample prob
   in
   Cnode { alloc; reset; copy; step; }
 
 let observe =
   let alloc () = () in
-  let reset state = () in
-  let copy src dst = () in
-  let step state (prob, (ds_distr, o)) =
+  let reset _state = () in
+  let copy _src _dst = () in
+  let step _state (prob, (ds_distr, o)) =
     ds_distr.iobserve(prob, o)
   in
   Cnode { alloc; reset; copy; step; }
 
 let of_distribution d =
-  { isample = (fun prob -> const (Distribution.draw d));
+  { isample = (fun _prob -> const (Distribution.draw d));
     iobserve = (fun (prob, obs) -> factor' (prob, Distribution.score(d, obs))); }
 
 let ds_distr_with_fallback d is iobs =
@@ -438,11 +438,11 @@ let rec affine_of_expr : float expr -> affine_expr option =
             | (Some (AEconst v), Some (AErvar (m, x, b))) -> Some (AErvar (m *. v, x, b *. v))
             | _ -> None
           end
-      | Eapp (e1, e2) -> None
+      | Eapp (_, _) -> None
     end
   end
 
-let assume_constant : type a p.
+let assume_constant : type a.
   pstate -> a mdistr -> a random_var =
   fun prob d ->
     let n = Infer_ds_ll_gc.assume_constant d in
@@ -450,7 +450,7 @@ let assume_constant : type a p.
     add_random_var prob rv n;
     rv
 
-let assume_conditional : type a b c.
+let assume_conditional : type b c.
   pstate -> b random_var -> (b, c) cdistr -> c random_var =
   fun prob p d ->
     let par = rv_node prob p in
@@ -459,7 +459,7 @@ let assume_conditional : type a b c.
     add_random_var prob rv n;
     rv
 
-let observe_conditional : type a b c.
+let observe_conditional : type b c.
   pstate -> b random_var -> (b, c) cdistr -> c -> unit =
   fun prob p cdistr obs ->
     let par = rv_node prob p in
@@ -489,7 +489,7 @@ let gaussian (mu, std) =
   in
   let iobs (prob, obs) =
     begin match affine_of_expr mu with
-      | Some (AEconst v) ->
+      | Some (AEconst _) ->
           None
       | Some (AErvar (m, x, b)) ->
           begin match rv_kind prob x with
@@ -504,11 +504,11 @@ let gaussian (mu, std) =
 
 (** Beta distribution (betaPD in Haskell) *)
 let beta (a, b) =
-  let d prob = Distribution.beta(a, b) in
+  let d _prob = Distribution.beta(a, b) in
   let is prob =
     Some { value = Ervar (assume_constant prob (Dist_beta (a, b))) }
   in
-  let iobs (prob, obs) = None in
+  let iobs (_prob, _obs) = None in
   ds_distr_with_fallback d is iobs
 
 (** Bernoulli distribution (bernoulliPD in Haskell) *)

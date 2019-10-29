@@ -1,0 +1,4 @@
+(library
+ (name probzelus)
+ (libraries zelus)
+ (synopsis "Zelus library for probabilistic programming"))

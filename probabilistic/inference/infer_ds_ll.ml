@@ -83,8 +83,8 @@ let realize : type a b.
   b -> (a, b) ds_node -> unit =
   fun obs n ->
     begin match n.ds_node_state with
-      | Marginalized (mdistr, None) -> ()
-      | Marginalized (mdistr, Some (p, cdistr)) ->
+      | Marginalized (_mdistr, None) -> ()
+      | Marginalized (_mdistr, Some (p, cdistr)) ->
           begin match p.ds_node_state with
             | Marginalized (p_mdistr, edge) ->
                 let mdistr = make_conditional p_mdistr cdistr obs in
@@ -154,7 +154,7 @@ let rec graft : type a b.
             | Some (Child child) -> prune child
             | None -> ()
           end
-      | Initialized (p, cdistr) ->
+      | Initialized (p, _cdistr) ->
           graft p;
           marginalize n
     end

@@ -1,57 +1,51 @@
-ZELUC=zeluc -copy
-ZLLIB=$(shell $(ZELUC) -where)
 INFERLIB=../../inference
+ZELUC=zeluc -copy -I $(INFERLIB)
 
-INFERENCE_CMA=$(INFERLIB)/inference.cma
-INFERENCE_CMXA=$(INFERLIB)/inference.cmxa
-INFERENCE_ZCI=$(INFERLIB)/distribution.zci $(INFERLIB)/infer.zci
+ZLI=$(wildcard *.zli)
+ZCI=$(ZLI:zli=zci)
 
-OCAMLDEP=ocamldep
-OCAMLC=ocamlc
-OCAMLOPT=ocamlopt
+NAME_PF=slam_pf
+NAME_DS=slam_ds
+NAME_RB=slam_rb
 
-NAME=slam_ds
+all: build
 
-all: opt
+$(NAME_pf).ml main_pf.ml: $(ZCI) $(NAME_PF).zls
+	$(ZELUC) -s main_pf $(NAME_PF).zls
 
-.PHONY: $(INFERENCE_CMA) $(INFERENCE_CMXA)
+$(NAME_DS).ml main_ds.ml: $(ZCI) $(NAME_DS).zls
+	$(ZELUC) -s main_ds $(NAME_DS).zls
 
-byte: $(NAME)
-opt: $(NAME).opt
-
-$(NAME): $(INFERENCE_CMA) $(NAME).ml main.ml array_misc.ml
-	$(OCAMLC) -o $(NAME) -I $(ZLLIB) -I $(INFERLIB) \
-		$(INFERENCE_CMA) graphics.cma\
-		array_misc.ml $(NAME).ml main.ml
-
-$(NAME).opt: $(INFERENCE_CMXA) $(NAME).ml main.ml array_misc.ml
-	$(OCAMLOPT) -o $(NAME).opt -I $(ZLLIB) -I $(INFERLIB) \
-		$(INFERENCE_CMXA) graphics.cmxa\
-		array_misc.ml $(NAME).ml main.ml
-
-$(NAME).ml main.ml: $(INFERENCE_ZCI) array_misc.zci $(NAME).zls
-	$(ZELUC) -I $(INFERLIB) -s main $(NAME).zls
-
-%.zci: %.zli
-	$(ZELUC) -I $(INFERLIB) $<
-
-%.cmo: %.ml
-	ocamlc -c -I $(ZLLIB) -I $(INFERLIB) $<
-
-$(INFERENCE_CMA):
-	$(MAKE) -C $(INFERLIB) inference.cma
-
-$(INFERENCE_CMXA):
-	$(MAKE) -C $(INFERLIB) inference.cmxa
-
-$(INFERENCE_ZCI):
-	$(MAKE) -C $(INFERLIB) byte
+$(NAME_RB).ml main_rb.ml: $(ZCI) $(NAME_RB).zls
+	$(ZELUC) -s main_rb $(NAME_RB).zls
 
 clean:
-	-rm -f *.zc*
-	-rm -f *.cm* *.o
-	-rm -f $(NAME).ml main.ml
+	rm -f $(NAME).ml main.ml
+	rm -f $(NAME_DS).ml main_ds.ml
+	rm -f $(NAME_RB).ml main_rb.ml
+	rm -f *.zci
+
+## Generic rules
+
+.phony: build exec
+
+exec: exec_ds
+
+exec_pf: main_pf.ml main_ds.ml main_rb.ml
+	dune exec ./main_pf.exe
+
+exec_ds: main_pf.ml main_ds.ml main_rb.ml
+	dune exec ./main_ds.exe
+
+exec_rb: main_pf.ml main_ds.ml main_rb.ml
+	dune exec ./main_rb.exe
+
+build: main_pf.ml main_ds.ml main_rb.ml
+	dune build ./main_pf.exe ./main_ds.exe ./main_rb.exe
+
+%.zci: %.zli
+	$(ZELUC) $<
 
 cleanall: clean
-	-rm -f $(NAME) $(NAME).opt
-	-rm -f *~
+	dune clean
+	rm -f *~

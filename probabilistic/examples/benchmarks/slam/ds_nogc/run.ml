@@ -1,3 +1,6 @@
+open Benchlib
+open Slamlib
+
 module M = struct
   type input = (bool array * int) * (bool * int)
   type output = unit

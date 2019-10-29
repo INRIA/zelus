@@ -1,5 +1,6 @@
 (* https://peterroelants.github.io/posts/multivariate-normal-primer/ *)
 
+open Probzelus
 open Owl
 open Distribution
 

@@ -58,7 +58,7 @@ module Make(DS_ll: DS_ll_S) = struct
     begin fun (e1, e2) ->
       begin match e1.value, e2.value with
         | Econst x, Econst y -> { value = Econst (x *. y); }
-        | Ervar x, Econst y -> { value = Emult(e2, e1); }
+        | Ervar _, Econst _ -> { value = Emult(e2, e1); }
         | _ -> { value = Emult(e1, e2); }
       end
     end
@@ -125,10 +125,12 @@ module Make(DS_ll: DS_ll_S) = struct
   let rec string_of_expr e =
     begin match e.value with
       | Econst v -> string_of_float v
-      | Ervar (RV x) -> "Random"
-      | Eplus (e1, e2) -> "(" ^ string_of_expr e1 ^ " + " ^ string_of_expr e2 ^ ")"
-      | Emult (e1, e2) -> "(" ^ string_of_expr e1 ^ " * " ^ string_of_expr e2 ^ ")"
-      | Eapp (e1, e2) -> "App"
+      | Ervar (RV _) -> "Random"
+      | Eplus (e1, e2) ->
+          "(" ^ string_of_expr e1 ^ " + " ^ string_of_expr e2 ^ ")"
+      | Emult (e1, e2) ->
+          "(" ^ string_of_expr e1 ^ " * " ^ string_of_expr e2 ^ ")"
+      | Eapp (_e1, _e2) -> "App"
     end
 
   (* High level delayed sampling distribution (pdistribution in Haskell) *)
@@ -138,24 +140,24 @@ module Make(DS_ll: DS_ll_S) = struct
 
   let sample =
     let alloc () = () in
-    let reset state = () in
-    let copy src dst = () in
-    let step state (prob, ds_distr) =
+    let reset _state = () in
+    let copy _src _dst = () in
+    let step _state (prob, ds_distr) =
       ds_distr.isample prob
     in
     Cnode { alloc; reset; copy; step; }
 
   let observe =
     let alloc () = () in
-    let reset state = () in
-    let copy src dst = () in
-    let step state (prob, (ds_distr, o)) =
+    let reset _state = () in
+    let copy _src _dst = () in
+    let step _state (prob, (ds_distr, o)) =
       ds_distr.iobserve(prob, o)
     in
     Cnode { alloc; reset; copy; step; }
 
   let of_distribution d =
-    { isample = (fun prob -> const (Distribution.draw d));
+    { isample = (fun _prob -> const (Distribution.draw d));
       iobserve = (fun (prob, obs) -> factor' (prob, Distribution.score(d, obs))); }
 
   let ds_distr_with_fallback d is iobs =
@@ -212,14 +214,14 @@ module Make(DS_ll: DS_ll_S) = struct
               | (Some (AEconst v), Some (AErvar (m, x, b))) -> Some (AErvar (m *. v, x, b *. v))
               | _ -> None
             end
-        | Eapp (e1, e2) -> None
+        | Eapp (_, _) -> None
       end
     end
 
   (** Gaussian distribution (gaussianPD in Haskell) *)
   let gaussian (mu, std) =
     let d () = Distribution.gaussian(eval mu, std) in
-    let is prob =
+    let is _prob =
       begin match affine_of_expr mu with
         | Some (AEconst v) ->
             let rv = DS_ll.assume_constant (Dist_gaussian(v, std)) in
@@ -236,7 +238,7 @@ module Make(DS_ll: DS_ll_S) = struct
     in
     let iobs (prob, obs) =
       begin match affine_of_expr mu with
-        | Some (AEconst v) ->
+        | Some (AEconst _) ->
             None
         | Some (AErvar (m, RV x, b)) ->
             begin match DS_ll.get_distr_kind x with
@@ -253,10 +255,10 @@ module Make(DS_ll: DS_ll_S) = struct
   (** Beta distribution (betaPD in Haskell) *)
   let beta(a, b) =
     let d () = Distribution.beta(a, b) in
-    let is prob =
+    let is _prob =
       Some { value = Ervar (RV (DS_ll.assume_constant (Dist_beta (a, b)))) }
     in
-    let iobs (pstate, obs) = None in
+    let iobs (_pstate, _obs) = None in
     ds_distr_with_fallback d is iobs
 
   (** Bernoulli distribution (bernoulliPD in Haskell) *)
@@ -272,7 +274,7 @@ module Make(DS_ll: DS_ll_S) = struct
         | _ -> None
       end
     in
-    let is prob =
+    let is _prob =
       with_beta_prior
         (fun (RV par) ->
            { value = Ervar (RV (DS_ll.assume_conditional par CBernoulli)) })
@@ -303,7 +305,7 @@ module Make(DS_ll: DS_ll_S) = struct
     end
 
 
-  let infer n (Cnode { alloc; reset; copy; step; }) =
+  let infer n (Cnode { alloc; reset; copy = _; step; }) =
     let alloc () = ref (alloc ()) in
     let reset state = reset !state in
     let step state (prob, x) = distribution_of_expr (step !state (prob, x)) in
@@ -319,7 +321,7 @@ module Make(DS_ll: DS_ll_S) = struct
            copy = infer_copy;  step = infer_step; }
 
 
-  let infer_ess_resample n threshold (Cnode { alloc; reset; copy; step; }) =
+  let infer_ess_resample n threshold (Cnode { alloc; reset; copy = _; step; }) =
     let alloc () = ref (alloc ()) in
     let reset state = reset !state in
     let step state (prob, x) = distribution_of_expr (step !state (prob, x)) in
@@ -335,7 +337,7 @@ module Make(DS_ll: DS_ll_S) = struct
     Cnode {alloc = infer_alloc; reset = infer_reset;
            copy = infer_copy; step = infer_step;}
 
-  let infer_bounded n (Cnode { alloc; reset; copy; step; }) =
+  let infer_bounded n (Cnode { alloc; reset; copy = _; step; }) =
     let alloc () = ref (alloc ()) in
     let reset state = reset !state in
     let step state (prob, x) = eval (step !state (prob, x)) in

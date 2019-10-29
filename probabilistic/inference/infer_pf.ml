@@ -20,9 +20,9 @@ let factor' (pstate, f0) =
 
 let factor =
   let alloc () = () in
-  let reset state = () in
-  let copy src dst = () in
-  let step state input =
+  let reset _state = () in
+  let copy _src _dst = () in
+  let step _state input =
     factor' input
   in
   Cnode { alloc; reset; copy; step; }
@@ -32,21 +32,21 @@ let observe' (pstate, (d, v)) =
 
 let observe =
   let alloc () = () in
-  let reset state = () in
-  let copy src dst = () in
-  let step state input =
+  let reset _state = () in
+  let copy _src _dst = () in
+  let step _state input =
     observe' input
   in
   Cnode { alloc; reset; copy; step; }
 
-let sample' (pstate, dist) =
+let sample' (_pstate, dist) =
   Distribution.draw dist
 
 let sample =
   let alloc () = () in
-  let reset state = () in
-  let copy src dst = () in
-  let step state input =
+  let reset _state = () in
+  let copy _src _dst = () in
+  let step _state input =
     sample' input
   in
   Cnode { alloc; reset; copy; step; }

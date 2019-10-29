@@ -1,3 +1,4 @@
+open Probzelus
 open Owl
 
 let mu = Mat.of_arrays [| [| 0.; |];

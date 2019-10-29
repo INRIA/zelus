@@ -1,3 +1,6 @@
+open Probzelus
+open Slamlib
+
 let sensor_noise = Array_misc.sensor_noise
 let wheel_noise = Array_misc.wheel_noise
 let max_pos = Array_misc.max_pos

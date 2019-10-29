@@ -1,0 +1,15 @@
+open Probzelus
+open Distribution
+open Infer_ds
+
+let proba model b = pr where
+  rec init pr = sample (beta(1., 1.))
+  and () = observe (bernoulli pr, b)
+
+let random_init = Random.self_init()
+
+let node main_ds () =
+  let b = draw (Distribution.bernoulli 0.7) in
+  let d = infer 1 model b in
+  print_float (Distribution.mean_float d);
+  print_newline ()

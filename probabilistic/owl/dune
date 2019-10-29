@@ -1,5 +1,5 @@
 (library
  (name zelus_owl)
- (libraries owl)
+ (libraries owl probzelus)
  (ocamlc_flags -I ../../../inference)
  (ocamlopt_flags -I ../../../inference))

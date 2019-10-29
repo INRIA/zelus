@@ -1,3 +1,5 @@
+open Probzelus
+open Slamlib
 open Infer_ds_gc
 
 let sensor_noise = Array_misc.sensor_noise

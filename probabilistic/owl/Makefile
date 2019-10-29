@@ -1,5 +1,4 @@
 ZELUC=zeluc -copy
-ZLLIB=$(shell $(ZELUC) -where)
 INFERLIB=../inference
 
 

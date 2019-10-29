@@ -1,3 +1,4 @@
+open Probzelus
 open Distribution
 
 let () =

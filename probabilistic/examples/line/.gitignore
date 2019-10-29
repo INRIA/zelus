@@ -5,6 +5,6 @@
 *.o
 *.byte
 *.opt
-example
-example.ml
+line
+line.ml
 main.ml

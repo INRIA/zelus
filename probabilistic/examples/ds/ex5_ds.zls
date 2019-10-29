@@ -1,3 +1,4 @@
+open Probzelus
 open Distribution
 (* open Infer_ds_gc *)
 
@@ -12,7 +13,7 @@ let proba f () = x where
 (* let proba f () = sample x where *)
 (*   rec x = gaussian (const 0., 1.) fby gaussian(sample(x), 1.) *)
 
-let node main () =
+let node main5 () =
   let d = infer 100000 f () in
   let mean, var = stats_float d in
   print_float mean; print_string " ";

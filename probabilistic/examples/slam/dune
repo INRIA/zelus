@@ -1,0 +1,7 @@
+(env
+ (dev
+  (flags (:standard -w -9-27-33 -warn-error -A))))
+
+(executables
+ (names main_pf main_ds main_rb)
+ (libraries probzelus graphics))

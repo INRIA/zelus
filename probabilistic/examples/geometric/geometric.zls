@@ -1,5 +1,6 @@
-open Infer_importance
-(* open Infer_pf *)
+open Probzelus
+(* open Infer_importance *)
+open Infer_pf
 
 let proba geometric p = n where
   rec automaton

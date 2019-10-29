@@ -31,7 +31,7 @@ val mean : ('a -> float) -> 'a t -> float
 val mean_list : ('a -> float) -> 'a list t -> float list
 val mean_int : int t -> float
 val mean_bool : bool t -> float
-val mean_signal_present : ('a * bool) t -> float
+val mean_signal_present : 'a signal t -> float
 
 val bernoulli_draw : float -> bool
 val bernoulli_score : float -> bool -> float
@@ -97,4 +97,4 @@ val split : ('a * 'b) t -> 'a t * 'b t
 val split_array : 'a array t -> 'a t array
 val split_list : 'a list t -> 'a t list
 val to_mixture : 'a t t -> 'a t
-val to_signal : ('a * bool) t -> 'a t * bool
+val to_signal : 'a signal t -> 'a t signal

@@ -1,13 +1,15 @@
+open Probzelus
+open Distribution
 open Infer_pf
 
-let proba model () = pr where
-  rec init pr = sample (Distribution.beta(1., 1.))
-  and b = sample (Distribution.bernoulli 0.7)
-  and () = factor (if b then log pr else log (1. -. pr))
+let proba model b = pr where
+  rec init pr = sample (beta(1., 1.))
+  and () = observe (bernoulli pr, b)
 
 let random_init = Random.self_init()
 
 let node main () =
-  let d = infer 10000 model () in
-  print_float (Distribution.mean_float d);
+  let b = draw (bernoulli 0.7) in
+  let d = infer 10000 model b in
+  print_float (mean_float d);
   print_newline ()
