@@ -4,8 +4,8 @@ open Infer_ds
 open Utils
 
 let proba gaussian_model o = pair (mu, sigma) where
-  rec init mu = sample (gaussian (const 0., 100.))
-  and init sqrt_sigma = sample (gaussian (const 0., 100.))
+  rec init mu = sample (gaussian (const 0., 10.))
+  and init sqrt_sigma = sample (gaussian (const 0., 10.))
   and sigma = mult (sqrt_sigma, sqrt_sigma)
   and () = observe (gaussian (mu, eval sigma), o)
   
