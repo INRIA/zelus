@@ -1,9 +1,0 @@
-type value 
-
-type gender = Male | Female
-type status = Good | Bad
-
-val gender: value -> gender
-val status: value -> status
-val readline: unit -> value
-val printline: unit -AD-> unit

@@ -21,10 +21,10 @@ clean:
 
 .phony: build exec exec_ds
 
-exec: main.ml
+exec: main.ml main_ds.ml
 	dune exec ./main.exe
 
-exec_ds: main_ds.ml
+exec_ds: main.ml main_ds.ml
 	dune exec ./main_ds.exe
 
 build: main.ml main_ds.ml

@@ -1,0 +1,69 @@
+open Probzelus
+open Distribution
+open Infer_ds
+open Utils
+
+let proba gaussian_model o = pair (mu, sigma) where
+  rec init mu = sample (gaussian (const 0., 100.))
+  and init sqrt_sigma = sample (gaussian (const 0., 100.))
+  and sigma = mult (sqrt_sigma, sqrt_sigma)
+  and () = observe (gaussian (mu, eval sigma), o)
+  
+let node infer_gaussian n_particles obs = Distribution.gaussian (mu, sigma) where
+  rec mu_dist, sigma_dist = split (infer n_particles gaussian_model obs)
+  and mu = mean_float mu_dist
+  and sigma = mean_float sigma_dist
+  
+let proba bernoulli_model o = theta where
+  rec init theta = sample (beta (1., 1.))
+  and () = observe (bernoulli theta, o)
+  
+let node infer_bernoulli n_particles obs = Distribution.bernoulli (theta) where
+  rec theta_dist = infer n_particles bernoulli_model obs
+  and theta = mean_float theta_dist
+    
+  
+let n_particles = 1000
+let n_feature = 5
+let data = split_data 0.7 (load_txt "german.data-numeric")
+let train = fst data
+let test = snd data   
+let test_data = fst test
+let test_labels = snd test
+let train_data = fst train
+let train_labels = snd train
+
+let mpca m = pca 1 train_data m
+
+let accuracy (c_dist, g_dist, b_dist) = acc where
+  rec components = mpca test_data
+  and n, _ = shape test_data
+  and g = add_scalar (map score (g_dist, components)) (score (c_dist, true))
+  and b = add_scalar (map score (b_dist, components)) (score (c_dist, false))
+  and pred = elt_greater g b 
+  and acc = get (sum 0 (elt_equal pred test_labels)) 0 0 /. (float n) 
+ 
+let node stream () = features, label where
+  rec cpt = 0 fby (cpt + 1)
+  and n, _ = shape train_data 
+  and present (cpt = n - 1) -> do () = exit_and_plot () done   
+  and features = row train_data cpt
+  and label  = if get train_labels cpt 0 = 1. then true else false
+      
+let node main () = () where
+  rec features, label = stream ()
+  and component = get (mpca features) 0 0
+  
+  and init c_dist = Distribution.bernoulli 0.5
+  and init g_dist = Distribution.gaussian (0., 1.)
+  and init b_dist = Distribution.gaussian (0., 1.)
+  
+  and c_dist = infer_bernoulli n_particles label
+  and match label with
+      | true  -> do g_dist = infer_gaussian n_particles component done
+      | false -> do b_dist = infer_gaussian n_particles component done
+      end
+
+  and acc = accuracy (last c_dist, last g_dist, last b_dist)
+  and () = add_result acc
+  and () = print_float acc; print_endline ""

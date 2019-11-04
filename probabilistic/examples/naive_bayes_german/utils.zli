@@ -1,0 +1,19 @@
+type mat
+
+val shape: mat -> int * int
+val row : mat -> int -> mat
+val col : mat -> int -> mat
+val get : mat -> int -> int -> float
+val add : mat -> mat -> mat
+val add_scalar: mat -> float -> mat
+val elt_greater : mat -> mat -> mat
+val elt_equal : mat -> mat -> mat
+val map : ('a * float -> float) -S-> ('a * mat) -> mat
+val sum : int -> mat -> mat
+val load_txt : string -S-> mat
+
+val split_data :  float -> mat -S-> (mat * mat) * (mat * mat)
+val pca : int -S-> mat -S-> mat -> mat 
+
+val add_result : float -AD-> unit
+val exit_and_plot : unit -AD-> 'a
