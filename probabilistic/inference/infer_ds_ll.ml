@@ -1,4 +1,4 @@
-open Maths
+open Owl
 open Ds_distribution
 
 (** Inference with delayed sampling *)
@@ -226,7 +226,7 @@ let get_distr_kind : type a b.
     end
 
 
-let shape : type a. ((a, matrix) ds_node) -> int =
+let shape : type a. ((a, Mat.mat) ds_node) -> int =
     fun r ->
     begin match r.ds_node_state with
       | Initialized (_, AffineMeanGaussianMV (_, b, _)) ->

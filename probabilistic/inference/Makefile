@@ -14,7 +14,7 @@ opt:
 	dune build probzelus.cmxa
 
 %.zci: %.zli
-	$(ZELUC) $<
+	$(ZELUC) -I ../owl $<
 
 clean:
 	dune clean
@@ -24,7 +24,7 @@ cleanall: clean
 
 
 # Dependencies
-distribution.zci: maths.zci
+distribution.zci: ../owl/zelus_owl.zci ../owl/mat.zci
 infer_ds.zci: distribution.zci
 infer_ds_gc.zci: distribution.zci
 infer_ds_gc_copy.zci: distribution.zci

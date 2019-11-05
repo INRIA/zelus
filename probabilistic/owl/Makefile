@@ -1,8 +1,11 @@
 ZELUC=zeluc -copy
 INFERLIB=../inference
 
+ZLI=$(wildcard *.zli)
+ZCI=$(ZLI:zli=zci)
 
-all: byte opt zelus_owl.zci owl_distribution.zci
+
+all: $(ZCI) byte opt
 
 .phony: byte opt
 

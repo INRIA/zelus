@@ -1,3 +1,0 @@
-open Maths
-val mvgaussian : matrix * matrix -> matrix Distribution.t
-val print_matrix : matrix -AD-> unit

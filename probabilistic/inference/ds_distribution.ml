@@ -1,4 +1,4 @@
-open Maths
+open Owl
 
 (** Marginalized distribution *)
 type 'a mdistr = 'a Distribution.t
@@ -16,7 +16,7 @@ type kdistr =
 type ('m1, 'm2) cdistr =
   | AffineMeanGaussian: float * float * float -> (float, float) cdistr
   | AffineMeanGaussianMV :
-      matrix * matrix * matrix -> (matrix, matrix) cdistr
+      Mat.mat * Mat.mat * Mat.mat -> (Mat.mat, Mat.mat) cdistr
   | CBernoulli : (float, bool) cdistr
 
 
@@ -63,9 +63,9 @@ let make_conditional : type a b.
     (mu', var')
   in
   let mv_gaussian_conditioning mu0 sigma0 obs sigma =
-    let sig0inv = Linalg.inv sigma0 in
-    let siginv = Linalg.inv sigma in
-    let sig0' = Linalg.inv (Owl.Mat.add sig0inv siginv) in
+    let sig0inv = Linalg.D.inv sigma0 in
+    let siginv = Linalg.D.inv sigma in
+    let sig0' = Linalg.D.inv (Owl.Mat.add sig0inv siginv) in
     let mu0' =
       Mat.dot sig0' (Mat.add (Mat.dot sig0inv mu0) (Mat.dot siginv obs))
     in
@@ -80,7 +80,7 @@ let make_conditional : type a b.
           in
           Dist_gaussian (mu', var')
       | Dist_mv_gaussian(mu0, sigma0), AffineMeanGaussianMV(m, b, sigma) ->
-          let minv = Linalg.inv m in
+          let minv = Linalg.D.inv m in
           let (mu', var') =
             mv_gaussian_conditioning mu0 sigma0
               (Mat.dot minv (Mat.sub obs b))

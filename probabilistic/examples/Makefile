@@ -13,6 +13,7 @@ all:
 	$(MAKE) -C hmm_multi_sensors
 	$(MAKE) -C ilmdp
 	$(MAKE) -C line
+	$(MAKE) -C mv_gaussian
 	$(MAKE) -C pid
 	$(MAKE) -C restaurants
 	$(MAKE) -C slam
@@ -33,6 +34,7 @@ clean:
 	$(MAKE) -C hmm_multi_sensors clean
 	$(MAKE) -C ilmdp clean
 	$(MAKE) -C line clean
+	$(MAKE) -C mv_gaussian clean
 	$(MAKE) -C pid clean
 	$(MAKE) -C restaurants clean
 	$(MAKE) -C slam clean
@@ -53,6 +55,7 @@ realclean cleanall:
 	$(MAKE) -C hmm_multi_sensors cleanall
 	$(MAKE) -C ilmdp cleanall
 	$(MAKE) -C line cleanall
+	$(MAKE) -C mv_gaussian cleanall
 	$(MAKE) -C pid cleanall
 	$(MAKE) -C restaurants cleanall
 	$(MAKE) -C slam cleanall

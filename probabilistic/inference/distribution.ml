@@ -1,8 +1,6 @@
 (** {2 Type definitions} *)
 
-open Zelus_owl
-open Owl_distribution
-open Maths
+open Owl
 
 (** Probabilities (must be in the interval [0, 1]). *)
 type proba = float
@@ -31,7 +29,7 @@ type _ t =
   | Dist_plus : float t * float t -> float t
   | Dist_mult : float t * float t -> float t
   | Dist_app : ('a -> 'b) t * 'a t -> 'b t
-  | Dist_mv_gaussian : Maths.matrix * Maths.matrix -> Maths.matrix t
+  | Dist_mv_gaussian : Mat.mat * Mat.mat -> Mat.mat t
 
 
 (** {2 Utils}*)
@@ -139,6 +137,20 @@ let gaussian (mu, sigma) =
     mean [mu] and standard deviation [sigma].
     @see<https://en.wikipedia.org/wiki/Multivariate_normal_distribution>
 *)
+
+let mv_gaussian_draw mu sigma =
+  let u, s, _ = Linalg.Generic.svd sigma in
+  let a = Mat.(u *@ (sqrt (diagm s))) in
+  let n = (Arr.shape mu).(0) in
+  let xs = Arr.gaussian ~mu:0. ~sigma:1. [| n; 1 |] in
+  Mat.(mu + a *@ xs)
+
+let mv_gaussian_score mu sigma x =
+  let two_pi = 2.0 *. 3.14159265358979323846 in
+  let d = float (Arr.shape x).(0) in
+  let x_m = Mat.(x - mu) in
+  -. 0.5 *. log (two_pi ** d *. Linalg.D.det sigma)
+  -. 0.5 *. Mat.(get (transpose (Linalg.D.linsolve sigma x_m) *@ x_m) 0 0)
 
 let mv_gaussian (mu, sigma) =
   Dist_mv_gaussian (mu, sigma)

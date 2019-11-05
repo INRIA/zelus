@@ -1,7 +1,0 @@
-open Probzelus
-open Maths
-
-val mu : matrix
-val sigma : float -> matrix
-
-val display_mvg : matrix Distribution.t -AD-> unit

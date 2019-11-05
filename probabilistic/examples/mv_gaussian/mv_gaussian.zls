@@ -1,9 +1,9 @@
 open Probzelus
 open Zelus_owl
-open Owl_distribution
+open Owl
 open Distribution
 open Infer_pf
-open Utils
+open Mvg_utils
 
 let proba f mu = o where
   rec o = sample (mv_gaussian(mu, sigma x))

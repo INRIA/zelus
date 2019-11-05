@@ -1,4 +1,4 @@
-open Maths
+open Owl
 
 module type DS_ll_S = sig
   type pstate = Infer_pf.pstate
@@ -17,7 +17,7 @@ module type DS_ll_S = sig
   val assume_conditional :
     ('a, 'b) ds_node -> ('b, 'c) Ds_distribution.cdistr -> ('b, 'c) ds_node
 
-  val shape : ('a, matrix) ds_node -> int
+  val shape : ('a, Mat.mat) ds_node -> int
 end
 
 module Make(DS_ll: DS_ll_S) = struct
@@ -39,9 +39,9 @@ module Make(DS_ll: DS_ll_S) = struct
     | Eapp : ('a -> 'b) expr * 'a expr -> 'b expr_tree
     | Epair : 'a expr * 'b expr -> ('a * 'b) expr_tree
     | Earray : 'a expr array -> 'a array expr_tree
-    | Eplus_mat : matrix expr * matrix expr -> matrix expr_tree
-    | Escalar_mul : float expr * matrix expr -> matrix expr_tree
-    | Edot : matrix expr * matrix expr -> matrix expr_tree
+    | Eplus_mat : Mat.mat expr * Mat.mat expr -> Mat.mat expr_tree
+    | Escalar_mul : float expr * Mat.mat expr -> Mat.mat expr_tree
+    | Edot : Mat.mat expr * Mat.mat expr -> Mat.mat expr_tree
   and 'a expr = {
     mutable value : 'a expr_tree;
   }
@@ -88,7 +88,7 @@ module Make(DS_ll: DS_ll_S) = struct
   let array a =
     { value = Earray a }
 
-  let plus_mat : (matrix expr * matrix expr) -> matrix expr =
+  let plus_mat : (Mat.mat expr * Mat.mat expr) -> Mat.mat expr =
     begin fun (e1, e2) ->
         begin match e1.value, e2.value with
         | Econst x, Econst y ->  { value = Econst (Mat.add x y) }
@@ -98,7 +98,7 @@ module Make(DS_ll: DS_ll_S) = struct
 
   let ( +@~ ) x y = plus_mat (x, y)
 
-  let scalar_mult_vect : float expr * matrix expr -> matrix expr =
+  let scalar_mult_vect : float expr * Mat.mat expr -> Mat.mat expr =
     fun (e1, e2) ->
     begin match e1.value, e2.value with
       | Econst x, Econst y ->  { value = Econst (Mat.scalar_mul x y) }
@@ -107,7 +107,7 @@ module Make(DS_ll: DS_ll_S) = struct
 
   let ( $*~ ) x y = scalar_mult_vect (x, y)
 
-  let dot_mat : matrix expr * matrix expr -> matrix expr =
+  let dot_mat : Mat.mat expr * Mat.mat expr -> Mat.mat expr =
     fun (e1, e2) ->
     begin match e1.value, e2.value with
       | Econst x, Econst y ->  { value = Econst (Mat.dot x y) }
@@ -306,7 +306,7 @@ module Make(DS_ll: DS_ll_S) = struct
     ds_distr_with_fallback d is iobs
 
 
-  let rec affine_vec_of_vec : matrix expr -> matrix affine_expr option =
+  let rec affine_vec_of_vec : Mat.mat expr -> Mat.mat affine_expr option =
     fun expr ->
     begin match expr.value with
       | Econst c -> Some (AEconst c)
@@ -341,7 +341,7 @@ module Make(DS_ll: DS_ll_S) = struct
       | _ -> None
     end
 
-let mv_gaussian : matrix expr * matrix -> matrix ds_distribution =
+let mv_gaussian : Mat.mat expr * Mat.mat -> Mat.mat ds_distribution =
   begin fun (mu, sigma) ->
     let d () = Distribution.mv_gaussian(eval mu, sigma) in
       let is _prob =
