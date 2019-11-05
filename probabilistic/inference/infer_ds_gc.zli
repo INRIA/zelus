@@ -1,4 +1,5 @@
 (** Inference with delayed sampling *)
+open Maths
 
 type 'a expr
 
@@ -12,6 +13,13 @@ val ( @@~ ) : ('a -> 'b) expr -> 'a expr -> 'b expr
 val pair : 'a expr * 'b expr -> ('a * 'b) expr
 val array : 'a expr array -> 'a array expr
 
+val plus_mat : matrix expr * matrix expr -> matrix expr
+val ( +@~ ) : matrix expr -> matrix expr -> matrix expr
+val scalar_mult_vect : float expr * matrix expr -> matrix expr
+val ( $*~ ) : float expr -> matrix expr -> matrix expr
+val dot_mat : matrix expr * matrix expr -> matrix expr
+val ( *@~ ) : matrix expr -> matrix expr -> matrix expr
+
 val eval : 'a expr -> 'a
 
 type 'a ds_distribution
@@ -20,6 +28,7 @@ val of_distribution : 'a Distribution.t -> 'a ds_distribution
 val gaussian : float expr * float -> float ds_distribution
 val beta : float * float -> float ds_distribution
 val bernoulli : float expr -> bool ds_distribution
+val mv_gaussian: matrix expr * matrix -> matrix ds_distribution
 
 val factor : float ~D~> unit
 val sample : 'a ds_distribution ~D~> 'a expr
