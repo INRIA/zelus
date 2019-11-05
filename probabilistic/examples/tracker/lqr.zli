@@ -1,0 +1,6 @@
+type mat = Maths.matrix
+type vec = Maths.matrix
+(* Parameter order: a, b, q, r, n *)
+val lqr : mat -> mat -> mat -> mat -> mat -> mat
+
+val controller : vec -> vec

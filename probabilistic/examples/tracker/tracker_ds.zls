@@ -1,0 +1,32 @@
+open Probzelus
+open Distribution
+open Infer_ds_gc
+open Lib
+open Lqr
+
+let particles = 1000
+
+let node env cmd = (xt, yt) where
+  rec t = 0 -> (pre t) + 1
+  and xt = draw (Distribution.mv_gaussian ((x_init, init_sig) -> (add cmd (mul a (pre xt)), update_sig)))
+  and obs = present ((t mod 50) = 0) -> obs_acc_gps else obs_acc
+  and yt = draw (Distribution.mv_gaussian (mul obs xt, obs_sig))
+
+let proba model (yt, cmd) = xt where
+  rec t = 0 -> (pre t) + 1
+  and xt = sample (mv_gaussian ((const x_init, init_sig) -> ((const cmd) +@~ ((const a) *@~ (pre xt)), update_sig)))
+  and obs = present ((t mod 50) = 0) -> obs_acc_gps_approx else obs_acc_approx
+  and () = observe (mv_gaussian (((const obs) *@~ xt), obs_sig), yt)
+
+let node main () = () where
+  rec t = 0 -> (pre t) + 1
+  and (xt, yt) = env (zerost -> (pre cmd))
+  and cmd = controller xest
+  and xest = mean_matrix (infer particles model (yt, (zerost -> (pre cmd))))
+  and err = (0. -> (pre err +. ((get_pos xt) *. (get_pos xt))))
+  and avg_err = err /. (float_of_int t)
+  and () = print_int t; print_string " >> ";
+           print_float (get_pos xt); print_endline ""
+  and () = add_result (get_pos xt, get_pos yt, get_pos xest)
+  and present (t mod 51 = 50) -> do () = exit_and_plot () done
+  (* and () = print_string (string_of_int t ^ ": " ^ state_tostring xt ^ ", " ^ state_tostring xest ^ "\n") *)
