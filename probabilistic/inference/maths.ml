@@ -1,6 +1,5 @@
 open Owl
 
-type vector = Mat.mat
 type matrix = Mat.mat
 
 module Mat = struct
@@ -11,6 +10,7 @@ module Mat = struct
   let scalar_mul = Owl.Mat.scalar_mul
   let eye = Owl.Mat.eye
   let zeros = Owl.Mat.zeros
+  let shape = Owl.Mat.shape
 end
 
 module Linalg = struct

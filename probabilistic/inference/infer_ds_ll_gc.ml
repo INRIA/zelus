@@ -202,15 +202,15 @@ let get_distr_kind : type a b.
       | Realized _ -> assert false
     end
 
-let shape : type a. ((a, vector) ds_node) -> int =
+let shape : type a. ((a, matrix) ds_node) -> int =
     fun r ->
     begin match r.ds_node_state with
       | Initialized (_, AffineMeanGaussianMV (_, b, _)) ->
-	  let rows, _ = Owl.Mat.shape b in rows
+	  let rows, _ = Mat.shape b in rows
       | Marginalized (Dist_mv_gaussian(mu, _), _) ->
-	  let rows, _ = Owl.Mat.shape mu in rows
+	  let rows, _ = Mat.shape mu in rows
       | Realized v ->
-	  let rows, _ = Owl.Mat.shape v in rows
+	  let rows, _ = Mat.shape v in rows
       | Initialized (_, _) -> assert false
       | Marginalized (_, _) -> assert false
     end

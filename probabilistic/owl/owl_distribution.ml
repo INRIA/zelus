@@ -2,9 +2,6 @@
 
 open Owl
 
-type vector = Mat.mat
-type matrix = Mat.mat
-
 let mv_gaussian_draw mu sigma =
   let u, s, _ = Linalg.Generic.svd sigma in
   let a = Mat.(u *@ (sqrt (diagm s))) in
@@ -22,7 +19,7 @@ let mv_gaussian_score mu sigma x =
 (* let mvgaussian (mu, sigma) = *)
 (*   Dist_sampler (mvgaussian_sampler mu sigma, mvgaussian_scorer mu sigma) *)
 
-let print_vector v =
+let print_matrix v =
   Arr.print v;
   flush stdout
 

@@ -30,7 +30,7 @@ type _ t =
   | Dist_plus : float t * float t -> float t
   | Dist_mult : float t * float t -> float t
   | Dist_app : ('a -> 'b) t * 'a t -> 'b t
-  | Dist_mv_gaussian : Maths.vector * Maths.matrix -> Maths.vector t
+  | Dist_mv_gaussian : Maths.matrix * Maths.matrix -> Maths.matrix t
 
 
 (** {2 Utils}*)
@@ -431,7 +431,7 @@ let plus : float t * float t -> float t =
       (* XXX TODO XXX *)
       Dist_plus (dist1, dist2)
   | (Dist_mv_gaussian (_, _), Dist_mv_gaussian (_, _)) ->
-      assert false (* XXX TODO XXX *)
+      assert false
   end
 
 (** [mult (d1, d2)] is the multiplication of two distributions. *)
@@ -475,8 +475,7 @@ let rec to_dist_support : type a. a t -> a t =
   | Dist_list _ -> assert false (* XXX TODO XXX *)
   | Dist_array _ -> assert false (* XXX TODO XXX *)
   | Dist_gaussian (_, _) -> assert false
-  | Dist_mv_gaussian (_, _) ->
-      assert false (* XXX TODO XXX *)
+  | Dist_mv_gaussian (_, _) -> assert false
   | Dist_beta (_, _) -> assert false
   | Dist_bernoulli p ->
       Dist_support [ (true, p); (false, 1. -. p); ]

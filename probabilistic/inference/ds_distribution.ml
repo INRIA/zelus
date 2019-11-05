@@ -16,7 +16,7 @@ type kdistr =
 type ('m1, 'm2) cdistr =
   | AffineMeanGaussian: float * float * float -> (float, float) cdistr
   | AffineMeanGaussianMV :
-      matrix * vector * matrix -> (vector, vector) cdistr
+      matrix * matrix * matrix -> (matrix, matrix) cdistr
   | CBernoulli : (float, bool) cdistr
 
 

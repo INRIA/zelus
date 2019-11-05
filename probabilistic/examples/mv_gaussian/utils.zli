@@ -1,4 +1,7 @@
-val mu : Owl_distribution.vector
-val sigma : float -> Owl_distribution.matrix
+open Probzelus
+open Maths
 
-val display_mvg : Owl_distribution.vector Distribution.t -AD-> unit
+val mu : matrix
+val sigma : float -> matrix
+
+val display_mvg : matrix Distribution.t -AD-> unit

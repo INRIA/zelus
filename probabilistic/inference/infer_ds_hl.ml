@@ -17,7 +17,7 @@ module type DS_ll_S = sig
   val assume_conditional :
     ('a, 'b) ds_node -> ('b, 'c) Ds_distribution.cdistr -> ('b, 'c) ds_node
 
-  val shape : ('a, vector) ds_node -> int
+  val shape : ('a, matrix) ds_node -> int
 end
 
 module Make(DS_ll: DS_ll_S) = struct
@@ -39,9 +39,9 @@ module Make(DS_ll: DS_ll_S) = struct
     | Eapp : ('a -> 'b) expr * 'a expr -> 'b expr_tree
     | Epair : 'a expr * 'b expr -> ('a * 'b) expr_tree
     | Earray : 'a expr array -> 'a array expr_tree
-    | Eplus_vect : vector expr * vector expr -> vector expr_tree
-    | Escalar_mul : float expr * vector expr -> vector expr_tree
-    | Edot : matrix expr * vector expr -> vector expr_tree
+    | Eplus_mat : matrix expr * matrix expr -> matrix expr_tree
+    | Escalar_mul : float expr * matrix expr -> matrix expr_tree
+    | Edot : matrix expr * matrix expr -> matrix expr_tree
   and 'a expr = {
     mutable value : 'a expr_tree;
   }
@@ -88,17 +88,17 @@ module Make(DS_ll: DS_ll_S) = struct
   let array a =
     { value = Earray a }
 
-  let plus_vect : (vector expr * vector expr) -> vector expr =
+  let plus_mat : (matrix expr * matrix expr) -> matrix expr =
     begin fun (e1, e2) ->
         begin match e1.value, e2.value with
         | Econst x, Econst y ->  { value = Econst (Mat.add x y) }
-        | _ -> { value = Eplus_vect (e1, e2) }
+        | _ -> { value = Eplus_mat (e1, e2) }
         end
     end
 
-  let ( +@~ ) x y = plus_vect (x, y)
+  let ( +@~ ) x y = plus_mat (x, y)
 
-  let scalar_mult_vect : float expr * vector expr -> vector expr =
+  let scalar_mult_vect : float expr * matrix expr -> matrix expr =
     fun (e1, e2) ->
     begin match e1.value, e2.value with
       | Econst x, Econst y ->  { value = Econst (Mat.scalar_mul x y) }
@@ -107,14 +107,14 @@ module Make(DS_ll: DS_ll_S) = struct
 
   let ( $*~ ) x y = scalar_mult_vect (x, y)
 
-  let vec_dot : matrix expr * vector expr -> vector expr =
+  let dot_mat : matrix expr * matrix expr -> matrix expr =
     fun (e1, e2) ->
     begin match e1.value, e2.value with
       | Econst x, Econst y ->  { value = Econst (Mat.dot x y) }
       | _ -> { value = Edot (e1, e2) }
     end
 
-  let ( *@~ ) x y = vec_dot (x, y)
+  let ( *@~ ) x y = dot_mat (x, y)
 
 
   let rec eval : type t. t expr -> t =
@@ -143,7 +143,7 @@ module Make(DS_ll: DS_ll_S) = struct
             v
         | Earray a ->
             Array.map eval a
-        | Eplus_vect (e1, e2) ->
+        | Eplus_mat (e1, e2) ->
             let v = Mat.add (eval e1) (eval e2) in
             e.value <- Econst v;
             v
@@ -179,7 +179,7 @@ module Make(DS_ll: DS_ll_S) = struct
       | Emult (e1, e2) ->
           "(" ^ string_of_expr e1 ^ " * " ^ string_of_expr e2 ^ ")"
       | Eapp (_e1, _e2) -> "App"
-      | Eplus_vect (_, _) -> assert false
+      | Eplus_mat (_, _) -> assert false
       | Escalar_mul (_, _) -> assert false
       | Edot (_, _) -> assert false
     end
@@ -266,7 +266,7 @@ module Make(DS_ll: DS_ll_S) = struct
               | _ -> None
             end
         | Eapp (_, _) -> None
-        | Eplus_vect (_, _) -> assert false
+        | Eplus_mat (_, _) -> assert false
         | Escalar_mul (_, _) -> assert false
         | Edot (_, _) -> assert false
       end
@@ -306,14 +306,14 @@ module Make(DS_ll: DS_ll_S) = struct
     ds_distr_with_fallback d is iobs
 
 
-  let rec affine_vec_of_vec : vector expr -> vector affine_expr option =
+  let rec affine_vec_of_vec : matrix expr -> matrix affine_expr option =
     fun expr ->
     begin match expr.value with
       | Econst c -> Some (AEconst c)
       | Ervar (RV var) ->
           let sz = DS_ll.shape var in
           Some (AErvar (Mat.eye sz, (RV var), Mat.zeros sz 1))
-      | Eplus_vect (e1, e2) ->
+      | Eplus_mat (e1, e2) ->
           begin match affine_vec_of_vec e1, affine_vec_of_vec e2 with
             | (Some (AErvar (m, x, b)), Some (AEconst c))
             | (Some (AEconst c), Some (AErvar (m, x, b))) ->
@@ -341,7 +341,7 @@ module Make(DS_ll: DS_ll_S) = struct
       | _ -> None
     end
 
-let mv_gaussian : vector expr * matrix -> vector ds_distribution =
+let mv_gaussian : matrix expr * matrix -> matrix ds_distribution =
   begin fun (mu, sigma) ->
     let d () = Distribution.mv_gaussian(eval mu, sigma) in
       let is _prob =
@@ -430,7 +430,7 @@ let mv_gaussian : vector expr * matrix -> vector ds_distribution =
           Dist_pair (distribution_of_expr e1, distribution_of_expr e2)
       | Earray a ->
           Dist_array (Array.map distribution_of_expr a)
-      | Eplus_vect (_, _) ->
+      | Eplus_mat (_, _) ->
           assert false (* XXX TODO XXX *)
       | Escalar_mul (_e1, _e2) ->
           assert false (* XXX TODO XXX *)
