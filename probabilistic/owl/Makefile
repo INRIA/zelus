@@ -27,4 +27,4 @@ cleanall: clean
 
 # Dependencies
 mat.zci: owl_types_common.zci
-zelus_owl.zci:
+zelus_owl.zci: $(filter-out zelus_owl.zci,$(ZCI))
