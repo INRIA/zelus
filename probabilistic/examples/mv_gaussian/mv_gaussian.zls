@@ -1,6 +1,5 @@
 open Probzelus
 open Zelus_owl
-open Owl
 open Distribution
 open Infer_pf
 open Mvg_utils

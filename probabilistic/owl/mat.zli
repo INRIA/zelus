@@ -30,7 +30,8 @@ val eye : int -> mat
 
 val sequential : (* ?a:elt -> ?step:elt -> *) int -> int -> mat
 
-val uniform : (* ?a:elt -> ?b:elt -> *) int -> int -> mat
+(* val uniform : ?a:elt -> ?b:elt -> int -> int -> mat *)
+val uniform : elt -> elt -> int -> int -> mat
 
 val gaussian : (* ?mu:elt -> ?sigma:elt -> *) int -> int -> mat
 
@@ -101,19 +102,19 @@ val same_data : mat -> mat -> bool
 
 val get : mat -> int -> int -> elt
 
-val set : mat -> int -> int -> elt -> unit
+val set : mat -> int -> int -> elt -AD-> unit
 
 val get_index : mat -> int array array -> elt array
 
-val set_index : mat -> int array array -> elt array -> unit
+val set_index : mat -> int array array -> elt array -AD-> unit
 
 val get_fancy : index list -> mat -> mat
 
-val set_fancy : index list -> mat -> mat -> unit
+val set_fancy : index list -> mat -> mat -AD-> unit
 
 val get_slice : int list list -> mat -> mat
 
-val set_slice : int list list -> mat -> mat -> unit
+val set_slice : int list list -> mat -> mat -AD-> unit
 
 val row : mat -> int -> mat
 
@@ -135,15 +136,15 @@ val flip : (* ?axis:int -> *) mat -> mat
 
 val rotate : mat -> int -> mat
 
-(* val reset : mat -> unit *)
+(* val reset : mat -AD-> unit *)
 
-val fill : mat -> elt -> unit
+val fill : mat -> elt -AD-> unit
 
 val copy : mat -> mat
 
-val copy_row_to : mat -> mat -> int -> unit
+val copy_row_to : mat -> mat -> int -AD-> unit
 
-val copy_col_to : mat -> mat -> int -> unit
+val copy_col_to : mat -> mat -> int -AD-> unit
 
 val concat_vertical : mat -> mat -> mat
 
@@ -163,9 +164,9 @@ val ctranspose : mat -> mat
 
 val diag : (* ?k:int -> *) mat -> mat
 
-val swap_rows : mat -> int -> int -> unit
+val swap_rows : mat -> int -> int -AD-> unit
 
-val swap_cols : mat -> int -> int -> unit
+val swap_cols : mat -> int -> int -AD-> unit
 
 val tile : mat -> int array -> mat
 
@@ -186,9 +187,9 @@ val sort : mat -> mat
 
 (** {6 Iterate elements, columns, and rows.} *)
 
-val iteri : (int -> elt -> unit) -> mat -> unit
+val iteri : (int -> elt -AD-> unit) -> mat -AD-> unit
 
-val iter : (elt -> unit) -> mat -> unit
+val iter : (elt -AD-> unit) -> mat -AD-> unit
 
 val mapi : (int -> elt -> elt) -> mat -> mat
 
@@ -206,7 +207,7 @@ val filteri : (int -> elt -> bool) -> mat -> int array
 
 val filter : (elt -> bool) -> mat -> int array
 
-val iteri_2d :(int -> int -> elt -> unit) -> mat -> unit
+val iteri_2d :(int -> int -> elt -AD-> unit) -> mat -AD-> unit
 
 val mapi_2d : (int -> int -> elt -> elt) -> mat -> mat
 
@@ -216,29 +217,29 @@ val scani_2d : (* ?axis:int -> *) (int -> int -> elt -> elt -> elt) -> mat -> ma
 
 val filteri_2d : (int -> int -> elt -> bool) -> mat -> (int * int) array
 
-val iter2i_2d :(int -> int -> elt -> elt -> unit) -> mat -> mat -> unit
+val iter2i_2d :(int -> int -> elt -> elt -AD-> unit) -> mat -> mat -AD-> unit
 
 val map2i_2d : (int -> int -> elt -> elt -> elt) -> mat -> mat -> mat
 
-val iter2i : (int -> elt -> elt -> unit) -> mat -> mat -> unit
+val iter2i : (int -> elt -> elt -AD-> unit) -> mat -> mat -AD-> unit
 
-val iter2 : (elt -> elt -> unit) -> mat -> mat -> unit
+val iter2 : (elt -> elt -AD-> unit) -> mat -> mat -AD-> unit
 
 val map2i : (int -> elt -> elt -> elt) -> mat -> mat -> mat
 
 val map2 : (elt -> elt -> elt) -> mat -> mat -> mat
 
-val iteri_rows : (int -> mat -> unit) -> mat -> unit
+val iteri_rows : (int -> mat -AD-> unit) -> mat -AD-> unit
 
-val iter_rows : (mat -> unit) -> mat -> unit
+val iter_rows : (mat -AD-> unit) -> mat -AD-> unit
 
-val iter2i_rows : (int -> mat -> mat -> unit) -> mat -> mat -> unit
+val iter2i_rows : (int -> mat -> mat -AD-> unit) -> mat -> mat -AD-> unit
 
-val iter2_rows : (mat -> mat -> unit) -> mat -> mat -> unit
+val iter2_rows : (mat -> mat -AD-> unit) -> mat -> mat -AD-> unit
 
-val iteri_cols : (int -> mat -> unit) -> mat -> unit
+val iteri_cols : (int -> mat -AD-> unit) -> mat -AD-> unit
 
-val iter_cols : (mat -> unit) -> mat -> unit
+val iter_cols : (mat -AD-> unit) -> mat -AD-> unit
 
 val filteri_rows : (int -> mat -> bool) -> mat -> int array
 
@@ -393,13 +394,13 @@ val to_cols : mat -> mat array
 
 val of_cols : mat array -> mat
 
-val print : (* ?max_row:int -> *) (* ?max_col:int -> *) (* ?header:bool -> *) (* ?fmt:(elt -> string) -> *) mat -> unit
+val print : (* ?max_row:int -> *) (* ?max_col:int -> *) (* ?header:bool -> *) (* ?fmt:(elt -> string) -> *) mat -AD-> unit
 
-val save : mat -> string -> unit
+val save : mat -> string -AD-> unit
 
 val load : string -> mat
 
-val save_txt : (* ?sep:string -> *) (* ?append:bool -> *) mat -> string -> unit
+val save_txt : (* ?sep:string -> *) (* ?append:bool -> *) mat -> string -AD-> unit
 
 val load_txt : (* ?sep:string -> *) string -> mat
 
@@ -667,196 +668,196 @@ val fma : mat -> mat -> mat -> mat
 
 (** {6 Fucntions of in-place modification } *)
 
-(* val create_ : out:mat -> elt -> unit *)
+(* val create_ : out:mat -> elt -AD-> unit *)
 
-(* val uniform_ : ?a:elt -> ?b:elt -> out:mat -> unit *)
+(* val uniform_ : ?a:elt -> ?b:elt -> out:mat -AD-> unit *)
 
-(* val bernoulli_ : ?p:float -> out:mat -> unit *)
+(* val bernoulli_ : ?p:float -> out:mat -AD-> unit *)
 
-(* val zeros_ : out:mat -> unit *)
+(* val zeros_ : out:mat -AD-> unit *)
 
-(* val ones_ : out:mat -> unit *)
+(* val ones_ : out:mat -AD-> unit *)
 
-(* val sort_ : mat -> unit *)
+(* val sort_ : mat -AD-> unit *)
 
-(* val one_hot_ : out:mat -> int -> mat -> unit *)
+(* val one_hot_ : out:mat -> int -> mat -AD-> unit *)
 
-(* val copy_ : out:mat -> mat -> unit *)
+(* val copy_ : out:mat -> mat -AD-> unit *)
 
-(* val reshape_ : out:mat -> mat -> unit *)
+(* val reshape_ : out:mat -> mat -AD-> unit *)
 
-(* val transpose_ : out:mat -> ?axis:int array -> mat -> unit *)
+(* val transpose_ : out:mat -> ?axis:int array -> mat -AD-> unit *)
 
-(* val sum_ : out:mat -> axis:int -> mat -> unit *)
+(* val sum_ : out:mat -> axis:int -> mat -AD-> unit *)
 
-(* val min_ : out:mat -> axis:int -> mat -> unit *)
+(* val min_ : out:mat -> axis:int -> mat -AD-> unit *)
 
-(* val max_ : out:mat -> axis:int -> mat -> unit *)
+(* val max_ : out:mat -> axis:int -> mat -AD-> unit *)
 
-(* val add_ : ?out:mat -> mat -> mat -> unit *)
+(* val add_ : ?out:mat -> mat -> mat -AD-> unit *)
 
-(* val sub_ : ?out:mat -> mat -> mat -> unit *)
+(* val sub_ : ?out:mat -> mat -> mat -AD-> unit *)
 
-(* val mul_ : ?out:mat -> mat -> mat -> unit *)
+(* val mul_ : ?out:mat -> mat -> mat -AD-> unit *)
 
-(* val div_ : ?out:mat -> mat -> mat -> unit *)
+(* val div_ : ?out:mat -> mat -> mat -AD-> unit *)
 
-(* val pow_ : ?out:mat -> mat -> mat -> unit *)
+(* val pow_ : ?out:mat -> mat -> mat -AD-> unit *)
 
-(* val atan2_ : ?out:mat -> mat -> mat -> unit *)
+(* val atan2_ : ?out:mat -> mat -> mat -AD-> unit *)
 
-(* val hypot_ : ?out:mat -> mat -> mat -> unit *)
+(* val hypot_ : ?out:mat -> mat -> mat -AD-> unit *)
 
-(* val fmod_ : ?out:mat -> mat -> mat -> unit *)
+(* val fmod_ : ?out:mat -> mat -> mat -AD-> unit *)
 
-(* val min2_ : ?out:mat -> mat -> mat -> unit *)
+(* val min2_ : ?out:mat -> mat -> mat -AD-> unit *)
 
-(* val max2_ : ?out:mat -> mat -> mat -> unit *)
+(* val max2_ : ?out:mat -> mat -> mat -AD-> unit *)
 
-(* val add_scalar_ : ?out:mat -> mat -> elt -> unit *)
+(* val add_scalar_ : ?out:mat -> mat -> elt -AD-> unit *)
 
-(* val sub_scalar_ : ?out:mat -> mat -> elt -> unit *)
+(* val sub_scalar_ : ?out:mat -> mat -> elt -AD-> unit *)
 
-(* val mul_scalar_ : ?out:mat -> mat -> elt -> unit *)
+(* val mul_scalar_ : ?out:mat -> mat -> elt -AD-> unit *)
 
-(* val div_scalar_ : ?out:mat -> mat -> elt -> unit *)
+(* val div_scalar_ : ?out:mat -> mat -> elt -AD-> unit *)
 
-(* val pow_scalar_ : ?out:mat -> mat -> elt -> unit *)
+(* val pow_scalar_ : ?out:mat -> mat -> elt -AD-> unit *)
 
-(* val atan2_scalar_ : ?out:mat -> mat -> elt -> unit *)
+(* val atan2_scalar_ : ?out:mat -> mat -> elt -AD-> unit *)
 
-(* val fmod_scalar_ : ?out:mat -> mat -> elt -> unit *)
+(* val fmod_scalar_ : ?out:mat -> mat -> elt -AD-> unit *)
 
-(* val scalar_add_ : ?out:mat -> elt -> mat -> unit *)
+(* val scalar_add_ : ?out:mat -> elt -> mat -AD-> unit *)
 
-(* val scalar_sub_ : ?out:mat -> elt -> mat -> unit *)
+(* val scalar_sub_ : ?out:mat -> elt -> mat -AD-> unit *)
 
-(* val scalar_mul_ : ?out:mat -> elt -> mat -> unit *)
+(* val scalar_mul_ : ?out:mat -> elt -> mat -AD-> unit *)
 
-(* val scalar_div_ : ?out:mat -> elt -> mat -> unit *)
+(* val scalar_div_ : ?out:mat -> elt -> mat -AD-> unit *)
 
-(* val scalar_pow_ : ?out:mat -> elt -> mat -> unit *)
+(* val scalar_pow_ : ?out:mat -> elt -> mat -AD-> unit *)
 
-(* val scalar_atan2_ : ?out:mat -> elt -> mat -> unit *)
+(* val scalar_atan2_ : ?out:mat -> elt -> mat -AD-> unit *)
 
-(* val scalar_fmod_ : ?out:mat -> elt -> mat -> unit *)
+(* val scalar_fmod_ : ?out:mat -> elt -> mat -AD-> unit *)
 
-(* val fma_ : ?out:mat -> mat -> mat -> mat -> unit *)
+(* val fma_ : ?out:mat -> mat -> mat -> mat -AD-> unit *)
 
-(* val dot_ : ?transa:bool -> ?transb:bool -> ?alpha:elt -> ?beta:elt -> c:mat -> mat -> mat -> unit *)
+(* val dot_ : ?transa:bool -> ?transb:bool -> ?alpha:elt -> ?beta:elt -> c:mat -> mat -> mat -AD-> unit *)
 
-(* val conj_ : ?out:mat -> mat -> unit *)
+(* val conj_ : ?out:mat -> mat -AD-> unit *)
 
-(* val abs_ : ?out:mat -> mat -> unit *)
+(* val abs_ : ?out:mat -> mat -AD-> unit *)
 
-(* val neg_ : ?out:mat -> mat -> unit *)
+(* val neg_ : ?out:mat -> mat -AD-> unit *)
 
-(* val reci_ : ?out:mat -> mat -> unit *)
+(* val reci_ : ?out:mat -> mat -AD-> unit *)
 
-(* val signum_ : ?out:mat -> mat -> unit *)
+(* val signum_ : ?out:mat -> mat -AD-> unit *)
 
-(* val sqr_ : ?out:mat -> mat -> unit *)
+(* val sqr_ : ?out:mat -> mat -AD-> unit *)
 
-(* val sqrt_ : ?out:mat -> mat -> unit *)
+(* val sqrt_ : ?out:mat -> mat -AD-> unit *)
 
-(* val cbrt_ : ?out:mat -> mat -> unit *)
+(* val cbrt_ : ?out:mat -> mat -AD-> unit *)
 
-(* val exp_ : ?out:mat -> mat -> unit *)
+(* val exp_ : ?out:mat -> mat -AD-> unit *)
 
-(* val exp2_ : ?out:mat -> mat -> unit *)
+(* val exp2_ : ?out:mat -> mat -AD-> unit *)
 
-(* val exp10_ : ?out:mat -> mat -> unit *)
+(* val exp10_ : ?out:mat -> mat -AD-> unit *)
 
-(* val expm1_ : ?out:mat -> mat -> unit *)
+(* val expm1_ : ?out:mat -> mat -AD-> unit *)
 
-(* val log_ : ?out:mat -> mat -> unit *)
+(* val log_ : ?out:mat -> mat -AD-> unit *)
 
-(* val log2_ : ?out:mat -> mat -> unit *)
+(* val log2_ : ?out:mat -> mat -AD-> unit *)
 
-(* val log10_ : ?out:mat -> mat -> unit *)
+(* val log10_ : ?out:mat -> mat -AD-> unit *)
 
-(* val log1p_ : ?out:mat -> mat -> unit *)
+(* val log1p_ : ?out:mat -> mat -AD-> unit *)
 
-(* val sin_ : ?out:mat -> mat -> unit *)
+(* val sin_ : ?out:mat -> mat -AD-> unit *)
 
-(* val cos_ : ?out:mat -> mat -> unit *)
+(* val cos_ : ?out:mat -> mat -AD-> unit *)
 
-(* val tan_ : ?out:mat -> mat -> unit *)
+(* val tan_ : ?out:mat -> mat -AD-> unit *)
 
-(* val asin_ : ?out:mat -> mat -> unit *)
+(* val asin_ : ?out:mat -> mat -AD-> unit *)
 
-(* val acos_ : ?out:mat -> mat -> unit *)
+(* val acos_ : ?out:mat -> mat -AD-> unit *)
 
-(* val atan_ : ?out:mat -> mat -> unit *)
+(* val atan_ : ?out:mat -> mat -AD-> unit *)
 
-(* val sinh_ : ?out:mat -> mat -> unit *)
+(* val sinh_ : ?out:mat -> mat -AD-> unit *)
 
-(* val cosh_ : ?out:mat -> mat -> unit *)
+(* val cosh_ : ?out:mat -> mat -AD-> unit *)
 
-(* val tanh_ : ?out:mat -> mat -> unit *)
+(* val tanh_ : ?out:mat -> mat -AD-> unit *)
 
-(* val asinh_ : ?out:mat -> mat -> unit *)
+(* val asinh_ : ?out:mat -> mat -AD-> unit *)
 
-(* val acosh_ : ?out:mat -> mat -> unit *)
+(* val acosh_ : ?out:mat -> mat -AD-> unit *)
 
-(* val atanh_ : ?out:mat -> mat -> unit *)
+(* val atanh_ : ?out:mat -> mat -AD-> unit *)
 
-(* val floor_ : ?out:mat -> mat -> unit *)
+(* val floor_ : ?out:mat -> mat -AD-> unit *)
 
-(* val ceil_ : ?out:mat -> mat -> unit *)
+(* val ceil_ : ?out:mat -> mat -AD-> unit *)
 
-(* val round_ : ?out:mat -> mat -> unit *)
+(* val round_ : ?out:mat -> mat -AD-> unit *)
 
-(* val trunc_ : ?out:mat -> mat -> unit *)
+(* val trunc_ : ?out:mat -> mat -AD-> unit *)
 
-(* val fix_ : ?out:mat -> mat -> unit *)
+(* val fix_ : ?out:mat -> mat -AD-> unit *)
 
-(* val erf_ : ?out:mat -> mat -> unit *)
+(* val erf_ : ?out:mat -> mat -AD-> unit *)
 
-(* val erfc_ : ?out:mat -> mat -> unit *)
+(* val erfc_ : ?out:mat -> mat -AD-> unit *)
 
-(* val relu_ : ?out:mat -> mat -> unit *)
+(* val relu_ : ?out:mat -> mat -AD-> unit *)
 
-(* val softplus_ : ?out:mat -> mat -> unit *)
+(* val softplus_ : ?out:mat -> mat -AD-> unit *)
 
-(* val softsign_ : ?out:mat -> mat -> unit *)
+(* val softsign_ : ?out:mat -> mat -AD-> unit *)
 
-(* val sigmoid_ : ?out:mat -> mat -> unit *)
+(* val sigmoid_ : ?out:mat -> mat -AD-> unit *)
 
-(* val softmax_ : ?out:mat -> ?axis:int -> mat -> unit *)
+(* val softmax_ : ?out:mat -> ?axis:int -> mat -AD-> unit *)
 
-(* val cumsum_ : ?out:mat -> ?axis:int -> mat -> unit *)
+(* val cumsum_ : ?out:mat -> ?axis:int -> mat -AD-> unit *)
 
-(* val cumprod_ : ?out:mat -> ?axis:int -> mat -> unit *)
+(* val cumprod_ : ?out:mat -> ?axis:int -> mat -AD-> unit *)
 
-(* val cummin_ : ?out:mat -> ?axis:int -> mat -> unit *)
+(* val cummin_ : ?out:mat -> ?axis:int -> mat -AD-> unit *)
 
-(* val cummax_ : ?out:mat -> ?axis:int -> mat -> unit *)
+(* val cummax_ : ?out:mat -> ?axis:int -> mat -AD-> unit *)
 
-(* val dropout_ : ?out:mat -> ?rate:float -> mat -> unit *)
+(* val dropout_ : ?out:mat -> ?rate:float -> mat -AD-> unit *)
 
-(* val elt_equal_ : ?out:mat -> mat -> mat -> unit *)
+(* val elt_equal_ : ?out:mat -> mat -> mat -AD-> unit *)
 
-(* val elt_not_equal_ : ?out:mat -> mat -> mat -> unit *)
+(* val elt_not_equal_ : ?out:mat -> mat -> mat -AD-> unit *)
 
-(* val elt_less_ : ?out:mat -> mat -> mat -> unit *)
+(* val elt_less_ : ?out:mat -> mat -> mat -AD-> unit *)
 
-(* val elt_greater_ : ?out:mat -> mat -> mat -> unit *)
+(* val elt_greater_ : ?out:mat -> mat -> mat -AD-> unit *)
 
-(* val elt_less_equal_ : ?out:mat -> mat -> mat -> unit *)
+(* val elt_less_equal_ : ?out:mat -> mat -> mat -AD-> unit *)
 
-(* val elt_greater_equal_ : ?out:mat -> mat -> mat -> unit *)
+(* val elt_greater_equal_ : ?out:mat -> mat -> mat -AD-> unit *)
 
-(* val elt_equal_scalar_ : ?out:mat -> mat -> elt -> unit *)
+(* val elt_equal_scalar_ : ?out:mat -> mat -> elt -AD-> unit *)
 
-(* val elt_not_equal_scalar_ : ?out:mat -> mat -> elt -> unit *)
+(* val elt_not_equal_scalar_ : ?out:mat -> mat -> elt -AD-> unit *)
 
-(* val elt_less_scalar_ : ?out:mat -> mat -> elt -> unit *)
+(* val elt_less_scalar_ : ?out:mat -> mat -> elt -AD-> unit *)
 
-(* val elt_greater_scalar_ : ?out:mat -> mat -> elt -> unit *)
+(* val elt_greater_scalar_ : ?out:mat -> mat -> elt -AD-> unit *)
 
-(* val elt_less_equal_scalar_ : ?out:mat -> mat -> elt -> unit *)
+(* val elt_less_equal_scalar_ : ?out:mat -> mat -> elt -AD-> unit *)
 
-(* val elt_greater_equal_scalar_ : ?out:mat -> mat -> elt -> unit *)
+(* val elt_greater_equal_scalar_ : ?out:mat -> mat -> elt -AD-> unit *)
 
 

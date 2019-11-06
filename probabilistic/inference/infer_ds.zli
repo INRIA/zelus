@@ -1,6 +1,5 @@
 (** Inference with delayed sampling *)
 open Zelus_owl
-open Owl
 
 type 'a expr
 

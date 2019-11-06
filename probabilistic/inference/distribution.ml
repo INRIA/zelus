@@ -1,6 +1,7 @@
 (** {2 Type definitions} *)
 
 open Owl
+open Zelus_owl
 
 (** Probabilities (must be in the interval [0, 1]). *)
 type proba = float

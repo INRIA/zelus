@@ -1,4 +1,5 @@
-type mat
+open Zelus_owl
+open Mat
 
 val print : mat -AD-> unit
 val shape : mat -> int * int

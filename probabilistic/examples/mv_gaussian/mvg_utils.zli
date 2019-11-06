@@ -1,6 +1,5 @@
 open Probzelus
 open Zelus_owl
-open Owl
 
 val mu : Mat.mat
 val sigma : float -> Mat.mat

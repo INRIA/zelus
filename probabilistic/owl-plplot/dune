@@ -1,0 +1,3 @@
+(library
+ (name zelus_owl_plplot)
+ (libraries owl-plplot))

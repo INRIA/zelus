@@ -1,5 +1,4 @@
 open Zelus_owl
-open Owl
 
 (* type proba = float *)
 type log_proba = float

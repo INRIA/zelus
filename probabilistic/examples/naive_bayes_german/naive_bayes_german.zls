@@ -1,3 +1,4 @@
+open Zelus_owl
 open Probzelus
 open Distribution
 open Infer_ds
