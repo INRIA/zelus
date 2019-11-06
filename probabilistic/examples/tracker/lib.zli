@@ -1,26 +1,19 @@
 open Maths
 
-val a : matrix
-val b : matrix
-val q : matrix
-val r : matrix
-val x_init : matrix
-val zerost : matrix
-val update_sig : matrix
-val init_sig : matrix
-val obs_acc : matrix
-val obs_acc_approx : matrix
-val obs_acc_gps : matrix
-val obs_acc_gps_approx : matrix
-val obs_sig : matrix
-
-val mul : matrix -> matrix -> matrix
+val concat_vertical : matrix -> matrix -> matrix
+val concat_horizontal : matrix -> matrix -> matrix
+val of_lists : float list list -> matrix
+val eye : int -> matrix
+val zeros : int -> int -> matrix
+val transpose : matrix -> matrix
+val mul_scalar : matrix -> float -> matrix
+val dot : matrix -> matrix -> matrix
 val add : matrix -> matrix -> matrix
+val diagm : matrix -> matrix
+val get : matrix -> int -> int -> float
+
+val dare : matrix -> matrix -> matrix -> matrix -> matrix
+val linsolve : matrix -> matrix -> matrix
 
 
-val state_tostring : matrix -> string
-val get_pos : matrix -> float
-val print : matrix -AD-> unit
-
-val add_result : float * float * float -AD-> unit
-val exit_and_plot : unit -AD-> unit
+val plot : string -> matrix -AD-> unit
