@@ -5,13 +5,26 @@ open Zelus_owl_types_misc
  * Copyright (c) 2016-2019 Liang Wang <liang.wang@cl.cam.ac.uk>
  *)
 
+(** Complex dense matrix module: this module supports operations on dense
+  matrices of complex numbers. The complex number has a record type of
+  [{re = float; im = float}].
+
+  This page only contains detailed explanations for the operations specific to
+  Dense.Complex module. Most of the other operations are the same to those in
+  Dense.Real module, therefore please refer to the documentation of Dense.Real
+  for more information.
+ *)
+
+(* [@@@warning "-32"] *)
+
 (* open Bigarray *)
 
 (* open Owl_types *)
 open Owl_types_common
 
-type elt = float
-type mat = (float, float64_elt) Owl_dense_matrix_generic.t
+type elt = Complex.t
+type mat = (Complex.t, complex64_elt) Owl_dense_matrix_generic.t
+type cast_mat = (float, float64_elt) Owl_dense_matrix_generic.t
 
 
 (** {6 Create dense matrices} *)
@@ -30,14 +43,21 @@ val ones : int -> int -> mat
 
 val eye : int -> mat
 
-val sequential : (* ?a:elt -> ?step:elt -> *) int -> int -> mat
+val complex : cast_mat -> cast_mat -> mat
 
-(* val uniform : ?a:elt -> ?b:elt -> int -> int -> mat *)
-val uniform : elt -> elt -> int -> int -> mat
+val polar : cast_mat -> cast_mat -> mat
 
-val gaussian : (* ?mu:elt -> ?sigma:elt -> *) int -> int -> mat
+val sequential : (* ?a:elt -> *) (* ?step:elt -> *) int -> int -> mat
 
-val semidef : int -> mat
+val uniform : (* ?a:elt -> *) (* ?b:elt -> *) int -> int -> mat
+
+val gaussian : (* ?mu:elt -> *) (* ?sigma:elt -> *) int -> int -> mat
+
+(* val linspace : elt -> elt -> int -> mat *)
+
+(* val meshgrid : elt -> elt -> elt -> elt -> int -> int -> mat * mat *)
+
+(* val meshup : mat -> mat -> mat * mat *)
 
 val bernoulli : (* ?p:float -> *) int -> int -> mat
 
@@ -48,6 +68,8 @@ val triu : (* ?k:int -> *) mat -> mat
 val tril : (* ?k:int -> *) mat -> mat
 
 val symmetric : (* ?upper:bool -> *) mat -> mat
+
+val hermitian : (* ?upper:bool -> *) mat -> mat
 
 val bidiagonal : (* ?upper:bool -> *) mat -> mat -> mat
 
@@ -427,6 +449,10 @@ val max_i : mat -> elt * int array
 
 val minmax_i : mat -> (elt * int array) * (elt * int array)
 
+val re : mat -> cast_mat
+
+val im : mat -> cast_mat
+
 val trace : mat -> elt
 
 val sum : (* ?axis:int -> *) mat -> mat
@@ -441,11 +467,11 @@ val mean : (* ?axis:int -> *) mat -> mat
 
 val mean': mat -> elt
 
-(* val var : (\* ?axis:int -> *\) mat -> mat [@@warning "-32"] *)
+(* val var : (\* ?axis:int -> *\) mat -> mat *)
 
 val var': mat -> elt
 
-(* val std : (\* ?axis:int -> *\) mat -> mat [@@warning "-32"] *)
+(* val std : (\* ?axis:int -> *\) mat -> mat *)
 
 val std': mat -> elt
 
@@ -456,14 +482,6 @@ val sum_cols : mat -> mat
 val mean_rows : mat -> mat
 
 val mean_cols : mat -> mat
-
-val min_rows : mat -> (elt * int * int) array
-
-val min_cols : mat -> (elt * int * int) array
-
-val max_rows : mat -> (elt * int * int) array
-
-val max_cols : mat -> (elt * int * int) array
 
 val abs : mat -> mat
 
@@ -477,7 +495,31 @@ val reci : mat -> mat
 
 val reci_tol : (* ?tol:elt -> *) mat -> mat
 
-val signum : mat -> mat
+val l1norm : (* ?axis:int -> *) mat -> mat
+
+val l1norm' : mat -> elt
+
+val l2norm : (* ?axis:int -> *) mat -> mat
+
+val l2norm' : mat -> elt
+
+val l2norm_sqr : (* ?axis:int -> *) mat -> mat
+
+val l2norm_sqr' : mat -> elt
+
+val vecnorm : (* ?axis:int -> *) (* ?p:float -> *) mat -> mat
+
+val vecnorm' : (* ?p:float -> *) mat -> elt
+
+val cumsum : (* ?axis:int -> *) mat -> mat
+
+val cumprod : (* ?axis:int -> *) mat -> mat
+
+val cummin : (* ?axis:int -> *) mat -> mat
+
+val cummax : (* ?axis:int -> *) mat -> mat
+
+val diff : (* ?axis:int -> *) (* ?n:int -> *) mat -> mat
 
 val sqr : mat -> mat
 
@@ -537,57 +579,9 @@ val fix : mat -> mat
 
 val modf : mat -> mat * mat
 
-val erf : mat -> mat
+val angle : mat -> mat
 
-val erfc : mat -> mat
-
-val logistic : mat -> mat
-
-val relu : mat -> mat
-
-val elu : (* ?alpha:elt -> *) mat -> mat
-
-val leaky_relu : (* ?alpha:elt -> *) mat -> mat
-
-val softplus : mat -> mat
-
-val softsign : mat -> mat
-
-val softmax :(* ?axis:int -> *) mat -> mat
-
-val sigmoid : mat -> mat
-
-val log_sum_exp' : mat -> elt
-
-val l1norm : (* ?axis:int -> *) mat -> mat
-
-val l1norm' : mat -> elt
-
-val l2norm : (* ?axis:int -> *) mat -> mat
-
-val l2norm' : mat -> elt
-
-val l2norm_sqr : (* ?axis:int -> *) mat -> mat
-
-val l2norm_sqr' : mat -> elt
-
-val vecnorm : (* ?axis:int -> *) (* ?p:float -> *) mat -> mat
-
-val vecnorm' : (* ?p:float -> *) mat -> elt
-
-val max_pool : (* ?padding:padding -> *) mat -> int array -> int array -> mat
-
-val avg_pool : (* ?padding:padding -> *) mat -> int array -> int array -> mat
-
-val cumsum : (* ?axis:int -> *) mat -> mat
-
-val cumprod : (* ?axis:int -> *) mat -> mat
-
-val cummin : (* ?axis:int -> *) mat -> mat
-
-val cummax : (* ?axis:int -> *) mat -> mat
-
-val diff : (* ?axis:int -> *) (* ?n:int -> *) mat -> mat
+val proj : mat -> mat
 
 val var : (* ?axis:int -> *) mat -> mat
 
@@ -595,7 +589,6 @@ val std : (* ?axis:int -> *) mat -> mat
 
 val mat2gray : (* ?amin:elt -> *) (* ?amax:elt -> *) mat -> mat
 
-val lgamma : mat -> mat 
 
 (** {6 Binary mathematical operations } *)
 
@@ -627,43 +620,25 @@ val dot : mat -> mat -> mat
 
 val add_diag : mat -> elt -> mat
 
+val ssqr' : mat -> elt -> elt
+
+val ssqr_diff' : mat -> mat -> elt
+
+val min2 : mat -> mat -> mat
+
+val max2 : mat -> mat -> mat
+
 val pow : mat -> mat -> mat
 
 val scalar_pow : elt -> mat -> mat
 
 val pow_scalar : mat -> elt -> mat
 
-val atan2 : mat -> mat -> mat
-
-val scalar_atan2 : elt -> mat -> mat
-
-val atan2_scalar : mat -> elt -> mat
-
-val hypot : mat -> mat -> mat
-
-val min2 : mat -> mat -> mat
-
-val max2 : mat -> mat -> mat
-
-val fmod : mat -> mat -> mat
-
-val fmod_scalar : mat -> elt -> mat
-
-val scalar_fmod : elt -> mat -> mat
-
-val ssqr' : mat -> elt -> elt
-
-val ssqr_diff' : mat -> mat -> elt
-
-val cross_entropy' : mat -> mat -> elt
-
-val clip_by_value : (* ?amin:elt -> *) (* ?amax:elt -> *) mat -> mat
-
-val clip_by_l2norm : elt -> mat -> mat
-
 (* val cov : ?b:mat -> a:mat -> mat *)
 
 val kron : mat -> mat -> mat
+
+val clip_by_value : (* ?amin:elt -> *) (* ?amax:elt -> *) mat -> mat
 
 val fma : mat -> mat -> mat -> mat
 
@@ -861,5 +836,3 @@ val fma : mat -> mat -> mat -> mat
 (* val elt_less_equal_scalar_ : ?out:mat -> mat -> elt -AD-> unit *)
 
 (* val elt_greater_equal_scalar_ : ?out:mat -> mat -> elt -AD-> unit *)
-
-

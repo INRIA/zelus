@@ -1,5 +1,4 @@
 open Zelus_owl_types_misc
-
 (*
  * OWL - OCaml Scientific and Engineering Computing
  * Copyright (c) 2016-2019 Liang Wang <liang.wang@cl.cam.ac.uk>
@@ -30,12 +29,11 @@ val ones : int -> int -> mat
 
 val eye : int -> mat
 
-val sequential : (* ?a:elt -> ?step:elt -> *) int -> int -> mat
+val sequential : (* ?a:elt -> *) (* ?step:elt -> *) int -> int -> mat
 
-(* val uniform : ?a:elt -> ?b:elt -> int -> int -> mat *)
-val uniform : elt -> elt -> int -> int -> mat
+val uniform : (* ?a:elt -> *) (* ?b:elt -> *) int -> int -> mat
 
-val gaussian : (* ?mu:elt -> ?sigma:elt -> *) int -> int -> mat
+val gaussian : (* ?mu:elt -> *) (* ?sigma:elt -> *) int -> int -> mat
 
 val semidef : int -> mat
 
