@@ -5,6 +5,7 @@ let of_lists l = Mat.of_arrays (Array.of_list (List.map Array.of_list l))
 let dare = Linalg.D.dare
 let transpose = Mat.transpose
 let linsolve = Linalg.D.linsolve
+let print = Mat.print
 
 let plot file y =
   let h = Plot.create file in
