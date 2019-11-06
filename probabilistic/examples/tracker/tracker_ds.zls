@@ -1,4 +1,6 @@
 open Probzelus
+open Zelus_owl
+open Owl
 open Distribution
 open Infer_ds_gc
 open Lib
@@ -8,9 +10,11 @@ open Lib
  *)
 let lqr a b q r n =
   let p = dare a b q r in
-  let btp = dot (transpose b) p in
-  let f = linsolve (add r (dot btp b)) (add (transpose n) (dot btp a))
-  in mul_scalar f (-1.)
+  let btp = Mat.dot (Mat.transpose b) p in
+  let f = linsolve
+    (Mat.add r (Mat.dot btp b))
+    (Mat.add (Mat.transpose n) (Mat.dot btp a))
+  in Mat.mul_scalar f (-1.)
 
 let a = of_lists
   [[ 1.0; 0.1; 0.0 ];
@@ -22,34 +26,34 @@ let a_approx = of_lists
    [ 0.0; 1.0; 0.1 ];
    [ 0.0; 0.0; 0.000001 ]]
 
-let b = eye 3
-let q = diagm (of_lists [[1.0; 0.1; 0.1]])
-let r = diagm (of_lists [[1000.; 1000.; 1.0]])
-let n = zeros 3 3
+let b = Mat.eye 3
+let q = Mat.diagm (of_lists [[1.0; 0.1; 0.1]])
+let r = Mat.diagm (of_lists [[1000.; 1000.; 1.0]])
+let n = Mat.zeros 3 3
 
 let controller x =
   let k = lqr a_approx b q r n in
-  dot k x
+  Mat.dot k x
 
-let x_init = diagm (of_lists [[50.; 0.; 0.]])
-let init_sig = diagm (of_lists [[10.; 0.001; 1.0]])
-let update_sig = mul_scalar (eye 3) 0.01
+let x_init = Mat.diagm (of_lists [[50.; 0.; 0.]])
+let init_sig = Mat.diagm (of_lists [[10.; 0.001; 1.0]])
+let update_sig = Mat.mul_scalar (Mat.eye 3) 0.01
 
-let obs_acc = diagm (of_lists [[0.; 0.; 1.0]])
-let obs_acc_approx = diagm (of_lists [[0.0001; 0.0001; 1.0]])
-let obs_acc_gps = diagm (of_lists [[1.0; 0.; 0.0]])
-let obs_acc_gps_approx = diagm (of_lists [[1.0; 0.0001; 0.0001]])
+let obs_acc = Mat.diagm (of_lists [[0.; 0.; 1.0]])
+let obs_acc_approx = Mat.diagm (of_lists [[0.0001; 0.0001; 1.0]])
+let obs_acc_gps = Mat.diagm (of_lists [[1.0; 0.; 0.0]])
+let obs_acc_gps_approx = Mat.diagm (of_lists [[1.0; 0.0001; 0.0001]])
 
-let obs_sig = diagm (of_lists [[1.0; 1.0; 0.1]])
+let obs_sig = Mat.diagm (of_lists [[1.0; 1.0; 0.1]])
 
 
 let particles = 1000
 
 let node env cmd = (xt, yt) where
   rec t = 0 -> (pre t) + 1
-  and xt = draw (Distribution.mv_gaussian ((x_init, init_sig) -> (add cmd (dot a (pre xt)), update_sig)))
+  and xt = draw (Distribution.mv_gaussian ((x_init, init_sig) -> (Mat.add cmd (Mat.dot a (pre xt)), update_sig)))
   and obs = present (t mod 50 = 0) -> obs_acc_gps else obs_acc
-  and yt = draw (Distribution.mv_gaussian (dot obs xt, obs_sig))
+  and yt = draw (Distribution.mv_gaussian (Mat.dot obs xt, obs_sig))
 
 let proba model (yt, cmd) = xt where
   rec t = 0 -> (pre t) + 1
@@ -57,17 +61,14 @@ let proba model (yt, cmd) = xt where
   and () = observe (mv_gaussian ((const obs_acc_approx *@~ xt), obs_sig), yt)
   and present (t mod 50 = 0) -> do () = observe (mv_gaussian ((const obs_acc_gps_approx *@~ xt), obs_sig), yt) done
 
-  (*and obs = present ((t mod 50) = 0) -> obs_acc_gps_approx else obs_acc_approx
-  and () = observe (mv_gaussian (((const obs) *@~ xt), obs_sig), yt)*)
-
 let node main () = () where
   rec t = 0 -> (pre t) + 1
-  and (xt, yt) = env (zeros 3 1 -> (pre cmd))
+  and (xt, yt) = env (Mat.zeros 3 1 -> (pre cmd))
   and cmd = controller xest
-  and xest = mean_matrix (infer particles model (yt, (zeros 3 1 -> (pre cmd))))
-  and err = (0. -> (pre err +. ((get xt 0 0) *. (get xt 0 0))))
+  and xest = mean_matrix (infer particles model (yt, (Mat.zeros 3 1 -> (pre cmd))))
+  and err = (0. -> (pre err +. ((Mat.get xt 0 0) *. (Mat.get xt 0 0))))
   and avg_err = err /. (float_of_int t)
-  and res = (zeros 1 3) fby
-    concat_vertical res (of_lists [[get xt 0 0; get yt 0 0; get xest 0 0]])
+  and res = (Mat.zeros 1 3) fby
+    Mat.concat_vertical res (of_lists [[Mat.get xt 0 0; Mat.get yt 0 0; Mat.get xest 0 0]])
   and () = print_int t; print_string " >> "; print_float (avg_err); print_endline ""
   and present (t mod 51 = 50) -> do () = plot "plot_3pos.pdf" res done
