@@ -35,7 +35,7 @@ val mean_list : ('a -> float) -> 'a list t -> float list
 val mean_int : int t -> float
 val mean_bool : bool t -> float
 val mean_signal_present : 'a signal t -> float
-val mean_matrix: matrix t -> matrix
+val mean_matrix: Mat.mat t -> Mat.mat
 
 val bernoulli_draw : float -> bool
 val bernoulli_score : float -> bool -> float

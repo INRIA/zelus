@@ -24,3 +24,7 @@ clean:
 	-rm -f zelus_owl.cma zelus_owl.cmxa
 cleanall: clean
 	rm -f *~
+
+# Dependencies
+mat.zci: owl_types_common.zci
+zelus_owl.zci:

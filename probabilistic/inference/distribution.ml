@@ -1169,7 +1169,7 @@ let rec mean_signal_present : type a. (a * bool) t -> float =
   end
 
 
-let rec mean_matrix (d: matrix t)=
+let rec mean_matrix (d: Mat.mat t)=
   begin match d with
     | Dist_sampler (draw, _) ->
         let n = 100000 in
@@ -1189,18 +1189,18 @@ let rec mean_matrix (d: matrix t)=
           Owl.Mat.(mean_matrix v *$ w) sup
     | Dist_mixture [] -> assert false
     | Dist_mv_gaussian (mu, _) -> mu
-    | Dist_sampler_float _
-    | Dist_pair _
-    | Dist_list _
-    | Dist_array _
-    | Dist_gaussian _
-    | Dist_beta _
-    | Dist_bernoulli _
-    | Dist_uniform_int _
-    | Dist_uniform_float _
-    | Dist_exponential _
-    | Dist_poisson _
-    | Dist_plus _
-    | Dist_mult _
+    | Dist_sampler_float _ -> assert false
+    | Dist_pair _ -> assert false
+    | Dist_list _ -> assert false
+    | Dist_array _ -> assert false
+    | Dist_gaussian _ -> assert false
+    | Dist_beta _ -> assert false
+    | Dist_bernoulli _ -> assert false
+    | Dist_uniform_int _ -> assert false
+    | Dist_uniform_float _ -> assert false
+    | Dist_exponential _ -> assert false
+    | Dist_poisson _ -> assert false
+    | Dist_plus _ -> assert false
+    | Dist_mult _ -> assert false
     | Dist_app _ -> assert false
   end
