@@ -1,0 +1,5 @@
+open Zelus_owl
+open Mat
+
+val of_lists : float list list -> mat
+val of_list : float list -> int -> int -> mat

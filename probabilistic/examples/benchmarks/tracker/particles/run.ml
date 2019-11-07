@@ -1,0 +1,21 @@
+open Benchlib
+
+module M = struct
+    type input = unit
+    type output = unit
+    let iters = ref 0
+    let read_input () =
+        begin
+            if !iters >= 1500 then
+                raise End_of_file
+            else
+                iters := !iters + 1
+        end;
+        ()
+    let main = Tracker_particles.main
+end
+
+module H = Harness.Make(M)
+
+let () =
+    H.run ()
