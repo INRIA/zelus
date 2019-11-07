@@ -250,7 +250,7 @@ let factor =
 type _ expr_tree =
   | Econst : 'a -> 'a expr_tree
   | Ervar : 'a random_var -> 'a expr_tree
-  | Eplus : float expr * float expr -> float expr_tree
+  | Eadd : float expr * float expr -> float expr_tree
   | Emult : float expr * float expr -> float expr_tree
   | Eapp : ('a -> 'b) expr * 'a expr -> 'b expr_tree
   | Epair : 'a expr * 'b expr -> ('a * 'b) expr_tree
@@ -262,15 +262,15 @@ let const : 'a. 'a -> 'a expr =
     { value = Econst v; }
   end
 
-let plus : float expr * float expr -> float expr =
+let add : float expr * float expr -> float expr =
   begin fun (e1, e2) ->
     begin match e1.value, e2.value with
       | Econst x, Econst y -> { value = Econst (x +. y); }
-      | _ -> { value = Eplus (e1, e2); }
+      | _ -> { value = Eadd (e1, e2); }
     end
   end
 
-let ( +~ ) x y = plus (x, y)
+let ( +~ ) x y = add (x, y)
 
 let mult : float expr * float expr -> float expr =
   begin fun (e1, e2) ->
@@ -309,7 +309,7 @@ let rec eval' : type t.
           let v = Infer_ds_ll_gc.value n in
           e.value <- Econst v;
           v
-      | Eplus (e1, e2) ->
+      | Eadd (e1, e2) ->
           let v = eval' prob e1 +. eval' prob e2 in
           e.value <- Econst v;
           v
@@ -345,7 +345,7 @@ let eval =
    begin match e.value with
    | Econst v -> v
    | Ervar (RV x) -> Infer_ds_ll_gc.fvalue x
-   | Eplus (e1, e2) -> fval e1 +. fval e2
+   | Eadd (e1, e2) -> fval e1 +. fval e2
    | Emult (e1, e2) -> fval e1 *. fval e2
    | Eapp (e1, e2) -> (fval e1) (fval e2)
    | Epair (e1, e2) -> (fval e1, fval e2)
@@ -356,7 +356,7 @@ let rec string_of_expr e =
   begin match e.value with
     | Econst v -> string_of_float v
     | Ervar x -> "RV_" ^ string_of_int x.rv_id
-    | Eplus (e1, e2) -> "(" ^ string_of_expr e1 ^ " + " ^ string_of_expr e2 ^ ")"
+    | Eadd (e1, e2) -> "(" ^ string_of_expr e1 ^ " + " ^ string_of_expr e2 ^ ")"
     | Emult (e1, e2) -> "(" ^ string_of_expr e1 ^ " * " ^ string_of_expr e2 ^ ")"
     | Eapp (_, _) -> "App"
   end
@@ -426,7 +426,7 @@ let rec affine_of_expr : float expr -> affine_expr option =
     begin match expr.value with
       | Econst v -> Some (AEconst v)
       | Ervar var -> Some (AErvar (1., var, 0.))
-      | Eplus (e1, e2) ->
+      | Eadd (e1, e2) ->
           begin match (affine_of_expr e1, affine_of_expr e2) with
             | (Some (AErvar (m, x, b)), Some (AEconst v))
             | (Some (AEconst v), Some (AErvar (m, x, b))) -> Some (AErvar (m, x, b +. v))
@@ -542,8 +542,8 @@ let rec distribution_of_expr : type a. pstate -> a expr -> a Distribution.t =
   begin match expr.value with
     | Econst c -> Dist_support [c, 1.]
     | Ervar x -> rv_distr prob x
-    | Eplus (e1, e2) ->
-        Dist_plus (distribution_of_expr prob e1, distribution_of_expr prob e2)
+    | Eadd (e1, e2) ->
+        Dist_add (distribution_of_expr prob e1, distribution_of_expr prob e2)
     | Emult (e1, e2) ->
         Dist_mult (distribution_of_expr prob e1, distribution_of_expr prob e2)
     | Eapp (e1, e2) ->
