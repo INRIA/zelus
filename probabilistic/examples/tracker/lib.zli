@@ -3,7 +3,4 @@ open Mat
 
 val of_lists : float list list -> mat
 val of_list : float list -> int -> int -> mat
-val dare : mat -> mat -> mat -> mat -> mat
-val linsolve : mat -> mat -> mat
 val plot : string -> mat -AD-> unit
-val print : mat -AD-> unit

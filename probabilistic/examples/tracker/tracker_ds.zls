@@ -11,25 +11,21 @@ let add_mat (x, y) = Mat.add x y
 let get (x, i, j) = Mat.get x i j
 *)
 
-
-let diag l = Mat.diagm (Lib.of_lists [l])
+let diagm l = Mat.diagm (Lib.of_lists [l])
 let vec l = Lib.of_list l (List.length l) 1
 
 let position x = Mat.get x 0 0
 let acceleration x = Mat.get x 2 0
 let speed x = Mat.get x 1 0
 
-let filter (l, x) =
-  let f = const (Mat.add_scalar (diag l) 0.00001) in
-  dot_mat (f, x)
 
 (* Using variable names matching here:
   https://en.wikipedia.org/wiki/Linear–quadratic_regulator
  *)
 let lqr a b q r n =
-  let p = Lib.dare a b q r in
+  let p = Linalg_d.dare a b q r in
   let btp = Mat.dot (Mat.transpose b) p in
-  let f = Lib.linsolve
+  let f = Linalg_d.linsolve
     (Mat.add r (Mat.dot btp b))
     (Mat.add (Mat.transpose n) (Mat.dot btp a))
   in Mat.mul_scalar f (-1.)
@@ -45,8 +41,8 @@ let a_approx = Lib.of_lists
    [ 0.0; 0.0; 0.000001 ]]
 
 let b = Mat.eye 3
-let q = diag [1.0; 0.1; 0.1]
-let r = diag [1000.; 1000.; 1.0]
+let q = diagm [1.0; 0.1; 0.1]
+let r = diagm [1000.; 1000.; 1.0]
 let n = Mat.zeros 3 3
 
 let controller x =
@@ -54,15 +50,15 @@ let controller x =
   Mat.mul (Mat.dot k x) (Lib.of_list [0.; 0.; 1.] 3 1)
 
 let x_init = Lib.of_list [50.; 0.; 0.5] 3 1
-let init_sig = diag [10.; 0.001; 1.0]
-let state_noise = diag [0.01; 0.01; 0.01]
+let init_sig = diagm [10.; 0.001; 1.0]
+let state_noise = diagm [0.01; 0.01; 0.01]
 
-let obs_acc = diag [0.; 0.; 1.0]
-let obs_acc_approx = diag [0.0001; 0.0001; 1.0]
-let obs_acc_gps = diag [1.0; 0.; 1.0]
-let obs_acc_gps_approx = diag [1.0; 0.0001; 1.0]
-let obs_gps_approx = diag [1.0; 0.0001; 0.0001]
-let obs_noise = diag [1.0; 1.0; 0.1]
+let obs_acc = diagm [0.; 0.; 1.0]
+let obs_acc_approx = diagm [0.0001; 0.0001; 1.0]
+let obs_acc_gps = diagm [1.0; 0.; 1.0]
+let obs_acc_gps_approx = diagm [1.0; 0.0001; 1.0]
+let obs_gps_approx = diagm [1.0; 0.0001; 0.0001]
+let obs_noise = diagm [1.0; 1.0; 0.1]
 
 
 let particles = 1
@@ -78,8 +74,9 @@ let node env (call_gps, cmd) = xt, acc, gps where
 
 
 let proba noisy_integr noise x_init acc = x where
-  rec mu = (const x_init) fby add_mat (const acc, dot_mat (const a, x))
+  rec mu = (const x_init) fby mat_add (const acc, mat_dot (const a, x))
   and x = sample (mv_gaussian (mu, noise))
+
 
 (*
 let proba model (acc, gps, cmd) = x where
@@ -91,8 +88,8 @@ let proba model (acc, gps, cmd) = x where
 
 let proba model (acc, gps, cmd) = x where
   rec x = noisy_integr state_noise x_init cmd
-  and () = observe (gaussian (get (x, 2, 0), 0.1), acc)
-  and present gps(p) -> do () = observe (gaussian (get (x, 0, 0), 1.0), p) done
+  and () = observe (gaussian (vec_get (x, 2), 0.1), acc)
+  and present gps(p) -> do () = observe (gaussian (vec_get (x, 0), 1.0), p) done
 
 let node main () = () where
   rec t = 1 fby t + 1
