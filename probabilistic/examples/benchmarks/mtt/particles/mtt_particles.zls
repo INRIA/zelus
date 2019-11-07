@@ -38,6 +38,6 @@ let proba model inp = t where
   and () = ListP.iter2 obsfn (obs_shuffled, inp)
 
 
-let node main (truth, obs) = () where
-  rec tr_obs_distr = infer 1000 model obs 
+let node main particles (a, obs) = ((), 0.) where
+  rec tr_obs_distr = infer particles model obs 
   (* and () = print_string ((string_of_vec2_list tr) ^ " : " ^ (string_of_vec2_list obs) ^ "\n") *)
