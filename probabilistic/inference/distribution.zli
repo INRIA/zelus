@@ -1,4 +1,4 @@
-open Maths
+open Zelus_owl
 
 (* type proba = float *)
 type log_proba = float
@@ -48,7 +48,7 @@ val gaussian_mean : 'a -> 'b -> 'a
 val gaussian_variance : 'a -> float -> float
 val gaussian : float * float -> float t
 
-val mv_gaussian : vector * matrix -> vector t
+val mv_gaussian : Mat.mat * Mat.mat -> Mat.mat t
 
 val beta_draw : float -> float -> float
 val beta_score : float -> float -> float -> float

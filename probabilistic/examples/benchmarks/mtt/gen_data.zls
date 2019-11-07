@@ -1,7 +1,6 @@
 open Probzelus
 open Mttlib
 open Util
-open Distribution
 open Zelus_owl
 open Distribution
 open Infer_pf
