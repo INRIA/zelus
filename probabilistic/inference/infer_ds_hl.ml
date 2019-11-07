@@ -356,8 +356,9 @@ module Make(DS_ll: DS_ll_S) = struct
                               let n = DS_ll.shape x in
                               let mask = Mat.(epsilon_float $* eye n) in Mat.set mask i i 1.0;
                               let m' = Mat.dot m mask in
+                              let b' = Mat.dot mask b in
                               let std' = Mat.eye n in Mat.set std' i i std;
-                              let rv = DS_ll.assume_conditional x (AffineMeanGaussianMV(m', b, std')) in
+                              let rv = DS_ll.assume_conditional x (AffineMeanGaussianMV(m', b', std')) in
                               Some { value = Evec_get ({ value = Ervar (RV rv)}, i)}
                           | _ -> None
                         end
@@ -388,9 +389,10 @@ module Make(DS_ll: DS_ll_S) = struct
                               let n = DS_ll.shape x in
                               let mask = Mat.(epsilon_float $* eye n) in Mat.set mask i i 1.0;
                               let m' = Mat.dot m mask in
+                              let b' = Mat.dot mask b in
                               let std' = Mat.eye n in Mat.set std' i i std;
                               let obs' = Mat.zeros n 1 in Mat.set obs' i 0 obs;
-                              Some (DS_ll.observe_conditional prob x (AffineMeanGaussianMV(m', b, std')) obs')
+                              Some (DS_ll.observe_conditional prob x (AffineMeanGaussianMV(m', b', std')) obs')
                           | _ -> None
                         end
                     | _ -> None
