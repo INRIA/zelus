@@ -27,7 +27,7 @@ type _ t =
   | Dist_uniform_float : float * float -> float t
   | Dist_exponential : float -> float t
   | Dist_poisson : float -> int t
-  | Dist_plus : float t * float t -> float t
+  | Dist_add : float t * float t -> float t
   | Dist_mult : float t * float t -> float t
   | Dist_app : ('a -> 'b) t * 'a t -> 'b t
   | Dist_mv_gaussian : Mat.mat * Mat.mat -> Mat.mat t
@@ -425,8 +425,8 @@ let alias_method values probabilities =
   alias_method_unsafe values probabilities
 
 
-(** [plus (d1, d2)] is the sum of two distributions. *)
-let plus : float t * float t -> float t =
+(** [add (d1, d2)] is the sum of two distributions. *)
+let add : float t * float t -> float t =
   fun (dist1, dist2) ->
   begin match dist1, dist2 with
     | Dist_support s1, Dist_support s2 ->
@@ -439,11 +439,11 @@ let plus : float t * float t -> float t =
     | (Dist_beta (_, _), _) | (_, Dist_beta (_, _))
     | (Dist_uniform_float (_, _), _) | (_, Dist_uniform_float (_, _))
     | (Dist_exponential _, _) | (_, Dist_exponential _)
-    | (Dist_plus (_, _), _) | (_, Dist_plus (_, _))
+    | (Dist_add (_, _), _) | (_, Dist_add (_, _))
     | (Dist_mult (_, _), _) | (_, Dist_mult (_, _))
     | (Dist_app (_, _), _) | (_, Dist_app (_, _)) ->
         (* XXX TODO XXX *)
-        Dist_plus (dist1, dist2)
+        Dist_add (dist1, dist2)
     | (Dist_mv_gaussian (_, _), Dist_mv_gaussian (_, _)) ->
         assert false
   end
@@ -462,7 +462,7 @@ let mult : float t * float t -> float t =
     | (Dist_beta (_, _), _) | (_, Dist_beta (_, _))
     | (Dist_uniform_float (_, _), _) | (_, Dist_uniform_float (_, _))
     | (Dist_exponential _, _) | (_, Dist_exponential _)
-    | (Dist_plus (_, _), _) | (_, Dist_plus (_, _))
+    | (Dist_add (_, _), _) | (_, Dist_add (_, _))
     | (Dist_mult (_, _), _) | (_, Dist_mult (_, _))
     | (Dist_app (_, _), _) | (_, Dist_app (_, _)) ->
         Dist_mult (dist1, dist2)
@@ -504,7 +504,7 @@ let rec to_dist_support : type a. a t -> a t =
     | Dist_uniform_float (_, _) -> assert false
     | Dist_exponential _ -> assert false
     | Dist_poisson _ -> assert false
-    | Dist_plus (d1, d2) ->
+    | Dist_add (d1, d2) ->
         begin match to_dist_support d1, to_dist_support d2 with
           | Dist_support s1, Dist_support s2 ->
               Dist_support (flatten_suport ( +. ) s1 s2)
@@ -555,7 +555,7 @@ let rec draw : type a. a t -> a =
         List.map (fun ed -> draw ed) a
     | Dist_array a ->
         Array.map (fun ed -> draw ed) a
-    | Dist_plus (d1, d2) ->
+    | Dist_add (d1, d2) ->
         draw d1 +. draw d2
     | Dist_mult (d1, d2) ->
         draw d1 *. draw d2
@@ -613,9 +613,9 @@ let rec score : type a. a t * a -> log_proba =
           !acc
         else
           neg_infinity
-    | Dist_plus (Dist_support [c, 1.], d) -> score (d, x -. c)
-    | Dist_plus (d, Dist_support [c, 1.]) -> score (d, x -. c)
-    | Dist_plus (_, _) -> score (to_dist_support dist, x)
+    | Dist_add (Dist_support [c, 1.], d) -> score (d, x -. c)
+    | Dist_add (d, Dist_support [c, 1.]) -> score (d, x -. c)
+    | Dist_add (_, _) -> score (to_dist_support dist, x)
     | Dist_mult (Dist_support [c, 1.], d) -> score (d, x /. c)
     | Dist_mult (d, Dist_support [c, 1.]) -> score (d, x /. c)
     | Dist_mult (_, _) -> score (to_dist_support dist, x)
@@ -683,7 +683,7 @@ let draw_and_score : type a. a t -> a * log_proba =
     | Dist_poisson _ ->
         let x = draw dist in
         (x, score (dist, x))
-    | Dist_plus _ ->
+    | Dist_add _ ->
         let x = draw dist in
         (x, score (dist, x))
     | Dist_mult _ ->
@@ -994,7 +994,7 @@ let rec stats_float : float t -> float * float =
           end
         in
         stats l 0. 0. 0.
-    | Dist_plus (d1, d2) ->
+    | Dist_add (d1, d2) ->
         let m1, s1 = stats_float d1 in
         let m2, s2 = stats_float d2 in
         m1 +. m2, s1 +. s2
@@ -1025,7 +1025,7 @@ let rec mean_float d =
     | Dist_exponential a -> exponential_mean a
     | Dist_mixture l ->
         List.fold_left (fun acc (d, w) -> acc +. w *. mean_float d) 0. l
-    | Dist_plus (d1, d2) ->
+    | Dist_add (d1, d2) ->
         let m1= mean_float d1 in
         let m2 = mean_float d2 in
         m1 +. m2
@@ -1088,7 +1088,7 @@ let rec mean : type a. (a -> float) -> a t -> float =
     | Dist_array _ ->
         assert false (* XXX TODO XXX *)
     (* Array.fold_left (fun acc d -> acc +. mean meanfn d) 0. a *)
-    | Dist_plus (d1, d2) ->
+    | Dist_add (d1, d2) ->
         let m1= mean meanfn d1 in
         let m2 = mean meanfn d2 in
         m1 +. m2
@@ -1201,7 +1201,7 @@ let rec mean_matrix (d: Mat.mat t)=
     | Dist_uniform_float _ -> assert false
     | Dist_exponential _ -> assert false
     | Dist_poisson _ -> assert false
-    | Dist_plus _ -> assert false
+    | Dist_add _ -> assert false
     | Dist_mult _ -> assert false
     | Dist_app _ -> assert false
   end

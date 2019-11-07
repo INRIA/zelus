@@ -4,7 +4,7 @@ open Zelus_owl
 type 'a expr
 
 val const : 'a -> 'a expr
-val plus : float expr * float expr -> float expr
+val add : float expr * float expr -> float expr
 val ( +~ ) : float expr -> float expr -> float expr
 val mult : float expr * float expr -> float expr
 val ( *~ ) : float expr -> float expr -> float expr
@@ -13,12 +13,13 @@ val ( @@~ ) : ('a -> 'b) expr -> 'a expr -> 'b expr
 val pair : 'a expr * 'b expr -> ('a * 'b) expr
 val array : 'a expr array -> 'a array expr
 
-val plus_mat : Mat.mat expr * Mat.mat expr -> Mat.mat expr
+val add_mat : Mat.mat expr * Mat.mat expr -> Mat.mat expr
 val ( +@~ ) : Mat.mat expr -> Mat.mat expr -> Mat.mat expr
 val scalar_mult_vect : float expr * Mat.mat expr -> Mat.mat expr
 val ( $*~ ) : float expr -> Mat.mat expr -> Mat.mat expr
 val dot_mat : Mat.mat expr * Mat.mat expr -> Mat.mat expr
 val ( *@~ ) : Mat.mat expr -> Mat.mat expr -> Mat.mat expr
+val get : Mat.mat expr * int * int -> float expr
 
 val eval : 'a expr -> 'a
 

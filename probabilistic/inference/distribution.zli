@@ -17,7 +17,7 @@ type 'a t (* = *)
   (* | Dist_uniform_int of int * int *)
   (* | Dist_uniform_float of float * float *)
   (* | Dist_exponential of float *)
-  (* | Dist_plus of float t * float t *)
+  (* | Dist_add of float t * float t *)
   (* | Dist_mult of float t * float t *)
   (* | Dist_app : ('a -> 'b) t * 'a t -> 'b t *)
 
@@ -90,7 +90,7 @@ val alias_method_unsafe : 'a array -> float array -> 'a t
 val alias_method_list : ('a * float) list -> 'a t
 val alias_method : 'a array -> float array -> 'a t
 
-val plus : float t * float t -> float t
+val add : float t * float t -> float t
 val mult : float t * float t -> float t
 val app : ('a -> 'b) t * 'a t -> 'b t
 
