@@ -1,8 +1,27 @@
 val sample : 'a Distribution.t ~D~> 'a
-
 val factor : float ~D~> unit
-
 val observe : 'a Distribution.t * 'a ~D~> unit
+
+val const : 'a -> 'a
+val add : float * float -> float
+val ( +~ ) : float -> float -> float
+val mult : float * float -> float
+val ( *~ ) : float  -> float -> float
+val app : ('a -> 'b)  * 'a  -> 'b
+val ( @@~ ) : ('a -> 'b)  -> 'a  -> 'b
+val pair : 'a  * 'b  -> ('a * 'b)
+val array : 'a  array -> 'a array
+
+val mat_add : Mat.mat  * Mat.mat  -> Mat.mat
+val ( +@~ ) : Mat.mat  -> Mat.mat  -> Mat.mat
+val mat_scalar_mult : float  * Mat.mat  -> Mat.mat
+val ( $*~ ) : float  -> Mat.mat  -> Mat.mat
+val mat_dot : Mat.mat  * Mat.mat  -> Mat.mat
+val ( *@~ ) : Mat.mat  -> Mat.mat  -> Mat.mat
+val vec_get : Mat.mat  * int -> float
+
+val eval : 'a  -> 'a
+
 
 val infer :
   int -S-> ('a ~D~> 'b) -S-> 'a -D-> 'b Distribution.t

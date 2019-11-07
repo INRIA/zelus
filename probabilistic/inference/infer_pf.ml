@@ -9,6 +9,7 @@
 *)
 
 open Ztypes
+open Owl
 
 type pstate = {
   idx : int; (** particle index *)
@@ -51,6 +52,28 @@ let sample =
   in
   Cnode { alloc; reset; copy; step; }
 
+let id x = x
+
+let const = id
+let add (x, y) = x +. y
+let ( +~ ) = ( +. )
+let mult (x, y) = x *. y
+let ( *~ ) = ( *. )
+let app (f, x) = f x
+let ( @@~ ) f x = f x
+let pair = id
+let array = id
+
+let mat_add (x, y) = Mat.add x y
+let ( +@~ ) = Mat.( + )
+let mat_scalar_mult (a, x) = Mat.mul_scalar x a
+let ( $*~ ) = Mat.( $* )
+let mat_dot (x, y) = Mat.dot x y
+let ( *@~ ) = Mat.( *@ )
+let vec_get (x, i) = Mat.get x i 0
+
+let eval = id
+
 type 'a infer_state = {
   infer_states : 'a array;
   infer_scores : float array;
@@ -61,12 +84,12 @@ type 'a infer_state = {
          int -S-> (pstate * 'a -D-> 'b)
              -S-> bool * 'a -D-> 'b Distribution.t
 
-  The infer function takes a number of particles, a node, a stream of
-  booleans and inputs, and returns a node.  The node in argument takes
-  as argument a state for the inference and an input and returns the
-  output.  The node in output takes as argument a boolen indiacting to
-  the instants to resample and the input and returns the infered
-  output.
+    The infer function takes a number of particles, a node, a stream of
+    booleans and inputs, and returns a node.  The node in argument takes
+    as argument a state for the inference and an input and returns the
+    output.  The node in output takes as argument a boolen indiacting to
+    the instants to resample and the input and returns the infered
+    output.
 *)
 let infer_subresample n (Cnode { alloc; reset; copy; step }) =
   let alloc () =
@@ -81,8 +104,8 @@ let infer_subresample n (Cnode { alloc; reset; copy; step }) =
     let values =
       Array.mapi
         (fun i state ->
-          let value = step state ({ idx = i; scores = scores; }, input) in
-          value)
+           let value = step state ({ idx = i; scores = scores; }, input) in
+           value)
         states
     in
     let probabilities, ret = Normalize.normalize_nohist values scores in
@@ -129,8 +152,8 @@ let infer_ess_resample n threshold (Cnode { alloc; reset; copy; step }) =
     let values =
       Array.mapi
         (fun i state ->
-          let value = step state ({ idx = i; scores = scores; }, input) in
-          value)
+           let value = step state ({ idx = i; scores = scores; }, input) in
+           value)
         states
     in
     let probabilities, ret = Normalize.normalize_nohist values scores in
@@ -191,13 +214,13 @@ let plan_step n k model_step model_copy =
       let score' =
         Array.iteri
           (fun i state ->
-            let _ = model_step state ({ idx = i; scores = scores; }, input) in
-            let score = scores.(i) in
-            let eu =
-              memoize_step
-                expected_utility ((state, score), table) (ttl - 1, input)
-            in
-            scores.(i) <- eu)
+             let _ = model_step state ({ idx = i; scores = scores; }, input) in
+             let score = scores.(i) in
+             let eu =
+               memoize_step
+                 expected_utility ((state, score), table) (ttl - 1, input)
+             in
+             scores.(i) <- eu)
           states;
         (* let norm = Normalize.log_sum_exp scores in *)
         (* let probabilities = Array.map (fun score -> exp (score -. norm)) scores in *)
@@ -217,10 +240,10 @@ let plan_step n k model_step model_copy =
     let values =
       Array.mapi
         (fun i state ->
-          let value = model_step state ({ idx = i; scores = scores; }, input) in
-          let score = scores.(i) in
-          scores.(i) <- expected_utility (state, score) (k, input);
-          value)
+           let value = model_step state ({ idx = i; scores = scores; }, input) in
+           let score = scores.(i) in
+           scores.(i) <- expected_utility (state, score) (k, input);
+           value)
         states
     in
     let states_values =
@@ -257,8 +280,8 @@ let plan n k (Cnode model : (pstate * 't1, 't2) Ztypes.cnode) =
 
 
 type 'state infd_state =
-    { infd_states : 'state array;
-      infd_scores : float array; }
+  { infd_states : 'state array;
+    infd_scores : float array; }
 
 let infer_depth n k (Cnode model) =
   let alloc () =
