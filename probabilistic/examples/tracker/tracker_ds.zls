@@ -1,17 +1,9 @@
 open Probzelus
+open Infer_ds
 open Distribution
-open Infer_ds_gc
 open Zelus_owl
 open Zelus_owl_plplot
 open Plot
-
-(*
-let id x = x
-let const = id
-let dot_mat (x, y) = Mat.dot x y
-let add_mat (x, y) = Mat.add x y
-let get (x, i, j) = Mat.get x i j
-*)
 
 let diagm l = Mat.diagm (Lib.of_lists [l])
 let vec l = Lib.of_list l (List.length l) 1
@@ -30,7 +22,6 @@ let node plot file y =
   Plot.plot h [ RGB (0,150,0) ] x (Mat.col y 1);
   Plot.plot h [ RGB (0,0,150) ] x (Mat.col y 2);
   Plot.output h
-
 
 (* Using variable names matching here:
   https://en.wikipedia.org/wiki/Linear–quadratic_regulator
@@ -58,21 +49,14 @@ let q = diagm [1.0; 0.1; 0.1]
 let r = diagm [1000.; 1000.; 1.0]
 let n = Mat.zeros 3 3
 
-let controller x =
+let controller x_dist =
+  let x = mean_matrix x_dist in
   let k = lqr a_approx b q r n in
   Mat.mul (Mat.dot k x) (Lib.of_list [0.; 0.; 1.] 3 1)
 
 let x_init = Lib.of_list [50.; 0.; 0.5] 3 1
 let init_sig = diagm [10.; 0.001; 1.0]
 let state_noise = diagm [0.01; 0.01; 0.01]
-
-let obs_acc = diagm [0.; 0.; 1.0]
-let obs_acc_approx = diagm [0.0001; 0.0001; 1.0]
-let obs_acc_gps = diagm [1.0; 0.; 1.0]
-let obs_acc_gps_approx = diagm [1.0; 0.0001; 1.0]
-let obs_gps_approx = diagm [1.0; 0.0001; 0.0001]
-let obs_noise = diagm [1.0; 1.0; 0.1]
-
 
 let particles = 1
 
@@ -82,41 +66,38 @@ let node env_noisy_integr noise x_init acc = x where
 
 let node env (call_gps, cmd) = xt, acc, gps where
   rec xt = env_noisy_integr state_noise x_init cmd
+  and acc = draw (Distribution.gaussian (acceleration xt, 1.0))
   and present call_gps -> do emit gps = draw (Distribution.gaussian (position xt, 1.0)) done
-  and acc = draw (Distribution.gaussian (acceleration xt, 0.1))
+
 
 
 let proba noisy_integr noise x_init acc = x where
-  rec mu = (const x_init) fby mat_add (const acc, mat_dot (const a, x))
+  rec mu = (const x_init) -> mat_add (const acc, mat_dot (const a, pre x))
   and x = sample (mv_gaussian (mu, noise))
 
-
-(*
 let proba model (acc, gps, cmd) = x where
   rec x = noisy_integr state_noise x_init cmd
-  and () = observe (mv_gaussian (dot_mat (const obs_acc_approx, x), obs_noise), vec [0.; 0.; acc])
-  and present gps(p) ->
-    do () = observe (mv_gaussian (dot_mat (const obs_gps_approx, x), obs_noise), vec [p; 0.; 0.]) done
-*)
-
-let proba model (acc, gps, cmd) = x where
-  rec x = noisy_integr state_noise x_init cmd
-  and () = observe (gaussian (vec_get (x, 2), 0.1), acc)
+  and () = observe (gaussian (vec_get (x, 2), 1.0), acc)
   and present gps(p) -> do () = observe (gaussian (vec_get (x, 0), 1.0), p) done
+
+let node robot (acc, gps) = x_dist, cmd where
+  rec x_dist = infer particles model (acc, gps, cmd)
+  and cmd = Mat.zeros 3 1 -> controller (pre x_dist)
+
 
 let node main () = () where
   rec t = 1 fby t + 1
-
+  (* Robot Control *)
   and call_gps = (t mod 50 = 0)
   and xt, acc, gps = env (call_gps, cmd)
-  and xest = mean_matrix (infer particles model (acc, gps, cmd))
-  and cmd = controller (Mat.zeros 3 1 fby xest)
-
+  and x_dist, cmd = robot(acc, gps)
+  (* Log *)
   and err = 0. -> (pre err) +. (position xt *. position xt)
   and avg_err = err /. (float_of_int t)
   and yt = present gps(p) -> p else 0.
+  and xest = mean_matrix x_dist
   and xye = Lib.of_lists [[position xt; yt; position xest]]
-
+  (* Plot *)
   and res = (Mat.zeros 1 3) fby Mat.concat_vertical res xye
   and () = print_int t; print_string " >> "; print_float (avg_err); print_endline ""
   and present (t mod 51 = 50) -> do () = plot "plot_3pos.pdf" res done
