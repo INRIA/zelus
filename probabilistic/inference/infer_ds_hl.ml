@@ -39,10 +39,10 @@ module Make(DS_ll: DS_ll_S) = struct
     | Eapp : ('a -> 'b) expr * 'a expr -> 'b expr_tree
     | Epair : 'a expr * 'b expr -> ('a * 'b) expr_tree
     | Earray : 'a expr array -> 'a array expr_tree
-    | Eadd_mat : Mat.mat expr * Mat.mat expr -> Mat.mat expr_tree
-    | Escalar_mul : float expr * Mat.mat expr -> Mat.mat expr_tree
-    | Edot : Mat.mat expr * Mat.mat expr -> Mat.mat expr_tree
-    | Eget : Mat.mat expr * int * int -> float expr_tree
+    | Emat_add : Mat.mat expr * Mat.mat expr -> Mat.mat expr_tree
+    | Emat_scalar_mul : float expr * Mat.mat expr -> Mat.mat expr_tree
+    | Emat_dot : Mat.mat expr * Mat.mat expr -> Mat.mat expr_tree
+    | Evec_get : Mat.mat expr * int * int -> float expr_tree
   and 'a expr = {
     mutable value : 'a expr_tree;
   }
@@ -89,39 +89,39 @@ module Make(DS_ll: DS_ll_S) = struct
   let array a =
     { value = Earray a }
 
-  let add_mat : (Mat.mat expr * Mat.mat expr) -> Mat.mat expr =
+  let mat_add : (Mat.mat expr * Mat.mat expr) -> Mat.mat expr =
     begin fun (e1, e2) ->
       begin match e1.value, e2.value with
         | Econst x, Econst y ->  { value = Econst (Mat.add x y) }
-        | _ -> { value = Eadd_mat (e1, e2) }
+        | _ -> { value = Emat_add (e1, e2) }
       end
     end
 
-  let ( +@~ ) x y = add_mat (x, y)
+  let ( +@~ ) x y = mat_add (x, y)
 
-  let scalar_mult_vect : float expr * Mat.mat expr -> Mat.mat expr =
+  let mat_scalar_mult : float expr * Mat.mat expr -> Mat.mat expr =
     fun (e1, e2) ->
     begin match e1.value, e2.value with
       | Econst x, Econst y ->  { value = Econst (Mat.scalar_mul x y) }
-      | _ -> { value = Escalar_mul (e1, e2) }
+      | _ -> { value = Emat_scalar_mul (e1, e2) }
     end
 
-  let ( $*~ ) x y = scalar_mult_vect (x, y)
+  let ( $*~ ) x y = mat_scalar_mult (x, y)
 
-  let dot_mat : Mat.mat expr * Mat.mat expr -> Mat.mat expr =
+  let mat_dot : Mat.mat expr * Mat.mat expr -> Mat.mat expr =
     fun (e1, e2) ->
     begin match e1.value, e2.value with
       | Econst x, Econst y ->  { value = Econst (Mat.dot x y) }
-      | _ -> { value = Edot (e1, e2) }
+      | _ -> { value = Emat_dot (e1, e2) }
     end
 
-  let ( *@~ ) x y = dot_mat (x, y)
+  let ( *@~ ) x y = mat_dot (x, y)
 
-  let get :  Mat.mat expr * int * int -> float expr =
-    fun (e ,i, j) ->
+  let vec_get :  Mat.mat expr * int  -> float expr =
+    fun (e ,i) ->
     begin match e.value with
-      | Econst x -> { value =  Econst (Mat.get x i j) }
-      | _ -> { value = Eget (e, i, j)}
+      | Econst x -> { value =  Econst (Mat.get x i 0) }
+      | _ -> { value = Evec_get (e, i, 0)}
     end
 
 
@@ -152,19 +152,19 @@ module Make(DS_ll: DS_ll_S) = struct
             v
         | Earray a ->
             Array.map eval a
-        | Eadd_mat (e1, e2) ->
+        | Emat_add (e1, e2) ->
             let v = Mat.add (eval e1) (eval e2) in
             e.value <- Econst v;
             v
-        | Escalar_mul (e1, e2) ->
+        | Emat_scalar_mul (e1, e2) ->
             let v = Mat.scalar_mul (eval e1) (eval e2) in
             e.value <- Econst v;
             v
-        | Edot (e1, e2) ->
+        | Emat_dot (e1, e2) ->
             let v = Mat.dot (eval e1) (eval e2) in
             e.value <- Econst v;
             v
-        | Eget (m, i, j) ->
+        | Evec_get (m, i, j) ->
             let v = Mat.get (eval m) i j in
             e.value <- Econst v;
             v
@@ -193,10 +193,10 @@ module Make(DS_ll: DS_ll_S) = struct
       | Emult (e1, e2) ->
           "(" ^ string_of_expr e1 ^ " * " ^ string_of_expr e2 ^ ")"
       | Eapp (_e1, _e2) -> "App"
-      | Eget _ -> "Get"
-      | Eadd_mat (_, _) -> assert false
-      | Escalar_mul (_, _) -> assert false
-      | Edot (_, _) -> assert false
+      | Evec_get _ -> "Get"
+      | Emat_add (_, _) -> assert false
+      | Emat_scalar_mul (_, _) -> assert false
+      | Emat_dot (_, _) -> assert false
 
     end
 
@@ -282,10 +282,10 @@ module Make(DS_ll: DS_ll_S) = struct
               | _ -> None
             end
         | Eapp (_, _) -> None
-        | Eadd_mat (_, _) -> assert false
-        | Escalar_mul (_, _) -> assert false
-        | Edot (_, _) -> assert false
-        | Eget _ -> None
+        | Emat_add (_, _) -> assert false
+        | Emat_scalar_mul (_, _) -> assert false
+        | Emat_dot (_, _) -> assert false
+        | Evec_get _ -> None
       end
     end
 
@@ -296,7 +296,7 @@ module Make(DS_ll: DS_ll_S) = struct
       | Ervar (RV var) ->
           let sz = DS_ll.shape var in
           Some (AErvar (Mat.eye sz, (RV var), Mat.zeros sz 1))
-      | Eadd_mat (e1, e2) ->
+      | Emat_add (e1, e2) ->
           begin match affine_vec_of_vec e1, affine_vec_of_vec e2 with
             | (Some (AErvar (m, x, b)), Some (AEconst c))
             | (Some (AEconst c), Some (AErvar (m, x, b))) ->
@@ -305,7 +305,7 @@ module Make(DS_ll: DS_ll_S) = struct
                 Some (AEconst (Mat.add c1 c2))
             | _ -> None
           end
-      | Escalar_mul (e1, e2) ->
+      | Emat_scalar_mul (e1, e2) ->
           begin match e1.value, affine_vec_of_vec e2 with
             | Econst v1, Some (AErvar (m, x, b)) ->
                 Some (AErvar (Mat.scalar_mul v1 m, x, Mat.scalar_mul v1 b))
@@ -313,7 +313,7 @@ module Make(DS_ll: DS_ll_S) = struct
                 Some (AEconst (Owl.Mat.scalar_mul v1 v2))
             | _ -> None
           end
-      | Edot (e1, e2) ->
+      | Emat_dot (e1, e2) ->
           begin match e1.value, affine_vec_of_vec e2 with
             | Econst m1, Some (AErvar (m, x, b)) ->
                 Some (AErvar (Mat.dot m1 m, x, Mat.dot m1 b))
@@ -354,14 +354,14 @@ module Make(DS_ll: DS_ll_S) = struct
             end
         | None ->
             begin match mu.value with
-              | Eget (m, i, _) ->
+              | Evec_get (m, i, _) ->
                   begin match affine_vec_of_vec m with
                     | Some (AEconst _) -> None
                     | Some (AErvar (m, RV x, b)) ->
                         begin match DS_ll.get_distr_kind x with
                           | KMVGaussian ->
                               let n = DS_ll.shape x in
-                              let mask = Mat.(0.0001 $* eye n) in Mat.set mask i i 1.0;
+                              let mask = Mat.(epsilon_float $* eye n) in Mat.set mask i i 1.0;
                               let mu' = Mat.dot mask m in
                               let std' = Mat.eye n in Mat.set std' i i std;
                               let obs' = Mat.zeros n 1 in Mat.set obs' i 0 obs;
@@ -466,13 +466,13 @@ module Make(DS_ll: DS_ll_S) = struct
           Dist_pair (distribution_of_expr e1, distribution_of_expr e2)
       | Earray a ->
           Dist_array (Array.map distribution_of_expr a)
-      | Eadd_mat (_, _) ->
+      | Emat_add (_, _) ->
           assert false (* XXX TODO XXX *)
-      | Escalar_mul (_e1, _e2) ->
+      | Emat_scalar_mul (_e1, _e2) ->
           assert false (* XXX TODO XXX *)
-      | Edot (_e1, _e2) ->
+      | Emat_dot (_e1, _e2) ->
           assert false (* XXX TODO XXX *)
-      | Eget _ ->
+      | Evec_get _ ->
           assert false (* XXX TODO XXX *)
     end
 

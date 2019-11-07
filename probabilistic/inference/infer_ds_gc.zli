@@ -13,13 +13,13 @@ val ( @@~ ) : ('a -> 'b) expr -> 'a expr -> 'b expr
 val pair : 'a expr * 'b expr -> ('a * 'b) expr
 val array : 'a expr array -> 'a array expr
 
-val add_mat : Mat.mat expr * Mat.mat expr -> Mat.mat expr
+val mat_add : Mat.mat expr * Mat.mat expr -> Mat.mat expr
 val ( +@~ ) : Mat.mat expr -> Mat.mat expr -> Mat.mat expr
-val scalar_mult_vect : float expr * Mat.mat expr -> Mat.mat expr
+val mat_scalar_mult : float expr * Mat.mat expr -> Mat.mat expr
 val ( $*~ ) : float expr -> Mat.mat expr -> Mat.mat expr
-val dot_mat : Mat.mat expr * Mat.mat expr -> Mat.mat expr
+val mat_dot : Mat.mat expr * Mat.mat expr -> Mat.mat expr
 val ( *@~ ) : Mat.mat expr -> Mat.mat expr -> Mat.mat expr
-val get : Mat.mat expr * int * int -> float expr
+val vec_get : Mat.mat expr * int -> float expr
 
 val eval : 'a expr -> 'a
 
