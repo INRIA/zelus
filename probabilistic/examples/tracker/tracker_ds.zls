@@ -2,6 +2,8 @@ open Probzelus
 open Distribution
 open Infer_ds_gc
 open Zelus_owl
+open Zelus_owl_plplot
+open Plot
 
 (*
 let id x = x
@@ -17,6 +19,17 @@ let vec l = Lib.of_list l (List.length l) 1
 let position x = Mat.get x 0 0
 let acceleration x = Mat.get x 2 0
 let speed x = Mat.get x 1 0
+
+
+let node plot file y =
+  let h = Plot.create file in
+  Plot.set_page_size h 500 400;
+  let n, m = Mat.shape y in
+  let x = Mat.sequential n 1 in
+  Plot.plot h [ RGB (150,0,0) ] x (Mat.col y 0);
+  Plot.plot h [ RGB (0,150,0) ] x (Mat.col y 1);
+  Plot.plot h [ RGB (0,0,150) ] x (Mat.col y 2);
+  Plot.output h
 
 
 (* Using variable names matching here:
@@ -93,14 +106,17 @@ let proba model (acc, gps, cmd) = x where
 
 let node main () = () where
   rec t = 1 fby t + 1
+
   and call_gps = (t mod 50 = 0)
   and xt, acc, gps = env (call_gps, cmd)
   and xest = mean_matrix (infer particles model (acc, gps, cmd))
   and cmd = controller (Mat.zeros 3 1 fby xest)
+
   and err = 0. -> (pre err) +. (position xt *. position xt)
   and avg_err = err /. (float_of_int t)
   and yt = present gps(p) -> p else 0.
   and xye = Lib.of_lists [[position xt; yt; position xest]]
+
   and res = (Mat.zeros 1 3) fby Mat.concat_vertical res xye
   and () = print_int t; print_string " >> "; print_float (avg_err); print_endline ""
-  and present (t mod 51 = 50) -> do () = Lib.plot "plot_3pos.pdf" res done
+  and present (t mod 51 = 50) -> do () = plot "plot_3pos.pdf" res done

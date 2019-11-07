@@ -1,6 +1,7 @@
 INFERLIB=../../inference
 OWL=../../owl
-ZELUC=zeluc -copy -I $(INFERLIB) -I $(OWL)
+PLPLOT=../../owl-plplot
+ZELUC=zeluc -copy -I $(INFERLIB) -I $(OWL) -I $(PLPLOT)
 
 ZLI=$(wildcard *.zli)
 ZCI=$(ZLI:zli=zci)

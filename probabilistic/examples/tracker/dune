@@ -4,4 +4,4 @@
 
 (executables
  (names main)
- (libraries probzelus owl owl-plplot))
+ (libraries probzelus zelus_owl_plplot owl owl-plplot))
