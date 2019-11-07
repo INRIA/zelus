@@ -42,7 +42,7 @@ module Make(DS_ll: DS_ll_S) = struct
     | Emat_add : Mat.mat expr * Mat.mat expr -> Mat.mat expr_tree
     | Emat_scalar_mul : float expr * Mat.mat expr -> Mat.mat expr_tree
     | Emat_dot : Mat.mat expr * Mat.mat expr -> Mat.mat expr_tree
-    | Evec_get : Mat.mat expr * int * int -> float expr_tree
+    | Evec_get : Mat.mat expr * int -> float expr_tree
   and 'a expr = {
     mutable value : 'a expr_tree;
   }
@@ -121,7 +121,7 @@ module Make(DS_ll: DS_ll_S) = struct
     fun (e ,i) ->
     begin match e.value with
       | Econst x -> { value =  Econst (Mat.get x i 0) }
-      | _ -> { value = Evec_get (e, i, 0)}
+      | _ -> { value = Evec_get (e, i)}
     end
 
 
@@ -164,8 +164,8 @@ module Make(DS_ll: DS_ll_S) = struct
             let v = Mat.dot (eval e1) (eval e2) in
             e.value <- Econst v;
             v
-        | Evec_get (m, i, j) ->
-            let v = Mat.get (eval m) i j in
+        | Evec_get (m, i) ->
+            let v = Mat.get (eval m) i 0 in
             e.value <- Econst v;
             v
       end
@@ -339,7 +339,32 @@ module Make(DS_ll: DS_ll_S) = struct
                   Some { value = (Ervar (RV rv)) }
               | _ -> None
             end
-        | None -> None
+        | None ->
+            begin match mu.value with
+              | Evec_get (m, i) ->
+                  begin match affine_vec_of_vec m with
+                    | Some (AEconst v) ->
+                        let n, _ = Mat.shape v in
+                        let mask = Mat.(epsilon_float $* eye n) in Mat.set mask i i 1.0;
+                        let mu' = Mat.dot mask v in
+                        let std' = Mat.eye n in Mat.set std' i i std;
+                        let rv = DS_ll.assume_constant (Dist_mv_gaussian(mu', std')) in
+                        Some { value = Evec_get ({ value = Ervar (RV rv)}, i)}
+                    | Some (AErvar (m, RV x, b)) ->
+                        begin match DS_ll.get_distr_kind x with
+                          | KMVGaussian ->
+                              let n = DS_ll.shape x in
+                              let mask = Mat.(epsilon_float $* eye n) in Mat.set mask i i 1.0;
+                              let m' = Mat.dot m mask in
+                              let std' = Mat.eye n in Mat.set std' i i std;
+                              let rv = DS_ll.assume_conditional x (AffineMeanGaussianMV(m', b, std')) in
+                              Some { value = Evec_get ({ value = Ervar (RV rv)}, i)}
+                          | _ -> None
+                        end
+                    | _ -> None
+                  end
+              | _ -> None
+            end
       end
     in
     let iobs (prob, obs) =
@@ -354,7 +379,7 @@ module Make(DS_ll: DS_ll_S) = struct
             end
         | None ->
             begin match mu.value with
-              | Evec_get (m, i, _) ->
+              | Evec_get (m, i) ->
                   begin match affine_vec_of_vec m with
                     | Some (AEconst _) -> None
                     | Some (AErvar (m, RV x, b)) ->
@@ -362,10 +387,10 @@ module Make(DS_ll: DS_ll_S) = struct
                           | KMVGaussian ->
                               let n = DS_ll.shape x in
                               let mask = Mat.(epsilon_float $* eye n) in Mat.set mask i i 1.0;
-                              let mu' = Mat.dot mask m in
+                              let m' = Mat.dot m mask in
                               let std' = Mat.eye n in Mat.set std' i i std;
                               let obs' = Mat.zeros n 1 in Mat.set obs' i 0 obs;
-                              Some (DS_ll.observe_conditional prob x (AffineMeanGaussianMV(mu', b, std')) obs')
+                              Some (DS_ll.observe_conditional prob x (AffineMeanGaussianMV(m', b, std')) obs')
                           | _ -> None
                         end
                     | _ -> None
