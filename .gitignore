@@ -31,6 +31,7 @@ lib/symb.ml
 lib/scope.ml
 lib/obs.ml
 lib/gen.ml
+lib/vbool.ml
 tools/diff_log
 tools/zltohtml*
 bin/zeluc
