@@ -10,6 +10,12 @@ let node sensor () = obs where
   and in_bound = 0 < x && x < 400 && 0 < y && y < 400
   and obs = present in_bound -> observe_state_xy (float x, float y)
 
+(* let proba sensor () = pair (obs_x, obs_y) where *)
+(*   rec x = sample (gaussian(const 200. -> pre x, speed_x)) *)
+(*   and y = sample (gaussian(const 200. -> pre y, speed_y)) *)
+(*   and obs_x = sample (gaussian(x, noise_x)) *)
+(*   and obs_y = sample (gaussian(y, noise_y)) *)
+
 let node display ((obs_x, obs_y), pos_dist) =
   let rec cpt = (0 -> pre cpt + 1) mod 1000 in
   Display.gc cpt;
@@ -39,6 +45,7 @@ let proba hmm (obs_x, obs_y) = pair (p_x, p_y) where
 
 let node main_ds () =
   let obs = sensor () in
+  (* let emit obs = fst (gen sensor ()) in *)
   present obs(o) ->
     let pos_dist = infer 10 hmm o in
     display(o, pos_dist)

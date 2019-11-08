@@ -11,6 +11,10 @@ let node sensor () = obs where
   and in_bound = 0 < x && x < 400 && 0 < y && y < 400
   and obs = present in_bound -> observe_state (float x, float y)
 
+(* let proba sensor () = obs where *)
+(*   rec x = sample (sph_gaussian([200.; 200.] -> pre x, speed)) *)
+(*   and obs = sample (sph_gaussian(x, noise)) *)
+
 let node display (obs, pos_dist) =
   Display.draw_point_dist pos_dist;
   Display.draw_point Graphics.red obs;
@@ -57,6 +61,7 @@ let proba hmm_reset(obs) = p where
 
 let node main () =
   let obs = sensor () in
+  (* let emit obs = fst (gen sensor ()) in *)
   present obs(o) ->
     let pos_dist = infer 1000 hmm(* _momentum *) o in
     display(o, pos_dist)

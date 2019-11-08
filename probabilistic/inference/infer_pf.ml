@@ -312,7 +312,8 @@ let infer_depth n k (Cnode model) =
 
 
 (** [gen f x] generates a value sampled from the model [f] with input [x] and
-    its corresponding score (which is reseted at each instnat)
+    its corresponding score. The score is reseted at each instant and does
+    not tack into account the likelihood and samples.
 *)
 let gen (Cnode { alloc; reset; copy; step }) =
   let alloc () =
