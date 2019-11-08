@@ -11,16 +11,16 @@ let proba death_fn _ =
 let proba new_track_init_fn _ =
   sample (mv_gaussian(mu_new, sigma_new))
 
-let proba state_update_fn tr = 
+let proba state_update_fn tr =
   sample (mv_gaussian(a_u *@ tr +@ b_u, sigma_update))
 
-let observe_fn tr = 
+let observe_fn tr =
   (mv_gaussian (proj_pos *@ tr, sigma_obs))
 
 let clutter_init_fn _ =
   (mv_gaussian (mu_clutter, sigma_clutter))
 
-let proba obsfn (var, value) = 
+let proba obsfn (var, value) =
   observe (var, value)
 
 let proba model inp = t where
@@ -39,5 +39,5 @@ let proba model inp = t where
 
 
 let node main particles (a, obs) = ((), 0.) where
-  rec tr_obs_distr = infer particles model obs 
+  rec tr_obs_distr = infer particles model obs
   (* and () = print_string ((string_of_vec2_list tr) ^ " : " ^ (string_of_vec2_list obs) ^ "\n") *)

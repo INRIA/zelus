@@ -44,3 +44,6 @@ val infer_depth :
 
 val infer_subresample :
   int -S-> ('a ~D~> 'b) -S-> bool * 'a -D-> 'b Distribution.t
+
+
+val gen : ('a ~D~> 'b) -S-> 'a -D-> 'b * float

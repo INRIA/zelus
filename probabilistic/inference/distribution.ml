@@ -299,7 +299,7 @@ let weighted_list l =
   let n = List.fold_left (fun n (w, _) -> n +. w) 0. l in
   Dist_support (List.rev_map (fun (w, x) -> x, w /. n) l)
 
-let shuffle l = 
+let shuffle l =
   let sample_fn _ =
     let arr = Array.of_list l in
     for n = Array.length arr - 1 downto 1 do

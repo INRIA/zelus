@@ -309,3 +309,28 @@ let infer_depth n k (Cnode model) =
     Normalize.normalize values
   in
   Cnode { alloc = alloc; reset = reset; copy = copy; step = step }
+
+
+(** [gen f x] generates a value sampled from the model [f] with input [x] and
+    its corresponding score (which is reseted at each instnat)
+*)
+let gen (Cnode { alloc; reset; copy; step }) =
+  let alloc () =
+    { infer_states = [| alloc () |];
+      infer_scores = [| 0.0 |]; }
+  in
+  let reset state =
+    reset state.infer_states.(0);
+    state.infer_scores.(0) <- 0.0
+  in
+  let step { infer_states = states; infer_scores = scores } input =
+    let value = step states.(0) ({ idx = 0; scores = scores; }, input) in
+    let score = scores.(0) in
+    scores.(0) <- 0.;
+    value, score
+  in
+  let copy src dst =
+    copy src.infer_states.(0) dst.infer_states.(0);
+    dst.infer_scores.(0) <- src.infer_scores.(0)
+  in
+  Cnode { alloc = alloc; reset = reset; copy = copy; step = step }

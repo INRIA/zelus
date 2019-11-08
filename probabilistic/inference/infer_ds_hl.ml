@@ -544,4 +544,16 @@ module Make(DS_ll: DS_ll_S) = struct
     Infer_pf.infer n (Cnode { alloc; reset; copy; step; })
 
 
+  let gen (Cnode { alloc; reset; copy = _; step; }) =
+    let alloc () = ref (alloc ()) in
+    let reset state = reset !state in
+    let step state (prob, x) = eval (step !state (prob, x)) in
+    let copy src dst = dst := Normalize.copy !src in
+    let Cnode {alloc = gen_alloc; reset = gen_reset;
+               copy = gen_copy; step = gen_step;} =
+      Infer_pf.gen (Cnode { alloc; reset; copy = copy; step; })
+    in
+    Cnode {alloc = gen_alloc; reset = gen_reset;
+           copy = gen_copy;  step = gen_step; }
+
 end

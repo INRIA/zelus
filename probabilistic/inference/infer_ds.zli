@@ -43,3 +43,5 @@ val infer_ess_resample :
 
 val infer_bounded :
   int -S-> ('a ~D~> 'b expr) -S-> 'a -D-> 'b Distribution.t
+
+val gen : ('a ~D~> 'b expr) -S-> 'a -D-> 'b
