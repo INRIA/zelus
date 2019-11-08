@@ -3,6 +3,7 @@ OWLLIB=../../../owl
 ZELUC=zeluc -copy -I $(INFERLIB) -I $(OWLLIB) -I trackerlib
 
 all:
+	$(MAKE) -C trackerlib
 	$(MAKE) -C particles
 	$(MAKE) -C ds
 	$(MAKE) -C ds_nogc
