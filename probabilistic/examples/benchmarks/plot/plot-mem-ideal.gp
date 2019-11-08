@@ -10,7 +10,7 @@ set output ex.'-mem-ideal.png'
 
 set xlabel 'Step'
 set logscale y
-set ylabel 'Words in heap (in thousands, log scale) for '
+set ylabel 'Words in heap (in thousands, log scale)'
 set title ex.': Ideal Memory of '
 
 plot dir.'particle/mem-ideal.csv' using 1:3 every 40 lt 3 pt 7 title 'PF', \
