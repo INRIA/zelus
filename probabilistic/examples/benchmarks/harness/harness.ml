@@ -8,6 +8,8 @@ module Config = struct
   let mem_ideal = ref None
   let min_particles = ref 1
   let max_particles = ref 100
+  let mse_target = ref None
+  let mse_ratio = ref 0.9
   let increment = ref 1
 
   let select_particle = ref None
@@ -39,6 +41,10 @@ module Config = struct
        "n Lower bound of the particles interval");
       ("-max-particles", Int (fun i -> max_particles := i),
        "n Upper bound of the particles interval");
+      ("-mse-target", Float (fun f -> mse_target := Some f),
+       "n MSE Target value");
+      ("-mse-ratio", Float (fun f -> mse_ratio := f),
+       "n Ratio of MSE Target");
       ("-incr", Int (fun i -> increment := i),
        "n Increment in the particles interval");
       ("-seed", Int (fun i -> seed := Some i),
@@ -69,7 +75,7 @@ module Config = struct
     if !accuracy = None && !perf = None &&
        !mem = None && !mem_ideal = None && !perf_step = None then begin
       Arg.usage args
-        "No tests perfomed: -acc, -perf, -perf-step, -mem-step, or -mem-ideal-step required";
+        "No tests performed: -acc, -perf, -perf-step, -mem-step, or -mem-ideal-step required";
       exit 1
     end
 
@@ -216,9 +222,28 @@ module Make(M: sig
       times_runs.(idx) <- times;
       mems_runs.(idx) <- mems
     done;
+    Format.printf "@.";
     mse_runs, times_runs, mems_runs
 
-  let do_runs_particlues particles_list num_runs inp =
+  type search_kind = Exp | Linear
+
+  let search_particles_target mse_target ratio num_runs inp =
+    let rec search k p incr =
+      Format.printf "Trying %d particles@?" p;
+      Config.parts := p;
+      let mse_runs, _, _ = (do_runs num_runs inp) in
+      let _, mse_avg, _ = stats mse_runs in
+      begin match mse_target /. mse_avg, k with
+        | r, Exp when r < ratio -> search Exp (10 * p) p
+        | r, Exp when r >= ratio -> search Linear (incr + incr) incr
+        | r, Linear when r < ratio -> search Linear (p + incr) incr
+        | r, Linear when r >= ratio -> p
+        | _ -> assert false
+      end
+    in
+    search Exp 1 1
+
+  let do_runs_particles particles_list num_runs inp =
     let len = List.length particles_list in
     let mse_runs_particles = Array.make len (0, [||]) in
     let times_runs_particles = Array.make len (0, [||]) in
@@ -235,7 +260,7 @@ module Make(M: sig
          mems_runs_particles.(idx) <- (particles, mems_runs);
          let _, mse_mean, _ = stats (Array.copy mse_runs) in
          let _, time_mean, _ = stats (array_flatten times_runs) in
-         Format.printf "\nMeans: accuracy = %f, times = %f@."
+         Format.printf "Means: accuracy = %f, times = %f@."
            mse_mean time_mean)
       particles_list;
     mse_runs_particles, times_runs_particles, mems_runs_particles
@@ -291,9 +316,17 @@ module Make(M: sig
 
   let run () =
     let inp = read_file () in
-    let particles_list = seq !Config.min_particles !Config.increment !Config.max_particles in
+    let num_runs = !Config.num_runs in
+    let particles_list =
+      begin match !Config.mse_target with
+        | Some mt ->
+          [search_particles_target mt !Config.mse_ratio num_runs inp]
+        | _ ->
+        seq !Config.min_particles !Config.increment !Config.max_particles
+      end
+    in
     let mse_runs_particles, times_runs_particles, mems_runs_particles =
-      do_runs_particlues particles_list !Config.num_runs inp
+      do_runs_particles particles_list !Config.num_runs inp
     in
     option_iter
       (fun file -> output_accuracy file mse_runs_particles) !Config.accuracy;
