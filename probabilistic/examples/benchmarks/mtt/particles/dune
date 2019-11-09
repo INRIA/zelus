@@ -3,5 +3,5 @@
   (flags (:standard -w -9-27-33 -warn-error -A))))
 
 (executables
- (names run)
+ (names run test)
  (libraries probzelus benchlib mttlib))

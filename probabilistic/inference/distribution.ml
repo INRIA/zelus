@@ -351,7 +351,10 @@ let poisson_draw lambda =
   draw 0. 0
 
 let poisson_score lambda x =
-  float_of_int x *. log lambda -. lambda -. log_gamma (float_of_int (x + 1))
+  if x < 0 then
+      neg_infinity
+  else
+      float_of_int x *. log lambda -. lambda -. log_gamma (float_of_int (x + 1))
 
 let poisson_mean lambda =
   lambda

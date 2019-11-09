@@ -17,9 +17,9 @@ module M = struct
           []
         with Scanf.Scan_failure _ ->
           let this_elem = if fst then
-            Scanf.scanf "(%f, %f)" (fun x y -> mk_vec x y) 
+            Scanf.scanf "(%i, %f, %f)" (fun _ x y -> mk_vec x y) 
           else 
-            Scanf.scanf ",(%f, %f)" (fun x y -> mk_vec x y) 
+            Scanf.scanf ",(%i, %f, %f)" (fun _ x y -> mk_vec x y) 
           in
           this_elem :: (process_list_helper false)
       in

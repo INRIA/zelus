@@ -4,6 +4,13 @@ let tdiff = 1.0
 
 let list_init = List.init
 
+let cur_track_num = ref 0
+
+let new_track_num _ = 
+  let ret = !cur_track_num in
+  cur_track_num := !cur_track_num + 1;
+  ret
+
 let birth_rate =  0.1
 let death_rate = 0.02
 
@@ -71,6 +78,14 @@ let shuffle x =
 
 let ( *@ ) = Mat.( *@ )
 let ( +@ ) = Mat.add
+
+let string_of_tr vec_lst =
+  "[" ^
+  String.concat "," (List.map (fun (num, vec) ->
+    "(" ^ string_of_int num ^ ", " ^ string_of_float (Mat.get vec 0 0) ^ ", " ^ 
+    string_of_float (Mat.get vec 1 0) ^ ")"
+  ) vec_lst)
+  ^ "]" 
 
 let string_of_vec2_list vec_lst =
   "[" ^

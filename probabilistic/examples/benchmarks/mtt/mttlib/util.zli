@@ -5,6 +5,8 @@ val list_init : int -> (int -> 'a) -> 'a list
 
 val tdiff : float
 
+val new_track_num : unit -> int
+
 val p_dead : float
 val lambda_new : float
 val mu_new : Mat.mat
@@ -23,4 +25,5 @@ val shuffle : 'a list -> 'a list
 val ( *@ ) : Mat.mat -> Mat.mat -> Mat.mat
 val ( +@ ) : Mat.mat -> Mat.mat -> Mat.mat
 
+val string_of_tr : (int * Mat.mat) list -> string
 val string_of_vec2_list : Mat.mat list -> string

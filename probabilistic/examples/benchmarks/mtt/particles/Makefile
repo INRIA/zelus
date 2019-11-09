@@ -13,6 +13,9 @@ CSV_FILES=perf.csv perf-step.csv mem.csv mem-ideal.csv accuracy.csv
 
 all: build
 
+test : $(NAME).ml test.ml
+	dune build test.exe
+
 publish:
 	cp $(CSV_FILES) $(PPL-ZELUS)/data/mtt/particle
 

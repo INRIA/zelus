@@ -9,12 +9,12 @@ let death_fn _ =
   draw (bernoulli p_dead)
 
 let new_track_init_fn _ =
-  draw (mv_gaussian(mu_new, sigma_new))
+  (new_track_num (), draw (mv_gaussian(mu_new, sigma_new)))
 
-let state_update_fn tr =
-    draw (mv_gaussian(a_u *@ tr +@ b_u, sigma_update))
+let state_update_fn (tr_num, tr) =
+    (tr_num, draw (mv_gaussian(a_u *@ tr +@ b_u, sigma_update)))
 
-let observe_fn tr =
+let observe_fn (_, tr) =
     draw (mv_gaussian (proj_pos *@ tr, sigma_obs))
 
 let clutter_init_fn _ =
@@ -35,4 +35,4 @@ let node model () = t, obs_shuffled where
 
 let node main () = () where
   rec tr, obs = model ()
-  and () = print_string ((string_of_vec2_list tr) ^ " : " ^ (string_of_vec2_list obs) ^ "\n")
+  and () = print_string (string_of_tr tr ^ " : " ^ (string_of_vec2_list obs) ^ "\n")
