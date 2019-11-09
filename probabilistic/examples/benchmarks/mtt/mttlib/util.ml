@@ -94,3 +94,10 @@ let string_of_vec2_list vec_lst =
     string_of_float (Mat.get vec 1 0) ^ ")"
   ) vec_lst)
   ^ "]" 
+
+let string_of_int_list lst =
+  "[" ^
+  String.concat "," (List.map (fun i ->
+    string_of_int i
+  ) lst) ^
+  "]\n"

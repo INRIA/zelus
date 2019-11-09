@@ -16,8 +16,14 @@ byte:
 opt:
 	dune build mttlib.cmxa
 
+test:
+	dune build test.exe
+
 %.zci: %.zli
 	$(ZELUC) $<
+
+test.ml : test.zls util.zci
+	$(ZELUC) test.zls -s main
 
 clean:
 	dune clean

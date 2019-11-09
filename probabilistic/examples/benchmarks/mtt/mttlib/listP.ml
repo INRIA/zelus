@@ -10,9 +10,9 @@ let map (Cnode { alloc; reset; copy; step; }) =
 let ini (Cnode { alloc; reset; copy; step; }) =
   let step state (pstate, n) =
     if n < 0 then
-      List.init n (fun x -> step state (pstate, x))
-    else
       []
+    else
+      List.init n (fun x -> step state (pstate, x))
   in
   Cnode { alloc; reset; copy; step; }
 

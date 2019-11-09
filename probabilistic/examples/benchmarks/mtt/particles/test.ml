@@ -1,5 +1,6 @@
 open Owl;;
 open Ztypes;;
+open Mttlib;;
 
 let read_input () =
   let mk_vec a b =
@@ -49,13 +50,14 @@ let read_input () =
   (truth, obs)
 
 let run () = 
-    let Cnode {alloc; reset; step; copy = _} = Mtt_particles.main 1 in
+    let Cnode {alloc; reset; step; copy = _} = Mtt_particles.main 1000 in
     let state = alloc () in
     reset state;
     let rec do_run () =
         try 
             let (tr, obs) = read_input () in
-            let _ = step state (tr, obs) in
+            let (v, _) = step state (tr, obs) in
+            print_string (Util.string_of_vec2_list v ^ "\n");
             do_run ()
         with End_of_file -> ()
     in
