@@ -6,7 +6,7 @@ module M = struct
     let iters = ref 0
     let read_input () =
         begin
-            if !iters >= 1500 then
+            if !iters >= 1600 then
                 raise End_of_file
             else
                 iters := !iters + 1
