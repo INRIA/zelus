@@ -9,11 +9,15 @@ all: $(ZCI) byte opt
 
 .phony: byte opt
 
-byte:
+byte: lib.ml
 	dune build slamlib.cma
 
-opt:
+opt: lib.ml
 	dune build slamlib.cmxa
+
+
+lib.zci lib.ml: lib.zls
+	$(ZELUC) $<
 
 %.zci: %.zli
 	$(ZELUC) $<

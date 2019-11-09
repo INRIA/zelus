@@ -2,7 +2,7 @@ open Benchlib
 open Slamlib
 
 module M = struct
-  type input = (bool array * int) * (bool * int)
+  type input = bool array * unit
   type output = unit
 
   let read_input () =
@@ -10,10 +10,7 @@ module M = struct
     for i = 0 to Array_misc.max_pos do
       a.(i) <- Scanf.scanf "%B, " (fun x -> x)
     done;
-    let x = Scanf.scanf "%d, " (fun x -> x) in
-    let obs = Scanf.scanf "%B, " (fun x -> x) in
-    let cmd = Scanf.scanf "%d\n" (fun x -> x) in
-    (a, x), (obs, cmd)
+    a, ()
 
   let main = Slam_ds_bounded.main
 end
