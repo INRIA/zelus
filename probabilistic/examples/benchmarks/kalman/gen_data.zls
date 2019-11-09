@@ -4,7 +4,7 @@ open Distribution
 let random_init = Random.self_init ()
 
 let node main () =
-    let init x0 = Distribution.draw (gaussian (0., 100.)) in
-    let rec x = x0 -> Distribution.draw (gaussian (pre x, 1.)) in
-    let y = Distribution.draw (gaussian (x, 1.)) in
-    print_string ((string_of_float x) ^ ", " ^ (string_of_float y) ^ "\n")
+  let init x0 = Distribution.draw (gaussian (0., 50.)) in
+  let rec x = x0 -> Distribution.draw (gaussian (pre x, 1.)) in
+  let y = Distribution.draw (gaussian (x, 1.)) in
+  print_string ((string_of_float x) ^ ", " ^ (string_of_float y) ^ "\n")
