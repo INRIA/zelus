@@ -42,11 +42,12 @@ let make_marginal : type a b.
           Distribution.gaussian (m *. mu +. b,
                                  m ** 2. *. var +. obsvar)
       | Dist_mv_gaussian (mu0, sigma0), AffineMeanGaussianMV(m, b, sigma) ->
-	  let mu' = Mat.add (Mat.dot m mu0) b in
-          let sigma' =
+          let mu' = Mat.add (Mat.dot m mu0) b in
+          
+          let sigma' = 
             Mat.add (Mat.dot (Mat.dot m sigma0) (Mat.transpose m)) sigma
-           in
-           Distribution.mv_gaussian (mu', sigma')
+          in
+          Distribution.mv_gaussian (mu', sigma')
       | Dist_beta (a, b),  CBernoulli ->
           Distribution.bernoulli (a /. (a +. b))
       | _ -> assert false
@@ -62,15 +63,6 @@ let make_conditional : type a b.
     let mu' = (ivar *. mu +. iobsvar *. obs) /. inf in
     (mu', var')
   in
-  let mv_gaussian_conditioning mu0 sigma0 obs sigma =
-    let sig0inv = Linalg.D.inv sigma0 in
-    let siginv = Linalg.D.inv sigma in
-    let sig0' = Linalg.D.inv (Owl.Mat.add sig0inv siginv) in
-    let mu0' =
-      Mat.dot sig0' (Mat.add (Mat.dot sig0inv mu0) (Mat.dot siginv obs))
-    in
-    (mu0', sig0')
-  in
   fun mdistr cdistr obs ->
     begin match mdistr, cdistr with
       | Dist_gaussian(mu, var), AffineMeanGaussian(m, b, obsvar) ->
@@ -80,12 +72,16 @@ let make_conditional : type a b.
           in
           Dist_gaussian (mu', var')
       | Dist_mv_gaussian(mu0, sigma0), AffineMeanGaussianMV(m, b, sigma) ->
-          let minv = Linalg.D.inv m in
-          let (mu', var') =
-            mv_gaussian_conditioning mu0 sigma0
-              (Mat.dot minv (Mat.sub obs b))
-              (Mat.dot minv (Mat.dot sigma (Mat.transpose minv))) in
-          Dist_mv_gaussian (mu', var')
+          let obs' = Mat.sub obs b in
+          let innov = Mat.sub obs' (Mat.dot m mu0) in
+          let innov_sigma = Mat.add (Mat.dot m (Mat.dot sigma0 (Mat.transpose m))) sigma in
+          let gain = Mat.dot sigma0 (Mat.dot (Mat.transpose m) (Linalg.D.inv innov_sigma)) in
+          let mu' = Mat.add mu0 (Mat.dot gain innov) in
+          let sigma' =
+              let kh = Mat.dot gain m in
+              Mat.dot (Mat.sub (Mat.eye (Mat.row_num kh)) kh) sigma0
+          in
+          Dist_mv_gaussian (mu', sigma')
 
       | Dist_beta (a, b),  CBernoulli ->
           if obs then Dist_beta (a +. 1., b)
