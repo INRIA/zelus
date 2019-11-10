@@ -1,0 +1,44 @@
+open Mttlib
+open Probzelus
+open Util
+open Distribution
+open Zelus_owl
+open Infer_ds_gc
+
+let proba death_fn _ =
+  eval (sample (bernoulli (const p_dead)))
+
+let proba new_track_init_fn _ =
+  sample (mv_gaussian (const mu_new, sigma_new))
+
+let proba state_update_fn tr = 
+  sample (mv_gaussian(((const a_u) *@~ tr) +@~ (const b_u), sigma_update))
+
+let observe_fn tr = 
+  (mv_gaussian ((const proj_pos) *@~ tr, sigma_obs))
+
+let proba clutter_init_fn _ =
+  (mv_gaussian (const mu_clutter, sigma_clutter))
+
+let proba obsfn (var, value) = 
+  observe (var, value)
+
+let proba model inp = lst t where
+  rec init t = []  (* lst_iter *)
+  and t_survived = ListP.filter death_fn (last t)
+  and n_new = eval (sample (of_distribution (poisson lambda_new)))
+  and t_new = ListP.ini new_track_init_fn n_new
+  and t_tot = List.append t_survived t_new
+  and t = ListP.map state_update_fn t_tot
+  and obs = List.map observe_fn t
+  and n_clutter = (List.length inp) - (List.length obs)
+  and () = observe(of_distribution (poisson lambda_clutter), n_clutter)
+  and clutter = ListP.ini clutter_init_fn n_clutter 
+  and obs_shuffled = eval (sample (of_distribution (shuffle (List.append obs clutter))))
+  and present (not (n_clutter < 0)) -> do () = (ListP.iter2 obsfn (obs_shuffled, inp)) done
+
+
+let node main particles (a, obs) = (ret, 0.) where
+  rec tr_obs_distr = infer particles model obs 
+  and ret = draw tr_obs_distr
+  (* and () = print_string ((string_of_vec2_list tr) ^ " : " ^ (string_of_vec2_list obs) ^ "\n") *)
