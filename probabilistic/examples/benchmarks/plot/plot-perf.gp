@@ -8,6 +8,8 @@ set terminal png
 set output ex.'-perf.png'
 
 set xlabel 'Number of Particles'
+set logscale x
+set logscale y
 set ylabel 'Step latency (ms)'
 set title ex.': Performance'
 
