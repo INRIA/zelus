@@ -9,8 +9,9 @@ module Config = struct
   let min_particles = ref 1
   let max_particles = ref 100
   let exp_seq_flag = ref false
+  let pgf_format = ref false
   let mse_target = ref None
-  let mse_ratio = ref 0.9
+  let mse_mag = ref 0.5
   let increment = ref 1
 
   let select_particle = ref None
@@ -19,6 +20,7 @@ module Config = struct
   let upper_quantile = 0.9
   let lower_quantile = 0.1
   let middle_quantile = 0.5
+
 
   let args =
     Arg.align [
@@ -44,10 +46,12 @@ module Config = struct
        "n Upper bound of the particles interval");
       ("-exp", Set exp_seq_flag,
        " Exponentioal sequence");
+      ("-pgf",  Set pgf_format,
+       "PGF Format");
       ("-mse-target", Float (fun f -> mse_target := Some f),
        "n MSE Target value");
-      ("-mse-ratio", Float (fun f -> mse_ratio := f),
-       "n Ratio of MSE Target");
+      ("-mse-mag", Float (fun f -> mse_mag := f),
+       "n Magnitude compared to the MSE Target (log scale)");
       ("-incr", Int (fun i -> increment := i),
        "n Increment in the particles interval");
       ("-seed", Int (fun i -> seed := Some i),
@@ -230,17 +234,21 @@ module Make(M: sig
 
   type search_kind = Exp | Linear
 
-  let search_particles_target mse_target ratio num_runs inp =
+  let search_particles_target mse_target mag num_runs inp =
     let rec search k p incr =
       Format.printf "Trying %d particles@?" p;
       Config.parts := p;
       let mse_runs, _, _ = (do_runs num_runs inp) in
-      let _, mse_avg, _ = stats mse_runs in
-      begin match mse_target /. mse_avg, k with
-        | r, Exp when r < ratio -> search Exp (10 * p) p
-        | r, Exp when r >= ratio -> search Linear (incr + incr) incr
-        | r, Linear when r < ratio -> search Linear (p + incr) incr
-        | r, Linear when r >= ratio -> p
+      let _, _, mse_max = stats mse_runs in
+      let r = abs_float (log10 mse_max -. log10 mse_target) in
+      begin match k with
+        | Exp when r > mag ->
+            if (10 * p < 10000)
+            then search Exp (10 * p) p
+            else search Linear (2 * p) p
+        | Exp when r <= mag -> search Linear incr incr
+        | Linear when r > mag -> search Linear (p + incr) incr
+        | Linear when r <= mag -> p
         | _ -> assert false
       end
     in
@@ -268,16 +276,24 @@ module Make(M: sig
       particles_list;
     mse_runs_particles, times_runs_particles, mems_runs_particles
 
-  let output_stats_per_particles file value stats =
+  let output_stats_per_particles file value stats  =
     let ch = open_out file in
     let fmt = Format.formatter_of_out_channel ch in
     Format.fprintf fmt
       "number of particles, %s lower quantile (%f), median, upper quantile (%f)@."
       value Config.lower_quantile Config.upper_quantile;
-    Array.iter
-      (fun (particles, (low, mid, high)) ->
-         Format.fprintf fmt "%d, %f, %f, %f@." particles low mid high)
-      stats;
+    if not !Config.pgf_format then begin
+      Array.iter
+        (fun (particles, (low, mid, high)) ->
+           Format.fprintf fmt "%d, %f, %f, %f@." particles low mid high)
+        stats;
+    end
+    else begin
+      Array.iter
+        (fun (particles, (low, mid, high)) ->
+           Format.fprintf fmt "%d   %f   %f   %f@." particles mid (mid -. low) (high -. mid))
+        stats;
+    end;
     close_out ch
 
   let output_stats_per_step file particles value stats =
@@ -286,10 +302,18 @@ module Make(M: sig
     Format.fprintf fmt
       "step (%d particles), %s lower quantile (%f), median, upper quantile (%f)@."
       particles value Config.lower_quantile Config.upper_quantile;
-    Array.iteri
-      (fun idx (low, mid, high) ->
-         Format.fprintf fmt "%d, %f, %f, %f@." idx low mid high)
-      stats;
+    if not !Config.pgf_format then begin
+      Array.iteri
+        (fun idx (low, mid, high) ->
+           Format.fprintf fmt "%d, %f, %f, %f@." idx low mid high)
+        stats;
+    end
+    else begin
+      Array.iteri
+        (fun idx (low, mid, high) ->
+           Format.fprintf fmt "%d   %f   %f   %f@." idx mid (mid -. low) (high -. mid))
+        stats;
+    end;
     close_out ch
 
   let output_perf file times_runs_particles =
@@ -333,15 +357,15 @@ module Make(M: sig
     let particles_list =
       begin match !Config.mse_target, !Config.exp_seq_flag with
         | Some mt, false ->
-          [search_particles_target mt !Config.mse_ratio num_runs inp]
+            [search_particles_target mt !Config.mse_mag num_runs inp]
         | None, false ->
-          seq !Config.min_particles !Config.increment !Config.max_particles
+            seq !Config.min_particles !Config.increment !Config.max_particles
         | None, true ->
-          exp_seq !Config.max_particles
+            exp_seq !Config.max_particles
         | Some _, true ->
-          Arg.usage Config.args
-            "options -exp and -mse-target cannot be used simultaneously";
-          exit 1
+            Arg.usage Config.args
+              "options -exp and -mse-target cannot be used simultaneously";
+            exit 1
 
       end
     in

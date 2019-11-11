@@ -3,6 +3,14 @@
 build: $(NAME).ml
 	dune build run.exe
 
+bench_find_mse: build
+	time cat ../data | $(RUN) \
+	    -pgf \
+		-num-runs $(NUMRUNS) \
+		-mse-target $(MSE_TARGET) \
+		-perf perf_mse.csv \
+		-acc accuracy.csv
+
 bench_per_particles: build
 	time cat ../data | $(RUN) -exp \
 			-num-runs $(NUMRUNS) \
