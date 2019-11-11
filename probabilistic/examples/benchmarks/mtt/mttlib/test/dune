@@ -1,3 +1,4 @@
 (executables
-  (names main)
-  (libraries mttlib probzelus))
+  (names main test_metrics)
+  (libraries mttlib probzelus)
+  (modes byte))
