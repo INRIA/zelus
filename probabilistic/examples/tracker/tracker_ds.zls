@@ -1,6 +1,6 @@
 open Probzelus
-open Infer_ds
 open Distribution
+open Infer_ds_gc
 open Zelus_owl
 open Zelus_owl_plplot
 open Plot
@@ -58,7 +58,7 @@ let x_init = Lib.of_list [50.; 0.; 0.5] 3 1
 let init_sig = diagm [10.; 0.001; 1.0]
 let state_noise = diagm [0.01; 0.01; 0.01]
 
-let particles = 1
+let particles = 10
 
 let node env_noisy_integr noise x_init acc = x where
   rec mu = x_init fby Mat.add acc (Mat.dot a x)
@@ -100,4 +100,4 @@ let node main () = () where
   (* Plot *)
   and res = (Mat.zeros 1 3) fby Mat.concat_vertical res xye
   and () = print_int t; print_string " >> "; print_float (avg_err); print_endline ""
-  and present (t mod 51 = 50) -> do () = plot "plot_3pos.pdf" res done
+  (*and present (t mod 51 = 50) -> do () = plot "plot_3pos.pdf" res done*)
