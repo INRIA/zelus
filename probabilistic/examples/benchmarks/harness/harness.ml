@@ -8,6 +8,7 @@ module Config = struct
   let mem_ideal = ref None
   let min_particles = ref 1
   let max_particles = ref 100
+  let exp_seq_flag = ref false
   let mse_target = ref None
   let mse_ratio = ref 0.9
   let increment = ref 1
@@ -41,6 +42,8 @@ module Config = struct
        "n Lower bound of the particles interval");
       ("-max-particles", Int (fun i -> max_particles := i),
        "n Upper bound of the particles interval");
+      ("-exp", Set exp_seq_flag,
+       " Exponentioal sequence");
       ("-mse-target", Float (fun f -> mse_target := Some f),
        "n MSE Target value");
       ("-mse-ratio", Float (fun f -> mse_ratio := f),
@@ -314,15 +317,32 @@ module Make(M: sig
     else
       min :: seq (min + incr) incr max
 
+  let exp_seq =
+    let rec seq p incr exp  max =
+      if p > max then []
+      else
+        p ::
+        if p >= exp then seq (p + (exp / 2)) (exp / 2) (10 * exp) max
+        else seq (p + incr) incr exp max
+    in
+    seq 1 1 10
+
   let run () =
     let inp = read_file () in
     let num_runs = !Config.num_runs in
     let particles_list =
-      begin match !Config.mse_target with
-        | Some mt ->
+      begin match !Config.mse_target, !Config.exp_seq_flag with
+        | Some mt, false ->
           [search_particles_target mt !Config.mse_ratio num_runs inp]
-        | _ ->
-        seq !Config.min_particles !Config.increment !Config.max_particles
+        | None, false ->
+          seq !Config.min_particles !Config.increment !Config.max_particles
+        | None, true ->
+          exp_seq !Config.max_particles
+        | Some _, true ->
+          Arg.usage Config.args
+            "options -exp and -mse-target cannot be used simultaneously";
+          exit 1
+
       end
     in
     let mse_runs_particles, times_runs_particles, mems_runs_particles =

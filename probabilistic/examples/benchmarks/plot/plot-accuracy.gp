@@ -9,6 +9,7 @@ set terminal png
 set output ex.'-accuracy.png'
 
 set xlabel 'Number of Particles'
+set logscale x
 set logscale y
 set ylabel 'MSE (log scale)'
 set title ex.': Accuracy'

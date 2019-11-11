@@ -4,10 +4,9 @@ build: $(NAME).ml
 	dune build run.exe
 
 bench_per_particles: build
-	time cat ../data | $(RUN) \
+	time cat ../data | $(RUN) -exp \
 			-num-runs $(NUMRUNS) \
-			-min-particles $(MIN) \
-			-max-particles $(MAX) \
+			-max-particles 1000 \
 			-incr $(INCR) \
 			-perf perf.csv \
 			-acc accuracy.csv
