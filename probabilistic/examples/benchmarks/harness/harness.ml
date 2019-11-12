@@ -243,7 +243,7 @@ module Make(M: sig
       let r = abs_float (log10 mse_max -. log10 mse_target) in
       begin match k with
         | Exp when r > mag ->
-            if (10 * p < 10000)
+            if (10 * p < 100000)
             then search Exp (10 * p) p
             else search Linear (2 * p) p
         | Exp when r <= mag -> search Linear incr incr
@@ -279,19 +279,22 @@ module Make(M: sig
   let output_stats_per_particles file value stats  =
     let ch = open_out file in
     let fmt = Format.formatter_of_out_channel ch in
-    Format.fprintf fmt
-      "number of particles, %s lower quantile (%f), median, upper quantile (%f)@."
-      value Config.lower_quantile Config.upper_quantile;
     if not !Config.pgf_format then begin
+      Format.fprintf fmt
+        "number of particles, %s lower quantile (%f), median, upper quantile (%f)@."
+        value Config.lower_quantile Config.upper_quantile;
       Array.iter
         (fun (particles, (low, mid, high)) ->
            Format.fprintf fmt "%d, %f, %f, %f@." particles low mid high)
         stats;
     end
     else begin
+      Format.fprintf fmt
+        "%s: median, diff lower quantile (%f), diff upper quantile (%f), number of particles@."
+        value Config.lower_quantile Config.upper_quantile;
       Array.iter
         (fun (particles, (low, mid, high)) ->
-           Format.fprintf fmt "%d   %f   %f   %f@." particles mid (mid -. low) (high -. mid))
+           Format.fprintf fmt "%f   %f   %f   %d@." mid (mid -. low) (high -. mid) particles )
         stats;
     end;
     close_out ch
@@ -299,19 +302,22 @@ module Make(M: sig
   let output_stats_per_step file particles value stats =
     let ch = open_out file in
     let fmt = Format.formatter_of_out_channel ch in
-    Format.fprintf fmt
-      "step (%d particles), %s lower quantile (%f), median, upper quantile (%f)@."
-      particles value Config.lower_quantile Config.upper_quantile;
     if not !Config.pgf_format then begin
+      Format.fprintf fmt
+        "step (%d particles), %s lower quantile (%f), median, upper quantile (%f)@."
+        particles value Config.lower_quantile Config.upper_quantile;
       Array.iteri
         (fun idx (low, mid, high) ->
            Format.fprintf fmt "%d, %f, %f, %f@." idx low mid high)
         stats;
     end
     else begin
+      Format.fprintf fmt
+        "step (%d particles) %s: median, diff lower quantile (%f), diff upper quantile (%f), number of particles@."
+        particles value Config.lower_quantile Config.upper_quantile;
       Array.iteri
         (fun idx (low, mid, high) ->
-           Format.fprintf fmt "%d   %f   %f   %f@." idx mid (mid -. low) (high -. mid))
+           Format.fprintf fmt "%f   %f   %f %d@." mid (mid -. low) (high -. mid) idx)
         stats;
     end;
     close_out ch
