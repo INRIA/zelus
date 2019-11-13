@@ -1,0 +1,3 @@
+(executables
+ (names mse_search)
+ (libraries benchlib))
