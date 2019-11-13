@@ -1,130 +1,4 @@
-module Config = struct
-
-  let warmup = ref 1
-  let accuracy = ref None
-  let perf = ref None
-  let perf_step = ref None
-  let mem = ref None
-  let mem_ideal = ref None
-  let min_particles = ref 1
-  let max_particles = ref 100
-  let exp_seq_flag = ref false
-  let pgf_format = ref false
-  let mse_target = ref None
-  let mse_mag = ref 0.5
-  let increment = ref 1
-
-  let select_particle = ref None
-  let num_runs = ref 10
-  let seed = ref None
-  let upper_quantile = 0.9
-  let lower_quantile = 0.1
-  let middle_quantile = 0.5
-
-
-  let args =
-    Arg.align [
-      ("-w", Set_int warmup,
-       "n Number of warmup iterations");
-      ("-num-runs", Set_int num_runs,
-       "n Number of runs");
-      ("-acc", String (fun file -> accuracy := Some file),
-       "file Accuracy testing" );
-      ("-perf", String (fun file -> perf := Some file),
-       "file Performance testing");
-      ("-perf-step", String (fun file -> perf_step := Some file),
-       "file Performance testing on a per step basis");
-      ("-mem-step", String (fun file -> mem := Some file),
-       " Memory testing on a per step basis");
-      ("-mem-ideal-step", String (fun file -> mem_ideal := Some file),
-       " Memory testing on a per step basis with GC at each step");
-      ("-particles", Int (fun i -> select_particle := Some i),
-       "n Number of particles (single run)");
-      ("-min-particles", Int (fun i -> min_particles := i),
-       "n Lower bound of the particles interval");
-      ("-max-particles", Int (fun i -> max_particles := i),
-       "n Upper bound of the particles interval");
-      ("-exp", Set exp_seq_flag,
-       " Exponentioal sequence");
-      ("-pgf",  Set pgf_format,
-       "PGF Format");
-      ("-mse-target", Float (fun f -> mse_target := Some f),
-       "n MSE Target value");
-      ("-mse-mag", Float (fun f -> mse_mag := f),
-       "n Magnitude compared to the MSE Target (log scale)");
-      ("-incr", Int (fun i -> increment := i),
-       "n Increment in the particles interval");
-      ("-seed", Int (fun i -> seed := Some i),
-       "n Set seed of random number generator");
-    ]
-
-  let () =
-    Arg.parse args (fun _ -> ()) "particles test harness"
-
-  let () =
-    begin match !seed with
-      | None -> Random.self_init()
-      | Some i -> Random.init i
-    end
-
-  let () =
-    begin match !select_particle with
-      | Some i -> min_particles := i; max_particles := i
-      | None -> ()
-    end
-
-  let parts = ref !min_particles
-
-  let particles _ =
-    !parts
-
-  let () =
-    if !accuracy = None && !perf = None &&
-       !mem = None && !mem_ideal = None && !perf_step = None then begin
-      Arg.usage args
-        "No tests performed: -acc, -perf, -perf-step, -mem-step, or -mem-ideal-step required";
-      exit 1
-    end
-
-end
-
-let option_iter f o =
-  begin match o with
-    | Some x -> f x
-    | None -> ()
-  end
-
-let array_flatten arr =
-  let l1 = Array.length arr in
-  let l2 = Array.length arr.(0) in
-  let res = Array.make (l1 * l2) arr.(0).(0) in
-  let k = ref 0 in
-  for i = 0 to l1 - 1 do
-    for j = 0 to l2 - 1 do
-      res.(!k) <- arr.(i).(j);
-      incr k;
-    done
-  done;
-  res
-
-let array_transpose arr =
-  let l1 = Array.length arr in
-  let l2 = Array.length arr.(0) in
-  Array.init l2
-    (fun i ->
-       Array.init l1
-         (fun j ->
-            arr.(j).(i)))
-
-let array_assoc x a =
-  let res = ref None in
-  Array.iter
-    (fun (y, v) -> if x = y then res := Some v)
-    a;
-  begin match !res with
-    | None -> raise Not_found
-    | Some v -> v
-  end
+open Stats
 
 module Make(M: sig
     type input
@@ -160,21 +34,6 @@ module Make(M: sig
       | None, None -> 0.
       | Some _, Some _ -> assert false
     end
-
-  let stats arr =
-    (* Format.printf "XXXXXX "; *)
-    (* let carr = Array.copy arr in *)
-    (* (\* Array.sort compare carr; *\) *)
-    (* Array.iter (fun x -> Format.printf "%f, " x) carr; *)
-    (* Format.printf "XXXXXX@."; *)
-
-    let len_i = Array.length arr in
-    let len = float_of_int len_i in
-    Array.sort compare arr;
-    let upper_idx = min (len_i - 1) (truncate (len *. Config.upper_quantile +. 0.5)) in
-    let lower_idx = min (len_i - 1) (truncate (len *. Config.lower_quantile +. 0.5)) in
-    let middle_idx = min (len_i - 1) (truncate (len *. Config.middle_quantile +. 0.5)) in
-    (Array.get arr lower_idx, Array.get arr middle_idx, Array.get arr upper_idx)
 
   let stats_per_particles x_runs_particles =
     Array.map
@@ -276,51 +135,13 @@ module Make(M: sig
       particles_list;
     mse_runs_particles, times_runs_particles, mems_runs_particles
 
-  let output_stats_per_particles file value stats  =
-    let ch = open_out file in
-    let fmt = Format.formatter_of_out_channel ch in
-    if not !Config.pgf_format then begin
-      Format.fprintf fmt
-        "number of particles, %s lower quantile (%f), median, upper quantile (%f)@."
-        value Config.lower_quantile Config.upper_quantile;
-      Array.iter
-        (fun (particles, (low, mid, high)) ->
-           Format.fprintf fmt "%d, %f, %f, %f@." particles low mid high)
-        stats;
-    end
-    else begin
-      Format.fprintf fmt
-        "%s: median, diff lower quantile (%f), diff upper quantile (%f), number of particles@."
-        value Config.lower_quantile Config.upper_quantile;
-      Array.iter
-        (fun (particles, (low, mid, high)) ->
-           Format.fprintf fmt "%f   %f   %f   %d@." mid (mid -. low) (high -. mid) particles )
-        stats;
-    end;
-    close_out ch
+  let output_stats_per_particles file value_label stats  =
+    output_stats file "number of particles" value_label stats
 
-  let output_stats_per_step file particles value stats =
-    let ch = open_out file in
-    let fmt = Format.formatter_of_out_channel ch in
-    if not !Config.pgf_format then begin
-      Format.fprintf fmt
-        "step (%d particles), %s lower quantile (%f), median, upper quantile (%f)@."
-        particles value Config.lower_quantile Config.upper_quantile;
-      Array.iteri
-        (fun idx (low, mid, high) ->
-           Format.fprintf fmt "%d, %f, %f, %f@." idx low mid high)
-        stats;
-    end
-    else begin
-      Format.fprintf fmt
-        "step (%d particles) %s: median, diff lower quantile (%f), diff upper quantile (%f), number of particles@."
-        particles value Config.lower_quantile Config.upper_quantile;
-      Array.iteri
-        (fun idx (low, mid, high) ->
-           Format.fprintf fmt "%f   %f   %f %d@." mid (mid -. low) (high -. mid) idx)
-        stats;
-    end;
-    close_out ch
+  let output_stats_per_step file particles value_label stats =
+    let idx_label = "step ("^(string_of_int particles)^" particules)" in
+    let stats = Array.mapi (fun i (low, mid, high) -> (i, (low, mid, high))) stats in
+    output_stats file idx_label value_label stats
 
   let output_perf file times_runs_particles =
     let stats = stats_per_particles times_runs_particles in
@@ -336,11 +157,13 @@ module Make(M: sig
 
   let output_perf_step file times_runs_particles =
     let stats = stats_per_step times_runs_particles in
-    output_stats_per_step file !Config.parts "time in ms" (array_assoc !Config.parts stats)
+    output_stats_per_step file !Config.parts
+      "time in ms" (array_assoc !Config.parts stats)
 
   let output_mem file mems_runs_particles =
     let stats = stats_per_step mems_runs_particles in
-    output_stats_per_step file !Config.parts "thousands live heap words" (array_assoc !Config.parts stats)
+    output_stats_per_step file !Config.parts
+      "thousands live heap words" (array_assoc !Config.parts stats)
 
   let rec seq min incr max =
     if min > max then []
