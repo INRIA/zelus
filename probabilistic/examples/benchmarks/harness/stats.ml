@@ -38,23 +38,23 @@ let array_assoc x a =
   end
 
 
-let stats arr =
+let stats (lower_quantile, middle_quantile, upper_quantile) arr =
   let len_i = Array.length arr in
   let len = float_of_int len_i in
   Array.sort compare arr;
-  let upper_idx = min (len_i - 1) (truncate (len *. Config.upper_quantile +. 0.5)) in
-  let lower_idx = min (len_i - 1) (truncate (len *. Config.lower_quantile +. 0.5)) in
-  let middle_idx = min (len_i - 1) (truncate (len *. Config.middle_quantile +. 0.5)) in
+  let upper_idx = min (len_i - 1) (truncate (len *. upper_quantile +. 0.5)) in
+  let lower_idx = min (len_i - 1) (truncate (len *. lower_quantile +. 0.5)) in
+  let middle_idx = min (len_i - 1) (truncate (len *. middle_quantile +. 0.5)) in
   (Array.get arr lower_idx, Array.get arr middle_idx, Array.get arr upper_idx)
 
 
-let output_stats file idx_label value_label stats  =
+let output_stats pgf_format file idx_label value_label stats  =
   let ch = open_out file in
   let fmt = Format.formatter_of_out_channel ch in
   Format.fprintf fmt
-    "%s, %s lower quantile (%f), median, upper quantile (%f)@."
-    idx_label value_label Config.lower_quantile Config.upper_quantile;
-  if not !Config.pgf_format then begin
+    "%s, %s lower quantile, median, upper quantile@."
+    idx_label value_label;
+  if not pgf_format then begin
     Array.iter
       (fun (idx, (low, mid, high)) ->
          Format.fprintf fmt "%d, %f, %f, %f@." idx low mid high)
@@ -67,3 +67,22 @@ let output_stats file idx_label value_label stats  =
       stats;
   end;
   close_out ch
+
+
+let read_stats file =
+  let ch = open_in file in
+  let _ = input_line ch in
+  let ic = Scanf.Scanning.from_channel ch in
+  let acc = ref [] in
+  begin try
+      while true do
+        let entry =
+          Scanf.bscanf ic ("%d, %f, %f, %f\n")
+            (fun idx low mid high -> (idx, (low, mid, high)))
+        in
+        acc := entry :: !acc
+
+      done
+    with End_of_file -> ()
+  end;
+  Array.of_list (List.rev !acc)
