@@ -11,8 +11,8 @@ CSV_FILES=perf.csv perf-step.csv mem.csv mem-ideal.csv accuracy.csv
 all: build
 
 publish:
-	mkdir -p $(PPL-ZELUS)/data/gaussian/ds_bouded
-	cp $(CSV_FILES) $(PPL-ZELUS)/data/gaussian/ds_bouded
+	mkdir -p $(PPL-ZELUS)/data/gaussian/ds_bounded
+	cp $(CSV_FILES) $(PPL-ZELUS)/data/gaussian/ds_bounded
 
 bench: bench_per_particles bench_per_steps bench_mem_ideal
 
