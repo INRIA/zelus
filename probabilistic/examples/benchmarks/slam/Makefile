@@ -24,7 +24,7 @@ bench:
 bench_find_mse:
 	$(MAKE) -C particles MSE_TARGET=0.72 bench_find_mse
 	$(MAKE) -C ds MSE_TARGET=0.72 bench_find_mse
-	echo "Skip:" $(MAKE) -C ds_nogc MSE_TARGET=0.72 bench_find_mse
+	$(MAKE) -C ds_nogc MSE_TARGET=0.72 bench_find_mse
 	$(MAKE) -C ds_bounded MSE_TARGET=0.72 bench_find_mse
 
 bench_per_particles:
