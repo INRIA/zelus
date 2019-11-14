@@ -70,5 +70,7 @@ let node main particles () = ((), avg_err) where
   and xt, acc, gps = env (call_gps, cmd)
   and x_dist = infer particles model (acc, gps, cmd)
   and cmd = Mat.zeros 3 1 -> controller (pre x_dist)
-  and err = 0. -> (pre err) +. (position xt *. position xt)
+  and err_t = Mat.get (Mat.add (Mat.dot (Mat.transpose xt) (Mat.dot q xt))
+                               (Mat.dot (Mat.transpose cmd) (Mat.dot r cmd))) 0 0
+  and err = 0. -> (pre err) +. (err_t)
   and avg_err = err /. (float_of_int t)
