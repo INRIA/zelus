@@ -353,8 +353,8 @@ module Make(DS_ll: DS_ll_S) = struct
                         let n, _ = Mat.shape v in
                         let mask = Mat.(epsilon_float $* eye n) in Mat.set mask i i 1.0;
                         let mu' = Mat.dot mask v in
-                        let std' = Mat.eye n in Mat.set std' i i std;
-                        let rv = DS_ll.assume_constant (Dist_mv_gaussian(mu', std')) in
+                        let cov = Mat.eye n in Mat.set cov i i (std ** 2.);
+                        let rv = DS_ll.assume_constant (Dist_mv_gaussian(mu', cov)) in
                         Some { value = Evec_get ({ value = Ervar (RV rv)}, i)}
                     | Some (AErvar (m, RV x, b)) ->
                         begin match DS_ll.get_distr_kind x with
@@ -363,8 +363,8 @@ module Make(DS_ll: DS_ll_S) = struct
                               let mask = Mat.(epsilon_float $* eye n) in Mat.set mask i i 1.0;
                               let m' = Mat.dot m mask in
                               let b' = Mat.dot mask b in
-                              let std' = Mat.eye n in Mat.set std' i i std;
-                              let rv = DS_ll.assume_conditional x (AffineMeanGaussianMV(m', b', std')) in
+                              let cov = Mat.eye n in Mat.set cov i i (std ** 2.);
+                              let rv = DS_ll.assume_conditional x (AffineMeanGaussianMV(m', b', cov)) in
                               Some { value = Evec_get ({ value = Ervar (RV rv)}, i)}
                           | _ -> None
                         end
@@ -396,9 +396,9 @@ module Make(DS_ll: DS_ll_S) = struct
                               let mask = Mat.(epsilon_float $* eye n) in Mat.set mask i i 1.0;
                               let m' = Mat.dot m mask in
                               let b' = Mat.dot mask b in
-                              let std' = Mat.eye n in Mat.set std' i i std;
+                              let cov = Mat.eye n in Mat.set cov i i (std ** 2.);
                               let obs' = Mat.zeros n 1 in Mat.set obs' i 0 obs;
-                              Some (DS_ll.observe_conditional prob x (AffineMeanGaussianMV(m', b', std')) obs')
+                              Some (DS_ll.observe_conditional prob x (AffineMeanGaussianMV(m', b', cov)) obs')
                           | _ -> None
                         end
                     | _ -> None
