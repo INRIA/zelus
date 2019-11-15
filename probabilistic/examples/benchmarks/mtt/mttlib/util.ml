@@ -398,10 +398,12 @@ let optimal_assignment (cost : Mat.mat) : (int * int) list =
 
 let  bignum = 1000000000.
 
+(* returns (distance, matches, false_positives, misses, mismatches, objects, and new map)*)
 let matching (prev_matching : tr_map) 
              (truth : (int * Mat.mat) list)
-             (hyp : (int * Mat.mat) list) : float * float * tr_map =
-
+             (hyp : (int * Mat.mat) list) : 
+             ((float * int * int * int * int * int) * tr_map) =
+                 
   let sum_dist = ref 0. in
   let num_matches = ref 0 in
   let false_positives = ref 0 in
@@ -524,10 +526,12 @@ let matching (prev_matching : tr_map)
   print_string ("mismatches: " ^ string_of_int !mismatches ^ "\n");
   *)
 
-  let motp = !sum_dist /. (float_of_int !num_matches) in
-  let mota = 1. -. (((float_of_int !misses) +. 
-                     (float_of_int !false_positives) +. 
-                     (float_of_int !mismatches)) /. (float_of_int (Array.length truth_a))) in
-  (motp, mota, final_match)
+  ((!sum_dist, 
+   !num_matches, 
+   !false_positives, 
+   !misses, 
+   !mismatches, 
+   Array.length truth_a),
+   final_match)
 
 
