@@ -353,7 +353,7 @@ module Make(DS_ll: DS_ll_S) = struct
                         let n, _ = Mat.shape v in
                         let mask = Mat.zeros 1 n in Mat.set mask 0 i 1.0;
                         let mu' = Mat.dot mask v in
-                        let cov = Mat.eye 1 in Mat.set cov 0 0 (std ** 2.);
+                        let cov = Mat.create 1 1 (std ** 2.) in
                         let rv = DS_ll.assume_constant (Dist_mv_gaussian(mu', cov)) in
                         Some { value = Evec_get ({ value = Ervar (RV rv)}, i)}
                     | Some (AErvar (m, RV x, b)) ->
@@ -363,7 +363,7 @@ module Make(DS_ll: DS_ll_S) = struct
                               let mask = Mat.zeros 1 n in Mat.set mask 0 i 1.0;
                               let m' = Mat.dot mask m in
                               let b' = Mat.dot mask b in
-                              let cov = Mat.eye 1 in Mat.set cov 0 0 (std ** 2.);
+                              let cov = Mat.create 1 1 (std ** 2.) in
                               let rv = DS_ll.assume_conditional x (AffineMeanGaussianMV(m', b', cov)) in
                               Some { value = Evec_get ({ value = Ervar (RV rv)}, i)}
                           | _ -> None
@@ -396,8 +396,8 @@ module Make(DS_ll: DS_ll_S) = struct
                               let mask = Mat.zeros 1 n in Mat.set mask 0 i 1.0;
                               let m' = Mat.dot mask m in
                               let b' = Mat.dot mask b in
-                              let cov = Mat.eye 1 in Mat.set cov 0 0 (std ** 2.);
-                              let obs' = Mat.zeros 1 1 in Mat.set obs' 0 0 obs;
+                              let cov = Mat.create 1 1 (std ** 2.) in
+                              let obs' = Mat.create 1 1 obs in
                               Some (DS_ll.observe_conditional prob x (AffineMeanGaussianMV(m', b', cov)) obs')
                           | _ -> None
                         end
