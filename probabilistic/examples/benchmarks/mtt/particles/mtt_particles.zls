@@ -9,12 +9,12 @@ let proba death_fn _ =
   sample (bernoulli p_dead)
 
 let proba new_track_init_fn _ =
-  sample (mv_gaussian(mu_new, sigma_new))
+  (new_track_num (), sample (mv_gaussian(mu_new, sigma_new)))
 
-let proba state_update_fn tr =
-  sample (mv_gaussian(a_u *@ tr +@ b_u, sigma_update))
+let proba state_update_fn (tr_num, tr) =
+  (tr_num, sample (mv_gaussian(a_u *@ tr +@ b_u, sigma_update)))
 
-let observe_fn tr =
+let observe_fn (_, tr) =
   (mv_gaussian (proj_pos *@ tr, sigma_obs))
 
 let proba clutter_init_fn _ =
@@ -37,9 +37,33 @@ let proba model inp = t where
   and obs_shuffled = sample (shuffle (List.append obs clutter))
   and present (not (n_clutter < 0)) -> do () = (ListP.iter2 obsfn (obs_shuffled, inp)) done
 
+let position (tr_num, tr) =
+  (tr_num, proj_pos *@ tr)
 
+let proba metrics (true_tr, est_tr) = mota where
+  rec init tr_match = empty_matching
+  and est_tr_pos = List.map position est_tr
+  and (metrics,tr_match) = matching (last tr_match) true_tr est_tr_pos
+  and (d, c, fp, m, mme, g) = metrics
+  and init agg_d = 0.
+  and agg_d = (last agg_d) +. d
+  and init agg_c = 0
+  and agg_c = (last agg_c) + c
+  and init agg_fp = 0
+  and agg_fp = (last agg_fp) + fp
+  and init agg_m = 0
+  and agg_m = (last agg_m) + m
+  and init agg_mme = 0
+  and agg_mme = (last agg_mme) + mme
+  and init agg_g = 0
+  and agg_g = (last agg_g) + g
+  and mota = 1. -. ((float_of_int (agg_fp + agg_m + agg_mme)) /. (float_of_int agg_g))
 
-let node main particles (a, obs) = (ret, 0.) where
-  rec tr_obs_distr = infer particles model obs 
-  and ret = draw tr_obs_distr
+let proba main_prob (true_tr, inp) = err where
+  rec est_tr = model inp
+  and err = metrics (true_tr, est_tr)
+
+let node main particles (true_tr, obs) = (0., err) where
+  rec err_distr = infer particles main_prob (true_tr, obs)
+  and err = mean_float err_distr
   (* and () = print_string ((string_of_vec2_list tr) ^ " : " ^ (string_of_vec2_list obs) ^ "\n") *)

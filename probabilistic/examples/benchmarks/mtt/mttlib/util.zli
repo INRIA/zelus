@@ -28,3 +28,10 @@ val ( +@ ) : Mat.mat -> Mat.mat -> Mat.mat
 val string_of_tr : (int * Mat.mat) list -> string
 val string_of_vec2_list : Mat.mat list -> string
 val string_of_int_list : int list -> string
+
+type tr_map
+val empty_matching : tr_map
+val matching : tr_map -> 
+               (int * Mat.mat) list ->
+               (int * Mat.mat) list ->
+               ((float * int * int * int * int * int) * tr_map)

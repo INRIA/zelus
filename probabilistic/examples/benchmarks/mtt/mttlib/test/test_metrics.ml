@@ -68,7 +68,9 @@ print_string (string_of_tr hyp0 ^ "\n");;
 
 let metrics0, match1 = matching match0 truth0 hyp0;;
 
-print_metrics metrics0
+print_metrics metrics0;;
+print_string ("match1:\n");;
+print_string (match_tostring match1 0);;
 
 let truth1 = [ (1, v1) ; (2, v2) ];;
 let hyp1 = [ (1, v2) ; (2, v1) ; (3, v4) ];;
@@ -81,7 +83,9 @@ print_string (string_of_tr hyp1 ^ "\n");;
 
 let metrics1, match2 = matching match1 truth1 hyp1;;
 
-print_metrics metrics1
+print_metrics metrics1;;
+print_string ("match2:\n");;
+print_string (match_tostring match2 0);;
 
 let truth2 = [ (1, v1) ; (2, v2) ; (3, v4) ];;
 let hyp2 = [ (1, v2) ; (2, v1) ];;
@@ -94,7 +98,10 @@ print_string (string_of_tr hyp2 ^ "\n");;
 
 let metrics2, match3 = matching match2 truth2 hyp2;;
 
-print_metrics metrics2
+print_metrics metrics2;;
+print_string ("match3:\n");;
+print_string (match_tostring match3 0);;
+
 
 let v5 = Mat.of_arrays [| [| 10. |];
                           [| 11. |]; |];;
@@ -120,7 +127,6 @@ print_string (string_of_tr hyp3 ^ "\n");;
 let metrics3, match4 = matching match3 truth3 hyp3;;
 
 print_metrics metrics3;;
-
 print_string "match4:\n";;
 print_string (match_tostring match4 5);;
 
@@ -136,7 +142,6 @@ print_string (string_of_tr hyp4 ^ "\n");;
 let metrics4, match5 = matching match4 truth4 hyp4;;
 
 print_metrics metrics4;;
-
 print_string "match5:\n";;
 print_string (match_tostring match5 5);;
 

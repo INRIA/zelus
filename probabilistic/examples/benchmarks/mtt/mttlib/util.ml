@@ -398,11 +398,13 @@ let optimal_assignment (cost : Mat.mat) : (int * int) list =
 
 let  bignum = 1000000000.
 
+
+
 (* returns (distance, matches, false_positives, misses, mismatches, objects, and new map)*)
-let matching (prev_matching : tr_map) 
-             (truth : (int * Mat.mat) list)
-             (hyp : (int * Mat.mat) list) : 
-             ((float * int * int * int * int * int) * tr_map) =
+let matching_helper   (prev_matching : tr_map) 
+                      (truth : (int * Mat.mat) list)
+                      (hyp : (int * Mat.mat) list) : 
+                      ((float * int * int * int * int * int) * tr_map) =
                  
   let sum_dist = ref 0. in
   let num_matches = ref 0 in
@@ -419,11 +421,13 @@ let matching (prev_matching : tr_map)
     match TrMap.find_opt i prev_matching with
     | None -> ()
     | Some j ->
-      let other_vec = List.assoc j hyp in
-      if dist vec other_vec < thresh then
-        init_matching := TrMap.add i j !init_matching
-      else
-        ()
+      try
+        let other_vec = List.assoc j hyp in
+        if dist vec other_vec < thresh then
+          init_matching := TrMap.add i j !init_matching
+        else
+          ()
+      with Not_found -> ()
   done;
 
   let best_matching : tr_map ref = ref !init_matching in
@@ -534,4 +538,19 @@ let matching (prev_matching : tr_map)
    Array.length truth_a),
    final_match)
 
-
+let matching (prev_matching : tr_map) 
+             (truth : (int * Mat.mat) list)
+             (hyp : (int * Mat.mat) list) : 
+             ((float * int * int * int * int * int) * tr_map) =
+  if List.length truth = 0 then begin
+    if List.length hyp = 0 then
+      ((0., 0, 0, 0, 0, 0), TrMap.empty)
+    else
+      ((0., 0, List.length hyp, 0, 0, 0), TrMap.empty)
+  end else begin
+    if List.length hyp = 0 then
+      ((0., 0, 0, List.length truth, 0, List.length truth), TrMap.empty)
+    else
+      matching_helper prev_matching truth hyp
+  end
+ 
