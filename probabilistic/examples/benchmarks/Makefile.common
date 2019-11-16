@@ -14,7 +14,8 @@ bench_find_mse: build
 bench_per_particles: build
 	time cat ../data | $(RUN) -exp \
 			-num-runs $(NUMRUNS) \
-			-max-particles 1000 \
+			-min-particles $(MIN) \
+			-max-particles $(MAX) \
 			-incr $(INCR) \
 			-perf perf.csv \
 			-acc accuracy.csv
@@ -22,14 +23,14 @@ bench_per_particles: build
 bench_per_steps: build
 	time cat ../data | $(RUN) \
 			-num-runs $(NUMRUNS) \
-			-particles $(MAX) \
+			-particles $(P) \
 			-perf-step perf-step.csv \
 			-mem-step mem.csv
 
 bench_mem_ideal: build
 	time cat ../data | $(RUN) \
 			-num-runs 1 \
-			-particles $(MAX) \
+			-particles $(P) \
 			-mem-ideal-step mem-ideal.csv
 
 $(NAME).ml : $(NAME).zls

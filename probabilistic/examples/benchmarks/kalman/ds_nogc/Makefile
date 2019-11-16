@@ -3,7 +3,8 @@ include ../../Makefile.common-config
 NAME=kalman_ds_nogc
 RUN=$(BROOT)/kalman/ds_nogc/run.exe
 MIN=100
-MAX=100
+MAX=1000
+P=100
 INCR=2
 NUMRUNS=10
 CSV_FILES=perf.csv perf-step.csv mem.csv mem-ideal.csv accuracy.csv

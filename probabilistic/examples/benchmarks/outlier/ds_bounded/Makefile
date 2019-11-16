@@ -3,7 +3,8 @@ include ../../Makefile.common-config
 NAME=outlier_ds_bounded
 RUN=$(BROOT)/outlier/ds_bounded/run.exe
 MIN=1
-MAX=100
+MAX=1000
+P=100
 INCR=2
 NUMRUNS=10
 CSV_FILES=perf.csv perf-step.csv mem.csv mem-ideal.csv accuracy.csv

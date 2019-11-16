@@ -52,7 +52,7 @@ module Make(M: sig
         ("-max-particles", Int (fun i -> max_particles := i),
          "n Upper bound of the particles interval");
         ("-exp", Set exp_seq_flag,
-         " Exponentioal sequence");
+         " Exponential sequence");
         ("-pgf",  Set pgf_format,
          "PGF Format");
         ("-mse-target", Float (fun f -> mse_target := Some f),
@@ -264,15 +264,22 @@ module Make(M: sig
     else
       min :: seq (min + incr) incr max
 
+  let rec pow x n =
+    if n = 0 then 1 else x * pow x (n - 1)
+
   let exp_seq =
-    let rec seq p incr exp  max =
+    let rec seq p incr exp max =
       if p > max then []
       else
         p ::
         if p >= exp then seq (p + (exp / 2)) (exp / 2) (10 * exp) max
         else seq (p + incr) incr exp max
     in
-    seq 1 1 10
+    fun min_particles max_particles ->
+      let exp = pow 10 (int_of_float (log10 (float_of_int min_particles))) in
+      let incr = max 1 (exp / 2) in
+      let min = incr * min_particles / incr in
+      seq min incr (10 * exp) max_particles
 
   let run () =
     let inp = read_file () in
@@ -284,7 +291,7 @@ module Make(M: sig
         | None, false ->
             seq !Config.min_particles !Config.increment !Config.max_particles
         | None, true ->
-            exp_seq !Config.max_particles
+            exp_seq !Config.min_particles !Config.max_particles
         | Some _, true ->
             Arg.usage Config.args
               "options -exp and -mse-target cannot be used simultaneously";
