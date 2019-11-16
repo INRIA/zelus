@@ -31,9 +31,9 @@ let read_input () =
         []
       with Scanf.Scan_failure _ ->
         let this_elem = if fst then
-          Scanf.scanf "(%i, %f, %f)" (fun _ x y -> mk_vec x y) 
+          Scanf.scanf "(%i, %f, %f)" (fun i x y -> (i, mk_vec x y))
         else 
-          Scanf.scanf ",(%i, %f, %f)" (fun _ x y -> mk_vec x y) 
+          Scanf.scanf ",(%i, %f, %f)" (fun i x y -> (i, mk_vec x y))
         in
         this_elem :: (process_list_helper false)
     in
@@ -50,14 +50,14 @@ let read_input () =
   (truth, obs)
 
 let run () = 
-    let Cnode {alloc; reset; step; copy = _} = Mtt_ds.main 1000 in
+    let Cnode {alloc; reset; step; copy = _} = Mtt_ds.main 10000 in
     let state = alloc () in
     reset state;
     let rec do_run () =
         try 
             let (tr, obs) = read_input () in
-            let (v, _) = step state (tr, obs) in
-            print_string (Util.string_of_vec2_list v ^ "\n");
+            let (_, err) = step state (tr, obs) in
+            print_string (string_of_float err ^ "\n");
             do_run ()
         with End_of_file -> ()
     in

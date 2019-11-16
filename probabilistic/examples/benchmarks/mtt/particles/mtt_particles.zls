@@ -40,8 +40,9 @@ let proba model inp = t where
 let position (tr_num, tr) =
   (tr_num, proj_pos *@ tr)
 
-let proba metrics (true_tr, est_tr) = mota where
+let proba metrics (true_tr, tr_dist) = mota where
   rec init tr_match = empty_matching
+  and est_tr = sample tr_dist
   and est_tr_pos = List.map position est_tr
   and (metrics,tr_match) = matching (last tr_match) true_tr est_tr_pos
   and (d, c, fp, m, mme, g) = metrics
@@ -59,11 +60,8 @@ let proba metrics (true_tr, est_tr) = mota where
   and agg_g = (last agg_g) + g
   and mota = 1. -. ((float_of_int (agg_fp + agg_m + agg_mme)) /. (float_of_int agg_g))
 
-let proba main_prob (true_tr, inp) = err where
-  rec est_tr = model inp
-  and err = metrics (true_tr, est_tr)
-
 let node main particles (true_tr, obs) = (0., err) where
-  rec err_distr = infer particles main_prob (true_tr, obs)
+  rec tr_distr = infer particles model obs
+  and err_distr = infer particles metrics (true_tr, tr_distr)
   and err = mean_float err_distr
   (* and () = print_string ((string_of_vec2_list tr) ^ " : " ^ (string_of_vec2_list obs) ^ "\n") *)
