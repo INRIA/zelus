@@ -10,10 +10,10 @@ all: $(ZCI) byte opt
 
 .phony: byte opt
 
-byte:
+byte: metrics.ml
 	dune build mttlib.cma
 
-opt:
+opt: metrics.ml
 	dune build mttlib.cmxa
 
 test:
@@ -24,6 +24,9 @@ test:
 
 test.ml : test.zls util.zci
 	$(ZELUC) test.zls -s main
+
+metrics.ml : metrics.zls
+	$(ZELUC) -noreduce metrics.zls
 
 clean:
 	dune clean

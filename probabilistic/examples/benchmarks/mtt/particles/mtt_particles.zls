@@ -36,32 +36,6 @@ let proba model inp = t where
   and clutter = ListP.ini clutter_init_fn n_clutter 
   and obs_shuffled = sample (shuffle (List.append obs clutter))
   and present (not (n_clutter < 0)) -> do () = (ListP.iter2 obsfn (obs_shuffled, inp)) done
-
-let position (tr_num, tr) =
-  (tr_num, proj_pos *@ tr)
-
-let proba metrics (true_tr, tr_dist) = mota where
-  rec init tr_match = empty_matching
-  and est_tr = sample tr_dist
-  and est_tr_pos = List.map position est_tr
-  and (metrics,tr_match) = matching (last tr_match) true_tr est_tr_pos
-  and (d, c, fp, m, mme, g) = metrics
-  and init agg_d = 0.
-  and agg_d = (last agg_d) +. d
-  and init agg_c = 0
-  and agg_c = (last agg_c) + c
-  and init agg_fp = 0
-  and agg_fp = (last agg_fp) + fp
-  and init agg_m = 0
-  and agg_m = (last agg_m) + m
-  and init agg_mme = 0
-  and agg_mme = (last agg_mme) + mme
-  and init agg_g = 0
-  and agg_g = (last agg_g) + g
-  and mota = 1. -. ((float_of_int (agg_fp + agg_m + agg_mme)) /. (float_of_int agg_g))
-
-let node main particles (true_tr, obs) = (0., err) where
+let node main particles (true_tr, obs) = tr_distr where
   rec tr_distr = infer particles model obs
-  and err_distr = infer particles metrics (true_tr, tr_distr)
-  and err = mean_float err_distr
   (* and () = print_string ((string_of_vec2_list tr) ^ " : " ^ (string_of_vec2_list obs) ^ "\n") *)
