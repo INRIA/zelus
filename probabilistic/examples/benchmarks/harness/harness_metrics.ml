@@ -172,9 +172,9 @@ module Make(M: sig
       (fun idx i ->
          let has_sample = ref false in
          while not !has_sample do
-           let time_pre = Sys.time () in
+           let time_pre = Unix.gettimeofday () in
            let out = step i in
-           let time = Sys.time () -. time_pre in
+           let time = Unix.gettimeofday () -. time_pre in
            try
              let mse = step_metrics (i, out) in
              times.(idx) <- time *. 1000.;

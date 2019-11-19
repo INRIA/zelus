@@ -160,9 +160,9 @@ module Make(M: sig
     let final_mse = ref 0. in
     List.iteri
       (fun idx i ->
-         let time_pre = Sys.time () in
+         let time_pre = Unix.gettimeofday () in
          let _, mse = step i in
-         let time = Sys.time () -. time_pre in
+         let time = Unix.gettimeofday () -. time_pre in
          times.(idx) <- time *. 1000.;
          mems.(idx) <- gc_stat();
          final_mse := mse)
