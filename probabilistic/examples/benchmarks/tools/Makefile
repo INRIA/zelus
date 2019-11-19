@@ -2,8 +2,8 @@ COIN_TARGET=0.0016
 GAUSSIAN_TARGET=0.001
 KALMAN_TARGET=0.64
 OUTLIER_TARGET=0.93
-SLAM_TARGET=0.72
-TRACKER_TARGET=32
+SLAM_TARGET=0.646
+TRACKER_TARGET=31
 
 DIRS=particles ds ds_bounded
 MSE_SEARCH=../../../_build/default/examples/benchmarks/tools/mse_search.exe
