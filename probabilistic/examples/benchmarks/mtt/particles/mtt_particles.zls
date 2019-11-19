@@ -32,6 +32,7 @@ let proba model inp = t where
   and t = ListP.map state_update_fn t_tot
   and obs = List.map observe_fn t
   and n_clutter = (List.length inp) - (List.length obs)
+  and () = print_string (string_of_int (List.length t) ^ "\n")
   and () = observe(poisson lambda_clutter, n_clutter)
   and clutter = ListP.ini clutter_init_fn n_clutter 
   and obs_shuffled = sample (shuffle (List.append obs clutter))

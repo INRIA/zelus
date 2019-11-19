@@ -1,4 +1,5 @@
 open Stats
+open Probzelus
 
 module Make(M: sig
     type input
@@ -169,13 +170,21 @@ module Make(M: sig
     let final_mse = ref 0. in
     List.iteri
       (fun idx i ->
-         let time_pre = Sys.time () in
-         let out = step i in
-         let time = Sys.time () -. time_pre in
-         let mse = step_metrics (i, out) in
-         times.(idx) <- time *. 1000.;
-         mems.(idx) <- gc_stat();
-         final_mse := mse)
+         let has_sample = ref false in
+         while not !has_sample do
+           let time_pre = Sys.time () in
+           let out = step i in
+           let time = Sys.time () -. time_pre in
+           try
+             let mse = step_metrics (i, out) in
+             times.(idx) <- time *. 1000.;
+             mems.(idx) <- gc_stat();
+             final_mse := mse;
+             has_sample := true
+           with Distribution.Draw_error -> 
+             times.(idx) <- times.(idx) +. (time *. 1000.);
+             print_string "x"
+         done)
       inp;
     (!final_mse, times, mems)
 

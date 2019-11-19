@@ -25,7 +25,7 @@ let proba metrics (true_tr, tr_dist) = mota where
   and agg_mme = (last agg_mme) + mme
   and init agg_g = 0
   and agg_g = (last agg_g) + g
-  and mota = 1. -. ((float_of_int (agg_fp + agg_m + agg_mme)) /. (float_of_int agg_g))
+  and mota = ((float_of_int (agg_fp + agg_m + agg_mme)) /. (float_of_int agg_g))
 
 let node main particles ((true_tr, _), tr_distr) = err where
   rec err_distr = infer particles metrics (true_tr, tr_distr)

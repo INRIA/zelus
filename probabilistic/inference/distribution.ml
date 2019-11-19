@@ -9,6 +9,8 @@ type proba = float
 (** Logarithm of probabilities *)
 type log_proba = float
 
+exception Draw_error
+
 (** Type of distributions *)
 type _ t =
   | Dist_sampler : ((unit -> 'a) * ('a -> log_proba)) -> 'a t
@@ -549,7 +551,7 @@ let rec draw : type a. a t -> a =
         (* TODO data structure for more efficient sampling *)
         let rec draw sum r =
           begin match r with
-            | [] -> assert false
+            | [] -> raise Draw_error
             | (v, p) :: r ->
                 let sum = sum +. p in
                 if sample <= sum then v else draw sum r
