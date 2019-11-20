@@ -189,7 +189,7 @@ fi
 # Check for ocamlfind
 OCAMLFIND=`which ocamlfind`
 if [ -z "${OCAMLFIND}" ]; then
-    OCAMLFIND=ocamlfind
+    OCAMLFIND=${OCAMLBIN}ocamlfind
 fi
 
 # Check for gtk installation
@@ -263,9 +263,9 @@ if [ ! -x ${glmlite_path} ]; then
 	glmlite_enabled=0
     fi
 fi
-    
+
 if [ "${ocaml_path}" != "NOT_FOUND" ]; then
-    
+
     # TODO: change after patch integrated into glMLite
     # "exit (if major >= 0 && minor >= 3 && patch > 50 then 100 else 200);;" \
     printf "let major, minor, patch = GL.glmlite_version in \
@@ -273,7 +273,7 @@ if [ "${ocaml_path}" != "NOT_FOUND" ]; then
 	    else (if major + minor + patch = 0 then 110 else 200));;\n" \
 	| ${OCAMLBIN}ocaml -I ${glmlite_incl} GL.cma  >/dev/null 2>&1
     GLMLV=$?
-    
+
     if [ $GLMLV -eq 100 ]; then
 	glmlite_status="${glmlite_path} (>= 0.3.51)"
 	glmlite_enabled=1
@@ -381,4 +381,3 @@ package "gtk" (
     archive(native) = "zllibgtk.cmxa"
 )
 ENDOFFILE
-

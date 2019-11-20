@@ -148,6 +148,15 @@ opam-install:
 	    done ; \
 	 printf "]\n" >> zelus.install ; \
 
+docker_build:
+	docker build --rm -t zelus -f zelus.docker .
+
+docker_run:
+	docker run -ti --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix/:/tmp/.X11-unix zelus bash
+
+docker_save:
+	docker save zelus > zelus-docker.tar
+
 # Clean up
 clean:
 	(cd compiler;  make -f Makefile clean)
@@ -165,4 +174,3 @@ realclean cleanall distclean:
 	(cd test/good; make -f Makefile cleanall)
 	(cd test/bad;  make -f Makefile cleanall)
 	(cd examples;  make -f Makefile cleanall)
-

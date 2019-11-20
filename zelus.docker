@@ -1,0 +1,68 @@
+# Zélus 2.0 over ocaml/opam2
+#
+# VERISON       0.1
+
+# USAGE :
+#   build with `docker build -t zelus -f zelus.dockerfile .` or with
+#       `make docker_build`
+#   run with `docker run -ti --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix/:/tmp/.X11-unix zelus bash`
+#       or `make docker_run`, once it has been built or loaded
+#   save with `docker save zelus > zelus.tar`, once it has been built
+#   load with `docker load --input zelus.tar`
+#
+# You can distribute the .tar file
+
+FROM ocaml/opam2:4.08
+LABEL description="This image contains `zeluc`, a compiler from \
+(Zélus)[http://zelus.di.ens.fr] to OCaml. It is built upon `ocaml/opam2` and \
+it also provides the necessary libraries to compile the ml files that are \
+produced by `zeluc`."
+LABEL version="2.0"
+LABEL maintainer="marc.pouzet@ens.fr"
+
+# Install system dependencies
+RUN sudo apt-get update
+RUN sudo apt-get upgrade -y
+RUN sudo apt-get install -y build-essential sudo m4 libgtk2.0-dev libsundials-dev
+
+# Switch to root to give permissions to opam
+USER root
+
+# Give permission to opam to run `sudo`
+RUN adduser opam sudo
+# Don't ask for a password when running sudo
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+# Create main directory
+RUN mkdir -p /zelus
+# Set as current directory for subsequent commands
+WORKDIR /zelus
+# Copy zelus files in `workdir`
+COPY --chown=opam . .
+
+# Switch back to opam
+USER opam
+
+# Install OCaml dependencies
+RUN opam switch 4.08
+RUN eval $(opam env)
+RUN opam update
+RUN opam upgrade
+RUN opam install -y ocamlfind menhir sundialsml lablgtk
+RUN eval $(opam env)
+
+# Compile and install `zeluc` and all the binary libs
+RUN ./configure OCAMLROOT ~/.opam/4.08/
+RUN make distclean
+RUN make
+RUN sudo make install
+
+# If you run `docker run zelus somefile`, it will run `zeluc somefile`
+# If you want to open an interactive terminal, run `docker run -it zelus bash`
+CMD /usr/local/bin/zeluc
+
+
+# NOTE : To run Gtk apps inside docker, you should run the command
+#        `xhost +local:docker`
+#         in the host (your computer), then run the container with
+#        `docker run -ti --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix/:/tmp/.X11-unix zelus bash`
