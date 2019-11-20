@@ -592,8 +592,12 @@ let rec score : type a. a t * a -> log_proba =
     | Dist_sampler (_, scorer) -> scorer x
     | Dist_sampler_float (_, scorer, _) -> scorer x
     | Dist_support sup ->
-        log (try List.assoc x sup
-             with Not_found -> 0.)
+        let p =
+          List.fold_left
+            (fun acc (y, w) -> if x = y then acc +. w else acc)
+            0. sup
+        in
+        log p
     | Dist_mixture (l) ->
         let p =
           List.fold_left
@@ -655,18 +659,20 @@ let draw_and_score : type a. a t -> a * log_proba =
     | Dist_sampler_float (sampler, scorer, _) ->
         let x = sampler () in
         (x, scorer x)
-    | Dist_support sup ->
-        let sample = Random.float 1.0 in
-        (* TODO data structure for more efficient sampling *)
-        let rec draw sum r =
-          begin match r with
-            | [] -> assert false
-            | (v, p) :: r ->
-                let sum = sum +. p in
-                if sample <= sum then v, (log p) else draw sum r
-          end
-        in
-        draw  0. sup
+    | Dist_support _ ->
+        let x = draw dist in
+        (x, score (dist, x))
+        (* let sample = Random.float 1.0 in *)
+        (* (\* TODO data structure for more efficient sampling *\) *)
+        (* let rec draw sum r = *)
+        (*   begin match r with *)
+        (*     | [] -> assert false *)
+        (*     | (v, p) :: r -> *)
+        (*         let sum = sum +. p in *)
+        (*         if sample <= sum then v, (log p) else draw sum r *)
+        (*   end *)
+        (* in *)
+        (* draw  0. sup *)
     | Dist_mixture _ ->
         let x = draw dist in
         (x, score (dist, x))
@@ -805,16 +811,8 @@ let rec split_array : type a. a array t -> a t array =
         let supports = Array.make (Array.length a0) [] in
         List.iter
           (fun (a, p) ->
-             let add_p o =
-               begin match o with
-                 | None -> p
-                 | Some p' -> p +. p'
-               end
-             in
              Array.iteri
-               (fun i v ->
-                  supports.(i) <-
-                    Misc_lib.list_replace_assoc v add_p supports.(i))
+               (fun i v -> supports.(i) <- (v, p) :: supports.(i))
                a)
           support;
         Array.map (fun supp -> Dist_support supp) supports
