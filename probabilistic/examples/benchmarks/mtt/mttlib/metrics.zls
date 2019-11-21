@@ -7,7 +7,7 @@ open Infer_pf
 let position (tr_num, tr) =
   (tr_num, proj_pos *@ tr)
 
-let proba metrics (true_tr, tr_dist) = mota where
+let proba metrics (true_tr, tr_dist) = err where
   rec init tr_match = empty_matching
   and est_tr = sample tr_dist
   and est_tr_pos = List.map position est_tr
@@ -25,7 +25,8 @@ let proba metrics (true_tr, tr_dist) = mota where
   and agg_mme = (last agg_mme) + mme
   and init agg_g = 0
   and agg_g = (last agg_g) + g
-  and mota = ((float_of_int (agg_fp + agg_m + agg_mme)) /. (float_of_int agg_g))
+  and one_minus_mota = ((float_of_int (agg_fp + agg_m + agg_mme)) /. (float_of_int agg_g))
+  and err = if one_minus_mota >= 1. then infinity else (1. /. (1. -. one_minus_mota)) -. 1.
 
 let node main particles ((true_tr, _), tr_distr) = err where
   rec err_distr = infer particles metrics (true_tr, tr_distr)
