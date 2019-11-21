@@ -177,7 +177,7 @@ module Make(M: sig
            let time = Unix.gettimeofday () -. time_pre in
            try
              let mse = step_metrics (i, out) in
-             times.(idx) <- time *. 1000.;
+             times.(idx) <- times.(idx) +. time *. 1000.;
              mems.(idx) <- gc_stat();
              final_mse := mse;
              has_sample := true
