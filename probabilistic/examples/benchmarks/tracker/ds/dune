@@ -1,9 +1,7 @@
 (env
  (dev
-  (flags (:standard -w -9-27-33 -warn-error -A))
-  (ocamlopt_flags (:standard -p))))
+  (flags (:standard -w -9-27-33 -warn-error -A))))
 
 (executables
  (names run)
- (libraries probzelus trackerlib benchlib)
- (modes native))
+ (libraries probzelus trackerlib benchlib))
