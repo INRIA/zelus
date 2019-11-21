@@ -4,7 +4,7 @@ ZELUC=zeluc -copy -I $(INFERLIB) -I $(OWLLIB) -I ../mttlib/
 
 
 NAME=mtt_ds_bounded
-RUN=$(BROOT)/mtt/particles/run.exe
+RUN=$(BROOT)/mtt/ds_bounded/run.exe
 MIN=1
 MAX=1000
 P=100
@@ -18,7 +18,7 @@ test : $(NAME).ml test.ml
 	dune build test.exe
 
 publish:
-	cp $(CSV_FILES) $(PPL-ZELUS)/data/mtt/particle
+	cp $(CSV_FILES) $(PPL-ZELUS)/data/mtt/ds_bounded
 
 bench: bench_per_particles bench_per_steps bench_mem_ideal
 
