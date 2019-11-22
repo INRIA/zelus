@@ -11,6 +11,6 @@ anonymous-dist-src: dist-src-folder
 	sed -i "8s/.*/<anonymous>./" anonymous-dist-src/tools/readme.md.dist # this line was mentioning Marc's email address
 	rm -rf anonymous-dist-src/examples/cantharide/slides # slides with marc's name
 	rm -rf anonymous-dist-src/examples/backhoe/exercise # slides with tim's name
-	rm -rf anonymous-dist-src/man # lots of referenes to marc + not up to date anyway
+	# rm -rf anonymous-dist-src/man # lots of referenes to marc + not up to date anyway
 	cd anonymous-dist-src; tar cvzf zelus_anonymous_src.tar.gz *; mv zelus_anonymous_src.tar.gz ..
-	rm -rf anonymous-dist-src
+	# rm -rf anonymous-dist-src

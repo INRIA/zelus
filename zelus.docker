@@ -35,10 +35,13 @@ RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 # Create main directory
 RUN mkdir -p /zelus
+RUN mkdir -p /probabilistic
 # Set as current directory for subsequent commands
-WORKDIR /zelus
+WORKDIR /probabilistic
 # Copy zelus files in `workdir`
 COPY --chown=opam . .
+RUN rm -rf zelus/probabilistic
+COPY --chown=opam probabilistic /probabilistic
 
 # Switch back to opam
 USER opam
