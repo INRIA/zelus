@@ -9,6 +9,26 @@ Requirements
    - Lablgtk2
    - glMLite
 
+Installing requirements on a fresh ubuntu 18.10 machine (with opam):
+
+```
+sudo apt-get update
+sudo apt-get upgrade -y
+sudo apt-get install -y build-essential sudo m4 libgtk2.0-dev libsundials-dev curl
+
+sh <(curl -sL https://raw.githubusercontent.com/ocaml/opam/master/shell/install.sh)
+
+source ~/.bashrc
+
+opam init -a
+opam switch 4.08.0
+eval $(opam env)
+opam update
+opam upgrade -y
+eval $(opam env)
+opam install -y ocamlfind menhir sundialsml lablgtk
+evam $(opam env)
+```
 
 Installation
 ----------------------------------------------------------------------
@@ -70,4 +90,3 @@ Time profiling generated executables:
 3. Run the program and examine the results:
       ./ball.opt -sundialsI -maxt 15
       gprof ball.opt
-

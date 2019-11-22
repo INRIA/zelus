@@ -104,6 +104,17 @@ makedist:
 	  printf "$(S_RED)## Compiled with OCaml $${OCAMLVERSION} ";	\
 	  printf "and using the $(SOLVER) solver ($${DISTNAME}).$(S_NORMAL)\n"
 
+dist-src-folder: distclean
+	mkdir -p dist-src
+	cp -r bin compiler examples lib man probabilistic test tools dist-src
+	cp config.in configure license.en.txt license.fr.txt Makefile readme.md dist-src
+
+dist-src: dist-src-folder
+	cd dist-src; tar cvzf zelus_src.tar.gz *; mv zelus_src.tar.gz ..
+	rm -rf dist-src
+
+-include anonymous.make
+
 install:
 	@for target in $(targets); do case $$target in 		\
 	  byte) cp compiler/$(BIN).byte $(bindir)/$(BIN);	\
@@ -165,6 +176,7 @@ clean:
 	(cd test/good; make -f Makefile clean)
 	(cd test/bad;  make -f Makefile clean)
 	(cd examples;  make -f Makefile clean)
+	@rm -rf dist-src anonymous-dist-src
 	@rm -rf debug.txt
 
 realclean cleanall distclean:
@@ -174,3 +186,5 @@ realclean cleanall distclean:
 	(cd test/good; make -f Makefile cleanall)
 	(cd test/bad;  make -f Makefile cleanall)
 	(cd examples;  make -f Makefile cleanall)
+	@rm -rf dist-src anonymous-dist-src
+	@rm -rf debug.txt

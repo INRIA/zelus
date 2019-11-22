@@ -37,3 +37,6 @@ tools/zltohtml*
 bin/zeluc
 test/good/*.ml
 test/bad/*.ml
+
+zelus_src.tar.gz
+zelus_anonymous_src.tar.gz
