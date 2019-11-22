@@ -2,8 +2,8 @@ ZELUC=../../compiler/zeluc.byte -I ../../lib
 
 all: byte opt
 
-byte: mainc.byte maind.byte
-opt:  mainc.opt maind.opt
+byte: mainc.byte maind.byte maindgraphics.byte maindgraphics.byte
+opt:  mainc.opt maind.opt maindgraphics.opt maindcgraphics.opt
 
 mainc.byte: mainc.ml
 	ocamlfind ocamlc -o mainc.byte -I `zeluc -where` \
@@ -29,17 +29,17 @@ maind.opt: maind.ml
 	lablgtk.cmxa zllibgtk.cmxa \
         -package sundialsml -linkpkg van_der_pol.ml maind.ml
 
-maincgraphics.byte: maincgraphics.ml
-	ocamlfind ocamlc -o maincgraphics.byte -I `zeluc -where` \
+maindcgraphics.byte: maindcgraphics.ml
+	ocamlfind ocamlc -o maindcgraphics.byte -I `zeluc -where` \
 	-package lablgtk2 \
         -package sundialsml lablgtk.cma zllibgtk.cma \
-        -linkpkg van_der_pol.ml maincgraphics.ml
+        -linkpkg van_der_pol.ml maindcgraphics.ml
 
-maincgraphics.opt: maincgraphics.ml
-	ocamlfind ocamlopt -o maincgraphics.opt -I `zeluc -where` \
+maindcgraphics.opt: maindcgraphics.ml
+	ocamlfind ocamlopt -o maindcgraphics.opt -I `zeluc -where` \
 	-package lablgtk2 \
         lablgtk.cmxa zllibgtk.cmxa \
-        -package sundialsml -linkpkg van_der_pol.ml maincgraphics.ml
+        -package sundialsml -linkpkg van_der_pol.ml maindcgraphics.ml
 
 maindgraphics.byte: maindgraphics.ml
 	ocamlfind ocamlc -o maindgraphics.byte -I `zeluc -where` \
@@ -62,8 +62,8 @@ mainc.ml: van_der_pol.zls
 maindgraphics.ml: van_der_pol.zls
 	$(ZELUC) -gtk2 -s maindgraphics -sampling 0.05 van_der_pol.zls
 
-maincgraphics.ml: van_der_pol.zls
-	$(ZELUC) -gtk2 -s maincgraphics van_der_pol.zls
+maindcgraphics.ml: van_der_pol.zls
+	$(ZELUC) -gtk2 -s maindcgraphics van_der_pol.zls
 
 clean:
 	-@rm -f *.byte

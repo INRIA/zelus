@@ -25,7 +25,7 @@ let node van_der_pol_discrete(h)() = (x, y) where
       y = forward(h)(1.0, (mu *. (1.0 -. (x *. x)) *. y) -. x)
 
 		 
-let h_discrete_old = 0.000001
+(* let h_discrete = 0.1 *)
 let h_discrete = 0.15
 let stop_time = 50.0
     (* 50 000 000 *)
@@ -51,11 +51,11 @@ let node maind() =
   print_x_y (time, x, y)
    
    
-let h_continuous = 1.0
+let h_continuous = 0.1
     
 (* The main simulation loop in discrete-time but with the model *)
 (* in continuous-time and simulated with a variable step numeric solver *)
-let node maincgraphics() =
+let node maindcgraphics() =
   let rec { time = time; status = status; result = (x, y) } =
     Node.solve van_der_pol_continuous stop_time (next_horizon, ())
   and next_horizon =
@@ -64,8 +64,8 @@ let node maincgraphics() =
   let s = Scope.scope2 (-1.0, 40.0,
 			("x", Scope.linear, x),
                         ("y", Scope.linear, y)) in
-  Scope.window ("Van der Pol", stop_time, time, s)
-
+       Scope.window ("Van der Pol", stop_time, time, s)
+      
 let node steps status =
   let rec nb_points = 0 fby nb_points + 1 in
   let rec init nb_integr = 0 and init nb_jumps = 0

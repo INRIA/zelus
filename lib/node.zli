@@ -30,7 +30,7 @@ type 'a return =
     { time: float; status: status; result: 'a }
 
 (* lift a continuous-time function into a stream function *)
-(* [solve stop_time f (h, x) = r] where
+(* [solve f stop_time (h, x) = r] where
  *- [stop_time] is the stop (final) time of the simulation
  *- [f] is the continuous time function (with derivatives and/or zero-crossings)
  *- [(h,x)] is a stream of pairs where [h] is the horizon to reach and

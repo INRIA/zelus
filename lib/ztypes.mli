@@ -119,3 +119,4 @@ type ('a, 'b) hsnode =
         horizon : 's -> time;
         (* gives the next time horizon *)
       } -> ('a, 'b) hsnode
+
