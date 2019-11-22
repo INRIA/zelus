@@ -108,7 +108,7 @@ dist-src-folder: distclean
 	mkdir -p dist-src
 	cp -r bin compiler examples lib man probabilistic test tools dist-src
 	cp config.in configure license.en.txt license.fr.txt Makefile readme.md dist-src
-	cp zelus.docker
+	cp zelus.docker dist-src
 
 dist-src: dist-src-folder
 	cd dist-src; tar cvzf zelus_src.tar.gz *; mv zelus_src.tar.gz ..

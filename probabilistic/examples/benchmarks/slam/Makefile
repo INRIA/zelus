@@ -48,6 +48,7 @@ bench_mem_ideal:
 .PHONY: publish bench build
 
 build: slamlib/array_misc.zci slamlib/slamlib.zci main.ml
+	$(MAKE) -C slamlib
 	dune build main.exe
 
 
