@@ -13,4 +13,4 @@ anonymous-dist-src: dist-src-folder
 	rm -rf anonymous-dist-src/examples/backhoe/exercise # slides with tim's name
 	# rm -rf anonymous-dist-src/man # lots of referenes to marc + not up to date anyway
 	cd anonymous-dist-src; tar cvzf zelus_anonymous_src.tar.gz *; mv zelus_anonymous_src.tar.gz ..
-	# rm -rf anonymous-dist-src
+	rm -rf anonymous-dist-src
