@@ -177,8 +177,8 @@ clean:
 	(cd test/good; make -f Makefile clean)
 	(cd test/bad;  make -f Makefile clean)
 	(cd examples;  make -f Makefile clean)
-	@rm -rf dist-src anonymous-dist-src
-	@rm -rf debug.txt
+	-@rm -rf dist-src anonymous-dist-src
+	-@rm -rf debug.txt
 
 realclean cleanall distclean:
 	(cd compiler;  make -f Makefile cleanall)
@@ -187,5 +187,5 @@ realclean cleanall distclean:
 	(cd test/good; make -f Makefile cleanall)
 	(cd test/bad;  make -f Makefile cleanall)
 	(cd examples;  make -f Makefile cleanall)
-	@rm -rf dist-src anonymous-dist-src
-	@rm -rf debug.txt
+	-@rm -rf dist-src anonymous-dist-src
+	-@rm -rf debug.txt

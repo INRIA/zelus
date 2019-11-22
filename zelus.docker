@@ -36,10 +36,9 @@ RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 # Create main directory
 RUN mkdir -p /zelus
 RUN mkdir -p /probabilistic
-# Set as current directory for subsequent commands
-WORKDIR /probabilistic
+
 # Copy zelus files in `workdir`
-COPY --chown=opam . .
+COPY --chown=opam . /zelus
 RUN rm -rf zelus/probabilistic
 COPY --chown=opam probabilistic /probabilistic
 
@@ -51,19 +50,22 @@ RUN opam switch 4.08
 RUN eval $(opam env)
 RUN opam update
 RUN opam upgrade
+RUN eval $(opam env)
 RUN opam install -y ocamlfind menhir sundialsml lablgtk
 RUN eval $(opam env)
 
 # Compile and install `zeluc` and all the binary libs
+
+# Set as current directory for subsequent commands
+WORKDIR /zelus
+
 RUN ./configure OCAMLROOT ~/.opam/4.08/
 RUN make distclean
 RUN make
 RUN sudo make install
 
-# If you run `docker run zelus somefile`, it will run `zeluc somefile`
-# If you want to open an interactive terminal, run `docker run -it zelus bash`
-CMD /usr/local/bin/zeluc
-
+# Set as current directory for subsequent commands
+WORKDIR /probabilistic
 
 # NOTE : To run Gtk apps inside docker, you should run the command
 #        `xhost +local:docker`
