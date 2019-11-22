@@ -4,7 +4,7 @@ ZELUC=zeluc -copy -I $(INFERLIB) -I $(OWLLIB) -I ../mttlib/
 
 
 NAME=mtt_particles
-RUN=$(BROOT)/mtt/ds/run.exe
+RUN=$(BROOT)/mtt/particles/run.exe
 MIN=1
 MAX=1000
 P=100

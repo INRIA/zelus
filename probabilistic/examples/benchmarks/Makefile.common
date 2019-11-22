@@ -29,7 +29,7 @@ bench_per_steps: build
 
 bench_mem_ideal: build
 	time cat ../data | $(RUN) \
-			-num-runs 1 \
+			-num-runs 100 \
 			-particles $(P) \
 			-mem-ideal-step mem-ideal.csv
 
