@@ -1,3 +1,5 @@
+open Benchlib
+
 module M = struct
   type input = float * float
   type output = float

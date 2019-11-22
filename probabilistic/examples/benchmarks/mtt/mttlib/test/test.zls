@@ -1,0 +1,19 @@
+open Probzelus
+open Mttlib
+open Distribution
+open Infer_pf
+open Util
+
+let proba init_fn i = i
+
+let proba model () = ret where
+  rec ret = ListP.ini init_fn t
+  and init t = 0
+  and t = (last t) + 1
+    
+
+let node main () = () where
+  rec lst_distr = infer 1 model ()
+  and lst = draw lst_distr
+  and () = print_string (string_of_int_list lst ^ "\n")
+

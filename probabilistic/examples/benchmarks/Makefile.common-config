@@ -1,0 +1,4 @@
+PPL-ZELUS=$(HOME)/probabilistic/mit-ibm/ppl-zelus
+INFERLIB=../../../../inference
+ZELUC=zeluc -copy -I $(INFERLIB)
+BROOT=../../../../_build/default/examples/benchmarks

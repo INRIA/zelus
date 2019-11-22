@@ -75,7 +75,7 @@ let pre_loc state =
 let print string_of_value map state =
   let print_sep_line () =
     Format.printf "+";
-    for i = 0 to map.x_lim - 1 do
+    for _ = 0 to map.x_lim - 1 do
       Format.printf "---+"
     done;
     Format.printf "@.";
@@ -198,7 +198,7 @@ let draw map state =
       begin match map.feature (i, j) with
       | Wall -> draw_wall (square_of_loc map (i, j))
       | Empty -> ()
-      | Value v -> ()
+      | Value _ -> ()
       end;
       if (i, j) = state.loc then draw_state (square_of_loc map (i, j))
     done

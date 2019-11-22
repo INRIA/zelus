@@ -1,3 +1,4 @@
+open Probzelus
 open Infer_ds
 (* open Infer_ds_gc *)
 
@@ -5,7 +6,7 @@ let proba verybad () = x where
   rec x = sample(gaussian(const 0. -> pre x, 1.))
   (* and () = observe(gaussian(x, 1.), 42.) *)
 
-let node main () = () where
+let node main3 () = () where
   rec x_d = infer 1000 verybad ()
   and x = Distribution.draw x_d
   and () = print_float x; print_newline()

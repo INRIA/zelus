@@ -1,3 +1,4 @@
+open Probzelus
 open Infer_pf
 open Distribution
 open Walker_misc

@@ -25,8 +25,8 @@ OTAGS	  ?= otags
 ZLLIB = ../../lib
 TOOLS = ../../tools
 
-OCAMLFLAGS    ?= -annot 
-OCAMLOPTFLAGS ?= -annot 
+OCAMLFLAGS    ?= -annot
+OCAMLOPTFLAGS ?= -annot
 CPPFLAGS ?= -P -x c
 
 BIN = zeluc
@@ -60,7 +60,7 @@ SOLVER = @DEFAULT_SOLVER@
 SUNDIALS=@SUNDIALSML_INCL@
 ifneq ($(SUNDIALS),)
 SUNDIALS_CVODE = sundials.cma
-OPTIONAL_SOLVER_OBJS = solvers/sundials_cvode.cmo
+OPTIONAL_SOLVER_OBJS = solvers/sundials_cvode.cmo node.cmo
 DISTOPTION = -sundials
 else
 DISTOPTION = -nosundials
@@ -161,4 +161,3 @@ export DEBUG_PRELUDE
 	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
 	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) $(ZLEXTRALIBS:.cma=.cmxa) \
 	    $< $(<:.ml=_main.ml)
-

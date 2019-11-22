@@ -1,11 +1,16 @@
+open Probzelus
 open Zelus_owl
-open Owl_distribution
+open Distribution
 open Infer_pf
-open Utils
+open Mvg_utils
 
 let proba f mu = o where
-  rec o = sample (mvgaussian(mu, sigma))
+  rec o = sample (mv_gaussian(mu, sigma x))
+  and init x = 0.
+  and automaton
+      | Up -> do x = last x +. 0.1 until (x >= 0.99) then Down
+      | Down -> do x = last x -. 0.1 until (x <= -0.99) then Up
 
 let node main () =
-  let d = infer 10 f mu in
-  print_vector (Distribution.draw d)
+  let d = infer 10000 f mu in
+  display_mvg d

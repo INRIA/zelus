@@ -1,3 +1,4 @@
+open Probzelus
 open Ztypes
 
 let with_graphics, max_pos =

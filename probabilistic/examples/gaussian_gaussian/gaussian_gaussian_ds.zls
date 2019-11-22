@@ -1,0 +1,13 @@
+open Probzelus
+open Infer_ds_gc
+(* open Infer_importance *)
+
+let proba model () = mu where
+  rec init mu = sample (gaussian (const 0., sqrt 100.))
+  and () = observe (gaussian (mult(const 2.,  mu), 1.), 3.5)
+
+let random_init = Random.self_init ()
+
+let node main_ds () =
+  let d = infer 1 model () in
+  print_endline ("mu = "^(string_of_float (Distribution.mean_float d)))

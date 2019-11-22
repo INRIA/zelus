@@ -1,3 +1,4 @@
+open Probzelus
 open Infer_ds
 
 let proba f () = x where
@@ -11,7 +12,7 @@ let proba f () = x where
 (*   and () = observe(gaussian(x, 1.), 42.) *)
 
 
-let node main () = () where
+let node main2 () = () where
   rec x_d = infer 1000 f ()
   and mean = Distribution.mean_float x_d
   and () = print_float mean; print_newline()

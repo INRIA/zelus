@@ -1,5 +1,8 @@
+open Probzelus
+open Slamlib
 open Distribution
 open Infer_pf
+open Lib
 
 let sensor_noise = Array_misc.sensor_noise
 let wheel_noise = Array_misc.wheel_noise
@@ -23,6 +26,18 @@ let proba slam (obs, cmd) = (map, x) where
   and o = Array_misc.get map x
   and () = observe (bernoulli o, read(obs))
 
+let node main particles (tr, ()) = (), mse where
+  rec t = 1. fby (t +. 1.)
+  and cmd = 1 -> pre (controller x_d)
+  and d = infer particles slam (obs, cmd)
+  and (obs, x) = slam_obs (tr, cmd)
+  and d_map, x_d = Distribution.split d
+  and map_d = Distribution.split_array d_map
+  and error = Array_misc.error (tr, x) map_d x_d
+  and total_error = error -> (pre total_error) +. error
+  and mse = total_error /. t
+
+(*
 let node main particles (tr, observed) =
   let rec t = 1. fby (t +. 1.) in
 
@@ -34,3 +49,4 @@ let node main particles (tr, observed) =
   let mse = total_error /. t in
 
   (), mse
+*)

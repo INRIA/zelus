@@ -1,18 +1,11 @@
 (env
-  (dev
-    (flags (:standard -warn-error -A))))
+ (dev
+  (flags (:standard -w -9-27-33 -warn-error -A))))
 
 (executables
  (names main smart_main pid_main smart_pid_main simple_pid_main)
- (libraries openai-gym zelus yojson graphics)
- (link_flags -linkall)
- (ocamlc_flags -I ../../../../inference inference.cma)
- (ocamlopt_flags -I ../../../../inference inference.cmxa))
-
-(alias
- (name   runtest)
- (deps   (:x main.exe))
- (action (run %{x})))
+ (libraries openai-gym zelus yojson graphics probzelus)
+ (link_flags -linkall))
 
 (rule
  (targets simple_agent.ml main.ml)

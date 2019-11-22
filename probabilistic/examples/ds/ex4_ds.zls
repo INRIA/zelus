@@ -1,3 +1,4 @@
+open Probzelus
 open Infer_ds_gc
 
 let proba f () = const x where
@@ -10,7 +11,7 @@ let proba f () = const x where
       | S2 -> do x = eval x2 done
 
 
-let node main () = () where
+let node main4 () = () where
   rec x_d = infer 1 f ()
   and x = Distribution.draw x_d
   and () = print_float x; print_newline()

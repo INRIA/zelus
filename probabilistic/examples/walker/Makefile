@@ -1,57 +1,34 @@
-ZELUC=zeluc -copy
-ZLLIB=$(shell $(ZELUC) -where)
 INFERLIB=../../inference
+ZELUC=zeluc -copy -I $(INFERLIB)
 
-INFERENCE_CMA=$(INFERLIB)/inference.cma
-INFERENCE_CMXA=$(INFERLIB)/inference.cmxa
-INFERENCE_ZCI=$(INFERLIB)/distribution.zci $(INFERLIB)/infer.zci
-
-OCAMLDEP=ocamldep
-OCAMLC=ocamlc -g
-OCAMLOPT=ocamlopt
+ZLI=$(wildcard *.zli)
+ZCI=$(ZLI:zli=zci)
 
 NAME=walker
 
-all: opt
 
-.PHONY: $(INFERENCE_CMA) $(INFERENCE_CMXA)
+all: build
 
-byte: $(NAME)
-opt: $(NAME).opt
-
-$(NAME): $(INFERENCE_CMA) $(NAME).ml main.ml walker_misc.ml
-	$(OCAMLC) -o $(NAME) -I $(ZLLIB) -I $(INFERLIB) \
-		$(INFERENCE_CMA) \
-		walker_misc.ml $(NAME).ml main.ml
-
-$(NAME).opt: $(INFERENCE_CMXA) $(NAME).ml main.ml walker_misc.ml
-	$(OCAMLOPT) -o $(NAME).opt -I $(ZLLIB) -I $(INFERLIB) \
-		$(INFERENCE_CMXA) \
-		walker_misc.ml $(NAME).ml main.ml
-
-$(NAME).ml main.ml: $(INFERENCE_ZCI) walker_misc.zci $(NAME).zls
-	$(ZELUC) -I $(INFERLIB) -s main $(NAME).zls
-
-%.zci: %.zli
-	$(ZELUC) -I $(INFERLIB) $<
-
-%.cmo: %.ml
-	ocamlc -c -I $(ZLLIB) -I $(INFERLIB) $<
-
-$(INFERENCE_CMA):
-	$(MAKE) -C $(INFERLIB) inference.cma
-
-$(INFERENCE_CMXA):
-	$(MAKE) -C $(INFERLIB) inference.cmxa
-
-$(INFERENCE_ZCI):
-	$(MAKE) -C $(INFERLIB) byte
+$(NAME).ml main.ml: $(ZCI) $(NAME).zls
+	$(ZELUC) -s main $(NAME).zls
 
 clean:
-	-rm -f *.zc*
-	-rm -f *.cm* *.o
-	-rm -f $(NAME).ml main.ml
+	rm -f $(NAME).ml main.ml
+	rm -f *.zci
+
+## Generic rules
+
+.phony: build exec
+
+exec: main.ml
+	dune exec ./main.exe
+
+build: main.ml
+	dune build main.exe
+
+%.zci: %.zli
+	$(ZELUC) $<
 
 cleanall: clean
-	-rm -f $(NAME) $(NAME).opt
-	-rm -f *~
+	dune clean
+	rm -f *~

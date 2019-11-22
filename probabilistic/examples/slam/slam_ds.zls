@@ -1,3 +1,4 @@
+open Probzelus
 open Infer_ds_gc
 
 type direction = Left | Right
@@ -70,7 +71,7 @@ let real_map =
   (*   [ false; true; true; true; true; false; false; true; false; true; true ] *)
   Array_misc.random (max_pos + 1) 0.6
 
-let node main () =
+let node main_ds () =
   let rec map_dist, pos_dist = Distribution.split (infer 600 slam (obs, dir))
   and dir = Right -> (slam_ctrl (event, Distribution.uniform_int(0, max_pos) fby pos_dist))
   and (obs, real_x) = slam_obs real_map dir

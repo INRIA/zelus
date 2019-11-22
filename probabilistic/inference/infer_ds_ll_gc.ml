@@ -1,3 +1,4 @@
+open Owl
 open Ds_distribution
 
 (** Inference with streaming delayed sampling *)
@@ -68,7 +69,7 @@ let realize : type a b.
   b -> (a, b) ds_node -> unit =
   fun obs n ->
     assert begin match n.ds_node_state with
-      | Marginalized (mdistr, None) -> true
+      | Marginalized (_mdistr, None) -> true
       | Initialized _ | Realized _ | Marginalized (_, Some _) -> false
     end;
     n.ds_node_state <- Realized obs
@@ -96,7 +97,7 @@ let sample : type a b.
       | Marginalized (m, None) ->
           let x = Distribution.draw m in
           realize x n
-      | Realized x -> ()
+      | Realized _ -> ()
       | Initialized _  | Marginalized (_, Some _) -> assert false
     end
 
@@ -129,7 +130,7 @@ let rec graft : type a b.
     begin match n.ds_node_state with
       | Marginalized (_, None) | Realized _  -> ()
       | Marginalized (_, Some(c, _)) -> prune c
-      | Initialized (p, cdistr) ->
+      | Initialized (p, _cdistr) ->
           graft p;
           force_condition p;
           marginalize n
@@ -179,6 +180,8 @@ let get_distr_kind : type a b.
     begin match n.ds_node_state with
       | Initialized (_, AffineMeanGaussian _) -> KGaussian
       | Marginalized (Dist_gaussian _, _) -> KGaussian
+      | Initialized (_, AffineMeanGaussianMV (_, _, _)) -> KMVGaussian
+      | Marginalized (Dist_mv_gaussian (_, _), _) -> KMVGaussian
       | Initialized (_, CBernoulli) -> KBernoulli
       | Marginalized (Dist_bernoulli _, _) -> KBernoulli
       | Marginalized (Dist_beta _, _) -> KBeta
@@ -193,10 +196,23 @@ let get_distr_kind : type a b.
       | Marginalized (Dist_uniform_float _, _) -> KOthers
       | Marginalized (Dist_exponential _, _) -> KOthers
       | Marginalized (Dist_poisson _, _) -> KOthers
-      | Marginalized (Dist_plus _, _) -> KOthers
+      | Marginalized (Dist_add _, _) -> KOthers
       | Marginalized (Dist_mult _, _) -> KOthers
       | Marginalized (Dist_app _, _) -> KOthers
       | Realized _ -> assert false
+    end
+
+let shape : type a. ((a, Mat.mat) ds_node) -> int =
+    fun r ->
+    begin match r.ds_node_state with
+      | Initialized (_, AffineMeanGaussianMV (_, b, _)) ->
+	  let rows, _ = Mat.shape b in rows
+      | Marginalized (Dist_mv_gaussian(mu, _), _) ->
+	  let rows, _ = Mat.shape mu in rows
+      | Realized v ->
+	  let rows, _ = Mat.shape v in rows
+      | Initialized (_, _) -> assert false
+      | Marginalized (_, _) -> assert false
     end
 
 (** Test Copy *)

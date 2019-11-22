@@ -1,0 +1,38 @@
+open Probzelus
+open Mttlib
+open Util
+open Zelus_owl
+open Distribution
+open Infer_pf
+
+let death_fn _ =
+  draw (bernoulli p_dead)
+
+let new_track_init_fn _ =
+  (new_track_num (), draw (mv_gaussian(mu_new, sigma_new)))
+
+let state_update_fn (tr_num, tr) =
+    (tr_num, draw (mv_gaussian(a_u *@ tr +@ b_u, sigma_update)))
+
+let observe_fn (_, tr) =
+    draw (mv_gaussian (proj_pos *@ tr, sigma_obs))
+
+let clutter_init_fn _ =
+  draw (mv_gaussian (mu_clutter, sigma_clutter))
+
+let node model () = t, obs_shuffled where
+  rec init t = []  (* lst_iter *)
+  and t_survived = List.filter death_fn (last t)
+  and n_new = draw (poisson lambda_new)
+  and t_new = list_init n_new new_track_init_fn
+  and t_tot = List.append t_survived t_new
+  and t = List.map state_update_fn t_tot
+  and obs = List.map observe_fn t
+  and n_clutter = draw (poisson lambda_clutter)
+  and clutter = list_init n_clutter clutter_init_fn
+  and obs_shuffled = Util.shuffle (List.append obs clutter)
+
+
+let node main () = () where
+  rec tr, obs = model ()
+  and () = print_string (string_of_tr tr ^ " : " ^ (string_of_vec2_list obs) ^ "\n")

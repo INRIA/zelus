@@ -1,45 +1,23 @@
 ZELUC=zeluc -copy
-ZLLIB=$(shell $(ZELUC) -where)
 
-OCAMLDEP=ocamldep
-OCAMLC=ocamlc -g
-OCAMLOPT=ocamlopt
+ZLI=$(wildcard *.zli)
+ZCI=$(ZLI:zli=zci)
 
-ML_SRC=harness.ml
+all: $(ZCI) byte opt
 
-OBJ=$(ML_SRC:%.ml=%.cmo)
-OBJ_OPT=$(OBJ:%.cmo=%.cmx)
+.phony: byte opt
 
-all: byte opt
+byte:
+	dune build benchlib.cma
 
-byte: benchlib.cma $(ZCI)
+opt:
+	dune build benchlib.cmxa
 
-opt: benchlib.cmxa $(ZCI)
+%.zci: %.zli
+	$(ZELUC) $<
 
-benchlib.cma: $(OBJ)
-	$(OCAMLC) -a -o $@ $^
-
-benchlib.cmxa: $(OBJ_OPT)
-	$(OCAMLOPT) -a -o $@ $^
-
-%.cmo: %.ml
-	$(OCAMLC) -I $(ZLLIB) -c $<
-
-%.cmx: %.ml
-	$(OCAMLOPT) -I $(ZLLIB) -c $<
-
-depend: .depend
-
-.depend:
-	$(OCAMLDEP) $(ML_SRC) \
-	    > .depend
-# cleaning:
 clean:
-	-rm -f *.annot *.cm[iox] *.o *.zci
-	-rm -f benchlib.cma benchlib.cmxa benchlib.a
-
-realclean cleanall: clean
-	-rm -f *~
-	-rm -f .depend
-
--include .depend
+	dune clean
+	-rm -f *.zci
+cleanall: clean
+	rm -f *~

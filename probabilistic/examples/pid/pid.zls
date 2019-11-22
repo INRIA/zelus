@@ -1,5 +1,5 @@
 (* A probabilistic PID controller *)
-
+open Probzelus
 open Infer_pf
 (* open Infer_importance *)
 

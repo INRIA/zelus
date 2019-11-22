@@ -1,6 +1,7 @@
 (* Integer Line MDP *)
 (* First example of https://agentmodels.org/chapters/3a-mdp.html *)
 
+open Probzelus
 
 let proba agent () = p where
   rec action = Infer_pf.sample (Distribution.uniform_int (-1, 1))

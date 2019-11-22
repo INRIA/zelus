@@ -51,7 +51,6 @@ OBJ = zls.cmo \
       gen.cmo \
       vbool.cmo \
       lift.cmo \
-      node.cmo \
       run.cmo
 
 OBJ_GTK = gtkplot.cmo \

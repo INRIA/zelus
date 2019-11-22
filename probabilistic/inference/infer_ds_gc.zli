@@ -1,9 +1,10 @@
 (** Inference with delayed sampling *)
+open Zelus_owl
 
 type 'a expr
 
 val const : 'a -> 'a expr
-val plus : float expr * float expr -> float expr
+val add : float expr * float expr -> float expr
 val ( +~ ) : float expr -> float expr -> float expr
 val mult : float expr * float expr -> float expr
 val ( *~ ) : float expr -> float expr -> float expr
@@ -11,6 +12,15 @@ val app : ('a -> 'b) expr * 'a expr -> 'b expr
 val ( @@~ ) : ('a -> 'b) expr -> 'a expr -> 'b expr
 val pair : 'a expr * 'b expr -> ('a * 'b) expr
 val array : 'a expr array -> 'a array expr
+val lst : 'a expr list -> 'a list expr
+
+val mat_add : Mat.mat expr * Mat.mat expr -> Mat.mat expr
+val ( +@~ ) : Mat.mat expr -> Mat.mat expr -> Mat.mat expr
+val mat_scalar_mult : float expr * Mat.mat expr -> Mat.mat expr
+val ( $*~ ) : float expr -> Mat.mat expr -> Mat.mat expr
+val mat_dot : Mat.mat expr * Mat.mat expr -> Mat.mat expr
+val ( *@~ ) : Mat.mat expr -> Mat.mat expr -> Mat.mat expr
+val vec_get : Mat.mat expr * int -> float expr
 
 val eval : 'a expr -> 'a
 
@@ -20,6 +30,7 @@ val of_distribution : 'a Distribution.t -> 'a ds_distribution
 val gaussian : float expr * float -> float ds_distribution
 val beta : float * float -> float ds_distribution
 val bernoulli : float expr -> bool ds_distribution
+val mv_gaussian: Mat.mat expr * Mat.mat -> Mat.mat ds_distribution
 
 val factor : float ~D~> unit
 val sample : 'a ds_distribution ~D~> 'a expr
@@ -33,3 +44,5 @@ val infer_ess_resample :
 
 val infer_bounded :
   int -S-> ('a ~D~> 'b expr) -S-> 'a -D-> 'b Distribution.t
+
+val gen : ('a ~D~> 'b expr) -S-> 'a -D-> 'b * float

@@ -1,3 +1,4 @@
+open Probzelus
 open Distribution
 (* open Infer_pf *)
 (* open Infer_importance *)
@@ -45,7 +46,7 @@ let node print_bool b =
 
 let random_init = Random.self_init ()
 
-let node main () = () where
+let node main_ds () = () where
   rec b = (* flips (1, 10) *) Distribution.draw (Distribution.bernoulli 0.2)
   and cheater, m = cheater_detector b
   and init dummy = ()

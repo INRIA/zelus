@@ -1,0 +1,11 @@
+open Probzelus
+open Distribution
+
+let random_init = Random.self_init ()
+
+let node main () =
+    let init mu = draw (gaussian (0., 10.)) in
+    let init sqrt_sigma = draw (gaussian (0., 1.)) in
+    let init sigma = sqrt_sigma *. sqrt_sigma in
+    let y = (draw (gaussian (mu, sigma))) in
+    print_string ((string_of_float mu) ^ ", " ^ (string_of_float sigma) ^ ", " ^ (string_of_float y) ^ "\n")
