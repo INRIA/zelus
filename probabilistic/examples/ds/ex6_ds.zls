@@ -1,0 +1,19 @@
+open Probzelus
+open Distribution
+open Infer_ds_gc
+
+
+let proba kahn_vs_scott () = const o where
+  rec init p = sample(beta(1., 1.))
+  and init o = eval p > 0.8
+  and () = observe(bernoulli(p), true)
+
+(* let proba kahn_vs_scott () = p where *)
+(*   rec init p = sample(beta(1., 1.)) *)
+(*   and () = observe(bernoulli(p), true) *)
+
+let node main6 () =
+  let d = infer 100000 kahn_vs_scott () in
+  print_float (mean_bool d);
+  (* print_float (mean_float d); *)
+  print_newline ()

@@ -24,6 +24,6 @@ lib.zci lib.ml: lib.zls
 
 clean:
 	dune clean
-	-rm -f *.zci
+	-rm -f *.zci lib.ml
 cleanall: clean
 	rm -f *~

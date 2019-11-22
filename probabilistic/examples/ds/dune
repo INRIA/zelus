@@ -3,5 +3,5 @@
   (flags (:standard -w -9-27-33 -warn-error -A))))
 
 (executables
- (names main1 main2 main3 main4 main5)
+ (names main1 main2 main3 main4 main5 main6)
  (libraries probzelus))
