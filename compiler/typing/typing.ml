@@ -914,7 +914,7 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
     | EQand(eq_list)
     | EQbefore(eq_list) -> equation_list expected_k h eq_list
     | EQemit(n, e_opt) ->
-        less_than loc expected_k (Tdiscrete(true));
+        less_than loc expected_k (Types.lift_to_discrete expected_k);
         let ty_e = new_var () in
         let ty_name = typ_of_var loc h n in
         begin match e_opt with
