@@ -1,0 +1,115 @@
+1/ Des calculs "compile time", e.g., les arguments des tableaux si on veut
+connaitre la taille memoire a la compilation;
+2/ Des calculs "instanciation time", e.g., on execute du code une fois pour toute
+mais dont le resultat n'est pas connu a la compilation;
+3/ Des calculs faits a chaque cycle. On a besoin de distinguer ce qui est
+combinatoire de ce qui ne l'est pas, simplement parce que les fonctions
+correspondantes ne sont pas implémentées de la même façon.
+
+S'ajoute à cela la séparation proba/discret. (et je ne parle pas du continu/discret...).
+
+H ::= [s1 x1: t1;...;sn xn: tn]
+H |-pk e : t
+
+s ::= S | V | A (* S pour static = compile-time; V pour val = instanciation; A pour
+                         any = dynamic *)
+k ::= S | V | A | M (* ... M pour memory = stateful *)
+p ::= D | P (* D pour deterministic; P pour probabilistic *)
+
+-pk-> avec la convention d'affichage:
+
+-DS->; -DV->; -DA-> simplement ->; -DM-> par =>
+-PS-> par ~S~>; -PV-> par ~V~>; -PA-> par ~>; -PM-> par ~=>
+
+
+\begin{verbatim}
+  t ::= t -ps-> t | t * ... * t | 'a | (t,...,t) bt
+  sigma ::= 'a1,...,'an. 'b1,...,'bm.'c1,...,'cr.t
+
+  k ::= S | V | A(tau) | 'b
+  p ::= proba | det
+  s ::= node(tau) | fun(k)
+  tau ::= D | C | 'c
+
+  node(D): a etat, temps discret; -D=>
+  node(C): a etat, temps discret; -C=>
+  node('c): a etat, quand on veut; -'a=>
+  fun(S): sans memoire, temps statique; -S->
+  fun('b): sans memoire, statique ou non; -'b->
+  fun(A('c)): sans memoire; -A'a->
+  fun(A(D)): sans memoire, discret; -AD-> 
+  fun(A(C)): sans memoire, continu; -AC->
+
+  H ::= [k x : t;...; k x : t]
+
+  H |-s e : t
+  
+  H, A(tau) x : t1 |-node(tau) e: t2
+---------------------------------------------
+H |-s node f x = e : [f : t1 -node(tau)-> t2]
+
+  H, k x : t1 |-fun(k) e: t2
+--------------------------------------------
+H |-s fun f x = e : [f : t1 -fun(k)-> t2]
+
+  H |-fun(S) e1: t1  H, 'b x: t1 |-s(k) e2 : t2
+-----------------------------------------------
+H |-s let static x = e1 in e2 : t2
+
+
+  H |-s f: t1 -fun(k)-> t2  H |-s by k e : t1     
+-----------------------------------------------
+    H |-s f e : t2
+
+avec node(tau) by A(tau) = node(tau)
+et   fun(k) by k = fun(k)
+
+indefini sinon.
+
+
+    H |-fun(S) f: t1 -node(tau)-> t2  H |-node(tau) e : t1
+----------------------------------------------------------
+  H |-node(tau) run f e : t2
+
+      H |-node(tau) f: t1 -node(tau)-> t2  H |-node(tau) e : t1
+---------------------------------------------------------------
+  H |-node(tau) restart f e : t2
+
+  
+  H, k x : t |-node(tau) x: t
+
+  H, k x : t |-fun(k) x: t
+
+  H |-s c: t
+
+    H |-s E1: H1  H |-s E2: H2
+------------------------------------
+  H |-s E1 and E2: H1+H2
+
+      H |-s p : t   H |-s e : t k = intro(s)
+--------------------------------------------
+      H |-s p = e: [k p : t]
+
+avec intro(node(tau)) = A(tau)
+et intro(fun(k)) = k
+
+ H, s(H0) |-s E : s(H0)   H, s(H0) |-s e : t
+--------------------------------------------
+H |-s letrec E in e : t
+
+avec node(tau)([A tau1 x1 : t1;...; A taum xm : tm])
+et   fun(k)([k x1 : t1;...; k xm : tm])
+
+
+ H |-discrete(s) E1 : H'   H |-s E2 : H'
+-----------------------------------------
+  H |-s present e -> E1 else E2: H'
+
+  avec discrete(node(tau)) = node(D)
+  et   discrete(fun(A(tau))) = fun(A(D))
+
+ H |-s e : t  H |-s E1 : H'   H |-s E2 : H'
+-------------------------------------------
+  H |-s if e then E1 else E2: H'
+\end{verbatim}
+
