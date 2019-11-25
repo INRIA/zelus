@@ -11,6 +11,8 @@ val app : ('a -> 'b)  * 'a  -> 'b
 val ( @@~ ) : ('a -> 'b)  -> 'a  -> 'b
 val pair : 'a  * 'b  -> ('a * 'b)
 val array : 'a  array -> 'a array
+val lst : 'a list -> 'a list
+val matrix : 'a array array -> 'a array array
 
 val mat_add : Mat.mat  * Mat.mat  -> Mat.mat
 val ( +@~ ) : Mat.mat  -> Mat.mat  -> Mat.mat

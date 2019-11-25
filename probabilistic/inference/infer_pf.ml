@@ -63,6 +63,8 @@ let app (f, x) = f x
 let ( @@~ ) f x = f x
 let pair = id
 let array = id
+let lst = id
+let matrix = id
 
 let mat_add (x, y) = Mat.add x y
 let ( +@~ ) = Mat.( + )

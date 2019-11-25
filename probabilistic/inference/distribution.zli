@@ -102,6 +102,7 @@ val of_list : 'a t list -> 'a list t
 val of_pair : 'a t * 'b t -> ('a * 'b) t
 val split : ('a * 'b) t -> 'a t * 'b t
 val split_array : 'a array t -> 'a t array
+val split_matrix : 'a array array t -> 'a t array array
 val split_list : 'a list t -> 'a t list
 val to_mixture : 'a t t -> 'a t
 val to_signal : 'a signal t -> 'a t signal

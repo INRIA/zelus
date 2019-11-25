@@ -39,6 +39,7 @@ module Make(DS_ll: DS_ll_S) = struct
     | Eapp : ('a -> 'b) expr * 'a expr -> 'b expr_tree
     | Epair : 'a expr * 'b expr -> ('a * 'b) expr_tree
     | Earray : 'a expr array -> 'a array expr_tree
+    | Ematrix : 'a expr array array -> 'a array array expr_tree
     | Elist : 'a expr list -> 'a list expr_tree
     | Emat_add : Mat.mat expr * Mat.mat expr -> Mat.mat expr_tree
     | Emat_scalar_mul : float expr * Mat.mat expr -> Mat.mat expr_tree
@@ -89,6 +90,10 @@ module Make(DS_ll: DS_ll_S) = struct
 
   let array a =
     { value = Earray a }
+    
+  let matrix a =
+      { value = Ematrix a }
+  
 
   let lst l =
     { value = Elist l}
@@ -156,6 +161,8 @@ module Make(DS_ll: DS_ll_S) = struct
             v
         | Earray a ->
             Array.map eval a
+        | Ematrix a ->
+            Array.map (Array.map eval) a
         | Elist l ->
             List.map eval l
         | Emat_add (e1, e2) ->
@@ -499,6 +506,8 @@ module Make(DS_ll: DS_ll_S) = struct
           Dist_pair (distribution_of_expr e1, distribution_of_expr e2)
       | Earray a ->
           Dist_array (Array.map distribution_of_expr a)
+      | Ematrix a ->
+          Dist_matrix (Array.map (fun ai -> Array.map distribution_of_expr ai) a)
       | Elist l ->
           Dist_list (List.map distribution_of_expr l)
       | Emat_add (_, _) ->
