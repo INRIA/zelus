@@ -3,5 +3,5 @@
   (flags (:standard -w -9-27-33 -warn-error -A))))
 
 (executables
- (names main_pf main_ds main_rb)
+ (names main_pf main_ds main_rb main_2d)
  (libraries probzelus graphics))

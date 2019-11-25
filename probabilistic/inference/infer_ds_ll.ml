@@ -215,6 +215,7 @@ let get_distr_kind : type a b.
       | Marginalized (Dist_pair _, _) -> KOthers
       | Marginalized (Dist_list _, _) -> KOthers
       | Marginalized (Dist_array _, _) -> KOthers
+      | Marginalized (Dist_matrix _, _) -> KOthers
       | Marginalized (Dist_uniform_int _, _) -> KOthers
       | Marginalized (Dist_uniform_float _, _) -> KOthers
       | Marginalized (Dist_exponential _, _) -> KOthers
