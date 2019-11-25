@@ -1,15 +1,43 @@
+Objectif:
+
 1/ Des calculs "compile time", e.g., les arguments des tableaux si on veut
 connaitre la taille memoire a la compilation;
 2/ Des calculs "instanciation time", e.g., on execute du code une fois pour toute
 mais dont le resultat n'est pas connu a la compilation;
-3/ Des calculs faits a chaque cycle. On a besoin de distinguer ce qui est
-combinatoire de ce qui ne l'est pas, simplement parce que les fonctions
-correspondantes ne sont pas implémentées de la même façon.
+3/ Des calculs faits a chaque cycle.
+4/ Du temps discret et du temps continu;
+5/ Des calculs determistes, des calculs proba.
+6/ Des calculs a memoire, des calculs sans.
 
-S'ajoute à cela la séparation proba/discret. (et je ne parle pas du continu/discret...).
+Idee: ne faire que de l'unification pour eviter les complications
+du sous-typage.
 
 H ::= [s1 x1: t1;...;sn xn: tn]
-H |-pk e : t
+H |-k e : t
+
+k ::= {det:d; fun:f; time:t; safe:a}
+d ::= Det | Proba | 'a
+f ::= Fun(s) | Node
+t ::= Hybrid | Discrete | 'c
+a ::= Safe | Unsafe | 'd
+s ::= Static | Val | Dyn | 'e
+
+Conventions d'affichage:
+
+-S-> versus -V-> versus -> versus -'a-> pour les fonctions;
+
+=> pour les noeuds;
+
+~> pour les fonctions "probabilistes"; ~=> pour les noeuds "probabilistes"
+
+Pour ne pas avoir des types monstrueusement compliques, adopter une
+notation avec un peu de partage, par exemple:
+
+val f : Hybrid('a). int -'a-> bool -'a-> int * int
+
+ou
+
+static f : Hybrid('a). int -h('a)-> bool -'a-> int * int
 
 s ::= S | V | A (* S pour static = compile-time; V pour val = instanciation; A pour
                          any = dynamic *)
