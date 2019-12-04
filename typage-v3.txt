@@ -1,27 +1,133 @@
 Objectif:
 
-1/ Des calculs "compile time", e.g., les arguments des tableaux;
-2/ Des calculs "instanciation time", e.g., on execute du code une
+Definir le systeme de types de Zelus qui permette de prendre
+en compte les besoins suivants:
+
+1/ pour specifier qu'un calcul doit etre fait
+a "compile time", e.g., les arguments des tableaux;
+2/ des calculs a "instanciation time", e.g., on execute du code une
 fois pour toute mais dont le resultat n'est pas connu a la compilation;
-3/ Des calculs faits a chaque cycle.
-4/ Du temps discret et du temps continu;
+3/ des calculs faits a chaque cycle.
+
+when = { Static, Init, Cycle }
+
+4/ Du temps discret et du temps continu.
+
+time = { Discrete, Continuous }
+
 5/ Des calculs determistes, des calculs probabilistes.
+
+mode = { Det, Proba }  
+
 6/ Des calculs a memoire, des calculs combinatoires.
 
-On est naturellement conduit a faire du sous-typage. E.g., un
-calcul statique peut etre utilise pour calculer une valeur a l'instanciation
-qui peut elle-meme etre utilisee a chaque cycle. Une expression combinatoire
-peut etre utilisee dans une expression a temps continu ou a temps discret. Une
-expression deterministe peut etre utilisee dans une expression probabiliste.
+state = { Combinatorial, Sequential } (ou bien { Fun, Node })
 
-Un systeme avec sous-typage est plus complexe. D'autant que l'on a un
-systeme "a effet", c'est-a-dire que les fonctions ont des types de
-la forme -k-> et qu'il faut du polymorphisme d'effet. C'est passablement
-complique; necessite un algorithme de simplication des types; les messages
-d'erreurs et la generation de code qui suivent sont egalement compliquee.
+Une premiere intuition est de considerer la produit cartesien
 
-On va considerer deux propositions, toutes s'appuyant seulement sur
-de l'unification.
+kind = when x time x mode x state
+
+On peut alors utiliser cette sorte (kind) pour etiqueter les
+fleches, e.g., -k->. k est un "effet".
+
+Et si on veut de la genericite, e.g., une fonction qui prend en
+argument une fonction peut avoir une sorte qui est une inconnue (une variable).
+On arrive facilement a un systeme de type avec sous
+typage. E.g., un calcul statique peut etre utilise pour calculer une
+valeur a l'instanciation qui peut elle-meme etre utilisee a chaque
+cycle. Une expression combinatoire peut etre utilisee dans une
+expression a temps continu ou a temps discret. Une expression
+deterministe peut etre utilisee dans une expression probabiliste.
+
+Mais: le sous-typage est un cauchemard a implementer; les messages d'erreur
+sont rapidement illisible; il faut ajouter un algorithme de simplification
+des types et il n'y a pas, en general de forme canonique, etc. Le cout d'une
+telle genericite n'est pas nul car toutes les valeurs n'ont pas la meme
+representation. E.g., un noeud (w1,t1,m1,Sequential) n'est pas
+implemente comme une fonction combinatoire (w1,t1,m1,Combinatorial). Idem
+pour (w1,t1,Proba,s1) versus (w1,t1,Det,s1). De sorte que si on
+autorise cette genericite, il faudra implementer derriere du code
+de conversion dont le cout n'est pas nul.
+
+Peut-on se passer de sous-typage ? Leroy et Pessaux avaient fait un
+systeme pour calculer les ensembles d'exceptions d'un programme ML en
+utilisant le systeme de types avec rangees de Remy; sans sous-typage
+donc. Mandel et Pasteur avaient fait de meme pour definir des types
+(dans l'esprit des "session types") pour l'analyse de reactivite de ReactiveML.
+Je ne me souviens plus de la solution de Leroy et Pessaud: je vais relire
+leur article!
+
+J'ai suivi la voie suivante, avec deux propositions, l'objectif etant de
+remplacer le sous-typage par du typage classique n'utilisant que
+de l'unification du premier ordre. Ca oblige a un peu d'annotations mais
+semble conservatif avec la solution actuelle implementee dans Zelus.
+
+Remarques preliminaires:
+------------------------
+
+1/ Soit var = { a1, ..., an } un ensemble de variables. On est tente de
+manipuler l'ensemble:
+
+(when + var) x (time + var) x (mode + var) x (state + var).
+
+Ainsi, la sorte k = (a1, Discrete, Proba, a2) pour une fonction
+de type . -k-> ., des lors que a1 et a2 sont des variables sans contraintes,
+signifie qu'elle peut etre appliquee quand on veut, sur du temps discret, que
+c'est une fonction "probabiliste" et qu'elle peut etre a etat ou non.
+
+Y-a-t'il du sous-typage? Si on ne dit rien sur les elements des ensembles
+when, time, mode et state, c'est-a-dire qu'ils sont incomparables, il n'y
+en a pas. Dans ce cas, une fois qu'une expression a la sorte:
+(Static,t1,m1,s1), elle l'a garde: on ne peut pas l'utiliser, au moins
+implicitement, dans une expression de sorte (Init,t1,m1,s1). De meme, une
+expression de sorte (w1,t1,Det,s1) ne peut pas etre utilisee la
+ou on attend une expression de sorte (w1,t1,Proba,s1).
+
+En somme, les elements de chaque ensemble sont incomparables
+deux-a-deux. Le seul ordre que l'on utilise est l'ordre de Milner (un
+type t1 est plus petit qu'un autre t2 s'il est plus general,
+c'est-a-dire qu'il existe une substitution de ses variables qui permet
+d'obtenir t2).
+
+Ainsi, (a1, a2, Proba, Sequentiel) dit "quand on veut, discret ou
+continu, probabiliste, a memoire".
+
+Sans sous-typage, si une fonction a la sorte
+(Static,Discrete,Det,Combinatorial), elle ne pourra etre utilise que
+dans le meme contexte (une expression de meme sorte). Est-ce
+raisonnable? Il me semble qu'on aimerait avoir la possibilite de dire
+qu'une fonction doit seulement etre utilise a la compilation (Static)
+ou a la compilation et a l'initialisation ou seulement a chaque cycle
+(Cycle); qu'une fonction combinatoire (Fun) peut etre utilisee dans un
+noeud (Node); et pas l'inverse. Qu'une fonction (Det) peut etre
+utilise dans une fonction probabiliste (Proba); et pas l'inverse.
+
+En somme, cela conduirait a avoir:
+
+Static < Init < Cycle
+
+Discrete # Continuous (incomparables)
+
+Det < Proba
+
+Combinatorial < Sequential
+
++ des variables pour chacun. A la fin, on a bien un systeme avec sous-typage.
+Les types sont de la forme:
+
+sigma ::= forall a1,...,an. b1,...,bm: C. t | t
+t     ::= t -k-> t | t *...* t | b | (t,...,t) c
+
+avec k ::= when x time x mode x state
+when ::= Static | Init | Cycle | b
+time ::= Discrete | Continuous | b
+mode ::= Det | Proba | b
+state ::= Combinatorial | Sequential | b
+
+C ::= { ki <= kj }_{i,j \in Nat}
+
+(pour simplifier, j'utilise le meme symbole de variable b indistinctement
+de la partie dans laquelle elle est presente).
 
 Premiere proposition:
 ---------------------
