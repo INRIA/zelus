@@ -23,44 +23,56 @@ mode = { Det, Proba }
 
 state = { Combinatorial, Sequential } (ou bien { Fun, Node })
 
+7/ voire un sorte supplementaire.
+
+effect = { safe, unsafe }
+
 Une premiere intuition est de considerer la produit cartesien
 
 kind = when x time x mode x state
 
 On peut alors utiliser cette sorte (kind) pour etiqueter les
-fleches, e.g., -k->. k est un "effet".
+fleches, e.g., -k->.
 
-Et si on veut de la genericite, e.g., une fonction qui prend en
-argument une fonction peut avoir une sorte qui est une inconnue (une variable).
-On arrive facilement a un systeme de type avec sous
+Si on veut definir une fonction qui prend en
+argument une fonction, comme dans fun f x -> f x, il faut decider
+quelle est la sorte de f. On peut donner la famille de types:
+
+(a1 -k-> a2) -k'-> a1 -k-> a2
+
+en donnant a k des valeurs differentes. D'ou l'idee d'avoir des
+variables de sorte. On arrive alors facilement a un systeme de type avec sous
 typage. E.g., un calcul statique peut etre utilise pour calculer une
 valeur a l'instanciation qui peut elle-meme etre utilisee a chaque
 cycle. Une expression combinatoire peut etre utilisee dans une
 expression a temps continu ou a temps discret. Une expression
 deterministe peut etre utilisee dans une expression probabiliste.
 
-Mais: le sous-typage est un cauchemard a implementer; les messages d'erreur
-sont rapidement illisible; il faut ajouter un algorithme de simplification
-des types et il n'y a pas, en general de forme canonique, etc. Le cout d'une
-telle genericite n'est pas nul car toutes les valeurs n'ont pas la meme
-representation. E.g., un noeud (w1,t1,m1,Sequential) n'est pas
-implemente comme une fonction combinatoire (w1,t1,m1,Combinatorial). Idem
-pour (w1,t1,Proba,s1) versus (w1,t1,Det,s1). De sorte que si on
-autorise cette genericite, il faudra implementer derriere du code
-de conversion dont le cout n'est pas nul.
+Probleme le sous-typage est plus difficile a implementer que le typage
+simple et les algorithmes plus couteux; les messages d'erreur sont
+rapidement illisible; il faut ajouter un algorithme de simplification
+des types et il n'y a pas, en general de forme canonique, etc. Le cout
+de la genericite, c'est-a-dire d'avoir des variables de sortes, n'est
+pas nul car toutes les valeurs n'ont pas la meme representation. E.g.,
+un noeud (w1,t1,m1,Sequential) n'est pas implemente comme une fonction
+combinatoire (w1,t1,m1,Combinatorial). Idem pour (w1,t1,Proba,s1)
+versus (w1,t1,Det,s1). De sorte que si on autorise cette genericite,
+il faudra implementer derriere du code de conversion dont le cout
+n'est pas nul.
 
 Peut-on se passer de sous-typage ? Leroy et Pessaux avaient fait un
 systeme pour calculer les ensembles d'exceptions d'un programme ML en
 utilisant le systeme de types avec rangees de Remy; sans sous-typage
 donc. Mandel et Pasteur avaient fait de meme pour definir des types
 (dans l'esprit des "session types") pour l'analyse de reactivite de ReactiveML.
-Je ne me souviens plus de la solution de Leroy et Pessaud: je vais relire
+Je ne me souviens plus de la solution de Leroy et Pessaux: je vais relire
 leur article!
 
-J'ai suivi la voie suivante, avec deux propositions, l'objectif etant de
-remplacer le sous-typage par du typage classique n'utilisant que
-de l'unification du premier ordre. Ca oblige a un peu d'annotations mais
-semble conservatif avec la solution actuelle implementee dans Zelus.
+J'ai suivi la voie suivante, avec deux propositions ci-dessous,
+l'objectif etant de remplacer le sous-typage par du typage classique
+n'utilisant que de l'unification du premier ordre. Ca oblige a un peu
+d'annotations mais semble conservatif vis-a-vies de la solution actuelle
+implementee dans Zelus.
 
 Remarques preliminaires:
 ------------------------
@@ -74,6 +86,10 @@ Ainsi, la sorte k = (a1, Discrete, Proba, a2) pour une fonction
 de type . -k-> ., des lors que a1 et a2 sont des variables sans contraintes,
 signifie qu'elle peut etre appliquee quand on veut, sur du temps discret, que
 c'est une fonction "probabiliste" et qu'elle peut etre a etat ou non.
+
+On peut aussi considerer un cas simplifie ou on a seulement:
+
+(when + var) x (time + var) x mode x state
 
 Y-a-t'il du sous-typage? Si on ne dit rien sur les elements des ensembles
 when, time, mode et state, c'est-a-dire qu'ils sont incomparables, il n'y
@@ -128,6 +144,8 @@ C ::= { ki <= kj }_{i,j \in Nat}
 
 (pour simplifier, j'utilise le meme symbole de variable b indistinctement
 de la partie dans laquelle elle est presente).
+
+C est un ensemble de contraintes de sous-typage.
 
 Premiere proposition:
 ---------------------
