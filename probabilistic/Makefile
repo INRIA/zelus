@@ -1,7 +1,7 @@
 all:
 	$(MAKE) -C owl
 	$(MAKE) -C inference
-	$(MAKE) -C examples
+	# $(MAKE) -C examples
 
 clean:
 	$(MAKE) -C owl clean
