@@ -50,4 +50,4 @@ RUN sudo make install
 
 ###################### INSTALL PROBZELUS ###################
 WORKDIR /home/opam/probabilistic
-RUN opam config exec make
+RUN opam config exec make with-plplot
