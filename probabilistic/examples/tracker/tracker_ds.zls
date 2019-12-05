@@ -1,6 +1,6 @@
 open Probzelus
 open Distribution
-open Infer_ds
+open Infer_ds_gc
 open Zelus_owl
 open Zelus_owl_plplot
 open Plot
@@ -69,7 +69,7 @@ let proba model (acc, gps, cmd) = x where
   rec mu = (const x_init) -> mat_add (mat_dot (const a, pre x), mat_dot (const b, const cmd))
   and x = sample (mv_gaussian (mu, noise))
   and () = observe (gaussian (vec_get (x, 2), 0.1), acc)
-  and present gps(p) -> do () = observe (gaussian (vec_get (x, 0), 0.001), p) done
+  and present gps(p) -> do () = observe (gaussian (vec_get (x, 0), 0.01), p) done
 
 let node robot (acc, gps) = x_dist, cmd where
   rec x_dist = infer particles model (acc, gps, cmd)
@@ -92,6 +92,8 @@ let node main () = () where
   and yt = present gps(p) -> p else 0.
   and xest = mean_matrix x_dist
   and xye = Lib.of_lists [[position xt; yt; position xest]]
+  (* and xye = Lib.of_lists [[acceleration xt; 0.; acceleration xest]] *)
+  (* and xye = Lib.of_lists [[avg_err; 0.; 0.]] *)
   (* Plot *)
   and res = (Mat.zeros 1 3) fby Mat.concat_vertical res xye
   and () = print_int t; print_string " >> "; print_float (avg_err); print_endline ""

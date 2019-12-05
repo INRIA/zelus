@@ -153,9 +153,10 @@ let draw_map m =
          (fun j b ->
             if b then Graphics.set_color (Graphics.white)
             else Graphics.set_color (Graphics.black);
-            Graphics.draw_rect (i * width) (j * height) (width - 1) (height - 1))
+            Graphics.fill_rect (i * width) (j * height) width height)
          ai)
-    m
+    m;
+  clear ()
 
 let random nx ny theta =
   Array.init nx 
@@ -187,14 +188,11 @@ let output_ds =
   if with_graphics then
     (fun real_map real_x real_y obs map_dist pos_dist ->
        draw_map_dist_ds map_dist;
-       draw_map real_map;
        draw_bot real_x real_y obs;
        draw_position_dist pos_dist;
        clear ())
   else
     (fun _ -> assert false)
-(* (fun real_map real_x obs map_dist pos_dist -> *)
-(*    print_map_dist map_dist) *)
 
 let float_of_bool b =
   if b then 1. else 0.
