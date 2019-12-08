@@ -3,12 +3,128 @@ Objectif:
 Definir le systeme de types de Zelus qui permette de prendre
 en compte les besoins suivants:
 
-1/ pour specifier qu'un calcul doit etre fait
-a "compile time", e.g., les arguments des tableaux;
+1/ specifier qu'un calcul doit etre fait
+a "compile time", e.g., les arguments des tableaux; en somme des "template";
 2/ des calculs a "instanciation time", e.g., on execute du code une
 fois pour toute mais dont le resultat n'est pas connu a la compilation;
-3/ des calculs faits a chaque cycle.
+3/ des calculs faits a chaque cycle. Certains calculs peuvent etre fait seulement
+a l'instant Static ou Init ou Cycle, certains
 
+val f : 'a -S.'b-> 'c 
+
+|-S f : int -S.'a-> bool   42 : int
+-----------------------------------
+   |-S f 42:
+
+
+S  I C
+   notS
+'a
+S
+
+let lookup(n)(f)(v)(start)(step) =
+   let static _ =
+     (* on calcule f(start), f(start + step), ... f(start + n * step) *)
+     let t = Array.make n v in
+     for i = 0 to n - 1 in
+       t.(i) <- f(start +. i *. start)
+     done in
+   let get(w) =
+      let i = floor (w mod_float step) in
+      t.(i) in
+    get
+
+val lookup : int -> (float -Static-> 'a) -> 'a -> float -> float -Static->
+             (float -Cycle-> float)
+
+let lookup(n)(f)(v)(start)(step) =
+   let value _ =
+     (* on calcule f(start), f(start + step), ... f(start + n * step) *)
+     let t = Array.make n v in
+     for i = 0 to n - 1 in
+       t.(i) <- f(start +. i *. start)
+     done in
+   let get(w) =
+      let i = floor (w mod_float step) in
+      t.(i) in
+    get
+
+val lookup : int -> (float -Value-> 'a) -> 'a -> float -> float -Value->
+             (float -Cycle-> float)
+
+
+let lookup(n)(f)(v)(start)(step) =
+   let _ =
+     (* on calcule f(start), f(start + step), ... f(start + n * step) *)
+     let t = Array.make n v in
+     for i = 0 to n - 1 in
+       t.(i) <- f(start +. i *. start)
+     done in
+   let get(w) =
+      let i = floor (w mod_float step) in
+      t.(i) in
+    get
+
+val lookup : int -> (float -'b-> 'a) -> 'a -> float -> float -'b->
+             (float -'b on 'c-> float)
+
+
+H |-k1 e1: t1   H, k1 on k2 x: t1 |-k1 on k2: t2
+------------------------------------------------
+  H |-k2 : let x = e1 in e2 : t2
+
+H |-static e1: t1   H, k2 x: t1 |- k2: t2
+------------------------------------------------
+  H |-k2 : let static x = e1 in e2 : t2
+
+H |-value e1: t1   H, k2 x: t1 |- k2: t2
+------------------------------------------------
+  H |-k2 : let value x = e1 in e2 : t2
+
+(start (lookup n f v start step))(w) 
+H =
+'b n : ...;
+'b f : ...;
+'b v : ...;
+'b start : ...;
+'b step : ...;
+
+H on 'b, 'c x : ... |-'c ...
+
+H |-'b fun x -> ...:
+
+let f(x) =
+  let y = x + 1 in
+  fun k -> y + x + k
+
+H = 'a x : int; 'a y : int;
+|-'a (fun k -> y + x + k)
+si
+H on 'a, b k : int |-'b y + x + k: int
+'a = 'b
+
+val f : int -'a-> (int -'a-> int)
+
+let f(x) =
+  let static y = x + 1 in
+  fun k -> y + x + k
+
+val f : int -Static-> (int -'a-> int)
+
+let f(x) =
+  let value y = x + 1 in
+  fun k -> y + k
+  
+val f : int -Value-> (int -Value on 'a-> int)
+
+'a x: int
+|-Value x + 1: int
+Static x: int;
+Value on 'a y : int |-Value fun k -> y + k : int -'b-> int
+si
+(Value on 'a y : int) on Value, 'b k : int |- 'b y + k : int
+
+f 42 : 
 when = { Static, Init, Cycle }
 
 4/ Du temps discret et du temps continu.
