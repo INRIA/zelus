@@ -1,0 +1,53 @@
+############################################################
+# Dockerfile to build ProbZelus docker image
+# Based on the debian image from OWL 
+# Build with `docker build -t probzelus -f probzelus.docker .`
+# Run with `docker run -ti --rm -e DISPLAY=host.docker.internal:0 probzelus bash`
+############################################################
+
+FROM ocaml/opam2:debian-stable
+USER opam
+
+##################### PREREQUISITES ########################
+
+RUN sudo apt-get -y update
+RUN sudo apt-get -y install m4 wget unzip aspcud libshp-dev libplplot-dev gfortran
+RUN sudo apt-get -y install pkg-config git camlp4-extra
+RUN sudo apt-get -y install libopenblas-dev liblapacke-dev
+RUN cd /home/opam/opam-repository && git pull --quiet origin master
+RUN opam update -q
+
+####################   INSTALL OWL  #######################
+
+ENV OWLPATH /home/opam/owl
+RUN opam install graphics owl owl-plplot menhir -y
+RUN eval $(opam env)
+
+############## SET UP DEFAULT CONTAINER VARS ##############
+
+RUN echo "#require \"owl-top\";; open Owl;;" >> /home/opam/.ocamlinit \
+    && bash -c 'echo -e "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >> /home/opam/.profile' \
+    && opam config env >> /home/opam/.profile \
+    && bash -c "source /home/opam/.profile"
+    
+# Create main directory
+RUN mkdir -p /home/opam/zelus
+RUN mkdir -p /home/opam/probabilistic
+
+# Copy zelus files in `workdir`
+COPY --chown=opam . /home/opam/zelus
+RUN rm -rf /home/opam/zelus/probabilistic
+COPY --chown=opam probabilistic /home/opam/probabilistic
+
+
+###################### INSTALL ZELUS #######################
+WORKDIR /home/opam/zelus
+ 
+RUN opam config exec ./configure
+# RUN make distclean
+RUN opam config exec make
+RUN sudo make install
+
+###################### INSTALL PROBZELUS ###################
+WORKDIR /home/opam/probabilistic
+RUN opam config exec make with-plplot
