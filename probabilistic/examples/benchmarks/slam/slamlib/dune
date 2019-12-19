@@ -1,3 +1,0 @@
-(library
- (name slamlib)
- (libraries probzelus graphics))

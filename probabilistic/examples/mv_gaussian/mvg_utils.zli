@@ -1,7 +1,0 @@
-open Probzelus
-open Zelus_owl
-
-val mu : Mat.mat
-val sigma : float -> Mat.mat
-
-val display_mvg : Mat.mat Distribution.t -AD-> unit

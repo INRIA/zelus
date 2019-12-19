@@ -1,5 +1,0 @@
-type int32_elt
-type float32_elt
-type complex32_elt
-type float64_elt
-type complex64_elt

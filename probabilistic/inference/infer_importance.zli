@@ -1,9 +1,0 @@
-val sample : 'a Distribution.t ~D~> 'a
-
-val factor : float ~D~> unit
-
-val infer :
-  int -S-> ('a ~D~> 'b) -S-> 'a -D-> 'b Distribution.t
-
-val infer_decay :
-  int -S-> float -S-> ('a ~D~> 'b) -S-> 'a -D-> 'b Distribution.t
