@@ -1,5 +1,12 @@
 (* Sinus/Cosinus *)
+let hybrid int(x0, xprime) = x where
+  rec der x = xprime init x0
+      
 let hybrid f () = (sin, cos) where
+  rec cos = int(1.0, -. sin)
+  and sin = int(0.0, cos)
+
+let hybrid ff () = (sin, cos) where
   rec der cos = -. sin init 1.0 (*  reset z -> 1.0 *)
   and der sin = cos init 0.0  (* reset z -> 0.0 *)
   (* and z = period (4.0) *)

@@ -18,7 +18,7 @@ let c = sqrt(2.0 /. 3.0)
     
 let sol(t) = c *. t ** (3.0 /. 2.0)
 
-let h = 0.1
+let h = 0.01
     
 let node main() =
   let rec { time = time; result = o } = Node.solve ff 10.0 (next_horizon, ())

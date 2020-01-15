@@ -1,8 +1,14 @@
 (* A simple example to show what is computed by a *)
 (* fixed-sampled forward Euler integration scheme *)
+(* [h]: step; [x0]: initial value; [xprime] speed *)
+(* x(n) = x(n-1) + h * xprime(n-1) for all n > 0 *)
+(* x(0) = x0(0) *)
 let node int2_forward(h)(x0, xprime) = x where
   rec x = x0 -> pre (x +. xprime *. h)
 
+(* [h]: step; [x0]: initial value; [xprime] speed *)
+(* x(n) = x(n-1) + h * xprime(n) for all n > 0 *)
+(* x(0) = x0(0) *)
 let node int2_backward(h)(x0, xprime) = x where
   rec x = x0 -> pre (x) +. xprime *. h
 
