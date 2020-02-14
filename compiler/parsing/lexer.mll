@@ -195,7 +195,7 @@ rule main = parse
   | "?"  { TEST }
   | (['A'-'Z']('_' ? ['A'-'Z' 'a'-'z' ''' '0'-'9']) * as id) 
       {CONSTRUCTOR id}
-  | (['A'-'Z' 'a'-'z']('_' ? ['A'-'Z' 'a'-'z' ''' '0'-'9']) * as id) 
+  | (['A'-'Z' 'a'-'z'](['_' 'A'-'Z' 'a'-'z' ''' '0'-'9']) * as id) 
       { let s = Lexing.lexeme lexbuf in
           try
             Hashtbl.find keyword_table s
