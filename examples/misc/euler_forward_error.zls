@@ -28,8 +28,37 @@ let node sin_cos3(h)() =
   let rec si = 0.0 -> pre(si +. co *. h)
   and co = 1.0 -> pre(co -. si *. h) in
   (si, co)
+
+let node fix2(f)(g)(h)() =
+  let rec si = run (f(h))(0.0, cos)
+  and cos = -. run (g(h))(1.0, si) in
+  (si, cos)
     
 let h = 0.1
+
+(* The following one does not type check *)
+(*
+let node fix4() = fix2(int2_backward)(int2_backward)(h)() *)
+    (*
+val int2_forward : {}. 'a -> 'b  * 'a -> 'b
+val int2_backward : {}. 'a -> 'a  * 'a -> 'a
+val sin_cos2 : {}. 'a -> 'a -> 'b  * 'b
+val sin_cos : {}. 'a -> 'b -> 'c  * 'a
+val sin_cos3 : {}. 'a -> 'a -> 'b  * 'b
+val fix2 :
+  {}.
+    ('a -> 'b  * 'c -> 'd) -> ('a -> 'b  * 'd -> 'c) -> 'a -> 'e -> 'd  * 'c
+val h : {}. 'a
+File "euler_forward_error.zls", line 39, characters 37-52:
+>let node fix4() = fix2(int2_backward)(int2_backward)(h)()
+>                                     ^^^^^^^^^^^^^^^
+Causality error: This expression has causality type
+'b -> 'c  * 'd -> 'e, whereas it should be less than 'f -> 'g  * 'h -> 'i
+Here is an example of a cycle:
+       h < d; d < e; e < i; i < h*)
+
+(* The following type checks *)
+let node fix5() = fix2(int2_backward)(int2_forward)(h)()
     
 let node main() =
   let si, co = sin_cos(h)() in
