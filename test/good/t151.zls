@@ -1,0 +1,8 @@
+let node plus1 x = pre x + 1
+
+let node a x = o where
+ rec o = 0 -> plus1 x
+
+let node main () = () where
+ rec cpt = a cpt
+ and () = print_int cpt
