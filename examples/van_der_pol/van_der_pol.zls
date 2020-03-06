@@ -51,7 +51,7 @@ let node maind() =
   print_x_y (time, x, y)
    
    
-let h_continuous = 0.1
+let h_continuous = 0.05
     
 (* The main simulation loop in discrete-time but with the model *)
 (* in continuous-time and simulated with a variable step numeric solver *)
