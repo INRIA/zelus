@@ -32,6 +32,7 @@ let hybrid relay_cc(low, high, v) = u where
   rec u = present
           | up(low -. v) -> true
           | up(v -. high) -> false init (v < low)
+				       
 
 (* X-crossing discrete and continuous *)
 let hybrid xup(x) = present up(x) | (disc(x)) on (x >= 0.0) -> ()
