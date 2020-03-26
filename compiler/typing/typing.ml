@@ -1364,7 +1364,16 @@ let implementation ff is_first impl =
     | Etypedecl(f, params, ty) ->
        if is_first then Interface.typedecl ff impl.loc f params ty
   with
-  | Typerrors.Error(loc, err) -> Typerrors.message loc err
+  | Typerrors.Error(loc, err) ->
+     if is_first then Typerrors.message loc err
+     else
+       begin
+         Format.eprintf
+           "@[Internal error: type error during the second step \n\
+            after static reduction and inlining\n\
+            Be carreful, the localisation of errors is misleading@.@.@]";
+         Typerrors.message loc err
+       end
 
 (* the main entry function *)
 let implementation_list ff is_first impl_list =
