@@ -616,16 +616,8 @@ let implementation ff impl =
         let actual_ti = funtype_list ti_list ti_res in
         (* for an atomic node, all outputs depend on all inputs *)
         let expected_ti =
-          if atomic then
-          (* first type the body *)
-            let i = Init.new_var () in
-            let ti_arg_list =
-              List.map (fun p -> Init.skeleton_on_i i p.p_typ) p_list in
-            let ti_res = Init.skeleton_on_i i e.e_typ in
-            funtype_list ti_arg_list ti_res
-          else
-            funtype_list (List.map (fun p -> Init.skeleton p.p_typ) p_list)
-              (Init.skeleton e.e_typ) in
+          funtype_list (List.map (fun p -> Init.skeleton p.p_typ) p_list)
+            (Init.skeleton e.e_typ) in
         less_than impl.loc actual_ti expected_ti;
         Misc.pop_binding_level ();
         let tis = generalise actual_ti in
