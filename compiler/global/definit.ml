@@ -59,6 +59,6 @@ and value = | Izero | Ione | Ihalf
 
 and polarity = Punknown | Pplus | Pminus | Pplusminus
 
-let compare i1 i2 = Pervasives.compare i1.i_index i2.i_index
+let compare i1 i2 = Stdlib.compare i1.i_index i2.i_index
 
 let no_typ = Iproduct []
