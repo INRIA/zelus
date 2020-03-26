@@ -25,7 +25,7 @@ maind.byte: maind.ml
 
 maind.opt: maind.ml
 	ocamlfind ocamlopt -o maind.opt -I `zeluc -where` \
-	-package lablgtk2 \
+	-package lablgtk2 -linkpkg \
 	lablgtk.cmxa zllibgtk.cmxa \
         -package sundialsml -linkpkg van_der_pol.ml maind.ml
 
