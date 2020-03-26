@@ -39,7 +39,7 @@ module LANG =
           (* fields *)
       | Trecord of string list
 
-    let compare = Pervasives.compare
+    let compare = Stdlib.compare
 
     let pdescs = List.map (fun p -> p.p_desc)
 
@@ -116,7 +116,7 @@ module LANG =
 
         | Tconstr (_, _, l) :: _ ->
             let next l = List.tl l
-            and cmp l x = Pervasives.compare (fst (List.hd l)) x
+            and cmp l x = Stdlib.compare (fst (List.hd l)) x
             and heads = extract_tags tl in
             let (name, ar) =
               List.hd (fix (try_search_absent cmp next heads) l) in
@@ -136,7 +136,7 @@ module LANG =
           | Variant_type cdi ->
               let extract_name_and_arity cd =
                 (cd.qualid.id, List.length cd.info.constr_arg) in
-              List.sort Pervasives.compare (List.map extract_name_and_arity cdi)
+              List.sort Stdlib.compare (List.map extract_name_and_arity cdi)
           | _ -> assert false
       and find_record_type_fields typ =
         let { t_desc = desc } = Types.typ_repr typ in
@@ -145,7 +145,7 @@ module LANG =
               begin match (Modules.find_type (Modname s)).info.type_desc with
                 | Record_type cdi ->
                     let extract_name ldi = ldi.qualid.id in
-                    List.sort Pervasives.compare (List.map extract_name cdi)
+                    List.sort Stdlib.compare (List.map extract_name cdi)
                 | _ -> assert false
               end
           | Deftypes.Tlink typ -> find_record_type_fields typ
