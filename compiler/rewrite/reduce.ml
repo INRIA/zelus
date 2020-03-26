@@ -596,17 +596,27 @@ let implementation_list ff impl_list =
 	 with Not_found -> assert false in
        let no_parameter = Types.noparameters tys in
        (* strong reduction (under the lambda) when [no_parameter] *)
-       let funexp, impl_defs =
-	 if no_parameter then
-	   let funexp, { fundefs = fun_defs } = lambda Env.empty empty funexp in
-	   funexp, { impl with desc = Efundecl(f, funexp) } ::
-		     List.fold_right make fun_defs impl_defs
-         else
-           funexp, impl_defs in
-       let v = Global.value_code (Global.Vfun(funexp, Env.empty)) in
-       let v = Global.value_name (Modules.qualify f) v in
-       set_value_code f v;
-       impl_defs
+       if !Misc.no_reduce then
+	 (* no reduction is done; use it carefully as the compilation steps *)
+	 (* done after like static scheduling may fail. *)
+	 (* This flag is very temporary *)
+	 let v = Global.value_code (Global.Vfun(funexp, Env.empty)) in
+	 let v = Global.value_name (Modules.qualify f) v in
+	 set_value_code f v;
+	 impl :: impl_defs
+       else
+	 let funexp, impl_defs =
+	   if no_parameter then
+	     let funexp, { fundefs = fun_defs } = lambda Env.empty empty funexp in
+	     funexp, { impl with desc = Efundecl(f, funexp) } ::
+		       List.fold_right make fun_defs impl_defs
+           else
+             (* funexp is removed from the list of defs. to be compiled *)
+	     funexp, impl_defs in
+	 let v = Global.value_code (Global.Vfun(funexp, Env.empty)) in
+	 let v = Global.value_name (Modules.qualify f) v in
+	 set_value_code f v;
+	 impl_defs
     | _ -> impl :: impl_defs in
   try
     let impl_list = List.fold_left implementation [] impl_list in
