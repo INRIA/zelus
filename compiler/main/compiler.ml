@@ -156,10 +156,9 @@ let compile modname filename =
 	step "Mark functions calls to be inlined. See below:"
 	     Markfunctions.implementation_list impl_list in
       let impl_list =
-	if !Misc.no_reduce then impl_list
-        else step "Reduce static expressions for global values \
-                   that have no more static parameter. See below:"
-	    (Reduce.implementation_list info_ff) impl_list in
+	step "Reduce static expressions for global values \
+              that have no more static parameter. See below:"
+	     (Reduce.implementation_list info_ff) impl_list in
       let impl_list =
 	step "Inlining of annotated and small function calls. See below:"
 	     Inline.implementation_list impl_list in
