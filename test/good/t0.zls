@@ -1,3 +1,5 @@
+let node h(x)(y) = y + 1
+
 let node f(x) =
   local y init 0
   do
