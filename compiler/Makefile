@@ -120,19 +120,19 @@ byte: $(BIN).byte
 
 $(BIN).opt: $(GENSOURCES) $(OBJ:%.cmo=%.cmx) main/main.cmx
 	$(OCAMLOPT) $(UNIXX) $(OCAMLOPTFLAGS) $(INCLUDES) \
-	-I $(MENHIRLIB) menhirLib.cmx $(OBJ:%.cmo=%.cmx) main/main.cmx \
+	-I $(MENHIRLIB) menhirLib.cmxa $(OBJ:%.cmo=%.cmx) main/main.cmx \
 	-o $(BIN).opt
 
 $(BIN).byte: $(GENSOURCES) $(OBJ) main/main.cmo
 	$(OCAMLC) $(UNIX) $(OCAMLFLAGS) $(INCLUDES) \
-        -I $(MENHIRLIB) menhirLib.cmo $(OBJ) main/main.cmo \
+        -I $(MENHIRLIB) menhirLib.cma $(OBJ) main/main.cmo \
 	-o $(BIN).byte
 
 debug: OCAMLFLAGS += -g
 debug: byte debugprinter.cma
 
 debugprinter.cma: $(OBJ)
-	$(OCAMLC) -a -o $@ -I $(MENHIRLIB) menhirLib.cmo $^
+	$(OCAMLC) -a -o $@ -I $(MENHIRLIB) menhirLib.cma $^
 
 # Extra dependences
 
