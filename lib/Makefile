@@ -43,6 +43,7 @@ SOLVER_OBJS = solvers/illinois.cmo  \
 OBJ = zls.cmo \
       basics.cmo \
       zlsolve.cmo \
+      lift.cmo \
       $(SOLVER_OBJS) \
       defaultsolver.cmo \
       dump.cmo \
@@ -50,7 +51,6 @@ OBJ = zls.cmo \
       obs.cmo \
       gen.cmo \
       vbool.cmo \
-      lift.cmo \
       run.cmo
 
 OBJ_GTK = gtkplot.cmo \
