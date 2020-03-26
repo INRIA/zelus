@@ -11,13 +11,20 @@ byte: $(EXAMPLE:%.zls=%.byte)
 opt:  $(EXAMPLE:%.zls=%.opt)
 
 ball.byte: showball.cmo world.cmo ball.cmo ball_main.cmo
-	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
-	    -I $(ZLLIB) $(ZLSTDLIBS) graphics.cma $(ZLEXTRALIBS) $^
+	$(OCAMLFIND) $(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
+	  	-I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $^ \
+	-package graphics -linkpkg
 
 ball.opt: showball.cmx world.cmx ball.cmx ball_main.cmx
 	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
 	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) graphics.cmxa \
 	    $(ZLEXTRALIBS:.cma=.cmxa) $^
+
+showball.cmo : showball.ml
+	$(OCAMLFIND) $(OCAMLC) -c showball.ml -package graphics
+
+showball.cmx : showball.ml
+	$(OCAMLFIND) $(OCAMLOPT) -c showball.ml -package graphics
 
 ball_main.cmo: INCLUDES += $(SUNDIALS)
 ball_main.cmx: INCLUDES += $(SUNDIALS)
@@ -29,13 +36,15 @@ ball.ml ball_main.ml: showball.zci world.zci ball.zls
 #
 
 autoball.byte: showball.cmo world.cmo ball.cmo autoball.cmo autoball_main.cmo
-	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
-	    -I $(ZLLIB) $(ZLSTDLIBS) graphics.cma $(ZLEXTRALIBS) $^
+	$(OCAMLFIND) $(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $^  \
+	-package graphics -linkpkg
 
 autoball.opt: showball.cmx world.cmx ball.cmx autoball.cmx autoball_main.cmx
-	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
+	$(OCAMLFIND) $(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
 	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) \
-	    graphics.cmxa $(ZLEXTRALIBS:.cma=.cmxa) $^
+	    graphics.cmxa $(ZLEXTRALIBS:.cma=.cmxa) $^   \
+	-package graphics -linkpkg
 
 autoball.ml autoball_main.ml: showball.zci world.zci autoball.zls
 	$(ZELUC) $(ZELUCFLAGS) -s main autoball.zls
@@ -44,13 +53,15 @@ autoball.ml autoball_main.ml: showball.zci world.zci autoball.zls
 #
 
 flatball.byte: showball.cmo flatworld.cmo flatball.cmo flatball_main.cmo
-	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
-	    -I $(ZLLIB) $(ZLSTDLIBS) graphics.cma $(ZLEXTRALIBS) $^
+	$(OCAMLFIND) $(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $^  \
+	-package graphics -linkpkg
 
 flatball.opt: showball.cmx flatworld.cmx flatball.cmx flatball_main.cmx
-	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
-	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) graphics.cmxa \
-	    $(ZLEXTRALIBS:.cma=.cmxa) $^
+	$(OCAMLFIND) $(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) \
+	    $(ZLEXTRALIBS:.cma=.cmxa) $^  \
+	-package graphics -linkpkg
 
 flatball_main.cmo: INCLUDES += $(SUNDIALS)
 flatball_main.cmx: INCLUDES += $(SUNDIALS)
@@ -71,22 +82,24 @@ spec_plot.ml: ZLEXTRALIBS += $(EXAMPLE:.zls=.cmo)
 spec_plot.ml: ZELUCFLAGS += -gtk2
 
 spec.byte: showball.cmo flatworld.cmo flatball.cmo spec.cmo spec_main.ml
-	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
-	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) graphics.cma \
-	    $^
+	$(OCAMLFIND) $(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS)  $^  \
+	-package graphics -linkpkg
+
 spec.opt: showball.cmx flatworld.cmx flatball.cmx spec.cmx spec_main.ml
-	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
-	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) $(ZLEXTRALIBS:.cma=.cmxa) graphics.cmxa \
-	    $^
+	$(OCAMLFIND) $(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) $(ZLEXTRALIBS:.cma=.cmxa) $^  \
+	-package graphics -linkpkg
 
 spec_plot.byte: showball.cmo flatworld.cmo flatball.cmo spec.cmo spec_plot.ml
-	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
-	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) graphics.cma \
-	    $^
+	$(OCAMLFIND) $(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $^  \
+	-package graphics -linkpkg
+
 spec_plot.opt: showball.cmx flatworld.cmx flatball.cmx spec.cmx spec_plot.ml
-	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
-	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) $(ZLEXTRALIBS:.cma=.cmxa) graphics.cmxa \
-	    $^
+	$(OCAMLFIND) $(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) $(ZLEXTRALIBS:.cma=.cmxa) $^  \
+	-package graphics -linkpkg
 
 spec_%.ml: spec.zls
 	$(ZELUC) $(ZELUCFLAGS) -o $(<:.zls=)_$(@:spec_%.ml=%) -s $(@:spec_%.ml=%) $<
