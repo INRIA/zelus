@@ -9,12 +9,19 @@ byte: $(EXAMPLE:%.zls=%.byte)
 opt:  $(EXAMPLE:%.zls=%.opt)
 
 horloge.byte: draw.cmo horloge.cmo horloge_main.cmo
-	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
-	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) graphics.cma $^
+	$(OCAMLFIND) $(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) $^ -package graphics -linkpkg
+
+draw.cmo: draw.ml
+	$(OCAMLFIND) $(OCAMLC) $(OCAMLFLAGS) draw.ml -package graphics -linkpkg
+
+draw.cmx: draw.ml
+	$(OCAMLFIND) $(OCAMLOPT) $(OCAMLFLAGS) draw.ml -package graphics -linkpkg
 
 horloge.opt: draw.cmx horloge.cmx horloge_main.cmx
-	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
-	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) $(ZLEXTRALIBS:.cma=.cmxa) graphics.cmxa $^
+	$(OCAMLFIND) $(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
+	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) $(ZLEXTRALIBS:.cma=.cmxa) \
+        $^ -package graphics -linkpkg
 
 horloge_main.cmo: INCLUDE += $(SUNDIALS)
 horloge_main.cmx: INCLUDE += $(SUNDIALS)
