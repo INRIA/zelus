@@ -154,7 +154,7 @@ if [ -n "${MATLABROOT}" ]; then
 else
     matlab_bin=""
 fi
-Specialized compilers generate OpenCL code that can be executed using the SHED runtime system.
+
 # Set an explicit Ptolemy path if necessary
 if [ -n "${PTOLEMYROOT}" ]; then
     ptolemy_bin="${PTOLEMYROOT}bin/"
