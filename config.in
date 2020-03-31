@@ -12,10 +12,10 @@ targets    = @targets@
 # programs used
 
 OCAML     ?= @OCAMLBIN@ocaml
-OCAMLC    ?= @OCAMLBIN@ocamlc
+OCAMLC    ?= @OCAMLBIN@ocamlc -I @GRAPHICS@
 OCAMLLEX  ?= @OCAMLBIN@ocamllex
 OCAMLYACC ?= @OCAMLBIN@ocamlyacc
-OCAMLOPT  ?= @OCAMLBIN@ocamlopt
+OCAMLOPT  ?= @OCAMLBIN@ocamlopt -I @GRAPHICS@
 OCAMLDEP  ?= @OCAMLBIN@ocamldep
 OCAMLRUN  ?= @OCAMLBIN@ocamlrun
 OCAMLFIND ?= @OCAMLFIND@
