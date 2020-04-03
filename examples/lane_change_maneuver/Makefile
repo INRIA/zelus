@@ -35,5 +35,7 @@ clean:
 	rm -f simu.ml main.ml vehicle.ml leader.ml rear.ml interior.ml merging.ml noise.ml
 	rm -f *.c* *.zci *.zli
 
+realclean cleanall: clean
+
 mrproper: clean
 	rm -f simu

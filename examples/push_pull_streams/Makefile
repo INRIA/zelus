@@ -19,3 +19,4 @@ clean:
 	rm -f join.zci
 	rm -f *.cmi *.cmo *.cmxi *.cmxo
 
+realclean cleanall: clean

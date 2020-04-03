@@ -25,7 +25,7 @@ depend: .depend
 	$(OCAMLDEP) $(INCLUDES) *.mli *.ml > .depend
 
 clean:
-	-@rm boxes_main.ml boxes.ml
+	-@rm -f boxes_main.ml boxes.ml
 	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci
 	-@rm -f $(EXAMPLE:%.zls=%.byte) $(EXAMPLE:%.zls=%.opt)
 	-@rm -f .depend

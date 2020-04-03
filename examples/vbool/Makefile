@@ -44,5 +44,5 @@ clean:
 	rm -rf input.ml input_main.ml
 	rm -rf *.zci *.cm[iox]
 
-cleanall: clean
+realclean cleanall: clean
 	rm -rf *.byte
