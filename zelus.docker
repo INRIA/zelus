@@ -12,60 +12,53 @@
 #
 # You can distribute the .tar file
 
-FROM ocaml/opam2:4.08
+FROM ocaml/opam2:4.10
 LABEL description="This image contains `zeluc`, a compiler from \
 (Zélus)[http://zelus.di.ens.fr] to OCaml. It is built upon `ocaml/opam2` and \
 it also provides the necessary libraries to compile the ml files that are \
 produced by `zeluc`."
-LABEL version="2.0"
+LABEL version="2.1"
 LABEL maintainer="marc.pouzet@ens.fr"
 
 # Install system dependencies
-RUN sudo apt-get update
-RUN sudo apt-get upgrade -y
-RUN sudo apt-get install -y build-essential sudo m4 libgtk2.0-dev libsundials-dev
+RUN sudo apt-get update \
+ && sudo apt-get upgrade -y \
+ && sudo apt-get install -y build-essential sudo m4 libgtk2.0-dev libsundials-dev
 
 # Switch to root to give permissions to opam
 USER root
 
 # Give permission to opam to run `sudo`
-RUN adduser opam sudo
-# Don't ask for a password when running sudo
-RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+RUN adduser opam sudo \
+ && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers # Don't ask for a password when running sudo
 
 # Create main directory
 RUN mkdir -p /zelus
-RUN mkdir -p /probabilistic
 
 # Copy zelus files in `workdir`
 COPY --chown=opam . /zelus
-RUN rm -rf zelus/probabilistic
-COPY --chown=opam probabilistic /probabilistic
 
 # Switch back to opam
 USER opam
 
 # Install OCaml dependencies
-RUN opam switch 4.08
 RUN eval $(opam env)
-RUN opam update
-RUN opam upgrade
-RUN eval $(opam env)
-RUN opam install -y ocamlfind menhir sundialsml lablgtk
-RUN eval $(opam env)
+RUN opam config env >> /home/opam/.profile \
+ && bash -c "source /home/opam/.profile" \
+ && opam update \
+ && opam upgrade \
+ && opam install -y graphics ocamlfind menhir sundialsml lablgtk
 
 # Compile and install `zeluc` and all the binary libs
 
 # Set as current directory for subsequent commands
 WORKDIR /zelus
 
-RUN ./configure OCAMLROOT ~/.opam/4.08/
-RUN make distclean
-RUN make
-RUN sudo make install
+RUN opam config exec ./configure \
+ && opam config exec make distclean \
+ && opam config exec make \
+ && sudo make install
 
-# Set as current directory for subsequent commands
-WORKDIR /probabilistic
 
 # NOTE : To run Gtk apps inside docker, you should run the command
 #        `xhost +local:docker`
