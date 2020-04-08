@@ -3,7 +3,7 @@
 # VERISON       0.1
 
 # USAGE :
-#   build with `docker build -t zelus -f zelus.dockerfile .` or with
+#   build with `docker build -t zelus -f zelus.docker .` or with
 #       `make docker_build`
 #   run with `docker run -ti --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix/:/tmp/.X11-unix zelus bash`
 #       or `make docker_run`, once it has been built or loaded
