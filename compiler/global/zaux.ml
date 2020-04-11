@@ -55,7 +55,7 @@ let zero = emake (Econst(Efloat(0.0))) Initial.typ_float
 let one = emake (Econst(Efloat(1.0))) Initial.typ_float
 let minus_one = emake (Econst(Efloat(-1.0))) Initial.typ_float
 let infinity = 
-  emake (global (Modname(Initial.pervasives_name "infinity"))) typ_float
+  emake (global (Modname(Initial.stdlib_name "infinity"))) typ_float
 let tproduct ty_list = Deftypes.make (Tproduct(ty_list))
 let tuplepat pat_list = 
   let ty_list = List.map (fun { p_typ = ty } -> ty) pat_list in
@@ -91,8 +91,8 @@ let bool_var x = var x Initial.typ_bool
 let float_last x = last x Initial.typ_float
 let bool_last x = last x Initial.typ_bool
 
-let global_in_pervasives lname ty =
-  emake (global (Modname(Initial.pervasives_name lname))) ty
+let global_in_stdlib lname ty =
+  emake (global (Modname(Initial.stdlib_name lname))) ty
 
 let maketype ty_arg_list ty_res =
   let make ty = { t_desc = ty; t_level = generic; t_index = symbol#name } in
@@ -107,10 +107,10 @@ let rec funtype ty_arg_list ty_res =
 
 let unop op e ty =
   emake (Eapp(prime_app,
-	      global_in_pervasives op (maketype [e.e_typ] ty), [e])) ty
+	      global_in_stdlib op (maketype [e.e_typ] ty), [e])) ty
 let binop op e1 e2 ty =
   emake (Eapp(prime_app,
-	      global_in_pervasives op (maketype [e1.e_typ; e2.e_typ] ty),
+	      global_in_stdlib op (maketype [e1.e_typ; e2.e_typ] ty),
 	      [e1;e2])) ty
 
 let plus e1 e2 = binop "+." e1 e2 Initial.typ_float

@@ -99,9 +99,9 @@ let expression ({ e_desc = desc } as e) =
 	  (* declaration of [h: float default infinity with (min)] *)
 	 let sort =
 	    Deftypes.default
-	      (Some(Deftypes.Cglobal(Modname(Initial.pervasives_name
+	      (Some(Deftypes.Cglobal(Modname(Initial.stdlib_name
 					       "infinity"))))
-	      (Some(Modname(Initial.pervasives_name "min"))) in
+	      (Some(Modname(Initial.stdlib_name "min"))) in
 	 let l_env =
 	    Env.add h (Deftypes.entry sort Initial.typ_float) l_env in
 	 let hor = Ident.fresh "h" in

@@ -771,10 +771,10 @@ and size_of_exp { e_desc = desc; e_loc = loc } =
   | Elocal(n) -> Tname(n)
   | Eglobal { lname = Lident.Modname(qualid) } -> Tglobal(qualid)
   | Eapp(_, { e_desc = Eglobal { lname = Lident.Modname(qualid) } }, [e1; e2])
-    when qualid = Initial.pervasives_name "+" ->
+    when qualid = Initial.stdlib_name "+" ->
       Top(Tplus, size_of_exp e1, size_of_exp e2)
   | Eapp(_, { e_desc = Eglobal { lname = Lident.Modname(qualid) } }, [e1; e2])
-    when qualid = Initial.pervasives_name "-" ->
+    when qualid = Initial.stdlib_name "-" ->
       Top(Tminus, size_of_exp e1, size_of_exp e2)
   | _ -> error loc Enot_a_size_expression
 

@@ -17,7 +17,7 @@ include ../config
 
 ZELUC = ../bin/zeluc
 
-LOBJ = pervasives.zci \
+LOBJ = stdlib.zci \
        char.zci \
        complex.zci \
        int32.zci \
@@ -81,9 +81,9 @@ zllibgtk.cma: $(OBJ) $(OBJ_GTK)
 zllibgtk.cmxa: $(OBJ:.cmo=.cmx) $(OBJ_GTK:.cmo=.cmx)
 	$(OCAMLOPT) -a $(OCAMLCFLAGS) -o $@ $^
 
-pervasives.zci: ZELUCFLAGS := -nopervasives
+stdlib.zci: ZELUCFLAGS := -nostdlib
 
-basics.zci: basics.zli pervasives.zci
+basics.zci: basics.zli stdlib.zci
 
 solvers/sundials_cvode.cmo: INCLUDES += $(SUNDIALS) $(SUNDIALS_CVODE)
 solvers/sundials_cvode.cmx: INCLUDES += $(SUNDIALS) $(SUNDIALS_CVODE)
@@ -91,12 +91,12 @@ solvers/sundials_cvode.cmx: INCLUDES += $(SUNDIALS) $(SUNDIALS_CVODE)
 zlsrungtk.cmo: INCLUDES += $(LABLGTK2)
 zlsrungtk.cmx: INCLUDES += $(LABLGTK2)
 
-gtkplot.zci: gtkplot.zli pervasives.zci
+gtkplot.zci: gtkplot.zli stdlib.zci
 gtkplot.cmi:
 gtkplot.cmo: INCLUDES += $(LABLGTK2)
 gtkplot.cmx: INCLUDES += $(LABLGTK2)
 
-input.zci: input.zli pervasives.zci
+input.zci: input.zli stdlib.zci
 input.cmi:
 input.cmo: INCLUDES += $(LABLGTK2)
 input.cmx: INCLUDES += $(LABLGTK2)

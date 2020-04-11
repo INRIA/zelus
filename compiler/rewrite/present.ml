@@ -63,7 +63,7 @@ let presentpat pat =
 
 (* implementation of the presence test ? of a signal *)
 let test e = Eapp(Zaux.prime_app,
-                  Zaux.global_in_pervasives "snd"
+                  Zaux.global_in_stdlib "snd"
                     (maketype [e.e_typ] Initial.typ_bool),
                   [e])
     

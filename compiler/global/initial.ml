@@ -22,8 +22,8 @@ open Global
 open Deftypes
 open Modules
 
-let pervasives_module = "Pervasives"
-let pervasives_name id = { qual = pervasives_module;id = id }
+let stdlib_module = Misc.name_of_stdlib_module
+
 let abstract_type params = 
   { type_desc = Abstract_type; type_parameters = params }
 let abstract_type qualident arity =
@@ -35,17 +35,19 @@ let abbrev_type qualident params (ty_parameters, ty) =
 let value qualident tys =
   { qualid = qualident; info = value_desc false tys qualident }
   
-let int_ident = pervasives_name "int"
-let int32_ident = pervasives_name "int32"
-let int64_ident = pervasives_name "int64"
-let bool_ident = pervasives_name "bool"
-let zero_ident = pervasives_name "zero"
-let float_ident = pervasives_name "float"
-let char_ident = pervasives_name "char"
-let string_ident = pervasives_name "string"
-let sig_ident = pervasives_name "signal"
-let unit_ident = pervasives_name "unit"
-let list_ident = pervasives_name "list"
+let stdlib_name id = { qual = stdlib_module;id = id }
+
+let int_ident = stdlib_name "int"
+let int32_ident = stdlib_name "int32"
+let int64_ident = stdlib_name "int64"
+let bool_ident = stdlib_name "bool"
+let zero_ident = stdlib_name "zero"
+let float_ident = stdlib_name "float"
+let char_ident = stdlib_name "char"
+let string_ident = stdlib_name "string"
+let sig_ident = stdlib_name "signal"
+let unit_ident = stdlib_name "unit"
+let list_ident = stdlib_name "list"
 
 let type_desc_int = abstract_type int_ident []
 let type_desc_int32 = abstract_type int32_ident []
@@ -59,13 +61,12 @@ let type_desc_unit = abstract_type unit_ident []
 let type_desc_signal = abstract_type sig_ident [generic]
 let type_desc_list = abstract_type list_ident [generic]
 
-(* sum types. Not implemented in Zelus for the moment *)
 let constr id ty_list = make (Tconstr(id, ty_list, ref Tnil))
 
 (* the [array] type *)
-let array_ident = pervasives_name "array"
+let array_ident = stdlib_name "array"
 let type_desc_array = abstract_type array_ident [generic]
-let empty_array_ident = pervasives_name "[||]"
+let empty_array_ident = stdlib_name "[||]"
 
 let typ_int = constr int_ident []
 and typ_int32 = constr int32_ident []
@@ -95,11 +96,11 @@ let tglobal =
     type_desc_array;
     type_desc_list ]
 
-(* global constructed values loaded initially *)
-let cglobal = []
+let nil_name = "[]"
+let cons_name = "::"
 
-let nil_ident = pervasives_name "[]"
-let cons_ident = pervasives_name "::"
+let nil_ident = stdlib_name nil_name
+let cons_ident = stdlib_name cons_name
 
 let value_desc_nil =
   let ta = make Tvar in
@@ -113,6 +114,9 @@ let value_desc_cons =
       typ_body = make (Tfun(Tany, None, make (Tproduct [ta; ta_list]), ta_list))
     }
   
+(* global constructed values loaded initially *)
+let cglobal = []
+
 (* global values loaded initially *)
 let vglobal =
   [ value_desc_nil;
@@ -130,20 +134,20 @@ let short =
       StrSet.empty in
   function
   | Modname({ qual = m; id = s }) as modname ->
-      (* [Pervasives.s] is printed [s] when [s] is unbound *)
-      if m = pervasives_module then if StrSet.mem s table then Name(s)
+      (* [Stdlib.s] is printed [s] when [s] is unbound *)
+      if m = stdlib_module then if StrSet.mem s table then Name(s)
         else
           try let { qualid = { qual = m } } = Modules.find_value (Name(s)) in
-              if m = pervasives_module then Name(s) else modname 
+              if m = stdlib_module then Name(s) else modname 
           with | Not_found -> modname
       else modname
   | Name _ as name -> name
   
-let set_no_pervasives () = 
+let set_no_stdlib () = 
   default_used_modules := [];
   (* build the initial environment *)
   List.iter (fun x -> add_type x.qualid.id x.info) tglobal;
   List.iter (fun x -> add_constr x.qualid.id x.info) cglobal;
   List.iter (fun x -> add_value x.qualid.id x.info) vglobal
-  
+
 

@@ -28,8 +28,6 @@ let make desc start_pos end_pos =
 let make_name op start_pos end_pos =
   make (Evar(Name(op))) start_pos end_pos
 
-let pervasives_name n = Modname { qual = "Pervasives"; id = n }
-
 let unop op e start_pos end_pos =
   Eapp({ app_inline = false; app_statefull = false},
        make_name op start_pos end_pos, [e])
@@ -48,11 +46,13 @@ and unary_minus_float x = -.x
 
 (* Representation of lists. [] for Pervasives.[] *)
 (* [e1;...;en] for Pervasives.(::) e1 (... Pervasives.[]) *)
-let nil_desc = Evar(pervasives_name "[]")
+let list_name n = Modname { qual = Initial.stdlib_module; id = n }
+
+let nil_desc = Evar(list_name Initial.nil_name)
 
 let cons_desc x l start_pos end_pos =
   Eapp({ app_inline = false; app_statefull = false },
-       make (Evar(pervasives_name "::")) start_pos end_pos,
+       make (Evar(list_name Initial.cons_name)) start_pos end_pos,
        [make (Etuple [x; l]) start_pos end_pos])
 
 let rec cons_list_desc l start_pos end_pos =

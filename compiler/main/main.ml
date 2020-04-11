@@ -49,7 +49,7 @@ and doc_print_initialization_types = "\t  Print initialization types"
 and doc_include = "<dir> \t Add <dir> to the list of include directories"
 and doc_stdlib = "<dir> \t Directory for the standard library"
 and doc_locate_stdlib = "\t  Locate standard libray"
-and doc_no_pervasives = "\t  Do not load the pervasives module"
+and doc_no_stdlib = "\t  Do not load the stdlib module"
 and doc_typeonly = "\t  Stop after typing"
 and doc_hybrid = "\t  Select hybrid translation"
 and doc_simulation =
@@ -103,7 +103,7 @@ let main () =
 	Arg.Set print_initialization_types, doc_print_initialization_types;
         "-where", Arg.Unit locate_stdlib, doc_locate_stdlib;
         "-stdlib", Arg.String set_stdlib, doc_stdlib;
-        "-nopervasives", Arg.Unit set_no_pervasives, doc_no_pervasives;
+        "-nostdlib", Arg.Unit set_no_stdlib, doc_no_stdlib;
         "-typeonly", Arg.Set typeonly, doc_typeonly;
         "-s", Arg.String set_simulation_node, doc_simulation;
         "-sampling", Arg.Float set_sampling_period, doc_sampling;

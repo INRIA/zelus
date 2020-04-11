@@ -187,8 +187,8 @@ and app ({ value_exp = value_exp } as v) v_list =
     (* addition and subtraction are used in array size expressions *)
     Vabstract(op),
     [{ value_exp = Vconst(Eint(i1)) }; { value_exp = Vconst(Eint(i2)) }] ->
-     let i = if op = Initial.pervasives_name "+" then i1 + i2
-	     else if op = Initial.pervasives_name "-" then i1 - i2
+     let i = if op = Initial.stdlib_name "+" then i1 + i2
+	     else if op = Initial.stdlib_name "-" then i1 - i2
 	     else raise (Error(TypeError)) in
      value_code (Vconst(Eint(i)))
   | _ -> raise (Error(TypeError))
