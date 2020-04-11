@@ -14,7 +14,7 @@ let node int2_backward(h)(x0, xprime) = x where
 
 (* this one diverges; errors accumulate *)
 let node sin_cos2(h)() =
-  let rec si = int2_forward(h)(0.0, co)
+  let rec si = int2_backward(h)(0.0, co)
   and co = -. int2_forward(h)(1.0, si) in
   si, co
 
@@ -61,7 +61,7 @@ Here is an example of a cycle:
 let node fix5() = fix2(int2_backward)(int2_forward)(h)()
     
 let node main() =
-  let si, co = sin_cos(h)() in
+  let si, co = sin_cos2(h)() in
   let rec time = 0.0 -> pre time +. h in
   let s =
     Scope.scope2
