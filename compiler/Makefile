@@ -107,7 +107,7 @@ MAIN = main/compiler.cmo \
 	main/simulator.cmo \
 	main/fixstep.cmo
 
-OBJ = $(LOCATION) $(PARSING) $(GLOBAL) $(TYPING) $(ANALYSIS) \
+OBJ = $(LOCATION) $(GLOBAL) $(PARSING) $(TYPING) $(ANALYSIS) \
 	$(REWRITE) $(GENCODE) $(VERIF) $(MAIN)
 
 default: $(word 1, $(targets))
