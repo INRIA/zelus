@@ -66,6 +66,8 @@ REWRITE = rewrite/markfunctions.cmo \
 	rewrite/reduce.cmo \
 	rewrite/write.cmo \
 	rewrite/unsafe.cmo \
+	rewrite/remove_last_in_patterns.cmo \
+	rewrite/add_copy_for_last.cmo \
 	rewrite/automata.cmo \
         rewrite/activate.cmo \
 	rewrite/present.cmo \
@@ -83,7 +85,6 @@ REWRITE = rewrite/markfunctions.cmo \
 	rewrite/control.cmo \
 	rewrite/dependences.cmo \
 	rewrite/cse.cmo \
-	rewrite/cut.cmo \
 	rewrite/zopt.cmo \
 	rewrite/schedule.cmo \
 	rewrite/copy.cmo \
