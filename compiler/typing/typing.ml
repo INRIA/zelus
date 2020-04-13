@@ -4,7 +4,6 @@
 (*               A synchronous language for hybrid systems                *)
 (*                       http://zelus.di.ens.fr                           *)
 (*                                                                        *)
-(*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
 (*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
@@ -435,7 +434,17 @@ let env_of_eq_list expected_k eq_list =
           else Deftypes.Smem (Deftypes.empty_mem) in
      Env.add n { t_typ = Types.new_var (); t_sort = sort } acc) names Env.empty
 
-let env_of_scondpat scpat =
+(* introduce a variable with the proper kind *)
+(* [last x] is only be possible when [expected_k] is statefull *)
+let intro_sort_of_var expected_k =
+  match expected_k with
+  | Deftypes.Tstatic _ -> Deftypes.static
+  | Deftypes.Tany | Deftypes.Tdiscrete false -> Deftypes.Sval
+  | Deftypes. Tcont
+  | Deftypes.Tdiscrete true
+  | Deftypes.Tproba -> Deftypes.Smem (Deftypes.empty_mem)
+
+let env_of_scondpat expected_k scpat =
   let rec env_of acc { desc = desc } =
     match desc with
     | Econdand(sc1, sc2) -> env_of (env_of acc sc1) sc2
@@ -444,35 +453,39 @@ let env_of_scondpat scpat =
     | Econdpat(_, pat) -> Vars.fv_pat S.empty acc pat in
   let acc = env_of S.empty scpat in
   S.fold
-    (fun n acc -> Env.add n { t_typ = Types.new_var (); t_sort = Sval } acc)
+    (fun n acc ->
+      Env.add n
+        { t_typ = Types.new_var (); t_sort = intro_sort_of_var expected_k } acc)
          acc Env.empty
 
-let env_of_statepat spat =
+let env_of_statepat expected_k spat =
   let rec env_of acc { desc = desc } =
     match desc with
     | Estate0pat _ -> acc
     | Estate1pat(_, l) -> List.fold_left (fun acc n -> S.add n acc) acc l in
   let acc = env_of S.empty spat in
   S.fold
-    (fun n acc -> Env.add n { t_typ = Types.new_var (); t_sort = Sval } acc)
+    (fun n acc ->
+      Env.add n
+        { t_typ = Types.new_var (); t_sort = intro_sort_of_var expected_k } acc)
          acc Env.empty
 
-let env_of_pattern is_static h0 pat =
+let env_of_pattern expected_k h0 pat =
   let acc = Vars.fv_pat S.empty S.empty pat in
-  let sort = if is_static then Sstatic else Sval in
-  S.fold (fun n acc ->
-          Env.add n { t_typ = Types.new_var (); t_sort = sort } acc)
-         acc h0
+  S.fold
+    (fun n acc ->
+      Env.add n
+        { t_typ = Types.new_var (); t_sort = intro_sort_of_var expected_k } acc)
+    acc h0
 
 (* the [n-1] first arguments are static. If [expected_k] is static *)
-(* the last one two *)
+(* the last one too *)
 let env_of_pattern_list expected_k env p_list =
   let p_list, p = Misc.firsts p_list in
-  let env = List.fold_left (env_of_pattern true) env p_list in
-  let is_static = match expected_k with | Tstatic(k) -> k | _ -> false in
-  env_of_pattern is_static env p
+  let env = List.fold_left (env_of_pattern (Deftypes.Tstatic true)) env p_list in
+  env_of_pattern expected_k env p
 
-let env_of_pattern pat = env_of_pattern false Env.empty pat
+let env_of_pattern expected_k pat = env_of_pattern expected_k Env.empty pat
 
 (** Typing patterns *)
 (* the kind of variables in [p] must be equal to [expected_k] *)
@@ -559,7 +572,7 @@ let check_total_pattern_list p_list = List.iter check_total_pattern p_list
 (** Typing a pattern matching. Returns defined names *)
 let match_handlers body loc expected_k h total m_handlers pat_ty ty =
   let handler ({ m_pat = pat; m_body = b } as mh) =
-    let h0 = env_of_pattern pat in
+    let h0 = env_of_pattern expected_k pat in
     pattern h0 pat pat_ty;
     mh.m_env <- h0;
     let h = Env.append h0 h in
@@ -584,7 +597,7 @@ let match_handlers body loc expected_k h total m_handlers pat_ty ty =
 let present_handlers scondpat body loc expected_k h p_h_list b_opt expected_ty =
   let handler ({ p_cond = scpat; p_body = b } as ph) =
     (* local variables from [scpat] cannot be accessed through a last *)
-    let h0 = env_of_scondpat scpat in
+    let h0 = env_of_scondpat expected_k scpat in
     let h = Env.append h0 h in
     let is_zero = Types.is_continuous_kind expected_k in
     scondpat expected_k is_zero h scpat;
@@ -1219,7 +1232,7 @@ and automaton_handlers is_weak loc expected_k h state_handlers se_opt =
         ({ e_cond = scpat; e_reset = r; e_block = b_opt;
            e_next_state = state } as esc) =
       (* type one escape condition *)
-      let h0 = env_of_scondpat scpat in
+      let h0 = env_of_scondpat expected_k scpat in
       let h = Env.append h0 h in
       scondpat expected_k is_zero_type h scpat;
       (* sets flag [zero = true] when [is_zero_type = true] *)
@@ -1237,7 +1250,7 @@ and automaton_handlers is_weak loc expected_k h state_handlers se_opt =
       Total.Automaton.add_transition is_weak h statename defined_names t in
 
     (* typing the state pattern *)
-    let h0 = env_of_statepat statepat in
+    let h0 = env_of_statepat expected_k statepat in
     s.s_env <- h0;
     begin match statepat.desc with
       | Estate0pat _ -> ()
