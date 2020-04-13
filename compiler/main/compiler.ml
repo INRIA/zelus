@@ -166,8 +166,11 @@ let compile modname filename =
 	step "Re-typing done. See below:"
 	     (Typing.implementation_list info_ff false) impl_list in
       let impl_list =
-        step "Add copies for [last x] to remore false cycles. See below:"
-	     Cut.implementation_list impl_list in
+        step "Remove last in pattern. See below:"
+	     Remove_last_in_patterns.implementation_list impl_list in
+      let impl_list =
+        step "Add a copy for [last x] to remore false cycles. See below:"
+	     Add_copy_for_last.implementation_list impl_list in
       let impl_list =
 	step "Translation of automata done. See below:"
 	     Automata.implementation_list impl_list in
