@@ -4,7 +4,6 @@
 (*               A synchronous language for hybrid systems                *)
 (*                       http://zelus.di.ens.fr                           *)
 (*                                                                        *)
-(*                    Marc Pouzet and Timothy Bourke                      *)
 (*                                                                        *)
 (*  Copyright 2012 - 2019. All rights reserved.                           *)
 (*                                                                        *)
@@ -14,7 +13,12 @@
 (*                                                                        *)
 (**************************************************************************)
 
-(* add extra copy variables for [last x] before static scheduling *)
+(* add an equation [lx = last x] for every variable declared in block *)
+(* of equations and replace [last x] by lx *)
+(* this step is necessary to make static scheduling possible. It may *)
+(* introduce useless copies and is not idempotent. We may add a graph *)
+(* argument later to prevent from introducing copies for equations of  *)
+(* the form [lx = last x] *)
 
 open Misc
 open Location
@@ -40,10 +44,11 @@ let env subst b_env =
     | Sstatic | Sval | Svar _ | Smem _ -> env, subst, eq_list in
   Env.fold last b_env (Env.empty, subst, [])
     
-(* [extend b env eq_list] returns a block in which [env] and [eq_list] *)
+(* [extend_block b env eq_list] returns a block in which [env] and [eq_list] *)
 (* are added to the environment and the set of equations *)
-let extend ({ b_vars = b_vars; b_env = b_env; b_body = body_eq_list } as b)
-           env eq_list =
+let extend_block
+      ({ b_vars = b_vars; b_env = b_env; b_body = body_eq_list } as b)
+      env eq_list =
   let b_vars =
     Env.fold (fun i entry acc -> Zaux.vardec_from_entry i entry :: acc)
              env b_vars in
@@ -152,7 +157,8 @@ and equation subst ({ eq_desc } as eq) =
      let i_list = List.map index i_list in
      let init_list, (env, subst, eq_list) =
        Misc.map_fold init (Env.empty, subst, []) init_list in
-     let b_eq_list = extend (block_eq_list subst b_eq_list) env eq_list in
+     let b_eq_list =
+       extend_block (block_eq_list subst b_eq_list) env eq_list in
      { eq with eq_desc =
 		 EQforall { body with for_index = i_list;
 				      for_init = init_list;
@@ -201,8 +207,8 @@ and block_eq_list_with_substitution subst
   (* translate the body. *)
   let eq_list = equation_list subst eq_list in
   subst,
-  extend { b with b_locals = l_list; b_body = eq_list }
-	 b_env_last_list eq_last_list
+  extend_block { b with b_locals = l_list; b_body = eq_list }
+    b_env_last_list eq_last_list
 
 and block_eq_list subst b =
   let _, b = block_eq_list_with_substitution subst b in b
@@ -250,7 +256,7 @@ let implementation impl =
   match impl.desc with
   | Eopen _ | Etypedecl _ | Econstdecl _
   | Efundecl(_, { f_kind = S | A }) -> impl
-  | Efundecl(n, ({ f_body = e; f_env = f_env } as body)) ->
+  | Efundecl(n, ({ f_body = e } as body)) ->
      { impl with desc = Efundecl(n, { body with f_body = exp Env.empty e }) }
        
 let implementation_list impl_list = Misc.iter implementation impl_list
