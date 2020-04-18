@@ -261,8 +261,6 @@ and scondpat_desc =
     | Econdpat of exp * pattern
     | Econdon of scondpat * exp
 
-and is_on = bool
-
 and 'a match_handler =
     { m_pat: pattern;
       m_body: 'a;
