@@ -163,8 +163,10 @@ and local ({ l_eq = eq_list; l_env = l_env } as l) =
 and expression ({ e_desc = desc } as e) =
   let desc =
     match desc with
-    | Elocal _ | Eglobal _ | Eop _
+    | Elocal _ | Eglobal _ 
     | Econst _ | Econstr0 _ | Elast _ -> desc
+    | Eop(op, e_list) ->
+       Eop(op, List.map expression e_list)
     | Eapp(app, op, e_list) ->
        Eapp(app, op, List.map expression e_list)
     | Etuple(e_list) -> Etuple(List.map expression e_list)
