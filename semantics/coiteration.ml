@@ -567,7 +567,12 @@ let funexp genv { f_kind; f_atomic; f_args; f_res; f_body } =
            let+ v_list = Opt.map (matching_out env) f_res in
            return (v_list, s) } in
   return f
-     
+
+let exp genv env e =
+  let+ init = iexp genv env e in
+  let step s = sexp genv env e s in
+  return (CoF { init = init; step = step })
+  
 let implementation genv i =
     match i with
     | Eletdef(f, e) ->
