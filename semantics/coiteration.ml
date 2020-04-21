@@ -361,11 +361,13 @@ and seq genv env { eq_desc; eq_write } s =
      return (env, Stuple [Stuple(s_list); s_eq])
   | EQautomaton(is_weak, a_h_list), Stuple [ps; Sbool(pr); Stuple(s_list)] ->
       let+ env, ns, nr, s_list =
-       sautomaton_handler_list is_weak genv env a_h_list ps pr s_list in
+        sautomaton_handler_list
+          is_weak genv env eq_write a_h_list ps pr s_list in
      return (env, Stuple [ns; Sbool(nr); Stuple(s_list)])
   | EQmatch(e, m_h_list), Stuple (se :: s_list) ->
      let+ ve, se = sexp genv env e se in
-     let+ env, s_list = smatch_handler_list genv env ve m_h_list s_list in 
+     let+ env, s_list =
+       smatch_handler_list genv env ve eq_write m_h_list s_list in 
      return (env, Stuple (se :: s_list))
   | _ -> None
 
@@ -422,7 +424,7 @@ and set env_eq { var_name } s =
 and remove env_v env_eq =
   Env.fold (fun x _ acc -> Env.remove x acc) env_v env_eq
   
-and sautomaton_handler_list is_weak genv env a_h_list ps pr s_list =
+and sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list =
   match a_h_list, s_list with
   | { s_state; s_vars; s_body; s_trans } :: a_h_list,
     (Stuple [Stuple(ss_var_list); ss_body; Stuple(ss_trans)] as s) :: s_list ->
@@ -432,7 +434,8 @@ and sautomaton_handler_list is_weak genv env a_h_list ps pr s_list =
        | None ->
           (* this is not the good state; try an other one *)
           let+ env, ns, nr, s_list =
-            sautomaton_handler_list is_weak genv env a_h_list ps pr s_list in
+            sautomaton_handler_list
+              is_weak genv env eq_write a_h_list ps pr s_list in
           return (env, ns, nr, s :: s_list)            
        | Some(env_state) ->
           let env = Env.append env_state env in
@@ -442,7 +445,8 @@ and sautomaton_handler_list is_weak genv env a_h_list ps pr s_list =
             sescape_list genv env s_trans ss_trans ps pr in
           return
             (env, ns, nr,
-             Stuple [Stuple(ss_var_list); ss_body; Stuple(ss_trans)] :: s_list) in
+             Stuple [Stuple(ss_var_list); ss_body;
+                     Stuple(ss_trans)] :: s_list) in
      return (env, ns, nr, s_list)
   | _ -> None
 
@@ -467,7 +471,8 @@ and sescape_list genv env escape_list s_list ps pr =
      let ns, nr =
        if v then (ns, e_reset) else (s, r) in
      return ((ns, nr),
-             Stuple [s_cond; Stuple(s_var_list); s_body; s_next_state] :: s_list)
+             Stuple [s_cond; Stuple(s_var_list);
+                     s_body; s_next_state] :: s_list)
   | _ -> None
     
 and sscondpat genv env e_cond s = sexp genv env e_cond s
@@ -481,7 +486,7 @@ and sstate genv env { desc } s =
      return (Sstate1(f, v_list), Stuple(s_list))
   | _ -> None
 
-and smatch_handler_list genv env ve m_h_list s_list =
+and smatch_handler_list genv env ve eq_write m_h_list s_list =
   match m_h_list, s_list with
   | [], [] -> None
   | { m_pat; m_vars; m_body } :: m_h_list,
@@ -492,7 +497,7 @@ and smatch_handler_list genv env ve m_h_list s_list =
        | None ->
           (* this is not the good handler; try an other one *)
           let+ env, s_list =
-            smatch_handler_list genv env ve m_h_list s_list in
+            smatch_handler_list genv env ve eq_write m_h_list s_list in
           return (env, s :: s_list)
        | Some(env_pat) ->
           let env = Env.append env_pat env in
