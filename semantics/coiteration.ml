@@ -244,7 +244,7 @@ let rec sexp genv env { e_desc = e_desc } s =
   | Eop(op, e_list), s ->
      begin match op, e_list, s with
      | Efby, [e1; e2], Stuple [Sval(v); s1; s2] ->
-        let+ v1, s1 = sexp genv env e1 s1  in
+        let+ _, s1 = sexp genv env e1 s1  in
         let+ v2, s2 = sexp genv env e2 s2  in
         return (v, Stuple [Sval(v2); s1; s2])
      | Efby, [e1; e2], Stuple [Sopt(v_opt); s1; s2] ->
@@ -252,9 +252,8 @@ let rec sexp genv env { e_desc = e_desc } s =
         let+ v2, s2 = sexp genv env e2 s2  in
         let v = match v_opt with | None -> v1 | Some(v) -> v in
         return (v, Stuple [Sval(v2); s1; s2])
-     | Eunarypre, [e], Stuple [v; s] -> 
+     | Eunarypre, [e], Stuple [Sval(v); s] -> 
         let+ ve, s = sexp genv env e s in
-        let+ v = match v with | Sopt(v_opt) -> v_opt | _ -> None in
         return (v, Stuple [Sval(ve); s])
      | Eifthenelse, [e1; e2; e3], Stuple [s1; s2; s3] ->
         let+ v1, s1 = sexp genv env e1 s1 in
@@ -315,21 +314,23 @@ and sexp_list genv env e_list s_list =
 
 (* given an environment [env], a local environment [env_w] *)
 (* an a set of written variables [write] *)
-(* complet [env_w] with entries in [env] for variables that appear in [write] *)
-and by env env_w write =
+(* complete [env_handler] with entries in [env] for variables that appear in [write] *)
+(* this is useful for giving the semantics of a control-structure, e.g.,: *)
+(* [if e then do x = ... and y = ... else do x = ... done] *)
+and by env env_handler write =
   S.fold
     (fun x acc ->
       (* if [x in env] but not [x in env_w] *)
       (* then add a default entry in [env_w] *)
       let+ { default } as entry = Env.find_opt x env in
-      if Env.mem x env_w then acc
+      if Env.mem x env_handler then acc
       else
         match default with
         | Val -> None
         | Last(v) | Default(v) ->
            let+ acc = acc in
            return (Env.add x { entry with cur = v } acc))
-    write (return env_w) 
+    write (return env_handler) 
                  
 and seq genv env { eq_desc; eq_write } s =
   match eq_desc, s with 
@@ -369,7 +370,8 @@ and seq genv env { eq_desc; eq_write } s =
      let+ env, s_list, s_eq = sblock genv env v_list eq s_list s_eq in
      return (env, Stuple [Stuple(s_list); s_eq])
   | EQautomaton(is_weak, a_h_list), Stuple [ps; Sbool(pr); Stuple(s_list)] ->
-      let+ env, ns, nr, s_list =
+     (* [ps = state where to go; pr = whether the state must be reset or not *)
+     let+ env, ns, nr, s_list =
         sautomaton_handler_list
           is_weak genv env eq_write a_h_list ps pr s_list in
      return (env, Stuple [ns; Sbool(nr); Stuple(s_list)])
@@ -438,25 +440,27 @@ and sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list =
   | { s_state; s_vars; s_body; s_trans } :: a_h_list,
     (Stuple [Stuple(ss_var_list); ss_body; Stuple(ss_trans)] as s) :: s_list ->
      let r = matching_state ps s_state in
-     let+ env, ns, nr, s_list =
+     let+ env_handler, ns, nr, s_list =
        match r with
        | None ->
           (* this is not the good state; try an other one *)
-          let+ env, ns, nr, s_list =
+          let+ env_handler, ns, nr, s_list =
             sautomaton_handler_list
               is_weak genv env eq_write a_h_list ps pr s_list in
-          return (env, ns, nr, s :: s_list)            
+          return (env_handler, ns, nr, s :: s_list)            
        | Some(env_state) ->
           let env = Env.append env_state env in
-          let+ env, ss_var_list, ss_body =
+          let+ env_handler, ss_var_list, ss_body =
             sblock genv env s_vars s_body ss_var_list ss_body in
           let+ (ns, nr), ss_trans =
             sescape_list genv env s_trans ss_trans ps pr in
           return
-            (env, ns, nr,
+            (env_handler, ns, nr,
              Stuple [Stuple(ss_var_list); ss_body;
                      Stuple(ss_trans)] :: s_list) in
-     return (env, ns, nr, s_list)
+     (* complete missing entries in the environment *)
+     let+ env_handler = by env env_handler eq_write in
+     return (env_handler, ns, nr, s_list)
   | _ -> None
 
 (* [Given a transition t, a name ps of a state in the automaton, a value pr *)
@@ -501,19 +505,21 @@ and smatch_handler_list genv env ve eq_write m_h_list s_list =
   | { m_pat; m_vars; m_body } :: m_h_list,
     (Stuple [Stuple(ss_var_list); ss_body] as s) :: s_list ->
      let r = matching_pattern ve m_pat in
-     let+ env, s_list =
+     let+ env_handler, s_list =
        match r with
        | None ->
           (* this is not the good handler; try an other one *)
-          let+ env, s_list =
+          let+ env_handler, s_list =
             smatch_handler_list genv env ve eq_write m_h_list s_list in
-          return (env, s :: s_list)
+          return (env_handler, s :: s_list)
        | Some(env_pat) ->
           let env = Env.append env_pat env in
-          let+ env, ss_var_list, ss_body =
+          let+ env_handler, ss_var_list, ss_body =
             sblock genv env m_vars m_body ss_var_list ss_body in
-          return (env, Stuple [Stuple(ss_var_list); ss_body] :: s_list) in
-     return (env, s_list)
+          return (env_handler, Stuple [Stuple(ss_var_list); ss_body] :: s_list) in
+     (* complete missing entries in the environment *)
+     let+ env_handler = by env env_handler eq_write in
+     return (env_handler, s_list)
   | _ -> None
 
 and seq_list genv env eq_list s_list =
