@@ -61,7 +61,10 @@ let value v =
 
 (* the bottom environment *)
 let bot_env { eq_write } =
-  S.fold (fun x acc -> Env.add x { cur = Vbot; default = Val } acc) eq_write
+  S.fold (fun x acc -> Env.add x { cur = Vbot; default = Val } acc)
+    eq_write Env.empty
+
+let size { eq_write } = S.fold (fun _ acc -> 1 + acc) eq_write 0
      
 (* [sem genv env e = CoF f s] such that [iexp genv env e = s] *)
 (* and [sexp genv env e = f] *)
@@ -73,6 +76,7 @@ let rec iexp genv env { e_desc } =
   | Eop(op, e_list) ->
      begin match op, e_list with
      | Efby, [{ e_desc = Econst(v) }; e] ->
+        (* synchronous register initialized with a static value *)
         let+ s = iexp genv env e  in
          return (Stuple [Sval(Value(value v)); s])
      | Efby, [e1; e2] ->
@@ -80,8 +84,9 @@ let rec iexp genv env { e_desc } =
         let+ s2 = iexp genv env e2 in
         return (Stuple [Sopt(None); s1; s2])
      | Eunarypre, [e] -> 
+        (* un-initialized synchronous register *)
         let+ s = iexp genv env e in
-        return (Stuple [Sopt(None); s])
+        return (Stuple [Sval(Vnil); s])
      | Eifthenelse, [e1; e2; e3] ->
           let+ s1 = iexp genv env e1 in
           let+ s2 = iexp genv env e2 in
@@ -106,9 +111,6 @@ let rec iexp genv env { e_desc } =
   | Elet(is_rec, eq, e) ->
      let+ s_eq = ieq genv env eq in
      let+ se = iexp genv env e in
-     (* the number of variables defined in [eq] is stored in the *)
-     (* state. It determines the maximum number of iterations *)
-     (* for the fixpoint computation *)
      return (Stuple [s_eq; se])
     
 and ieq genv env { eq_desc } =
@@ -232,10 +234,14 @@ let rec sexp genv env { e_desc = e_desc } s =
      return (v, s)
   | Eop(op, e_list), s ->
      begin match op, e_list, s with
-     | Efby, [e1; e2], Stuple [sv; s1; s2] ->
+     | Efby, [e1; e2], Stuple [Sval(v); s1; s2] ->
         let+ v1, s1 = sexp genv env e1 s1  in
         let+ v2, s2 = sexp genv env e2 s2  in
-        let+ v = match sv with | Sopt(v_opt) -> v_opt | _ -> None in 
+        return (v, Stuple [Sval(v2); s1; s2])
+     | Efby, [e1; e2], Stuple [Sopt(v_opt); s1; s2] ->
+        let+ v1, s1 = sexp genv env e1 s1  in
+        let+ v2, s2 = sexp genv env e2 s2  in
+        let v = match v_opt with | None -> v1 | Some(v) -> v in
         return (v, Stuple [Sval(v2); s1; s2])
      | Eunarypre, [e], Stuple [v; s] -> 
         let+ ve, s = sexp genv env e s in
@@ -276,14 +282,17 @@ let rec sexp genv env { e_desc = e_desc } s =
      let env = Env.append env_eq env in
      let+ v, s = sexp genv env e s in
      return (v, Stuple [s_eq; s])
-  | Elet(true, eq, e), Stuple [Sint(n); s_eq; s] ->
+  | Elet(true, eq, e), Stuple [s_eq; s] ->
+     (* compute a bounded fix-point with [n] steps *)
+     let bot = bot_env eq in
+     let n = size eq in
      let+ env_eq, s_eq =
        fixpoint n
          (fun s_eq env_eq -> seq genv (Env.append env_eq env) eq s_eq)
-         s_eq Env.empty in
+         s_eq bot in
      let env = Env.append env_eq env in
      let+ v, s = sexp genv env e s in
-     return (v, Stuple [Sint(n);  s_eq; s])
+     return (v, Stuple [s_eq; s])
   | _ -> None
 
 and sexp_list genv env e_list s_list =
@@ -294,8 +303,26 @@ and sexp_list genv env e_list s_list =
      let+ v_list, s_list = sexp_list genv env e_list s_list in
      return (v :: v_list, s :: s_list)
   | _ -> None
-       
-and seq genv env { eq_desc } s =
+
+(* given an environment [env], a local environment [env_w] *)
+(* an a set of written variables [write] *)
+(* complet [env_w] with entries in [env] for variables that appear in [write] *)
+and by env env_w write =
+  S.fold
+    (fun x acc ->
+      (* if [x in env] but not [x in env_w] *)
+      (* then add a default entry in [env_w] *)
+      let+ { default } as entry = Env.find_opt x env in
+      if Env.mem x env_w then acc
+      else
+        match default with
+        | Val -> None
+        | Last(v) | Default(v) ->
+           let+ acc = acc in
+           return (Env.add x { entry with cur = v } acc))
+    write (return env_w) 
+                 
+and seq genv env { eq_desc; eq_write } s =
   match eq_desc, s with 
   | EQeq(p, e), s -> 
      let+ v, s = sexp genv env e s in
@@ -310,9 +337,15 @@ and seq genv env { eq_desc } s =
       let+ v = boolean v in
       if v then
         let+ env1, s_eq1 = seq genv env eq1 s_eq1 in
+        (* complete the output environment with default *)
+        (* or last values from all variables defined in [eq_write] but *)
+        (* not in [env1] *)
+        let+ env1 = by env env1 eq_write in
         return (env1, Stuple [s; s_eq1; s_eq2]) 
       else
         let+ env2, s_eq2 = seq genv env eq2 s_eq2 in
+        (* symetric completion *)
+        let+ env2 = by env env2 eq_write in
         return (env2, Stuple [s; s_eq1; s_eq2])
   | EQand(eq_list), Stuple(s_list) ->
      let+ env_eq_list, s_list = seq_list genv env eq_list s_list in
