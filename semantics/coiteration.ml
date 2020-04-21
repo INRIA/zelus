@@ -367,8 +367,8 @@ and seq genv env { eq_desc; eq_write } s =
      let+ env_eq, s_eq = reset ieq seq genv env eq s_eq v in    
      return (env_eq, Stuple [s_eq; se])
   | EQlocal(v_list, eq), Stuple [Stuple(s_list); s_eq] ->
-     let+ env, s_list, s_eq = sblock genv env v_list eq s_list s_eq in
-     return (env, Stuple [Stuple(s_list); s_eq])
+     let+ _, env_local, s_list, s_eq = sblock genv env v_list eq s_list s_eq in
+     return (env_local, Stuple [Stuple(s_list); s_eq])
   | EQautomaton(is_weak, a_h_list), Stuple [ps; Sbool(pr); Stuple(s_list)] ->
      (* [ps = state where to go; pr = whether the state must be reset or not *)
      let+ env, ns, nr, s_list =
@@ -392,8 +392,9 @@ and sblock genv env v_list eq s_list s_eq =
   (* store the next last value *)
   let+ s_list = Opt.map2 (set env_eq) v_list s_list in
   (* remove all local variables from [env_eq] *)
-  let env = remove env_v env_eq in
-  return (env, s_list, s_eq)
+  let env = Env.append env_eq env in
+  let env_eq = remove env_v env_eq in
+  return (env, env_eq, s_list, s_eq)
 
 and svardec genv env env_local { var_name; var_default } s =
   let+ default, s =
@@ -434,7 +435,7 @@ and set env_eq { var_name } s =
 (* every variable [x] defined by [env_v] *)
 and remove env_v env_eq =
   Env.fold (fun x _ acc -> Env.remove x acc) env_v env_eq
-  
+
 and sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list =
   match a_h_list, s_list with
   | { s_state; s_vars; s_body; s_trans } :: a_h_list,
@@ -450,7 +451,7 @@ and sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list =
           return (env_handler, ns, nr, s :: s_list)            
        | Some(env_state) ->
           let env = Env.append env_state env in
-          let+ env_handler, ss_var_list, ss_body =
+          let+ env, env_handler, ss_var_list, ss_body =
             sblock genv env s_vars s_body ss_var_list ss_body in
           let+ (ns, nr), ss_trans =
             sescape_list genv env s_trans ss_trans ps pr in
@@ -476,9 +477,8 @@ and sescape_list genv env escape_list s_list ps pr =
      let+ v, s = reset iscondpat sscondpat genv env e_cond s_cond pr in
      let+ v = basic v in 
      let+ v = boolean v in
-     let+ env_local, s_var_list, s_body =
+     let+ env, env_local, s_var_list, s_body =
        sblock genv env e_vars e_body s_var_list s_body in
-     let env = Env.append env_local env in
      let+ ns, s_next_state = sstate genv env e_next_state s_next_state in
      let+ (s, r), s_list = sescape_list genv env escape_list s_list ps pr in
      let ns, nr =
@@ -514,7 +514,7 @@ and smatch_handler_list genv env ve eq_write m_h_list s_list =
           return (env_handler, s :: s_list)
        | Some(env_pat) ->
           let env = Env.append env_pat env in
-          let+ env_handler, ss_var_list, ss_body =
+          let+ _, env_handler, ss_var_list, ss_body =
             sblock genv env m_vars m_body ss_var_list ss_body in
           return (env_handler, Stuple [Stuple(ss_var_list); ss_body] :: s_list) in
      (* complete missing entries in the environment *)
