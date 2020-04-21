@@ -58,16 +58,10 @@ let value v =
   | Efloat(f) -> Vfloat(f)
                
 (* evaluation functions *)
-(* number of variables defined in a set of equations *)
-let rec size { eq_desc } =
-  match eq_desc with
-  | EQeq(p, _) -> List.length p
-  | EQinit _ -> 1
-  | EQif(_, eq1, eq2) ->
-     max (size eq1) (size eq2)
-  | EQand(eq_list) ->
-     List.fold_left (fun acc eq -> acc + size eq) 0 eq_list
-  | _ -> 0
+
+(* the bottom environment *)
+let bot_env { eq_write } =
+  S.fold (fun x acc -> Env.add x { cur = Vbot; default = Val } acc) eq_write
      
 (* [sem genv env e = CoF f s] such that [iexp genv env e = s] *)
 (* and [sexp genv env e = f] *)
@@ -115,10 +109,7 @@ let rec iexp genv env { e_desc } =
      (* the number of variables defined in [eq] is stored in the *)
      (* state. It determines the maximum number of iterations *)
      (* for the fixpoint computation *)
-     let s_list =
-       if is_rec then
-         [Sint(size eq); s_eq; se] else [s_eq; se] in
-     return (Stuple s_list)
+     return (Stuple [s_eq; se])
     
 and ieq genv env { eq_desc } =
   match eq_desc with
@@ -135,8 +126,7 @@ and ieq genv env { eq_desc } =
   | EQlocal(v_list, eq) ->
      let+ s_v_list = Opt.map (ivardec genv env) v_list in
      let+ s_eq = ieq genv env eq in
-     let v = List.length s_v_list in
-     return (Stuple [Sint(v); Stuple s_v_list; s_eq])
+     return (Stuple [Stuple s_v_list; s_eq])
   | EQreset(eq, e) ->
      let+ s_eq = ieq genv env eq in
      let+ se = iexp genv env e in
@@ -211,14 +201,14 @@ let matching_pattern ve m_pat =
   | _ -> None
        
 (* bounded fixpoint combinator *)
-(* computes f^n(empty) <= fix(f) *)
-let fixpoint n f s =
-  let rec fixpoint n s env =
-    if n <= 0 then return (env, s)
+(* computes f^n(bot) <= fix(f) *)
+let fixpoint n f s bot =
+  let rec fixpoint n s v =
+    if n <= 0 then return (v, s)
     else
-      let+ env, s = fixpoint (n-1) s env in
-      f s env in
-  fixpoint n s Env.empty
+      let+ v, s = fixpoint (n-1) s v in
+      f s v in
+  fixpoint n s bot
 
 (* [reset init step genv env body s r] resets [step genv env body] *)
 (* when [r] is true *)
@@ -289,7 +279,8 @@ let rec sexp genv env { e_desc = e_desc } s =
   | Elet(true, eq, e), Stuple [Sint(n); s_eq; s] ->
      let+ env_eq, s_eq =
        fixpoint n
-         (fun s_eq env_eq -> seq genv (Env.append env_eq env) eq s_eq) s_eq in
+         (fun s_eq env_eq -> seq genv (Env.append env_eq env) eq s_eq)
+         s_eq Env.empty in
      let env = Env.append env_eq env in
      let+ v, s = sexp genv env e s in
      return (v, Stuple [Sint(n);  s_eq; s])
@@ -351,7 +342,7 @@ and sblock genv env v_list eq s_list s_eq =
   let env = Env.append env_v env in
   let+ env_eq, s_eq =
     fixpoint 42 (fun s_eq env_eq -> seq genv (Env.append env_eq env) eq s_eq)
-      s_eq in
+      s_eq Env.empty in
   (* store the next last value *)
   let+ s_list = Opt.map2 (set env_eq) v_list s_list in
   (* remove all local variables from [env_eq] *)
