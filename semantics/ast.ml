@@ -23,7 +23,7 @@ type operator =
 type pateq = Ident.t list
 
 type 'a default = 
-  | Ewith_init : 'a -> 'a default    (* [local x init in ...] *)
+  | Ewith_init : 'a -> 'a default    (* [local x init e in ...] *)
   | Ewith_default : 'a -> 'a default (* [local x default e in ... ] *)
   | Ewith_nothing : 'a default       (* [local x in ... ] *)
 
@@ -97,6 +97,7 @@ and eq_desc =
   | EQreset : eq * exp -> eq_desc
   | EQautomaton : is_weak * (exp, eq) automaton_handler list -> eq_desc
   | EQmatch : exp * (exp, eq) match_handler list -> eq_desc
+
 
 and kind =
   | Efun : kind

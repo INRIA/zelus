@@ -78,7 +78,7 @@ let rec iexp genv env { e_desc } =
      | Efby, [{ e_desc = Econst(v) }; e] ->
         (* synchronous register initialized with a static value *)
         let+ s = iexp genv env e  in
-         return (Stuple [Sval(Value(value v)); s])
+        return (Stuple [Sval(Value(value v)); s])
      | Efby, [e1; e2] ->
         let+ s1 = iexp genv env e1 in
         let+ s2 = iexp genv env e2 in
@@ -135,7 +135,11 @@ and ieq genv env { eq_desc } =
      return (Stuple [s_eq; se])
   | EQautomaton(_, a_h_list) ->
      let+ s_list = Opt.map (iautomaton_handler genv env) a_h_list in
-     return (Stuple(s_list))
+     (* what is the initial state; take the first in the list *)
+     (* and it is not reset at the first instant *)
+     let+ a_h = List.nth_opt a_h_list 0 in
+     let+ i = initial a_h in
+     return (Stuple(i :: Sbool(false) :: s_list))
   | EQmatch(e, m_h_list) ->
      let+ se = iexp genv env e in
      let+ sm_list = Opt.map (imatch_handler genv env) m_h_list in
@@ -153,6 +157,11 @@ and iautomaton_handler genv env { s_vars; s_body; s_trans } =
   let+ st_list = Opt.map (iescape genv env) s_trans in
   return (Stuple [Stuple(sv_list); sb; Stuple(st_list)])
 
+and initial { s_state = { desc } } =
+  match desc with
+  | Estate0pat(f) -> return (Sstate0(f))
+  | _ -> None
+       
 and iescape genv env { e_cond; e_vars; e_body; e_next_state } =
   let+ s_cond = iscondpat genv env e_cond in
   let+ sv_list = Opt.map (ivardec genv env) e_vars in
@@ -208,8 +217,8 @@ let fixpoint n f s bot =
   let rec fixpoint n s v =
     if n <= 0 then return (v, s)
     else
-      let+ v, s = fixpoint (n-1) s v in
-      f s v in
+      let+ v, s = f s v in
+      fixpoint (n-1) s v in      
   fixpoint n s bot
 
 (* [reset init step genv env body s r] resets [step genv env body] *)
