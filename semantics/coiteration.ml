@@ -69,6 +69,8 @@ let rec size { eq_desc } =
      List.fold_left (fun acc eq -> acc + size eq) 0 eq_list
   | _ -> 0
      
+(* [sem genv env e = CoF f s] such that [iexp genv env e = s] *)
+(* and [sexp genv env e = f] *)
 (* initial state *)
 let rec iexp genv env { e_desc } =
   match e_desc with
@@ -181,6 +183,7 @@ and imatch_handler genv env { m_vars; m_body } =
   return (Stuple[Stuple(sv_list); sb])
 
 (* pattern matching *)
+(* match the value [v] against [x1,...,xn] *)
 let matching_pateq x_list v =
   let rec matching env x_list v_list =
     match x_list, v_list with
@@ -193,6 +196,7 @@ let matching_pateq x_list v =
   | Vtuple(v_list) -> matching Env.empty x_list v_list
   | _ -> None
 
+(* match a state f(v1,...,vn) against a state name f(x1,...,xn) *)
 let matching_state ps { desc } =
   match ps, desc with
   | Sstate0(f), Estate0pat(g) when Ident.compare f g = 0 -> Some Env.empty
@@ -200,6 +204,7 @@ let matching_state ps { desc } =
      matching_pateq id_list (Vtuple(v_list))
   | _ -> None
 
+(* match a value [ve] against a pattern [p] *)
 let matching_pattern ve m_pat =
   match ve, m_pat with
   | Vconstr0(f), Econstr0pat(g) when Lident.compare f g = 0 -> Some(Env.empty)

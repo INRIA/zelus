@@ -35,12 +35,7 @@ let rec equation { eq_desc } =
        let def = S.union def1 def2 in
        EQif(e, eq1, eq2), def
     | EQmatch(e, m_h_list) ->
-       let m_h_list, def =
-	 Misc.mapfold
-	   (fun acc ({ m_body = eq } as m_h) ->
-	    let eq, def_eq = equation eq in
-	    { m_h with m_body = eq }, S.union def_eq acc)
-	   S.empty m_h_list in
+       let m_h_list, def = Misc.mapfold match_handler S.empty m_h_list in
        EQmatch(expression e, m_h_list), def
     | EQautomaton(is_weak, a_h_list) ->
        let a_h_list, def =
@@ -56,12 +51,6 @@ and vardec acc ({ var_name; var_default } as v) =
     | Ewith_default(e) -> Ewith_default(expression e)
     | Ewith_nothing -> Ewith_nothing in
   { v with var_default = var_default }, S.add var_name acc
-
-and block v_list eq =
-  let v_list, def = Misc.mapfold vardec S.empty v_list in
-  let eq, def_eq = equation eq in
-  let def = S.diff def_eq def in
-  v_list, eq, def
 
 and state ({ desc } as st) =
   match desc with
@@ -87,11 +76,10 @@ and escape acc { e_reset; e_cond; e_vars; e_body; e_next_state } =
 
 and scondpat e_cond = expression e_cond
           
-and match_handler ({ m_vars; m_body } as m) =
+and match_handler acc ({ m_vars; m_body } as m) =
   let m_vars, def_vars = Misc.mapfold vardec S.empty m_vars in
   let m_body, def_body = equation m_body in
-  { m with m_vars = m_vars; m_body = m_body }, S.diff def_body def_vars
-
+  { m with m_vars = m_vars; m_body = m_body }, S.union (S.diff def_body def_vars) acc
 
 and expression { e_desc = desc } =
   let desc =

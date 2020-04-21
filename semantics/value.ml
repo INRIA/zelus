@@ -32,7 +32,7 @@ type 'a uncausal =
 
 type ('a, 's) costream =
   | CoF : { init : 's;
-            step : 's -> 'a * 's } -> ('a, 's) costream
+            step : 's -> ('a * 's) option } -> ('a, 's) costream
 
 type ('a, 'b, 's) node =
   | CoFun  : ('a -> 'b option) -> ('a, 'b, 's) node
