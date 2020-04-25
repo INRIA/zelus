@@ -1,22 +1,18 @@
-OCAMLC=ocamlc
-OCAMLOPT=ocamlopt
-MENHIR=menhir
-MENHIRLIB = /Users/pouzet/.opam/ocaml-base-compiler/lib/menhirLib
-OCAMLDEP=ocamldep
-OCAMLLEX=ocamllex
+include ../config
 
-BIN = zrun
+GENSOURCES = parser.ml parser.mli lexer.ml
+
+DIRECTORIES=.
+
 
 GENSOURCES = lexer.ml parser.ml
-
-DIRECTORIES = .
-
-INCLUDES += $(DIRECTORIES:%=-I %)
 
 OBJ = location.cmo \
 	ident.cmo \
 	lident.cmo \
 	parsetree.cmo \
+	parser.cmo \
+	lexer.cmo \
 	ast.cmo \
 	monad.cmo \
 	scoping.cmo \
@@ -32,6 +28,7 @@ opt: $(BIN).opt
 byte: $(BIN).byte
 
 $(BIN).opt: $(GENSOURCES) $(OBJ:%.cmo=%.cmx) \
+	$(OCAMLOPT) $(UNIXX) $(OCAMLOPTFLAGS) $(INCLUDES) \
 	-I $(MENHIRLIB) menhirLib.cmxa $(OBJ:%.cmo=%.cmx) -o $(BIN).opt
 
 $(BIN).byte: $(GENSOURCES) $(OBJ) main/main.cmo
@@ -40,6 +37,10 @@ $(BIN).byte: $(GENSOURCES) $(OBJ) main/main.cmo
 
 debug: OCAMLFLAGS += -g
 debug: byte 
+
+parser.cmo parser.cmi: INCLUDES := -I $(MENHIRLIB) $(INCLUDES)
+
+parser.cmx parser.cmi: INCLUDES := -I $(MENHIRLIB) $(INCLUDES)
 
 # Extra dependences
 depend: .depend

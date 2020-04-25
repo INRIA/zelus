@@ -56,7 +56,7 @@ and state ({ desc } as st) =
   match desc with
   | Estate0 _ -> st
   | Estate1(f, e_list) ->
-     { desc = Estate1(f, List.map expression e_list) }
+     { st with desc = Estate1(f, List.map expression e_list) }
 
 and automaton_handler acc ({ s_vars; s_body; s_trans } as h) =
   let s_vars, def_vars = Misc.mapfold vardec S.empty s_vars in
@@ -82,7 +82,7 @@ and match_handler acc ({ m_vars; m_body } as m) =
   { m with m_vars = m_vars; m_body = m_body },
   S.union (S.diff def_body def_vars) acc
 
-and expression { e_desc = desc } =
+and expression ({ e_desc = desc } as e) =
   let desc =
     match desc with
     | Elocal _ | Eglobal _ | Econst _ | Econstr0 _ | Elast _ -> desc
@@ -95,7 +95,7 @@ and expression { e_desc = desc } =
     | Eget(i, e) -> Eget(i, expression e)
     | Eapp(f, e_list) ->
        Eapp(f, List.map expression e_list) in
-  { e_desc = desc }
+  { e with e_desc = desc }
 
 let funexp ({ f_args; f_res; f_body } as fd) =
   let f_args, _ = Misc.mapfold vardec S.empty f_args in

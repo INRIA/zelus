@@ -12,12 +12,8 @@ let make desc start_pos end_pos =
 let make_name op start_pos end_pos =
   make (Evar(Name(op))) start_pos end_pos
 
-let unop op e start_pos end_pos =
-  Eapp({ app_inline = false; app_statefull = false},
-       make_name op start_pos end_pos, [e])
-let binop op e1 e2 start_pos end_pos =
-  Eapp({ app_inline = false; app_statefull = false},
-       make_name op start_pos end_pos, [e1; e2])
+let unop op e start_pos end_pos = Eapp(Name(op), [e])
+let binop op e1 e2 start_pos end_pos = Eapp(Name(op), [e1; e2])
 
 let unary_minus op e start_pos end_pos =
   match op, e.desc with
@@ -30,14 +26,12 @@ and unary_minus_float x = -.x
 
 (* Representation of lists. [] for Pervasives.[] *)
 (* [e1;...;en] for Pervasives.(::) e1 (... Pervasives.[]) *)
-let list_name n = Modname { qual = Initial.stdlib_module; id = n }
+let list_name n = Modname { qual = "List"; id = n }
 
-let nil_desc = Evar(list_name Initial.nil_name)
+let nil_desc = Evar(list_name "[]")
 
 let cons_desc x l start_pos end_pos =
-  Eapp({ app_inline = false; app_statefull = false },
-       make (Evar(list_name Initial.cons_name)) start_pos end_pos,
-       [make (Etuple [x; l]) start_pos end_pos])
+  Eapp(list_name "(::)", [make (Etuple [x; l]) start_pos end_pos])
 
 let rec cons_list_desc l start_pos end_pos =
   match l with
@@ -47,20 +41,18 @@ let rec cons_list_desc l start_pos end_pos =
 and cons_list l start_pos end_pos =
   make (cons_list_desc l start_pos end_pos) start_pos end_pos
 
-let scond_true start_pos end_pos =
-  make (Econdexp(make (Econst(Ebool(true))) start_pos end_pos))
-       start_pos end_pos
 
 (* constructors with arguments *)
-let app f l =
-  match f.desc, l with
-  | Econstr0(id), [{ desc = Etuple(arg_list) }] ->
-    (* C(e1,...,en) *) Econstr1(id, arg_list)
-  | Econstr0(id), [arg] ->
-     (* C(e) *) Econstr1(id, [arg])
-  | _ -> Eapp({ app_inline = false; app_statefull = false}, f, l)
+let app f l = Eapp(f, l)
 
-let constr c p =
+let constr f e =
+  match e.desc with
+  | Etuple(arg_list) ->
+    (* C(e1,...,en) *) Econstr1(f, arg_list)
+  | _ ->
+     (* C(e) *) Econstr1(id, [e])
+
+let constr_pat c p =
    match p with
   | { desc = Etuplepat(arg_list) } ->
     (* C(p1,...,pn) *) Econstr1pat(c, arg_list)
@@ -458,34 +450,10 @@ equation_desc:
     { EQreset(eq, e) }
   | l = let_list lo = local_list DO eq_list = equation_empty_list DONE
     { EQblock(block l lo eq_list $startpos $endpos) }
-  | FORALL i = index_list bo = block(equation_list)
-    INITIALIZE inits = init_equation_list DONE
-    { EQforall
-	{ for_indexes = i; for_init = inits; for_body = bo } }
-  | FORALL i = index_list  bo = block(equation_list) DONE
-    { EQforall
-	{ for_indexes = i; for_init = []; for_body = bo } }
   | p = pattern EQUAL e = seq_expression
     { EQeq(p, e) }
-  | i = ide PLUSEQUAL e = seq_expression
-    { EQpluseq(i, e) }
-  | PERIOD p = pattern EQUAL e = period_expression
-    { EQeq(p, make (Eperiod(e)) $startpos(e) $endpos(e)) }
-  | DER i = ide EQUAL e = seq_expression opt = optional_init
-      { EQder(i, e, opt, []) }
-  | DER i = ide EQUAL e = seq_expression opt = optional_init
-    RESET opt_bar pe = present_handlers(expression)
-      { EQder(i, e, opt, List.rev pe) }
-  | NEXT i = ide EQUAL e = seq_expression
-      { EQnext(i, e, None) }
-  | NEXT i = ide EQUAL e = seq_expression INIT e0 = seq_expression
-      { EQnext(i, e, Some(e0)) }
   | INIT i = ide EQUAL e = seq_expression
       { EQinit(i, e) }
-  | EMIT i = ide
-      { EQemit(i, None) }
-  | EMIT i = ide EQUAL e = seq_expression
-      { EQemit(i, Some(e)) }
   | eq1 = equation BEFORE eq2 = equation
       { EQbefore [eq1; eq2] }
 ;
@@ -778,7 +746,7 @@ pattern:
   | p = pattern_comma_list %prec prec_list
       { make (Etuplepat(List.rev p)) $startpos $endpos }
   | c = constructor p = simple_pattern
-      { make (constr c p) $startpos $endpos }
+      { make (constr_pat c p) $startpos $endpos }
 ;
 
 simple_pattern:
@@ -904,27 +872,12 @@ expression_desc:
       { cons_desc e1 e2 ($startpos(e1)) ($endpos(e2)) }
   | e1 = expression FBY e2 = expression
       { Eop(Efby, [e1; e2]) }
-  | f = simple_expression l = simple_expression_list
+  | f = ext_ident l = simple_expression_list
       {  app f (List.rev l) }
-  | INLINE f = simple_expression l = simple_expression_list
-      {  Eapp({ app_inline = true; app_statefull = false}, f, List.rev l) }
-  | RUN f = simple_expression l = simple_expression_list
-      {  Eapp({ app_inline = false; app_statefull = true}, f, List.rev l) }
-  | INLINE RUN f = simple_expression l = simple_expression_list
-      {  Eapp({ app_inline = true; app_statefull = true}, f, List.rev l) }
-  /* | RUN f = simple_expression e = simple_expression  { Eop(Erun, [f; e]) } */
-  | ATOMIC e = expression
-      { Eop(Eatomic, [e]) }
+  | f = constructor e = simple_expression
+      {  constr f e }
   | PRE e = expression
       { Eop(Eunarypre, [e]) }
-  | INIT
-      { Eop(Einitial, []) }
-  | UP e = expression
-      { Eop(Eup, [e]) }
-  | TEST e = expression
-      { Eop(Etest, [e]) }
-  | DISC e = expression
-      { Eop(Edisc, [e]) }
   | IF e1 = seq_expression THEN e2 = seq_expression ELSE e3 = expression
       { Eop(Eifthenelse, [e1; e2; e3]) }
   | e1 = expression MINUSGREATER e2 = expression

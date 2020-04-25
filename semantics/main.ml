@@ -1,7 +1,8 @@
 (* the main *)
 open Initial
 open Coiteration
-
+open Location
+   
 exception Error
         
 let lexical_error err loc =
@@ -44,6 +45,7 @@ let eval file =
     None
 
 let doc_main "The main node to evaluate\n"
+
 let errmsg = "Options are:"
 
 let main () =
@@ -54,4 +56,5 @@ let main () =
       eval
       errmsg
 
-let _ = main (); exit 0;;
+let _ = main ()
+let _ = exit 0

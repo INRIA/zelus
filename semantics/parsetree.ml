@@ -34,6 +34,8 @@ type pattern = pattern_desc localized
 
 and pattern_desc =
   | Econstr0pat : Lident.t -> pattern_desc
+  | Econstr1pat : Lident.t * pattern list -> pattern_desc
+  | Evarpat : String.t -> pattern_desc
 
 type statepatdesc =
   | Estate0pat : String.t -> statepatdesc 
@@ -72,18 +74,22 @@ type ('exp, 'body) automaton_handler =
 
 type is_weak = bool
 
-type exp = { e_desc : exp_desc; e_loc : Location.t }
+type longname =
+  | Name : String.t -> longname
+  | Modname : { qual: String.t; id: String.t } -> longname
+        
+type exp = exp_desc localized
 
 and exp_desc = 
   | Econst : const -> exp_desc 
   | Econstr0 : Lident.t -> exp_desc 
-  | Elocal : String.t -> exp_desc 
-  | Eglobal : Lident.t -> exp_desc 
+  | Econstr1 : Lident.t * exp list -> exp_desc 
+  | Evar : longname -> exp_desc 
   | Elast : String.t -> exp_desc 
   | Eop : operator * exp list -> exp_desc 
   | Eget : int * exp -> exp_desc 
   | Etuple : exp list -> exp_desc 
-  | Eapp : Lident.t * exp list -> exp_desc 
+  | Eapp : longname * exp list -> exp_desc 
   | Elet : is_rec * eq * exp -> exp_desc 
   
 and is_rec = bool
