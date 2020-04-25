@@ -206,8 +206,8 @@ let matching_state ps { desc } =
   | _ -> None
 
 (* match a value [ve] against a pattern [p] *)
-let matching_pattern ve m_pat =
-  match ve, m_pat with
+let matching_pattern ve { desc } =
+  match ve, desc with
   | Vconstr0(f), Econstr0pat(g) when Lident.compare f g = 0 -> Some(Env.empty)
   | _ -> None
        
@@ -585,3 +585,22 @@ let implementation genv i =
        return (Genv.add (Name(f)) (Gfun(fv)) genv)
 
 let program genv i_list = Opt.fold implementation genv i_list
+
+(* output a sequence of values *)
+let from output (CoF { init ; step }) n =
+  let rec fromrec s n =
+    if n = 0 then return ()
+    else
+      let+ r, s = step s in
+      let+ _ = output r in
+      fromrec s (n-1) in
+  fromrec init n
+        
+let n = 10
+      
+(* The main entry function *)
+let program genv i_list e output =
+  let i_list = Write.program i_list in
+  let+ genv = program genv i_list in
+  let+ cof = exp genv Env.empty e in
+  from output cof n

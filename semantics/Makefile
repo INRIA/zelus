@@ -3,21 +3,25 @@ OCAMLOPT=ocamlopt
 MENHIR=menhir
 MENHIRLIB = /Users/pouzet/.opam/ocaml-base-compiler/lib/menhirLib
 OCAMLDEP=ocamldep
+OCAMLLEX=ocamllex
 
 BIN = zrun
 
-GENSOURCES = 
+GENSOURCES = lexer.ml parser.ml
 
 DIRECTORIES = .
 
 INCLUDES += $(DIRECTORIES:%=-I %)
 
-OBJ = ident.cmo \
+OBJ = location.cmo \
+	ident.cmo \
 	lident.cmo \
-	value.cmo \
-	monad.cmo \
-	initial.cmo \
+	parsetree.cmo \
 	ast.cmo \
+	monad.cmo \
+	scoping.cmo \
+	value.cmo \
+	initial.cmo \
 	write.cmo \
 	coiteration.cmo \
 	main.cmo

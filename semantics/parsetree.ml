@@ -1,8 +1,5 @@
 (* The ast is essentially that of first-order Zelus *)
 
-(* set of names *)
-module S = Set.Make(Ident)
-
 (* untyped and uncausal streams *)
 type 'a localized = { desc: 'a; loc: Location.t }
 
@@ -20,7 +17,7 @@ type operator =
 | Eminusgreater : operator
 | Eunarypre : operator
 
-type pateq = Ident.t list
+type pateq = String.t list
 
 type 'a default = 
   | Ewith_init : 'a -> 'a default    (* [local x init e in ...] *)
@@ -28,25 +25,25 @@ type 'a default =
   | Ewith_nothing : 'a default       (* [local x in ... ] *)
 
 type 'exp vardec =
-  { var_name: Ident.t;
+  { var_name: String.t;
     var_default: 'exp default;
     var_loc: Location.t;
   }
 
 type pattern = pattern_desc localized
 
-and pattern_desc = 
+and pattern_desc =
   | Econstr0pat : Lident.t -> pattern_desc
 
 type statepatdesc =
-  | Estate0pat : Ident.t -> statepatdesc 
-  | Estate1pat : Ident.t * Ident.t list -> statepatdesc
+  | Estate0pat : String.t -> statepatdesc 
+  | Estate1pat : String.t * String.t list -> statepatdesc
 
 type statepat = statepatdesc localized
 
 type 'exp state_expdesc =
-  | Estate0 : Ident.t -> 'exp state_expdesc
-  | Estate1 : Ident.t * 'exp list -> 'exp state_expdesc
+  | Estate0 : String.t -> 'exp state_expdesc
+  | Estate1 : String.t * 'exp list -> 'exp state_expdesc
 
 type 'exp state_exp = 'exp state_expdesc localized
 
@@ -63,8 +60,7 @@ type ('exp, 'body) match_handler =
   { m_pat : pattern;
     m_vars: 'exp vardec list;
     m_body: 'body;
-    m_loc: Location.t;
-  }
+    m_loc: Location.t }
 
 type ('exp, 'body) automaton_handler =
   { s_state: statepat;
@@ -76,14 +72,14 @@ type ('exp, 'body) automaton_handler =
 
 type is_weak = bool
 
-type exp = { e_desc: exp_desc; e_loc: Location.t }
+type exp = { e_desc : exp_desc; e_loc : Location.t }
 
 and exp_desc = 
   | Econst : const -> exp_desc 
   | Econstr0 : Lident.t -> exp_desc 
-  | Elocal : Ident.t -> exp_desc 
+  | Elocal : String.t -> exp_desc 
   | Eglobal : Lident.t -> exp_desc 
-  | Elast : Ident.t -> exp_desc 
+  | Elast : String.t -> exp_desc 
   | Eop : operator * exp list -> exp_desc 
   | Eget : int * exp -> exp_desc 
   | Etuple : exp list -> exp_desc 
@@ -92,15 +88,13 @@ and exp_desc =
   
 and is_rec = bool
            
-and eq =
-  { eq_desc: eq_desc; (* descriptor *)
-    eq_write: S.t; (* set of written variables *)
-    eq_loc: Location.t; (* its location *)
-  }
+and eq = { eq_desc: eq_desc; (* descriptor *)
+           eq_loc: Location.t; (* its location in the source file *)
+         }
 
 and eq_desc = 
   | EQeq : pateq * exp -> eq_desc
-  | EQinit : Ident.t * exp -> eq_desc
+  | EQinit : String.t * exp -> eq_desc
   | EQif : exp * eq * eq -> eq_desc
   | EQand : eq list -> eq_desc
   | EQlocal : exp vardec list * eq -> eq_desc
@@ -121,7 +115,7 @@ type funexp =
     f_args: exp vardec list;
     f_res: exp vardec list;
     f_body: eq;
-    f_loc: Location.t
+    f_loc: Location.t;
   }
 
 type implementation = implementation_desc localized

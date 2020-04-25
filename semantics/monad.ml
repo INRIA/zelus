@@ -60,6 +60,18 @@ module Opt =
       | _ -> None
   end
 
+module State =
+  struct
+    type ('a, 'state) mon = 'state -> 'a * 'state
+                          
+    let ret x = fun s -> (x, s)
+    let bind f g =
+      fun s -> match f s with (a, s') -> g a s'
+
+    let return = ret
+    let (let+) = bind
+  end
+
 module Misc =
   struct
     let rec mapfold f acc x_list =
