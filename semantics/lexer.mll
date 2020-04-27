@@ -28,6 +28,7 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "disc", DISC;
   "do", DO;
   "done", DONE;
+  "returns", RETURNS;
   "until", UNTIL;
   "unless", UNLESS;
   "emit", EMIT;

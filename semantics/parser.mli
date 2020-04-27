@@ -21,6 +21,7 @@ type token =
   | SEMI
   | RUN
   | RPAREN
+  | RETURNS
   | RESET
   | REC
   | RBRACKETBAR
@@ -113,9 +114,5 @@ type token =
 exception Error
 
 (* The monolithic API. *)
-
-val scalar_interface_file: (Lexing.lexbuf -> token) -> Lexing.lexbuf -> (Parsetree.interface list)
-
-val interface_file: (Lexing.lexbuf -> token) -> Lexing.lexbuf -> (Parsetree.interface list)
 
 val implementation_file: (Lexing.lexbuf -> token) -> Lexing.lexbuf -> (Parsetree.implementation list)

@@ -37,7 +37,9 @@ type pattern = pattern_desc localized
 
 and pattern_desc = 
   | Econstr0pat : Lident.t -> pattern_desc
-
+  | Econstr1pat : Lident.t * pattern list -> pattern_desc
+  | Evarpat : Ident.t -> pattern_desc
+  
 type statepatdesc =
   | Estate0pat : Ident.t -> statepatdesc 
   | Estate1pat : Ident.t * Ident.t list -> statepatdesc
@@ -99,15 +101,15 @@ and eq =
   }
 
 and eq_desc = 
-  | EQeq : pateq * exp -> eq_desc
-  | EQinit : Ident.t * exp -> eq_desc
-  | EQif : exp * eq * eq -> eq_desc
-  | EQand : eq list -> eq_desc
-  | EQlocal : exp vardec list * eq -> eq_desc
-  | EQreset : eq * exp -> eq_desc
+  | EQeq : pateq * exp -> eq_desc  (* [p = e] *)
+  | EQinit : Ident.t * exp -> eq_desc (* [init x = e] *)
+  | EQif : exp * eq * eq -> eq_desc (* [if e then eq1 else eq2] *)
+  | EQand : eq list -> eq_desc (* [eq1 and...and eqn] *)
+  | EQlocal : exp vardec list * eq -> eq_desc (* local x [...] do eq done *)
+  | EQreset : eq * exp -> eq_desc (* [reset eq every e] *)
   | EQautomaton : is_weak * (exp, eq) automaton_handler list -> eq_desc
   | EQmatch : exp * (exp, eq) match_handler list -> eq_desc
-
+  | EQempty : eq_desc
 
 and kind =
   | Efun : kind
