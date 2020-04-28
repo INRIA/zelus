@@ -24,23 +24,7 @@ let unary_minus op e start_pos end_pos =
 let unary_minus_int x = -x
 and unary_minus_float x = -.x
 
-(* Representation of lists. [] for Pervasives.[] *)
-(* [e1;...;en] for Pervasives.(::) e1 (... Pervasives.[]) *)
-let list_name n = Modname { qual = "List"; id = n }
-
-let nil_desc = Evar(list_name "[]")
-
-let cons_desc x l start_pos end_pos =
-  Eapp(list_name "(::)", [make (Etuple [x; l]) start_pos end_pos])
-
-let rec cons_list_desc l start_pos end_pos =
-  match l with
-  | [] -> nil_desc
-  | x :: l -> cons_desc x (cons_list l start_pos end_pos) start_pos end_pos
-
-and cons_list l start_pos end_pos =
-  make (cons_list_desc l start_pos end_pos) start_pos end_pos
-
+let no_eq start_pos end_pos = make (EQempty) start_pos end_pos
 
 (* constructors with arguments *)
 let app f l = Eapp(f, l)
@@ -65,53 +49,25 @@ let block l lo eq_list startpos endpos =
 
 %token EQUAL          /* "=" */
 %token EQUALEQUAL     /* "==" */
-%token PLUSEQUAL      /* "+=" */
 %token AMPERSAND      /* "&" */
 %token AMPERAMPER     /* "&&" */
 %token BARBAR         /* "||" */
-%token QUOTE          /* "'" */
 %token LPAREN         /* "(" */
 %token RPAREN         /* ")" */
-%token LBRACKET       /* "[" */
-%token RBRACKET       /* "]" */
 %token STAR           /* "*" */
 %token PLUS           /* "+" */
 %token MINUS          /* "-" */
 %token COMMA          /* "," */
-%token SEMI           /* ";" */
-%token SEMISEMI       /* ";;" */
 %token MINUSGREATER   /* "->" */
-%token AFUN           /* "-A->" */
-%token ADFUN          /* "-AD->" */
-%token ASFUN          /* "-AS->" */
-%token DFUN           /* "-D->" */
-%token CFUN           /* "-C->" */
-%token SFUN           /* "-S->" */
-%token PFUN           /* "~D~>" */
-%token DOT            /* "." */
-%token DOTDOT         /* ".." */
-%token COLON          /* ":" */
-%token COLONCOLON     /* "::" */
-%token LBRACE         /* "{" */
 %token BAR            /* "|" */
-%token RBRACE         /* "}" */
-%token LBRACKETBAR    /* "[|" */
-%token RBRACKETBAR    /* "|]" */
-%token UNDERSCORE     /* "_" */
-%token TEST           /* "?" */
 %token <string> CONSTRUCTOR
 %token <string> IDENT
 %token <int> INT
 %token <float> FLOAT
 %token <bool> BOOL
-%token <char> CHAR
-%token <string> STRING
-%token AS             /* "as" */
-%token FORALL         /* "forall" */
 %token RETURNS        /* "returns" */
 %token AUTOMATON      /* "automaton" */
 %token ATOMIC         /* "atomic" */
-%token INLINE         /* "inline" */
 %token CONTINUE       /* "continue" */
 %token DO             /* "do" */
 %token DONE           /* "done" */
@@ -119,48 +75,27 @@ let block l lo eq_list startpos endpos =
 %token UNLESS         /* "unless" */
 %token MATCH          /* "match" */
 %token WITH           /* "with" */
-%token EMIT           /* "emit" */
-%token PRESENT        /* "present" */
-%token PERIOD         /* "period" */
 %token END            /* "end" */
-%token EXCEPTION      /* "exception" */
-%token EXTERNAL       /* "external" */
-%token IN             /* "in" */
-%token BEFORE         /* "before" */
-%token OUT            /* "out" */
 %token LET            /* "let" */
 %token REC            /* "rec" */
-%token DER            /* "der" */
+%token IN             /* "in" */
 %token INIT           /* "init" */
-%token INITIALIZE     /* "initialize" */
 %token DEFAULT        /* "default" */
 %token LOCAL          /* "local" */
-%token WHERE          /* "where" */
 %token AND            /* "and" */
-%token TYPE           /* "type" */
-%token STATIC         /* "static" */
-%token OF             /* "of" */
 %token FUN            /* "fun" */
 %token NODE           /* "node" */
-%token HYBRID         /* "hybrid" */
-%token PROBA          /* "proba" */
-%token DISCRETE       /* "discrete" */
 %token FBY            /* "fby" */
-%token NEXT           /* "next" */
 %token PRE            /* "pre" */
-%token UP             /* "up" */
-%token DISC           /* "disc" */
 %token EVERY          /* "every" */
 %token OR             /* "or" */
-%token ON             /* "on" */
 %token RESET          /* "reset" */
 %token LAST           /* "last" */
 %token IF             /* "if" */
 %token THEN           /* "then" */
 %token ELSE           /* "else" */
-%token OPEN           /* "open" */
-%token VAL            /* "val" */
-%token RUN            /* "run" */
+%token DOT            /* "." */
+%token ON             /* "on" */
 %token <string> PREFIX
 %token <string> INFIX0
 %token <string> INFIX1
@@ -173,36 +108,31 @@ let block l lo eq_list startpos endpos =
 %nonassoc prec_no_end
 %nonassoc END
 %right IN
-%right prec_seq
-%right SEMI
-%nonassoc prec_ident
 %right prec_list
 %left EVERY
 %left AUTOMATON
 %left INIT
 %left UNTIL
 %left UNLESS
+%nonassoc THEN
 %nonassoc ELSE
-%right BEFORE
-%left  AS
 %left  BAR
 %left COMMA
 %left RPAREN
-%right MINUSGREATER SFUN DFUN CFUN AFUN ADFUN ASFUN PFUN
+%right MINUSGREATER
 %left OR BARBAR
 %left AMPERSAND AMPERAMPER
 %left INFIX0 EQUAL
 %right INFIX1
-%right COLONCOLON
 %left INFIX2 PLUS SUBTRACTIVE MINUS
 %left STAR INFIX3
 %left ON
 %left INFIX4
 %right prec_uminus
 %right FBY
-%right PRE UP DISC TEST ATOMIC
+%right PRE ATOMIC
 %right PREFIX
-%left DOT
+%right DOT
 
 %start implementation_file
 %type <Parsetree.implementation list> implementation_file
@@ -251,15 +181,10 @@ implementation_file:
 ;
 
 decl_list(X):
-  | dl = decl_list(X) x = X opt_semi_semi
+  | dl = decl_list(X) x = X
       { x :: dl }
-  | x = X opt_semi_semi
+  | x = X 
       { [x] }
-;
-
-opt_semi_semi:
-  | /* empty */ {}
-  | SEMISEMI {}
 ;
 
 implementation:
@@ -272,10 +197,6 @@ implementation:
 			f_loc = localise $startpos(a) $endpos(eq) }) }
 ;
 
-%inline is_rec:
-  | REC { true }
-  |     { false }
-;
 
 %inline is_atomic:
   | ATOMIC { true }
@@ -300,15 +221,15 @@ equation_desc:
   | AUTOMATON opt_bar a = automaton_handlers opt_end
     { EQautomaton(List.rev a) }
   | MATCH e = seq_expression WITH opt_bar
-    m = match_handlers(equation) opt_end
+    m = match_handlers opt_end
     { EQmatch(e, List.rev m) }
   | IF e = seq_expression THEN eq1 = equation
     ELSE eq2 = equation opt_end
     { EQifthenelse(e, eq1, eq2) }
   | IF e = seq_expression THEN eq1 = equation
-      { EQifthenelse(e, b1, no_eq) }
+      { EQifthenelse(e, b1, no_eq $startpos $endpos) }
   | IF e = seq_expression ELSE eq2 = equation
-      { EQifthenelse(e, no_eq, eq2) }
+      { EQifthenelse(e, no_eq $startpos $endpos, eq2) }
   | RESET eq = equation EVERY e = expression
     { EQreset(eq, e) }
   | LOCAL v_list = vardec_list DO eq = equation DONE
@@ -316,7 +237,9 @@ equation_desc:
   | p = pateq EQUAL e = seq_expression
     { EQeq(p, e) }
   | INIT i = ide EQUAL e = seq_expression
-      { EQinit(i, e) }
+    { EQinit(i, e) }
+  | eq_list = equation_list
+    { EQand(eq_list) }
 ;
 
 opt_end:
@@ -339,23 +262,25 @@ automaton_handler:
 	     s_until = []; s_unless = [] }
             $startpos $endpos}
   | sp = state_pat MINUSGREATER v_list_eq = vardec_with_eq THEN
-                                v_list_eq_emission = emission st = state
-    { make { s_state = sp; s_vars = fst v_list_eq; s_body = snd v_list_eq;
+                                e = emission
+    { let v_list_e, body_e, st_e = e in
+      make { s_state = sp; s_vars = fst v_list; s_body = snd v_list_eq;
 	     s_until =
-               [{ e_cond = scond_true $endpos(v_list_eq) $startpos(st);
-                  e_reset = true; e_vars = fst v_list_eq_emission;
-		  e_body = snd v_list_eq_emission;
-		  e_next_state = st }];
+               [{ e_cond = scond_true $endpos(v_list_eq) $startpos(e);
+                  e_reset = true; e_vars = v_list_e;
+		  e_body = body_e;
+		  e_next_state = st_e }];
 	   s_unless = [] }
       $startpos $endpos}
   | sp = state_pat MINUSGREATER v_list_eq = vardec_with_eq CONTINUE
-                                v_list_eq_emission = emission st = state
-    { make { s_state = sp; s_vars = fst v_list_eq; s_body = snd v_list_eq;
+                                e = emission
+    { let v_list_e, body_e, st_e = e in
+      make { s_state = sp; s_vars = fst v_list; s_body = snd v_list_eq;
 	     s_until =
-               [{ e_cond = scond_true $endpos(v_list_eq) $startpos(st);
-                  e_reset = false; e_vars = fst v_list_eq_emission;
-		  e_body = snd v_list_eq_emission;
-		  e_next_state = st }];
+               [{ e_cond = scond_true $endpos(v_list_eq) $startpos(e);
+                  e_reset = false; e_vars = v_list_e;
+		  e_body = body_e;
+		  e_next_state = st_e }];
 	   s_unless = [] }
       $startpos $endpos}
   | sp = state_pat MINUSGREATER v_list_eq = vardec_with_eq
@@ -374,17 +299,21 @@ automaton_handler:
 
 escape :
   | sc = scondpat THEN s = state
-    { { e_cond = sc; e_reset = true; e_vars = []; e_body = no_eq;
+    { { e_cond = sc; e_reset = true; e_vars = [];
+	e_body = no_eq $startpos $endpos;
 	e_next_state = s } }
   | sc = scondpat CONTINUE s = state
-    { { e_cond = sc; e_reset = false; e_vars = []; e_body = no_eq;
+    { { e_cond = sc; e_reset = false; e_vars = [];
+	e_body = no_eq $startpos $endpos;
 	e_next_state = s } }
-  | sc = scondpat THEN e = emission s = state
-    { { e_cond = sc; e_reset = true;
-	e_vars = fst e; e_body = snd e; e_next_state = s } }
-  | sc = scondpat CONTINUE e = emission s = state
-    { { e_cond = sc; e_reset = false; e_vars = fst e;
-	e_body = snd e; e_next_state = s } }
+  | sc = scondpat THEN e = emission
+    { let e_vars, e_body, s = e in
+      { e_cond = sc; e_reset = true;
+	e_vars = e_vars; e_body = e_body; e_next_state = s } }
+  | sc = scondpat CONTINUE e = emission
+    { let e_vars, e_body, s = e in
+      { e_cond = sc; e_reset = false;
+	e_vars = e_vars; e_body = e_body; e_next_state = s } }
 ;
 
 escape_list :
@@ -429,9 +358,10 @@ vardec_with_eq:
 ;
 
 emission:
-  | v_list_eq = vardec_with_eq IN 
-    { v_list_eq }
-  | { [], [] }
+  | v_list_eq = vardec_with_eq IN s = state
+    { let v_list, eq = v_list_eq in v_list, eq, s }
+  | s = state
+    { [], no_eq $startpos $endpos, s }
 ;
 
 %inline vardec_list:
@@ -443,10 +373,10 @@ vardec:
   | ide = ide
     { { var_name = ide; var_default = Ewith_nothing;
 	var_loc = localise $startpos $endpos } }
-  | ide = ide INIT e = expression
+  | ide = ide INIT e = simple_expression
     { { var_name = ide; var_default = Ewith_init e;
 	     var_loc = localise $startpos $endpos id; Init(e) } }
-  | ide = ide DEFAULT e = expression
+  | ide = ide DEFAULT e = simple_expression
     { { var_name = ide; var_default = Ewith_default e;
 	     var_loc = localise $startpos $endpos id; Init(e) } }
 ;
@@ -458,16 +388,16 @@ opt_bar:
 
 
 /* Pattern matching */
-match_handlers(X):
-  | m = match_handler(X)
-      { [m ] }
-  | mh = match_handlers(X) BAR m = match_handler(X)
+match_handlers:
+  | m = match_handler
+      { [ m ] }
+  | mh = match_handlers BAR m = match_handler
       { m :: mh }
 ;
 
-match_handler(X):
-  | p = pattern MINUSGREATER x = X
-      { { m_pat = p; m_body = x } }
+match_handler:
+  | p = pattern MINUSGREATER v = vardec_with_eq
+      { { m_pat = p; m_vars = fst v; m_body = snd v } }
 ;
 
 /* Patterns */
@@ -600,7 +530,7 @@ expression_desc:
 
 constructor:
   | c = CONSTRUCTOR
-      { Name(c) } %prec prec_ident
+      { Name(c) }
   | c1 = CONSTRUCTOR DOT c2 = CONSTRUCTOR
       { Modname({qual = c1; id = c2}) }
 ;
