@@ -18,8 +18,8 @@ module Env =
 module S = Set.Make (String)
 
 (* compute the set of names defined by an equation *)
-let rec buildeq defnames { eq_desc } =
-  match eq_desc with
+let rec buildeq defnames { desc } =
+  match desc with
   | EQeq(pat, _) -> buildpat defnames pat
   | EQinit(n, _) -> if S.mem n defnames then defnames else S.add n defnames
   | EQreset(eq, _) -> buildeq defnames eq
@@ -34,27 +34,31 @@ let rec buildeq defnames { eq_desc } =
        buildeq defnames eq2
     | EQmatch(_, m_h_list) ->
        List.fold_left build_match_handler defnames m_h_list
-    | EQautomaton(_, a_h_list) ->
+    | EQautomaton(a_h_list) ->
        List.fold_left build_automaton_handler defnames a_h_list
-
-and build_vardec defnames { var_name } = S.add var_name defnames
+    | EQempty ->  defnames
+                
+and build_vardec defnames { desc = { var_name } } = S.add var_name defnames
 
 and buildpat defnames id_list =
   List.fold_left (fun acc x -> S.add x defnames) defnames id_list
 
-and build_match_handler defnames { m_pat; m_vars; m_body } =
+and build_match_handler defnames { desc = { m_pat; m_vars; m_body } } =
   let defnames_m_vars = List.fold_left build_vardec S.empty m_vars in
   let defnames_m_body = buildeq S.empty m_body in
   S.union defnames (S.diff defnames_m_body defnames_m_vars)
 
-and build_automaton_handler defnames { s_vars; s_body; s_trans } =
+and build_automaton_handler
+defnames { desc = { s_vars; s_body; s_until; s_unless } } =
   let defnames_s_vars = List.fold_left build_vardec S.empty s_vars in
   let defnames_s_body = buildeq S.empty s_body in
   let defnames_s_trans =
-    List.fold_left build_escape defnames_s_body s_trans in
+    List.fold_left build_escape defnames_s_body s_until in
+  let defnames_s_trans =
+    List.fold_left build_escape defnames_s_trans s_unless in
   S.union defnames (S.diff defnames_s_trans defnames_s_vars)
 
-and build_escape defnames { e_vars; e_body } =
+and build_escape defnames { desc = { e_vars; e_body } } =
   let defnames_e_vars = List.fold_left build_vardec S.empty e_vars in
   let defnames_e_body = buildeq defnames e_body in
   S.union defnames (S.diff defnames_e_body defnames_e_vars)
@@ -73,9 +77,9 @@ let empty =
 
 (* [env_pat] is the environment for names that appear on the *)
 (* left of a definition. [env] is for names that appear on the right *)
-let rec equation env_pat env { eq_desc; eq_loc } =
+let rec equation env_pat env { desc; loc } =
   let eq_desc =
-    match eq_desc with
+    match desc with
     | EQeq(pat, e) ->
        let pat = pateq env_pat pat in
        let e = expression env e in
@@ -106,10 +110,22 @@ let rec equation env_pat env { eq_desc; eq_loc } =
        let e = expression env e in
        let m_h_list = List.map (match_handler env_pat env) m_h_list in
        Ast.EQmatch(e, m_h_list)
-    | EQautomaton(is_weak, a_h_list) ->
-       let a_h_list =
+    | EQautomaton(a_h_list) ->
+       let { desc } = List.hd a_h_list in
+       let is_weak = match desc with { s_until = with) let check =
+         List.forall
+           (fun acc
+	        { desc = { s_until; s_unless } } ->
+	     if is_weak then s_unless = [] else s_until = [])
+           (List.hd a_h_list) in
+       if check thenthen is_weak || (until <> []), is_strong || (unless <> []))
+           (false, false) a_h_list in
+       if is_weak && is_strong
+  let a_h_list =
          List.map (automaton_handler env_pat env) a_h_list in
-       Ast.EQautomaton(is_weak, a_h_list) in
+       Ast.EQautomaton(is_weak, a_h_list)
+    | EQempty ->
+       Ast. EQempty in
   (* set the names defined in the equation *)
   { Ast.eq_desc = eq_desc; Ast.eq_write = empty; Ast.eq_loc = eq_loc }
 
