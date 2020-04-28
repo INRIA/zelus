@@ -107,11 +107,8 @@ let block l lo eq_list startpos endpos =
 
 %nonassoc prec_no_end
 %nonassoc END
-%right IN
+%nonassoc prec_seq
 %right prec_list
-%left EVERY
-%left AUTOMATON
-%left INIT
 %left UNTIL
 %left UNLESS
 %nonassoc THEN
@@ -126,13 +123,11 @@ let block l lo eq_list startpos endpos =
 %right INFIX1
 %left INFIX2 PLUS SUBTRACTIVE MINUS
 %left STAR INFIX3
-%left ON
 %left INFIX4
 %right prec_uminus
 %right FBY
-%right PRE ATOMIC
+%right PRE 
 %right PREFIX
-%right DOT
 
 %start implementation_file
 %type <Parsetree.implementation list> implementation_file
@@ -191,7 +186,7 @@ implementation:
   | LET ide = ide EQUAL seq = seq_expression
       { Eletdefl(ide, seq) }
   | LET a = is_atomic k = kind ide = ide LPAREN f_args = vardec_list RPAREN
-        RETURNS  LPAREN f_res = vardec_list RPAREN eq = equation
+        RETURNS  LPAREN f_res = vardec_list RPAREN eq = equation_and_list
       { Efundecl(ide, { f_kind = k; f_atomic = a;
 			f_args = f_args; f_res = f_res; f_body = eq;
 			f_loc = localise $startpos(a) $endpos(eq) }) }
@@ -209,7 +204,7 @@ implementation:
   | NODE { Enode }
 ;
 
-%inline equation_list:
+%inline equation_and_list:
   | l = list_of(AND, equation) { l }
 ;
 
@@ -232,14 +227,14 @@ equation_desc:
       { EQifthenelse(e, no_eq $startpos $endpos, eq2) }
   | RESET eq = equation EVERY e = expression
     { EQreset(eq, e) }
-  | LOCAL v_list = vardec_list DO eq = equation DONE
+  | LOCAL v_list = vardec_list DO eq = equation_and_list DONE
+    { EQlocal(v_list, eq) }
+  | DO eq = equation_and_list DONE
     { EQlocal(v_list, eq) }
   | p = pateq EQUAL e = seq_expression
     { EQeq(p, e) }
   | INIT i = ide EQUAL e = seq_expression
     { EQinit(i, e) }
-  | eq_list = equation_list
-    { EQand(eq_list) }
 ;
 
 opt_end:
@@ -257,11 +252,11 @@ automaton_handlers:
 ;
 
 automaton_handler:
-  | sp = state_pat MINUSGREATER v_list_eq = vardec_with_eq DONE
+  | sp = state_pat MINUSGREATER v_list_eq = vardec_with_and_eq_list DONE
     { make { s_state = sp; s_vars = fst v_list_eq; s_body = snd v_list_eq;
 	     s_until = []; s_unless = [] }
             $startpos $endpos}
-  | sp = state_pat MINUSGREATER v_list_eq = vardec_with_eq THEN
+  | sp = state_pat MINUSGREATER v_list_eq = vardec_with_and_eq_list THEN
                                 e = emission
     { let v_list_e, body_e, st_e = e in
       make { s_state = sp; s_vars = fst v_list; s_body = snd v_list_eq;
@@ -272,7 +267,7 @@ automaton_handler:
 		  e_next_state = st_e }];
 	   s_unless = [] }
       $startpos $endpos}
-  | sp = state_pat MINUSGREATER v_list_eq = vardec_with_eq CONTINUE
+  | sp = state_pat MINUSGREATER v_list_eq = vardec_with_and_eq_list CONTINUE
                                 e = emission
     { let v_list_e, body_e, st_e = e in
       make { s_state = sp; s_vars = fst v_list; s_body = snd v_list_eq;
@@ -283,13 +278,13 @@ automaton_handler:
 		  e_next_state = st_e }];
 	   s_unless = [] }
       $startpos $endpos}
-  | sp = state_pat MINUSGREATER v_list_eq = vardec_with_eq
+  | sp = state_pat MINUSGREATER v_list_eq = vardec_with_and_eq_list
          UNTIL e_until = escape_list
     { make
 	{ s_state = sp; s_vars = fst v_list_eq; s_body = snd v_list_eq;
 	  s_until = List.rev e_until; s_unless = [] }
        $startpos $endpos }
-  | sp = state_pat MINUSGREATER v_list_eq = vardec_with_eq
+  | sp = state_pat MINUSGREATER v_list_eq = vardec_with_and_eq_list
          UNLESS e_unless = escape_list
     { make
 	{ s_state = sp; s_vars = fst v_list_eq; s_body = snd v_list_eq;
@@ -298,14 +293,6 @@ automaton_handler:
 ;
 
 escape :
-  | sc = scondpat THEN s = state
-    { { e_cond = sc; e_reset = true; e_vars = [];
-	e_body = no_eq $startpos $endpos;
-	e_next_state = s } }
-  | sc = scondpat CONTINUE s = state
-    { { e_cond = sc; e_reset = false; e_vars = [];
-	e_body = no_eq $startpos $endpos;
-	e_next_state = s } }
   | sc = scondpat THEN e = emission
     { let e_vars, e_body, s = e in
       { e_cond = sc; e_reset = true;
@@ -344,21 +331,26 @@ scondpat :
   | sc = localized(scondpat_desc) { sc }
 ;
 
-scondpat_desc :
+scondpat_desc:
   | e = simple_expression
       { (e) }
 ;
 
 /* Block */
-vardec_with_eq:
-  | DO eq = equation
+vardec_with_and_eq_list:
+  | DO eq = equation_and_list
     { [], eq }
-  | LOCAL v_list = vardec_list DO eq = equation
+  | LOCAL v_list = vardec_list DO eq = equation_and_list
     { v_list, eq }
 ;
 
+vardec_with_one_eq:
+  | eq = equation
+    { [], eq }
+;
+
 emission:
-  | v_list_eq = vardec_with_eq IN s = state
+  | v_list_eq = vardec_with_and_eq_list IN s = state
     { let v_list, eq = v_list_eq in v_list, eq, s }
   | s = state
     { [], no_eq $startpos $endpos, s }
@@ -396,7 +388,7 @@ match_handlers:
 ;
 
 match_handler:
-  | p = pattern MINUSGREATER v = vardec_with_eq
+  | p = pattern MINUSGREATER v = vardec_with_one_eq
       { { m_pat = p; m_vars = fst v; m_body = snd v } }
 ;
 
@@ -408,25 +400,16 @@ pattern:
 
 /* Pattern in an equation */
 pateq:
-  | ide = ide
-    { [ide] }
-  | l = pateq_comma_list
+  | l = list_of(COMMA, ide)
     { l }
-  | LPAREN p = pateq RPAREN
-    { p }
-;
-
-pateq_comma_list:
-  | p1 = pateq COMMA p2 = pateq
-      { [p2; p1] }
-  | pc = pateq_comma_list COMMA p = pateq
-      { p :: pc }
+  | LPAREN l = list_of(COMMA, ide) RPAREN
+    { l }
 ;
 
 
 /* Expressions */
 seq_expression :
-  | e = expression
+  | e = expression %prec prec_seq
       { e }
 ;
 
