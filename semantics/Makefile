@@ -1,6 +1,6 @@
 include ../config
 
-GENSOURCES = parser.ml parser.mli lexer.ml
+GENSOURCES = parser.ml lexer.ml
 
 DIRECTORIES=.
 

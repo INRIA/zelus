@@ -34,16 +34,9 @@ let constr f e =
   | Etuple(arg_list) ->
     (* C(e1,...,en) *) Econstr1(f, arg_list)
   | _ ->
-     (* C(e) *) Econstr1(id, [e])
+     (* C(e) *) Econstr1(f, [e])
 
-let constr_pat c p =
-   match p with
-  | { desc = Etuplepat(arg_list) } ->
-    (* C(p1,...,pn) *) Econstr1pat(c, arg_list)
-  | _ -> (* C(e) *) Econstr1pat(c, [p])
-
-let block l lo eq_list startpos endpos =
-  make { b_locals = l; b_vars = lo; b_body = eq_list } startpos endpos
+let scond_true start_pos end_pos = make (Econst(Ebool(true))) start_pos end_pos 
 
 %}
 
@@ -65,6 +58,8 @@ let block l lo eq_list startpos endpos =
 %token <int> INT
 %token <float> FLOAT
 %token <bool> BOOL
+%token <string> STRING
+%token <char> CHAR
 %token RETURNS        /* "returns" */
 %token AUTOMATON      /* "automaton" */
 %token ATOMIC         /* "atomic" */
@@ -184,12 +179,13 @@ decl_list(X):
 
 implementation:
   | LET ide = ide EQUAL seq = seq_expression
-      { Eletdefl(ide, seq) }
+      { Eletdef(ide, seq) }
   | LET a = is_atomic k = kind ide = ide LPAREN f_args = vardec_list RPAREN
         RETURNS  LPAREN f_res = vardec_list RPAREN eq = equation_and_list
-      { Efundecl(ide, { f_kind = k; f_atomic = a;
-			f_args = f_args; f_res = f_res; f_body = eq;
-			f_loc = localise $startpos(a) $endpos(eq) }) }
+    { Eletfun(ide,
+	      make { f_kind = k; f_atomic = a;
+		     f_args = f_args; f_res = f_res; f_body = eq }
+	      $startpos(a) $endpos(eq)) }
 ;
 
 
@@ -205,7 +201,7 @@ implementation:
 ;
 
 %inline equation_and_list:
-  | l = list_of(AND, equation) { l }
+  | l = list_of(AND, equation) { make (EQand(l)) $startpos $endpos }
 ;
 
 %inline equation:
@@ -220,17 +216,17 @@ equation_desc:
     { EQmatch(e, List.rev m) }
   | IF e = seq_expression THEN eq1 = equation
     ELSE eq2 = equation opt_end
-    { EQifthenelse(e, eq1, eq2) }
+    { EQif(e, eq1, eq2) }
   | IF e = seq_expression THEN eq1 = equation
-      { EQifthenelse(e, b1, no_eq $startpos $endpos) }
+      { EQif(e, eq1, no_eq $startpos $endpos) }
   | IF e = seq_expression ELSE eq2 = equation
-      { EQifthenelse(e, no_eq $startpos $endpos, eq2) }
+      { EQif(e, no_eq $startpos $endpos, eq2) }
   | RESET eq = equation EVERY e = expression
     { EQreset(eq, e) }
   | LOCAL v_list = vardec_list DO eq = equation_and_list DONE
     { EQlocal(v_list, eq) }
   | DO eq = equation_and_list DONE
-    { EQlocal(v_list, eq) }
+    { eq.desc }
   | p = pateq EQUAL e = seq_expression
     { EQeq(p, e) }
   | INIT i = ide EQUAL e = seq_expression
@@ -254,53 +250,51 @@ automaton_handlers:
 automaton_handler:
   | sp = state_pat MINUSGREATER v_list_eq = vardec_with_and_eq_list DONE
     { make { s_state = sp; s_vars = fst v_list_eq; s_body = snd v_list_eq;
-	     s_until = []; s_unless = [] }
-            $startpos $endpos}
+	     s_until = []; s_unless = [] } $startpos $endpos } 
   | sp = state_pat MINUSGREATER v_list_eq = vardec_with_and_eq_list THEN
                                 e = emission
     { let v_list_e, body_e, st_e = e in
-      make { s_state = sp; s_vars = fst v_list; s_body = snd v_list_eq;
+      make { s_state = sp; s_vars = fst v_list_eq; s_body = snd v_list_eq;
 	     s_until =
-               [{ e_cond = scond_true $endpos(v_list_eq) $startpos(e);
-                  e_reset = true; e_vars = v_list_e;
-		  e_body = body_e;
-		  e_next_state = st_e }];
-	   s_unless = [] }
-      $startpos $endpos}
+               [make { e_cond = scond_true $endpos(v_list_eq) $startpos(e);
+                       e_reset = true; e_vars = v_list_e;
+		       e_body = body_e;
+		       e_next_state = st_e }
+		$endpos(v_list_eq) $endpos(e) ];
+	     s_unless = [] } $startpos $endpos }
   | sp = state_pat MINUSGREATER v_list_eq = vardec_with_and_eq_list CONTINUE
                                 e = emission
     { let v_list_e, body_e, st_e = e in
-      make { s_state = sp; s_vars = fst v_list; s_body = snd v_list_eq;
+      make { s_state = sp; s_vars = fst v_list_eq; s_body = snd v_list_eq;
 	     s_until =
-               [{ e_cond = scond_true $endpos(v_list_eq) $startpos(e);
-                  e_reset = false; e_vars = v_list_e;
-		  e_body = body_e;
-		  e_next_state = st_e }];
-	   s_unless = [] }
-      $startpos $endpos}
+               [make { e_cond = scond_true $endpos(v_list_eq) $startpos(e);
+                       e_reset = false; e_vars = v_list_e;
+		       e_body = body_e;
+		       e_next_state = st_e } $endpos(v_list_eq) $endpos(e)];
+	   s_unless = [] } $startpos $endpos }
   | sp = state_pat MINUSGREATER v_list_eq = vardec_with_and_eq_list
          UNTIL e_until = escape_list
-    { make
-	{ s_state = sp; s_vars = fst v_list_eq; s_body = snd v_list_eq;
-	  s_until = List.rev e_until; s_unless = [] }
-       $startpos $endpos }
+    { make { s_state = sp; s_vars = fst v_list_eq; s_body = snd v_list_eq;
+	     s_until = List.rev e_until; s_unless = [] }
+      $startpos $endpos }
   | sp = state_pat MINUSGREATER v_list_eq = vardec_with_and_eq_list
          UNLESS e_unless = escape_list
-    { make
-	{ s_state = sp; s_vars = fst v_list_eq; s_body = snd v_list_eq;
-	  s_until = []; s_unless = List.rev e_unless }
+    { make { s_state = sp; s_vars = fst v_list_eq; s_body = snd v_list_eq;
+	     s_until = []; s_unless = List.rev e_unless }
       $startpos $endpos }
 ;
 
 escape :
   | sc = scondpat THEN e = emission
     { let e_vars, e_body, s = e in
-      { e_cond = sc; e_reset = true;
-	e_vars = e_vars; e_body = e_body; e_next_state = s } }
+      make { e_cond = sc; e_reset = true;
+	     e_vars = e_vars; e_body = e_body; e_next_state = s }
+      $startpos $endpos }
   | sc = scondpat CONTINUE e = emission
     { let e_vars, e_body, s = e in
-      { e_cond = sc; e_reset = false;
-	e_vars = e_vars; e_body = e_body; e_next_state = s } }
+      make { e_cond = sc; e_reset = false;
+	     e_vars = e_vars; e_body = e_body; e_next_state = s }
+      $startpos $endpos }
 ;
 
 escape_list :
@@ -327,13 +321,9 @@ state_pat :
 ;
 
 /* Pattern on a signal */
-scondpat :
-  | sc = localized(scondpat_desc) { sc }
-;
-
-scondpat_desc:
+scondpat:
   | e = simple_expression
-      { (e) }
+      { e }
 ;
 
 /* Block */
@@ -363,14 +353,14 @@ emission:
 
 vardec:
   | ide = ide
-    { { var_name = ide; var_default = Ewith_nothing;
-	var_loc = localise $startpos $endpos } }
+    { make { var_name = ide; var_default = Ewith_nothing }
+      $startpos $endpos }
   | ide = ide INIT e = simple_expression
-    { { var_name = ide; var_default = Ewith_init e;
-	     var_loc = localise $startpos $endpos id; Init(e) } }
+    { make { var_name = ide; var_default = Ewith_init e }
+      $startpos $endpos }
   | ide = ide DEFAULT e = simple_expression
-    { { var_name = ide; var_default = Ewith_default e;
-	     var_loc = localise $startpos $endpos id; Init(e) } }
+    { make { var_name = ide; var_default = Ewith_default e }
+      $startpos $endpos }
 ;
 
 opt_bar:
@@ -389,13 +379,13 @@ match_handlers:
 
 match_handler:
   | p = pattern MINUSGREATER v = vardec_with_one_eq
-      { { m_pat = p; m_vars = fst v; m_body = snd v } }
+      { make { m_pat = p; m_vars = fst v; m_body = snd v } $startpos $endpos }
 ;
 
 /* Patterns */
 pattern:
   | c = constructor
-      { make (constr_pat c p) $startpos $endpos }
+      { make (Econstr0pat(c)) $startpos $endpos }
 ;
 
 /* Pattern in an equation */
@@ -506,7 +496,7 @@ expression_desc:
   | p = PREFIX e = expression
       { unop p e ($startpos(p)) ($endpos(p)) }
   | LET eq = equation IN e = seq_expression
-      { Elet(false, defs, e) }
+      { Elet(false, eq, e) }
   | LET REC eq = equation IN e = seq_expression
       { Elet(true, eq, e) }
 ;
@@ -529,6 +519,10 @@ atomic_constant:
       { Eint(i) }
   | f = FLOAT
       { Efloat(f) }
+  | s = STRING
+      { Estring s }
+  | c = CHAR
+      { Echar c }
   | b = BOOL
       { Ebool b }
 ;

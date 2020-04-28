@@ -7,6 +7,7 @@ type token =
   | UNLESS
   | THEN
   | SUBTRACTIVE of (string)
+  | STRING of (string)
   | STAR
   | RPAREN
   | RETURNS
@@ -51,6 +52,7 @@ type token =
   | CONTINUE
   | CONSTRUCTOR of (string)
   | COMMA
+  | CHAR of (char)
   | BOOL of (bool)
   | BARBAR
   | BAR

@@ -12,68 +12,42 @@ type lexical_error =
   | Bad_char_constant
   | Unterminated_string;;
 
-exception Lexical_error of lexical_error * location
+exception Lexical_error of lexical_error * Location.t
 
 let comment_depth = ref 0
 
 let keyword_table = ((Hashtbl.create 149) : (string, token) Hashtbl.t);;
 
 List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
-  "as", AS;
-  "forall", FORALL;
   "automaton", AUTOMATON;
   "atomic", ATOMIC;
-  "inline", INLINE;
   "continue", CONTINUE;
-  "disc", DISC;
   "do", DO;
   "done", DONE;
   "returns", RETURNS;
   "until", UNTIL;
   "unless", UNLESS;
-  "emit", EMIT;
-  "present", PRESENT;
   "match", MATCH;
-  "period", PERIOD;
   "with", WITH;
   "end", END;
-  "exception", EXCEPTION;
-  "external", EXTERNAL;
-  "static", STATIC;
   "fun", FUN;
   "node", NODE;
-  "hybrid", HYBRID;
-  "discrete", DISCRETE;
-  "proba", PROBA;
   "init", INIT;
-  "initialize", INITIALIZE;
   "default", DEFAULT;
   "in", IN;
-  "before", BEFORE;
-  "out", OUT;
   "and", AND;
-  "open", OPEN;
-  "val", VAL;
   "local", LOCAL;
   "let", LET;
   "rec", REC;
-  "where", WHERE;
-  "open", OPEN;
   "fby", FBY;
-  "next", NEXT;
-  "up", UP;
-  "der", DER;
   "reset", RESET;
   "pre", PRE;
-  "type", TYPE;
   "every", EVERY;
   "true", BOOL(true); 
   "false", BOOL(false); 
   "or", OR;
-  "of", OF;
   "on", ON;
   "last", LAST;
-  "run", RUN;
   "if", IF;
   "then", THEN;
   "else", ELSE;
@@ -143,42 +117,20 @@ let char_for_decimal_code lexbuf i =
 rule main = parse 
   | [' ' '\010' '\013' '\009' '\012'] +   { main lexbuf }
   | "."  { DOT }
-  | ".."  { DOTDOT }
   | "("  { LPAREN }
   | ")"  { RPAREN }
-  | "["  { LBRACKET }
-  | "]"  { RBRACKET }
-  | "[|" { LBRACKETBAR }
-  | "|]" { RBRACKETBAR }
   | "*"  { STAR }
-  | "{"  { LBRACE }
-  | "}"  { RBRACE }
-  | ":"  { COLON }
-  | "::"  { COLONCOLON }
   | "="  { EQUAL }
   | "==" { EQUALEQUAL }
-  | "+=" { PLUSEQUAL }
   | "&"  { AMPERSAND }
-  | "'"  { QUOTE }
   | "&&" { AMPERAMPER }
   | "||" { BARBAR }
   | ","  { COMMA }
-  | ";"  { SEMI }
-  | ";;" { SEMISEMI }
   | "->" { MINUSGREATER }
-  | "-A->" { AFUN }
-  | "-D->" { DFUN }
-  | "-AD->" { ADFUN }
-  | "-AS->" { ASFUN }
-  | "-C->" { CFUN }
-  | "-S->" { SFUN }
-  | "~D~>" { PFUN }
   | "|"  { BAR }
   | "-"  { MINUS }
   | "+"  { PLUS }
   | "-." { SUBTRACTIVE "-." }
-  | "_"  { UNDERSCORE }
-  | "?"  { TEST }
   | (['A'-'Z']('_' ? ['A'-'Z' 'a'-'z' ''' '0'-'9']) * as id) 
       {CONSTRUCTOR id}
   | (['A'-'Z' 'a'-'z'](['_' 'A'-'Z' 'a'-'z' ''' '0'-'9']) * as id) 
