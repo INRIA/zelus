@@ -69,3 +69,20 @@ exception Error
 (* The monolithic API. *)
 
 val implementation_file: (Lexing.lexbuf -> token) -> Lexing.lexbuf -> (Parsetree.implementation list)
+
+module MenhirInterpreter : sig
+  
+  (* The incremental API. *)
+  
+  include MenhirLib.IncrementalEngine.INCREMENTAL_ENGINE
+    with type token = token
+  
+end
+
+(* The entry point(s) to the incremental API. *)
+
+module Incremental : sig
+  
+  val implementation_file: Lexing.position -> (Parsetree.implementation list) MenhirInterpreter.checkpoint
+  
+end

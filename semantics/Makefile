@@ -1,11 +1,8 @@
 include ../config
 
-GENSOURCES = parser.ml lexer.ml
+GENSOURCES = parser.ml parser.mli lexer.ml
 
 DIRECTORIES=.
-
-
-GENSOURCES = lexer.ml parser.ml
 
 OBJ = location.cmo \
 	ident.cmo \
@@ -51,28 +48,6 @@ depend: .depend
 	    > .depend
 
 ML = $(OBJ:.cmo=.ml)
-
-# implicit rules
-
-.SUFFIXES : .mli .ml .cmi .cmo .cmx .mll .mly .zls .zli .byte .opt
-
-%.cmi: %.mli
-	$(OCAMLC) $(OCAMLFLAGS) -c $(INCLUDES) $<
-
-%.cmo %.cmi: %.ml
-	$(OCAMLC) $(OCAMLFLAGS) -c -I $(ZLLIB) $(INCLUDES) $<
-
-%.cmx %.cmi: %.ml
-	$(OCAMLOPT) $(OCAMLOPTFLAGS) -I $(ZLLIB) -c $(INCLUDES:.cma=.cmxa) $<
-
-%.ml: %.mll
-	$(OCAMLLEX) $<
-
-%.ml %.mli: %.mly
-	$(MENHIR) $(MENHIRFLAGS) $<
-
-wc:
-	wc $(ML)
 
 # cleaning:
 clean:
