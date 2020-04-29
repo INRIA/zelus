@@ -5,7 +5,41 @@ open Parsetree
 open Ident
 open Monad
 open Opt
-   
+
+module Error =
+  struct
+    type error =
+      | Evar of string
+      | Enon_linear_pat of string
+      | Enon_linear_automaton of string
+      | Eautomaton_with_mixed_transitions
+                           
+    exception Error of Location.t * error
+                     
+    let error loc kind = raise (Error(loc, kind))
+                       
+    let message loc kind =
+      begin match kind with
+      | Evar(name) ->
+         Format.eprintf "%aScoping error: The value identifier %s is unbound.@."
+           Location.output_location loc name
+      | Enon_linear_pat(name) ->
+          Format.eprintf "%aScoping error: The variable %s is bound several \
+                     times in this pattern.@."
+            Location.output_location loc name
+      | Enon_linear_automaton(name) ->
+          Format.eprintf
+            "%aScoping error: the state %s is defined several times in \
+               this automaton.@."
+            Location.output_location loc name
+      | Eautomaton_with_mixed_transitions ->
+	 Format.eprintf
+	   "%aScoping error: this automaton mixes weak and strong transitions.@."
+	   Location.output_location loc
+      end
+      (* raise Misc.Error *)
+end
+
 module Env =
   struct
     include Map.Make(String)
@@ -75,6 +109,33 @@ let empty =
   let module S = Set.Make (Ident) in
   S.empty
 
+let constant c =
+  match c with
+  | Eint(i) -> Ast.Eint(i)
+  | Ebool(b) -> Ast.Ebool(b)
+  | Efloat(f) -> Ast.Efloat(f)
+  | Evoid -> Ast.Evoid
+  | Estring(s) -> Ast.Estring(s)
+  | Echar(c) -> Ast.Echar(c)
+                
+(* synchronous operators *)
+let operator op =
+  match op with
+  | Efby -> Ast.Efby
+  | Eifthenelse -> Ast.Eifthenelse
+  | Eminusgreater -> Ast.Eminusgreater
+  | Eunarypre -> Ast.Eunarypre
+
+let lident ln =
+  match ln with
+  | Name(s) -> Lident.Name(s)
+  | Modname { qual; id } -> Lident.Modname { Lident.qual = qual; Lident.id = id }
+
+let pattern { desc; loc } =
+  let desc = match desc with
+    | Econstr0pat(f) -> Ast.Econstr0pat(lident f) in
+    { Ast.desc = desc; Ast.loc = loc }, Env.empty
+
 (* [env_pat] is the environment for names that appear on the *)
 (* left of a definition. [env] is for names that appear on the right *)
 let rec equation env_pat env { desc; loc } =
@@ -114,21 +175,21 @@ let rec equation env_pat env { desc; loc } =
        let is_weak, is_strong =
          List.fold_left
            (fun (is_weak, is_strong)
-	        { desc = { s_until = until; s_unless = unless } } ->
-	     is_weak || (until <> []), is_strong || (unless <> []))
+	        { desc = { s_until; s_unless } } ->
+	     is_weak || (s_until <> []), is_strong || (s_unless <> []))
            (false, false) a_h_list in
        if is_weak && is_strong
-       then raise Error
+       then Error.error loc (Error.Eautomaton_with_mixed_transitions)
        else
-       let a_h_list =
-         List.map (automaton_handler is_weak env_pat env) a_h_list in
-       Ast.EQautomaton(is_weak, a_h_list)
+         let a_h_list =
+           List.map (automaton_handler is_weak env_pat env) a_h_list in
+         Ast.EQautomaton(is_weak, a_h_list)
     | EQempty ->
        Ast. EQempty in
   (* set the names defined in the equation *)
-  { Ast.eq_desc = eq_desc; Ast.eq_write = empty; Ast.eq_loc = eq_loc }
+  { Ast.eq_desc = eq_desc; Ast.eq_write = empty; Ast.eq_loc = loc }
 
-and vardec env acc { var_name; var_default; var_loc } =
+and vardec env acc { desc = { var_name; var_default }; loc } =
   let var_default =
     match var_default with
     | Ewith_init(e) ->
@@ -139,7 +200,7 @@ and vardec env acc { var_name; var_default; var_loc } =
        Ast.Ewith_default(e)
     | Ewith_nothing -> Ast.Ewith_nothing in
   let m = Ident.fresh var_name in
-  { Ast.var_name = m; Ast.var_default = var_default; Ast.var_loc },
+  { Ast.var_name = m; Ast.var_default = var_default; Ast.var_loc = loc },
   Env.add var_name m acc
 
 and state env { desc; loc } =
@@ -167,18 +228,21 @@ and statepat acc { desc; loc } =
 and pateq env_pat id_list =
   List.map (fun x -> Env.find x env_pat) id_list
 
-and automaton_handler env_pat env { s_state; s_vars; s_body; s_trans; s_loc } =
+and automaton_handler is_weak env_pat env
+  { desc = { s_state; s_vars; s_body; s_until; s_unless }; loc } =
   let s_state, env_s_state = statepat Env.empty s_state in
   let env = Env.append env_s_state env in
   let s_vars, env_s_vars = Misc.mapfold (vardec env) Env.empty s_vars in
   let env_pat = Env.append env_s_vars env_pat in
   let env = Env.append env_s_vars env in
   let s_body = equation env_pat env s_body in
-  let s_trans = List.map (escape env_pat env) s_trans in
+  let s_trans =
+    List.map (escape env_pat env) (if is_weak then s_until else s_unless) in
   { Ast.s_state = s_state; Ast.s_vars = s_vars;
-    Ast.s_body = s_body; Ast.s_trans = s_trans; Ast.s_loc }
+    Ast.s_body = s_body; Ast.s_trans = s_trans; Ast.s_loc = loc }
 
-and escape env_pat env { e_reset; e_cond; e_vars; e_body; e_next_state; e_loc } =
+and escape env_pat env
+  { desc = { e_reset; e_cond; e_vars; e_body; e_next_state }; loc } = 
   let e_cond, env_e_cond = scondpat env Env.empty e_cond in
   let env = Env.append env_e_cond env in
   let e_vars, env_e_vars = Misc.mapfold (vardec env) Env.empty e_vars in
@@ -187,11 +251,11 @@ and escape env_pat env { e_reset; e_cond; e_vars; e_body; e_next_state; e_loc } 
   let e_body = equation env_pat env e_body in
   let e_next_state = state env e_next_state in
   { Ast.e_reset; Ast.e_cond = e_cond; Ast.e_vars = e_vars;
-    Ast.e_body = e_body; Ast.e_next_state = e_next_state; Ast.e_loc = e_loc }
+    Ast.e_body = e_body; Ast.e_next_state = e_next_state; Ast.e_loc = loc }
 
 and scondpat env acc e_cond = expression env e_cond, acc
           
-and match_handler env_pat env { m_pat; m_vars; m_body; m_loc } =
+and match_handler env_pat env { desc = { m_pat; m_vars; m_body }; loc } = 
   let m_pat, env_m_pat = pattern m_pat in
   let env = Env.append env_m_pat env in
   let m_vars, env_m_vars = Misc.mapfold (vardec env) Env.empty m_vars in
@@ -199,35 +263,23 @@ and match_handler env_pat env { m_pat; m_vars; m_body; m_loc } =
   let env = Env.append env_m_vars env in
   let m_body = equation env_pat env m_body in
   { Ast.m_pat = m_pat; Ast.m_vars = m_vars;
-    Ast.m_body = m_body; Ast.m_loc = m_loc }
+    Ast.m_body = m_body; Ast.m_loc = loc }
 
-and constant c =
-  match c with
-  | Eint(i) -> Ast.Eint(i)
-  | Ebool(b) -> Ast.Ebool(b)
-  | Efloat(f) -> Ast.Efloat(f)
-  | Evoid -> Ast.Evoid
-
-(* synchronous operators *)
-and operator op =
-  match op with
-  | Efby -> Ast.Efby
-  | Eifthenelse -> Ast.Eifthenelse
-  | Eminusgreater -> Ast.Eminusgreater
-  | Eunarypre -> Ast.Eunarypre
-
-and pattern { desc; loc } =
-  let desc = match desc with
-    | Econstr0pat(f) -> Ast.Econstr0pat(f) in
-    { Ast.desc = desc; Ast.loc = loc }, Env.empty
   
-and expression env { e_desc; e_loc } =
-  let e_desc =
-    match e_desc with
-    | Elocal(s) -> Ast.Elocal(Env.find s env)
-    | Eglobal(g) -> Ast.Eglobal(g)
+and expression env { desc; loc } =
+  let desc =
+    match desc with
+    | Evar(Name(n)) ->
+       begin try
+           let m = Env.find n env in
+           Ast.Elocal(m)
+         with
+         | Not_found -> Ast.Eglobal(Name(n))
+       end
+    | Evar(Modname _ as ln) -> Ast.Eglobal(lident ln)
     | Econst(c) -> Ast.Econst(constant c)
-    | Econstr0(f) -> Ast.Econstr0(f)
+    | Econstr0(f) -> Ast.Econstr0(lident f)
+    | Econstr1(f, e_list) -> Ast.Econstr1(lident f, List.map (expression env) e_list)
     | Elast(s) -> Ast.Elast(Env.find s env)
     | Eop(op, e_list) ->
        let e_list = List.map (expression env) e_list in
@@ -246,18 +298,18 @@ and expression env { e_desc; e_loc } =
        Eget(i, e)
     | Eapp(f, e_list) ->
        let e_list = List.map (expression env) e_list in
-       Eapp(f, e_list) in
-  { Ast.e_desc = e_desc; Ast.e_loc = e_loc }
+       Eapp(lident f, e_list) in
+  { Ast.e_desc = desc; Ast.e_loc = loc }
 
 let kind = function Efun -> Ast.Efun | Enode -> Ast.Enode
 
-let funexp { f_kind; f_atomic; f_args; f_res; f_body; f_loc } =
+let funexp { desc = { f_kind; f_atomic; f_args; f_res; f_body }; loc } =
   let f_args, env_f_args = Misc.mapfold (vardec Env.empty) Env.empty f_args in
   let f_res, env_f_res = Misc.mapfold (vardec env_f_args) Env.empty f_res in
   let f_body = equation env_f_res env_f_args f_body in
   { Ast.f_kind = kind f_kind; Ast.f_atomic = f_atomic;
     Ast.f_args = f_args; Ast.f_res = f_res;
-    Ast.f_body = f_body; Ast.f_loc = f_loc }
+    Ast.f_body = f_body; Ast.f_loc = loc }
 
 let implementation { desc; loc } =
   let desc = match desc with

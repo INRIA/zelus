@@ -43,7 +43,6 @@ type pattern = pattern_desc localized
 
 and pattern_desc =
   | Econstr0pat : longname -> pattern_desc
-  | Econstr1pat : longname * pattern list -> pattern_desc
 
 type statepatdesc =
   | Estate0pat : String.t -> statepatdesc 

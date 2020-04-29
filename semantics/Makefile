@@ -4,7 +4,8 @@ GENSOURCES = parser.ml parser.mli lexer.ml
 
 DIRECTORIES=.
 
-OBJ = location.cmo \
+OBJ = misc.cmo \
+	location.cmo \
 	ident.cmo \
 	lident.cmo \
 	parsetree.cmo \

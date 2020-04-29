@@ -12,6 +12,8 @@ type const =
 | Ebool : bool -> const
 | Efloat : float -> const
 | Evoid : const
+| Estring : string -> const
+| Echar : char -> const
 
 (* synchronous operators *)
 type operator =
@@ -37,8 +39,6 @@ type pattern = pattern_desc localized
 
 and pattern_desc = 
   | Econstr0pat : Lident.t -> pattern_desc
-  | Econstr1pat : Lident.t * pattern list -> pattern_desc
-  | Evarpat : Ident.t -> pattern_desc
   
 type statepatdesc =
   | Estate0pat : Ident.t -> statepatdesc 
@@ -83,6 +83,7 @@ type exp = { e_desc: exp_desc; e_loc: Location.t }
 and exp_desc = 
   | Econst : const -> exp_desc 
   | Econstr0 : Lident.t -> exp_desc 
+  | Econstr1 : Lident.t * exp list -> exp_desc 
   | Elocal : Ident.t -> exp_desc 
   | Eglobal : Lident.t -> exp_desc 
   | Elast : Ident.t -> exp_desc 
