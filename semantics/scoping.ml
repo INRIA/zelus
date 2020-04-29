@@ -63,14 +63,14 @@ let rec buildeq defnames { desc } =
      let defnames_v_list = List.fold_left build_vardec S.empty v_list in
      let defnames_eq = buildeq S.empty eq in
      S.union defnames (S.diff defnames_eq defnames_v_list)
-    | EQif(_, eq1, eq2) ->
-       let defnames = buildeq defnames eq1 in
-       buildeq defnames eq2
-    | EQmatch(_, m_h_list) ->
-       List.fold_left build_match_handler defnames m_h_list
-    | EQautomaton(a_h_list) ->
-       List.fold_left build_automaton_handler defnames a_h_list
-    | EQempty ->  defnames
+  | EQif(_, eq1, eq2) ->
+     let defnames = buildeq defnames eq1 in
+     buildeq defnames eq2
+  | EQmatch(_, m_h_list) ->
+     List.fold_left build_match_handler defnames m_h_list
+  | EQautomaton(a_h_list) ->
+     List.fold_left build_automaton_handler defnames a_h_list
+  | EQempty ->  defnames
                 
 and build_vardec defnames { desc = { var_name } } = S.add var_name defnames
 
@@ -82,15 +82,20 @@ and build_match_handler defnames { desc = { m_pat; m_vars; m_body } } =
   let defnames_m_body = buildeq S.empty m_body in
   S.union defnames (S.diff defnames_m_body defnames_m_vars)
 
-and build_automaton_handler
-defnames { desc = { s_vars; s_body; s_until; s_unless } } =
+and build_state_name { desc } =
+  match desc with
+  | Estate0pat(n) | Estate1pat(n, _) -> S.singleton(n)
+
+and build_automaton_handler defnames
+  { desc = { s_state; s_vars; s_body; s_until; s_unless } } =
+  let defnames_s_state = build_state_name s_state in
   let defnames_s_vars = List.fold_left build_vardec S.empty s_vars in
   let defnames_s_body = buildeq S.empty s_body in
   let defnames_s_trans =
     List.fold_left build_escape defnames_s_body s_until in
   let defnames_s_trans =
     List.fold_left build_escape defnames_s_trans s_unless in
-  S.union defnames (S.diff defnames_s_trans defnames_s_vars)
+  S.union defnames (S.union defnames_s_state (S.diff defnames_s_trans defnames_s_vars))
 
 and build_escape defnames { desc = { e_vars; e_body } } =
   let defnames_e_vars = List.fold_left build_vardec S.empty e_vars in
