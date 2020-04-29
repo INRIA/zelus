@@ -111,18 +111,17 @@ let rec equation env_pat env { desc; loc } =
        let m_h_list = List.map (match_handler env_pat env) m_h_list in
        Ast.EQmatch(e, m_h_list)
     | EQautomaton(a_h_list) ->
-       let { desc } = List.hd a_h_list in
-       let is_weak = match desc with { s_until = with) let check =
-         List.forall
-           (fun acc
-	        { desc = { s_until; s_unless } } ->
-	     if is_weak then s_unless = [] else s_until = [])
-           (List.hd a_h_list) in
-       if check thenthen is_weak || (until <> []), is_strong || (unless <> []))
+       let is_weak, is_strong =
+         List.fold_left
+           (fun (is_weak, is_strong)
+	        { desc = { s_until = until; s_unless = unless } } ->
+	     is_weak || (until <> []), is_strong || (unless <> []))
            (false, false) a_h_list in
        if is_weak && is_strong
-  let a_h_list =
-         List.map (automaton_handler env_pat env) a_h_list in
+       then raise Error
+       else
+       let a_h_list =
+         List.map (automaton_handler is_weak env_pat env) a_h_list in
        Ast.EQautomaton(is_weak, a_h_list)
     | EQempty ->
        Ast. EQempty in
