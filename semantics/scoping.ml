@@ -6,6 +6,8 @@ open Ident
 open Monad
 open Opt
 
+exception Error
+        
 module Error =
   struct
     type error =
@@ -14,9 +16,9 @@ module Error =
       | Enon_linear_automaton of string
       | Eautomaton_with_mixed_transitions
                            
-    exception Error of Location.t * error
+    exception Er of Location.t * error
                      
-    let error loc kind = raise (Error(loc, kind))
+    let error loc kind = raise (Er(loc, kind))
                        
     let message loc kind =
       begin match kind with
@@ -36,8 +38,8 @@ module Error =
 	 Format.eprintf
 	   "%aScoping error: this automaton mixes weak and strong transitions.@."
 	   Location.output_location loc
-      end
-      (* raise Misc.Error *)
+      end;
+      raise Error 
 end
 
 module Env =
@@ -147,11 +149,12 @@ let rec equation env_pat env { desc; loc } =
   let eq_desc =
     match desc with
     | EQeq(pat, e) ->
-       let pat = pateq env_pat pat in
+       let pat = pateq loc env_pat pat in
        let e = expression env e in
        Ast.EQeq(pat, e)
     | EQinit(x, e) ->
-       let x = Env.find x env_pat in
+       let x =
+         try Env.find x env_pat with | Not_found -> Error.error loc (Error.Evar(x)) in
        let e = expression env e in
        Ast.EQinit(x, e)
     | EQreset(eq, e) ->
@@ -210,10 +213,13 @@ and vardec env acc { desc = { var_name; var_default }; loc } =
 
 and state env { desc; loc } =
   let desc = match desc with
-  | Estate0(f) -> Ast.Estate0(Env.find f env)
+    | Estate0(f) ->
+       let f = try Env.find f env with | Not_found -> Error.error loc (Error.Evar(f)) in
+       Ast.Estate0(f)
   | Estate1(f, e_list) ->
+     let f = try Env.find f env with | Not_found -> Error.error loc (Error.Evar(f)) in
      let e_list = List.map (expression env) e_list in
-     Estate1(Env.find f env, e_list) in
+     Estate1(f, e_list) in
   { Ast.desc = desc; Ast.loc = loc }
 
 and statepat acc { desc; loc } =
@@ -230,8 +236,10 @@ and statepat acc { desc; loc } =
      Estate1pat(fm, n_list), Env.add f fm acc in
 { Ast.desc = desc; Ast.loc = loc }, acc
 
-and pateq env_pat id_list =
-  List.map (fun x -> Env.find x env_pat) id_list
+and pateq loc env_pat id_list =
+  List.map
+    (fun x ->
+      try Env.find x env_pat with | Not_found -> Error.error loc (Error.Evar(x))) id_list
 
 and automaton_handler is_weak env_pat env
   { desc = { s_state; s_vars; s_body; s_until; s_unless }; loc } =
@@ -285,7 +293,9 @@ and expression env { desc; loc } =
     | Econst(c) -> Ast.Econst(constant c)
     | Econstr0(f) -> Ast.Econstr0(lident f)
     | Econstr1(f, e_list) -> Ast.Econstr1(lident f, List.map (expression env) e_list)
-    | Elast(s) -> Ast.Elast(Env.find s env)
+    | Elast(x) ->
+       let x = try Env.find x env with | Not_found -> Error.error loc (Error.Evar(x)) in
+       Ast.Elast(x)
     | Eop(op, e_list) ->
        let e_list = List.map (expression env) e_list in
        Ast.Eop(operator op, e_list)
