@@ -1,8 +1,15 @@
 (* Set of values *)
+type 'a extend =
+  | Val : 'a -> 'a extend
+  | Vnil : 'a extend
+  | Vbot : 'a extend
+
 type bvalue =
   | Vint : int -> bvalue
   | Vbool : bool -> bvalue
   | Vfloat : float -> bvalue
+  | Vchar : char -> bvalue
+  | Vstring : string -> bvalue
   | Vvoid : bvalue
 
 type value =
@@ -22,7 +29,7 @@ type state =
   | Sstate0 : Ident.t -> state
   | Sstate1 : Ident.t * value list -> state
  
-type 'a untyped =
+ype 'a untyped =
   | TypeError : 'a untyped
   | Typed : 'a -> 'a untyped
 

@@ -25,7 +25,9 @@ type operator =
 | Eminusgreater : operator
 | Eunarypre : operator
 
-type pateq = String.t list
+type pateq = pateq_desc localized
+
+and pateq_desc = String.t list
 
 type 'a default = 
   | Ewith_init : 'a -> 'a default    (* [local x init e in ...] *)

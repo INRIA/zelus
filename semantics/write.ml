@@ -4,8 +4,8 @@ open Ident
 open Ast
 open Monad
    
-let fv_pateq acc id_list =
-  List.fold_left (fun acc x -> S.add x acc) acc id_list
+let fv_pateq acc { desc = desc } =
+  List.fold_left (fun acc x -> S.add x acc) acc desc
   
 let rec equation ({ eq_desc } as eq)=
   let eq_desc, def =
@@ -40,7 +40,8 @@ let rec equation ({ eq_desc } as eq)=
     | EQautomaton(is_weak, a_h_list) ->
        let a_h_list, def =
          Misc.mapfold automaton_handler S.empty a_h_list in
-       EQautomaton(is_weak, a_h_list), def in
+       EQautomaton(is_weak, a_h_list), def
+    | EQempty -> EQempty, S.empty in
   (* set the names defined in the equation *)
   { eq with eq_desc = eq_desc; eq_write = def }, def
 
@@ -86,6 +87,8 @@ and expression ({ e_desc = desc } as e) =
   let desc =
     match desc with
     | Elocal _ | Eglobal _ | Econst _ | Econstr0 _ | Elast _ -> desc
+    | Econstr1(f, e_list) ->
+       Econstr1(f, List.map expression e_list)
     | Eop(op, e_list) ->
        Eop(op, List.map expression e_list)
     | Etuple(e_list) -> Etuple(List.map expression e_list)

@@ -71,33 +71,41 @@ let rec buildeq defnames { desc } =
   | EQmatch(_, m_h_list) ->
      List.fold_left build_match_handler defnames m_h_list
   | EQautomaton(a_h_list) ->
-     List.fold_left build_automaton_handler defnames a_h_list
+     let defnames_s_state, defnames =
+       List.fold_left build_automaton_handler (S.empty, defnames) a_h_list in
+     S.union defnames_s_state defnames
   | EQempty ->  defnames
                 
 and build_vardec defnames { desc = { var_name } } = S.add var_name defnames
 
-and buildpat defnames id_list =
-  List.fold_left (fun acc x -> S.add x defnames) defnames id_list
+and buildpat defnames { desc; loc } =
+  List.fold_left
+    (fun acc x ->
+      if S.mem x acc then Error.error loc (Enon_linear_pat(x)); S.add x defnames)
+    defnames desc
 
 and build_match_handler defnames { desc = { m_pat; m_vars; m_body } } =
   let defnames_m_vars = List.fold_left build_vardec S.empty m_vars in
   let defnames_m_body = buildeq S.empty m_body in
   S.union defnames (S.diff defnames_m_body defnames_m_vars)
 
-and build_state_name { desc } =
+and build_state_name defnames { desc; loc } =
   match desc with
-  | Estate0pat(n) | Estate1pat(n, _) -> S.singleton(n)
+  | Estate0pat(n) | Estate1pat(n, _) ->
+     if S.mem n defnames then Error.error loc (Error.Enon_linear_automaton(n));
+     S.singleton(n)
 
-and build_automaton_handler defnames
+and build_automaton_handler (defnames_s_state, defnames)
   { desc = { s_state; s_vars; s_body; s_until; s_unless } } =
-  let defnames_s_state = build_state_name s_state in
+  let defnames_s_state = build_state_name defnames_s_state s_state in
   let defnames_s_vars = List.fold_left build_vardec S.empty s_vars in
   let defnames_s_body = buildeq S.empty s_body in
   let defnames_s_trans =
     List.fold_left build_escape defnames_s_body s_until in
   let defnames_s_trans =
     List.fold_left build_escape defnames_s_trans s_unless in
-  S.union defnames (S.union defnames_s_state (S.diff defnames_s_trans defnames_s_vars))
+  defnames_s_state,
+  S.union defnames (S.diff defnames_s_trans defnames_s_vars)
 
 and build_escape defnames { desc = { e_vars; e_body } } =
   let defnames_e_vars = List.fold_left build_vardec S.empty e_vars in
@@ -149,7 +157,7 @@ let rec equation env_pat env { desc; loc } =
   let eq_desc =
     match desc with
     | EQeq(pat, e) ->
-       let pat = pateq loc env_pat pat in
+       let pat = pateq env_pat pat in
        let e = expression env e in
        Ast.EQeq(pat, e)
     | EQinit(x, e) ->
@@ -236,11 +244,13 @@ and statepat acc { desc; loc } =
      Estate1pat(fm, n_list), Env.add f fm acc in
 { Ast.desc = desc; Ast.loc = loc }, acc
 
-and pateq loc env_pat id_list =
-  List.map
-    (fun x ->
-      try Env.find x env_pat with | Not_found -> Error.error loc (Error.Evar(x))) id_list
-
+and pateq env_pat { desc; loc } =
+  let desc =
+    List.map
+      (fun x ->
+        try Env.find x env_pat with | Not_found -> Error.error loc (Error.Evar(x))) desc
+  in { Ast.desc = desc; Ast.loc = loc }
+   
 and automaton_handler is_weak env_pat env
   { desc = { s_state; s_vars; s_body; s_until; s_unless }; loc } =
   let s_state, env_s_state = statepat Env.empty s_state in
