@@ -2,6 +2,18 @@ open Value
 open Monad
 open Opt
 
+let (let++) e f =
+  match e with
+  | None -> None
+  | Some(v) ->
+     match v with
+     | Vtuple _ -> None
+     | Value(v) ->
+        match v with
+        | Vnil -> return Vnil
+        | Vbot -> return Vbot
+        | Val(v) -> f v
+
 let boolean v =
   match v with
   | Vbool(b) -> return b |
@@ -16,14 +28,7 @@ let basic v =
   | Value(v) -> Some(v)
   | _ -> None
 
-let (let++) e f =
-  match e with
-  | None -> None
-  | Some(v) ->
-     match v with
-     | Vbot -> return Vbot
-     | Vnil -> return Vnil
-     | 
+                
 let not_op v =
   match v with
   | Vnil -> Vnil
