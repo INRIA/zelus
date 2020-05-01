@@ -1,6 +1,7 @@
 (* A Denotational Semantics for Zelus *)
 (* This is a companion file of working notes on the co-iterative *)
 (* semantics presented at the SYNCHRON workshop, December 2019 *)
+(* and the class given at Bamberg Univ. in June-July 2019 *)
 open Monad
 open Opt                                                            
 open Ast
@@ -56,6 +57,8 @@ let value v =
   | Ebool(b) -> Vbool(b)
   | Evoid -> Vvoid
   | Efloat(f) -> Vfloat(f)
+  | Echar(c) -> Vchar(c)
+  | Estring(s) -> Vstring(s)
                
 (* evaluation functions *)
 
@@ -73,6 +76,9 @@ let rec iexp genv env { e_desc } =
   match e_desc with
   | Econst _ | Econstr0 _ | Elocal _ | Eglobal _ | Elast _ ->
      return Sempty
+  | Econstr1(_, e_list) ->
+     let+ s_list = Opt.map (iexp genv env) e_list in
+     return (Stuple(s_list))
   | Eop(op, e_list) ->
      begin match op, e_list with
      | Efby, [{ e_desc = Econst(v) }; e] ->
@@ -103,11 +109,9 @@ let rec iexp genv env { e_desc } =
   | Eapp(f, e_list) ->
     let+ s_list = Opt.map (iexp genv env) e_list in
     let+ v = find_gnode_opt f genv in
-    let s_list =
-      match v with
-      | CoFun _ -> s_list
-      | CoNode { init = s } -> s :: s_list in
-    return (Stuple(s_list))
+    let s =
+      match v with | CoFun _ -> Sempty | CoNode { init = s } -> s in
+    return (Stuple(s :: s_list))
   | Elet(is_rec, eq, e) ->
      let+ s_eq = ieq genv env eq in
      let+ se = iexp genv env e in
@@ -144,6 +148,7 @@ and ieq genv env { eq_desc } =
      let+ se = iexp genv env e in
      let+ sm_list = Opt.map (imatch_handler genv env) m_h_list in
      return (Stuple (se :: sm_list))
+  | EQempty -> return Sempty
 
 and ivardec genv env { var_default } =
   match var_default with

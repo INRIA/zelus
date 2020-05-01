@@ -4,7 +4,8 @@ open Opt
 
 let boolean v =
   match v with
-  | Vbool(b) -> return b | _ -> None
+  | Vbool(b) -> return b |
+  | Vbot | Vnil -> return v_ -> None
 
 let integer v =
   match v with
@@ -12,8 +13,27 @@ let integer v =
 
 let basic v =
   match v with
-  | Value(v) -> Some(v) | _ -> None
-                             
+  | Value(v) -> Some(v)
+  | _ -> None
+
+let (let++) e f =
+  match e with
+  | None -> None
+  | Some(v) ->
+     match v with
+     | Vbot -> return Vbot
+     | Vnil -> return Vnil
+     | 
+let not_op v =
+  match v with
+  | Vnil -> Vnil
+  | Vbot -> Vbot
+
+let lift0 f v =
+  match v with
+  | Vbot -> Vbot
+  | Vnil -> Vnil
+  
 let ifthenelse v v1 v2 =
   let+ v = boolean v in
   return (if v then v1 else v2)

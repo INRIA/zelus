@@ -72,6 +72,16 @@ module State =
     let (let+) = bind
   end
 
+module Nil =
+  struct
+    (* let++ x = e in f x *)
+    let (let++) e f =
+      match e with
+      | Vbot | Vnil -> e
+      | Val(v) -> f v
+                 
+    let return v = Val(v)
+
 module Misc =
   struct
     let rec mapfold f acc x_list =

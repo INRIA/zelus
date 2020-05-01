@@ -390,6 +390,11 @@ pattern:
 
 /* Pattern in an equation */
 pateq:
+  | l = localized(pateq_desc)
+    { l }
+;
+
+pateq_desc:
   | l = list_of(COMMA, ide)
     { l }
   | LPAREN l = list_of(COMMA, ide) RPAREN
