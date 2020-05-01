@@ -11,13 +11,11 @@ type bvalue =
   | Vchar : char -> bvalue
   | Vstring : string -> bvalue
   | Vvoid : bvalue
+  | Vconstr0 : Lident.t -> bvalue
 
 type value =
-  | Value : bvalue -> value
+  | Value : bvalue extend -> value
   | Vtuple : value list -> value
-  | Vconstr0 : Lident.t -> value
-  | Vbot : value
-  | Vnil : value
  
 type state =
   | Sempty : state
@@ -29,7 +27,7 @@ type state =
   | Sstate0 : Ident.t -> state
   | Sstate1 : Ident.t * value list -> state
  
-ype 'a untyped =
+type 'a untyped =
   | TypeError : 'a untyped
   | Typed : 'a -> 'a untyped
 
