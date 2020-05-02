@@ -590,28 +590,32 @@ let implementation genv i =
 
 let program genv i_list = Opt.fold implementation genv i_list
 
-(* output a sequence of values *)
-let from output (CoF { init ; step }) n =
-  let rec fromrec s n =
+(* run a combinatorial expression *)
+let run_fun output fv n =
+  let rec runrec n =
     if n = 0 then return ()
     else
-      let+ r, s = step s in
-      output r;
-      fromrec s (n-1) in
-  fromrec init n
-        
-let n = 10
+      let+ v = fv [Value(Vvoid)] in
+      output v;
+      runrec (n-1) in
+  runrec n
       
+(* run a stream process *)
+let run_node output init step n =
+  let rec runrec s n =
+    if n = 0 then return ()
+    else
+      let+ v, s = step s [Value(Vvoid)] in
+      output v;
+      runrec s (n-1) in
+  runrec init n
+
 (* The main entry function *)
-let main genv m output =
-  let+ fv = find_gnode m genv in
+let main genv m output n =
+  let+ fv = find_gnode_opt m genv in
   (* the main function must be of type : unit -> t *)
   match fv with
-  | CoFun(fv) ->
-     let+ v_list = fv v_list in 
-     return (Vtuple(v_list), Stuple(s_list))
-  | CoNode { step = fv } ->
-     let+ v_list, s = fv s v_list in
-          return (Vtuple(v_list), Stuple(s :: s_list)) inprogram genv i_list in
-  let+ cof = exp genv Env.empty e in
-  from output cof n
+  | CoFun(fv) -> run_fun output fv n
+  | CoNode { init; step } ->
+     run_node output init step n
+    
