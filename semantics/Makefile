@@ -60,7 +60,7 @@ wc:
 clean:
 	-rm -f .depend
 	(for d in $(DIRECTORIES); \
-	 do rm -f $$d/*.annot $$d/*.cm[iox] $$d/*.o; \
+	 do rm -f $$d/*.annot $$d/*.cm[iox] $$d/*.o *~; \
 	 done; \
 	 rm -f $(BIN).byte $(BIN).opt *.out \
            $(GENSOURCES) parser.conflicts)
