@@ -81,35 +81,38 @@ let geti i v =
   | Vtuple(v_list) -> if i >= 0 then geti i v_list else None
   | _ ->  None
 
-let print_lident ff lident =
-  match lident with
-  | Name(s) -> Format.fprintf ff "%s" s
-  | Modname { qual; id } -> Format.fprintf ff "%s.%s" qual id
+module Output =
+  struct
+    let lident ff lid =
+      match lid with
+      | Name(s) -> Format.fprintf ff "%s" s
+      | Modname { qual; id } -> Format.fprintf ff "%s.%s" qual id
                               
-let print_b ff v =
-  match v with
-  | Vint(i) -> Format.fprintf ff "%i" i
-  | Vbool(b) -> Format.fprintf ff "%s" (if b then "true" else "false")
-  | Vfloat(f) -> Format.fprintf ff "%f" f
-  | Vchar(c) -> Format.fprintf ff "%c" c
-  | Vstring(s) -> Format.fprintf ff "%s" s
-  | Vvoid -> Format.fprintf ff "()"
+    let basic ff v =
+      match v with
+      | Vint(i) -> Format.fprintf ff "%i" i
+      | Vbool(b) -> Format.fprintf ff "%s" (if b then "true" else "false")
+      | Vfloat(f) -> Format.fprintf ff "%f" f
+      | Vchar(c) -> Format.fprintf ff "%c" c
+      | Vstring(s) -> Format.fprintf ff "%s" s
+      | Vvoid -> Format.fprintf ff "()"
 
-let rec print ff v =
-  match v with
-  | Value(v) -> print_b ff v
-  | Vtuple(l) ->
-     Format.fprintf ff "@[(%a)@]" (print_list print) l
-  | Vconstr0(lid) -> print_lident ff lid
-  | Vbot -> Format.fprintf ff "bot"
-  | Vnil -> Format.fprintf ff "nil"
+    let rec value ff v =
+      match v with
+      | Value(v) -> basic ff v
+      | Vtuple(l) ->
+         Format.fprintf ff "@[(%a)@]" (value_list value) l
+      | Vconstr0(lid) -> lident ff lid
+      | Vbot -> Format.fprintf ff "bot"
+      | Vnil -> Format.fprintf ff "nil"
 
-and print_list print ff l =
-  match l with
-  | [] -> assert false
-  | [x] -> print ff x
-  | x :: l -> Format.printf "@[%a,@,%a@]" print x (print_list print) l
-
-let print_list ff l = print_list print ff l
-                        
+    and value_list value ff l =
+      match l with
+      | [] -> assert false
+      | [x] -> value ff x
+      | x :: l -> Format.printf "@[%a,@,%a@]" value x (value_list value) l
+                
+    let value_list ff l = value_list value ff l
+  end
+    
 (* The initial environment *)
