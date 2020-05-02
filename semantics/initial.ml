@@ -1,8 +1,9 @@
 open Value
 open Monad
 open Opt
-
-let (let++) e f =
+open Lident
+   
+(* let (let++) e f =
   match e with
   | None -> None
   | Some(v) ->
@@ -12,12 +13,13 @@ let (let++) e f =
         match v with
         | Vnil -> return Vnil
         | Vbot -> return Vbot
-        | Val(v) -> f v
+        | Val(v) -> f v *)
+
 
 let boolean v =
   match v with
-  | Vbool(b) -> return b |
-  | Vbot | Vnil -> return v_ -> None
+  | Vbool(b) -> return b
+  | _ -> None
 
 let integer v =
   match v with
@@ -28,17 +30,6 @@ let basic v =
   | Value(v) -> Some(v)
   | _ -> None
 
-                
-let not_op v =
-  match v with
-  | Vnil -> Vnil
-  | Vbot -> Vbot
-
-let lift0 f v =
-  match v with
-  | Vbot -> Vbot
-  | Vnil -> Vnil
-  
 let ifthenelse v v1 v2 =
   let+ v = boolean v in
   return (if v then v1 else v2)
@@ -89,5 +80,34 @@ let geti i v =
   match v with
   | Vtuple(v_list) -> if i >= 0 then geti i v_list else None
   | _ ->  None
-  
+
+let print_lident ff lident =
+  match lident with
+  | Name(s) -> Format.fprintf ff "%s" s
+  | Modname { qual; id } -> Format.fprintf ff "%s.%s" qual id
+                              
+let print_b ff v =
+  match v with
+  | Vint(i) -> Format.fprintf ff "%i" i
+  | Vbool(b) -> Format.fprintf ff "%s" (if b then "true" else "false")
+  | Vfloat(f) -> Format.fprintf ff "%f" f
+  | Vchar(c) -> Format.fprintf ff "%c" c
+  | Vstring(s) -> Format.fprintf ff "%s" s
+  | Vvoid -> Format.fprintf ff "()"
+
+let rec print ff v =
+  match v with
+  | Value(v) -> print_b ff v
+  | Vtuple(l) ->
+     Format.fprintf ff "@[(%a)@]" (print_list print) l
+  | Vconstr0(lid) -> print_lident ff lid
+  | Vbot -> Format.fprintf ff "bot"
+  | Vnil -> Format.fprintf ff "nil"
+
+and print_list print ff l =
+  match l with
+  | [] -> assert false
+  | [x] -> print ff x
+  | x :: l -> Format.printf "@[%a,@,%a@]" print x (print_list print) l
+
 (* The initial environment *)

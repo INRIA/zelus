@@ -5,6 +5,10 @@ open Location
    
 exception Error
         
+let set_main =
+  let m = ref None in
+  fun s -> m := Some(s)
+
 let lexical_error err loc =
   Format.eprintf "%aIllegal character.@." output_location loc;
   raise Error
@@ -31,9 +35,11 @@ let parse parsing_fun lexing_fun source_name =
 let parse_implementation_file source_name =
   parse Parser.implementation_file Lexer.main source_name
   
-let eval modname filename =
-  let program = parse_implementation_file source_name in
-  Coiteration.eval program
+let eval source_name s =
+  let p = parse_implementation_file source_name in
+  let+ genv = Coiteration.program Genv.empty Env.empty p in
+  let+v = s in
+  Coiteration.eval genv s     
 
 let eval file =
   if Filename.check_suffix file ".zls" || Filename.check_suffix file ".zlus"

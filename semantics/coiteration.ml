@@ -190,24 +190,25 @@ and imatch_handler genv env { m_vars; m_body } =
 
 (* pattern matching *)
 (* match the value [v] against [x1,...,xn] *)
-let matching_pateq x_list v =
-  let rec matching env x_list v_list =
+let rec matching_pateq { desc } v =
+  match v with
+  | Vtuple(v_list) -> matching_list Env.empty desc v_list
+  | _ -> None
+
+and matching_list env x_list v_list =
     match x_list, v_list with
     | [], [] ->
        return env
     | x :: x_list, v :: v_list ->
-       matching (Env.add x { cur = v; default = Val } env) x_list v_list
-    | _ -> None in
-  match v with
-  | Vtuple(v_list) -> matching Env.empty x_list v_list
-  | _ -> None
-
-(* match a state f(v1,...,vn) against a state name f(x1,...,xn) *)
+       matching_list (Env.add x { cur = v; default = Val } env) x_list v_list
+    | _ -> None
+         
+  (* match a state f(v1,...,vn) against a state name f(x1,...,xn) *)
 let matching_state ps { desc } =
   match ps, desc with
   | Sstate0(f), Estate0pat(g) when Ident.compare f g = 0 -> Some Env.empty
   | Sstate1(f, v_list), Estate1pat(g, id_list) when Ident.compare f g = 0 ->
-     matching_pateq id_list (Vtuple(v_list))
+     matching_list Env.empty id_list v_list
   | _ -> None
 
 (* match a value [ve] against a pattern [p] *)
@@ -265,10 +266,8 @@ let rec sexp genv env { e_desc = e_desc } s =
         let+ v2, s2 = sexp genv env e2 s2 in
         let+ v3, s3 = sexp genv env e3 s3 in
         let+ v1 = basic v1 in 
-        let+ v2 = basic v2 in
-        let+ v3 = basic v3 in
         let+ v = ifthenelse v1 v2 v3 in
-        return (Value v, Stuple [s1; s2; s3])
+        return (v, Stuple [s1; s2; s3])
      | _ -> None
      end
   | Etuple(e_list), Stuple(s_list) ->
@@ -597,15 +596,22 @@ let from output (CoF { init ; step }) n =
     if n = 0 then return ()
     else
       let+ r, s = step s in
-      let+ _ = output r in
+      output r;
       fromrec s (n-1) in
   fromrec init n
         
 let n = 10
       
 (* The main entry function *)
-let program genv i_list e output =
-  let i_list = Write.program i_list in
-  let+ genv = program genv i_list in
+let main genv m output =
+  let+ fv = find_gnode m genv in
+  (* the main function must be of type : unit -> t *)
+  match fv with
+  | CoFun(fv) ->
+     let+ v_list = fv v_list in 
+     return (Vtuple(v_list), Stuple(s_list))
+  | CoNode { step = fv } ->
+     let+ v_list, s = fv s v_list in
+          return (Vtuple(v_list), Stuple(s :: s_list)) inprogram genv i_list in
   let+ cof = exp genv Env.empty e in
   from output cof n

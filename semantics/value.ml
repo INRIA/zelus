@@ -1,8 +1,8 @@
 (* Set of values *)
-type 'a extend =
+(* type 'a extend =
   | Val : 'a -> 'a extend
   | Vnil : 'a extend
-  | Vbot : 'a extend
+  | Vbot : 'a extend *)
 
 type bvalue =
   | Vint : int -> bvalue
@@ -11,12 +11,14 @@ type bvalue =
   | Vchar : char -> bvalue
   | Vstring : string -> bvalue
   | Vvoid : bvalue
-  | Vconstr0 : Lident.t -> bvalue
 
 type value =
-  | Value : bvalue extend -> value
+  | Value : bvalue -> value
   | Vtuple : value list -> value
- 
+  | Vconstr0 : Lident.t -> value
+  | Vbot : value
+  | Vnil : value
+  
 type state =
   | Sempty : state
   | Stuple : state list -> state
