@@ -55,13 +55,12 @@ let eval file =
      then
        let filename = Filename.chop_extension file in
        (* let modname = String.capitalize_ascii (Filename.basename filename) in *)
-       let+ m = !main_node in
-       eval filename m !number_of_steps
+       eval filename !main_node !number_of_steps
      else
        return ())
 
 let doc_main = "The main node to evaluate\n"
-let doc_main = "The number of steps\n"
+let doc_number_of_steps = "The number of steps\n"
 
 let errmsg = "Options are:"
 
@@ -69,7 +68,7 @@ let main () =
   Arg.parse (Arg.align
       [
         "-main", Arg.String set_main, doc_main;
-        "-number", Arg.Int set_number, doc_number
+        "-number", Arg.Int set_number, doc_number_of_steps
       ])
       eval
       errmsg
