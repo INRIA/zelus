@@ -47,7 +47,7 @@ let eval source_name m n =
   let p = Write.program p in
   let+ genv = Coiteration.program Genv.empty p in
   let+ m = m in
-  Coiteration.main genv m (Initial.print_list info_ff) n
+  Coiteration.main genv m (Initial.Output.value_list info_ff) n
 
 let eval file =
   ignore
