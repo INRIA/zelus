@@ -612,7 +612,7 @@ let run_node output init step n =
 
 (* The main entry function *)
 let main genv m output n =
-  let+ fv = find_gnode_opt m genv in
+  let+ fv = find_gnode_opt (Name m) genv in
   (* the main function must be of type : unit -> t *)
   match fv with
   | CoFun(fv) -> run_fun output fv n
