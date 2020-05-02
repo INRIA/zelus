@@ -53,6 +53,9 @@ depend: .depend
 
 ML = $(OBJ:.cmo=.ml)
 
+wc:
+	wc $(ML)
+
 # cleaning:
 clean:
 	-rm -f .depend
