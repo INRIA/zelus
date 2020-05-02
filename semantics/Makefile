@@ -4,6 +4,8 @@ GENSOURCES = parser.ml parser.mli lexer.ml
 
 DIRECTORIES=.
 
+BIN=zrun
+
 OBJ = misc.cmo \
 	location.cmo \
 	ident.cmo \
@@ -25,11 +27,12 @@ all: byte opt
 opt: $(BIN).opt
 byte: $(BIN).byte
 
-$(BIN).opt: $(GENSOURCES) $(OBJ:%.cmo=%.cmx) \
+$(BIN).opt: $(GENSOURCES) $(OBJ:%.cmo=%.cmx)
 	$(OCAMLOPT) $(UNIXX) $(OCAMLOPTFLAGS) $(INCLUDES) \
 	-I $(MENHIRLIB) menhirLib.cmxa $(OBJ:%.cmo=%.cmx) -o $(BIN).opt
 
-$(BIN).byte: $(GENSOURCES) $(OBJ) main/main.cmo
+$(BIN).byte: $(GENSOURCES) $(OBJ)
+	echo $(OCAMLOPT);
 	$(OCAMLC) $(UNIX) $(OCAMLFLAGS) $(INCLUDES) \
         -I $(MENHIRLIB) menhirLib.cma $(OBJ) -o $(BIN).byte
 
