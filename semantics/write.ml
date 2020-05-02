@@ -106,9 +106,10 @@ let funexp ({ f_args; f_res; f_body } as fd) =
   let f_body, _ = equation f_body in
   { fd with f_args = f_args; f_res = f_res; f_body = f_body }
 
-let implementation i =
-    match i with
+let implementation ({ desc } as i) =
+  let desc = match desc with
     | Eletdef(f, e) -> Eletdef(f, expression e)
-    | Eletfun(f, fd) -> Eletfun(f, funexp fd)
-
+    | Eletfun(f, fd) -> Eletfun(f, funexp fd) in
+  { i with desc = desc }
+  
 let program i_list = List.map implementation i_list

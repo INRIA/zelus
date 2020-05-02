@@ -110,4 +110,6 @@ and print_list print ff l =
   | [x] -> print ff x
   | x :: l -> Format.printf "@[%a,@,%a@]" print x (print_list print) l
 
+let print_list ff l = print_list print ff l
+                        
 (* The initial environment *)

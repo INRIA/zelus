@@ -577,8 +577,8 @@ let exp genv env e =
   let step s = sexp genv env e s in
   return (CoF { init = init; step = step })
   
-let implementation genv i =
-    match i with
+let implementation genv { desc } =
+    match desc with
     | Eletdef(f, e) ->
        (* [e] should be stateless, that is, [step s = v, s] *)
        let+ si = iexp genv Env.empty e in
