@@ -430,6 +430,11 @@ and sblock genv env v_list eq s_list s_eq =
   let env_eq = remove env_v env_eq in
   return (env, env_eq, s_list, s_eq)
 
+and sblock_with_reset genv env v_list eq s_list s_eq r =
+  if r then
+    None
+  else sblock genv env v_list eq s_list s_eq
+  
 and svardec genv env env_local { var_name; var_default } s =
   let* default, s =
     match var_default, s with
@@ -486,7 +491,7 @@ and sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list =
        | Some(env_state) ->
           let env = Env.append env_state env in
           let* env, env_handler, ss_var_list, ss_body =
-            sblock genv env s_vars s_body ss_var_list ss_body in
+            sblock_with_reset genv env s_vars s_body ss_var_list ss_body pr in
           let* (ns, nr), ss_trans =
             sescape_list genv env s_trans ss_trans ps pr in
           return
