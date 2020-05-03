@@ -258,7 +258,6 @@ let rec sexp genv env { e_desc = e_desc } s =
         (* is-it the first instant? *)
         let v =
           match v_opt with | None -> v1 | Some(v) -> v in
-        (* the first instant has passed if v1 is non nil nor bot *)
         return (v, Stuple [Sopt(Some(v2)); s1; s2])
      | Eunarypre, [e], Stuple [Sval(v); s] -> 
         let* ve, s = sexp genv env e s in

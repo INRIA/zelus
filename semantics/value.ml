@@ -1,6 +1,6 @@
 (* Set of values *)
 (* noinitialized value *)
-(*
+
 type 'a uninit =
   | Vinitialized : 'a -> 'a uninit
   | Vnil : 'a -> 'a uninit
@@ -11,7 +11,7 @@ type 'a uncausal =
   | Vbot : 'a uncausal
 
 type 'a extended = 'a uninit uncausal
- *)
+
 
 type value =
   | Vint : int -> value
