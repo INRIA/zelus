@@ -62,22 +62,29 @@ let geti i v =
     | [] -> None
     | v :: v_list -> if i = 0 then Some(v) else geti (i-1) v_list in
   match v with
-  | Vtuple(v_list) -> if i >= 0 then geti i v_list else None
-  | _ ->  None
-
+  | Vbot -> return Vbot
+  | Vnil -> return Vnil
+  | Value(v) ->
+     match v with
+     | Vtuple(v_list) -> if i >= 0 then geti i v_list else None
+     | _ -> None
+          
 (* ifthenelse *)
 let ifthenelse v1 v2 v3 =
   match v1, v2, v3 with
   | Vbot, _, _ -> return Vbot
   | (Vnil, Vbot, _) | (Vnil, _, Vbot) -> return Vbot
-  | _ -> ifthenelse_op v1 v2 v3
+  | Vnil, _, _ -> return Vnil
+  | (Value(v1), _, _)  -> ifthenelse_op v1 v2 v3
                  
 (* lift a unary operator: [op bot = bot]; [op nil = nil] *)
 let lift1 op v =
   match v with
   | Vbot -> return Vbot
   | Vnil -> return Vnil
-  | _ -> op v
+  | Value(v) ->
+     let* v = op v in
+     return (Value v)
 
 (* lift a binary operator: [op bot _ = bot]; [op _ bot = bot]; same for nil *)
 let lift2 op v1 v2 =
@@ -86,9 +93,12 @@ let lift2 op v1 v2 =
   | _, Vbot -> return Vbot
   | Vnil, _ -> return Vnil
   | _, Vnil -> return Vnil
-  | _ -> op v1 v2
+  | Value(v1), Value(v2) ->
+     let* v = op v1 v2 in
+     return (Value v)
 
 (* pairs and tuples *)
+
 let unbot v1 v2 = 
   match v1, v2 with
   | (Vbot, _) | (_, Vbot) -> None
@@ -130,7 +140,7 @@ let pair v1 v2 =
      let v = unnil v1 v2 in
      match v with
      | None -> Vnil
-     | Some(v1, v2) -> Vtuple [v1; v2]
+     | Some(v1, v2) -> Value(Vtuple [v1; v2])
                      
 let tuple v_list =
   let v = unbot_list v_list in
@@ -140,8 +150,11 @@ let tuple v_list =
      let v = unnil_list v_list in
      match v with
      | None -> Vnil
-     | Some(v_list) -> Vtuple(v_list)
-     
+     | Some(v_list) -> Value(Vtuple(v_list))
+
+let bot_list l = List.map (fun _ -> Vbot) l
+let nil_list l = List.map (fun _ -> Vnil) l
+               
 module Output =
   struct
     let lident ff lid =
@@ -149,7 +162,7 @@ module Output =
       | Name(s) -> Format.fprintf ff "%s" s
       | Modname { qual; id } -> Format.fprintf ff "%s.%s" qual id
                               
-   let rec value ff v =
+   let rec pvalue ff v =
       match v with
       | Vint(i) -> Format.fprintf ff "%i" i
       | Vbool(b) -> Format.fprintf ff "%s" (if b then "true" else "false")
@@ -160,9 +173,13 @@ module Output =
       | Vtuple(l) ->
          Format.fprintf ff "@[(%a)@]" (value_list value) l
       | Vconstr0(lid) -> lident ff lid
-      | Vnil -> Format.fprintf ff "nil"
-      | Vbot -> Format.fprintf ff "bot"
-              
+
+   and value ff v =
+     match v with
+     | Vnil -> Format.fprintf ff "nil"
+     | Vbot -> Format.fprintf ff "bot"
+     | Value(v) -> pvalue ff v
+                  
     and value_list value ff l =
       match l with
       | [] -> assert false

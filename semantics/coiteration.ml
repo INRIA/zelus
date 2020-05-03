@@ -62,11 +62,16 @@ let value v =
 (* evaluation functions *)
 
 (* the bottom environment *)
-let bot_env { eq_write } =
+let bot_env eq_write =
   S.fold (fun x acc -> Env.add x { cur = Vbot; default = Val } acc)
     eq_write Env.empty
 
-let size { eq_write } = S.fold (fun _ acc -> 1 + acc) eq_write 0
+(* the nil environment *)
+let nil_env eq_write =
+  S.fold (fun x acc -> Env.add x { cur = Vnil; default = Val } acc)
+    eq_write Env.empty
+
+let size eq_write = S.fold (fun _ acc -> 1 + acc) eq_write 0
      
 (* [sem genv env e = CoF f s] such that [iexp genv env e = s] *)
 (* and [sexp genv env e = f] *)
@@ -83,7 +88,7 @@ let rec iexp genv env { e_desc } =
      | Efby, [{ e_desc = Econst(v) }; e] ->
         (* synchronous register initialized with a static value *)
         let* s = iexp genv env e  in
-        return (Stuple [Sval(value v); s])
+        return (Stuple [Sval(Value (value v)); s])
      | Efby, [e1; e2] ->
         let* s1 = iexp genv env e1 in
         let* s2 = iexp genv env e2 in
@@ -190,8 +195,11 @@ and imatch_handler genv env { m_vars; m_body } =
 (* pattern matching *)
 (* match the value [v] against [x1,...,xn] *)
 let rec matching_pateq { desc } v =
-  match v with
-  | Vtuple(v_list) -> matching_list Env.empty desc v_list
+  match desc, v with
+  | [x], _ -> return (Env.singleton x { cur = v; default = Val })
+  | x_list, Vbot -> matching_list Env.empty x_list (bot_list x_list)
+  | x_list, Vnil -> matching_list Env.empty x_list (nil_list x_list)
+  | x_list, Value(Vtuple(v_list)) -> matching_list Env.empty x_list v_list
   | _ -> None
 
 and matching_list env x_list v_list =
@@ -236,7 +244,7 @@ let reset init step genv env body s r =
 let rec sexp genv env { e_desc = e_desc } s =
   match e_desc, s with   
   | Econst(v), s ->
-     return (value v, s)
+     return (Value (value v), s)
   | Elocal x, s ->
      let* v = find_value_opt x env in
      return (v, s)
@@ -285,20 +293,20 @@ let rec sexp genv env { e_desc = e_desc } s =
        match fv with
        | CoFun(fv) ->
           let* v_list = fv v_list in 
-          return (Vtuple(v_list), Stuple(s_list))
+          return (Value (Vtuple(v_list)), Stuple(s_list))
        | CoNode { step = fv } ->
           let* v_list, s = fv s v_list in
-          return (Vtuple(v_list), Stuple(s :: s_list)) in
+          return (Value(Vtuple(v_list)), Stuple(s :: s_list)) in
      return (v, s) 
   | Elet(false, eq, e), Stuple [s_eq; s] ->
      let* env_eq, s_eq = seq genv env eq s_eq in
      let env = Env.append env_eq env in
      let* v, s = sexp genv env e s in
      return (v, Stuple [s_eq; s])
-  | Elet(true, eq, e), Stuple [s_eq; s] ->
+  | Elet(true, ({ eq_write } as eq), e), Stuple [s_eq; s] ->
      (* compute a bounded fix-point with [n] steps *)
-     let bot = bot_env eq in
-     let n = size eq in
+     let bot = bot_env eq_write in
+     let n = size eq_write in
      let* env_eq, s_eq =
        fixpoint n
          (fun s_eq env_eq -> seq genv (Env.append env_eq env) eq s_eq)
@@ -346,28 +354,43 @@ and seq genv env { eq_desc; eq_write } s =
   | EQinit(x, e), s ->
      let* v, s = sexp genv env e s in
      return (Env.singleton x { cur = Vbot; default = Last(v) }, s)
-  | EQif(e, eq1, eq2), Stuple [s; s_eq1; s_eq2] ->
-      let* v, s = sexp genv env e s in
-      let* v = boolean v in
-      if v then
-        let* env1, s_eq1 = seq genv env eq1 s_eq1 in
-        (* complete the output environment with default *)
-        (* or last values from all variables defined in [eq_write] but *)
-        (* not in [env1] *)
-        let* env1 = by env env1 eq_write in
-        return (env1, Stuple [s; s_eq1; s_eq2]) 
-      else
-        let* env2, s_eq2 = seq genv env eq2 s_eq2 in
-        (* symetric completion *)
-        let* env2 = by env env2 eq_write in
-        return (env2, Stuple [s; s_eq1; s_eq2])
+  | EQif(e, eq1, eq2), Stuple [se; s_eq1; s_eq2] ->
+      let* v, se = sexp genv env e se in
+      let* env_eq, s =
+        match v with
+        | Vbot ->
+           (* if the condition is bot then all variables have value bot *)
+           return (bot_env eq_write, Stuple [se; s_eq1; s_eq2])
+        | Vnil ->
+           (* if the condition is nil then all variables have value nil *)
+           return (nil_env eq_write, Stuple [se; s_eq1; s_eq2])
+        | Value(b) ->
+           let* v = boolean b in
+           if v then
+             let* env1, s_eq1 = seq genv env eq1 s_eq1 in
+             (* complete the output environment with default *)
+             (* or last values from all variables defined in [eq_write] but *)
+             (* not in [env1] *)
+             let* env1 = by env env1 eq_write in
+             return (env1, Stuple [se; s_eq1; s_eq2]) 
+           else
+             let* env2, s_eq2 = seq genv env eq2 s_eq2 in
+             (* symetric completion *)
+             let* env2 = by env env2 eq_write in
+             return (env2, Stuple [se; s_eq1; s_eq2]) in
+      return (env_eq, s)
   | EQand(eq_list), Stuple(s_list) ->
      let* env_eq_list, s_list = seq_list genv env eq_list s_list in
      return (env_eq_list, Stuple(s_list))
   | EQreset(eq, e), Stuple [s_eq; se] -> 
      let* v, se = sexp genv env e se in 
-     let* v = boolean v in
-     let* env_eq, s_eq = reset ieq seq genv env eq s_eq v in    
+     let* env_eq, s =
+       match v with
+       | Vbot -> return (bot_env eq_write, Stuple [s_eq; se])
+       | Vnil -> return (nil_env eq_write, Stuple [s_eq; se])
+       | Value(v) ->
+          let* v = boolean v in
+          reset ieq seq genv env eq s_eq v in    
      return (env_eq, Stuple [s_eq; se])
   | EQlocal(v_list, eq), Stuple [Stuple(s_list); s_eq] ->
      let* _, env_local, s_list, s_eq = sblock genv env v_list eq s_list s_eq in
@@ -381,7 +404,15 @@ and seq genv env { eq_desc; eq_write } s =
   | EQmatch(e, m_h_list), Stuple (se :: s_list) ->
      let* ve, se = sexp genv env e se in
      let* env, s_list =
-       smatch_handler_list genv env ve eq_write m_h_list s_list in 
+       match ve with
+       | Vbot ->
+          (* when the condition is bot, return a bot environment *)
+          return (bot_env eq_write, s_list)
+       | Vnil ->
+          (* when the condition is nil, return a nil environment *)
+          return (nil_env eq_write, s_list)
+       | Value(ve) ->
+          smatch_handler_list genv env ve eq_write m_h_list s_list in 
      return (env, Stuple (se :: s_list))
   | _ -> None
 
@@ -478,16 +509,28 @@ and sescape_list genv env escape_list s_list ps pr =
     Stuple [s_cond; Stuple(s_var_list); s_body; s_next_state] :: s_list ->
       (* if [pr=true] then the transition is reset *)
      let* v, s = reset iscondpat sscondpat genv env e_cond s_cond pr in
-     let* v = boolean v in
-     let* env, env_local, s_var_list, s_body =
-       sblock genv env e_vars e_body s_var_list s_body in
-     let* ns, s_next_state = sstate genv env e_next_state s_next_state in
-     let* (s, r), s_list = sescape_list genv env escape_list s_list ps pr in
-     let ns, nr =
-       if v then (ns, e_reset) else (s, r) in
-     return ((ns, nr),
-             Stuple [s_cond; Stuple(s_var_list);
-                     s_body; s_next_state] :: s_list)
+     let* (ns, nr), s =
+       match v with
+       | Vbot ->
+          (* if [v = bot] the state and reset bit do not change *)
+          return ((ps, pr), Stuple [s_cond; Stuple(s_var_list);
+                                    s_body; s_next_state] :: s_list)
+       | Vnil ->
+          (* if [v = nil] the state and reset bit do not change *)
+          return ((ps, pr), Stuple [s_cond; Stuple(s_var_list);
+                                    s_body; s_next_state] :: s_list)
+       | Value(v) ->
+          let* v = boolean v in
+          let* env, env_local, s_var_list, s_body =
+            sblock genv env e_vars e_body s_var_list s_body in
+          let* ns, s_next_state = sstate genv env e_next_state s_next_state in
+          let* (s, r), s_list = sescape_list genv env escape_list s_list ps pr in
+          let ns, nr =
+            if v then (ns, e_reset) else (s, r) in
+          return ((ns, nr),
+                  Stuple [s_cond; Stuple(s_var_list);
+                          s_body; s_next_state] :: s_list) in
+     return ((ns, nr), s)
   | _ -> None
     
 and sscondpat genv env e_cond s = sexp genv env e_cond s
@@ -593,7 +636,7 @@ let run_fun output fv n =
   let rec runrec n =
     if n = 0 then return ()
     else
-      let* v = fv [Vvoid] in
+      let* v = fv [Value(Vvoid)] in
       output v;
       runrec (n-1) in
   runrec n
@@ -603,7 +646,7 @@ let run_node output init step n =
   let rec runrec s n =
     if n = 0 then return ()
     else
-      let* v, s = step s [Vvoid] in
+      let* v, s = step s [Value(Vvoid)] in
       output v;
       runrec s (n-1) in
   runrec init n

@@ -1,30 +1,23 @@
 (* Set of values *)
-(* noinitialized value *)
+(* noinitialized and non causal values *)
 
-type 'a uninit =
-  | Vinitialized : 'a -> 'a uninit
-  | Vnil : 'a -> 'a uninit
-
-(* undefined value *)
-type 'a uncausal =
-  | Value : 'a -> 'a uncausal
-  | Vbot : 'a uncausal
-
-type 'a extended = 'a uninit uncausal
-
-
-type value =
-  | Vint : int -> value
-  | Vbool : bool -> value
-  | Vfloat : float -> value
-  | Vchar : char -> value
-  | Vstring : string -> value
-  | Vvoid : value
-  | Vconstr0 : Lident.t -> value
-  | Vtuple : value list -> value
-  | Vbot : value
-  | Vnil : value
+type 'a extended =
+  | Vnil : 'a extended
+  | Vbot : 'a extended
+  | Value : 'a -> 'a extended
   
+type pvalue =
+  | Vint : int -> pvalue
+  | Vbool : bool -> pvalue
+  | Vfloat : float -> pvalue
+  | Vchar : char -> pvalue
+  | Vstring : string -> pvalue
+  | Vvoid : pvalue
+  | Vconstr0 : Lident.t -> pvalue
+  | Vtuple : value list -> pvalue
+
+and value = pvalue extended
+          
 type state =
   | Sempty : state
   | Stuple : state list -> state
