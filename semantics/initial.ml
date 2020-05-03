@@ -14,7 +14,7 @@ let integer v =
   match v with
   | Vint(i) -> return i | _ -> None
 
-let ifthenelse v v1 v2 =
+let ifthenelse_op v v1 v2 =
   let* b = boolean v in
   if b then return v1 else return v2
 
@@ -65,6 +65,13 @@ let geti i v =
   | Vtuple(v_list) -> if i >= 0 then geti i v_list else None
   | _ ->  None
 
+(* ifthenelse *)
+let ifthenelse v1 v2 v3 =
+  match v1, v2, v3 with
+  | Vbot, _, _ -> return Vbot
+  | (Vnil, Vbot, _) | (Vnil, _, Vbot) -> return Vbot
+  | _ -> ifthenelse_op v1 v2 v3
+                 
 (* lift a unary operator: [op bot = bot]; [op nil = nil] *)
 let lift1 op v =
   match v with
