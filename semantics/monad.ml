@@ -1,6 +1,6 @@
 module Opt =
   struct
-    (* let* x = e in f x *)
+    (* [let* x = e in f x] *)
     let (let*) e f =
       match e with
       | None -> None
