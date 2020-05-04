@@ -499,66 +499,121 @@ and remove env_v env_eq =
   Env.fold (fun x _ acc -> Env.remove x acc) env_v env_eq
 
 and sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list =
-  match a_h_list, s_list with
-  | { s_state; s_vars; s_body; s_trans } :: a_h_list,
-    (Stuple [Stuple(ss_var_list); ss_body; Stuple(ss_trans)] as s) :: s_list ->
+  (* automaton with weak transitions *)
+  let rec body_and_transition_list a_h_list s_list =
+    match a_h_list, s_list with
+    | { s_state; s_vars; s_body; s_trans } :: a_h_list,
+      (Stuple [Stuple(ss_var_list); ss_body; Stuple(ss_trans)] as s) :: s_list ->
      let r = matching_state ps s_state in
      let* env_handler, ns, nr, s_list =
        match r with
        | None ->
           (* this is not the good state; try an other one *)
           let* env_handler, ns, nr, s_list =
-            sautomaton_handler_list
-              is_weak genv env eq_write a_h_list ps pr s_list in
+            body_and_transition_list a_h_list s_list in
           return (env_handler, ns, nr, s :: s_list)            
        | Some(env_state) ->
           let env = Env.append env_state env in
-          let* env, env_handler, ss_var_list, ss_body =
+          (* execute the body *)
+          let* env, env_body, ss_var_list, ss_body =
             sblock_with_reset genv env s_vars s_body ss_var_list ss_body pr in
-          let* (ns, nr), ss_trans =
+          (* execute the transitions *)
+          let* env_trans, (ns, nr), ss_trans =
             sescape_list genv env s_trans ss_trans ps pr in
           return
-            (env_handler, ns, nr,
+            (env_body, ns, nr,
              Stuple [Stuple(ss_var_list); ss_body;
                      Stuple(ss_trans)] :: s_list) in
-     (* complete missing entries in the environment *)
+     (* complete missing entries in the environment *) 
      let* env_handler = by env env_handler eq_write in
      return (env_handler, ns, nr, s_list)
-  | _ -> None
+    | _ -> None in 
+  
+  (* automaton with strong transitions *)
+  (* 1/ choose the active state by testing unless transitions of the current state *)
+  let rec transition_list a_h_list s_list =
+    match a_h_list, s_list with
+    | { s_state; s_trans } :: a_h_list,
+      (Stuple [ss_var; ss_body; Stuple(ss_trans)] as s) :: s_list ->
+     let r = matching_state ps s_state in
+     begin match r with
+     | None ->
+        (* this is not the good state; try an other one *)
+        let* env_trans, ns, nr, s_list = transition_list a_h_list s_list in
+        return (env_trans, ns, nr, s :: s_list)            
+     | Some(env_state) ->
+        let env = Env.append env_state env in
+        (* execute the transitions *)
+        let* env_trans, (ns, nr), ss_trans =
+          sescape_list genv env s_trans ss_trans ps pr in
+        return
+          (env_trans, ns, nr,
+           Stuple [ss_var; ss_body; Stuple(ss_trans)] :: s_list) end
+    | _ -> None in
+  (* 2/ execute the body of the target state *)
+  let rec body_list a_h_list ps pr s_list =
+    match a_h_list, s_list with
+    | { s_state; s_vars; s_body } :: a_h_list,
+      (Stuple [Stuple(ss_var_list); ss_body; ss_trans] as s) :: s_list ->
+     let r = matching_state ps s_state in
+     begin match r with
+     | None ->
+        (* this is not the good state; try an other one *)
+        let* env_body, s_list = body_list a_h_list ps pr s_list in
+        return (env_body, s :: s_list)            
+     | Some(env_state) ->
+        let env = Env.append env_state env in
+        (* execute the body *)
+        let* _, env_body, ss_var_list, ss_body =
+          sblock_with_reset genv env s_vars s_body ss_var_list ss_body pr in
+        return
+          (env_body, Stuple [Stuple(ss_var_list); ss_body; ss_trans] :: s_list) end
+   | _ -> None in
+  if is_weak then
+    body_and_transition_list a_h_list s_list
+  else
+    (* chose the active state *)
+    let* env_trans, ns, nr, s_list = transition_list a_h_list s_list in
+    (* execute the current state *)
+    let* env_body, s_list = body_list a_h_list ns nr s_list in
+    let env_handler = Env.append env_trans env_body in
+    (* complete missing entries in the environment *)
+    let* env_handler = by env env_handler eq_write in
+    return (env_handler, ns, nr, s_list)
 
 (* [Given a transition t, a name ps of a state in the automaton, a value pr *)
 (* for the reset condition, *)
 (* [escape_list genv env { e_cond; e_vars; e_body; e_next_state } ps pr] *)
-(* returns a new state name, a new reset condition and a new state *)
+(* returns an environment, a new state name, a new reset condition and a new state *)
 and sescape_list genv env escape_list s_list ps pr =
   match escape_list, s_list with
-  | [], [] -> return ((ps, pr), [])
+  | [], [] -> return (Env.empty, (ps, pr), [])
   | { e_cond; e_reset; e_vars; e_body; e_next_state } :: escape_list,
     Stuple [s_cond; Stuple(s_var_list); s_body; s_next_state] :: s_list ->
       (* if [pr=true] then the transition is reset *)
      let* v, s = reset iscondpat sscondpat genv env e_cond s_cond pr in
-     let* (ns, nr), s =
+     let* env_body, (ns, nr), s =
        match v with
+       (* if [v = bot/nil] the state and reset bit do not change *)
        | Vbot ->
-          (* if [v = bot] the state and reset bit do not change *)
-          return ((ps, pr), Stuple [s_cond; Stuple(s_var_list);
-                                    s_body; s_next_state] :: s_list)
+          return (Env.empty, (ps, pr), Stuple [s_cond; Stuple(s_var_list);
+                                               s_body; s_next_state] :: s_list)
        | Vnil ->
-          (* if [v = nil] the state and reset bit do not change *)
-          return ((ps, pr), Stuple [s_cond; Stuple(s_var_list);
-                                    s_body; s_next_state] :: s_list)
+          return (Env.empty, (ps, pr), Stuple [s_cond; Stuple(s_var_list);
+                                               s_body; s_next_state] :: s_list)
        | Value(v) ->
           let* v = boolean v in
-          let* env, env_local, s_var_list, s_body =
-            sblock genv env e_vars e_body s_var_list s_body in
+          let* env, env_body, s_var_list, s_body =
+            sblock_with_reset genv env e_vars e_body s_var_list s_body pr in
           let* ns, s_next_state = sstate genv env e_next_state s_next_state in
-          let* (s, r), s_list = sescape_list genv env escape_list s_list ps pr in
+          let* env_body, (s, r), s_list =
+            sescape_list genv env escape_list s_list ps pr in
           let ns, nr =
             if v then (ns, e_reset) else (s, r) in
-          return ((ns, nr),
+          return (env_body, (ns, nr),
                   Stuple [s_cond; Stuple(s_var_list);
                           s_body; s_next_state] :: s_list) in
-     return ((ns, nr), s)
+     return (env_body, (ns, nr), s)
   | _ -> None
     
 and sscondpat genv env e_cond s = sexp genv env e_cond s
