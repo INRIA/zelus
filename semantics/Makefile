@@ -6,8 +6,7 @@ DIRECTORIES=.
 
 BIN=zrun
 
-OBJ = misc.cmo \
-	location.cmo \
+OBJ =	location.cmo \
 	ident.cmo \
 	lident.cmo \
 	parsetree.cmo \
