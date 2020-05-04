@@ -54,11 +54,13 @@ let eval source_name m n =
   let* r = Coiteration.main genv m (Initial.Output.value_list info_ff) n in
   return r
 
- let eval file =
-  if Filename.check_suffix file ".zls" || Filename.check_suffix file ".zlus"
+ let eval filename =
+  if Filename.check_suffix filename ".zls" || Filename.check_suffix filename ".zlus"
   then
-    let filename = Filename.chop_extension file in
-    (* let modname = String.capitalize_ascii (Filename.basename filename) in *)
+    (* let modname = 
+      String.capitalize_ascii
+        (Filename.basename (Filename.chop_extension filename)) in *)
+    Location.initialize filename;
     let r = eval filename !main_node !number_of_steps in
     match r with | None -> eval_error () | Some _ -> ()
                                                    
