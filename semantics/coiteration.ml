@@ -71,7 +71,7 @@ let nil_env eq_write =
   S.fold (fun x acc -> Env.add x { cur = Vnil; default = Val } acc)
     eq_write Env.empty
 
-let size eq_write = S.fold (fun _ acc -> 1 + acc) eq_write 0
+let size eq_write = S.cardinal eq_write
 
 (* a bot/nil value lifted to lists *)
 let bot_list l = List.map (fun _ -> Vbot) l
