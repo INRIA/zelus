@@ -72,7 +72,21 @@ let nil_env eq_write =
     eq_write Env.empty
 
 let size eq_write = S.fold (fun _ acc -> 1 + acc) eq_write 0
-     
+
+(* a bot/nil value lifted to lists *)
+let bot_list l = List.map (fun _ -> Vbot) l
+let nil_list l = List.map (fun _ -> Vnil) l
+
+(* bounded fixpoint combinator *)
+(* computes a pre fixpoint f^n(bot) <= fix(f) *)
+let fixpoint n f s bot =
+  let rec fixpoint n s v =
+    if n <= 0 then return (v, s)
+    else
+      let* v, s = f s v in
+      fixpoint (n-1) s v in      
+  fixpoint n s bot
+
 (* [sem genv env e = CoF f s] such that [iexp genv env e = s] *)
 (* and [sexp genv env e = f] *)
 (* initial state *)
@@ -143,10 +157,10 @@ and ieq genv env { eq_desc } =
      return (Stuple [s_eq; se])
   | EQautomaton(_, a_h_list) ->
      let* s_list = Opt.map (iautomaton_handler genv env) a_h_list in
-     (* what is the initial state; take the first in the list *)
-     (* and it is not reset at the first instant *)
+     (* The initial state is the first in the list *)
+     (* it is not reset at the first instant *)
      let* a_h = List.nth_opt a_h_list 0 in
-     let* i = initial a_h in
+     let* i = initial_state_of_automaton a_h in
      return (Stuple(i :: Sbool(false) :: s_list))
   | EQmatch(e, m_h_list) ->
      let* se = iexp genv env e in
@@ -166,7 +180,8 @@ and iautomaton_handler genv env { s_vars; s_body; s_trans } =
   let* st_list = Opt.map (iescape genv env) s_trans in
   return (Stuple [Stuple(sv_list); sb; Stuple(st_list)])
 
-and initial { s_state = { desc } } =
+(* initial state of an automaton *)
+and initial_state_of_automaton { s_state = { desc } } =
   match desc with
   | Estate0pat(f) -> return (Sstate0(f))
   | _ -> None
@@ -210,7 +225,7 @@ and matching_list env x_list v_list =
        matching_list (Env.add x { cur = v; default = Val } env) x_list v_list
     | _ -> None
          
-  (* match a state f(v1,...,vn) against a state name f(x1,...,xn) *)
+(* match a state f(v1,...,vn) against a state name f(x1,...,xn) *)
 let matching_state ps { desc } =
   match ps, desc with
   | Sstate0(f), Estate0pat(g) when Ident.compare f g = 0 -> Some Env.empty
@@ -224,16 +239,6 @@ let matching_pattern ve { desc } =
   | Vconstr0(f), Econstr0pat(g) when Lident.compare f g = 0 -> Some(Env.empty)
   | _ -> None
        
-(* bounded fixpoint combinator *)
-(* computes f^n(bot) <= fix(f) *)
-let fixpoint n f s bot =
-  let rec fixpoint n s v =
-    if n <= 0 then return (v, s)
-    else
-      let* v, s = f s v in
-      fixpoint (n-1) s v in      
-  fixpoint n s bot
-
 (* [reset init step genv env body s r] resets [step genv env body] *)
 (* when [r] is true *)
 let reset init step genv env body s r =
@@ -241,6 +246,9 @@ let reset init step genv env body s r =
   step genv env body s
   
 (* step function *)
+(* the value of an expression [e] in a global environment [genv] and local *)
+(* environment [env] is a step function of type [state -> (value * state) option] *)
+(* [None] is return in case of type error; [Some(v, s)] otherwise *)
 let rec sexp genv env { e_desc = e_desc } s =
   match e_desc, s with   
   | Econst(v), s ->
@@ -304,7 +312,7 @@ let rec sexp genv env { e_desc = e_desc } s =
      let* v, s = sexp genv env e s in
      return (v, Stuple [s_eq; s])
   | Elet(true, ({ eq_write } as eq), e), Stuple [s_eq; s] ->
-     (* compute a bounded fix-point with [n] steps *)
+     (* compute a bounded fix-point in [n] steps *)
      let bot = bot_env eq_write in
      let n = size eq_write in
      let* env_eq, s_eq =
@@ -325,11 +333,13 @@ and sexp_list genv env e_list s_list =
      return (v :: v_list, s :: s_list)
   | _ -> None
 
-(* given an environment [env], a local environment [env_w] *)
+(* given an environment [env], a local environment [env_handler] *)
 (* an a set of written variables [write] *)
 (* complete [env_handler] with entries in [env] for variables that appear in [write] *)
-(* this is useful for giving the semantics of a control-structure, e.g.,: *)
-(* [if e then do x = ... and y = ... else do x = ... done] *)
+(* this is used for giving the semantics of a control-structure, e.g.,: *)
+(* [if e then do x = ... and y = ... else do x = ... done]. When [e = false] *)
+(* the value of [y] is the default one given at the definition of [y] *)
+(* for the moment, we treat the absence of a default value as a type error *)
 and by env env_handler write =
   S.fold
     (fun x acc ->
@@ -345,6 +355,7 @@ and by env env_handler write =
            return (Env.add x { entry with cur = v } acc))
     write (return env_handler) 
                  
+(* step function for an equation *)
 and seq genv env { eq_desc; eq_write } s =
   match eq_desc, s with 
   | EQeq(p, e), s -> 
@@ -353,7 +364,10 @@ and seq genv env { eq_desc; eq_write } s =
      return (env_p, s)
   | EQinit(x, e), s ->
      let* v, s = sexp genv env e s in
-     return (Env.singleton x { cur = Vbot; default = Last(v) }, s)
+     (* we take the current value of [x] in the environment *)
+     (* since [x = e and init x = e0] is valid in Zelus *)
+     let* { cur } = Env.find_opt x env in
+     return (Env.singleton x { cur = cur; default = Last(v) }, s)
   | EQif(e, eq1, eq2), Stuple [se; s_eq1; s_eq2] ->
       let* v, se = sexp genv env e se in
       let* env_eq, s =
@@ -386,6 +400,7 @@ and seq genv env { eq_desc; eq_write } s =
      let* v, se = sexp genv env e se in 
      let* env_eq, s =
        match v with
+       (* if the condition is bot/nil then all variables have value bot/nil *)
        | Vbot -> return (bot_env eq_write, Stuple [s_eq; se])
        | Vnil -> return (nil_env eq_write, Stuple [s_eq; se])
        | Value(v) ->
@@ -398,31 +413,32 @@ and seq genv env { eq_desc; eq_write } s =
   | EQautomaton(is_weak, a_h_list), Stuple [ps; Sbool(pr); Stuple(s_list)] ->
      (* [ps = state where to go; pr = whether the state must be reset or not *)
      let* env, ns, nr, s_list =
-        sautomaton_handler_list
-          is_weak genv env eq_write a_h_list ps pr s_list in
+        sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list in
      return (env, Stuple [ns; Sbool(nr); Stuple(s_list)])
   | EQmatch(e, m_h_list), Stuple (se :: s_list) ->
      let* ve, se = sexp genv env e se in
      let* env, s_list =
        match ve with
-       | Vbot ->
-          (* when the condition is bot, return a bot environment *)
-          return (bot_env eq_write, s_list)
-       | Vnil ->
-          (* when the condition is nil, return a nil environment *)
-          return (nil_env eq_write, s_list)
+       (* if the condition is bot/nil then all variables have value bot/nil *)
+       | Vbot -> return (bot_env eq_write, s_list)
+       | Vnil -> return (nil_env eq_write, s_list)
        | Value(ve) ->
           smatch_handler_list genv env ve eq_write m_h_list s_list in 
      return (env, Stuple (se :: s_list))
   | _ -> None
 
+(* block [local x1 [init e1 | default e1 | ],..., xn [...] do eq done *)
+(* compute a pre fix-point in [n] steps *)
 and sblock genv env v_list eq s_list s_eq =
   let* env_v, s_list =
     Opt.mapfold2 (svardec genv env) Env.empty v_list s_list in
   let env = Env.append env_v env in
+  let bot =
+    Env.map (fun { default } -> { cur = Vbot; default = default }) env_v in
+  let n = Env.cardinal env_v in
   let* env_eq, s_eq =
-    fixpoint 42 (fun s_eq env_eq -> seq genv (Env.append env_eq env) eq s_eq)
-      s_eq Env.empty in
+    fixpoint n (fun s_eq env_eq -> seq genv (Env.append env_eq env) eq s_eq)
+      s_eq bot in
   (* store the next last value *)
   let* s_list = Opt.map2 (set env_eq) v_list s_list in
   (* remove all local variables from [env_eq] *)
@@ -433,10 +449,12 @@ and sblock genv env v_list eq s_list s_eq =
 and sblock_with_reset genv env v_list eq s_list s_eq r =
   let* s_list, s_eq =
     if r then
+      (* recompute the initial state *)
       let* s_list = Opt.map (ivardec genv env) v_list in
       let* s_eq = ieq genv env eq in
       return (s_list, s_eq)
     else
+      (* keep the current one *)
       return (s_list, s_eq) in
   sblock genv env v_list eq s_list s_eq
   
