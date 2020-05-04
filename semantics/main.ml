@@ -67,8 +67,8 @@ let errmsg = "Options are:"
 let main () =
   Arg.parse (Arg.align
       [
-        "-main", Arg.String set_main, doc_main;
-        "-number", Arg.Int set_number, doc_number_of_steps
+        "-s", Arg.String set_main, doc_main;
+        "-n", Arg.Int set_number, doc_number_of_steps
       ])
       eval
       errmsg
