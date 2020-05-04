@@ -99,7 +99,7 @@ and is_rec = bool
            
 and eq =
   { eq_desc: eq_desc; (* descriptor *)
-    eq_write: S.t; (* set of written variables *)
+    eq_write: S.t; (* set of defined variables *)
     eq_loc: Location.t; (* its location *)
   }
 
