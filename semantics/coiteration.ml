@@ -431,9 +431,14 @@ and sblock genv env v_list eq s_list s_eq =
   return (env, env_eq, s_list, s_eq)
 
 and sblock_with_reset genv env v_list eq s_list s_eq r =
-  if r then
-    None
-  else sblock genv env v_list eq s_list s_eq
+  let* s_list, s_eq =
+    if r then
+      let* s_list = Opt.map (ivardec genv env) v_list in
+      let* s_eq = ieq genv env eq in
+      return (s_list, s_eq)
+    else
+      return (s_list, s_eq) in
+  sblock genv env v_list eq s_list s_eq
   
 and svardec genv env env_local { var_name; var_default } s =
   let* default, s =
