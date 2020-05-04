@@ -16,9 +16,9 @@ module Error =
       | Enon_linear_automaton of string
       | Eautomaton_with_mixed_transitions
                            
-    exception Er of Location.t * error
+    exception Err of Location.t * error
                      
-    let error loc kind = raise (Er(loc, kind))
+    let error loc kind = raise (Err(loc, kind))
                        
     let message loc kind =
       begin match kind with

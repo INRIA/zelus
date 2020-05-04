@@ -39,6 +39,10 @@ let parse parsing_fun lexing_fun source_name =
 let parse_implementation_file source_name =
   parse Parser.implementation_file Lexer.main source_name
   
+let eval_error () =
+  Format.eprintf "Evaluation error.@.";
+  raise Error
+
 (* evaluate the main node [m] given by option [-s] for [n] steps *)
 let eval source_name m n =
   let info_ff = Format.formatter_of_out_channel stdout in
@@ -47,31 +51,33 @@ let eval source_name m n =
   let p = Write.program p in
   let* genv = Coiteration.program Genv.empty p in
   let* m = m in
-  Coiteration.main genv m (Initial.Output.value_list info_ff) n
+  let* r = Coiteration.main genv m (Initial.Output.value_list info_ff) n in
+  return r
 
-let eval file =
-  ignore
-    (if Filename.check_suffix file ".zls" || Filename.check_suffix file ".zlus"
-     then
-       let filename = Filename.chop_extension file in
-       (* let modname = String.capitalize_ascii (Filename.basename filename) in *)
-       eval filename !main_node !number_of_steps
-     else
-       return ())
-
+ let eval file =
+  if Filename.check_suffix file ".zls" || Filename.check_suffix file ".zlus"
+  then
+    let filename = Filename.chop_extension file in
+    (* let modname = String.capitalize_ascii (Filename.basename filename) in *)
+    let r = eval filename !main_node !number_of_steps in
+    match r with | None -> eval_error () | Some _ -> ()
+                                                   
 let doc_main = "The main node to evaluate\n"
 let doc_number_of_steps = "The number of steps\n"
 
 let errmsg = "Options are:"
 
+           
 let main () =
-  Arg.parse (Arg.align
-      [
-        "-s", Arg.String set_main, doc_main;
-        "-n", Arg.Int set_number, doc_number_of_steps
-      ])
+  try
+    Arg.parse (Arg.align
+                 [ "-s", Arg.String set_main, doc_main;
+                   "-n", Arg.Int set_number, doc_number_of_steps ])
       eval
       errmsg
-
+  with
+  | Scoping.Error | Error -> exit 2
+  
 let _ = main ()
 let _ = exit 0
+            
