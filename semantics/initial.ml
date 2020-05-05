@@ -152,9 +152,7 @@ let tuple v_list =
      | None -> Vnil
      | Some(v_list) -> Value(Vtuple(v_list))
 
-let bot_list l = List.map (fun _ -> Vbot) l
-let nil_list l = List.map (fun _ -> Vnil) l
-               
+              
 module Output =
   struct
     let lident ff lid =
@@ -186,7 +184,8 @@ module Output =
       | [x] -> value ff x
       | x :: l -> Format.printf "@[%a,@,%a@]" value x (value_list value) l
                 
-    let value_list ff l = value_list value ff l
+   let value ff v = Format.fprintf ff "%a@." value v
+   let value_list ff l = Format.fprintf ff "%a@." (value_list value) l
   end
 
 (* check that v is a list of length one *)
