@@ -301,11 +301,11 @@ let rec sexp genv env { e_desc = e_desc } s =
        match fv with
        | CoFun(fv) ->
           let* v_list = fv v_list in 
-          return (Value (Vtuple(v_list)), Stuple(s_list))
+          return (Value (Vtuple(v_list)), Sempty)
        | CoNode { step = fv } ->
           let* v_list, s = fv s v_list in
-          return (Value(Vtuple(v_list)), Stuple(s :: s_list)) in
-     return (v, s) 
+          return (Value(Vtuple(v_list)), s) in
+     return (v, Stuple (s :: s_list)) 
   | Elet(false, eq, e), Stuple [s_eq; s] ->
      let* env_eq, s_eq = seq genv env eq s_eq in
      let env = Env.append env_eq env in
