@@ -201,7 +201,9 @@ implementation:
 ;
 
 %inline equation_and_list:
-  | l = list_of(AND, equation) { make (EQand(l)) $startpos $endpos }
+  | l = list_of(AND, equation)
+    { match l with | [] -> make EQempty $startpos $endpos
+		   | [eq] -> eq | l -> make (EQand(l)) $startpos $endpos }
 ;
 
 %inline equation:
