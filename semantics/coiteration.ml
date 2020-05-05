@@ -264,10 +264,10 @@ let rec sexp genv env { e_desc = e_desc } s =
      return (v, s)
   | Eop(op, e_list), s ->
      begin match op, e_list, s with
-     | Efby, [e1; e2], Stuple [Sval(v); s1; s2] ->
-        let* _, s1 = sexp genv env e1 s1  in
+     | (* initialized unit-delay with a constant *)
+       Efby, [_; e2], Stuple [Sval(v); s2] ->
         let* v2, s2 = sexp genv env e2 s2  in
-        return (v, Stuple [Sval(v2); s1; s2])
+        return (v, Stuple [Sval(v2); s2])
      | Efby, [e1; e2], Stuple [Sopt(v_opt); s1; s2] ->
         let* v1, s1 = sexp genv env e1 s1  in
         let* v2, s2 = sexp genv env e2 s2  in
