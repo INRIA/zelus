@@ -57,13 +57,16 @@ let add x ty sort (env, new_env, subst, eq_list) =
   eq_lx_last_m_m_x lx m x ty eq_list
                          
 (* Computes the set of variables [last x] from [b_env] *)
-let env subst b_env =
+(* turns all values in [b_env] to values *)
+let valenv subst b_env =
   let last x ({ t_typ = ty; t_sort = sort } as entry)
         (env, new_env, subst, eq_list) =
     match sort with
     | Smem { m_previous = true } ->
        add x ty sort (env, new_env, subst, eq_list)
-    | Sstatic | Sval | Svar _ | Smem _ ->
+    | Smem { m_previous = false } ->
+       Env.add x { entry with t_sort = Sval } env, new_env, subst, eq_list
+    | Sstatic | Sval | Svar _ ->
        Env.add x entry env, new_env, subst, eq_list in
   Env.fold last b_env (Env.empty, Env.empty, subst, [])
     
@@ -76,7 +79,7 @@ let extend_block ({ b_locals = l_list } as b) env eq_list =
 let present_handlers subst scondpat body p_h_list =
   List.map
     (fun ({ p_cond = scpat; p_body = b; p_env = p_env } as handler) ->
-      let p_env, new_env, subst, eq_list = env subst p_env in
+      let p_env, new_env, subst, eq_list = valenv subst p_env in
       let b = body subst b new_env eq_list in
      { handler with p_cond = scondpat subst scpat; p_env = p_env; p_body = b})
     p_h_list
@@ -155,8 +158,8 @@ and equation subst ({ eq_desc } as eq) =
   | EQforall ({ for_index = i_list; for_init = init_list;
 		for_body = b_eq_list; for_in_env = for_in_env;
                 for_out_env = for_out_env } as body) ->
-     let for_in_env, new_in_env, subst, eq_in_list = env subst for_in_env in
-     let for_out_env, new_out_env, subst, eq_out_list = env subst for_in_env in
+     let for_in_env, new_in_env, subst, eq_in_list = valenv subst for_in_env in
+     let for_out_env, new_out_env, subst, eq_out_list = valenv subst for_in_env in
      let index ({ desc = desc } as ind) =
        let desc = match desc with
 	 | Einput(x, e) -> Einput(x, exp subst e)
@@ -195,7 +198,7 @@ and equation subst ({ eq_desc } as eq) =
      let escape subst
                 ({ e_cond = scpat; e_block = b_opt;
                    e_next_state = se; e_env = e_env } as esc) =
-       let e_env, new_env, subst, eq_list = env subst e_env in
+       let e_env, new_env, subst, eq_list = valenv subst e_env in
        let scpat = scondpat subst scpat in
        let b_opt =
          match b_opt with
@@ -209,7 +212,7 @@ and equation subst ({ eq_desc } as eq) =
        { esc with e_cond = scpat; e_block = b_opt; e_next_state = se;
                   e_env = e_env } in
      let handler subst ({ s_body = b; s_trans = trans; s_env = s_env } as h) =
-       let s_env, new_env, subst, eq_list = env subst s_env in
+       let s_env, new_env, subst, eq_list = valenv subst s_env in
        let b = block_eq_list subst b in
        let b = extend_block b new_env eq_list in
        { h with s_body = b;
@@ -245,14 +248,14 @@ and present_handler_block_eq_list subst p_h_b_eq_list =
                    
 and match_handler_exp_list subst m_h_list =
   List.map (fun ({ m_body = e; m_env = m_env } as handler) -> 
-      let m_env, new_env, subst, eq_list = env subst m_env in
+      let m_env, new_env, subst, eq_list = valenv subst m_env in
       let e = exp subst e in
       let e = Zaux.make_let new_env eq_list e in
       { handler with m_body = e; m_env = m_env }) m_h_list    
     
 and match_handler_block_eq_list subst m_h_list =
   List.map (fun ({ m_body = b; m_env = m_env } as handler) -> 
-      let m_env, new_env, subst, eq_list = env subst m_env in
+      let m_env, new_env, subst, eq_list = valenv subst m_env in
       let b = block_eq_list subst b in
       let b = extend_block b new_env eq_list in
       { handler with m_body = b; m_env = m_env }) m_h_list    
@@ -279,7 +282,7 @@ let implementation impl =
   | Eopen _ | Etypedecl _ | Econstdecl _
   | Efundecl(_, { f_kind = S | A }) -> impl
   | Efundecl(n, ({ f_body = e; f_env = f_env } as body)) ->
-     let f_env, new_env, subst, eq_list = env Env.empty f_env in
+     let f_env, new_env, subst, eq_list = valenv Env.empty f_env in
      let e = exp subst e in
      let e = Zaux.make_let new_env eq_list e in
      { impl with desc = Efundecl(n, { body with f_env = f_env; f_body = e }) }
