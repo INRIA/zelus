@@ -331,9 +331,8 @@ let kind = function Efun -> Ast.Efun | Enode -> Ast.Enode
 
 let funexp { desc = { f_kind; f_atomic; f_args; f_res; f_body }; loc } =
   let f_args, env_f_args = Misc.mapfold (vardec Env.empty) Env.empty f_args in
-  let f_res, env_f_res = Misc.mapfold (vardec env_f_args) Env.empty f_res in
-  let env = Env.append env_f_res env_f_args in
-  let f_body = equation env_f_res env f_body in
+  let f_res, env_f = Misc.mapfold (vardec env_f_args) Env.empty f_res in
+  let f_body = equation env_f (Env.append env_f env_f_args) f_body in
   { Ast.f_kind = kind f_kind; Ast.f_atomic = f_atomic;
     Ast.f_args = f_args; Ast.f_res = f_res;
     Ast.f_body = f_body; Ast.f_loc = loc }
