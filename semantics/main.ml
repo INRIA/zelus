@@ -49,7 +49,7 @@ let eval source_name m n =
   let p = parse_implementation_file source_name in
   let p = Scoping.program p in
   let p = Write.program p in
-  let* genv = Coiteration.program Genv.empty p in
+  let* genv = Coiteration.program Initial.genv0 p in
   let* m = m in
   let* r = Coiteration.main genv m (Initial.Output.value_list info_ff) n in
   return r
