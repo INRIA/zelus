@@ -718,7 +718,7 @@ let funexp genv { f_kind; f_atomic; f_args; f_res; f_body } =
                  let env = Env.append env_res env_args in
                  (* eprint_env env_args; *)
                  let n = Env.cardinal env_res in
-                 let* env_body, s =
+                 let* env_body, s_body =
                    fixpoint n
                      (fun s_body env_body ->
                        seq genv (Env.append env_body env) f_body s_body)
