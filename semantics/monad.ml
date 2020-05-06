@@ -47,6 +47,15 @@ module Opt =
          return (z :: z_list)
       | _ -> None
 
+    let rec map3 f x_list y_list z_list =
+      match x_list, y_list, z_list with
+      | [], [], [] -> return []
+      | x :: x_list, y :: y_list, z :: z_list ->
+         let* t = f x y z in
+         let* t_list = map3 f x_list y_list z_list in
+         return (t :: t_list)
+      | _ -> None
+
     let rec mapfold f acc x_list =
       match x_list with
       | [] -> return (acc, [])
@@ -61,6 +70,15 @@ module Opt =
       | x :: x_list, y :: y_list ->
          let* acc, s = f acc x y in
          let* acc, s_list = mapfold2 f acc x_list y_list in
+         return (acc, s :: s_list)
+      | _ -> None
+
+    let rec mapfold3 f acc x_list y_list z_list =
+      match x_list, y_list, z_list with
+      | [], [], [] -> return (acc, [])
+      | x :: x_list, y :: y_list, z :: z_list ->
+         let* acc, s = f acc x y z in
+         let* acc, s_list = mapfold3 f acc x_list y_list z_list in
          return (acc, s :: s_list)
       | _ -> None
   end

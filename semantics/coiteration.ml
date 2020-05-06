@@ -29,7 +29,7 @@ let fprint_entry ff { cur; default } =
          Output.value cur Output.value v
     
 let eprint_env env =
-  Format.eprintf "@[%a@.@]" (Env.fprint_t fprint_entry) env
+  Format.eprintf "@[Environment:@,%a@.@]" (Env.fprint_t fprint_entry) env
   
 let find_value_opt x env =
   let* { cur } = Env.find_opt x env in
@@ -362,6 +362,7 @@ and by env env_handler write =
                  
 (* step function for an equation *)
 and seq genv env { eq_desc; eq_write } s =
+  eprint_env env;
   match eq_desc, s with 
   | EQeq(p, e), s -> 
      let* v, s = sexp genv env e s in
@@ -436,7 +437,8 @@ and seq genv env { eq_desc; eq_write } s =
 (* compute a pre fix-point in [n] steps *)
 and sblock genv env v_list eq s_list s_eq =
   let* env_v, s_list =
-    Opt.mapfold2 (svardec genv env) Env.empty v_list s_list in
+    Opt.mapfold3
+      (svardec genv env) Env.empty v_list s_list (bot_list v_list) in
   let env = Env.append env_v env in
   let bot =
     Env.map (fun { default } -> { cur = Vbot; default = default }) env_v in
@@ -463,7 +465,7 @@ and sblock_with_reset genv env v_list eq s_list s_eq r =
       return (s_list, s_eq) in
   sblock genv env v_list eq s_list s_eq
   
-and svardec genv env env_local { var_name; var_default } s =
+and svardec genv env env_local { var_name; var_default } s v =
   let* default, s =
     match var_default, s with
     | Ewith_nothing, Sempty -> (* [local x in ...] *)
@@ -488,7 +490,7 @@ and svardec genv env env_local { var_name; var_default } s =
        let* ve, se = sexp genv env e se in
        return (Default(ve), se)
     | _ -> None in
-  return (Env.add var_name { cur = Vbot; default = default } env_local, s)
+  return (Env.add var_name { cur = v; default = default } env_local, s)
 
 and set env_eq { var_name } s =
   match s with
@@ -693,14 +695,30 @@ let funexp genv { f_kind; f_atomic; f_args; f_res; f_body } =
      let* s_f_res = Opt.map (ivardec genv Env.empty) f_res in
      return
        (CoNode
-          { init = Stuple [Stuple(s_f_args); Stuple(s_f_res);si];
+          { init = Stuple [Stuple(s_f_args); Stuple(s_f_res); si];
             step =
               fun s v_list ->
-              let* env =
-                Opt.fold2 matching_in Env.empty f_args v_list in
-              let* env, s = seq genv env f_body s in
-              let* v_list = Opt.map (matching_out env) f_res in
-              return (v_list, s) }) in
+              match s with
+              | Stuple [Stuple(s_f_args); Stuple(s_f_res); s_body] ->
+                  (* associate the input value to the argument *) 
+                 let* env_args, s_f_args =
+                   Opt.mapfold3
+                     (svardec genv Env.empty) Env.empty f_args s_f_args v_list in
+                 eprint_env env_args;
+                 let* env_res, s_f_res =
+                   Opt.mapfold3
+                     (svardec genv env_args) Env.empty f_res s_f_res (bot_list f_res) in
+                 eprint_env env_args;
+                 let env = Env.append env_res env_args in
+                 eprint_env env_args;
+                 let n = Env.cardinal env_res in
+                 let* env_body, s =
+                   fixpoint n
+                     (fun s env_eq -> seq genv (Env.append env_eq env) f_body s)
+                     s env_res in
+                 let* v_list = Opt.map (matching_out env_body) f_res in
+                 return (v_list, (Stuple [Stuple(s_f_args); Stuple(s_f_res); s_body]))
+              | _ -> None }) in
   return f
 
 let exp genv env e =

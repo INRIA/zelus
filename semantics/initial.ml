@@ -169,7 +169,7 @@ module Output =
       | Vstring(s) -> Format.fprintf ff "%s" s
       | Vvoid -> Format.fprintf ff "()"
       | Vtuple(l) ->
-         Format.fprintf ff "@[(%a)@]" (value_list value) l
+         Format.fprintf ff "@[<hov1>(%a)@]" (value_list value) l
       | Vconstr0(lid) -> lident ff lid
 
    and value ff v =
@@ -184,8 +184,8 @@ module Output =
       | [x] -> value ff x
       | x :: l -> Format.printf "@[%a,@,%a@]" value x (value_list value) l
                 
-   let value ff v = Format.fprintf ff "%a@." value v
-   let value_list ff l = Format.fprintf ff "%a@." (value_list value) l
+   let value_and_flush ff v = Format.fprintf ff "%a@." value v
+   let value_list_and_flush ff l = Format.fprintf ff "%a@." (value_list value) l
   end
 
 (* check that v is a list of length one *)
