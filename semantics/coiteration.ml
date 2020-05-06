@@ -4,20 +4,12 @@
 (* and the class given at Bamberg Univ. in June-July 2019 *)
 open Monad
 open Opt                                                            
+open Ident
 open Ast
 open Value
 open Initial
+   
 
-(* local and global environment *)
-module Env =
-  struct
-    include Map.Make(Ident)
-
-    let append env0 env =
-      fold (fun x v acc -> update x (function _ -> Some(v)) acc)
-        env0 env
-  end
-  
 (* an entry in the environment *)
 type 'a entry = { cur: 'a; default : 'a default }
 
@@ -26,6 +18,19 @@ and 'a default =
   | Last : 'a -> 'a default
   | Default : 'a -> 'a default
 
+let fprint_entry ff { cur; default } =
+  match default with
+    | Val -> Format.fprintf ff "@[{ cur = %a;@ default = Val }@]" Output.value cur
+    | Last(v) ->
+       Format.fprintf ff "@[{ cur = %a;@ default = Last(%a) }@]"
+         Output.value cur Output.value v
+    | Default(v) ->
+       Format.fprintf ff "@[{ cur = %a;@ default = Default(%a) }@]"
+         Output.value cur Output.value v
+    
+let eprint_env env =
+  Format.eprintf "@[%a@.@]" (Env.fprint_t fprint_entry) env
+  
 let find_value_opt x env =
   let* { cur } = Env.find_opt x env in
   return cur
@@ -669,31 +674,33 @@ let matching_out env { var_name; var_default } =
   find_value_opt var_name env
 
 let funexp genv { f_kind; f_atomic; f_args; f_res; f_body } =
-  let* env =
-    Opt.fold2 matching_in Env.empty f_args
-      (List.map (fun _ -> Vbot) f_args) in
-  let* si = ieq genv env f_body in
-  let f = match f_kind with
+  let* si = ieq genv Env.empty f_body in
+  let* f = match f_kind with
   | Efun ->
      (* combinatorial function *)
-     CoFun
-       (fun v_list ->
-         let* env =
-           Opt.fold2 matching_in Env.empty f_args v_list in
-         let* env, _ = seq genv env f_body si in
-         let* v_list = Opt.map (matching_out env) f_res in
-         return (v_list))
+     return
+       (CoFun
+          (fun v_list ->
+            let* env =
+              Opt.fold2 matching_in Env.empty f_args v_list in
+            let* env, _ = seq genv env f_body si in
+            let* v_list = Opt.map (matching_out env) f_res in
+            return (v_list)))
   | Enode ->
      (* stateful function *)
-     CoNode
-       { init = si;
-         step =
-           fun s v_list ->
-           let* env =
-             Opt.fold2 matching_in Env.empty f_args v_list in
-           let* env, s = seq genv env f_body s in
-           let* v_list = Opt.map (matching_out env) f_res in
-           return (v_list, s) } in
+     (* add the initial state for the input and output vardec *)
+     let* s_f_args = Opt.map (ivardec genv Env.empty) f_args in
+     let* s_f_res = Opt.map (ivardec genv Env.empty) f_res in
+     return
+       (CoNode
+          { init = Stuple [Stuple(s_f_args); Stuple(s_f_res);si];
+            step =
+              fun s v_list ->
+              let* env =
+                Opt.fold2 matching_in Env.empty f_args v_list in
+              let* env, s = seq genv env f_body s in
+              let* v_list = Opt.map (matching_out env) f_res in
+              return (v_list, s) }) in
   return f
 
 let exp genv env e =
