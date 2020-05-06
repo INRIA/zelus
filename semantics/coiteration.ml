@@ -20,7 +20,8 @@ and 'a default =
 
 let fprint_entry ff { cur; default } =
   match default with
-    | Val -> Format.fprintf ff "@[{ cur = %a;@ default = Val }@]" Output.value cur
+  | Val ->
+     Format.fprintf ff "@[{ cur = %a;@ default = Val }@]" Output.value cur
     | Last(v) ->
        Format.fprintf ff "@[{ cur = %a;@ default = Last(%a) }@]"
          Output.value cur Output.value v
@@ -33,7 +34,8 @@ let fprint_env ff env =
 
 let v = ref false
 let eprint_env env =
-  if !v then Format.eprintf "@[Environment:@,%a@.@]" (Env.fprint_t fprint_entry) env
+  if !v then
+    Format.eprintf "@[Environment:@,%a@.@]" (Env.fprint_t fprint_entry) env
   
 let find_value_opt x env =
   let* { cur } = Env.find_opt x env in
