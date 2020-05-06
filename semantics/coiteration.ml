@@ -184,9 +184,8 @@ and ieq genv env { eq_desc } =
 
 and ivardec genv env { var_default } =
   match var_default with
-  | Ewith_init({ e_desc = Econst(v) }) -> return (Sval(Value(value v)))
   | Ewith_init(e) ->
-     let* s = iexp genv env e in return (Stuple [Sval(Vnil); s])
+     let* s = iexp genv env e in return (Stuple [Sopt(None); s])
   | Ewith_default(e) -> iexp genv env e
   | Ewith_nothing -> return Sempty
 
@@ -449,9 +448,11 @@ and seq genv env { eq_desc; eq_write } s =
 (* block [local x1 [init e1 | default e1 | ],..., xn [...] do eq done *)
 (* compute a pre fix-point in [n] steps *)
 and sblock genv env v_list eq s_list s_eq =
+  eprint_env env;
   let* env_v, s_list =
     Opt.mapfold3
       (svardec genv env) Env.empty v_list s_list (bot_list v_list) in
+  eprint_env env_v;
   let env = Env.append env_v env in
   let bot =
     Env.map (fun { default } -> { cur = Vbot; default = default }) env_v in
