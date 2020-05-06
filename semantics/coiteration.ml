@@ -300,7 +300,7 @@ let rec sexp genv env { e_desc = e_desc } s =
   | Etuple(e_list), Stuple(s_list) ->
      let* v_list, s_list = sexp_list genv env e_list s_list in
      (* check that all component are not nil nor bot *)
-     return (tuple v_list, Stuple(s_list))
+     return (strict_tuple v_list, Stuple(s_list))
   | Eget(i, e), s ->
      let* v, s = sexp genv env e s in
      let* v = Initial.geti i v in
@@ -312,10 +312,12 @@ let rec sexp genv env { e_desc = e_desc } s =
        match fv with
        | CoFun(fv) ->
           let* v_list = fv v_list in 
-          return (Value (Vtuple(v_list)), Sempty)
+          let* v = tuple v_list in
+          return (v, Sempty)
        | CoNode { step = fv } ->
           let* v_list, s = fv s v_list in
-          return (Value(Vtuple(v_list)), s) in
+          let* v = tuple v_list in
+          return (v, s) in
      return (v, Stuple (s :: s_list)) 
   | Elet(false, eq, e), Stuple [s_eq; s] ->
      let* env_eq, s_eq = seq genv env eq s_eq in
