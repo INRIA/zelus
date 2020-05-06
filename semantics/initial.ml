@@ -191,7 +191,7 @@ module Output =
    let value_list ff l = value_list value ff l
                        
    let value_and_flush ff v =
-     Format.fprintf ff "@[%a adfadf @,@]" value v
+     Format.fprintf ff "%a@\n" value v
    let value_list_and_flush ff l = 
      Format.fprintf ff "%a@\n" value_list l
 (*
