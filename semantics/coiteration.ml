@@ -91,9 +91,10 @@ let fixpoint n f s bot =
   let rec fixpoint n s v =
     if n <= 0 then return (v, s)
     else
-      let* v, s = f s v in
+      let* v, _ = f s v in
       fixpoint (n-1) s v in      
-  fixpoint n s bot
+  let* v, _ = fixpoint n s bot in
+  f s v
 
 (* [sem genv env e = CoF f s] such that [iexp genv env e = s] *)
 (* and [sexp genv env e = f] *)
@@ -324,7 +325,7 @@ let rec sexp genv env { e_desc = e_desc } s =
      let bot = bot_env eq_write in
      let n = size eq_write in
      let* env_eq, s_eq =
-       fixpoint (n+1)
+       fixpoint n
          (fun s_eq env_eq -> seq genv (Env.append env_eq env) eq s_eq)
          s_eq bot in
      let env = Env.append env_eq env in
@@ -447,7 +448,7 @@ and sblock genv env v_list eq s_list s_eq =
     Env.map (fun { default } -> { cur = Vbot; default = default }) env_v in
   let n = Env.cardinal env_v in
   let* env_eq, s_eq =
-    fixpoint (n+1) (fun s_eq env_eq -> seq genv (Env.append env_eq env) eq s_eq)
+    fixpoint n (fun s_eq env_eq -> seq genv (Env.append env_eq env) eq s_eq)
       s_eq bot in
   (* store the next last value *)
   let* s_list = Opt.map2 (set env_eq) v_list s_list in
@@ -716,7 +717,7 @@ let funexp genv { f_kind; f_atomic; f_args; f_res; f_body } =
                  (* eprint_env env_args; *)
                  let n = Env.cardinal env_res in
                  let* env_body, s =
-                   fixpoint (n+1)
+                   fixpoint n
                      (fun s_body env_body ->
                        seq genv (Env.append env_body env) f_body s_body)
                      s_body env_res in
