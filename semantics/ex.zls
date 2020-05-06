@@ -1,0 +1,3 @@
+let node f(x) returns (y, z)
+    do y = 0 fby y + 1 and z = y+1 done
+    
