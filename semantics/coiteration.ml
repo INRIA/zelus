@@ -31,8 +31,9 @@ let fprint_entry ff { cur; default } =
 let fprint_env ff env =
   Format.fprintf ff "@[Environment:@,%a@.@]" (Env.fprint_t fprint_entry) env
 
+let v = ref false
 let eprint_env env =
-  Format.eprintf "@[Environment:@,%a@.@]" (Env.fprint_t fprint_entry) env
+  if !v then Format.eprintf "@[Environment:@,%a@.@]" (Env.fprint_t fprint_entry) env
   
 let find_value_opt x env =
   let* { cur } = Env.find_opt x env in

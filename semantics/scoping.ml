@@ -338,13 +338,16 @@ let funexp { desc = { f_kind; f_atomic; f_args; f_res; f_body }; loc } =
     Ast.f_body = f_body; Ast.f_loc = loc }
 
 let implementation { desc; loc } =
-  let desc = match desc with
-    | Eletdef(f, e) ->
-       let e = expression Env.empty e in
-       Ast.Eletdef(f, e)
-    | Eletfun(f, fd) ->
-       let fd = funexp fd in
-       Ast.Eletfun(f, fd) in
+  try
+    let desc = match desc with
+      | Eletdef(f, e) ->
+         let e = expression Env.empty e in
+         Ast.Eletdef(f, e)
+      | Eletfun(f, fd) ->
+         let fd = funexp fd in
+         Ast.Eletfun(f, fd) in
   { Ast.desc = desc; Ast.loc = loc }
-
+  with
+    Error.Err(loc, kind) -> Error.message loc kind
+                          
 let program i_list = List.map implementation i_list
