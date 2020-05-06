@@ -1,5 +1,10 @@
-let node f(x) returns (y,m)
+let node g(x) returns (y,m)
     local z, k, r
     do y = 0 fby z + 1 and z = k+1
     and k = 0 fby r + 1 and r = y+1 and m = z done
-    
+
+let node h(x) returns (y)
+    do y = 0 fby y + x done
+
+let node f(x) returns (y)
+    do y = f(1) done

@@ -27,8 +27,13 @@ and unary_minus_float x = -.x
 let no_eq start_pos end_pos = make (EQempty) start_pos end_pos
 
 (* constructors with arguments *)
-let app f l = Eapp(f, l)
-
+let app f e =
+  match e.desc with
+  | Etuple(arg_list) ->
+     (* f(e1,...,en) *) Eapp(f, arg_list)
+  | Econst(Evoid) -> (* f() *) Eapp(f, [])
+  | _ -> (* f(e) *) Eapp(f, [e])
+		     
 let constr f e =
   match e.desc with
   | Etuple(arg_list) ->
@@ -180,8 +185,8 @@ decl_list(X):
 implementation:
   | LET ide = ide EQUAL seq = seq_expression
       { Eletdef(ide, seq) }
-  | LET a = is_atomic k = kind ide = ide LPAREN f_args = vardec_list RPAREN
-        RETURNS  LPAREN f_res = vardec_list RPAREN eq = equation_and_list
+  | LET a = is_atomic k = kind ide = ide LPAREN f_args = vardec_empty_list RPAREN
+        RETURNS  LPAREN f_res = vardec_empty_list RPAREN eq = equation_and_list
     { Eletfun(ide,
 	      make { f_kind = k; f_atomic = a;
 		     f_args = f_args; f_res = f_res; f_body = eq }
@@ -353,6 +358,11 @@ emission:
     { l }
 ;
 
+%inline vardec_empty_list:
+  | v_opt = optional(vardec_list)
+    { match v_opt with None -> [] | Some(l) -> l }
+;
+
 vardec:
   | ide = ide
     { make { var_name = ide; var_default = Ewith_nothing }
@@ -432,13 +442,6 @@ simple_expression_desc:
       { e.desc }
 ;
 
-simple_expression_list :
-  | e = simple_expression
-	  { [e] }
-  | l = simple_expression_list e = simple_expression
-	  { e :: l }
-  ;
-
 expression_comma_list :
   | ecl = expression_comma_list COMMA e = expression
       { e :: ecl }
@@ -458,8 +461,8 @@ expression_desc:
       { Etuple(List.rev e) }
   | e1 = expression FBY e2 = expression
       { Eop(Efby, [e1; e2]) }
-  | f = ext_ident l = simple_expression_list
-      {  app f (List.rev l) }
+  | f = ext_ident e2 = simple_expression
+      {  app f e2 }
   | f = constructor e = simple_expression
       {  constr f e }
   | PRE e = expression
