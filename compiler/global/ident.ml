@@ -26,7 +26,7 @@ and element_t =
     index : t;        (* index into the array*)
   }
 
-type t_copy = t
+type t_alias = t
 
 let compare id1 id2 = compare id1.num id2.num
 
@@ -40,7 +40,7 @@ let fresh s = num := !num + 1; { num = !num; source = s }
 let fprint_t ff id = Format.fprintf ff "%s" (name id)
 
 module M = struct
-  type t = t_copy
+  type t = t_alias
   let compare = compare
   let fprint = fprint_t
 end
