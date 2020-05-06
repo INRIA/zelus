@@ -1,3 +1,5 @@
-let node f(x) returns (y, z)
-    do y = 0 fby y + 1 and z = y+1 done
+let node f(x) returns (y,m)
+    local z, k, r
+    do y = 0 fby z + 1 and z = k+1
+    and k = 0 fby r + 1 and r = y+1 and m = z done
     
