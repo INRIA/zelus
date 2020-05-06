@@ -91,8 +91,10 @@ let fixpoint n f s bot =
   let rec fixpoint n s v =
     if n <= 0 then return (v, s)
     else
+      (* compute a fixpoint for the value [v] keeping the current state *)
       let* v, _ = f s v in
       fixpoint (n-1) s v in      
+  (* computes the next state *)
   let* v, _ = fixpoint n s bot in
   f s v
 
