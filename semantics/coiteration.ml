@@ -28,6 +28,9 @@ let fprint_entry ff { cur; default } =
        Format.fprintf ff "@[{ cur = %a;@ default = Default(%a) }@]"
          Output.value cur Output.value v
     
+let fprint_env ff env =
+  Format.fprintf ff "@[Environment:@,%a@.@]" (Env.fprint_t fprint_entry) env
+
 let eprint_env env =
   Format.eprintf "@[Environment:@,%a@.@]" (Env.fprint_t fprint_entry) env
   
@@ -321,7 +324,7 @@ let rec sexp genv env { e_desc = e_desc } s =
      let bot = bot_env eq_write in
      let n = size eq_write in
      let* env_eq, s_eq =
-       fixpoint n
+       fixpoint (n+1)
          (fun s_eq env_eq -> seq genv (Env.append env_eq env) eq s_eq)
          s_eq bot in
      let env = Env.append env_eq env in
@@ -362,11 +365,11 @@ and by env env_handler write =
                  
 (* step function for an equation *)
 and seq genv env { eq_desc; eq_write } s =
-  eprint_env env;
   match eq_desc, s with 
   | EQeq(p, e), s -> 
      let* v, s = sexp genv env e s in
      let* env_p = matching_pateq p v in
+     eprint_env env_p;
      return (env_p, s)
   | EQinit(x, e), s ->
      let* v, s = sexp genv env e s in
@@ -444,7 +447,7 @@ and sblock genv env v_list eq s_list s_eq =
     Env.map (fun { default } -> { cur = Vbot; default = default }) env_v in
   let n = Env.cardinal env_v in
   let* env_eq, s_eq =
-    fixpoint n (fun s_eq env_eq -> seq genv (Env.append env_eq env) eq s_eq)
+    fixpoint (n+1) (fun s_eq env_eq -> seq genv (Env.append env_eq env) eq s_eq)
       s_eq bot in
   (* store the next last value *)
   let* s_list = Opt.map2 (set env_eq) v_list s_list in
@@ -704,18 +707,19 @@ let funexp genv { f_kind; f_atomic; f_args; f_res; f_body } =
                  let* env_args, s_f_args =
                    Opt.mapfold3
                      (svardec genv Env.empty) Env.empty f_args s_f_args v_list in
-                 eprint_env env_args;
+                 (* eprint_env env_args; *)
                  let* env_res, s_f_res =
                    Opt.mapfold3
                      (svardec genv env_args) Env.empty f_res s_f_res (bot_list f_res) in
                  eprint_env env_args;
                  let env = Env.append env_res env_args in
-                 eprint_env env_args;
+                 (* eprint_env env_args; *)
                  let n = Env.cardinal env_res in
                  let* env_body, s =
-                   fixpoint n
-                     (fun s env_eq -> seq genv (Env.append env_eq env) f_body s)
-                     s env_res in
+                   fixpoint (n+1)
+                     (fun s_body env_body ->
+                       seq genv (Env.append env_body env) f_body s_body)
+                     s_body env_res in
                  let* v_list = Opt.map (matching_out env_body) f_res in
                  return (v_list, (Stuple [Stuple(s_f_args); Stuple(s_f_res); s_body]))
               | _ -> None }) in
