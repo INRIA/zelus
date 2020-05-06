@@ -98,7 +98,6 @@ let lift2 op v1 v2 =
      return (Value v)
 
 (* pairs and tuples *)
-
 let unbot v1 v2 = 
   match v1, v2 with
   | (Vbot, _) | (_, Vbot) -> None
@@ -132,7 +131,7 @@ let rec unnil_list v_list =
      | Some(v1, v2) -> return (v1 :: v2 :: v_list)
 
 (* builds a pair. If one is bot, the result is bot; if one is nil, the result is nil *)
-let pair v1 v2 =
+let strict_pair v1 v2 =
   let v = unbot v1 v2 in
   match v with
   | None -> Vbot
@@ -142,7 +141,7 @@ let pair v1 v2 =
      | None -> Vnil
      | Some(v1, v2) -> Value(Vtuple [v1; v2])
                      
-let tuple v_list =
+let strict_tuple v_list =
   let v = unbot_list v_list in
   match v with
   | None -> Vbot
@@ -152,7 +151,12 @@ let tuple v_list =
      | None -> Vnil
      | Some(v_list) -> Value(Vtuple(v_list))
 
-              
+let tuple v_list =
+  match v_list with
+  | [] -> None
+  | [v] -> return v
+  | _ -> return (Value(Vtuple(v_list)))
+       
 module Output =
   struct
     let lident ff lid =
