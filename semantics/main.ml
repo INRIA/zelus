@@ -53,7 +53,7 @@ let eval source_name m n =
   let* genv = Coiteration.program Initial.genv0 p in
   let* m = m in
   let* r =
-    Coiteration.main genv m (Initial.Output.value_list info_ff) n in
+    Coiteration.main genv m (Initial.Output.value_list_and_flush info_ff) n in
   return r
 
  let eval filename =
