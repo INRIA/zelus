@@ -32,7 +32,7 @@ let fprint_entry ff { cur; default } =
 let fprint_env ff env =
   Format.fprintf ff "@[Environment:@,%a@.@]" (Env.fprint_t fprint_entry) env
 
-let v = ref false
+let v = ref true
 let eprint_env env =
   if !v then
     Format.eprintf "@[Environment:@,%a@.@]" (Env.fprint_t fprint_entry) env
@@ -184,7 +184,9 @@ and ieq genv env { eq_desc } =
 
 and ivardec genv env { var_default } =
   match var_default with
-  | Ewith_init(e) -> iexp genv env e
+  | Ewith_init({ e_desc = Econst(v) }) -> return (Sval(Value(value v)))
+  | Ewith_init(e) ->
+     let* s = iexp genv env e in return (Stuple [Sval(Vnil); s])
   | Ewith_default(e) -> iexp genv env e
   | Ewith_nothing -> return Sempty
 
