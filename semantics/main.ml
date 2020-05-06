@@ -45,15 +45,14 @@ let eval_error () =
 
 (* evaluate the main node [m] given by option [-s] for [n] steps *)
 let eval source_name m n =
-  let info_ff = Format.formatter_of_out_channel stdout in
-  (* Format.pp_set_max_boxes info_ff max_int; *)
   let p = parse_implementation_file source_name in
   let p = Scoping.program p in
   let p = Write.program p in
   let* genv = Coiteration.program Initial.genv0 p in
   let* m = m in
   let* r =
-    Coiteration.main genv m (Initial.Output.value_list_and_flush info_ff) n in
+    Coiteration.main genv m
+      (Initial.Output.value_list_and_flush Format.std_formatter) n in
   return r
 
  let eval filename =

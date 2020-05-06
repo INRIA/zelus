@@ -191,9 +191,14 @@ module Output =
    let value_list ff l = value_list value ff l
                        
    let value_and_flush ff v =
-     Format.fprintf ff "@[%a@,@]" value v
+     Format.fprintf ff "@[%a adfadf @,@]" value v
    let value_list_and_flush ff l = 
-     Format.fprintf ff "@[%a@.@]" value_list l
+     Format.fprintf ff "%a@\n" value_list l
+(*
+   let value_and_flush ff v =
+     Format.eprintf "@[%a@,@]" value v
+   let value_list_and_flush ff l = 
+     Format.eprintf "@[%a@]" value_list l *)
   end
 
 (* check that v is a list of length one *)
