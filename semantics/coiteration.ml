@@ -506,12 +506,16 @@ and svardec genv env env_local { var_name; var_default } s v =
     | _ -> None in
   return (Env.add var_name { cur = v; default = default } env_local, s)
 
+(* store the next value for [last x] in the state of [vardec] declarations *)
 and set env_eq { var_name } s =
   match s with
   | Sempty -> return Sempty
   | Sopt _ | Sval _ ->
      let* v = find_value_opt var_name env_eq in
      return (Sval(v))
+  | Stuple [si; se] ->
+     let* v = find_value_opt var_name env_eq in
+     return (Stuple [Sval(v); se])
   | _ -> None
 
 (* remove entries [x, entry] from [env_eq] for *)
@@ -717,11 +721,13 @@ let funexp genv { f_kind; f_atomic; f_args; f_res; f_body } =
                   (* associate the input value to the argument *) 
                  let* env_args, s_f_args =
                    Opt.mapfold3
-                     (svardec genv Env.empty) Env.empty f_args s_f_args v_list in
+                     (svardec genv Env.empty)
+                     Env.empty f_args s_f_args v_list in
                  (* eprint_env env_args; *)
                  let* env_res, s_f_res =
                    Opt.mapfold3
-                     (svardec genv env_args) Env.empty f_res s_f_res (bot_list f_res) in
+                     (svardec genv env_args)
+                     Env.empty f_res s_f_res (bot_list f_res) in
                  eprint_env env_args;
                  let env = Env.append env_res env_args in
                  (* eprint_env env_args; *)
