@@ -11,6 +11,6 @@
 
 let node f(x) returns (y, b)
   local m init 0
-  do if b then m = last m + 1 (* else m = last m - 1 *)
-  and b = true fby true fby true fby true fby (not b) and y = m
+  do if true then y = 0 fby y + 1 else y = 0 fby y - 1
+  (* and b = true fby true fby true fby true fby (not b) and y = m *)
   done

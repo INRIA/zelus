@@ -32,7 +32,7 @@ let fprint_ientry ff { cur; default } =
 let fprint_ienv ff env =
   Format.fprintf ff "@[Environment:@,%a@]@\n" (Env.fprint_t fprint_ientry) env
 
-let v = ref false
+let v = ref true
 let eprint_ienv comment env =
   if !v then
     Format.eprintf
