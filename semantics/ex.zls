@@ -9,8 +9,10 @@
   and b = true fby (not b)
   and r = if b then 1 else 2 done *)
 
-let node f(x) returns (y, b)
-  local m init 0
-  do if true then y = 0 fby y + 1 else y = 0 fby y - 1
-  (* and b = true fby true fby true fby true fby (not b) and y = m *)
-  done
+let node f(x) returns (o init 42)
+  automaton
+  | One -> do o = last o + 1 until o = 2 then Two
+  | Two -> do o = last o - 1 until o = -2 then One
+  end
+
+ 
