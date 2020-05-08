@@ -10,15 +10,15 @@ open Value
 open Initial
    
 
-(* an entry in the environment *)
-type 'a entry = { cur: 'a; default : 'a default }
+(* an input entry in the environment *)
+type 'a ientry = { cur: 'a; default : 'a default }
 
 and 'a default =
   | Val : 'a default
   | Last : 'a -> 'a default
   | Default : 'a -> 'a default
 
-let fprint_entry ff { cur; default } =
+let fprint_ientry ff { cur; default } =
   match default with
   | Val ->
      Format.fprintf ff "@[{ cur = %a;@ default = Val }@]" Output.value cur
@@ -29,13 +29,13 @@ let fprint_entry ff { cur; default } =
        Format.fprintf ff "@[{ cur = %a;@ default = Default(%a) }@]"
          Output.value cur Output.value v
     
-let fprint_env ff env =
-  Format.fprintf ff "@[Environment:@,%a@.@]" (Env.fprint_t fprint_entry) env
+let fprint_ienv ff env =
+  Format.fprintf ff "@[Environment:@,%a@]@\n" (Env.fprint_t fprint_ientry) env
 
 let v = ref true
-let eprint_env env =
+let eprint_ienv env =
   if !v then
-    Format.eprintf "@[Environment:@,%a@.@]" (Env.fprint_t fprint_entry) env
+    Format.eprintf "@[Environment:@,%a@]@\n" (Env.fprint_t fprint_ientry) env
   
 let find_value_opt x env =
   let* { cur } = Env.find_opt x env in
@@ -125,6 +125,10 @@ let rec iexp genv env { e_desc } =
         (* un-initialized synchronous register *)
         let* s = iexp genv env e in
         return (Stuple [Sval(Vnil); s])
+     | Eminusgreater, [e1; e2] ->
+        let* s1 = iexp genv env e1 in
+        let* s2 = iexp genv env e2 in
+        return (Stuple [Sbool(true); s1; s2])
      | Eifthenelse, [e1; e2; e3] ->
           let* s1 = iexp genv env e1 in
           let* s2 = iexp genv env e2 in
@@ -293,6 +297,12 @@ let rec sexp genv env { e_desc = e_desc } s =
      | Eunarypre, [e], Stuple [Sval(v); s] -> 
         let* ve, s = sexp genv env e s in
         return (v, Stuple [Sval(ve); s])
+     | Eminusgreater, [e1; e2], Stuple [Sbool(r); s1; s2] ->
+     (* when [r = true] this is the very first instant, as if *)
+     (* the register is reset [paper EMSOFT'06] *)
+        let* v1, s1 = sexp genv env e1 s1  in
+        let* v2, s2 = sexp genv env e2 s2  in
+        return ((if r then v1 else v2), Stuple [Sbool(false); s1; s2])
      | Eifthenelse, [e1; e2; e3], Stuple [s1; s2; s3] ->
         let* v1, s1 = sexp genv env e1 s1 in
         let* v2, s2 = sexp genv env e2 s2 in
@@ -360,8 +370,9 @@ and sexp_list genv env e_list s_list =
 and by env env_handler write =
   S.fold
     (fun x acc ->
-      (* if [x in env] but not [x in env_w] *)
-      (* then add a default entry in [env_w] *)
+      (* if [x in env] but not [x in env_handler] *)
+      (* then either [x = last x] or [x = default(x)] depending *)
+      (* on what is declared for [x]. *)
       let* { default } as entry = Env.find_opt x env in
       if Env.mem x env_handler then acc
       else
@@ -371,14 +382,25 @@ and by env env_handler write =
            let* acc = acc in
            return (Env.add x { entry with cur = v } acc))
     write (return env_handler) 
-                 
+       
+(* given [env] and [env_handler = [x1 \ { cur1 },..., xn \ { curn }] *)
+(* returns [x1 \ { cu1; default x env },..., xn \ { curn; default x env }] *)
+and complete_with_default env env_handler =
+  Env.fold
+    (fun x ({ cur } as entry) acc ->
+      match Env.find_opt x env with
+      | None -> Env.add x entry acc
+      | Some { default } -> Env.add x { entry with default = default } acc)
+    env_handler Env.empty
+
 (* step function for an equation *)
 and seq genv env { eq_desc; eq_write } s =
   match eq_desc, s with 
   | EQeq(p, e), s -> 
      let* v, s = sexp genv env e s in
      let* env_p = matching_pateq p v in
-     eprint_env env_p;
+     Format.eprintf "Eq@\n";
+     eprint_ienv env_p;
      return (env_p, s)
   | EQinit(x, e), s ->
      let* v, s = sexp genv env e s in
@@ -448,17 +470,28 @@ and seq genv env { eq_desc; eq_write } s =
 (* block [local x1 [init e1 | default e1 | ],..., xn [...] do eq done *)
 (* compute a pre fix-point in [n] steps *)
 and sblock genv env v_list eq s_list s_eq =
-  eprint_env env;
+  eprint_ienv env;
   let* env_v, s_list =
     Opt.mapfold3
       (svardec genv env) Env.empty v_list s_list (bot_list v_list) in
-  eprint_env env_v;
+  Format.eprintf "sblock@\n";
   let env = Env.append env_v env in
   let bot =
     Env.map (fun { default } -> { cur = Vbot; default = default }) env_v in
+  Format.eprintf "bot@\n";
+  eprint_ienv bot;
   let n = Env.cardinal env_v in
   let* env_eq, s_eq =
-    fixpoint n (fun s_eq env_eq -> seq genv (Env.append env_eq env) eq s_eq)
+    fixpoint n
+      (fun s_eq env_eq ->
+        Format.eprintf "Before step in fixpoint@\n";
+        eprint_ienv env_eq;
+        let env = Env.append env_eq env in
+        let* env_eq, s_eq = seq genv env eq s_eq in
+        Format.eprintf "After step in fixpoint@\n";
+        eprint_ienv env_eq;
+        let env_eq = complete_with_default env env_eq in
+        return (env_eq, s_eq))
       s_eq bot in
   (* store the next last value *)
   let* s_list = Opt.map2 (set env_eq) v_list s_list in
@@ -728,7 +761,7 @@ let funexp genv { f_kind; f_atomic; f_args; f_res; f_body } =
                    Opt.mapfold3
                      (svardec genv env_args)
                      Env.empty f_res s_f_res (bot_list f_res) in
-                 eprint_env env_args;
+                 eprint_ienv env_args;
                  let env = Env.append env_res env_args in
                  (* eprint_env env_args; *)
                  let n = Env.cardinal env_res in
