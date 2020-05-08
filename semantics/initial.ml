@@ -61,6 +61,9 @@ let mod_op v1 v2 =
   let* v2 = integer v2 in
   return (Vint(v1 mod v2))
 
+let mod_eq v1 v2 =
+  return (Vbool(v1 = v2))
+
 let geti i v =
   let rec geti i v_list =
     match v_list with
