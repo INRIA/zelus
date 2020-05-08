@@ -3,6 +3,14 @@
     do y = 0 fby z + 1 and z = k+1
     and k = 0 fby r + 1 and r = y+1 and m = z done *)
 
-let node f(x) returns (y)
-    local m init 0
-    do m = last m + 1 and y = 42 -> pre m done
+(* let node f(x) returns (y, b, r)
+  local m init 0
+  do m = last m + 1 and y = 42 -> pre m
+  and b = true fby (not b)
+  and r = if b then 1 else 2 done *)
+
+let node f(x) returns (y, b)
+  local m init 0
+  do if b then m = last m + 1 (* else m = last m - 1 *)
+  and b = true fby true fby true fby true fby (not b) and y = m
+  done
