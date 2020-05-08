@@ -329,7 +329,7 @@ state_pat :
 
 /* Pattern on a signal */
 scondpat:
-  | e = simple_expression
+  | e = expression
       { e }
 ;
 
