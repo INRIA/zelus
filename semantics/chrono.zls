@@ -1,32 +1,28 @@
 (* automaton from [EMSOFT'05] *)
 let node chrono (stst, rst) = (disp_1, disp_2) where
-  rec automaton
-    CHRONO ->
-      do automaton
-	   STOP ->
-	     do s = 0 -> last s
-	     and m = 0 -> last m
-	     and r = false
-	     unless stst continue START
-	 | START ->
-	     let rec d = 0 -> (pre d + 1) mod 100 in
-	     do s = if d < (0 fby d)
-		    then (last s + 1) mod 60
-		    else last s
-	     and m = if s < last s
-		     then (last m + 1) mod 60
-		     else last m
-	     and r = true
-	     unless stst continue STOP
-	 end
-      until rst & (not r) then CHRONO
-  end
+  rec init s = 0
+  and init m = 0
+  and automaton
+	CHRONO ->
+	  do automaton
+	       STOP ->
+		 do r = false
+		 unless stst continue START
+	     | START ->
+		 let rec d = 0 -> (pre d + 1) mod 100 in
+		 do s = if d = 0 then (last s + 1) mod 60 else last s
+		 and m = if s = 0 then (last m + 1) mod 60  else last m
+		 and r = true
+		 unless stst continue STOP
+	     end
+	  until rst & (not r) then CHRONO
+      end
   and
-  automaton
-    TIME ->
-      do disp_1 = s
-      and disp_2 = m
-      until rst & r then LAP
-  | LAP ->
-      do until rst then TIME
-  end
+      automaton
+	TIME ->
+	  do disp_1 = s
+	  and disp_2 = m
+	  until rst & r then LAP
+      | LAP ->
+	  do until rst then TIME
+      end

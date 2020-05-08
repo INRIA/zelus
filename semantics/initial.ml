@@ -56,6 +56,11 @@ let div_op v1 v2 =
   let* v2 = integer v2 in
   return (Vint(v1 / v2))
 
+let mod_op v1 v2 =
+  let* v1 = integer v1 in
+  let* v2 = integer v2 in
+  return (Vint(v1 mod v2))
+
 let geti i v =
   let rec geti i v_list =
     match v_list with
@@ -225,7 +230,8 @@ let genv0 =
    "not", unop not_op;
    "&&", binop and_op;
    "or", binop or_op;
-   "||", binop or_op]
+   "||", binop or_op;
+   "mod", binop mod_op]
 
 let genv0 =
   List.fold_left (fun acc (n, v) -> Genv.add (Name n) (Gfun v) acc) Genv.empty genv0
