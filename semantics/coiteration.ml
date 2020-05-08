@@ -21,22 +21,23 @@ and 'a default =
 let fprint_ientry ff { cur; default } =
   match default with
   | Val ->
-     Format.fprintf ff "@[{ cur = %a;@ default = Val }@]" Output.value cur
+     Format.fprintf ff "@[{ cur = %a;@ default = Val }@]@," Output.value cur
     | Last(v) ->
-       Format.fprintf ff "@[{ cur = %a;@ default = Last(%a) }@]"
+       Format.fprintf ff "@[{ cur = %a;@ default = Last(%a) }@]@,"
          Output.value cur Output.value v
     | Default(v) ->
-       Format.fprintf ff "@[{ cur = %a;@ default = Default(%a) }@]"
+       Format.fprintf ff "@[{ cur = %a;@ default = Default(%a) }@]@,"
          Output.value cur Output.value v
     
-let fprint_ienv ff env =
-  Format.fprintf ff "@[Environment:@,%a@]@\n" (Env.fprint_t fprint_ientry) env
+let fprint_ienv ff comment env =
+  Format.fprintf ff
+      "%s (env): @,%a@]@\n" comment (Env.fprint_t fprint_ientry) env
 
 let v = ref true
 let eprint_ienv comment env =
   if !v then
     Format.eprintf
-      "@%s@,[Environment:@,%a@]@\n" comment (Env.fprint_t fprint_ientry) env
+      "%s (env): @,%a@]@\n" comment (Env.fprint_t fprint_ientry) env
   
 let find_value_opt x env =
   let* { cur } = Env.find_opt x env in
@@ -83,7 +84,7 @@ let nil_env eq_write =
   S.fold (fun x acc -> Env.add x { cur = Vnil; default = Val } acc)
     eq_write Env.empty
 
-let size eq_write = S.cardinal eq_write
+let size { eq_write } = S.cardinal eq_write
 
 (* a bot/nil value lifted to lists *)
 let bot_list l = List.map (fun _ -> Vbot) l
@@ -92,15 +93,14 @@ let nil_list l = List.map (fun _ -> Vnil) l
 (* bounded fixpoint combinator *)
 (* computes a pre fixpoint f^n(bot) <= fix(f) *)
 let fixpoint n f s bot =
-  let rec fixpoint n s v =
-    if n <= 0 then return (v, s)
+  let rec fixpoint n s' v =
+    if n <= 0 then return (v, s')
     else
       (* compute a fixpoint for the value [v] keeping the current state *)
-      let* v, _ = f s v in
-      fixpoint (n-1) s v in      
+      let* v, s' = f s v in
+      fixpoint (n-1) s' v in      
   (* computes the next state *)
-  let* v, _ = fixpoint n s bot in
-  f s v
+  fixpoint (if n <= 0 then 0 else n+1) s bot
 
 (* [sem genv env e = CoF f s] such that [iexp genv env e = s] *)
 (* and [sexp genv env e = f] *)
@@ -342,7 +342,7 @@ let rec sexp genv env { e_desc = e_desc } s =
   | Elet(true, ({ eq_write } as eq), e), Stuple [s_eq; s] ->
      (* compute a bounded fix-point in [n] steps *)
      let bot = bot_env eq_write in
-     let n = size eq_write in
+     let n = size eq in
      let* env_eq, s_eq =
        fixpoint n
          (fun s_eq env_eq -> seq genv (Env.append env_eq env) eq s_eq)
@@ -465,6 +465,7 @@ and seq genv env { eq_desc; eq_write } s =
        | Value(ve) ->
           smatch_handler_list genv env ve eq_write m_h_list s_list in 
      return (env, Stuple (se :: s_list))
+  | EQempty, s -> return (Env.empty, s)
   | _ -> None
 
 (* block [local x1 [init e1 | default e1 | ],..., xn [...] do eq done *)
@@ -477,8 +478,8 @@ and sblock genv env v_list eq s_list s_eq =
   let env = Env.append env_v env in
   let bot =
     Env.map (fun { default } -> { cur = Vbot; default = default }) env_v in
-  eprint_ienv " In block" bot;
-  let n = Env.cardinal env_v in
+  eprint_ienv "In block" bot;
+  let n = size eq in
   let* env_eq, s_eq =
     fixpoint n
       (fun s_eq env_eq ->
