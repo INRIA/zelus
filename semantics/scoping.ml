@@ -71,9 +71,7 @@ let rec buildeq defnames { desc } =
   | EQmatch(_, m_h_list) ->
      List.fold_left build_match_handler defnames m_h_list
   | EQautomaton(a_h_list) ->
-     let defnames_s_state, defnames =
-       List.fold_left build_automaton_handler (S.empty, defnames) a_h_list in
-     S.union defnames_s_state defnames
+     List.fold_left build_automaton_handler defnames a_h_list
   | EQempty ->  defnames
                 
 and build_vardec defnames { desc = { var_name } } = S.add var_name defnames
@@ -89,22 +87,21 @@ and build_match_handler defnames { desc = { m_pat; m_vars; m_body } } =
   let defnames_m_body = buildeq S.empty m_body in
   S.union defnames (S.diff defnames_m_body defnames_m_vars)
 
-and build_state_name defnames { desc; loc } =
+and build_state_name acc { desc; loc } =
   match desc with
   | Estate0pat(n) | Estate1pat(n, _) ->
-     if S.mem n defnames then Error.error loc (Error.Enon_linear_automaton(n));
-     S.singleton(n)
+     if Env.mem n acc then Error.error loc (Error.Enon_linear_automaton(n));
+     let m = fresh n in
+     Env.add n m acc
 
-and build_automaton_handler (defnames_s_state, defnames)
-  { desc = { s_state; s_vars; s_body; s_until; s_unless } } =
-  let defnames_s_state = build_state_name defnames_s_state s_state in
+and build_automaton_handler defnames
+  { desc = { s_vars; s_body; s_until; s_unless } } =
   let defnames_s_vars = List.fold_left build_vardec S.empty s_vars in
   let defnames_s_body = buildeq S.empty s_body in
   let defnames_s_trans =
     List.fold_left build_escape defnames_s_body s_until in
   let defnames_s_trans =
     List.fold_left build_escape defnames_s_trans s_unless in
-  defnames_s_state,
   S.union defnames (S.diff defnames_s_trans defnames_s_vars)
 
 and build_escape defnames { desc = { e_vars; e_body } } =
@@ -162,7 +159,8 @@ let rec equation env_pat env { desc; loc } =
        Ast.EQeq(pat, e)
     | EQinit(x, e) ->
        let x =
-         try Env.find x env_pat with | Not_found -> Error.error loc (Error.Evar(x)) in
+         try Env.find x env_pat
+         with | Not_found -> Error.error loc (Error.Evar(x)) in
        let e = expression env e in
        Ast.EQinit(x, e)
     | EQreset(eq, e) ->
@@ -197,8 +195,14 @@ let rec equation env_pat env { desc; loc } =
        if is_weak && is_strong
        then Error.error loc (Error.Eautomaton_with_mixed_transitions)
        else
+         let env_for_states =
+           (* build the association table for state names *)
+           List.fold_left
+             (fun acc { desc = { s_state } } -> build_state_name acc s_state)
+             Env.empty a_h_list in
          let a_h_list =
-           List.map (automaton_handler is_weak env_pat env) a_h_list in
+           List.map
+             (automaton_handler is_weak env_for_states env_pat env) a_h_list in
          Ast.EQautomaton(is_weak, a_h_list)
     | EQempty ->
        Ast. EQempty in
@@ -220,52 +224,58 @@ and vardec env acc { desc = { var_name; var_default }; loc } =
   { Ast.var_name = m; Ast.var_default = var_default; Ast.var_loc = loc },
   Env.add var_name m acc
 
-and state env { desc; loc } =
+and state env_for_states env { desc; loc } =
   let desc = match desc with
     | Estate0(f) ->
-       let f = try Env.find f env with | Not_found -> Error.error loc (Error.Evar(f)) in
+       let f = try Env.find f env_for_states 
+               with | Not_found -> Error.error loc (Error.Evar(f)) in
        Ast.Estate0(f)
   | Estate1(f, e_list) ->
-     let f = try Env.find f env with | Not_found -> Error.error loc (Error.Evar(f)) in
+     let f = try Env.find f env_for_states 
+             with | Not_found -> Error.error loc (Error.Evar(f)) in
      let e_list = List.map (expression env) e_list in
      Estate1(f, e_list) in
   { Ast.desc = desc; Ast.loc = loc }
 
-and statepat acc { desc; loc } =
+and statepat env_pat { desc; loc } =
   let desc, acc = match desc with
     | Estate0pat(f) ->
-       let fm = Ident.fresh f in
-       Ast.Estate0pat(fm), Env.add f fm acc
+       let fm = try Env.find f env_pat
+                with | Not_found -> Error.error loc (Error.Evar(f)) in
+       Ast.Estate0pat(fm), Env.empty
     | Estate1pat(f, n_list) ->
-       let fm = Ident.fresh f in
-       let n_list, env =
+       let fm = try Env.find f env_pat
+                with | Not_found -> Error.error loc (Error.Evar(f)) in
+       let n_list, acc =
          Misc.mapfold
            (fun acc n -> let m = Ident.fresh n in m, Env.add n m acc)
-           acc n_list in
-     Estate1pat(fm, n_list), Env.add f fm acc in
+           Env.empty n_list in
+     Estate1pat(fm, n_list), acc in
 { Ast.desc = desc; Ast.loc = loc }, acc
 
 and pateq env_pat { desc; loc } =
   let desc =
     List.map
       (fun x ->
-        try Env.find x env_pat with | Not_found -> Error.error loc (Error.Evar(x))) desc
+        try Env.find x env_pat
+        with | Not_found -> Error.error loc (Error.Evar(x))) desc
   in { Ast.desc = desc; Ast.loc = loc }
    
-and automaton_handler is_weak env_pat env
+and automaton_handler is_weak env_for_states env_pat env
   { desc = { s_state; s_vars; s_body; s_until; s_unless }; loc } =
-  let s_state, env_s_state = statepat Env.empty s_state in
+  let s_state, env_s_state = statepat env_for_states s_state in
   let env = Env.append env_s_state env in
   let s_vars, env_s_vars = Misc.mapfold (vardec env) Env.empty s_vars in
   let env_pat = Env.append env_s_vars env_pat in
   let env = Env.append env_s_vars env in
   let s_body = equation env_pat env s_body in
   let s_trans =
-    List.map (escape env_pat env) (if is_weak then s_until else s_unless) in
+    List.map (escape env_for_states env_pat env)
+      (if is_weak then s_until else s_unless) in
   { Ast.s_state = s_state; Ast.s_vars = s_vars;
     Ast.s_body = s_body; Ast.s_trans = s_trans; Ast.s_loc = loc }
 
-and escape env_pat env
+and escape env_for_states env_pat env
   { desc = { e_reset; e_cond; e_vars; e_body; e_next_state }; loc } = 
   let e_cond, env_e_cond = scondpat env Env.empty e_cond in
   let env = Env.append env_e_cond env in
@@ -273,7 +283,7 @@ and escape env_pat env
   let env_pat = Env.append env_e_vars env_pat in
   let env = Env.append env_e_vars env in
   let e_body = equation env_pat env e_body in
-  let e_next_state = state env e_next_state in
+  let e_next_state = state env_for_states env e_next_state in
   { Ast.e_reset; Ast.e_cond = e_cond; Ast.e_vars = e_vars;
     Ast.e_body = e_body; Ast.e_next_state = e_next_state; Ast.e_loc = loc }
 
@@ -303,9 +313,11 @@ and expression env { desc; loc } =
     | Evar(Modname _ as ln) -> Ast.Eglobal(lident ln)
     | Econst(c) -> Ast.Econst(constant c)
     | Econstr0(f) -> Ast.Econstr0(lident f)
-    | Econstr1(f, e_list) -> Ast.Econstr1(lident f, List.map (expression env) e_list)
+    | Econstr1(f, e_list) ->
+       Ast.Econstr1(lident f, List.map (expression env) e_list)
     | Elast(x) ->
-       let x = try Env.find x env with | Not_found -> Error.error loc (Error.Evar(x)) in
+       let x = try Env.find x env
+               with | Not_found -> Error.error loc (Error.Evar(x)) in
        Ast.Elast(x)
     | Eop(op, e_list) ->
        let e_list = List.map (expression env) e_list in
