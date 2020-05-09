@@ -234,7 +234,8 @@ let genv0 =
    "&&", binop and_op;
    "or", binop or_op;
    "||", binop or_op;
-   "mod", binop mod_op]
+   "mod", binop mod_op;
+   "=", binop mod_eq]
 
 let genv0 =
   List.fold_left (fun acc (n, v) -> Genv.add (Name n) (Gfun v) acc) Genv.empty genv0
