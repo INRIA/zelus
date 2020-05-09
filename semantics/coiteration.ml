@@ -90,6 +90,39 @@ let size { eq_write } = S.cardinal eq_write
 let bot_list l = List.map (fun _ -> Vbot) l
 let nil_list l = List.map (fun _ -> Vnil) l
 
+(* given an environment [env], a local environment [env_handler] *)
+(* an a set of written variables [write] *)
+(* complete [env_handler] with entries in [env] for variables that appear in [write] *)
+(* this is used for giving the semantics of a control-structure, e.g.,: *)
+(* [if e then do x = ... and y = ... else do x = ... done]. When [e = false] *)
+(* the value of [y] is the default one given at the definition of [y] *)
+(* for the moment, we treat the absence of a default value as a type error *)
+let by env env_handler write =
+  S.fold
+    (fun x acc ->
+      (* if [x in env] but not [x in env_handler] *)
+      (* then either [x = last x] or [x = default(x)] depending *)
+      (* on what is declared for [x]. *)
+      let* { default } as entry = Env.find_opt x env in
+      if Env.mem x env_handler then acc
+      else
+        match default with
+        | Val -> None
+        | Last(v) | Default(v) ->
+           let* acc = acc in
+           return (Env.add x { entry with cur = v } acc))
+    write (return env_handler) 
+       
+(* given [env] and [env_handler = [x1 \ { cur1 },..., xn \ { curn }] *)
+(* returns [x1 \ { cu1; default x env },..., xn \ { curn; default x env }] *)
+let complete_with_default env env_handler =
+  Env.fold
+    (fun x ({ cur } as entry) acc ->
+      match Env.find_opt x env with
+      | None -> Env.add x entry acc
+      | Some { default } -> Env.add x { entry with default = default } acc)
+    env_handler Env.empty
+
 (* bounded fixpoint combinator *)
 (* computes a pre fixpoint f^n(bot) <= fix(f) *)
 let fixpoint n f s bot =
@@ -102,6 +135,17 @@ let fixpoint n f s bot =
   (* computes the next state *)
   fixpoint (if n <= 0 then 0 else n+1) s bot
 
+(* bounded fixpoint for a set of equations *)
+let fixpoint_eq genv env sem eq n s_eq bot =
+  let sem s_eq env_in =
+    eprint_ienv "Before step in fixpoint" env_in;
+    let env = Env.append env_in env in
+    let* env_out, s_eq = sem genv env eq s_eq in
+    eprint_ienv "After step in fixpoint" env_out;
+    let env_out = complete_with_default env env_out in
+    return (env_out, s_eq) in
+  fixpoint n sem s_eq bot
+  
 (* [sem genv env e = CoF f s] such that [iexp genv env e = s] *)
 (* and [sexp genv env e = f] *)
 (* initial state *)
@@ -343,10 +387,7 @@ let rec sexp genv env { e_desc = e_desc } s =
      (* compute a bounded fix-point in [n] steps *)
      let bot = bot_env eq_write in
      let n = size eq in
-     let* env_eq, s_eq =
-       fixpoint n
-         (fun s_eq env_eq -> seq genv (Env.append env_eq env) eq s_eq)
-         s_eq bot in
+     let* env_eq, s_eq = fixpoint_eq genv env seq eq n s_eq bot in
      let env = Env.append env_eq env in
      let* v, s = sexp genv env e s in
      return (v, Stuple [s_eq; s])
@@ -361,38 +402,6 @@ and sexp_list genv env e_list s_list =
      return (v :: v_list, s :: s_list)
   | _ -> None
 
-(* given an environment [env], a local environment [env_handler] *)
-(* an a set of written variables [write] *)
-(* complete [env_handler] with entries in [env] for variables that appear in [write] *)
-(* this is used for giving the semantics of a control-structure, e.g.,: *)
-(* [if e then do x = ... and y = ... else do x = ... done]. When [e = false] *)
-(* the value of [y] is the default one given at the definition of [y] *)
-(* for the moment, we treat the absence of a default value as a type error *)
-and by env env_handler write =
-  S.fold
-    (fun x acc ->
-      (* if [x in env] but not [x in env_handler] *)
-      (* then either [x = last x] or [x = default(x)] depending *)
-      (* on what is declared for [x]. *)
-      let* { default } as entry = Env.find_opt x env in
-      if Env.mem x env_handler then acc
-      else
-        match default with
-        | Val -> None
-        | Last(v) | Default(v) ->
-           let* acc = acc in
-           return (Env.add x { entry with cur = v } acc))
-    write (return env_handler) 
-       
-(* given [env] and [env_handler = [x1 \ { cur1 },..., xn \ { curn }] *)
-(* returns [x1 \ { cu1; default x env },..., xn \ { curn; default x env }] *)
-and complete_with_default env env_handler =
-  Env.fold
-    (fun x ({ cur } as entry) acc ->
-      match Env.find_opt x env with
-      | None -> Env.add x entry acc
-      | Some { default } -> Env.add x { entry with default = default } acc)
-    env_handler Env.empty
 
 (* step function for an equation *)
 and seq genv env { eq_desc; eq_write } s =
@@ -450,11 +459,11 @@ and seq genv env { eq_desc; eq_write } s =
   | EQlocal(v_list, eq), Stuple [Stuple(s_list); s_eq] ->
      let* _, env_local, s_list, s_eq = sblock genv env v_list eq s_list s_eq in
      return (env_local, Stuple [Stuple(s_list); s_eq])
-  | EQautomaton(is_weak, a_h_list), Stuple [ps; Sbool(pr); Stuple(s_list)] ->
+  | EQautomaton(is_weak, a_h_list), Stuple (ps :: Sbool(pr) :: s_list) ->
      (* [ps = state where to go; pr = whether the state must be reset or not *)
      let* env, ns, nr, s_list =
         sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list in
-     return (env, Stuple [ns; Sbool(nr); Stuple(s_list)])
+     return (env, Stuple (ns :: Sbool(nr) :: s_list))
   | EQmatch(e, m_h_list), Stuple (se :: s_list) ->
      let* ve, se = sexp genv env e se in
      let* env, s_list =
@@ -480,16 +489,7 @@ and sblock genv env v_list eq s_list s_eq =
     Env.map (fun { default } -> { cur = Vbot; default = default }) env_v in
   eprint_ienv "In block" bot;
   let n = size eq in
-  let* env_eq, s_eq =
-    fixpoint n
-      (fun s_eq env_eq ->
-        eprint_ienv "Before step in fixpoint" env_eq;
-        let env = Env.append env_eq env in
-        let* env_eq, s_eq = seq genv env eq s_eq in
-        eprint_ienv "After step in fixpoint" env_eq;
-        let env_eq = complete_with_default env env_eq in
-        return (env_eq, s_eq))
-      s_eq bot in
+  let* env_eq, s_eq = fixpoint_eq genv env seq eq n s_eq bot in
   (* store the next last value *)
   let* s_list = Opt.map2 (set env_eq) v_list s_list in
   (* remove all local variables from [env_eq] *)
@@ -577,8 +577,7 @@ and sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list =
             sescape_list genv env s_trans ss_trans ps pr in
           return
             (env_body, ns, nr,
-             Stuple [Stuple(ss_var_list); ss_body;
-                     Stuple(ss_trans)] :: s_list) in
+             Stuple [Stuple(ss_var_list); ss_body; Stuple(ss_trans)] :: s_list) in
      (* complete missing entries in the environment *) 
      let* env_handler = by env env_handler eq_write in
      return (env_handler, ns, nr, s_list)
@@ -763,10 +762,7 @@ let funexp genv { f_kind; f_atomic; f_args; f_res; f_body } =
                  (* eprint_env env_args; *)
                  let n = Env.cardinal env_res in
                  let* env_body, s_body =
-                   fixpoint n
-                     (fun s_body env_body ->
-                       seq genv (Env.append env_body env) f_body s_body)
-                     s_body env_res in
+                   fixpoint_eq genv env seq f_body n s_body env_res in
                  let* v_list = Opt.map (matching_out env_body) f_res in
                  return (v_list, (Stuple [Stuple(s_f_args); Stuple(s_f_res); s_body]))
               | _ -> None }) in
