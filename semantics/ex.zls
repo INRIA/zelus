@@ -10,9 +10,10 @@
   and r = if b then 1 else 2 done *)
 
 let node f(x) returns (o init 42)
-  automaton
-  | One -> do o = last o + 1 until o = 2 then Two
-  | Two -> do o = last o - 1 until o = -2 then One
-  end
+  do o = last o + 1 done
+      (* automaton
+  | One -> do o = last o + 1 until o = 46 then Two
+  | Two -> do o = last o - 1 until o = 42 then One
+  end *)
 
  
