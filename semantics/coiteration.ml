@@ -491,7 +491,7 @@ and sblock genv env v_list eq s_list s_eq =
   let n = size eq in
   let* env_eq, s_eq = fixpoint_eq genv env seq eq n s_eq bot in
   (* store the next last value *)
-  let* s_list = Opt.map2 (set env_eq) v_list s_list in
+  let* s_list = Opt.map2 (set_vardec env_eq) v_list s_list in
   (* remove all local variables from [env_eq] *)
   let env = Env.append env_eq env in
   let env_eq = remove env_v env_eq in
@@ -509,7 +509,7 @@ and sblock_with_reset genv env v_list eq s_list s_eq r =
       return (s_list, s_eq) in
   sblock genv env v_list eq s_list s_eq
   
-and svardec genv env env_local { var_name; var_default } s v =
+and svardec genv env acc { var_name; var_default } s v =
   let* default, s =
     match var_default, s with
     | Ewith_nothing, Sempty -> (* [local x in ...] *)
@@ -534,10 +534,10 @@ and svardec genv env env_local { var_name; var_default } s v =
        let* ve, se = sexp genv env e se in
        return (Default(ve), se)
     | _ -> None in
-  return (Env.add var_name { cur = v; default = default } env_local, s)
+  return (Env.add var_name { cur = v; default = default } acc, s)
 
 (* store the next value for [last x] in the state of [vardec] declarations *)
-and set env_eq { var_name } s =
+and set_vardec env_eq { var_name } s =
   match s with
   | Sempty -> return Sempty
   | Sopt _ | Sval _ ->
@@ -721,7 +721,7 @@ let matching_in env { var_name; var_default } v =
 
 let matching_out env { var_name; var_default } =
   find_value_opt var_name env
-
+  
 let funexp genv { f_kind; f_atomic; f_args; f_res; f_body } =
   let* si = ieq genv Env.empty f_body in
   let* f = match f_kind with
@@ -749,13 +749,11 @@ let funexp genv { f_kind; f_atomic; f_args; f_res; f_body } =
               | Stuple [Stuple(s_f_args); Stuple(s_f_res); s_body] ->
                   (* associate the input value to the argument *) 
                  let* env_args, s_f_args =
-                   Opt.mapfold3
-                     (svardec genv Env.empty)
+                   Opt.mapfold3 (svardec genv Env.empty)
                      Env.empty f_args s_f_args v_list in
                  (* eprint_env env_args; *)
                  let* env_res, s_f_res =
-                   Opt.mapfold3
-                     (svardec genv env_args)
+                   Opt.mapfold3 (svardec genv env_args)
                      Env.empty f_res s_f_res (bot_list f_res) in
                  eprint_ienv "Node" env_args;
                  let env = Env.append env_res env_args in
@@ -763,6 +761,8 @@ let funexp genv { f_kind; f_atomic; f_args; f_res; f_body } =
                  let n = Env.cardinal env_res in
                  let* env_body, s_body =
                    fixpoint_eq genv env seq f_body n s_body env_res in
+                 (* store the next last value *)
+                 let* s_f_res = Opt.map2 (set_vardec env_body) f_res s_f_res in
                  let* v_list = Opt.map (matching_out env_body) f_res in
                  return (v_list, (Stuple [Stuple(s_f_args); Stuple(s_f_res); s_body]))
               | _ -> None }) in
