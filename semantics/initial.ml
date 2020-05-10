@@ -236,6 +236,7 @@ let genv0 =
    "*", binop mult_op;
    "not", unop not_op;
    "&&", binop and_op;
+   "&", binop and_op;
    "or", binop or_op;
    "||", binop or_op;
    "mod", binop mod_op;

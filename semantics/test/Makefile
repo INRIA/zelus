@@ -1,8 +1,8 @@
 ALL := $(shell ls *.zls)
 NTESTS := $(shell ls *.zls | wc -l)
 
-ZRUN=../zrun.byte
-ZARGS= -s main -n 10
+ZRUN=../zrun.opt
+ZARGS= -s main -n 100
 
 ifdef NOCOLOR
     S_BLUE   = ""

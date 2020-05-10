@@ -1,5 +1,5 @@
 (* automaton from [EMSOFT'05] *)
-let node chrono (stst, rst) returns (disp_1, disp_2)
+let node chrono (stst, rst) returns (disp_1 init 42, disp_2 init 42)
   local s init 0, m init 0, r
   do automaton
 	CHRONO ->
@@ -28,13 +28,18 @@ let node chrono (stst, rst) returns (disp_1, disp_2)
       end
   done
 
-let node main() returns (stst, rst)
-  local disp1, disp2
+let node counter(n) returns (c)
+  local cpt
+  do cpt = (0 fby (cpt + 1)) mod n
+  and c = false -> (cpt = 0) done
+		    
+let node main(x) returns (disp11, disp22)
+  local stst11, rst11
   do
-    disp1, disp2 = chrono(stst, rst)
+      disp11, disp22 = chrono(stst11, rst11)
   and
-      stst = false
+      stst11 = counter(5)
   and
-      rst = false
+      rst11 = counter(10)
   done
       

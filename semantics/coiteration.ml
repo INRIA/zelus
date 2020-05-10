@@ -9,7 +9,8 @@ open Ast
 open Value
 open Initial
    
-
+let set_verbose = ref false
+            
 (* an input entry in the environment *)
 type 'a ientry = { cur: 'a; default : 'a default }
 
@@ -33,9 +34,8 @@ let fprint_ienv ff comment env =
   Format.fprintf ff
       "%s (env): @,%a@]@\n" comment (Env.fprint_t fprint_ientry) env
 
-let v = ref true
 let print_ienv comment env =
-  if !v then
+  if !set_verbose then
     Format.printf
       "%s (env): @,%a@]@\n" comment (Env.fprint_t fprint_ientry) env
   
@@ -123,7 +123,7 @@ let complete_with_default env env_handler =
       | Some { default } -> Env.add x { entry with default = default } acc)
     env_handler Env.empty
 
-(* equality of values in the fixpoint iteration. Because of monotonicity *)
+ (* equality of values in the fixpoint iteration. Because of monotonicity *)
 (* only compare bot/nil with non bot/nil values *)
 let equal_values v1 v2 =
   match v1, v2 with
@@ -137,8 +137,11 @@ let fixpoint n equal f s bot =
     if n <= 0 then return (v, s')
     else
       (* compute a fixpoint for the value [v] keeping the current state *)
-      let* v', s' = f s v in
-      if equal v v' then return (v, s') else fixpoint (n-1) s' v' in      
+      begin
+        Format.printf "Step = %d@," n;
+        let* v', s' = f s v in
+        if equal v v' then return (v, s') else fixpoint (n-1) s' v'
+      end in      
   (* computes the next state *)
   fixpoint (if n <= 0 then 0 else n+1) s bot
 
@@ -154,8 +157,10 @@ let fixpoint_eq genv env sem eq n s_eq bot =
     print_ienv "After step in fixpoint" env_out;
     let env_out = complete_with_default env env_out in
     return (env_out, s_eq) in
-  fixpoint n equal_env sem s_eq bot
-  
+  let* env_out, s_eq = fixpoint n equal_env sem s_eq bot in
+  print_ienv "After fixpoint" env_out;
+  return (env_out, s_eq)
+ 
 (* [sem genv env e = CoF f s] such that [iexp genv env e = s] *)
 (* and [sexp genv env e = f] *)
 (* initial state *)
@@ -420,7 +425,7 @@ and seq genv env { eq_desc; eq_write } s =
   | EQeq(p, e), s -> 
      let* v, s = sexp genv env e s in
      let* env_p = matching_pateq p v in
-     print_ienv "Eq" env_p;
+     (* print_ienv "Eq" env_p; *)
      return (env_p, s)
   | EQinit(x, e), s ->
      let* v, s = sexp genv env e s in
@@ -494,15 +499,13 @@ and seq genv env { eq_desc; eq_write } s =
 
 (* block [local x1 [init e1 | default e1 | ],..., xn [...] do eq done *)
 (* compute a pre fix-point in [n] steps *)
-and sblock genv env v_list eq s_list s_eq =
+and sblock genv env v_list ({ eq_write } as eq) s_list s_eq =
   print_ienv "Block" env;
   let* env_v, s_list =
     Opt.mapfold3
       (svardec genv env) Env.empty v_list s_list (bot_list v_list) in
   let env = Env.append env_v env in
-  let bot =
-    Env.map (fun { default } -> { cur = Vbot; default = default }) env_v in
-  print_ienv "In block" bot;
+  let bot = bot_env eq_write in
   let n = size eq in
   let* env_eq, s_eq = fixpoint_eq genv env seq eq n s_eq bot in
   (* store the next last value *)

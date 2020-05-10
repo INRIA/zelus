@@ -70,6 +70,7 @@ let eval source_name main number check =
 let doc_main = "The main node to evaluate\n"
 let doc_number_of_steps = "The number of steps\n"
 let doc_check = "Check that the simulated node returns true\n"
+let doc_verbose = "Verbose mode\n"
 
 let errmsg = "Options are:"
 
@@ -79,7 +80,8 @@ let main () =
     Arg.parse (Arg.align
                  [ "-s", Arg.String set_main, doc_main;
                    "-n", Arg.Int set_number, doc_number_of_steps;
-                   "-check", Arg.Set set_check, doc_check])
+                   "-check", Arg.Set set_check, doc_check;
+                   "-v", Arg.Set set_verbose, doc_verbose])
       eval
       errmsg
   with
