@@ -15,6 +15,8 @@ type pvalue =
   | Vvoid : pvalue
   | Vconstr0 : Lident.t -> pvalue
   | Vtuple : value list -> pvalue
+  | Vstate0 : Ident.t -> pvalue
+  | Vstate1 : Ident.t * value list -> pvalue
 
 and value = pvalue extended
           
@@ -23,11 +25,7 @@ type state =
   | Stuple : state list -> state
   | Sval : value -> state
   | Sopt : value option -> state
-  | Sbool : bool -> state
-  | Sstate0 : Ident.t -> state
-  | Sstate1 : Ident.t * value list -> state
- 
-                
+                 
 type ('a, 's) costream =
   | CoF : { init : 's;
             step : 's -> ('a * 's) option } -> ('a, 's) costream
