@@ -775,11 +775,11 @@ let funexp genv { f_kind; f_atomic; f_args; f_res; f_body } =
                  let* env_args, s_f_args =
                    Opt.mapfold3 (svardec genv Env.empty)
                      Env.empty f_args s_f_args v_list in
-                 (* eprint_env env_args; *)
                  let* env_res, s_f_res =
                    Opt.mapfold3 (svardec genv env_args)
                      Env.empty f_res s_f_res (bot_list f_res) in
                  print_ienv "Node" env_args;
+                 print_ienv "Node" env_res;
                  let env = Env.append env_res env_args in
                  (* eprint_env env_args; *)
                  let n = Env.cardinal env_res in
@@ -788,7 +788,8 @@ let funexp genv { f_kind; f_atomic; f_args; f_res; f_body } =
                  (* store the next last value *)
                  let* s_f_res = Opt.map2 (set_vardec env_body) f_res s_f_res in
                  let* v_list = Opt.map (matching_out env_body) f_res in
-                 return (v_list, (Stuple [Stuple(s_f_args); Stuple(s_f_res); s_body]))
+                 return (v_list,
+                         (Stuple [Stuple(s_f_args); Stuple(s_f_res); s_body]))
               | _ -> None }) in
   return f
 
