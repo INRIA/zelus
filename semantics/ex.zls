@@ -1,18 +1,25 @@
-(* let node g(x) returns (y,m)
+let node g(x) returns (y,m)
     local z, k, r
     do y = 0 fby z + 1 and z = k+1
-    and k = 0 fby r + 1 and r = y+1 and m = z done *)
+    and k = 0 fby r + 1 and r = y+1 and m = z done
 
-(* let node f(x) returns (y, b, r)
+let node h(x) returns (y, b, r)
   local m init 0
   do m = last m + 1 and y = 42 -> pre m
   and b = true fby (not b)
-  and r = if b then 1 else 2 done *)
+  and r = if b then 1 else 2 done
 
-let node f(x) returns (o init 42)
+let node f1(x) returns (o init 42)
   automaton
-  | One -> do o = last o + 1 until o = 46 then Two
-  | Two -> do o = last o - 1 until o = 42 then One
+  | One -> do o = last o + 1 unless last o = 45 then Two
+  | Two -> do o = last o - 1 unless last o = 36 then One
   end
 
- 
+let node f2() returns (o)
+  do o = 43 fby 44
+      fby 45 fby 44 fby 43
+      fby 42 fby 41 fby 40
+      fby 39 fby 38 done
+
+let node f3(x) returns (o)
+    do o = f1(x) = f2() done
