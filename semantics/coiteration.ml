@@ -137,11 +137,8 @@ let fixpoint n equal f s bot =
     if n <= 0 then return (v, s')
     else
       (* compute a fixpoint for the value [v] keeping the current state *)
-      begin
-        Format.printf "Step = %d@," n;
-        let* v', s' = f s v in
-        if equal v v' then return (v, s') else fixpoint (n-1) s' v'
-      end in      
+      let* v', s' = f s v in
+      if equal v v' then return (v, s') else fixpoint (n-1) s' v' in      
   (* computes the next state *)
   fixpoint (if n <= 0 then 0 else n+1) s bot
 

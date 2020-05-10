@@ -16,22 +16,33 @@ else
     S_NORMAL = "\\033[0m"
 endif
 
-run: $(ALL:.zls=.run)
+# do not remove .run files
+.PRECIOUS: %.run
+
+run: run-quiet
+	@$(MAKE) -s summary
+
+run-quiet: $(ALL:.zls=.run)
+
+summary: 
 	@RUNOK=`ls | grep '\.run.ok$$' | wc -l`; \
-	printf "run: $$RUNOK / $(NTESTS) (`expr $$RUNOK \\* 100 / $(NTESTS)`%%)$(S_NORMAL)\n"
+	printf "$(S_BLUE)run: $$RUNOK / $(NTESTS) (`expr $$RUNOK \\* 100 / $(NTESTS)`%%)$(S_NORMAL)\n"
+
+FORCE:
 
 check:
 
 .SUFFIXES : .run .zls
 
-%.run: %.zls
-	$(ZRUN) $(ZARGS) $< 2>$(<:.zls=.run);
-	if [ $$? -eq 0 ]; then
-	  	printf -- "$(<:.zls=): run ok\n";
-		touch "$(<:.zls=.run.ok)";
-	else
-	 	printf -- "$(<:.zls=): run fail (see $(<:.zls=.run))\n";
-		rm -f "$(<:.zls.run.ok)";
+%.run: %.zls FORCE
+	@$(ZRUN) $(ZARGS) $< 2>$(<:.zls=.run);\
+	if [ $$? -eq 0 ]; then \
+	  	printf -- "$(<:.zls=): $(S_GREEN)run ok(S_NORMAL)\n"; \
+		touch "$(<:.zls=.run.ok)"; \
+	else \
+	 	printf -- "$(<:.zls=): $(S_RED)run fail$(S_NORMAL) (see $(<:.zls=.run))\n"; \
+		rm -f "$(<:.zls.run.ok)"; \
 	fi
+
 clean:
-	rm -r -f *.run*
+	-@rm -r -f *.run*
