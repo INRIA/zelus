@@ -123,18 +123,28 @@ let complete_with_default env env_handler =
       | Some { default } -> Env.add x { entry with default = default } acc)
     env_handler Env.empty
 
+(* equality of values in the fixpoint iteration. Because of monotonicity *)
+(* only compare bot/nil with non bot/nil values *)
+let equal_values v1 v2 =
+  match v1, v2 with
+  | (Vbot, Vbot) | (Vnil, Vnil) | (Value _, Value _) -> true
+  | _ -> false
+
 (* bounded fixpoint combinator *)
 (* computes a pre fixpoint f^n(bot) <= fix(f) *)
-let fixpoint n f s bot =
+let fixpoint n equal f s bot =
   let rec fixpoint n s' v =
     if n <= 0 then return (v, s')
     else
       (* compute a fixpoint for the value [v] keeping the current state *)
-      let* v, s' = f s v in
-      fixpoint (n-1) s' v in      
+      let* v', s' = f s v in
+      if equal v v' then return (v, s') else fixpoint (n-1) s' v' in      
   (* computes the next state *)
   fixpoint (if n <= 0 then 0 else n+1) s bot
 
+let equal_env env1 env2 =
+  Env.equal (fun { cur = cur1} { cur = cur2 } -> equal_values cur1 cur2) env1 env2
+    
 (* bounded fixpoint for a set of equations *)
 let fixpoint_eq genv env sem eq n s_eq bot =
   let sem s_eq env_in =
@@ -144,7 +154,7 @@ let fixpoint_eq genv env sem eq n s_eq bot =
     eprint_ienv "After step in fixpoint" env_out;
     let env_out = complete_with_default env env_out in
     return (env_out, s_eq) in
-  fixpoint n sem s_eq bot
+  fixpoint n equal_env sem s_eq bot
   
 (* [sem genv env e = CoF f s] such that [iexp genv env e = s] *)
 (* and [sexp genv env e = f] *)
@@ -173,7 +183,7 @@ let rec iexp genv env { e_desc } =
      | Eminusgreater, [e1; e2] ->
         let* s1 = iexp genv env e1 in
         let* s2 = iexp genv env e2 in
-        return (Stuple [Sbool(true); s1; s2])
+        return (Stuple [Sval(Value(Vbool(true))); s1; s2])
      | Eifthenelse, [e1; e2; e3] ->
           let* s1 = iexp genv env e1 in
           let* s2 = iexp genv env e2 in
@@ -224,7 +234,7 @@ and ieq genv env { eq_desc } =
      (* it is not reset at the first instant *)
      let* a_h = List.nth_opt a_h_list 0 in
      let* i = initial_state_of_automaton a_h in
-     return (Stuple(i :: Sbool(false) :: s_list))
+     return (Stuple(Sval(Value(i)) :: Sval(Value(Vbool(false))) :: s_list))
   | EQmatch(e, m_h_list) ->
      let* se = iexp genv env e in
      let* sm_list = Opt.map (imatch_handler genv env) m_h_list in
@@ -247,7 +257,7 @@ and iautomaton_handler genv env { s_vars; s_body; s_trans } =
 (* initial state of an automaton *)
 and initial_state_of_automaton { s_state = { desc } } =
   match desc with
-  | Estate0pat(f) -> return (Sstate0(f))
+  | Estate0pat(f) -> return (Vstate0(f))
   | _ -> None
        
 and iescape genv env { e_cond; e_vars; e_body; e_next_state } =
@@ -292,8 +302,8 @@ and matching_list env x_list v_list =
 (* match a state f(v1,...,vn) against a state name f(x1,...,xn) *)
 let matching_state ps { desc } =
   match ps, desc with
-  | Sstate0(f), Estate0pat(g) when Ident.compare f g = 0 -> Some Env.empty
-  | Sstate1(f, v_list), Estate1pat(g, id_list) when Ident.compare f g = 0 ->
+  | Vstate0(f), Estate0pat(g) when Ident.compare f g = 0 -> Some Env.empty
+  | Vstate1(f, v_list), Estate1pat(g, id_list) when Ident.compare f g = 0 ->
      matching_list Env.empty id_list v_list
   | _ -> None
 
@@ -342,12 +352,13 @@ let rec sexp genv env { e_desc = e_desc } s =
      | Eunarypre, [e], Stuple [Sval(v); s] -> 
         let* ve, s = sexp genv env e s in
         return (v, Stuple [Sval(ve); s])
-     | Eminusgreater, [e1; e2], Stuple [Sbool(r); s1; s2] ->
-     (* when [r = true] this is the very first instant, as if *)
-     (* the register is reset [paper EMSOFT'06] *)
+     | Eminusgreater, [e1; e2], Stuple [Sval(v); s1; s2] ->
+       (* when [v = true] this is the very first instant. [v] is a reset bit *)
+       (* see [paper EMSOFT'06] *)
         let* v1, s1 = sexp genv env e1 s1  in
         let* v2, s2 = sexp genv env e2 s2  in
-        return ((if r then v1 else v2), Stuple [Sbool(false); s1; s2])
+        let* v_out = Initial.ifthenelse v v1 v2 in
+        return (v_out, Stuple [Sval(Value(Vbool(false))); s1; s2])
      | Eifthenelse, [e1; e2; e3], Stuple [s1; s2; s3] ->
         let* v1, s1 = sexp genv env e1 s1 in
         let* v2, s2 = sexp genv env e2 s2 in
@@ -421,12 +432,9 @@ and seq genv env { eq_desc; eq_write } s =
       let* v, se = sexp genv env e se in
       let* env_eq, s =
         match v with
-        | Vbot ->
-           (* if the condition is bot then all variables have value bot *)
-           return (bot_env eq_write, Stuple [se; s_eq1; s_eq2])
-        | Vnil ->
-           (* if the condition is nil then all variables have value nil *)
-           return (nil_env eq_write, Stuple [se; s_eq1; s_eq2])
+        (* if the condition is bot/nil then all variables have value bot/nil *)
+        | Vbot -> return (bot_env eq_write, Stuple [se; s_eq1; s_eq2])
+        | Vnil -> return (nil_env eq_write, Stuple [se; s_eq1; s_eq2])
         | Value(b) ->
            let* v = boolean b in
            if v then
@@ -459,11 +467,18 @@ and seq genv env { eq_desc; eq_write } s =
   | EQlocal(v_list, eq), Stuple [Stuple(s_list); s_eq] ->
      let* _, env_local, s_list, s_eq = sblock genv env v_list eq s_list s_eq in
      return (env_local, Stuple [Stuple(s_list); s_eq])
-  | EQautomaton(is_weak, a_h_list), Stuple (ps :: Sbool(pr) :: s_list) ->
+  | EQautomaton(is_weak, a_h_list), Stuple (Sval(ps) :: Sval(pr) :: s_list) ->
      (* [ps = state where to go; pr = whether the state must be reset or not *)
      let* env, ns, nr, s_list =
-        sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list in
-     return (env, Stuple (ns :: Sbool(nr) :: s_list))
+       match ps, pr with
+       | (Vbot, _) | (_, Vbot) ->
+          return (bot_env eq_write, ps, pr, s_list)
+       | (Vnil, _) | (_, Vnil) ->
+          return (bot_env eq_write, ps, pr, s_list)
+       | Value(ps), Value(pr) ->
+          let* pr = boolean pr in
+          sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list in
+     return (env, Stuple (Sval(ns) :: Sval(nr) :: s_list))
   | EQmatch(e, m_h_list), Stuple (se :: s_list) ->
      let* ve, se = sexp genv env e se in
      let* env, s_list =
@@ -629,11 +644,18 @@ and sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list =
     (* chose the active state *)
     let* env_trans, ns, nr, s_list = transition_list a_h_list s_list in
     (* execute the current state *)
-    let* env_body, s_list = body_list a_h_list ns nr s_list in
-    let env_handler = Env.append env_trans env_body in
-    (* complete missing entries in the environment *)
-    let* env_handler = by env env_handler eq_write in
-    return (env_handler, ns, nr, s_list)
+    match ns, nr with
+    | (Vbot, _) | (_, Vbot) ->
+       return (bot_env eq_write, ns, nr, s_list)
+    | (Vnil, _) | (_, Vnil) ->
+       return (bot_env eq_write, ns, nr, s_list)
+    | Value(vns), Value(vnr) ->
+       let* vnr = boolean vnr in
+       let* env_body, s_list = body_list a_h_list vns vnr s_list in
+       let env_handler = Env.append env_trans env_body in
+       (* complete missing entries in the environment *)
+       let* env_handler = by env env_handler eq_write in
+       return (env_handler, ns, nr, s_list)
 
 (* [Given a transition t, a name ps of a state in the automaton, a value pr *)
 (* for the reset condition, *)
@@ -641,20 +663,22 @@ and sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list =
 (* returns an environment, a new state name, a new reset condition and a new state *)
 and sescape_list genv env escape_list s_list ps pr =
   match escape_list, s_list with
-  | [], [] -> return (Env.empty, (ps, pr), [])
+  | [], [] -> return (Env.empty, (Value ps, Value (Vbool pr)), [])
   | { e_cond; e_reset; e_vars; e_body; e_next_state } :: escape_list,
     Stuple [s_cond; Stuple(s_var_list); s_body; s_next_state] :: s_list ->
       (* if [pr=true] then the transition is reset *)
      let* v, s = reset iscondpat sscondpat genv env e_cond s_cond pr in
      let* env_body, (ns, nr), s =
        match v with
-       (* if [v = bot/nil] the state and reset bit do not change *)
+       (* if [v = bot/nil] the state and reset bit are also bot/nil *)
        | Vbot ->
-          return (Env.empty, (ps, pr), Stuple [s_cond; Stuple(s_var_list);
-                                               s_body; s_next_state] :: s_list)
+          return (bot_env e_body.eq_write,
+                  (Vbot, Vbot), Stuple [s_cond; Stuple(s_var_list);
+                                        s_body; s_next_state] :: s_list)
        | Vnil ->
-          return (Env.empty, (ps, pr), Stuple [s_cond; Stuple(s_var_list);
-                                               s_body; s_next_state] :: s_list)
+          return (nil_env e_body.eq_write, 
+                  (Vnil, Vnil), Stuple [s_cond; Stuple(s_var_list);
+                                        s_body; s_next_state] :: s_list)
        | Value(v) ->
           let* v = boolean v in
           let* env, env_body, s_var_list, s_body =
@@ -662,8 +686,8 @@ and sescape_list genv env escape_list s_list ps pr =
           let* ns, s_next_state = sstate genv env e_next_state s_next_state in
           let* env_body, (s, r), s_list =
             sescape_list genv env escape_list s_list ps pr in
-          let ns, nr =
-            if v then (ns, e_reset) else (s, r) in
+          let ns, nr = 
+            if v then (ns, Value(Vbool(e_reset))) else (s, r) in
           return (env_body, (ns, nr),
                   Stuple [s_cond; Stuple(s_var_list);
                           s_body; s_next_state] :: s_list) in
@@ -674,11 +698,11 @@ and sscondpat genv env e_cond s = sexp genv env e_cond s
                               
 and sstate genv env { desc } s =
   match desc, s with
-  | Estate0(f), Sempty -> return (Sstate0(f), Sempty)
+  | Estate0(f), Sempty -> return (Value(Vstate0(f)), Sempty)
   | Estate1(f, e_list), Stuple s_list ->
      let* v_s_list = Opt.map2 (sexp genv env) e_list s_list in
      let v_list, s_list = List.split v_s_list in
-     return (Sstate1(f, v_list), Stuple(s_list))
+     return (Value(Vstate1(f, v_list)), Stuple(s_list))
   | _ -> None
 
 and smatch_handler_list genv env ve eq_write m_h_list s_list =
@@ -792,7 +816,7 @@ let run_fun output fv n =
     if n = 0 then return ()
     else
       let* v = fv [Value(Vvoid)] in
-      output v;
+      let* _ = output v in
       runrec (n-1) in
   runrec n
       
@@ -802,16 +826,28 @@ let run_node output init step n =
     if n = 0 then return ()
     else
       let* v, s = step s [Value(Vvoid)] in
-      output v;
+      let* _ = output v in
       runrec s (n-1) in
   runrec init n
 
 (* The main entry function *)
-let main genv m output n =
-  let* fv = find_gnode_opt (Name m) genv in
+let run genv main ff n =
+  let* fv = find_gnode_opt (Name main) genv in
   (* the main function must be of type : unit -> t *)
+  let output v =
+    let _ = Initial.Output.value_list_and_flush ff v in return () in
   match fv with
   | CoFun(fv) -> run_fun output fv n
   | CoNode { init; step } ->
      run_node output init step n
-    
+
+let check genv main n =
+  let* fv = find_gnode_opt (Name main) genv in
+  (* the main function must be of type : unit -> bool *)
+  let output v =
+    if v = [Value(Vbool(true))] then return () else None in
+  match fv with
+  | CoFun(fv) -> run_fun output fv n
+  | CoNode { init; step } ->
+     run_node output init step n
+ 
