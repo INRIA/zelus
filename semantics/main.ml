@@ -10,6 +10,8 @@ exception Error
 let main_node = ref None
 let set_main s = main_node := Some(s)
 
+let set_check = ref false
+              
 let number_of_steps = ref 0
 let set_number n = number_of_steps := n
                  
@@ -43,30 +45,31 @@ let eval_error () =
   Format.eprintf "Evaluation error.@.";
   raise Error
 
-(* evaluate the main node [m] given by option [-s] for [n] steps *)
-let eval source_name m n =
+(* evaluate the main node [main] given by option [-s] for [n] steps with check *)
+let eval source_name main number check =
   let p = parse_implementation_file source_name in
   let p = Scoping.program p in
   let p = Write.program p in
   let* genv = Coiteration.program Initial.genv0 p in
-  let* m = m in
+  let* main = main in
   let* r =
-    Coiteration.main genv m
-      (Initial.Output.value_list_and_flush Format.std_formatter) n in
+    (* make [n] steps and checks that every step returns [true] *)
+    if check then Coiteration.check genv main number
+    else
+      (* make [n] steps *)
+      Coiteration.run genv main Format.std_formatter number in
   return r
 
  let eval filename =
-  if Filename.check_suffix filename ".zls" || Filename.check_suffix filename ".zlus"
+  if Filename.check_suffix filename ".zls"
   then
-    (* let modname = 
-      String.capitalize_ascii
-        (Filename.basename (Filename.chop_extension filename)) in *)
     Location.initialize filename;
-    let r = eval filename !main_node !number_of_steps in
+    let r = eval filename !main_node !number_of_steps !set_check in
     match r with | None -> eval_error () | Some _ -> ()
                                                    
 let doc_main = "The main node to evaluate\n"
 let doc_number_of_steps = "The number of steps\n"
+let doc_check = "Check that the simulated node returns true\n"
 
 let errmsg = "Options are:"
 
@@ -75,7 +78,8 @@ let main () =
   try
     Arg.parse (Arg.align
                  [ "-s", Arg.String set_main, doc_main;
-                   "-n", Arg.Int set_number, doc_number_of_steps ])
+                   "-n", Arg.Int set_number, doc_number_of_steps;
+                   "-check", Arg.Set set_check, doc_check])
       eval
       errmsg
   with
