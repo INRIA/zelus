@@ -34,9 +34,9 @@ let fprint_ienv ff comment env =
       "%s (env): @,%a@]@\n" comment (Env.fprint_t fprint_ientry) env
 
 let v = ref true
-let eprint_ienv comment env =
+let print_ienv comment env =
   if !v then
-    Format.eprintf
+    Format.printf
       "%s (env): @,%a@]@\n" comment (Env.fprint_t fprint_ientry) env
   
 let find_value_opt x env =
@@ -148,10 +148,10 @@ let equal_env env1 env2 =
 (* bounded fixpoint for a set of equations *)
 let fixpoint_eq genv env sem eq n s_eq bot =
   let sem s_eq env_in =
-    eprint_ienv "Before step in fixpoint" env_in;
+    print_ienv "Before step in fixpoint" env_in;
     let env = Env.append env_in env in
     let* env_out, s_eq = sem genv env eq s_eq in
-    eprint_ienv "After step in fixpoint" env_out;
+    print_ienv "After step in fixpoint" env_out;
     let env_out = complete_with_default env env_out in
     return (env_out, s_eq) in
   fixpoint n equal_env sem s_eq bot
@@ -420,7 +420,7 @@ and seq genv env { eq_desc; eq_write } s =
   | EQeq(p, e), s -> 
      let* v, s = sexp genv env e s in
      let* env_p = matching_pateq p v in
-     eprint_ienv "Eq" env_p;
+     print_ienv "Eq" env_p;
      return (env_p, s)
   | EQinit(x, e), s ->
      let* v, s = sexp genv env e s in
@@ -495,14 +495,14 @@ and seq genv env { eq_desc; eq_write } s =
 (* block [local x1 [init e1 | default e1 | ],..., xn [...] do eq done *)
 (* compute a pre fix-point in [n] steps *)
 and sblock genv env v_list eq s_list s_eq =
-  eprint_ienv "Block" env;
+  print_ienv "Block" env;
   let* env_v, s_list =
     Opt.mapfold3
       (svardec genv env) Env.empty v_list s_list (bot_list v_list) in
   let env = Env.append env_v env in
   let bot =
     Env.map (fun { default } -> { cur = Vbot; default = default }) env_v in
-  eprint_ienv "In block" bot;
+  print_ienv "In block" bot;
   let n = size eq in
   let* env_eq, s_eq = fixpoint_eq genv env seq eq n s_eq bot in
   (* store the next last value *)
@@ -779,7 +779,7 @@ let funexp genv { f_kind; f_atomic; f_args; f_res; f_body } =
                  let* env_res, s_f_res =
                    Opt.mapfold3 (svardec genv env_args)
                      Env.empty f_res s_f_res (bot_list f_res) in
-                 eprint_ienv "Node" env_args;
+                 print_ienv "Node" env_args;
                  let env = Env.append env_res env_args in
                  (* eprint_env env_args; *)
                  let n = Env.cardinal env_res in

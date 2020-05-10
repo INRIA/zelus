@@ -2,7 +2,7 @@ ALL := $(shell ls *.zls)
 NTESTS := $(shell ls *.zls | wc -l)
 
 ZRUN=../zrun.byte
-ZRUNOPT= -s main -n 10
+ZARGS= -s main -n 10
 
 ifdef NOCOLOR
     S_BLUE   = ""
@@ -25,13 +25,13 @@ check:
 .SUFFIXES : .run .zls
 
 %.run: %.zls
-	$(ZRUN) $(ZRUNOPT) $< 2>$(<:.zls=.run);
+	$(ZRUN) $(ZARGS) $< 2>$(<:.zls=.run);
 	if [ $$? -eq 0 ]; then
-	   printf -- "$(<:.zls=): run ok\n";\
-	   touch "$(<:.zls=.run.ok)";
+	  	printf -- "$(<:.zls=): run ok\n";
+		touch "$(<:.zls=.run.ok)";
 	else
-	   printf -- "$(<:.zls=): run fail (see $(<:.zls=.run))\n"; \
-	   rm -f "$(<:.zls.run.ok)";
-
+	 	printf -- "$(<:.zls=): run fail (see $(<:.zls=.run))\n";
+		rm -f "$(<:.zls.run.ok)";
+	fi
 clean:
 	rm -r -f *.run*
