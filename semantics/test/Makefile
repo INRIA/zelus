@@ -37,7 +37,7 @@ check:
 %.run: %.zls FORCE
 	@$(ZRUN) $(ZARGS) $< 2>$(<:.zls=.run);\
 	if [ $$? -eq 0 ]; then \
-	  	printf -- "$(<:.zls=): $(S_GREEN)run ok(S_NORMAL)\n"; \
+	  	printf -- "$(<:.zls=): $(S_GREEN)run ok$(S_NORMAL)\n"; \
 		touch "$(<:.zls=.run.ok)"; \
 	else \
 	 	printf -- "$(<:.zls=): $(S_RED)run fail$(S_NORMAL) (see $(<:.zls=.run))\n"; \
