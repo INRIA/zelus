@@ -206,9 +206,9 @@ implementation:
 ;
 
 %inline equation_and_list:
-  | l = list_of(AND, equation)
-    { match l with | [] -> make EQempty $startpos $endpos
-		   | [eq] -> eq | l -> make (EQand(l)) $startpos $endpos }
+  | l_opt = optional(list_of(AND, equation))
+    { match l_opt with | None -> make EQempty $startpos $endpos
+		       | Some([eq]) -> eq | Some(l) -> make (EQand(l)) $startpos $endpos }
 ;
 
 %inline equation:
