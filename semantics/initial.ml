@@ -94,6 +94,7 @@ let lift1 op v =
      let* v = op v in
      return (Value v)
 
+              
 (* lift a binary operator: [op bot _ = bot]; [op _ bot = bot]; same for nil *)
 let lift2 op v1 v2 =
   match v1, v2 with
@@ -183,6 +184,9 @@ module Output =
       | Vtuple(l) ->
          Format.fprintf ff "@[<hov 1>(%a)@]" (value_list value) l
       | Vconstr0(lid) -> lident ff lid
+      | Vstate0(id) -> Ident.fprint_t ff id
+      | Vstate1(id, l) ->
+         Format.fprintf ff "@[<hov 1>%a(%a)@]" Ident.fprint_t id (value_list value) l
 
    and value ff v =
      match v with
