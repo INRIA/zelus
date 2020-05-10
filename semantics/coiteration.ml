@@ -143,17 +143,20 @@ let fixpoint n equal f s bot =
   fixpoint (if n <= 0 then 0 else n+1) s bot
 
 let equal_env env1 env2 =
-  Env.equal (fun { cur = cur1} { cur = cur2 } -> equal_values cur1 cur2) env1 env2
+  Env.equal
+    (fun { cur = cur1} { cur = cur2 } -> equal_values cur1 cur2) env1 env2
     
 (* bounded fixpoint for a set of equations *)
 let fixpoint_eq genv env sem eq n s_eq bot =
   let sem s_eq env_in =
-    print_ienv "Before step in fixpoint" env_in;
+    print_ienv "Before step in fixpoint (env)" env_in;
+    print_ienv "Before step in fixpoint (env_in)" env_in;
     let env = Env.append env_in env in
     let* env_out, s_eq = sem genv env eq s_eq in
-    print_ienv "After step in fixpoint" env_out;
+    print_ienv "After step in fixpoint (env_out)" env_out;
     let env_out = complete_with_default env env_out in
     return (env_out, s_eq) in
+  print_ienv "Before step in fixpoint (bot)" bot;
   let* env_out, s_eq = fixpoint n equal_env sem s_eq bot in
   print_ienv "After fixpoint" env_out;
   return (env_out, s_eq)
@@ -420,6 +423,7 @@ and sexp_list genv env e_list s_list =
 and seq genv env { eq_desc; eq_write } s =
   match eq_desc, s with 
   | EQeq(p, e), s -> 
+     print_ienv "Eq" env;
      let* v, s = sexp genv env e s in
      let* env_p = matching_pateq p v in
      (* print_ienv "Eq" env_p; *)
@@ -503,6 +507,7 @@ and sblock genv env v_list ({ eq_write } as eq) s_list s_eq =
       (svardec genv env) Env.empty v_list s_list (bot_list v_list) in
   let env = Env.append env_v env in
   let bot = bot_env eq_write in
+  let bot = complete_with_default env bot in
   let n = size eq in
   let* env_eq, s_eq = fixpoint_eq genv env seq eq n s_eq bot in
   (* store the next last value *)
