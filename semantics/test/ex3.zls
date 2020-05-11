@@ -1,0 +1,3 @@
+let node f() returns (o)
+  do o = 0 -> o = last o + 1 done
+      
