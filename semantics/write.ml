@@ -64,7 +64,7 @@ and automaton_handler acc ({ s_vars; s_body; s_trans } as h) =
   let s_body, def_body = equation s_body in
   let s_trans, def_trans = Misc.mapfold escape S.empty s_trans in
   { h with s_vars = s_vars; s_body = s_body; s_trans = s_trans },
-  S.diff (S.union def_body def_trans) def_vars
+  S.union (S.diff (S.union def_body def_trans) def_vars) acc
 
 and escape acc ({ e_reset; e_cond; e_vars; e_body; e_next_state } as esc) =
   let e_cond = scondpat e_cond in
@@ -73,8 +73,8 @@ and escape acc ({ e_reset; e_cond; e_vars; e_body; e_next_state } as esc) =
   let e_next_state = state e_next_state in
   { esc with e_reset; e_cond = e_cond; e_vars = e_vars;
     e_body = e_body; e_next_state = e_next_state },
-  S.diff def_body def_vars
-
+  S.union (S.diff def_body def_vars) acc
+  
 and scondpat e_cond = expression e_cond
           
 and match_handler acc ({ m_vars; m_body } as m) =
