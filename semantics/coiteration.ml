@@ -148,7 +148,8 @@ let equal_values v1 v2 =
 (* computes a pre fixpoint f^n(bot) <= fix(f) *)
 let fixpoint n equal f s bot =
   let rec fixpoint n s' v =
-    if n <= 0 then return (v, s')
+    if n <= 0 then (* this case should not happen *)
+      return (v, s')
     else
       (* compute a fixpoint for the value [v] keeping the current state *)
       let* v', s' = f s v in
@@ -346,6 +347,8 @@ let rec sexp genv env { e_desc = e_desc } s =
   match e_desc, s with   
   | Econst(v), s ->
      return (Value (value v), s)
+  | Econstr0(f), s ->
+     return (Value (Vconstr0(f)), s)
   | Elocal x, s ->
      let* v = find_value_opt x env in
      return (v, s)
@@ -386,6 +389,10 @@ let rec sexp genv env { e_desc = e_desc } s =
         return (v, Stuple [s1; s2; s3])
      | _ -> None
      end
+  | Econstr1(f, e_list), Stuple(s_list) ->
+     let* v_list, s_list = sexp_list genv env e_list s_list in
+     (* check that all component are not nil nor bot *)
+     return (strict_constr1 f v_list, Stuple(s_list))
   | Etuple(e_list), Stuple(s_list) ->
      let* v_list, s_list = sexp_list genv env e_list s_list in
      (* check that all component are not nil nor bot *)

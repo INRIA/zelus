@@ -160,6 +160,16 @@ let strict_tuple v_list =
      | None -> Vnil
      | Some(v_list) -> Value(Vtuple(v_list))
 
+let strict_constr1 f v_list =
+  let v = unbot_list v_list in
+  match v with
+  | None -> Vbot
+  | Some(v_list) ->
+     let v = unnil_list v_list in
+     match v with
+     | None -> Vnil
+     | Some(v_list) -> Value(Vconstr1(f, v_list))
+
 let tuple v_list =
   match v_list with
   | [] -> None
@@ -184,9 +194,12 @@ module Output =
       | Vtuple(l) ->
          Format.fprintf ff "@[<hov 1>(%a)@]" (value_list value) l
       | Vconstr0(lid) -> lident ff lid
+      | Vconstr1(lid, l) ->
+         Format.fprintf ff "@[<hov 1>%a(%a)@]" lident lid (value_list value) l 
       | Vstate0(id) -> Ident.fprint_t ff id
       | Vstate1(id, l) ->
-         Format.fprintf ff "@[<hov 1>%a(%a)@]" Ident.fprint_t id (value_list value) l
+         Format.fprintf
+           ff "@[<hov 1>%a(%a)@]" Ident.fprint_t id (value_list value) l
 
    and value ff v =
      match v with

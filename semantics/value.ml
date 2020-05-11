@@ -14,6 +14,7 @@ type pvalue =
   | Vstring : string -> pvalue
   | Vvoid : pvalue
   | Vconstr0 : Lident.t -> pvalue
+  | Vconstr1 : Lident.t * value list -> pvalue
   | Vtuple : value list -> pvalue
   | Vstate0 : Ident.t -> pvalue
   | Vstate1 : Ident.t * value list -> pvalue
