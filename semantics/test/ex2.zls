@@ -1,0 +1,21 @@
+let node f () returns (disp_1 init 42, disp_2 init 42)
+  local rst
+  do
+    rst = false fby false fby false fby true fby rst
+  and
+    automaton
+    | Await ->
+	do disp_1 = 0
+	and disp_2 = 0
+	until rst then Run
+    | Run ->
+	do disp_1 = last disp_1 + 1
+        until rst then Await
+    end
+  done
+      
+let node main() returns (disp11, disp22)
+  do
+    (disp11, disp22) = f()
+  done
+      
