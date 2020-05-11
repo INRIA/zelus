@@ -1,7 +1,7 @@
-let node g(x) returns (y,m)
+let node g() returns (y,m)
     local z, k, r
-    do y = 0 fby z + 1 and z = k+1
-    and k = 0 fby r + 1 and r = y+1 and m = z done
+    do y = 0 fby y + 1 and z = k+1
+    and k = (0 fby r) + 1 and r = y+1 and m = z done
 
 let node h(x) returns (y, b, r)
   local m init 0
@@ -12,7 +12,7 @@ let node h(x) returns (y, b, r)
 let node f1() returns (o init 42)
   automaton
   | One -> do o = last o + 1 unless last o = 45 then Two
-  | Two -> do o = last o - 1 unless last o = 36 then One
+  | Two -> do o = last o - 1 unless o = 36 then One
   end
 
 let node f2() returns (o)
@@ -23,3 +23,5 @@ let node f2() returns (o)
 
 let node main() returns (o)
     do o = f1() = f2() done
+
+	
