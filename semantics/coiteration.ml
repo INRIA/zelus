@@ -92,7 +92,8 @@ let nil_list l = List.map (fun _ -> Vnil) l
 
 (* given an environment [env], a local environment [env_handler] *)
 (* an a set of written variables [write] *)
-(* complete [env_handler] with entries in [env] for variables that appear in [write] *)
+(* complete [env_handler] with entries in [env] for variables that *)
+(* appear in [write] *)
 (* this is used for giving the semantics of a control-structure, e.g.,: *)
 (* [if e then do x = ... and y = ... else do x = ... done]. When [e = false] *)
 (* the value of [y] is the default one given at the definition of [y] *)
@@ -113,6 +114,19 @@ let by env env_handler write =
            return (Env.add x { entry with cur = v } acc))
     write (return env_handler) 
        
+(* complete and [env_handler] with inputs from [write] *)
+(* pre-condition: [Dom(env_handler) subseteq write] *)
+let complete env env_handler write =
+  S.fold
+    (fun x acc ->
+      match Env.find_opt x env_handler with
+      | Some(entry) -> Env.add x entry acc
+      | None ->
+         match Env.find_opt x env with
+         | Some(entry) -> Env.add x entry acc
+         | None -> acc (* this case should not arrive *))
+    write Env.empty
+  
 (* given [env] and [env_handler = [x1 \ { cur1 },..., xn \ { curn }] *)
 (* returns [x1 \ { cu1; default x env },..., xn \ { curn; default x env }] *)
 let complete_with_default env env_handler =
@@ -483,7 +497,8 @@ and seq genv env { eq_desc; eq_write } s =
           return (bot_env eq_write, ps, pr, s_list)
        | Value(ps), Value(pr) ->
           let* pr = boolean pr in
-          sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list in
+          sautomaton_handler_list
+            is_weak genv env eq_write a_h_list ps pr s_list in
      return (env, Stuple (Sval(ns) :: Sval(nr) :: s_list))
   | EQmatch(e, m_h_list), Stuple (se :: s_list) ->
      let* ve, se = sexp genv env e se in
@@ -499,15 +514,13 @@ and seq genv env { eq_desc; eq_write } s =
   | _ -> None
 
 (* block [local x1 [init e1 | default e1 | ],..., xn [...] do eq done *)
-(* compute a pre fix-point in [n] steps *)
 and sblock genv env v_list ({ eq_write } as eq) s_list s_eq =
   print_ienv "Block" env;
   let* env_v, s_list =
     Opt.mapfold3
       (svardec genv env) Env.empty v_list s_list (bot_list v_list) in
   let env = Env.append env_v env in
-  let bot = bot_env eq_write in
-  let bot = complete_with_default env bot in
+  let bot = complete env env_v eq_write in
   let n = size eq in
   let* env_eq, s_eq = fixpoint_eq genv env seq eq n s_eq bot in
   (* store the next last value *)
@@ -604,7 +617,8 @@ and sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list =
     | _ -> None in 
   
   (* automaton with strong transitions *)
-  (* 1/ choose the active state by testing unless transitions of the current state *)
+  (* 1/ choose the active state by testing unless transitions of the *)
+  (* current state *)
   let rec transition_list a_h_list s_list =
     match a_h_list, s_list with
     | { s_state; s_trans } :: a_h_list,
@@ -665,7 +679,8 @@ and sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list =
 (* [Given a transition t, a name ps of a state in the automaton, a value pr *)
 (* for the reset condition, *)
 (* [escape_list genv env { e_cond; e_vars; e_body; e_next_state } ps pr] *)
-(* returns an environment, a new state name, a new reset condition and a new state *)
+(* returns an environment, a new state name, a new reset condition and *)
+(* a new state *)
 and sescape_list genv env escape_list s_list ps pr =
   match escape_list, s_list with
   | [], [] -> return (Env.empty, (Value ps, Value (Vbool pr)), [])
@@ -727,7 +742,8 @@ and smatch_handler_list genv env ve eq_write m_h_list s_list =
           let env = Env.append env_pat env in
           let* _, env_handler, ss_var_list, ss_body =
             sblock genv env m_vars m_body ss_var_list ss_body in
-          return (env_handler, Stuple [Stuple(ss_var_list); ss_body] :: s_list) in
+          return
+            (env_handler, Stuple [Stuple(ss_var_list); ss_body] :: s_list) in
      (* complete missing entries in the environment *)
      let* env_handler = by env env_handler eq_write in
      return (env_handler, s_list)
