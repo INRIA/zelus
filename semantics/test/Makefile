@@ -1,7 +1,7 @@
 ALL := $(shell ls *.zls)
 NTESTS := $(shell ls *.zls | wc -l)
 
-ZRUN=../zrun.opt
+ZRUN=../zrun.byte
 ZARGS= -s main -n 100
 
 ifdef NOCOLOR
@@ -35,7 +35,7 @@ check:
 .SUFFIXES : .run .zls
 
 %.run: %.zls FORCE
-	@$(ZRUN) $(ZARGS) $< 2>$(<:.zls=.run);\
+	@$(ZRUN) $(ZARGS) $< 1>$(<:.zls=.output) 2>$(<:.zls=.run);\
 	if [ $$? -eq 0 ]; then \
 	  	printf -- "$(<:.zls=): $(S_GREEN)run ok$(S_NORMAL)\n"; \
 		touch "$(<:.zls=.run.ok)"; \
@@ -45,4 +45,4 @@ check:
 	fi
 
 clean:
-	-@rm -r -f *.run*
+	-@rm -r -f *.run* *.output
