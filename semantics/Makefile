@@ -36,7 +36,10 @@ $(BIN).byte: $(GENSOURCES) $(OBJ)
         -I $(MENHIRLIB) menhirLib.cma $(OBJ) -o $(BIN).byte
 
 debug: OCAMLFLAGS += -g
-debug: byte 
+debug: byte debugprinter.cma
+
+debugprinter.cma: $(OBJ)
+	$(OCAMLC) -a -o $@ -I $(MENHIRLIB) menhirLib.cma $^
 
 parser.cmo parser.cmi: INCLUDES := -I $(MENHIRLIB) $(INCLUDES)
 

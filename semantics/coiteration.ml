@@ -437,10 +437,10 @@ and sexp_list genv env e_list s_list =
 and seq genv env { eq_desc; eq_write } s =
   match eq_desc, s with 
   | EQeq(p, e), s -> 
-     print_ienv "Eq" env;
+     print_ienv "Before (eq)" env;
      let* v, s = sexp genv env e s in
      let* env_p = matching_pateq p v in
-     (* print_ienv "Eq" env_p; *)
+     print_ienv "After (eq)" env_p;
      return (env_p, s)
   | EQinit(x, e), s ->
      let* v, s = sexp genv env e s in
@@ -575,7 +575,7 @@ and set_vardec env_eq { var_name } s =
   | Sopt _ | Sval _ ->
      let* v = find_value_opt var_name env_eq in
      return (Sval(v))
-  | Stuple [si; se] ->
+  | Stuple [_; se] ->
      let* v = find_value_opt var_name env_eq in
      return (Stuple [Sval(v); se])
   | _ -> None
@@ -798,13 +798,14 @@ let funexp genv { f_kind; f_atomic; f_args; f_res; f_body } =
                  let* env_res, s_f_res =
                    Opt.mapfold3 (svardec genv env_args)
                      Env.empty f_res s_f_res (bot_list f_res) in
-                 print_ienv "Node" env_args;
-                 print_ienv "Node" env_res;
+                 print_ienv "Node before fixpoint (args)" env_args;
+                 print_ienv "Node before fixpoint (res)" env_res;
                  (* eprint_env env_args; *)
                  let n = Env.cardinal env_res in
                  let* env_body, s_body =
                    fixpoint_eq genv env_args seq f_body n s_body env_res in
                  (* store the next last value *)
+                 print_ienv "Node after fixpoint (body)" env_body;
                  let* s_f_res = Opt.map2 (set_vardec env_body) f_res s_f_res in
                  let* v_list = Opt.map (matching_out env_body) f_res in
                  return (v_list,
@@ -835,7 +836,7 @@ let run_fun output fv n =
   let rec runrec n =
     if n = 0 then return ()
     else
-      let* v = fv [Value(Vvoid)] in
+      let* v = fv [] in
       let* _ = output v in
       runrec (n-1) in
   runrec n
@@ -845,7 +846,7 @@ let run_node output init step n =
   let rec runrec s n =
     if n = 0 then return ()
     else
-      let* v, s = step s [Value(Vvoid)] in
+      let* v, s = step s [] in
       let* _ = output v in
       runrec s (n-1) in
   runrec init n
