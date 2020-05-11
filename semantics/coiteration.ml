@@ -519,7 +519,6 @@ and sblock genv env v_list ({ eq_write } as eq) s_list s_eq =
   let* env_v, s_list =
     Opt.mapfold3
       (svardec genv env) Env.empty v_list s_list (bot_list v_list) in
-  let env = Env.append env_v env in
   let bot = complete env env_v eq_write in
   let n = size eq in
   let* env_eq, s_eq = fixpoint_eq genv env seq eq n s_eq bot in
@@ -801,11 +800,10 @@ let funexp genv { f_kind; f_atomic; f_args; f_res; f_body } =
                      Env.empty f_res s_f_res (bot_list f_res) in
                  print_ienv "Node" env_args;
                  print_ienv "Node" env_res;
-                 let env = Env.append env_res env_args in
                  (* eprint_env env_args; *)
                  let n = Env.cardinal env_res in
                  let* env_body, s_body =
-                   fixpoint_eq genv env seq f_body n s_body env_res in
+                   fixpoint_eq genv env_args seq f_body n s_body env_res in
                  (* store the next last value *)
                  let* s_f_res = Opt.map2 (set_vardec env_body) f_res s_f_res in
                  let* v_list = Opt.map (matching_out env_body) f_res in
