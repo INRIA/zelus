@@ -6,7 +6,7 @@ let node f(r init 0) returns (last m)
 
 let node g(r) returns (o init 42)
   local z, m init 42
-  do z = r + last m + 1
+  do z = r + last m + 1 and m = last m + 1
   and o = (z+1)+1 done
 
 let node main() returns (o)

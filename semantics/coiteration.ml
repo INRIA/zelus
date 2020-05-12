@@ -114,7 +114,7 @@ let by env env_handler write =
            return (Env.add x { entry with cur = v } acc))
     write (return env_handler) 
        
-(* complete and [env_handler] with inputs from [write] *)
+(* complete [env_handler] with inputs from [write] *)
 (* pre-condition: [Dom(env_handler) subseteq write] *)
 let complete env env_handler write =
   S.fold
@@ -581,7 +581,7 @@ and set_vardec env_eq { var_name } s =
      return (Sval(v))
   | Stuple [_; se] ->
      let* v = find_value_opt var_name env_eq in
-     return (Stuple [Sval(v); se])
+     return (Stuple [Sval v; se])
   | _ -> None
 
 (* remove entries [x, entry] from [env_eq] for *)
