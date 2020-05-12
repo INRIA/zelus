@@ -33,6 +33,7 @@ type 'a default =
   | Ewith_init : 'a -> 'a default    (* [local x init e in ...] *)
   | Ewith_default : 'a -> 'a default (* [local x default e in ... ] *)
   | Ewith_nothing : 'a default       (* [local x in ... ] *)
+  | Ewith_last : 'a default          (* [local last x in ... ] *)
 
 type 'exp vardec_desc =
   { var_name: String.t;

@@ -50,7 +50,8 @@ and vardec acc ({ var_name; var_default } as v) =
     match var_default with
     | Ewith_init(e) -> Ewith_init(expression e)
     | Ewith_default(e) -> Ewith_default(expression e)
-    | Ewith_nothing -> Ewith_nothing in
+    | Ewith_nothing -> Ewith_nothing
+    | Ewith_last -> Ewith_last in
   { v with var_default = var_default }, S.add var_name acc
 
 and state ({ desc } as st) =

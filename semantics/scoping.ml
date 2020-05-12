@@ -219,7 +219,8 @@ and vardec env acc { desc = { var_name; var_default }; loc } =
     | Ewith_default(e) ->
        let e = expression env e in
        Ast.Ewith_default(e)
-    | Ewith_nothing -> Ast.Ewith_nothing in
+    | Ewith_nothing -> Ast.Ewith_nothing
+    | Ewith_last -> Ast.Ewith_last in
   let m = Ident.fresh var_name in
   { Ast.var_name = m; Ast.var_default = var_default; Ast.var_loc = loc },
   Env.add var_name m acc

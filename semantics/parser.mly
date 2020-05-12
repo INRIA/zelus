@@ -373,6 +373,9 @@ vardec:
   | ide = ide DEFAULT e = simple_expression
     { make { var_name = ide; var_default = Ewith_default e }
       $startpos $endpos }
+  | LAST ide = ide
+    { make { var_name = ide; var_default = Ewith_last }
+      $startpos $endpos }
 ;
 
 opt_bar:

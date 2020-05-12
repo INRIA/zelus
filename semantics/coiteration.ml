@@ -267,6 +267,7 @@ and ivardec genv env { var_default } =
      let* s = iexp genv env e in return (Stuple [Sopt(None); s])
   | Ewith_default(e) -> iexp genv env e
   | Ewith_nothing -> return Sempty
+  | Ewith_last -> return (Sval(Vnil))
 
 and iautomaton_handler genv env { s_vars; s_body; s_trans } =
   let* sv_list = Opt.map (ivardec genv env) s_vars in
@@ -553,12 +554,6 @@ and svardec genv env acc { var_name; var_default } s v =
     match var_default, s with
     | Ewith_nothing, Sempty -> (* [local x in ...] *)
        return (Val, s)
-    | Ewith_nothing, Sopt(None) -> (* [local x in ... last x ...] *)
-       (* un-initialized *)
-       return (Last(Vnil), s)
-    | Ewith_nothing, Sopt(Some(v)) ->
-       (* initialized *)
-       return (Last(v), s)
     | Ewith_init(e), Stuple [si; se] ->
        let* ve, se = sexp genv env e se in
        let* lv =
@@ -572,6 +567,8 @@ and svardec genv env acc { var_name; var_default } s v =
     | Ewith_default(e), se ->
        let* ve, se = sexp genv env e se in
        return (Default(ve), se)
+    | Ewith_last, Sval(ve) -> (* [local last x in ... last x ...] *)
+       return (Last(ve), s)
     | _ -> None in
   return (Env.add var_name { cur = v; default = default } acc, s)
 
