@@ -231,7 +231,9 @@ let rec iexp genv env { e_desc } =
 and ieq genv env { eq_desc } =
   match eq_desc with
   | EQeq(_, e) -> iexp genv env e
-  | EQinit(_, e) -> iexp genv env e
+  | EQinit(_, e) ->
+     let* se = iexp genv env e in
+     return (Stuple [Sopt(None); se])
   | EQif(e, eq1, eq2) ->
      let* se = iexp genv env e in
      let* seq1 = ieq genv env eq1 in
@@ -450,11 +452,12 @@ and seq genv env { eq_desc; eq_write } s =
      let* env_p = matching_pateq p v in
      print_ienv "After (eq)" env_p;
      return (env_p, s)
-  | EQinit(x, e), s ->
-     let* v, s = sexp genv env e s in
+  | EQinit(x, e), Stuple [Sopt(v_opt); se] ->
+     let* v, s = sexp genv env e se in
      (* we take the current value of [x] in the environment *)
      (* since [x = e and init x = e0] is valid in Zelus *)
      let* { cur } = Env.find_opt x env in
+     let v = match v_opt with | None -> v | Some(v) -> v in
      return (Env.singleton x { cur = cur; default = Last(v) }, s)
   | EQif(e, eq1, eq2), Stuple [se; s_eq1; s_eq2] ->
       let* v, se = sexp genv env e se in
