@@ -22,7 +22,7 @@ let node f2() returns (o)
       fby 42 fby 41 fby 40
       fby 39 fby 38 done
 
-let node main() returns (o)
+let node main() returns (o1)
     do o = f1() = f2() done
 
 	
