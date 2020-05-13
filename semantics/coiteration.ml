@@ -90,6 +90,15 @@ let size { eq_write } = S.cardinal eq_write
 let bot_list l = List.map (fun _ -> Vbot) l
 let nil_list l = List.map (fun _ -> Vnil) l
 
+(* merge two environments provided they do not overlap *)
+let merge env1 env2 =
+  let s = Env.to_seq env1 in
+  seqfold
+    (fun acc (x, entry) ->
+      if Env.mem x env2 then None
+      else return (Env.add x entry acc))
+    env2 s
+                    
 (* given an environment [env], a local environment [env_handler] *)
 (* an a set of written variables [write] *)
 (* complete [env_handler] with entries in [env] for variables that *)
@@ -482,8 +491,12 @@ and seq genv env { eq_desc; eq_write } s =
              return (env2, Stuple [se; s_eq1; s_eq2]) in
       return (env_eq, s)
   | EQand(eq_list), Stuple(s_list) ->
-     let* env_eq_list, s_list = seq_list genv env eq_list s_list in
-     return (env_eq_list, Stuple(s_list))
+     let seq genv env acc eq s =
+       let* env_eq, s = seq genv env eq s in
+       let* acc = merge env_eq acc in
+       return (acc, s) in
+     let* env_eq, s_list = mapfold2 (seq genv env) Env.empty eq_list s_list in
+     return (env_eq, Stuple(s_list))
   | EQreset(eq, e), Stuple [s_eq; se] -> 
      let* v, se = sexp genv env e se in 
      let* env_eq, s =
@@ -754,18 +767,6 @@ and smatch_handler_list genv env ve eq_write m_h_list s_list =
      let* env_handler = by env env_handler eq_write in
      return (env_handler, s_list)
   | _ -> None
-
-and seq_list genv env eq_list s_list =
-  let rec seq_list env_acc eq_list s_list =
-    match eq_list, s_list with
-    | [], [] -> return (env_acc, [])
-    | eq :: eq_list, s :: s_list ->
-       let* env_eq, s = seq genv env eq s in
-       let* env_acc, s_list =
-         seq_list (Env.append env_eq env_acc) eq_list s_list in
-       return (env_acc, s :: s_list)
-    | _ -> None in
-  seq_list Env.empty eq_list s_list
 
 let matching_in env { var_name; var_default } v =
   return (Env.add var_name { cur = v; default = Val } env)
