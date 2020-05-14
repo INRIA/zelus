@@ -165,7 +165,7 @@ let fixpoint n equal f s bot =
       if equal v v' then return (v, s') else fixpoint (n-1) s' v' in      
   (* computes the next state *)
   fixpoint (if n <= 0 then 0 else n+1) s bot
-
+  
 let equal_env env1 env2 =
   Env.equal
     (fun { cur = cur1} { cur = cur2 } -> equal_values cur1 cur2) env1 env2
