@@ -5,11 +5,11 @@ let node chrono (stst, rst) returns (disp_1 init 42, disp_2 init 42)
 	CHRONO ->
 	  do automaton
 	       STOP ->
-		 do r = false and s = last s and m = last m
+		 do r = false
 		 unless stst continue START
 	     | START ->
 		 local d
-		 do d = 0 -> (pre d + 1) mod 4 (* 100 *)
+		 do d = 0 -> (pre d + 1) mod 100
 		 and s = if d = 0 then (last s + 1) mod 60 else last s
 		 and m = if s = 0 then (last m + 1) mod 60  else last m
 		 and r = true
@@ -24,7 +24,7 @@ let node chrono (stst, rst) returns (disp_1 init 42, disp_2 init 42)
 	  and disp_2 = m
 	  until rst & r then LAP
       | LAP ->
-	  do disp_1 = last disp_1 and disp_2 = last disp_2 until rst then TIME
+	  do until rst then TIME
       end
   done
 
