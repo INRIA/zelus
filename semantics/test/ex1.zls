@@ -12,7 +12,7 @@ let node h(x) returns (y, b, r)
 let node f1() returns (o init 42)
   automaton
   | One -> do o = last o + 1 unless o = 45 then Two
-  | Two -> do o = last o - 1 until o = 38 then Three
+  | Two -> do o = last o - 1 unless o = 38 then Three
   | Three -> do done
   end
       
