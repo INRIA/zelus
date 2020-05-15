@@ -94,6 +94,11 @@ let lift1 op v =
      let* v = op v in
      return (Value v)
 
+(* check that the input is non bot/nil *)
+let value v =
+  match v with
+  | Vbot | Vnil -> None
+  | Value(v) -> return v
               
 (* lift a binary operator: [op bot _ = bot]; [op _ bot = bot]; same for nil *)
 let lift2 op v1 v2 =

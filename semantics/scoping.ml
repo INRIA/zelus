@@ -57,7 +57,6 @@ module S = Set.Make (String)
 let rec buildeq defnames { desc } =
   match desc with
   | EQeq(pat, _) -> buildpat defnames pat
-  | EQinit(n, _) -> if S.mem n defnames then defnames else S.add n defnames
   | EQreset(eq, _) -> buildeq defnames eq
   | EQand(and_eq_list) ->
      List.fold_left buildeq defnames and_eq_list
@@ -157,12 +156,6 @@ let rec equation env_pat env { desc; loc } =
        let pat = pateq env_pat pat in
        let e = expression env e in
        Ast.EQeq(pat, e)
-    | EQinit(x, e) ->
-       let x =
-         try Env.find x env_pat
-         with | Not_found -> Error.error loc (Error.Evar(x)) in
-       let e = expression env e in
-       Ast.EQinit(x, e)
     | EQreset(eq, e) ->
        let eq = equation env_pat env eq in
        let e = expression env e in

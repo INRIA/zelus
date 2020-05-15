@@ -113,7 +113,6 @@ and eq = eq_desc localized
 
 and eq_desc = 
   | EQeq : pateq * exp -> eq_desc
-  | EQinit : String.t * exp -> eq_desc
   | EQif : exp * eq * eq -> eq_desc
   | EQand : eq list -> eq_desc
   | EQlocal : exp vardec list * eq -> eq_desc

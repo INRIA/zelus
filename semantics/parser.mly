@@ -236,8 +236,6 @@ equation_desc:
     { eq.desc }
   | p = pateq EQUAL e = seq_expression
     { EQeq(p, e) }
-  | INIT i = ide EQUAL e = seq_expression
-    { EQinit(i, e) }
 ;
 
 opt_end:

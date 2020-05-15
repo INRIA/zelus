@@ -106,7 +106,6 @@ and eq =
 
 and eq_desc = 
   | EQeq : pateq * exp -> eq_desc  (* [p = e] *)
-  | EQinit : Ident.t * exp -> eq_desc (* [init x = e] *)
   | EQif : exp * eq * eq -> eq_desc (* [if e then eq1 else eq2] *)
   | EQand : eq list -> eq_desc (* [eq1 and...and eqn] *)
   | EQlocal : exp vardec list * eq -> eq_desc (* local x [...] do eq done *)

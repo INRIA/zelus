@@ -12,8 +12,6 @@ let rec equation ({ eq_desc } as eq)=
     match eq_desc with
     | EQeq(pat, e) ->
        EQeq(pat, expression e), fv_pateq S.empty pat
-    | EQinit(n, e) ->
-       EQinit(n, expression e), S.singleton n
     | EQreset(eq, e) ->
        let eq, def = equation eq in
        EQreset(eq, expression e), def
