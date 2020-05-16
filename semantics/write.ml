@@ -39,7 +39,8 @@ let rec equation ({ eq_desc } as eq)=
        let a_h_list, def =
          Misc.mapfold automaton_handler S.empty a_h_list in
        EQautomaton(is_weak, a_h_list), def
-    | EQempty -> EQempty, S.empty in
+    | EQempty -> EQempty, S.empty
+    | EQassert(e) -> EQassert(expression e), S.empty in
   (* set the names defined in the equation *)
   { eq with eq_desc = eq_desc; eq_write = def }, def
 
