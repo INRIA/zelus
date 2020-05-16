@@ -23,12 +23,12 @@ let fprint_ientry ff { cur; default } =
   match default with
   | Val ->
      Format.fprintf ff "@[{ cur = %a;@ default = Val }@]@," Output.value cur
-    | Last(v) ->
-       Format.fprintf ff "@[{ cur = %a;@ default = Last(%a) }@]@,"
-         Output.value cur Output.value v
-    | Default(v) ->
-       Format.fprintf ff "@[{ cur = %a;@ default = Default(%a) }@]@,"
-         Output.value cur Output.value v
+  | Last(v) ->
+     Format.fprintf ff "@[{ cur = %a;@ default = Last(%a) }@]@,"
+       Output.value cur Output.value v
+  | Default(v) ->
+     Format.fprintf ff "@[{ cur = %a;@ default = Default(%a) }@]@,"
+       Output.value cur Output.value v
     
 let fprint_ienv ff comment env =
   Format.fprintf ff
