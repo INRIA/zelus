@@ -151,8 +151,8 @@ and funexp = funexp_desc localized
 type implementation = implementation_desc localized
 
 and implementation_desc =
-  | Eletdecl : string * exp -> implementation_desc
-  | Eletfundecl : string * funexp -> implementation_desc
+  | Eletdecl : name * exp -> implementation_desc
+  | Eletfundecl : name * funexp -> implementation_desc
   | Etypedecl : name * type_decl -> implementation_desc
   
 and type_decl = type_decl_desc localized
