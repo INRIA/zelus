@@ -43,7 +43,7 @@ type 'a localized = { desc: 'a; loc: Location.location }
 type type_expression = type_expression_desc localized
 
 and type_expression_desc =
-    | Etypevar of string
+    | Etypevar of name
     | Etypeconstr of longname * type_expression list
     | Etypetuple of type_expression list
     | Etypevec of type_expression * size
