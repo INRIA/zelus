@@ -3,12 +3,22 @@
 (* untyped and uncausal streams *)
 type 'a localized = { desc: 'a; loc: Location.t }
 
+type name = String.t
+
 type longname =
-  | Name : String.t -> longname
+  | Name : name -> longname
   | Modname : qualident -> longname
 
-and qualident = { qual: String.t; id: String.t }
+and qualident = { qual: name; id: name }
         
+(** Types *)
+type type_expression = type_expression_desc localized
+
+and type_expression_desc =
+  | Etypevar : name -> type_expression_desc
+  | Etypeconstr : longname * type_expression list -> type_expression_desc
+  | Etypetuple : type_expression list -> type_expression_desc
+
 (* constants *)
 type const =
 | Eint : int -> const
@@ -27,7 +37,7 @@ type operator =
 
 type pateq = pateq_desc localized
 
-and pateq_desc = String.t list
+and pateq_desc = name list
 
 type 'a default = 
   | Ewith_init : 'a -> 'a default    (* [local x init e in ...] *)
@@ -36,7 +46,7 @@ type 'a default =
   | Ewith_last : 'a default          (* [local last x in ... ] *)
 
 type 'exp vardec_desc =
-  { var_name: String.t;
+  { var_name: name;
     var_default: 'exp default;
   }
 
@@ -48,14 +58,14 @@ and pattern_desc =
   | Econstr0pat : longname -> pattern_desc
 
 type statepatdesc =
-  | Estate0pat : String.t -> statepatdesc 
-  | Estate1pat : String.t * String.t list -> statepatdesc
+  | Estate0pat : name -> statepatdesc 
+  | Estate1pat : name * name list -> statepatdesc
 
 type statepat = statepatdesc localized
 
 type 'exp state_expdesc =
-  | Estate0 : String.t -> 'exp state_expdesc
-  | Estate1 : String.t * 'exp list -> 'exp state_expdesc
+  | Estate0 : name -> 'exp state_expdesc
+  | Estate1 : name * 'exp list -> 'exp state_expdesc
 
 type 'exp state_exp = 'exp state_expdesc localized
 
@@ -96,7 +106,7 @@ and exp_desc =
   | Econstr0 : longname -> exp_desc 
   | Econstr1 : longname * exp list -> exp_desc 
   | Evar : longname -> exp_desc 
-  | Elast : String.t -> exp_desc 
+  | Elast : name -> exp_desc 
   | Eop : operator * exp list -> exp_desc 
   | Eget : int * exp -> exp_desc 
   | Etuple : exp list -> exp_desc 
@@ -137,10 +147,22 @@ type funexp_desc =
 
 and funexp = funexp_desc localized
            
+(** Declarations *)
 type implementation = implementation_desc localized
 
 and implementation_desc =
-  | Eletdef : string * exp -> implementation_desc
-  | Eletfun : string * funexp -> implementation_desc
+  | Eletdecl : string * exp -> implementation_desc
+  | Eletfundecl : string * funexp -> implementation_desc
+  | Etypedecl : name * type_decl -> implementation_desc
+  
+and type_decl = type_decl_desc localized
+              
+and type_decl_desc =
+  | Evariant_type : constr_decl list -> type_decl_desc
+                   
+and constr_decl = constr_decl_desc localized
+    
+and constr_decl_desc =
+  | Econstr0decl : name -> constr_decl_desc
 
 type program = implementation list

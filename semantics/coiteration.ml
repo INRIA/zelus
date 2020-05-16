@@ -818,14 +818,16 @@ let exp genv env e =
   
 let implementation genv { desc } =
   match desc with
-  | Eletdef(f, e) ->
+  | Eletdecl(f, e) ->
      (* [e] should be stateless, that is, [step s = v, s] *)
      let* si = iexp genv Env.empty e in
      let* v, s = sexp genv Env.empty e si in
      return (Genv.add (Name(f)) (Gvalue(v)) genv)
-  | Eletfun(f, fd) ->
+  | Eletfundecl(f, fd) ->
      let* fv = funexp genv fd in
      return (Genv.add (Name(f)) (Gfun(fv)) genv)
+  | Etypedecl(f, td) ->
+     return genv
      
 let program genv i_list = Opt.fold implementation genv i_list
                         

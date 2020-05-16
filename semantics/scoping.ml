@@ -343,15 +343,30 @@ let funexp { desc = { f_kind; f_atomic; f_args; f_res; f_body }; loc } =
     Ast.f_args = f_args; Ast.f_res = f_res;
     Ast.f_body = f_body; Ast.f_loc = loc }
 
+(* type declarations. *)
+let rec type_decl { desc; loc } =
+  let desc = match desc with
+  | Evariant_type(constr_decl_list) ->
+      Ast.Evariant_type(List.map constr_decl constr_decl_list) in
+  { Ast.desc = desc; Ast.loc = loc }
+
+and constr_decl { desc; loc } =
+  let desc = match desc with
+  | Econstr0decl(n) -> Ast.Econstr0decl(n) in
+  { Ast.desc = desc; Ast.loc = loc }
+      
 let implementation { desc; loc } =
   try
     let desc = match desc with
-      | Eletdef(f, e) ->
+      | Eletdecl(f, e) ->
          let e = expression Env.empty e in
-         Ast.Eletdef(f, e)
-      | Eletfun(f, fd) ->
+         Ast.Eletdecl(f, e)
+      | Eletfundecl(f, fd) ->
          let fd = funexp fd in
-         Ast.Eletfun(f, fd) in
+         Ast.Eletfundecl(f, fd)
+      | Etypedecl(f, td) ->
+         let td = type_decl td in
+         Ast.Etypedecl(f, td) in
   { Ast.desc = desc; Ast.loc = loc }
   with
     Error.Err(loc, kind) -> Error.message loc kind

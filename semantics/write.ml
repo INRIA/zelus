@@ -107,8 +107,9 @@ let funexp ({ f_args; f_res; f_body } as fd) =
 
 let implementation ({ desc } as i) =
   let desc = match desc with
-    | Eletdef(f, e) -> Eletdef(f, expression e)
-    | Eletfun(f, fd) -> Eletfun(f, funexp fd) in
+    | Eletdecl(f, e) -> Eletdecl(f, expression e)
+    | Eletfundecl(f, fd) -> Eletfundecl(f, funexp fd)
+    | Etypedecl _ -> desc in
   { i with desc = desc }
   
 let program i_list = List.map implementation i_list

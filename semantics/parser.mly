@@ -83,6 +83,7 @@ let scond_true start_pos end_pos = make (Econst(Ebool(true))) start_pos end_pos
 %token DEFAULT        /* "default" */
 %token LOCAL          /* "local" */
 %token AND            /* "and" */
+%token TYPE           /* "type" */
 %token FUN            /* "fun" */
 %token NODE           /* "node" */
 %token FBY            /* "fby" */
@@ -183,16 +184,29 @@ decl_list(X):
 ;
 
 implementation:
+  | TYPE id = IDENT td = localized(type_declaration_desc)
+      { Etypedecl(id, td) }
   | LET ide = ide EQUAL seq = seq_expression
-      { Eletdef(ide, seq) }
+      { Eletdecl(ide, seq) }
   | LET a = is_atomic k = kind ide = ide LPAREN f_args = vardec_empty_list RPAREN
         RETURNS  LPAREN f_res = vardec_empty_list RPAREN eq = equation_and_list
-    { Eletfun(ide,
+    { Eletfundecl(ide,
 	      make { f_kind = k; f_atomic = a;
 		     f_args = f_args; f_res = f_res; f_body = eq }
 	      $startpos(a) $endpos(eq)) }
 ;
 
+type_declaration_desc:
+  | EQUAL l = list_of(BAR, localized(constr_decl_desc))
+      { Evariant_type (l) }
+  | EQUAL BAR l = list_of(BAR, localized(constr_decl_desc))
+      { Evariant_type (l) }
+;
+
+constr_decl_desc:
+  | c = CONSTRUCTOR
+      { Econstr0decl(c) }
+;
 
 %inline is_atomic:
   | ATOMIC { true }
@@ -568,3 +582,4 @@ infx:
   | OR              { "or" }  | BARBAR        { "||" }
   | ON              { "on" }
 ;
+

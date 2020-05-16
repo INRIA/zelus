@@ -129,10 +129,25 @@ type funexp =
     f_loc: Location.t
   }
 
+type name = String.t
+
+(** Declarations *)
 type implementation = implementation_desc localized
 
 and implementation_desc =
-  | Eletdef : string * exp -> implementation_desc
-  | Eletfun : string * funexp -> implementation_desc
+  | Eletdecl : name * exp -> implementation_desc
+  | Eletfundecl : name * funexp -> implementation_desc
+  | Etypedecl : name * type_decl -> implementation_desc
+  
+and type_decl = type_decl_desc localized
+              
+and type_decl_desc =
+  | Evariant_type : constr_decl list -> type_decl_desc
+                   
+and constr_decl = constr_decl_desc localized
+    
+and constr_decl_desc =
+  | Econstr0decl : name -> constr_decl_desc
 
 type program = implementation list
+
