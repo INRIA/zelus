@@ -1,0 +1,69 @@
+(* Example from the Lustre distribution *)
+let node ums(on_A,on_B,on_C,ack_AB,ack_BC)
+     returns (grant_access,grant_exit,
+	      do_AB,do_BC)
+local empty_section, only_on_B
+  do  grant_access = empty_section && ack_AB
+  and grant_exit = only_on_B && ack_BC
+  and do_AB = not ack_AB && empty_section
+  and do_BC = not ack_BC && only_on_B
+  and empty_section = not(on_A or on_B or on_C)
+  and only_on_B = on_B && not(on_A or on_C)
+done
+
+let node ums_verif(on_A,on_B,on_C, ack_AB,ack_BC)
+     returns (property)
+local
+   grant_access,grant_exit,
+   do_AB,do_BC,
+   no_collision,exclusive_req,
+   no_derail_AB,no_derail_BC,
+   empty_section, only_on_B
+do
+   empty_section = not(on_A or on_B or on_C)
+and
+    only_on_B = on_B && not(on_A or on_C)
+and
+    (* ASSERTIONS *)
+   assert not(ack_AB && ack_BC)
+and
+    assert true -> always_from_to(ack_AB,ack_AB,do_BC)
+and
+    assert true -> always_from_to(ack_BC,ack_BC,do_AB)
+and
+    assert empty_section -> true
+and
+    assert true -> implies(edge(not empty_section), pre grant_access)
+and
+    assert true -> implies(edge(on_C), pre grant_exit)
+and
+    assert true -> implies(edge(not on_A),on_B)
+and
+    assert true -> implies(edge(not on_B),
+			  on_A or on_C)
+and
+   (* UMS CALL *)
+   (grant_access,grant_exit,do_AB,do_BC) =
+	ums(on_A,on_B,on_C,ack_AB,ack_BC)
+and
+   (* PROPERTIES *)
+   no_collision =
+	implies(grant_access,empty_section)
+and
+    exclusive_req =
+	not(do_AB && do_BC)
+and
+    no_derail_AB =
+	always_from_to(ack_AB,
+		       grant_access,
+		       only_on_B)
+and
+    no_derail_BC =
+	always_from_to(ack_BC,
+		       grant_exit,
+		       empty_section)
+and
+    property =
+	no_collision && exclusive_req &&
+	no_derail_AB && no_derail_BC
+done
