@@ -367,7 +367,7 @@ let implementation { desc; loc } =
       | Etypedecl(f, td) ->
          let td = type_decl td in
          Ast.Etypedecl(f, td) in
-  { Ast.desc = desc; Ast.loc = loc }
+    { Ast.desc = desc; Ast.loc = loc }
   with
     Error.Err(loc, kind) -> Error.message loc kind
                           
