@@ -64,7 +64,7 @@ clean:
 	(for d in $(DIRECTORIES); \
 	 do rm -f $$d/*.annot $$d/*.cm[iox] $$d/*.o *~; \
 	 done; \
-	 rm -f $(BIN).byte $(BIN).opt *.out \
+	 rm -f $(BIN).byte $(BIN).opt *.out debugprinter.cma \
            $(GENSOURCES) parser.conflicts)
 
 realclean cleanall: clean
