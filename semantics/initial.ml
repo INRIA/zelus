@@ -188,7 +188,13 @@ module Output =
       | Name(s) -> Format.fprintf ff "%s" s
       | Modname { qual; id } -> Format.fprintf ff "%s.%s" qual id
                               
-   let rec pvalue ff v =
+   let rec value_list value ff l =
+      match l with
+      | [] -> assert false
+      | [x] -> value ff x
+      | x :: l -> Format.printf "@[%a,@ %a@]" value x (value_list value) l
+
+    let rec pvalue ff v =
       match v with
       | Vint(i) -> Format.fprintf ff "%i" i
       | Vbool(b) -> Format.fprintf ff "%s" (if b then "true" else "false")
@@ -210,20 +216,18 @@ module Output =
      match v with
      | Vnil -> Format.fprintf ff "nil"
      | Vbot -> Format.fprintf ff "bot"
-     | Value(v) -> pvalue ff v
-                  
-    and value_list value ff l =
-      match l with
-      | [] -> assert false
-      | [x] -> value ff x
-      | x :: l -> Format.printf "@[%a,@ %a@]" value x (value_list value) l
-
+     | Value(v) -> pvalue ff v                 
+    
+    let pvalue_list ff l = value_list pvalue ff l
+                         
    let value_list ff l = value_list value ff l
                        
    let value_and_flush ff v =
      Format.fprintf ff "%a@\n" value v
    let value_list_and_flush ff l = 
      Format.fprintf ff "%a@\n" value_list l
+  let pvalue_list_and_flush ff l = 
+     Format.fprintf ff "%a@\n" pvalue_list l
   end
 
 (* check that v is a list of length one *)

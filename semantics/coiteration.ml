@@ -853,8 +853,10 @@ let run_node output init step n =
 let run genv main ff n =
   let* fv = find_gnode_opt (Name main) genv in
   (* the main function must be of type : unit -> t *)
-  let output v =
-    let _ = Initial.Output.value_list_and_flush ff v in return () in
+  let output v_list =
+    let* v_list = Opt.map Initial.value v_list in
+    let _ = Initial.Output.pvalue_list_and_flush ff v_list in
+    return () in
   match fv with
   | CoFun(fv) -> run_fun output fv n
   | CoNode { init; step } ->
