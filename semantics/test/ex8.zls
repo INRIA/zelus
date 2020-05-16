@@ -1,4 +1,4 @@
-let f(x) returns (o init 0)
+let node f(x) returns (o init 0)
   do o = last o + x done
 
 let node main() returns (y)
