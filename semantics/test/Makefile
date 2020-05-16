@@ -45,4 +45,4 @@ check:
 	fi
 
 clean:
-	-@rm -r -f *.run* *.output
+	-@rm -r -f *.run* *.output *~
