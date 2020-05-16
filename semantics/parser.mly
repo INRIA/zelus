@@ -66,6 +66,7 @@ let scond_true start_pos end_pos = make (Econst(Ebool(true))) start_pos end_pos
 %token <string> STRING
 %token <char> CHAR
 %token RETURNS        /* "returns" */
+%token ASSERT         /* "assert" */
 %token AUTOMATON      /* "automaton" */
 %token ATOMIC         /* "atomic" */
 %token CONTINUE       /* "continue" */
@@ -250,6 +251,8 @@ equation_desc:
     { eq.desc }
   | p = pateq EQUAL e = seq_expression
     { EQeq(p, e) }
+  | ASSERT e = seq_expression
+    { EQassert(e) }
 ;
 
 opt_end:

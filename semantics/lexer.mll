@@ -19,6 +19,7 @@ let comment_depth = ref 0
 let keyword_table = ((Hashtbl.create 149) : (string, token) Hashtbl.t);;
 
 List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
+  "assert", ASSERT;
   "automaton", AUTOMATON;
   "atomic", ATOMIC;
   "continue", CONTINUE;

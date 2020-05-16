@@ -113,7 +113,8 @@ and eq_desc =
   | EQautomaton : is_weak * (exp, eq) automaton_handler list -> eq_desc
   | EQmatch : exp * (exp, eq) match_handler list -> eq_desc
   | EQempty : eq_desc
-
+  | EQassert : exp -> eq_desc
+  
 and kind =
   | Efun : kind
   | Enode : kind

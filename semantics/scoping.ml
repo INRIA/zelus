@@ -72,6 +72,7 @@ let rec buildeq defnames { desc } =
   | EQautomaton(a_h_list) ->
      List.fold_left build_automaton_handler defnames a_h_list
   | EQempty ->  defnames
+  | EQassert _ -> defnames
                 
 and build_vardec defnames { desc = { var_name } } = S.add var_name defnames
 
@@ -198,7 +199,8 @@ let rec equation env_pat env { desc; loc } =
              (automaton_handler is_weak env_for_states env_pat env) a_h_list in
          Ast.EQautomaton(is_weak, a_h_list)
     | EQempty ->
-       Ast. EQempty in
+       Ast. EQempty
+    | EQassert(e) -> Ast.EQassert(expression env e) in
   (* set the names defined in the equation *)
   { Ast.eq_desc = eq_desc; Ast.eq_write = empty; Ast.eq_loc = loc }
 

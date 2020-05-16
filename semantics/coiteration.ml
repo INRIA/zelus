@@ -268,6 +268,9 @@ and ieq genv env { eq_desc } =
      let* sm_list = Opt.map (imatch_handler genv env) m_h_list in
      return (Stuple (se :: sm_list))
   | EQempty -> return Sempty
+  | EQassert(e) ->
+     let* se = iexp genv env e in
+     return se
 
 and ivardec genv env { var_default } =
   match var_default with
@@ -525,6 +528,9 @@ and seq genv env { eq_desc; eq_write } s =
           smatch_handler_list genv env ve eq_write m_h_list s_list in 
      return (env, Stuple (se :: s_list))
   | EQempty, s -> return (Env.empty, s)
+  | EQassert(e), s ->
+     let* ve, s = sexp genv env e s in
+     return (Env.empty, s)
   | _ -> None
 
 (* block [local x1 [init e1 | default e1 | ],..., xn [...] do eq done *)
