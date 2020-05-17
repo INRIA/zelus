@@ -51,13 +51,17 @@ let eval source_name main number check =
   let p = Scoping.program p in
   let p = Write.program p in
   let* genv = Coiteration.program Initial.genv0 p in
-  let* main = main in
   let* r =
-    (* make [n] steps and checks that every step returns [true] *)
-    if check then Coiteration.check genv main number
-    else
-      (* make [n] steps *)
-      Coiteration.run genv main Format.std_formatter number in
+    match main with
+    | None -> return ()
+    | Some(main) ->
+         let* r =
+           (* make [n] steps and checks that every step returns [true] *)
+           if check then Coiteration.check genv main number
+           else
+             (* make [n] steps *)
+             Coiteration.run genv main Format.std_formatter number in
+         return r in
   return r
 
  let eval filename =
