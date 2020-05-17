@@ -1,3 +1,5 @@
+open Log_tmp
+
 (* Example from the Lustre distribution *)
 let node ums(on_A,on_B,on_C,ack_AB,ack_BC)
      returns (grant_access,grant_exit,
