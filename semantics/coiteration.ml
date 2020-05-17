@@ -530,6 +530,14 @@ and seq genv env { eq_desc; eq_write } s =
   | EQempty, s -> return (Env.empty, s)
   | EQassert(e), s ->
      let* ve, s = sexp genv env e s in
+     (* when ve is not bot/nil it must be true *)
+     (* for the moment we raise a type error *)
+     let* s =
+       match ve with
+       | Vnil | Vbot -> return s
+       | Value(v) ->
+          let* v = boolean v in
+          if v then return s else None in
      return (Env.empty, s)
   | _ -> None
 
