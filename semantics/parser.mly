@@ -55,6 +55,7 @@ let scond_true start_pos end_pos = make (Econst(Ebool(true))) start_pos end_pos
 %token STAR           /* "*" */
 %token PLUS           /* "+" */
 %token MINUS          /* "-" */
+%token NOT            /* "not" */
 %token COMMA          /* "," */
 %token MINUSGREATER   /* "->" */
 %token BAR            /* "|" */
@@ -128,8 +129,9 @@ let scond_true start_pos end_pos = make (Econst(Ebool(true))) start_pos end_pos
 %left INFIX4
 %right prec_uminus
 %right FBY
-%right PRE 
+%right NOT
 %right PREFIX
+%right PRE 
 
 %start implementation_file
 %type <Parsetree.implementation list> implementation_file
@@ -491,6 +493,8 @@ expression_desc:
       { Eop(Eminusgreater, [e1; e2]) }
   | MINUS e = expression  %prec prec_uminus
       { unary_minus "-" e ($startpos($1)) ($endpos($1)) }
+  | NOT e = expression
+      { unop "not" e ($startpos($1)) ($endpos($1)) }
   | s = SUBTRACTIVE e = expression  %prec prec_uminus
       { unary_minus s e ($startpos(s)) ($endpos(s)) }
   | e1 = expression i = INFIX4 e2 = expression
@@ -583,6 +587,6 @@ infx:
   | SUBTRACTIVE     { $1 }    | PREFIX        { $1 }
   | AMPERSAND       { "&" }   | AMPERAMPER    { "&&" }
   | OR              { "or" }  | BARBAR        { "||" }
-  | ON              { "on" }
+  | ON              { "on" }  | NOT           { "not" }
 ;
 

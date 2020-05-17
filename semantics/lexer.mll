@@ -131,6 +131,7 @@ rule main = parse
   | "->" { MINUSGREATER }
   | "|"  { BAR }
   | "-"  { MINUS }
+  | "not"{ NOT }
   | "+"  { PLUS }
   | "-." { SUBTRACTIVE "-." }
   | (['A'-'Z']('_' ? ['A'-'Z' 'a'-'z' ''' '0'-'9']) * as id) 
