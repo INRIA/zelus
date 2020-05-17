@@ -144,7 +144,8 @@ let rec unnil_list v_list =
      | None -> None
      | Some(v1, v2) -> return (v1 :: v2 :: v_list)
 
-(* builds a pair. If one is bot, the result is bot; if one is nil, the result is nil *)
+(* builds a pair. If one is bot, the result is bot; if one is nil, *)
+(* the result is nil *)
 let strict_pair v1 v2 =
   let v = unbot v1 v2 in
   match v with
