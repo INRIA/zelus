@@ -45,7 +45,8 @@ let eval_error () =
   Format.eprintf "Evaluation error.@.";
   raise Error
 
-(* evaluate the main node [main] given by option [-s] for [n] steps with check *)
+(* evaluate the main node [main] given by option [-s] for [n] steps *)
+(* with check *)
 let eval source_name main number check =
   let p = parse_implementation_file source_name in
   let p = Scoping.program p in
