@@ -126,7 +126,7 @@ done
 
 let node main() returns (property)
   local
-    on_A, on_B, on_C, ack_B, ack_BC
+    on_A, on_B, on_C, ack_AB, ack_BC
   do
     on_A = true
   and
@@ -134,7 +134,7 @@ let node main() returns (property)
   and
       on_C = true
   and
-      ack_B = true
+      ack_AB = true
   and
       ack_BC = true
   and
