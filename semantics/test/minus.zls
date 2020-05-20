@@ -26,8 +26,6 @@ let node minus(e1, e2, e3, i) returns (ok)
    ok = (s1 = s2) && (s3 = s4)
  done
 
-     (*
-     
 let node main() returns (ok)
   local e1, e2, e3, i
   do  ok = minus(e1, e2, e3, i)
@@ -36,4 +34,4 @@ let node main() returns (ok)
   and e3 = true
   and i = true
   done
-*)
+

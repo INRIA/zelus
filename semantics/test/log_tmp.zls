@@ -54,3 +54,23 @@ let node alternating(a,b) returns (x)
 let node not_between_and (a,b,c) returns (x)
   do x = implies(c, not once_since(a,b)) 
   done
+
+let node main() returns (x1, x2, x3, x4, x5)
+  local a, b, c
+  do
+    x1 = alternating(a, b)
+  and
+    x2 = not_between_and(a, b, c)
+  and
+      x3 = once_from_to (c, a, b)
+  and
+      x4 = always_from_to (c, a, b)
+  and
+      x5 = once_since (c,a)
+  and
+      a = true fby true fby not a
+  and
+      b = true fby not b
+  and
+      c = false fby false fby not c
+  done
