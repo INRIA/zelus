@@ -16,6 +16,7 @@ OBJ =	location.cmo \
 	monad.cmo \
 	scoping.cmo \
 	value.cmo \
+	output.cmo \
 	initial.cmo \
 	write.cmo \
 	coiteration.cmo \

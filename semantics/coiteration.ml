@@ -38,6 +38,16 @@ let print_ienv comment env =
   if !set_verbose then
     Format.printf
       "%s (env): @,%a@]@\n" comment (Env.fprint_t fprint_ientry) env
+
+let stop_at_location loc r_opt =
+  if !set_verbose then
+    match r_opt with
+    | None ->
+       Format.eprintf "%aEvaluation error.@."
+         Location.output_location loc;
+       raise Scoping.Error
+    | Some _ -> r_opt
+  else r_opt
   
 let find_value_opt x env =
   let* { cur } = Env.find_opt x env in
@@ -188,8 +198,8 @@ let fixpoint_eq genv env sem eq n s_eq bot =
 (* [sem genv env e = CoF f s] such that [iexp genv env e = s] *)
 (* and [sexp genv env e = f] *)
 (* initial state *)
-let rec iexp genv env { e_desc } =
-  match e_desc with
+let rec iexp genv env { e_desc; e_loc } =
+  let r = match e_desc with
   | Econst _ | Econstr0 _ | Elocal _ | Eglobal _ | Elast _ ->
      return Sempty
   | Econstr1(_, e_list) ->
@@ -235,10 +245,11 @@ let rec iexp genv env { e_desc } =
   | Elet(is_rec, eq, e) ->
      let* s_eq = ieq genv env eq in
      let* se = iexp genv env e in
-     return (Stuple [s_eq; se])
+     return (Stuple [s_eq; se]) in
+  stop_at_location e_loc r
     
-and ieq genv env { eq_desc } =
-  match eq_desc with
+and ieq genv env { eq_desc; eq_loc } =
+  let r = match eq_desc with
   | EQeq(_, e) -> iexp genv env e
   | EQif(e, eq1, eq2) ->
      let* se = iexp genv env e in
@@ -270,15 +281,17 @@ and ieq genv env { eq_desc } =
   | EQempty -> return Sempty
   | EQassert(e) ->
      let* se = iexp genv env e in
-     return se
+     return se in
+  stop_at_location eq_loc r
 
-and ivardec genv env { var_default } =
-  match var_default with
+and ivardec genv env { var_default; var_loc } =
+  let r = match var_default with
   | Ewith_init(e) ->
      let* s = iexp genv env e in return (Stuple [Sopt(None); s])
   | Ewith_default(e) -> iexp genv env e
   | Ewith_nothing -> return Sempty
-  | Ewith_last -> return (Sval(Vnil))
+  | Ewith_last -> return (Sval(Vnil)) in
+  stop_at_location var_loc r
 
 and iautomaton_handler genv env { s_vars; s_body; s_trans } =
   let* sv_list = Opt.map (ivardec genv env) s_vars in
@@ -355,8 +368,8 @@ let reset init step genv env body s r =
 (* the value of an expression [e] in a global environment [genv] and local *)
 (* environment [env] is a step function of type [state -> (value * state) option] *)
 (* [None] is return in case of type error; [Some(v, s)] otherwise *)
-let rec sexp genv env { e_desc = e_desc } s =
-  match e_desc, s with   
+let rec sexp genv env { e_desc = e_desc; e_loc } s =
+  let r = match e_desc, s with   
   | Econst(v), s ->
      return (Value (value v), s)
   | Econstr0(f), s ->
@@ -440,7 +453,9 @@ let rec sexp genv env { e_desc = e_desc } s =
      let env = Env.append env_eq env in
      let* v, s = sexp genv env e s in
      return (v, Stuple [s_eq; s])
-  | _ -> None
+  | _ -> None in
+  stop_at_location e_loc r
+
 
 and sexp_list genv env e_list s_list =
   match e_list, s_list with
@@ -453,8 +468,8 @@ and sexp_list genv env e_list s_list =
 
 
 (* step function for an equation *)
-and seq genv env { eq_desc; eq_write } s =
-  match eq_desc, s with 
+and seq genv env { eq_desc; eq_write; eq_loc } s =
+  let r = match eq_desc, s with 
   | EQeq(p, e), s -> 
      print_ienv "Before (eq)" env;
      let* v, s = sexp genv env e s in
@@ -539,7 +554,9 @@ and seq genv env { eq_desc; eq_write } s =
           let* v = boolean v in
           if v then return s else None in
      return (Env.empty, s)
-  | _ -> None
+  | _ -> None in
+  stop_at_location eq_loc r
+
 
 (* block [local x1 [init e1 | default e1 | ],..., xn [...] do eq done *)
 and sblock genv env v_list ({ eq_write } as eq) s_list s_eq =
