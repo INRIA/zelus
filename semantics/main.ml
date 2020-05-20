@@ -1,20 +1,12 @@
 (* the main *)
+open Misc
 open Monad
 open Opt
 open Initial
 open Coiteration
 open Location
    
-exception Error
-        
-let main_node = ref None
-let set_main s = main_node := Some(s)
-
-let set_check = ref false
-              
-let number_of_steps = ref 0
-let set_number n = number_of_steps := n
-                 
+               
 let lexical_error err loc =
   Format.eprintf "%aIllegal character.@." output_location loc;
   raise Error
