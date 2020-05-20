@@ -138,5 +138,5 @@ let node main() returns (property)
   and
       ack_BC = true
   and
-      property = ums_verif(on_A,on_B,on_C, ack_AB,ack_BC)
+      property = ums_verif(on_A, on_B, on_C, ack_AB, ack_BC)
   done
