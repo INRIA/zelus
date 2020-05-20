@@ -4,8 +4,8 @@
 let node mux(c, x, y) returns (o)
   if c then do o = x done else do o = y done
 
-let node f(x) = x + 1
-let node g(x) = x - 1
+let node f(x) returns (o) o = x + 1
+let node g(x) returns (o) o = x - 1
     
 let node constructive(c, x) returns (y)
   local x1, x2, y1, y2
@@ -14,7 +14,8 @@ let node constructive(c, x) returns (y)
   and y1 = f(x1)
   and y2 = g(x2)
   and y = mux(c, y2, y1)
-
+  done
+      
 let node main() returns (y)
   local c, x
   do  y = constructive(c, x)
