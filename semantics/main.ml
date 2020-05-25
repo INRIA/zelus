@@ -64,10 +64,11 @@ let eval source_name main number check =
     let r = eval filename !main_node !number_of_steps !set_check in
     match r with | None -> eval_error () | Some _ -> ()
                                                    
-let doc_main = "The main node to evaluate\n"
-let doc_number_of_steps = "The number of steps\n"
-let doc_check = "Check that the simulated node returns true\n"
-let doc_verbose = "Verbose mode\n"
+let doc_main = "\tThe main node to evaluate"
+let doc_number_of_steps = "\tThe number of steps"
+let doc_check = "\tCheck that the simulated node returns true"
+let doc_verbose = "\tVerbose mode"
+let doc_no_assert = "\tNo check of assertions"
 
 let errmsg = "Options are:"
 
@@ -78,11 +79,12 @@ let main () =
                  [ "-s", Arg.String set_main, doc_main;
                    "-n", Arg.Int set_number, doc_number_of_steps;
                    "-check", Arg.Set set_check, doc_check;
-                   "-v", Arg.Set set_verbose, doc_verbose])
+                   "-v", Arg.Set set_verbose, doc_verbose;
+                   "-noassert", Arg.Set no_assert, doc_no_assert])
       eval
       errmsg
   with
-  | Scoping.Error | Error -> exit 2
+  | Scoping.Error -> exit 2
   
 let _ = main ()
 let _ = exit 0
