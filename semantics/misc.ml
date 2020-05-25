@@ -8,3 +8,4 @@ let set_check = ref false
 let number_of_steps = ref 0
 let set_number n = number_of_steps := n
  
+let no_assert = ref false
