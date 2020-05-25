@@ -61,7 +61,7 @@ let mod_op v1 v2 =
   let* v2 = integer v2 in
   return (Vint(v1 mod v2))
 
-let mod_eq v1 v2 =
+let eq_op v1 v2 =
   return (Vbool(v1 = v2))
 
 let geti i v =
@@ -181,55 +181,7 @@ let tuple v_list =
   | [] -> None
   | [v] -> return v
   | _ -> return (Value(Vtuple(v_list)))
-       
-module Output =
-  struct
-    let lident ff lid =
-      match lid with
-      | Name(s) -> Format.fprintf ff "%s" s
-      | Modname { qual; id } -> Format.fprintf ff "%s.%s" qual id
-                              
-   let rec value_list value ff l =
-      match l with
-      | [] -> assert false
-      | [x] -> value ff x
-      | x :: l -> Format.printf "@[%a,@ %a@]" value x (value_list value) l
-
-    let rec pvalue ff v =
-      match v with
-      | Vint(i) -> Format.fprintf ff "%i" i
-      | Vbool(b) -> Format.fprintf ff "%s" (if b then "true" else "false")
-      | Vfloat(f) -> Format.fprintf ff "%f" f
-      | Vchar(c) -> Format.fprintf ff "%c" c
-      | Vstring(s) -> Format.fprintf ff "%s" s
-      | Vvoid -> Format.fprintf ff "()"
-      | Vtuple(l) ->
-         Format.fprintf ff "@[<hov 1>(%a)@]" (value_list value) l
-      | Vconstr0(lid) -> lident ff lid
-      | Vconstr1(lid, l) ->
-         Format.fprintf ff "@[<hov 1>%a(%a)@]" lident lid (value_list value) l 
-      | Vstate0(id) -> Ident.fprint_t ff id
-      | Vstate1(id, l) ->
-         Format.fprintf
-           ff "@[<hov 1>%a(%a)@]" Ident.fprint_t id (value_list value) l
-
-   and value ff v =
-     match v with
-     | Vnil -> Format.fprintf ff "nil"
-     | Vbot -> Format.fprintf ff "bot"
-     | Value(v) -> pvalue ff v                 
-    
-    let pvalue_list ff l = value_list pvalue ff l
-                         
-   let value_list ff l = value_list value ff l
-                       
-   let value_and_flush ff v =
-     Format.fprintf ff "%a@\n" value v
-   let value_list_and_flush ff l = 
-     Format.fprintf ff "%a@\n" value_list l
-  let pvalue_list_and_flush ff l = 
-     Format.fprintf ff "%a@\n" pvalue_list l
-  end
+      
 
 (* check that v is a list of length one *)
 let one v =
@@ -247,7 +199,8 @@ let unop op =
   CoFun (fun v -> let* v = one v in let* v = lift1 op v in return [v])
 
 let binop op =
-  CoFun (fun v -> let* (v1, v2) = two v in let* v = lift2 op v1 v2 in return [v])
+  CoFun
+    (fun v -> let* (v1, v2) = two v in let* v = lift2 op v1 v2 in return [v])
   
   (* The initial environment *)
 let genv0 =
@@ -263,7 +216,7 @@ let genv0 =
    "or", binop or_op;
    "||", binop or_op;
    "mod", binop mod_op;
-   "=", binop mod_eq]
+   "=", binop eq_op]
 
 let genv0 =
   List.fold_left (fun acc (n, v) -> Genv.add (Name n) (Gfun v) acc) Genv.empty genv0
