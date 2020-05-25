@@ -555,7 +555,9 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
        | Vnil | Vbot -> return s
        | Value(v) ->
           let* v = boolean v in
-          if v then return s else None in
+          (* stop when [no_assert = true] *)
+          if Misc.no_assert then return s
+          else if v then return s else None in
      return (Env.empty, s)
   | _ -> None in
   stop_at_location eq_loc r
