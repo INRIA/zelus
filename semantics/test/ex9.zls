@@ -8,54 +8,6 @@ let node w(x,y) returns (z, t)
     m = (0 fby (x + y))
   done
 
-val w : 'a * 'b -> 'a * 'a
-
-
-    m : am
-
-    z : az    am < az
-    t : at    am < at
-    
-    
-let node w(x,y) returns (z, t)
-  new ma = fby(0)  (* get < set *)
-  local m
-  do
-    m = ma.get()
-  and
-    z = x + m
-  and
-    t = y + m
-  and
-    ma.set(x+y)
-  done
-
-let node w(x,y) returns (z, t)
-  new ma = fby(0)  (* get < set *)
-
-  w0() =
-    m = ma.get()
-
-  w1() =
-    z = x + m
-
-  w2() =
-    t = y + m
-
-  update() =
-    ma.set(x+y)
-
-  local m
-  do
-    m = ma.get()
-  and
-    z = x + m
-  and
-    t = y + m
-  and
-    ma.set(x+y)
-  done
-
       
 let node main() returns (z, t)
   do
