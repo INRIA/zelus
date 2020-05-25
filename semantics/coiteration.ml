@@ -1,7 +1,8 @@
 (* A Denotational Semantics for Zelus *)
 (* This is a companion file of working notes on the co-iterative *)
-(* semantics presented at the SYNCHRON workshop, December 2019 *)
-(* and the class given at Bamberg Univ. in June-July 2019 *)
+(* semantics presented at the SYNCHRON workshop, December 2019, *)
+(* the class on "Advanced Functional Programming" given at Bamberg
+   Univ. in June-July 2019 and the Master MPRI - M2, Fall 2019 *)
 open Monad
 open Opt                                                            
 open Ident
@@ -39,6 +40,8 @@ let print_ienv comment env =
     Format.printf
       "%s (env): @,%a@]@\n" comment (Env.fprint_t fprint_ientry) env
 
+open Misc
+   
 let stop_at_location loc r_opt =
   if !set_verbose then
     match r_opt with
@@ -559,7 +562,7 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
 
 
 (* block [local x1 [init e1 | default e1 | ],..., xn [...] do eq done *)
-and sblock genv env v_list ({ eq_write } as eq) s_list s_eq =
+and sblock genv env v_list ({ eq_write; eq_loc } as eq) s_list s_eq =
   print_ienv "Block" env;
   let* env_v, s_list =
     Opt.mapfold3
@@ -572,7 +575,8 @@ and sblock genv env v_list ({ eq_write } as eq) s_list s_eq =
   (* remove all local variables from [env_eq] *)
   let env = Env.append env_eq env in
   let env_eq = remove env_v env_eq in
-  return (env, env_eq, s_list, s_eq)
+  let r = return (env, env_eq, s_list, s_eq) in
+  stop_at_location eq_loc r
 
 and sblock_with_reset genv env v_list eq s_list s_eq r =
   let* s_list, s_eq =
@@ -586,7 +590,7 @@ and sblock_with_reset genv env v_list eq s_list s_eq r =
       return (s_list, s_eq) in
   sblock genv env v_list eq s_list s_eq
   
-and svardec genv env acc { var_name; var_default } s v =
+and svardec genv env acc { var_name; var_default; var_loc } s v =
   let* default, s =
     match var_default, s with
     | Ewith_nothing, Sempty -> (* [local x in ...] *)
@@ -607,19 +611,21 @@ and svardec genv env acc { var_name; var_default } s v =
     | Ewith_last, Sval(ve) -> (* [local last x in ... last x ...] *)
        return (Last(ve), s)
     | _ -> None in
-  return (Env.add var_name { cur = v; default = default } acc, s)
+  let r = return (Env.add var_name { cur = v; default = default } acc, s) in
+  stop_at_location var_loc r
 
 (* store the next value for [last x] in the state of [vardec] declarations *)
-and set_vardec env_eq { var_name } s =
-  match s with
-  | Sempty -> return Sempty
-  | Sopt _ | Sval _ ->
-     let* v = find_value_opt var_name env_eq in
-     return (Sval(v))
-  | Stuple [_; se] ->
-     let* v = find_value_opt var_name env_eq in
-     return (Stuple [Sval v; se])
-  | _ -> None
+and set_vardec env_eq { var_name; var_loc } s =
+  let r = match s with
+    | Sempty -> return Sempty
+    | Sopt _ | Sval _ ->
+       let* v = find_value_opt var_name env_eq in
+       return (Sval(v))
+    | Stuple [_; se] ->
+       let* v = find_value_opt var_name env_eq in
+       return (Stuple [Sval v; se])
+    | _ -> None in
+  stop_at_location var_loc r
 
 (* remove entries [x, entry] from [env_eq] for *)
 (* every variable [x] defined by [env_v] *)
@@ -631,7 +637,8 @@ and sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list =
   let rec body_and_transition_list a_h_list s_list =
     match a_h_list, s_list with
     | { s_state; s_vars; s_body; s_trans } :: a_h_list,
-      (Stuple [Stuple(ss_var_list); ss_body; Stuple(ss_trans)] as s) :: s_list ->
+      (Stuple [Stuple(ss_var_list); ss_body;
+               Stuple(ss_trans)] as s) :: s_list ->
      let r = matching_state ps s_state in
      let* env_handler, ns, nr, s_list =
        match r with
@@ -650,7 +657,8 @@ and sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list =
             sescape_list genv env s_trans ss_trans ps pr in
           return
             (env_body, ns, nr,
-             Stuple [Stuple(ss_var_list); ss_body; Stuple(ss_trans)] :: s_list) in
+             Stuple [Stuple(ss_var_list); ss_body;
+                     Stuple(ss_trans)] :: s_list) in
      (* complete missing entries in the environment *) 
      let* env_handler = by env env_handler eq_write in
      return (env_handler, ns, nr, s_list)
@@ -695,7 +703,8 @@ and sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list =
         let* _, env_body, ss_var_list, ss_body =
           sblock_with_reset genv env s_vars s_body ss_var_list ss_body pr in
         return
-          (env_body, Stuple [Stuple(ss_var_list); ss_body; ss_trans] :: s_list) end
+          (env_body, Stuple [Stuple(ss_var_list); ss_body;
+                             ss_trans] :: s_list) end
    | _ -> None in
   if is_weak then
     body_and_transition_list a_h_list s_list
@@ -888,7 +897,7 @@ let run genv main ff n =
   (* the main function must be of type : unit -> t *)
   let output v_list =
     let* v_list = Opt.map Initial.value v_list in
-    let _ = Initial.Output.pvalue_list_and_flush ff v_list in
+    let _ = Output.pvalue_list_and_flush ff v_list in
     return () in
   match fv with
   | CoFun(fv) -> run_fun output fv n
