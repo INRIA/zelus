@@ -3,6 +3,7 @@
 (* semantics presented at the SYNCHRON workshop, December 2019, *)
 (* the class on "Advanced Functional Programming" given at Bamberg
    Univ. in June-July 2019 and the Master MPRI - M2, Fall 2019 *)
+open Misc
 open Monad
 open Opt                                                            
 open Ident
@@ -240,11 +241,11 @@ let rec iexp genv env { e_desc; e_loc } =
      let* s = iexp genv env e in
      return s
   | Eapp(f, e_list) ->
-    let* s_list = Opt.map (iexp genv env) e_list in
-    let* v = find_gnode_opt f genv in
-    let s =
-      match v with | CoFun _ -> Sempty | CoNode { init = s } -> s in
-    return (Stuple(s :: s_list))
+     let* s_list = Opt.map (iexp genv env) e_list in
+     let* v = find_gnode_opt f genv in
+     let s =
+       match v with | CoFun _ -> Sempty | CoNode { init = s } -> s in
+     return (Stuple(s :: s_list))
   | Elet(is_rec, eq, e) ->
      let* s_eq = ieq genv env eq in
      let* se = iexp genv env e in
@@ -556,7 +557,7 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
        | Value(v) ->
           let* v = boolean v in
           (* stop when [no_assert = true] *)
-          if Misc.no_assert then return s
+          if !no_assert then return s 
           else if v then return s else None in
      return (Env.empty, s)
   | _ -> None in

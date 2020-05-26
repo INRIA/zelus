@@ -2,9 +2,9 @@
 (* It is the prototypical example of a cyclic circuit that is constructively *)
 (* causal but not causal in the Lustre/Lucid Synchrone/Zelus sense *)
 let node mux(c, x, y) returns (o)
-  if c then do o = x done else do o = y done
+  if c then o = x else o = y
 
-let node f(x) returns (o) o = x + 1
+let node f(x) returns (o) o = 2 * x
 let node g(x) returns (o) o = x - 1
     
 let node constructive1(c, x) returns (y)
@@ -19,11 +19,10 @@ let node constructive1(c, x) returns (y)
 let node constructive2(c, x) returns (y)
   y = mux(c, g(f(x)), f(g(x)))
 
-let node main() returns (y)
+let node main() returns (y1, y2)
   local c, x
-  do  y = constructive1(c, x)
-  and
-      c = true fby true fby not c
-  and
-      x = 0 -> pre x + 1
+  do  y1 = constructive1(c, x)
+  and y2 = constructive2(c, x)
+  and c = true fby true fby not c
+  and x = 0 -> pre x + 1
   done
