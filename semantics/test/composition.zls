@@ -20,7 +20,8 @@ let node composition2(c1, c2, y) returns (x, z, t, r)
       else do t = 1 and r = 2 done
     done
 	  
-let node main() returns (x, z, t, r)
+let node main() returns (x1, z1, t1, r1,
+			x2, z2, t2, r2)
   local c1, c2, y
   do  c1 = true fby true fby not c1
   and
@@ -28,6 +29,8 @@ let node main() returns (x, z, t, r)
   and
       y = 0 -> pre y + 1
   and
-      (x, z, t, r) = composition1(c1, c2, y)
+      (x1, z1, t1, r1) = composition1(c1, c2, y)
+  and
+      (x2, z2, t2, r2) = composition2(c1, c2, y)
   done
       

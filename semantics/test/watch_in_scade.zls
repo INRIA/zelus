@@ -54,9 +54,11 @@ and
   automaton (* -- Watch ------------------*)
   | Count ->
       do
-        wm = 0 -> (if (ws < last ws) then last wm + 1 else last wm) mod 60
+        wm = 0 -> (if (ws < last ws)
+	then last wm + 1 else last wm) mod 60
       and
-	wh = 0 -> (if (wm < last wm) then last wh + 1 else last wh) mod 24
+	  wh = 0 -> (if (wm < last wm)
+	  then last wh + 1 else last wh) mod 24
       until (set && is_w) then Set
   | Set -> (* -- Set time *)
       local synchro default false
@@ -116,3 +118,26 @@ and
     unless md continue DispClk
   end
 done
+
+let node counter(n) returns (ok)
+  local c
+  do
+      c = 0 -> (pre c + 1) mod n
+  and
+      ok = (c = 0)
+  done
+      
+let node main () returns (a1, a2, a3, l, s, sh)
+  local stst, rst, set, md
+  do
+      stst = counter(10)
+  and
+      rst = counter(20)
+  and
+      set = counter(30)
+  and
+      md = counter(40)
+  and
+      (a1, a2, a3, l, s, sh) = root (stst, rst, set, md)
+  done
+      

@@ -64,6 +64,18 @@ let mod_op v1 v2 =
 let eq_op v1 v2 =
   return (Vbool(v1 = v2))
 
+let lt_op v1 v2 =
+  return (Vbool(v1 < v2))
+
+let gt_op v1 v2 =
+  return (Vbool(v1 > v2))
+
+let lte_op v1 v2 =
+  return (Vbool(v1 <= v2))
+
+let gte_op v1 v2 =
+  return (Vbool(v1 >= v2))
+  
 let geti i v =
   let rec geti i v_list =
     match v_list with
@@ -216,7 +228,11 @@ let genv0 =
    "or", binop or_op;
    "||", binop or_op;
    "mod", binop mod_op;
-   "=", binop eq_op]
+   "=", binop eq_op;
+   "<", binop lt_op;
+   ">", binop gt_op;
+   "<=", binop lte_op;
+   ">=", binop gte_op]
 
 let genv0 =
   List.fold_left (fun acc (n, v) -> Genv.add (Name n) (Gfun v) acc) Genv.empty genv0

@@ -16,13 +16,14 @@ let node constructive1(c, x) returns (y)
   and y = mux(c, y2, y1)
   done
 
-let node constructive2(c, x) returns (y)
+ let node constructive2(c, x) returns (y)
   y = mux(c, g(f(x)), f(g(x)))
 
-let node main() returns (y1, y2)
+let node main1() returns (y1, y2)
   local c, x
   do  y1 = constructive1(c, x)
   and y2 = constructive2(c, x)
   and c = true fby true fby not c
   and x = 0 -> pre x + 1
   done
+
