@@ -735,11 +735,11 @@ and sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list =
 (* a new state *)
 and sescape_list genv env escape_list s_list ps pr =
   match escape_list, s_list with
-  | [], [] -> return (Env.empty, (Value ps, Value (Vbool pr)), [])
+  | [], [] -> return (Env.empty, (Value ps, Value (Vbool false)), [])
   | { e_cond; e_reset; e_vars; e_body; e_next_state } :: escape_list,
     Stuple [s_cond; Stuple(s_var_list); s_body; s_next_state] :: s_list ->
       (* if [pr=true] then the transition is reset *)
-     let* v, s = reset iscondpat sscondpat genv env e_cond s_cond pr in
+     let* v, s_cond = reset iscondpat sscondpat genv env e_cond s_cond pr in
      let* env_body, (ns, nr), s =
        match v with
        (* if [v = bot/nil] the state and reset bit are also bot/nil *)
