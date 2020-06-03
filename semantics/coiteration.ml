@@ -476,10 +476,10 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
   let r = match eq_desc, s with 
   | EQeq(p, e), s -> 
      print_ienv "Before (eq)" env;
-     let* v, s = sexp genv env e s in
-     let* env_p = matching_pateq p v in
-     print_ienv "After (eq)" env_p;
-     return (env_p, s)
+     let* v, s1 = sexp genv env e s in
+     let* env_p1 = matching_pateq p v in
+     print_ienv "After (eq)" env_p1;
+     Some (env_p1, s1) (* return (env_p, s))) *)
   | EQif(e, eq1, eq2), Stuple [se; s_eq1; s_eq2] ->
       let* v, se = sexp genv env e se in
       let* env_eq, s =
@@ -511,7 +511,7 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
      return (env_eq, Stuple(s_list))
   | EQreset(eq, e), Stuple [s_eq; se] -> 
      let* v, se = sexp genv env e se in 
-     let* env_eq, s =
+     let* env_eq, s_eq =
        match v with
        (* if the condition is bot/nil then all variables have value bot/nil *)
        | Vbot -> return (bot_env eq_write, Stuple [s_eq; se])
