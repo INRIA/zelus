@@ -752,11 +752,15 @@ and sescape_list genv env escape_list s_list ps pr =
                   (Vnil, Vnil), Stuple [s_cond; Stuple(s_var_list);
                                         s_body; s_next_state] :: s_list)
        | Value(v) ->
+          (* revoir le traitement. L'etat des conditions *)
+          (* change mais les equations ne sont evaluees que lorsque *)
+          (* la condition est vraie *)
+          (* le code ci-dessous ne le fait pas. *)
           let* v = boolean v in
           let* env, env_body, s_var_list, s_body =
             sblock_with_reset genv env e_vars e_body s_var_list s_body pr in
           let* ns, s_next_state = sstate genv env e_next_state s_next_state in
-          let* env_body, (s, r), s_list =
+          let* env_others, (s, r), s_list =
             sescape_list genv env escape_list s_list ps pr in
           let ns, nr = 
             if v then (ns, Value(Vbool(e_reset))) else (s, r) in
