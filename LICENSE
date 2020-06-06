@@ -1,0 +1,279 @@
+The Zélus compiler is Copyright by Institut National de
+Recherche en Informatique et en Automatique (Inria).
+
+The Zélus compiler is distributed under the terms of the
+Inria Non-Commercial License Agreement given below.
+
+The Inria Non-Commercial License Agreement is a non-free license that grants
+you the right to use the Zélus compiler for educational,
+research or evaluation purposes only, but prohibits any commercial use.
+
+For commercial use you must arrange for a Software Usage Agreement from
+Inria.
+
+The files in lib/ that comprise the interface, run-time and standard
+library are realised under the LGPL version 3.
+
+The file compiler/location.ml is taken from Caml-light
+which is copyright INRIA and distributed under the Q public licence version
+1.0.
+
+----------------------------------------------------------------------
+
+Inria Non-Commercial License Agreement for the Zélus compiler
+
+1. Background: Institut National de Recherche en Informatique et en
+   Automatique (the "Provider") developed the Zélus 
+   compiler (the "Software") and seeks to distribute the Software for
+   public use and benefit.
+
+2. Grant: The Provider hereby grants to you a revocable, nonexclusive,
+   nontransferable, royalty-free and worldwide license (the "License")
+   to use the Software solely for educational, research, or evaluation
+   purposes, in accordance with Paragraph 3 below and subject to the
+   terms and conditions of this License Agreement (the
+   "Agreement"). The License entitles you to use the Software to
+   conduct research or education and to create Derivative Works solely
+   for academic, non-commercial research endeavors of the Licensee (A
+   "Derivative Work" is a work that is a modification of, enhancement
+   to, derived from, or based upon the Software).
+
+3. Limitations on Use: The License is limited to noncommercial
+   use. Noncommercial use relates only to educational, research,
+   personal or evaluation purposes. Any other use is commercial use.
+   You may not use the Software in connection with any activities
+   which purpose is to procure a commercial gain to you or others.
+
+4. Limitations on Distribution: If you distribute the Software or any
+   derivative works of the Software, you will distribute them under
+   the same terms and conditions as in this License, and you will not
+   grant other rights to the Software or derivative works that are
+   different from those provided by this License.
+
+5. Ownership: The Software and the accompanying documentation are
+   licensed, not sold, to you. The Software is a proprietary product
+   of the Provider and is protected under French copyright law and
+   international treaty revisions. The Provider retains all rights not
+   specifically granted to you hereunder, including ownership of the
+   Software and all copyrights, trade secrets, or other intellectual
+   property rights in the Software and any accompanying information.
+
+6. Publication Credit: You agree to acknowledge the Inria Vélus
+   research project with appropriate citations in any publication or
+   presentation containing research results obtained in whole or in
+   part through the use of the Software.
+
+7. Term of License: The License is effective upon receipt by you of
+   the Software and shall continue until terminated. The License will
+   terminate immediately without notice by the Provider if you fail to
+   comply with the terms and conditions of this Agreement. Upon
+   termination of this License, you shall immediately discontinue all
+   use of the Software provided hereunder, and return to the Provider
+   or destroy the original and all copies of all such Software. All of
+   your obligations under this Agreement shall survive the termination
+   of the License.
+
+8. Warranty: THE PROVIDER MAKES NO REPRESENTATIONS ABOUT THE
+   SUITABILITY, USE, OR PERFORMANCE OF THIS SOFTWARE OR ABOUT ANY
+   CONTENT OR INFORMATION MADE ACCESSIBLE BY THE SOFTWARE, FOR ANY
+   PURPOSE. THE SOFTWARE IS PROVIDED "AS IS," WITHOUT EXPRESS OR
+   IMPLIED WARRANTIES INCLUDING, BUT NOT LIMITED TO, ANY IMPLIED
+   WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR
+   NONINFRINGEMENT WITH RESPECT TO THE SOFTWARE. THE PROVIDER IS NOT
+   OBLIGATED TO SUPPORT OR ISSUE UPDATES TO THE SOFTWARE.
+
+9. Limitation on Liability: This Software is provided free of charge
+   and, accordingly, the Provider shall not be liable under any theory
+   for any damages suffered by you or any user of the Software. UNDER
+   NO CIRCUMSTANCES SHALL PROVIDER BE LIABLE TO YOU OR ANY OTHER
+   PERSON FOR ANY DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR
+   CONSEQUENTIAL DAMAGES OF ANY CHARACTER INCLUDING, WITHOUT
+   LIMITATION, DAMAGES FOR LOSS OF GOODWILL, WORK STOPPAGE, COMPUTER
+   FAILURE OR MALFUNCTION, OR ANY AND ALL OTHER ECONOMIC LOSS OR
+   COMMERCIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THIS
+   SOFTWARE, EVEN IF PROVIDER SHALL HAVE BEEN INFORMED OF THE
+   POSSIBILITY OF SUCH DAMAGES, OR FOR ANY THIRD-PARTY CLAIMS.
+
+10. Disputes: The Parties agree to attempt to settle amicably any
+   controversy or claim arising under this Agreement or a breach of
+   this Agreement. Thereafter, both parties agree that all disputes
+   between them arising out of or relating to this Agreement, shall
+   be submitted to non-binding mediation unless the parties mutually
+   agree otherwise. All parties agree to exercise their best effort
+   in good faith to resolve all disputes in mediation. This Agreement
+   shall be governed and construed in accordance with the laws of
+   France.
+
+11. Entire Agreement: This Agreement contains the entire agreement
+   between the parties with respect to the subject matter hereof, and
+   it shall not be modified or amended except by an instrument in
+   writing signed by both parties hereto.
+
+----------------------------------------------------------------------
+
+----------------------------------------------------------------------
+                   GNU LESSER GENERAL PUBLIC LICENSE
+                       Version 3, 29 June 2007
+
+ Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
+
+
+  This version of the GNU Lesser General Public License incorporates
+the terms and conditions of version 3 of the GNU General Public
+License, supplemented by the additional permissions listed below.
+
+  0. Additional Definitions.
+
+  As used herein, "this License" refers to version 3 of the GNU Lesser
+General Public License, and the "GNU GPL" refers to version 3 of the GNU
+General Public License.
+
+  "The Library" refers to a covered work governed by this License,
+other than an Application or a Combined Work as defined below.
+
+  An "Application" is any work that makes use of an interface provided
+by the Library, but which is not otherwise based on the Library.
+Defining a subclass of a class defined by the Library is deemed a mode
+of using an interface provided by the Library.
+
+  A "Combined Work" is a work produced by combining or linking an
+Application with the Library.  The particular version of the Library
+with which the Combined Work was made is also called the "Linked
+Version".
+
+  The "Minimal Corresponding Source" for a Combined Work means the
+Corresponding Source for the Combined Work, excluding any source code
+for portions of the Combined Work that, considered in isolation, are
+based on the Application, and not on the Linked Version.
+
+  The "Corresponding Application Code" for a Combined Work means the
+object code and/or source code for the Application, including any data
+and utility programs needed for reproducing the Combined Work from the
+Application, but excluding the System Libraries of the Combined Work.
+
+  1. Exception to Section 3 of the GNU GPL.
+
+  You may convey a covered work under sections 3 and 4 of this License
+without being bound by section 3 of the GNU GPL.
+
+  2. Conveying Modified Versions.
+
+  If you modify a copy of the Library, and, in your modifications, a
+facility refers to a function or data to be supplied by an Application
+that uses the facility (other than as an argument passed when the
+facility is invoked), then you may convey a copy of the modified
+version:
+
+   a) under this License, provided that you make a good faith effort to
+   ensure that, in the event an Application does not supply the
+   function or data, the facility still operates, and performs
+   whatever part of its purpose remains meaningful, or
+
+   b) under the GNU GPL, with none of the additional permissions of
+   this License applicable to that copy.
+
+  3. Object Code Incorporating Material from Library Header Files.
+
+  The object code form of an Application may incorporate material from
+a header file that is part of the Library.  You may convey such object
+code under terms of your choice, provided that, if the incorporated
+material is not limited to numerical parameters, data structure
+layouts and accessors, or small macros, inline functions and templates
+(ten or fewer lines in length), you do both of the following:
+
+   a) Give prominent notice with each copy of the object code that the
+   Library is used in it and that the Library and its use are
+   covered by this License.
+
+   b) Accompany the object code with a copy of the GNU GPL and this license
+   document.
+
+  4. Combined Works.
+
+  You may convey a Combined Work under terms of your choice that,
+taken together, effectively do not restrict modification of the
+portions of the Library contained in the Combined Work and reverse
+engineering for debugging such modifications, if you also do each of
+the following:
+
+   a) Give prominent notice with each copy of the Combined Work that
+   the Library is used in it and that the Library and its use are
+   covered by this License.
+
+   b) Accompany the Combined Work with a copy of the GNU GPL and this license
+   document.
+
+   c) For a Combined Work that displays copyright notices during
+   execution, include the copyright notice for the Library among
+   these notices, as well as a reference directing the user to the
+   copies of the GNU GPL and this license document.
+
+   d) Do one of the following:
+
+       0) Convey the Minimal Corresponding Source under the terms of this
+       License, and the Corresponding Application Code in a form
+       suitable for, and under terms that permit, the user to
+       recombine or relink the Application with a modified version of
+       the Linked Version to produce a modified Combined Work, in the
+       manner specified by section 6 of the GNU GPL for conveying
+       Corresponding Source.
+
+       1) Use a suitable shared library mechanism for linking with the
+       Library.  A suitable mechanism is one that (a) uses at run time
+       a copy of the Library already present on the user's computer
+       system, and (b) will operate properly with a modified version
+       of the Library that is interface-compatible with the Linked
+       Version.
+
+   e) Provide Installation Information, but only if you would otherwise
+   be required to provide such information under section 6 of the
+   GNU GPL, and only to the extent that such information is
+   necessary to install and execute a modified version of the
+   Combined Work produced by recombining or relinking the
+   Application with a modified version of the Linked Version. (If
+   you use option 4d0, the Installation Information must accompany
+   the Minimal Corresponding Source and Corresponding Application
+   Code. If you use option 4d1, you must provide the Installation
+   Information in the manner specified by section 6 of the GNU GPL
+   for conveying Corresponding Source.)
+
+  5. Combined Libraries.
+
+  You may place library facilities that are a work based on the
+Library side by side in a single library together with other library
+facilities that are not Applications and are not covered by this
+License, and convey such a combined library under terms of your
+choice, if you do both of the following:
+
+   a) Accompany the combined library with a copy of the same work based
+   on the Library, uncombined with any other library facilities,
+   conveyed under the terms of this License.
+
+   b) Give prominent notice with the combined library that part of it
+   is a work based on the Library, and explaining where to find the
+   accompanying uncombined form of the same work.
+
+  6. Revised Versions of the GNU Lesser General Public License.
+
+  The Free Software Foundation may publish revised and/or new versions
+of the GNU Lesser General Public License from time to time. Such new
+versions will be similar in spirit to the present version, but may
+differ in detail to address new problems or concerns.
+
+  Each version is given a distinguishing version number. If the
+Library as you received it specifies that a certain numbered version
+of the GNU Lesser General Public License "or any later version"
+applies to it, you have the option of following the terms and
+conditions either of that published version or of any later version
+published by the Free Software Foundation. If the Library as you
+received it does not specify a version number of the GNU Lesser
+General Public License, you may choose any version of the GNU Lesser
+General Public License ever published by the Free Software Foundation.
+
+  If the Library as you received it specifies that a proxy can decide
+whether future versions of the GNU Lesser General Public License shall
+apply, that proxy's public statement of acceptance of any version is
+permanent authorization for you to choose that version for the
+Library.
