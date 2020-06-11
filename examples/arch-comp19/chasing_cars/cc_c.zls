@@ -1,0 +1,62 @@
+let d0 = 20.
+let d1 = 15.
+let d2 = 10.
+let d3 = 5.
+
+hybrid integrate (x, y0) = y where
+    rec der y = x init y0
+
+hybrid xup(e) =
+    present (init) on (e >= 0.) | up(e) | (disc e) on (e >= 0.) -> ()
+
+hybrid leader_car (y0, v0) (throttle, brake) = y where
+    rec y = integrate (v, y0)
+    and v = integrate (-. throttle -. brake *. v, v0)
+
+hybrid follower_car (y0, v0) leader_y = y where
+    rec v = integrate (dv, v0)
+    and y = integrate (dy, y0)
+    and automaton
+    | Chasing ->
+        do
+                dv = 1.
+            and dy = -. v
+        until (xup(d2 -. (y -. leader_y)))() then Keeping
+    | Keeping ->
+        do
+                dv = 0.
+            and dy = v
+        until (xup(y -. leader_y -. d1))() then Chasing
+        else (xup(d3 -. (y -. leader_y)))() then Braking
+    | Braking ->
+        do
+                dv = -. v
+            and dy = -. v
+        until (xup(y -. leader_y -. d0))() then Chasing
+
+hybrid chasing_cars (throttle, brake) = c1, c2, c3, c4, c5 where
+    rec c1 = leader_car (0., 0.) (throttle, brake)
+    and c2 = follower_car (10., 0.) c1
+    and c3 = follower_car (20., 0.) c2
+    and c4 = follower_car (30., 0.) c3
+    and c5 = follower_car (40., 0.) c4
+
+open Scope
+let static tstep = 0.1
+let tmax = 100.
+hybrid main () =
+    let t = integrate (1., 0.) in
+
+    let throttle = 1. in
+    let brake = 0. in
+
+    let c1,c2,c3,c4,c5 = chasing_cars (throttle, brake) in
+
+    present (period(tstep)) ->
+        let s1 = scope2(0., 1., ("throttle", linear, throttle),
+                                ("brake", linear, brake)) in
+        let s2 = scopen(-5000., 50., [("c1", linear, c1); ("c2", linear, c2);
+                                      ("c3", linear, c3); ("c4", linear, c4);
+                                      ("c5", linear, c5)]) in
+        window2 ("Chasing cars", tmax, t, s1, s2)
+    else ()

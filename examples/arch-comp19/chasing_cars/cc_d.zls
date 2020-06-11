@@ -1,0 +1,57 @@
+let d0 = 20.
+let d1 = 15.
+let d2 = 10.
+let d3 = 5.
+
+node integrate (tstep, x, y0) = y where
+    rec y = y0 fby (y +. tstep *. x)
+
+node leader_car (y0, v0) (tstep, throttle, brake) = y where
+    rec y = integrate (tstep, v, y0)
+    and v = integrate (tstep, -. throttle -. brake *. v, v0)
+
+node follower_car (y0, v0) (tstep, leader_y) = y where
+    rec v = integrate (tstep, dv, v0)
+    and y = integrate (tstep, dy, y0)
+    and automaton
+    | Chasing ->
+        do
+                dv = 1.
+            and dy = -. v
+        until (y -. leader_y <= d2) then Keeping
+    | Keeping ->
+        do
+                dv = 0.
+            and dy = v
+        until (y -. leader_y >= d1) then Chasing
+        else (y -. leader_y <= d3) then Braking
+    | Braking ->
+        do
+                dv = -. v
+            and dy = -. v
+        until (y -. leader_y >= d0) then Chasing
+
+node chasing_cars tstep (throttle, brake) = c1, c2, c3, c4, c5 where
+    rec c1 = leader_car (0., 0.) (tstep, throttle, brake)
+    and c2 = follower_car (10., 0.) (tstep, c1)
+    and c3 = follower_car (20., 0.) (tstep, c2)
+    and c4 = follower_car (30., 0.) (tstep, c3)
+    and c5 = follower_car (40., 0.) (tstep, c4)
+
+open Scope
+let tstep = 0.1
+let tmax = 100.
+node main () =
+    let t = integrate (tstep, 1., 0.) in
+
+    let throttle = 1. in
+    let brake = 0. in
+
+    let c1,c2,c3,c4,c5 = chasing_cars tstep (throttle, brake) in
+
+    let s1 = scope2(0., 1., ("throttle", linear, throttle),
+                            ("brake", linear, brake)) in
+    let s2 = scopen(-5000., 50., [("c1", linear, c1); ("c2", linear, c2);
+                                  ("c3", linear, c3); ("c4", linear, c4);
+                                  ("c5", linear, c5)]) in
+    window2 ("Chasing cars", tmax, t, s1, s2)
