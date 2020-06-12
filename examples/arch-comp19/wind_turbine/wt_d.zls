@@ -1,8 +1,6 @@
 open Wt_common
 open Wt_params
 
-let params = Wt_params.get_default ()
-
 let saturate (low, high, v) = min (max v low) high
 
 (* not implemented !! *)
@@ -16,29 +14,29 @@ node rate_limiter (tstep, rising, falling, y0, x) = y where
          else if rate < falling then tstep *. falling +. (pre y)
          else x)
 
-node collective_pitch_with_anti_windup (tstep, e, gs) = theta_d where
-    rec theta_d = saturate (params.pitch.min, params.pitch.min, theta_d')
+node collective_pitch_with_anti_windup (tstep, e, gs, params) = theta_d where
+    rec theta_d = saturate (params.pitch.min, params.pitch.max, theta_d')
     and theta_d' = gs *. e4
     and e4 = e1 +. e3
-    and e3 = integrate (tstep, e2 *. params.pitch.cpc.tI,
+    and e3 = integrate (tstep, e2 /. params.pitch.cpc.tI,
         params.pitch.theta0*.(1.+.params.pitch.theta0/.params.pitch.cpc.gS_factor))
     and e2 = e1 -. (theta_d' -. theta_d) *. params.pitch.cpc.antiWindUp
     and e1 = e *. params.pitch.cpc.kP
 
-node coll_pitch_controller (tstep, omega_g, theta_in, omega_g_rated) = theta_d where
+node coll_pitch_controller (tstep, omega_g, theta_in, omega_g_rated, params) = theta_d where
     rec e = omega_g -. omega_g_rated
     and gs = 1. /. (1. +. (params.pitch.theta0 fby theta_in) /. params.pitch.cpc.gS_factor)
-    and theta_d = collective_pitch_with_anti_windup (tstep, e, gs)
+    and theta_d = collective_pitch_with_anti_windup (tstep, e, gs, params)
 
-node filter_pitch (tstep, u) = y where
+node filter_pitch (tstep, u, params) = y where
     rec dy = (u -. y) /. params.pitch.pitch_filterConstant
     and y = integrate (tstep, dy, params.pitch.theta0)
 
-node filter_drehzahl (tstep, u) = y where
+node filter_drehzahl (tstep, u, params) = y where
     rec dy = (u -. y) /. params.vscontrol.vs_filterConstant
     and y = integrate (tstep, dy, params.omega_g0)
 
-discrete torque_controller (omega_g, theta_d) = mg_d where
+discrete torque_controller (omega_g, theta_d, params) = mg_d where
     mg_d =
         if omega_g >= params.vscontrol.rtGnSp ||
            theta_d >= params.vscontrol.rgn3MP then
@@ -57,29 +55,29 @@ discrete torque_controller (omega_g, theta_d) = mg_d where
             (* We are in region 2 1/2 - simple induction generator transition region *)
             params.vscontrol.slope25 *. (omega_g -. params.vscontrol.sySp)
 
-node scnd_order_lag_pitch (tstep, theta_d) = theta where
-    rec theta = integrate (tstep, theta1, params.pitch.theta0)
-    and theta1 = integrate (tstep, dtheta1, params.pitch.thetaDot0)
-    and dtheta1 = (theta_d -. theta) *. params.pitch.omega ** 2. -.
-                  theta1 *. 2. *. params.pitch.xi *. params.pitch.omega
+node scnd_order_lag_pitch (tstep, theta_d, params) = theta where
+    rec theta = integrate (tstep, dtheta, params.pitch.theta0)
+    and dtheta = integrate (tstep, ddtheta, params.pitch.thetaDot0)
+    and ddtheta = (theta_d -. theta) *. params.pitch.omega ** 2. -.
+                  dtheta *. 2. *. params.pitch.xi *. params.pitch.omega
 
-node fst_order_lag_pitch (tstep, theta_d) = theta where
+node fst_order_lag_pitch (tstep, theta_d, params) = theta where
     rec theta = integrate (tstep, dtheta, params.pitch.theta0)
     and dtheta = (theta_d -. theta) *. params.pitch.omega /. (2. *. params.pitch.xi)
 
 (* transport_delay not implemented !! *)
-node time_delay_pitch (tstep, theta_d) = theta where
+node time_delay_pitch (tstep, theta_d, params) = theta where
     rec theta = transport_delay (tstep, params.pitch.delay, params.pitch.theta0)
 
-node pitch_actuator_subsystem (tstep, actuatorType, theta_d) = theta where
+node pitch_actuator_subsystem (tstep, actuatorType, theta_d, params) = theta where
     theta =
         match actuatorType with
-        | 1 -> scnd_order_lag_pitch (tstep, theta_d)
-        | 2 -> fst_order_lag_pitch (tstep, theta_d)
-        | 3 -> time_delay_pitch (tstep, theta_d) (* not implemented !! *)
+        | 1 -> scnd_order_lag_pitch (tstep, theta_d, params)
+        | 2 -> fst_order_lag_pitch (tstep, theta_d, params)
+        | 3 -> time_delay_pitch (tstep, theta_d, params) (* not implemented !! *)
         | _ -> 0. (* should not happen *)
 
-node servo_elastic_subsystem (tstep, mg_d, ma, fa) = omega, xT_dot where
+node servo_elastic_subsystem (tstep, mg_d, ma, fa, params) = omega, xT_dot where
     rec omega = integrate (tstep, domega, params.omega0)
     and domega = (ma -. mg_d /. params.gBRatio) /. params.inertia
     and xT_dot = integrate (tstep, dxT_dot, params.xt_dot0)
@@ -116,7 +114,7 @@ node aeromapsPoly (lambda, theta) = cP, cT where
     rec cP = cP_aeromapsPoly(lambda, theta)
     and cT = cT_aeromapsPoly(lambda, theta)
 
-node aero_elastic_subsystem (v0, theta, omega, xT_dot) = ma, fa where
+node aero_elastic_subsystem (v0, theta, omega, xT_dot, params) = ma, fa where
     rec ma = ma' *. aux *. aux
     and fa = fa' *. aux *. aux
     and aux = v0 -. xT_dot
@@ -125,20 +123,23 @@ node aero_elastic_subsystem (v0, theta, omega, xT_dot) = ma, fa where
     and fa' = cT *. 0.5 *. params.rho *. pi *. params.rotor ** 2.
     and cP, cT = aeromapsPoly (lambda, theta)
 
-node wind_turbine (tstep, v0, theta_d, mg_d) = blade_pitch_angle, omega where
+node wind_turbine (tstep, v0, theta_d, mg_d, params) = blade_pitch_angle, omega where
     rec blade_pitch_angle =
-        pitch_actuator_subsystem (tstep, params.pitch.actuatorType, theta_d)
-    and omega, xT_dot = servo_elastic_subsystem (tstep, mg_d, ma, fa)
-    and ma, fa = aero_elastic_subsystem (v0, blade_pitch_angle, omega, xT_dot)
+        pitch_actuator_subsystem (tstep, params.pitch.actuatorType, theta_d, params)
+    and omega, xT_dot = servo_elastic_subsystem (tstep, mg_d, ma, fa, params)
+    and ma, fa = aero_elastic_subsystem (v0, blade_pitch_angle, omega, xT_dot, params)
 
 node wt tstep v0 = rad2deg theta,
                    radPs2rpm omega,
                    radPs2rpm omega_g,
                    rad2deg theta_d,
-                   rad2deg blade_pitch_angle
+                   rad2deg blade_pitch_angle,
+                   mg_d
     where
-    rec blade_pitch_angle, omega = wind_turbine (tstep, v0, theta_d, torque)
-    and mg_d = torque_controller (omega_g, theta_d)
+    rec init v0_0 = v0
+    and params = get_default v0_0
+    and blade_pitch_angle, omega = wind_turbine (tstep, v0, theta_d, torque, params)
+    and mg_d = torque_controller (omega_g, theta_d, params)
     and torque = saturate (neg_infinity, params.vscontrol.maxTq, torque_aux)
     and torque_aux =
         rate_limiter (tstep,
@@ -149,32 +150,35 @@ node wt tstep v0 = rad2deg theta,
                       params.pitch.rateLimit, -.params.pitch.rateLimit,
                       params.pitch.thetaDot0, theta_d_aux)
     and theta_d_aux =
-        coll_pitch_controller (tstep, omega_g, blade_pitch_angle, params.omega_g_rated)
-    and theta = filter_pitch (tstep, blade_pitch_angle)
-    and omega_g = filter_drehzahl (tstep, omega /. params.gBRatio)
+        coll_pitch_controller (tstep, omega_g, blade_pitch_angle, params.omega_g_rated, params)
+    and theta = filter_pitch (tstep, blade_pitch_angle, params)
+    and omega_g = filter_drehzahl (tstep, omega /. params.gBRatio, params)
 
 open Scope
-discrete print_results (t, theta, omega, omega_g, theta_d, blade_pitch_angle) =
+discrete print_results (t, theta, omega, omega_g, theta_d, blade_pitch_angle, mg_d) =
     print_endline ("t = " ^ (string_of_float t));
     print_endline ("theta = " ^ (string_of_float theta));
     print_endline ("omega = " ^ (string_of_float omega));
     print_endline ("omega_g = " ^ (string_of_float omega_g));
     print_endline ("theta_d = " ^ (string_of_float theta_d));
     print_endline ("blade_pitch_angle = " ^ (string_of_float blade_pitch_angle));
+    print_endline ("mg_d = " ^ (string_of_float mg_d));
     print_newline ()
 
 let tstep = 0.01
 node main() =
     let t = integrate (tstep, 1., 0.) in
 
-    let v0 = 10. in
-    let theta, omega, omega_g, theta_d, blade_pitch_angle = wt tstep v0 in
+    let v0 = if t > 1. then 14. else 10. in
+    let theta, omega, omega_g, theta_d, blade_pitch_angle, mg_d = wt tstep v0 in
 
-    print_results (t, theta, omega, omega_g, theta_d, blade_pitch_angle);
+    print_results (t, theta, omega, omega_g, theta_d, blade_pitch_angle, mg_d);
 
-    let s1 = scope(-1., 1., ("theta", linear, theta)) in
-    let s2 = scope(10., 12., ("omega", linear, omega)) in
-    let s3 = scope(1100., 1200., ("omega_g", linear, omega_g)) in
-    let s4 = scope(-1., 1., ("theta_d", linear, theta_d)) in
-    let s5 = scope(-1., 1., ("blade_pitch_angle", linear, blade_pitch_angle)) in
-    window5 ("Wind Turbine", 630., t, s1, s2, s3, s4, s5)
+    let s1 = scope (8., 16., ("v0", linear, v0)) in
+    let s2 = scope (10., 13., ("omega", linear, omega)) in
+    let s3 = scope (1000., 1300., ("omega_g", linear, omega_g)) in
+    let s4 = scope (2.5e4, 5.e4, ("mg_d", linear, mg_d)) in
+    let s5 = scope3(0., 13., ("theta", linear, theta),
+                             ("theta_d", linear, theta_d),
+                             ("blade_pitch_angle", linear, blade_pitch_angle)) in
+    windown ("Wind Turbine", 630., t, [s1; s2; s3; s4; s5])

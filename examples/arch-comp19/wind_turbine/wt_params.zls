@@ -85,7 +85,7 @@ type params = {
     pitch : pitch
 }
 
-let discrete get_default () =
+let discrete get_default v0_0 =
     let init_omega = Array.of_list
         [0.;0.1267;0.2534;0.3801;0.5068;0.6336;0.7603;0.8870;1.0137;1.1404;
          1.2671;1.2671;1.2671;1.2671;1.2671;1.2671;1.2671;1.2671;1.2671;1.2671;
@@ -103,7 +103,6 @@ let discrete get_default () =
 
     (* params *)
     let tmax = 630. in
-    let v0_0 = 9.6076 in
     let rho          = 1.225 in
     let rotor        = 126./.2. in
     let lambda_opt   = 7.55 in
