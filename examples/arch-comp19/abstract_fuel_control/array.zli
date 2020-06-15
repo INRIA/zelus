@@ -1,0 +1,4 @@
+type 'a t
+
+val get : 'a t -> int -> 'a
+val of_list : 'a list -> 'a t

@@ -1,0 +1,12 @@
+val interp1 :
+    float Array.t (* x *)
+  * float Array.t (* y *)
+  -A->
+    (float -A-> float) (* lookup function (linear interpolation and extrapolation) *)
+
+val interp2 :
+    float Array.t       (* x *)
+  * float Array.t       (* y *)
+  * float Array.t Array.t (* z *)
+  -A->
+    (float * float -A-> float) (* lookup function (linear interpolation and extrapolation)*)
