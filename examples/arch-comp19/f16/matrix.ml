@@ -33,9 +33,10 @@ let set_row_from_list m i l =
     else assert false
   else assert false
 
+let saturate low high i =
+  if i > high then high else if i < low then low else i
+
 let lut1d_col table i j_f =
-  let saturate low high i =
-    if i > high then high else if i < low then low else i in
   let j = saturate 0. (float_of_int (dim2 table - 2)) (floor j_f) in
   let dj = j_f -. j in let cdj = 1. -. dj in
 
@@ -43,8 +44,6 @@ let lut1d_col table i j_f =
   (get table i j) *. cdj +. (get table i (j+1)) *. dj
 
 let lut1d_row table i_f j alpha =
-  let saturate low high i =
-    if i > high then high else if i < low then low else i in
   let i = saturate 0. (float_of_int (dim1 table - 2)) (floor i_f) in
   let di = i_f -. i in let cdi = 1. -. di in
 
@@ -52,9 +51,6 @@ let lut1d_row table i_f j alpha =
   (get table i j) *. cdi +. (get table (i+1) j) *. di
 
 let lut2d table i_f j_f =
-  let saturate low high i =
-    if i > high then high else if i < low then low else i in
-
   let i = saturate 0. (float_of_int (dim1 table - 2)) (floor i_f) in
   let di = i_f -. i in let cdi = 1. -. di in
   let j = saturate 0. (float_of_int (dim2 table - 2)) (floor j_f) in
