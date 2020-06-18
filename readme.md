@@ -6,7 +6,8 @@ You can either install zelus from sources or with docker
 
 - Requirements
   - Mandatory:
-    - Ocaml (>= 4.08.0)
+    - Ocaml (>= 4.10.0)
+    - Menhir
   - Optional:
     - SundialsML
     - Lablgtk2
