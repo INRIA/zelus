@@ -1,7 +1,18 @@
 (* vec is an ordered float array
  * returns i such that vec.(i) < v < vec.(i+1) (or i = 0 or i = length vec) *)
 let ifind v vec =
-  Array.fold_left (fun i vec_i -> if vec_i < v then i + 1 else i) 0 vec
+  let rec aux start_i end_i =
+    if start_i = end_i then start_i
+    else
+      let i = (start_i + end_i) / 2 in
+      let v_i = vec.(i) in
+      let v_ip1 = vec.(i+1) in
+      if v_i <= v && v < v_ip1 then i
+      else if v_i > v then aux start_i (max 0 (i-1))
+      else if v >= v_ip1 then
+        aux (min (Array.length vec - 1) (i+1)) end_i
+      else assert false
+  in aux 0 (Array.length vec - 1)
 
 (* linear interpolatiion, x1 <= xi <= x2 *)
 let interp x1 x2 val1 val2 xi =
