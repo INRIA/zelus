@@ -1,0 +1,122 @@
+open Nn_utils
+
+node integrate (tstep, dy, y0) = y where
+    rec y = y0 fby (tstep *. dy +. y)
+
+let saturate (low, high, v) = min (max v low) high
+
+discrete sgn x = if x > 0. then 1. else if x < 0. then -1. else 0.
+
+node zero_order_hold (tstep, p, x) = x_disc where
+    rec t = integrate (tstep, 1., 0.)
+    and init hor = p
+    and init x_disc = x
+    and present (t > hor) -> do
+        next hor = (floor (t /. p) +. 1.) *. p
+        and next x_disc = x
+    done
+
+node plant (tstep, cur) = pos where
+    rec pos = integrate (tstep, vel, 0.5)
+    and vel = integrate (tstep, acc, 0.)
+    and acc = aux1 -. gravity -. visc_fric
+    and visc_fric = vel *. 12. /. mass
+    and aux1 = 15. *. (sgn cur) *. cur *. cur /. pos /. mass
+
+let normalize_in (xmin, xmax, x) = (x -. xmin) *. 2. /. (xmax -. xmin) -. 1.
+let normalize_out (ymin, ymax, y) = (y +. 1.) *. (ymax -. ymin) /. 2. +. ymin
+let tansig x = 2. /. (1. +. exp(-2. *. x)) -. 1.
+
+(* Matlab block implementing y as sampled sol of system:
+    x(n+1) = Ax(n) + Bu(n)
+      y(n) = Cx(n) + Du(n)
+
+with u of size 2x1 and
+        0   0   0         1   0         0   0   0         1   0
+    A = 0   0   0 and B = 0   1 and C = 1   0   0 and D = 0   0
+        0   1   0         0   0         0   0   0         0   1
+                                        0   1   0         0   0
+*)
+node discrete_state_space (tstep, ts, u1, u2) = y1, y2, y3, y4 where
+    rec t = integrate (tstep, 1., 0.)
+    and compute = t > pre hor
+    and hor = ts -> if compute then (floor (t /. ts) +. 1.) *. ts else pre hor
+    and y1 = u1 -> if compute then u1 else pre y1
+    and y2 = 0. -> if compute then pre y1 else pre y2
+    and y3 = u2 -> if compute then u2 else pre y3
+    and y4 = 0. -> if compute then pre y3 else pre y4
+
+let mat_op (iw_1_1, iw_1_2, iw_1_3, iw_1_4, iw_2_1, iw_2_2, iw_2_3, iw_2_4,
+            iw_3_1, iw_3_2, iw_3_3, iw_3_4, iw_4_1, iw_4_2, iw_4_3, iw_4_4,
+            iw_5_1, iw_5_2, iw_5_3, iw_5_4, iw_6_1, iw_6_2, iw_6_3, iw_6_4,
+            iw_7_1, iw_7_2, iw_7_3, iw_7_4, iw_8_1, iw_8_2, iw_8_3, iw_8_4,
+            iw_9_1, iw_9_2, iw_9_3, iw_9_4,
+            b_1, b_2, b_3, b_4, b_5, b_6, b_7, b_8, b_9,
+            lw_1, lw_2, lw_3, lw_4, lw_5, lw_6, lw_7, lw_8, lw_9,
+            b2, lw2, x1, x2, x3, x4) = y where
+    rec iw1 = tansig (iw_1_1 *. x1 +. iw_1_2 *. x2 +. iw_1_3 *. x3 +. iw_1_4 *. x4 +. b_1)
+    and iw2 = tansig (iw_2_1 *. x1 +. iw_2_2 *. x2 +. iw_2_3 *. x3 +. iw_2_4 *. x4 +. b_2)
+    and iw3 = tansig (iw_3_1 *. x1 +. iw_3_2 *. x2 +. iw_3_3 *. x3 +. iw_3_4 *. x4 +. b_3)
+    and iw4 = tansig (iw_4_1 *. x1 +. iw_4_2 *. x2 +. iw_4_3 *. x3 +. iw_4_4 *. x4 +. b_4)
+    and iw5 = tansig (iw_5_1 *. x1 +. iw_5_2 *. x2 +. iw_5_3 *. x3 +. iw_5_4 *. x4 +. b_5)
+    and iw6 = tansig (iw_6_1 *. x1 +. iw_6_2 *. x2 +. iw_6_3 *. x3 +. iw_6_4 *. x4 +. b_6)
+    and iw7 = tansig (iw_7_1 *. x1 +. iw_7_2 *. x2 +. iw_7_3 *. x3 +. iw_7_4 *. x4 +. b_7)
+    and iw8 = tansig (iw_8_1 *. x1 +. iw_8_2 *. x2 +. iw_8_3 *. x3 +. iw_8_4 *. x4 +. b_8)
+    and iw9 = tansig (iw_9_1 *. x1 +. iw_9_2 *. x2 +. iw_9_3 *. x3 +. iw_9_4 *. x4 +. b_9)
+    and y = (iw1 *. lw_1 +. iw2 *. lw_2 +. iw3 *. lw_3 +. iw4 *. lw_4 +.
+             iw5 *. lw_5 +. iw6 *. lw_6 +. iw7 *. lw_7 +. iw8 *. lw_8 +.
+             iw9 *. lw_9 +. b2) *. lw2
+
+
+node narma_l2_controller (tstep, ref, pos) = ctrl_sig, plant_approx where
+    rec ctrl_sig = zero_order_hold (tstep, ts, saturate (min_i, max_i, out1))
+    and plant_approx = lw_1 +. lw_2 *. ctrl_sig
+
+    and out1 = if normalize then normalize_out (minp, maxp, p) else p
+
+    and p = (ref' -. lw_1) /. lw_2
+
+    and ref' = if normalize then normalize_in (mint, maxt, ref) else ref
+
+    and lw_1 =
+        mat_op (iw1_1_1, iw1_1_2, iw1_1_3, iw1_1_4, iw1_2_1, iw1_2_2, iw1_2_3,
+                iw1_2_4, iw1_3_1, iw1_3_2, iw1_3_3, iw1_3_4, iw1_4_1, iw1_4_2,
+                iw1_4_3, iw1_4_4, iw1_5_1, iw1_5_2, iw1_5_3, iw1_5_4, iw1_6_1,
+                iw1_6_2, iw1_6_3, iw1_6_4, iw1_7_1, iw1_7_2, iw1_7_3, iw1_7_4,
+                iw1_8_1, iw1_8_2, iw1_8_3, iw1_8_4, iw1_9_1, iw1_9_2, iw1_9_3,
+                iw1_9_4, b1_1, b1_2, b1_3, b1_4, b1_5, b1_6, b1_7, b1_8, b1_9,
+                lw2_1, lw2_2, lw2_3, lw2_4, lw2_5, lw2_6, lw2_7, lw2_8, lw2_9,
+                b2, lw6_2, y1, y2, y3, y4)
+
+    and lw_2 =
+        mat_op (iw3_1_1, iw3_1_2, iw3_1_3, iw3_1_4, iw3_2_1, iw3_2_2, iw3_2_3,
+                iw3_2_4, iw3_3_1, iw3_3_2, iw3_3_3, iw3_3_4, iw3_4_1, iw3_4_2,
+                iw3_4_3, iw3_4_4, iw3_5_1, iw3_5_2, iw3_5_3, iw3_5_4, iw3_6_1,
+                iw3_6_2, iw3_6_3, iw3_6_4, iw3_7_1, iw3_7_2, iw3_7_3, iw3_7_4,
+                iw3_8_1, iw3_8_2, iw3_8_3, iw3_8_4, iw3_9_1, iw3_9_2, iw3_9_3,
+                iw3_9_4, b3_1, b3_2, b3_3, b3_4, b3_5, b3_6, b3_7, b3_8, b3_9,
+                lw4_1, lw4_2, lw4_3, lw4_4, lw4_5, lw4_6, lw4_7, lw4_8, lw4_9,
+                b4, lw6_5 *. lw5 *. iw5, y1, y2, y3, y4)
+
+    and y1,y2,y3,y4 = discrete_state_space (tstep, ts, sig1, sig2)
+
+    and sig1 = if normalize then normalize_in (mint, maxt, pos) else pos
+    and sig2 = 0. fby if normalize then normalize_in (minp, maxp, ctrl_sig) else ctrl_sig
+
+node nn (tstep, ref) = pos, nnpos where
+    rec pos = plant (tstep, cur_disc)
+    and cur, nnpos = narma_l2_controller (tstep, ref, pos)
+    and cur_disc = zero_order_hold (tstep, u_ts, cur)
+
+open Scope
+let tstep = 0.001
+node main () =
+    let rec t = integrate (tstep, 1., 0.) in
+
+    let ref = 2. in
+    let pos, nnpos = nn(tstep, ref) in
+
+    let s1 = scope (1., 3., ("ref", linear, ref)) in
+    let s2 = scope (0., 4., ("pos", linear, pos)) in
+    let s3 = scope (0., 4., ("nnpos", linear, nnpos)) in
+    window3("Neural", 40., t, s1, s2, s3)
