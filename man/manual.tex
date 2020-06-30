@@ -290,7 +290,9 @@
 \noindent {\huge \bf Z\'elus: a Synchronous Language with ODEs}
 %Hybrid Synchronous Language}
 \\[2ex]
-{\Large Release, version 1.2}
+  {\Large Release, version 1.2}~\footnote{Warning: the manual is outdated
+    w.r.t the source code available on GitHub (Version 2.1, 2020). This
+    manual will be updated soon.}
 
 
 \vspace{7cm}
@@ -352,14 +354,17 @@
 % }-}1
 \chapter*{Foreword\label{foreword}} %{-{1
 
-\zelus{} is a synchronous language extended with
-Ordinary Differential Equations.
-It is for programming systems that mix discrete-time and continuous-time
-behaviors, like, for instance, real-time control software executing in 
-closed loop with a model of its physical environment.
-More intricate interactions between discrete- and continuous-time behaviors 
-can be expressed, like, for instance, continuous-time PID controllers or 
-hybrid automata with modes defined by ODEs.
+\zelus{} is a synchronous language in the style of
+\lustre~\cite{lustre:ieee91} and \lucy~\cite{lucy:iste07} but extended
+to model \emph{hybrid systems} that mix discrete-time and
+continuous-time signals. An example is a system that mix a
+(discrete-time) model of real-time control software that executes in
+closed loop with a model of its physical environment described by a
+Ordinary Differential Equations.  More intricate interactions between
+discrete- and continuous-time behaviors can be expressed, like, for
+instance, continuous-time PID controllers or hybrid automata with
+several running modes, each of them being defined by an ODEs (the so-called
+\emph{hybrid automata}).
 %It is also possible to program more intricate interactions between discrete 
 %and continuous-time, both for the controller or
 %the physical plant: discrete or continuous-time PID controllers,
@@ -369,9 +374,9 @@ hybrid automata with modes defined by ODEs.
 \zelus{} provides basic synchronous language constructs---difference and 
 data-flow equations, hierarchical automata, and stream function 
 definitions---in the style of \lustre~\cite{lustre:ieee91} and
-\lucy~\cite{lucy:iste07}.
-The extension with ODEs for modeling continuous-time behaviors is 
-conservative.
+\lucy~\cite{lucy:iste07}. Continuous-time dymamics are
+expressed by ODEs with events defined as \emph{zero-crossings}.
+
 The expressiveness of the language is deliberately constrained to statically 
 ensure determinism and the generation of loop-free sequential code that runs 
 in bounded time and space. Moreover, code is generated identically for both 
@@ -388,7 +393,7 @@ It is a data-flow language in Single Static Assignment form: every name has
 only a single definition in the source code at any instant. A program is a 
 collection of functions from signals to signals. A \emph{signal} is a 
 function from time
-to values. A set of signals is defined uniquely as
+to values. A set of signals is defined as
 the solution of a set of mutually recursive equations.
 \item
 The separation between discrete-time and continuous-time signals and
@@ -2282,12 +2287,12 @@ For example, the following two state automaton
 starts in state \zls{Run(incr)} with \zls{incr} initialized to the first
 value of \zls{i0}.
 \begin{chklisting}[withresult]
-let node two_states(i0, idle, run) = o where
+let node two_states(i0, idle, r) = o where
   rec automaton
       | Run(incr) ->
           do o = 0 fby o + incr until idle() then Idle
       | Idle ->
-          do until run(incr) then Run(incr)
+          do until r(incr) then Run(incr)
       init Run(i0)
 \end{chklisting}
 
