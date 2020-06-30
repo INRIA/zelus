@@ -71,12 +71,12 @@ window.onload = function() {
               is a synchronous language extended with Ordinary Differential
               Equations (ODEs) to model hybrid systems with complex interaction between
 	      discrete-time and continuous-time dynamics. It shares
-              the basic principles of
+              the basic principles of the synchronous language
               <a href="http://www-verimag.imag.fr/Synchrone,30?lang=en">Lustre</a> 
-              with features from
+              with language and compiler features from
               <a href="http://www.di.ens.fr/~pouzet/lucid-synchrone/">Lucid 
                 Synchrone</a> (type inference, hierarchical automata, and 
-              signals).
+              signals). To that, it add the possibily to 
 
 	      The compiler is written in <a
               href="http://caml.inria.fr/ocaml/">OCaml</a> and is
@@ -88,39 +88,38 @@ window.onload = function() {
               CVODE</a>) and, for the moment,
               two built-in solvers (ode23 and ode45).
 
-              If you want an access to the development repository
-	      on INRIA GitLab (https://gitlab.inria.fr/parkas/zelus),
-	      send us a mail.
-	      
               </p>
               <p>
-                <a class="btn" href="https://github.com/inria/zelus">Get the 
-                  source code on GitHub (version 2.1)»</a>
+                <a class="btn" href="https://github.com/inria/zelus">Get version 2.1 (source code) on GitHub»</a>
                 <a class="btn" href="./man">Read the manual »</a>
                 
 	      </p>
+
+	      If you want an access to the up-to-date development repository
+	      on INRIA GitLab (https://gitlab.inria.fr/parkas/zelus),
+	      send us a mail.
+	      
+              
             </div><!--/span-->
 
-             <div class="span6">
-              <h2>Research</h2>
-              <p>
-                  Zélus is used to experiment with new techniques
-	          for building hybrid modelers like
-	          <a href="http://www.mathworks.fr/products/simulink/">Simulink/Stateflow</a> 
-                  and <a href="https://www.modelica.org">Modelica</a> on top
-	          of a synchronous language.
-                  The language exploits novel techniques for defining the
-                  semantics of hybrid modelers, it provides 
-                  dedicated type systems to ensure the 
-                  absence of discontinuities during integration and the 
-                  generation of sequential code.
-                  In particular, all discrete computations must be aligned to 
-                  zero-crossing events;
-	          programs with causality loops and uninitialized values are 
-                  statically rejected.
-              </p>
-              <p><a class="btn" href="papers.html">View publications »</a></p>
-            </div><!--/span-->
+             <div class="span6"> <h2>Research</h2> <p> Zélus is used
+              to experiment with new techniques for building hybrid
+              modelers like <a
+              href="http://www.mathworks.fr/products/simulink/">Simulink/Stateflow</a>
+              and <a href="https://www.modelica.org">Modelica</a> on
+              top of a synchronous language.  The language exploits
+              novel techniques for defining the dynamic and
+	      static semantics of hybrid
+              modelers; it uses several dedicated type systems 
+              to insure safety properties like
+	      the absence of discontinuities during
+              integration and the ability to generate statically scheduled
+	      (sequential) code.  In
+              particular, all discrete computations must be aligned to
+              zero-crossing events; programs with causality loops and
+              uninitialized values are statically rejected.  </p>
+              <p><a class="btn" href="papers.html">View publications
+              »</a></p> </div><!--/span-->
 
 
          </div><!--/row-->
