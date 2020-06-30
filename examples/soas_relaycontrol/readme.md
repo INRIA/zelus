@@ -33,22 +33,24 @@ increased by a factor of 5 at t = 25_.
 The state-space realizations of these two systems are readily calculated in
 either [Matlab](http://www.mathworks.com/products/matlab/):
 
-<pre><code>sys1 = tf(60, [1 21 20 0])
+```
+sys1 = tf(60, [1 21 20 0])
 [a, b, c, d] = ss()
 
 sys2 = 5 * sys1
 [a, b, c, d] = ss(sys2)
-</code></pre>
+```
 
 or [Scilab](https://www.scilab.org/):
 
-<pre><code>s=%s
+```
+s=%%s
 sys1 = 60 / (s * (s + 1) * (s + 20))
 [a, b, c, d] = abcd(sys1)
 
 sys2 = 5 * sys1
 [a, b, c, d] = abcd(sys2)
-</code></pre>
+```
 
 We implement them in a node called `process` using a hybrid automaton and a
 generic `siso_3o` node that takes the state-space matrices as tupled
@@ -70,12 +72,16 @@ coefficient ζ = 0.7 and natural frequency ω_n = 1 rad/sec.
 Its state-space realization is readily calculated in either
 [Matlab](http://www.mathworks.com/products/matlab/):
 
-<pre><code>[A, B, C, D] = ord2(1.0, 0.7)</code></pre>
+```
+[A, B, C, D] = ord2(1.0, 0.7)
+```
 
 or [Scilab](https://www.scilab.org/):
 
-<pre><code>s = %s; wn = 1.0; zeta = 0.7;
-tf2ss(syslin('c', wn^2, s^2 + 2*zeta*wn*s + wn^2))</code></pre>
+```
+s = %%s; wn = 1.0; zeta = 0.7;
+tf2ss(syslin('c', wn^2, s^2 + 2*zeta*wn*s + wn^2))
+```
 
 We express it in a node called `reference` using a generic `siso_2o` node.
 
@@ -109,12 +115,16 @@ which is implemented in the node `g_f` using the generic node `siso_1o`
 after having calculated its state-space realization in either
 [Matlab](http://www.mathworks.com/products/matlab/):
 
-<pre><code>[a, b, c, d] = ss(1.2 * tf([1 5], [1 15]))</code></pre>
+```
+[a, b, c, d] = ss(1.2 * tf([1 5], [1 15]))
+```
 
 or [Scilab](https://www.scilab.org/):
 
-<pre><code>s = poly(0, 's')
-[a, b, c, d] = abcd(tf2ss(1.2 * (s + 5) / (s + 15)))</code></pre>
+```
+s = poly(0, 's')
+[a, b, c, d] = abcd(tf2ss(1.2 * (s + 5) / (s + 15)))
+```
 
 The compensation filter decreases the amplitude of oscillation while
 maintaining the reponse speed, as can be seen in the simulation results
