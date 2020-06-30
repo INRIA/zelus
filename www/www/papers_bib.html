@@ -296,3 +296,176 @@
 }
 </pre>
 
+<a name="ML2016"></a><pre>
+@article{ML2016,
+  author = {Timothy Bourke
+		   and Jun Inoue
+		   and Marc Pouzet},
+  title = {{Sundials/ML}: connecting {OCaml} to the {Sundials}
+                   numeric solvers},
+  publisher = {{Open Publishing Association}},
+  journal = {Electronic Proceedings in Theoretical Computer Science},
+  volume = 285,
+  pages = {101--130},
+  year = 2018,
+  doi = {10.4204/EPTCS.285.4},
+  note = {Extended version of paper appearing in the ACM Workshop on ML, 2016},
+  abstract = {This paper describes the design and implementation of a
+                  comprehensive OCaml interface to the Sundials
+                  library of numeric solvers for ordinary differential
+                  equations, differential algebraic equations, and
+                  non-linear equations. The interface provides a
+                  convenient and memory-safe alternative to using
+                  Sundials directly from C and facilitates application
+                  development by integrating with higher-level
+                  language features, like garbage-collected memory
+                  management, algebraic data types, and
+                  exceptions. Our benchmark results suggest that the
+                  interface overhead is acceptable: the standard
+                  examples are rarely twice as slow in OCaml than in
+                  C, and often less than 50\% slower. The challenges
+                  in interfacing with Sundials are to efficiently and
+                  safely share data structures between OCaml and C, to
+                  support multiple implementations of vector
+                  operations and linear solvers through a common
+                  interface, and to manage calls and error signalling
+                  to and from OCaml. We explain how we overcame these
+                  difficulties using a combination of standard
+                  techniques such as phantom types and polymorphic
+                  variants, and carefully crafted data
+                  representations.
+
+See also: \url{http://zelus.di.ens.fr/sundialsml}},
+  url = {<a href="http://zelus.di.ens.fr/workshop-ml/journal-paper.pdf">http://zelus.di.ens.fr/workshop-ml/journal-paper.pdf</a>}
+}
+</pre>
+
+<a name="EMSOFT2017"></a><pre>
+@inproceedings{EMSOFT2017,
+  author = {Timothy Bourke and Francois Carcenac and Jean-Louis Cola\c{c}o
+                  and Bruno Pagano and C\'edric Pasteur and Marc Pouzet},
+  title = {{A Synchronous Look at the Simulink Standard Library}},
+  booktitle = {ACM International Conference on Embedded Software (EMSOFT)},
+  month = {October 15-20},
+  address = {Seoul},
+  year = 2017,
+  abstract = {Hybrid systems modelers like
+  Simulink come with a rich collection of discrete-time and
+  continuous-time blocks. Most blocks are not defined in terms of more
+  elementary ones---and some cannot be---but are instead written in
+  imperative code and explained informally in a reference
+  manual. This raises the question of defining a minimal set of
+  orthogonal programming constructs such that
+  most blocks can be \emph{programmed} directly and thereby given
+  a specification that is mathematically precise, and whose compiled
+  version performs comparably to handwritten code.
+  
+  In this paper, we show that a fairly large set of blocks from the
+  Simulink standard library can be programmed in a precise, purely
+  functional language using stream equations, hierarchical automata,
+  Ordinary Differential Equations (ODEs), and deterministic
+  synchronous parallel composition.  Some blocks cannot be expressed
+  as they mix discrete-time and continuous-time signals in
+  unprincipled ways and so are statically forbidden by the type
+  checker.
+
+  The experiment is conducted in Z\'elus, a synchronous language that
+  conservatively extends Lustre with constructs for
+  programming systems that mix discrete-time and continuous-time signals.
+
+See also: \url{http://zelus.di.ens.fr/emsoft17}},
+  url = {<a href="http://zelus.di.ens.fr/emsoft17/paper.pdf">http://zelus.di.ens.fr/emsoft17/paper.pdf</a>}
+}
+</pre>
+
+<a name="IEEE2018"></a><pre>
+@article{IEEE2018,
+  author = {Albert Benveniste and Timothy Bourke
+                  and Beno\^{\i}t Caillaud and Jean-Louis Cola\c{c}o
+                  and C\'edric Pasteur and Marc Pouzet},
+  title = {{Building a Hybrid Systems Modeler on Synchronous
+  Languages Principles}},
+  journal = {Proceedings of the IEEE},
+  year = 2018,
+  abstract = { Hybrid systems modeling languages that mix discrete and
+  continuous time signals and systems are widely used to develop
+  Cyber-Physical systems where control software interacts with
+  physical devices. Compilers play a central role, statically checking
+  source models, generating intermediate representations for testing
+  and verification, and producing sequential code for simulation and
+  execution on target platforms.
+
+  This paper presents a novel approach
+  to the design and implementation of a hybrid systems language,
+  built on synchronous language principles and their proven
+  compilation techniques. The result is a hybrid systems modeling
+  language in which synchronous programming constructs can be mixed
+  with Ordinary Differential Equations (ODEs) and zero-crossing
+  events, and a runtime that delegates their approximation to an
+  off-the-shelf numerical solver.
+
+  We propose an ideal semantics based
+  on non standard analysis, which defines the execution of a hybrid
+  model as an infinite sequence of infinitesimally small time
+  steps. It is used to specify and prove correct three essential
+  compilation steps: (1) a type system that guarantees that a
+  continuous-time signal is never used where a discrete-time one is
+  expected and conversely; (2) a type system that ensures the absence
+  of combinatorial loops; (3) the generation of statically scheduled
+  code for efficient execution.
+
+  Our approach has been evaluated in
+  two implementations: the academic language Zelus, which extends a
+  language reminiscent of Lustre with ODEs and zero-crossing events,
+  and the industrial prototype Scade Hybrid, a conservative extension
+  of Scade 6.
+
+  See also: \url{http://zelus.di.ens.fr/ieee18}},
+  url = {<a href="http://zelus.di.ens.fr/ieee18/paper.pdf">http://zelus.di.ens.fr/ieee18/paper.pdf</a>}
+}
+</pre>
+
+<a name="PLDI2020"></a><pre>
+@inproceedings{PLDI2020,
+  author = {Guillaume Baudart and Louis Mandel and
+    Eric Atkinson and Benjamin Sherman and Marc Pouzet and Michael Carbin},
+  title = {{Reactive Probabilistic Programming}},
+  booktitle = {International Conference on Programming Language Design and
+               Implementation (PLDI)},
+  year = 2020,
+  month = {June 15-20},
+  address = {London, United Kingdom},
+  organization = {ACM},
+  abstract = {
+Synchronous modeling is at the heart of programming languages like
+Lustre, Esterel, or Scade{} used routinely for implementing safety
+critical control software, e.g., fly-by-wire and engine control in planes.
+However, to date these languages have had limited modern support for
+modeling uncertainty --- probabilistic aspects of the software's
+environment or behavior --- even though modeling uncertainty is a
+primary activity when designing a control system.
+
+In this paper we present \ProbZelus the first {\em synchronous
+probabilistic programming language}. 
+ProbZelus conservatively provides the
+facilities of a synchronous language to write control software, with
+probabilistic constructs to model uncertainties and perform {\em
+inference-in-the-loop}.
+
+We present the design and implementation of the language. We propose a measure-theoretic semantics of probabilistic stream functions and a simple type discipline to
+separate deterministic and probabilistic expressions. We demonstrate a
+semantics-preserving compilation into a first-order functional language
+that lends itself to a simple presentation of inference algorithms
+for streaming models.
+We also redesign the delayed sampling inference algorithm to provide
+efficient \emph{streaming} inference.
+
+Together with an evaluation on several reactive applications, our results
+demonstrate that ProbZelus enables the design of reactive
+probabilistic applications and efficient, bounded memory inference.
+
+See also: \url{http://zelus.di.ens.fr/pldi20}},
+  url = {<a href="http://zelus.di.ens.fr/pldi20/paper-extended.pdf">http://zelus.di.ens.fr/pldi20/paper-extended.pdf</a>}
+}
+</pre>
+

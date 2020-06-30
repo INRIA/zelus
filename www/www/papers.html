@@ -1,4 +1,4 @@
-<!DOCTYPE html SYSTEM "about:legacy-compat">
+<!DOCTYPE html>
 <html lang="en">
 <head>
 
@@ -61,6 +61,10 @@ document.getElementById('title-papers').className = 'active';
 <li><a href="http://www.di.ens.fr/ParkasTeam.html">PARKAS Team</a></li>
 
 <li class="sidebar-nav-header">Papers</li>
+<li><a href="#PLDI2020">PLDI 2020</a></li>
+<li><a href="#IEEE2018">IEEE 2018</a></li>
+<li><a href="#ML2016">ML 2016</a></li>
+<li><a href="#EMSOFT2017">EMSOFT 2017</a></li>
 <li><a href="#CC2015">CC 2015</a></li>
 <li><a href="#HSCC2014">HSCC 2014</a></li>
 <li><a href="#HSCC2013">HSCC 2013</a></li>
@@ -76,20 +80,30 @@ document.getElementById('title-papers').className = 'active';
 <h1>Publications</h1>
 
 <p>
-The <a href="#CDC2010">CDC 2010</a> and <a href="#JCSS2012">JCSS 2012</a> 
+The <a href="#CDC2010">CDC 2010</a> and <a href="#JCSS2012">JCSS 2012</a>
 papers focus on the semantics of hybrid modelers.
-The <a href="#LCTES2011">LCTES 2011</a> and <a href="#EMSOFT2011">EMSOFT 
-2011</a> papers describe the type system and compilation rules; the 
-former addresses a basic dataflow language while the latter shows how to 
+The <a href="#LCTES2011">LCTES 2011</a> and <a href="#EMSOFT2011">EMSOFT
+2011</a> papers describe the type system and compilation rules; the
+former addresses a basic dataflow language while the latter shows how to
 introduce hybrid automata.
-The <a href="#HSCC2013">HSCC 2013</a> paper describes practical aspects of 
-the language and its compiler.
-The <a href="#HSCC2014">HSCC 2014</a> paper outlines some challenges in 
-the treatment of causality in hybrid modelers and presents a Lustre-like 
+The <a href="#HSCC2013">HSCC 2013</a> paper is a short introduction
+to the language and its compiler (version 1).
+The <a href="#HSCC2014">HSCC 2014</a> paper outlines some challenges in
+the treatment of causality in hybrid modelers and presents a Lustre-like
 causality analysis for Zélus.
-The <a href="#CC2015">CC 2015</a> paper describes how to adapt an existing 
-synchronous compiler to generate code from hybrid models, and validates 
+The <a href="#CC2015">CC 2015</a> paper describes how to adapt an existing
+synchronous compiler to generate code from hybrid models, and validates
 the approach in the industrial Scade Suite KCG code generator of Scade 6.
+Paper <a href="#ML2016">ML 2016</a> describes the design and
+implementation of SundialsML, a comprehensive OCaml interface to
+the Sundials library of numeric solvers for differential equations. Paper
+<a href="#EMSOFT2017">EMSOFT 2017</a> investigates the use of
+Zélus to write a standard library of control blocks, in both discrete and
+continuous time (e.g., integrators, filters, PIDs) relying on
+features available in Version 2 of the language.
+Paper <a href="#IEEE2018">EMSOFT 2018</a> describes the
+design principles of Zélus. Paper <a href="#PLDI2020">EMSOFT 2020</a>
+describes ProbZélus, a probabilistic extension of Zélus.
 </p>
 
 <hr>
@@ -97,6 +111,178 @@ the approach in the industrial Scade Suite KCG code generator of Scade 6.
 <div class="bib">
 
 <dl>
+
+<dt>
+<a id="PLDI2020" class="biblink">PLDI 2020</a>
+</dt>
+<dd>
+Guillaume Baudart, Louis Mandel, Eric Atkinson, Benjamin Sherman, Marc Pouzet,
+  and Michael Carbin.
+ Reactive Probabilistic Programming.
+ In <em>International Conference on Programming Language Design and
+  Implementation (PLDI)</em>, London, United Kingdom, June 15-20 2020. ACM.<br>
+<span class="bibref"><a href="papers_bib.html#PLDI2020"><i class="glyphicon glyphicon-book"></i> bib</a></span>
+<span class="bibref"><a href="http://zelus.di.ens.fr/pldi20/paper-extended.pdf"><i class="glyphicon glyphicon-file"></i> pdf</a></span>
+<div class="abstract"><p>
+
+Synchronous modeling is at the heart of programming languages like
+Lustre, Esterel, or Scade used routinely for implementing safety
+critical control software, e.g., fly-by-wire and engine control in planes.
+However, to date these languages have had limited modern support for
+modeling uncertainty — probabilistic aspects of the software's
+environment or behavior — even though modeling uncertainty is a
+primary activity when designing a control system.</p><p>
+In this paper we present the first <em>synchronous
+probabilistic programming language</em>. 
+ProbZelus conservatively provides the
+facilities of a synchronous language to write control software, with
+probabilistic constructs to model uncertainties and perform <em>
+inference-in-the-loop</em>.</p><p>
+We present the design and implementation of the language. We propose a measure-theoretic semantics of probabilistic stream functions and a simple type discipline to
+separate deterministic and probabilistic expressions. We demonstrate a
+semantics-preserving compilation into a first-order functional language
+that lends itself to a simple presentation of inference algorithms
+for streaming models.
+We also redesign the delayed sampling inference algorithm to provide
+efficient <em>streaming</em> inference.</p><p>
+Together with an evaluation on several reactive applications, our results
+demonstrate that ProbZelus enables the design of reactive
+probabilistic applications and efficient, bounded memory inference.</p><p>
+See also: <a href="http://zelus.di.ens.fr/pldi20">http://zelus.di.ens.fr/pldi20</a>
+</p></div>
+
+</dd>
+
+
+<dt>
+<a id="IEEE2018" class="biblink">IEEE 2018</a>
+</dt>
+<dd>
+Albert Benveniste, Timothy Bourke, Benoît Caillaud, Jean-Louis Colaço,
+  Cédric Pasteur, and Marc Pouzet.
+ Building a Hybrid Systems Modeler on Synchronous Languages
+  Principles.
+ <em>Proceedings of the IEEE</em>, 2018.<br>
+<span class="bibref"><a href="papers_bib.html#IEEE2018"><i class="glyphicon glyphicon-book"></i> bib</a></span>
+<span class="bibref"><a href="http://zelus.di.ens.fr/ieee18/paper.pdf"><i class="glyphicon glyphicon-file"></i> pdf</a></span>
+<div class="abstract"><p>
+ Hybrid systems modeling languages that mix discrete and
+  continuous time signals and systems are widely used to develop
+  Cyber-Physical systems where control software interacts with
+  physical devices. Compilers play a central role, statically checking
+  source models, generating intermediate representations for testing
+  and verification, and producing sequential code for simulation and
+  execution on target platforms.</p><p>
+  This paper presents a novel approach
+  to the design and implementation of a hybrid systems language,
+  built on synchronous language principles and their proven
+  compilation techniques. The result is a hybrid systems modeling
+  language in which synchronous programming constructs can be mixed
+  with Ordinary Differential Equations (ODEs) and zero-crossing
+  events, and a runtime that delegates their approximation to an
+  off-the-shelf numerical solver.</p><p>
+  We propose an ideal semantics based
+  on non standard analysis, which defines the execution of a hybrid
+  model as an infinite sequence of infinitesimally small time
+  steps. It is used to specify and prove correct three essential
+  compilation steps: (1) a type system that guarantees that a
+  continuous-time signal is never used where a discrete-time one is
+  expected and conversely; (2) a type system that ensures the absence
+  of combinatorial loops; (3) the generation of statically scheduled
+  code for efficient execution.</p><p>
+  Our approach has been evaluated in
+  two implementations: the academic language Zelus, which extends a
+  language reminiscent of Lustre with ODEs and zero-crossing events,
+  and the industrial prototype Scade Hybrid, a conservative extension
+  of Scade 6.</p><p>
+  See also: <a href="http://zelus.di.ens.fr/ieee18">http://zelus.di.ens.fr/ieee18</a>
+</p></div>
+
+</dd>
+
+
+<dt>
+<a id="ML2016" class="biblink">ML 2016</a>
+</dt>
+<dd>
+Timothy Bourke, Jun Inoue, and Marc Pouzet.
+ Sundials/ML: connecting OCaml to the Sundials numeric solvers.
+ <em>Electronic Proceedings in Theoretical Computer Science</em>,
+  285:101–130, 2018.
+ Extended version of paper appearing in the ACM Workshop on ML, 2016.<br>
+<span class="bibref"><a href="papers_bib.html#ML2016"><i class="glyphicon glyphicon-book"></i> bib</a></span>
+<span class="bibref"><a href="http://dx.doi.org/10.4204/EPTCS.285.4"><i class="glyphicon glyphicon-globe"></i> DOI</a></span>
+<span class="bibref"><a href="http://zelus.di.ens.fr/workshop-ml/journal-paper.pdf"><i class="glyphicon glyphicon-file"></i> pdf</a></span>
+<div class="abstract"><p>
+This paper describes the design and implementation of a
+                  comprehensive OCaml interface to the Sundials
+                  library of numeric solvers for ordinary differential
+                  equations, differential algebraic equations, and
+                  non-linear equations. The interface provides a
+                  convenient and memory-safe alternative to using
+                  Sundials directly from C and facilitates application
+                  development by integrating with higher-level
+                  language features, like garbage-collected memory
+                  management, algebraic data types, and
+                  exceptions. Our benchmark results suggest that the
+                  interface overhead is acceptable: the standard
+                  examples are rarely twice as slow in OCaml than in
+                  C, and often less than 50% slower. The challenges
+                  in interfacing with Sundials are to efficiently and
+                  safely share data structures between OCaml and C, to
+                  support multiple implementations of vector
+                  operations and linear solvers through a common
+                  interface, and to manage calls and error signalling
+                  to and from OCaml. We explain how we overcame these
+                  difficulties using a combination of standard
+                  techniques such as phantom types and polymorphic
+                  variants, and carefully crafted data
+                  representations.</p><p>
+See also: <a href="http://zelus.di.ens.fr/sundialsml">http://zelus.di.ens.fr/sundialsml</a>
+</p></div>
+
+</dd>
+
+
+<dt>
+<a id="EMSOFT2017" class="biblink">EMSOFT 2017</a>
+</dt>
+<dd>
+Timothy Bourke, Francois Carcenac, Jean-Louis Colaço, Bruno Pagano,
+  Cédric Pasteur, and Marc Pouzet.
+ A Synchronous Look at the Simulink Standard Library.
+ In <em>ACM International Conference on Embedded Software (EMSOFT)</em>,
+  Seoul, October 15-20 2017.<br>
+<span class="bibref"><a href="papers_bib.html#EMSOFT2017"><i class="glyphicon glyphicon-book"></i> bib</a></span>
+<span class="bibref"><a href="http://zelus.di.ens.fr/emsoft17/paper.pdf"><i class="glyphicon glyphicon-file"></i> pdf</a></span>
+<div class="abstract"><p>
+Hybrid systems modelers like
+  Simulink come with a rich collection of discrete-time and
+  continuous-time blocks. Most blocks are not defined in terms of more
+  elementary ones—and some cannot be—but are instead written in
+  imperative code and explained informally in a reference
+  manual. This raises the question of defining a minimal set of
+  orthogonal programming constructs such that
+  most blocks can be <em>programmed</em> directly and thereby given
+  a specification that is mathematically precise, and whose compiled
+  version performs comparably to handwritten code.
+  
+  In this paper, we show that a fairly large set of blocks from the
+  Simulink standard library can be programmed in a precise, purely
+  functional language using stream equations, hierarchical automata,
+  Ordinary Differential Equations (ODEs), and deterministic
+  synchronous parallel composition.  Some blocks cannot be expressed
+  as they mix discrete-time and continuous-time signals in
+  unprincipled ways and so are statically forbidden by the type
+  checker.</p><p>
+  The experiment is conducted in Zélus, a synchronous language that
+  conservatively extends Lustre with constructs for
+  programming systems that mix discrete-time and continuous-time signals.</p><p>
+See also: <a href="http://zelus.di.ens.fr/emsoft17">http://zelus.di.ens.fr/emsoft17</a>
+</p></div>
+
+</dd>
+
 
 <dt>
 <a id="CC2015" class="biblink">CC 2015</a>
@@ -388,7 +574,8 @@ Albert Benveniste, Benoit Caillaud, and Marc Pouzet.
 </p></div>
 
 </dd>
-</dl></div>
+</dl>
+</div>
 
 </div><!--/span-->
 </div><!--/row-->

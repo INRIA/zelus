@@ -1,4 +1,4 @@
-<!DOCTYPE html SYSTEM "about:legacy-compat">
+<!DOCTYPE html>
 <html lang="en">
 <head>
 
@@ -72,14 +72,14 @@ document.getElementById('title-download').className = 'active';
 <h1>Download and Installation</h1>
 
 <p>
-This distribution includes the Zélus compiler, runtime libraries, and 
+This distribution includes the Zélus compiler, runtime libraries, and
 example source code.
-The <a href="http://caml.inria.fr/ocaml/index.en.html">OCaml</a> runtime 
-(<code>ocamlrun</code>) is required to transform Zélus programs into 
+The <a href="http://caml.inria.fr/ocaml/index.en.html">OCaml</a> runtime
+(<code>ocamlrun</code>) is required to transform Zélus programs into
 imperative code.
 The OCaml compiler is required to compile imperative code into executables.
 Many of the examples require <a href="http://lablgtk.forge.ocamlcore.org/">lablgtk2</a>.
-The 3D visualization of the <a href="examples.html#stickysprings">Sticky 
+The 3D visualization of the <a href="examples.html#stickysprings">Sticky
 Masses</a> example requires <a href="http://www.linux-nantes.org/~fmonnier/ocaml/GL/">glMLite</a>.
 </p>
 
@@ -115,36 +115,36 @@ Masses</a> example requires <a href="http://www.linux-nantes.org/~fmonnier/ocaml
 
 <tr><td><a href="http://lablgtk.forge.ocamlcore.org/">lablgtk2</a></td>
 <td>Optional. = 2.18.3</td>
-<td>Required for the plotting control and hence many of the 
+<td>Required for the plotting control and hence many of the
 examples.</td>
 </tr>
 
 <tr><td><a href="http://www.linux-nantes.org/~fmonnier/ocaml/GL/">glMLite</a></td>
 <td>Optional. &gt;= 0.03.51</td>
-<td>Required for the <a href="examples.html#stickysprings">Sticky 
+<td>Required for the <a href="examples.html#stickysprings">Sticky
 Masses</a> example.</td>
 </tr>
 </table>
 
 <p>The compiler is distributed as byte code.
 It should run on any platform on which the <a href="http://caml.inria.fr">OCaml</a> runtime has been installed.
-There are <a href="http://caml.inria.fr/ocaml/release.en.html">packages</a> for 
+There are <a href="http://caml.inria.fr/ocaml/release.en.html">packages</a> for
 Linux, Mac, and Windows.
-Compiling Zélus programs to executable form requires the full OCaml 
+Compiling Zélus programs to executable form requires the full OCaml
 toolchain.
-Unfortunately, it may be difficult to run the examples under Windows as 
-the most convenient <a href="http://protz.github.com/ocaml-installer/">installer</a> does not 
+Unfortunately, it may be difficult to run the examples under Windows as
+the most convenient <a href="http://protz.github.com/ocaml-installer/">installer</a> does not
 seem to provide the dllunix and dllbigarray libraries which are required.
 We recommend running the examples on Linux or a Mac.</p>
 
 <h3 id="dep-osx">OS X</h3>
 
-<p>The easiest way to ensure the required dependencies is with a combination 
+<p>The easiest way to ensure the required dependencies is with a combination
 of <a href="http://brew.sh">homebrew</a> and
 <a href="http://opam.ocamlpro.com">opam</a>.</p>
 
 <p>Before installing OCaml, be sure to install
-<a href="http://xquartz.macosforge.org/">XQuartz</a> otherwise OCaml will be 
+<a href="http://xquartz.macosforge.org/">XQuartz</a> otherwise OCaml will be
 installed without the graphics module.</p>
 
 <p>To install the Opam package manager and ocamlfind:</p>
@@ -170,7 +170,7 @@ brew install homebrew/science/sundials
 opam install sundialsml
 </pre>
 
-<p>It is possible to get glMLite to work, but the process is rather 
+<p>It is possible to get glMLite to work, but the process is rather
 complicated.</p>
 
 <h3 id="dep-ubuntu">Ubuntu Linux</h3>
@@ -205,7 +205,7 @@ opam install sundialsml
 
 <h2 id="using" class="section">Using the compiler</h2>
 
-<p>After downloading the distribution, run the configure script (optionally 
+<p>After downloading the distribution, run the configure script (optionally
 setting an installation prefix):</p>
 
 <pre>./configure --prefix=/usr/local</pre>
@@ -215,24 +215,24 @@ setting an installation prefix):</p>
 <pre>sudo make install</pre>
 
 <p>The Zélus compiler is called <code>zeluc</code>.
-It compiles <code>.zls</code> Zélus source files into <code>.ml</code> OCaml 
+It compiles <code>.zls</code> Zélus source files into <code>.ml</code> OCaml
 source files:</p>
 
 <pre>zeluc -i backhoedyn.ls</pre>
 
-<p>Adding <code>-v</code> will show results after each of the intermediate 
+<p>Adding <code>-v</code> will show results after each of the intermediate
 source-to-source transformations.</p>
 
-<p>Several dependencies are required to compile the resulting OCaml code. 
+<p>Several dependencies are required to compile the resulting OCaml code.
 The simplest solution is to use ocamlfind.
-For example to compile the <a href="examples.html#bangbang">Bang-Bang 
+For example to compile the <a href="examples.html#bangbang">Bang-Bang
 Temperature Control</a> example:</p>
 <pre>
 zeluc -s main -gtk2 bangbang.ml
 ocamlfind ocamlc -o bangbang -package zelus.gtk -linkpkg bangbang.ml main.ml
 </pre>
 
-<p>The <code>-s main</code> option generates simulation code for the node 
+<p>The <code>-s main</code> option generates simulation code for the node
 called <code>main</code> into the file <code>main.ml</code>.
 The <code>-gtk2</code> option requests the lablgtk runtime.
 </p>

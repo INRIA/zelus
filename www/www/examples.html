@@ -1,4 +1,4 @@
-<!DOCTYPE html SYSTEM "about:legacy-compat">
+<!DOCTYPE html>
 <html lang="en">
 <head>
 
@@ -77,17 +77,17 @@ document.getElementById('title-examples').className = 'active';
 <div class="span9 maintext">
 <h1>Examples</h1>
 <div id="ex-bouncingball" class="example-section">
-<h2 id="bouncingball">Bouncing ball</h2>
+## Bouncing ball ##
 
-<p>A slight variation of the classic bouncing ball model: a ball bouncing down
+A slight variation of the classic bouncing ball model: a ball bouncing down
 a set of steps. The instants of impact are detected using zero crossings,
-<code>up(ground(x) -. y)</code>, which trigger a reset of the balls vertical velocity
-to -0.8 its previous value.</p>
+`up(ground(x) -. y)`, which trigger a reset of the balls vertical velocity
+to -0.8 its previous value.
 
-<p><img src="img/bouncingball.png" srcset="img/bouncingball@2x.png 2x"></p>
+![Bouncing ball screenshot](img/bouncingball.png "Screenshot")
 
-<p>In the basic version of the program, the ball ‘falls through the floor’
-due to limited floating-point precision.</p>
+In the basic version of the program, the ball ‘falls through the floor’
+due to limited floating-point precision.
 
 <div id="ex-bouncingball-ball-box" class="accordion sourcefile">
 <div class="accordion-group">
@@ -98,7 +98,7 @@ due to limited floating-point precision.</p>
 
 <div id="ex-bouncingball-ball" class="accordion-body">
 <div class="accordion-inner">
-<pre class="zelus "><code><span class="comment">(** Bouncing ball. *)</span>
+<pre class="zelus "><code> <span class="comment">(** Bouncing ball. *)</span>
 
 <span class="comment">(* [ground x] returns the position in [y] *)</span>
 <span class="keyword ">let</span> <span class="">ground</span> <span class="">x</span> = <span class="constructor">World</span>.<span class="">ground</span>(<span class="">x</span>)
@@ -114,22 +114,21 @@ due to limited floating-point precision.</p>
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">ball</span>(<span class="">x</span>, <span class="">y_0</span>) = (<span class="">y</span>, <span class="">y_v</span>, <span class="">z</span>) <span class="keyword ">where</span>
   <span class="keyword ">rec</span>
       <span class="keyword ">der</span> <span class="">y</span> = <span class="">y_v</span> <span class="keyword ">init</span> <span class="">y_0</span>
-  <span class="keyword ">and</span> 
+  <span class="keyword ">and</span>
       <span class="keyword ">der</span> <span class="">y_v</span> = -. <span class="">g</span> <span class="keyword ">init</span> <span class="number">0.0</span> <span class="keyword ">reset</span> <span class="">z</span> -&gt; (-. <span class="">loose</span> <span class="operator">*.</span> <span class="keyword expr ">last</span> <span class="">y_v</span>)
   <span class="keyword ">and</span> <span class="">z</span> = <span class="keyword expr ">up</span>(<span class="">ground</span>(<span class="">x</span>) -. <span class="">y</span>)
-  
+
 <span class="comment">(* Main entry point *)</span>
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">main</span> () =
   <span class="keyword ">let</span> <span class="keyword ">der</span> <span class="">x</span> = <span class="">x_v</span> <span class="keyword ">init</span> <span class="">x_0</span> <span class="keyword ">in</span>
   <span class="keyword ">let</span> (<span class="">y</span>, _, <span class="">z</span>) = <span class="">ball</span>(<span class="">x</span>, <span class="">y_0</span>) <span class="keyword ">in</span>
   <span class="keyword ">let</span> <span class="">ok</span> = <span class="keyword ">present</span> (<span class="keyword expr ">period</span> (<span class="number">0.04</span>)) -&gt; () | <span class="">z</span> -&gt; () <span class="keyword ">in</span>
-  <span class="keyword ">present</span> <span class="">ok</span>() -&gt; <span class="constructor">Showball</span>.<span class="">show</span> (<span class="">x</span> <span class="keyword expr ">fby</span> <span class="">x</span>, <span class="">y</span> <span class="keyword expr ">fby</span> <span class="">y</span>, <span class="">x</span>, <span class="">y</span>);
+  <span class="keyword ">present</span> <span class="">ok</span>() -&gt; <span class="constructor">Showball</span>.<span class="">show</span> (<span class="">x</span> <span class="keyword expr ">fby</span> <span class="">x</span>) (<span class="">y</span> <span class="keyword expr ">fby</span> <span class="">y</span>) <span class="">x</span> <span class="">y</span>;
   ()
-
 </code></pre></div></div></div></div>
 
-<p>With hybrid automata, it is instead possible to switch to a sliding dynamic
-when the balls vertical velocity becomes very small.</p>
+With hybrid automata, it is instead possible to switch to a sliding dynamic
+when the balls vertical velocity becomes very small.
 
 <div id="ex-bouncingball-autoball-box" class="accordion sourcefile">
 <div class="accordion-group">
@@ -170,20 +169,23 @@ when the balls vertical velocity becomes very small.</p>
       <span class="keyword ">do</span> 
         <span class="">y</span> = <span class="">y0</span>
       <span class="keyword ">and</span>
-        <span class="keyword ">der</span> <span class="">x'</span> = -<span class="number">0.8</span> <span class="operator">*.</span> <span class="">x'</span>
+          <span class="keyword ">automaton</span>
+	  | <span class="constructor">Slide</span> -&gt; <span class="keyword ">do</span> <span class="keyword ">der</span> <span class="">x'</span> = -<span class="number">0.1</span> <span class="keyword ">until</span> <span class="keyword expr ">up</span>(-<span class="number">0.01</span> -. <span class="">x'</span>) <span class="keyword ">then</span> <span class="constructor">Stop</span>
+	  | <span class="constructor">Stop</span> -&gt; <span class="keyword ">do</span> <span class="">x'</span> = <span class="number">0.0</span> <span class="keyword ">done</span>
+	  <span class="keyword ">end</span>
       <span class="keyword ">until</span> <span class="keyword expr ">up</span>(<span class="">x</span> -. <span class="">x0</span>) <span class="keyword ">then</span> <span class="keyword ">do</span> <span class="">y_start</span> = <span class="">y</span> <span class="keyword ">in</span> <span class="constructor">Bouncing</span>
   <span class="keyword ">end</span>
-      
+
 <span class="comment">(* Main entry point *)</span>
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">main</span> () =
   <span class="keyword ">let</span> (<span class="">x</span>, <span class="">y</span>, <span class="">y_start</span>) = <span class="">ball</span>(<span class="">x_0</span>, <span class="">y_0</span>) <span class="keyword ">in</span>
-  <span class="keyword ">present</span> (<span class="keyword expr ">period</span> (<span class="number">0.04</span>)) -&gt; <span class="constructor">Showball</span>.<span class="">show</span>(<span class="">x</span> <span class="keyword expr ">fby</span> <span class="">x</span>, <span class="">y</span> <span class="keyword expr ">fby</span> <span class="">y</span>, <span class="">x</span>, <span class="">y</span>);
+  <span class="keyword ">present</span> (<span class="keyword expr ">period</span> (<span class="number">0.04</span>)) -&gt; <span class="constructor">Showball</span>.<span class="">show</span> (<span class="">x</span> <span class="keyword expr ">fby</span> <span class="">x</span>) (<span class="">y</span> <span class="keyword expr ">fby</span> <span class="">y</span>) <span class="">x</span> <span class="">y</span>;
   ()
 
 </code></pre></div></div></div></div>
 
-<p>There is also a simpler model where the ball bounces up and down on the
-spot.</p>
+There is also a simpler model where the ball bounces up and down on the
+spot.
 
 <div id="ex-bouncingball-flatball-box" class="accordion sourcefile">
 <div class="accordion-group">
@@ -213,17 +215,26 @@ spot.</p>
       <span class="keyword ">der</span> <span class="">y_v</span> = -. <span class="">g</span> <span class="keyword ">init</span> <span class="number">0.0</span> <span class="keyword ">reset</span> <span class="">z</span> -&gt; (-. <span class="">loose</span> <span class="operator">*.</span> <span class="keyword expr ">last</span> <span class="">y_v</span>)
   <span class="keyword ">and</span> <span class="">z</span> = <span class="keyword expr ">up</span>(<span class="">ground</span>(<span class="">x</span>) -. <span class="">y</span>)
 
-  
+<span class="comment">(*
+let hybrid gen(z) = (x0, v0) where
+  rec init x0 = Random.float 4.0
+  and init v0 = Random.float 4.0
+  and present z -&gt;
+	do next x0 = Random.float 4.0 and v0 = Random.float 4.0 done
+ *)</span>
+      
 <span class="comment">(* Main entry point *)</span>
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">main</span> () =
-  <span class="keyword ">let</span> (<span class="">y</span>, _, <span class="">z</span>) = <span class="">ball</span>(<span class="">x_0</span>, <span class="">y_0</span>) <span class="keyword ">in</span>
-  <span class="keyword ">present</span> (<span class="keyword expr ">period</span> (<span class="number">0.04</span>)) | <span class="">z</span> -&gt; <span class="constructor">Showball</span>.<span class="">show</span> (<span class="">x_0</span>, <span class="">y</span> <span class="keyword expr ">fby</span> <span class="">y</span>, <span class="">x_0</span>, <span class="">y</span>);
+  <span class="keyword ">let</span> <span class="keyword ">rec</span> (<span class="">y</span>, _, <span class="">z</span>) = <span class="">ball</span>(<span class="">x_0</span>, <span class="">y_0</span>)
+  <span class="comment">(* and (x_0, _) = gen(z) *)</span> <span class="keyword ">in</span>
+  <span class="keyword ">present</span> (<span class="keyword expr ">period</span> (<span class="number">0.04</span>)) | <span class="">z</span> -&gt; <span class="constructor">Showball</span>.<span class="">show</span> <span class="">x_0</span> (<span class="">y</span> <span class="keyword expr ">fby</span> <span class="">y</span>) <span class="">x_0</span> <span class="">y</span>;
   ()
 
 </code></pre></div></div></div></div>
+
 </div><hr>
 <div id="ex-bangbang" class="example-section">
-<h2 id="bang-bangtemperaturecontrol">Bang-Bang Temperature Control</h2>
+## Bang-Bang Temperature Control ##
 
 <div class="requirements">
 <p class="text-info">
@@ -232,125 +243,119 @@ Lablgtk2
 </p>
 </div>
 
-<p>This model is a reimplementation of the Mathworks Simulink example
-<a href="http://www.mathworks.com/help/simulink/examples/bang-bang-control-using-temporal-logic.html"><em>Bang-Bang Control Using Temporal Logic</em></a>.
-The main differences with the original model are:</p>
+This model is a reimplementation of the Mathworks Simulink example
+[_Bang-Bang Control Using Temporal Logic_](http://www.mathworks.com/help/simulink/examples/bang-bang-control-using-temporal-logic.html).
+The main differences with the original model are:
 
-<ul>
-<li><p>We manually track the bias and slope for integers representing rational
-values.</p></li>
-<li><p>We use int for the integer values rather than int8.</p></li>
-</ul>
+ * We manually track the bias and slope for integers representing rational
+   values.
 
-<p>The top level of this example comprises three nodes:</p>
+ * We use int for the integer values rather than int8.
 
-<p><img src="img/bangbang-model.png" srcset="img/bangbang-model@2x.png 2x"></p>
+The top level of this example comprises three nodes:
 
-<h3 id="controller">Controller</h3>
+![Model](img/bangbang-model.png "Model")
 
-<p>The controller is discrete. It takes two inputs:</p>
+### Controller ###
 
-<ul>
-<li><p><em>reference temperature</em></p>
+The controller is discrete. It takes two inputs:
 
-<p>This value is a constant 20°C, but it is encoded as a fixed-point integer
-so that it can be compared directly with the digital temperature value
-from the environment model. The reference temperature has a value
-between 0 (-15°C) and 255 (84.609375°C), i.e., a resolution of
-0.390625 per bit (0.390625 = 5 / 256 / 0.05).</p></li>
-<li><p><em>feedback temperature</em></p>
+  * _reference temperature_
 
-<p>A digital temperature measurement.</p></li>
-</ul>
+    This value is a constant 20°C, but it is encoded as a fixed-point integer
+    so that it can be compared directly with the digital temperature value
+    from the environment model. The reference temperature has a value
+    between 0 (-15°C) and 255 (84.609375°C), i.e., a resolution of
+    0.390625 per bit (0.390625 = 5 / 256 / 0.05).
 
-<p>And provides two outputs:</p>
+  * _feedback temperature_
 
-<ul>
-<li><p><em>led</em>: the colour of a light emitting diode on the outside of the
-controller:</p>
+    A digital temperature measurement.
 
-<ul>
-<li><code>0</code> = <code>off</code>,</li>
-<li><code>1</code> = <code>red</code> (not heating),</li>
-<li><code>2</code> = <code>green</code> (heating).</li>
-</ul></li>
-<li><p><em>boiler</em>: a signal that switches the boiler on (<code>1</code>) or off (<code>0</code>).</p></li>
-</ul>
+And provides two outputs:
 
-<p>The main part of the controller is an automaton with two top-level states:</p>
+  * _led_: the colour of a light emitting diode on the outside of the
+    controller:
 
-<ul>
-<li><p><code>Off</code>: The boiler is off. The LED is flashed red at 0.1 Hz (5 secs off, 5
-secs red).</p></li>
-<li><p><code>On</code>: The boiler is on. The LED is flashed red at 0.5 Hz (1 sec off, 1 sec
-green).</p></li>
-</ul>
+    * `0` = `off`,
+    * `1` = `red` (not heating),
+    * `2` = `green` (heating).
 
-<p>The controller always remains in the <code>Off</code> state for at least 40 seconds,
-after which it will switch to the <code>On</code> state if the temperature is less than
-the reference temperature.</p>
+  * _boiler_: a signal that switches the boiler on (`1`) or off (`0`).
 
-<p>The controller may not remain in the <code>On</code> state for more than 20 seconds. It
-will switch to the <code>Off</code> state if the temperature becomes greater than the
-reference temperature.</p>
+The main part of the controller is an automaton with two top-level states:
 
-<p>The on state contains an internal automaton that stays in a <code>High</code> state from
-<code>t = 0</code> until the very first time that the measured temperature exceeds the
-reference temperature (this is ensured by entry-by-history from <code>Off</code>). The
+  * `Off`: The boiler is off. The LED is flashed red at 0.1 Hz (5 secs off, 5
+    secs red).
+
+  * `On`: The boiler is on. The LED is flashed red at 0.5 Hz (1 sec off, 1 sec
+    green).
+
+The controller always remains in the `Off` state for at least 40 seconds,
+after which it will switch to the `On` state if the temperature is less than
+the reference temperature.
+
+The controller may not remain in the `On` state for more than 20 seconds. It
+will switch to the `Off` state if the temperature becomes greater than the
+reference temperature.
+
+The on state contains an internal automaton that stays in a `High` state from
+`t = 0` until the very first time that the measured temperature exceeds the
+reference temperature (this is ensured by entry-by-history from `Off`). The
 reason for this additional complication in the original Stateflow controller
 is not clear; perhaps the intent was to heat at a faster rate the first time
 the system is switched on? In our model, the effect is to delay an exit from
-the <code>On</code> state by one reaction the first time the reference temperature is
-attained.</p>
+the `On` state by one reaction the first time the reference temperature is
+attained.
 
-<h3 id="boiler">Boiler</h3>
+### Boiler ###
 
-<p>Boiler is a hybrid model of the boiler temperature and a digital
-thermometer.</p>
+Boiler is a hybrid model of the boiler temperature and a digital
+thermometer.
 
-<p>The boiler temperature is modeled by a single integrator with an initial
+The boiler temperature is modeled by a single integrator with an initial
 value of 15°C. This value (cools) at a rate of -0.1 / 25 when the
 boiler is off. It changes (heats) at a rate of 1.0 / 25 when the boiler is
-on.</p>
+on.
 
-<p>The digital thermometer is modelled in some detail. Effectively, it takes a
+The digital thermometer is modelled in some detail. Effectively, it takes a
 floating point temperature value in degrees centigrade and returns an
 integer between 0 and 255 representing that value (see the discussion above
-for the reference temperature).</p>
+for the reference temperature).
 
-<p>The sensor itself has a bias of 0.75 and and a precision of 0.05, i.e., the
-output voltage V is a function of the temperature T: <code>V = 0.05 * T + 0.75</code>. An
+The sensor itself has a bias of 0.75 and and a precision of 0.05, i.e., the
+output voltage V is a function of the temperature T: `V = 0.05 * T + 0.75`. An
 analog-to-digital converter (ADC) converts this voltage into an integer. By
-scaling, quantization, and limiting.</p>
+scaling, quantization, and limiting.
 
-<h3 id="scope">Scope</h3>
+### Scope ###
 
-<p>Scope is a discrete node. It is triggered every <code>sample_period</code> to plot the
-LED output, the boiler command, and the actual temperature against time.</p>
+Scope is a discrete node. It is triggered every `sample_period` to plot the
+LED output, the boiler command, and the actual temperature against time.
 
-<p>Note that, even though all of these signals are continuous, they are plotted
+Note that, even though all of these signals are continuous, they are plotted
 at discrete instants (as plotting is a side-effect) and the graph is thus
-(linearly) interpolated.</p>
+(linearly) interpolated.
 
-<h3 id="simulation">Simulation</h3>
+### Simulation ###
 
-<p><img src="img/bangbang-graph.png" srcset="img/bangbang-graph@2x.png 2x"></p>
+![Bang-Bang Simulation](img/bangbang-graph.png "Simulation")
 
-<p>The simulation output shows a staircased increase in temperature from 15°C
-at <code>t = 0</code> to the 20°C just before <code>t = 500</code>. The initial rising edges have a
+The simulation output shows a staircased increase in temperature from 15°C
+at `t = 0` to the 20°C just before `t = 500`. The initial rising edges have a
 slope of 1.0/25 (the heating rate) and a duration of 20 seconds (the maximum
-amount of time in the <code>On</code> state). The initial falling edges have a slope of
+amount of time in the `On` state). The initial falling edges have a slope of
 0.1/25 (the cooling rate) and a duration of 40 seconds (the minimum amount
-of time in the <code>Off</code> state). After reaching the reference temperature, the
-controller switches on and off to oscillate around the set-point.</p>
+of time in the `Off` state). After reaching the reference temperature, the
+controller switches on and off to oscillate around the set-point.
 
-<p>The LED will flash green (<code>2</code>) during periods of heating, and red (<code>1</code>) during
-periods of cooling, i.e., when not heating.</p>
+The LED will flash green (`2`) during periods of heating, and red (`1`) during
+periods of cooling, i.e., when not heating.
 
-<p>Note that the timing constants in the program have all been divided by 100
+Note that the timing constants in the program have all been divided by 100
 to speedup animation of the system. Another way to achieve the same effect
-would have been to use the <code>-speedup</code> option available in compiled Zélus
-programs.</p>
+would have been to use the `-speedup` option available in compiled Zélus
+programs.
 
 <div id="ex-bangbang-bangbang-box" class="accordion sourcefile">
 <div class="accordion-group">
@@ -390,7 +395,6 @@ programs.</p>
   <span class="keyword ">and</span> <span class="">pcm</span> = <span class="">quantize</span> (<span class="number">1.0</span>, <span class="">limit</span> (<span class="number">0.0</span>, <span class="number">255.0</span>, <span class="">vs</span>))
 
 <span class="comment">(* ** model of digital thermometer ** *)</span>
-
 <span class="keyword ">let</span> <span class="keyword ">discrete</span> <span class="">digital_thermometer</span> (<span class="">temp</span>) =
   <span class="keyword ">let</span> <span class="">voltage</span> = <span class="number">0.05</span> <span class="operator">*.</span> <span class="">temp</span> <span class="operator">+.</span> <span class="number">0.75</span> <span class="keyword ">in</span>
   <span class="keyword ">let</span> <span class="">adv</span> = <span class="">adc</span> (<span class="">voltage</span>) <span class="keyword ">in</span>
@@ -403,18 +407,17 @@ programs.</p>
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">boiler_exponential</span>(<span class="">k1</span>, <span class="">k2</span>, <span class="">is_on</span>) = <span class="">actual_temp</span> <span class="keyword ">where</span>
   <span class="keyword ">rec</span> <span class="">actual_temp</span> = <span class="">integrator</span> (<span class="number">15.0</span>, <span class="keyword ">if</span> <span class="">is_on</span> <span class="keyword ">then</span> <span class="">k1</span> -. <span class="">k2</span> <span class="operator">*.</span> <span class="">actual_temp</span>
                                       <span class="keyword ">else</span> -. <span class="">k2</span> <span class="operator">*.</span> <span class="">actual_temp</span>)
-                      <span class="comment">(* two modes. [is_on] is a boolean and will only change *)</span>
-                      <span class="comment">(* at a zero-crossing instant. *)</span>
+  <span class="comment">(* two modes. [is_on] is a boolean and will only change *)</span>
+  <span class="comment">(* at a zero-crossing instant. *)</span>
 
 <span class="comment">(* the one below is the Simulink version with an approximation by a *)</span>
 <span class="comment">(* linear function *)</span>
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">boiler</span>(<span class="">is_on</span>) =
   <span class="">integrator</span> (<span class="number">15.0</span>, (<span class="keyword ">if</span> <span class="">is_on</span> <span class="keyword ">then</span> <span class="number">1.0</span> <span class="keyword ">else</span> -<span class="number">0.1</span>) <span class="operator">/.</span> <span class="number">25.0</span>)
-                    <span class="comment">(* two modes. [is_on] is a boolean and will only change *)</span>
-                    <span class="comment">(* at a zero-crossing instant. *)</span>
+    <span class="comment">(* two modes. [is_on] is a boolean and will only change *)</span>
+    <span class="comment">(* at a zero-crossing instant. *)</span>
 
 <span class="comment">(* ** Bang-Bang Controller ** *)</span>
-
 <span class="keyword ">let</span> <span class="">off</span>   = <span class="number">0</span>
 <span class="keyword ">let</span> <span class="">red</span>   = <span class="number">1</span>
 <span class="keyword ">let</span> <span class="">green</span> = <span class="number">2</span>
@@ -423,7 +426,7 @@ programs.</p>
 <span class="keyword ">let</span> <span class="">b_on</span>   = <span class="keyword constant ">true</span>
 
 <span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">wait</span> (<span class="">x</span>) =
-  <span class="keyword ">let</span> <span class="keyword ">rec</span> <span class="">c</span> = <span class="">x</span> -&gt; <span class="keyword expr ">pre</span> (<span class="">max</span> (<span class="number">0</span>, <span class="">c</span> - <span class="number">1</span>)) <span class="keyword ">in</span>
+  <span class="keyword ">let</span> <span class="keyword ">rec</span> <span class="">c</span> = <span class="">x</span> -&gt; <span class="keyword expr ">pre</span> (<span class="">max</span> <span class="number">0</span> (<span class="">c</span> - <span class="number">1</span>)) <span class="keyword ">in</span>
   <span class="">c</span> = <span class="number">0</span>
 
 <span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">at</span> (<span class="">x</span>) =
@@ -449,7 +452,6 @@ programs.</p>
       <span class="keyword ">else</span>  (<span class="">at</span> <span class="number">20</span>) <span class="keyword ">then</span> <span class="constructor">Off</span>
 
 <span class="comment">(* ** main ** *)</span>
-
 <span class="keyword ">let</span> <span class="">reference</span> = <span class="">fixdt</span> (<span class="number">5.0</span> <span class="operator">/.</span> <span class="number">256.0</span> <span class="operator">/.</span> <span class="number">0.05</span>, -. <span class="number">0.75</span> <span class="operator">/.</span> <span class="number">0.05</span>, <span class="number">20.0</span>)
 
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">model</span> () = (<span class="">led</span>, <span class="">on_off</span>, <span class="">actual_temp</span>) <span class="keyword ">where</span>
@@ -483,27 +485,28 @@ programs.</p>
   <span class="keyword ">present</span> <span class="">trigger</span> -&gt; <span class="">plot</span> (<span class="">led</span>, <span class="">on_off</span>, <span class="">actual_temp</span>) <span class="keyword ">else</span> ()
 
 </code></pre></div></div></div></div>
+
 </div><hr>
 <div id="ex-ball_spring" class="example-section">
-<h2 id="ballandspring">Ball and Spring</h2>
+## Ball and Spring ##
 
-<p>Author: Cyprien Lecourt</p>
+Author: Cyprien Lecourt
 
-<p><img src="img/ball_spring.png" srcset="img/ball_spring@2x.png 2x"></p>
+![Ball and Spring screenshot](img/ball_spring.png "Screenshot")
 
-<p>A ball bouncing on a spring with damping. This example is programmed as a
+A ball bouncing on a spring with damping. This example is programmed as a
 two-state automaton. In the first state the ball and spring move separately:
 the ball decelerating and eventually falling back to the spring, and the
 spring oscillating with less and less energy. The second state is entered
 when the ball lands on the platform, in it the ball and platform move
-together until the ball becomes unstuck.</p>
+together until the ball becomes unstuck.
 
-<p><img src="img/ball_spring_plot.png" srcset="img/ball_spring_plot@2x.png 2x"></p>
+![Ball and Spring plot](img/ball_spring_plot.png "Plot")
 
-<p>The calls to OCaml graphics for animating the system are written directly in
+The calls to OCaml graphics for animating the system are written directly in
 a discrete node. Additional calls are added to log the system state to a
-file for <a href="img/ball_spring.pdf">graphing</a> with
-<a href="http://gnuplot.sourceforge.net/">gnuplot</a>.</p>
+file for [graphing](img/ball_spring.pdf) with
+[gnuplot](http://gnuplot.sourceforge.net/).
 
 <div id="ex-ball_spring-ball_spring-box" class="accordion sourcefile">
 <div class="accordion-group">
@@ -516,7 +519,7 @@ file for <a href="img/ball_spring.pdf">graphing</a> with
 <div class="accordion-inner">
 <pre class="zelus "><code>
 <span class="keyword keyword module ">open</span> <span class="constructor">Graphics</span>
-<span class="keyword ">let</span> <span class="">start</span> =
+<span class="keyword ">node</span> <span class="">start</span> () =
   <span class="">open_graph</span> <span class="string">" 200x500"</span>;
   <span class="">auto_synchronize</span> <span class="keyword constant ">false</span>;
   <span class="">set_line_width</span> <span class="number">4</span>
@@ -530,22 +533,22 @@ file for <a href="img/ball_spring.pdf">graphing</a> with
   <span class="keyword ">let</span> <span class="">z</span> = <span class="">truncate</span> (<span class="">z</span> <span class="operator">*.</span> <span class="number">10.0</span>) <span class="keyword ">in</span>
   <span class="keyword ">let</span> <span class="">z_platform</span> = <span class="">truncate</span> (<span class="">z_platform</span> <span class="operator">*.</span> <span class="number">10.0</span>) <span class="keyword ">in</span>
   <span class="">set_color</span> <span class="">red</span>;
-  <span class="">fill_circle</span> (<span class="number">100</span>, <span class="">z</span>, <span class="">truncate</span>(<span class="">rad</span> <span class="operator">*.</span> <span class="number">10.0</span>));
+  <span class="">fill_circle</span> <span class="number">100</span> <span class="">z</span> (<span class="">truncate</span>(<span class="">rad</span> <span class="operator">*.</span> <span class="number">10.0</span>));
   <span class="">set_color</span> <span class="">green</span>;
-  <span class="">moveto</span>(<span class="number">10</span>, <span class="">z_platform</span>);
-  <span class="">lineto</span>(<span class="number">190</span>, <span class="">z_platform</span>);
+  <span class="">moveto</span> <span class="number">10</span> <span class="">z_platform</span>;
+  <span class="">lineto</span> <span class="number">190</span> <span class="">z_platform</span>;
   <span class="comment">(* add spring zigzags *)</span>
   <span class="keyword ">let</span> <span class="">h</span> = <span class="">z_platform</span> <span class="operator">/</span> <span class="number">8</span> <span class="keyword ">in</span>
-  <span class="">moveto</span>( <span class="number">20</span>, <span class="">z_platform</span>);
-  <span class="">lineto</span>(<span class="number">180</span>, <span class="">z_platform</span> - <span class="">h</span>);
-  <span class="">lineto</span>( <span class="number">20</span>, <span class="">z_platform</span> - <span class="number">2</span> ∗ <span class="">h</span>);
-  <span class="">lineto</span>(<span class="number">180</span>, <span class="">z_platform</span> - <span class="number">3</span> ∗ <span class="">h</span>);
-  <span class="">lineto</span>( <span class="number">20</span>, <span class="">z_platform</span> - <span class="number">4</span> ∗ <span class="">h</span>);
-  <span class="">lineto</span>(<span class="number">180</span>, <span class="">z_platform</span> - <span class="number">5</span> ∗ <span class="">h</span>);
-  <span class="">lineto</span>( <span class="number">20</span>, <span class="">z_platform</span> - <span class="number">6</span> ∗ <span class="">h</span>);
-  <span class="">lineto</span>(<span class="number">180</span>, <span class="">z_platform</span> - <span class="number">7</span> ∗ <span class="">h</span>);
-  <span class="">lineto</span>( <span class="number">20</span>, <span class="">z_platform</span> - <span class="number">8</span> ∗ <span class="">h</span>);
-  <span class="">lineto</span>(<span class="number">180</span>, <span class="">z_platform</span> - <span class="number">9</span> ∗ <span class="">h</span>);
+  <span class="">moveto</span>  <span class="number">20</span> <span class="">z_platform</span>;
+  <span class="">lineto</span> <span class="number">180</span> (<span class="">z_platform</span> - <span class="">h</span>);
+  <span class="">lineto</span>  <span class="number">20</span> (<span class="">z_platform</span> - <span class="number">2</span> ∗ <span class="">h</span>);
+  <span class="">lineto</span> <span class="number">180</span> (<span class="">z_platform</span> - <span class="number">3</span> ∗ <span class="">h</span>);
+  <span class="">lineto</span>  <span class="number">20</span> (<span class="">z_platform</span> - <span class="number">4</span> ∗ <span class="">h</span>);
+  <span class="">lineto</span> <span class="number">180</span> (<span class="">z_platform</span> - <span class="number">5</span> ∗ <span class="">h</span>);
+  <span class="">lineto</span>  <span class="number">20</span> (<span class="">z_platform</span> - <span class="number">6</span> ∗ <span class="">h</span>);
+  <span class="">lineto</span> <span class="number">180</span> (<span class="">z_platform</span> - <span class="number">7</span> ∗ <span class="">h</span>);
+  <span class="">lineto</span>  <span class="number">20</span> (<span class="">z_platform</span> - <span class="number">8</span> ∗ <span class="">h</span>);
+  <span class="">lineto</span> <span class="number">180</span> (<span class="">z_platform</span> - <span class="number">9</span> ∗ <span class="">h</span>);
   <span class="">synchronize</span> ()
 
 <span class="comment">(*physical constants for the ball*)</span>
@@ -580,15 +583,17 @@ file for <a href="img/ball_spring.pdf">graphing</a> with
     ()
 
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">main</span> () = () <span class="keyword ">where</span>
-  <span class="keyword ">rec</span> <span class="">t</span> = <span class="keyword expr ">period</span> (<span class="number">0.1</span>)
+  <span class="keyword ">rec</span> <span class="keyword ">init</span> <span class="">tmp</span> = <span class="">start</span> ()
+  <span class="keyword ">and</span> <span class="">t</span> = <span class="keyword expr ">period</span> (<span class="number">0.1</span>)
   <span class="keyword ">and</span> <span class="">x</span>, <span class="">xp</span> = <span class="">simu</span>(<span class="number">10.</span>)
   <span class="keyword ">and</span> <span class="">z</span> = <span class="">x</span> <span class="operator">+.</span> <span class="">base_level</span>
   <span class="keyword ">and</span> <span class="">zp</span> = <span class="">xp</span> <span class="operator">+.</span> <span class="">base_level</span> -. <span class="">radius</span>
   <span class="keyword ">and</span> _ = <span class="keyword ">present</span> <span class="">t</span> | (<span class="keyword ">init</span>) -&gt; <span class="">draw_ball_platform</span>(<span class="">z</span>, <span class="">zp</span>, <span class="">radius</span>)
 </code></pre></div></div></div></div>
+
 </div><hr>
 <div id="ex-soas_relaycontrol" class="example-section">
-<h2 id="self-oscillatingadaptivesystem">Self-Oscillating Adaptive System</h2>
+## Self-Oscillating Adaptive System ##
 
 <div class="requirements">
 <p class="text-info">
@@ -597,17 +602,17 @@ Lablgtk2
 </p>
 </div>
 
-<p>This example comes from Chapter 10 of Åström and Wittenmark's
-<a href="http://store.doverpublications.com/0486462781.html"><em>Adaptive Control</em></a>
-(2nd edition).</p>
+This example comes from Chapter 10 of Åström and Wittenmark's
+[_Adaptive Control_](http://store.doverpublications.com/0486462781.html)
+(2nd edition).
 
-<p>It involves the control of a simple process using adaptive relay feedback.
-Together, the process and relay incite <a href="http://ocw.mit.edu/courses/mathematics/18-03-differential-equations-spring-2010/video-lectures/lecture-32-limit-cycles/">limit cycle
-oscillations</a>,
-giving systems with high feedback loop gain.</p>
+It involves the control of a simple process using adaptive relay feedback.
+Together, the process and relay incite [limit cycle
+oscillations](http://ocw.mit.edu/courses/mathematics/18-03-differential-equations-spring-2010/video-lectures/lecture-32-limit-cycles/),
+giving systems with high feedback loop gain.
 
-<p>Three variations of the system are developed.
-The shared elements are incorporated into a single file:</p>
+Three variations of the system are developed.
+The shared elements are incorporated into a single file:
 
 <div id="ex-soas_relaycontrol-soas-box" class="accordion sourcefile">
 <div class="accordion-group">
@@ -669,8 +674,8 @@ The shared elements are incorporated into a single file:</p>
 
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">command</span> () = <span class="">u</span> <span class="keyword ">where</span>
   <span class="keyword ">automaton</span>
-  | <span class="constructor">S0</span> -&gt; <span class="keyword ">do</span> <span class="">u</span> = <span class="number">1.0</span>  <span class="keyword ">until</span> (<span class="keyword expr ">period</span> <span class="number">17.5</span> (<span class="number">17.5</span>)) <span class="keyword ">then</span> <span class="constructor">S1</span>
-  | <span class="constructor">S1</span> -&gt; <span class="keyword ">do</span> <span class="">u</span> = -<span class="number">1.0</span> <span class="keyword ">until</span> (<span class="keyword expr ">period</span> <span class="number">35.0</span> (<span class="number">35.0</span>)) <span class="keyword ">then</span> <span class="constructor">S2</span>
+  | <span class="constructor">S0</span> -&gt; <span class="keyword ">do</span> <span class="">u</span> = <span class="number">1.0</span>  <span class="keyword ">until</span> (<span class="keyword expr ">period</span> (<span class="number">17.5</span> | <span class="number">17.5</span>)) <span class="keyword ">then</span> <span class="constructor">S1</span>
+  | <span class="constructor">S1</span> -&gt; <span class="keyword ">do</span> <span class="">u</span> = -<span class="number">1.0</span> <span class="keyword ">until</span> (<span class="keyword expr ">period</span> (<span class="number">35.0</span> | <span class="number">35.0</span>)) <span class="keyword ">then</span> <span class="constructor">S2</span>
   | <span class="constructor">S2</span> -&gt; <span class="keyword ">do</span> <span class="">u</span> = <span class="number">1.0</span> <span class="keyword ">done</span>
 
 <span class="comment">(* compensation network
@@ -725,7 +730,7 @@ The shared elements are incorporated into a single file:</p>
 *)</span>
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">process</span> <span class="">u</span> = <span class="">y</span> <span class="keyword ">where</span>
   <span class="keyword ">rec</span> <span class="keyword ">automaton</span>
-      | <span class="constructor">G5</span>  -&gt; <span class="keyword ">do</span> <span class="">b1</span> = <span class="number">4.0</span> <span class="keyword ">and</span> <span class="">c3</span> = <span class="number">3.750</span> <span class="keyword ">until</span> (<span class="keyword expr ">period</span> <span class="number">25.0</span> (<span class="number">25.0</span>)) <span class="keyword ">then</span> <span class="constructor">G15</span>
+      | <span class="constructor">G5</span>  -&gt; <span class="keyword ">do</span> <span class="">b1</span> = <span class="number">4.0</span> <span class="keyword ">and</span> <span class="">c3</span> = <span class="number">3.750</span> <span class="keyword ">until</span> (<span class="keyword expr ">period</span> (<span class="number">25.0</span> | <span class="number">25.0</span>)) <span class="keyword ">then</span> <span class="constructor">G15</span>
       | <span class="constructor">G15</span> -&gt; <span class="keyword ">do</span> <span class="">b1</span> = <span class="number">8.0</span> <span class="keyword ">and</span> <span class="">c3</span> = <span class="number">9.375</span> <span class="keyword ">done</span>
   <span class="keyword ">and</span> <span class="">y</span> = <span class="">siso_3o</span> ((-<span class="number">21.0</span>, -<span class="number">5.0</span>, <span class="number">0.0</span>,
                       <span class="number">4.0</span>,  <span class="number">0.0</span>, <span class="number">0.0</span>,
@@ -743,25 +748,24 @@ The shared elements are incorporated into a single file:</p>
     <span class="keyword ">and</span> <span class="">s3</span> = <span class="">scope</span> (-<span class="number">1.0</span>, <span class="number">1.3</span>, (<span class="string">"e"</span>, <span class="">linear</span>, <span class="">e</span>))
     <span class="keyword ">and</span> <span class="">t</span> = <span class="number">0.0</span> <span class="keyword expr ">fby</span> <span class="">t</span> <span class="operator">+.</span> <span class="number">0.08</span>
     <span class="keyword ">in</span> <span class="">window3</span> (<span class="">title</span>, <span class="number">50.0</span>, <span class="">t</span>, <span class="">s1</span>, <span class="">s2</span>, <span class="">s3</span>))
-
 </code></pre></div></div></div></div>
 
-<p>The models are tested over a period of 50s in response to a <strong>command
-signal</strong> which starts at <code>1</code> initially, drops to <code>0</code> at <code>17.5</code> seconds, and
-then rises to <code>1</code> again at <code>35</code> seconds.
+The models are tested over a period of 50s in response to a **command
+signal** which starts at `1` initially, drops to `0` at `17.5` seconds, and
+then rises to `1` again at `35` seconds.
 The command signal is defined using a hybrid automaton in a node called
-<code>command</code>.</p>
+`command`.
 
-<p><img src="img/soas-command.png" srcset="img/soas-command@2x.png 2x"></p>
+![Command input](img/soas-command.png "Command input")
 
-<p>The <strong>process</strong> to be controlled is described by the transfer function:</p>
+The **process** to be controlled is described by the transfer function:
 
-<p><img src="img/soas-process.png" srcset="img/soas-process@2x.png 2x"></p>
+![Process transfer function](img/soas-process.png "Process transfer function")
 
-<p>where, initially, K = 3 and α = 20, but where the <em>process gain is suddenly
-increased by a factor of 5 at t = 25</em>.
+where, initially, K = 3 and α = 20, but where the _process gain is suddenly
+increased by a factor of 5 at t = 25_.
 The state-space realizations of these two systems are readily calculated in
-either <a href="http://www.mathworks.com/products/matlab/">Matlab</a>:</p>
+either [Matlab](http://www.mathworks.com/products/matlab/):
 
 <pre><code>sys1 = tf(60, [1 21 20 0])
 [a, b, c, d] = ss()
@@ -770,7 +774,7 @@ sys2 = 5 * sys1
 [a, b, c, d] = ss(sys2)
 </code></pre>
 
-<p>or <a href="https://www.scilab.org/">Scilab</a>:</p>
+or [Scilab](https://www.scilab.org/):
 
 <pre><code>s=
 sys1 = 60 / (s * (s + 1) * (s + 20))
@@ -780,18 +784,18 @@ sys2 = 5 * sys1
 [a, b, c, d] = abcd(sys2)
 </code></pre>
 
-<p>We implement them in a node called <code>process</code> using a hybrid automaton and a
-generic <code>siso_3o</code> node that takes the state-space matrices as tupled
-arguments.</p>
+We implement them in a node called `process` using a hybrid automaton and a
+generic `siso_3o` node that takes the state-space matrices as tupled
+arguments.
 
-<h3 id="basicsoas">Basic SOAS</h3>
+### Basic SOAS ###
 
-<p>The first model comprises a simple feedback loop—relay, process, and
+The first model comprises a simple feedback loop—relay, process, and
 inverter—that tries to follow the reponse of a reference model to the
 command signal.
-Other elements will be added successively.</p>
+Other elements will be added successively.
 
-<p><img src="img/soas-model1.png" srcset="img/soas-model1@2x.png 2x"></p>
+![Basic SOAS: model](img/soas-model1.png "Basic SOAS: model")
 
 <div id="ex-soas_relaycontrol-soas1_basic-box" class="accordion sourcefile">
 <div class="accordion-group">
@@ -819,7 +823,7 @@ Other elements will be added successively.</p>
   <span class="comment">(* into a function. We can not for the moment as there *)</span>
   <span class="comment">(* is no inlining of function call a priori *)</span>
   <span class="keyword ">and</span> <span class="keyword ">automaton</span>
-      | <span class="constructor">G3</span>  -&gt; <span class="keyword ">do</span> <span class="">b1</span> = <span class="number">4.0</span> <span class="keyword ">and</span> <span class="">c3</span> = <span class="number">3.750</span> <span class="keyword ">until</span> (<span class="keyword expr ">period</span> <span class="number">25.0</span> (<span class="number">25.0</span>)) <span class="keyword ">then</span> <span class="constructor">G15</span>
+      | <span class="constructor">G3</span>  -&gt; <span class="keyword ">do</span> <span class="">b1</span> = <span class="number">4.0</span> <span class="keyword ">and</span> <span class="">c3</span> = <span class="number">3.750</span> <span class="keyword ">until</span> (<span class="keyword expr ">period</span> (<span class="number">25.0</span> | <span class="number">25.0</span>)) <span class="keyword ">then</span> <span class="constructor">G15</span>
       | <span class="constructor">G15</span> -&gt; <span class="keyword ">do</span> <span class="">b1</span> = <span class="number">8.0</span> <span class="keyword ">and</span> <span class="">c3</span> = <span class="number">9.375</span> <span class="keyword ">done</span>
 
   <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">x1</span> = -<span class="number">21.0</span> <span class="operator">*.</span> <span class="">x1</span>  <span class="operator">+.</span>  -<span class="number">5.0</span> <span class="operator">*.</span> <span class="">x2</span>  <span class="operator">+.</span>  <span class="">b1</span> <span class="operator">*.</span> <span class="">u</span> <span class="keyword ">init</span> <span class="number">0.0</span>
@@ -828,42 +832,41 @@ Other elements will be added successively.</p>
   <span class="keyword ">and</span> <span class="">y</span> = <span class="">c3</span> <span class="operator">*.</span> <span class="">x3</span>
 
   <span class="keyword ">and</span> () = <span class="">plot</span> (<span class="string">"Basic SOAS"</span>, <span class="">y</span>, <span class="">y_m</span>, <span class="">u</span>, <span class="">e</span>)
-
 </code></pre></div></div></div></div>
 
-<p>The <strong>reference model</strong> is described as a second order system with damping
+The **reference model** is described as a second order system with damping
 coefficient ζ = 0.7 and natural frequency ω_n = 1 rad/sec.
 Its state-space realization is readily calculated in either
-<a href="http://www.mathworks.com/products/matlab/">Matlab</a>:</p>
+[Matlab](http://www.mathworks.com/products/matlab/):
 
 <pre><code>[A, B, C, D] = ord2(1.0, 0.7)</code></pre>
 
-<p>or <a href="https://www.scilab.org/">Scilab</a>:</p>
+or [Scilab](https://www.scilab.org/):
 
 <pre><code>s = ; wn = 1.0; zeta = 0.7;
 tf2ss(syslin('c', wn^2, s^2 + 2*zeta*wn*s + wn^2))</code></pre>
 
-<p>We express it in a node called <code>reference</code> using a generic <code>siso_2o</code> node.</p>
+We express it in a node called `reference` using a generic `siso_2o` node.
 
-<p>The response of the reference model to the command input is shown in red
+The response of the reference model to the command input is shown in red
 below.
-The actual output of the feedback loop is shown in blue.</p>
+The actual output of the feedback loop is shown in blue.
 
-<p><img src="img/soas-output1.png" srcset="img/soas-output1@2x.png 2x"></p>
+![Basic SOAS: output](img/soas-output1.png "Basic SOAS: output")
 
-<p>The <strong>relay</strong> is modelled in a node called <code>relay</code> using a hybrid
-automaton that alternates between <code>High</code> (output = <code>d</code>) and <code>Low</code> (output =
-<code>-d</code>) states in response to zero-crossings on its input signal.
-The relay's value is shown below.</p>
+The **relay** is modelled in a node called `relay` using a hybrid
+automaton that alternates between `High` (output = `d`) and `Low` (output =
+`-d`) states in response to zero-crossings on its input signal.
+The relay's value is shown below.
 
-<p><img src="img/soas-relay1.png" srcset="img/soas-relay1@2x.png 2x"></p>
+![Basic SOAS: relay](img/soas-relay1.png "Basic SOAS: relay")
 
-<h3 id="soaswithleadnetwork">SOAS with lead network</h3>
+### SOAS with lead network ###
 
-<p>The next model augments the basic model with a compensation network that
-adds a phase lead of -π.</p>
+The next model augments the basic model with a compensation network that
+adds a phase lead of -π.
 
-<p><img src="img/soas-model2.png" srcset="img/soas-model2@2x.png 2x"></p>
+![SOAS with lead network model](img/soas-model2.png "SOAS with lead network")
 
 <div id="ex-soas_relaycontrol-soas2_leadnet-box" class="accordion sourcefile">
 <div class="accordion-group">
@@ -891,7 +894,7 @@ adds a phase lead of -π.</p>
   <span class="comment">(* into a function. We can not for the moment as there *)</span>
   <span class="comment">(* is no inlining of function call a priori *)</span>
   <span class="keyword ">and</span> <span class="keyword ">automaton</span>
-      | <span class="constructor">G3</span>  -&gt; <span class="keyword ">do</span> <span class="">b1</span> = <span class="number">4.0</span> <span class="keyword ">and</span> <span class="">c3</span> = <span class="number">3.750</span> <span class="keyword ">until</span> (<span class="keyword expr ">period</span> <span class="number">25.0</span> (<span class="number">25.0</span>)) <span class="keyword ">then</span> <span class="constructor">G15</span>
+      | <span class="constructor">G3</span>  -&gt; <span class="keyword ">do</span> <span class="">b1</span> = <span class="number">4.0</span> <span class="keyword ">and</span> <span class="">c3</span> = <span class="number">3.750</span> <span class="keyword ">until</span> (<span class="keyword expr ">period</span> (<span class="number">25.0</span> | <span class="number">25.0</span>)) <span class="keyword ">then</span> <span class="constructor">G15</span>
       | <span class="constructor">G15</span> -&gt; <span class="keyword ">do</span> <span class="">b1</span> = <span class="number">8.0</span> <span class="keyword ">and</span> <span class="">c3</span> = <span class="number">9.375</span> <span class="keyword ">done</span>
 
   <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">x1</span> = -<span class="number">21.0</span> <span class="operator">*.</span> <span class="">x1</span>  <span class="operator">+.</span>  -<span class="number">5.0</span> <span class="operator">*.</span> <span class="">x2</span>  <span class="operator">+.</span>  <span class="">b1</span> <span class="operator">*.</span> <span class="">u</span> <span class="keyword ">init</span> <span class="number">0.0</span>
@@ -900,36 +903,36 @@ adds a phase lead of -π.</p>
   <span class="keyword ">and</span> <span class="">y</span> = <span class="">c3</span> <span class="operator">*.</span> <span class="">x3</span>
 
   <span class="keyword ">and</span> () = <span class="">plot</span> (<span class="string">"SOAS with lead network"</span>, <span class="">y</span>, <span class="">y_m</span>, <span class="">u</span>, <span class="">e</span>)
-
 </code></pre></div></div></div></div>
 
-<p>The compensation filter is defined as a transfer function:</p>
+The compensation filter is defined as a transfer function:
 
-<p><img src="img/soas-filter.png" srcset="img/soas-filter@2x.png 2x"></p>
+![G_f(s) = 1.2(s + 5)/(s + 15)](img/soas-filter.png "Filter")
 
-<p>which is implemented in the node <code>g_f</code> using the generic node <code>siso_1o</code>
+which is implemented in the node `g_f` using the generic node `siso_1o`
 after having calculated its state-space realization in either
-<a href="http://www.mathworks.com/products/matlab/">Matlab</a>:</p>
+[Matlab](http://www.mathworks.com/products/matlab/):
 
 <pre><code>[a, b, c, d] = ss(1.2 * tf([1 5], [1 15]))</code></pre>
 
-<p>or <a href="https://www.scilab.org/">Scilab</a>:</p>
+or [Scilab](https://www.scilab.org/):
 
 <pre><code>s = poly(0, 's')
 [a, b, c, d] = abcd(tf2ss(1.2 * (s + 5) / (s + 15)))</code></pre>
 
-<p>The compensation filter decreases the amplitude of oscillation while
+The compensation filter decreases the amplitude of oscillation while
 maintaining the reponse speed, as can be seen in the simulation results
-below.</p>
+below.
 
-<p><img src="img/soas-output2.png" srcset="img/soas-output2@2x.png 2x"></p>
+![SOAS with lead network output](img/soas-output2.png "SOAS with lead 
+network: output")
 
-<h3 id="soaswithleadnetworkandgainchanger">SOAS with lead network and gain changer</h3>
+### SOAS with lead network and gain changer ###
 
-<p>A gain changer is added in the final model.
-It uses so called <em>up logic</em> to speed up the controller's reponse.</p>
+A gain changer is added in the final model.
+It uses so called _up logic_ to speed up the controller's reponse.
 
-<p><img src="img/soas-model3.png" srcset="img/soas-model3@2x.png 2x"></p>
+![SOAS with lead network and gain changer model](img/soas-model3.png "SOAS with lead network and gain changer: model")
 
 <div id="ex-soas_relaycontrol-soas3_gainchanger-box" class="accordion sourcefile">
 <div class="accordion-group">
@@ -957,7 +960,7 @@ It uses so called <em>up logic</em> to speed up the controller's reponse.</p>
   <span class="comment">(* into a function. We can not for the moment as there *)</span>
   <span class="comment">(* is no inlining of function call a priori *)</span>
   <span class="keyword ">and</span> <span class="keyword ">automaton</span>
-      | <span class="constructor">G3</span>  -&gt; <span class="keyword ">do</span> <span class="">b1</span> = <span class="number">4.0</span> <span class="keyword ">and</span> <span class="">c3</span> = <span class="number">3.750</span> <span class="keyword ">until</span> (<span class="keyword expr ">period</span> <span class="number">25.0</span> (<span class="number">25.0</span>)) <span class="keyword ">then</span> <span class="constructor">G15</span>
+      | <span class="constructor">G3</span>  -&gt; <span class="keyword ">do</span> <span class="">b1</span> = <span class="number">4.0</span> <span class="keyword ">and</span> <span class="">c3</span> = <span class="number">3.750</span> <span class="keyword ">until</span> (<span class="keyword expr ">period</span> (<span class="number">25.0</span> | <span class="number">25.0</span>)) <span class="keyword ">then</span> <span class="constructor">G15</span>
       | <span class="constructor">G15</span> -&gt; <span class="keyword ">do</span> <span class="">b1</span> = <span class="number">8.0</span> <span class="keyword ">and</span> <span class="">c3</span> = <span class="number">9.375</span> <span class="keyword ">done</span>
 
   <span class="keyword ">and</span> <span class="keyword ">der</span> <span class="">x1</span> = -<span class="number">21.0</span> <span class="operator">*.</span> <span class="">x1</span>  <span class="operator">+.</span>  -<span class="number">5.0</span> <span class="operator">*.</span> <span class="">x2</span>  <span class="operator">+.</span>  <span class="">b1</span> <span class="operator">*.</span> <span class="">u</span> <span class="keyword ">init</span> <span class="number">0.0</span>
@@ -966,30 +969,30 @@ It uses so called <em>up logic</em> to speed up the controller's reponse.</p>
   <span class="keyword ">and</span> <span class="">y</span> = <span class="">c3</span> <span class="operator">*.</span> <span class="">x3</span>
 
   <span class="keyword ">and</span> () = <span class="">plot</span> (<span class="string">"SOAS with lead network and gain changer"</span>, <span class="">y</span>, <span class="">y_m</span>, <span class="">u</span>, <span class="">e</span>)
-
 </code></pre></div></div></div></div>
 
-<p>A gain changer increases the relay's amplitude (<code>d</code>) when a specified
-tolerance (e_l) is exceeded.</p>
+A gain changer increases the relay's amplitude (`d`) when a specified
+tolerance (e_l) is exceeded.
 
-<p><img src="img/soas-gainchanger.png" srcset="img/soas-gainchanger@2x.png 2x"></p>
+![d = if |e| &gt; e_l then d_1 else d_2 + (d_1 - d_2)e^(-(t - t_0)/T)](img/soas-gainchanger.png "Gain changer")
 
-<p>This logic is readily implemented in the <code>gain_changer</code> node using a hybrid
-automaton.</p>
+This logic is readily implemented in the `gain_changer` node using a hybrid
+automaton.
 
-<p>The simulation results show that the new controller responds with smaller
+The simulation results show that the new controller responds with smaller
 amplitude oscillations to the system with higher gain, without losing
-performance for the system with smaller gain.</p>
+performance for the system with smaller gain.
 
-<p><img src="img/soas-output3.png" srcset="img/soas-output3@2x.png 2x"></p>
+![SOAS with lead network and gain changer output](img/soas-output3.png "SOAS with lead network and gain changer: output")
 
-<p>The effect of the gain changing logic on the relay output is evident in the
-exponential envelopes on the signal shown below.</p>
+The effect of the gain changing logic on the relay output is evident in the
+exponential envelopes on the signal shown below.
 
-<p><img src="img/soas-relay3.png" srcset="img/soas-relay3@2x.png 2x"></p>
+![SOAS with lead network and gain changer relay](img/soas-relay3.png "SOAS with lead network and gain changer: relay")
+
 </div><hr>
 <div id="ex-stickysprings" class="example-section">
-<h2 id="stickymasses">Sticky Masses</h2>
+## Sticky Masses ##
 
 <div class="requirements">
 <p class="text-info">
@@ -998,20 +1001,20 @@ Lablgtk2 (glMLite)
 </p>
 </div>
 
-<p>This example is based on example 6.8 in Edward A. Lee and Pravin Varaiya,
-<a href="http://leevaraiya.org/"><em>Structure and Interpretation of Signals and
-Systems</em></a>, Second Edition,
+This example is based on example 6.8 in Edward A. Lee and Pravin Varaiya,
+[_Structure and Interpretation of Signals and
+Systems_](http://leevaraiya.org/), Second Edition,
 and the Ptolemy II model by Jie Liu, Haiyang Zheng,
-and Edward A. Lee.</p>
+and Edward A. Lee.
 
-<p><img src="img/stickysprings.png" srcset="img/stickysprings@2x.png 2x"></p>
+![Sticky masses model](img/stickysprings.png "Sticky masses model")
 
-<p>The model comprises two sticky round masses, each on the end of a spring.
+The model comprises two sticky round masses, each on the end of a spring.
 The other ends of the springs are tied to opposing walls. After the springs
 are compressed (or extended) and released the masses oscillate back and
 forth, and may collide. After a collision, the masses remain stuck together
-until the pulling forces from the springs are greater than a <em>stickiness</em>
-value (which decreases exponentially after a collision).</p>
+until the pulling forces from the springs are greater than a _stickiness_
+value (which decreases exponentially after a collision).
 
 <div id="ex-stickysprings-stickysprings-box" class="accordion sourcefile">
 <div class="accordion-group">
@@ -1102,9 +1105,10 @@ value (which decreases exponentially after a collision).</p>
        <span class="">plot</span> (<span class="">t</span>, (<span class="">y1</span>, <span class="">y1_dot</span>), (<span class="">y2</span>, <span class="">y2_dot</span>), <span class="">pull_force</span>, <span class="">stickiness</span>, <span class="">total</span>);
   ()
 </code></pre></div></div></div></div>
+
 </div><hr>
 <div id="ex-backhoe" class="example-section">
-<h2 id="backhoe">Backhoe</h2>
+## Backhoe ##
 
 <div class="requirements">
 <p class="text-info">
@@ -1113,48 +1117,46 @@ Lablgtk2
 </p>
 </div>
 
-<p>The Backhoe loader is an <a href="http://www.tbrk.org/esterel/backhoe.html">original
-example</a> that we developed to
-teach reactive programming.</p>
+The Backhoe loader is an [original
+example](http://www.tbrk.org/esterel/backhoe.html) that we developed to
+teach reactive programming.
 
-<p><img src="img/backhoeloop.png" srcset="img/backhoeloop@2x.png 2x"></p>
+![Backhoe control loop](img/backhoeloop.png "Backhoe loop")
 
-<p>The model comprises two interconnected elements:</p>
+The model comprises two interconnected elements:
 
-<ul>
-<li>a continuous model of the plant (parts of the backhoe)</li>
-<li>a discrete controller</li>
-</ul>
+ * a continuous model of the plant (parts of the backhoe)
+ * a discrete controller
 
-<p>The original programming challenge focused on the discrete controller, but
+The original programming challenge focused on the discrete controller, but
 expressing the continuous dynamics is also an interesting programming
-problem, as is interfacing the two models.</p>
+problem, as is interfacing the two models.
 
-<p><img src="img/backhoesensors.png" srcset="img/backhoesensors@2x.png 2x"></p>
+![Backhoe model: sensor names and locations](img/backhoesensors.png "Backhoe sensor names")
 
-<p>The discrete controller receives input from sensors which are defined inside
+The discrete controller receives input from sensors which are defined inside
 the continuous model. There are sensors for each of three buttons
-(<code>stop_button</code>, <code>extend_button</code>, and <code>retract_button</code>), for indicating
-whether the legs are fully retracted (<code>legs_in</code>) or fully extended
-(<code>legs_out</code>), and for indicating whether each of the rear segments is fully
-retracted (<code>*_in</code>) or fully extended (<code>*_out</code>).</p>
+(`stop_button`, `extend_button`, and `retract_button`), for indicating
+whether the legs are fully retracted (`legs_in`) or fully extended
+(`legs_out`), and for indicating whether each of the rear segments is fully
+retracted (`*_in`) or fully extended (`*_out`).
 
-<p><img src="img/backhoeactuators.png" srcset="img/backhoeactuators@2x.png 2x"></p>
+![Backhoe model: actuator names](img/backhoeactuators.png "Backhoe actuator names")
 
-<p>There are control signals for three lamps (<code>alarm_lamp</code>, <code>done_lamp</code>, and
-<code>cancel_lamp</code>) and for triggering leg extension (<code>legs_extend</code>), leg
-retraction (<code>legs_retract</code>), and stopping leg motion (<code>legs_step</code>). There
+There are control signals for three lamps (`alarm_lamp`, `done_lamp`, and
+`cancel_lamp`) and for triggering leg extension (`legs_extend`), leg
+retraction (`legs_retract`), and stopping leg motion (`legs_step`). There
 are three control signals pel segment: setting an internal valve for pushing
-(<code>*_push</code>), or for pulling (<code>*_pull</code>), and for driving hydraulic fluid
-through the valve (<code>*_drive</code>). It is assumed that a lower-level controller
-maintains a segments position when it is not being driven.</p>
+(`*_push`), or for pulling (`*_pull`), and for driving hydraulic fluid
+through the valve (`*_drive`). It is assumed that a lower-level controller
+maintains a segments position when it is not being driven.
 
-<p><img src="img/backhoesegmentauto.png" srcset="img/backhoesegmentauto@2x.png 2x"></p>
+![Backhoe segment model](img/backhoesegmentauto.png "Backhoe segment model")
 
-<p>Each segment is modelled using set of equations that include a hybrid
+Each segment is modelled using set of equations that include a hybrid
 automaton. Two types of dynamics are modelled: moving and stopping with
 momentum (modelled as a Proportional-Integral controller) and bouncing at
-the limits of movement (modelled as instantaneous reset).</p>
+the limits of movement (modelled as instantaneous reset).
 
 <div id="ex-backhoe-backhoecontrol-box" class="accordion sourcefile">
 <div class="accordion-group">
@@ -1166,7 +1168,7 @@ the limits of movement (modelled as instantaneous reset).</p>
 <div id="ex-backhoe-backhoecontrol" class="accordion-body">
 <div class="accordion-inner">
 <pre class="zelus "><code><span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">aftern</span> (<span class="">n</span>, <span class="">t</span>) = (<span class="">c</span> = <span class="">n</span>) <span class="keyword ">where</span>
-  <span class="keyword ">rec</span> <span class="">c</span> = <span class="number">0</span> <span class="keyword expr ">fby</span> <span class="">min</span> ((<span class="keyword ">if</span> <span class="">t</span> <span class="keyword ">then</span> <span class="">c</span> <span class="operator">+</span> <span class="number">1</span> <span class="keyword ">else</span> <span class="">c</span>), <span class="">n</span>)
+  <span class="keyword ">rec</span> <span class="">c</span> = <span class="number">0</span> <span class="keyword expr ">fby</span> <span class="">min</span> (<span class="keyword ">if</span> <span class="">t</span> <span class="keyword ">then</span> <span class="">c</span> <span class="operator">+</span> <span class="number">1</span> <span class="keyword ">else</span> <span class="">c</span>) <span class="">n</span>
 
 <span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">blink</span> (<span class="">n</span>, <span class="">t</span>) = <span class="">x</span> <span class="keyword ">where</span>
   <span class="keyword ">automaton</span>
@@ -1178,8 +1180,8 @@ the limits of movement (modelled as instantaneous reset).</p>
   | <span class="constructor">On</span>  -&gt; <span class="keyword ">do</span> <span class="">x</span> = <span class="keyword constant ">true</span>  <span class="keyword ">until</span> (<span class="">aftern</span> (<span class="">ton</span>, <span class="">t</span>)) <span class="keyword ">then</span> <span class="constructor">Off</span>
   | <span class="constructor">Off</span> -&gt; <span class="keyword ">do</span> <span class="">x</span> = <span class="keyword constant ">false</span> <span class="keyword ">until</span> (<span class="">aftern</span> (<span class="">toff</span>, <span class="">t</span>)) <span class="keyword ">then</span> <span class="constructor">On</span>
 
-<span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">leg_controller</span> 
-    ((<span class="">legs_in</span>, <span class="">legs_out</span>), (<span class="">stop_button</span>, <span class="">retract_button</span>, <span class="">extend_button</span>), <span class="">second</span>) = 
+<span class="keyword ">let</span> <span class="keyword ">node</span> <span class="">leg_controller</span>
+    ((<span class="">legs_in</span>, <span class="">legs_out</span>), (<span class="">stop_button</span>, <span class="">retract_button</span>, <span class="">extend_button</span>), <span class="">second</span>) =
     ((<span class="">legs_extend</span>, <span class="">legs_retract</span>, <span class="">legs_stop</span>), <span class="">alarm</span>, <span class="">extended</span>)
   <span class="keyword ">where</span>
   <span class="keyword ">rec</span> <span class="keyword ">init</span> <span class="">alarm</span> = <span class="keyword constant ">false</span>
@@ -1325,9 +1327,9 @@ the limits of movement (modelled as instantaneous reset).</p>
             <span class="keyword ">until</span> (<span class="">finished</span>) <span class="keyword ">then</span> <span class="constructor">Stable</span>
 
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">main</span> () = () <span class="keyword ">where</span>
-  <span class="keyword ">rec</span> <span class="keyword ">init</span> <span class="">sensors</span> = ((<span class="keyword constant ">false</span>, <span class="keyword constant ">false</span>), (<span class="keyword constant ">false</span>, <span class="keyword constant ">false</span>), 
+  <span class="keyword ">rec</span> <span class="keyword ">init</span> <span class="">sensors</span> = ((<span class="keyword constant ">false</span>, <span class="keyword constant ">false</span>), (<span class="keyword constant ">false</span>, <span class="keyword constant ">false</span>),
                       (<span class="keyword constant ">false</span>, <span class="keyword constant ">false</span>), (<span class="keyword constant ">false</span>, <span class="keyword constant ">false</span>))
-  
+
   <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">boom_drive</span> = <span class="keyword constant ">false</span>
   <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">stick_drive</span> = <span class="keyword constant ">false</span>
   <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">bucket_drive</span> = <span class="keyword constant ">false</span>
@@ -1335,21 +1337,21 @@ the limits of movement (modelled as instantaneous reset).</p>
   <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">done_lamp</span> = <span class="keyword constant ">false</span>
   <span class="keyword ">and</span> <span class="keyword ">init</span> <span class="">cancel_lamp</span> = <span class="keyword constant ">false</span>
 
-  <span class="keyword ">and</span> <span class="keyword ">present</span> <span class="">sample</span> -&gt; 
+  <span class="keyword ">and</span> <span class="keyword ">present</span> <span class="">sample</span> -&gt;
         <span class="keyword ">do</span> ((<span class="">boom_push</span>, <span class="">boom_pull</span>, <span class="">boom_drive</span>),
            (<span class="">stick_push</span>, <span class="">stick_pull</span>, <span class="">stick_drive</span>),
            (<span class="">bucket_push</span>, <span class="">bucket_pull</span>, <span class="">bucket_drive</span>),
            (<span class="">legs_extend</span>, <span class="">legs_retract</span>, <span class="">legs_stop</span>),
-           (<span class="">alarm_lamp</span>, <span class="">done_lamp</span>, <span class="">cancel_lamp</span>)) = 
-                          <span class="">sampled_controller</span> (<span class="keyword expr ">last</span> <span class="">sensors</span>, <span class="constructor">Backhoedyn</span>.<span class="">buttons</span> (), <span class="">second</span>) 
+           (<span class="">alarm_lamp</span>, <span class="">done_lamp</span>, <span class="">cancel_lamp</span>)) =
+                          <span class="">sampled_controller</span> (<span class="keyword expr ">last</span> <span class="">sensors</span>, <span class="constructor">Backhoedyn</span>.<span class="">buttons</span> (), <span class="">second</span>)
         <span class="keyword ">done</span>
-                
-  <span class="keyword ">and</span> <span class="">sensors</span> = 
+
+  <span class="keyword ">and</span> <span class="">sensors</span> =
         <span class="constructor">Backhoedyn</span>.<span class="">model</span> ((<span class="">boom_push</span>, <span class="">boom_pull</span>, <span class="">boom_drive</span>),
                           (<span class="">stick_push</span>, <span class="">stick_pull</span>, <span class="">stick_drive</span>),
                           (<span class="">bucket_push</span>, <span class="">bucket_pull</span>, <span class="">bucket_drive</span>),
                           (<span class="">legs_extend</span>, <span class="">legs_retract</span>, <span class="">legs_stop</span>),
-                          (<span class="">alarm_lamp</span>, <span class="">done_lamp</span>, <span class="">cancel_lamp</span>)) 
+                          (<span class="">alarm_lamp</span>, <span class="">done_lamp</span>, <span class="">cancel_lamp</span>))
 
   <span class="keyword ">and</span> <span class="">sample</span> = <span class="keyword expr ">period</span> (<span class="number">0.2</span>)
 
@@ -1357,7 +1359,6 @@ the limits of movement (modelled as instantaneous reset).</p>
   <span class="comment">(* and second = present (init) | sample -&gt; true fby not (second) init true *)</span>
 
   <span class="keyword ">and</span> <span class="">second</span> = <span class="keyword ">present</span> <span class="">sample</span> -&gt; <span class="keyword constant ">true</span> -&gt; <span class="">not</span> (<span class="keyword expr ">last</span> <span class="">second</span>) <span class="keyword ">init</span> <span class="keyword constant ">true</span>
-
 </code></pre></div></div></div></div>
 
 <div id="ex-backhoe-backhoedyn-box" class="accordion sourcefile">
@@ -1483,40 +1484,39 @@ the limits of movement (modelled as instantaneous reset).</p>
 
 </code></pre></div></div></div></div>
 
-<p>Further details can be found in the paper <a href="papers.html#HSCC2013">Zélus: A Synchronous Language
-with ODEs</a>.</p>
+Further details can be found in the paper [Zélus: A Synchronous Language
+with ODEs](papers.html#HSCC2013).
+
 </div><hr>
 <div id="ex-horloge" class="example-section">
-<h2 id="pendulumclock">Pendulum Clock</h2>
+## Pendulum Clock ##
 
-<p>Author: <a href="http://www.di.ens.fr/~baudart/">Guillaume Baudart</a></p>
+Author: [Guillaume Baudart](http://www.di.ens.fr/~baudart/)
 
-<p><img src="img/horloge.png" srcset="img/horloge@2x.png 2x"></p>
+![Screenshot](img/horloge.png "Screenshot")
 
-<p>This model was made to celebrate 
-<a href="http://people.rennes.inria.fr/Albert.Benveniste/">Albert Benveniste's</a>
-<a href="https://project.inria.fr/alberts65th/">65th birthday</a> in honour of
-<a href="http://people.rennes.inria.fr/Albert.Benveniste/pub/Polychrony.pdf">“The old fashioned Signal watch”</a>.</p>
+This model was made to celebrate 
+[Albert Benveniste's](http://people.rennes.inria.fr/Albert.Benveniste/)
+[65th birthday](https://project.inria.fr/alberts65th/) in honour of
+[“The old fashioned Signal watch”](http://people.rennes.inria.fr/Albert.Benveniste/pub/Polychrony.pdf).
 
-<p>The clock features an escapement that regulates the movement of two cogs
-according to the oscillations of a pendulum. The <code>escapement</code> node generates
-four events as the pendlum moves: <code>tic</code> and <code>toc</code> as the smaller, pink cog
-is caught by the escapement and stopped from moving, and <code>rtic</code> and <code>rtoc</code>
+The clock features an escapement that regulates the movement of two cogs
+according to the oscillations of a pendulum. The `escapement` node generates
+four events as the pendlum moves: `tic` and `toc` as the smaller, pink cog
+is caught by the escapement and stopped from moving, and `rtic` and `rtoc`
 as it is released and allowed to turn. When the ping cog is free, then
-bigger, green cog can turn pulled by the falling <code>atwood</code> masses.
+bigger, green cog can turn pulled by the falling `atwood` masses.
 This in turn moves the clock hands.
-The <code>clockwatch</code> node is an automaton with four modes:</p>
+The `clockwatch` node is an automaton with four modes:
 
-<ul>
-<li><code>Move</code>: the cogs are free to turn.</li>
-<li><code>Stop</code>: the cogs are trapped by the escapement.</li>
-<li><code>Exhausted</code>: there is no energy left in the masses.</li>
-<li><code>Setting</code>: energy is added to the mass system.</li>
-</ul>
+* `Move`: the cogs are free to turn.
+* `Stop`: the cogs are trapped by the escapement.
+* `Exhausted`: there is no energy left in the masses.
+* `Setting`: energy is added to the mass system.
 
-<p>A sound is emitted whenever the escapement catches (on <code>tic</code> and <code>toc</code>). The
+A sound is emitted whenever the escapement catches (on `tic` and `toc`). The
 spacebar is used to reset the position of the masses. The system state is
-drawn by an external (OCaml) function called <code>draw_system</code>.</p>
+drawn by an external (OCaml) function called `draw_system`.
 
 <div id="ex-horloge-horloge-box" class="accordion sourcefile">
 <div class="accordion-group">
@@ -1559,7 +1559,7 @@ drawn by an external (OCaml) function called <code>draw_system</code>.</p>
 
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">set</span> <span class="">hi</span> = <span class="">h</span> <span class="keyword ">where</span>
   <span class="keyword ">rec</span> <span class="keyword ">der</span> <span class="">h'</span> = <span class="number">0.5</span> <span class="keyword ">init</span> <span class="">hi</span>
-  <span class="keyword ">and</span> <span class="">h</span> = <span class="">min</span>(<span class="">h0</span>, <span class="">h'</span>)
+  <span class="keyword ">and</span> <span class="">h</span> = <span class="">min</span> <span class="">h0</span> <span class="">h'</span>
 
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">escapement</span> <span class="">theta</span> = (<span class="">tic</span>, <span class="">rtic</span>, <span class="">toc</span>, <span class="">rtoc</span>) <span class="keyword ">where</span>
   <span class="keyword ">rec</span> <span class="keyword ">present</span>
@@ -1642,48 +1642,45 @@ drawn by an external (OCaml) function called <code>draw_system</code>.</p>
         | <span class="">toc</span>() <span class="keyword expr ">on</span> <span class="">active</span>  -&gt; <span class="">play_toc</span> ();
     ()
 </code></pre></div></div></div></div>
+
 </div><hr>
 <div id="ex-watch" class="example-section">
-<h2 id="spring-drivenwatch">Spring-driven Watch</h2>
+## Spring-driven Watch ##
 
-<p>Author: <a href="http://www.di.ens.fr/~baudart/">Guillaume Baudart</a></p>
+Author: [Guillaume Baudart](http://www.di.ens.fr/~baudart/)
 
-<p><img src="img/watch.png" srcset="img/watch@2x.png 2x"></p>
+![Watch screenshot](img/watch.png "Screenshot")
 
-<p>This model was made to celebrate 
-<a href="http://people.rennes.inria.fr/Albert.Benveniste/">Albert Benveniste's</a>
-<a href="https://project.inria.fr/alberts65th/">65th birthday</a> in honour of
-<a href="http://people.rennes.inria.fr/Albert.Benveniste/pub/Polychrony.pdf">“The old fashioned Signal watch”</a>.</p>
+This model was made to celebrate 
+[Albert Benveniste's](http://people.rennes.inria.fr/Albert.Benveniste/)
+[65th birthday](https://project.inria.fr/alberts65th/) in honour of
+[“The old fashioned Signal watch”](http://people.rennes.inria.fr/Albert.Benveniste/pub/Polychrony.pdf).
 
-<p>The watch features an escapement that regulates the movement of two cogs
+The watch features an escapement that regulates the movement of two cogs
 according to the back and forth rocking of a regulator wheel. The
-<code>escapement</code> node generates four events as the regulator moves: <code>tic</code> and
-<code>toc</code> as the smaller, pink cog is caught by the escapement and stopped from
-moving, and <code>rtic</code> and <code>rtoc</code> as it is released and allowed to turn. When
+`escapement` node generates four events as the regulator moves: `tic` and
+`toc` as the smaller, pink cog is caught by the escapement and stopped from
+moving, and `rtic` and `rtoc` as it is released and allowed to turn. When
 the ping cog is free, then bigger, green cog is pushed by the balance
-spring. This in turn moves the clock hands. The <code>clockwatch</code> node is an
-automaton with four modes:</p>
+spring. This in turn moves the clock hands. The `clockwatch` node is an
+automaton with four modes:
 
-<ul>
-<li><code>Move</code>: the cogs are free to turn.</li>
-<li><code>Stop</code>: the cogs are trapped by the escapement.</li>
-<li><code>Exhausted</code>: there is no energy left in the masses.</li>
-<li><code>Setting</code>: energy is added to the mass system.</li>
-</ul>
+* `Move`: the cogs are free to turn.
+* `Stop`: the cogs are trapped by the escapement.
+* `Exhausted`: there is no energy left in the masses.
+* `Setting`: energy is added to the mass system.
 
-<p>A sound is emitted whenever the escapement catches (on <code>tic</code> and
-<code>toc</code>). As an added bonus, the entire system can be made to swing back
+A sound is emitted whenever the escapement catches (on `tic` and
+`toc`). As an added bonus, the entire system can be made to swing back
 and forth. The watch then behaves as a pendulum controlled by an
-automaton with two modes.</p>
+automaton with two modes.
 
-<ul>
-<li><code>Stop</code>: The pendulum does not move.</li>
-<li><code>Move</code>: The pendulum starts moving with a fixed initial angular speed.</li>
-</ul>
+* `Stop`: The pendulum does not move.
+* `Move`: The pendulum starts moving with a fixed initial angular speed.
 
-<p>The user can switch between the two behaviors by pressing the <code>m</code> key.
+The user can switch between the two behaviors by pressing the `m` key.
 The system state is drawn by an external (OCaml) function called
-<code>draw_system</code>.</p>
+`draw_system`.
 
 <div id="ex-watch-watch-box" class="accordion sourcefile">
 <div class="accordion-group">
@@ -1747,7 +1744,7 @@ The system state is drawn by an external (OCaml) function called
 
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">set</span> <span class="">hi</span> = <span class="">h</span> <span class="keyword ">where</span>
   <span class="keyword ">rec</span> <span class="keyword ">der</span> <span class="">h'</span> = <span class="number">0.5</span> <span class="keyword ">init</span> <span class="">hi</span>
-  <span class="keyword ">and</span> <span class="">h</span> = <span class="">min</span>(<span class="">h0</span>, <span class="">h'</span>)
+  <span class="keyword ">and</span> <span class="">h</span> = <span class="">min</span> <span class="">h0</span> <span class="">h'</span>
 
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">escapement</span> <span class="">theta</span> = (<span class="">tic</span>, <span class="">rtic</span>, <span class="">toc</span>, <span class="">rtoc</span>) <span class="keyword ">where</span>
   <span class="keyword ">rec</span> <span class="keyword ">present</span>
@@ -1816,9 +1813,10 @@ The system state is drawn by an external (OCaml) function called
         | <span class="">toc</span>() <span class="keyword expr ">on</span> <span class="">active</span>  -&gt; <span class="">play_toc</span> ();
     ()
 </code></pre></div></div></div></div>
+
 </div><hr>
 <div id="ex-airtraffic" class="example-section">
-<h2 id="airtrafficcontrol">Airtraffic Control</h2>
+## Airtraffic Control ##
 
 <div class="requirements">
 <p class="text-info">
@@ -1827,55 +1825,57 @@ Lablgtk2
 </p>
 </div>
 
-<p>This example is taken from the paper: <a href="http://dx.doi.org/10.1109/9.664154"><em>Conflict Resolution for Air Traffic
+This example is taken from the paper: [_Conflict Resolution for Air Traffic
 Management: A Case Study in Multiagent Hybrid
-Systems</em></a>, Tomlin, Pappas, Sastry, 1998.</p>
+Systems_](http://dx.doi.org/10.1109/9.664154), Tomlin, Pappas, Sastry, 1998.
 
-<p>It models a <em>conflict resolution manouever</em> for two planes: Aircraft1 and
+It models a _conflict resolution manouever_ for two planes: Aircraft1 and
 Aircraft2. Both aircraft are flying at a similar altitude and with constant
-velocity and heading. Two zones are defined around each aircraft:</p>
+velocity and heading. Two zones are defined around each aircraft:
 
-<p><img src="img/aircraft-zones.png" srcset="img/aircraft-zones@2x.png 2x"></p>
+![Plane alert zones](img/aircraft-zones.png "Plane alert zones")
 
-<p>A conflict resolution manouever is considered when two planes have entered
+A conflict resolution manouever is considered when two planes have entered
 into each other's alert zones. The system aims to ensure that neither plane
-ever enters the other's protected zone.</p>
+ever enters the other's protected zone.
 
-<p>In the model, the position and heading of Aircraft1 define, respectively, the
+In the model, the position and heading of Aircraft1 define, respectively, the
 origin and direction of the positive x-axis of a relative coordinate system,
 in which the position of Aircraft2 is specified. The heading of Aircraft2 is
-specified relative to the positive x-axis.</p>
+specified relative to the positive x-axis.
 
-<p><img src="img/aircraft-model.png" srcset="img/aircraft-model@2x.png 2x"></p>
+![Basic model](img/aircraft-model.png "Basic model")
 
-<p>The initial condition in the model is that the aircraft are cruising outside
-each other's protected zones, but inside each other's alert zones.</p>
+The initial condition in the model is that the aircraft are cruising outside
+each other's protected zones, but inside each other's alert zones.
 
-<p>The manouever modelled in this case is (taken directly from the paper):</p>
+The manouever modelled in this case is (taken directly from the paper):
 
-<ol>
-<li><p><em>Cruise</em></p>
+ 1. _Cruise_
 
-<p>Cruise until aircraft are <code>alpha1</code> miles apart.</p></li>
-<li><p><em>Left</em></p>
+    Cruise until aircraft are `alpha1` miles apart.
+ 
+ 2. _Left_
 
-<p>Make a heading change of <code>delta_phi</code> and fly until a lateral displacement
-of at least <code>d</code> miles is acheived for both aircraft.</p></li>
-<li><p><em>Straight</em></p>
+    Make a heading change of `delta_phi` and fly until a lateral displacement
+    of at least `d` miles is acheived for both aircraft.
+ 
+ 3. _Straight_
 
-<p>Make a heading change to the original heading and fly until the aircraft
-are <code>alpha2</code> miles apart.</p></li>
-<li><p><em>Right</em></p>
+    Make a heading change to the original heading and fly until the aircraft
+    are `alpha2` miles apart.
+ 
+ 4. _Right_
 
-<p>Make a heading change of <code>-delta_phi</code> and fly until a lateral
-displacement of d miles is acheived for both aircraft.</p></li>
-<li><p><em>Cruise</em></p>
+    Make a heading change of `-delta_phi` and fly until a lateral
+    displacement of d miles is acheived for both aircraft.
 
-<p>Make a heading change to original heading and cruise.</p></li>
-</ol>
+ 5. _Cruise_
 
-<p>Note that, in the model at least, the heading changes occur simultaneously
-and instantaneously.</p>
+    Make a heading change to original heading and cruise.
+
+Note that, in the model at least, the heading changes occur simultaneously
+and instantaneously.
 
 <div id="ex-airtraffic-airtraffic-box" class="accordion sourcefile">
 <div class="accordion-group">
@@ -1948,7 +1948,7 @@ and instantaneously.</p>
             <span class="keyword ">and</span> <span class="">show_t</span> = <span class="number">0.0</span>
           <span class="keyword ">until</span> <span class="keyword expr ">up</span>(<span class="">sqr</span>(<span class="">alpha1</span>) -. <span class="">sqr</span>(<span class="keyword expr ">last</span> <span class="">x</span>) -. <span class="">sqr</span>(<span class="keyword expr ">last</span> <span class="">y</span>))
             <span class="keyword ">then</span> <span class="keyword ">do</span> <span class="keyword ">emit</span> <span class="">nxy</span> = <span class="">rotate</span>(-. <span class="">delta_phi</span>, <span class="keyword expr ">last</span> <span class="">x</span>, <span class="keyword expr ">last</span> <span class="">y</span>)
-            <span class="keyword ">in</span> <span class="constructor">Left</span>(<span class="">d</span> <span class="operator">/.</span> (<span class="">max</span>(<span class="">v_1</span>, <span class="">v_2</span>) <span class="operator">*.</span> <span class="">sin</span>(<span class="">delta_phi</span>)))
+            <span class="keyword ">in</span> <span class="constructor">Left</span>(<span class="">d</span> <span class="operator">/.</span> ((<span class="">max</span> <span class="">v_1</span> <span class="">v_2</span>) <span class="operator">*.</span> <span class="">sin</span>(<span class="">delta_phi</span>)))
       | <span class="constructor">Left</span>(<span class="">tmax</span>) -&gt;
           <span class="keyword ">do</span>
             <span class="">t'</span> = <span class="number">1.0</span>
@@ -1982,7 +1982,7 @@ and instantaneously.</p>
 <span class="keyword keyword module ">open</span> <span class="constructor">Airtrafficgui</span>
 
 <span class="keyword ">let</span> <span class="keyword ">hybrid</span> <span class="">main</span> () = () <span class="keyword ">where</span>
-  <span class="keyword ">rec</span> <span class="">p</span> = <span class="keyword expr ">period</span> <span class="number">0.1</span>(<span class="number">0.1</span>)
+  <span class="keyword ">rec</span> <span class="">p</span> = <span class="keyword expr ">period</span> (<span class="number">0.1</span> | <span class="number">0.1</span>)
 
   <span class="keyword ">and</span> (<span class="">click</span>, (<span class="">nxr</span>, <span class="">nyr</span>), (<span class="">ntheta_r</span>, <span class="">nd</span>)) =
     <span class="keyword ">present</span> <span class="">p</span> -&gt; <span class="">sample</span> ()
@@ -2000,8 +2000,8 @@ and instantaneously.</p>
                                    <span class="">st</span>, <span class="">xr</span>, <span class="">yr</span>, <span class="">theta_r</span>,
                                    <span class="">aircraft1_v</span> <span class="operator">*.</span> <span class="number">3600.0</span>,
                                    <span class="">aircraft2_v</span> <span class="operator">*.</span> <span class="number">3600.0</span>, <span class="">t</span>)
-
 </code></pre></div></div></div></div>
+
 </div><hr>
 </div><!--/span-->
 </div><!--/row-->
