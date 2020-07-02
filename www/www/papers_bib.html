@@ -338,6 +338,44 @@
 }
 </pre>
 
+<a name="HSCC2017"></a><pre>
+@inproceedings{HSCC2017,
+  author = {Albert Benveniste and Benoit
+                  Caillaud and Hilding Elmqvist and Khalil Ghorbal and Martin Otter and Marc Pouzet},
+  title = {{Structural Analysis of Multi-Mode DAE Systems}},
+  booktitle = {International Conference on
+               Hybrid Systems: Computation and Control (HSCC)},
+  year = 2017,
+  month = {April 18-20},
+  address = {Pittsburgh, USA},
+  organization = {ACM},
+  abstract = {Differential Algebraic Equation (DAE) systems constitute
+                  the mathematical model supporting physical modeling
+                  languages such as Modelica, VHDL-AMS, or
+                  Simscape. Unlike ODEs, they exhibit subtle issues
+                  because of their implicit latent equations and
+                  related differentiation index. Multi-mode DAE (mDAE)
+                  systems are much harder to deal with, not only
+                  because of their mode-dependent dynamics, but
+                  essentially because of the events and resets
+                  occurring at mode transitions. Unfortunately, the
+                  large literature devoted to the numerical analysis
+                  of DAEs does not cover the multi-mode case. It
+                  typically says nothing about mode changes. This lack
+                  of foundations cause numerous difficulties to the
+                  existing modeling tools. Some models are well
+                  handled, others are not, with no clear boundary
+                  between the two classes. In this paper we develop a
+                  comprehensive mathematical approach to the
+                  structural analysis of mDAE systems which properly
+                  extends the usual analysis of DAE systems. We define
+                  a constructive semantics based on nonstandard
+                  analysis and show how to produce execution schemes
+                  in a systematic way.},
+  url = {https://www.di.ens.fr/~pouzet/bib/hscc17.pdf}
+}
+</pre>
+
 <a name="EMSOFT2017"></a><pre>
 @inproceedings{EMSOFT2017,
   author = {Timothy Bourke and Francois Carcenac and Jean-Louis Cola\c{c}o
@@ -371,6 +409,67 @@
   conservatively extends Lustre with constructs for
   programming systems that mix discrete-time and continuous-time signals.},
   url = {https://www.di.ens.fr/~pouzet/bib/emsoft17.pdf}
+}
+</pre>
+
+<a name="PHD_BAUDART:2017"></a><pre>
+@phdthesis{PHD_BAUDART:2017,
+  author = {Guillaume Baudart},
+  title = {{A Synchronous Approach to Quasi-Periodic Systems}},
+  school = {\'Ecole normale sup\'erieure},
+  year = 2017,
+  address = {45 rue d'Ulm, 75230 Paris},
+  abstract = {In this thesis we study embedded controllers implemented
+                  as sets of unsynchronized periodic processes. Each
+                  process activates quasi-periodically, that is,
+                  periodically with bounded jitter, and communicates
+                  with bounded transmission delays. Such reactive
+                  systems, termed quasi-periodic, exist as soon as two
+                  periodic processes are connected together. In the
+                  distributed systems literature they are also known
+                  as synchronous real- time models. We focus on
+                  techniques for the design and analysis of such
+                  systems without imposing a global clock
+                  synchronization.  Synchronous languages were
+                  introduced as domain specific languages for the
+                  design of reactive systems. They offer an ideal
+                  framework to program, analyze, and verify quasi-
+                  periodic systems. Based on a synchronous approach,
+                  this thesis makes contributions to the treatment of
+                  quasi-periodic systems along three themes:
+                  verification, implementation, and simulation.
+                  Verification: The quasi-synchronous abstraction is a
+                  discrete abstraction proposed by Paul Caspi for
+                  model checking safety properties of quasi-periodic
+                  systems. We show that this abstraction is not sound
+                  in general and give necessary and sufficient
+                  conditions on both the static communication graph of
+                  the application and the real-time characteristics of
+                  the architecture to recover soundness. We then
+                  generalize these results to multirate systems.
+                  Implementation: Loosely time-triggered architectures
+                  are protocols designed to ensure the correct
+                  execution of an application running on a
+                  quasi-periodic system. We propose a unified
+                  framework that encompasses both the application and
+                  the protocol controllers. This framework allows us
+                  to simplify existing protocols, propose optimized
+                  versions, and give new correctness proofs. We
+                  instantiate our framework with a protocol based on
+                  clock synchronization to compare the performance of
+                  the two approaches.  Simulation: Quasi-periodic
+                  systems are but one example of timed systems
+                  involving real-time characteristics and
+                  tolerances. For such nondeterministic models, we
+                  propose a symbolic simulation scheme inspired by
+                  model checking techniques for timed automata. We
+                  show how to compile a model mixing nondeterministic
+                  continuous-time and discrete-time dynamics into a
+                  discrete program manipulating sets of possible
+                  values. Each trace of the resulting program captures
+                  a set of possible executions of the source program.
+                  },
+  url = {https://guillaume.baudart.eu/thesis/baudart-thesis.pdf}
 }
 </pre>
 
@@ -416,6 +515,45 @@
   and the industrial prototype Scade Hybrid, a conservative extension
   of Scade 6.},
   url = {https://www.di.ens.fr/~pouzet/bib/ieee18.pdf}
+}
+</pre>
+
+<a name="LNCS10000"></a><pre>
+@incollection{LNCS10000,
+  author = {Albert Benveniste and
+  Benoit Caillaud and Hilding Elmquist and Khalil Ghorbal and
+  Martin Otter and Marc Pouzet},
+  title = {Multi-Mode DAE Models - Challenges, Theory and
+                  Implementation. },
+  booktitle = {Computing and Software Science: state of the Art and
+                  Perspectives},
+  editor = {Steffen B., Woeginger G.},
+  publisher = {Springer},
+  year = 2019,
+  volume = 10000,
+  series = {Lecture Notes in Computer Science},
+  abstract = {Our objective is to model and simulate Cyber-Physical
+                  Systems (CPS) such as robots, vehicles, and power
+                  plants. The structure of CPS models may change
+                  during simulation due to the desired operation, due
+                  to failure situations or due to changes in physical
+                  conditions. Corresponding models are called
+                  multi-mode. We are interested in multi-domain,
+                  component-oriented modeling as performed, for
+                  example, with the modeling language Modelica that
+                  leads naturally to Differential Algebraic Equations
+                  (DAEs). This paper is thus about multi-mode DAE
+                  systems. In particular, new methods are discussed to
+                  overcome one key problem that was only solved for
+                  specific subclasses of systems before: How to switch
+                  from one mode to another one when the number of
+                  equations may change and variables may exhibit
+                  impulsive behavior? An evaluation is performed both
+                  with the experimental modeling and simulation system
+                  Modia, a domain specific language extension of the
+                  programming language Julia, and with SunDAE, a novel
+                  structural analysis library for multi-mode DAE
+                  systems.}
 }
 </pre>
 
