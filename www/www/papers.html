@@ -64,9 +64,12 @@ document.getElementById('title-papers').className = 'active';
 
 <li class="sidebar-nav-header">Papers</li>
 <li><a href="#PLDI2020">PLDI 2020</a></li>
+<li><a href="#LNCS10000">LNCS 10000</a></li>
 <li><a href="#IEEE2018">IEEE 2018</a></li>
 <li><a href="#ML2018">ML 2018</a></li>
 <li><a href="#EMSOFT2017">EMSOFT 2017</a></li>
+<li><a href="#HSCC2017">HSCC 2017</a></li>
+<li><a href="#PHD_BAUDART:2017">PHD_BAUDART: 2017</a></li>
 <li><a href="#CC2015">CC 2015</a></li>
 <li><a href="#HSCC2014">HSCC 2014</a></li>
 <li><a href="#HSCC2013">HSCC 2013</a></li>
@@ -150,6 +153,45 @@ efficient <em>streaming</em> inference.</p><p>
 Together with an evaluation on several reactive applications, our results
 demonstrate that ProbZelus enables the design of reactive
 probabilistic applications and efficient, bounded memory inference.
+</p></div>
+
+</dd>
+
+
+<dt>
+<a id="LNCS10000" class="biblink">LNCS 10000</a>
+</dt>
+<dd>
+Albert Benveniste, Benoit Caillaud, Hilding Elmquist, Khalil Ghorbal, Martin
+  Otter, and Marc Pouzet.
+ Multi-mode dae models - challenges, theory and implementation.
+ In Woeginger G. Steffen B., editor, <em>Computing and Software
+  Science: state of the Art and Perspectives</em>, volume 10000 of <em>Lecture
+  Notes in Computer Science</em>. Springer, 2019.<br>
+<span class="bibref"><a href="papers_bib.html#LNCS10000"><i class="glyphicon glyphicon-book"></i> bib</a></span>
+<div class="abstract"><p>
+Our objective is to model and simulate Cyber-Physical
+                  Systems (CPS) such as robots, vehicles, and power
+                  plants. The structure of CPS models may change
+                  during simulation due to the desired operation, due
+                  to failure situations or due to changes in physical
+                  conditions. Corresponding models are called
+                  multi-mode. We are interested in multi-domain,
+                  component-oriented modeling as performed, for
+                  example, with the modeling language Modelica that
+                  leads naturally to Differential Algebraic Equations
+                  (DAEs). This paper is thus about multi-mode DAE
+                  systems. In particular, new methods are discussed to
+                  overcome one key problem that was only solved for
+                  specific subclasses of systems before: How to switch
+                  from one mode to another one when the number of
+                  equations may change and variables may exhibit
+                  impulsive behavior? An evaluation is performed both
+                  with the experimental modeling and simulation system
+                  Modia, a domain specific language extension of the
+                  programming language Julia, and with SunDAE, a novel
+                  structural analysis library for multi-mode DAE
+                  systems.
 </p></div>
 
 </dd>
@@ -277,6 +319,112 @@ Hybrid systems modelers like
   The experiment is conducted in Zélus, a synchronous language that
   conservatively extends Lustre with constructs for
   programming systems that mix discrete-time and continuous-time signals.
+</p></div>
+
+</dd>
+
+
+<dt>
+<a id="HSCC2017" class="biblink">HSCC 2017</a>
+</dt>
+<dd>
+Albert Benveniste, Benoit Caillaud, Hilding Elmqvist, Khalil Ghorbal, Martin
+  Otter, and Marc Pouzet.
+ Structural Analysis of Multi-Mode DAE Systems.
+ In <em>International Conference on Hybrid Systems: Computation and
+  Control (HSCC)</em>, Pittsburgh, USA, April 18-20 2017. ACM.<br>
+<span class="bibref"><a href="papers_bib.html#HSCC2017"><i class="glyphicon glyphicon-book"></i> bib</a></span>
+<span class="bibref"><a href="https://www.di.ens.fr/~pouzet/bib/hscc17.pdf"><i class="glyphicon glyphicon-file"></i> pdf</a></span>
+<div class="abstract"><p>
+Differential Algebraic Equation (DAE) systems constitute
+                  the mathematical model supporting physical modeling
+                  languages such as Modelica, VHDL-AMS, or
+                  Simscape. Unlike ODEs, they exhibit subtle issues
+                  because of their implicit latent equations and
+                  related differentiation index. Multi-mode DAE (mDAE)
+                  systems are much harder to deal with, not only
+                  because of their mode-dependent dynamics, but
+                  essentially because of the events and resets
+                  occurring at mode transitions. Unfortunately, the
+                  large literature devoted to the numerical analysis
+                  of DAEs does not cover the multi-mode case. It
+                  typically says nothing about mode changes. This lack
+                  of foundations cause numerous difficulties to the
+                  existing modeling tools. Some models are well
+                  handled, others are not, with no clear boundary
+                  between the two classes. In this paper we develop a
+                  comprehensive mathematical approach to the
+                  structural analysis of mDAE systems which properly
+                  extends the usual analysis of DAE systems. We define
+                  a constructive semantics based on nonstandard
+                  analysis and show how to produce execution schemes
+                  in a systematic way.
+</p></div>
+
+</dd>
+
+
+<dt>
+<a id="PHD_BAUDART:2017" class="biblink">PHD_BAUDART: 2017</a>
+</dt>
+<dd>
+Guillaume Baudart.
+ <em>A Synchronous Approach to Quasi-Periodic Systems</em>.
+ PhD thesis, École normale supérieure, 45 rue d'Ulm, 75230 Paris,
+  2017.<br>
+<span class="bibref"><a href="papers_bib.html#PHD_BAUDART:2017"><i class="glyphicon glyphicon-book"></i> bib</a></span>
+<span class="bibref"><a href="https://guillaume.baudart.eu/thesis/baudart-thesis.pdf"><i class="glyphicon glyphicon-file"></i> pdf</a></span>
+<div class="abstract"><p>
+In this thesis we study embedded controllers implemented
+                  as sets of unsynchronized periodic processes. Each
+                  process activates quasi-periodically, that is,
+                  periodically with bounded jitter, and communicates
+                  with bounded transmission delays. Such reactive
+                  systems, termed quasi-periodic, exist as soon as two
+                  periodic processes are connected together. In the
+                  distributed systems literature they are also known
+                  as synchronous real- time models. We focus on
+                  techniques for the design and analysis of such
+                  systems without imposing a global clock
+                  synchronization.  Synchronous languages were
+                  introduced as domain specific languages for the
+                  design of reactive systems. They offer an ideal
+                  framework to program, analyze, and verify quasi-
+                  periodic systems. Based on a synchronous approach,
+                  this thesis makes contributions to the treatment of
+                  quasi-periodic systems along three themes:
+                  verification, implementation, and simulation.
+                  Verification: The quasi-synchronous abstraction is a
+                  discrete abstraction proposed by Paul Caspi for
+                  model checking safety properties of quasi-periodic
+                  systems. We show that this abstraction is not sound
+                  in general and give necessary and sufficient
+                  conditions on both the static communication graph of
+                  the application and the real-time characteristics of
+                  the architecture to recover soundness. We then
+                  generalize these results to multirate systems.
+                  Implementation: Loosely time-triggered architectures
+                  are protocols designed to ensure the correct
+                  execution of an application running on a
+                  quasi-periodic system. We propose a unified
+                  framework that encompasses both the application and
+                  the protocol controllers. This framework allows us
+                  to simplify existing protocols, propose optimized
+                  versions, and give new correctness proofs. We
+                  instantiate our framework with a protocol based on
+                  clock synchronization to compare the performance of
+                  the two approaches.  Simulation: Quasi-periodic
+                  systems are but one example of timed systems
+                  involving real-time characteristics and
+                  tolerances. For such nondeterministic models, we
+                  propose a symbolic simulation scheme inspired by
+                  model checking techniques for timed automata. We
+                  show how to compile a model mixing nondeterministic
+                  continuous-time and discrete-time dynamics into a
+                  discrete program manipulating sets of possible
+                  values. Each trace of the resulting program captures
+                  a set of possible executions of the source program.
+                  
 </p></div>
 
 </dd>
