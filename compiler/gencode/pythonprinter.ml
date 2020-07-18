@@ -106,17 +106,17 @@ and method_call ff { met_name = m; met_instance = i_opt; met_args = e_list } =
   let m = method_name m in
   let instance_name ff i_opt =
     match i_opt with
-    | None -> fprintf ff "itself" | Some(o, _) -> name ff o in
+    | None -> fprintf ff "self" | Some(o, _) -> name ff o in
   let instance ff i_opt =
     match i_opt with
-    | None -> (* a call to the self machine *) fprintf ff "itself"
+    | None -> (* a call to the self machine *) fprintf ff "self"
     | Some(o, e_list) ->
         match e_list with
-        | [] -> fprintf ff "itself[\"%a\"]" name o
+        | [] -> fprintf ff "self.%a" name o
         | e_list ->
-            fprintf ff "itself[\"%a\"]%a" name o
+            fprintf ff "self.%a %a" name o
               (print_list_no_space
-                 (print_with_braces (exp 3) "[\"" "\"]") "" "" "")
+                 (print_with_braces (exp 3) "[" "]") "" "" "")
               e_list in
   fprintf ff "@[<v 4>%a_%s %a@ %a@]"
     instance_name i_opt m instance i_opt
@@ -129,10 +129,10 @@ and var ff left =
 
 and left_state_value ff left =
   match left with
-  | Oself -> fprintf ff "itself."
-  | Oleft_instance_name(n) -> fprintf ff "itself[\"%a\"]" name n
+  | Oself -> fprintf ff "self."
+  | Oleft_instance_name(n) -> fprintf ff "self.%a" name n
   | Oleft_state_global(ln) -> longname ff ln
-  | Oleft_state_name(n) -> fprintf ff "itself[\"%a\"]" name n
+  | Oleft_state_name(n) -> fprintf ff "self.%a" name n
   | Oleft_state_record_access(left, n) ->
       fprintf ff "@[%a.%a@]" left_state_value left longname n
   | Oleft_state_index(left, idx) ->
@@ -369,7 +369,7 @@ let rec array_of e_opt ty ff ie_size =
 (* Print initialization code *)
 let print_initialize ff i_opt =
   match i_opt with
-  | None -> fprintf ff "pass" | Some(i) -> fprintf ff "%a" (inst 0) i
+  | None -> fprintf ff "# No init code" | Some(i) -> fprintf ff "%a" (inst 0) i
 
 (** Print the allocation function *)
 let palloc f i_opt memories ff instances =
@@ -413,13 +413,13 @@ let palloc f i_opt memories ff instances =
   then if instances = []
     then fprintf ff "@[<v 4>def __init__ ():@,%a@,@]" print_initialize i_opt
     else
-      fprintf ff "@[<v 4>def __init__ ():@,%a;@,return %a@,@]"
+      fprintf ff "@[<v 4>def __init__ ():@,%a;@,%a@,@]"
         print_initialize i_opt
-        (print_record print_instance) instances
+        (pp_print_list ~pp_sep:pp_print_cut print_instance) instances
   else if instances = []
   then
-    fprintf ff "@[<v 4>def __init__ ():@,%a@,return %a@,@]"
-      print_initialize i_opt (print_record print_memory) memories
+    fprintf ff "@[<v 4>def __init__ ():@,%a@,%a@,@]"
+      print_initialize i_opt (pp_print_list ~pp_sep:pp_print_cut print_memory) memories
   else
     fprintf ff "@[<v 4>def __init__ ():@,%a;@,%a@,%a@,@]"
       print_initialize i_opt
@@ -514,28 +514,20 @@ let machine f ff { ma_kind = k;
     fprintf ff "@[<v>%a@,%a@]@]"
       (palloc f i_opt memories) instances
       (pp_print_list ~pp_sep:pp_print_cut (pmethod f)) m_list;
-  fprintf ff "@,@]"
+  fprintf ff "@]@."
 
 let implementation ff impl = match impl with
   | Oletvalue(n, i) ->
-      fprintf ff "@[<v>@[<v 4>def %a ():@,%a@]@,%a = %a()@,@,@]" shortname n (inst 0) i shortname n shortname n
+      fprintf ff "@[<v>@[<v 4>def %a ():@,%a@]@,%a = %a()@,@,@]@." shortname n (inst 0) i shortname n shortname n
   | Oletfun(n, pat_list, i) ->
-      fprintf ff "@[<v>@[<v 4>def %a %a:@,%a@]@,@,@]"
+      fprintf ff "@[<v>@[<v 4>def %a %a:@,%a@]@,@,@]@."
         shortname n pattern_list pat_list (inst 0) i
   | Oletmachine(n, m) -> machine n ff m
-  | Oopen(s) -> () 
-  (* fprintf ff "@[open %s@.@]" s *)
+  | Oopen(s) -> fprintf ff "@[from %s import *@]@." s
   | Otypedecl(l) -> ()
-(* fprintf ff "@[%a@.@]"
-   (print_list_l
-     (fun ff (s, s_list, ty_decl) ->
-        fprintf ff "%a%s =@ %a"
-          Ptypes.print_type_params s_list
-          s type_decl ty_decl)
-     "type ""and """)
-   l *)
 
 let implementation_list ff impl_list =
-  fprintf ff "@[\"\"\" %s \"\"\"@]" header_in_file;
+  (* fprintf ff "@[\"\"\" %s \"\"\"@]" header_in_file; *)
   (* fprintf ff "@[open Ztypes@.@]"; *)
-  List.iter (implementation ff) impl_list
+  List.iter (implementation ff) impl_list;
+  fprintf ff "@."
