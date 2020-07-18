@@ -75,6 +75,7 @@ and doc_lmm = "<n>\t Translate the node into Lustre--"
 and doc_red_name = "\t Static reduction for"
 and doc_zsign = "\t Use the sign function for the zero-crossing argument"
 and doc_with_copy = "\t Add of a copy method for the state"
+and doc_python = "\t Generate Python code"
 let errmsg = "Options are:"
 
 let set_verbose () =
@@ -116,7 +117,8 @@ let main () =
 	"-nosimplify", Arg.Set no_simplify_causality_type, doc_nosimplify;
         "-noreduce", Arg.Set no_reduce, doc_noreduce;
         "-zsign", Arg.Set zsign, doc_zsign;
-	"-copy", Arg.Set with_copy, doc_with_copy;
+  "-copy", Arg.Set with_copy, doc_with_copy;
+  "-python", Arg.Set python, doc_python;
 	"-lmm", Arg.String set_lmm_nodes, doc_lmm
       ])
       compile

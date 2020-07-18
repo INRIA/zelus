@@ -97,6 +97,7 @@ let compile modname filename =
   let source_name = filename ^ ".zls"
   and obj_interf_name = filename ^ ".zci"
   and ml_name = filename ^ ".ml"
+  and py_name = filename ^ ".py"
   and lmm_name = filename ^ ".lmm" in
 
   (* standard output for printing types and clocks *)
@@ -107,6 +108,11 @@ let compile modname filename =
     let mlc_ff = Format.formatter_of_out_channel mlc in
     pp_set_max_boxes mlc_ff max_int;
     Ocamlprinter.implementation_list mlc_ff obc_list in
+    
+  let write_python_list obc_list pyc = 
+    let mlc_ff = Format.formatter_of_out_channel pyc in
+    pp_set_max_boxes mlc_ff max_int;
+    Pythonprinter.implementation_list mlc_ff obc_list in
 
   let write_lmm_list impl_list lmmc =
     let lmm_ff = Format.formatter_of_out_channel lmmc in
@@ -261,16 +267,23 @@ let compile modname filename =
        end;
      (* print OCaml code *)
      if !verbose
-     then begin
-	 comment "Print OCaml code. See below:";
-	 Ocamlprinter.implementation_list info_ff obc_list
+     then 
+       if not !python then begin
+         comment "Print OCaml code. See below:";
+         Ocamlprinter.implementation_list info_ff obc_list;
+         (* write OCaml code in the appropriate file *)
+         let mlc = open_out ml_name in
+         apply_with_close_out (write_implementation_list obc_list) mlc;     
+         (* Write the symbol table into the interface file *)
+         let itc = open_out_bin obj_interf_name in
+         apply_with_close_out Modules.write itc
+       end else begin
+         comment "Print Python code. See below:";
+         Pythonprinter.implementation_list info_ff obc_list;
+         (* write Python code in the appropriate file *)
+         let pyc = open_out py_name in
+         apply_with_close_out (write_python_list obc_list) pyc;    
        end;
-     (* write OCaml code in the appropriate file *)
-     let mlc = open_out ml_name in
-     apply_with_close_out (write_implementation_list obc_list) mlc;     
-     (* Write the symbol table into the interface file *)
-     let itc = open_out_bin obj_interf_name in
-     apply_with_close_out Modules.write itc;
 
      (* translate into L-- if asked for *)
      if Misc.S.is_empty !Misc.lmm_nodes then ()

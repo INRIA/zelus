@@ -67,7 +67,7 @@ REWRITE = rewrite/markfunctions.cmo \
 	rewrite/remove_last_in_patterns.cmo \
 	rewrite/add_copy_for_last.cmo \
 	rewrite/automata.cmo \
-        rewrite/activate.cmo \
+    rewrite/activate.cmo \
 	rewrite/present.cmo \
 	rewrite/period.cmo \
 	rewrite/disc.cmo \
@@ -94,6 +94,7 @@ GENCODE = gencode/sol.cmo \
 	  gencode/oaux.cmo \
 	  gencode/oprinter.cmo \
 	  gencode/ocamlprinter.cmo \
+	  gencode/pythonprinter.cmo \
 	  gencode/translate.cmo \
 	  gencode/inout.cmo	  
 

@@ -93,6 +93,7 @@ let no_reduce = ref false
 let no_warning = ref false
 let zsign = ref false
 let with_copy = ref false
+let python = ref false
 		
 let lmm_nodes = ref S.empty
 let set_lmm_nodes (n: string) =
