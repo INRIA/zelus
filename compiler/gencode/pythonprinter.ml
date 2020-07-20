@@ -112,15 +112,16 @@ and method_call ff { met_name = m; met_instance = i_opt; met_args = e_list } =
     | None -> (* a call to the self machine *) fprintf ff "self"
     | Some(o, e_list) ->
         match e_list with
-        | [] -> fprintf ff "self.%a" name o
+        | [] -> fprintf ff ""
         | e_list ->
-            fprintf ff "self.%a %a" name o
+            assert false;
+            fprintf ff "self.%a(%a)" name o
               (print_list_no_space
                  (print_with_braces (exp 3) "[" "]") "" "" "")
               e_list in
-  fprintf ff "@[<v 4>%a_%s %a@ %a@]"
+  fprintf ff "%a.%s(%a%a)"
     instance_name i_opt m instance i_opt
-    (print_list_r (exp 3) "" "" "") e_list
+    (print_list_r (exp 3) "" "," "") e_list
 
 and var ff left =
   match left with
@@ -158,10 +159,10 @@ and letvar ff n is_mutable ty e_opt i =
   match e_opt with
   | None ->
       fprintf ff "@[<v 0>%a = %s@]@[<v 0>%a@]"
-        name n s (inst 0) i
+        name n s (inst 0 false) i
   | Some(e0) ->
       fprintf ff "@[<v 0>%a = %s(%a)@]@[<v 0>%a@]"
-        name n s (exp 0) e0 (inst 0) i
+        name n s (exp 0) e0 (inst 0 false) i
 
 and exp prio ff e =
   let prio_e = priority_exp e in
@@ -238,17 +239,17 @@ and exp prio ff e =
     | Oifthenelse(e, e1, e2) ->
         fprintf ff "@[<hv>if %a@ @[<hv 2>then@ %a@]@ @[<hv 2>else@ %a@]@]"
           (exp 0) e (exp prio_e) e1 (exp prio_e) e2
-    | Oinst(i) -> inst prio ff i
+    | Oinst(i) -> inst prio false ff i
   end;
   if prio_e < prio then fprintf ff ")"
 
-and inst prio ff i =
+and inst prio r ff i =
   let prio_i = priority_inst i in
   if prio_i < prio then fprintf ff "";
   begin
     match i with
     | Olet(p, e, i) ->
-        fprintf ff "@[<v 0>%a ;@,%a@]" pat_exp (p, e) (inst (prio_i-1)) i
+        fprintf ff "@[<v 0>%a ;@,%a@]" pat_exp (p, e) (inst (prio_i-1) r) i
     | Oletvar(x, is_mutable, ty, e_opt, i) -> letvar ff x is_mutable ty e_opt i
     | Omatch(e, match_handler_l) ->
         fprintf ff "@[<v2>begin @[match %a with@ @[%a@]@] end@]"
@@ -257,34 +258,43 @@ and inst prio ff i =
     | Ofor(is_to, n, e1, e2, i3) ->
         fprintf ff "@[<hv>for %a = %a %s %a@ @[<hv 2>do@ %a@ done@]@]"
           name n (exp 0) e1 (if is_to then "to" else "downto")
-          (exp 0) e2 (inst 0) i3
+          (exp 0) e2 (inst 0 false) i3
     | Owhile(e1, i2) ->
         fprintf ff "@[<v 4>while %a:@[<v>%a@]@,@]"
-          (exp 0) e1 (inst 0) i2
+          (exp 0) e1 (inst 0 false) i2
     | Oassign(left, e) -> assign ff left e
     | Oassign_state(left, e) -> assign_state ff left e
-    | Osequence(i_list) ->
-        if i_list = []
-        then fprintf ff "pass"
-        else fprintf
-            ff "@[<v>%a@]" (print_list_r (inst (prio_i + 1)) "" ";" "") i_list
-    | Oexp(e) -> fprintf ff "@[return %a@]" (exp prio) e
+    | Osequence(i_list) -> sinst r ff i
+    (* if i_list = []
+       then 
+       else fprintf
+        ff "@[<v>%a@]" (pp_print_list ~pp_sep:pp_print_cut (inst (prio_i + 1) r)) i_list *)
+    | Oexp(e) -> begin match r with
+        | true -> fprintf ff "return %a" (exp prio) e
+        | false -> fprintf ff "%a" (exp prio) e
+      end
     | Oif(e, i1, None) ->
-        fprintf ff "@[<v 4>if %a:@,@[<v>%a@]@]" (exp 0) e sinst i1
+        fprintf ff "@[<v 4>if %a:@,@[<v>%a@]@]" (exp 0) e (sinst r) i1
     | Oif(e, i1, Some(i2)) ->
         fprintf ff "@[<v 4>if %a:@,@[<v>%a@]@,else:@,@[<v>%a@]@]"
-          (exp 0) e sinst i1 sinst i2
+          (exp 0) e (sinst r) i1 (sinst r) i2
   end;
   if prio_i < prio then fprintf ff ""
 
 (* special treatment to add an extra parenthesis if [i] is a sequence *)
-and sinst ff i =
+and sinst r ff i =
   match i with
   | Osequence(i_list) ->
-      if i_list = [] then fprintf ff "pass"
-      else fprintf ff
-          "@[<v>%a@]" (print_list_r (inst 1) "" ";" "") i_list
-  | _ -> inst 0 ff i
+      begin match List.rev(i_list) with
+        | [] -> fprintf ff "pass"
+        | [i] -> fprintf ff "%a" (inst 0 r) i
+        | fi::ri_list -> 
+            fprintf ff "@[<v>%a@,%a@]" 
+              (pp_print_list ~pp_sep:pp_print_cut (inst 0 false)) 
+              (List.rev ri_list) 
+              (inst 0 r) fi
+      end
+  | _ -> inst 0 r ff i
 
 and pat_exp ff (p, e) =
   fprintf ff "@[@[%a@] =@ @[%a@]@]" pattern p (exp 0) e
@@ -293,7 +303,8 @@ and exp_with_typ ff (e, ty) =
   fprintf ff "%a" (exp 2) e
 
 and match_handler ff { w_pat = pat; w_body = b } =
-  fprintf ff "@[<hov 4>| %a ->@ %a@]" pattern pat (inst 0) b
+  assert false;
+  fprintf ff "@[<hov 4>| %a ->@ %a@]" pattern pat (inst 0 false) b
 
 
 let print_memory ff { m_name = n; m_value = e_opt; m_typ = ty;
@@ -341,19 +352,21 @@ let print_memory ff { m_name = n; m_value = e_opt; m_typ = ty;
 (** Print the method as a function *)
 let pmethod f ff { me_name = me_name; me_params = pat_list;
                    me_body = i; me_typ = ty } =
-  fprintf ff "@[<v 4>def %s_%s (itself) %a:@,%a@,@]"
-    f (method_name me_name) pattern_list pat_list (inst 2) i
+  fprintf ff "@[<v 4>def %s_%s (self, %a):@,%a@,@]"
+    f (method_name me_name) pattern_list pat_list (inst 2 true) i
 
 (* create an array of type t[n_1]...[n_k] *)
 let array_make print arg ff ie_size =
   let rec array_rec ff = function
     | [] -> fprintf ff "%a" print arg
     | ie :: ie_size ->
+        assert false;
         fprintf ff "@[<hov>Array.init %a@ (fun _ -> %a)@]"
           (exp 3) ie array_rec ie_size in
   array_rec ff ie_size
 
 let rec array_of e_opt ty ff ie_size =
+  assert false;
   let exp_of ff (e_opt, ty) =
     match e_opt, ty with
     | Some(e), _ -> exp 2 ff e
@@ -369,7 +382,7 @@ let rec array_of e_opt ty ff ie_size =
 (* Print initialization code *)
 let print_initialize ff i_opt =
   match i_opt with
-  | None -> fprintf ff "# No init code" | Some(i) -> fprintf ff "%a" (inst 0) i
+  | None -> fprintf ff "pass" | Some(i) -> fprintf ff "%a" (inst 0 false) i
 
 (** Print the allocation function *)
 let palloc f i_opt memories ff instances =
@@ -424,7 +437,7 @@ let palloc f i_opt memories ff instances =
     fprintf ff "@[<v 4>def __init__ ():@,%a;@,%a@,%a@,@]"
       print_initialize i_opt
       (pp_print_list ~pp_sep:pp_print_cut print_memory) memories
-      (print_list_r print_instance """;""") instances
+      (pp_print_list ~pp_sep:pp_print_cut print_instance) instances
 
 (* A copy method that recursively copy an internal state. *)
 (* This solution does not work at the moment when the program has *)
@@ -518,10 +531,10 @@ let machine f ff { ma_kind = k;
 
 let implementation ff impl = match impl with
   | Oletvalue(n, i) ->
-      fprintf ff "@[<v>@[<v 4>def %a ():@,%a@]@,%a = %a()@,@,@]@." shortname n (inst 0) i shortname n shortname n
+      fprintf ff "@[<v>@[<v 4>def %a ():@,%a@]@,%a = %a()@,@,@]@." shortname n (inst 0 true) i shortname n shortname n
   | Oletfun(n, pat_list, i) ->
       fprintf ff "@[<v>@[<v 4>def %a %a:@,%a@]@,@,@]@."
-        shortname n pattern_list pat_list (inst 0) i
+        shortname n pattern_list pat_list (inst 0 true) i
   | Oletmachine(n, m) -> machine n ff m
   | Oopen(s) -> fprintf ff "@[from %s import *@]@." s
   | Otypedecl(l) -> ()
