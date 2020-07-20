@@ -266,24 +266,26 @@ let compile modname filename =
          Oprinter.implementation_list info_ff obc_list
        end;
      (* print OCaml code *)
-     if !verbose
-     then 
-       if not !python then begin
+     if not !python then begin
+       if !verbose then begin
          comment "Print OCaml code. See below:";
-         Ocamlprinter.implementation_list info_ff obc_list;
-         (* write OCaml code in the appropriate file *)
-         let mlc = open_out ml_name in
-         apply_with_close_out (write_implementation_list obc_list) mlc;     
-         (* Write the symbol table into the interface file *)
-         let itc = open_out_bin obj_interf_name in
-         apply_with_close_out Modules.write itc
-       end else begin
-         comment "Print Python code. See below:";
-         Pythonprinter.implementation_list info_ff obc_list;
-         (* write Python code in the appropriate file *)
-         let pyc = open_out py_name in
-         apply_with_close_out (write_python_list obc_list) pyc;    
+         Ocamlprinter.implementation_list info_ff obc_list
        end;
+       (* write OCaml code in the appropriate file *)
+       let mlc = open_out ml_name in
+       apply_with_close_out (write_implementation_list obc_list) mlc;
+     end else begin
+       if !verbose then begin
+         comment "Print Python code. See below:";
+         Pythonprinter.implementation_list info_ff obc_list
+       end;
+       (* write Python code in the appropriate file *)
+       let pyc = open_out py_name in
+       apply_with_close_out (write_python_list obc_list) pyc;
+     end;
+     (* Write the symbol table into the interface file *)
+     let itc = open_out_bin obj_interf_name in
+     apply_with_close_out Modules.write itc;
 
      (* translate into L-- if asked for *)
      if Misc.S.is_empty !Misc.lmm_nodes then ()
