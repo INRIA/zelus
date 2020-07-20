@@ -232,8 +232,7 @@ and exp prio ff e =
     | Orecord_with(e_record, r) ->
         fprintf ff "@[{ %a with %a }@]"
           (exp prio_e) e_record
-          (print_list_r
-             (print_couple longname (exp prio_e) """ =""") "" ";" "") r
+          (pp_print_list ~pp_sep:pp_print_cut  (print_couple longname (exp prio_e) """ =""")) r
     | Otypeconstraint(e, ty_e) ->
         fprintf ff "@[%a@]" (exp prio_e) e
     | Oifthenelse(e, e1, e2) ->
@@ -249,7 +248,7 @@ and inst prio r ff i =
   begin
     match i with
     | Olet(p, e, i) ->
-        fprintf ff "@[<v 0>%a ;@,%a@]" pat_exp (p, e) (inst (prio_i-1) r) i
+        fprintf ff "@[<v 0>%a@,%a@]" pat_exp (p, e) (inst (prio_i-1) r) i
     | Oletvar(x, is_mutable, ty, e_opt, i) -> letvar ff x is_mutable ty e_opt i
     | Omatch(e, match_handler_l) ->
         fprintf ff "@[<v2>begin @[match %a with@ @[%a@]@] end@]"
@@ -426,7 +425,7 @@ let palloc f i_opt memories ff instances =
   then if instances = []
     then fprintf ff "@[<v 4>def __init__ ():@,%a@,@]" print_initialize i_opt
     else
-      fprintf ff "@[<v 4>def __init__ ():@,%a;@,%a@,@]"
+      fprintf ff "@[<v 4>def __init__ ():@,%a@,%a@,@]"
         print_initialize i_opt
         (pp_print_list ~pp_sep:pp_print_cut print_instance) instances
   else if instances = []
@@ -434,7 +433,7 @@ let palloc f i_opt memories ff instances =
     fprintf ff "@[<v 4>def __init__ ():@,%a@,%a@,@]"
       print_initialize i_opt (pp_print_list ~pp_sep:pp_print_cut print_memory) memories
   else
-    fprintf ff "@[<v 4>def __init__ ():@,%a;@,%a@,%a@,@]"
+    fprintf ff "@[<v 4>def __init__ ():@,%a@,%a@,%a@,@]"
       print_initialize i_opt
       (pp_print_list ~pp_sep:pp_print_cut print_memory) memories
       (pp_print_list ~pp_sep:pp_print_cut print_instance) instances
@@ -496,16 +495,16 @@ let pcopy f memories ff instances =
     then fprintf ff "@[let %s_copy source dest = () in@]" f
     else
       fprintf ff "@[<v 2>let %s_copy source dest =@ @[%a@] in@]"
-        f (print_list_r copy_instance "" ";" "") instances
+        f (pp_print_list ~pp_sep:pp_print_cut copy_instance) instances
   else if instances = []
   then
     fprintf ff "@[<v 2>let %s_copy source dest =@ @[%a@] in@]"
-      f (print_list_r copy_memory "" ";" "") memories
+      f (pp_print_list ~pp_sep:pp_print_cut copy_memory) memories
   else
     fprintf ff "@[<v 2>let %s_copy source dest =@ @[%a@,%a@] in@]"
       f
-      (print_list_r copy_memory "" ";" ";") memories
-      (print_list_r copy_instance "" ";" "") instances
+      (pp_print_list ~pp_sep:pp_print_cut copy_memory) memories
+      (pp_print_list ~pp_sep:pp_print_cut copy_instance) instances
 
 (** Print a machine as pieces with a type definition for the state *)
 (** and a collection of functions *)
