@@ -80,7 +80,7 @@ let ptype ff ty =
 let rec pattern ff pat = match pat with
   | Owildpat -> fprintf ff "_"
   | Oconstpat(i) -> immediate ff i
-  | Oconstr0pat(lname) -> longname ff lname
+  | Oconstr0pat(lname) -> fprintf ff "\"%a\"" longname lname
   | Oconstr1pat(lname, pat_list) ->
       fprintf ff "@[%a%a@]"
         longname lname (print_list_r pattern "("","")") pat_list
@@ -169,7 +169,7 @@ and exp prio ff e =
   (* if prio_e < prio then fprintf ff "("; *)
   begin match e with
     | Oconst(i) -> immediate ff i
-    | Oconstr0(lname) -> longname ff lname
+    | Oconstr0(lname) -> fprintf ff "\"%a\"" longname lname
     | Oconstr1(lname, e_list) ->
         assert false;
         fprintf ff "@[%a%a@]"
@@ -255,10 +255,10 @@ and inst prio r ff i =
     | Olet(p, e, i) ->
         fprintf ff "@[<v 0>%a@,%a@]" pat_exp (p, e) (inst (prio_i-1) r) i
     | Oletvar(x, is_mutable, ty, e_opt, i) -> letvar ff x is_mutable ty e_opt i
-    | Omatch(e, match_handler_l) ->
-        fprintf ff "@[<v2>begin @[match %a with@ @[%a@]@] end@]"
-          (exp 0) e
-          (print_list_l match_handler """""") match_handler_l
+    | Omatch(e, [{w_pat = Owildpat; w_body}]) -> (inst 0 false) ff w_body
+    | Omatch(e, match_handler_l) -> 
+          fprintf ff "@[<v>@[<v 4>%a@]" 
+          (pp_print_list ~pp_sep:(fun ff () -> fprintf ff "@,@[<v 4>el") (match_handler e)) match_handler_l
     | Ofor(is_to, n, e1, e2, i3) ->
         fprintf ff "@[<v 4>for %a in range(%a, %a, %d):@,%a@]"
           name n 
@@ -305,9 +305,10 @@ and pat_exp ff (p, e) =
 and exp_with_typ ff (e, ty) =
   fprintf ff "%a" (exp 2) e
 
-and match_handler ff { w_pat = pat; w_body = b } =
-  (* assert false; *)
-  fprintf ff "@[<hov 4>| %a ->@ %a@]" pattern pat (inst 0 false) b
+and match_handler e ff { w_pat = pat; w_body = b } =
+  match pat with
+  | Owildpat -> fprintf ff "se:@,%a@]" (inst 0 false) b (* else case *)
+  | _ -> fprintf ff "if %a == %a:@,%a@]" (exp 0) e pattern pat (inst 0 false) b (* if/elif case *)
 
 
 let print_memory ff { m_name = n; m_value = e_opt; m_typ = ty;
@@ -541,7 +542,7 @@ let implementation ff impl = match impl with
         shortname n pattern_list pat_list (inst 0 true) i
   | Oletmachine(n, m) -> machine n ff m
   | Oopen(s) -> fprintf ff "@[from %s import *@]@." s
-  | Otypedecl(l) ->  ()
+  | Otypedecl(l) -> ()
   (* fprintf ff "@[%a@.@]"
   (print_list_l
      (fun ff (s, s_list, ty_decl) ->
@@ -554,5 +555,6 @@ let implementation ff impl = match impl with
 let implementation_list ff impl_list =
   (* fprintf ff "@[\"\"\" %s \"\"\"@]" header_in_file; *)
   (* fprintf ff "@[open Ztypes@.@]"; *)
+  fprintf ff "from enum import Enum";
   List.iter (implementation ff) impl_list;
   fprintf ff "@."
