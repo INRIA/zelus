@@ -144,15 +144,15 @@ and left_state_value ff left =
 and assign ff left e =
   match left with
   | Oleft_name(n) ->
-      fprintf ff "%a = %a@," name n (exp 2) e
+      fprintf ff "%a = %a" name n (exp 2) e
   | _ ->
-      fprintf ff "%a = %a@," left_value left (exp 2) e
+      fprintf ff "%a = %a" left_value left (exp 2) e
 
 and assign_state ff left e =
   match left with
   | Oleft_state_global(gname) ->
-      fprintf ff "@[<v 2>%a = %a@]" longname gname (exp 2) e
-  | _ -> fprintf ff "@[<v 2>%a = %a@]" left_state_value left (exp 2) e
+      fprintf ff "%a = %a" longname gname (exp 2) e
+  | _ -> fprintf ff "%a = %a" left_state_value left (exp 2) e
 
 and letvar ff n is_mutable ty e_opt i =
   let s = "" in
@@ -166,21 +166,23 @@ and letvar ff n is_mutable ty e_opt i =
 
 and exp prio ff e =
   let prio_e = priority_exp e in
-  if prio_e < prio then fprintf ff "(";
+  (* if prio_e < prio then fprintf ff "("; *)
   begin match e with
     | Oconst(i) -> immediate ff i
     | Oconstr0(lname) -> longname ff lname
     | Oconstr1(lname, e_list) ->
+        assert false;
         fprintf ff "@[%a%a@]"
           longname lname (print_list_r (exp prio_e) "("","")") e_list
     | Oglobal(ln) -> longname ff ln
     | Olocal(n) -> local ff n
     | Ovar(is_mutable, n) ->
-        fprintf ff "@[%s%a@]" (if is_mutable then "" else "!") local n
+        fprintf ff "%a" local n
     | Ostate(l) -> left_state_value ff l
     | Oaccess(e, eidx) ->
-        fprintf ff "%a[@[%a@]]" (exp prio_e) e (exp prio_e) eidx
+        fprintf ff "%a[%a]" (exp prio_e) e (exp prio_e) eidx
     | Ovec(e, se) ->
+        assert false;
         (* make a vector *)
         let print_vec ff e se =
           match e with
@@ -194,11 +196,13 @@ and exp prio ff e =
                    (psize prio_e) se (exp prio_e) e in
         print_vec ff e se
     | Oupdate(se, e1, i, e2) ->
+        assert false;
         (* returns a fresh vector [_t] of size [se] equal to [e2] except at *)
         (* [i] where it is equal to [e2] *)
         fprintf ff "@[(let _t = Array.copy (%a) in@ _t.(%a) <- %a; _t)@]"
           (exp 0) e1 (exp 0) i (exp 0) e2
     | Oslice(e, s1, s2) ->
+        assert false;
         (* returns a fresh vector [_t] of size [s1+s2] *)
         (* with _t.(i) = e.(i + s1) for all i in [0..s2-1] *)
         fprintf ff "@[(let _t = Array.make %a %a.(0) in @ \
@@ -209,6 +213,7 @@ and exp prio ff e =
           (psize 0) s2
           (exp 2) e (psize 0) s1
     | Oconcat(e1, s1, e2, s2) ->
+        assert false;
         (* returns a fresh vector [_t] of size [s1+s2] *)
         (* with _t.(i) = e1.(i) forall i in [0..s1-1] and *)
         (* _t.(i+s1) = e2.(i) forall i in [0..s2-1] *)
@@ -220,27 +225,27 @@ and exp prio ff e =
           (exp 2) e1 (psize 0) s1
           (exp 2) e2 (psize 0) s2
     | Otuple(e_list) ->
-        fprintf ff "@[<hov2>%a@]" (print_list_r (exp prio_e) """,""") e_list
+        fprintf ff "%a" (print_list_r (exp prio_e) """,""") e_list
     | Oapp(e, e_list) ->
-        fprintf ff "@[<hov2>%a(%a)@]"
+        fprintf ff "%a(%a)"
           (exp (prio_e + 1)) e (print_list_r (exp (prio_e + 1)) """,""") e_list
     | Omethodcall m -> method_call ff m
     | Orecord(r) ->
         print_record (print_couple longname (exp prio_e) """ =""") ff r
     | Orecord_access(e_record, lname) ->
-        fprintf ff "%a.%a" (exp prio_e) e_record longname lname
+        fprintf ff "%a[%a]" (exp prio_e) e_record longname lname
     | Orecord_with(e_record, r) ->
+        assert false;
         fprintf ff "@[{ %a with %a }@]"
           (exp prio_e) e_record
           (pp_print_list ~pp_sep:pp_print_cut  (print_couple longname (exp prio_e) """ =""")) r
-    | Otypeconstraint(e, ty_e) ->
-        fprintf ff "@[%a@]" (exp prio_e) e
+    | Otypeconstraint(e, ty_e) -> ()
     | Oifthenelse(e, e1, e2) ->
-        fprintf ff "@[<hv>if %a@ @[<hv 2>then@ %a@]@ @[<hv 2>else@ %a@]@]"
-          (exp 0) e (exp prio_e) e1 (exp prio_e) e2
+        fprintf ff "%a if %a else %a"
+          (exp prio_e) e1 (exp 0) e (exp prio_e) e2
     | Oinst(i) -> inst prio false ff i
-  end;
-  if prio_e < prio then fprintf ff ")"
+  end
+  (* if prio_e < prio then fprintf ff ")" *)
 
 and inst prio r ff i =
   let prio_i = priority_inst i in
@@ -255,27 +260,26 @@ and inst prio r ff i =
           (exp 0) e
           (print_list_l match_handler """""") match_handler_l
     | Ofor(is_to, n, e1, e2, i3) ->
-        fprintf ff "@[<hv>for %a = %a %s %a@ @[<hv 2>do@ %a@ done@]@]"
-          name n (exp 0) e1 (if is_to then "to" else "downto")
-          (exp 0) e2 (inst 0 false) i3
+        fprintf ff "@[<v 4>for %a in range(%a, %a, %d):@,%a@]"
+          name n 
+          (exp 0) e1 
+          (exp 0) e2 
+          (if is_to then 1 else -1) 
+          (inst 0 false) i3
     | Owhile(e1, i2) ->
-        fprintf ff "@[<v 4>while %a:@[<v>%a@]@,@]"
+        fprintf ff "@[<v 4>while %a:%a@]"
           (exp 0) e1 (inst 0 false) i2
     | Oassign(left, e) -> assign ff left e
     | Oassign_state(left, e) -> assign_state ff left e
     | Osequence(i_list) -> sinst r ff i
-    (* if i_list = []
-       then 
-       else fprintf
-        ff "@[<v>%a@]" (pp_print_list ~pp_sep:pp_print_cut (inst (prio_i + 1) r)) i_list *)
     | Oexp(e) -> begin match r with
         | true -> fprintf ff "return %a" (exp prio) e
         | false -> fprintf ff "%a" (exp prio) e
       end
     | Oif(e, i1, None) ->
-        fprintf ff "@[<v 4>if %a:@,@[<v>%a@]@]" (exp 0) e (sinst r) i1
+        fprintf ff "if %a:@,    @[<v>%a@]" (exp 0) e (sinst r) i1
     | Oif(e, i1, Some(i2)) ->
-        fprintf ff "@[<v 4>if %a:@,@[<v>%a@]@,else:@,@[<v>%a@]@]"
+        fprintf ff "if %a:@,    @[<v 4>%a@]@,else:@,    @[<v 4>%a@]@]"
           (exp 0) e (sinst r) i1 (sinst r) i2
   end;
   if prio_i < prio then fprintf ff ""
