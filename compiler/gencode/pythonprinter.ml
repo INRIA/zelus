@@ -277,9 +277,9 @@ and inst prio r ff i =
         | false -> fprintf ff "%a" (exp prio) e
       end
     | Oif(e, i1, None) ->
-        fprintf ff "if %a:@,    @[<v>%a@]" (exp 0) e (sinst r) i1
+        fprintf ff "@[<v 4>if %a:@,%a@]" (exp 0) e (sinst r) i1
     | Oif(e, i1, Some(i2)) ->
-        fprintf ff "if %a:@,    @[<v 4>%a@]@,else:@,    @[<v 4>%a@]@]"
+        fprintf ff "@[<v 0>@[<v 4>if %a:@,%a@]@,@[<v 4>else:@,%a@]@]"
           (exp 0) e (sinst r) i1 (sinst r) i2
   end;
   if prio_i < prio then fprintf ff ""
@@ -306,7 +306,7 @@ and exp_with_typ ff (e, ty) =
   fprintf ff "%a" (exp 2) e
 
 and match_handler ff { w_pat = pat; w_body = b } =
-  assert false;
+  (* assert false; *)
   fprintf ff "@[<hov 4>| %a ->@ %a@]" pattern pat (inst 0 false) b
 
 
@@ -519,6 +519,7 @@ let machine f ff { ma_kind = k;
                    ma_instances = instances;
                    ma_methods = m_list } =
   (* print the code for [f] *)
+  List.iter (fun p -> fprintf ff "@[<v 4>def %s(%a):@," f pattern p) pat_list;
   fprintf ff "@[<v 4>class %s(Node):@," f;
   if !Misc.with_copy then
     fprintf ff
@@ -530,7 +531,7 @@ let machine f ff { ma_kind = k;
     fprintf ff "@[<v>%a@,%a@]@]"
       (palloc f i_opt memories) instances
       (pp_print_list ~pp_sep:pp_print_cut (pmethod f)) m_list;
-  fprintf ff "@]@."
+  fprintf ff "@."
 
 let implementation ff impl = match impl with
   | Oletvalue(n, i) ->
@@ -540,7 +541,15 @@ let implementation ff impl = match impl with
         shortname n pattern_list pat_list (inst 0 true) i
   | Oletmachine(n, m) -> machine n ff m
   | Oopen(s) -> fprintf ff "@[from %s import *@]@." s
-  | Otypedecl(l) -> ()
+  | Otypedecl(l) ->  ()
+  (* fprintf ff "@[%a@.@]"
+  (print_list_l
+     (fun ff (s, s_list, ty_decl) ->
+       fprintf ff "%a%s =@ %a"
+               Ptypes.print_type_params s_list
+               s type_decl ty_decl)
+     "type ""and """)
+  l *)
 
 let implementation_list ff impl_list =
   (* fprintf ff "@[\"\"\" %s \"\"\"@]" header_in_file; *)
