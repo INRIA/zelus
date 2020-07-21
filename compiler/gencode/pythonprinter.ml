@@ -174,7 +174,18 @@ and exp prio ff e =
         assert false;
         fprintf ff "@[%a%a@]"
           longname lname (print_list_r (exp prio_e) "("","")") e_list
-    | Oglobal(ln) -> longname ff ln
+    | Oglobal(ln) -> begin match ln with 
+      | Modname {id = ("+" | "+."); qual = "Stdlib"} -> fprintf ff "add"
+      | Modname {id = ("-" | "-."); qual = "Stdlib"} -> fprintf ff "sub"
+      | Modname {id = ("*" | "*."); qual = "Stdlib"} -> fprintf ff "mul"
+      | Modname {id = "/" ; qual = "Stdlib"} -> fprintf ff "floordiv"
+      | Modname {id = "/." ; qual = "Stdlib"} -> fprintf ff "truediv"
+      | Modname {id = ">" ; qual = "Stdlib"} -> fprintf ff "gt"
+      | Modname {id = ">=" ; qual = "Stdlib"} -> fprintf ff "ge"
+      | Modname {id = "<" ; qual = "Stdlib"} -> fprintf ff "lt"
+      | Modname {id = "<=" ; qual = "Stdlib"} -> fprintf ff "le"
+      | Modname {id = "=" ; qual = "Stdlib"} -> fprintf ff "eq"      
+      | _ -> longname ff ln end 
     | Olocal(n) -> local ff n
     | Ovar(is_mutable, n) ->
         fprintf ff "%a" local n
@@ -356,8 +367,8 @@ let print_memory ff { m_name = n; m_value = e_opt; m_typ = ty;
 (** Print the method as a function *)
 let pmethod f ff { me_name = me_name; me_params = pat_list;
                    me_body = i; me_typ = ty } =
-  fprintf ff "@[<v 4>def %s_%s (self, %a):@,%a@,@]"
-    f (method_name me_name) pattern_list pat_list (inst 2 true) i
+  fprintf ff "@[<v 4>def %s (self, %a):@,%a@,@]"
+    (method_name me_name) pattern_list pat_list (inst 2 true) i
 
 (* create an array of type t[n_1]...[n_k] *)
 let array_make print arg ff ie_size =
@@ -428,17 +439,17 @@ let palloc f i_opt memories ff instances =
       ie_size   in
   if memories = []
   then if instances = []
-    then fprintf ff "@[<v 4>def __init__ ():@,%a@,@]" print_initialize i_opt
+    then fprintf ff "@[<v 4>def __init__ (self):@,%a@,@]" print_initialize i_opt
     else
-      fprintf ff "@[<v 4>def __init__ ():@,%a@,%a@,@]"
+      fprintf ff "@[<v 4>def __init__ (self):@,%a@,%a@,@]"
         print_initialize i_opt
         (pp_print_list ~pp_sep:pp_print_cut print_instance) instances
   else if instances = []
   then
-    fprintf ff "@[<v 4>def __init__ ():@,%a@,%a@,@]"
+    fprintf ff "@[<v 4>def __init__ (self):@,%a@,%a@,@]"
       print_initialize i_opt (pp_print_list ~pp_sep:pp_print_cut print_memory) memories
   else
-    fprintf ff "@[<v 4>def __init__ ():@,%a@,%a@,%a@,@]"
+    fprintf ff "@[<v 4>def __init__ (self):@,%a@,%a@,%a@,@]"
       print_initialize i_opt
       (pp_print_list ~pp_sep:pp_print_cut print_memory) memories
       (pp_print_list ~pp_sep:pp_print_cut print_instance) instances
@@ -555,6 +566,7 @@ let implementation ff impl = match impl with
 let implementation_list ff impl_list =
   (* fprintf ff "@[\"\"\" %s \"\"\"@]" header_in_file; *)
   (* fprintf ff "@[open Ztypes@.@]"; *)
-  fprintf ff "from enum import Enum";
+  fprintf ff "from operator import *@.";
+  fprintf ff "from pyzls import Node@.@.";
   List.iter (implementation ff) impl_list;
   fprintf ff "@."
