@@ -453,6 +453,7 @@ let pcopy f memories ff instances =
     let rec array_rec print ff = function
       | [] -> print ff ()
       | _ :: ie_size ->
+          assert false;
           fprintf ff "@[<hov>Array.map (fun xi -> %a) %a@]"
             (array_rec (fun ff _ -> fprintf ff "xi")) ie_size print () in
     match ie_size with
@@ -464,12 +465,12 @@ let pcopy f memories ff instances =
     match k_opt with
     | None ->
         (* discrete state variable *)
-        fprintf ff "@[dest.%a <- %a@]" name n
-          (array_copy (fun ff _ -> fprintf ff "source.%a" name n)) m_size
+        fprintf ff "dest.%a = %a" name n
+          (array_copy (fun ff _ -> fprintf ff "self.%a" name n)) m_size
     | Some(m) ->
         match m with
         | Deftypes.Zero ->
-            fprintf ff "@[<hov0>dest.%a.zin <- %a;@,dest.%a.zout <- %a @]"
+            fprintf ff "@[<v>dest.%a.zin = %a@,dest.%a.zout = %a@]"
               name n
               (array_copy (fun ff _ -> fprintf ff "source.%a.zin" name n))
               m_size
@@ -477,7 +478,7 @@ let pcopy f memories ff instances =
               (array_copy (fun ff _ -> fprintf ff "source.%a.zout" name n))
               m_size
         | Deftypes.Cont ->
-            fprintf ff "@[<hov0>dest.%a.pos <- %a;@,dest.%a.der <- %a @]"
+            fprintf ff "@[<v>dest.%a.pos = %a@,dest.%a.der = %a@]"
               name n
               (array_copy (fun ff _ -> fprintf ff "source.%a.pos" name n))
               m_size
@@ -486,28 +487,27 @@ let pcopy f memories ff instances =
               m_size
         | Deftypes.Horizon | Deftypes.Period
         | Deftypes.Encore | Deftypes.Major ->
-            fprintf ff "@[dest.%a <- source.%a@]" name n name n in
+            fprintf ff "@[dest.%a = self.%a@]" name n name n in
   let copy_instance ff { i_name = n; i_machine = ei;
                          i_kind = k; i_params = e_list; i_size = ie_size } =
-    fprintf ff "@[%a (* %s *)@]"
+    fprintf ff "@[%a # %s@]"
       (array_make
          (fun ff n ->
-            fprintf ff "@[%a_copy source.%a dest.%a@]" name n name n name n)
+            fprintf ff "@[self.%a.copy(dest.%a)@]" name n name n)
          n)
       ie_size (kind k)  in
   if memories = []
   then if instances = []
-    then fprintf ff "@[let %s_copy source dest = () in@]" f
+    then fprintf ff "@[<v 4> def copy(self, dest):@,pass@,@]"
     else
-      fprintf ff "@[<v 2>let %s_copy source dest =@ @[%a@] in@]"
-        f (pp_print_list ~pp_sep:pp_print_cut copy_instance) instances
+      fprintf ff "@[<v 4>def copy(self, dest):@,%a@,@]"
+        (pp_print_list ~pp_sep:pp_print_cut copy_instance) instances
   else if instances = []
   then
-    fprintf ff "@[<v 2>let %s_copy source dest =@ @[%a@] in@]"
-      f (pp_print_list ~pp_sep:pp_print_cut copy_memory) memories
+    fprintf ff "@[<v 4>def copy(self, dest):@,%a@,@]"
+      (pp_print_list ~pp_sep:pp_print_cut copy_memory) memories
   else
-    fprintf ff "@[<v 2>let %s_copy source dest =@ @[%a@,%a@] in@]"
-      f
+    fprintf ff "@[<v 4>def copy(self, dest):@,%a@,%a@,@]"
       (pp_print_list ~pp_sep:pp_print_cut copy_memory) memories
       (pp_print_list ~pp_sep:pp_print_cut copy_instance) instances
 
