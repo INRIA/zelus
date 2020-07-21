@@ -87,7 +87,7 @@ let rec pattern ff pat = match pat with
   | Ovarpat(n, ty_exp) ->
       fprintf ff "%a" name n
   | Otuplepat(pat_list) ->
-      pattern_comma_list ff pat_list
+      pattern_list ff pat_list
   | Oaliaspat(p, n) -> fprintf ff "@[%a as %a@]" pattern p name n
   | Oorpat(pat1, pat2) -> fprintf ff "@[%a | %a@]" pattern pat1 pattern pat2
   | Otypeconstraintpat(p, ty_exp) ->
