@@ -106,7 +106,7 @@ and method_call ff { met_name = m; met_instance = i_opt; met_args = e_list } =
   let m = method_name m in
   let instance_name ff i_opt =
     match i_opt with
-    | None -> fprintf ff "self" | Some(o, _) -> name ff o in
+    | None -> fprintf ff "self" | Some(o, _) -> fprintf ff "self.%a" name o in
   let instance ff i_opt =
     match i_opt with
     | None -> (* a call to the self machine *) fprintf ff "self"
