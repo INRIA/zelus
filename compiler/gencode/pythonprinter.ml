@@ -5,10 +5,17 @@ open Location
 open Ident
 open Obc
 open Format
+open Modules
 open Pp_tools
 open Printer
 open Oprinter
 
+
+let longname ff ln =
+  let ln = Initial.short (currentname ln) in
+  match ln with
+    | Lident.Name(m) -> shortname ff m
+    | Lident.Modname({id; qual}) -> fprintf ff "%s.%s" (String.uncapitalize_ascii qual) id
 
 let immediate ff = function
   | Oint i ->
@@ -96,7 +103,7 @@ let rec pattern ff pat = match pat with
       print_record (print_couple longname pattern """ =""") ff n_pat_list
 
 and pattern_list ff pat_list =
-  print_list_r pattern """""" ff pat_list
+  print_list_r pattern """,""" ff pat_list
 
 and pattern_comma_list ff pat_list =
   print_list_r pattern "("","")" ff pat_list
@@ -540,9 +547,10 @@ let machine f ff { ma_kind = k;
       (pcopy f memories) instances
       (print_list_r (pmethod f) """""") m_list
   else
-    fprintf ff "@[<v>%a@,%a@]@]"
+    fprintf ff "@[<v>%a@,%a@]"
       (palloc f i_opt memories) instances
       (pp_print_list ~pp_sep:pp_print_cut (pmethod f)) m_list;
+  List.iter (fun _ -> fprintf ff "@]@,return %s" f) pat_list;
   fprintf ff "@."
 
 let implementation ff impl = match impl with
@@ -552,7 +560,7 @@ let implementation ff impl = match impl with
       fprintf ff "@[<v>@[<v 4>def %a %a:@,%a@]@,@,@]@."
         shortname n pattern_list pat_list (inst 0 true) i
   | Oletmachine(n, m) -> machine n ff m
-  | Oopen(s) -> fprintf ff "@[from %s import *@]@." s
+  | Oopen(s) -> fprintf ff "import %s@." (String.uncapitalize_ascii s)
   | Otypedecl(l) -> ()
   (* fprintf ff "@[%a@.@]"
   (print_list_l
