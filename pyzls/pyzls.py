@@ -71,7 +71,13 @@ class PyZL:
             fz.write(src.encode())
             fz.seek(0)
             subprocess.check_call(
-                ["../bin/zeluc", "-python", "-noreduce", f"-I {dirname(fzi.name)}", fz.name]
+                [
+                    "../bin/zeluc",
+                    "-python",
+                    "-noreduce",
+                    f"-I {dirname(fzi.name)}",
+                    fz.name,
+                ]
             )
 
             # Load python module
