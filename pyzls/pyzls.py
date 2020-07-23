@@ -46,7 +46,7 @@ def ml_type(f):
     return ty
 
 
-def pyzlslib(f):
+def zllib(f):
     _pyzlslib[f.__name__] = {"type": ml_type(f), "py": getsource(f).split("\n", 1)[1]}
 
     @wraps(f)
