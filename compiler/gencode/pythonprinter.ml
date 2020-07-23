@@ -538,6 +538,7 @@ let machine f ff { ma_kind = k;
                    ma_instances = instances;
                    ma_methods = m_list } =
   (* print the code for [f] *)
+  fprintf ff "@.";
   List.iter (fun p -> fprintf ff "@[<v 4>def %s(%a):@," f pattern p) pat_list;
   fprintf ff "@[<v 4>class %s(Node):@," f;
   if !Misc.with_copy then
@@ -575,6 +576,6 @@ let implementation_list ff impl_list =
   (* fprintf ff "@[\"\"\" %s \"\"\"@]" header_in_file; *)
   (* fprintf ff "@[open Ztypes@.@]"; *)
   fprintf ff "from operator import *@.";
-  fprintf ff "from pyzls import Node@.@.";
+  fprintf ff "from pyzls import Node@.";
   List.iter (implementation ff) impl_list;
   fprintf ff "@."

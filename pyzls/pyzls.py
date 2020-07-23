@@ -52,39 +52,39 @@ def pyzlslib(f):
 class PyZL:
     def __init__(self, src):
         self.zl_code = src
-        with NamedTemporaryFile(suffix=".zls", delete=False) as fz, NamedTemporaryFile(
+        with NamedTemporaryFile(suffix=".zls", delete=False) as fzls, NamedTemporaryFile(
             suffix=".zli", delete=False
-        ) as fzi:
+        ) as fzli, open(splitext(fzli.name)[0] + ".py", "w") as fpyl:
+        
             # Compile lib
-            for f, d in _pyzlslib.items():
-                fzi.write(f'val {f}: {d["type"]}\n'.encode())
-            fzi.seek(0)
-            subprocess.check_call(["../bin/zeluc", fzi.name])
-
-            with open(splitext(fzi.name)[0] + ".py", "w") as fpi:
-                for _, d in _pyzlslib.items():
-                    fpi.write(d["py"])
+            if _pyzlslib:
+                for f, d in _pyzlslib.items():
+                    fzli.write(f'val {f}: {d["type"]}\n'.encode())
+                    fpyl.write(d["py"])
+                fzli.seek(0)
+                fpyl.seek(0)
+                subprocess.check_call(["../bin/zeluc", fzli.name])
+                lib = splitext(basename(fzli.name))[0].capitalize()
+                fzls.write(f"open {lib}".encode())
+                sys.path.insert(0, dirname(fzli.name))
 
             # Compile code
-            lib = splitext(basename(fzi.name))[0].capitalize()
-            fz.write(f"open {lib}".encode())
-            fz.write(src.encode())
-            fz.seek(0)
+            fzls.write(src.encode())
+            fzls.seek(0)
             subprocess.check_call(
                 [
                     "../bin/zeluc",
                     "-python",
                     "-noreduce",
-                    f"-I {dirname(fzi.name)}",
-                    fz.name,
+                    f"-I {dirname(fzli.name)}",
+                    fzls.name,
                 ]
             )
-
-            # Load python module
-            sys.path.insert(0, dirname(fzi.name))
-            with open(splitext(fz.name)[0] + ".py") as fp:
-                self.py_code = fp.read()
-            modname = splitext(fz.name)[0]
+            with open(splitext(fzls.name)[0] + ".py") as fpy:
+                self.py_code = fpy.read()
+                
+            # Load python module as class attributes
+            modname = splitext(fzls.name)[0]
             spec = importlib.util.spec_from_file_location("zlpyc", modname + ".py")
             mod = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(mod)
@@ -92,4 +92,4 @@ class PyZL:
                 setattr(self, name, cls)
 
     def __repr__(self):
-        return self.zl_code
+        return f"(* Zelus code *)\n{self.zl_code}\n{'-'*80}\n\n# Python Code\n\n{self.py_code}"
