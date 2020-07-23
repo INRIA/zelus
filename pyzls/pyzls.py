@@ -34,8 +34,15 @@ _pyzlslib: Dict[str, str] = {}
 
 
 def ml_type(f):
-    ty = " * ".join([t.__name__ for a, t in f.__annotations__.items() if a != "return"])
-    ty += f' -> {f.__annotations__["return"].__name__}'
+    ty = " * ".join(
+        [
+            t.__name__ if hasattr(t, "__name__") else str(t)
+            for a, t in f.__annotations__.items()
+            if a != "return"
+        ]
+    )
+    r = f.__annotations__["return"]
+    ty += f' -> {r.__name__ if hasattr(r, "__name__") else str(r)}'
     return ty
 
 
@@ -52,10 +59,12 @@ def pyzlslib(f):
 class PyZL:
     def __init__(self, src):
         self.zl_code = src
-        with NamedTemporaryFile(suffix=".zls", delete=False) as fzls, NamedTemporaryFile(
-            suffix=".zli", delete=False
-        ) as fzli, open(splitext(fzli.name)[0] + ".py", "w") as fpyl:
-        
+        with NamedTemporaryFile(
+            suffix=".zls", delete=False
+        ) as fzls, NamedTemporaryFile(suffix=".zli", delete=False) as fzli, open(
+            splitext(fzli.name)[0] + ".py", "w"
+        ) as fpyl:
+
             # Compile lib
             if _pyzlslib:
                 for f, d in _pyzlslib.items():
@@ -82,7 +91,7 @@ class PyZL:
             )
             with open(splitext(fzls.name)[0] + ".py") as fpy:
                 self.py_code = fpy.read()
-                
+
             # Load python module as class attributes
             modname = splitext(fzls.name)[0]
             spec = importlib.util.spec_from_file_location("zlpyc", modname + ".py")
