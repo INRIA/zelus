@@ -57,7 +57,7 @@ def zllib(f):
 
 
 class PyZL:
-    def __init__(self, src):
+    def __init__(self, src, opt=[]):
         self.zl_code = src
         with NamedTemporaryFile(
             suffix=".zls", delete=False
@@ -85,9 +85,11 @@ class PyZL:
                     "../bin/zeluc",
                     "-python",
                     "-noreduce",
+                    "-copy",
                     f"-I {dirname(fzli.name)}",
-                    fzls.name,
                 ]
+                + opt
+                + [fzls.name]
             )
             with open(splitext(fzls.name)[0] + ".py") as fpy:
                 self.py_code = fpy.read()
