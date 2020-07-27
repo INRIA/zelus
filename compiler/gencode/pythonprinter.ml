@@ -516,7 +516,7 @@ let pcopy f memories ff instances =
       ie_size (kind k)  in
   if memories = []
   then if instances = []
-    then fprintf ff "@[<v 4> def copy(self, dest):@,pass@,@]"
+    then fprintf ff "@[<v 4>def copy(self, dest):@,pass@,@]"
     else
       fprintf ff "@[<v 4>def copy(self, dest):@,%a@,@]"
         (pp_print_list ~pp_sep:pp_print_cut copy_instance) instances
@@ -546,7 +546,7 @@ let machine f ff { ma_kind = k;
       "@[<v>%a@,%a@,%a@]"
       (palloc f i_opt memories) instances
       (pcopy f memories) instances
-      (print_list_r (pmethod f) """""") m_list
+      (pp_print_list ~pp_sep:pp_print_cut (pmethod f)) m_list
   else
     fprintf ff "@[<v>%a@,%a@]"
       (palloc f i_opt memories) instances
