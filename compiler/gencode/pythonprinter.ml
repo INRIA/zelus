@@ -61,17 +61,17 @@ let print_concrete_type ff ty =
       | Otypefun(k, _, ty_arg, ty) ->
           begin match k with
             | Ofun ->
-                fprintf ff "@[<hov2>%a ->@ %a@]"
+                fprintf ff "@[<v2>%a ->@ %a@]"
                   (ptype (prio_ty+1)) ty_arg (ptype prio_ty) ty
             | Onode ->
-                fprintf ff "@[<hov2>(%a, %a) node@]"
+                fprintf ff "@[<v2>(%a, %a) node@]"
                   (ptype (prio_ty+1)) ty_arg (ptype prio_ty) ty
           end
       | Otypetuple(ty_list) ->
           fprintf ff
-            "@[<hov2>%a@]" (print_list_r (ptype prio_ty) "("" *"")") ty_list
+            "@[<v2>%a@]" (print_list_r (ptype prio_ty) "("" *"")") ty_list
       | Otypeconstr(ln, ty_list) ->
-          fprintf ff "@[<hov2>%a@]%a"
+          fprintf ff "@[<v2>%a@]%a"
             (print_list_r_empty (ptype 2) "("","")") ty_list longname ln
       | Otypevec(ty_arg, _) ->
           fprintf ff "@[%a %a@]" (ptype prio_ty) ty_arg
@@ -205,12 +205,12 @@ and exp prio ff e =
         let print_vec ff e se =
           match e with
           | Oconst _ ->
-              fprintf ff "@[<hov 2>Array.make@ (%a)@ (%a)@]"
+              fprintf ff "@[<v 2>Array.make@ (%a)@ (%a)@]"
                 (psize prio_e) se (exp prio_e) e
           | Ovec(e1, s2) ->
-              fprintf ff "@[<hov 2>Array.make_matrix@ (%a)@ (%a)@ (%a)@]"
+              fprintf ff "@[<v 2>Array.make_matrix@ (%a)@ (%a)@ (%a)@]"
                 (psize prio_e) se (psize prio_e) s2 (exp prio_e) e1
-          | _ -> fprintf ff "@[<hov 2>Array.init@ @[(%a)@]@ @[(fun _ -> %a)@]@]"
+          | _ -> fprintf ff "@[<v 2>Array.init@ @[(%a)@]@ @[(fun _ -> %a)@]@]"
                    (psize prio_e) se (exp prio_e) e in
         print_vec ff e se
     | Oupdate(se, e1, i, e2) ->
@@ -244,9 +244,21 @@ and exp prio ff e =
           (exp 2) e2 (psize 0) s2
     | Otuple(e_list) ->
         fprintf ff "%a" (print_list_r (exp prio_e) """,""") e_list
+    | Oapp(Oglobal ln, [e1; e2]) -> begin match ln with 
+      | Modname {id = ("+" | "+."); qual = "Stdlib"} -> fprintf ff "add(%a, %a)" (exp prio_e) e1 (exp prio_e) e2
+      | Modname {id = ("-" | "-."); qual = "Stdlib"} -> fprintf ff "sub(%a, %a)" (exp prio_e) e1 (exp prio_e) e2
+      | Modname {id = ("*" | "*."); qual = "Stdlib"} -> fprintf ff "mul(%a, %a)" (exp prio_e) e1 (exp prio_e) e2
+      | Modname {id = "/" ; qual = "Stdlib"} -> fprintf ff "floordiv(%a, %a)" (exp prio_e) e1 (exp prio_e) e2
+      | Modname {id = "/." ; qual = "Stdlib"} -> fprintf ff "truediv(%a, %a)" (exp prio_e) e1 (exp prio_e) e2
+      | Modname {id = ">" ; qual = "Stdlib"} -> fprintf ff "gt(%a, %a)" (exp prio_e) e1 (exp prio_e) e2
+      | Modname {id = ">=" ; qual = "Stdlib"} -> fprintf ff "ge(%a, %a)" (exp prio_e) e1 (exp prio_e) e2
+      | Modname {id = "<" ; qual = "Stdlib"} -> fprintf ff "lt(%a, %a)" (exp prio_e) e1 (exp prio_e) e2
+      | Modname {id = "<=" ; qual = "Stdlib"} -> fprintf ff "le(%a, %a)" (exp prio_e) e1 (exp prio_e) e2
+      | Modname {id = "=" ; qual = "Stdlib"} -> fprintf ff "eq(%a, %a)" (exp prio_e) e1 (exp prio_e) e2     
+      | _ -> fprintf ff "%a(%a)(%a)" (exp prio_e) (Oglobal ln) (exp prio_e) e1 (exp prio_e) e2 end 
     | Oapp(e, e_list) ->
-        fprintf ff "%a(%a)"
-          (exp (prio_e + 1)) e (print_list_r (exp (prio_e + 1)) """,""") e_list
+        fprintf ff "%a%a"
+          (exp (prio_e + 1)) e (print_list_r (exp (prio_e + 1)) "("")("")") e_list
     | Omethodcall m -> method_call ff m
     | Orecord(r) ->
         print_record (print_couple longname (exp prio_e) """ =""") ff r
@@ -318,7 +330,7 @@ and sinst r ff i =
   | _ -> inst 0 r ff i
 
 and pat_exp ff (p, e) =
-  fprintf ff "@[@[%a@] =@ @[%a@]@]" pattern p (exp 0) e
+  fprintf ff "%a = %a" pattern p (exp 0) e
 
 and exp_with_typ ff (e, ty) =
   fprintf ff "%a" (exp 2) e
@@ -383,7 +395,7 @@ let array_make print arg ff ie_size =
     | [] -> fprintf ff "%a" print arg
     | ie :: ie_size ->
         assert false;
-        fprintf ff "@[<hov>Array.init %a@ (fun _ -> %a)@]"
+        fprintf ff "@[<v>Array.init %a@ (fun _ -> %a)@]"
           (exp 3) ie array_rec ie_size in
   array_rec ff ie_size
 
@@ -398,7 +410,7 @@ let rec array_of e_opt ty ff ie_size =
   | [ie] -> fprintf ff "Array.make %a %a" (exp 3) ie exp_of (e_opt, ty)
   | ie :: ie_list ->
       fprintf ff
-        "@[<hov 2>Array.init %a@ (fun _ -> %a)@]" (exp 3) ie
+        "@[<v 2>Array.init %a@ (fun _ -> %a)@]" (exp 3) ie
         (array_of e_opt ty) ie_list
 
 (* Print initialization code *)
@@ -426,12 +438,12 @@ let palloc f i_opt memories ff instances =
     | Some(m) ->
         match m with
         | Deftypes.Zero ->
-            fprintf ff "@[%a = @[<hov 2>{ \"zin\": %a; \"zout\" = %a }@]@]"
+            fprintf ff "@[%a = @[<v 2>{ \"zin\": %a; \"zout\" = %a }@]@]"
               name n (array_of e_opt Initial.typ_bool) m_size
               (array_of (Some(Oconst(Ofloat(1.0)))) Initial.typ_float)
               m_size
         | Deftypes.Cont ->
-            fprintf ff "@[%a = @[<hov 2>{ \"pos\": %a; \"der\": %a }@]@]"
+            fprintf ff "@[%a = @[<v 2>{ \"pos\": %a; \"der\": %a }@]@]"
               name n (array_of e_opt ty) m_size
               (* the default value of a derivative must be zero *)
               (array_of (Some(Oconst(Ofloat(0.0)))) ty) m_size
@@ -472,7 +484,7 @@ let pcopy f memories ff instances =
       | [] -> print ff ()
       | _ :: ie_size ->
           assert false;
-          fprintf ff "@[<hov>Array.map (fun xi -> %a) %a@]"
+          fprintf ff "@[<v>Array.map (fun xi -> %a) %a@]"
             (array_rec (fun ff _ -> fprintf ff "xi")) ie_size print () in
     match ie_size with
     | [] -> print ff ()
