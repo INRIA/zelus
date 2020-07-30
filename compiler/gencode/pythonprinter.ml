@@ -17,6 +17,40 @@ let longname ff ln =
     | Lident.Name(m) -> shortname ff m
     | Lident.Modname({id; qual}) -> fprintf ff "%s.%s" (String.uncapitalize_ascii qual) id
 
+let is_operator = function
+  | Lident.Modname {id = ("+" | "+."); qual = "Stdlib"}
+  | Modname {id = ("-" | "-."); qual = "Stdlib"}
+  | Modname {id = ("*" | "*."); qual = "Stdlib"}
+  | Modname {id = "/" ; qual = "Stdlib"}
+  | Modname {id = "/." ; qual = "Stdlib"}
+  | Modname {id = ">" ; qual = "Stdlib"}
+  | Modname {id = ">=" ; qual = "Stdlib"}
+  | Modname {id = "<" ; qual = "Stdlib"}
+  | Modname {id = "<=" ; qual = "Stdlib"}
+  | Modname {id = "=" ; qual = "Stdlib"}
+  | Modname {id = "^" ; qual = "Stdlib"}
+  | Modname {id = "||" ; qual = "Stdlib"}
+  | Modname {id = "&&" ; qual = "Stdlib"}
+    -> true
+  | _ -> false
+
+let name_of_operator = function
+  | Lident.Modname {id = ("+" | "+."); qual = "Stdlib"} -> "add"
+  | Modname {id = ("-" | "-."); qual = "Stdlib"} -> "sub"
+  | Modname {id = ("*" | "*."); qual = "Stdlib"} -> "mul"
+  | Modname {id = "/" ; qual = "Stdlib"} -> "floordiv"
+  | Modname {id = "/." ; qual = "Stdlib"} -> "truediv"
+  | Modname {id = ">" ; qual = "Stdlib"} -> "gt"
+  | Modname {id = ">=" ; qual = "Stdlib"} -> "ge"
+  | Modname {id = "<" ; qual = "Stdlib"} -> "lt"
+  | Modname {id = "<=" ; qual = "Stdlib"} -> "le"
+  | Modname {id = "=" ; qual = "Stdlib"} -> "eq"
+  | Modname {id = "^" ; qual = "Stdlib"} -> "concat"
+  | Modname {id = "||" ; qual = "Stdlib"} -> "or_"
+  | Modname {id = "&&" ; qual = "Stdlib"} -> "and_"
+  | _ -> assert false
+
+
 let immediate ff = function
   | Oint i ->
       if i < 0 then fprintf ff "(%a)" pp_print_int i else pp_print_int ff i
@@ -181,18 +215,11 @@ and exp prio ff e =
         assert false;
         fprintf ff "@[%a%a@]"
           longname lname (print_list_r (exp prio_e) "("","")") e_list
-    | Oglobal(ln) -> begin match ln with 
-      | Modname {id = ("+" | "+."); qual = "Stdlib"} -> fprintf ff "add"
-      | Modname {id = ("-" | "-."); qual = "Stdlib"} -> fprintf ff "sub"
-      | Modname {id = ("*" | "*."); qual = "Stdlib"} -> fprintf ff "mul"
-      | Modname {id = "/" ; qual = "Stdlib"} -> fprintf ff "floordiv"
-      | Modname {id = "/." ; qual = "Stdlib"} -> fprintf ff "truediv"
-      | Modname {id = ">" ; qual = "Stdlib"} -> fprintf ff "gt"
-      | Modname {id = ">=" ; qual = "Stdlib"} -> fprintf ff "ge"
-      | Modname {id = "<" ; qual = "Stdlib"} -> fprintf ff "lt"
-      | Modname {id = "<=" ; qual = "Stdlib"} -> fprintf ff "le"
-      | Modname {id = "=" ; qual = "Stdlib"} -> fprintf ff "eq"      
-      | _ -> longname ff ln end 
+    | Oglobal(ln) ->
+        if is_operator ln then
+          fprintf ff "%s" (name_of_operator ln)
+        else
+          longname ff ln
     | Olocal(n) -> local ff n
     | Ovar(is_mutable, n) ->
         fprintf ff "%a" local n
@@ -244,18 +271,9 @@ and exp prio ff e =
           (exp 2) e2 (psize 0) s2
     | Otuple(e_list) ->
         fprintf ff "%a" (print_list_r (exp prio_e) """,""") e_list
-    | Oapp(Oglobal ln, [e1; e2]) -> begin match ln with 
-      | Modname {id = ("+" | "+."); qual = "Stdlib"} -> fprintf ff "add(%a, %a)" (exp prio_e) e1 (exp prio_e) e2
-      | Modname {id = ("-" | "-."); qual = "Stdlib"} -> fprintf ff "sub(%a, %a)" (exp prio_e) e1 (exp prio_e) e2
-      | Modname {id = ("*" | "*."); qual = "Stdlib"} -> fprintf ff "mul(%a, %a)" (exp prio_e) e1 (exp prio_e) e2
-      | Modname {id = "/" ; qual = "Stdlib"} -> fprintf ff "floordiv(%a, %a)" (exp prio_e) e1 (exp prio_e) e2
-      | Modname {id = "/." ; qual = "Stdlib"} -> fprintf ff "truediv(%a, %a)" (exp prio_e) e1 (exp prio_e) e2
-      | Modname {id = ">" ; qual = "Stdlib"} -> fprintf ff "gt(%a, %a)" (exp prio_e) e1 (exp prio_e) e2
-      | Modname {id = ">=" ; qual = "Stdlib"} -> fprintf ff "ge(%a, %a)" (exp prio_e) e1 (exp prio_e) e2
-      | Modname {id = "<" ; qual = "Stdlib"} -> fprintf ff "lt(%a, %a)" (exp prio_e) e1 (exp prio_e) e2
-      | Modname {id = "<=" ; qual = "Stdlib"} -> fprintf ff "le(%a, %a)" (exp prio_e) e1 (exp prio_e) e2
-      | Modname {id = "=" ; qual = "Stdlib"} -> fprintf ff "eq(%a, %a)" (exp prio_e) e1 (exp prio_e) e2     
-      | _ -> fprintf ff "%a(%a)(%a)" (exp prio_e) (Oglobal ln) (exp prio_e) e1 (exp prio_e) e2 end 
+    | Oapp(Oglobal ln, [e1; e2]) when is_operator ln ->
+        fprintf ff "%s(%a, %a)"
+          (name_of_operator ln) (exp prio_e) e1 (exp prio_e) e2
     | Oapp(e, e_list) ->
         fprintf ff "%a%a"
           (exp (prio_e + 1)) e (print_list_r (exp (prio_e + 1)) "("")("")") e_list
