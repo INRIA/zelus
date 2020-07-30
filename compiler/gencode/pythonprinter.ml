@@ -200,10 +200,10 @@ and letvar ff n is_mutable ty e_opt i =
   let s = "" in
   match e_opt with
   | None ->
-      fprintf ff "@[<v 0>%a = %s@]@[<v 0>%a@]"
+      fprintf ff "@[<v 0>%a = %s@,%a@]"
         name n s (inst 0 false) i
   | Some(e0) ->
-      fprintf ff "@[<v 0>%a = %s(%a)@]@[<v 0>%a@]"
+      fprintf ff "@[<v 0>%a = %s%a@,%a@]"
         name n s (exp 0) e0 (inst 0 false) i
 
 and exp prio ff e =
@@ -590,7 +590,7 @@ let implementation ff impl = match impl with
   | Oletvalue(n, i) ->
       fprintf ff "@[<v>@[<v 4>def %a ():@,%a@]@,%a = %a()@,@,@]@." shortname n (inst 0 true) i shortname n shortname n
   | Oletfun(n, pat_list, i) ->
-      fprintf ff "@[<v>@[<v 4>def %a %a:@,%a@]@,@,@]@."
+      fprintf ff "@[<v>@[<v 4>def %a (%a):@,%a@]@,@,@]@."
         shortname n pattern_list pat_list (inst 0 true) i
   | Oletmachine(n, m) -> machine n ff m
   | Oopen(s) -> fprintf ff "import %s@." (String.uncapitalize_ascii s)
