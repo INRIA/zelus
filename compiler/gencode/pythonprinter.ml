@@ -64,7 +64,7 @@ let immediate ff = function
   | Obool b -> if b then fprintf ff "True" else fprintf ff "False"
   | Ostring s -> fprintf ff "%S" s
   | Ochar c -> fprintf ff "'%c'" c
-  | Ovoid -> pp_print_string ff "()"
+  | Ovoid -> assert false
   | Oany -> fprintf ff "None"
 
 
@@ -120,6 +120,7 @@ let ptype ff ty =
 
 let rec pattern ff pat = match pat with
   | Owildpat -> fprintf ff "_"
+  | Oconstpat(Ovoid) -> fprintf ff "_"
   | Oconstpat(i) -> immediate ff i
   | Oconstr0pat(lname) -> fprintf ff "\"%a\"" longname lname
   | Oconstr1pat(lname, pat_list) ->
@@ -209,6 +210,7 @@ and exp prio ff e =
   let prio_e = priority_exp e in
   (* if prio_e < prio then fprintf ff "("; *)
   begin match e with
+    | Oconst(Ovoid) -> fprintf ff "None"
     | Oconst(i) -> immediate ff i
     | Oconstr0(lname) -> fprintf ff "\"%a\"" longname lname
     | Oconstr1(lname, e_list) ->
