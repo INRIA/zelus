@@ -41,8 +41,8 @@ def _ml_type(f):
     return ty
 
 
-def _compile_code(name, src, opt=[], libname=None):
-    with open(name + ".zls", "w") as fzls:
+def _compile_code(name, src, opt=[], libname=None, clean=False):
+    with open(name + ".zls", "w" if clean else "a") as fzls:
         if libname:
             fzls.write(f"open {libname.capitalize()}")
             fzls.write(src)
@@ -73,8 +73,8 @@ def lib(libname):
 toplib = lib("libtop")
 
 
-def load(src, scope=builtins, opt=[]):
-    _compile_code("top", src, opt, libname="libtop")
+def load(src, name="top", clean=False, scope=builtins, opt=[]):
+    _compile_code(name, src, opt, clean=clean, libname="libtop")
 
     # Load python module as class attribute
     spec = importlib.util.spec_from_file_location("zlpyc", "top.py")
