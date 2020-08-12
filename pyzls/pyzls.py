@@ -1,15 +1,11 @@
 from abc import ABC, abstractmethod
 import subprocess
 import ast
-from tempfile import NamedTemporaryFile
-from os.path import splitext, basename, dirname
 import importlib.util
-from typing import Dict, Any
 from inspect import getsource
 import sys
 from functools import wraps
 import builtins
-import runpy
 
 
 class Node(ABC):
@@ -45,19 +41,6 @@ def _ml_type(f):
     return ty
 
 
-def _compile_libs(libs):
-    for libname, lib in libs.items():
-        with open(libname + ".zli", "w") as fzli, open(libname + ".py", "w") as fpyl:
-            for f, d in lib.items():
-                fzli.write(f'val {f}: {d["type"]}\n')
-                fpyl.write(d["py"])
-            fzli.seek(0)
-            fpyl.seek(0)
-            subprocess.check_call(["../bin/zeluc", fzli.name])
-            if libname in sys.modules:
-                importlib.reload(sys.modules[libname])
-
-
 def _compile_code(name, src, opt=[], libname=None):
     with open(name + ".zls", "w") as fzls:
         if libname:
@@ -69,17 +52,14 @@ def _compile_code(name, src, opt=[], libname=None):
         )
 
 
-_libs: Dict[str, Any] = {"libtop": {}}
-
-
 def lib(libname):
     def inner(f):
-        if libname not in _libs:
-            _libs[libname] = {}
-        _libs[libname][f.__name__] = {
-            "type": _ml_type(f),
-            "py": getsource(f).split("\n", 1)[1],
-        }
+        with open(libname + "zli", "a") as fzli, open(libname + ".py", "w") as fpyl:
+            fzli.write(f"val {f}: {_ml_type(f)}\n")
+            fpyl.write(getsource(f).split("\n", 1)[1])
+        subprocess.check_call(["../bin/zeluc", libname + ".zli"])
+        if libname in sys.modules:
+            importlib.reload(sys.modules[libname])
 
         @wraps(f)
         def wrapper(*args):
@@ -94,7 +74,6 @@ toplib = lib("libtop")
 
 
 def load(src, scope=builtins, opt=[]):
-    _compile_libs(_libs)
     _compile_code("top", src, opt, libname="libtop")
 
     # Load python module as class attribute
