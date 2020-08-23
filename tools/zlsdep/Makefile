@@ -26,7 +26,7 @@ INCLUDES = $(DIRECTORIES:%=-I %)
 
 byte: $(BIN).byte
 $(BIN).byte: $(OBJ)
-	$(OCAMLC) $(OCAMLFLAGS) $(INCLUDES) -I $(MENHIRLIB) menhirLib.cmo $(OBJ) -o $(BIN).byte
+	$(OCAMLC) $(OCAMLFLAGS) $(INCLUDES) -I $(MENHIRLIB) menhirLib.cma $(OBJ) -o $(BIN).byte
 	ln -sf $(BIN).byte $(BIN)
 
 
