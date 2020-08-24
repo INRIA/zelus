@@ -268,15 +268,18 @@ if [ ! -x ${glmlite_path} ]; then
 fi
 
 # Check for graphics installation
-graphics="${GRAPHICS:-${ocaml_libpath}graphics}"
+graphics="${GRAPHICS:-${ocaml_libpath}}"
 if [ ${for_compile} -eq 1 ]; then
     if [ ! -e "${graphics}/graphics.cmi" ]; then
-        graphics="${ocaml_libpath}site-lib/graphics"
+        graphics="${GRAPHICS:-${ocaml_libpath}graphics}"
         if [ ! -e "${graphics}/graphics.cmi" ]; then
-            graphics="${opam_libpath}graphics"
+            graphics="${ocaml_libpath}site-lib/graphics"
             if [ ! -e "${graphics}/graphics.cmi" ]; then
-                graphics='NOT FOUND'
-                error="${error}\n\tcould not find Graphics"
+                graphics="${opam_libpath}graphics"
+                if [ ! -e "${graphics}/graphics.cmi" ]; then
+                    graphics='NOT FOUND'
+                    error="${error}\n\tcould not find Graphics"
+                fi
             fi
         fi
     fi
