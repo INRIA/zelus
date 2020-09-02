@@ -108,6 +108,15 @@ let rec flatten ty =
   | Tlink ty -> flatten ty
   | Tvar | Tfun _ | Tvec _ -> assert false
 
+let rec flatten_patt patt =
+  match patt.Zelus.p_desc with
+  | Etuplepat p_l -> List.concat (List.map flatten_patt p_l)
+  | Ealiaspat (p, id) -> flatten_patt p
+  | Evarpat id -> [id.source]
+  | Etypeconstraintpat (p, _) -> flatten_patt p
+  | Ewildpat | Econstpat _  | Econstr1pat _  | Eorpat _
+  | Erecordpat _ -> assert false
+
 let print_string_of_ty ff ty =
   Format.fprintf ff "string_of_%s" ty
 
@@ -144,7 +153,7 @@ let format_names names ty =
       in names
   in aux 0 ty
 
-let write_ml zls_file sim_node kind t1 t2 out_file =
+let write_ml zls_file sim_node kind t1 t2 inp_patt =
   let basename = Filename.chop_extension (Filename.basename zls_file) in
   let module_name = String.capitalize_ascii basename in
 
@@ -157,7 +166,9 @@ let write_ml zls_file sim_node kind t1 t2 out_file =
   let flat_t1 = flatten t1 in
   let flat_t2 = flatten t2 in
 
-  let inp_names = List.mapi (fun i ty -> if ty = unit_id then "_" else "i" ^ (string_of_int i)) flat_t1 in
+  let inp_names =
+    List.map2 (fun name ty -> if ty = unit_id then "_" else name)
+      (flatten_patt inp_patt) flat_t1 in
   let out_names = List.mapi (fun i ty -> if ty = unit_id then "_" else "o" ^ (string_of_int i)) flat_t2 in
 
   let formatted_inp_names = format_names (Array.of_list inp_names) t1 in
@@ -210,7 +221,7 @@ let write_ml zls_file sim_node kind t1 t2 out_file =
     | Tdiscrete true ->
       Format.fprintf out_ff
         "@[<v 2>\
-         @[let mk_step (Ztypes.%s { alloc; step; reset } as node) =@]@;\
+         @[let mk_step (Ztypes.%s { alloc; step; reset }) =@]@;\
          @[let mem = alloc () in@]@;\
          @[reset mem;@]@;\
          @[(fun x -> step mem x)@]@]"
@@ -326,13 +337,16 @@ let main () =
   in
   let ({ typ_vars; typ_body } as scheme) = res.info.value_typ in
 
-  Format.printf "Found node %s of type %a\n"
+  Format.printf "Found value %s of type %a@."
     !sim_node Ptypes.print_scheme scheme;
 
   begin match typ_body.t_desc with
-    | Tfun (k, _, t1, t2) -> write_ml !zls_file !sim_node k t1 t2 "test.ml"
+    | Tfun (k, _, t1, t2) ->
+      let Global.Vfun (fexp, _) = res.info.value_code.value_exp in
+      let inp_patt = List.hd fexp.f_args in
+      write_ml !zls_file !sim_node k t1 t2 inp_patt
     | _ ->
-      Format.eprintf "Type %a of node %s is not valid.\n"
+      Format.eprintf "Type %a of value %s is not valid.\n"
         Ptypes.print_scheme scheme !sim_node;
       exit 2;
   end
