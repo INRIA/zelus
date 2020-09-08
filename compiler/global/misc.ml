@@ -29,7 +29,7 @@ module Env = Map.Make (struct type t = string let compare = compare end)
 
 (* standard module *)
 let name_of_stdlib_module = "Stdlib"
-                        
+
 let standard_lib = try Sys.getenv "ZLLIB" with Not_found -> STDLIB
 
 (* list of modules initially opened *)
@@ -93,7 +93,8 @@ let no_reduce = ref false
 let no_warning = ref false
 let zsign = ref false
 let with_copy = ref false
-		
+let use_rif = ref false
+
 let lmm_nodes = ref S.empty
 let set_lmm_nodes (n: string) =
   lmm_nodes := S.add n !lmm_nodes

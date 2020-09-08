@@ -51,11 +51,11 @@ and doc_typeonly = "\t  Stop after typing"
 and doc_hybrid = "\t  Select hybrid translation"
 and doc_simulation =
   "<node> \t Simulates the node <node> and generates a file <out>.ml\n\
-          \t\t   where <out> is equal to the argument of -o if the flag\n\
-          \t\t   has been set, or <node> otherwise\n\
-          \t\t   For hybrid programs, compile with:\n\
-          \t\t   bigarray.cma unix.cma -I +sundials sundials_cvode.cma \n\
-          \t\t   zllib.cma"
+   \t\t   where <out> is equal to the argument of -o if the flag\n\
+   \t\t   has been set, or <node> otherwise\n\
+   \t\t   For hybrid programs, compile with:\n\
+   \t\t   bigarray.cma unix.cma -I +sundials sundials_cvode.cma \n\
+   \t\t   zllib.cma"
 and doc_sampling = "<p> \t Sets the sampling period to p (float <= 1.0)"
 and doc_check = "<n> \t Check that the simulated node returns true for n steps"
 and doc_use_gtk =
@@ -75,6 +75,7 @@ and doc_lmm = "<n>\t Translate the node into Lustre--"
 and doc_red_name = "\t Static reduction for"
 and doc_zsign = "\t Use the sign function for the zero-crossing argument"
 and doc_with_copy = "\t Add of a copy method for the state"
+and doc_rif = "\t Use RIF format over stdin and stdout to communicate I/O to the node being simulated"
 let errmsg = "Options are:"
 
 let set_verbose () =
@@ -87,45 +88,45 @@ let set_vverbose () =
 
 let main () =
   try
-    Arg.parse (Arg.align
-      [
-        "-v", Arg.Unit set_verbose, doc_verbose;
-        "-vv", Arg.Unit set_vverbose, doc_vverbose;
-        "-version", Arg.Unit show_version, doc_version;
-        "-o", Arg.String set_outname, doc_outname;
-        "-I", Arg.String add_include, doc_include;
-        "-i", Arg.Set print_types, doc_print_types;
-        "-ic", Arg.Set print_causality_types, doc_print_causality_types;
-        "-ii",
-	Arg.Set print_initialization_types, doc_print_initialization_types;
-        "-where", Arg.Unit locate_stdlib, doc_locate_stdlib;
-        "-stdlib", Arg.String set_stdlib, doc_stdlib;
-        "-nostdlib", Arg.Unit set_no_stdlib, doc_no_stdlib;
-        "-typeonly", Arg.Set typeonly, doc_typeonly;
-        "-s", Arg.String set_simulation_node, doc_simulation;
-        "-sampling", Arg.Float set_sampling_period, doc_sampling;
-        "-check", Arg.Int set_check, doc_check;
-        "-gtk2", Arg.Set use_gtk, doc_use_gtk;
-        "-dzero", Arg.Set dzero, doc_dzero;
-        "-nocausality", Arg.Set no_causality, doc_nocausality;
-        "-nopt", Arg.Set no_opt, doc_no_opt;
-        "-nodeadcode", Arg.Set no_deadcode, doc_no_deadcode;
-        "-noinit", Arg.Set no_initialisation, doc_noinitialisation;
-        "-inline", Arg.Int set_inlining_level, doc_inlining_level;
-	"-inlineall", Arg.Set inline_all, doc_inline_all;
-	"-nosimplify", Arg.Set no_simplify_causality_type, doc_nosimplify;
-        "-noreduce", Arg.Set no_reduce, doc_noreduce;
-        "-zsign", Arg.Set zsign, doc_zsign;
-	"-copy", Arg.Set with_copy, doc_with_copy;
-	"-lmm", Arg.String set_lmm_nodes, doc_lmm
-      ])
+    Arg.parse
+      (Arg.align [
+          "-v", Arg.Unit set_verbose, doc_verbose;
+          "-vv", Arg.Unit set_vverbose, doc_vverbose;
+          "-version", Arg.Unit show_version, doc_version;
+          "-o", Arg.String set_outname, doc_outname;
+          "-I", Arg.String add_include, doc_include;
+          "-i", Arg.Set print_types, doc_print_types;
+          "-ic", Arg.Set print_causality_types, doc_print_causality_types;
+          "-ii", Arg.Set print_initialization_types, doc_print_initialization_types;
+          "-where", Arg.Unit locate_stdlib, doc_locate_stdlib;
+          "-stdlib", Arg.String set_stdlib, doc_stdlib;
+          "-nostdlib", Arg.Unit set_no_stdlib, doc_no_stdlib;
+          "-typeonly", Arg.Set typeonly, doc_typeonly;
+          "-s", Arg.String set_simulation_node, doc_simulation;
+          "-sampling", Arg.Float set_sampling_period, doc_sampling;
+          "-check", Arg.Int set_check, doc_check;
+          "-gtk2", Arg.Set use_gtk, doc_use_gtk;
+          "-dzero", Arg.Set dzero, doc_dzero;
+          "-nocausality", Arg.Set no_causality, doc_nocausality;
+          "-nopt", Arg.Set no_opt, doc_no_opt;
+          "-nodeadcode", Arg.Set no_deadcode, doc_no_deadcode;
+          "-noinit", Arg.Set no_initialisation, doc_noinitialisation;
+          "-inline", Arg.Int set_inlining_level, doc_inlining_level;
+          "-inlineall", Arg.Set inline_all, doc_inline_all;
+          "-nosimplify", Arg.Set no_simplify_causality_type, doc_nosimplify;
+          "-noreduce", Arg.Set no_reduce, doc_noreduce;
+          "-zsign", Arg.Set zsign, doc_zsign;
+          "-copy", Arg.Set with_copy, doc_with_copy;
+          "-lmm", Arg.String set_lmm_nodes, doc_lmm;
+          "-rif", Arg.Set use_rif, doc_rif
+        ])
       compile
       errmsg;
     begin
       match !simulation_node with
-        | Some(name) ->
-	    Simulator.main !outname name !sampling_period !number_of_checks !use_gtk
-        | _ -> ()
+      | Some(name) ->
+          Simulator.main !outname name !sampling_period !number_of_checks !use_gtk
+      | _ -> ()
     end
   with
   | Misc.Error -> exit 2;;
