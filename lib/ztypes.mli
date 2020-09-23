@@ -37,7 +37,7 @@ type ('a, 'b) cnode =
     Cnode:
       { alloc : unit -> 's; (* allocate the state *)
         copy : 's -> 's -> unit; (* copy the source into the destination *)
-	step : 's -> 'a -> 'b; (* compute a step *)
+        step : 's -> 'a -> 'b; (* compute a step *)
         reset : 's -> unit; (* reset/inialize the state *)
       } -> ('a, 'b) cnode
 
@@ -54,9 +54,9 @@ type cstate =
   { mutable dvec : dvec; (* the vector of derivatives *)
     mutable cvec : cvec; (* the vector of positions *)
     mutable zinvec : zinvec; (* the vector of boolean; true when the
-                             solver has detected a zero-crossing *)
+                                solver has detected a zero-crossing *)
     mutable zoutvec : zoutvec; (* the corresponding vector that define
-                               zero-crossings *)
+                                  zero-crossings *)
     mutable cindex : int; (* the position in the vector of positions *)
     mutable zindex : int; (* the position in the vector of zero-crossings *)
     mutable cend : int; (* the end of the vector of positions *)
@@ -70,7 +70,7 @@ type cstate =
 (* A hybrid node is a node that is parameterised by a continuous state *)
 (* all instances points to this global parameter and read/write on it *)
 type ('a, 'b) hnode = cstate -> (time * 'a, 'b) node
-					 
+
 type 'b hsimu =
     Hsim:
       { alloc : unit -> 's;
@@ -99,12 +99,12 @@ type 'b hsimu =
 type ('a, 'b) hsnode =
     Hnode:
       { state : 's;
-	(* the discrete state *)
+        (* the discrete state *)
         zsize : int;
-	(* the maximum size of the zero-crossing vector *)
-	csize : int;
-	(* the maximum size of the continuous state vector (positions) *)
-	derivative : 's -> 'a -> time -> cvec -> dvec -> unit;
+        (* the maximum size of the zero-crossing vector *)
+        csize : int;
+        (* the maximum size of the continuous state vector (positions) *)
+        derivative : 's -> 'a -> time -> cvec -> dvec -> unit;
         (* computes the derivative *)
         crossing : 's -> 'a -> time -> cvec -> zoutvec -> unit;
         (* computes the derivative *)
@@ -119,4 +119,3 @@ type ('a, 'b) hsnode =
         horizon : 's -> time;
         (* gives the next time horizon *)
       } -> ('a, 'b) hsnode
-

@@ -1,0 +1,26 @@
+open Nodes
+
+let h = 1.
+let stop_time = 10.
+
+let hybrid wrapped_system inputs = outputs where
+    rec i1 = Array.get inputs 0
+    and i2 = Array.get inputs 1
+    and der o1 = i1 +. i2 init 0. reset up(o1 -. 5.) -> 0.
+    and der o2 = i1 *. i1 *. i2 init 0.
+    and outputs = Array.of_list [o1; o2]
+
+let node system(i1, i2) = (time, o1, o2, do1di1, do2di1, do1di2, do2di2) where
+  (* Compute the dynamics of the system. Draw an observation *)
+  (* at times [n * h] with n in Nat or when a zero-crossing occurs *)
+  rec inputs = Array.of_list [i1; i2]
+  and { time = time; status = status; result = output; sens = sens } =
+    Nodes.solve wrapped_system stop_time (next_horizon, inputs)
+  and o1 = Array.get output 0
+  and o2 = Array.get output 1
+  and do1di1 = Array.get (Array.get sens 0) 0
+  and do2di1 = Array.get (Array.get sens 0) 1
+  and do1di2 = Array.get (Array.get sens 1) 0
+  and do2di2 = Array.get (Array.get sens 1) 1
+  and next_horizon =
+    h fby (if time >= next_horizon then next_horizon +. h else next_horizon)

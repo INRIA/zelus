@@ -1,5 +1,5 @@
 open Ztypes
-       
+
 (* convert the internal representation of a hybrid node into *)
 (* one that provide the elementary function for the simulation with *)
 (* an ODE/Zero-crossing solver *)
@@ -19,9 +19,9 @@ let lift f =
   let no_roots_in = Zls.zmake n_zeros in
   let no_roots_out = Zls.cmake n_zeros in
   let ignore_der = Zls.cmake n_cstates in
-  
+
   let no_time = -1.0 in
-  
+
   (* the function that compute the derivatives *)
   let derivative s input time cvec dvec =
     cstate.major <- false;
@@ -32,7 +32,7 @@ let lift f =
     cstate.cindex <- 0;
     cstate.zindex <- 0;
     ignore (f_step s (no_time, input)) in
-  
+
   (* the function that compute the zero-crossings *)
   let crossing s input time cvec zoutvec =
     cstate.major <- false;
@@ -43,7 +43,7 @@ let lift f =
     cstate.cindex <- 0;
     cstate.zindex <- 0;
     ignore (f_step s (no_time, input)) in
-  
+
   (* the function which compute the output during integration *)
   let output s input cvec =
     cstate.major <- false;
@@ -54,7 +54,7 @@ let lift f =
     cstate.cindex <- 0;
     cstate.zindex <- 0;
     f_step s (no_time, input) in
-  
+
   (* the function which sets the zinvector into the *)
   (* internal zero-crossing variables *)
   let setroots s input cvec zinvec =
@@ -66,7 +66,7 @@ let lift f =
     cstate.cindex <- 0;
     cstate.zindex <- 0;
     ignore (f_step s (no_time, input)) in
-  
+
   (* the function which compute a discrete step *)
   let majorstep s time cvec input =
     cstate.major <- true;
