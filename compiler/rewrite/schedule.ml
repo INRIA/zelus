@@ -80,8 +80,8 @@ let schedule eq_list =
        (Printer.equation_list "" "") eq_list
   
 
-let rec equation ({ eq_desc = desc } as eq) =
-  match desc with
+let rec equation ({ eq_desc } as eq) =
+  match eq_desc with
   | EQeq _ | EQpluseq _ | EQinit _ | EQnext _ | EQder _ -> eq
   | EQmatch(total, e, p_h_list) ->
      { eq with eq_desc = match_eq total e p_h_list }
@@ -96,8 +96,9 @@ let rec equation ({ eq_desc = desc } as eq) =
   | EQemit _ | EQautomaton _ | EQpresent _ | EQblock _ -> assert false
 
 and match_eq total e p_h_list =
-  EQmatch(total, e, List.map (fun ({ m_body = b } as m_h) ->
-			      { m_h with m_body = block b }) p_h_list)
+  EQmatch(total, e,
+          List.map (fun ({ m_body = b } as m_h) ->
+	      { m_h with m_body = block b }) p_h_list)
 
 and reset_eq res_eq_list e =
   let res_eq_list = List.map equation res_eq_list in
