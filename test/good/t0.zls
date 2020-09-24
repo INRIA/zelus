@@ -1,3 +1,7 @@
+let fix f x = let rec y = f x y in y
+
+let fix2 f g x = let rec y = f x z and z = g x y in y, z
+
 type t = P of int * int
 
 let node ff(x) = o where
