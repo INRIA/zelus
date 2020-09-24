@@ -347,8 +347,6 @@ let rec ins_and_outs_of_a_type is_right (inputs, outputs) tc =
   | Cfun(tc1, tc2) ->
      let inputs, outputs =
        ins_and_outs_of_a_type (not is_right) (inputs, outputs) tc1 in
-     (* let inputs, outputs =
-       ins_and_outs_of_a_type is_right (inputs, outputs) tc1 in *)
      ins_and_outs_of_a_type is_right (inputs, outputs) tc2
   | Cproduct(tc_list) ->
       List.fold_left
