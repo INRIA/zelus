@@ -39,7 +39,7 @@ luciole_zls: luciole_zls.ml
 clean:
 	rm -f *.annot *.cm[iox] *.o
 	rm -f zltohtml.ml zltohtml
-	rm luciole_zls
+	rm -f luciole_zls
 
 cleanall: clean
 	rm -f zltohtml diff_log

@@ -119,10 +119,9 @@ scope.ml: scope.zls gtkplot.zci basics.zci
 
 dump.ml: dump.zls basics.zci list.zci
 
-nodes.ml: array.zci
+nodes.zci: array.zci
 
-$(LOBJ): stdlib.zci
-# array.zci basics.zci input.zci gtkplot.zci: stdlib.zci
+array.zci basics.zci input.zci gtkplot.zci: stdlib.zci
 
 defaultsolver.ml: ../config
 	@printf "(* This file is generated automatically by make. *)\n" > $@
