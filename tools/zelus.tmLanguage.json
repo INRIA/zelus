@@ -1,0 +1,134 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "Zélus",
+	"fileTypes": [".zls", ".zli"],
+	"patterns": [
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#strings"
+		},
+		{
+			"include": "#comments"
+		},
+		{
+			"include": "#literals"
+		}
+	],
+	"repository": {
+		"keywords": {
+			"patterns": [
+				{
+					"comment": "Regular keywords",
+					"name": "keyword.control.zelus",
+					"match": "\\b(open|type|val|let|rec|in|out|on|as|of|where|der|next|init|default|period|local|emit)\\b"
+				},
+				{
+					"comment": "Control keywords",
+					"name": "keyword.control.zelus",
+					"match": "\\b(before|and|reset|every|present|do|done|forall|initialize|match|with|end|automaton|then|continue|until|unless|if|else)\\b"
+				},
+				{
+					"comment": "Kind keywords",
+					"name": "keyword.control.kind.zelus",
+					"match": "\\b(node|hybrid|fun|proba)\\b"
+				},
+				{
+					"comment": "Kind keywords",
+					"name": "keyword.control.modifier.zelus",
+					"match": "\\b(static|atomic)\\b"
+				},
+				{
+					"comment": "Prefix operator",
+					"name": "keyword.operator.prefix.zelus",
+					"match": "pre|up"
+				},
+				{
+					"comment": "Comparison operator",
+					"name": "keyword.operator.comparison.zelus",
+					"match": "(&&|\\|\\||==|<>)"
+				},
+				{
+					"comment": "Arithmetic operator",
+					"name": "keyword.operator.arithmetic.zelus",
+					"match": "(\\+|-|/|\\*|mod|\\*\\*)"
+				},
+				{
+					"comment": "Comparison operator (second group because of regex precedence)",
+					"name": "keyword.operator.comparison.zelus",
+					"match": "(>|<|>=|<=)"
+				},
+				{
+					"comment": "Kind operator (types)",
+					"name": "keyword.operator.arithmetic.zelus",
+					"match": "(-((A|C|D|S|AD|AS|P)-)?>)"
+				}
+			]
+		},
+		"identifiers": {
+			"patterns": [{
+				"comment": "Module identifier",
+				"name": "meta.class.zelus",
+				"match": "\\b[A-Z][a-zA-Z0-9_']*(\\.[A-Z][a-zA-Z0-9_']*)*\\b"
+			}]
+		},
+		"literals": {
+			"patterns": [
+				{
+					"comment": "Boolean literals",
+					"match": "\\b(true|false)\\b",
+					"name": "constant.language.boolean.zelus"
+				},
+				{
+					"comment": "Floating point literal",
+					"name": "constant.numeric.float.zelus",
+					"match": "\\b[0-9]+\\.([0-9]*)?([eE][+-]?[0-9]+)?\\b"
+				},
+				{
+					"comment": "Integer literal",
+					"name": "constant.numeric.integer.decimal.zelus",
+					"match": "\\b([0-9]+|0[xX][0-9A-Fa-f]+|0[oO][0-8]+|0[bB][0-1]+)\\b"
+				},
+				{
+					"comment": "Char literal",
+					"name": "string.quoted.single.zelus",
+					"match": "'([^'\\\\]|\\\\([^xuU]|[0-9]{2,3}|x[0-9A-Fa-f]{2,}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8}))'"
+				},
+				{
+					"comment": "Double-quote string literal",
+					"name": "string.quoted.double.zelus",
+					"begin": "\"",
+					"end": "\"",
+					"patterns": [
+						{
+							"include": "#escaped_character"
+						}
+					]
+				},
+				{
+					"comment": "Type variable",
+					"name": "storage.type.zelus",
+					"match": "\\b'[a-z_][a-zA-Z0-9_']*\\b"
+				}
+			]
+		},
+		"escaped_character": {
+			"patterns": [
+				{
+					"name": "constant.character.escape.zelus",
+					"match": "\\\\([^xuU]|[0-9]{2,3}|x[0-9A-Fa-f]{2,}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})"
+				}
+			]
+		},
+		"comments": {
+			"name": "comment.block.zelus",
+			"begin": "\\(\\*",
+			"end": "\\*\\)",
+			"patterns": [
+				{ "include": "#comments" }
+			]
+		}
+	},
+	"scopeName": "source.zelus"
+}
