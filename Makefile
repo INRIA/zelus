@@ -10,22 +10,22 @@ all: depend
 byte: depend
 	(cd compiler; $(MAKE) -f Makefile byte)
 	(cd lib;      $(MAKE) -f Makefile byte)
-	(cd tools;    $(MAKE) -f Makefile all)
+	(cd tools;    $(MAKE) -f Makefile byte)
 
 withgtk.byte: depend
 	(cd compiler; $(MAKE) -f Makefile byte)
 	(cd lib;      $(MAKE) -f Makefile withgtk.byte)
-	(cd tools;    $(MAKE) -f Makefile all)
+	(cd tools;    $(MAKE) -f Makefile byte)
 
 opt: depend
 	(cd compiler; $(MAKE) -f Makefile opt)
 	(cd lib;      $(MAKE) -f Makefile opt)
-	(cd tools;    $(MAKE) -f Makefile all)
+	(cd tools;    $(MAKE) -f Makefile opt)
 
 withgtk.opt: depend
 	(cd compiler; $(MAKE) -f Makefile opt)
 	(cd lib;      $(MAKE) -f Makefile withgtk.opt)
-	(cd tools;    $(MAKE) -f Makefile all)
+	(cd tools;    $(MAKE) -f Makefile opt)
 
 debug: depend debug.txt
 	(cd compiler; $(MAKE) -f Makefile debug)
@@ -77,8 +77,9 @@ makedist:
 	mkdir -p zelus-dist/lib
 	cp lib/zllib.cma zelus-dist/lib/
 	cp lib/zllib.cmxa lib/zllib.a zelus-dist/lib/
-	#cp lib/zllibgtk.cma zelus-dist/lib/
-	#cp lib/zllibgtk.cmxa lib/zllibgtk.a zelus-dist/lib/
+	cp lib/zllibgtk.cma zelus-dist/lib/
+	cp lib/zllibgtk.cmxa lib/zllibgtk.a zelus-dist/lib/
+	cp lib/solvers/*.cmi zelus-dist/lib/
 	cp lib/*.zli lib/*.zci zelus-dist/lib/
 	cp lib/*.cmi zelus-dist/lib/
 	@#
@@ -142,7 +143,7 @@ uninstall:
 opam-dist:
 	mkdir -p opam-dist/zelus/
 	@printf "$(S_BLUE)## Populating source directory$(S_NORMAL)\n"
-	cp -r  compiler bin lib tools Makefile config.in configure license.*.txt opam-dist/zelus/
+	cp -r  compiler bin lib tools Makefile config.in configure LICENSE opam-dist/zelus/
 	#
 	@printf "$(S_BLUE)## Creating package$(S_NORMAL)\n"
 	(cd opam-dist; tar cvzf zelus.tar.gz zelus)

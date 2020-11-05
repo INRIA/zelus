@@ -34,6 +34,7 @@ lib/gen.ml
 lib/vbool.ml
 tools/diff_log
 tools/zltohtml*
+tools/luciole_zls
 bin/zeluc
 test/good/*.ml
 test/bad/*.ml

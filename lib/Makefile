@@ -28,7 +28,9 @@ LOBJ = stdlib.zci \
        graphics.zci \
        basics.zci \
        node.zci \
-       run.zci
+       run.zci \
+	   array.zci \
+	   nodes.zci
 
 
 LOBJ_GTK = $(LOBJ) \
@@ -83,20 +85,22 @@ zllibgtk.cmxa: $(OBJ:.cmo=.cmx) $(OBJ_GTK:.cmo=.cmx)
 
 stdlib.zci: ZELUCFLAGS := -nostdlib
 
-basics.zci: basics.zli stdlib.zci
+basics.zci: basics.zli
 
-solvers/sundials_cvode.cmo: INCLUDES += $(SUNDIALS) $(SUNDIALS_CVODE)
-solvers/sundials_cvode.cmx: INCLUDES += $(SUNDIALS) $(SUNDIALS_CVODE)
+solvers/sundials_cvode.cmo solvers/sundials_cvode.cmx: INCLUDES += $(SUNDIALS) $(SUNDIALS_CVODE)
+solvers/sundials_cvodes.cmo solvers/sundials_cvodes.cmx: INCLUDES += $(SUNDIALS) $(SUNDIALS_CVODE)
+
+nodes.cmo nodes.cmx ztypes.cmi: INCLUDES += $(SUNDIALS) $(SUNDIALS_CVODE)
 
 zlsrungtk.cmo: INCLUDES += $(LABLGTK2)
 zlsrungtk.cmx: INCLUDES += $(LABLGTK2)
 
-gtkplot.zci: gtkplot.zli stdlib.zci
+gtkplot.zci: gtkplot.zli
 gtkplot.cmi:
 gtkplot.cmo: INCLUDES += $(LABLGTK2)
 gtkplot.cmx: INCLUDES += $(LABLGTK2)
 
-input.zci: input.zli stdlib.zci
+input.zci: input.zli
 input.cmi:
 input.cmo: INCLUDES += $(LABLGTK2)
 input.cmx: INCLUDES += $(LABLGTK2)
@@ -114,6 +118,10 @@ gen.ml: gen.zls random.zci
 scope.ml: scope.zls gtkplot.zci basics.zci
 
 dump.ml: dump.zls basics.zci list.zci
+
+nodes.zci: array.zci
+
+array.zci basics.zci input.zci gtkplot.zci: stdlib.zci
 
 defaultsolver.ml: ../config
 	@printf "(* This file is generated automatically by make. *)\n" > $@

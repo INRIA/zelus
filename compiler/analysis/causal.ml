@@ -345,8 +345,9 @@ let ins_and_outs c_set = S.fold ins_and_outs c_set (S.empty, S.empty)
 let rec ins_and_outs_of_a_type is_right (inputs, outputs) tc =
   match tc with
   | Cfun(tc1, tc2) ->
-      ins_and_outs_of_a_type  is_right 
-        (ins_and_outs_of_a_type  (not is_right) (inputs, outputs) tc1) tc2
+     let inputs, outputs =
+       ins_and_outs_of_a_type (not is_right) (inputs, outputs) tc1 in
+     ins_and_outs_of_a_type is_right (inputs, outputs) tc2
   | Cproduct(tc_list) ->
       List.fold_left
         (ins_and_outs_of_a_type  is_right) (inputs, outputs) tc_list
