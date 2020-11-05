@@ -41,23 +41,43 @@ def _ml_type(f):
     return ty
 
 
+def _exec(cmd):
+    try:
+        output = subprocess.check_output(
+            cmd, stderr=subprocess.PIPE, universal_newlines=True
+        )
+        if output:
+            print(output, file=sys.stdout)
+    except subprocess.CalledProcessError as exc:
+        print(f"Error {exc.returncode}: {exc.stderr}", file=sys.stderr)
+
+
 def _compile_code(name, src, opt=[], libname=None, clean=False):
     with open(name + ".zls", "w" if clean else "a") as fzls:
         if libname:
             fzls.write(f"open {libname.capitalize()}")
             fzls.write(src)
             fzls.seek(0)
-        subprocess.check_call(
-            ["../bin/zeluc", "-python", "-noreduce", "-copy",] + opt + [fzls.name]
+        _exec(
+            [
+                "../bin/zeluc",
+                "-python",
+                "-noreduce",
+                "-copy",
+            ]
+            + opt
+            + [fzls.name]
         )
 
 
-def lib(libname):
+def lib(libname, clean=False):
     def inner(f):
-        with open(libname + "zli", "a") as fzli, open(libname + ".py", "w") as fpyl:
-            fzli.write(f"val {f}: {_ml_type(f)}\n")
+        with open(libname + ".zli", "w" if clean else "a") as fzli, open(
+            libname + ".py", "w" if clean else "a"
+        ) as fpyl:
+            fzli.write(f"val {f.__name__}: {_ml_type(f)}\n")
             fpyl.write(getsource(f).split("\n", 1)[1])
-        subprocess.check_call(["../bin/zeluc", libname + ".zli"])
+        _exec(["../bin/zeluc", libname + ".zli"])
         if libname in sys.modules:
             importlib.reload(sys.modules[libname])
 
