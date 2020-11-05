@@ -31,6 +31,7 @@ let is_operator = function
   | Modname {id = "^" ; qual = "Stdlib"}
   | Modname {id = "||" ; qual = "Stdlib"}
   | Modname {id = "&&" ; qual = "Stdlib"}
+  | Modname {id = "mod" ; qual = "Stdlib"}
     -> true
   | _ -> false
 
@@ -48,6 +49,7 @@ let name_of_operator = function
   | Modname {id = "^" ; qual = "Stdlib"} -> "concat"
   | Modname {id = "||" ; qual = "Stdlib"} -> "or_"
   | Modname {id = "&&" ; qual = "Stdlib"} -> "and_"
+  | Modname {id = "mod" ; qual = "Stdlib"} -> "mod"
   | _ -> assert false
 
 
