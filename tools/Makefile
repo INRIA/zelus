@@ -1,7 +1,8 @@
 include ../config
 
 all:
-byte: diff_log zltohtml luciole_zls
+byte: diff_log zltohtml 
+#luciole_zls
 opt:
 depend .depend:
 
