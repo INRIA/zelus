@@ -1,8 +1,7 @@
 include ../config
 
 all:
-byte: diff_log zltohtml 
-#luciole_zls
+byte: diff_log zltohtml luciole_zls
 opt:
 depend .depend:
 
@@ -29,7 +28,7 @@ init.cmo causal.cmo typerrors.cmo total.cmo interface.cmo patternsig.cmo \
 match2condition.cmo plmm.cmo zlus2lmm.cmo simulator.cmo \
 typing.cmo causality.cmo initialization.cmo automata.cmo deadcode.cmo \
 write.cmo aform.cmo inline.cmo reduce.cmo dependences.cmo encore.cmo \
-markfunctions.cmo oprinter.cmo ocamlprinter.cmo translate.cmo inout.cmo \
+markfunctions.cmo oprinter.cmo ocamlprinter.cmo pythonprinter.cmo translate.cmo inout.cmo \
 schedule.cmo compiler.cmo
 
 luciole_zls: luciole_zls.ml
