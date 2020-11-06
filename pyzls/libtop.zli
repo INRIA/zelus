@@ -1,0 +1,1 @@
+val init_buffer: int * float -> 'a
