@@ -117,7 +117,7 @@ let initialize modname =
   List.iter open_module !default_used_modules
   
 let add_value f signature = 
-  if E.mem f current.values then raise (Already_defined f);
+  (* if E.mem f current.values then raise (Already_defined f); *)
   current.values <- E.add f signature current.values
   
 let add_type f typ_desc =
