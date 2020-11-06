@@ -90,6 +90,9 @@ def lib(libname, clean=False):
     return inner
 
 
+open('libtop.zli', 'w+').close()
+open('libtop.py', 'w+').close()
+_exec(["../bin/zeluc", "libtop.zli"])
 toplib = lib("libtop")
 
 
