@@ -97,9 +97,8 @@ def load(src, name="top", clean=False, scope=builtins, opt=[]):
     _compile_code(name, src, opt, clean=clean, libname="libtop")
 
     # Load python module as class attribute
-    spec = importlib.util.spec_from_file_location("zlpyc", "top.py")
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
+    mod = importlib.import_module("top")
+    importlib.reload(mod)
     for name, val in mod.__dict__.items():
         if not name.startswith("__"):
             setattr(scope, name, val)
