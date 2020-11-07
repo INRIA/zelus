@@ -1,11 +1,11 @@
-from abc import ABC, abstractmethod
 import subprocess
 import ast
-import importlib.util
-from inspect import getsource
 import sys
+from abc import ABC, abstractmethod
+from inspect import getsource
 from functools import wraps
-import builtins
+from IPython.core.magic import Magics, magics_class, cell_magic
+from IPython.core.magic_arguments import argument, magic_arguments, parse_argstring
 
 
 class Node(ABC):
@@ -52,12 +52,10 @@ def _exec(cmd):
         print(f"Error {exc.returncode}: {exc.stderr}", file=sys.stderr)
 
 
-def _compile_code(name, src, opt=[], libname=None, clean=False):
-    with open(name + ".zls", "w" if clean else "a") as fzls:
-        if libname:
-            fzls.write(f"open {libname.capitalize()}")
-            fzls.write(src)
-            fzls.seek(0)
+def _compile_code(name, src, opt=[], clear=False):
+    with open(name + ".zls", "w" if clear else "a") as fzls:
+        fzls.write(src)
+        fzls.seek(0)
         _exec(
             [
                 "../bin/zeluc",
@@ -70,10 +68,10 @@ def _compile_code(name, src, opt=[], libname=None, clean=False):
         )
 
 
-def lib(libname, clean=False):
+def lib(libname, clear=False):
     def inner(f):
-        with open(libname + ".zli", "w" if clean else "a") as fzli, open(
-            libname + ".py", "w" if clean else "a"
+        with open(libname + ".zli", "w" if clear else "a") as fzli, open(
+            libname + ".py", "w" if clear else "a"
         ) as fpyl:
             fzli.write(f"val {f.__name__}: {_ml_type(f)}\n")
             fpyl.write(getsource(f).split("\n", 1)[1])
@@ -90,18 +88,27 @@ def lib(libname, clean=False):
     return inner
 
 
-open('libtop.zli', 'w+').close()
-open('libtop.py', 'w+').close()
-_exec(["../bin/zeluc", "libtop.zli"])
-toplib = lib("libtop")
+@magics_class
+class ZlsMagic(Magics):
+    @magic_arguments()
+    @argument("-clear", action="store_true", help="Clear zelus buffer")
+    @argument(
+        "-zopt", type=str, action="append", default=[], help="Optinal flags for zeluc"
+    )
+    @cell_magic
+    def zelus(self, line=None, cell=None):
+        args = parse_argstring(self.zelus, line)
+        glob = self.shell.user_ns
+        zopt = [zo[1:-1] for zo in args.zopt]
+        _compile_code("top", cell, opt=zopt, clear=args.clear)
+        with open("top.py", "r") as top:
+            exec(top.read(), glob)
 
 
-def load(src, name="top", clean=False, scope=builtins, opt=[]):
-    _compile_code(name, src, opt, clean=clean, libname="libtop")
-
-    # Load python module as class attribute
-    mod = importlib.import_module("top")
-    importlib.reload(mod)
-    for name, val in mod.__dict__.items():
-        if not name.startswith("__"):
-            setattr(scope, name, val)
+# Load ipython magic
+try:
+    ip = get_ipython()
+    ip.register_magics(ZlsMagic)
+except NameError:
+    print("No IPython detected: magic disabled", file=sys.stderr)
+    pass
