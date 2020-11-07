@@ -1,6 +1,8 @@
 import subprocess
 import ast
 import sys
+import importlib
+import IPython
 from abc import ABC, abstractmethod
 from inspect import getsource
 from functools import wraps
@@ -109,6 +111,8 @@ class ZlsMagic(Magics):
 try:
     ip = get_ipython()
     ip.register_magics(ZlsMagic)
+    ipc = "IPython.CodeCell.options_default.highlight_modes['magic_ocaml'] = {'reg':[/^%%zelus/]};"
+    IPython.core.display.display_javascript(ipc, raw=True)
 except NameError:
     print("No IPython detected: magic disabled", file=sys.stderr)
     pass
