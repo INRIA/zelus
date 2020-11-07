@@ -39,7 +39,7 @@ def _ml_type(f):
         ]
     )
     r = f.__annotations__["return"]
-    ty += f' -> {r.__name__ if hasattr(r, "__name__") else str(r)}'
+    ty += f' -AD-> {r.__name__ if hasattr(r, "__name__") else str(r)}'
     return ty
 
 
