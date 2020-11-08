@@ -3,11 +3,24 @@ import ast
 import sys
 import importlib
 import IPython
+import os
+import pathlib
 from abc import ABC, abstractmethod
 from inspect import getsource
+from contextlib import contextmanager
 from functools import wraps
 from IPython.core.magic import Magics, magics_class, cell_magic
 from IPython.core.magic_arguments import argument, magic_arguments, parse_argstring
+
+
+@contextmanager
+def cd(newdir):
+    prevdir = os.getcwd()
+    os.chdir(os.path.expanduser(newdir))
+    try:
+        yield
+    finally:
+        os.chdir(prevdir)
 
 
 class Node(ABC):
@@ -55,7 +68,7 @@ def _exec(cmd):
 
 
 def _compile_code(name, src, opt=[], clear=False):
-    with open(name + ".zls", "w" if clear else "a") as fzls:
+    with open(f"_tmp/{name}.zls", "w" if clear else "a") as fzls:
         fzls.write(src)
         fzls.seek(0)
         _exec(
@@ -64,6 +77,7 @@ def _compile_code(name, src, opt=[], clear=False):
                 "-python",
                 "-noreduce",
                 "-copy",
+                "-I _tmp",
             ]
             + opt
             + [fzls.name]
@@ -72,14 +86,14 @@ def _compile_code(name, src, opt=[], clear=False):
 
 def lib(libname, clear=False):
     def inner(f):
-        with open(libname + ".zli", "w" if clear else "a") as fzli, open(
-            libname + ".py", "w" if clear else "a"
+        with open(f"_tmp/{libname}.zli", "w" if clear else "a") as fzli, open(
+            f"_tmp/{libname}.py", "w" if clear else "a"
         ) as fpyl:
             fzli.write(f"val {f.__name__}: {_ml_type(f)}\n")
             fpyl.write(getsource(f).split("\n", 1)[1])
-        _exec(["../bin/zeluc", libname + ".zli"])
-        if libname in sys.modules:
-            importlib.reload(sys.modules[libname])
+        _exec(["../bin/zeluc", f"_tmp/{libname}.zli"])
+        if f"_tmp.{libname}" in sys.modules:
+            importlib.reload(sys.modules[f"_tmp.{libname}"])
 
         @wraps(f)
         def wrapper(*args):
@@ -103,7 +117,7 @@ class ZlsMagic(Magics):
         glob = self.shell.user_ns
         zopt = [zo[1:-1] for zo in args.zopt]
         _compile_code("top", cell, opt=zopt, clear=args.clear)
-        with open("top.py", "r") as top:
+        with cd("_tmp"), open("top.py", "r") as top:
             exec(top.read(), glob)
 
 
@@ -116,3 +130,8 @@ try:
 except NameError:
     print("No IPython detected: magic disabled", file=sys.stderr)
     pass
+
+# Create tmp dir to store compiled files
+if not os.path.exists("_tmp"):
+    os.makedirs("_tmp")
+    pathlib.Path("_tmp/__init__.py").touch()
