@@ -5,12 +5,22 @@ import importlib
 import IPython
 import os
 import pathlib
+import logging
 from abc import ABC, abstractmethod
 from inspect import getsource
 from contextlib import contextmanager
 from functools import wraps
 from IPython.core.magic import Magics, magics_class, cell_magic
 from IPython.core.magic_arguments import argument, magic_arguments, parse_argstring
+
+
+logger = logging.getLogger(__name__)
+
+
+class ZelucError(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
 
 
 @contextmanager
@@ -21,6 +31,19 @@ def cd(newdir):
         yield
     finally:
         os.chdir(prevdir)
+
+
+@contextmanager
+def safe_edit(file, content):
+    pos = file.tell()
+    file.write(content)
+    file.seek(pos)
+    try:
+        yield
+    except ZelucError as ze:
+        file.seek(pos)
+        file.truncate(pos)
+        logger.error(ze.message)
 
 
 class Node(ABC):
@@ -64,36 +87,41 @@ def _exec(cmd):
         if output:
             print(output, file=sys.stdout)
     except subprocess.CalledProcessError as exc:
-        print(f"Error {exc.returncode}: {exc.stderr}", file=sys.stderr)
+        raise ZelucError(f"Error {exc.returncode}: {exc.stderr}")
 
 
 def _compile_code(name, src, opt=[], clear=False):
-    with open(f"_tmp/{name}.zls", "w" if clear else "a") as fzls:
-        fzls.write(src)
-        fzls.seek(0)
-        _exec(
-            [
-                "../bin/zeluc",
-                "-python",
-                "-noreduce",
-                "-copy",
-                "-I _tmp",
-            ]
-            + opt
-            + [fzls.name]
-        )
+    zlfile = f"_tmp/{name}.zls"
+    with open(zlfile, "w" if clear else "a") as fzls:
+        with safe_edit(fzls, src):
+            _exec(
+                [
+                    "../bin/zeluc",
+                    "-python",
+                    "-noreduce",
+                    "-copy",
+                    "-I _tmp",
+                ]
+                + opt
+                + [zlfile]
+            )
 
 
 def lib(libname, clear=False):
     def inner(f):
-        with open(f"_tmp/{libname}.zli", "w" if clear else "a") as fzli, open(
-            f"_tmp/{libname}.py", "w" if clear else "a"
+        libfile = f"_tmp/{libname}.zli"
+        tyfile = f"_tmp/{libname}.py"
+        with open(libfile, "w" if clear else "a") as fzli, open(
+            tyfile, "w" if clear else "a"
         ) as fpyl:
-            fzli.write(f"val {f.__name__}: {_ml_type(f)}\n")
-            fpyl.write(getsource(f).split("\n", 1)[1])
-        _exec(["../bin/zeluc", f"_tmp/{libname}.zli"])
-        if f"_tmp.{libname}" in sys.modules:
-            importlib.reload(sys.modules[f"_tmp.{libname}"])
+            ty = f"val {f.__name__}: {_ml_type(f)}\n"
+            src = getsource(f).split("\n", 1)[1]
+            with safe_edit(fzli, ty):
+                _exec(["../bin/zeluc", libfile])
+                fpyl.write(src)
+                fpyl.seek(0)
+                if f"_tmp.{libname}" in sys.modules:
+                    importlib.reload(sys.modules[f"_tmp.{libname}"])
 
         @wraps(f)
         def wrapper(*args):
@@ -128,7 +156,7 @@ try:
     ipc = "IPython.CodeCell.options_default.highlight_modes['magic_ocaml'] = {'reg':[/^%%zelus/]};"
     IPython.core.display.display_javascript(ipc, raw=True)
 except NameError:
-    print("No IPython detected: magic disabled", file=sys.stderr)
+    logger.error("No IPython detected: magic disabled", file=sys.stderr)
     pass
 
 # Create tmp dir to store compiled files
