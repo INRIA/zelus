@@ -17,8 +17,7 @@ include ../config
 
 ZELUC = ../bin/zeluc
 
-LOBJ = stdlib.zci \
-       char.zci \
+LOBJ = char.zci \
        complex.zci \
        int32.zci \
        nativeint.zci \
