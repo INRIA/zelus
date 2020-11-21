@@ -25,15 +25,15 @@ let node sin_cos(h)() =
   si, co
 
 let node sin_cos3(h)() =
-  let rec si = 0.0 -> pre(si +. co *. h)
-  and co = 1.0 -> pre(co -. si *. h) in
+  let rec si = 0.0 fby (si +. co *. h)
+  and co = 1.0 -> pre(co) -. si *. h in
   (si, co)
 
 let node fix2(f)(g)(h)() =
   let rec si = run (f(h))(0.0, cos)
   and cos = -. run (g(h))(1.0, si) in
   (si, cos)
-    
+  
 let h = 0.1
 
 (* The following one does not type check *)
@@ -61,7 +61,7 @@ Here is an example of a cycle:
 let node fix5() = fix2(int2_backward)(int2_forward)(h)()
     
 let node main() =
-  let si, co = sin_cos2(h)() in
+  let si, co = sin_cos3(h)() in
   let rec time = 0.0 -> pre time +. h in
   let s =
     Scope.scope2
