@@ -9,6 +9,13 @@ let unvec = Nvector.unwrap
 
 type sensmat = Nvector_serial.t array
 let smake i j = Array.init i (fun _ -> Nvector_serial.make j 0.0)
+let sset smat i j v = 
+  let smat_i = Nvector_serial.unwrap smat.(i) in
+  smat_i.{j} <- v
+let sdim smat =
+  let i = Array.length smat in
+  if i = 0 then (0, 0)
+  else (i, Sundials.RealArray.length (Nvector_serial.unwrap (smat.(i))))
 
 let arrays_of_sensmat smat =
   Array.map (fun nvec ->

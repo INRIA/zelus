@@ -79,8 +79,9 @@ let rec is_unit ty =
   | _ -> false
 
 let allowed_types = List.map (fun qualid -> qualid.Lident.id)
-    [int_ident; bool_ident; float_ident; unit_ident ]
-let unit_id = unit_ident.Lident.id
+    [Initial.int_ident; Initial.bool_ident;
+     Initial.float_ident; Initial.unit_ident]
+let unit_id = Initial.unit_ident.Lident.id
 
 let rec check_ty ty =
   match ty.t_desc with
@@ -292,8 +293,7 @@ let main () =
                      "-I", Arg.String add_include, doc_include;
                      "-i", Arg.Set print_types, doc_print_types;
                      "-ic", Arg.Set print_causality_types, doc_print_causality_types;
-                     "-ii",
-                     Arg.Set print_initialization_types, doc_print_initialization_types;
+                     "-ii", Arg.Set print_initialization_types, doc_print_initialization_types;
                      "-where", Arg.Unit locate_stdlib, doc_locate_stdlib;
                      "-stdlib", Arg.String set_stdlib, doc_stdlib;
                      "-nostdlib", Arg.Unit set_no_stdlib, doc_no_stdlib;

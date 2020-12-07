@@ -44,7 +44,7 @@ let log_info s i =
   if !debug then
     begin print_string s; print_float i; print_newline (); flush stdout end
 
-type status =
+type status = Node.status =
   | Interpolate (* no integration was necessary *)
   | Success of float (* the integration succeed; limit time for correctness *)
   | RootsFound (* a root has been found *)

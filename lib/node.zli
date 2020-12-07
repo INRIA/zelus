@@ -42,3 +42,5 @@ type 'a return =
  *- if h is increasing then r.time is also increasing *)
 
 val solve : ('a -C-> 'b) -S-> float -S-> float * 'a -D-> 'b return
+val solve_ode23 : ('a -C-> 'b) -S-> float -S-> float * 'a -D-> 'b return
+val solve_ode45 : ('a -C-> 'b) -S-> float -S-> float * 'a -D-> 'b return
