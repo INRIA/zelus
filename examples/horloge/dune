@@ -1,0 +1,16 @@
+; (env (dev (flags (:standard -w -a))))
+
+(rule
+ (target draw.zci)
+ (deps (:zli draw.zli))
+ (action (run zeluc -o %{target} %{zli})))
+
+(rule
+ (targets watch.ml watch_main.ml)
+ (deps (:zl watch.zls) draw.zci)
+ (action (run zeluc -s main -sampling 0 -o watch_main %{zl})))
+
+(executable
+  (name watch_main)
+  (libraries unix graphics zelus)
+  (promote (until-clean)))
