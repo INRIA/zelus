@@ -14,12 +14,8 @@
 
 (* useful stuff *)
 
-(* version of the compiler *)
-let version = "Zélus"
-let subversion = VERSION
-let date = DATE
-
 let header_in_file =
+  let open Config in
   "The " ^ version ^ " compiler, version " ^ subversion ^ "\n\  (" ^ date ^ ")"
 
 (* generic data-structres for sets and symbol tables *)
@@ -30,7 +26,12 @@ module Env = Map.Make (struct type t = string let compare = compare end)
 (* standard module *)
 let name_of_stdlib_module = "Stdlib"
 
+
+let standard_lib = try Sys.getenv "ZLLIB" with Not_found -> Config.stdlib
+
+(*
 let standard_lib = try Sys.getenv "ZLLIB" with Not_found -> STDLIB
+*)
 
 (* list of modules initially opened *)
 let default_used_modules = ref [name_of_stdlib_module]
@@ -48,9 +49,19 @@ let locate_stdlib () =
   Printf.printf "%s\n" standard_lib
 
 let show_version () =
+  let open Config in
+  let show_bool name b =
+    Printf.printf " %s [%s]" name (if b then "Y" else "N")
+  in
   Printf.printf "The %s compiler, version %s (%s)\n"
     version subversion date;
-  Printf.printf "Std lib: "; locate_stdlib ()
+  Printf.printf "Std lib: "; locate_stdlib ();
+  Printf.printf "Features:";
+  show_bool "sundials" sundials;
+  show_bool "gtk" gtk;
+  show_bool "glmlite" glmlite;
+  Printf.printf "\n";
+  ()
 
 (* sets the main simulation node *)
 let simulation_node = ref None
@@ -59,6 +70,10 @@ let set_simulation_node (n:string) = simulation_node := Some(n)
 (* sets the output filepath *)
 let outname = ref None
 let set_outname (n:string) = outname := Some(n)
+
+(* sets the output filepath for nodes *)
+let node_outname = ref None
+let set_node_outname (n:string) = node_outname := Some(n)
 
 (* sets the checking flag *)
 let number_of_checks = ref 0
