@@ -15,7 +15,7 @@ let get_current_date () =
   let t = gmtime @@ time () in
   Printf.sprintf
     "%.2d-%.2d-%d-%d:%d"
-    t.tm_mday (1 + t.tm_mon) (1900 + t.tm_year)
+    (1900 + t.tm_year) (1 + t.tm_mon) t.tm_mday 
     t.tm_hour t.tm_min
 
 let () =
