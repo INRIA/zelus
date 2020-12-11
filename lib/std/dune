@@ -1,0 +1,103 @@
+(include_subdirs unqualified)
+
+(rule
+ (target stdlib.zci)
+ (deps stdlib.zli)
+ (action (run zeluc -nostdlib -o %{target} %{deps})))
+
+(rule
+ (target char.zci)
+ (deps (:zli char.zli) stdlib.zci)
+ (action (run zeluc -o %{target} %{zli})))
+
+(rule
+ (target complex.zci)
+ (deps (:zli complex.zli) stdlib.zci)
+ (action (run zeluc -o %{target} %{zli})))
+
+(rule
+ (target int32.zci)
+ (deps (:zli int32.zli) stdlib.zci)
+ (action (run zeluc -o %{target} %{zli})))
+
+(rule
+ (target int64.zci)
+ (deps (:zli int64.zli) nativeint.zci stdlib.zci)
+ (action (run zeluc -o %{target} %{zli})))
+
+(rule
+ (target nativeint.zci)
+ (deps (:zli nativeint.zli) int32.zci stdlib.zci)
+ (action (run zeluc -o %{target} %{zli})))
+
+(rule
+ (target random.zci)
+ (deps (:zli random.zli) stdlib.zci int32.zci int64.zci nativeint.zci)
+ (action (run zeluc -o %{target} %{zli})))
+
+(rule
+ (target string.zci)
+ (deps (:zli string.zli) stdlib.zci)
+ (action (run zeluc -o %{target} %{zli})))
+
+(rule
+ (target graphics.zci)
+ (deps (:zli graphics.zli) stdlib.zci)
+ (action (run zeluc -o %{target} %{zli})))
+
+(rule
+ (target basics.zci)
+ (deps (:zli basics.zli) stdlib.zci)
+ (action (run zeluc -o %{target} %{zli})))
+
+(rule
+ (target node.zci)
+ (deps (:zli node.zli) stdlib.zci)
+ (action (run zeluc -o %{target} %{zli})))
+
+(rule
+ (target run.zci)
+ (deps (:zli run.zli) stdlib.zci)
+ (action (run zeluc -o %{target} %{zli})))
+
+(rule
+ (target list.zci)
+ (deps (:zli list.zli) stdlib.zci)
+ (action (run zeluc -o %{target} %{zli})))
+
+(rule
+ (target dump.ml)
+ (deps (:zli dump.zls) basics.zci list.zci)
+ (action (run zeluc -o %{target} %{zli})))
+
+(rule
+ (target obs.ml)
+ (deps (:zli obs.zls) basics.zci)
+ (action (run zeluc -o %{target} %{zli})))
+
+(rule
+ (target gen.ml)
+ (deps (:zli gen.zls) random.zci)
+ (action (run zeluc -o %{target} %{zli})))
+
+(rule
+ (target vbool.ml)
+ (deps (:zli vbool.zls) stdlib.zci)
+ (action (run zeluc -o %{target} %{zli})))
+
+(library
+ (name zlstdlib)
+ (libraries
+  (select node.ml from
+   (sundialsml -> node.sundials.ml)
+   ( -> node.nosundials.ml)))
+ (public_name zelus)
+ (wrapped false)
+ (modules ztypes zls basics zlsolve lift dump illinois odexx defaultsolver
+         zlsrun obs gen vbool run node))
+
+(install
+ (package zelus)
+ (section share)
+ (files stdlib.zci char.zci complex.zci int32.zci nativeint.zci int64.zci
+        random.zci string.zci graphics.zci basics.zci node.zci run.zci))
