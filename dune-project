@@ -1,5 +1,6 @@
 (lang dune 2.6)
 (using menhir 2.0)
+(name zelus)
 ; (generate_opam_files true)
 
 ; (package 
