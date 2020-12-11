@@ -47,6 +47,7 @@ and doc_include = "<dir> \t Add <dir> to the list of include directories"
 and doc_stdlib = "<dir> \t Directory for the standard library"
 and doc_locate_stdlib = "\t  Locate standard libray"
 and doc_no_stdlib = "\t  Do not load the stdlib module"
+and doc_no_zlstdlib = "\t  Do not load the zlstdlib module"
 and doc_typeonly = "\t  Stop after typing"
 and doc_hybrid = "\t  Select hybrid translation"
 and doc_simulation =
@@ -86,6 +87,9 @@ let set_vverbose () =
   vverbose := true;
   set_verbose ()
 
+let set_no_zlstdlib () =
+  no_zlstdlib := true
+
 let main () =
   try
     Arg.parse
@@ -101,6 +105,7 @@ let main () =
           "-where", Arg.Unit locate_stdlib, doc_locate_stdlib;
           "-stdlib", Arg.String set_stdlib, doc_stdlib;
           "-nostdlib", Arg.Unit set_no_stdlib, doc_no_stdlib;
+          "-nozlstdlib", Arg.Unit set_no_zlstdlib, doc_no_zlstdlib;
           "-typeonly", Arg.Set typeonly, doc_typeonly;
           "-s", Arg.String set_simulation_node, doc_simulation;
           "-sampling", Arg.Float set_sampling_period, doc_sampling;
