@@ -23,6 +23,7 @@ a.out
 config
 config.log
 META
+_build/
 compiler/parsing/lexer.ml
 compiler/parsing/parser.ml*
 lib/defaultsolver.ml
@@ -38,6 +39,9 @@ tools/luciole_zls
 bin/zeluc
 test/good/*.ml
 test/bad/*.ml
+config.ml
+zeluc.exe
+.merlin
 
 zelus_src.tar.gz
 zelus_anonymous_src.tar.gz
