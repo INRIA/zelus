@@ -90,7 +90,10 @@
  (libraries
   (select node.ml from
    (sundialsml -> node.sundials.ml)
-   ( -> node.nosundials.ml)))
+   ( -> node.nosundials.ml))
+  (select defaultsolver.ml from
+   (sundialsml -> defaultsolver.sundials.ml)
+   ( -> defaultsolver.nosundials.ml)))
  (public_name zelus)
  (wrapped false)
  (modules ztypes zls basics zlsolve lift dump illinois odexx defaultsolver

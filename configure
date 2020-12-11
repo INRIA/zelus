@@ -4,18 +4,8 @@
 
 let prefix = ref "/usr/local"
 
-let features =
-  [
-    "sundials", ref false;
-    "gtk", ref false;
-    "glmlite", ref false;
-  ]
-
-let feature_enabled name =
-  ! (List.assoc name features)
-
 let get_stdlib_prefix () =
-  Filename.(concat (concat !prefix "share") "%%NAME%%")
+  Filename.(concat (concat !prefix "share") "zelus")
 
 let get_current_date () =
   let open Unix in
@@ -30,12 +20,6 @@ let () =
     [
       "--prefix", Arg.Set_string prefix, " Installation prefix";
     ]
-    @ List.map
-        (fun (s, r) -> "--enable-" ^ s, Arg.Set r, " Enable " ^ s)
-        features
-    @ List.map
-        (fun (s, r) -> "--disable-" ^ s, Arg.Clear r, " Disable " ^ s)
-        features
   in
   Arg.parse
     options
@@ -43,10 +27,8 @@ let () =
       Printf.eprintf "Don't know what to do with \"%s\".\n" cmd;
       exit 1)
     "Usage: ./configure [OPTIONS]";
+
   (* Generate configuration module. *)
-  let default_solver =
-    if feature_enabled "sundials" then "Sundials_cvode" else "Odexx.Ode45"
-  in
   let statements =
     let dquote s = "\"" ^ s ^ "\"" in
     [
@@ -54,9 +36,7 @@ let () =
       "subversion", "\"-dev\"";
       "stdlib", dquote @@ get_stdlib_prefix ();
       "date", dquote @@ get_current_date ();
-      "default_solver", dquote default_solver;
     ]
-    @ List.map (fun (n, r) -> n, string_of_bool !r) features
   in
   let oc = open_out_bin "config.ml" in
   List.iter
@@ -65,6 +45,8 @@ let () =
     statements;
   close_out oc;
   (* Generate lib/Defaultsolver.ml *)
+  (* 
   let oc = open_out_bin (Filename.concat "lib/std" "defaultsolver.ml") in
   Printf.fprintf oc {|include %s|} default_solver;
   close_out oc
+  *)
