@@ -2,6 +2,9 @@
 
 #load "unix.cma"
 
+let version = "2.1"
+let subversion = "dev"
+
 let prefix = ref "/usr/local"
 
 let get_stdlib_prefix () =
@@ -12,7 +15,7 @@ let get_current_date () =
   let t = gmtime @@ time () in
   Printf.sprintf
     "%.2d-%.2d-%d-%d:%d"
-    t.tm_mday t.tm_mon (1900 + t.tm_year)
+    t.tm_mday (1 + t.tm_mon) (1900 + t.tm_year)
     t.tm_hour t.tm_min
 
 let () =
@@ -32,8 +35,8 @@ let () =
   let statements =
     let dquote s = "\"" ^ s ^ "\"" in
     [
-      "version", "\"2.1\"";
-      "subversion", "\"-dev\"";
+      "version", dquote @@ version;
+      "subversion", dquote @@ subversion;
       "stdlib", dquote @@ get_stdlib_prefix ();
       "date", dquote @@ get_current_date ();
     ]
