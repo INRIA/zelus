@@ -1,406 +1,70 @@
-#!/bin/sh
+#!/usr/bin/env ocaml
 
-sysname='Zélus'
-version=2.1
-contact='marc.pouzet@ens.fr'
+#load "unix.cma"
 
-for_compile=1
+let prefix = ref "/usr/local"
 
-prefix=/usr/local
-unset bindir
-unset libdir
-unset mandir
+let features =
+  [
+    "sundials", ref false;
+    "gtk", ref false;
+    "glmlite", ref false;
+  ]
 
-with_byte='byte'
-with_opt='opt'
-with_gtk_byte='withgtk.byte'
-with_gtk_opt='withgtk.opt'
-with_sundials=1
+let feature_enabled name =
+  ! (List.assoc name features)
 
+let get_stdlib_prefix () =
+  Filename.(concat (concat !prefix "share") "%%NAME%%")
 
-while : ; do
-  case "$1" in
-    "") break;;
+let get_current_date () =
+  let open Unix in
+  let t = gmtime @@ time () in
+  Printf.sprintf
+    "%.2d-%.2d-%d-%d:%d"
+    t.tm_mday t.tm_mon (1900 + t.tm_year)
+    t.tm_hour t.tm_min
 
-    --prefix)
-        prefix=$2; shift;;
-    --prefix=*)
-        prefix=`expr "$1" : '--[^=]*=\(.*\)'`;;
-
-    --bindir)
-        bindir=$2; shift;;
-    --bindir=*)
-        bindir=`expr "$1" : '--[^=]*=\(.*\)'`;;
-
-    --libdir)
-        libdir=$2; shift;;
-    --libdir=*)
-        libdir=`expr "$1" : '--[^=]*=\(.*\)'`;;
-
-    --mandir)
-        mandir=$2; shift;;
-    --mandir=*)
-        mandir=`expr "$1" : '--[^=]*=\(.*\)'`;;
-
-    --disable-opt)
-        with_opt=''
-        with_gtk_opt='';
-        shift;
-        continue;;
-
-    --disable-byte)
-        with_byte=''
-        with_gtk_byte='';
-        shift;
-        continue;;
-
-    --disable-gtk)
-        with_gtk_opt=''
-        with_gtk_byte='';
-        shift;
-        continue;;
-
-    --disable-sundials)
-        with_sundials=0;
-        shift;
-        continue;;
-
-    -h|--help)
-        cat <<-END_HELP_TEXT
-        'configure' configures $sysname $version to adapt to many kinds of systems.
-
-        Usage: $0 [OPTION]... [VAR=VALUE]...
-
-        To assign environment variables (e.g., CC, CFLAGS...), specify them as
-        VAR=VALUE.  See below for descriptions of some of the useful variables.
-
-        Defaults for the options are specified in brackets.
-
-        Configuration:
-          -h, --help              display this help and exit
-
-        Installation directories:
-          --prefix=PREFIX
-          --prefix PREFIX         install architecture-independent files in PREFIX
-                                  [$prefix]
-
-        By default, 'make install' will install all the files in
-        '/usr/local/bin', '/usr/local/lib' etc.  You can specify
-        an installation prefix other than '/usr/local' using '--prefix',
-        for instance '--prefix \$HOME'.
-
-        For better control, use the options below.
-
-        Fine tuning of the installation directories:
-          --bindir DIR           user executables [PREFIX/bin]
-          --libdir DIR           object code libraries [PREFIX/lib]
-          --mandir DIR           man documentation [PREFIX/share/man]
-
-        Optional Features:
-          --disable-opt           disable native library generation
-          --disable-byte          disable byte-code library generation
-          --disable-gtk           do not build gtk2-dependent features
-          --disable-sundials      do not build sundials-dependent features
-
-        Some influential environment variables:
-          OCAMLROOT     Path to ocaml installation (such that $OCAMLROOT/bin/ocamlc)
-          MENHIRLIB     Path to Menhir libraries (menhirLib.cmi, etc.)
-          SUNDIALSML    Path to the Ocaml/Sundials interface
-          GLMLITE       Path to the Ocaml glMLite library
-          GRAPHICS      Path to Graphics libraries
-
-        Use these variables to override the choices made by 'configure' or to help
-        it to find libraries and programs with nonstandard names/locations.
-
-        Report bugs to <$contact>.
-
-END_HELP_TEXT
-        exit 0
-        ;;
-    OCAMLROOT)
-        OCAMLROOT=$2
-        OCAMLBIN="${OCAMLROOT}bin/"; shift;;
-    MENHIRLIB)
-        MENHIRLIB=$2; shift;;
-    SUNDIALSML)
-        SUNDIALSML=$2; shift;;
-    GLMLITE)
-        GLMLITE=$2; shift;;
-    GRAPHICS)
-        GRAPHICS=$2; shift;;
-    MATLABROOT)
-        MATLABROOT=$2; shift;;
-    PTOLEMYROOT)
-        PTOLEMYROOT=$2; shift;;
-    *)
-        printf "illegal option \"$1\".\n" 1>&2; exit 2;;
-  esac
-  shift
-done
-
-targets="${with_byte} ${with_opt}"
-gtktargets="${with_gtk_byte} ${with_gtk_opt}"
-
-error=""
-
-# Check targets
-if [ "${targets}" = " " ]; then
-    error="${error}\n\tno targets specified"
-fi
-
-# Set an explicit Matlab path if necessary
-if [ -n "${MATLABROOT}" ]; then
-    matlab_bin="${MATLABROOT}bin/"
-else
-    matlab_bin=""
-fi
-
-# Set an explicit Ptolemy path if necessary
-if [ -n "${PTOLEMYROOT}" ]; then
-    ptolemy_bin="${PTOLEMYROOT}bin/"
-else
-    ptolemy_bin=""
-fi
-
-# Check for ocaml installation (and version)
-ocaml_path=`${OCAMLBIN}ocamlc -where`
-ocaml_version=`${OCAMLBIN}ocamlc -version`
-
-if [ $? -ne 0 ]; then
-    error="${error}\n\tcould not find ocamlc"
-    ocaml_path='NOT FOUND'
-    ocaml_version=''
-    ocaml_libpath=''
-else
-    case "${ocaml_version}" in
-        [0-2].*.* | 3.0* | 3.[2-9].* | 3.10.* | 3.11.*)
-            error="${error}\n\tocaml >= 3.12.0 required" ;;
-        *) ;;
-    esac
-
-    ocaml_libpath="${ocaml_path%/}/"
-    ocaml_version=" (${ocaml_version})"
-fi
-
-# Check for opam
-if command -v opam >/dev/null 2>&1; then
-    opam_libpath="$(opam config var lib)/"
-else
-    opam_libpath=''
-fi
-
-# Check for ocamlfind
-OCAMLFIND=`which ocamlfind`
-if [ -z "${OCAMLFIND}" ]; then
-    OCAMLFIND=${OCAMLBIN}ocamlfind
-fi
-
-# Check for gtk installation
-lablgtk2_path="${ocaml_libpath}lablgtk2"
-if [ "${gtktargets}" = " " ]; then
-    lablgtk2_path="not needed"
-    gtktargets=''
-else
-    if [ ! -x ${lablgtk2_path} ]; then
-        lablgtk2_path="${ocaml_libpath}site-lib/lablgtk2"
-        if [ ! -x ${lablgtk2_path} ]; then
-            lablgtk2_path="${opam_libpath}lablgtk2"
-            if [ ! -x ${lablgtk2_path} ]; then
-                lablgtk2_path='NOT FOUND (disabling gtk features)'
-                gtktargets=''
-            fi
-        fi
-    fi
-fi
-
-# Check for menhir installation
-menhirlib="${MENHIRLIB:-${ocaml_libpath}menhirLib}"
-if [ ${for_compile} -eq 1 ]; then
-    if [ ! -e "${menhirlib}/menhirLib.cmi" ]; then
-        menhirlib="${ocaml_libpath}site-lib/menhirLib"
-        if [ ! -e "${menhirlib}/menhirLib.cmi" ]; then
-            menhirlib="${opam_libpath}menhirLib"
-            if [ ! -e "${menhirlib}/menhirLib.cmi" ]; then
-                menhirlib='NOT FOUND'
-                error="${error}\n\tcould not find MenhirLib"
-            fi
-        fi
-    fi
-fi
-
-# Check for sundialsml installation
-sundialsml_path=${SUNDIALSML:-"${ocaml_libpath}sundialsml"}
-sundialsml_incl="-I ${SUNDIALSML:-"+sundialsml"}"
-
-if [ ${with_sundials} -eq 0 ]; then
-    sundialsml_path=''
-    sundialsml_incl=''
-    sundialsml_status='DISABLED (defaulting to ode45)'
-    default_solver='Odexx.Ode45'
-else
-    sundialsml_status=${sundialsml_path}
-    default_solver='Sundials_cvode'
-
-    if [ ! -r "${sundialsml_path%/}/sundials.cma" ]; then
-        sundialsml_path="${opam_libpath}sundialsml"
-        sundialsml_incl="-I ${sundialsml_path}"
-
-        if [ ! -r "${sundialsml_path%/}/sundials.cma" ]; then
-            sundialsml_path=''
-            sundialsml_incl=''
-            sundialsml_status='NOT FOUND (defaulting to ode45)'
-            default_solver='Odexx.Ode45'
-        fi
-    fi
-fi
-
-# Check for glMLite installation
-glmlite_path=${GLMLITE:-"${ocaml_libpath}glMLite"}
-glmlite_incl=${GLMLITE:-"+glMLite"}
-
-if [ ! -x ${glmlite_path} ]; then
-    glmlite_path=${GLMLITE:-"${opam_libpath}glMLite"}
-    glmlite_incl=${glmlite_path}
-    if [ ! -x ${glmlite_path} ]; then
-        glmlite_status='NOT FOUND (3D demos disabled)'
-        glmlite_enabled=0
-    fi
-fi
-
-# Check for graphics installation
-graphics="${GRAPHICS:-${ocaml_libpath}}"
-if [ ${for_compile} -eq 1 ]; then
-    if [ ! -e "${graphics}/graphics.cmi" ]; then
-        graphics="${GRAPHICS:-${ocaml_libpath}graphics}"
-        if [ ! -e "${graphics}/graphics.cmi" ]; then
-            graphics="${ocaml_libpath}site-lib/graphics"
-            if [ ! -e "${graphics}/graphics.cmi" ]; then
-                graphics="${opam_libpath}graphics"
-                if [ ! -e "${graphics}/graphics.cmi" ]; then
-                    graphics='NOT FOUND'
-                    error="${error}\n\tcould not find Graphics"
-                fi
-            fi
-        fi
-    fi
-fi
-
-if [ "${ocaml_path}" != "NOT_FOUND" ]; then
-
-    # TODO: change after patch integrated into glMLite
-    # "exit (if major >= 0 && minor >= 3 && patch > 50 then 100 else 200);;" \
-    printf "let major, minor, patch = GL.glmlite_version in \
-            exit (if major >= 0 && minor >= 3 && patch >= 50 then 100 \
-            else (if major + minor + patch = 0 then 110 else 200));;\n" \
-        | ${OCAMLBIN}ocaml -I ${glmlite_incl} GL.cma  >/dev/null 2>&1
-    GLMLV=$?
-
-    if [ $GLMLV -eq 100 ]; then
-        glmlite_status="${glmlite_path} (>= 0.3.51)"
-        glmlite_enabled=1
-    elif [ $GLMLV -eq 200 ]; then
-        glmlite_status="INCORRECT VERSION (must be >= 0.3.51, 3D demos disabled)"
-        glmlite_enabled=0
-    elif [ $GLMLV -eq 110 ]; then
-        glmlite_status="${glmlite_path} (SVN HEAD version)"
-        glmlite_enabled=1
-    else
-        glmlite_status="NOT WORKING (${glmlite_incl}; 3D demos disabled)"
-        glmlite_enabled=0
-    fi
-else
-    glmlite_status="${glmlite_path} (assuming version >= 0.3.51)"
-    glmlite_enabled=1
-fi
-
-printf "\nConfiguration\n-------------\n"                > config.log
-
-printf "\n"                                             >> config.log
-printf "  Ocaml\t\t\t${ocaml_path}${ocaml_version}\n"   >> config.log
-if [ ${for_compile} -eq 1 ]; then
-printf "  MenhirLib\t\t${menhirlib}\n"                  >> config.log
-fi
-printf "  Lablgtk2\t\t${lablgtk2_path}\n"               >> config.log
-printf "  SundialsML\t\t${sundialsml_status}\n"         >> config.log
-printf "  glMLite\t\t${glmlite_status}\n"               >> config.log
-printf "  Graphics\t\t${graphics}\n"               >> config.log
-printf "\n"                                             >> config.log
-printf "  targets:\t\t${targets} ${gtktargets}\n"       >> config.log
-printf "\n"                                             >> config.log
-printf "Installation paths\n"                           >> config.log
-printf "  prefix:\t\t${prefix}\n"                       >> config.log
-printf "  bindir:\t\t${bindir:-$prefix/bin}\n"          >> config.log
-printf "  libdir:\t\t${libdir:-$prefix/lib}\n"          >> config.log
-printf "  mandir:\t\t${mandir:-$prefix/share/man/}\n"   >> config.log
-printf "\n"                                             >> config.log
-
-if [ -n "${error}" ]; then
-    printf "Some errors occurred during configuration:${error}\n" >> config.log
-    printf "The 'config' file has not been written."              >> config.log
-    printf "\n"                                                   >> config.log
-    cat config.log
-    exit 1
-fi
-
-cat config.log
-
-(printf "# # # THIS FILE IS GENERATED AUTOMATICALLY BY CONFIGURE # # #\n"; \
- sed -e "s#@prefix@#${prefix}#;
-         s#@bindir@#${bindir:-$prefix/bin}#;
-         s#@libdir@#${libdir:-$prefix/lib}#;
-         s#@mandir@#${mandir:-$prefix/share/man/}#;
-         s#@targets@#${targets}#;
-         s#@gtktargets@#${gtktargets}#;
-         s#@for_compile@#${for_compile}#;
-         s#@VERSION@#${version}#;
-         s#@DEFAULT_SOLVER@#${default_solver}#;
-         s#@SUNDIALSML_INCL@#${sundialsml_incl}#;
-         s#@LABLGTK2_PATH@#${lablgtk2_path}#;
-         s#@MENHIRLIB@#${menhirlib}#;
-         s#@GLMLITE_INCL@#${glmlite_incl}#;
-         s#@GLMLITE_ENABLED@#${glmlite_enabled}#;
-         s#@GRAPHICS@#${graphics}#;
-         s#@MATLAB@#${matlab_bin}matlab#;
-         s#@PTOLEMY@#${ptolemy_bin}ptolemy#;
-         s#@OCAMLFIND@#${OCAMLFIND}#;
-         s#@OCAMLBIN@#${OCAMLBIN}#;
-         s#@OCAMLROOT@#${OCAMLROOT}#;" config.in) > config
-
-mkdir -p bin
-if [ ${for_compile} -eq 1 ]; then
-cat > bin/zeluc <<ENDOFFILE
-#!/bin/sh
-ZLLIB=`pwd`/lib
-export ZLLIB
-exec ${OCAMLBIN}ocamlrun `pwd`/compiler/zeluc.byte \$@
-ENDOFFILE
-else
-cat > bin/zeluc <<ENDOFFILE
-#!/bin/sh
-ZLLIB=${libdir:-$prefix/lib}/zelus
-export ZLLIB
-exec ${OCAMLBIN}ocamlrun ${bindir:-$prefix/bin}/zeluc.byte \$@
-ENDOFFILE
-fi
-chmod a+x bin/zeluc
-
-if [ -n "${sundialsml_incl}" ]; then
-    META_SUNDIALS="sundialsml"
-else
-    META_SUNDIALS=
-fi
-cat > META <<ENDOFFILE
-directory = "${libdir:-$prefix/lib}/zelus"
-version = "${version}"
-description = "A synchronous language with ODEs"
-requires = "bigarray ${META_SUNDIALS}"
-archive(byte) = "zllib.cma"
-archive(native) = "zllib.cmxa"
-package "gtk" (
-    version = "${version}"
-    description = "A synchronous language with ODEs (with gtk)"
-    requires = "bigarray ${META_SUNDIALS} lablgtk2"
-    archive(byte) = "zllibgtk.cma"
-    archive(native) = "zllibgtk.cmxa"
-)
-ENDOFFILE
+let () =
+  let options =
+    [
+      "--prefix", Arg.Set_string prefix, " Installation prefix";
+    ]
+    @ List.map
+        (fun (s, r) -> "--enable-" ^ s, Arg.Set r, " Enable " ^ s)
+        features
+    @ List.map
+        (fun (s, r) -> "--disable-" ^ s, Arg.Clear r, " Disable " ^ s)
+        features
+  in
+  Arg.parse
+    options
+    (fun cmd ->
+      Printf.eprintf "Don't know what to do with \"%s\".\n" cmd;
+      exit 1)
+    "Usage: ./configure [OPTIONS]";
+  (* Generate configuration module. *)
+  let default_solver =
+    if feature_enabled "sundials" then "Sundials_cvode" else "Odexx.Ode45"
+  in
+  let statements =
+    let dquote s = "\"" ^ s ^ "\"" in
+    [
+      "version", "\"2.1\"";
+      "subversion", "\"-dev\"";
+      "stdlib", dquote @@ get_stdlib_prefix ();
+      "date", dquote @@ get_current_date ();
+      "default_solver", dquote default_solver;
+    ]
+    @ List.map (fun (n, r) -> n, string_of_bool !r) features
+  in
+  let oc = open_out_bin "config.ml" in
+  List.iter
+    (fun (x, s) -> Printf.fprintf oc {|let %s = %s
+|} x s)
+    statements;
+  close_out oc;
+  (* Generate lib/Defaultsolver.ml *)
+  let oc = open_out_bin (Filename.concat "lib/std" "defaultsolver.ml") in
+  Printf.fprintf oc {|include %s|} default_solver;
+  close_out oc
