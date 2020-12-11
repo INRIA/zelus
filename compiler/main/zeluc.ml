@@ -87,9 +87,6 @@ let set_vverbose () =
   vverbose := true;
   set_verbose ()
 
-let set_no_zlstdlib () =
-  no_zlstdlib := true
-
 let main () =
   try
     Arg.parse
@@ -105,7 +102,6 @@ let main () =
           "-where", Arg.Unit locate_stdlib, doc_locate_stdlib;
           "-stdlib", Arg.String set_stdlib, doc_stdlib;
           "-nostdlib", Arg.Unit set_no_stdlib, doc_no_stdlib;
-          "-nozlstdlib", Arg.Unit set_no_zlstdlib, doc_no_zlstdlib;
           "-typeonly", Arg.Set typeonly, doc_typeonly;
           "-s", Arg.String set_simulation_node, doc_simulation;
           "-sampling", Arg.Float set_sampling_period, doc_sampling;
