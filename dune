@@ -1,1 +1,7 @@
 (env (dev (flags (:standard -w -a))))
+(dirs :standard \ examples)
+
+(rule
+ (targets config.ml)
+ (deps (:conf configure))
+ (action  (run ocaml %{conf})))
