@@ -56,10 +56,6 @@ let show_version () =
   Printf.printf "The %s compiler, version %s (%s)\n"
     version subversion date;
   Printf.printf "Std lib: "; locate_stdlib ();
-  Printf.printf "Features:";
-  show_bool "sundials" sundials;
-  show_bool "gtk" gtk;
-  show_bool "glmlite" glmlite;
   Printf.printf "\n";
   ()
 
