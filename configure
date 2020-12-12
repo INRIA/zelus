@@ -105,6 +105,7 @@ while : ; do
         Some influential environment variables:
           OCAMLROOT     Path to ocaml installation (such that $OCAMLROOT/bin/ocamlc)
           MENHIRLIB     Path to Menhir libraries (menhirLib.cmi, etc.)
+          MUFLIB        Path to muF compiler libraries (muf-compiler-libs.cma)
           SUNDIALSML    Path to the Ocaml/Sundials interface
           GLMLITE       Path to the Ocaml glMLite library
           GRAPHICS      Path to Graphics libraries
@@ -122,6 +123,8 @@ END_HELP_TEXT
         OCAMLBIN="${OCAMLROOT}bin/"; shift;;
     MENHIRLIB)
         MENHIRLIB=$2; shift;;
+    MUFLIB)
+        MUFLIB=$2; shift;;
     SUNDIALSML)
         SUNDIALSML=$2; shift;;
     GLMLITE)
@@ -228,6 +231,22 @@ if [ ${for_compile} -eq 1 ]; then
     fi
 fi
 
+# Check for muf installation
+muflib="${MUFLIB:-${ocaml_libpath}muf-compiler-libs}"
+if [ ${for_compile} -eq 1 ]; then
+    if [ ! -e "${muflib}/muf_compiler_libs.cma" ]; then
+        muflib="${ocaml_libpath}site-lib/muf-compiler-libs"
+        if [ ! -e "${muflib}/muf_compiler_libs.cma" ]; then
+            muflib="${opam_libpath}muf-compiler-libs"
+            if [ ! -e "${muflib}/muf_compiler_libs.cma" ]; then
+                muflib='NOT FOUND'
+                error="${error}\n\tcould not find muf-compiler-libs"
+            fi
+        fi
+    fi
+fi
+
+
 # Check for sundialsml installation
 sundialsml_path=${SUNDIALSML:-"${ocaml_libpath}sundialsml"}
 sundialsml_incl="-I ${SUNDIALSML:-"+sundialsml"}"
@@ -319,6 +338,7 @@ printf "\n"                                             >> config.log
 printf "  Ocaml\t\t\t${ocaml_path}${ocaml_version}\n"   >> config.log
 if [ ${for_compile} -eq 1 ]; then
 printf "  MenhirLib\t\t${menhirlib}\n"                  >> config.log
+printf "  muf-compiler-libs\t${muflib}\n"               >> config.log
 fi
 printf "  Lablgtk2\t\t${lablgtk2_path}\n"               >> config.log
 printf "  SundialsML\t\t${sundialsml_status}\n"         >> config.log
@@ -357,6 +377,7 @@ cat config.log
          s#@SUNDIALSML_INCL@#${sundialsml_incl}#;
          s#@LABLGTK2_PATH@#${lablgtk2_path}#;
          s#@MENHIRLIB@#${menhirlib}#;
+         s#@MUFLIB@#${muflib}#;
          s#@GLMLITE_INCL@#${glmlite_incl}#;
          s#@GLMLITE_ENABLED@#${glmlite_enabled}#;
          s#@GRAPHICS@#${graphics}#;

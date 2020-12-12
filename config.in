@@ -49,6 +49,8 @@ LABLGTK2 = -I @LABLGTK2_PATH@
 MENHIRLIB = @MENHIRLIB@
 MENHIRFLAGS = --table
 
+MUFLIB = @MUFLIB@
+
 MATLAB = @MATLAB@
 MATLABFLAGS = -nodesktop -nosplash
 
@@ -60,7 +62,7 @@ SOLVER = @DEFAULT_SOLVER@
 SUNDIALS=@SUNDIALSML_INCL@
 ifneq ($(SUNDIALS),)
 SUNDIALS_CVODE = sundials.cma
-OPTIONAL_SOLVER_OBJS = solvers/sundials_cvode.cmo solvers/sundials_cvodes.cmo node.cmo nodes.cmo
+OPTIONAL_SOLVER_OBJS = solvers/sundials_cvode.cmo node.cmo
 DISTOPTION = -sundials
 else
 DISTOPTION = -nosundials

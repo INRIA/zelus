@@ -18,7 +18,7 @@ GENSOURCES = parsing/parser.ml parsing/parser.mli parsing/lexer.ml
 
 INCLUDES += $(DIRECTORIES:%=-I %)
 
-LOCATION = global/location.cmo	
+LOCATION = global/location.cmo
 
 PARSING = parsing/parsetree.cmo \
 	parsing/parser.cmo \
@@ -95,7 +95,8 @@ GENCODE = gencode/sol.cmo \
 	  gencode/oprinter.cmo \
 	  gencode/ocamlprinter.cmo \
 	  gencode/translate.cmo \
-	  gencode/inout.cmo	  
+	  gencode/inout.cmo \
+	  gencode/to_muf.cmo
 
 VERIF = verif/lmm.cmo \
 	verif/plmm.cmo \
@@ -119,11 +120,13 @@ byte: $(BIN).byte
 
 $(BIN).opt: $(GENSOURCES) $(OBJ:%.cmo=%.cmx) main/main.cmx
 	$(OCAMLOPT) $(UNIXX) $(OCAMLOPTFLAGS) $(INCLUDES) \
+	-I $(MUFLIB) muf_compiler_libs.cmxa \
 	-I $(MENHIRLIB) menhirLib.cmxa $(OBJ:%.cmo=%.cmx) main/main.cmx \
 	-o $(BIN).opt
 
 $(BIN).byte: $(GENSOURCES) $(OBJ) main/main.cmo
 	$(OCAMLC) $(UNIX) $(OCAMLFLAGS) $(INCLUDES) \
+	-I $(MUFLIB) muf_compiler_libs.cma \
         -I $(MENHIRLIB) menhirLib.cma $(OBJ) main/main.cmo \
 	-o $(BIN).byte
 
@@ -131,7 +134,8 @@ debug: OCAMLFLAGS += -g
 debug: byte debugprinter.cma
 
 debugprinter.cma: $(OBJ)
-	$(OCAMLC) -a -o $@ -I $(MENHIRLIB) menhirLib.cma $^
+	$(OCAMLC) -a -o $@ -I $(MUFLIB) muf_compiler_libs.cma \
+		-I $(MENHIRLIB) menhirLib.cma $^
 
 # Extra dependences
 
@@ -153,6 +157,10 @@ global/misc.cmx global/misc.cmi: OCAMLOPTFLAGS := \
 parsing/parser.cmo parsing/parser.cmi: INCLUDES := -I $(MENHIRLIB) $(INCLUDES)
 
 parsing/parser.cmx parsing/parser.cmi: INCLUDES := -I $(MENHIRLIB) $(INCLUDES)
+
+gencode/to_muf.cmo gencode/to_muf.cmi: INCLUDES := -I $(MUFLIB) $(INCLUDES)
+
+gencode/to_muf.cmx gencode/to_muf.cmi: INCLUDES := -I $(MUFLIB) $(INCLUDES)
 
 .PHONY: tags
 tags:
