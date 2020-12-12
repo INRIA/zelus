@@ -2,8 +2,8 @@
 
 #load "unix.cma"
 
-let version = "2.1"
-let subversion = "dev"
+let version = "%%NAME%%"
+let subversion = "%%VERSION%%"
 
 let prefix = ref "/usr/local" 
 
