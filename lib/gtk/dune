@@ -18,7 +18,8 @@
  (public_name zelus-gtk)
  (optional)
  (libraries zelus lablgtk2)
- (modules input scope gtkplot))
+ (wrapped false)
+ (modules input scope gtkplot zlsrungtk))
 
 (install
  (package zelus-gtk)
