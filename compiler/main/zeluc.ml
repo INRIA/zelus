@@ -47,6 +47,7 @@ and doc_include = "<dir> \t Add <dir> to the list of include directories"
 and doc_stdlib = "<dir> \t Directory for the standard library"
 and doc_locate_stdlib = "\t  Locate standard libray"
 and doc_no_stdlib = "\t  Do not load the stdlib module"
+and doc_no_zlstdlib = "\t  Do not load the zlstdlib module"
 and doc_typeonly = "\t  Stop after typing"
 and doc_hybrid = "\t  Select hybrid translation"
 and doc_simulation =

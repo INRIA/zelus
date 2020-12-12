@@ -1,0 +1,18 @@
+(copy_files# ../config.ml)
+(include_subdirs unqualified)
+
+(subdir parsing
+  (ocamllex lexer))
+
+(subdir parsing
+  (menhir (modules parser) (infer true) (flags --explain --table)))
+
+(executable
+  (name zeluc)
+  (libraries unix menhirLib)
+  (promote (until-clean)))
+
+(install
+ (package zelus)
+ (section bin)
+ (files (zeluc.exe as zeluc)))
