@@ -1,0 +1,9 @@
+(rule
+ (targets lzc.ml lzc_main.ml)
+ (deps (:zl lzc.zls))
+ (action (run zeluc -gtk2 -s main -sampling 0 -o lzc_main %{zl})))
+
+(executable
+  (name lzc_main)
+  (libraries zelus zelus-gtk)
+  (promote (until-clean)))

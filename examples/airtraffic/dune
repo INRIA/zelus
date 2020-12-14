@@ -6,7 +6,7 @@
 (rule
  (targets airtraffic.ml airtraffic_main.ml)
  (deps (:zl airtraffic.zls) airtrafficgui.zci)
- (action (bash "zeluc -I `zeluc -where`-gtk -gtk2 -s main -o airtraffic_main %{zl}")))
+ (action (run zeluc -gtk2 -s main -o airtraffic_main %{zl})))
 
 (executable
   (name airtraffic_main)
