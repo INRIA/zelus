@@ -102,5 +102,5 @@
 (install
  (package zelus)
  (section share)
- (files stdlib.zci char.zci complex.zci int32.zci nativeint.zci int64.zci
-        random.zci string.zci graphics.zci basics.zci node.zci run.zci))
+ (files stdlib.zci char.zci complex.zci int32.zci int64.zci nativeint.zci
+        random.zci string.zci graphics.zci basics.zci node.zci run.zci list.zci))
