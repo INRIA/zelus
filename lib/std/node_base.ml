@@ -301,10 +301,10 @@ struct
     Node { alloc = alloc; step = step; reset = reset }
 end
 
-module SundialsSolver = Make (Sundials_cvode) (Illinois)
-module Ode23Solver = Make (Odexx.Ode23) (Illinois)
-module Ode45Solver = Make (Odexx.Ode45) (Illinois)
+module Ode23Solver = Make (Solvers.Ode23) (Illinois)
+module Ode45Solver = Make (Solvers.Ode45) (Illinois)
+(* module SundialsSolver = Make (Solvers.Sundials_cvode) (Illinois) *)
 
-let solve = SundialsSolver.solve
 let solve_ode23 = Ode23Solver.solve
 let solve_ode45 = Ode45Solver.solve
+(* let solve = SundialsSolver.solve *)

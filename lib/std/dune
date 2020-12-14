@@ -1,4 +1,5 @@
-(include_subdirs unqualified)
+; (include_subdirs unqualified)
+(copy_files# solvers/*.{ml,mli})
 
 (rule
  (target stdlib.zci)
@@ -88,6 +89,9 @@
 (library
  (name zlstdlib)
  (libraries
+  (select solvers.ml from
+   (sundialsml -> solvers.sundials.ml)
+   ( -> solvers.nosundials.ml))
   (select node.ml from
    (sundialsml -> node.sundials.ml)
    ( -> node.nosundials.ml))
@@ -96,8 +100,8 @@
    ( -> defaultsolver.nosundials.ml)))
  (public_name zelus)
  (wrapped false)
- (modules ztypes zls basics zlsolve lift dump illinois odexx defaultsolver
-         zlsrun obs gen vbool run node))
+ (modules ztypes zls basics zlsolve lift dump solvers illinois odexx solvers defaultsolver
+         zlsrun obs gen vbool run node_base node))
 
 (install
  (package zelus)
