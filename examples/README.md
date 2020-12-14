@@ -14,7 +14,7 @@
 - [ ] beginner
 - [ ] billiard
 - [ ] boids
-- [ ] bouncingball
+- [x] bouncingball
 - [ ] boxes
 - [ ] cantharide
 - [ ] clutch_engagement
@@ -47,8 +47,7 @@
 - [ ] stickysprings
 - [ ] suspension
 - [ ] timing_test
-- [ ] todo
-- [ ] van_der_pol
+- [x] van_der_pol
 - [x] vbool: Internal error (Aform: should be a name) new_c_47 in input.zls l35
 - [x] watch
 - [x] zener_diode

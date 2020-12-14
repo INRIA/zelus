@@ -1,7 +1,6 @@
 include Odexx
 
 module Sundials_cvode = struct
-  (* include Zls.STATE_SOLVER *)
 
   type t = Nvector_serial.kind Cvode.serial_session
 
@@ -31,7 +30,6 @@ module Sundials_cvode = struct
 end
 
 module Sundials_cvodes = struct
-  (* include Zls.STATE_SOLVER_SENS *)
   
   module Sens = Cvodes.Sensitivity
   module RealArray = Sundials.RealArray
