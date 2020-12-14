@@ -21,7 +21,8 @@ EXAMPLE=count.zls \
 	input_window.zls \
 	euler_forward_error.zls \
 	instable.zls \
-	ode_non_lipshitz.zls
+	ode_non_lipshitz.zls \
+	integrales_compliquees.zls
 
 default: $(word 1, $(targets))
 all:  $(targets)

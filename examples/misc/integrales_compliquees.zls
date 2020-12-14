@@ -25,7 +25,7 @@ let hybrid upto(f)(max)(t) = o where
       | Int -> do o = run f t until up(t -. max) then Stop
       | Stop -> do done
 
-let hybrid main(f)(max)() =
+let hybrid main_f(f)(max)() =
   let der t = 1.0 init 0.0 in
   let o = upto(f)(max)(t) in
   present (period (0.0 | 0.1)) ->
@@ -35,10 +35,11 @@ let hybrid main(f)(max)() =
   else ()  
 
 (* main1 integre f1 entre t = 0 et 1.0 *)
-let hybrid main1() = main(f1)(1.0)() (* 11.14835 *)
-let hybrid main1_1() = main(f1_with_abs_detection)(1.0)() (* 11.14858 *)
+let hybrid main1() = main_f(f1)(1.0)() (* 11.14835 *)
+let hybrid main1_1() = main_f(f1_with_abs_detection)(1.0)() (* 11.14858 *)
 
 (* la reponse attendue pour o, a t = 8.0 est approximativement 0.3474 *)
 (* Sundials s'en tire pas mal ! *)
-let hybrid main2() = main(f2)(8.0)()
+let hybrid main2() = main_f(f2)(8.0)()
 
+let hybrid main () = main1 ()
