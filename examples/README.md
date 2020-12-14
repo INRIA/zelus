@@ -13,7 +13,7 @@
 - [ ] bangbang
 - [ ] beginner
 - [ ] billiard
-- [ ] boids
+- [x] boids: Syntax error. line 89, characters 5-7
 - [x] bouncingball
 - [ ] boxes
 - [ ] cantharide
