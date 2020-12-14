@@ -1,0 +1,19 @@
+(rule
+ (target zlutils.zci)
+ (deps (:zli zlutils.zli))
+ (action (run zeluc %{zli})))
+
+(rule 
+ (target input.zci)
+ (deps (:zls input.zls) zlutils.zci)
+ (action (run zeluc -gtk2 %{zls})))
+
+(rule
+ (targets advanced_heater.ml advanced_heater_main.ml)
+ (deps (:zl advanced_heater.zls) input.zci zlutils.zci)
+ (action (run zeluc -gtk2 -s main -o advanced_heater_main %{zl})))
+
+(executable
+  (name advanced_heater_main)
+  (libraries zelus zelus-gtk)
+  (promote (until-clean)))
