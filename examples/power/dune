@@ -1,0 +1,14 @@
+(rule
+ (targets power.ml power_main.ml)
+ (deps (:zl power.zls))
+ (action (run zeluc -gtk2 -s main -o power_main %{zl})))
+
+(rule
+ (targets powerV1.ml powerV1_main.ml)
+ (deps (:zl powerV1.zls))
+ (action (run zeluc -gtk2 -s main -o powerV1_main %{zl})))
+
+(executables
+  (names power_main powerV1_main)
+  (libraries lablgtk2 zelus zelus-gtk)
+  (promote (until-clean)))

@@ -1,0 +1,14 @@
+(rule
+ (targets misc.zci)
+ (deps (:zli misc.zli))
+ (action (run zeluc %{zli})))
+
+(rule
+ (targets ltta.ml ltta_main.ml)
+ (deps (:zl ltta.zls) misc.zci)
+ (action (run zeluc -sampling 0 -s main -o ltta_main %{zl})))
+
+(executable
+  (name ltta_main)
+  (libraries zelus)
+  (promote (until-clean)))

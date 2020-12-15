@@ -1,9 +1,5 @@
 # Dunify Examples
 
-- [] coucou
-
-
-
 - [x] airtraffic: Error black screen 
 - [x] backhoe
 - [x] ball_spring: Internal error (Aform: should be a name) pos_68
@@ -21,24 +17,24 @@
 - [x] engine
 - [ ] fuelcontroller
 - [ ] heater
-- [ ] higher_order
+- [x] higher_order
 - [x] horloge
 - [ ] lane_change_maneuver
-- [ ] ltta
+- [x] ltta
 - [ ] misc
-- [ ] pendulum
-- [ ] pi_calculator
-- [ ] pong
-- [ ] power
-- [ ] push_pull_streams
-- [ ] qss
-- [ ] rosace
+- [x] pendulum: Type Error line 13, characters 63-67: This expression has type unit -> unit but an expression was expected of type int -> unit 
+- [x] pi_calculator
+- [x] pong
+- [x] power
+- [x] push_pull_streams
+- [x] qss: Causality error File "qss2.zls", line 89, characters 56-64
+- [x] rosace: Nothing to do, only scade code
 - [ ] soas_relaycontrol
-- [ ] stick_slip
-- [ ] stick_slip_friction
+- [x] stick_slip
+- [x] stick_slip_friction
 - [ ] stickysprings
-- [ ] suspension
-- [ ] timing_test
+- [x] suspension
+- [x] timing_test
 - [x] van_der_pol
 - [x] watch
 - [x] zener_diode

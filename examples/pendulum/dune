@@ -1,0 +1,24 @@
+(rule
+ (target aux.zci)
+ (deps (:zli aux.zli))
+ (action (run zeluc %{zli})))
+
+(rule
+ (targets misc.ml misc.zci)
+ (deps (:zls misc.zls))
+ (action (run zeluc %{zls})))
+
+(rule
+ (targets data.ml data.zci)
+ (deps (:zls data.zls))
+ (action (run zeluc %{zls})))
+
+(rule
+ (targets pendulum.ml pendulum_main.ml)
+ (deps (:zl pendulum.zls))
+ (action (run zeluc -sampling 0.01 -s manual -o pendulum_main %{zl})))
+
+(executable
+  (name pendulum_main)
+  (libraries graphics zelus)
+  (promote (until-clean)))
