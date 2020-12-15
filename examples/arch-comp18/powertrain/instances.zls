@@ -1,6 +1,0 @@
-hybrid instance_dtn01 () = Spec.main_2 Spec.dtn01 ()
-hybrid instance_dtn02 () = Spec.main_2 Spec.dtn02 ()
-hybrid instance_dtn03 () = Spec.main_2 Spec.dtn03 ()
-hybrid instance_dtn04 () = Spec.main_22 Spec.dtn04 ()
-hybrid instance_dtn05 () = Spec.main_22 Spec.dtn05 ()
-hybrid instance_dtn06 () = Spec.main_22 Spec.dtn06 ()

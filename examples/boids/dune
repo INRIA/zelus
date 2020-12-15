@@ -1,9 +1,0 @@
-(rule
- (targets boids.ml boids_main.ml)
- (deps (:zl boids.zls))
- (action (run zeluc -s main -o boids_main %{zl})))
-
-(executable
- (name boids_main)
- (libraries zelus)
- (promote (until-clean)))
