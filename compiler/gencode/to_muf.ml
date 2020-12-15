@@ -1,24 +1,21 @@
-open Location
-open Ident
 open Obc
 open Muf_compiler_libs.Ast
 
 exception Not_yet_implemented of string
 
+module SSet = Set.Make(String)
+
 let not_yet_implemented msg =
   raise (Not_yet_implemented msg)
 
-let immediate c =
-  begin match c with
-  | Oint i -> Cint i
-  | Oint32 i -> Cint 32
-  | Ofloat f -> Cfloat (string_of_float f)
-  | Obool b -> Cbool b
-  | Ostring s -> Cstring s
-  | Ochar c -> Cchar c
-  | Ovoid -> Cunit
-  | Oany -> Cany
-  end
+let mk_patt p =
+  { patt = p; pmeta = (); }
+
+let mk_expr e =
+  { expr = e; emeta = (); }
+
+let mk_decl d =
+  { decl = d }
 
 let ident_name n = Ident.name n
 let ident n = { name = ident_name n }
@@ -30,8 +27,97 @@ let lident_name n =
 
 let lident n = { name = lident_name n }
 
+let eunit = mk_expr (Econst Cunit)
+let eany = mk_expr (Econst Cany)
+
+let self = { name = "self" }
+let self_patt = mk_patt (Pid { name = "self" })
+let self_expr = mk_expr (Evar { name = "self" })
+
+let rec fv_patt patt =
+  begin match patt.patt with
+  | Pid x -> SSet.singleton x.name
+  | Ptuple l ->
+      List.fold_left (fun acc p -> SSet.union (fv_patt p) acc) SSet.empty l
+  | Pany -> SSet.empty
+  end
+
+let rec fv_expr expr =
+  begin match expr.expr with
+  | Econst _ -> SSet.empty
+  | Evar x -> SSet.singleton x.name
+  | Etuple l ->
+      List.fold_left (fun acc e -> SSet.union (fv_expr e) acc) SSet.empty l
+  | Erecord (l, oe) ->
+      List.fold_left
+        (fun acc (_, e) -> SSet.union (fv_expr e) acc)
+        (Option.fold ~none:SSet.empty ~some:fv_expr oe) l
+  | Efield (e, _) -> fv_expr e
+  | Eapp (e1, e2) -> SSet.union (fv_expr e1) (fv_expr e2)
+  | Eif (e, e1, e2) ->
+      SSet.union (fv_expr e) (SSet.union (fv_expr e1) (fv_expr e2))
+  | Elet (p, e1, e2) ->
+      SSet.union (fv_expr e1) (SSet.diff (fv_expr e2) (fv_patt p))
+  | Esequence (e1, e2) -> SSet.union (fv_expr e1) (fv_expr e2)
+  | Esample e -> fv_expr e
+  | Eobserve (e1, e2) -> SSet.union (fv_expr e1) (fv_expr e2)
+  | Einfer ((p, body), e) ->
+      SSet.union (SSet.diff (fv_expr body) (fv_patt p)) (fv_expr e)
+  end
+
+
+let rec var_of_left_value v =
+  begin match v with
+  | Oleft_name x -> ident_name x
+  | Oleft_record_access (v, _) -> var_of_left_value v
+  | Oleft_index (v, _) -> var_of_left_value v
+  end
+
+let rec var_of_left_state_value left =
+  begin match left with
+  | Oself -> self.name
+  | Oleft_instance_name(_n) -> self.name
+  | Oleft_state_global(ln) -> lident_name ln
+  | Oleft_state_name(_n) -> self.name
+  | Oleft_state_record_access(left, _n) -> var_of_left_state_value left
+  | Oleft_state_index(left, _idx) -> var_of_left_state_value left
+  | Oleft_state_primitive_access(left, _a) -> var_of_left_state_value left
+  end
+
+let rec fv_updated i =
+  begin match i with
+  | Olet(_p, _e, i) -> fv_updated i
+  | Oletvar(x, _is_mutable, _ty, _e_opt, i) ->
+      SSet.remove (ident_name x) (fv_updated i)
+  | Omatch(_e, _match_handler_l) -> not_yet_implemented "fv(match)"
+  | Ofor(_is_to, _n, _e1, _e2, i3) -> fv_updated i3
+  | Owhile(_e1, i2) -> fv_updated i2
+  | Oassign(x, _e) -> SSet.singleton (var_of_left_value x)
+  | Oassign_state(left, _e) -> SSet.singleton (var_of_left_state_value left)
+  | Osequence l ->
+      List.fold_left (fun acc i -> SSet.union (fv_updated i) acc) SSet.empty l
+  | Oexp(_e) -> SSet.empty
+  | Oif(_e, i1, None) -> fv_updated i1
+  | Oif(_e, i1, Some i2) -> SSet.union (fv_updated i1) (fv_updated i2)
+  end
+
+
+(* Compilation functions *)
+
+let immediate c =
+  begin match c with
+  | Oint i -> Cint i
+  | Oint32 i -> Cint32 (Int32.of_int i)
+  | Ofloat f -> Cfloat (string_of_float f)
+  | Obool b -> Cbool b
+  | Ostring s -> Cstring s
+  | Ochar c -> Cchar c
+  | Ovoid -> Cunit
+  | Oany -> Cany
+  end
+
 let rec pattern patt =
-  { patt = pattern_desc patt; pmeta = ()}
+  mk_patt (pattern_desc patt)
 
 and pattern_desc pat =
   begin match pat with
@@ -48,58 +134,67 @@ and pattern_desc pat =
   end
 
 let rec expression e =
-  { expr = expression_desc e; emeta = (); }
+  mk_expr (expression_desc e)
 
 and expression_desc e =
   begin match e with
   | Oconst c -> Econst (immediate c)
   | Oconstr0(lname) -> Econst (immediate (Ostring (lident_name lname)))
-  | Oconstr1(lname, e_list) ->
+  | Oconstr1(lname, _e_list) ->
       not_yet_implemented ("expression: constr1("^(lident_name lname)^")")
   | Oglobal(ln) -> Evar (lident ln)
   | Olocal(n) -> Evar (ident n)
   | Ovar(_is_mutable, n) -> Evar (ident n)
   | Ostate(l) -> left_state_value l
-  | Oaccess(e, eidx) -> not_yet_implemented "expression: access"
-  | Ovec(e, se) -> not_yet_implemented "expression: vec"
-  | Oupdate(se, e1, i, e2) -> not_yet_implemented "expression: update"
-  | Oslice(e, s1, s2) -> not_yet_implemented "expression: slice"
-  | Oconcat(e1, s1, e2, s2) -> not_yet_implemented "expression: concat"
+  | Oaccess(_e, _eidx) -> not_yet_implemented "expression: access"
+  | Ovec(_e, _se) -> not_yet_implemented "expression: vec"
+  | Oupdate(_se, _e1, _i, _e2) -> not_yet_implemented "expression: update"
+  | Oslice(_e, _s1, _s2) -> not_yet_implemented "expression: slice"
+  | Oconcat(_e1, _s1, _e2, _s2) -> not_yet_implemented "expression: concat"
   | Otuple(e_list) -> Etuple (List.map expression e_list)
   | Oapp(e, e_list) ->
       let args =
         match List.map expression e_list with
-        | [] -> { expr = Etuple []; emeta = (); }
+        | [] -> mk_expr (Etuple [])
         | [e] -> e
-        | args -> { expr = Etuple args; emeta = () }
+        | args -> mk_expr (Etuple args)
       in
       Eapp (expression e, args)
   | Omethodcall m -> method_call m
   | Orecord(r) ->
-      Erecord (List.map (fun (x, e) -> ((lident_name x), expression e)) r)
+      Erecord (List.map (fun (x, e) -> ((lident_name x), expression e)) r, None)
+  | Orecord_with(e_record, r) ->
+      Erecord (List.map (fun (x, e) -> ((lident_name x), expression e)) r,
+               Some (expression e_record))
   | Orecord_access(e_record, lname) ->
       Efield (expression e_record, lident_name lname)
-  | Orecord_with(e_record, r) -> not_yet_implemented "expression: record_with"
-  | Otypeconstraint(e, ty_e) ->
-      not_yet_implemented "expression: type constraint"
+  | Otypeconstraint(e, _ty_e) ->
+      (expression e).expr
   | Oifthenelse(e, e1, e2) ->
       Eif (expression e, expression e1, expression e2)
-  | Oinst(i) -> (* inst i *) assert false (* XXX TODO XXX *)
+  | Oinst(i) -> (instruction i).expr
+  end
+
+and left_value left =
+  begin match left with
+  | Oleft_name x -> Evar (ident x)
+  | Oleft_record_access (left, x) ->
+      Efield(mk_expr (left_value left), lident_name x)
+  | Oleft_index (_, _) -> not_yet_implemented "left_index update"
   end
 
 and left_state_value left =
-  assert false (* XXX TODO XXX *)
-  (* match left with *)
-  (* | Oself -> fprintf ff "self." *)
-  (* | Oleft_instance_name(n) -> fprintf ff "self.%a" name n *)
-  (* | Oleft_state_global(ln) -> longname ff ln *)
-  (* | Oleft_state_name(n) -> fprintf ff "self.%a" name n *)
-  (* | Oleft_state_record_access(left, n) -> *)
-  (*    fprintf ff "@[%a.%a@]" left_state_value left longname n *)
-  (* | Oleft_state_index(left, idx) -> *)
-  (*    fprintf ff "@[%a.(%a)@]" left_state_value left (exp 0) idx *)
-  (* | Oleft_state_primitive_access(left, a) -> *)
-  (*    fprintf ff "@[%a.%a@]" left_state_value left access a *)
+  match left with
+  | Oself -> Evar self
+  | Oleft_instance_name(n) -> Efield (self_expr, ident_name n)
+  | Oleft_state_global(ln) -> Evar (lident ln)
+  | Oleft_state_name(n) -> Efield (self_expr, ident_name n)
+  | Oleft_state_record_access(left, n) ->
+      Efield (mk_expr (left_state_value left), lident_name n)
+  | Oleft_state_index(_left, _idx) ->
+      not_yet_implemented "left_state_index"
+  | Oleft_state_primitive_access(_left, _a) ->
+      not_yet_implemented "primitive_access"
 
 and method_call m =
   let method_name =
@@ -115,42 +210,187 @@ and method_call m =
   let inputs = List.map expression m.met_args in
   let args =
     match static_args @ inputs with
-    | [] -> { expr = Etuple []; emeta = (); }
+    | [] -> mk_expr (Etuple [])
     | [e] -> e
-    | args -> { expr = Etuple args; emeta = (); }
+    | args -> mk_expr (Etuple args)
   in
-  Eapp ({ expr = Evar method_name; emeta = (); }, args)
+  Eapp (mk_expr (Evar method_name), args)
 
-and inst updated updated i k =
-  { expr = inst_desc updated i k; emeta = (); }
 
-and inst_desc updated i k =
-  assert false (* XXX TODO XXX *)
- (*  begin match i with *)
- (*  | Olet(p, e, i) -> Elet (pattern p, expression e, inst i k) *)
- (*  | Oletvar(x, is_mutable, ty, e_opt, i) -> letvar ff x is_mutable ty e_opt i *)
- (*  | Omatch(e, match_handler_l) -> *)
- (*      fprintf ff "@[<v2>begin @[match %a with@ @[%a@]@] end@]" *)
- (*        (exp 0) e *)
- (* (print_list_l match_handler """""") match_handler_l *)
- (*  | Ofor(is_to, n, e1, e2, i3) -> *)
- (*       fprintf ff "@[<hv>for %a = %a %s %a@ @[<hv 2>do@ %a@ done@]@]" *)
- (*               name n (exp 0) e1 (if is_to then "to" else "downto") *)
- (*               (exp 0) e2 (inst 0) i3 *)
- (*    | Owhile(e1, i2) -> *)
- (*       fprintf ff "@[<hv>while %a do %a done@]@]" *)
- (*               (exp 0) e1 (inst 0) i2 *)
- (*    | Oassign(left, e) -> assign ff left e *)
- (*    | Oassign_state(left, e) -> assign_state ff left e *)
- (*    | Osequence(i_list) -> *)
- (*       if i_list = [] *)
- (*       then fprintf ff "()" *)
- (*       else fprintf *)
- (*              ff "@[<hv>%a@]" (print_list_r (inst (prio_i + 1)) "" ";" "") i_list *)
- (*    | Oexp(e) -> exp prio ff e *)
- (*    | Oif(e, i1, None) -> *)
- (*       fprintf ff "@[<hov>if %a@ then@ %a@]" (exp 0) e sinst i1 *)
- (*    | Oif(e, i1, Some(i2)) -> *)
- (*       fprintf ff "@[<hov>if %a@ then@ %a@ else %a@]" *)
- (*               (exp 0) e sinst i1 sinst i2 *)
- (*  end; *)
+and instruction i =
+  let k = expr_of_sset (fv_updated i) in
+  inst i k
+
+and inst i k =
+  let e = inst_desc i k in
+  mk_expr e
+
+and inst_desc i k =
+  begin match i with
+  | Olet(p, e, i) ->
+      let p = pattern p in
+      assert (SSet.disjoint (fv_patt p) (fv_expr k));
+      Elet (p, expression e, inst i k)
+  | Oletvar(x, _is_mutable, ty, e_opt, i) ->
+      let ty = type_expr_of_typ ty in
+      let p = pattern (Ovarpat(x, ty)) in
+      assert (SSet.disjoint (fv_patt p) (fv_expr k));
+      let e = Option.value ~default:(Oconst Oany) e_opt in
+      Elet (p, expression e, inst i k)
+  | Omatch(_e, _match_handler_l) -> not_yet_implemented "match"
+  | Ofor(_is_to, _n, _e1, _e2, _i3) -> not_yet_implemented "for"
+  | Owhile(_e1, _i2) -> not_yet_implemented "while"
+  | Oassign(left, e) ->
+      Elet (mk_patt (Pid { name = var_of_left_value left }),
+            left_value_update left e,
+            k)
+  | Oassign_state(left, e) ->
+      Elet (mk_patt (Pid { name = var_of_left_state_value left }),
+            left_state_value_update left e,
+            k)
+  | Osequence l -> (List.fold_right inst l k).expr
+  | Oexp(e) -> Etuple [k; expression e]
+  | Oif(e, i1, None) ->
+      let updated = fv_updated i1 in
+      let p = patt_of_sset updated in
+      let k' = expr_of_sset updated in
+      let if_ = mk_expr (Eif (expression e, inst i1 k', k')) in
+      Elet (p,  if_, k)
+  | Oif(e, i1, Some i2) ->
+      let updated = SSet.union (fv_updated i1) (fv_updated i2) in
+      let p = patt_of_sset updated in
+      let k' = expr_of_sset updated in
+      let if_ = mk_expr (Eif (expression e, inst i1 k', inst i2 k')) in
+      Elet (p,  if_, k)
+  end
+
+and type_expr_of_typ =
+  let cpt = ref 0 in
+  fun _ty ->
+    incr cpt;
+    Otypevar ("'a"^(string_of_int !cpt))
+
+and expr_of_sset s =
+  begin match SSet.elements s with
+  | [] -> mk_expr (Econst (Cunit))
+  | [x] -> mk_expr (Evar { name = x })
+  | l -> mk_expr (Etuple (List.map (fun x -> mk_expr (Evar { name = x })) l))
+  end
+
+and patt_of_sset s =
+  begin match SSet.elements s with
+  | [] -> mk_patt Pany
+  | [x] -> mk_patt (Pid { name = x })
+  | l -> mk_patt (Ptuple (List.map (fun x -> mk_patt (Pid { name = x })) l))
+  end
+
+and left_value_update left e =
+  begin match left with
+  | Oleft_name _ -> expression e
+  | Oleft_record_access (left, x) ->
+      mk_expr (Erecord([lident_name x, expression e],
+                       Some (mk_expr (left_value left))))
+  | Oleft_index (_, _) -> not_yet_implemented "left_index update"
+  end
+
+and left_state_value_update left e =
+  begin match left with
+  | Oself -> expression e
+  | Oleft_instance_name x ->
+      mk_expr (Erecord([ident_name x, expression e], Some self_expr))
+  | Oleft_state_global _ln -> expression e
+  | Oleft_state_name n ->
+      mk_expr (Erecord([ident_name n, expression e], Some self_expr))
+  | Oleft_state_record_access(left, n) ->
+      mk_expr (Erecord([lident_name n, expression e],
+                       Some (mk_expr (left_state_value left))))
+  | Oleft_state_index(_left, _idx) ->
+      not_yet_implemented "left_state_index update"
+  | Oleft_state_primitive_access(_left, _a) ->
+      not_yet_implemented "primitive_access update"
+
+  end
+
+let machine_type name memories instances =
+  let i, params, entries =
+    List.fold_right
+      (fun { m_name = n } (i, params, entries) ->
+         let m = Misc.int_to_alpha i in
+         (i+1, m :: params, (ident_name n, Tvar m) :: entries))
+      memories (0, [], [])
+  in
+  let i, params, entries =
+    List.fold_right
+      (fun { i_name = n } (i, params, entries) ->
+         let m = Misc.int_to_alpha i in
+         (i+1, m :: params, (ident_name n, Tvar m) :: entries))
+      instances (i, params, entries)
+  in
+  mk_decl (Dtype ({ name = name }, params, TKrecord entries))
+
+let machine_init name i_opt memories instances =
+  let memory { m_name = n; m_value = e_opt;
+	       m_typ = _ty; m_kind = k_opt; m_size = m_size } =
+    begin match k_opt with
+    | None ->
+       (* discrete state variable *)
+        if m_size <> [] then not_yet_implemented "array in memory";
+        (ident_name n, Option.fold ~none:eany ~some:expression e_opt)
+    | Some _ -> not_yet_implemented "non discrete memory"
+    end
+  in
+  let instance { i_name = n; i_machine = _ei;
+		 i_kind = _k; i_params = _e_list; i_size = ie_size } =
+    if ie_size <> [] then not_yet_implemented "array on instances";
+    (ident_name n, mk_expr (Evar { name = (ident_name n)^"_init" }))
+  in
+  let r =
+    mk_expr
+      (Erecord
+         ((List.map memory memories) @ (List.map instance instances), None))
+  in
+  mk_decl
+    (Ddecl (mk_patt (Pid {name = (name^"_init") }),
+            match i_opt with
+            | None -> r
+            | Some i -> mk_expr (Esequence (instruction i, r))))
+
+let machine_method name { me_name = me_name; me_params = pat_list;
+                   me_body = i; me_typ = _ty } =
+  let method_name = { name = name^"_"^me_name } in
+  let args = mk_patt (Ptuple (List.map pattern pat_list)) in
+  let body = instruction i in
+  mk_decl (Dfun(method_name, args, body))
+
+let machine name m =
+  if m.ma_params <> [] then
+    not_yet_implemented ("static parameters ("^name^")");
+  let m_type = machine_type name m.ma_memories m.ma_instances in
+  let m_init = machine_init name m.ma_initialize m.ma_memories m.ma_instances in
+  let m_methods = List.map (machine_method name) m.ma_methods in
+  m_type :: m_init :: m_methods
+
+
+let implementation impl =
+  begin match impl with
+  | Oletvalue (x, i) ->
+      [  mk_decl (Ddecl (mk_patt (Pid {name = x}), instruction i)) ]
+  | Oletfun (f, args, i) ->
+      let args =
+        begin match args with
+        | [] -> mk_patt Pany
+        | [p] -> pattern p
+        | _ -> mk_patt (Ptuple (List.map pattern args))
+        end
+      in
+     [ mk_decl (Dfun ({name = f}, args, instruction i)) ]
+  | Oletmachine (x, m) ->
+      machine x m
+  | Oopen _m -> not_yet_implemented "open"
+  | Otypedecl _ (* of (string * string list * type_decl) list *) ->
+      assert false (* XXX TODO XXX *)
+  end
+
+
+let implementation_list l =
+  List.map implementation l

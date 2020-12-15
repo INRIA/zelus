@@ -259,15 +259,41 @@ let compile modname filename =
                   vectors. See below:";
          Oprinter.implementation_list info_ff obc_list
        end;
-     (* print OCaml code *)
-     if !verbose
+     if !use_muf
      then begin
-	 comment "Print OCaml code. See below:";
-	 Ocamlprinter.implementation_list info_ff obc_list
+       let muf_list = To_muf.implementation_list obc_list in
+       if !verbose
+       then begin
+	 comment "Print muF code. See below:";
+         assert false (* XXX TODO XXX *)
+         (* Ocamlprinter.implementation_list info_ff muf_list *)
        end;
-     (* write OCaml code in the appropriate file *)
-     let mlc = open_out ml_name in
-     apply_with_close_out (write_implementation_list obc_list) mlc;     
+       let ml_list =
+         List.map Muf_compiler_libs.Compiler.compile_program muf_list
+       in
+       if !verbose
+       then begin
+	 comment "Print OCaml code. See below:";
+         Format.printf "%a@."
+           (Format.pp_print_list Pprintast.structure) ml_list;
+       end;
+       (* write OCaml code in the appropriate file *)
+       let mlc = open_out ml_name in
+       let mlff = Format.formatter_of_out_channel mlc in
+       Format.fprintf mlff "%a@."
+         (Format.pp_print_list Pprintast.structure) ml_list;
+       close_out mlc
+     end else begin
+       (* print OCaml code *)
+       if !verbose
+       then begin
+	 comment "Print OCaml code. See below:";
+         Ocamlprinter.implementation_list info_ff obc_list
+       end;
+       (* write OCaml code in the appropriate file *)
+       let mlc = open_out ml_name in
+       apply_with_close_out (write_implementation_list obc_list) mlc
+     end;
      (* Write the symbol table into the interface file *)
      let itc = open_out_bin obj_interf_name in
      apply_with_close_out Modules.write itc;

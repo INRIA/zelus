@@ -77,6 +77,7 @@ and doc_red_name = "\t Static reduction for"
 and doc_zsign = "\t Use the sign function for the zero-crossing argument"
 and doc_with_copy = "\t Add of a copy method for the state"
 and doc_rif = "\t Use RIF format over stdin and stdout to communicate I/O to the node being simulated"
+and doc_muf = "\t Generate functional code"
 let errmsg = "Options are:"
 
 let set_verbose () =
@@ -119,7 +120,8 @@ let main () =
           "-zsign", Arg.Set zsign, doc_zsign;
           "-copy", Arg.Set with_copy, doc_with_copy;
           "-lmm", Arg.String set_lmm_nodes, doc_lmm;
-          "-rif", Arg.Set use_rif, doc_rif
+          "-rif", Arg.Set use_rif, doc_rif;
+          "-muf", Arg.Set use_muf, doc_muf;
         ])
       compile
       errmsg;

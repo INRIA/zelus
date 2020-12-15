@@ -9,7 +9,7 @@
 
 (executable
   (name zeluc)
-  (libraries unix menhirLib)
+  (libraries unix menhirLib muf-compiler-libs)
   (promote (until-clean)))
 
 (install
