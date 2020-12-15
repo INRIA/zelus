@@ -1,0 +1,9 @@
+; (rule
+;  (targets ball_spring.ml ball_spring_main.ml)
+;  (deps (:zl ball_spring.zls))
+;  (action (run zeluc -gtk2 -s main -o ball_spring_main %{zl})))
+
+; (executable
+;   (name ball_spring_main)
+;   (libraries lablgtk2 zelus zelus-gtk)
+;   (promote (until-clean)))
