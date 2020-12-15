@@ -1,22 +1,22 @@
 (rule
  (target show.zci)
  (deps (:zli show.zli))
- (action (run zeluc -o %{target} %{zli})))
+ (action (run zeluc %{zli})))
 
 (rule
  (target showball.zci)
  (deps (:zli showball.zli))
- (action (run zeluc -o %{target} %{zli})))
+ (action (run zeluc %{zli})))
 
 (rule
  (target world.zci)
  (deps (:zli world.zli))
- (action (run zeluc -o %{target} %{zli})))
+ (action (run zeluc %{zli})))
 
 (rule
  (target flatworld.zci)
  (deps (:zli flatworld.zli))
- (action (run zeluc -o %{target} %{zli})))
+ (action (run zeluc %{zli})))
 
 (rule
  (targets ball.ml ball_main.ml ball.zci)
@@ -36,5 +36,5 @@
 (executables
   (names ball_main autoball_main flatball_main)
   (modules_without_implementation show)
-  (libraries unix graphics zelus)
+  (libraries graphics zelus)
   (promote (until-clean)))

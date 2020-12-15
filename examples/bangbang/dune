@@ -1,0 +1,9 @@
+(rule
+ (targets bangbang.ml bangbang_main.ml)
+ (deps (:zl bangbang.zls))
+ (action (run zeluc -gtk2 -s main -o bangbang_main %{zl})))
+
+(executable
+  (name bangbang_main)
+  (libraries lablgtk2 zelus zelus-gtk)
+  (promote (until-clean)))

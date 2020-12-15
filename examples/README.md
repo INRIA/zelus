@@ -7,9 +7,9 @@
 - [x] airtraffic: Error black screen 
 - [x] backhoe
 - [x] ball_spring: Internal error (Aform: should be a name) pos_68
-- [ ] bangbang
-- [ ] beginner
-- [ ] billiard
+- [x] bangbang
+- [x] beginner
+- [x] billiard
 - [x] bouncingball
 - [ ] boxes
 - [ ] cantharide
