@@ -1,8 +1,0 @@
-diff_plots/*.pdf
-
-dumpnode_basicfuel.ml
-dumpnode_mapfail.ml
-dumpnode.ml
-
-fuelc*.ml
-!fuelc_data.ml

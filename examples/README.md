@@ -1,5 +1,10 @@
 # Dunify Examples
 
+Build all examples with
+```
+dune build --root .
+```
+
 - [x] airtraffic: Error black screen 
 - [x] backhoe
 - [x] ball_spring: Internal error (Aform: should be a name) pos_68
@@ -15,7 +20,7 @@
 - [x] cradle: Multiple errors (e.g. undefined singleton)
 - [x] db_intgr
 - [x] engine
-- [ ] fuelcontroller
+- [x] fuelcontroller
 - [ ] heater
 - [x] higher_order
 - [x] horloge
