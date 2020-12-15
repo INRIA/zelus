@@ -5,15 +5,11 @@
 
 
 - [x] airtraffic: Error black screen 
-- [ ] arch-comp18
-- [ ] arch-comp19
-- [ ] autotrans
-- [ ] backhoe
+- [x] backhoe
 - [ ] ball_spring
 - [ ] bangbang
 - [ ] beginner
 - [ ] billiard
-- [x] boids: Syntax error. line 89, characters 5-7
 - [x] bouncingball
 - [ ] boxes
 - [ ] cantharide
@@ -24,19 +20,15 @@
 - [ ] db_intgr
 - [ ] engine
 - [ ] fuelcontroller
-- [ ] gen
 - [ ] heater
 - [ ] higher_order
 - [x] horloge
 - [ ] lane_change_maneuver
 - [ ] ltta
 - [ ] misc
-- [ ] nodes
-- [ ] obs
 - [ ] pendulum
 - [ ] pi_calculator
 - [ ] pong
-- [ ] potential_examples
 - [ ] power
 - [ ] push_pull_streams
 - [ ] qss
@@ -48,6 +40,5 @@
 - [ ] suspension
 - [ ] timing_test
 - [x] van_der_pol
-- [x] vbool: Internal error (Aform: should be a name) new_c_47 in input.zls l35
 - [x] watch
 - [x] zener_diode
