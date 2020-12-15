@@ -1,2 +1,2 @@
 (env (dev (flags (:standard -w -a -w -27))))
-(dirs :standard)
+(dirs :standard \ cradle)

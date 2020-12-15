@@ -11,14 +11,14 @@
 - [x] beginner
 - [x] billiard
 - [x] bouncingball
-- [ ] boxes
-- [ ] cantharide
-- [ ] clutch_engagement
-- [ ] coffee
-- [ ] controlled_mass_spring
-- [ ] cradle
-- [ ] db_intgr
-- [ ] engine
+- [x] boxes
+- [x] cantharide
+- [ ] clutch_engagement: Don't know what to do with simulink
+- [x] coffee
+- [X] controlled_mass_spring: Weird display
+- [x] cradle: Multiple errors (e.g. undefined singleton)
+- [x] db_intgr
+- [x] engine
 - [ ] fuelcontroller
 - [ ] heater
 - [ ] higher_order

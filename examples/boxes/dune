@@ -1,0 +1,14 @@
+(rule
+ (target showboxes.zci)
+ (deps (:zli showboxes.zli))
+ (action (run zeluc %{zli})))
+
+(rule
+ (targets boxes.ml boxes_main.ml)
+ (deps (:zl boxes.zls) showboxes.zci)
+ (action (run zeluc -s main -o boxes_main %{zl})))
+
+(executable
+  (name boxes_main)
+  (libraries graphics zelus)
+  (promote (until-clean)))
