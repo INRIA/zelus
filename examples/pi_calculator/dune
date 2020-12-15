@@ -1,0 +1,9 @@
+(rule
+ (targets pi_calculator.ml pi_calculator_main.ml)
+ (deps (:zl pi_calculator.zls))
+ (action (run zeluc -s main -o pi_calculator_main %{zl})))
+
+(executable
+  (name pi_calculator_main)
+  (libraries graphics zelus)
+  (promote (until-clean)))

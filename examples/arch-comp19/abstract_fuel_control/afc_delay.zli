@@ -1,5 +1,0 @@
-type 'a delay_t
-
-val make_delay : int -> float -> 'a -AD-> 'a delay_t
-val record_delay : 'a delay_t -> (float * 'a) -AD-> unit
-val get_delay : 'a delay_t -> (float * 'a * float) -A-> 'a

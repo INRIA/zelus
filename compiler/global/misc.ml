@@ -16,7 +16,7 @@
 
 let header_in_file =
   let open Config in
-  "The " ^ version ^ " compiler, version " ^ subversion ^ "\n\  (" ^ date ^ ")"
+  "The Zelus compiler, version " ^ version ^ "-" ^subversion ^ "\n\  (" ^ date ^ ")"
 
 (* generic data-structres for sets and symbol tables *)
 module S = Set.Make (struct type t = string let compare = compare end)

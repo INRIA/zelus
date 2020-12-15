@@ -1,7 +1,2 @@
-(env (dev (flags (:standard -w -a))))
+(env (dev (flags (:standard -w +a-4-6-7-9-27-29-32..42-44-45-48-50-60 -warn-error -a+31))))
 (dirs :standard \ examples)
-
-(rule
- (targets config.ml)
- (deps (:conf configure))
- (action  (run ocaml %{conf})))

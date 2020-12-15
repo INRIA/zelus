@@ -1,4 +1,5 @@
 open Basics
+open List
 
 (*
 Relies on zero-crossing detection on a DISCONTINUOUS function during integration 

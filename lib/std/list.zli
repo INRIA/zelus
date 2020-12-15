@@ -9,6 +9,8 @@ val cons : 'a -> 'a list -> 'a list
 
 val hd : 'a list -> 'a
 
+val tl : 'a list -> 'a list
+
 val nth : 'a list -> int -> 'a
 
 val nth_opt : 'a list -> int -> 'a option

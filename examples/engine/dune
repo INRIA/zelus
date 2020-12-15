@@ -1,0 +1,9 @@
+(rule
+ (targets engine.ml engine_main.ml)
+ (deps (:zl engine.zls))
+ (action (run zeluc -gtk2 -s main -o engine_main %{zl})))
+
+(executable
+  (name engine_main)
+  (libraries lablgtk2 zelus zelus-gtk)
+  (promote (until-clean)))

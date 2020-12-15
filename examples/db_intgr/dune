@@ -1,0 +1,9 @@
+(rule
+ (targets test.ml test_main.ml)
+ (deps (:zl test.zls))
+ (action (run zeluc -gtk2 -s main -o test_main %{zl})))
+
+(executable
+  (name test_main)
+  (libraries lablgtk2 zelus zelus-gtk)
+  (promote (until-clean)))

@@ -88,6 +88,12 @@ let set_vverbose () =
   vverbose := true;
   set_verbose ()
 
+let set_gtk () =
+    use_gtk := true;
+    match !load_path with
+    | [stdlib] -> add_include (stdlib ^ "-gtk")
+    | _ -> ()
+
 let main () =
   try
     Arg.parse
@@ -107,7 +113,7 @@ let main () =
           "-s", Arg.String set_simulation_node, doc_simulation;
           "-sampling", Arg.Float set_sampling_period, doc_sampling;
           "-check", Arg.Int set_check, doc_check;
-          "-gtk2", Arg.Set use_gtk, doc_use_gtk;
+          "-gtk2", Arg.Unit set_gtk, doc_use_gtk;
           "-dzero", Arg.Set dzero, doc_dzero;
           "-nocausality", Arg.Set no_causality, doc_nocausality;
           "-nopt", Arg.Set no_opt, doc_no_opt;

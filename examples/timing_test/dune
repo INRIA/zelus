@@ -1,0 +1,14 @@
+(rule
+ (target misc.zci)
+ (deps (:zli misc.zli))
+ (action (run zeluc %{zli})))
+
+(rule
+ (targets timing_test.ml timing_test_main.ml)
+ (deps (:zl timing_test.zls) misc.zci)
+ (action (run zeluc -s main -o timing_test_main %{zl})))
+
+(executable
+  (name timing_test_main)
+  (libraries zelus)
+  (promote (until-clean)))

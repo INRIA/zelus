@@ -1,0 +1,54 @@
+(rule
+ (target lookup.zci)
+ (deps (:zli lookup.zli))
+ (action (run zeluc %{zli})))
+
+(rule
+ (target mlmisc.zci)
+ (deps (:zli mlmisc.zli) lookup.zci)
+ (action (run zeluc %{zli})))
+
+(rule
+ (targets fuelc_data.zci)
+ (deps (:zli fuelc_data.zli) lookup.zci)
+ (action (run zeluc %{zli})))
+
+(rule
+ (targets library.zci library.ml)
+ (deps (:zls library.zls) mlmisc.zci)
+ (action (run zeluc %{zls})))
+
+(rule
+ (targets fuelc_common.zci fuelc_common.ml)
+ (deps (:zls fuelc_common.zls) lookup.zci mlmisc.zci fuelc_data.zci)
+ (action (run zeluc %{zls})))
+
+(rule
+ (targets fuelc_engine.zci fuelc_engine.ml)
+ (deps (:zls fuelc_engine.zls) library.zci)
+ (action (run zeluc %{zls})))
+
+(rule
+ (targets fuelc_logic.zci fuelc_logic.ml)
+ (deps (:zls fuelc_logic.zls) fuelc_data.zci fuelc_common.zci)
+ (action (run zeluc %{zls})))
+
+(rule
+ (targets fuelc_subsys.zci fuelc_subsys.ml)
+ (deps (:zls fuelc_subsys.zls) fuelc_common.zci fuelc_logic.zci)
+ (action (run zeluc %{zls})))
+
+(rule
+ (targets fuelc.ml basicfuel.ml)
+ (deps (:zl fuelc.zls) library.zci fuelc_engine.zci fuelc_subsys.zci mlmisc.zci)
+ (action (run zeluc -gtk2 -s basicfuel  %{zl})))
+
+(rule
+ (targets mapfail.ml)
+ (deps (:zl fuelc.zls) library.zci fuelc_engine.zci fuelc_subsys.zci fuelc_common.zci mlmisc.zci (sandbox always))
+ (action (run zeluc -gtk2 -s mapfail  %{zl})))
+
+(executable
+  (name basicfuel)
+  (libraries lablgtk2 zelus zelus-gtk)
+  (promote (until-clean)))

@@ -1,24 +1,25 @@
 (rule
  (target input.zci)
  (deps (:zli input.zli) ../std/stdlib.zci)
- (action (run zeluc -I ../std -o %{target} %{zli})))
+ (action (run zeluc -I ../std %{zli})))
 
 (rule
  (target gtkplot.zci)
  (deps (:zli gtkplot.zli) ../std/stdlib.zci)
- (action (run zeluc -I ../std -o %{target} %{zli})))
+ (action (run zeluc -I ../std  %{zli})))
 
 (rule
  (targets scope.ml scope.zci)
- (deps (:zli scope.zls) gtkplot.zci ../std/stdlib.zci)
- (action (run zeluc -I ../std -o scope.ml %{zli})))
+ (deps (:zls scope.zls) gtkplot.zci ../std/stdlib.zci)
+ (action (run zeluc -I ../std %{zls})))
 
 (library
  (name gtklib)
  (public_name zelus-gtk)
  (optional)
  (libraries zelus lablgtk2)
- (modules input scope gtkplot))
+ (wrapped false)
+ (modules input scope gtkplot zlsrungtk))
 
 (install
  (package zelus-gtk)
