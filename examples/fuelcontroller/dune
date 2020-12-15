@@ -5,32 +5,32 @@
 
 (rule
  (target mlmisc.zci)
- (deps (:zli mlmisc.zli))
+ (deps (:zli mlmisc.zli) lookup.zci)
  (action (run zeluc %{zli})))
 
 (rule
  (targets fuelc_data.zci)
- (deps (:zli fuelc_data.zli))
+ (deps (:zli fuelc_data.zli) lookup.zci)
  (action (run zeluc %{zli})))
 
 (rule
  (targets library.zci library.ml)
- (deps (:zls library.zls))
+ (deps (:zls library.zls) mlmisc.zci)
  (action (run zeluc %{zls})))
 
 (rule
  (targets fuelc_common.zci fuelc_common.ml)
- (deps (:zls fuelc_common.zls) lookup.zci fuelc_data.zci)
+ (deps (:zls fuelc_common.zls) lookup.zci mlmisc.zci fuelc_data.zci)
  (action (run zeluc %{zls})))
 
 (rule
  (targets fuelc_engine.zci fuelc_engine.ml)
- (deps (:zls fuelc_engine.zls))
+ (deps (:zls fuelc_engine.zls) library.zci)
  (action (run zeluc %{zls})))
 
 (rule
  (targets fuelc_logic.zci fuelc_logic.ml)
- (deps (:zls fuelc_logic.zls))
+ (deps (:zls fuelc_logic.zls) fuelc_data.zci fuelc_common.zci)
  (action (run zeluc %{zls})))
 
 (rule
