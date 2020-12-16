@@ -7,8 +7,8 @@
 (subdir parsing
   (menhir (modules parser) (infer true) (flags --explain --table)))
 
-(executable
-  (name zeluc)
+(executables
+  (names zeluc zlsdep)
   (libraries unix menhirLib)
   (promote (until-clean)))
 
