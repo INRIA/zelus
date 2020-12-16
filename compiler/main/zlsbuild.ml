@@ -32,14 +32,15 @@ let compile file =
     raise (Arg.Bad ("don't know what to do with " ^ file))
 
 let rec build file = 
-  Deps_tools.add_to_load_path Filename.current_dir_name;
   let deps = 
     match (Filename.extension file) with
     | ".zls" -> Deps_tools.zls_dependencies file
     | ".zli" -> Deps_tools.zli_dependencies file
   in
   List.iter build deps;
-  compile file
+  let basename = Filename.chop_extension file in
+  if not (Sys.file_exists (basename ^ ".zci")) then 
+    compile file
 
 let doc_verbose = "\t Set verbose mode"
 let doc_vverbose = "\t Set even more verbose mode"
@@ -99,6 +100,7 @@ let set_gtk () =
     | _ -> ()
 
 let main () =
+  Deps_tools.add_to_load_path Filename.current_dir_name;
   try
     Arg.parse
       (Arg.align [
