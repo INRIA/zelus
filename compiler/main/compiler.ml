@@ -265,8 +265,13 @@ let compile modname filename =
        if !verbose
        then begin
 	 comment "Print muF code. See below:";
-         assert false (* XXX TODO XXX *)
-         (* Ocamlprinter.implementation_list info_ff muf_list *)
+         Format.printf "%a@."
+           (Format.pp_print_list
+              (fun ff p -> fprintf ff "%s@,"
+                  (Muf_compiler_libs.Ast.show_program
+                     (fun ff () -> Format.fprintf ff "()")
+                     p)))
+              muf_list
        end;
        let ml_list =
          List.map Muf_compiler_libs.Compiler.compile_program muf_list

@@ -21,9 +21,11 @@ let ident_name n = Ident.name n
 let ident n = { name = ident_name n }
 
 let lident_name n =
-  match n with
-  | Lident.Name n -> n
-  | Modname n -> n.qual ^ "_" ^ n.id
+  let b = Buffer.create 16 in
+  let ff_b = Format.formatter_of_buffer b in
+  Format.fprintf ff_b "%a" Printer.longname n;
+  Format.pp_print_flush ff_b ();
+  Buffer.contents b
 
 let lident n = { name = lident_name n }
 
@@ -96,9 +98,48 @@ let rec fv_updated i =
   | Oassign_state(left, _e) -> SSet.singleton (var_of_left_state_value left)
   | Osequence l ->
       List.fold_left (fun acc i -> SSet.union (fv_updated i) acc) SSet.empty l
-  | Oexp(_e) -> SSet.empty
+  | Oexp(e) -> fv_expr_updated e
   | Oif(_e, i1, None) -> fv_updated i1
   | Oif(_e, i1, Some i2) -> SSet.union (fv_updated i1) (fv_updated i2)
+  end
+
+and fv_expr_updated expr =
+  begin match expr with
+  | Oconst _ -> SSet.empty
+  | Oconstr0 _ -> SSet.empty
+  | Oconstr1 (_, e_list) ->
+      List.fold_left (fun acc e -> SSet.union (fv_expr_updated e) acc)
+        SSet.empty e_list
+  | Oglobal _ -> SSet.empty
+  | Olocal _ -> SSet.empty
+  | Ovar(_is_mutable, n) -> SSet.empty
+  | Ostate(l) -> SSet.empty
+  | Oaccess(e, eidx) ->
+      SSet.union (fv_expr_updated e) (fv_expr_updated eidx)
+  | Ovec(e, _se) -> fv_expr_updated e
+  | Oupdate(_se, _e1, _i, _e2) -> not_yet_implemented "fv_update: update"
+  | Oslice(_e, _s1, _s2) -> not_yet_implemented "fv_update: slice"
+  | Oconcat(_e1, _s1, _e2, _s2) -> not_yet_implemented "fv_update: concat"
+  | Otuple(e_list) ->
+      List.fold_left (fun acc e -> SSet.union (fv_expr_updated e) acc)
+        SSet.empty e_list
+  | Oapp(e, e_list) ->
+      List.fold_left (fun acc e -> SSet.union (fv_expr_updated e) acc)
+        (fv_expr_updated e) e_list
+  | Omethodcall m ->
+      SSet.singleton self.name (* XXX TODO XXX *)
+  | Orecord(r) ->
+      List.fold_left (fun acc (_, e) -> SSet.union (fv_expr_updated e) acc)
+        SSet.empty r
+  | Orecord_with(e_record, r) ->
+      List.fold_left (fun acc (_, e) -> SSet.union (fv_expr_updated e) acc)
+        (fv_expr_updated e_record) r
+  | Orecord_access(e_record, lname) -> fv_expr_updated e_record
+  | Otypeconstraint(e, _ty_e) -> fv_expr_updated e
+  | Oifthenelse(e, e1, e2) ->
+      SSet.union (fv_expr_updated e)
+        (SSet.union (fv_expr_updated e1) (fv_expr_updated e2))
+  | Oinst(i) -> fv_updated i
   end
 
 
@@ -155,12 +196,12 @@ and expression_desc e =
   | Oapp(e, e_list) ->
       let args =
         match List.map expression e_list with
-        | [] -> mk_expr (Etuple [])
+        | [] -> eunit
         | [e] -> e
         | args -> mk_expr (Etuple args)
       in
       Eapp (expression e, args)
-  | Omethodcall m -> method_call m
+  | Omethodcall m -> assert false (* method_call m *)
   | Orecord(r) ->
       Erecord (List.map (fun (x, e) -> ((lident_name x), expression e)) r, None)
   | Orecord_with(e_record, r) ->
@@ -196,26 +237,45 @@ and left_state_value left =
   | Oleft_state_primitive_access(_left, _a) ->
       not_yet_implemented "primitive_access"
 
-and method_call m =
+and method_call p m k =
   let method_name =
     match m.met_machine with
-    | Some name -> lident name
-    | None -> not_yet_implemented "method_call: unkown machine"
+    | Some name -> { name = (lident_name name) ^ "_" ^ m.met_name }
+    | None -> { name =  m.met_name }
   in
-  let static_args =
+  let instantce =
     match m.met_instance with
-    | None -> []
-    | Some (_, e_list) -> List.map expression e_list
+    | None -> self_expr
+    | Some (i, []) -> mk_expr (Efield (self_expr, ident_name i))
+    | Some (i, _) -> not_yet_implemented "instance array"
   in
   let inputs = List.map expression m.met_args in
   let args =
-    match static_args @ inputs with
-    | [] -> mk_expr (Etuple [])
+    match inputs with
+    | [] -> eunit
     | [e] -> e
     | args -> mk_expr (Etuple args)
   in
-  Eapp (mk_expr (Evar method_name), args)
-
+  let call =
+    mk_expr
+      (Eapp (mk_expr (Evar method_name), mk_expr (Etuple [instantce; args])))
+  in
+  match m.met_instance with
+  | None -> Elet (mk_patt (Ptuple [self_patt; p]), call, k)
+  | Some (i, []) ->
+      let call =
+        let state = { name = (self.name ^ "_" ^ (ident_name i)) } in
+        let res = { name = ("res_" ^ (ident_name i)) } in
+        let self_update =
+          mk_expr (Erecord ([ident_name i, mk_expr (Evar state)],
+                            Some self_expr))
+        in
+        Elet (mk_patt (Ptuple [mk_patt (Pid state); mk_patt (Pid res)]),
+              call,
+              mk_expr (Etuple [self_update; mk_expr (Evar res)]))
+      in
+      Elet (mk_patt (Ptuple [self_patt; p]), mk_expr call, k)
+  | Some (i, _) -> not_yet_implemented "instance array"
 
 and instruction i =
   let k = expr_of_sset (fv_updated i) in
@@ -227,6 +287,10 @@ and inst i k =
 
 and inst_desc i k =
   begin match i with
+  | Olet(p, Omethodcall m, i) ->
+      let p = pattern p in
+      assert (SSet.disjoint (fv_patt p) (fv_expr k));
+      method_call p m (inst i k)
   | Olet(p, e, i) ->
       let p = pattern p in
       assert (SSet.disjoint (fv_patt p) (fv_expr k));
@@ -249,6 +313,9 @@ and inst_desc i k =
             left_state_value_update left e,
             k)
   | Osequence l -> (List.fold_right inst l k).expr
+  | Oexp(Omethodcall m) ->
+      let k = mk_expr (Etuple [k; eunit]) in
+      method_call (mk_patt Pany) m k
   | Oexp(e) -> Etuple [k; expression e]
   | Oif(e, i1, None) ->
       let updated = fv_updated i1 in
@@ -272,7 +339,7 @@ and type_expr_of_typ =
 
 and expr_of_sset s =
   begin match SSet.elements s with
-  | [] -> mk_expr (Econst (Cunit))
+  | [] -> eunit
   | [x] -> mk_expr (Evar { name = x })
   | l -> mk_expr (Etuple (List.map (fun x -> mk_expr (Evar { name = x })) l))
   end
@@ -326,7 +393,7 @@ let machine_type name memories instances =
          (i+1, m :: params, (ident_name n, Tvar m) :: entries))
       instances (i, params, entries)
   in
-  mk_decl (Dtype ({ name = name }, params, TKrecord entries))
+  mk_decl (Dtype ({ name = "_"^name }, params, TKrecord entries))
 
 let machine_init name i_opt memories instances =
   let memory { m_name = n; m_value = e_opt;
@@ -339,10 +406,17 @@ let machine_init name i_opt memories instances =
     | Some _ -> not_yet_implemented "non discrete memory"
     end
   in
-  let instance { i_name = n; i_machine = _ei;
-		 i_kind = _k; i_params = _e_list; i_size = ie_size } =
+  let instance { i_name = n; i_machine = ei;
+		 i_kind = _k; i_params = e_list; i_size = ie_size } =
     if ie_size <> [] then not_yet_implemented "array on instances";
-    (ident_name n, mk_expr (Evar { name = (ident_name n)^"_init" }))
+    if e_list <> [] then not_yet_implemented "instance with static parameters";
+    begin match ei with
+    | Oglobal x ->
+        (ident_name n, mk_expr (Evar { name = (lident_name x)^"_init" }))
+    | Olocal x  | Ovar (_, x) ->
+        (ident_name n, mk_expr (Evar { name = (ident_name x)^"_init" }))
+    | _ -> not_yet_implemented "instance is not a name"
+    end
   in
   let r =
     mk_expr
@@ -358,7 +432,10 @@ let machine_init name i_opt memories instances =
 let machine_method name { me_name = me_name; me_params = pat_list;
                    me_body = i; me_typ = _ty } =
   let method_name = { name = name^"_"^me_name } in
-  let args = mk_patt (Ptuple (List.map pattern pat_list)) in
+  let args =
+    mk_patt (Ptuple [ self_patt;
+                      mk_patt (Ptuple (List.map pattern pat_list)) ])
+  in
   let body = instruction i in
   mk_decl (Dfun(method_name, args, body))
 
