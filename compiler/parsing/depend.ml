@@ -1,10 +1,3 @@
-(* file: depend.ml *)
-
-(* Warning: *)
-(* This file is based on the original version of depend.ml *)
-(* from the Objective Caml 3.10 distribution, INRIA, *)
-(* then rewritten for ReactiveML by Louis Mandel *)
-
 open Format
 open Location
 open Parsetree
