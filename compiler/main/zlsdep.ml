@@ -2,8 +2,8 @@
 (* This file is based on the original version of ocamldep.ml *)
 (* from the Objective Caml 3.12 distribution, INRIA          *)
 
-(* first modification: 2007-02-16 *)
-(* modified by: Louis Mandel      *)
+(* Last modification: 2020-12-16 *)
+(* modified by: Guillaume Baudart *)
 
 (***********************************************************************)
 (*                                                                     *)
@@ -28,9 +28,6 @@ open Misc
 (* Print the dependencies *)
 
 let load_path = ref ([] : (string * string array) list)
-let ml_synonyms = ref [".ml"; ".zls"; ".mly"; ".mll"]
-let mli_synonyms = ref [".mli"; ".zli"; ".mly"]
-let native_only = ref false
 let force_slash = ref false
 let error_occurred = ref false
 let raw_dependencies = ref false
@@ -92,28 +89,25 @@ let find_file name =
       | None -> find_in_path rem in
   find_in_path !load_path
 
-let rec find_file_in_list = function
+(* let rec find_file_in_list = function
   [] -> raise Not_found
-| x :: rem -> try find_file x with Not_found -> find_file_in_list rem
+| x :: rem -> try find_file x with Not_found -> find_file_in_list rem *)
 
-let find_dependency modname (byt_deps, opt_deps) =
+let find_dependency modname acc =
   try
-    let candidates = List.map ((^) modname) !mli_synonyms in
-    let filename = find_file_in_list candidates in
+    let candidate = modname ^ ".zli" in
+    let filename = find_file candidate in
     let basename = Filename.chop_extension filename in
-    let optname =
-      if List.exists (fun ext -> Sys.file_exists (basename ^ ext)) !ml_synonyms
-      then basename ^ ".ml"
-      else basename ^ ".zci" in
-    ((basename ^ ".zci") :: byt_deps, optname :: opt_deps)
+    if Sys.file_exists (basename ^ ".zli")
+    then (basename ^ ".zls") :: acc else (basename ^ ".zli") :: acc
   with Not_found ->
   try
-    let candidates = List.map ((^) modname) !ml_synonyms in
-    let filename = find_file_in_list candidates in
+    let candidate = modname ^ ".zls" in
+    let filename = find_file candidate in
     let basename = Filename.chop_extension filename in
-    ( (basename^".zci") :: byt_deps, (basename ^ ".ml") :: opt_deps)
+    (basename ^ ".zls") :: acc
   with Not_found ->
-    (byt_deps, opt_deps)
+    acc
 
 let (depends_on, escaped_eol) = (":", " \\\n    ")
 
@@ -243,13 +237,9 @@ let ml_file_dependencies source_file =
       print_raw_dependencies source_file free_structure_names
     end else begin
       let basename = Filename.chop_extension source_file in
-      let init_deps =
-        if List.exists (fun ext -> Sys.file_exists (basename ^ ext)) !mli_synonyms
-        then let cmi_name = basename ^ ".zci" in ([cmi_name], [cmi_name])
-        else ([], []) in
-      let (byt_deps, opt_deps) =
-        Depend.StringSet.fold find_dependency free_structure_names init_deps in
-      print_dependencies source_file byt_deps
+      let deps =
+        Depend.StringSet.fold find_dependency free_structure_names [] in
+      print_dependencies source_file deps
     end;
     close_in ic; remove_preprocessed input_file
   with x ->
@@ -265,9 +255,9 @@ let mli_file_dependencies source_file =
       print_raw_dependencies source_file free_structure_names
     end else begin
       let basename = Filename.chop_extension source_file in
-      let (byt_deps, opt_deps) =
-        Depend.StringSet.fold find_dependency free_structure_names ([], []) in
-      print_dependencies (basename ^ ".zci") byt_deps
+      let deps =
+        Depend.StringSet.fold find_dependency free_structure_names [] in
+      print_dependencies source_file deps
     end;
     close_in ic; remove_preprocessed input_file
   with x ->
@@ -301,25 +291,15 @@ let file_dependencies_as kind source_file =
     report_err x
 
 let file_dependencies source_file =
-  if List.exists (Filename.check_suffix source_file) !ml_synonyms then
+  if Filename.check_suffix source_file ".zls" then
     file_dependencies_as ML source_file
-  else if List.exists (Filename.check_suffix source_file) !mli_synonyms then
+  else if Filename.check_suffix source_file ".zli" then
     file_dependencies_as MLI source_file
   else ()
 
 (* Entry point *)
 
-let usage = "Usage: ocamldep [options] <source files>\nOptions are:"
-
-let print_version () =
-  printf "ocamldep, version %s@." Sys.ocaml_version;
-  exit 0;
-;;
-
-let print_version_num () =
-  printf "%s@." Sys.ocaml_version;
-  exit 0;
-;;
+let usage = "Usage: zlsdep [options] <source files>\nOptions are:"
 
 let _ =
   add_to_load_path Filename.current_dir_name;
@@ -327,24 +307,14 @@ let _ =
      "-I", Arg.String add_to_load_path,
        "<dir>  Add <dir> to the list of include directories";
      "-impl", Arg.String (file_dependencies_as ML),
-       "<f> Process <f> as a .ml file";
+       "<f> Process <f> as a .zls file";
      "-intf", Arg.String (file_dependencies_as MLI),
-       "<f> Process <f> as a .mli file";
-     "-ml-synonym", Arg.String(add_to_synonym_list ml_synonyms),
-       "<e> Consider <e> as a synonym of the .ml extension";
-     "-mli-synonym", Arg.String(add_to_synonym_list mli_synonyms),
-       "<e> Consider <e> as a synonym of the .mli extension";
+       "<f> Process <f> as a .zli file";
      "-modules", Arg.Set raw_dependencies,
        " Print module dependencies in raw form (not suitable for make)";
-     "-native", Arg.Set native_only,
-       "  Generate dependencies for a pure native-code project (no .cmo files)";
      "-pp", Arg.String(fun s -> preprocessor := Some s),
        "<cmd> Pipe sources through preprocessor <cmd>";
      "-slash", Arg.Set force_slash,
        "   (Windows) Use forward slash / instead of backslash \\ in file paths";
-     "-version", Arg.Unit print_version,
-      " Print version and exit";
-     "-vnum", Arg.Unit print_version_num,
-      " Print version number and exit";
     ] file_dependencies usage;
   exit (if !error_occurred then 2 else 0)
