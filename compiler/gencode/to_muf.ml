@@ -20,6 +20,9 @@ let mk_decl d =
 let ident_name n = Ident.name n
 let ident n = { name = ident_name n }
 
+let fresh x =
+  { name = x } (* XXX TODO XXX *)
+
 let lident_name n =
   let b = Buffer.create 16 in
   let ff_b = Format.formatter_of_buffer b in
@@ -279,7 +282,7 @@ and method_call p m k =
 
 and instruction i =
   let k = expr_of_sset (fv_updated i) in
-  inst i k
+  inst (add_return i) k
 
 and inst i k =
   let e = inst_desc i k in
@@ -314,16 +317,19 @@ and inst_desc i k =
             k)
   | Osequence l -> (List.fold_right inst l k).expr
   | Oexp(Omethodcall m) ->
-      let k = mk_expr (Etuple [k; eunit]) in
-      method_call (mk_patt Pany) m k
+      let output = fresh "_output" in
+      let k = mk_expr (Etuple [k; mk_expr (Evar output)]) in
+      method_call (mk_patt (Pid output)) m k
   | Oexp(e) -> Etuple [k; expression e]
   | Oif(e, i1, None) ->
+      (* assumes Oif returns void *)
       let updated = fv_updated i1 in
       let p = patt_of_sset updated in
       let k' = expr_of_sset updated in
       let if_ = mk_expr (Eif (expression e, inst i1 k', k')) in
       Elet (p,  if_, k)
   | Oif(e, i1, Some i2) ->
+      (* assumes Oif returns void *)
       let updated = SSet.union (fv_updated i1) (fv_updated i2) in
       let p = patt_of_sset updated in
       let k' = expr_of_sset updated in
@@ -376,6 +382,30 @@ and left_state_value_update left e =
   | Oleft_state_primitive_access(_left, _a) ->
       not_yet_implemented "primitive_access update"
 
+  end
+
+and add_return i =
+  begin match i with
+  | Olet(p, e, i) -> Olet(p, e, add_return i)
+  | Oletvar(x, is_mutable, ty, e_opt, i) ->
+      Oletvar(x, is_mutable, ty, e_opt, add_return i)
+  | Omatch(_e, _match_handler_l) -> not_yet_implemented "add_return: match"
+  | Ofor(is_to, n, e1, e2, i3) ->
+      Osequence [ Ofor(is_to, n, e1, e2, i3); Oexp (Oconst (Ovoid)) ]
+  | Owhile(e1, i2) -> Osequence [ Owhile(e1, i2); Oexp (Oconst (Ovoid)) ]
+  | Oassign(left, e) -> Osequence [ Oassign(left, e); Oexp (Oconst (Ovoid)) ]
+  | Oassign_state(left, e) ->
+      Osequence [ Oassign_state(left, e); Oexp (Oconst (Ovoid)) ]
+  | Osequence l ->
+      begin match List.rev l with
+      | [] -> Osequence []
+      | [ i ] -> add_return i
+      | i :: rev_l -> Osequence (List.rev (add_return i :: rev_l))
+      end
+  | Oexp(e) -> Oexp(e)
+  | Oif(e, i1, oi2) ->
+      (* assumes Oif returns void *)
+      Osequence [ Oif(e, i1, oi2); Oexp (Oconst (Ovoid)) ]
   end
 
 let machine_type name memories instances =
@@ -463,7 +493,9 @@ let implementation impl =
      [ mk_decl (Dfun ({name = f}, args, instruction i)) ]
   | Oletmachine (x, m) ->
       machine x m
-  | Oopen _m -> not_yet_implemented "open"
+  | Oopen m ->
+      Format.eprintf "not yet implemented: open %s@." m;
+      []
   | Otypedecl _ (* of (string * string list * type_decl) list *) ->
       assert false (* XXX TODO XXX *)
   end
