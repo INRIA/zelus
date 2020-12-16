@@ -1,12 +1,7 @@
 (rule
- (target airtrafficgui.zci)
- (deps (:zli airtrafficgui.zli))
- (action (run zeluc %{zli})))
-
-(rule
  (targets airtraffic.ml airtraffic_main.ml)
- (deps (:zl airtraffic.zls) airtrafficgui.zci)
- (action (run zeluc -gtk2 -s main -o airtraffic_main %{zl})))
+ (deps (:zl airtraffic.zls) airtrafficgui.zli)
+ (action (run zlsbuild -gtk2 -s main -o airtraffic_main %{zl})))
 
 (executable
   (name airtraffic_main)
