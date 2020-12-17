@@ -41,8 +41,6 @@ let load_path = ref ([standard_lib])
 
 let set_stdlib p =
   load_path := [p]
-and add_include d =
-  load_path := d :: !load_path;;
 
 (* where is the standard library *)
 let locate_stdlib () =
@@ -95,6 +93,7 @@ let print_causality_types = ref false
 let print_initialization_types = ref false
 let typeonly = ref false
 let use_gtk = ref false
+let no_stdlib = ref false
 let no_causality = ref false
 let no_initialisation = ref false
 let no_opt = ref false

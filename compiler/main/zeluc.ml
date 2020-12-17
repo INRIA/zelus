@@ -18,6 +18,8 @@ open Initial
 open Compiler
 
 let compile file =
+  Modules.clear();
+  if !no_stdlib then set_no_stdlib();
   if Filename.check_suffix file ".zls" || Filename.check_suffix file ".zlus"
   then
     let filename = Filename.chop_extension file in
@@ -48,7 +50,8 @@ let build file =
     let acc = List.fold_left _build acc deps in
     let basename = Filename.chop_extension file in
     if not (SS.mem basename acc) then begin
-      compile file; SS.add basename acc
+      compile file; 
+      SS.add basename acc
     end else
       acc
   in
@@ -106,6 +109,10 @@ let set_vverbose () =
   vverbose := true;
   set_verbose ()
 
+let add_include d =
+  Deps_tools.add_to_load_path d;
+  load_path := d :: !load_path
+
 let set_gtk () =
     use_gtk := true;
     match !load_path with
@@ -126,7 +133,7 @@ let main () =
           "-ii", Arg.Set print_initialization_types, doc_print_initialization_types;
           "-where", Arg.Unit locate_stdlib, doc_locate_stdlib;
           "-stdlib", Arg.String set_stdlib, doc_stdlib;
-          "-nostdlib", Arg.Unit set_no_stdlib, doc_no_stdlib;
+          "-nostdlib", Arg.Set no_stdlib, doc_no_stdlib;
           "-typeonly", Arg.Set typeonly, doc_typeonly;
           "-s", Arg.String set_simulation_node, doc_simulation;
           "-sampling", Arg.Float set_sampling_period, doc_sampling;

@@ -112,16 +112,16 @@ let open_module modname =
   let m = find_module modname in
   modules.opened <- m :: modules.opened
       
-let initialize modname = 
+let initialize modname =
   current.name <- modname;
   List.iter open_module !default_used_modules
   
 let add_value f signature = 
-  (* if E.mem f current.values then raise (Already_defined f); *)
+  if E.mem f current.values then raise (Already_defined f);
   current.values <- E.add f signature current.values
   
 let add_type f typ_desc =
-  (* if E.mem f current.types then raise (Already_defined f); *)
+  if E.mem f current.types then raise (Already_defined f);
   current.types <- E.add f typ_desc current.types
 let add_constr f ty_res =
   if E.mem f current.constr then raise (Already_defined f);
