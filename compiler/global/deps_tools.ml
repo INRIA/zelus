@@ -2,9 +2,6 @@
 (* This file is based on the original version of ocamldep.ml *)
 (* from the Objective Caml 3.12 distribution, INRIA          *)
 
-(* Last modification: 2020-12-16 *)
-(* modified by: Guillaume Baudart *)
-
 (***********************************************************************)
 (*                                                                     *)
 (*                           Objective Caml                            *)
