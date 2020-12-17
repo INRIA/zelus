@@ -1,52 +1,20 @@
-# Installation
-
-You can either install zelus from sources or with docker
-
-## From sources
-
-- Requirements
-  - Mandatory:
-    - Ocaml (>= 4.10.0)
-    - Menhir
-  - Optional:
-    - SundialsML
-    - Lablgtk2
-    - glMLite
-
-Installing requirements on a fresh ubuntu 18.10 machine (with opam):
+# Install
 
 ```
-# system requirements
-sudo apt-get update
-sudo apt-get upgrade -y
-sudo apt-get install -y build-essential sudo m4 libgtk2.0-dev libsundials-dev curl
-
-# install opam
-sh <(curl -sL https://raw.githubusercontent.com/ocaml/opam/master/shell/install.sh)
-
-source ~/.bashrc
-
-# ocaml requirements
-opam init -a
-opam switch 4.08.0
-eval $(opam env)
-opam update
-opam upgrade -y
-eval $(opam env)
-opam install -y ocamlfind menhir sundialsml lablgtk
-evam $(opam env)
-
-# installation
-./configure
-make
-make install
+opam install .
 ```
 
-## Docker container
+# Local Build
 
 ```
-make docker_build
-make docker_run
+dune build
+```
+
+# Build Examples
+
+```
+cd examples
+dune build --root .
 ```
 
 ----------------------------------------------------------------------
