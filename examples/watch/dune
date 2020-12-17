@@ -1,7 +1,7 @@
 (rule
  (targets watch.ml watch_main.ml)
  (deps (:zl watch.zls) draw.zli)
- (action (run zlsbuild -s main -sampling 0 -o watch_main %{zl})))
+ (action (run zeluc -deps -s main -sampling 0 -o watch_main %{zl})))
 
 (executable
   (name watch_main)

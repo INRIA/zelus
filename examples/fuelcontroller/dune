@@ -3,7 +3,7 @@
    fuelc.ml  fuelc_engine.ml  fuelc_subsys.ml  fuelc_common.ml  fuelc_logic.ml  library.ml
    fuelc.zci fuelc_engine.zci fuelc_subsys.zci fuelc_common.zci fuelc_logic.zci library.zci mlmisc.zci)
  (deps (:zl fuelc.zls))
- (action (run zlsbuild -gtk2 %{zl})))
+ (action (run zeluc -deps -gtk2 %{zl})))
 
 (rule
  (targets basicfuel.ml)

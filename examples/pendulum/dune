@@ -1,7 +1,7 @@
 (rule
  (targets pendulum.ml pendulum_main.ml)
  (deps (:zl pendulum.zls) data.zli misc.zli aux.zli)
- (action (run zlsbuild -sampling 0.01 -s manual -o pendulum_main %{zl})))
+ (action (run zeluc -deps -sampling 0.01 -s manual -o pendulum_main %{zl})))
 
 (executable
   (name pendulum_main)

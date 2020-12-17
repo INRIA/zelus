@@ -1,7 +1,7 @@
 (rule
  (targets backhoecontrol.ml backhoe_main.ml backhoedyn.ml backhoecontrol.ml)
  (deps (:zl backhoecontrol.zls) backhoedyn.zls backhoegui.zli)
- (action (run zlsbuild -gtk2 -s main -o backhoe_main %{zl})))
+ (action (run zeluc -deps -gtk2 -s main -o backhoe_main %{zl})))
 
 (executable
   (name backhoe_main)

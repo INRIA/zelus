@@ -1,7 +1,7 @@
 (rule
  (targets ltta.ml ltta_main.ml)
  (deps (:zl ltta.zls) misc.zli)
- (action (run zlsbuild -sampling 0 -s main -o ltta_main %{zl})))
+ (action (run zeluc -deps -sampling 0 -s main -o ltta_main %{zl})))
 
 (executable
   (name ltta_main)

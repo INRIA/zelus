@@ -1,17 +1,17 @@
 (rule
  (targets ball.ml ball_main.ml ball.zci)
  (deps (:zl ball.zls) showball.zli world.zli)
- (action (run zlsbuild -s main -o ball_main %{zl})))
+ (action (run zeluc -deps -s main -o ball_main %{zl})))
 
 (rule
  (targets autoball.ml autoball_main.ml)
  (deps (:zl autoball.zls) showball.zli world.zli ball.zls)
- (action (run zlsbuild -s main -o autoball_main %{zl})))
+ (action (run zeluc -deps -s main -o autoball_main %{zl})))
 
 (rule
  (targets flatball.ml flatball_main.ml)
  (deps (:zl flatball.zls) showball.zli world.zli ball.zls)
- (action (run zlsbuild -s main -o flatball_main %{zl})))
+ (action (run zeluc -deps -s main -o flatball_main %{zl})))
 
 (executables
   (names ball_main autoball_main flatball_main)

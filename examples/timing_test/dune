@@ -1,7 +1,7 @@
 (rule
  (targets timing_test.ml timing_test_main.ml)
  (deps (:zl timing_test.zls) misc.zli)
- (action (run zlsbuild -s main -o timing_test_main %{zl})))
+ (action (run zeluc -deps -s main -o timing_test_main %{zl})))
 
 (executable
   (name timing_test_main)

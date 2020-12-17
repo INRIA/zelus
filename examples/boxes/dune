@@ -1,7 +1,7 @@
 (rule
  (targets boxes.ml boxes_main.ml)
  (deps (:zl boxes.zls) showboxes.zli)
- (action (run zlsbuild -s main -o boxes_main %{zl})))
+ (action (run zeluc -deps -s main -o boxes_main %{zl})))
 
 (executable
   (name boxes_main)
