@@ -5,12 +5,12 @@
 
 (rule
  (targets autoball.ml autoball_main.ml)
- (deps (:zl autoball.zls) showball.zli world.zli ball.zls)
+ (deps (:zl autoball.zls) showball.zli world.zli ball.zls (sandbox always))
  (action (run zeluc -deps -s main -o autoball_main %{zl})))
 
 (rule
  (targets flatball.ml flatball_main.ml)
- (deps (:zl flatball.zls) showball.zli world.zli ball.zls)
+ (deps (:zl flatball.zls) showball.zli flatworld.zli ball.zls (sandbox always))
  (action (run zeluc -deps -s main -o flatball_main %{zl})))
 
 (executables

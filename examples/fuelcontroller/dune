@@ -1,21 +1,14 @@
 (rule
- (targets 
-   fuelc.ml  fuelc_engine.ml  fuelc_subsys.ml  fuelc_common.ml  fuelc_logic.ml  library.ml
-   fuelc.zci fuelc_engine.zci fuelc_subsys.zci fuelc_common.zci fuelc_logic.zci library.zci mlmisc.zci)
- (deps (:zl fuelc.zls))
- (action (run zeluc -deps -gtk2 %{zl})))
-
-(rule
- (targets basicfuel.ml)
- (deps (:zl fuelc.zls) (sandbox always)
-   fuelc_engine.zci fuelc_subsys.zci fuelc_common.zci fuelc_logic.zci library.zci mlmisc.zci)
- (action (run zeluc -gtk2 -s basicfuel %{zl})))
+ (targets basicfuel.ml fuelc.ml fuelc_engine.ml fuelc_common.ml fuelc_subsys.ml fuelc_logic.ml library.ml) 
+ (deps (:zl fuelc.zls)
+   fuelc_engine.zls fuelc_subsys.zls fuelc_common.zls fuelc_logic.zls library.zli lookup.zli mlmisc.zli library.zls)
+ (action (run zeluc -deps -gtk2 -s basicfuel %{zl})))
 
 (rule
  (targets mapfail.ml)
  (deps (:zl fuelc.zls) (sandbox always)
-   fuelc_engine.zci fuelc_subsys.zci fuelc_common.zci fuelc_logic.zci library.zci mlmisc.zci)
- (action (run zeluc -gtk2 -s mapfail %{zl})))
+   fuelc_engine.zls fuelc_subsys.zli fuelc_common.zli fuelc_logic.zli library.zli lookup.zli mlmisc.zli)
+ (action (run zeluc -deps -gtk2 -s mapfail %{zl})))
 
 (executables
   (names basicfuel mapfail)
