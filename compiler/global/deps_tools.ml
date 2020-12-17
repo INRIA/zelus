@@ -240,7 +240,6 @@ let zli_dependencies source_file =
 
 let zls_file_dependencies source_file =
   let deps = zls_dependencies source_file in 
-  List.iter print_endline deps;
   print_dependencies source_file deps
 
 let zli_file_dependencies source_file =
