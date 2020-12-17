@@ -36,6 +36,24 @@ let compile file =
   else
     raise (Arg.Bad ("don't know what to do with " ^ file))
 
+module SS = Depend.StringSet
+let build file = 
+  Deps_tools.add_to_load_path Filename.current_dir_name;
+  let rec _build acc file = 
+    let deps = 
+      match (Filename.extension file) with
+      | ".zls" -> Deps_tools.zls_dependencies file
+      | ".zli" -> Deps_tools.zli_dependencies file
+    in
+    let acc = List.fold_left _build acc deps in
+    let basename = Filename.chop_extension file in
+    if not (SS.mem basename acc) then begin
+      compile file; SS.add basename acc
+    end else
+      acc
+  in
+  ignore (_build (SS.empty) file)
+  
 let doc_verbose = "\t Set verbose mode"
 let doc_vverbose = "\t Set even more verbose mode"
 and doc_version = "\t The version of the compiler"
@@ -77,6 +95,7 @@ and doc_red_name = "\t Static reduction for"
 and doc_zsign = "\t Use the sign function for the zero-crossing argument"
 and doc_with_copy = "\t Add of a copy method for the state"
 and doc_rif = "\t Use RIF format over stdin and stdout to communicate I/O to the node being simulated"
+and doc_deps = "\t Recursively compile dependencies"
 let errmsg = "Options are:"
 
 let set_verbose () =
@@ -125,9 +144,10 @@ let main () =
           "-zsign", Arg.Set zsign, doc_zsign;
           "-copy", Arg.Set with_copy, doc_with_copy;
           "-lmm", Arg.String set_lmm_nodes, doc_lmm;
-          "-rif", Arg.Set use_rif, doc_rif
+          "-rif", Arg.Set use_rif, doc_rif;
+          "-deps", Arg.Set build_deps, doc_deps;
         ])
-      compile
+      (fun filename -> if !build_deps then build filename else compile filename)
       errmsg;
     begin
       match !simulation_node with
