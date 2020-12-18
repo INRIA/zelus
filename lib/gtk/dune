@@ -5,7 +5,7 @@
 
 (rule
  (targets scope.ml scope.zci)
- (deps (:zls scope.zls) gtkplot.zci ../std/stdlib.zci)
+ (deps (:zls scope.zls) gtkplot.zci ../std/basics.zci ../std/stdlib.zci)
  (action (run zeluc -I ../std %{zls})))
 
 (library
