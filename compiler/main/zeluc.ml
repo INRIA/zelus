@@ -46,6 +46,7 @@ let build file =
       match (Filename.extension file) with
       | ".zls" -> Deps_tools.zls_dependencies file
       | ".zli" -> Deps_tools.zli_dependencies file
+      | _ -> raise (Arg.Bad ("don't know what to do with " ^ file))
     in
     let acc = List.fold_left _build acc deps in
     let basename = Filename.chop_extension file in
