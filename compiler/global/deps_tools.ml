@@ -214,7 +214,6 @@ let zls_dependencies source_file =
   try
     let ast = parse_use_file ic in
     let free_structure_names = Depend.source_file ast in
-    let basename = Filename.chop_extension source_file in
     close_in ic; 
     remove_preprocessed input_file;
     Depend.StringSet.fold find_dependency free_structure_names []
