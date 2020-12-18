@@ -241,6 +241,26 @@ and left_state_value left =
       not_yet_implemented "primitive_access"
 
 and method_call p m k =
+  begin match m.met_machine with
+  | Some (Lident.Name f)
+  | Some (Lident.Modname { Lident.id = f })
+    when f = "sample" || f = "observe" || f = "factor" ->
+      begin match m.met_name with
+      | "reset" -> Elet (p, eunit, k)
+      | "copy" -> Elet (p, eunit, k)
+      | "step" ->
+          begin match f, m.met_args with
+          | "sample", [ e ] -> Elet (p, mk_expr (Esample (expression e)), k)
+          | "observe", [ Otuple [e1; e2] ] ->
+              Elet (p, mk_expr (Eobserve (expression e1, expression e2)), k)
+          | _ -> assert false
+          end
+      | _ -> assert false
+      end
+  | _ -> standard_method_call p m k
+  end
+
+and standard_method_call p m k =
   let method_name =
     match m.met_machine with
     | Some name -> { name = (lident_name name) ^ "_" ^ m.met_name }
@@ -441,6 +461,9 @@ let machine_init name i_opt memories instances =
     if ie_size <> [] then not_yet_implemented "array on instances";
     if e_list <> [] then not_yet_implemented "instance with static parameters";
     begin match ei with
+    | Oglobal (Lident.Modname { Lident.id = f })
+      when f = "sample"  || f = "observe" || f = "factor" ->
+        (ident_name n, eunit)
     | Oglobal x ->
         (ident_name n, mk_expr (Evar { name = (lident_name x)^"_init" }))
     | Olocal x  | Ovar (_, x) ->
