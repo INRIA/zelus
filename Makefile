@@ -1,6 +1,9 @@
 all:
 	dune build
 
+clean:
+	dune clean
+
 docker-build:
 	docker build -t zelus -f zelus.docker .
 
