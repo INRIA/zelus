@@ -1,9 +1,11 @@
-# Dunify Examples
+# Zelus Examples
 
 Build all examples with
 ```
-dune build --root .
+make
 ```
+
+## WIP: dunify all examples
 
 - [x] airtraffic: Error black screen 
 - [x] backhoe
