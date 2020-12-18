@@ -26,7 +26,7 @@ The manual, examples, and research papers can be found at http://zelus.di.ens.fr
 
 By default Zelus relies on the built-in solvers.
 To switch to Sundials CVODE you need to install sundialsml (which requires sundials).
-Some examples also require on lablgtk (which requires gtk2.0)
+Some examples also depend on lablgtk (which requires gtk2.0)
 
 ```
 opam install sundialsml lablgtk
@@ -52,7 +52,6 @@ Run with:
 make docker-run
 ```
 
-----------------------------------------------------------
 
 ##  Examples
 
@@ -64,9 +63,8 @@ To build most of the examples:
 cd examples && make
 ```
 
-This build excutables that can be found in each example directory (e.g., `horloge/horloge_main.exe`).
+The excutables can be found in each example directory (e.g., `horloge/horloge_main.exe`).
 
------------------------------------------------------------
 
 ## Development
 
@@ -87,10 +85,8 @@ Libraries are split in two packages:
 - `zelus`: the standard libraries
 - `zelus-gtk`: additional libraries that depend on lablgtk (only built if lablgtk is installed)
 
-The build automatically detects if sundialsml is installed and update the standard librairies accordingly.
+The build automatically detects if sundialsml is installed and update the librairies accordingly.
 
-
------------------------------------------------------------
 
 ## Citing Zelus
 
