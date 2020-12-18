@@ -23,10 +23,10 @@ make
 - [x] db_intgr
 - [x] engine
 - [x] fuelcontroller
-- [ ] heater
+- [x] heater
 - [x] higher_order
 - [x] horloge
-- [ ] lane_change_maneuver
+- [x] lane_change_maneuver
 - [x] ltta
 - [ ] misc
 - [x] pendulum: Type Error line 13, characters 63-67: This expression has type unit -> unit but an expression was expected of type int -> unit 

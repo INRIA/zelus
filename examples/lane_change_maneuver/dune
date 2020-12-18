@@ -1,0 +1,9 @@
+(rule
+ (targets simu_main.ml simu.ml interior.ml leader.ml merging.ml noise.ml rear.ml vehicle.ml)
+ (deps (:zl simu.zls) draw.zli)
+ (action (run zeluc -deps  -s main -sampling 0 -o simu_main %{zl})))
+
+(executable
+  (name simu_main)
+  (libraries graphics zelus)
+  (promote (until-clean)))
