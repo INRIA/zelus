@@ -1,66 +1,35 @@
-# Zélus 2.0 over ocaml/opam2
-#
-# VERISON       0.1
+############################################################
+# Dockerfile to build Zelus docker image
+# Build with `docker build -t zelus -f zelus.docker .`
+# Run with `docker run -ti --rm -v `pwd`:/home/opam/cwd zelus bash`
+# For graphics:
+#  - First run `xhost + 127.0.0.1`
+#  - Add option `-e DISPLAY=host.docker.internal:0` to `docker run`
+############################################################
 
-# USAGE :
-#   build with `docker build -t zelus -f zelus.docker .` or with
-#       `make docker_build`
-#   run with `docker run -ti --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix/:/tmp/.X11-unix zelus bash`
-#       or `make docker_run`, once it has been built or loaded
-#   save with `docker save zelus > zelus.tar`, once it has been built
-#   load with `docker load --input zelus.tar`
-#
-# You can distribute the .tar file
-
-FROM ocaml/opam2:4.10
-LABEL description="This image contains `zeluc`, a compiler from \
-(Zélus)[http://zelus.di.ens.fr] to OCaml. It is built upon `ocaml/opam2` and \
-it also provides the necessary libraries to compile the ml files that are \
-produced by `zeluc`."
-LABEL version="2.1"
-LABEL maintainer="marc.pouzet@ens.fr"
-
-# Install system dependencies
-RUN sudo apt-get update \
- && sudo apt-get upgrade -y \
- && sudo apt-get install -y build-essential sudo m4 libgtk2.0-dev libsundials-dev
-
-# Switch to root to give permissions to opam
-USER root
-
-# Give permission to opam to run `sudo`
-RUN adduser opam sudo \
- && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers # Don't ask for a password when running sudo
-
-# Create main directory
-RUN mkdir -p /zelus
-
-# Copy zelus files in `workdir`
-COPY --chown=opam . /zelus
-
-# Switch back to opam
+FROM ocaml/opam2:4.11
 USER opam
 
-# Install OCaml dependencies
-RUN eval $(opam env)
-RUN opam config env >> /home/opam/.profile \
- && bash -c "source /home/opam/.profile" \
- && opam update \
- && opam upgrade \
- && opam install -y graphics ocamlfind menhir sundialsml lablgtk
+RUN sudo apt-get -y update && \
+    sudo apt-get -y install \
+      git build-essential m4 unzip pkg-config libpcre3-dev mingw-w64 gcc wget cmake gtk2.0
 
-# Compile and install `zeluc` and all the binary libs
+WORKDIR /home/opam
 
-# Set as current directory for subsequent commands
-WORKDIR /zelus
+RUN wget -nv --show-progress --progress=bar:force:noscroll https://computing.llnl.gov/projects/sundials/download/sundials-3.2.1.tar.gz && \
+    tar xzf sundials-3.2.1.tar.gz && \
+    mkdir sundials-3.2.1-build && \
+    cd sundials-3.2.1-build && \
+    cmake ../sundials-3.2.1 && \
+    make -j && \
+    sudo make install
 
-RUN opam config exec ./configure \
- && opam config exec make distclean \
- && opam config exec make \
- && sudo make install
+RUN opam update && \
+    opam install -y \
+      graphics ocamlfind lablgtk sundialsml menhir
 
+COPY --chown=opam . /home/opam/zelus
 
-# NOTE : To run Gtk apps inside docker, you should run the command
-#        `xhost +local:docker`
-#         in the host (your computer), then run the container with
-#        `docker run -ti --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix/:/tmp/.X11-unix zelus bash`
+WORKDIR /home/opam/zelus
+
+RUN opam install . --working-dir
