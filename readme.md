@@ -1,10 +1,10 @@
 # Zelus: A Synchronous Language with ODEs
 
-Zélus is a synchronous language extended with Ordinary Differential Equations (ODEs) to program hybrid systems that mix discrete-time and continuous-time models. 
-An example is a (discrete-time) model of a control software paired with a (continuous-time) model of the plant. 
-The language shares the basic principles of the synchronous languages [Lustre](http://www-verimag.imag.fr/Synchrone,30?lang=en) with modularity features from [Lucid Synchrone](http://www.di.ens.fr/~pouzet/lucid-synchrone/) (type inference, hierarchical automata, and higher-order functions).
+Zélus is a synchronous language extended with Ordinary Differential Equations (ODEs) to program hybrid systems that mix discrete-time and continuous-time models.
+An example is a (discrete-time) model of a control software paired with a (continuous-time) model of the plant.
+The language shares the basic principles of the synchronous languages [Lustre](https://www-verimag.imag.fr/DIST-TOOLS/SYNCHRONE/lustre-v6/) with modularity features from [Lucid Synchrone](http://www.di.ens.fr/~pouzet/lucid-synchrone/) (type inference, hierarchical automata, and higher-order functions).
 It is conservatively extended to write continuous-time models expressed by ODEs and zero-crossing events.
-The compiler is written in [OCaml](http://caml.inria.fr/ocaml/) and is structured as a series of source-to-source and traceable transformations that ultimately yield statically scheduled sequential code.
+The compiler is written in [OCaml](https://ocaml.org/) and is structured as a series of source-to-source and traceable transformations that ultimately yield statically scheduled sequential code.
 Continuous-time models are simulated using an off-the-shelf numerical solver (here [Sundials CVODE](https://computation.llnl.gov/casc/sundials/description/description.html#descr_cvode) and, for the moment, the two built-in solvers ode23 and ode45).
 
 ## Getting Started
