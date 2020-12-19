@@ -75,16 +75,11 @@ and doc_hybrid = "\t  Select hybrid translation"
 and doc_simulation =
   "<node> \t Simulates the node <node> and generates a file <out>.ml\n\
    \t\t   where <out> is equal to the argument of -o if the flag\n\
-   \t\t   has been set, or <node> otherwise\n\
-   \t\t   For hybrid programs, compile with:\n\
-   \t\t   bigarray.cma unix.cma -I +sundials sundials_cvode.cma \n\
-   \t\t   zllib.cma"
+   \t\t   has been set, or <node> otherwise"
 and doc_sampling = "<p> \t Sets the sampling period to p (float <= 1.0)"
 and doc_check = "<n> \t Check that the simulated node returns true for n steps"
 and doc_use_gtk =
-  "\t Use lablgtk2 interface.\n\
-   \t\t   Compile with: -I +lablgtk2 lablgtk.cma \n\
-   \t\t   zllibgtk.cma"
+  "\t Use lablgtk2 interface."
 and doc_inlining_level = "<n> \t Level of inlining"
 and doc_inline_all = "\t Inline all function calls"
 and doc_dzero = "\t Turn on discrete zero-crossing detection"
