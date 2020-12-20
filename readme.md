@@ -109,7 +109,7 @@ To build most of the examples:
 cd examples && make
 ```
 
-The excutables can be found in each example directory (e.g., `horloge/horloge_main.exe`).
+The executables can be found in each example directory (e.g., `horloge/horloge_main.exe`).
 
 ## Development
 
