@@ -59,21 +59,21 @@ Consider the example of a bouncing ball.
 The zelus code is the following:
 
 ```ocaml
-let g     = 9.81
 let loose = 0.8
-let x0    = 0.0 
-let y0    = 10.0
-let x'0   = 1.0
-let y'0   = 0.0
+let     g = 9.81
+let    x0 = 0.0 
+let    y0 = 10.0
+let   x'0 = 1.0
+let   y'0 = 0.0
 
 let hybrid main () = () where
- rec der x  = x' init x0
- and der x' = 0.0 init x'0
- and der y  = y' init y0
- and der y' = -. g init y'0 reset up(-. y) -> -. loose *. last y'
- and present up(-. y) -> local cpt in
-   do  cpt = 0 fby cpt + 1
-   and ()  = print_endline (string_of_int cpt) done
+  rec der x  =  x' init x0
+  and der y  =  y' init y0
+  and der x' = 0.0 init x'0
+  and der y' = -.g init y'0 reset up(-.y) -> -.loose *. last y'
+  and present up(-.y) -> local cpt in
+    do  cpt = 0 fby cpt + 1
+    and  () = print_endline (string_of_int cpt) done
 ```
 
 The dynamics of the ball is expressed with four ODEs defining the position `(x, y)` and the speed `(x', y')` of the ball given an initial position `(x0, y0)` and an initial speed `(x'0, y'0)`.
