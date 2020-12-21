@@ -214,13 +214,22 @@ and handler subst ({ m_pat = p; m_body = b; m_env = m_env } as m_h) =
   let p = pattern subst p in
   { m_h with m_pat = p; m_body = block subst b; m_env = m_env }
 
+     
 and block subst ({ b_vars = v_list; b_body = eq_list; b_env = b_env } as b) =
-  let vardec subst ({ vardec_name = n } as v) =
-    { v with vardec_name = name_of_name n subst } in
   (* the field [b.b_locals] must be [] as this compilation step is done *)
   (* after normalisation *)
-  let subst, b_env = build b_env subst in
-  let v_list = List.map (vardec subst) v_list in
+  let vardec_list subst v_list =
+  (* Warning. if [n] is a state variable or associated with a *)
+  (* default value of combine function, it is not split into a tuple *)
+  (* but a single name. The code below makes this assumption. *)
+  let vardec acc ({ vardec_name = n} as v) =
+    let p = pat_of_name n subst in
+    let nset = Vars.fv_pat S.empty S.empty p in
+    S.fold (fun n acc -> { v with vardec_name = n } :: acc) nset acc in
+  List.fold_left vardec [] v_list in
+  
+ let subst, b_env = build b_env subst in
+  let v_list = vardec_list subst v_list in
   { b with b_vars = v_list; b_body = equation_list subst eq_list;
 	   b_env = b_env; b_write = Deftypes.empty }
 
