@@ -113,6 +113,7 @@ let rec fv_expr expr =
   | Esequence (e1, e2) -> SSet.union (fv_expr e1) (fv_expr e2)
   | Esample e -> fv_expr e
   | Eobserve (e1, e2) -> SSet.union (fv_expr e1) (fv_expr e2)
+  | Efactor e -> fv_expr e
   | Einfer ((p, body), e) ->
       SSet.union (SSet.diff (fv_expr body) (fv_patt p)) (fv_expr e)
   end
@@ -265,7 +266,7 @@ and expression_desc state_vars e =
                 expression state_vars e,
                 mk_expr k))
         k ((f, e) :: x_e_list)
-  | Omethodcall m -> method_call m
+  | Omethodcall m -> method_call state_vars m
   | Orecord(r) ->
       let x_x'_e_list =
         List.map (fun (x,e) -> let x = lident_name x in (x, fresh x, e)) r
@@ -336,25 +337,45 @@ and left_state_value left =
   | Oleft_state_primitive_access(_left, _a) ->
       not_yet_implemented "primitive_access"
 
-and method_call m =
+and method_call state_vars m =
   begin match m.met_machine with
-  (* | Some (Lident.Name f) *)
-  (* | Some (Lident.Modname { Lident.id = f }) *)
-  (*   when f = "sample" || f = "observe" || f = "factor" -> *)
-  (*     begin match m.met_name with *)
-  (*     | "reset" -> Elet (p, eunit, k) *)
-  (*     | "copy" -> Elet (p, eunit, k) *)
-  (*     | "step" -> *)
-  (*         begin match f, m.met_args with *)
-  (*         | "sample", [ e ] -> *)
-  (*             let state_vars = fv_expr_updated e in *)
-  (*             Elet (p, mk_expr (Esample (expression e)), k) *)
-  (*         | "observe", [ Otuple [e1; e2] ] -> *)
-  (*             Elet (p, mk_expr (Eobserve (expression e1, expression e2)), k) *)
-  (*         | _ -> assert false *)
-  (*         end *)
-  (*     | _ -> assert false *)
-  (*     end *)
+  | Some (Lident.Name f)
+  | Some (Lident.Modname { Lident.id = f })
+    when f = "sample" || f = "observe" || f = "factor" ->
+      begin match m.met_name with
+      | "reset" -> pack state_vars eunit.expr
+      | "copy" -> pack state_vars eunit.expr
+      | "step" ->
+          begin match f, m.met_args with
+          | "sample", [ e ] ->
+              let prob = fresh "_prob" in
+              let d = fresh "_d" in
+              Elet(unpack state_vars (ptuple [pvar prob; pvar d]),
+                   expression state_vars e,
+                   mk_expr (pack state_vars
+                              (Esample(etuple [evar prob; evar d]))))
+          | "observe", [ e ] ->
+              let prob = fresh "_prob" in
+              let d = fresh "_d" in
+              let o = fresh "_o" in
+              Elet(unpack state_vars (ptuple [pvar prob;
+                                              ptuple[ pvar d; pvar o]]),
+                   expression state_vars e,
+                   mk_expr (pack state_vars
+                              (Eobserve(evar prob,
+                                        etuple [evar d; evar o]))))
+          | "factor", [ e ] ->
+              let prob = fresh "_prob" in
+              let x = fresh "_x" in
+              Elet(unpack state_vars (ptuple [pvar prob; pvar x]),
+                   expression state_vars e,
+                   mk_expr (pack state_vars
+                              (Efactor(etuple [evar prob; evar x]))))
+
+          | _ -> assert false
+          end
+      | _ -> assert false
+      end
   | _ -> standard_method_call m
   end
 
