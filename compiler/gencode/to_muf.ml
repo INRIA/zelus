@@ -1,5 +1,6 @@
 open Obc
 open Muf_compiler_libs
+open Muf_compiler_libs.Muf_utils
 open Muf_compiler_libs.Ast
 
 exception Not_yet_implemented of string
@@ -86,39 +87,6 @@ let pack vars e =
 let unpack vars p =
   if SSet.is_empty vars then p
   else mk_patt (Ptuple [ patt_of_sset vars; p ])
-
-let rec fv_patt patt =
-  begin match patt.patt with
-  | Pid x -> SSet.singleton x.name
-  | Ptuple l ->
-      List.fold_left (fun acc p -> SSet.union (fv_patt p) acc) SSet.empty l
-  | Pany -> SSet.empty
-  end
-
-let rec fv_expr expr =
-  begin match expr.expr with
-  | Econst _ -> SSet.empty
-  | Evar x -> SSet.singleton x.name
-  | Etuple l ->
-      List.fold_left (fun acc e -> SSet.union (fv_expr e) acc) SSet.empty l
-  | Erecord (l, oe) ->
-      List.fold_left
-        (fun acc (_, e) -> SSet.union (fv_expr e) acc)
-        (Option.fold ~none:SSet.empty ~some:fv_expr oe) l
-  | Efield (e, _) -> fv_expr e
-  | Eapp (e1, e2) -> SSet.union (fv_expr e1) (fv_expr e2)
-  | Eif (e, e1, e2) ->
-      SSet.union (fv_expr e) (SSet.union (fv_expr e1) (fv_expr e2))
-  | Elet (p, e1, e2) ->
-      SSet.union (fv_expr e1) (SSet.diff (fv_expr e2) (fv_patt p))
-  | Esequence (e1, e2) -> SSet.union (fv_expr e1) (fv_expr e2)
-  | Esample e -> fv_expr e
-  | Eobserve (e1, e2) -> SSet.union (fv_expr e1) (fv_expr e2)
-  | Efactor e -> fv_expr e
-  | Einfer ((p, body), e) ->
-      SSet.union (SSet.diff (fv_expr body) (fv_patt p)) (fv_expr e)
-  end
-
 
 let rec var_of_left_value v =
   begin match v with
@@ -270,7 +238,7 @@ and expression_desc state_vars e =
   | Omethodcall m -> method_call state_vars m
   | Orecord(r) ->
       let x_x'_e_list =
-        List.map (fun (x,e) -> let x = lident_name x in (x, fresh x, e)) r
+        List.map (fun (x,e) -> let x = lident_name x in (x, fresh ("_"^x), e)) r
       in
       let r = List.map (fun (x, x', _) ->  x, evar x') x_x'_e_list in
       let k = pack state_vars (Erecord(r, None)) in
@@ -286,7 +254,7 @@ and expression_desc state_vars e =
       in
       let r = List.map (fun (x, x', _) ->  x, evar x') x_x'_e_list in
       let k =
-        let x = fresh "r" in
+        let x = fresh "_r" in
         Elet(unpack state_vars (pvar x),
                 expression state_vars e,
                 mk_expr (pack state_vars (Erecord(r, Some (evar x)))))
@@ -298,7 +266,7 @@ and expression_desc state_vars e =
                 mk_expr k))
         k x_x'_e_list
   | Orecord_access(e_record, lname) ->
-      let x = fresh "r" in
+      let x = fresh "_r" in
       let out = Efield (evar x, lident_name lname) in
       Elet(unpack state_vars (pvar x),
            expression state_vars e,
@@ -407,8 +375,8 @@ and standard_method_call m =
   match m.met_instance with
   | None -> call
   | Some (i, []) ->
-      let state = fresh (self.name ^ "_" ^ (ident_name i)) in
-      let res = fresh ("res_" ^ (ident_name i)) in
+      let state = fresh ("_" ^ self.name ^ "_" ^ (ident_name i)) in
+      let res = fresh ("_res_" ^ (ident_name i)) in
       let self_update =
         mk_expr (Erecord ([ident_name i, evar state], Some self_expr))
       in
@@ -613,7 +581,8 @@ let machine_method name { me_name = me_name; me_params = pat_list;
     mk_patt (Ptuple [ self_patt;
                       mk_patt (Ptuple (List.map pattern pat_list)) ])
   in
-  let body = instruction (fv_updated i) i in
+  let state_vars = SSet.add self.name (fv_updated i) in
+  let body = instruction state_vars i in
   mk_decl (Dfun(method_name, args, body))
 
 let machine name m =
@@ -657,7 +626,7 @@ let rewrite_decl f d =
 
 let simplify d =
   let r_expr expr =
-    let expr = Rewrites.simplify_not_updated expr in
+    let expr = Rewrites.simplify_lets expr in
     let expr = Rewrites.constant_propagation expr in
     expr
   in
