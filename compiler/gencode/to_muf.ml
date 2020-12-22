@@ -1,4 +1,5 @@
 open Obc
+open Muf_compiler_libs
 open Muf_compiler_libs.Ast
 
 exception Not_yet_implemented of string
@@ -655,6 +656,23 @@ let implementation impl =
       assert false (* XXX TODO XXX *)
   end
 
+let rewrite_decl f d =
+  let rec rewrite_decl n f d =
+    let d' = map_decl_desc (fun p -> p) f d in
+    if d = d' || n < 0 then d
+    else rewrite_decl (n - 1) f d'
+  in
+  rewrite_decl 100 f d
+
+let simplify d =
+  let r_expr expr =
+    let expr = Rewrites.simplify_not_updated expr in
+    let expr = Rewrites.constant_propagation expr in
+    expr
+  in
+  { decl = rewrite_decl r_expr d.decl }
 
 let implementation_list l =
-  List.map implementation l
+  let l = List.map implementation l in
+  let l = List.map (List.map simplify) l in
+  l
