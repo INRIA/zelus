@@ -1,10 +1,3 @@
-(* file: depend.ml *)
-
-(* Warning: *)
-(* This file is based on the original version of depend.ml *)
-(* from the Objective Caml 3.10 distribution, INRIA, *)
-(* then rewritten for ReactiveML by Louis Mandel *)
-
 open Format
 open Location
 open Parsetree
@@ -13,41 +6,43 @@ module StringSet = Set.Make(struct type t = string let compare = compare end)
 
 (* Collect free module identifiers in the a.s.t. *)
 
-let free_structure_names = ref StringSet.empty
-
-let rec add bv ln =
+let add bv ln =
   match ln with
   | Modname {qual= s; id = _ } ->
-      if not (StringSet.mem s bv)
-      then free_structure_names := StringSet.add s !free_structure_names
+      if not (StringSet.mem s !bv)
+      then bv := StringSet.add s !bv
   | Name _ -> ()
 
 let add_opt add_fn bv = function
   | None -> ()
   | Some x -> add_fn bv x
 
+let add_default add_fn bv = function
+  | Init v | Default v -> add_fn bv v
+
+let rec add_size bv s =
+  match s.desc with
+  | Sconst _ -> ()
+  | Sname id -> add bv id
+  | Sop (_, s1, s2) -> add_size bv s1; add_size bv s2
+
 let rec add_type_expr bv ty =
   match ty.desc with
   | Etypevar _ -> ()
   | Etypeconstr (id, tel) -> add bv id; List.iter (add_type_expr bv) tel
   | Etypetuple tl -> List.iter (add_type_expr bv) tl
+  | Etypevec (ty, s) -> add_type_expr bv ty; add_size bv s
+  | Etypefun (_, _, ty1, ty2) -> add_type_expr bv ty1; add_type_expr bv ty2
 
 let rec add_interface bv i =
   match i.desc with
   | Einter_open s ->
-    if not (StringSet.mem s bv)
-    then free_structure_names := StringSet.add s !free_structure_names;
-    bv
-  | Einter_typedecl (_, _, tdl) -> add_type_decl bv tdl; bv
-  | Einter_constdecl (_, te) -> add_type_expr bv te; bv
-  | Einter_fundecl (_, ts) -> add_type_sig bv ts; bv
-
-and add_signature bv = function
-  | [] -> ()
-  | item :: rem -> add_signature (add_interface bv item) rem
+    if not (StringSet.mem s !bv) then bv := StringSet.add s !bv
+  | Einter_typedecl (_, _, tdl) -> add_type_decl bv tdl
+  | Einter_constdecl (_, te) -> add_type_expr bv te
 
 and add_type_decl bv td =
-  match td with
+  match td.desc with
   | Eabstract_type -> ()
   | Eabbrev te -> add_type_expr bv te
   | Evariant_type _ -> ()
@@ -56,44 +51,43 @@ and add_type_decl bv td =
 and add_implem bv i =
   match i.desc with
   | Eopen s ->
-    if not (StringSet.mem s bv)
-    then free_structure_names := StringSet.add s !free_structure_names;
-    bv
-  | Etypedecl (_, _, td) -> add_type_decl bv td; bv
-  | Econstdecl (_, e) -> add_exp bv e; bv
-  | Efundecl (_, _, _, pl, e) -> List.iter (add_pattern bv) pl; add_exp bv e;bv
-
-and add_use_file bv top_phrs =
-  ignore (List.fold_left add_implem bv top_phrs)
-
-and add_type_sig bv ts =
-  List.iter (add_type_expr bv) ts.sig_inputs;
-  add_type_expr bv ts.sig_output
-
+    if not (StringSet.mem s !bv) then bv := StringSet.add s !bv;
+  | Etypedecl (_, _, td) -> add_type_decl bv td
+  | Econstdecl (_, _, e) -> add_exp bv e
+  | Efundecl (_, { f_args; f_body; _ }) ->
+     List.iter (add_pattern bv) f_args;
+     add_exp bv f_body
 
 and add_exp bv exp =
   match exp.desc with
   | Evar l -> add bv l
   | Econst _ -> ()
   | Econstr0 c -> add bv c
+  | Econstr1 (c, el) -> add bv c; List.iter (add_exp bv) el
   | Elast _ -> ()
-  | Eapp (op, el) -> add_op bv op; List.iter (add_exp bv) el
+  | Eapp (_, e, el) -> add_exp bv e; List.iter (add_exp bv) el
+  | Eop (op, el) -> add_op bv op; List.iter (add_exp bv) el
   | Etuple el -> List.iter (add_exp bv) el
   | Erecord_access (e, id) -> add_exp bv e; add bv id
-  | Erecord lblel -> List.iter (fun (lbl, e) -> add bv lbl; add_exp bv e) lblel
+  | Erecord fields -> List.iter (add_field bv) fields
+  | Erecord_with (e, fields) -> add_exp bv e; List.iter (add_field bv) fields
   | Etypeconstraint (e, ty) -> add_exp bv e; add_type_expr bv ty
   | Elet (_, pel, e) -> List.iter (add_eq bv) pel; add_exp bv e
   | Eseq (e1, e2) -> add_exp bv e1; add_exp bv e2
   | Eperiod _ -> ()
   | Ematch (e, mhl) -> add_exp bv e; List.iter (add_match_handler add_exp bv) mhl
-  | Epresent (phl, eo) ->  List.iter (add_present_handler add_exp bv) phl; add_opt add_exp bv eo
+  | Epresent (phl, edo) ->  List.iter (add_present_handler add_exp bv) phl; add_opt (add_default add_exp) bv edo
   | Eautomaton (shl, seo) -> List.iter (add_state_handler add_exp bv) shl; add_opt add_state_exp bv seo
   | Ereset (e1,e2) -> add_exp bv e1; add_exp bv e2
+  | Eblock (eqsb, body) -> add_block add_eq_list bv eqsb; add_exp bv body
 
 and add_op bv op =
   match op with
-  | Eop n -> add bv n
-  | Efby | Eunarypre | Eifthenelse | Eminusgreater | Eup | Einitial | Edisc | Eon | Etest -> ()
+  | Efby | Eunarypre | Eifthenelse | Eminusgreater | Eup | Einitial | Edisc
+    | Etest | Eaccess | Eupdate | Econcat | Eatomic -> ()
+  | Eslice (s1, s2) -> add_size bv s1; add_size bv s2
+
+and add_field bv (lbl, e) = add bv lbl; add_exp bv e
 
 and add_pattern bv pat =
   match pat.desc with
@@ -102,6 +96,7 @@ and add_pattern bv pat =
   | Ewildpat -> ()
   | Econstpat _ -> ()
   | Econstr0pat c -> add bv c
+  | Econstr1pat (c, pl) -> add bv c; List.iter (add_pattern bv) pl
   | Ealiaspat (p, _) -> add_pattern bv p
   | Eorpat (p1, p2) -> add_pattern bv p1; add_pattern bv p2
   | Erecordpat pl -> List.iter (fun (lbl, p) -> add bv lbl; add_pattern bv p) pl
@@ -111,13 +106,20 @@ and add_eq bv eq =
   match eq.desc with
   | EQeq (p,e) -> add_pattern bv p; add_exp bv e
   | EQder (_, e, eo, phl) -> add_exp bv e; add_opt add_exp bv eo; List.iter (add_present_handler add_exp bv) phl
-  | EQinit (p, e, eo) -> add_pattern bv p; add_exp bv e; add_opt add_exp bv eo
-  | EQnext (p, e, eo) -> add_pattern bv p; add_exp bv e; add_opt add_exp bv eo
+  | EQinit (_, e) | EQpluseq (_, e) -> add_exp bv e
+  | EQnext (_, e, eo) -> add_exp bv e; add_opt add_exp bv eo
   | EQemit (_, eo) -> add_opt add_exp bv eo
   | EQautomaton (shl, seo) -> List.iter (add_state_handler add_eq_list bv) shl; add_opt add_state_exp bv seo
   | EQpresent (phl, bo) -> List.iter (add_present_handler (add_block add_eq_list) bv) phl; add_opt (add_block add_eq_list) bv bo
   | EQmatch (e, mhl) -> add_exp bv e; List.iter (add_match_handler (add_block add_eq_list) bv) mhl
+  | EQifthenelse (e, bl, elsebl) ->
+     add_exp bv e;
+     add_block add_eq_list bv bl;
+     add_opt (add_block add_eq_list) bv elsebl
+  | EQand eqs | EQbefore eqs -> add_eq_list bv eqs
   | EQreset (eql, e) -> List.iter (add_eq bv) eql; add_exp bv e
+  | EQblock block -> add_block add_eq_list bv block
+  | EQforall handler -> add_forall_handler bv handler
 
 and add_eq_list bv le =
   List.iter (add_eq bv) le
@@ -132,10 +134,10 @@ and add_local bv l =
   let (_, eql) = l.desc in
   List.iter (add_eq bv) eql
 
-and add_statepat bv sp =
+and add_statepat _bv sp =
   match sp.desc with
   | Estate0pat _ -> ()
-  | Estate1pat (_, pl) -> List.iter (add_pattern bv) pl
+  | Estate1pat _ -> ()
 
 and add_state_exp bv se =
   match se.desc with
@@ -166,8 +168,34 @@ and add_present_handler: 'a. ('b -> 'a -> unit) -> 'b -> 'a present_handler -> u
   a bv h.p_body
 
 and add_state_handler: 'a. ('b -> 'a -> unit) -> 'b -> 'a state_handler -> unit =
-  fun a bv h ->
+  fun a bv { desc = h; _ } ->
   add_statepat bv h.s_state;
   add_block a bv h.s_block;
   List.iter (add_escape bv) h.s_until;
   List.iter (add_escape bv) h.s_unless
+
+and add_forall_handler bv { for_indexes; for_init; for_body; } =
+  List.iter (add_index bv) for_indexes;
+  List.iter (add_init bv) for_init;
+  add_block add_eq_list bv for_body
+
+and add_index bv index =
+  match index.desc with
+  | Einput (_, e) -> add_exp bv e
+  | Eoutput (_, _) -> ()
+  | Eindex (_, e1, e2) -> add_exp bv e1; add_exp bv e2
+
+and add_init bv init =
+  match init.desc with
+  | Einit_last (_, e) -> add_exp bv e
+
+let file traverse initial_structures file =
+  let bv = ref initial_structures in
+  List.iter (traverse bv) file;
+  !bv
+
+let source_file ?(initial_structures = StringSet.empty) source =
+  file add_implem initial_structures source
+
+let interface_file ?(initial_structures = StringSet.empty) interface =
+  file add_interface initial_structures interface

@@ -7,12 +7,12 @@
 (subdir parsing
   (menhir (modules parser) (infer true) (flags --explain --table)))
 
-(executable
-  (name zeluc)
+(executables
+  (names zeluc zlsdep)
   (libraries unix menhirLib muf-compiler-libs)
   (promote (until-clean)))
 
 (install
  (package zelus)
  (section bin)
- (files (zeluc.exe as zeluc)))
+ (files (zeluc.exe as zeluc) (zlsdep.exe as zlsdep)))

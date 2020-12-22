@@ -42,13 +42,13 @@ type return =
     (* associated to a tuple type (t1,..., tn) *)
   }
 
-let empty = { def_types = Misc.Env.empty; hash_table = [] }
+let empty = { def_types = Misc.Env.empty; table = T.empty }
 
 (** Return the record type associated to the tuple type [ty_list] *)
 let recordtype ({ def_types = dtypes; table = table } as return) ty_list =
-  let ty, l_list, return =
+  let (ty, l_list), return =
     try
-      find ty_list table, return
+      .find ty_list table, return
     with
     | Not_found ->
         (* add a new type *)

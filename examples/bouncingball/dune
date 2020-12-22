@@ -1,37 +1,17 @@
 (rule
- (target show.zci)
- (deps (:zli show.zli))
- (action (run zeluc %{zli})))
-
-(rule
- (target showball.zci)
- (deps (:zli showball.zli))
- (action (run zeluc %{zli})))
-
-(rule
- (target world.zci)
- (deps (:zli world.zli))
- (action (run zeluc %{zli})))
-
-(rule
- (target flatworld.zci)
- (deps (:zli flatworld.zli))
- (action (run zeluc %{zli})))
-
-(rule
  (targets ball.ml ball_main.ml ball.zci)
- (deps (:zl ball.zls) showball.zci world.zci ball.zls)
- (action (run zeluc -s main -o ball_main %{zl})))
+ (deps (:zl ball.zls) showball.zli world.zli)
+ (action (run zeluc -deps -s main -o ball_main %{zl})))
 
 (rule
  (targets autoball.ml autoball_main.ml)
- (deps (:zl autoball.zls) showball.zci world.zci ball.zci autoball.zls)
- (action (run zeluc -s main -o autoball_main %{zl})))
+ (deps (:zl autoball.zls) showball.zli world.zli ball.zls (sandbox always))
+ (action (run zeluc -deps -s main -o autoball_main %{zl})))
 
 (rule
  (targets flatball.ml flatball_main.ml)
- (deps (:zl flatball.zls) showball.zci world.zci ball.zci flatball.zls)
- (action (run zeluc -s main -o flatball_main %{zl})))
+ (deps (:zl flatball.zls) showball.zli flatworld.zli ball.zls (sandbox always))
+ (action (run zeluc -deps -s main -o flatball_main %{zl})))
 
 (executables
   (names ball_main autoball_main flatball_main)

@@ -112,7 +112,7 @@ let open_module modname =
   let m = find_module modname in
   modules.opened <- m :: modules.opened
       
-let initialize modname = 
+let initialize modname =
   current.name <- modname;
   List.iter open_module !default_used_modules
   

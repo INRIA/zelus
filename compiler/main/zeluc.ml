@@ -18,6 +18,8 @@ open Initial
 open Compiler
 
 let compile file =
+  Modules.clear();
+  if !no_stdlib then set_no_stdlib();
   if Filename.check_suffix file ".zls" || Filename.check_suffix file ".zlus"
   then
     let filename = Filename.chop_extension file in
@@ -36,6 +38,26 @@ let compile file =
   else
     raise (Arg.Bad ("don't know what to do with " ^ file))
 
+module SS = Depend.StringSet
+let build file = 
+  Deps_tools.add_to_load_path Filename.current_dir_name;
+  let rec _build acc file = 
+    let deps = 
+      match (Filename.extension file) with
+      | ".zls" -> Deps_tools.zls_dependencies file
+      | ".zli" -> Deps_tools.zli_dependencies file
+      | _ -> raise (Arg.Bad ("don't know what to do with " ^ file))
+    in
+    let acc = List.fold_left _build acc deps in
+    let basename = Filename.chop_extension file in
+    if not (SS.mem basename acc) then begin
+      compile file; 
+      SS.add basename acc
+    end else
+      acc
+  in
+  ignore (_build (SS.empty) file)
+  
 let doc_verbose = "\t Set verbose mode"
 let doc_vverbose = "\t Set even more verbose mode"
 and doc_version = "\t The version of the compiler"
@@ -53,16 +75,11 @@ and doc_hybrid = "\t  Select hybrid translation"
 and doc_simulation =
   "<node> \t Simulates the node <node> and generates a file <out>.ml\n\
    \t\t   where <out> is equal to the argument of -o if the flag\n\
-   \t\t   has been set, or <node> otherwise\n\
-   \t\t   For hybrid programs, compile with:\n\
-   \t\t   bigarray.cma unix.cma -I +sundials sundials_cvode.cma \n\
-   \t\t   zllib.cma"
+   \t\t   has been set, or <node> otherwise"
 and doc_sampling = "<p> \t Sets the sampling period to p (float <= 1.0)"
 and doc_check = "<n> \t Check that the simulated node returns true for n steps"
 and doc_use_gtk =
-  "\t Use lablgtk2 interface.\n\
-   \t\t   Compile with: -I +lablgtk2 lablgtk.cma \n\
-   \t\t   zllibgtk.cma"
+  "\t Use lablgtk2 interface."
 and doc_inlining_level = "<n> \t Level of inlining"
 and doc_inline_all = "\t Inline all function calls"
 and doc_dzero = "\t Turn on discrete zero-crossing detection"
@@ -77,7 +94,8 @@ and doc_red_name = "\t Static reduction for"
 and doc_zsign = "\t Use the sign function for the zero-crossing argument"
 and doc_with_copy = "\t Add of a copy method for the state"
 and doc_rif = "\t Use RIF format over stdin and stdout to communicate I/O to the node being simulated"
-and doc_muf = "\t Generate functional code"
+and doc_deps = "\t Recursively compile dependencies"
+and doc_muf = "\t Generate functionnal code"
 let errmsg = "Options are:"
 
 let set_verbose () =
@@ -87,6 +105,10 @@ let set_verbose () =
 let set_vverbose () =
   vverbose := true;
   set_verbose ()
+
+let add_include d =
+  Deps_tools.add_to_load_path d;
+  load_path := d :: !load_path
 
 let set_gtk () =
     use_gtk := true;
@@ -108,7 +130,7 @@ let main () =
           "-ii", Arg.Set print_initialization_types, doc_print_initialization_types;
           "-where", Arg.Unit locate_stdlib, doc_locate_stdlib;
           "-stdlib", Arg.String set_stdlib, doc_stdlib;
-          "-nostdlib", Arg.Unit set_no_stdlib, doc_no_stdlib;
+          "-nostdlib", Arg.Set no_stdlib, doc_no_stdlib;
           "-typeonly", Arg.Set typeonly, doc_typeonly;
           "-s", Arg.String set_simulation_node, doc_simulation;
           "-sampling", Arg.Float set_sampling_period, doc_sampling;
@@ -127,9 +149,10 @@ let main () =
           "-copy", Arg.Set with_copy, doc_with_copy;
           "-lmm", Arg.String set_lmm_nodes, doc_lmm;
           "-rif", Arg.Set use_rif, doc_rif;
+          "-deps", Arg.Set build_deps, doc_deps;
           "-muf", Arg.Set use_muf, doc_muf;
         ])
-      compile
+      (fun filename -> if !build_deps then build filename else compile filename)
       errmsg;
     begin
       match !simulation_node with

@@ -1,2 +1,2 @@
 (env (dev (flags (:standard -w -a -w -27))))
-(dirs :standard \ cradle pendulum qss)
+(dirs :standard \ ball_spring cradle pendulum qss)

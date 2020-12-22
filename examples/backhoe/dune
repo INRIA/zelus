@@ -1,17 +1,7 @@
 (rule
- (target backhoegui.zci)
- (deps (:zli backhoegui.zli))
- (action (run zeluc %{zli})))
-
-(rule
- (targets backhoedyn.zci backhoedyn.ml)
- (deps (:zls backhoedyn.zls) backhoegui.zci)
- (action (run zeluc %{zls})))
-
-(rule
- (targets backhoecontrol.ml backhoe_main.ml)
- (deps (:zl backhoecontrol.zls) backhoedyn.zci backhoegui.zci)
- (action (run zeluc -gtk2 -s main -o backhoe_main %{zl})))
+ (targets backhoecontrol.ml backhoe_main.ml backhoedyn.ml backhoecontrol.ml)
+ (deps (:zl backhoecontrol.zls) backhoedyn.zls backhoegui.zli)
+ (action (run zeluc -deps -gtk2 -s main -o backhoe_main %{zl})))
 
 (executable
   (name backhoe_main)

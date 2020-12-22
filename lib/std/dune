@@ -1,4 +1,3 @@
-; (include_subdirs unqualified)
 (copy_files# solvers/*.{ml,mli})
 
 (rule
@@ -7,69 +6,14 @@
  (action (run zeluc -nostdlib %{deps})))
 
 (rule
- (target char.zci)
- (deps (:zli char.zli) stdlib.zci)
- (action (run zeluc %{zli})))
-
-(rule
- (target complex.zci)
- (deps (:zli complex.zli) stdlib.zci)
- (action (run zeluc %{zli})))
-
-(rule
- (target int32.zci)
- (deps (:zli int32.zli) stdlib.zci)
- (action (run zeluc %{zli})))
-
-(rule
- (target int64.zci)
- (deps (:zli int64.zli) nativeint.zci stdlib.zci)
- (action (run zeluc %{zli})))
-
-(rule
- (target nativeint.zci)
- (deps (:zli nativeint.zli) int32.zci stdlib.zci)
- (action (run zeluc %{zli})))
-
-(rule
- (target random.zci)
- (deps (:zli random.zli) stdlib.zci int32.zci int64.zci nativeint.zci)
- (action (run zeluc %{zli})))
-
-(rule
- (target string.zci)
- (deps (:zli string.zli) stdlib.zci)
- (action (run zeluc %{zli})))
-
-(rule
- (target graphics.zci)
- (deps (:zli graphics.zli) stdlib.zci)
- (action (run zeluc %{zli})))
-
-(rule
- (target basics.zci)
- (deps (:zli basics.zli) stdlib.zci)
- (action (run zeluc %{zli})))
-
-(rule
- (target node.zci)
- (deps (:zli node.zli) stdlib.zci)
- (action (run zeluc %{zli})))
-
-(rule
- (target run.zci)
- (deps (:zli run.zli) stdlib.zci)
- (action (run zeluc %{zli})))
-
-(rule
- (target list.zci)
- (deps (:zli list.zli) stdlib.zci)
+ (targets char.zci complex.zci int32.zci nativeint.zci int64.zci random.zci string.zci graphics.zci basics.zci node.zci run.zci list.zci)
+ (deps (:zli char.zli complex.zli int32.zli nativeint.zli int64.zli random.zli string.zli graphics.zli basics.zli node.zli run.zli list.zli) stdlib.zci)
  (action (run zeluc %{zli})))
 
 (rule
  (targets dump.zci dump.ml)
- (deps (:zli dump.zls) basics.zci list.zci)
- (action (run zeluc %{zli})))
+ (deps (:zls dump.zls) basics.zci list.zci)
+ (action (run zeluc %{zls})))
 
 (library
  (name zlstdlib)
