@@ -304,17 +304,17 @@ and expression_desc state_vars e =
            expression state_vars e,
            mk_expr (pack state_vars out))
   | Otypeconstraint(e, _ty_e) ->
-      (expression state_vars e).expr
+      expression_desc state_vars e
   | Oifthenelse(e, e1, e2) ->
-      let x = fresh "b" in
+      let b = fresh "_b" in
       let out =
-        Eif (evar x, expression state_vars e1,
+        Eif (evar b, expression state_vars e1,
              expression state_vars e2)
       in
-      Elet(unpack state_vars (pvar x),
+      Elet(unpack state_vars (pvar b),
            expression state_vars e,
-           mk_expr (pack state_vars out))
-  | Oinst(i) -> (instruction i).expr
+           mk_expr out)
+  | Oinst(i) -> (instruction state_vars i).expr
   end
 
 and left_value left =
@@ -417,28 +417,27 @@ and standard_method_call m =
             mk_expr (Etuple [self_update; evar res]))
   | Some (i, _) -> not_yet_implemented "instance array"
 
-and instruction i =
-  let k = expr_of_sset (fv_updated i) in
-  inst (add_return i) k
+and instruction state_vars i =
+  inst state_vars (add_return i)
 
-and inst i k =
-  let e = inst_desc i k in
+and inst state_vars i =
+  let e = inst_desc state_vars i in
   mk_expr e
 
-and inst_desc i k =
+and inst_desc state_vars i =
   begin match i with
   | Olet(p, e, i) ->
       let p = pattern p in
-      assert (SSet.disjoint (fv_patt p) (fv_expr k));
-      let state_vars = fv_expr_updated e in
-      Elet (unpack state_vars p, expression state_vars e, inst i k)
+      assert (SSet.disjoint (fv_patt p) state_vars);
+      let state_vars' = fv_expr_updated e in
+      Elet (unpack state_vars' p, expression state_vars' e, inst state_vars i)
   | Oletvar(x, _is_mutable, ty, e_opt, i) ->
       let ty = type_expr_of_typ ty in
       let p = pattern (Ovarpat(x, ty)) in
-      assert (SSet.disjoint (fv_patt p) (fv_expr k));
+      assert (SSet.disjoint (fv_patt p) state_vars);
       let e = Option.value ~default:(Oconst Oany) e_opt in
-      let state_vars = fv_expr_updated e in
-      Elet (unpack state_vars p, expression state_vars e, inst i k)
+      let state_vars' = fv_expr_updated e in
+      Elet (unpack state_vars' p, expression state_vars' e, inst state_vars i)
   | Omatch(_e, _match_handler_l) -> not_yet_implemented "match"
   | Ofor(_is_to, _n, _e1, _e2, _i3) -> not_yet_implemented "for"
   | Owhile(_e1, _i2) -> not_yet_implemented "while"
@@ -446,47 +445,35 @@ and inst_desc i k =
       let updated = fv_expr_updated e in
       Elet (unpack updated (pvar { name = var_of_left_value left }),
             left_value_update updated left e,
-            k)
+            mk_expr (pack state_vars eunit.expr))
   | Oassign_state(left, e) ->
       let updated = fv_expr_updated e in
       Elet (unpack updated (pvar { name = var_of_left_state_value left }),
             left_state_value_update updated left e,
-            k)
-  | Osequence l -> (List.fold_right inst l k).expr
-  | Oexp(e) ->
-      let state_vars = fv_expr_updated e in
-      let res = fresh "res" in
-      Elet (unpack state_vars (pvar res),
-            expression state_vars e,
-            mk_expr (Etuple [k; evar res]))
-  | Oif(e, i1, None) ->
-      (* assumes Oif returns void *)
-      let state_vars = fv_expr_updated e in
-      let updated = SSet.union (fv_updated i1) state_vars in
-      let p = patt_of_sset updated in
-      let k' = expr_of_sset updated in
+            mk_expr (pack state_vars eunit.expr))
+  | Osequence l ->
+      begin match List.rev l with
+      | [] -> eunit.expr
+      | i :: rev_l ->
+          List.fold_left
+            (fun k i ->
+               Elet (unpack state_vars pany, inst state_vars i, mk_expr k))
+            (inst_desc state_vars i) l
+      end
+  | Oexp(e) -> expression_desc state_vars e
+  | Oif(e, i1, o_i2) ->
+      let i2 = Option.value ~default:(Oexp(Oconst Ovoid)) o_i2 in
+      let updated_e = fv_expr_updated e in
+      let updated_i = SSet.union (fv_updated i1) (fv_updated i2) in
       let if_ =
-        let b = fresh "b" in
-        Elet (unpack state_vars (pvar b),
-              expression state_vars e,
-              mk_expr (Eif (evar b, inst i1 k', k')))
+        let b = fresh "_b" in
+        Elet (unpack updated_e (pvar b),
+              expression updated_e e,
+              mk_expr (Eif (evar b, inst updated_i i1, inst updated_i i2)))
       in
-      Elet (p,  mk_expr if_, k)
-  | Oif(e, i1, Some i2) ->
-      (* assumes Oif returns void *)
-      let state_vars = fv_expr_updated e in
-      let updated =
-        SSet.union (SSet.union (fv_updated i1) (fv_updated i2)) state_vars
-      in
-      let p = patt_of_sset updated in
-      let k' = expr_of_sset updated in
-      let if_ =
-        let b = fresh "b" in
-        Elet (unpack state_vars (pvar b),
-              expression state_vars e,
-              mk_expr (Eif (evar b, inst i1 k', inst i2 k')))
-      in
-      Elet (p, mk_expr if_, k)
+      let res = fresh "_res_if" in
+      Elet (unpack updated_i (pvar res), mk_expr if_,
+            mk_expr (pack state_vars (evar res).expr))
   end
 
 and type_expr_of_typ =
@@ -613,7 +600,11 @@ let machine_init name i_opt memories instances =
     (Ddecl (pvar {name = (name^"_init") },
             match i_opt with
             | None -> r
-            | Some i -> mk_expr (Esequence (instruction i, r))))
+            | Some i ->
+                let state_vars = fv_updated i in
+                mk_expr (Elet(unpack state_vars pany,
+                              instruction state_vars i,
+                              r))))
 
 let machine_method name { me_name = me_name; me_params = pat_list;
                    me_body = i; me_typ = _ty } =
@@ -622,7 +613,7 @@ let machine_method name { me_name = me_name; me_params = pat_list;
     mk_patt (Ptuple [ self_patt;
                       mk_patt (Ptuple (List.map pattern pat_list)) ])
   in
-  let body = instruction i in
+  let body = instruction (fv_updated i) i in
   mk_decl (Dfun(method_name, args, body))
 
 let machine name m =
@@ -637,7 +628,7 @@ let machine name m =
 let implementation impl =
   begin match impl with
   | Oletvalue (x, i) ->
-      [  mk_decl (Ddecl (pvar {name = x}, instruction i)) ]
+      [  mk_decl (Ddecl (pvar {name = x}, instruction (fv_updated i) i)) ]
   | Oletfun (f, args, i) ->
       let args =
         begin match args with
@@ -646,7 +637,7 @@ let implementation impl =
         | _ -> mk_patt (Ptuple (List.map pattern args))
         end
       in
-     [ mk_decl (Dfun ({name = f}, args, instruction i)) ]
+     [ mk_decl (Dfun ({name = f}, args, instruction (fv_updated i) i)) ]
   | Oletmachine (x, m) ->
       machine x m
   | Oopen m ->
@@ -662,7 +653,7 @@ let rewrite_decl f d =
     if d = d' || n < 0 then d
     else rewrite_decl (n - 1) f d'
   in
-  rewrite_decl 100 f d
+  rewrite_decl 1000 f d
 
 let simplify d =
   let r_expr expr =
