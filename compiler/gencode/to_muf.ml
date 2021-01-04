@@ -629,6 +629,7 @@ let simplify d =
     let expr = Rewrites.simplify_lets expr in
     let expr = Rewrites.constant_propagation expr in
     let expr = Rewrites.single_use expr in
+    let expr = Rewrites.merge_record_update expr in
     expr
   in
   { decl = rewrite_decl r_expr d.decl }
