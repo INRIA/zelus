@@ -622,12 +622,13 @@ let rewrite_decl f d =
     if d = d' || n < 0 then d
     else rewrite_decl (n - 1) f d'
   in
-  rewrite_decl 1000 f d
+  rewrite_decl 10000 f d
 
 let simplify d =
   let r_expr expr =
     let expr = Rewrites.simplify_lets expr in
     let expr = Rewrites.constant_propagation expr in
+    let expr = Rewrites.single_use expr in
     expr
   in
   { decl = rewrite_decl r_expr d.decl }
