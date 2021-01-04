@@ -410,7 +410,7 @@ let emit_periodic_code ff k sampling =
         "@[let periodic() =
               let _x = Unix.setitimer Unix.ITIMER_REAL
               {Unix.it_interval = %f ; Unix.it_value = 1.0 }
-              in Sys.set_signal Sys.sigalrm (Sys.Signal_handle main);
+              in Sys.set_signal Sys.sigalrm (Sys.Signal_handle (fun _ -> main ()));
               while true do Unix.sleep 1 done;;
               periodic();exit(0)@.@]" sampling
   | Deftypes.Tcont ->
