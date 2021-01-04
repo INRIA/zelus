@@ -21,6 +21,7 @@ a.out
 *.vrb
 *.tmp
 *.exe
+.vscode
 .merlin
 config.ml
 config
