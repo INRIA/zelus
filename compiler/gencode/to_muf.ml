@@ -426,7 +426,7 @@ and inst_desc state_vars i =
           List.fold_left
             (fun k i ->
                Elet (unpack state_vars pany, inst state_vars i, mk_expr k))
-            (inst_desc state_vars i) l
+            (inst_desc state_vars i) rev_l
       end
   | Oexp(e) -> expression_desc state_vars e
   | Oif(e, i1, o_i2) ->
