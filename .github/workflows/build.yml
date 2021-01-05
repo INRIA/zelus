@@ -21,23 +21,20 @@ jobs:
 #           - 4.08.1
 
     steps:
-      - name: Update ubuntu
-        run: sudo apt-get -y update
-
       - name: Install external dependencies
-        run: sudo apt-get -y install gcc wget cmake gtk2.0
-
-      - name: foo
-        run: whereis tar
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y install gcc wget cmake gtk2.0
         
       - name: Install sundials
         if: matrix.solver == 'sundials'
-        run: wget -nv --show-progress --progress=bar:force:noscroll https://computing.llnl.gov/projects/sundials/download/sundials-3.2.1.tar.gz && \
-          tar xzf sundials-3.2.1.tar.gz && \
-          mkdir sundials-3.2.1-build && \
-          cd sundials-3.2.1-build && \
-          cmake ../sundials-3.2.1 && \
-          make -j && \
+        run: |
+          wget -nv --show-progress --progress=bar:force:noscroll https://computing.llnl.gov/projects/sundials/download/sundials-3.2.1.tar.gz
+          tar xzf sundials-3.2.1.tar.gz
+          mkdir sundials-3.2.1-build
+          cd sundials-3.2.1-build
+          cmake ../sundials-3.2.1
+          make -j
           sudo make install 
 
       - name: Use OCaml ${{ matrix.ocaml-version }}
