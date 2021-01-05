@@ -30,7 +30,8 @@ jobs:
           ocaml-version: ${{ matrix.ocaml-version }}
 
       - name: Install external dependencies
-        run: sudo apt-get -y install git build-essential m4 unzip pkg-config libpcre3-dev mingw-w64 gcc wget cmake gtk2.0
+        run: sudo apt-get -y update && \
+          sudo apt-get -y install git build-essential m4 unzip pkg-config libpcre3-dev mingw-w64 gcc wget cmake gtk2.0
 
       - name: Install sundials
         if: matrix.solver == 'sundials'
