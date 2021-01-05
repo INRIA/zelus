@@ -17,7 +17,7 @@
 
 (library
  (name zlstdlib)
- (libraries
+ (libraries unix
   (select solvers.ml from
    (sundialsml -> solvers.sundials.ml)
    ( -> solvers.nosundials.ml))
