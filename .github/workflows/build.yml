@@ -26,6 +26,14 @@ jobs:
           sudo apt-get -y update
           sudo apt-get -y install gcc wget cmake gtk2.0
         
+      - name: Use OCaml ${{ matrix.ocaml-version }}
+        uses: avsm/setup-ocaml@v1
+        with:
+          ocaml-version: ${{ matrix.ocaml-version }}
+        
+      - name: Install OCaml dependencies
+        run: opam install -y graphics ocamlfind lablgtk menhir
+
       - name: Install sundials
         if: matrix.solver == 'sundials'
         run: |
@@ -35,15 +43,8 @@ jobs:
           cd sundials-3.2.1-build
           cmake ../sundials-3.2.1
           make -j
-          sudo make install 
-
-      - name: Use OCaml ${{ matrix.ocaml-version }}
-        uses: avsm/setup-ocaml@v1
-        with:
-          ocaml-version: ${{ matrix.ocaml-version }}
-        
-      - name: Install OCaml dependencies
-        run: opam install -y graphics ocamlfind lablgtk sundialsml menhir
+          sudo make install
+          opam install -y sundialsml
 
       - name: Checkout code
         uses: actions/checkout@v2
@@ -52,4 +53,6 @@ jobs:
         run: opam install .
       
       - name: Build examples
-        run: cd examples && dune build --root .
+        run: |
+          cd examples 
+          dune build --root .
