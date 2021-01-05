@@ -13,7 +13,7 @@ jobs:
       matrix:
         solver:
           - sundials
-          - nosundials
+          # - nosundials
         ocaml-version:
           - 4.11.1
 #           - 4.10.1
@@ -26,6 +26,9 @@ jobs:
 
       - name: Install external dependencies
         run: sudo apt-get -y install gcc wget cmake gtk2.0
+
+      - name: foo
+        run: whereis tar
         
       - name: Install sundials
         if: matrix.solver == 'sundials'
