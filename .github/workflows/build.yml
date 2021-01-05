@@ -14,6 +14,9 @@ jobs:
         solver:
           - sundials
           - nosundials
+        plot:
+          - gtk
+          - nogtk
         ocaml-version:
           - 4.11.1
 #           - 4.10.1
@@ -24,7 +27,7 @@ jobs:
       - name: Install external dependencies
         run: |
           sudo apt-get -y update
-          sudo apt-get -y install gcc wget cmake gtk2.0
+          sudo apt-get -y install gcc wget cmake
         
       - name: Use OCaml ${{ matrix.ocaml-version }}
         uses: avsm/setup-ocaml@v1
@@ -33,6 +36,12 @@ jobs:
         
       - name: Install OCaml dependencies
         run: opam install -y graphics ocamlfind lablgtk menhir
+
+      - name: Install Gtk
+        if: matrix.plot == "gtk"
+        run: |
+          sudo apt-get -y install gtk2.0
+          opam install -y lablgtk
 
       - name: Install sundials
         if: matrix.solver == 'sundials'
@@ -52,7 +61,15 @@ jobs:
       - name: Install Zelus
         run: opam install .
       
-      - name: Build examples
+      - name: Build all examples
+        if: matrix.plot == "gtk"
         run: |
           cd examples 
+          opam exec -- dune build --root .
+
+      - name: Build no-gtk examples only
+        if: matrix.plot == "nogtk"
+        run: |
+          cd examples
+          echo "\n(dirs :standard \ airtraffic backhoe bangbang billiard cantharide cradle db_intgr engine fuelcontroller heater misc power qss soas_relaycontrol stick_slip_friction stickysprings suspension van_der_pol zener_diode)" >> dune
           opam exec -- dune build --root .
