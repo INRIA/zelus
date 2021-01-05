@@ -1,0 +1,52 @@
+name: Build
+
+on:
+  - push
+  - pull_request
+  - workflow_dispatch
+    
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        solver:
+          - sundials
+          - nosundials
+        ocaml-version:
+          - 4.11.1
+#           - 4.10.1
+#           - 4.09.1
+          - 4.08.1
+
+    steps:
+      - name: Checkout code
+      - uses: actions/checkout@v2
+        
+      - name: Use OCaml ${{ matrix.ocaml-version }}
+        uses: avsm/setup-ocaml@v1
+        with:
+          ocaml-version: ${{ matrix.ocaml-version }}
+
+      - name: Install external dependencies
+        run: sudo apt-get -y install git build-essential m4 unzip pkg-config libpcre3-dev mingw-w64 gcc wget cmake gtk2.0
+
+      - name: Install sundials
+        if: matrix.solver == 'sundials'
+        run: wget -nv --show-progress --progress=bar:force:noscroll https://computing.llnl.gov/projects/sundials/download/sundials-3.2.1.tar.gz && \
+          tar xzf sundials-3.2.1.tar.gz && \
+          mkdir sundials-3.2.1-build && \
+          cd sundials-3.2.1-build && \
+          cmake ../sundials-3.2.1 && \
+          make -j && \
+          sudo make install 
+        
+      - name: Install OCaml dependencies
+        run: opam install -y graphics ocamlfind lablgtk sundialsml menhir
+      
+      - name: Install Zelus
+        run: opam install .
+      
+      - name: Build examples
+        run: cd examples && dune build --root .
