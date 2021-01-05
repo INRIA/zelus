@@ -13,7 +13,7 @@ jobs:
       matrix:
         solver:
           - sundials
-          # - nosundials
+          - nosundials
         ocaml-version:
           - 4.11.1
 #           - 4.10.1
