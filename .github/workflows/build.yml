@@ -18,20 +18,23 @@ jobs:
           - 4.11.1
 #           - 4.10.1
 #           - 4.09.1
-          - 4.08.1
+#           - 4.08.1
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
+      - name: Install sudo
+        run: apt update && apt install sudo
+
+      - name: Install external dependencies
+        run: sudo apt-get -y update && \
+          sudo apt-get -y install git build-essential m4 unzip pkg-config libpcre3-dev mingw-w64 gcc wget cmake gtk2.0
         
       - name: Use OCaml ${{ matrix.ocaml-version }}
         uses: avsm/setup-ocaml@v1
         with:
           ocaml-version: ${{ matrix.ocaml-version }}
-
-      - name: Install external dependencies
-        run: sudo apt-get -y update && \
-          sudo apt-get -y install git build-essential m4 unzip pkg-config libpcre3-dev mingw-w64 gcc wget cmake gtk2.0
 
       - name: Install sundials
         if: matrix.solver == 'sundials'
