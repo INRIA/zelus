@@ -11,6 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        deps
         solver:
           - sundials
           - nosundials
@@ -38,7 +39,7 @@ jobs:
         run: opam install -y graphics ocamlfind lablgtk menhir
 
       - name: Install Gtk
-        if: matrix.plot == "gtk"
+        if: matrix.plot == 'gtk'
         run: |
           sudo apt-get -y install gtk2.0
           opam install -y lablgtk
@@ -62,13 +63,13 @@ jobs:
         run: opam install .
       
       - name: Build all examples
-        if: matrix.plot == "gtk"
+        if: matrix.plot == 'gtk'
         run: |
           cd examples 
           opam exec -- dune build --root .
 
       - name: Build no-gtk examples only
-        if: matrix.plot == "nogtk"
+        if: matrix.plot == 'nogtk'
         run: |
           cd examples
           echo "\n(dirs :standard \ airtraffic backhoe bangbang billiard cantharide cradle db_intgr engine fuelcontroller heater misc power qss soas_relaycontrol stick_slip_friction stickysprings suspension van_der_pol zener_diode)" >> dune
