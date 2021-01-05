@@ -55,4 +55,4 @@ jobs:
       - name: Build examples
         run: |
           cd examples 
-          dune build --root .
+          opam exec -- dune build --root .
