@@ -22,8 +22,8 @@ jobs:
 
     steps:
       - name: Install external dependencies
-        run: apt-get -y update && \
-          apt-get -y install git build-essential m4 unzip pkg-config libpcre3-dev mingw-w64 gcc wget cmake gtk2.0
+        run: sudo apt-get update && \
+          sudo apt-get -y install git build-essential m4 unzip pkg-config libpcre3-dev mingw-w64 gcc wget cmake gtk2.0
         
       - name: Use OCaml ${{ matrix.ocaml-version }}
         uses: avsm/setup-ocaml@v1
@@ -38,7 +38,7 @@ jobs:
           cd sundials-3.2.1-build && \
           cmake ../sundials-3.2.1 && \
           make -j && \
-          make install 
+          sudo make install 
         
       - name: Install OCaml dependencies
         run: opam install -y graphics ocamlfind lablgtk sundialsml menhir
