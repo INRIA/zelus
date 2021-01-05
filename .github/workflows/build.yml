@@ -21,12 +21,6 @@ jobs:
 #           - 4.08.1
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Install sudo
-        run: apt update && apt install sudo
-
       - name: Install external dependencies
         run: apt-get -y update && \
           apt-get -y install git build-essential m4 unzip pkg-config libpcre3-dev mingw-w64 gcc wget cmake gtk2.0
@@ -48,6 +42,9 @@ jobs:
         
       - name: Install OCaml dependencies
         run: opam install -y graphics ocamlfind lablgtk sundialsml menhir
+
+      - name: Checkout code
+        uses: actions/checkout@v2
       
       - name: Install Zelus
         run: opam install .
