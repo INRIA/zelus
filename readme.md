@@ -1,4 +1,4 @@
-[![Actions Status](https://github.com/{user}/zelus/workflows/Build/badge.svg)](https://github.com/{user}/zelus/actions)
+[![Actions Status](https://github.com/INRIA/zelus/workflows/Build/badge.svg)](https://github.com/INRIA/zelus/actions)
 
 # Zelus: A Synchronous Language with ODEs
 
