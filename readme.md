@@ -1,3 +1,5 @@
+[![Actions Status](https://github.com/{user}/zelus/workflows/Build/badge.svg)](https://github.com/{user}/zelus/actions)
+
 # Zelus: A Synchronous Language with ODEs
 
 Zélus is a synchronous language extended with Ordinary Differential Equations (ODEs) to program hybrid systems that mix discrete-time and continuous-time models.
