@@ -17,7 +17,7 @@
 {
 open Lexing
 open Parser
-open Location
+open Zls_location
 
 type lexical_error =
     Illegal_character

@@ -53,7 +53,7 @@ Tr(ck)(x = e) = x = if ck then Tr(ck)(e) else pre x
 
 *)
 
-open Location
+open Zls_location
 open Misc
 open Ident
 open Deftypes

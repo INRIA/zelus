@@ -17,8 +17,8 @@
 (* $Id$ *)
 
 open Format
-open Location
-open Parsetree
+open Zls_location
+open Zls_parsetree
 open Misc
 
 

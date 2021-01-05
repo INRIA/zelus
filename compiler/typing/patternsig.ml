@@ -22,7 +22,7 @@ open Global
 open Lident
 open Matching
 open Printf
-open Location
+open Zls_location
 open Deftypes
 open Misc
 

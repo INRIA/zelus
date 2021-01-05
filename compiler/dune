@@ -9,7 +9,8 @@
 
 (executables
   (names zeluc zlsdep)
-  (libraries unix menhirLib muf-compiler-libs)
+  (libraries unix menhirLib compiler-libs.common)
+  (preprocess (pps ppx_deriving.show ppx_deriving.fold ppx_deriving.map))
   (promote (until-clean)))
 
 (install

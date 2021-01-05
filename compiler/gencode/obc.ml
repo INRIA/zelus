@@ -14,7 +14,7 @@
 
 (* abstract syntax tree of the object code *)
 
-open Location
+open Zls_location
 open Misc
 open Ident
 

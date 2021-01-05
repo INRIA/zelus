@@ -17,7 +17,7 @@
 
 open Misc
 open Ident
-open Location
+open Zls_location
 open Modules
 open Deftypes
 open Ptypes

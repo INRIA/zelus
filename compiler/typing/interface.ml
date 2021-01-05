@@ -14,7 +14,7 @@
 
 (* read an interface *)
 
-open Location
+open Zls_location
 open Lident
 open Zelus
 open Global

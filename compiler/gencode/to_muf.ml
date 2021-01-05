@@ -1,7 +1,6 @@
 open Obc
-open Muf_compiler_libs
-open Muf_compiler_libs.Muf_utils
-open Muf_compiler_libs.Ast
+open Muf
+open Muf_utils
 
 exception Not_yet_implemented of string
 
@@ -626,10 +625,10 @@ let rewrite_decl f d =
 
 let simplify d =
   let r_expr expr =
-    let expr = Rewrites.simplify_lets expr in
-    let expr = Rewrites.constant_propagation expr in
-    let expr = Rewrites.single_use expr in
-    let expr = Rewrites.merge_record_update expr in
+    let expr = Muf_rewrites.simplify_lets expr in
+    let expr = Muf_rewrites.constant_propagation expr in
+    let expr = Muf_rewrites.single_use expr in
+    let expr = Muf_rewrites.merge_record_update expr in
     expr
   in
   { decl = rewrite_decl r_expr d.decl }

@@ -13,7 +13,7 @@
 (* *********************************************************************)
 
 (** The compiler *)
-open Location
+open Zls_location
 open Misc
 open Global
 open Zelus
@@ -64,7 +64,7 @@ let compile_interface parse modname filename suffix =
 
   try
     Modules.initialize modname;
-    Location.initialize source_name;
+    Zls_location.initialize source_name;
 
     (* Parsing of the file *)
     let l = parse source_name in
@@ -114,7 +114,7 @@ let compile modname filename =
     Plmm.implementation_list lmm_ff impl_list in
 
   Modules.initialize modname;
-  Location.initialize source_name;
+  Zls_location.initialize source_name;
 
   let comment c =
   let sep =
@@ -268,13 +268,13 @@ let compile modname filename =
          Format.printf "%a@."
            (Format.pp_print_list
               (fun ff p -> fprintf ff "%s@,"
-                  (Muf_compiler_libs.Ast.show_program
+                  (Muf.show_program
                      (fun ff () -> Format.fprintf ff "()")
                      p)))
               muf_list
        end;
        let ml_list =
-         List.map Muf_compiler_libs.Compiler.compile_program muf_list
+         List.map Muf_gencode.compile_program muf_list
        in
        if !verbose
        then begin

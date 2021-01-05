@@ -20,7 +20,7 @@
 (* [let x = e1 in e2] has the behavior of [let x = e1 before y = e2 in y] *)
 
 open Misc
-open Location
+open Zls_location
 open Ident
 open Lident
 open Deftypes

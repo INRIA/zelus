@@ -20,7 +20,7 @@
 (* the form [lx = last x] *)
 
 open Misc
-open Location
+open Zls_location
 open Deftypes
 open Zelus
 open Ident

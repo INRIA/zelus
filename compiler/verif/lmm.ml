@@ -17,7 +17,7 @@
 (* clocks are kept in case of a translation into Lustre but are *)
 (* only necessary for the change of state variables *)
 
-open Location
+open Zls_location
 open Ident
 
 type name = string

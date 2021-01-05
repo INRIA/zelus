@@ -25,7 +25,7 @@ open Misc
 open Ident
 open Global
 open Zelus
-open Location
+open Zls_location
 open Deftypes
 open Definit
 open Init

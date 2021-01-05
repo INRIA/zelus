@@ -22,7 +22,7 @@
 (* into:  match e with | P1 -> do encore = true and x = ... | ... *)
 
 open Misc
-open Location
+open Zls_location
 open Ident
 open Lident
 open Initial

@@ -17,7 +17,7 @@
 (* read/write information is up-to-date *)
 
 open Misc
-open Location
+open Zls_location
 open Deftypes
 open Zelus
 open Ident

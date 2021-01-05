@@ -17,7 +17,7 @@
 (* [disc(e)] is translated into [false -> major on (e <> last e)] *)
 
 open Misc
-open Location
+open Zls_location
 open Ident
 open Lident
 open Initial

@@ -17,7 +17,7 @@
 (* implicitely complemented with [x = last x] *)
 (* otherwise, [x] must be defined in every branch *)
 
-open Location
+open Zls_location
 open Ident
 open Zelus
 open Typerrors

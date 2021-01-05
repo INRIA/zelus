@@ -15,7 +15,7 @@
 (* print object code *)
 
 open Misc
-open Location
+open Zls_location
 open Ident
 open Obc
 open Format

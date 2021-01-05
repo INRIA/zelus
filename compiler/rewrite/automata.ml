@@ -14,7 +14,7 @@
 
 (* removing automata statements *)
 open Misc
-open Location
+open Zls_location
 open Ident
 open Global
 open Deftypes

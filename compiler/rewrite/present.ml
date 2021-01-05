@@ -14,7 +14,7 @@
 
 (* removing present statements *)
 open Misc
-open Location
+open Zls_location
 open Ident
 open Lident
 open Global

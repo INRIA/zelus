@@ -61,7 +61,7 @@ let reset e e_reset =
 		    Deftypes.t_typ = e.e_typ } in
   { e with e_desc =
 	     Elet({ l_rec = false; l_env = env; l_eq = [eq];
-		    l_loc = Location.no_location }, var res e.e_typ) }
+		    l_loc = Zls_location.no_location }, var res e.e_typ) }
 
 (** Build a renaming from an environment *)
 let build env =
@@ -382,7 +382,7 @@ and letin renaming env p_list e_list e =
   let p_list = List.map (pattern renaming) p_list in
   { e with e_desc =
       Elet({ l_rec = false; l_env = env; l_eq = List.map2 eqmake p_list e_list;
-             l_loc = Location.no_location }, expression renaming e) }
+             l_loc = Zls_location.no_location }, expression renaming e) }
 
 let implementation acc impl = 
   match impl.desc with

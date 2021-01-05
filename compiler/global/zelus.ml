@@ -14,13 +14,13 @@
 
 (* Abstract syntax tree after scoping *)
 
-open Location
+open Zls_location
 open Misc
 
 type kind = S | A | C | D | AD | AS | P
 type name = string
 
-type 'a localized = { desc: 'a; loc: Location.location }
+type 'a localized = { desc: 'a; loc: Zls_location.location }
 
 
 (** Types *)

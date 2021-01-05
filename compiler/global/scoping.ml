@@ -20,8 +20,8 @@
 (* - a local name must be binded to a binded. *)
 
 open Misc
-open Location
-open Parsetree
+open Zls_location
+open Zls_parsetree
 open Ident
 open Deftypes
 open Format
@@ -169,20 +169,20 @@ let longname = function
       Lident.Modname({ Lident.qual = q; Lident.id = id })
 
 let immediate = function
-  | Parsetree.Eint(i) -> Deftypes.Eint(i)
-  | Parsetree.Ebool(b) -> Deftypes.Ebool(b)
-  | Parsetree.Efloat(f) -> Deftypes.Efloat(f)
-  | Parsetree.Echar(c) -> Deftypes.Echar(c)
-  | Parsetree.Estring(s) -> Deftypes.Estring(s)
-  | Parsetree.Evoid -> Deftypes.Evoid
+  | Zls_parsetree.Eint(i) -> Deftypes.Eint(i)
+  | Zls_parsetree.Ebool(b) -> Deftypes.Ebool(b)
+  | Zls_parsetree.Efloat(f) -> Deftypes.Efloat(f)
+  | Zls_parsetree.Echar(c) -> Deftypes.Echar(c)
+  | Zls_parsetree.Estring(s) -> Deftypes.Estring(s)
+  | Zls_parsetree.Evoid -> Deftypes.Evoid
 
 let constant = function
-  | Parsetree.Cimmediate(i) -> Deftypes.Cimmediate(immediate i)
-  | Parsetree.Cglobal(ln) -> Deftypes.Cglobal(longname ln)
+  | Zls_parsetree.Cimmediate(i) -> Deftypes.Cimmediate(immediate i)
+  | Zls_parsetree.Cglobal(ln) -> Deftypes.Cglobal(longname ln)
 
 let default = function
-  | Parsetree.Init(c) -> Zelus.Init(constant c)
-  | Parsetree.Default(c) -> Zelus.Default(constant c)
+  | Zls_parsetree.Init(c) -> Zelus.Init(constant c)
+  | Zls_parsetree.Default(c) -> Zelus.Default(constant c)
     
 let kind = function
   | S -> Zelus.S | A -> Zelus.A | AS -> Zelus.AS
@@ -736,9 +736,9 @@ and equation env_pat env eq_list { desc = desc; loc = loc } =
     :: eq_list
   | EQifthenelse(e, b1, b2_opt) ->
     let ptrue =
-      pmake Location.no_location (Zelus.Econstpat(Deftypes.Ebool(true))) in
+      pmake Zls_location.no_location (Zelus.Econstpat(Deftypes.Ebool(true))) in
     let pfalse =
-      pmake Location.no_location (Zelus.Econstpat(Deftypes.Ebool(false))) in
+      pmake Zls_location.no_location (Zelus.Econstpat(Deftypes.Ebool(false))) in
     let e = expression env e in
     let true_handler = { Zelus.m_pat = ptrue; 
 			 Zelus.m_body = snd (block_eq_list env_pat env b1);

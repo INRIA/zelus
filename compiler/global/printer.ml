@@ -14,7 +14,7 @@
 
 (* the printer *)
 
-open Location
+open Zls_location
 open Misc
 open Zelus
 open Deftypes

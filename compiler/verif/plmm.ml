@@ -14,7 +14,7 @@
 
 (* Printer for lmm *)
 
-open Location
+open Zls_location
 open Format
 open Pp_tools
 open Ident

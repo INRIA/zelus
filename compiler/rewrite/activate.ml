@@ -15,7 +15,7 @@
 (* removing equations [der x = e init e0 reset z1 -> e1 | ... | zn -> en] *)
 
 open Misc
-open Location
+open Zls_location
 open Ident
 open Global
 open Zelus

@@ -20,7 +20,7 @@
 (* is shared nor a memory. All equations on those variables *)
 (* are then of the form [x = e] *)
 
-open Location
+open Zls_location
 open Ident
 open Zelus
 open Deftypes
