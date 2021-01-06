@@ -5,4 +5,5 @@
 
 (executables
  (names zltohtml diff_log luciole_zls)
- (libraries zelus.zlcompilerlibs menhirLib str))
+ (libraries zelus.zlcompilerlibs menhirLib str)
+ (promote (until-clean)))
