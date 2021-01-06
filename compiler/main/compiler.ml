@@ -14,7 +14,7 @@
 
 (** The compiler *)
 open Zlcompilerlibs
-open Location
+open Zls_location
 open Misc
 open Global
 open Zelus
