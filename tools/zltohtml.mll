@@ -4,6 +4,7 @@
 let print = print_string
 
 open Lexing
+open Zlcompilerlibs
 
 type lexical_error =
     Illegal_character
