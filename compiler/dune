@@ -17,6 +17,7 @@
 
 (executable
   (name zeluc)
+  (modes (byte exe))
   (libraries unix menhirLib zlcompilerlibs)
   (modules zeluc compiler simulator fixstep)
   (promote (until-clean)))
