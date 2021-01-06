@@ -1,4 +1,4 @@
-include ../../config
+include ../color
 
 ALL := $(shell ls t*.zls)
 NTESTS := $(shell ls t*.zls | wc -l)
