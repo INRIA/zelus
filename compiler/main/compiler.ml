@@ -13,7 +13,8 @@
 (* *********************************************************************)
 
 (** The compiler *)
-open Zls_location
+open Zlcompilerlibs
+open Location
 open Misc
 open Global
 open Zelus

@@ -1,6 +1,6 @@
 (rule
- (targets pendulum.ml pendulum_main.ml)
- (deps (:zl pendulum.zls) data.zli misc.zli aux.zli)
+ (targets pendulum.ml pendulum_main.ml data.ml misc.ml)
+ (deps (:zl pendulum.zls) data.zls misc.zls aux.zli)
  (action (run zeluc -deps -sampling 0.01 -s manual -o pendulum_main %{zl})))
 
 (executable

@@ -1,0 +1,3 @@
+(rule
+ (alias runtest)
+ (action (run make)))

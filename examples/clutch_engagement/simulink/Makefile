@@ -1,5 +1,4 @@
-include ../../../config
-
+TOOLS=../../../tools
 COLTITLES="Tin,Tfmaxs,Tfmaxk,Engine,Vehicle,Shaft"
 RUNS=ode23.out ode45.out ode3.out
 

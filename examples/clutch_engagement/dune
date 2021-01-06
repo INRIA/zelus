@@ -1,0 +1,19 @@
+(rule
+ (targets clutch_gui.ml clutch_gui_main.ml clutch_model.ml)
+ (deps (:zl clutch_gui.zls) clutch_model.zls (sandbox always))
+ (action (run zeluc -deps -gtk2 -s main -o clutch_gui_main %{zl})))
+
+(rule
+ (targets clutch_log.ml clutch_log_main.ml)
+ (deps (:zl clutch_log.zls) clutch_model.zls (sandbox always))
+ (action (run zeluc -deps -gtk2 -s main -o clutch_log_main %{zl})))
+
+(rule
+ (targets clutch_diff.ml clutch_diff_main.ml)
+ (deps (:zl clutch_diff.zls) clutch_model.zls (sandbox always))
+ (action (run zeluc -deps -gtk2 -s main -o clutch_diff_main %{zl})))
+
+(executables
+  (names clutch_gui_main clutch_log_main clutch_diff_main)
+  (libraries lablgtk2 zelus zelus-gtk)
+  (promote (until-clean)))

@@ -2,7 +2,6 @@
 # Author: Marc Pouzet
 # 	  Timothy Bourke
 
-include ../config
 LANG=zelus
 VERSION=1.2
 WWWMAN=wwwman

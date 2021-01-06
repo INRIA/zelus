@@ -3,3 +3,6 @@ all:
 
 clean:
 	dune clean --root .
+
+%.exe:
+	dune build --root . $@

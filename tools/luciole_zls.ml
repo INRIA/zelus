@@ -1,8 +1,12 @@
-
+open Zlcompilerlibs
 open Misc
 open Deftypes
 open Initial
 open Compiler
+
+let add_include d =
+  Deps_tools.add_to_load_path d;
+  load_path := d :: !load_path
 
 let compile file =
   if Filename.check_suffix file ".zls" || Filename.check_suffix file ".zlus"
