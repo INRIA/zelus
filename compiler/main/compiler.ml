@@ -13,6 +13,7 @@
 (* *********************************************************************)
 
 (** The compiler *)
+open Zlcompilerlibs
 open Location
 open Misc
 open Global

@@ -1,5 +1,7 @@
-(copy_files# ../config.ml)
 (include_subdirs unqualified)
+
+(rule 
+ (copy %{project_root}/config.ml config.ml))
 
 (subdir parsing
   (ocamllex lexer))
@@ -7,9 +9,16 @@
 (subdir parsing
   (menhir (modules parser) (infer true) (flags --explain --table)))
 
+(library
+  (name zlcompilerlibs)
+  (public_name zelus.zlcompilerlibs)
+  (modules :standard \ zeluc compiler simulator fixstep)
+  (libraries menhirLib))
+
 (executable
   (name zeluc)
-  (libraries unix menhirLib)
+  (libraries unix menhirLib zlcompilerlibs)
+  (modules zeluc compiler simulator fixstep)
   (promote (until-clean)))
 
 (install
