@@ -5,5 +5,5 @@
 
 (executable
   (name lzc_main)
-  (libraries zelus zelus-gtk)
+  (libraries lablgtk2 zelus zelus-gtk)
   (promote (until-clean)))
