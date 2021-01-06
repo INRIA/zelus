@@ -1,53 +1,13 @@
-include ../../config
-
-EXAMPLE=clutch_gui.zls clutch_log.zls
+TOOLS=../../tools
 OUT_OPTIONS?=-maxt 10 -fullspeed
 
 .PHONY: clutch.out
 
-default: $(word 1, $(targets))
-all:  $(targets)
-byte: $(EXAMPLE:%.zls=%.byte)
-opt:  $(EXAMPLE:%.zls=%.opt)
-
 clutch_graph.pdf: clutch.out clutch.plt
-	gnuplot -e "options='$(ZELUCFLAGS); $(OUT_OPTIONS)'" clutch.plt > $@
+	gnuplot -e "options='$(OUT_OPTIONS)'" clutch.plt > $@
 
-clutch.out: clutch_log.byte
+clutch.out: clutch_log_main.exe
 	./$< $(OUT_OPTIONS)
-
-clutch_gui.byte: ZLEXTRALIBS += $(ZLGTKLIBS) clutch_model.cmo
-clutch_gui.byte: clutch_model.cmo
-
-clutch_gui.opt: ZLEXTRALIBS += $(ZLGTKLIBS) clutch_model.cmx
-clutch_gui.opt: clutch_model.cmx
-
-clutch_log.byte: ZLEXTRALIBS += clutch_model.cmo
-clutch_log.byte: clutch_model.cmo
-
-clutch_log.opt:  ZLEXTRALIBS += clutch_model.cmx
-clutch_log.opt: clutch_model.cmx
-
-clutch_diff.byte: ZLEXTRALIBS += clutch_model.cmo
-clutch_diff.byte: clutch_model.cmo
-
-clutch_diff.opt:  ZLEXTRALIBS += clutch_model.cmx
-clutch_diff.opt: clutch_model.cmx
-
-clutch_model.ml clutch_model.zci: clutch_model.zls
-	$(ZELUC) $(ZELUCFLAGS) $<
-
-clutch_gui.ml: clutch_gui.zls clutch_model.zci
-	$(ZELUC) $(ZELUCFLAGS) -s main -gtk2 -dzero $<
-	mv main.ml $(<:.zls=)_main.ml
-
-clutch_log.ml: clutch_log.zls clutch_model.zci
-	$(ZELUC) $(ZELUCFLAGS) -s main $<
-	mv main.ml $(<:.zls=)_main.ml
-
-clutch_diff.ml: clutch_diff.zls clutch_model.zci
-	$(ZELUC) $(ZELUCFLAGS) -s main $<
-	mv main.ml $(<:.zls=)_main.ml
 
 ## Compare simulation results with those of Simulink
 
@@ -96,12 +56,4 @@ ode23.out diff_ode23.pdf: clutch_diff.byte
 ## Cleaning
 
 clean:
-	-@rm -f *~ *.cmi *.cmo *.cmx *.annot *.o *.zci *.obc *.ml *.out *.byte *.opt
 	-@rm -f *.out
-
-realclean cleanall: clean
-	-@rm -f $(EXAMPLE:%.zls=%.opt) $(EXAMPLE:%.zls=%.byte)
-	-@rm -f *.o *.cm[oix] *.annot *.obc *.zci
-	-@rm -f clutch_model.ml clutch_gui.ml clutch_log.ml
-	-@rm -f diff_*.pdf
-

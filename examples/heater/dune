@@ -15,5 +15,5 @@
 
 (executables
   (names maind mainc maindc)
-  (libraries zelus zelus-gtk)
+  (libraries lablgtk2 zelus zelus-gtk)
   (promote (until-clean)))
