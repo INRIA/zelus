@@ -134,6 +134,7 @@ let print_filename s =
 
 let print_dependencies target_file deps =
   print_filename target_file; print_string depends_on;
+  let deps = List.map (fun x -> (Filename.chop_extension x)^".zci") deps in
   let rec print_items pos = function
     [] -> print_string "\n"
   | dep :: rem ->
@@ -237,9 +238,11 @@ let zli_dependencies source_file =
     raise x
 
 let zls_file_dependencies source_file =
+  let target = (Filename.chop_extension source_file) ^ ".zci" in
   let deps = zls_dependencies source_file in 
-  print_dependencies source_file deps
+  print_dependencies target deps
 
 let zli_file_dependencies source_file =
+  let target = (Filename.chop_extension source_file) ^ ".zci" in
   let deps = zls_dependencies source_file in 
-  print_dependencies source_file deps
+  print_dependencies target deps
