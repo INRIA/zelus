@@ -127,7 +127,7 @@ dune build
 
 This produces two executables (and some tools in `./tools`):
 - `compiler/zeluc.exe`: native code
-- `compiler/zeluc.bc`: byte code
+- `compiler/zeluc.bc`: byte code (can be used with ocamldebug)
 
 Libraries are split in two packages:
 - `zelus`: the standard libraries
@@ -147,17 +147,6 @@ To launch a single subset:
 ```
 dune run test/good
 ```
-
-### Debug
-
-To launch the OCaml debugger on the byte code version of the compiler, you need to set the environment variable `ZLLIB` to the location of the standard library.
-
-```
-export ZLLIB=`pwd`/_build/install/default/share/zelus
-ocamldebug compiler/zeluc.bc test/good/t0.zls
-```
-
-Do not forget to unset `ZLLIB` before installing zelus.
 
 ## Citing Zelus
 
