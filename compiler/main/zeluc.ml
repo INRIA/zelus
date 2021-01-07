@@ -13,7 +13,6 @@
 (* *********************************************************************)
 
 (* the main *)
-open Zlcompilerlibs
 open Misc
 open Initial
 open Compiler

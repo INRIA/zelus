@@ -13,7 +13,6 @@
 (* *********************************************************************)
 
 (* glue code for simulating a main node *)
-open Zlcompilerlibs
 open Deftypes
 open Global
 open Format
