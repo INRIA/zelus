@@ -12,6 +12,7 @@
 (library
   (name zlcompilerlibs)
   (public_name zelus.zlcompilerlibs)
+  (wrapped false)
   (modules :standard \ zeluc compiler simulator fixstep)
   (libraries menhirLib))
 
