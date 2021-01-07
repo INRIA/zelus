@@ -121,12 +121,13 @@ We use [dune](https://dune.readthedocs.io/en/stable/) to build the compiler, the
 To build the project:
 
 ```
+./configure
 dune build
 ```
 
-This produces two executables:
-- `compiler/zeluc.exe`: the compiler
-- `compiler/zlsdep.exe`: a tool to track dependencies between zelus files
+This produces two executables (and some tools in `./tools`):
+- `compiler/zeluc.exe`: native code
+- `compiler/zeluc.bc`: byte code
 
 Libraries are split in two packages:
 - `zelus`: the standard libraries
@@ -134,6 +135,29 @@ Libraries are split in two packages:
 
 The build automatically detects if sundialsml is installed and updates the librairies accordingly.
 
+### Test
+
+To run all the tests:
+```
+dune runtest
+```
+
+Tests are split into 3 categories: `good`, `bad`, and `run`.
+To launch a single subset:
+```
+dune run test/good
+```
+
+### Debug
+
+To launch the OCaml debugger on the byte code version of the compiler, you need to set the environment variable `ZLLIB` to the location of the standard library.
+
+```
+export ZLLIB=`pwd`/_build/install/default/share/zelus
+ocamldebug compiler/zeluc.bc test/good/t0.zls
+```
+
+Do not forget to unset `ZLLIB` before installing zelus.
 
 ## Citing Zelus
 
