@@ -35,12 +35,6 @@ jobs:
       - name: Install OCaml dependencies
         run: opam install -y graphics ocamlfind menhir
 
-      - name: Install Gtk
-        if: matrix.plot == 'gtk'
-        run: |
-          sudo apt-get -y install gtk2.0
-          opam install -y lablgtk
-
       - name: Install sundials
         if: matrix.solver == 'sundials'
         run: |
@@ -57,8 +51,16 @@ jobs:
         uses: actions/checkout@v2
       
       - name: Install Zelus
-        run: opam install .
-      
+        run: |
+          opam pin -n -k path .
+          opam -y install zelus
+
+      - name: Install Gtk
+        if: matrix.plot == 'gtk'
+        run: |
+          sudo apt-get -y install gtk2.0
+          opam install -y lablgtk zelus-gtk
+
       - name: Build all examples
         if: matrix.plot == 'gtk'
         run: |
