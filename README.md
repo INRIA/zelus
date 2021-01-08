@@ -14,7 +14,7 @@ Continuous-time models are simulated using an off-the-shelf numerical solver (he
 The easiest way to install Zelus is via [Opam](https://opam.ocaml.org/), the OCaml package manager.
 
 ```
-opam install .
+opam install zelus
 ```
 
 You can then test your installation with:
@@ -34,10 +34,10 @@ Some examples also depend on lablgtk (which requires gtk2.0)
 opam install sundialsml lablgtk
 ```
 
-You can then reinstall zelus
+You can then reinstall zelus and the zelus-gtk library
 
 ```
-opam reinstall zelus
+opam reinstall zelus zelus-gtk
 ```
 
 
