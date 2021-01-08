@@ -52,8 +52,8 @@ jobs:
       
       - name: Install Zelus
         run: |
-          opam pin -n -k path .
-          opam -y install zelus
+          opam pin -y -n -k path .
+          opam install -y zelus
 
       - name: Install Gtk
         if: matrix.plot == 'gtk'
