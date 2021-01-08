@@ -10,9 +10,7 @@ bug-reports: "https://gitlab.inria.fr/parkas/zelus/-/issues"
 depends: [
   "ocaml" {>= "4.08.1"}
   "dune" {>= "2.6" & build}
-  "ocamlfind"
   "menhir"
-  "graphics"
 ]
 depopts: ["sundialsml"]
 build: [
