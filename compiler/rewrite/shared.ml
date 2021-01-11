@@ -20,8 +20,8 @@
 (* is shared nor a memory. All equations on those variables *)
 (* are then of the form [x = e] *)
 
-open Location
-open Ident
+open Zllocation
+open Zlident
 open Zelus
 open Deftypes
 open Zaux
@@ -68,20 +68,20 @@ let rec pattern dv copies pat =
   match pat.p_desc with
   | Ewildpat | Econstpat _ | Econstr0pat _ -> pat, copies
   | Etuplepat(p_list) ->
-      let p_list, copies = Misc.map_fold (pattern dv) copies p_list in
+      let p_list, copies = Zlmisc.map_fold (pattern dv) copies p_list in
       { pat with p_desc = Etuplepat(p_list) }, copies
   | Econstr1pat(c, p_list) ->
-      let p_list, copies = Misc.map_fold (pattern dv) copies p_list in
+      let p_list, copies = Zlmisc.map_fold (pattern dv) copies p_list in
       { pat with p_desc = Econstr1pat(c, p_list) }, copies
   | Evarpat(n) -> 
       if S.mem n dv then
-        let ncopy = Ident.fresh "copy" in
+        let ncopy = Zlident.fresh "copy" in
         { pat with p_desc = Evarpat(ncopy) },
 	Env.add n (ncopy, true, pat.p_typ) copies
       else pat, copies
   | Erecordpat(label_pat_list) ->
       let label_pat_list, copies =
-        Misc.map_fold
+        Zlmisc.map_fold
 	  (fun copies (label, p) -> 
                  let p, copies = pattern dv copies p in
                  (label, p), copies) copies label_pat_list in
@@ -93,7 +93,7 @@ let rec pattern dv copies pat =
       let p, copies = pattern dv copies p in
       let n, copies = 
         if S.mem n dv then
-          let ncopy = Ident.fresh "copy" in
+          let ncopy = Zlident.fresh "copy" in
           ncopy, Env.add n (ncopy, true, p.p_typ) copies
         else n, copies in
       { pat with p_desc = Ealiaspat(p, n) }, copies
@@ -132,7 +132,7 @@ let rec equation dv copies ({ eq_desc = desc } as eq) =
 				     
 (* [dv] defines names modified by [eq_list] but visible outside of the block *)
 and equation_list dv copies eq_list = 
-  let eq_list, copies_eq_list = Misc.map_fold (equation dv) Env.empty eq_list in
+  let eq_list, copies_eq_list = Zlmisc.map_fold (equation dv) Env.empty eq_list in
   let eq_list = add_equations_for_copies eq_list copies_eq_list in
   eq_list, Env.append (remove_is_copy copies_eq_list) copies
  
@@ -168,4 +168,4 @@ let implementation impl =
   | Efundecl(n, ({ f_body = e } as body)) ->
      { impl with desc = Efundecl(n, { body with f_body = exp e }) }
        
-let implementation_list impl_list = Misc.iter implementation impl_list
+let implementation_list impl_list = Zlmisc.iter implementation impl_list

@@ -71,7 +71,7 @@ let funexp_info { f_args = p_list; f_body = ({ e_caus = tc } as e) } =
         let c_set =
           List.fold_left
             (fun acc { p_body = e } -> exp acc e) c_set p_h_list in
-        Misc.optional exp c_set e_opt
+        Zlmisc.optional exp c_set e_opt
     | Ematch(_, e, m_h_list) ->
         List.fold_left
           (fun acc { m_body = e } -> exp acc e) (exp c_set e) m_h_list
@@ -79,7 +79,7 @@ let funexp_info { f_args = p_list; f_body = ({ e_caus = tc } as e) } =
     | Eblock(b, e) ->  exp (block_eq_list c_set b) e
     | Eseq(e1, e2) -> exp (exp c_set e1) e2
     | Eperiod  { p_phase = p1; p_period = p2 }  ->
-       let c_set = Misc.optional exp c_set p1 in
+       let c_set = Zlmisc.optional exp c_set p1 in
        exp c_set p2
 
   and local c_set { l_eq = eq_list } = List.fold_left equation c_set eq_list
@@ -88,10 +88,10 @@ let funexp_info { f_args = p_list; f_body = ({ e_caus = tc } as e) } =
     match desc with
     | EQeq(_, e) | EQpluseq(_, e) | EQinit(_, e) -> exp c_set e
     | EQder(_, e, e_opt, p_h_list) ->
-        let c_set = Misc.optional exp (exp c_set e) e_opt in
+        let c_set = Zlmisc.optional exp (exp c_set e) e_opt in
         List.fold_left (fun acc { p_body = e } -> exp acc e) c_set p_h_list
     | EQnext(n, e, e_opt) ->
-        Misc.optional exp (exp c_set e) e_opt
+        Zlmisc.optional exp (exp c_set e) e_opt
     | EQautomaton(_, s_h_list, se_opt) ->
         let c_set =
           List.fold_left
@@ -101,18 +101,18 @@ let funexp_info { f_args = p_list; f_body = ({ e_caus = tc } as e) } =
                  (fun acc
                    { e_cond = scpat; e_block = b_opt; e_next_state = se } ->
                    let c_set = scondpat acc scpat in
-                   let c_set = Misc.optional block_eq_list c_set b_opt in
+                   let c_set = Zlmisc.optional block_eq_list c_set b_opt in
                    state c_set se)
                  acc s_trans)
             c_set s_h_list in
-        Misc.optional state c_set se_opt
+        Zlmisc.optional state c_set se_opt
     | EQpresent(p_h_list, b_opt) ->
         let c_set =
           List.fold_left
             (fun acc { p_cond = scpat; p_body = b_eq_list } ->
                let acc = scondpat acc scpat in
                block_eq_list acc b_eq_list) c_set p_h_list in
-        Misc.optional block_eq_list c_set b_opt
+        Zlmisc.optional block_eq_list c_set b_opt
     | EQmatch(_, e, m_h_list) ->
         List.fold_left
           (fun acc { m_body = b_eq_list } -> block_eq_list acc b_eq_list)
@@ -121,7 +121,7 @@ let funexp_info { f_args = p_list; f_body = ({ e_caus = tc } as e) } =
         List.fold_left equation (exp c_set e) res_eq_list
     | EQand(eq_list) | EQbefore(eq_list) ->
         List.fold_left equation c_set eq_list
-    | EQemit(_, e_opt) -> Misc.optional exp c_set e_opt
+    | EQemit(_, e_opt) -> Zlmisc.optional exp c_set e_opt
     | EQblock(b) -> block_eq_list c_set b
     | EQforall({ for_index = i_list; for_init = init_list;
 	         for_body = b_eq_list }) ->
@@ -253,7 +253,7 @@ let funexp_mark_to_inline info ({ f_body = e } as funexp) =
       | Etypeconstraint(e, ty) -> Etypeconstraint(exp e, ty)
       | Epresent(p_h_list, e_opt) ->
 	  Epresent(List.map (present_handler scondpat exp) p_h_list,
-	           Misc.optional_map exp e_opt)
+	           Zlmisc.optional_map exp e_opt)
       | Ematch(total, e, m_h_list) ->
 	 Ematch(total, exp e, List.map (match_handler exp) m_h_list)
       | Elet(l, e) -> Elet(local l, exp e)
@@ -269,17 +269,17 @@ let funexp_mark_to_inline info ({ f_body = e } as funexp) =
       | EQeq(p, e) -> EQeq(p, exp e)
       | EQpluseq(n, e) -> EQpluseq(n, exp e)
       | EQder(n, e, e_opt, p_h_list) ->
-          EQder(n, exp e, Misc.optional_map exp e_opt,
+          EQder(n, exp e, Zlmisc.optional_map exp e_opt,
 	        List.map (present_handler scondpat exp) p_h_list)
       | EQinit(n, e) -> EQinit(n, exp e)
       | EQnext(n, e, e_opt) ->
-          EQnext(n, exp e, Misc.optional_map exp e_opt)
+          EQnext(n, exp e, Zlmisc.optional_map exp e_opt)
       | EQautomaton(is_weak, s_h_list, se_opt) ->
           EQautomaton(is_weak, List.map state_handler s_h_list,
-		      Misc.optional_map state se_opt)
+		      Zlmisc.optional_map state se_opt)
       | EQpresent(p_h_list, b_opt) ->
           EQpresent(List.map (present_handler scondpat block_eq_list) p_h_list,
-		    Misc.optional_map block_eq_list b_opt)
+		    Zlmisc.optional_map block_eq_list b_opt)
       | EQmatch(total, e, m_h_list) ->
           EQmatch(total, exp e,
 	          List.map (match_handler block_eq_list) m_h_list)
@@ -290,7 +290,7 @@ let funexp_mark_to_inline info ({ f_body = e } as funexp) =
       | EQbefore(before_eq_list) ->
           EQbefore(List.map equation before_eq_list)
       | EQemit(n, e_opt) ->
-          EQemit(n, Misc.optional_map exp e_opt)
+          EQemit(n, Zlmisc.optional_map exp e_opt)
       | EQblock(b) -> EQblock(block_eq_list b)
       | EQforall({ for_index = i_list; for_init = init_list;
 		   for_body = b_eq_list } as body) ->
@@ -337,7 +337,7 @@ let funexp_mark_to_inline info ({ f_body = e } as funexp) =
     
   and escape ({ e_cond = sc; e_block = b_opt; e_next_state = se } as esc) =
     { esc with e_cond = scondpat sc;
-	       e_block = Misc.optional_map block_eq_list b_opt;
+	       e_block = Zlmisc.optional_map block_eq_list b_opt;
 	       e_next_state = state se } in
 
   { funexp with f_body = exp e }
@@ -351,4 +351,4 @@ let implementation impl =
       { impl with desc = Efundecl(n, funexp) }
 
 let implementation_list impl_list =
-  Misc.iter implementation impl_list
+  Zlmisc.iter implementation impl_list

@@ -14,7 +14,7 @@
 
 (** static evaluation of expressions *)
 
-open Ident
+open Zlident
 open Deftypes
 open Global
 open Zelus
@@ -148,7 +148,7 @@ let rec expression env ({ e_desc = desc; e_loc = loc } as e) =
      ignore (expression env e1); expression env e2
   | Eperiod { p_phase = p1; p_period = p2 } ->
      Global.value_code
-       (Vperiod { p_phase = Misc.optional_map (expression env) p1;
+       (Vperiod { p_phase = Zlmisc.optional_map (expression env) p1;
                   p_period = expression env p2 })
   | Elet(l, e_let) ->
      let env = local env l in

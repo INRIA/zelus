@@ -14,7 +14,7 @@
 
 (* type definition *)
 
-open Misc
+open Zlmisc
 open Lident
 
 type immediate =
@@ -41,13 +41,13 @@ type typ = typ_desc loc
    | Tproduct of typ list
    | Tconstr of Lident.qualident * typ list * abbrev ref
    | Tvec of typ * size
-   | Tfun of kind * Ident.t option * typ * typ 
+   | Tfun of kind * Zlident.t option * typ * typ 
    | Tlink of typ
 
 and size =
   | Tconst of int
   | Tglobal of Lident.qualident 
-  | Tname of Ident.t
+  | Tname of Zlident.t
   | Top of op * size * size
 
 and op = Tplus | Tminus
@@ -116,31 +116,31 @@ and constant =
 
 (** Names written in a block *)
 type defnames = 
-  { dv: Ident.S.t; (* [x = ...] *)
-    nv: Ident.S.t; (* [next x = ...] *)
-    mv: Ident.S.t; (* [ x += ...] *)
-    di: Ident.S.t; (* [init x = ...],[x = ... init ...], *)
+  { dv: Zlident.S.t; (* [x = ...] *)
+    nv: Zlident.S.t; (* [next x = ...] *)
+    mv: Zlident.S.t; (* [ x += ...] *)
+    di: Zlident.S.t; (* [init x = ...],[x = ... init ...], *)
                    (* [x = present ... init ...]*)
-    der: Ident.S.t; (* [der x = ...] *)
+    der: Zlident.S.t; (* [der x = ...] *)
     }
 
 (* set of names. *)
 let names acc { dv = dv; di = di; der = der; nv = nv; mv = mv } =
-  let acc = Ident.S.union dv acc in
-  let acc = Ident.S.union di acc in
-  let acc = Ident.S.union der acc in
-  let acc = Ident.S.union nv acc in
-  Ident.S.union mv acc
+  let acc = Zlident.S.union dv acc in
+  let acc = Zlident.S.union di acc in
+  let acc = Zlident.S.union der acc in
+  let acc = Zlident.S.union nv acc in
+  Zlident.S.union mv acc
 
 let cur_names acc { dv = dv; di = di } =
-  Ident.S.union (Ident.S.union acc di) dv
+  Zlident.S.union (Zlident.S.union acc di) dv
 
 
 (* empty set of defined names *)
 (** Making values *)
 let empty =
-  { dv = Ident.S.empty; di = Ident.S.empty; der = Ident.S.empty;
-    nv = Ident.S.empty; mv = Ident.S.empty }
+  { dv = Zlident.S.empty; di = Zlident.S.empty; der = Zlident.S.empty;
+    nv = Zlident.S.empty; mv = Zlident.S.empty }
 
 (* introduced names in the [initialization] phase are fully generalized *)
 let make desc =

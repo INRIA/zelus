@@ -15,9 +15,9 @@
 (* Printing of error messages during typing *)
 (* messages are displayed on the standard error output *)
 
-open Misc
-open Ident
-open Location
+open Zlmisc
+open Zlident
+open Zllocation
 open Modules
 open Deftypes
 open Ptypes
@@ -29,39 +29,39 @@ type kind_of_ident =
   | Current | Initial | Next | Multi | Derivative
 
 type error =
-  | Evar_undefined of Ident.t
-  | Emissing of Ident.t
+  | Evar_undefined of Zlident.t
+  | Emissing of Zlident.t
   | Eglobal_undefined of kind_of_global_ident * Lident.t
   | Eglobal_already of kind_of_global_ident * string
-  | Ealready of kind_of_ident * Ident.t
-  | Ealready_with_different_kinds of kind_of_ident * kind_of_ident * Ident.t
-  | Eis_a_value of Ident.t
-  | Ealready_in_forall of Ident.t
-  | Einit_undefined of Ident.t
-  | Elast_forbidden of Ident.t
-  | Eder_forbidden of Ident.t
-  | Enext_forbidden of Ident.t
-  | Eshould_be_a_signal of Ident.t * typ
-  | Ecannot_be_set of bool * Ident.t
+  | Ealready of kind_of_ident * Zlident.t
+  | Ealready_with_different_kinds of kind_of_ident * kind_of_ident * Zlident.t
+  | Eis_a_value of Zlident.t
+  | Ealready_in_forall of Zlident.t
+  | Einit_undefined of Zlident.t
+  | Elast_forbidden of Zlident.t
+  | Eder_forbidden of Zlident.t
+  | Enext_forbidden of Zlident.t
+  | Eshould_be_a_signal of Zlident.t * typ
+  | Ecannot_be_set of bool * Zlident.t
   | Etype_clash of typ * typ
   | Etype_kind_clash of kind * typ
   | Earity_clash of int * int
-  | Estate_arity_clash of Ident.t * int * int
-  | Estate_unbound of Ident.t
+  | Estate_arity_clash of Zlident.t * int * int
+  | Estate_unbound of Zlident.t
   | Estate_initial
   | Ekind_not_combinatorial
   | Ekind_clash of kind * kind
   | Esome_labels_are_missing
-  | Eequation_is_missing of Ident.t
+  | Eequation_is_missing of Zlident.t
   | Eglobal_is_a_function of Lident.t
   | Eapplication_of_non_function
   | Epattern_not_total
-  | Ecombination_function of Ident.t
+  | Ecombination_function of Zlident.t
   | Esize_parameter_must_be_a_name
   | Enot_a_size_expression
   | Esize_of_vec_is_undetermined
   | Esize_clash of size * size
-  | Esize_parameter_cannot_be_generalized of Ident.t * typ
+  | Esize_parameter_cannot_be_generalized of Zlident.t * typ
   | Econstr_arity of Lident.t * int * int							 
 exception Error of location * error
 				
@@ -69,7 +69,7 @@ let error loc kind = raise (Error(loc, kind))
 
 type warning =
   | Wpartial_matching of Zelus.pattern
-  | Wunreachable_state of Ident.t
+  | Wunreachable_state of Zlident.t
   | Wmatch_unused of Zelus.pattern
   | Wequation_does_not_define_a_name
   | Wreset_target_state of bool * bool
@@ -98,11 +98,11 @@ let message loc kind =
   begin match kind with
   | Evar_undefined(name) ->
      eprintf "@[%aTyping error: The value identifier %s is unbound.@.@]"
-             output_location loc (Ident.source name)
+             output_location loc (Zlident.source name)
   | Emissing(s) ->
      eprintf "@[%aType error: no equation is given for name %s.@.@]"
         output_location loc
-        (Ident.source s);
+        (Zlident.source s);
   | Eglobal_undefined(k, lname) ->
           eprintf "@[%aType error: the global value identifier %s %s is unbound.@.@]"
             output_location loc (kind_of_global_ident k)
@@ -114,50 +114,50 @@ let message loc kind =
      let k = kind_of_ident k in
      eprintf
        "@[%aType error: the %s of %s is defined twice in a parallel branch.@.@]"
-        output_location loc k (Ident.source s)
+        output_location loc k (Zlident.source s)
   | Ealready_with_different_kinds(k1, k2, s) ->
      let k1 = kind_of_ident k1 in
      let k2 = kind_of_ident k2 in
      eprintf
        "@[%aType error: %s is defined twice in a parallel branch,@,\
                 once with as a %s, once as a %s.@.@]"
-        output_location loc (Ident.source s) k1 k2
+        output_location loc (Zlident.source s) k1 k2
   | Ealready_in_forall(s) ->
      eprintf
        "@[%aType error: %s is defined twice in a parallel branch.@.@]"
-        output_location loc (Ident.source s)
+        output_location loc (Zlident.source s)
   | Einit_undefined(s) ->
       eprintf "@[%aType error: %s must be initialized in every branch.@.@]"
         output_location loc
-        (Ident.source s)
+        (Zlident.source s)
   | Eis_a_value(s) ->
       eprintf "@[%aType error: last %s is forbidden as %s is a value.@.@]"
         output_location loc
-        (Ident.source s) (Ident.source s)
+        (Zlident.source s) (Zlident.source s)
   | Elast_forbidden(s) ->
      eprintf
        "@[%aType error: last %s is forbidden. This is either @,\
         because %s is not a state variable or next %s is defined.@.@]"
        output_location loc
-       (Ident.source s) (Ident.source s) (Ident.source s)
+       (Zlident.source s) (Zlident.source s) (Zlident.source s)
   | Eder_forbidden(s) ->
      eprintf
        "@[%aType error: der %s is forbidden because \
         %s is not a state variable.@.@]"
        output_location loc
-       (Ident.source s) (Ident.source s)
+       (Zlident.source s) (Zlident.source s)
   | Enext_forbidden(s) ->
      eprintf
        "@[%aType error: next %s is forbidden. This is either @,\
         because %s is not a state variable or last %s is used.@.@]"
        output_location loc
-       (Ident.source s) (Ident.source s) (Ident.source s)
+       (Zlident.source s) (Zlident.source s) (Zlident.source s)
   | Eshould_be_a_signal(s, expected_ty) ->
       eprintf "@[%aType error: %s is a value of type %a,@ \
                but is expected to be a signal @,\
                (maybe a default value or initialization is missing).@.@]"
         output_location loc
-        (Ident.source s)
+        (Zlident.source s)
 	Ptypes.output expected_ty
   | Ecannot_be_set(is_next, s) ->
       eprintf "@[%aType error: the %s value of %s cannot be set. @,\
@@ -165,7 +165,7 @@ let message loc kind =
                  the last value is used.@.@]"
         output_location loc
         (if is_next then "next" else "current")
-	(Ident.source s)
+	(Zlident.source s)
 	(if is_next then "current" else "next")
   | Etype_clash(actual_ty, expected_ty) ->
       eprintf "@[%aType error: this expression has type@ %a,@ \
@@ -188,13 +188,13 @@ let message loc kind =
       eprintf "@[%aType error: the state %s expects %d arguments,@ \
                but is given %d arguments.@.@]"
         output_location loc
-        (Ident.source name)
+        (Zlident.source name)
         expected_arit actual_arit
   | Estate_unbound(name) ->
       eprintf
         "@[%aType error: the state %s is unbound in the current automaton.@.@]"
         output_location loc
-        (Ident.source name)
+        (Zlident.source name)
   | Estate_initial ->
       eprintf
         "@[%aType error: the initial state cannot be parameterized.@.@]"
@@ -216,7 +216,7 @@ let message loc kind =
      eprintf
        "@[%aType error: the variable %s must be defined in an equation.@.@]"
        output_location loc
-       (Ident.source name)
+       (Zlident.source name)
  | Eglobal_is_a_function(lname) ->
      eprintf "@[%aType error: the global name %s must not be a function.@.@]"
         output_location loc
@@ -231,7 +231,7 @@ let message loc kind =
  | Ecombination_function(n) ->
      eprintf
        "@[%aType error: a combination function for %s must be given.@.@]"
-       output_location loc (Ident.source n)
+       output_location loc (Zlident.source n)
  | Esize_parameter_must_be_a_name ->
     eprintf
       "@[%aType error: the type of the result depend on some variables \
@@ -258,7 +258,7 @@ let message loc kind =
         which contains the variable %s that is bounded later or never.@.@]"
 	output_location loc
         Ptypes.output ty
-	(Ident.name n)
+	(Zlident.name n)
  | Econstr_arity(ln, expected_arity, actual_arity) ->
      eprintf
        "@[%aType error: the type constructor %a expects %d argument(s),@ \
@@ -268,10 +268,10 @@ let message loc kind =
        expected_arity
        actual_arity
   end;
-  raise Misc.Error
+  raise Zlmisc.Error
 
 let warning loc w =
-  if not !Misc.no_warning then
+  if not !Zlmisc.no_warning then
   match w with
   | Wpartial_matching(p) ->
       Format.eprintf
@@ -284,7 +284,7 @@ let warning loc w =
      eprintf
        "@[%aType warning: the state %s in this automaton is unreachable.@.@]"
        output_location loc
-       (Ident.source s)
+       (Zlident.source s)
   | Wmatch_unused(p) ->
       Format.eprintf
         "@[Type warning: match case \"%a\" is unused.@.@]" Printer.pattern p
