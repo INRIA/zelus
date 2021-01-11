@@ -19,9 +19,9 @@
 (* those of [e2] *)
 (* [let x = e1 in e2] has the behavior of [let x = e1 before y = e2 in y] *)
 
-open Misc
-open Zls_location
-open Ident
+open Zlmisc
+open Zllocation
+open Zlident
 open Lident
 open Deftypes
 open Zelus
@@ -45,7 +45,7 @@ let optional f e_opt =
     | Some(e) -> let e, ctx = f e in Some(e), ctx
 
 let par_fold f l =
-  Misc.map_fold
+  Zlmisc.map_fold
     (fun { env = env; eqs = eqs } x ->
      let y, { env = env_y; eqs = eqs_y } = f x in
      y, { env = State.par env env_y; eqs = State.par eqs eqs_y })
@@ -254,4 +254,4 @@ let implementation impl =
   | Efundecl(n, ({ f_kind = k; f_body = e } as body)) ->
      { impl with desc = Efundecl(n, { body with f_body = make_let e }) }
        
-let implementation_list impl_list = Misc.iter implementation impl_list
+let implementation_list impl_list = Zlmisc.iter implementation impl_list

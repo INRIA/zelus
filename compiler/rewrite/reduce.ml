@@ -14,15 +14,15 @@
 
 (** reduce expressions that are tagged to be static; leave other unchanged *)
 
-open Misc
-open Ident
+open Zlmisc
+open Zlident
 open Lident
 open Global
 open Zelus
 open Zaux
 open Static
 open Deftypes
-open Types
+open Zltypes
 
        
 (* the list of functions introduced during the reduction *)
@@ -38,7 +38,7 @@ let gfresh () = num := !num + 1; "__" ^ (string_of_int !num)
 (** Build a renaming from an environment *)
 let build env =
   let buildrec n entry (env, renaming) =
-    let m = Ident.fresh (Ident.source n) in
+    let m = Zlident.fresh (Zlident.source n) in
     Env.add m entry env,
     Env.add n m renaming in
   Env.fold buildrec env (Env.empty, Env.empty)
@@ -46,7 +46,7 @@ let build env =
 (** rename a variable *)
 let rename x renaming =
   try Env.find x renaming
-  with Not_found -> Misc.internal_error "Reduce: unbound name" Printer.name x
+  with Not_found -> Zlmisc.internal_error "Reduce: unbound name" Printer.name x
 
 (** Remove entries in [venv] that are defined in [renaming] *)
 let remove rename venv =
@@ -71,7 +71,7 @@ let rec type_expression venv renaming ({ desc = desc } as ty_e) =
        match opt_name with
        | None -> opt_name, renaming
        | Some(n) ->
-	  let m = Ident.fresh (Ident.source n) in
+	  let m = Zlident.fresh (Zlident.source n) in
 	  Some(m), Env.add n m renaming in
      let ty_res = type_expression venv renaming ty_res in
      { ty_e with desc = Etypefun(k, opt_name, ty_arg, ty_res) }
@@ -155,20 +155,20 @@ let rec expression venv renaming fun_defs ({ e_desc = desc } as e) =
       end
   | Elast(x) -> { e with e_desc = Elast(rename x renaming) }, fun_defs
   | Eperiod { p_phase = p1; p_period = p2 } ->
-     let p1, fun_defs = Misc.optional_with_map (expression venv renaming) fun_defs p1 in
+     let p1, fun_defs = Zlmisc.optional_with_map (expression venv renaming) fun_defs p1 in
      let p2, fun_defs = expression venv renaming fun_defs p2 in
      { e with e_desc = Eperiod { p_phase = p1; p_period = p2 } }, fun_defs
   | Etuple(e_list) ->
       let e_list, fun_defs =
-        Misc.map_fold (expression venv renaming) fun_defs e_list in
+        Zlmisc.map_fold (expression venv renaming) fun_defs e_list in
      { e with e_desc = Etuple(e_list) }, fun_defs
   | Econstr1(c, e_list) ->
       let e_list, fun_defs =
-        Misc.map_fold (expression venv renaming) fun_defs e_list in
+        Zlmisc.map_fold (expression venv renaming) fun_defs e_list in
      { e with e_desc = Econstr1(c, e_list) }, fun_defs
   | Erecord(l_e_list) -> 
       let l_e_list, fun_defs =
-        Misc.map_fold
+        Zlmisc.map_fold
 	  (fun fun_defs (ln, e) ->
             let e, fun_defs = expression venv renaming fun_defs e in
             (ln, e), fun_defs) fun_defs l_e_list in
@@ -181,7 +181,7 @@ let rec expression venv renaming fun_defs ({ e_desc = desc } as e) =
      let e_record, fun_defs =
        expression venv renaming fun_defs e_record in
      let l_e_list, fun_defs =
-        Misc.map_fold
+        Zlmisc.map_fold
 	  (fun fun_defs (ln, e) ->
             let e, fun_defs = expression venv renaming fun_defs e in
             (ln, e), fun_defs) fun_defs l_e_list in
@@ -193,9 +193,9 @@ let rec expression venv renaming fun_defs ({ e_desc = desc } as e) =
        *- static arguments [s_list] and non static ones [ne_list] *)
       let e, fun_defs =
         let s_list, ne_list, ty_res =
-          Types.split_arguments e_fun.e_typ e_list in
+          Zltypes.split_arguments e_fun.e_typ e_list in
         let ne_list, fun_defs =
-          Misc.map_fold (expression venv renaming) fun_defs ne_list in
+          Zlmisc.map_fold (expression venv renaming) fun_defs ne_list in
         try
           let v_fun = Static.expression venv e_fun in
           let { value_exp = v; value_name = opt_name } as v_fun =
@@ -235,12 +235,12 @@ let rec expression venv renaming fun_defs ({ e_desc = desc } as e) =
           Static.Error _ ->
             let e_fun, fun_defs = expression venv renaming fun_defs e_fun in
             let s_list, fun_defs =
-              Misc.map_fold (expression venv renaming) fun_defs s_list in
+              Zlmisc.map_fold (expression venv renaming) fun_defs s_list in
             { e with e_desc = Eapp(app, e_fun, s_list @ ne_list) }, fun_defs in
       e, fun_defs
   | Eop(op, e_list) ->
       let e_list, fun_defs =
-        Misc.map_fold (expression venv renaming) fun_defs e_list in
+        Zlmisc.map_fold (expression venv renaming) fun_defs e_list in
      { e with e_desc = Eop(op, e_list) }, fun_defs
   | Etypeconstraint(e_ty, ty) ->
       let e_ty, fun_defs =
@@ -281,7 +281,7 @@ and local venv (renaming, fun_defs) ({ l_eq = eq_list; l_env = env } as l) =
   let venv = remove renaming0 venv in
   let renaming = Env.append renaming0 renaming in
   let eq_list, fun_defs =
-    Misc.map_fold (equation venv renaming) fun_defs eq_list in
+    Zlmisc.map_fold (equation venv renaming) fun_defs eq_list in
   { l with l_eq = eq_list; l_env = env }, (renaming, fun_defs)
 
 (** Simplify an equation. *)
@@ -302,7 +302,7 @@ and equation venv renaming fun_defs ({ eq_desc = desc } as eq) =
     | EQnext(x, e, e_opt) ->
         let e, fun_defs = expression venv renaming fun_defs e in
         let e_opt, fun_defs =
-          Misc.optional_with_map (expression venv renaming) fun_defs e_opt in
+          Zlmisc.optional_with_map (expression venv renaming) fun_defs e_opt in
         EQnext(rename x renaming, e, e_opt), fun_defs
     | EQder(x, e, e_opt, p_e_list) ->
         let body fun_defs ({ p_cond = scpat; p_body = e; p_env = env } as p_e) =
@@ -314,8 +314,8 @@ and equation venv renaming fun_defs ({ eq_desc = desc } as eq) =
           { p_e with p_cond = scpat; p_body = e; p_env = env }, fun_defs in
         let e, fun_defs = expression venv renaming fun_defs e in
         let e_opt, fun_defs =
-          Misc.optional_with_map (expression venv renaming) fun_defs e_opt in
-        let p_e_list, fun_defs = Misc.map_fold body fun_defs p_e_list in
+          Zlmisc.optional_with_map (expression venv renaming) fun_defs e_opt in
+        let p_e_list, fun_defs = Zlmisc.map_fold body fun_defs p_e_list in
         EQder(rename x renaming, e, e_opt, p_e_list), fun_defs
     | EQmatch(total, e, m_b_list) ->
         let body venv fun_defs ({ m_pat = p; m_body = b; m_env = env } as m_h) =
@@ -327,7 +327,7 @@ and equation venv renaming fun_defs ({ eq_desc = desc } as eq) =
 	      m_body = b; m_env = env }, fun_defs in
         let e, fun_defs = expression venv renaming fun_defs e in
         let m_b_list, fun_defs =
-          Misc.map_fold (body venv) fun_defs m_b_list in
+          Zlmisc.map_fold (body venv) fun_defs m_b_list in
         EQmatch(total, e, m_b_list), fun_defs
     | EQblock(b) ->
         let b, (_, fun_defs) = block venv (renaming, fun_defs) b in
@@ -335,15 +335,15 @@ and equation venv renaming fun_defs ({ eq_desc = desc } as eq) =
     | EQreset(eq_list, e) ->
         let e, fun_defs = expression venv renaming fun_defs e in
         let eq_list, fun_defs =
-          Misc.map_fold (equation venv renaming) fun_defs eq_list in
+          Zlmisc.map_fold (equation venv renaming) fun_defs eq_list in
         EQreset(eq_list, e), fun_defs
     | EQand(and_eq_list) ->
         let and_eq_list, fun_defs =
-          Misc.map_fold (equation venv renaming) fun_defs and_eq_list in
+          Zlmisc.map_fold (equation venv renaming) fun_defs and_eq_list in
         EQand(and_eq_list), fun_defs
     | EQbefore(before_eq_list) ->
         let before_eq_list, fun_defs =
-          Misc.map_fold (equation venv renaming) fun_defs before_eq_list in
+          Zlmisc.map_fold (equation venv renaming) fun_defs before_eq_list in
         EQbefore(before_eq_list), fun_defs
     | EQpresent(p_h_list, b_opt) ->
         let body fun_defs ({ p_cond = scpat; p_body = b; p_env = env } as p_b) =
@@ -353,19 +353,19 @@ and equation venv renaming fun_defs ({ eq_desc = desc } as eq) =
           let scpat, fun_defs = scondpat venv renaming fun_defs scpat in
           let b, (renaming, fun_defs) = block venv (renaming, fun_defs) b in
           { p_b with p_cond = scpat; p_body = b; p_env = env }, fun_defs in
-        let p_h_list, fun_defs = Misc.map_fold body fun_defs p_h_list in
+        let p_h_list, fun_defs = Zlmisc.map_fold body fun_defs p_h_list in
         let b_opt, (_, fun_defs) =
-          Misc.optional_with_map (block venv) (renaming, fun_defs) b_opt in
+          Zlmisc.optional_with_map (block venv) (renaming, fun_defs) b_opt in
         EQpresent(p_h_list, b_opt), fun_defs
     | EQemit(x, e_opt) ->
         let e_opt, fun_defs =
-          Misc.optional_with_map (expression venv renaming) fun_defs e_opt in
+          Zlmisc.optional_with_map (expression venv renaming) fun_defs e_opt in
         EQemit(rename x renaming, e_opt), fun_defs
   | EQautomaton(is_weak, s_h_list, se_opt) ->
      let build_state_names renaming { s_state = { desc = desc } } =
        match desc with
        | Estate0pat(n) | Estate1pat(n, _) ->
-	   let m = Ident.fresh (Ident.source n) in
+	   let m = Zlident.fresh (Zlident.source n) in
            Env.add n m renaming in
      let statepat renaming ({ desc = desc } as spat) =
 	 match desc with
@@ -379,7 +379,7 @@ and equation venv renaming fun_defs ({ eq_desc = desc } as eq) =
        | Estate0(x) -> { se with desc = Estate0(rename x renaming) }, fun_defs
        | Estate1(x, e_list) ->
 	  let e_list, fun_defs =
-	    Misc.map_fold (expression venv renaming) fun_defs e_list in
+	    Zlmisc.map_fold (expression venv renaming) fun_defs e_list in
 	  { se with desc = Estate1(rename x renaming, e_list) }, fun_defs in
      let escape venv renaming fun_defs
          ({ e_cond = scpat; e_block = b_opt;
@@ -407,15 +407,15 @@ and equation venv renaming fun_defs ({ eq_desc = desc } as eq) =
        let spat = statepat renaming spat in
        let b, (renaming, fun_defs) = block venv (renaming, fun_defs) b in
        let esc_list, fun_defs =
-	 Misc.map_fold (escape venv renaming) fun_defs esc_list in
+	 Zlmisc.map_fold (escape venv renaming) fun_defs esc_list in
        { h with s_state = spat; s_body = b; s_trans = esc_list; s_env = env },
        fun_defs in
      let renaming =
        List.fold_left build_state_names renaming s_h_list in
      let s_h_list, fun_defs =
-       Misc.map_fold (body venv renaming) fun_defs s_h_list in
+       Zlmisc.map_fold (body venv renaming) fun_defs s_h_list in
      let se_opt, fun_defs =
-       Misc.optional_with_map (state_exp venv renaming) fun_defs se_opt in
+       Zlmisc.optional_with_map (state_exp venv renaming) fun_defs se_opt in
      EQautomaton(is_weak, s_h_list, se_opt), fun_defs
   | EQforall({ for_index = i_list; for_init = init_list;
                for_body = b_eq_list;
@@ -446,9 +446,9 @@ and equation venv renaming fun_defs ({ eq_desc = desc } as eq) =
              Einit_last(rename x renaming, e), fun_defs in
        { ini with desc = desc }, fun_defs in
      let i_list, fun_defs =
-       Misc.map_fold index fun_defs i_list in
+       Zlmisc.map_fold index fun_defs i_list in
      let init_list, fun_defs =
-       Misc.map_fold init fun_defs init_list in
+       Zlmisc.map_fold init fun_defs init_list in
      let b_eq_list, (_, fun_defs) = block venv (renaming, fun_defs) b_eq_list in
       EQforall { f_body with
                  for_index = i_list;
@@ -490,9 +490,9 @@ and block venv (renaming, fun_defs)
   let renaming = Env.append renaming0 renaming in
   let n_list = List.map (vardec renaming) n_list in
   let l_list, (renaming, fun_defs) =
-    Misc.map_fold (local venv) (renaming, fun_defs) l_list in
+    Zlmisc.map_fold (local venv) (renaming, fun_defs) l_list in
   let eq_list, fun_defs =
-    Misc. map_fold (equation venv renaming) fun_defs eq_list in
+    Zlmisc. map_fold (equation venv renaming) fun_defs eq_list in
   { b with b_vars = n_list; b_locals = l_list; 
            b_body = eq_list; b_write = Deftypes.empty; b_env = n_env },
   (renaming, fun_defs)
@@ -510,15 +510,15 @@ and exp_of_value fun_defs { value_exp = v; value_name = opt_name } =
        Econstr0(Lident.Modname(qualident)), fun_defs
     | Vtuple(v_list) ->
        let v_list, fun_defs =
-	 Misc.map_fold exp_of_value fun_defs v_list in
+	 Zlmisc.map_fold exp_of_value fun_defs v_list in
        Etuple(v_list), fun_defs
     | Vconstr1(qualident, v_list) ->
        let v_list, fun_defs =
-	 Misc.map_fold exp_of_value fun_defs v_list in
+	 Zlmisc.map_fold exp_of_value fun_defs v_list in
        Econstr1(Lident.Modname(qualident), v_list), fun_defs
     | Vrecord(l_v_list) ->
        let l_e_list, fun_defs =
-	 Misc.map_fold
+	 Zlmisc.map_fold
 	   (fun fun_defs (qid, v) ->
 	    let v, fun_defs = exp_of_value fun_defs v in
 	    (Lident.Modname(qid), v), fun_defs)
@@ -526,7 +526,7 @@ and exp_of_value fun_defs { value_exp = v; value_name = opt_name } =
        Erecord(l_e_list), fun_defs
     | Vperiod { p_phase = p1; p_period = p2 } ->
        let p1, fun_defs =
-         Misc.optional_with_map exp_of_value fun_defs p1 in
+         Zlmisc.optional_with_map exp_of_value fun_defs p1 in
        let p2, fun_defs = exp_of_value fun_defs p2 in
        Eperiod { p_phase = p1; p_period = p2 }, fun_defs
     | Vabstract(qualident) ->
@@ -592,9 +592,9 @@ let implementation_list ff impl_list =
        let ({ info = { value_typ = tys } } as entry) =
 	 try Modules.find_value (Lident.Name(f))
 	 with Not_found -> assert false in
-       let no_parameter = Types.noparameters tys in
+       let no_parameter = Zltypes.noparameters tys in
        (* strong reduction (under the lambda) when [no_parameter] *)
-       if !Misc.no_reduce then
+       if !Zlmisc.no_reduce then
 	 (* no reduction is done; use it carefully as the compilation steps *)
 	 (* done after like static scheduling may fail. *)
 	 (* This flag is very temporary *)
@@ -626,16 +626,16 @@ let implementation_list ff impl_list =
           Format.eprintf
             "@[Internal error (static reduction):@,\
              the expression to be reduced is not static.@.@]";
-          raise Misc.Error
+          raise Zlmisc.Error
       | NotStaticExp(e) ->
           Format.eprintf
             "@[%aInternal error (static reduction):@,\
              static evaluation failed because the expression is not static.@.@]"
             Printer.expression e;
-          raise Misc.Error
+          raise Zlmisc.Error
       | NotStaticEq(eq) ->
           Format.eprintf
             "@[%aInternal error (static reduction):@,\
              static evaluation failed because the equation is not static.@.@]"
             Printer.equation eq;
-          raise Misc.Error
+          raise Zlmisc.Error

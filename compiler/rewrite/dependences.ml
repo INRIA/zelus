@@ -27,18 +27,18 @@ type 'a collection =
 (* variables is removed the set of read variables *)
 let read ({ eq_write; eq_desc } as eq) =
   let last_acc, acc =
-    Vars.fv_eq Ident.S.empty (Ident.S.empty, Ident.S.empty) eq in
+    Vars.fv_eq Zlident.S.empty (Zlident.S.empty, Zlident.S.empty) eq in
   match eq_desc with
   | EQmatch(_, e, _) | EQreset(_, e) ->
-      let w = Deftypes.names Ident.S.empty eq_write in
-      let last_acc = Ident.S.diff last_acc w in
-      let acc = Ident.S.diff acc w in
-      Vars.fv Ident.S.empty (last_acc, acc) e
+      let w = Deftypes.names Zlident.S.empty eq_write in
+      let last_acc = Zlident.S.diff last_acc w in
+      let acc = Zlident.S.diff acc w in
+      Vars.fv Zlident.S.empty (last_acc, acc) e
   | _ -> last_acc, acc
        
 let def { eq_write = { Deftypes.dv = dv; Deftypes.di = di } } =
   (* derivatives are not taken into account *)
-  Ident.S.union dv di
+  Zlident.S.union dv di
 
 (** Initialization equations [init x = e] and reset [init x = e]... every ...] *)
 let rec init { eq_desc = desc } =
@@ -60,10 +60,10 @@ let rec fresh i eqs =
   match eqs with
   | Leaf(eq) -> Leaf { eq with eq_index = i }, i+1
   | Before(eqs_list) ->
-      let eqs_list, i = Misc.map_fold fresh i eqs_list in
+      let eqs_list, i = Zlmisc.map_fold fresh i eqs_list in
       Before(eqs_list), i
   | And(eqs_list) ->
-      let eqs_list, i = Misc.map_fold fresh i eqs_list in
+      let eqs_list, i = Zlmisc.map_fold fresh i eqs_list in
       And(eqs_list), i
 
 (* Given a collection of equations, computes the associations *)
@@ -80,11 +80,11 @@ let rec name_to_index (xtable, itable, eq_info_list) eqs =
       if nodep eq then xtable, itable, eq_info_list
       else
         let update x t =
-          Ident.Env.update x
+          Zlident.Env.update x
             (function None -> Some (S.singleton i)
                     | Some(set) -> Some(S.add i set)) t in
         let xtable, itable =
-          Ident.S.fold
+          Zlident.S.fold
             (fun x (xtable, itable) ->
                if init eq then xtable, update x itable
                else update x xtable, itable) w (xtable, itable) in
@@ -95,7 +95,7 @@ let rec name_to_index (xtable, itable, eq_info_list) eqs =
 (* Build the dependence graph according to read/writes *)
 let make_read_write xtable itable eq_info_list =
   (* find nodes according to a variable *)
-  let find x table = try Ident.Env.find x table with Not_found -> S.empty in
+  let find x table = try Zlident.Env.find x table with Not_found -> S.empty in
   (* add dependences according to equation with index [n] *)
   let rec make g (n, eq, w, v, lv) =
     let g = Graph.add n eq g in
@@ -103,23 +103,23 @@ let make_read_write xtable itable eq_info_list =
     (* - after an equation [init x = e] where [x in w], excluding itself *)
     let l =
       S.remove n
-        (Ident.S.fold (fun x iw -> S.union (find x itable) iw) w S.empty) in
+        (Zlident.S.fold (fun x iw -> S.union (find x itable) iw) w S.empty) in
     let g = Graph.add_before l (S.singleton n) g in
     (* - after an equation [...x... = e] or [init x = e] where [x in v] *)
     let l =
-      Ident.S.fold
+      Zlident.S.fold
         (fun x iw -> S.union (find x xtable) (S.union (find x itable) iw))
         v S.empty in
     let g = Graph.add_before l (S.singleton n) g in
     (* - before an equation [...x... = e] where [x in lv] excluding itself *)
     let l =
       S.remove n
-        (Ident.S.fold (fun x iw -> S.union (find x xtable) iw) lv S.empty) in
+        (Zlident.S.fold (fun x iw -> S.union (find x xtable) iw) lv S.empty) in
      let g = Graph.add_before (S.singleton n) l g in
     (* - after an equation [init x = e] where [x in lv] excluding itself *)
     let l =
       S.remove n
-        (Ident.S.fold (fun x iw -> S.union (find x itable) iw) lv S.empty) in
+        (Zlident.S.fold (fun x iw -> S.union (find x itable) iw) lv S.empty) in
     let g = Graph.add_before l (S.singleton n) g in
     g in
   List.fold_left make Graph.empty eq_info_list
@@ -148,7 +148,7 @@ let make_unsafes xtable itable g eqs =
 let make eqs =
   let eqs, _ = fresh 0 eqs in
   let xtable, itable, eq_info_list =
-    name_to_index (Ident.Env.empty, Ident.Env.empty, []) eqs in
+    name_to_index (Zlident.Env.empty, Zlident.Env.empty, []) eqs in
   let g = make_read_write xtable itable eq_info_list in
   let g = make_unsafes xtable itable g eqs in
   Graph.outputs g

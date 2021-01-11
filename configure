@@ -5,7 +5,7 @@
 let version = "%%NAME%%"
 let subversion = "%%VERSION%%"
 
-let prefix = ref "/usr/local" 
+let prefix = ref (Filename.concat (Sys.getcwd ()) "_build/install/default/")
 
 let get_stdlib_prefix () = Filename.concat !prefix "share/zelus"
 
@@ -40,15 +40,9 @@ let () =
       "date", dquote @@ get_current_date ();
     ]
   in
-  let oc = open_out_bin "config.ml" in
+  let oc = open_out_bin "zlconfig.ml" in
   List.iter
     (fun (x, s) -> Printf.fprintf oc {|let %s = %s
 |} x s)
     statements;
   close_out oc;
-  (* Generate lib/Defaultsolver.ml *)
-  (* 
-  let oc = open_out_bin (Filename.concat "lib/std" "defaultsolver.ml") in
-  Printf.fprintf oc {|include %s|} default_solver;
-  close_out oc
-  *)

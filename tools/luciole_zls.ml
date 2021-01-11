@@ -1,5 +1,4 @@
-open Zlcompilerlibs
-open Misc
+open Zlmisc
 open Deftypes
 open Initial
 open Compiler
@@ -230,7 +229,7 @@ let write_ml zls_file sim_node kind t1 t2 inp_patt =
          @[let mem = alloc () in@]@;\
          @[reset mem;@]@;\
          @[(fun x -> step mem x)@]@]"
-        (if !Misc.with_copy then "Cnode" else "Node");
+        (if !Zlmisc.with_copy then "Cnode" else "Node");
     | Tdiscrete false | Tany -> Format.fprintf out_ff "@[let mk_step step = step@]";
     | _ ->
       Format.eprintf "Kind of node %s is not valid.\n"
@@ -322,7 +321,7 @@ let main () =
         (fun s -> zls_file := s; compile s)
         errmsg;
     with
-    | Misc.Error -> exit 2
+    | Zlmisc.Error -> exit 2
   end;
 
   if !zls_file = "" then begin

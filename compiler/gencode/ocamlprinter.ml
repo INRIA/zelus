@@ -16,9 +16,9 @@
 
 (* print object code as OCaml functions *)
 
-open Misc
-open Zls_location
-open Ident
+open Zlmisc
+open Zllocation
+open Zlident
 open Obc
 open Format
 open Pp_tools
@@ -48,10 +48,10 @@ let default_list_of_methods = [Oaux.step; Oaux.reset]
 let constructor_for_kind = function
   | Deftypes.Tcont
   | Deftypes.Tdiscrete(true)
-  | Deftypes.Tproba -> if !Misc.with_copy then "Cnode" else "Node"
+  | Deftypes.Tproba -> if !Zlmisc.with_copy then "Cnode" else "Node"
   | _ -> assert false
 let extra_methods m_list =
-  if !Misc.with_copy then Oaux.copy :: m_list else m_list
+  if !Zlmisc.with_copy then Oaux.copy :: m_list else m_list
 let expected_list_of_methods = function
   | Deftypes.Tcont
   | Deftypes.Tdiscrete(true)
@@ -90,7 +90,7 @@ let print_concrete_type ff ty =
   ptype 0 ff ty
 
 let ptype ff ty =
-  let ty = Types.remove_dependences ty in
+  let ty = Zltypes.remove_dependences ty in
   Ptypes.output ff ty
 
 let rec pattern ff pat = match pat with
@@ -337,12 +337,12 @@ let def_type_for_a_machine ff f memories instances =
   let i, params, entries =
     List.fold_right
       (fun { m_name = n } (i, params, entries) ->
-        let m = Misc.int_to_alpha i in (i+1, m :: params, (n, m) :: entries))
+        let m = Zlmisc.int_to_alpha i in (i+1, m :: params, (n, m) :: entries))
       memories (0, [], []) in
   let i, params, entries =
     List.fold_right
       (fun { i_name = n } (i, params, entries) ->
-        let m = Misc.int_to_alpha i in (i+1, m :: params, (n, m) :: entries))
+        let m = Zlmisc.int_to_alpha i in (i+1, m :: params, (n, m) :: entries))
       instances (i, params, entries) in
   (* if the state is empty, produce the dummy state type [unit] *)
   if entries = []
@@ -572,7 +572,7 @@ let machine f ff { ma_kind = k;
   (* print the type for [f] *)
   def_type_for_a_machine ff f memories instances;
   (* print the code for [f] *)
-  if !Misc.with_copy then
+  if !Zlmisc.with_copy then
     fprintf ff
 	    "@[<hov 2>let %s %a = @ @[@[%a@]@ @[%a@]@ @[%a@]@ @[%a@]@ %a@]@.@]"
 	  f

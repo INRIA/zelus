@@ -75,7 +75,7 @@ let schedule eq_list =
     Control.joinlist eq_list
   with
     Graph.Error(Cycle(n_list)) ->
-      Misc.internal_error
+      Zlmisc.internal_error
        "Unexpected cycle: equations cannot be scheduled"
        (Printer.equation_list "" "") eq_list
   
@@ -135,6 +135,6 @@ let implementation impl =
     | Efundecl(n, ({ f_body = e } as body)) ->
         { impl with desc = Efundecl(n, { body with f_body = exp e }) }
 
-let implementation_list impl_list = Misc.iter implementation impl_list
+let implementation_list impl_list = Zlmisc.iter implementation impl_list
 
 

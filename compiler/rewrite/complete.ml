@@ -16,11 +16,11 @@
 (* This step is applied to normalised equations for which *)
 (* read/write information is up-to-date *)
 
-open Misc
-open Zls_location
+open Zlmisc
+open Zllocation
 open Deftypes
 open Zelus
-open Ident
+open Zlident
 open Zaux
 
 (* Make an equation [x = e] *)
@@ -161,4 +161,4 @@ let implementation impl =
      { impl with desc = Efundecl(n, { body with f_body = exp e }) }
   | Eopen _ | Etypedecl _ | Econstdecl _ | Efundecl _ -> impl
        
-let implementation_list impl_list = Misc.iter implementation impl_list
+let implementation_list impl_list = Zlmisc.iter implementation impl_list

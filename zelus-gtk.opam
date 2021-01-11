@@ -8,16 +8,14 @@ homepage: "http://zelus.di.ens.fr"
 doc: "http://zelus.di.ens.fr/man/"
 bug-reports: "https://gitlab.inria.fr/parkas/zelus/-/issues"
 depends: [
-  "zelus"
+  "zelus" "lablgtk"
 ]
-depopts: ["lablgtk" "glmlite"]
+depopts: ["glmlite"]
 build: [
   ["dune" "subst"] {pinned}
   [
     "dune" "build" "-p" name "-j" jobs
     "@install"
-    "@runtest" {with-test}
-    "@doc" {with-doc}
   ]
 ]
 dev-repo: "git+https://github.com/INRIA/zelus.git"

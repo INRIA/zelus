@@ -16,8 +16,8 @@
 (* For the moment, only equations of the form *)
 (* [init x = e0 ... x = e] are shared *)
 
-open Misc
-open Ident
+open Zlmisc
+open Zlident
 open Zelus
 
 (** Build the association table [pre(n) -> x] and substitution [x\y] *)
@@ -98,7 +98,7 @@ and equation subst eq =
        { eq with eq_desc = EQinit(n, exp subst e0) }
     | EQnext(n, e, e_opt) -> 
        { eq with eq_desc = EQnext(n, exp subst e, 
-				  Misc.optional_map (exp subst) e_opt) }
+				  Zlmisc.optional_map (exp subst) e_opt) }
     | EQmatch(total, e, m_h_list) ->
         let e = exp subst e in
         let m_h_list = 
@@ -166,4 +166,4 @@ let implementation impl =
          { impl with desc =
 		       Efundecl(n, { body with f_body = exp Env.empty e }) }
 
-let implementation_list impl_list = Misc.iter implementation impl_list
+let implementation_list impl_list = Zlmisc.iter implementation impl_list

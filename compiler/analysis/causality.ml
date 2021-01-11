@@ -27,17 +27,17 @@
 (* For that purpose, cfree is a causality tag greater than that of all the *)
 (* free variables in e *)
 
-open Misc
-open Ident
+open Zlmisc
+open Zlident
 open Global
 open Zelus
-open Zls_location
+open Zllocation
 open Deftypes
 open Defcaus
 open Pcaus
 open Causal
 
-let print x = Misc.internal_error "unbound" Printer.name x
+let print x = Zlmisc.internal_error "unbound" Printer.name x
 
 (* Main error message *)
 type error =
@@ -47,7 +47,7 @@ type error =
 	       
  and kind =
    | Cless_than of tc * tc
-   | Cless_than_name of Ident.t * tc * tc
+   | Cless_than_name of Zlident.t * tc * tc
 
 (* dependence cycle and the current typing environment *)
 exception Error of location * error
@@ -73,7 +73,7 @@ let error loc kind = raise (Error(loc, kind))
           Causal.penv env
           Causal.prel rel
   end;
-  raise Misc.Error *)
+  raise Zlmisc.Error *)
 
 let message loc { kind; cycle } =
   begin
@@ -97,12 +97,12 @@ let message loc { kind; cycle } =
            @ whereas it should be less than@ %a@.\
            Here is an example of a cycle:@.%a@.@]"
           output_location loc
-          (Ident.source name)
+          (Zlident.source name)
 	  Pcaus.ptype left_tc
           Pcaus.ptype right_tc
           (Pcaus.cycle true) cycle
   end;
-  raise Misc.Error
+  raise Zlmisc.Error
 
 let less_than loc env actual_tc expected_tc =
   try
@@ -218,7 +218,7 @@ let def_env loc defnames env =
       less_than_name loc env x ltc tc;
       Env.add x { tentry with t_typ = ltc  } acc in
     let env_defnames =
-      Ident.S.fold add (Deftypes.cur_names Ident.S.empty defnames) Env.empty in
+      Zlident.S.fold add (Deftypes.cur_names Zlident.S.empty defnames) Env.empty in
     Env.append env_defnames env
   
 (** Build an environment for a set of written variables *)
@@ -231,8 +231,8 @@ let def_env_on_c loc defnames env c =
       let ltc = Causal.fresh_on_c c tc in
       less_than_name loc env x ltc tc;
       Env.add x { tentry with t_typ = ltc  } acc in
-  let shared = Deftypes.cur_names Ident.S.empty defnames in
-  let env_defnames = Ident.S.fold add shared Env.empty in
+  let shared = Deftypes.cur_names Zlident.S.empty defnames in
+  let env_defnames = Zlident.S.fold add shared Env.empty in
   shared, Env.append env_defnames env
 
 (** Build an environment from [env] by replacing the causality *)
@@ -248,9 +248,9 @@ let last_env shared defnames env =
       match ltc_opt with
       | None -> Causal.fresh tc, None | Some(ltc) -> ltc, Some(ltc) in
     Env.add x { t_typ = tc; t_last_typ = ltc_opt } acc in
-  let names = Deftypes.cur_names Ident.S.empty defnames in
+  let names = Deftypes.cur_names Zlident.S.empty defnames in
   let env_defnames =
-    Ident.S.fold add (Ident.S.diff shared names) Env.empty in
+    Zlident.S.fold add (Zlident.S.diff shared names) Env.empty in
   Env.append env_defnames env
     
 (** Causality analysis of a match handler.*)
@@ -330,7 +330,7 @@ let rec exp env c_free ({ e_desc = desc; e_typ = ty; e_loc = loc } as e) =
         let tc = exp new_env c_free e_let in
         tc
     | Eblock(b, e_block) ->
-        let env = block_eq_list Ident.S.empty env c_free b in
+        let env = block_eq_list Zlident.S.empty env c_free b in
         let tc = exp env c_free e_block in
         tc
     | Eseq(e1, e2) ->
@@ -478,7 +478,7 @@ and equation env c_free { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
       (* [e] does not impose a causality constraint on [n] *)
       let _ = exp env c_free e in
       let { t_typ = tc } = try Env.find n env with Not_found -> print n in
-      Misc.optional_unit (fun _ e0 -> exp_less_than env c_free e0 tc) () e0_opt
+      Zlmisc.optional_unit (fun _ e0 -> exp_less_than env c_free e0 tc) () e0_opt
   | EQautomaton(is_weak, s_h_list, se_opt) ->
       (* Typing a state expression *)
       let state env c_free c_e { desc = desc } =
@@ -489,8 +489,8 @@ and equation env c_free { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
       (* Compute the set of names defined by a state *)
       let cur_names_in_state b trans =
         let block acc { b_write = w } = Deftypes.cur_names acc w in
-        let escape acc { e_block = b_opt } = Misc.optional block acc b_opt in
-        block (List.fold_left escape Ident.S.empty trans) b in
+        let escape acc { e_block = b_opt } = Zlmisc.optional block acc b_opt in
+        block (List.fold_left escape Zlident.S.empty trans) b in
       (* Typing of handlers *)
       (* scheduling is done this way: *)
       (* - Automata with strong preemption: *)
@@ -505,25 +505,25 @@ and equation env c_free { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
         let actual_c = scondpat env c_free sc in
         less_than_c sc.loc env actual_c c_spat;
         let env =
-          Misc.optional
+          Zlmisc.optional
             (fun env b -> block_eq_list shared env c_free b) env b_opt in
         state env c_free c_spat ns in
       let weak shared env c_body c_trans c_scpat
           { s_body = b; s_trans = trans; s_env = s_env } =
         (* remove from [shared] names defined in the current state *)
-        let shared = Ident.S.diff shared (cur_names_in_state b trans) in
+        let shared = Zlident.S.diff shared (cur_names_in_state b trans) in
         let env = build_env s_env env in
         let env = block_eq_list shared env c_body b in
         List.iter (escape shared env c_trans c_scpat) trans in
       let strong shared env c_body c_trans c_scpat
           { s_body = b; s_trans = trans; s_env = s_env } =
         (* remove from [shared] names defined in the current state *)
-        let shared = Ident.S.diff shared (cur_names_in_state b trans) in
+        let shared = Zlident.S.diff shared (cur_names_in_state b trans) in
         let env = build_env s_env env in
         List.iter (escape shared env c_trans c_scpat) trans;
         ignore (block_eq_list shared env c_body b) in
       let c_automaton = Causal.intro_less_c c_free in
-      Misc.optional_unit (state env c_free) c_automaton se_opt;
+      Zlmisc.optional_unit (state env c_free) c_automaton se_opt;
       (* Every branch of the automaton is considered to be executed atomically *)
       let shared, env = def_env_on_c loc defnames env c_automaton in
       (* the causality tag for the transition conditions *)
@@ -572,14 +572,14 @@ and equation env c_free { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
       equation_list env c_free before_eq_list 
   | EQemit(n, e_opt) ->
       let c_res = Causal.new_var () in
-      Misc.optional_unit
+      Zlmisc.optional_unit
         (fun _ e -> exp_less_than_on_c env c_free e c_res) () e_opt;
       let { t_typ = expected_tc } =
         try Env.find n env with Not_found -> print n in
       let actual_tc = Causal.annotate (Cname n) (atom c_res) in
       less_than loc env actual_tc expected_tc
   | EQblock(b_eq_list) ->
-      ignore (block_eq_list Ident.S.empty env c_free b_eq_list)
+      ignore (block_eq_list Zlident.S.empty env c_free b_eq_list)
   | EQforall { for_index = i_list; for_init = init_list; for_body = b_eq_list;
                for_out_env = o_env } ->
       (* Build the typing environment for inputs/outputs *)
@@ -589,7 +589,7 @@ and equation env c_free { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
         | Einput(x, e) ->
             let in_c = Causal.new_var () in
             exp_less_than_on_c env c_free e in_c;
-            let tc_arg, _ = Types.filter_vec e.e_typ in
+            let tc_arg, _ = Zltypes.filter_vec e.e_typ in
             let tc = Causal.skeleton_on_c in_c tc_arg in
             Env.add x { t_typ = tc; t_last_typ = Some(fresh tc) } io_env,
             oi2o
@@ -626,7 +626,7 @@ and equation env c_free { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
           let env = Env.append init_env env in
               
           (* type the body *)
-          ignore (block_eq_list Ident.S.empty env c_free b_eq_list)
+          ignore (block_eq_list Zlident.S.empty env c_free b_eq_list)
 
 (* Typing a present handler for expressions *)
 (* The handler list must be non empty or [e_opt] not none *)
@@ -709,16 +709,16 @@ let implementation ff { desc = desc; loc = loc } =
     match desc with
     | Eopen _ | Etypedecl _ -> ()
     | Econstdecl(f, _, e) ->
-       Misc.push_binding_level ();
+       Zlmisc.push_binding_level ();
        let tc = exp Env.empty (Causal.new_var ()) e in
-       Misc.pop_binding_level ();
+       Zlmisc.pop_binding_level ();
        let tcs = generalise tc in
        Global.set_causality (Modules.find_value (Lident.Name(f))) tcs;
        (* output the signature *)
-       if !Misc.print_causality_types then Pcaus.declaration ff f tcs
+       if !Zlmisc.print_causality_types then Pcaus.declaration ff f tcs
     | Efundecl (f, { f_kind = k; f_atomic = atomic;
                      f_args = p_list; f_body = e; f_env = h0 }) ->
-       Misc.push_binding_level ();
+       Zlmisc.push_binding_level ();
        let env = build_env h0 Env.empty in
        let actual_tc_list = List.map (pattern env) p_list in
        let actual_tc_res = exp env (Causal.new_var ()) e in
@@ -731,12 +731,12 @@ let implementation ff { desc = desc; loc = loc } =
            less_than loc env actual_tc expected_tc;
            expected_tc
          else actual_tc in
-       Misc.pop_binding_level ();
+       Zlmisc.pop_binding_level ();
        let tcs = generalise actual_tc in
        (* then add the current entries in the global environment *)
        Global.set_causality (Modules.find_value (Lident.Name(f))) tcs;
        (* output the signature *)
-       if !Misc.print_causality_types then Pcaus.declaration ff f tcs
+       if !Zlmisc.print_causality_types then Pcaus.declaration ff f tcs
   with
   | Error(loc, kind) -> message loc kind
 

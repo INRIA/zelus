@@ -14,7 +14,7 @@
 
 (* Abstract syntax tree after parsing *)
 
-open Zls_location
+open Zllocation
 
 type kind = | S | AS | A | C | AD | D | P
 
@@ -35,7 +35,7 @@ type longname =
     | Name of name
     | Modname of qualident
 
-type 'a localized = { desc: 'a; loc: Zls_location.location }
+type 'a localized = { desc: 'a; loc: Zllocation.location }
 
 (** Types *)
 type type_expression = type_expression_desc localized

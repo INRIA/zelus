@@ -19,10 +19,10 @@
 (* - name states in automata must be defined once. *)
 (* - a local name must be binded to a binded. *)
 
-open Misc
-open Zls_location
-open Zls_parsetree
-open Ident
+open Zlmisc
+open Zllocation
+open Zlparsetree
+open Zlident
 open Deftypes
 open Format
 
@@ -72,7 +72,7 @@ struct
 	   "%aScoping error: this automaton mixes weak and strong transitions.@."
 	   output_location loc
       end;
-    raise Misc.Error
+    raise Zlmisc.Error
 end
 
 module S = Set.Make (struct type t = string let compare = String.compare end)
@@ -86,7 +86,7 @@ struct
   type initialized = bool (* [init x = ...] appear *)
 
   (* the renaming environment associates a fresh name and a sort *)
-  type value = { name: Ident.t; mutable initialized: initialized }
+  type value = { name: Zlident.t; mutable initialized: initialized }
   include (Map.Make (struct type t = string let compare = String.compare end))
   
   (* an entry *)
@@ -107,7 +107,7 @@ struct
   let make names = 
     S.fold 
       (fun elt acc -> 
-	let n = Ident.fresh elt in add elt (entry n) acc) names empty
+	let n = Zlident.fresh elt in add elt (entry n) acc) names empty
 
   (* append env0 in front of env *)
   let append env0 env = fold (fun key v env -> add key v env) env0 env
@@ -169,20 +169,20 @@ let longname = function
       Lident.Modname({ Lident.qual = q; Lident.id = id })
 
 let immediate = function
-  | Zls_parsetree.Eint(i) -> Deftypes.Eint(i)
-  | Zls_parsetree.Ebool(b) -> Deftypes.Ebool(b)
-  | Zls_parsetree.Efloat(f) -> Deftypes.Efloat(f)
-  | Zls_parsetree.Echar(c) -> Deftypes.Echar(c)
-  | Zls_parsetree.Estring(s) -> Deftypes.Estring(s)
-  | Zls_parsetree.Evoid -> Deftypes.Evoid
+  | Zlparsetree.Eint(i) -> Deftypes.Eint(i)
+  | Zlparsetree.Ebool(b) -> Deftypes.Ebool(b)
+  | Zlparsetree.Efloat(f) -> Deftypes.Efloat(f)
+  | Zlparsetree.Echar(c) -> Deftypes.Echar(c)
+  | Zlparsetree.Estring(s) -> Deftypes.Estring(s)
+  | Zlparsetree.Evoid -> Deftypes.Evoid
 
 let constant = function
-  | Zls_parsetree.Cimmediate(i) -> Deftypes.Cimmediate(immediate i)
-  | Zls_parsetree.Cglobal(ln) -> Deftypes.Cglobal(longname ln)
+  | Zlparsetree.Cimmediate(i) -> Deftypes.Cimmediate(immediate i)
+  | Zlparsetree.Cglobal(ln) -> Deftypes.Cglobal(longname ln)
 
 let default = function
-  | Zls_parsetree.Init(c) -> Zelus.Init(constant c)
-  | Zls_parsetree.Default(c) -> Zelus.Default(constant c)
+  | Zlparsetree.Init(c) -> Zelus.Init(constant c)
+  | Zlparsetree.Default(c) -> Zelus.Default(constant c)
     
 let kind = function
   | S -> Zelus.S | A -> Zelus.A | AS -> Zelus.AS
@@ -319,7 +319,7 @@ and build_equation defnames eq =
 	  List.fold_left 
 	    (fun acc { p_body = b } -> snd (build_block_equation_list acc b))
 	    defnames p_h_list in
-        Misc.optional 
+        Zlmisc.optional 
 	  (fun defnames b -> snd (build_block_equation_list defnames b)) 
 	  defnames b_opt
     | EQreset(eq_list, e) ->
@@ -378,7 +378,7 @@ and build_block_equation_list defnames
 
 and build_automaton_handler defnames b until unless =
   let escape defnames { e_block = b_opt } =
-    Misc.optional 
+    Zlmisc.optional 
       (fun defnames b -> 
        snd (build_block_equation_list defnames b)) defnames b_opt in
   let def_in_until = List.fold_left escape S.empty until in
@@ -454,7 +454,7 @@ let state_handler_list
   let addname acc { desc = { s_state = statepat } } =
     match statepat.desc with
     | Estate0pat(n) | Estate1pat(n, _) ->
-        let m = Ident.fresh n in
+        let m = Zlident.fresh n in
         if Rename.mem n acc then
           Error.error statepat.loc (Error.Enon_linear_automaton(n))
         else Rename.add n (Rename.entry m) acc in
@@ -521,14 +521,14 @@ let state_handler_list
 
   (* in case there is no transition, the automaton is weak *)
   let is_weak = not is_strong in
-  is_weak, List.map handler s_h_list, Misc.optional_map (state env) se_opt
+  is_weak, List.map handler s_h_list, Zlmisc.optional_map (state env) se_opt
 							
 let vardec (env_n_m_list, vardec_list)
 	   { desc = { vardec_name = n; vardec_default = d_opt;
 		      vardec_combine = c_opt }; loc = loc } =
-    let m = Ident.fresh n in
-    let d_opt = Misc.optional_map default d_opt in
-    let c_opt = Misc.optional_map longname c_opt in
+    let m = Zlident.fresh n in
+    let d_opt = Zlmisc.optional_map default d_opt in
+    let c_opt = Zlmisc.optional_map longname c_opt in
     let vardec =
       { Zelus.vardec_name = m;
 	Zelus.vardec_default = d_opt; Zelus.vardec_combine = c_opt;
@@ -598,7 +598,7 @@ let rec expression env { desc = desc; loc = loc } =
     | Ematch(e1, handlers) ->
         (* match e with P -> e1 => 
            local result do match e with P -> do result = e1 done in result *)
-        let result = Ident.fresh "result" in
+        let result = Zlident.fresh "result" in
         let emit e = 
 	  eqmake e.Zelus.e_loc (Zelus.EQeq(varpat e.Zelus.e_loc result, e)) in
 	let e1 = expression env e1 in
@@ -621,7 +621,7 @@ let rec expression env { desc = desc; loc = loc } =
         (* [emit e] returns either [emit x = e] or [x = e] according to *)
         (* the completeness of the definition. A signal is emitted when the *)
         (* present handler is not complete. *)
-        let result = Ident.fresh "result" in
+        let result = Zlident.fresh "result" in
 	let emit e =
 	  match e_opt with 
 	    | None -> 
@@ -649,14 +649,14 @@ let rec expression env { desc = desc; loc = loc } =
     | Ereset(e_body, r) ->
         let e_body = expression env e_body in
 	let r = expression env r in
-	let result = Ident.fresh "result" in
+	let result = Zlident.fresh "result" in
 	let eq = 
 	  eqmake e_body.Zelus.e_loc
 	    (Zelus.EQeq(varpat e_body.Zelus.e_loc result, e_body)) in
 	let eq = eqmake loc (Zelus.EQreset([eq], r)) in
 	Zelus.Eblock(block_with_result result [eq], var loc result)
     | Eautomaton(handlers, e_opt) ->
-        let result = Ident.fresh "result" in
+        let result = Zlident.fresh "result" in
 	let emit e = 
 	  eqmake e.Zelus.e_loc (Zelus.EQeq(varpat e.Zelus.e_loc result, e)) in
 	let is_weak, handlers, e_opt = 
@@ -689,7 +689,7 @@ and recordrec loc env label_e_list =
   recordrec S.empty label_e_list
     
 and period env { p_phase = p1; p_period = p2 } = 
-  { Zelus.p_phase = Misc.optional_map (expression env) p1;
+  { Zelus.p_phase = Zlmisc.optional_map (expression env) p1;
     Zelus.p_period = expression env p2 }
 
 (* renaming an equation. [env_pat] is used for renamming names *)
@@ -701,7 +701,7 @@ and equation env_pat env eq_list { desc = desc; loc = loc } =
 	    (Zelus.EQeq(check_pattern env_pat pat, expression env e)) :: eq_list
   | EQder(n, e, e0_opt, p_h_e_list) ->
      let e = expression env e in
-     let e0_opt = Misc.optional_map (expression env) e0_opt in
+     let e0_opt = Zlmisc.optional_map (expression env) e0_opt in
      let p_h_e_list =
        present_handler_exp_list env_pat env p_h_e_list in
      let initialized = match e0_opt with | None -> false | Some _ -> true in
@@ -719,7 +719,7 @@ and equation env_pat env eq_list { desc = desc; loc = loc } =
      let initialized = match e0_opt with | None -> false | Some _ -> true in
      let n = name_with_sort initialized loc env_pat n in
      let e = expression env e in
-     let e0_opt = Misc.optional_map (expression env) e0_opt in
+     let e0_opt = Zlmisc.optional_map (expression env) e0_opt in
      eqmake loc (Zelus.EQnext(n, e, e0_opt)) :: eq_list
   | EQemit(n, e_opt) ->
     eqmake loc
@@ -736,9 +736,9 @@ and equation env_pat env eq_list { desc = desc; loc = loc } =
     :: eq_list
   | EQifthenelse(e, b1, b2_opt) ->
     let ptrue =
-      pmake Zls_location.no_location (Zelus.Econstpat(Deftypes.Ebool(true))) in
+      pmake Zllocation.no_location (Zelus.Econstpat(Deftypes.Ebool(true))) in
     let pfalse =
-      pmake Zls_location.no_location (Zelus.Econstpat(Deftypes.Ebool(false))) in
+      pmake Zllocation.no_location (Zelus.Econstpat(Deftypes.Ebool(false))) in
     let e = expression env e in
     let true_handler = { Zelus.m_pat = ptrue; 
 			 Zelus.m_body = snd (block_eq_list env_pat env b1);
@@ -953,7 +953,7 @@ let implementation imp =
   with
   | Error.Error(loc, err) -> Error.message loc err
 
-let implementation_list imp_list = Misc.iter implementation imp_list
+let implementation_list imp_list = Zlmisc.iter implementation imp_list
 
 let interface interf =
   try
@@ -967,4 +967,4 @@ let interface interf =
   with
     | Error.Error(loc, err) -> Error.message loc err
 
-let interface_list inter_list = Misc.iter interface inter_list
+let interface_list inter_list = Zlmisc.iter interface inter_list

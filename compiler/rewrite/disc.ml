@@ -16,9 +16,9 @@
 
 (* [disc(e)] is translated into [false -> major on (e <> last e)] *)
 
-open Misc
-open Zls_location
-open Ident
+open Zlmisc
+open Zllocation
+open Zlident
 open Lident
 open Initial
 open Deftypes
@@ -31,7 +31,7 @@ let disc major e =
   let on_op z e = Zaux.and_op z e in
   if Unsafe.exp e
   then (* disc(e)] = [let x = e in major on (x <> (x fby x))] *)
-    let x = Ident.fresh "x" in
+    let x = Zlident.fresh "x" in
     let env = Env.singleton x { t_sort = Deftypes.value;
 				t_typ = e.e_typ } in
     let xv = var x e.e_typ in
@@ -97,7 +97,7 @@ and equation major ({ eq_desc = desc } as eq) =
   | EQder(x, e, None, []) -> 
      { eq with eq_desc = EQder(x, expression major e, None, []) }
   | EQnext(x, e, e_opt) ->
-     let e_opt = Misc.optional_map (expression major) e_opt in
+     let e_opt = Zlmisc.optional_map (expression major) e_opt in
      { eq with eq_desc = EQnext(x, expression major e, e_opt) }
   | EQblock(b) -> { eq with eq_desc = EQblock(block major b) }
   | EQforall ({ for_index = i_list; for_init = init_list;
@@ -143,5 +143,5 @@ let implementation impl =
      { impl with desc = 
 		   Efundecl(n, { body with f_body = e; f_env = f_env }) }
        
-let implementation_list impl_list = Misc.iter implementation impl_list
+let implementation_list impl_list = Zlmisc.iter implementation impl_list
   

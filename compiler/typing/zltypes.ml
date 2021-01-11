@@ -14,8 +14,8 @@
 
 (* types.ml : basic operations over types *)
 
-open Misc
-open Ident
+open Zlmisc
+open Zlident
 open Lident
 open Deftypes
 open Global
@@ -99,7 +99,7 @@ let rec subst_in_type senv ({ t_desc = desc; t_index = index } as ty) =
        match n_opt with
        | None -> n_opt, subst_in_type senv ty_res
        | Some(n) ->
-	  let m = Ident.fresh (Ident.source n) in
+	  let m = Zlident.fresh (Zlident.source n) in
 	  Some(m), subst_in_type (Env.add n (Tname(m)) senv) ty_res in
      funtype k n_opt ty_arg ty_res
 
@@ -265,7 +265,7 @@ let rec clear acc ({ t_desc = desc } as ty) =
   match desc with
   | Tvar -> ty, acc
   | Tproduct(ty_list) ->
-     let ty_list, acc = Misc.map_fold clear acc ty_list in
+     let ty_list, acc = Zlmisc.map_fold clear acc ty_list in
      product(ty_list), acc
   | Tvec(ty_arg, size) ->
      let ty_arg, acc = clear acc ty_arg in
@@ -285,10 +285,10 @@ let rec clear acc ({ t_desc = desc } as ty) =
      let clear_abbrev acc = function
        | Tnil -> Tnil, acc
        | Tcons(ty_list, ty) ->
-	  let ty_list, acc = Misc.map_fold clear acc ty_list in
+	  let ty_list, acc = Zlmisc.map_fold clear acc ty_list in
 	  let ty, acc = clear acc ty in
 	  Tcons(ty_list, ty), acc in
-     let ty_list, acc = Misc.map_fold clear acc ty_list in
+     let ty_list, acc = Zlmisc.map_fold clear acc ty_list in
      let abbrev, acc = clear_abbrev acc !abbrev in
      constr gl ty_list (ref abbrev), acc
 
@@ -485,9 +485,9 @@ let rec unify expected_ty actual_ty =
 	  Tfun(k2, Some(n2), ty_arg2, ty_res2) ->
 	    unify ty_arg1 ty_arg2;
 	    if k1 = k2 then
-	      if Ident.compare n1 n2 = 0 then unify ty_res1 ty_res2
+	      if Zlident.compare n1 n2 = 0 then unify ty_res1 ty_res2
 	      else
-		let m = Ident.fresh (Ident.source n1) in
+		let m = Zlident.fresh (Zlident.source n1) in
 		let ty_res1 =
 		  subst_in_type
 		    (Env.singleton n1 (Tname(m))) ty_res1 in
@@ -503,7 +503,7 @@ let rec unify expected_ty actual_ty =
 and equal_sizes si1 si2 =
   match si1, si2 with
   | Tconst i1, Tconst i2 when i1 = i2 -> ()
-  | Tname(n1), Tname(n2) when Ident.compare n1 n2 = 0 -> ()
+  | Tname(n1), Tname(n2) when Zlident.compare n1 n2 = 0 -> ()
   | Tglobal(gn1), Tglobal(gn2) when Lident.compare gn1 gn2 = 0 -> ()
   | Top(op1, si11, si12), Top(op2, si21, si22) when op1 = op2 ->
      equal_sizes si11 si21; equal_sizes si12 si22

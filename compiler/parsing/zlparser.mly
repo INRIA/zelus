@@ -15,8 +15,8 @@
 %{
 
 open Lexing
-open Zls_location
-open Zls_parsetree
+open Zllocation
+open Zlparsetree
 
 let localise start_pos end_pos = Loc(start_pos.pos_cnum, end_pos.pos_cnum)
 
@@ -226,13 +226,13 @@ let block l lo eq_list startpos endpos =
 %left DOT
 
 %start implementation_file
-%type <Zls_parsetree.implementation list> implementation_file
+%type <Zlparsetree.implementation list> implementation_file
 
 %start interface_file
-%type <Zls_parsetree.interface list> interface_file
+%type <Zlparsetree.interface list> interface_file
 
 %start scalar_interface_file
-%type <Zls_parsetree.interface list> scalar_interface_file
+%type <Zlparsetree.interface list> scalar_interface_file
 
 %%
 
@@ -1087,21 +1087,21 @@ infx:
 
 %inline arrow:
   | MINUSGREATER
-      { Zls_parsetree.A }
+      { Zlparsetree.A }
   | AFUN
-      { Zls_parsetree.A }
+      { Zlparsetree.A }
   | ADFUN
-      { Zls_parsetree.AD }
+      { Zlparsetree.AD }
   | DFUN
-      { Zls_parsetree.D }
+      { Zlparsetree.D }
   | CFUN
-      { Zls_parsetree.C }
+      { Zlparsetree.C }
   | SFUN
-      { Zls_parsetree.S }
+      { Zlparsetree.S }
   | ASFUN
-      { Zls_parsetree.AS }
+      { Zlparsetree.AS }
   | PFUN
-      { Zls_parsetree.P }
+      { Zlparsetree.P }
 ;
 
 size_expression:

@@ -4,6 +4,6 @@
 (ocamllex zltohtml)
 
 (executables
- (names zltohtml diff_log luciole_zls)
+ (names zltohtml diff_log luciole_zls zlsdep)
  (libraries zelus.zlcompilerlibs menhirLib str)
  (promote (until-clean)))

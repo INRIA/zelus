@@ -13,8 +13,8 @@
 (* *********************************************************************)
 
 (* global data in the symbol tables *)
-open Misc
-open Ident
+open Zlmisc
+open Zlident
 open Zelus
 open Deftypes
 open Defcaus

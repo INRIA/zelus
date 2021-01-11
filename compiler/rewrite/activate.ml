@@ -14,14 +14,14 @@
 
 (* removing equations [der x = e init e0 reset z1 -> e1 | ... | zn -> en] *)
 
-open Misc
-open Zls_location
-open Ident
+open Zlmisc
+open Zllocation
+open Zlident
 open Global
 open Zelus
 open Zaux
 open Initial
-open Types
+open Zltypes
 open Deftypes
 
 (* An equation: [der x = e1 init e0 reset z1 -> e1 | ... | zn -> en] *)
@@ -84,7 +84,7 @@ let rec exp e =
     | Etypeconstraint(e, ty) -> Etypeconstraint(exp e, ty)
     | Eseq(e1, e2) -> Eseq(exp e1, exp e2)
     | Eperiod { p_phase = p1; p_period = p2 } ->
-       Eperiod { p_phase = Misc.optional_map exp p1; p_period = exp p2 }
+       Eperiod { p_phase = Zlmisc.optional_map exp p1; p_period = exp p2 }
     | Elet(l, e) -> Elet(local l, exp e)
     | Eblock(b, e) -> Eblock(block b, exp e)
     | Epresent _ | Ematch _ -> assert false in
@@ -110,7 +110,7 @@ and equation eq_list ({ eq_desc = desc } as eq) =
         der_present n e e0_opt p_h_e_list eq_list
     | EQemit(name, e_opt) ->
        { eq with eq_desc =
-		   EQemit(name, Misc.optional_map exp e_opt) } :: eq_list
+		   EQemit(name, Zlmisc.optional_map exp e_opt) } :: eq_list
     | EQmatch(total, e, m_h_list) ->
         { eq with eq_desc =
             EQmatch(total, exp e, 
@@ -123,7 +123,7 @@ and equation eq_list ({ eq_desc = desc } as eq) =
 	      (List.map (fun ({ p_cond = c; p_body = b } as p) ->
 			 { p with p_cond = scondpat c; p_body = block b })
                  p_h_list,
-               Misc.optional_map block b_opt) } :: eq_list
+               Zlmisc.optional_map block b_opt) } :: eq_list
     | EQreset(res_eq_list, e) ->
        { eq with eq_desc =
 		   EQreset(equation_list res_eq_list, exp e) } :: eq_list
@@ -178,4 +178,4 @@ let implementation impl =
     | Efundecl(n, ({ f_body = e } as body)) ->
         { impl with desc = Efundecl(n, { body with f_body = exp e }) }
 
-let implementation_list impl_list = Misc.iter implementation impl_list
+let implementation_list impl_list = Zlmisc.iter implementation impl_list

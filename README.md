@@ -14,7 +14,7 @@ Continuous-time models are simulated using an off-the-shelf numerical solver (he
 The easiest way to install Zelus is via [Opam](https://opam.ocaml.org/), the OCaml package manager.
 
 ```
-opam install .
+opam install zelus
 ```
 
 You can then test your installation with:
@@ -34,10 +34,10 @@ Some examples also depend on lablgtk (which requires gtk2.0)
 opam install sundialsml lablgtk
 ```
 
-You can then reinstall zelus
+You can then reinstall zelus and the zelus-gtk library
 
 ```
-opam reinstall zelus
+opam reinstall zelus zelus-gtk
 ```
 
 
@@ -121,12 +121,13 @@ We use [dune](https://dune.readthedocs.io/en/stable/) to build the compiler, the
 To build the project:
 
 ```
+./configure
 dune build
 ```
 
-This produces two executables:
-- `compiler/zeluc.exe`: the compiler
-- `compiler/zlsdep.exe`: a tool to track dependencies between zelus files
+This produces two executables (and some tools in `./tools`):
+- `compiler/zeluc.exe`: native code
+- `compiler/zeluc.bc`: byte code (can be used with ocamldebug)
 
 Libraries are split in two packages:
 - `zelus`: the standard libraries
@@ -134,6 +135,18 @@ Libraries are split in two packages:
 
 The build automatically detects if sundialsml is installed and updates the librairies accordingly.
 
+### Test
+
+To run all the tests:
+```
+dune runtest
+```
+
+Tests are split into 3 categories: `good`, `bad`, and `run`.
+To launch a single subset:
+```
+dune run test/good
+```
 
 ## Citing Zelus
 
