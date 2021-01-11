@@ -16,7 +16,7 @@
 open Deftypes
 open Global
 open Format
-open Misc
+open Zlmisc
 
 (*
    Generating a main .ml file in order to simulate a node.
@@ -32,34 +32,34 @@ let find name =
   with
   | Not_found ->
       eprintf "The name %s is unbound.@." name;
-      raise Misc.Error
+      raise Zlmisc.Error
 
 (* the main node must be of type [expected_ty_arg_list] and the result of *)
 (* type [expected_ty_res_list] *)
 let check_type_of_main_node name
     { qualid = qualid; info = { value_typ = tys } }
     opt_name expected_ty_arg expected_ty_res =
-  let actual_ty = Types.instance_of_type tys in
+  let actual_ty = Zltypes.instance_of_type tys in
   let actual_k, opt_name, actual_ty_arg, actual_ty_res =
     try
-      Types.filter_actual_arrow actual_ty
+      Zltypes.filter_actual_arrow actual_ty
     with
     | _ ->  eprintf "@[The name %s must define a function.@.@]" name;
-        raise Misc.Error in
+        raise Zlmisc.Error in
   let expected_k =
     match actual_k with | Tproba -> Tdiscrete(true) | _ -> actual_k in
   let expected_ty =
-    Types.funtype expected_k opt_name actual_ty_arg actual_ty_res in
+    Zltypes.funtype expected_k opt_name actual_ty_arg actual_ty_res in
   try
-    Types.unify expected_ty actual_ty; qualid, expected_k
+    Zltypes.unify expected_ty actual_ty; qualid, expected_k
   with
-  | Types.Unify ->
+  | Zltypes.Unify ->
       eprintf "@[The name %s has type@ %a,@ \
                but is expected to have type@ %a.@.@]"
         name
         Ptypes.output actual_ty
         Ptypes.output expected_ty;
-      raise Misc.Error
+      raise Zlmisc.Error
 
 (* the  main node must be of type [unit -> unit] *)
 (* in case of sampled simulation *)
@@ -84,18 +84,18 @@ let rec check_simple_ty ty =
   match ty.t_desc with
   | Tvar ->
       eprintf "Undefined type variables are not supported by Luciole.@.";
-      raise Misc.Error
+      raise Zlmisc.Error
   | Tfun _ ->
       eprintf "Higher order functions are not supported by Luciole.@.";
-      raise Misc.Error
+      raise Zlmisc.Error
   | Tvec _ ->
       eprintf "Vectors are not supported by Luciole.@.";
-      raise Misc.Error
+      raise Zlmisc.Error
   | Tproduct ty -> List.iter check_simple_ty ty
   | Tconstr (id, _, _) ->
       if List.mem id.id allowed_types then () else begin
         eprintf "Type %s is not allowed.@." id.id;
-        raise Misc.Error
+        raise Zlmisc.Error
       end
   | Tlink ty -> check_simple_ty ty
 
@@ -170,7 +170,7 @@ let emit_discrete_main k ff name =
          @[let mem = alloc () in@]@;\
          @[reset mem;@]@;\
          @[(fun x -> step mem x)@]@]@]"
-        (if !Misc.with_copy then "Cnode" else "Node") name
+        (if !Zlmisc.with_copy then "Cnode" else "Node") name
   | Deftypes.Tcont | Deftypes.Tproba -> assert false
 
 let emit_prelude ff ({ Lident.id = id } as qualid) info k =
@@ -288,7 +288,7 @@ let emit_prelude ff ({ Lident.id = id } as qualid) info k =
   | Deftypes.Tcont ->
       if !use_rif then begin
         eprintf "Cannot use option -rif with hybrid main node.@.";
-        raise Misc.Error
+        raise Zlmisc.Error
       end else
       fprintf ff
         "@[<v>@[open Ztypes@]@;\
@@ -340,7 +340,7 @@ let emit_prelude ff ({ Lident.id = id } as qualid) info k =
          crossings; @,\
          maxsize; @ csize; @ zsize; @,\
          horizon }@]@]@];;@]@.@]@]"
-        (if !Misc.with_copy then "Cnode" else "Node") s
+        (if !Zlmisc.with_copy then "Cnode" else "Node") s
   | Tproba -> assert false
 
 (* emited code for control-driven programs: the transition function *)
@@ -436,7 +436,7 @@ let main outname name sampling number_of_checks use_gtk =
     if sampling <> 0.0 then
       begin
         eprintf "Do not use -sampling when checking node %s.@." name;
-        raise Misc.Error
+        raise Zlmisc.Error
       end
     else
       emit_checked_code ff k number_of_checks

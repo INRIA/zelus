@@ -13,15 +13,15 @@
 (* *********************************************************************)
 
 (* removing present statements *)
-open Misc
-open Location
-open Ident
+open Zlmisc
+open Zllocation
+open Zlident
 open Lident
 open Global
 open Zelus
 open Zaux
 open Initial
-open Types
+open Zltypes
 open Deftypes
 
 (* compilation of signal pattern matching                               *)
@@ -83,10 +83,10 @@ let eq_match total e l =
 let build signals l_env =
   let make n ({ t_typ = ty; t_sort = sort } as tentry)
 	   (signals, n_list, new_env) = 
-    match Types.is_a_signal ty with
+    match Zltypes.is_a_signal ty with
       | Some(ty) ->
-	  let xv = Ident.fresh ((Ident.source n) ^ "v") in
-	  let xp = Ident.fresh ((Ident.source n) ^ "p") in
+	  let xv = Zlident.fresh ((Zlident.source n) ^ "v") in
+	  let xp = Zlident.fresh ((Zlident.source n) ^ "p") in
 	  let sort_v, sort_p =
 	    match sort with
 	    | Sstatic -> Sstatic, Sstatic
@@ -201,7 +201,7 @@ let rec exp signals ({ e_desc = desc } as e) =
     | Etypeconstraint(e, ty) -> Etypeconstraint(exp signals e, ty)
     | Eseq(e1, e2) -> Eseq(exp signals e1, exp signals e2)
     | Eperiod { p_phase = p1; p_period = p2 } ->
-       Eperiod { p_phase = Misc.optional_map (exp signals) p1;
+       Eperiod { p_phase = Zlmisc.optional_map (exp signals) p1;
                  p_period = exp signals p2 }
     | Elet(l, e) -> 
         let signals, l = local signals l in Elet(l, exp signals e)
@@ -400,5 +400,5 @@ let implementation impl =
 					      f_body = e;
 					      f_env = f_env }) }
 
-let implementation_list impl_list = Misc.iter implementation impl_list
+let implementation_list impl_list = Zlmisc.iter implementation impl_list
 

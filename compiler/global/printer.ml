@@ -14,8 +14,8 @@
 
 (* the printer *)
 
-open Location
-open Misc
+open Zllocation
+open Zlmisc
 open Zelus
 open Deftypes
 open Ptypes
@@ -55,9 +55,9 @@ let longname ff ln =
     | Lident.Name(m) -> shortname ff m
     | Lident.Modname(qual) -> qualident ff qual
 
-let name ff n = shortname ff (Ident.name n)
+let name ff n = shortname ff (Zlident.name n)
 
-let source_name ff n = shortname ff (Ident.source n)
+let source_name ff n = shortname ff (Zlident.source n)
 
 let immediate ff = function
   | Eint i -> fprintf ff "%d" i
@@ -145,7 +145,7 @@ let print_vardec_list ff vardec_list =
   let vardec ff
       { vardec_name = n; vardec_default = d_opt; vardec_combine = c_opt } =
     fprintf ff "@[%a%a%a@]" name n
-      (Misc.optional_unit default) d_opt (Misc.optional_unit combine) c_opt in
+      (Zlmisc.optional_unit default) d_opt (Zlmisc.optional_unit combine) c_opt in
   if vardec_list <> []
   then fprintf ff "@[<v 2>%a@ @]"
     (print_list_r vardec "local " "," "") vardec_list
@@ -172,30 +172,30 @@ let print_binding ff (n, { t_sort = sort; t_typ = typ }) =
   | Sval -> fprintf ff "@[val %a: %a@,@]" name n Ptypes.output typ
   | Svar { v_combine = c_opt; v_default = d_opt } ->
      fprintf ff "@[var %a: %a%a%a@,@]" name n Ptypes.output typ
-	     (Misc.optional_unit default) d_opt
-	     (Misc.optional_unit combine) c_opt
+	     (Zlmisc.optional_unit default) d_opt
+	     (Zlmisc.optional_unit combine) c_opt
   | Smem { m_kind = k; m_next = n_opt; m_previous = p;
 	   m_init = i_opt; m_combine = c_opt } ->
      fprintf ff "@[%a%s%a mem %a: %a%a%a@,@]"
-	     (Misc.optional_unit next) n_opt (previous p)
-	     (Misc.optional_unit kind) k name n Ptypes.output typ
+	     (Zlmisc.optional_unit next) n_opt (previous p)
+	     (Zlmisc.optional_unit kind) k name n Ptypes.output typ
 	     init i_opt
-	     (Misc.optional_unit combine) c_opt
+	     (Zlmisc.optional_unit combine) c_opt
 
 let print_env ff env =
   if !vverbose then begin
-    let env = Ident.Env.bindings env in
+    let env = Zlident.Env.bindings env in
     if env <> [] then
       fprintf ff "@[<v 0>(* defs: %a *)@,@]"
         (print_list_r print_binding """;""") env
   end
 let print_writes ff { dv = dv; di = di; der = der; nv = nv; mv = mv } =
   if !vverbose then begin
-    let dv = Ident.S.elements dv in
-    let di = Ident.S.elements di in
-    let der = Ident.S.elements der in
-    let nv = Ident.S.elements nv in
-    let mv = Ident.S.elements mv in
+    let dv = Zlident.S.elements dv in
+    let di = Zlident.S.elements di in
+    let der = Zlident.S.elements der in
+    let nv = Zlident.S.elements nv in
+    let mv = Zlident.S.elements mv in
     open_box 0;
     if dv <> [] then
       fprintf ff
@@ -494,14 +494,14 @@ let type_decl ff { desc = desc } =
         fprintf ff " = %a"
           (print_record (print_couple shortname ptype """ :""")) n_ty_list
 
-(* Debug printer for (Ident.t * Deftypes.typ) Misc.State.t *)
+(* Debug printer for (Zlident.t * Deftypes.typ) Zlmisc.State.t *)
 let state_ident_typ =
   let fprint_v ff (id, ty) =
-    fprintf ff "@[%a:%a@]" Ident.fprint_t id Ptypes.output ty in
-  Misc.State.fprint_t fprint_v
+    fprintf ff "@[%a:%a@]" Zlident.fprint_t id Ptypes.output ty in
+  Zlmisc.State.fprint_t fprint_v
 
-(* Debug printer for Hybrid.eq Misc.State.t *)
-let state_eq = Misc.State.fprint_t equation
+(* Debug printer for Hybrid.eq Zlmisc.State.t *)
+let state_eq = Zlmisc.State.fprint_t equation
 
 let open_module ff n =
   fprintf ff "@[open ";
@@ -567,5 +567,5 @@ and print_value ff ve =
   | Vperiod(p) -> fprintf ff "@[period %a@]" (period print_value_code) p
   | Vfun(body, venv) ->
       fprintf ff "@[<hov0><%a,@,%a>@]"
-        funexp body (Ident.Env.fprint_t print_value_code) venv
+        funexp body (Zlident.Env.fprint_t print_value_code) venv
   | Vabstract(qual) -> qualident ff qual

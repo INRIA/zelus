@@ -21,9 +21,9 @@
 (* match e with | P1 -> (* zero *) x = ... | Pn -> ... *)
 (* into:  match e with | P1 -> do encore = true and x = ... | ... *)
 
-open Misc
-open Location
-open Ident
+open Zlmisc
+open Zllocation
+open Zlident
 open Lident
 open Initial
 open Deftypes
@@ -36,7 +36,7 @@ let encore env { dv = dv } =
     let { t_sort = sort } =
       try Env.find x env
       with Not_found ->
-	Misc.internal_error "Encore: unbound name" Printer.name x in
+	Zlmisc.internal_error "Encore: unbound name" Printer.name x in
       match sort with
       | Smem { m_previous = previous } -> previous | _ -> false in
   S.exists write_on_last dv
@@ -46,7 +46,7 @@ let with_zero env encore_opt ({ b_body = eq_list; b_write = w } as b) =
   if encore env w then
     let encore =
       match encore_opt with
-	| None -> Ident.fresh "encore" | Some(encore) -> encore in
+	| None -> Zlident.fresh "encore" | Some(encore) -> encore in
     { b with b_body = (Zaux.eq_make encore Zaux.etrue) :: eq_list }, Some(encore)
   else b, encore_opt
     
@@ -69,7 +69,7 @@ let rec equation env encore_opt ({ eq_desc = desc } as eq) =
      (* on a zero-crossing and changes a non local state variable *)
      (* whose last value is read outside *)
       let m_h_list, encore_opt =
-	Misc.map_fold
+	Zlmisc.map_fold
 	  (fun encore_opt ({ m_zero = zero; m_body = b } as m_h) ->
 	    let b, encore_opt =
 	      if zero then with_zero env encore_opt b
@@ -85,7 +85,7 @@ let rec equation env encore_opt ({ eq_desc = desc } as eq) =
     | EQnext _ | EQblock _ -> assert false
 
 and equation_list env encore_opt eq_list =
-  Misc.map_fold (equation env) encore_opt eq_list      
+  Zlmisc.map_fold (equation env) encore_opt eq_list      
 
 (** Translate a block *)
 and block env encore_opt ({ b_body = eq_list; b_env = n_env } as b) =
@@ -112,7 +112,7 @@ let expression env ({ e_desc = desc } as e) =
 	  let l_env =
 	    Env.add encore (Deftypes.entry sort Initial.typ_bool) l_env in
 	  (* declaration of [horizon h] *)
-	  let h = Ident.fresh "h" in
+	  let h = Zlident.fresh "h" in
 	  let sort = Deftypes.horizon Deftypes.empty_mem in
 	  let l_env =
 	    Env.add h (Deftypes.entry sort Initial.typ_float) l_env in
@@ -131,4 +131,4 @@ let implementation impl =
   | Efundecl(n, ({ f_kind = C; f_body = e; f_env = f_env } as body)) ->
      { impl with desc = Efundecl(n, { body with f_body = expression f_env e }) }
        
-let implementation_list impl_list = Misc.iter implementation impl_list
+let implementation_list impl_list = Zlmisc.iter implementation impl_list
