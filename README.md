@@ -28,18 +28,11 @@ The manual, examples, and research papers can be found at http://zelus.di.ens.fr
 
 By default Zelus relies on the built-in solvers.
 To switch to Sundials CVODE you need to install sundialsml (which requires sundials).
-Some examples also depend on lablgtk (which requires gtk2.0)
+Some examples also depend on the zelus gtk library (which requires gtk2.0)
 
 ```
-opam install sundialsml lablgtk
+opam install sundialsml zelus-gtk
 ```
-
-You can then reinstall zelus and the zelus-gtk library
-
-```
-opam reinstall zelus zelus-gtk
-```
-
 
 ### Docker
 
