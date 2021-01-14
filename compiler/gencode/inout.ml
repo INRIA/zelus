@@ -111,7 +111,7 @@ open Oaux
 let typ_cstate = Otypeconstr(Modname {qual = "Ztypes"; id = "cstate" }, [])
 
 let varpat x ty = Ovarpat(x, Translate.type_expression_of_typ ty)
-let modname x = Lident.Modname { Lident.qual = "Zs"; Lident.id = x }
+let modname x = Lident.Modname { Lident.qual = "Zls"; Lident.id = x }
 				     
 let i = Zident.fresh "i"
 
