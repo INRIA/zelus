@@ -18,8 +18,8 @@
 (** continuous operators (up/der) reduce the local cost *)
 (** since calling a function with continuous state need extra copy code *)
 
-open Zlmisc
-open Zlident
+open Zmisc
+open Zident
 open Lident
 open Global
 open Zelus
@@ -46,7 +46,7 @@ let expression e max =
 	 cost e; incr 1; List.iter (fun (label, e) -> cost e) n_e_list
       | Eseq(e1, e2) -> cost e1; cost e2
       | Eperiod({ p_phase = p1_opt; p_period = p2 }) -> 
-          incr 1; ignore (Zlmisc.optional_map cost p1_opt); cost p2
+          incr 1; ignore (Zmisc.optional_map cost p1_opt); cost p2
       | Etypeconstraint(e, _) -> cost e
       | Elet(local, e_let) ->
           cost_local local; cost e_let
@@ -74,13 +74,13 @@ let expression e max =
     match eq.eq_desc with
       | EQeq(_, e) | EQinit(_, e) | EQpluseq(_, e) -> incr 1; cost e
       | EQnext(_, e0, e_opt) -> 
-	  incr 1; cost e0; Zlmisc.optional_unit (fun _ e -> cost e) () e_opt
+	  incr 1; cost e0; Zmisc.optional_unit (fun _ e -> cost e) () e_opt
       | EQmatch(_, e, p_h_list) ->
           cost e;
           List.iter (fun { m_body = b } -> cost_block b) p_h_list
       | EQder(n, e, e0_opt, h) ->
           incr (-2);
-          Zlmisc.optional_unit (fun _ e -> cost e) () e0_opt;
+          Zmisc.optional_unit (fun _ e -> cost e) () e0_opt;
           List.iter (fun { p_body = e } -> cost e) h;
           cost e
       | EQreset(eq_list, e) -> incr 1; List.iter cost_eq eq_list
@@ -88,9 +88,9 @@ let expression e max =
       | EQbefore(eq_list) -> List.iter cost_eq eq_list
       | EQpresent(p_h_list, b_opt) ->
 	  List.iter (fun { p_body = b } -> cost_block b) p_h_list;
-	  Zlmisc.optional_unit (fun _ b -> cost_block b) () b_opt
+	  Zmisc.optional_unit (fun _ b -> cost_block b) () b_opt
       | EQemit(_, e_opt) ->
-	  Zlmisc.optional_unit (fun _ e -> cost e) () e_opt
+	  Zmisc.optional_unit (fun _ e -> cost e) () e_opt
       | EQblock(b) -> cost_block b
       | EQforall { for_index = i_list; for_init = init_list;
 		   for_body = b_eq_list } ->
@@ -108,12 +108,12 @@ let expression e max =
 	 cost_block b_eq_list
       | EQautomaton(_, s_h_list, se_opt) ->
 	 List.iter cost_state_handler s_h_list;
-	 Zlmisc.optional_unit (fun _ se -> cost_state_exp se) () se_opt	 
+	 Zmisc.optional_unit (fun _ se -> cost_state_exp se) () se_opt	 
   and cost_state_handler { s_body = b; s_trans = esc_list } =
     cost_block b; List.iter cost_escape esc_list
   and cost_escape { e_cond = scpat; e_block = b_opt; e_next_state = se } =
     cost_scpat scpat;
-    Zlmisc.optional_unit (fun _ b -> cost_block b) () b_opt;
+    Zmisc.optional_unit (fun _ b -> cost_block b) () b_opt;
     cost_state_exp se
   and cost_state_exp { desc = desc } =
     match desc with

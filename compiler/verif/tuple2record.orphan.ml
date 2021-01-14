@@ -14,10 +14,10 @@
 
 (* Rewrite tuples into records. *)
 
-open Zlmisc
+open Zmisc
 open Zelus
 open Zaux
-open Zlident
+open Zident
 open Deftypes
 
 (* a memoization table which associates a type name to a list of types names *)
@@ -35,14 +35,14 @@ type result = { ty_name: name;
                 ty_labels: name list; }
               
 type return =
-  { def_types: (name * typ) Zlmisc.Env.t;
+  { def_types: (name * typ) Zmisc.Env.t;
     (* the list of declared record types: type t = { l1: t1;...; ln: tn } *)
     table: result T.t;
     (* inverse table: the type name and the list of labels *)
     (* associated to a tuple type (t1,..., tn) *)
   }
 
-let empty = { def_types = Zlmisc.Env.empty; table = T.empty }
+let empty = { def_types = Zmisc.Env.empty; table = T.empty }
 
 (** Return the record type associated to the tuple type [ty_list] *)
 let recordtype ({ def_types = dtypes; table = table } as return) ty_list =
@@ -52,11 +52,11 @@ let recordtype ({ def_types = dtypes; table = table } as return) ty_list =
     with
     | Not_found ->
         (* add a new type *)
-        let l_list = List.map (fun _ -> Zlident.fresh "l") ty_list in
+        let l_list = List.map (fun _ -> Zident.fresh "l") ty_list in
         let l_ty_list =
           List.map2 (fun l ty -> (l, ty)) l_list ty_list in
-        let ty_name = Zlident.fresh "ty" in
-        let dtypes = Zlmisc.Env.add ty_name l_ty_list dtypes in
+        let ty_name = Zident.fresh "ty" in
+        let dtypes = Zmisc.Env.add ty_name l_ty_list dtypes in
         let table = (ty_list, ty, l_list) :: table in
         ty_name, l_list, { def_types = dtypes; table = table } in
      Zaux.record l_list e_list ty
@@ -74,7 +74,7 @@ let rec pattern return ({ p_desc = desc } as p) =
   match desc with
   | Ewildpat | Econstpat _ | Econstr0pat _ | Evarpat _ -> p, return
   | Etuplepat(p_list) ->
-      let p_list, return = Zlmisc.map_fold pattern return p_list in
+      let p_list, return = Zmisc.map_fold pattern return p_list in
       tuplepat_into_recordpat return p_list
   | Etypeconstraintpat(p, ty) ->
       let p, return = pattern return p in
@@ -87,17 +87,17 @@ let rec expression return ({ e_desc = desc } as e) =
   | Elocal _ | Eglobal _ | Econst _ | Econstr0 _ | Elast _ -> e, return 
   | Eapp(app, e_arg, e_list) ->
       let e_arg, return = expression return e_arg in
-      let e_list, return = Zlmisc.map_fold expression return e_list in
+      let e_list, return = Zmisc.map_fold expression return e_list in
       { e with e_desc = Eapp(app, e_arg, e_list) }, return
   | Eop(op, e_list) ->
-      let e_list, return = Zlmisc.map_fold expression return e_list in
+      let e_list, return = Zmisc.map_fold expression return e_list in
       { e with e_desc = Eop(op, e_list) }, return
   | Erecord_access(e, lid) ->
       let e, return = expression return e in
       { e with e_desc = Erecord_access(e, lid) }, return
   | Erecord(l_e_list) ->
       let l_e_list, return =
-        Zlmisc.map_fold
+        Zmisc.map_fold
           (fun return (l, e) ->
              let e, return = expression return e in (l, e), return)
           return l_e_list in
@@ -106,7 +106,7 @@ let rec expression return ({ e_desc = desc } as e) =
       let e, return = expression return e in
       { e with e_desc = Etypeconstraint(e, ty) }, return
   | Etuple(e_list) ->
-      let e_list, return = Zlmisc.map_fold expression return e_list in
+      let e_list, return = Zmisc.map_fold expression return e_list in
       tuple_into_record return e_list
   | Ematch _ | Eseq _ | Elet _ | Eperiod _ | Eblock _ | Epresent _
     -> assert false
@@ -120,12 +120,12 @@ let rec equation return ({ eq_desc = desc } as eq) =
      let return, e = expression return e in
      { eq with eq_desc = EQinit(x, e) }, return
   | EQreset(eq_list, e) ->
-      let eq_list, return = Zlmisc.map_fold equation return eq_list in
+      let eq_list, return = Zmisc.map_fold equation return eq_list in
       let return, e = expression return e in
       { eq with eq_desc= EQreset(eq_list, e) }, return
   | EQmatch(total, e, p_h_list) ->
       let p_h_list, return =
-        Zlmisc.map_fold
+        Zmisc.map_fold
           (fun return ({ m_body = b } as h) ->
              let return, b = block return b in
              { h with m_body = b }, return)
@@ -137,11 +137,11 @@ let rec equation return ({ eq_desc = desc } as eq) =
   | EQand _| EQbefore _| EQforall _-> assert false
 
 and block return ({ b_body = eq_list; b_env = b_env } as b) =
-  let eq_list, return = Zlmisc.map_fold equation return eq_list in
+  let eq_list, return = Zmisc.map_fold equation return eq_list in
   { b with b_body = eq_list }, return
 
 let local return ({ l_eq = eq_list; l_env = l_env } as l) =
-  let eq_list, return = Zlmisc.map_fold equation return eq_list in
+  let eq_list, return = Zmisc.map_fold equation return eq_list in
   { l with l_eq = eq_list }, return
 
 (* translate a top level expression *)
@@ -161,6 +161,6 @@ let implementation return impl =
       { impl with desc = Efundecl(n, { body with f_body = e }) }, return
                
 let implementation_list impl_list =
-  let impl_list, return = Zlmisc.map_fold implementation empty impl_list in
+  let impl_list, return = Zmisc.map_fold implementation empty impl_list in
   impl_list
  

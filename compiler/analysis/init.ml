@@ -14,7 +14,7 @@
 
 (* initialization types and basic operations over these types *)
 
-open Zlmisc
+open Zmisc
 open Deftypes
 open Definit
 open Global
@@ -466,7 +466,7 @@ and icopy i =
 
 (* instanciate the initialisation type according to the type *)
 let rec instance ti ty =
-  let { t_desc = t_desc } as ty = Zltypes.typ_repr ty in
+  let { t_desc = t_desc } as ty = Ztypes.typ_repr ty in
   match ti, t_desc with
   | Ifun(ti1, ti2), Tfun(_, _, ty1, ty2) ->
      funtype (instance ti1 ty1) (instance ti2 ty2)
@@ -545,5 +545,5 @@ let penv ff env =
   let pentry ff (n, { t_typ = ti; t_last = i }) =
     Format.fprintf ff "@[%a: %a | %a@]"
       Printer.source_name n Pinit.ptype ti Pinit.init i in
-  let env = Zlident.Env.bindings env in
+  let env = Zident.Env.bindings env in
   Pp_tools.print_list_r pentry "{" ";" "}" ff env

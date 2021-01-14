@@ -13,8 +13,8 @@
 (* *********************************************************************)
 
 (** The compiler *)
-open Zllocation
-open Zlmisc
+open Zlocation
+open Zmisc
 open Global
 open Zelus
 open Format
@@ -35,21 +35,21 @@ let parse parsing_fun lexing_fun source_name =
   try
     parsing_fun lexing_fun lexbuf
   with
-  | Zllexer.Lexical_error(err, loc) ->
+  | Zlexer.Lexical_error(err, loc) ->
       close_in ic; lexical_error err loc
-  | Zlparser.Error ->
+  | Zparser.Error ->
       close_in ic;
       syntax_error
         (Loc(Lexing.lexeme_start lexbuf, Lexing.lexeme_end lexbuf))
 
 let parse_implementation_file source_name =
-  parse Zlparser.implementation_file Zllexer.main source_name
+  parse Zparser.implementation_file Zlexer.main source_name
 
 let parse_interface_file source_name =
-  parse Zlparser.interface_file Zllexer.main source_name
+  parse Zparser.interface_file Zlexer.main source_name
 
-let parse_scalar_interface_file source_name = 
-  parse Zlparser.scalar_interface_file Zllexer.main source_name
+let parse_scalar_interface_file source_name =
+  parse Zparser.scalar_interface_file Zlexer.main source_name
 
 let compile_interface parse modname filename suffix =
   (* input and outputs *)
@@ -64,7 +64,7 @@ let compile_interface parse modname filename suffix =
 
   try
     Modules.initialize modname;
-    Zllocation.initialize source_name;
+    Zlocation.initialize source_name;
 
     (* Parsing of the file *)
     let l = parse source_name in
@@ -114,7 +114,7 @@ let compile modname filename =
     Plmm.implementation_list lmm_ff impl_list in
 
   Modules.initialize modname;
-  Zllocation.initialize source_name;
+  Zlocation.initialize source_name;
 
   let comment c =
   let sep =
@@ -230,7 +230,7 @@ let compile modname filename =
      let impl_list =
        if not !no_opt && not !no_deadcode
        then step "Deadcode removal. See below:"
-		 Zldeadcode.implementation_list impl_list
+		 Zdeadcode.implementation_list impl_list
        else impl_list in
      let impl_list =
        step "Static scheduling done. See below:"
@@ -242,7 +242,7 @@ let compile modname filename =
 	   step "Removing of copy variables done. See below:"
 		Copy.implementation_list impl_list in
 	 step "Deadcode removal. See below:"
-	      Zldeadcode.implementation_list impl_list
+	      Zdeadcode.implementation_list impl_list
        else impl_list in
      (* start of translation into sequential code *)
      let obc_list =
@@ -273,13 +273,13 @@ let compile modname filename =
      apply_with_close_out Modules.write itc;
 
      (* translate into L-- if asked for *)
-     if Zlmisc.S.is_empty !Zlmisc.lmm_nodes then ()
+     if Zmisc.S.is_empty !Zmisc.lmm_nodes then ()
      else
        let impl_list =
 	step "Rewrite of pattern matchings into primitive ones done. See below:"
 	     Match2condition.implementation_list impl_list in
        let lmm_list =
-         Zlus2lmm.implementation_list !Zlmisc.lmm_nodes impl_list in
+         Zlus2lmm.implementation_list !Zmisc.lmm_nodes impl_list in
        if lmm_list <> [] then
          let lmm = open_out lmm_name in
          apply_with_close_out (write_lmm_list lmm_list) lmm

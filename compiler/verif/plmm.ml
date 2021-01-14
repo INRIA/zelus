@@ -14,10 +14,10 @@
 
 (* Printer for lmm *)
 
-open Zllocation
+open Zlocation
 open Format
 open Pp_tools
-open Zlident
+open Zident
 open Lident
 open Lmm
 

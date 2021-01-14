@@ -1,13 +1,13 @@
 (include_subdirs unqualified)
 
 (rule
- (copy %{project_root}/zlconfig.ml zlconfig.ml))
+ (copy %{project_root}/zconfig.ml zconfig.ml))
 
 (subdir parsing
-  (ocamllex zllexer))
+  (ocamllex zlexer))
 
 (subdir parsing
-  (menhir (modules zlparser) (infer true) (flags --explain --table)))
+  (menhir (modules zparser) (infer true) (flags --explain --table)))
 
 (library
   (name zlcompilerlibs)

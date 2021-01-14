@@ -40,7 +40,7 @@ let () =
       "date", dquote @@ get_current_date ();
     ]
   in
-  let oc = open_out_bin "zlconfig.ml" in
+  let oc = open_out_bin "zconfig.ml" in
   List.iter
     (fun (x, s) -> Printf.fprintf oc {|let %s = %s
 |} x s)

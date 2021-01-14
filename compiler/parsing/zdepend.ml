@@ -1,6 +1,6 @@
 open Format
-open Zllocation
-open Zlparsetree
+open Zlocation
+open Zparsetree
 
 module StringSet = Set.Make(struct type t = string let compare = compare end)
 

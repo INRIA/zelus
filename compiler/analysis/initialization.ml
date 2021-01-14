@@ -21,11 +21,11 @@
  *- when x is declared with [init x = e], then last x is
  *- marked to be initialized with type 0 if [x = ...] at discrete instants;
  *- 1/2 otherwise. if x is not explicitly initialized, it gets type 1 *)
-open Zlmisc
-open Zlident
+open Zmisc
+open Zident
 open Global
 open Zelus
-open Zllocation
+open Zlocation
 open Deftypes
 open Definit
 open Init
@@ -34,9 +34,9 @@ open Init
 type error =
   | Iless_than of ti * ti (* not (expected_ty < actual_ty) *) 
   | Iless_than_i of t * t (* not (expected_i < actual_i) *) 
-  | Ilast of Zlident.t (* [last x] is un-initialized *)
-  | Ivar of Zlident.t (* [x] is un-initialized *)
-  | Ider of Zlident.t (* equation [der x = ...] appear with no initialisation *)
+  | Ilast of Zident.t (* [last x] is un-initialized *)
+  | Ivar of Zident.t (* [x] is un-initialized *)
+  | Ider of Zident.t (* equation [der x = ...] appear with no initialisation *)
 exception Error of location * error
 
 let error loc kind = raise (Error(loc, kind))
@@ -61,21 +61,21 @@ let message loc kind =
           "%aInitialization error: the last value of %s \
            may not be well initialized.@."
           output_location loc
-          (Zlident.source n)
+          (Zident.source n)
     | Ivar(n) ->
         Format.eprintf
           "%aInitialization error: the value of %s \
            may not be well initialized.@."
           output_location loc
-          (Zlident.source n)
+          (Zident.source n)
     | Ider(n) ->
         Format.eprintf
           "%aInitialization error: the derivative of %s \
            is given but it is not initialized.@."
           output_location loc
-          (Zlident.source n)
+          (Zident.source n)
   end;
-  raise Zlmisc.Error
+  raise Zmisc.Error
 
 let less_than loc actual_ti expected_ti =
   try
@@ -148,9 +148,9 @@ let last_env shared defnames env =
     let { t_typ = ti; t_last = i } = Env.find n env in
     Env.add n { t_typ = Init.fresh_on_i izero ti; t_last = Init.new_var () }
       acc in
-  let names = Deftypes.cur_names Zlident.S.empty defnames in
+  let names = Deftypes.cur_names Zident.S.empty defnames in
   let env_defnames =
-    Zlident.S.fold add (Zlident.S.diff shared names) Env.empty in
+    Zident.S.fold add (Zident.S.diff shared names) Env.empty in
   Env.append env_defnames env
 
 (* Names from the set [last_names] are considered to be initialized *)
@@ -160,7 +160,7 @@ let add_last_to_env is_continuous env last_names =
     let lv = if is_continuous then Init.new_var () else izero in
     Env.add n { t_typ = Init.fresh_on_i izero ti; t_last = lv } acc in
   let env_last_names =
-    Zlident.S.fold add last_names Env.empty in
+    Zident.S.fold add last_names Env.empty in
   Env.append env_last_names env
             
 (* find the initial handler from an automaton. Returns it with its complement *)
@@ -184,7 +184,7 @@ let split se_opt s_h_list =
         List.hd s_h_list, List.tl s_h_list
     | Some(se) -> splitrec (state se) s_h_list
 
-let print x = Zlmisc.internal_error "unbound" Printer.name x
+let print x = Zmisc.internal_error "unbound" Printer.name x
 
 (** Check that partially defined names have a last value which is initialized *)
 let initialized loc env shared =
@@ -192,7 +192,7 @@ let initialized loc env shared =
   let check n =
     let { t_typ = ti } = try Env.find n env with Not_found -> assert false in
     less_for_var loc n ti (Init.fresh_on_i izero ti) in
-  Zlident.S.iter check shared
+  Zident.S.iter check shared
 
 (** Patterns *)
 (* [pattern env p expected_ty] means that the type of [p] must be less *)
@@ -304,7 +304,7 @@ let rec exp is_continuous env ({ e_desc = desc; e_typ = ty } as e) =
         let env = local is_continuous env l in
         exp is_continuous env e_let
     | Eblock(b, e_block) ->
-        let env = block_eq_list Zlident.S.empty is_continuous env b in
+        let env = block_eq_list Zident.S.empty is_continuous env b in
         exp is_continuous env e_block
     | Eseq(e1, e2) -> 
         ignore (exp is_continuous env e1);
@@ -314,7 +314,7 @@ let rec exp is_continuous env ({ e_desc = desc; e_typ = ty } as e) =
         (* if one is un-initialized, the whole is un-initialized *)
         let ti = Init.skeleton_on_i (Init.new_var ()) ty in
         let _ =
-          Zlmisc.optional_map
+          Zmisc.optional_map
             (fun e -> exp_less_than is_continuous env e ti) e_opt in
         present_handler_exp_list is_continuous env p_h_list ti;
         ti
@@ -438,8 +438,8 @@ and equation is_continuous env
       (* Compute the set of names defined by a state *)
       let cur_names_in_state b trans =
         let block acc { b_write = w } = Deftypes.cur_names acc w in
-        let escape acc { e_block = b_opt } = Zlmisc.optional block acc b_opt in
-        block (List.fold_left escape Zlident.S.empty trans) b in
+        let escape acc { e_block = b_opt } = Zmisc.optional block acc b_opt in
+        block (List.fold_left escape Zident.S.empty trans) b in
       (* transitions *)
       let escape shared env
           { e_cond = sc; e_block = b_opt; e_next_state = ns; e_env = e_env } =
@@ -453,12 +453,12 @@ and equation is_continuous env
       let handler shared env
           { s_state = state; s_body = b; s_trans = trans; s_env = s_env } =
         (* remove from [shared] names defined in the current state *)
-        let shared = Zlident.S.diff shared (cur_names_in_state b trans) in
+        let shared = Zident.S.diff shared (cur_names_in_state b trans) in
         let env = build_env state.loc is_continuous s_env env in
         let env = block_eq_list shared is_continuous env b in
         List.iter (escape shared env) trans in
       (* compute the set of shared names *)
-      let shared = Deftypes.cur_names Zlident.S.empty defnames in
+      let shared = Deftypes.cur_names Zident.S.empty defnames in
       (* do a special treatment for the initial state *)
       let first_s_h, remaining_s_h_list = split se_opt s_h_list in
       (* first type the initial branch *)
@@ -467,24 +467,24 @@ and equation is_continuous env
       (* variables from [defined_names] do have a last value *)
       (* in this version of the language, weak and strong cannot be mixed *)
       let last_names =
-        Deftypes.cur_names Zlident.S.empty first_s_h.s_body.b_write in
+        Deftypes.cur_names Zident.S.empty first_s_h.s_body.b_write in
       let env =
         if is_weak then add_last_to_env is_continuous env last_names else env in
       List.iter (handler shared env) remaining_s_h_list;
       (* every defined variable must be initialized *)
       initialized loc env shared;
       (* finaly check the initialisation *)
-      ignore (Zlmisc.optional_map (state env) se_opt)
+      ignore (Zmisc.optional_map (state env) se_opt)
   | EQmatch(total, e, m_h_list) ->
       exp_less_than_on_i is_continuous env e izero;
-      let shared = Deftypes.cur_names Zlident.S.empty defnames in
+      let shared = Deftypes.cur_names Zident.S.empty defnames in
       match_handler_block_eq_list is_continuous shared env defnames m_h_list;
       (* every defined variable must be initialized *)
       initialized loc env shared
   | EQpresent(p_h_list, b_opt) ->
-      let shared = Deftypes.cur_names Zlident.S.empty defnames in
+      let shared = Deftypes.cur_names Zident.S.empty defnames in
       ignore
-        (Zlmisc.optional_map
+        (Zmisc.optional_map
            (fun b -> ignore (block_eq_list shared is_continuous env b)) b_opt);
       present_handler_block_eq_list is_continuous shared env defnames p_h_list;
       (* every defined variable must be initialized *)
@@ -500,10 +500,10 @@ and equation is_continuous env
         with | Not_found -> assert false in
       less_than loc ti_n (Init.atom izero);
       ignore
-        (Zlmisc.optional_map
+        (Zmisc.optional_map
            (fun e -> exp_less_than_on_i is_continuous env e izero) e_opt)
   | EQblock(b_eq_list) ->
-      ignore (block_eq_list Zlident.S.empty is_continuous env b_eq_list)
+      ignore (block_eq_list Zident.S.empty is_continuous env b_eq_list)
   | EQforall { for_index = i_list; for_init = init_list; for_body = b_eq_list;
                for_in_env = i_env; for_out_env = o_env; for_loc = loc } ->
       (* typing the declaration of indexes *)
@@ -534,7 +534,7 @@ and equation is_continuous env
       let env = build_env loc is_continuous i_env env in
       let env = build_env loc is_continuous o_env env in
       let env = Env.append init_env env in
-      ignore (block_eq_list Zlident.S.empty is_continuous env b_eq_list)
+      ignore (block_eq_list Zident.S.empty is_continuous env b_eq_list)
         
 (* typing rule for a present statement where the body is an expression
  *- if [is_continuous = true] this means that every handler [ze -> body]
@@ -596,17 +596,17 @@ let implementation ff impl =
     | Econstdecl(f, _, e) ->
         (* the expression [e] must be initialized *)
         let ti_zero = Init.skeleton_on_i izero e.e_typ in
-        Zlmisc.push_binding_level ();
+        Zmisc.push_binding_level ();
         exp_less_than false Env.empty e ti_zero;
-        Zlmisc.pop_binding_level ();
+        Zmisc.pop_binding_level ();
         let tis = generalise ti_zero in
         Global.set_init (Modules.find_value (Lident.Name(f))) tis;
         (* output the signature *)
-        if !Zlmisc.print_initialization_types then Pinit.declaration ff f tis
+        if !Zmisc.print_initialization_types then Pinit.declaration ff f tis
     | Efundecl(f, { f_kind = k; f_atomic = atomic; f_args = p_list;
                     f_body = e; f_env = h0; f_loc = loc }) -> 
         let is_continuous = match k with | C -> true | _ -> false in
-        Zlmisc.push_binding_level ();
+        Zmisc.push_binding_level ();
         let env = build_env loc is_continuous h0 Env.empty in
         let ti_list = List.map (fun p -> Init.skeleton p.p_typ) p_list in
         List.iter2 (pattern is_continuous env) p_list ti_list;
@@ -617,11 +617,11 @@ let implementation ff impl =
           funtype_list (List.map (fun p -> Init.skeleton p.p_typ) p_list)
             (Init.skeleton e.e_typ) in
         less_than impl.loc actual_ti expected_ti;
-        Zlmisc.pop_binding_level ();
+        Zmisc.pop_binding_level ();
         let tis = generalise actual_ti in
         Global.set_init (Modules.find_value (Lident.Name(f))) tis;
         (* output the signature *)
-        if !Zlmisc.print_initialization_types then Pinit.declaration ff f tis
+        if !Zmisc.print_initialization_types then Pinit.declaration ff f tis
   with
   | Error(loc, kind) -> message loc kind
                           
