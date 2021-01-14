@@ -292,7 +292,7 @@ let emit_prelude ff ({ Lident.id = id } as qualid) info k =
       end else
       fprintf ff
         "@[<v>@[open Ztypes@]@;\
-         @[open Zs@]@;\
+         @[open Zls@]@;\
          @;\
          @[(* simulation (continuous) function *)@.\
          @[<hov2>let main = @,\
@@ -354,7 +354,7 @@ let emit_simulation_code ff k =
          exit(0);;@.@]"
   | Deftypes.Tcont ->
       fprintf ff "@[(* instantiate a numeric solver *)\n\
-                  module Runtime = Zsrun.Make (Defaultsolver)\n\
+                  module Runtime = Zlsrun.Make (Defaultsolver)\n\
                   let _ = Runtime.go main@.@]"
   | Deftypes.Tproba -> assert false
 
@@ -378,7 +378,7 @@ let emit_checked_code ff k n =
 
   | Deftypes.Tcont ->
       fprintf ff "@[(* instantiate a numeric solver *)\n\
-                  module Runtime = Zsrun.Make (Defaultsolver)\n\
+                  module Runtime = Zlsrun.Make (Defaultsolver)\n\
                   let _ = Runtime.check main %d@.@]" n
   | Deftypes.Tproba -> assert false
 
@@ -388,11 +388,11 @@ let emit_gtkmain_code ff k sampling =
       fprintf ff
         "@[(* simulation loop: sampled on period %f Hz *)\n@.@]" sampling;
       fprintf ff "@[(* instantiate the discrete interface *)\n\
-                  module Runtime = Zsrungtk.MakeDiscrete ()\n\
+                  module Runtime = Zlsrungtk.MakeDiscrete ()\n\
                   let _ = Runtime.go %f main@.@]" sampling
   | Deftypes.Tcont ->
       fprintf ff "@[(* instantiate a numeric solver *)\n\
-                  module Runtime = Zsrungtk.Make (Defaultsolver)\n\
+                  module Runtime = Zlsrungtk.Make (Defaultsolver)\n\
                   let _ = Runtime.go main@.@]"
   | Deftypes.Tproba -> assert false
 
@@ -414,7 +414,7 @@ let emit_periodic_code ff k sampling =
               periodic();exit(0)@.@]" sampling
   | Deftypes.Tcont ->
       fprintf ff "@[(* instantiate a numeric solver *)
-                 let _ = Zsrun.go main@.@]"
+                 let _ = Zlsrun.go main@.@]"
   | Deftypes.Tproba -> assert false
 
 (** The main entry function. Simulation of a main function *)
