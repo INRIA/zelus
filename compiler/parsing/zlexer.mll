@@ -16,8 +16,8 @@
 
 {
 open Lexing
-open Zlparser
-open Zllocation
+open Zparser
+open Zlocation
 
 type lexical_error =
     Illegal_character

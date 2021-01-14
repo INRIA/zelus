@@ -14,12 +14,12 @@
 
 (* Functions to build expressions *)
 
-open Zlmisc
-open Zllocation
+open Zmisc
+open Zlocation
 open Initial
 open Deftypes
 open Zelus
-open Zlident
+open Zident
 open Lident
 
 
@@ -135,7 +135,7 @@ let extend_local env eq_list ({ l_eq = l_eq_list; l_env = l_env } as l) =
 let make_local env eq_list = 
   extend_local env eq_list
     { l_rec = true; l_eq = [];
-      l_env = Env.empty; l_loc = Zllocation.no_location }
+      l_env = Env.empty; l_loc = Zlocation.no_location }
 let make_let env eq_list e =
   match eq_list with
   | [] -> e | _ -> emake (Elet(make_local env eq_list, e)) e.e_typ
@@ -170,7 +170,7 @@ let extend_block env eq_list
 let make_block env eq_list =
   extend_block env eq_list
     { b_vars = []; b_env = Env.empty; b_locals = [];
-      b_body = []; b_loc = Zllocation.no_location; b_write = Deftypes.empty }
+      b_body = []; b_loc = Zlocation.no_location; b_write = Deftypes.empty }
 
 let eq_make n e = eqmake (EQeq(varpat n e.e_typ, e))
 let eq_next n e = eqmake (EQnext(n, e, None))
@@ -209,7 +209,7 @@ let init i eq_list = (eq_init i etrue) :: (eq_make i efalse) :: eq_list
 (* If it already exist in the environment *)
 (* returns it. Otherwise, create one *)
 let new_major env =
-  let m = Zlident.fresh "major" in
+  let m = Zident.fresh "major" in
   let env =
     Env.add m { t_sort = Deftypes.major (); t_typ = Initial.typ_bool } env in
   let major = var m Initial.typ_bool in

@@ -17,9 +17,9 @@
 (* $Id$ *)
 
 open Format
-open Zllocation
-open Zlparsetree
-open Zlmisc
+open Zlocation
+open Zparsetree
+open Zmisc
 
 
 (* Print the dependencies *)
@@ -188,14 +188,14 @@ let parse parsing_fun lexing_fun lexbuf =
   try
     parsing_fun lexing_fun lexbuf
   with
-  | Zllexer.Lexical_error(err, loc) -> lexical_error err loc
-  | Zlparser.Error -> syntax_error (Loc(Lexing.lexeme_start lexbuf, Lexing.lexeme_end lexbuf))
+  | Zlexer.Lexical_error(err, loc) -> lexical_error err loc
+  | Zparser.Error -> syntax_error (Loc(Lexing.lexeme_start lexbuf, Lexing.lexeme_end lexbuf))
 
 let parse_implementation_file lb =
-  parse Zlparser.implementation_file Zllexer.main lb
+  parse Zparser.implementation_file Zlexer.main lb
 
 let parse_interface_file lb =
-  parse Zlparser.interface_file Zllexer.main lb
+  parse Zparser.interface_file Zlexer.main lb
 
 let parse_use_file ic =
     seek_in ic 0;
@@ -214,10 +214,10 @@ let zls_dependencies source_file =
   let ic = open_in_bin input_file in
   try
     let ast = parse_use_file ic in
-    let free_structure_names = Zldepend.source_file ast in
+    let free_structure_names = Zdepend.source_file ast in
     close_in ic; 
     remove_preprocessed input_file;
-    Zldepend.StringSet.fold find_dependency free_structure_names []
+    Zdepend.StringSet.fold find_dependency free_structure_names []
   with x ->
     close_in ic; 
     remove_preprocessed input_file; 
@@ -228,10 +228,10 @@ let zli_dependencies source_file =
   let ic = open_in_bin input_file in
   try
     let ast = parse_interface ic in
-    let free_structure_names = Zldepend.interface_file ast in
+    let free_structure_names = Zdepend.interface_file ast in
     close_in ic; 
     remove_preprocessed input_file;
-    Zldepend.StringSet.fold find_dependency free_structure_names [] 
+    Zdepend.StringSet.fold find_dependency free_structure_names [] 
   with x ->
     close_in ic; 
     remove_preprocessed input_file; 

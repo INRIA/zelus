@@ -16,8 +16,8 @@
 
 open Format
 open Pp_tools
-open Zlmisc
-open Zlident
+open Zmisc
+open Zident
 open Defcaus
        
 (** a set of causality names *)
@@ -30,8 +30,8 @@ let type_name = new name_assoc_table int_to_alpha
 		    
 let info i =
   match i with
-  | Cname(n) -> Zlident.source n
-  | Clast(n) -> "last " ^ (Zlident.source n)
+  | Cname(n) -> Zident.source n
+  | Clast(n) -> "last " ^ (Zident.source n)
 			       
 let polarity = 
   function Punknown -> "" | Pplus -> "+" | Pminus -> "-" | Pplusminus -> "+-"
@@ -39,7 +39,7 @@ let useful u = if u then "u" else ""
 let level l = string_of_int l
 
 let extra { c_polarity = p; c_useful = u; c_level = l; c_index = i } =
-  if !Zlmisc.verbose
+  if !Zmisc.verbose
   then polarity p ^ useful u ^ level l ^ "(" ^ (string_of_int i) ^ ")" else ""
 
   

@@ -14,13 +14,13 @@
 
 (* read an interface *)
 
-open Zllocation
+open Zlocation
 open Lident
 open Zelus
 open Global
 open Deftypes
 open Modules
-open Zltypes
+open Ztypes
 open Format
 
 (* types of errors *)
@@ -91,7 +91,7 @@ let message loc kind =
        eprintf "%aType error: This definition is cyclic.@."
          output_location loc
   end;
-  raise Zlmisc.Error
+  raise Zmisc.Error
 
 let make desc = { desc = desc; loc = no_location }
 		  
@@ -143,13 +143,13 @@ let typ_of_type_expression typ_vars typ =
            Not_found -> error typ.loc (Eunbound_type_var(s))
        end
     | Etypetuple(l) ->
-       Zltypes.product (List.map typrec l)
+       Ztypes.product (List.map typrec l)
     | Etypeconstr(s, ty_list) ->
        let name = constr_name typ.loc s (List.length ty_list) in
-       Zltypes.nconstr name (List.map typrec ty_list)
+       Ztypes.nconstr name (List.map typrec ty_list)
     | Etypefun(k, n_opt, ty_arg, ty_res) ->
-       Zltypes.funtype (kindtype k) n_opt (typrec ty_arg) (typrec ty_res)
-    | Etypevec(ty_arg, si) -> Zltypes.vec (typrec ty_arg) (size si)
+       Ztypes.funtype (kindtype k) n_opt (typrec ty_arg) (typrec ty_res)
+    | Etypevec(ty_arg, si) -> Ztypes.vec (typrec ty_arg) (size si)
   and size si =
     match si.desc with
     | Sconst(i) -> Deftypes.Tconst(i)
@@ -287,7 +287,7 @@ let make_initial_typ_environment loc typ_name typ_params =
 let type_one_typedecl loc gtype (typ_name, typ_params, typ) =
   let typ_vars = List.map (fun v -> (v, new_generic_var ())) typ_params in
   let final_typ =
-    Zltypes.nconstr (Modules.qualify typ_name)
+    Ztypes.nconstr (Modules.qualify typ_name)
       (List.map (fun v -> List.assoc v typ_vars) typ_params) in
 
   let type_desc =
@@ -331,7 +331,7 @@ let typedecl ff loc ty_name ty_params typ =
   try
     let gtype = make_initial_typ_environment loc ty_name ty_params in
     let gtype = type_one_typedecl loc gtype (ty_name, ty_params, typ) in
-    if !Zlmisc.print_types then
+    if !Zmisc.print_types then
       Ptypes.output_type_declaration ff [gtype]
   with
     | Error(loc, k) -> message loc k
@@ -340,7 +340,7 @@ let typedecl ff loc ty_name ty_params typ =
 let add_type_of_value ff loc name is_static ty_scheme =
   try
     add_value name (value_desc is_static ty_scheme (Modules.qualify name));
-    if !Zlmisc.print_types then
+    if !Zmisc.print_types then
       Ptypes.output_value_type_declaration ff [global name ty_scheme]
   with
     | Already_defined(x) -> message loc (Ealready_defined_value(x))
