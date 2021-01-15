@@ -2,10 +2,25 @@ open Muf
 open Muf_utils
 
 let rec subst x expr1 expr2 =
-  match expr2.expr with
-  | Evar y -> if x = y then expr1 else expr2
-  | Elet (p, e1, e2) when SSet.mem x.name (fv_patt p) ->
+  match expr2.expr, expr1.expr with
+  | Evar y, _ -> if x = y then expr1 else expr2
+  | Elet (p, e1, e2), _ when SSet.mem x.name (fv_patt p) ->
       { expr2 with expr = Elet(p, subst x expr1 e1, e2) }
+  | Esample (prob, e), Evar { name = prob' } ->
+      let prob = if x.name = prob then prob' else prob in
+      let desc = map_expr_desc (fun p -> p) (subst x expr1) e.expr in
+      { expr2 with expr = Esample(prob, { e with expr = desc }) }
+  | Eobserve (prob, e1, e2), Evar { name = prob' } ->
+      let prob = if x.name = prob then prob' else prob in
+      let desc1 = map_expr_desc (fun p -> p) (subst x expr1) e1.expr in
+      let desc2 = map_expr_desc (fun p -> p) (subst x expr1) e2.expr in
+      { expr2 with expr = Eobserve(prob,
+                                   { e1 with expr = desc1 },
+                                   { e2 with expr = desc2 }) }
+  | Efactor (prob, e), Evar { name = prob' } ->
+      let prob = if x.name = prob then prob' else prob in
+      let desc = map_expr_desc (fun p -> p) (subst x expr1) e.expr in
+      { expr2 with expr = Efactor(prob, { e with expr = desc }) }
   | _ ->
       let desc = map_expr_desc (fun p -> p) (subst x expr1) expr2.expr in
       { expr2 with expr = desc }
