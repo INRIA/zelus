@@ -280,13 +280,13 @@ let compile modname filename =
        then begin
 	 comment "Print OCaml code. See below:";
          Format.printf "%a@."
-           (Format.pp_print_list Pprintast.structure) ml_list;
+           (pp_print_list ~pp_sep:pp_force_newline Pprintast.structure) ml_list;
        end;
        (* write OCaml code in the appropriate file *)
        let mlc = open_out ml_name in
        let mlff = Format.formatter_of_out_channel mlc in
        Format.fprintf mlff "%a@."
-         (Format.pp_print_list Pprintast.structure) ml_list;
+         (pp_print_list ~pp_sep:pp_force_newline Pprintast.structure) ml_list;
        close_out mlc
      end else begin
        (* print OCaml code *)

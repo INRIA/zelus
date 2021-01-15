@@ -34,11 +34,14 @@ type ('pattern, 'expr) expr_desc =
   | Eif of 'expr * 'expr * 'expr
   | Elet of 'pattern * 'expr * 'expr
   | Esequence of 'expr * 'expr
-  | Esample of 'expr
-  | Eobserve of 'expr * 'expr
-  | Efactor of 'expr
+  | Esample of prob * 'expr
+  | Eobserve of prob * 'expr * 'expr
+  | Efactor of prob * 'expr
   | Einfer of ('pattern * 'expr) * 'expr
 [@@deriving show, map, fold]
+
+and prob = string
+[@@deriving show]
 
 type 'm expression =
   { expr: ('m pattern, 'm expression) expr_desc; emeta: 'm }
@@ -59,6 +62,7 @@ type ('p, 'e) decl_desc =
   | Ddecl of 'p * 'e
   | Dfun of identifier * 'p * 'e
   | Dtype of identifier * string list * type_kind
+  | Dopen of string
 [@@deriving show, map, fold]
 
 type 'm declaration =

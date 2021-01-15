@@ -321,7 +321,7 @@ and method_call state_vars m =
               Elet(unpack state_vars (ptuple [pvar prob; pvar d]),
                    expression state_vars e,
                    mk_expr (pack state_vars
-                              (Esample(etuple [evar prob; evar d]))))
+                              (Esample(prob.name, evar d))))
           | "observe", [ e ] ->
               let prob = fresh "_prob" in
               let d = fresh "_d" in
@@ -330,15 +330,14 @@ and method_call state_vars m =
                                               ptuple[ pvar d; pvar o]]),
                    expression state_vars e,
                    mk_expr (pack state_vars
-                              (Eobserve(evar prob,
-                                        etuple [evar d; evar o]))))
+                              (Eobserve(prob.name, evar d, evar o))))
           | "factor", [ e ] ->
               let prob = fresh "_prob" in
               let x = fresh "_x" in
               Elet(unpack state_vars (ptuple [pvar prob; pvar x]),
                    expression state_vars e,
                    mk_expr (pack state_vars
-                              (Efactor(etuple [evar prob; evar x]))))
+                              (Efactor(prob.name, evar x))))
 
           | _ -> assert false
           end
@@ -609,8 +608,7 @@ let implementation impl =
   | Oletmachine (x, m) ->
       machine x m
   | Oopen m ->
-      Format.eprintf "not yet implemented: open %s@." m;
-      []
+      [ mk_decl (Dopen m) ]
   | Otypedecl _ (* of (string * string list * type_decl) list *) ->
       assert false (* XXX TODO XXX *)
   end

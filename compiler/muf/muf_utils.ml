@@ -27,9 +27,9 @@ let rec fv_expr expr =
   | Elet (p, e1, e2) ->
       SSet.union (fv_expr e1) (SSet.diff (fv_expr e2) (fv_patt p))
   | Esequence (e1, e2) -> SSet.union (fv_expr e1) (fv_expr e2)
-  | Esample e -> fv_expr e
-  | Eobserve (e1, e2) -> SSet.union (fv_expr e1) (fv_expr e2)
-  | Efactor e -> fv_expr e
+  | Esample (_, e) -> fv_expr e
+  | Eobserve (_, e1, e2) -> SSet.union (fv_expr e1) (fv_expr e2)
+  | Efactor (_, e) -> fv_expr e
   | Einfer ((p, body), e) ->
       SSet.union (SSet.diff (fv_expr body) (fv_patt p)) (fv_expr e)
   end

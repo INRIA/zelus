@@ -40,8 +40,8 @@ let rec compile_patt: type a. a pattern -> Parsetree.pattern = begin
 end
 
 let rec compile_expr:
-  type a. ?inferlib: string -> a expression -> Parsetree.expression = begin
-  fun ?(inferlib="Infer_pf") e ->
+  type a. a expression -> Parsetree.expression = begin
+  fun e ->
     begin match e.expr with
     | Econst c -> compile_const c
     | Evar x -> Exp.ident (with_loc (Longident.Lident x.name))
@@ -66,26 +66,24 @@ let rec compile_expr:
           (compile_expr e2)
     | Esequence (e1, e2) ->
         Exp.sequence (compile_expr e1) (compile_expr e2)
-    | Esample e ->
-        let sample_id =
-          Longident.Ldot (Longident.Lident inferlib, "sample")
-        in
-        Exp.apply (Exp.ident (with_loc sample_id)) [Nolabel, compile_expr e]
-    | Eobserve (e1, e2) ->
-        let observe_id =
-          Longident.Ldot (Longident.Lident inferlib, "observe")
-        in
-        Exp.apply (Exp.ident (with_loc observe_id))
-          [ (Nolabel, compile_expr e1); (Nolabel, compile_expr e2) ]
-    | Efactor e ->
-        let factir_id =
-          Longident.Ldot (Longident.Lident inferlib, "factor")
-        in
-        Exp.apply (Exp.ident (with_loc factir_id)) [Nolabel, compile_expr e]
+    | Esample (prob, e) ->
+        let sample = Exp.ident (with_loc (Longident.Lident "sample'")) in
+        Exp.apply sample
+          [Nolabel, Exp.tuple [ Exp.ident (with_loc (Longident.Lident prob));
+                                compile_expr e] ]
+    | Eobserve (prob, e1, e2) ->
+        let observe = Exp.ident (with_loc (Longident.Lident "observe'")) in
+        Exp.apply observe
+          [ (Nolabel, Exp.tuple [ Exp.ident (with_loc (Longident.Lident prob));
+                                  Exp.tuple [ compile_expr e1; compile_expr e2 ]
+                                ]) ]
+    | Efactor (prob, e) ->
+        let factor = Exp.ident (with_loc (Longident.Lident "factor'")) in
+        Exp.apply factor
+          [Nolabel, Exp.tuple [ Exp.ident (with_loc (Longident.Lident prob));
+                                compile_expr e ]]
     | Einfer ((p, e), args) ->
-        let infer_id =
-          Longident.Ldot (Longident.Lident inferlib, "infer")
-        in
+        let infer_id = Longident.Lident "infer_step" in
         Exp.apply (Exp.ident (with_loc infer_id))
           [ (Nolabel, Exp.fun_ Nolabel None (compile_patt p) (compile_expr e));
             (Nolabel, compile_expr args) ]
@@ -129,6 +127,8 @@ let compile_decl : type a. a declaration -> Parsetree.structure_item = begin
                          params)
               ~kind:(compile_type_kind k)
              (with_loc t.name) ]
+    | Dopen m ->
+        Str.open_ (Opn.mk (Mod.ident (with_loc (Longident.Lident m))))
 end
 
 
