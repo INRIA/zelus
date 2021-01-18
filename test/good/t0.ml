@@ -1,5 +1,3 @@
-(* The Zelus compiler, version %%NAME%%-%%VERSION%%
-  (2020-12-14-11:29) *)
 open Ztypes
 type t = Zero | Constant of float | Linear of float 
 type ('a) _simpl_chunk =
