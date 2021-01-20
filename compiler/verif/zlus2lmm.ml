@@ -53,9 +53,9 @@ Tr(ck)(x = e) = x = if ck then Tr(ck)(e) else pre x
 
 *)
 
-open Location
-open Misc
-open Ident
+open Zlocation
+open Zmisc
+open Zident
 open Deftypes
 open Zelus
 open Lmm
@@ -248,7 +248,7 @@ let rec equation ck res { eq_desc = desc; eq_write = defnames } =
        co, name_to_exp, return in
 
      let constrpat_to_exp_list, return =
-       Misc.map_fold
+       Zmisc.map_fold
          (fun return { m_pat = p; m_body = b } ->
             let co, name_to_exp, return_name_to_exp =
               equations_from_handler e p b in
@@ -317,14 +317,14 @@ let implementation lmm_nodes lmm_list impl =
   | Etypedecl(n, params, td) ->
      typedecl impl.loc n params td :: lmm_list
   | Econstdecl(n, _, e) ->
-      if Misc.S.mem n lmm_nodes
+      if Zmisc.S.mem n lmm_nodes
       then Lconstdecl(n, expression Ck_base e) :: lmm_list
      else lmm_list
   | Efundecl(n, { f_kind = k; f_args = p_list; f_env = f_env; f_body = e }) ->
-     if Misc.S.mem n lmm_nodes then
+     if Zmisc.S.mem n lmm_nodes then
        let iset = List.fold_left (Vars.fv_pat S.empty) S.empty p_list in
        let i_list = S.elements iset in
-       let n_output = Ident.fresh "out" in
+       let n_output = Zident.fresh "out" in
        let { eqs = eqs; env = env; assertion = assertion } =
 	 let_expression Ck_base Res_never n_output e in
        let env =

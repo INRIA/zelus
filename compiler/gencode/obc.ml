@@ -14,9 +14,9 @@
 
 (* abstract syntax tree of the object code *)
 
-open Location
-open Misc
-open Ident
+open Zlocation
+open Zmisc
+open Zident
 
 type name = string
 
@@ -34,8 +34,8 @@ type exp =
   | Oconstr0 of Lident.t (* 0-ary and 1-ary constructor *)
   | Oconstr1 of Lident.t * exp list
   | Oglobal of Lident.t (* global variable *)
-  | Olocal of Ident.t (* read of local value *)
-  | Ovar of is_mutable * Ident.t (* read of local variable *)
+  | Olocal of Zident.t (* read of local value *)
+  | Ovar of is_mutable * Zident.t (* read of local variable *)
   | Ostate of left_state_value (* read of a state variable *)
   | Oaccess of exp * exp (* access in an array *)
   | Oupdate of size * exp * exp * exp (* update of an array of size [s1] *)
@@ -60,8 +60,8 @@ type exp =
  (* instructions *)
 and inst =
   | Olet of pattern * exp * inst
-  | Oletvar of Ident.t * is_mutable * Deftypes.typ * exp option * inst
-  | Ofor of bool * Ident.t * exp * exp * inst
+  | Oletvar of Zident.t * is_mutable * Deftypes.typ * exp option * inst
+  | Ofor of bool * Zident.t * exp * exp * inst
   | Owhile of exp * inst
   | Omatch of exp * inst match_handler list
   | Oif of exp * inst * inst option
@@ -73,15 +73,15 @@ and inst =
 and is_shared = bool
 
 and left_value = 
-  | Oleft_name of Ident.t
+  | Oleft_name of Zident.t
   | Oleft_record_access of left_value * Lident.t
   | Oleft_index of left_value * exp
   
 and left_state_value =
   | Oself
   | Oleft_state_global of Lident.t 
-  | Oleft_instance_name of Ident.t
-  | Oleft_state_name of Ident.t
+  | Oleft_instance_name of Zident.t
+  | Oleft_state_name of Zident.t
   | Oleft_state_record_access of left_state_value * Lident.t
   | Oleft_state_index of left_state_value * exp
   | Oleft_state_primitive_access of left_state_value * primitive_access
@@ -106,9 +106,9 @@ and immediate =
 and pattern = 
   | Owildpat
   | Otuplepat of pattern list
-  | Ovarpat of Ident.t * type_expression
+  | Ovarpat of Zident.t * type_expression
   | Oconstpat of immediate
-  | Oaliaspat of pattern * Ident.t
+  | Oaliaspat of pattern * Zident.t
   | Oconstr0pat of Lident.t
   | Oconstr1pat of Lident.t * pattern list
   | Oorpat of pattern * pattern
@@ -131,7 +131,7 @@ and machine =
   }
 
 and mentry =
-  { m_name: Ident.t; (* its name *)
+  { m_name: Zident.t; (* its name *)
     m_value: exp option; (* its possible initial value *)
     m_typ: Deftypes.typ; (* its type *)
     m_kind: Deftypes.mkind option; (* the kind of the memory *)
@@ -139,7 +139,7 @@ and mentry =
   }
 
 and ientry =
-  { i_name: Ident.t; (* its name *)
+  { i_name: Zident.t; (* its name *)
     i_machine: exp;  (* the machine it belongs to *)
     i_kind: Deftypes.kind; (* the kind of the machine *)
     i_params: exp path; (* static parameters used at instance creation *)
@@ -156,7 +156,7 @@ and method_desc =
 and method_call =
   { met_machine: Lident.t option; (* the class of the method *)
     met_name: method_name; (* the name of the method *)
-    met_instance: (Ident.t * exp path) option;
+    met_instance: (Zident.t * exp path) option;
     (* either a call to self (None) or to *)
     (* one instance o.(index_1)...(index_n).m(e_1,...,e_k) *)
     met_args: exp list }
@@ -177,14 +177,14 @@ and implementation =
 (* type declaration *)
 and type_expression = 
   | Otypevar of string
-  | Otypefun of kind * Ident.t option * type_expression * type_expression
+  | Otypefun of kind * Zident.t option * type_expression * type_expression
   | Otypetuple of type_expression list
   | Otypeconstr of Lident.t * type_expression list
   | Otypevec of type_expression * size
 
 and size =
   | Sconst of int
-  | Sname of Ident.t
+  | Sname of Zident.t
   | Sglobal of Lident.t
   | Sop of size_op * size * size
       

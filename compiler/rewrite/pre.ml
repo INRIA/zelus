@@ -35,29 +35,29 @@
     [f(e)] => let x = f(e) in x
 *)
 
-open Misc
-open Location
+open Zmisc
+open Zlocation
 open Deftypes
 open Zelus
-open Ident
+open Zident
 open Zaux
 
 (* Defines a value [let x = e in e_let] *)
 let let_value e =
-  let x = Ident.fresh "x" in
+  let x = Zident.fresh "x" in
   let l_env = Env.singleton x (Deftypes.entry Sval e.e_typ) in
   Zaux.make_let l_env [Zaux.eq_make x e] (var x e.e_typ)
 
 let let_value e =
-  let x = Ident.fresh "x" in
+  let x = Zident.fresh "x" in
   let l_env = Env.singleton x (Deftypes.entry Sval e.e_typ) in
   Zaux.make_let l_env [Zaux.eq_make x e] (var x e.e_typ)
 
 (* Defines a state variable with initialization or not *)
 (* [let init m = e0 and m = e and x = last m in x] *)
 let let_last_value e0_opt e =
-  let m = Ident.fresh "m" in
-  let x = Ident.fresh "x" in
+  let m = Zident.fresh "m" in
+  let x = Zident.fresh "x" in
   let mem = Deftypes.previous Deftypes.empty_mem in
   let eq_list = [eq_make m e; eq_make x (last m e.e_typ)] in
   let mem, eq_list =
@@ -71,7 +71,7 @@ let let_last_value e0_opt e =
 
 (* Define a zero-crossing *)
 let let_zero_value e =
-  let x = Ident.fresh "x" in
+  let x = Zident.fresh "x" in
   let mem = Deftypes.zero Deftypes.empty_mem in
   let l_env = Env.singleton x (Deftypes.entry mem e.e_typ) in
   Zaux.make_let l_env [Zaux.eq_make x e] (var x e.e_typ)
@@ -83,7 +83,7 @@ let env subst b_env =
       (env, subst, x_lx_eq_list) =
     match sort with
     | Smem ({ m_next = Some(true) } as m) ->
-        let nx = Ident.fresh "nx" in
+        let nx = Zident.fresh "nx" in
         Env.add x { entry with t_sort = Sval }
           (Env.add nx { entry with t_sort =
                                      Smem { m with m_next = Some(false);
@@ -153,7 +153,7 @@ let rec exp e =
      { e with e_desc = Eseq(exp e1, exp e2) }
   | Eperiod { p_phase = p1; p_period = p2 } ->
      { e with e_desc = Eperiod
-                         { p_phase = Misc.optional_map exp p1; p_period = exp p2 } }
+                         { p_phase = Zmisc.optional_map exp p1; p_period = exp p2 } }
   | Epresent _ | Ematch _ -> assert false
 
 (** Translation of equations. *)
@@ -239,4 +239,4 @@ let implementation impl =
   | Efundecl(n, ({ f_body = e; f_env = f_env } as body)) ->
      { impl with desc = Efundecl(n, { body with f_body = exp e }) }
 
-let implementation_list impl_list = Misc.iter implementation impl_list
+let implementation_list impl_list = Zmisc.iter implementation impl_list

@@ -19,15 +19,15 @@
 (* Two phases algorithm: 
  * one phase computes zero-crossing variables and a substitution;
  * the second one applies the subsitution *)
-open Ident
+open Zident
 open Zelus
 open Deftypes
 
 (* an environment { env, size, subst }
  * env: the environment of zero-crossings;
- * ren: Ident.t -> Ident.t defines the renaming of zero-crossings
+ * ren: Zident.t -> Zident.t defines the renaming of zero-crossings
  * size: number of entries in env *)
-type zenv = { env: Deftypes.tentry Env.t; ren: Ident.t Env.t; size: int }
+type zenv = { env: Deftypes.tentry Env.t; ren: Zident.t Env.t; size: int }
 
 let zempty = { env = Env.empty; ren = Env.empty; size = 0 }
 
@@ -82,13 +82,13 @@ let sharp
 (* [equation eq = eq', zenv] where
  * eq': the new equation in which zero-crossing variables have been removed
  * zenv.env: the set of zero-crossing variables defined in eq
- * zenv.rename: Ident.t -> Ident.t, the substitution of zero-crossing variables *)
+ * zenv.rename: Zident.t -> Zident.t, the substitution of zero-crossing variables *)
 let rec equation ({ eq_desc = desc } as eq) =
   match desc with
   | EQeq _ | EQpluseq _ | EQder _ | EQinit _ -> eq, zempty
   | EQmatch(total, e, m_h_list) ->
      let m_h_list, zenv =
-       Misc.map_fold (fun acc ({ m_body = b } as m_h) ->
+       Zmisc.map_fold (fun acc ({ m_body = b } as m_h) ->
 		      let b, zenv = block b in
 		      { m_h with m_body = b },
 		      sharp acc zenv)
@@ -108,7 +108,7 @@ let rec equation ({ eq_desc = desc } as eq) =
 							  assert false
 
 and equation_list eq_list = 
-  Misc.map_fold (fun acc eq -> let eq, zenv = equation eq in
+  Zmisc.map_fold (fun acc eq -> let eq, zenv = equation eq in
 			       eq, parallel acc zenv)
 		zempty eq_list
 
@@ -232,4 +232,4 @@ let implementation impl =
      { impl with desc = Efundecl(n, { body with f_body = expression e }) }
   | _ -> impl
 
-let implementation_list impl_list = Misc.iter implementation impl_list
+let implementation_list impl_list = Zmisc.iter implementation impl_list

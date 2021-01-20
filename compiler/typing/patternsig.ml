@@ -20,11 +20,11 @@
 open Zelus
 open Global
 open Lident
-open Matching
+open Zmatching
 open Printf
-open Location
+open Zlocation
 open Deftypes
-open Misc
+open Zmisc
 
 module LANG =
   struct
@@ -70,7 +70,7 @@ module LANG =
     let rec fix f x = let r = f x in if r = x then r else fix f r
     
     let not_in tl =
-      (* Returns e if is not in l, or next e if it is. Iterated with Misc.fix,
+      (* Returns e if is not in l, or next e if it is. Iterated with Zmisc.fix,
          eventually returns a value absent from l. *)
       let rec try_search_absent comp next l e =
         match l with
@@ -137,7 +137,7 @@ module LANG =
               List.sort Stdlib.compare (List.map extract_name_and_arity cdi)
           | _ -> assert false
       and find_record_type_fields typ =
-        let { t_desc = desc } = Types.typ_repr typ in
+        let { t_desc = desc } = Ztypes.typ_repr typ in
         match desc with
           | Deftypes.Tconstr (s, _, _) ->
               begin match (Modules.find_type (Modname s)).info.type_desc with
@@ -157,14 +157,14 @@ module LANG =
         | Ealiaspat (p, _) -> inject p
         | Econstr0pat s ->
             let variants = 
-              let { t_desc = desc } = Types.typ_repr p.p_typ in
+              let { t_desc = desc } = Ztypes.typ_repr p.p_typ in
               match desc with
                 | Deftypes.Tconstr(id, _, _) ->
                     find_variant_type_idents (Modname id)
                 | _ -> assert false in
             Pconstr (Tconstr (source s, 0, variants), [])
         | Econstr1pat(s, l) ->
-            let { t_desc = desc } = Types.typ_repr p.p_typ in
+            let { t_desc = desc } = Ztypes.typ_repr p.p_typ in
             Pconstr (Tconstr(source s, List.length l,
                              match desc with
                              | Deftypes.Tconstr(id, _, _) ->
@@ -223,7 +223,7 @@ let check_match_handlers loc match_handlers =
   let patterns = List.map (fun { m_pat = pat } -> pat) match_handlers in
   let r = C.check patterns in
 
-  Misc.optional_unit partial_matching loc r.C.not_matched;
+  Zmisc.optional_unit partial_matching loc r.C.not_matched;
   List.iter display_redundant r.C.redundant_patterns;
   match r.C.not_matched with | None -> true | Some _ -> false
 

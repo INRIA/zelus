@@ -26,8 +26,8 @@
 (* the inlining function preserves typing, i.e., if e is well typed *)
 (* (e itself and any of its subterms) e is inlined into e', then e' *)
 (* is also well typed *)
-open Misc
-open Ident
+open Zmisc
+open Zident
 open Lident
 open Global
 open Zelus
@@ -53,7 +53,7 @@ let inline is_inline lname =
     
 (** Building an expression [let reset res = e every r in res] *)
 let reset e e_reset =
-  let res = Ident.fresh "r" in
+  let res = Zident.fresh "r" in
   let eq = eqmake (EQreset([eqmake (EQeq(varpat res e.e_typ, e))], e_reset)) in
   let env = 
     Env.singleton res
@@ -61,12 +61,12 @@ let reset e e_reset =
 		    Deftypes.t_typ = e.e_typ } in
   { e with e_desc =
 	     Elet({ l_rec = false; l_env = env; l_eq = [eq];
-		    l_loc = Location.no_location }, var res e.e_typ) }
+		    l_loc = Zlocation.no_location }, var res e.e_typ) }
 
 (** Build a renaming from an environment *)
 let build env =
   let buildrec n entry (env, renaming) =
-    let m = Ident.fresh (Ident.source n) in
+    let m = Zident.fresh (Zident.source n) in
     Env.add m entry env,
     Env.add n m renaming in
   Env.fold buildrec env (Env.empty, Env.empty)
@@ -75,7 +75,7 @@ let build env =
 let rename x renaming =
   try Env.find x renaming
   with Not_found ->
-    Misc.internal_error "Inline: unbound name" Printer.name x
+    Zmisc.internal_error "Inline: unbound name" Printer.name x
 
 (** Renaming of type expressions *)
 let rec type_expression renaming ({ desc = desc } as ty_e) =
@@ -96,7 +96,7 @@ let rec type_expression renaming ({ desc = desc } as ty_e) =
        match opt_name with
        | None -> opt_name, renaming
        | Some(n) ->
-	  let m = Ident.fresh (Ident.source n) in
+	  let m = Zident.fresh (Zident.source n) in
 	  Some(m), Env.add n m renaming in
      let ty_res = type_expression renaming ty_res in
      { ty_e with desc = Etypefun(k, opt_name, ty_arg, ty_res) }
@@ -169,7 +169,7 @@ let rec expression renaming ({ e_desc = desc } as e) =
      let e_list = List.map (expression renaming) e_list in
      begin try
          let { f_args = p_list; f_body = e; f_env = env } =
-	   inline (!Misc.inline_all || i) f in
+	   inline (!Zmisc.inline_all || i) f in
          letin renaming env p_list e_list e
        with
        | No_inline ->
@@ -186,7 +186,7 @@ let rec expression renaming ({ e_desc = desc } as e) =
   | Eseq(e1, e2) ->
      { e with e_desc = Eseq(expression renaming e1, expression renaming e2) }
   | Eperiod { p_phase = p1; p_period = p2 } ->
-     { e with e_desc = Eperiod { p_phase = Misc.optional_map (expression renaming) p1;
+     { e with e_desc = Eperiod { p_phase = Zmisc.optional_map (expression renaming) p1;
                                  p_period = expression renaming p2 } }
   | Elet(l, e_let) ->
      let renaming, l = local renaming l in
@@ -214,7 +214,7 @@ and equation renaming ({ eq_desc = desc } as eq) =
           EQinit(rename x renaming, expression renaming e0)
     | EQnext(x, e, e0_opt) ->
        EQnext(rename x renaming, expression renaming e,
-	      Misc.optional_map (expression renaming) e0_opt)
+	      Zmisc.optional_map (expression renaming) e0_opt)
     | EQder(x, e, e0_opt, p_e_list) ->
        let body { p_cond = sc; p_body = e; p_env = env; p_zero = zero } =
 	 let env, renaming0 = build env in
@@ -224,7 +224,7 @@ and equation renaming ({ eq_desc = desc } as eq) =
 	   p_env = env;
 	   p_zero = zero } in
        let e = expression renaming e in
-       let e0_opt = Misc.optional_map (expression renaming) e0_opt in
+       let e0_opt = Zmisc.optional_map (expression renaming) e0_opt in
        EQder(rename x renaming, e, e0_opt, List.map body p_e_list)
     | EQmatch(total, e, m_b_list) ->
        let body ({ m_pat = p; m_body = b; m_env = env } as m_h) =
@@ -249,17 +249,17 @@ and equation renaming ({ eq_desc = desc } as eq) =
 	 { p_cond = scondpat renaming sc;
            p_body = b; p_env = env; p_zero = zero } in
        let b_opt =
-	 Misc.optional_map (fun b -> let _, b = block renaming b in b) b_opt in
+	 Zmisc.optional_map (fun b -> let _, b = block renaming b in b) b_opt in
        EQpresent(List.map body p_h_list, b_opt)
     | EQemit(x, e_opt) ->
-       EQemit(rename x renaming, Misc.optional_map (expression renaming) e_opt)
+       EQemit(rename x renaming, Zmisc.optional_map (expression renaming) e_opt)
     | EQblock(b) ->
        let _, b = block renaming b in EQblock(b)
     | EQautomaton(is_weak, s_h_list, se_opt) ->
        let build_state_names renaming { s_state = { desc = desc } } =
 	 match desc with
 	 | Estate0pat(n) | Estate1pat(n, _) ->
-             let m = Ident.fresh (Ident.source n) in
+             let m = Zident.fresh (Zident.source n) in
              Env.add n m renaming in
        let statepat renaming ({ desc = desc } as spat) =
 	 match desc with
@@ -301,7 +301,7 @@ and equation renaming ({ eq_desc = desc } as eq) =
 		  s_env = env } in
        let renaming =
 	 List.fold_left build_state_names renaming s_h_list in
-       let se_opt = Misc.optional_map (state_exp renaming) se_opt in
+       let se_opt = Zmisc.optional_map (state_exp renaming) se_opt in
        EQautomaton(is_weak, List.map (body renaming) s_h_list, se_opt)
     | EQforall({ for_index = i_list; for_init = init_list;
 		 for_body = b_eq_list;
@@ -382,7 +382,7 @@ and letin renaming env p_list e_list e =
   let p_list = List.map (pattern renaming) p_list in
   { e with e_desc =
       Elet({ l_rec = false; l_env = env; l_eq = List.map2 eqmake p_list e_list;
-             l_loc = Location.no_location }, expression renaming e) }
+             l_loc = Zlocation.no_location }, expression renaming e) }
 
 let implementation acc impl = 
   match impl.desc with
@@ -397,4 +397,4 @@ let implementation acc impl =
        { impl with desc = Efundecl(f, body) } :: acc
     | _ -> impl :: acc
         
-let implementation_list impl_list = Misc.fold implementation impl_list
+let implementation_list impl_list = Zmisc.fold implementation impl_list

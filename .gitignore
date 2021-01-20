@@ -3,5 +3,5 @@
 *.exe
 *.bc
 .merlin
-config.ml
+zconfig.ml
 _build/

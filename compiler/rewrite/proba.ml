@@ -35,15 +35,15 @@ into:
 open Zelus
 open Deftypes
 open Lident
-open Ident
+open Zident
        
-let new_prob () = Ident.fresh "prob"
+let new_prob () = Zident.fresh "prob"
 
 (* If the extra parameter [prob] is given a type, say [prob] *)
 (* this type but be bind to an actual module or interface. This makes *)
 (* the translation dependent on the infer function. This is why we *)
 (* chose to give it a type variable. *)
-let typ_prob = Types.make (Deftypes.Tvar)
+let typ_prob = Ztypes.make (Deftypes.Tvar)
 let prob_varpat x = Zaux.varpat x typ_prob
 let prob_var x = Zaux.var x typ_prob
 							  
@@ -58,7 +58,7 @@ let rec expression prob ({ e_desc = e_desc } as e) =
   | Eperiod({ p_phase = opt_p1; p_period = p2 }) ->
      { e with e_desc =
 		Eperiod({ p_phase =
-			    Misc.optional_map (expression prob) opt_p1;
+			    Zmisc.optional_map (expression prob) opt_p1;
 			  p_period = expression prob p2 }) }
   | Eop(op, e_list) ->
      { e with e_desc = Eop(op, List.map (expression prob) e_list) }
@@ -66,8 +66,8 @@ let rec expression prob ({ e_desc = e_desc } as e) =
      let op = expression prob op in
      let e_list = List.map (expression prob) e_list in
      let e_list =
-       if Types.is_probabilistic (List.length e_list - 1) op.e_typ then
-         let head, tail = Misc.firsts e_list in
+       if Ztypes.is_probabilistic (List.length e_list - 1) op.e_typ then
+         let head, tail = Zmisc.firsts e_list in
          head @ [Zaux.pair (prob_var prob) tail]
        else e_list in
      { e with e_desc = Eapp(app, op, e_list) }
@@ -122,7 +122,7 @@ and equation prob ({ eq_desc = desc } as eq) =
   | EQder(x, e, None, []) -> 
      { eq with eq_desc = EQder(x, expression prob e, None, []) }
   | EQnext(x, e, e_opt) ->
-     let e_opt = Misc.optional_map (expression prob) e_opt in
+     let e_opt = Zmisc.optional_map (expression prob) e_opt in
      { eq with eq_desc = EQnext(x, expression prob e, e_opt) }
   | EQblock(b) -> { eq with eq_desc = EQblock(block prob b) }
   | EQforall ({ for_index = i_list; for_init = init_list;
@@ -166,7 +166,7 @@ let implementation impl =
 		   f_body = e; f_env = f_env } as body)) ->
      let prob = new_prob () in
      let e = expression prob e in
-     let head, tail = Misc.firsts pat_list in
+     let head, tail = Zmisc.firsts pat_list in
      let f_env, prob = extra_input prob f_env in
      { impl with desc = 
 		   Efundecl(n,
@@ -175,4 +175,4 @@ let implementation impl =
 					  head @ [Zaux.pairpat prob tail]; 
 					f_body = e; f_env = f_env }) }
        
-let implementation_list impl_list = Misc.iter implementation impl_list
+let implementation_list impl_list = Zmisc.iter implementation impl_list

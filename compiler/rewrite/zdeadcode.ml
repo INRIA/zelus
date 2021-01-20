@@ -15,8 +15,8 @@
 (* dead-code removal. *)
 (* this is applied to normalized code *)
 
-open Misc
-open Ident
+open Zmisc
+open Zident
 open Vars
 open Zelus
 open Deftypes
@@ -341,4 +341,4 @@ let implementation impl =
   | Efundecl(n, ({ f_body = e } as body)) ->
      { impl with desc = Efundecl(n, { body with f_body = exp e }) }
        
-let implementation_list impl_list = Misc.iter implementation impl_list
+let implementation_list impl_list = Zmisc.iter implementation impl_list

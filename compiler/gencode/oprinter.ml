@@ -14,9 +14,9 @@
 
 (* print object code *)
 
-open Misc
-open Location
-open Ident
+open Zmisc
+open Zlocation
+open Zident
 open Obc
 open Format
 open Pp_tools

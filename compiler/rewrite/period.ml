@@ -60,10 +60,10 @@
         and ztime = if z then time else last ztime
         and z = up(if time > last ztime then x else 1.0) in
     z *)
-  
-open Misc
-open Location
-open Ident
+
+open Zmisc
+open Zlocation
+open Zident
 open Lident
 open Initial
 open Deftypes
@@ -71,15 +71,15 @@ open Zelus
 open Zaux
 
 
-let new_time () = Ident.fresh "time"
+let new_time () = Zident.fresh "time"
 
 (* The main translation function for periods *)
 let period major time { p_phase = p1_opt; p_period = p2 } =
   (* let rec [horizon] h = if z then last h + v2 else last h *)
   (*     and init h = time + p1 and z = major && (time >= last h) in z *)
   let horizon = Deftypes.horizon Deftypes.imem in
-  let h = Ident.fresh "h" in
-  let z = Ident.fresh "z" in
+  let h = Zident.fresh "h" in
+  let z = Zident.fresh "z" in
   let p1 = match p1_opt with | None -> Zaux.zero | Some(p1) -> p1 in
   let env =
     Env.add h (Deftypes.entry horizon Initial.typ_float)
@@ -96,8 +96,8 @@ let period major time { p_phase = p1_opt; p_period = p2 } =
 (* Ensure that a zero-crossing cannot be done *)
 (* twice without time passing *)
 let up major time e =
-  let z = Ident.fresh "z" in
-  let ztime = Ident.fresh "ztime" in
+  let z = Zident.fresh "z" in
+  let ztime = Zident.fresh "ztime" in
   let env =
     Env.add ztime (Deftypes.entry imemory Initial.typ_float)
 	    (Env.add z (Deftypes.entry Sval Initial.typ_float)
@@ -123,7 +123,7 @@ let rec expression major time ({ e_desc = e_desc } as e) =
   match e_desc with
   | Eperiod({ p_phase = opt_p1; p_period = p2 }) ->
      period major time
-	    { p_phase = Misc.optional_map (expression major time) opt_p1;
+	    { p_phase = Zmisc.optional_map (expression major time) opt_p1;
 	      p_period = expression major time p2 }
   | Eop(Eup, [e_arg]) ->
      { e with e_desc = Eop(Eup, [expression major time e_arg]) }
@@ -134,8 +134,8 @@ let rec expression major time ({ e_desc = e_desc } as e) =
      let op = expression major time op in
      let e_list = List.map (expression major time) e_list in
      let e_list =
-       if Types.is_hybrid (List.length e_list - 1) op.e_typ then
-         let head, tail = Misc.firsts e_list in
+       if Ztypes.is_hybrid (List.length e_list - 1) op.e_typ then
+         let head, tail = Zmisc.firsts e_list in
          head @ [Zaux.pair (float_var time) tail]
        else e_list in
      { e with e_desc = Eapp(app, op, e_list) }
@@ -192,7 +192,7 @@ and equation major time ({ eq_desc = desc } as eq) =
   | EQder(x, e, None, []) -> 
      { eq with eq_desc = EQder(x, expression major time e, None, []) }
   | EQnext(x, e, e_opt) ->
-     let e_opt = Misc.optional_map (expression major time) e_opt in
+     let e_opt = Zmisc.optional_map (expression major time) e_opt in
      { eq with eq_desc = EQnext(x, expression major time e, e_opt) }
   | EQblock(b) -> { eq with eq_desc = EQblock(block major time b) }
   | EQforall ({ for_index = i_list; for_init = init_list;
@@ -237,12 +237,12 @@ let implementation impl =
      let time = new_time () in
      let f_env, major = Zaux.major f_env in
      let e = expression major time e in
-     let head, tail = Misc.firsts pat_list in
+     let head, tail = Zmisc.firsts pat_list in
      let f_env, tail = extra_input time f_env tail in
      { impl with desc = 
 		   Efundecl(n, { body with f_args = head @ [tail]; 
 					   f_body = e; f_env = f_env }) }
        
-let implementation_list impl_list = Misc.iter implementation impl_list
+let implementation_list impl_list = Zmisc.iter implementation impl_list
 
 

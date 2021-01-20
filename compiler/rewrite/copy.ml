@@ -16,13 +16,13 @@
 (* The transformation is applied after static scheduling and before *)
 (* translation into sequential code *)
 
-open Misc
-open Ident
+open Zmisc
+open Zident
 open Zelus
 open Deftypes
 
 (** atomic expressions - either immediate constants or variables *)
-type value = | Vlocal of Ident.t | Vlast of Ident.t | Vconst of Zelus.desc
+type value = | Vlocal of Zident.t | Vlast of Zident.t | Vconst of Zelus.desc
 						    
 type renaming =
     { rel: value Env.t; (* the substitution *)
@@ -198,4 +198,4 @@ let implementation impl =
         { impl with desc = Efundecl(f, body) }
     | _ -> impl
         
-let implementation_list impl_list = Misc.iter implementation impl_list
+let implementation_list impl_list = Zmisc.iter implementation impl_list

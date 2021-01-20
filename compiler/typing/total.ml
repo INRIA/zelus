@@ -17,12 +17,12 @@
 (* implicitely complemented with [x = last x] *)
 (* otherwise, [x] must be defined in every branch *)
 
-open Location
-open Ident
+open Zlocation
+open Zident
 open Zelus
 open Typerrors
 open Deftypes
-open Types
+open Ztypes
 
 (** Names written in a block *)
 let union 
@@ -59,9 +59,9 @@ let all_last loc h set =
     | Sstatic | Sval | Svar { v_default = None }
     | Smem _ ->
        try
-	 ignore (Types.filter_signal ty);
+	 ignore (Ztypes.filter_signal ty);
 	 tentry.t_sort <-  variable
-       with Types.Unify -> error loc (Eshould_be_a_signal(elt, ty)) in
+       with Ztypes.Unify -> error loc (Eshould_be_a_signal(elt, ty)) in
   S.iter check set
 
 (* [merge [set1;...;setn]] returns a set of names defined in every seti *)
@@ -165,7 +165,7 @@ module Automaton =
 
     (* the initial state is particular depending on whether or not *)
     (* it is only left with a weak transition *)
-    type table = { t_initial: Ident.t * entry; t_remaining: entry Env.t }
+    type table = { t_initial: Zident.t * entry; t_remaining: entry Env.t }
 
     let table state_handlers =
       let add acc { s_state = statepat; s_loc = loc } =

@@ -28,10 +28,10 @@ let file_dependencies_as kind source_file =
     end	
   with x ->	
     let report_err = function	
-    | Lexer.Lexical_error (err, range) ->	
+    | Zlexer.Lexical_error (err, range) ->
         (* fprintf Format.err_formatter "@[%a%a@]@." *)	
           lexical_error err range	
-    | Parser.Error ->	
+    | Zparser.Error ->
         (* fprintf Format.err_formatter "@[%a@]@." *)	
           (* syntax_error (Loc(Lexing.lexeme_start lexbuf, Lexing.lexeme_end lexbuf)) *) ()	
     | Sys_error msg ->	
