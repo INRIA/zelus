@@ -101,8 +101,8 @@
  *-    zmax zsize
  *- which increments the size of the continuous state and zero-crossing vectors *)
 
-open Zlmisc
-open Zlident
+open Zmisc
+open Zident
 open Lident
 open Deftypes
 open Obc
@@ -113,7 +113,7 @@ let typ_cstate = Otypeconstr(Modname {qual = "Ztypes"; id = "cstate" }, [])
 let varpat x ty = Ovarpat(x, Translate.type_expression_of_typ ty)
 let modname x = Lident.Modname { Lident.qual = "Zls"; Lident.id = x }
 				     
-let i = Zlident.fresh "i"
+let i = Zident.fresh "i"
 
 (* Convert a size into an expression *)
 let rec size s =
@@ -236,7 +236,7 @@ let build_index m_list =
     let add_opt v opt =
       match opt with
       | None -> Some(v)
-      | Some(w) -> Zlmisc.internal_error "Inout" Printer.name w in
+      | Some(w) -> Zmisc.internal_error "Inout" Printer.name w in
     match m with
     | None -> ctable, ztable, h_opt, major_opt
     | Some(k) ->
@@ -244,11 +244,11 @@ let build_index m_list =
        | Horizon -> ctable, ztable, add_opt n h_opt, major_opt
        | Period | Encore -> ctable, ztable, h_opt, major_opt
        | Zero ->
-	  let s_list = Zltypes.size_of typ in
+	  let s_list = Ztypes.size_of typ in
           ctable, Env.add n (List.map size s_list, e_list) ztable,
 	  h_opt, major_opt
        | Cont ->
-	  let s_list = Zltypes.size_of typ in
+	  let s_list = Ztypes.size_of typ in
 	  Env.add n (List.map size s_list, e_list) ctable, ztable,
 	  h_opt, major_opt
        | Major -> ctable, ztable, h_opt, add_opt n major_opt in
@@ -290,8 +290,8 @@ let cinout table call pos incr =
     | _ -> assert false in
 
   let add x (s_list, e_list) acc =
-    let i_list = List.map (fun _ -> Zlident.fresh "i") s_list in
-    let j_list = List.map (fun _ -> Zlident.fresh "j") e_list in
+    let i_list = List.map (fun _ -> Zident.fresh "i") s_list in
+    let j_list = List.map (fun _ -> Zident.fresh "j") e_list in
     (copy i_list s_list
 	  (copy j_list e_list
 		(sequence [call x i_list j_list pos; incr pos]))) :: acc in
@@ -378,14 +378,14 @@ let machine f
     let i_opt =
       maxsize (cmax cstate) csize (maxsize (zmax cstate) zsize i_opt) in
           
-    let c_start = Zlident.fresh "cindex" in
-    let z_start = Zlident.fresh "zindex" in
+    let c_start = Zident.fresh "cindex" in
+    let z_start = Zident.fresh "zindex" in
     let cstate_cpos = Orecord_access(varmut cstate, Name("cindex")) in
     let cstate_zpos = Orecord_access(varmut cstate, Name("zindex")) in
     
-    let cpos = Zlident.fresh "cpos" in
-    let zpos = Zlident.fresh "zpos" in
-    let result = Zlident.fresh "result" in
+    let cpos = Zident.fresh "cpos" in
+    let zpos = Zident.fresh "zpos" in
+    let result = Zident.fresh "result" in
 
     let letin_only cond pat e body =
       if cond then letin pat e body else body in
@@ -455,8 +455,8 @@ let implementation impl =
   match impl with
   | Oletmachine(f, ({ ma_kind = Deftypes.Tcont } as mach)) -> 
      (* only continuous machines are concerned *)
-     let cstate = Zlident.fresh "cstate" in
+     let cstate = Zident.fresh "cstate" in
      Oletmachine(f, machine f mach cstate)
   | Oletmachine _ | Oletvalue _ | Oletfun _ | Oopen _ | Otypedecl _ -> impl
 									 
-let implementation_list impl_list = Zlmisc.iter implementation impl_list
+let implementation_list impl_list = Zmisc.iter implementation impl_list

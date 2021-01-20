@@ -13,7 +13,7 @@
 (* *********************************************************************)
 
 (* the main *)
-open Zlmisc
+open Zmisc
 open Initial
 open Compiler
 
@@ -38,7 +38,7 @@ let compile file =
   else
     raise (Arg.Bad ("don't know what to do with " ^ file))
 
-module SS = Zldepend.StringSet
+module SS = Zdepend.StringSet
 let build file = 
   Deps_tools.add_to_load_path Filename.current_dir_name;
   let rec _build acc file = 
@@ -161,7 +161,7 @@ let main () =
       | _ -> ()
     end
   with
-  | Zlmisc.Error -> exit 2;;
+  | Zmisc.Error -> exit 2;;
 
 main ();;
 exit 0;;

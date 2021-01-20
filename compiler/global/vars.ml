@@ -14,8 +14,8 @@
 
 (* free variables, defined variables *)
 
-open Zlmisc
-open Zlident
+open Zmisc
+open Zident
 open Zelus
 
 (* defined names in an environment *)

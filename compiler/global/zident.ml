@@ -54,7 +54,11 @@ struct
     iter (fun k v -> Format.fprintf ff "@[%a: %a@]" M.fprint k fprint_v v) s;
     Format.fprintf ff "}@]"
 
+<<<<<<< HEAD:compiler/global/zlident.ml
   (* debugging printer for (Zlident.t * Zlident.t * Zlident.t) Zlident.Env.t *)
+=======
+  (* debugging printer for (Zident.t * Zident.t * Zident.t) Zident.Env.t *)
+>>>>>>> main:compiler/global/zident.ml
   let fprint_3ident ff s =
     let fprint_v ff (id1, id2, id3) =
       Format.fprintf ff "@[%a@]"

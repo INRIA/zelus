@@ -46,8 +46,8 @@ and desc =
   | Clink of t
 
 and info =
-  | Cname of Zlident.t
-  | Clast of Zlident.t
+  | Cname of Zident.t
+  | Clast of Zident.t
 
 and polarity = Punknown | Pplus | Pminus | Pplusminus
 

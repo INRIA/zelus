@@ -15,8 +15,13 @@
 (* dead-code removal. *)
 (* this is applied to normalized code *)
 
+<<<<<<< HEAD:compiler/rewrite/zldeadcode.ml
 open Zlmisc
 open Zlident
+=======
+open Zmisc
+open Zident
+>>>>>>> main:compiler/rewrite/zdeadcode.ml
 open Vars
 open Zelus
 open Deftypes
@@ -341,4 +346,8 @@ let implementation impl =
   | Efundecl(n, ({ f_body = e } as body)) ->
      { impl with desc = Efundecl(n, { body with f_body = exp e }) }
        
+<<<<<<< HEAD:compiler/rewrite/zldeadcode.ml
 let implementation_list impl_list = Zlmisc.iter implementation impl_list
+=======
+let implementation_list impl_list = Zmisc.iter implementation impl_list
+>>>>>>> main:compiler/rewrite/zdeadcode.ml

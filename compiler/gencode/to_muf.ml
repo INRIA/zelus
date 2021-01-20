@@ -18,7 +18,7 @@ let mk_expr e =
 let mk_decl d =
   { decl = d }
 
-let ident_name n = Zlident.name n
+let ident_name n = Zident.name n
 let ident n = { name = ident_name n }
 
 let fresh =
@@ -516,14 +516,14 @@ let machine_type name memories instances =
   let i, params, entries =
     List.fold_right
       (fun { m_name = n } (i, params, entries) ->
-         let m = Zlmisc.int_to_alpha i in
+         let m = Zmisc.int_to_alpha i in
          (i+1, m :: params, (ident_name n, Tvar m) :: entries))
       memories (0, [], [])
   in
   let i, params, entries =
     List.fold_right
       (fun { i_name = n } (i, params, entries) ->
-         let m = Zlmisc.int_to_alpha i in
+         let m = Zmisc.int_to_alpha i in
          (i+1, m :: params, (ident_name n, Tvar m) :: entries))
       instances (i, params, entries)
   in

@@ -16,8 +16,13 @@
 
 {
 open Lexing
+<<<<<<< HEAD:compiler/parsing/zllexer.mll
 open Zlparser
 open Zllocation
+=======
+open Zparser
+open Zlocation
+>>>>>>> main:compiler/parsing/zlexer.mll
 
 type lexical_error =
     Illegal_character

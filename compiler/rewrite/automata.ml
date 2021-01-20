@@ -13,9 +13,9 @@
 (* *********************************************************************)
 
 (* removing automata statements *)
-open Zlmisc
-open Zllocation
-open Zlident
+open Zmisc
+open Zlocation
+open Zident
 open Global
 open Deftypes
 open Zaux
@@ -153,7 +153,7 @@ let intro_type s_h_list =
   (* build variants *)
   let variants states type_res =
     let variant n =
-      { qualid = Modules.qualify (Zlident.name n);
+      { qualid = Modules.qualify (Zident.name n);
         info = { constr_arg = []; constr_res = type_res;
                  constr_arity = 0 } } in
     List.map variant states in
@@ -166,7 +166,7 @@ let intro_type s_h_list =
   (* we add it to the global environment *)
   Modules.add_type name typ_desc;
   List.iter2
-    (fun n { info = v } -> Modules.add_constr (Zlident.name n) v) states v_list;
+    (fun n { info = v } -> Modules.add_constr (Zident.name n) v) states v_list;
   (* and the environment of state types *)
   TableOfTypes.add name typ_desc;
   (* compute the set of variables needed for storing parameters *)
@@ -257,12 +257,12 @@ let rec exp lnames ({ e_desc = desc } as e) =
     | Etypeconstraint(e, ty) -> Etypeconstraint(exp lnames e, ty)
     | Eseq(e1, e2) -> Eseq(exp lnames e1, exp lnames e2)
     | Eperiod { p_phase = p1; p_period = p2 } ->
-       Eperiod { p_phase = Zlmisc.optional_map (exp lnames) p1;
+       Eperiod { p_phase = Zmisc.optional_map (exp lnames) p1;
                  p_period = exp lnames p2 }
     | Elet(l, e) -> Elet(local lnames l, exp lnames e)
     | Eblock(b, e) -> Eblock(block_eq_list lnames b, exp lnames e)
     | Epresent(p_h_list, e_opt) ->
-        let e_opt = Zlmisc.optional_map (exp lnames) e_opt in
+        let e_opt = Zmisc.optional_map (exp lnames) e_opt in
         let p_h_list = present_handler_exp_list lnames p_h_list in
         Epresent(p_h_list, e_opt)
     | Ematch(total, e, m_h_list) ->
@@ -381,7 +381,7 @@ and automaton lnames is_weak handler_list se_opt =
   let env, eq_list =
     env_of_parameters n_to_parameters handler_list se_opt  in
 
-  let longident n = Modules.longname (Zlident.name (moduleident n)) in
+  let longident n = Modules.longname (Zident.name (moduleident n)) in
 
   (* the name of the initial state *)
   let initial =
@@ -428,8 +428,8 @@ and automaton lnames is_weak handler_list se_opt =
 
   (* [state_name] is the target state computed in the current step *)
   (* [reset_name] is the target reset bit computed in the current step *)
-  let state_name = Zlident.fresh "s" in
-  let reset_name = Zlident.fresh "r" in
+  let state_name = Zident.fresh "s" in
+  let reset_name = Zident.fresh "r" in
 
   let state_var n = var n statetype in
   let bool_var n = var n typ_bool in
@@ -440,7 +440,7 @@ and automaton lnames is_weak handler_list se_opt =
   let escape lnames { e_cond = e; e_reset = r; e_block = b_opt;
 	       e_next_state = se; e_env = h0; e_zero = zero } =
     let e = scondpat lnames e in
-    let b_opt = Zlmisc.optional_map (block_eq_list lnames) b_opt in
+    let b_opt = Zmisc.optional_map (block_eq_list lnames) b_opt in
     let se, eq_list_se = translate_state lnames se in
     { p_cond = e; p_env = h0;
       p_body =
@@ -526,5 +526,5 @@ let implementation impl =
         { impl with desc = Efundecl(n, { body with f_body = exp S.empty e }) }
 
 let implementation_list impl_list =
-  let impl_list = Zlmisc.iter implementation impl_list in
+  let impl_list = Zmisc.iter implementation impl_list in
   TableOfTypes.flush impl_list

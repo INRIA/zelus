@@ -1,6 +1,11 @@
 open Format
+<<<<<<< HEAD:compiler/parsing/zldepend.ml
 open Zllocation
 open Zlparsetree
+=======
+open Zlocation
+open Zparsetree
+>>>>>>> main:compiler/parsing/zdepend.ml
 
 module StringSet = Set.Make(struct type t = string let compare = compare end)
 

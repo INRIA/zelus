@@ -15,8 +15,13 @@
 %{
 
 open Lexing
+<<<<<<< HEAD:compiler/parsing/zlparser.mly
 open Zllocation
 open Zlparsetree
+=======
+open Zlocation
+open Zparsetree
+>>>>>>> main:compiler/parsing/zparser.mly
 
 let localise start_pos end_pos = Loc(start_pos.pos_cnum, end_pos.pos_cnum)
 
@@ -226,6 +231,7 @@ let block l lo eq_list startpos endpos =
 %left DOT
 
 %start implementation_file
+<<<<<<< HEAD:compiler/parsing/zlparser.mly
 %type <Zlparsetree.implementation list> implementation_file
 
 %start interface_file
@@ -233,6 +239,15 @@ let block l lo eq_list startpos endpos =
 
 %start scalar_interface_file
 %type <Zlparsetree.interface list> scalar_interface_file
+=======
+%type <Zparsetree.implementation list> implementation_file
+
+%start interface_file
+%type <Zparsetree.interface list> interface_file
+
+%start scalar_interface_file
+%type <Zparsetree.interface list> scalar_interface_file
+>>>>>>> main:compiler/parsing/zparser.mly
 
 %%
 
@@ -1087,6 +1102,7 @@ infx:
 
 %inline arrow:
   | MINUSGREATER
+<<<<<<< HEAD:compiler/parsing/zlparser.mly
       { Zlparsetree.A }
   | AFUN
       { Zlparsetree.A }
@@ -1102,6 +1118,23 @@ infx:
       { Zlparsetree.AS }
   | PFUN
       { Zlparsetree.P }
+=======
+      { Zparsetree.A }
+  | AFUN
+      { Zparsetree.A }
+  | ADFUN
+      { Zparsetree.AD }
+  | DFUN
+      { Zparsetree.D }
+  | CFUN
+      { Zparsetree.C }
+  | SFUN
+      { Zparsetree.S }
+  | ASFUN
+      { Zparsetree.AS }
+  | PFUN
+      { Zparsetree.P }
+>>>>>>> main:compiler/parsing/zparser.mly
 ;
 
 size_expression:

@@ -16,7 +16,7 @@
 (* A computation is safe when it is combinatorial, that is, it *)
 (* has no side effect, total and no state *)
 open Zelus
-open Zlident
+open Zident
 open Deftypes
 open Zaux
        
@@ -25,7 +25,7 @@ let rec exp { e_desc = desc } =
   match desc with
   | Eapp(_, e, e_list) ->
      (* look if (e e1...en) is combinatorial *)
-     (not (Zltypes.is_combinatorial (List.length e_list) e.e_typ))
+     (not (Ztypes.is_combinatorial (List.length e_list) e.e_typ))
      || (exp e) || (List.exists exp e_list)
   | Erecord_access(e, _) | Etypeconstraint(e, _) -> exp e
   | Erecord(f_e_list) ->

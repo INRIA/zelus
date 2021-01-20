@@ -21,12 +21,12 @@
 (* e : expression with type t       *)
 (* input: H, e, k - output: t, W   *)
 
-open Zlident
+open Zident
 open Global
 open Modules
 open Zelus
 open Deftypes
-open Zltypes
+open Ztypes
 open Typerrors
 
 (* accesses in symbol tables for global identifiers *)
@@ -47,45 +47,45 @@ let find_label loc l =
 (** The main unification functions *)
 let unify loc expected_ty actual_ty =
   try
-    Zltypes.unify expected_ty actual_ty
+    Ztypes.unify expected_ty actual_ty
   with
-    | Zltypes.Unify -> error loc (Etype_clash(actual_ty, expected_ty))
+    | Ztypes.Unify -> error loc (Etype_clash(actual_ty, expected_ty))
 
 let equal_sizes loc expected_size actual_size =
   try
-    Zltypes.equal_sizes expected_size actual_size
+    Ztypes.equal_sizes expected_size actual_size
   with
-    | Zltypes.Unify -> error loc (Esize_clash(actual_size, expected_size))
+    | Ztypes.Unify -> error loc (Esize_clash(actual_size, expected_size))
 
 let unify_expr expr expected_ty actual_ty =
   try
-    Zltypes.unify expected_ty actual_ty
+    Ztypes.unify expected_ty actual_ty
   with
-    | Zltypes.Unify -> error expr.e_loc (Etype_clash(actual_ty, expected_ty))
+    | Ztypes.Unify -> error expr.e_loc (Etype_clash(actual_ty, expected_ty))
 
 let unify_pat pat expected_ty actual_ty =
   try
-    Zltypes.unify expected_ty actual_ty
+    Ztypes.unify expected_ty actual_ty
   with
-    | Zltypes.Unify -> error pat.p_loc (Etype_clash(actual_ty, expected_ty))
+    | Ztypes.Unify -> error pat.p_loc (Etype_clash(actual_ty, expected_ty))
 
 let less_than loc actual_k expected_k =
   try
-    Zltypes.less_than actual_k expected_k
+    Ztypes.less_than actual_k expected_k
   with
-    | Zltypes.Unify -> error loc (Ekind_clash(actual_k, expected_k))
+    | Ztypes.Unify -> error loc (Ekind_clash(actual_k, expected_k))
 
 let type_is_in_kind loc expected_k ty =
   try
-    Zltypes.kind expected_k ty
+    Ztypes.kind expected_k ty
   with
-    | Zltypes.Unify -> error loc (Etype_kind_clash(expected_k, ty))
+    | Ztypes.Unify -> error loc (Etype_kind_clash(expected_k, ty))
 
 let lift loc left_k right_k =
   try
-    Zltypes.lift left_k right_k
+    Ztypes.lift left_k right_k
   with
-  | Zltypes.Unify -> error loc (Ekind_clash(right_k, left_k))
+  | Ztypes.Unify -> error loc (Ekind_clash(right_k, left_k))
 
 let sort_less_than loc sort expected_k =
   match expected_k, sort with
@@ -95,9 +95,9 @@ let sort_less_than loc sort expected_k =
 
 let check_is_vec loc actual_ty =
   try
-    let ty_arg, size = Zltypes.filter_vec actual_ty in ty_arg, size
+    let ty_arg, size = Ztypes.filter_vec actual_ty in ty_arg, size
   with
-    | Zltypes.Unify -> error loc Esize_of_vec_is_undetermined
+    | Ztypes.Unify -> error loc Esize_of_vec_is_undetermined
 
 (* An expression is expansive if it is an application *)
 let rec expansive { e_desc = desc } =
@@ -111,7 +111,7 @@ let rec expansive { e_desc = desc } =
     | _ -> true
 
 let check_statefull loc expected_k =
-  if not (Zltypes.is_statefull_kind expected_k)
+  if not (Ztypes.is_statefull_kind expected_k)
   then error loc Ekind_not_combinatorial
 
 (** The type of states in automata *)
@@ -246,23 +246,23 @@ let global loc expected_k lname =
         info = { value_static = is_static;
                  value_typ = tys } } = find_value loc lname in
   less_than loc (if is_static then Tstatic true else expected_k) expected_k;
-  qualid, Zltypes.instance_of_type tys
+  qualid, Ztypes.instance_of_type tys
 
 let global_with_instance loc expected_k lname =
   let { qualid = qualid;
         info = { value_static = is_static;
                  value_typ = tys } } = find_value loc lname in
   less_than loc (if is_static then Tstatic true else expected_k) expected_k;
-  let typ_instance, typ_body = Zltypes.instance_and_vars_of_type tys in
+  let typ_instance, typ_body = Ztypes.instance_and_vars_of_type tys in
   qualid, typ_instance, typ_body
 
 let label loc l =
   let { qualid = qualid; info = tys_label } = find_label loc l in
-  qualid, Zltypes.label_instance tys_label
+  qualid, Ztypes.label_instance tys_label
 
 let constr loc c =
   let { qualid = qualid; info = tys_c } = find_constr loc c in
-  qualid, Zltypes.constr_instance tys_c
+  qualid, Ztypes.constr_instance tys_c
 
 let rec get_all_labels loc ty =
   match ty.t_desc with
@@ -307,9 +307,9 @@ let check_definitions_for_every_name defined_names n_list =
 let combine loc expected_ty lname  =
   let { qualid = qualid; info = { value_typ = tys } } =
     find_value loc lname in
-  let ty = Zltypes.instance_of_type tys in
+  let ty = Ztypes.instance_of_type tys in
   (* Its signature must be [expected_ty * expected_ty -A-> expected_ty] *)
-  let ty_combine = Zltypes.type_of_combine () in
+  let ty_combine = Ztypes.type_of_combine () in
   unify loc ty_combine ty
 
 (* type checking of the declared default/init value *)
@@ -328,7 +328,7 @@ let vardec_list expected_k n_list inames =
   let default loc expected_ty c_opt = function
   | Init(v) ->
      (* the initialization must appear in a statefull function *)
-     if not (Zltypes.is_statefull_kind expected_k)
+     if not (Ztypes.is_statefull_kind expected_k)
      then error loc Ekind_not_combinatorial;
      constant loc expected_k expected_ty v;
      Deftypes.Smem
@@ -340,8 +340,8 @@ let vardec_list expected_k n_list inames =
   let vardec h0
              { vardec_name = n; vardec_default = d_opt; vardec_combine = c_opt;
                vardec_loc = loc } =
-    let expected_ty = Zltypes.new_var () in
-    Zlmisc.optional_unit (combine loc) expected_ty c_opt;
+    let expected_ty = Ztypes.new_var () in
+    Zmisc.optional_unit (combine loc) expected_ty c_opt;
     let sort =
       match d_opt with
       | Some(d) -> default loc expected_ty c_opt d
@@ -384,7 +384,7 @@ let rec build (names, inames) { eq_desc = desc } =
      let handler (names, inames) { p_body = b } = block (names, inames) b in
      let names, inames =
        List.fold_left handler (names, inames) ph_list in
-     Zlmisc.optional block (names, inames) b_opt
+     Zmisc.optional block (names, inames) b_opt
   | EQmatch(_, _, mh_list) ->
      (* match handler *)
      let handler (names, inames) { m_body = b } = block (names, inames) b in
@@ -392,7 +392,7 @@ let rec build (names, inames) { eq_desc = desc } =
   | EQautomaton(is_weak, sh_list, _) ->
      (* escape handler *)
      let escape (names, inames) { e_block = b_opt } =
-       Zlmisc.optional block (names, inames) b_opt in
+       Zmisc.optional block (names, inames) b_opt in
      (* automaton handler *)
      let handler (names, inames) { s_body = b; s_trans = esc_list } =
        let bounded, (names, inames) =
@@ -431,7 +431,7 @@ let env_of_eq_list expected_k eq_list =
        | Deftypes.Tproba ->
 	  if S.mem n inames then Deftypes.imemory
           else Deftypes.Smem (Deftypes.empty_mem) in
-     Env.add n { t_typ = Zltypes.new_var (); t_sort = sort } acc) names Env.empty
+     Env.add n { t_typ = Ztypes.new_var (); t_sort = sort } acc) names Env.empty
 
 (* introduce a variable with the proper kind *)
 (* [last x] is only be possible when [expected_k] is statefull *)
@@ -454,7 +454,7 @@ let env_of_scondpat expected_k scpat =
   S.fold
     (fun n acc ->
       Env.add n
-        { t_typ = Zltypes.new_var (); t_sort = intro_sort_of_var expected_k } acc)
+        { t_typ = Ztypes.new_var (); t_sort = intro_sort_of_var expected_k } acc)
          acc Env.empty
 
 let env_of_statepat expected_k spat =
@@ -466,7 +466,7 @@ let env_of_statepat expected_k spat =
   S.fold
     (fun n acc ->
       Env.add n
-        { t_typ = Zltypes.new_var (); t_sort = intro_sort_of_var expected_k } acc)
+        { t_typ = Ztypes.new_var (); t_sort = intro_sort_of_var expected_k } acc)
          acc Env.empty
 
 let env_of_pattern expected_k h0 pat =
@@ -474,13 +474,13 @@ let env_of_pattern expected_k h0 pat =
   S.fold
     (fun n acc ->
       Env.add n
-        { t_typ = Zltypes.new_var (); t_sort = intro_sort_of_var expected_k } acc)
+        { t_typ = Ztypes.new_var (); t_sort = intro_sort_of_var expected_k } acc)
     acc h0
 
 (* the [n-1] first arguments are static. If [expected_k] is static *)
 (* the last one too *)
 let env_of_pattern_list expected_k env p_list =
-  let p_list, p = Zlmisc.firsts p_list in
+  let p_list, p = Zmisc.firsts p_list in
   let env = List.fold_left (env_of_pattern (Deftypes.Tstatic true)) env p_list in
   env_of_pattern expected_k env p
 
@@ -529,7 +529,7 @@ let rec pattern h ({ p_desc = desc; p_loc = loc } as pat) ty =
      List.iter2 (pattern h) pat_list ty_list
   | Etypeconstraintpat(p, typ_expr) ->
      let expected_typ =
-       Zltypes.instance_of_type(Interface.scheme_of_type typ_expr) in
+       Ztypes.instance_of_type(Interface.scheme_of_type typ_expr) in
      unify_pat pat expected_typ ty;
      (* type annotation *)
      pat.p_typ <- ty;
@@ -598,12 +598,12 @@ let present_handlers scondpat body loc expected_k h p_h_list b_opt expected_ty =
     (* local variables from [scpat] cannot be accessed through a last *)
     let h0 = env_of_scondpat expected_k scpat in
     let h = Env.append h0 h in
-    let is_zero = Zltypes.is_continuous_kind expected_k in
+    let is_zero = Ztypes.is_continuous_kind expected_k in
     scondpat expected_k is_zero h scpat;
     (* sets [zero = true] is [expected_k = Tcont] *)
     ph.p_zero <- is_zero;
     ph.p_env <- h0;
-    body (Zltypes.lift_to_discrete expected_k) h b expected_ty in
+    body (Ztypes.lift_to_discrete expected_k) h b expected_ty in
 
   let defined_names_list = List.map handler p_h_list in
 
@@ -655,14 +655,14 @@ let rec expression expected_k h ({ e_desc = desc; e_loc = loc } as e) =
         let s2 = size h s2 in
         let ty = expression expected_k h e in
         let ty_arg, _ = check_is_vec e.e_loc ty in
-        Zltypes.vec ty_arg (Zltypes.plus (Zltypes.minus s2 s1) (Zltypes.const 1))
+        Ztypes.vec ty_arg (Ztypes.plus (Ztypes.minus s2 s1) (Ztypes.const 1))
     | Eop(Econcat, [e1; e2]) ->
         let ty1 = expression expected_k h e1 in
         let ty_arg1, s1 = check_is_vec e1.e_loc ty1 in
         let ty2 = expression expected_k h e2 in
         let ty_arg2, s2 = check_is_vec e2.e_loc ty2 in
         unify_expr e2 ty_arg1 ty_arg2;
-        Zltypes.vec ty_arg1 (Zltypes.plus s1 s2)
+        Ztypes.vec ty_arg1 (Ztypes.plus s1 s2)
     | Eop(op, e_list) ->
         operator expected_k h loc op e_list
     | Eapp({ app_statefull = is_statefull }, e, e_list) ->
@@ -717,7 +717,7 @@ let rec expression expected_k h ({ e_desc = desc; e_loc = loc } as e) =
 	ty
     | Etypeconstraint(exp, typ_expr) ->
         let expected_typ =
-          Zltypes.instance_of_type (Interface.scheme_of_type typ_expr) in
+          Ztypes.instance_of_type (Interface.scheme_of_type typ_expr) in
         expect expected_k h exp expected_typ;
         expected_typ
     | Elet(l, e) ->
@@ -734,7 +734,7 @@ let rec expression expected_k h ({ e_desc = desc; e_loc = loc } as e) =
         less_than loc Tcont expected_k;
         (* a period must be a static expression *)
         period (Tstatic(true)) h p;
-        Zltypes.zero_type expected_k
+        Ztypes.zero_type expected_k
     | Ematch(total, e, m_h_list) ->
         let expected_pat_ty = expression expected_k h e in
         let expected_ty = new_var () in
@@ -756,24 +756,24 @@ let rec expression expected_k h ({ e_desc = desc; e_loc = loc } as e) =
 (** Typing a size expression *)
 and size h { desc = desc; loc = loc } =
   match desc with
-  | Sconst(i) -> Zltypes.const i
+  | Sconst(i) -> Ztypes.const i
   | Sglobal(ln) ->
       let qualid, _, typ_body = global_with_instance loc (Tstatic(true)) ln in
       unify loc Initial.typ_int typ_body;
-      Zltypes.global(qualid)
+      Ztypes.global(qualid)
   | Sname(x) ->
       let { t_typ = typ; t_sort = sort } = var loc h x in
       sort_less_than loc sort (Tstatic(true));
       unify loc Initial.typ_int typ;
-      Zltypes.name x
+      Ztypes.name x
   | Sop(Splus, s1, s2) ->
       let s1 = size h s1 in
       let s2 = size h s2 in
-      Zltypes.plus s1 s2
+      Ztypes.plus s1 s2
   | Sop(Sminus, s1, s2) ->
       let s1 = size h s1 in
       let s2 = size h s2 in
-      Zltypes.minus s1 s2
+      Ztypes.minus s1 s2
 
 
 (** Convert an expression into a size expression *)
@@ -839,16 +839,16 @@ and apply loc is_statefull expected_k h e arg_list =
   if is_statefull then
     begin
       check_statefull loc expected_k;
-      unify_expr e (Zltypes.run_type expected_k) ty_fct
+      unify_expr e (Ztypes.run_type expected_k) ty_fct
     end;
-  let intro_k = Zltypes.intro expected_k in
+  let intro_k = Ztypes.intro expected_k in
   (* typing the list of arguments *)
   (* the [n-1] arguments must be static; the [nth] is of kind [expected_k] *)
   let rec args ty_fct = function
     | [] -> ty_fct
     | arg :: arg_list ->
        let actual_k, n_opt, ty1, ty2 =
-         try Zltypes.filter_arrow intro_k ty_fct
+         try Ztypes.filter_arrow intro_k ty_fct
          with Unify ->  error loc (Eapplication_of_non_function) in
        let expected_k = lift loc expected_k actual_k in
        expect expected_k h arg ty1;
@@ -879,7 +879,7 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
         (* an initialization is valid only in a continuous or discrete context *)
         check_statefull loc expected_k;
         let actual_ty = init loc h n in
-        expect (Zltypes.lift_to_discrete expected_k) h e0 actual_ty;
+        expect (Ztypes.lift_to_discrete expected_k) h e0 actual_ty;
         (* sets that every variable from [di] is initialized *)
         { Deftypes.empty with di = S.singleton n }
     | EQnext(n, e, e0_opt) ->
@@ -905,7 +905,7 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
           match e0_opt with
           | None -> S.empty
           | Some(e) ->
-             expect (Zltypes.lift_to_discrete expected_k) h e Initial.typ_float;
+             expect (Ztypes.lift_to_discrete expected_k) h e Initial.typ_float;
              ignore (init loc h n); S.singleton n in
         ignore (present_handler_exp_list
                   loc expected_k h p_h_e_list None Initial.typ_float);
@@ -921,12 +921,12 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
     | EQpresent(p_h_list, b_opt) ->
         present_handler_block_eq_list loc expected_k h p_h_list b_opt
     | EQreset(eq_list, e) ->
-        expect expected_k h e (Zltypes.zero_type expected_k);
+        expect expected_k h e (Ztypes.zero_type expected_k);
         equation_list expected_k h eq_list
     | EQand(eq_list)
     | EQbefore(eq_list) -> equation_list expected_k h eq_list
     | EQemit(n, e_opt) ->
-        less_than loc expected_k (Zltypes.lift_to_discrete expected_k);
+        less_than loc expected_k (Ztypes.lift_to_discrete expected_k);
         let ty_e = new_var () in
         let ty_name = typ_of_var loc h n in
         begin match e_opt with
@@ -987,7 +987,7 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
             mv = S.map x_of_xi mv } in
 
        (* outputs are either shared or state variables *)
-       let sort = if Zltypes.is_statefull_kind expected_k
+       let sort = if Ztypes.is_statefull_kind expected_k
                   then Deftypes.Smem Deftypes.empty_mem
                   else Deftypes.variable in
 
@@ -1003,16 +1003,16 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
            | Some(actual_size) -> actual_size in
          match desc with
          | Einput(xi, e) ->
-            let ty = Zltypes.new_var () in
+            let ty = Ztypes.new_var () in
             let si = size_of loc size_opt in
-            expect Tany h e (Zltypes.vec ty si);
+            expect Tany h e (Ztypes.vec ty si);
             Env.add xi { t_typ = ty; t_sort = Sval } in_h,
             out_h, xi_out_x, size_opt
          | Eoutput(xi, x) ->
-            let ty_xi = Zltypes.new_var () in
+            let ty_xi = Ztypes.new_var () in
             let ty_x = typ_of_var loc h x in
             let si = size_of loc size_opt in
-            unify loc (Zltypes.vec ty_xi si) ty_x;
+            unify loc (Ztypes.vec ty_xi si) ty_x;
             in_h, Env.add xi { t_typ = ty_xi; t_sort = sort } out_h,
             Env.add xi x xi_out_x, size_opt
          | Eindex(i, e0, e1) ->
@@ -1023,7 +1023,7 @@ and equation expected_k h ({ eq_desc = desc; eq_loc = loc } as eq) =
             let e0 = size_of_exp e0 in
             let e1 = size_of_exp e1 in
             let actual_size =
-              Zltypes.plus (Zltypes.minus e1 e0) (Zltypes.const 1) in
+              Ztypes.plus (Ztypes.minus e1 e0) (Ztypes.const 1) in
             let size_opt =
               match size_opt with
                 | None -> Some(actual_size)
@@ -1144,7 +1144,7 @@ and scondpat expected_k is_zero_type h scpat =
       | Econdon(sc1, e) ->
           typrec expected_k is_zero_type sc1;
           ignore
-            (expect (Zltypes.on_type expected_k) h e Initial.typ_bool)
+            (expect (Ztypes.on_type expected_k) h e Initial.typ_bool)
   in
   typrec expected_k is_zero_type scpat
 
@@ -1222,7 +1222,7 @@ and automaton_handlers is_weak loc expected_k h state_handlers se_opt =
   end;
 
   (* the type for conditions on transitions *)
-  let is_zero_type = Zltypes.is_continuous_kind expected_k in
+  let is_zero_type = Ztypes.is_continuous_kind expected_k in
 
   (* typing the body of the automaton *)
   let typing_handler h
@@ -1334,15 +1334,15 @@ let funtype loc expected_k pat_list ty_list ty_res =
 (* The main entry functions *)
 let constdecl f is_static e =
   let expected_k = if is_static then Tstatic(true) else Tdiscrete(false) in
-  Zlmisc.push_binding_level ();
+  Zmisc.push_binding_level ();
   let ty = expression expected_k Env.empty e in
-  Zlmisc.pop_binding_level ();
-  let tys = Zltypes.gen (not (expansive e)) ty in
+  Zmisc.pop_binding_level ();
+  let tys = Ztypes.gen (not (expansive e)) ty in
   tys
 
 let fundecl loc f ({ f_kind = k; f_atomic = is_atomic;
                      f_args = pat_list; f_body = e } as body) =
-  Zlmisc.push_binding_level ();
+  Zmisc.push_binding_level ();
   let expected_k = Interface.kindtype k in
   (* sets the kind of variables according to [k] *)
   (* vars in [pat_list] are values, i.e., *)
@@ -1355,9 +1355,9 @@ let fundecl loc f ({ f_kind = k; f_atomic = is_atomic;
   (* check that the pattern is total *)
   check_total_pattern_list pat_list;
   let ty_res = expression expected_k h0 e in
-  Zlmisc.pop_binding_level ();
+  Zmisc.pop_binding_level ();
   let ty_res = funtype loc expected_k pat_list ty_p_list ty_res in
-  let tys = Zltypes.gen true ty_res in
+  let tys = Ztypes.gen true ty_res in
   tys
 
 let implementation ff is_first impl =
@@ -1389,7 +1389,7 @@ let implementation ff is_first impl =
 
 (* the main entry function *)
 let implementation_list ff is_first impl_list =
-  Zlmisc.no_warning := not is_first;
+  Zmisc.no_warning := not is_first;
   List.iter (implementation ff is_first) impl_list;
-  Zlmisc.no_warning := not is_first;
+  Zmisc.no_warning := not is_first;
   impl_list

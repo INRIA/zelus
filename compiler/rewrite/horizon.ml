@@ -15,8 +15,8 @@
 (* gather all horizons into a single one per function. Applied on *)
 (* normalised expressions and equations *)
 
-open Zlmisc
-open Zlident
+open Zmisc
+open Zident
 open Lident
 open Deftypes
 open Zelus
@@ -36,10 +36,10 @@ let horizon h_opt h_list eq_list =
   match h_list with
   | [] -> eq_list, h_opt
   | [x] ->
-     let h = match h_opt with | None -> Zlident.fresh "h" | Some(h) -> h in
+     let h = match h_opt with | None -> Zident.fresh "h" | Some(h) -> h in
      (pluseq_make h (float_var x)) :: eq_list, Some(h)
   | x :: l ->
-     let h = match h_opt with | None -> Zlident.fresh "h" | Some(h) -> h in
+     let h = match h_opt with | None -> Zident.fresh "h" | Some(h) -> h in
      let e =
        List.fold_left (fun acc y -> min_op acc (float_var y)) (float_var x) l in
      (pluseq_make h e) :: eq_list, Some(h)
@@ -50,7 +50,7 @@ let rec equation h_opt ({ eq_desc = desc } as eq) =
   match desc with 
   | EQmatch(total, e, m_h_list) ->
      let m_h_list, h_opt =
-       Zlmisc.map_fold
+       Zmisc.map_fold
 	 (fun h_opt ({ m_body = b } as m_h) ->
 	  let b, h_opt = block h_opt b in
 	  { m_h with m_body = b }, h_opt) h_opt m_h_list in
@@ -72,7 +72,7 @@ let rec equation h_opt ({ eq_desc = desc } as eq) =
   | EQblock _ | EQautomaton _
   | EQpresent _ | EQemit _ | EQnext _ -> assert false
 
-and equation_list h_opt eq_list = Zlmisc.map_fold equation h_opt eq_list      
+and equation_list h_opt eq_list = Zmisc.map_fold equation h_opt eq_list      
 
 and equation_list_with_horizon h_opt n_env eq_list =
   let h_list, n_env = gather_horizons n_env in
@@ -102,7 +102,7 @@ let expression ({ e_desc = desc } as e) =
 	      (Some(Modname(Initial.stdlib_name "min"))) in
 	 let l_env =
 	    Env.add h (Deftypes.entry sort Initial.typ_float) l_env in
-	 let hor = Zlident.fresh "h" in
+	 let hor = Zident.fresh "h" in
 	 let sort = Deftypes.horizon Deftypes.empty_mem in
 	 let l_env =
 	   Env.add hor (Deftypes.entry sort Initial.typ_float) l_env in
@@ -119,4 +119,4 @@ let implementation impl =
   | Efundecl(n, ({ f_kind = C; f_body = e } as body)) ->
      { impl with desc = Efundecl(n, { body with f_body = expression e }) }
        
-let implementation_list impl_list = Zlmisc.iter implementation impl_list
+let implementation_list impl_list = Zmisc.iter implementation impl_list

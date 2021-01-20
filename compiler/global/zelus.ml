@@ -14,13 +14,13 @@
 
 (* Abstract syntax tree after scoping *)
 
-open Zllocation
-open Zlmisc
+open Zlocation
+open Zmisc
 
 type kind = S | A | C | D | AD | AS | P
 type name = string
 
-type 'a localized = { desc: 'a; loc: Zllocation.location }
+type 'a localized = { desc: 'a; loc: Zlocation.location }
 
 
 (** Types *)
@@ -31,14 +31,14 @@ and type_expression_desc =
   | Etypeconstr of Lident.t * type_expression list
   | Etypetuple of type_expression list
   | Etypevec of type_expression * size
-  | Etypefun of kind * Zlident.t option * type_expression * type_expression
+  | Etypefun of kind * Zident.t option * type_expression * type_expression
 
 and size = size_desc localized
 
 and size_desc =
   | Sconst of int
   | Sglobal of Lident.t
-  | Sname of Zlident.t
+  | Sname of Zident.t
   | Sop of size_op * size * size
 
 and size_op = Splus | Sminus
@@ -78,7 +78,7 @@ and funexp =
     f_atomic: is_atomic;
     f_args: pattern list;
     f_body: exp;
-    mutable f_env: Deftypes.tentry Zlident.Env.t;
+    mutable f_env: Deftypes.tentry Zident.Env.t;
     f_loc: location }
     
 and is_atomic = bool
@@ -94,12 +94,12 @@ and exp =
   }
     
 and desc =
-  | Elocal of Zlident.t
+  | Elocal of Zident.t
   | Eglobal of { lname : Lident.t; typ_instance : Deftypes.typ_instance }
   | Econst of immediate
   | Econstr0 of Lident.t
   | Econstr1 of Lident.t * exp list
-  | Elast of Zlident.t
+  | Elast of Zident.t
   | Eapp of app * exp * exp list
   | Eop of op * exp list
   | Etuple of exp list
@@ -156,8 +156,8 @@ and pdesc =
   | Econstr0pat of Lident.t
   | Econstr1pat of Lident.t * pattern list
   | Etuplepat of pattern list
-  | Evarpat of Zlident.t
-  | Ealiaspat of pattern * Zlident.t
+  | Evarpat of Zident.t
+  | Ealiaspat of pattern * Zident.t
   | Eorpat of pattern * pattern
   | Erecordpat of (Lident.t * pattern) list
   | Etypeconstraintpat of pattern * type_expression
@@ -172,19 +172,19 @@ and eq =
 and eqdesc =
   | EQeq of pattern * exp
   (* [p = e] *)
-  | EQder of Zlident.t * exp * exp option * exp present_handler list
+  | EQder of Zident.t * exp * exp option * exp present_handler list
   (* [der n = e [init e0] [reset p1 -> e1 | ... | pn -> en]] *)
-  | EQinit of Zlident.t * exp
+  | EQinit of Zident.t * exp
   (* [init n = e0 *)
-  | EQnext of Zlident.t * exp * exp option
+  | EQnext of Zident.t * exp * exp option
   (* [next n = e] *)
-  | EQpluseq of Zlident.t * exp
+  | EQpluseq of Zident.t * exp
   (* [n += e] *)
   | EQautomaton of is_weak * state_handler list * state_exp option
   | EQpresent of eq list block present_handler list * eq list block option
   | EQmatch of total ref * exp * eq list block match_handler list
   | EQreset of eq list * exp
-  | EQemit of Zlident.t * exp option
+  | EQemit of Zident.t * exp option
   | EQblock of eq list block
   | EQand of eq list (* eq1 and ... and eqn *)
   | EQbefore of eq list (* eq1 before ... before eqn *)
@@ -201,11 +201,11 @@ and 'a block =
       b_locals: local list;
       b_body: 'a;
       b_loc: location;
-      mutable b_env: Deftypes.tentry Zlident.Env.t;
+      mutable b_env: Deftypes.tentry Zident.Env.t;
       mutable b_write: Deftypes.defnames }
 
 and vardec =
-    { vardec_name: Zlident.t; (* its name *)
+    { vardec_name: Zident.t; (* its name *)
       vardec_default: Deftypes.constant default option;
       (* either an initial or a default value *)
       vardec_combine: Lident.t option; (* an optional combination function *)
@@ -219,7 +219,7 @@ and 'a default =
 and local = 
   { l_rec: is_rec; (* is-it recursive *)
     l_eq: eq list; (* the set of parallel equations *)
-    mutable l_env: Deftypes.tentry Zlident.Env.t;
+    mutable l_env: Deftypes.tentry Zident.Env.t;
     l_loc: location }
 
 and state_handler = 
@@ -227,27 +227,27 @@ and state_handler =
       s_state: statepat; 
       s_body: eq list block; 
       s_trans: escape list;
-      mutable s_env: Deftypes.tentry Zlident.Env.t;
+      mutable s_env: Deftypes.tentry Zident.Env.t;
       mutable s_reset: bool } 
 
 and statepat = statepatdesc localized 
 
 and statepatdesc = 
-    | Estate0pat of Zlident.t 
-    | Estate1pat of Zlident.t * Zlident.t list
+    | Estate0pat of Zident.t
+    | Estate1pat of Zident.t * Zident.t list
 
 and state_exp = state_exdesc localized 
 
 and state_exdesc = 
-    | Estate0 of Zlident.t
-    | Estate1 of Zlident.t * exp list
+    | Estate0 of Zident.t
+    | Estate1 of Zident.t * exp list
 
 and escape = 
     { e_cond: scondpat; 
       e_reset: bool; 
       e_block: eq list block option;
       e_next_state: state_exp;
-      mutable e_env: Deftypes.tentry Zlident.Env.t;
+      mutable e_env: Deftypes.tentry Zident.Env.t;
       mutable e_zero: bool } 
 
 and scondpat = scondpat_desc localized
@@ -262,7 +262,7 @@ and scondpat_desc =
 and 'a match_handler =
     { m_pat: pattern;
       m_body: 'a;
-      mutable m_env: Deftypes.tentry Zlident.Env.t;
+      mutable m_env: Deftypes.tentry Zident.Env.t;
       m_reset: bool; (* the handler is reset on entry *)
       mutable m_zero: bool; (* the handler is done at a zero-crossing instant *)
     }
@@ -271,7 +271,7 @@ and 'a match_handler =
 and 'a present_handler =
     { p_cond: scondpat;
       p_body: 'a;
-      mutable p_env: Deftypes.tentry Zlident.Env.t;
+      mutable p_env: Deftypes.tentry Zident.Env.t;
       mutable p_zero: bool }
 
 (* the body of a for loop *)
@@ -286,19 +286,19 @@ and forall_handler =
   { for_index: indexes_desc localized list;
     for_init: init_desc localized list;
     for_body: eq list block;
-    mutable for_in_env: Deftypes.tentry Zlident.Env.t;
+    mutable for_in_env: Deftypes.tentry Zident.Env.t;
     (* def names from [id in e | id in e1..e2] *)
-    mutable for_out_env: Deftypes.tentry Zlident.Env.t;
+    mutable for_out_env: Deftypes.tentry Zident.Env.t;
     (* def (left) names from [id out id'] *)
     for_loc: location }
 
 and indexes_desc =
-  | Einput of Zlident.t * exp (* xi in t_input *)
-  | Eoutput of Zlident.t * Zlident.t (* xi out t_output *)
-  | Eindex of Zlident.t * exp * exp (* i in e1 .. e2 *)
+  | Einput of Zident.t * exp (* xi in t_input *)
+  | Eoutput of Zident.t * Zident.t (* xi out t_output *)
+  | Eindex of Zident.t * exp * exp (* i in e1 .. e2 *)
 
 and init_desc =
-  | Einit_last of Zlident.t * exp
+  | Einit_last of Zident.t * exp
 
 					 
 

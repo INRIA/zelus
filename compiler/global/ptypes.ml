@@ -16,7 +16,7 @@
 
 open Format
 open Pp_tools
-open Zlmisc
+open Zmisc
 open Lident
 open Global
 open Modules
@@ -53,7 +53,7 @@ let print_size ff si =
     match si with
       | Tconst(i) -> fprintf ff "%d" i
       | Tglobal(qualid) -> print_qualid ff qualid
-      | Tname(x) -> fprintf ff "%s" (Zlident.name x)
+      | Tname(x) -> fprintf ff "%s" (Zident.name x)
       | Top(op, si1, si2) ->
 	 let prio_op = priority op in
 	 if prio > prio_op then fprintf ff "(";
@@ -71,7 +71,7 @@ let rec print prio ff ({ t_desc = desc } as ty) =
   begin match desc with
   | Tvar ->
       (* prefix non generalized type variables with "_" *)
-      let p = if ty.t_level <> Zlmisc.notgeneric then "" else "_" in
+      let p = if ty.t_level <> Zmisc.notgeneric then "" else "_" in
       fprintf ff "@['%s%s@]" p (type_name#name ty.t_index)
   | Tproduct [] ->
      (* this situation should not happen after typing *)
@@ -90,7 +90,7 @@ let rec print prio ff ({ t_desc = desc } as ty) =
      let print_arg ff ty =
        match name_opt with
        | None -> print (prio_current + 1) ff ty
-       | Some(n) -> fprintf ff "(%s:%a)" (Zlident.name n) (print 0) ty in
+       | Some(n) -> fprintf ff "(%s:%a)" (Zident.name n) (print 0) ty in
      fprintf ff "@[<hov 2>%a@ %s@ %a@]"
 	     print_arg ty_arg (arrow_tostring k) (print prio_current) ty_res
   | Tvec(ty, e) ->

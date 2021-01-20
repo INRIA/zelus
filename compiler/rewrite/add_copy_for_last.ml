@@ -19,18 +19,18 @@
 (* argument later to prevent from introducing copies for equations of  *)
 (* the form [lx = last x] *)
 
-open Zlmisc
-open Zllocation
+open Zmisc
+open Zlocation
 open Deftypes
 open Zelus
-open Zlident
+open Zident
 open Zaux
 
 (* Make an equation [lx = last x] *)
 let eq_last lx x ty = eqmake (EQeq(pmake (Evarpat(lx)) ty, emake (Elast(x)) ty))
 
 let add x ty (env, subst, eq_list) =
-  let lx = Zlident.fresh "l" in
+  let lx = Zident.fresh "l" in
   Env.add lx { t_typ = ty; t_sort = Deftypes.variable } env,
   Env.add x lx subst,
   (eq_last lx x ty) :: eq_list
@@ -91,7 +91,7 @@ let rec exp subst ({ e_desc } as e) =
     | Eseq(e1, e2) -> 
        Eseq(exp subst e1, exp subst e2)
     | Epresent(p_h_list, e_opt) ->
-        let e_opt = Zlmisc.optional_map (exp subst) e_opt in
+        let e_opt = Zmisc.optional_map (exp subst) e_opt in
         let p_h_list = present_handler_exp_list subst p_h_list in
         Epresent(p_h_list, e_opt)
     | Ematch(total, e, m_h_list) ->
@@ -102,7 +102,7 @@ let rec exp subst ({ e_desc } as e) =
         let subst, b = block_eq_list_with_substitution subst b in
         Eblock(b, exp subst e)
     | Eperiod { p_phase = p1; p_period = p2 } ->
-       Eperiod { p_phase = Zlmisc.optional_map (exp subst) p1;
+       Eperiod { p_phase = Zmisc.optional_map (exp subst) p1;
 		 p_period = exp subst p2 } in
   { e with e_desc = e_desc }
     
@@ -155,7 +155,7 @@ and equation subst ({ eq_desc } as eq) =
        { ini with desc = desc }, acc in
      let i_list = List.map index i_list in
      let init_list, (env, subst, eq_list) =
-       Zlmisc.map_fold init (Env.empty, subst, []) init_list in
+       Zmisc.map_fold init (Env.empty, subst, []) init_list in
      let b_eq_list =
        extend_block (block_eq_list subst b_eq_list) env eq_list in
      { eq with eq_desc =
@@ -179,7 +179,7 @@ and equation subst ({ eq_desc } as eq) =
                 ({ e_cond = scpat; e_block = b_opt;
                    e_next_state = se } as esc) =
        let scpat = scondpat subst scpat in
-       let b_opt = Zlmisc.optional_map (block_eq_list subst) b_opt in
+       let b_opt = Zmisc.optional_map (block_eq_list subst) b_opt in
        let se = state subst se in
        { esc with e_cond = scpat; e_block = b_opt; e_next_state = se } in
      let handler subst ({ s_body = b; s_trans = trans } as h) =
@@ -188,7 +188,7 @@ and equation subst ({ eq_desc } as eq) =
      { eq with eq_desc =
                  EQautomaton(is_weak,
                              List.map (handler subst) state_handler_list,
-                             Zlmisc.optional_map (state subst) se_opt) }
+                             Zmisc.optional_map (state subst) se_opt) }
   | EQemit(name, e_opt) -> 
      { eq with eq_desc = EQemit(name, optional_map (exp subst) e_opt) }
   
@@ -258,4 +258,4 @@ let implementation impl =
   | Efundecl(n, ({ f_body = e } as body)) ->
      { impl with desc = Efundecl(n, { body with f_body = exp Env.empty e }) }
        
-let implementation_list impl_list = Zlmisc.iter implementation impl_list
+let implementation_list impl_list = Zmisc.iter implementation impl_list
