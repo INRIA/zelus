@@ -43,9 +43,6 @@ let locate_stdlib () =
 
 let show_version () =
   let open Zconfig in
-  let show_bool name b =
-    Printf.printf " %s [%s]" name (if b then "Y" else "N")
-  in
   Printf.printf "The Zelus compiler, version %s-%s (%s)\n"
     version subversion date;
   Printf.printf "Std lib: "; locate_stdlib ();
