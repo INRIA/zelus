@@ -15,11 +15,7 @@
 (* useful stuff *)
 
 let header_in_file =
-<<<<<<< HEAD:compiler/global/zlmisc.ml
-  let open Zlconfig in
-=======
   let open Zconfig in
->>>>>>> main:compiler/global/zmisc.ml
   "The Zelus compiler, version " ^ version ^ "-" ^subversion ^ "\n\  (" ^ date ^ ")"
 
 (* generic data-structres for sets and symbol tables *)
@@ -30,13 +26,8 @@ module Env = Map.Make (struct type t = string let compare = compare end)
 (* standard module *)
 let name_of_stdlib_module = "Stdlib"
 
-<<<<<<< HEAD:compiler/global/zlmisc.ml
-let standard_lib = Zlconfig.stdlib
-  
-=======
 let standard_lib = Zconfig.stdlib
 
->>>>>>> main:compiler/global/zmisc.ml
 (* list of modules initially opened *)
 let default_used_modules = ref [name_of_stdlib_module]
 
@@ -51,11 +42,7 @@ let locate_stdlib () =
   Printf.printf "%s\n" standard_lib
 
 let show_version () =
-<<<<<<< HEAD:compiler/global/zlmisc.ml
-  let open Zlconfig in
-=======
   let open Zconfig in
->>>>>>> main:compiler/global/zmisc.ml
   let show_bool name b =
     Printf.printf " %s [%s]" name (if b then "Y" else "N")
   in

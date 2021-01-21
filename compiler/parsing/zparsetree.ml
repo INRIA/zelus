@@ -14,11 +14,7 @@
 
 (* Abstract syntax tree after parsing *)
 
-<<<<<<< HEAD:compiler/parsing/zlparsetree.ml
-open Zllocation
-=======
 open Zlocation
->>>>>>> main:compiler/parsing/zparsetree.ml
 
 type kind = | S | AS | A | C | AD | D | P
 
@@ -39,11 +35,7 @@ type longname =
     | Name of name
     | Modname of qualident
 
-<<<<<<< HEAD:compiler/parsing/zlparsetree.ml
-type 'a localized = { desc: 'a; loc: Zllocation.location }
-=======
 type 'a localized = { desc: 'a; loc: Zlocation.location }
->>>>>>> main:compiler/parsing/zparsetree.ml
 
 (** Types *)
 type type_expression = type_expression_desc localized
