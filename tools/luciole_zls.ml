@@ -119,7 +119,7 @@ let rec flatten_patt patt =
   | Evarpat id -> [id.source]
   | Etypeconstraintpat (p, _) -> flatten_patt p
   | Ewildpat | Econstpat _  | Econstr1pat _  | Eorpat _
-  | Erecordpat _ -> assert false
+  | Erecordpat _ | Econstr0pat _ -> assert false
 
 let print_string_of_ty ff ty =
   Format.fprintf ff "string_of_%s" ty
@@ -344,10 +344,12 @@ let main () =
     !sim_node Ptypes.print_scheme scheme;
 
   begin match typ_body.t_desc with
-    | Tfun (k, _, t1, t2) ->
-      let Global.Vfun (fexp, _) = res.info.value_code.value_exp in
-      let inp_patt = List.hd fexp.f_args in
-      write_ml !zls_file !sim_node k t1 t2 inp_patt
+    | Tfun (k, _, t1, t2) -> begin match res.info.value_code.value_exp with
+      | Global.Vfun (fexp, _) -> 
+        let inp_patt = List.hd fexp.f_args in
+        write_ml !zls_file !sim_node k t1 t2 inp_patt
+      | _ -> assert false
+      end
     | _ ->
       Format.eprintf "Type %a of value %s is not valid.\n"
         Ptypes.print_scheme scheme !sim_node;

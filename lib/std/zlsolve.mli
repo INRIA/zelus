@@ -33,7 +33,7 @@ sig
               -> (unit -> 'o option * bool * float) (* result, is_done, delta *)
 end
 
-module Make :  functor (SSolver : Zls.STATE_SOLVER)
-               -> functor (ZSolver : Zls.ZEROC_SOLVER)
+module Make :  functor (_ : Zls.STATE_SOLVER)
+               -> functor (_ : Zls.ZEROC_SOLVER)
                -> ZELUS_SOLVER
 
