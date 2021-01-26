@@ -14,9 +14,17 @@ type identifier =
   { name: string }
 [@@deriving show, map, fold]
 
+type core_type =
+  | Tany
+  | Tvar of string
+  | Ttuple of core_type list
+  | T_constr of string * core_type list
+[@@deriving show, map, fold]
+
 type 'p patt_desc =
   | Pid of identifier
   | Ptuple of 'p list
+  | Ptype of 'p * core_type
   | Pany
 [@@deriving show, map, fold]
 
@@ -45,13 +53,6 @@ and prob = string
 
 type 'm expression =
   { expr: ('m pattern, 'm expression) expr_desc; emeta: 'm }
-[@@deriving show, map, fold]
-
-type core_type =
-  | Tany
-  | Tvar of string
-  | Ttuple of core_type list
-  | T_constr of string * core_type list
 [@@deriving show, map, fold]
 
 type type_kind =
