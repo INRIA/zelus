@@ -1,0 +1,15 @@
+
+to update the compiler with the changes got to the main zelus folder and run the following in the terminal:
+
+./configure
+dune build 
+dune install
+
+
+
+After this process, go to zelus/examples/my_examples and compile the assume.zls file
+
+cd ./examples/my_examples
+zeluc -s main assume.zls
+ocamlfind ocamlc -linkpkg -package zelus assume.ml main.ml -o assume
+./assume

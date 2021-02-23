@@ -61,6 +61,8 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "initialize", INITIALIZE;
   "default", DEFAULT;
   "in", IN;
+  (*added here*)
+  "assume", ASSUME;
   "before", BEFORE;
   "out", OUT;
   "and", AND;
