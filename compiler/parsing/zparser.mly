@@ -144,6 +144,8 @@ let block l lo eq_list startpos endpos =
 %token PRESENT        /* "present" */
 %token PERIOD         /* "period" */
 %token END            /* "end" */
+(*added here*)
+%token ASSUME         /* "assume"*/
 %token EXCEPTION      /* "exception" */
 %token EXTERNAL       /* "external" */
 %token IN             /* "in" */
@@ -484,6 +486,8 @@ equation_desc:
   | i = ide PLUSEQUAL e = seq_expression
     { EQpluseq(i, e) }
   | PERIOD p = pattern EQUAL e = period_expression
+    { EQeq(p, make (Eperiod(e)) $startpos(e) $endpos(e)) }
+  | ASSUME p = pattern EQUAL e = period_expression
     { EQeq(p, make (Eperiod(e)) $startpos(e) $endpos(e)) }
   | DER i = ide EQUAL e = seq_expression opt = optional_init
       { EQder(i, e, opt, []) }
@@ -988,6 +992,9 @@ expression_desc:
       { Elet(true, defs, e) }
   | PERIOD p = period_expression
       { Eperiod(p) }
+  (*added here*)
+  | ASSUME p = period_expression 
+  	{Eperiod(p)}
   | AUTOMATON opt_bar a = automaton_handlers(seq_expression)
       { Eautomaton(List.rev a, None) }
   | AUTOMATON opt_bar a = automaton_handlers(seq_expression) INIT s = state
