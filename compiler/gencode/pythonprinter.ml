@@ -1,8 +1,8 @@
 (* Print Python code *)
 
-open Misc
-open Location
-open Ident
+open Zmisc
+open Zlocation
+open Zident
 open Obc
 open Format
 open Modules
@@ -75,10 +75,10 @@ let default_list_of_methods = [Oaux.step; Oaux.reset]
 let constructor_for_kind = function
   | Deftypes.Tcont
   | Deftypes.Tdiscrete(true)
-  | Deftypes.Tproba -> if !Misc.with_copy then "Cnode" else "Node"
+  | Deftypes.Tproba -> if !Zmisc.with_copy then "Cnode" else "Node"
   | _ -> assert false
 let extra_methods m_list =
-  if !Misc.with_copy then Oaux.copy :: m_list else m_list
+  if !Zmisc.with_copy then Oaux.copy :: m_list else m_list
 let expected_list_of_methods = function
   | Deftypes.Tcont
   | Deftypes.Tdiscrete(true)
@@ -117,7 +117,7 @@ let print_concrete_type ff ty =
   ptype 0 ff ty
 
 let ptype ff ty =
-  let ty = Types.remove_dependences ty in
+  let ty = Ztypes.remove_dependences ty in
   Ptypes.output ff ty
 
 let rec pattern ff pat = match pat with
@@ -575,7 +575,7 @@ let machine f ff { ma_kind = k;
   fprintf ff "@.";
   List.iter (fun p -> fprintf ff "@[<v 4>def %s(%a):@," f pattern p) pat_list;
   fprintf ff "@[<v 4>class %s(Node):@," f;
-  if !Misc.with_copy then
+  if !Zmisc.with_copy then
     fprintf ff
       "@[<v>%a@,%a@,%a@]"
       (palloc f i_opt memories) instances

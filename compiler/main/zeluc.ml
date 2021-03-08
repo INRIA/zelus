@@ -149,7 +149,7 @@ let main () =
           "-copy", Arg.Set with_copy, doc_with_copy;
           "-lmm", Arg.String set_lmm_nodes, doc_lmm;
           "-python", Arg.Set python, doc_python;
-          "-rif", Arg.Set use_rif, doc_rif
+          "-rif", Arg.Set use_rif, doc_rif;
           "-deps", Arg.Set build_deps, doc_deps;
         ])
       (fun filename -> if !build_deps then build filename else compile filename)
