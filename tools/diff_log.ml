@@ -58,7 +58,7 @@ let main path1 path2 =
   let t1, vs1 = getline(file1) in
   let t2, vs2 = getline(file2) in
 
-  if t1 <> 0.0 or t2 <> 0.0 then begin
+  if t1 <> 0.0 || t2 <> 0.0 then begin
     eprintf "The time values in both files must start at 0.0.\n\
              (%s starts at %e; %s starts at %e.)\n" path1 t1 path2 t2;
     exit 2

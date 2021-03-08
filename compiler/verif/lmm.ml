@@ -17,8 +17,8 @@
 (* clocks are kept in case of a translation into Lustre but are *)
 (* only necessary for the change of state variables *)
 
-open Location
-open Ident
+open Zlocation
+open Zident
 
 type name = string
 
@@ -43,8 +43,8 @@ type constr0pat =
   | Lboolpat of bool
 
 type exp =
-  | Llocal of Ident.t
-  | Llast of Ident.t
+  | Llocal of Zident.t
+  | Llast of Zident.t
   | Lglobal of Lident.t
   | Lconst of immediate
   | Lconstr0 of Lident.t
@@ -66,7 +66,7 @@ type reset =
 
 type eq =
     { eq_kind: kind;
-      eq_ident: Ident.t;
+      eq_ident: Zident.t;
       eq_exp: exp;
       eq_clock: clock }
 
@@ -76,8 +76,8 @@ and kind =
   | Next
     
 type funexp =
-  { f_inputs: Ident.t list;
-    f_output: Ident.t;
+  { f_inputs: Zident.t list;
+    f_output: Zident.t;
     f_env: tentry Env.t;
     f_body: eq list;
     f_assert: exp list; }

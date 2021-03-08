@@ -1,0 +1,29 @@
+(include_subdirs unqualified)
+
+(rule
+ (copy %{project_root}/zconfig.ml zconfig.ml))
+
+(subdir parsing
+  (ocamllex zlexer))
+
+(subdir parsing
+  (menhir (modules zparser) (infer true) (flags --explain --table)))
+
+(library
+  (name zlcompilerlibs)
+  (public_name zelus.zlcompilerlibs)
+  (wrapped false)
+  (modules :standard \ zeluc compiler simulator fixstep)
+  (libraries menhirLib))
+
+(executable
+  (name zeluc)
+  (modes (byte exe))
+  (libraries unix menhirLib zlcompilerlibs)
+  (modules zeluc compiler simulator fixstep)
+  (promote (until-clean)))
+
+(install
+ (package zelus)
+ (section bin)
+ (files (zeluc.exe as zeluc)))

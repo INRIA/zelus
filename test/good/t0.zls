@@ -1,3 +1,15 @@
+type t = Zero | Constant of float | Linear of float
+
+node simpl_chunk (dur, typ) =
+   match typ with
+   | Zero -> None
+   | Constant v -> let new_c = (dur, Zero) in Some new_c
+   | Linear v -> let new_c = (dur, Constant v) in Some new_c
+
+       (* Internal error (Aform: should be a name)
+	  new_c_20 *)
+       
+(*
 let fix f x = let rec y = f x y in y
 
 let fix2 f g x = let rec y = f x z and z = g x y in y, z
@@ -24,7 +36,7 @@ let node gg(x) = o where
   and
     present x(v1, v2) ->
     do o = 1 -> last v1 + v2 done
-
+*)
     
 (* let node one (o1, o2) = o where
   o = present o1(x) | o2(x) -> x + x init 42

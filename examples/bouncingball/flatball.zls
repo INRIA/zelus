@@ -8,7 +8,7 @@ let x_0 = 5.0
 let y_0 = 10.0
 let g = 9.81
 let loose = 0.8
-
+    
 (* The bouncing ball *)
 let hybrid ball(x, y_0) = (y, y_v, z) where
   rec

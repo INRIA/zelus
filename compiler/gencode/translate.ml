@@ -14,8 +14,8 @@
 
 (* translation from zelus code to obc *)
 (* applied to normalized and scheduled code *)
-open Misc
-open Ident
+open Zmisc
+open Zident
 open Global
 open Deftypes
 open Obc
@@ -95,10 +95,10 @@ type env = entry Env.t (* the symbol table *)
  and sort =
    | In of exp
    (* the variable [x] is implemented by [e.(i_1)...(i_n)]; e.g., [x in e] *)
-   | Out of Ident.t * Deftypes.tsort
+   | Out of Zident.t * Deftypes.tsort
    (* the variable [x] is stored into [y.(i_1)...(i_n); e.g. [x out y]] *)
 
- and loop_path = Ident.t list
+ and loop_path = Zident.t list
 			 
 type code =
   { mem: mentry State.t; (* set of state variables *)
@@ -113,7 +113,7 @@ let fprint ff (env: entry Env.t) =
     Format.fprintf ff "@[{ typ = %a;@,size = %a}@]"
 		   Ptypes.output ty
 		   (Pp_tools.print_list_r Printer.name "[" "," "]") size in
-  Ident.Env.fprint_t fprint_entry ff env
+  Zident.Env.fprint_t fprint_entry ff env
 		   
 let empty_code = { mem = State.empty; init = Osequence [];
 		   instances = State.empty;
@@ -131,7 +131,7 @@ let entry_of n env =
   try
     Env.find n env
   with Not_found ->
-    Misc.internal_error "Unbound variable" Printer.name n
+    Zmisc.internal_error "Unbound variable" Printer.name n
 
 
 (** Translation of immediate values *)
@@ -260,7 +260,7 @@ let pluseq ({ e_sort = sort; e_size = ei_list } as entry)
     | Out(n, sort) ->
        match sort with
        | Svar { v_combine = Some(ln) } | Smem { m_combine = Some(ln) } -> ln
-       | _ -> Misc.internal_error "Unbound variable" Printer.name n in
+       | _ -> Zmisc.internal_error "Unbound variable" Printer.name n in
   { code with step =
 		sequence (assign entry
 				 (Oapp(Oglobal(ln), [var entry; e]))) s }
@@ -404,11 +404,11 @@ let apply k env loop_path e e_list
   | Deftypes.Tcont
   | Deftypes.Tproba ->
      (* the first [n-1] arguments are static *)
-     let se_list, arg = Misc.firsts e_list in
+     let se_list, arg = Zmisc.firsts e_list in
      let f_opt = match e with | Oglobal(g) -> Some(g) | _ -> None in
      let loop_path = List.map (fun ix -> Olocal(ix)) loop_path in
      (* create an instance *)
-     let o = Ident.fresh "i" in
+     let o = Zident.fresh "i" in
      let j_code = { i_name = o; i_machine = e; i_kind = k;
 		    i_params = se_list; i_size = [] } in
      let reset_code =
@@ -436,14 +436,14 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
   | Zelus.Eglobal { lname = ln } -> Oglobal(ln), code
   | Zelus.Econstr0(ln) -> Oconstr0(ln), code
   | Zelus.Econstr1(ln, e_list) ->
-      let e_list, code = Misc.map_fold (exp env loop_path) code e_list in
+      let e_list, code = Zmisc.map_fold (exp env loop_path) code e_list in
       Oconstr1(ln, e_list), code
   | Zelus.Etuple(e_list) ->
-     let e_list, code = Misc.map_fold (exp env loop_path) code e_list in
+     let e_list, code = Zmisc.map_fold (exp env loop_path) code e_list in
      Otuple(e_list), code
   | Zelus.Erecord(label_e_list) ->
      let label_e_list, code =
-       Misc.map_fold
+       Zmisc.map_fold
 	 (fun code (l, e) -> let e, code = exp env loop_path code e in
 			     (l, e), code) code label_e_list in
      Orecord(label_e_list), code
@@ -455,7 +455,7 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      let e_record, code =
        exp env loop_path code e_record in
      let label_e_list, code =
-       Misc.map_fold
+       Zmisc.map_fold
 	 (fun code (l, e) -> let e, code = exp env loop_path code e in
 			     (l, e), code) code label_e_list in
      Orecord_with(e_record, label_e_list), code
@@ -465,7 +465,7 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      Otypeconstraint(e, ty_exp), code
   | Zelus.Eop(Zelus.Eup, [e]) ->
      (* implement the zero-crossing up(x) by up(if x >=0 then 1 else -1) *)
-     let e = if !Misc.zsign then Zaux.sgn e else e in 
+     let e = if !Zmisc.zsign then Zaux.sgn e else e in 
      exp env loop_path code e
   | Zelus.Eop(Zelus.Ehorizon, [e]) ->
      exp env loop_path code e
@@ -479,7 +479,7 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      let e2, code = exp env loop_path code e2 in
      Oaccess(e1, e2), code
   | Zelus.Eop(Zelus.Eupdate, [e1; i; e2]) ->
-     let _, se = Types.filter_vec e1.Zelus.e_typ in
+     let _, se = Ztypes.filter_vec e1.Zelus.e_typ in
      let se = size_of_type se in
      let e1, code = exp env loop_path code e1 in
      let i, code = exp env loop_path code i in
@@ -491,8 +491,8 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      let e, code = exp env loop_path code e in
      Oslice(e, s1, s2), code
   | Zelus.Eop(Zelus.Econcat, [e1; e2]) ->
-     let _, s1 = Types.filter_vec e1.Zelus.e_typ in
-     let _, s2 = Types.filter_vec e2.Zelus.e_typ in
+     let _, s1 = Ztypes.filter_vec e1.Zelus.e_typ in
+     let _, s2 = Ztypes.filter_vec e2.Zelus.e_typ in
      let s1 = size_of_type s1 in
      let s2 = size_of_type s2 in
      let e1, code = exp env loop_path code e1 in
@@ -506,14 +506,14 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
   | Zelus.Eapp(_, e_fun, e_list) ->
      (* compute the sequence of static arguments and non static ones *)
      let se_list, ne_list, ty_res =
-       Types.split_arguments e_fun.Zelus.e_typ e_list in
+       Ztypes.split_arguments e_fun.Zelus.e_typ e_list in
      let e_fun, code = exp env loop_path code e_fun in
-     let se_list, code = Misc.map_fold (exp env loop_path) code se_list in
-     let ne_list, code = Misc.map_fold (exp env loop_path) code ne_list in
+     let se_list, code = Zmisc.map_fold (exp env loop_path) code se_list in
+     let ne_list, code = Zmisc.map_fold (exp env loop_path) code ne_list in
      let e_fun = app e_fun se_list in
      match ne_list with
      | [] -> e_fun, code
-     | _ -> let k = Types.kind_of_funtype ty_res in
+     | _ -> let k = Ztypes.kind_of_funtype ty_res in
 	    apply k env loop_path e_fun ne_list code
   			 
 (** Patterns *)
@@ -586,7 +586,7 @@ let rec equation env loop_path { Zelus.eq_desc = desc } code =
       * - every state variable m from the body must be an array *)
      (* look for the index [i in e1..e2] *)
      let rec index code = function
-       | [] -> let id = Ident.fresh "i" in
+       | [] -> let id = Zident.fresh "i" in
 	       (id, Oconst(Oint(0)), Oconst(Oint(0))), code
        | { Zelus.desc = desc } :: i_list ->
 	  match desc with
@@ -637,7 +637,7 @@ let rec equation env loop_path { Zelus.eq_desc = desc } code =
      (* generate the initialization code *)
      let initialization_list,
 	 { mem = m; instances = j; init = i; reset = r; step = s } =
-       Misc.map_fold init code init_list in
+       Zmisc.map_fold init code init_list in
      { mem = State.seq m_code m; instances = State.seq j_code j;
        init = sequence (for_loop true ix e1 e2 i_code) i;
        reset = sequence (for_loop true ix e1 e2 r_code) r;
@@ -660,7 +660,7 @@ and match_handlers env loop_path p_h_list =
     { w_pat = pattern p; w_body = letvar var_acc s_code },
     seq code
 	{ b_code with step = Osequence []; mem = State.seq mem_acc m_code } in
-  Misc.map_fold body empty_code p_h_list
+  Zmisc.map_fold body empty_code p_h_list
 	  
 and local env loop_path { Zelus.l_eq = eq_list; Zelus.l_env = l_env } e =
   let env, mem_acc, var_acc = append loop_path l_env env in
@@ -686,7 +686,7 @@ let machine n k pat_list { mem = m; instances = j; reset = r; step = s }
   | Deftypes.Tdiscrete(false) -> Oletfun(n, pat_list, s)
   | Deftypes.Tdiscrete(true) | Deftypes.Tcont | Deftypes.Tproba ->
     (* the [n-1] parameters are static *)
-    let pat_list, p = Misc.firsts pat_list in
+    let pat_list, p = Zmisc.firsts pat_list in
     let body =
        { ma_kind = k;
 	 ma_params = pat_list;
@@ -727,4 +727,4 @@ let implementation { Zelus.desc = desc } =
      let code = add_mem_vars_to_code code mem_acc var_acc in
      machine n k pat_list code e.Zelus.e_typ
 	     
-let implementation_list impl_list = Misc.iter implementation impl_list
+let implementation_list impl_list = Zmisc.iter implementation impl_list

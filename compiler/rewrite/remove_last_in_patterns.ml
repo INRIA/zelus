@@ -34,11 +34,11 @@
          ... lx ... let dn in do ... lx ... done]
  *)
 
-open Misc
-open Location
+open Zmisc
+open Zlocation
 open Deftypes
 open Zelus
-open Ident
+open Zident
 open Zaux
 
 (* Make equations [lx = last m and m = x] *)
@@ -48,8 +48,8 @@ let eq_lx_last_m_m_x lx m x ty eq_list =
     eq_list
 
 let add x ty sort (env, new_env, subst, eq_list) =
-  let lx = Ident.fresh "l" in
-  let m = Ident.fresh "m" in
+  let lx = Zident.fresh "l" in
+  let m = Zident.fresh "m" in
   Env.add x { t_typ = ty; t_sort = Deftypes.value } env,
   Env.add lx { t_typ = ty; t_sort = Deftypes.value }
     (Env.add m { t_typ = ty; t_sort = sort } new_env),
@@ -114,7 +114,7 @@ let rec exp subst ({ e_desc } as e) =
     | Eseq(e1, e2) -> 
        Eseq(exp subst e1, exp subst e2)
     | Epresent(p_h_list, e_opt) ->
-        let e_opt = Misc.optional_map (exp subst) e_opt in
+        let e_opt = Zmisc.optional_map (exp subst) e_opt in
         let p_h_list = present_handler_exp_list subst p_h_list in
         Epresent(p_h_list, e_opt)
     | Ematch(total, e, m_h_list) ->
@@ -124,7 +124,7 @@ let rec exp subst ({ e_desc } as e) =
     | Eblock(b_eq_list, e) ->
         Eblock(block_eq_list subst b_eq_list, exp subst e)
     | Eperiod { p_phase = p1; p_period = p2 } ->
-       Eperiod { p_phase = Misc.optional_map (exp subst) p1;
+       Eperiod { p_phase = Zmisc.optional_map (exp subst) p1;
 		 p_period = exp subst p2 } in
   { e with e_desc = e_desc }
     
@@ -220,7 +220,7 @@ and equation subst ({ eq_desc } as eq) =
      { eq with eq_desc =
                  EQautomaton(is_weak,
                              List.map (handler subst) state_handler_list,
-                             Misc.optional_map (state subst) se_opt) }
+                             Zmisc.optional_map (state subst) se_opt) }
   | EQemit(name, e_opt) -> 
      { eq with eq_desc = EQemit(name, optional_map (exp subst) e_opt) }
   
@@ -287,4 +287,4 @@ let implementation impl =
      let e = Zaux.make_let new_env eq_list e in
      { impl with desc = Efundecl(n, { body with f_env = f_env; f_body = e }) }
        
-let implementation_list impl_list = Misc.iter implementation impl_list
+let implementation_list impl_list = Zmisc.iter implementation impl_list

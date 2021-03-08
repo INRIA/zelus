@@ -1,9 +1,0 @@
-let node main() returns (o')
-  local o default 0, c
-  do
-      if c then do o = 0 fby o + 1 done
-  and
-      o' = o
-  and
-      c = true fby true fby not c
-  done

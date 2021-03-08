@@ -18,12 +18,12 @@
 (* per control block when the block contains [init x = e] and *)
 (* [e] is not static *)
 
-open Misc
-open Location
+open Zmisc
+open Zlocation
 open Deftypes
 open Zelus
 open Zaux
-open Ident
+open Zident
 
 (** Static expressions *)
 let rec static { e_desc = desc } =
@@ -34,7 +34,7 @@ let rec static { e_desc = desc } =
   | Erecord_access(e, _) -> static e
   | _ -> false
 
-let intro = function None -> Ident.fresh "i" | Some(i) -> i
+let intro = function None -> Zident.fresh "i" | Some(i) -> i
 
 (* Surround an equation by a reset *)
 let reset i_opt eq =
@@ -107,7 +107,7 @@ let rec equation (i_names, i_opt) ({ eq_desc = desc } as eq) =
 						       assert false
 
 and equation_list i_names_i_opt eq_list =
-  Misc.map_fold equation i_names_i_opt eq_list
+  Zmisc.map_fold equation i_names_i_opt eq_list
 
 and local ({ l_eq = eq_list; l_env = l_env } as l) =
   let eq_list, i_names_i_opt = equation_list ([], None) eq_list in
@@ -134,4 +134,4 @@ let implementation impl =
      { impl with desc = Efundecl(n, { body with f_body = exp e }) }
   | Eopen _ | Etypedecl _ | Econstdecl _ | Efundecl _ -> impl
 
-let implementation_list impl_list = Misc.iter implementation impl_list
+let implementation_list impl_list = Zmisc.iter implementation impl_list

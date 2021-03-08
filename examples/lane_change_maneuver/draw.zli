@@ -1,0 +1,68 @@
+val dt : float
+val dt_noise : float
+val l : float
+val g : float
+val mu : float
+val b : float
+val a : float
+val j : float
+val c_f : float
+val c_r : float
+val pi : float
+val v_min : float
+val v_max : float
+val alpha_min : float
+val alpha_max : float
+val delta_min : float
+val delta_max : float
+val v_des : float
+val t_gap : float
+val t_gap_m : float
+val gap : float
+val leader_color : Graphics.color
+val interior_color : Graphics.color
+val rear_color : Graphics.color
+val merging_color : Graphics.color
+val separator_width : float
+val separator_length : float
+val separator_gap : float
+val separator_period : float
+val separator_y : float
+val margin : int
+val x_max : float
+val y_min : float
+val y_max : float
+val zoom : float
+val vehicle_length : float
+val vehicle_width : float
+val to_pixel : float -> int
+val x_resolution : int
+val y_resolution : int
+val to_coord_x : float -> int
+val to_coord_y : float -> int
+val to_coord : float * float -> int * int
+val add : float * float -> float * float -> float * float
+val opposite : float * float -> float * float
+val get_poly :
+  float * float -> float * float -> float * float -> (float * float) array
+val get_poly_vehicle :
+  float * float * float * 'a * 'b * 'c -> (float * float) array
+val correction : (float * float) array -> float -> (int * int) array
+val draw_vehicle :
+  float * float * float * 'a * 'b * 'c -> float -> Graphics.color -> unit
+val draw_vehicles :
+  float ->
+  float * float * float * 'a * 'b * 'c ->
+  float * float * float * 'd * 'e * 'f ->
+  float * float * float * 'g * 'h * 'i ->
+  float * float * float * 'j * 'k * 'l -> unit
+val get_poly_separator : float -> (float * float) array
+val draw_separator : float -> float -> unit
+val draw_separators : float -> unit
+val draw :
+  'a ->
+  float * float * float * 'b * 'c * 'd ->
+  float * float * float * 'e * 'f * 'g ->
+  float * float * float * 'h * 'i * 'j ->
+  float * float * float * 'k * 'l * 'm -> unit
+val init_graph : unit -> unit

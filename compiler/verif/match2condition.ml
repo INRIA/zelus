@@ -28,10 +28,10 @@ match e1,...,en with
 Output is: let eqs in if c1 then ... else ...
 *)
 
-open Misc
+open Zmisc
 open Zelus
 open Zaux
-open Ident
+open Zident
 open Deftypes
     
 type return = { eqs: eq State.t; env: tentry Env.t State.t }
@@ -68,7 +68,7 @@ let rec filter return ({ p_desc = p_desc; p_typ = ty } as p) ({ e_desc } as e) =
       (* has the meaning of filter p1 (get e 0) ... filter pn (get e n) *)
       (* introduce n fresh names *)
      let n_ty_list =
-       List.map (fun { p_typ = ty } -> Ident.fresh "", ty) p_list in
+       List.map (fun { p_typ = ty } -> Zident.fresh "", ty) p_list in
      let env =
        List.fold_left
          (fun acc (n, ty) -> Env.add n (Deftypes.entry Deftypes.value ty) acc)
@@ -128,7 +128,7 @@ let match_into_condition total return e p_h_list =
         let cond, return = filter (with_env env return) p e in
         let b_else, return = conditional return p_h_list in
         Zaux.eq_ifthenelse cond b
-          (Zaux.make_block Ident.Env.empty [b_else]), return in
+          (Zaux.make_block Zident.Env.empty [b_else]), return in
   conditional return p_h_list
   
 
@@ -159,7 +159,7 @@ let rec equation return ({ eq_desc = desc } as eq) =
   | EQinit(x, e) ->
      { eq with eq_desc = EQinit(x, expression e) }, return
   | EQreset(eq_list, e) ->
-      let eq_list, return = Misc.map_fold equation return eq_list in
+      let eq_list, return = Zmisc.map_fold equation return eq_list in
       { eq with eq_desc= EQreset(eq_list, expression e) }, return
   | EQmatch(total, e, p_h_list) ->
       let e = expression e in
@@ -176,7 +176,7 @@ let rec equation return ({ eq_desc = desc } as eq) =
 
 and block ({ b_body = eq_list; b_env = b_env } as b) =
   let eq_list, { eqs = eqs; env = env } =
-    Misc.map_fold equation empty eq_list in
+    Zmisc.map_fold equation empty eq_list in
   let env =
     State.fold
       (fun env acc -> Env.append env acc) env b_env in
@@ -185,7 +185,7 @@ and block ({ b_body = eq_list; b_env = b_env } as b) =
 
 let local ({ l_eq = eq_list; l_env = l_env } as l) =
   let eq_list, { eqs = eqs; env = env } =
-    Misc.map_fold equation empty eq_list in
+    Zmisc.map_fold equation empty eq_list in
   let env =
     State.fold
       (fun env acc -> Env.append env acc) env l_env in

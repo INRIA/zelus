@@ -1,0 +1,6 @@
+(env
+ (dev 
+  (env-vars
+   (ZLLIB "../../../install/default/lib/zelus")
+   (ZELUC "../../../install/default/bin/zeluc")
+   (OCAMLC ocamlc))))

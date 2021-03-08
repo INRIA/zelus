@@ -1,8 +1,11 @@
-
-open Misc
+open Zmisc
 open Deftypes
 open Initial
 open Compiler
+
+let add_include d =
+  Deps_tools.add_to_load_path d;
+  load_path := d :: !load_path
 
 let compile file =
   if Filename.check_suffix file ".zls" || Filename.check_suffix file ".zlus"
@@ -79,8 +82,9 @@ let rec is_unit ty =
   | _ -> false
 
 let allowed_types = List.map (fun qualid -> qualid.Lident.id)
-    [int_ident; bool_ident; float_ident; unit_ident ]
-let unit_id = unit_ident.Lident.id
+    [Initial.int_ident; Initial.bool_ident;
+     Initial.float_ident; Initial.unit_ident]
+let unit_id = Initial.unit_ident.Lident.id
 
 let rec check_ty ty =
   match ty.t_desc with
@@ -115,7 +119,7 @@ let rec flatten_patt patt =
   | Evarpat id -> [id.source]
   | Etypeconstraintpat (p, _) -> flatten_patt p
   | Ewildpat | Econstpat _  | Econstr1pat _  | Eorpat _
-  | Erecordpat _ -> assert false
+  | Erecordpat _ | Econstr0pat _ -> assert false
 
 let print_string_of_ty ff ty =
   Format.fprintf ff "string_of_%s" ty
@@ -225,7 +229,7 @@ let write_ml zls_file sim_node kind t1 t2 inp_patt =
          @[let mem = alloc () in@]@;\
          @[reset mem;@]@;\
          @[(fun x -> step mem x)@]@]"
-        (if !Misc.with_copy then "Cnode" else "Node");
+        (if !Zmisc.with_copy then "Cnode" else "Node");
     | Tdiscrete false | Tany -> Format.fprintf out_ff "@[let mk_step step = step@]";
     | _ ->
       Format.eprintf "Kind of node %s is not valid.\n"
@@ -292,8 +296,7 @@ let main () =
                      "-I", Arg.String add_include, doc_include;
                      "-i", Arg.Set print_types, doc_print_types;
                      "-ic", Arg.Set print_causality_types, doc_print_causality_types;
-                     "-ii",
-                     Arg.Set print_initialization_types, doc_print_initialization_types;
+                     "-ii", Arg.Set print_initialization_types, doc_print_initialization_types;
                      "-where", Arg.Unit locate_stdlib, doc_locate_stdlib;
                      "-stdlib", Arg.String set_stdlib, doc_stdlib;
                      "-nostdlib", Arg.Unit set_no_stdlib, doc_no_stdlib;
@@ -318,7 +321,7 @@ let main () =
         (fun s -> zls_file := s; compile s)
         errmsg;
     with
-    | Misc.Error -> exit 2
+    | Zmisc.Error -> exit 2
   end;
 
   if !zls_file = "" then begin
@@ -341,10 +344,12 @@ let main () =
     !sim_node Ptypes.print_scheme scheme;
 
   begin match typ_body.t_desc with
-    | Tfun (k, _, t1, t2) ->
-      let Global.Vfun (fexp, _) = res.info.value_code.value_exp in
-      let inp_patt = List.hd fexp.f_args in
-      write_ml !zls_file !sim_node k t1 t2 inp_patt
+    | Tfun (k, _, t1, t2) -> begin match res.info.value_code.value_exp with
+      | Global.Vfun (fexp, _) -> 
+        let inp_patt = List.hd fexp.f_args in
+        write_ml !zls_file !sim_node k t1 t2 inp_patt
+      | _ -> assert false
+      end
     | _ ->
       Format.eprintf "Type %a of value %s is not valid.\n"
         Ptypes.print_scheme scheme !sim_node;

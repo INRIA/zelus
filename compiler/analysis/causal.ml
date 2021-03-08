@@ -14,8 +14,8 @@
 
 (* Causality types and basic operations over these types *)
 
-open Misc
-open Ident
+open Zmisc
+open Zident
 open Deftypes
 open Defcaus
 open Global
@@ -347,6 +347,10 @@ let rec ins_and_outs_of_a_type is_right (inputs, outputs) tc =
   | Cfun(tc1, tc2) ->
      let inputs, outputs =
        ins_and_outs_of_a_type (not is_right) (inputs, outputs) tc1 in
+     (* (* do an extra step *)
+     let inputs, outputs =
+       if is_right then inputs, outputs
+       else ins_and_outs_of_a_type is_right (inputs, outputs) tc1 in *)
      ins_and_outs_of_a_type is_right (inputs, outputs) tc2
   | Cproduct(tc_list) ->
       List.fold_left
@@ -650,11 +654,11 @@ let generalise tc =
   (* type simplification *)
   (* let tc = simplify true tc in *)
   let tc =
-    if !Misc.no_simplify_causality_type then tc else simplify_by_io tc in
+    if !Zmisc.no_simplify_causality_type then tc else simplify_by_io tc in
   (* check_type tc; *)
   gen tc;
   let c_set = vars S.empty tc in
-  if not !Misc.no_simplify_causality_type then reduce c_set;
+  if not !Zmisc.no_simplify_causality_type then reduce c_set;
   let _, rel = relation (S.empty, []) c_set in
   { typ_vars = !list_of_vars; typ_rel = rel; typ = tc }
 
@@ -680,7 +684,7 @@ let rec copy tc ty =
        else c
     | Clink(link) -> if c.c_level = generic then link else ccopy link in
 
-  let { t_desc = t_desc } as ty = Types.typ_repr ty in
+  let { t_desc = t_desc } as ty = Ztypes.typ_repr ty in
   match tc, t_desc with
   | Cfun(tc1, tc2), Tfun(_, _, ty1, ty2) ->
      funtype (copy tc1 ty1) (copy tc2 ty2)
@@ -712,7 +716,7 @@ let rec copy tc =
 
 (* instanciate the causality type according to the type *)
 let rec instance tc ty = 
-  let { t_desc = t_desc } as ty = Types.typ_repr ty in
+  let { t_desc = t_desc } as ty = Ztypes.typ_repr ty in
   match tc, t_desc with
   | Cfun(tc1, tc2), Tfun(_, _, ty1, ty2) ->
      funtype (instance tc1 ty1) (instance tc2 ty2)
@@ -776,10 +780,10 @@ type tentry =
 let simplify_by_io_env env expected_tc actual_tc =
   let mark_env _ { t_typ = tc; t_last_typ = ltc_opt } =
     mark_and_polarity true tc;
-    Misc.optional_unit mark_and_polarity true ltc_opt in
+    Zmisc.optional_unit mark_and_polarity true ltc_opt in
   let simplify_env { t_typ = tc; t_last_typ = ltc_opt } =
     let tc = simplify_by_io tc in
-    let ltc_opt = Misc.optional_map simplify_by_io ltc_opt in
+    let ltc_opt = Zmisc.optional_map simplify_by_io ltc_opt in
     { t_typ = tc; t_last_typ = ltc_opt } in
   Env.iter mark_env env;
   mark_and_polarity true expected_tc;
@@ -789,7 +793,7 @@ let simplify_by_io_env env expected_tc actual_tc =
   let cset =
     Env.fold
       (fun _ { t_typ = tc; t_last_typ = ltc_opt } acc ->
-         Misc.optional vars (vars acc tc) ltc_opt) env S.empty in
+         Zmisc.optional vars (vars acc tc) ltc_opt) env S.empty in
   let cset = vars (vars cset expected_tc) actual_tc in
   let already, rel = relation (S.empty, []) cset in
   env, cset, rel, simplify_by_io expected_tc, simplify_by_io actual_tc

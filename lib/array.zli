@@ -1,5 +1,0 @@
-type 'a t
-
-val get : 'a t -> int -> 'a
-val length : 'a t -> int
-val of_list : 'a list -> 'a t

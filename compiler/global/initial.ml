@@ -14,13 +14,13 @@
 
 (* the initial module *)
 
-open Misc
+open Zmisc
 open Lident
 open Global
 open Deftypes
 open Modules
 
-let stdlib_module = Misc.name_of_stdlib_module
+let stdlib_module = Zmisc.name_of_stdlib_module
 
 let abstract_type params = 
   { type_desc = Abstract_type; type_parameters = params }

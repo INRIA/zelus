@@ -16,7 +16,7 @@
 (* are written only once and stay local to the block where they appear   *)
 (* get kind [Sval]. Otherwise, they get kind Svar or Smem *)
 
-open Ident
+open Zident
 open Zelus
 open Deftypes
 
@@ -62,7 +62,7 @@ let rec equation ({ eq_desc = desc } as eq) =
        { Deftypes.empty with di = S.singleton n }, S.empty
     | EQmatch(total, e, m_h_list) ->
        let m_h_list, (defnames, shared_set) =
-	 Misc.map_fold
+	 Zmisc.map_fold
 	   (fun acc ({ m_body = b } as m_h) ->
 	    let b, defnames, shared_set = block b in
 	    { m_h with m_body = b }, merge (defnames, shared_set) acc)
@@ -105,8 +105,8 @@ let rec equation ({ eq_desc = desc } as eq) =
 	 match desc with
 	 | Einit_last(i, e) ->
 	    { ini with desc = Einit_last(i, expression e) }, S.add i acc in
-       let i_list, xi_out_x = Misc.map_fold index Env.empty i_list in
-       let init_list, i_set = Misc.map_fold init S.empty init_list in
+       let i_list, xi_out_x = Zmisc.map_fold index Env.empty i_list in
+       let init_list, i_set = Zmisc.map_fold init S.empty init_list in
        let b_eq_list, { dv = dv; di = di; der = der; nv = nv; mv = mv },
            shared_set = block b_eq_list in
        (* if [xi in defnames_in_body] and [xi out x] then [x in defnames] *)
@@ -131,7 +131,7 @@ let rec equation ({ eq_desc = desc } as eq) =
   { eq with eq_write = defnames }, defnames, shared_set
 
 and equation_list acc eq_list = 
-  Misc.map_fold
+  Zmisc.map_fold
     (fun acc eq -> let eq, defnames, shared_set = equation eq in
 		   eq, union (defnames, shared_set) acc) acc eq_list       
 
@@ -181,7 +181,7 @@ and expression ({ e_desc = desc } as e) =
     | Eseq(e1, e2) -> Eseq(expression e1, expression e2)
     | Eperiod { p_phase = p1; p_period = p2 } ->
        Eperiod
-	 { p_phase = Misc.optional_map expression p1; p_period = expression p2 }
+	 { p_phase = Zmisc.optional_map expression p1; p_period = expression p2 }
     | Epresent _ | Ematch _ -> assert false in
   { e with e_desc = desc }
 
@@ -193,4 +193,4 @@ let implementation impl =
      { impl with desc = Efundecl(n, { body with f_body = expression e }) }
   | _ -> impl
 
-let implementation_list impl_list = Misc.iter implementation impl_list
+let implementation_list impl_list = Zmisc.iter implementation impl_list

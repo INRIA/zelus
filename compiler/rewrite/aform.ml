@@ -17,7 +17,7 @@
 (* [x1:t1,...,xn:tn] so that [x = (x1,...,xn)] *)
 (* distribute pattern matchings [(p1,...,pn) = (e1,...,en)] into *)
 (* p1 = e1 and ... pn = en] *)
-open Ident
+open Zident
 open Zelus
 open Deftypes
        
@@ -25,7 +25,7 @@ let find x subst =
   try
     Env.find x subst
   with Not_found ->
-    Misc.internal_error "Aform: unbound name" Printer.name x
+    Zmisc.internal_error "Aform: unbound name" Printer.name x
 
 let exp_of_name x subst =
   let _, e = find x subst in e
@@ -37,20 +37,20 @@ let name_of_name x subst =
   let p, _ = find x subst in
   match p.p_desc with
   | Evarpat(m) -> m
-  | _ -> Misc.internal_error "Aform: should be a name" Printer.name x
+  | _ -> Zmisc.internal_error "Aform: should be a name" Printer.name x
 				     
 (* associate a pattern and an expression to a variable according to its type *)
 let build l_env subst =
   (* returns a pair [spat, se] with [spat] a pattern, [se] an expression *)
   let result acc { source = s } ty sort =
-    let id = Ident.fresh s in
+    let id = Zident.fresh s in
     (Zaux.varpat id ty, Zaux.var id ty),
     Env.add id { t_typ = ty; t_sort = sort } acc in
   let rec value s sort acc ty =
     match ty.t_desc with
     | Tvar | Tfun _ | Tvec _ | Tconstr _ -> result acc s ty sort
     | Tproduct(ty_list) ->
-       let p_e_list, acc = Misc.map_fold (value s sort) acc ty_list in
+       let p_e_list, acc = Zmisc.map_fold (value s sort) acc ty_list in
        let p_list, e_list = List.split p_e_list in
        (Zaux.tuplepat p_list, Zaux.tuple e_list), acc
     | Tlink(ty_link) -> value s sort acc ty_link in
@@ -152,7 +152,7 @@ and equation subst eq_list ({ eq_desc = desc } as eq) =
      matching (fun p e -> Zaux.eqmake (EQeq(p, e))) eq_list p e
   | EQder(x, e, e_opt, []) ->
      returns eq (EQder(name_of_name x subst, expression subst e,
-		       Misc.optional_map (expression subst) e_opt, [])) eq_list
+		       Zmisc.optional_map (expression subst) e_opt, [])) eq_list
   | EQinit(x, e) ->
      (* [x] should not be renamed as it is a state variable *)
      returns eq (EQinit(name_of_name x subst,
@@ -160,7 +160,7 @@ and equation subst eq_list ({ eq_desc = desc } as eq) =
   | EQnext(x, e, e_opt) ->
      (* [x] should not be renamed as it is a state variable *)
      returns eq (EQnext(name_of_name x subst, expression subst e,
-			Misc.optional_map (expression subst) e_opt)) eq_list
+			Zmisc.optional_map (expression subst) e_opt)) eq_list
   | EQpluseq(x, e) ->
      (* [x] should not be renamed as it is a multi-write variable *)
      returns eq (EQpluseq(name_of_name x subst,
@@ -214,13 +214,22 @@ and handler subst ({ m_pat = p; m_body = b; m_env = m_env } as m_h) =
   let p = pattern subst p in
   { m_h with m_pat = p; m_body = block subst b; m_env = m_env }
 
+     
 and block subst ({ b_vars = v_list; b_body = eq_list; b_env = b_env } as b) =
-  let vardec subst ({ vardec_name = n } as v) =
-    { v with vardec_name = name_of_name n subst } in
   (* the field [b.b_locals] must be [] as this compilation step is done *)
   (* after normalisation *)
-  let subst, b_env = build b_env subst in
-  let v_list = List.map (vardec subst) v_list in
+  let vardec_list subst v_list =
+  (* Warning. if [n] is a state variable or associated with a *)
+  (* default value of combine function, it is not split into a tuple *)
+  (* but a single name. The code below makes this assumption. *)
+  let vardec acc ({ vardec_name = n} as v) =
+    let p = pat_of_name n subst in
+    let nset = Vars.fv_pat S.empty S.empty p in
+    S.fold (fun n acc -> { v with vardec_name = n } :: acc) nset acc in
+  List.fold_left vardec [] v_list in
+  
+ let subst, b_env = build b_env subst in
+  let v_list = vardec_list subst v_list in
   { b with b_vars = v_list; b_body = equation_list subst eq_list;
 	   b_env = b_env; b_write = Deftypes.empty }
 
@@ -237,5 +246,5 @@ let implementation impl =
 		     Efundecl(n, { body with f_body = e;
 					     f_env = f_env; f_args = p_list }) }
 
-let implementation_list impl_list = Misc.iter implementation impl_list
+let implementation_list impl_list = Zmisc.iter implementation impl_list
 

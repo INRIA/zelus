@@ -18,9 +18,9 @@ let comment_depth = ref 0
 let keyword_table = ((Hashtbl.create 149) : (string, string) Hashtbl.t);;
 
 Hashtbl.iter (fun str  _ -> Hashtbl.add keyword_table str "keyword")
-             Lexer.keyword_table;;
+             Zlexer.keyword_table;;
 
-List.iter (fun (str, i) -> if Hashtbl.mem Lexer.keyword_table str then
+List.iter (fun (str, i) -> if Hashtbl.mem Zlexer.keyword_table str then
                              Hashtbl.add keyword_table str i) [
   "open",         "module";
   "true",         "constant"; 
