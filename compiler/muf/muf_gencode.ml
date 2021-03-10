@@ -123,7 +123,9 @@ let compile_decl : type a. a declaration -> Parsetree.structure_item = begin
     | Dtype (t, params, k) ->
         Str.type_ Recursive
           [ Type.mk
-              ~params:(List.map (fun a -> (Typ.var a, Asttypes.Invariant))
+              ~params:(List.map (fun a -> (Typ.var a,
+                                           (Asttypes.NoVariance,
+                                            Asttypes.NoInjectivity)))
                          params)
               ~kind:(compile_type_kind k)
              (with_loc t.name) ]

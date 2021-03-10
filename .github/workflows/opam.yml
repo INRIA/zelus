@@ -28,7 +28,7 @@ jobs:
       - name: Use OCaml
         uses: avsm/setup-ocaml@v1
         with:
-          ocaml-version: 4.11.1
+          ocaml-version: 4.12.0
         
       - name: Install OCaml dependencies
         run: opam install -y graphics sundialsml zelus zelus-gtk

@@ -9,7 +9,7 @@ homepage: "http://zelus.di.ens.fr"
 doc: "http://zelus.di.ens.fr/man/"
 bug-reports: "https://github.com/INRIA/zelus/issues"
 depends: [
-  "ocaml" {>= "4.08.1"}
+  "ocaml" {>= "4.12.0"}
   "dune" {>= "2.6"}
   "zelus" {= version}
   "lablgtk"

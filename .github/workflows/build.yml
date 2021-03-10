@@ -18,8 +18,7 @@ jobs:
           - gtk
           - nogtk
         ocaml-version:
-          - 4.11.1
-          - 4.08.1
+          - 4.12.0
 
     steps:
       - name: Install external dependencies
