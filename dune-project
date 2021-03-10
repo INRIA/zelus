@@ -1,3 +1,4 @@
 (lang dune 2.6)
 (using menhir 2.0)
 (name zelus)
+(allow_approximate_merlin)
