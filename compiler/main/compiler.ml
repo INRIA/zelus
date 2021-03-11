@@ -97,7 +97,8 @@ let compile modname filename =
   let source_name = filename ^ ".zls"
   and obj_interf_name = filename ^ ".zci"
   and ml_name = filename ^ ".ml"
-  and lmm_name = filename ^ ".lmm" in
+  and lmm_name = filename ^ ".lmm" 
+  and py_name = filename ^ ".py" in
 
   (* standard output for printing types and clocks *)
   let info_ff = Format.formatter_of_out_channel stdout in
@@ -107,6 +108,11 @@ let compile modname filename =
     let mlc_ff = Format.formatter_of_out_channel mlc in
     pp_set_max_boxes mlc_ff max_int;
     Ocamlprinter.implementation_list mlc_ff obc_list in
+
+  let write_python_list obc_list pyc = 
+    let mlc_ff = Format.formatter_of_out_channel pyc in
+    pp_set_max_boxes mlc_ff max_int;
+    List.iter (Muf_to_python.compile_program mlc_ff) obc_list in
 
   let write_lmm_list impl_list lmmc =
     let lmm_ff = Format.formatter_of_out_channel lmmc in
@@ -259,7 +265,7 @@ let compile modname filename =
                   vectors. See below:";
          Oprinter.implementation_list info_ff obc_list
        end;
-     if !use_muf
+     if !use_muf || !muf_python
      then begin
        let muf_list = To_muf.implementation_list obc_list in
        if !verbose
@@ -276,18 +282,27 @@ let compile modname filename =
        let ml_list =
          List.map Muf_gencode.compile_program muf_list
        in
-       if !verbose
-       then begin
-	 comment "Print OCaml code. See below:";
-         Format.printf "%a@."
-           (pp_print_list ~pp_sep:pp_force_newline Pprintast.structure) ml_list;
-       end;
-       (* write OCaml code in the appropriate file *)
-       let mlc = open_out ml_name in
-       let mlff = Format.formatter_of_out_channel mlc in
-       Format.fprintf mlff "%a@."
-         (pp_print_list ~pp_sep:pp_force_newline Pprintast.structure) ml_list;
-       close_out mlc
+       if !muf_python then begin
+        if !verbose then begin
+	        comment "Print Python code. See below:";
+          List.iter (Muf_to_python.compile_program info_ff) muf_list; 
+        end;
+       (* write Python code in the appropriate file *)
+       let pyc = open_out py_name in
+       apply_with_close_out (write_python_list muf_list) pyc;
+      end else begin
+        if !verbose then begin
+          comment "Print OCaml code. See below:";
+          Format.printf "%a@."
+              (pp_print_list ~pp_sep:pp_force_newline Pprintast.structure) ml_list;
+        end;
+        (* write OCaml code in the appropriate file *)
+        let mlc = open_out ml_name in
+        let mlff = Format.formatter_of_out_channel mlc in
+        Format.fprintf mlff "%a@."
+          (pp_print_list ~pp_sep:pp_force_newline Pprintast.structure) ml_list;
+        close_out mlc
+      end
      end else begin
        (* print OCaml code *)
        if !verbose
