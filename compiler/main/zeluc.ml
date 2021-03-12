@@ -152,7 +152,7 @@ let main () =
           "-rif", Arg.Set use_rif, doc_rif;
           "-deps", Arg.Set build_deps, doc_deps;
           "-muf", Arg.Set use_muf, doc_muf;
-          "-muf_python", Arg.Set muf_python, doc_muf_python;
+          "-mufpy", Arg.Set muf_python, doc_muf_python;
         ])
       (fun filename -> if !build_deps then build filename else compile filename)
       errmsg;
