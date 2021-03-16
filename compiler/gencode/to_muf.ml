@@ -33,7 +33,13 @@ let lident_name n =
   Format.fprintf ff_b "%a" Printer.longname n;
   Format.pp_print_flush ff_b ();
   let x = Buffer.contents b in
-  if x.[0] = '(' then "(fun (x,y) -> "^x^" x y)"
+  if x.[0] = '(' then 
+    match x with
+    | "(+)" -> "add"
+    | "(-)" -> "sub"
+    | "(*)" -> "mul"
+    | "(/)" -> "floordiv"
+    | _ -> "(fun (x,y) -> "^x^" x y)"
   else x
 
 let lident n = { name = lident_name n }

@@ -1,0 +1,12 @@
+
+val add : 'a -> 'b -> 'c
+(** Addition. *)
+
+val sub : 'a -> 'b -> 'c
+(** Substraction. *)
+
+val mul : 'a -> 'b -> 'c
+(** Multiplication. *)
+
+val floordiv : 'a -> 'b -> 'c
+(** Floor division. *)
