@@ -36,6 +36,7 @@ let rec compile_patt: type a. a pattern -> Parsetree.pattern = begin
     | Pid x -> Pat.var (with_loc x.name)
     | Ptuple l -> Pat.tuple (List.map compile_patt l)
     | Pany -> Pat.any ()
+    | Ptype (p, _) -> compile_patt p
     end
 end
 
@@ -86,6 +87,23 @@ let rec compile_expr:
         let infer_id = Longident.Lident "infer_step" in
         Exp.apply (Exp.ident (with_loc infer_id))
           [ (Nolabel, Exp.fun_ Nolabel None (compile_patt p) (compile_expr e));
+            (Nolabel, compile_expr args) ]
+    | Einfer_init (n, f_init) ->
+        let infer_id = Longident.Lident "infer_init" in
+        Exp.apply (Exp.ident (with_loc infer_id))
+          [ (Nolabel, (compile_expr n));
+            (Nolabel, (Exp.ident (with_loc (Longident.Lident f_init.name)))) ]
+    | Einfer_reset (n, f_step, args) ->
+        let infer_id = Longident.Lident "infer_reset" in
+        Exp.apply (Exp.ident (with_loc infer_id))
+          [ (Nolabel, compile_expr n);
+            (Nolabel, (Exp.ident (with_loc (Longident.Lident f_step.name))));
+            (Nolabel, compile_expr args) ]
+    | Einfer_step (n, f_step, args) ->
+        let infer_id = Longident.Lident "infer_step" in
+        Exp.apply (Exp.ident (with_loc infer_id))
+          [ (Nolabel, compile_expr n);
+            (Nolabel, (Exp.ident (with_loc (Longident.Lident f_step.name))));
             (Nolabel, compile_expr args) ]
     end
 end

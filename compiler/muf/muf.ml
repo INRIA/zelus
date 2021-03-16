@@ -46,6 +46,9 @@ type ('pattern, 'expr) expr_desc =
   | Eobserve of prob * 'expr * 'expr
   | Efactor of prob * 'expr
   | Einfer of ('pattern * 'expr) * 'expr
+  | Einfer_init of 'expr * identifier
+  | Einfer_reset of 'expr * identifier * 'expr
+  | Einfer_step of 'expr * identifier * 'expr
 [@@deriving show, map, fold]
 
 and prob = string

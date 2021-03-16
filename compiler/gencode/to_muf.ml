@@ -46,6 +46,8 @@ let eany = mk_expr (Econst Cany)
 let pvar x = mk_patt (Pid x)
 let evar x = mk_expr (Evar x)
 
+let einfer_init n f = mk_expr (Einfer_init (n, f))
+
 let etuple_expr l =
   begin match l with
   | [] -> Econst Cunit
@@ -193,10 +195,14 @@ and pattern_desc pat =
   | Orecordpat(_n_pat_list) -> not_yet_implemented "record pat"
   end
 
-let rec expression state_vars e =
-  mk_expr (expression_desc state_vars e)
+(** [expression ctx state_vars e] translation of the expression [e] in
+    a context [ctx] which returns the pair [(state_vars, e)]. The
+    context [ctx] is the optional machine that contains the expression.
+*)
+let rec expression (ctx: _ option) state_vars e =
+  mk_expr (expression_desc ctx state_vars e)
 
-and expression_desc state_vars e =
+and expression_desc ctx state_vars e =
   begin match e with
   | Oconst c -> pack state_vars (Econst (immediate c))
   | Oconstr0(lname) ->
@@ -219,7 +225,7 @@ and expression_desc state_vars e =
       List.fold_left
         (fun k (x, e) ->
            Elet(unpack state_vars (pvar x),
-                expression state_vars e,
+                expression ctx state_vars e,
                 mk_expr k))
         k x_e_list
   | Oapp(e, e_list) ->
@@ -231,10 +237,10 @@ and expression_desc state_vars e =
       List.fold_left
         (fun k (x, e) ->
            Elet(unpack state_vars (pvar x),
-                expression state_vars e,
+                expression ctx state_vars e,
                 mk_expr k))
         k ((f, e) :: x_e_list)
-  | Omethodcall m -> method_call state_vars m
+  | Omethodcall m -> method_call ctx state_vars m
   | Orecord(r) ->
       let x_x'_e_list =
         List.map (fun (x,e) -> let x = lident_name x in (x, fresh ("_"^x), e)) r
@@ -244,7 +250,7 @@ and expression_desc state_vars e =
       List.fold_left
         (fun k (_, x', e) ->
            Elet(unpack state_vars (pvar x'),
-                expression state_vars e,
+                expression ctx state_vars e,
                 mk_expr k))
         k x_x'_e_list
   | Orecord_with(e_record, r) ->
@@ -255,33 +261,33 @@ and expression_desc state_vars e =
       let k =
         let x = fresh "_r" in
         Elet(unpack state_vars (pvar x),
-                expression state_vars e,
+                expression ctx state_vars e,
                 mk_expr (pack state_vars (Erecord(r, Some (evar x)))))
       in
       List.fold_left
         (fun k (_, x', e) ->
            Elet(unpack state_vars (pvar x'),
-                expression state_vars e,
+                expression ctx state_vars e,
                 mk_expr k))
         k x_x'_e_list
   | Orecord_access(e_record, lname) ->
       let x = fresh "_r" in
       let out = Efield (evar x, lident_name lname) in
       Elet(unpack state_vars (pvar x),
-           expression state_vars e,
+           expression ctx state_vars e,
            mk_expr (pack state_vars out))
   | Otypeconstraint(e, _ty_e) ->
-      expression_desc state_vars e
+      expression_desc ctx state_vars e
   | Oifthenelse(e, e1, e2) ->
       let b = fresh "_b" in
       let out =
-        Eif (evar b, expression state_vars e1,
-             expression state_vars e2)
+        Eif (evar b, expression ctx state_vars e1,
+             expression ctx state_vars e2)
       in
       Elet(unpack state_vars (pvar b),
-           expression state_vars e,
+           expression ctx state_vars e,
            mk_expr out)
-  | Oinst(i) -> (instruction state_vars i).expr
+  | Oinst(i) -> (instruction ctx state_vars i).expr
   end
 
 and left_value left =
@@ -305,7 +311,7 @@ and left_state_value left =
   | Oleft_state_primitive_access(_left, _a) ->
       not_yet_implemented "primitive_access"
 
-and method_call state_vars m =
+and method_call ctx state_vars m =
   begin match m.met_machine with
   | Some (Lident.Name f)
   | Some (Lident.Modname { Lident.id = f })
@@ -319,7 +325,7 @@ and method_call state_vars m =
               let prob = fresh "_prob" in
               let d = fresh "_d" in
               Elet(unpack state_vars (ptuple [pvar prob; pvar d]),
-                   expression state_vars e,
+                   expression ctx state_vars e,
                    mk_expr (pack state_vars
                               (Esample(prob.name, evar d))))
           | "observe", [ e ] ->
@@ -328,14 +334,14 @@ and method_call state_vars m =
               let o = fresh "_o" in
               Elet(unpack state_vars (ptuple [pvar prob;
                                               ptuple[ pvar d; pvar o]]),
-                   expression state_vars e,
+                   expression ctx state_vars e,
                    mk_expr (pack state_vars
                               (Eobserve(prob.name, evar d, evar o))))
           | "factor", [ e ] ->
               let prob = fresh "_prob" in
               let x = fresh "_x" in
               Elet(unpack state_vars (ptuple [pvar prob; pvar x]),
-                   expression state_vars e,
+                   expression ctx state_vars e,
                    mk_expr (pack state_vars
                               (Efactor(prob.name, evar x))))
 
@@ -343,14 +349,31 @@ and method_call state_vars m =
           end
       | _ -> assert false
       end
-  | _ -> standard_method_call m
+  | _ -> standard_method_call ctx m
   end
 
-and standard_method_call m =
-  let method_name =
-    match m.met_machine with
-    | Some name -> { name = (lident_name name) ^ "_" ^ m.met_name }
-    | None -> { name =  m.met_name }
+and standard_method_call ctx m =
+  let method_name, static_args =
+    match m.met_machine, m.met_instance with
+    | Some name, None ->
+        evar { name = (lident_name name) ^ "_" ^ m.met_name }, None
+    | None, Some (i_name, []) ->
+        let ma = Option.get ctx in
+        let i = List.find (fun i -> i_name = i.i_name) ma.ma_instances in
+        begin match i.i_machine with
+        | Oglobal x ->
+            evar { name = (lident_name x) ^ "_" ^ m.met_name }, None
+        | Olocal x  | Ovar (_, x) ->
+            evar { name = (ident_name x) ^ "_" ^ m.met_name }, None
+        | Oapp (Oglobal (Lident.Modname { Lident.id = f }), args) ->
+            let args = List.map (expression None SSet.empty) args in
+            evar { name = f ^ "_" ^ m.met_name }, Some (etuple args)
+        | _ -> assert false
+        end
+        (* expression ctx SSet.empty i.i_machine *)
+    | Some _, Some _ -> assert false
+    | None, None -> assert false
+    | None, Some (i, _) -> not_yet_implemented "instance array"
   in
   let instantce =
     match m.met_instance with
@@ -360,13 +383,18 @@ and standard_method_call m =
   in
   let x_e_list = List.map (fun e -> (fresh "_x", e)) m.met_args in
   let args = etuple (List.map (fun (x, _) ->  evar x) x_e_list) in
-  let k = Eapp (evar method_name, mk_expr (Etuple [instantce; args])) in
+  let args =
+    match static_args with
+    | None -> etuple [instantce; args]
+    | Some sargs -> etuple [sargs; etuple [instantce; args]]
+  in
+  let k = Eapp (method_name, args) in
   let call =
     List.fold_left
       (fun k (x, e) ->
          let state_vars = fv_expr_updated e in
          Elet(unpack state_vars (pvar x),
-              expression state_vars e,
+              expression ctx state_vars e,
               mk_expr k))
       k x_e_list
   in
@@ -383,39 +411,41 @@ and standard_method_call m =
             mk_expr (Etuple [self_update; evar res]))
   | Some (i, _) -> not_yet_implemented "instance array"
 
-and instruction state_vars i =
-  inst state_vars (add_return i)
+and instruction ctx state_vars i =
+  inst ctx state_vars (add_return i)
 
-and inst state_vars i =
-  let e = inst_desc state_vars i in
+and inst ctx state_vars i =
+  let e = inst_desc ctx state_vars i in
   mk_expr e
 
-and inst_desc state_vars i =
+and inst_desc ctx state_vars i =
   begin match i with
   | Olet(p, e, i) ->
       let p = pattern p in
       assert (SSet.disjoint (fv_patt p) state_vars);
       let state_vars' = fv_expr_updated e in
-      Elet (unpack state_vars' p, expression state_vars' e, inst state_vars i)
+      Elet (unpack state_vars' p, expression ctx state_vars' e,
+            inst ctx state_vars i)
   | Oletvar(x, _is_mutable, ty, e_opt, i) ->
       let ty = type_expr_of_typ ty in
       let p = pattern (Ovarpat(x, ty)) in
       assert (SSet.disjoint (fv_patt p) state_vars);
       let e = Option.value ~default:(Oconst Oany) e_opt in
       let state_vars' = fv_expr_updated e in
-      Elet (unpack state_vars' p, expression state_vars' e, inst state_vars i)
+      Elet (unpack state_vars' p, expression ctx state_vars' e,
+            inst ctx state_vars i)
   | Omatch(_e, _match_handler_l) -> not_yet_implemented "match"
   | Ofor(_is_to, _n, _e1, _e2, _i3) -> not_yet_implemented "for"
   | Owhile(_e1, _i2) -> not_yet_implemented "while"
   | Oassign(left, e) ->
       let updated = fv_expr_updated e in
       Elet (unpack updated (pvar { name = var_of_left_value left }),
-            left_value_update updated left e,
+            left_value_update ctx updated left e,
             mk_expr (pack state_vars eunit.expr))
   | Oassign_state(left, e) ->
       let updated = fv_expr_updated e in
       Elet (unpack updated (pvar { name = var_of_left_state_value left }),
-            left_state_value_update updated left e,
+            left_state_value_update ctx updated left e,
             mk_expr (pack state_vars eunit.expr))
   | Osequence l ->
       begin match List.rev l with
@@ -423,10 +453,10 @@ and inst_desc state_vars i =
       | i :: rev_l ->
           List.fold_left
             (fun k i ->
-               Elet (unpack state_vars pany, inst state_vars i, mk_expr k))
-            (inst_desc state_vars i) rev_l
+               Elet (unpack state_vars pany, inst ctx state_vars i, mk_expr k))
+            (inst_desc ctx state_vars i) rev_l
       end
-  | Oexp(e) -> expression_desc state_vars e
+  | Oexp(e) -> expression_desc ctx state_vars e
   | Oif(e, i1, o_i2) ->
       let i2 = Option.value ~default:(Oexp(Oconst Ovoid)) o_i2 in
       let updated_e = fv_expr_updated e in
@@ -434,8 +464,9 @@ and inst_desc state_vars i =
       let if_ =
         let b = fresh "_b" in
         Elet (unpack updated_e (pvar b),
-              expression updated_e e,
-              mk_expr (Eif (evar b, inst updated_i i1, inst updated_i i2)))
+              expression ctx updated_e e,
+              mk_expr (Eif (evar b, inst ctx updated_i i1,
+                            inst ctx updated_i i2)))
       in
       let res = fresh "_res_if" in
       Elet (unpack updated_i (pvar res), mk_expr if_,
@@ -448,38 +479,38 @@ and type_expr_of_typ =
     incr cpt;
     Otypevar ("'a"^(string_of_int !cpt))
 
-and left_value_update state_vars left e =
+and left_value_update ctx state_vars left e =
   begin match left with
-  | Oleft_name _ -> expression state_vars e
+  | Oleft_name _ -> expression ctx state_vars e
   | Oleft_record_access (left, x) ->
       let tmp = fresh "_tmp" in
       mk_expr (Elet (unpack state_vars (pvar tmp),
-                     expression state_vars e,
+                     expression ctx state_vars e,
                      mk_expr (Erecord([lident_name x, evar tmp],
                                       Some (mk_expr (left_value left))))))
   | Oleft_index (_, _) -> not_yet_implemented "left_index update"
   end
 
-and left_state_value_update state_vars left e =
+and left_state_value_update ctx state_vars left e =
   begin match left with
-  | Oself -> expression state_vars e
+  | Oself -> expression ctx state_vars e
   | Oleft_instance_name x ->
       let tmp = fresh "_tmp" in
       mk_expr (Elet (unpack state_vars (pvar tmp),
-                     expression state_vars e,
+                     expression ctx state_vars e,
                      mk_expr (Erecord([ident_name x, evar tmp],
                                       Some self_expr))))
-  | Oleft_state_global _ln -> expression state_vars e
+  | Oleft_state_global _ln -> expression ctx state_vars e
   | Oleft_state_name n ->
       let tmp = fresh "_tmp" in
       mk_expr (Elet (unpack state_vars (pvar tmp),
-                     expression state_vars e,
+                     expression ctx state_vars e,
                      mk_expr (Erecord([ident_name n, evar tmp],
                                       Some self_expr))))
   | Oleft_state_record_access(left, n) ->
       let tmp = fresh "_tmp" in
       mk_expr (Elet (unpack state_vars (pvar tmp),
-                     expression state_vars e,
+                     expression ctx state_vars e,
                      mk_expr (Erecord([lident_name n, evar tmp],
                                       Some (mk_expr (left_state_value left))))))
   | Oleft_state_index(_left, _idx) ->
@@ -529,7 +560,7 @@ let machine_type name memories instances =
   in
   mk_decl (Dtype ({ name = "_"^name }, params, TKrecord entries))
 
-let machine_init name i_opt memories instances =
+let machine_init name params i_opt memories instances =
   let memory { m_name = n; m_value = e_opt;
 	       m_typ = _ty; m_kind = k_opt; m_size = m_size } =
     begin match k_opt with
@@ -538,23 +569,37 @@ let machine_init name i_opt memories instances =
         if m_size <> [] then not_yet_implemented "array in memory";
         let e = Option.value ~default:(Oconst Oany) e_opt in
         let state_vars = fv_expr_updated e in
-        (ident_name n, expression state_vars e)
+        (ident_name n, expression None state_vars e)
     | Some _ -> not_yet_implemented "non discrete memory"
     end
   in
   let instance { i_name = n; i_machine = ei;
 		 i_kind = _k; i_params = e_list; i_size = ie_size } =
     if ie_size <> [] then not_yet_implemented "array on instances";
-    if e_list <> [] then not_yet_implemented "instance with static parameters";
+    if e_list <> [] then assert false;
     begin match ei with
     | Oglobal (Lident.Modname { Lident.id = f })
       when f = "sample"  || f = "observe" || f = "factor" ->
         (ident_name n, eunit)
+    | Oapp (Oglobal (Lident.Modname { Lident.id = infer }), nb :: f :: args)
+      when infer = "infer" ->
+        let f_init =
+          match f with
+          | Oglobal x -> { name = (lident_name x)^"_init" }
+          | Olocal x  | Ovar (_, x) -> { name = (ident_name x)^"_init" }
+          | _ -> assert false
+        in
+        (ident_name n, einfer_init (expression None SSet.empty nb) f_init)
     | Oglobal x ->
         (ident_name n, evar { name = (lident_name x)^"_init" })
     | Olocal x  | Ovar (_, x) ->
         (ident_name n, evar { name = (ident_name x)^"_init" })
-    | _ -> not_yet_implemented "instance is not a name"
+    | Oapp (Oglobal (Lident.Modname { Lident.id = f }), args) ->
+        let f = evar { name = f^"_init" } in
+        let args = List.map (expression None SSet.empty) args in
+        (ident_name n,
+         mk_expr (Eapp (f, etuple args)))
+    | _ -> assert false
     end
   in
   let r =
@@ -562,40 +607,48 @@ let machine_init name i_opt memories instances =
       (Erecord
          ((List.map memory memories) @ (List.map instance instances), None))
   in
-  mk_decl
-    (Ddecl (pvar {name = (name^"_init") },
-            match i_opt with
-            | None -> r
-            | Some i ->
-                let state_vars = fv_updated i in
-                mk_expr (Elet(unpack state_vars pany,
-                              instruction state_vars i,
-                              r))))
+  let name = { name = (name^"_init") } in
+  let body =
+    match i_opt with
+    | None -> r
+    | Some i ->
+        let state_vars = fv_updated i in
+        mk_expr (Elet(unpack state_vars pany, instruction None state_vars i, r))
+  in
+  begin match params with
+  | [] -> mk_decl (Ddecl (pvar name, body))
+  | _ ->
+      let params = List.map pattern params in
+      mk_decl (Dfun (name, ptuple params, body))
+  end
 
-let machine_method name { me_name = me_name; me_params = pat_list;
-                   me_body = i; me_typ = _ty } =
+let machine_method ma name params { me_name = me_name; me_params = pat_list;
+                                    me_body = i; me_typ = _ty } =
   let method_name = { name = name^"_"^me_name } in
+  let args = ptuple [ self_patt; ptuple (List.map pattern pat_list) ] in
   let args =
-    mk_patt (Ptuple [ self_patt;
-                      mk_patt (Ptuple (List.map pattern pat_list)) ])
+    begin match params with
+    | [] -> args
+    | _ -> ptuple [ ptuple (List.map pattern params); args]
+    end
   in
   let state_vars = SSet.add self.name (fv_updated i) in
-  let body = instruction state_vars i in
+  let body = instruction (Some ma) state_vars i in
   mk_decl (Dfun(method_name, args, body))
 
 let machine name m =
-  if m.ma_params <> [] then
-    not_yet_implemented ("static parameters ("^name^")");
   let m_type = machine_type name m.ma_memories m.ma_instances in
-  let m_init = machine_init name m.ma_initialize m.ma_memories m.ma_instances in
-  let m_methods = List.map (machine_method name) m.ma_methods in
+  let m_init =
+    machine_init name m.ma_params m.ma_initialize m.ma_memories m.ma_instances
+  in
+  let m_methods = List.map (machine_method m name m.ma_params) m.ma_methods in
   m_type :: m_init :: m_methods
 
 
 let implementation impl =
   begin match impl with
   | Oletvalue (x, i) ->
-      [  mk_decl (Ddecl (pvar {name = x}, instruction (fv_updated i) i)) ]
+      [  mk_decl (Ddecl (pvar {name = x}, instruction None (fv_updated i) i)) ]
   | Oletfun (f, args, i) ->
       let args =
         begin match args with
@@ -604,7 +657,7 @@ let implementation impl =
         | _ -> mk_patt (Ptuple (List.map pattern args))
         end
       in
-     [ mk_decl (Dfun ({name = f}, args, instruction (fv_updated i) i)) ]
+     [ mk_decl (Dfun ({name = f}, args, instruction None (fv_updated i) i)) ]
   | Oletmachine (x, m) ->
       machine x m
   | Oopen m ->
