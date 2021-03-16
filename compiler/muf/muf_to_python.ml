@@ -88,6 +88,10 @@ let rec compile_expr:
       Exp.apply (Exp.ident (with_loc infer_id))
         [ (Nolabel, Exp.fun_ Nolabel None (compile_patt p) (compile_expr e));
           (Nolabel, compile_expr args) ] *)
+    | Einfer_init (e,id) -> fprintf ff "infer_init(TODO)"
+    | Einfer_reset (e1,id,e2) -> fprintf ff "infer_reset(TODO)"
+    | Einfer_step (e1,id,e2) -> fprintf ff "infer_step(TODO)"
+    | _ -> printf "Unrecognized expression\n" ; assert (0 == 1)
     end
 end
 
