@@ -60,7 +60,15 @@ let rec compile_expr:
     | Efield (e, x) -> 
       fprintf ff "%a[\"%s\"]" compile_expr e x
     | Eapp (e1, e2) -> 
-      fprintf ff "%a%a" compile_expr e1 compile_expr e2
+      match e1.expr with
+      | Evar v when v.name.[0] == '(' -> (* Infix operator *)
+          match e2.expr with (* Arguments of the operator as a tuple. Support only for binary operators (arguments as a tuple of size 2) *)
+          | Etuple l when List.length l == 2 -> 
+            let operatorStr = (String.sub v.name 1 ((String.index v.name ')')-1)) in (* Raises Not_found if bad parentheses *)
+              fprintf ff "%a" 
+                (pp_print_list ~pp_sep:(fun ff () -> fprintf ff " %s " operatorStr) compile_expr) l
+          | _ -> printf "Tuple of size 2 expected for the infix binary operator." ; assert (0==1)
+      | _ -> fprintf ff "%a%a" compile_expr e1 compile_expr e2
     | Eif (e, e1, e2) ->
         fprintf ff "%a if %a else %a" 
           compile_expr e1 
