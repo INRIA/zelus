@@ -67,7 +67,7 @@ let rec compile_expr:
             let operatorStr = (String.sub v.name 1 ((String.index v.name ')')-1)) in (* Raises Not_found if bad parentheses *)
               fprintf ff "%a" 
                 (pp_print_list ~pp_sep:(fun ff () -> fprintf ff " %s " operatorStr) compile_expr) l
-          | _ -> printf "Tuple of size 2 expected for the infix binary operator." ; assert (0==1)
+          | _ -> printf "Tuple of size 2 expected for the infix binary operator." ; assert false
       | _ -> fprintf ff "%a%a" compile_expr e1 compile_expr e2
     | Eif (e, e1, e2) ->
         fprintf ff "%a if %a else %a" 
