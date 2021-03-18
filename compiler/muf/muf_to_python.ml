@@ -99,7 +99,7 @@ let rec compile_expr:
     | Einfer_init (e,id) -> fprintf ff "infer_init(TODO)"
     | Einfer_reset (e1,id,e2) -> fprintf ff "infer_reset(TODO)"
     | Einfer_step (e1,id,e2) -> fprintf ff "infer_step(TODO)"
-    | _ -> printf "Unrecognized expression\n" ; assert (0 == 1)
+    | _ -> printf "Unrecognized expression\n" ; assert false
     end
 end
 
