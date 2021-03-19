@@ -32,7 +32,9 @@ jobs:
           ocaml-version: ${{ matrix.ocaml-version }}
         
       - name: Install OCaml dependencies
-        run: opam install -y graphics ocamlfind menhir
+        run: |
+          opam update
+          opam install -y graphics ocamlfind menhir
 
       - name: Install sundials
         if: matrix.solver == 'sundials'
