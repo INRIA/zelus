@@ -58,10 +58,12 @@ let rec compile_expr:
       (
       match e1.expr with
       | Evar v when v.name.[0] == '(' -> (* Infix operator *)
+          (
           match e2.expr with 
           | Etuple [op1;op2] as l -> (* Arguments of the operator as a tuple. Support only for binary operators (arguments as a tuple of size 2) *)
               Exp.apply (Exp.apply (compile_expr e1) [Nolabel, compile_expr op1]) [Nolabel, compile_expr op2]
           | _ -> Format.eprintf "Tuple of size 2 expected for the infix binary operator." ; assert false
+          )
       | _ -> Exp.apply (compile_expr e1) [Nolabel, compile_expr e2]
       )
     | Eif (e, e1, e2) ->
