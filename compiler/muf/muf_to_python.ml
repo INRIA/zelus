@@ -60,7 +60,15 @@ let rec compile_expr:
     | Efield (e, x) -> 
       fprintf ff "%a[\"%s\"]" compile_expr e x
     | Eapp (e1, e2) -> 
-      fprintf ff "%a%a" compile_expr e1 compile_expr e2
+      match e1.expr with
+      | Evar v when v.name.[0] == '(' -> (* Infix operator *)
+          match e2.expr with (* Arguments of the operator as a tuple. Support only for binary operators (arguments as a tuple of size 2) *)
+          | Etuple l when List.length l == 2 -> 
+            let operator_str = (String.sub v.name 1 ((String.index v.name ')')-1)) in (* Raises Not_found if bad parentheses *)
+              fprintf ff "%a" 
+                (pp_print_list ~pp_sep:(fun ff () -> fprintf ff " %s " operator_str) compile_expr) l
+          | _ -> eprintf "Tuple of size 2 expected for the infix binary operator." ; assert false
+      | _ -> fprintf ff "%a%a" compile_expr e1 compile_expr e2
     | Eif (e, e1, e2) ->
         fprintf ff "%a if %a else %a" 
           compile_expr e1 
@@ -88,6 +96,10 @@ let rec compile_expr:
       Exp.apply (Exp.ident (with_loc infer_id))
         [ (Nolabel, Exp.fun_ Nolabel None (compile_patt p) (compile_expr e));
           (Nolabel, compile_expr args) ] *)
+    | Einfer_init (e,id) -> fprintf ff "infer_init(TODO)"
+    | Einfer_reset (e1,id,e2) -> fprintf ff "infer_reset(TODO)"
+    | Einfer_step (e1,id,e2) -> fprintf ff "infer_step(TODO)"
+    | _ -> eprintf "Unrecognized expression\n" ; assert false
     end
 end
 
