@@ -98,11 +98,11 @@ let rec compile_expr:
     | Esequence (e1, e2) ->
       fprintf ff "%a;%a" compile_expr e1 compile_expr e2
     | Esample (prob, e) ->
-      fprintf ff "sample(%a)" compile_expr e
+      fprintf ff "sample(%s, %a)" prob compile_expr e
     | Eobserve (prob, e1, e2) ->
-      fprintf ff "observe(%a, %a)" compile_expr e1 compile_expr e2
+      fprintf ff "observe(%s, %a, %a)" prob compile_expr e1 compile_expr e2
     | Efactor (prob, e) ->
-      fprintf ff "factor(%a)" compile_expr e
+      fprintf ff "factor(%s, %a)" prob compile_expr e
     | Einfer ((p, e), args) ->
       fprintf ff "infer_step(TODO)"
       (* let infer_id = Longident.Lident "infer_step" in
