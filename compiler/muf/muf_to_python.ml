@@ -67,6 +67,15 @@ let rec compile_expr:
           match e2.expr with (* Arguments of the operator as a tuple. Support only for binary operators (arguments as a tuple of size 2) *)
           | Etuple l when List.length l == 2 -> 
             let operator_str = (String.sub v.name 1 ((String.index v.name ')')-1)) in (* Raises Not_found if bad parentheses *)
+              let operator_str = 
+                begin match operator_str with
+                | "+." -> "+"
+                | "-." -> "-"
+                | "/." -> "/"
+                | "*." -> "*"
+                | other -> other
+                end
+              in
               fprintf ff "%a" 
                 (pp_print_list ~pp_sep:(fun ff () -> fprintf ff " %s " operator_str) compile_expr) l
           | _ -> eprintf "Tuple of size 2 expected for the infix binary operator." ; assert false
