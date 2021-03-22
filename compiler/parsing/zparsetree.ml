@@ -115,6 +115,8 @@ and desc =
   | Etypeconstraint of exp * type_expression
   | Elet of is_rec * eq list * exp
   | Eseq of exp * exp
+  (*added here*)
+  | Eassume of exp
   | Eperiod of period
   | Ematch of exp * exp match_handler list
   | Epresent of exp present_handler list * exp default option
@@ -131,7 +133,7 @@ and 'a default =
 
 and op =
   | Efby | Eunarypre | Eifthenelse | Eminusgreater 
-  | Eup | Einitial | Edisc | Etest | Eaccess | Eupdate
+  | Eup | (*here*)Eassert| Einitial | Edisc | Etest | Eaccess | Eupdate
   | Eslice of size * size | Econcat | Eatomic
 
 
@@ -185,6 +187,10 @@ and eqdesc =
   | EQpluseq of name * exp
     (* [n += e] *)
   | EQautomaton of eq list state_handler list * state_exp option
+  (*added here*)
+  | EQr_move of immediate
+  (*added here*)
+  (*| EQassert of exp  *)
   | EQpresent of eq list block present_handler list * eq list block option
   | EQmatch of exp * eq list block match_handler list
   | EQifthenelse of exp * eq list block * eq list block option

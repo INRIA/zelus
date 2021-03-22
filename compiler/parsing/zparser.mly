@@ -145,7 +145,11 @@ let block l lo eq_list startpos endpos =
 %token PERIOD         /* "period" */
 %token END            /* "end" */
 (*added here*)
-%token ASSUME         /* "assume"*/
+%token ASSUME         /* "assume" */
+(*added here*)
+%token R_MOVE         /* "move_robot" */
+(*added here*)
+%token ASSERT         /* "assert" */
 %token EXCEPTION      /* "exception" */
 %token EXTERNAL       /* "external" */
 %token IN             /* "in" */
@@ -457,6 +461,12 @@ equation_desc:
   | AUTOMATON opt_bar a = automaton_handlers(equation_empty_list)
     INIT s = state
     { EQautomaton(List.rev a, Some(s)) }
+  (*added here*)
+  | R_MOVE e = expression 
+     {EQr_move(Evoid)}
+  (*added here
+  | ASSERT e = seq_expression
+     {EQassert(e)} *)
   | MATCH e = seq_expression WITH opt_bar
     m = match_handlers(block_of_equation_list) opt_end
     { EQmatch(e, List.rev m) }
@@ -486,8 +496,6 @@ equation_desc:
   | i = ide PLUSEQUAL e = seq_expression
     { EQpluseq(i, e) }
   | PERIOD p = pattern EQUAL e = period_expression
-    { EQeq(p, make (Eperiod(e)) $startpos(e) $endpos(e)) }
-  | ASSUME p = pattern EQUAL e = period_expression
     { EQeq(p, make (Eperiod(e)) $startpos(e) $endpos(e)) }
   | DER i = ide EQUAL e = seq_expression opt = optional_init
       { EQder(i, e, opt, []) }
@@ -669,6 +677,9 @@ scondpat_desc :
       { Econdexp(e) }
   | UP e = simple_expression
       { Econdexp (make (Eop(Eup, [e])) $startpos $endpos) }
+  (*added here*)
+  | ASSERT e = simple_expression
+      { Econdexp (make (Eop(Eassert, [e])) $startpos $endpos) }
   | scpat1 = scondpat AMPERSAND scpat2 = scondpat
       { Econdand(scpat1, scpat2) }
   | scpat1 = scondpat BAR scpat2 = scondpat
@@ -939,6 +950,9 @@ expression_desc:
       { Eop(Einitial, []) }
   | UP e = expression
       { Eop(Eup, [e]) }
+  (*added here*)
+  | ASSERT e = expression
+      { Eop(Eassert, [e]) }
   | TEST e = expression
       { Eop(Etest, [e]) }
   | DISC e = expression
@@ -993,8 +1007,8 @@ expression_desc:
   | PERIOD p = period_expression
       { Eperiod(p) }
   (*added here*)
-  | ASSUME p = period_expression 
-  	{Eperiod(p)}
+  | ASSUME e = expression 
+  	{Eassume(e)}
   | AUTOMATON opt_bar a = automaton_handlers(seq_expression)
       { Eautomaton(List.rev a, None) }
   | AUTOMATON opt_bar a = automaton_handlers(seq_expression) INIT s = state

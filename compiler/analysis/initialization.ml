@@ -318,6 +318,12 @@ let rec exp is_continuous env ({ e_desc = desc; e_typ = ty } as e) =
             (fun e -> exp_less_than is_continuous env e ti) e_opt in
         present_handler_exp_list is_continuous env p_h_list ti;
         ti
+    (*added here*)
+    | Eassume(e) ->
+     (* a conditional does not force all element to be initialized *)
+     let i = Init.new_var () in
+     exp_less_than_on_i is_continuous env e i;
+     Init.skeleton_on_i i ty
     | Ematch(_, e, m_h_list) ->
         (* we force [e] to be always initialized. This is overly constraining *)
         (* but correct and simpler to justify *)

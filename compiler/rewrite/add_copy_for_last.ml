@@ -90,6 +90,9 @@ let rec exp subst ({ e_desc } as e) =
        let l, subst = local subst l in Elet(l, exp subst e)
     | Eseq(e1, e2) -> 
        Eseq(exp subst e1, exp subst e2)
+    (*added here*)
+    | Eassume(e1) ->
+    	Eassume(exp subst e1)
     | Epresent(p_h_list, e_opt) ->
         let e_opt = Zmisc.optional_map (exp subst) e_opt in
         let p_h_list = present_handler_exp_list subst p_h_list in

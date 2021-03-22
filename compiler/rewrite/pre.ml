@@ -151,6 +151,9 @@ let rec exp e =
      let b = block Env.empty b in { e with e_desc = Eblock(b, exp e) }
   | Eseq(e1, e2) ->
      { e with e_desc = Eseq(exp e1, exp e2) }
+  (*added here*)
+  | Eassume(e1) ->
+     { e with e_desc = Eassume(exp e1)}
   | Eperiod { p_phase = p1; p_period = p2 } ->
      { e with e_desc = Eperiod
                          { p_phase = Zmisc.optional_map exp p1; p_period = exp p2 } }

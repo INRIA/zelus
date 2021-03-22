@@ -253,6 +253,11 @@ let rec expression venv renaming fun_defs ({ e_desc = desc } as e) =
       let e2, fun_defs =
         expression venv renaming fun_defs e2 in
      { e with e_desc = Eseq(e1, e2) }, fun_defs
+  (*added here*)
+  | Eassume(e1) -> 
+      let e1, fun_defs = 
+      	  expression venv renaming fun_defs e1 in
+      	  { e with e_desc = Eassume(e1)}, fun_defs
   | Elet(l, e_let) ->
      let l, (renaming, fun_defs) = local venv (renaming, fun_defs) l in
      let e_let, fun_defs =

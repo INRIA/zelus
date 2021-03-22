@@ -256,6 +256,8 @@ let rec exp lnames ({ e_desc = desc } as e) =
                       (fun (label, e) -> (label, exp lnames e)) label_e_list)
     | Etypeconstraint(e, ty) -> Etypeconstraint(exp lnames e, ty)
     | Eseq(e1, e2) -> Eseq(exp lnames e1, exp lnames e2)
+    (*added here*)
+    | Eassume(e1) -> Eassume(exp lnames e1)
     | Eperiod { p_phase = p1; p_period = p2 } ->
        Eperiod { p_phase = Zmisc.optional_map (exp lnames) p1;
                  p_period = exp lnames p2 }

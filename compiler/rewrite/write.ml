@@ -179,6 +179,8 @@ and expression ({ e_desc = desc } as e) =
     | Elet(l, e) -> Elet(local l, expression e)
     | Eblock(b, e) -> let b, _, _ = block b in Eblock(b, expression e)
     | Eseq(e1, e2) -> Eseq(expression e1, expression e2)
+    (*added here*)
+    | Eassume(e1) -> Eassume(expression e1)
     | Eperiod { p_phase = p1; p_period = p2 } ->
        Eperiod
 	 { p_phase = Zmisc.optional_map expression p1; p_period = expression p2 }

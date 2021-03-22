@@ -78,6 +78,8 @@ let funexp_info { f_args = p_list; f_body = ({ e_caus = tc } as e) } =
     | Elet(l, e) -> exp (local c_set l) e
     | Eblock(b, e) ->  exp (block_eq_list c_set b) e
     | Eseq(e1, e2) -> exp (exp c_set e1) e2
+    (*added here*)
+    | Eassume(e) -> exp c_set e
     | Eperiod  { p_phase = p1; p_period = p2 }  ->
        let c_set = Zmisc.optional exp c_set p1 in
        exp c_set p2
@@ -258,6 +260,8 @@ let funexp_mark_to_inline info ({ f_body = e } as funexp) =
 	 Ematch(total, exp e, List.map (match_handler exp) m_h_list)
       | Elet(l, e) -> Elet(local l, exp e)
       | Eblock(b, e) -> Eblock(block_eq_list b, exp e)
+      (*added here*)
+      | Eassume(e) -> Eassume(exp e)
       | Eseq(e1, e2) -> Eseq(exp e1, exp e2) in
     { e with e_desc = desc }
 

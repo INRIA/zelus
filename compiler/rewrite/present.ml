@@ -200,6 +200,8 @@ let rec exp signals ({ e_desc = desc } as e) =
 	              (fun (label, e) -> (label, exp signals e)) label_e_list)
     | Etypeconstraint(e, ty) -> Etypeconstraint(exp signals e, ty)
     | Eseq(e1, e2) -> Eseq(exp signals e1, exp signals e2)
+    (*added here*)
+    | Eassume(e1) -> Eassume(exp signals e1)
     | Eperiod { p_phase = p1; p_period = p2 } ->
        Eperiod { p_phase = Zmisc.optional_map (exp signals) p1;
                  p_period = exp signals p2 }

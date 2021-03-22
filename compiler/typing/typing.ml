@@ -728,7 +728,9 @@ let rec expression expected_k h ({ e_desc = desc; e_loc = loc } as e) =
         expression expected_k h e
     | Eseq(e1, e2) ->
         ignore (expression expected_k h e1);
-        expression expected_k h e2
+        expression expected_k h e2  
+    (*added here*)
+    | Eassume(e) -> expression expected_k h e 
     | Eperiod(p) ->
         (* periods are only valid in a continuous context *)
         less_than loc Tcont expected_k;
