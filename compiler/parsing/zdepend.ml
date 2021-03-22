@@ -75,6 +75,8 @@ and add_exp bv exp =
   | Elet (_, pel, e) -> List.iter (add_eq bv) pel; add_exp bv e
   | Eseq (e1, e2) -> add_exp bv e1; add_exp bv e2
   | Eperiod _ -> ()
+  (*added here*)
+  | Eassume (e) -> add_exp bv e;
   | Ematch (e, mhl) -> add_exp bv e; List.iter (add_match_handler add_exp bv) mhl
   | Epresent (phl, edo) ->  List.iter (add_present_handler add_exp bv) phl; add_opt (add_default add_exp) bv edo
   | Eautomaton (shl, seo) -> List.iter (add_state_handler add_exp bv) shl; add_opt add_state_exp bv seo
@@ -83,10 +85,9 @@ and add_exp bv exp =
 
 and add_op bv op =
   match op with
-  | Efby | Eunarypre | Eifthenelse | Eminusgreater | Eup | Einitial | Edisc
+  | Efby | Eunarypre | Eifthenelse | Eminusgreater | Eup|(*added here*) Eassert| Einitial | Edisc
     | Etest | Eaccess | Eupdate | Econcat | Eatomic -> ()
   | Eslice (s1, s2) -> add_size bv s1; add_size bv s2
-
 and add_field bv (lbl, e) = add bv lbl; add_exp bv e
 
 and add_pattern bv pat =
@@ -117,6 +118,10 @@ and add_eq bv eq =
      add_block add_eq_list bv bl;
      add_opt (add_block add_eq_list) bv elsebl
   | EQand eqs | EQbefore eqs -> add_eq_list bv eqs
+  (*added here
+  | EQr_move (e) -> add bv e;*)
+  (*added here
+  | EQassert (e) -> add_exp bv e;*)
   | EQreset (eql, e) -> List.iter (add_eq bv) eql; add_exp bv e
   | EQblock block -> add_block add_eq_list bv block
   | EQforall handler -> add_forall_handler bv handler

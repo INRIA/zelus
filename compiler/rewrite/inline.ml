@@ -185,6 +185,9 @@ let rec expression renaming ({ e_desc = desc } as e) =
      { e with e_desc = Etypeconstraint(expression renaming e1, ty) }      
   | Eseq(e1, e2) ->
      { e with e_desc = Eseq(expression renaming e1, expression renaming e2) }
+  (*added here*)
+  | Eassume(e1) -> 
+     {e with e_desc = Eassume(expression renaming e1)}
   | Eperiod { p_phase = p1; p_period = p2 } ->
      { e with e_desc = Eperiod { p_phase = Zmisc.optional_map (expression renaming) p1;
                                  p_period = expression renaming p2 } }

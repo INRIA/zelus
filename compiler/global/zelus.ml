@@ -112,6 +112,8 @@ and desc =
   | Elet of local * exp
   | Eseq of exp * exp
   | Eperiod of exp period
+  (*added here*)
+  | Eassume of exp
   | Eblock of eq list block * exp
 
 and is_rec = bool
@@ -121,6 +123,8 @@ and op =
   | Eifthenelse (* mux *)
   | Eminusgreater (* initialization *)
   | Eup (* zero-crossing detection *)
+  (*added here*)
+  | Eassert  (*custom keyword*)
   | Einitial (* true at the very first instant *)
   | Edisc (* discontinuity of a flow *)
   | Ehorizon (* generate an event at a given horizon *)

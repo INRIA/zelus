@@ -68,6 +68,9 @@ let rec expression major ({ e_desc = e_desc } as e) =
      { e with e_desc = Eblock(block major b, expression major e) }
   | Eseq(e1, e2) ->
      { e with e_desc = Eseq(expression major e1, expression major e2) }
+  (*added here*)
+  | Eassume(e1) -> 
+     {e with e_desc = Eassume(expression major e1)}
   | Elocal _ | Eglobal _ | Econst _ | Econstr0 _ | Elast _ -> e
   | Epresent _ | Ematch _ | Eperiod _ -> assert false
 

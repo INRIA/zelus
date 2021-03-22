@@ -92,6 +92,8 @@ let rec fv bounded (last_acc, acc) e =
   | Eblock(b, e) ->
      let acc = fv_block_eq_list bounded (last_acc, acc) b in fv bounded acc e
   | Eseq(e1, e2) -> fv bounded (fv bounded (last_acc, acc) e1) e2
+  (*added here*)
+  | Eassume(e1) -> (fv bounded (last_acc, acc) e1)
   | Econst _ | Econstr0 _ | Eglobal _ | Eperiod _ -> last_acc, acc
   | Epresent _ | Ematch _ -> assert false
         

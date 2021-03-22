@@ -61,6 +61,9 @@ let rec exp ({ e_desc } as e) =
        let l = local l in Elet(l, exp e)
     | Eseq(e1, e2) -> 
        Eseq(exp e1, exp e2)
+    (*added here*)
+    | Eassume(e1) ->
+        Eassume(exp e1)
     | Ematch(total, e, m_h_list) ->
         let e = exp e in
         let m_h_list = match_handler_exp_list m_h_list in

@@ -142,6 +142,10 @@ let rec expression ({ e_desc = desc } as e) =
      let _e1 =
        Zaux.eqmake (EQeq({ Zaux.wildpat with p_typ = e1.e_typ }, e1)) in
      e2, seq ctx1 (seq { empty with eqs = State.singleton _e1 } ctx2)
+  (*added here*)
+  | Eassume(e1) -> 
+     let e1, ctx1 = expression e1 in
+     {e with e_desc = Eassume(e1)}, ctx1
   | Epresent _ | Ematch _ | Eperiod _ -> assert false
 				    
 (** Translate an equation. *)

@@ -162,6 +162,10 @@ let rec expression major time ({ e_desc = e_desc } as e) =
   | Eseq(e1, e2) ->
      { e with e_desc =
 		Eseq(expression major time e1, expression major time e2) }
+  (*added here*)
+  | Eassume(e1) -> 
+      {e with e_desc =
+                Eassume(expression major time e1) }
   | Elocal _ | Eglobal _ | Econst _ | Econstr0 _ | Elast _ -> e
   | Epresent _ | Ematch _ -> assert false
 

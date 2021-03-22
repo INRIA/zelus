@@ -87,6 +87,9 @@ let rec exp subst e =
      { e with e_desc = Etypeconstraint(exp subst e1, ty) }
   | Eseq(e1, e2) ->
      { e with e_desc = Eseq(exp subst e1, exp subst e2) }
+  (*added here*)
+  | Eassume(e1) ->
+     { e with e_desc = Eassume(exp subst e1) }
   | Eperiod _ | Epresent _ | Ematch _ | Elet _ | Eblock _ -> assert false
     
 (* [equation subst eq = eq'] apply a substitution to eq. *)

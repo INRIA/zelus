@@ -83,6 +83,8 @@ let rec exp e =
 		    List.map (fun (label, e) -> (label, exp e)) label_e_list)
     | Etypeconstraint(e, ty) -> Etypeconstraint(exp e, ty)
     | Eseq(e1, e2) -> Eseq(exp e1, exp e2)
+    (*added here*)
+    | Eassume(e1) -> Eassume(exp e1)
     | Eperiod { p_phase = p1; p_period = p2 } ->
        Eperiod { p_phase = Zmisc.optional_map exp p1; p_period = exp p2 }
     | Elet(l, e) -> Elet(local l, exp e)

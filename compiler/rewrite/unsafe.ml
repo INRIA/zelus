@@ -33,6 +33,8 @@ let rec exp { e_desc = desc } =
   | Erecord_with(e, f_e_list) ->
      exp e || List.exists (fun (_, e) -> exp e) f_e_list
   | Eseq(e1, e2) -> (exp e1) || (exp e2)
+  (*added here*)
+  | Eassume(e1) -> (exp e1)
   | Elocal _ | Elast _ | Econst _ | Econstr0 _ 
   | Eglobal _ | Eperiod _ | Eop _ -> false
   | Elet _ | Eblock _ -> true
