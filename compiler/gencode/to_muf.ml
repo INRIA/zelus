@@ -354,7 +354,7 @@ and method_call ctx state_vars m =
 and standard_method_call ctx m =
   let method_name, static_args =
     match m.met_machine, m.met_instance with
-    | Some name, None ->
+    | Some name, _ ->
         evar { name = (lident_name name) ^ "_" ^ m.met_name }, None
     | None, Some (i_name, []) ->
         let ma = Option.get ctx in
@@ -370,7 +370,6 @@ and standard_method_call ctx m =
         | _ -> assert false
         end
         (* expression ctx SSet.empty i.i_machine *)
-    | Some _, Some _ -> assert false
     | None, None -> assert false
     | None, Some (i, _) -> not_yet_implemented "instance array"
   in
