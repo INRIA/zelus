@@ -12,9 +12,10 @@ let freshname =
 let is_flat e =
   let rec flat_expr acc e =
     let acc =
-      match e.expr with
+      begin match e.expr with
       | Elet _ -> false
       | _ -> acc
+      end
     in
     fold_expr_desc (fun acc _ -> acc) flat_expr acc e.expr
   in 
@@ -152,49 +153,46 @@ end
 and compile_flatten:
   type a. formatter -> a expression -> a expression = begin
     fun ff e ->
-      match is_flat e with
+      begin match is_flat e with
       | true -> e
       | false -> 
         let f = freshname "_f" in
         let r = freshname "_r" in
         fprintf ff "@[<v 4>def %s(%a):@,%a@]@,%s = %s(%a)@,"
-        f
-        compile_fv e
-        compile_return e
-        r
-        f
-        compile_fv e;
+          f
+          compile_fv e
+          compile_return e
+          r
+          f
+          compile_fv e;
         {e with expr = Evar({name = r})}
-
+      end
   end
 
 and compile_return:
   type a. formatter -> a expression -> unit = begin
   fun ff e -> 
-    begin match is_flat e with
-    | true -> fprintf ff "return %a" compile_expr e
-    | false -> begin match e.expr with 
-      | Elet (p, e1, e2) -> 
-        let e1 = compile_flatten ff e1 in
-        fprintf ff "@[<v 0>%a = %a@,%a@]" 
-            compile_patt p 
-            compile_expr e1
-            compile_return e2
-      | Esequence (e1, e2) -> 
-        fprintf ff "@[<v 0>%a@,%a@]" compile_expr e1 compile_return e2
-      | Erecord(l, oe) ->
-        let l = List.map (fun (x, e) -> (x, compile_flatten ff e)) l in
-        fprintf ff "return %a" compile_expr {e with expr = Erecord(l, oe)}
-      | _ -> fprintf ff "return %a" compile_expr e
-      end
-  end
+    begin match e.expr with 
+    | Elet (p, e1, e2) -> 
+      let e1 = compile_flatten ff e1 in
+      fprintf ff "@[<v 0>%a = %a@,%a@]" 
+          compile_patt p 
+          compile_expr e1
+          compile_return e2
+    | Esequence (e1, e2) -> 
+      fprintf ff "@[<v 0>%a@,%a@]" compile_expr e1 compile_return e2
+    | Erecord(l, oe) ->
+      let l = List.map (fun (x, e) -> (x, compile_flatten ff e)) l in
+      fprintf ff "return %a" compile_expr {e with expr = Erecord(l, oe)}
+    | _ -> fprintf ff "return %a" compile_expr e
+    end
 end
 
 let compile_decl : type a. formatter -> a declaration -> unit = begin
   fun ff d ->
-    match d.decl with
+    begin match d.decl with
     | Ddecl (p, e) ->
-        let e = if is_flat e then e else compile_flatten ff e in
+        let e = compile_flatten ff e in
         fprintf ff "%a = %a@," 
             compile_patt p 
             compile_expr e
@@ -205,6 +203,7 @@ let compile_decl : type a. formatter -> a declaration -> unit = begin
           compile_return e
     | Dtype (t, params, k) -> ()
     | Dopen m -> fprintf ff "import %s@." (String.uncapitalize_ascii m)
+    end
 end
 
 
