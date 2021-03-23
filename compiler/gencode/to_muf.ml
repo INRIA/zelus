@@ -354,7 +354,7 @@ and method_call ctx state_vars m =
 and standard_method_call ctx m =
   let method_name, static_args =
     match m.met_machine, m.met_instance with
-    | Some name, None ->
+    | Some name, _ ->
         evar { name = (lident_name name) ^ "_" ^ m.met_name }, None
     | None, Some (i_name, []) ->
         let ma = Option.get ctx in
@@ -370,7 +370,6 @@ and standard_method_call ctx m =
         | _ -> assert false
         end
         (* expression ctx SSet.empty i.i_machine *)
-    | Some _, Some _ -> assert false
     | None, None -> assert false
     | None, Some (i, _) -> not_yet_implemented "instance array"
   in
@@ -438,12 +437,16 @@ and inst_desc ctx state_vars i =
   | Owhile(_e1, _i2) -> not_yet_implemented "while"
   | Oassign(left, e) ->
       let updated = fv_expr_updated e in
-      Elet (unpack updated (pvar { name = var_of_left_value left }),
+      let left_var = var_of_left_value left in
+      let updated = SSet.remove left_var updated in
+      Elet (unpack updated (pvar { name = left_var }),
             left_value_update ctx updated left e,
             mk_expr (pack state_vars eunit.expr))
   | Oassign_state(left, e) ->
       let updated = fv_expr_updated e in
-      Elet (unpack updated (pvar { name = var_of_left_state_value left }),
+      let left_var = var_of_left_state_value left in
+      let updated = SSet.remove left_var updated in
+      Elet (unpack updated (pvar { name = left_var }),
             left_state_value_update ctx updated left e,
             mk_expr (pack state_vars eunit.expr))
   | Osequence l ->

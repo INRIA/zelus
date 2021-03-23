@@ -53,3 +53,11 @@ let occurences x expr =
     | e -> fold_expr_desc (fun n _ -> n) occurences n e
   in
   occurences 0 expr
+
+let rec called_functions acc e =
+  let acc =
+    match e.expr with
+    | Eapp ({expr = Evar x}, _) -> SSet.add x.name acc
+    | _ -> acc
+  in
+  fold_expr_desc (fun acc _ -> acc) called_functions acc e.expr
