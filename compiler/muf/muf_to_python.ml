@@ -97,7 +97,7 @@ let rec compile_expr:
           | Etuple l when List.length l == 2 -> 
             let operator_str = (String.sub v.name 1 ((String.index v.name ')')-1)) in (* Raises Not_found if bad parentheses *)
               let operator_str = 
-                begin match operator_str with
+                begin match String.trim operator_str with
                 | "+." -> "+" (* Ocaml float operator -> Python operator*)
                 | "-." -> "-"
                 | "/." -> "/"
