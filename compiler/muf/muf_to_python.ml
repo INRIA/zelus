@@ -60,15 +60,28 @@ let rec compile_expr:
     | Efield (e, x) -> 
       fprintf ff "%a[\"%s\"]" compile_expr e x
     | Eapp (e1, e2) -> 
+      (
       match e1.expr with
       | Evar v when v.name.[0] == '(' -> (* Infix operator *)
+          (
           match e2.expr with (* Arguments of the operator as a tuple. Support only for binary operators (arguments as a tuple of size 2) *)
           | Etuple l when List.length l == 2 -> 
             let operator_str = (String.sub v.name 1 ((String.index v.name ')')-1)) in (* Raises Not_found if bad parentheses *)
+              let operator_str = 
+                begin match operator_str with
+                | "+." -> "+" (* Ocaml float operator -> Python operator*)
+                | "-." -> "-"
+                | "/." -> "/"
+                | "*." -> "*"
+                | other -> other
+                end
+              in
               fprintf ff "%a" 
                 (pp_print_list ~pp_sep:(fun ff () -> fprintf ff " %s " operator_str) compile_expr) l
           | _ -> eprintf "Tuple of size 2 expected for the infix binary operator." ; assert false
+          )
       | _ -> fprintf ff "%a%a" compile_expr e1 compile_expr e2
+      )
     | Eif (e, e1, e2) ->
         fprintf ff "%a if %a else %a" 
           compile_expr e1 
@@ -85,11 +98,11 @@ let rec compile_expr:
     | Esequence (e1, e2) ->
       fprintf ff "%a;%a" compile_expr e1 compile_expr e2
     | Esample (prob, e) ->
-      fprintf ff "sample(%a)" compile_expr e
+      fprintf ff "sample(%s, %a)" prob compile_expr e
     | Eobserve (prob, e1, e2) ->
-      fprintf ff "observe(%a, %a)" compile_expr e1 compile_expr e2
+      fprintf ff "observe(%s, %a, %a)" prob compile_expr e1 compile_expr e2
     | Efactor (prob, e) ->
-      fprintf ff "factor(%a)" compile_expr e
+      fprintf ff "factor(%s, %a)" prob compile_expr e
     | Einfer ((p, e), args) ->
       fprintf ff "infer_step(TODO)"
       (* let infer_id = Longident.Lident "infer_step" in
