@@ -9,6 +9,24 @@ let freshname =
     prefix ^ "_" ^ (string_of_int !i)
   end
 
+let fv_expr expr = 
+  Muf_utils.SSet.diff 
+    (Muf_utils.fv_expr expr) 
+    (Muf_utils.called_functions Muf_utils.SSet.empty expr)
+
+let compile_fv : type a. formatter -> a expression -> unit = begin
+  fun ff expr ->
+    let fv = 
+      Muf_utils.SSet.diff 
+        (Muf_utils.fv_expr expr) 
+        (Muf_utils.called_functions Muf_utils.SSet.empty expr)
+    in
+    let lv = Muf_utils.SSet.elements fv in
+    fprintf ff "%a"
+      (pp_print_list ~pp_sep:(fun ff () -> fprintf ff ", ") pp_print_string) lv
+end
+
+
 let rec compile_const: formatter -> constant -> unit = begin
   fun ff c ->
     begin match c with
@@ -32,6 +50,7 @@ let rec compile_patt: type a. formatter -> a pattern -> unit = begin
       fprintf ff "(%a)" 
         (pp_print_list ~pp_sep:(fun ff () -> fprintf ff ", ") compile_patt) l 
     | Pany -> fprintf ff "_"
+    | Ptype _ -> ()
     end
 end
 
@@ -103,12 +122,7 @@ let rec compile_expr:
       fprintf ff "observe(%s, %a, %a)" prob compile_expr e1 compile_expr e2
     | Efactor (prob, e) ->
       fprintf ff "factor(%s, %a)" prob compile_expr e
-    | Einfer ((p, e), args) ->
-      fprintf ff "infer_step(TODO)"
-      (* let infer_id = Longident.Lident "infer_step" in
-      Exp.apply (Exp.ident (with_loc infer_id))
-        [ (Nolabel, Exp.fun_ Nolabel None (compile_patt p) (compile_expr e));
-          (Nolabel, compile_expr args) ] *)
+    | Einfer ((p, e), args) -> fprintf ff "infer_step(TODO)"
     | Einfer_init (e,id) -> fprintf ff "infer_init(TODO)"
     | Einfer_reset (e1,id,e2) -> fprintf ff "infer_reset(TODO)"
     | Einfer_step (e1,id,e2) -> fprintf ff "infer_step(TODO)"
@@ -122,28 +136,72 @@ and compile_return:
     begin match e.expr with
     | Elet (p, e1, e2) ->
       let n = freshname "_f" in 
-      fprintf ff "@[<v 0>@[<v 4>def %s():@,%a@]@,%a = %s()@,%a@]" 
+      fprintf ff "@[<v 0>@[<v 4>def %s(%a):@,%a@]@,%a = %s(%a)@,%a@]" 
         n 
+        compile_fv e1
         compile_return e1 
         compile_patt p 
-        n  
+        n
+        compile_fv e1  
         compile_return e2
     | Esequence (e1, e2) -> 
       fprintf ff "%a;%a" compile_expr e1 compile_return e2
+    | Erecord (l, oe) -> 
+      let ln = 
+        List.map 
+          (fun (x, e) -> 
+            let n = freshname "_r" in
+            fprintf ff "@[<v 0>@[<v 4>def %s(%a):@,%a@]@,%s = %s(%a)@,@]"
+              n
+              compile_fv e
+              compile_return e 
+              x
+              n
+              compile_fv e;
+            (x, n)) 
+        l
+      in
+      let compile_field ff (x, n) = 
+        fprintf ff "\"%s\": %s" x x
+      in
+      begin match oe with
+      | Some e -> 
+        fprintf ff "return {**%a, %a}" 
+          compile_expr e 
+          (pp_print_list ~pp_sep:(fun ff () -> fprintf ff ", ") compile_field) ln
+      | None -> 
+        fprintf ff "return {%a}" 
+          (pp_print_list ~pp_sep:(fun ff () -> fprintf ff ", ") compile_field) ln
+      end
     | _ -> fprintf ff "return %a" compile_expr e
     end
   end
+
+and compile_closure: type a. formatter -> a pattern -> a expression -> a expression -> unit = begin
+  fun ff p e1 e2 -> 
+    let n = freshname "_f" in 
+      fprintf ff "@[<v 0>@[<v 4>def %s(%a):@,%a@]@,%a = %s(%a)@,%a@]" 
+        n 
+        compile_fv e1
+        compile_return e1 
+        compile_patt p 
+        n
+        compile_fv e1  
+        compile_return e2
+end
 
 let compile_decl : type a. formatter -> a declaration -> unit = begin
   fun ff d ->
     match d.decl with
     | Ddecl (p, e) ->
         let n = freshname "_f" in 
-        fprintf ff "@[<v 0>@[<v 4>def %s():@,%a@]@,%a = %s()@]@.@." 
+        fprintf ff "@[<v 0>@[<v 4>def %s(%a):@,%a@]@,%a = %s(%a)@]@.@." 
           n 
+          compile_fv e
           compile_return e 
           compile_patt p 
           n
+          compile_fv e
     | Dfun (f, p, e) ->
         fprintf ff "@[<v 4>def %s(*args):@,%a = args@,%a@]@.@." 
           f.name 

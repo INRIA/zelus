@@ -373,7 +373,7 @@ and standard_method_call ctx m =
     | None, None -> assert false
     | None, Some (i, _) -> not_yet_implemented "instance array"
   in
-  let instantce =
+  let instance =
     match m.met_instance with
     | None -> self_expr
     | Some (i, []) -> mk_expr (Efield (self_expr, ident_name i))
@@ -383,8 +383,8 @@ and standard_method_call ctx m =
   let args = etuple (List.map (fun (x, _) ->  evar x) x_e_list) in
   let args =
     match static_args with
-    | None -> etuple [instantce; args]
-    | Some sargs -> etuple [sargs; etuple [instantce; args]]
+    | None -> etuple [instance; args]
+    | Some sargs -> etuple [sargs; etuple [instance; args]]
   in
   let k = Eapp (method_name, args) in
   let call =
