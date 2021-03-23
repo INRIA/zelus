@@ -39,7 +39,7 @@ jobs:
       - name: Install sundials
         if: matrix.solver == 'sundials'
         run: |
-          wget -nv --show-progress --progress=bar:force:noscroll https://computing.llnl.gov/projects/sundials/download/sundials-3.2.1.tar.gz
+          wget -nv --show-progress --progress=bar:force:noscroll --user-agent="Mozilla" https://computing.llnl.gov/projects/sundials/download/sundials-3.2.1.tar.gz
           tar xzf sundials-3.2.1.tar.gz
           mkdir sundials-3.2.1-build
           cd sundials-3.2.1-build
