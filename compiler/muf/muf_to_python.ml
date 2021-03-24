@@ -12,9 +12,10 @@ let freshname =
 let is_flat e =
   let rec flat_expr acc e =
     let acc =
-      match e.expr with
+      begin match e.expr with
       | Elet _ -> false
       | _ -> acc
+      end
     in
     fold_expr_desc (fun acc _ -> acc) flat_expr acc e.expr
   in 
@@ -71,14 +72,17 @@ let rec compile_expr:
     | Econst c -> fprintf ff "%a" compile_const c
     | Evar x -> fprintf ff "%s" (String.uncapitalize_ascii x.name)
     | Etuple l -> 
+      let l = List.map (fun x -> compile_flatten ff x) l in
       fprintf ff "(%a)" 
         (pp_print_list ~pp_sep:(fun ff () -> fprintf ff ", ") compile_expr) l
     | Erecord (l, oe) -> 
+      let l = List.map (fun (x, e) -> (x, compile_flatten ff e)) l in
       let compile_field ff (x, e) = 
         fprintf ff "\"%s\": %a" x compile_expr e
       in
       begin match oe with
       | Some e -> 
+        let e = compile_flatten ff e in 
         fprintf ff "{**%a, %a}" 
           compile_expr e 
           (pp_print_list ~pp_sep:(fun ff () -> fprintf ff ", ") compile_field) l
@@ -87,17 +91,18 @@ let rec compile_expr:
           (pp_print_list ~pp_sep:(fun ff () -> fprintf ff ", ") compile_field) l
       end
     | Efield (e, x) -> 
+      let e = compile_flatten ff e in
       fprintf ff "%a[\"%s\"]" compile_expr e x
-    | Eapp (e1, e2) -> 
-      (
-      match e1.expr with
+    | Eapp (e1, e2) ->
+      let e1 = compile_flatten ff e1 in
+      let e2 = compile_flatten ff e2 in 
+      begin match e1.expr with
       | Evar v when v.name.[0] == '(' -> (* Infix operator *)
-          (
-          match e2.expr with (* Arguments of the operator as a tuple. Support only for binary operators (arguments as a tuple of size 2) *)
+          begin match e2.expr with (* Arguments of the operator as a tuple. Support only for binary operators (arguments as a tuple of size 2) *)
           | Etuple l when List.length l == 2 -> 
             let operator_str = (String.sub v.name 1 ((String.index v.name ')')-1)) in (* Raises Not_found if bad parentheses *)
               let operator_str = 
-                begin match operator_str with
+                begin match String.trim operator_str with
                 | "+." -> "+" (* Ocaml float operator -> Python operator*)
                 | "-." -> "-"
                 | "/." -> "/"
@@ -108,97 +113,86 @@ let rec compile_expr:
               fprintf ff "%a" 
                 (pp_print_list ~pp_sep:(fun ff () -> fprintf ff " %s " operator_str) compile_expr) l
           | _ -> eprintf "Tuple of size 2 expected for the infix binary operator." ; assert false
-          )
+          end
       | _ -> fprintf ff "%a%a" compile_expr e1 compile_expr e2
-      )
+      end
     | Eif (e, e1, e2) ->
+        let e = compile_flatten ff e in
+        let e1 = compile_flatten ff e1 in 
+        let e2 = compile_flatten ff e2 in
         fprintf ff "%a if %a else %a" 
           compile_expr e1 
           compile_expr e 
           compile_expr e2
     | Elet (p, e1, e2) ->
-      let e1 = if is_flat e1 then e1 else compile_flatten ff e1 in
+      let e1 = compile_flatten ff e1 in
+      let e2 = compile_flatten ff e2 in
       fprintf ff "@[<v 0>%a = %a@,%a@]" 
         compile_patt p 
         compile_expr e1
         compile_expr e2
     | Esequence (e1, e2) ->
-      fprintf ff "%a;%a" compile_expr e1 compile_expr e2
+      fprintf ff "@[<v 0>%a@,%a@]" compile_expr e1 compile_expr e2
     | Esample (prob, e) ->
+      let e = compile_flatten ff e in
       fprintf ff "sample(%s, %a)" prob compile_expr e
     | Eobserve (prob, e1, e2) ->
+      let e1 = compile_flatten ff e1 in
+      let e2 = compile_flatten ff e2 in
       fprintf ff "observe(%s, %a, %a)" prob compile_expr e1 compile_expr e2
     | Efactor (prob, e) ->
+      let e = compile_flatten ff e in
       fprintf ff "factor(%s, %a)" prob compile_expr e
     | Einfer ((p, e), args) -> fprintf ff "infer_step(TODO)"
     | Einfer_init (e,id) -> fprintf ff "infer_init(TODO)"
     | Einfer_reset (e1,id,e2) -> fprintf ff "infer_reset(TODO)"
     | Einfer_step (e1,id,e2) -> fprintf ff "infer_step(TODO)"
-    | _ -> eprintf "Unrecognized expression\n" ; assert false
     end
 end
 
 and compile_flatten:
   type a. formatter -> a expression -> a expression = begin
     fun ff e ->
-      match is_flat e with
+      begin match is_flat e with
       | true -> e
       | false -> 
         let f = freshname "_f" in
         let r = freshname "_r" in
         fprintf ff "@[<v 4>def %s(%a):@,%a@]@,%s = %s(%a)@,"
-        f
-        compile_fv e
-        compile_return e
-        r
-        f
-        compile_fv e;
+          f
+          compile_fv e
+          compile_return e
+          r
+          f
+          compile_fv e;
         {e with expr = Evar({name = r})}
-
+      end
   end
 
 and compile_return:
   type a. formatter -> a expression -> unit = begin
   fun ff e -> 
-    begin match is_flat e with
-    | true -> fprintf ff "return %a" compile_expr e
-    | false -> begin match e.expr with 
-      | Elet (p, e1, e2) -> 
-        let e1 = if is_flat e1 then e1 else compile_flatten ff e1 in
-        fprintf ff "@[<v 0>%a = %a@,%a@]" 
-            compile_patt p 
-            compile_expr e1
-            compile_return e2
-      | Esequence (e1, e2) -> 
-        fprintf ff "%a;%a" compile_expr e1 compile_return e2
-      | Erecord(l, oe) ->
-        let l = 
-          List.map 
-          (fun (x, e) -> (x, if is_flat e then e else compile_flatten ff e))
-          l 
-        in
-        let compile_field ff (x, e) = 
-          fprintf ff "\"%s\": %a" x compile_expr e
-        in
-        begin match oe with
-        | Some e -> 
-          fprintf ff "return {**%a, %a}" 
-            compile_expr e 
-            (pp_print_list ~pp_sep:(fun ff () -> fprintf ff ", ") compile_field) l
-        | None -> 
-          fprintf ff "return {%a}" 
-            (pp_print_list ~pp_sep:(fun ff () -> fprintf ff ", ") compile_field) l
-        end
-      | _ -> fprintf ff "return %a" compile_expr e
-      end
-  end
+    begin match e.expr with 
+    | Elet (p, e1, e2) -> 
+      let e1 = compile_flatten ff e1 in
+      fprintf ff "@[<v 0>%a = %a@,%a@]" 
+          compile_patt p 
+          compile_expr e1
+          compile_return e2
+    | Esequence (e1, e2) -> 
+      fprintf ff "@[<v 0>%a@,%a@]" compile_expr e1 compile_return e2
+    | Erecord(l, oe) ->
+      let l = List.map (fun (x, e) -> (x, compile_flatten ff e)) l in
+      fprintf ff "return %a" compile_expr {e with expr = Erecord(l, oe)}
+    | _ -> fprintf ff "return %a" compile_expr e
+    end
 end
 
 let compile_decl : type a. formatter -> a declaration -> unit = begin
   fun ff d ->
-    match d.decl with
+    begin match d.decl with
     | Ddecl (p, e) ->
-        let e = if is_flat e then e else compile_flatten ff e in
+        let e = compile_flatten ff e in
         fprintf ff "%a = %a@," 
             compile_patt p 
             compile_expr e
@@ -209,6 +203,7 @@ let compile_decl : type a. formatter -> a declaration -> unit = begin
           compile_return e
     | Dtype (t, params, k) -> ()
     | Dopen m -> fprintf ff "import %s@." (String.uncapitalize_ascii m)
+    end
 end
 
 
