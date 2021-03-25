@@ -49,7 +49,7 @@ let rec compile_const: formatter -> constant -> unit = begin
     | Cstring x -> fprintf ff "%s" x
     | Cchar x -> fprintf ff "%c" x
     | Cunit -> fprintf ff "()"
-    | Cany -> fprintf ff "_"
+    | Cany -> fprintf ff "()"
     end
 end
 
