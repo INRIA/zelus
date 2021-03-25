@@ -143,7 +143,7 @@ let rec compile_expr:
       let e = compile_flatten ff e in
       fprintf ff "factor(%s, %a)" prob compile_expr e
     | Einfer ((p, e), args) -> fprintf ff "infer_step(TODO)"
-    | Einfer_init (e,id) -> fprintf ff "infer_init(TODO)"
+    | Einfer_init (e,id) -> fprintf ff "infer_init(%a, %s)" compile_expr e id.name
     | Einfer_reset (e1,id,e2) -> fprintf ff "infer_reset(TODO)"
     | Einfer_step (e1,id,e2) -> fprintf ff "infer_step(TODO)"
     end
