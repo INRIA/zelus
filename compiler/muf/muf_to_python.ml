@@ -113,7 +113,10 @@ let rec compile_expr:
               fprintf ff "%a %s %a" compile_expr e1 op_str compile_expr e2
           | _ -> eprintf "Tuple of size 2 expected for the infix binary operator." ; assert false
           end
-      | _ -> fprintf ff "%a%a" compile_expr e1 compile_expr e2
+      | _ -> begin match e2.expr with
+             | Etuple _ -> fprintf ff "%a%a" compile_expr e1 compile_expr e2
+             | _ -> fprintf ff "%a(%a)" compile_expr e1 compile_expr e2
+             end
       end
     | Eif (e, e1, e2) ->
         let e = compile_flatten ff e in
