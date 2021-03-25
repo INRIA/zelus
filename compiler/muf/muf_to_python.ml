@@ -49,7 +49,7 @@ let rec compile_const: formatter -> constant -> unit = begin
     | Cstring x -> fprintf ff "%s" x
     | Cchar x -> fprintf ff "%c" x
     | Cunit -> fprintf ff "()"
-    | Cany -> fprintf ff "_"
+    | Cany -> fprintf ff "()"
     end
 end
 
@@ -113,7 +113,10 @@ let rec compile_expr:
               fprintf ff "%a %s %a" compile_expr e1 op_str compile_expr e2
           | _ -> eprintf "Tuple of size 2 expected for the infix binary operator." ; assert false
           end
-      | _ -> fprintf ff "%a%a" compile_expr e1 compile_expr e2
+      | _ -> begin match e2.expr with
+             | Etuple _ -> fprintf ff "%a%a" compile_expr e1 compile_expr e2
+             | _ -> fprintf ff "%a(%a)" compile_expr e1 compile_expr e2
+             end
       end
     | Eif (e, e1, e2) ->
         let e = compile_flatten ff e in
@@ -143,7 +146,7 @@ let rec compile_expr:
       let e = compile_flatten ff e in
       fprintf ff "factor(%s, %a)" prob compile_expr e
     | Einfer ((p, e), args) -> fprintf ff "infer_step(TODO)"
-    | Einfer_init (e,id) -> fprintf ff "infer_init(TODO)"
+    | Einfer_init (e,id) -> fprintf ff "infer_init(%a, %s)" compile_expr e id.name
     | Einfer_reset (e1,id,e2) -> fprintf ff "infer_reset(TODO)"
     | Einfer_step (e1,id,e2) -> fprintf ff "infer_step(TODO)"
     end
