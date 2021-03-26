@@ -38,7 +38,7 @@ let compile_fv : type a. formatter -> a expression -> unit = begin
       (pp_print_list ~pp_sep:(fun ff () -> fprintf ff ", ") pp_print_string) lv
 end
 
-let rec compile_const: formatter -> constant -> unit = begin
+let rec compile_const : formatter -> constant -> unit = begin
   fun ff c ->
     begin match c with
     | Cbool x -> fprintf ff "%s" (String.capitalize_ascii (string_of_bool x))
@@ -49,11 +49,11 @@ let rec compile_const: formatter -> constant -> unit = begin
     | Cstring x -> fprintf ff "%s" x
     | Cchar x -> fprintf ff "%c" x
     | Cunit -> fprintf ff "()"
-    | Cany -> fprintf ff "()"
+    | Cany -> fprintf ff "None"
     end
 end
 
-let rec compile_patt: type a. formatter -> a pattern -> unit = begin
+let rec compile_patt : type a. formatter -> a pattern -> unit = begin
   fun ff p ->
     begin match p.patt with
     | Pid x -> fprintf ff "%s" x.name
@@ -65,7 +65,7 @@ let rec compile_patt: type a. formatter -> a pattern -> unit = begin
     end
 end
 
-let rec compile_expr:
+let rec compile_expr :
   type a. formatter -> a expression -> unit = begin
   fun ff e -> 
     begin match e.expr with
@@ -152,7 +152,7 @@ let rec compile_expr:
     end
 end
 
-and compile_flatten:
+and compile_flatten :
   type a. formatter -> a expression -> a expression = begin
     fun ff e ->
       begin match is_flat e with
@@ -171,7 +171,7 @@ and compile_flatten:
       end
   end
 
-and compile_return:
+and compile_return :
   type a. formatter -> a expression -> unit = begin
   fun ff e -> 
     begin match e.expr with 
