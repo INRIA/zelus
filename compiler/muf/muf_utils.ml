@@ -8,6 +8,7 @@ let rec fv_patt patt =
   | Ptuple l ->
       List.fold_left (fun acc p -> SSet.union (fv_patt p) acc) SSet.empty l
   | Pany -> SSet.empty
+  | Ptype (p, _) -> fv_patt p
   end
 
 let rec fv_expr expr =
@@ -26,6 +27,9 @@ let rec fv_expr expr =
       SSet.union (fv_expr e) (SSet.union (fv_expr e1) (fv_expr e2))
   | Elet (p, e1, e2) ->
       SSet.union (fv_expr e1) (SSet.diff (fv_expr e2) (fv_patt p))
+  | Ecall_init e -> fv_expr e
+  | Ecall_step (e1, e2) -> SSet.union (fv_expr e1) (fv_expr e2)
+  | Ecall_reset (e1, e2) -> SSet.union (fv_expr e1) (fv_expr e2)
   | Esequence (e1, e2) -> SSet.union (fv_expr e1) (fv_expr e2)
   | Esample (_, e) -> fv_expr e
   | Eobserve (_, e1, e2) -> SSet.union (fv_expr e1) (fv_expr e2)

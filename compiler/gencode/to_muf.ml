@@ -80,6 +80,9 @@ let self = { name = "self" }
 let self_patt = pvar self
 let self_expr = evar self
 
+let instance_init x =
+  mk_expr (Ecall_init (mk_expr (Evar x)))
+
 let pack vars e =
   if SSet.is_empty vars then e
   else Etuple [ expr_of_sset vars; mk_expr e ]
@@ -352,27 +355,6 @@ and method_call ctx state_vars m =
   end
 
 and standard_method_call ctx m =
-  let method_name, static_args =
-    match m.met_machine, m.met_instance with
-    | Some name, _ ->
-        evar { name = (lident_name name) ^ "_" ^ m.met_name }, None
-    | None, Some (i_name, []) ->
-        let ma = Option.get ctx in
-        let i = List.find (fun i -> i_name = i.i_name) ma.ma_instances in
-        begin match i.i_machine with
-        | Oglobal x ->
-            evar { name = (lident_name x) ^ "_" ^ m.met_name }, None
-        | Olocal x  | Ovar (_, x) ->
-            evar { name = (ident_name x) ^ "_" ^ m.met_name }, None
-        | Oapp (Oglobal (Lident.Modname { Lident.id = f }), args) ->
-            let args = List.map (expression None SSet.empty) args in
-            evar { name = f ^ "_" ^ m.met_name }, Some (etuple args)
-        | _ -> assert false
-        end
-        (* expression ctx SSet.empty i.i_machine *)
-    | None, None -> assert false
-    | None, Some (i, _) -> not_yet_implemented "instance array"
-  in
   let instance =
     match m.met_instance with
     | None -> self_expr
@@ -381,12 +363,13 @@ and standard_method_call ctx m =
   in
   let x_e_list = List.map (fun e -> (fresh "_x", e)) m.met_args in
   let args = etuple (List.map (fun (x, _) ->  evar x) x_e_list) in
-  let args =
-    match static_args with
-    | None -> etuple [instance; args]
-    | Some sargs -> etuple [sargs; etuple [instance; args]]
+  let k =
+    match m.met_name with
+    | "reset" -> Ecall_reset (instance, args)
+    | "step" -> Ecall_step (instance, args)
+    | "copy" -> not_yet_implemented "copy"
+    | _ -> assert false
   in
-  let k = Eapp (method_name, args) in
   let call =
     List.fold_left
       (fun k (x, e) ->
@@ -545,7 +528,7 @@ and add_return i =
       Osequence [ Oif(e, i1, oi2); Oexp (Oconst (Ovoid)) ]
   end
 
-let machine_type name memories instances =
+let machine_type memories instances =
   let i, params, entries =
     List.fold_right
       (fun { m_name = n } (i, params, entries) ->
@@ -560,9 +543,9 @@ let machine_type name memories instances =
          (i+1, m :: params, (ident_name n, Tvar m) :: entries))
       instances (i, params, entries)
   in
-  mk_decl (Dtype ({ name = "_"^name }, params, TKrecord entries))
+  (params, TKrecord entries)
 
-let machine_init name params i_opt memories instances =
+let machine_init i_opt memories instances =
   let memory { m_name = n; m_value = e_opt;
 	       m_typ = _ty; m_kind = k_opt; m_size = m_size } =
     begin match k_opt with
@@ -587,20 +570,25 @@ let machine_init name params i_opt memories instances =
       when infer = "infer" ->
         let f_init =
           match f with
-          | Oglobal x -> { name = (lident_name x)^"_init" }
-          | Olocal x  | Ovar (_, x) -> { name = (ident_name x)^"_init" }
+          | Oglobal x -> { name = (lident_name x) }
+          | Olocal x  | Ovar (_, x) -> { name = (ident_name x) }
           | _ -> assert false
         in
         (ident_name n, einfer_init (expression None SSet.empty nb) f_init)
     | Oglobal x ->
-        (ident_name n, evar { name = (lident_name x)^"_init" })
+        (ident_name n, instance_init { name = lident_name x })
     | Olocal x  | Ovar (_, x) ->
-        (ident_name n, evar { name = (ident_name x)^"_init" })
+        (ident_name n, instance_init { name = ident_name x })
     | Oapp (Oglobal (Lident.Modname { Lident.id = f }), args) ->
-        let f = evar { name = f^"_init" } in
+        let f = evar { name = f } in
         let args = List.map (expression None SSet.empty) args in
-        (ident_name n,
-         mk_expr (Eapp (f, etuple args)))
+        let tmp = fresh "_tmp" in
+        let instance =
+          mk_expr (Elet (pvar tmp,
+                         mk_expr (Eapp (f, etuple args)),
+                         instance_init tmp))
+        in
+        (ident_name n,  instance)
     | _ -> assert false
     end
   in
@@ -609,7 +597,6 @@ let machine_init name params i_opt memories instances =
       (Erecord
          ((List.map memory memories) @ (List.map instance instances), None))
   in
-  let name = { name = (name^"_init") } in
   let body =
     match i_opt with
     | None -> r
@@ -617,34 +604,26 @@ let machine_init name params i_opt memories instances =
         let state_vars = fv_updated i in
         mk_expr (Elet(unpack state_vars pany, instruction None state_vars i, r))
   in
-  begin match params with
-  | [] -> mk_decl (Ddecl (pvar name, body))
-  | _ ->
-      let params = List.map pattern params in
-      mk_decl (Dfun (name, ptuple params, body))
-  end
+  body
 
-let machine_method ma name params { me_name = me_name; me_params = pat_list;
+let machine_method ma { me_name = me_name; me_params = pat_list;
                                     me_body = i; me_typ = _ty } =
-  let method_name = { name = name^"_"^me_name } in
   let args = ptuple [ self_patt; ptuple (List.map pattern pat_list) ] in
-  let args =
-    begin match params with
-    | [] -> args
-    | _ -> ptuple [ ptuple (List.map pattern params); args]
-    end
-  in
   let state_vars = SSet.add self.name (fv_updated i) in
   let body = instruction (Some ma) state_vars i in
-  mk_decl (Dfun(method_name, args, body))
+  (args, body)
 
 let machine name m =
-  let m_type = machine_type name m.ma_memories m.ma_instances in
-  let m_init =
-    machine_init name m.ma_params m.ma_initialize m.ma_memories m.ma_instances
+  let m_step = List.find (fun me -> me.me_name = Oaux.step) m.ma_methods in
+  let m_reset = List.find (fun me -> me.me_name = Oaux.reset) m.ma_methods in
+  let params = List.map pattern m.ma_params in
+  let node =
+    { n_type = machine_type m.ma_memories m.ma_instances;
+      n_init = machine_init m.ma_initialize m.ma_memories m.ma_instances;
+      n_step = machine_method m m_step;
+      n_reset = machine_method m m_reset; }
   in
-  let m_methods = List.map (machine_method m name m.ma_params) m.ma_methods in
-  m_type :: m_init :: m_methods
+  mk_decl (Dnode ({ name = name }, params, node))
 
 
 let implementation impl =
@@ -661,7 +640,7 @@ let implementation impl =
       in
      [ mk_decl (Dfun ({name = f}, args, instruction None (fv_updated i) i)) ]
   | Oletmachine (x, m) ->
-      machine x m
+      [ machine x m ]
   | Oopen m ->
       [ mk_decl (Dopen m) ]
   | Otypedecl _ (* of (string * string list * type_decl) list *) ->
