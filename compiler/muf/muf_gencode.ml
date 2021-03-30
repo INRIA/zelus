@@ -88,9 +88,8 @@ let rec compile_expr:
     | Ecall_step (instance, args) ->
         Exp.apply (muf_lib "step") [ Nolabel, compile_expr instance;
                                      Nolabel, compile_expr args ]
-    | Ecall_reset (instance, args) ->
-        Exp.apply (muf_lib "reset") [ Nolabel, compile_expr instance;
-                                     Nolabel, compile_expr args ]
+    | Ecall_reset instance ->
+        Exp.apply (muf_lib "reset") [ Nolabel, compile_expr instance ]
     | Esample (prob, e) ->
         let sample = Exp.ident (with_loc (Longident.Lident "sample'")) in
         Exp.apply sample
@@ -184,7 +183,6 @@ let compile_node: type a b.
   let record =
     Exp.record
       [ (with_loc (Longident.Lident "init"), compile_expr n.n_init);
-        (with_loc (Longident.Lident "reset"), compile_method n.n_reset);
         (with_loc (Longident.Lident "step"), compile_method n.n_step); ]
       None
   in

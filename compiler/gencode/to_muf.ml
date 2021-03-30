@@ -365,7 +365,7 @@ and standard_method_call ctx m =
   let args = etuple (List.map (fun (x, _) ->  evar x) x_e_list) in
   let k =
     match m.met_name with
-    | "reset" -> Ecall_reset (instance, args)
+    | "reset" -> Ecall_reset instance
     | "step" -> Ecall_step (instance, args)
     | "copy" -> not_yet_implemented "copy"
     | _ -> assert false
@@ -545,7 +545,10 @@ let machine_type memories instances =
   in
   (params, TKrecord entries)
 
-let machine_init i_opt memories instances =
+let machine_init ma m_reset =
+  let i_opt = ma.ma_initialize in
+  let memories = ma.ma_memories in
+  let instances = ma.ma_instances in
   let memory { m_name = n; m_value = e_opt;
 	       m_typ = _ty; m_kind = k_opt; m_size = m_size } =
     begin match k_opt with
@@ -597,14 +600,17 @@ let machine_init i_opt memories instances =
       (Erecord
          ((List.map memory memories) @ (List.map instance instances), None))
   in
-  let body =
+  let alloc =
     match i_opt with
     | None -> r
     | Some i ->
         let state_vars = fv_updated i in
         mk_expr (Elet(unpack state_vars pany, instruction None state_vars i, r))
   in
-  body
+  let sself = SSet.add self.name SSet.empty in
+  let reset = instruction (Some ma) sself m_reset.me_body in
+  mk_expr (Elet (self_patt, alloc,
+                 mk_expr (Elet (unpack sself pany, reset, self_expr))))
 
 let machine_method ma { me_name = me_name; me_params = pat_list;
                                     me_body = i; me_typ = _ty } =
@@ -619,9 +625,8 @@ let machine name m =
   let params = List.map pattern m.ma_params in
   let node =
     { n_type = machine_type m.ma_memories m.ma_instances;
-      n_init = machine_init m.ma_initialize m.ma_memories m.ma_instances;
-      n_step = machine_method m m_step;
-      n_reset = machine_method m m_reset; }
+      n_init = machine_init m m_reset;
+      n_step = machine_method m m_step; }
   in
   mk_decl (Dnode ({ name = name }, params, node))
 

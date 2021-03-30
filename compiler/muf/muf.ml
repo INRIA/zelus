@@ -44,7 +44,7 @@ type ('pattern, 'expr) expr_desc =
   | Esequence of 'expr * 'expr
   | Ecall_init of 'expr
   | Ecall_step of 'expr * 'expr (* instance is: (identifier * string option) *)
-  | Ecall_reset of 'expr * 'expr (* instance is: (identifier * string option) *)
+  | Ecall_reset of 'expr        (* instance is: (identifier * string option) *)
   | Esample of prob * 'expr
   | Eobserve of prob * 'expr * 'expr
   | Efactor of prob * 'expr
@@ -68,7 +68,6 @@ type type_kind =
 type ('p, 'e) node =
   { n_type : string list * type_kind;
     n_init : 'e;
-    n_reset : 'p * 'e;
     n_step : 'p * 'e; }
 [@@deriving show, map, fold]
 
