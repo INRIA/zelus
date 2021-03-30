@@ -8,7 +8,7 @@ let with_loc: type a. a -> a with_loc = begin
 end
 
 let muf_lib x =
-  Exp.ident (with_loc (Longident.Lident x))
+  with_loc (Longident.Ldot (Longident.Lident "Muflib", x))
 
 let rec compile_const: constant -> Parsetree.expression = begin
   fun c ->
@@ -84,12 +84,14 @@ let rec compile_expr:
     | Esequence (e1, e2) ->
         Exp.sequence (compile_expr e1) (compile_expr e2)
     | Ecall_init (instance) ->
-        Exp.apply (muf_lib "init") [ Nolabel, compile_expr instance; ]
+        Exp.apply (Exp.ident (muf_lib "init"))
+          [ Nolabel, compile_expr instance; ]
     | Ecall_step (instance, args) ->
-        Exp.apply (muf_lib "step") [ Nolabel, compile_expr instance;
-                                     Nolabel, compile_expr args ]
+        Exp.apply (Exp.ident (muf_lib "step"))
+          [ Nolabel, compile_expr instance; Nolabel, compile_expr args ]
     | Ecall_reset instance ->
-        Exp.apply (muf_lib "reset") [ Nolabel, compile_expr instance ]
+        Exp.apply (Exp.ident (muf_lib "reset"))
+          [ Nolabel, compile_expr instance ]
     | Esample (prob, e) ->
         let sample = Exp.ident (with_loc (Longident.Lident "sample'")) in
         Exp.apply sample
@@ -165,8 +167,8 @@ let compile_node: type a b.
   let typ = compile_type_decl f n.n_type in
   let record =
     Exp.record
-      [ (with_loc (Longident.Lident "init"), compile_expr n.n_init);
-        (with_loc (Longident.Lident "step"), compile_method n.n_step); ]
+      [ (muf_lib "init", compile_expr n.n_init);
+        (muf_lib "step", compile_method n.n_step); ]
       None
   in
   let decl =

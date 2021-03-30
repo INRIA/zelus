@@ -29,7 +29,7 @@
    ( -> defaultsolver.nosundials.ml)))
  (public_name zelus)
  (wrapped false)
- (modules ztypes zls basics zlsolve lift dump solvers illinois odexx solvers defaultsolver zlsrun run node_base node))
+ (modules ztypes zls basics zlsolve lift dump solvers illinois odexx solvers defaultsolver zlsrun run node_base node muflib))
 
 (install
  (package zelus)
