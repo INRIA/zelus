@@ -34,8 +34,7 @@ let rec fv_expr expr =
   | Esample (_, e) -> fv_expr e
   | Eobserve (_, e1, e2) -> SSet.union (fv_expr e1) (fv_expr e2)
   | Efactor (_, e) -> fv_expr e
-  | Einfer ((p, body), e) ->
-      SSet.union (SSet.diff (fv_expr body) (fv_patt p)) (fv_expr e)
+  | Einfer (n, f) -> SSet.union (fv_expr n) (SSet.singleton f.name)
   end
 
 let is_value expr =

@@ -45,7 +45,7 @@ let eany = mk_expr (Econst Cany)
 let pvar x = mk_patt (Pid x)
 let evar x = mk_expr (Evar x)
 
-let einfer_init n f = mk_expr (Einfer_init (n, f))
+let einfer_init n f = mk_expr (Einfer (n, f))
 
 let etuple_expr l =
   begin match l with

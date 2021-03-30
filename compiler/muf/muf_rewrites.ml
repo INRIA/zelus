@@ -48,7 +48,7 @@ let rec eq_patt_expr patt expr =
   | Pany, _ -> false
   | Ptuple pl, Etuple el -> List.for_all2 eq_patt_expr pl el
   | Ptuple _, _ -> false
-
+  | Ptype (p, _), _ -> eq_patt_expr p expr
 
 let rec simplify_let patt expr =
   match patt.patt, expr.expr with
