@@ -173,9 +173,9 @@ let compile_type_decl:
 end
 
 let compile_node: type a b.
-      identifier ->(a pattern, b expression) node ->
+      identifier -> a pattern list -> (a pattern, b expression) node ->
         Parsetree.structure_item list = begin
-  fun f n ->
+  fun f params n ->
   let compile_method (p, e) =
     Exp.fun_ Nolabel None (compile_patt p) (compile_expr e)
   in
@@ -187,7 +187,11 @@ let compile_node: type a b.
       None
   in
   let decl =
-    Str.value Nonrecursive [ Vb.mk (Pat.var (with_loc f.name)) record ]
+    Str.value Nonrecursive
+      [ Vb.mk (Pat.var (with_loc f.name))
+          (List.fold_right
+             (fun p k -> Exp.fun_ Nolabel None (compile_patt p) k)
+             params record) ]
   in
   [ typ; decl ]
 end
@@ -201,7 +205,7 @@ let compile_decl: type a. a declaration -> Parsetree.structure_item list = begin
         [ Str.value Nonrecursive
             [ Vb.mk (Pat.var (with_loc f.name))
                 (Exp.fun_ Nolabel None (compile_patt p) (compile_expr e)) ] ]
-    | Dnode (f, pl, n) -> compile_node f n
+    | Dnode (f, pl, n) -> compile_node f pl n
     | Dtype (t, params, k) -> [ compile_type_decl t (params, k) ]
     | Dopen m ->
         [ Str.open_ (Opn.mk (Mod.ident (with_loc (Longident.Lident m)))) ]
