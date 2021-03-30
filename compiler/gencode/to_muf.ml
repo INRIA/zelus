@@ -666,6 +666,7 @@ let simplify d =
     let expr = Muf_rewrites.constant_propagation expr in
     let expr = Muf_rewrites.single_use expr in
     let expr = Muf_rewrites.merge_record_update expr in
+    let expr = Muf_rewrites.simplify_record_access expr in
     expr
   in
   { decl = rewrite_decl r_expr d.decl }

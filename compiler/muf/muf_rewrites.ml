@@ -40,6 +40,7 @@ let rec constant_propagation expr =
       end
   | e -> { expr with expr = e }
 
+
 let rec eq_patt_expr patt expr =
   match patt.patt, expr.expr with
   | Pid x, Evar y -> x = y
@@ -87,10 +88,18 @@ let rec single_use expr =
 
 let rec merge_record_update expr =
   match map_expr_desc (fun p -> p) merge_record_update expr.expr with
-  | Erecord (l2, (Some { expr = Erecord(l1, Some r); _ })) as e ->
-      let diff =
-        List.for_all (fun (x, _) -> List.for_all (fun (y, _) -> x <> y) l2) l1
+  | Erecord (l2, (Some { expr = Erecord(l1, r); _ })) ->
+      let diff = (* l1 - l2 *)
+        List.filter (fun (x, _) -> not (List.mem_assoc x l2)) l1
       in
-      if diff then { expr with expr = Erecord(l1 @ l2, Some r) }
-      else { expr with expr = e }
+      { expr with expr = Erecord(diff @ l2, r) }
+  | e -> { expr with expr = e }
+
+let rec simplify_record_access expr =
+  match map_expr_desc (fun p -> p) simplify_record_access expr.expr with
+  | Efield ({ expr = Erecord(l, _) }, x) ->
+      begin match List.assoc_opt x l with
+      | Some e -> e
+      | None -> expr
+      end
   | e -> { expr with expr = e }
