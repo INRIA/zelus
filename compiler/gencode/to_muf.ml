@@ -420,17 +420,17 @@ and inst_desc ctx state_vars i =
   | Owhile(_e1, _i2) -> not_yet_implemented "while"
   | Oassign(left, e) ->
       let updated = fv_expr_updated e in
+      assert (SSet.subset updated state_vars);
       let left_var = var_of_left_value left in
-      let updated = SSet.remove left_var updated in
-      Elet (unpack updated (pvar { name = left_var }),
-            left_value_update ctx updated left e,
+      Elet (unpack (SSet.remove left_var updated) (pvar { name = left_var }),
+            left_value_update ctx updated left_var left e,
             mk_expr (pack state_vars eunit.expr))
   | Oassign_state(left, e) ->
       let updated = fv_expr_updated e in
+      assert (SSet.subset updated state_vars);
       let left_var = var_of_left_state_value left in
-      let updated = SSet.remove left_var updated in
-      Elet (unpack updated (pvar { name = left_var }),
-            left_state_value_update ctx updated left e,
+      Elet (unpack (SSet.remove left_var updated) (pvar { name = left_var }),
+            left_state_value_update ctx updated left_var left e,
             mk_expr (pack state_vars eunit.expr))
   | Osequence l ->
       begin match List.rev l with
@@ -464,40 +464,44 @@ and type_expr_of_typ =
     incr cpt;
     Otypevar ("'a"^(string_of_int !cpt))
 
-and left_value_update ctx state_vars left e =
+and left_value_update ctx state_vars left_var left e =
   begin match left with
   | Oleft_name _ -> expression ctx state_vars e
   | Oleft_record_access (left, x) ->
       let tmp = fresh "_tmp" in
       mk_expr (Elet (unpack state_vars (pvar tmp),
                      expression ctx state_vars e,
-                     mk_expr (Erecord([lident_name x, evar tmp],
-                                      Some (mk_expr (left_value left))))))
+                     mk_expr (pack (SSet.remove left_var state_vars)
+                                (Erecord([lident_name x, evar tmp],
+                                         Some (mk_expr (left_value left)))))))
   | Oleft_index (_, _) -> not_yet_implemented "left_index update"
   end
 
-and left_state_value_update ctx state_vars left e =
+and left_state_value_update ctx state_vars left_var left e =
   begin match left with
   | Oself -> expression ctx state_vars e
   | Oleft_instance_name x ->
       let tmp = fresh "_tmp" in
       mk_expr (Elet (unpack state_vars (pvar tmp),
                      expression ctx state_vars e,
-                     mk_expr (Erecord([ident_name x, evar tmp],
-                                      Some self_expr))))
+                     mk_expr (pack (SSet.remove left_var state_vars)
+                                (Erecord([ident_name x, evar tmp],
+                                         Some self_expr)))))
   | Oleft_state_global _ln -> expression ctx state_vars e
   | Oleft_state_name n ->
       let tmp = fresh "_tmp" in
       mk_expr (Elet (unpack state_vars (pvar tmp),
                      expression ctx state_vars e,
-                     mk_expr (Erecord([ident_name n, evar tmp],
-                                      Some self_expr))))
+                     mk_expr (pack (SSet.remove left_var state_vars)
+                                (Erecord([ident_name n, evar tmp],
+                                         Some self_expr)))))
   | Oleft_state_record_access(left, n) ->
       let tmp = fresh "_tmp" in
       mk_expr (Elet (unpack state_vars (pvar tmp),
                      expression ctx state_vars e,
-                     mk_expr (Erecord([lident_name n, evar tmp],
-                                      Some (mk_expr (left_state_value left))))))
+                     mk_expr (pack (SSet.remove left_var state_vars)
+                                (Erecord([lident_name n, evar tmp],
+                                         Some (mk_expr (left_state_value left)))))))
   | Oleft_state_index(_left, _idx) ->
       not_yet_implemented "left_state_index update"
   | Oleft_state_primitive_access(_left, _a) ->
