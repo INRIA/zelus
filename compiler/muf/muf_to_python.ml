@@ -146,6 +146,15 @@ let rec compile_expr :
       let e = compile_flatten ff e in
       fprintf ff "factor(%s, %a)" prob compile_expr e
     | Einfer (e,id) -> fprintf ff "infer_init(%a, %s)" compile_expr e id.name
+    | Ecall_init (e) -> 
+        fprintf ff "init (%a)" compile_expr e
+    | Ecall_reset(e) -> 
+        let e = compile_flatten ff e in
+        fprintf ff "reset (%a)" compile_expr e
+    | Ecall_step (e1, e2) -> 
+        let e1 = compile_flatten ff e1 in
+        let e2 = compile_flatten ff e2 in
+        fprintf ff "step (%a, %a)" compile_expr e1 compile_expr e2
     end
 end
 
@@ -187,6 +196,39 @@ and compile_return :
     end
 end
 
+
+let compile_node : 
+  type a b. formatter -> identifier -> a pattern list -> (a pattern, b expression) node -> unit = begin
+  fun ff f params n ->
+    let compile_method ff (p, e) =
+      let f = freshname ("_" ^ f.name ^ "_step") in
+      fprintf ff "@[<v 4>def %s(*args):@,%a = args@,%a@]@," 
+            f
+            compile_patt p 
+            compile_return e;
+      {expr=Evar({name = f}); emeta = ();}
+    in
+    begin match params with
+    | [] -> 
+      let n_init = compile_flatten ff n.n_init in 
+      let n_step = compile_method ff n.n_step in
+      fprintf ff "%s = {\"init\": %a, \"step\": %a}"
+        f.name
+        compile_expr n_init
+        compile_expr n_step
+    | _ ->
+      List.iter 
+        (fun p -> fprintf ff "@[<v 4>def %s(%a):@," f.name compile_patt p )
+        params;
+      let n_init = compile_flatten ff n.n_init in 
+      let n_step = compile_method ff n.n_step in
+      fprintf ff "return {\"init\": %a, \"step\": %a}"
+        compile_expr n_init
+        compile_expr n_step;
+      List.iter (fun _ -> fprintf ff "@]") params
+    end
+end
+
 let compile_decl : type a. formatter -> a declaration -> unit = begin
   fun ff d ->
     begin match d.decl with
@@ -196,18 +238,20 @@ let compile_decl : type a. formatter -> a declaration -> unit = begin
             compile_patt p 
             compile_expr e
     | Dfun (f, p, e) ->
-        fprintf ff "@[<v 4>def %s(*args):@,%a = args@,%a@]@.@." 
+        fprintf ff "@[<v 4>def %s(*args):@,%a = args@,%a@]" 
           f.name 
           compile_patt p 
           compile_return e
+    | Dnode (f, p, n) -> compile_node ff f p n
     | Dtype (t, params, k) -> ()
-    | Dopen m -> fprintf ff "import %s@." (String.uncapitalize_ascii m)
+    | Dopen m -> fprintf ff "import %s" (String.uncapitalize_ascii m)
     end
 end
 
 
 let compile_program : type a. formatter -> a program -> unit = begin
   fun ff p ->
+    fprintf ff "@[";
     List.iter (compile_decl ff) p;
-    fprintf ff "@."
+    fprintf ff "@,@]@."
 end
