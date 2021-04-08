@@ -200,32 +200,29 @@ end
 let compile_node : 
   type a b. formatter -> identifier -> a pattern list -> (a pattern, b expression) node -> unit = begin
   fun ff f params n ->
-    let compile_method ff (p, e) =
-      let f = freshname ("_" ^ f.name ^ "_step") in
-      fprintf ff "@[<v 4>def %s(*args):@,%a = args@,%a@]@," 
-            f
+    let compile_method m ff (p, e) =
+      fprintf ff "@[<v 4>def %s(self, *args):@,%a = args@,%a@]@," 
+            m
             compile_patt p 
-            compile_return e;
-      {expr=Evar({name = f}); emeta = ();}
+            compile_return e
     in
     begin match params with
     | [] -> 
-      let n_init = compile_flatten ff n.n_init in 
-      let n_step = compile_method ff n.n_step in
-      fprintf ff "%s = {\"init\": %a, \"step\": %a}"
-        f.name
-        compile_expr n_init
-        compile_expr n_step
-    | _ ->
-      List.iter 
-        (fun p -> fprintf ff "@[<v 4>def %s(%a):@," f.name compile_patt p )
-        params;
-      let n_init = compile_flatten ff n.n_init in 
-      let n_step = compile_method ff n.n_step in
-      fprintf ff "return {\"init\": %a, \"step\": %a}"
-        compile_expr n_init
-        compile_expr n_step;
-      List.iter (fun _ -> fprintf ff "@]") params
+      fprintf ff "@[<v 4>class %s(Node):@,%a@,%a@]"
+        f.name 
+        (compile_method "init") ({patt=Ptuple([]); pmeta = ();}, n. n_init) 
+        (compile_method "step") n.n_step
+    | _ -> begin
+        List.iter 
+          (fun p -> fprintf ff "@[<v 4>def %s(%a):@," f.name compile_patt p )
+          params;
+        fprintf ff "@[<v 4>class %s(Node):@,%a@,%a@]@,return %s"
+          f.name 
+          (compile_method "init") ({patt=Ptuple([]); pmeta = ();}, n. n_init) 
+          (compile_method "step") n.n_step
+          f.name;
+        List.iter (fun _ -> fprintf ff "@]") params
+      end
     end
 end
 
@@ -252,6 +249,7 @@ end
 let compile_program : type a. formatter -> a program -> unit = begin
   fun ff p ->
     fprintf ff "@[";
+    fprintf ff  "from muflib import Node, step, reset, init@,@,";
     List.iter (compile_decl ff) p;
     fprintf ff "@,@]@."
 end
