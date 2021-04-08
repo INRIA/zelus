@@ -122,9 +122,9 @@ let rec compile_expr :
         let e = compile_flatten ff e in
         let e1 = compile_flatten ff e1 in 
         let e2 = compile_flatten ff e2 in
-        fprintf ff "%a if %a else %a" 
-          compile_expr e1 
+        fprintf ff "cond(@,    @[<v 0>%a,@,lambda _: %a,@,lambda _: %a,@,None)@]" 
           compile_expr e 
+          compile_expr e1 
           compile_expr e2
     | Elet (p, e1, e2) ->
       let e1 = compile_flatten ff e1 in
@@ -248,6 +248,7 @@ let compile_program : type a. formatter -> a program -> unit = begin
   fun ff p ->
     fprintf ff "@[<v 0>";
     fprintf ff  "from muflib import Node, step, reset, init@,";
+    fprintf ff  "from jax.lax import cond@,";
     fprintf ff  "from jax.tree_util import register_pytree_node_class@,@,";
     List.iter (compile_decl ff) p;
     fprintf ff "@,@]@."
