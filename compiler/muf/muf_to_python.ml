@@ -206,21 +206,19 @@ let compile_node :
             compile_patt p 
             compile_return e
     in
-    begin match params with
-    | [] -> 
-      fprintf ff "@[<v 4>class %s(Node):@,%a@,%a@]"
+    let compile_class ff (f, n) = 
+      fprintf ff "@register_pytree_node_class@,@[<v 4>class %s(Node):@,%a@,%a@]"
         f.name 
         (compile_method "init") ({patt=Ptuple([]); pmeta = ();}, n. n_init) 
         (compile_method "step") n.n_step
+    in
+    begin match params with
+    | [] -> compile_class ff (f, n)
     | _ -> begin
         List.iter 
           (fun p -> fprintf ff "@[<v 4>def %s(%a):@," f.name compile_patt p )
           params;
-        fprintf ff "@[<v 4>class %s(Node):@,%a@,%a@]@,return %s"
-          f.name 
-          (compile_method "init") ({patt=Ptuple([]); pmeta = ();}, n. n_init) 
-          (compile_method "step") n.n_step
-          f.name;
+        fprintf ff "%a,return %s" compile_class (f, n) f.name;
         List.iter (fun _ -> fprintf ff "@]") params
       end
     end
@@ -248,8 +246,9 @@ end
 
 let compile_program : type a. formatter -> a program -> unit = begin
   fun ff p ->
-    fprintf ff "@[";
-    fprintf ff  "from muflib import Node, step, reset, init@,@,";
+    fprintf ff "@[<v 0>";
+    fprintf ff  "from muflib import Node, step, reset, init@,";
+    fprintf ff  "from jax.tree_util import register_pytree_node_class@,@,";
     List.iter (compile_decl ff) p;
     fprintf ff "@,@]@."
 end
