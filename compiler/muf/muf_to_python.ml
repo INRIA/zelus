@@ -72,17 +72,14 @@ let rec compile_expr :
     | Econst c -> fprintf ff "%a" compile_const c
     | Evar x -> fprintf ff "%s" (String.uncapitalize_ascii x.name)
     | Etuple l -> 
-      let l = List.map (fun x -> compile_flatten ff x) l in
       fprintf ff "(%a)" 
         (pp_print_list ~pp_sep:(fun ff () -> fprintf ff ", ") compile_expr) l
     | Erecord (l, oe) -> 
-      let l = List.map (fun (x, e) -> (x, compile_flatten ff e)) l in
       let compile_field ff (x, e) = 
         fprintf ff "\"%s\": %a" x compile_expr e
       in
       begin match oe with
       | Some e -> 
-        let e = compile_flatten ff e in 
         fprintf ff "{**%a, %a}" 
           compile_expr e 
           (pp_print_list ~pp_sep:(fun ff () -> fprintf ff ", ") compile_field) l
@@ -91,11 +88,8 @@ let rec compile_expr :
           (pp_print_list ~pp_sep:(fun ff () -> fprintf ff ", ") compile_field) l
       end
     | Efield (e, x) -> 
-      let e = compile_flatten ff e in
       fprintf ff "%a[\"%s\"]" compile_expr e x
     | Eapp (e1, e2) ->
-      let e1 = compile_flatten ff e1 in
-      let e2 = compile_flatten ff e2 in 
       begin match e1.expr with
       | Evar {name=op} when op.[0] == '(' -> (* Infix operator *)
           begin match e2.expr with (* Arguments of the operator as a tuple. Support only for binary operators (arguments as a tuple of size 2) *)
@@ -119,16 +113,11 @@ let rec compile_expr :
              end
       end
     | Eif (e, e1, e2) ->
-        let e = compile_flatten ff e in
-        let e1 = compile_flatten ff e1 in 
-        let e2 = compile_flatten ff e2 in
         fprintf ff "cond(@,    @[<v 0>%a,@,lambda _: %a,@,lambda _: %a,@,None)@]" 
           compile_expr e 
           compile_expr e1 
           compile_expr e2
     | Elet (p, e1, e2) ->
-      let e1 = compile_flatten ff e1 in
-      let e2 = compile_flatten ff e2 in
       fprintf ff "@[<v 0>%a = %a@,%a@]" 
         compile_patt p 
         compile_expr e1
@@ -136,24 +125,17 @@ let rec compile_expr :
     | Esequence (e1, e2) ->
       fprintf ff "@[<v 0>%a@,%a@]" compile_expr e1 compile_expr e2
     | Esample (prob, e) ->
-      let e = compile_flatten ff e in
       fprintf ff "sample(%s, %a)" prob compile_expr e
     | Eobserve (prob, e1, e2) ->
-      let e1 = compile_flatten ff e1 in
-      let e2 = compile_flatten ff e2 in
       fprintf ff "observe(%s, %a, %a)" prob compile_expr e1 compile_expr e2
     | Efactor (prob, e) ->
-      let e = compile_flatten ff e in
       fprintf ff "factor(%s, %a)" prob compile_expr e
     | Einfer (e,id) -> fprintf ff "infer_init(%a, %s)" compile_expr e id.name
     | Ecall_init (e) -> 
         fprintf ff "init (%a)" compile_expr e
     | Ecall_reset(e) -> 
-        let e = compile_flatten ff e in
         fprintf ff "reset (%a)" compile_expr e
     | Ecall_step (e1, e2) -> 
-        let e1 = compile_flatten ff e1 in
-        let e2 = compile_flatten ff e2 in
         fprintf ff "step (%a, %a)" compile_expr e1 compile_expr e2
     end
 end
