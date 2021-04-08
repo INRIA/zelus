@@ -218,7 +218,7 @@ let compile_node :
         List.iter 
           (fun p -> fprintf ff "@[<v 4>def %s(%a):@," f.name compile_patt p )
           params;
-        fprintf ff "%a,return %s" compile_class (f, n) f.name;
+        fprintf ff "%a@,return %s" compile_class (f, n) f.name;
         List.iter (fun _ -> fprintf ff "@]") params
       end
     end
