@@ -130,7 +130,7 @@ let rec compile_expr :
       fprintf ff "observe(%s, %a, %a)" prob compile_expr e1 compile_expr e2
     | Efactor (prob, e) ->
       fprintf ff "factor(%s, %a)" prob compile_expr e
-    | Einfer (e,id) -> fprintf ff "infer_init(%a, %s)" compile_expr e id.name
+    | Einfer (e,id) -> fprintf ff "init (infer(%a, %s))" compile_expr e id.name
     | Ecall_init (e) -> 
         fprintf ff "init (%a)" compile_expr e
     | Ecall_reset(e) -> 
