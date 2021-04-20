@@ -101,7 +101,7 @@ let rec compile_expr :
           | other -> other
           end
         in
-        fprintf ff "%a %s %a" compile_expr e1 op_str compile_expr e2
+        fprintf ff "(%a %s %a)" compile_expr e1 op_str compile_expr e2
     | Eapp (e1, e2) ->
         begin match e2.expr with
         | Etuple _ -> fprintf ff "%a%a" compile_expr e1 compile_expr e2
