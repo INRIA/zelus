@@ -7,6 +7,7 @@ type ('s, 'a, 'b) instance =
       node : ('s, 'a, 'b) muf_node; }
 
 let init node =
+  let node = node () in
   { state = node.init;
     node = node; }
 

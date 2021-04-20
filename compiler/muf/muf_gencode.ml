@@ -160,11 +160,11 @@ let compile_node: type a b.
         (muf_lib "step", compile_method n.n_step); ]
       None
   in
+  let params = List.map compile_patt params @ [ Pat.any () ] in
   let decl =
     Str.value Nonrecursive
       [ Vb.mk (Pat.var (with_loc f.name))
-          (List.fold_right
-             (fun p k -> Exp.fun_ Nolabel None (compile_patt p) k)
+          (List.fold_right (fun p k -> Exp.fun_ Nolabel None p k)
              params record) ]
   in
   [ typ; decl ]
