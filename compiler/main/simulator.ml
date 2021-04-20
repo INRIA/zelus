@@ -162,15 +162,23 @@ let emit_discrete_main k ff name =
         "@[<v>@[(* simulation (any) function *)@]@;\
          @[let main x = %s x@]@]" name
   | Deftypes.Tdiscrete(true) ->
-      fprintf ff
-        "@[<v>@[(* simulation (discrete) function *)@]@;\
-         @[<v 2>@[let main =@]@;\
-         @[let open Ztypes in@]@;\
-         @[let %s { alloc = alloc; step = step; reset = reset } = %s in@]@;\
-         @[let mem = alloc () in@]@;\
-         @[reset mem;@]@;\
-         @[(fun x -> step mem x)@]@]@]"
-        (if !Zmisc.with_copy then "Cnode" else "Node") name
+      if !Zmisc.use_muf then
+        fprintf ff
+          "@[<v>@[(* simulation (discrete) function *)@]@;\
+           @[<v 2>@[let main =@]@;\
+           @[let mem = ref (Muflib.init %s) in@]@;\
+           @[(fun x -> let s, _ = Muflib.step !mem x in mem := s)@]@]@]"
+          name
+      else
+        fprintf ff
+          "@[<v>@[(* simulation (discrete) function *)@]@;\
+           @[<v 2>@[let main =@]@;\
+           @[let open Ztypes in@]@;\
+           @[let %s { alloc = alloc; step = step; reset = reset } = %s in@]@;\
+           @[let mem = alloc () in@]@;\
+           @[reset mem;@]@;\
+           @[(fun x -> step mem x)@]@]@]"
+          (if !Zmisc.with_copy then "Cnode" else "Node") name
   | Deftypes.Tcont | Deftypes.Tproba -> assert false
 
 let emit_prelude ff ({ Lident.id = id } as qualid) info k =
