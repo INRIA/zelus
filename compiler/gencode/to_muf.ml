@@ -232,9 +232,10 @@ and expression_desc ctx state_vars e =
         k x_e_list
   | Oapp(e, e_list) ->
       let x_e_list = List.map (fun e -> (fresh "_x", e)) e_list in
-      let args = etuple_expr (List.map (fun (x, _) ->  Evar x) x_e_list) in
       let f = fresh "_f" in
-      let out = Eapp (evar f, mk_expr args) in
+      let out =
+        List.fold_left (fun acc (x, _) -> Eapp (mk_expr acc, evar x))
+          (Evar f) x_e_list in
       let k = pack state_vars out in
       List.fold_left
         (fun k (x, e) ->

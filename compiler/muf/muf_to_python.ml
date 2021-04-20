@@ -89,29 +89,24 @@ let rec compile_expr :
       end
     | Efield (e, x) -> 
       fprintf ff "%a[\"%s\"]" compile_expr e x
-    | Eapp (e1, e2) ->
-      begin match e1.expr with
-      | Evar {name=op} when op.[0] == '(' -> (* Infix operator *)
-          begin match e2.expr with (* Arguments of the operator as a tuple. Support only for binary operators (arguments as a tuple of size 2) *)
-          | Etuple [e1; e2] -> 
-            let op_str = (String.sub op 1 ((String.index op ')')-1)) in (* Raises Not_found if bad parentheses *)
-              let op_str = 
-                begin match String.trim op_str with
-                | "+." -> "+" (* Ocaml float operator -> Python operator*)
-                | "-." -> "-"
-                | "/." -> "/"
-                | "*." -> "*"
-                | other -> other
-                end
-              in
-              fprintf ff "%a %s %a" compile_expr e1 op_str compile_expr e2
-          | _ -> eprintf "Tuple of size 2 expected for the infix binary operator." ; assert false
+    | Eapp ({ expr = Eapp ({ expr = Evar {name = op}}, e1) }, e2)
+      when op.[0] == '(' -> (* Infix operator *)
+        let op_str = (String.sub op 1 ((String.index op ')')-1)) in (* Raises Not_found if bad parentheses *)
+        let op_str =
+          begin match String.trim op_str with
+          | "+." -> "+" (* Ocaml float operator -> Python operator*)
+          | "-." -> "-"
+          | "/." -> "/"
+          | "*." -> "*"
+          | other -> other
           end
-      | _ -> begin match e2.expr with
-             | Etuple _ -> fprintf ff "%a%a" compile_expr e1 compile_expr e2
-             | _ -> fprintf ff "%a(%a)" compile_expr e1 compile_expr e2
-             end
-      end
+        in
+        fprintf ff "%a %s %a" compile_expr e1 op_str compile_expr e2
+    | Eapp (e1, e2) ->
+        begin match e2.expr with
+        | Etuple _ -> fprintf ff "%a%a" compile_expr e1 compile_expr e2
+        | _ -> fprintf ff "%a(%a)" compile_expr e1 compile_expr e2
+        end
     | Eif (e, e1, e2) ->
         fprintf ff "cond(@,    @[<v 0>%a,@,lambda _: %a,@,lambda _: %a,@,None)@]" 
           compile_expr e 

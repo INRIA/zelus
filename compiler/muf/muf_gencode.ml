@@ -59,18 +59,7 @@ let rec compile_expr:
         Exp.record (List.map compile_field l) (Option.map compile_expr oe)
     | Efield (e, x) ->
         Exp.field (compile_expr e) (with_loc (Longident.Lident x))
-    | Eapp (e1, e2) -> 
-      (
-      match e1.expr with
-      | Evar v when v.name.[0] == '(' -> (* Infix operator *)
-          (
-          match e2.expr with 
-          | Etuple [op1;op2] -> (* Arguments of the operator as a tuple. Support only for binary operators (arguments as a tuple of size 2) *)
-              Exp.apply (Exp.apply (compile_expr e1) [Nolabel, compile_expr op1]) [Nolabel, compile_expr op2]
-          | _ -> Format.eprintf "Tuple of size 2 expected for the infix binary operator." ; assert false
-          )
-      | _ -> Exp.apply (compile_expr e1) [Nolabel, compile_expr e2]
-      )
+    | Eapp (e1, e2) -> Exp.apply (compile_expr e1) [Nolabel, compile_expr e2]
     | Eif (e, e1, e2) ->
         Exp.ifthenelse (compile_expr e)
           (compile_expr e1) (Some (compile_expr e2))
