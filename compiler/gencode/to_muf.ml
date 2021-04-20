@@ -593,7 +593,9 @@ let machine_init ma m_reset =
         let tmp = fresh "_tmp" in
         let instance =
           mk_expr (Elet (pvar tmp,
-                         mk_expr (Eapp (f, etuple args)),
+                         List.fold_left
+                           (fun acc arg -> mk_expr (Eapp (acc, arg)))
+                           f args,
                          instance_init tmp))
         in
         (ident_name n,  instance)
