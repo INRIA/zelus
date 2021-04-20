@@ -612,7 +612,7 @@ let machine_init ma m_reset =
         let state_vars = fv_updated i in
         mk_expr (Elet(unpack state_vars pany, instruction None state_vars i, r))
   in
-  let sself = SSet.add self.name SSet.empty in
+  let sself = fv_updated m_reset.me_body in
   let reset = instruction (Some ma) sself m_reset.me_body in
   mk_expr (Elet (self_patt, alloc,
                  mk_expr (Elet (unpack sself pany, reset, self_expr))))
