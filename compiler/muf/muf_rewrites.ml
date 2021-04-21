@@ -103,3 +103,32 @@ let rec simplify_record_access expr =
       | None -> expr
       end
   | e -> { expr with expr = e }
+
+
+let rec remove_match expr =
+  match map_expr_desc (fun p -> p) remove_match expr.expr with
+  | Ematch (e, cases) ->
+      let x = fresh "x" in
+      { expr with expr = Elet(pvar x, e, compile_cases (evar x) cases) }
+  | e -> { expr with expr = e }
+
+and compile_cases x cases =
+  match cases with
+  | [ ] -> assert false
+  | [ { case_expr = e } ] -> e
+  | { case_patt = p; case_expr = e } :: cases ->
+      { e with expr = Eif (compile_case_cond x p,
+                           compile_case_body x p e,
+                           compile_cases x cases) }
+
+and compile_case_cond x p =
+  match p.patt with
+  | Pid _ | Pany -> mk_expr (Econst (Cbool true))
+  | Ptuple _ -> assert false (* XXX TODO XXX *)
+  | Ptype (p, _) -> compile_case_cond x p
+
+and compile_case_body x p e =
+  match p.patt with
+  | Pany -> e
+  | Pid y -> { e with expr = (Elet (pvar y, x, e)) }
+  | _ -> assert false (* XXX TODO XXX *)
