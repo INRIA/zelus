@@ -45,6 +45,8 @@ let rec eq_patt_expr patt expr =
   match patt.patt, expr.expr with
   | Pid x, Evar y -> x = y
   | Pid _, _ -> false
+  | Pconst c1, Econst c2 -> c1 = c2
+  | Pconst _, _ -> false
   | Pany, _ -> false
   | Ptuple pl, Etuple el -> List.for_all2 eq_patt_expr pl el
   | Ptuple _, _ -> false
