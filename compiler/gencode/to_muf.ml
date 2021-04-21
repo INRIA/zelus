@@ -153,9 +153,9 @@ let rec pattern patt =
 and pattern_desc pat =
   begin match pat with
   | Owildpat -> Pany
-  | Oconstpat(_) -> Pany
-  | Oconstr0pat(_) -> Pany
-  | Oconstr1pat(_, _x) -> Pany
+  | Oconstpat(c) -> Pconst(immediate c)
+  | Oconstr0pat(_) -> assert false (* XXX TODO XXX *)
+  | Oconstr1pat(_, _x) -> assert false (* XXX TODO XXX *)
   | Ovarpat(n, _ty_exp) -> Pid (ident n)
   | Otuplepat(pat_list) -> Ptuple (List.map pattern pat_list)
   | Oaliaspat(_p, _n) -> not_yet_implemented "pat alias"

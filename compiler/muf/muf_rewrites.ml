@@ -124,11 +124,16 @@ and compile_cases x cases =
 and compile_case_cond x p =
   match p.patt with
   | Pid _ | Pany -> mk_expr (Econst (Cbool true))
+  | Pconst c ->
+      let eq = evar { name = "(=)" } in
+      mk_expr (Eapp (mk_expr (Eapp(eq, x)), mk_expr (Econst c)))
   | Ptuple _ -> assert false (* XXX TODO XXX *)
   | Ptype (p, _) -> compile_case_cond x p
 
 and compile_case_body x p e =
   match p.patt with
   | Pany -> e
+  | Pconst _ -> e
   | Pid y -> { e with expr = (Elet (pvar y, x, e)) }
-  | _ -> assert false (* XXX TODO XXX *)
+  | Ptuple _ -> assert false (* XXX TODO XXX *)
+  | Ptype(p, _) -> compile_case_body x p e

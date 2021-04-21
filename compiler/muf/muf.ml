@@ -23,6 +23,7 @@ type core_type =
 
 type 'p patt_desc =
   | Pid of identifier
+  | Pconst of constant
   | Ptuple of 'p list
   | Ptype of 'p * core_type
   | Pany

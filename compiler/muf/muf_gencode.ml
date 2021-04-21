@@ -10,7 +10,26 @@ end
 let muf_lib x =
   with_loc (Longident.Ldot (Longident.Lident "Muflib", x))
 
-let rec compile_const: constant -> Parsetree.expression = begin
+let rec compile_const_patt: constant -> Parsetree.pattern = begin
+  fun c ->
+    begin match c with
+    | Cbool x ->
+        let b =
+          with_loc (Longident.Lident (string_of_bool x))
+        in
+        Pat.construct b None
+    | Cint x -> Pat.constant (Const.int x)
+    | Cint32 x -> Pat.constant (Const.int32 x)
+    | Cint64 x -> Pat.constant (Const.int64 x)
+    | Cfloat x -> Pat.constant (Const.float x)
+    | Cstring x -> Pat.constant (Const.string x)
+    | Cchar x -> Pat.constant (Const.char x)
+    | Cunit -> Pat.construct (with_loc (Longident.Lident "()")) None
+    | Cany -> Pat.any ()
+    end
+end
+
+let rec compile_const_expr: constant -> Parsetree.expression = begin
   fun c ->
     begin match c with
     | Cbool x ->
@@ -29,7 +48,7 @@ let rec compile_const: constant -> Parsetree.expression = begin
         Exp.apply
           (Exp.ident
              (with_loc (Longident.Ldot (Longident.Lident "Obj", "magic"))))
-          [Nolabel, compile_const Cunit]
+          [Nolabel, compile_const_expr Cunit]
     end
 end
 
@@ -37,6 +56,7 @@ let rec compile_patt: type a. a pattern -> Parsetree.pattern = begin
   fun p ->
     begin match p.patt with
     | Pid x -> Pat.var (with_loc x.name)
+    | Pconst c -> compile_const_patt c
     | Ptuple l -> Pat.tuple (List.map compile_patt l)
     | Pany -> Pat.any ()
     | Ptype (p, _) -> compile_patt p
@@ -47,7 +67,7 @@ let rec compile_expr:
   type a. a expression -> Parsetree.expression = begin
   fun e ->
     begin match e.expr with
-    | Econst c -> compile_const c
+    | Econst c -> compile_const_expr c
     | Evar x -> Exp.ident (with_loc (Longident.Lident x.name))
     | Etuple l -> Exp.tuple (List.map compile_expr l)
     | Erecord ([], None) ->
