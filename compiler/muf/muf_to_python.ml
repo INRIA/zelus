@@ -98,6 +98,8 @@ let rec compile_expr :
           | "-." -> "-"
           | "/." -> "/"
           | "*." -> "*"
+          | "=" -> "=="
+          | "==" -> "is"
           | other -> other
           end
         in
@@ -132,6 +134,7 @@ let rec compile_expr :
         fprintf ff "reset (%a)" compile_expr e
     | Ecall_step (e1, e2) -> 
         fprintf ff "step (%a, %a)" compile_expr e1 compile_expr e2
+    | Ematch _ -> assert false
     end
 end
 
