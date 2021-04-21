@@ -40,6 +40,7 @@ type ('pattern, 'expr) expr_desc =
   | Efield of 'expr * string
   | Eapp of 'expr * 'expr
   | Eif of 'expr * 'expr * 'expr
+  | Ematch of 'expr * ('pattern, 'expr) case list
   | Elet of 'pattern * 'expr * 'expr
   | Esequence of 'expr * 'expr
   | Ecall_init of 'expr
@@ -53,6 +54,10 @@ type ('pattern, 'expr) expr_desc =
 
 and prob = string
 [@@deriving show]
+
+and ('pattern, 'expr) case =
+  { case_patt: 'pattern; case_expr: 'expr; }
+[@@deriving show, map, fold]
 
 type 'm expression =
   { expr: ('m pattern, 'm expression) expr_desc; emeta: 'm }

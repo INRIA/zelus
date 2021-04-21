@@ -109,12 +109,41 @@ let rec var_of_left_state_value left =
   | Oleft_state_primitive_access(left, _a) -> var_of_left_state_value left
   end
 
+let rec vars_of_pattern p =
+  begin match p with
+  | Owildpat -> SSet.empty
+  | Otuplepat l ->
+      List.fold_left
+        (fun acc p -> SSet.union (vars_of_pattern p) acc)
+        SSet.empty l
+  | Ovarpat (x, _) -> SSet.singleton (ident_name x)
+  | Oconstpat _ -> SSet.empty
+  | Oaliaspat (p, x) ->
+      SSet.union (SSet.singleton (ident_name x)) (vars_of_pattern p)
+  | Oconstr0pat _ -> SSet.empty
+  | Oconstr1pat (_, l) ->
+      List.fold_left
+        (fun acc p -> SSet.union (vars_of_pattern p) acc)
+        SSet.empty l
+  | Oorpat (p1, p2) -> SSet.union (vars_of_pattern p1) (vars_of_pattern p2)
+  | Otypeconstraintpat (p, _) -> vars_of_pattern p
+  | Orecordpat l ->
+      List.fold_left
+        (fun acc (_, p) -> SSet.union (vars_of_pattern p) acc)
+        SSet.empty l
+  end
+
 let rec fv_updated i =
   begin match i with
   | Olet(_p, _e, i) -> fv_updated i
   | Oletvar(x, _is_mutable, _ty, _e_opt, i) ->
       SSet.remove (ident_name x) (fv_updated i)
-  | Omatch(_e, _match_handler_l) -> not_yet_implemented "fv(match)"
+  | Omatch(e, match_handler_l) ->
+      List.fold_left
+        (fun acc { w_pat = p; w_body = i} ->
+          let fvs = SSet.diff (fv_updated i) (vars_of_pattern p)  in
+          SSet.union acc fvs)
+        SSet.empty match_handler_l
   | Ofor(_is_to, _n, _e1, _e2, i3) -> fv_updated i3
   | Owhile(_e1, i2) -> fv_updated i2
   | Oassign(x, _e) -> SSet.singleton (var_of_left_value x)
@@ -416,7 +445,6 @@ and inst_desc ctx state_vars i =
       let state_vars' = fv_expr_updated e in
       Elet (unpack state_vars' p, expression ctx state_vars' e,
             inst ctx state_vars i)
-  | Omatch(_e, _match_handler_l) -> not_yet_implemented "match"
   | Ofor(_is_to, _n, _e1, _e2, _i3) -> not_yet_implemented "for"
   | Owhile(_e1, _i2) -> not_yet_implemented "while"
   | Oassign(left, e) ->
@@ -456,6 +484,28 @@ and inst_desc ctx state_vars i =
       in
       let res = fresh "_res_if" in
       Elet (unpack updated_i (pvar res), mk_expr if_,
+            mk_expr (pack state_vars (evar res).expr))
+  | Omatch(e, match_handler_l) ->
+      let updated_e = fv_expr_updated e in
+      let updated_i =
+        List.fold_left
+          (fun acc hdl -> SSet.union acc (fv_updated hdl.w_body))
+          SSet.empty match_handler_l
+      in
+      let match_ =
+        let x = fresh "_x" in
+        Elet (unpack updated_e (pvar x),
+             expression ctx updated_e e,
+             mk_expr
+                (Ematch (evar x,
+                         List.map
+                           (fun hdl -> { case_patt = pattern hdl.w_pat;
+                                         case_expr = inst ctx updated_i
+                                           hdl.w_body})
+                           match_handler_l)))
+      in
+      let res = fresh "_res_match" in
+      Elet (unpack updated_i (pvar res), mk_expr match_,
             mk_expr (pack state_vars (evar res).expr))
   end
 
@@ -514,7 +564,10 @@ and add_return i =
   | Olet(p, e, i) -> Olet(p, e, add_return i)
   | Oletvar(x, is_mutable, ty, e_opt, i) ->
       Oletvar(x, is_mutable, ty, e_opt, add_return i)
-  | Omatch(_e, _match_handler_l) -> not_yet_implemented "add_return: match"
+  | Omatch(e, match_handler_l) ->
+      Omatch (e, List.map
+                (fun hdl -> { hdl with w_body = add_return hdl.w_body })
+                match_handler_l)
   | Ofor(is_to, n, e1, e2, i3) ->
       Osequence [ Ofor(is_to, n, e1, e2, i3); Oexp (Oconst (Ovoid)) ]
   | Owhile(e1, i2) -> Osequence [ Owhile(e1, i2); Oexp (Oconst (Ovoid)) ]

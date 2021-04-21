@@ -63,6 +63,12 @@ let rec compile_expr:
     | Eif (e, e1, e2) ->
         Exp.ifthenelse (compile_expr e)
           (compile_expr e1) (Some (compile_expr e2))
+    | Ematch (e, cases) ->
+        Exp.match_ (compile_expr e)
+          (List.map (fun c -> { Parsetree.pc_lhs = compile_patt c.case_patt;
+                                pc_guard = None;
+                                pc_rhs = compile_expr c.case_expr; })
+             cases)
     | Elet (p, e1, e2) ->
         Exp.let_ Nonrecursive
           [ { Parsetree.pvb_pat = compile_patt p;
