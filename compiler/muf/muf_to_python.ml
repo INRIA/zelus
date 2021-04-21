@@ -221,8 +221,14 @@ let compile_decl : type a. formatter -> a declaration -> unit = begin
 end
 
 
-let compile_program : type a. formatter -> a program -> unit = begin
+let compile_program : formatter -> unit program -> unit = begin
   fun ff p ->
+    let p =
+      List.map
+        (fun d ->
+          { decl = map_decl_desc (fun p -> p) Muf_rewrites.remove_match d.decl })
+        p
+    in
     fprintf ff "@[<v 0>";
     fprintf ff  "from muflib import Node, step, reset, init@,";
     fprintf ff  "from jax.lax import cond@,";
