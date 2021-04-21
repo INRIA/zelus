@@ -9,72 +9,10 @@ module SSet = Set.Make(String)
 let not_yet_implemented msg =
   raise (Not_yet_implemented msg)
 
-let mk_patt p =
-  { patt = p; pmeta = (); }
-
-let mk_expr e =
-  { expr = e; emeta = (); }
-
-let mk_decl d =
-  { decl = d }
-
 let ident_name n = Zident.name n
+
 let ident n = { name = ident_name n }
 
-let fresh =
-  let cpt = ref 0 in
-  fun x ->
-    incr cpt;
-    { name = x^"__"^(string_of_int !cpt) }
-
-let lident_name n =
-  let b = Buffer.create 16 in
-  let ff_b = Format.formatter_of_buffer b in
-  Format.fprintf ff_b "%a" Printer.longname n;
-  Format.pp_print_flush ff_b ();
-  let x = Buffer.contents b in
-  x
-
-let lident n = { name = lident_name n }
-
-let pany = mk_patt Pany
-
-let eunit = mk_expr (Econst Cunit)
-let eany = mk_expr (Econst Cany)
-
-let pvar x = mk_patt (Pid x)
-let evar x = mk_expr (Evar x)
-
-let einfer_init n f = mk_expr (Einfer (n, f))
-
-let etuple_expr l =
-  begin match l with
-  | [] -> Econst Cunit
-  | [e] -> e
-  | l -> Etuple (List.map mk_expr l)
-  end
-
-let etuple l =
-  begin match l with
-  | [] -> eunit
-  | [e] -> e
-  | l -> mk_expr (Etuple l)
-  end
-
-let ptuple l =
-  begin match l with
-  | [] -> pany
-  | [p] -> p
-  | l -> mk_patt (Ptuple l)
-  end
-
-let expr_of_sset s =
-  etuple (List.map (fun x -> evar { name = x })
-            (SSet.elements s))
-
-let patt_of_sset s =
-  ptuple (List.map (fun x -> pvar { name = x })
-            (SSet.elements s))
 
 let self = { name = "self" }
 let self_patt = pvar self
