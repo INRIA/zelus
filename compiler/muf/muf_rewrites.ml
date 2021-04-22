@@ -38,23 +38,14 @@ let rec constant_propagation expr =
                                         { e1 with expr = Etuple el },
                                         subst x e e2) }
       end
+  | Eif ({expr = Econst (Cbool true)}, e1, _) -> e1
+  | Eif ({expr = Econst (Cbool false)}, _, e2) -> e2
+  | Ematch (e, cases) as m ->
+      begin match List.find_opt (fun c -> eq_patt_expr c.case_patt e) cases with
+      | None -> { expr with expr = m }
+      | Some case -> case.case_expr
+      end
   | e -> { expr with expr = e }
-
-
-let rec eq_patt_expr patt expr =
-  match patt.patt, expr.expr with
-  | Pid x, Evar y -> x = y
-  | Pid _, _ -> false
-  | Pconst c1, Econst c2 -> c1 = c2
-  | Pconst _, _ -> false
-  | Pconstr (x, None), Econstr (y, None) -> x.name = y.name
-  | Pconstr (x, Some p), Econstr (y, Some e) ->
-      x.name = y.name && eq_patt_expr p e
-  | Pconstr _, _ -> false
-  | Pany, _ -> false
-  | Ptuple pl, Etuple el -> List.for_all2 eq_patt_expr pl el
-  | Ptuple _, _ -> false
-  | Ptype (p, _), _ -> eq_patt_expr p expr
 
 let rec simplify_let patt expr =
   match patt.patt, expr.expr with

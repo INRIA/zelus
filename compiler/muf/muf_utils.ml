@@ -92,6 +92,22 @@ let rec called_functions acc e =
   in
   fold_expr_desc (fun acc _ -> acc) called_functions acc e.expr
 
+let rec eq_patt_expr patt expr =
+  match patt.patt, expr.expr with
+  | Pid x, Evar y -> x = y
+  | Pid _, _ -> false
+  | Pconst c1, Econst c2 -> c1 = c2
+  | Pconst _, _ -> false
+  | Pconstr (x, None), Econstr (y, None) -> x.name = y.name
+  | Pconstr (x, Some p), Econstr (y, Some e) ->
+      x.name = y.name && eq_patt_expr p e
+  | Pconstr _, _ -> false
+  | Pany, _ -> false
+  | Ptuple pl, Etuple el -> List.for_all2 eq_patt_expr pl el
+  | Ptuple _, _ -> false
+  | Ptype (p, _), _ -> eq_patt_expr p expr
+
+
 (** Expression Builders *)
 
 let mk_patt p =
