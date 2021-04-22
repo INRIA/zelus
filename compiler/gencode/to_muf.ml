@@ -441,13 +441,13 @@ and inst_desc ctx state_vars i =
       let match_ =
         let x = fresh "_x" in
         Elet (unpack updated_e (pvar x),
-             expression ctx updated_e e,
-             mk_expr
+              expression ctx updated_e e,
+              mk_expr
                 (Ematch (evar x,
                          List.map
-                           (fun hdl -> { case_patt = pattern hdl.w_pat;
-                                         case_expr = inst ctx updated_i
-                                           hdl.w_body})
+                           (fun hdl ->
+                             { case_patt = pattern hdl.w_pat;
+                               case_expr = inst ctx updated_i hdl.w_body})
                            match_handler_l)))
       in
       let res = fresh "_res_match" in
@@ -510,26 +510,27 @@ and add_return i =
   | Olet(p, e, i) -> Olet(p, e, add_return i)
   | Oletvar(x, is_mutable, ty, e_opt, i) ->
       Oletvar(x, is_mutable, ty, e_opt, add_return i)
-  | Omatch(e, match_handler_l) ->
-      Omatch (e, List.map
-                (fun hdl -> { hdl with w_body = add_return hdl.w_body })
-                match_handler_l)
   | Ofor(is_to, n, e1, e2, i3) ->
-      Osequence [ Ofor(is_to, n, e1, e2, i3); Oexp (Oconst (Ovoid)) ]
-  | Owhile(e1, i2) -> Osequence [ Owhile(e1, i2); Oexp (Oconst (Ovoid)) ]
+      Osequence [ Ofor(is_to, n, e1, e2, add_return i3);
+                  Oexp (Oconst (Ovoid)) ]
+  | Owhile(e1, i2) -> Osequence [ Owhile(e1, add_return i2);
+                                  Oexp (Oconst (Ovoid)) ]
   | Oassign(left, e) -> Osequence [ Oassign(left, e); Oexp (Oconst (Ovoid)) ]
   | Oassign_state(left, e) ->
       Osequence [ Oassign_state(left, e); Oexp (Oconst (Ovoid)) ]
   | Osequence l ->
-      begin match List.rev l with
-      | [] -> Osequence []
+      begin match l with
+      | [] -> Oexp (Oconst (Ovoid))
       | [ i ] -> add_return i
-      | i :: rev_l -> Osequence (List.rev (add_return i :: rev_l))
+      | _ -> Osequence (List.map add_return l)
       end
   | Oexp(e) -> Oexp(e)
   | Oif(e, i1, oi2) ->
-      (* assumes Oif returns void *)
-      Osequence [ Oif(e, i1, oi2); Oexp (Oconst (Ovoid)) ]
+      Oif(e, add_return i1, Option.map add_return oi2)
+  | Omatch(e, match_handler_l) ->
+      Omatch (e, List.map
+                (fun hdl -> { hdl with w_body = add_return hdl.w_body })
+                match_handler_l)
   end
 
 let machine_type memories instances =
