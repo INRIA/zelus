@@ -17,3 +17,18 @@ let step instance args =
 
 let reset instance =
   { instance with state = instance.node.init }, ()
+
+open Ztypes
+
+type state
+
+let muf_node znode =
+  let Node { alloc; step; reset } = znode in
+  let state = alloc () in
+  let muf_step ((first, state), x) =
+    if first then reset state;
+    let o = step state x in
+    (false, state), o
+  in
+  let n = { init = (true, state); step =  muf_step; } in
+  (Obj.magic n : (bool * state, 'a, 'b) muf_node)

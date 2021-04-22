@@ -131,9 +131,12 @@ let rec compile_expr:
                                 compile_expr e ]]
     | Einfer (n, f_init) ->
         let infer_id = Longident.Lident "infer" in
-        Exp.apply (Exp.ident (with_loc infer_id))
-          [ (Nolabel, (compile_expr n));
-            (Nolabel, (Exp.ident (with_loc (Longident.Lident f_init.name)))) ]
+        Exp.apply (Exp.ident (muf_lib "muf_node"))
+          [ Nolabel,
+            Exp.apply (Exp.ident (with_loc infer_id))
+              [ (Nolabel, compile_expr n);
+                (Nolabel, Exp.ident (with_loc (Longident.Lident f_init.name))) ]
+          ]
     end
 end
 
