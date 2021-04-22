@@ -145,10 +145,14 @@ and static_fst expr =
   | Einfer _ -> None
 
 
-let rec single_use expr =
-  match map_expr_desc (fun p -> p) single_use expr.expr with
-  | Elet({ patt = Pid x; _ }, e1, e2) when occurences x.name e2 = 1 ->
-      subst x e1 e2
+let rec single_and_no_use expr =
+  match map_expr_desc (fun p -> p) single_and_no_use expr.expr with
+  | Elet({ patt = Pid x; _ }, e1, e2) as e ->
+      begin match occurences x.name e2 with
+      | 0 when is_pure e1 -> e2
+      | 1 -> subst x e1 e2
+      | _ -> { expr with expr = e }
+      end
   | e -> { expr with expr = e }
 
 let rec merge_record_update expr =
