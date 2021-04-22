@@ -57,6 +57,9 @@ let rec compile_patt: type a. a pattern -> Parsetree.pattern = begin
     begin match p.patt with
     | Pid x -> Pat.var (with_loc x.name)
     | Pconst c -> compile_const_patt c
+    | Pconstr (x, p) ->
+        let x = with_loc (Longident.Lident x.name) in
+        Pat.construct x (Option.map compile_patt p)
     | Ptuple l -> Pat.tuple (List.map compile_patt l)
     | Pany -> Pat.any ()
     | Ptype (p, _) -> compile_patt p

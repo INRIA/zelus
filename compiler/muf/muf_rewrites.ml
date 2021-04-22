@@ -47,6 +47,10 @@ let rec eq_patt_expr patt expr =
   | Pid _, _ -> false
   | Pconst c1, Econst c2 -> c1 = c2
   | Pconst _, _ -> false
+  | Pconstr (x, None), Econstr (y, None) -> x.name = y.name
+  | Pconstr (x, Some p), Econstr (y, Some e) ->
+      x.name = y.name && eq_patt_expr p e
+  | Pconstr _, _ -> false
   | Pany, _ -> false
   | Ptuple pl, Etuple el -> List.for_all2 eq_patt_expr pl el
   | Ptuple _, _ -> false
@@ -129,6 +133,10 @@ and compile_case_cond x p =
   | Pconst c ->
       let eq = evar { name = "(=)" } in
       mk_expr (Eapp (mk_expr (Eapp(eq, x)), mk_expr (Econst c)))
+  | Pconstr (c, None) ->
+      let eq = evar { name = "(=)" } in
+      mk_expr (Eapp (mk_expr (Eapp(eq, x)), mk_expr (Econstr (c, None))))
+  | Pconstr (x, Some _) -> assert false (* XXX TODO XXX *)
   | Ptuple _ -> assert false (* XXX TODO XXX *)
   | Ptype (p, _) -> compile_case_cond x p
 
@@ -136,6 +144,8 @@ and compile_case_body x p e =
   match p.patt with
   | Pany -> e
   | Pconst _ -> e
+  | Pconstr (_, None) -> e
+  | Pconstr (_, Some _) -> assert false (* XXX TODO XXX *)
   | Pid y -> { e with expr = (Elet (pvar y, x, e)) }
   | Ptuple _ -> assert false (* XXX TODO XXX *)
   | Ptype(p, _) -> compile_case_body x p e

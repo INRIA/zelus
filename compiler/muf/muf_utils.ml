@@ -5,6 +5,8 @@ module SSet = Set.Make(String)
 let rec fv_patt patt =
   begin match patt.patt with
   | Pid x -> SSet.singleton x.name
+  | Pconstr(_, None) -> SSet.empty
+  | Pconstr(_, Some p) -> fv_patt p
   | Ptuple l ->
       List.fold_left (fun acc p -> SSet.union (fv_patt p) acc) SSet.empty l
   | Pany -> SSet.empty

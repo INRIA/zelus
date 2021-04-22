@@ -25,6 +25,7 @@ type 'p patt_desc =
   | Pid of identifier
   | Pconst of constant
   | Ptuple of 'p list
+  | Pconstr of identifier * 'p option
   | Ptype of 'p * type_expression
   | Pany
 [@@deriving show, map, fold]

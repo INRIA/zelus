@@ -162,9 +162,10 @@ let rec pattern patt =
 and pattern_desc pat =
   begin match pat with
   | Owildpat -> Pany
-  | Oconstpat(c) -> Pconst(immediate c)
-  | Oconstr0pat(_) -> assert false (* XXX TODO XXX *)
-  | Oconstr1pat(_, _x) -> assert false (* XXX TODO XXX *)
+  | Oconstpat(c) -> Pconst (immediate c)
+  | Oconstr0pat(x) -> Pconstr (lident x, None)
+  | Oconstr1pat(x, p) ->
+      Pconstr (lident x, Some (ptuple (List.map pattern p)))
   | Ovarpat(n, _ty_exp) -> Pid (ident n)
   | Otuplepat(pat_list) -> Ptuple (List.map pattern pat_list)
   | Oaliaspat(_p, _n) -> not_yet_implemented "pat alias"
