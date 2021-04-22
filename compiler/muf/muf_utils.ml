@@ -53,9 +53,25 @@ let is_value expr =
     match expr.expr with
     | Erecord (_, Some _) | Eapp _ | Eif _  | Elet _ | Esequence _
     | Esample _ | Eobserve _ | Einfer _ -> false
-    | e -> b && fold_expr_desc (fun b _ -> b) is_value b e
+    | Econst _ | Econstr (_, _) | Evar _ | Etuple _ | Efield (_, _)
+    | Erecord (_, None)  | Ematch (_, _)
+    | Ecall_init _ | Ecall_step (_, _) | Ecall_reset _ | Efactor (_, _) ->
+        b && fold_expr_desc (fun b _ -> b) is_value b expr.expr
   in
   is_value true expr
+
+let is_pure expr =
+  let rec is_pure b expr =
+    match expr.expr with
+    | Eapp _ | Esample _ | Eobserve _ | Einfer _
+    | Ecall_init _ | Ecall_step (_, _) | Ecall_reset _ | Efactor (_, _) ->
+        false
+    | Econst _ | Econstr (_, _) | Evar _ | Etuple _ | Erecord (_, _)
+    | Efield (_, _) | Eif (_, _, _) | Ematch (_, _) | Elet (_, _, _)
+    | Esequence (_, _)  ->
+        b && fold_expr_desc (fun b _ -> b) is_pure b expr.expr
+  in
+  is_pure true expr
 
 let occurences x expr =
   let rec occurences n expr =

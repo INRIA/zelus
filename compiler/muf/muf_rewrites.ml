@@ -82,9 +82,68 @@ let rec simplify_lets expr =
   | Elet(p, e1, e2) ->
       begin match simplify_let p e1 with
       | None -> e2
-      | Some (p, e1) -> { expr with expr = Elet(p, e1, e2) }
+      | Some (p, e1) ->
+          if eq_patt_expr p e2 then e1
+          else { expr with expr = Elet(p, e1, e2) }
       end
   | e -> { expr with expr = e }
+
+let rec simplify_ignore expr =
+  match map_expr_desc (fun p -> p) simplify_ignore expr.expr with
+  | Elet (p, e1, e2) as e ->
+      begin match p.patt with
+      | Pany when is_pure e1 -> e2
+      | Ptuple [ p1; { patt = Pany} ] ->
+          begin match static_fst e1 with
+          | None -> { expr with expr = e }
+          | Some e1 -> { expr with expr = Elet (p1, e1, e2) }
+          end
+      | _ -> { expr with expr = e }
+      end
+  | e -> { expr with expr = e }
+
+and static_fst expr =
+  match expr.expr with
+  | Econst _ -> None
+  | Econstr _ -> None
+  | Evar _ -> None
+  | Etuple [ e1; e2 ] when is_pure e2 -> Some e1
+  | Etuple _ -> None
+  | Erecord _ -> None
+  | Efield _ -> None
+  | Eapp _ -> None
+  | Eif (e, e1, e2) ->
+      begin match static_fst e1, static_fst e2 with
+      | Some e1, Some e2 -> Some { expr with expr = Eif (e, e1, e2) }
+      | _, _ -> None
+      end
+  | Ematch (e, cases) ->
+      let ocases =
+        List.fold_right
+          (fun c acc ->
+            match acc with
+            | None -> None
+            | Some acc ->
+                Option.map (fun e -> { c with case_expr = e } :: acc)
+                  (static_fst c.case_expr))
+          cases (Some [])
+      in
+      Option.map (fun cases -> { expr with expr = Ematch (e, cases) })
+        ocases
+  | Elet (p, e1, e2) ->
+      Option.map (fun e2 -> { expr with expr = Elet (p, e1, e2) })
+        (static_fst e2)
+  | Esequence (e1, e2) ->
+      Option.map (fun e2 -> { expr with expr = Esequence (e1, e2) })
+        (static_fst e2)
+  | Ecall_init _ -> None
+  | Ecall_step _ -> None
+  | Ecall_reset _ -> None
+  | Esample _ -> None
+  | Eobserve _ -> None
+  | Efactor _ -> None
+  | Einfer _ -> None
+
 
 let rec single_use expr =
   match map_expr_desc (fun p -> p) single_use expr.expr with
