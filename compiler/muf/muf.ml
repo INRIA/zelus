@@ -14,18 +14,18 @@ type identifier =
   { name: string }
 [@@deriving show, map, fold]
 
-type core_type =
+type type_expression =
   | Tany
   | Tvar of string
-  | Ttuple of core_type list
-  | T_constr of string * core_type list
+  | Ttuple of type_expression list
+  | Tconstr of string * type_expression list
 [@@deriving show, map, fold]
 
 type 'p patt_desc =
   | Pid of identifier
   | Pconst of constant
   | Ptuple of 'p list
-  | Ptype of 'p * core_type
+  | Ptype of 'p * type_expression
   | Pany
 [@@deriving show, map, fold]
 
@@ -65,12 +65,15 @@ type 'm expression =
   { expr: ('m pattern, 'm expression) expr_desc; emeta: 'm }
 [@@deriving show, map, fold]
 
-type type_kind =
-  | TKrecord of (string * core_type) list
+type type_declaration =
+  | TKabstract_type
+  | TKabbrev of type_expression
+  | TKvariant_type of (identifier * type_expression list option) list
+  | TKrecord of (string * type_expression) list
 [@@deriving show, map, fold]
 
 type ('p, 'e) node =
-  { n_type : string list * type_kind;
+  { n_type : string list * type_declaration;
     n_init : 'e;
     n_step : 'p * 'e; }
 [@@deriving show, map, fold]
@@ -79,7 +82,7 @@ type ('p, 'e) decl_desc =
   | Ddecl of 'p * 'e
   | Dfun of identifier * 'p * 'e
   | Dnode of identifier * 'p list * ('p, 'e) node
-  | Dtype of identifier * string list * type_kind
+  | Dtype of (identifier * string list * type_declaration) list
   | Dopen of string
 [@@deriving show, map, fold]
 

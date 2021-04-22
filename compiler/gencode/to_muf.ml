@@ -147,6 +147,15 @@ let immediate c =
   | Oany -> Cany
   end
 
+let rec type_expression t =
+  match t with
+  | Otypevar x -> Tvar x
+  | Otypefun _ -> assert false (* XXX TODO XXX *)
+  | Otypetuple l -> Ttuple (List.map type_expression l)
+  | Otypeconstr (x, args) ->
+      Tconstr (lident_name x, List.map type_expression args)
+  | Otypevec _ -> not_yet_implemented "type_expression(vec)"
+
 let rec pattern patt =
   mk_patt (pattern_desc patt)
 
@@ -638,6 +647,20 @@ let machine name m =
   mk_decl (Dnode ({ name = name }, params, node))
 
 
+let type_decl tdecl =
+  match tdecl with
+  | Oabstract_type -> TKabstract_type
+  | Oabbrev t -> TKabbrev (type_expression t)
+  | Ovariant_type l ->
+      TKvariant_type
+        (List.map
+           (function
+             | Oconstr0decl x -> ({ name = x }, None)
+             | Oconstr1decl (x, l) -> ({ name = x }, None))
+           l)
+  | Orecord_type l ->
+      TKrecord (List.map (fun (x,t) -> (x, type_expression t)) l)
+
 let implementation impl =
   begin match impl with
   | Oletvalue (x, i) ->
@@ -655,8 +678,12 @@ let implementation impl =
       [ machine x m ]
   | Oopen m ->
       [ mk_decl (Dopen m) ]
-  | Otypedecl _ (* of (string * string list * type_decl) list *) ->
-      assert false (* XXX TODO XXX *)
+  | Otypedecl l ->
+      [ mk_decl (Dtype
+                   (List.map
+                      (fun (t, args, decl) ->
+                        ({ name = t }, args, type_decl decl))
+                      l)) ]
   end
 
 let rewrite_decl f d =

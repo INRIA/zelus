@@ -134,45 +134,58 @@ let rec compile_expr:
     end
 end
 
-let rec compile_core_type: core_type -> Parsetree.core_type = begin
+let rec compile_type_expr: type_expression -> Parsetree.core_type = begin
   fun t ->
     match t with
     | Tany -> Typ.any ()
     | Tvar x -> Typ.var x
-    | Ttuple l -> Typ.tuple (List.map compile_core_type l)
-    | T_constr (x, l) ->
+    | Ttuple l -> Typ.tuple (List.map compile_type_expr l)
+    | Tconstr (x, l) ->
         Typ.constr (with_loc (Longident.Lident x))
-          (List.map compile_core_type l)
+          (List.map compile_type_expr l)
 end
 
-let compile_type_kind: type_kind -> Parsetree.type_kind = begin
-  fun k ->
-    match k with
-    | TKrecord l ->
-        Ptype_record
-          (List.map (fun (x, t) ->
-               Type.field (with_loc x) (compile_core_type t))
-              l)
-end
 
 let compile_type_decl:
-    identifier -> string list * type_kind -> Parsetree.structure_item = begin
-  fun name (params, k) ->
-    match params with
-    | [] ->
-        Str.type_ Recursive
-          [ Type.mk
-              ~manifest:(Typ.constr (with_loc (Longident.Lident "unit")) [])
-              (with_loc name.name) ]
-    | _ ->
-        Str.type_ Recursive
-          [ Type.mk
-              ~params:(List.map (fun a -> (Typ.var a,
-                                           (Asttypes.NoVariance,
-                                            Asttypes.NoInjectivity)))
-                         params)
-              ~kind:(compile_type_kind k)
-              (with_loc name.name) ]
+    identifier -> string list * type_declaration ->
+      Parsetree.type_declaration = begin
+  fun name (params, decl) ->
+    let name = with_loc name.name in
+    let params =
+      List.map (fun a -> (Typ.var a,
+                          (Asttypes.NoVariance, Asttypes.NoInjectivity)))
+        params
+    in
+    match decl with
+    | TKabstract_type -> Type.mk ~params name
+    | TKrecord [] ->
+        Type.mk ~params
+          ~manifest:(Typ.constr (with_loc (Longident.Lident "unit")) [])
+          name
+    | TKabbrev t ->
+        Type.mk ~params ~manifest:(compile_type_expr t) name
+    | TKvariant_type l ->
+        let kind =
+          Parsetree.Ptype_variant
+            (List.map (fun (x, ot) ->
+              match ot with
+              | None -> Type.constructor (with_loc x.name)
+              | Some tl ->
+                  let args =
+                    Parsetree.Pcstr_tuple (List.map compile_type_expr tl)
+                  in
+                  Type.constructor ~args (with_loc x.name))
+               l)
+        in
+        Type.mk ~params ~kind name
+    | TKrecord l ->
+        let kind =
+          Parsetree.Ptype_record
+            (List.map (fun (x, t) ->
+              Type.field (with_loc x) (compile_type_expr t))
+               l)
+        in
+        Type.mk ~params ~kind name
 end
 
 let compile_node: type a b.
@@ -182,7 +195,7 @@ let compile_node: type a b.
   let compile_method (p, e) =
     Exp.fun_ Nolabel None (compile_patt p) (compile_expr e)
   in
-  let typ = compile_type_decl f n.n_type in
+  let typ = Str.type_ Recursive [ compile_type_decl f n.n_type ] in
   let record =
     Exp.record
       [ (muf_lib "init", compile_expr n.n_init);
@@ -209,7 +222,10 @@ let compile_decl: type a. a declaration -> Parsetree.structure_item list = begin
             [ Vb.mk (Pat.var (with_loc f.name))
                 (Exp.fun_ Nolabel None (compile_patt p) (compile_expr e)) ] ]
     | Dnode (f, pl, n) -> compile_node f pl n
-    | Dtype (t, params, k) -> [ compile_type_decl t (params, k) ]
+    | Dtype l ->
+        [ Str.type_ Recursive
+            (List.map (fun (t, params, k) -> compile_type_decl t (params, k))
+               l) ]
     | Dopen m ->
         [ Str.open_ (Opn.mk (Mod.ident (with_loc (Longident.Lident m)))) ]
 end

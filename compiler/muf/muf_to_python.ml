@@ -218,7 +218,7 @@ let compile_decl : type a. formatter -> a declaration -> unit = begin
           compile_patt p 
           compile_return e
     | Dnode (f, p, n) -> compile_node ff f p n
-    | Dtype (t, params, k) -> ()
+    | Dtype _ -> ()
     | Dopen m -> fprintf ff "import %s" (String.uncapitalize_ascii m)
     end
 end
