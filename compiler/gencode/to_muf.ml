@@ -175,9 +175,17 @@ and expression_desc ctx state_vars e =
   begin match e with
   | Oconst c -> pack state_vars (Econst (immediate c))
   | Oconstr0(lname) ->
-      pack state_vars (Econst (immediate (Ostring (lident_name lname))))
-  | Oconstr1(lname, _e_list) ->
-      not_yet_implemented ("expression: constr1("^(lident_name lname)^")")
+      pack state_vars (Econstr (lident lname, None))
+  | Oconstr1(lname, e_list) ->
+      let x_e_list = List.map (fun e -> (fresh "_x", e)) e_list in
+      let args = etuple (List.map (fun (x, _) ->  evar x) x_e_list) in
+      let k = pack state_vars (Econstr (lident lname, Some args)) in
+      List.fold_left
+        (fun k (x, e) ->
+           Elet(unpack state_vars (pvar x),
+                expression ctx state_vars e,
+                mk_expr k))
+        k x_e_list
   | Oglobal(ln) -> pack state_vars (Evar (lident ln))
   | Olocal(n) -> pack state_vars (Evar (ident n))
   | Ovar(_is_mutable, n) -> pack state_vars (Evar (ident n))
@@ -632,7 +640,7 @@ let machine name m =
 let implementation impl =
   begin match impl with
   | Oletvalue (x, i) ->
-      [  mk_decl (Ddecl (pvar {name = x}, instruction None (fv_updated i) i)) ]
+      [ mk_decl (Ddecl (pvar {name = x}, instruction None (fv_updated i) i)) ]
   | Oletfun (f, args, i) ->
       let args =
         begin match args with

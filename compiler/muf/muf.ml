@@ -35,6 +35,7 @@ type 'm pattern =
 
 type ('pattern, 'expr) expr_desc =
   | Econst of constant
+  | Econstr of identifier * 'expr option
   | Evar of identifier
   | Etuple of 'expr list
   | Erecord of (string * 'expr) list * 'expr option

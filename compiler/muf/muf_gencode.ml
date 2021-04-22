@@ -68,6 +68,9 @@ let rec compile_expr:
   fun e ->
     begin match e.expr with
     | Econst c -> compile_const_expr c
+    | Econstr (c, e) ->
+        Exp.construct (with_loc (Longident.Lident c.name))
+          (Option.map compile_expr e)
     | Evar x -> Exp.ident (with_loc (Longident.Lident x.name))
     | Etuple l -> Exp.tuple (List.map compile_expr l)
     | Erecord ([], None) ->

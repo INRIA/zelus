@@ -15,6 +15,8 @@ let rec fv_patt patt =
 let rec fv_expr expr =
   begin match expr.expr with
   | Econst _ -> SSet.empty
+  | Econstr (_, None) -> SSet.empty
+  | Econstr (_, Some e) -> fv_expr e
   | Evar x -> SSet.singleton x.name
   | Etuple l ->
       List.fold_left (fun acc e -> SSet.union (fv_expr e) acc) SSet.empty l
