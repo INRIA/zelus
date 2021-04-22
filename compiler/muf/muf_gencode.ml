@@ -130,13 +130,20 @@ let rec compile_expr:
           [Nolabel, Exp.tuple [ Exp.ident (with_loc (Longident.Lident prob));
                                 compile_expr e ]]
     | Einfer (n, f_init) ->
-        let infer_id = Longident.Lident "infer" in
-        Exp.apply (Exp.ident (muf_lib "muf_node"))
-          [ Nolabel,
-            Exp.apply (Exp.ident (with_loc infer_id))
-              [ (Nolabel, compile_expr n);
-                (Nolabel, Exp.ident (with_loc (Longident.Lident f_init.name))) ]
-          ]
+        let model =
+          Exp.apply (Exp.ident (muf_lib "cnode_of_muf_node"))
+            [ Nolabel,
+              Exp.ident (with_loc (Longident.Lident f_init.name)) ]
+        in
+        let infer =
+          let infer_id = Longident.Lident "infer" in
+          Exp.apply (Exp.ident (muf_lib "muf_node_of_cnode"))
+            [ Nolabel,
+              Exp.apply (Exp.ident (with_loc infer_id))
+                [ (Nolabel, compile_expr n); (Nolabel, model) ] ]
+        in
+        Exp.apply (Exp.ident (muf_lib "init"))
+          [ Nolabel, infer; ]
     end
 end
 
