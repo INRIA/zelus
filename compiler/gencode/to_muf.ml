@@ -398,9 +398,14 @@ and inst_desc ctx state_vars i =
       let p = pattern (Ovarpat(x, ty)) in
       assert (SSet.disjoint (fv_patt p) state_vars);
       let e = Option.value ~default:(Oconst Oany) e_opt in
-      let state_vars' = fv_expr_updated e in
-      Elet (unpack state_vars' p, expression ctx state_vars' e,
-            inst ctx state_vars i)
+      let state_vars_e = fv_expr_updated e in
+      let state_vars_i = SSet.add (ident_name x) state_vars in
+      let o = fresh "_o" in
+      Elet (unpack state_vars_i (pvar o),
+            mk_expr
+              (Elet (unpack state_vars_e p, expression ctx state_vars_e e,
+                     inst ctx state_vars_i i)),
+            mk_expr (pack state_vars (evar o).expr))
   | Ofor(_is_to, _n, _e1, _e2, _i3) -> not_yet_implemented "for"
   | Owhile(_e1, _i2) -> not_yet_implemented "while"
   | Oassign(left, e) ->
