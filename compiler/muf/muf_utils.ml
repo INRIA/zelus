@@ -103,7 +103,8 @@ let rec eq_patt_expr patt expr =
       x.name = y.name && eq_patt_expr p e
   | Pconstr _, _ -> false
   | Pany, _ -> false
-  | Ptuple pl, Etuple el -> List.for_all2 eq_patt_expr pl el
+  | Ptuple pl, Etuple el ->
+      List.length pl = List.length el && List.for_all2 eq_patt_expr pl el
   | Ptuple _, _ -> false
   | Ptype (p, _), _ -> eq_patt_expr p expr
 
