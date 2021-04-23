@@ -1,42 +1,69 @@
 open Muf
 open Muf_utils
 
-let rec subst x expr1 expr2 =
-  match expr2.expr, expr1.expr with
-  | Evar y, _ -> if x = y then expr1 else expr2
-  | Elet (p, e1, e2), _ when SSet.mem x.name (fv_patt p) ->
-      { expr2 with expr = Elet(p, subst x expr1 e1, e2) }
-  | Esample (prob, e), Evar { name = prob' } ->
-      let prob = if x.name = prob then prob' else prob in
-      let desc = map_expr_desc (fun p -> p) (subst x expr1) e.expr in
-      { expr2 with expr = Esample(prob, { e with expr = desc }) }
-  | Eobserve (prob, e1, e2), Evar { name = prob' } ->
-      let prob = if x.name = prob then prob' else prob in
-      let desc1 = map_expr_desc (fun p -> p) (subst x expr1) e1.expr in
-      let desc2 = map_expr_desc (fun p -> p) (subst x expr1) e2.expr in
-      { expr2 with expr = Eobserve(prob,
-                                   { e1 with expr = desc1 },
-                                   { e2 with expr = desc2 }) }
-  | Efactor (prob, e), Evar { name = prob' } ->
-      let prob = if x.name = prob then prob' else prob in
-      let desc = map_expr_desc (fun p -> p) (subst x expr1) e.expr in
-      { expr2 with expr = Efactor(prob, { e with expr = desc }) }
-  | _ ->
-      let desc = map_expr_desc (fun p -> p) (subst x expr1) expr2.expr in
-      { expr2 with expr = desc }
+exception Stop
+
+(** [subst_no_capture x expr1 expr2] substitute [x] by [expr1] in [expr2].
+    The substitution fails if some free variables in [expr1] are capture
+    in [expr2]
+ *)
+
+let subst_no_capture =
+  let rec subst fv1 x expr1 expr2 =
+    match expr2.expr, expr1.expr with
+    | Evar y, _ -> if x = y then expr1 else expr2
+    | Elet (p, e1, e2), _ when SSet.mem x.name (fv_patt p) ->
+        { expr2 with expr = Elet(p, subst fv1 x expr1 e1, e2) }
+    | Elet (p, e1, e2), _ when SSet.mem x.name fv1 ->
+        raise Stop
+    | Elet (p, e1, e2), _ ->
+        let desc = map_expr_desc (fun p -> p) (subst fv1 x expr1) expr2.expr in
+        { expr2 with expr = desc }
+    | Ematch (_, _), _  -> raise Stop (* XXX TODO XXX *)
+    | Esample (prob, e), Evar { name = prob' } ->
+        let prob = if x.name = prob then prob' else prob in
+        { expr2 with expr = Esample(prob, subst fv1 x expr1 e) }
+    | Eobserve (prob, e1, e2), Evar { name = prob' } ->
+        let prob = if x.name = prob then prob' else prob in
+        { expr2 with expr = Eobserve(prob,
+                                     subst fv1 x expr1 e1,
+                                     subst fv1 x expr1 e2) }
+    | Efactor (prob, e), Evar { name = prob' } ->
+        let prob = if x.name = prob then prob' else prob in
+        { expr2 with expr = Efactor(prob, subst fv1 x expr1 e) }
+    | Econst _, _ | Econstr (_, _), _ | Etuple _, _ | Erecord (_, _), _
+    | Efield (_, _), _ | Eapp (_, _), _ | Eif (_, _, _) , _
+    | Esequence (_, _), _ | Ecall_init _, _ | Ecall_step (_, _), _
+    | Ecall_reset _, _ | Esample (_, _), _ | Eobserve (_, _, _), _
+    | Efactor (_, _), _ | Einfer (_, _), _ ->
+        let desc = map_expr_desc (fun p -> p) (subst fv1 x expr1) expr2.expr in
+        { expr2 with expr = desc }
+  in
+  fun x expr1 expr2 ->
+    try Some (subst (fv_expr expr1) x expr1 expr2)
+    with Stop -> None
 
 let rec constant_propagation expr =
   match map_expr_desc (fun p -> p) constant_propagation expr.expr with
-  | Elet ({ patt = Pid x; _ }, e1, e2) when is_value e1 -> subst x e1 e2
+  | Elet ({ patt = Pid x; _ }, e1, e2) as expr' when is_value e1 ->
+      begin match subst_no_capture x e1 e2 with
+      | Some e2 -> e2
+      | None -> { expr with expr = expr' }
+      end
   | Elet (({ patt = Ptuple ({ patt = Pid x; _ }:: pl); _ } as p),
-          ({ expr = Etuple (e :: el); _ } as e1), e2)
+          ({ expr = Etuple (e :: el); _ } as e1), e2) as expr'
     when is_value e ->
-      begin match pl, el with
-      | [], _ | _, [] -> assert false
-      | [p'], [e'] -> { expr with expr = Elet(p', e', subst x e e2) }
-      | _, _ -> { expr with expr = Elet({ p with patt = Ptuple pl },
-                                        { e1 with expr = Etuple el },
-                                        subst x e e2) }
+      begin match subst_no_capture x e e2 with
+      | None -> { expr with expr = expr' }
+      | Some e2' ->
+          begin match pl, el with
+          | [], _ | _, [] -> assert false
+          | [p'], [e'] -> { expr with expr = Elet(p', e', e2') }
+          | _, _ ->
+              { expr with expr = Elet({ p with patt = Ptuple pl },
+                                      { e1 with expr = Etuple el },
+                                      e2') }
+          end
       end
   | Eif ({expr = Econst (Cbool true)}, e1, _) -> e1
   | Eif ({expr = Econst (Cbool false)}, _, e2) -> e2
@@ -141,7 +168,11 @@ let rec single_and_no_use expr =
   | Elet({ patt = Pid x; _ }, e1, e2) as e ->
       begin match occurences x.name e2 with
       | 0 when is_pure e1 -> e2
-      | 1 -> subst x e1 e2
+      | 1 ->
+          begin match subst_no_capture x e1 e2 with
+          | None -> { expr with expr = e }
+          | Some e2 -> e2
+          end
       | _ -> { expr with expr = e }
       end
   | e -> { expr with expr = e }
