@@ -2,25 +2,6 @@ open Ast_helper
 open Muf
 open Format
 
-let freshname = 
-  let i = ref 0 in 
-  fun prefix -> begin
-    incr i;
-    prefix ^ "_" ^ (string_of_int !i)
-  end
-
-let is_flat e =
-  let rec flat_expr acc e =
-    let acc =
-      begin match e.expr with
-      | Elet _ -> false
-      | _ -> acc
-      end
-    in
-    fold_expr_desc (fun acc _ -> acc) flat_expr acc e.expr
-  in 
-  flat_expr true e
-
 let fv_expr expr = 
   Muf_utils.SSet.diff 
     (Muf_utils.fv_expr expr) 
@@ -62,6 +43,8 @@ let rec compile_patt : type a. formatter -> a pattern -> unit = begin
         (pp_print_list ~pp_sep:(fun ff () -> fprintf ff ", ") compile_patt) l 
     | Pany -> fprintf ff "_"
     | Ptype _ -> ()
+    | Pconst cst -> fprintf ff "%a" compile_const cst
+    | Pconstr _ -> assert false
     end
 end
 
@@ -114,11 +97,6 @@ let rec compile_expr :
           compile_expr e 
           compile_expr e1 
           compile_expr e2
-    | Elet (p, e1, e2) ->
-      fprintf ff "@[<v 0>%a = %a@,%a@]" 
-        compile_patt p 
-        compile_expr e1
-        compile_expr e2
     | Esequence (e1, e2) ->
       fprintf ff "@[<v 0>%a@,%a@]" compile_expr e1 compile_expr e2
     | Esample (prob, e) ->
@@ -127,42 +105,24 @@ let rec compile_expr :
       fprintf ff "observe(%s, %a, %a)" prob compile_expr e1 compile_expr e2
     | Efactor (prob, e) ->
       fprintf ff "factor(%s, %a)" prob compile_expr e
-    | Einfer (e,id) -> fprintf ff "infer_init(%a, %s)" compile_expr e id.name
+    | Einfer (e,id) -> fprintf ff "init (infer(%a)(%s))" compile_expr e id.name
     | Ecall_init (e) -> 
         fprintf ff "init (%a)" compile_expr e
     | Ecall_reset(e) -> 
         fprintf ff "reset (%a)" compile_expr e
     | Ecall_step (e1, e2) -> 
         fprintf ff "step (%a, %a)" compile_expr e1 compile_expr e2
-    | Ematch _ -> assert false
+    | Ematch _ 
+    | Econstr _ 
+    | Elet _ -> assert false
     end
 end
-
-and compile_flatten :
-  type a. formatter -> a expression -> a expression = begin
-    fun ff e ->
-      begin match is_flat e with
-      | true -> e
-      | false -> 
-        let f = freshname "_f" in
-        let r = freshname "_r" in
-        fprintf ff "@[<v 4>def %s(%a):@,%a@]@,%s = %s(%a)@,"
-          f
-          compile_fv e
-          compile_return e
-          r
-          f
-          compile_fv e;
-        {e with expr = Evar({name = r})}
-      end
-  end
 
 and compile_return :
   type a. formatter -> a expression -> unit = begin
   fun ff e -> 
     begin match e.expr with 
     | Elet (p, e1, e2) -> 
-      let e1 = compile_flatten ff e1 in
       fprintf ff "@[<v 0>%a = %a@,%a@]" 
           compile_patt p 
           compile_expr e1
@@ -170,7 +130,6 @@ and compile_return :
     | Esequence (e1, e2) -> 
       fprintf ff "@[<v 0>%a@,%a@]" compile_expr e1 compile_return e2
     | Erecord(l, oe) ->
-      let l = List.map (fun (x, e) -> (x, compile_flatten ff e)) l in
       fprintf ff "return %a" compile_expr {e with expr = Erecord(l, oe)}
     | _ -> fprintf ff "return %a" compile_expr e
     end
@@ -208,7 +167,6 @@ let compile_decl : type a. formatter -> a declaration -> unit = begin
   fun ff d ->
     begin match d.decl with
     | Ddecl (p, e) ->
-        let e = compile_flatten ff e in
         fprintf ff "%a = %a@," 
             compile_patt p 
             compile_expr e
@@ -226,6 +184,7 @@ end
 
 let compile_program : formatter -> unit program -> unit = begin
   fun ff p ->
+    let p = Muf_flatten.compile_program p in
     let p =
       List.map
         (fun d ->
