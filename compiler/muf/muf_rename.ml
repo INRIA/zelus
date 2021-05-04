@@ -16,11 +16,10 @@ let rec remove_all tbl x =
   end
 
 let rec rename_patt : 
-  type a. a pattern -> (string, string) Hashtbl.t -> a pattern * (string, string) Hashtbl.t = begin
-  fun p tbl -> 
+  type a. (string, string) Hashtbl.t -> a pattern -> a pattern = begin
+  fun tbl p -> 
     let patt = 
       begin match p.patt with
-      | Pany | Pconst _-> p.patt
       | Pid {name=n} -> 
         begin match Hashtbl.find_opt tbl n with 
         | Some n -> Pid {name=n}
@@ -29,16 +28,13 @@ let rec rename_patt :
           let _ = Hashtbl.add tbl n new_name in 
           Pid {name=new_name}
         end
-      | Ptuple l ->
-        let f p tbl = 
-          let tbl, p = rename_patt tbl p in p, tbl 
-        in
-        let tbl, l = List.fold_left_map f tbl l in
-        Ptuple l
-      | Ptype _ -> assert false
-      | Pconstr _ -> assert false
+      | Pany 
+      | Pconst _
+      | Ptuple _
+      | Ptype _
+      | Pconstr _ -> map_patt_desc (rename_patt tbl) p.patt
       end
-    in { p with patt = patt }, tbl 
+    in { p with patt = patt } 
   end
 
 let rec rename_expr : 
@@ -52,6 +48,9 @@ let rec rename_expr :
         end
       in n
     in
+    (* If an identifier in the pattern p exists in tbl then remove it from tbl - 
+     * else do nothing, 
+     * for all identifier in p *)
     let rec upd_table p tbl =
       begin match p.patt with
       | Pany | Pconst _-> tbl
@@ -60,20 +59,19 @@ let rec rename_expr :
       | Ptuple l ->
         let tbl = List.fold_right upd_table l tbl in
         tbl
-      | Ptype _ -> assert false
+      | Ptype (p, _) -> upd_table p tbl
       | Pconstr _ -> assert false
       end
     in
     let rec rename e =
       let expr = 
         begin match e.expr with
-        | Econst _ -> e.expr
         | Evar {name=n} -> 
           let n = get_name n in
           Evar {name=n}
         | Elet(p, e1, e2) -> 
           let e1 = rename e1 in 
-          let tbl = upd_table p tbl in (* Remove the identifiers in p if they exist in tbl. *)
+          let tbl = upd_table p tbl in 
           let e2 = rename_expr e2 tbl in
           Elet(p, e1, e2)
         | Esample (prob, e) -> 
@@ -89,51 +87,24 @@ let rec rename_expr :
           let prob = get_name prob in 
           let e = rename e in
           Efactor (prob, e)
-        | Einfer (e, id) -> (* The identifier `id` is a node name. *)
+        | Einfer (e, {name=n}) ->
+          let n = get_name n in
           let e = rename e in
-          Einfer(e, id)
-        | Efield (e, x) -> 
-          let e = rename e in
-          Efield(e, x)
-        | Eapp (e1, e2) -> 
-          let e1 = rename e1 in
-          let e2 = rename e2 in
-          Eapp(e1, e2)
-        | Eif (ec, et, ef) -> 
-          let et = rename et in
-          let ef = rename ef in
-          let ec = rename ec in
-          Eif(ec, et, ef)
-        | Esequence (e1, e2) -> 
-          let e1 = rename e1 in
-          let e2 = rename e2 in
-          Esequence(e1, e2)
-        | Ecall_init e -> 
-          let e = rename e in
-          Ecall_init e
-        | Ecall_step (e1, e2) -> 
-          let e1 = rename e1 in
-          let e2 = rename e2 in
-          Ecall_step(e1, e2)
-        | Ecall_reset e -> 
-          let e = rename e in
-          Ecall_reset e
-        | Etuple l -> 
-          let l = List.map rename l in
-          Etuple l
-        | Erecord (l_se, oe) -> 
-          let l_se = List.map (fun (s,e) -> s, rename e) l_se in
-          let oe = 
-            begin match oe with 
-            | Some e -> 
-                let e = rename e in
-                Some e
-            | _ -> oe
-            end
-          in
-          Erecord (l_se, oe)
+          Einfer(e, {name=n})
+        | Econst _
+        | Efield _
+        | Eapp _
+        | Eif _
+        | Esequence _
+        | Ecall_init _  
+        | Ecall_step _
+        | Ecall_reset _
+        | Etuple _
+        | Econstr _
+        | Efun _
+        | Erecord _ -> 
+          map_expr_desc (fun p -> p) rename e.expr
         | Ematch _ -> assert false
-        | Econstr _ -> assert false
         end
       in { e with expr=expr }
     in rename e
@@ -144,68 +115,31 @@ let rec compile_expr :
     fun e ->
       let expr = 
         begin match e.expr with
-        | Econst _ -> e.expr
-        | Evar _ -> e.expr
         | Elet(p, e1, e2) ->
           let e1 = compile_expr e1 in
-          let p, tbl = rename_patt p (Hashtbl.create 100) in
+          let tbl = (Hashtbl.create 100) in
+          let p = rename_patt tbl p in
           let e2 = compile_expr (rename_expr e2 tbl) in
           Elet(p, e1, e2)
-        | Efield (e, x) -> 
-          let e = compile_expr e in
-          Efield(e, x)
-        | Eapp (e1, e2) -> 
-          let e1 = compile_expr e1 in
-          let e2 = compile_expr e2 in
-          Eapp(e1, e2)
-        | Eif (ec, et, ef) -> 
-          let et = compile_expr et in
-          let ef = compile_expr ef in
-          let ec = compile_expr ec in
-          Eif(ec, et, ef)
-        | Esequence (e1, e2) -> 
-          let e1 = compile_expr e1 in
-          let e2 = compile_expr e2 in
-          Esequence(e1, e2)
-        | Ecall_init e -> 
-          let e = compile_expr e in
-          Ecall_init e
-        | Ecall_step (e1, e2) -> 
-          let e1 = compile_expr e1 in
-          let e2 = compile_expr e2 in
-          Ecall_step(e1, e2)
-        | Ecall_reset e -> 
-          let e = compile_expr e in
-          Ecall_reset e
-        | Esample (prob, e) -> 
-          let e = compile_expr e in
-          Esample(prob, e)
-        | Eobserve (prob, e1, e2) -> 
-          let e1 = compile_expr e1 in
-          let e2 = compile_expr e2 in
-          Eobserve(prob, e1, e2)
-        | Efactor (prob, e) -> 
-          let e = compile_expr e in
-          Efactor(prob, e)
-        | Einfer (e, id) -> 
-          let e = compile_expr e in
-          Einfer(e, id)
-        | Etuple le -> 
-          let le = List.map compile_expr le in
-          Etuple le
-        | Erecord (l_se, oe) -> 
-          let l_se = List.map (fun (s,e) -> s, compile_expr e) l_se in
-          let oe = 
-            begin match oe with 
-            | Some e -> 
-              let e = compile_expr e in
-              Some e
-            | _ -> oe
-            end
-          in
-          Erecord (l_se, oe)
+        | Econst _ 
+        | Evar _
+        | Efield _
+        | Eapp _
+        | Eif _
+        | Esequence _ 
+        | Ecall_init _
+        | Ecall_step _
+        | Esample _
+        | Eobserve _
+        | Efactor _
+        | Einfer _
+        | Etuple  _
+        | Erecord _ 
+        | Econstr _
+        | Efun _
+        | Ecall_reset _ -> 
+          map_expr_desc (fun p -> p) compile_expr e.expr
         | Ematch _ -> assert false
-        | Econstr _ -> assert false
         end
       in { e with expr=expr }
     end
