@@ -119,7 +119,7 @@
  (action (run zeluc -gtk2 -deps -s main -o zero_main %{zl})))
 
 (executables
-  (names count derivative discontinuity div_by_zero euler_forward_error hardstop_integr heatingh20 hybridaut input_window instable integrales_compliquees khalil ode_non_lipshitz sincos sqrt suspend01 tabledep updown water ysquared zero
+  (names count_main derivative_main discontinuity_main div_by_zero_main euler_forward_error_main hardstop_integr_main heatingh20_main hybridaut_main input_window_main instable_main integrales_compliquees_main khalil_main ode_non_lipshitz_main sincos_main sqrt_main suspend01_main tabledep_main updown_main water_main ysquared_main zero_main
   ;int_of_float match_seesaw sliding 
   )
   (libraries lablgtk2 zelus zelus-gtk)

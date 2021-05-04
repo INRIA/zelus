@@ -119,3 +119,32 @@ type ('a, 'b) hsnode =
         horizon : 's -> time;
         (* gives the next time horizon *)
       } -> ('a, 'b) hsnode
+
+ (* An idea suggested by Adrien Guatto, 26/04/2021 *)
+ (* provide a means to the type for input/outputs of nodes *)
+ (* express them with GADT to ensure type safety *)
+ (* type ('a, 'b) node =
+  |  Fun : { step : 'a -> 'b;
+             typ_arg: 'a typ;
+             typ_return: 'b typ
+           } -> ('a, 'b) node
+  | Node :
+      { state : 's; step : 's -> 'a -> 'b * 's;
+        typ_arg: 'a typ;
+        typ_state : 's typ;
+        typ_return: 'b typ } -> ('a, 'b) node
+  
+and 'a typ =
+  | Tunit : unit typ
+  | Tarrow : 'a typ * 'b typ -> ('a * 'b) typ
+  | Tint : int -> int typ
+  | Ttuple : 'a typlist -> 'a typ
+  | Tnode : 'a typ * 'b typ -> ('a,'b) node typ
+  
+and 'a typlist =
+  | Tnil : unit typlist
+  | Tpair : 'a typ * 'b typlist -> ('a * 'b) typlist
+
+Q1: do it for records? sum types ? How?
+Q2: provide a "type_of" function for every introduced type?
+*)

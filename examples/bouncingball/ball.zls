@@ -13,7 +13,7 @@ let loose = 0.8
 (* The bouncing ball *)
 let hybrid ball(x, y_0) = (y, y_v, z) where
   rec
-      der y = y_v init y_0 (* dy(t)/dt = y_v(t)     y(0) = y_0(0) *)
+      der y = y_v init y_0 (* dy(t)/dt = y_v(t)  y(0) = y_0(0) *)
   and
       der y_v = -. g init 0.0 reset z -> (-. loose *. last y_v)
 	  
