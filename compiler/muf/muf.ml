@@ -53,6 +53,7 @@ type ('pattern, 'expr) expr_desc =
   | Eobserve of prob * 'expr * 'expr
   | Efactor of prob * 'expr
   | Einfer of 'expr * identifier
+  | Efun of 'pattern * 'expr
 [@@deriving show, map, fold]
 
 and prob = string
