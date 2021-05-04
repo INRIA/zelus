@@ -16,6 +16,9 @@ let is_flat e =
 let rec flatten :
   type a. (a pattern * a expression) list -> a expression -> (a pattern * a expression) list * a expression = begin
     fun acc e ->
+      let mk_patt_id n = 
+        { patt = Pid {name=n} ; pmeta = Obj.magic() }
+      in
       let acc, expr =
         begin match e.expr with
         | Econst _ -> acc, e.expr
@@ -28,10 +31,19 @@ let rec flatten :
           let acc, e2 = flatten acc e2 in
           acc, Eapp(e1, e2)
         | Eif (ec, et, ef) -> 
-          let acc, et = flatten acc et in
-          let acc, ef = flatten acc ef in
           let acc, ec = flatten acc ec in
-          acc, Eif(ec, et, ef)
+          let nt = Muf_rename.freshname "_ft" in
+          let nf = Muf_rename.freshname "_ff" in
+          (* Efun for et and ef *)
+          let p_any = { patt = Pany ; pmeta = Obj.magic() } in          
+          let et = { e with expr = Efun(p_any, compile_flatten et) } in
+          let ef = { e with expr = Efun(p_any, compile_flatten ef) } in
+          let acc = (mk_patt_id nf, ef) :: (mk_patt_id nt, et) :: acc in
+          (* Replace et and ef by et' and ef' that are resp. applications of et and ef *)
+          let e_args = { e with expr = Econst Cany } in
+          let et' = { e with expr = Eapp({e with expr = Evar {name=nt}}, e_args) } in
+          let ef' = { e with expr = Eapp({e with expr = Evar {name=nf}}, e_args) } in
+          acc, Eif(ec, et', ef')
         | Esequence (e1, e2) -> 
           let acc, e1 = flatten acc e1 in
           let acc, e2 = flatten acc e2 in
@@ -92,13 +104,14 @@ let rec flatten :
           let acc = (p, e1)::acc in
           let acc, e2 = flatten acc e2 in 
           acc, e2.expr
-        | Ematch _ -> assert false
+        | Efun _ 
+        | Ematch _ 
         | Econstr _ -> assert false
         end
       in acc, {e with expr=expr }
     end
 
-let compile_flatten :
+and compile_flatten :
   type a. a expression -> a expression = begin
   fun e -> 
     begin match is_flat e with
