@@ -92,11 +92,15 @@ let rec compile_expr :
         | Etuple _ -> fprintf ff "%a%a" compile_expr e1 compile_expr e2
         | _ -> fprintf ff "%a(%a)" compile_expr e1 compile_expr e2
         end
-    | Eif (e, e1, e2) ->
-        fprintf ff "cond(@,    @[<v 0>%a,@,lambda _: %a,@,lambda _: %a,@,None)@]" 
-          compile_expr e 
-          compile_expr e1 
-          compile_expr e2
+    | Eif (e, { expr=Eapp({expr=Evar{name=n1}}, args1) },
+              { expr=Eapp({expr=Evar{name=n2}}, args2) }) 
+      when args1 = args2 ->
+      fprintf ff "cond(@,    @[<v 0>%a,@,%s,@,%s,@,%a)@]" 
+        compile_expr e 
+        n1 
+        n2
+        compile_expr args1
+    | Eif _ -> Format.eprintf "Eif incompatible with the Python-JAX backend\n" ; assert false
     | Esequence (e1, e2) ->
       fprintf ff "@[<v 0>%a@,%a@]" compile_expr e1 compile_expr e2
     | Esample (prob, e) ->
@@ -112,9 +116,10 @@ let rec compile_expr :
         fprintf ff "reset (%a)" compile_expr e
     | Ecall_step (e1, e2) -> 
         fprintf ff "step (%a, %a)" compile_expr e1 compile_expr e2
+    | Efun _
+    | Elet _
     | Ematch _ 
-    | Econstr _ 
-    | Elet _ -> assert false
+    | Econstr _ -> assert false
     end
 end
 
@@ -122,6 +127,16 @@ and compile_return :
   type a. formatter -> a expression -> unit = begin
   fun ff e -> 
     begin match e.expr with 
+    | Elet ({ patt = Pid {name=f_name} }, 
+            { expr = Efun (p_args, e1) }, 
+            e2) -> 
+      fprintf ff "@[<v 4>def %s(%a):@,%a@]@," 
+        f_name
+        compile_patt p_args
+        compile_return e1
+      ;
+      fprintf ff "@[<v 0>%a@]"
+        compile_return e2
     | Elet (p, e1, e2) -> 
       fprintf ff "@[<v 0>%a = %a@,%a@]" 
           compile_patt p 
