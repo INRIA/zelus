@@ -35,9 +35,9 @@ let rec flatten :
           let nt = Muf_rename.freshname "_ft" in
           let nf = Muf_rename.freshname "_ff" in
           (* Efun for et and ef *)
-          let p_any = { patt = Pany ; pmeta = Obj.magic() } in          
-          let et = { e with expr = Efun(p_any, compile_flatten et) } in
-          let ef = { e with expr = Efun(p_any, compile_flatten ef) } in
+          let p_args = { patt = Pany ; pmeta = Obj.magic() } in          
+          let et = { e with expr = Efun(p_args, compile_flatten et) } in
+          let ef = { e with expr = Efun(p_args, compile_flatten ef) } in
           let acc = (mk_patt_id nf, ef) :: (mk_patt_id nt, et) :: acc in
           (* Replace et and ef by et' and ef' that are resp. applications of et and ef *)
           let e_args = { e with expr = Econst Cany } in
