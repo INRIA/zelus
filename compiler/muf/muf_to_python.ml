@@ -133,8 +133,7 @@ and compile_return :
       fprintf ff "@[<v 4>def %s(%a):@,%a@]@," 
         f_name
         compile_patt p_args
-        compile_return e1
-      ;
+        compile_return e1;
       fprintf ff "@[<v 0>%a@]"
         compile_return e2
     | Elet (p, e1, e2) -> 
@@ -199,13 +198,13 @@ end
 
 let compile_program : formatter -> unit program -> unit = begin
   fun ff p ->
-    let p = Muf_flatten.compile_program p in
     let p =
       List.map
         (fun d ->
           { decl = map_decl_desc (fun p -> p) Muf_rewrites.remove_match d.decl })
         p
     in
+    let p = Muf_flatten.compile_program p in
     fprintf ff "@[<v 0>";
     fprintf ff  "from muflib import Node, step, reset, init@,";
     fprintf ff  "from jax.lax import cond@,";

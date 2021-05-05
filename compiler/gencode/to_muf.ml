@@ -708,7 +708,6 @@ let simplify d =
     let expr = Muf_rewrites.single_and_no_use expr in
     let expr = Muf_rewrites.merge_record_update expr in
     let expr = Muf_rewrites.simplify_record_access expr in
-    let expr = Muf_rewrites.remove_match expr in
     expr
   in
   { decl = rewrite_decl r_expr d.decl }
