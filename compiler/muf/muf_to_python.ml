@@ -130,11 +130,10 @@ and compile_return :
     | Elet ({ patt = Pid {name=f_name} }, 
             { expr = Efun (p_args, e1) }, 
             e2) -> 
-      fprintf ff "@[<v 4>def %s(%a):@,%a@]@," 
+      fprintf ff "@[<v 4>def %s(%a):@,%a@]@,%a" 
         f_name
         compile_patt p_args
-        compile_return e1;
-      fprintf ff "@[<v 0>%a@]"
+        compile_return e1
         compile_return e2
     | Elet (p, e1, e2) -> 
       fprintf ff "@[<v 0>%a = %a@,%a@]" 
