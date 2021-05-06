@@ -17,7 +17,7 @@ let rec flatten :
   type a. (a pattern * a expression) list -> a expression -> (a pattern * a expression) list * a expression = begin
     fun acc e ->
       let mk_patt_id n = 
-        { patt = Pid {name=n} ; pmeta = Obj.magic() }
+        { patt = Pid {name=n} ; pmeta = e.emeta }
       in
       let acc, expr =
         begin match e.expr with
@@ -35,7 +35,7 @@ let rec flatten :
           let nt = Muf_rename.freshname "_ft" in
           let nf = Muf_rename.freshname "_ff" in
           (* Efun for et and ef *)
-          let p_args = { patt = Pany ; pmeta = Obj.magic() } in          
+          let p_args = { patt = Pany ; pmeta = e.emeta } in          
           let et = { e with expr = Efun(p_args, compile_flatten et) } in
           let ef = { e with expr = Efun(p_args, compile_flatten ef) } in
           let acc = (mk_patt_id nf, ef) :: (mk_patt_id nt, et) :: acc in
