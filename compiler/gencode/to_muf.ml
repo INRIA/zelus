@@ -13,6 +13,21 @@ let ident_name n = Zident.name n
 
 let ident n = { name = ident_name n }
 
+
+let get_id x =
+  begin match x with
+  | Lident.Name id | Lident.Modname { Lident.id = id } -> id
+  end
+
+let is_sample x =
+  get_id x = "sample"
+
+let is_observe x =
+  get_id x = "observe"
+
+let is_factor x =
+  get_id x = "factor"
+
 let rec split_proba_patt patt_l =
   begin match patt_l with
   | Ovarpat ({ source = "prob" } as prob, _) :: l -> Some (ident prob, l)
@@ -151,7 +166,13 @@ and fv_expr_updated expr =
   | Omethodcall m ->
       let fvs =
         List.fold_left (fun acc e -> SSet.union (fv_expr_updated e) acc)
-          (SSet.singleton self.name) m.met_args
+          SSet.empty m.met_args
+      in
+      let fvs =
+        begin match m.met_machine with
+        | Some x when is_sample x || is_observe x || is_factor x -> fvs
+        | _ -> SSet.add self.name fvs
+        end
       in
       begin match split_proba_expr (Otuple m.met_args) with
       | None -> fvs
@@ -340,15 +361,13 @@ and left_state_value left =
 
 and method_call ctx state_vars m =
   begin match m.met_machine with
-  | Some (Lident.Name f)
-  | Some (Lident.Modname { Lident.id = f })
-    when f = "sample" || f = "observe" || f = "factor" ->
+  | Some x when is_sample x || is_observe x || is_factor x ->
       begin match m.met_name with
       | "reset" -> pack state_vars eunit.expr
       | "copy" -> pack state_vars eunit.expr
       | "step" ->
-          begin match f, m.met_args with
-          | "sample", [ e ] ->
+          begin match m.met_args with
+          | [ e ] when is_sample x ->
               begin match split_proba_expr e with
               | None -> assert false
               | Some (prob, e) ->
@@ -363,7 +382,7 @@ and method_call ctx state_vars m =
                                             (Esample(prob.name, evar d))))),
                         mk_expr (pack state_vars (evar x).expr))
               end
-          | "observe", [ e ] ->
+          | [ e ] when is_observe x ->
               begin match split_proba_expr e with
               | None -> assert false
               | Some (prob, e) ->
@@ -380,7 +399,7 @@ and method_call ctx state_vars m =
                                      (Eobserve(prob.name, evar d, evar o))))),
                        mk_expr (pack state_vars (evar x).expr))
               end
-          | "factor", [ e ] ->
+          | [ e ] when is_factor x ->
               begin match split_proba_expr e with
               | None -> assert false
               | Some (prob, e) ->
@@ -509,29 +528,36 @@ and inst_desc ctx state_vars i =
       | i :: rev_l ->
           List.fold_left
             (fun k i ->
-               Elet (unpack state_vars pany, inst ctx state_vars i, mk_expr k))
+              let state_vars' = fv_updated i in
+              assert (SSet.subset state_vars' state_vars);
+              Elet (unpack state_vars' pany, inst ctx state_vars' i, mk_expr k))
             (inst_desc ctx state_vars i) rev_l
       end
   | Oexp(e) -> expression_desc ctx state_vars e
   | Oif(e, i1, o_i2) ->
       let i2 = Option.value ~default:(Oexp(Oconst Ovoid)) o_i2 in
       let updated_e = fv_expr_updated e in
-      assert (SSet.is_empty updated_e); (* otherwise: XXX TODO XXX *)
-      let updated_i = SSet.union (fv_updated i1) (fv_updated i2) in
+      let updated_i =
+        SSet.union updated_e (SSet.union (fv_updated i1) (fv_updated i2))
+      in
       assert (SSet.subset updated_i state_vars);
+      let b = fresh "_b" in
       let res = fresh "_res_if" in
-      Elet (unpack updated_i (pvar res),
-            mk_expr (Eif (expression ctx SSet.empty e,
-                          inst ctx updated_i i1,
-                          inst ctx updated_i i2)),
-            mk_expr (pack state_vars (evar res).expr))
+      Elet (unpack updated_e (pvar b),
+            expression ctx updated_e e,
+            mk_expr (Elet (unpack updated_i (pvar res),
+                           mk_expr (Eif (evar b,
+                                         inst ctx updated_i i1,
+                                         inst ctx updated_i i2)),
+                           mk_expr (pack state_vars (evar res).expr))))
   | Omatch(e, match_handler_l) ->
       let updated_e = fv_expr_updated e in
       let updated_i =
         List.fold_left
           (fun acc hdl -> SSet.union acc (fv_updated hdl.w_body))
-          SSet.empty match_handler_l
+          updated_e match_handler_l
       in
+      assert (SSet.subset updated_i state_vars);
       let match_ =
         let x = fresh "_x" in
         Elet (unpack updated_e (pvar x),
@@ -665,11 +691,9 @@ let machine_init ma m_reset =
     if ie_size <> [] then not_yet_implemented "array on instances";
     if e_list <> [] then assert false;
     begin match ei with
-    | Oglobal (Lident.Modname { Lident.id = f })
-      when f = "sample"  || f = "observe" || f = "factor" ->
+    | Oglobal x when is_sample x || is_observe x || is_factor x ->
         (ident_name n, eunit)
-    | Oapp (Oglobal (Lident.Modname { Lident.id = infer }), nb :: f :: args)
-      when infer = "infer" ->
+    | Oapp (Oglobal infer, nb :: f :: args) when get_id infer = "infer" ->
         let f_init =
           match f with
           | Oglobal x -> { name = (lident_name x) }
