@@ -72,24 +72,18 @@ let rec flatten :
           let acc, e = flatten acc e in
           acc, Einfer(e, id)
         | Etuple le -> 
-          let rec f acc le acc_e = 
-            match le with
-            | [] -> acc, List.rev acc_e
-            | h::t -> 
-              let acc, e = flatten acc h in
-              f acc t (e::acc_e)
+          let acc, le = 
+            List.fold_left (fun (acc, l) x -> let acc, e = flatten acc x in (acc, e::l)) 
+                           (acc, []) 
+                           le
           in
-          let acc, le = f acc le [] in
-          acc, Etuple le
+          acc, Etuple (List.rev le)
         | Erecord (l_se, oe) -> 
-          let rec f acc le acc_e = 
-            match le with
-            | [] -> acc, List.rev acc_e
-            | (s,h)::t -> 
-              let acc, e = flatten acc h in
-              f acc t ((s,e)::acc_e)
+          let acc, l_se = 
+            List.fold_left (fun (acc, l) (s,e) -> let acc, e = flatten acc e in (acc, (s,e)::l)) 
+                           (acc, []) 
+                           l_se
           in
-          let acc, l_se = f acc l_se [] in
           let acc, oe = 
             begin match oe with 
             | Some e -> 
