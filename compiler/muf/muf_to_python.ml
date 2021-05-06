@@ -138,6 +138,7 @@ let rec compile_expr :
           begin match op_str with
           | "~-" -> "-"
           | "~-." -> "-"
+          | "-." -> "-"
           | "lnot" -> "~"
           | "not" -> op_str
           | _ -> ""
