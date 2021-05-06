@@ -179,6 +179,15 @@ end
 let compile_decl : type a. formatter -> a declaration -> unit = begin
   fun ff d ->
     begin match d.decl with
+    | Ddecl (p, {expr = Elet(p_let, e1, e2)}) ->
+      let f_name = Muf_rename.freshname "_f_decl" in
+      fprintf ff "@[<v 4>def %s():@,%a = %a@,%a@]@,%a = %s()@," 
+        f_name
+        compile_patt p_let
+        compile_expr e1
+        compile_return e2 
+        compile_patt p
+        f_name
     | Ddecl (p, e) ->
         fprintf ff "%a = %a@," 
             compile_patt p 
