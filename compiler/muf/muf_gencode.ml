@@ -114,24 +114,23 @@ let rec compile_expr:
         Exp.apply (Exp.ident (muf_lib "reset"))
           [ Nolabel, compile_expr instance ]
     | Esample (prob, e) ->
-        let sample = Exp.ident (with_loc (Longident.Lident "sample'")) in
-        Exp.apply sample
-          [Nolabel, Exp.tuple [ Exp.ident (with_loc (Longident.Lident prob));
-                                compile_expr e] ]
+        Exp.apply (Exp.ident (muf_lib "prob_op"))
+          [ (Nolabel, Exp.ident (with_loc (Longident.Lident "sample")));
+            (Nolabel, Exp.ident (with_loc (Longident.Lident prob)));
+            (Nolabel, compile_expr e) ]
     | Eobserve (prob, e1, e2) ->
-        let observe = Exp.ident (with_loc (Longident.Lident "observe'")) in
-        Exp.apply observe
-          [ (Nolabel, Exp.tuple [ Exp.ident (with_loc (Longident.Lident prob));
-                                  Exp.tuple [ compile_expr e1; compile_expr e2 ]
-                                ]) ]
+        Exp.apply (Exp.ident (muf_lib "prob_op"))
+          [ (Nolabel, Exp.ident (with_loc (Longident.Lident "observe")));
+            (Nolabel, Exp.ident (with_loc (Longident.Lident prob)));
+            (Nolabel, Exp.tuple [ compile_expr e1; compile_expr e2 ]) ]
     | Efactor (prob, e) ->
-        let factor = Exp.ident (with_loc (Longident.Lident "factor'")) in
-        Exp.apply factor
-          [Nolabel, Exp.tuple [ Exp.ident (with_loc (Longident.Lident prob));
-                                compile_expr e ]]
+        Exp.apply (Exp.ident (muf_lib "prob_op"))
+          [ (Nolabel, Exp.ident (with_loc (Longident.Lident "factor")));
+            (Nolabel, Exp.ident (with_loc (Longident.Lident prob)));
+            (Nolabel, compile_expr e) ]
     | Einfer (n, f_init) ->
         let model =
-          Exp.apply (Exp.ident (muf_lib "cnode_of_muf_node"))
+          Exp.apply (Exp.ident (muf_lib "cnode_of_muf_proba_node"))
             [ Nolabel,
               Exp.ident (with_loc (Longident.Lident f_init.name)) ]
         in

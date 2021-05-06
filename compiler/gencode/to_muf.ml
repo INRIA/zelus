@@ -13,6 +13,32 @@ let ident_name n = Zident.name n
 
 let ident n = { name = ident_name n }
 
+let rec split_proba_patt patt_l =
+  begin match patt_l with
+  | Ovarpat ({ source = "prob" } as prob, _) :: l -> Some (ident prob, l)
+  | Otuplepat (Ovarpat ({ source = "prob" } as prob, _) :: t) :: l ->
+      Some (ident prob, Otuplepat t :: l)
+  | Otypeconstraintpat (p, _) :: l -> split_proba_patt (p :: l)
+  | Ovarpat _ :: _ | Owildpat :: _ | Oconstpat _ :: _ | Oaliaspat (_, _) :: _
+  | Oconstr0pat _ :: _ | Oconstr1pat (_, _) :: _ | Oorpat (_, _) :: _
+  | Orecordpat _ :: _ | Otuplepat _ :: _ | [] ->
+      None
+  end
+
+let rec split_proba_expr expr =
+  begin match expr with
+  | Otuple ((Olocal ({ source = "prob" } as prob)) :: l)
+  | Otuple ((Ovar (_, ({ source = "prob" } as prob))) :: l) ->
+      Some (ident prob, Otuple l)
+  | Otuple [ Otuple l ] -> split_proba_expr (Otuple l)
+  | Otypeconstraint (e, _) -> split_proba_expr e
+  | Otuple _ | Oconst _ | Oconstr0 _ | Oconstr1 (_, _)
+  | Oglobal _ | Olocal _ | Ovar (_, _) | Ostate _ | Oaccess (_, _)
+  | Oupdate (_, _, _, _) | Oslice (_, _, _) | Oconcat (_, _, _, _)
+  | Ovec (_, _) | Oapp (_, _) | Orecord _ | Orecord_access (_, _)
+  | Orecord_with (_, _) | Oifthenelse (_, _, _) | Omethodcall _ | Oinst _ ->
+      None
+  end
 
 let self = { name = "self" }
 let self_patt = pvar self
@@ -73,24 +99,30 @@ let rec vars_of_pattern p =
 
 let rec fv_updated i =
   begin match i with
-  | Olet(_p, _e, i) -> fv_updated i
-  | Oletvar(x, _is_mutable, _ty, _e_opt, i) ->
-      SSet.remove (ident_name x) (fv_updated i)
+  | Olet(_p, e, i) -> SSet.union (fv_expr_updated e) (fv_updated i)
+  | Oletvar(x, _is_mutable, _ty, e_opt, i) ->
+      SSet.union (Option.fold ~none:SSet.empty ~some:fv_expr_updated e_opt)
+        (SSet.remove (ident_name x) (fv_updated i))
   | Omatch(e, match_handler_l) ->
       List.fold_left
-        (fun acc { w_pat = p; w_body = i} ->
+        (fun acc { w_pat = p; w_body = i } ->
           let fvs = SSet.diff (fv_updated i) (vars_of_pattern p)  in
           SSet.union acc fvs)
-        SSet.empty match_handler_l
-  | Ofor(_is_to, _n, _e1, _e2, i3) -> fv_updated i3
-  | Owhile(_e1, i2) -> fv_updated i2
-  | Oassign(x, _e) -> SSet.singleton (var_of_left_value x)
-  | Oassign_state(left, _e) -> SSet.singleton (var_of_left_state_value left)
+        (fv_expr_updated e) match_handler_l
+  | Ofor(_is_to, _n, e1, e2, i3) ->
+      SSet.union (fv_expr_updated e1)
+        (SSet.union (fv_expr_updated e2) (fv_updated i3))
+  | Owhile(e1, i2) -> SSet.union (fv_expr_updated e1) (fv_updated i2)
+  | Oassign(x, e) -> SSet.add (var_of_left_value x) (fv_expr_updated e)
+  | Oassign_state(left, e) ->
+      SSet.add (var_of_left_state_value left) (fv_expr_updated e)
   | Osequence l ->
       List.fold_left (fun acc i -> SSet.union (fv_updated i) acc) SSet.empty l
   | Oexp(e) -> fv_expr_updated e
-  | Oif(_e, i1, None) -> fv_updated i1
-  | Oif(_e, i1, Some i2) -> SSet.union (fv_updated i1) (fv_updated i2)
+  | Oif(e, i1, None) -> SSet.union (fv_expr_updated e) (fv_updated i1)
+  | Oif(e, i1, Some i2) ->
+      SSet.union (fv_expr_updated e)
+        (SSet.union (fv_updated i1) (fv_updated i2))
   end
 
 and fv_expr_updated expr =
@@ -117,7 +149,14 @@ and fv_expr_updated expr =
       List.fold_left (fun acc e -> SSet.union (fv_expr_updated e) acc)
         (fv_expr_updated e) e_list
   | Omethodcall m ->
-      SSet.singleton self.name (* XXX TODO XXX *)
+      let fvs =
+        List.fold_left (fun acc e -> SSet.union (fv_expr_updated e) acc)
+          (SSet.singleton self.name) m.met_args
+      in
+      begin match split_proba_expr (Otuple m.met_args) with
+      | None -> fvs
+      | Some (prob, _) -> SSet.add prob.name fvs
+      end
   | Orecord(r) ->
       List.fold_left (fun acc (_, e) -> SSet.union (fv_expr_updated e) acc)
         SSet.empty r
@@ -310,73 +349,115 @@ and method_call ctx state_vars m =
       | "step" ->
           begin match f, m.met_args with
           | "sample", [ e ] ->
-              let prob = fresh "_prob" in
-              let d = fresh "_d" in
-              Elet(unpack state_vars (ptuple [pvar prob; pvar d]),
-                   expression ctx state_vars e,
-                   mk_expr (pack state_vars
-                              (Esample(prob.name, evar d))))
+              begin match split_proba_expr e with
+              | None -> assert false
+              | Some (prob, e) ->
+                  let state_vars' = SSet.remove prob.name state_vars in
+                  let x = fresh "_x" in
+                  let d = fresh "_d" in
+                  Elet (unpack state_vars' (ptuple [ pvar prob; pvar x ]),
+                        mk_expr (Elet (unpack state_vars (pvar d),
+                                       expression ctx state_vars e,
+                                       mk_expr
+                                         (pack state_vars'
+                                            (Esample(prob.name, evar d))))),
+                        mk_expr (pack state_vars (evar x).expr))
+              end
           | "observe", [ e ] ->
-              let prob = fresh "_prob" in
-              let d = fresh "_d" in
-              let o = fresh "_o" in
-              Elet(unpack state_vars (ptuple [pvar prob;
-                                              ptuple[ pvar d; pvar o]]),
-                   expression ctx state_vars e,
-                   mk_expr (pack state_vars
-                              (Eobserve(prob.name, evar d, evar o))))
+              begin match split_proba_expr e with
+              | None -> assert false
+              | Some (prob, e) ->
+                  let state_vars' = SSet.remove prob.name state_vars in
+                  let x = fresh "_x" in
+                  let d = fresh "_d" in
+                  let o = fresh "_o" in
+                  Elet(unpack state_vars' (ptuple [pvar prob; pvar x]),
+                       mk_expr
+                         (Elet (unpack state_vars (ptuple [ pvar d; pvar o]),
+                                expression ctx state_vars e,
+                                mk_expr
+                                  (pack state_vars'
+                                     (Eobserve(prob.name, evar d, evar o))))),
+                       mk_expr (pack state_vars (evar x).expr))
+              end
           | "factor", [ e ] ->
-              let prob = fresh "_prob" in
-              let x = fresh "_x" in
-              Elet(unpack state_vars (ptuple [pvar prob; pvar x]),
-                   expression ctx state_vars e,
-                   mk_expr (pack state_vars
-                              (Efactor(prob.name, evar x))))
-
+              begin match split_proba_expr e with
+              | None -> assert false
+              | Some (prob, e) ->
+                  let state_vars' = SSet.remove prob.name state_vars in
+                  let x = fresh "_x" in
+                  let f = fresh "_f" in
+                  Elet(unpack state_vars' (ptuple [pvar prob; pvar x]),
+                       mk_expr
+                         (Elet (unpack state_vars (pvar f),
+                                expression ctx state_vars e,
+                                mk_expr
+                                  (pack state_vars'
+                                     (Efactor(prob.name, evar f))))),
+                       mk_expr (pack state_vars (evar x).expr))
+              end
           | _ -> assert false
           end
       | _ -> assert false
       end
-  | _ -> standard_method_call ctx m
+  | _ -> standard_method_call ctx state_vars m
   end
 
-and standard_method_call ctx m =
+and standard_method_call ctx state_vars m =
   let instance =
     match m.met_instance with
     | None -> self_expr
     | Some (i, []) -> mk_expr (Efield (self_expr, ident_name i))
     | Some (i, _) -> not_yet_implemented "instance array"
   in
-  let x_e_list = List.map (fun e -> (fresh "_x", e)) m.met_args in
-  let args = etuple (List.map (fun (x, _) ->  evar x) x_e_list) in
-  let k =
+  let o_prob, args =
+    match split_proba_expr (Otuple m.met_args) with
+    | None -> None, Otuple m.met_args
+    | Some (prob, args) ->
+        Some prob, args
+  in
+  let call =
     match m.met_name with
     | "reset" -> Ecall_reset instance
-    | "step" -> Ecall_step (instance, args)
+    | "step" ->
+        let args_var = fresh "_args" in
+        let state_vars' = fv_expr_updated args in
+        let args' =
+          match o_prob with
+          | None -> evar args_var
+          | Some prob -> etuple [evar prob; evar args_var]
+        in
+        Elet(unpack state_vars' (pvar args_var),
+             expression ctx state_vars' args,
+             mk_expr (pack state_vars' (Ecall_step (instance, args'))))
     | "copy" -> not_yet_implemented "copy"
     | _ -> assert false
   in
   let call =
-    List.fold_left
-      (fun k (x, e) ->
-         let state_vars = fv_expr_updated e in
-         Elet(unpack state_vars (pvar x),
-              expression ctx state_vars e,
-              mk_expr k))
-      k x_e_list
+    match m.met_instance with
+    | None -> call
+    | Some (i, []) ->
+        let state = fresh ("_" ^ self.name ^ "_" ^ (ident_name i)) in
+        let res = fresh ("_res_" ^ (ident_name i)) in
+        let self_update =
+          mk_expr (Erecord ([ident_name i, evar state], Some self_expr))
+        in
+        Elet (ptuple [pvar state; pvar res],
+              mk_expr call,
+              etuple [self_update; evar res])
+    | Some (i, _) -> not_yet_implemented "instance array"
   in
-  match m.met_instance with
-  | None -> call
-  | Some (i, []) ->
-      let state = fresh ("_" ^ self.name ^ "_" ^ (ident_name i)) in
-      let res = fresh ("_res_" ^ (ident_name i)) in
-      let self_update =
-        mk_expr (Erecord ([ident_name i, evar state], Some self_expr))
-      in
-      Elet (mk_patt (Ptuple [pvar state; pvar res]),
+  match o_prob with
+  | None ->
+      let res = fresh "_res" in
+      Elet (ptuple [ self_patt; pvar res ],
             mk_expr call,
-            mk_expr (Etuple [self_update; evar res]))
-  | Some (i, _) -> not_yet_implemented "instance array"
+            mk_expr (pack state_vars (evar res).expr))
+  | Some prob ->
+      let res = fresh "_res" in
+      Elet (ptuple [ self_patt; ptuple [ pvar prob; pvar res ]],
+            mk_expr call,
+            mk_expr (pack state_vars (evar res).expr))
 
 and instruction ctx state_vars i =
   inst ctx state_vars (add_return i)
@@ -435,16 +516,14 @@ and inst_desc ctx state_vars i =
   | Oif(e, i1, o_i2) ->
       let i2 = Option.value ~default:(Oexp(Oconst Ovoid)) o_i2 in
       let updated_e = fv_expr_updated e in
+      assert (SSet.is_empty updated_e); (* otherwise: XXX TODO XXX *)
       let updated_i = SSet.union (fv_updated i1) (fv_updated i2) in
-      let if_ =
-        let b = fresh "_b" in
-        Elet (unpack updated_e (pvar b),
-              expression ctx updated_e e,
-              mk_expr (Eif (evar b, inst ctx updated_i i1,
-                            inst ctx updated_i i2)))
-      in
+      assert (SSet.subset updated_i state_vars);
       let res = fresh "_res_if" in
-      Elet (unpack updated_i (pvar res), mk_expr if_,
+      Elet (unpack updated_i (pvar res),
+            mk_expr (Eif (expression ctx SSet.empty e,
+                          inst ctx updated_i i1,
+                          inst ctx updated_i i2)),
             mk_expr (pack state_vars (evar res).expr))
   | Omatch(e, match_handler_l) ->
       let updated_e = fv_expr_updated e in
@@ -636,10 +715,28 @@ let machine_init ma m_reset =
 
 let machine_method ma { me_name = me_name; me_params = pat_list;
                                     me_body = i; me_typ = _ty } =
-  let args = ptuple [ self_patt; ptuple (List.map pattern pat_list) ] in
-  let state_vars = SSet.add self.name (fv_updated i) in
-  let body = instruction (Some ma) state_vars i in
-  (args, body)
+  let state_vars = SSet.singleton self.name in
+  begin match split_proba_patt pat_list with
+  | None ->
+      assert (SSet.subset (fv_updated i) state_vars);
+      let args = ptuple [ self_patt; (ptuple (List.map pattern pat_list)) ] in
+      let body = instruction (Some ma) state_vars i in
+      args, body
+  | Some (prob, pat_list) ->
+      let state_vars = SSet.add prob.name state_vars in
+      assert (SSet.subset (fv_updated i) state_vars);
+      let args =
+        ptuple [ self_patt;
+                 ptuple (pvar prob :: List.map pattern pat_list) ] in
+      let o = fresh "_o" in
+      let body =
+        mk_expr (Elet (unpack state_vars (pvar o),
+                       instruction (Some ma) state_vars i,
+                       etuple [ self_expr;
+                                etuple [ evar prob; evar o ] ]))
+      in
+      (args, body)
+  end
 
 let machine name m =
   let m_step = List.find (fun me -> me.me_name = Oaux.step) m.ma_methods in
