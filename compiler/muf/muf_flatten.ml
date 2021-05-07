@@ -92,7 +92,7 @@ let rec flatten :
             | _ -> acc, oe
             end
           in
-          acc, Erecord (l_se, oe)
+          acc, Erecord (List.rev l_se, oe)
         | Elet(p, e1, e2) ->
           let acc, e1 = flatten acc e1 in
           let acc = (p, e1)::acc in
