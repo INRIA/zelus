@@ -86,6 +86,7 @@ let rec compile_expr:
     | Efield (e, x) ->
         Exp.field (compile_expr e) (with_loc (Longident.Lident x))
     | Eapp (e1, e2) -> Exp.apply (compile_expr e1) [Nolabel, compile_expr e2]
+    | Efun (p, e) -> Exp.fun_ Nolabel None (compile_patt p) (compile_expr e)
     | Eif (e, e1, e2) ->
         Exp.ifthenelse (compile_expr e)
           (compile_expr e1) (Some (compile_expr e2))

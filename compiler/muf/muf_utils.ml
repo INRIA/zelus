@@ -28,6 +28,7 @@ let rec fv_expr expr =
         (Option.fold ~none:SSet.empty ~some:fv_expr oe) l
   | Efield (e, _) -> fv_expr e
   | Eapp (e1, e2) -> SSet.union (fv_expr e1) (fv_expr e2)
+  | Efun (p, e) -> SSet.diff (fv_expr e) (fv_patt p)
   | Eif (e, e1, e2) ->
       SSet.union (fv_expr e) (SSet.union (fv_expr e1) (fv_expr e2))
   | Ematch (e, cases) ->
@@ -57,6 +58,7 @@ let is_value expr =
     | Erecord (_, None)  | Ematch (_, _)
     | Ecall_init _ | Ecall_step (_, _) | Ecall_reset _ | Efactor (_, _) ->
         b && fold_expr_desc (fun b _ -> b) is_value b expr.expr
+    | Efun _ -> true
   in
   is_value true expr
 
@@ -70,6 +72,7 @@ let is_pure expr =
     | Efield (_, _) | Eif (_, _, _) | Ematch (_, _) | Elet (_, _, _)
     | Esequence (_, _)  ->
         b && fold_expr_desc (fun b _ -> b) is_pure b expr.expr
+    | Efun _ -> true
   in
   is_pure true expr
 

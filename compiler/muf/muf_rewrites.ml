@@ -20,6 +20,7 @@ let subst_no_capture =
         let desc = map_expr_desc (fun p -> p) (subst fv1 x expr1) expr2.expr in
         { expr2 with expr = desc }
     | Ematch (_, _), _  -> raise Stop (* XXX TODO XXX *)
+    | Efun (_, _), _ -> raise Stop (* XXX TODO XXX *)
     | Esample (prob, e), Evar { name = prob' } ->
         let prob = if x.name = prob then prob' else prob in
         { expr2 with expr = Esample(prob, subst fv1 x expr1 e) }
@@ -154,6 +155,7 @@ and static_fst expr =
   | Esequence (e1, e2) ->
       Option.map (fun e2 -> { expr with expr = Esequence (e1, e2) })
         (static_fst e2)
+  | Efun _ -> None
   | Ecall_init _ -> None
   | Ecall_step _ -> None
   | Ecall_reset _ -> None
