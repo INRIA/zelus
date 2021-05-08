@@ -51,6 +51,16 @@ end
 let rec compile_expr :
   type a. formatter -> a expression -> unit = begin
   fun ff e -> 
+    let compile_app expr = 
+      begin match expr with
+      | Eapp(e1, e2) ->
+        begin match e2.expr with
+        | Etuple _ -> fprintf ff "%a%a" compile_expr e1 compile_expr e2
+        | _ -> fprintf ff "%a(%a)" compile_expr e1 compile_expr e2
+        end
+      | _ -> assert false
+      end
+    in
     begin match e.expr with
     | Econst c -> fprintf ff "%a" compile_const c
     | Evar x -> fprintf ff "%s" (String.uncapitalize_ascii x.name)
@@ -72,26 +82,73 @@ let rec compile_expr :
       end
     | Efield (e, x) -> 
       fprintf ff "%a[\"%s\"]" compile_expr e x
-    | Eapp ({ expr = Eapp ({ expr = Evar {name = op}}, e1) }, e2)
+    | Eapp ({ expr = Eapp ({ expr = Evar {name = op}}, e1) }, e2) (* Binary operator : e1 op e2 *)
       when op.[0] == '(' -> (* Infix operator *)
-        let op_str = (String.sub op 1 ((String.index op ')')-1)) in (* Raises Not_found if bad parentheses *)
+        let op_str = String.trim (String.sub op 1 ((String.index op ')')-1)) in (* Raises Not_found error if the closing parenthesis is missing *)
         let op_str =
-          begin match String.trim op_str with
-          | "+." -> "+" (* Ocaml float operator -> Python operator*)
+          begin match op_str with
+       (* | muF operator -> Python operator *)
+          (* Integer arithmetic *)
+          | "/" -> "//"
+          (* Floating-point arithmetic *)
+          | "+." -> "+" 
           | "-." -> "-"
           | "/." -> "/"
           | "*." -> "*"
+          (* Comparisons *)
           | "=" -> "=="
+          | "<>" -> "!="
           | "==" -> "is"
-          | other -> other
+          | "!=" -> "is not"
+          (* Bitwise operations *)
+          | "asr" -> ">>"
+          | "lsl" -> "<<"
+          | "land" -> "&"
+          | "lxor" -> "^"
+          | "lor" -> "|"
+          (* Boolean operations *)
+          | "&" 
+          | "&&" -> "and"
+          | "||" -> "or"
+          (* String operations *)
+          | "^" -> "+"
+          (* List operations *)
+          | "@" -> "+"
+          (* Not rewritten operators *)
+          | "+"
+          | "-"
+          | "*" 
+          | ">"
+          | ">="
+          | "<"
+          | "<="
+          | "**" -> op_str
+          (* Unknown operator, e.g. might be a name surrounded by unnecessary parentheses *)
+          | _ -> ""
           end
         in
-        fprintf ff "(%a %s %a)" compile_expr e1 op_str compile_expr e2
-    | Eapp (e1, e2) ->
-        begin match e2.expr with
-        | Etuple _ -> fprintf ff "%a%a" compile_expr e1 compile_expr e2
-        | _ -> fprintf ff "%a(%a)" compile_expr e1 compile_expr e2
-        end
+        if op_str = "" then 
+          compile_app e.expr 
+        else
+          fprintf ff "(%a %s %a)" compile_expr e1 op_str compile_expr e2
+    | Eapp ({ expr = Evar {name = op}}, e1) (* Unary operator : op e1*)
+      when op.[0] == '(' -> 
+      let op_str = String.trim (String.sub op 1 ((String.index op ')')-1)) in (* Raises Not_found error if the closing parenthesis is missing  *)
+        let op_str =
+          begin match op_str with
+          | "~-" -> "-"
+          | "~-." -> "-"
+          | "-." -> "-"
+          | "lnot" -> "~"
+          | "not" -> op_str
+          | _ -> ""
+          end
+        in
+        if op_str = "" then 
+          compile_app e.expr 
+        else 
+          fprintf ff "(%s %a)"op_str compile_expr e1
+    | Eapp (e1, e2) -> compile_app e.expr
     | Eif (e, { expr=Eapp({expr=Evar{name=n1}}, args1) },
               { expr=Eapp({expr=Evar{name=n2}}, args2) }) 
       when args1 = args2 ->
