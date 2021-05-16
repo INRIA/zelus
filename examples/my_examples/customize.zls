@@ -8,8 +8,10 @@ let y'0 = 0.0
 let hybrid main () = () where
   rec der y  =  y' init y0
   and der y' = -.w*.w*.y init y'0
-  (*and move_robot()*)
-  and trigger = assert(y) and
+  and trigger = up(y) and
   present trigger -> local cpt in
     do  cpt = 0 fby cpt + 1
-    and  () = print_endline (string_of_float last y) done
+    and () = move_robot(false)
+    and  () = print_endline (string_of_float last y) 
+    done
+   
