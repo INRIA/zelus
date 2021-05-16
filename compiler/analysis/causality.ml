@@ -398,6 +398,15 @@ and operator env op c_free ty e_list =
       (* [up(e)] does not depend instantaneously of itself *)
       exp_less_than_on_c env c_free e (Causal.new_var ());
       Causal.skeleton_on_c c_res ty
+  (*added here*)
+  | Eassert, [e] ->
+       exp_less_than_on_c env c_free e (Causal.new_var ());
+       Causal.skeleton_on_c c_res ty
+  (*added here*)
+  | Emove, [e] ->
+      print_endline("Causality");
+      exp_less_than_on_c env c_free e (Causal.new_var ());
+      Causal.skeleton_on_c c_res ty 
   | Einitial, [] ->
       Causal.skeleton_on_c c_res ty 
   | (Etest | Edisc | Ehorizon), [e] ->

@@ -254,6 +254,10 @@ and exp prio ff e =
   | Oifthenelse(e, e1, e2) ->
       fprintf ff "@[<hv>if %a@ @[<hv 2>then@ %a@]@ @[<hv 2>else@ %a@]@]"
         (exp 0) e (exp prio_e) e1 (exp prio_e) e2
+  (*added here*)
+  | Omove(e) ->
+      print_endline("Omove compilation");
+      fprintf ff "print_endline(\"robot is moving\")"
   | Oinst(i) -> inst prio ff i
   end;
   if prio_e < prio then fprintf ff ")"

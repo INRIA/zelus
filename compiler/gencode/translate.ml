@@ -467,6 +467,15 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      (* implement the zero-crossing up(x) by up(if x >=0 then 1 else -1) *)
      let e = if !Zmisc.zsign then Zaux.sgn e else e in 
      exp env loop_path code e
+  (*added here*)
+  | Zelus.Eop(Zelus.Eassert, [e]) ->
+     let e = if !Zmisc.zsign then Zaux.sgn e else e in
+     exp env loop_path code e
+  (*added here*)
+  | Zelus.Eop(Zelus.Emove, [e]) ->
+     print_endline("Translate");
+     let e, code = exp env loop_path code e in
+     Omove(e), code
   | Zelus.Eop(Zelus.Ehorizon, [e]) ->
      exp env loop_path code e
   | Zelus.Eop(Zelus.Eifthenelse, [e1; e2; e3]) ->

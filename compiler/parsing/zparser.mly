@@ -461,9 +461,9 @@ equation_desc:
   | AUTOMATON opt_bar a = automaton_handlers(equation_empty_list)
     INIT s = state
     { EQautomaton(List.rev a, Some(s)) }
-  (*added here*)
-  | R_MOVE e = expression 
-     {EQr_move(Evoid)}
+  (*added here
+  | R_MOVE e = seq_expression 
+     {EQr_move(e)} *)
   (*added here
   | ASSERT e = seq_expression
      {EQassert(e)} *)
@@ -680,6 +680,9 @@ scondpat_desc :
   (*added here*)
   | ASSERT e = simple_expression
       { Econdexp (make (Eop(Eassert, [e])) $startpos $endpos) }
+  (*added here*)
+  | R_MOVE e = simple_expression
+      { print_endline("Parser"); Econdexp (make (Eop(Emove, [e])) $startpos $endpos)}
   | scpat1 = scondpat AMPERSAND scpat2 = scondpat
       { Econdand(scpat1, scpat2) }
   | scpat1 = scondpat BAR scpat2 = scondpat
@@ -953,6 +956,9 @@ expression_desc:
   (*added here*)
   | ASSERT e = expression
       { Eop(Eassert, [e]) }
+  (*added here*)
+  | R_MOVE e = expression
+      { Eop(Emove, [e])}
   | TEST e = expression
       { Eop(Etest, [e]) }
   | DISC e = expression
@@ -1009,6 +1015,9 @@ expression_desc:
   (*added here*)
   | ASSUME e = expression 
   	{Eassume(e)}
+  (*added here
+  | R_MOVE e = expression
+        {Emove(e)}*)
   | AUTOMATON opt_bar a = automaton_handlers(seq_expression)
       { Eautomaton(List.rev a, None) }
   | AUTOMATON opt_bar a = automaton_handlers(seq_expression) INIT s = state

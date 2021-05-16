@@ -323,6 +323,10 @@ and operator ff op e_list =
              expression e1 expression i expression e2
   | Eatomic, [e] ->
       fprintf ff "atomic %a" expression e
+  (*added here*)
+  | Emove, [e] ->  
+      fprintf ff "move_robot( 1.0 )" 
+  (*DANGEROUS: CHANGE IT BACK TO ASSERT FALSE*)
   | _ -> assert false
 
 and equation ff ({ eq_desc = desc } as eq) =

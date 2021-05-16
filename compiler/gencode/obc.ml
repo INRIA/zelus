@@ -49,6 +49,8 @@ type exp =
   | Orecord_with of exp * (Lident.t * exp) list (* record with copy *)
   | Otypeconstraint of exp * type_expression (* type constraint *)
   | Oifthenelse of exp * exp * exp
+  (*added here*)
+  | Omove of exp
   | Omethodcall of method_call			       
   | Oinst of inst
                           

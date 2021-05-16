@@ -807,9 +807,16 @@ and operator expected_k h loc op e_list =
         Tdiscrete(true), [ty; ty], ty
     | (Eup | Ehorizon) ->
         Tcont, [Initial.typ_float], Initial.typ_zero
+    (*added here*)
+    | (Eassert | Ehorizon) ->
+        Tcont, [Initial.typ_float], Initial.typ_zero
+    (*added here*)
+    | Emove ->
+        let ty = new_var () in
+        Tdiscrete(true), [Initial.typ_bool], ty
     | Etest ->
         let ty = new_var () in
-        Tany, [Initial.typ_signal ty], Initial.typ_bool
+        Tany, [Initial.typ_bool], Initial.typ_signal ty
     | Edisc ->
         let ty = new_var () in
         Tcont, [ty], Initial.typ_zero

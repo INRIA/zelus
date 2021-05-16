@@ -114,6 +114,8 @@ and desc =
   | Eperiod of exp period
   (*added here*)
   | Eassume of exp
+  (*added here
+  | Emove of exp*)
   | Eblock of eq list block * exp
 
 and is_rec = bool
@@ -125,6 +127,8 @@ and op =
   | Eup (* zero-crossing detection *)
   (*added here*)
   | Eassert  (*custom keyword*)
+  (*added here*)
+  | Emove (*custom keyword*)
   | Einitial (* true at the very first instant *)
   | Edisc (* discontinuity of a flow *)
   | Ehorizon (* generate an event at a given horizon *)
@@ -185,6 +189,8 @@ and eqdesc =
   | EQpluseq of Zident.t * exp
   (* [n += e] *)
   | EQautomaton of is_weak * state_handler list * state_exp option
+  (*added here
+  | EQr_move of exp*)
   | EQpresent of eq list block present_handler list * eq list block option
   | EQmatch of total ref * exp * eq list block match_handler list
   | EQreset of eq list * exp

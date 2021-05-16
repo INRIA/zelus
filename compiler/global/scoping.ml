@@ -236,6 +236,8 @@ let operator loc env = function
   | Eup -> Zelus.Eup
   (*added here*)
   | Eassert -> Zelus.Eassert
+  (*added here*)
+  | Emove -> Zelus.Emove
   | Einitial -> Zelus.Einitial
   | Edisc -> Zelus.Edisc
   | Etest -> Zelus.Etest
@@ -323,6 +325,8 @@ and build_equation defnames eq =
 	  match b2_opt with
 	  | None -> acc | Some(b2) -> snd (build_block_equation_list acc b2) in
 	acc
+    (*added here
+    | Eassert(e) -> ()*)
     | EQpresent(p_h_list, b_opt) ->
         let defnames = 
 	  List.fold_left 
@@ -333,8 +337,8 @@ and build_equation defnames eq =
 	  defnames b_opt
     | EQreset(eq_list, e) ->
         build_equation_list defnames eq_list
-    (*added here*)
-    | EQr_move(e) -> defnames
+    (*added here
+    | EQr_move(e)*) 
     (*added here
     | EQassert(e) -> defnames*) 
     | EQand(eq_list) | EQbefore(eq_list) ->
@@ -609,7 +613,10 @@ let rec expression env { desc = desc; loc = loc } =
        Zelus.Eperiod(period env p)
     (*added here*)
     | Eassume(e) -> 
-       Zelus.Eassume(expression env e)   	
+       Zelus.Eassume(expression env e)   
+    (*added here
+    | Emove(e) ->
+       Zelus.Emove(expression env e)	*)
     (* control structures are turned into equations *)
     | Ematch(e1, handlers) ->
         (* match e with P -> e1 => 
@@ -750,8 +757,8 @@ and equation env_pat env eq_list { desc = desc; loc = loc } =
       (Zelus.EQmatch(ref false, expression env e, 
 		     match_handler_block_eq_list env_pat env m_h_list))
     :: eq_list
-  (*added here*)
-  | EQr_move(e) -> eq_list
+  (*added here
+  | EQr_move(e) -> eq_list*)
   (*added here
   | EQassert(e) -> *)                   
   | EQifthenelse(e, b1, b2_opt) ->

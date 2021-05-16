@@ -357,7 +357,13 @@ and operator is_continuous env op ty e_list =
      exp_less_than_on_i is_continuous env e2 i;
      exp_less_than_on_i is_continuous env e3 i;
      Init.skeleton_on_i i ty
-  | (Einitial | Eup | Etest | Edisc
+  (*added here*)
+  | Emove, [e] ->
+     print_endline("Initialization");
+     let i = Init.new_var () in
+     exp_less_than_on_i is_continuous env e i;
+     Init.skeleton_on_i i ty;
+  | (Einitial | Eup |(*added here*) Eassert | Etest | Edisc
     | Eaccess | Eupdate | Eslice _ | Econcat), e_list ->
       (* here, we force the argument to be always initialized *)
       (* this is necessary for [up(x)] and access functions to arrays; not *)
