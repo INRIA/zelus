@@ -1,4 +1,4 @@
 *.cmi
 *.cmo
-*.txt
+*.ml
 customize

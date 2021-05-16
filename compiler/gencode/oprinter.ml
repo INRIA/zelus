@@ -29,6 +29,7 @@ let rec priority_exp = function
   | Otypeconstraint _ | Otuple _ -> 3
   | Oconstr1 _ | Oapp _ | Omethodcall _
     | Ovec _ | Oupdate _ | Oslice _ | Oconcat _ -> 2
+  | (*added here*) Omove _ -> 0 
   | Oifthenelse _  -> 0 | Oinst i -> priority_inst i
 
 and priority_inst = function
@@ -250,6 +251,10 @@ and exp prio ff e =
   | Oifthenelse(e, e1, e2) ->
      fprintf ff "@[<hv>if %a@ @[<hv 2>then@ %a@]@ @[<hv 2>else@ %a@]@]"
              (exp 0) e (exp 1) e1 (exp 1) e2
+  (*added here*)
+  | Omove (e) -> 
+      print_endline("Omove printing");
+      fprintf ff "print_endline(\"robot is moving\")"
   | Oinst(i) -> inst prio ff i
   end;
   if prio_e < prio then fprintf ff ")"

@@ -117,6 +117,8 @@ and desc =
   | Eseq of exp * exp
   (*added here*)
   | Eassume of exp
+  (*added here
+  | Emove of exp*)
   | Eperiod of period
   | Ematch of exp * exp match_handler list
   | Epresent of exp present_handler list * exp default option
@@ -132,7 +134,7 @@ and 'a default =
   | Init of 'a | Default of 'a
 
 and op =
-  | Efby | Eunarypre | Eifthenelse | Eminusgreater 
+  | Efby | Eunarypre | Eifthenelse | Eminusgreater | (*added here*)Emove
   | Eup | (*here*)Eassert| Einitial | Edisc | Etest | Eaccess | Eupdate
   | Eslice of size * size | Econcat | Eatomic
 
@@ -187,8 +189,8 @@ and eqdesc =
   | EQpluseq of name * exp
     (* [n += e] *)
   | EQautomaton of eq list state_handler list * state_exp option
-  (*added here*)
-  | EQr_move of immediate
+  (*added here 
+  | EQr_move of exp *)
   (*added here*)
   (*| EQassert of exp  *)
   | EQpresent of eq list block present_handler list * eq list block option

@@ -111,9 +111,10 @@ and size renaming ({ desc = desc } as s) =
 (** Rename an operator *)
 let operator renaming op =
   match op with
-  | Eunarypre | Efby | Eminusgreater | Eifthenelse
-  | Eup | Etest | Edisc | Ehorizon | Einitial | Eaccess
+  | Eunarypre | Efby | Eminusgreater | Eifthenelse (*|added here Emove*)
+  | Eup |(*added here*) Eassert | Etest | Edisc | Ehorizon | Einitial | Eaccess
   | Eupdate | Econcat | Eatomic -> op
+  | Emove -> print_endline("Inline"); op
   | Eslice(s1, s2) -> Eslice(size renaming s1, size renaming s2)
   		       
 (** Renaming of patterns *)
