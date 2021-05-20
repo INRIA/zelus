@@ -783,7 +783,7 @@ let type_decl tdecl =
         (List.map
            (function
              | Oconstr0decl x -> ({ name = x }, None)
-             | Oconstr1decl (x, l) -> ({ name = x }, None))
+             | Oconstr1decl (x, l) -> ({ name = x }, Some (List.map type_expression l) ))
            l)
   | Orecord_type l ->
       TKrecord (List.map (fun (x,t) -> (x, type_expression t)) l)
