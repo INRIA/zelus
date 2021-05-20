@@ -1,5 +1,9 @@
 include ../color
 
+ZLLIB = ../../_build/install/default/lib/zelus
+ZELUC = ../../_build/install/default/bin/zeluc
+OCAMLC = ocamlc
+
 ALL := $(shell ls t*.zls)
 NTESTS := $(shell ls t*.zls | wc -l)
 HALFLINE = "------------------------------"

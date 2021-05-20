@@ -1,0 +1,6 @@
+let node f(r, c) =
+  let rec
+      reset init x = r every c
+  and
+      o = 0 fby o + last x in
+  o

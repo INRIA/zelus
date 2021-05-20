@@ -133,13 +133,20 @@ The build automatically detects if sundialsml is installed and updates the libra
 
 To run all the tests:
 ```
-dune runtest
+cd test
+make
 ```
 
 Tests are split into 3 categories: `good`, `bad`, and `run`.
-To launch a single subset:
+To launch a single subset (e.g., `good`):
 ```
-dune run test/good
+cd good
+make
+```
+
+To clean generated files:
+```
+make clean
 ```
 
 ## Citing Zelus
