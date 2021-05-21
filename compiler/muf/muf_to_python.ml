@@ -51,13 +51,15 @@ end
 let rec compile_expr :
   type a. formatter -> a expression -> unit = begin
   fun ff e -> 
+    let compile_tuple_args ff e =
+      begin match e.expr with
+      | Etuple _ -> fprintf ff "%a" compile_expr e
+      | _ -> fprintf ff "(%a)"compile_expr e
+      end
+    in
     let compile_app expr = 
       begin match expr with
-      | Eapp(e1, e2) ->
-        begin match e2.expr with
-        | Etuple _ -> fprintf ff "%a%a" compile_expr e1 compile_expr e2
-        | _ -> fprintf ff "%a(%a)" compile_expr e1 compile_expr e2
-        end
+      | Eapp(e1, e2) -> fprintf ff "%a%a" compile_expr e1 compile_tuple_args e2
       | _ -> assert false
       end
     in
@@ -173,10 +175,15 @@ let rec compile_expr :
         fprintf ff "reset (%a)" compile_expr e
     | Ecall_step (e1, e2) -> 
         fprintf ff "step (%a, %a)" compile_expr e1 compile_expr e2
+    | Econstr ({name=n}, opt_e) -> 
+      fprintf ff "%s" n;
+      begin match opt_e with 
+      | None -> fprintf ff "()"
+      | Some e -> fprintf ff "%a" compile_tuple_args e
+      end
     | Efun _
     | Elet _
-    | Ematch _ 
-    | Econstr _ -> assert false
+    | Ematch _ -> assert false
     end
 end
 
@@ -233,6 +240,30 @@ let compile_node :
     end
 end
 
+let compile_type_variant : 
+formatter -> string -> (identifier * type_expression list option) -> int -> int = begin
+  fun ff n ({name=n2}, opt) cnt ->
+    let _ = 
+      begin match opt with 
+      | None -> fprintf ff "%s = lambda : %s(%d)\n" n2 n cnt
+      | Some l -> assert false (* TODO *)
+      end
+    in cnt+1
+  end
+
+let compile_type :
+  formatter -> (identifier * string list * type_declaration) -> unit = begin
+  fun ff ({name=n}, l, t) ->
+    begin match t with
+    | TKvariant_type l ->
+      fprintf ff "@register_pytree_node_dataclass@,@[<v 4>class %s():@,_kind : int@,__eq__ = lambda self, x : (isinstance(x, type(self)) and x._kind == self._kind)@]@," n;
+      let _ = List.fold_right (compile_type_variant ff n) l 0 in ()
+    | TKabbrev _
+    | TKrecord _ 
+    | TKabstract_type -> assert false (* TODO *)
+    end
+  end
+
 let compile_decl : type a. formatter -> a declaration -> unit = begin
   fun ff d ->
     begin match d.decl with
@@ -255,7 +286,7 @@ let compile_decl : type a. formatter -> a declaration -> unit = begin
           compile_patt p 
           compile_return e
     | Dnode (f, p, n) -> compile_node ff f p n
-    | Dtype _ -> ()
+    | Dtype l -> List.iter (compile_type ff) l
     | Dopen m -> fprintf ff "import %s" (String.uncapitalize_ascii m)
     end
 end
@@ -271,9 +302,10 @@ let compile_program : formatter -> unit program -> unit = begin
     in
     let p = Muf_flatten.compile_program p in
     fprintf ff "@[<v 0>";
-    fprintf ff  "from muflib import Node, step, reset, init@,";
+    fprintf ff  "from muflib import Node, step, reset, init, register_pytree_node_dataclass@,";
     fprintf ff  "from jax.lax import cond@,";
-    fprintf ff  "from jax.tree_util import register_pytree_node_class@,@,";
+    fprintf ff  "from jax.tree_util import register_pytree_node_class@,";
+    fprintf ff  "from dataclasses import dataclass@,@,";
     List.iter (compile_decl ff) p;
     fprintf ff "@,@]@."
 end

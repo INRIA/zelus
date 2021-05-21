@@ -100,7 +100,7 @@ let rec rename_expr :
         | Ecall_step _
         | Ecall_reset _
         | Etuple _
-        | Econstr _
+        | Econstr _ (* Econstr (identifier, _) : the identifier here is a constructor name *)
         | Efun _
         | Erecord _ -> 
           map_expr_desc (fun p -> p) rename e.expr

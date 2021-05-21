@@ -71,6 +71,13 @@ let rec flatten :
         | Einfer (e, id) -> 
           let acc, e = flatten acc e in
           acc, Einfer(e, id)
+        | Econstr(id, opt_e) -> 
+          begin match opt_e with
+          | None -> acc, e.expr
+          | Some e -> 
+            let acc, e = flatten acc e in 
+            acc, Econstr(id, Some e)
+          end
         | Etuple le -> 
           let acc, le = 
             List.fold_left (fun (acc, l) x -> let acc, e = flatten acc x in (acc, e::l)) 
@@ -99,8 +106,7 @@ let rec flatten :
           let acc, e2 = flatten acc e2 in 
           acc, e2.expr
         | Efun _ 
-        | Ematch _ 
-        | Econstr _ -> assert false
+        | Ematch _ -> assert false
         end
       in acc, {e with expr=expr }
     end
