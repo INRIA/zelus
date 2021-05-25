@@ -178,7 +178,7 @@ let rec compile_expr :
     | Econstr ({name=n}, opt_e) -> 
       fprintf ff "%s" n;
       begin match opt_e with 
-      | None -> fprintf ff "()"
+      | None -> ()
       | Some e -> fprintf ff "%a" compile_tuple_args e
       end
     | Efun _
@@ -245,7 +245,7 @@ formatter -> string -> (identifier * type_expression list option) -> int -> int 
   fun ff n ({name=n2}, opt) cnt ->
     let _ = 
       begin match opt with 
-      | None -> fprintf ff "%s = lambda : %s(%d)\n" n2 n cnt
+      | None -> fprintf ff "%s = %s(%d)\n" n2 n cnt
       | Some l -> assert false (* TODO *)
       end
     in cnt+1
@@ -256,7 +256,7 @@ let compile_type :
   fun ff ({name=n}, l, t) ->
     begin match t with
     | TKvariant_type l ->
-      fprintf ff "@register_pytree_node_dataclass@,@[<v 4>class %s():@,_kind : int@,__eq__ = lambda self, x : (isinstance(x, type(self)) and x._kind == self._kind)@]@," n;
+      fprintf ff "@register_pytree_node_dataclass@,@[<v 4>class %s(J_dataclass):@,pass@]@," n;
       let _ = List.fold_right (compile_type_variant ff n) l 0 in ()
     | TKabbrev _
     | TKrecord _ 
@@ -302,10 +302,9 @@ let compile_program : formatter -> unit program -> unit = begin
     in
     let p = Muf_flatten.compile_program p in
     fprintf ff "@[<v 0>";
-    fprintf ff  "from muflib import Node, step, reset, init, register_pytree_node_dataclass@,";
+    fprintf ff  "from muflib import Node, step, reset, init, register_pytree_node_dataclass, J_dataclass@,";
     fprintf ff  "from jax.lax import cond@,";
-    fprintf ff  "from jax.tree_util import register_pytree_node_class@,";
-    fprintf ff  "from dataclasses import dataclass@,@,";
+    fprintf ff  "from jax.tree_util import register_pytree_node_class@,@,";
     List.iter (compile_decl ff) p;
     fprintf ff "@,@]@."
 end
