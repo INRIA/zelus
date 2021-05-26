@@ -2,6 +2,12 @@ open Ast_helper
 open Muf
 open Format
 
+let fresh_nat = 
+  let i = ref (-1) in 
+  fun _ -> begin
+    incr i ; !i
+  end
+
 let fv_expr expr = 
   Muf_utils.SSet.diff 
     (Muf_utils.fv_expr expr) 
@@ -243,16 +249,16 @@ let compile_node :
 end
 
 let compile_constructors :
-formatter -> string -> (identifier * type_expression list option) list -> unit = begin
-  fun ff type_name l_constructors -> 
-    let compile_one ff n ({name=n2}, opt) cnt=
-      let _ = 
+string -> formatter -> (identifier * type_expression list option) list -> unit = begin
+  fun type_name ff l_constructors -> 
+    let compile_one ff ({name=constructor_name}, opt) =
         begin match opt with 
-        | None -> fprintf ff "%s = %s(%d)\n" n2 n cnt
+        | None -> fprintf ff "%s = %s(%d)" constructor_name type_name (fresh_nat ())
         | Some l -> assert false (* TODO *)
         end
-      in cnt+1
-    in let _ = List.fold_right (compile_one ff type_name) l_constructors 0 in ()
+    in 
+    fprintf ff "%a" 
+        (pp_print_list compile_one) l_constructors
   end
 
 let compile_type_class :
@@ -265,7 +271,7 @@ let compile_type :
   formatter -> (identifier * string list * type_declaration) -> unit = begin
   fun ff ({name=n}, l, t) ->
     begin match t with
-    | TKvariant_type l -> fprintf ff "%a@,%a" compile_type_class n (fun ff l -> compile_constructors ff n l) l
+    | TKvariant_type l -> fprintf ff "%a@,%a" compile_type_class n (compile_constructors n) l
     | TKabbrev _
     | TKrecord _ 
     | TKabstract_type -> assert false (* TODO *)
