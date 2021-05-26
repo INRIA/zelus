@@ -176,11 +176,13 @@ let rec compile_expr :
     | Ecall_step (e1, e2) -> 
         fprintf ff "step (%a, %a)" compile_expr e1 compile_expr e2
     | Econstr ({name=n}, opt_e) -> 
-      fprintf ff "%s" n;
-      begin match opt_e with 
-      | None -> ()
-      | Some e -> fprintf ff "%a" compile_tuple_args e
-      end
+      let args ff a = 
+        begin match a with 
+        | None -> ()
+        | Some e -> fprintf ff "%a" compile_tuple_args e
+        end
+      in
+      fprintf ff "%s%a" n args opt_e
     | Efun _
     | Elet _
     | Ematch _ -> assert false
@@ -240,24 +242,30 @@ let compile_node :
     end
 end
 
-let compile_type_variant : 
-formatter -> string -> (identifier * type_expression list option) -> int -> int = begin
-  fun ff n ({name=n2}, opt) cnt ->
-    let _ = 
-      begin match opt with 
-      | None -> fprintf ff "%s = %s(%d)\n" n2 n cnt
-      | Some l -> assert false (* TODO *)
-      end
-    in cnt+1
+let compile_constructors :
+formatter -> string -> (identifier * type_expression list option) list -> unit = begin
+  fun ff type_name l_constructors -> 
+    let compile_one ff n ({name=n2}, opt) cnt=
+      let _ = 
+        begin match opt with 
+        | None -> fprintf ff "%s = %s(%d)\n" n2 n cnt
+        | Some l -> assert false (* TODO *)
+        end
+      in cnt+1
+    in let _ = List.fold_right (compile_one ff type_name) l_constructors 0 in ()
+  end
+
+let compile_type_class :
+formatter -> string -> unit = begin
+  fun ff type_name ->
+    fprintf ff "@register_pytree_node_dataclass@,@[<v 4>class %s(J_dataclass):@,pass@]" type_name
   end
 
 let compile_type :
   formatter -> (identifier * string list * type_declaration) -> unit = begin
   fun ff ({name=n}, l, t) ->
     begin match t with
-    | TKvariant_type l ->
-      fprintf ff "@register_pytree_node_dataclass@,@[<v 4>class %s(J_dataclass):@,pass@]@," n;
-      let _ = List.fold_right (compile_type_variant ff n) l 0 in ()
+    | TKvariant_type l -> fprintf ff "%a@,%a" compile_type_class n (fun ff l -> compile_constructors ff n l) l
     | TKabbrev _
     | TKrecord _ 
     | TKabstract_type -> assert false (* TODO *)
@@ -286,7 +294,9 @@ let compile_decl : type a. formatter -> a declaration -> unit = begin
           compile_patt p 
           compile_return e
     | Dnode (f, p, n) -> compile_node ff f p n
-    | Dtype l -> List.iter (compile_type ff) l
+    | Dtype l -> 
+      fprintf ff "%a" 
+        (pp_print_list compile_type) l 
     | Dopen m -> fprintf ff "import %s" (String.uncapitalize_ascii m)
     end
 end
