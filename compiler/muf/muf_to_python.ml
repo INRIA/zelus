@@ -252,10 +252,10 @@ let compile_constructors :
 string -> formatter -> (identifier * type_expression list option) list -> unit = begin
   fun type_name ff l_constructors -> 
     let compile_one ff ({name=constructor_name}, opt) =
-        begin match opt with 
-        | None -> fprintf ff "%s = %s(%d)" constructor_name type_name (fresh_nat ())
-        | Some l -> assert false (* TODO *)
-        end
+      begin match opt with 
+      | None -> fprintf ff "%s = %s(%d)" constructor_name type_name (fresh_nat ())
+      | Some l -> assert false (* TODO *)
+      end
     in 
     fprintf ff "%a" 
         (pp_print_list compile_one) l_constructors
