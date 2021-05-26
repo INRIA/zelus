@@ -98,6 +98,10 @@ let with_copy = ref false
 let use_rif = ref false
 let build_deps = ref false
 
+(* added here *)
+(* Enables/disables robot mode *)
+let robot = ref false
+
 let lmm_nodes = ref S.empty
 let set_lmm_nodes (n: string) =
   lmm_nodes := S.add n !lmm_nodes

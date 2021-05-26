@@ -95,6 +95,8 @@ and doc_zsign = "\t Use the sign function for the zero-crossing argument"
 and doc_with_copy = "\t Add of a copy method for the state"
 and doc_rif = "\t Use RIF format over stdin and stdout to communicate I/O to the node being simulated"
 and doc_deps = "\t Recursively compile dependencies"
+(* added here *)
+and doc_robot = "\t Enable robot mode"
 let errmsg = "Options are:"
 
 let set_verbose () =
@@ -149,6 +151,8 @@ let main () =
           "-lmm", Arg.String set_lmm_nodes, doc_lmm;
           "-rif", Arg.Set use_rif, doc_rif;
           "-deps", Arg.Set build_deps, doc_deps;
+          (* added here *)
+          "-robot", Arg.Set robot, doc_robot;
         ])
       (fun filename -> if !build_deps then build filename else compile filename)
       errmsg;

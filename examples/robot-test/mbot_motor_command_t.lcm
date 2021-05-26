@@ -1,0 +1,8 @@
+struct mbot_motor_command_t
+{
+
+    int64_t utime;
+
+    float trans_v; // in m/s
+    float angular_v; // in rad/s
+}
