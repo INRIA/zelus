@@ -33,8 +33,8 @@ let rec compile_const : formatter -> constant -> unit = begin
     | Cint32 x -> fprintf ff "%ld" x
     | Cint64 x -> fprintf ff "%Ld" x
     | Cfloat x -> fprintf ff "%f" (float_of_string x)
-    | Cstring x -> fprintf ff "%s" x
-    | Cchar x -> fprintf ff "%c" x
+    | Cstring x -> fprintf ff "\"%s\"" x
+    | Cchar x -> fprintf ff "'%c'" x
     | Cunit -> fprintf ff "()"
     | Cany -> fprintf ff "None"
     end
