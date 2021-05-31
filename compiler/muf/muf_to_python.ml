@@ -278,6 +278,8 @@ let compile_type :
     end
   end
 
+let to_py_module s = String.uncapitalize_ascii s
+
 let compile_decl : type a. formatter -> a declaration -> unit = begin
   fun ff d ->
     begin match d.decl with
@@ -303,10 +305,34 @@ let compile_decl : type a. formatter -> a declaration -> unit = begin
     | Dtype l -> 
       fprintf ff "%a" 
         (pp_print_list compile_type) l 
-    | Dopen m -> fprintf ff "import %s" (String.uncapitalize_ascii m)
-    end
+    | Dopen m -> 
+      let m = to_py_module m in
+        begin match Muf_libs_name.SSet.find_opt m Muf_libs_name.module_names_zeluc with
+          | Some _ -> fprintf ff "from zelus.%s import *@," m
+          | None ->
+            begin match Muf_libs_name.SSet.find_opt m Muf_libs_name.module_names_probzeluc with
+            | Some _ -> fprintf ff "from probzelus.%s import *@," m
+            | None -> fprintf ff "from %s import *@," m
+            end
+          end
+        end
 end
 
+let compile_import_modules : type t. formatter -> Muf_utils.SSet.t -> unit = begin
+  fun ff s ->
+    let f m = 
+      let m = to_py_module m in
+        begin match Muf_libs_name.SSet.find_opt m Muf_libs_name.module_names_zeluc with
+        | Some _ -> fprintf ff "from zelus import %s@," m
+        | None -> 
+          begin match Muf_libs_name.SSet.find_opt m Muf_libs_name.module_names_probzeluc with
+          | Some _ -> fprintf ff "from probzelus import %s@," m
+          | None -> fprintf ff "import %s@," m
+          end
+        end
+    in
+    Muf_utils.SSet.iter f s
+  end
 
 let compile_program : formatter -> unit program -> unit = begin
   fun ff p ->
@@ -317,10 +343,10 @@ let compile_program : formatter -> unit program -> unit = begin
         p
     in
     let p = Muf_flatten.compile_program p in
+    let to_import = Muf_utils.imported_modules p in
     fprintf ff "@[<v 0>";
-    fprintf ff  "from muflib import Node, step, reset, init, register_pytree_node_dataclass, J_dataclass@,";
-    fprintf ff  "from jax.lax import cond@,";
-    fprintf ff  "from jax.tree_util import register_pytree_node_class@,@,";
+    fprintf ff  "from zeluslib import *@,@,";
+    compile_import_modules ff to_import;
     List.iter (compile_decl ff) p;
     fprintf ff "@,@]@."
 end

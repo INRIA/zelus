@@ -177,3 +177,40 @@ let expr_of_sset s =
 let patt_of_sset s =
   ptuple (List.map (fun x -> pvar { name = x })
             (SSet.elements s))
+
+let imported_modules : type a t. a program -> SSet.t = begin
+  fun p ->
+    let rec modules_expr acc e =
+      let acc =
+        begin match e.expr with
+        | Evar {name=n} ->
+          let first_is_upper = 
+            let first = n.[0] in
+            first = Char.uppercase_ascii first      
+          in 
+          if first_is_upper then
+            begin match String.index_opt n '.' with
+            | None -> acc
+            | Some idx -> SSet.add (String.sub n 0 idx) acc
+            end
+          else
+            acc
+        | _ -> acc
+        end
+      in
+      fold_expr_desc (fun acc _ -> acc) modules_expr acc e.expr
+    in
+
+    let rec modules_decl acc d =
+      begin match d.decl with
+      | Ddecl (_, e) -> modules_expr acc e
+      | Dfun (_, _, e) -> modules_expr acc e
+      | Dnode (_, _, {n_init=e1 ; n_step=(_,e2)}) -> 
+        let set1 = modules_expr acc e1 in
+        modules_expr set1 e2
+      | Dtype _
+      | Dopen _ -> acc
+      end
+    in 
+    List.fold_left modules_decl SSet.empty p
+  end
