@@ -116,8 +116,8 @@ let rec compile_expr :
           | "lor" -> "|"
           (* Boolean operations *)
           | "&" 
-          | "&&" -> "and"
-          | "||" -> "or"
+          | "&&" -> "&"
+          | "||" -> "|"
           (* String operations *)
           | "^" -> "+"
           (* List operations *)
