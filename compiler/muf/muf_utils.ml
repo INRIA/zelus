@@ -186,8 +186,8 @@ let imported_modules : type a t. a program -> SSet.t = begin
         | Evar {name=n} ->
           let first_is_upper = 
             let first = n.[0] in
-            first = Char.uppercase_ascii first      
-          in 
+            Char.code first > 64 && Char.code first < 91 (* A..Z *)
+          in
           if first_is_upper then
             begin match String.index_opt n '.' with
             | None -> acc
