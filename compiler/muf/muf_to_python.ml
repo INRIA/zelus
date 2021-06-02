@@ -93,35 +93,36 @@ let rec compile_expr :
     | Eapp ({ expr = Eapp ({ expr = Evar {name = op}}, e1) }, e2) (* Binary operator : e1 op e2 *)
       when op.[0] == '(' -> (* Infix operator *)
         let op_str = String.trim (String.sub op 1 ((String.index op ')')-1)) in (* Raises Not_found error if the closing parenthesis is missing *)
-        let op_str =
+        let op_str, b =
           begin match op_str with
        (* | muF operator -> Python operator *)
           (* Integer arithmetic *)
-          | "/" -> "//"
+          | "/" -> "//", false
           (* Floating-point arithmetic *)
-          | "+." -> "+" 
-          | "-." -> "-"
-          | "/." -> "/"
-          | "*." -> "*"
+          | "+." -> "+" , false
+          | "-." -> "-", false
+          | "/." -> "/", false
+          | "*." -> "*", false
           (* Comparisons *)
-          | "=" -> "=="
-          | "<>" -> "!="
-          | "==" -> "is"
-          | "!=" -> "is not"
+          | "=" -> "==", false
+          | "<>" -> "!=", false
+          | "==" -> "is", false
+          | "!=" -> "is not", false
           (* Bitwise operations *)
-          | "asr" -> ">>"
-          | "lsl" -> "<<"
-          | "land" -> "&"
-          | "lxor" -> "^"
-          | "lor" -> "|"
+          | "asr" -> ">>", false
+          | "lsl" -> "<<", false
+          | "land" -> "&", false
+          | "lxor" -> "^", false
+          | "lor" -> "|", false
           (* Boolean operations *)
           | "&" 
-          | "&&" -> "&"
-          | "||" -> "|"
+          | "&&" -> "&", true
+          | "or"
+          | "||" -> "|", true
           (* String operations *)
-          | "^" -> "+"
+          | "^" -> "+", false
           (* List operations *)
-          | "@" -> "+"
+          | "@" -> "+", false
           (* Not rewritten operators *)
           | "+"
           | "-"
@@ -130,13 +131,15 @@ let rec compile_expr :
           | ">="
           | "<"
           | "<="
-          | "**" -> op_str
+          | "**" -> op_str, false
           (* Unknown operator, e.g. might be a name surrounded by unnecessary parentheses *)
-          | _ -> ""
+          | _ -> "", false
           end
         in
         if op_str = "" then 
           compile_app e.expr 
+        else if b then
+          fprintf ff "((%a) %s (%a))" compile_expr e1 op_str compile_expr e2
         else
           fprintf ff "(%a %s %a)" compile_expr e1 op_str compile_expr e2
     | Eapp ({ expr = Evar {name = op}}, e1) (* Unary operator : op e1*)
