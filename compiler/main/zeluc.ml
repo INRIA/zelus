@@ -43,6 +43,10 @@ let doc_verbose = "\tVerbose mode"
 let doc_vverbose = "\t Set even more verbose mode"
 and doc_version = "\t The version of the compiler"
 and doc_print_types = "\t Print types"
+and doc_print_causality_types = "\t Print causality types"
+and doc_print_initialization_types = "\t  Print initialization types"
+and doc_nocausality = "\t (undocumented)"
+and doc_noinitialisation = "\t (undocumented)"
 and doc_include = "<dir> \t Add <dir> to the list of include directories"
 and doc_stdlib = "<dir> \t Directory for the standard library"
 and doc_locate_stdlib = "\t  Locate standard libray"
@@ -70,6 +74,12 @@ let main () =
            "-version", Arg.Unit show_version, doc_version;
            "-I", Arg.String add_include, doc_include;
            "-i", Arg.Set print_types, doc_print_types;
+           "-ic", Arg.Set print_causality_types, doc_print_causality_types;
+           "-ii",
+	   Arg.Set print_initialization_types, doc_print_initialization_types;
+           "-typeonly", Arg.Set typeonly, doc_typeonly;
+           "-nocausality", Arg.Set no_causality, doc_nocausality;
+           "-noinit", Arg.Set no_initialisation, doc_noinitialisation;
            "-where", Arg.Unit locate_stdlib, doc_locate_stdlib;
            "-stdlib", Arg.String set_stdlib, doc_stdlib;
            "-nostdlib", Arg.Set no_stdlib, doc_no_stdlib

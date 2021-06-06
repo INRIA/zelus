@@ -467,7 +467,9 @@ and pattern_translate env { desc; loc } =
        Zelus.Erecordpat
          (List.map (fun (lname, p) -> (longname lname, pattern_translate env p))
 	    l_p_list) in
-  { Zelus.pat_desc = desc; Zelus.pat_loc = loc; Zelus.pat_typ = Deftypes.no_typ }
+  { Zelus.pat_desc = desc; Zelus.pat_loc = loc;
+    Zelus.pat_typ = Deftypes.no_typ; Zelus.pat_caus = Defcaus.no_typ;
+    Zelus.pat_init = Definit.no_typ }
   
 and pattern_translate_list env p_list = List.map (pattern_translate env) p_list
 
@@ -529,7 +531,9 @@ and expression env { desc; loc } =
     | Etypeconstraint(e, texp) ->
        Zelus.Etypeconstraint(expression env e, types texp)
     | Efun(fd) -> Zelus.Efun(funexp env fd) in
-  { Zelus.e_desc = desc; Zelus.e_loc = loc; Zelus.e_typ = Deftypes.no_typ }
+  { Zelus.e_desc = desc; Zelus.e_loc = loc;
+    Zelus.e_typ = Deftypes.no_typ; Zelus.e_caus = Defcaus.no_typ;
+    Zelus.e_init = Definit.no_typ }
 
 and recordrec loc env label_e_list =
   (* check that a label name appear only once *)

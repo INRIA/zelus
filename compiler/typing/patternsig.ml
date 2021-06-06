@@ -175,7 +175,8 @@ module LANG =
     let rec eject internal_pat =
       let sensible_default pdesc = (* TODO: ask Marc *)
         { pat_desc = pdesc; pat_loc = Loc (0, 0);
-          pat_typ = { t_desc = Tvar; t_index = 0; t_level = 0 } } in
+          pat_typ = { t_desc = Tvar; t_index = 0; t_level = 0 };
+          pat_caus = Defcaus.no_typ; pat_init = Definit.no_typ } in
       match internal_pat with
         | Pany -> sensible_default Ewildpat
         | Por (l, r) -> sensible_default (Eorpat (eject l, eject r))

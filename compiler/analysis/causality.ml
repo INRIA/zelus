@@ -115,26 +115,26 @@ let pattern env pat =
   (* check that the type of pat is less than a type synchronised on [c] *)
   let rec pattern_less_than_on_c pat c =
     let actual_tc = pattern pat in
-    let expected_tc = Causal.skeleton_on_c c pat.p_typ in
+    let expected_tc = Causal.skeleton_on_c c pat.pat_typ in
     (* the order [expected_tc < actual_tc] is mandatory, *)
     (* not the converse *)
-    less_than pat.p_loc env expected_tc actual_tc
+    less_than pat.pat_loc env expected_tc actual_tc
 
-  and pattern ({ p_desc = desc; p_loc = loc; p_typ = ty } as pat) =
-    let tc = match desc with
+  and pattern ({ pat_desc; pat_loc; pat_typ } as pat) =
+    let tc = match pat_desc with
     | Ewildpat | Econstpat _ | Econstr0pat _ ->
-        Causal.skeleton_on_c (Causal.new_var ()) ty
+        Causal.skeleton_on_c (Causal.new_var ()) pat_typ
     | Evarpat(x) ->
        let { t_typ = actual_tc } =
          try Env.find x env with | Not_found -> print x in
        (* every variable that is not a function has an atomic type *)
-       let expected_tc = Causal.skeleton_for_variables pat.p_typ in
-       less_than loc env expected_tc actual_tc;
+       let expected_tc = Causal.skeleton_for_variables pat_typ in
+       less_than pat_loc env expected_tc actual_tc;
        expected_tc
     | Econstr1pat(_, pat_list) ->
         let c = Causal.new_var () in
         List.iter (fun pat -> pattern_less_than_on_c pat c) pat_list;
-        Causal.skeleton_on_c c ty
+        Causal.skeleton_on_c c pat_typ
     | Etuplepat(pat_list) ->
         product(List.map pattern pat_list)
     | Erecordpat(l) ->
@@ -142,7 +142,7 @@ let pattern env pat =
        (* atomic *)
        let c = Causal.new_var () in
        List.iter (fun (_, p) -> pattern_less_than_on_c p c) l;
-       Causal.skeleton_on_c c ty
+       Causal.skeleton_on_c c pat_typ
     | Etypeconstraintpat(p, _) -> pattern p
     | Eorpat(p1, p2) ->
         let tc1 = pattern p1 in
@@ -154,13 +154,13 @@ let pattern env pat =
           let { t_typ = actual_tc } =
 	    try Env.find x env with | Not_found -> print x  in
           (* every variable that is not a function has an atomic type *)
-          let expected_tc = Causal.skeleton_for_variables pat.p_typ in
-          less_than loc env expected_tc actual_tc;
+          let expected_tc = Causal.skeleton_for_variables pat_typ in
+          less_than pat_loc env expected_tc actual_tc;
           expected_tc in
-        less_than p.p_loc env tc_n tc_p;
+        less_than pat_loc env tc_n tc_p;
         tc_p in
   (* annotate the pattern with the causality type *)
-  pat.p_caus <- tc;
+  pat.pat_caus <- tc;
   tc in
   pattern pat
 
@@ -170,7 +170,7 @@ let build_env l_env env =
     let cur_tc = Causal.annotate (Cname n) (Causal.skeleton ty) in
     let last_tc_opt =
       match sort with
-      | Smem { m_previous = true } ->
+      | Smem ->
           Some(Causal.annotate (Clast n) (Causal.skeleton ty))
       | _ -> None in
     Env.add n { t_typ = cur_tc; t_last_typ = last_tc_opt } acc in
@@ -182,7 +182,7 @@ let build_env_on_c c l_env env =
     let cur_tc = Causal.annotate (Cname n) (Causal.skeleton_on_c c ty) in
     let last_tc_opt =
       match sort with
-      | Smem { m_previous = true } ->
+      | Smem ->
           Some(Causal.annotate (Clast n) (Causal.skeleton_on_c c ty))
       | _ -> None in
     Env.add n { t_typ = cur_tc; t_last_typ = last_tc_opt } acc in
@@ -269,7 +269,7 @@ let automaton_handlers
   (* Compute the set of names defined by a state *)
   let cur_names_in_state b trans =
     let block acc { b_write = w } = Deftypes.cur_names acc w in
-    let escape acc { e_body = b_opt } = Misc.optional block acc b_opt in
+    let escape acc { e_body = b_opt } = Util.optional block acc b_opt in
     block (List.fold_left escape Ident.S.empty trans) b in
   (* Typing of handlers *)
   (* scheduling is done this way: *)
@@ -285,7 +285,7 @@ let automaton_handlers
     let actual_c = scondpat env c_free sc in
     less_than_c sc.loc env actual_c c_spat;
     let env =
-      Misc.optional
+      Util.optional
         (fun env b -> body_escape shared env c_free b) env b_opt in
     state env c_free c_spat ns in
   let weak shared env c_body c_trans c_scpat
@@ -303,7 +303,7 @@ let automaton_handlers
     List.iter (escape shared env c_trans c_scpat) trans;
     ignore (body_state shared env c_body b) in
   let c_automaton = Causal.intro_less_c c_free in
-  Misc.optional_unit (state env c_free) c_automaton se_opt;
+  Util.optional_unit (state env c_free) c_automaton se_opt;
   (* Every branch of the automaton is considered to be executed atomically *)
   let shared, env = def_env_on_c loc defnames env c_automaton in
   (* the causality tag for the transition conditions *)
@@ -323,7 +323,7 @@ let automaton_handlers
 (** causality of an expression. [C | H |-cfree e: ct] *)
 let rec exp env c_free ({ e_desc = desc; e_typ = ty; e_loc = loc } as e) =
   let tc = match desc with
-    | Econst _ | Econstr0 _ | Eperiod _ -> Causal.skeleton ty
+    | Econst _ | Econstr0 _ -> Causal.skeleton ty
     | Eglobal { lname = lname } ->
         let { info = info } = Modules.find_value lname in
         Causal.instance info ty
@@ -439,35 +439,6 @@ and operator env op c_free ty e_list =
       exp_less_than_on_c env c_free e2 c_res;
       exp_less_than_on_c env c_free e3 c_res;
       Causal.skeleton_on_c c_res ty
-  | Eup, [e] ->
-      (* [up(e)] does not depend instantaneously of itself *)
-      exp_less_than_on_c env c_free e (Causal.new_var ());
-      Causal.skeleton_on_c c_res ty
-  | Einitial, [] ->
-      Causal.skeleton_on_c c_res ty 
-  | (Etest | Edisc | Ehorizon), [e] ->
-      exp_less_than_on_c env c_free e c_res;
-      Causal.skeleton_on_c c_res ty
-  | Eaccess, [e1; e2] ->
-      exp_less_than_on_c env c_free e1 c_res;
-      exp_less_than_on_c env c_free e2 c_res;
-      Causal.skeleton_on_c c_res ty
-  | Eupdate, [e1; i; e2] ->
-      exp_less_than_on_c env c_free e1 c_res;
-      exp_less_than_on_c env c_free i c_res;
-      exp_less_than_on_c env c_free e1 c_res;
-      Causal.skeleton_on_c c_res ty
-  | Eslice _, [e] ->
-      exp_less_than_on_c env c_free e c_res;
-      Causal.skeleton_on_c c_res ty
-  | Econcat, [e1; e2] ->
-      exp_less_than_on_c env c_free e1 c_res;
-      exp_less_than_on_c env c_free e2 c_res;
-      Causal.skeleton_on_c c_res ty
-  | Eatomic, [e] ->
-      let c_arg = Causal.intro_less_c c_res in
-      exp_less_than_on_c env c_free e c_arg;
-      Causal.skeleton_on_c c_res ty
   | _ -> assert false
     
 
@@ -496,41 +467,6 @@ and equation env c_free { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
   | EQeq(p, e) ->
       let tc_p = pattern env p in
       exp_less_than env c_free e tc_p
-  | EQpluseq(n, e) ->
-      let tc_n =
-        try let { t_typ = tc } = Env.find n env in tc
-        with Not_found -> print n in
-      exp_less_than env c_free e tc_n
-  | EQder(n, e, e0_opt, h_e_list) ->
-      let { t_typ = expected_tc; t_last_typ = ltc_opt } =
-        try Env.find n env with | Not_found -> print n in 
-      let _ = exp env c_free e in
-      (match h_e_list, e0_opt with
-        | [], None -> ()
-        | _ ->
-            let c_body = Causal.intro_less_c c_free in
-            let c_e = Causal.intro_less_c c_body in
-            let actual_tc =
-              present_handler_exp_list env c_free c_e c_body h_e_list e0_opt in
-            let actual_tc = on_c actual_tc c_body in
-            less_than loc env actual_tc expected_tc;
-            match e0_opt, ltc_opt with
-            | Some(e0), Some(ltc) ->
-                let actual_ltc = exp env c_body e0 in
-                less_than e0.e_loc env actual_ltc ltc
-            | _ -> ())
-  | EQinit(n, e0) ->
-      let { t_typ = tc_n; t_last_typ = ltc_opt } =
-        try Env.find n env with | Not_found -> print n in 
-      let actual_tc = exp env c_free e0 in
-      less_than e0.e_loc env actual_tc tc_n;
-      (match ltc_opt with
-       | None -> () | Some(ltc) -> less_than e0.e_loc env actual_tc ltc)
-  | EQnext(n, e, e0_opt) ->
-      (* [e] does not impose a causality constraint on [n] *)
-      let _ = exp env c_free e in
-      let { t_typ = tc } = try Env.find n env with Not_found -> print n in
-      Misc.optional_unit (fun _ e0 -> exp_less_than env c_free e0 tc) () e0_opt
   | EQautomaton(is_weak, s_h_list, se_opt) ->
      automaton_handler_eq_list loc c_free is_weak defnames env s_h_list se_opt
   | EQifthenelse(e, eq1, eq2) ->
@@ -572,8 +508,6 @@ and equation env c_free { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
       equation env c_e eq
   | EQand(and_eq_list) ->
       equation_list env c_free and_eq_list 
-  | EQbefore(before_eq_list) ->
-      equation_list env c_free before_eq_list 
   | EQemit(n, e_opt) ->
       let c_res = Causal.new_var () in
       Misc.optional_unit
@@ -588,54 +522,7 @@ and equation env c_free { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
      let c_e = Causal.intro_less_c c_free in
      exp_less_than_on_c env c_free e c_e
   | EQempty -> ()
-  | EQforall { for_index = i_list; for_init = init_list; for_body = b_eq;
-               for_out_env = o_env } ->
-      (* Build the typing environment for inputs/outputs *)
-      (* and build an association table [oi out o] for all output pairs *)
-      let index (io_env, oi2o) { desc = desc } =
-        match desc with
-        | Einput(x, e) ->
-            let in_c = Causal.new_var () in
-            exp_less_than_on_c env c_free e in_c;
-            let tc_arg, _ = Types.filter_vec e.e_typ in
-            let tc = Causal.skeleton_on_c in_c tc_arg in
-            Env.add x { t_typ = tc; t_last_typ = Some(fresh tc) } io_env,
-            oi2o
-        | Eindex(x, e1, e2) ->
-            let in_c = Causal.new_var () in
-            exp_less_than_on_c env c_free e1 in_c;
-            exp_less_than_on_c env c_free e2 in_c;
-            let tc = Causal.skeleton_on_c in_c e1.e_typ in
-            Env.add x { t_typ = tc; t_last_typ = Some(fresh tc) } io_env,
-            oi2o
-      | Eoutput(oi, o) ->
-          let out_c = Causal.new_var () in
-          let { Deftypes.t_typ = ty } = Env.find oi o_env in
-          let tc = Causal.skeleton_on_c out_c ty in
-          Env.add oi { t_typ = tc; t_last_typ = Some(fresh tc) } io_env,
-          Env.add oi o oi2o in
-      
-          (* typing the initialization *)
-          let init init_env { desc = desc } =
-            match desc with
-            | Einit_last(x, e) ->
-                let tc = exp env c_free e in
-                Env.add x
-                  { t_typ = fresh tc; t_last_typ = Some(tc) } init_env in
-          (* build the typing environment for read variables from the header *)
-          let io_env, oi2o =
-            List.fold_left index (Env.empty, Env.empty) i_list in
-
-          (* build the typing environment for accummulation variables *)
-          let init_env = List.fold_left init Env.empty init_list in
-
-          (* build the typing environment *)
-          let env = Env.append io_env env in
-          let env = Env.append init_env env in
-              
-          (* type the body *)
-          ignore (block_eq Ident.S.empty env c_free b_eq)
-
+  
 (* Typing a present handler for expressions *)
 (* The handler list must be non empty or [e_opt] not none *)
 and present_handler_exp_list env c_free c_e c_body p_h_list e_opt =

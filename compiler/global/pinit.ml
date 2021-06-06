@@ -19,7 +19,8 @@ open Pp_tools
 open Misc
 open Ident
 open Definit
-
+open Genames
+   
 (* type variables are printed 'a, 'b,... *)
 let type_name = new name_assoc_table int_to_alpha
 

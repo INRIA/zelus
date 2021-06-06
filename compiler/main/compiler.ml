@@ -96,7 +96,16 @@ let apply_with_close_out f o =
     f o;
     close_out o
   with x -> close_out o; raise x
-        
+
+(** Make a compiler step **)
+let do_step comment step input = 
+  let output = step input in
+  Debug.print_message comment;
+  output
+  
+let do_optional_step is_step comment step p = 
+  if is_step then do_step comment step p else p
+
 (** The main function for compiling a program *)
 let compile modname filename =
   (* input and output files *)
@@ -111,14 +120,20 @@ let compile modname filename =
   Location.initialize source_name;
 
   (* Parsing of the file *)
-  let p = parse_implementation_file source_name in
-  Debug.print_message "Parsing done";
-  let p = Scoping.program p in
-  Debug.print_message "Scoping done";
-  let p = Write.program p in
-  Debug.print_message "Write done";
-  let _ = Typing.program info_ff true p in
-  Debug.print_message "Typing done";
+  do_step
+    "Parsing done" parse_implementation_file source_name
+  (* Scoping *)
+  |> do_step "Scoping done" Scoping.program
+  (* Write defined variables for equations *)
+  |> do_step "Write done" Write.program
+  (* Typing *)
+  |> do_step "Typing done" (Typing.program info_ff true)
+  (* Causality *)
+  |> do_optional_step (not !no_causality)
+       "Causality done" (Causality.program info_ff)
+  (* Initialization *)
+  |> do_optional_step (not !no_inititalization)
+       "Initialisation done" (Initialization.program info_ff);
   (* Write the symbol table into the interface file *)
   let itc = open_out_bin obj_interf_name in
   apply_with_close_out Modules.write itc;

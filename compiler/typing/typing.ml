@@ -689,6 +689,8 @@ and equation expected_k h { eq_desc; eq_loc } =
   | EQeq(p, e) ->
      let ty_e, actual_k = expression expected_k h e in
      pattern h p ty_e;
+     (* check that the pattern is total *)
+     check_total_pattern p;
      let dv = Write.fv_pat S.empty S.empty p in
      { dv = dv }, actual_k
   | EQautomaton({ is_weak; handlers; state_opt }) ->

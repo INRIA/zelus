@@ -1,14 +1,15 @@
 (* global data in the symbol tables *)
 open Misc
 open Ident
-open Deftypes
 
     
 type 'a info = { qualid : Lident.qualident; info : 'a }
 
 (* values in the symbol table *)
 type value_desc =
-    { mutable value_typ: typ_scheme; (* its type scheme *)
+    { mutable value_typ: Deftypes.typ_scheme; (* its type scheme *)
+      mutable value_caus: Defcaus.tc_scheme option; (* its causality scheme *)
+      mutable value_init: Definit.ti_scheme option; (* its init. scheme *)
     }
 
 (* Value constructors *)
@@ -33,6 +34,11 @@ and type_components =
         (* type ('a1,...,'an) t = ty *)
 
 let value_desc is_static typs qualident = 
-  { value_typ = typs }
+  { value_typ = typs; value_caus = None;
+    value_init = None }
 let set_type { info = ({ value_typ = _ } as v) } tys = 
   v.value_typ <- tys
+let set_causality { info = ({ value_caus = _ } as v) } tys = 
+  v.value_caus <- Some(tys)
+let set_init { info = ({ value_init = _ } as v) } tys = 
+  v.value_init <- Some(tys)

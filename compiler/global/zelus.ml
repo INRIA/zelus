@@ -67,6 +67,8 @@ type 'exp vardec =
 type pattern =
   { mutable pat_desc: pattern_desc;
     mutable pat_typ: Deftypes.typ;
+    mutable pat_caus: Defcaus.tc; (* its causality type *)
+    mutable pat_init: Definit.ti; (* its initialization type *)
     pat_loc: Location.t;
   }
 
@@ -141,8 +143,10 @@ type is_weak = bool
 type exp =
   { e_desc: exp_desc; (* descriptor *)
     e_loc: Location.t; (* location *)
-    mutable e_typ: Deftypes.typ; (* type *)
-  }
+    mutable e_typ: Deftypes.typ; (* its type *)
+    mutable e_caus: Defcaus.tc;  (* its causality type *)
+    mutable e_init: Definit.ti;  (* its initialization type *)
+    }
 
 and exp_desc = 
   | Econst : immediate -> exp_desc 

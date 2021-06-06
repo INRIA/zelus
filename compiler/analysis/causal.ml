@@ -20,7 +20,8 @@ open Deftypes
 open Defcaus
 open Global
 open Zelus
-
+open Genames
+   
 (** a set of causality names *)
 module S = struct
   include (Set.Make(Defcaus))
@@ -154,7 +155,7 @@ let increase_polarity p c =
 
 (** check for cycles. Does [left_c] appears in [right_c] and its *)
 (* greater elements *)
-let rec occur_check ({ c_level = level; c_index = index } as c_left) c_right =
+let occur_check ({ c_level = level; c_index = index } as c_left) c_right =
   let rec check path c_right =
     match c_right.c_desc with
     | Cvar -> 
@@ -254,19 +255,19 @@ let rec skeleton ty =
   match ty.t_desc with
   | Tvar -> atom (new_var ())
   | Tproduct(ty_list) -> product (List.map skeleton ty_list)
-  | Tfun(_, _, ty_arg, ty) ->
+  | Tarrow(_, ty_arg, ty) ->
      funtype (skeleton ty_arg) (skeleton ty)
-  | Tconstr(_, _, _) | Tvec _ -> atom (new_var ())
+  | Tconstr(_, _, _) -> atom (new_var ())
   | Tlink(ty) -> skeleton ty
 
 (* the type is synchronised on [c] *)
 let skeleton_on_c c ty =
   let rec skeleton_on_c is_right c_right ty =
     match ty.t_desc with
-    | Tvar | Tconstr(_, _, _) | Tvec _ -> atom c_right
+    | Tvar | Tconstr(_, _, _) -> atom c_right
     | Tproduct(ty_list) ->
         product (List.map (skeleton_on_c is_right c_right) ty_list)
-    | Tfun(_, _, ty_arg, ty) ->
+    | Tarrow(_, ty_arg, ty) ->
         let c_left = new_var () in
         (* if is_right then *) less_c c_left c_right;
         funtype
@@ -281,9 +282,9 @@ let skeleton_for_variables ty =
   let c = new_var () in
   let rec skeleton_rec ty =
     match ty.t_desc with
-    | Tvar | Tconstr(_, _, _) | Tvec _ -> atom c
+    | Tvar | Tconstr(_, _, _) -> atom c
     | Tproduct(ty_list) -> product (List.map skeleton_rec ty_list)
-    | Tfun _ -> skeleton ty
+    | Tarrow _ -> skeleton ty
     | Tlink(ty) -> skeleton_rec ty in
   skeleton_rec ty
 
@@ -371,7 +372,7 @@ let outset cset = S.fold (fun c acc -> outrec acc c) cset S.empty
 		      
 (* compute io(c) *)
 (* io(c) = {i in I / O(c) subseteq O(i) } *)
-let rec io inputs o_table c =
+let io inputs o_table c =
   let o = M.find c o_table in
   S.fold
     (fun i' acc ->
@@ -652,11 +653,11 @@ let generalise tc =
   (* type simplification *)
   (* let tc = simplify true tc in *)
   let tc =
-    if !Misc.no_simplify_causality_type then tc else simplify_by_io tc in
+    if !Misc.no_simplify_causality_types then tc else simplify_by_io tc in
   (* check_type tc; *)
   gen tc;
   let c_set = vars S.empty tc in
-  if not !Misc.no_simplify_causality_type then reduce c_set;
+  if not !Misc.no_simplify_causality_types then reduce c_set;
   let _, rel = relation (S.empty, []) c_set in
   { typ_vars = !list_of_vars; typ_rel = rel; typ = tc }
 
@@ -684,7 +685,7 @@ let rec copy tc ty =
 
   let { t_desc = t_desc } as ty = Types.typ_repr ty in
   match tc, t_desc with
-  | Cfun(tc1, tc2), Tfun(_, _, ty1, ty2) ->
+  | Cfun(tc1, tc2), Tarrow(_, ty1, ty2) ->
      funtype (copy tc1 ty1) (copy tc2 ty2)
   | Cproduct(tc_list), Tproduct(ty_list) ->
      begin try product (List.map2 copy tc_list ty_list)
@@ -716,7 +717,7 @@ let rec copy tc =
 let rec instance tc ty = 
   let { t_desc = t_desc } as ty = Types.typ_repr ty in
   match tc, t_desc with
-  | Cfun(tc1, tc2), Tfun(_, _, ty1, ty2) ->
+  | Cfun(tc1, tc2), Tarrow(_, ty1, ty2) ->
      funtype (instance tc1 ty1) (instance tc2 ty2)
   | Cproduct(tc_list), Tproduct(ty_list) ->
      begin try product (List.map2 instance tc_list ty_list)
@@ -778,10 +779,10 @@ type tentry =
 let simplify_by_io_env env expected_tc actual_tc =
   let mark_env _ { t_typ = tc; t_last_typ = ltc_opt } =
     mark_and_polarity true tc;
-    Misc.optional_unit mark_and_polarity true ltc_opt in
+    Util.optional_unit mark_and_polarity true ltc_opt in
   let simplify_env { t_typ = tc; t_last_typ = ltc_opt } =
     let tc = simplify_by_io tc in
-    let ltc_opt = Misc.optional_map simplify_by_io ltc_opt in
+    let ltc_opt = Util.optional_map simplify_by_io ltc_opt in
     { t_typ = tc; t_last_typ = ltc_opt } in
   Env.iter mark_env env;
   mark_and_polarity true expected_tc;
@@ -791,7 +792,7 @@ let simplify_by_io_env env expected_tc actual_tc =
   let cset =
     Env.fold
       (fun _ { t_typ = tc; t_last_typ = ltc_opt } acc ->
-         Misc.optional vars (vars acc tc) ltc_opt) env S.empty in
+         Util.optional vars (vars acc tc) ltc_opt) env S.empty in
   let cset = vars (vars cset expected_tc) actual_tc in
   let already, rel = relation (S.empty, []) cset in
   env, cset, rel, simplify_by_io expected_tc, simplify_by_io actual_tc

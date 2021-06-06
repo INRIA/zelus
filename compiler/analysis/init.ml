@@ -18,7 +18,8 @@ open Misc
 open Deftypes
 open Definit
 open Global
-       
+open Genames
+   
 (** a set of initialization names *)
 module S = struct
   include (Set.Make(Definit))
@@ -178,18 +179,18 @@ and less_i left_i right_i =
 let rec skeleton { t_desc = desc } =
   match desc with
   | Tvar -> atom (new_var ())
-  | Tfun(_, _, ti1, ti2) -> funtype (skeleton ti1) (skeleton ti2)
+  | Tarrow(_, ti1, ti2) -> funtype (skeleton ti1) (skeleton ti2)
   | Tproduct(ti_list) -> product (List.map skeleton ti_list)
-  | Tconstr(_, _, _) | Tvec _ -> atom (new_var ())
+  | Tconstr(_, _, _) -> atom (new_var ())
   | Tlink(ti) -> skeleton ti
                           
 let rec skeleton_on_i i { t_desc = desc } =
   match desc with
   | Tvar -> atom i
-  | Tfun(_, _, ti1, ti2) ->
+  | Tarrow(_, ti1, ti2) ->
      funtype (skeleton_on_i i ti1) (skeleton_on_i i ti2)
   | Tproduct(ti_list) -> product (List.map (skeleton_on_i i) ti_list)
-  | Tconstr(_, _, _) | Tvec _ -> atom i
+  | Tconstr(_, _, _) -> atom i
   | Tlink(ti) -> skeleton_on_i i ti
 
 (* For external values, the skeleton type is over constrained *)
@@ -467,7 +468,7 @@ and icopy i =
 let rec instance ti ty =
   let { t_desc = t_desc } as ty = Types.typ_repr ty in
   match ti, t_desc with
-  | Ifun(ti1, ti2), Tfun(_, _, ty1, ty2) ->
+  | Ifun(ti1, ti2), Tarrow(_, ty1, ty2) ->
      funtype (instance ti1 ty1) (instance ti2 ty2)
   | Iproduct(ti_list), Tproduct(ty_list) ->
     begin try product (List.map2 instance ti_list ty_list)

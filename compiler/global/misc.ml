@@ -14,8 +14,9 @@
 
 (* useful stuff *)
 
+(* error during the whole process *)
 exception Error
-        
+
 let header_in_file =
   let open Config in
   "The Zelus compiler, version "
@@ -53,6 +54,12 @@ let vverbose = ref false
 let print_types = ref false
 let no_stdlib = ref false
 let no_warning = ref false
+let print_causality_types = ref false
+let no_simplify_causality_types = ref false
+let print_initialisation_types = ref false
+let no_causality = ref false
+let no_init = ref false
+let typeonly = ref false
 
 let set_verbose = ref false
 
@@ -70,4 +77,7 @@ let pop_binding_level () =
   assert (!binding_level > generic)
 let reset_binding_level () = binding_level := 0
 
-           
+(* Internal error in the compiler. *)
+let internal_error message printer input =
+  Format.eprintf "@[Internal error (%s)@. %a@.@]" message printer input;
+  raise Error

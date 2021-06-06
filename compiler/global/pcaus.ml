@@ -19,10 +19,12 @@ open Pp_tools
 open Misc
 open Ident
 open Defcaus
+open Genames
        
-(** a set of causality names *)
+(** a set of causality names **)
 module S = Set.Make(Defcaus)
-(** and a module to represent the successors of a causality variable *)
+
+(** and a module to represent the successors of a causality variable **)
 module M = Map.Make(Defcaus)
 
 (* type variables are printed 'a, 'b,... *)
