@@ -1,6 +1,0 @@
-let node fix(f)(x) = let rec y = run f (x, y) in y
-
-let node delay(x, y) = x fby y
-
-let node main(x) = fix delay x
-    

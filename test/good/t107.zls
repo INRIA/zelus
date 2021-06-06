@@ -1,8 +1,0 @@
-
-let hybrid test () = x where
-  rec automaton
-      | S0 -> do
-          der x = 1.0
-        until up(x) on (x < 3.0) then S0
-  and init x = 0.0
-

@@ -1,5 +1,0 @@
-let f x = x + 1
-
-let h = List.map
-    
-let g x = List.map f x

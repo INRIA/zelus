@@ -1,5 +1,0 @@
-let f n x =
-  local o default true with (+)
-  do forall i in 0 .. n, xi in x do
-     o += xi
-  done in o

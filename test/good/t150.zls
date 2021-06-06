@@ -1,3 +1,0 @@
-type t = { x: int; y: bool}
-
-let f x = { x with x = 1 }
