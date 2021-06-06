@@ -1,9 +1,0 @@
-(rule
- (targets stickysprings.ml stickysprings_main.ml) 
- (deps (:zl stickysprings.zls) world.zli)
- (action (run zeluc -deps -gtk2 -sampling 9 -s main -o stickysprings_main %{zl})))
-
-(executables
-  (names stickysprings_main)
-  (libraries lablgtk2 zelus zelus-gtk)
-  (promote (until-clean)))

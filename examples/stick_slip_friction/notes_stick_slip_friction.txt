@@ -1,9 +1,0 @@
-Cyprien L. 24/05/2012
-
-Modelisation of a mass with a spring, with a complex friction model : 
-when the mass is in motion the friction is a classic fluid damping force.
-But when the mass is static the force tends to be greater. (Cf PDF file for more details)
-
-Automaton between the two states : Sliding and Stuck
-
-The results aren't so close from those of simulink (in particular on "flat areas" of the x curve). I don't know why yet. 

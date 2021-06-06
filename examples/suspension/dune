@@ -1,9 +1,0 @@
-(rule
- (targets suspension.ml suspension_main.ml)
- (deps (:zl suspension.zls))
- (action (run zeluc -gtk2 -s main -o suspension_main %{zl})))
-
-(executable
-  (name suspension_main)
-  (libraries lablgtk2 zelus zelus-gtk)
-  (promote (until-clean)))

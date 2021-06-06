@@ -1,9 +1,0 @@
-(rule
- (targets timing_test.ml timing_test_main.ml)
- (deps (:zl timing_test.zls) misc.zli)
- (action (run zeluc -deps -s main -o timing_test_main %{zl})))
-
-(executable
-  (name timing_test_main)
-  (libraries zelus)
-  (promote (until-clean)))

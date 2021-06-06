@@ -1,9 +1,0 @@
-(rule
- (targets backhoecontrol.ml backhoe_main.ml backhoedyn.ml backhoecontrol.ml)
- (deps (:zl backhoecontrol.zls) backhoedyn.zls backhoegui.zli)
- (action (run zeluc -deps -gtk2 -s main -o backhoe_main %{zl})))
-
-(executable
-  (name backhoe_main)
-  (libraries lablgtk2 zelus zelus-gtk)
-  (promote (until-clean)))

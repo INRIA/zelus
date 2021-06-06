@@ -1,9 +1,0 @@
-(* 
-  This program should be rejected. Both because it has a causality
-  loop and has an initialization issue. 
- *)
-
-let hybrid g(x, k) =
-  match x with
-    | true -> let rec der y = 0.1 +. k init k and k = last y +. 2.0 in y
-    | false -> let rec der z = 1.0 init 2.0 in z

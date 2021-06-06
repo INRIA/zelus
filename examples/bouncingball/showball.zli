@@ -1,5 +1,0 @@
-
-val start : bool -> (float array * float array) -AD-> unit
-val show  : float -> float -> float -> float -AD-> unit
-val stop  : unit -AD-> unit
-

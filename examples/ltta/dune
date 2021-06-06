@@ -1,9 +1,0 @@
-(rule
- (targets ltta.ml ltta_main.ml)
- (deps (:zl ltta.zls) misc.zli)
- (action (run zeluc -deps -sampling 0 -s main -o ltta_main %{zl})))
-
-(executable
-  (name ltta_main)
-  (libraries zelus)
-  (promote (until-clean)))

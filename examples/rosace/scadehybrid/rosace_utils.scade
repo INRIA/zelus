@@ -1,8 +1,0 @@
-package vect2
-  function ScalMult<<n>>(k:'a; i:'a^n) returns (o:'a^n) where 'a numeric
-    o = (map $*$ <<n>>)(k^n, i);
-end;
-
--- regular integration of an array [x] with initial condition [x0]
-hybrid #pragma kcg expand #end int_vect<<n>>(x0, u:'a^n) returns (x:'a^n last=x0) where 'a float
-  der x = u;
