@@ -16,8 +16,8 @@
 
 open Format
 open Pp_tools
-open Zmisc
-open Zident
+open Misc
+open Ident
 open Definit
 
 (* type variables are printed 'a, 'b,... *)
@@ -32,7 +32,7 @@ let min = function Ihalf -> "1/2" | _ -> ""
 
 let extra
     { i_polarity = p; i_useful = u; i_level = l; i_index = i; i_min = m } =
-  if !Zmisc.verbose then polarity p ^ useful u ^ level l ^
+  if !Misc.verbose then polarity p ^ useful u ^ level l ^
                         "(" ^ (string_of_int i) ^ min m ^ ")" else ""
     
 (* Print the causality *)

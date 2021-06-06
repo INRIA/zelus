@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2020 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2021 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -17,51 +17,38 @@
 (* implicitely complemented with [x = last x] *)
 (* otherwise, [x] must be defined in every branch *)
 
-open Zlocation
-open Zident
+open Location
+open Ident
 open Zelus
 open Typerrors
 open Deftypes
-open Ztypes
+open Types
 
 (** Names written in a block *)
-let union 
-      { dv = dv1; di = di1; der = der1; nv = nv1; mv = mv1 }
-      { dv = dv2; di = di2; der = der2; nv = nv2; mv = mv2 } =
-  { dv = S.union dv1 dv2; di = S.union di1 di2;
-    der = S.union der1 der2; nv = S.union nv1 nv2; mv = S.union mv1 mv2 }
+let union { dv = dv1 } { dv = dv2 } = { dv = S.union dv1 dv2 }
 
 (* add two sets of names provided they are distinct *)
-let add loc 
-	{ dv = dv1; di = di1; der = der1; nv = nv1; mv = mv1}
-        { dv = dv2; di = di2; der = der2; nv = nv2; mv = mv2  } =
-  let add k set1 set2 =
+let add loc { dv = dv1 } { dv = dv2 } =
+  let add set1 set2 =
     S.fold 
       (fun elt set -> 
 	if not (S.mem elt set) then S.add elt set
-	else error loc (Ealready(k, elt))) set1 set2 in
-  { dv = add Current dv1 dv2; di = add Initial di1 di2;
-    der = add Derivative der1 der2; nv = add Next nv1 nv2;
-    mv = S.union mv1 mv2; }
-
+	else error loc (Ealready(elt))) set1 set2 in
+  { dv = add dv1 dv2 }
 
 (* checks that every partial name defined at this level *)
 (* has a last value or a default value *)
 let all_last loc h set =
   let check elt =
-    let ({ t_sort = sort; t_typ = ty } as tentry) =
+    let ({ t_sort; t_init; t_default; t_typ } as tentry) =
       try Env.find elt h with | Not_found -> assert false in
-    match sort with
-    | Smem { m_init = (InitEq | InitDecl _); m_next = Some(true) } -> ()
-    | Smem ({ m_init = (InitEq | InitDecl _) } as m) ->
-       tentry.t_sort <- Smem { m with m_previous = true }
-    | Svar { v_default = Some _ } -> ()
-    | Sstatic | Sval | Svar { v_default = None }
-    | Smem _ ->
+    match t_init, t_default with
+    | (Some _, _) | (_, Some _) -> ()
+    | None, None ->
        try
-	 ignore (Ztypes.filter_signal ty);
-	 tentry.t_sort <-  variable
-       with Ztypes.Unify -> error loc (Eshould_be_a_signal(elt, ty)) in
+	 ignore (Types.filter_signal t_typ);
+	 tentry.t_sort <- Svar
+       with Types.Unify -> error loc (Eshould_be_a_signal(elt, t_typ)) in
   S.iter check set
 
 (* [merge [set1;...;setn]] returns a set of names defined in every seti *)
@@ -83,62 +70,32 @@ let rec merge local_names_list =
         total, S.union partial1 partial2
   
 let merge_defnames_list defnames_list =
-  let split (acc_dv, acc_di, acc_der, acc_nv, acc_mv)
-            { dv = dv; di = di; der = der; nv = nv; mv = mv } =
-    dv :: acc_dv, di :: acc_di, der :: acc_der, nv :: acc_nv, mv :: acc_mv in
-  let dv, di, der, nv, mv =
-    List.fold_left split ([], [], [], [], []) defnames_list in
+  let split (acc_dv) { dv } =
+    dv :: acc_dv in
+  let dv =
+    List.fold_left split [] defnames_list in
   let dv_total, dv_partial = merge dv in
-  let di_total, di_partial = merge di in
-  let der_total, der_partial = merge der in
-  let nv_total, nv_partial = merge nv in
-  let mv_total, mv_partial = merge mv in
-  (dv_total, dv_partial), (di_total, di_partial),
-  (der_total, der_partial), (nv_total, nv_partial), (mv_total, mv_total)
+  (dv_total, dv_partial)
 
 (* The main entry. Identify variables which are partially defined *)
 let merge loc h defnames_list =
   let
-    (dv_total, dv_partial), (di_total, di_partial),
-    (der_total, der_partial), (nv_total, nv_partial), (mv_total, mv_partial) =
-    merge_defnames_list defnames_list in
+    dv_total, dv_partial = merge_defnames_list defnames_list in
   (* every partial variable must be defined as a memory or declared with *)
   (* a default value *)
-  all_last loc h (S.diff dv_partial di_total);
-  (* for initialized values, all branches must give a definition *)
-  if not (S.is_empty di_partial) 
-  then error loc (Einit_undefined(S.choose(di_partial)));
-  (* the default equation for a derivative is [der x = 0] so nothing *)
-  (* has to be done *)
+  all_last loc h dv_partial;
   add loc
-      { dv = dv_partial; di = di_partial; der = der_partial;
-        nv = nv_partial; mv  = mv_partial }
-      { dv = dv_total; di = di_total; der = der_total;
-        nv = nv_total; mv = mv_total }
+      { dv = dv_partial }
+      { dv = dv_total }
 
 (* Join two sets of names in a parallel composition. Check that names *)
-(* are only defined once. Moreover, reject [der x = ...] and [x = ...] *)
-let join loc
-	 { dv = dv1; di = di1; der = der1; nv = nv1; mv = mv1 }
-         { dv = dv2; di = di2; der = der2; nv = nv2; mv = mv2 } =
-  let join k names1 names2 =
+      (* are only defined once. *)
+let join loc { dv = dv1 } { dv = dv2 } =
+  let join names1 names2 =
     let joinrec n acc = 
-      if S.mem n names1 then error loc (Ealready(k, n)) else S.add n acc in
+      if S.mem n names1 then error loc (Ealready(n)) else S.add n acc in
     S.fold joinrec names2 names1 in
-  let disjoint k1 k2 names1 names2 =
-    let disjointrec n = 
-      if S.mem n names1 then
-        error loc (Ealready_with_different_kinds(k1, k2, n)) in
-    S.iter disjointrec names2 in
-  disjoint Current Derivative dv1 der2;
-  disjoint Current Derivative dv2 der1;
-  disjoint Next Derivative nv1 der2;
-  disjoint Next Derivative nv2 der1;
-  disjoint Multi Derivative mv1 der2;
-  disjoint Multi Derivative mv2 der1;
-  { dv = join Current dv1 dv2; di = join Initial di1 di2;
-    der = join Derivative der1 der2; nv = join Next nv1 nv2;
-    mv = S.union mv1 mv2 }
+  { dv = join dv1 dv2 }
   
 (** Check that every variable defined in an automaton *)
 (* has a definition or is a signal or its value can be implicitly kept *)
@@ -148,13 +105,16 @@ module Automaton =
       match statepat.desc with
         | Estate0pat(n) | Estate1pat(n, _) -> n
             
-    let statename state =
-      match state.desc with
-        | Estate0(n) | Estate1(n, _) -> n
+    let statenames state =
+      let rec statenames acc { desc } =
+        match desc with
+        | Estate0(n) | Estate1(n, _) -> S.add n acc
+        | Estateif(_, se1, se2) -> statenames (statenames acc se1) se2 in
+      statenames S.empty state
             
     (* build an initial table associating set of names to every state *)
     type entry = 
-        { e_loc: location;(* location in the source for the current block *)
+        { e_loc: Location.t;(* location in the source for the current block *)
           mutable e_state: Deftypes.defnames;
 	     (* set of names defined in the current block *)
           mutable e_until: Deftypes.defnames;
@@ -165,7 +125,7 @@ module Automaton =
 
     (* the initial state is particular depending on whether or not *)
     (* it is only left with a weak transition *)
-    type table = { t_initial: Zident.t * entry; t_remaining: entry Env.t }
+    type table = { t_initial: Ident.t * entry; t_remaining: entry Env.t }
 
     let table state_handlers =
       let add acc { s_state = statepat; s_loc = loc } =
@@ -188,15 +148,19 @@ module Automaton =
       let _ = add loc defined_names trans in
       e.e_state <- defined_names
           
-    let add_transition is_until h state_name defined_names 
-        { t_initial = (name, entry); t_remaining = rtable }  =
-      let {e_loc = loc;e_state = state;e_until = until;e_unless = unless} as e = 
+    let add_transition is_until h defined_names 
+        { t_initial = (name, entry); t_remaining = rtable } state_name  =
+      let {e_loc = loc;e_state = state;
+           e_until = until;e_unless = unless} as e = 
         if state_name = name then entry else Env.find state_name rtable in
       if is_until then
         let _ = add loc defined_names state in
         e.e_until <- merge loc h [until; defined_names]   
       else
         e.e_unless <- merge loc h [unless; defined_names]
+        
+    let add_transitions is_until h state_names defined_names t =
+      S.iter (add_transition is_until h defined_names t) state_names
         
     let check loc h { t_initial = (name, entry); t_remaining = rtable } =
       let defined_names_list_in_states = 
@@ -229,9 +193,11 @@ module Automaton =
       
       (* the name defined by the call to a state *)
       let called_states acc { s_trans = escape_list } =
-	let sexp { desc = desc } =
-	  match desc with | Estate0(n) | Estate1(n, _) -> n in
-	let escape acc { e_next_state = se } = S.add (sexp se) acc in
+	let rec sexp acc { desc = desc } =
+	  match desc with
+          | Estate0(n) | Estate1(n, _) -> S.add n acc
+          | Estateif(_, se1, se2) -> sexp (sexp acc se1) se2 in
+	let escape acc { e_next_state = se } = sexp acc se in
 	List.fold_left escape acc escape_list in
 
       (* the initial state is reachable *)

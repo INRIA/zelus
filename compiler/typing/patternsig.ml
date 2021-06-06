@@ -1,17 +1,3 @@
-(***********************************************************************)
-(*                                                                     *)
-(*                                                                     *)
-(*          Zelus, a synchronous language for hybrid systems           *)
-(*                                                                     *)
-(*  (c) 2020 Inria Paris (see the AUTHORS file)                        *)
-(*                                                                     *)
-(*  Copyright Institut National de Recherche en Informatique et en     *)
-(*  Automatique. All rights reserved. This file is distributed under   *)
-(*  the terms of the INRIA Non-Commercial License Agreement (see the   *)
-(*  LICENSE file).                                                     *)
-(*                                                                     *)
-(* *********************************************************************)
-
 (* A generic pattern-matching verifier based on Luc Maranget's paper at JFLA *)
 (* Author: Adrien Guatto 2009                                             *)
 (* See http://pauillac.inria.fr/~maranget/papers/warn/index.html          *)
@@ -20,11 +6,11 @@
 open Zelus
 open Global
 open Lident
-open Zmatching
+open Matching
 open Printf
-open Zlocation
+open Location
 open Deftypes
-open Zmisc
+open Misc
 
 module LANG =
   struct
@@ -39,7 +25,7 @@ module LANG =
 
     let compare = Stdlib.compare
 
-    let pdescs = List.map (fun p -> p.p_desc)
+    let pdescs = List.map (fun p -> p.pat_desc)
 
     let arity t = match t with
       | Ttuple i -> i
@@ -137,7 +123,7 @@ module LANG =
               List.sort Stdlib.compare (List.map extract_name_and_arity cdi)
           | _ -> assert false
       and find_record_type_fields typ =
-        let { t_desc = desc } = Ztypes.typ_repr typ in
+        let { t_desc = desc } = Types.typ_repr typ in
         match desc with
           | Deftypes.Tconstr (s, _, _) ->
               begin match (Modules.find_type (Modname s)).info.type_desc with
@@ -148,7 +134,7 @@ module LANG =
               end
           | Deftypes.Tlink typ -> find_record_type_fields typ
           | _ -> assert false in
-      match p.p_desc with
+      match p.pat_desc with
         | Ewildpat -> Pany
         | Etuplepat l -> Pconstr (Ttuple (List.length l), List.map inject l)
         | Evarpat _ -> Pany
@@ -157,14 +143,14 @@ module LANG =
         | Ealiaspat (p, _) -> inject p
         | Econstr0pat s ->
             let variants = 
-              let { t_desc = desc } = Ztypes.typ_repr p.p_typ in
+              let { t_desc = desc } = Types.typ_repr p.pat_typ in
               match desc with
                 | Deftypes.Tconstr(id, _, _) ->
                     find_variant_type_idents (Modname id)
                 | _ -> assert false in
             Pconstr (Tconstr (source s, 0, variants), [])
         | Econstr1pat(s, l) ->
-            let { t_desc = desc } = Ztypes.typ_repr p.p_typ in
+            let { t_desc = desc } = Types.typ_repr p.pat_typ in
             Pconstr (Tconstr(source s, List.length l,
                              match desc with
                              | Deftypes.Tconstr(id, _, _) ->
@@ -173,7 +159,7 @@ module LANG =
                      List.map inject l)
         | Etypeconstraintpat (p, _) -> inject p
         | Erecordpat l ->
-            let ll = find_record_type_fields p.p_typ in
+            let ll = find_record_type_fields p.pat_typ in
             let l' = List.map (fun (id, p) -> (source id, p)) l in
             (* Find the name of each field using type information *)
             let args = List.map
@@ -188,9 +174,8 @@ module LANG =
     (* Translation from tagged patterns is trivial. *)
     let rec eject internal_pat =
       let sensible_default pdesc = (* TODO: ask Marc *)
-        { p_desc = pdesc; p_loc = Loc (0, 0);
-          p_typ = { t_desc = Tvar; t_index = 0; t_level = 0 };
-          p_caus = Defcaus.no_typ; p_init = Definit.no_typ } in
+        { pat_desc = pdesc; pat_loc = Loc (0, 0);
+          pat_typ = { t_desc = Tvar; t_index = 0; t_level = 0 } } in
       match internal_pat with
         | Pany -> sensible_default Ewildpat
         | Por (l, r) -> sensible_default (Eorpat (eject l, eject r))
@@ -212,8 +197,8 @@ module LANG =
 
 module C = PATTERN_CHECKER(LANG)
 
-(** The main entry. Checks that pattern matching are exhaustive and warns *)
-(** about redundancy. Returns [true] if the pattern matching is exhaustive *)
+(** The main entry. Checks that pattern matching are exhaustive and warns **)
+(* about redundancy. Returns [true] if the pattern matching is exhaustive *)
 let check_match_handlers loc match_handlers =
   let partial_matching loc p =
     Typerrors.warning loc (Typerrors.Wpartial_matching(p)) in
@@ -223,7 +208,7 @@ let check_match_handlers loc match_handlers =
   let patterns = List.map (fun { m_pat = pat } -> pat) match_handlers in
   let r = C.check patterns in
 
-  Zmisc.optional_unit partial_matching loc r.C.not_matched;
+  Util.optional_unit partial_matching loc r.C.not_matched;
   List.iter display_redundant r.C.redundant_patterns;
   match r.C.not_matched with | None -> true | Some _ -> false
 

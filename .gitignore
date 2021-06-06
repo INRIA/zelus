@@ -2,6 +2,9 @@
 *~
 *.exe
 *.bc
+*.zci
+*.output
+*.run
 .merlin
-zconfig.ml
+config.ml
 _build/

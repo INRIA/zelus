@@ -1,11 +1,14 @@
 all:
 	dune build
 
+debug:
+	dune build --debug-backtraces --debug-dependency-path
+
 clean:
-	dune clean
+	dune clean; rm -f *~
 
-docker-build:
-	docker build -t zelus -f zelus.docker .
-
-docker-run:
-	docker run -ti --rm zelus bash
+wc:
+	wc compiler/global/*.ml \
+	compiler/typing/*.ml \
+	compiler/main/*.ml \
+	compiler/parsing/*.mll compiler/parsing/*.mly

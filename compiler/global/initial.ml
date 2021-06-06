@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2020 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2021 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -14,13 +14,13 @@
 
 (* the initial module *)
 
-open Zmisc
+open Misc
 open Lident
 open Global
 open Deftypes
 open Modules
 
-let stdlib_module = Zmisc.name_of_stdlib_module
+let stdlib_module = Misc.name_of_stdlib_module
 
 let abstract_type params = 
   { type_desc = Abstract_type; type_parameters = params }
@@ -109,7 +109,7 @@ let value_desc_cons =
   let ta_list = typ_list ta in
   value cons_ident
     { typ_vars = [ta];
-      typ_body = make (Tfun(Tany, None, make (Tproduct [ta; ta_list]), ta_list))
+      typ_body = make (Tarrow(Tfun, make (Tproduct [ta; ta_list]), ta_list))
     }
   
 (* global constructed values loaded initially *)

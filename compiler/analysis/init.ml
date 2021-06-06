@@ -14,7 +14,7 @@
 
 (* initialization types and basic operations over these types *)
 
-open Zmisc
+open Misc
 open Deftypes
 open Definit
 open Global
@@ -195,8 +195,7 @@ let rec skeleton_on_i i { t_desc = desc } =
 (* For external values, the skeleton type is over constrained *)
 (* only combinatorial function get a polymorphic type signature. *)
 (* others must have all their inputs/outputs initialized *)
-(* This function is not used for the moment as it would *)
-(* prevent to write [x = pre(x)] *)
+(* This function is not used for the moment *)
 (*
 let skeleton_for_external_values ty =
   let rec skeleton_on_i i { t_desc = desc } =
@@ -466,7 +465,7 @@ and icopy i =
 
 (* instanciate the initialisation type according to the type *)
 let rec instance ti ty =
-  let { t_desc = t_desc } as ty = Ztypes.typ_repr ty in
+  let { t_desc = t_desc } as ty = Types.typ_repr ty in
   match ti, t_desc with
   | Ifun(ti1, ti2), Tfun(_, _, ty1, ty2) ->
      funtype (instance ti1 ty1) (instance ti2 ty2)
@@ -545,5 +544,5 @@ let penv ff env =
   let pentry ff (n, { t_typ = ti; t_last = i }) =
     Format.fprintf ff "@[%a: %a | %a@]"
       Printer.source_name n Pinit.ptype ti Pinit.init i in
-  let env = Zident.Env.bindings env in
+  let env = Ident.Env.bindings env in
   Pp_tools.print_list_r pentry "{" ";" "}" ff env

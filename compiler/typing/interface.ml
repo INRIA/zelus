@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2020 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2021 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -14,13 +14,13 @@
 
 (* read an interface *)
 
-open Zlocation
+open Location
 open Lident
 open Zelus
 open Global
 open Deftypes
 open Modules
-open Ztypes
+open Types
 open Format
 
 (* types of errors *)
@@ -38,7 +38,7 @@ type error =
   | Ealready_defined_value of string
   | Ecyclic_abbreviation
       
-exception Error of location * error
+exception Error of Location.t * error
 				
 let error loc e = raise(Error(loc, e))
 		       
@@ -91,7 +91,7 @@ let message loc kind =
        eprintf "%aType error: This definition is cyclic.@."
          output_location loc
   end;
-  raise Zmisc.Error
+  raise Misc.Error
 
 let make desc = { desc = desc; loc = no_location }
 		  
@@ -105,9 +105,8 @@ let rec free_of_type v ty =
      List.fold_left free_of_type v ty_list
   | Etypeconstr(_,ty_list) ->
      List.fold_left free_of_type v ty_list
-  | Etypefun(_, _, ty_arg, ty_res) ->
+  | Etypefun(_, ty_arg, ty_res) ->
      free_of_type (free_of_type v ty_arg) ty_res
-  | Etypevec(ty_arg, _) -> free_of_type v ty_arg
 					
 (* checks that every type is defined *)
 (* and used with the correct arity *)
@@ -122,16 +121,10 @@ let constr_name loc s arity =
     then error loc (Etype_constr_arity(s, arity', arity));
   name
 
-let kindtype = function
-  | S -> Tstatic(true) | A -> Tany | C -> Tcont
-  | AD -> Tdiscrete(false) | D -> Tdiscrete(true)
-  | AS -> Tstatic(false) | P -> Tproba
+let kindtype = function | Kfun -> Tfun | Knode -> Tnode | Kstatic -> Tstatic
 		 
 let kindoftype = function
-  | Tstatic(s) -> if s then S else AS
-  | Tany -> A | Tcont -> C
-  | Tdiscrete(s) -> if s then D else AD
-  | Tproba -> P
+  | Tfun -> Kfun | Tnode -> Kfun | Tstatic -> Kstatic
 		
 let typ_of_type_expression typ_vars typ =
   let rec typrec typ =
@@ -143,38 +136,15 @@ let typ_of_type_expression typ_vars typ =
            Not_found -> error typ.loc (Eunbound_type_var(s))
        end
     | Etypetuple(l) ->
-       Ztypes.product (List.map typrec l)
+       Types.product (List.map typrec l)
     | Etypeconstr(s, ty_list) ->
        let name = constr_name typ.loc s (List.length ty_list) in
-       Ztypes.nconstr name (List.map typrec ty_list)
-    | Etypefun(k, n_opt, ty_arg, ty_res) ->
-       Ztypes.funtype (kindtype k) n_opt (typrec ty_arg) (typrec ty_res)
-    | Etypevec(ty_arg, si) -> Ztypes.vec (typrec ty_arg) (size si)
-  and size si =
-    match si.desc with
-    | Sconst(i) -> Deftypes.Tconst(i)
-    | Sglobal(ln) ->
-       let { qualid = qualid } =
-	 try Modules.find_value ln
-	 with | Not_found -> error si.loc (Eunbound_global_value ln) in
-       Deftypes.Tglobal(qualid)
-    | Sname(n) -> Deftypes.Tname(n)
-    | Sop(s_op, si1, si2) ->
-       let operator =
-	 function | Splus -> Deftypes.Tplus | Sminus -> Deftypes.Tminus in
-       Deftypes.Top(operator s_op, size si1, size si2)
-  in typrec typ
+       Types.nconstr name (List.map typrec ty_list)
+    | Etypefun(k, ty_arg, ty_res) ->
+       Types.arrowtype (kindtype k) (typrec ty_arg) (typrec ty_res) in
+  typrec typ
 	    
 let rec type_expression_of_typ typ =
-  let rec size si =
-    match si with
-    | Tconst(i) -> make (Sconst(i))
-    | Tglobal(ln) -> make (Sglobal(Modname(ln)))
-    | Tname(n) -> make (Sname(n))
-    | Top(s_op, si1, si2) ->
-       let operator =
-	 function | Tplus -> Splus | Tminus -> Sminus in
-       make (Sop(operator s_op, size si1, size si2)) in
   match typ.t_desc with
   | Tvar -> make (Etypevar("'a" ^ (string_of_int typ.t_index)))
   | Tproduct(l) ->
@@ -182,16 +152,14 @@ let rec type_expression_of_typ typ =
   | Tconstr(s, ty_list, _) ->
      make (Etypeconstr(Modules.currentname (Lident.Modname(s)),
                        List.map type_expression_of_typ ty_list))
-  | Tfun(k, n_opt, ty_arg, ty_res) ->
-     make (Etypefun(kindoftype k, n_opt, type_expression_of_typ ty_arg,
+  | Tarrow(k, ty_arg, ty_res) ->
+     make (Etypefun(kindoftype k, type_expression_of_typ ty_arg,
 		    type_expression_of_typ ty_res))
-  | Tvec(ty_arg, si) ->
-     make (Etypevec(type_expression_of_typ ty_arg, size si))
   | Tlink(typ) -> type_expression_of_typ typ
 
 (* translate the internal representation of a type into a type definition *)
 let type_decl_of_type_desc tyname
-    { type_desc = ty_desc; type_parameters = ty_param } =
+    { type_desc; type_parameters } =
   (* variant types *)
   let variant_type
       { qualid = qualid; info = { constr_arg = arg_l; constr_arity = arit } } =
@@ -205,9 +173,9 @@ let type_decl_of_type_desc tyname
   let record_type { qualid = qualid; info = { label_arg = arg } } =
     Modules.shortname qualid, type_expression_of_typ arg in
 
-  let params = List.map (fun i -> "'a" ^ (string_of_int i)) ty_param in
+  let params = List.map (fun i -> "'a" ^ (string_of_int i)) type_parameters in
   let type_decl_desc =
-    match ty_desc with
+    match type_desc with
       | Abstract_type -> Eabstract_type
       | Variant_type(c_list) -> Evariant_type(List.map variant_type c_list)
       | Record_type(l_list) -> Erecord_type(List.map record_type l_list)
@@ -253,7 +221,7 @@ let check_no_repeated_label loc l =
 
 (* typing type definitions *)
 let type_variant_type typ_vars constr_decl_list final_typ =
-  let type_one_variant { desc = desc } =
+  let type_one_variant { desc } =
     match desc with
     | Econstr0decl(s) ->
         global s { constr_arg = []; constr_res = final_typ; constr_arity = 0 }
@@ -287,7 +255,7 @@ let make_initial_typ_environment loc typ_name typ_params =
 let type_one_typedecl loc gtype (typ_name, typ_params, typ) =
   let typ_vars = List.map (fun v -> (v, new_generic_var ())) typ_params in
   let final_typ =
-    Ztypes.nconstr (Modules.qualify typ_name)
+    Types.nconstr (Modules.qualify typ_name)
       (List.map (fun v -> List.assoc v typ_vars) typ_params) in
 
   let type_desc =
@@ -331,7 +299,7 @@ let typedecl ff loc ty_name ty_params typ =
   try
     let gtype = make_initial_typ_environment loc ty_name ty_params in
     let gtype = type_one_typedecl loc gtype (ty_name, ty_params, typ) in
-    if !Zmisc.print_types then
+    if !Misc.print_types then
       Ptypes.output_type_declaration ff [gtype]
   with
     | Error(loc, k) -> message loc k
@@ -340,7 +308,7 @@ let typedecl ff loc ty_name ty_params typ =
 let add_type_of_value ff loc name is_static ty_scheme =
   try
     add_value name (value_desc is_static ty_scheme (Modules.qualify name));
-    if !Zmisc.print_types then
+    if !Misc.print_types then
       Ptypes.output_value_type_declaration ff [global name ty_scheme]
   with
     | Already_defined(x) -> message loc (Ealready_defined_value(x))
@@ -365,7 +333,7 @@ let interface ff inter =
     | Einter_open(modname) -> Modules.open_module modname
     | Einter_typedecl(name, params, typ) ->
         typedecl ff inter.loc name params typ
-    | Einter_constdecl(x, typ) ->
+    | Einter_constdecl(x, typ, _) ->
         constdecl ff inter.loc x typ
 
 let interface_list ff p_list =

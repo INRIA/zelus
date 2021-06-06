@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2020 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2021 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -13,7 +13,7 @@
 (* *********************************************************************)
 
 (* global symbol tables *)
-open Zmisc
+open Misc
 open Lident
 open Deftypes
 open Global
@@ -77,12 +77,12 @@ let load_module modname =
               close_in ic;
               Printf.eprintf "Corrupted compiled interface file %s.\n\
                         Please recompile module %s first.\n" filename modname;
-              raise Error
+              raise Misc.Error
     with
       | Cannot_find_file(filename) ->
           Printf.eprintf "Cannot find the compiled interface file %s.\n"
             filename;
-          raise Error
+          raise Misc.Error
             
 let find_module modname =
   try

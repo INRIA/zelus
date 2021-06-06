@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2020 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2021 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -12,293 +12,256 @@
 (*                                                                     *)
 (* *********************************************************************)
 
-(* Abstract syntax tree after scoping *)
+type 'a localized = { desc: 'a; loc: Location.t }
 
-open Zlocation
-open Zmisc
-
-type kind = S | A | C | D | AD | AS | P
-type name = string
-
-type 'a localized = { desc: 'a; loc: Zlocation.location }
-
+type name = String.t
 
 (** Types *)
-type type_expression = type_expression_desc localized 
+type type_expression = type_expression_desc localized
 
 and type_expression_desc =
-  | Etypevar of string
-  | Etypeconstr of Lident.t * type_expression list
-  | Etypetuple of type_expression list
-  | Etypevec of type_expression * size
-  | Etypefun of kind * Zident.t option * type_expression * type_expression
+  | Etypevar : name -> type_expression_desc
+  | Etypeconstr : Lident.t * type_expression list -> type_expression_desc
+  | Etypetuple : type_expression list -> type_expression_desc
+  | Etypefun : kind * type_expression * type_expression -> type_expression_desc
 
-and size = size_desc localized
+and kind =
+  | Kfun : kind (* combinatorial *)
+  | Knode : kind (* stateful *)
+  | Kstatic : kind (* constant; known at instanciation time *)
 
-and size_desc =
-  | Sconst of int
-  | Sglobal of Lident.t
-  | Sname of Zident.t
-  | Sop of size_op * size * size
+(* constants *)
+type immediate =
+| Eint : int -> immediate
+| Ebool : bool -> immediate
+| Efloat : float -> immediate
+| Evoid : immediate
+| Echar : char -> immediate
+| Estring : string -> immediate
 
-and size_op = Splus | Sminus
-		   
-(** Declarations and expressions *)
-type interface = interface_desc localized
+(* synchronous operators *)
+type operator =
+| Efby : operator (* unit delay *)
+| Eunarypre : operator (* unit delay *)
+| Eifthenelse : operator (* mux *)
+| Eminusgreater : operator (* initialization *)
+| Eseq : operator (* sequence *)
+| Erun : is_inline -> operator (* application of a statefull function *)
 
-and interface_desc =
-  | Einter_open of name
-  | Einter_typedecl of name * name list * type_decl
-  | Einter_constdecl of name * type_expression
+and is_inline = bool
 
-and type_decl = type_decl_desc localized
-    
-and type_decl_desc =
-  | Eabstract_type
-  | Eabbrev of type_expression
-  | Evariant_type of constr_decl list
-  | Erecord_type of (name * type_expression) list
-					     
-and constr_decl = constr_decl_desc localized
+type pateq = pateq_desc localized
 
-and constr_decl_desc =
-  | Econstr0decl of name
-  | Econstr1decl of name * type_expression list
+and pateq_desc = Ident.t list
 
-and implementation = implementation_desc localized
-
-and implementation_desc =
-  | Eopen of name
-  | Etypedecl of name * name list * type_decl
-  | Econstdecl of name * is_static * exp
-  | Efundecl of name * funexp
-			 
-and funexp =
-  { f_kind: kind;
-    f_atomic: is_atomic;
-    f_args: pattern list;
-    f_body: exp;
-    mutable f_env: Deftypes.tentry Zident.Env.t;
-    f_loc: location }
-    
-and is_atomic = bool
-
-and is_static = bool
-		  
-and exp = 
-  { mutable e_desc: desc; (* descriptor *)
-    e_loc: location; (* location in the source code *)
-    mutable e_typ: Deftypes.typ; (* its type *)
-    mutable e_caus: Defcaus.tc; (* its causality type *)
-    mutable e_init: Definit.ti; (* its initialization type *)
+type 'exp vardec =
+  { var_name: Ident.t; (* its name *)
+    var_default: 'exp option; (* possible default value *)
+    var_init: 'exp option; (* possible initial value for [last x] *)
+    var_clock: bool; (* is-it a clock name ? *)
+    var_loc: Location.t;
+    var_typeconstraint: type_expression option;
+    mutable var_typ: Deftypes.typ; (* its type *)
   }
-    
-and desc =
-  | Elocal of Zident.t
-  | Eglobal of { lname : Lident.t; typ_instance : Deftypes.typ_instance }
-  | Econst of immediate
-  | Econstr0 of Lident.t
-  | Econstr1 of Lident.t * exp list
-  | Elast of Zident.t
-  | Eapp of app * exp * exp list
-  | Eop of op * exp list
-  | Etuple of exp list
-  | Erecord_access of exp * Lident.t
-  | Erecord of (Lident.t * exp) list
-  | Erecord_with of exp * (Lident.t * exp) list
-  | Etypeconstraint of exp * type_expression
-  | Epresent of exp present_handler list * exp option
-  | Ematch of total ref * exp * exp match_handler list
-  | Elet of local * exp
-  | Eseq of exp * exp
-  | Eperiod of exp period
-  | Eblock of eq list block * exp
+
+type pattern =
+  { mutable pat_desc: pattern_desc;
+    mutable pat_typ: Deftypes.typ;
+    pat_loc: Location.t;
+  }
+
+and pattern_desc = 
+  | Etuplepat : pattern list -> pattern_desc 
+  | Evarpat : Ident.t -> pattern_desc 
+  | Ewildpat : pattern_desc 
+  | Econstpat : immediate -> pattern_desc 
+  | Econstr0pat : Lident.t -> pattern_desc 
+  | Econstr1pat : Lident.t * pattern list -> pattern_desc 
+  | Ealiaspat : pattern * Ident.t -> pattern_desc 
+  | Eorpat : pattern * pattern -> pattern_desc 
+  | Erecordpat : (Lident.t * pattern) list -> pattern_desc 
+  | Etypeconstraintpat : pattern * type_expression -> pattern_desc 
+
+type ('exp, 'eq) block =
+  { b_vars: 'exp vardec list;
+    b_body: 'eq;
+    mutable b_env: 'exp Deftypes.tentry Ident.Env.t }
+
+type statepatdesc =
+  | Estate0pat : Ident.t -> statepatdesc 
+  | Estate1pat : Ident.t * Ident.t list -> statepatdesc
+
+type statepat = statepatdesc localized
+
+type 'exp state_desc =
+  | Estate0 : Ident.t -> 'exp state_desc
+  | Estate1 : Ident.t * 'exp list -> 'exp state_desc
+  | Estateif : 'exp * 'exp state * 'exp state -> 'exp state_desc
+
+and 'exp state = 'exp state_desc localized
+
+type ('scondpat, 'exp, 'body) escape =
+  { e_cond: 'scondpat; 
+    e_reset: bool; 
+    e_vars: 'exp vardec list;
+    e_body: 'body;
+    e_next_state: 'exp state;
+    e_loc: Location.t;
+    mutable e_env: 'exp Deftypes.tentry Ident.Env.t;      
+  }
+                           
+type ('exp, 'body) match_handler =
+  { m_pat : pattern;
+    m_body: 'body;
+    m_loc: Location.t;
+    m_reset: bool; (* the handler is reset on entry *)
+    mutable m_env: 'exp Deftypes.tentry Ident.Env.t;
+  }
+
+(* the body of a present handler *)
+type ('scondpat, 'exp, 'body) present_handler =
+  { p_cond: 'scondpat;
+    p_body: 'body;
+    p_loc: Location.t;
+    mutable p_env: 'exp Deftypes.tentry Ident.Env.t;
+  }
+
+type ('scondpat, 'exp, 'body) automaton_handler =
+  { s_state: statepat;
+    s_vars: 'exp vardec list;
+    s_body: 'body;
+    s_trans: ('scondpat, 'exp, 'body) escape list;
+    s_loc: Location.t;
+    mutable s_env: 'exp Deftypes.tentry Ident.Env.t;
+    mutable s_reset: bool; (* is the state always entered by reset? *)
+  }
+
+type is_weak = bool
+
+type exp =
+  { e_desc: exp_desc; (* descriptor *)
+    e_loc: Location.t; (* location *)
+    mutable e_typ: Deftypes.typ; (* type *)
+  }
+
+and exp_desc = 
+  | Econst : immediate -> exp_desc 
+  | Econstr0 : { mutable lname: Lident.t } -> exp_desc 
+  | Econstr1 : { mutable lname: Lident.t; arg_list: exp list } -> exp_desc 
+  | Elocal : Ident.t -> exp_desc 
+  | Eglobal :
+      { mutable lname : Lident.t;
+        mutable typ_instance : Deftypes.typ_instance } -> exp_desc 
+  | Elast : Ident.t -> exp_desc 
+  | Eop : operator * exp list -> exp_desc 
+  | Etuple : exp list -> exp_desc 
+  | Eapp : exp * exp list -> exp_desc 
+  | Elet : leq * exp -> exp_desc 
+  | Erecord_access : exp record -> exp_desc
+  | Erecord : exp record list -> exp_desc
+  | Erecord_with : exp * exp record list -> exp_desc
+  | Etypeconstraint : exp * type_expression -> exp_desc
+  | Efun : funexp -> exp_desc
 
 and is_rec = bool
 
-and op =
-  | Efby | Eunarypre (* unit delay *)
-  | Eifthenelse (* mux *)
-  | Eminusgreater (* initialization *)
-  | Eup (* zero-crossing detection *)
-  | Einitial (* true at the very first instant *)
-  | Edisc (* discontinuity of a flow *)
-  | Ehorizon (* generate an event at a given horizon *)
-  | Etest (* test the present of a signal *)
-  | Eaccess (* access in an array: e.(e2) *)
-  | Eupdate (* array update: [| e1 with i = e2 |] *)
-  | Eslice of size * size (* array slice: e{s0..s1} *)
-  | Econcat (* array concatenation: [| t{0..42} | t'{2..25} |] *)
-  | Eatomic (* force its argument to be atomic *)
-    
-and immediate = Deftypes.immediate
-
-and app = { app_inline: bool; app_statefull: bool}
-				    
-(* a period is of the form period(v1) or period(v1|v2) where v1 is the phase *)
-(* v1 and v2 two static expressions. v1 and v2 of type float. *)
-(* E.g., period (0.2|3.4) *)
-and 'a period =
-  { p_phase: 'a option; (* the two expressions must be static *)
-    p_period: 'a }
-
-and pattern =
-  { mutable p_desc: pdesc; (* its descriptor *)
-    p_loc: location; (* where it is in the source code *)
-    mutable p_typ: Deftypes.typ; (* its type *)
-    mutable p_caus: Defcaus.tc; (* its causality type *)
-    mutable p_init: Definit.ti; (* its initialization type *)
-  }
-
-and pdesc =
-  | Ewildpat
-  | Econstpat of immediate
-  | Econstr0pat of Lident.t
-  | Econstr1pat of Lident.t * pattern list
-  | Etuplepat of pattern list
-  | Evarpat of Zident.t
-  | Ealiaspat of pattern * Zident.t
-  | Eorpat of pattern * pattern
-  | Erecordpat of (Lident.t * pattern) list
-  | Etypeconstraintpat of pattern * type_expression
-
-and eq = 
-  { eq_desc: eqdesc; (* its descriptor *)
-    eq_loc: location; (* its location in the source file *)
-    eq_index: int; (* a unique index; used to build a partial order *)
-    eq_safe: bool; (* does it have a side effect *)
-    mutable eq_write: Deftypes.defnames; (* the set of names it defines *) }
-
-and eqdesc =
-  | EQeq of pattern * exp
-  (* [p = e] *)
-  | EQder of Zident.t * exp * exp option * exp present_handler list
-  (* [der n = e [init e0] [reset p1 -> e1 | ... | pn -> en]] *)
-  | EQinit of Zident.t * exp
-  (* [init n = e0 *)
-  | EQnext of Zident.t * exp * exp option
-  (* [next n = e] *)
-  | EQpluseq of Zident.t * exp
-  (* [n += e] *)
-  | EQautomaton of is_weak * state_handler list * state_exp option
-  | EQpresent of eq list block present_handler list * eq list block option
-  | EQmatch of total ref * exp * eq list block match_handler list
-  | EQreset of eq list * exp
-  | EQemit of Zident.t * exp option
-  | EQblock of eq list block
-  | EQand of eq list (* eq1 and ... and eqn *)
-  | EQbefore of eq list (* eq1 before ... before eqn *)
-  | EQforall of forall_handler (* forall i in ... do ... initialize ... done *)
-
-and total = bool
-
-and is_next = bool
-
-and is_weak = bool
-
-and 'a block =
-    { b_vars: vardec list;
-      b_locals: local list;
-      b_body: 'a;
-      b_loc: location;
-      mutable b_env: Deftypes.tentry Zident.Env.t;
-      mutable b_write: Deftypes.defnames }
-
-and vardec =
-    { vardec_name: Zident.t; (* its name *)
-      vardec_default: Deftypes.constant default option;
-      (* either an initial or a default value *)
-      vardec_combine: Lident.t option; (* an optional combination function *)
-      vardec_loc: location;
-    }
-
-and 'a default =
-  | Init of 'a | Default of 'a
-
-
-and local = 
-  { l_rec: is_rec; (* is-it recursive *)
-    l_eq: eq list; (* the set of parallel equations *)
-    mutable l_env: Deftypes.tentry Zident.Env.t;
-    l_loc: location }
-
-and state_handler = 
-    { s_loc: location;
-      s_state: statepat; 
-      s_body: eq list block; 
-      s_trans: escape list;
-      mutable s_env: Deftypes.tentry Zident.Env.t;
-      mutable s_reset: bool } 
-
-and statepat = statepatdesc localized 
-
-and statepatdesc = 
-    | Estate0pat of Zident.t
-    | Estate1pat of Zident.t * Zident.t list
-
-and state_exp = state_exdesc localized 
-
-and state_exdesc = 
-    | Estate0 of Zident.t
-    | Estate1 of Zident.t * exp list
-
-and escape = 
-    { e_cond: scondpat; 
-      e_reset: bool; 
-      e_block: eq list block option;
-      e_next_state: state_exp;
-      mutable e_env: Deftypes.tentry Zident.Env.t;
-      mutable e_zero: bool } 
+and 'a record = { mutable label: Lident.t; arg: 'a }
 
 and scondpat = scondpat_desc localized
 
 and scondpat_desc =
-    | Econdand of scondpat * scondpat
-    | Econdor of scondpat * scondpat
-    | Econdexp of exp
-    | Econdpat of exp * pattern
-    | Econdon of scondpat * exp
+  | Econdand : scondpat * scondpat -> scondpat_desc
+  | Econdor : scondpat * scondpat -> scondpat_desc
+  | Econdexp : exp -> scondpat_desc
+  | Econdpat : exp * pattern -> scondpat_desc
+  | Econdon : scondpat * exp -> scondpat_desc
 
-and 'a match_handler =
-    { m_pat: pattern;
-      m_body: 'a;
-      mutable m_env: Deftypes.tentry Zident.Env.t;
-      m_reset: bool; (* the handler is reset on entry *)
-      mutable m_zero: bool; (* the handler is done at a zero-crossing instant *)
-    }
+and leq =
+  { l_rec: is_rec;
+    l_eq: eq;
+    mutable l_env: exp Deftypes.tentry Ident.Env.t;
+  }
+  
+and eq =
+  { eq_desc: eq_desc; (* descriptor *)
+    mutable eq_write: Deftypes.defnames; (* set of defined variables *)
+    eq_loc: Location.t; (* its location *)
+  }
 
-(* the body of a present handler *)
-and 'a present_handler =
-    { p_cond: scondpat;
-      p_body: 'a;
-      mutable p_env: Deftypes.tentry Zident.Env.t;
-      mutable p_zero: bool }
+and eq_desc = 
+  | EQeq : pattern * exp -> eq_desc  (* [p = e] *)
+  | EQif : exp * eq * eq -> eq_desc (* [if e then eq1 else eq2] *)
+  | EQand : eq list -> eq_desc (* [eq1 and...and eqn] *)
+  | EQlocal : (exp, eq) block -> eq_desc (* local x [...] do eq done *)
+  | EQreset : eq * exp -> eq_desc (* [reset eq every e] *)
+  | EQautomaton :
+      { is_weak : bool;
+        handlers : (scondpat, exp, eq) automaton_handler list;
+        state_opt : exp state option } -> eq_desc
+  | EQpresent :
+      { handlers : (scondpat, exp, eq) present_handler list;
+        default_opt : eq default } -> eq_desc
+  | EQmatch :
+      { mutable is_total: bool; e: exp;
+        handlers: (exp, eq) match_handler list } -> eq_desc
+  | EQempty : eq_desc
+  | EQassert : exp -> eq_desc
 
-(* the body of a for loop *)
-(* for(all|seq) [id in e..e | id in e[at id] | id out id]+
- *   local id [and id]*
- *   do eq and ... and eq
- *   [init
- *     [[id = e with g] | [last id = e]]
- *     [and [[id = e with g] | [last id = e]]]*
- *   done *)
-and forall_handler =
-  { for_index: indexes_desc localized list;
-    for_init: init_desc localized list;
-    for_body: eq list block;
-    mutable for_in_env: Deftypes.tentry Zident.Env.t;
-    (* def names from [id in e | id in e1..e2] *)
-    mutable for_out_env: Deftypes.tentry Zident.Env.t;
-    (* def (left) names from [id out id'] *)
-    for_loc: location }
+and 'a default =
+  | Init : 'a -> 'a default | Else : 'a -> 'a default | NoDefault
 
-and indexes_desc =
-  | Einput of Zident.t * exp (* xi in t_input *)
-  | Eoutput of Zident.t * Zident.t (* xi out t_output *)
-  | Eindex of Zident.t * exp * exp (* i in e1 .. e2 *)
+and is_atomic = bool
 
-and init_desc =
-  | Einit_last of Zident.t * exp
+and funexp =
+  { f_kind: kind; (* its kind *)
+    f_atomic: is_atomic; (* when true, outputs depend strictly on all inputs *)
+    f_args: arg list; (* list of arguments *)
+    f_body: result;
+    mutable f_env: exp Deftypes.tentry Ident.Env.t;
+    f_loc: Location.t
+  }
 
-					 
+and arg = exp vardec list
+
+and result =
+  { r_desc: result_desc;
+    mutable r_typ: Deftypes.typ;
+    r_loc: Location. t }
+
+and result_desc =
+  | Exp: exp -> result_desc
+  | Returns: (exp, eq) block -> result_desc
+
+
+(** Declarations *)
+type interface = interface_desc localized
+
+and interface_desc =
+  | Einter_open : name -> interface_desc 
+  | Einter_typedecl : name * name list * type_decl -> interface_desc 
+  | Einter_constdecl :
+      name * type_expression * name list -> interface_desc 
+
+and type_decl = type_decl_desc localized
+    
+and type_decl_desc =
+    | Eabstract_type : type_decl_desc 
+    | Eabbrev : type_expression -> type_decl_desc 
+    | Evariant_type : constr_decl list -> type_decl_desc 
+    | Erecord_type : (name * type_expression) list -> type_decl_desc 
+
+and constr_decl = constr_decl_desc localized
+    
+and constr_decl_desc =
+  | Econstr0decl : name -> constr_decl_desc 
+  | Econstr1decl : name * type_expression list -> constr_decl_desc 
+  
+type implementation = implementation_desc localized
+
+and implementation_desc =
+  | Eopen : name -> implementation_desc
+  | Eletdecl : name * exp -> implementation_desc
+  | Etypedecl : name * name list * type_decl -> implementation_desc
+
+type program = implementation list
 
