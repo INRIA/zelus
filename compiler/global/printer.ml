@@ -325,7 +325,7 @@ and operator ff op e_list =
       fprintf ff "atomic %a" expression e
   (*added here*)
   | Emove, [e] ->  
-      fprintf ff "move_robot( 1.0 )" 
+      fprintf ff "move_robot_ml(%a)" expression e 
   (*DANGEROUS: CHANGE IT BACK TO ASSERT FALSE*)
   | _ -> assert false
 
