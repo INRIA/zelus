@@ -258,7 +258,7 @@ and exp prio ff e =
   | Omove(e) ->
       print_endline("Omove compilation");
       (*fprintf ff "print_endline(\"robot is moving\")"*)
-      fprintf ff "move_robot %a" (exp 0) e
+      fprintf ff "move_robot_ml %a" (exp 0) e
   | Oinst(i) -> inst prio ff i
   end;
   if prio_e < prio then fprintf ff ")"
@@ -619,5 +619,5 @@ let implementation_list ff impl_list =
   fprintf ff "@[(* %s *)@.@]" header_in_file;
   fprintf ff "@[open Ztypes@.@]";
   (* added here *)
-  if !robot then (fprintf ff "@[external move_robot: int -> unit = \"move_robot\" @.@]") else ();
+  if !robot then (fprintf ff "@[external move_robot_ml: int -> unit = \"move_robot_c\" @.@]") else ();
   List.iter (implementation ff) impl_list

@@ -147,7 +147,7 @@ let block l lo eq_list startpos endpos =
 (*added here*)
 %token ASSUME         /* "assume" */
 (*added here*)
-%token R_MOVE         /* "move_robot" */
+%token R_MOVE         /* "move_robot_zls" */
 (*added here*)
 %token ASSERT         /* "assert" */
 %token EXCEPTION      /* "exception" */

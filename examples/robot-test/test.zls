@@ -9,5 +9,5 @@ let hybrid main () = () where
    end
   and () = present(trigger) ->
     ((print_int vel); print_newline ();
-    move_robot(vel))
+    move_robot_zls(vel))
   else ()
