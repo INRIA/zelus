@@ -31,6 +31,7 @@ type kind = | S | AS | A | C | AD | D | P
 type name = string
 
 type qualident = { qual: name; id: name }
+
 type longname =
     | Name of name
     | Modname of qualident
@@ -119,6 +120,8 @@ and desc =
   | Eassume of exp
   (*added here
   | Emove of exp*)
+  (*added here*)
+  | Estore of name * int
   | Eperiod of period
   | Ematch of exp * exp match_handler list
   | Epresent of exp present_handler list * exp default option
@@ -134,8 +137,8 @@ and 'a default =
   | Init of 'a | Default of 'a
 
 and op =
-  | Efby | Eunarypre | Eifthenelse | Eminusgreater | (*added here*)Emove
-  | Eup | (*here*)Eassert| Einitial | Edisc | Etest | Eaccess | Eupdate
+  | Efby | Eunarypre | Eifthenelse | Eminusgreater | (*added here*)Emove 
+  | Eup | Einitial | Edisc | Etest | Eaccess | Eupdate
   | Eslice of size * size | Econcat | Eatomic
 
 
@@ -156,6 +159,10 @@ and constant =
 and period =
   { p_phase: exp option; (* the two expressions must be static *)
     p_period: exp }
+    
+and robot_input =
+  { cmd : name;
+    key : int }
 
 and constr = longname
 
@@ -188,11 +195,9 @@ and eqdesc =
     (* [emit n = e] *)
   | EQpluseq of name * exp
     (* [n += e] *)
+  (*added here
+  | EQstore of robot_input*)
   | EQautomaton of eq list state_handler list * state_exp option
-  (*added here 
-  | EQr_move of exp *)
-  (*added here*)
-  (*| EQassert of exp  *)
   | EQpresent of eq list block present_handler list * eq list block option
   | EQmatch of exp * eq list block match_handler list
   | EQifthenelse of exp * eq list block * eq list block option
@@ -248,6 +253,7 @@ and scondpat_desc =
     | Econdexp of exp
     | Econdon of scondpat * exp
     | Econdpat of exp * pattern
+
 
 and is_on = bool
 

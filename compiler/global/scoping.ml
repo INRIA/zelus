@@ -36,8 +36,6 @@ struct
     | Enon_linear_forall of string
     | Eautomaton_with_mixed_transitions
     | Emissing_in_orpat of string
-    (*added here*)
-    | Eassert_fail of string
       
   exception Error of location * error
 
@@ -73,11 +71,6 @@ struct
 	 eprintf
 	   "%aScoping error: this automaton mixes weak and strong transitions.@."
 	   output_location loc
-      (*added here*)
-      | Eassert_fail(name) -> 
-         eprintf
-           "%aAssert fail: test did not pass"
-           output_location loc
       end;
     raise Zmisc.Error
 end
@@ -234,8 +227,6 @@ let operator loc env = function
   | Eminusgreater -> Zelus.Eminusgreater
   | Eifthenelse -> Zelus.Eifthenelse
   | Eup -> Zelus.Eup
-  (*added here*)
-  | Eassert -> Zelus.Eassert
   (*added here*)
   | Emove -> Zelus.Emove
   | Einitial -> Zelus.Einitial

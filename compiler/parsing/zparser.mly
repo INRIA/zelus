@@ -149,7 +149,7 @@ let block l lo eq_list startpos endpos =
 (*added here*)
 %token R_MOVE         /* "move_robot" */
 (*added here*)
-%token ASSERT         /* "assert" */
+%token R_STORE        /* "robot_store" */
 %token EXCEPTION      /* "exception" */
 %token EXTERNAL       /* "external" */
 %token IN             /* "in" */
@@ -461,12 +461,6 @@ equation_desc:
   | AUTOMATON opt_bar a = automaton_handlers(equation_empty_list)
     INIT s = state
     { EQautomaton(List.rev a, Some(s)) }
-  (*added here
-  | R_MOVE e = seq_expression 
-     {EQr_move(e)} *)
-  (*added here
-  | ASSERT e = seq_expression
-     {EQassert(e)} *)
   | MATCH e = seq_expression WITH opt_bar
     m = match_handlers(block_of_equation_list) opt_end
     { EQmatch(e, List.rev m) }
@@ -497,6 +491,9 @@ equation_desc:
     { EQpluseq(i, e) }
   | PERIOD p = pattern EQUAL e = period_expression
     { EQeq(p, make (Eperiod(e)) $startpos(e) $endpos(e)) }
+  (*added here*)
+  | R_STORE p = pattern EQUAL rob = robot_expression
+    { EQeq(p, make (Estore(rob.cmd, rob.key)) $startpos(rob) $endpos(rob)) }
   | DER i = ide EQUAL e = seq_expression opt = optional_init
       { EQder(i, e, opt, []) }
   | DER i = ide EQUAL e = seq_expression opt = optional_init
@@ -508,6 +505,9 @@ equation_desc:
       { EQnext(i, e, Some(e0)) }
   | INIT i = ide EQUAL e = seq_expression
       { EQinit(i, e) }
+  (*added here
+  | R_STORE r = robot_expression 
+     {EQstore(r)} *)  
   | EMIT i = ide
       { EQemit(i, None) }
   | EMIT i = ide EQUAL e = seq_expression
@@ -678,11 +678,11 @@ scondpat_desc :
   | UP e = simple_expression
       { Econdexp (make (Eop(Eup, [e])) $startpos $endpos) }
   (*added here*)
-  | ASSERT e = simple_expression
-      { Econdexp (make (Eop(Eassert, [e])) $startpos $endpos) }
-  (*added here*)
   | R_MOVE e = simple_expression
-      { print_endline("Parser"); Econdexp (make (Eop(Emove, [e])) $startpos $endpos)}
+      { Econdexp (make (Eop(Emove, [e])) $startpos $endpos)}
+  (*added here
+  | R_STORE rob = robot_expression
+       {Econdexp (make (Eop(Estore, [rob])) $startpos $endpos)}*)
   | scpat1 = scondpat AMPERSAND scpat2 = scondpat
       { Econdand(scpat1, scpat2) }
   | scpat1 = scondpat BAR scpat2 = scondpat
@@ -954,11 +954,11 @@ expression_desc:
   | UP e = expression
       { Eop(Eup, [e]) }
   (*added here*)
-  | ASSERT e = expression
-      { Eop(Eassert, [e]) }
-  (*added here*)
   | R_MOVE e = expression
       { Eop(Emove, [e])}
+  (*added here
+  | R_STORE rob = robot_expression
+      { Eop(Estore, [rob])}*)
   | TEST e = expression
       { Eop(Etest, [e]) }
   | DISC e = expression
@@ -1018,6 +1018,9 @@ expression_desc:
   (*added here
   | R_MOVE e = expression
         {Emove(e)}*)
+  (*added here*)
+  | R_STORE rob = robot_expression
+        {Estore(rob.cmd, rob.key)}
   | AUTOMATON opt_bar a = automaton_handlers(seq_expression)
       { Eautomaton(List.rev a, None) }
   | AUTOMATON opt_bar a = automaton_handlers(seq_expression) INIT s = state
@@ -1044,7 +1047,11 @@ period_expression:
   | LPAREN ph = expression BAR per = expression RPAREN /* period */
       { { p_phase = Some(ph); p_period = per } }
 ;
-
+(*added here*)
+robot_expression:
+  | LPAREN r_cmd = ide COMMA r_key = INT RPAREN
+      {{cmd = r_cmd; key = r_key}}
+      
 constructor:
   | c = CONSTRUCTOR
       { Name(c) } %prec prec_ident
