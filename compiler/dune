@@ -13,14 +13,14 @@
   (name zlcompilerlibs)
   (public_name zelus.zlcompilerlibs)
   (wrapped false)
-  (modules :standard \ zeluc compiler simulator fixstep)
+  (modules :standard \ zeluc simulator fixstep)
   (libraries menhirLib))
 
 (executable
   (name zeluc)
   (modes (byte exe))
   (libraries unix menhirLib zlcompilerlibs)
-  (modules zeluc compiler simulator fixstep)
+  (modules zeluc simulator fixstep)
   (promote (until-clean)))
 
 (install
