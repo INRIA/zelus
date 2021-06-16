@@ -432,23 +432,19 @@ and standard_method_call ctx state_vars m =
   let o_prob, args =
     match split_proba_expr (Otuple m.met_args) with
     | None -> None, Otuple m.met_args
-    | Some (prob, args) ->
-        Some prob, args
+    | Some (prob, args) -> Some prob, args
   in
+  let args_var = fresh "_args" in
   let call =
     match m.met_name with
     | "reset" -> Ecall_reset instance
     | "step" ->
-        let args_var = fresh "_args" in
-        let state_vars' = fv_expr_updated args in
         let args' =
           match o_prob with
           | None -> evar args_var
           | Some prob -> etuple [evar prob; evar args_var]
         in
-        Elet(unpack state_vars' (pvar args_var),
-             expression ctx state_vars' args,
-             mk_expr (pack state_vars' (Ecall_step (instance, args'))))
+        Ecall_step (instance, args')
     | "copy" -> not_yet_implemented "copy"
     | _ -> assert false
   in
@@ -466,17 +462,25 @@ and standard_method_call ctx state_vars m =
               etuple [self_update; evar res])
     | Some (i, _) -> not_yet_implemented "instance array"
   in
+  let state_vars_args = fv_expr_updated args in
+  assert (SSet.subset state_vars_args state_vars);
   match o_prob with
   | None ->
       let res = fresh "_res" in
-      Elet (ptuple [ self_patt; pvar res ],
-            mk_expr call,
-            mk_expr (pack state_vars (evar res).expr))
+      Elet(unpack state_vars_args (pvar args_var),
+           expression ctx state_vars_args args,
+           mk_expr
+             (Elet (ptuple [ self_patt; pvar res ],
+                    mk_expr call,
+                    mk_expr (pack state_vars (evar res).expr))))
   | Some prob ->
       let res = fresh "_res" in
-      Elet (ptuple [ self_patt; ptuple [ pvar prob; pvar res ]],
-            mk_expr call,
-            mk_expr (pack state_vars (evar res).expr))
+      Elet(unpack state_vars_args (pvar args_var),
+           expression ctx state_vars_args args,
+           mk_expr
+             (Elet (ptuple [ self_patt; ptuple [ pvar prob; pvar res ]],
+                    mk_expr call,
+                    mk_expr (pack state_vars (evar res).expr))))
 
 and instruction ctx state_vars i =
   inst ctx state_vars (add_return i)
