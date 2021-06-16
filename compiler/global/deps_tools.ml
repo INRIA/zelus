@@ -20,7 +20,7 @@ open Format
 open Zlocation
 open Zparsetree
 open Zmisc
-
+open Compiler
 
 (* Print the dependencies *)
 
@@ -172,68 +172,30 @@ let remove_preprocessed inputfile =
     None -> ()
   | Some _ -> remove_file inputfile
 
-(* Parse a file or get a dumped syntax tree in it *)
-
-let lexical_error err loc =
-  eprintf "%aIllegal character.@." output_location loc;
-  raise Error
-
-let syntax_error loc =
-  eprintf "%aSyntax error.@." output_location loc;
-  raise Error
-
-let parse parsing_fun lexing_fun lexbuf =
-  lexbuf.Lexing.lex_curr_p <-
-    { lexbuf.Lexing.lex_curr_p with Lexing.pos_fname = "" };
-  try
-    parsing_fun lexing_fun lexbuf
-  with
-  | Zlexer.Lexical_error(err, loc) -> lexical_error err loc
-  | Zparser.Error -> syntax_error (Loc(Lexing.lexeme_start lexbuf, Lexing.lexeme_end lexbuf))
-
-let parse_implementation_file lb =
-  parse Zparser.implementation_file Zlexer.main lb
-
-let parse_interface_file lb =
-  parse Zparser.interface_file Zlexer.main lb
-
-let parse_use_file ic =
-    seek_in ic 0;
-    let lb = Lexing.from_channel ic in
-    parse_implementation_file lb
-
-let parse_interface ic =
-    seek_in ic 0;
-    let lb = Lexing.from_channel ic in
-    parse_interface_file lb
 
 (* Process one file *)
 
 let zls_dependencies source_file = 
+  Zlocation.initialize source_file;
   let input_file = preprocess source_file in
-  let ic = open_in_bin input_file in
   try
-    let ast = parse_use_file ic in
+    let ast = Compiler.parse_implementation_file input_file in
     let free_structure_names = Zdepend.source_file ast in
-    close_in ic; 
     remove_preprocessed input_file;
     Zdepend.StringSet.fold find_dependency free_structure_names []
   with x ->
-    close_in ic; 
     remove_preprocessed input_file; 
     raise x
 
 let zli_dependencies source_file = 
+  Zlocation.initialize source_file;
   let input_file = preprocess source_file in
-  let ic = open_in_bin input_file in
   try
-    let ast = parse_interface ic in
+    let ast = Compiler.parse_interface_file input_file in
     let free_structure_names = Zdepend.interface_file ast in
-    close_in ic; 
     remove_preprocessed input_file;
     Zdepend.StringSet.fold find_dependency free_structure_names [] 
   with x ->
-    close_in ic; 
     remove_preprocessed input_file; 
     raise x
 
@@ -244,5 +206,5 @@ let zls_file_dependencies source_file =
 
 let zli_file_dependencies source_file =
   let target = (Filename.chop_extension source_file) ^ ".zci" in
-  let deps = zls_dependencies source_file in 
+  let deps = zli_dependencies source_file in 
   print_dependencies target deps
