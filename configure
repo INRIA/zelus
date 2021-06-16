@@ -3,7 +3,7 @@
 #load "unix.cma"
 
 let version = "2.2"
-let subversion = "stable"
+let subversion = "dev"
 
 let prefix = ref (Filename.concat (Sys.getcwd ()) "_build/install/default/")
 
