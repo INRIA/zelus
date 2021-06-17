@@ -2,6 +2,12 @@ open Ast_helper
 open Muf
 open Format
 
+type op = 
+  Infix of string
+| Prefix of string
+| Unary of string
+| Fun_call
+
 let fresh_nat = 
   let i = ref (-1) in 
   fun _ -> begin
@@ -93,35 +99,36 @@ let rec compile_expr :
     | Eapp ({ expr = Eapp ({ expr = Evar {name = op}}, e1) }, e2) (* Binary operator : e1 op e2 *)
       when op.[0] == '(' -> (* Infix operator *)
         let op_str = String.trim (String.sub op 1 ((String.index op ')')-1)) in (* Raises Not_found error if the closing parenthesis is missing *)
-        let op_str =
+        let operator =
           begin match op_str with
        (* | muF operator -> Python operator *)
           (* Integer arithmetic *)
-          | "/" -> "//"
+          | "/" -> Infix "//"
           (* Floating-point arithmetic *)
-          | "+." -> "+" 
-          | "-." -> "-"
-          | "/." -> "/"
-          | "*." -> "*"
+          | "+." -> Infix "+" 
+          | "-." -> Infix "-"
+          | "/." -> Infix "/"
+          | "*." -> Infix "*"
           (* Comparisons *)
-          | "=" -> "=="
-          | "<>" -> "!="
-          | "==" -> "is"
-          | "!=" -> "is not"
+          | "=" -> Infix "=="
+          | "<>" -> Infix "!="
+          | "==" -> Infix "is"
+          | "!=" -> Infix "is not"
           (* Bitwise operations *)
-          | "asr" -> ">>"
-          | "lsl" -> "<<"
-          | "land" -> "&"
-          | "lxor" -> "^"
-          | "lor" -> "|"
+          | "asr" -> Infix ">>"
+          | "lsl" -> Infix "<<"
+          | "land" -> Infix "&"
+          | "lxor" -> Infix "^"
+          | "lor" -> Infix "|"
           (* Boolean operations *)
           | "&" 
-          | "&&" -> "and"
-          | "||" -> "or"
+          | "&&" ->  Prefix "logical_and"
+          | "or"
+          | "||" ->  Prefix "logical_or"
           (* String operations *)
-          | "^" -> "+"
+          | "^" -> Infix "+"
           (* List operations *)
-          | "@" -> "+"
+          | "@" -> Infix "+"
           (* Not rewritten operators *)
           | "+"
           | "-"
@@ -130,32 +137,37 @@ let rec compile_expr :
           | ">="
           | "<"
           | "<="
-          | "**" -> op_str
+          | "**" -> Infix op_str
           (* Unknown operator, e.g. might be a name surrounded by unnecessary parentheses *)
-          | _ -> ""
+          | _ -> Fun_call
           end
         in
-        if op_str = "" then 
-          compile_app e.expr 
-        else
-          fprintf ff "(%a %s %a)" compile_expr e1 op_str compile_expr e2
+        begin match operator with
+        | Infix op -> fprintf ff "(%a %s %a)" compile_expr e1 op compile_expr e2
+        | Prefix op -> fprintf ff "%a" compile_expr { e with expr = Eapp ({e with expr = Evar {name = op}}, {e with expr = Etuple [e1 ; e2]}) }
+        | Fun_call -> compile_app e.expr
+        | Unary _ -> assert false
+        end        
     | Eapp ({ expr = Evar {name = op}}, e1) (* Unary operator : op e1*)
       when op.[0] == '(' -> 
       let op_str = String.trim (String.sub op 1 ((String.index op ')')-1)) in (* Raises Not_found error if the closing parenthesis is missing  *)
-        let op_str =
+        let operator =
           begin match op_str with
-          | "~-" -> "-"
-          | "~-." -> "-"
-          | "-." -> "-"
-          | "lnot" -> "~"
-          | "not" -> op_str
-          | _ -> ""
+          | "~-" -> Unary "-"
+          | "~-." -> Unary "-"
+          | "-." -> Unary "-"
+          | "lnot" -> Unary "~"
+          | "not" -> Prefix "logical_not"
+          | _ -> Fun_call
           end
         in
-        if op_str = "" then 
-          compile_app e.expr 
-        else 
-          fprintf ff "(%s %a)"op_str compile_expr e1
+        begin match operator with
+        | Unary op -> fprintf ff "(%s %a)" op compile_expr e1 
+        | Prefix op -> fprintf ff "%a" compile_expr { e with expr = Eapp ({e with expr = Evar {name = op}}, e1) }
+        | Fun_call -> compile_app e.expr
+        | Infix _ -> assert false
+        end
+    | Eapp ({ expr = Evar {name = "not"}}, e1) -> fprintf ff "%a" compile_expr { e with expr = Eapp ({e with expr = Evar {name = "logical_not"}}, e1) }
     | Eapp (e1, e2) -> compile_app e.expr
     | Eif (e, { expr=Eapp({expr=Evar{name=n1}}, args1) },
               { expr=Eapp({expr=Evar{name=n2}}, args2) }) 
@@ -282,6 +294,8 @@ let compile_type :
     end
   end
 
+let to_py_module s = String.uncapitalize_ascii s
+
 let compile_decl : type a. formatter -> a declaration -> unit = begin
   fun ff d ->
     begin match d.decl with
@@ -307,10 +321,34 @@ let compile_decl : type a. formatter -> a declaration -> unit = begin
     | Dtype l -> 
       fprintf ff "%a" 
         (pp_print_list compile_type) l 
-    | Dopen m -> fprintf ff "import %s" (String.uncapitalize_ascii m)
-    end
+    | Dopen m -> 
+      let m = to_py_module m in
+        begin match Muf_libs_name.SSet.find_opt m Muf_libs_name.module_names_zeluc with
+          | Some _ -> fprintf ff "from zelus.%s import *@," m
+          | None ->
+            begin match Muf_libs_name.SSet.find_opt m Muf_libs_name.module_names_probzeluc with
+            | Some _ -> fprintf ff "from probzelus.%s import *@," m
+            | None -> fprintf ff "from %s import *@," m
+            end
+          end
+        end
 end
 
+let compile_import_modules : type t. formatter -> Muf_utils.SSet.t -> unit = begin
+  fun ff s ->
+    let f m = 
+      let m = to_py_module m in
+        begin match Muf_libs_name.SSet.find_opt m Muf_libs_name.module_names_zeluc with
+        | Some _ -> fprintf ff "from zelus import %s@," m
+        | None -> 
+          begin match Muf_libs_name.SSet.find_opt m Muf_libs_name.module_names_probzeluc with
+          | Some _ -> fprintf ff "from probzelus import %s@," m
+          | None -> fprintf ff "import %s@," m
+          end
+        end
+    in
+    Muf_utils.SSet.iter f s
+  end
 
 let compile_program : formatter -> unit program -> unit = begin
   fun ff p ->
@@ -321,10 +359,10 @@ let compile_program : formatter -> unit program -> unit = begin
         p
     in
     let p = Muf_flatten.compile_program p in
+    let to_import = Muf_utils.imported_modules p in
     fprintf ff "@[<v 0>";
-    fprintf ff  "from muflib import Node, step, reset, init, register_pytree_node_dataclass, J_dataclass@,";
-    fprintf ff  "from jax.lax import cond@,";
-    fprintf ff  "from jax.tree_util import register_pytree_node_class@,@,";
+    fprintf ff  "from zeluslib import *@,@,";
+    compile_import_modules ff to_import;
     List.iter (compile_decl ff) p;
     fprintf ff "@,@]@."
 end
