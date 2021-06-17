@@ -2,6 +2,12 @@ open Ast_helper
 open Muf
 open Format
 
+type op = 
+  Infix of string
+| Prefix of string
+| Unary of string
+| Fun_call
+
 let fresh_nat = 
   let i = ref (-1) in 
   fun _ -> begin
@@ -93,36 +99,36 @@ let rec compile_expr :
     | Eapp ({ expr = Eapp ({ expr = Evar {name = op}}, e1) }, e2) (* Binary operator : e1 op e2 *)
       when op.[0] == '(' -> (* Infix operator *)
         let op_str = String.trim (String.sub op 1 ((String.index op ')')-1)) in (* Raises Not_found error if the closing parenthesis is missing *)
-        let op_str, opt_name =
+        let operator =
           begin match op_str with
        (* | muF operator -> Python operator *)
           (* Integer arithmetic *)
-          | "/" -> "//", None
+          | "/" -> Infix "//"
           (* Floating-point arithmetic *)
-          | "+." -> "+" , None
-          | "-." -> "-", None
-          | "/." -> "/", None
-          | "*." -> "*", None
+          | "+." -> Infix "+" 
+          | "-." -> Infix "-"
+          | "/." -> Infix "/"
+          | "*." -> Infix "*"
           (* Comparisons *)
-          | "=" -> "==", None
-          | "<>" -> "!=", None
-          | "==" -> "is", None
-          | "!=" -> "is not", None
+          | "=" -> Infix "=="
+          | "<>" -> Infix "!="
+          | "==" -> Infix "is"
+          | "!=" -> Infix "is not"
           (* Bitwise operations *)
-          | "asr" -> ">>", None
-          | "lsl" -> "<<", None
-          | "land" -> "&", None
-          | "lxor" -> "^", None
-          | "lor" -> "|", None
+          | "asr" -> Infix ">>"
+          | "lsl" -> Infix "<<"
+          | "land" -> Infix "&"
+          | "lxor" -> Infix "^"
+          | "lor" -> Infix "|"
           (* Boolean operations *)
           | "&" 
-          | "&&" -> "&", Some "logical_and"
+          | "&&" ->  Prefix "logical_and"
           | "or"
-          | "||" -> "|", Some "logical_or"
+          | "||" ->  Prefix "logical_or"
           (* String operations *)
-          | "^" -> "+", None
+          | "^" -> Infix "+"
           (* List operations *)
-          | "@" -> "+", None
+          | "@" -> Infix "+"
           (* Not rewritten operators *)
           | "+"
           | "-"
@@ -131,38 +137,36 @@ let rec compile_expr :
           | ">="
           | "<"
           | "<="
-          | "**" -> op_str, None
+          | "**" -> Infix op_str
           (* Unknown operator, e.g. might be a name surrounded by unnecessary parentheses *)
-          | _ -> "", None
+          | _ -> Fun_call
           end
         in
-        if op_str = "" then 
-          compile_app e.expr 
-        else 
-          begin match opt_name with
-          | None -> fprintf ff "(%a %s %a)" compile_expr e1 op_str compile_expr e2
-          | Some n -> fprintf ff "%a" compile_expr { e with expr = Eapp ({e with expr = Evar {name = n}}, {e with expr = Etuple [e1 ; e2]}) }
-          end          
+        begin match operator with
+        | Infix op -> fprintf ff "(%a %s %a)" compile_expr e1 op compile_expr e2
+        | Prefix op -> fprintf ff "%a" compile_expr { e with expr = Eapp ({e with expr = Evar {name = op}}, {e with expr = Etuple [e1 ; e2]}) }
+        | Fun_call -> compile_app e.expr
+        | Unary _ -> assert false
+        end        
     | Eapp ({ expr = Evar {name = op}}, e1) (* Unary operator : op e1*)
       when op.[0] == '(' -> 
       let op_str = String.trim (String.sub op 1 ((String.index op ')')-1)) in (* Raises Not_found error if the closing parenthesis is missing  *)
-        let op_str, opt_name =
+        let operator =
           begin match op_str with
-          | "~-" -> "-", None
-          | "~-." -> "-", None
-          | "-." -> "-", None
-          | "lnot" -> "~", None
-          | "not" -> op_str, Some "logical_not"
-          | _ -> "", None
+          | "~-" -> Unary "-"
+          | "~-." -> Unary "-"
+          | "-." -> Unary "-"
+          | "lnot" -> Unary "~"
+          | "not" -> Prefix "logical_not"
+          | _ -> Fun_call
           end
         in
-        if op_str = "" then 
-          compile_app e.expr 
-        else 
-          begin match opt_name with
-          | None -> fprintf ff "(%s %a)"op_str compile_expr e1
-          | Some n -> fprintf ff "%a" compile_expr { e with expr = Eapp ({e with expr = Evar {name = n}}, e1) }
-          end 
+        begin match operator with
+        | Unary op -> fprintf ff "(%s %a)" op compile_expr e1 
+        | Prefix op -> fprintf ff "%a" compile_expr { e with expr = Eapp ({e with expr = Evar {name = op}}, e1) }
+        | Fun_call -> compile_app e.expr
+        | Infix _ -> assert false
+        end
     | Eapp ({ expr = Evar {name = "not"}}, e1) -> fprintf ff "%a" compile_expr { e with expr = Eapp ({e with expr = Evar {name = "logical_not"}}, e1) }
     | Eapp (e1, e2) -> compile_app e.expr
     | Eif (e, { expr=Eapp({expr=Evar{name=n1}}, args1) },
