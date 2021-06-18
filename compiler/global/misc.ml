@@ -56,9 +56,9 @@ let no_stdlib = ref false
 let no_warning = ref false
 let print_causality_types = ref false
 let no_simplify_causality_types = ref false
-let print_initialisation_types = ref false
+let print_initialization_types = ref false
 let no_causality = ref false
-let no_init = ref false
+let no_initialization = ref false
 let typeonly = ref false
 
 let set_verbose = ref false
