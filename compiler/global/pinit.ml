@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2020 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2021 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -29,12 +29,12 @@ let polarity =
   function Punknown -> "" | Pplus -> "+" | Pminus -> "-" | Pplusminus -> "+-"
 let useful u = if u then "u" else ""
 let level l = string_of_int l
-let min = function Ihalf -> "1/2" | _ -> ""
 
 let extra
-    { i_polarity = p; i_useful = u; i_level = l; i_index = i; i_min = m } =
+    { i_polarity = p; i_useful = u; i_level = l; i_index = i } =
   if !Misc.verbose then polarity p ^ useful u ^ level l ^
-                        "(" ^ (string_of_int i) ^ min m ^ ")" else ""
+                          "(" ^ (string_of_int i) ^ ")"
+  else ""
     
 (* Print the causality *)
 let rec init ff i = 
@@ -43,7 +43,6 @@ let rec init ff i =
       begin match v with
         | Izero -> fprintf ff "0"
         | Ione -> fprintf ff "1"
-        | Ihalf -> fprintf ff "1/2"
       end
   | Ilink(link) -> init ff link
   | Ivar ->

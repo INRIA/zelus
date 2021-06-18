@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2020 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2021 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -45,7 +45,6 @@ and t =
       mutable i_index: int; (* a unique ident associated to the variable *)
       mutable i_inf: t list; (* infimun *)
       mutable i_sup: t list; (* supremum *)
-      mutable i_min: value; (* the minimum value *)
       mutable i_useful: bool; (* is-it an intermediate variable ? *)
       mutable i_polarity: polarity; (* its polarity *)
       mutable i_visited: int; (* is-it visited already ? *)
@@ -56,7 +55,7 @@ and desc =
   | Ivar 
   | Ilink of t
 
-and value = | Izero | Ione | Ihalf
+and value = | Izero | Ione
 
 and polarity = Punknown | Pplus | Pminus | Pplusminus
 

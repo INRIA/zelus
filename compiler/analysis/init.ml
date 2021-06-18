@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2020 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2021 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -49,13 +49,12 @@ exception Clash of error
 let new_var () = 
   { i_desc = Ivar; i_index = symbol#name; i_level = !binding_level;
     i_inf = []; i_sup = []; i_visited = -1; 
-    i_useful = false; i_polarity = Punknown; i_min = Izero }
+    i_useful = false; i_polarity = Punknown }
 let ivalue v = 
   { i_desc = Ivalue(v); i_index = symbol#name; i_level = generic;
     i_inf = []; i_sup = [];
-    i_visited = -1; i_useful = false; i_polarity = Punknown; i_min = Izero }
+    i_visited = -1; i_useful = false; i_polarity = Punknown }
 let ione = ivalue Ione
-let ihalf = ivalue Ihalf
 let izero = ivalue Izero
 let funtype ti1 ti2 = Ifun(ti1, ti2)
 let rec funtype_list ti_arg_list ti_res =
@@ -67,13 +66,13 @@ let product l = Iproduct(l)
 let atom i = Iatom(i)
     
 (* basic operation on initialization values *)
-let rec irepr i =
-  match i.i_desc with
-    | Ilink(i_son) ->
-        let i_son = irepr i_son in
-        i.i_desc <- Ilink(i_son);
-        i_son
-    | _ -> i
+let rec irepr ({ i_desc } as i) =
+  match i_desc with
+  | Ilink(i_son) ->
+     let i_son = irepr i_son in
+     i.i_desc <- Ilink(i_son);
+     i_son
+  | _ -> i
 
 (* equality of two initialization tags *)
 let equal i1 i2 =
@@ -119,26 +118,22 @@ let increase_polarity p i =
       
 (* saturate an initialization type [i]. *)
 (* on the right, [i] and all types [j] such that [i < j] are replaced by 1. *)
-(* on the left, [i] and all types [j] such that [j < i] are replaced *)
-(* by 0 if the min of [i] is 0. If it is 1/2, [i < 1/2] *)
+(* on the left, [i] and all types [j] such that [j < i] are replaced by 0 *)
 let rec saturate_i is_right i =
   let i = irepr i in
   let iv = if is_right then Ione else Izero in
   match i.i_desc with
   | Ivalue(i) when i = iv -> ()
   | Ivar ->
-      if i.i_min = Ihalf && not is_right then i.i_sup <- add ihalf i.i_sup
-        else begin
-          i.i_desc <- Ilink(ivalue iv);
-          List.iter
-            (saturate_i is_right) (if is_right then i.i_sup else i.i_inf)
-        end
+     i.i_desc <- Ilink(ivalue iv);
+     List.iter
+       (saturate_i is_right) (if is_right then i.i_sup else i.i_inf)
   | Ilink(i) -> saturate_i is_right i
   | _ -> raise (Clash(Iless_than))
   
 and less_v v1 v2 =
   match v1, v2 with
-  | (Izero, _) | (_, Ione) | (Ihalf, Ihalf) -> true
+  | (Izero, _) | (_, Ione) -> true
   | _ -> false
     
 (** Sub-typing *)
@@ -161,11 +156,6 @@ and less_i left_i right_i =
     else
       match left_i.i_desc, right_i.i_desc with
       | (Ivalue(Izero), _) | (_, Ivalue(Ione))
-      | (Ivalue(Ihalf), Ivalue(Ihalf)) -> ()
-      | Ivalue(Ihalf), Ivar ->
-          right_i.i_inf <- add left_i right_i.i_inf
-      | Ivar, Ivalue(Ihalf) ->
-          left_i.i_sup <- add right_i left_i.i_sup
       | Ivalue(Ione), Ivar -> saturate_i true right_i
       | Ivar, Ivalue(Izero) -> saturate_i false left_i
       | Ivar, Ivar ->
@@ -243,7 +233,6 @@ and sup_i is_right i1 i2 =
     | (Ivalue(Ione), _, true) | (_, Ivalue(Ione), true) -> ione
     | Ivalue(Ione), _, false -> i2 | _, Ivalue(Ione), false -> i1
     | (Ivalue(Izero), _, false) | (_, Ivalue(Izero), false) -> izero
-    | (Ivalue(Ihalf), Ivalue(Ihalf), _) -> ihalf
     | Ilink(i1), _ , _ -> sup_i is_right i1 i2
     | _, Ilink(i2), _ -> sup_i is_right i1 i2
     | _ -> let i = new_var () in
@@ -325,8 +314,7 @@ and remove_polarity p i_list =
     
 and short is_right acc i =
   match i.i_desc with
-  | Ivalue(Izero | Ione) -> acc
-  | Ivalue _ -> add i acc
+  | Ivalue _ -> acc
   | Ilink(i) -> short is_right acc i
   | Ivar ->
     match i.i_visited with
@@ -488,21 +476,6 @@ let rec subtype right ti =
       let new_i = new_var () in
       if right then less_i i new_i else less_i new_i i;
       atom new_i
-
-(* subtyping but the right one gets minimal bound 1/2 instead of 0 *)
-let rec halftype right ti =
-  match ti with
-  | Ifun(ti1, ti2) ->
-      funtype (halftype (not right) ti1) (halftype right ti2)
-  | Iproduct(ti_list) ->
-      begin try product (List.map (halftype right) ti_list)
-        with | Invalid_argument _ -> assert false end
-  | Iatom(i) ->
-     atom (half_i right i)
-
-and half_i right i =
-  let new_i = { (new_var ()) with i_min = Ihalf } in
-  if right then less_i i new_i else less_i new_i i; new_i
 
 (* instanciation *)
 let instance { typ = ti } ty =
