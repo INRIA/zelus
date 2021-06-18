@@ -71,6 +71,10 @@ type defnames =
   { dv: Ident.S.t; (* [x = ...] *)
   }
 
+(* set of names. *)
+let names acc { dv = dv } = Ident.S.union dv acc
+let cur_names acc { dv = dv } = Ident.S.union dv acc
+
 (* empty set of defined names *)
 (** Making values *)
 let empty = { dv = Ident.S.empty }
