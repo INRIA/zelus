@@ -47,6 +47,7 @@ type operator =
 | Eminusgreater : operator (* initialization *)
 | Eseq : operator (* sequence *)
 | Erun : is_inline -> operator (* application of a statefull function *)
+| Eatomic : operator (* the argument is atomic *)
 
 and is_inline = bool
 
@@ -87,6 +88,8 @@ and pattern_desc =
 type ('exp, 'eq) block =
   { b_vars: 'exp vardec list;
     b_body: 'eq;
+    b_loc: Location.t;
+    mutable b_write: Deftypes.defnames;
     mutable b_env: 'exp Deftypes.tentry Ident.Env.t }
 
 type statepatdesc =
@@ -105,13 +108,21 @@ and 'exp state = 'exp state_desc localized
 type ('scondpat, 'exp, 'body) escape =
   { e_cond: 'scondpat; 
     e_reset: bool; 
-    e_vars: 'exp vardec list;
-    e_body: 'body;
+    e_body: ('exp, 'body) block;
     e_next_state: 'exp state;
     e_loc: Location.t;
     mutable e_env: 'exp Deftypes.tentry Ident.Env.t;      
   }
                            
+type ('scondpat, 'exp, 'body) automaton_handler =
+  { s_state: statepat;
+    s_body: ('exp, 'body) block;
+    s_trans: ('scondpat, 'exp, 'body) escape list;
+    s_loc: Location.t;
+    mutable s_env: 'exp Deftypes.tentry Ident.Env.t;
+    mutable s_reset: bool; (* is the state always entered by reset? *)
+  }
+
 type ('exp, 'body) match_handler =
   { m_pat : pattern;
     m_body: 'body;
@@ -126,16 +137,6 @@ type ('scondpat, 'exp, 'body) present_handler =
     p_body: 'body;
     p_loc: Location.t;
     mutable p_env: 'exp Deftypes.tentry Ident.Env.t;
-  }
-
-type ('scondpat, 'exp, 'body) automaton_handler =
-  { s_state: statepat;
-    s_vars: 'exp vardec list;
-    s_body: 'body;
-    s_trans: ('scondpat, 'exp, 'body) escape list;
-    s_loc: Location.t;
-    mutable s_env: 'exp Deftypes.tentry Ident.Env.t;
-    mutable s_reset: bool; (* is the state always entered by reset? *)
   }
 
 type is_weak = bool
@@ -183,6 +184,7 @@ and scondpat_desc =
 and leq =
   { l_rec: is_rec;
     l_eq: eq;
+    l_loc: Location.t;
     mutable l_env: exp Deftypes.tentry Ident.Env.t;
   }
   
@@ -229,7 +231,9 @@ and arg = exp vardec list
 
 and result =
   { r_desc: result_desc;
-    mutable r_typ: Deftypes.typ;
+    mutable r_typ: Deftypes.typ; (* its type *)
+    mutable r_caus: Defcaus.tc;  (* its causality type *)
+    mutable r_init: Definit.ti;  (* its initialization type *)
     r_loc: Location. t }
 
 and result_desc =

@@ -51,8 +51,8 @@ let rec equation ({ eq_desc } as eq)=
            S.empty and_eq_list in
        EQand(and_eq_list), def
     | EQlocal(b_eq) ->
-       let b_eq, def = block b_eq in
-       EQlocal(b_eq), def
+       let b_eq, def_eq, _ = block b_eq in
+       EQlocal(b_eq), def_eq
     | EQif(e, eq1, eq2) ->
        let e = expression e in
        let eq1, def1 = equation eq1 in
@@ -81,10 +81,14 @@ let rec equation ({ eq_desc } as eq)=
   { eq with eq_desc = eq_desc; eq_write = { dv = def } }, def
 
   
+(** [returns a new block whose body is an equation [eq];
+ *- the defined variables in [eq] that are not local;
+ *- the defined local variables *)
 and block ({ b_vars; b_body } as b) =
-  let b_vars, def = Util.mapfold vardec S.empty b_vars in
+  let b_vars, def_b = Util.mapfold vardec S.empty b_vars in
   let b_eq, def_eq = equation b_body in
-  { b with b_vars; b_body }, S.diff def_eq def
+  let def = S.diff def_eq def_b in
+  { b with b_vars; b_body; b_write = { dv = def } }, def, def_b
   
 and vardec acc ({ var_name; var_default; var_init } as v) =
   { v with var_default = Util.optional_map expression var_default;
@@ -103,21 +107,18 @@ and present_handler acc ({ p_body } as p) =
   let p_body, def_body = equation p_body in
   { p with p_body = p_body }, def_body
   
-and automaton_handler acc ({ s_vars; s_body; s_trans } as h) =
-  let s_vars, def_vars = Util.mapfold vardec S.empty s_vars in
-  let s_body, def_body = equation s_body in
-  let s_trans, def_trans = Util.mapfold escape S.empty s_trans in
-  { h with s_vars = s_vars; s_body = s_body; s_trans = s_trans },
-  S.union (S.diff (S.union def_body def_trans) def_vars) acc
+and automaton_handler acc ({ s_body; s_trans } as h) =
+  let s_body, def_eq, def_b = block s_body in
+  let s_trans, def_escape = Util.mapfold escape S.empty s_trans in
+  { h with s_body; s_trans },
+  S.union (S.union def_eq (S.diff def_escape def_b)) acc
 
-and escape acc ({ e_cond; e_vars; e_body; e_next_state } as esc) =
+and escape acc ({ e_cond; e_body; e_next_state } as esc) =
   let e_cond = scondpat e_cond in
-  let e_vars, def_vars = Util.mapfold vardec S.empty e_vars in
-  let e_body, def_body = equation e_body in
+  let e_body, def_eq, _ = block e_body in
   let e_next_state = state e_next_state in
-  { esc with e_cond = e_cond; e_vars = e_vars;
-    e_body = e_body; e_next_state = e_next_state },
-  S.union (S.diff def_body def_vars) acc
+  { esc with e_cond = e_cond; e_body = e_body; e_next_state = e_next_state },
+  S.union def_eq acc
   
 and scondpat ({ desc } as scpat) =
   let desc = match desc with
@@ -180,7 +181,7 @@ and result ({ r_desc } as r) =
     match r_desc with
     | Exp(e) -> Exp(expression e)
     | Returns(b_eq) ->
-       let b_eq, _ = block b_eq in
+       let b_eq, _, _ = block b_eq in
        Returns(b_eq) in
   { r with r_desc }
   

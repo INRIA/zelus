@@ -222,7 +222,7 @@ let operator op =
   | Eunarypre -> Zelus.Eunarypre
   | Eseq -> Zelus.Eseq
   | Erun(i) -> Zelus.Erun(i)
-  
+  | Eatomic -> Zelus.Eatomic  
 
 (* translate types. *)
 let rec types { desc; loc } =
@@ -237,6 +237,12 @@ let rec types { desc; loc } =
        Zelus.Etypefun(kind k, ty_arg, ty_res) in
   { Zelus.desc = desc; Zelus.loc = loc }
 
+(* make a block *)
+let block loc s_vars s_eq =
+  { Zelus.b_vars = s_vars; Zelus.b_body = s_eq;
+    Zelus.b_loc = loc; Zelus.b_env = Ident.Env.empty;
+    Zelus.b_write = Deftypes.empty }
+  
 (* [env_pat] is the environment for names that appear on the *)
 (* left of a definition. [env] is for names that appear on the right *)
 let rec equation env_pat env { desc; loc } =
@@ -258,8 +264,7 @@ let rec equation env_pat env { desc; loc } =
        let env_pat = Env.append env_v_list env_pat in
        let env = Env.append env_v_list env in
        let eq = equation env_pat env eq in
-       Zelus.EQlocal({ b_vars = v_list; b_body = eq;
-                       b_env = Ident.Env.empty })
+       Zelus.EQlocal(block loc v_list eq)
     | EQif(e, eq1, eq2) ->
        let e = expression env e in
        let eq1 = equation env_pat env eq1 in
@@ -374,8 +379,8 @@ and automaton_handler is_weak env_for_states env_pat env
   let s_trans =
     List.map (escape env_for_states env_pat env)
       (if is_weak then s_until else s_unless) in
-  { Zelus.s_state = s_state; Zelus.s_vars = s_vars;
-    Zelus.s_body = s_body; Zelus.s_trans = s_trans; Zelus.s_loc = loc;
+  { Zelus.s_state = s_state; Zelus.s_body = block loc s_vars s_body;
+    Zelus.s_trans = s_trans; Zelus.s_loc = loc;
     Zelus.s_env = Ident.Env.empty;
     Zelus.s_reset = false }
 
@@ -388,8 +393,9 @@ and escape env_for_states env_pat env
   let env = Env.append env_e_vars env in
   let e_body = equation env_pat env e_body in
   let e_next_state = state env_for_states env e_next_state in
-  { Zelus.e_reset; Zelus.e_cond = e_cond; Zelus.e_vars = e_vars;
-    Zelus.e_body = e_body; Zelus.e_next_state = e_next_state; Zelus.e_loc = loc;
+  { Zelus.e_reset; Zelus.e_cond = e_cond;
+    Zelus.e_body = block loc e_vars e_body;
+    Zelus.e_next_state = e_next_state; Zelus.e_loc = loc;
     Zelus.e_env = Ident.Env.empty }
 
 and scondpat env scpat =
@@ -516,7 +522,8 @@ and expression env { desc; loc } =
        let env_let = Env.append env_pat env in
        let eq = equation env_pat (if is_rec then env_let else env) eq in
        let e = expression env_let e in
-       Zelus.Elet({ l_rec = is_rec; l_eq = eq; l_env = Ident.Env.empty }, e)
+       Zelus.Elet({ l_rec = is_rec; l_eq = eq; l_loc = loc;
+                    l_env = Ident.Env.empty }, e)
     | Eapp(f, arg_list) ->
        let f = expression env f in
        let arg_list = List.map (expression env) arg_list in
@@ -567,9 +574,9 @@ and result env { desc; loc } =
        let v_list, env_v_list = Util.mapfold (vardec env) Env.empty v_list in
        let env = Env.append env_v_list env in
        let eq = equation env_v_list env eq in
-       Zelus.Returns({ b_vars = v_list; b_body = eq;
-                       b_env = Ident.Env.empty }) in
-  { r_desc; r_loc = loc; r_typ = Deftypes.no_typ}
+       Zelus.Returns(block loc v_list eq) in
+  { r_desc; r_loc = loc; r_typ = Deftypes.no_typ;
+    r_caus = Defcaus.no_typ; r_init = Definit.no_typ}
   
 (* type declarations. *)
 let rec type_decl { desc; loc } =

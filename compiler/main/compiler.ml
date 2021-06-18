@@ -109,8 +109,8 @@ let do_optional_step is_step comment step p =
 (** The main function for compiling a program *)
 let compile modname filename =
   (* input and output files *)
-  let source_name = filename ^ ".zlus"
-  and obj_interf_name = filename ^ ".zci" in
+  let source_name = filename ^ ".zlus" in
+  let obj_interf_name = filename ^ ".zci" in
 
   (* standard output for printing types and clocks *)
   let info_ff = Format.formatter_of_out_channel stdout in
@@ -132,8 +132,9 @@ let compile modname filename =
   |> do_optional_step (not !no_causality)
        "Causality done" (Causality.program info_ff)
   (* Initialization *)
-  |> do_optional_step (not !no_inititalization)
-       "Initialisation done" (Initialization.program info_ff);
+  |> do_optional_step (not !no_initialization)
+       "Initialisation done" (Initialization.program info_ff)
+  |> fun _ -> ();
   (* Write the symbol table into the interface file *)
   let itc = open_out_bin obj_interf_name in
   apply_with_close_out Modules.write itc;
