@@ -705,6 +705,8 @@ expression:
 expression_desc:
   | e = simple_expression_desc
       { e }
+  | ATOMIC e = simple_expression
+    { Eop(Eatomic, [e]) }
   | e = expression_comma_list %prec prec_list
       { Etuple(List.rev e) }
   | e1 = expression FBY e2 = expression

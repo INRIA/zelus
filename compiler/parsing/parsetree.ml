@@ -33,13 +33,14 @@ type immediate =
 
 (* synchronous operators *)
 type operator =
-| Efby : operator
-| Eifthenelse : operator
-| Eminusgreater : operator
-| Eunarypre : operator
-| Eseq : operator
-| Erun : is_inline -> operator
-
+  | Efby : operator
+  | Eifthenelse : operator
+  | Eminusgreater : operator
+  | Eunarypre : operator
+  | Eseq : operator
+  | Erun : is_inline -> operator
+  | Eatomic : operator
+  
 and is_inline = bool
               
 type pateq = pateq_desc localized
@@ -95,6 +96,17 @@ type ('scondpat, 'exp, 'body) escape_desc =
 and ('scondpat, 'exp, 'body) escape =
   ('scondpat, 'exp, 'body) escape_desc localized
                                     
+type ('scondpat, 'exp, 'body) automaton_handler_desc  =
+  { s_state: statepat;
+    s_vars: 'exp vardec list;
+    s_body: 'body;
+    s_until: ('scondpat, 'exp, 'body) escape list;
+    s_unless: ('scondpat, 'exp, 'body) escape list;
+  }
+
+and ('scondpat, 'exp, 'body) automaton_handler =
+  ('scondpat, 'exp, 'body) automaton_handler_desc localized
+
 type ('exp, 'body) match_handler_desc =
   { m_pat : pattern;
     m_body: 'body;
@@ -109,17 +121,6 @@ type ('scondpat, 'body) present_handler_desc =
 and ('scondpat, 'body) present_handler =
   ('scondpat, 'body) present_handler_desc localized
   
-type ('scondpat, 'exp, 'body) automaton_handler_desc  =
-  { s_state: statepat;
-    s_vars: 'exp vardec list;
-    s_body: 'body;
-    s_until: ('scondpat, 'exp, 'body) escape list;
-    s_unless: ('scondpat, 'exp, 'body) escape list;
-  }
-
-and ('scondpat, 'exp, 'body) automaton_handler =
-  ('scondpat, 'exp, 'body) automaton_handler_desc localized
-
 type is_weak = bool
 
 type exp = exp_desc localized
@@ -201,10 +202,10 @@ and interface_desc =
 and type_decl = type_decl_desc localized
     
 and type_decl_desc =
-    | Eabstract_type : type_decl_desc 
-    | Eabbrev : type_expression -> type_decl_desc 
-    | Evariant_type : constr_decl list -> type_decl_desc 
-    | Erecord_type : (name * type_expression) list -> type_decl_desc 
+  | Eabstract_type : type_decl_desc 
+  | Eabbrev : type_expression -> type_decl_desc 
+  | Evariant_type : constr_decl list -> type_decl_desc 
+  | Erecord_type : (name * type_expression) list -> type_decl_desc 
 
 and constr_decl = constr_decl_desc localized
     
