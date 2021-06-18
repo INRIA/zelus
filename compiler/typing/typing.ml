@@ -414,17 +414,17 @@ let rec automaton_handlers
   let type_of_condition = Initial.typ_bool in
 
   (* typing the body of the automaton *)
-  let typing_handler h ({ s_state; s_vars; s_body; s_trans } as s) =
+  let typing_handler h ({ s_state; s_body; s_trans } as s) =
     let escape source_state h expected_k
-        ({ e_cond; e_reset; e_vars; e_body; e_next_state } as esc) =
+        ({ e_cond; e_reset; e_body; e_next_state } as esc) =
       (* type one escape condition *)
       let h0 = env_of_scondpat e_cond in
       let h = Env.append h0 h in
       let actual_k_e_cond = scondpat expected_k type_of_condition h e_cond in
       esc.e_env <- h0;
       (* type check the body *)
-      let _, h, defined_names, actual_k_body =
-        body_escape expected_k h e_vars e_body in
+      let h, defined_names, actual_k_body =
+        body_escape expected_k h e_body in
       (* checks that [state] belond to the current set of [states] *)
       let actual_k_state = state_expression h def_states e_reset e_next_state in
       (* checks that names are not defined twice in a state *)
@@ -448,8 +448,8 @@ let rec automaton_handlers
     end;
     let h = Env.append h0 h in
     (* typing the body *)
-    let _, new_h, defined_names, actual_k_body =
-      body expected_k h s_vars s_body in
+    let new_h, defined_names, actual_k_body =
+      body expected_k h s_body in
     (* add the list of defined_names to the current state *)
     let source_state = Total.Automaton.statepatname statepat in
     Total.Automaton.add_state source_state defined_names t;
@@ -466,8 +466,8 @@ let rec automaton_handlers
   let defined_names = Total.Automaton.check loc h t in
   (* write defined_names in every handler *)
   List.iter2
-    (fun { s_body = { eq_write = _ } as eq } defined_names ->
-      eq.eq_write <- defined_names)
+    (fun { s_body = { b_write = _ } as b } defined_names ->
+      b.b_write <- defined_names)
     handlers (defined_names :: defined_names_list);
 
   (* finally, indicate for every state handler if it is entered *)
@@ -618,7 +618,10 @@ and operator expected_k h loc op e_list =
        Tnode, [ty1], ty2
     | Eseq ->
        let ty = new_var () in
-       Tfun, [Initial.typ_unit; ty], ty in
+       Tfun, [Initial.typ_unit; ty], ty
+    | Eatomic ->
+       let ty = new_var () in
+       Tfun, [ty], ty in
   less_than loc actual_k expected_k;
   let actual_k_list =
     List.map2 (expect expected_k h) e_list ty_args in
@@ -651,7 +654,7 @@ and result expected_k h ({ r_desc } as r) =
        let ty, actual_k = expression expected_k h e in
        ty, actual_k
     | Returns ({ b_vars } as b) ->
-       let new_h, _, actual_k = block_eq expected_k h b in
+       let _, new_h, _, actual_k = block_eq expected_k h b in
        type_of_vardec_list new_h b_vars, actual_k in
   (* type annotation *)
   r.r_typ <- ty;
@@ -720,7 +723,7 @@ and equation expected_k h { eq_desc; eq_loc } =
   | EQand(eq_list) -> equation_list expected_k h eq_list
   | EQempty -> Deftypes.empty, Tstatic
   | EQlocal(b_eq) ->
-     let _, defnames, actual_k = block_eq expected_k h b_eq in
+     let _, _, defnames, actual_k = block_eq expected_k h b_eq in
      defnames, actual_k
   | EQassert(e) ->
      let actual_k = expect expected_k h e Initial.typ_bool in
@@ -762,20 +765,25 @@ and match_handlers_exp loc expected_k h total m_h_list pat_ty ty =
 
 (** Type an automaton handler when the body is an equation **)
 and automaton_handlers_eq is_weak loc expected_k h handlers se_opt =
+  let block_eq expected_k h ({ b_vars; b_body } as b) =
+    let _, h, defined_names, actual_k = block_eq expected_k h b in
+    h, defined_names, actual_k in
   let defined_names, _ =
-    automaton_handlers scondpat local_equation local_equation state_expression
+    automaton_handlers scondpat block_eq block_eq state_expression
       is_weak loc expected_k h handlers se_opt in
   (* the actual kind is necessarily stateful *)
   defined_names, expected_k
 
-and local_equation expected_k h n_list eq =
-  let h0, actual_k_h0 = vardec_list expected_k h n_list in
+and block_eq expected_k h ({ b_vars; b_body } as b) =
+  let h0, actual_k_h0 = vardec_list expected_k h b_vars in
   let h = Env.append h0 h in
-  let defined_names, actual_k_eq = equation expected_k h eq in
+  let defined_names, actual_k_body = equation expected_k h b_body in
   (* check that every name in [n_list] has a definition *)
   let defined_names =
-    check_definitions_for_every_name defined_names n_list in
-  h0, h, defined_names, Kind.sup actual_k_h0 actual_k_eq
+    check_definitions_for_every_name defined_names b_vars in
+  b.b_env <- h0;
+  b.b_write <- defined_names;
+  h0, h, defined_names, Kind.sup actual_k_h0 actual_k_body
 
 and local expected_k h ({ l_rec; l_eq } as l) =
   let h0 = env_of_equation l_eq in
@@ -784,12 +792,6 @@ and local expected_k h ({ l_rec; l_eq } as l) =
   let _, actual_k = equation expected_k new_h l_eq in
   new_h, actual_k
 
-and block_eq expected_k h ({ b_vars; b_body } as b) =
-  let h0, h, defined_names, actual_k =
-    local_equation expected_k h b_vars b_body in
-  b.b_env <- h0;
-  h, defined_names, actual_k
-  
 (** Typing a signal condition **)
 and scondpat expected_k type_of_condition h scpat =
   let rec typrec expected_k scpat =
