@@ -125,6 +125,11 @@ let last loc h n =
   entry.t_sort <- Smem;
   t_typ
 
+let init loc h n =
+  let { t_sort; t_typ } as entry = var loc h n in
+  entry.t_sort <- Smem;
+  t_typ
+
 (* Typing [n = ...] *)
 let def loc h n =
   let { t_typ } as entry = var loc h n in
@@ -166,12 +171,18 @@ let rec get_all_labels loc ty =
 (* have been removed *)
 let check_definitions_for_every_name defined_names n_list =
   List.fold_left
-    (fun ({ dv } as defnames) { var_name = n;var_loc = loc } ->
+    (fun { dv; di } { var_name = n; var_loc = loc; var_default; var_init } ->
      let in_dv = S.mem n dv in
+     let in_di = S.mem n di in
      (* check that n is defined by an equation *)
-     if not in_dv then error loc (Eequation_is_missing(n));
+     if not (in_dv || in_di)
+     then error loc (Eequation_is_missing(n));
+     (* check that [n] has a single def. for its initial value *)
+     if in_di && not (var_init = None)
+     then error loc (Ealready(Initial, n));
      (* remove local names *)
-     if in_dv then { dv = S.remove n dv } else defnames)
+     { dv = if in_dv then S.remove n dv else dv;
+       di = if in_di then S.remove n di else di })
     defined_names n_list
 
 (* Computes the type list from a vardec list *)
@@ -695,7 +706,24 @@ and equation expected_k h { eq_desc; eq_loc } =
      (* check that the pattern is total *)
      check_total_pattern p;
      let dv = Write.fv_pat S.empty S.empty p in
-     { dv = dv }, actual_k
+     { Deftypes.empty with dv = dv }, actual_k
+  | EQinit(n, e0) ->
+     (* an initialization is valid only in a stateful context *)
+     less_than eq_loc expected_k Tnode;
+     let actual_ty = init eq_loc h n in
+     let actual_k = expect expected_k h e0 actual_ty in
+     { Deftypes.empty with di = S.singleton n }, actual_k
+  | EQemit(n, e_opt) ->
+     let ty_e = new_var () in
+     let actual_ty = typ_of_var eq_loc h n in
+     let actual_k =
+       match e_opt with
+       | None ->
+          unify eq_loc (Initial.typ_signal Initial.typ_unit) actual_ty; Tstatic
+       | Some(e) ->
+          unify eq_loc (Initial.typ_signal ty_e) actual_ty;
+          expect expected_k h e ty_e in
+     { Deftypes.empty with dv = S.singleton n }, actual_k
   | EQautomaton({ is_weak; handlers; state_opt }) ->
      (* automata are only valid in a statefull context *)
      less_than eq_loc expected_k Tnode;

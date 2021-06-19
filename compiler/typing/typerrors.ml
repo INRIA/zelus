@@ -25,16 +25,16 @@ open Format
 
 type kind_of_global_ident = Value | Type | Constr | Label
 
-type kind_of_ident =
-  | Current | Initial | Next | Multi | Derivative
+type kind_of_ident = | Current | Initial | Derivative
 
 type error =
   | Evar_undefined of Ident.t
   | Emissing of Ident.t
   | Eglobal_undefined of kind_of_global_ident * Lident.t
   | Eglobal_already of kind_of_global_ident * string
-  | Ealready of Ident.t
+  | Ealready of kind_of_ident * Ident.t
   | Eis_a_value of Ident.t
+  | Einit_undefined of Ident.t
   | Elast_forbidden of Ident.t
   | Eshould_be_a_signal of Ident.t * typ
   | Ecannot_be_set of bool * Ident.t
@@ -72,8 +72,6 @@ let kind_of_ident k =
   | Current -> "value"
   | Derivative -> "derivative"
   | Initial -> "initial value"
-  | Multi -> "multi emitted value"
-  | Next -> "next value"
                         
 let kind_message kind =
   match kind with
@@ -97,10 +95,16 @@ let message loc kind =
   | Eglobal_already(k, s) ->
       eprintf "@[%aType error: the %s name %s is already defined.@.@]"
         output_location loc (kind_of_global_ident k) s 
-  | Ealready(s) ->
+  | Ealready(k, s) ->
+     let k = kind_of_ident k in
      eprintf
-       "@[%aType error: the variable %s is defined twice in a parallel branch.@.@]"
-        output_location loc (Ident.source s)
+       "@[%aType error: the identifier %s is defined twice with kind %s \
+        in a parallel branch.@.@]"
+        output_location loc (Ident.source s) k
+  | Einit_undefined(s) ->
+      eprintf "@[%aType error: %s must be initialized in every branch.@.@]"
+        output_location loc
+        (Ident.source s)
   | Eis_a_value(s) ->
       eprintf "@[%aType error: last %s is forbidden as %s is a value.@.@]"
         output_location loc
