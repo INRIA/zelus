@@ -16,6 +16,7 @@
 
 open Ident
 open Zelus
+open Deftypes
    
 let rec fv_pat bounded acc { pat_desc } =
   match pat_desc with
@@ -34,12 +35,21 @@ let rec fv_pat bounded acc { pat_desc } =
      fv_pat bounded acc p
   | Eorpat(p1, _) -> fv_pat bounded acc p1
   | Etypeconstraintpat(p, _) -> fv_pat bounded acc p
-          
+
+                              
+(* computes [dv] and [di] *)
 let rec equation ({ eq_desc } as eq)=
   let eq_desc, def =
     match eq_desc with
     | EQeq(pat, e) ->
-       EQeq(pat, expression e), fv_pat S.empty S.empty pat
+       EQeq(pat, expression e),
+       { dv = fv_pat S.empty S.empty pat; di = S.empty }
+    | EQinit(x, e) ->
+       EQinit(x, expression e),
+       { dv = S.empty; di = S.singleton x }
+    | EQemit(x, e_opt) ->
+       EQemit(x, Util.optional_map expression e_opt),
+       { dv = S.singleton x; di = S.empty }
     | EQreset(eq, e) ->
        let eq, def = equation eq in
        EQreset(eq, expression e), def
@@ -47,8 +57,8 @@ let rec equation ({ eq_desc } as eq)=
        let and_eq_list, def =
          Util.mapfold
            (fun acc eq ->
-             let eq, def = equation eq in eq, S.union def acc)
-           S.empty and_eq_list in
+             let eq, def = equation eq in eq, Deftypes.union def acc)
+           Deftypes.empty and_eq_list in
        EQand(and_eq_list), def
     | EQlocal(b_eq) ->
        let b_eq, def_eq, _ = block b_eq in
@@ -57,38 +67,38 @@ let rec equation ({ eq_desc } as eq)=
        let e = expression e in
        let eq1, def1 = equation eq1 in
        let eq2, def2 = equation eq2 in
-       let def = S.union def1 def2 in
+       let def = Deftypes.union def1 def2 in
        EQif(e, eq1, eq2), def
     | EQmatch({ e; handlers } as m) ->
-       let handlers, def = Util.mapfold match_handler S.empty handlers in
+       let handlers, def = Util.mapfold match_handler Deftypes.empty handlers in
        EQmatch({ m with e; handlers }), def
     | EQautomaton({ handlers } as a_h) ->
        let handlers, def =
-         Util.mapfold automaton_handler S.empty handlers in
+         Util.mapfold automaton_handler empty handlers in
        EQautomaton({ a_h with handlers }), def
     | EQpresent({ handlers; default_opt }) ->
        let handlers, def =
-         Util.mapfold present_handler S.empty handlers in
+         Util.mapfold present_handler Deftypes.empty handlers in
        let default_opt, def_opt =
          match default_opt with
-         | NoDefault -> NoDefault, S.empty
+         | NoDefault -> NoDefault, Deftypes.empty
          | Init(eq) -> let eq, def = equation eq in Init(eq), def
          | Else(eq) -> let eq, def = equation eq in Else(eq), def in
-       EQpresent({ handlers; default_opt }), S.union def def_opt
-    | EQempty -> EQempty, S.empty
-    | EQassert(e) -> EQassert(expression e), S.empty in
+       EQpresent({ handlers; default_opt }), Deftypes.union def def_opt
+    | EQempty -> EQempty, Deftypes.empty
+    | EQassert(e) -> EQassert(expression e), Deftypes.empty in
   (* set the names defined in the equation *)
-  { eq with eq_desc = eq_desc; eq_write = { dv = def } }, def
+  { eq with eq_desc = eq_desc; eq_write = def }, def
 
   
 (** [returns a new block whose body is an equation [eq];
  *- the defined variables in [eq] that are not local;
  *- the defined local variables *)
 and block ({ b_vars; b_body } as b) =
-  let b_vars, def_b = Util.mapfold vardec S.empty b_vars in
+  let b_vars, dv_b = Util.mapfold vardec S.empty b_vars in
   let b_eq, def_eq = equation b_body in
-  let def = S.diff def_eq def_b in
-  { b with b_vars; b_body; b_write = { dv = def } }, def, def_b
+  let def = Deftypes.diff def_eq dv_b in
+  { b with b_vars; b_body; b_write = def }, def, dv_b
   
 and vardec acc ({ var_name; var_default; var_init } as v) =
   { v with var_default = Util.optional_map expression var_default;
@@ -108,17 +118,17 @@ and present_handler acc ({ p_body } as p) =
   { p with p_body = p_body }, def_body
   
 and automaton_handler acc ({ s_body; s_trans } as h) =
-  let s_body, def_eq, def_b = block s_body in
-  let s_trans, def_escape = Util.mapfold escape S.empty s_trans in
+  let s_body, def_eq, dv_b = block s_body in
+  let s_trans, def_escape = Util.mapfold escape Deftypes.empty s_trans in
   { h with s_body; s_trans },
-  S.union (S.union def_eq (S.diff def_escape def_b)) acc
+  Deftypes.union (Deftypes.union def_eq (Deftypes.diff def_escape dv_b)) acc
 
 and escape acc ({ e_cond; e_body; e_next_state } as esc) =
   let e_cond = scondpat e_cond in
   let e_body, def_eq, _ = block e_body in
   let e_next_state = state e_next_state in
   { esc with e_cond = e_cond; e_body = e_body; e_next_state = e_next_state },
-  S.union def_eq acc
+  Deftypes.union def_eq acc
   
 and scondpat ({ desc } as scpat) =
   let desc = match desc with
