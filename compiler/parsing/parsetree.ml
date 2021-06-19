@@ -151,11 +151,13 @@ and scondpat_desc =
   | Econdexp : exp -> scondpat_desc
   | Econdpat : exp * pattern -> scondpat_desc
   | Econdon : scondpat * exp -> scondpat_desc
-                  
+
 and eq = eq_desc localized
 
 and eq_desc = 
   | EQeq : pattern * exp -> eq_desc
+  | EQinit : name * exp -> eq_desc
+  | EQemit : name * exp option -> eq_desc
   | EQif : exp * eq * eq -> eq_desc
   | EQand : eq list -> eq_desc
   | EQlocal : exp vardec list * eq -> eq_desc
