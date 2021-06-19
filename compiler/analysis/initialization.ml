@@ -398,6 +398,15 @@ and equation env
   | EQeq(p, e) -> 
      let ti = exp env e in
      pattern env p ti
+  | EQinit(n, e0) ->
+      exp_less_than_on_i env e0 izero
+  | EQemit(n, e_opt) ->
+      let ti_n = 
+        try let { t_typ } = Env.find n env in t_typ
+        with | Not_found -> assert false in
+      less_than loc ti_n (Init.atom izero);
+      Util.optional_unit
+        (fun i e -> exp_less_than_on_i env e i) izero e_opt
   | EQautomaton {is_weak; handlers; state_opt } ->
      automaton_handler_eq_list
        loc is_weak defnames env handlers state_opt
