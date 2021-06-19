@@ -69,16 +69,21 @@ and tsort =
 (** Names written in a block *)
 type defnames = 
   { dv: Ident.S.t; (* [x = ...] *)
+    di : Ident.S.t; (* [init x = ...] *)
   }
 
 (* set of names. *)
-let names acc { dv = dv } = Ident.S.union dv acc
-let cur_names acc { dv = dv } = Ident.S.union dv acc
+let names acc { dv; di } = Ident.S.union dv (Ident.S.union di acc)
+let cur_names acc { dv; di } = Ident.S.union dv (Ident.S.union di acc)
 
 (* empty set of defined names *)
 (** Making values *)
-let empty = { dv = Ident.S.empty }
-
+let empty = { dv = Ident.S.empty; di = Ident.S.empty }
+let union { dv = dv1; di = di1 } { dv = dv2; di = di2 } =
+  { dv = Ident.S.union dv1 dv2; di = Ident.S.union di1 di2 }
+let diff { dv; di } names =
+  { dv = Ident.S.diff dv names; di = Ident.S.diff di names }
+  
 (* introduced names in the [initialization] phase are fully generalized *)
 let make desc =
   { t_desc = desc; t_index = - 1; t_level = generic }
