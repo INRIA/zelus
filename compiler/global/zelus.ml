@@ -196,6 +196,8 @@ and eq =
 
 and eq_desc = 
   | EQeq : pattern * exp -> eq_desc  (* [p = e] *)
+  | EQinit : Ident.t * exp -> eq_desc  (* [init x = e] *)
+  | EQemit : Ident.t * exp option -> eq_desc  (* [emit x [= e]] *)
   | EQif : exp * eq * eq -> eq_desc (* [if e then eq1 else eq2] *)
   | EQand : eq list -> eq_desc (* [eq1 and...and eqn] *)
   | EQlocal : (exp, eq) block -> eq_desc (* local x [...] do eq done *)
