@@ -83,6 +83,7 @@ let scond_true start_pos end_pos =
 %token DONE           /* "done" */
 %token DOT            /* "." */
 %token ELSE           /* "else" */
+%token EMIT           /* "emit" */
 %token END            /* "end" */
 %token EQUAL          /* "=" */
 %token EQUALEQUAL     /* "==" */
@@ -361,31 +362,35 @@ equation_desc:
   | AUTOMATON opt_bar a = automaton_handlers INIT e = state END
     { EQautomaton(List.rev a, Some(e)) }
   | MATCH e = seq_expression WITH opt_bar
-    m = match_handlers(equation_and_list) END
+    m = match_handlers(equation) END
     { EQmatch(e, List.rev m) }
-  | IF e = seq_expression THEN eq1 = equation_and_list
-    ELSE eq2 = equation_and_list END
+  | IF e = seq_expression THEN eq1 = equation ELSE eq2 = equation END
     { EQif(e, eq1, eq2) }
-  | IF e = seq_expression THEN eq1 = equation_and_list END
+  | IF e = seq_expression THEN eq1 = equation END
       { EQif(e, eq1, no_eq $startpos $endpos) }
-  | IF e = seq_expression ELSE eq2 = equation_and_list END
+  | IF e = seq_expression ELSE eq2 = equation END
       { EQif(e, no_eq $startpos $endpos, eq2) }
-  | PRESENT opt_bar p = present_handlers(equation_and_list) END
+  | PRESENT opt_bar p = present_handlers(equation) END
     { EQpresent(List.rev p, NoDefault) }
-  | PRESENT opt_bar p = present_handlers(equation_and_list)
-    ELSE eq = equation_and_list END
+  | PRESENT opt_bar p = present_handlers(equation)
+    ELSE eq = equation END
     { EQpresent(List.rev p, Else(eq)) }
-  | PRESENT opt_bar p = present_handlers(equation_and_list)
-    INIT eq = equation_and_list END
+  | PRESENT opt_bar p = present_handlers(equation) INIT eq = equation END
     { EQpresent(List.rev p, Init(eq)) }
-  | RESET eq = equation_and_list EVERY e = expression
+  | RESET eq = equation EVERY e = expression
     { EQreset(eq, e) }
-  | LOCAL v_list = vardec_comma_list DO eq = equation_and_list DONE
+  | LOCAL v_list = vardec_comma_list DO eq = equation DONE
     { EQlocal(v_list, eq) }
   | DO eq = equation_and_list DONE
     { eq.desc }
   | p = pattern EQUAL e = seq_expression
     { EQeq(p, e) }
+  | INIT i = ide EQUAL e = seq_expression
+    { EQinit(i, e) }
+  | EMIT i = ide
+      { EQemit(i, None) }
+  | EMIT i = ide EQUAL e = seq_expression
+      { EQemit(i, Some(e)) }
   | ASSERT e = seq_expression
     { EQassert(e) }
 ;
