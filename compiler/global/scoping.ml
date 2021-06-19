@@ -92,6 +92,7 @@ let longname ln =
 let rec buildeq defnames { desc } =
   match desc with
   | EQeq(pat, _) -> buildpat false defnames pat
+  | EQinit(x, _) | EQemit(x, _) -> S.add x defnames
   | EQreset(eq, _) -> buildeq defnames eq
   | EQand(and_eq_list) ->
      List.fold_left buildeq defnames and_eq_list
@@ -252,6 +253,9 @@ let rec equation env_pat env { desc; loc } =
        let pat = pattern_translate env_pat pat in
        let e = expression env e in
        Zelus.EQeq(pat, e)
+    | EQinit(x, e) -> EQinit(name loc env x, expression env e)
+    | EQemit(x, e_opt) ->
+       EQemit(name loc env x, Util.optional_map (expression env) e_opt)
     | EQreset(eq, e) ->
        let eq = equation env_pat env eq in
        let e = expression env e in
