@@ -1,0 +1,6 @@
+let hybrid g (c) = o where
+ forall i in 0 .. 43, oi out o do
+  forall j in 0 .. 42, oij out oi do
+    do der oij = 1.0 and init oij = 0.0 done
+  done
+ done

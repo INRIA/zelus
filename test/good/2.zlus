@@ -1,0 +1,24 @@
+let f1 (x1, x2, x3) = x1 + x2 + x3
+
+let f2 (x1, x2) = f1 (x1, 3, 4) + 1
+
+let node counter(x, y, z) =
+  let s = 2 + 1 -> 2 + 3 in
+  let k = if x then 1 else 0 -> pre s + 2 in
+  let rec m = if y then k else (k -> pre m + k) in
+  let h = 1, 2, 3 in
+  m+s,2,4, h
+
+let node g (x,y,z) =
+  let m,m1,m2,h = counter(x,y,y) in
+  let o = m + 0 -> pre m - pre z + z in o
+
+let f (x, y) = x + y
+
+let node main () =
+  let rec nat = 0 -> pre nat + 1 in
+  print_int nat;
+  print_newline ()
+
+let r () = 1
+

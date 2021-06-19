@@ -1,0 +1,16 @@
+let hybrid test1 z = x, z2 where
+  rec init x = -1.0
+  and match z with
+      | true ->  do der x = z2 and z2 = x done
+      | false -> do der x = 1.0 and z2 = 1.0 done
+
+let node dummy () = n where
+  rec automaton
+      | S ->
+          do n = 3 -> (pre n - 1)
+          until (n = 0) then S
+
+let node main () =
+  let n = dummy ()
+  in print_endline (string_of_int n)
+

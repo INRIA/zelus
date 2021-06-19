@@ -1,0 +1,33 @@
+let node loop1 ping pong x =
+  let rec z = run ping (x, y) + x and y = run pong (x, z) + x in
+  (z, y)
+
+let node ping (x, y) = x + y
+
+let node pong (x, y) = x -> pre(y)
+
+let node loop_a x = loop1 ping pong x
+    
+let hybrid int(z, x', x0) =
+  let der x = x' init x0 reset z -> x0 in
+  x
+
+let hybrid combine(f)(g)(z) = (x,y) where
+  rec init x = 42.0
+  and init y = 0.0
+  and y = run f (z, x, last x)
+  and x = run g (z, y, last y)
+
+(* let hybrid wrong(x) = o where
+  rec init o = 42 and o = last o + 1 *)
+      
+let hybrid apply(f)(z, x) = 1 + (present z -> run f x init 0)
+    
+let hybrid main(z) = combine(int)(int)(z)
+
+let node fix(f)(x) = let rec o = run f(x, o) in o
+
+let node f(x, y) = 0 -> pre(x + y)
+
+let node main2(x) = fix(f)(x)
+    

@@ -1,0 +1,9 @@
+type t = A of int
+
+let node f () = o where
+  rec o = A 0
+
+type t1 = A1 of int
+ let node g (x: t1) = o where
+   rec o = x fby x
+

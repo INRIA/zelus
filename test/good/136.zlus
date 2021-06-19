@@ -1,0 +1,13 @@
+let node f n x =
+  local v with (+)
+  local o1
+  local o
+  do
+    forall i in 0 .. n, xi in x, xo out o do
+      o1 = last o1 + 42 and v += 4 and xo = v
+    initialize
+      last o1 = 0
+    done
+  in 1 + v
+
+let node inst x = f 10 x

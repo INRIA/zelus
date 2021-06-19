@@ -1,0 +1,8 @@
+let node test () = t where
+  rec init t = 0
+  and automaton
+      | Move(ti) ->
+          do t = ti done
+      | Stop(ti) ->
+          do until true then Move (last t)
+  init Stop(0)

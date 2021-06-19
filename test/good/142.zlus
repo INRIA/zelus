@@ -1,0 +1,55 @@
+(* Integrateur *)
+let hybrid int(x0, xprime) = x where
+  rec der x = xprime init x0
+
+(* Modele de chaudiere *)
+let hybrid chaudiere(c, alpha, beta, temp_ext, temp0, u) = temp where
+  rec temp =
+    int(temp0,
+	if u then alpha *. (c -. temp) 
+	else beta *. (temp_ext -. temp))
+
+
+(* relai *)
+let hybrid relai(bas, haut, v) = u where
+  rec u = present up(bas -. v) -> true | up(v -. haut) -> false init (v < haut)
+							   
+(* X-crossing vers le haut *)
+let hybrid xup(x) =
+  present up(x) | (init) on (x >= 0.0) -> ()
+
+(* Relai (seuil haut,  seuil bas; une seule sortie booleenne) *)
+let hybrid relai_six(low, high, v) = u where
+  rec automaton
+      | Low -> do u = false unless (xup(low -. v))() then High
+      | High -> do u = true unless (xup(v -. high))() then Low
+      end
+      
+let low = 1.0
+let high = 1.0
+
+let c = 50.0
+
+let alpha = 0.1
+let beta = 0.1
+
+(* Programme principal *)
+let hybrid main(consigne) = (u, temp) where
+  rec
+      u = relai(consigne -. low, consigne +. high, temp)
+  and
+      temp = chaudiere(c, alpha, beta, 0.0, 0.0, u)
+
+      
+let hybrid main_on_19() =
+  let der t = 1.0 init 0.0 in
+  let u, temp = main(19.0) in
+  present (period(0.1)) | (disc(u)) ->
+    (print_string "time = "; print_float t;
+     print_string "  ";
+     print_string "command = "; print_string (if u then "true" else "false");
+     print_string "  ";
+     print_string "temp = "; print_float temp;
+     print_newline())
+  else ()
+

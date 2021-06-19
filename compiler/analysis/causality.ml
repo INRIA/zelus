@@ -454,6 +454,21 @@ and equation env c_free { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
   | EQeq(p, e) ->
       let tc_p = pattern env p in
       exp_less_than env c_free e tc_p
+  | EQinit(n, e0) ->
+      let { t_typ; t_last_typ } =
+        try Env.find n env with | Not_found -> print n in 
+      let actual_tc = exp env c_free e0 in
+      less_than e0.e_loc env actual_tc t_typ;
+      (match t_last_typ with
+       | None -> () | Some(ltc) -> less_than e0.e_loc env actual_tc ltc)
+  | EQemit(n, e_opt) ->
+      let c_res = Causal.new_var () in
+      Util.optional_unit
+        (fun c_res e -> exp_less_than_on_c env c_free e c_res) c_res e_opt;
+      let { t_typ } =
+        try Env.find n env with Not_found -> print n in
+      let actual_tc = Causal.annotate (Cname n) (atom c_res) in
+      less_than loc env actual_tc t_typ
   | EQautomaton { is_weak; handlers; state_opt } ->
      automaton_handler_eq_list loc c_free is_weak defnames env handlers state_opt
   | EQif(e, eq1, eq2) ->

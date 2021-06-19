@@ -1,0 +1,47 @@
+(* test des boucles *)
+
+(* creer un tableau de taille n+1 initialise a v *)
+let node make(n)(v) = o where
+  rec forall i in 0 .. n, oi out o do
+	oi = v
+      done
+
+(* somme de deux tableaux *)
+let node sum(n)(x, y) = z where
+  rec forall i in 0 .. n, xi in x, yi in y, zi out z do
+        zi = xi + yi
+      done
+
+(* accumulation des valeurs *)
+let node cumul(n)(x) = z where
+  rec forall i in 0 .. n, xi in x do
+       z = last z + xi
+      initialize
+        last z = 0 done
+
+(* produit scalaire de deux tableaux *)
+let node scalar(n)(x, y) = z where
+  rec forall i in 0 .. n, xi in x, yi in y do
+	z = last z + xi * yi
+      initialize
+        last z = 0
+      done
+
+(* somme de deux matrices *)
+let node sum_matrix(n)(m)(x, y) = z where
+  rec forall i in 0 .. n, xi in x, yi in y, zi out z do
+	zi = sum(m)(xi, yi)
+      done
+    
+(* on cree deux tableaux *)
+let node main () =
+  let rec nat = 0 -> pre nat + 1 in
+  let t = make(10)(nat) in
+  let t2 = sum(10)(t, t) in
+  let t3 = sum(10)(t2, t2) in
+  let v = cumul(10)(t3) in
+  let t3' = make(10)(4 * nat) in
+  let v' = cumul(10)(t3') in
+  let ok = v = v' in
+  print_string (if ok then "true" else "false");
+  print_newline ()

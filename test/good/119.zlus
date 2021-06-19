@@ -1,0 +1,50 @@
+let node counter(n) = o where
+  rec o = n -> (pre o - 1) mod n
+
+let node f (y, z1, z2, z3) = (z, k) where
+  rec init x = y
+  and
+      reset
+	z = last x + 1 + y
+      and
+        match z3 with
+        | true ->
+            local m, s in
+            do init m = 42
+            and 
+	    reset
+	      k = 1 + 0 fby k + 2 + last m + 1 + s
+	     and
+	      s = counter y	
+            every z1
+            done
+	| false ->
+	    local r in
+            do init r = y and k = 2 fby k + 2 + r and r = last r + 1 done
+	end
+      every z2      
+
+
+let node ff (y, z1, z2, z3) = (z, k) where
+  rec lx = y fby x and x = lx
+  and
+      reset
+	z = lx + 1 + y
+      and
+        match z3 with
+        | true ->
+            local lm, s in
+            do
+             lm = 42 fby lm
+            and
+	     reset
+	      k = 1 + 0 fby k + 2 + lm + 1 + s
+	     and
+	      s = counter y	
+             every z1
+            done
+	| false ->
+	    local r, lr in
+            do lr = y fby r and k = 2 fby k + 2 + r and r = lr + 1 done
+	end
+      every z2      

@@ -1,0 +1,42 @@
+let node i1 j = y where
+  match j with
+  | true -> local x in do x = 1 and init x = 0 and y = 1 done
+  | false -> local x in do init x = 2 and y = 2 done
+
+let node h1 () = x where init x = 1
+
+let hybrid h2 () = x where init x = 1
+
+let hybrid f1 (x, z) =
+  let rec 
+      automaton
+      | S1 -> do der y = 1.0 done
+      | S2 -> do done
+      end
+  and init y = 0.0 
+  and r = y +. 1.0 in
+  y, r
+
+let node i2 j = x where
+  rec lx = pre(x)
+  and match j with
+  | true -> do x = 1 and last_x = 0 -> lx done
+  | false -> do last_x = 2 -> last x and x = last_x done
+
+let hybrid f2 () = x where
+  init x = 1.0
+  and automaton | S1 -> do done end
+
+let hybrid k1 () = s where rec
+   init s = 0.0
+   and automaton
+       | S1 ->
+	   do der s = 1.0 
+	   until (up(last s -. 10.0)) then do s = last s +. 1.0 in S2
+       | S2 ->
+	   do der s = -1.0
+	   until (up(-.(last s +. 10.0))) then do s = last s -. 1.0 in S1
+       end
+
+let hybrid k2(x) = y where rec der y = x init 0.0
+

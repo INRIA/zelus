@@ -1,0 +1,99 @@
+type t = Zero | Constant of float | Linear of float
+
+node simpl_chunk (dur, typ) =
+   match typ with
+   | Zero -> None
+   | Constant v -> let new_c = (dur, Zero) in Some new_c
+   | Linear v -> let new_c = (dur, Constant v) in Some new_c
+
+       (* Internal error (Aform: should be a name)
+	  new_c_20 *)
+       
+(*
+let fix f x = let rec y = f x y in y
+
+let fix2 f g x = let rec y = f x z and z = g x y in y, z
+
+type t = P of int * int
+
+let node ff(x) = o where
+  match x with
+  | P(v1, v2) -> do o = 1 -> last v1 + v2 done
+  end
+
+let node f(x) =
+  match x with
+  | P(v1, v2) -> 1 -> last v1 + v2
+  end
+    
+let node g(x) =
+  present x(v1, v2) ->
+    1 -> last v1 + v2
+
+    
+let node gg(x) = o where
+  init o = 0
+  and
+    present x(v1, v2) ->
+    do o = 1 -> last v1 + v2 done
+*)
+    
+(* let node one (o1, o2) = o where
+  o = present o1(x) | o2(x) -> x + x init 42
+      
+let node two x = o where
+  rec o = 1 -> pre o + pre o + x
+
+let node double_two x =
+  two (x+1) + two (x+2) + (0 fby x) *)
+    
+(* let node f x = o where
+  rec forall i in 0 .. 3 cross j in 0 .. 4, xij in x by i by j, oji by j by i
+      do
+	oi = xi + 1
+      and
+	x = last x + 1
+      and
+	m = returns array of odone *)
+      
+(*
+let hybrid g(z) =
+  let rec init x = 0
+  and present z -> do x = 1 done
+  and present (disc(last x)) -> do () = print_int x done in
+  x
+ *)
+    
+(*
+type cstate =
+    { cvec: float array;
+      dvec: float array;
+      zin: float array;
+      zout: bool array;
+      mutable cpos : int;
+      mutable zpos : int }
+      
+let int = machine(continuous) (g) { 
+  memories
+    i_15 : bool = false; cont xprime_13 : float = 0.; cont x_12 : float = 0.
+    m : cstate; csize : int; zsize : int;
+    
+  method reset () =
+    i_15 <- true;
+    xprime_13.pos <- 0.
+    
+  method step ((time_14:float), ((x0_10:float), (xsecond_11:float))) =
+    (((if i_15 then x_12.pos <- x0_10);
+      i_15 <- false;
+      xprime_13.der <- xsecond_11;
+      x_12.der <- xprime_13.pos;
+      g.dvec.(g.cpos) <- xsecond_11;
+      g.dvec.(g.cpos + 1) <- xprime_13.pos;
+      g.cpos <- g.cpos + 2;
+      float)]}
+
+   method csize = 2
+
+   method zsize = 0
+       *)
+      
