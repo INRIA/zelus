@@ -122,12 +122,17 @@ let typ_of_var loc h n = let { t_typ } = var loc h n in t_typ
 (* Typing [last n] *)
 let last loc h n =
   let { t_sort; t_typ } as entry = var loc h n in
-  entry.t_sort <- Smem;
+  entry.t_sort <- Deftypes.last t_sort;
   t_typ
 
 let init loc h n =
   let { t_sort; t_typ } as entry = var loc h n in
-  entry.t_sort <- Smem;
+  entry.t_sort <- Deftypes.init t_sort;
+  t_typ
+
+let der loc h n =
+  let { t_sort; t_typ } as entry = var loc h n in
+  entry.t_sort <- Deftypes.cont t_sort;
   t_typ
 
 (* Typing [n = ...] *)
@@ -171,18 +176,21 @@ let rec get_all_labels loc ty =
 (* have been removed *)
 let check_definitions_for_every_name defined_names n_list =
   List.fold_left
-    (fun { dv; di } { var_name = n; var_loc = loc; var_default; var_init } ->
+    (fun { dv; di; der }
+         { var_name = n; var_loc = loc; var_default; var_init } ->
      let in_dv = S.mem n dv in
      let in_di = S.mem n di in
-     (* check that n is defined by an equation *)
-     if not (in_dv || in_di)
+     let in_der = S.mem n der in
+      (* check that n is defined by an equation *)
+     if not (in_dv || in_di || in_der)
      then error loc (Eequation_is_missing(n));
      (* check that [n] has a single def. for its initial value *)
      if in_di && not (var_init = None)
      then error loc (Ealready(Initial, n));
      (* remove local names *)
      { dv = if in_dv then S.remove n dv else dv;
-       di = if in_di then S.remove n di else di })
+       di = if in_di then S.remove n di else di;
+       der = if in_der then S.remove n der else der })
     defined_names n_list
 
 (* Computes the type list from a vardec list *)
@@ -650,7 +658,14 @@ and operator expected_k h loc op e_list =
        Tfun, [Initial.typ_unit; ty], ty
     | Eatomic ->
        let ty = new_var () in
-       Tfun, [ty], ty in
+       Tfun, [ty], ty
+    | Etest ->
+       let ty = new_var () in
+       Tfun, [Initial.typ_signal ty], Initial.typ_bool
+    | Eup ->
+       Tnode, [Initial.typ_float], Initial.typ_zero
+    | Eperiod ->
+       Tnode, [Initial.typ_float; Initial.typ_float], Initial.typ_zero in
   less_than loc actual_k expected_k;
   let actual_k_list =
     List.map2 (expect expected_k h) e_list ty_args in
@@ -725,6 +740,13 @@ and equation expected_k h { eq_desc; eq_loc } =
      check_total_pattern p;
      let dv = Write.fv_pat S.empty S.empty p in
      { Deftypes.empty with dv = dv }, actual_k
+  | EQder(n, e) ->
+     (* a derivative is only possible in a stateful context *)
+     less_than eq_loc expected_k Tnode;
+     let actual_ty = der eq_loc h n in
+     let actual_k = expect expected_k h e actual_ty in
+     unify eq_loc Initial. typ_float actual_ty;
+     { Deftypes.empty with der = S.singleton n }, actual_k
   | EQinit(n, e0) ->
      (* an initialization is valid only in a stateful context *)
      less_than eq_loc expected_k Tnode;

@@ -41,6 +41,8 @@ type operator =
   | Erun : is_inline -> operator
   | Eatomic : operator
   | Etest : operator
+  | Eup : operator
+  | Eperiod : operator
   
 and is_inline = bool
               
@@ -160,6 +162,7 @@ and eq = eq_desc localized
 
 and eq_desc = 
   | EQeq : pattern * exp -> eq_desc
+  | EQder : name * exp -> eq_desc
   | EQinit : name * exp -> eq_desc
   | EQemit : name * exp option -> eq_desc
   | EQif : exp * eq * eq -> eq_desc

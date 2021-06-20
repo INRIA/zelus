@@ -367,7 +367,18 @@ and operator env op ty e_list =
      let i = Init.new_var () in
      exp_less_than_on_i env e i;
      Init.skeleton_on_i i ty
-  | _ -> assert false
+  | Etest, [e] ->
+     let i = Init.new_var () in
+     exp_less_than_on_i env e i;
+     Init.skeleton_on_i i ty
+  | Eup, [e] ->
+     exp_less_than_on_i env e izero;
+     Init.skeleton_on_i izero ty
+  | Eperiod, [e1; e2] ->
+     exp_less_than_on_i env e1 izero;
+     exp_less_than_on_i env e2 izero;
+     Init.skeleton_on_i izero ty
+| _ -> assert false
 
 
 (** Typing an application *)
@@ -414,8 +425,10 @@ and equation env
   | EQeq(p, e) -> 
      let ti = exp env e in
      pattern env p ti
-  | EQinit(n, e0) ->
-      exp_less_than_on_i env e0 izero
+  | EQder(n, e) ->
+     exp_less_than_on_i env e izero
+  | EQinit(n, e) ->
+      exp_less_than_on_i env e izero
   | EQemit(n, e_opt) ->
       let ti_n = 
         try let { t_typ } = Env.find n env in t_typ

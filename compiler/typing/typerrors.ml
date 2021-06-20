@@ -33,6 +33,7 @@ type error =
   | Eglobal_undefined of kind_of_global_ident * Lident.t
   | Eglobal_already of kind_of_global_ident * string
   | Ealready of kind_of_ident * Ident.t
+  | Ealready_with_different_kinds of kind_of_ident * kind_of_ident * Ident.t
   | Eis_a_value of Ident.t
   | Einit_undefined of Ident.t
   | Elast_forbidden of Ident.t
@@ -101,6 +102,13 @@ let message loc kind =
        "@[%aType error: the identifier %s is defined twice with kind %s \
         in a parallel branch.@.@]"
         output_location loc (Ident.source s) k
+  | Ealready_with_different_kinds(k1, k2, s) ->
+     let k1 = kind_of_ident k1 in
+     let k2 = kind_of_ident k2 in
+     eprintf
+       "@[%aType error: %s is defined twice in a parallel branch,@,\
+                once as a %s, once as a %s.@.@]"
+        output_location loc (Ident.source s) k1 k2
   | Einit_undefined(s) ->
       eprintf "@[%aType error: %s must be initialized in every branch.@.@]"
         output_location loc

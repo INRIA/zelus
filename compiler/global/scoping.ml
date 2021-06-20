@@ -118,6 +118,9 @@ let operator op =
   | Eseq -> Zelus.Eseq
   | Erun(i) -> Zelus.Erun(i)
   | Eatomic -> Zelus.Eatomic  
+  | Etest -> Zelus.Etest
+  | Eup -> Zelus.Eup
+  | Eperiod -> Zelus.Eperiod
 
 (* translate types. *)
 let rec types { desc; loc } =
@@ -185,7 +188,7 @@ let buildpat check_linear defnames p =
 let rec buildeq defnames { desc } =
   match desc with
   | EQeq(pat, _) -> buildpat false defnames pat
-  | EQinit(x, _) | EQemit(x, _) -> S.add x defnames
+  | EQder(x, _) | EQinit(x, _) | EQemit(x, _) -> S.add x defnames
   | EQreset(eq, _) -> buildeq defnames eq
   | EQand(and_eq_list) ->
      List.fold_left buildeq defnames and_eq_list
@@ -292,7 +295,7 @@ let match_handler body env { desc = { m_pat; m_body }; loc } =
   let env = Env.append env_m_pat env in
   let m_body = body env m_body in
   { Zelus.m_pat = m_pat; Zelus.m_body = m_body; Zelus.m_loc = loc;
-    Zelus.m_env = Ident.Env.empty; Zelus.m_reset = false }
+    Zelus.m_env = Ident.Env.empty; Zelus.m_reset = false; Zelus.m_zero = false }
 
 (* [env_pat] is the environment for names that appear on the *)
 (* left of a definition. [env] is for names that appear on the right *)
@@ -303,6 +306,8 @@ let rec equation env_pat env { desc; loc } =
        let pat = pattern_translate env_pat pat in
        let e = expression env e in
        Zelus.EQeq(pat, e)
+    | EQder(x, e) ->
+       Zelus.EQder(name loc env x, expression env e)
     | EQinit(x, e) -> EQinit(name loc env x, expression env e)
     | EQemit(x, e_opt) ->
        EQemit(name loc env x, Util.optional_map (expression env) e_opt)

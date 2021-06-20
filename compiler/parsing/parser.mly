@@ -54,7 +54,6 @@ let constr_pat f p =
 let scond_true start_pos end_pos =
   make (Econdexp(make (Econst(Ebool(true))) start_pos end_pos))
        start_pos end_pos
-
 %}
 
 %token <string> CONSTRUCTOR
@@ -82,6 +81,7 @@ let scond_true start_pos end_pos =
 %token DO             /* "do" */
 %token DONE           /* "done" */
 %token DOT            /* "." */
+%token DER            /* "der" */
 %token ELSE           /* "else" */
 %token EMIT           /* "emit" */
 %token END            /* "end" */
@@ -112,6 +112,7 @@ let scond_true start_pos end_pos =
 %token ON             /* "on" */
 %token OPEN           /* "open" */
 %token OR             /* "or" */
+%token PERIOD         /* "period" */
 %token PLUS           /* "+" */
 %token PRE            /* "pre" */
 %token PRESENT        /* "present" */
@@ -130,6 +131,7 @@ let scond_true start_pos end_pos =
 %token UNDERSCORE     /* "_" */
 %token UNLESS         /* "unless" */
 %token UNTIL          /* "until" */
+%token UP             /* "up" */
 %token VAL            /* "val" */
 %token WHERE          /* "where" */
 %token WITH           /* "with" */
@@ -166,7 +168,7 @@ let scond_true start_pos end_pos =
 %right FBY
 %right NOT
 %right PREFIX
-%right PRE TEST
+%right PRE TEST UP
 %left DOT
 
 %start implementation_file
@@ -387,6 +389,8 @@ equation_desc:
     { eq.desc }
   | p = pattern EQUAL e = seq_expression
     { EQeq(p, e) }
+  | DER i = ide EQUAL e = seq_expression
+      { EQder(i, e) }
   | INIT i = ide EQUAL e = seq_expression
     { EQinit(i, e) }
   | EMIT i = ide
@@ -729,6 +733,8 @@ expression_desc:
     { Eop(Eatomic, [e]) }
   | PRE e = expression
       { Eop(Eunarypre, [e]) }
+  | UP e = expression
+      { Eop(Eup, [e]) }
   | TEST e = expression
       { Eop(Etest, [e]) }
   | IF e1 = seq_expression THEN e2 = seq_expression ELSE e3 = expression
@@ -786,8 +792,17 @@ expression_desc:
     ELSE e = seq_expression END
       { Epresent(List.rev pe, Else(e)) }
   | RESET e = seq_expression EVERY r = expression
-      { Ereset(e, r) }
-  
+    { Ereset(e, r) }
+  | PERIOD p = period_expression
+      { Eop(Eperiod, p) }  
+;
+
+/* Periods */
+%inline period_expression:
+  | LPAREN per = expression RPAREN /* period */
+      { [ make (Econst(Efloat(0.0))) $startpos $endpos; per ] }
+  | LPAREN ph = expression BAR per = expression RPAREN /* period */
+      { [ ph; per ] }
 ;
 
 %inline is_inline:

@@ -101,6 +101,7 @@ let apply_with_close_out f o =
 let do_step comment step input = 
   let output = step input in
   Debug.print_message comment;
+  Debug.print_program input;
   output
   
 let do_optional_step is_step comment step p = 

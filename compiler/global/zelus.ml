@@ -48,6 +48,9 @@ type operator =
 | Eseq : operator (* sequence *)
 | Erun : is_inline -> operator (* application of a statefull function *)
 | Eatomic : operator (* the argument is atomic *)
+| Etest : operator (* testing the presence of a signal *)
+| Eup : operator (* zero-crossing detection *)
+| Eperiod : operator (* period *)
 
 and is_inline = bool
 
@@ -128,6 +131,7 @@ type ('exp, 'body) match_handler =
     m_body: 'body;
     m_loc: Location.t;
     m_reset: bool; (* the handler is reset on entry *)
+    m_zero: bool; (* the handler is done at a zero-crossing instant *)
     mutable m_env: 'exp Deftypes.tentry Ident.Env.t;
   }
 
@@ -202,6 +206,7 @@ and eq =
 
 and eq_desc = 
   | EQeq : pattern * exp -> eq_desc  (* [p = e] *)
+  | EQder : Ident.t * exp -> eq_desc  (* [der x = e] *)
   | EQinit : Ident.t * exp -> eq_desc  (* [init x = e] *)
   | EQemit : Ident.t * exp option -> eq_desc  (* [emit x [= e]] *)
   | EQif : exp * eq * eq -> eq_desc (* [if e then eq1 else eq2] *)

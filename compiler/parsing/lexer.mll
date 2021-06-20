@@ -25,6 +25,7 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "clock", CLOCK;
   "continue", CONTINUE;
   "default", DEFAULT;
+  "der", DER;
   "do", DO;
   "done", DONE;
   "else", ELSE;
@@ -50,6 +51,7 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "on", ON;
   "open", OPEN;
   "or", OR;
+  "period", PERIOD;
   "pre", PRE;
   "present", PRESENT;
   "rec", REC;
@@ -61,6 +63,7 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "type", TYPE;
   "unless", UNLESS;
   "until", UNTIL;
+  "up", UP;
   "val", VAL;
   "where", WHERE;
   "with", WITH;

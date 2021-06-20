@@ -43,13 +43,16 @@ let rec equation ({ eq_desc } as eq)=
     match eq_desc with
     | EQeq(pat, e) ->
        EQeq(pat, expression e),
-       { dv = fv_pat S.empty S.empty pat; di = S.empty }
+       { Deftypes.empty with dv = fv_pat S.empty S.empty pat }
+    | EQder(x, e) ->
+       EQder(x, expression e),
+       { Deftypes.empty with der = S.singleton x }
     | EQinit(x, e) ->
        EQinit(x, expression e),
-       { dv = S.empty; di = S.singleton x }
+       { Deftypes.empty with di = S.singleton x }
     | EQemit(x, e_opt) ->
        EQemit(x, Util.optional_map expression e_opt),
-       { dv = S.singleton x; di = S.empty }
+       { Deftypes.empty with dv = S.singleton x }
     | EQreset(eq, e) ->
        let eq, def = equation eq in
        EQreset(eq, expression e), def

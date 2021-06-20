@@ -170,7 +170,7 @@ let build_env l_env env =
     let cur_tc = Causal.annotate (Cname n) (Causal.skeleton ty) in
     let last_tc_opt =
       match sort with
-      | Smem ->
+      | Smem _ ->
           Some(Causal.annotate (Clast n) (Causal.skeleton ty))
       | _ -> None in
     Env.add n { t_typ = cur_tc; t_last_typ = last_tc_opt } acc in
@@ -182,7 +182,7 @@ let build_env_on_c c l_env env =
     let cur_tc = Causal.annotate (Cname n) (Causal.skeleton_on_c c ty) in
     let last_tc_opt =
       match sort with
-      | Smem ->
+      | Smem _ ->
           Some(Causal.annotate (Clast n) (Causal.skeleton_on_c c ty))
       | _ -> None in
     Env.add n { t_typ = cur_tc; t_last_typ = last_tc_opt } acc in
@@ -481,6 +481,8 @@ and equation env c_free { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
       less_than e0.e_loc env actual_tc t_typ;
       (match t_last_typ with
        | None -> () | Some(ltc) -> less_than e0.e_loc env actual_tc ltc)
+  | EQder(_, e) ->
+     ignore (exp env c_free e)
   | EQemit(n, e_opt) ->
       let c_res = Causal.new_var () in
       Util.optional_unit
