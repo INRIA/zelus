@@ -1,0 +1,119 @@
+#!/bin/bash
+
+shopt -s nullglob
+
+# script de test
+
+option=$1
+compilo="../bin/zeluc.byte -I ../lib/"
+coption=$2
+
+compile_code=0
+compile_code_option=
+
+score=0
+max=0
+verbose=0
+
+for d in good bad; do
+  rm -f -r $d/*.obc $d/*.lci\
+           $d/*.ml $d/*.cmi $d/*.cmo;
+done
+
+compile () {
+if [[ $verbose != 0 ]]; then 
+  printf "$compilo $coption $1 $2\n"
+  $compilo $coption -I good $1 $2;
+else
+  $compilo $coption -I good $1 $2 > /dev/null 2>&1;
+fi;
+}
+
+ocamlcompile () {
+if [[ $verbose != 0 ]]; then 
+  printf "ocamlc -I ../lib $compile_code_option $1\n"
+  ocamlc -c -I ../lib -I good $1 > /dev/null 2>&1;
+else
+  ocamlc -c -I ../lib -I good $1 > /dev/null 2>&1;
+fi;
+}
+
+main () {
+
+score=0
+max=0
+
+printf "Test\n"
+
+# les mauvais
+printf "mauvais "
+for f in bad/*.ls ; do 
+    printf ".";
+    max=`expr $max + 1`;
+    if compile $f; then
+        printf "\nECHEC sur \"$f\" (devrait echouer)\n";
+    else
+        score=`expr $score + 1`;        
+    fi
+done
+printf "\n"
+
+printf "bons"
+for f in good/*.ls; do
+    echec=0
+    printf ".";
+    max=`expr $max + 1`;
+    base_f=`basename $f .ls`
+    if compile $f; then
+	echec=0
+    else
+	echec=1
+    fi
+    # compile the ocaml code
+    if [[ ($echec == 0) && ($compile_code == 1) ]]; then
+        if ocamlcompile good/${base_f}.ml; then
+	    echec=0
+	else
+	    echec=2
+	fi
+    fi
+    if [ $echec == 0 ]; then
+	score=`expr $score + 1`;
+    else
+        printf "\nECHEC sur \"$f\" (devrait reussir)\n";
+    fi
+done
+printf "\n"
+
+percent=$(( (100 * score) / max));
+
+printf "Test: $score/$max : $percent%%";
+
+}
+
+activate_compile_code () {
+    compile_code=1
+}
+
+case $option in
+    "-1" )
+        main;;
+    "-v1" )
+        verbose=1;
+        main;;
+    "-2" )
+	activate_compile_code;
+	main;;
+    "-v2" )
+	verbose=1;
+	activate_compile_code;
+	main;;
+    * )
+	printf "usage : $0 <options>\n"
+        printf "options : \n"
+        printf "-1      : translation\n" 
+        printf "-v1     : -1 + verbose\n" 
+        printf "-2      : translation/compile target code\n"
+	printf "-v2     : translation/compile target code + verbose\n"
+esac;
+printf "\n"
