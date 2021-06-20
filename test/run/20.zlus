@@ -1,0 +1,20 @@
+(* TEST[-check 80] ARGS[] *)
+(* Ensure that the derivatives of state variables are completed to zero in
+   automaton states where they have not been given explicitly. *)
+
+open Basics
+
+let hybrid main () = ok where
+  rec init w_e = 0.0
+  and der t = 1.0 init 0.0
+  and automaton
+      | Changing ->
+          do
+            der w_e = 1.0
+          until up(t -. 2.0) then NotSupposedToChange
+      | NotSupposedToChange ->
+          do
+          done
+  and init ok = true
+  and present (up (t -. 3.0)) -> do ok = w_e =~= 2.0 done
+

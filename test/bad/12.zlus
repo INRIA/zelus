@@ -1,0 +1,6 @@
+(* Type error: m should be a signal. *)
+
+let node h(x) = m + 1 where
+  match x with
+  | 1 -> do m = 2 done
+  | 2 -> do m = 3 done

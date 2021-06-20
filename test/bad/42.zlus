@@ -1,0 +1,10 @@
+(* 
+   This program should be rejected because y depends 
+   instantaneously on itself 
+ *)
+
+let hybrid f x = up x
+    
+let hybrid g (x) = (y) where
+  rec der y = 1.0 init 0.0 reset (up(y)) -> 1.0
+

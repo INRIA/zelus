@@ -1,0 +1,13 @@
+(* 
+   This program should be rejected because one state is unreachable
+ *)
+
+let node f55(x) = y where
+  rec automaton
+      | S1 -> 
+          let rec c = 0 -> pre c + 1 in
+          do y = 1 -> pre y + 1 until (c = 0) then S1
+      | S2(t) -> 
+          do y = t + 1 - x and emit m = 1 
+          until (y = -10) then S1
+  and cpt = 0 -> pre cpt + 1

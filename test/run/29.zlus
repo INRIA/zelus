@@ -1,0 +1,7 @@
+(* TEST[-check 100000] ARGS[-precisetime] *)
+
+let hybrid main () = ok where
+  rec der t = 1.0 init -. 300.0
+        reset up(last t) -> -. 300.
+
+  and ok = present up(t) -> true init true

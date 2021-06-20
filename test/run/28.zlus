@@ -1,0 +1,35 @@
+(* TEST[-check 1000] ARGS[] *)
+
+let node mem (i, default) = m where
+  rec init m = default
+  and present i(v) -> do m = v done
+
+let node machine1 () = n where
+  rec n = 1 -> (pre n + 2)
+
+let node z_controller(m) = (o, im) where
+  rec b = true fby (not b)
+  and present b -> do emit im = () done
+  and present (not b) -> do emit o = m done
+
+let node z_n1() = o where
+  rec m = mem (om, 0)
+  and (o, im) = z_controller(m)
+  and present im(_) -> do emit om = machine1() done
+
+
+(* Inlined version of z_n1 *)
+let node z_n2() = o where
+  rec m = mem (om, 0)
+  and b = true fby (not b)
+  and present b -> do emit im = () done
+  and present (not b) -> do emit o = m done
+  and present im(_) -> do emit om = machine1() done
+
+(* Different results for z_n1 and z_n2? *)
+let node main () = ok where
+  rec n1 = z_n1()
+  and n2 = z_n2()
+  and m1 = mem(n1, 0)
+  and m2 = mem(n2, 0)
+  and ok = (m1 = m2)

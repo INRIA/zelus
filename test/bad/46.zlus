@@ -1,0 +1,2 @@
+(* This program is rejected because o is not initialized *)
+let hybrid f() = let der o = 1.0 in o

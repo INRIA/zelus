@@ -1,0 +1,12 @@
+(* This program must be rejected because the block match/with is *)
+(* executed atomically *)
+let node f(x) =
+  let rec
+      match x with
+      | () -> do y = 1 and z = k done
+      end
+  and
+      match x with
+      | () -> do r = y and k = 2 done
+      end in
+  y,z
