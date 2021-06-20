@@ -124,6 +124,7 @@ let scond_true start_pos end_pos =
 %token RUN            /* ")" */
 %token SEMI           /* ";" */
 %token STAR           /* "*" */
+%token TEST           /* "?" */
 %token THEN           /* "then" */
 %token TYPE           /* "type" */
 %token UNDERSCORE     /* "_" */
@@ -165,7 +166,7 @@ let scond_true start_pos end_pos =
 %right FBY
 %right NOT
 %right PREFIX
-%right PRE 
+%right PRE TEST
 %left DOT
 
 %start implementation_file
@@ -487,7 +488,7 @@ scondpat_desc :
   | scpat1 = scondpat BAR scpat2 = scondpat
       { Econdor(scpat1, scpat2) }
   | scpat1 = scondpat ON e = simple_expression
-      { Econdon(scpat1, e) }
+    { Econdon(scpat1, e) }
 ;
 
 /* Block */
@@ -711,8 +712,6 @@ expression:
 expression_desc:
   | e = simple_expression_desc
       { e }
-  | ATOMIC e = simple_expression
-    { Eop(Eatomic, [e]) }
   | e = expression_comma_list %prec prec_list
       { Etuple(List.rev e) }
   | e1 = expression FBY e2 = expression
@@ -726,8 +725,12 @@ expression_desc:
 		     f_args = p_list;
 		     f_body = make (Exp(e)) $startpos(e) $endpos(e) }
 	      $startpos $endpos) }
+  | ATOMIC e = simple_expression
+    { Eop(Eatomic, [e]) }
   | PRE e = expression
       { Eop(Eunarypre, [e]) }
+  | TEST e = expression
+      { Eop(Etest, [e]) }
   | IF e1 = seq_expression THEN e2 = seq_expression ELSE e3 = expression
       { Eop(Eifthenelse, [e1; e2; e3]) }
   | e1 = expression MINUSGREATER e2 = expression

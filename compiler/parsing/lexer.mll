@@ -140,6 +140,7 @@ rule main = parse
   | "+"  { PLUS }
   | "-." { SUBTRACTIVE "-." }
   | "_"  { UNDERSCORE }
+  | "?"  { TEST }
   | ">"  { GREATER }
   | (['A'-'Z']('_' ? ['A'-'Z' 'a'-'z' ''' '0'-'9']) * as id) 
       {CONSTRUCTOR id}

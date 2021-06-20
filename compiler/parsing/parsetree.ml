@@ -40,6 +40,7 @@ type operator =
   | Eseq : operator
   | Erun : is_inline -> operator
   | Eatomic : operator
+  | Etest : operator
   
 and is_inline = bool
               
