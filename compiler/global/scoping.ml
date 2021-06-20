@@ -57,7 +57,8 @@ module Error =
             Location.output_location loc name
       | Eautomaton_with_mixed_transitions ->
 	 Format.eprintf
-	   "%aScoping error: this automaton mixes weak and strong transitions.@."
+	   "%aScoping error: this automaton mixes weak \
+            and strong transitions.@."
 	   Location.output_location loc
       end;
       raise Misc.Error 
@@ -74,6 +75,12 @@ module Env =
 
 module S = Set.Make (String)
 
+(* make a block *)
+let block loc s_vars s_eq =
+  { Zelus.b_vars = s_vars; Zelus.b_body = s_eq;
+    Zelus.b_loc = loc; Zelus.b_env = Ident.Env.empty;
+    Zelus.b_write = Deftypes.empty }
+
 let name loc env n =
   try
     Env.find n env
@@ -87,6 +94,92 @@ let longname ln =
   | Name(s) -> Lident.Name(s)
   | Modname { qual; id } ->
      Lident.Modname { Lident.qual = qual; Lident.id = id }
+
+           
+let kind =
+  function Kfun -> Zelus.Kfun | Knode -> Zelus.Knode | Kstatic -> Zelus.Kstatic
+
+let immediate c =
+  match c with
+  | Eint(i) -> Zelus.Eint(i)
+  | Ebool(b) -> Zelus.Ebool(b)
+  | Efloat(f) -> Zelus.Efloat(f)
+  | Evoid -> Zelus.Evoid
+  | Estring(s) -> Zelus.Estring(s)
+  | Echar(c) -> Zelus.Echar(c)
+                
+(* synchronous operators *)
+let operator op =
+  match op with
+  | Efby -> Zelus.Efby
+  | Eifthenelse -> Zelus.Eifthenelse
+  | Eminusgreater -> Zelus.Eminusgreater
+  | Eunarypre -> Zelus.Eunarypre
+  | Eseq -> Zelus.Eseq
+  | Erun(i) -> Zelus.Erun(i)
+  | Eatomic -> Zelus.Eatomic  
+
+(* translate types. *)
+let rec types { desc; loc } =
+  let desc = match desc with
+    | Etypevar(n) -> Zelus.Etypevar(n)
+    | Etypetuple(ty_list) -> Zelus.Etypetuple(List.map types ty_list)
+    | Etypeconstr(lname, ty_list) ->
+       Zelus.Etypeconstr(longname lname, List.map types ty_list)
+    | Etypefun(k, ty_arg, ty_res) ->
+       let ty_arg = types ty_arg in
+       let ty_res = types ty_res in
+       Zelus.Etypefun(kind k, ty_arg, ty_res) in
+  { Zelus.desc = desc; Zelus.loc = loc }
+
+  (** Build a renaming environment **)
+(* if [check_linear = true], stop when the same name appears twice *)
+let buildpat check_linear defnames p =
+  let rec build acc { desc } =
+    match desc with
+    | Ewildpat | Econstpat _ | Econstr0pat _ -> acc
+    | Econstr1pat(_, p_list) | Etuplepat(p_list) ->
+        build_list acc p_list
+    | Evarpat(n) ->
+	if S.mem n acc then 
+        if check_linear 
+        then Error.error p.loc (Error.Enon_linear_pat(n)) else acc
+        else S.add n acc
+    | Ealiaspat(p, n) ->
+	let acc = build acc p in S.add n acc
+    | Eorpat(p1, p2) -> 
+	let orpat loc acc0 acc1 acc =
+        let one key acc =
+          if S.mem key acc1 then
+            if S.mem key acc then
+	      if check_linear 
+              then Error.error loc (Error.Enon_linear_pat(key)) else acc
+	      else S.add key acc
+          else
+	    Error.error loc (Error.Emissing_in_orpat(key)) in
+        S.fold one acc0 acc in
+        let acc1 = build S.empty p1 in
+        let acc2 = build S.empty p2 in
+        let acc = orpat p.loc acc1 acc2 acc in acc
+    | Etypeconstraintpat(p, ty) -> build acc p
+    | Erecordpat(l_p_list) -> build_record_list p.loc acc l_p_list
+	
+  and build_record_list loc acc label_pat_list =
+    let rec buildrec acc labels label_pat_list =
+      match label_pat_list with
+      | [] -> acc
+      | (lname, pat_label) :: label_pat_list ->
+	  (* checks that the label appears only once *)
+          let label = shortname lname in
+          if S.mem label labels
+          then Error.error loc (Error.Enon_linear_record(label))
+          else
+            buildrec (build acc pat_label) (S.add label labels)
+              label_pat_list in
+    buildrec acc S.empty label_pat_list
+  and build_list acc p_list = 
+    List.fold_left build acc p_list in
+  build defnames p
 
 (* compute the set of names defined by an equation *)
 let rec buildeq defnames { desc } =
@@ -148,102 +241,59 @@ and build_escape defnames { desc = { e_vars; e_body } } =
   let defnames_e_body = buildeq defnames e_body in
   S.union defnames (S.diff defnames_e_body defnames_e_vars)
 
-(** Build a renaming environment **)
-(* if [check_linear = true], stop when the same name appears twice *)
-and buildpat check_linear defnames p =
-  let rec build acc { desc } =
-    match desc with
-    | Ewildpat | Econstpat _ | Econstr0pat _ -> acc
-    | Econstr1pat(_, p_list) | Etuplepat(p_list) ->
-        build_list acc p_list
-    | Evarpat(n) ->
-	if S.mem n acc then 
-        if check_linear 
-        then Error.error p.loc (Error.Enon_linear_pat(n)) else acc
-        else S.add n acc
-    | Ealiaspat(p, n) ->
-	let acc = build acc p in S.add n acc
-    | Eorpat(p1, p2) -> 
-	let orpat loc acc0 acc1 acc =
-        let one key acc =
-          if S.mem key acc1 then
-            if S.mem key acc then
-	      if check_linear 
-              then Error.error loc (Error.Enon_linear_pat(key)) else acc
-	      else S.add key acc
-          else
-	    Error.error loc (Error.Emissing_in_orpat(key)) in
-        S.fold one acc0 acc in
-        let acc1 = build S.empty p1 in
-        let acc2 = build S.empty p2 in
-        let acc = orpat p.loc acc1 acc2 acc in acc
-    | Etypeconstraintpat(p, ty) -> build acc p
-    | Erecordpat(l_p_list) -> build_record_list p.loc acc l_p_list
-	
-  and build_record_list loc acc label_pat_list =
-    let rec buildrec acc labels label_pat_list =
-      match label_pat_list with
-      | [] -> acc
-      | (lname, pat_label) :: label_pat_list ->
-	  (* checks that the label appears only once *)
-          let label = shortname lname in
-          if S.mem label labels
-          then Error.error loc (Error.Enon_linear_record(label))
-          else
-            buildrec (build acc pat_label) (S.add label labels)
-              label_pat_list in
-    buildrec acc S.empty label_pat_list
-  and build_list acc p_list = 
-    List.fold_left build acc p_list in
-  build defnames p
 
 let buildeq eq =
   let defnames = buildeq S.empty eq in
   S.fold (fun s acc -> let m = fresh s in Env.add s m acc) defnames Env.empty
   
-              
-let kind =
-  function Kfun -> Zelus.Kfun | Knode -> Zelus.Knode | Kstatic -> Zelus.Kstatic
-
-let immediate c =
-  match c with
-  | Eint(i) -> Zelus.Eint(i)
-  | Ebool(b) -> Zelus.Ebool(b)
-  | Efloat(f) -> Zelus.Efloat(f)
-  | Evoid -> Zelus.Evoid
-  | Estring(s) -> Zelus.Estring(s)
-  | Echar(c) -> Zelus.Echar(c)
-                
-(* synchronous operators *)
-let operator op =
-  match op with
-  | Efby -> Zelus.Efby
-  | Eifthenelse -> Zelus.Eifthenelse
-  | Eminusgreater -> Zelus.Eminusgreater
-  | Eunarypre -> Zelus.Eunarypre
-  | Eseq -> Zelus.Eseq
-  | Erun(i) -> Zelus.Erun(i)
-  | Eatomic -> Zelus.Eatomic  
-
-(* translate types. *)
-let rec types { desc; loc } =
+(** Patterns **)
+let rec pattern_translate env { desc; loc } =
   let desc = match desc with
-    | Etypevar(n) -> Zelus.Etypevar(n)
-    | Etypetuple(ty_list) -> Zelus.Etypetuple(List.map types ty_list)
-    | Etypeconstr(lname, ty_list) ->
-       Zelus.Etypeconstr(longname lname, List.map types ty_list)
-    | Etypefun(k, ty_arg, ty_res) ->
-       let ty_arg = types ty_arg in
-       let ty_res = types ty_res in
-       Zelus.Etypefun(kind k, ty_arg, ty_res) in
-  { Zelus.desc = desc; Zelus.loc = loc }
-
-(* make a block *)
-let block loc s_vars s_eq =
-  { Zelus.b_vars = s_vars; Zelus.b_body = s_eq;
-    Zelus.b_loc = loc; Zelus.b_env = Ident.Env.empty;
-    Zelus.b_write = Deftypes.empty }
+    | Ewildpat -> Zelus.Ewildpat
+    | Econstpat(im) -> Zelus.Econstpat(immediate im)
+    | Econstr0pat(ln) -> Zelus.Econstr0pat(longname ln)
+    | Econstr1pat(ln, p_list) ->
+       Zelus.Econstr1pat(longname ln, pattern_translate_list env p_list)
+    | Etuplepat(p_list) -> Zelus.Etuplepat(pattern_translate_list env p_list)
+    | Evarpat(n) -> Zelus.Evarpat(name loc env n)
+    | Ealiaspat(p, n) ->
+       Zelus.Ealiaspat(pattern_translate env p, name loc env n)
+    | Eorpat(p1, p2) ->
+       Zelus.Eorpat(pattern_translate env p1, pattern_translate env p2)
+    | Etypeconstraintpat(p, ty) ->
+       Zelus.Etypeconstraintpat(pattern_translate env p, types ty)
+    | Erecordpat(l_p_list) ->
+       Zelus.Erecordpat
+         (List.map (fun (lname, p) -> (longname lname, pattern_translate env p))
+	    l_p_list) in
+  { Zelus.pat_desc = desc; Zelus.pat_loc = loc;
+    Zelus.pat_typ = Deftypes.no_typ; Zelus.pat_caus = Defcaus.no_typ;
+    Zelus.pat_init = Definit.no_typ }
   
+and pattern_translate_list env p_list = List.map (pattern_translate env) p_list
+
+(* Build the renaming environment then translate *)
+and pattern env p =
+  let defnames = buildpat true S.empty p in
+  let env0 =
+    S.fold
+      (fun s acc -> let m = fresh s in Env.add s m acc) defnames Env.empty in
+  pattern_translate env0 p, env0
+
+let present_handler scondpat body env { desc = { p_cond; p_body }; loc } =
+  let scpat, env_scpat = scondpat env p_cond in
+  let env = Env.append env_scpat env in
+  let p_body = body env p_body in
+  { Zelus.p_cond = scpat; Zelus.p_body = p_body; Zelus.p_loc = loc;
+    Zelus.p_env = Ident.Env.empty }
+
+let match_handler body env { desc = { m_pat; m_body }; loc } = 
+  let m_pat, env_m_pat = pattern env m_pat in
+  let env = Env.append env_m_pat env in
+  let m_body = body env m_body in
+  { Zelus.m_pat = m_pat; Zelus.m_body = m_body; Zelus.m_loc = loc;
+    Zelus.m_env = Ident.Env.empty; Zelus.m_reset = false }
+
 (* [env_pat] is the environment for names that appear on the *)
 (* left of a definition. [env] is for names that appear on the right *)
 let rec equation env_pat env { desc; loc } =
@@ -276,7 +326,8 @@ let rec equation env_pat env { desc; loc } =
        Zelus.EQif(e, eq1, eq2)
     | EQmatch(e, m_h_list) ->
        let e = expression env e in
-       let m_h_list = List.map (match_handler env_pat env) m_h_list in
+       let m_h_list =
+         List.map (match_handler (equation env_pat) env) m_h_list in
        Zelus.EQmatch { is_total = false; e; handlers = m_h_list }
     | EQautomaton(a_h_list, st_opt) ->
        let is_weak, is_strong =
@@ -303,7 +354,8 @@ let rec equation env_pat env { desc; loc } =
        Zelus. EQempty
     | EQassert(e) -> Zelus.EQassert(expression env e)
     | EQpresent(p_h_list, eq_opt) ->
-       let handlers = List.map (present_handler env_pat env) p_h_list in
+       let handlers =
+         List.map (present_handler scondpat (equation env_pat) env) p_h_list in
        let default_opt =
          match eq_opt with
          | NoDefault -> Zelus.NoDefault
@@ -365,12 +417,6 @@ and statepat env_pat { desc; loc } =
      Estate1pat(fm, n_list), acc in
 { Zelus.desc = desc; Zelus.loc = loc }, acc
 
-and present_handler env_pat env { desc = { p_cond; p_body }; loc } =
-  let scpat, env_scpat = scondpat env p_cond in
-  let env = Env.append env_scpat env in
-  let p_body = equation env_pat env p_body in
-  { Zelus.p_cond = scpat; Zelus.p_body = p_body; Zelus.p_loc = loc;
-    Zelus.p_env = Ident.Env.empty }
 
 and automaton_handler is_weak env_for_states env_pat env
   { desc = { s_state; s_vars; s_body; s_until; s_unless }; loc } =
@@ -450,47 +496,6 @@ and scondpat env scpat =
   let scpat = scondpat env0 env scpat in
   scpat, env0
 
-and match_handler env_pat env { desc = { m_pat; m_body }; loc } = 
-  let m_pat, env_m_pat = pattern env m_pat in
-  let env = Env.append env_m_pat env in
-  let m_body = equation env_pat env m_body in
-  { Zelus.m_pat = m_pat; Zelus.m_body = m_body; Zelus.m_loc = loc;
-    Zelus.m_env = Ident.Env.empty; Zelus.m_reset = false }
-
-(** Patterns **)
-and pattern_translate env { desc; loc } =
-  let desc = match desc with
-    | Ewildpat -> Zelus.Ewildpat
-    | Econstpat(im) -> Zelus.Econstpat(immediate im)
-    | Econstr0pat(ln) -> Zelus.Econstr0pat(longname ln)
-    | Econstr1pat(ln, p_list) ->
-       Zelus.Econstr1pat(longname ln, pattern_translate_list env p_list)
-    | Etuplepat(p_list) -> Zelus.Etuplepat(pattern_translate_list env p_list)
-    | Evarpat(n) -> Zelus.Evarpat(name loc env n)
-    | Ealiaspat(p, n) ->
-       Zelus.Ealiaspat(pattern_translate env p, name loc env n)
-    | Eorpat(p1, p2) ->
-       Zelus.Eorpat(pattern_translate env p1, pattern_translate env p2)
-    | Etypeconstraintpat(p, ty) ->
-       Zelus.Etypeconstraintpat(pattern_translate env p, types ty)
-    | Erecordpat(l_p_list) ->
-       Zelus.Erecordpat
-         (List.map (fun (lname, p) -> (longname lname, pattern_translate env p))
-	    l_p_list) in
-  { Zelus.pat_desc = desc; Zelus.pat_loc = loc;
-    Zelus.pat_typ = Deftypes.no_typ; Zelus.pat_caus = Defcaus.no_typ;
-    Zelus.pat_init = Definit.no_typ }
-  
-and pattern_translate_list env p_list = List.map (pattern_translate env) p_list
-
-(* Build the renaming environment then translate *)
-and pattern env p =
-  let defnames = buildpat true S.empty p in
-  let env0 =
-    S.fold
-      (fun s acc -> let m = fresh s in Env.add s m acc) defnames Env.empty in
-  pattern_translate env0 p, env0
-
 and expression env { desc; loc } =
   let desc =
     match desc with
@@ -541,7 +546,23 @@ and expression env { desc; loc } =
        Zelus.Erecord_with(expression env e, recordrec loc env label_e_list)
     | Etypeconstraint(e, texp) ->
        Zelus.Etypeconstraint(expression env e, types texp)
-    | Efun(fd) -> Zelus.Efun(funexp env fd) in
+    | Efun(fd) -> Zelus.Efun(funexp env fd)
+    | Ematch(e, m_h_list) ->
+       let e = expression env e in
+       let m_h_list =
+         List.map (match_handler expression env) m_h_list in
+       Zelus.Ematch { is_total = false; e; handlers = m_h_list }
+    | Epresent(p_h_list, eq_opt) ->
+       let handlers =
+         List.map (present_handler scondpat expression env) p_h_list in
+       let default_opt =
+         match eq_opt with
+         | NoDefault -> Zelus.NoDefault
+         | Init(e) -> Zelus.Init(expression env e)
+         | Else(e) -> Zelus.Else(expression env e) in
+       Zelus.Epresent({ handlers; default_opt }) 
+    | Ereset(e_body, e_res) ->
+       Zelus.Ereset(expression env e_body, expression env e_res) in
   { Zelus.e_desc = desc; Zelus.e_loc = loc;
     Zelus.e_typ = Deftypes.no_typ; Zelus.e_caus = Defcaus.no_typ;
     Zelus.e_init = Definit.no_typ }

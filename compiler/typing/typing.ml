@@ -597,7 +597,25 @@ and expression expected_k h ({ e_desc; e_loc } as e) =
        (* functions are only allowed in a static context *)
        less_than e_loc expected_k Tstatic;
        let ty = funexp h fe in
-       ty, Tstatic in
+       ty, Tstatic
+    | Ematch({ is_total; e; handlers } as mh) ->
+        let expected_pat_ty, actual_pat_k = expression expected_k h e in
+        let expected_ty = new_var () in
+        let is_total, actual_k_h =
+          match_handler_exp_list
+            e_loc expected_k h is_total handlers expected_pat_ty expected_ty in
+        mh.is_total <- is_total;
+        expected_ty, Kind.sup actual_pat_k actual_k_h
+    | Epresent { handlers; default_opt } ->
+        let expected_ty = new_var () in
+        let actual_k =
+          present_handler_exp_list
+            e_loc expected_k h handlers default_opt expected_ty in
+        expected_ty, actual_k
+    | Ereset(e_body, e_res) ->
+       let ty, actual_k_body = expression expected_k h e_body in
+       let actual_k = expect expected_k h e_res Initial.typ_bool in
+       ty, Kind.sup actual_k_body actual_k in
   (* type annotation *)
   e.e_typ <- ty;
   ty, actual_k
@@ -731,7 +749,7 @@ and equation expected_k h { eq_desc; eq_loc } =
   | EQmatch({ is_total; e; handlers } as mh) ->
      let expected_pat_ty, actual_k_e = expression expected_k h e in
      let is_total, defnames, actual_k_h =
-       match_handlers_eq
+       match_handler_eq_list
          eq_loc expected_k h is_total handlers expected_pat_ty in
      mh.is_total <- is_total;
      defnames, Kind.sup actual_k_e actual_k_h
@@ -742,7 +760,7 @@ and equation expected_k h { eq_desc; eq_loc } =
      Total.merge eq_loc h [defnames1; defnames2],
      Kind.sup actual_k_e (Kind.sup actual_k_eq1 actual_k_eq2)
   | EQpresent({ handlers; default_opt }) ->
-     present_handlers_eq eq_loc expected_k h handlers default_opt
+     present_handler_eq_list eq_loc expected_k h handlers default_opt
   | EQreset(eq, e) ->
      let actual_k_e = expect expected_k h e Initial.typ_bool in
      let defnames, actual_k_eq =
@@ -766,30 +784,34 @@ and equation_list expected_k h eq_list =
     (Deftypes.empty, Tstatic) eq_list
 
 (** Type a present handler when the body is an expression or equation **)
-and present_handlers_exp loc expected_k h p_h_list e0_opt expected_ty =
-  present_handlers scondpat
-    (fun expected_k h e expected_ty ->
-      let actual_k = expect expected_k h e expected_ty in
-      Deftypes.empty, actual_k)
-    loc expected_k h p_h_list e0_opt expected_ty
+and present_handler_exp_list loc expected_k h p_h_list default_opt expected_ty =
+  let _, actual_k =
+    present_handlers scondpat
+      (fun expected_k h e expected_ty ->
+        let actual_k = expect expected_k h e expected_ty in
+        Deftypes.empty, actual_k)
+      loc expected_k h p_h_list default_opt expected_ty in
+  actual_k
 
-and present_handlers_eq loc expected_k h eq_h_list eq_opt =
+and present_handler_eq_list loc expected_k h eq_h_list eq_opt =
   present_handlers scondpat
     (fun expected_k h eq _ -> equation expected_k h eq)
     loc expected_k h eq_h_list eq_opt Initial.typ_unit
 
 (** Type a match handler when the body is an expression or equation **)
-and match_handlers_eq loc expected_k h is_total eq_h_list pat_ty =
+and match_handler_eq_list loc expected_k h is_total eq_h_list pat_ty =
   match_handlers
     (fun expected_k h eq _ -> equation expected_k h eq)
     loc expected_k h is_total eq_h_list pat_ty Initial.typ_unit
 
-and match_handlers_exp loc expected_k h total m_h_list pat_ty ty =
-  match_handlers
-    (fun expected_k h e expected_ty ->
-      let actual_k = expect expected_k h e expected_ty in
-      Deftypes.empty, actual_k)
-    loc expected_k h total m_h_list pat_ty ty
+and match_handler_exp_list loc expected_k h total m_h_list pat_ty ty =
+  let is_total, _, actual_k =
+    match_handlers
+      (fun expected_k h e expected_ty ->
+        let actual_k = expect expected_k h e expected_ty in
+        Deftypes.empty, actual_k)
+      loc expected_k h total m_h_list pat_ty ty in
+  is_total, actual_k
 
 (** Type an automaton handler when the body is an equation **)
 and automaton_handlers_eq is_weak loc expected_k h handlers se_opt =

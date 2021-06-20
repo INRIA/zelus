@@ -146,6 +146,7 @@ let scond_true start_pos end_pos =
 %right SEMI
 %nonassoc prec_ident
 %right prec_list
+%left EVERY
 %nonassoc ELSE
 %left  AS
 %left  BAR
@@ -770,7 +771,20 @@ expression_desc:
   | p = PREFIX e = expression
       { unop p e ($startpos(p)) ($endpos(p)) }
   | LET i = is_rec eq = equation IN e = seq_expression
-      { Elet(i, eq, e) }
+    { Elet(i, eq, e) }
+  | MATCH e = seq_expression WITH opt_bar m = match_handlers(expression) END
+      { Ematch(e, List.rev m) }
+  | PRESENT opt_bar pe = present_handlers(expression) END
+    { Epresent(List.rev pe, NoDefault) }
+  | PRESENT opt_bar pe = present_handlers(expression)
+    INIT e = expression END
+    { Epresent(List.rev pe, Init(e)) }
+  | PRESENT opt_bar pe = present_handlers(expression)
+    ELSE e = seq_expression END
+      { Epresent(List.rev pe, Else(e)) }
+  | RESET e = seq_expression EVERY r = expression
+      { Ereset(e, r) }
+  
 ;
 
 %inline is_inline:

@@ -167,7 +167,13 @@ and exp_desc =
   | Erecord_with : exp * exp record list -> exp_desc
   | Etypeconstraint : exp * type_expression -> exp_desc
   | Efun : funexp -> exp_desc
-
+  | Ematch : { mutable is_total : bool; e : exp;
+               handlers : (exp, exp) match_handler list } -> exp_desc
+  | Epresent :
+      { handlers : (scondpat, exp, exp) present_handler list;
+        default_opt : exp default } -> exp_desc
+  | Ereset : exp * exp -> exp_desc
+  
 and is_rec = bool
 
 and 'a record = { mutable label: Lident.t; arg: 'a }
@@ -210,8 +216,8 @@ and eq_desc =
       { handlers : (scondpat, exp, eq) present_handler list;
         default_opt : eq default } -> eq_desc
   | EQmatch :
-      { mutable is_total: bool; e: exp;
-        handlers: (exp, eq) match_handler list } -> eq_desc
+      { mutable is_total : bool; e : exp;
+        handlers : (exp, eq) match_handler list } -> eq_desc
   | EQempty : eq_desc
   | EQassert : exp -> eq_desc
 

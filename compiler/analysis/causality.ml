@@ -374,7 +374,27 @@ let rec exp env c_free ({ e_desc = desc; e_typ = ty; e_loc = loc } as e) =
         let new_env = local env c_free l in
         let tc = exp new_env c_free e_let in
         tc
-    | Efun(fe)  -> funexp env c_free fe in
+    | Efun(fe)  -> funexp env c_free fe
+    | Epresent { handlers; default_opt } ->
+       let c_body = Causal.intro_less_c c_free in
+       let c_scpat = Causal.intro_less_c c_body in
+       let actual_tc =
+         present_handler_exp_list
+           env c_free c_body c_scpat handlers default_opt in
+       (* the result control depend on the signal patterns [scpat] *)
+       on_c actual_tc c_body
+    | Ematch { e; handlers } ->
+       let c_body = Causal.intro_less_c c_free in
+       let c_e = Causal.intro_less_c c_body in
+       exp_less_than_on_c env c_free e c_e;
+       let actual_tc = match_handler_exp_list env c_body c_e handlers in
+       (* the result control depend on [e] *)
+       on_c actual_tc c_body
+    | Ereset(e_body, e_res) ->
+       let c_e = Causal.intro_less_c c_free in
+       exp_less_than_on_c env c_free e_res c_e;
+       exp_less_than_on_c env c_free e_body c_e;
+       Causal.skeleton_on_c c_e ty in
   (* annotate [e] with the causality type *)
   e.e_caus <- tc;
   tc
@@ -470,7 +490,8 @@ and equation env c_free { eq_desc = desc; eq_write = defnames; eq_loc = loc } =
       let actual_tc = Causal.annotate (Cname n) (atom c_res) in
       less_than loc env actual_tc t_typ
   | EQautomaton { is_weak; handlers; state_opt } ->
-     automaton_handler_eq_list loc c_free is_weak defnames env handlers state_opt
+     automaton_handler_eq_list
+       loc c_free is_weak defnames env handlers state_opt
   | EQif(e, eq1, eq2) ->
       let c_body = Causal.intro_less_c c_free in
       let c_e = Causal.intro_less_c c_body in

@@ -36,7 +36,7 @@ let rec fv_pat bounded acc { pat_desc } =
   | Eorpat(p1, _) -> fv_pat bounded acc p1
   | Etypeconstraintpat(p, _) -> fv_pat bounded acc p
 
-                              
+                          
 (* computes [dv] and [di] *)
 let rec equation ({ eq_desc } as eq)=
   let eq_desc, def =
@@ -70,13 +70,21 @@ let rec equation ({ eq_desc } as eq)=
        let def = Deftypes.union def1 def2 in
        EQif(e, eq1, eq2), def
     | EQmatch({ e; handlers } as m) ->
-       let handlers, def = Util.mapfold match_handler Deftypes.empty handlers in
+       let match_handler acc ({ m_body } as m) =
+         let m_body, def_body = equation m_body in
+         { m with m_body = m_body }, Deftypes.union acc def_body in
+       let e = expression e in
+       let handlers, def =
+         Util.mapfold match_handler Deftypes.empty handlers in
        EQmatch({ m with e; handlers }), def
     | EQautomaton({ handlers } as a_h) ->
        let handlers, def =
          Util.mapfold automaton_handler empty handlers in
        EQautomaton({ a_h with handlers }), def
     | EQpresent({ handlers; default_opt }) ->
+       let present_handler acc ({ p_body } as p) =
+         let p_body, def_body = equation p_body in
+         { p with p_body = p_body }, Deftypes.union acc def_body in
        let handlers, def =
          Util.mapfold present_handler Deftypes.empty handlers in
        let default_opt, def_opt =
@@ -113,10 +121,6 @@ and state ({ desc } as se) =
   | Estateif(e, se1, se2) ->
      { se with desc = Estateif(expression e, state se1, state se2) }
 
-and present_handler acc ({ p_body } as p) =
-  let p_body, def_body = equation p_body in
-  { p with p_body = p_body }, def_body
-  
 and automaton_handler acc ({ s_body; s_trans } as h) =
   let s_body, def_eq, dv_b = block s_body in
   let s_trans, def_escape = Util.mapfold escape Deftypes.empty s_trans in
@@ -144,10 +148,6 @@ and scondpat ({ desc } as scpat) =
        Econdon(scondpat scpat, expression e) in
   { scpat with desc = desc }
           
-and match_handler acc ({ m_body } as m) =
-  let m_body, def_body = equation m_body in
-  { m with m_body = m_body },
-  def_body
 
 and expression ({ e_desc } as e) =
   let desc =
@@ -176,7 +176,27 @@ and expression ({ e_desc } as e) =
        Erecord_with(e, le_list)
     | Etypeconstraint(e, ty) ->
        Etypeconstraint(expression e, ty)
-    | Efun(fd) -> Efun(funexp fd) in
+    | Efun(fd) -> Efun(funexp fd)
+    | Ematch { is_total; e; handlers } ->
+       let e = expression e in
+       let handlers =
+         List.map
+           (fun ({ m_body } as m) -> { m with m_body = expression m_body })
+           handlers in
+       Ematch { is_total; e; handlers }
+    | Epresent({ handlers; default_opt }) ->
+       let handlers =
+         List.map
+           (fun ({ p_body } as p) -> { p with p_body = expression p_body })
+           handlers in
+       let default_opt =
+         match default_opt with
+         | NoDefault -> NoDefault
+         | Init(e) -> Init(expression e)
+         | Else(e) -> Else(expression e) in
+       Epresent({ handlers; default_opt })
+    | Ereset(e_body, e_res) ->
+       Ereset(expression e_body, expression e_res) in
   { e with e_desc = desc }
 
 and arg acc v_list = Util.mapfold vardec acc v_list

@@ -140,6 +140,9 @@ and exp_desc =
   | Erecord_with : exp * (longname * exp) list -> exp_desc
   | Etypeconstraint : exp * type_expression -> exp_desc
   | Efun : funexp -> exp_desc
+  | Ematch : exp * (exp, exp) match_handler list -> exp_desc
+  | Epresent : (scondpat, exp) present_handler list * exp default -> exp_desc
+  | Ereset : exp * exp -> exp_desc
   
 and is_rec = bool
            

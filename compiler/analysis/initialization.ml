@@ -219,7 +219,7 @@ let present_handlers scondpat body env p_h_list default_opt =
   List.iter handler p_h_list;
   match default_opt with
   | NoDefault -> ()
-  | Init(eq) | Else(eq) -> body env eq
+  | Init(eq) | Else(eq) -> ignore (body env eq)
 
 (** Automaton handler *)
 let automaton_handlers scondpat exp_less_than_on_i block_eq block_eq
@@ -320,7 +320,23 @@ let rec exp env ({ e_desc; e_typ; e_loc } as e) =
     | Elet(l, e_let) -> 
        let env = local env l in
        exp env e_let
-    | Efun(fe) -> funexp env fe in
+    | Efun(fe) -> funexp env fe
+    | Epresent { handlers; default_opt } ->
+       (* if [e] returns a tuple, all type element are synchronised, i.e., *)
+       (* if one is un-initialized, the whole is un-initialized *)
+       let ti = Init.skeleton_on_i (Init.new_var ()) e_typ in
+       present_handler_exp_list env handlers default_opt ti;
+       ti
+    | Ematch { e; handlers } ->
+       (* we force [e] to be always initialized. This is overly constraining *)
+       (* but correct and simpler to justify *)
+       exp_less_than_on_i env e izero;
+       let ti = Init.skeleton_on_i (Init.new_var ()) e_typ in
+       match_handler_exp_list env handlers ti;
+       ti
+    | Ereset(e_body, e_res) ->
+       exp_less_than_on_i env e_res izero;
+       exp env e_body in
   (* annotate the expression with the initialization type *)
   e.e_init <- ti;
   ti
@@ -420,12 +436,12 @@ and equation env
   | EQmatch { e; handlers } ->
      exp_less_than_on_i env e izero;
      let shared = Deftypes.cur_names Ident.S.empty defnames in
-     match_handler_eq_list shared env defnames handlers;
+     match_handler_eq_list shared env handlers;
      (* every defined variable must be initialized *)
      initialized loc env shared
   | EQpresent { handlers; default_opt } ->
      let shared = Deftypes.cur_names Ident.S.empty defnames in
-     present_handler_eq_list shared env defnames handlers default_opt;
+     present_handler_eq_list shared env handlers default_opt;
      (* every defined variable must be initialized *)
      initialized loc env shared
   | EQreset(eq, e) -> 
@@ -438,17 +454,25 @@ and equation env
   | EQempty -> ()
        
 (* typing rule for a present statement *)
-and present_handler_eq_list shared env defnames p_h_list default_opt =
+and present_handler_eq_list shared env p_h_list default_opt =
   let equation env ({ eq_write } as eq) =
     let env = last_env shared eq_write env in
     equation env eq in
   present_handlers scondpat equation env p_h_list default_opt
 
-and match_handler_eq_list shared env defnames m_h_list =
+and present_handler_exp_list env p_h_list default_opt ti =
+  let exp env e = exp_less_than env e ti in
+  present_handlers scondpat exp env p_h_list default_opt
+
+and match_handler_eq_list shared env m_h_list =
   let equation env ({ eq_write } as eq) =
     let env = last_env shared eq_write env in
     equation env eq in
   match_handlers equation env m_h_list
+
+and match_handler_exp_list env m_h_list ti =
+  let exp env e = exp_less_than env e ti in
+  match_handlers exp env m_h_list
 
 and automaton_handler_eq_list loc is_weak defnames env s_h_list se_opt =
   automaton_handlers
