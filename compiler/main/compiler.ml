@@ -101,7 +101,7 @@ let apply_with_close_out f o =
 let do_step comment step input = 
   let output = step input in
   Debug.print_message comment;
-  Debug.print_program input;
+  Debug.print_program output;
   output
   
 let do_optional_step is_step comment step p = 
@@ -123,9 +123,10 @@ let compile modname filename =
   Location.initialize source_name;
 
   (* Parsing of the file *)
-  do_step
-    "Parsing done" parse_implementation_file source_name
+  let impl_list = parse_implementation_file source_name in
+  Debug.print_message "Parsing done";
   (* Scoping *)
+  impl_list
   |> do_step "Scoping done" Scoping.program
   (* Write defined variables for equations *)
   |> do_step "Write done" Write.program
