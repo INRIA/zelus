@@ -205,8 +205,7 @@ type interface = interface_desc localized
 and interface_desc =
   | Einter_open : name -> interface_desc 
   | Einter_typedecl : name * name list * type_decl -> interface_desc 
-  | Einter_constdecl :
-      name * type_expression * name list -> interface_desc 
+  | Einter_constdecl : name * type_expression * name list -> interface_desc 
 
 and type_decl = type_decl_desc localized
     
