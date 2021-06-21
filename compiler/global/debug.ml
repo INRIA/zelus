@@ -21,5 +21,5 @@ let print_message comment =
 
 let print_program impl_list =
   if !set_verbose then
-    (* let err_ff = Format.formatter_of_out_channel stderr in
-    Printer.program err_ff impl_list *) ()
+    let err_ff = Format.formatter_of_out_channel stderr in
+    Printer.program err_ff impl_list
