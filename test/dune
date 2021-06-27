@@ -1,0 +1,8 @@
+(executable 
+    (name check)
+    (modes byte exe)
+    (promote (until-clean)))
+
+(rule
+ (alias  runtest)
+ (action (run ./check.exe)))
