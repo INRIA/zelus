@@ -8,7 +8,7 @@ let hybrid f () = y where
       | S0 -> do
             der y = 1.0
           until (up(y)) then let x,y = getpair () in S1(x,y)
-          else (up(y)) then S1(1.0, 2.0)
+          until (up(y)) then S1(1.0, 2.0)
       | S1(x1, x2) -> 
 	   do der y = x1 +. x2
            done

@@ -129,6 +129,6 @@ let node mouse2(click, top) =
       | One -> local nb
                do nb = count(4, top) 
                until click then do emit double in Await
-               else (nb) then do emit simple in Await
+               until (nb) then do emit simple in Await
       end in
   (simple, double)

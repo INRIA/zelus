@@ -5,6 +5,6 @@ let node f (i,r) = (o) where
       | B ->
           do until i then
 	    do m = last m + 1 in A
-          else r then
+          until r then
 	    do emit o = last m in A
       end
