@@ -10,7 +10,7 @@
 	(menhir (modules parser) (infer true) (flags --explain --table)))
 
 (executables 
-    (names zeluc)
+    (names zeluc zrun)
     (modes byte exe)
     (libraries unix menhirLib)
     (promote (until-clean) (into ..)))
