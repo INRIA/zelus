@@ -1,0 +1,6 @@
+(rule
+ (target stdlib.zci)
+ (deps stdlib.zli)
+ (action (run ../../compiler/zeluc.exe -nostdlib %{deps})))
+
+
