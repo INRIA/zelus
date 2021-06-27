@@ -27,7 +27,8 @@ and type_expression_desc =
 
 and kind =
   | Kfun : kind (* combinatorial *)
-  | Knode : kind (* stateful *)
+  | Knode : kind (* stateful node *)
+  | Khybrid : kind (* stateful hybrid node *)
   | Kstatic : kind (* constant; known at instanciation time *)
 
 (* constants *)

@@ -97,7 +97,9 @@ let longname ln =
 
            
 let kind =
-  function Kfun -> Zelus.Kfun | Knode -> Zelus.Knode | Kstatic -> Zelus.Kstatic
+  function
+  | Kfun -> Zelus.Kfun | Knode -> Zelus.Knode | Khybrid -> Zelus.Khybrid
+  | Kstatic -> Zelus.Kstatic
 
 let immediate c =
   match c with

@@ -240,9 +240,10 @@ and env_of_statepat spat =
 
 let env_of_pattern pat = env_of_pattern Env.empty pat  
 
-let env_of_equation { eq_write = { dv } } =
+let env_of_equation { eq_write } =
   S.fold
-    (fun n acc -> Env.add n (tentry Sval) acc) dv Env.empty
+    (fun n acc -> Env.add n (tentry Sval) acc)
+    (Deftypes.names S.empty eq_write) Env.empty
 
 (** Typing a pateq **)
 let pateq h { desc; loc } ty_e =

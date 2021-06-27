@@ -38,6 +38,7 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "false", BOOL(false); 
   "fby", FBY;
   "fun", FUN;
+  "hybrid", HYBRID;
   "if", IF;
   "in", IN;
   "init", INIT;

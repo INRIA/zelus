@@ -95,6 +95,7 @@ let scond_true start_pos end_pos =
 %token FBY            /* "fby" */
 %token FUN            /* "fun" */
 %token GREATER        /* ">" */
+%token HYBRID         /* "hybrid" */
 %token IF             /* "if" */
 %token IN             /* "in" */
 %token INIT           /* "init" */
@@ -148,13 +149,18 @@ let scond_true start_pos end_pos =
 
 %nonassoc prec_seq
 %right SEMI
+%nonassoc prec_present
 %nonassoc prec_ident
 %right prec_list
 %left EVERY
+%left INIT
+%nonassoc PRESENT
+%nonassoc THEN
 %nonassoc ELSE
+%nonassoc WITH
 %left  AS
-%left  RESET
 %left  BAR
+%nonassoc END
 %left COMMA
 %left RPAREN
 %right MINUSGREATER EQUALGREATER
@@ -337,17 +343,18 @@ implementation:
 ;
 
 %inline kind:
-  |      { Kfun }
-  | FUN  { Kfun }
-  | NODE { Knode }
+  |        { Kfun }
+  | FUN    { Kfun }
+  | NODE   { Knode }
+  | HYBRID { Khybrid }
 ;
 
 %inline result:
-  | RETURNS p = param eq = equation
+  | RETURNS p = param eq = equation_and_list
     { make (Returns(p, eq)) $startpos $endpos }
   | EQUAL seq = seq_expression
     { make (Exp(seq)) $startpos $endpos }
-  | EQUAL seq = seq_expression WHERE i = is_rec eq = equation
+  | EQUAL seq = seq_expression WHERE i = is_rec eq = equation_and_list
     { make (Exp(make (Elet(i, eq, seq)) $startpos(seq) $endpos(eq)))
       $startpos $endpos }
 ;
@@ -370,39 +377,39 @@ implementation:
    eq = localized(equation_desc) { eq }
 ;
 
+%inline simple_equation:
+   eq = localized(simple_equation_desc) { eq }
+;
+
 simple_equation_desc:
+  | LOCAL v_list = vardec_comma_list DO eq = equation_empty_and_list DONE
+    { EQlocal(v_list, eq) }
+  | DO eq = equation_empty_and_list DONE
+    { eq.desc }
+  | RESET eq = equation_and_list EVERY e = expression
+    { EQreset(eq, e) }
+  | LET i = is_rec let_eq = equation_and_list IN eq = simple_equation
+    { EQlet(i, let_eq, eq) }
   | AUTOMATON opt_bar a = automaton_handlers(equation_empty_and_list) END
     { EQautomaton(List.rev a, None) }
   | AUTOMATON opt_bar
-    a = automaton_handlers(equation_empty_and_list) INIT e = state END
+    a = automaton_handlers(equation_empty_and_list) INIT e = state
     { EQautomaton(List.rev a, Some(e)) }
-  | MATCH e = seq_expression WITH opt_bar
-    m = match_handlers(simple_equation) END
+  | MATCH e = seq_expression WITH opt_bar 
+    m = match_handlers(simple_equation) opt_end
     { EQmatch(e, List.rev m) }
   | IF e = seq_expression THEN eq1 = simple_equation
-    ELSE eq2 = simple_equation END
+    ELSE eq2 = simple_equation opt_end
     { EQif(e, eq1, eq2) }
-  | IF e = seq_expression THEN eq1 = equation END
+  | IF e = seq_expression THEN eq1 = simple_equation opt_end
       { EQif(e, eq1, no_eq $startpos $endpos) }
-  | IF e = seq_expression ELSE eq2 = equation END
+  | IF e = seq_expression ELSE eq2 = simple_equation opt_end
       { EQif(e, no_eq $startpos $endpos, eq2) }
-  | PRESENT opt_bar p = present_handlers(equation) END
+  | PRESENT opt_bar p = present_handlers(simple_equation) opt_end
     { EQpresent(List.rev p, NoDefault) }
-  | PRESENT opt_bar p = present_handlers(equation)
-    ELSE eq = equation END
+  | PRESENT opt_bar p = present_handlers(simple_equation)
+    ELSE eq = simple_equation opt_end
     { EQpresent(List.rev p, Else(eq)) }
-  | RESET eq = equation EVERY e = expression
-    { EQreset(eq, e) }
-  | LET i = is_rec let_eq = equation_and_list IN eq = equation
-    { EQlet(i, let_eq, eq) }
-  | LOCAL v_list = vardec_comma_list DO eq = equation END
-    { EQlocal(v_list, eq) }
-  | DO eq = equation_empty_and_list END
-    { eq.desc }
-;
-
-%inline simple_equation:
-eq = localized(simple_equation_desc) { eq }
 ;
 
 equation_desc:
@@ -422,7 +429,7 @@ equation_desc:
   | EMIT i = ide EQUAL e = seq_expression
       { EQemit(i, Some(e)) }
   | ASSERT e = seq_expression
-      { EQassert(e) }
+    { EQassert(e) }
 ;
 
 %inline optional_init:
@@ -781,7 +788,7 @@ expression_desc:
       { Eop(Eup, [e]) }
   | TEST e = expression
       { Eop(Etest, [e]) }
-  | IF e1 = seq_expression THEN e2 = seq_expression ELSE e3 = expression
+  | IF e1 = seq_expression THEN e2 = seq_expression ELSE e3 = seq_expression
       { Eop(Eifthenelse, [e1; e2; e3]) }
   | e1 = expression MINUSGREATER e2 = expression
       { Eop(Eminusgreater, [e1; e2]) }
@@ -825,15 +832,15 @@ expression_desc:
       { unop p e ($startpos(p)) ($endpos(p)) }
   | LET i = is_rec eq = equation_and_list IN e = seq_expression
     { Elet(i, eq, e) }
-  | MATCH e = seq_expression WITH opt_bar m = match_handlers(expression) END
+  | MATCH e = seq_expression WITH opt_bar m = match_handlers(expression) opt_end
       { Ematch(e, List.rev m) }
-  | PRESENT opt_bar pe = present_handlers(expression) END
+  | PRESENT opt_bar pe = present_handlers(expression) opt_end %prec prec_present
     { Epresent(List.rev pe, NoDefault) }
   | PRESENT opt_bar pe = present_handlers(expression)
-    INIT e = expression END
+    INIT e = expression opt_end %prec prec_present
     { Epresent(List.rev pe, Init(e)) }
   | PRESENT opt_bar pe = present_handlers(expression)
-    ELSE e = seq_expression END
+    ELSE e = seq_expression opt_end %prec prec_present
       { Epresent(List.rev pe, Else(e)) }
   | RESET e = seq_expression EVERY r = expression
     { Ereset(e, r) }
@@ -841,11 +848,17 @@ expression_desc:
       { Eop(Eperiod, p) }  
 ;
 
+%inline opt_end:
+/* empty */
+    {}
+  | END {}
+;
+
 /* Periods */
 %inline period_expression:
   | LPAREN per = expression RPAREN /* period */
       { [ make (Econst(Efloat(0.0))) $startpos $endpos; per ] }
-  | LPAREN ph = expression BAR per = expression RPAREN /* period */
+  | LPAREN ph = simple_expression BAR per = expression RPAREN /* period */
       { [ ph; per ] }
 ;
 

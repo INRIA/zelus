@@ -121,7 +121,8 @@ let constr_name loc s arity =
     then error loc (Etype_constr_arity(s, arity', arity));
   name
 
-let kindtype = function | Kfun -> Tfun | Knode -> Tnode | Kstatic -> Tstatic
+let kindtype =
+  function | Kfun -> Tfun | Khybrid | Knode -> Tnode | Kstatic -> Tstatic
 		 
 let kindoftype = function
   | Tfun -> Kfun | Tnode -> Kfun | Tstatic -> Kstatic

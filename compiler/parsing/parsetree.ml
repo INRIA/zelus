@@ -20,6 +20,7 @@ and type_expression_desc =
 and kind =
   | Kfun : kind
   | Knode : kind
+  | Khybrid : kind
   | Kstatic : kind
 
 (* constants *)

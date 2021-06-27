@@ -79,7 +79,8 @@ type defnames =
     der: Ident.S.t; (* [der x = ...] *)}
 
 (* set of names. *)
-let names acc { dv; di } = Ident.S.union dv (Ident.S.union di acc)
+let names acc { dv; di; der } =
+  Ident.S.union dv (Ident.S.union di (Ident.S.union der acc))
 let cur_names acc { dv; di } = Ident.S.union dv (Ident.S.union di acc)
 
 (* empty set of defined names *)

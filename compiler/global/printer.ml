@@ -75,7 +75,8 @@ let rec ptype ff { desc } =
   | Etypetuple(ty_list) ->
      fprintf ff "@[<hov2>%a@]" (print_list_r ptype "(""*"")") ty_list
   | Etypefun(k, ty_arg, ty_res) ->
-     let s = match k with | Kfun -> "->" | Knode -> "=>" | Kstatic -> ">" in
+     let s =
+       match k with | Kfun -> "->" | Khybrid | Knode -> "=>" | Kstatic -> ">" in
      fprintf ff "@[<hov2>%a %s %a@]" ptype ty_arg s ptype ty_res
 
      
@@ -316,7 +317,9 @@ and result ff { r_desc } =
      block_of_equation ff b
     
 and funexp ff { f_kind; f_args; f_body; f_env } =
-  let s = match f_kind with | Kstatic -> ">" | Kfun -> "->" | Knode -> "=>" in
+  let s =
+    match f_kind with
+    | Kstatic -> ">" | Kfun -> "->" | Khybrid | Knode -> "=>" in
   fprintf ff "@[<v 2>fun %a %s @ %a%a@]"
     arg_list f_args s print_env f_env result f_body
 
@@ -454,12 +457,6 @@ let open_module ff n =
   fprintf ff "@[open ";
   shortname ff n;
   fprintf ff "@.@]"
-
-let kind_of = function
-  | Kfun -> Tfun
-  | Knode -> Tnode
-  | Kstatic -> Tstatic
-
 
 let implementation ff impl =
   match impl.desc with
