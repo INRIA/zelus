@@ -5,6 +5,7 @@
 *.zci
 *.output
 *.run
+*.front
 .merlin
 config.ml
 _build/
