@@ -16,14 +16,14 @@
 (* semantics presented at the SYNCHRON workshop, December 2019, *)
 (* the class on "Advanced Functional Programming" given at Bamberg
    Univ. in June-July 2019 and the Master MPRI - M2, Fall 2019 *)
-open Misc
+open Smisc
 open Monad
 open Opt                                                            
 open Ident
 open Zelus
 open Value
 open Primitives
-open Debug
+open Sdebug
    
 let find_value_opt x env =
   let* { cur } = Env.find_opt x env in
@@ -72,7 +72,7 @@ let nil_env eq_write =
   S.fold (fun x acc -> Env.add x { cur = Vnil; default = Val } acc)
     eq_write Env.empty
 
-let size { eq_write } = S.cardinal eq_write
+let size { eq_write } = S.cardinal (Deftypes.names S.empty eq_write)
 
 (* a bot/nil value lifted to lists *)
 let bot_list l = List.map (fun _ -> Vbot) l
