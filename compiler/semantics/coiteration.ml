@@ -20,7 +20,7 @@ open Misc
 open Monad
 open Opt                                                            
 open Ident
-open Ast
+open Zelus
 open Value
 open Primitives
 open Debug
