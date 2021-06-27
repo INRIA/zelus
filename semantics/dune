@@ -1,8 +1,0 @@
-(executables 
-    (names zrun)
-    (modes byte exe)
-    (promote (until-clean) (into ..)))	
-
-(env
- (dev
-  (flags (:standard -w -9-27-32-33-35 -warn-error -A))))
