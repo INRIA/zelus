@@ -160,7 +160,7 @@ module LANG =
         | Etypeconstraintpat (p, _) -> inject p
         | Erecordpat l ->
             let ll = find_record_type_fields p.pat_typ in
-            let l' = List.map (fun (id, p) -> (source id, p)) l in
+            let l' = List.map (fun { label; arg } -> (source label, arg)) l in
             (* Find the name of each field using type information *)
             let args = List.map
               (fun (id : string) ->
@@ -190,7 +190,9 @@ module LANG =
             sensible_default (Econstr1pat (Name id, List.map eject l))
         | Pconstr (Trecord fl, l) ->
             let l =
-              List.combine (List.map (fun s -> Name s) fl) (List.map eject l) in
+              List.combine
+                (List.map (fun s -> Name s) fl) (List.map eject l) in
+            let l = List.map (fun (label, arg) -> { label; arg }) l in
             sensible_default (Erecordpat l)
         | _ -> assert false (* illformed pattern *)
 

@@ -187,7 +187,7 @@ let rec pattern env ({ pat_desc; pat_loc; pat_typ } as p) expected_ti =
     | Erecordpat(l) -> 
         let i = Init.new_var () in
         List.iter
-          (fun (_, p) -> pattern_less_than_on_i env p i) l
+          (fun { arg } -> pattern_less_than_on_i env arg i) l
     | Etypeconstraintpat(p, _) -> pattern env p expected_ti
     | Eorpat(p1, p2) -> 
         pattern env p1 expected_ti;
@@ -222,7 +222,7 @@ let present_handlers scondpat body env p_h_list default_opt =
   | Init(eq) | Else(eq) -> ignore (body env eq)
 
 (** Automaton handler *)
-let automaton_handlers scondpat exp_less_than_on_i block_eq block_eq
+let automaton_handlers scondpat exp_less_than_on_i leqs block_eq block_eq
       loc is_weak defnames env s_h_list se_opt =
   (* state *)
   let rec state env { desc } =
@@ -241,16 +241,22 @@ let automaton_handlers scondpat exp_less_than_on_i block_eq block_eq
        let escape acc { e_body } = block acc e_body in
        block (List.fold_left escape Ident.S.empty trans) b in
      (* transitions *)
-     let escape shared env { e_cond; e_body; e_next_state; e_env } =
+     let escape shared env { e_cond; e_let; e_body; e_next_state; e_env } =
        let env = build_env e_env env in
        scondpat env e_cond;
+       (* typing local definitions *)
+       let env = leqs env e_let in
+       (* then the body *)
        let env = block_eq shared env e_body in
        state env e_next_state in
      (* handler *)
-     let handler shared env { s_state; s_body; s_trans; s_env } =
+     let handler shared env { s_state; s_let; s_body; s_trans; s_env } =
        (* remove from [shared] names defined in the current state *)
        let shared = Ident.S.diff shared (cur_names_in_state s_body s_trans) in
        let env = build_env s_env env in
+       (* typing local definitions *)
+       let env = leqs env s_let in
+       (* then the body *)
        let env = block_eq shared env s_body in
        List.iter (escape shared env) s_trans in
      (* compute the set of shared names *)
@@ -318,7 +324,7 @@ let rec exp env ({ e_desc; e_typ; e_loc } as e) =
        Init.skeleton_on_i i e_typ
     | Etypeconstraint(e, _) -> exp env e
     | Elet(l, e_let) -> 
-       let env = local env l in
+       let env = leq env l in
        exp env e_let
     | Efun(fe) -> funexp env fe
     | Epresent { handlers; default_opt } ->
@@ -425,8 +431,19 @@ and equation env
   | EQeq(p, e) -> 
      let ti = exp env e in
      pattern env p ti
-  | EQder(n, e) ->
-     exp_less_than_on_i env e izero
+  | EQder(n, e, e0_opt, handlers) ->
+     (* e must be of type 0 *)
+     exp_less_than_on_i env e izero;
+     let ti_n, last = 
+        try let { t_typ; t_last } = Env.find n env in 
+          t_typ, t_last 
+        with | Not_found -> assert false in
+      exp_less_than env e ti_n;
+      less_than loc ti_n (Init.skeleton_on_i Init.izero e.e_typ);
+      (match e0_opt with
+       | Some(e0) -> exp_less_than_on_i env e0 izero
+       | None -> less_for_last loc n last izero);
+      present_handler_exp_list env handlers NoDefault ti_n 
   | EQinit(n, e) ->
       exp_less_than_on_i env e izero
   | EQemit(n, e_opt) ->
@@ -463,6 +480,8 @@ and equation env
   | EQand(eq_list) -> equation_list env eq_list
   | EQlocal(b_eq) ->
      ignore (block_eq Ident.S.empty env b_eq)
+  | EQlet(l_eq, eq) ->
+     let env = leq env l_eq in equation env eq
   | EQassert(e) -> exp_less_than_on_i env e izero 
   | EQempty -> ()
        
@@ -489,7 +508,7 @@ and match_handler_exp_list env m_h_list ti =
 
 and automaton_handler_eq_list loc is_weak defnames env s_h_list se_opt =
   automaton_handlers
-    scondpat exp_less_than_on_i block_eq block_eq
+    scondpat exp_less_than_on_i leqs block_eq block_eq
     loc is_weak defnames env s_h_list se_opt
 
 and block_eq shared env { b_loc; b_body; b_env; b_write } =
@@ -499,12 +518,14 @@ and block_eq shared env { b_loc; b_body; b_env; b_write } =
   equation env b_body;
   env
 
-and local env { l_eq; l_env } =
+and leq env { l_eq; l_env } =
   (* First extend the typing environment *)
   let env = build_env l_env env in
   (* then type the body *)
   equation env l_eq; env
-  
+
+and leqs env l = List.fold_left leq env l
+               
 (* we force that the signal pattern be initialized. E.g.,
  *- [present s(x) -> ...] gives the type 0 to s and x *)
 and scondpat env { desc = desc } =
@@ -542,12 +563,10 @@ let implementation ff impl =
     match impl.desc with
     | Eopen _ | Etypedecl _ -> ()
     | Eletdecl(f, e) ->
-        (* the expression [e] must be initialized *)
-        let ti_zero = Init.skeleton_on_i izero e.e_typ in
         Misc.push_binding_level ();
-        exp_less_than Env.empty e ti_zero;
+        let ti = exp Env.empty e in
         Misc.pop_binding_level ();
-        let tis = generalise ti_zero in
+        let tis = generalise ti in
         Global.set_init (Modules.find_value (Lident.Name(f))) tis;
         (* output the signature *)
         if !Misc.print_initialization_types then Pinit.declaration ff f tis

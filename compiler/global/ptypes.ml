@@ -101,7 +101,7 @@ let print_type_desc ff = function
         (print_list_r print_one_variant """""") global_list
   | Record_type global_list ->
       fprintf ff " = %a"
-        (print_record print_one_label) global_list
+        (print_list_r print_one_label "{" ";" "}") global_list
 
 let print_type_declaration ff { qualid; info = typ_desc } =
   type_name#reset;

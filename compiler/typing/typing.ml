@@ -83,7 +83,7 @@ let sort_less_than loc sort expected_k =
 (* An expression is expansive if it is an application *)
 let rec expansive { e_desc = desc } =
   match desc with
-  | Elocal _ | Eglobal _ | Econst _ | Econstr0 _ -> false
+  | Elocal _ | Eglobal _ | Econst _ | Econstr0 _ | Efun _ -> false
   | Etuple(e_list) -> List.exists expansive e_list
   | Erecord(l_e_list) -> List.exists (fun { arg } -> expansive arg) l_e_list
   | Erecord_access { arg } | Etypeconstraint(arg, _) -> expansive arg
@@ -217,7 +217,7 @@ let env_of_pattern acc pat =
        let acc = pattern acc p in
        entry x acc
     | Erecordpat(label_pat_list) ->
-       List.fold_left (fun acc (_, p) -> pattern acc p) acc label_pat_list
+       List.fold_left (fun acc { arg } -> pattern acc arg) acc label_pat_list
   and pattern_list acc p_list = List.fold_left pattern acc p_list in
   pattern acc pat
 
@@ -312,12 +312,12 @@ let rec pattern h ({ pat_desc; pat_loc } as pat) ty =
      pat.pat_typ <- ty;
      let label_pat_list =
        List.map
-         (fun (lab, pat_label) ->
+         (fun { label; arg } ->
           let qualid, { label_arg = ty_arg; label_res = ty_res } =
-            get_label pat.pat_loc lab in
-          unify_pat pat_label ty ty_arg;
-          pattern h pat_label ty_res;
-          Lident.Modname(qualid), pat_label) label_pat_list in
+            get_label pat.pat_loc label in
+          unify_pat arg ty ty_arg;
+          pattern h arg ty_res;
+          { label = Lident.Modname(qualid); arg = arg }) label_pat_list in
      pat.pat_desc <- Erecordpat(label_pat_list)
   | Ealiaspat(p, x) ->
      unify_pat pat ty (typ_of_var pat_loc h x);
@@ -400,7 +400,7 @@ let present_handlers scondpat body loc expected_k h h_list opt expected_ty =
 
 (** Typing an automaton. Returns defined names **)
 let rec automaton_handlers
-          scondpat body body_escape state_expression
+          scondpat leqs body body_escape state_expression
           is_weak loc (expected_k: Deftypes.kind) h handlers se_opt =
   (* check that all declared states are accessible *)
   Total.Automaton.check_all_states_are_accessible loc handlers;
@@ -433,14 +433,16 @@ let rec automaton_handlers
   let type_of_condition = Initial.typ_bool in
 
   (* typing the body of the automaton *)
-  let typing_handler h ({ s_state; s_body; s_trans } as s) =
+  let typing_handler h ({ s_state; s_let; s_body; s_trans } as s) =
     let escape source_state h expected_k
-        ({ e_cond; e_reset; e_body; e_next_state } as esc) =
+        ({ e_cond; e_reset; e_let; e_body; e_next_state } as esc) =
       (* type one escape condition *)
       let h0 = env_of_scondpat e_cond in
       let h = Env.append h0 h in
       let actual_k_e_cond = scondpat expected_k type_of_condition h e_cond in
       esc.e_env <- h0;
+      (* type check the sequence of local equations *)
+      let h, actual_k_let = leqs expected_k h e_let in
       (* type check the body *)
       let h, defined_names, actual_k_body =
         body_escape expected_k h e_body in
@@ -451,7 +453,8 @@ let rec automaton_handlers
         if is_weak then S.singleton source_state
         else Total.Automaton.statenames e_next_state in
       Total.Automaton.add_transitions is_weak h state_names defined_names t;
-      Kind.sup actual_k_e_cond (Kind.sup actual_k_body actual_k_state) in
+      Kind.sup actual_k_e_cond
+        (Kind.sup actual_k_let (Kind.sup actual_k_body actual_k_state)) in
 
     (* typing the state pattern *)
     let h0 = env_of_statepat s_state in
@@ -466,6 +469,8 @@ let rec automaton_handlers
              (typ_of_var s_state.loc h0 n) ty) n_list ty_list;
     end;
     let h = Env.append h0 h in
+    (* type check the sequence of local equations *)
+    let h, actual_k_let = leqs expected_k h s_let in
     (* typing the body *)
     let new_h, defined_names, actual_k_body =
       body expected_k h s_body in
@@ -474,7 +479,9 @@ let rec automaton_handlers
     Total.Automaton.add_state source_state defined_names t;
     let actual_k_list =
       List.map (escape source_state new_h expected_k) s_trans in
-    let actual_k = Kind.sup (Kind.sup_list actual_k_list) actual_k_init in
+    let actual_k =
+      Kind.sup (Kind.sup_list actual_k_list)
+        (Kind.sup actual_k_let actual_k_init) in
     defined_names, actual_k in
 
   let defined_names_k_list = List.map (typing_handler h) handlers in
@@ -598,7 +605,7 @@ and expression expected_k h ({ e_desc; e_loc } as e) =
        let actual_k = expect expected_k h exp expected_typ in
        expected_typ, actual_k
     | Elet(l, e) ->
-       let h, actual_k = local expected_k h l in
+       let h, actual_k = leq expected_k h l in
        let ty, actual_k_e = expression expected_k h e in
        ty, Kind.sup actual_k actual_k_e
     | Efun(fe) ->
@@ -740,19 +747,27 @@ and equation expected_k h { eq_desc; eq_loc } =
      check_total_pattern p;
      let dv = Write.fv_pat S.empty S.empty p in
      { Deftypes.empty with dv = dv }, actual_k
-  | EQder(n, e) ->
+  | EQder(n, e, e0_opt, handlers) ->
      (* a derivative is only possible in a stateful context *)
-     less_than eq_loc expected_k Tnode;
+     less_than eq_loc Tnode expected_k;
      let actual_ty = der eq_loc h n in
-     let actual_k = expect expected_k h e actual_ty in
+     let _ = expect expected_k h e actual_ty in
      unify eq_loc Initial. typ_float actual_ty;
-     { Deftypes.empty with der = S.singleton n }, actual_k
+     let di =
+       match e0_opt with
+       | None -> S.empty
+       | Some(e) ->
+          let _ = expect expected_k h e Initial.typ_float in
+          let _ = init eq_loc h n in S.singleton n in
+     ignore (present_handler_exp_list
+               eq_loc expected_k h handlers NoDefault Initial.typ_float);
+     { Deftypes.empty with di = di; der = S.singleton n }, Tnode
   | EQinit(n, e0) ->
      (* an initialization is valid only in a stateful context *)
-     less_than eq_loc expected_k Tnode;
+     less_than eq_loc Tnode expected_k;
      let actual_ty = init eq_loc h n in
-     let actual_k = expect expected_k h e0 actual_ty in
-     { Deftypes.empty with di = S.singleton n }, actual_k
+     let _ = expect expected_k h e0 actual_ty in
+     { Deftypes.empty with di = S.singleton n }, Tnode
   | EQemit(n, e_opt) ->
      let ty_e = new_var () in
      let actual_ty = typ_of_var eq_loc h n in
@@ -766,7 +781,7 @@ and equation expected_k h { eq_desc; eq_loc } =
      { Deftypes.empty with dv = S.singleton n }, actual_k
   | EQautomaton({ is_weak; handlers; state_opt }) ->
      (* automata are only valid in a statefull context *)
-     less_than eq_loc expected_k Tnode;
+     less_than eq_loc Tnode expected_k;
      automaton_handlers_eq is_weak eq_loc expected_k h handlers state_opt
   | EQmatch({ is_total; e; handlers } as mh) ->
      let expected_pat_ty, actual_k_e = expression expected_k h e in
@@ -793,6 +808,10 @@ and equation expected_k h { eq_desc; eq_loc } =
   | EQlocal(b_eq) ->
      let _, _, defnames, actual_k = block_eq expected_k h b_eq in
      defnames, actual_k
+  | EQlet(l_eq, eq) ->
+     let h, actual_k = leq expected_k h l_eq in
+     let defnames, actual_k_eq = equation expected_k h eq in
+     defnames, Kind.sup actual_k actual_k_eq
   | EQassert(e) ->
      let actual_k = expect expected_k h e Initial.typ_bool in
      Deftypes.empty, actual_k
@@ -841,7 +860,7 @@ and automaton_handlers_eq is_weak loc expected_k h handlers se_opt =
     let _, h, defined_names, actual_k = block_eq expected_k h b in
     h, defined_names, actual_k in
   let defined_names, _ =
-    automaton_handlers scondpat block_eq block_eq state_expression
+    automaton_handlers scondpat leqs block_eq block_eq state_expression
       is_weak loc expected_k h handlers se_opt in
   (* the actual kind is necessarily stateful *)
   defined_names, expected_k
@@ -857,13 +876,19 @@ and block_eq expected_k h ({ b_vars; b_body } as b) =
   b.b_write <- defined_names;
   h0, h, defined_names, Kind.sup actual_k_h0 actual_k_body
 
-and local expected_k h ({ l_rec; l_eq } as l) =
+and leq expected_k h ({ l_rec; l_eq } as l) =
   let h0 = env_of_equation l_eq in
   l.l_env <- h0;
   let new_h = Env.append h0 h in
   let _, actual_k = equation expected_k new_h l_eq in
   new_h, actual_k
 
+and leqs expected_k h l =
+  List.fold_left
+    (fun (h, acc_k) l_eq ->
+      let h, actual_k = leq expected_k h l_eq in
+      h, Kind.sup acc_k actual_k) (h, Tstatic) l
+  
 (** Typing a signal condition **)
 and scondpat expected_k type_of_condition h scpat =
   let rec typrec expected_k scpat =
@@ -942,9 +967,9 @@ let implementation ff is_first { desc; loc } =
        (* a value a top level must be static. As it is the bottom kind *)
        (* no need to return it *)
        let ty, _ = expression Tstatic Env.empty e in
-       Misc.pop_binding_level ();
        (* check that the type is well formed *)
        type_is_in_kind loc Tstatic ty;
+       Misc.pop_binding_level ();
        let tys = Types.gen (not (expansive e)) ty in
        if is_first then Interface.add_type_of_value ff loc f true tys
        else Interface.update_type_of_value ff loc f true tys

@@ -27,7 +27,7 @@ module Error =
       | Enon_linear_automaton of string
       | Eautomaton_with_mixed_transitions
       | Emissing_in_orpat of string
-                                                
+                           
     exception Err of Location.t * error
                      
     let error loc kind = raise (Err(loc, kind))
@@ -76,7 +76,7 @@ module Env =
 module S = Set.Make (String)
 
 (* make a block *)
-let block loc s_vars s_eq =
+let make_block loc s_vars s_eq =
   { Zelus.b_vars = s_vars; Zelus.b_body = s_eq;
     Zelus.b_loc = loc; Zelus.b_env = Ident.Env.empty;
     Zelus.b_write = Deftypes.empty }
@@ -135,7 +135,7 @@ let rec types { desc; loc } =
        Zelus.Etypefun(kind k, ty_arg, ty_res) in
   { Zelus.desc = desc; Zelus.loc = loc }
 
-  (** Build a renaming environment **)
+(** Build a renaming environment **)
 (* if [check_linear = true], stop when the same name appears twice *)
 let buildpat check_linear defnames p =
   let rec build acc { desc } =
@@ -188,7 +188,7 @@ let buildpat check_linear defnames p =
 let rec buildeq defnames { desc } =
   match desc with
   | EQeq(pat, _) -> buildpat false defnames pat
-  | EQder(x, _) | EQinit(x, _) | EQemit(x, _) -> S.add x defnames
+  | EQder(x, _, _, _) | EQinit(x, _) | EQemit(x, _) -> S.add x defnames
   | EQreset(eq, _) -> buildeq defnames eq
   | EQand(and_eq_list) ->
      List.fold_left buildeq defnames and_eq_list
@@ -196,6 +196,8 @@ let rec buildeq defnames { desc } =
      let defnames_v_list = List.fold_left build_vardec S.empty v_list in
      let defnames_eq = buildeq S.empty eq in
      S.union defnames (S.diff defnames_eq defnames_v_list)
+  | EQlet(_, _, eq) ->
+     buildeq defnames eq
   | EQif(_, eq1, eq2) ->
      let defnames = buildeq defnames eq1 in
      buildeq defnames eq2
@@ -229,20 +231,23 @@ and build_state_name acc { desc; loc } =
      let m = fresh n in
      Env.add n m acc
 
+and build_block defnames { desc = { b_vars; b_body }; loc } =
+  let bounded_names = List.fold_left build_vardec S.empty b_vars in
+  let defnames_body = buildeq S.empty b_body in
+  bounded_names, S.union defnames (S.diff defnames_body bounded_names)
+  
 and build_automaton_handler defnames
-  { desc = { s_vars; s_body; s_until; s_unless } } =
-  let defnames_s_vars = List.fold_left build_vardec S.empty s_vars in
-  let defnames_s_body = buildeq S.empty s_body in
+  { desc = { s_body; s_until; s_unless } } =
+  let bounded_names, defnames_s_body = build_block S.empty s_body in
   let defnames_s_trans =
     List.fold_left build_escape defnames_s_body s_until in
   let defnames_s_trans =
     List.fold_left build_escape defnames_s_trans s_unless in
-  S.union defnames (S.diff defnames_s_trans defnames_s_vars)
+  S.union defnames (S.diff defnames_s_trans bounded_names)
 
-and build_escape defnames { desc = { e_vars; e_body } } =
-  let defnames_e_vars = List.fold_left build_vardec S.empty e_vars in
-  let defnames_e_body = buildeq defnames e_body in
-  S.union defnames (S.diff defnames_e_body defnames_e_vars)
+and build_escape defnames { desc = { e_body } } =
+  let _, defnames_e_body = build_block S.empty e_body in
+  S.union defnames defnames_e_body
 
 
 let buildeq eq =
@@ -267,7 +272,8 @@ let rec pattern_translate env { desc; loc } =
        Zelus.Etypeconstraintpat(pattern_translate env p, types ty)
     | Erecordpat(l_p_list) ->
        Zelus.Erecordpat
-         (List.map (fun (lname, p) -> (longname lname, pattern_translate env p))
+         (List.map (fun (lname, p) -> { Zelus.label = longname lname;
+                                        Zelus.arg = pattern_translate env p })
 	    l_p_list) in
   { Zelus.pat_desc = desc; Zelus.pat_loc = loc;
     Zelus.pat_typ = Deftypes.no_typ; Zelus.pat_caus = Defcaus.no_typ;
@@ -306,8 +312,11 @@ let rec equation env_pat env { desc; loc } =
        let pat = pattern_translate env_pat pat in
        let e = expression env e in
        Zelus.EQeq(pat, e)
-    | EQder(x, e) ->
-       Zelus.EQder(name loc env x, expression env e)
+    | EQder(x, e, e0_opt, p_h_list) ->
+       Zelus.EQder(name loc env x, expression env e,
+                   Util.optional_map (expression env) e0_opt,
+                   List.map
+                     (present_handler scondpat expression env) p_h_list)
     | EQinit(x, e) -> EQinit(name loc env x, expression env e)
     | EQemit(x, e_opt) ->
        EQemit(name loc env x, Util.optional_map (expression env) e_opt)
@@ -323,7 +332,12 @@ let rec equation env_pat env { desc; loc } =
        let env_pat = Env.append env_v_list env_pat in
        let env = Env.append env_v_list env in
        let eq = equation env_pat env eq in
-       Zelus.EQlocal(block loc v_list eq)
+       Zelus.EQlocal(make_block loc v_list eq)
+    | EQlet(is_rec, eq_let, eq) ->
+       let eq_let, env = letin is_rec env eq_let in
+       let eq = equation env_pat env eq in
+       Zelus.EQlet({ l_rec = is_rec; l_eq = eq_let; l_loc = loc;
+                   l_env = Ident.Env.empty }, eq)
     | EQif(e, eq1, eq2) ->
        let e = expression env e in
        let eq1 = equation env_pat env eq1 in
@@ -371,6 +385,19 @@ let rec equation env_pat env { desc; loc } =
   { Zelus.eq_desc = eq_desc; Zelus.eq_write = Deftypes.empty;
     Zelus.eq_loc = loc }
 
+(** Translating a sequence of local declarations *)
+and leqs env l =
+  let one env { desc = (is_rec, eq); loc } =
+    let eq, env = letin is_rec env eq in
+    { Zelus.l_rec = is_rec; Zelus.l_eq = eq; Zelus.l_loc = loc;
+      Zelus.l_env = Ident.Env.empty }, env in
+  Util.mapfold one env l
+
+and letin is_rec env eq =
+  let env_pat = buildeq eq in
+  let new_env = Env.append env_pat env in
+  equation env_pat (if is_rec then new_env else env) eq, new_env
+
 and vardec env acc
 { desc = { var_name; var_init; var_default;
            var_typeconstraint; var_clock }; loc } =
@@ -389,6 +416,15 @@ and vardec env acc
     Zelus.var_typ = Deftypes.no_typ },
   Env.add var_name m acc
 
+(* [local x1 [init e1][default e'1],...,xn[...] do eq] *)
+and block body env_pat env { desc = { b_vars; b_body }; loc } =
+  let b_vars, env_b_vars = Util.mapfold (vardec env) Env.empty b_vars in
+  let env_pat = Env.append env_b_vars env_pat in
+  let env = Env.append env_b_vars env in
+  let b = body env_pat env b_body in
+  env, { Zelus.b_vars = b_vars; Zelus.b_body = b; Zelus.b_loc = loc;
+         Zelus.b_write = Deftypes.empty; Zelus.b_env = Ident.Env.empty }
+  
 and state env_for_states env { desc; loc } =
   let desc = match desc with
     | Estate0(f) ->
@@ -424,34 +460,30 @@ and statepat env_pat { desc; loc } =
 
 
 and automaton_handler is_weak env_for_states env_pat env
-  { desc = { s_state; s_vars; s_body; s_until; s_unless }; loc } =
+  { desc = { s_state; s_let; s_body; s_until; s_unless }; loc } =
   let s_state, env_s_state = statepat env_for_states s_state in
+  let env_pat = Env.append env_s_state env_pat in
   let env = Env.append env_s_state env in
-  let s_vars, env_s_vars = Util.mapfold (vardec env) Env.empty s_vars in
-  let env_pat = Env.append env_s_vars env_pat in
-  let env = Env.append env_s_vars env in
-  let s_body = equation env_pat env s_body in
+  let s_let, env = leqs env s_let in
+  let env, s_body = block equation env_pat env s_body in
   let s_trans =
     List.map (escape env_for_states env_pat env)
       (if is_weak then s_until else s_unless) in
-  { Zelus.s_state = s_state; Zelus.s_body = block loc s_vars s_body;
+  { Zelus.s_state = s_state; Zelus.s_let = s_let; Zelus.s_body = s_body;
     Zelus.s_trans = s_trans; Zelus.s_loc = loc;
-    Zelus.s_env = Ident.Env.empty;
-    Zelus.s_reset = false }
+    Zelus.s_env = Ident.Env.empty; Zelus.s_reset = false }
 
 and escape env_for_states env_pat env
-  { desc = { e_reset; e_cond; e_vars; e_body; e_next_state }; loc } = 
+  { desc = { e_reset; e_cond; e_let; e_body; e_next_state }; loc } = 
   let e_cond, env_e_cond  = scondpat env e_cond in
+  let env_pat = Env.append env_e_cond env_pat in
   let env = Env.append env_e_cond env in
-  let e_vars, env_e_vars = Util.mapfold (vardec env) Env.empty e_vars in
-  let env_pat = Env.append env_e_vars env_pat in
-  let env = Env.append env_e_vars env in
-  let e_body = equation env_pat env e_body in
+  let e_let, env = leqs env e_let in
+  let env, e_body = block equation env_pat env e_body in
   let e_next_state = state env_for_states env e_next_state in
-  { Zelus.e_reset; Zelus.e_cond = e_cond;
-    Zelus.e_body = block loc e_vars e_body;
-    Zelus.e_next_state = e_next_state; Zelus.e_loc = loc;
-    Zelus.e_env = Ident.Env.empty }
+  { Zelus.e_reset; Zelus.e_cond = e_cond; Zelus.e_let = e_let;
+    Zelus.e_body = e_body; Zelus.e_next_state = e_next_state;
+    Zelus.e_loc = loc; Zelus.e_env = Ident.Env.empty }
 
 and scondpat env scpat =
   (* first build the set of names *)
@@ -604,7 +636,7 @@ and result env { desc; loc } =
        let v_list, env_v_list = Util.mapfold (vardec env) Env.empty v_list in
        let env = Env.append env_v_list env in
        let eq = equation env_v_list env eq in
-       Zelus.Returns(block loc v_list eq) in
+       Zelus.Returns(make_block loc v_list eq) in
   { r_desc; r_loc = loc; r_typ = Deftypes.no_typ;
     r_caus = Defcaus.no_typ; r_init = Definit.no_typ}
   

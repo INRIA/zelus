@@ -68,6 +68,8 @@ type 'exp vardec =
     mutable var_typ: Deftypes.typ; (* its type *)
   }
 
+type 'a record = { mutable label: Lident.t; arg: 'a }
+
 type pattern =
   { mutable pat_desc: pattern_desc;
     mutable pat_typ: Deftypes.typ;
@@ -85,7 +87,7 @@ and pattern_desc =
   | Econstr1pat : Lident.t * pattern list -> pattern_desc 
   | Ealiaspat : pattern * Ident.t -> pattern_desc 
   | Eorpat : pattern * pattern -> pattern_desc 
-  | Erecordpat : (Lident.t * pattern) list -> pattern_desc 
+  | Erecordpat : pattern record list -> pattern_desc 
   | Etypeconstraintpat : pattern * type_expression -> pattern_desc 
 
 type ('exp, 'eq) block =
@@ -108,24 +110,6 @@ type 'exp state_desc =
 
 and 'exp state = 'exp state_desc localized
 
-type ('scondpat, 'exp, 'body) escape =
-  { e_cond: 'scondpat; 
-    e_reset: bool; 
-    e_body: ('exp, 'body) block;
-    e_next_state: 'exp state;
-    e_loc: Location.t;
-    mutable e_env: 'exp Deftypes.tentry Ident.Env.t;      
-  }
-                           
-type ('scondpat, 'exp, 'body) automaton_handler =
-  { s_state: statepat;
-    s_body: ('exp, 'body) block;
-    s_trans: ('scondpat, 'exp, 'body) escape list;
-    s_loc: Location.t;
-    mutable s_env: 'exp Deftypes.tentry Ident.Env.t;
-    mutable s_reset: bool; (* is the state always entered by reset? *)
-  }
-
 type ('exp, 'body) match_handler =
   { m_pat : pattern;
     m_body: 'body;
@@ -143,6 +127,16 @@ type ('scondpat, 'exp, 'body) present_handler =
     mutable p_env: 'exp Deftypes.tentry Ident.Env.t;
   }
 
+type ('scondpat, 'exp, 'leq, 'body) escape =
+  { e_cond: 'scondpat; 
+    e_reset: bool; 
+    e_let: 'leq list;
+    e_body: 'body;
+    e_next_state: 'exp state;
+    e_loc: Location.t;
+    mutable e_env: 'exp Deftypes.tentry Ident.Env.t;      
+  }
+                           
 type is_weak = bool
 
 type exp =
@@ -180,7 +174,6 @@ and exp_desc =
   
 and is_rec = bool
 
-and 'a record = { mutable label: Lident.t; arg: 'a }
 
 and scondpat = scondpat_desc localized
 
@@ -206,16 +199,19 @@ and eq =
 
 and eq_desc = 
   | EQeq : pattern * exp -> eq_desc  (* [p = e] *)
-  | EQder : Ident.t * exp -> eq_desc  (* [der x = e] *)
+  | EQder :
+      Ident.t * exp * exp option * (scondpat, exp, exp) present_handler list
+      -> eq_desc  (* [der x = e [init e0] [reset z1 -> e1 | ...]] *)
   | EQinit : Ident.t * exp -> eq_desc  (* [init x = e] *)
   | EQemit : Ident.t * exp option -> eq_desc  (* [emit x [= e]] *)
   | EQif : exp * eq * eq -> eq_desc (* [if e then eq1 else eq2] *)
   | EQand : eq list -> eq_desc (* [eq1 and...and eqn] *)
   | EQlocal : (exp, eq) block -> eq_desc (* local x [...] do eq done *)
+  | EQlet : leq * eq -> eq_desc (* let eq in eq *)
   | EQreset : eq * exp -> eq_desc (* [reset eq every e] *)
   | EQautomaton :
       { is_weak : bool;
-        handlers : (scondpat, exp, eq) automaton_handler list;
+        handlers : (exp, eq) block automaton_handler list;
         state_opt : exp state option } -> eq_desc
   | EQpresent :
       { handlers : (scondpat, exp, eq) present_handler list;
@@ -225,6 +221,16 @@ and eq_desc =
         handlers : (exp, eq) match_handler list } -> eq_desc
   | EQempty : eq_desc
   | EQassert : exp -> eq_desc
+
+and 'body automaton_handler =
+  { s_state: statepat;
+    s_let: leq list;
+    s_body: 'body;
+    s_trans: (scondpat, exp, leq, 'body) escape list;
+    s_loc: Location.t;
+    mutable s_env: exp Deftypes.tentry Ident.Env.t;
+    mutable s_reset: bool; (* is the state always entered by reset? *)
+  }
 
 and 'a default =
   | Init : 'a -> 'a default | Else : 'a -> 'a default | NoDefault

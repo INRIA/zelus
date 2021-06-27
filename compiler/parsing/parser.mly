@@ -54,6 +54,7 @@ let constr_pat f p =
 let scond_true start_pos end_pos =
   make (Econdexp(make (Econst(Ebool(true))) start_pos end_pos))
        start_pos end_pos
+
 %}
 
 %token <string> CONSTRUCTOR
@@ -152,6 +153,7 @@ let scond_true start_pos end_pos =
 %left EVERY
 %nonassoc ELSE
 %left  AS
+%left  RESET
 %left  BAR
 %left COMMA
 %left RPAREN
@@ -351,6 +353,13 @@ implementation:
 ;
 
 %inline equation_and_list:
+  | l = list_of(AND, equation)
+    { match l with
+      | [] -> no_eq $startpos $endpos | [eq] -> eq
+      | l -> make (EQand(l)) $startpos $endpos }
+;
+
+%inline equation_empty_and_list:
   | l_opt = optional(list_of(AND, equation))
     { match l_opt with | None -> make EQempty $startpos $endpos
 		       | Some([eq]) -> eq | Some(l) -> make (EQand(l)) $startpos $endpos }
@@ -360,102 +369,118 @@ implementation:
    eq = localized(equation_desc) { eq }
 ;
 
-equation_desc:
-  | AUTOMATON opt_bar a = automaton_handlers END
+simple_equation_desc:
+  | AUTOMATON opt_bar a = automaton_handlers(equation_empty_and_list) END
     { EQautomaton(List.rev a, None) }
-  | AUTOMATON opt_bar a = automaton_handlers INIT e = state END
+  | AUTOMATON opt_bar
+    a = automaton_handlers(equation_empty_and_list) INIT e = state END
     { EQautomaton(List.rev a, Some(e)) }
   | MATCH e = seq_expression WITH opt_bar
-    m = match_handlers(equation) END
+    m = match_handlers(simple_equation) END
     { EQmatch(e, List.rev m) }
-  | IF e = seq_expression THEN eq1 = equation ELSE eq2 = equation END
+  | IF e = seq_expression THEN eq1 = simple_equation
+    ELSE eq2 = simple_equation END
     { EQif(e, eq1, eq2) }
-  | IF e = seq_expression THEN eq1 = equation END
+  | IF e = seq_expression THEN eq1 = simple_equation END
       { EQif(e, eq1, no_eq $startpos $endpos) }
-  | IF e = seq_expression ELSE eq2 = equation END
+  | IF e = seq_expression ELSE eq2 = simple_equation END
       { EQif(e, no_eq $startpos $endpos, eq2) }
-  | PRESENT opt_bar p = present_handlers(equation) END
+  | PRESENT opt_bar p = present_handlers(simple_equation) END
     { EQpresent(List.rev p, NoDefault) }
-  | PRESENT opt_bar p = present_handlers(equation)
-    ELSE eq = equation END
+  | PRESENT opt_bar p = present_handlers(simple_equation)
+    ELSE eq = simple_equation END
     { EQpresent(List.rev p, Else(eq)) }
-  | PRESENT opt_bar p = present_handlers(equation) INIT eq = equation END
-    { EQpresent(List.rev p, Init(eq)) }
   | RESET eq = equation EVERY e = expression
     { EQreset(eq, e) }
+  | LET i = is_rec let_eq = equation_and_list IN eq = equation
+    { EQlet(i, let_eq, eq) }
   | LOCAL v_list = vardec_comma_list DO eq = equation DONE
     { EQlocal(v_list, eq) }
-  | DO eq = equation_and_list DONE
+  | DO eq = equation_empty_and_list DONE
     { eq.desc }
+;
+
+%inline simple_equation:
+eq = localized(simple_equation_desc) { eq }
+;
+
+equation_desc:
+  | eq_desc = simple_equation_desc
+      { eq_desc }
   | p = pattern EQUAL e = seq_expression
-    { EQeq(p, e) }
-  | DER i = ide EQUAL e = seq_expression
-      { EQder(i, e) }
+      { EQeq(p, e) }
+  | DER i = ide EQUAL e = seq_expression opt = optional_init
+      { EQder(i, e, opt, []) }
+  | DER i = ide EQUAL e = seq_expression opt = optional_init
+    RESET p = present_handlers(expression)
+      { EQder(i, e, opt, p) }
   | INIT i = ide EQUAL e = seq_expression
-    { EQinit(i, e) }
+      { EQinit(i, e) }
   | EMIT i = ide
       { EQemit(i, None) }
   | EMIT i = ide EQUAL e = seq_expression
       { EQemit(i, Some(e)) }
   | ASSERT e = seq_expression
-    { EQassert(e) }
+      { EQassert(e) }
+;
+
+%inline optional_init:
+  | /* empty */
+      { None }
+  | INIT e = expression
+      { Some(e) }
 ;
 
 /* states of an automaton in an equation*/
-automaton_handlers:
-  | a = automaton_handler
+automaton_handlers(X):
+  | a = automaton_handler(X)
       { [a] }
-  | ahs = automaton_handlers BAR a = automaton_handler
+  | ahs = automaton_handlers(X) BAR a = automaton_handler(X)
       { a :: ahs }
 ;
 
-automaton_handler:
-  | sp = state_pat MINUSGREATER v_list_eq = vardec_with_and_eq_list DONE
-    { make { s_state = sp; s_vars = fst v_list_eq; s_body = snd v_list_eq;
-	     s_until = []; s_unless = [] } $startpos $endpos } 
-  | sp = state_pat MINUSGREATER v_list_eq = vardec_with_and_eq_list THEN
-                                e = emission
-    { let v_list_e, body_e, st_e = e in
-      make { s_state = sp; s_vars = fst v_list_eq; s_body = snd v_list_eq;
+automaton_handler(X):
+  | sp = state_pat MINUSGREATER l = let_list b = block(X) DONE
+    { make { s_state = sp; s_let = l; s_body = b; s_until = []; s_unless = [] }
+      $startpos $endpos } 
+  | sp = state_pat MINUSGREATER l = let_list b = block(X) THEN e = emission(X)
+    { let body_e, st_e = e in
+      make { s_state = sp; s_let = l; s_body = b;
 	     s_until =
-               [make { e_cond = scond_true $endpos(v_list_eq) $startpos(e);
-                       e_reset = true; e_vars = v_list_e;
-		       e_body = body_e;
-		       e_next_state = st_e }
-		$endpos(v_list_eq) $endpos(e) ];
+               [make { e_cond = scond_true $endpos(b) $startpos(e);
+                       e_reset = true; e_let = [];
+		       e_body = body_e; e_next_state = st_e }
+		$endpos(b) $endpos(e) ];
 	     s_unless = [] } $startpos $endpos }
-  | sp = state_pat MINUSGREATER v_list_eq = vardec_with_and_eq_list CONTINUE
-                                e = emission
-    { let v_list_e, body_e, st_e = e in
-      make { s_state = sp; s_vars = fst v_list_eq; s_body = snd v_list_eq;
+  | sp = state_pat MINUSGREATER l = let_list b = block(X)
+    CONTINUE e = emission(X)
+    { let body_e, st_e = e in
+      make { s_state = sp; s_let = l; s_body = b;
 	     s_until =
-               [make { e_cond = scond_true $endpos(v_list_eq) $startpos(e);
-                       e_reset = false; e_vars = v_list_e;
-		       e_body = body_e;
-		       e_next_state = st_e } $endpos(v_list_eq) $endpos(e)];
+               [make { e_cond = scond_true $endpos(b) $startpos(e);
+                       e_reset = false; e_let = []; e_body = body_e;
+		       e_next_state = st_e } $endpos(b) $endpos(e)];
 	   s_unless = [] } $startpos $endpos }
-  | sp = state_pat MINUSGREATER v_list_eq = vardec_with_and_eq_list
-         UNTIL el = list_of(UNTIL, escape)
-    { make { s_state = sp; s_vars = fst v_list_eq; s_body = snd v_list_eq;
-	     s_until = el; s_unless = [] }
-      $startpos $endpos }
-  | sp = state_pat MINUSGREATER v_list_eq = vardec_with_and_eq_list
-         UNLESS el = list_of(UNLESS, escape)
-    { make { s_state = sp; s_vars = fst v_list_eq; s_body = snd v_list_eq;
-	     s_until = []; s_unless = el }
-      $startpos $endpos }
+  | sp = state_pat MINUSGREATER l = let_list b = block(X)
+    UNTIL el = list_of(UNTIL, escape(X))
+    { make { s_state = sp; s_let = l; s_body = b;
+	     s_until = el; s_unless = [] } $startpos $endpos }
+  | sp = state_pat MINUSGREATER l = let_list b = block(X)
+    UNLESS el = list_of(UNLESS, escape(X))
+    { make { s_state = sp; s_let = l; s_body = b;
+	     s_until = []; s_unless = el } $startpos $endpos }
 ;
 
-escape :
-  | sc = scondpat THEN e = emission
-    { let e_vars, e_body, s = e in
-      make { e_cond = sc; e_reset = true;
-	     e_vars = e_vars; e_body = e_body; e_next_state = s }
+escape(X) :
+  | sc = scondpat THEN l = let_list e = emission(X)
+    { let e_body, s = e in
+      make { e_cond = sc; e_reset = true; e_let = l;
+	     e_body = e_body; e_next_state = s }
       $startpos $endpos }
-  | sc = scondpat CONTINUE e = emission
-    { let e_vars, e_body, s = e in
-      make { e_cond = sc; e_reset = false;
-	     e_vars = e_vars; e_body = e_body; e_next_state = s }
+  | sc = scondpat CONTINUE l = let_list e = emission(X)
+    { let e_body, s = e in
+      make { e_cond = sc; e_reset = false; e_let = l;
+	     e_body = e_body; e_next_state = s }
       $startpos $endpos }
 ;
 
@@ -496,18 +521,36 @@ scondpat_desc :
 ;
 
 /* Block */
-vardec_with_and_eq_list:
-  | DO eq = equation_and_list
-    { [], eq }
-  | LOCAL v_list = vardec_comma_list DO eq = equation_and_list
-    { v_list, eq }
+%inline block(X):
+  | lo = local_list DO x = X
+      { make { b_vars = lo; b_body = x } $startpos $endpos }
 ;
 
-emission:
-  | v_list_eq = vardec_with_and_eq_list IN s = state
-    { let v_list, eq = v_list_eq in v_list, eq, s }
+%inline emission(X):
   | s = state
-    { [], no_eq $startpos $endpos, s }
+    { make { b_vars = []; b_body = no_eq $startpos $endpos }
+      $startpos $endpos, s }
+  | b = block(X) IN s = state
+    { b, s }
+;
+
+let_list:
+  | /* empty */
+      { [] }
+  | o = one_let IN l = let_list
+      { o :: l }
+;
+
+%inline one_let:
+  | LET i = is_rec eq = equation_and_list
+    { make (i, eq) $startpos $endpos }
+;
+
+%inline local_list:
+  | /* empty */
+      { [] }
+  | LOCAL v_list = vardec_comma_list
+      { v_list }
 ;
 
 %inline vardec_comma_list:
@@ -779,7 +822,7 @@ expression_desc:
       { binop "||" e1 e2 ($startpos($2)) ($endpos($2)) }
   | p = PREFIX e = expression
       { unop p e ($startpos(p)) ($endpos(p)) }
-  | LET i = is_rec eq = equation IN e = seq_expression
+  | LET i = is_rec eq = equation_and_list IN e = seq_expression
     { Elet(i, eq, e) }
   | MATCH e = seq_expression WITH opt_bar m = match_handlers(expression) END
       { Ematch(e, List.rev m) }

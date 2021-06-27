@@ -49,7 +49,6 @@ and is_inline = bool
 type pateq = pateq_desc localized
 
 and pateq_desc = name list
-
  
 type 'exp vardec_desc =
   { var_name: name;
@@ -61,6 +60,12 @@ type 'exp vardec_desc =
 
 and 'exp vardec = 'exp vardec_desc localized
                 
+type ('exp, 'body) block = ('exp, 'body) block_desc localized
+
+and ('exp, 'body) block_desc =
+    { b_vars: 'exp vardec list;
+      b_body: 'body }
+         
 type pattern = pattern_desc localized
 
 and pattern_desc =
@@ -87,28 +92,6 @@ type 'exp state_desc =
   | Estateif : 'exp * 'exp state * 'exp state -> 'exp state_desc
 
 and 'exp state = 'exp state_desc localized
-
-type ('scondpat, 'exp, 'body) escape_desc =
-  { e_cond: 'scondpat; 
-    e_reset: bool; 
-    e_vars: 'exp vardec list;
-    e_body: 'body;
-    e_next_state: 'exp state;
-  }
-
-and ('scondpat, 'exp, 'body) escape =
-  ('scondpat, 'exp, 'body) escape_desc localized
-                                    
-type ('scondpat, 'exp, 'body) automaton_handler_desc  =
-  { s_state: statepat;
-    s_vars: 'exp vardec list;
-    s_body: 'body;
-    s_until: ('scondpat, 'exp, 'body) escape list;
-    s_unless: ('scondpat, 'exp, 'body) escape list;
-  }
-
-and ('scondpat, 'exp, 'body) automaton_handler =
-  ('scondpat, 'exp, 'body) automaton_handler_desc localized
 
 type ('exp, 'body) match_handler_desc =
   { m_pat : pattern;
@@ -162,23 +145,47 @@ and eq = eq_desc localized
 
 and eq_desc = 
   | EQeq : pattern * exp -> eq_desc
-  | EQder : name * exp -> eq_desc
+  | EQder :
+      name * exp * exp option * (scondpat, exp) present_handler list -> eq_desc
   | EQinit : name * exp -> eq_desc
   | EQemit : name * exp option -> eq_desc
   | EQif : exp * eq * eq -> eq_desc
   | EQand : eq list -> eq_desc
   | EQlocal : exp vardec list * eq -> eq_desc
+  | EQlet : is_rec * eq * eq -> eq_desc
   | EQreset : eq * exp -> eq_desc
-  | EQautomaton :
-      (scondpat, exp, eq) automaton_handler list * exp state option -> eq_desc
+  | EQautomaton : (exp, eq) block automaton_handler list *
+        exp state option -> eq_desc
   | EQmatch : exp * (exp, eq) match_handler list -> eq_desc
   | EQpresent :
       (scondpat, eq) present_handler list * eq default -> eq_desc
   | EQempty : eq_desc
   | EQassert : exp -> eq_desc
 
+and 'body escape_desc =
+  { e_cond: scondpat; 
+    e_reset: bool; 
+    e_let: leq list;
+    e_body: 'body;
+    e_next_state: exp state;
+  }
+
+and 'body escape = 'body escape_desc localized
+                                    
+and 'body automaton_handler_desc  =
+  { s_state: statepat;
+    s_let: leq list;
+    s_body: 'body;
+    s_until: 'body escape list;
+    s_unless: 'body escape list;
+  }
+
+and 'body automaton_handler = 'body automaton_handler_desc localized
+
 and 'a default =
   | Init : 'a -> 'a default | Else : 'a -> 'a default | NoDefault
+
+and leq = (is_rec * eq) localized
 
 and is_atomic = bool
 

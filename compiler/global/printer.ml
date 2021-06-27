@@ -78,6 +78,11 @@ let rec ptype ff { desc } =
      let s = match k with | Kfun -> "->" | Knode -> "=>" | Kstatic -> ">" in
      fprintf ff "@[<hov2>%a %s %a@]" ptype ty_arg s ptype ty_res
 
+     
+let print_record print1 print2 po sep pf ff { label; arg } =
+  fprintf ff "@[<hov>%s@[%a@]%s@ @[%a@]%s@]" po print1 label sep print2 arg pf
+
+
 let rec pattern ff { pat_desc } =
   match pat_desc with
   | Evarpat(n) -> fprintf ff "%a" name n
@@ -90,7 +95,8 @@ let rec pattern ff { pat_desc } =
   | Etypeconstraintpat(p, ty_exp) ->
      fprintf ff "@[(%a:%a)@]" pattern p ptype ty_exp
   | Erecordpat(n_pat_list) ->
-     print_record (print_couple longname pattern """ =""") ff n_pat_list
+     print_list_r
+       (print_record longname pattern "" " =" "") "{" ";" "}" ff n_pat_list
   | Ealiaspat(p, n) ->
      fprintf ff "%a as %a" pattern p name n
   | Eorpat(pat1, pat2) ->
@@ -200,7 +206,7 @@ let scondpat expression ff scpat =
   scondpat ff scpat
 
 let automaton_handler_list
-      is_weak body body_in_escape expression ff s_h_list e_opt =
+      is_weak leqs body body_in_escape expression ff s_h_list e_opt =
   let statepat ff spat = match spat.desc with
     | Estate0pat(n) -> name ff n
     | Estate1pat(n, n_list) ->
@@ -218,10 +224,11 @@ let automaton_handler_list
   let is_empty_block { b_body = { eq_desc } } = eq_desc = EQempty in
   
   let automaton_handler is_weak body body_in_escape expression ff
-        { s_state; s_body; s_trans; s_env } =
+        { s_state; s_let; s_body; s_trans; s_env } =
     
-    let escape ff { e_cond; e_reset; e_body;
+    let escape ff { e_cond; e_let; e_reset; e_body;
 		    e_next_state; e_env } =
+      leqs ff e_let;
       if is_empty_block e_body
       then
         fprintf ff "@[<v4>| %a %a%s@ %a@]"
@@ -238,8 +245,9 @@ let automaton_handler_list
       else
         print_list_r escape
 	  (if is_weak then "until " else "unless ") "" "" ff t_list in
-    fprintf ff "@[<v 4>| %a ->@ %a@[<v>%a@,%a@]@]"
-      statepat s_state print_env s_env body s_body escape_list s_trans in
+    fprintf ff "@[<v 4>| %a ->@ %a@[<v0>%a%a@,%a@]@]"
+      statepat s_state print_env s_env
+      leqs s_let body s_body escape_list s_trans in
   
   let automaton_handler_list ff s_h_list =
     print_list_l
@@ -253,10 +261,6 @@ let automaton_handler_list
 	 (print_opt (print_with_braces state " init" "")) e_opt
 
   
-let print_record print1 print2 po sep pf ff { label; arg } =
-  fprintf ff "@[<hov>%s@[%a@]%s@ @[%a@]%s@]" po print1 label sep print2 arg pf
-
-
 let rec expression ff e =
   if Deftypes.is_no_typ e.e_typ && !vverbose then
     fprintf ff "@[(* %a *)@]" Ptypes.output e.e_typ;
@@ -287,7 +291,7 @@ let rec expression ff e =
 	  (print_record longname expression """ =""") "" ";" "")
        ln_e_list
   | Elet(l, e) ->
-     fprintf ff "@[<v 0>%a@ %a@]" local l expression e
+     fprintf ff "@[<v 0>%a@ %a@]" leq l expression e
   | Etypeconstraint(e, typ) ->
      fprintf ff "@[(%a: %a)@]" expression e ptype typ
   | Ematch { is_total; e; handlers } ->
@@ -349,9 +353,18 @@ and equation ff ({ eq_desc = desc } as eq) =
   match desc with
   | EQeq(p, e) ->
      fprintf ff "@[<hov 2>%a =@ %a@]" pattern p expression e
-  | EQder(n, e) ->
-     fprintf ff "@[<hov 2>der %a =@ %a@]"
+  | EQder(n, e, e0_opt, []) ->
+      fprintf ff "@[<hov 2>der %a =@ %a%a@]"
+        name n expression e
+        (Util.optional_unit
+           (fun ff e -> fprintf ff " init %a " expression e)) e0_opt
+  | EQder(n, e, e0_opt, handlers) ->
+     fprintf ff "@[<hov 2>der %a =@ %a %a@ @[<hov 2>reset@ @[%a@]@]@]"
        name n expression e
+       (Util.optional_unit
+          (fun ff e -> fprintf ff "init %a " expression e)) e0_opt
+       (print_list_l (present_handler (scondpat expression) expression) """""")
+       handlers
   | EQinit(n, e) ->
      fprintf ff "@[<hov2>init %a =@ %a@]" name n expression e
   | EQemit(n, opt_e) ->
@@ -362,7 +375,7 @@ and equation ff ({ eq_desc = desc } as eq) =
      end
   | EQautomaton { is_weak; handlers; state_opt } ->
      automaton_handler_list
-       is_weak block_of_equation block_of_equation expression
+       is_weak leqs block_of_equation block_of_equation expression
        ff handlers state_opt
   | EQmatch { is_total; e; handlers } ->
      fprintf ff "@[<hov0>%smatch %a with@ @[%a@]@]"
@@ -380,6 +393,8 @@ and equation ff ({ eq_desc = desc } as eq) =
   | EQreset(eq, e) ->
      fprintf ff "@[<hov2>reset@ @[%a@]@ @[<hov 2>every@ %a@]@]"
        equation eq expression e
+  | EQlet(l_eq, eq) ->
+     fprintf ff "@[<hov0>%a@ in@ %a@]" leq l_eq equation eq
   | EQlocal(b_eq) -> block_of_equation ff b_eq
   | EQand(and_eq_list) ->
      print_list_l equation "do " "and " " done" ff and_eq_list
@@ -399,10 +414,13 @@ and equation_list po pf ff eq_list =
   | [eq] -> equation ff eq
   | _ -> print_list_l equation po "and " pf ff eq_list
 
-and local ff { l_rec = is_rec; l_eq = eq; l_env = env } =
-  let s = if is_rec then "rec " else "" in
-  fprintf ff "@[<v0>%alet %s%a@]"
-    print_env env s equation eq
+and leq ff { l_rec; l_eq; l_env } =
+  let s = if l_rec then "rec " else "" in
+  fprintf ff "@[<v0>%alet %s%a@ in@,@]"
+    print_env l_env s equation l_eq
+
+and leqs ff l =
+  if l <> [] then fprintf ff "@[%a@]" (print_list_l leq "" "" "") l
 
 let constr_decl ff { desc = desc } =
   match desc with

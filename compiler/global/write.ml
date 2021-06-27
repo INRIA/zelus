@@ -27,7 +27,7 @@ let rec fv_pat bounded acc { pat_desc } =
      List.fold_left (fv_pat bounded) acc pat_list
   | Erecordpat(label_pat_list) ->
      List.fold_left
-       (fun acc (_, p) -> fv_pat bounded acc p) acc label_pat_list
+       (fun acc { arg } -> fv_pat bounded acc arg) acc label_pat_list
   | Ealiaspat(p, name) ->
      let acc = 
        if (S.mem name acc) || (S.mem name bounded)
@@ -44,9 +44,17 @@ let rec equation ({ eq_desc } as eq)=
     | EQeq(pat, e) ->
        EQeq(pat, expression e),
        { Deftypes.empty with dv = fv_pat S.empty S.empty pat }
-    | EQder(x, e) ->
-       EQder(x, expression e),
-       { Deftypes.empty with der = S.singleton x }
+    | EQder(x, e, e0_opt, handlers) ->
+       let e0_opt, di =
+         match e0_opt with
+         | None -> None, S.empty
+         | Some(e) -> Some(expression e), S.singleton x in
+       let handlers =
+         List.map
+           (fun ({ p_body } as p) -> { p with p_body = expression p_body })
+           handlers in
+       EQder(x, e, e0_opt, handlers),
+       { Deftypes.empty with der = S.singleton x; di }
     | EQinit(x, e) ->
        EQinit(x, expression e),
        { Deftypes.empty with di = S.singleton x }
@@ -66,6 +74,10 @@ let rec equation ({ eq_desc } as eq)=
     | EQlocal(b_eq) ->
        let b_eq, def_eq, _ = block b_eq in
        EQlocal(b_eq), def_eq
+    | EQlet({ l_eq } as leq, eq) ->
+       let l_eq, _ = equation l_eq in
+       let eq, def = equation eq in
+       EQlet({ leq with l_eq }, eq), def
     | EQif(e, eq1, eq2) ->
        let e = expression e in
        let eq1, def1 = equation eq1 in
@@ -101,10 +113,15 @@ let rec equation ({ eq_desc } as eq)=
   (* set the names defined in the equation *)
   { eq with eq_desc = eq_desc; eq_write = def }, def
 
+(* Sequence [let eq1 in let eq2 in ... let eqn in ...] *)
+and lets l =
+  List.map
+    (fun ({ l_eq } as leq) ->
+      let l_eq, _ = equation l_eq in { leq with l_eq }) l
   
 (** [returns a new block whose body is an equation [eq];
- *- the defined variables in [eq] that are not local;
- *- the defined local variables *)
+ *- [def] the defined variables in [eq] that are not local;
+ *- [dv_b] the defined local variables *)
 and block ({ b_vars; b_body } as b) =
   let b_vars, dv_b = Util.mapfold vardec S.empty b_vars in
   let b_eq, def_eq = equation b_body in
@@ -124,17 +141,20 @@ and state ({ desc } as se) =
   | Estateif(e, se1, se2) ->
      { se with desc = Estateif(expression e, state se1, state se2) }
 
-and automaton_handler acc ({ s_body; s_trans } as h) =
+and automaton_handler acc ({ s_let; s_body; s_trans } as h) =
+  let s_let = lets s_let in
   let s_body, def_eq, dv_b = block s_body in
   let s_trans, def_escape = Util.mapfold escape Deftypes.empty s_trans in
-  { h with s_body; s_trans },
+  { h with s_let; s_body; s_trans },
   Deftypes.union (Deftypes.union def_eq (Deftypes.diff def_escape dv_b)) acc
 
-and escape acc ({ e_cond; e_body; e_next_state } as esc) =
+and escape acc ({ e_cond; e_let; e_body; e_next_state } as esc) =
   let e_cond = scondpat e_cond in
+  let e_let = lets e_let in
   let e_body, def_eq, _ = block e_body in
   let e_next_state = state e_next_state in
-  { esc with e_cond = e_cond; e_body = e_body; e_next_state = e_next_state },
+  { esc with e_cond = e_cond; e_let; e_body = e_body;
+             e_next_state = e_next_state },
   Deftypes.union def_eq acc
   
 and scondpat ({ desc } as scpat) =
@@ -201,6 +221,7 @@ and expression ({ e_desc } as e) =
     | Ereset(e_body, e_res) ->
        Ereset(expression e_body, expression e_res) in
   { e with e_desc = desc }
+
 
 and arg acc v_list = Util.mapfold vardec acc v_list
                    
