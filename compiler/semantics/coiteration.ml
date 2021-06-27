@@ -207,8 +207,8 @@ let rec iexp genv env { e_desc; e_loc } =
   let r = match e_desc with
   | Econst _ | Econstr0 _ | Elocal _ | Eglobal _ | Elast _ ->
      return Sempty
-  | Econstr1(_, e_list) ->
-     let* s_list = Opt.map (iexp genv env) e_list in
+  | Econstr1 { arg_list } ->
+     let* s_list = Opt.map (iexp genv env) arg_list in
      return (Stuple(s_list))
   | Eop(op, e_list) ->
      begin match op, e_list with
@@ -238,9 +238,6 @@ let rec iexp genv env { e_desc; e_loc } =
   | Etuple(e_list) -> 
      let* s_list = Opt.map (iexp genv env) e_list in
      return (Stuple(s_list))
-  | Eget(_, e) ->
-     let* s = iexp genv env e in
-     return s
   | Eapp(f, e_list) ->
      let* s_list = Opt.map (iexp genv env) e_list in
      let* v = find_gnode_opt f genv in
