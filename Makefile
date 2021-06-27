@@ -1,5 +1,5 @@
 all:
-	dune build
+	dune build 
 
 debug:
 	dune build --debug-backtraces --debug-dependency-path
