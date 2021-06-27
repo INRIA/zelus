@@ -362,7 +362,8 @@ implementation:
 %inline equation_empty_and_list:
   | l_opt = optional(list_of(AND, equation))
     { match l_opt with | None -> make EQempty $startpos $endpos
-		       | Some([eq]) -> eq | Some(l) -> make (EQand(l)) $startpos $endpos }
+		       | Some([eq]) -> eq
+		       | Some(l) -> make (EQand(l)) $startpos $endpos }
 ;
 
 %inline equation:
@@ -381,22 +382,22 @@ simple_equation_desc:
   | IF e = seq_expression THEN eq1 = simple_equation
     ELSE eq2 = simple_equation END
     { EQif(e, eq1, eq2) }
-  | IF e = seq_expression THEN eq1 = simple_equation END
+  | IF e = seq_expression THEN eq1 = equation END
       { EQif(e, eq1, no_eq $startpos $endpos) }
-  | IF e = seq_expression ELSE eq2 = simple_equation END
+  | IF e = seq_expression ELSE eq2 = equation END
       { EQif(e, no_eq $startpos $endpos, eq2) }
-  | PRESENT opt_bar p = present_handlers(simple_equation) END
+  | PRESENT opt_bar p = present_handlers(equation) END
     { EQpresent(List.rev p, NoDefault) }
-  | PRESENT opt_bar p = present_handlers(simple_equation)
-    ELSE eq = simple_equation END
+  | PRESENT opt_bar p = present_handlers(equation)
+    ELSE eq = equation END
     { EQpresent(List.rev p, Else(eq)) }
   | RESET eq = equation EVERY e = expression
     { EQreset(eq, e) }
   | LET i = is_rec let_eq = equation_and_list IN eq = equation
     { EQlet(i, let_eq, eq) }
-  | LOCAL v_list = vardec_comma_list DO eq = equation DONE
+  | LOCAL v_list = vardec_comma_list DO eq = equation END
     { EQlocal(v_list, eq) }
-  | DO eq = equation_empty_and_list DONE
+  | DO eq = equation_empty_and_list END
     { eq.desc }
 ;
 
