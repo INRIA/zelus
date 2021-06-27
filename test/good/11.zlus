@@ -17,6 +17,6 @@ let node mouse(click, top) = (simple, double) where
       | Counting -> 
           let x = (count(4, top)) in let z = 2 + 2 + 4 in 
 	  do until click then do emit double in Await
-          else x then do emit simple in Await
+          until x then do emit simple in Await
       end
 

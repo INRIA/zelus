@@ -1,6 +1,5 @@
 let atomic hybrid metro () = c where
-  rec der t = 1.0 init -. 1.0
-      reset z -> -. 1.0
+  rec der t = 1.0 init -. 1.0 reset z -> -. 1.0
   and z = up(last t)
   and present z -> do emit c  done
 

@@ -2,6 +2,10 @@ type t2 = int
 
 let ff(x:t2) = 1 + x
 
+let node fff(x) =
+  let rec o = pre o + 1 in
+  o + x
+    
 let hybrid f (x) =
   let rec der m = 1.0 init 0.0 in
   let rec der k = 2.0 +. k init 3.0 in
@@ -10,7 +14,7 @@ let hybrid f (x) =
 let i1 j = k where
   match true with
   | true -> match true with
-            | true -> do emit k = () done
+            | true -> do k = () done
 	    | false -> do done
             end
   | false -> do done

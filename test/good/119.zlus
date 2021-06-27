@@ -9,7 +9,7 @@ let node f (y, z1, z2, z3) = (z, k) where
       and
         match z3 with
         | true ->
-            local m, s in
+            local m, s
             do init m = 42
             and 
 	    reset
@@ -19,7 +19,7 @@ let node f (y, z1, z2, z3) = (z, k) where
             every z1
             done
 	| false ->
-	    local r in
+	    local r
             do init r = y and k = 2 fby k + 2 + r and r = last r + 1 done
 	end
       every z2      
@@ -33,7 +33,7 @@ let node ff (y, z1, z2, z3) = (z, k) where
       and
         match z3 with
         | true ->
-            local lm, s in
+            local lm, s
             do
              lm = 42 fby lm
             and
@@ -44,7 +44,7 @@ let node ff (y, z1, z2, z3) = (z, k) where
              every z1
             done
 	| false ->
-	    local r, lr in
+	    local r, lr
             do lr = y fby r and k = 2 fby k + 2 + r and r = lr + 1 done
 	end
       every z2      

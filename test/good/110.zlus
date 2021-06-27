@@ -4,7 +4,7 @@ let hybrid test z = 0.0 where
   and init w = 2.0
   and automaton 
       | Slipping ->
-          local s_torque in
+          local s_torque
           do
             s_torque = y
           until up(z) then do w = 3.0 in Locked

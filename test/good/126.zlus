@@ -3,3 +3,4 @@ let atomic node dummy () = n where
       | S ->
           do n = 3 -> (pre n - 1)
           until (n = 0) then S
+      end

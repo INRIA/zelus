@@ -9,7 +9,8 @@ let node dummy () = n where
       | S ->
           do n = 3 -> (pre n - 1)
           until (n = 0) then S
-
+      end
+      
 let node main () =
   let n = dummy ()
   in print_endline (string_of_int n)
