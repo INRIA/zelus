@@ -244,10 +244,33 @@ let rec iexp genv env { e_desc; e_loc } =
      let s =
        match v with | CoFun _ -> Sempty | CoNode { init = s } -> s in
      return (Stuple(s :: s_list))
-  | Elet(is_rec, eq, e) ->
-     let* s_eq = ieq genv env eq in
+  | Elet({ l_rec; l_eq }, e) ->
+     let* s_eq = ieq genv env l_eq in
      let* se = iexp genv env e in
-     return (Stuple [s_eq; se]) in
+     return (Stuple [s_eq; se])
+  | Erecord_access({ arg }) ->
+     iexp genv env arg
+  | Erecord(r_list) ->
+     let* s_list = Opt.map (fun { arg } -> iexp genv env arg) r_list in
+     return (Stuple(s_list))
+  | Erecord_with(e, r_list) ->
+     let* se = iexp genv env e in
+     let* s_list = Opt.map (fun { arg } -> iexp genv env arg) r_list in
+     return (Stuple(se :: s_list))
+  | Etypeconstraint(e, _) -> iexp genv env e
+  | Efun _ -> return Sempty
+  | Ematch { e; handlers } ->
+     let* se = iexp genv env e in
+     let* s_handlers = Opt.map (imatch_handler_exp genv env) handlers in
+     return (Stuple (se :: s_handlers))
+  | Epresent { handlers; default_opt } ->
+     let* s_handlers = Opt.map (ipresent_handler_exp genv env) handlers in
+     let* s_default_opt = idefault genv env default_opt in
+     return (Stuple (s_default_opt :: s_handlers))
+  | Ereset(e_body, e_res) ->
+     let* s_body = iexp genv env e_body in
+     let* s_res = iexp genv env e_res in
+     return (Stuple[s_body; s_res]) in
   stop_at_location e_loc r
     
 and ieq genv env { eq_desc; eq_loc } =
@@ -322,6 +345,11 @@ and istate genv env { desc } =
   | Estate1(_, e_list) ->
      let* s_list = Opt.map (iexp genv env) e_list in
      return (Stuple(s_list))
+  | Estateif(e, s1, s2) ->
+     let* se = iexp genv env e in
+     let* se1 = istate genv env s1 in
+     let* se2 = istate genv env s2 in
+     return (Stuple[se; se1; se2])
 
 and imatch_handler genv env { m_vars; m_body } =
   let* sv_list = Opt.map (ivardec genv env) m_vars in
