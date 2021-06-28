@@ -11,7 +11,7 @@
 (*                                                                     *)
 (* *********************************************************************)
 
-(* A Denotational Semantics for Zelus *)
+(* An Operational Semantics for Zelus *)
 (* This is a companion file of working notes on the co-iterative *)
 (* semantics presented at the SYNCHRON workshop, December 2019, *)
 (* the class on "Advanced Functional Programming" given at Bamberg
