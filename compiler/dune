@@ -4,14 +4,26 @@
  (copy %{project_root}/config.ml config.ml))
 
 (subdir parsing
-	(ocamllex lexer))
+  (ocamllex lexer))
 
 (subdir parsing
-	(menhir (modules parser) (infer true) (flags --explain --table)))
+  (menhir (modules parser) (infer true) (flags --explain --table)))
 
-(executables 
-    (names zeluc zrun)
-    (modes byte exe)
-    (libraries unix menhirLib)
-    (promote (until-clean) (into ..)))
+(library
+  (name zlcompilerlibs)
+  (public_name zelus.zlcompilerlibs)
+  (wrapped false)
+  (modules :standard \ zeluc)
+  (libraries menhirLib))
 
+(executable
+  (name zeluc)
+  (modes (byte exe))
+  (libraries unix menhirLib zlcompilerlibs)
+  (modules zeluc)
+  (promote (until-clean)))
+
+(install
+ (package zelus)
+ (section bin)
+ (files (zeluc.exe as zeluc)))
