@@ -1,0 +1,7 @@
+(executable
+  (name zrun)
+  (modes (byte exe))
+  ; depends on zlcompilelibs
+  (libraries zelus.zlcompilerlibs)
+  ; copy in the current dir.
+  (promote (until-clean)))
