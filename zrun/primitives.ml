@@ -169,7 +169,7 @@ let rec unnil_list v_list =
 
 (* builds a pair. If one is bot, the result is bot; if one is nil, *)
 (* the result is nil *)
-let strict_pair v1 v2 =
+let spair v1 v2 =
   let v = unbot v1 v2 in
   match v with
   | None -> Vbot
@@ -179,7 +179,7 @@ let strict_pair v1 v2 =
      | None -> Vnil
      | Some(v1, v2) -> Value(Vtuple [v1; v2])
                      
-let strict_tuple v_list =
+let stuple v_list =
   let v = unbot_list v_list in
   match v with
   | None -> Vbot

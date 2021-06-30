@@ -12,7 +12,7 @@
 (* *********************************************************************)
 
 (* An Operational Semantics for Zelus *)
-(* This is a companion file of working notes on the co-iterative *)
+(* This is based on a companion file and working notes on the co-iterative *)
 (* semantics presented at the SYNCHRON workshop, December 2019, *)
 (* the class on "Advanced Functional Programming" given at Bamberg
    Univ. in June-July 2019 and the Master MPRI - M2, Fall 2019 *)

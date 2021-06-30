@@ -40,18 +40,19 @@ type state =
   | Sval : value -> state
   | Sopt : value option -> state
                  
-type ('a, 's) costream =
+type ('a, 's, 'stop) costream =
   | CoF : { init : 's;
-            step : 's -> ('a * 's) option } -> ('a, 's) costream
+            step : 's -> ('a * 's, 'stop) Result.t } -> ('a, 's, 'stop) costream
 
-type ('a, 'b, 's) node =
-  | CoFun  : ('a -> 'b option) -> ('a, 'b, 's) node
+type ('a, 'b, 's, 'stop) node =
+  | CoFun  : ('a -> ('b, 'stop) Result.t) -> ('a, 'b, 's, 'stop) node
   | CoNode : { init : 's;
-               step : 's -> 'a -> ('b * 's) option } -> ('a, 'b, 's) node
+               step : 's -> 'a -> ('b * 's, 'stop) Result.t } ->
+             ('a, 'b, 's, 'stop) node
 
 type gvalue =
   | Gvalue : value -> gvalue
-  | Gfun : (value list, value list, state) node -> gvalue
+  | Gfun : (value, value, state, Error.t) node -> gvalue
 
 (* an input entry in the environment *)
 type 'a ientry = { cur: 'a; default : 'a default }
