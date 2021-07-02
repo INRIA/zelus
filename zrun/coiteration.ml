@@ -233,16 +233,21 @@ let rec iexp genv env { e_desc; e_loc } =
           let* s2 = iexp genv env e2 in
           let* s3 = iexp genv env e3 in
           return (Stuple [s1; s2; s3])
+     | Erun _, [e1; e2] ->
+        (* [e1] must be a static expression *)
+        let* v1 = Static.eval genv env e1 in
+        let* s2 = iexp genv env e2 in
+        let s1 =
+          match v1 with | CoFun _ -> Sempty | CoNode { init } -> init in
+        return (Stuple [s1; s2]) 
      | _ -> None
      end
   | Etuple(e_list) -> 
      let* s_list = Opt.map (iexp genv env) e_list in
      return (Stuple(s_list))
-  | Eapp(f, e_list) ->
+  | Eapp(e, e_list) ->
+     let* s = iexp genv env e in
      let* s_list = Opt.map (iexp genv env) e_list in
-     let* v = find_gnode_opt f genv in
-     let s =
-       match v with | CoFun _ -> Sempty | CoNode { init = s } -> s in
      return (Stuple(s :: s_list))
   | Elet({ l_rec; l_eq }, e) ->
      let* s_eq = ieq genv env l_eq in

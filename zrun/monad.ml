@@ -26,6 +26,8 @@ module Opt =
                               
     let return v = Some(v)
 
+    let to_result = Option.to_result
+                  
     let rec map f x_list =
       match x_list with
       | [] -> return []
@@ -134,6 +136,8 @@ module Result =
       | Error(v) -> Error(v)
       | Ok(v) -> f v
 
+    let to_option x = Result.to_option x
+                       
     let return v = Ok(v)
 
     let error v = Error(v)

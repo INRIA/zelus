@@ -31,6 +31,16 @@ let float v =
   match v with
   | Vfloat(i) -> return i | _ -> None
 
+let get_closure v =
+  match v with
+  | Vclosure(f, env) -> return (f, env)
+  | _ -> None
+
+let get_record r =
+  match r with
+  | Vrecord(l) -> return l
+  | _ -> None
+       
 let ifthenelse_op v v1 v2 =
   let* b = bool v in
   if b then return v1 else return v2
@@ -134,20 +144,34 @@ let lift2 op v1 v2 =
      let* v = op v1 v2 in
      return (Value v)
 
+(* gets the value *)
+let get_value v =
+  match v with
+  | Vnil | Vbot -> None
+  | Value(v) -> return v
+               
+(* is-it a pair ? *)
+let getpair v =
+  match v with
+  | Vbot -> return (Vbot, Vbot)
+  | Vnil -> return (Vnil, Vnil)
+  | Value(Vtuple [v1; v2]) -> return (v1, v2)
+  | _ -> None
+       
 (* pairs and tuples *)
-let unbot v1 v2 = 
+let unpair v1 v2 = 
   match v1, v2 with
   | (Vbot, _) | (_, Vbot) -> None
   | _ -> Some (v1, v2)
 
-let rec unbot_list v_list =
+let rec unlist v_list =
   match v_list with
   | [] -> return []
   | [v] -> let* v = match v with | Vbot -> None | _ -> Some([v]) in
            return v
   | v1 :: v2 :: v_list ->
-     let* v_list = unbot_list v_list in
-     match unbot v1 v2 with
+     let* v_list = unlist v_list in
+     match unpair v1 v2 with
      | None -> None
      | Some(v1, v2) -> return (v1 :: v2 :: v_list)
 
@@ -170,7 +194,7 @@ let rec unnil_list v_list =
 (* builds a pair. If one is bot, the result is bot; if one is nil, *)
 (* the result is nil *)
 let spair v1 v2 =
-  let v = unbot v1 v2 in
+  let v = unpair v1 v2 in
   match v with
   | None -> Vbot
   | Some(v1, v2) ->
@@ -180,7 +204,7 @@ let spair v1 v2 =
      | Some(v1, v2) -> Value(Vtuple [v1; v2])
                      
 let stuple v_list =
-  let v = unbot_list v_list in
+  let v = unlist v_list in
   match v with
   | None -> Vbot
   | Some(v_list) ->
@@ -190,7 +214,7 @@ let stuple v_list =
      | Some(v_list) -> Value(Vtuple(v_list))
 
 let strict_constr1 f v_list =
-  let v = unbot_list v_list in
+  let v = unlist v_list in
   match v with
   | None -> Vbot
   | Some(v_list) ->
@@ -205,52 +229,48 @@ let tuple v_list =
   | [v] -> return v
   | _ -> return (Value(Vtuple(v_list)))
       
+(* void *)
+let void = return (Value(Vvoid))
 
-(* check that v is an empty list *)
-let zero v =
-  match v with
-  | [] -> return ()
-  | _ -> None
-
-(* check that v is a list of length one *)
-let one v =
-  match v with
-  | [v] -> return v
-  | _ -> None
-
-(* check that v is a list of length two *)
-let two v =
+(* access the elements of a pair *)
+let two_elements v =
   match v with
   | [v1;v2] -> return (v1, v2)
   | _ -> None
        
 let zerop op =
-  CoFun (fun v -> let* _ = zero v in let* v = op () in return [Value v])
+  CoFun (fun _ -> to_result ~none:Error.Etype (let* v = op () in
+                                               return (Value(v))))
 
 let unop op =
-  CoFun (fun v -> let* v = one v in let* v = lift1 op v in return [v])
+  CoFun (fun v -> to_result ~none:Error.Etype (lift1 op v))
 
 let binop op =
   CoFun
-    (fun v -> let* (v1, v2) = two v in let* v = lift2 op v1 v2 in return [v])
+    (fun v -> to_result ~none:Error.Etype
+                (let* v1, v2 = getpair v in
+                 let* v = lift2 op v1 v2 in
+                 return v))
 
 (* state processes *)
 let unop_process op s =
   CoNode
     { init = s;
       step =
-        fun s (_: value list) ->
-        let* v = op s in
-        return ([v], s) }
+        fun s _ ->
+        to_result ~none:Error.Etype
+          (let* v = op s in
+           return (v, s))
+    }
 
 let binop_process op s =
   CoNode
     { init = s;
       step =
         fun s v ->
-        let* v = one v in
-        let* v = lift1 (op s) v in
-        return ([v], s) }
+        to_result ~none:Error.Etype
+          (let* v = lift1 (op s) v in
+           return (v, s)) }
 
 (* The initial environment *)
 let genv0 =
@@ -278,7 +298,8 @@ let genv0 =
   
 let _ = Random.init 0
 
-let random_bool_op () = return (Vbool(Random.bool()))
+let random_bool_op _ =
+  return (Vbool(Random.bool()))
 let random_int_op v =
   let* v = int v in
   return (Vint(Random.int v))
