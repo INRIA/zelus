@@ -199,7 +199,23 @@ let fixpoint_eq genv env sem eq n s_eq bot =
   print_number "Max was:" n;
   print_ienv "End of fixpoint with env:" env_out;
   return (env_out, s_eq)
- 
+
+(* Pattern matchin *)
+let imatch_handler ibody genv env { m_body } =
+  let* sb = ibody genv env m_body in
+  return (sb)
+  
+let ipresent_handler iscondpat ibody genv env { p_cond; p_body } =
+  let* sc = iscondpat genv env p_cond in
+  let* sb = ibody genv env p_body in
+  return (Stuple [sc; sb])
+
+let idefault_opt ibody genv env d =
+  match d with
+  | Init(b) -> ibody genv env b
+  | Else(b) -> ibody genv env b
+  | NoDefault -> return Sempty
+
 (* [sem genv env e = CoF f s] such that [iexp genv env e = s] *)
 (* and [sexp genv env e = f] *)
 (* initial state *)
@@ -235,11 +251,14 @@ let rec iexp genv env { e_desc; e_loc } =
           return (Stuple [s1; s2; s3])
      | Erun _, [e1; e2] ->
         (* [e1] must be a static expression *)
-        let* v1 = Static.eval genv env e1 in
+        let* s1 = Static.eval genv env e1 in
         let* s2 = iexp genv env e2 in
-        let s1 =
-          match v1 with | CoFun _ -> Sempty | CoNode { init } -> init in
         return (Stuple [s1; s2]) 
+     | Eatomic, [e] ->
+        iexp genv env e
+     | Etest, [e] -> iexp genv env e
+     | Eup, [_] -> None
+     | Eperiod, [_;_] -> None
      | _ -> None
      end
   | Etuple(e_list) -> 
@@ -249,8 +268,8 @@ let rec iexp genv env { e_desc; e_loc } =
      let* s = iexp genv env e in
      let* s_list = Opt.map (iexp genv env) e_list in
      return (Stuple(s :: s_list))
-  | Elet({ l_rec; l_eq }, e) ->
-     let* s_eq = ieq genv env l_eq in
+  | Elet(leq, e) ->
+     let* s_eq = ileq genv env leq in
      let* se = iexp genv env e in
      return (Stuple [s_eq; se])
   | Erecord_access({ arg }) ->
@@ -266,11 +285,12 @@ let rec iexp genv env { e_desc; e_loc } =
   | Efun _ -> return Sempty
   | Ematch { e; handlers } ->
      let* se = iexp genv env e in
-     let* s_handlers = Opt.map (imatch_handler_exp genv env) handlers in
+     let* s_handlers = Opt.map (imatch_handler iexp genv env) handlers in
      return (Stuple (se :: s_handlers))
   | Epresent { handlers; default_opt } ->
-     let* s_handlers = Opt.map (ipresent_handler_exp genv env) handlers in
-     let* s_default_opt = idefault genv env default_opt in
+     let* s_handlers =
+       Opt.map (ipresent_handler iscondpat iexp genv env) handlers in
+     let* s_default_opt = idefault_opt iexp genv env default_opt in
      return (Stuple (s_default_opt :: s_handlers))
   | Ereset(e_body, e_res) ->
      let* s_body = iexp genv env e_body in
@@ -281,6 +301,9 @@ let rec iexp genv env { e_desc; e_loc } =
 and ieq genv env { eq_desc; eq_loc } =
   let r = match eq_desc with
   | EQeq(_, e) -> iexp genv env e
+  | EQder _ -> None
+  | EQinit _ -> None
+  | EQemit(x, e_opt) -> None
   | EQif(e, eq1, eq2) ->
      let* se = iexp genv env e in
      let* seq1 = ieq genv env eq1 in
@@ -289,24 +312,31 @@ and ieq genv env { eq_desc; eq_loc } =
   | EQand(eq_list) ->
      let* seq_list = Opt.map (ieq genv env) eq_list in
      return (Stuple seq_list)
-  | EQlocal(v_list, eq) ->
-     let* s_v_list = Opt.map (ivardec genv env) v_list in
+  | EQlocal(b_eq) ->
+     let* s_b_eq = iblock genv env b_eq in
+     return s_b_eq
+  | EQlet(leq, eq) ->
+     let* s_leq = ileq genv env leq in
      let* s_eq = ieq genv env eq in
-     return (Stuple [Stuple s_v_list; s_eq])
+     return (Stuple [s_leq; s_eq])
   | EQreset(eq, e) ->
      let* s_eq = ieq genv env eq in
      let* se = iexp genv env e in
      return (Stuple [s_eq; se])
-  | EQautomaton(_, a_h_list) ->
-     let* s_list = Opt.map (iautomaton_handler genv env) a_h_list in
+  | EQpresent { handlers; default_opt } ->
+     let* s_list = Opt.map (ipresent_handler iscondpat ieq genv env) handlers in
+     let* s_default_opt = idefault_opt ieq genv env default_opt in
+     return (Stuple (s_default_opt :: s_list))
+  | EQautomaton { handlers; state_opt } ->
+     let* s_list = Opt.map (iautomaton_handler genv env) handlers in
      (* The initial state is the first in the list *)
-     (* it is not reset at the first instant *)
-     let* a_h = List.nth_opt a_h_list 0 in
-     let* i = initial_state_of_automaton a_h in
-     return (Stuple(Sval(Value(i)) :: Sval(Value(Vbool(false))) :: s_list))
-  | EQmatch(e, m_h_list) ->
+     (* it is not given explicitely *)
+     let* a_h = List.nth_opt handlers 0 in
+     let* i, si = initial_state_of_automaton genv env a_h state_opt in
+     return (Stuple(i :: Sval(Value(Vbool(false))) :: si :: s_list))
+  | EQmatch { e; handlers } ->
      let* se = iexp genv env e in
-     let* sm_list = Opt.map (imatch_handler genv env) m_h_list in
+     let* sm_list = Opt.map (imatch_handler ieq genv env) handlers in
      return (Stuple (se :: sm_list))
   | EQempty -> return Sempty
   | EQassert(e) ->
@@ -314,35 +344,64 @@ and ieq genv env { eq_desc; eq_loc } =
      return se in
   stop_at_location eq_loc r
 
-and ivardec genv env { var_default; var_loc } =
-  let r = match var_default with
-  | Ewith_init(e) ->
-     let* s = iexp genv env e in return (Stuple [Sopt(None); s])
-  | Ewith_default(e) -> iexp genv env e
-  | Ewith_nothing -> return Sempty
-  | Ewith_last -> return (Sval(Vnil)) in
-  stop_at_location var_loc r
-
-and iautomaton_handler genv env { s_vars; s_body; s_trans } =
-  let* sv_list = Opt.map (ivardec genv env) s_vars in
-  let* sb = ieq genv env s_body in
+and iblock genv env { b_vars; b_body } =
+  let* s_b_vars = Opt.map (ivardec genv env) b_vars in
+  let* s_b_body = ieq genv env b_body in
+  return (Stuple [Stuple(s_b_vars); s_b_body])
+  
+and ivardec genv env { var_init; var_default } =
+  let* s_i =
+    match var_init with
+    | None -> return Sempty
+    | Some(e) -> let* s = iexp genv env e in return (Stuple [Sopt(None); s]) in
+  let* s_d =
+    match var_default with
+    | None -> return Sempty
+    | Some(e) -> iexp genv env e in
+  return (Stuple [s_i; s_d])
+  
+and iautomaton_handler genv env { s_let; s_body; s_trans } =
+  let* s_list = Opt.map (ileq genv env) s_let in
+  let* s_body = iblock genv env s_body in
   let* st_list = Opt.map (iescape genv env) s_trans in
-  return (Stuple [Stuple(sv_list); sb; Stuple(st_list)])
+  return (Stuple [Stuple(s_list); s_body; Stuple(st_list)])
 
+and ileq genv env { l_eq } = ieq genv env l_eq
+  
 (* initial state of an automaton *)
-and initial_state_of_automaton { s_state = { desc } } =
-  match desc with
-  | Estate0pat(f) -> return (Vstate0(f))
-  | _ -> None
+and initial_state_of_automaton genv env { s_state = { desc } } state_opt =
+  match state_opt with
+  | None ->
+     (* no initial state is given. The initial state is the first in the list *)
+     let* i = match desc with
+       | Estate0pat(f) -> return (Sval(Value(Vstate0(f)))) | _ -> None in
+     return (i, Sempty)
+  | Some(state) ->
+     let* s = istate genv env state in
+     return (Sopt(None), s)
        
-and iescape genv env { e_cond; e_vars; e_body; e_next_state } =
+and iescape genv env { e_cond; e_let; e_body; e_next_state } =
   let* s_cond = iscondpat genv env e_cond in
-  let* sv_list = Opt.map (ivardec genv env) e_vars in
-  let* s_body = ieq genv env e_body in
+  let* s_list = Opt.map (ileq genv env) e_let in
+  let* s_body = iblock genv env e_body in
   let* s_state = istate genv env e_next_state in
-  return (Stuple [s_cond; Stuple(sv_list); s_body; s_state])
+  return (Stuple [s_cond; Stuple(s_list); s_body; s_state])
 
-and iscondpat genv env e_cond = iexp genv env e_cond
+and iscondpat genv env { desc } =
+  match desc with
+  | Econdand(sc1, sc2) | Econdor(sc1, sc2) ->
+     let* s1 = iscondpat genv env sc1 in
+     let* s2 = iscondpat genv env sc2 in
+     return (Stuple [s1; s2])
+  | Econdexp(e_cond) ->
+     iexp genv env e_cond
+  | Econdpat(e, p) ->
+     let* se = iexp genv env e in
+     return se
+  | Econdon(sc, e) ->
+     let* s_sc = iscondpat genv env sc in
+     let* se = iexp genv env e in
+     return (Stuple [s_sc; se])
                               
 and istate genv env { desc } =
   match desc with
@@ -356,11 +415,12 @@ and istate genv env { desc } =
      let* se2 = istate genv env s2 in
      return (Stuple[se; se1; se2])
 
-and imatch_handler genv env { m_vars; m_body } =
-  let* sv_list = Opt.map (ivardec genv env) m_vars in
-  let* sb = ieq genv env m_body in
-  return (Stuple[Stuple(sv_list); sb])
 
+and iresult genv env { r_desc } =
+  match r_desc with
+  | Exp(e) -> iexp genv env e
+  | Returns(b) -> iblock genv env b
+    
 (* pattern matching *)
 (* match the value [v] against [x1,...,xn] *)
 let rec matching_pateq { desc } v =
@@ -596,6 +656,11 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
   | _ -> None in
   stop_at_location eq_loc r
 
+              
+and sstep genv env { r_desc; r_loc } s =
+    match r_desc with
+    | Exp(e) -> sexp genv env e s
+    | Returns(b) -> sblock genv env s
 
 (* block [local x1 [init e1 | default e1 | ],..., xn [...] do eq done *)
 and sblock genv env v_list ({ eq_write; eq_loc } as eq) s_list s_eq =
@@ -849,8 +914,9 @@ let matching_in env { var_name; var_default } v =
 
 let matching_out env { var_name; var_default } =
   find_value_opt var_name env
-  
-let funexp genv { f_kind; f_atomic; f_args; f_res; f_body; f_loc } =
+
+    
+let eval_fun genv env { f_kind; f_atomic; f_args; f_res; f_body; f_loc } =
   let* si = ieq genv Env.empty f_body in
   let f = match f_kind with
   | Efun ->
