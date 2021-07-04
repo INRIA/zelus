@@ -253,7 +253,7 @@ let rec iexp genv env { e_desc; e_loc } =
         (* [e1] must be a static expression *)
         let* s1 = Static.eval genv env e1 in
         let* s2 = iexp genv env e2 in
-        return (Stuple [s1; s2]) 
+        return (Stuple [Sval(Value(s1)); s2])
      | Eatomic, [e] ->
         iexp genv env e
      | Etest, [e] -> iexp genv env e
@@ -414,7 +414,6 @@ and istate genv env { desc } =
      let* se1 = istate genv env s1 in
      let* se2 = istate genv env s2 in
      return (Stuple[se; se1; se2])
-
 
 and iresult genv env { r_desc } =
   match r_desc with
