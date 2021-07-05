@@ -35,17 +35,9 @@ let find_last_opt x env =
   | Last(v) -> return v
   | _ -> None
            
-let find_gnode_opt x env =
-  let* v = Genv.find_opt x env in
-  match v with
-  | Gfun(f) -> return f
-  | _ -> None
-
 let find_gvalue_opt x env =
   let* v = Genv.find_opt x env in
-  match v with
-  | Gvalue(v) -> return v
-  | _ -> None
+  return v
 
 let names env = Env.fold (fun n _ acc -> S.add n acc) env S.empty
 
@@ -219,7 +211,7 @@ let idefault_opt ibody genv env d =
 (* [sem genv env e = CoF f s] such that [iexp genv env e = s] *)
 (* and [sexp genv env e = f] *)
 (* initial state *)
-let rec iexp genv env { e_desc; e_loc } =
+let rec iexp genv env { e_desc } =
   let r = match e_desc with
   | Econst _ | Econstr0 _ | Elocal _ | Eglobal _ | Elast _ ->
      return Sempty
@@ -296,9 +288,9 @@ let rec iexp genv env { e_desc; e_loc } =
      let* s_body = iexp genv env e_body in
      let* s_res = iexp genv env e_res in
      return (Stuple[s_body; s_res]) in
-  stop_at_location e_loc r
+  r
     
-and ieq genv env { eq_desc; eq_loc } =
+and ieq genv env { eq_desc } =
   let r = match eq_desc with
   | EQeq(_, e) -> iexp genv env e
   | EQder _ -> None
@@ -342,7 +334,7 @@ and ieq genv env { eq_desc; eq_loc } =
   | EQassert(e) ->
      let* se = iexp genv env e in
      return se in
-  stop_at_location eq_loc r
+  r
 
 and iblock genv env { b_vars; b_body } =
   let* s_b_vars = Opt.map (ivardec genv env) b_vars in
@@ -457,7 +449,8 @@ let matching_pattern ve { desc } =
 let reset init step genv env body s r =
   let*s = if r then init genv env body else return s in
   step genv env body s
-  
+
+  (*
 (* step function *)
 (* the value of an expression [e] in a global environment [genv] and local *)
 (* environment [env] is a step function of type [state -> (value * state) option] *)
@@ -656,10 +649,20 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
   stop_at_location eq_loc r
 
               
-and sstep genv env { r_desc; r_loc } s =
+and sresult genv env { r_desc; r_loc } s =
     match r_desc with
     | Exp(e) -> sexp genv env e s
-    | Returns(b) -> sblock genv env s
+    | Returns(b) ->
+       sblock genv env s
+
+and matching_out env b_vars =
+  let* v_list =
+    Opt.map
+      (fun { var_name } -> find_value_opt var_name env) in
+  match v_list with
+  | [] -> return (Value(Vvoid))
+  | _ -> return (Value(Vtuple(l))
+
 
 (* block [local x1 [init e1 | default e1 | ],..., xn [...] do eq done *)
 and sblock genv env v_list ({ eq_write; eq_loc } as eq) s_list s_eq =
@@ -882,8 +885,15 @@ and sstate genv env { desc; loc } s =
      let* v_s_list = Opt.map2 (sexp genv env) e_list s_list in
      let v_list, s_list = List.split v_s_list in
      return (Value(Vstate1(f, v_list)), Stuple(s_list))
-  | _ -> None
+  | Estateif(e, s1, s2), Stuple [se; se1; se2] ->
+     let* v, se = sexp genv env e se in
+     let* s1, se1 = sstate genv env s1 se1 in
+     let* s2, se2 = sstate genv env s2 se2 in
+     let* v = ifthenelse v s1 s2 in
+     return (v, Stuple [se; se1; se2])
+| _ -> None
 
+     
 and smatch_handler_list genv env ve eq_write m_h_list s_list =
   match m_h_list, s_list with
   | [], [] -> None
@@ -908,27 +918,30 @@ and smatch_handler_list genv env ve eq_write m_h_list s_list =
      return (env_handler, s_list)
   | _ -> None
 
-let matching_in env { var_name; var_default } v =
+and matching_in env { var_name } v =
   return (Env.add var_name { cur = v; default = Val } env)
 
-let matching_out env { var_name; var_default } =
-  find_value_opt var_name env
-
-    
-let eval_fun genv env { f_kind; f_atomic; f_args; f_res; f_body; f_loc } =
-  let* si = ieq genv Env.empty f_body in
+and matching_arg env arg v =
+  match arg, v with
+  | [], Value(Vvoid) -> return env
+  | l, Value(Vtuple(v_list)) -> 
+     Opt.fold2 matching_in env l v_list
+  | _ -> None
+       
+and funexp genv env { f_kind; f_args; f_body; f_loc } =
+  let* si = iresult genv env f_body in
   let f = match f_kind with
-  | Efun ->
+  | Kstatic | Kfun ->
      (* combinatorial function *)
      return
-       (CoFun
+       (Vfun
           (fun v_list ->
-            let* env =
-              Opt.fold2 matching_in Env.empty f_args v_list in
-            let* env, _ = seq genv env f_body si in
-            let* v_list = Opt.map (matching_out env) f_res in
-            return (v_list)))
-  | Enode ->
+            to_result ~none:Error.Etype
+              (let* env =
+                 Opt.fold2 matching_arg env f_args v_list in
+               let* v, s_body = sresult genv env f_body si in
+               return v)))
+  | Knode | Khybrid ->
      (* stateful function *)
      (* add the initial state for the input and output vardec *)
      let* s_f_args = Opt.map (ivardec genv Env.empty) f_args in
@@ -963,6 +976,7 @@ let eval_fun genv env { f_kind; f_atomic; f_args; f_res; f_body; f_loc } =
               | _ -> None }) in
   stop_at_location f_loc f
 
+    
 let exp genv env e =
   let* init = iexp genv env e in
   let step s = sexp genv env e s in
@@ -1054,3 +1068,4 @@ let check genv main n =
      if i < n then Format.printf "Test failed: only %i iterations.\n" i;
      return ()
  
+   *)

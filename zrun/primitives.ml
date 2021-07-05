@@ -31,9 +31,14 @@ let float v =
   match v with
   | Vfloat(i) -> return i | _ -> None
 
-let get_closure v =
+let get_fun v =
   match v with
-  | Vclosure(f, env) -> return (f, env)
+  | Vfun(v) -> return v
+  | _ -> None
+
+let get_node v =
+  match v with
+  | Vnode { init; step } -> return (init, step)
   | _ -> None
 
 let get_record r =
@@ -145,11 +150,23 @@ let lift2 op v1 v2 =
      return (Value v)
 
 (* gets the value *)
-let get_value v =
+let pvalue v =
   match v with
   | Vnil | Vbot -> None
   | Value(v) -> return v
-               
+
+(* remove bot *)
+let nonbot v =
+  match v with
+  | Vbot -> None
+  | Vnil | Value _ -> return v
+
+(* remove nil *)
+let nonnil v =
+  match v with
+  | Vnil -> None
+  | Vbot | Value _ -> return v
+
 (* is-it a pair ? *)
 let getpair v =
   match v with
@@ -160,68 +177,45 @@ let getpair v =
        
 (* pairs and tuples *)
 let unpair v1 v2 = 
-  match v1, v2 with
-  | (Vbot, _) | (_, Vbot) -> None
-  | _ -> Some (v1, v2)
+  let* v1 = nonbot v1 in
+  let* v2 = nonbot v2 in
+  return (v1, v2)
 
-let rec unlist v_list =
-  match v_list with
-  | [] -> return []
-  | [v] -> let* v = match v with | Vbot -> None | _ -> Some([v]) in
-           return v
-  | v1 :: v2 :: v_list ->
-     let* v_list = unlist v_list in
-     match unpair v1 v2 with
-     | None -> None
-     | Some(v1, v2) -> return (v1 :: v2 :: v_list)
-
-let unnil v1 v2 = 
-  match v1, v2 with
-  | (Vnil, _) | (_, Vnil) -> None
-  | _ -> Some (v1, v2)
- 
-let rec unnil_list v_list =
-  match v_list with
-  | [] -> return []
-  | [v] -> let* v = match v with | Vnil -> None | _ -> Some([v]) in
-           return v
-  | v1 :: v2 :: v_list ->
-     let* v_list = unnil_list v_list in
-     match unnil v1 v2 with
-     | None -> None
-     | Some(v1, v2) -> return (v1 :: v2 :: v_list)
-
-(* builds a pair. If one is bot, the result is bot; if one is nil, *)
+        
+(* builds a synchronous pair. If one is bot, the result is bot; if one is nil, *)
 (* the result is nil *)
 let spair v1 v2 =
-  let v = unpair v1 v2 in
-  match v with
-  | None -> Vbot
-  | Some(v1, v2) ->
-     let v = unnil v1 v2 in
-     match v with
-     | None -> Vnil
-     | Some(v1, v2) -> Value(Vtuple [v1; v2])
+  let* _ = nonbot v1 in
+  let* _ = nonbot v2 in
+  let* _ = nonnil v1 in
+  let* _ = nonnil v2 in
+  let* v1 = pvalue v1 in
+  let* v2 = pvalue v2 in
+  return (Value(Vstuple [v1; v2]))
                      
 let stuple v_list =
-  let v = unlist v_list in
+  let v = Opt.map nonbot v_list in
   match v with
-  | None -> Vbot
-  | Some(v_list) ->
-     let v = unnil_list v_list in
+  | None -> return Vbot
+  | Some _ ->
+     let v = Opt.map nonbot v_list in
      match v with
-     | None -> Vnil
-     | Some(v_list) -> Value(Vtuple(v_list))
+     | None -> return Vnil
+     | Some _ ->
+        let* v_list = Opt.map pvalue v_list in
+        return (Value(Vstuple(v_list)))
 
-let strict_constr1 f v_list =
-  let v = unlist v_list in
+let constr1 f v_list =
+  let v = Opt.map nonbot v_list in
   match v with
-  | None -> Vbot
-  | Some(v_list) ->
-     let v = unnil_list v_list in
+  | None -> return Vbot
+  | Some _ ->
+     let v = Opt.map nonbot v_list in
      match v with
-     | None -> Vnil
-     | Some(v_list) -> Value(Vconstr1(f, v_list))
+     | None -> return Vnil
+     | Some _ ->
+        let* v_list = Opt.map pvalue v_list in
+        return (Value(Vconstr1(f, v_list)))
 
 let tuple v_list =
   match v_list with
@@ -232,29 +226,34 @@ let tuple v_list =
 (* void *)
 let void = return (Value(Vvoid))
 
-(* access the elements of a pair *)
-let two_elements v =
+(* check that v is a list of length one *)
+let one v =
   match v with
-  | [v1;v2] -> return (v1, v2)
+  | [v] -> return v
   | _ -> None
-       
+
+(* check that v is a list of length two *)
+let two v =
+  match v with
+  | Vstuple [v1;v2] -> return (v1, v2)
+  | _ -> None
+
 let zerop op =
-  CoFun (fun _ -> to_result ~none:Error.Etype (let* v = op () in
-                                               return (Value(v))))
+  (fun _ -> to_result ~none:Error.Etype (let* v = op () in
+                                         return (v)))
 
 let unop op =
-  CoFun (fun v -> to_result ~none:Error.Etype (lift1 op v))
+  (fun v -> to_result ~none:Error.Etype (op v))
 
 let binop op =
-  CoFun
-    (fun v -> to_result ~none:Error.Etype
-                (let* v1, v2 = getpair v in
-                 let* v = lift2 op v1 v2 in
-                 return v))
+  (fun v -> to_result ~none:Error.Etype
+              (let* v1, v2 = two v in
+               let* v = op v1 v2 in
+               return v))
 
 (* state processes *)
-let unop_process op s =
-  CoNode
+let zerop_process op s =
+  Vnode
     { init = s;
       step =
         fun s _ ->
@@ -263,8 +262,8 @@ let unop_process op s =
            return (v, s))
     }
 
-let binop_process op s =
-  CoNode
+let unop_process op s =
+  Vnode
     { init = s;
       step =
         fun s v ->
@@ -294,7 +293,7 @@ let genv0 =
 
 let genv0 =
   List.fold_left
-    (fun acc (n, v) -> Genv.add (Name n) (Gfun v) acc) Genv.empty genv0
+    (fun acc (n, v) -> Genv.add (Name n) (Vfun v) acc) Genv.empty genv0
   
 let _ = Random.init 0
 
@@ -314,4 +313,4 @@ let genv1 =
 
 let genv0 =
   List.fold_left
-    (fun acc (n, v) -> Genv.add (Name n) (Gfun v) acc) genv0 genv1
+    (fun acc (n, v) -> Genv.add (Name n) (Vfun v) acc) genv0 genv1

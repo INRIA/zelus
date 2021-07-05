@@ -14,6 +14,7 @@
 (* Set of values *)
 (* noinitialized and non causal values *)
 
+ 
 type 'a extended =
   | Vnil : 'a extended
   | Vbot : 'a extended
@@ -27,15 +28,16 @@ type pvalue =
   | Vstring : string -> pvalue
   | Vvoid : pvalue
   | Vconstr0 : Lident.t -> pvalue
-  | Vconstr1 : Lident.t * value list -> pvalue
+  | Vconstr1 : Lident.t * pvalue list -> pvalue
   | Vrecord : pvalue Zelus.record list -> pvalue
   | Vtuple : value list -> pvalue
   | Vstuple : pvalue list -> pvalue
   | Vstate0 : Ident.t -> pvalue
   | Vstate1 : Ident.t * pvalue list -> pvalue
-  | Vfun : (pvalue -> (value, Error.kind) Result.t) -> pvalue
-  | Vnode : { init : 's;
-              step : 's -> value -> (value * 's, Error.kind) Result.t } ->
+  | Vfun : (pvalue -> (pvalue, Error.kind) Result.t) -> pvalue
+  | Vnode : { init : state;
+              step : state -> value ->
+                     (value * state, Error.kind) Result.t } ->
             pvalue
                                         
 and value = pvalue extended
@@ -46,15 +48,6 @@ and state =
   | Sval : value -> state
   | Sopt : value option -> state
 
-and ('a, 's, 'stop) costream =
-  | CoF : { init : 's;
-            step : 's -> ('a * 's, 'stop) Result.t } -> ('a, 's, 'stop) costream
-
-and ('a, 'b, 's, 'stop) node =
-  | CoFun  : ('a -> ('b, 'stop) Result.t) -> ('a, 'b, 's, 'stop) node
-  | CoNode : { init : 's;
-               step : 's -> 'a -> ('b * 's, 'stop) Result.t } ->
-             ('a, 'b, 's, 'stop) node
 
 (* an input entry in the environment *)
 type 'a ientry = { cur: 'a; default : 'a default }
@@ -63,3 +56,14 @@ and 'a default =
   | Val : 'a default
   | Last : 'a -> 'a default
   | Default : 'a -> 'a default
+
+type ('a, 's, 'stop) costream =
+  | CoF : { init : 's;
+            step : 's -> ('a * 's, 'stop) Result.t } -> ('a, 's, 'stop) costream
+
+type ('a, 'b, 's, 'stop) node =
+  | CoFun : ('a list -> ('b, 'stop) Result.t) -> ('a, 'b, 's, 'stop) node
+  | CoNode : { init : 's;
+               step : 's -> 'a list -> ('b * 's, 'stop) Result.t } ->
+             ('a, 'b, 's, 'stop) node
+ 

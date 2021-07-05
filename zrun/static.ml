@@ -37,7 +37,7 @@ let merge env1 env2 =
 let rec matching_pattern acc v { pat_desc } =
   match v, pat_desc with
   | _, Etypeconstraintpat(p, _) -> matching_pattern acc v p
-  | (Vstate0 _| Vstate1 _ | Vclosure _), Evarpat(x) ->
+  | (Vstate0 _| Vstate1 _ | Vfun _ | Vnode _), Evarpat(x) ->
      return (Env.add x v acc)
   | _, Ewildpat -> return acc
   | _, Ealiaspat(p, x) ->
@@ -70,14 +70,11 @@ let rec matching_pattern acc v { pat_desc } =
   | Vconstr0(f), Econstr0pat(g) when Lident.compare f g = 0 ->
      return Env.empty
   | Vtuple(v_list), Etuplepat(p_list) ->
-     let* v_list = Opt.map get_value v_list in
+     let* v_list = Opt.map pvalue v_list in
      matching_pattern_list acc v_list p_list
   | Vstuple(v_list), Etuplepat(p_list) ->
      matching_pattern_list acc v_list p_list
   | Vconstr1(f, v_list), Econstr1pat(g, p_list) when Lident.compare f g = 0 ->
-     let* v_list = Opt.map get_value v_list in
-     matching_pattern_list acc v_list p_list
-  | Vsconstr1(f, v_list), Econstr1pat(g, p_list) when Lident.compare f g = 0 ->
      matching_pattern_list acc v_list p_list
   | _ -> None
 
@@ -119,15 +116,14 @@ let eval genv env eval_fun e =
          end
       | Econstr1 { lname; arg_list } ->
          let* v_list = eval_list env arg_list in
-         return (Vsconstr1(lname, v_list))
+         return (Vconstr1(lname, v_list))
       | Etuple(e_list) ->
          let* v_list = eval_list env e_list in
          return (Vstuple(v_list))
       | Eapp(f, e_list) ->
          let* v = eval env f in
          let* v_list = eval_list env e_list in
-         let* { f_args; f_body }, env = get_closure v in
-         apply env f_args v_list f_body
+         apply v v_list
       | Elet({ l_rec; l_eq }, e) ->
          if l_rec then None
          else
@@ -194,26 +190,13 @@ let eval genv env eval_fun e =
          join label_arg_list ext_label_arg_list in
     join label_arg_list ext_label_arg_list
     
-  and apply env f_args v_list f_body =
-    let one acc { var_name; var_default; var_init } v =
-      match var_default with
-      | Some _ -> None
-      | None ->
-         match var_init with
-         | Some _ -> None
-         | None ->
-            return (Env.add var_name v acc) in
-    let arg acc a v =
-      match a, v with
-      | [], Vvoid -> return acc
-      | arg_list, Vtuple(v_list) ->
-         let* v_list = Opt.map get_value v_list in
-         Opt.fold2 one acc arg_list v_list
-      | arg_list, Vstuple(v_list) ->
-         Opt.fold2 one acc arg_list v_list
-      | _ -> None in
-    let* env = Opt.fold2 arg env f_args v_list in
-    result env f_body
+  and apply fv v_list =
+    match v_list with
+    | [] -> return fv
+    | v :: v_list ->
+       let* fv = get_fun fv in
+       let* fv = Result.to_option (fv v) in
+       apply fv v_list
     
   and result env { r_desc } =
     match r_desc with
