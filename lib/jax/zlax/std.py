@@ -6,6 +6,9 @@ from typing import Any
 from sys import stdin, stdout, stderr
 from dataclasses import dataclass
 
+from .muflib import Node, step, reset, init, register_pytree_node_dataclass, J_dataclass
+from jax.tree_util import register_pytree_node_class
+
 
 def _print(end='', f=stdout, *args, **kwargs):
     print(*args, **kwargs, end=end, file=f)
