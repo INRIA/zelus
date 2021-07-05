@@ -13,17 +13,18 @@
 
 open Lident
 open Value
-
+open Zelus
+   
 let lident ff lid =
   match lid with
   | Name(s) -> Format.fprintf ff "%s" s
   | Modname { qual; id } -> Format.fprintf ff "%s.%s" qual id
                           
-let rec value_list value ff l =
+let rec print_list value ff l =
   match l with
   | [] -> assert false
   | [x] -> value ff x
-  | x :: l -> Format.printf "@[%a,@ %a@]" value x (value_list value) l
+  | x :: l -> Format.printf "@[%a,@ %a@]" value x (print_list value) l
             
 let rec pvalue ff v =
   match v with
@@ -34,14 +35,25 @@ let rec pvalue ff v =
   | Vstring(s) -> Format.fprintf ff "%s" s
   | Vvoid -> Format.fprintf ff "()"
   | Vtuple(l) ->
-     Format.fprintf ff "@[<hov 1>(%a)@]" (value_list value) l
+     Format.fprintf ff "@[<hov 1>(%a)@]" value_list l
+  | Vstuple(l) ->
+     Format.fprintf ff "@[<hov 1>(%a)@]" pvalue_list l
   | Vconstr0(lid) -> lident ff lid
   | Vconstr1(lid, l) ->
-     Format.fprintf ff "@[<hov 1>%a(%a)@]" lident lid (value_list value) l 
+     Format.fprintf ff "@[<hov 1>%a(%a)@]" lident lid pvalue_list l 
   | Vstate0(id) -> Ident.fprint_t ff id
   | Vstate1(id, l) ->
      Format.fprintf
-       ff "@[<hov 1>%a(%a)@]" Ident.fprint_t id (value_list value) l
+       ff "@[<hov 1>%a(%a)@]" Ident.fprint_t id pvalue_list l
+  | Vfun _ ->
+     Format.fprintf ff "@[<fun>@]"
+  | Vnode _ ->
+     Format.fprintf ff "@[<node>@]"
+  | Vrecord(l) ->
+     let one ff { arg; label } =
+       Format.fprintf ff "@[<hov2>%a =@ %a@]"
+         pvalue arg Lident.fprint_t label in
+     (Pp_tools.print_list_r one "{" ";" "}") ff l
     
 and value ff v =
   match v with
@@ -49,9 +61,9 @@ and value ff v =
   | Vbot -> Format.fprintf ff "bot"
   | Value(v) -> pvalue ff v                 
               
-let pvalue_list ff l = value_list pvalue ff l
+and pvalue_list ff l = print_list pvalue ff l
                      
-let value_list ff l = value_list value ff l
+and value_list ff l = print_list value ff l
                     
 let value_and_flush ff v =
   Format.fprintf ff "%a@\n" value v
