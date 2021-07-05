@@ -97,18 +97,10 @@ end
 let rec compile_expr :
   type a. formatter -> a expression -> unit = begin
   fun ff e -> 
-    let compile_tuple_args ff e =
+    let compile_args ff e =
       begin match e.expr with
-      | Etuple l -> (* curried function *)
-        fprintf ff "%a" 
-          (pp_print_list (fun ff e -> fprintf ff "(%a)" compile_expr e)) l
+      | Etuple _ -> fprintf ff "%a" compile_expr e
       | _ -> fprintf ff "(%a)"compile_expr e
-      end
-    in
-    let compile_app expr = 
-      begin match expr with
-      | Eapp(e1, e2) -> fprintf ff "%a%a" compile_expr e1 compile_tuple_args e2
-      | _ -> assert false
       end
     in
     begin match e.expr with
@@ -141,7 +133,7 @@ let rec compile_expr :
         in
         let op = to_py_op op in
         fprintf ff "%a" compile_expr { e with expr = Eapp ({e with expr = Evar {name = op}}, e1) }
-    | Eapp (e1, e2) -> compile_app e.expr
+    | Eapp (e1, e2) -> fprintf ff "%a%a" compile_expr e1 compile_args e2
     | Eif (e, { expr=Eapp({expr=Evar{name=n1}}, args1) },
               { expr=Eapp({expr=Evar{name=n2}}, args2) }) 
       when args1 = args2 ->
@@ -174,7 +166,7 @@ let rec compile_expr :
       let args ff a = 
         begin match a with 
         | None -> ()
-        | Some e -> fprintf ff "%a" compile_tuple_args e
+        | Some e -> fprintf ff "%a" compile_args e
         end
       in
       fprintf ff "%s%a" n args opt_e
