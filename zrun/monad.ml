@@ -13,6 +13,8 @@
 
 module Opt =
   struct
+    include Option
+
     (* [let* x = e in f x] *)
     let (let*) e f =
       match e with
@@ -26,8 +28,6 @@ module Opt =
                               
     let return v = Some(v)
 
-    let to_result = Option.to_result
-                  
     let rec map f x_list =
       match x_list with
       | [] -> return []
@@ -35,6 +35,15 @@ module Opt =
          let* xv = f x in
          let* x_list = map f x_list in
          return (xv :: x_list)
+
+    let rec filter f x_list =
+      match x_list with
+      | [] -> []
+      | x :: x_list ->
+         let x = f x in
+         match x with
+         | None -> filter f x_list
+         | Some(x) -> x :: filter f x_list
 
     let rec fold f acc x_list =
       match x_list with
