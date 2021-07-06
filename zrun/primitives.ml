@@ -16,8 +16,6 @@ open Monad
 open Opt
 open Lident
    
-module Genv = Map.Make(Lident)
-
 let bool v =
   match v with
   | Vbool(b) -> return b
@@ -155,6 +153,8 @@ let pvalue v =
   | Vnil | Vbot -> None
   | Value(v) -> return v
 
+let is_pvalue v = not (is_none (pvalue v))
+                
 (* remove bot *)
 let nonbot v =
   match v with
