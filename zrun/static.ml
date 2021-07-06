@@ -34,26 +34,26 @@ let merge env1 env2 =
     env2 s
 
 (* match a value [ve] against a pattern [p] *)
-let rec matching_pattern acc v { pat_desc } =
+let rec pmatching acc v { pat_desc } =
   match v, pat_desc with
-  | _, Etypeconstraintpat(p, _) -> matching_pattern acc v p
+  | _, Etypeconstraintpat(p, _) -> pmatching acc v p
   | (Vstate0 _| Vstate1 _ | Vfun _ | Vnode _), Evarpat(x) ->
      return (Env.add x v acc)
   | _, Ewildpat -> return acc
   | _, Ealiaspat(p, x) ->
-     let* acc = matching_pattern acc v p in
+     let* acc = pmatching acc v p in
      return (Env.add x v acc)
   | _, Eorpat(p1, p2) ->
-     let env = matching_pattern Env.empty v p1 in
+     let env = pmatching Env.empty v p1 in
      let acc =
        match env with
-       | None -> matching_pattern acc v p2
+       | None -> pmatching acc v p2
        | Some(env) -> return (Env.append env acc) in
      acc
   | Vrecord(l_v_list), Erecordpat(l_p_list) ->
      let matching_record acc
            { arg = v; label = l } { arg = p; label = l' } =
-       if l = l' then matching_pattern acc v p
+       if l = l' then pmatching acc v p
        else None in
      let compare { label = l1 } { label = l2 } = Lident.compare l1 l2 in
      let l_v_list =
@@ -71,16 +71,17 @@ let rec matching_pattern acc v { pat_desc } =
      return Env.empty
   | Vtuple(v_list), Etuplepat(p_list) ->
      let* v_list = Opt.map pvalue v_list in
-     matching_pattern_list acc v_list p_list
+     pmatching_list acc v_list p_list
   | Vstuple(v_list), Etuplepat(p_list) ->
-     matching_pattern_list acc v_list p_list
+     pmatching_list acc v_list p_list
   | Vconstr1(f, v_list), Econstr1pat(g, p_list) when Lident.compare f g = 0 ->
-     matching_pattern_list acc v_list p_list
+     pmatching_list acc v_list p_list
   | _ -> None
 
-and matching_pattern_list acc v_list p_list =
-  Opt.fold2 matching_pattern acc v_list p_list
-  
+and pmatching_list acc v_list p_list =
+  Opt.fold2 pmatching acc v_list p_list
+
+   
 (* value of an immediate constant *)
 let immediate v =
   match v with
@@ -92,7 +93,7 @@ let immediate v =
   | Estring(s) -> Vstring(s)
 
 (* evaluation functions *)
-let eval genv env eval_fun e =
+let eval genv env e =
   let rec eval env { e_desc; e_loc } =
     let r = match e_desc with   
       | Econst(v) ->
@@ -133,8 +134,8 @@ let eval genv env eval_fun e =
          let* v = eval env e in
          match_handlers env v handlers
       | Erecord_access { label; arg } ->
-     let* arg = eval env arg in
-     record_access { label; arg }  
+         let* arg = eval env arg in
+         record_access { label; arg }  
       | Erecord(r_list) ->
          let* r_list =
            Opt.map
@@ -153,7 +154,8 @@ let eval genv env eval_fun e =
          let* r = record_with label_arg_list label_arg_list in
          return (Vrecord(r))
       | Etypeconstraint(e, _) -> eval env e
-      | Efun(fe) -> eval_fun genv env fe
+      | Efun(fe) ->
+         funexp genv env fe
       | Epresent _ -> None
       | Ereset(e_body, e_res) ->
          let* v = eval env e_res in
@@ -201,7 +203,7 @@ let eval genv env eval_fun e =
   and result env { r_desc } =
     match r_desc with
     | Exp(e) -> eval env e
-    | Returns _ -> None
+    | Returns(b) -> None
                  
   and eval_list env e_list =
     match e_list with
@@ -216,7 +218,7 @@ let eval genv env eval_fun e =
     match eq_desc with 
     | EQeq(p, e) -> 
        let* v = eval env e in
-       let* env_p1 = matching_pattern Env.empty v p in
+       let* env_p1 = pmatching Env.empty v p in
        return env_p1
     | EQif(e, eq1, eq2) ->
        let* v = eval env e in
@@ -260,12 +262,15 @@ let eval genv env eval_fun e =
     match handlers with
     | [] -> None
     | { m_pat; m_body } :: handlers ->
-       let r = matching_pattern env v m_pat in
+       let r = pmatching env v m_pat in
        match r with
        | None ->
           (* this is not the good handler; try an other one *)
           match_handlers env v handlers
        | Some(env_pat) ->
           let env = Env.append env_pat env in
-          eval env m_body in
-eval env e
+          eval env m_body
+
+  and funexp genv env fe =
+    return (Vclosure(fe, genv, env)) in
+  eval env e
