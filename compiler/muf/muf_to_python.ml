@@ -2,6 +2,7 @@ open Ast_helper
 open Muf
 open Format
 
+
 let fresh_nat = 
   let i = ref (-1) in 
   fun _ -> begin
@@ -25,6 +26,37 @@ let compile_fv : type a. formatter -> a expression -> unit = begin
       (pp_print_list ~pp_sep:(fun ff () -> fprintf ff ", ") pp_print_string) lv
 end
 
+let to_py_op s =
+  begin match s with 
+  | "not" -> "logical_not"
+  | _ ->
+    let s = if s = "or" then "||" else s in
+    let to_py_op_char c =
+      begin match c with
+      (* Non-alphanumeric symbols accepted in OCaml but not in Python *)
+      | '$' -> 'd'
+      | '&' -> 'a'
+      | '*' -> 's'
+      | '+' -> 'p'
+      | '-' -> 'm'
+      | '/' -> 'q'
+      | '=' -> 'e'
+      | '>' -> 'u'
+      | '@' -> 't'
+      | '^' -> 'h'
+      | '|' -> 'v'
+      | '~' -> 'l'
+      | '!' -> 'x'
+      | '?' -> 'g'
+      | '%' -> 'c'
+      | '<' -> 'i'
+      | ':' -> 'b'
+      | '.' -> 'o'
+      | _ -> c
+      end
+    in "_" ^ (String.map to_py_op_char s)
+  end
+
 let rec compile_const : formatter -> constant -> unit = begin
   fun ff c ->
     begin match c with
@@ -33,8 +65,8 @@ let rec compile_const : formatter -> constant -> unit = begin
     | Cint32 x -> fprintf ff "%ld" x
     | Cint64 x -> fprintf ff "%Ld" x
     | Cfloat x -> fprintf ff "%f" (float_of_string x)
-    | Cstring x -> fprintf ff "%s" x
-    | Cchar x -> fprintf ff "%c" x
+    | Cstring x -> fprintf ff "\"%s\"" x
+    | Cchar x -> fprintf ff "'%c'" x
     | Cunit -> fprintf ff "()"
     | Cany -> fprintf ff "None"
     end
@@ -57,16 +89,10 @@ end
 let rec compile_expr :
   type a. formatter -> a expression -> unit = begin
   fun ff e -> 
-    let compile_tuple_args ff e =
+    let compile_args ff e =
       begin match e.expr with
       | Etuple _ -> fprintf ff "%a" compile_expr e
       | _ -> fprintf ff "(%a)"compile_expr e
-      end
-    in
-    let compile_app expr = 
-      begin match expr with
-      | Eapp(e1, e2) -> fprintf ff "%a%a" compile_expr e1 compile_tuple_args e2
-      | _ -> assert false
       end
     in
     begin match e.expr with
@@ -90,73 +116,16 @@ let rec compile_expr :
       end
     | Efield (e, x) -> 
       fprintf ff "%a[\"%s\"]" compile_expr e x
-    | Eapp ({ expr = Eapp ({ expr = Evar {name = op}}, e1) }, e2) (* Binary operator : e1 op e2 *)
-      when op.[0] == '(' -> (* Infix operator *)
-        let op_str = String.trim (String.sub op 1 ((String.index op ')')-1)) in (* Raises Not_found error if the closing parenthesis is missing *)
-        let op_str =
-          begin match op_str with
-       (* | muF operator -> Python operator *)
-          (* Integer arithmetic *)
-          | "/" -> "//"
-          (* Floating-point arithmetic *)
-          | "+." -> "+" 
-          | "-." -> "-"
-          | "/." -> "/"
-          | "*." -> "*"
-          (* Comparisons *)
-          | "=" -> "=="
-          | "<>" -> "!="
-          | "==" -> "is"
-          | "!=" -> "is not"
-          (* Bitwise operations *)
-          | "asr" -> ">>"
-          | "lsl" -> "<<"
-          | "land" -> "&"
-          | "lxor" -> "^"
-          | "lor" -> "|"
-          (* Boolean operations *)
-          | "&" 
-          | "&&" -> "and"
-          | "||" -> "or"
-          (* String operations *)
-          | "^" -> "+"
-          (* List operations *)
-          | "@" -> "+"
-          (* Not rewritten operators *)
-          | "+"
-          | "-"
-          | "*" 
-          | ">"
-          | ">="
-          | "<"
-          | "<="
-          | "**" -> op_str
-          (* Unknown operator, e.g. might be a name surrounded by unnecessary parentheses *)
-          | _ -> ""
-          end
+    | Eapp ({ expr = Evar {name = op}}, e1) (* Unary and infix operators *)
+      when op.[0] == '(' || op = "not" -> 
+        let op = if op.[0] == '('
+          (* String.index raises Not_found error if the closing parenthesis is missing *)
+          then String.trim (String.sub op 1 ((String.index op ')')-1)) 
+          else op 
         in
-        if op_str = "" then 
-          compile_app e.expr 
-        else
-          fprintf ff "(%a %s %a)" compile_expr e1 op_str compile_expr e2
-    | Eapp ({ expr = Evar {name = op}}, e1) (* Unary operator : op e1*)
-      when op.[0] == '(' -> 
-      let op_str = String.trim (String.sub op 1 ((String.index op ')')-1)) in (* Raises Not_found error if the closing parenthesis is missing  *)
-        let op_str =
-          begin match op_str with
-          | "~-" -> "-"
-          | "~-." -> "-"
-          | "-." -> "-"
-          | "lnot" -> "~"
-          | "not" -> op_str
-          | _ -> ""
-          end
-        in
-        if op_str = "" then 
-          compile_app e.expr 
-        else 
-          fprintf ff "(%s %a)"op_str compile_expr e1
-    | Eapp (e1, e2) -> compile_app e.expr
+        let op = to_py_op op in
+        fprintf ff "%a" compile_expr { e with expr = Eapp ({e with expr = Evar {name = op}}, e1) }
+    | Eapp (e1, e2) -> fprintf ff "%a%a" compile_expr e1 compile_args e2
     | Eif (e, { expr=Eapp({expr=Evar{name=n1}}, args1) },
               { expr=Eapp({expr=Evar{name=n2}}, args2) }) 
       when args1 = args2 ->
@@ -165,7 +134,11 @@ let rec compile_expr :
         n1 
         n2
         compile_expr args1
-    | Eif _ -> Format.eprintf "Eif incompatible with the Python-JAX backend\n" ; assert false
+    | Eif (e, et, ef) ->
+      fprintf ff "cond(@,    @[<v 0>%a,@,lambda _: %a,@,lambda _: %a,@,None)@]" 
+        compile_expr e
+        compile_expr et
+        compile_expr ef
     | Esequence (e1, e2) ->
       fprintf ff "@[<v 0>%a@,%a@]" compile_expr e1 compile_expr e2
     | Esample (prob, e) ->
@@ -185,7 +158,7 @@ let rec compile_expr :
       let args ff a = 
         begin match a with 
         | None -> ()
-        | Some e -> fprintf ff "%a" compile_tuple_args e
+        | Some e -> fprintf ff "%a" compile_args e
         end
       in
       fprintf ff "%s%a" n args opt_e
@@ -278,6 +251,8 @@ let compile_type :
     end
   end
 
+let to_py_module s = String.uncapitalize_ascii s
+
 let compile_decl : type a. formatter -> a declaration -> unit = begin
   fun ff d ->
     begin match d.decl with
@@ -303,10 +278,34 @@ let compile_decl : type a. formatter -> a declaration -> unit = begin
     | Dtype l -> 
       fprintf ff "%a" 
         (pp_print_list compile_type) l 
-    | Dopen m -> fprintf ff "import %s" (String.uncapitalize_ascii m)
-    end
+    | Dopen m -> 
+      let m = to_py_module m in
+        begin match Muf_libs_name.SSet.find_opt m Muf_libs_name.module_names_zeluc with
+          | Some _ -> fprintf ff "from zlax.%s import *@," m
+          | None ->
+            begin match Muf_libs_name.SSet.find_opt m Muf_libs_name.module_names_probzeluc with
+            | Some _ -> fprintf ff "from probzelus.%s import *@," m
+            | None -> fprintf ff "from %s import *@," m
+            end
+          end
+        end
 end
 
+let compile_import_modules : type t. formatter -> Muf_utils.SSet.t -> unit = begin
+  fun ff s ->
+    let f m = 
+      let m = to_py_module m in
+        begin match Muf_libs_name.SSet.find_opt m Muf_libs_name.module_names_zeluc with
+        | Some _ -> fprintf ff "from zlax import %s@," m
+        | None -> 
+          begin match Muf_libs_name.SSet.find_opt m Muf_libs_name.module_names_probzeluc with
+          | Some _ -> fprintf ff "from probzelus import %s@," m
+          | None -> fprintf ff "import %s@," m
+          end
+        end
+    in
+    Muf_utils.SSet.iter f s
+  end
 
 let compile_program : formatter -> unit program -> unit = begin
   fun ff p ->
@@ -317,10 +316,10 @@ let compile_program : formatter -> unit program -> unit = begin
         p
     in
     let p = Muf_flatten.compile_program p in
+    let to_import = Muf_utils.imported_modules p in
     fprintf ff "@[<v 0>";
-    fprintf ff  "from muflib import Node, step, reset, init, register_pytree_node_dataclass, J_dataclass@,";
-    fprintf ff  "from jax.lax import cond@,";
-    fprintf ff  "from jax.tree_util import register_pytree_node_class@,@,";
+    fprintf ff "from zlax.std import *@,@,";
+    compile_import_modules ff to_import;
     List.iter (compile_decl ff) p;
     fprintf ff "@,@]@."
 end
