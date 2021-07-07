@@ -2,11 +2,6 @@ open Ast_helper
 open Muf
 open Format
 
-type op = 
-  Infix of string
-| Prefix of string
-| Unary of string
-| Fun_call
 
 let fresh_nat = 
   let i = ref (-1) in 
