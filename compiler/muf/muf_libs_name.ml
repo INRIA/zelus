@@ -15,7 +15,8 @@ let l_zeluc = [
   "run" ;
   "stdlib" ;
   "string" ;
-  "jax" 
+  "jax" ;
+  "numpy"
 ]
 
 let l_probzeluc = [
