@@ -28,12 +28,9 @@ end
 
 let to_py_op s =
   begin match s with 
-  | "&" 
-  | "&&" ->  "logical_and"
-  | "or"
-  | "||" ->  "logical_or"
   | "not" -> "logical_not"
   | _ ->
+    let s = if s = "or" then "||" else s in
     let to_py_op_char c =
       begin match c with
       (* Non-alphanumeric symbols accepted in OCaml but not in Python *)
