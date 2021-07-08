@@ -5,14 +5,13 @@
 
 (rule
  (targets
- int32.zci int64.zci
+ int32.zci nativeint.zci int64.zci
  ; char.zci complex.zci
- ; nativeint.zci
  ; random.zci string.zci graphics.zci basics.zci node.zci run.zci list.zci)
  )
  (deps (:zli
- ; char.zli complex.zli nativeint.zli
- int32.zli int64.zli
+ ; char.zli complex.zli
+ int32.zli nativeint.zli int64.zli
  ; random.zli string.zli graphics.zli basics.zli node.zli
  ; run.zli list.zli)
  )

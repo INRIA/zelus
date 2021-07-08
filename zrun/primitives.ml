@@ -15,7 +15,7 @@ open Value
 open Monad
 open Opt
 open Lident
-   
+
 let bool v =
   match v with
   | Vbool(b) -> return b
@@ -29,6 +29,11 @@ let float v =
   match v with
   | Vfloat(i) -> return i | _ -> None
 
+let get_present v =
+  match v with
+  | Vpresent(v) -> return v
+  | _ -> None
+       
 let get_fun v =
   match v with
   | Vfun(v) -> return v
@@ -65,6 +70,8 @@ let or_op v1 v2 =
   let* v1 = bool v1 in
   let* v2 = bool v2 in
   return (Vbool(v1 || v2))
+
+let on_op v1 v2 = or_op v1 v2
 
 let add_op v1 v2 =
   let* v1 = int v1 in

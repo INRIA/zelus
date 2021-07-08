@@ -54,7 +54,6 @@ let value v =
   | Echar(c) -> Vchar(c)
   | Estring(s) -> Vstring(s)
 
-
 (* evaluation functions *)
 
 (* the bottom environment *)
@@ -476,9 +475,21 @@ and matcheq_list acc v_list p_list =
     | [], [] -> return acc
     | v :: v_list, p :: p_list  -> matcheq_list acc v_list p_list 
     | _ -> None
-         
+
+let matchsig ve p =
+  match ve with
+  | Vbot ->
+     let env = Env.map (fun v -> { cur = v; default = Val }) (pbot p) in
+     return (Vbot, env)
+  | Vnil ->
+     let env = Env.map (fun v -> { cur = v; default = Val }) (pnil p) in
+     return (Vnil, env)
+  | Value(v) ->
+     let* v = get_present v in
+     matcheq (Value(v)) p
+                      
 (* match a state f(v1,...,vn) against a state name f(x1,...,xn) *)
-and matching_state ps { desc } =
+let matching_state ps { desc } =
   match ps, desc with
   | Vstate0(f), Estate0pat(g) when Ident.compare f g = 0 -> return Env.empty
   | Vstate1(f, v_list), Estate1pat(g, id_list) when
@@ -492,7 +503,7 @@ and matching_state ps { desc } =
        
 (* [reset init step genv env body s r] resets [step genv env body] *)
 (* when [r] is true *)
-and reset init step genv env body s r =
+let reset init step genv env body s r =
   let*s = if r then init genv env body else return s in
   step genv env body s
 
@@ -944,25 +955,50 @@ and sescape_list genv env escape_list s_list ps pr =
     
 and sscondpat genv env { desc } s = 
   match desc, s with
-  | Econdand(sc1, sc2), Stuple [s1; s2] -> 
+  | Econdand(sc1, sc2), Stuple [s1; s2] ->  
      let* (v1, env_sc1), s1 = sscondpat genv env sc1 s1 in
      let* (v2, env_sc2), s2 = sscondpat genv env sc2 s2 in
-     return ((and_op v1 v2, Env.append env_sc1 env_sc2), Stuple [s1; s2])
+     let* env = merge env_sc1 env_sc2 in
+     let s = Stuple [s1; s2] in 
+     (match v1, v2 with
+      | (Vbot, _) | (_, Vbot) -> return ((Vbot, env), s)
+      | (Vnil, _) | (_, Vnil) -> return ((Vnil, env), s)
+      | Value(v1), Value(v2) ->
+         let* v1 = bool v1 in
+         let* v2 = bool v2 in
+         (* v1 && v2 *) 
+         return ((Value(Vbool(v1 && v2)), env), s))
   | Econdor(sc1, sc2), Stuple [s1; s2] ->
      let* (v1, env_sc1), s1 = sscondpat genv env sc1 s1 in
-     let* (v2, _), s2 = sscondpat genv env sc2 s2 in
-     return ((or_op v1 v2, env_sc1), Stuple [s1; s2])
+     let* (v2, env_sc2), s2 = sscondpat genv env sc2 s2 in
+     let* env = merge env_sc1 env_sc2 in
+     (match v1, v2 with
+      | (Vbot, _) | (_, Vbot) -> return ((Vbot, env), s)
+      | (Vnil, _) | (_, Vnil) -> return ((Vnil, env), s)
+      | Value(v1), Value(v2) ->
+         let* v1 = bool v1 in
+         let* v2 = bool v2 in
+         (* v1 or v2 *) 
+         return ((Value(Vbool(v1 || v2)), env), s))
   | Econdexp(e_cond), s ->
      let* v, s = sexp genv env e_cond s in
      return ((v, Env.empty), s)
   | Econdpat(e, p), s ->
      let* ve, s = sexp genv env e s in
-     let* v, env_p = matchsig v p in
-     return ((v, env_p), s)
-  | Econdon(sc, e), Stuple [s_sc; se] ->
+     let* ve, env_p = matchsig ve p in
+     return ((ve, env_p), s)
+  | Econdon(sc, e), Stuple [s_sc; s] ->
      let* (v, env_sc), s_sc = sscondpat genv env sc s_sc in
-     let* ve, se = sexp genv env e se in
-     return ((on_op v ve, env_sc), Stuple [s_sc; se])
+     let* ve, s = sexp genv env e s in
+     let s = Stuple [s_sc; s] in
+     (match v, ve with
+      | (Vbot, _) | (_, Vbot) -> return ((Vbot, env_sc), s)
+      | (Vnil, _) | (_, Vnil) -> return ((Vnil, env_sc), s)
+      | Value(v), Value(ve) ->
+         let* v = bool v in
+         let* ve = bool ve in
+         (* v on ve *) 
+         return ((Value(Vbool(v && ve)), env), s))
   | _ -> None
                               
 and sstate genv env { desc; loc } s =
@@ -984,9 +1020,8 @@ and sstate genv env { desc; loc } s =
 and smatch_handler_list genv env ve eq_write m_h_list s_list =
   match m_h_list, s_list with
   | [], [] -> None
-  | { m_pat; m_vars; m_body } :: m_h_list,
-    (Stuple [Stuple(ss_var_list); ss_body] as s) :: s_list ->
-     let r = matching_pattern ve m_pat in
+  | { m_pat; m_body } :: m_h_list, s :: s_list ->
+     let r = Static.pmatching Env.empty ve m_pat in
      let* env_handler, s_list =
        match r with
        | None ->
@@ -995,13 +1030,14 @@ and smatch_handler_list genv env ve eq_write m_h_list s_list =
             smatch_handler_list genv env ve eq_write m_h_list s_list in
           return (env_handler, s :: s_list)
        | Some(env_pat) ->
+          let env_pat =
+            Env.map (fun v -> { cur = Value v; default = Val }) env_pat in
           let env = Env.append env_pat env in
-          let* _, env_handler, ss_var_list, ss_body =
-            sblock genv env m_vars m_body ss_var_list ss_body in
+          let* env_handler, s = seq genv env m_body s in
           return
-            (env_handler, Stuple [Stuple(ss_var_list); ss_body] :: s_list) in
+            (env_handler, s :: s_list) in
      (* complete missing entries in the environment *)
-     let* env_handler = by env env_handler eq_write in
+     let* env_handler = by env env_handler (names eq_write) in
      return (env_handler, s_list)
   | _ -> None
 

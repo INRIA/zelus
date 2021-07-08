@@ -26,7 +26,7 @@ type kind =
   | Eassert_false : kind (* an error that should not appear; [= assert false] *)
   | Euncausal : kind (* some bottom value remain *)
   | Euninitialised : kind (* some nil value remain *)
-                       
+  
 type t = Location.t * kind
 
 let error loc kind = Error (loc, kind)

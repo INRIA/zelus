@@ -49,11 +49,17 @@ let rec pvalue ff v =
      Format.fprintf ff "@[<fun>@]"
   | Vnode _ ->
      Format.fprintf ff "@[<node>@]"
+  | Vclosure _ ->
+     Format.fprintf ff "@[<closure>@]"
   | Vrecord(l) ->
      let one ff { arg; label } =
        Format.fprintf ff "@[<hov2>%a =@ %a@]"
          pvalue arg Lident.fprint_t label in
      (Pp_tools.print_list_r one "{" ";" "}") ff l
+  | Vabsent ->
+     Format.fprintf ff "abs"
+  | Vpresent(v) ->
+     pvalue ff v
     
 and value ff v =
   match v with
