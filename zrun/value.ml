@@ -14,7 +14,8 @@
 (* Set of values *)
 (* noinitialized and non causal values *)
 
- 
+module Genv = Map.Make(Lident)
+
 type 'a extended =
   | Vnil : 'a extended
   | Vbot : 'a extended
@@ -30,6 +31,8 @@ type pvalue =
   | Vconstr0 : Lident.t -> pvalue
   | Vconstr1 : Lident.t * pvalue list -> pvalue
   | Vrecord : pvalue Zelus.record list -> pvalue
+  | Vpresent : pvalue -> pvalue
+  | Vabsent : pvalue
   | Vtuple : value list -> pvalue
   | Vstuple : pvalue list -> pvalue
   | Vstate0 : Ident.t -> pvalue
@@ -39,6 +42,7 @@ type pvalue =
               step : state -> value ->
                      (value * state, Error.kind) Result.t } ->
             pvalue
+  | Vclosure : Zelus.funexp * pvalue Genv.t * pvalue Ident.Env.t -> pvalue
                                         
 and value = pvalue extended
           
