@@ -42,7 +42,8 @@ type pvalue =
               step : state -> value ->
                      (value * state, Error.kind) Result.t } ->
             pvalue
-  | Vclosure : Zelus.funexp * pvalue Genv.t * value Ident.Env.t -> pvalue
+  | Vclosure :
+      Zelus.funexp * pvalue Genv.t * value Ident.Env.t -> pvalue
                                         
 and value = pvalue extended
           
@@ -63,10 +64,12 @@ and 'a default =
 
 type ('a, 's, 'stop) costream =
   | CoF : { init : 's;
-            step : 's -> ('a * 's, 'stop) Result.t } -> ('a, 's, 'stop) costream
+            step : 's -> ('a * 's, 'stop) Result.t } ->
+          ('a, 's, 'stop) costream
 
 type ('a, 'b, 's, 'stop) node =
-  | CoFun : ('a list -> ('b, 'stop) Result.t) -> ('a, 'b, 's, 'stop) node
+  | CoFun : ('a list -> ('b, 'stop) Result.t) ->
+            ('a, 'b, 's, 'stop) node
   | CoNode : { init : 's;
                step : 's -> 'a list -> ('b * 's, 'stop) Result.t } ->
              ('a, 'b, 's, 'stop) node
