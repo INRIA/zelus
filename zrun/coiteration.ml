@@ -485,8 +485,12 @@ let matchsig ve p =
      let env = Env.map (fun v -> { cur = v; default = Val }) (pnil p) in
      return (Vnil, env)
   | Value(v) ->
-     let* v = get_present v in
-     matcheq (Value(v)) p
+     match v with
+     | Vabsent -> return (Value(Vbool(false)), Env.empty)
+     | Vpresent(v) ->
+        let* env = matcheq (Value(v)) p in
+        return (Value(Vbool(true)), env)
+     | _ -> None
                       
 (* match a state f(v1,...,vn) against a state name f(x1,...,xn) *)
 let matching_state ps { desc } =
@@ -496,7 +500,7 @@ let matching_state ps { desc } =
     (Ident.compare f g = 0) && (List.length v_list = List.length id_list) ->
      let env =
        List.fold_left2
-         (fun acc v x -> Env.add x { cur = Value v; default = Val }  acc)
+         (fun acc v x -> Env.add x { cur = v; default = Val }  acc)
          Env.empty v_list id_list in
      return env
   | _ -> None
@@ -823,6 +827,10 @@ and sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list =
             body_and_transition_list a_h_list s_list in
           return (env_handler, ns, nr, s :: s_list)            
        | Some(env_state) ->
+          let env_state =
+            Env.map
+              (fun { cur } -> { cur = Value(cur); default = Val })
+              env_state in
           let env = Env.append env_state env in
           (* execute the local lets *)
           let* env, ss_let = slets genv env s_let ss_let in
@@ -855,6 +863,10 @@ and sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list =
           let* env_trans, ns, nr, s_list = transition_list a_h_list s_list in
           return (env_trans, ns, nr, s :: s_list)            
        | Some(env_state) ->
+          let env_state =
+            Env.map
+              (fun { cur } -> { cur = Value(cur); default = Val })
+              env_state in
           let env = Env.append env_state env in
           (* execute the transitions *)
           let* env_trans, (ns, nr), ss_trans =
@@ -876,7 +888,11 @@ and sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list =
             let* env_body, s_list = body_list a_h_list ps pr s_list in
             return (env_body, s :: s_list)            
          | Some(env_state) ->
-            let env = Env.append env_state env in
+            let env_state =
+            Env.map
+              (fun { cur } -> { cur = Value(cur); default = Val })
+              env_state in
+          let env = Env.append env_state env in
             (* execute the local lets *)
             let* env, ss_let = slets genv env s_let ss_let in
             (* execute the body *)
@@ -1007,6 +1023,7 @@ and sstate genv env { desc; loc } s =
   | Estate1(f, e_list), Stuple s_list ->
      let* v_s_list = Opt.map2 (sexp genv env) e_list s_list in
      let v_list, s_list = List.split v_s_list in
+     let* v_list = Opt.map pvalue v_list in
      return (Value(Vstate1(f, v_list)), Stuple(s_list))
   | Estateif(e, s1, s2), Stuple [se; se1; se2] ->
      let* v, se = sexp genv env e se in
@@ -1049,145 +1066,83 @@ and matching_arg env arg v =
   | [], Value(Vvoid) -> return env
   | l, Value(Vtuple(v_list)) -> 
      Opt.fold2 matching_in env l v_list
+  | l, Value(Vstuple(v_list)) -> 
+     let v_list = List.map (fun v -> Value(v)) v_list in
+     Opt.fold2 matching_in env l v_list
   | _ -> None
        
-and funexp genv env { f_kind; f_args; f_body; f_loc } =
-  let* si = iresult genv env f_body in
-  let f = match f_kind with
-  | Kstatic | Kfun ->
-     (* combinatorial function *)
+and funexp genv env fe =
+  return (Value(Vclosure(fe, genv, env)))
+
+(* make a function value *)
+and funval genv env f_args f_body =
+  (* combinatorial function *)
+  match f_args with
+  | [] ->
+     let* ri = iresult genv env f_body in
+     let* v, _ = sresult genv env f_body ri in
+     let* v = pvalue v in
+     return v
+  | arg :: f_args ->
+     let* si = Opt.map (ivardec genv Env.empty) arg in
      return
        (Vfun
-          (fun v_list ->
+          (fun v ->
             to_result ~none:Error.Etype
-              (let* env =
-                 Opt.fold2 matching_arg env f_args v_list in
-               let* v, s_body = sresult genv env f_body si in
-               return v)))
-  | Knode | Khybrid ->
-     (* stateful function *)
-     (* add the initial state for the input and output vardec *)
-     let* s_f_args = Opt.map (ivardec genv Env.empty) f_args in
-     let* s_f_res = Opt.map (ivardec genv Env.empty) f_res in
-     return
-       (CoNode
-          { init = Stuple [Stuple(s_f_args); Stuple(s_f_res); si];
-            step =
-              fun s v_list ->
-              match s with
-              | Stuple [Stuple(s_f_args); Stuple(s_f_res); s_body] ->
-                  (* associate the input value to the argument *) 
-                 let* env_args, s_f_args =
-                   Opt.mapfold3 (svardec genv Env.empty)
-                     Env.empty f_args s_f_args v_list in
-                 let* env_res, s_f_res =
-                   Opt.mapfold3 (svardec genv env_args)
-                     Env.empty f_res s_f_res (bot_list f_res) in
-                 print_ienv "Node before fixpoint (args)" env_args;
-                 print_ienv "Node before fixpoint (res)" env_res;
-                 (* eprint_env env_args; *)
-                 let n = Env.cardinal env_res in
-                 let n = if n <= 0 then 0 else n+1 in
-                 let* env_body, s_body =
-                   fixpoint_eq genv env_args seq f_body n s_body env_res in
-                 (* store the next last value *)
-                 print_ienv "Node after fixpoint (body)" env_body;
-                 let* s_f_res = Opt.map2 (set_vardec env_body) f_res s_f_res in
-                 let* v_list = Opt.map (matching_out env_body) f_res in
-                 return (v_list,
-                         (Stuple [Stuple(s_f_args); Stuple(s_f_res); s_body]))
-              | _ -> None }) in
-  stop_at_location f_loc f
+              (let* env = matching_arg env arg (Value v) in
+               funval genv env f_args f_body)))
 
+(* make a node value *)
+and nodeval genv env f_args f_body =
+  match f_args with
+  | [arg] ->
+     (* compute the initial state *)
+     let* s_list = Opt.map (ivardec genv env) arg in
+     let* s_body = iresult genv env f_body in
+     return
+       (Vnode
+          { init = Stuple (s_body :: s_list);
+            step =
+              fun s v ->
+              to_result ~none: Error.Etype
+                (match s with
+                 | Stuple (s_body :: s_list) ->
+                    let* v_list =
+                      match v with
+                      | Vbot | Vnil -> return [v]
+                      | Value(Vvoid) -> return []
+                      | Value(Vtuple(v_list)) -> return v_list
+                      | Value(Vstuple(v_list)) ->
+                         return (List.map (fun v -> Value(v)) v_list)
+                      | _ -> None in
+                    let* env_arg, s_list =
+                      Opt.mapfold3
+                        (svardec genv env) Env.empty arg s_list v_list in
+                    let env = Env.append env_arg env in
+                    let* r, s_body = sresult genv env f_body s_body in
+                    return (r, Stuple (s_body :: s_list))
+                 | _ -> None) })
+  | arg :: f_body ->
+     None
+  | [] ->
+     None
     
 let exp genv env e =
   let* init = iexp genv env e in
-  let step s = sexp genv env e s in
+  let step s =
+    to_result ~none: Error.Etype (sexp genv env e s) in
   return (CoF { init = init; step = step })
   
 let implementation genv { desc; loc } =
   let r = match desc with
-  | Eletdecl(f, e) ->
-     (* [e] should be stateless, that is, [step s = v, s] *)
-     let* si = iexp genv Env.empty e in
-     let* v, s = sexp genv Env.empty e si in
-     return (Genv.add (Name(f)) (Gvalue(v)) genv)
-  | Eletfundecl(f, fd) ->
-     let* fv = funexp genv fd in
-     return (Genv.add (Name(f)) (Gfun(fv)) genv)
-  | Etypedecl(f, td) ->
-     return genv in
+    | Eopen(name) ->
+       (* add [name] in the list of known modules *)
+       return genv
+    | Eletdecl(f, e) ->
+       let* v = Static.eval Genv.empty Env.empty e in
+       return genv
+    | Etypedecl _ ->
+       return genv in
   stop_at_location loc r 
      
 let program genv i_list = Opt.fold implementation genv i_list
-
-(* check that a value is causally correct (non bot) *)
-(* and initialized (non nil) *)
-let not_bot_nil v_list =
-  let not_bot_nil v =
-    match v with
-    | Vbot ->
-       Format.eprintf "Causality error.@."; raise Stdlib.Exit
-    | Vnil ->
-       Format.eprintf "Initialization error.@."; raise Stdlib.Exit
-    | Value(v) ->
-       return v in
-  Opt.map not_bot_nil v_list
-    
-(* run a combinatorial expression *)
-(* returns the number of successful iterations *)
-let run_fun output fv n =
-  let rec runrec i =
-    if i = n then i
-    else
-      let v =
-        let* v_list = fv [] in
-        let* v_list = not_bot_nil v_list in
-        output v_list in
-      if Option.is_none v then i
-      else runrec (i+1) in
-  runrec 0
-      
-(* run a stream process *)
-let run_node output init step n =
-  let rec runrec s i =
-    if i = n then i
-    else
-      let v =
-        let* v_list, s = step s [] in
-        let* v_list = not_bot_nil v_list in
-        let* _ = output v_list in
-        return s in
-      match v with | None -> i | Some(s) -> runrec s (i+1) in
-  runrec init 0
-
-(* The main entry function *)
-let run genv main ff n =
-  let* fv = find_gnode_opt (Name main) genv in
-  (* the main function must be of type : unit -> t *)
-  let output v_list =
-    let _ = Output.pvalue_list_and_flush ff v_list in
-    return () in
-  match fv with
-  | CoFun(fv) ->
-     let _ = run_fun output fv n in
-     return ()
-  | CoNode { init; step } ->
-     let _ = run_node output init step n in
-     return ()
-
-let check genv main n =
-  let* fv = find_gnode_opt (Name main) genv in
-  (* the main function must be of type : unit -> bool *)
-  let output v =
-    if v = [Vbool(true)] then return () else None in
-  match fv with
-  | CoFun(fv) ->
-     let i = run_fun output fv n in
-     if i < n then Format.printf "Test failed: only %i iterations.\n" i;
-     return ()
-  | CoNode { init; step } ->
-     let i = run_node output init step n in
-     if i < n then Format.printf "Test failed: only %i iterations.\n" i;
-     return ()
- 

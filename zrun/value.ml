@@ -42,7 +42,7 @@ type pvalue =
               step : state -> value ->
                      (value * state, Error.kind) Result.t } ->
             pvalue
-  | Vclosure : Zelus.funexp * pvalue Genv.t * pvalue Ident.Env.t -> pvalue
+  | Vclosure : Zelus.funexp * pvalue Genv.t * value Ident.Env.t -> pvalue
                                         
 and value = pvalue extended
           

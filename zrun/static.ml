@@ -272,5 +272,6 @@ let eval genv env e =
           eval env m_body
 
   and funexp genv env fe =
+    let env = Env.map (fun v -> Value(v)) env in
     return (Vclosure(fe, genv, env)) in
   eval env e

@@ -73,7 +73,5 @@ and value_list ff l = print_list value ff l
                     
 let value_and_flush ff v =
   Format.fprintf ff "%a@\n" value v
-let value_list_and_flush ff l = 
-  Format.fprintf ff "%a@\n" value_list l
-let pvalue_list_and_flush ff l = 
-  Format.fprintf ff "%a@\n" pvalue_list l
+let pvalue_and_flush ff l = 
+  Format.fprintf ff "%a@\n" pvalue l
