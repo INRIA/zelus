@@ -279,7 +279,7 @@ let unop_process op s =
            return (v, s)) }
 
 (* The initial environment *)
-let genv0 =
+let list_of_primitives =
   ["+", binop add_op;
    "-", binop minus_op;
    "~-", unop uminus_op;
@@ -299,8 +299,9 @@ let genv0 =
    ">=", binop gte_op]
 
 let genv0 =
+  let genv0 = Genv.initialize "Stdlib" in
   List.fold_left
-    (fun acc (n, v) -> Genv.add (Name n) (Vfun v) acc) Genv.empty genv0
+    (fun acc (n, v) -> Genv.add n (Vfun v) acc) genv0 list_of_primitives
   
 let _ = Random.init 0
 
@@ -313,11 +314,11 @@ let random_float_op v =
   let* v = float v in
   return (Vfloat(Random.float v))
     
-let genv1 =
+let list_of_primitives =
   ["random_bool", zerop random_bool_op;
    "random_int", unop random_int_op;
    "random_float", unop random_float_op]
 
 let genv0 =
   List.fold_left
-    (fun acc (n, v) -> Genv.add (Name n) (Vfun v) acc) genv0 genv1
+    (fun acc (n, v) -> Genv.add n (Vfun v) acc) genv0 list_of_primitives
