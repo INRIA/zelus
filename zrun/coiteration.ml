@@ -1141,7 +1141,7 @@ let implementation genv { desc; loc } =
   let r = match desc with
     | Eopen(name) ->
        (* add [name] in the list of known modules *)
-       return genv
+       return (Genv.open_module genv name)
     | Eletdecl(f, e) ->
        let* v = Static.eval genv Env.empty e in
        return genv
