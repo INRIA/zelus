@@ -58,7 +58,7 @@ let findfile filename =
     let rec find = function
       [] ->
         raise(Cannot_find_file filename)
-    | a::rest ->
+    | a :: rest ->
         let b = Filename.concat a filename in
           if Sys.file_exists b then b else find rest
     in find !load_path
