@@ -11,4 +11,5 @@ wc:
 	wc compiler/global/*.ml \
 	compiler/typing/*.ml \
 	compiler/main/*.ml \
-	compiler/parsing/*.mll compiler/parsing/*.mly
+	compiler/parsing/*.mll compiler/parsing/*.mly \
+	zrun/*.ml
