@@ -1143,8 +1143,9 @@ let implementation genv { desc; loc } =
        (* add [name] in the list of known modules *)
        return (Genv.open_module genv name)
     | Eletdecl(f, e) ->
+       (* add the entry [f, v] in the current global environment *)
        let* v = Static.eval genv Env.empty e in
-       return genv
+       return (add f v genv)
     | Etypedecl _ ->
        return genv in
   stop_at_location loc r 
