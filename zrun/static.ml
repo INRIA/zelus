@@ -22,7 +22,12 @@ open Primitives
 open Sdebug
 
 let find_value_opt x env = Env.find_opt x env
-let find_gvalue_opt x env = Genv.find_opt x env
+let find_gvalue_opt x env =
+  try
+    let { Global.info } = Genv.find x env in
+    return info
+  with
+  | Not_found -> None
 
 (* merge two environments provided they do not overlap *)
 let merge env1 env2 =
