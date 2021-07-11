@@ -21,16 +21,16 @@ module E = Map.Make (struct type t = string let compare = compare end)
 exception Cannot_find_file of string
 
 (* The current global environment *)
-type env =
+type 'a env =
   { name: string; (* the name of the module *)
-    values: Value.pvalue E.t; (* the symbol table [name, pvalue] *)
+    values: 'a E.t; (* the symbol table [name, pvalue] *)
   }
       
 (* The current global environment and list of already opened modules *)
-type genv =
-    { current: env;      (* associated symbol table *)
-      opened: env list;  (* opened tables *)
-      modules: env E.t;  (* tables loaded in memory *)
+type 'a genv =
+    { current: 'a env;      (* associated symbol table *)
+      opened: 'a env list;  (* opened tables *)
+      modules: 'a env E.t;  (* tables loaded in memory *)
     }
 
 let findfile filename =
@@ -104,10 +104,14 @@ let initialize modname =
     opened = []; modules = E.empty } in
   List.fold_left open_module genv !default_used_modules  
   
-let add_value f pvalue ({ current } as genv) =
+let add f pvalue ({ current } as genv) =
   let current =
     { current with values = E.add f pvalue current.values } in
   { genv with current = current }
-  
+
+let find qualname genv =
+  let v, _ = find qualname genv in
+  v
   
 let write oc { current } = output_value oc current
+
