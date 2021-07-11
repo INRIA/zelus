@@ -21,6 +21,7 @@ open Smisc
 open Monad
 open Opt                                                            
 open Ident
+open Genv
 open Zelus
 open Value
 open Primitives
@@ -37,8 +38,11 @@ let find_last_opt x env =
   | _ -> None
            
 let find_gvalue_opt x env =
-  let* v = Genv.find_opt x env in
-  return v
+  try
+    let { Global.info } = Genv.find x env in
+    return info
+  with
+  | Not_found -> None
 
 let names_env env = Env.fold (fun n _ acc -> S.add n acc) env S.empty
 
@@ -1139,7 +1143,7 @@ let implementation genv { desc; loc } =
        (* add [name] in the list of known modules *)
        return genv
     | Eletdecl(f, e) ->
-       let* v = Static.eval Genv.empty Env.empty e in
+       let* v = Static.eval genv Env.empty e in
        return genv
     | Etypedecl _ ->
        return genv in
