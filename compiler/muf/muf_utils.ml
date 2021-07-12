@@ -130,12 +130,7 @@ let fresh =
     { name = x^"__"^(string_of_int !cpt) }
 
 let lident_name n =
-  let b = Buffer.create 16 in
-  let ff_b = Format.formatter_of_buffer b in
-  Format.fprintf ff_b "%a" Printer.longname n;
-  Format.pp_print_flush ff_b ();
-  let x = Buffer.contents b in
-  x
+  Lident.modname n
 
 let lident n = { name = lident_name n }
 

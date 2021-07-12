@@ -13,7 +13,6 @@ let ident_name n = Zident.name n
 
 let ident n = { name = ident_name n }
 
-
 let get_id x =
   begin match x with
   | Lident.Name id | Lident.Modname { Lident.id = id } -> id
@@ -700,17 +699,17 @@ let machine_init ma m_reset =
     | Oapp (Oglobal infer, nb :: f :: args) when get_id infer = "infer" ->
         let f_init =
           match f with
-          | Oglobal x -> { name = (lident_name x) }
-          | Olocal x  | Ovar (_, x) -> { name = (ident_name x) }
+          | Oglobal x -> lident x
+          | Olocal x  | Ovar (_, x) -> ident x
           | _ -> assert false
         in
         (ident_name n, einfer_init (expression None SSet.empty nb) f_init)
     | Oglobal x ->
-        (ident_name n, instance_init { name = lident_name x })
+        (ident_name n, instance_init (lident x))
     | Olocal x  | Ovar (_, x) ->
-        (ident_name n, instance_init { name = ident_name x })
-    | Oapp (Oglobal (Lident.Modname { Lident.id = f }), args) ->
-        let f = evar { name = f } in
+        (ident_name n, instance_init (ident x))
+    | Oapp (Oglobal f, args) ->
+        let f = evar (lident f) in
         let args = List.map (expression None SSet.empty) args in
         let tmp = fresh "_tmp" in
         let instance =
