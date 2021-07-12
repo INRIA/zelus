@@ -33,7 +33,12 @@ let get_present v =
   match v with
   | Vpresent(v) -> return v
   | _ -> None
-       
+
+let test v =
+  match v with
+  | Vpresent _ -> return (Vbool(true)) | Vabsent -> return (Vbool(false))
+  | _ -> None
+ 
 let get_fun v =
   match v with
   | Vfun(v) -> return v

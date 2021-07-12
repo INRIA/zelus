@@ -574,6 +574,26 @@ let rec sexp genv env { e_desc = e_desc; e_loc } s =
         let* v3, s3 = sexp genv env e3 s3 in
         let* v = ifthenelse v1 v2 v3 in
         return (v, Stuple [s1; s2; s3])
+     | Erun _, [_; e2], Stuple [Sval(Value(Vnode { init; step })); s2] ->
+        (* the first argument [e1] is static; it does not need to be recomputed *)
+        let* v2, s2 = sexp genv env e2 s2 in
+        let* v, s = Result.to_option (step init v2) in
+        return (v, Stuple [Sval(Value(Vnode { init; step })); s2])
+     | Eatomic, [e], s ->
+        (* if one of the input is bot (or nil), the output is bot (or nil); *)
+        (* that is, [e] is considered to be strict *)
+        let* v, s = sexp genv env e s in
+        return (v, s)
+     | Etest, [e], s ->
+        let* v, s = sexp genv env e s in
+        let* v = Primitives.lift1 Primitives.test v in
+        return (v, s)
+     | Eup, [e], Stuple [Sval(zin); _; s] ->
+        (* [zin] and [zout] *)
+        let* ve, s = sexp genv env e s in
+        return (zin, Stuple [Sval(zin); Sval(ve); s])
+     | Eperiod, [_; _], _ ->
+        None
      | _ -> None
      end
   | Econstr1 { lname; arg_list }, Stuple(s_list) ->
