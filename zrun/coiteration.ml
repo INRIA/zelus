@@ -16,7 +16,9 @@
 (* semantics presented at the SYNCHRON workshop, December 2019, *)
 (* the class on "Advanced Functional Programming" given at Bamberg
    Univ. in June-July 2019 and the Master MPRI - M2, Fall 2019 *)
-(* This original version of this code is taken from the GitHub Zrun repo. *)
+(* The original version of this code is taken from the GitHub Zrun repo. *)
+(* Zrun was done right after the COVID black out in June 2020 *)
+(* This new version that include Zelus constructs during spring 2021 *)
 open Smisc
 open Monad
 open Opt                                                            
@@ -91,6 +93,7 @@ let rec distribute v acc { pat_desc } =
 let pbot p = distribute Vbot Env.empty p
 let pnil p = distribute Vnil Env.empty p
 
+(* number of variables defined by an equation *)
 let size { eq_write } = S.cardinal (Deftypes.names S.empty eq_write)
 
 (* merge two environments provided they do not overlap *)
@@ -206,19 +209,18 @@ let fixpoint_eq genv env sem eq n s_eq bot =
     let* env_out, s_eq = sem genv env eq s_eq in
     let env_out = complete_with_default env env_out in
     return (env_out, s_eq) in
-  print_number "Max number of iterations:" n;
-  print_ienv "Fixpoint. Inital env is:" bot;
+  Sdebug.print_number "Max number of iterations:" n;
+  Sdebug.print_ienv "Fixpoint. Inital env is:" bot;
   let* m, env_out, s_eq = fixpoint n equal_env sem s_eq bot in
-  print_ienv "Fixpoint. Result env is:" env_out;
-  print_number "Actual number of iterations:" (n - m);
-  print_number "Max was:" n;
-  print_ienv "End of fixpoint with env:" env_out;
+  Sdebug.print_ienv "Fixpoint. Result env is:" env_out;
+  Sdebug.print_number "Actual number of iterations:" (n - m);
+  Sdebug.print_number "Max was:" n;
+  Sdebug.print_ienv "End of fixpoint with env:" env_out;
   return (env_out, s_eq)
 
 (* Pattern matchin *)
 let imatch_handler ibody genv env { m_body } =
-  let* sb = ibody genv env m_body in
-  return (sb)
+  ibody genv env m_body
   
 let ipresent_handler iscondpat ibody genv env { p_cond; p_body } =
   let* sc = iscondpat genv env p_cond in
@@ -265,7 +267,7 @@ let rec iexp genv env { e_desc } =
           let* s3 = iexp genv env e3 in
           return (Stuple [s1; s2; s3])
      | Erun _, [e1; e2] ->
-        (* [e1] must be a static expression *)
+        (* node instanciation. [e1] must be a static expression *)
         let static_env =
           Env.filter_map (fun _ { cur } -> pvalue cur) env in
         let* s1 = Static.eval genv static_env e1 in
@@ -273,9 +275,15 @@ let rec iexp genv env { e_desc } =
         return (Stuple [Sval(Value(s1)); s2])
      | Eatomic, [e] ->
         iexp genv env e
-     | Etest, [e] -> iexp genv env e
-     | Eup, [_] -> None
-     | Eperiod, [_;_] -> None
+     | Etest, [e] ->
+        iexp genv env e
+     | Eup, [e] ->
+        let* s = iexp genv env e in
+        return (Stuple [Sval(Vnil); s])
+     | Eperiod, [e1;e2] ->
+        let* s1 = iexp genv env e1 in
+        let* s2 = iexp genv env e2 in
+        return (Stuple [Sval(Value(Vint(max_int))); s1; s2])
      | _ -> None
      end
   | Etuple(e_list) -> 
@@ -319,8 +327,13 @@ and ieq genv env { eq_desc } =
   let r = match eq_desc with
   | EQeq(_, e) -> iexp genv env e
   | EQder _ -> None
-  | EQinit _ -> None
-  | EQemit(x, e_opt) -> None
+  | EQinit(_, e) ->
+     let* se = iexp genv env e in
+     return (Stuple [Sopt(None); se])
+  | EQemit(x, e_opt) ->
+     let* s =
+       match e_opt with | None -> return Sempty | Some(e) -> iexp genv env e in
+     return s
   | EQif(e, eq1, eq2) ->
      let* se = iexp genv env e in
      let* seq1 = ieq genv env eq1 in
@@ -448,16 +461,14 @@ let rec matcheq v p =
     | Vstuple(p_list), Etuplepat(l_list) ->
        matcheq_list acc (List.map (fun v -> Value v) p_list) l_list
     | Vrecord(l_v_list), Erecordpat(l_p_list) ->
-       let matching_record acc
-             { arg = v; label = l } { arg = p; label = l' } =
-         if l = l' then matchrec acc v p
-         else None in
-       let compare { label = l1 } { label = l2 } = Lident.compare l1 l2 in
-       let l_v_list =
-         List.sort compare l_v_list in
-       let l_p_list =
-         List.sort compare l_p_list in
-       Opt.fold2 matching_record acc l_v_list l_p_list 
+       let rec find l = function
+         | [] -> None
+         | { label; arg = v } :: p_v_list ->
+            if l = label then return v else find l p_v_list in
+       Opt.fold
+         (fun acc { label; arg = p } ->
+           let* v = find label l_v_list in
+           matchrec acc v p) acc l_p_list
     | _, Evarpat(x) ->
        return (Env.add x { cur = Value v; default = Val } acc)
     | _, Ewildpat -> return acc
@@ -741,7 +752,7 @@ and matching_out env { b_vars } =
 and sblock genv env { b_vars; b_body = ({ eq_write } as eq) } s_b =
   match s_b with
   | Stuple (s_eq :: s_list) ->
-     print_ienv "Block" env;
+     Sdebug.print_ienv "Block" env;
      let* env_v, s_list =
        Opt.mapfold3 
          (svardec genv env) Env.empty b_vars s_list (bot_list b_vars) in
