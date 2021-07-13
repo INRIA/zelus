@@ -92,7 +92,7 @@ and add_exp bv exp =
 
 and add_op bv op =
   match op with
-  | Efby | Eunarypre | Eifthenelse | Eminusgreater | Eup| Einitial | Edisc | (*added here*) Emove
+  | Efby | Eunarypre | Eifthenelse | Eminusgreater | Eup| Einitial | Edisc | (*added here*) Emove|(*added here*) Econtrol
     | Etest | Eaccess | Eupdate | Econcat | Eatomic -> ()
   | Eslice (s1, s2) -> add_size bv s1; add_size bv s2
 and add_field bv (lbl, e) = add bv lbl; add_exp bv e

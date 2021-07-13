@@ -66,6 +66,8 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   (*added here*)
   "move_robot_zls", R_MOVE;
   (*added here*)
+  "control_robot_zls", R_CONTROL;
+  (*added here*)
   "robot_store", R_STORE;
   "before", BEFORE;
   "out", OUT;
