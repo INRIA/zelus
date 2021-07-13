@@ -11,7 +11,7 @@ type constant =
 [@@deriving show]
 
 type identifier =
-  { name: string }
+  { modul: string option; name: string }
 [@@deriving show, map, fold]
 
 type type_expression =
@@ -39,8 +39,8 @@ type ('pattern, 'expr) expr_desc =
   | Econstr of identifier * 'expr option
   | Evar of identifier
   | Etuple of 'expr list
-  | Erecord of (string * 'expr) list * 'expr option
-  | Efield of 'expr * string
+  | Erecord of (identifier * 'expr) list * 'expr option
+  | Efield of 'expr * identifier
   | Eapp of 'expr * 'expr
   | Eif of 'expr * 'expr * 'expr
   | Ematch of 'expr * ('pattern, 'expr) case list
@@ -70,7 +70,7 @@ type 'm expression =
 type type_declaration =
   | TKabstract_type
   | TKabbrev of type_expression
-  | TKvariant_type of (identifier * type_expression list option) list
+  | TKvariant_type of (string * type_expression list option) list
   | TKrecord of (string * type_expression) list
 [@@deriving show, map, fold]
 
@@ -82,9 +82,9 @@ type ('p, 'e) node =
 
 type ('p, 'e) decl_desc =
   | Ddecl of 'p * 'e
-  | Dfun of identifier * 'p * 'e
-  | Dnode of identifier * 'p list * ('p, 'e) node
-  | Dtype of (identifier * string list * type_declaration) list
+  | Dfun of string * 'p * 'e
+  | Dnode of string * 'p list * ('p, 'e) node
+  | Dtype of (string * string list * type_declaration) list
   | Dopen of string
 [@@deriving show, map, fold]
 

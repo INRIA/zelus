@@ -12,9 +12,9 @@ let subst_no_capture =
   let rec subst fv1 x expr1 expr2 =
     match expr2.expr, expr1.expr with
     | Evar y, _ -> if x = y then expr1 else expr2
-    | Elet (p, e1, e2), _ when SSet.mem x.name (fv_patt p) ->
+    | Elet (p, e1, e2), _ when IdSet.mem x (fv_patt p) ->
         { expr2 with expr = Elet(p, subst fv1 x expr1 e1, e2) }
-    | Elet (p, e1, e2), _ when SSet.mem x.name fv1 ->
+    | Elet (p, e1, e2), _ when IdSet.mem x fv1 ->
         raise Stop
     | Elet (p, e1, e2), _ ->
         let desc = map_expr_desc (fun p -> p) (subst fv1 x expr1) expr2.expr in
@@ -168,7 +168,7 @@ and static_fst expr =
 let rec single_and_no_use expr =
   match map_expr_desc (fun p -> p) single_and_no_use expr.expr with
   | Elet({ patt = Pid x; _ }, e1, e2) as e ->
-      begin match occurences x.name e2 with
+      begin match occurences x e2 with
       | 0 when is_pure e1 -> e2
       | 1 ->
           begin match subst_no_capture x e1 e2 with
@@ -218,10 +218,10 @@ and compile_case_cond x p =
   match p.patt with
   | Pid _ | Pany -> mk_expr (Econst (Cbool true))
   | Pconst c ->
-      let eq = evar { name = "(=)" } in
+      let eq = evar { modul = Some "Stdlib"; name = "(=)" } in
       mk_expr (Eapp (mk_expr (Eapp(eq, x)), mk_expr (Econst c)))
   | Pconstr (c, None) ->
-      let eq = evar { name = "(=)" } in
+      let eq = evar { modul = Some "Stdlib"; name = "(=)" } in
       mk_expr (Eapp (mk_expr (Eapp(eq, x)), mk_expr (Econstr (c, None))))
   | Pconstr (x, Some _) -> assert false (* XXX TODO XXX *)
   | Ptuple _ -> assert false (* XXX TODO XXX *)

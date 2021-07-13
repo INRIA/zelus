@@ -4,14 +4,11 @@ open Muf_utils
 
 exception Not_yet_implemented of string
 
-module SSet = Set.Make(String)
-
 let not_yet_implemented msg =
   raise (Not_yet_implemented msg)
 
-let ident_name n = Zident.name n
-
-let ident n = { name = ident_name n }
+let ident n =
+  { modul = None; name = Zident.name n }
 
 let get_id x =
   begin match x with
@@ -54,7 +51,7 @@ let rec split_proba_expr expr =
       None
   end
 
-let self = { name = "self" }
+let self = { modul = None; name = "self" }
 let self_patt = pvar self
 let self_expr = evar self
 
@@ -62,26 +59,26 @@ let instance_init x =
   mk_expr (Ecall_init (mk_expr (Evar x)))
 
 let pack vars e =
-  if SSet.is_empty vars then e
-  else Etuple [ expr_of_sset vars; mk_expr e ]
+  if IdSet.is_empty vars then e
+  else Etuple [ expr_of_idset vars; mk_expr e ]
 
 let unpack vars p =
-  if SSet.is_empty vars then p
-  else mk_patt (Ptuple [ patt_of_sset vars; p ])
+  if IdSet.is_empty vars then p
+  else mk_patt (Ptuple [ patt_of_idset vars; p ])
 
 let rec var_of_left_value v =
   begin match v with
-  | Oleft_name x -> ident_name x
+  | Oleft_name x -> ident x
   | Oleft_record_access (v, _) -> var_of_left_value v
   | Oleft_index (v, _) -> var_of_left_value v
   end
 
 let rec var_of_left_state_value left =
   begin match left with
-  | Oself -> self.name
-  | Oleft_instance_name(_n) -> self.name
-  | Oleft_state_global(ln) -> lident_name ln
-  | Oleft_state_name(_n) -> self.name
+  | Oself -> self
+  | Oleft_instance_name(_n) -> self
+  | Oleft_state_global(ln) -> lident ln
+  | Oleft_state_name(_n) -> self
   | Oleft_state_record_access(left, _n) -> var_of_left_state_value left
   | Oleft_state_index(left, _idx) -> var_of_left_state_value left
   | Oleft_state_primitive_access(left, _a) -> var_of_left_state_value left
@@ -89,105 +86,105 @@ let rec var_of_left_state_value left =
 
 let rec vars_of_pattern p =
   begin match p with
-  | Owildpat -> SSet.empty
+  | Owildpat -> IdSet.empty
   | Otuplepat l ->
       List.fold_left
-        (fun acc p -> SSet.union (vars_of_pattern p) acc)
-        SSet.empty l
-  | Ovarpat (x, _) -> SSet.singleton (ident_name x)
-  | Oconstpat _ -> SSet.empty
+        (fun acc p -> IdSet.union (vars_of_pattern p) acc)
+        IdSet.empty l
+  | Ovarpat (x, _) -> IdSet.singleton (ident x)
+  | Oconstpat _ -> IdSet.empty
   | Oaliaspat (p, x) ->
-      SSet.union (SSet.singleton (ident_name x)) (vars_of_pattern p)
-  | Oconstr0pat _ -> SSet.empty
+      IdSet.union (IdSet.singleton (ident x)) (vars_of_pattern p)
+  | Oconstr0pat _ -> IdSet.empty
   | Oconstr1pat (_, l) ->
       List.fold_left
-        (fun acc p -> SSet.union (vars_of_pattern p) acc)
-        SSet.empty l
-  | Oorpat (p1, p2) -> SSet.union (vars_of_pattern p1) (vars_of_pattern p2)
+        (fun acc p -> IdSet.union (vars_of_pattern p) acc)
+        IdSet.empty l
+  | Oorpat (p1, p2) -> IdSet.union (vars_of_pattern p1) (vars_of_pattern p2)
   | Otypeconstraintpat (p, _) -> vars_of_pattern p
   | Orecordpat l ->
       List.fold_left
-        (fun acc (_, p) -> SSet.union (vars_of_pattern p) acc)
-        SSet.empty l
+        (fun acc (_, p) -> IdSet.union (vars_of_pattern p) acc)
+        IdSet.empty l
   end
 
 let rec fv_updated i =
   begin match i with
-  | Olet(_p, e, i) -> SSet.union (fv_expr_updated e) (fv_updated i)
+  | Olet(_p, e, i) -> IdSet.union (fv_expr_updated e) (fv_updated i)
   | Oletvar(x, _is_mutable, _ty, e_opt, i) ->
-      SSet.union (Option.fold ~none:SSet.empty ~some:fv_expr_updated e_opt)
-        (SSet.remove (ident_name x) (fv_updated i))
+      IdSet.union (Option.fold ~none:IdSet.empty ~some:fv_expr_updated e_opt)
+        (IdSet.remove (ident x) (fv_updated i))
   | Omatch(e, match_handler_l) ->
       List.fold_left
         (fun acc { w_pat = p; w_body = i } ->
-          let fvs = SSet.diff (fv_updated i) (vars_of_pattern p)  in
-          SSet.union acc fvs)
+          let fvs = IdSet.diff (fv_updated i) (vars_of_pattern p)  in
+          IdSet.union acc fvs)
         (fv_expr_updated e) match_handler_l
   | Ofor(_is_to, _n, e1, e2, i3) ->
-      SSet.union (fv_expr_updated e1)
-        (SSet.union (fv_expr_updated e2) (fv_updated i3))
-  | Owhile(e1, i2) -> SSet.union (fv_expr_updated e1) (fv_updated i2)
-  | Oassign(x, e) -> SSet.add (var_of_left_value x) (fv_expr_updated e)
+      IdSet.union (fv_expr_updated e1)
+        (IdSet.union (fv_expr_updated e2) (fv_updated i3))
+  | Owhile(e1, i2) -> IdSet.union (fv_expr_updated e1) (fv_updated i2)
+  | Oassign(x, e) -> IdSet.add (var_of_left_value x) (fv_expr_updated e)
   | Oassign_state(left, e) ->
-      SSet.add (var_of_left_state_value left) (fv_expr_updated e)
+      IdSet.add (var_of_left_state_value left) (fv_expr_updated e)
   | Osequence l ->
-      List.fold_left (fun acc i -> SSet.union (fv_updated i) acc) SSet.empty l
+      List.fold_left (fun acc i -> IdSet.union (fv_updated i) acc) IdSet.empty l
   | Oexp(e) -> fv_expr_updated e
-  | Oif(e, i1, None) -> SSet.union (fv_expr_updated e) (fv_updated i1)
+  | Oif(e, i1, None) -> IdSet.union (fv_expr_updated e) (fv_updated i1)
   | Oif(e, i1, Some i2) ->
-      SSet.union (fv_expr_updated e)
-        (SSet.union (fv_updated i1) (fv_updated i2))
+      IdSet.union (fv_expr_updated e)
+        (IdSet.union (fv_updated i1) (fv_updated i2))
   end
 
 and fv_expr_updated expr =
   begin match expr with
-  | Oconst _ -> SSet.empty
-  | Oconstr0 _ -> SSet.empty
+  | Oconst _ -> IdSet.empty
+  | Oconstr0 _ -> IdSet.empty
   | Oconstr1 (_, e_list) ->
-      List.fold_left (fun acc e -> SSet.union (fv_expr_updated e) acc)
-        SSet.empty e_list
-  | Oglobal _ -> SSet.empty
-  | Olocal _ -> SSet.empty
-  | Ovar(_is_mutable, n) -> SSet.empty
-  | Ostate(l) -> SSet.empty
+      List.fold_left (fun acc e -> IdSet.union (fv_expr_updated e) acc)
+        IdSet.empty e_list
+  | Oglobal _ -> IdSet.empty
+  | Olocal _ -> IdSet.empty
+  | Ovar(_is_mutable, n) -> IdSet.empty
+  | Ostate(l) -> IdSet.empty
   | Oaccess(e, eidx) ->
-      SSet.union (fv_expr_updated e) (fv_expr_updated eidx)
+      IdSet.union (fv_expr_updated e) (fv_expr_updated eidx)
   | Ovec(e, _se) -> fv_expr_updated e
   | Oupdate(_se, _e1, _i, _e2) -> not_yet_implemented "fv_update: update"
   | Oslice(_e, _s1, _s2) -> not_yet_implemented "fv_update: slice"
   | Oconcat(_e1, _s1, _e2, _s2) -> not_yet_implemented "fv_update: concat"
   | Otuple(e_list) ->
-      List.fold_left (fun acc e -> SSet.union (fv_expr_updated e) acc)
-        SSet.empty e_list
+      List.fold_left (fun acc e -> IdSet.union (fv_expr_updated e) acc)
+        IdSet.empty e_list
   | Oapp(e, e_list) ->
-      List.fold_left (fun acc e -> SSet.union (fv_expr_updated e) acc)
+      List.fold_left (fun acc e -> IdSet.union (fv_expr_updated e) acc)
         (fv_expr_updated e) e_list
   | Omethodcall m ->
       let fvs =
-        List.fold_left (fun acc e -> SSet.union (fv_expr_updated e) acc)
-          SSet.empty m.met_args
+        List.fold_left (fun acc e -> IdSet.union (fv_expr_updated e) acc)
+          IdSet.empty m.met_args
       in
       let fvs =
         begin match m.met_machine with
         | Some x when is_sample x || is_observe x || is_factor x -> fvs
-        | _ -> SSet.add self.name fvs
+        | _ -> IdSet.add self fvs
         end
       in
       begin match split_proba_expr (Otuple m.met_args) with
       | None -> fvs
-      | Some (prob, _) -> SSet.add prob.name fvs
+      | Some (prob, _) -> IdSet.add prob fvs
       end
   | Orecord(r) ->
-      List.fold_left (fun acc (_, e) -> SSet.union (fv_expr_updated e) acc)
-        SSet.empty r
+      List.fold_left (fun acc (_, e) -> IdSet.union (fv_expr_updated e) acc)
+        IdSet.empty r
   | Orecord_with(e_record, r) ->
-      List.fold_left (fun acc (_, e) -> SSet.union (fv_expr_updated e) acc)
+      List.fold_left (fun acc (_, e) -> IdSet.union (fv_expr_updated e) acc)
         (fv_expr_updated e_record) r
   | Orecord_access(e_record, lname) -> fv_expr_updated e_record
   | Otypeconstraint(e, _ty_e) -> fv_expr_updated e
   | Oifthenelse(e, e1, e2) ->
-      SSet.union (fv_expr_updated e)
-        (SSet.union (fv_expr_updated e1) (fv_expr_updated e2))
+      IdSet.union (fv_expr_updated e)
+        (IdSet.union (fv_expr_updated e1) (fv_expr_updated e2))
   | Oinst(i) -> fv_updated i
   end
 
@@ -212,7 +209,7 @@ let rec type_expression t =
   | Otypefun _ -> assert false (* XXX TODO XXX *)
   | Otypetuple l -> Ttuple (List.map type_expression l)
   | Otypeconstr (x, args) ->
-      Tconstr (lident_name x, List.map type_expression args)
+      Tconstr (Lident.source x, List.map type_expression args)
   | Otypevec _ -> not_yet_implemented "type_expression(vec)"
 
 let rec pattern patt =
@@ -290,7 +287,7 @@ and expression_desc ctx state_vars e =
   | Omethodcall m -> method_call ctx state_vars m
   | Orecord(r) ->
       let x_x'_e_list =
-        List.map (fun (x,e) -> let x = lident_name x in (x, fresh ("_"^x), e)) r
+        List.map (fun (x,e) -> let x = lident x in (x, fresh ("_"^x.name), e)) r
       in
       let r = List.map (fun (x, x', _) ->  x, evar x') x_x'_e_list in
       let k = pack state_vars (Erecord(r, None)) in
@@ -302,7 +299,7 @@ and expression_desc ctx state_vars e =
         k x_x'_e_list
   | Orecord_with(e_record, r) ->
       let x_x'_e_list =
-        List.map (fun (x,e) -> let x = lident_name x in (x, fresh x, e)) r
+        List.map (fun (x,e) -> let x = lident x in (x, fresh x.name, e)) r
       in
       let r = List.map (fun (x, x', _) ->  x, evar x') x_x'_e_list in
       let k =
@@ -319,7 +316,7 @@ and expression_desc ctx state_vars e =
         k x_x'_e_list
   | Orecord_access(e_record, lname) ->
       let x = fresh "_r" in
-      let out = Efield (evar x, lident_name lname) in
+      let out = Efield (evar x, lident lname) in
       Elet(unpack state_vars (pvar x),
            expression ctx state_vars e,
            mk_expr (pack state_vars out))
@@ -341,18 +338,18 @@ and left_value left =
   begin match left with
   | Oleft_name x -> Evar (ident x)
   | Oleft_record_access (left, x) ->
-      Efield(mk_expr (left_value left), lident_name x)
+      Efield(mk_expr (left_value left), lident x)
   | Oleft_index (_, _) -> not_yet_implemented "left_index update"
   end
 
 and left_state_value left =
   match left with
   | Oself -> Evar self
-  | Oleft_instance_name(n) -> Efield (self_expr, ident_name n)
+  | Oleft_instance_name(n) -> Efield (self_expr, ident n)
   | Oleft_state_global(ln) -> Evar (lident ln)
-  | Oleft_state_name(n) -> Efield (self_expr, ident_name n)
+  | Oleft_state_name(n) -> Efield (self_expr, ident n)
   | Oleft_state_record_access(left, n) ->
-      Efield (mk_expr (left_state_value left), lident_name n)
+      Efield (mk_expr (left_state_value left), lident n)
   | Oleft_state_index(_left, _idx) ->
       not_yet_implemented "left_state_index"
   | Oleft_state_primitive_access(_left, _a) ->
@@ -370,7 +367,7 @@ and method_call ctx state_vars m =
               begin match split_proba_expr e with
               | None -> assert false
               | Some (prob, e) ->
-                  let state_vars' = SSet.remove prob.name state_vars in
+                  let state_vars' = IdSet.remove prob state_vars in
                   let x = fresh "_x" in
                   let d = fresh "_d" in
                   Elet (unpack state_vars' (ptuple [ pvar prob; pvar x ]),
@@ -385,7 +382,7 @@ and method_call ctx state_vars m =
               begin match split_proba_expr e with
               | None -> assert false
               | Some (prob, e) ->
-                  let state_vars' = SSet.remove prob.name state_vars in
+                  let state_vars' = IdSet.remove prob state_vars in
                   let x = fresh "_x" in
                   let d = fresh "_d" in
                   let o = fresh "_o" in
@@ -402,7 +399,7 @@ and method_call ctx state_vars m =
               begin match split_proba_expr e with
               | None -> assert false
               | Some (prob, e) ->
-                  let state_vars' = SSet.remove prob.name state_vars in
+                  let state_vars' = IdSet.remove prob state_vars in
                   let x = fresh "_x" in
                   let f = fresh "_f" in
                   Elet(unpack state_vars' (ptuple [pvar prob; pvar x]),
@@ -425,7 +422,7 @@ and standard_method_call ctx state_vars m =
   let instance =
     match m.met_instance with
     | None -> self_expr
-    | Some (i, []) -> mk_expr (Efield (self_expr, ident_name i))
+    | Some (i, []) -> mk_expr (Efield (self_expr, ident i))
     | Some (i, _) -> not_yet_implemented "instance array"
   in
   let o_prob, args =
@@ -451,10 +448,10 @@ and standard_method_call ctx state_vars m =
     match m.met_instance with
     | None -> call
     | Some (i, []) ->
-        let state = fresh ("_" ^ self.name ^ "_" ^ (ident_name i)) in
-        let res = fresh ("_res_" ^ (ident_name i)) in
+        let state = fresh ("_" ^ self.name ^ "_" ^ (ident i).name) in
+        let res = fresh ("_res_" ^ (ident i).name) in
         let self_update =
-          mk_expr (Erecord ([ident_name i, evar state], Some self_expr))
+          mk_expr (Erecord ([ident i, evar state], Some self_expr))
         in
         Elet (ptuple [pvar state; pvar res],
               mk_expr call,
@@ -462,7 +459,7 @@ and standard_method_call ctx state_vars m =
     | Some (i, _) -> not_yet_implemented "instance array"
   in
   let state_vars_args = fv_expr_updated args in
-  assert (SSet.subset state_vars_args state_vars);
+  assert (IdSet.subset state_vars_args state_vars);
   match o_prob with
   | None ->
       let res = fresh "_res" in
@@ -492,17 +489,17 @@ and inst_desc ctx state_vars i =
   begin match i with
   | Olet(p, e, i) ->
       let p = pattern p in
-      assert (SSet.disjoint (fv_patt p) state_vars);
+      assert (IdSet.disjoint (fv_patt p) state_vars);
       let state_vars' = fv_expr_updated e in
       Elet (unpack state_vars' p, expression ctx state_vars' e,
             inst ctx state_vars i)
   | Oletvar(x, _is_mutable, ty, e_opt, i) ->
       let ty = type_expr_of_typ ty in
       let p = pattern (Ovarpat(x, ty)) in
-      assert (SSet.disjoint (fv_patt p) state_vars);
+      assert (IdSet.disjoint (fv_patt p) state_vars);
       let e = Option.value ~default:(Oconst Oany) e_opt in
       let state_vars_e = fv_expr_updated e in
-      let state_vars_i = SSet.add (ident_name x) state_vars in
+      let state_vars_i = IdSet.add (ident x) state_vars in
       let o = fresh "_o" in
       Elet (unpack state_vars_i (pvar o),
             mk_expr
@@ -513,16 +510,16 @@ and inst_desc ctx state_vars i =
   | Owhile(_e1, _i2) -> not_yet_implemented "while"
   | Oassign(left, e) ->
       let updated = fv_expr_updated e in
-      assert (SSet.subset updated state_vars);
+      assert (IdSet.subset updated state_vars);
       let left_var = var_of_left_value left in
-      Elet (unpack (SSet.remove left_var updated) (pvar { name = left_var }),
+      Elet (unpack (IdSet.remove left_var updated) (pvar left_var),
             left_value_update ctx updated left_var left e,
             mk_expr (pack state_vars eunit.expr))
   | Oassign_state(left, e) ->
       let updated = fv_expr_updated e in
-      assert (SSet.subset updated state_vars);
+      assert (IdSet.subset updated state_vars);
       let left_var = var_of_left_state_value left in
-      Elet (unpack (SSet.remove left_var updated) (pvar { name = left_var }),
+      Elet (unpack (IdSet.remove left_var updated) (pvar left_var),
             left_state_value_update ctx updated left_var left e,
             mk_expr (pack state_vars eunit.expr))
   | Osequence l ->
@@ -532,7 +529,7 @@ and inst_desc ctx state_vars i =
           List.fold_left
             (fun k i ->
               let state_vars' = fv_updated i in
-              assert (SSet.subset state_vars' state_vars);
+              assert (IdSet.subset state_vars' state_vars);
               Elet (unpack state_vars' pany, inst ctx state_vars' i, mk_expr k))
             (inst_desc ctx state_vars i) rev_l
       end
@@ -541,9 +538,9 @@ and inst_desc ctx state_vars i =
       let i2 = Option.value ~default:(Oexp(Oconst Ovoid)) o_i2 in
       let updated_e = fv_expr_updated e in
       let updated_i =
-        SSet.union updated_e (SSet.union (fv_updated i1) (fv_updated i2))
+        IdSet.union updated_e (IdSet.union (fv_updated i1) (fv_updated i2))
       in
-      assert (SSet.subset updated_i state_vars);
+      assert (IdSet.subset updated_i state_vars);
       let b = fresh "_b" in
       let res = fresh "_res_if" in
       Elet (unpack updated_e (pvar b),
@@ -557,10 +554,10 @@ and inst_desc ctx state_vars i =
       let updated_e = fv_expr_updated e in
       let updated_i =
         List.fold_left
-          (fun acc hdl -> SSet.union acc (fv_updated hdl.w_body))
+          (fun acc hdl -> IdSet.union acc (fv_updated hdl.w_body))
           updated_e match_handler_l
       in
-      assert (SSet.subset updated_i state_vars);
+      assert (IdSet.subset updated_i state_vars);
       let match_ =
         let x = fresh "_x" in
         Elet (unpack updated_e (pvar x),
@@ -591,8 +588,8 @@ and left_value_update ctx state_vars left_var left e =
       let tmp = fresh "_tmp" in
       mk_expr (Elet (unpack state_vars (pvar tmp),
                      expression ctx state_vars e,
-                     mk_expr (pack (SSet.remove left_var state_vars)
-                                (Erecord([lident_name x, evar tmp],
+                     mk_expr (pack (IdSet.remove left_var state_vars)
+                                (Erecord([lident x, evar tmp],
                                          Some (mk_expr (left_value left)))))))
   | Oleft_index (_, _) -> not_yet_implemented "left_index update"
   end
@@ -604,23 +601,23 @@ and left_state_value_update ctx state_vars left_var left e =
       let tmp = fresh "_tmp" in
       mk_expr (Elet (unpack state_vars (pvar tmp),
                      expression ctx state_vars e,
-                     mk_expr (pack (SSet.remove left_var state_vars)
-                                (Erecord([ident_name x, evar tmp],
+                     mk_expr (pack (IdSet.remove left_var state_vars)
+                                (Erecord([ident x, evar tmp],
                                          Some self_expr)))))
   | Oleft_state_global _ln -> expression ctx state_vars e
   | Oleft_state_name n ->
       let tmp = fresh "_tmp" in
       mk_expr (Elet (unpack state_vars (pvar tmp),
                      expression ctx state_vars e,
-                     mk_expr (pack (SSet.remove left_var state_vars)
-                                (Erecord([ident_name n, evar tmp],
+                     mk_expr (pack (IdSet.remove left_var state_vars)
+                                (Erecord([ident n, evar tmp],
                                          Some self_expr)))))
   | Oleft_state_record_access(left, n) ->
       let tmp = fresh "_tmp" in
       mk_expr (Elet (unpack state_vars (pvar tmp),
                      expression ctx state_vars e,
-                     mk_expr (pack (SSet.remove left_var state_vars)
-                                (Erecord([lident_name n, evar tmp],
+                     mk_expr (pack (IdSet.remove left_var state_vars)
+                                (Erecord([lident n, evar tmp],
                                          Some (mk_expr (left_state_value left)))))))
   | Oleft_state_index(_left, _idx) ->
       not_yet_implemented "left_state_index update"
@@ -661,14 +658,14 @@ let machine_type memories instances =
     List.fold_right
       (fun { m_name = n } (i, params, entries) ->
          let m = Zmisc.int_to_alpha i in
-         (i+1, m :: params, (ident_name n, Tvar m) :: entries))
+         (i+1, m :: params, ((ident n).name, Tvar m) :: entries))
       memories (0, [], [])
   in
   let i, params, entries =
     List.fold_right
       (fun { i_name = n } (i, params, entries) ->
          let m = Zmisc.int_to_alpha i in
-         (i+1, m :: params, (ident_name n, Tvar m) :: entries))
+         (i+1, m :: params, ((ident n).name, Tvar m) :: entries))
       instances (i, params, entries)
   in
   (params, TKrecord entries)
@@ -685,7 +682,7 @@ let machine_init ma m_reset =
         if m_size <> [] then not_yet_implemented "array in memory";
         let e = Option.value ~default:(Oconst Oany) e_opt in
         let state_vars = fv_expr_updated e in
-        (ident_name n, expression None state_vars e)
+        (ident n, expression None state_vars e)
     | Some _ -> not_yet_implemented "non discrete memory"
     end
   in
@@ -695,7 +692,7 @@ let machine_init ma m_reset =
     if e_list <> [] then assert false;
     begin match ei with
     | Oglobal x when is_sample x || is_observe x || is_factor x ->
-        (ident_name n, eunit)
+        (ident n, eunit)
     | Oapp (Oglobal infer, nb :: f :: args) when get_id infer = "infer" ->
         let f_init =
           match f with
@@ -703,14 +700,14 @@ let machine_init ma m_reset =
           | Olocal x  | Ovar (_, x) -> ident x
           | _ -> assert false
         in
-        (ident_name n, einfer_init (expression None SSet.empty nb) f_init)
+        (ident n, einfer_init (expression None IdSet.empty nb) f_init)
     | Oglobal x ->
-        (ident_name n, instance_init (lident x))
+        (ident n, instance_init (lident x))
     | Olocal x  | Ovar (_, x) ->
-        (ident_name n, instance_init (ident x))
+        (ident n, instance_init (ident x))
     | Oapp (Oglobal f, args) ->
         let f = evar (lident f) in
-        let args = List.map (expression None SSet.empty) args in
+        let args = List.map (expression None IdSet.empty) args in
         let tmp = fresh "_tmp" in
         let instance =
           mk_expr (Elet (pvar tmp,
@@ -719,7 +716,7 @@ let machine_init ma m_reset =
                            f args,
                          instance_init tmp))
         in
-        (ident_name n,  instance)
+        (ident n,  instance)
     | _ -> assert false
     end
   in
@@ -742,16 +739,16 @@ let machine_init ma m_reset =
 
 let machine_method ma { me_name = me_name; me_params = pat_list;
                                     me_body = i; me_typ = _ty } =
-  let state_vars = SSet.singleton self.name in
+  let state_vars = IdSet.singleton self in
   begin match split_proba_patt pat_list with
   | None ->
-      assert (SSet.subset (fv_updated i) state_vars);
+      assert (IdSet.subset (fv_updated i) state_vars);
       let args = ptuple [ self_patt; (ptuple (List.map pattern pat_list)) ] in
       let body = instruction (Some ma) state_vars i in
       args, body
   | Some (prob, pat_list) ->
-      let state_vars = SSet.add prob.name state_vars in
-      assert (SSet.subset (fv_updated i) state_vars);
+      let state_vars = IdSet.add prob state_vars in
+      assert (IdSet.subset (fv_updated i) state_vars);
       let args =
         ptuple [ self_patt;
                  ptuple (pvar prob :: List.map pattern pat_list) ] in
@@ -774,7 +771,7 @@ let machine name m =
       n_init = machine_init m m_reset;
       n_step = machine_method m m_step; }
   in
-  mk_decl (Dnode ({ name = name }, params, node))
+  mk_decl (Dnode (name, params, node))
 
 
 let type_decl tdecl =
@@ -785,8 +782,8 @@ let type_decl tdecl =
       TKvariant_type
         (List.map
            (function
-             | Oconstr0decl x -> ({ name = x }, None)
-             | Oconstr1decl (x, l) -> ({ name = x }, Some (List.map type_expression l)))
+             | Oconstr0decl x -> (x, None)
+             | Oconstr1decl (x, l) -> (x, Some (List.map type_expression l)))
            l)
   | Orecord_type l ->
       TKrecord (List.map (fun (x,t) -> (x, type_expression t)) l)
@@ -794,7 +791,8 @@ let type_decl tdecl =
 let implementation impl =
   begin match impl with
   | Oletvalue (x, i) ->
-      [ mk_decl (Ddecl (pvar {name = x}, instruction None (fv_updated i) i)) ]
+      [ mk_decl (Ddecl (pvar {modul = None; name = x},
+                        instruction None (fv_updated i) i)) ]
   | Oletfun (f, args, i) ->
       let args =
         begin match args with
@@ -803,7 +801,7 @@ let implementation impl =
         | _ -> mk_patt (Ptuple (List.map pattern args))
         end
       in
-     [ mk_decl (Dfun ({name = f}, args, instruction None (fv_updated i) i)) ]
+     [ mk_decl (Dfun (f, args, instruction None (fv_updated i) i)) ]
   | Oletmachine (x, m) ->
       [ machine x m ]
   | Oopen m ->
@@ -812,7 +810,7 @@ let implementation impl =
       [ mk_decl (Dtype
                    (List.map
                       (fun (t, args, decl) ->
-                        ({ name = t }, args, type_decl decl))
+                        (t, args, type_decl decl))
                       l)) ]
   end
 

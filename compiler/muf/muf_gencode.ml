@@ -7,8 +7,23 @@ let with_loc: type a. a -> a with_loc = begin
       loc = Location.none; }
 end
 
-let muf_lib x =
-  with_loc (Longident.Ldot (Longident.Lident "Muflib", x))
+let lident : identifier -> Longident.t = begin
+  fun x ->
+    begin match x.modul with
+    | None -> Longident.Lident x.name
+    | Some m -> Longident.Ldot (Longident.Lident m, x.name)
+    end
+end
+
+let lid : identifier -> Ast_helper.lid = begin
+  fun x ->
+    with_loc (lident x)
+end
+
+let muf_lib : string -> Ast_helper.lid = begin
+  fun  x ->
+    with_loc (Longident.Ldot (Longident.Lident "Muflib", x))
+end
 
 let rec compile_const_patt: constant -> Parsetree.pattern = begin
   fun c ->
@@ -58,7 +73,7 @@ let rec compile_patt: type a. a pattern -> Parsetree.pattern = begin
     | Pid x -> Pat.var (with_loc x.name)
     | Pconst c -> compile_const_patt c
     | Pconstr (x, p) ->
-        let x = with_loc (Longident.Lident x.name) in
+        let x = lid x in
         Pat.construct x (Option.map compile_patt p)
     | Ptuple l -> Pat.tuple (List.map compile_patt l)
     | Pany -> Pat.any ()
@@ -72,19 +87,19 @@ let rec compile_expr:
     begin match e.expr with
     | Econst c -> compile_const_expr c
     | Econstr (c, e) ->
-        Exp.construct (with_loc (Longident.Lident c.name))
+        Exp.construct (lid c)
           (Option.map compile_expr e)
-    | Evar x -> Exp.ident (with_loc (Longident.Lident x.name))
+    | Evar x -> Exp.ident (lid x)
     | Etuple l -> Exp.tuple (List.map compile_expr l)
     | Erecord ([], None) ->
         Exp.construct (with_loc (Longident.Lident "()")) None
     | Erecord (l, oe) ->
         let compile_field (x, e) =
-          (with_loc (Longident.Lident x), compile_expr e)
+          (lid x, compile_expr e)
         in
         Exp.record (List.map compile_field l) (Option.map compile_expr oe)
     | Efield (e, x) ->
-        Exp.field (compile_expr e) (with_loc (Longident.Lident x))
+        Exp.field (compile_expr e) (lid x)
     | Eapp (e1, e2) -> Exp.apply (compile_expr e1) [Nolabel, compile_expr e2]
     | Efun (p, e) -> Exp.fun_ Nolabel None (compile_patt p) (compile_expr e)
     | Eif (e, e1, e2) ->
@@ -133,7 +148,7 @@ let rec compile_expr:
         let model =
           Exp.apply (Exp.ident (muf_lib "cnode_of_muf_proba_node"))
             [ Nolabel,
-              Exp.ident (with_loc (Longident.Lident f_init.name)) ]
+              Exp.ident (lid f_init) ]
         in
         let infer =
           let infer_id = Longident.Lident "infer" in
@@ -160,10 +175,10 @@ end
 
 
 let compile_type_decl:
-    identifier -> string list * type_declaration ->
+    string -> string list * type_declaration ->
       Parsetree.type_declaration = begin
   fun name (params, decl) ->
-    let name = with_loc name.name in
+    let name = with_loc name in
     let params =
       List.map (fun a -> (Typ.var a,
                           (Asttypes.NoVariance, Asttypes.NoInjectivity)))
@@ -182,12 +197,12 @@ let compile_type_decl:
           Parsetree.Ptype_variant
             (List.map (fun (x, ot) ->
               match ot with
-              | None -> Type.constructor (with_loc x.name)
+              | None -> Type.constructor (with_loc x)
               | Some tl ->
                   let args =
                     Parsetree.Pcstr_tuple (List.map compile_type_expr tl)
                   in
-                  Type.constructor ~args (with_loc x.name))
+                  Type.constructor ~args (with_loc x))
                l)
         in
         Type.mk ~params ~kind name
@@ -202,7 +217,7 @@ let compile_type_decl:
 end
 
 let compile_node: type a b.
-      identifier -> a pattern list -> (a pattern, b expression) node ->
+      string -> a pattern list -> (a pattern, b expression) node ->
         Parsetree.structure_item list = begin
   fun f params n ->
   let compile_method (p, e) =
@@ -218,7 +233,7 @@ let compile_node: type a b.
   let params = List.map compile_patt params @ [ Pat.any () ] in
   let decl =
     Str.value Nonrecursive
-      [ Vb.mk (Pat.var (with_loc f.name))
+      [ Vb.mk (Pat.var (with_loc f))
           (List.fold_right (fun p k -> Exp.fun_ Nolabel None p k)
              params record) ]
   in
@@ -232,7 +247,7 @@ let compile_decl: type a. a declaration -> Parsetree.structure_item list = begin
         [ Str.value Nonrecursive [ Vb.mk (compile_patt p) (compile_expr e) ] ]
     | Dfun (f, p, e) ->
         [ Str.value Nonrecursive
-            [ Vb.mk (Pat.var (with_loc f.name))
+            [ Vb.mk (Pat.var (with_loc f))
                 (Exp.fun_ Nolabel None (compile_patt p) (compile_expr e)) ] ]
     | Dnode (f, pl, n) -> compile_node f pl n
     | Dtype l ->
