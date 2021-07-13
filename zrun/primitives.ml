@@ -304,7 +304,7 @@ let list_of_primitives =
    ">=", binop gte_op]
 
 let genv0 =
-  let genv0 = Genv.initialize "Stdlib" in
+  let genv0 = Genv.initialize "Stdlib" [] in
   List.fold_left
     (fun acc (n, v) -> Genv.add n (Vfun v) acc) genv0 list_of_primitives
   

@@ -98,11 +98,11 @@ let open_module genv modname =
   let m, genv = find_module modname genv in
   { genv with opened = m :: genv.opened }
       
-let initialize modname =
+let initialize modname default_used_modules =
   let genv =
     { current = { name = modname; values = E.empty };
     opened = []; modules = E.empty } in
-  List.fold_left open_module genv !default_used_modules  
+  List.fold_left open_module genv default_used_modules  
   
 let add f pvalue ({ current } as genv) =
   let current =
