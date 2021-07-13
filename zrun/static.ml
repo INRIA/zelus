@@ -167,7 +167,7 @@ let eval genv env e =
          let* _ = bool v in
          eval env e_body
       | Elast _ -> None in
-    r
+    stop_at_location e_loc r
     
   and record_access { label; arg } =
     (* look for [label] in the value of [arg] *)
@@ -219,47 +219,48 @@ let eval genv env e =
        return (v :: v_list)
        
   (* step function for an equation *)
-  and eval_eq env { eq_desc } =
-    match eq_desc with 
-    | EQeq(p, e) -> 
-       let* v = eval env e in
-       let* env_p1 = pmatching Env.empty v p in
-       return env_p1
-    | EQif(e, eq1, eq2) ->
-       let* v = eval env e in
-       let* v = bool v in
-       if v then
-         let* env1 = eval_eq env eq1 in
-         return env1
-       else
-         let* env2 = eval_eq env eq2 in
-         return env2
-    | EQand(eq_list) ->
-       let and_eq env acc eq =
-         let* env_eq = eval_eq env eq in
-         let* acc = merge env_eq acc in
-         return acc in
-       let* env_eq = fold (and_eq env) Env.empty eq_list in
-       return env_eq
-    | EQreset(eq, e) -> 
-       let* v = eval env e in 
-       let* v = bool v in
-       reset env eq v
-    | EQempty -> return Env.empty
-    | EQassert(e) ->
-       let* v = eval env e in
-       let* v = bool v in
-       (* stop when [no_assert = true] *)
-       if !no_assert then return Env.empty
-       else if v then return Env.empty else None
-    | EQlet({ l_rec; l_eq }, eq) ->
-       if l_rec then None
-       else
-         let* l_env = eval_eq env l_eq in
-         eval_eq (Env.append l_env env) eq
-    | EQder _ | EQpresent _ | EQinit _
-      | EQemit _ | EQlocal _ | EQautomaton _ | EQmatch _ -> None
-                                                          
+  and eval_eq env { eq_desc; eq_loc } =
+    let r = match eq_desc with 
+      | EQeq(p, e) -> 
+         let* v = eval env e in
+         let* env_p1 = pmatching Env.empty v p in
+         return env_p1
+      | EQif(e, eq1, eq2) ->
+         let* v = eval env e in
+         let* v = bool v in
+         if v then
+           let* env1 = eval_eq env eq1 in
+           return env1
+         else
+           let* env2 = eval_eq env eq2 in
+           return env2
+      | EQand(eq_list) ->
+         let and_eq env acc eq =
+           let* env_eq = eval_eq env eq in
+           let* acc = merge env_eq acc in
+           return acc in
+         let* env_eq = fold (and_eq env) Env.empty eq_list in
+         return env_eq
+      | EQreset(eq, e) -> 
+         let* v = eval env e in 
+         let* v = bool v in
+         reset env eq v
+      | EQempty -> return Env.empty
+      | EQassert(e) ->
+         let* v = eval env e in
+         let* v = bool v in
+         (* stop when [no_assert = true] *)
+         if !no_assert then return Env.empty
+         else if v then return Env.empty else None
+      | EQlet({ l_rec; l_eq }, eq) ->
+         if l_rec then None
+         else
+           let* l_env = eval_eq env l_eq in
+           eval_eq (Env.append l_env env) eq
+      | EQder _ | EQpresent _ | EQinit _
+        | EQemit _ | EQlocal _ | EQautomaton _ | EQmatch _ -> None in
+    stop_at_location eq_loc r
+                                                            
   and reset env eq r =
     if r then eval_eq env eq else None
     
@@ -275,8 +276,9 @@ let eval genv env e =
        | Some(env_pat) ->
           let env = Env.append env_pat env in
           eval env m_body
-
+          
   and funexp genv env fe =
     let env = Env.map (fun v -> Value(v)) env in
     return (Vclosure(fe, genv, env)) in
   eval env e
+      

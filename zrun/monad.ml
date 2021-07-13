@@ -138,15 +138,13 @@ module Misc =
 
 module Result =
   struct
-    open Result
+    include Result
     (* [let* x = e in f x] *)
     let (let*) e f =
       match e with
       | Error(v) -> Error(v)
       | Ok(v) -> f v
 
-    let to_option x = Result.to_option x
-                       
     let return v = Ok(v)
 
     let error v = Error(v)
