@@ -205,11 +205,6 @@ let eval genv env e =
        let* fv = Result.to_option (fv v) in
        apply fv v_list
     
-  and result env { r_desc } =
-    match r_desc with
-    | Exp(e) -> eval env e
-    | Returns(b) -> None
-                 
   and eval_list env e_list =
     match e_list with
     | [] -> return []
@@ -243,8 +238,8 @@ let eval genv env e =
          return env_eq
       | EQreset(eq, e) -> 
          let* v = eval env e in 
-         let* v = bool v in
-         reset env eq v
+         let* _ = bool v in
+         eval_eq env eq
       | EQempty -> return Env.empty
       | EQassert(e) ->
          let* v = eval env e in
@@ -260,9 +255,6 @@ let eval genv env e =
       | EQder _ | EQpresent _ | EQinit _
         | EQemit _ | EQlocal _ | EQautomaton _ | EQmatch _ -> None in
     stop_at_location eq_loc r
-                                                            
-  and reset env eq r =
-    if r then eval_eq env eq else None
     
   and match_handlers env v handlers =
     match handlers with

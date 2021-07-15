@@ -153,10 +153,10 @@ let complete_with_default env env_handler =
     env_handler Env.empty
 
 (* equality of values in the fixpoint iteration. Because of monotonicity *)
-(* only compare bot/nil with non bot/nil values *)
-let equal_values v1 v2 =
+(* only compare bot/nil with non bot/nil values. *)
+let equal_values_or_max v1 v2 =
   match v1, v2 with
-  | (Vbot, Vbot) | (Vnil, Vnil) | (Value _, Value _) -> true
+  | (_, Value _) | (Vbot, Vbot) | (Vnil, Vnil) -> true
   | _ -> false
 
 (* Dynamic check of causality. A set of equations is causal when all defined *)
@@ -187,14 +187,14 @@ let causal env env_out names =
 
 (* bounded fixpoint combinator *)
 (* computes a pre fixpoint f^n(bot) <= fix(f) *)
-let fixpoint n equal f s bot =
+let fixpoint n stop f s bot =
   let rec fixpoint n v =
     if n <= 0 then (* this case should not happen *)
       return (0, v, s)
     else
       (* compute a fixpoint for the value [v] keeping the current state *)
       let* v', s' = f s v in
-      if equal v v' then return (n, v, s') else fixpoint (n-1) v' in      
+      if stop v v' then return (n, v', s') else fixpoint (n-1) v' in      
   (* computes the next state *)
   fixpoint n bot
   
@@ -203,8 +203,15 @@ let fixpoint n equal f s bot =
 (* which is fully defined *)
 let equal_env env1 env2 =
   Env.equal
-    (fun { cur = cur1} { cur = cur2 } -> equal_values cur1 cur2) env1 env2
-    
+    (fun { cur = cur1} { cur = cur2 } -> equal_values_or_max cur1 cur2)
+    env1 env2
+
+let max_env env =
+  Env.for_all (fun _ { cur } -> match cur with | Vbot -> false | _ -> true) env
+
+let equal_env env1 env2 =
+  (max_env env2) || (equal_env env1 env2)
+
 (* bounded fixpoint for a set of equations *)
 let fixpoint_eq genv env sem eq n s_eq bot =
   let sem s_eq env_in =
@@ -219,6 +226,7 @@ let fixpoint_eq genv env sem eq n s_eq bot =
   Sdebug.print_number "Actual number of iterations:" (n - m);
   Sdebug.print_number "Max was:" n;
   Sdebug.print_ienv "End of fixpoint with env:" env_out;
+  Smisc.incr_number_of_fixpoint_iterations (n - m);
   return (env_out, s_eq)
 
 (* Pattern matching *)
@@ -631,8 +639,10 @@ let rec sexp genv env { e_desc = e_desc; e_loc } s =
      (* [f] must return a combinatorial function *)
      let* v, s = sexp genv env e s in
      let* v_list, s_list = sexp_list genv env e_list s_list in
-     let* v = pvalue v in
-     let* v = apply v v_list in
+     let* v =
+       match v with
+       | Vbot -> return Vbot | Vnil -> return Vnil
+       | Value(v) -> apply v v_list in
      return (v, Stuple (s :: s_list)) 
   | Elet(l_eq, e), Stuple [s_eq; s] ->
      let* env_eq, s_eq = sleq genv env l_eq s_eq in
@@ -643,14 +653,20 @@ let rec sexp genv env { e_desc = e_desc; e_loc } s =
   stop_at_location e_loc r
 
 and apply fv v_list =
-    match v_list with
-    | [] -> return (Value fv)
-    | v :: v_list ->
-       let* v = pvalue v in
-       let* fv = get_fun fv in
-       let* fv = Result.to_option (fv v) in
-       apply fv v_list
-    
+  match v_list with
+  | [] -> return (Value fv)
+  | v :: v_list ->
+     match fv with
+     | Vfun(op) ->
+        let* fv =
+          match v with
+          | Vbot -> return Vbot | Vnil -> return Vnil
+          | Value(v) ->
+             let* fv = Result.to_option (op v) in
+             apply fv v_list in
+        return fv
+     | _ -> None
+          
 and sexp_list genv env e_list s_list =
   match e_list, s_list with
   | [], [] -> return ([], [])
@@ -1143,9 +1159,13 @@ and matching_arg env arg v =
      Opt.fold2 matching_in env l v_list
   | _ -> None
        
-and funexp genv env fe =
-  return (Value(Vclosure(fe, genv, env)))
-
+and funexp genv env {f_kind; f_args; f_body } =
+  match f_kind with
+  | Kfun | Kstatic ->
+     funval genv env f_args f_body
+  | Knode | Khybrid ->
+     nodeval genv env f_args f_body
+    
 (* make a function value *)
 and funval genv env f_args f_body =
   (* combinatorial function *)
@@ -1156,7 +1176,6 @@ and funval genv env f_args f_body =
      let* v = pvalue v in
      return v
   | arg :: f_args ->
-     let* si = Opt.map (ivardec genv Env.empty) arg in
      return
        (Vfun
           (fun v ->
@@ -1171,33 +1190,35 @@ and nodeval genv env f_args f_body =
      (* compute the initial state *)
      let* s_list = Opt.map (ivardec genv env) arg in
      let* s_body = iresult genv env f_body in
+     (* computes the step function *)
+     let step s v =
+       to_result ~none: Error.Etype
+         (match s with
+          | Stuple (s_body :: s_list) ->
+             let* v_list =
+               match v with
+               | Vbot | Vnil -> return [v]
+               | Value(Vvoid) -> return []
+               | Value(Vtuple(v_list)) -> return v_list
+               | Value(Vstuple(v_list)) ->
+                  return (List.map (fun v -> Value(v)) v_list)
+               | _ -> None in
+             let* env_arg, s_list =
+               Opt.mapfold3
+                 (svardec genv env) Env.empty arg s_list v_list in
+             let env = Env.append env_arg env in
+             let* r, s_body = sresult genv env f_body s_body in
+             return (r, Stuple (s_body :: s_list))
+          | _ -> None) in
+     return (Vnode { init = Stuple (s_body :: s_list); step = step })
+  | arg :: arg_list ->
      return
-       (Vnode
-          { init = Stuple (s_body :: s_list);
-            step =
-              fun s v ->
-              to_result ~none: Error.Etype
-                (match s with
-                 | Stuple (s_body :: s_list) ->
-                    let* v_list =
-                      match v with
-                      | Vbot | Vnil -> return [v]
-                      | Value(Vvoid) -> return []
-                      | Value(Vtuple(v_list)) -> return v_list
-                      | Value(Vstuple(v_list)) ->
-                         return (List.map (fun v -> Value(v)) v_list)
-                      | _ -> None in
-                    let* env_arg, s_list =
-                      Opt.mapfold3
-                        (svardec genv env) Env.empty arg s_list v_list in
-                    let env = Env.append env_arg env in
-                    let* r, s_body = sresult genv env f_body s_body in
-                    return (r, Stuple (s_body :: s_list))
-                 | _ -> None) })
-  | arg :: f_body ->
-     None
-  | [] ->
-     None
+       (Vfun
+          (fun v ->
+            to_result ~none:Error.Etype
+              (let* env = matching_arg env arg (Value v) in
+               nodeval genv env f_args f_body)))
+  | [] -> None
     
 let exp genv env e =
   let* init = iexp genv env e in
