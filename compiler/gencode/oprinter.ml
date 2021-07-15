@@ -259,6 +259,9 @@ and exp prio ff e =
   (*added here*)
   | Ostore(cmd, key) ->
       fprintf ff "robot_store(%s , %f)" cmd key
+  | Ocontrol (e) -> 
+      print_endline("Ocontrol printing");
+      fprintf ff "print_endline(\"robot is moving\")"   
   | Oinst(i) -> inst prio ff i
   end;
   if prio_e < prio then fprintf ff ")"

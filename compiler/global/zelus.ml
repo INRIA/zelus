@@ -142,6 +142,8 @@ and op =
   | Eassert  (*custom keyword*)
   (*added here*)
   | Emove (*custom keyword*)
+  (*added here*)
+  | Econtrol (*custom keyword*)
   | Einitial (* true at the very first instant *)
   | Edisc (* discontinuity of a flow *)
   | Ehorizon (* generate an event at a given horizon *)

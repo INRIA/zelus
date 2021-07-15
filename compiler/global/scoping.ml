@@ -270,6 +270,8 @@ and operator loc env = function
   | Eup -> Zelus.Eup
   (*added here*)
   | Emove -> Zelus.Emove
+  (*added here*)
+  | Econtrol -> Zelus.Econtrol
   | Einitial -> Zelus.Einitial
   | Edisc -> Zelus.Edisc
   | Etest -> Zelus.Etest

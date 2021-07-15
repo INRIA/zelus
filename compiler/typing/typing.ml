@@ -821,6 +821,10 @@ and operator expected_k h loc op e_list =
     | Emove ->
         let ty = new_var () in
         Tdiscrete(true), [Initial.typ_int], ty
+    (*added here*)
+    | Econtrol ->
+        let ty = new_var () in
+        Tdiscrete(true), [Initial.typ_int; Initial.typ_int], ty
     | Etest ->
         let ty = new_var () in
         Tany, [Initial.typ_bool], Initial.typ_signal ty
