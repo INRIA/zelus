@@ -284,7 +284,7 @@ let compile_decl : type a. formatter -> a declaration -> unit = begin
           | Some _ -> fprintf ff "from zlax.%s import *@," m
           | None ->
             begin match Muf_libs_name.SSet.find_opt m Muf_libs_name.module_names_probzeluc with
-            | Some _ -> fprintf ff "from probzelus.%s import *@," m
+            | Some _ -> fprintf ff "from probzlax.%s import *@," m
             | None -> fprintf ff "from %s import *@," m
             end
           end
@@ -299,7 +299,7 @@ let compile_import_modules : type t. formatter -> Muf_utils.SSet.t -> unit = beg
         | Some _ -> fprintf ff "from zlax import %s@," m
         | None -> 
           begin match Muf_libs_name.SSet.find_opt m Muf_libs_name.module_names_probzeluc with
-          | Some _ -> fprintf ff "from probzelus import %s@," m
+          | Some _ -> fprintf ff "from probzlax import %s@," m
           | None -> fprintf ff "import %s@," m
           end
         end
