@@ -56,16 +56,14 @@ let rec pmatching acc v { pat_desc } =
        | Some(env) -> return (Env.append env acc) in
      acc
   | Vrecord(l_v_list), Erecordpat(l_p_list) ->
-     let matching_record acc
-           { arg = v; label = l } { arg = p; label = l' } =
-       if l = l' then pmatching acc v p
-       else None in
-     let compare { label = l1 } { label = l2 } = Lident.compare l1 l2 in
-     let l_v_list =
-       List.sort compare l_v_list in
-     let l_p_list =
-       List.sort compare l_p_list in
-     Opt.fold2 matching_record acc l_v_list l_p_list
+     let rec find l = function
+       | [] -> None
+       | { label; arg = v } :: p_v_list ->
+          if l = label then return v else find l p_v_list in
+     Opt.fold
+       (fun acc { label; arg = p } ->
+         let* v = find label l_v_list in
+         pmatching acc v p) acc l_p_list
   | Vint(v1), Econstpat(Eint(v2)) when v1 = v2 -> return Env.empty
   | Vbool(v1), Econstpat(Ebool(v2)) when v1 = v2 -> return Env.empty
   | Vfloat(v1), Econstpat(Efloat(v2)) when v1 = v2 -> return Env.empty
@@ -98,179 +96,238 @@ let immediate v =
   | Estring(s) -> Vstring(s)
 
 (* evaluation functions *)
-let eval genv env e =
-  let rec eval env { e_desc; e_loc } =
-    let r = match e_desc with   
-      | Econst(v) ->
-         return (immediate v)
-      | Econstr0 { lname } ->
-         return (Vconstr0(lname))
-      | Elocal x ->
-         let* v = find_value_opt x env in
-         return v
-      | Eglobal { lname } ->
-         let* v = find_gvalue_opt lname genv in
-         return v
-      | Eop(op, e_list) ->
-         begin match op, e_list with
-         | Eifthenelse, [e1; e2; e3] ->
-            let* v = eval env e1 in
-            let* v = bool v in
-            if v then eval env e2
-            else eval env e3
-         | _ -> None 
-         end
-      | Econstr1 { lname; arg_list } ->
-         let* v_list = eval_list env arg_list in
-         return (Vconstr1(lname, v_list))
-      | Etuple(e_list) ->
-         let* v_list = eval_list env e_list in
-         return (Vstuple(v_list))
-      | Eapp(f, e_list) ->
-         let* v = eval env f in
-         let* v_list = eval_list env e_list in
-         apply v v_list
-      | Elet({ l_rec; l_eq }, e) ->
-         if l_rec then None
-         else
-           let* l_env = eval_eq env l_eq in
-           eval (Env.append l_env env) e
-      | Ematch { e; handlers } ->
-         let* v = eval env e in
-         match_handlers env v handlers
-      | Erecord_access { label; arg } ->
-         let* arg = eval env arg in
-         record_access { label; arg }  
-      | Erecord(r_list) ->
-         let* r_list =
-           Opt.map
-             (fun { label; arg } ->
-               let* arg = eval env arg in return ({ label; arg }))
-             r_list in
-         return (Vrecord(r_list))
-      | Erecord_with(r, r_list) ->
-         let* r = eval env r in
-         let* label_arg_list = get_record r in
-         let* label_arg_list' =
-           Opt.map
-             (fun { label; arg } ->
-               let* arg = eval env arg in return ({ label; arg }))
-             r_list in
-         let* r = record_with label_arg_list label_arg_list in
-         return (Vrecord(r))
-      | Etypeconstraint(e, _) -> eval env e
-      | Efun(fe) ->
-         funexp genv env fe
-      | Epresent _ -> None
-      | Ereset(e_body, e_res) ->
-         let* v = eval env e_res in
-         let* _ = bool v in
-         eval env e_body
-      | Elast _ -> None in
-    stop_at_location e_loc r
+let rec exp genv env { e_desc; e_loc } =
+  let r = match e_desc with   
+    | Econst(v) ->
+       return (immediate v)
+    | Econstr0 { lname } ->
+       return (Vconstr0(lname))
+    | Elocal x ->
+       let* v = find_value_opt x env in
+       return v
+    | Eglobal { lname } ->
+       let* v = find_gvalue_opt lname genv in
+       return v
+    | Eop(op, e_list) ->
+       begin match op, e_list with
+       | Eifthenelse, [e1; e2; e3] ->
+          let* v = exp genv env e1 in
+          let* v = bool v in
+          if v then exp genv env e2
+          else exp genv env e3
+       | _ -> None 
+       end
+    | Econstr1 { lname; arg_list } ->
+       let* v_list = exp_list genv env arg_list in
+       return (Vconstr1(lname, v_list))
+    | Etuple(e_list) ->
+       let* v_list = exp_list genv env e_list in
+       return (Vstuple(v_list))
+    | Eapp(f, e_list) ->
+       let* v = exp genv env f in
+       let* v_list = exp_list genv env e_list in
+       apply genv env v v_list
+    | Elet({ l_rec; l_eq }, e) ->
+       if l_rec then None
+       else
+         let* l_env = eval_eq genv env l_eq in
+         exp genv (Env.append l_env env) e
+    | Ematch { e; handlers } ->
+       let* v = exp genv env e in
+       match_handlers genv env v handlers
+    | Erecord_access { label; arg } ->
+       let* arg = exp genv env arg in
+       record_access { label; arg }  
+    | Erecord(r_list) ->
+       let* r_list =
+         Opt.map
+           (fun { label; arg } ->
+             let* arg = exp genv env arg in return ({ label; arg }))
+           r_list in
+       return (Vrecord(r_list))
+    | Erecord_with(r, r_list) ->
+       let* r = exp genv env r in
+       let* label_arg_list = get_record r in
+       let* label_arg_list' =
+         Opt.map
+           (fun { label; arg } ->
+             let* arg = exp genv env arg in return ({ label; arg }))
+           r_list in
+       let* r = record_with label_arg_list label_arg_list in
+       return (Vrecord(r))
+    | Etypeconstraint(e, _) -> exp genv env e
+    | Efun(fe) ->
+       funexp genv env fe
+    | Epresent _ -> None
+    | Ereset(e_body, e_res) ->
+       let* v = exp genv env e_res in
+       let* _ = bool v in
+       exp genv env e_body
+    | Elast _ -> None in
+  stop_at_location e_loc r
     
-  and record_access { label; arg } =
-    (* look for [label] in the value of [arg] *)
-    let* record_list = get_record arg in
-    let rec find l record_list =
-      match record_list with
-      | [] -> None
-      | { label; arg } :: record_list -> if label = l then return arg
-                                         else find l record_list in
-    find label record_list
-    
-  and record_with label_arg_list ext_label_arg_list = 
-    (* inject {label; arg} into a record *)
-    let rec inject label_arg_list l arg =
-      match label_arg_list with
-      | [] -> None
-      | { label } as entry :: label_arg_list ->
-         if label = l then return ({ label; arg } :: label_arg_list)
-         else let* label_arg_list = inject label_arg_list l arg in
-              return (entry :: label_arg_list) in
-    (* join the two *)
-    let rec join label_arg_list ext_label_arg_list =
-      match ext_label_arg_list with
-      | [] -> return label_arg_list
-      | { label; arg } :: ext_label_arg_list ->
-         let* label_arg_list = inject label_arg_list label arg in
-         join label_arg_list ext_label_arg_list in
-    join label_arg_list ext_label_arg_list
-    
-  and apply fv v_list =
-    match v_list with
+and exp_list genv env e_list = Opt.map (exp genv env) e_list
+
+and record_access { label; arg } =
+  (* look for [label] in the value of [arg] *)
+  let* record_list = get_record arg in
+  let rec find l record_list =
+    match record_list with
+    | [] -> None
+    | { label; arg } :: record_list ->
+       if label = l then return arg
+       else find l record_list in
+  find label record_list
+  
+and record_with label_arg_list ext_label_arg_list = 
+  (* inject {label; arg} into a record *)
+  let rec inject label_arg_list l arg =
+    match label_arg_list with
+    | [] -> None
+    | { label } as entry :: label_arg_list ->
+       if label = l then return ({ label; arg } :: label_arg_list)
+       else let* label_arg_list = inject label_arg_list l arg in
+            return (entry :: label_arg_list) in
+  (* join the two *)
+  let rec join label_arg_list ext_label_arg_list =
+    match ext_label_arg_list with
+    | [] -> return label_arg_list
+    | { label; arg } :: ext_label_arg_list ->
+       let* label_arg_list = inject label_arg_list label arg in
+       join label_arg_list ext_label_arg_list in
+  join label_arg_list ext_label_arg_list
+  
+and apply genv env fv v_list =
+  (* apply a closure to a list of arguments *)
+  let rec apply_closure genv env fe f_args v_list f_body =
+    match f_args, v_list with
+    | [], [] ->
+       result genv env f_body
+    | arg :: f_args, v :: v_list ->
+       let* env = matching_arg_in env arg v in
+       apply_closure genv env fe f_args v_list f_body
+    | [], _ ->
+       let* fv = result genv env f_body in
+       apply genv env fv v_list
+    | _, [] ->
+       let env = Env.map (fun v -> Value v) env in
+       return (Vclosure({ fe with f_args = f_args }, genv, env)) in
+  (* main entry *)
+  match v_list with
     | [] -> return fv
     | v :: v_list ->
-       let* fv = get_fun fv in
-       let* fv = Result.to_option (fv v) in
-       apply fv v_list
-    
-  and eval_list env e_list =
-    match e_list with
-    | [] -> return []
-    | e :: e_list ->
-       let* v = eval env e in
-       let* v_list = eval_list env e_list in
-       return (v :: v_list)
-       
-  (* step function for an equation *)
-  and eval_eq env { eq_desc; eq_loc } =
-    let r = match eq_desc with 
-      | EQeq(p, e) -> 
-         let* v = eval env e in
-         let* env_p1 = pmatching Env.empty v p in
-         return env_p1
-      | EQif(e, eq1, eq2) ->
-         let* v = eval env e in
-         let* v = bool v in
-         if v then
-           let* env1 = eval_eq env eq1 in
-           return env1
-         else
-           let* env2 = eval_eq env eq2 in
-           return env2
-      | EQand(eq_list) ->
-         let and_eq env acc eq =
-           let* env_eq = eval_eq env eq in
-           let* acc = merge env_eq acc in
-           return acc in
-         let* env_eq = fold (and_eq env) Env.empty eq_list in
-         return env_eq
-      | EQreset(eq, e) -> 
-         let* v = eval env e in 
-         let* _ = bool v in
-         eval_eq env eq
-      | EQempty -> return Env.empty
-      | EQassert(e) ->
-         let* v = eval env e in
-         let* v = bool v in
-         (* stop when [no_assert = true] *)
-         if !no_assert then return Env.empty
-         else if v then return Env.empty else None
-      | EQlet({ l_rec; l_eq }, eq) ->
-         if l_rec then None
-         else
-           let* l_env = eval_eq env l_eq in
-           eval_eq (Env.append l_env env) eq
-      | EQder _ | EQpresent _ | EQinit _
-        | EQemit _ | EQlocal _ | EQautomaton _ | EQmatch _ -> None in
-    stop_at_location eq_loc r
-    
-  and match_handlers env v handlers =
-    match handlers with
-    | [] -> None
-    | { m_pat; m_body } :: handlers ->
-       let r = pmatching env v m_pat in
-       match r with
-       | None ->
-          (* this is not the good handler; try an other one *)
-          match_handlers env v handlers
-       | Some(env_pat) ->
-          let env = Env.append env_pat env in
-          eval env m_body
-          
-  and funexp genv env fe =
-    let env = Env.map (fun v -> Value(v)) env in
-    return (Vclosure(fe, genv, env)) in
-  eval env e
+       match fv with
+       | Vfun(op) ->
+          let* fv = Result.to_option (op v) in
+          apply genv env fv v_list
+       (* | Vclosure(({ f_kind = (Kstatic | Kfun); f_args; f_body } as fe,
+                   genv, env)) ->
+          apply_closure genv env fe f_args v_list f_body *)
+       | _ ->
+          (* typing error *)
+          None
+      
+(* step function for an equation *)
+and eval_eq genv env { eq_desc; eq_loc } =
+  let r = match eq_desc with 
+    | EQeq(p, e) -> 
+       let* v = exp genv env e in
+       let* env_p1 = pmatching Env.empty v p in
+       return env_p1
+    | EQif(e, eq1, eq2) ->
+       let* v = exp genv env e in
+       let* v = bool v in
+       if v then
+         let* env1 = eval_eq genv env eq1 in
+         return env1
+       else
+         let* env2 = eval_eq genv env eq2 in
+         return env2
+    | EQand(eq_list) ->
+       let and_eq env acc eq =
+         let* env_eq = eval_eq genv env eq in
+         let* acc = merge env_eq acc in
+         return acc in
+       let* env_eq = fold (and_eq env) Env.empty eq_list in
+       return env_eq
+    | EQreset(eq, e) -> 
+       let* v = exp genv env e in 
+       let* _ = bool v in
+       eval_eq genv env eq
+    | EQempty -> return Env.empty
+    | EQassert(e) ->
+       let* v = exp genv env e in
+       let* v = bool v in
+       (* stop when [no_assert = true] *)
+       if !no_assert then return Env.empty
+       else if v then return Env.empty else None
+    | EQlet({ l_rec; l_eq }, eq_let) ->
+       if l_rec then None
+       else
+         let* l_env = eval_eq genv env l_eq in
+         eval_eq genv (Env.append l_env env) eq_let
+    | EQder _ | EQpresent _ | EQinit _
+      | EQemit _ | EQlocal _ | EQautomaton _ | EQmatch _ -> None in
+  stop_at_location eq_loc r
+  
+and match_handlers genv env v handlers =
+  match handlers with
+  | [] -> None
+  | { m_pat; m_body } :: handlers ->
+     let r = pmatching env v m_pat in
+     match r with
+     | None ->
+        (* this is not the good handler; try an other one *)
+        match_handlers genv env v handlers
+     | Some(env_pat) ->
+        let env = Env.append env_pat env in
+        exp genv env m_body
+        
+and funexp genv env fe =
+  let env = Env.map (fun v -> Value(v)) env in
+  return (Vclosure(fe, genv, env))
+
+and block genv env { b_vars; b_body; b_loc } =
+  (* a very simple solution. no fixpoint *)
+  let r =
+    let* _ =
+      Opt.fold
+        (fun acc { var_name; var_default; var_init } ->
+          match var_default, var_init with
+          | (None, None) -> return (S.add var_name acc)
+          | _ -> None) S.empty b_vars in
+    let* b_env = eval_eq genv env b_body in
+    return (Env.append b_env env, b_env) in
+  stop_at_location b_loc r
+
+and result genv env { r_desc; r_loc } =
+  let r = match r_desc with
+    | Exp(e) -> exp genv env e
+    | Returns(b) ->
+       let* env, _ = block genv env b in
+       let* v = matching_arg_out env b in
+       return v in
+  stop_at_location r_loc r
+
+and matching_arg_out env { b_vars; b_loc } =
+  let r =
+    let* v_list =
+      Opt.map
+        (fun { var_name } -> find_value_opt var_name env) b_vars in
+    match v_list with
+    | [] -> return (Vvoid)
+    | _ -> return (Vstuple(v_list)) in
+  stop_at_location b_loc r
+  
+and matching_arg_in env arg v =
+  let match_in acc { var_name } v =
+    return (Env.add var_name v acc) in
+  match arg, v with
+  | [], Vvoid -> return env
+  | l, Vtuple(v_list) -> 
+     let* v_list = Opt.map pvalue v_list in
+     Opt.fold2 match_in env l v_list
+  | l, Vstuple(v_list) -> 
+     Opt.fold2 match_in env l v_list
+  | _ -> None
       

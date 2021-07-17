@@ -281,7 +281,7 @@ let rec iexp genv env { e_desc; e_loc  } =
         (* node instanciation. [e1] must be a static expression *)
         let static_env =
           Env.filter_map (fun _ { cur } -> pvalue cur) env in
-        let* s1 = Static.eval genv static_env e1 in
+        let* s1 = Static.exp genv static_env e1 in
         let* s2 = iexp genv env e2 in
         return (Stuple [Sval(Value(s1)); s2])
      | Eatomic, [e] ->
@@ -796,11 +796,11 @@ and sresult genv env { r_desc; r_loc } s =
     | Exp(e) -> sexp genv env e s
     | Returns(b) ->
        let* env, _, s = sblock genv env b s in
-       let* v = matching_out env b in
+       let* v = matching_arg_out env b in
        return (v, s) in
   stop_at_location r_loc r
 
-and matching_out env { b_vars; b_loc } =
+and matching_arg_out env { b_vars; b_loc } =
   let r =
     let* v_list =
       Opt.map
@@ -809,6 +809,19 @@ and matching_out env { b_vars; b_loc } =
     | [] -> return (Value(Vvoid))
     | _ -> return (Value(Vtuple(v_list))) in
   stop_at_location b_loc r
+
+and matching_arg_in env arg v =
+  let match_in acc { var_name } v =
+    return (Env.add var_name { cur = v; default = Val } acc) in
+  match arg, v with
+  | [], Value(Vvoid) -> return env
+  | l, Value(Vtuple(v_list)) -> 
+     Opt.fold2 match_in env l v_list
+  | l, Value(Vstuple(v_list)) -> 
+     let v_list = List.map (fun v -> Value(v)) v_list in
+     Opt.fold2 match_in env l v_list
+  | _ -> None
+       
 
 (* block [local x1 [init e1 | default e1 | ],..., xn [...] do eq done *)
 and sblock genv env { b_vars; b_body = ({ eq_write } as eq); b_loc } s_b =
@@ -1146,19 +1159,6 @@ and smatch_handler_list genv env ve eq_write m_h_list s_list =
      return (env_handler, s_list)
   | _ -> None
 
-and matching_in env { var_name } v =
-  return (Env.add var_name { cur = v; default = Val } env)
-
-and matching_arg env arg v =
-  match arg, v with
-  | [], Value(Vvoid) -> return env
-  | l, Value(Vtuple(v_list)) -> 
-     Opt.fold2 matching_in env l v_list
-  | l, Value(Vstuple(v_list)) -> 
-     let v_list = List.map (fun v -> Value(v)) v_list in
-     Opt.fold2 matching_in env l v_list
-  | _ -> None
-       
 and funexp genv env {f_kind; f_args; f_body } =
   match f_kind with
   | Kfun | Kstatic ->
@@ -1180,7 +1180,7 @@ and funval genv env f_args f_body =
        (Vfun
           (fun v ->
             to_result ~none:Error.Etype
-              (let* env = matching_arg env arg (Value v) in
+              (let* env = matching_arg_in env arg (Value v) in
                funval genv env f_args f_body)))
 
 (* make a node value *)
@@ -1216,16 +1216,10 @@ and nodeval genv env f_args f_body =
        (Vfun
           (fun v ->
             to_result ~none:Error.Etype
-              (let* env = matching_arg env arg (Value v) in
+              (let* env = matching_arg_in env arg (Value v) in
                nodeval genv env f_args f_body)))
   | [] -> None
     
-let exp genv env e =
-  let* init = iexp genv env e in
-  let step s =
-    to_result ~none: Error.Etype (sexp genv env e s) in
-  return (CoF { init = init; step = step })
-  
 let implementation genv { desc; loc } =
   let r = match desc with
     | Eopen(name) ->
@@ -1233,7 +1227,7 @@ let implementation genv { desc; loc } =
        return (Genv.open_module genv name)
     | Eletdecl(f, e) ->
        (* add the entry [f, v] in the current global environment *)
-       let* v = Static.eval genv Env.empty e in
+       let* v = Static.exp genv Env.empty e in
        return (add f v genv)
     | Etypedecl _ ->
        return genv in
