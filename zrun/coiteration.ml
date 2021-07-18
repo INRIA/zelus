@@ -312,32 +312,32 @@ let reset init step genv env body s r =
   let*s = if r then init genv env body else return s in
   step genv env body s
 
+(* Pattern matching *)
+let imatch_handler ibody genv env { m_body } =
+  ibody genv env m_body
+  
 let rec smatch_handler_list genv env ve sbody m_h_list s_list =
   match m_h_list, s_list with
   | [], [] -> None
   | { m_pat; m_body } :: m_h_list, s :: s_list ->
      let r = Static.pmatching Env.empty ve m_pat in
-     let* env_handler, s_list =
+     let* r, s =
        match r with
        | None ->
           (* this is not the good handler; try an other one *)
-          let* env_handler, s_list =
+          let* r, s_list =
             smatch_handler_list genv env ve sbody m_h_list s_list in
-          return (env_handler, s :: s_list)
+          return (r, s :: s_list)
        | Some(env_pat) ->
           let env_pat =
             Env.map (fun v -> { cur = Value v; default = Val }) env_pat in
           let env = Env.append env_pat env in
-          let* env_handler, s = sbody genv env m_body s in
-          return
-            (env_handler, s :: s_list) in
-     return (env_handler, s_list)
+          let* r, s = sbody genv env m_body s in
+          return (r, s :: s_list) in
+     return (r, s)
   | _ -> None
 
-(* Pattern matching *)
-let imatch_handler ibody genv env { m_body } =
-  ibody genv env m_body
-  
+(* Present handler *)
 let ipresent_handler iscondpat ibody genv env { p_cond; p_body } =
   let* sc = iscondpat genv env p_cond in
   let* sb = ibody genv env p_body in
@@ -348,6 +348,34 @@ let idefault_opt ibody genv env d =
   | Init(b) -> ibody genv env b
   | Else(b) -> ibody genv env b
   | NoDefault -> return Sempty
+
+let rec spresent_handler_list genv env ve sscondpat sbody p_h_list s_list =
+  match p_h_list, s_list with
+  | [], [] -> None
+  | { p_cond; p_body } :: m_h_list, Stuple [s_cond; s_body] :: s_list ->
+     let* (r, env_pat), s_cond = sscondpat genv env p_cond s_cond in
+     let* r, s =
+       match r with
+       | Vbot ->
+          return (Vbot, Stuple [s_cond; s_body] :: s_list)
+       | Vnil ->
+          return (Vnil, Stuple [s_cond; s_body] :: s_list)
+       | Value(v) ->
+          let* v = bool v in
+          if v then
+            (* this is the good handler *)
+            let env_pat =
+              Env.map (fun v -> { cur = Value v; default = Val }) env_pat in
+            let env = Env.append env_pat env in
+            let* r, s_body = sbody genv env p_body s_body in
+            return (r, Stuple [s_cond; s_body] :: s_list)
+          else
+            let* r, s_list =
+              spresent_handler_list
+                genv env ve sscondpat sbody p_h_list s_list in
+            return (r, Stuple [s_cond; s_body] :: s_list) in
+     return (r, s)
+  | _ -> None
 
 (* [sem genv env e = CoF f s] such that [iexp genv env e = s] *)
 (* and [sexp genv env e = f] *)
