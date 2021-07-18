@@ -154,9 +154,9 @@ let complete_with_default env env_handler =
 
 (* equality of values in the fixpoint iteration. Because of monotonicity *)
 (* only compare bot/nil with non bot/nil values. *)
-let equal_values_or_max v1 v2 =
+let equal_values v1 v2 =
   match v1, v2 with
-  | (_, Value _) | (Vbot, Vbot) | (Vnil, Vnil) -> true
+  | (Value _, Value _) | (Vbot, Vbot) | (Vnil, Vnil) -> true
   | _ -> false
 
 (* Dynamic check of causality. A set of equations is causal when all defined *)
@@ -203,12 +203,14 @@ let fixpoint n stop f s bot =
 (* which is fully defined *)
 let equal_env env1 env2 =
   Env.equal
-    (fun { cur = cur1} { cur = cur2 } -> equal_values_or_max cur1 cur2)
+    (fun { cur = cur1} { cur = cur2 } -> equal_values cur1 cur2)
     env1 env2
 
 let max_env env =
   Env.for_all (fun _ { cur } -> match cur with | Vbot -> false | _ -> true) env
 
+(* stop the fixpoint when two successive environments are equal *)
+(* or the second one is maximal *)
 let equal_env env1 env2 =
   (max_env env2) || (equal_env env1 env2)
 
@@ -310,6 +312,27 @@ let reset init step genv env body s r =
   let*s = if r then init genv env body else return s in
   step genv env body s
 
+let rec smatch_handler_list genv env ve sbody m_h_list s_list =
+  match m_h_list, s_list with
+  | [], [] -> None
+  | { m_pat; m_body } :: m_h_list, s :: s_list ->
+     let r = Static.pmatching Env.empty ve m_pat in
+     let* env_handler, s_list =
+       match r with
+       | None ->
+          (* this is not the good handler; try an other one *)
+          let* env_handler, s_list =
+            smatch_handler_list genv env ve sbody m_h_list s_list in
+          return (env_handler, s :: s_list)
+       | Some(env_pat) ->
+          let env_pat =
+            Env.map (fun v -> { cur = Value v; default = Val }) env_pat in
+          let env = Env.append env_pat env in
+          let* env_handler, s = sbody genv env m_body s in
+          return
+            (env_handler, s :: s_list) in
+     return (env_handler, s_list)
+  | _ -> None
 
 (* Pattern matching *)
 let imatch_handler ibody genv env { m_body } =
@@ -454,9 +477,10 @@ and ieq genv env { eq_desc; eq_loc  } =
   | EQautomaton { handlers; state_opt } ->
      let* s_list = Opt.map (iautomaton_handler genv env) handlers in
      (* The initial state is the first in the list *)
-     (* it is not given explicitely *)
+     (* if no initialisation code is given *)
      let* a_h = List.nth_opt handlers 0 in
      let* i, si = initial_state_of_automaton genv env a_h state_opt in
+     (* two state variables: initial state of the automaton and reset bit *)
      return (Stuple(i :: Sval(Value(Vbool(false))) :: si :: s_list))
   | EQmatch { e; handlers } ->
      let* se = iexp genv env e in
@@ -608,8 +632,8 @@ and sexp genv env { e_desc = e_desc; e_loc } s =
         let* v = ifthenelse v1 v2 v3 in
         return (v, Stuple [s1; s2; s3])
      | Erun _, [_; e2], Stuple [Sval(Value(Vnode { init; step })); s2] ->
-        (* the first argument [e1] is static; it does not need *)
-        (* to be recomputed *)
+        (* the first argument is necessarily; it has been computed *)
+        (* during the instanciation *)
         let* v2, s2 = sexp genv env e2 s2 in
         let* v, s = Result.to_option (step init v2) in
         return (v, Stuple [Sval(Value(Vnode { init; step })); s2])
@@ -627,6 +651,7 @@ and sexp genv env { e_desc = e_desc; e_loc } s =
         let* ve, s = sexp genv env e s in
         return (zin, Stuple [Sval(zin); Sval(ve); s])
      | Eperiod, [_; _], _ ->
+        (* not yet implemented. *)
         None
      | _ -> None
      end
@@ -655,6 +680,31 @@ and sexp genv env { e_desc = e_desc; e_loc } s =
      let env = Env.append env_eq env in
      let* v, s = sexp genv env e s in
      return (v, Stuple [s_eq; s])
+  | Efun(fe), s ->
+     let env = Env.map (fun { cur } -> cur) env in
+     return (Value(Vclosure(fe, genv, env)), s)
+  | Ematch { e; handlers }, Stuple(se :: s_list) ->
+     let* ve, se = sexp genv env e se in
+     let* env, s_list =
+       match ve with
+       (* if the condition is bot/nil then all variables have value bot/nil *)
+       | Vbot -> return (Vbot, s_list)
+       | Vnil -> return (Vnil, s_list)
+       | Value(ve) ->
+          smatch_handler_list genv env ve sexp handlers s_list in
+     return (env, Stuple (se :: s_list))
+  | Epresent { handlers; default_opt }, Stuple(s :: s_list) ->
+     None
+  | Ereset(e_body, e_res), Stuple [s_body; s_res] ->
+     let* v, s_res = sexp genv env e_res s_res in 
+     let* v_body, s_body =
+       match v with
+       | Vbot -> return (Vbot, s_body)
+       | Vnil -> return (Vnil, s_body)
+       | Value(v) ->
+          let* v = bool v in
+          reset iexp sexp genv env e_body s_body v in
+     return (v_body, Stuple [s_body; s_res])
   | _ -> None in
   stop_at_location e_loc r
 
@@ -778,7 +828,11 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
        | Vbot -> return (bot_env eq_write, s_list)
        | Vnil -> return (nil_env eq_write, s_list)
        | Value(ve) ->
-          smatch_handler_list genv env ve eq_write handlers s_list in 
+          let* env_handler, s_list =
+            smatch_handler_list genv env ve seq handlers s_list in
+          (* complete missing entries in the environment *)
+          let* env_handler = by env env_handler (names eq_write) in
+          return (env_handler, s_list) in
      return (env, Stuple (se :: s_list))
   | EQempty, s -> return (Env.empty, s)
   | EQassert(e), s ->
@@ -1141,30 +1195,6 @@ and sstate genv env { desc; loc } s =
     stop_at_location loc r
 
 
-     
-and smatch_handler_list genv env ve eq_write m_h_list s_list =
-  match m_h_list, s_list with
-  | [], [] -> None
-  | { m_pat; m_body } :: m_h_list, s :: s_list ->
-     let r = Static.pmatching Env.empty ve m_pat in
-     let* env_handler, s_list =
-       match r with
-       | None ->
-          (* this is not the good handler; try an other one *)
-          let* env_handler, s_list =
-            smatch_handler_list genv env ve eq_write m_h_list s_list in
-          return (env_handler, s :: s_list)
-       | Some(env_pat) ->
-          let env_pat =
-            Env.map (fun v -> { cur = Value v; default = Val }) env_pat in
-          let env = Env.append env_pat env in
-          let* env_handler, s = seq genv env m_body s in
-          return
-            (env_handler, s :: s_list) in
-     (* complete missing entries in the environment *)
-     let* env_handler = by env env_handler (names eq_write) in
-     return (env_handler, s_list)
-  | _ -> None
 
 and funexp genv env fe = Value (Vclosure(genv, env, fe))
 
