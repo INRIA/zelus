@@ -159,6 +159,15 @@ let lift2 op v1 v2 =
      let* v = op v1 v2 in
      return (Value v)
 
+(* convert a value into a list *)
+let list_of v =
+  match v with
+  | Value(Vvoid) -> return []
+  | Value(Vtuple(v_list)) -> return v_list
+  | Value(Vstuple(v_list)) ->
+     return (List.map (fun v -> Value(v)) v_list)
+  | Vbot | Vnil | Value _ -> return [v]
+              
 (* gets the value *)
 let pvalue v =
   match v with

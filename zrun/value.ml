@@ -40,9 +40,26 @@ type pvalue =
               step : state -> value ->
                      (value * state, Error.kind) Result.t } ->
             pvalue
-  | Vclosure :
-      Zelus.funexp * pvalue Genv.genv * value Ident.Env.t -> pvalue
-                                        
+  | Vclosure : Zelus.funexp * pvalue Genv.genv * value Ident.Env.t -> pvalue
+  
+(*
+| Vfvalue : fvalue -> pvalue
+
+and fvalue =
+  | Vfun : (pvalue -> (pvalue, Error.kind) Result.t) -> fvalue
+  | Vnode : { init : state;
+              step : state -> value ->
+                     (value * state, Error.kind) Result.t } ->
+            fvalue
+  | Vfclosure : pvalue closure -> fvalue
+  | Vnclosure : value closure -> fvalue
+  
+and 'a closure =
+  { c_args : Zelus.arg list;
+    c_body : Zelus.result;
+    c_genv : pvalue Genv.genv;
+    c_env : 'a Ident.Env.t }
+ *)                                   
 and value = pvalue extended
           
 and state =
@@ -50,7 +67,6 @@ and state =
   | Stuple : state list -> state
   | Sval : value -> state
   | Sopt : value option -> state
-
 
 (* an input entry in the environment *)
 type 'a ientry = { cur: 'a; default : 'a default }

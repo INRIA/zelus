@@ -220,9 +220,15 @@ and apply genv env fv v_list =
        | Vfun(op) ->
           let* fv = Result.to_option (op v) in
           apply genv env fv v_list
-       (* | Vclosure(({ f_kind = (Kstatic | Kfun); f_args; f_body } as fe,
+       | Vclosure(({ f_kind = (Kstatic | Kfun); f_args; f_body } as fe,
                    genv, env)) ->
-          apply_closure genv env fe f_args v_list f_body *)
+          let* env =
+            Env.fold
+              (fun x v acc -> let* acc = acc in
+                              let* v = pvalue v in
+                              return (Env.add x v acc))
+              env (return Env.empty) in
+          apply_closure genv env fe f_args v_list f_body
        | _ ->
           (* typing error *)
           None

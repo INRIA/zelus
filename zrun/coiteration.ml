@@ -229,6 +229,88 @@ let fixpoint_eq genv env sem eq n s_eq bot =
   Smisc.incr_number_of_fixpoint_iterations (n - m);
   return (env_out, s_eq)
 
+(* pattern matching for equations [p = e] and function application *)
+(* [v] is an extended value; [p] is a pattern. *)
+(* The pattern matching cannot fail unless there is a typing error *)
+let rec matcheq v ({ pat_loc } as p) =
+  let rec matchrec acc v { pat_desc } =
+    match v, pat_desc with
+    | Vtuple(v_list), Etuplepat(l_list) ->
+       matcheq_list acc v_list l_list
+    | Vstuple(p_list), Etuplepat(l_list) ->
+       matcheq_list acc (List.map (fun v -> Value v) p_list) l_list
+    | Vrecord(l_v_list), Erecordpat(l_p_list) ->
+       let rec find l = function
+         | [] -> None
+         | { label; arg = v } :: p_v_list ->
+            if l = label then return v else find l p_v_list in
+       Opt.fold
+         (fun acc { label; arg = p } ->
+           let* v = find label l_v_list in
+           matchrec acc v p) acc l_p_list
+    | _, Evarpat(x) ->
+       return (Env.add x { cur = Value v; default = Val } acc)
+    | _, Ewildpat -> return acc
+    | _, Ealiaspat(p, x) ->
+       let* acc = matchrec acc v p in
+       return (Env.add x { cur = Value v; default = Val } acc)
+    | _ -> None in
+  let r = match v with
+    | Vbot ->
+       let env = Env.map (fun v -> { cur = v; default = Val }) (pbot p) in
+       return env
+    | Vnil ->
+       let env = Env.map (fun v -> { cur = v; default = Val }) (pnil p) in
+       return env
+    | Value(v) -> matchrec Env.empty v p in
+  stop_at_location pat_loc r
+              
+and matcheq_list acc v_list p_list =
+    match v_list, p_list with
+    | [], [] -> return acc
+    | v :: v_list, p :: p_list  -> matcheq_list acc v_list p_list 
+    | _ -> None
+
+(* Pattern matching of a signal *)
+let matchsig ve ({ pat_loc } as p) =
+  let r = match ve with
+    | Vbot ->
+       let env = Env.map (fun v -> { cur = v; default = Val }) (pbot p) in
+       return (Vbot, env)
+    | Vnil ->
+       let env = Env.map (fun v -> { cur = v; default = Val }) (pnil p) in
+       return (Vnil, env)
+    | Value(v) ->
+       match v with
+       | Vabsent -> return (Value(Vbool(false)), Env.empty)
+       | Vpresent(v) ->
+          let* env = matcheq (Value(v)) p in
+          return (Value(Vbool(true)), env)
+       | _ -> None in
+  stop_at_location pat_loc r
+  
+(* match a state f(v1,...,vn) against a state name f(x1,...,xn) *)
+let matching_state ps { desc; loc } =
+  let r = match ps, desc with
+    | Vstate0(f), Estate0pat(g) when Ident.compare f g = 0 -> return Env.empty
+    | Vstate1(f, v_list), Estate1pat(g, id_list) when
+           (Ident.compare f g = 0) &&
+             (List.length v_list = List.length id_list) ->
+       let env =
+         List.fold_left2
+           (fun acc v x -> Env.add x { cur = v; default = Val }  acc)
+           Env.empty v_list id_list in
+       return env
+    | _ -> None in
+  stop_at_location loc r
+  
+(* [reset init step genv env body s r] resets [step genv env body] *)
+(* when [r] is true *)
+let reset init step genv env body s r =
+  let*s = if r then init genv env body else return s in
+  step genv env body s
+
+
 (* Pattern matching *)
 let imatch_handler ibody genv env { m_body } =
   ibody genv env m_body
@@ -281,9 +363,10 @@ let rec iexp genv env { e_desc; e_loc  } =
         (* node instanciation. [e1] must be a static expression *)
         let static_env =
           Env.filter_map (fun _ { cur } -> pvalue cur) env in
-        let* s1 = Static.exp genv static_env e1 in
+        let* v1 = Static.exp genv static_env e1 in
+        let* v1 = instance v1 in
         let* s2 = iexp genv env e2 in
-        return (Stuple [Sval(Value(s1)); s2])
+        return (Stuple [Sval(Value(v1)); s2])
      | Eatomic, [e] ->
         iexp genv env e
      | Etest, [e] ->
@@ -475,91 +558,12 @@ and iresult genv env { r_desc; r_loc } =
     | Returns(b) -> iblock genv env b in
   stop_at_location r_loc r
     
-(* pattern matching for equations [p = e] and function application *)
-(* [v] is an extended value; [p] is a pattern. *)
-(* The pattern matching cannot fail unless there is a typing error *)
-let rec matcheq v ({ pat_loc } as p) =
-  let rec matchrec acc v { pat_desc } =
-    match v, pat_desc with
-    | Vtuple(v_list), Etuplepat(l_list) ->
-       matcheq_list acc v_list l_list
-    | Vstuple(p_list), Etuplepat(l_list) ->
-       matcheq_list acc (List.map (fun v -> Value v) p_list) l_list
-    | Vrecord(l_v_list), Erecordpat(l_p_list) ->
-       let rec find l = function
-         | [] -> None
-         | { label; arg = v } :: p_v_list ->
-            if l = label then return v else find l p_v_list in
-       Opt.fold
-         (fun acc { label; arg = p } ->
-           let* v = find label l_v_list in
-           matchrec acc v p) acc l_p_list
-    | _, Evarpat(x) ->
-       return (Env.add x { cur = Value v; default = Val } acc)
-    | _, Ewildpat -> return acc
-    | _, Ealiaspat(p, x) ->
-       let* acc = matchrec acc v p in
-       return (Env.add x { cur = Value v; default = Val } acc)
-    | _ -> None in
-  let r = match v with
-    | Vbot ->
-       let env = Env.map (fun v -> { cur = v; default = Val }) (pbot p) in
-       return env
-    | Vnil ->
-       let env = Env.map (fun v -> { cur = v; default = Val }) (pnil p) in
-       return env
-    | Value(v) -> matchrec Env.empty v p in
-  stop_at_location pat_loc r
-              
-and matcheq_list acc v_list p_list =
-    match v_list, p_list with
-    | [], [] -> return acc
-    | v :: v_list, p :: p_list  -> matcheq_list acc v_list p_list 
-    | _ -> None
-
-let matchsig ve ({ pat_loc } as p) =
-  let r = match ve with
-    | Vbot ->
-       let env = Env.map (fun v -> { cur = v; default = Val }) (pbot p) in
-       return (Vbot, env)
-    | Vnil ->
-       let env = Env.map (fun v -> { cur = v; default = Val }) (pnil p) in
-       return (Vnil, env)
-    | Value(v) ->
-       match v with
-       | Vabsent -> return (Value(Vbool(false)), Env.empty)
-       | Vpresent(v) ->
-          let* env = matcheq (Value(v)) p in
-          return (Value(Vbool(true)), env)
-       | _ -> None in
-  stop_at_location pat_loc r
-  
-(* match a state f(v1,...,vn) against a state name f(x1,...,xn) *)
-let matching_state ps { desc; loc } =
-  let r = match ps, desc with
-    | Vstate0(f), Estate0pat(g) when Ident.compare f g = 0 -> return Env.empty
-    | Vstate1(f, v_list), Estate1pat(g, id_list) when
-           (Ident.compare f g = 0) &&
-             (List.length v_list = List.length id_list) ->
-       let env =
-         List.fold_left2
-           (fun acc v x -> Env.add x { cur = v; default = Val }  acc)
-           Env.empty v_list id_list in
-       return env
-    | _ -> None in
-  stop_at_location loc r
-  
-(* [reset init step genv env body s r] resets [step genv env body] *)
-(* when [r] is true *)
-let reset init step genv env body s r =
-  let*s = if r then init genv env body else return s in
-  step genv env body s
 
 (* The main step function *)
 (* the value of an expression [e] in a global environment [genv] and local *)
 (* environment [env] is a step function. *)
 (* Its type is [state -> (value * state) option] *)
-let rec sexp genv env { e_desc = e_desc; e_loc } s =
+and sexp genv env { e_desc = e_desc; e_loc } s =
   let r = match e_desc, s with   
   | Econst(v), s ->
      return (Value (value v), s)
@@ -642,8 +646,10 @@ let rec sexp genv env { e_desc = e_desc; e_loc } s =
      let* v =
        match v with
        | Vbot -> return Vbot | Vnil -> return Vnil
-       | Value(v) -> apply v v_list in
-     return (v, Stuple (s :: s_list)) 
+       | Value(v) ->
+          let* v = funvalue v in
+          apply v v_list in
+     return (v, Stuple (s :: s_list))
   | Elet(l_eq, e), Stuple [s_eq; s] ->
      let* env_eq, s_eq = sleq genv env l_eq s_eq in
      let env = Env.append env_eq env in
@@ -652,6 +658,7 @@ let rec sexp genv env { e_desc = e_desc; e_loc } s =
   | _ -> None in
   stop_at_location e_loc r
 
+(* application of a combinatorial function *)
 and apply fv v_list =
   match v_list with
   | [] -> return (Value fv)
@@ -666,7 +673,7 @@ and apply fv v_list =
              apply fv v_list in
         return fv
      | _ -> None
-          
+  
 and sexp_list genv env e_list s_list =
   match e_list, s_list with
   | [], [] -> return ([], [])
@@ -1159,66 +1166,56 @@ and smatch_handler_list genv env ve eq_write m_h_list s_list =
      return (env_handler, s_list)
   | _ -> None
 
-and funexp genv env {f_kind; f_args; f_body } =
-  match f_kind with
-  | Kfun | Kstatic ->
-     funval genv env f_args f_body
-  | Knode | Khybrid ->
-     nodeval genv env f_args f_body
-    
-(* make a function value *)
-and funval genv env f_args f_body =
-  (* combinatorial function *)
-  match f_args with
-  | [] ->
-     let* ri = iresult genv env f_body in
-     let* v, _ = sresult genv env f_body ri in
-     let* v = pvalue v in
-     return v
-  | arg :: f_args ->
-     return
-       (Vfun
-          (fun v ->
-            to_result ~none:Error.Etype
-              (let* env = matching_arg_in env arg (Value v) in
-               funval genv env f_args f_body)))
+and funexp genv env fe = Value (Vclosure(genv, env, fe))
 
-(* make a node value *)
-and nodeval genv env f_args f_body =
-  match f_args with
-  | [arg] ->
+(* Node instanciation *)
+and instance v =
+  match v with
+  | Vnode _ -> return v
+  | Vclosure({ f_kind = (Knode | Khybrid); f_args = [arg]; f_body },
+             genv, env) ->
      (* compute the initial state *)
+     let env = Env.map (fun v -> { cur = v; default = Val }) env in
      let* s_list = Opt.map (ivardec genv env) arg in
      let* s_body = iresult genv env f_body in
-     (* computes the step function *)
+     (* compute the step function *)
      let step s v =
        to_result ~none: Error.Etype
-         (match s with
+         (let* v_list = Primitives.list_of v in
+          match s with
           | Stuple (s_body :: s_list) ->
-             let* v_list =
-               match v with
-               | Vbot | Vnil -> return [v]
-               | Value(Vvoid) -> return []
-               | Value(Vtuple(v_list)) -> return v_list
-               | Value(Vstuple(v_list)) ->
-                  return (List.map (fun v -> Value(v)) v_list)
-               | _ -> None in
              let* env_arg, s_list =
-               Opt.mapfold3
-                 (svardec genv env) Env.empty arg s_list v_list in
+               Opt.mapfold3 (svardec genv env) Env.empty arg s_list v_list in
              let env = Env.append env_arg env in
              let* r, s_body = sresult genv env f_body s_body in
              return (r, Stuple (s_body :: s_list))
           | _ -> None) in
      return (Vnode { init = Stuple (s_body :: s_list); step = step })
-  | arg :: arg_list ->
-     return
-       (Vfun
-          (fun v ->
-            to_result ~none:Error.Etype
-              (let* env = matching_arg_in env arg (Value v) in
-               nodeval genv env f_args f_body)))
-  | [] -> None
+  | _ -> None 
+
+(* Combinatorial function *)
+and funvalue v =
+  match v with
+  | Vfun _ -> return v
+  | Vclosure({ f_kind = (Kstatic | Kfun); f_args; f_body }, genv, env) ->
+     let rec funrec env f_args f_body =
+       match f_args with
+       | [] ->
+          let* ri = iresult genv env f_body in
+          let* v, _ = sresult genv env f_body ri in
+          let* v = pvalue v in
+          return v
+       | arg :: f_args ->
+          return
+            (Vfun
+               (fun v ->
+                 to_result ~none:Error.Etype
+                   (let* env = matching_arg_in env arg (Value v) in
+                    funrec env f_args f_body))) in
+     let env = Env.map (fun v -> { cur = v; default = Val }) env in
+     funrec env f_args f_body
+  | _ -> None
+       
     
 let implementation genv { desc; loc } =
   let r = match desc with
