@@ -343,15 +343,22 @@ let ipresent_handler iscondpat ibody genv env { p_cond; p_body } =
   let* sb = ibody genv env p_body in
   return (Stuple [sc; sb])
 
-let idefault_opt ibody genv env d =
-  match d with
+let idefault_opt ibody genv env default_opt =
+  match default_opt with
   | Init(b) -> ibody genv env b
   | Else(b) -> ibody genv env b
   | NoDefault -> return Sempty
 
+let sdefault_opt sbody genv env default_opt nodefault =
+  match default_opt with
+  | Init(b) -> sbody genv env b
+  | Else(b) -> sbody genv env b
+  | NoDefault -> return (nodefault, Sempty)
+
 let rec spresent_handler_list genv env ve sscondpat sbody p_h_list s_list =
   match p_h_list, s_list with
-  | [], [] -> None
+  | [], [] ->
+     None
   | { p_cond; p_body } :: m_h_list, Stuple [s_cond; s_body] :: s_list ->
      let* (r, env_pat), s_cond = sscondpat genv env p_cond s_cond in
      let* r, s =
@@ -376,6 +383,7 @@ let rec spresent_handler_list genv env ve sscondpat sbody p_h_list s_list =
             return (r, Stuple [s_cond; s_body] :: s_list) in
      return (r, s)
   | _ -> None
+
 
 (* [sem genv env e = CoF f s] such that [iexp genv env e = s] *)
 (* and [sexp genv env e = f] *)
