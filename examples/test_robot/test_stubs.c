@@ -8,7 +8,7 @@
 
 // Sends motor commands to the robot
 CAMLprim value
-move_robot_c(value speed, value t_speed){
+control_robot_c(value speed, value t_speed){
 	//lcm_t * lcm = lcm_create("udpm://239.255.76.67:7667?ttl=1");
     // mbot_motor_command_t cmd;
     //cmd.utime = (unsigned long)time(NULL);

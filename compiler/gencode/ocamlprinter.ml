@@ -260,11 +260,15 @@ and exp prio ff e =
       (*fprintf ff "print_endline(\"robot is moving\")"*)
       fprintf ff "move_robot_ml %a" (exp 0) e
   (*added here*)
+<<<<<<< HEAD
   | Ostore(cmd, key) ->
       fprintf ff "robot_store(\"%s\" , %f)" cmd key
   | Ocontrol(e) ->
+=======
+  | Ocontrol(e1, e2) ->
+>>>>>>> files are updated to test the new keyword
       print_endline("Ocontrol compilation");
-      fprintf ff "control_robot_ml %a" (exp 0) e
+      fprintf ff "control_robot_ml %a %a" (exp 0) e1 (exp 1) e2 
   | Oinst(i) -> inst prio ff i
   end;
   if prio_e < prio then fprintf ff ")"

@@ -116,6 +116,7 @@ let operator renaming op =
   | Eup |(*added here*) Eassert | Etest | Edisc | Ehorizon | Einitial | Eaccess
   | Eupdate | Econcat | Eatomic -> op
   | Emove -> print_endline("Inline"); op
+  | Econtrol -> print_endline("Inline"); op
   | Eslice(s1, s2) -> Eslice(size renaming s1, size renaming s2)
   		       
 (** Renaming of patterns *)

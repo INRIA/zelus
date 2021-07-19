@@ -411,6 +411,12 @@ and operator env op c_free ty e_list =
       print_endline("Causality");
       exp_less_than_on_c env c_free e (Causal.new_var ());
       Causal.skeleton_on_c c_res ty 
+  (*added here*)
+  | Econtrol, [e1;e2] ->
+      print_endline("Causality");
+      exp_less_than_on_c env c_free e1 (Causal.new_var ());
+      exp_less_than_on_c env c_free e2 (Causal.new_var ());
+      Causal.skeleton_on_c c_res ty 
   | Einitial, [] ->
       Causal.skeleton_on_c c_res ty 
   | (Etest | Edisc | Ehorizon), [e] ->

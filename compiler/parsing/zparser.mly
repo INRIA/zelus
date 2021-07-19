@@ -147,7 +147,7 @@ let block l lo eq_list startpos endpos =
 (*added here*)
 %token ASSUME         /* "assume" */
 (*added here*)
-%token R_MOVE         /* "move_robot_zls" */
+%token R_MOVE        /* "move_robot_zls" */
 (*added here*)
 %token R_CONTROL      /* "control_robot_zls" */
 (*added here*)
@@ -1009,8 +1009,8 @@ expression_desc:
   | R_MOVE e = expression
       { Eop(Emove, [e])}
   (*added here*)
-  | R_CONTROL e = expression
-      { Eop(Econtrol, [e])}
+  | R_CONTROL LPAREN e1= expression COMMA e2=expression RPAREN
+      { Eop(Econtrol, [e1;e2])}
   (*added here
   | R_STORE rob = robot_expression
       { Eop(Estore, [rob])}*)
