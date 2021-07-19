@@ -4,7 +4,7 @@
 //#include "mbot_motor_command_t.h"
 #include <time.h>
 
-//#define MBOT_MOTOR_COMMAND_CHANNEL "MBOT_MOTOR_COMMAND"
+#define MBOT_MOTOR_COMMAND_CHANNEL "MBOT_MOTOR_COMMAND"
 
 // Sends motor commands to the robot
 CAMLprim value
@@ -17,6 +17,11 @@ move_robot_c(value speed, value t_speed){
 	//cmd.angular_v = 0.;
     //mbot_motor_command_t_publish(lcm, MBOT_MOTOR_COMMAND_CHANNEL, &cmd);
 	//lcm_destroy(lcm);
+	int trans_v, angular_v;
+	trans_v= Int_val(speed);
+	angular_v=Int_val(t_speed);
+	//printf("%d\n", trans_v);
+	//printf("%d\n", angular_v);
     return Val_unit;
 
 }

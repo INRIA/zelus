@@ -7,13 +7,7 @@ let hybrid main () = () where
 	| Backward -> do vel1 = -30 until trigger then StopB
 	| StopB -> do vel1 = 0 until trigger then Forward
    end
-   and automaton 
-	| Left -> do vel2 = 55 until trigger then StopL
-	|StopL -> do vel2 = 0 until trigger then Right
-	| Right -> do vel2 = -55 until trigger then StopR
-	| StopR -> do vel2 = 0 until trigger then Left
-   end
   and () = present(trigger) ->
     ((print_int vel1); print_newline ();
-    control_robot_zls(vel1,vel2))
+    move_robot_zls(vel1))
   else ()
