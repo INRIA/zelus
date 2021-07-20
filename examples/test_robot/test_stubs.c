@@ -4,7 +4,7 @@
 //#include "mbot_motor_command_t.h"
 #include <time.h>
 
-#define MBOT_MOTOR_COMMAND_CHANNEL "MBOT_MOTOR_COMMAND"
+//#define MBOT_MOTOR_COMMAND_CHANNEL "MBOT_MOTOR_COMMAND"
 
 // Sends motor commands to the robot
 CAMLprim value
