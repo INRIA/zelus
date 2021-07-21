@@ -133,7 +133,11 @@ let fresh =
     incr cpt;
     { modul = None; name = x^"__"^(string_of_int !cpt) }
 
+let ident n =
+  { modul = None; name = Zident.name n }
+
 let lident (n: Lident.t) =
+  let n = Modules.currentname n in
   begin match n with
   | Name x -> { modul = None; name = x }
   | Modname x -> { modul = Some (x.qual); name = x.id }

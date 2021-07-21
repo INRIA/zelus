@@ -7,9 +7,6 @@ exception Not_yet_implemented of string
 let not_yet_implemented msg =
   raise (Not_yet_implemented msg)
 
-let ident n =
-  { modul = None; name = Zident.name n }
-
 let get_id x =
   begin match x with
   | Lident.Name id | Lident.Modname { Lident.id = id } -> id
