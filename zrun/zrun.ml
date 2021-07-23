@@ -67,7 +67,7 @@ let run_fun output fv n =
   let rec runrec i =
     if i = n then i
     else
-      let v = Result.to_option (fv Vvoid) in
+      let v = fv Vvoid in
       match v with
       | None -> i
       | Some(v) ->
@@ -80,7 +80,7 @@ let run_node output init step n =
   let rec runrec s i =
     if i = n then i
     else
-      let v = Result.to_option (step s (Value(Vvoid))) in
+      let v = step s (Value(Vvoid)) in
       match v with
       | None -> i
       | Some(v, s) ->
@@ -97,6 +97,7 @@ let run genv main ff n =
   let* fv = find_gvalue_opt (Name main) genv in
   (* the main function must be of type : unit -> t *)
   (* the main function must be of type : unit -> t *)
+  let* fv = instance fv in
   match fv with
   | Vfun(fv) ->
      let i = run_fun (Output.pvalue_and_flush ff) fv n in
@@ -114,6 +115,7 @@ let check genv main n =
   (* the main function must be of type : unit -> bool *)
   let output v =
     if v = Vbool(true) then return () else None in
+  let* fv = instance fv in
   match fv with
   | Vfun(fv) ->
      let i = run_fun output fv n in

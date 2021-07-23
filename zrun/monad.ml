@@ -26,6 +26,8 @@ module Opt =
       | None, _ | _, None -> None
       | Some(v1), Some(v2) -> Some(v1, v2)
                               
+    let none = None
+
     let return v = Some(v)
 
     let rec map f x_list =
@@ -164,6 +166,13 @@ module Result =
          let* acc = f acc x in
          let* acc = fold f acc x_list in
          return acc
+
+    let rec seqfold f acc x_seq =
+      match x_seq () with
+      | Seq.Nil -> return acc
+      | Seq.Cons(x, x_seq) ->
+         let* acc = f acc x in
+         seqfold f acc x_seq
 
     let rec fold2 with_error f acc x_list y_list =
       match x_list, y_list with

@@ -35,31 +35,11 @@ type pvalue =
   | Vstuple : pvalue list -> pvalue
   | Vstate0 : Ident.t -> pvalue
   | Vstate1 : Ident.t * pvalue list -> pvalue
-  | Vfun : (pvalue -> (pvalue, Error.kind) Result.t) -> pvalue
+  | Vfun : (pvalue -> pvalue option) -> pvalue
   | Vnode : { init : state;
-              step : state -> value ->
-                     (value * state, Error.kind) Result.t } ->
-            pvalue
+              step : state -> value -> (value * state) option } -> pvalue
   | Vclosure : Zelus.funexp * pvalue Genv.genv * value Ident.Env.t -> pvalue
-  
-(*
-| Vfvalue : fvalue -> pvalue
-
-and fvalue =
-  | Vfun : (pvalue -> (pvalue, Error.kind) Result.t) -> fvalue
-  | Vnode : { init : state;
-              step : state -> value ->
-                     (value * state, Error.kind) Result.t } ->
-            fvalue
-  | Vfclosure : pvalue closure -> fvalue
-  | Vnclosure : value closure -> fvalue
-  
-and 'a closure =
-  { c_args : Zelus.arg list;
-    c_body : Zelus.result;
-    c_genv : pvalue Genv.genv;
-    c_env : 'a Ident.Env.t }
- *)                                   
+                                   
 and value = pvalue extended
           
 and state =
@@ -76,15 +56,13 @@ and 'a default =
   | Last : 'a -> 'a default
   | Default : 'a -> 'a default
 
-type ('a, 's, 'stop) costream =
+type ('a, 's) costream =
   | CoF : { init : 's;
-            step : 's -> ('a * 's, 'stop) Result.t } ->
-          ('a, 's, 'stop) costream
+            step : 's -> ('a * 's) option } ->
+          ('a, 's) costream
 
-type ('a, 'b, 's, 'stop) node =
-  | CoFun : ('a list -> ('b, 'stop) Result.t) ->
-            ('a, 'b, 's, 'stop) node
+type ('a, 'b, 's) node =
+  | CoFun : ('a list -> 'b option) -> ('a, 'b, 's) node
   | CoNode : { init : 's;
-               step : 's -> 'a list -> ('b * 's, 'stop) Result.t } ->
-             ('a, 'b, 's, 'stop) node
+               step : 's -> 'a list -> ('b * 's) option } -> ('a, 'b, 's) node
  

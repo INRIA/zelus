@@ -259,38 +259,27 @@ let two v =
   | Vstuple [v1;v2] -> return (v1, v2)
   | _ -> None
 
-let zerop op =
-  (fun _ -> to_result ~none:Error.Etype (let* v = op () in
-                                         return (v)))
+let zerop op = fun _ -> let* v = op () in return (v)
 
-let unop op =
-  (fun v -> to_result ~none:Error.Etype (op v))
+let unop op v = op v
 
-let binop op =
-  (fun v -> to_result ~none:Error.Etype
-              (let* v1, v2 = two v in
-               let* v = op v1 v2 in
-               return v))
+let binop op v = let* v1, v2 = two v in
+                 let* v = op v1 v2 in
+                 return v
 
 (* state processes *)
 let zerop_process op s =
   Vnode
     { init = s;
       step =
-        fun s _ ->
-        to_result ~none:Error.Etype
-          (let* v = op s in
-           return (v, s))
+        fun s _ -> let* v = op s in return (v, s)
     }
 
 let unop_process op s =
   Vnode
     { init = s;
       step =
-        fun s v ->
-        to_result ~none:Error.Etype
-          (let* v = lift1 (op s) v in
-           return (v, s)) }
+        fun s v -> let* v = lift1 (op s) v in return (v, s) }
 
 (* The initial environment *)
 let list_of_primitives =

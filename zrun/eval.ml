@@ -11,7 +11,8 @@
 (*                                                                     *)
 (* *********************************************************************)
 
-(* Evaluation of static expression *)
+(* Evaluation of combinatorial expressions. The presence of stateful *)
+(* construct leads to an error *)
 open Smisc
 open Monad
 open Opt                                                            
@@ -95,7 +96,7 @@ let immediate v =
   | Echar(c) -> Vchar(c)
   | Estring(s) -> Vstring(s)
 
-(* evaluation functions *)
+(* evaluation function *)
 let rec exp genv env { e_desc; e_loc } =
   let r = match e_desc with   
     | Econst(v) ->
@@ -103,10 +104,14 @@ let rec exp genv env { e_desc; e_loc } =
     | Econstr0 { lname } ->
        return (Vconstr0(lname))
     | Elocal x ->
-       let* v = find_value_opt x env in
+       let v = find_value_opt x env in
+       let* v =
+         Error.error e_loc (Error.Eunbound_ident(x)) v in
        return v
     | Eglobal { lname } ->
-       let* v = find_gvalue_opt lname genv in
+       let v = find_gvalue_opt lname genv in
+       let* v =
+         Error.error e_loc (Error.Eunbound_lident(lname)) v in
        return v
     | Eop(op, e_list) ->
        begin match op, e_list with
@@ -164,7 +169,7 @@ let rec exp genv env { e_desc; e_loc } =
        let* _ = bool v in
        exp genv env e_body
     | Elast _ -> None in
-  stop_at_location e_loc r
+  Error.stop_at_location e_loc r
     
 and exp_list genv env e_list = Opt.map (exp genv env) e_list
 
@@ -218,7 +223,7 @@ and apply genv env fv v_list =
     | v :: v_list ->
        match fv with
        | Vfun(op) ->
-          let* fv = Result.to_option (op v) in
+          let* fv = op v in
           apply genv env fv v_list
        | Vclosure(({ f_kind = (Kstatic | Kfun); f_args; f_body } as fe,
                    genv, env)) ->
@@ -274,7 +279,7 @@ and eval_eq genv env { eq_desc; eq_loc } =
          eval_eq genv (Env.append l_env env) eq_let
     | EQder _ | EQpresent _ | EQinit _
       | EQemit _ | EQlocal _ | EQautomaton _ | EQmatch _ -> None in
-  stop_at_location eq_loc r
+  Error.stop_at_location eq_loc r
   
 and match_handlers genv env v handlers =
   match handlers with
@@ -304,7 +309,7 @@ and block genv env { b_vars; b_body; b_loc } =
           | _ -> None) S.empty b_vars in
     let* b_env = eval_eq genv env b_body in
     return (Env.append b_env env, b_env) in
-  stop_at_location b_loc r
+  Error.stop_at_location b_loc r
 
 and result genv env { r_desc; r_loc } =
   let r = match r_desc with
@@ -313,7 +318,7 @@ and result genv env { r_desc; r_loc } =
        let* env, _ = block genv env b in
        let* v = matching_arg_out env b in
        return v in
-  stop_at_location r_loc r
+  Error.stop_at_location r_loc r
 
 and matching_arg_out env { b_vars; b_loc } =
   let r =
@@ -323,7 +328,7 @@ and matching_arg_out env { b_vars; b_loc } =
     match v_list with
     | [] -> return (Vvoid)
     | _ -> return (Vstuple(v_list)) in
-  stop_at_location b_loc r
+  Error.stop_at_location b_loc r
   
 and matching_arg_in env arg v =
   let match_in acc { var_name } v =
@@ -335,5 +340,6 @@ and matching_arg_in env arg v =
      Opt.fold2 match_in env l v_list
   | l, Vstuple(v_list) -> 
      Opt.fold2 match_in env l v_list
+  | [x], _ -> match_in Env.empty x v
   | _ -> None
       
