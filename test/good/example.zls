@@ -1,3 +1,3 @@
-let node ff(x) = 1 + x
+let ff(x) = 1 + x
 
 let node main() = ff(1)
