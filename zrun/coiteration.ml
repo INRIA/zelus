@@ -387,8 +387,6 @@ let rec spresent_handler_list genv env ve sscondpat sbody p_h_list s_list =
 
 (* [sem genv env e = CoF f s] such that [iexp genv env e = s] *)
 (* and [sexp genv env e = f] *)
-(* The initial state needs to know how to instanciate a node *)
-(* We add [instance] as an extra parameter *)
 let init instance =
   let rec iexp genv env { e_desc; e_loc  } =
     let r = match e_desc with
@@ -711,11 +709,20 @@ let rec sexp genv env { e_desc = e_desc; e_loc } s =
         let* v3, s3 = sexp genv env e3 s3 in
         let* v = ifthenelse v1 v2 v3 in
         return (v, Stuple [s1; s2; s3])
-     | Erun _, [_; e2], Stuple [Sval(Value(Vnode { init; step })); s2] ->
-        (* the first argument is necessarily; it has been computed *)
+     | Erun _, [_; { e_desc } as e2],
+       Stuple [Sval(Value(Vnode { init; step })); s2] ->
+        (* In case the argument [e2] is a tuple, do not make it strict *)
+        let* v2, s2 =
+          match e_desc, s2 with
+          | Etuple(e2_list), Stuple(s2_list) ->
+             let* v2_list, s2_list = sexp_list genv env e2_list s2_list in
+             let* v2 = tuple v2_list in
+             return (v2, Stuple(s2_list))
+          | _ -> sexp genv env e2 s2 in
+        (* the first argument has been computed *)
         (* during the instanciation *)
-        let* v2, s2 = sexp genv env e2 s2 in
-        let* v, s = step init v2 in
+        (* A node is not strict *)
+        let* v, init = step init v2 in
         return (v, Stuple [Sval(Value(Vnode { init; step })); s2])
      | Eatomic, [e], s ->
         (* if one of the input is bot (or nil), the output is bot (or nil); *)
@@ -742,20 +749,21 @@ let rec sexp genv env { e_desc = e_desc; e_loc } s =
      let* v = constr1 lname v_list in
      return (v, Stuple(s_list))
   | Etuple(e_list), Stuple(s_list) ->
+     (* pairs are considered to be strict *)
      let* v_list, s_list = sexp_list genv env e_list s_list in
-     let* v = tuple v_list in
+     let* v = stuple v_list in
      return (v, Stuple(s_list))
   | Eapp(e, e_list), Stuple (s :: s_list) ->
      (* [f] must return a combinatorial function *)
      let* v, s = sexp genv env e s in
      let* v_list, s_list = sexp_list genv env e_list s_list in
+     (* if one element is [bot] return [bot]; if [nil] return [nil] *)
      let* v =
        match v with
        | Vbot -> return Vbot | Vnil -> return Vnil
        | Value(v) ->
-          let* v =
-            let v = funvalue v in
-            Error.error e_loc Error.Eshould_be_a_function v in
+          let v = funvalue v in
+          let* v = Error.error e_loc Error.Eshould_be_a_function v in
           apply v v_list in
      return (v, Stuple (s :: s_list))
   | Elet(l_eq, e), Stuple [s_eq; s] ->
@@ -936,7 +944,7 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
   | _ -> none in
   Error.stop_at_location eq_loc r
 
-              
+(* Evaluation of the result of a function *)            
 and sresult genv env { r_desc; r_loc } s =
   let r = match r_desc with
     | Exp(e) -> sexp genv env e s
@@ -946,6 +954,7 @@ and sresult genv env { r_desc; r_loc } s =
        return (v, s) in
   Error.stop_at_location r_loc r
 
+(* Return a value from a block. In case of a tuple, this tuple is not strict *)
 and matching_arg_out env { b_vars; b_loc } =
   let r =
     let* v_list =
@@ -953,9 +962,11 @@ and matching_arg_out env { b_vars; b_loc } =
         (fun { var_name } -> find_value_opt var_name env) b_vars in
     match v_list with
     | [] -> return (Value(Vvoid))
-    | _ -> return (Value(Vtuple(v_list))) in
+    | _ -> (* return a non strict tuple *)
+           return (Value(Vtuple(v_list))) in
   Error.stop_at_location b_loc r
 
+(* match a function argument against a value *)
 and matching_arg_in env arg v =
   let match_in acc { var_name } v =
     return (Env.add var_name { cur = v; default = Val } acc) in
@@ -1280,53 +1291,62 @@ and sstate genv env { desc; loc } s =
     | _ -> none in
     Error.stop_at_location loc r
 
-and funexp genv env fe = Value (Vclosure(genv, env, fe))
-
 (* Node instanciation *)
 and instance v =
   match v with
-  | Vnode _ -> return v
-  | Vclosure({ f_kind = (Knode | Khybrid); f_args = [arg]; f_body },
-             genv, env) ->
-     (* compute the initial state *)
-     let env = Env.map (fun v -> { cur = v; default = Val }) env in
-     let* s_list = Opt.map (ivardec instance genv env) arg in
-     let* s_body = iresult instance genv env f_body in
-     (* compute the step function *)
-     let step s v =
-       let* v_list = Primitives.list_of v in
-       match s with
-       | Stuple (s_body :: s_list) ->
-          let* env_arg, s_list =
-            Opt.mapfold3 (svardec genv env) Env.empty arg s_list v_list in
-          let env = Env.append env_arg env in
-          let* r, s_body = sresult genv env f_body s_body in
-          return (r, Stuple (s_body :: s_list))
-       | _ -> none in
-     return (Vnode { init = Stuple (s_body :: s_list); step = step })
+  | Vnode _  -> return v
+  | Vclosure({ f_kind = Knode | Khybrid; f_args = [arg]; f_body }, genv, env) ->
+     vnode genv env arg f_body
   | _ -> none 
 
-(* Combinatorial function *)
+(* Function instanciation *)
 and funvalue v =
   match v with
-  | Vfun _ -> return v
-  | Vclosure({ f_kind = (Kstatic | Kfun); f_args; f_body }, genv, env) ->
-     let rec funrec env f_args f_body =
-       match f_args with
-       | [] ->
-          let senv = Env.filter_map (fun _ { cur } -> pvalue cur) env in
-          Eval.result genv senv f_body
-       | arg :: f_args ->
-          return
-            (Vfun
-               (fun v ->
-                 let* env = matching_arg_in env arg (Value v) in
-                 funrec env f_args f_body)) in
-     let env = Env.map (fun v -> { cur = v; default = Val }) env in
-     funrec env f_args f_body
+  | Vfun(fv) -> return v
+  | Vclosure({ f_kind; f_args; f_body }, genv, env) ->
+     vfun genv env f_kind f_args f_body
   | _ -> none
-       
     
+(* Turn a closure into a value *)
+and vfun genv env f_kind arg_list f_body =
+  let rec funrec env_local arg_list =
+    match f_kind, arg_list with
+    | (Knode | Khybrid), [arg] ->
+       let env_local = Env.map (fun v -> Value(v)) env_local in
+       let env = Env.append env_local env in
+       vnode genv env arg f_body
+    | (Kstatic | Kfun), arg :: f_args ->
+       return
+         (Vfun
+            (fun v ->
+              let* env_local = Eval.matching_arg_in env_local arg v in
+              funrec env_local f_args))
+    | (Kstatic | Kfun), [] ->
+       let env =
+         Env.filter_map (fun _ v -> pvalue v) env in
+       let env = Env.append env_local env in
+       Eval.result genv env f_body
+    | _ -> None in
+  funrec Env.empty arg_list
+
+and vnode genv env arg f_body =
+  (* compute the initial state *)
+  let env = Env.map (fun v -> { cur = v; default = Val }) env in
+  let* s_list = Opt.map (ivardec instance genv env) arg in
+  let* s_body = iresult instance genv env f_body in
+  (* compute the step function *)
+  let step s v =
+    let* v_list = Primitives.list_of v in
+    match s with
+    | Stuple (s_body :: s_list) ->
+       let* env_arg, s_list =
+         Opt.mapfold3 (svardec genv env) Env.empty arg s_list v_list in
+       let env = Env.append env_arg env in
+       let* r, s_body = sresult genv env f_body s_body in
+       return (r, Stuple (s_body :: s_list))
+    | _ -> none in
+  return (Vnode { init = Stuple (s_body :: s_list); step = step })
+  
 let implementation genv { desc; loc } =
   let r = match desc with
     | Eopen(name) ->
