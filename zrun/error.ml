@@ -31,7 +31,7 @@ exception Error of Location.t * kind
                  
 (* raise an exception *)
 let error loc kind r =
-  match r with
+match r with
   | None -> raise (Error(loc, kind))
   | Some _ -> r
   
