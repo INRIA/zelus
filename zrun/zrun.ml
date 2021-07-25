@@ -97,7 +97,7 @@ let run genv main ff n =
   let* fv = find_gvalue_opt (Name main) genv in
   (* the main function must be of type : unit -> t *)
   (* the main function must be of type : unit -> t *)
-  let* fv = instance fv in
+  let* fv = funvalue fv in
   match fv with
   | Vfun(fv) ->
      let i = run_fun (Output.pvalue_and_flush ff) fv n in
@@ -107,7 +107,9 @@ let run genv main ff n =
      let i = run_node (Output.pvalue_and_flush ff) init step n in
      if i < n then Format.printf "Run failed: only %i iterations.\n" i;
      return ()
-  | _ -> None
+  | _ ->
+     Format.eprintf "The global value %s is not a function." main;
+     return ()
      
   
 let check genv main n =
