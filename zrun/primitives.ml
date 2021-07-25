@@ -187,39 +187,27 @@ let nonnil v =
   match v with
   | Vnil -> None
   | Vbot | Value _ -> return v
-
-(* is-it a pair ? *)
-let getpair v =
+                    
+let (let**) v f =
   match v with
-  | Vbot -> return (Vbot, Vbot)
-  | Vnil -> return (Vnil, Vnil)
-  | Value(Vtuple [v1; v2]) -> return (v1, v2)
-  | _ -> None
-       
-(* pairs and tuples *)
-let unpair v1 v2 = 
-  let* v1 = nonbot v1 in
-  let* v2 = nonbot v2 in
-  return (v1, v2)
-
-        
-(* builds a synchronous pair. If one is bot, the result is bot; if one is nil, *)
-(* the result is nil *)
+  | Vbot -> return Vbot
+  | Vnil -> return Vnil
+  | Value(v) -> f v
+              
+   
+(* builds a synchronous pair. If one is bot, the result is bot; *)
+(* if one is nil, the result is nil *)
 let spair v1 v2 =
-  let* _ = nonbot v1 in
-  let* _ = nonbot v2 in
-  let* _ = nonnil v1 in
-  let* _ = nonnil v2 in
-  let* v1 = pvalue v1 in
-  let* v2 = pvalue v2 in
+  let** v1 = v1 in
+  let** v2 = v2 in
   return (Value(Vstuple [v1; v2]))
-                     
+
 let stuple v_list =
   let v = Opt.map nonbot v_list in
   match v with
   | None -> return Vbot
   | Some _ ->
-     let v = Opt.map nonbot v_list in
+     let v = Opt.map nonnil v_list in
      match v with
      | None -> return Vnil
      | Some _ ->
@@ -256,7 +244,7 @@ let one v =
 (* check that v is a list of length two *)
 let two v =
   match v with
-  | Vstuple [v1;v2] -> return (v1, v2)
+  | Vstuple [v1;v2] | Vtuple [Value(v1); Value(v2)] -> return (v1, v2)
   | _ -> None
 
 let zerop op = fun _ -> let* v = op () in return (v)
