@@ -693,8 +693,7 @@ and sexp genv env { e_desc = e_desc; e_loc } s =
           match e_desc, s2 with
           | Etuple(e2_list), Stuple(s2_list) ->
              let* v2_list, s2_list = sexp_list genv env e2_list s2_list in
-             let* v2 = tuple v2_list in
-             return (v2, Stuple(s2_list))
+             return (Value(Vtuple(v2_list)), Stuple(s2_list))
           | _ -> sexp genv env e2 s2 in
         (* the first argument has been computed *)
         (* during the instanciation *)
