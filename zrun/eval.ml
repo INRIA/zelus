@@ -28,14 +28,14 @@ let find_gvalue_opt x env =
     let { Global.info } = Genv.find x env in
     return info
   with
-  | Not_found -> None
+  | Not_found -> none
 
 (* merge two environments provided they do not overlap *)
 let merge env1 env2 =
   let s = Env.to_seq env1 in
   seqfold
     (fun acc (x, entry) ->
-      if Env.mem x env2 then None
+      if Env.mem x env2 then none
       else return (Env.add x entry acc))
     env2 s
 
@@ -58,7 +58,7 @@ let rec pmatching acc v { pat_desc } =
      acc
   | Vrecord(l_v_list), Erecordpat(l_p_list) ->
      let rec find l = function
-       | [] -> None
+       | [] -> none
        | { label; arg = v } :: p_v_list ->
           if l = label then return v else find l p_v_list in
      Opt.fold
@@ -80,7 +80,7 @@ let rec pmatching acc v { pat_desc } =
      pmatching_list acc v_list p_list
   | Vconstr1(f, v_list), Econstr1pat(g, p_list) when Lident.compare f g = 0 ->
      pmatching_list acc v_list p_list
-  | _ -> None
+  | _ -> none
 
 and pmatching_list acc v_list p_list =
   Opt.fold2 pmatching acc v_list p_list
@@ -96,6 +96,7 @@ let immediate v =
   | Echar(c) -> Vchar(c)
   | Estring(s) -> Vstring(s)
 
+                
 (* evaluation function *)
 let rec exp genv env { e_desc; e_loc } =
   let r = match e_desc with   
@@ -120,7 +121,7 @@ let rec exp genv env { e_desc; e_loc } =
           let* v = bool v in
           if v then exp genv env e2
           else exp genv env e3
-       | _ -> None 
+       | _ -> none
        end
     | Econstr1 { lname; arg_list } ->
        let* v_list = exp_list genv env arg_list in
@@ -133,7 +134,7 @@ let rec exp genv env { e_desc; e_loc } =
        let* v_list = exp_list genv env e_list in
        apply genv env v v_list
     | Elet({ l_rec; l_eq }, e) ->
-       if l_rec then None
+       if l_rec then none
        else
          let* l_env = eval_eq genv env l_eq in
          exp genv (Env.append l_env env) e
@@ -163,14 +164,14 @@ let rec exp genv env { e_desc; e_loc } =
     | Etypeconstraint(e, _) -> exp genv env e
     | Efun(fe) ->
        funexp genv env fe
-    | Epresent _ -> None
+    | Epresent _ -> none
     | Ereset(e_body, e_res) ->
        let* v = exp genv env e_res in
        let* _ = bool v in
        exp genv env e_body
-    | Elast _ -> None in
+    | Elast _ -> none in
   Error.stop_at_location e_loc r
-    
+
 and exp_list genv env e_list = Opt.map (exp genv env) e_list
 
 and record_access { label; arg } =
@@ -178,7 +179,7 @@ and record_access { label; arg } =
   let* record_list = get_record arg in
   let rec find l record_list =
     match record_list with
-    | [] -> None
+    | [] -> none
     | { label; arg } :: record_list ->
        if label = l then return arg
        else find l record_list in
@@ -188,7 +189,7 @@ and record_with label_arg_list ext_label_arg_list =
   (* inject {label; arg} into a record *)
   let rec inject label_arg_list l arg =
     match label_arg_list with
-    | [] -> None
+    | [] -> none
     | { label } as entry :: label_arg_list ->
        if label = l then return ({ label; arg } :: label_arg_list)
        else let* label_arg_list = inject label_arg_list l arg in
@@ -202,6 +203,7 @@ and record_with label_arg_list ext_label_arg_list =
        join label_arg_list ext_label_arg_list in
   join label_arg_list ext_label_arg_list
   
+(* application [fv v_list] *)
 and apply genv env fv v_list =
   (* apply a closure to a list of arguments *)
   let rec apply_closure genv env fe f_args v_list f_body =
@@ -218,25 +220,20 @@ and apply genv env fv v_list =
        let env = Env.map (fun v -> Value v) env in
        return (Vclosure({ fe with f_args = f_args }, genv, env)) in
   (* main entry *)
-  match v_list with
-    | [] -> return fv
-    | v :: v_list ->
-       match fv with
-       | Vfun(op) ->
-          let* fv = op v in
-          apply genv env fv v_list
-       | Vclosure(({ f_kind = (Kstatic | Kfun); f_args; f_body } as fe,
-                   genv, env)) ->
-          let* env =
-            Env.fold
-              (fun x v acc -> let* acc = acc in
-                              let* v = pvalue v in
-                              return (Env.add x v acc))
-              env (return Env.empty) in
-          apply_closure genv env fe f_args v_list f_body
-       | _ ->
-          (* typing error *)
-          None
+  match fv with
+  | Vfun(op) ->
+     let* fv =
+       match v_list with
+       | [] -> (* typing error *) none
+       | v :: v_list ->
+          let* fv = op v in apply genv env fv v_list in
+     return fv
+  | Vclosure(({ f_kind = (Kstatic | Kfun);
+                f_args; f_body } as fe, genv, env)) ->
+     let env = Env.filter_map (fun _ v -> pvalue v) env in
+     apply_closure genv env fe f_args v_list f_body
+  | _ ->
+     return fv
       
 (* step function for an equation *)
 and eval_eq genv env { eq_desc; eq_loc } =
@@ -271,19 +268,19 @@ and eval_eq genv env { eq_desc; eq_loc } =
        let* v = bool v in
        (* stop when [no_assert = true] *)
        if !no_assert then return Env.empty
-       else if v then return Env.empty else None
+       else if v then return Env.empty else none
     | EQlet({ l_rec; l_eq }, eq_let) ->
-       if l_rec then None
+       if l_rec then none
        else
          let* l_env = eval_eq genv env l_eq in
          eval_eq genv (Env.append l_env env) eq_let
     | EQder _ | EQpresent _ | EQinit _
-      | EQemit _ | EQlocal _ | EQautomaton _ | EQmatch _ -> None in
+      | EQemit _ | EQlocal _ | EQautomaton _ | EQmatch _ -> none in
   Error.stop_at_location eq_loc r
   
 and match_handlers genv env v handlers =
   match handlers with
-  | [] -> None
+  | [] -> none
   | { m_pat; m_body } :: handlers ->
      let r = pmatching env v m_pat in
      match r with
@@ -341,5 +338,4 @@ and matching_arg_in env arg v =
   | l, Vstuple(v_list) -> 
      Opt.fold2 match_in env l v_list
   | [x], _ -> match_in Env.empty x v
-  | _ -> None
-      
+  | _ -> none
