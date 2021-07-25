@@ -16,6 +16,13 @@ open Monad
 open Opt
 open Lident
 
+(* remove dot and nil *)
+let (let**) v f =
+  match v with
+  | Vbot -> return Vbot
+  | Vnil -> return Vnil
+  | Value(v) -> f v
+
 let bool v =
   match v with
   | Vbool(b) -> return b
@@ -141,23 +148,24 @@ let ifthenelse v1 v2 v3 =
                  
 (* lift a unary operator: [op bot = bot]; [op nil = nil] *)
 let lift1 op v =
-  match v with
-  | Vbot -> return Vbot
-  | Vnil -> return Vnil
-  | Value(v) ->
-     let* v = op v in
-     return (Value v)
+  let** v = v in
+  let* v = op v in
+  return (Value v)
 
 (* lift a binary operator: [op bot _ = bot]; [op _ bot = bot]; same for nil *)
 let lift2 op v1 v2 =
+  let v =
+    match v1, v2 with
+    | (Vbot, _) | (_, Vbot) -> Vbot
+    | (Vnil, _) | (_, Vnil) -> Vnil
+    | Value(v1), Value(v2) -> Value(op v1 v2) in
+  return v
+
+let sapp2 op v1 v2 =
   match v1, v2 with
-  | Vbot, _ -> return Vbot
-  | _, Vbot -> return Vbot
-  | Vnil, _ -> return Vnil
-  | _, Vnil -> return Vnil
-  | Value(v1), Value(v2) ->
-     let* v = op v1 v2 in
-     return (Value v)
+  | (Vbot, _) | (_, Vbot) -> Vbot
+  | (Vnil, _) | (_, Vnil) -> Vnil
+  | Value(v1), Value(v2) -> Value(op v1 v2)
 
 (* convert a value into a list *)
 let list_of v =
@@ -188,50 +196,27 @@ let nonnil v =
   | Vnil -> None
   | Vbot | Value _ -> return v
                     
-let (let**) v f =
-  match v with
-  | Vbot -> return Vbot
-  | Vnil -> return Vnil
-  | Value(v) -> f v
-              
-   
 (* builds a synchronous pair. If one is bot, the result is bot; *)
 (* if one is nil, the result is nil *)
 let spair v1 v2 =
-  let** v1 = v1 in
-  let** v2 = v2 in
-  return (Value(Vstuple [v1; v2]))
+  sapp2 (fun x1 x2 -> Vstuple [x1; x2]) v1 v2
 
-let stuple v_list =
-  let v = Opt.map nonbot v_list in
-  match v with
-  | None -> return Vbot
-  | Some _ ->
-     let v = Opt.map nonnil v_list in
-     match v with
-     | None -> return Vnil
-     | Some _ ->
-        let* v_list = Opt.map pvalue v_list in
-        return (Value(Vstuple(v_list)))
-
-let constr1 f v_list =
-  let v = Opt.map nonbot v_list in
-  match v with
-  | None -> return Vbot
-  | Some _ ->
-     let v = Opt.map nonbot v_list in
-     match v with
-     | None -> return Vnil
-     | Some _ ->
-        let* v_list = Opt.map pvalue v_list in
-        return (Value(Vconstr1(f, v_list)))
-
-let tuple v_list =
+(* if one is bot, return bot; if one is nil, return nil *)
+let rec slist v_list =
   match v_list with
-  | [] -> None
-  | [v] -> return v
-  | _ -> return (Value(Vtuple(v_list)))
-      
+  | [] -> Value []
+  | v :: v_list ->
+     let v_r = slist v_list in
+     sapp2 (fun x xs -> x :: xs) v v_r
+     
+let stuple v_list =
+  let** v_list = slist v_list in
+  return (Value(Vstuple(v_list)))
+  
+let constr1 f v_list =
+  let** v_list = slist v_list in
+  return (Value(Vconstr1(f, v_list)))
+
 (* void *)
 let void = return (Value(Vvoid))
 
@@ -251,9 +236,10 @@ let zerop op = fun _ -> let* v = op () in return (v)
 
 let unop op v = op v
 
-let binop op v = let* v1, v2 = two v in
-                 let* v = op v1 v2 in
-                 return v
+let binop op v =
+  let* v1, v2 = two v in
+  let* v = op v1 v2 in
+  return v
 
 (* state processes *)
 let zerop_process op s =
