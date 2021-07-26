@@ -261,13 +261,10 @@ and exp prio ff e =
       print_endline("Omove printing");
       fprintf ff "print_endline(\"robot is moving\")"
   (*added here*)
-<<<<<<< HEAD
   | Ostore(cmd, key) ->
       fprintf ff "robot_store(%s , %f)" cmd key
   | Ocontrol (e) -> 
-=======
   | Ocontrol (e1, e2) -> 
->>>>>>> files are updated to test the new keyword
       print_endline("Ocontrol printing");
       fprintf ff "print_endline(\"robot is moving\")"   
   | Oinst(i) -> inst prio ff i

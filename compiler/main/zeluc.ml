@@ -98,6 +98,8 @@ and doc_deps = "\t Recursively compile dependencies"
 (* added here *)
 and doc_robot = "\t Enable robot mode"
 and doc_ref_verbose = "\t Enable verbose mode for refinement types"
+(* added here *)
+and doc_robot_control = "\t Enable robot_control mode"
 let errmsg = "Options are:"
 
 let set_verbose () =
@@ -161,6 +163,8 @@ let main () =
           "-deps", Arg.Set build_deps, doc_deps;
           (* added here *)
           "-robot", Arg.Set robot, doc_robot;
+          (* added here *)
+          "-robot_control", Arg.Set robot_control, doc_robot_control;
         ])
       (fun filename -> if !build_deps then build filename else compile filename)
       errmsg;
