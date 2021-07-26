@@ -6,7 +6,7 @@ test_stubs.o: test_stubs.c mbot_motor_command_t.o
 	ocamlopt mbot_motor_command_t.o test_stubs.c -ccopt "-g `pkg-config --cflags lcm`"
 
 test.ml main.ml: test.zls
-	zeluc -robot -nodeadcode -s main test.zls
+	zeluc -robot_control -nodeadcode -s main test.zls
 
 mbot_motor_command_t.o: mbot_motor_command_t.c mbot_motor_command_t.h
 	gcc -g `pkg-config --cflags lcm` -c mbot_motor_command_t.c
