@@ -260,13 +260,10 @@ and exp prio ff e =
       (*fprintf ff "print_endline(\"robot is moving\")"*)
       fprintf ff "move_robot_ml %a" (exp 0) e
   (*added here*)
-<<<<<<< HEAD
   | Ostore(cmd, key) ->
       fprintf ff "robot_store(\"%s\" , %f)" cmd key
   | Ocontrol(e) ->
-=======
   | Ocontrol(e1, e2) ->
->>>>>>> files are updated to test the new keyword
       print_endline("Ocontrol compilation");
       fprintf ff "control_robot_ml %a %a" (exp 0) e1 (exp 1) e2 
   | Oinst(i) -> inst prio ff i
@@ -629,5 +626,10 @@ let implementation_list ff impl_list =
   fprintf ff "@[(* %s *)@.@]" header_in_file;
   fprintf ff "@[open Ztypes@.@]";
   (* added here *)
+<<<<<<< HEAD
   if !robot then (fprintf ff "@[external move_robot_ml: int -> unit = \"move_robot_c\" @.@] \n @[external robot_store: string * float -> unit = \"robot_store_c\" @.@] ") else ();
+=======
+  if !robot then (fprintf ff "@[external move_robot_ml: int -> unit = \"move_robot_c\" @.@]") else 
+  if !robot_control then (fprintf ff "@[external control_robot_ml: int -> unit = \"control_robot_c\" @.@]") else() ;
+>>>>>>> ocamlPrinter for robot_control updated
   List.iter (implementation ff) impl_list
