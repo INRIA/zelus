@@ -101,12 +101,9 @@ let use_rif = ref false
 let build_deps = ref false
 
 (* added here *)
-(* Enables/disables robot mode *)
+(* Enables/disables robot modes *)
 let robot = ref false
-
-(* added here *)
-(* Enables/disables robot_control mode *)
-let robot_control = ref false
+let robotc =ref false
 
 let lmm_nodes = ref S.empty
 let set_lmm_nodes (n: string) =
