@@ -1,0 +1,9 @@
+(rule
+ (targets bot.ml bot_main.ml)
+ (deps (:zl bot.zls))
+ (action (run zeluc -deps -s main -o bot_main %{zl})))
+
+(executables
+ (names bot_main)
+ (libraries graphics zelus)
+ (promote (until-clean)))

@@ -730,6 +730,10 @@ let rec expression expected_k h ({ e_desc = desc; e_loc = loc } as e) =
         ignore (expression expected_k h e1);
         expression expected_k h e2  
     (*added here*)
+    | Estore(cmd, key) ->
+     let ty = new_var () in
+        ty
+    (*added here*)
     | Eassume(e) -> expression expected_k h e 
     | Eperiod(p) ->
         (* periods are only valid in a continuous context *)

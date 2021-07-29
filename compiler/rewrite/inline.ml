@@ -189,6 +189,8 @@ let rec expression renaming ({ e_desc = desc } as e) =
   (*added here*)
   | Eassume(e1) -> 
      {e with e_desc = Eassume(expression renaming e1)}
+  (*added here*)
+  | Estore(cmd, key) -> e
   | Eperiod { p_phase = p1; p_period = p2 } ->
      { e with e_desc = Eperiod { p_phase = Zmisc.optional_map (expression renaming) p1;
                                  p_period = expression renaming p2 } }

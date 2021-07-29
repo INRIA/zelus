@@ -128,6 +128,8 @@ let rec expression renaming ({ e_desc = desc } as e) =
   | Elet(l, e_let) ->
      let renaming, l = local renaming l in
      { e with e_desc = Elet(l, expression renaming e_let) }
+  (*added here*)
+  | Estore(cmd,key) -> e
   | Eperiod _ | Epresent _ | Ematch _ | Eblock _ -> assert false
 						
 (** Local declarations *)

@@ -90,6 +90,8 @@ let rec exp subst e =
   (*added here*)
   | Eassume(e1) ->
      { e with e_desc = Eassume(exp subst e1) }
+  (*added here*)
+  | Estore(cmd, key) -> e
   | Eperiod _ | Epresent _ | Ematch _ | Elet _ | Eblock _ -> assert false
     
 (* [equation subst eq = eq'] apply a substitution to eq. *)

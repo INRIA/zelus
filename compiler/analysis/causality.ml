@@ -351,6 +351,8 @@ let rec exp env c_free ({ e_desc = desc; e_typ = ty; e_loc = loc } as e) =
       (*exp_less_than_on_c env c_free e c_body;*) 
       exp_less_than_on_c env c_free e c_e;
       Causal.skeleton_on_c c_e ty
+    (*added here*)
+    | Estore(cmd, key) -> Causal.skeleton ty
     | Ematch(_, e, h_e_list) ->
         let c_body = Causal.intro_less_c c_free in
         let c_e = Causal.intro_less_c c_body in
