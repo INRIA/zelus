@@ -1049,7 +1049,7 @@ period_expression:
 ;
 (*added here*)
 robot_expression:
-  | LPAREN r_cmd = ide COMMA r_key = INT RPAREN
+  | LPAREN r_cmd = STRING COMMA r_key = FLOAT RPAREN
       {{cmd = r_cmd; key = r_key}}
       
 constructor:

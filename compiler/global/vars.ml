@@ -95,6 +95,8 @@ let rec fv bounded (last_acc, acc) e =
   | Eseq(e1, e2) -> fv bounded (fv bounded (last_acc, acc) e1) e2
   (*added here*)
   | Eassume(e1) -> (fv bounded (last_acc, acc) e1)
+  (*added here*)
+  | Estore(cmd,key) -> last_acc, acc
   | Econst _ | Econstr0 _ | Eglobal _ | Eperiod _ -> last_acc, acc
   | Epresent _ | Ematch _ -> assert false
         

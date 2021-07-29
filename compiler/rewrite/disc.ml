@@ -71,6 +71,8 @@ let rec expression major ({ e_desc = e_desc } as e) =
   (*added here*)
   | Eassume(e1) -> 
      {e with e_desc = Eassume(expression major e1)}
+  (*added here*)
+  | Estore(cmd, key) -> e
   | Elocal _ | Eglobal _ | Econst _ | Econstr0 _ | Elast _ -> e
   | Epresent _ | Ematch _ | Eperiod _ -> assert false
 

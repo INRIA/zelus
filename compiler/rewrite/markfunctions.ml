@@ -80,6 +80,8 @@ let funexp_info { f_args = p_list; f_body = ({ e_caus = tc } as e) } =
     | Eseq(e1, e2) -> exp (exp c_set e1) e2
     (*added here*)
     | Eassume(e) -> exp c_set e
+    (*added here*)
+    | Estore(cmd, key) -> c_set
     | Eperiod  { p_phase = p1; p_period = p2 }  ->
        let c_set = Zmisc.optional exp c_set p1 in
        exp c_set p2
@@ -262,6 +264,8 @@ let funexp_mark_to_inline info ({ f_body = e } as funexp) =
       | Eblock(b, e) -> Eblock(block_eq_list b, exp e)
       (*added here*)
       | Eassume(e) -> Eassume(exp e)
+      (*added here*)
+      | Estore(cmd, key) -> desc
       | Eseq(e1, e2) -> Eseq(exp e1, exp e2) in
     { e with e_desc = desc }
 

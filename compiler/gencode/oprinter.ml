@@ -30,6 +30,7 @@ let rec priority_exp = function
   | Oconstr1 _ | Oapp _ | Omethodcall _
     | Ovec _ | Oupdate _ | Oslice _ | Oconcat _ -> 2
   | (*added here*) Omove _ -> 0 
+  | (*added here*) Ostore (_,_) -> 0
   | Oifthenelse _  -> 0 | Oinst i -> priority_inst i
 
 and priority_inst = function
@@ -255,6 +256,9 @@ and exp prio ff e =
   | Omove (e) -> 
       print_endline("Omove printing");
       fprintf ff "print_endline(\"robot is moving\")"
+  (*added here*)
+  | Ostore(cmd, key) ->
+      fprintf ff "robot_store(%s , %f)" cmd key
   | Oinst(i) -> inst prio ff i
   end;
   if prio_e < prio then fprintf ff ")"

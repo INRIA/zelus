@@ -121,7 +121,7 @@ and desc =
   (*added here
   | Emove of exp*)
   (*added here*)
-  | Estore of name * int
+  | Estore of name * float
   | Eperiod of period
   | Ematch of exp * exp match_handler list
   | Epresent of exp present_handler list * exp default option
@@ -162,7 +162,7 @@ and period =
     
 and robot_input =
   { cmd : name;
-    key : int }
+    key : float }
 
 and constr = longname
 

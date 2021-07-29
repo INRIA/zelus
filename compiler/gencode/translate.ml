@@ -476,6 +476,8 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      print_endline("Translate");
      let e, code = exp env loop_path code e in
      Omove(e), code
+  (*added here*)
+  | Zelus.Estore(cmd, key) -> Ostore(cmd, key), code
   | Zelus.Eop(Zelus.Ehorizon, [e]) ->
      exp env loop_path code e
   | Zelus.Eop(Zelus.Eifthenelse, [e1; e2; e3]) ->

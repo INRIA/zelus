@@ -93,6 +93,8 @@ let rec exp subst ({ e_desc } as e) =
     (*added here*)
     | Eassume(e1) ->
     	Eassume(exp subst e1)
+    (*added here*) 
+    | Estore(cmd, key) -> e_desc
     | Epresent(p_h_list, e_opt) ->
         let e_opt = Zmisc.optional_map (exp subst) e_opt in
         let p_h_list = present_handler_exp_list subst p_h_list in
