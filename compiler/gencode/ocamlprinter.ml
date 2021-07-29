@@ -627,5 +627,5 @@ let implementation_list ff impl_list =
   fprintf ff "@[open Ztypes@.@]";
   (* added here *)
   if !robot then (fprintf ff "@[external move_robot_ml: int -> unit = \"move_robot_c\" @.@]") else();
-  if !robotc then (fprintf ff "@[external control_robot_ml: int -> int -> unit = \"control_robot_c\" @.@]") else() ;
+  if !robot then (fprintf ff "@[external control_robot_ml: int -> int -> unit = \"control_robot_c\" @.@]") else() ;
   List.iter (implementation ff) impl_list

@@ -1,6 +1,7 @@
 (* The Zelus compiler, version 2.1-dev
-  (2021-07-28-11:6) *)
+  (2021-07-28-15:38) *)
 open Ztypes
+external move_robot_ml: int -> unit = "move_robot_c" 
 external control_robot_ml: int -> int -> unit = "control_robot_c" 
 type state__180 =
 Test_StopR_36 | Test_Right_35 | Test_StopL_34 | Test_Left_33 
