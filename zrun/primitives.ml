@@ -16,7 +16,9 @@ open Monad
 open Opt
 open Lident
 
-(* remove dot and nil *)
+(* remove dot and nil. *)
+(* [let** x = e1 in e2] returns bot if v = bot; nil if v = nil; *)
+(* e2[value(e1)/x] otherwise *)
 let (let**) v f =
   match v with
   | Vbot -> return Vbot
@@ -183,18 +185,6 @@ let pvalue v =
   | Value(v) -> return v
 
 let is_pvalue v = not (is_none (pvalue v))
-                
-(* remove bot *)
-let nonbot v =
-  match v with
-  | Vbot -> None
-  | Vnil | Value _ -> return v
-
-(* remove nil *)
-let nonnil v =
-  match v with
-  | Vnil -> None
-  | Vbot | Value _ -> return v
                     
 (* builds a synchronous pair. If one is bot, the result is bot; *)
 (* if one is nil, the result is nil *)

@@ -16,9 +16,11 @@
 (* semantics presented at the SYNCHRON workshop, December 2019, *)
 (* the class on "Advanced Functional Programming" given at Bamberg
    Univ. in June-July 2019 and the Master MPRI - M2, Fall 2019 *)
-(* The original version of this code is taken from the GitHub Zrun repo. *)
-(* Zrun was done right after the COVID black out in June 2020 *)
-(* This new version that include Zelus constructs during spring 2021 *)
+(* The original version of this code is taken from the GitHub Zrun repo: *)
+(* https://github.com/marcpouzet/zrun *)
+(* Zrun was programmed right after the COVID black out in June 2020 *)
+(* This new version includes Zelus constructs (version 2): higher order *)
+(* functions, static parameters. It started during spring 2021 *)
 open Smisc
 open Monad
 open Opt                                                            
@@ -29,6 +31,7 @@ open Value
 open Primitives
 open Sdebug
    
+(* access function to the symbol table *)
 let find_value_opt x env =
   let* { cur } = Env.find_opt x env in
   return cur
@@ -46,6 +49,7 @@ let find_gvalue_opt x env =
   with
   | Not_found -> none
 
+(* the set of names defined in a environment *)
 let names_env env = Env.fold (fun n _ acc -> S.add n acc) env S.empty
 
 let names eq_write = Deftypes.names S.empty eq_write
@@ -62,6 +66,7 @@ let value v =
 
 (* evaluation functions *)
 
+(* Auxiliary functions to lift bottom and nil to environments *)
 (* the bottom environment *)
 let bot_env eq_write =
   S.fold (fun x acc -> Env.add x { cur = Vbot; default = Val } acc)
@@ -93,18 +98,39 @@ let rec distribute v acc { pat_desc } =
 let pbot p = distribute Vbot Env.empty p
 let pnil p = distribute Vnil Env.empty p
 
+let lift f env = Env.map (fun v -> { cur = f v; default = Val }) env
+let id x = x
+         
+(* Pattern matching for equations *)
+let matcheq v ({ pat_loc } as p) =
+  let r = match v with
+    | Vbot -> return (lift id (pbot p))
+    | Vnil -> return (lift id (pnil p))
+    | Value(v) ->
+       let* env =
+         Match.matcheq v p |>
+           Error.error pat_loc Error.Epattern_matching_failure in
+       return (lift (fun v -> Value(v)) env) in
+  Error.stop_at_location pat_loc r
+
+let matchsig v ({ pat_loc } as p) =
+  let r = match v with
+    | Vbot ->
+       return (Vbot, lift id (pbot p))
+    | Vnil ->
+       return (Vnil, lift id (pnil p))
+    | Value(v) ->
+       let* v, env = Match.matchsig v p in
+       return (Value(v), lift (fun v -> Value(v)) env) in
+  Error.stop_at_location pat_loc r
+
+let matchstate vstate ({ loc } as pstate) =
+  let r = Match.matchstate vstate pstate in
+  Error.stop_at_location loc r
+  
 (* number of variables defined by an equation *)
 let size { eq_write } = S.cardinal (Deftypes.names S.empty eq_write)
 
-(* merge two environments provided they do not overlap *)
-let merge env1 env2 =
-  let s = Env.to_seq env1 in
-  seqfold
-    (fun acc (x, entry) ->
-      if Env.mem x env2 then none
-      else return (Env.add x entry acc))
-    env2 s
-                    
 (* given an environment [env], a local environment [env_handler] *)
 (* an a set of written variables [write] *)
 (* complete [env_handler] with entries in [env] for variables that *)
@@ -210,7 +236,7 @@ let max_env env =
   Env.for_all (fun _ { cur } -> match cur with | Vbot -> false | _ -> true) env
 
 (* stop the fixpoint when two successive environments are equal *)
-(* or the second one is maximal *)
+(* or the second one is maximal, that is, all entries are values *)
 let equal_env env1 env2 =
   (max_env env2) || (equal_env env1 env2)
 
@@ -231,81 +257,7 @@ let fixpoint_eq genv env sem eq n s_eq bot =
   Smisc.incr_number_of_fixpoint_iterations (n - m);
   return (env_out, s_eq)
 
-(* pattern matching for equations [p = e] and function application *)
-(* [v] is an extended value; [p] is a pattern. *)
-(* The pattern matching cannot fail unless there is a typing error *)
-let rec matcheq v ({ pat_loc } as p) =
-  let rec matchrec acc v { pat_desc } =
-    match v, pat_desc with
-    | Vtuple(v_list), Etuplepat(l_list) ->
-       matcheq_list acc v_list l_list
-    | Vstuple(p_list), Etuplepat(l_list) ->
-       matcheq_list acc (List.map (fun v -> Value v) p_list) l_list
-    | Vrecord(l_v_list), Erecordpat(l_p_list) ->
-       let rec find l = function
-         | [] -> none
-         | { label; arg = v } :: p_v_list ->
-            if l = label then return v else find l p_v_list in
-       Opt.fold
-         (fun acc { label; arg = p } ->
-           let* v = find label l_v_list in
-           matchrec acc v p) acc l_p_list
-    | _, Evarpat(x) ->
-       return (Env.add x { cur = Value v; default = Val } acc)
-    | _, Ewildpat -> return acc
-    | _, Ealiaspat(p, x) ->
-       let* acc = matchrec acc v p in
-       return (Env.add x { cur = Value v; default = Val } acc)
-    | _ -> none in
-  let r = match v with
-    | Vbot ->
-       let env = Env.map (fun v -> { cur = v; default = Val }) (pbot p) in
-       return env
-    | Vnil ->
-       let env = Env.map (fun v -> { cur = v; default = Val }) (pnil p) in
-       return env
-    | Value(v) -> matchrec Env.empty v p in
-  Error.stop_at_location pat_loc r
-              
-and matcheq_list acc v_list p_list =
-    match v_list, p_list with
-    | [], [] -> return acc
-    | v :: v_list, p :: p_list  -> matcheq_list acc v_list p_list 
-    | _ -> none
 
-(* Pattern matching of a signal *)
-let matchsig ve ({ pat_loc } as p) =
-  let r = match ve with
-    | Vbot ->
-       let env = Env.map (fun v -> { cur = v; default = Val }) (pbot p) in
-       return (Vbot, env)
-    | Vnil ->
-       let env = Env.map (fun v -> { cur = v; default = Val }) (pnil p) in
-       return (Vnil, env)
-    | Value(v) ->
-       match v with
-       | Vabsent -> return (Value(Vbool(false)), Env.empty)
-       | Vpresent(v) ->
-          let* env = matcheq (Value(v)) p in
-          return (Value(Vbool(true)), env)
-       | _ -> none in
-  Error.stop_at_location pat_loc r
-  
-(* match a state f(v1,...,vn) against a state name f(x1,...,xn) *)
-let matching_state ps { desc; loc } =
-  let r = match ps, desc with
-    | Vstate0(f), Estate0pat(g) when Ident.compare f g = 0 -> return Env.empty
-    | Vstate1(f, v_list), Estate1pat(g, id_list) when
-           (Ident.compare f g = 0) &&
-             (List.length v_list = List.length id_list) ->
-       let env =
-         List.fold_left2
-           (fun acc v x -> Env.add x { cur = v; default = Val }  acc)
-           Env.empty v_list id_list in
-       return env
-    | _ -> none in
-  Error.stop_at_location loc r
-  
 (* [reset init step genv env body s r] resets [step genv env body] *)
 (* when [r] is true *)
 let reset init step genv env body s r =
@@ -320,7 +272,7 @@ let rec smatch_handler_list genv env ve sbody m_h_list s_list =
   match m_h_list, s_list with
   | [], [] -> none
   | { m_pat; m_body } :: m_h_list, s :: s_list ->
-     let r = Eval.pmatching Env.empty ve m_pat in
+     let r = Match.pmatching ve m_pat in
      let* r, s =
        match r with
        | None ->
@@ -372,7 +324,7 @@ let rec spresent_handler_list genv env ve sscondpat sbody p_h_list s_list =
           if v then
             (* this is the good handler *)
             let env_pat =
-              Env.map (fun v -> { cur = Value v; default = Val }) env_pat in
+              lift (fun v -> Value(v)) env_pat in
             let env = Env.append env_pat env in
             let* r, s_body = sbody genv env p_body s_body in
             return (r, Stuple [s_cond; s_body] :: s_list)
@@ -419,9 +371,10 @@ let rec iexp genv env { e_desc; e_loc  } =
           return (Stuple [s1; s2; s3])
        | Erun _, [e1; e2] ->
           (* node instanciation. [e1] must be a static expression *)
-          let senv =
-            Env.filter_map (fun _ { cur } -> pvalue cur) env in
-          let* v1 = Eval.exp genv senv e1 in
+          let* v1 =
+            (* only keep current entry *)
+            let env = Env.map (fun { cur } -> cur) env in
+            Eval.exp genv env e1 in          
           let* v1 =
             let v1 = instance v1 in
             Error.error e_loc Error.Eshould_be_a_node v1 in
@@ -476,6 +429,7 @@ let rec iexp genv env { e_desc; e_loc  } =
        let* s_res = iexp genv env e_res in
        (* TODO: double the state; this idea is due to Louis Mandel *)
        (* in case of a reset, simply restart from this copy *)
+       (* this avoid recalling [iexp] *)
        (* in an actual (imperative) implementation, reset is obtained *)
        (* by executing a special reset method which restores the state *)
        (* to its initial value *)
@@ -855,7 +809,7 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
   | EQand(eq_list), Stuple(s_list) ->
      let seq genv env acc eq s =
        let* env_eq, s = seq genv env eq s in
-       let* acc = merge env_eq acc in
+       let* acc = Eval.merge env_eq acc in
        return (acc, s) in
      let* env_eq, s_list = mapfold2 (seq genv env) Env.empty eq_list s_list in
      return (env_eq, Stuple(s_list))
@@ -1044,7 +998,7 @@ and sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list =
       (Stuple [Stuple(ss_let); ss_body;
                Stuple(ss_trans)] as s) :: s_list ->
        let r =
-         let r = matching_state ps s_state in
+         let r = Match.matchstate ps s_state in
          let* env_handler, ns, nr, s_list =
            match r with
            | None ->
@@ -1054,9 +1008,7 @@ and sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list =
               return (env_handler, ns, nr, s :: s_list)            
            | Some(env_state) ->
               let env_state =
-                Env.map
-                  (fun { cur } -> { cur = Value(cur); default = Val })
-                  env_state in
+                lift (fun v -> Value(v)) env_state in
               let env = Env.append env_state env in
               (* execute the local lets *)
               let* env, ss_let = slets genv env s_let ss_let in
@@ -1084,7 +1036,7 @@ and sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list =
     | { s_state; s_trans; s_loc } :: a_h_list,
       (Stuple [ss_var; ss_body; Stuple(ss_trans)] as s) :: s_list ->
        let r =
-         let r = matching_state ps s_state in
+         let r = Match.matchstate ps s_state in
          begin match r with
          | None ->
             (* this is not the good state; try an other one *)
@@ -1092,9 +1044,7 @@ and sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list =
             return (env_trans, ns, nr, s :: s_list)            
          | Some(env_state) ->
             let env_state =
-              Env.map
-                (fun { cur } -> { cur = Value(cur); default = Val })
-                env_state in
+              lift (fun v -> Value(v)) env_state in
             let env = Env.append env_state env in
             (* execute the transitions *)
             let* env_trans, (ns, nr), ss_trans =
@@ -1111,7 +1061,7 @@ and sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list =
     | { s_state; s_let; s_body; s_loc } :: a_h_list,
       (Stuple [Stuple(ss_let); ss_body; ss_trans] as s) :: s_list ->
        let r =
-         let r = matching_state ps s_state in
+         let r = Match.matchstate ps s_state in
          begin match r with
          | None ->
             (* this is not the good state; try an other one *)
@@ -1119,9 +1069,7 @@ and sautomaton_handler_list is_weak genv env eq_write a_h_list ps pr s_list =
             return (env_body, s :: s_list)            
          | Some(env_state) ->
             let env_state =
-              Env.map
-                (fun { cur } -> { cur = Value(cur); default = Val })
-                env_state in
+              lift (fun v -> Value(v)) env_state in
             let env = Env.append env_state env in
             (* execute the local lets *)
             let* env, ss_let = slets genv env s_let ss_let in
@@ -1206,7 +1154,7 @@ and sscondpat genv env { desc; loc } s =
     | Econdand(sc1, sc2), Stuple [s1; s2] ->  
        let* (v1, env_sc1), s1 = sscondpat genv env sc1 s1 in
        let* (v2, env_sc2), s2 = sscondpat genv env sc2 s2 in
-       let* env = merge env_sc1 env_sc2 in
+       let* env = Eval.merge env_sc1 env_sc2 in
        let s = Stuple [s1; s2] in 
        (match v1, v2 with
         | (Vbot, _) | (_, Vbot) -> return ((Vbot, env), s)
@@ -1219,7 +1167,7 @@ and sscondpat genv env { desc; loc } s =
     | Econdor(sc1, sc2), Stuple [s1; s2] ->
        let* (v1, env_sc1), s1 = sscondpat genv env sc1 s1 in
        let* (v2, env_sc2), s2 = sscondpat genv env sc2 s2 in
-       let* env = merge env_sc1 env_sc2 in
+       let* env = Eval.merge env_sc1 env_sc2 in
        (match v1, v2 with
         | (Vbot, _) | (_, Vbot) -> return ((Vbot, env), s)
         | (Vnil, _) | (_, Vnil) -> return ((Vnil, env), s)
@@ -1288,7 +1236,6 @@ and vfun genv env f_kind arg_list f_body =
   let rec funrec env_local arg_list =
     match f_kind, arg_list with
     | (Knode | Khybrid), [arg] ->
-       let env_local = Env.map (fun v -> Value(v)) env_local in
        let env = Env.append env_local env in
        vnode genv env arg f_body
     | (Kstatic | Kfun), arg :: f_args ->
@@ -1298,8 +1245,6 @@ and vfun genv env f_kind arg_list f_body =
               let* env_local = Eval.matching_arg_in env_local arg v in
               funrec env_local f_args))
     | (Kstatic | Kfun), [] ->
-       let env =
-         Env.filter_map (fun _ v -> pvalue v) env in
        let env = Env.append env_local env in
        Eval.result genv env f_body
     | _ -> None in
@@ -1307,7 +1252,7 @@ and vfun genv env f_kind arg_list f_body =
 
 and vnode genv env arg f_body =
   (* compute the initial state *)
-  let env = Env.map (fun v -> { cur = v; default = Val }) env in
+  let env = lift id env in
   let* s_list = Opt.map (ivardec genv env) arg in
   let* s_body = iresult genv env f_body in
   (* compute the step function *)

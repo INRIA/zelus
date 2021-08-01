@@ -25,6 +25,7 @@ type kind =
   | Eno_default : Ident.t -> kind (* no default value is given to [x] *)
   | Einitial_state_with_parameter : Ident.t  -> kind
   (* the initial state has a parameter which is undefined *)
+  | Epattern_matching_failure : kind
   | Enot_implemented : kind (* not yet implemented *)
   
 exception Error of Location.t * kind 
@@ -74,5 +75,7 @@ let message loc kind =
       eprintf "@[%aZrun: the initial state %s has a parameter which is \
                  undefined.@.@]"
         output_location loc (Ident.source name)
+  | Epattern_matching_failure ->
+     eprintf "@[%aZrun: pattern matching failure.@.@]" output_location loc
   | Enot_implemented ->
      eprintf "@[%aZrun: not implemented.@.@]" output_location loc

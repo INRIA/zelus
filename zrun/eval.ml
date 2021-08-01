@@ -11,8 +11,9 @@
 (*                                                                     *)
 (* *********************************************************************)
 
-(* Evaluation of combinatorial expressions. The presence of stateful *)
-(* construct leads to an error *)
+(* Evaluation of combinatorial expressions. The input environment *)
+(* is only made of primitive values *)
+(* The presence of a stateful construct leads to an error *)
 open Smisc
 open Monad
 open Opt                                                            
@@ -22,7 +23,12 @@ open Value
 open Primitives
 open Sdebug
 
-let find_value_opt x env = Env.find_opt x env
+let find_value_opt x env =
+  let* v = Env.find_opt x env in
+  match v with
+  | Vbot | Vnil -> none
+  | Value(v) -> return v
+      
 let find_gvalue_opt x env =
   try
     let { Global.info } = Genv.find x env in
@@ -39,53 +45,7 @@ let merge env1 env2 =
       else return (Env.add x entry acc))
     env2 s
 
-(* match a value [ve] against a pattern [p] *)
-let rec pmatching acc v { pat_desc } =
-  match v, pat_desc with
-  | _, Etypeconstraintpat(p, _) -> pmatching acc v p
-  | (Vstate0 _| Vstate1 _ | Vfun _ | Vnode _), Evarpat(x) ->
-     return (Env.add x v acc)
-  | _, Ewildpat -> return acc
-  | _, Ealiaspat(p, x) ->
-     let* acc = pmatching acc v p in
-     return (Env.add x v acc)
-  | _, Eorpat(p1, p2) ->
-     let env = pmatching Env.empty v p1 in
-     let acc =
-       match env with
-       | None -> pmatching acc v p2
-       | Some(env) -> return (Env.append env acc) in
-     acc
-  | Vrecord(l_v_list), Erecordpat(l_p_list) ->
-     let rec find l = function
-       | [] -> none
-       | { label; arg = v } :: p_v_list ->
-          if l = label then return v else find l p_v_list in
-     Opt.fold
-       (fun acc { label; arg = p } ->
-         let* v = find label l_v_list in
-         pmatching acc v p) acc l_p_list
-  | Vint(v1), Econstpat(Eint(v2)) when v1 = v2 -> return Env.empty
-  | Vbool(v1), Econstpat(Ebool(v2)) when v1 = v2 -> return Env.empty
-  | Vfloat(v1), Econstpat(Efloat(v2)) when v1 = v2 -> return Env.empty
-  | Vchar(v1), Econstpat(Echar(v2)) when v1 = v2 -> return Env.empty
-  | Vstring(v1), Econstpat(Estring(v2)) when v1 = v2 -> return Env.empty
-  | Vvoid, Econstpat(Evoid) -> return Env.empty
-  | Vconstr0(f), Econstr0pat(g) when Lident.compare f g = 0 ->
-     return Env.empty
-  | Vtuple(v_list), Etuplepat(p_list) ->
-     let* v_list = Opt.map pvalue v_list in
-     pmatching_list acc v_list p_list
-  | Vstuple(v_list), Etuplepat(p_list) ->
-     pmatching_list acc v_list p_list
-  | Vconstr1(f, v_list), Econstr1pat(g, p_list) when Lident.compare f g = 0 ->
-     pmatching_list acc v_list p_list
-  | _ -> none
 
-and pmatching_list acc v_list p_list =
-  Opt.fold2 pmatching acc v_list p_list
-
-   
 (* value of an immediate constant *)
 let immediate v =
   match v with
@@ -95,7 +55,6 @@ let immediate v =
   | Efloat(f) -> Vfloat(f)
   | Echar(c) -> Vchar(c)
   | Estring(s) -> Vstring(s)
-
                 
 (* evaluation function *)
 let rec exp genv env { e_desc; e_loc } =
@@ -105,14 +64,14 @@ let rec exp genv env { e_desc; e_loc } =
     | Econstr0 { lname } ->
        return (Vconstr0(lname))
     | Elocal x ->
-       let v = find_value_opt x env in
        let* v =
-         Error.error e_loc (Error.Eunbound_ident(x)) v in
+         find_value_opt x env |>
+           Error.error e_loc (Error.Eunbound_ident(x)) in
        return v
     | Eglobal { lname } ->
-       let v = find_gvalue_opt lname genv in
        let* v =
-         Error.error e_loc (Error.Eunbound_lident(lname)) v in
+         find_gvalue_opt lname genv |>
+           Error.error e_loc (Error.Eunbound_lident(lname)) in
        return v
     | Eop(op, e_list) ->
        begin match op, e_list with
@@ -131,8 +90,7 @@ let rec exp genv env { e_desc; e_loc } =
        return (Vstuple(v_list))
     | Eapp(f, e_list) ->
        let* v = exp genv env f in
-       let* v_list = exp_list genv env e_list in
-       apply genv env v v_list
+       apply genv env v e_list
     | Elet({ l_rec; l_eq }, e) ->
        if l_rec then none
        else
@@ -203,35 +161,37 @@ and record_with label_arg_list ext_label_arg_list =
        join label_arg_list ext_label_arg_list in
   join label_arg_list ext_label_arg_list
   
-(* application [fv v_list] *)
-and apply genv env fv v_list =
+(* application [fv e_list] *)
+and apply genv env fv e_list =
   (* apply a closure to a list of arguments *)
-  let rec apply_closure genv env fe f_args v_list f_body =
-    match f_args, v_list with
+  let rec apply_closure genv env fe f_args e_list f_body =
+    match f_args, e_list with
     | [], [] ->
        result genv env f_body
-    | arg :: f_args, v :: v_list ->
-       let* env = matching_arg_in env arg v in
-       apply_closure genv env fe f_args v_list f_body
+    | arg :: f_args, ({ e_loc } as e) :: e_list ->
+       let* v = exp genv env e in
+       let* env =
+         matching_arg_in env arg v |>
+           Error.error e_loc Error.Epattern_matching_failure in
+       apply_closure genv env fe f_args e_list f_body
     | [], _ ->
        let* fv = result genv env f_body in
-       apply genv env fv v_list
+       apply genv env fv e_list
     | _, [] ->
-       let env = Env.map (fun v -> Value v) env in
        return (Vclosure({ fe with f_args = f_args }, genv, env)) in
   (* main entry *)
   match fv with
   | Vfun(op) ->
      let* fv =
-       match v_list with
+       match e_list with
        | [] -> (* typing error *) none
-       | v :: v_list ->
-          let* fv = op v in apply genv env fv v_list in
+       | e :: e_list ->
+          let* v = exp genv env e in
+          let* fv = op v in apply genv env fv e_list in
      return fv
   | Vclosure(({ f_kind = (Kstatic | Kfun);
                 f_args; f_body } as fe, genv, env)) ->
-     let env = Env.filter_map (fun _ v -> pvalue v) env in
-     apply_closure genv env fe f_args v_list f_body
+     apply_closure genv env fe f_args e_list f_body
   | _ ->
      return fv
       
@@ -240,7 +200,10 @@ and eval_eq genv env { eq_desc; eq_loc } =
   let r = match eq_desc with 
     | EQeq(p, e) -> 
        let* v = exp genv env e in
-       let* env_p1 = pmatching Env.empty v p in
+       let* env_p1 =
+         Match.pmatching v p |>
+           Error.error eq_loc Error.Epattern_matching_failure in
+       let env_p1 = Env.map (fun v -> Value(v)) env_p1 in
        return env_p1
     | EQif(e, eq1, eq2) ->
        let* v = exp genv env e in
@@ -282,18 +245,17 @@ and match_handlers genv env v handlers =
   match handlers with
   | [] -> none
   | { m_pat; m_body } :: handlers ->
-     let r = pmatching env v m_pat in
+     let r = Match.pmatching v m_pat in
      match r with
      | None ->
         (* this is not the good handler; try an other one *)
         match_handlers genv env v handlers
      | Some(env_pat) ->
+        let env_pat = Env.map (fun v -> Value(v)) env_pat in
         let env = Env.append env_pat env in
         exp genv env m_body
         
-and funexp genv env fe =
-  let env = Env.map (fun v -> Value(v)) env in
-  return (Vclosure(fe, genv, env))
+and funexp genv env fe = return (Vclosure(fe, genv, env))
 
 and block genv env { b_vars; b_body; b_loc } =
   (* a very simple solution. no fixpoint *)
@@ -303,7 +265,7 @@ and block genv env { b_vars; b_body; b_loc } =
         (fun acc { var_name; var_default; var_init } ->
           match var_default, var_init with
           | (None, None) -> return (S.add var_name acc)
-          | _ -> None) S.empty b_vars in
+          | _ -> none (* type error *)) S.empty b_vars in
     let* b_env = eval_eq genv env b_body in
     return (Env.append b_env env, b_env) in
   Error.stop_at_location b_loc r
@@ -329,12 +291,9 @@ and matching_arg_out env { b_vars; b_loc } =
   
 and matching_arg_in env arg v =
   let match_in acc { var_name } v =
-    return (Env.add var_name v acc) in
+    return (Env.add var_name (Value(v)) acc) in
   match arg, v with
   | [], Vvoid -> return env
-  | l, Vtuple(v_list) -> 
-     let* v_list = Opt.map pvalue v_list in
-     Opt.fold2 match_in env l v_list
   | l, Vstuple(v_list) -> 
      Opt.fold2 match_in env l v_list
   | [x], _ -> match_in Env.empty x v
