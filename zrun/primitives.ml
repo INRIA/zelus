@@ -207,6 +207,12 @@ let constr1 f v_list =
   let** v_list = slist v_list in
   return (Value(Vconstr1(f, v_list)))
 
+let atomic v =
+  let** v = v in
+  match v with
+  | Vtuple(l) -> stuple l
+  | _ -> return (Value(v))
+       
 (* void *)
 let void = return (Value(Vvoid))
 
