@@ -70,6 +70,7 @@ type exp =
 
 and leftvalue =
   | Eleft_name of Ident.t
+  | Eleft_access of leftvalue * Ident.t
   | Eleft_record_acess of leftvalue * Lident.t
   | Eleft_state_access of leftvalue * mkind
                         
