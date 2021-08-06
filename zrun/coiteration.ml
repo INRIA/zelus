@@ -304,16 +304,39 @@ let idefault_opt ibody genv env default_opt =
   | Else(b) -> ibody genv env b
   | NoDefault -> return Sempty
 
-let sdefault_opt sbody genv env default_opt nodefault =
-  match default_opt with
-  | Init(b) -> sbody genv env b
-  | Else(b) -> sbody genv env b
-  | NoDefault -> return (nodefault, Sempty)
-
 let rec spresent_handler_list sscondpat sbody genv env p_h_list s_list =
   match p_h_list, s_list with
   | [], [] ->
-     none
+     return (none, []) (* no condition is true *)
+  | { p_cond; p_body } :: m_h_list, Stuple [s_cond; s_body] :: s_list ->
+     let* (r, env_pat), s_cond = sscondpat genv env p_cond s_cond in
+     let* r, s =
+       match r with
+       | Vbot ->
+          return (return Vbot, Stuple [s_cond; s_body] :: s_list)
+       | Vnil ->
+          return (return Vnil, Stuple [s_cond; s_body] :: s_list)
+       | Value(v) ->
+          let* v = bool v in
+          if v then
+            (* this is the good handler *)
+            let env = Env.append env_pat env in
+            let* r, s_body = sbody genv env p_body s_body in
+            return (return r, Stuple [s_cond; s_body] :: s_list)
+          else
+            let* r, s_list =
+              spresent_handler_list sscondpat sbody 
+                genv env p_h_list s_list in
+            return (r, Stuple [s_cond; s_body] :: s_list) in
+     return (r, s)
+  | _ -> none (* error *)
+
+
+       (*
+let rec spresent_handler_list sscondpat sbody genv env p_h_list s_list =
+  match p_h_list, s_list with
+  | [], [] ->
+     none (* no condition is true *)
   | { p_cond; p_body } :: m_h_list, Stuple [s_cond; s_body] :: s_list ->
      let* (r, env_pat), s_cond = sscondpat genv env p_cond s_cond in
      let* r, s =
@@ -335,8 +358,8 @@ let rec spresent_handler_list sscondpat sbody genv env p_h_list s_list =
                 genv env p_h_list s_list in
             return (r, Stuple [s_cond; s_body] :: s_list) in
      return (r, s)
-  | _ -> none
-
+  | _ -> none (* error *)
+        *)
 
 (* [sem genv env e = CoF f s] such that [iexp genv env e = s] *)
 (* and [sexp genv env e = f] *)
@@ -722,19 +745,33 @@ and sexp genv env { e_desc = e_desc; e_loc } s =
      return (Value(Vclosure(fe, genv, env)), s)
   | Ematch { e; handlers }, Stuple(se :: s_list) ->
      let* ve, se = sexp genv env e se in
-     let* env, s_list =
+     let* v, s_list =
        match ve with
        (* if the condition is bot/nil then all variables have value bot/nil *)
        | Vbot -> return (Vbot, s_list)
        | Vnil -> return (Vnil, s_list)
        | Value(ve) ->
           smatch_handler_list sexp genv env ve handlers s_list in
-     return (env, Stuple (se :: s_list))
+     return (v, Stuple (se :: s_list))
   | Epresent { handlers; default_opt }, Stuple(s :: s_list) ->
+     (* present z1 -> e1 | ... | zn -> en [else|init] e] *)
      let* v, s_list =
        spresent_handler_list sscondpat sexp genv env handlers s_list in
-     (*
-         let* v_opt, s = sdefault_opt sexp genv env default_opt in *)    
+     let* v, s =
+       match v, default_opt, s with
+       | Some(v), _, _ -> return (v, s)
+       | None, Else(e), s -> 
+          (* no handler was selected *)
+          let* v, s = sexp genv env e s in return (v, s)
+       | None, Init(e), Stuple [Sopt(s_opt); s] ->
+          (* no handler was selected *)
+          let* v, s = sexp genv env e s in
+          let* v, s =
+            match s_opt with
+            | None -> return (v, s) | Some(v) -> return (v, s) in
+          return (v, Stuple [Sopt(Some(v)); s])
+       | _ -> (* error *)
+          none in
      return (v, Stuple(s :: s_list))
   | Ereset(e_body, e_res), Stuple [s_body; s_body_init; s_res] ->
      let* v, s_res = sexp genv env e_res s_res in 
