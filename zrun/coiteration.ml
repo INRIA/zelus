@@ -304,62 +304,32 @@ let idefault_opt ibody genv env default_opt =
   | Else(b) -> ibody genv env b
   | NoDefault -> return Sempty
 
-let rec spresent_handler_list sscondpat sbody genv env p_h_list s_list =
-  match p_h_list, s_list with
-  | [], [] ->
-     return (none, []) (* no condition is true *)
-  | { p_cond; p_body } :: m_h_list, Stuple [s_cond; s_body] :: s_list ->
-     let* (r, env_pat), s_cond = sscondpat genv env p_cond s_cond in
-     let* r, s =
-       match r with
-       | Vbot ->
-          return (return Vbot, Stuple [s_cond; s_body] :: s_list)
-       | Vnil ->
-          return (return Vnil, Stuple [s_cond; s_body] :: s_list)
-       | Value(v) ->
-          let* v = bool v in
-          if v then
-            (* this is the good handler *)
-            let env = Env.append env_pat env in
+let spresent_handler_list sscondpat bot nil sbody genv env p_h_list s_list =
+  let rec spresentrec p_h_list s_list =
+    match p_h_list, s_list with
+    | [], [] ->
+       return (none, []) (* no condition is true *)
+    | { p_cond; p_body } :: m_h_list, Stuple [s_cond; s_body] :: s_list ->
+       let* (r, env_pat), s_cond = sscondpat genv env p_cond s_cond in
+       let* r, s =
+         match r with
+         | Vbot ->
+            return (return bot, Stuple [s_cond; s_body] :: s_list)
+         | Vnil ->
+            return (return nil, Stuple [s_cond; s_body] :: s_list)
+         | Value(v) ->
+            let* v = bool v in
+            if v then
+              (* this is the good handler *)
+              let env = Env.append env_pat env in
             let* r, s_body = sbody genv env p_body s_body in
             return (return r, Stuple [s_cond; s_body] :: s_list)
           else
-            let* r, s_list =
-              spresent_handler_list sscondpat sbody 
-                genv env p_h_list s_list in
+            let* r, s_list = spresentrec p_h_list s_list in
             return (r, Stuple [s_cond; s_body] :: s_list) in
      return (r, s)
-  | _ -> none (* error *)
-
-
-       (*
-let rec spresent_handler_list sscondpat sbody genv env p_h_list s_list =
-  match p_h_list, s_list with
-  | [], [] ->
-     none (* no condition is true *)
-  | { p_cond; p_body } :: m_h_list, Stuple [s_cond; s_body] :: s_list ->
-     let* (r, env_pat), s_cond = sscondpat genv env p_cond s_cond in
-     let* r, s =
-       match r with
-       | Vbot ->
-          return (Vbot, Stuple [s_cond; s_body] :: s_list)
-       | Vnil ->
-          return (Vnil, Stuple [s_cond; s_body] :: s_list)
-       | Value(v) ->
-          let* v = bool v in
-          if v then
-            (* this is the good handler *)
-            let env = Env.append env_pat env in
-            let* r, s_body = sbody genv env p_body s_body in
-            return (r, Stuple [s_cond; s_body] :: s_list)
-          else
-            let* r, s_list =
-              spresent_handler_list sscondpat sbody 
-                genv env p_h_list s_list in
-            return (r, Stuple [s_cond; s_body] :: s_list) in
-     return (r, s)
-  | _ -> none (* error *)
-        *)
+    | _ -> none in
+  spresentrec p_h_list s_list
 
 (* [sem genv env e = CoF f s] such that [iexp genv env e = s] *)
 (* and [sexp genv env e = f] *)
@@ -451,11 +421,12 @@ let rec iexp genv env { e_desc; e_loc  } =
     | Ereset(e_body, e_res) ->
        let* s_body = iexp genv env e_body in
        let* s_res = iexp genv env e_res in
-       (* TODO: double the state; this idea is due to Louis Mandel *)
+       (* TODO: double the state; an idea from Louis Mandel *)
        (* in case of a reset, simply restart from this copy *)
-       (* this avoid recalling [iexp] *)
-       (* in an actual (imperative) implementation, reset is obtained *)
-       (* by executing a special reset method which restores the state *)
+       (* alternatively, recal [iexp] which is less elegant *)
+       (* in the actual, imperative implementation, generated code is *)
+       (* statically scheduled and reset is obtained *)
+       (* by executing a reset method which restores the state *)
        (* to its initial value *)
        return (Stuple[s_body; s_res]) in
   Error.stop_at_location e_loc r
@@ -467,7 +438,7 @@ and ieq genv env { eq_desc; eq_loc  } =
        (* [x becomes an input; x' an output] *)
        (* they are stored as a state [x';x] *)
        (* TODO: instead of storing it into the state, add *)
-       (* a extra global input and an extra global output *)
+       (* an extra global input and an extra global output *)
        let* se = iexp genv env e in
        let* s0 =
          match e0_opt with
@@ -754,11 +725,16 @@ and sexp genv env { e_desc = e_desc; e_loc } s =
           smatch_handler_list sexp genv env ve handlers s_list in
      return (v, Stuple (se :: s_list))
   | Epresent { handlers; default_opt }, Stuple(s :: s_list) ->
-     (* present z1 -> e1 | ... | zn -> en [else|init] e] *)
-     let* v, s_list =
-       spresent_handler_list sscondpat sexp genv env handlers s_list in
+     (* present z1 -> e1 | ... | zn -> en [[else|init] e]] *)
+     let* v_opt, s_list =
+       spresent_handler_list sscondpat Vbot Vnil
+         sexp genv env handlers s_list in
      let* v, s =
-       match v, default_opt, s with
+       match v_opt, default_opt, s with
+       | Some(v), Init(e), Stuple [Sopt(None); s] ->
+          (* at the first instant, execute the initialization *)
+          let* v', s = sexp genv env e s in
+          return (v, Stuple [Sopt(Some(v')); s])
        | Some(v), _, _ -> return (v, s)
        | None, Else(e), s -> 
           (* no handler was selected *)
@@ -912,6 +888,21 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
           let* env_handler = by env env_handler (names eq_write) in
           return (env_handler, s_list) in
      return (env, Stuple (se :: s_list))
+  | EQpresent { handlers; default_opt }, Stuple(s :: s_list) ->
+     (* present z1 -> eq1 | ... | zn -> eqn [else eq] *)
+     let* env_opt, s_list =
+       spresent_handler_list
+         sscondpat (bot_env eq_write) (nil_env eq_write)
+         seq genv env handlers s_list in
+     let* env, s =
+       match env_opt, default_opt, s with
+       | None, Else(eq), s ->
+          let* env, s = seq genv env eq s in return (env, s)
+       | None, NoDefault, s -> return (Env.empty, s)
+       | Some(env), _, _ -> return (env, s)
+       | _ -> (* error *)
+          none in
+     return (env, Stuple (s :: s_list))
   | EQempty, s -> return (Env.empty, s)
   | EQassert(e), s ->
      let* ve, s = sexp genv env e s in
