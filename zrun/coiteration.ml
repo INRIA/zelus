@@ -59,16 +59,6 @@ let names_env env = Env.fold (fun n _ acc -> S.add n acc) env S.empty
 
 let names eq_write = Deftypes.names S.empty eq_write
 
-(* value of an immediate constant *)
-let value v =
-  match v with
-  | Eint(v) -> Vint(v)
-  | Ebool(b) -> Vbool(b)
-  | Evoid -> Vvoid
-  | Efloat(f) -> Vfloat(f)
-  | Echar(c) -> Vchar(c)
-  | Estring(s) -> Vstring(s)
-
 (* evaluation functions *)
 
 (* Auxiliary functions to lift bottom and nil to environments *)
@@ -345,7 +335,7 @@ let rec iexp genv env { e_desc; e_loc  } =
        | Efby, [{ e_desc = Econst(v) }; e] ->
           (* synchronous register initialized with a static value *)
           let* s = iexp genv env e  in
-          return (Stuple [Sval(Value (value v)); s])
+          return (Stuple [Sval(Value (Eval.immediate v)); s])
        | Efby, [e1; e2] ->
           let* s1 = iexp genv env e1 in
           let* s2 = iexp genv env e2 in
@@ -599,7 +589,7 @@ and iresult genv env { r_desc; r_loc } =
 and sexp genv env { e_desc = e_desc; e_loc } s =
   let r = match e_desc, s with   
   | Econst(v), s ->
-     return (Value (value v), s)
+     return (Value (Eval.immediate v), s)
   | Econstr0 { lname }, s ->
      return (Value (Vconstr0(lname)), s)
   | Elocal x, s ->
@@ -941,21 +931,6 @@ and matching_arg_out env { b_vars; b_loc } =
     | _ -> (* return a non strict tuple *)
            return (Value(Vtuple(v_list))) in
   Error.stop_at_location b_loc r
-
-(* match a function argument against a value *)
-and matching_arg_in env arg v =
-  let match_in acc { var_name } v =
-    return (Env.add var_name { cur = v; default = Val } acc) in
-  match arg, v with
-  | [], Value(Vvoid) -> return env
-  | l, Value(Vtuple(v_list)) -> 
-     Opt.fold2 match_in env l v_list
-  | l, Value(Vstuple(v_list)) -> 
-     let v_list = List.map (fun v -> Value(v)) v_list in
-     Opt.fold2 match_in env l v_list
-  | [x], _ -> match_in Env.empty x v
-  | _ -> none
-       
 
 (* block [local x1 [init e1 | default e1 | ],..., xn [...] do eq done *)
 and sblock genv env { b_vars; b_body = ({ eq_write } as eq); b_loc } s_b =
