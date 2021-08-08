@@ -50,7 +50,7 @@ let parse_implementation_file source_name =
   
 (* check that a value is causally correct (non bot) *)
 (* and initialized (non nil) *)
-let not_bot_nil v =
+let check_not_bot_nil v =
   let not_bot_nil v =
     match v with
     | Vbot ->
@@ -61,7 +61,7 @@ let not_bot_nil v =
        return v in
   not_bot_nil v
     
-(* run a combinatorial expression *)
+(* run a combinatorial expression [f ()] *)
 (* returns the number of successful iterations *)
 let run_fun output fv n =
   let rec runrec i =
@@ -75,7 +75,7 @@ let run_fun output fv n =
          runrec (i+1) in
   runrec 0
       
-(* run a stream process *)
+(* run a stream process [run f []] *)
 let run_node output init step n =
   let rec runrec s i =
     if i = n then i
@@ -84,7 +84,7 @@ let run_node output init step n =
       match v with
       | None -> i
       | Some(v, s) ->
-         let v = not_bot_nil v in
+         let v = check_not_bot_nil v in
          match v with
          | None -> i
          | Some(v) ->

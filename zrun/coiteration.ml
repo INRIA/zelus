@@ -16,10 +16,10 @@
 (* semantics presented at the SYNCHRON workshop, December 2019, *)
 (* the class on "Advanced Functional Programming" given at Bamberg
    Univ. in June-July 2019 and the Master MPRI - M2, Fall 2019 *)
-(* The original version of this code is taken from the GitHub Zrun repo: *)
+(* The original version of this code is taken from the GitHub Zrun repository: *)
 (* https://github.com/marcpouzet/zrun *)
 (* Zrun was programmed right after the COVID black out in June 2020 *)
-(* This new version includes Zelus constructs (version 2): higher order *)
+(* This new version includes Zelus constructs (version 2.2): higher order *)
 (* functions, static parameters. It started during spring 2021 *)
 open Smisc
 open Monad
@@ -49,7 +49,7 @@ let find_gvalue_opt x env =
   with
   | Not_found -> none
 
-(* auxiliary functions *)
+(* auxiliary functions for environments *)
 let lift f env = Env.map (fun v -> { cur = f v; default = Val }) env
 let liftid env = lift (fun x -> x) env
 let liftv env = lift (fun v -> Value(v)) env
