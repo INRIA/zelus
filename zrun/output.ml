@@ -59,7 +59,7 @@ let rec pvalue ff v =
   | Vabsent ->
      Format.fprintf ff "abs"
   | Vpresent(v) ->
-     pvalue ff v
+     Format.fprintf ff "!%a" pvalue v
     
 and value ff v =
   match v with
@@ -75,3 +75,5 @@ let value_and_flush ff v =
   Format.fprintf ff "%a@\n" value v
 let pvalue_and_flush ff l = 
   Format.fprintf ff "%a@\n" pvalue l
+let letdecl ff name v =
+  Format.fprintf ff "@[<hov 2>val %s =@ %a@]@\n" name pvalue v
