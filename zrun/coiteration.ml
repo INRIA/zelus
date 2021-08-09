@@ -498,6 +498,8 @@ and iblock genv env { b_vars; b_body; b_loc  } =
   Error.stop_at_location b_loc r
   
 and ivardec genv env { var_init; var_default; var_loc } =
+  (* TODO: for the moment, we consider that default and init are exclusive *)
+  (* as in the Zrun initial version *)
   let r =
     let* s_i =
       match var_init with
@@ -966,18 +968,13 @@ and sblock_with_reset genv env b_eq s_eq r =
   sblock genv env b_eq s_eq
   
 and svardec genv env acc { var_name; var_default; var_init; var_loc } s v =
-  (* let* default, s_default =
-    match var_default, s with
-    | None, Sempty -> (* [local x in ...] *)
+  (* TODO: for the moment, we consider that default and init are exclusive *)
+  (* as in the Zrun initial version *)
+  let* default, s =
+    match var_init, var_default, s with
+    | None, None, Sempty -> (* [local x in ...] *)
        return (Val, s)
-    | Some(e), se ->
-       let* ve, se = sexp genv env e se in
-       return (Default(ve), se) in *)
-  let* default, s_init =
-    match var_init, s with
-    | None, Sempty ->
-       return (Val, s)
-    | Some(e), Stuple [si; se] ->
+    | Some(e), None, Stuple [si; se] ->
        let* ve, se = sexp genv env e se in
        let* lv =
          match si with
@@ -987,8 +984,9 @@ and svardec genv env acc { var_name; var_default; var_init; var_loc } s v =
          | Sval(v) | Sopt(Some(v)) -> return (Last(v))
          | _ -> none in
        return (lv, Stuple [si; se])
-    (* | Ewith_last, Sval(ve) -> (* [local last x in ... last x ...] *)
-       return (Last(ve), s) *)
+    | None, Some(e), se ->
+       let* ve, se = sexp genv env e se in
+       return (Default(ve), se)
     | _ -> none in
   let r = return (Env.add var_name { cur = v; default = default } acc, s) in
   Error.stop_at_location var_loc r
@@ -1297,6 +1295,7 @@ let implementation genv { desc; loc } =
     | Eletdecl(f, e) ->
        (* add the entry [f, v] in the current global environment *)
        let* v = Eval.exp genv Env.empty e in
+       Output.letdecl Format.std_formatter f v;
        return (add f v genv)
     | Etypedecl _ ->
        return genv in
