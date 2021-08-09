@@ -1,4 +1,21 @@
+let node main() returns (o)
+  do o = 0 done
+
 let ff(x) = (+) (1, x)
 
-let node main() =
-  let rec o = (+)(0 fby o, 2) in (+) (o, 2)
+let node main1() =
+  let rec o = (+)(0 fby o, 2) in o
+
+let node main2() returns (o)
+  do o = (+)(0 fby o, 2) done
+
+let bidule = 42
+
+let machin = (+)(42, 2)
+
+let truc = machin, bidule
+
+let trop_bien =
+  let v = truc in
+  v, truc
+
