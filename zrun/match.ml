@@ -23,7 +23,7 @@ let pmatching (v : pvalue) (p : pattern) =
   let rec matchrec acc v { pat_desc } =
     match v, pat_desc with
     | _, Etypeconstraintpat(p, _) -> matchrec acc v p
-    | (Vstate0 _| Vstate1 _ | Vfun _ | Vnode _), Evarpat(x) ->
+    | _, Evarpat(x) ->
        return (Env.add x v acc)
     | _, Ewildpat -> return acc
     | _, Ealiaspat(p, x) ->
