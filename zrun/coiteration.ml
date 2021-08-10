@@ -950,7 +950,7 @@ and sblock genv env { b_vars; b_body = ({ eq_write } as eq); b_loc } s_b =
        (* remove all local variables from [env_eq] *)
        let env = Env.append env_eq env in
        let env_eq = remove env_v env_eq in
-       return (env, env_eq, s_eq)
+       return (env, env_eq, Stuple (s_eq :: s_list))
     | _ -> none in
   Error.stop_at_location b_loc r
 
@@ -991,15 +991,14 @@ and svardec genv env acc { var_name; var_init; var_default; var_loc } s v =
   Error.stop_at_location var_loc r
     
 (* store the next value for [last x] in the state of [vardec] declarations *)
+(* the state is organised in [s_init; s_default] *)
 and set_vardec env_eq { var_name; var_loc } s =
   let r = match s with
-    | Sempty -> return Sempty
-    | Sopt _ | Sval _ ->
+    | Stuple [Sempty; _] -> return s
+    | Stuple [Stuple [Sopt _; s_init]; s_default] ->
+       (* store the current value of [var_name] into the state *)
        let* v = find_value_opt var_name env_eq in
-       return (Sval(v))
-    | Stuple [_; se] ->
-       let* v = find_value_opt var_name env_eq in
-       return (Stuple [Sval v; se])
+       return (Stuple [Stuple [Sopt(Some(v)); s_init]; s_default])
     | _ -> none in
   Error.stop_at_location var_loc r
 
