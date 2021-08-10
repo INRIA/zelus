@@ -37,10 +37,8 @@ let find_value_opt x env =
   return cur
 
 let find_last_opt x env =
-  let* { default } = Env.find_opt x env in
-  match default with
-  | Last(v) -> return v
-  | _ -> none
+  let* { last } = Env.find_opt x env in
+  last
            
 let find_gvalue_opt x env =
   try
@@ -50,7 +48,8 @@ let find_gvalue_opt x env =
   | Not_found -> none
 
 (* auxiliary functions for environments *)
-let lift f env = Env.map (fun v -> { cur = f v; default = Val }) env
+let lift f env =
+  Env.map (fun v -> { cur = f v; last = None; default = None }) env
 let liftid env = lift (fun x -> x) env
 let liftv env = lift (fun v -> Value(v)) env
               
@@ -64,12 +63,12 @@ let names eq_write = Deftypes.names S.empty eq_write
 (* Auxiliary functions to lift bottom and nil to environments *)
 (* the bottom environment *)
 let bot_env eq_write =
-  S.fold (fun x acc -> Env.add x { cur = Vbot; default = Val } acc)
+  S.fold (fun x acc -> Env.add x { cur = Vbot; last = None; default = None } acc)
     (names eq_write) Env.empty
 
 (* the nil environment *)
 let nil_env eq_write =
-  S.fold (fun x acc -> Env.add x { cur = Vnil; default = Val } acc)
+  S.fold (fun x acc -> Env.add x { cur = Vnil; last = None; default = None } acc)
     (names eq_write) Env.empty
 
 (* a bot/nil value lifted to lists *)
@@ -138,12 +137,13 @@ let by env env_handler write =
       (* if [x in env] but not [x in env_handler] *)
       (* then either [x = last x] or [x = default(x)] depending *)
       (* on what is declared for [x]. *)
-      let* { default } as entry = Env.find_opt x env in
+      let* { last; default } as entry = Env.find_opt x env in
       if Env.mem x env_handler then acc
       else
-        match default with
-        | Val -> none
-        | Last(v) | Default(v) ->
+        match last, default with
+        | None, None -> none
+        | (_, Some(v)) | (Some(v), None) ->
+           (* the default value is taken is present; otherwise, the last value *)
            let* acc = acc in
            return (Env.add x { entry with cur = v } acc))
     write (return env_handler) 
@@ -274,8 +274,7 @@ let rec smatch_handler_list sbody genv env ve m_h_list s_list =
             smatch_handler_list sbody genv env ve m_h_list s_list in
           return (r, s :: s_list)
        | Some(env_pat) ->
-          let env_pat =
-            Env.map (fun v -> { cur = Value v; default = Val }) env_pat in
+          let env_pat = liftv env_pat in
           let env = Env.append env_pat env in
           let* r, s = sbody genv env m_body s in
           return (r, s :: s_list) in
@@ -498,20 +497,18 @@ and iblock genv env { b_vars; b_body; b_loc  } =
   Error.stop_at_location b_loc r
   
 and ivardec genv env { var_init; var_default; var_loc } =
-  (* TODO: for the moment, we consider that default and init are exclusive *)
-  (* as in the Zrun initial version *)
   let r =
-    let* s_i =
+    let* s_init =
       match var_init with
       | None -> return Sempty
       | Some(e) ->
          (* a state is necessary to store the previous value *)
          let* s = iexp genv env e in return (Stuple [Sopt(None); s]) in
-    let* s_d =
+    let* s_default =
       match var_default with
       | None -> return Sempty
       | Some(e) -> iexp genv env e in
-    return (Stuple [s_i; s_d]) in
+    return (Stuple [s_init; s_default]) in
   Error.stop_at_location var_loc r
   
 and iautomaton_handler genv env { s_let; s_body; s_trans; s_loc } =
@@ -670,7 +667,7 @@ and sexp genv env { e_desc = e_desc; e_loc } s =
      | Eperiod, [_; _], _ ->
         (* not yet implemented. *)
         (* TODO: we cannot for the moment. Unless we implement it with *)
-        (* a zero-crossing detection (which would be inefficient), we need *)
+        (* a zero-crossing detection (inefficient), we need *)
         (* an extra global input [time] *)
         let v = none in
         Error.error e_loc (Error.Enot_implemented) v
@@ -967,30 +964,32 @@ and sblock_with_reset genv env b_eq s_eq r =
       return s_eq in
   sblock genv env b_eq s_eq
   
-and svardec genv env acc { var_name; var_default; var_init; var_loc } s v =
-  (* TODO: for the moment, we consider that default and init are exclusive *)
-  (* as in the Zrun initial version *)
-  let* default, s =
-    match var_init, var_default, s with
-    | None, None, Sempty -> (* [local x in ...] *)
-       return (Val, s)
-    | Some(e), None, Stuple [si; se] ->
-       let* ve, se = sexp genv env e se in
-       let* lv =
-         match si with
-         | Sopt(None) ->
+and svardec genv env acc { var_name; var_init; var_default; var_loc } s v =
+  let r =
+    match s with
+    | Stuple [s_init;s_default] ->
+       let* default, s_default =
+         match var_default, s_default with
+         | None, se -> return (None, se)
+         | Some(e), se ->
+            let* ve, se = sexp genv env e se in
+            return (Some(ve), se) in
+       let* last, s_init =
+         match var_init, s_init with
+         | None, se -> return (None, se)
+         | Some(e), Stuple [Sopt(None); se] ->
             (* first instant *)
-            return (Last(ve))
-         | Sval(v) | Sopt(Some(v)) -> return (Last(v))
+            let* ve, se = sexp genv env e se in
+            return (Some(ve), Stuple [Sopt(None); se])
+         | Some(e), Stuple [Sopt(Some(v)); _] ->
+            (* return the stored value *)
+            return (Some(v), s_init)
          | _ -> none in
-       return (lv, Stuple [si; se])
-    | None, Some(e), se ->
-       let* ve, se = sexp genv env e se in
-       return (Default(ve), se)
+       let entry = { cur = v; last = last; default = default } in
+       return (Env.add var_name entry acc, Stuple [s_init; s_default])
     | _ -> none in
-  let r = return (Env.add var_name { cur = v; default = default } acc, s) in
   Error.stop_at_location var_loc r
-
+    
 (* store the next value for [last x] in the state of [vardec] declarations *)
 and set_vardec env_eq { var_name; var_loc } s =
   let r = match s with

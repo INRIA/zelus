@@ -49,7 +49,7 @@ and state =
   | Sopt : value option -> state
 
 (* an input entry in the environment *)
-type 'a ientry = { cur: 'a; default : 'a default }
+type 'a ientry = { cur: 'a; last : 'a option; default : 'a option }
 
 and 'a default =
   | Val : 'a default

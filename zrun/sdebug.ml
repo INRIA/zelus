@@ -15,17 +15,12 @@ open Misc
 open Ident
 open Value
 
-let fprint_ientry ff { cur; default } =
-  match default with
-  | Val ->
-     Format.fprintf ff "@[{ cur = %a;@ default = Val }@]@," Output.value cur
-  | Last(v) ->
-     Format.fprintf ff "@[{ cur = %a;@ default = Last(%a) }@]@,"
-       Output.value cur Output.value v
-  | Default(v) ->
-     Format.fprintf ff "@[{ cur = %a;@ default = Default(%a) }@]@,"
-       Output.value cur Output.value v
-
+let fprint_ientry ff { cur; last; default } =
+  let value ff v =
+    match v with
+    | None -> Format.fprintf ff "none" | Some(v) -> Output.value ff v in
+  Format.fprintf ff "@[{ cur = %a;@ last = %a;@ default = %a }@]@,"
+    Output.value cur value last value default
 
 let print_number comment n =
   if !set_verbose then Format.eprintf "@[%s %d@]@\n" comment n
