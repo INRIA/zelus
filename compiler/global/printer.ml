@@ -312,12 +312,18 @@ let rec expression ff e =
     fprintf ff "@[<hov 2>(%a :@ %a)@]" exp e Ptypes.output e.e_typ
   else exp ff e
   
-  and result ff { r_desc } =
+and result ff { r_desc } =
   match r_desc with
   | Exp(e) -> expression ff e
-  | Returns(b) ->
-     block_of_equation ff b
-    
+  | Returns(b) -> return_block ff b
+                
+and return_block ff { b_vars; b_body; b_write; b_env } =
+  fprintf ff "@[<hov 0>returns @[(%a)@]@ @[%a@]@ @[%a@]@ @[%a@]@]"
+    (vardec_list expression) b_vars
+    print_writes b_write
+    print_env b_env
+    equation b_body
+  
 and funexp ff { f_kind; f_args; f_body; f_env } =
   let s =
     match f_kind with
