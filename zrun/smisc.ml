@@ -14,8 +14,6 @@
 let main_node = ref (None: string option)
 let set_main s = main_node := Some(s)
 
-let set_check = ref false
-              
 let number_of_steps = ref 0
 let set_number_of_steps n = number_of_steps := n
 
@@ -26,7 +24,5 @@ let incr_number_of_fixpoint_iterations n =
 let reset_number_of_fixpoint_iterations () = number_of_fixpoint_iterations := 0
                     
 let no_assert = ref false
-
-let set_verbose = ref false
 
 let set_nocausality = ref false
