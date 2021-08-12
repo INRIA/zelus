@@ -263,54 +263,56 @@ let automaton_handler_list
 
   
 let rec expression ff e =
+  let exp ff e =
+    match e.e_desc with
+    | Elocal n -> name ff n
+    | Eglobal { lname } -> longname ff lname
+    | Eop(op, e_list) -> operator ff op e_list
+    | Elast x -> fprintf ff "last %a" name x
+    | Econstr0 { lname } -> longname ff lname
+    | Econst c -> immediate ff c
+    | Eapp(e, e_list) ->
+       fprintf ff "@[(%a %a)@]"
+         expression e (print_list_r expression "" "" "") e_list
+    | Econstr1 { lname; arg_list } ->
+       fprintf ff "@[%a%a@]"
+         longname lname (print_list_r expression "(" "," ")") arg_list
+    | Etuple(e_list) ->
+       fprintf ff "@[%a@]" (print_list_r expression "(" "," ")") e_list
+    | Erecord_access { label; arg } ->
+       fprintf ff "@[%a.%a@]" expression arg longname label
+    | Erecord(ln_e_list) ->
+       print_list_r
+         (print_record longname expression "" " =" "") "{" ";" "}" ff ln_e_list
+    | Erecord_with(e, ln_e_list) ->
+       fprintf ff "@[{ %a with %a }@]"
+         expression e
+         (print_list_r
+	    (print_record longname expression """ =""") "" ";" "")
+         ln_e_list
+    | Elet(l, e) ->
+       fprintf ff "@[<v 0>%a@ %a@]" leq l expression e
+    | Etypeconstraint(e, typ) ->
+       fprintf ff "@[(%a: %a)@]" expression e ptype typ
+    | Ematch { is_total; e; handlers } ->
+       fprintf ff "@[<v>@[<hov 2>%smatch %a with@ @[%a@]@]@]"
+         (if is_total then "total " else "")
+         expression e (print_list_l (match_handler expression) """""")
+         handlers
+    | Epresent { handlers; default_opt } ->
+       fprintf ff "@[<v>@[<hov 2>present@ @[%a@]@]@ @[%a@]@]"
+         (print_list_l (present_handler (scondpat expression) expression)
+	    """""") handlers
+         (default expression) default_opt
+    | Ereset(e_body, e) ->
+       fprintf ff "@[<hov>reset@ %a@ every %a@]" expression e_body expression e
+    | Efun(fe) ->
+       funexp ff fe in
   if Deftypes.is_no_typ e.e_typ && !vverbose then
-    fprintf ff "@[(* %a *)@]" Ptypes.output e.e_typ;
-  match e.e_desc with
-  | Elocal n -> name ff n
-  | Eglobal { lname } -> longname ff lname
-  | Eop(op, e_list) -> operator ff op e_list
-  | Elast x -> fprintf ff "last %a" name x
-  | Econstr0 { lname } -> longname ff lname
-  | Econst c -> immediate ff c
-  | Eapp(e, e_list) ->
-     fprintf ff "@[(%a %a)@]"
-       expression e (print_list_r expression "" "" "") e_list
-  | Econstr1 { lname; arg_list } ->
-     fprintf ff "@[%a%a@]"
-       longname lname (print_list_r expression "(" "," ")") arg_list
-  | Etuple(e_list) ->
-     fprintf ff "@[%a@]" (print_list_r expression "(" "," ")") e_list
-  | Erecord_access { label; arg } ->
-     fprintf ff "@[%a.%a@]" expression arg longname label
-  | Erecord(ln_e_list) ->
-     print_list_r
-       (print_record longname expression "" " =" "") "{" ";" "}" ff ln_e_list
-  | Erecord_with(e, ln_e_list) ->
-     fprintf ff "@[{ %a with %a }@]"
-       expression e
-       (print_list_r
-	  (print_record longname expression """ =""") "" ";" "")
-       ln_e_list
-  | Elet(l, e) ->
-     fprintf ff "@[<v 0>%a@ %a@]" leq l expression e
-  | Etypeconstraint(e, typ) ->
-     fprintf ff "@[(%a: %a)@]" expression e ptype typ
-  | Ematch { is_total; e; handlers } ->
-     fprintf ff "@[<v>@[<hov 2>%smatch %a with@ @[%a@]@]@]"
-       (if is_total then "total " else "")
-       expression e (print_list_l (match_handler expression) """""")
-       handlers
-  | Epresent { handlers; default_opt } ->
-     fprintf ff "@[<v>@[<hov 2>present@ @[%a@]@]@ @[%a@]@]"
-       (print_list_l (present_handler (scondpat expression) expression)
-	  """""") handlers
-       (default expression) default_opt
-  | Ereset(e_body, e) ->
-     fprintf ff "@[<hov>reset@ %a@ every %a@]" expression e_body expression e
-  | Efun(fe) ->
-     funexp ff fe
-
-and result ff { r_desc } =
+    fprintf ff "@[<hov 2>(%a :@ %a)@]" exp e Ptypes.output e.e_typ
+  else exp ff e
+  
+  and result ff { r_desc } =
   match r_desc with
   | Exp(e) -> expression ff e
   | Returns(b) ->
