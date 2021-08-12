@@ -26,7 +26,9 @@ type kind =
   | Einitial_state_with_parameter : Ident.t  -> kind
   (* the initial state has a parameter which is undefined *)
   | Epattern_matching_failure : kind
-  | Enot_implemented : kind (* not yet implemented *)
+  | Enot_implemented : kind (* not implemented *)
+  | Enil : kind (* value is nil *)
+  | Ebot : kind (* value is bottom *)
   
 exception Error of Location.t * kind 
                  
@@ -79,3 +81,7 @@ let message loc kind =
      eprintf "@[%aZrun: pattern matching failure.@.@]" output_location loc
   | Enot_implemented ->
      eprintf "@[%aZrun: not implemented.@.@]" output_location loc
+  | Enil ->
+     eprintf "@[%aZrun: value is nil.@.@]" output_location loc
+  | Ebot ->
+     eprintf "@[%aZrun: value is bottom.@.@]" output_location loc
