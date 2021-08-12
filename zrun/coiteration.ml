@@ -220,18 +220,11 @@ let fixpoint n stop f s bot =
 (* Invariant: values in the environment are restricted by construction *)
 (* to be either bot, nil or a primitive (atomic) value, i.e., a value *)
 (* which is fully defined *)
+(* stop the fixpoint when two successive environments are equal *)
 let equal_env env1 env2 =
   Env.equal
     (fun { cur = cur1} { cur = cur2 } -> equal_values cur1 cur2)
     env1 env2
-
-let max_env env =
-  Env.for_all (fun _ { cur } -> match cur with | Vbot -> false | _ -> true) env
-
-(* stop the fixpoint when two successive environments are equal *)
-(* or the second one is maximal, that is, all entries are values *)
-let equal_env env1 env2 =
-  (max_env env2) || (equal_env env1 env2)
 
 (* bounded fixpoint for a set of equations *)
 let fixpoint_eq genv env sem eq n s_eq bot =
@@ -600,7 +593,6 @@ and sexp genv env { e_desc = e_desc; e_loc } s =
      let v = find_gvalue_opt lname genv in
      let* v =
        Error.error e_loc (Error.Eunbound_lident(lname)) v in
-     let* v = find_gvalue_opt lname genv in
      return (Value(v), s)
   | Elast x, s ->
      let v = find_last_opt x env in
@@ -783,7 +775,9 @@ and sleq genv env { l_rec; l_eq = ({ eq_write } as l_eq); l_loc } s_eq =
       let bot = bot_env eq_write in
       let n = size l_eq in
       let n = if n <= 0 then 0 else n+1 in
+      let e1 = Env.bindings env in
       let* env_eq, s_eq = fixpoint_eq genv env seq l_eq n s_eq bot in
+      let e2 = Env.bindings env_eq in
       (* a dynamic check of causality: all defined names in [eq] *)
       (* must be non bottom provided that all free vars. are non bottom *)
       let _ = causal env env_eq (names eq_write) in
@@ -1306,3 +1300,45 @@ let program genv i_list =
   | Error.Error(loc, kind) ->
      Error.message loc kind; None
        
+(* check that a value is neither bot nor nil *)
+let check_not_bot_not_nil v =
+  match v with
+  | Vbot ->
+     raise (Error.Error(Location.no_location, Error.Ebot))
+  | Vnil ->
+     raise (Error.Error(Location.no_location, Error.Enil))
+  | Value(v) -> v
+
+(* run a combinatorial expression [f ()] *)
+(* TODO: remove the mix of monadic and imperative style (exception); either *)
+(* take one or the other *)
+let run_fun output fv n =
+  let rec runrec i =
+    if i = n then ()
+    else
+      try
+        let v = Opt.get (fv Vvoid) in
+        output v;
+        runrec (i+1)
+      with
+      | Error.Error(loc, kind) ->
+         Error.message loc kind;
+         Format.eprintf "@[%d iterations out of %d.@.@]" i n in
+  runrec 0
+
+(* run a stream process [run f []] *)
+let run_node output init step n =
+  let rec runrec s i =
+    if i = n then ()
+    else
+      try
+        let v, s = Opt.get (step s (Value(Vvoid))) in
+        let v = check_not_bot_not_nil v in
+        output v;
+        runrec s (i+1)
+      with
+      | Error.Error(loc, kind) ->
+         Error.message loc kind;
+         Format.eprintf "@[%d iterations out of %d.@.@]" i n in
+  runrec init 0
+  
