@@ -919,6 +919,7 @@ and matching_arg_out env { b_vars; b_loc } =
         (fun { var_name } -> find_value_opt var_name env) b_vars in
     match v_list with
     | [] -> return (Value(Vvoid))
+    | [v] -> return v
     | _ -> (* return a non strict tuple *)
            return (Value(Vtuple(v_list))) in
   Error.stop_at_location b_loc r
