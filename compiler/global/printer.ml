@@ -332,7 +332,7 @@ and funexp ff { f_kind; f_args; f_body; f_env } =
     arg_list f_args s print_env f_env result f_body
 
 and arg_list ff a_list =
-  print_list_r (vardec_list expression) "" "" "" ff a_list
+  print_list_r (vardec_list expression) "(" "" ")" ff a_list
   
 and operator ff op e_list =
   match op, e_list with
