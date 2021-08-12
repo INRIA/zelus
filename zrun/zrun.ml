@@ -47,118 +47,65 @@ let parse parsing_fun lexing_fun source_name =
 let parse_implementation_file source_name =
   parse Parser.implementation_file Lexer.main source_name
 
-  
-(* check that a value is causally correct (non bot) *)
-(* and initialized (non nil) *)
-let check_not_bot_nil v =
-  let not_bot_nil v =
-    match v with
-    | Vbot ->
-       Format.eprintf "Causality error.@."; raise Stdlib.Exit
-    | Vnil ->
-       Format.eprintf "Initialization error.@."; raise Stdlib.Exit
-    | Value(v) ->
-       return v in
-  not_bot_nil v
-    
-(* run a combinatorial expression [f ()] *)
-(* returns the number of successful iterations *)
-let run_fun output fv n =
-  let rec runrec i =
-    if i = n then i
-    else
-      let v = fv Vvoid in
-      match v with
-      | None -> i
-      | Some(v) ->
-         let _ = output v in
-         runrec (i+1) in
-  runrec 0
-      
-(* run a stream process [run f []] *)
-let run_node output init step n =
-  let rec runrec s i =
-    if i = n then i
-    else
-      let v = step s (Value(Vvoid)) in
-      match v with
-      | None -> i
-      | Some(v, s) ->
-         let v = check_not_bot_nil v in
-         match v with
-         | None -> i
-         | Some(v) ->
-            let _ = output v in
-            runrec s (i+1) in
-  runrec init 0
-
 (* The main entry function *)
 let run genv main ff n =
-  let* fv = find_gvalue_opt (Name main) genv in
-  (* the main function must be of type : unit -> t *)
-  (* the main function must be of type : unit -> t *)
-  let* fv = funvalue fv in
-  match fv with
-  | Vfun(fv) ->
-     let i = run_fun (Output.pvalue_and_flush ff) fv n in
-     if i < n then Format.printf "Run failed: only %i iterations.\n" i;
-     return ()
-  | Vnode { init; step } ->
-     let i = run_node (Output.pvalue_and_flush ff) init step n in
-     if i < n then Format.printf "Run failed: only %i iterations.\n" i;
-     return ()
-  | _ ->
-     Format.eprintf "The global value %s is not a function." main;
-     return ()
-     
-  
-let check genv main n =
-  let* fv = find_gvalue_opt (Name main) genv in
-  (* the main function must be of type : unit -> bool *)
-  let output v =
-    if v = Vbool(true) then return () else None in
-  let* fv = instance fv in
-  match fv with
-  | Vfun(fv) ->
-     let i = run_fun output fv n in
-     if i < n then Format.printf "Test failed: only %i iterations.\n" i;
-     return ()
-  | Vnode { init; step } ->
-     let i = run_node output init step n in
-     if i < n then Format.printf "Test failed: only %i iterations.\n" i;
-     return ()
-  | _ -> None
- 
-
-(* evaluate the main node [main] given by option [-s] for [n] steps *)
-(* with check *)
-let eval source_name main number to_check =
-  let p = parse_implementation_file source_name in
-  Debug.print_message "Parsing done";
-  flush stdout;
-  let p = Scoping.program p in
-  Debug.print_message "Scoping done";
-  let p = Write.program p in
-  Debug.print_message "Write done";
-  let* genv = Coiteration.program Primitives.genv0 p in
-  Debug.print_message "Evaluation of definitions done";
   match main with
-  | None -> return ()
+  | None -> ()
   | Some(main) ->
-     Debug.print_message "The main node exists";
-     (* make [n] steps and checks that every step returns [true] *)
-     if to_check then check genv main number
-     else
-       (* make [n] steps *)
-       run genv main Format.std_formatter number
+     let fv =
+       find_gvalue_opt (Name main) genv in
+     match fv with
+     | None -> Format.eprintf "The global value %s is unbound." main
+     | Some(fv) ->
+        let v = funvalue fv in
+        match v with
+        | None -> Format.eprintf "The global value %s is not a function." main
+        | Some(v) ->
+           match v with
+           | Vfun(fv) ->
+              run_fun (Output.pvalue_and_flush ff) fv n
+           | Vnode { init; step } ->
+              run_node (Output.pvalue_and_flush ff) init step n
+           | _ -> assert false
+ 
+(* evaluate the main node [main] given by option [-s] for [n_steps] steps *)
+let eval filename main n_steps =
+  (* standard output *)
+  let info_ff = Format.formatter_of_out_channel stdout in
+  Format.pp_set_max_boxes info_ff max_int;
 
-let eval filename =
+  (* standard error *)
+  let err_ff = Format.formatter_of_out_channel stderr in
+  Format.pp_set_max_boxes err_ff max_int;
+
+  let do_step comment step input = 
+    let output = step input in
+    Sdebug.print_message comment;
+    Printer.program info_ff output;
+    output in
+
+  let impl_list = parse_implementation_file filename in
+  Debug.print_message "Parsing done";
+
+  (* Scoping *)
+  let impl_list = (* do_step "Scoping done" *) Scoping.program impl_list in
+
+  (* Write defined variables for equations *)
+  let impl_list = do_step "Write done" Write.program impl_list in
+
+  (* Evaluation of definitions in [filename] *)
+  let genv = Opt.get (Coiteration.program Primitives.genv0 impl_list) in
+  Debug.print_message "Evaluation of definitions done";
+
+  (* Evaluate [f ()] or [run f ()] *)
+  run genv main Format.std_formatter n_steps
+
+let main filename =
   if Filename.check_suffix filename ".zls"
   then 
     begin
       Location.initialize filename;
-      let _ = eval filename
-                !Smisc.main_node !Smisc.number_of_steps !Smisc.set_check in
+      let _ = eval filename !Smisc.main_node !Smisc.number_of_steps in
      if !Smisc.print_number_of_fixpoint_iterations
       then Format.eprintf
              "@[The number of fixpoint iterations is : %d@]@\n"
@@ -169,8 +116,8 @@ let eval filename =
                                                    
 let doc_main = "\tThe main node to evaluate"
 let doc_number_of_steps = "\tThe number of steps"
-let doc_check = "\tCheck that the simulated node returns true"
 let doc_verbose = "\tVerbose mode"
+let doc_vverbose = "\t Set even more verbose mode"
 let doc_no_assert = "\tNo check of assertions"
 let doc_nocausality = "\tTurn off the check that are variables are non bottom"
 let doc_number_of_fixpoint_iterations =
@@ -178,20 +125,30 @@ let doc_number_of_fixpoint_iterations =
     
 let errmsg = "Options are:"
 
+let set_verbose () =
+  let open Misc in
+  verbose := true;
+  Printexc.record_backtrace true
+
+let set_vverbose () =
+  let open Misc in
+  vverbose := true;
+  set_verbose ()
+
 let main () =
   try
     Arg.parse (Arg.align
                  [ "-s", Arg.String Smisc.set_main, doc_main;
                    "-n", Arg.Int Smisc.set_number_of_steps, doc_number_of_steps;
-                   "-check", Arg.Set Smisc.set_check, doc_check;
-                   "-v", Arg.Set set_verbose, doc_verbose;
+                   "-v", Arg.Unit set_verbose, doc_verbose;
+                   "-vv", Arg.Unit set_vverbose, doc_vverbose;
                    "-noassert", Arg.Set Smisc.no_assert, doc_no_assert;
                    "-nocausality", Arg.Set Smisc.set_nocausality,
                    doc_nocausality;
                    "-fix", Arg.Set Smisc.print_number_of_fixpoint_iterations,
                    doc_number_of_fixpoint_iterations;
                    ])
-      eval
+      main
       errmsg
   with
   | Error | Stdlib.Exit -> exit 2
