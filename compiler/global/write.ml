@@ -124,8 +124,8 @@ and lets l =
  *- [dv_b] the defined local variables *)
 and block ({ b_vars; b_body } as b) =
   let b_vars, dv_b = Util.mapfold vardec S.empty b_vars in
-  let b_eq, def_eq = equation b_body in
-  let def = Deftypes.diff def_eq dv_b in
+  let b_body, def_body = equation b_body in
+  let def = Deftypes.diff def_body dv_b in
   { b with b_vars; b_body; b_write = def }, def, dv_b
   
 and vardec acc ({ var_name; var_default; var_init } as v) =
