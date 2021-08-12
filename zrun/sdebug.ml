@@ -35,3 +35,11 @@ let print_ienv comment env =
 let print_message comment =
   if !set_verbose then
     Format.eprintf "@[%s (env): @,@]@\n" comment 
+
+let print_message comment =
+  if !set_verbose then
+    Format.eprintf "@[%s (env): @,@]@\n" comment 
+
+let print_program impl_list =
+  if !set_verbose then
+    Format.eprintf "%a" Printer.program impl_list
