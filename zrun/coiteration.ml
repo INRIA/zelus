@@ -775,9 +775,7 @@ and sleq genv env { l_rec; l_eq = ({ eq_write } as l_eq); l_loc } s_eq =
       let bot = bot_env eq_write in
       let n = size l_eq in
       let n = if n <= 0 then 0 else n+1 in
-      let e1 = Env.bindings env in
       let* env_eq, s_eq = fixpoint_eq genv env seq l_eq n s_eq bot in
-      let e2 = Env.bindings env_eq in
       (* a dynamic check of causality: all defined names in [eq] *)
       (* must be non bottom provided that all free vars. are non bottom *)
       let _ = causal env env_eq (names eq_write) in
