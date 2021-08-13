@@ -55,11 +55,12 @@ let run genv main ff n =
      let fv =
        find_gvalue_opt (Name main) genv in
      match fv with
-     | None -> Format.eprintf "The global value %s is unbound." main
+     | None -> Format.eprintf "@[The global value %s is unbound.@\n@]" main
      | Some(fv) ->
-        let v = funvalue fv in
+        let v = to_fun fv in
         match v with
-        | None -> Format.eprintf "The global value %s is not a function." main
+        | None ->
+           Format.eprintf "@[The global value %s is not a function.@\n@]" main
         | Some(v) ->
            match v with
            | Vfun(fv) ->
@@ -80,8 +81,8 @@ let eval filename main n_steps =
 
   let do_step comment step input = 
     let output = step input in
-    Sdebug.print_message comment;
-    Printer.program info_ff output;
+    Debug.print_message comment;
+    Debug.print_program output;
     output in
 
   let impl_list = parse_implementation_file filename in
