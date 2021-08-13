@@ -23,23 +23,11 @@ let fprint_ientry ff { cur; last; default } =
     Output.value cur value last value default
 
 let print_number comment n =
-  if !set_verbose then Format.eprintf "@[%s %d@]@\n" comment n
+  if !verbose then Format.eprintf "@[%s %d@]@\n" comment n
   
 let fprint_ienv comment ff env =
   Format.fprintf ff
       "@[%s (env): @,%a@]@\n" comment (Env.fprint_t fprint_ientry) env
 
 let print_ienv comment env =
-  if !set_verbose then Format.eprintf "%a" (fprint_ienv comment) env
-
-let print_message comment =
-  if !set_verbose then
-    Format.eprintf "@[%s (env): @,@]@\n" comment 
-
-let print_message comment =
-  if !set_verbose then
-    Format.eprintf "@[%s (env): @,@]@\n" comment 
-
-let print_program impl_list =
-  if !set_verbose then
-    Format.eprintf "%a" Printer.program impl_list
+  if !verbose then Format.eprintf "%a" (fprint_ienv comment) env
