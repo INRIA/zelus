@@ -118,7 +118,7 @@ let vardec_list exp ff vardec_list =
       name x (default exp) d_opt (init exp) i_opt in
   if vardec_list <> []
   then fprintf ff "@[<v 2>%a@ @]"
-    (print_list_r vardec "local " "," "") vardec_list
+    (print_list_r vardec "" "," "") vardec_list
 
 let skind ff k =
   let s = match k with
@@ -172,7 +172,7 @@ let print_eq_info ff { eq_write } =
 
 (* print a block *)
 let block exp body ff { b_vars; b_body; b_write; b_env } =
-  fprintf ff "@[<hov 0>@[%a@]@[%a@]@[%a@]@[%a@]@]"
+  fprintf ff "@[<hov 0>local @[%a@]@[%a@]@[%a@]@[%a@]@]"
     (vardec_list exp) b_vars
     print_writes b_write
     print_env b_env
@@ -315,10 +315,10 @@ let rec expression ff e =
 and result ff { r_desc } =
   match r_desc with
   | Exp(e) -> expression ff e
-  | Returns(b) -> return_block ff b
+  | Returns(b) -> result_block ff b
                 
-and return_block ff { b_vars; b_body; b_write; b_env } =
-  fprintf ff "@[<hov 0>returns @[(%a)@]@ @[%a@]@ @[%a@]@ @[%a@]@]"
+and result_block ff { b_vars; b_body; b_write; b_env } =
+  fprintf ff "@[<hov 0> %a@ where rec@ @[%a@]@[%a@]@[%a@]@]"
     (vardec_list expression) b_vars
     print_writes b_write
     print_env b_env
@@ -405,7 +405,7 @@ and equation ff ({ eq_desc = desc } as eq) =
      fprintf ff "@[<hov2>reset@ @[%a@]@ @[<hov 2>every@ %a@]@]"
        equation eq expression e
   | EQlet(l_eq, eq) ->
-     fprintf ff "@[<hov0>%a@ in@ %a@]" leq l_eq equation eq
+     fprintf ff "@[<hov0>%a@ %a@]" leq l_eq equation eq
   | EQlocal(b_eq) -> block_of_equation ff b_eq
   | EQand(and_eq_list) ->
      print_list_l equation "do " "and " " done" ff and_eq_list
@@ -415,9 +415,6 @@ and equation ff ({ eq_desc = desc } as eq) =
     
 and block_of_equation ff b_eq =
   block expression equation ff b_eq
-
-and block_of_expression ff b_exp =
-  block expression expression ff b_exp
 
 and equation_list po pf ff eq_list =
   match eq_list with
