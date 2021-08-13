@@ -61,8 +61,6 @@ let no_causality = ref false
 let no_initialization = ref false
 let typeonly = ref false
 
-let set_verbose = ref false
-
 (* generic and non generic variables in the various type systems *)
 let generic = -1
 let notgeneric = 0
