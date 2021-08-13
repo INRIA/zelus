@@ -52,7 +52,8 @@ let lift f env =
   Env.map (fun v -> { cur = f v; last = None; default = None }) env
 let liftid env = lift (fun x -> x) env
 let liftv env = lift (fun v -> Value(v)) env
-              
+let unlift env = Env.map (fun { cur } -> cur) env
+               
 (* the set of names defined in a environment *)
 let names_env env = Env.fold (fun n _ acc -> S.add n acc) env S.empty
 
@@ -347,15 +348,13 @@ let rec iexp genv env { e_desc; e_loc  } =
           return (Stuple [s1; s2; s3])
        | Erun _, [e1; e2] ->
           (* node instanciation. [e1] must be a static expression *)
+          let* v1 = Eval.exp genv (unlift env) e1 in          
           let* v1 =
-            (* only keep current entry *)
-            let env = Env.map (fun { cur } -> cur) env in
-            Eval.exp genv env e1 in          
-          let* v1 =
-            let v1 = instance v1 in
-            Error.error e_loc Error.Eshould_be_a_node v1 in
+            (let* v1 = to_fun v1 in
+             Primitives.get_node v1) |>
+              Error.error e_loc Error.Eshould_be_a_node in
           let* s2 = iexp genv env e2 in
-          return (Stuple [Sval(Value(v1)); s2])
+          return (Stuple [Sinstance(v1); s2])
        | Eatomic, [e] ->
           iexp genv env e
        | Etest, [e] ->
@@ -629,7 +628,7 @@ and sexp genv env { e_desc = e_desc; e_loc } s =
         let* v = ifthenelse v1 v2 v3 in
         return (v, Stuple [s1; s2; s3])
      | Erun _, [_; { e_desc } as arg],
-       Stuple [Sval(Value(Vnode { init; step })); s2] ->
+       Stuple [Sinstance { init; step }; s2] ->
         (* [run f (e1,..., en)] : one of the ei can be bottom/nil whereas *)
         (* the other are not. That is, f is not strict *)
         let* v, s =
@@ -642,7 +641,7 @@ and sexp genv env { e_desc = e_desc; e_loc } s =
         (* during the instanciation *)
         (* A node is not strict *)
         let* v, init = step init v in
-        return (v, Stuple [Sval(Value(Vnode { init; step })); s])
+        return (v, Stuple [Sinstance { init; step }; s])
      | Eatomic, [e], s ->
         (* if one of the input is bot (or nil), the output is bot (or nil); *)
         (* that is, [e] is considered to be strict *)
@@ -684,7 +683,10 @@ and sexp genv env { e_desc = e_desc; e_loc } s =
        match v with
        | Vbot -> return Vbot | Vnil -> return Vnil
        | Value(v) ->
-          let* v = funvalue v |> Error.error e_loc Error.Eshould_be_a_function in
+          let* v =
+            (let* v = to_fun v in
+             Primitives.get_fun v) |>
+              Error.error e_loc Error.Eshould_be_a_function in
           apply v v_list in
      return (v, Stuple (s :: s_list))
   | Elet(l_eq, e), Stuple [s_eq; s] ->
@@ -1225,18 +1227,10 @@ and sstate genv env { desc; loc } s =
     | _ -> none in
     Error.stop_at_location loc r
 
-(* Node instanciation *)
-and instance v =
+(* Build a function *)
+and to_fun v =
   match v with
-  | Vnode _  -> return v
-  | Vclosure({ f_kind = Knode | Khybrid; f_args = [arg]; f_body }, genv, env) ->
-     vnode genv env arg f_body
-  | _ -> none 
-
-(* Function instanciation *)
-and funvalue v =
-  match v with
-  | Vfun(fv) -> return v
+  | Vfun _ | Vnode _ -> return v
   | Vclosure({ f_kind; f_args; f_body }, genv, env) ->
      vfun genv env f_kind f_args f_body
   | _ -> none
