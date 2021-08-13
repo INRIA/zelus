@@ -50,12 +50,12 @@ let test v =
  
 let get_fun v =
   match v with
-  | Vfun(v) -> return v
+  | Vfun _ -> return v
   | _ -> None
 
 let get_node v =
   match v with
-  | Vnode { init; step } -> return (init, step)
+  | Vnode v -> return v
   | _ -> None
 
 let get_record r =
