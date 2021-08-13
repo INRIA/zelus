@@ -16,10 +16,8 @@ open Misc
 open Ident
 
 let print_message comment =
-  if !set_verbose then
-    Format.eprintf "@[%s (env): @,@]@\n" comment 
+  if !verbose then Format.eprintf "%s\n" comment 
 
 let print_program impl_list =
-  if !set_verbose then
-    let err_ff = Format.formatter_of_out_channel stderr in
-    Printer.program err_ff impl_list
+  if !verbose then
+    Format.eprintf "%a\n" Printer.program impl_list
