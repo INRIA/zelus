@@ -36,8 +36,7 @@ type pvalue =
   | Vstate0 : Ident.t -> pvalue
   | Vstate1 : Ident.t * pvalue list -> pvalue
   | Vfun : (pvalue -> pvalue option) -> pvalue
-  | Vnode : { init : state;
-              step : state -> value -> (value * state) option } -> pvalue
+  | Vnode : (state, value, value) instance -> pvalue
   | Vclosure : Zelus.funexp * pvalue Genv.genv * value Ident.Env.t -> pvalue
                                    
 and value = pvalue extended
@@ -47,7 +46,12 @@ and state =
   | Stuple : state list -> state
   | Sval : value -> state
   | Sopt : value option -> state
+  | Sinstance : (state, value, value) instance -> state
 
+and ('s, 'a, 'b) instance =
+  { init : 's;
+    step : 's -> 'a -> ('b * 's) option;
+  }
 (* an input entry in the environment *)
 type 'a ientry = { cur: 'a; last : 'a option; default : 'a option }
 
@@ -60,9 +64,3 @@ type ('a, 's) costream =
   | CoF : { init : 's;
             step : 's -> ('a * 's) option } ->
           ('a, 's) costream
-
-type ('a, 'b, 's) node =
-  | CoFun : ('a list -> 'b option) -> ('a, 'b, 's) node
-  | CoNode : { init : 's;
-               step : 's -> 'a list -> ('b * 's) option } -> ('a, 'b, 's) node
- 
