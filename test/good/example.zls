@@ -20,5 +20,5 @@ let node main1() returns (o)
   do o = 0 fby ((+) (o, 1)) done
 
 let node main() =
-  let rec o = 0 fby (+)(o, 1) in o
+  let rec o = ff(0 fby o) in o
 
