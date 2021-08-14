@@ -1,14 +1,12 @@
-let ff(x) = (+) (1, x)
+(*
+let ff(x) = (+) 1 x
 
 let node main1() =
-  let rec o = (+)(0 fby o, 2) in o
-
-let node main2() returns (o)
-  do o = (+)(0 fby o, 2) done
+  let rec o = 0 fby o + 2 in o
 
 let bidule = 42
 
-let machin = (+)(42, 2)
+let machin = 42 + 2
 
 let truc = machin, bidule
 
@@ -17,8 +15,16 @@ let trop_bien =
   v, truc 
 
 let node main1() returns (o)
-  do o = 0 fby ((+) (o, 1)) done
+  do o = 0 fby o + 1 done
+ 
+let node main2() =
+  let rec o = ff(0 fby o) in
+  assert (o <= 10); o
 
-let node main() =
-  let rec o = ff(0 fby o) in o
 
+let f = 1, 2
+
+ *)
+
+let node main() returns (o1, o2)
+  do o1 = 0 fby o1 + 2 and o2 = o1 + 1 done
