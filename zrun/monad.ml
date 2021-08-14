@@ -115,16 +115,25 @@ module Opt =
       | _ -> None
   end
 
-module State =
+module Mealy =
   struct
-    type ('a, 'state) mon = 'state -> 'a * 'state
-                          
-    let ret x = fun s -> (x, s)
-    let bind f g =
-      fun s -> match f s with (a, s') -> g a s'
+                                  
+    (* a variation of the state monad. *)
+    let ret x s = (x, s)
+              
+    let bind f g (s1, s2) =
+      let (v1, s1) = f s1 in
+      let v2, s2 = g v1 s2 in
+      v2, (s1, s2)
 
+    let (and*) f1 f2 (s1, s2) =
+           let v1, s1 = f1 s1 in
+           let v2, s2 = f2 s2 in
+           (v1, v2), (s1, s2)
+           
     let return = ret
     let (let*) = bind
+
   end
 
 module Misc =
