@@ -29,6 +29,7 @@ type kind =
   | Enot_implemented : kind (* not implemented *)
   | Enil : kind (* value is nil *)
   | Ebot : kind (* value is bottom *)
+  | Eassert_failure : kind (* assertion is not true *)
   
 exception Error of Location.t * kind 
                  
@@ -85,3 +86,5 @@ let message loc kind =
      eprintf "@[%aZrun: value is nil.@.@]" output_location loc
   | Ebot ->
      eprintf "@[%aZrun: value is bottom.@.@]" output_location loc
+  | Eassert_failure ->
+     eprintf "@[%aZrun: assertion is not true.@.@]" output_location loc
