@@ -11,9 +11,21 @@
 (*                                                                     *)
 (* *********************************************************************)
 
+open Misc
+
+let set_verbose () =
+  verbose := true;
+  Printexc.record_backtrace true
+
+let set_vverbose () =
+  vverbose := true;
+  set_verbose ()
+
 let main_node = ref (None: string option)
 let set_main s = main_node := Some(s)
 
+let print_values = ref false
+                 
 let number_of_steps = ref 0
 let set_number_of_steps n = number_of_steps := n
 
