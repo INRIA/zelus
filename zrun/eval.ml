@@ -127,7 +127,13 @@ let rec exp genv env { e_desc; e_loc } =
        let* v = exp genv env e_res in
        let* _ = bool v in
        exp genv env e_body
-    | Elast _ -> none in
+    | Elast _ -> none
+    | Eassert(e_body) ->
+       let* v = exp genv env e_body in
+       let* v = bool v in
+       (* stop when [no_assert = true] *)
+       if !no_assert then return (Vvoid)
+       else if v then return (Vvoid) else none in
   Error.stop_at_location e_loc r
 
 and exp_list genv env e_list = Opt.map (exp genv env) e_list
