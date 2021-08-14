@@ -172,7 +172,8 @@ and exp_desc =
       { handlers : (scondpat, exp, exp) present_handler list;
         default_opt : exp default } -> exp_desc
   | Ereset : exp * exp -> exp_desc
-  
+  | Eassert : exp -> exp_desc
+
 and is_rec = bool
 
 and scondpat = scondpat_desc localized

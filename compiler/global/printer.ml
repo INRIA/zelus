@@ -307,7 +307,9 @@ let rec expression ff e =
     | Ereset(e_body, e) ->
        fprintf ff "@[<hov>reset@ %a@ every %a@]" expression e_body expression e
     | Efun(fe) ->
-       funexp ff fe in
+       funexp ff fe
+    | Eassert(e_body) ->
+       fprintf ff "@[<hov 2>assert@ %a@]" expression e_body in
   if Deftypes.is_no_typ e.e_typ && !vverbose then
     fprintf ff "@[<hov 2>(%a :@ %a)@]" exp e Ptypes.output e.e_typ
   else exp ff e

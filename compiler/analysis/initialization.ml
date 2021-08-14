@@ -342,7 +342,8 @@ let rec exp env ({ e_desc; e_typ; e_loc } as e) =
        ti
     | Ereset(e_body, e_res) ->
        exp_less_than_on_i env e_res izero;
-       exp env e_body in
+       exp env e_body
+    | Eassert(e_body) -> exp env e_body in
   (* annotate the expression with the initialization type *)
   e.e_init <- ti;
   ti

@@ -219,7 +219,8 @@ and expression ({ e_desc } as e) =
          | Else(e) -> Else(expression e) in
        Epresent({ handlers; default_opt })
     | Ereset(e_body, e_res) ->
-       Ereset(expression e_body, expression e_res) in
+       Ereset(expression e_body, expression e_res)
+    | Eassert(e_body) -> Eassert(expression e_body) in
   { e with e_desc = desc }
 
 

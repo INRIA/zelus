@@ -404,6 +404,10 @@ let rec exp env c_free ({ e_desc; e_typ; e_loc } as e) =
        let c_e = Causal.intro_less_c c_free in
        exp_less_than_on_c env c_free e_res c_e;
        exp_less_than_on_c env c_free e_body c_e;
+       Causal.skeleton_on_c c_e e_typ
+    | Eassert(e_body) ->
+       let c_e = Causal.intro_less_c c_free in
+       exp_less_than_on_c env c_free e_body c_e;
        Causal.skeleton_on_c c_e e_typ in
   (* annotate [e] with the causality type *)
   e.e_caus <- tc;

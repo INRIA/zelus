@@ -601,7 +601,9 @@ and expression env { desc; loc } =
          | Else(e) -> Zelus.Else(expression env e) in
        Zelus.Epresent({ handlers; default_opt }) 
     | Ereset(e_body, e_res) ->
-       Zelus.Ereset(expression env e_body, expression env e_res) in
+       Zelus.Ereset(expression env e_body, expression env e_res)
+    | Eassert(e_body) ->
+       Zelus.Eassert(expression env e_body) in
   { Zelus.e_desc = desc; Zelus.e_loc = loc;
     Zelus.e_typ = Deftypes.no_typ; Zelus.e_caus = Defcaus.no_typ;
     Zelus.e_init = Definit.no_typ }
