@@ -124,6 +124,13 @@ let matchstate vstate ({ loc } as pstate) =
 (* number of variables defined by an equation *)
 let size { eq_write } = S.cardinal (Deftypes.names S.empty eq_write)
 
+(* return a default value. If [default] field is present, returns it *)
+(* otherwise, returns the [last] field *)
+let default_value last default =
+  match last, default with
+  | None, None -> none
+  | (_, Some(v)) | (Some(v), None) -> return v
+                                    
 (* given an environment [env], a local environment [env_handler] *)
 (* an a set of written variables [write] *)
 (* complete [env_handler] with entries in [env] for variables that *)
@@ -141,12 +148,9 @@ let by env env_handler write =
       let* { last; default } as entry = Env.find_opt x env in
       if Env.mem x env_handler then acc
       else
-        match last, default with
-        | None, None -> none
-        | (_, Some(v)) | (Some(v), None) ->
-           (* the default value is taken is present; otherwise, the last value *)
-           let* acc = acc in
-           return (Env.add x { entry with cur = v } acc))
+        let* acc = acc in
+        let* v = default_value last default in
+        return (Env.add x { entry with cur = v } acc))
     write (return env_handler) 
        
 (* complete [env_handler] with inputs from [write] *)
@@ -163,7 +167,7 @@ let complete env env_handler write =
     write Env.empty
   
 (* given [env] and [env_handler = [x1 \ { cur1 },..., xn \ { curn }] *)
-(* returns [x1 \ { cu1; default x env },..., xn \ { curn; default x env }] *)
+(* returns [x1 \ { cur1; default x env },..., xn \ { curn; default x env }] *)
 let complete_with_default env env_handler =
   Env.fold
     (fun x ({ cur } as entry) acc ->
@@ -178,32 +182,6 @@ let equal_values v1 v2 =
   match v1, v2 with
   | (Value _, Value _) | (Vbot, Vbot) | (Vnil, Vnil) -> true
   | _ -> false
-
-(* Dynamic check of causality. A set of equations is causal when all defined *)
-(* variables are non bottom, provided free variables are non bottom *)
-(* this a very strong constraint. In particular, it rejects the situation *)
-(* of a variable that is bottom but not used. *)
-(* causal(env)(env_out)(names) =
- *-               /\ (forall x in Dom(env), env(x) <> bot)
- *-               /\ (env_out, _ = fixpoint_eq genv sem eq n s_eq bot)
- *-               => (forall x in names /\ Dom(env_out), env_out(x) <> bot) *)
-let causal env env_out names =
-  let bot v = match v with | Vbot -> true | _ -> false in
-  let bot_name n =
-    let r = find_value_opt n env_out in
-    match r with | None -> false | Some(v) -> bot v in
-  let bot_names =
-    if Env.for_all (fun _ { cur } -> not (bot cur)) env
-    then S.filter bot_name names else S.empty in
-  let pnames ff names = S.iter (Ident.fprint_t ff) names in
-  if not !set_nocausality then
-    if S.is_empty bot_names then ()
-    else
-      begin
-        Format.eprintf "The following variables are not causal:\n\
-                        %a@." pnames bot_names;
-        raise Stdlib.Exit
-      end
 
 (* bounded fixpoint combinator *)
 (* computes a pre fixpoint f^n(bot) <= fix(f) *)
@@ -234,16 +212,34 @@ let fixpoint_eq genv env sem eq n s_eq bot =
     let* env_out, s_eq = sem genv env eq s_eq in
     let env_out = complete_with_default env env_out in
     return (env_out, s_eq) in
-  Sdebug.print_number "Max number of iterations:" n;
-  Sdebug.print_ienv "Fixpoint. Inital env is:" bot;
   let* m, env_out, s_eq = fixpoint n equal_env sem s_eq bot in
-  Sdebug.print_ienv "Fixpoint. Result env is:" env_out;
-  Sdebug.print_number "Actual number of iterations:" (n - m);
-  Sdebug.print_number "Max was:" n;
-  Sdebug.print_ienv "End of fixpoint with env:" env_out;
-  Smisc.incr_number_of_fixpoint_iterations (n - m);
   return (env_out, s_eq)
 
+(* Dynamic check of causality. A set of equations is causal when all defined *)
+(* variables are non bottom, provided free variables are non bottom *)
+(* this a very strong constraint. In particular, it rejects the situation *)
+(* of a variable that is bottom but not used. *)
+(* causal(env)(env_out)(names) =
+ *-               /\ (forall x in Dom(env), env(x) <> bot)
+ *-               /\ (env_out, _ = fixpoint_eq genv sem eq n s_eq bot)
+ *-               => (forall x in names /\ Dom(env_out), env_out(x) <> bot) *)
+let causal env env_out names =
+  let bot v = match v with | Vbot -> true | _ -> false in
+  let bot_name n =
+    let r = find_value_opt n env_out in
+    match r with | None -> false | Some(v) -> bot v in
+  let bot_names =
+    if Env.for_all (fun _ { cur } -> not (bot cur)) env
+    then S.filter bot_name names else S.empty in
+  let pnames ff names = S.iter (Ident.fprint_t ff) names in
+  if not !set_nocausality then
+    if S.is_empty bot_names then ()
+    else
+      begin
+        Format.eprintf "The following variables are not causal:\n\
+                        %a@." pnames bot_names;
+        raise Stdlib.Exit
+      end
 
 (* [reset init step genv env body s r] resets [step genv env body] *)
 (* when [r] is true *)
@@ -251,6 +247,17 @@ let reset init step genv env body s r =
   let*s = if r then init genv env body else return s in
   step genv env body s
 
+(* check assertion *)
+let check_assert loc ve r =
+  (* when ve is not bot/nil it must be true *)
+  match ve with
+  | Vnil | Vbot -> return r
+  | Value(v) ->
+     let* v = bool v |> Error.error loc Error.Etype in
+     (* stop when [no_assert = true] *)
+     if !no_assert || v then return r 
+     else none |> Error.error loc Error.Eassert_failure
+  
 (* Pattern matching *)
 let imatch_handler ibody genv env { m_body } =
   ibody genv env m_body
@@ -346,6 +353,10 @@ let rec iexp genv env { e_desc; e_loc  } =
           let* s2 = iexp genv env e2 in
           let* s3 = iexp genv env e3 in
           return (Stuple [s1; s2; s3])
+       | Eseq, [e1; e2] ->
+          let* s1 = iexp genv env e1 in
+          let* s2 = iexp genv env e2 in
+          return (Stuple [s1; s2])
        | Erun _, [e1; e2] ->
           (* node instanciation. [e1] must be a static expression *)
           let* v1 = Eval.exp genv (unlift env) e1 in          
@@ -404,12 +415,15 @@ let rec iexp genv env { e_desc; e_loc  } =
        let* s_res = iexp genv env e_res in
        (* TODO: double the state; an idea from Louis Mandel *)
        (* in case of a reset, simply restart from this copy *)
-       (* alternatively, recal [iexp] which is less elegant *)
+       (* alternatively, the current solution recalls [iexp] *)
        (* in the actual, imperative implementation, generated code is *)
        (* statically scheduled and reset is obtained *)
        (* by executing a reset method which restores the state *)
        (* to its initial value *)
-       return (Stuple[s_body; s_res]) in
+       return (Stuple[s_body; s_res])
+    | Eassert(e_body) ->
+       let* s_body = iexp genv env e_body in
+       return s_body in
   Error.stop_at_location e_loc r
   
 and ieq genv env { eq_desc; eq_loc  } =
@@ -456,8 +470,7 @@ and ieq genv env { eq_desc; eq_loc  } =
     | EQreset(eq, e) ->
        let* s_eq = ieq genv env eq in
        let* se = iexp genv env e in
-       (* add a copy for the initial state of [eq] *)
-       return (Stuple [s_eq; s_eq; se])
+       return (Stuple [s_eq; se])
     | EQpresent { handlers; default_opt } ->
        let* s_list =
          Opt.map (ipresent_handler iscondpat ieq genv env) handlers in
@@ -521,7 +534,9 @@ and initial_state_of_automaton genv env { s_state = { desc; loc } } state_opt =
        (* no initial state is given. The initial state is the first *)
        (* in the list *)
        let* i = match desc with
-         | Estate0pat(f) -> return (Sval(Value(Vstate0(f)))) | _ -> none in
+         | Estate0pat(f) -> return (Sval(Value(Vstate0(f))))
+         | Estate1pat(f, _) -> none
+                |> Error.error loc (Error.Einitial_state_with_parameter(f)) in
        return (i, Sempty)
     | Some(state) ->
        let* s = istate genv env state in
@@ -627,6 +642,10 @@ and sexp genv env { e_desc = e_desc; e_loc } s =
         let* v3, s3 = sexp genv env e3 s3 in
         let* v = ifthenelse v1 v2 v3 in
         return (v, Stuple [s1; s2; s3])
+     | Eseq, [e1; e2], Stuple [s1; s2] ->
+        let* _, s1 = sexp genv env e1 s1 in
+        let* v2, s2 = sexp genv env e2 s2 in
+        return (v2, Stuple [s1; s2])
      | Erun _, [_; { e_desc } as arg],
        Stuple [Sinstance { init; step }; s2] ->
         (* [run f (e1,..., en)] : one of the ei can be bottom/nil whereas *)
@@ -732,7 +751,7 @@ and sexp genv env { e_desc = e_desc; e_loc } s =
        | _ -> (* error *)
           none in
      return (v, Stuple(s :: s_list))
-  | Ereset(e_body, e_res), Stuple [s_body; s_body_init; s_res] ->
+  | Ereset(e_body, e_res), Stuple [s_body; s_res] ->
      let* v, s_res = sexp genv env e_res s_res in 
      let* v_body, s_body =
        match v with
@@ -742,6 +761,10 @@ and sexp genv env { e_desc = e_desc; e_loc } s =
           let* v = bool v in
           reset iexp sexp genv env e_body s_body v in
      return (v_body, Stuple [s_body; s_res])
+  | Eassert(e_body), s ->
+     let* v, s = sexp genv env e_body s in
+     let* r = check_assert e_loc v void in
+     return (r, s)
   | _ -> none in
   Error.stop_at_location e_loc r
 
@@ -889,17 +912,8 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
   | EQempty, s -> return (Env.empty, s)
   | EQassert(e), s ->
      let* ve, s = sexp genv env e s in
-     (* when ve is not bot/nil it must be true *)
-     (* for the moment we raise a type error *)
-     let* s =
-       match ve with
-       | Vnil | Vbot -> return s
-       | Value(v) ->
-          let* v = bool v in
-          (* stop when [no_assert = true] *)
-          if !no_assert then return s 
-          else if v then return s else none in
-     return (Env.empty, s)
+     let* r = check_assert eq_loc ve Env.empty in
+     return (r, s)
   | _ -> none in
   Error.stop_at_location eq_loc r
 
@@ -918,9 +932,11 @@ and matching_arg_out env { b_vars; b_loc } =
   let r =
     let* v_list =
       Opt.map
-        (fun { var_name } -> find_value_opt var_name env) b_vars in
+        (fun { var_name } ->
+          find_value_opt var_name env |>
+            Error.error b_loc (Error.Eunbound_ident(var_name))) b_vars in
     match v_list with
-    | [] -> return (Value(Vvoid))
+    | [] -> return void
     | [v] -> return v
     | _ -> (* return a non strict tuple *)
            return (Value(Vtuple(v_list))) in
@@ -930,7 +946,7 @@ and matching_arg_out env { b_vars; b_loc } =
 and sblock genv env { b_vars; b_body = ({ eq_write } as eq); b_loc } s_b =
   let r = match s_b with
     | Stuple (s_eq :: s_list) ->
-       Sdebug.print_ienv "Block" env;
+       (* Sdebug.print_ienv "Block" env; *)
        let* env_v, s_list =
          Opt.mapfold3 
            (svardec genv env) Env.empty b_vars s_list (bot_list b_vars) in
@@ -1157,10 +1173,8 @@ and sescape_list genv env escape_list s_list ps pr =
        return (env_body, (ns, nr), s) in
      Error.stop_at_location e_loc r
   | _ -> none
-    
-and sscondpat : pvalue genv -> value ientry Env.t -> scondpat -> state ->
-  ((value * value ientry Env.t) * state) Opt.t =
- fun genv env { desc; loc } s ->
+
+and sscondpat (genv : pvalue genv) (env : value ientry Env.t ) { desc; loc } s =
   let r =
     match desc, s with
     | Econdand(sc1, sc2), Stuple [s1; s2] ->  
@@ -1280,7 +1294,7 @@ let implementation genv { desc; loc } =
     | Eletdecl(f, e) ->
        (* add the entry [f, v] in the current global environment *)
        let* v = Eval.exp genv Env.empty e in
-       Output.letdecl Format.std_formatter f v;
+       if !print_values then Output.letdecl Format.std_formatter f v;
        return (add f v genv)
     | Etypedecl _ ->
        return genv in
@@ -1325,7 +1339,7 @@ let run_node output init step n =
     if i = n then ()
     else
       try
-        let v, s = Opt.get (step s (Value(Vvoid))) in
+        let v, s = Opt.get (step s void) in
         let v = check_not_bot_not_nil v in
         output v;
         runrec s (i+1)
