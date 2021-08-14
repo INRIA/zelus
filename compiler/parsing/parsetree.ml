@@ -130,7 +130,8 @@ and exp_desc =
   | Ematch : exp * (exp, exp) match_handler list -> exp_desc
   | Epresent : (scondpat, exp) present_handler list * exp default -> exp_desc
   | Ereset : exp * exp -> exp_desc
-  
+  | Eassert : exp -> exp_desc
+
 and is_rec = bool
            
 and scondpat = scondpat_desc localized

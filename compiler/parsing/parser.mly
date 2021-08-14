@@ -845,7 +845,9 @@ expression_desc:
   | RESET e = seq_expression EVERY r = expression
     { Ereset(e, r) }
   | PERIOD p = period_expression
-      { Eop(Eperiod, p) }  
+    { Eop(Eperiod, p) }
+  | ASSERT e = simple_expression
+    { Eassert(e) }
 ;
 
 %inline opt_end:
