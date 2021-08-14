@@ -40,7 +40,7 @@ let rec pvalue ff v =
      Format.fprintf ff "@[<hov 1>(%a)@]" pvalue_list l
   | Vconstr0(lid) -> lident ff lid
   | Vconstr1(lid, l) ->
-     Format.fprintf ff "@[<hov 1>%a(%a)@]" lident lid pvalue_list l 
+     Format.fprintf ff "@[<hov1>%a(%a)@]" lident lid pvalue_list l 
   | Vstate0(id) -> Ident.fprint_t ff id
   | Vstate1(id, l) ->
      Format.fprintf
@@ -71,9 +71,9 @@ and pvalue_list ff l = print_list pvalue ff l
                      
 and value_list ff l = print_list value ff l
                     
-let value_and_flush ff v =
-  Format.fprintf ff "%a@\n" value v
-let pvalue_and_flush ff l = 
-  Format.fprintf ff "%a@\n" pvalue l
+let value_flush ff v =
+  Format.fprintf ff "%a@." value v
+let pvalue_flush ff l = 
+  Format.fprintf ff "%a@." pvalue l
 let letdecl ff name v =
-  Format.fprintf ff "@[<hov 2>val %s =@ %a@]@\n" name pvalue v
+  Format.fprintf ff "@[<hov 2>val %s =@ %a@]@." name pvalue v
