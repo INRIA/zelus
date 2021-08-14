@@ -11,6 +11,7 @@
 (*                                                                     *)
 (* *********************************************************************)
 
+open Misc
 open Value
 open Monad
 open Opt
@@ -214,29 +215,15 @@ let atomic v =
   | _ -> return (Value(v))
        
 (* void *)
-let void = return (Value(Vvoid))
+let void = Value(Vvoid)
 
-(* check that v is a list of length one *)
-let one v =
-  match v with
-  | [v] -> return v
-  | _ -> None
+let zerop op = Vfun (fun _ -> op ())
 
-(* check that v is a list of length two *)
-let two v =
-  match v with
-  | Vstuple [v1;v2] | Vtuple [Value(v1); Value(v2)] -> return (v1, v2)
-  | _ -> None
+let unop op = Vfun op
 
-let zerop op = fun _ -> let* v = op () in return (v)
-
-let unop op v = op v
-
-let binop op v =
-  let* v1, v2 = two v in
-  let* v = op v1 v2 in
-  return v
-
+let binop op =
+  Vfun(fun v1 -> return (Vfun (fun v2 -> op v1 v2)))
+    
 (* state processes *)
 let zerop_process op s =
   Vnode
@@ -251,7 +238,19 @@ let unop_process op s =
       step =
         fun s v -> let* v = lift1 (op s) v in return (v, s) }
 
-(* The initial environment *)
+let _ = Random.init 0
+
+let random_bool_op _ =
+  return (Vbool(Random.bool()))
+let random_int_op v =
+  let* v = int v in
+  return (Vint(Random.int v))
+let random_float_op v =
+  let* v = float v in
+  return (Vfloat(Random.float v))
+    
+
+(* The initial Stdlib *)
 let list_of_primitives =
   ["+", binop add_op;
    "-", binop minus_op;
@@ -271,27 +270,14 @@ let list_of_primitives =
    "<=", binop lte_op;
    ">=", binop gte_op]
 
-let genv0 =
-  let genv0 = Genv.initialize "Stdlib" [] in
-  List.fold_left
-    (fun acc (n, v) -> Genv.add n (Vfun v) acc) genv0 list_of_primitives
-  
-let _ = Random.init 0
-
-let random_bool_op _ =
-  return (Vbool(Random.bool()))
-let random_int_op v =
-  let* v = int v in
-  return (Vint(Random.int v))
-let random_float_op v =
-  let* v = float v in
-  return (Vfloat(Random.float v))
-    
-let list_of_primitives =
+let list_of_random_primitives =
   ["random_bool", zerop random_bool_op;
    "random_int", unop random_int_op;
    "random_float", unop random_float_op]
 
-let genv0 =
-  List.fold_left
-    (fun acc (n, v) -> Genv.add n (Vfun v) acc) genv0 list_of_primitives
+let to_env acc l = List.fold_left (fun acc (n, v) -> Genv.E.add n v acc) acc l
+                 
+let stdlib_env =
+  { Genv.name = "Stdlib";
+    Genv.values =
+      to_env (to_env Genv.E.empty list_of_primitives) list_of_random_primitives }
