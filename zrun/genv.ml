@@ -23,7 +23,7 @@ exception Cannot_find_file of string
 (* The current global environment *)
 type 'a env =
   { name: string; (* the name of the module *)
-    values: 'a E.t; (* the symbol table [name, pvalue] *)
+    values: 'a E.t; (* the symbol table [name, entry] *)
   }
       
 (* The current global environment and list of already opened modules *)
@@ -49,7 +49,7 @@ let findfile filename =
 let load_module modname =
   let name = String.uncapitalize_ascii modname in
   try
-    let filename = findfile (name ^ ".zo") in
+    let filename = findfile (name ^ ".zlo") in
     let ic = open_in_bin filename in
     try
       let m = input_value ic in
@@ -94,6 +94,9 @@ let find qualname ({ current; opened } as genv) =
   | Name(ident) -> findrec ident (current :: opened)
             
 (* exported functions *)
+let add_module genv m =
+  { genv with opened = m :: genv.opened }
+
 let open_module genv modname =
   let m, genv = find_module modname genv in
   { genv with opened = m :: genv.opened }
@@ -113,5 +116,5 @@ let find qualname genv =
   let v, _ = find qualname genv in
   v
   
-let write oc { current } = output_value oc current
+let write { current } oc = output_value oc current
 
