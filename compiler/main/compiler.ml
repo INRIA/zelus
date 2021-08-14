@@ -91,12 +91,6 @@ let apply_with_close_out f o =
     close_out o
   with x -> close_out o; raise x
 
-let apply_with_close_out f o =
-  try
-    f o;
-    close_out o
-  with x -> close_out o; raise x
-
 (** Make a compiler step **)
 let do_step comment step input = 
   let output = step input in
