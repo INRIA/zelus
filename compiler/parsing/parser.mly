@@ -109,7 +109,6 @@ let scond_true start_pos end_pos =
 %token MINUS          /* "-" */
 %token MINUSGREATER   /* "->" */
 %token NODE           /* "node" */
-%token NOT            /* "not" */
 %token OF             /* "of" */
 %token ON             /* "on" */
 %token OPEN           /* "open" */
@@ -149,6 +148,7 @@ let scond_true start_pos end_pos =
 
 %nonassoc prec_seq
 %right SEMI
+%nonassoc prec_der_with_reset
 %nonassoc prec_present
 %nonassoc prec_ident
 %right prec_list
@@ -174,7 +174,6 @@ let scond_true start_pos end_pos =
 %left ON
 %right prec_uminus
 %right FBY
-%right NOT
 %right PREFIX
 %right PRE TEST UP
 %left DOT
@@ -377,18 +376,14 @@ implementation:
    eq = localized(equation_desc) { eq }
 ;
 
-%inline simple_equation:
-   eq = localized(simple_equation_desc) { eq }
-;
-
-simple_equation_desc:
+equation_desc:
   | LOCAL v_list = vardec_comma_list DO eq = equation_empty_and_list DONE
     { EQlocal(v_list, eq) }
   | DO eq = equation_empty_and_list DONE
     { eq.desc }
   | RESET eq = equation_and_list EVERY e = expression
     { EQreset(eq, e) }
-  | LET i = is_rec let_eq = equation_and_list IN eq = simple_equation
+  | LET i = is_rec let_eq = equation_and_list IN eq = equation
     { EQlet(i, let_eq, eq) }
   | AUTOMATON opt_bar a = automaton_handlers(equation_empty_and_list) END
     { EQautomaton(List.rev a, None) }
@@ -396,40 +391,35 @@ simple_equation_desc:
     a = automaton_handlers(equation_empty_and_list) INIT e = state
     { EQautomaton(List.rev a, Some(e)) }
   | MATCH e = seq_expression WITH opt_bar 
-    m = match_handlers(simple_equation) opt_end
+    m = match_handlers(equation) opt_end
     { EQmatch(e, List.rev m) }
-  | IF e = seq_expression THEN eq1 = simple_equation
-    ELSE eq2 = simple_equation opt_end
+  | IF e = seq_expression THEN eq1 = equation
+    ELSE eq2 = equation opt_end
     { EQif(e, eq1, eq2) }
-  | IF e = seq_expression THEN eq1 = simple_equation opt_end
+  | IF e = seq_expression THEN eq1 = equation opt_end
       { EQif(e, eq1, no_eq $startpos $endpos) }
-  | IF e = seq_expression ELSE eq2 = simple_equation opt_end
+  | IF e = seq_expression ELSE eq2 = equation opt_end
       { EQif(e, no_eq $startpos $endpos, eq2) }
-  | PRESENT opt_bar p = present_handlers(simple_equation) opt_end
+  | PRESENT opt_bar p = present_handlers(equation) opt_end
     { EQpresent(List.rev p, NoDefault) }
-  | PRESENT opt_bar p = present_handlers(simple_equation)
-    ELSE eq = simple_equation opt_end
+  | PRESENT opt_bar p = present_handlers(equation)
+    ELSE eq = equation opt_end
     { EQpresent(List.rev p, Else(eq)) }
-;
-
-equation_desc:
-  | eq_desc = simple_equation_desc
-      { eq_desc }
+  | ASSERT e = expression
+    { EQassert(e) }
+  | EMIT i = ide
+      { EQemit(i, None) }
+  | EMIT i = ide EQUAL e = seq_expression
+      { EQemit(i, Some(e)) }
+  | INIT i = ide EQUAL e = seq_expression
+      { EQinit(i, e) }
   | p = pattern EQUAL e = seq_expression
       { EQeq(p, e) }
   | DER i = ide EQUAL e = seq_expression opt = optional_init
       { EQder(i, e, opt, []) }
   | DER i = ide EQUAL e = seq_expression opt = optional_init
-    RESET p = present_handlers(expression)
+    RESET p = present_handlers(expression) %prec prec_der_with_reset
       { EQder(i, e, opt, p) }
-  | INIT i = ide EQUAL e = seq_expression
-      { EQinit(i, e) }
-  | EMIT i = ide
-      { EQemit(i, None) }
-  | EMIT i = ide EQUAL e = seq_expression
-      { EQemit(i, Some(e)) }
-  | ASSERT e = seq_expression
-    { EQassert(e) }
 ;
 
 %inline optional_init:
@@ -794,8 +784,6 @@ expression_desc:
       { Eop(Eminusgreater, [e1; e2]) }
   | MINUS e = expression  %prec prec_uminus
       { unary_minus "-" e ($startpos($1)) ($endpos($1)) }
-  | NOT e = expression
-      { unop "not" e ($startpos($1)) ($endpos($1)) }
   | s = SUBTRACTIVE e = expression  %prec prec_uminus
       { unary_minus s e ($startpos(s)) ($endpos(s)) }
   | e1 = expression i = INFIX4 e2 = expression
@@ -920,7 +908,7 @@ ide:
   | LPAREN i = infx RPAREN
       { i }
   | LPAREN GREATER RPAREN
-      { ">" }
+    { ">" }
 ;
 
 ext_ident :
@@ -942,7 +930,7 @@ infx:
   | SUBTRACTIVE     { $1 }    | PREFIX        { $1 }
   | AMPERSAND       { "&" }   | AMPERAMPER    { "&&" }
   | OR              { "or" }  | BARBAR        { "||" }
-  | ON              { "on" }  | NOT           { "not" }
+  | ON              { "on" }  
 ;
 
 %inline arrow:
