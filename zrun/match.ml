@@ -71,10 +71,8 @@ let pmatching (v : pvalue) (p : pattern) =
 let matcheq (v : pvalue) (p : pattern) : pvalue Env.t Opt.t =
   let rec matchrec acc v { pat_desc } =
     match v, pat_desc with
-    | Vtuple(v_list), Etuplepat(l_list) ->
+    | Vstuple(v_list), Etuplepat(l_list) ->
        match_list acc v_list l_list
-    | Vstuple(p_list), Etuplepat(l_list) ->
-       match_list acc (List.map (fun v -> Value v) p_list) l_list
     | Vrecord(l_v_list), Erecordpat(l_p_list) ->
        let rec find l = function
          | [] -> none
@@ -94,7 +92,9 @@ let matcheq (v : pvalue) (p : pattern) : pvalue Env.t Opt.t =
   and match_list acc v_list p_list =
     match v_list, p_list with
     | [], [] -> return acc
-    | v :: v_list, p :: p_list  -> match_list acc v_list p_list 
+    | v :: v_list, p :: p_list  ->
+       let* acc = matchrec acc v p in
+       match_list acc v_list p_list 
     | _ -> none in
   matchrec Env.empty v p
 
