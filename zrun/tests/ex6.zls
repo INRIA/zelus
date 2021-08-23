@@ -1,0 +1,16 @@
+type t = A | B | C | D
+
+let node main() returns (o init 0)
+  local x
+  do
+    x = A fby A fby B fby C fby D fby x
+  and
+    match x with
+    | A -> do o = last o + 1 done
+    | B -> do o = last o - 1 done
+    | C -> do o = 0 done
+    | D -> do o = 42 done
+    end
+  done
+      
+

@@ -1,0 +1,39 @@
+(* Example from the Esterel primer v5.91, Berry, 2000 :
+ *- Section 5.1.4
+   module P14:
+    output O1, O2;
+    present O1 then emit O2 end;
+    pause;
+    present O2 then emit O1 end
+   end module *)
+(* This program is said to be constructive causal *)
+
+let node p14() returns (o1 default false, o2 default false)
+  automaton
+  | Init -> do if o1 then o2 = true
+            until true then After
+  | After -> do if o2 then o1 = true done
+  end
+  
+(* Once branches are completed with default value, we get *)
+(* on which it is clear that it does not stuck (produce bot) *)
+let node p14_default() returns (o1, o2)
+  automaton
+  | Init ->
+      do if o1 then o2 = true else o2 = false
+      and o1 = false
+      until true then After
+  | After ->
+      do if o2 then o1 = true else o1 = false
+      and o2 = false done
+  end
+
+let node main() returns (ok)
+  local o11, o22, o111, o222
+  do
+    (o11, o22) = p14()
+  and
+    (o111, o222) = p14_default()
+  and
+    ok = (o11 = o111) && (o22 = o222)
+  done

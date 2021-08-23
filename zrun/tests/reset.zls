@@ -1,0 +1,16 @@
+let node main1 () returns (cpt1, cpt2)
+    local rst
+    do rst = false fby false fby false fby true fby rst
+    and automaton
+        | A -> do cpt1 = 0 -> pre cpt1 + 1 unless rst then A
+        end
+    and reset cpt2 = 0 -> pre cpt2 + 1 every rst
+   done
+
+let node main() returns (cpt)
+  local z
+  do reset
+	cpt = 0 -> pre(cpt) + 1
+      every z
+  and z = false fby false fby true fby z
+  done  

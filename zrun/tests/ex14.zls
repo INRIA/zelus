@@ -1,0 +1,11 @@
+let node f() returns (o1, o2)
+  local o3
+  do o1 = 0 fby o2 + 1
+  and o3 = o2 + 1
+  and o2 = o3 done
+
+let node main() returns (o)
+  local o1
+  do o, o1 = f() done
+
+     

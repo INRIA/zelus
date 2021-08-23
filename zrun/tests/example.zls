@@ -1,0 +1,34 @@
+(*
+let ff(x) = (+) 1 x
+
+let node main1() =
+  let rec o = 0 fby o + 2 in o
+
+let bidule = 42
+
+let machin = 42 + 2
+
+let truc = machin, bidule
+
+let trop_bien =
+  let v = truc in
+  v, truc 
+
+let node main1() returns (o)
+  do o = 0 fby o + 1 done
+ 
+let node main2() =
+  let rec o = ff(0 fby o) in
+  assert (o <= 10); o
+*)
+
+let node f (x, y) = 1, 2
+let node g (x, y) = 1, 2
+
+let node main () =
+  let r1, r2 = 1, 2 in r1
+   
+   (*
+let node main() returns (o1, o2)
+  do o1 = 0 fby o2 + 2 and o2 = run main2 () done
+*)

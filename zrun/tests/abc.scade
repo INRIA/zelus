@@ -1,0 +1,143 @@
+--
+-- Button : manage a single button
+--
+-- in:
+--   button : true, whenever button is pressed
+--   lock   : true, whenever lock is pressed
+--   unlock : true, whenever unlock is pressed
+--   deselect : deselect button
+-- out:
+--   preselLight : command of preselection light
+--   selectLight : command of selection light
+node Button(button,
+                lock,
+                unlock,
+                deselect : bool)
+  returns(preselLight,
+          selectLight : bool)
+sig
+  sigLightPresel,
+  sigLightSel;
+
+let
+
+  preselLight =  'sigLightPresel;
+  selectLight =  'sigLightSel;
+
+  automaton
+    -- Unselect : if lock, another button is locked
+    --            else waits for own preselection
+    initial state Unselected
+      unless
+        if (lock) restart WaitUnlock;
+        if (button) restart Preselected;
+
+    -- Preselect : wait for lock, or deselection by itself or other
+    state Preselected
+      unless 
+        if (lock) restart Locked;
+        if (deselect) restart Unselected;
+      let
+        emit 'sigLightPresel;
+      tel
+
+    -- Locked state : wait for unlock only, and returns in Preselected
+    state Locked
+      unless if (unlock) restart Preselected;
+      let
+        emit 'sigLightSel;
+      tel
+
+    -- other lock : wait for unlock only, and returns in Unselected
+    state WaitUnlock
+      unless if (unlock) restart Unselected;
+ 
+  returns .. ;
+
+tel
+
+node Raising(i, initVal: bool)
+  returns(out : bool)
+let
+  out = initVal -> not(pre(i)) and i;
+tel
+
+node Falling(i, initVal: bool)
+  returns(out : bool)
+let
+  out = initVal -> pre(i) and not(i);
+tel
+
+--
+-- ABC module
+--          
+node ABC(A, B, C, LOCK : bool)
+  returns(A_PRESELECTED_ON, B_PRESELECTED_ON, C_PRESELECTED_ON,
+          A_PRESELECTED_OFF, B_PRESELECTED_OFF, C_PRESELECTED_OFF,
+          A_LOCKED_ON, B_LOCKED_ON, C_LOCKED_ON,
+          A_LOCKED_OFF, B_LOCKED_OFF, C_LOCKED_OFF : bool)
+sig
+   lockSig,
+   unlockSig;
+
+var
+  A_preselLight,
+  B_preselLight,
+  C_preselLight,
+  A_selLight,
+  B_selLight,
+  C_selLight,
+  deselect,
+  localLock,
+  localUnlock : bool;
+
+let
+
+  --
+  -- Manage lock/unlock signal
+  --
+  localUnlock =  'unlockSig;
+  localLock =  'lockSig;
+
+  -- detect raising/falling edge
+  automaton
+    initial state LockLow
+      unless if (LOCK) do {emit 'lockSig} restart LockHigh;
+
+    state LockHigh
+      unless if (LOCK) do {emit 'unlockSig} restart LockLow;
+  returns .. ;
+
+  --
+  -- call buttons
+  --
+  A_preselLight, A_selLight  = 
+    Button(A, localLock, localUnlock, deselect);
+  B_preselLight, B_selLight  = 
+    Button(B, localLock, localUnlock, deselect);
+  C_preselLight, C_selLight = 
+    Button(C, localLock, localUnlock, deselect);
+
+  --
+  -- handle deselection 
+  --
+  deselect = (A or B or C);
+
+  ---
+  ---
+  A_PRESELECTED_ON = Raising(A_preselLight, false);
+  A_PRESELECTED_OFF = Falling(A_preselLight, true);
+  A_LOCKED_ON = Raising(A_selLight, false);
+  A_LOCKED_OFF = Falling(A_selLight, true);
+
+  B_PRESELECTED_ON = Raising(B_preselLight, false);
+  B_PRESELECTED_OFF = Falling(B_preselLight, true);
+  B_LOCKED_ON = Raising(B_selLight, false);
+  B_LOCKED_OFF = Falling(B_selLight, true);
+
+  C_PRESELECTED_ON = Raising(C_preselLight, false);
+  C_PRESELECTED_OFF = Falling(C_preselLight, true);
+  C_LOCKED_ON = Raising(C_selLight, false);
+  C_LOCKED_OFF = Falling(C_selLight, true);
+
+tel

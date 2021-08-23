@@ -1,0 +1,7 @@
+let node wrong(x) returns (o)
+  do o = o + x done
+
+let node main() returns (o1, o2)
+  do o1 = sum(1)
+  and o2 = sum(o1)
+  done

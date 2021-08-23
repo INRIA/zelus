@@ -1,0 +1,9 @@
+let node main() returns (o)
+  do
+    o = let rec x =
+          let y = x + 1 in
+          let z = y + 1 in
+          let m = (0 fby z) + 1 in
+          m+1 in
+        x + 2
+  done
