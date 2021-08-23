@@ -74,7 +74,6 @@ let nil_env eq_write =
 
 (* a bot/nil value lifted to lists *)
 let bot_list l = List.map (fun _ -> Vbot) l
-let nil_list l = List.map (fun _ -> Vnil) l
 
 (* a bot/nil value lifted to patterns *)
 let rec distribute v acc { pat_desc } =
@@ -92,20 +91,27 @@ let rec distribute v acc { pat_desc } =
                                 
 let pbot p = distribute Vbot Env.empty p
 let pnil p = distribute Vnil Env.empty p
-
         
 (* Pattern matching for equations *)
-let matcheq v ({ pat_loc } as p) =
-  let r = match v with
-    | Vbot -> return (liftid (pbot p))
-    | Vnil -> return (liftid (pnil p))
-    | Value(v) ->
-       let* env =
-         Match.matcheq v p |>
-           Error.error pat_loc Error.Epattern_matching_failure in
-       return (liftv env) in
-  Error.stop_at_location pat_loc r
-
+let matcheq v p =
+  let rec matchrec acc v ({ pat_desc; pat_loc } as p) =
+    let r = match v with
+      | Vbot -> return (liftid (pbot p))
+      | Vnil -> return (liftid (pnil p))
+      | Value(v) ->
+         match v, pat_desc with
+         | Vtuple(v_list), Etuplepat(l_list) ->
+            match_list acc v_list l_list
+         | _ ->
+            let* env =
+              Match.matcheq v p |>
+                Error.error pat_loc Error.Epattern_matching_failure in
+            return (liftv env) in
+    Error.stop_at_location pat_loc r
+  and match_list acc v_list l_list =
+    Opt.fold2 matchrec acc v_list l_list in
+  matchrec Env.empty v p
+    
 let matchsig v ({ pat_loc } as p) =
   let r = match v with
     | Vbot ->
@@ -357,7 +363,7 @@ let rec iexp genv env { e_desc; e_loc  } =
           let* s1 = iexp genv env e1 in
           let* s2 = iexp genv env e2 in
           return (Stuple [s1; s2])
-       | Erun _, [e1; e2] ->
+       | Erun _, [{ e_loc } as e1; e2] ->
           (* node instanciation. [e1] must be a static expression *)
           let* v1 = Eval.exp genv (unlift env) e1 in          
           let* v1 =
@@ -693,7 +699,7 @@ and sexp genv env { e_desc = e_desc; e_loc } s =
      let* v_list, s_list = sexp_list genv env e_list s_list in
      let* v = stuple v_list in
      return (v, Stuple(s_list))
-  | Eapp(e, e_list), Stuple (s :: s_list) ->
+  | Eapp({ e_loc } as e, e_list), Stuple (s :: s_list) ->
      (* [f] must return a combinatorial function *)
      let* v, s = sexp genv env e s in
      let* v_list, s_list = sexp_list genv env e_list s_list in
@@ -1330,7 +1336,8 @@ let run_fun output fv n =
       with
       | Error.Error(loc, kind) ->
          Error.message loc kind;
-         Format.eprintf "@[%d iterations out of %d.@.@]" i n in
+         Format.eprintf "@[%d iterations out of %d.@.@]" i n;
+         raise Stdlib.Exit in
   runrec 0
 
 (* run a stream process [run f []] *)
@@ -1346,6 +1353,7 @@ let run_node output init step n =
       with
       | Error.Error(loc, kind) ->
          Error.message loc kind;
-         Format.eprintf "@[%d iterations out of %d.@.@]" i n in
+         Format.eprintf "@[%d iterations out of %d.@.@]" i n;
+         raise Stdlib.Exit in
   runrec init 0
   
