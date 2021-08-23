@@ -12,6 +12,7 @@
 (* *********************************************************************)
 
 (* the main *)
+open Misc
 open Smisc
 open Monad
 open Opt
@@ -55,12 +56,15 @@ let eval_main genv main n_steps =
      let fv =
        find_gvalue_opt (Name main) genv in
      match fv with
-     | None -> Format.eprintf "The global value %s is unbound.\n" main
+     | None ->
+        Format.eprintf "The global value %s is unbound.\n" main;
+        raise Stdlib.Exit
      | Some(fv) ->
         let v = to_fun fv in
         match v with
         | None ->
-           Format.eprintf "The global value %s is not a function.\n" main
+           Format.eprintf "The global value %s is not a function.\n" main;
+           raise Stdlib.Exit
         | Some(v) ->
            let output v =
              Output.pvalue_flush Format.std_formatter v in
@@ -87,11 +91,9 @@ let do_step comment step input =
 (* and a main function/node, if given *)
 let eval_file modname filename suffix main n_steps =
   (* output file in which values are stored *)
-  (*
-    let obj_name = filename ^ ".zlo" in
-    let otc = open_out_bin obj_name in
-   *)
-  
+  let obj_name = filename ^ ".zlo" in
+  let otc = open_out_bin obj_name in
+    
   let source_name = filename ^ suffix in
 
   Location.initialize source_name;
@@ -115,11 +117,9 @@ let eval_file modname filename suffix main n_steps =
   Debug.print_message "Evaluation of definitions done";
 
   (* Write the values into a file *)
-  (* 
-    TODO
-    apply_with_close_out (Genv.write genv) otc;
-   *)
-
+  Genv.write genv otc;
+  (* apply_with_close_out (Genv.write genv) otc; *)
+  
   (* evaluate a main function/node if given *)
   eval_main genv main n_steps
              
@@ -161,8 +161,8 @@ let main () =
       main
       errmsg
   with
-  | Stdlib.Exit -> exit 2
-  
+  | _ -> exit 2
+                 
 let _ = main ()
 let _ = exit 0
             
