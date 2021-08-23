@@ -60,10 +60,10 @@ let message loc kind =
       eprintf "@[%aZrun: actual and expected state do not match.@.@]"
         output_location loc 
   | Eshould_be_a_node ->
-      eprintf "@[%aZrun: the expression should return a node.@.@]"
+      eprintf "@[%aZrun: this expression should return a node.@.@]"
         output_location loc 
   | Eshould_be_a_function ->
-      eprintf "@[%aZrun: the expression should return a function.@.@]"
+      eprintf "@[%aZrun: this expression should return a function.@.@]"
         output_location loc 
   | Eand_non_linear(name) ->
      eprintf
@@ -88,3 +88,4 @@ let message loc kind =
      eprintf "@[%aZrun: value is bottom.@.@]" output_location loc
   | Eassert_failure ->
      eprintf "@[%aZrun: assertion is not true.@.@]" output_location loc
+
