@@ -52,7 +52,7 @@ let load_module modname =
     let filename = findfile (name ^ ".zlo") in
     let ic = open_in_bin filename in
     try
-      let m = input_value ic in
+      let m = Marshal.from_channel ic in
       close_in ic;
       m
     with
@@ -116,5 +116,5 @@ let find qualname genv =
   let v, _ = find qualname genv in
   v
   
-let write { current } oc = output_value oc current
+let write { current } oc = Marshal.to_channel oc current [Marshal.Closures]
 
