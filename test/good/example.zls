@@ -20,11 +20,13 @@ let node main1() returns (o)
 let node main2() =
   let rec o = ff(0 fby o) in
   assert (o <= 10); o
-
+*)
 
 let f = 1, 2
 
- *)
-
+let main () = 1
+   
+   (*
 let node main() returns (o1, o2)
-  do o1 = 0 fby o1 + 2 and o2 = o1 + 1 done
+  do o1 = 0 fby o2 + 2 and o2 = run main2 () done
+*)
