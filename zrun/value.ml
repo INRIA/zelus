@@ -50,8 +50,9 @@ and state =
 
 and ('s, 'a, 'b) instance =
   { init : 's;
-    step : 's -> 'a -> ('b * 's) option;
+    step : 's -> 'a -> ('b * 's) option
   }
+  
 (* an input entry in the environment *)
 type 'a ientry = { cur: 'a; last : 'a option; default : 'a option }
 
@@ -64,3 +65,9 @@ type ('a, 's) costream =
   | CoF : { init : 's;
             step : 's -> ('a * 's) option } ->
           ('a, 's) costream
+
+type ('a, 'b, 's) node =
+  | CoFun : ('a list -> 'b option) -> ('a, 'b, 's) node
+  | CoNode : { init : 's;
+               step : 's -> 'a list -> ('b * 's) option } -> ('a, 'b, 's) node
+ 
