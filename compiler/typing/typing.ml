@@ -634,7 +634,7 @@ and expression expected_k h ({ e_desc; e_loc } as e) =
        ty, Kind.sup actual_k_body actual_k
     | Eassert(e_body) ->
        let actual_k = expect expected_k h e Initial.typ_bool in
-     Initial.typ_unit, actual_k in
+       Initial.typ_unit, actual_k in
   (* type annotation *)
   e.e_typ <- ty;
   ty, actual_k
