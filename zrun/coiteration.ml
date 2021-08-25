@@ -123,10 +123,6 @@ let matchsig v ({ pat_loc } as p) =
        let* v, env = Match.matchsig v p in
        return (Value(v), liftv env) in
   Error.stop_at_location pat_loc r
-
-let matchstate vstate ({ loc } as pstate) =
-  let r = Match.matchstate vstate pstate in
-  Error.stop_at_location loc r
   
 (* number of variables defined by an equation *)
 let size { eq_write } = S.cardinal (Deftypes.names S.empty eq_write)
@@ -180,7 +176,8 @@ let complete_with_default env env_handler =
     (fun x ({ cur } as entry) acc ->
       match Env.find_opt x env with
       | None -> Env.add x entry acc
-      | Some { default } -> Env.add x { entry with default = default } acc)
+      | Some { last; default } ->
+         Env.add x { entry with last = last; default = default } acc)
     env_handler Env.empty
 
 (* equality of values in the fixpoint iteration. Because of monotonicity *)
@@ -215,9 +212,13 @@ let equal_env env1 env2 =
 (* bounded fixpoint for a set of equations *)
 let fixpoint_eq genv env sem eq n s_eq bot =
   let sem s_eq env_in =
+    (* let l1 = Env.bindings env_in in *)
     let env = Env.append env_in env in
+    (* let l2 = Env.bindings env in *)
     let* env_out, s_eq = sem genv env eq s_eq in
+    (* let l3 = Env.bindings env_out in *)
     let env_out = complete_with_default env env_out in
+    (* let l4 = Env.bindings env_out in *)
     return (env_out, s_eq) in
   let* m, env_out, s_eq = fixpoint n equal_env sem s_eq bot in
   return (env_out, s_eq)
@@ -903,6 +904,7 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
      (* [ps] = state where to go; *)
      (* [pr] = whether the state must be reset or not *)
      (* [si] state for [state_opt]; [s_list] state for [handlers] *)
+     (* TODO: treat initial state *)
      let* env, ns, nr, s_list =
        match ps, pr with
        | (Vbot, _) | (_, Vbot) ->
@@ -913,7 +915,7 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
           let* pr = bool pr in
           sautomaton_handler_list
             is_weak genv env eq_write handlers ps pr s_list in
-     return (env, Stuple (Sval(ns) :: Sval(nr) :: s_list))
+     return (env, Stuple (Sval(ns) :: Sval(nr) :: si :: s_list))
   | EQmatch { e; handlers }, Stuple (se :: s_list) ->
      let* ve, se = sexp genv env e se in
      let* env, s_list =
@@ -980,11 +982,11 @@ and matching_arg_out env { b_vars; b_loc } =
 and sblock genv env { b_vars; b_body = ({ eq_write } as eq); b_loc } s_b =
   let r = match s_b with
     | Stuple (s_eq :: s_list) ->
-       (* Sdebug.print_ienv "Block" env; *)
        let* env_v, s_list =
          Opt.mapfold3 
            (svardec genv env) Env.empty b_vars s_list (bot_list b_vars) in
        let bot = complete env env_v (names eq_write) in
+       (* Sdebug.print_ienv "Block" bot; *)
        let n = size eq  in
        let n = if n <= 0 then 0 else n+1 in
        let* env_eq, s_eq = fixpoint_eq genv env seq eq n s_eq bot in
