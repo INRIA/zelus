@@ -5,7 +5,7 @@ let node g() returns (y, z)
   do y = f(z) and z = y done
     
 
-let node main1() returns (o)
+let node main() returns (o)
   local m default 0, half, r
   do
     if half then do done
