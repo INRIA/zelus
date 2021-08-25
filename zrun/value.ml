@@ -47,7 +47,9 @@ and state =
   | Sval : value -> state
   | Sopt : value option -> state
   | Sinstance : (state, value, value) instance -> state
-
+  | Scstate : { pos : value; der : value } -> state 
+  | Szstate : { zin : value; zout : value } -> state
+  
 and ('s, 'a, 'b) instance =
   { init : 's;
     step : 's -> 'a -> ('b * 's) option
