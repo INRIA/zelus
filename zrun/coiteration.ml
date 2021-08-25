@@ -20,7 +20,8 @@
 (* https://github.com/marcpouzet/zrun *)
 (* Zrun was programmed right after the COVID black out in June 2020 *)
 (* This new version includes Zelus constructs (version 2.2): higher order *)
-(* functions, static parameters. It started during spring 2021 *)
+(* functions, static parameters, derivative, zero-crossing. It started *)
+(* during spring 2021 *)
 open Smisc
 open Monad
 open Opt                                                            
@@ -379,10 +380,8 @@ let rec iexp genv env { e_desc; e_loc  } =
        | Eup, [e] ->
           let* s = iexp genv env e in
           return (Stuple [Sval(Vnil); s])
-       | Eperiod, [e1;e2] ->
-          let* s1 = iexp genv env e1 in
-          let* s2 = iexp genv env e2 in
-          return (Stuple [Sval(Value(Vint(max_int))); s1; s2])
+       | Eperiod, [_;_] ->
+          Error.error e_loc (Error.Enot_implemented) none
        | _ -> none
        end
     | Etuple(e_list) -> 
@@ -438,8 +437,6 @@ and ieq genv env { eq_desc; eq_loc  } =
     | EQder(x, e, e0_opt, p_h_list) ->
        (* [x becomes an input; x' an output] *)
        (* they are stored as a state [x';x] *)
-       (* TODO: instead of storing it into the state, add *)
-       (* an extra global input and an extra global output *)
        let* se = iexp genv env e in
        let* s0 =
          match e0_opt with
@@ -448,8 +445,9 @@ and ieq genv env { eq_desc; eq_loc  } =
          Opt.map
            (ipresent_handler iscondpat iexp genv env) p_h_list in
        return
-         (Stuple (Sval(Value(Vfloat(0.0))) :: Sval(Value(Vfloat(0.0))) ::
-                    se :: s0 :: sp_h_list))
+         (Stuple
+            (Scstate { pos = Value(Vfloat(0.0)); der = Value(Vfloat(0.0)) } ::
+            se :: s0 :: sp_h_list))
     | EQinit(_, e) ->
        let* se = iexp genv env e in
        return (Stuple [Sopt(None); se])
@@ -676,17 +674,15 @@ and sexp genv env { e_desc = e_desc; e_loc } s =
         let* v, s = sexp genv env e s in
         let* v = Primitives.lift1 Primitives.test v in
         return (v, s)
-     | Eup, [e], Stuple [Sval(zin); _; s] ->
+     | Eup, [e], Stuple [Szstate ({ zin } as sz); s] ->
         (* [zin] and [zout] *)
         let* zout, s = sexp genv env e s in
-        return (zin, Stuple [Sval(zin); Sval(zout); s])
+        return (zin, Stuple [Szstate { sz with zout }; s])
      | Eperiod, [_; _], _ ->
-        (* not yet implemented. *)
         (* TODO: we cannot for the moment. Unless we implement it with *)
         (* a zero-crossing detection (inefficient), we need *)
         (* an extra global input [time] *)
-        let v = none in
-        Error.error e_loc (Error.Enot_implemented) v
+        Error.error e_loc (Error.Enot_implemented) none
      | _ -> none
      end
   | Econstr1 { lname; arg_list }, Stuple(s_list) ->
@@ -824,9 +820,41 @@ and slets genv env leq_list s_list =
 and seq genv env { eq_desc; eq_write; eq_loc } s =
   let r = match eq_desc, s with 
   | EQeq(p, e), s -> 
-     let* v, s1 = sexp genv env e s in
-     let* env_p1 = matcheq v p in
-     Some (env_p1, s1) (* return (env_p, s))) *)
+     let* v, s = sexp genv env e s in
+     let* env_p = matcheq v p in
+     return (env_p, s)
+  | EQder(x, e, e0_opt, p_h_list),
+    Stuple (Scstate({ pos } as sc) :: s :: Sopt(x0_opt) :: s0 :: s_list) ->
+     let* ({ last; default } as entry) = Env.find_opt x env in
+     (* compute the derivative (w.r.t time) of [x] *)
+     let* der, s = sexp genv env e s in
+     (* computes the initial position *)
+     let* cx0, x0_opt, s0 =
+       match e0_opt with
+       | None ->
+          (* [x] should have a default value *)
+          let* x0 = default_value last default in
+          return (x0, x0_opt, s0)
+       | Some(e0) ->
+          match x0_opt with
+          | None -> (* first instant *)
+             let* x0, s0 = sexp genv env e0 s0 in
+             return (x0, Some(x0), s0)
+          | Some(x0) -> return (x0, x0_opt, s0) in
+     let* cx_opt, s_h_list =
+       spresent_handler_list sscondpat Vbot Vnil sexp genv env p_h_list s_list in
+     let cur =
+       match cx_opt with
+       | None ->
+          (* no event is present; return the value computed by the solver *)
+          pos
+       | Some(cx) ->
+          (* otherwise the value returned by the handler *)
+          cx in
+     return (Env.singleton x { entry with cur },
+             Stuple (Scstate({ sc with der }) :: Sopt(x0_opt) :: s0 :: s_list))
+  | EQinit(x, _), _ ->
+     Error.error eq_loc (Error.Enot_implemented) none
   | EQif(e, eq1, eq2), Stuple [se; s_eq1; s_eq2] ->
       let* v, se = sexp genv env e se in
       let* env_eq, s =
