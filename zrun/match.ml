@@ -109,16 +109,15 @@ let matchsig (vstate: pvalue) (p: pattern) : (pvalue * pvalue Env.t) Opt.t =
   
 (* match a state f(v1,...,vn) against a state name f(x1,...,xn) *)
 let matchstate (ps : pvalue) ({ desc; loc } : statepat) : (pvalue Env.t) Opt.t =
-  let r = match ps, desc with
-    | Vstate0(f), Estate0pat(g) when Ident.compare f g = 0 -> return Env.empty
-    | Vstate1(f, v_list), Estate1pat(g, id_list) when
-           (Ident.compare f g = 0) &&
-             (List.length v_list = List.length id_list) ->
-       let env =
-         List.fold_left2
-           (fun acc v x -> Env.add x v  acc)
-           Env.empty v_list id_list in
-       return env
-    | _ -> none in
-  Error.stop_at_location loc r
+  match ps, desc with
+  | Vstate0(f), Estate0pat(g) when Ident.compare f g = 0 -> return Env.empty
+  | Vstate1(f, v_list), Estate1pat(g, id_list) when
+         (Ident.compare f g = 0) &&
+           (List.length v_list = List.length id_list) ->
+     let env =
+       List.fold_left2
+         (fun acc v x -> Env.add x v  acc)
+         Env.empty v_list id_list in
+     return env
+  | _ -> none
   
