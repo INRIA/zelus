@@ -385,7 +385,10 @@ and operator env op ty e_list =
      exp_less_than_on_i env e1 izero;
      exp_less_than_on_i env e2 izero;
      Init.skeleton_on_i izero ty
-| _ -> assert false
+  | Ehorizon, [e] -> assert false
+  | Eseq, [e1; e2] -> assert false
+  | Erun _, [e1; e2] -> assert false
+  | _ -> assert false
 
 
 (** Typing an application *)

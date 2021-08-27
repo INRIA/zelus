@@ -460,6 +460,13 @@ and operator env op c_free ty e_list =
       exp_less_than_on_c env c_free e2 c_res;
       exp_less_than_on_c env c_free e3 c_res;
       Causal.skeleton_on_c c_res ty
+  | Eseq, [e1; e2] -> assert false
+  | Erun _, [e1; e2] -> assert false
+  | Eatomic, [e] -> assert false
+  | Etest, [e] -> assert false
+  | Eup, [e] -> assert false
+  | Eperiod, [e1; e2] -> assert false
+  | Ehorizon, [e] -> assert false
   | _ -> assert false
     
 
