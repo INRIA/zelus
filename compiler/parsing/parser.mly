@@ -96,6 +96,7 @@ let scond_true start_pos end_pos =
 %token FUN            /* "fun" */
 %token GREATER        /* ">" */
 %token HYBRID         /* "hybrid" */
+%token HORIZON        /* "horizon" */
 %token IF             /* "if" */
 %token IN             /* "in" */
 %token INIT           /* "init" */
@@ -834,6 +835,8 @@ expression_desc:
     { Ereset(e, r) }
   | PERIOD p = period_expression
     { Eop(Eperiod, p) }
+  | HORIZON e = simple_expression
+    { Eop(Ehorizon, [e]) }
   | ASSERT e = simple_expression
     { Eassert(e) }
 ;

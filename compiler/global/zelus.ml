@@ -52,6 +52,7 @@ type operator =
 | Etest : operator (* testing the presence of a signal *)
 | Eup : operator (* zero-crossing detection *)
 | Eperiod : operator (* period *)
+| Ehorizon : operator (* horizon *)
 
 and is_inline = bool
 

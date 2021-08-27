@@ -44,6 +44,7 @@ type operator =
   | Etest : operator
   | Eup : operator
   | Eperiod : operator
+  | Ehorizon : operator
   
 and is_inline = bool
               

@@ -123,6 +123,7 @@ let operator op =
   | Etest -> Zelus.Etest
   | Eup -> Zelus.Eup
   | Eperiod -> Zelus.Eperiod
+  | Ehorizon -> Zelus.Ehorizon
 
 (* translate types. *)
 let rec types { desc; loc } =

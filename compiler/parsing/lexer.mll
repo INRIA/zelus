@@ -53,6 +53,7 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "open", OPEN;
   "or", OR;
   "period", PERIOD;
+  "horizon", HORIZON;
   "pre", PRE;
   "present", PRESENT;
   "rec", REC;
