@@ -41,10 +41,10 @@ let node counter(n) returns (ok)
 let node main () returns (r1, r2, a1, a2, a3, a4)
   local go1, go2
   do
-      go1 = counter(5)
+      go1 = run counter(5)
   and
-      go2 = counter(10)
+      go2 = run counter(10)
   and
-      (r1, r2, a1, a2, a3, a4) = aut (go1, go2)
+      (r1, r2, a1, a2, a3, a4) = run aut (go1, go2)
   done
       

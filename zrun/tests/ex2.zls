@@ -16,6 +16,6 @@ let node f () returns (disp_1 init 42, disp_2 init 42)
       
 let node main() returns (disp11, disp22)
   do
-    (disp11, disp22) = f()
+    (disp11, disp22) = run f()
   done
       

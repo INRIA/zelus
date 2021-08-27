@@ -12,8 +12,8 @@ let node f(x) returns (o)
     every
       h
   and
-      h = count(6)
+      h = run count(6)
   done
 	  
 let node main() returns (o)
-  o = f(o)
+  o = run f(o)
