@@ -207,7 +207,7 @@ and eval_eq genv env { eq_desc; eq_loc } =
     | EQeq(p, e) -> 
        let* v = exp genv env e in
        let* env_p1 =
-         Match.pmatching v p |>
+         Match.pmatcheq v p |>
            Error.error eq_loc Error.Epattern_matching_failure in
        let env_p1 = Env.map (fun v -> Value(v)) env_p1 in
        return env_p1
@@ -251,7 +251,7 @@ and match_handlers genv env v handlers =
   match handlers with
   | [] -> none
   | { m_pat; m_body } :: handlers ->
-     let r = Match.pmatching v m_pat in
+     let r = Match.pmatch v m_pat in
      match r with
      | None ->
         (* this is not the good handler; try an other one *)
