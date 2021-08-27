@@ -52,12 +52,9 @@ type exp =
   (*added here*)
   | Omove of exp
   (*added here*)
-<<<<<<< HEAD
-  | Ostore of string * float
-  | Ocontrol of exp
-=======
   | Ocontrol of exp * exp
->>>>>>> files are updated to test the new keyword
+  (*added here*)
+  | Ostore of string * float
   | Omethodcall of method_call			       
   | Oinst of inst
                           

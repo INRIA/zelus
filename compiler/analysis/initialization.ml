@@ -326,7 +326,7 @@ let rec exp is_continuous env ({ e_desc = desc; e_typ = ty } as e) =
      let i = Init.new_var () in
      exp_less_than_on_i is_continuous env e i;
      Init.skeleton_on_i i ty
-    (*added here*)
+     (*added here*)
     | Estore(cmd,key) -> Init.skeleton_on_i (Init.new_var ()) ty
     | Ematch(_, e, m_h_list) ->
         (* we force [e] to be always initialized. This is overly constraining *)

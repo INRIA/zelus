@@ -266,6 +266,9 @@ and exp prio ff e =
   | Ocontrol(e1, e2) ->
       print_endline("Ocontrol compilation");
       fprintf ff "control_robot_ml %a %a" (exp 0) e1 (exp 1) e2 
+  (*added here*)
+  | Ostore(cmd, key) ->
+      fprintf ff "robot_store\"%s\"  %f" cmd key
   | Oinst(i) -> inst prio ff i
   end;
   if prio_e < prio then fprintf ff ")"
@@ -627,5 +630,5 @@ let implementation_list ff impl_list =
   fprintf ff "@[open Ztypes@.@]";
   (* added here *)
   if !robot then (fprintf ff "@[external move_robot_ml: int -> unit = \"move_robot_c\" @.@]") else();
-  if !robot then (fprintf ff "@[external control_robot_ml: int -> int -> unit = \"control_robot_c\" @.@]") else() ;
+  if !robot then (fprintf ff "@[external control_robot_ml: int -> int -> unit = \"control_robot_c\" @.@]\n @[external robot_store: string -> float -> unit = \"robot_store_c\" @.@] ") else ();
   List.iter (implementation ff) impl_list

@@ -154,7 +154,7 @@ let rec exp e =
   (*added here*)
   | Eassume(e1) ->
      { e with e_desc = Eassume(exp e1)}
-  (*added here*)
+   (*added here*)
   | Estore(cmd,key) -> e
   | Eperiod { p_phase = p1; p_period = p2 } ->
      { e with e_desc = Eperiod
