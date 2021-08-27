@@ -385,11 +385,15 @@ let rec iexp genv env { e_desc; e_loc  } =
           return
             (Stuple [Szstate { zin = false; zout = max_float }; s])
        | Eperiod, [e1;e2] ->
-          let* s1 = iexp genv env e1 in
-          let* s2 = iexp genv env e2 in
+          (* [e1] and [e2] must be static *)
+          let env = unlift env in
+          let* v1 = Eval.exp genv env e1 in
+          let* v2 = Eval.exp genv env e2 in
+          let* v1 = float v1 in
+          let* v2 = float v2 in
           return
-            (Stuple [Shorizon { zin = false; zout = max_float };
-                     Sval(max_float); Sval(max_float); s1; s2])
+            (Speriod
+               { zin = false; phase = v1; period = v2; horizon = v1 +. v2 })
        | _ -> none
        end
     | Etuple(e_list) -> 
@@ -454,7 +458,7 @@ and ieq genv env { eq_desc; eq_loc  } =
            (ipresent_handler iscondpat iexp genv env) p_h_list in
        return
          (Stuple
-            (Scstate { pos = Value(Vfloat(0.0)); der = Value(Vfloat(0.0)) } ::
+            (Scstate { pos = zero_float; der = zero_float } ::
             se :: s0 :: sp_h_list))
     | EQinit(_, e) ->
        let* se = iexp genv env e in
@@ -683,21 +687,16 @@ and sexp genv env { e_desc = e_desc; e_loc } s =
         let* v = Primitives.lift1 Primitives.test v in
         return (v, s)
      | Eup, [e], Stuple [Szstate ({ zin } as sz); s] ->
-        (* [zin] and [zout] *)
+       (* [zin]: set to true when the solver detect a zero-crossing; *)
+       (* [zout]: output to be followed for zero-crossing detection *)
         let* zout, s = sexp genv env e s in
         return (Value(Vbool(zin)), Stuple [Szstate { sz with zout }; s])
-     | Eperiod, [e1; e2],
-       Stuple [Shorizon ({ zin } as sz); Sval(m1); Sval(m2); s1; s2] ->
-        (* TODO: we cannot for the moment. Unless we implement it with *)
-        (* a zero-crossing detection (inefficient), we need *)
-        (* an extra global input [time] *)
-        let* m1, s1 =
-          if zin then sexp genv env e1 s1 else return (m1, s1) in
-        let* m2, s2 =
-          if zin then sexp genv env e2 s2 else return (m2, s2) in
+     | Eperiod, [_; _], Speriod ({ zin; phase; period; horizon } as p) ->
+        (* Semantically: h = present zin -> last h + period init phase+period *)
+        let horizon = if zin then horizon +. period else horizon in
         return
           (Value(Vbool(zin)),
-           Stuple [Shorizon sz; Sval(m1); Sval(m2); s1; s2])
+           Speriod { p with horizon })
      (*
      | Ehorizon, [e], Stuple [zin; zout; m; s] ->
         let* m, s = if zin then sexp genv env s else m, s in
