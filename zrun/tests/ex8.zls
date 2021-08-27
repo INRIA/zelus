@@ -6,5 +6,5 @@ let node main() returns (y)
   do
     x = 1
   and
-    y = f(x)
+    y = run f(x)
   done

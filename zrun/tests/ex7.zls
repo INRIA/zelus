@@ -16,5 +16,5 @@ let node main() returns (y)
   do
     x = A fby A fby B fby C fby D fby x
   and
-    y = select(x)
+    y = run select(x)
   done

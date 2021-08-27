@@ -11,6 +11,6 @@ let node w(x,y) returns (z, t)
       
 let node main() returns (z, t)
   do
-    z, t = w(t,1)
+    z, t = run w(t,1)
   done
       
