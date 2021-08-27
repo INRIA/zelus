@@ -48,6 +48,33 @@ let find_gvalue_opt x env =
   with
   | Not_found -> none
 
+(* Dynamic check of causality. A set of equations is causal when all defined *)
+(* variables are non bottom, provided free variables are non bottom *)
+(* this a very strong constraint. In particular, it rejects the situation *)
+(* of a variable that is bottom but not used. *)
+(* causal(env)(env_out)(names) =
+ *-               /\ (forall x in Dom(env), env(x) <> bot)
+ *-               /\ (env_out, _ = fixpoint_eq genv sem eq n s_eq bot)
+ *-               => (forall x in names /\ Dom(env_out), env_out(x) <> bot) *)
+let causal env env_out names =
+  let bot v = match v with | Vbot -> true | _ -> false in
+  let bot_name n =
+    let r = find_value_opt n env_out in
+    match r with | None -> false | Some(v) -> bot v in
+  let bot_names =
+    if Env.for_all (fun _ { cur } -> not (bot cur)) env
+    then S.filter bot_name names else S.empty in
+  let pnames ff names = S.iter (Ident.fprint_t ff) names in
+  if not !set_nocausality then
+    if S.is_empty bot_names then ()
+    else
+      begin
+        Format.eprintf "The following variables are not causal:\n\
+                        %a@." pnames bot_names;
+        raise Stdlib.Exit
+      end
+
+
 (* auxiliary functions for environments *)
 let lift f env =
   Env.map (fun v -> { cur = f v; last = None; default = None }) env
@@ -96,19 +123,20 @@ let pnil p = distribute Vnil Env.empty p
 (* Pattern matching for equations *)
 let matcheq v p =
   let rec matchrec acc v ({ pat_desc; pat_loc } as p) =
-    let r = match v with
-      | Vbot -> return (liftid (pbot p))
-      | Vnil -> return (liftid (pnil p))
+    let env =
+      match v with
+      | Vbot -> return (Env.append (liftid (pbot p)) acc)
+      | Vnil -> return (Env.append (liftid (pnil p)) acc)
       | Value(v) ->
          match v, pat_desc with
          | Vtuple(v_list), Etuplepat(l_list) ->
             match_list acc v_list l_list
          | _ ->
             let* env =
-              Match.matcheq v p |>
+              Match.pmatch v p |>
                 Error.error pat_loc Error.Epattern_matching_failure in
-            return (liftv env) in
-    Error.stop_at_location pat_loc r
+            return (Env.append (liftv env) acc) in
+    Error.stop_at_location pat_loc env
   and match_list acc v_list l_list =
     Opt.fold2 matchrec acc v_list l_list in
   matchrec Env.empty v p
@@ -223,32 +251,6 @@ let fixpoint_eq genv env sem eq n s_eq bot =
   let* m, env_out, s_eq = fixpoint n equal_env sem s_eq bot in
   return (env_out, s_eq)
 
-(* Dynamic check of causality. A set of equations is causal when all defined *)
-(* variables are non bottom, provided free variables are non bottom *)
-(* this a very strong constraint. In particular, it rejects the situation *)
-(* of a variable that is bottom but not used. *)
-(* causal(env)(env_out)(names) =
- *-               /\ (forall x in Dom(env), env(x) <> bot)
- *-               /\ (env_out, _ = fixpoint_eq genv sem eq n s_eq bot)
- *-               => (forall x in names /\ Dom(env_out), env_out(x) <> bot) *)
-let causal env env_out names =
-  let bot v = match v with | Vbot -> true | _ -> false in
-  let bot_name n =
-    let r = find_value_opt n env_out in
-    match r with | None -> false | Some(v) -> bot v in
-  let bot_names =
-    if Env.for_all (fun _ { cur } -> not (bot cur)) env
-    then S.filter bot_name names else S.empty in
-  let pnames ff names = S.iter (Ident.fprint_t ff) names in
-  if not !set_nocausality then
-    if S.is_empty bot_names then ()
-    else
-      begin
-        Format.eprintf "The following variables are not causal:\n\
-                        %a@." pnames bot_names;
-        raise Stdlib.Exit
-      end
-
 (* [reset init step genv env body s r] resets [step genv env body] *)
 (* when [r] is true *)
 let reset init step genv env body s r =
@@ -256,14 +258,14 @@ let reset init step genv env body s r =
   step genv env body s
 
 (* check assertion *)
-let check_assert loc ve r =
+let check_assertion loc ve ret =
   (* when ve is not bot/nil it must be true *)
   match ve with
-  | Vnil | Vbot -> return r
+  | Vnil | Vbot -> return ret
   | Value(v) ->
      let* v = bool v |> Error.error loc Error.Etype in
      (* stop when [no_assert = true] *)
-     if !no_assert || v then return r 
+     if !no_assert || v then return ret 
      else none |> Error.error loc Error.Eassert_failure
   
 (* Pattern matching *)
@@ -274,7 +276,7 @@ let rec smatch_handler_list sbody genv env ve m_h_list s_list =
   match m_h_list, s_list with
   | [], [] -> none
   | { m_pat; m_body } :: m_h_list, s :: s_list ->
-     let r = Match.pmatching ve m_pat in
+     let r = Match.pmatch ve m_pat in
      let* r, s =
        match r with
        | None ->
@@ -380,9 +382,14 @@ let rec iexp genv env { e_desc; e_loc  } =
           iexp genv env e
        | Eup, [e] ->
           let* s = iexp genv env e in
-          return (Stuple [Sval(Vnil); s])
-       | Eperiod, [_;_] ->
-          Error.error e_loc (Error.Enot_implemented) none
+          return
+            (Stuple [Szstate { zin = false; zout = max_float }; s])
+       | Eperiod, [e1;e2] ->
+          let* s1 = iexp genv env e1 in
+          let* s2 = iexp genv env e2 in
+          return
+            (Stuple [Shorizon { zin = false; zout = max_float };
+                     Sval(max_float); Sval(max_float); s1; s2])
        | _ -> none
        end
     | Etuple(e_list) -> 
@@ -678,12 +685,24 @@ and sexp genv env { e_desc = e_desc; e_loc } s =
      | Eup, [e], Stuple [Szstate ({ zin } as sz); s] ->
         (* [zin] and [zout] *)
         let* zout, s = sexp genv env e s in
-        return (zin, Stuple [Szstate { sz with zout }; s])
-     | Eperiod, [_; _], _ ->
+        return (Value(Vbool(zin)), Stuple [Szstate { sz with zout }; s])
+     | Eperiod, [e1; e2],
+       Stuple [Shorizon ({ zin } as sz); Sval(m1); Sval(m2); s1; s2] ->
         (* TODO: we cannot for the moment. Unless we implement it with *)
         (* a zero-crossing detection (inefficient), we need *)
         (* an extra global input [time] *)
-        Error.error e_loc (Error.Enot_implemented) none
+        let* m1, s1 =
+          if zin then sexp genv env e1 s1 else return (m1, s1) in
+        let* m2, s2 =
+          if zin then sexp genv env e2 s2 else return (m2, s2) in
+        return
+          (Value(Vbool(zin)),
+           Stuple [Shorizon sz; Sval(m1); Sval(m2); s1; s2])
+     (*
+     | Ehorizon, [e], Stuple [zin; zout; m; s] ->
+        let* m, s = if zin then sexp genv env s else m, s in
+        return (Value(Vbool(zin)), Stuple [zin; m; m; s]) 
+     *)
      | _ -> none
      end
   | Econstr1 { lname; arg_list }, Stuple(s_list) ->
@@ -766,7 +785,7 @@ and sexp genv env { e_desc = e_desc; e_loc } s =
      return (v_body, Stuple [s_body; s_res])
   | Eassert(e_body), s ->
      let* v, s = sexp genv env e_body s in
-     let* r = check_assert e_loc v void in
+     let* r = check_assertion e_loc v void in
      return (r, s)
   | _ -> none in
   Error.stop_at_location e_loc r
@@ -823,6 +842,7 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
   | EQeq(p, e), s -> 
      let* v, s = sexp genv env e s in
      let* env_p = matcheq v p in
+     (* let l = Env.bindings env_p in *)
      return (env_p, s)
   | EQder(x, e, e0_opt, p_h_list),
     Stuple (Scstate({ pos } as sc) :: s :: Sopt(x0_opt) :: s0 :: s_list) ->
@@ -948,7 +968,7 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
   | EQempty, s -> return (Env.empty, s)
   | EQassert(e), s ->
      let* ve, s = sexp genv env e s in
-     let* r = check_assert eq_loc ve Env.empty in
+     let* r = check_assertion eq_loc ve Env.empty in
      return (r, s)
   | _ -> none in
   Error.stop_at_location eq_loc r
@@ -958,7 +978,9 @@ and sresult genv env { r_desc; r_loc } s =
   let r = match r_desc with
     | Exp(e) -> sexp genv env e s
     | Returns(b) ->
+       (* let l1 = Env.bindings env in *)
        let* env, _, s = sblock genv env b s in
+       (* let l2 = Env.bindings env in *)
        let* v = matching_arg_out env b in
        return (v, s) in
   Error.stop_at_location r_loc r
