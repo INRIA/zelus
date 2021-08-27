@@ -219,6 +219,7 @@ let void = Value(Vvoid)
 
 (* max float *)
 let max_float = Value(Vfloat(max_float))
+let zero_float = Value(Vfloat(0.0))
 
 let zerop op = Vfun (fun _ -> op ())
 
