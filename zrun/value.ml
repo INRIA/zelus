@@ -50,6 +50,8 @@ and state =
   | Scstate : { pos : value; der : value } -> state 
   | Szstate : { zin : bool; zout : value } -> state
   | Shorizon : { zin : bool; zout : value } -> state
+  | Speriod :
+      { zin: bool; phase : float; period : float; horizon : float } -> state
 
 and ('s, 'a, 'b) instance =
   { init : 's;
