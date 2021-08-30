@@ -42,3 +42,8 @@ CAMLprim value
 move_robot_c(value speed){
 	return Val_unit;
 }
+
+CAMLprim value
+control_robot_c(value t_speed, value a_speed){
+	return Val_unit;
+}

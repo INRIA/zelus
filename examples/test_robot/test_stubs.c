@@ -8,7 +8,7 @@
 
 // Sends motor commands to the robot
 CAMLprim value
-control_robot_c(value speed, value t_speed){
+control_robot_c(value t_speed, value a_speed){
 	//lcm_t * lcm = lcm_create("udpm://239.255.76.67:7667?ttl=1");
     // mbot_motor_command_t cmd;
     //cmd.utime = (unsigned long)time(NULL);
@@ -18,8 +18,8 @@ control_robot_c(value speed, value t_speed){
     //mbot_motor_command_t_publish(lcm, MBOT_MOTOR_COMMAND_CHANNEL, &cmd);
 	//lcm_destroy(lcm);
 	int trans_v, angular_v;
-	trans_v= Int_val(speed);
-	angular_v=Int_val(t_speed);
+	trans_v= Int_val(t_speed);
+	angular_v=Int_val(a_speed);
 	printf("%s\n", "The following two lines are from the c code");
 	printf("%d\n", trans_v);
 	printf("%d\n", angular_v);
