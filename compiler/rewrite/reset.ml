@@ -32,6 +32,7 @@ let rec static { e_desc = desc } =
   | Etuple(e_list) -> List.for_all static e_list
   | Erecord(qual_e_list) -> List.for_all (fun (_, e) -> static e) qual_e_list
   | Erecord_access(e, _) -> static e
+  | Eglobal(_) -> true
   | _ -> false
 
 let intro = function None -> Zident.fresh "i" | Some(i) -> i

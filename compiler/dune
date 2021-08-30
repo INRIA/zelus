@@ -13,7 +13,7 @@
   (name zlcompilerlibs)
   (public_name zelus.zlcompilerlibs)
   (wrapped false)
-  (modules :standard \ zeluc compiler simulator fixstep)
+  (modules :standard \ zeluc)
   (libraries menhirLib compiler-libs.common)
   (preprocess (pps ppx_deriving.show ppx_deriving.fold ppx_deriving.map)))
 
@@ -21,7 +21,7 @@
   (name zeluc)
   (modes (byte exe))
   (libraries unix menhirLib zlcompilerlibs)
-  (modules zeluc compiler simulator fixstep)
+  (modules zeluc)
   (promote (until-clean)))
 
 (install

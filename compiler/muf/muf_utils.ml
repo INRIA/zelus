@@ -1,62 +1,67 @@
 open Muf
 
 module SSet = Set.Make(String)
+module IdSet = Set.Make(struct
+  type t = identifier
+  let compare = compare
+end)
 
 let rec fv_patt patt =
   begin match patt.patt with
-  | Pid x -> SSet.singleton x.name
-  | Pconstr(_, None) -> SSet.empty
+  | Pid x -> IdSet.singleton x
+  | Pconstr(_, None) -> IdSet.empty
   | Pconstr(_, Some p) -> fv_patt p
   | Ptuple l ->
-      List.fold_left (fun acc p -> SSet.union (fv_patt p) acc) SSet.empty l
-  | Pany -> SSet.empty
-  | Pconst _ -> SSet.empty
+      List.fold_left (fun acc p -> IdSet.union (fv_patt p) acc) IdSet.empty l
+  | Pany -> IdSet.empty
+  | Pconst _ -> IdSet.empty
   | Ptype (p, _) -> fv_patt p
   end
 
 let rec fv_expr expr =
   begin match expr.expr with
-  | Econst _ -> SSet.empty
-  | Econstr (_, None) -> SSet.empty
+  | Econst _ -> IdSet.empty
+  | Econstr (_, None) -> IdSet.empty
   | Econstr (_, Some e) -> fv_expr e
-  | Evar x -> SSet.singleton x.name
+  | Evar x -> IdSet.singleton x
   | Etuple l ->
-      List.fold_left (fun acc e -> SSet.union (fv_expr e) acc) SSet.empty l
+      List.fold_left (fun acc e -> IdSet.union (fv_expr e) acc) IdSet.empty l
   | Erecord (l, oe) ->
       List.fold_left
-        (fun acc (_, e) -> SSet.union (fv_expr e) acc)
-        (Option.fold ~none:SSet.empty ~some:fv_expr oe) l
+        (fun acc (_, e) -> IdSet.union (fv_expr e) acc)
+        (Option.fold ~none:IdSet.empty ~some:fv_expr oe) l
   | Efield (e, _) -> fv_expr e
-  | Eapp (e1, e2) -> SSet.union (fv_expr e1) (fv_expr e2)
-  | Efun (p, e) -> SSet.diff (fv_expr e) (fv_patt p)
+  | Eapp (e1, e2) -> IdSet.union (fv_expr e1) (fv_expr e2)
+  | Efun (p, e) -> IdSet.diff (fv_expr e) (fv_patt p)
   | Eif (e, e1, e2) ->
-      SSet.union (fv_expr e) (SSet.union (fv_expr e1) (fv_expr e2))
+      IdSet.union (fv_expr e) (IdSet.union (fv_expr e1) (fv_expr e2))
   | Ematch (e, cases) ->
       List.fold_left
         (fun acc c ->
-          SSet.union acc
-            (SSet.diff (fv_expr c.case_expr) (fv_patt c.case_patt)))
+          IdSet.union acc
+            (IdSet.diff (fv_expr c.case_expr) (fv_patt c.case_patt)))
         (fv_expr e) cases
   | Elet (p, e1, e2) ->
-      SSet.union (fv_expr e1) (SSet.diff (fv_expr e2) (fv_patt p))
+      IdSet.union (fv_expr e1) (IdSet.diff (fv_expr e2) (fv_patt p))
   | Ecall_init e -> fv_expr e
-  | Ecall_step (e1, e2) -> SSet.union (fv_expr e1) (fv_expr e2)
+  | Ecall_step (e1, e2) -> IdSet.union (fv_expr e1) (fv_expr e2)
   | Ecall_reset e -> fv_expr e
-  | Esequence (e1, e2) -> SSet.union (fv_expr e1) (fv_expr e2)
+  | Esequence (e1, e2) -> IdSet.union (fv_expr e1) (fv_expr e2)
   | Esample (_, e) -> fv_expr e
-  | Eobserve (_, e1, e2) -> SSet.union (fv_expr e1) (fv_expr e2)
+  | Eobserve (_, e1, e2) -> IdSet.union (fv_expr e1) (fv_expr e2)
   | Efactor (_, e) -> fv_expr e
-  | Einfer (n, f) -> SSet.union (fv_expr n) (SSet.singleton f.name)
+  | Einfer (n, f) -> IdSet.union (fv_expr n) (IdSet.singleton f)
   end
 
 let is_value expr =
   let rec is_value b expr =
     match expr.expr with
-    | Erecord (_, Some _) | Eapp _ | Eif _  | Elet _ | Esequence _
-    | Esample _ | Eobserve _ | Einfer _ -> false
-    | Econst _ | Econstr (_, _) | Evar _ | Etuple _ | Efield (_, _)
-    | Erecord (_, None)  | Ematch (_, _)
-    | Ecall_init _ | Ecall_step (_, _) | Ecall_reset _ | Efactor (_, _) ->
+    | Erecord (_, Some _) | Eapp _ | Eif _  | Elet _ | Esequence _ | Evar _
+    | Ecall_init _ | Ecall_step (_, _) | Ecall_reset _
+    | Esample _ | Eobserve _ | Efactor (_, _) | Einfer _ ->
+        false
+    | Econst _ | Econstr (_, _) | Etuple _ | Efield (_, _)
+    | Erecord (_, None)  | Ematch (_, _) ->
         b && fold_expr_desc (fun b _ -> b) is_value b expr.expr
     | Efun _ -> true
   in
@@ -79,10 +84,10 @@ let is_pure expr =
 let occurences x expr =
   let rec occurences n expr =
     match expr.expr with
-    | Evar y -> if x = y.name then n + 1 else n
+    | Evar y -> if x = y then n + 1 else n
     | Elet (p, e1, e2) ->
         let n = occurences n e1 in
-        if SSet.mem x (fv_patt p) then n else occurences n e2
+        if IdSet.mem x (fv_patt p) then n else occurences n e2
     | e -> fold_expr_desc (fun n _ -> n) occurences n e
   in
   occurences 0 expr
@@ -90,7 +95,7 @@ let occurences x expr =
 let rec called_functions acc e =
   let acc =
     match e.expr with
-    | Eapp ({expr = Evar x}, _) -> SSet.add x.name acc
+    | Eapp ({expr = Evar x}, _) -> IdSet.add x acc
     | _ -> acc
   in
   fold_expr_desc (fun acc _ -> acc) called_functions acc e.expr
@@ -101,9 +106,9 @@ let rec eq_patt_expr patt expr =
   | Pid _, _ -> false
   | Pconst c1, Econst c2 -> c1 = c2
   | Pconst _, _ -> false
-  | Pconstr (x, None), Econstr (y, None) -> x.name = y.name
+  | Pconstr (x, None), Econstr (y, None) -> x = y
   | Pconstr (x, Some p), Econstr (y, Some e) ->
-      x.name = y.name && eq_patt_expr p e
+      x = y && eq_patt_expr p e
   | Pconstr _, _ -> false
   | Pany, _ -> false
   | Ptuple pl, Etuple el ->
@@ -127,17 +132,17 @@ let fresh =
   let cpt = ref 0 in
   fun x ->
     incr cpt;
-    { name = x^"__"^(string_of_int !cpt) }
+    { modul = None; name = x^"__"^(string_of_int !cpt) }
 
-let lident_name n =
-  let b = Buffer.create 16 in
-  let ff_b = Format.formatter_of_buffer b in
-  Format.fprintf ff_b "%a" Printer.longname n;
-  Format.pp_print_flush ff_b ();
-  let x = Buffer.contents b in
-  x
+let ident n =
+  { modul = None; name = Zident.name n }
 
-let lident n = { name = lident_name n }
+let lident (n: Lident.t) =
+  let n = Modules.currentname n in
+  begin match n with
+  | Name x -> { modul = None; name = x }
+  | Modname x -> { modul = Some (x.qual); name = x.id }
+  end
 
 let pany = mk_patt Pany
 
@@ -170,31 +175,17 @@ let ptuple l =
   | l -> mk_patt (Ptuple l)
   end
 
-let expr_of_sset s =
-  etuple (List.map (fun x -> evar { name = x })
-            (SSet.elements s))
-
-let patt_of_sset s =
-  ptuple (List.map (fun x -> pvar { name = x })
-            (SSet.elements s))
+let expr_of_idset s =
+  etuple (List.map (fun x -> evar x)
+            (IdSet.elements s))
 
 let imported_modules : type a t. a program -> SSet.t = begin
   fun p ->
     let rec modules_expr acc e =
       let acc =
         begin match e.expr with
-        | Evar {name=n} ->
-          let first_is_upper = 
-            let first = n.[0] in
-            Char.code first > 64 && Char.code first < 91 (* A..Z *)
-          in
-          if first_is_upper then
-            begin match String.index_opt n '.' with
-            | None -> acc
-            | Some idx -> SSet.add (String.sub n 0 idx) acc
-            end
-          else
-            acc
+        | Evar {modul=Some "Stdlib"; name=n} -> acc
+        | Evar {modul=Some m; name=n} -> SSet.add m acc
         | _ -> acc
         end
       in
@@ -214,3 +205,6 @@ let imported_modules : type a t. a program -> SSet.t = begin
     in 
     List.fold_left modules_decl SSet.empty p
   end
+let patt_of_idset s =
+  ptuple (List.map (fun x -> pvar x)
+            (IdSet.elements s))
