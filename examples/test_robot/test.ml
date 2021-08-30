@@ -1,141 +1,96 @@
 (* The Zelus compiler, version 2.1-dev
-  (2021-07-28-15:38) *)
+  (2021-08-30-20:12) *)
 open Ztypes
 external move_robot_ml: int -> unit = "move_robot_c" 
 external control_robot_ml: int -> int -> unit = "control_robot_c" 
-type state__180 =
-Test_StopR_36 | Test_Right_35 | Test_StopL_34 | Test_Left_33 
-type state__179 =
-Test_StopB_32 | Test_Backward_31 | Test_StopF_30 | Test_Forward_29 
-type ('l , 'k , 'j , 'i , 'h , 'g , 'f , 'e , 'd , 'c , 'b , 'a) _main =
-  { mutable major_52 : 'l ;
-    mutable h_67 : 'k ;
-    mutable h_65 : 'j ;
-    mutable i_63 : 'i ;
-    mutable h_61 : 'h ;
-    mutable r_60 : 'g ;
-    mutable s_59 : 'f ;
-    mutable r_58 : 'e ;
-    mutable s_57 : 'd ;
-    mutable result_56 : 'c ; mutable vel2_55 : 'b ; mutable vel1_54 : 'a }
 
-let main (cstate_68:Ztypes.cstate) = 
+ external robot_store: string -> float -> unit = "robot_store_c" 
+ type state__169 =
+ Test_StopB_21 | Test_Backward_20 | Test_StopF_19 | Test_Forward_18 
+type ('i , 'h , 'g , 'f , 'e , 'd , 'c , 'b , 'a) _main =
+  { mutable major_35 : 'i ;
+    mutable h_47 : 'h ;
+    mutable h_45 : 'g ;
+    mutable i_43 : 'f ;
+    mutable h_41 : 'e ;
+    mutable r_40 : 'd ;
+    mutable s_39 : 'c ; mutable result_38 : 'b ; mutable vel1_37 : 'a }
+
+let main (cstate_48:Ztypes.cstate) = 
   
   let main_alloc _ =
     ();
-    { major_52 = false ;
-      h_67 = 42. ;
-      h_65 = (42.:float) ;
-      i_63 = (false:bool) ;
-      h_61 = (42.:float) ;
-      r_60 = (false:bool) ;
-      s_59 = (Test_StopR_36:state__180) ;
-      r_58 = (false:bool) ;
-      s_57 = (Test_StopB_32:state__179) ;
-      result_56 = (():unit) ; vel2_55 = (42:int) ; vel1_54 = (42:int) } in
-  let main_step self ((time_51:float) , ()) =
-    ((self.major_52 <- cstate_68.major ;
-      (let (result_73:unit) =
-           let h_66 = ref (infinity:float) in
-           let encore_64 = ref (false:bool) in
-           (if self.i_63 then self.h_61 <- (+.) time_51  0.) ;
-           (let (z_62:bool) = (&&) self.major_52  ((>=) time_51  self.h_61) in
-            let (trigger_53:zero) = z_62 in
-            (begin match self.s_59 with
-                   | Test_Left_33 ->
-                       (if self.r_60 then ()) ;
-                       self.vel2_55 <- 55 ;
-                       (begin match trigger_53 with
+    { major_35 = false ;
+      h_47 = 42. ;
+      h_45 = (42.:float) ;
+      i_43 = (false:bool) ;
+      h_41 = (42.:float) ;
+      r_40 = (false:bool) ;
+      s_39 = (Test_StopB_21:state__169) ;
+      result_38 = (():unit) ; vel1_37 = (42:int) } in
+  let main_step self ((time_34:float) , ()) =
+    ((self.major_35 <- cstate_48.major ;
+      (let (result_53:unit) =
+           let h_46 = ref (infinity:float) in
+           let encore_44 = ref (false:bool) in
+           (if self.i_43 then self.h_41 <- (+.) time_34  0.) ;
+           (let (z_42:bool) = (&&) self.major_35  ((>=) time_34  self.h_41) in
+            let (trigger_36:zero) = z_42 in
+            (begin match self.s_39 with
+                   | Test_Forward_18 ->
+                       (if self.r_40 then ()) ;
+                       self.vel1_37 <- 30 ;
+                       (begin match trigger_36 with
                               | true ->
-                                  encore_64 := true ;
-                                  self.r_60 <- true ;
-                                  self.s_59 <- Test_StopL_34
-                              | _ -> self.r_60 <- false  end)
-                   | Test_StopL_34 ->
-                       (if self.r_60 then ()) ;
-                       self.vel2_55 <- 0 ;
-                       (begin match trigger_53 with
+                                  encore_44 := true ;
+                                  self.r_40 <- true ;
+                                  self.s_39 <- Test_StopF_19
+                              | _ -> self.r_40 <- false  end)
+                   | Test_StopF_19 ->
+                       (if self.r_40 then ()) ;
+                       self.vel1_37 <- 0 ;
+                       (begin match trigger_36 with
                               | true ->
-                                  encore_64 := true ;
-                                  self.r_60 <- true ;
-                                  self.s_59 <- Test_Right_35
-                              | _ -> self.r_60 <- false  end)
-                   | Test_Right_35 ->
-                       (if self.r_60 then ()) ;
-                       self.vel2_55 <- (-55) ;
-                       (begin match trigger_53 with
+                                  encore_44 := true ;
+                                  self.r_40 <- true ;
+                                  self.s_39 <- Test_Backward_20
+                              | _ -> self.r_40 <- false  end)
+                   | Test_Backward_20 ->
+                       (if self.r_40 then ()) ;
+                       self.vel1_37 <- (-30) ;
+                       (begin match trigger_36 with
                               | true ->
-                                  encore_64 := true ;
-                                  self.r_60 <- true ;
-                                  self.s_59 <- Test_StopR_36
-                              | _ -> self.r_60 <- false  end)
-                   | Test_StopR_36 ->
-                       (if self.r_60 then ()) ;
-                       self.vel2_55 <- 0 ;
-                       (begin match trigger_53 with
+                                  encore_44 := true ;
+                                  self.r_40 <- true ;
+                                  self.s_39 <- Test_StopB_21
+                              | _ -> self.r_40 <- false  end)
+                   | Test_StopB_21 ->
+                       (if self.r_40 then ()) ;
+                       self.vel1_37 <- 0 ;
+                       (begin match trigger_36 with
                               | true ->
-                                  encore_64 := true ;
-                                  self.r_60 <- true ;
-                                  self.s_59 <- Test_Left_33
-                              | _ -> self.r_60 <- false  end)
+                                  encore_44 := true ;
+                                  self.r_40 <- true ;
+                                  self.s_39 <- Test_Forward_18
+                              | _ -> self.r_40 <- false  end)
                     end) ;
-            (begin match self.s_57 with
-                   | Test_Forward_29 ->
-                       (if self.r_58 then ()) ;
-                       self.vel1_54 <- 30 ;
-                       (begin match trigger_53 with
-                              | true ->
-                                  encore_64 := true ;
-                                  self.r_58 <- true ;
-                                  self.s_57 <- Test_StopF_30
-                              | _ -> self.r_58 <- false  end)
-                   | Test_StopF_30 ->
-                       (if self.r_58 then ()) ;
-                       self.vel1_54 <- 0 ;
-                       (begin match trigger_53 with
-                              | true ->
-                                  encore_64 := true ;
-                                  self.r_58 <- true ;
-                                  self.s_57 <- Test_Backward_31
-                              | _ -> self.r_58 <- false  end)
-                   | Test_Backward_31 ->
-                       (if self.r_58 then ()) ;
-                       self.vel1_54 <- (-30) ;
-                       (begin match trigger_53 with
-                              | true ->
-                                  encore_64 := true ;
-                                  self.r_58 <- true ;
-                                  self.s_57 <- Test_StopB_32
-                              | _ -> self.r_58 <- false  end)
-                   | Test_StopB_32 ->
-                       (if self.r_58 then ()) ;
-                       self.vel1_54 <- 0 ;
-                       (begin match trigger_53 with
-                              | true ->
-                                  encore_64 := true ;
-                                  self.r_58 <- true ;
-                                  self.s_57 <- Test_Forward_29
-                              | _ -> self.r_58 <- false  end)
-                    end) ;
-            self.h_65 <- (if !encore_64 then 0. else infinity) ;
-            self.h_61 <- (if z_62 then (+.) self.h_61  1. else self.h_61) ;
-            h_66 := min !h_66  (min self.h_65  self.h_61) ;
-            self.h_67 <- !h_66 ;
-            self.i_63 <- false ;
-            (begin match trigger_53 with
+            self.h_45 <- (if !encore_44 then 0. else infinity) ;
+            self.h_41 <- (if z_42 then (+.) self.h_41  1. else self.h_41) ;
+            h_46 := min !h_46  (min self.h_45  self.h_41) ;
+            self.h_47 <- !h_46 ;
+            self.i_43 <- false ;
+            (begin match trigger_36 with
                    | true ->
-                       let _ = print_int self.vel1_54 in
-                       let _ = print_int self.vel2_55 in
+                       let _ = print_int self.vel1_37 in
+                       let _ = print_int ((~-) self.vel1_37) in
                        let _ = print_newline () in
-                       self.result_56 <- (control_robot_ml self.vel1_54 self.vel2_55)
-                   | _ -> self.result_56 <- ()  end) ;
-            (let () = self.result_56 in
-             ())) in
-       cstate_68.horizon <- min cstate_68.horizon  self.h_67 ; result_73)):
+                       self.result_38 <- (control_robot_ml (self.vel1_37) (
+                         (~-) self.vel1_37)) | _ -> self.result_38 <- ()  end)
+            ; (let () = self.result_38 in
+               ())) in
+       cstate_48.horizon <- min cstate_48.horizon  self.h_47 ; result_53)):
     unit) in 
   let main_reset self  =
-    ((self.r_60 <- false ;
-      self.s_59 <- Test_Left_33 ;
-      self.i_63 <- true ; self.r_58 <- false ; self.s_57 <- Test_Forward_29):
+    ((self.r_40 <- false ; self.s_39 <- Test_Forward_18 ; self.i_43 <- true):
     unit) in
   Node { alloc = main_alloc; step = main_step ; reset = main_reset }

@@ -265,7 +265,7 @@ and exp prio ff e =
   | Ocontrol(e) ->
   | Ocontrol(e1, e2) ->
       print_endline("Ocontrol compilation");
-      fprintf ff "control_robot_ml (%a) (%a)" (exp 0) e1 (exp 1) e
+      fprintf ff "control_robot_ml (%a) (%a)" (exp 0) e1 (exp 1) e2
   (*added here*)
   | Ostore(cmd, key) ->
       fprintf ff "robot_store\"%s\"  %f" cmd key

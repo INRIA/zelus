@@ -31,3 +31,7 @@ move_robot_c(value speed)
 {
 return Val_unit;
 }
+CAMLprim value
+robot_store_c(value command, value magnitude){
+	return Val_unit;
+}
