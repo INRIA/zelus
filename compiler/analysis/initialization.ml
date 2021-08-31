@@ -385,9 +385,18 @@ and operator env op ty e_list =
      exp_less_than_on_i env e1 izero;
      exp_less_than_on_i env e2 izero;
      Init.skeleton_on_i izero ty
-  | Ehorizon, [e] -> assert false
-  | Eseq, [e1; e2] -> assert false
-  | Erun _, [e1; e2] -> assert false
+  | Ehorizon, [e] ->
+     exp_less_than_on_i env e izero;
+     Init.skeleton_on_i izero ty
+  | Eseq, [e1; e2] ->
+     exp_less_than_on_i env e1 izero;
+     exp_less_than_on_i env e2 izero;
+     Init.skeleton_on_i izero ty
+  | Erun _, [e1; e2] ->
+     let t1 = exp env e1 in
+     let ti1, ti2 = Init.filter_arrow t1 in
+     exp_less_than env e2 ti1;
+     ti2
   | _ -> assert false
 
 

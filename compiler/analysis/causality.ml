@@ -460,13 +460,31 @@ and operator env op c_free ty e_list =
       exp_less_than_on_c env c_free e2 c_res;
       exp_less_than_on_c env c_free e3 c_res;
       Causal.skeleton_on_c c_res ty
-  | Eseq, [e1; e2] -> assert false
-  | Erun _, [e1; e2] -> assert false
-  | Eatomic, [e] -> assert false
-  | Etest, [e] -> assert false
-  | Eup, [e] -> assert false
-  | Eperiod, [e1; e2] -> assert false
-  | Ehorizon, [e] -> assert false
+  | Eup, [e] ->
+     exp_less_than_on_c env c_free e (Causal.new_var ());
+     Causal.skeleton_on_c c_res ty
+  | Ehorizon, [e] ->
+     exp_less_than_on_c env c_free e c_res;
+     Causal.skeleton_on_c c_res ty
+  | Eperiod, [e1; e2] ->
+     exp_less_than_on_c env c_free e1 c_res;
+     exp_less_than_on_c env c_free e2 c_res;
+     Causal.skeleton_on_c c_res ty
+  | Eseq, [e1; e2] ->
+     exp_less_than_on_c env c_free e1 c_res;
+     exp_less_than_on_c env c_free e2 c_res;
+     Causal.skeleton_on_c c_res ty
+  | Eatomic, [e] ->
+     exp_less_than_on_c env c_free e c_res;
+     Causal.skeleton_on_c c_res ty
+  | Etest, [e] ->
+     exp_less_than_on_c env c_free e c_res;
+     Causal.skeleton_on_c c_res ty
+  | Erun _, [e1; e2] ->
+     let tc1 = exp env c_free e1 in
+     let tc1, tc2 = Causal.filter_arrow tc1 in
+     exp_less_than env c_free e2 tc1;
+     tc2
   | _ -> assert false
     
 
