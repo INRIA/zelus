@@ -1,6 +1,6 @@
 open Muf
 
-(* module SSet = Set.Make(String) *)
+module SSet = Set.Make(String)
 module IdSet = Set.Make(struct
   type t = identifier
   let compare = compare
@@ -179,6 +179,32 @@ let expr_of_idset s =
   etuple (List.map (fun x -> evar x)
             (IdSet.elements s))
 
+let imported_modules : type a t. a program -> SSet.t = begin
+  fun p ->
+    let rec modules_expr acc e =
+      let acc =
+        begin match e.expr with
+        | Evar {modul=Some "Stdlib"; name=n} -> acc
+        | Evar {modul=Some m; name=n} -> SSet.add m acc
+        | _ -> acc
+        end
+      in
+      fold_expr_desc (fun acc _ -> acc) modules_expr acc e.expr
+    in
+
+    let rec modules_decl acc d =
+      begin match d.decl with
+      | Ddecl (_, e) -> modules_expr acc e
+      | Dfun (_, _, e) -> modules_expr acc e
+      | Dnode (_, _, {n_init=e1 ; n_step=(_,e2)}) -> 
+        let set1 = modules_expr acc e1 in
+        modules_expr set1 e2
+      | Dtype _
+      | Dopen _ -> acc
+      end
+    in 
+    List.fold_left modules_decl SSet.empty p
+  end
 let patt_of_idset s =
   ptuple (List.map (fun x -> pvar x)
             (IdSet.elements s))
