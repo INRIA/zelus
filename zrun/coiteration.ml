@@ -608,7 +608,7 @@ and iresult genv env { r_desc; r_loc } =
 (* the value of an expression [e] in a global environment [genv] and local *)
 (* environment [env] is a step function. *)
 (* Its type is [state -> (value * state) option] *)
-and sexp genv env { e_desc = e_desc; e_loc } s =
+and sexp genv env { e_desc; e_loc } s =
   let r = match e_desc, s with   
   | Econst(v), s ->
      return (Value (Eval.immediate v), s)
@@ -646,8 +646,7 @@ and sexp genv env { e_desc = e_desc; e_loc } s =
         let* ve, s = sexp genv env e s in
         return (v, Stuple [Sval(ve); s])
      | Eminusgreater, [e1; e2], Stuple [Sval(v); s1; s2] ->
-       (* when [v = true] this is the very first instant. [v] is a reset bit *)
-       (* see [paper EMSOFT'06] *)
+        (* when [v = true] this is the very first instant. [v] is a reset bit *)
         let* v1, s1 = sexp genv env e1 s1  in
         let* v2, s2 = sexp genv env e2 s2  in
         let* v_out = Primitives.ifthenelse v v1 v2 in
@@ -664,17 +663,15 @@ and sexp genv env { e_desc = e_desc; e_loc } s =
         return (v2, Stuple [s1; s2])
      | Erun _, [_; { e_desc } as arg],
        Stuple [Sinstance { init; step }; s2] ->
-        (* [run f (e1,..., en)] : one of the ei can be bottom/nil whereas *)
-        (* the other are not. That is, f is not strict *)
+        (* the first argument has been computed the initialization phase *)
+        (* [run f (e1,..., en)] : one of the ei can be bottom/nil *)
+        (* That is, f may not be a strict function *)
         let* v, s =
           match e_desc, s with
           | Etuple(arg_list), Stuple(s_list) ->
              let* v_list, s_list = sexp_list genv env arg_list s_list in
              return (Value(Vtuple(v_list)), Stuple(s_list))
           | _ -> sexp genv env arg s in
-        (* the first argument has been computed *)
-        (* during the instanciation *)
-        (* A node is not strict *)
         let* v, init = step init v in
         return (v, Stuple [Sinstance { init; step }; s])
      | Eatomic, [e], s ->
@@ -686,11 +683,12 @@ and sexp genv env { e_desc = e_desc; e_loc } s =
         let* v, s = sexp genv env e s in
         let* v = Primitives.lift1 Primitives.test v in
         return (v, s)
-     | Eup, [e], Stuple [Szstate ({ zin } as sz); s] ->
+     | Eup, [e], Stuple [Szstate { zin }; s] ->
        (* [zin]: set to true when the solver detect a zero-crossing; *)
        (* [zout]: output to be followed for zero-crossing detection *)
         let* zout, s = sexp genv env e s in
-        return (Value(Vbool(zin)), Stuple [Szstate { sz with zout }; s])
+        return (Value(Vbool(zin)),
+                Stuple [Szstate { zin = false; zout }; s])
      | Eperiod, [_; _], Speriod ({ zin; phase; period; horizon } as p) ->
         (* Semantically: h = present zin -> last h + period init phase+period *)
         let horizon = if zin then horizon +. period else horizon in
