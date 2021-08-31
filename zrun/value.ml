@@ -49,7 +49,7 @@ and state =
   | Sinstance : (state, value, value) instance -> state
   | Scstate : { pos : value; der : value } -> state 
   | Szstate : { zin : bool; zout : value } -> state
-  | Shorizon : { zin : bool; zout : value } -> state
+  | Shorizon : { zin : bool; horizon : float } -> state
   | Speriod :
       { zin: bool; phase : float; period : float; horizon : float } -> state
 
