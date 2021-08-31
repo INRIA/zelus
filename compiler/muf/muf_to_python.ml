@@ -139,19 +139,19 @@ let rec compile_expr :
         fprintf ff "%a" compile_expr { e with expr = Eapp ({e with expr = Evar {modul=Some m; name = op}}, e1) }
     | Eapp (e1, e2) -> 
         fprintf ff "%a%a" compile_expr e1 compile_args e2
-    | Eif (e, { expr=Eapp({expr=Evar{name=n1}}, args1) },
-              { expr=Eapp({expr=Evar{name=n2}}, args2) })
-      when args1 = args2 ->
+    | Eif (e, { expr=Eapp({expr=Evar{modul=None; name=n1}}, args1) },
+              { expr=Eapp({expr=Evar{modul=None; name=n2}}, args2) }) when args1 = args2 ->
       fprintf ff "cond(@,    @[<v 0>%a,@,%s,@,%s,@,%a)@]"
         compile_expr e
         n1
         n2
         compile_expr args1
     | Eif (e, et, ef) ->
-      fprintf ff "cond(@,    @[<v 0>%a,@,lambda _: %a,@,lambda _: %a,@,None)@]" 
+      assert false
+      (* fprintf ff "cond(@,    @[<v 0>%a,@,lambda _: %a,@,lambda _: %a,@,None)@]" 
         compile_expr e
         compile_expr et
-        compile_expr ef
+        compile_expr ef *)
     | Esequence (e1, e2) ->
       fprintf ff "@[<v 0>%a@,%a@]" compile_expr e1 compile_expr e2
     | Esample (prob, e) ->
