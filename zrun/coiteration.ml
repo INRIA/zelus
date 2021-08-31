@@ -697,11 +697,18 @@ and sexp genv env { e_desc = e_desc; e_loc } s =
         return
           (Value(Vbool(zin)),
            Speriod { p with horizon })
-     (*
-     | Ehorizon, [e], Stuple [zin; zout; m; s] ->
-        let* m, s = if zin then sexp genv env s else m, s in
-        return (Value(Vbool(zin)), Stuple [zin; m; m; s]) 
-     *)
+     | Ehorizon, [e], Stuple [Shorizon ({ zin; horizon } as h); s] ->
+        if zin then
+          let* horizon, s = sexp genv env e s in
+          match horizon with
+          | Vbot -> return (Vbot, Stuple [Shorizon(h); s])
+          | Vnil -> return (Vnil, Stuple [Shorizon(h); s])
+          | Value(v) ->
+             let* horizon = float v in
+             return
+               (Value(Vbool(zin)), Stuple [Shorizon { h with horizon }; s])
+        else
+          return (Value(Vbool(zin)), Stuple [Shorizon(h); s])
      | _ -> none
      end
   | Econstr1 { lname; arg_list }, Stuple(s_list) ->
@@ -919,11 +926,19 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
      let* _, env_local, s_eq = sblock genv env b_eq s_eq in
      return (env_local, s_eq)
   | EQautomaton { is_weak; handlers; state_opt },
-    Stuple (Sval(ps) :: Sval(pr) :: si :: s_list) ->
-     (* [ps] = state where to go; *)
+    Stuple (ps :: Sval(pr) :: si :: s_list) ->
+     (* [ps_opt] = state where to go; *)
      (* [pr] = whether the state must be reset or not *)
      (* [si] state for [state_opt]; [s_list] state for [handlers] *)
-     (* TODO: treat initial state *)
+     let* ps, si =
+       match ps, state_opt with
+       | Sval(ps), None ->
+          (* no expression is given to compute the initial state *)
+          return (ps, si)
+       | _, Some(state) ->
+          let* v, si = sstate genv env state si in
+          return (v, si)
+       | _ -> none in
      let* env, ns, nr, s_list =
        match ps, pr with
        | (Vbot, _) | (_, Vbot) ->
