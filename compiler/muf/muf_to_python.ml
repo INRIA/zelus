@@ -36,37 +36,43 @@ let compile_fv : type a. formatter -> a expression -> unit = begin
 end
 
 let is_infix op = 
-  List.mem op.[0] ['$'; '&'; '*'; '+'; '-'; '/'; '='; '>'; '@'; '^'; '|'; '~'; '!'; '?'; '%'; '<'; ':'; '.'; ]
+  List.mem op.[0] ['('; '$'; '&'; '*'; '+'; '-'; '/'; '='; '>'; '@'; '^'; '|'; '~'; '!'; '?'; '%'; '<'; ':'; '.'; ]
 
 let to_py_op s =
+  let to_py_op_char c =
+    begin match c with
+    (* Non-alphanumeric symbols accepted in OCaml but not in Python *)
+    | '$' -> 'd'
+    | '&' -> 'a'
+    | '*' -> 's'
+    | '+' -> 'p'
+    | '-' -> 'm'
+    | '/' -> 'q'
+    | '=' -> 'e'
+    | '>' -> 'u'
+    | '@' -> 't'
+    | '^' -> 'h'
+    | '|' -> 'v'
+    | '~' -> 'l'
+    | '!' -> 'x'
+    | '?' -> 'g'
+    | '%' -> 'c'
+    | '<' -> 'i'
+    | ':' -> 'b'
+    | '.' -> 'o'
+    | _ -> c
+    end
+  in
   begin match s with 
   | "not" -> "logical_not"
-  | _ ->
-    let s = if s = "or" then "||" else s in
-    let to_py_op_char c =
-      begin match c with
-      (* Non-alphanumeric symbols accepted in OCaml but not in Python *)
-      | '$' -> 'd'
-      | '&' -> 'a'
-      | '*' -> 's'
-      | '+' -> 'p'
-      | '-' -> 'm'
-      | '/' -> 'q'
-      | '=' -> 'e'
-      | '>' -> 'u'
-      | '@' -> 't'
-      | '^' -> 'h'
-      | '|' -> 'v'
-      | '~' -> 'l'
-      | '!' -> 'x'
-      | '?' -> 'g'
-      | '%' -> 'c'
-      | '<' -> 'i'
-      | ':' -> 'b'
-      | '.' -> 'o'
-      | _ -> c
-      end
-    in "_" ^ (String.map to_py_op_char s)
+  | _ -> 
+    let s = 
+      if s = "or" then "||" 
+      else if s.[0] = '(' then 
+        String.trim (String.sub s 1 ((String.index s ')') - 1))
+      else s
+    in
+     "_" ^ (String.map to_py_op_char s)
   end
 
 let rec compile_const : formatter -> constant -> unit = begin
@@ -133,10 +139,10 @@ let rec compile_expr :
     | Efield (e, {modul=None; name=x}) -> 
       fprintf ff "%a[\"%s\"]" compile_expr e x
     | Efield (e, _) -> assert false
-    | Eapp ({ expr = Evar {modul = Some m; name = op}}, e1) (* Unary and infix operators *)
+    | Eapp ({ expr = Evar {modul = m; name = op}}, e1) (* Unary and infix operators *)
       when is_infix op || op = "not" -> 
         let op = to_py_op op in
-        fprintf ff "%a" compile_expr { e with expr = Eapp ({e with expr = Evar {modul=Some m; name = op}}, e1) }
+        fprintf ff "%a" compile_expr { e with expr = Eapp ({e with expr = Evar {modul = m; name = op}}, e1) }
     | Eapp (e1, e2) -> 
         fprintf ff "%a%a" compile_expr e1 compile_args e2
     | Eif (e, { expr=Eapp({expr=Evar{modul=None; name=n1}}, args1) },
