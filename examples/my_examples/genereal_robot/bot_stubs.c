@@ -10,12 +10,9 @@
 // Sends motor commands to the robot
 CAMLprim value robot_store_c(value pair) //, value magnitude)
 {
-	printf("Tag value: %d\n", Tag_val(pair));
-	printf("Block size: %ld\n", Wosize_val(pair));
-	printf("Isblock: %d\n", Is_block(pair));
-	
-	printf("Command: %s\n", String_val(Field(pair,0)));
-	printf("Magnitude: %f\n", Double_val(Field(pair,1)));
+        
+	printf("Command: %s\n", (String_val(command)));
+	printf("Magnitude: %f\n", (Double_val(magnitude)));
 	
 	//printf("hello world\n");
 	//printf("%f\n", Double_val(magnitude));
