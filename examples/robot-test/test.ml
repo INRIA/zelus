@@ -1,8 +1,11 @@
 (* The Zelus compiler, version 2.1-dev
-  (2021-08-30-20:12) *)
+  (2021-09-12-13:21) *)
 open Ztypes
-external move_robot_ml: int -> unit = "move_robot_c"  
- type state__138 =
+external move_robot_ml: int -> unit = "move_robot_cpp" 
+external control_robot_ml: int -> int -> unit = "control_robot_c" 
+
+ external robot_store: string -> float -> unit = "robot_store_c" 
+ type state__124 =
  Test_StopB_21 | Test_Backward_20 | Test_StopF_19 | Test_Forward_18 
 type ('i , 'h , 'g , 'f , 'e , 'd , 'c , 'b , 'a) _main =
   { mutable major_35 : 'i ;
@@ -23,7 +26,7 @@ let main (cstate_48:Ztypes.cstate) =
       i_43 = (false:bool) ;
       h_41 = (42.:float) ;
       r_40 = (false:bool) ;
-      s_39 = (Test_StopB_21:state__138) ;
+      s_39 = (Test_StopB_21:state__124) ;
       result_38 = (():unit) ; vel1_37 = (42:int) } in
   let main_step self ((time_34:float) , ()) =
     ((self.major_35 <- cstate_48.major ;
@@ -80,7 +83,7 @@ let main (cstate_48:Ztypes.cstate) =
                    | true ->
                        let _ = print_int self.vel1_37 in
                        let _ = print_newline () in
-                       self.result_38 <- (move_robot_ml ((~-) self.vel1_37))
+                       self.result_38 <- (move_robot_ml (self.vel1_37))
                    | _ -> self.result_38 <- ()  end) ;
             (let () = self.result_38 in
              ())) in
