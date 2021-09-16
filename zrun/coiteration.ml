@@ -460,6 +460,8 @@ and ieq genv env { eq_desc; eq_loc  } =
          (Stuple
             (Scstate { pos = zero_float; der = zero_float } ::
             se :: s0 :: sp_h_list))
+    | EQinit(_, { e_desc = Econst(v) }) ->
+       return (Sval(Value(Eval.immediate v)))
     | EQinit(_, e) ->
        let* se = iexp genv env e in
        return (Stuple [Sopt(None); se])
@@ -878,7 +880,9 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
           cx in
      return (Env.singleton x { entry with cur },
              Stuple (Scstate({ sc with der }) :: Sopt(x0_opt) :: s0 :: s_list))
-  | EQinit(x, _), _ ->
+  | EQinit(_, _), Sval(_) ->
+     Error.error eq_loc (Error.Enot_implemented) none
+  | EQinit(_, _), Stuple [Sopt(_); _] ->
      Error.error eq_loc (Error.Enot_implemented) none
   | EQif(e, eq1, eq2), Stuple [se; s_eq1; s_eq2] ->
       let* v, se = sexp genv env e se in

@@ -118,13 +118,24 @@ module Opt =
 module Mealy =
   struct
                                   
+    type 'a state =
+      | Sempty : 'a state
+      | Sval : 'a -> 'a state
+      | Spair : 'a state * 'a state -> 'a state
+      
     (* a variation of the state monad. *)
-    let ret x s = (x, s)
+    let ret x s = (Some x, s)
               
-    let bind f g (s1, s2) =
-      let (v1, s1) = f s1 in
-      let v2, s2 = g v1 s2 in
-      v2, (s1, s2)
+    let bind f g s =
+      match s with
+      | Sempty | Sval _ -> None, s
+      | Spair(s1, s2) ->
+         let (v1, s1) = f s1 in
+         match v1 with
+         | None -> None, Spair(s1, s2)
+         | Some(v) ->
+            let v2, s2 = g v1 s2 in
+            v2, Spair (s1, s2)
 
     let (and*) f1 f2 (s1, s2) =
            let v1, s1 = f1 s1 in
@@ -134,7 +145,16 @@ module Mealy =
     let return = ret
     let (let*) = bind
 
+    (* let rec map f x_list =
+      match x_list with
+      | [] -> return []
+      | x :: x_list ->
+         let* xv = f x in
+         let* x_list = map f x_list in
+         return (xv :: x_list) *)
+
   end
+
 
 module Misc =
   struct
