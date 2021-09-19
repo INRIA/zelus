@@ -12,6 +12,5 @@ let hybrid main () = () where
   present trigger -> local cpt in
     do  cpt = 0 fby cpt + 1
     and () = robot_get("key")
-
     done
    
