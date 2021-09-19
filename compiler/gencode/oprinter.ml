@@ -32,6 +32,7 @@ let rec priority_exp = function
   | (*added here*) Omove _ -> 0 
   | (*added here*) Ostore (_,_) -> 0
   | (*added here *)Ocontrol _ -> 0
+  | (*added here*) Oget (_) -> 0
   | Oifthenelse _  -> 0 | Oinst i -> priority_inst i
 
 and priority_inst = function
@@ -267,6 +268,9 @@ and exp prio ff e =
   (*added here*)
   | Ostore(cmd, key) ->
       fprintf ff "robot_store(%s , %f)" cmd key 
+  (*added here*)
+  | Oget(cm) ->
+      fprintf ff "robot_get(%s )" cm 
   | Oinst(i) -> inst prio ff i
   end;
   if prio_e < prio then fprintf ff ")"

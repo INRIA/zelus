@@ -260,6 +260,8 @@ let rec exp lnames ({ e_desc = desc } as e) =
     | Eassume(e1) -> Eassume(exp lnames e1)
     (*added here*)
     | Estore(cmd,key) -> Estore(cmd, key)
+    (*added here*)
+    | Eget(cm) -> Eget(cm)
     | Eperiod { p_phase = p1; p_period = p2 } ->
        Eperiod { p_phase = Zmisc.optional_map (exp lnames) p1;
                  p_period = exp lnames p2 }

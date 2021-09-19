@@ -204,6 +204,8 @@ let rec exp signals ({ e_desc = desc } as e) =
     | Eassume(e1) -> Eassume(exp signals e1)
     (*added here*)
     | Estore(cmd, key) -> desc
+     (*added here*)
+     | Eget(cm) -> desc
     | Eperiod { p_phase = p1; p_period = p2 } ->
        Eperiod { p_phase = Zmisc.optional_map (exp signals) p1;
                  p_period = exp signals p2 }

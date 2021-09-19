@@ -98,6 +98,8 @@ let rec fv bounded (last_acc, acc) e =
   | Eassume(e1) -> (fv bounded (last_acc, acc) e1)
   (*added here*)
   | Estore(cmd,key) -> last_acc, acc
+  (*added here*)
+  | Eget(cm) -> last_acc, acc
   | Econst _ | Econstr0 _ | Eglobal _ | Eperiod _ -> last_acc, acc
   | Epresent _ | Ematch _ -> assert false
         

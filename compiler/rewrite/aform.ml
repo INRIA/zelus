@@ -115,6 +115,8 @@ let rec expression subst ({ e_desc = desc } as e) =
      { e with e_desc = Eassume(expression subst e1) }
   (*added here*)
   | Estore(cmd,key) -> e
+   (*added here*)
+   | Eget(cm) -> e
   | Elet(l, e_let) ->
      let subst, l = local subst l in
      { e with e_desc = Elet(l, expression subst e_let) }

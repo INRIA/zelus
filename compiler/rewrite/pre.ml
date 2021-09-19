@@ -156,6 +156,8 @@ let rec exp e =
      { e with e_desc = Eassume(exp e1)}
    (*added here*)
   | Estore(cmd,key) -> e
+   (*added here*)
+   | Eget(cm) -> e
   | Eperiod { p_phase = p1; p_period = p2 } ->
      { e with e_desc = Eperiod
                          { p_phase = Zmisc.optional_map exp p1; p_period = exp p2 } }

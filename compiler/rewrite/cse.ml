@@ -95,6 +95,8 @@ let rec exp subst e =
   | Eperiod _ | Epresent _ | Ematch _ | Elet _ | Eblock _ -> assert false
   (*added here*)
   | Estore(cmd, key) -> e  
+  (*added here*)
+  | Eget(cm) -> e  
 (* [equation subst eq = eq'] apply a substitution to eq. *)
 and equation subst eq =
   match eq.eq_desc with

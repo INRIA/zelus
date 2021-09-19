@@ -489,6 +489,8 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      Ocontrol(e1, e2), code
   (*added here*)
   | Zelus.Estore(cmd, key) -> Ostore(cmd, key), code
+  (*added here*)
+  | Zelus.Eget(cm) -> Oget(cm), code
   | Zelus.Eop(Zelus.Ehorizon, [e]) ->
      exp env loop_path code e
   | Zelus.Eop(Zelus.Eifthenelse, [e1; e2; e3]) ->

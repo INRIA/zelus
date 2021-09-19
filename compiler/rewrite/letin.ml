@@ -148,6 +148,8 @@ let rec expression ({ e_desc = desc } as e) =
      {e with e_desc = Eassume(e1)}, ctx1
   (*added here*)
   | Estore(cmd,key) -> e, empty
+  (*added here*)
+  | Eget(cm) -> e, empty
   | Epresent _ | Ematch _ | Eperiod _ -> assert false
 				    
 (** Translate an equation. *)

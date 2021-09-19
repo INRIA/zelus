@@ -77,6 +77,8 @@ let rec expression major ({ e_desc = e_desc } as e) =
   | Epresent _ | Ematch _ | Eperiod _ -> assert false
 (*added here*)
   | Estore(cmd, key) -> e
+(*added here*)
+| Eget(cm) -> e
 (* Translation of equations *)
 (* [major] is the current major. [eq_list] is a list of equations and *)
 (* [env] the current environment *)

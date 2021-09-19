@@ -168,6 +168,7 @@ let rec expression major time ({ e_desc = e_desc } as e) =
                 Eassume(expression major time e1) }
   (*added here*)
   | Estore(cmd, key) -> e
+  | Eget(cm) -> e
   | Elocal _ | Eglobal _ | Econst _ | Econstr0 _ | Elast _ -> e
   | Epresent _ | Ematch _ -> assert false
 

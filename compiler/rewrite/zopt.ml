@@ -155,6 +155,8 @@ let rec rename_expression ren ({ e_desc = desc } as e) =
      { e with e_desc = Eassume(rename_expression ren e1) }
   (*added here*)
   | Estore(cmd,key) -> e
+  (*added here*)
+  | Eget(cm) -> e
   | Eperiod _ | Epresent _ | Ematch _ | Elet _ | Eblock _ -> assert false
 						
 and rename_local ren ({ l_eq = eq_list } as l) =

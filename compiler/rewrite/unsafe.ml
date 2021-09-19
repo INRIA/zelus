@@ -37,6 +37,8 @@ let rec exp { e_desc = desc } =
   | Eassume(e1) -> (exp e1)
   (*added here*)
   | Estore(cmd,key) -> true
+   (*added here*)
+   | Eget(cm) -> true
   | Elocal _ | Elast _ | Econst _ | Econstr0 _ 
   | Eglobal _ | Eperiod _ | Eop _ -> false
   | Elet _ | Eblock _ -> true

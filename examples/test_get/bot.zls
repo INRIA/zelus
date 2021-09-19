@@ -1,0 +1,17 @@
+(* Robot store keyword *)
+
+let pi = 3.14159
+let w = pi*.2.0
+let y0 = 1.0
+let y'0 = 0.0
+let key= 90.
+let hybrid main () = () where
+  rec der y  =  y' init y0
+  and der y' = -.w*.w*.y init y'0
+  and trigger = up(y) and
+  present trigger -> local cpt in
+    do  cpt = 0 fby cpt + 1
+    and () = robot_get("key")
+
+    done
+   

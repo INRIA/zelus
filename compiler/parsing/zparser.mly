@@ -152,6 +152,8 @@ let block l lo eq_list startpos endpos =
 %token R_CONTROL      /* "control_robot_zls" */
 (*added here*)
 %token R_STORE        /* "robot_store" */
+(*added here*)
+%token R_GET        /* "robot_get" */
 %token EXCEPTION      /* "exception" */
 %token EXTERNAL       /* "external" */
 %token IN             /* "in" */
@@ -522,6 +524,9 @@ equation_desc:
   (*added here*)
   | R_STORE p = pattern EQUAL rob = robot_expression
     { EQeq(p, make (Estore(rob.cmd, rob.key)) $startpos(rob) $endpos(rob)) }
+    (*added here*)
+  | R_GET p = pattern EQUAL rob = rbt_expression
+    { EQeq(p, make (Eget(rob.cm)) $startpos(rob) $endpos(rob)) }
   | DER i = ide EQUAL e = seq_expression opt = optional_init
       { EQder(i, e, opt, []) }
   | DER i = ide EQUAL e = seq_expression opt = optional_init
@@ -1076,6 +1081,8 @@ expression_desc:
   (*added here*)
   | R_STORE rob = robot_expression
         {Estore(rob.cmd, rob.key)}
+  | R_GET rob = rbt_expression
+        {Eget(rob.cm)}
   | AUTOMATON opt_bar a = automaton_handlers(seq_expression)
       { Eautomaton(List.rev a, None) }
   | AUTOMATON opt_bar a = automaton_handlers(seq_expression) INIT s = state
@@ -1106,7 +1113,10 @@ period_expression:
 robot_expression:
   | LPAREN r_cmd = STRING COMMA r_key = FLOAT RPAREN
       {{cmd = r_cmd; key = r_key}}
-
+  (*added here*)
+rbt_expression:
+  | LPAREN r_cm = STRING   RPAREN
+      {{cm = r_cm}}  
 constructor:
   | c = CONSTRUCTOR
       { Name(c) } %prec prec_ident

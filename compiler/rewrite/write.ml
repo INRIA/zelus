@@ -183,6 +183,8 @@ and expression ({ e_desc = desc } as e) =
     | Eassume(e1) -> Eassume(expression e1)
     (*added here*)
     | Estore(cmd,key) -> desc
+      (*added here*)
+      | Eget(cm) -> desc
     | Eperiod { p_phase = p1; p_period = p2 } ->
        Eperiod
 	 { p_phase = Zmisc.optional_map expression p1; p_period = expression p2 }

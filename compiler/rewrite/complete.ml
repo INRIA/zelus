@@ -66,6 +66,8 @@ let rec exp ({ e_desc } as e) =
         Eassume(exp e1)
     (*added here*)
     | Estore(cmd,key) -> e_desc
+    (*added here*)
+    | Eget(cm) -> e_desc
     | Ematch(total, e, m_h_list) ->
         let e = exp e in
         let m_h_list = match_handler_exp_list m_h_list in

@@ -84,6 +84,8 @@ and add_exp bv exp =
   | Emove (e) -> add_exp bv e;*)
   (*added here*)
   | Estore (cmd , key) -> ()
+  (*added here*)
+  | Eget (cm) -> ()
   | Ematch (e, mhl) -> add_exp bv e; List.iter (add_match_handler add_exp bv) mhl
   | Epresent (phl, edo) ->  List.iter (add_present_handler add_exp bv) phl; add_opt (add_default add_exp) bv edo
   | Eautomaton (shl, seo) -> List.iter (add_state_handler add_exp bv) shl; add_opt add_state_exp bv seo

@@ -742,6 +742,10 @@ let rec expression expected_k h ({ e_desc = desc; e_loc = loc } as e) =
     | Estore(cmd, key) ->
      let ty = new_var () in
         ty
+    (*added here*)
+    | Eget(cm) ->
+     let ty = new_var () in
+        ty
     | Eperiod(p) ->
         (* periods are only valid in a continuous context *)
         less_than loc Tcont expected_k;

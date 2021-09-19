@@ -267,6 +267,8 @@ let rec expression venv renaming fun_defs ({ e_desc = desc } as e) =
       	  { e with e_desc = Eassume(e1)}, fun_defs
   (*added here*)
   | Estore(cmd, key) -> e, fun_defs
+  (*added here*)
+  | Eget(cm) -> e, fun_defs
   | Elet(l, e_let) ->
      let l, (renaming, fun_defs) = local venv (renaming, fun_defs) l in
      let e_let, fun_defs =

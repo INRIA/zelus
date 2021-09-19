@@ -654,6 +654,9 @@ let rec expression env { desc = desc; loc = loc } =
     | Estore(c, k) ->
       		print_string("Robot command: "); print_string (c); print_string("\n");
       		print_string ("Value: "); print_float (k); print_string("\n"); Zelus.Estore(c, k) 
+    (*added here*)
+    | Eget(c) ->
+      		 print_string("\n");Zelus.Eget(c)
     (*added here
     | Emove(e) ->
        Zelus.Emove(expression env e)	*)
