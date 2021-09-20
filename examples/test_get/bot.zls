@@ -1,4 +1,4 @@
-(* Robot store keyword *)
+(* Robot get keyword *)
 
 let pi = 3.14159
 let w = pi*.2.0
