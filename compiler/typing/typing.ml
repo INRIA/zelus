@@ -1380,6 +1380,12 @@ let implementation ff is_first impl =
        let tys = constdecl f is_static e in
        if is_first then Interface.add_type_of_value ff impl.loc f is_static tys
        else Interface.update_type_of_value ff impl.loc f is_static tys
+    (*TODO: add refinement type implementation here*)
+    | Erefinementdecl(f1, f2, e1, e2) ->
+       let tys = constdecl f1 false e2 in
+       let pred = predicate e1 in (*parse refinement expression into predicate*)
+       if is_first then Interface.add_refinement_type_of_value ff impl.loc f1 f2 pred tys 
+       else Interface.update_refinement_type_of_value ff impl.loc f1 f2 pred tys
     | Efundecl(f, body) ->
        let tys = fundecl impl.loc f body in
        if is_first then Interface.add_type_of_value ff impl.loc f true tys

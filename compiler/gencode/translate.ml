@@ -730,6 +730,11 @@ let implementation { Zelus.desc = desc } =
      (* There should be no memory allocated by [e] *)
      let { step = s } = expression Env.empty e in
      Oletvalue(n, s)
+  (*TODO: refinement implementation of translate*)
+  | Zelus.Erefinementdecl(n1, n2, e1, e2)->
+      (* There should be no memory allocated by [e] *)
+     let { step = s } = expression Env.empty e2 in
+     Oletvalue(n1, s)
   | Zelus.Efundecl(n, { Zelus.f_kind = k; Zelus.f_args = pat_list;
 			Zelus.f_body = e; Zelus.f_env = f_env }) ->
      let pat_list = List.map pattern pat_list in

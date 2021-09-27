@@ -132,6 +132,7 @@ let implementation impl =
   match impl.desc with
   | Efundecl(n, ({ f_kind = D | C; f_body = e } as body)) ->
      { impl with desc = Efundecl(n, { body with f_body = exp e }) }
-  | Eopen _ | Etypedecl _ | Econstdecl _ | Efundecl _ -> impl
+  (*added here*)
+  | Eopen _ | Etypedecl _ | Econstdecl _ | Efundecl _ | Erefinementdecl _ -> impl
 
 let implementation_list impl_list = Zmisc.iter implementation impl_list

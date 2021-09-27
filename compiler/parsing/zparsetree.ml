@@ -86,6 +86,8 @@ and implementation_desc =
     | Eopen of name
     | Etypedecl of name * name list * type_decl
     | Econstdecl of name * is_static * exp
+    (*refinement type implementation*)
+    | Erefinementdecl of name * name * exp * exp
     | Efundecl of name * funexp
 
 and funexp =

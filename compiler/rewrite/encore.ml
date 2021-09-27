@@ -126,7 +126,7 @@ let expression env ({ e_desc = desc } as e) =
     
 let implementation impl =
   match impl.desc with
-  | Eopen _ | Etypedecl _ | Econstdecl _  
+  | Eopen _ | Etypedecl _ | Econstdecl _ | Erefinementdecl _
   | Efundecl(_, { f_kind = (S | AS | A | AD | D | P) }) -> impl
   | Efundecl(n, ({ f_kind = C; f_body = e; f_env = f_env } as body)) ->
      { impl with desc = Efundecl(n, { body with f_body = expression f_env e }) }

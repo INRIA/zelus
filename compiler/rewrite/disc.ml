@@ -140,7 +140,7 @@ and local major ({ l_eq = eq_list } as l) =
 
 let implementation impl =
   match impl.desc with
-  | Eopen _ | Etypedecl _ | Econstdecl _  
+  | Eopen _ | Etypedecl _ | Econstdecl _  | Erefinementdecl _
   | Efundecl(_, { f_kind = (S | AS | A | AD | D | P) }) -> impl
   | Efundecl(n, ({ f_kind = C; f_body = e; f_env = f_env } as body)) ->
      let f_env, major = Zaux.major f_env in
