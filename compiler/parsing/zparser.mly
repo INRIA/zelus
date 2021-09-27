@@ -304,6 +304,10 @@ implementation:
       { Econstdecl(ide, false, seq) }
   | LET STATIC ide = ide EQUAL seq = seq_expression
       { Econstdecl(ide, true, seq) }
+  (*added here*)
+  (*refinement type definition*)
+  | LET ide = ide COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
+      { Erefinementdecl(ide, obj, seq1, seq2)}
   | LET ide = ide fn = simple_pattern_list EQUAL seq = seq_expression
       { Efundecl(ide, { f_kind = A; f_atomic = false;
 			f_args = fn; f_body = seq;
@@ -1051,7 +1055,7 @@ period_expression:
 robot_expression:
   | LPAREN r_cmd = STRING COMMA r_key = FLOAT RPAREN
       {{cmd = r_cmd; key = r_key}}
-      
+
 constructor:
   | c = CONSTRUCTOR
       { Name(c) } %prec prec_ident

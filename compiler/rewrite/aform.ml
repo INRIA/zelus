@@ -243,6 +243,9 @@ let implementation impl =
     | Eopen _ | Etypedecl _ -> impl
     | Econstdecl(n, is_static, e) ->
        { impl with desc = Econstdecl(n, is_static, expression Env.empty e) }
+    (*TODO: refinement implementation of aform*)
+    | Erefinementdecl(n1,n2,e1,e2) ->
+       { impl with desc = Erefinementdecl(n1,n2, expression Env.empty e1, expression Env.empty e2) }
     | Efundecl(n, ({ f_body = e; f_env = f_env; f_args = p_list } as body)) ->
        let subst, f_env = build f_env Env.empty in
        let p_list = List.map (pattern subst) p_list in

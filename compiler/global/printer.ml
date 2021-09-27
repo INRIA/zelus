@@ -529,6 +529,10 @@ let implementation ff impl =
     | Econstdecl(n, is_static, e) ->
         fprintf ff "@[<v 2>let %s%a =@ %a@.@.@]"
           (if is_static then "static " else "") shortname n expression e
+    (*TODO: implement printing for refinement types*)
+    | Erefinementdecl(n1,n2,e1,e2) -> 
+        fprintf ff "@[<v 2>let %s%a =@ %a@.@.@]"
+           ("") shortname n1 expression e2
     | Efundecl(n, body) ->
        fprintf ff "@[<v 2>let %a =@ %a@.@]" shortname n funexp body
 
