@@ -1,16 +1,19 @@
 (* Robot get keyword *)
 
-let pi = 3.14159
-let w = pi*.2.0
-let y0 = 1.0
-let y'0 = 0.0
-let key= 90.
-let hybrid main () = () where
-  rec der y  =  y' init y0
-  and der y' = -.w*.w*.y init y'0
-  and trigger = up(y) and
-  present trigger -> local cpt in
-    do  cpt = 0 fby cpt + 1
-    and () = robot_get("key")
-    done
-   
+
+let hybrid main () = () where 
+  rec trigger = (period (1.))
+   and automaton 
+	| First -> do t = robot_get ("transverse_vel") until trigger then Second
+	| Second -> do t = robot_get ("angular_vel") until trigger then First
+   end
+  and ()= present(trigger) -> (print_int 0; (print_float t);print_newline ()(*; print_float s*); robot_store("transverse_vel", 30.))
+  else ()
+  
+  
+  
+  
+  
+  
+  
+ 

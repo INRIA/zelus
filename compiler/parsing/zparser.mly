@@ -1081,6 +1081,7 @@ expression_desc:
   (*added here*)
   | R_STORE rob = robot_expression
         {Estore(rob.cmd, rob.key)}
+  (*added here*)
   | R_GET rob = rbt_expression
         {Eget(rob.cm)}
   | AUTOMATON opt_bar a = automaton_handlers(seq_expression)

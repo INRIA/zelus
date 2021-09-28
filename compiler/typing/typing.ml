@@ -743,9 +743,7 @@ let rec expression expected_k h ({ e_desc = desc; e_loc = loc } as e) =
      let ty = new_var () in
         ty
     (*added here*)
-    | Eget(cm) ->
-     let ty = new_var () in
-        ty
+    | Eget(cm) -> Initial.typ_float
     | Eperiod(p) ->
         (* periods are only valid in a continuous context *)
         less_than loc Tcont expected_k;

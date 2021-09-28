@@ -270,7 +270,7 @@ and exp prio ff e =
       fprintf ff "robot_store(%s , %f)" cmd key 
   (*added here*)
   | Oget(cm) ->
-      fprintf ff "robot_get(%s )" cm 
+      fprintf ff "robot_get(%s)" cm 
   | Oinst(i) -> inst prio ff i
   end;
   if prio_e < prio then fprintf ff ")"

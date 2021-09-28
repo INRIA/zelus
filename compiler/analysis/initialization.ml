@@ -329,7 +329,8 @@ let rec exp is_continuous env ({ e_desc = desc; e_typ = ty } as e) =
      (*added here*)
     | Estore(cmd,key) -> Init.skeleton_on_i (Init.new_var ()) ty
     (*added here*)
-    | Eget(cm) -> Init.skeleton_on_i (Init.new_var ()) ty
+    | Eget(cm) -> Init.skeleton_on_i (Init.new_var ()) ty(*let i= Init.ivalue in
+    Init.skeleton_on_i i ty*)
     | Ematch(_, e, m_h_list) ->
         (* we force [e] to be always initialized. This is overly constraining *)
         (* but correct and simpler to justify *)

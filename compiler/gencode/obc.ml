@@ -56,7 +56,7 @@ type exp =
   (*added here*)
   | Ostore of string * float
    (*added here*)
-   | Oget of string 
+  | Oget of string 
   | Omethodcall of method_call			       
   | Oinst of inst
                           

@@ -1,81 +1,79 @@
 (* The Zelus compiler, version 2.1-dev
-  (2021-09-19-20:48) *)
+  (2021-09-28-5:50) *)
 open Ztypes
 external move_robot_ml: int -> unit = "move_robot_cpp" 
 
- external robot_get: float -> unit = "robot_get_cpp" 
+ external robot_get: string -> float = "robot_get_cpp" 
  external control_robot_ml: int -> int -> unit = "control_robot_c" 
 
  external robot_store: string -> float -> unit = "robot_store_c" 
- let pi = 3.14159
+ type state__124 = Bot_Second_15 | Bot_First_14 
+type ('i , 'h , 'g , 'f , 'e , 'd , 'c , 'b , 'a) _main =
+  { mutable major_29 : 'i ;
+    mutable h_41 : 'h ;
+    mutable h_39 : 'g ;
+    mutable i_37 : 'f ;
+    mutable h_35 : 'e ;
+    mutable r_34 : 'd ;
+    mutable s_33 : 'c ; mutable result_32 : 'b ; mutable t_30 : 'a }
 
-let w = ( *. ) pi  2.
-
-let y0 = 1.
-
-let y'0 = 0.
-
-let key = 90.
-
-type ('f , 'e , 'd , 'c , 'b , 'a) _main =
-  { mutable major_21 : 'f ;
-    mutable i_26 : 'e ;
-    mutable x_25 : 'd ;
-    mutable y'_24 : 'c ; mutable y_23 : 'b ; mutable m_28 : 'a }
-
-let main (cstate_30:Ztypes.cstate) = 
+let main (cstate_42:Ztypes.cstate) = 
   
   let main_alloc _ =
-    cstate_30.cmax <- (+) cstate_30.cmax  2 ;
-    cstate_30.zmax <- (+) cstate_30.zmax  1;
-    { major_21 = false ;
-      i_26 = (false:bool) ;
-      x_25 = { zin = false; zout = 1. } ;
-      y'_24 = { pos = 42.; der = 0. } ;
-      y_23 = { pos = 42.; der = 0. } ; m_28 = (42:int) } in
-  let main_step self ((time_20:float) , ()) =
-    ((let (cindex_31:int) = cstate_30.cindex in
-      let cpos_33 = ref (cindex_31:int) in
-      let (zindex_32:int) = cstate_30.zindex in
-      let zpos_34 = ref (zindex_32:int) in
-      cstate_30.cindex <- (+) cstate_30.cindex  2 ;
-      cstate_30.zindex <- (+) cstate_30.zindex  1 ;
-      self.major_21 <- cstate_30.major ;
-      (if cstate_30.major then
-       for i_1 = cindex_31 to 1 do Zls.set cstate_30.dvec  i_1  0. done
-       else ((self.y'_24.pos <- Zls.get cstate_30.cvec  !cpos_33 ;
-              cpos_33 := (+) !cpos_33  1) ;
-             (self.y_23.pos <- Zls.get cstate_30.cvec  !cpos_33 ;
-              cpos_33 := (+) !cpos_33  1))) ;
-      (let (result_35:unit) =
-           (if self.i_26 then self.y'_24.pos <- y'0) ;
-           (if self.i_26 then self.y_23.pos <- y0) ;
-           self.i_26 <- false ;
-           (let (trigger_22:zero) = self.x_25.zin in
-            (begin match trigger_22 with
+    ();
+    { major_29 = false ;
+      h_41 = 42. ;
+      h_39 = (42.:float) ;
+      i_37 = (false:bool) ;
+      h_35 = (42.:float) ;
+      r_34 = (false:bool) ;
+      s_33 = (Bot_Second_15:state__124) ;
+      result_32 = (():unit) ; t_30 = (42.:float) } in
+  let main_step self ((time_28:float) , ()) =
+    ((self.major_29 <- cstate_42.major ;
+      (let (result_47:unit) =
+           let h_40 = ref (infinity:float) in
+           let encore_38 = ref (false:bool) in
+           (if self.i_37 then self.h_35 <- (+.) time_28  0.) ;
+           (let (z_36:bool) = (&&) self.major_29  ((>=) time_28  self.h_35) in
+            let (trigger_31:zero) = z_36 in
+            (begin match self.s_33 with
+                   | Bot_First_14 ->
+                       (if self.r_34 then ()) ;
+                       self.t_30 <- (robot_get "transverse_vel") ;
+                       (begin match trigger_31 with
+                              | true ->
+                                  encore_38 := true ;
+                                  self.r_34 <- true ;
+                                  self.s_33 <- Bot_Second_15
+                              | _ -> self.r_34 <- false  end)
+                   | Bot_Second_15 ->
+                       (if self.r_34 then ()) ;
+                       self.t_30 <- (robot_get "angular_vel") ;
+                       (begin match trigger_31 with
+                              | true ->
+                                  encore_38 := true ;
+                                  self.r_34 <- true ;
+                                  self.s_33 <- Bot_First_14
+                              | _ -> self.r_34 <- false  end)
+                    end) ;
+            self.h_39 <- (if !encore_38 then 0. else infinity) ;
+            self.h_35 <- (if z_36 then (+.) self.h_35  1. else self.h_35) ;
+            h_40 := min !h_40  (min self.h_39  self.h_35) ;
+            self.h_41 <- !h_40 ;
+            self.i_37 <- false ;
+            (begin match trigger_31 with
                    | true ->
-                       let () = robot_get key in
-                       let (x_29:int) = self.m_28 in
-                       let (cpt_27:int) = (+) x_29  1 in
-                       self.m_28 <- cpt_27 | _ -> ()  end) ;
-            self.x_25.zout <- self.y_23.pos ;
-            self.y'_24.der <- ( *. ) (( *. ) ((~-.) w)  w)  self.y_23.pos ;
-            self.y_23.der <- self.y'_24.pos ; ()) in
-       cpos_33 := cindex_31 ;
-       (if cstate_30.major then
-        (((Zls.set cstate_30.cvec  !cpos_33  self.y'_24.pos ;
-           cpos_33 := (+) !cpos_33  1) ;
-          (Zls.set cstate_30.cvec  !cpos_33  self.y_23.pos ;
-           cpos_33 := (+) !cpos_33  1)) ; ((self.x_25.zin <- false)))
-        else (((self.x_25.zin <- Zls.get_zin cstate_30.zinvec  !zpos_34 ;
-                zpos_34 := (+) !zpos_34  1)) ;
-              zpos_34 := zindex_32 ;
-              ((Zls.set cstate_30.zoutvec  !zpos_34  self.x_25.zout ;
-                zpos_34 := (+) !zpos_34  1)) ;
-              ((Zls.set cstate_30.dvec  !cpos_33  self.y'_24.der ;
-                cpos_33 := (+) !cpos_33  1) ;
-               (Zls.set cstate_30.dvec  !cpos_33  self.y_23.der ;
-                cpos_33 := (+) !cpos_33  1)))) ; result_35)):unit) in 
+                       let _ = print_int 0 in
+                       let _ = print_float self.t_30 in
+                       let _ = print_newline () in
+                       self.result_32 <- (robot_store"transverse_vel"  30.000000)
+                   | _ -> self.result_32 <- ()  end) ;
+            (let () = self.result_32 in
+             ())) in
+       cstate_42.horizon <- min cstate_42.horizon  self.h_41 ; result_47)):
+    unit) in 
   let main_reset self  =
-    ((self.i_26 <- true ; self.m_28 <- 0):unit) in
+    ((self.r_34 <- false ; self.s_33 <- Bot_First_14 ; self.i_37 <- true):
+    unit) in
   Node { alloc = main_alloc; step = main_step ; reset = main_reset }
