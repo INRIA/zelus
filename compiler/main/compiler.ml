@@ -265,7 +265,7 @@ let compile modname filename =
                   vectors. See below:";
          Oprinter.implementation_list info_ff obc_list
        end;
-     if !use_muf || !muf_python
+     if !use_muf || !use_jax
      then begin
        let muf_list = To_muf.implementation_list obc_list in
        if !verbose
@@ -282,7 +282,7 @@ let compile modname filename =
        let ml_list =
          List.map Muf_gencode.compile_program muf_list
        in
-       if !muf_python then begin
+       if !use_jax then begin
         if !verbose then begin
 	        comment "Print Python code. See below:";
           List.iter (Muf_to_python.compile_program info_ff) muf_list; 

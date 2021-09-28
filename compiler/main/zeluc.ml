@@ -96,7 +96,7 @@ and doc_with_copy = "\t Add of a copy method for the state"
 and doc_rif = "\t Use RIF format over stdin and stdout to communicate I/O to the node being simulated"
 and doc_deps = "\t Recursively compile dependencies"
 and doc_muf = "\t Generate functionnal code"
-and doc_muf_python = "\t Generate Python functionnal code"
+and doc_jax = "\t Generate JAX code"
 let errmsg = "Options are:"
 
 let set_verbose () =
@@ -152,7 +152,7 @@ let main () =
           "-rif", Arg.Set use_rif, doc_rif;
           "-deps", Arg.Set build_deps, doc_deps;
           "-muf", Arg.Set use_muf, doc_muf;
-          "-mufpy", Arg.Set muf_python, doc_muf_python;
+          "-jax", Arg.Set use_jax, doc_jax;
         ])
       (fun filename -> if !build_deps then build filename else compile filename)
       errmsg;

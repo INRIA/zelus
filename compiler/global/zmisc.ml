@@ -98,7 +98,7 @@ let with_copy = ref false
 let use_rif = ref false
 let build_deps = ref false
 let use_muf = ref false
-let muf_python = ref false
+let use_jax = ref false
 
 let lmm_nodes = ref S.empty
 let set_lmm_nodes (n: string) =
