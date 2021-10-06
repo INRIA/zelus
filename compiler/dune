@@ -9,12 +9,13 @@
 (subdir parsing
   (menhir (modules zparser) (infer true) (flags --explain --table)))
 
+
 (library
   (name zlcompilerlibs)
   (public_name zelus.zlcompilerlibs)
   (wrapped false)
-  (modules :standard \ zeluc)
-  (libraries menhirLib))
+  (modules :standard \ zeluc compiler simulator fixstep)
+  (libraries menhirLib z3))
 
 (executable
   (name zeluc)

@@ -527,7 +527,7 @@ let implementation impl =
         let e = exp S.empty e in
         { impl with desc = Econstdecl(n, is_static, e) }
     (*TODO: refinement implementation of automata*)
-    | Erefinementdecl(n1,n2,e1,e2) ->
+    | Erefinementdecl(n1,n2,e1,e2) -> 
         let e1 = exp S.empty e1 in
         let e2 = exp S.empty e2 in
         { impl with desc = Erefinementdecl(n1,n2,e1,e2) }

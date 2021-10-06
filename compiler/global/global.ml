@@ -31,7 +31,7 @@ type value_desc =
       mutable value_init: ti_scheme option; (* its init. scheme *)
       mutable value_code: value_code; (* source code *)
       (*added here for refinement types*)
-      mutable value_pred: value_pred;
+      (*mutable value_pred: value_pred;*)
     }
 
 (** The type of values *)
@@ -79,11 +79,11 @@ let value_name n ({ value_exp = value_exp; value_name = opt_name } as v) =
   | Some _ -> v
 let value_desc is_static typs qualident = 
   { value_typ = typs; value_static = is_static; value_caus = None; 
-    value_init = None; value_code = value_code (Vabstract(qualident)); value_pred = None; }
-(*added here for refinement types*)
+    value_init = None; value_code = value_code (Vabstract(qualident)); }
+(*added here for refinement types
 let value_desc_refinement pred typs qualident =
   { value_typ = typs; value_static = false; value_caus = None;
-    value_init = None; value_code = value_code (Vabstract(qualident)); value_pred = pred; }
+    value_init = None; value_code = value_code (Vabstract(qualident)); value_pred = pred; }*)
 let set_type { info = ({ value_typ = _ } as v) } tys = 
   v.value_typ <- tys
 let set_causality { info = ({ value_caus = _ } as v) } tys = 

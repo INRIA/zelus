@@ -352,7 +352,7 @@ let update_type_of_value ff loc name is_static ty_scheme =
   with
   | Not_found -> add_type_of_value ff loc name is_static ty_scheme
   
-(* analysing refinement types *)
+(* analyzing refinement types 
 let add_refinement_type_of_value ff loc name1 name2 pred ty_scheme =
   try
     add_value name1 (value_desc_refinement pred ty_scheme (Modules.qualify name1));
@@ -366,7 +366,7 @@ let update_refinement_type_of_value ff loc name1 name2 pred ty_scheme =
     let info = Modules.find_value (Lident.Name(name)) in
     set_type info ty_scheme
   with
-  | Not_found -> add_refinement_type_of_value ff loc name1 name2 pred ty_scheme
+  | Not_found -> add_refinement_type_of_value ff loc name1 name2 pred ty_scheme*)
                                    
 (* adding the type signature for a constant and a function. *)
 (* [is_static = true] means that the identifier defines a compile-time value *)

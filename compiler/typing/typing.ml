@@ -28,6 +28,7 @@ open Zelus
 open Deftypes
 open Ztypes
 open Typerrors
+open Z3verif
 
 (* accesses in symbol tables for global identifiers *)
 let find_value loc f =
@@ -1371,7 +1372,7 @@ let fundecl loc f ({ f_kind = k; f_atomic = is_atomic;
   Zmisc.pop_binding_level ();
   let ty_res = funtype loc expected_k pat_list ty_p_list ty_res in
   let tys = Ztypes.gen true ty_res in
-  tys
+  tys	
 
 let implementation ff is_first impl =
   try
@@ -1383,9 +1384,12 @@ let implementation ff is_first impl =
     (*TODO: add refinement type implementation here*)
     | Erefinementdecl(f1, f2, e1, e2) ->
        let tys = constdecl f1 false e2 in
-       let pred = predicate e1 in (*parse refinement expression into predicate*)
-       if is_first then Interface.add_refinement_type_of_value ff impl.loc f1 f2 pred tys 
-       else Interface.update_refinement_type_of_value ff impl.loc f1 f2 pred tys
+       let pred = Z3verif.prove_satisfiability(Z3eval(f1, f2, e1, e2)) in (*parse refinement expression into predicate*)
+       if pred then Printf.printf "Expression verified\n";
+       (*if is_first then Interface.add_refinement_type_of_value ff impl.loc f1 f2 pred tys 
+       else Interface.update_refinement_type_of_value ff impl.loc f1 f2 pred tys*)
+       if is_first then Interface.add_type_of_value ff impl.loc f1 false tys
+       else Interface.update_type_of_value ff impl.loc f1 false tys
     | Efundecl(f, body) ->
        let tys = fundecl impl.loc f body in
        if is_first then Interface.add_type_of_value ff impl.loc f true tys
