@@ -609,7 +609,7 @@ let implementation_list ff impl_list =
            with
              Static.Error _ -> expression Env.empty Env.empty empty e2
          else expression Env.empty Env.empty empty e2 in
-        let e1 = expression Env.empty Env.empty empty e1 in 
+        (*let e1, { fundefs = fun_defs } = expression Env.empty Env.empty empty e1 in *)
        { impl with desc = Erefinementdecl(f1, f2, e1, e2) } ::
 	 List.fold_right make fun_defs impl_defs
     | Efundecl(f, funexp) ->

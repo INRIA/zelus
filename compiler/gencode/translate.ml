@@ -517,7 +517,7 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
   | Zelus.Eapp(_, e_fun, e_list) ->
      (* compute the sequence of static arguments and non static ones *)
      let se_list, ne_list, ty_res =
-       Ztypes.split_arguments e_fun.Zelus.e_typ e_list in
+        Ztypes.split_arguments e_fun.Zelus.e_typ e_list in
      let e_fun, code = exp env loop_path code e_fun in
      let se_list, code = Zmisc.map_fold (exp env loop_path) code se_list in
      let ne_list, code = Zmisc.map_fold (exp env loop_path) code ne_list in
