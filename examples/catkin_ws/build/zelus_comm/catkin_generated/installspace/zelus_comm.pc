@@ -1,0 +1,8 @@
+prefix=/home/beki/Bereket/AURA/zelus/examples/catkin_ws/install
+
+Name: zelus_comm
+Description: Description of zelus_comm
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

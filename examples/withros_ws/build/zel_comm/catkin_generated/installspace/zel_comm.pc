@@ -1,0 +1,8 @@
+prefix=/home/beki/Bereket/AURA/zelus/examples/withros_ws/install
+
+Name: zel_comm
+Description: Description of zel_comm
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

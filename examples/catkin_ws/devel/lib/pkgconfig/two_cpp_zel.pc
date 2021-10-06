@@ -1,0 +1,8 @@
+prefix=/home/beki/Bereket/AURA/zelus/examples/catkin_ws/devel
+
+Name: two_cpp_zel
+Description: Description of two_cpp_zel
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

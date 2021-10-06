@@ -1,0 +1,2 @@
+two_cpp_zel:zelus_comm
+-DCATKIN_DEVEL_PREFIX=/home/beki/Bereket/AURA/zelus/examples/catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/home/beki/Bereket/AURA/zelus/examples/catkin_ws/install -G Unix Makefiles

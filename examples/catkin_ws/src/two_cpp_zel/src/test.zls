@@ -1,0 +1,13 @@
+(*external print_hello: unit -> unit = "print_hello"*)
+let hybrid main () = () where
+  rec trigger = (period (1.))
+  and automaton 
+	| Forward -> do vel1 = 30 until trigger then StopF
+	| StopF -> do vel1 = 0 until trigger then Backward
+	| Backward -> do vel1 = -30 until trigger then StopB
+	| StopB -> do vel1 = 0 until trigger then Forward
+   end
+  and () = present(trigger) ->
+    ((print_int vel1); print_newline ();
+    move_robot_zls(vel1))
+  else ()
