@@ -74,7 +74,7 @@ let rec compile_patt: type a. a pattern -> Parsetree.pattern = begin
     | Pconst c -> compile_const_patt c
     | Pconstr (x, p) ->
         let x = lid x in
-        Pat.construct x (Option.map compile_patt p)
+        Pat.construct x (Option.map (fun p -> ([], compile_patt p)) p)
     | Ptuple l -> Pat.tuple (List.map compile_patt l)
     | Pany -> Pat.any ()
     | Ptype (p, _) -> compile_patt p
