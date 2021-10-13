@@ -14,7 +14,7 @@ let subst_no_capture =
     | Evar y, _ -> if x = y then expr1 else expr2
     | Elet (p, e1, e2), _ when IdSet.mem x (fv_patt p) ->
         { expr2 with expr = Elet(p, subst fv1 x expr1 e1, e2) }
-    | Elet (p, e1, e2), _ when IdSet.mem x fv1 ->
+    | Elet (p, _, _), _ when not (IdSet.disjoint fv1 (fv_patt p)) ->
         raise Stop
     | Elet (p, e1, e2), _ ->
         let desc = map_expr_desc (fun p -> p) (subst fv1 x expr1) expr2.expr in
