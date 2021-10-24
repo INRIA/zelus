@@ -11,8 +11,8 @@
 CAMLprim value robot_store_c(value pair) //, value magnitude)
 {
         
-	printf("Command: %s\n", (String_val(command)));
-	printf("Magnitude: %f\n", (Double_val(magnitude)));
+	//printf("Command: %s\n", (String_val(command)));
+	//printf("Magnitude: %f\n", (Double_val(magnitude)));
 	
 	//printf("hello world\n");
 	//printf("%f\n", Double_val(magnitude));
@@ -35,8 +35,27 @@ CAMLprim value robot_store_c(value pair) //, value magnitude)
 
 }
 
+CAMLprim value 
+robot_str_cpp(value command, value magnitude)
+{
+        
+	printf("Command: %s\n", (String_val(command)));
+	printf("Magnitude: %f\n", (Double_val(magnitude)));
+	
+	
+    printf("exit\n");
+   
+	//lcm_destroy(lcm);
+    return Val_unit;
+
+}
+
 CAMLprim value
-move_robot_c(value speed){
+move_robot_cpp(value speed){
+	return Val_unit;
+}
+CAMLprim value
+robot_get_cpp(value speed){
 	return Val_unit;
 }
 

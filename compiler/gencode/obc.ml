@@ -54,6 +54,8 @@ type exp =
   (*added here*)
   | Ocontrol of exp * exp
   (*added here*)
+  | Ostr of exp * exp
+  (*added here*)
   | Ostore of string * float
    (*added here*)
   | Oget of string 

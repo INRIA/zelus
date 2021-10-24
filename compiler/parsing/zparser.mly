@@ -153,6 +153,8 @@ let block l lo eq_list startpos endpos =
 (*added here*)
 %token R_STORE        /* "robot_store" */
 (*added here*)
+%token R_STR        /* "robot_str" */
+(*added here*)
 %token R_GET        /* "robot_get" */
 %token EXCEPTION      /* "exception" */
 %token EXTERNAL       /* "external" */
@@ -716,6 +718,9 @@ scondpat_desc :
   (*added here*)
   | R_CONTROL e = simple_expression
       { Econdexp (make (Eop(Econtrol, [e])) $startpos $endpos)}
+  (*added here*)
+  | R_STR e = simple_expression
+      { Econdexp (make (Eop(Estr, [e])) $startpos $endpos)}
   (*added here
   | R_STORE rob = robot_expression
        {Econdexp (make (Eop(Estore, [rob])) $startpos $endpos)}*)
@@ -1016,6 +1021,9 @@ expression_desc:
   (*added here*)
   | R_CONTROL LPAREN e1= expression COMMA e2=expression RPAREN
       { Eop(Econtrol, [e1;e2])}
+  (*added here*)
+  | R_STR LPAREN e1= expression COMMA e2=expression RPAREN
+      { Eop(Estr, [e1;e2])}
   (*added here
   | R_STORE rob = robot_expression
       { Eop(Estore, [rob])}*)

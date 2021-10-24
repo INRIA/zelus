@@ -488,6 +488,12 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      let e2, code = exp env loop_path code e2 in
      Ocontrol(e1, e2), code
   (*added here*)
+  | Zelus.Eop(Zelus.Estr, [e1; e2]) ->
+     print_endline("Translate");
+     let e1, code = exp env loop_path code e1 in
+     let e2, code = exp env loop_path code e2 in
+     Ostr(e1, e2), code
+  (*added here*)
   | Zelus.Estore(cmd, key) -> Ostore(cmd, key), code
   (*added here*)
   | Zelus.Eget(cm) -> Oget(cm), code

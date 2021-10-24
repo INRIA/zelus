@@ -1,4 +1,4 @@
-(* Robot store keyword *)
+(* Robot str keyword *)
 
 let pi = 3.14159
 let w = pi*.2.0
@@ -11,7 +11,7 @@ let hybrid main () = () where
   and trigger = up(y) and
   present trigger -> local cpt in
     do  cpt = 0 fby cpt + 1
-    and () = robot_store("transverse_vel" , 30.)
+    and () = robot_str("transverse_vel" , -30.)
     and  () = print_endline (string_of_float last y) 
     done
    

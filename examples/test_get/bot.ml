@@ -1,13 +1,17 @@
 (* The Zelus compiler, version 2.1-dev
-  (2021-09-30-18:47) *)
+  (2021-10-24-17:12) *)
 open Ztypes
 external move_robot_ml: int -> unit = "move_robot_cpp" 
 
+  
  external robot_get: string -> float = "robot_get_cpp" 
+
+  
+ external robot_str_ml: string -> float -> unit = "robot_str_cpp" 
  external control_robot_ml: int -> int -> unit = "control_robot_c" 
 
  external robot_store: string -> float -> unit = "robot_store_c" 
- type state__124 = Bot_Second_15 | Bot_First_14 
+ type state__144 = Bot_Second_15 | Bot_First_14 
 type ('i , 'h , 'g , 'f , 'e , 'd , 'c , 'b , 'a) _main =
   { mutable major_29 : 'i ;
     mutable h_41 : 'h ;
@@ -27,7 +31,7 @@ let main (cstate_42:Ztypes.cstate) =
       i_37 = (false:bool) ;
       h_35 = (42.:float) ;
       r_34 = (false:bool) ;
-      s_33 = (Bot_Second_15:state__124) ;
+      s_33 = (Bot_Second_15:state__144) ;
       result_32 = (():unit) ; t_30 = (42.:float) } in
   let main_step self ((time_28:float) , ()) =
     ((self.major_29 <- cstate_42.major ;
@@ -67,8 +71,8 @@ let main (cstate_42:Ztypes.cstate) =
                        let _ = print_int 0 in
                        let _ = print_float self.t_30 in
                        let _ = print_newline () in
-                       self.result_32 <- (robot_store"transverse_vel"  30.000000)
-                   | _ -> self.result_32 <- ()  end) ;
+                       self.result_32 <- (robot_str_ml ("transverse_vel") (
+                         (~-.) 30.)) | _ -> self.result_32 <- ()  end) ;
             (let () = self.result_32 in
              ())) in
        cstate_42.horizon <- min cstate_42.horizon  self.h_41 ; result_47)):
