@@ -14,10 +14,12 @@
 
 (** The compiler *)
 open Zlocation
+open Z3
 open Zmisc
 open Global
 open Zelus
 open Format
+
 
 let lexical_error err loc =
   eprintf "%aIllegal character.@." output_location loc;
@@ -98,6 +100,7 @@ let compile modname filename =
   and obj_interf_name = filename ^ ".zci"
   and ml_name = filename ^ ".ml"
   and lmm_name = filename ^ ".lmm" in
+  Printf.printf "compiling %s\n" filename;
 
   (* standard output for printing types and clocks *)
   let info_ff = Format.formatter_of_out_channel stdout in
@@ -129,6 +132,7 @@ let compile modname filename =
     impl_list in
 
   (* Parsing of the file *)
+  (*TODO: understand ast  *)
   let impl_list = parse_implementation_file source_name in
   if !verbose then comment "Parsing done. See below:";
   
@@ -136,6 +140,11 @@ let compile modname filename =
     step "Scoping done. See below:" Scoping.implementation_list impl_list in
   let impl_list =
     step "Typing done." (Typing.implementation_list info_ff true) impl_list in
+  (* Adding verification here *)
+  let cfg = [("model", "true"); ("proof", "false")] in
+	let ctx = (mk_context cfg) in
+  let impl_list = 
+    step "Verification done." (Z3refinement.implementation_list ctx []) impl_list in
   let impl_list =
     if not !no_causality
     then step "Causality check done"

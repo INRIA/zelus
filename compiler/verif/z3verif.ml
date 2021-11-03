@@ -53,11 +53,37 @@ let qualident { Lident.qual = m; Lident.id = s } =
 let print_elt f e = 
 	print_string (Printf.sprintf "List exp: '%s'\n" (f e)) 
 	
+let type_exp typ = 
+	match typ with
+	  | Vconst(i) -> immediate i (* constant *)
+	  | Vconstr0(ln) -> qualident ln (* constructor *)
+	  | Vabstract(ln) -> qualident ln (* no implementation is given *)
+
+let qualid_exp typ = 
+	match typ with
+	  | None  -> "None" (* constant *)
+	  | Some(ln) -> qualident ln (* constructor *)
+  
+let print_info info =
+	(*print_string (Printf.sprintf "Value typ: '%s' \n" (List.hd (info.value_typ.typ_vars)));*)
+	print_string (Printf.sprintf "Value static: '%b' \n" (info.value_static));
+	(*print_string (Printf.sprintf "Value caus: '%s' \n" info.value_caus);
+	print_string ("Value init: \n");
+	print_string (String.concat " " (List.map (Printf.sprintf "'%s'") info.value_init));*)
+	print_string (Printf.sprintf "Value code exp: '%s' \n"  ( type_exp info.value_code.value_exp));
+	print_string (Printf.sprintf "Value code name: '%s' \n" ( qualid_exp info.value_code.value_name)); "Info"
+	
 (* parse input expression into string and redirect to Z3 solver *)
 let rec parse_expression e = 
   match e.e_desc with
     | Elocal n -> print_string "Elocal\n"; "1.0"
-    | Eglobal { lname = ln } -> print_string "Eglobal\n"; Lident.modname ln
+    | Eglobal { lname = ln } -> print_string "Eglobal\n"; let var_name = Lident.modname ln in print_string var_name; print_newline(); 
+    let var2 =
+    	try 
+    	   let { info = info } = Modules.find_value ln in print_info info
+    	with 
+    	   | Not_found -> "No info" in
+    var_name
     | Eop(op, e_list) -> print_string "Eop\n"; "1.0"
     | Elast x -> print_string "Elast\n"; "1.0"
     | Econstr0(ln) -> print_string "Econstr0\n"; "1.0"
@@ -118,4 +144,8 @@ let evaluate name ty e1 e2 : bool =
 	     
 let rec prove_satisfiability op : bool =
 	match op with
-	| Z3eval(var, ty, e1, e2) -> evaluate var ty (parse_expression e1) (parse_expression e2)
+	| Z3eval(var, ty, e1, e2) -> 
+	let arg = parse_expression e1 in
+	let arg2 = parse_expression e2 in
+	print_string arg; print_newline(); print_string arg2; print_newline();
+	evaluate var ty (arg) (arg2)
