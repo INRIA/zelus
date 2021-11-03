@@ -45,7 +45,7 @@ let check_type_of_main_node name
       Ztypes.filter_actual_arrow actual_ty
     with
     | _ ->  eprintf "@[The name %s must define a function.@.@]" name;
-          Printf.printf "check_type_of_main_mode"; raise Zmisc.Error in
+          raise Zmisc.Error in
   let expected_k =
     match actual_k with | Tproba -> Tdiscrete(true) | _ -> actual_k in
   let expected_ty =

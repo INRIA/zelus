@@ -1373,23 +1373,28 @@ let fundecl loc f ({ f_kind = k; f_atomic = is_atomic;
   let ty_res = funtype loc expected_k pat_list ty_p_list ty_res in
   let tys = Ztypes.gen true ty_res in
   tys	
-
 let implementation ff is_first impl =
-  try
+  try 
     match impl.desc with
     | Econstdecl(f, is_static, e) ->
        let tys = constdecl f is_static e in
        if is_first then Interface.add_type_of_value ff impl.loc f is_static tys
        else Interface.update_type_of_value ff impl.loc f is_static tys
     (*TODO: add refinement type implementation here*)
-    | Erefinementdecl(f1, f2, e1, e2) ->
-       let tys = constdecl f1 false e2 in
+    |Erefinementdecl(f1, f2, e1, e2) -> 
+      let tys = constdecl f1 false e2 in
+      if is_first then Interface.add_type_of_value ff impl.loc f1 false tys
+      else Interface.update_type_of_value ff impl.loc f1 false tys
+       
+       (*let tys = constdecl f1 false e2 in
+       print_string "Before Z3";
        let pred = Z3verif.prove_satisfiability(Z3eval(f1, f2, e1, e2)) in (*parse refinement expression into predicate*)
+       print_string "After Z3";
        if pred then Printf.printf "Expression verified\n";
        (*if is_first then Interface.add_refinement_type_of_value ff impl.loc f1 f2 pred tys 
        else Interface.update_refinement_type_of_value ff impl.loc f1 f2 pred tys*)
        if is_first then Interface.add_type_of_value ff impl.loc f1 false tys
-       else Interface.update_type_of_value ff impl.loc f1 false tys
+       else Interface.update_type_of_value ff impl.loc f1 false tys*)
     | Efundecl(f, body) ->
        let tys = fundecl impl.loc f body in
        if is_first then Interface.add_type_of_value ff impl.loc f true tys
