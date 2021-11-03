@@ -13,12 +13,13 @@
 (* *********************************************************************)
 
 (** The compiler *)
+open Z3 (*Z3 should be opened before Zmisc, otherwise clash of exception errors*)
 open Zlocation
-open Z3
 open Zmisc
 open Global
 open Zelus
 open Format
+
 
 
 let lexical_error err loc =
@@ -144,7 +145,7 @@ let compile modname filename =
   let cfg = [("model", "true"); ("proof", "false")] in
 	let ctx = (mk_context cfg) in
   let impl_list = 
-    step "Verification done." (Z3refinement.implementation_list ctx []) impl_list in
+    step "Verification done." (Z3refinement.implementation_list info_ff ctx) impl_list in
   let impl_list =
     if not !no_causality
     then step "Causality check done"

@@ -20,29 +20,32 @@ open Z3.BitVector
 exception Z3FailedException of string
 
 (*Open Zelus Interface*)
-open Zelus
 open Zident
 open Global
 open Modules
-open Zelus
 open Deftypes
 open Ztypes
 open Typerrors
 
 open Zmisc
 open Zlocation
-open Zparsetree
 open Format
+open Zelus
 
 
-(*type variable = 
+
+type variable = 
   { 
     name:         string;
-    type_t:       Global.type_desc E.t;
-    refinement_t: Global.refinement_desc E.t;
-    assignment_t: Global.constr_desc E.t;
+    refinement_t: expr;
   }
 
+let z3env = ref []
+
+let add_constraint n c = 
+   z3env := {name = n ; refinement_t = c; } :: (!z3env) 
+
+(*
 type z3env =
 {
   scope: variable list;
@@ -174,26 +177,32 @@ let rec prove_satisfiability op : bool =
 let immediate i ctx = 
 match i with
   | Ebool(b) ->  Boolean.mk_val ctx b 
-  | Eint(i) -> Integer.mk_numeral_s ctx (Printf.sprintf "%d" i)
+  | Eint(i) -> (Printf.printf "Z3 Int %d\n") i; Integer.mk_numeral_s ctx (Printf.sprintf "%d" i)
   (*TODO: in general reals and floating points are not the same*)
-  | Efloat(i) -> Real.mk_numeral_s ctx (Printf.sprintf "%f" i)
+  | Efloat(i) -> (Printf.printf "Z3 Float %f\n") i; Real.mk_numeral_s ctx (Printf.sprintf "%f" i)
+  | _ -> (Printf.printf "Ignore \n"); Integer.mk_numeral_s ctx "42"
   (*
   | Echar(c) -> Printf.sprintf "'%c'" c
   | Estring(c) -> Printf.sprintf "'%s'" c
   | Evoid -> Printf.sprintf ""
   *)
 
-let longname = function
-  | Name(n) -> Lident.Name(n)
-  | Modname({ qual = q; id = id }) ->
-      Lident.Modname({ Lident.qual = q; Lident.id = id })
-
 
 (* translate expressions into Z3 constructs*)
 
-let rec expression env ctx { desc = desc; loc = loc } =
+let rec expression ctx ({ e_desc = desc; e_loc = loc }) =
   match desc with
     | Econst(i) -> immediate i ctx
+    | Eglobal { lname = ln } ->  
+      
+      let var_name = Lident.modname ln in print_string var_name; print_newline(); 
+      let var2 =
+    	try 
+    	   let { info = info } = Modules.find_value ln in print_info info
+    	with 
+    	   | Not_found -> "No info" in
+    var_name
+    | _ -> (Printf.printf "Ignore \n"); Integer.mk_numeral_s ctx "42"
 
     (*| Econstr0(lname) -> Zelus.Econstr0(longname lname)
     | Evar(Name(n)) ->
@@ -323,25 +332,31 @@ let rec expression env ctx { desc = desc; loc = loc } =
        Zelus.Eblock(b, e) in
   emake loc desc*)
 
-  
+
+  let print_env_list {name = n ; refinement_t = e} =
+      (Printf.printf " Variable = %s  Expression = %s ; " n (Expr.to_string e))
 
 (* main entry functions *)
-let implementation ctx env imp =
-    match imp.desc with
+(* this function modifies the environemnt, returns unit *)
+let implementation ff ctx (impl (*: Zelus.implementation_desc Zelus.localized*))  =
+      match impl.desc with
       (* Add to Z3 an equality constraint that looks like: n == (Z3 parsed version of e) *)
-      | Econstdecl(n, is_static, e) -> (Printf.printf "Econstdecl %s\n" n); 
+      | Econstdecl(f, is_static, e) -> (Printf.printf "Econstdecl %s\n" f); 
         (*add_environment {name: n; type_t: ; refinement_t: true; assignment_t: expression Rename.empty e }*)
-        ignore(expression env ctx e); ()
+        add_constraint f (expression ctx e);
+        List.iter print_env_list !z3env; print_newline ()
+
       (* For constant functions, let x=f we assign x the type x:{float z | z=f} *)
 
-      (*
       | Erefinementdecl(n1, n2, e1, e2) ->
-      	 Printf.printf "Erefinementdecl %s %s\n" n1 n2
+      	 Printf.printf "Erefinementdecl %s %s\n" n1 n2;
+         add_constraint n1 (expression ctx e1); add_constraint n1 (expression ctx e2) ;
+         List.iter print_env_list !z3env; print_newline ()
+
       | Efundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
 		      f_body = e; f_loc = loc }) -> Printf.printf "Efundecl %s\n" n
       | Eopen(n) -> (Printf.printf "Eopen %s\n" n)
       | Etypedecl(n, params, tydecl) -> (Printf.printf "Etypedecl %s\n" n)
-      *)
 
 (* let f x:tx y:ty z:tz = e:te *)
 (* f has the type: tx -> ty -> tz -> te *)
@@ -354,8 +369,7 @@ let implementation ctx env imp =
 (* ([x/z]phi_x(z) & [y/z]phi_y(z) & [z/z']phi_z(z')) -> [e/z]phi_e(z) *)
 
 (* the main entry function *)
-let implementation_list ctx env impl_list =
-  (*List.iter (implementation ff is_first) impl_list;*)
+let implementation_list ff ctx (impl_list) (*: Zelus.implementation_desc Zelus.localized list ) : Zelus.implementation_desc Zelus.localized list*) = 
   print_string "Hello, this is Z3 Refinement\n";
-  List.iter (implementation ctx env) impl_list;
+  List.iter (implementation ff ctx) impl_list;
   impl_list
