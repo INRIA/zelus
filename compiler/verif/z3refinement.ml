@@ -181,7 +181,8 @@ exception TestFailedException of string
 let print_assignments m = 
   let decls = (Model.get_decls m) in
     List.iter (fun a -> (match (Model.get_const_interp m a) with
-      | Some(e) -> Printf.printf "\t%s: %s\n" (Symbol.get_string (FuncDecl.get_name a)) (Arithmetic.Real.to_decimal_string e 5)
+      | Some(e) -> Printf.printf "\t%s: %s\n" (Symbol.get_string (FuncDecl.get_name a)) 
+          (if (Arithmetic.is_real e) then (Arithmetic.Real.to_decimal_string e 5) else (Expr.to_string e))
       | None -> ()
     )) decls
 
@@ -249,7 +250,7 @@ let rec operator ctx e e_list =
   | "<" -> Arithmetic.mk_lt ctx (expression ctx (hd e_list)) (expression ctx (hd (tl e_list)))
   | "==" -> Boolean.mk_eq ctx (expression ctx (hd e_list)) (expression ctx (hd (tl e_list)))
   | "!=" -> Boolean.mk_not ctx (Boolean.mk_eq ctx (expression ctx (hd e_list)) (expression ctx (hd (tl e_list))))
-  | "*." -> Arithmetic.mk_mul ctx [(expression ctx (hd e_list)); (expression ctx (hd (tl e_list)))]
+  | "*." | "Stdlib.*." -> Arithmetic.mk_mul ctx [(expression ctx (hd e_list)); (expression ctx (hd (tl e_list)))]
   | s -> Printf.printf "Invalid expression symbol: %s" s; raise (Z3FailedException "Z3 verification failed")
 
 (* translate expressions into Z3 constructs*)
