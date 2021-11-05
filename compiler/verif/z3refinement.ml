@@ -32,18 +32,22 @@ open Zlocation
 open Format
 open Zelus
 
+open List
 
 
+(*
 type variable = 
   { 
     name:         string;
     refinement_t: expr;
   }
+*)
 
+(*TODO :Change this to a Z3 expression type, then add stuff by AND-ing it on the head *)
 let z3env = ref []
 
-let add_constraint n c = 
-   z3env := {name = n ; refinement_t = c; } :: (!z3env) 
+let add_constraint premise = 
+   z3env := premise :: (!z3env) 
 
 (*
 type z3env =
@@ -173,35 +177,81 @@ let rec prove_satisfiability op : bool =
 	print_string arg; print_newline(); print_string arg2; print_newline();
 	evaluate var ty (arg) (arg2)
 *)
+exception TestFailedException of string
 
-let immediate i ctx = 
+let rec build_z3_premise ctx l =
+  match l with
+  | h :: t -> Boolean.mk_and ctx [h; (build_z3_premise ctx t)]
+  | [] -> Boolean.mk_true ctx
+
+let z3_solve ctx constraints = 
+  let solver = (mk_solver ctx None) in
+  let c = Boolean.mk_not ctx (Boolean.mk_implies ctx 
+                                    (build_z3_premise ctx !z3env)
+                                    (constraints)) in
+  let s = (Solver.add solver [c]) in
+  let q = check solver [] in
+  (if q == SATISFIABLE then
+    (Printf.printf "Counterexample found:\n";
+    let m = (get_model solver) in    
+      		match m with 
+          | None -> raise (TestFailedException "")
+		      | Some (m) -> 
+	  	      Printf.printf "Model: \n%s\n" (Model.to_string m);
+            raise (TestFailedException "") )
+  else
+    	    (Printf.printf "Passed\n"))
+  
+	
+
+let create_z3_var ctx s =
+  Expr.mk_const ctx (Symbol.mk_string ctx s) (Real.mk_sort ctx)
+
+let immediate ctx i = 
 match i with
   | Ebool(b) ->  Boolean.mk_val ctx b 
   | Eint(i) -> (Printf.printf "Z3 Int %d\n") i; Integer.mk_numeral_s ctx (Printf.sprintf "%d" i)
   (*TODO: in general reals and floating points are not the same*)
   | Efloat(i) -> (Printf.printf "Z3 Float %f\n") i; Real.mk_numeral_s ctx (Printf.sprintf "%f" i)
-  | _ -> (Printf.printf "Ignore \n"); Integer.mk_numeral_s ctx "42"
+  | Estring(c) -> Expr.mk_const ctx (Symbol.mk_string ctx c) (Real.mk_sort ctx)
   (*
   | Echar(c) -> Printf.sprintf "'%c'" c
-  | Estring(c) -> Printf.sprintf "'%s'" c
   | Evoid -> Printf.sprintf ""
   *)
+  | _ -> (Printf.printf "Ignore \n"); Integer.mk_numeral_s ctx "42"
 
+let rec operator ctx e e_list =
+  (*match desc with 
+  (*TODO: check for list length*)
+
+  match e_list with
+    | op_l :: [] -> ()
+      match e with 
+        | "~" -> () (*Unary operator case*)
+    | op_l :: op_r :: [] -> ()
+      match e with 
+        | _ -> () (*Binary operator case*)
+    | _ -> () (*ERROR!*)
+  *)
+  match e with 
+  | ">=" -> Arithmetic.mk_ge ctx (expression ctx (hd e_list)) (expression ctx (hd (tl e_list)))
+  | ">" -> Arithmetic.mk_gt ctx (expression ctx (hd e_list)) (expression ctx (hd (tl e_list)))
+  | "<=" -> Arithmetic.mk_le ctx (expression ctx (hd e_list)) (expression ctx (hd (tl e_list)))
+  | "<" -> Arithmetic.mk_lt ctx (expression ctx (hd e_list)) (expression ctx (hd (tl e_list)))
+  | "==" -> Boolean.mk_eq ctx (expression ctx (hd e_list)) (expression ctx (hd (tl e_list)))
+  | "!=" -> Boolean.mk_not ctx (Boolean.mk_eq ctx (expression ctx (hd e_list)) (expression ctx (hd (tl e_list))))
+  | s -> Printf.printf "Invalid expression symbol: %s" s; raise (Z3FailedException "Z3 verification failed")
 
 (* translate expressions into Z3 constructs*)
 
-let rec expression ctx ({ e_desc = desc; e_loc = loc }) =
+and expression ctx ({ e_desc = desc; e_loc = loc }) =
   match desc with
-    | Econst(i) -> immediate i ctx
-    | Eglobal { lname = ln } ->  
-      
-      let var_name = Lident.modname ln in print_string var_name; print_newline(); 
-      let var2 =
-    	try 
-    	   let { info = info } = Modules.find_value ln in print_info info
-    	with 
-    	   | Not_found -> "No info" in
-    var_name
+    | Econst(i) -> immediate ctx i
+    | Eglobal { lname = ln } -> create_z3_var ctx (Lident.modname ln) 
+    | Eapp({ app_inline = i; app_statefull = r }, e, e_list) -> 
+      Printf.printf "Expression %s" (Expr.to_string (expression ctx e));
+      operator ctx (Expr.to_string (expression ctx e)) e_list
+
     | _ -> (Printf.printf "Ignore \n"); Integer.mk_numeral_s ctx "42"
 
     (*| Econstr0(lname) -> Zelus.Econstr0(longname lname)
@@ -333,8 +383,8 @@ let rec expression ctx ({ e_desc = desc; e_loc = loc }) =
   emake loc desc*)
 
 
-  let print_env_list {name = n ; refinement_t = e} =
-      (Printf.printf " Variable = %s  Expression = %s ; " n (Expr.to_string e))
+  let print_env_list premise =
+      (Printf.printf "Expression = %s ; " (Expr.to_string premise))
 
 (* main entry functions *)
 (* this function modifies the environemnt, returns unit *)
@@ -343,14 +393,14 @@ let implementation ff ctx (impl (*: Zelus.implementation_desc Zelus.localized*))
       (* Add to Z3 an equality constraint that looks like: n == (Z3 parsed version of e) *)
       | Econstdecl(f, is_static, e) -> (Printf.printf "Econstdecl %s\n" f); 
         (*add_environment {name: n; type_t: ; refinement_t: true; assignment_t: expression Rename.empty e }*)
-        add_constraint f (expression ctx e);
+        add_constraint (Boolean.mk_eq ctx (create_z3_var ctx f) (expression ctx e));
         List.iter print_env_list !z3env; print_newline ()
-
       (* For constant functions, let x=f we assign x the type x:{float z | z=f} *)
 
       | Erefinementdecl(n1, n2, e1, e2) ->
       	 Printf.printf "Erefinementdecl %s %s\n" n1 n2;
-         add_constraint n1 (expression ctx e1); add_constraint n1 (expression ctx e2) ;
+         add_constraint (Boolean.mk_eq ctx (create_z3_var ctx n1) (expression ctx e2));
+         z3_solve ctx (expression ctx e1);
          List.iter print_env_list !z3env; print_newline ()
 
       | Efundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;

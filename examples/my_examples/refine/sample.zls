@@ -1,7 +1,8 @@
 (* Tuning Fork *)
 
-let pi = 3.14159
-let y0:float{y0 >= 3.0} = 4.0
+let pi = 7.0
+let w = 6.28
+let y0:float{y0 >= pi} = 4.0
 
 
 let node main () = print_string "end"; print_newline()
