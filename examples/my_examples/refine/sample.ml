@@ -7,6 +7,8 @@ let w = 6.28
 
 let y0 = 4.
 
+let y1 = 10.
+
 type _main = unit
 
 let main  = 

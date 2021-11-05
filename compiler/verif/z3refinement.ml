@@ -200,7 +200,8 @@ let z3_solve ctx constraints =
 	  	      Printf.printf "Model: \n%s\n" (Model.to_string m);
             raise (TestFailedException "") )
   else
-    	    (Printf.printf "Passed\n"))
+    	    (Printf.printf "Passed\n"));
+          add_constraint constraints
   
 	
 
