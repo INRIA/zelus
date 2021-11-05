@@ -3,6 +3,6 @@
 let pi = 3.14159
 let w = 6.28
 let y0:float{y0 >= pi} = 4.0
-let y1:float{y1 >= y0} = 1.0
+let y1:float{y1 >= y0*.900} = 10.0
 
 let node main () = print_string "end"; print_newline()
