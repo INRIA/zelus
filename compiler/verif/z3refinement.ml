@@ -178,6 +178,12 @@ let rec prove_satisfiability op : bool =
 	evaluate var ty (arg) (arg2)
 *)
 exception TestFailedException of string
+let print_assignments m = 
+  let decls = (Model.get_decls m) in
+    List.iter (fun a -> (match (Model.get_const_interp m a) with
+      | Some(e) -> Printf.printf "\t%s: %s\n" (Symbol.get_string (FuncDecl.get_name a)) (Arithmetic.Real.to_decimal_string e 5)
+      | None -> ()
+    )) decls
 
 let rec build_z3_premise ctx l =
   match l with
@@ -193,12 +199,14 @@ let z3_solve ctx constraints =
   let q = check solver [] in
   (if q == SATISFIABLE then
     (Printf.printf "Counterexample found:\n";
-    let m = (get_model solver) in    
+    (let m = (get_model solver) in    
       		match m with 
-          | None -> raise (TestFailedException "")
+          | None -> ()
 		      | Some (m) -> 
-	  	      Printf.printf "Model: \n%s\n" (Model.to_string m);
-            raise (TestFailedException "") )
+	  	      (*Printf.printf "Model: \n%s\n" (Model.to_string m);*)
+            print_assignments m;
+      Printf.printf "Could not prove %s\n" (Expr.to_string constraints);
+      raise (TestFailedException "")))
   else
     	    (Printf.printf "Passed\n"));
           add_constraint constraints
@@ -241,6 +249,7 @@ let rec operator ctx e e_list =
   | "<" -> Arithmetic.mk_lt ctx (expression ctx (hd e_list)) (expression ctx (hd (tl e_list)))
   | "==" -> Boolean.mk_eq ctx (expression ctx (hd e_list)) (expression ctx (hd (tl e_list)))
   | "!=" -> Boolean.mk_not ctx (Boolean.mk_eq ctx (expression ctx (hd e_list)) (expression ctx (hd (tl e_list))))
+  | "*." -> Arithmetic.mk_mul ctx [(expression ctx (hd e_list)); (expression ctx (hd (tl e_list)))]
   | s -> Printf.printf "Invalid expression symbol: %s" s; raise (Z3FailedException "Z3 verification failed")
 
 (* translate expressions into Z3 constructs*)
