@@ -3,6 +3,8 @@
 open Ztypes
 let pi = 3.14159
 
+let w = 6.28
+
 let y0 = 4.
 
 type _main = unit
