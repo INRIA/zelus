@@ -1,7 +1,7 @@
 (* Tuning Fork *)
 
 let pi = 3.14159
-let w = 6.28
+let w = 2. *. pi
 let y0:float{y0 >= pi} = 4.0*.2.0
 let y1:float{y1 >= y0*.900} = 10.0
 
