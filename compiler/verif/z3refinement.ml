@@ -258,11 +258,13 @@ let rec operator ctx e e_list =
 and expression ctx ({ e_desc = desc; e_loc = loc }) =
   match desc with
     | Econst(i) -> immediate ctx i
-    | Eglobal { lname = ln } -> create_z3_var ctx (Lident.modname ln) 
+    | Eglobal { lname = ln } -> create_z3_var ctx (match ln with
+      (*TODO: Append a modname to Name if not found, rather than removing it from a Modname, so we preserve module info for global declarations *)
+      | Name(n) -> n
+      | Modname(qualid) -> qualid.id) 
     | Eapp({ app_inline = i; app_statefull = r }, e, e_list) -> 
       Printf.printf "Expression %s" (Expr.to_string (expression ctx e));
       operator ctx (Expr.to_string (expression ctx e)) e_list
-
     | _ -> (Printf.printf "Ignore \n"); Integer.mk_numeral_s ctx "42"
 
     (*| Econstr0(lname) -> Zelus.Econstr0(longname lname)
@@ -407,7 +409,7 @@ let implementation ff ctx (impl (*: Zelus.implementation_desc Zelus.localized*))
         add_constraint (Boolean.mk_eq ctx (create_z3_var ctx f) (expression ctx e));
         List.iter print_env_list !z3env; print_newline ()
       (* For constant functions, let x=f we assign x the type x:{float z | z=f} *)
-
+      (* Refinement type of the form: let n1:n2{e1} = e2 *)
       | Erefinementdecl(n1, n2, e1, e2) ->
       	 Printf.printf "Erefinementdecl %s %s\n" n1 n2;
          add_constraint (Boolean.mk_eq ctx (create_z3_var ctx n1) (expression ctx e2));
