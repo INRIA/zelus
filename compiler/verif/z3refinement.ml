@@ -186,10 +186,10 @@ let print_assignments m =
       | None -> ()
     )) decls
 
-let rec build_z3_premise ctx l =
+let build_z3_premise ctx l =
   match l with
-  | h :: t -> Boolean.mk_and ctx [h; (build_z3_premise ctx t)]
   | [] -> Boolean.mk_true ctx
+  | _ -> Boolean.mk_and ctx l
 
 let z3_solve ctx constraints = 
   let solver = (mk_solver ctx None) in
@@ -417,7 +417,9 @@ let implementation ff ctx (impl (*: Zelus.implementation_desc Zelus.localized*))
          List.iter print_env_list !z3env; print_newline ()
 
       | Efundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
-		      f_body = e; f_loc = loc }) -> Printf.printf "Efundecl %s\n" n
+		      f_body = e; f_loc = loc }) -> (Printf.printf "Efundecl %s\n" n); 
+            (Printf.printf "# of Arguments: %d\n" (List.length p_list)) 
+            
       | Eopen(n) -> (Printf.printf "Eopen %s\n" n)
       | Etypedecl(n, params, tydecl) -> (Printf.printf "Etypedecl %s\n" n)
 
