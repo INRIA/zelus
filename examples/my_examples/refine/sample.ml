@@ -1,13 +1,7 @@
 (* The Zelus compiler, version 2.1-dev
   (2021-05-19-23:17) *)
 open Ztypes
-let pi = 3.14159
-
-let w = 6.28
-
 let y0 = 4.
-
-let y1 = 10.
 
 type _main = unit
 

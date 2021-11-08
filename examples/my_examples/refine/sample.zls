@@ -1,8 +1,19 @@
 (* Tuning Fork *)
 
+<<<<<<< Updated upstream
 let pi = 3.14159
 let w = 2. *. pi
 let y0:float{y0 >= pi} = 4.0*.2.0
 let y1:float{y1 >= y0*.1.} = 10.0
+=======
+(*let pi = 3.14159
+let w = 2. *. pi*)
+
+
+let y0:float{y0 >= 0.0} = 4.0
+
+(*
+let y1:float{y1 >= y0*.900} = 10.0*)
+>>>>>>> Stashed changes
 
 let node main arg1 arg2 arg3 = let x = 5. in (print_string "end"; print_newline())
