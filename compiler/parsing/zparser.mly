@@ -815,6 +815,7 @@ pattern:
       { make (Etuplepat(List.rev p)) $startpos $endpos }
   | c = constructor p = simple_pattern
       { make (constr c p) $startpos $endpos }
+    (*Add pattern for dependent type*)
 ;
 
 simple_pattern:
