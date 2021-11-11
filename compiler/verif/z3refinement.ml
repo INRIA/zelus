@@ -178,11 +178,18 @@ let rec prove_satisfiability op : bool =
 	evaluate var ty (arg) (arg2)
 *)
 exception TestFailedException of string
+let print_assignments m = 
+  let decls = (Model.get_decls m) in
+    List.iter (fun a -> (match (Model.get_const_interp m a) with
+      | Some(e) -> Printf.printf "\t%s: %s\n" (Symbol.get_string (FuncDecl.get_name a)) 
+          (if (Arithmetic.is_real e) then (Arithmetic.Real.to_decimal_string e 5) else (Expr.to_string e))
+      | None -> ()
+    )) decls
 
-let rec build_z3_premise ctx l =
+let build_z3_premise ctx l =
   match l with
-  | h :: t -> Boolean.mk_and ctx [h; (build_z3_premise ctx t)]
   | [] -> Boolean.mk_true ctx
+  | _ -> Boolean.mk_and ctx l
 
 let z3_solve ctx constraints = 
   let solver = (mk_solver ctx None) in
@@ -193,12 +200,14 @@ let z3_solve ctx constraints =
   let q = check solver [] in
   (if q == SATISFIABLE then
     (Printf.printf "Counterexample found:\n";
-    let m = (get_model solver) in    
+    (let m = (get_model solver) in    
       		match m with 
-          | None -> raise (TestFailedException "")
+          | None -> ()
 		      | Some (m) -> 
-	  	      Printf.printf "Model: \n%s\n" (Model.to_string m);
-            raise (TestFailedException "") )
+	  	      (*Printf.printf "Model: \n%s\n" (Model.to_string m);*)
+            print_assignments m;
+      Printf.printf "Could not prove %s\n" (Expr.to_string constraints);
+      raise (TestFailedException "")))
   else
     	    (Printf.printf "Passed\n"));
           add_constraint constraints
@@ -241,6 +250,7 @@ let rec operator ctx e e_list =
   | "<" -> Arithmetic.mk_lt ctx (expression ctx (hd e_list)) (expression ctx (hd (tl e_list)))
   | "==" -> Boolean.mk_eq ctx (expression ctx (hd e_list)) (expression ctx (hd (tl e_list)))
   | "!=" -> Boolean.mk_not ctx (Boolean.mk_eq ctx (expression ctx (hd e_list)) (expression ctx (hd (tl e_list))))
+  | "*." | "Stdlib.*." -> Arithmetic.mk_mul ctx [(expression ctx (hd e_list)); (expression ctx (hd (tl e_list)))]
   | s -> Printf.printf "Invalid expression symbol: %s" s; raise (Z3FailedException "Z3 verification failed")
 
 (* translate expressions into Z3 constructs*)
@@ -248,11 +258,13 @@ let rec operator ctx e e_list =
 and expression ctx ({ e_desc = desc; e_loc = loc }) =
   match desc with
     | Econst(i) -> immediate ctx i
-    | Eglobal { lname = ln } -> create_z3_var ctx (Lident.modname ln) 
+    | Eglobal { lname = ln } -> create_z3_var ctx (match ln with
+      (*TODO: Append a modname to Name if not found, rather than removing it from a Modname, so we preserve module info for global declarations *)
+      | Name(n) -> n
+      | Modname(qualid) -> qualid.id) 
     | Eapp({ app_inline = i; app_statefull = r }, e, e_list) -> 
       Printf.printf "Expression %s" (Expr.to_string (expression ctx e));
       operator ctx (Expr.to_string (expression ctx e)) e_list
-
     | _ -> (Printf.printf "Ignore \n"); Integer.mk_numeral_s ctx "42"
 
     (*| Econstr0(lname) -> Zelus.Econstr0(longname lname)
@@ -397,7 +409,7 @@ let implementation ff ctx (impl (*: Zelus.implementation_desc Zelus.localized*))
         add_constraint (Boolean.mk_eq ctx (create_z3_var ctx f) (expression ctx e));
         List.iter print_env_list !z3env; print_newline ()
       (* For constant functions, let x=f we assign x the type x:{float z | z=f} *)
-
+      (* Refinement type of the form: let n1:n2{e1} = e2 *)
       | Erefinementdecl(n1, n2, e1, e2) ->
       	 Printf.printf "Erefinementdecl %s %s\n" n1 n2;
          add_constraint (Boolean.mk_eq ctx (create_z3_var ctx n1) (expression ctx e2));
@@ -405,7 +417,9 @@ let implementation ff ctx (impl (*: Zelus.implementation_desc Zelus.localized*))
          List.iter print_env_list !z3env; print_newline ()
 
       | Efundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
-		      f_body = e; f_loc = loc }) -> Printf.printf "Efundecl %s\n" n
+		      f_body = e; f_loc = loc }) -> (Printf.printf "Efundecl %s\n" n); 
+            (Printf.printf "# of Arguments: %d\n" (List.length p_list)) 
+            
       | Eopen(n) -> (Printf.printf "Eopen %s\n" n)
       | Etypedecl(n, params, tydecl) -> (Printf.printf "Etypedecl %s\n" n)
 
