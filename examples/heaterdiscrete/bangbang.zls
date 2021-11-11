@@ -1,0 +1,90 @@
+(*
+  Version of the Mathworks Simulink example:
+      Bang-Bang Control Using Temporal Logic
+ *)
+
+(* time-scale factor *)
+let tscale x = x *. 100.0
+let dt = 0.1
+
+(* TODO: Make this fully discrete *)
+(* ** library functions ** *)
+let node integrator (i, u) = y where
+  rec init y = i and
+  y = (last y) +. (dt *. u)
+  (*rec der y = tscale u init i*)
+
+(* signed fixed-point int from scale and bias *)
+let discrete fixdt (s, b, v) = int_of_float ((v -. b) /. s)
+
+(* the one below is the Simulink version with an approximation by a *)
+(* linear function *)
+let node boiler(power) = actual_temp where
+    rec actual_temp = integrator (15.0, power -. 0.0005 *. last actual_temp) and
+	init actual_temp = 15.
+    (* at a zero-crossing instant. *)
+
+let node boiler_proportional(power) = 
+	integrator (15.0, (power /. 100.0))
+
+let b_off  = false
+let b_on   = true
+
+let node controller (ref, temp) = boiler where
+  rec cold = temp <= ref
+  and automaton
+  | Off ->
+      do boiler = 0.
+      unless cold then On
+  | On ->
+      do boiler = 0.05
+      unless (not cold) then Off
+(* NOTE: until vs unless gives slightly different per-cycle behavior *)
+let node saturate (x, lower, upper) = 
+	(if (x > upper) then upper else (if (x < lower) then lower else x))
+
+(*
+let k_P = 100000.(*0.1*)
+
+let k_I = 0.(*1.*)
+(* TODO: Can we verify that temperature stays within some bound given the kp and ki terms? e.g. linear stability properties *)
+let node controller (ref, temp) = boiler where
+  rec diff = (temp -. ref) and
+  init integral = 0. and
+  integral = saturate ((diff +. (0.01*.last integral)), -100., 100.) and
+  u = (-.k_P*. diff) +. (-.k_I *. integral) and
+  () = (print_float integral; print_newline ()) and
+  boiler = (if (u > 1.) then 1. else (if (u < 0.) then 0. else u))*)
+
+(* ** main ** *)
+let reference = 16.
+
+let hybrid model () = (power, actual_temp) where
+  rec init power = 0.
+  and init digital_temp = 0.
+  and trigger = period (0.01)
+  and init actual_temp = 15.
+  and present trigger -> 
+         do power = controller(reference, last digital_temp) done
+  and present trigger -> 
+         do digital_temp = (actual_temp) done
+  and present trigger ->
+		 do actual_temp = boiler(power) done
+
+open Scope (* Dump *)
+
+let node bool_to_float(x) = if x then 1.0 else 0.0
+
+let node plot (boiler, temp) =
+  let s2 =
+    scope (0.0, 1.0, ("boiler", points true, boiler)) in
+  let s3 =
+    scope (11.0, 55.0, ("temperature (degC)", linear, temp)) in
+  let rec t = 0.0 fby t +. 1.0 in
+  window2 ("bangbang", 1600.0, t, s2, s3)
+
+let hybrid main () =
+  let (on_off, actual_temp) = model () in
+  let trigger = period (0.01) in
+  present trigger -> plot (on_off, actual_temp) else ()
+
