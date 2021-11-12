@@ -1,0 +1,8 @@
+node timer x = 
+	let rec c = x -> pre (max 0 (c - 1)) in
+		let rec i = 0 -> 1+(last i) in (print_int i; print_newline (); print_int c; print_newline ()); c=0
+
+let hybrid main () =
+  let trigger = period (0.01) in
+  present trigger -> (print_string (if (timer 5) then ("T\n") else ("F\n"))) else ()
+
