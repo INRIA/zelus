@@ -196,6 +196,15 @@ let rec types env ty =
     | Etypetuple(ty_list) -> Zelus.Etypetuple(List.map (types env) ty_list)
     | Etypeconstr(lname, ty_list) ->
        Zelus.Etypeconstr(longname lname, List.map (types env) ty_list)
+    | Etypefunrefinement(k, n_opt, ty_arg, ty_res, e) -> 
+        let ty_arg = types env ty_arg in
+        let env =
+    match n_opt with
+    | None -> env
+    | Some(n) -> Rename.append (Rename.make (S.singleton n)) env in
+        let ty_res = types env ty_res in
+        Zelus.Etypefunrefinement(kind k, None, ty_arg, ty_res, expression_types env e)
+     | Etypevec(ty_arg, si) -> Zelus.Etypevec(types env ty_arg, size env si)
     | Etypefun(k, n_opt, ty_arg, ty_res) ->
        let ty_arg = types env ty_arg in
        let env =
@@ -220,8 +229,33 @@ and size env si =
        let operator = function Splus -> Zelus.Splus | Sminus -> Zelus.Sminus in
        Zelus.Sop(operator s_op, size env si1, size env si2) in
   { Zelus.desc = desc; Zelus.loc = si.loc }
+
+and expression_types env { desc = desc; loc = loc } =
+  let desc = match desc with
+    | Econst(i) -> Zelus.Econst (immediate i)
+    | Econstr0(lname) -> Zelus.Econstr0(longname lname)
+    | Evar(Name(n)) ->
+        begin try
+            let { Rename.name = m } = Rename.find n env in Zelus.Elocal(m)
+        with
+          | Not_found -> Zaux.global (Lident.Name(n))
+        end
+    | Evar(lname) -> Zaux.global (longname lname)
+    | Elast(n) -> Zelus.Elast(name loc env n)
+    | Etuple(e_list) -> Zelus.Etuple(List.map (expression_types env) e_list)
+    | Econstr1(lname, e_list) ->
+        Zelus.Econstr1(longname lname, List.map (expression_types env) e_list)
+    | Eop(op, e_list) ->
+       Zelus.Eop(operator loc env op, List.map (expression_types env) e_list)
+    | Eapp({ app_inline = i; app_statefull = r }, e, e_list) ->
+       Zelus.Eapp({ Zelus.app_inline = i; Zelus.app_statefull = r },
+		  expression_types env e, List.map (expression_types env) e_list)
+    | Eseq(e1, e2) ->
+        Zelus.Eseq(expression_types env e1, expression_types env e2) in
+  emake loc desc
+
 								  
-let operator loc env = function
+and operator loc env = function
   | Eunarypre -> Zelus.Eunarypre
   | Efby -> Zelus.Efby
   | Eminusgreater -> Zelus.Eminusgreater
@@ -237,7 +271,7 @@ let operator loc env = function
   | Eslice(s1, s2) -> Zelus.Eslice(size env s1, size env s2)
   | Econcat -> Zelus.Econcat
   | Eatomic -> Zelus.Eatomic
-                 
+
 
 (** Build a renaming environment *)
 (** the list of names present in a pattern *)
