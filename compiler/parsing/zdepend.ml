@@ -33,6 +33,7 @@ let rec add_type_expr bv ty =
   | Etypetuple tl -> List.iter (add_type_expr bv) tl
   | Etypevec (ty, s) -> add_type_expr bv ty; add_size bv s
   | Etypefun (_, _, ty1, ty2) -> add_type_expr bv ty1; add_type_expr bv ty2
+  | Etypefunrefinement(_, _, ty1, ty2, e) -> print_string "Refined arguments"; add_type_expr bv ty1; add_type_expr bv ty2
 
 let rec add_interface bv i =
   match i.desc with

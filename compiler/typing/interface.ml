@@ -150,6 +150,8 @@ let typ_of_type_expression typ_vars typ =
     | Etypefun(k, n_opt, ty_arg, ty_res) ->
        Ztypes.funtype (kindtype k) n_opt (typrec ty_arg) (typrec ty_res)
     | Etypevec(ty_arg, si) -> Ztypes.vec (typrec ty_arg) (size si)
+    | Etypefunrefinement(k, n_opt, ty_arg, ty_res, e)  -> 
+       Ztypes.funtype (kindtype k) n_opt (typrec ty_arg) (typrec ty_res)
   and size si =
     match si.desc with
     | Sconst(i) -> Deftypes.Tconst(i)

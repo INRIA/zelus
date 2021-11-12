@@ -32,6 +32,7 @@ and type_expression_desc =
   | Etypetuple of type_expression list
   | Etypevec of type_expression * size
   | Etypefun of kind * Zident.t option * type_expression * type_expression
+  | Etypefunrefinement of kind * Zident.t option * type_expression * type_expression * exp
 
 and size = size_desc localized
 
@@ -44,7 +45,8 @@ and size_desc =
 and size_op = Splus | Sminus
 		   
 (** Declarations and expressions *)
-type interface = interface_desc localized
+(* adding and instead of TYPE DANGEROUS*)
+and interface = interface_desc localized
 
 and interface_desc =
   | Einter_open of name

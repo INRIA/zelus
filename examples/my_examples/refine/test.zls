@@ -1,0 +1,12 @@
+
+let f (a : int{a > 0}) (b : int{b > 0}) (c : int{c > 0}) : int{ 1 >= 0}   = a  
+
+let node main () = 
+	f 2
+
+(*a:int{a>0}
+a:{int z | z>0}
+
+x = 2
+y = 2*)
+

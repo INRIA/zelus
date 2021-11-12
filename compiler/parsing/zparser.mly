@@ -306,8 +306,10 @@ implementation:
       { Econstdecl(ide, true, seq) }
   (*added here*)
   (*refinement type definition*)
-  | LET ide = ide COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
-      { Erefinementdecl(ide, obj, seq1, seq2)}
+  | LET ide = ide fn = simple_pattern_list COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
+      { Erefinementfundecl(ide, { f_kind = A; f_atomic = false;
+			f_args = fn; f_body = seq2;
+			f_loc = localise $startpos(fn) $endpos(seq2) }, seq1) }
   | LET ide = ide fn = simple_pattern_list EQUAL seq = seq_expression
       { Efundecl(ide, { f_kind = A; f_atomic = false;
 			f_args = fn; f_body = seq;
@@ -904,6 +906,7 @@ simple_expression_desc:
       { e.desc }
   | LPAREN e = simple_expression COLON t = type_expression RPAREN
       { Etypeconstraint(e, t) }
+  (* add refinement type matching here*)
   | e = simple_expression DOT i = ext_ident
       { Erecord_access(e, i) }
   | LBRACKETBAR e1 = simple_expression BAR e2 = simple_expression RBRACKETBAR
@@ -1171,6 +1174,11 @@ type_expression:
   | LPAREN id = IDENT COLON t_arg = type_expression RPAREN
 			    a = arrow t_res = type_expression
       { make(Etypefun(a, Some(id), t_arg, t_res)) $startpos $endpos}
+  (*Refinement type expression*)
+  (* TODO: Make a refinement type data structure that stores all the data from this *)
+  | basetype = simple_type LBRACE seq = seq_expression RBRACE { basetype } 
+  | LPAREN id = IDENT COLON t_arg = simple_type LBRACE seq = seq_expression RBRACE RPAREN a = arrow t_res = type_expression
+      {make(Etypefunrefinement(a, Some(id), t_arg, t_res , seq)) $startpos $endpos}
 ;
 
 simple_type:

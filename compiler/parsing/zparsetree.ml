@@ -47,6 +47,7 @@ and type_expression_desc =
     | Etypetuple of type_expression list
     | Etypevec of type_expression * size
     | Etypefun of kind * string option * type_expression * type_expression
+    | Etypefunrefinement of kind * string option * type_expression * type_expression * exp
 
 and size = size_desc localized
 
@@ -59,7 +60,8 @@ and size_op = Splus | Sminus
 		   
 
 (** Declarations and expressions *)
-type interface = interface_desc localized
+(** changed to and. DANGEROUS?? *)
+and interface = interface_desc localized
 
 and interface_desc =
     | Einter_open of name
@@ -89,6 +91,7 @@ and implementation_desc =
     (*refinement type implementation*)
     | Erefinementdecl of name * name * exp * exp
     | Efundecl of name * funexp
+    | Erefinementfundecl of name * funexp * exp
 
 and funexp =
   { f_kind: kind;
