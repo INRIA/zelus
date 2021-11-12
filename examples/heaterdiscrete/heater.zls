@@ -1,0 +1,34 @@
+let dt = 0.1
+
+let setpoint = 16.
+(* Verify that temp stays within some margin? *)
+(* e.g. temp never goes above/below by 2 degrees? *)
+
+let node model () = (power, temp) where
+  rec init power = 0.
+  and init temp = 15.
+  and cold = temp <= setpoint
+  and automaton
+  | Off ->
+	do power = 0.
+	unless cold then On
+  | On ->
+	do power = 0.5
+	unless (not cold) then Off
+  and temp = (last temp) +. dt *. (last power -. 0.1) (*(last temp) +. (dt *. (last power -. 0.0005 *. (last temp)))*)
+ 
+open Scope (* Dump *)
+
+
+let node plot (boiler, temp) =
+  let s2 =
+    scope (0.0, 1.0, ("boiler", points true, boiler)) in
+  let s3 =
+    scope (11.0, 55.0, ("temperature (degC)", linear, temp)) in
+  let rec t = 0.0 fby t +. 1.0 in
+  window2 ("bangbang", 1600.0, t, s2, s3)
+
+let hybrid main () =
+  let trigger = period (0.01) in
+  present trigger -> plot (model ()) else ()
+

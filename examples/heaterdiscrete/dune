@@ -1,9 +1,9 @@
 (rule
- (targets bangbang.ml bangbang_main.ml)
- (deps (:zl bangbang.zls))
- (action (run zeluc -gtk2 -s main -o bangbang_main %{zl})))
+ (targets heater.ml heater_main.ml)
+ (deps (:zl heater.zls))
+ (action (run zeluc -gtk2 -s main -o heater_main %{zl})))
 
 (executable
-  (name bangbang_main)
+  (name heater_main)
   (libraries lablgtk2 zelus zelus-gtk)
   (promote (until-clean)))
