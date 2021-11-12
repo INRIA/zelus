@@ -1,0 +1,9 @@
+(rule
+ (targets counter.ml counter_main.ml)
+ (deps (:zl counter.zls))
+ (action (run zeluc -s main -o counter_main %{zl})))
+
+(executable
+  (name counter_main)
+  (libraries zelus )
+  (promote (until-clean)))
