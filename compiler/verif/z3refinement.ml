@@ -44,10 +44,10 @@ type variable =
 *)
 
 (*TODO :Change this to a Z3 expression type, then add stuff by AND-ing it on the head *)
-let z3env = ref []
+(*let z3env = ref []*)
 
-let add_constraint premise = 
-   z3env := premise :: (!z3env) 
+let add_constraint env premise = 
+   env := premise :: (!env) 
 
 (*
 type z3env =
@@ -191,10 +191,10 @@ let build_z3_premise ctx l =
   | [] -> Boolean.mk_true ctx
   | _ -> Boolean.mk_and ctx l
 
-let z3_solve ctx constraints = 
+let z3_solve ctx env constraints = 
   let solver = (mk_solver ctx None) in
   let c = Boolean.mk_not ctx (Boolean.mk_implies ctx 
-                                    (build_z3_premise ctx !z3env)
+                                    (build_z3_premise ctx !env)
                                     (constraints)) in
   let s = (Solver.add solver [c]) in
   let q = check solver [] in
@@ -210,7 +210,7 @@ let z3_solve ctx constraints =
       raise (TestFailedException "")))
   else
     	    (Printf.printf "Passed\n"));
-          add_constraint constraints
+          add_constraint env constraints
   
 	
 
@@ -228,9 +228,9 @@ match i with
   | Echar(c) -> Printf.sprintf "'%c'" c
   | Evoid -> Printf.sprintf ""
   *)
-  | _ -> (Printf.printf "Ignore \n"); Integer.mk_numeral_s ctx "42"
+  | _ -> (Printf.printf "Ignore immediate \n"); Integer.mk_numeral_s ctx "42"
 
-let rec operator ctx e e_list =
+let rec operator ctx env e e_list =
   (*match desc with 
   (*TODO: check for list length*)
 
@@ -244,18 +244,18 @@ let rec operator ctx e e_list =
     | _ -> () (*ERROR!*)
   *)
   match e with 
-  | ">=" -> Arithmetic.mk_ge ctx (expression ctx (hd e_list)) (expression ctx (hd (tl e_list)))
-  | ">" -> Arithmetic.mk_gt ctx (expression ctx (hd e_list)) (expression ctx (hd (tl e_list)))
-  | "<=" -> Arithmetic.mk_le ctx (expression ctx (hd e_list)) (expression ctx (hd (tl e_list)))
-  | "<" -> Arithmetic.mk_lt ctx (expression ctx (hd e_list)) (expression ctx (hd (tl e_list)))
-  | "==" -> Boolean.mk_eq ctx (expression ctx (hd e_list)) (expression ctx (hd (tl e_list)))
-  | "!=" -> Boolean.mk_not ctx (Boolean.mk_eq ctx (expression ctx (hd e_list)) (expression ctx (hd (tl e_list))))
-  | "*." | "Stdlib.*." -> Arithmetic.mk_mul ctx [(expression ctx (hd e_list)); (expression ctx (hd (tl e_list)))]
+  | ">=" -> Arithmetic.mk_ge ctx (expression ctx env (hd e_list)) (expression ctx env (hd (tl e_list)))
+  | ">" -> Arithmetic.mk_gt ctx (expression ctx env (hd e_list)) (expression ctx env (hd (tl e_list)))
+  | "<=" -> Arithmetic.mk_le ctx (expression ctx env (hd e_list)) (expression ctx env (hd (tl e_list)))
+  | "<" -> Arithmetic.mk_lt ctx (expression ctx env (hd e_list)) (expression ctx env (hd (tl e_list)))
+  | "==" -> Boolean.mk_eq ctx (expression ctx env (hd e_list)) (expression ctx env (hd (tl e_list)))
+  | "!=" -> Boolean.mk_not ctx (Boolean.mk_eq ctx (expression ctx env (hd e_list)) (expression ctx env (hd (tl e_list))))
+  | "*." | "Stdlib.*." -> Arithmetic.mk_mul ctx [(expression ctx env (hd e_list)); (expression ctx env (hd (tl e_list)))]
   | s -> Printf.printf "Invalid expression symbol: %s" s; raise (Z3FailedException "Z3 verification failed")
 
 (* translate expressions into Z3 constructs*)
 
-and expression ctx ({ e_desc = desc; e_loc = loc }) =
+and expression ctx env ({ e_desc = desc; e_loc = loc }) =
   match desc with
     | Econst(i) -> immediate ctx i
     | Eglobal { lname = ln } -> create_z3_var ctx (match ln with
@@ -263,9 +263,27 @@ and expression ctx ({ e_desc = desc; e_loc = loc }) =
       | Name(n) -> n
       | Modname(qualid) -> qualid.id) 
     | Eapp({ app_inline = i; app_statefull = r }, e, e_list) -> 
-      Printf.printf "Expression %s" (Expr.to_string (expression ctx e));
-      operator ctx (Expr.to_string (expression ctx e)) e_list
-    | _ -> (Printf.printf "Ignore \n"); Integer.mk_numeral_s ctx "42"
+      Printf.printf "Expression %s" (Expr.to_string (expression ctx env e));
+      operator ctx env (Expr.to_string (expression ctx env e)) e_list
+    | Elocal(n) -> Printf.printf "Elocal: %s : %d\n" n.source n.num; Integer.mk_numeral_s ctx "42"
+    | _ -> (Printf.printf "Ignore expression\n"); Integer.mk_numeral_s ctx "42"
+
+    (*| Econstr0 _ -> Printf.printf "Econstr0\n";Integer.mk_numeral_s ctx "42"
+    | Econstr1 (_, _) -> Printf.printf "Econstr1\n";Integer.mk_numeral_s ctx "42"
+    | Elast _ -> Printf.printf "Elast\n";Integer.mk_numeral_s ctx "42"
+    | Eop (_, _) -> Printf.printf "Eop\n";Integer.mk_numeral_s ctx "42"
+    | Etuple _ -> Printf.printf "Etuple\n";Integer.mk_numeral_s ctx "42"
+    | Erecord_access (_, _) -> Printf.printf "Erecord_acess\n";Integer.mk_numeral_s ctx "42"
+    |Erecord _-> Printf.printf "Erecord\n";Integer.mk_numeral_s ctx "42"
+    |Erecord_with (_, _)-> Printf.printf "Erecord_with\n";Integer.mk_numeral_s ctx "42"
+    |Etypeconstraint (_, _)-> Printf.printf "Etypeconstraint\n";Integer.mk_numeral_s ctx "42"
+    |Epresent (_, _)-> Printf.printf "Epresent\n";Integer.mk_numeral_s ctx "42"
+    |Ematch (_, _, _)-> Printf.printf "Ematch\n";Integer.mk_numeral_s ctx "42"
+    |Elet (_, _)-> Printf.printf "Elet\n"; Integer.mk_numeral_s ctx "42"
+    |Eseq (_, _)-> Printf.printf "Eseq\n"; Integer.mk_numeral_s ctx "42"
+    |Eperiod _-> Printf.printf "Eperiod\n"; Integer.mk_numeral_s ctx "42"
+    |Eblock (_, _)-> Printf.printf "Eblock\n"; Integer.mk_numeral_s ctx "42"
+    *)
 
     (*| Econstr0(lname) -> Zelus.Econstr0(longname lname)
     | Evar(Name(n)) ->
@@ -403,15 +421,18 @@ let qualident t =
 let print_env_list premise =
       (Printf.printf "Expression = %s ; " (Expr.to_string premise))
 
-let rec type_exp_desc t = match t.desc with
+let rec type_exp_desc ctx env t = match t.desc with
   | Etypevar(n) -> Printf.printf "Etypevar %s\n" n
-  | Etypeconstr(t, txp_list) -> (Printf.printf "Etypeconstr\n"); qualident t; (List.iter type_exp_desc txp_list) 
+  | Etypeconstr(t, txp_list) -> (Printf.printf "Etypeconstr\n"); qualident t; (List.iter (type_exp_desc ctx env) txp_list) 
   | Etypetuple(txp_list) -> Printf.printf "Etypetuple\n"
   | Etypevec(texp , si) -> Printf.printf "Etypevec\n"
   | Etypefun(k, t, texp, texp2) -> Printf.printf "Etypefun\n" 
   | Etypefunrefinement(k, t, te, te2, e) -> Printf.printf "Etypefunrefinement\n"
+  | Erefinement(t, e) -> Printf.printf "Erefinement\n";  
+       let expr = Expr.to_string (expression ctx env e)
+       in Printf.printf "%s\n" expr  
 
-let rec pattern pat = match pat.p_desc with
+let rec pattern ctx env pat = match pat.p_desc with
       | Ewildpat -> Printf.printf "Ewildpat\n"
       | Econstpat(i) -> Printf.printf "Econstpat\n"
       | Econstr0pat(ln) -> Printf.printf "Econstr0pat\n"
@@ -421,37 +442,45 @@ let rec pattern pat = match pat.p_desc with
       | Eorpat(p, p2) -> Printf.printf "Eorpat\n"
       | Erecordpat(txp_list) -> Printf.printf "Erecordpat\n"
       | Evarpat(n) ->
-        Printf.printf "Evarpat: (%s : %d) \n" n.source n.num
-      | Etypeconstraintpat(pat, typ_exp) -> (Printf.printf "Etypeconstraintpat: "); (pattern pat); 
-          (type_exp_desc typ_exp)
+        Printf.printf "Evarpat: (%s : %d) \n" n.source n.num;
+      | Etypeconstraintpat(pat, typ_exp) -> (Printf.printf "Etypeconstraintpat: "); (pattern ctx env pat); 
+          (type_exp_desc ctx env typ_exp)
 
 
 (* main entry functions *)
 (* this function modifies the environemnt, returns unit *)
-let implementation ff ctx (impl (*: Zelus.implementation_desc Zelus.localized*))  =
+let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localized*))  =
       match impl.desc with
       (* Add to Z3 an equality constraint that looks like: n == (Z3 parsed version of e) *)
       | Econstdecl(f, is_static, e) -> (Printf.printf "Econstdecl %s\n" f); 
         (*add_environment {name: n; type_t: ; refinement_t: true; assignment_t: expression Rename.empty e }*)
-        add_constraint (Boolean.mk_eq ctx (create_z3_var ctx f) (expression ctx e));
-        List.iter print_env_list !z3env; print_newline ()
+        add_constraint env (Boolean.mk_eq ctx (create_z3_var ctx f) (expression ctx env e));
+        List.iter print_env_list !env; print_newline ()
       (* For constant functions, let x=f we assign x the type x:{float z | z=f} *)
       (* Refinement type of the form: let n1:n2{e1} = e2 *)
       | Erefinementdecl(n1, n2, e1, e2) ->
       	 Printf.printf "Erefinementdecl %s %s\n" n1 n2;
-         add_constraint (Boolean.mk_eq ctx (create_z3_var ctx n1) (expression ctx e2));
-         z3_solve ctx (expression ctx e1);
-         List.iter print_env_list !z3env; print_newline ()
+         add_constraint env (Boolean.mk_eq ctx (create_z3_var ctx n1) (expression ctx env e2));
+         z3_solve ctx env (expression ctx env e1);
+         List.iter print_env_list !env; print_newline ()
 
       | Efundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
 		      f_body = e; f_loc = loc }) -> (Printf.printf "Efundecl %s\n" n); 
             (Printf.printf "# of Arguments: %d\n" (List.length p_list)) 
       
       | Erefinementfundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
-      f_body = e; f_loc = loc }, _) -> (Printf.printf "Erefinementfundecl %s\n" n); 
-        (List.iter (pattern) p_list)
-        
-            
+          f_body = e; f_loc = loc }, _) -> (Printf.printf "Erefinementfundecl %s\n" n); 
+          (List.iter (pattern ctx env) p_list)
+        (* create a local z3 environement to prove the funciton
+           if fucntion is proven, add relation to global environment*)
+        (*let z3localenv = ref [] in
+        let x = (Expr.mk_const ctx (Symbol.mk_string ctx "x") (Real.mk_sort ctx)) in
+        let y = (Expr.mk_const ctx (Symbol.mk_string ctx "y") (Real.mk_sort ctx)) in
+        let fname = mk_string ctx "f" in
+        let bs = Real.mk_sort ctx in
+        let domain = [bs] in
+        let f = FuncDecl.mk_func_decl ctx fname domain bs in
+        let fapp = mk_app ctx f [x] in*)
       | Eopen(n) -> (Printf.printf "Eopen %s\n" n)
       | Etypedecl(n, params, tydecl) -> (Printf.printf "Etypedecl %s\n" n)
 
@@ -468,5 +497,6 @@ let implementation ff ctx (impl (*: Zelus.implementation_desc Zelus.localized*))
 (* the main entry function *)
 let implementation_list ff ctx (impl_list) (*: Zelus.implementation_desc Zelus.localized list ) : Zelus.implementation_desc Zelus.localized list*) = 
   print_string "Hello, this is Z3 Refinement\n";
-  List.iter (implementation ff ctx) impl_list;
+  let z3env = ref [] in
+  List.iter (implementation ff ctx z3env) impl_list;
   impl_list

@@ -48,7 +48,7 @@ and type_expression_desc =
     | Etypevec of type_expression * size
     | Etypefun of kind * string option * type_expression * type_expression
     | Etypefunrefinement of kind * string option * type_expression * type_expression * exp
-    | Erefinement of string * exp
+    | Erefinement of type_expression * exp
 
 and size = size_desc localized
 

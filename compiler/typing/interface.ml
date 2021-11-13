@@ -108,6 +108,7 @@ let rec free_of_type v ty =
   | Etypefun(_, _, ty_arg, ty_res) ->
      free_of_type (free_of_type v ty_arg) ty_res
   | Etypevec(ty_arg, _) -> free_of_type v ty_arg
+  | Erefinement(ty_arg, _ ) -> free_of_type v ty_arg
 					
 (* checks that every type is defined *)
 (* and used with the correct arity *)
@@ -152,6 +153,7 @@ let typ_of_type_expression typ_vars typ =
     | Etypevec(ty_arg, si) -> Ztypes.vec (typrec ty_arg) (size si)
     | Etypefunrefinement(k, n_opt, ty_arg, ty_res, e)  -> 
        Ztypes.funtype (kindtype k) n_opt (typrec ty_arg) (typrec ty_res)
+    | Erefinement(ty_arg, _ ) -> (typrec ty_arg)
   and size si =
     match si.desc with
     | Sconst(i) -> Deftypes.Tconst(i)
