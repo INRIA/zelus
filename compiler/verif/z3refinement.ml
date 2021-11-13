@@ -395,9 +395,36 @@ and expression ctx ({ e_desc = desc; e_loc = loc }) =
        Zelus.Eblock(b, e) in
   emake loc desc*)
 
+let qualident t =
+    match t with
+    | Lident.Name(n) -> Printf.printf "%s \n" n
+    | Lident.Modname({ Lident.qual = m; Lident.id = s }) -> Printf.printf "%s.%s \n" m s
 
-  let print_env_list premise =
+let print_env_list premise =
       (Printf.printf "Expression = %s ; " (Expr.to_string premise))
+
+let rec type_exp_desc t = match t.desc with
+  | Etypevar(n) -> Printf.printf "Etypevar %s\n" n
+  | Etypeconstr(t, txp_list) -> (Printf.printf "Etypeconstr\n"); qualident t; (List.iter type_exp_desc txp_list) 
+  | Etypetuple(txp_list) -> Printf.printf "Etypetuple\n"
+  | Etypevec(texp , si) -> Printf.printf "Etypevec\n"
+  | Etypefun(k, t, texp, texp2) -> Printf.printf "Etypefun\n" 
+  | Etypefunrefinement(k, t, te, te2, e) -> Printf.printf "Etypefunrefinement\n"
+
+let rec pattern pat = match pat.p_desc with
+      | Ewildpat -> Printf.printf "Ewildpat\n"
+      | Econstpat(i) -> Printf.printf "Econstpat\n"
+      | Econstr0pat(ln) -> Printf.printf "Econstr0pat\n"
+      | Econstr1pat(ln, p_list) -> Printf.printf "Econstr1pat\n"
+      | Etuplepat(p_list) -> Printf.printf "Etplepat\n"
+      | Ealiaspat(p, t) -> Printf.printf "Ealiaspat\n"
+      | Eorpat(p, p2) -> Printf.printf "Eorpat\n"
+      | Erecordpat(txp_list) -> Printf.printf "Erecordpat\n"
+      | Evarpat(n) ->
+        Printf.printf "Evarpat: (%s : %d) \n" n.source n.num
+      | Etypeconstraintpat(pat, typ_exp) -> (Printf.printf "Etypeconstraintpat: "); (pattern pat); 
+          (type_exp_desc typ_exp)
+
 
 (* main entry functions *)
 (* this function modifies the environemnt, returns unit *)
@@ -419,6 +446,11 @@ let implementation ff ctx (impl (*: Zelus.implementation_desc Zelus.localized*))
       | Efundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
 		      f_body = e; f_loc = loc }) -> (Printf.printf "Efundecl %s\n" n); 
             (Printf.printf "# of Arguments: %d\n" (List.length p_list)) 
+      
+      | Erefinementfundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
+      f_body = e; f_loc = loc }, _) -> (Printf.printf "Erefinementfundecl %s\n" n); 
+        (List.iter (pattern) p_list)
+        
             
       | Eopen(n) -> (Printf.printf "Eopen %s\n" n)
       | Etypedecl(n, params, tydecl) -> (Printf.printf "Etypedecl %s\n" n)

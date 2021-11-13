@@ -33,6 +33,7 @@ and type_expression_desc =
   | Etypevec of type_expression * size
   | Etypefun of kind * Zident.t option * type_expression * type_expression
   | Etypefunrefinement of kind * Zident.t option * type_expression * type_expression * exp
+  | Erefinement of string * exp
 
 and size = size_desc localized
 
@@ -77,6 +78,7 @@ and implementation_desc =
   (*refinement type definition*)
   | Erefinementdecl of name * name * exp * exp
   | Efundecl of name * funexp
+  | Erefinementfundecl of name * funexp * exp
 			 
 and funexp =
   { f_kind: kind;

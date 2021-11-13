@@ -1,0 +1,12 @@
+(* Unit tests for refinement types *)
+
+let pi = 3.14159
+
+let y0:float{y0 >= pi} = 4.0
+let y1:float{y1 >= y0*.2.} = 10.0
+
+let f (a : int{a > 0}) (b : int{b > 0}) (c : int{c > 0}) : int{ 1 >= 0}   = a  
+
+let node main () = 
+	f 2
+

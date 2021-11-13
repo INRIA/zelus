@@ -230,6 +230,7 @@ and size env si =
        Zelus.Sop(operator s_op, size env si1, size env si2) in
   { Zelus.desc = desc; Zelus.loc = si.loc }
 
+(*TODO: copied from expression function below, fix eventually*)
 and expression_types env { desc = desc; loc = loc } =
   let desc = match desc with
     | Econst(i) -> Zelus.Econst (immediate i)
@@ -1004,6 +1005,15 @@ let implementation imp =
 			     Zelus.f_body = expression env e;
                              Zelus.f_env = Rename.typ_env env;
                              Zelus.f_loc = loc })
+      (*added here*)
+      | Erefinementfundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
+            f_body = e; f_loc = loc }, e2) ->
+          let _, env, p_list = pattern_list Rename.empty p_list in
+          Zelus.Erefinementfundecl(n, { Zelus.f_kind = kind k; Zelus.f_atomic = is_atomic;
+                              Zelus.f_args = p_list;
+            Zelus.f_body = expression env e;
+                              Zelus.f_env = Rename.typ_env env;
+                              Zelus.f_loc = loc }, expression Rename.empty e2)
       | Eopen(n) -> Zelus.Eopen(n)
       | Etypedecl(n, params, tydecl) ->
          Zelus.Etypedecl(n, params, type_decl tydecl) in

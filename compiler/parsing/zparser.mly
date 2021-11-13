@@ -306,6 +306,8 @@ implementation:
       { Econstdecl(ide, true, seq) }
   (*added here*)
   (*refinement type definition*)
+  | LET ide = ide COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
+      { Erefinementdecl(ide, obj, seq1, seq2)}
   | LET ide = ide fn = simple_pattern_list COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
       { Erefinementfundecl(ide, { f_kind = A; f_atomic = false;
 			f_args = fn; f_body = seq2;
@@ -1176,7 +1178,8 @@ type_expression:
       { make(Etypefun(a, Some(id), t_arg, t_res)) $startpos $endpos}
   (*Refinement type expression*)
   (* TODO: Make a refinement type data structure that stores all the data from this *)
-  | basetype = simple_type LBRACE seq = seq_expression RBRACE { basetype } 
+  (*make(Erefinement(basetype, seq)) $startpos $endpos*)
+  | basetype = simple_type LBRACE seq = seq_expression RBRACE { basetype} 
   | LPAREN id = IDENT COLON t_arg = simple_type LBRACE seq = seq_expression RBRACE RPAREN a = arrow t_res = type_expression
       {make(Etypefunrefinement(a, Some(id), t_arg, t_res , seq)) $startpos $endpos}
 ;
