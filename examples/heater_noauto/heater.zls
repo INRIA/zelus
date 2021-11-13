@@ -8,13 +8,7 @@ let node model () = (power, temp) where
   rec init power = maxpower
   and init temp = 15.
   and cold = temp <= setpoint
-  and automaton
-  | Off ->
-	do power = 0.
-	unless cold then On
-  | On ->
-	do power = maxpower
-	unless (not cold) then Off
+  and power = (if cold then maxpower else 0.)
   and temp = (last temp) +. dt *. (last power -. 0.1) 
 (*(last temp) +. (dt *. (last power -. 0.0005 *. (last temp)))*)
 
