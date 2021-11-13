@@ -196,6 +196,8 @@ let rec types env ty =
     | Etypetuple(ty_list) -> Zelus.Etypetuple(List.map (types env) ty_list)
     | Etypeconstr(lname, ty_list) ->
        Zelus.Etypeconstr(longname lname, List.map (types env) ty_list)
+    | Erefinement(bty, e_list) ->
+       Zelus.Erefinement(types env bty, expression_types env e_list)
     | Etypefunrefinement(k, n_opt, ty_arg, ty_res, e) -> 
         let ty_arg = types env ty_arg in
         let env =
