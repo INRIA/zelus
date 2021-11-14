@@ -118,13 +118,14 @@ and ptype ff ty =
 	if prio > prio_op then fprintf ff ")" in
   match ty.desc with
     | Etypevar(s) -> fprintf ff "'%s" s
+    | Erefinement(s,_) -> ptype ff ty
     | Etypeconstr(ln, ty_list) ->
         fprintf ff "@[<hov2>%a@]%a"
           (print_list_r_empty ptype "("","")") ty_list
           longname ln
     | Etypetuple(ty_list) ->
        fprintf ff "@[<hov2>%a@]" (print_list_r ptype "(""*"")") ty_list
-    | Etypefun(k, n_opt, ty_arg, ty_res) ->
+    | Etypefunrefinement(k, n_opt, ty_arg, ty_res, _) | Etypefun(k, n_opt, ty_arg, ty_res) ->
        let pas ff (n_opt, ty_arg) =
 	 match n_opt with
 	 | None -> () | Some(n) -> fprintf ff "(%a : %a)" name n ptype ty_arg in
