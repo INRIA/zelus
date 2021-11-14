@@ -231,7 +231,7 @@ match i with
   *)
   | _ -> (Printf.printf "Ignore immediate \n"); Integer.mk_numeral_s ctx "42"
 
-let rec operator ctx env e e_list =
+let rec operator ctx env typenv e e_list =
   (*match desc with 
   (*TODO: check for list length*)
 
@@ -245,13 +245,13 @@ let rec operator ctx env e e_list =
     | _ -> () (*ERROR!*)
   *)
   match e with 
-  | ">=" -> Arithmetic.mk_ge ctx (expression ctx env (hd e_list) None) (expression ctx env (hd (tl e_list))None)
-  | ">" -> Arithmetic.mk_gt ctx (expression ctx env (hd e_list) None) (expression ctx env (hd (tl e_list)) None)
-  | "<=" -> Arithmetic.mk_le ctx (expression ctx env (hd e_list) None) (expression ctx env (hd (tl e_list)) None)
-  | "<" -> Arithmetic.mk_lt ctx (expression ctx env (hd e_list) None) (expression ctx env (hd (tl e_list)) None)
-  | "==" -> Boolean.mk_eq ctx (expression ctx env (hd e_list) None) (expression ctx env (hd (tl e_list)) None)
-  | "!=" -> Boolean.mk_not ctx (Boolean.mk_eq ctx (expression ctx env (hd e_list) None) (expression ctx env (hd (tl e_list))None ))
-  | "*." | "Stdlib.*." -> Arithmetic.mk_mul ctx [(expression ctx env (hd e_list) None); (expression ctx env (hd (tl e_list)) None)]
+  | ">=" -> Arithmetic.mk_ge ctx (expression ctx env (hd e_list) typenv) (expression ctx env (hd (tl e_list)) typenv)
+  | ">" -> Arithmetic.mk_gt ctx (expression ctx env (hd e_list) typenv) (expression ctx env (hd (tl e_list)) typenv)
+  | "<=" -> Arithmetic.mk_le ctx (expression ctx env (hd e_list) typenv) (expression ctx env (hd (tl e_list)) typenv)
+  | "<" -> Arithmetic.mk_lt ctx (expression ctx env (hd e_list) typenv) (expression ctx env (hd (tl e_list)) typenv)
+  | "==" -> Boolean.mk_eq ctx (expression ctx env (hd e_list) typenv) (expression ctx env (hd (tl e_list)) typenv)
+  | "!=" -> Boolean.mk_not ctx (Boolean.mk_eq ctx (expression ctx env (hd e_list) typenv) (expression ctx env (hd (tl e_list)) typenv))
+  | "*." | "Stdlib.*." -> Arithmetic.mk_mul ctx [(expression ctx env (hd e_list) typenv); (expression ctx env (hd (tl e_list)) typenv)]
   | s -> Printf.printf "Invalid expression symbol: %s" s; raise (Z3FailedException "Z3 verification failed")
 
 (* translate expressions into Z3 constructs*)
@@ -264,8 +264,8 @@ and expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
       | Name(n) -> n
       | Modname(qualid) -> qualid.id) 
     | Eapp({ app_inline = i; app_statefull = r }, e, e_list) -> 
-      Printf.printf "Expression %s" (Expr.to_string (expression ctx env e None));
-      operator ctx env (Expr.to_string (expression ctx env e None)) e_list
+      Printf.printf "Expression %s" (Expr.to_string (expression ctx env e typenv));
+      operator ctx env typenv (Expr.to_string (expression ctx env e typenv)) e_list
     | Elocal(n) -> Printf.printf "Elocal: %s : %d\n" n.source n.num;
           (match typenv with
           | Some(t) -> Printf.printf "%s has type %s" n.source (Hashtbl.find t n.source)
