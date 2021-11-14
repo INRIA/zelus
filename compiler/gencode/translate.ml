@@ -40,13 +40,14 @@ let kind = function
 let rec type_expression { Zelus.desc = desc } =
   match desc with
   | Zelus.Etypevar(s) -> Otypevar(s)
+  | Zelus.Erefinement(s, _) -> type_expression s
   | Zelus.Etypeconstr(ln, ty_list) ->
      Otypeconstr(ln, List.map type_expression ty_list)
   | Zelus.Etypetuple(ty_list) ->
     Otypetuple(List.map type_expression ty_list)
   | Zelus.Etypevec(ty, s) ->
      Otypevec(type_expression ty, size s)
-  | Zelus.Etypefun(k, opt_name, ty_arg, ty_res) ->
+  | Zelus.Etypefunrefinement(k, opt_name, ty_arg, ty_res, _) | Zelus.Etypefun(k, opt_name, ty_arg, ty_res) ->
      Otypefun(kind k, opt_name, type_expression ty_arg, type_expression ty_res)
 
 and type_of_type_decl { Zelus.desc = desc } =
@@ -735,6 +736,8 @@ let implementation { Zelus.desc = desc } =
       (* There should be no memory allocated by [e] *)
      let { step = s } = expression Env.empty e2 in
      Oletvalue(n1, s)
+  | Zelus.Erefinementfundecl(n, ({ Zelus.f_kind = k; Zelus.f_args = pat_list;
+      Zelus.f_body = e; Zelus.f_env = f_env }), _)
   | Zelus.Efundecl(n, { Zelus.f_kind = k; Zelus.f_args = pat_list;
 			Zelus.f_body = e; Zelus.f_env = f_env }) ->
      let pat_list = List.map pattern pat_list in

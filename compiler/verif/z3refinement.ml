@@ -268,9 +268,17 @@ and expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
       operator ctx env typenv (Expr.to_string (expression ctx env e typenv)) e_list
     | Elocal(n) -> Printf.printf "Elocal: %s : %d\n" n.source n.num;
           (match typenv with
-          | Some(t) -> Printf.printf "%s has type %s" n.source (Hashtbl.find t n.source)
-          | _ -> Printf.printf "Error: typenv not given!\n");
-         Integer.mk_numeral_s ctx "42"
+          | Some(t) -> let basetype = (Hashtbl.find t n.source) in
+              Printf.printf "%s has type %s" n.source basetype;
+              (match basetype with
+              | "int" -> Printf.printf " I will make an int here\n"; Expr.mk_const ctx (Symbol.mk_string ctx n.source) (Integer.mk_sort ctx)
+              | "float" -> Printf.printf " I will make a float here\n"; Expr.mk_const ctx (Symbol.mk_string ctx n.source) (Real.mk_sort ctx)
+              (* | "string" -> Printf.printf " I will make a string here\n"; (Expr.mk_const ctx (Symbol.mk_string ctx n.source) (.mk_sort ctx))
+              | "char" -> Printf.printf " I will make a char here\n"; (Expr.mk_const ctx (Symbol.mk_string ctx n.source) (.mk_sort ctx))*)
+              | "bool" -> Printf.printf " I will make a bool here\n"; (Expr.mk_const ctx (Symbol.mk_string ctx n.source) (Boolean.mk_sort ctx))
+              | _ ->  Printf.printf " I don't know what to make here\n"; Integer.mk_numeral_s ctx "42")
+          | _ -> Printf.printf "Error: typenv not given!\n"; Expr.mk_const ctx (Symbol.mk_string ctx n.source) (Real.mk_sort ctx))
+          
     | _ -> (Printf.printf "Ignore expression\n"); Integer.mk_numeral_s ctx "42"
 
     (*| Econstr0 _ -> Printf.printf "Econstr0\n";Integer.mk_numeral_s ctx "42"
@@ -436,7 +444,7 @@ let rec type_exp_desc ctx env typenv t = match t.desc with
   | Erefinement(t, e) -> Printf.printf "Erefinement\n";  
        let expr = (expression ctx env e typenv) in
        (add_constraint env expr;
-       Printf.printf "%s\n" (Expr.to_string expr))
+       Printf.printf "Returning from e local: %s\n" (Expr.to_string expr))
 
 let rec pattern ctx env typenv pat = match pat.p_desc with
       | Ewildpat -> Printf.printf "Ewildpat\n"
@@ -455,19 +463,13 @@ let rec pattern ctx env typenv pat = match pat.p_desc with
           (*(pattern ctx env pat); *)
           (match typ_exp.desc with
           | Erefinement(t, e) -> Printf.printf "Adding to table: %s\n" n.source; Hashtbl.add typenv n.source (match t.desc with 
-            | Etypevar(n) -> n
+            (* Find and then add base type to local typing environment *)
             | Etypeconstr(l,_) -> (match l with
                 | Name(s) -> s
                 | Modname(q) -> q.id)
-            | Etypetuple(_) -> "Etypetuple"
-            | Etypevec(_,_) -> "Etypevec"
-            | Etypefun(_,_,_,_) -> "Etypefun"
-            | Etypefunrefinement(_,_,_,_,_) -> "Etypefunrefinement"
-            | Erefinement(_,_) -> "Erefinement"
-            | _ -> "unknown\n")
-          | _ -> Printf.printf "unknown\n")
-        | _ -> Printf.printf "unknown\n"); 
-        Printf.printf "%s\n" (Hashtbl.find typenv "a");    
+            | _ -> "Unspecified data structure\n")
+          | _ -> Printf.printf "Unspecified data structure\n")
+        | _ -> Printf.printf "Unspecified data structure\n");   
         (type_exp_desc ctx env (Some typenv) typ_exp)
 
 
@@ -493,12 +495,38 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
             (Printf.printf "# of Arguments: %d\n" (List.length p_list)) 
       
       | Erefinementfundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
-          f_body = e; f_loc = loc }, _) -> (Printf.printf "Erefinementfundecl %s\n" n); 
+          f_body = e; f_loc = loc }, rettype) -> (Printf.printf "Erefinementfundecl %s\n" n); 
           let argc = (List.length p_list) in 
           let typenv = Hashtbl.create argc in
           (List.iter (pattern ctx env typenv) p_list);
           Hashtbl.iter (fun a b -> (Printf.printf "%s:%s;" a b)) typenv;
           List.iter print_env_list !env; print_newline ();
+
+
+          (* Need to do:
+           given function definition: let f (a:t_a{p_a}, b:t_b{p_b}...): t_f{p_f} = exp 
+           Prove: (p_a & p_b & ...) -> exp:t_f{p_f}
+           
+           
+           
+           let f2 (x:int{x < 0}) : int:{f2 >= 0} =
+                let y = x*x in
+                y
+            
+            f b
+            DISProve: ~((x<0) & (y=f2) -> (f2 >= 0))
+            DISProve: ~(b < 0) (replace x with b)
+
+            
+          *)
+          let expr = (expression ctx env e (Some typenv)) in
+          (add_constraint env expr;
+          Printf.printf "Function body expression: %s\n" (Expr.to_string expr));
+          List.iter print_env_list !env; print_newline ()
+          (* TODO: make verif. conditions for function here *)
+
+          (* TODO: define functions inside function*)
+
         (* create a local z3 environement to prove the funciton
            if fucntion is proven, add relation to global environment*)
         (*let z3localenv = ref [] in
