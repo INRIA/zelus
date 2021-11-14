@@ -456,7 +456,9 @@ let rec pattern ctx env typenv pat = match pat.p_desc with
           (match typ_exp.desc with
           | Erefinement(t, e) -> Printf.printf "Adding to table: %s\n" n.source; Hashtbl.add typenv n.source (match t.desc with 
             | Etypevar(n) -> n
-            | Etypeconstr(_,_) -> "Etypeconstr"
+            | Etypeconstr(l,_) -> (match l with
+                | Name(s) -> s
+                | Modname(q) -> q.id)
             | Etypetuple(_) -> "Etypetuple"
             | Etypevec(_,_) -> "Etypevec"
             | Etypefun(_,_,_,_) -> "Etypefun"
