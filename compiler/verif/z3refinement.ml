@@ -231,7 +231,43 @@ match i with
   *)
   | _ -> (Printf.printf "Ignore immediate \n"); Integer.mk_numeral_s ctx "42"
 
-let rec operator ctx env typenv e e_list =
+(* let rec local ctx env typenv l =
+   let expr = expression ctx env (List.hd l.l_eq) typenv in
+   Printf.printf "%s\n" (Expr.to_string expr) *)
+
+(* and local = 
+  { l_rec: is_rec; (* is-it recursive *)
+    l_eq: eq list; (* the set of parallel equations *)
+    mutable l_env: Deftypes.tentry Zident.Env.t;
+    l_loc: location } *)
+let rec equation ctx env typenv eq =
+    match eq.eq_desc with
+    | EQeq(p, e) -> Printf.printf "EQeq:\n";
+      let body_exp = expression ctx env e typenv
+      in body_exp
+    (* [p = e] *)
+    (* | EQder(_, _, _, _) -> Printf.printf "EQder\n"
+    (* [der n = e [init e0] [reset p1 -> e1 | ... | pn -> en]] *)
+    | EQinit(_,_) -> Printf.printf "EQinit\n"
+    (* [init n = e0 *)
+    | EQnext(_,_,_) -> Printf.printf "EQnext\n"
+    (* [next n = e] *)
+    | EQpluseq(_,_) -> Printf.printf "EQpluseq\n"
+    (* [n += e] *)
+    | EQautomaton(_,_,_) -> Printf.printf "EQautomaton\n"
+    (*added here
+    | EQr_move of exp*)
+    | EQpresent(_,_) -> Printf.printf "EQpresent\n"
+    | EQmatch(_,_,_) -> Printf.printf "EQmatch\n"
+    | EQreset(_,_) -> Printf.printf "EQreset\n"
+    | EQemit(_,_) -> Printf.printf "EQemit\n"
+    | EQblock(_) -> Printf.printf "EQblock\n"
+    | EQand(_) -> Printf.printf "EQand\n" (* eq1 and ... and eqn *)
+    | EQbefore(_) -> Printf.printf "EQbefore\n" (* eq1 before ... before eqn *)
+    | EQforall(_) -> Printf.printf "EQforall\n" forall i in ... do ... initialize ... done *)
+    | _ -> Printf.printf "Ignoring equation for now\n"; Integer.mk_numeral_s ctx "42"
+
+and operator ctx env typenv e e_list =
   (*match desc with 
   (*TODO: check for list length*)
 
@@ -251,8 +287,8 @@ let rec operator ctx env typenv e e_list =
   | "<" -> Arithmetic.mk_lt ctx (expression ctx env (hd e_list) typenv) (expression ctx env (hd (tl e_list)) typenv)
   | "==" -> Boolean.mk_eq ctx (expression ctx env (hd e_list) typenv) (expression ctx env (hd (tl e_list)) typenv)
   | "!=" -> Boolean.mk_not ctx (Boolean.mk_eq ctx (expression ctx env (hd e_list) typenv) (expression ctx env (hd (tl e_list)) typenv))
-  | "*." | "Stdlib.*." -> Arithmetic.mk_mul ctx [(expression ctx env (hd e_list) typenv); (expression ctx env (hd (tl e_list)) typenv)]
-  | s -> Printf.printf "Invalid expression symbol: %s" s; raise (Z3FailedException "Z3 verification failed")
+  | "*." | "*" | "Stdlib.*." -> Arithmetic.mk_mul ctx [(expression ctx env (hd e_list) typenv); (expression ctx env (hd (tl e_list)) typenv)]
+  | s -> Printf.printf "Invalid expression symbol: %s\n" s; raise (Z3FailedException "Z3 verification failed")
 
 (* translate expressions into Z3 constructs*)
 
@@ -268,7 +304,8 @@ and expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
       operator ctx env typenv (Expr.to_string (expression ctx env e typenv)) e_list
     | Elocal(n) -> Printf.printf "Elocal: %s : %d\n" n.source n.num;
           (match typenv with
-          | Some(t) -> let basetype = (Hashtbl.find t n.source) in
+          | Some(t) -> let ismember = (Hashtbl.mem t n.source)
+            in (if ismember then (let basetype = (Hashtbl.find t n.source) in
               Printf.printf "%s has type %s" n.source basetype;
               (match basetype with
               | "int" -> Printf.printf " I will make an int here\n"; Expr.mk_const ctx (Symbol.mk_string ctx n.source) (Integer.mk_sort ctx)
@@ -276,27 +313,37 @@ and expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
               (* | "string" -> Printf.printf " I will make a string here\n"; (Expr.mk_const ctx (Symbol.mk_string ctx n.source) (.mk_sort ctx))
               | "char" -> Printf.printf " I will make a char here\n"; (Expr.mk_const ctx (Symbol.mk_string ctx n.source) (.mk_sort ctx))*)
               | "bool" -> Printf.printf " I will make a bool here\n"; (Expr.mk_const ctx (Symbol.mk_string ctx n.source) (Boolean.mk_sort ctx))
-              | _ ->  Printf.printf " I don't know what to make here\n"; Integer.mk_numeral_s ctx "42")
+              | _ ->  Printf.printf " I don't know what to make here\n"; Integer.mk_numeral_s ctx "42"))
+          else
+            (Printf.printf "Creating var: %s\n" n.source; immediate ctx (Estring(n.source))) )
           | _ -> Printf.printf "Error: typenv not given!\n"; Expr.mk_const ctx (Symbol.mk_string ctx n.source) (Real.mk_sort ctx))
-          
-    | _ -> (Printf.printf "Ignore expression\n"); Integer.mk_numeral_s ctx "42"
+    | Elet (l, e)-> 
+        Printf.printf "Elet parsing: \n";
+        (* local ctx env typenv l;
+         let local_exp = expression ctx env l typenv in
+        Printf.printf (Expr.to_string local_exp);
+        Printf.printf "Body:\n";*)
+        let body_exp = expression ctx env e typenv in
+        let eq_exp = equation ctx env typenv (List.hd l.l_eq) in
+        let res = Boolean.mk_eq ctx (body_exp) (eq_exp) in 
+        Printf.printf  "%s\n" (Expr.to_string res);
+        res
 
-    (*| Econstr0 _ -> Printf.printf "Econstr0\n";Integer.mk_numeral_s ctx "42"
+    (* | Econstr0 _ -> Printf.printf "Econstr0\n";Integer.mk_numeral_s ctx "42"
     | Econstr1 (_, _) -> Printf.printf "Econstr1\n";Integer.mk_numeral_s ctx "42"
     | Elast _ -> Printf.printf "Elast\n";Integer.mk_numeral_s ctx "42"
     | Eop (_, _) -> Printf.printf "Eop\n";Integer.mk_numeral_s ctx "42"
     | Etuple _ -> Printf.printf "Etuple\n";Integer.mk_numeral_s ctx "42"
     | Erecord_access (_, _) -> Printf.printf "Erecord_acess\n";Integer.mk_numeral_s ctx "42"
-    |Erecord _-> Printf.printf "Erecord\n";Integer.mk_numeral_s ctx "42"
-    |Erecord_with (_, _)-> Printf.printf "Erecord_with\n";Integer.mk_numeral_s ctx "42"
-    |Etypeconstraint (_, _)-> Printf.printf "Etypeconstraint\n";Integer.mk_numeral_s ctx "42"
-    |Epresent (_, _)-> Printf.printf "Epresent\n";Integer.mk_numeral_s ctx "42"
-    |Ematch (_, _, _)-> Printf.printf "Ematch\n";Integer.mk_numeral_s ctx "42"
-    |Elet (_, _)-> Printf.printf "Elet\n"; Integer.mk_numeral_s ctx "42"
-    |Eseq (_, _)-> Printf.printf "Eseq\n"; Integer.mk_numeral_s ctx "42"
-    |Eperiod _-> Printf.printf "Eperiod\n"; Integer.mk_numeral_s ctx "42"
-    |Eblock (_, _)-> Printf.printf "Eblock\n"; Integer.mk_numeral_s ctx "42"
-    *)
+    | Erecord _-> Printf.printf "Erecord\n";Integer.mk_numeral_s ctx "42"
+    | Erecord_with (_, _)-> Printf.printf "Erecord_with\n";Integer.mk_numeral_s ctx "42"
+    | Etypeconstraint (_, _)-> Printf.printf "Etypeconstraint\n";Integer.mk_numeral_s ctx "42"
+    | Epresent (_, _)-> Printf.printf "Epresent\n";Integer.mk_numeral_s ctx "42"
+    | Ematch (_, _, _)-> Printf.printf "Ematch\n";Integer.mk_numeral_s ctx "42"
+    | Eseq (_, _)-> Printf.printf "Eseq\n"; Integer.mk_numeral_s ctx "42"
+    | Eperiod _-> Printf.printf "Eperiod\n"; Integer.mk_numeral_s ctx "42"
+    | Eblock (_, _)-> Printf.printf "Eblock\n"; Integer.mk_numeral_s ctx "42" *)
+    | _ -> (Printf.printf "Ignore expression\n"); Integer.mk_numeral_s ctx "42"
 
     (*| Econstr0(lname) -> Zelus.Econstr0(longname lname)
     | Evar(Name(n)) ->
@@ -498,9 +545,10 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
           f_body = e; f_loc = loc }, rettype) -> (Printf.printf "Erefinementfundecl %s\n" n); 
           let argc = (List.length p_list) in 
           let typenv = Hashtbl.create argc in
-          (List.iter (pattern ctx env typenv) p_list);
+          let local_env = ref [] in
+          (List.iter (pattern ctx local_env typenv) p_list);
           Hashtbl.iter (fun a b -> (Printf.printf "%s:%s;" a b)) typenv;
-          List.iter print_env_list !env; print_newline ();
+          (* implementation_list ff ctx e; *)
 
 
           (* Need to do:
@@ -508,21 +556,42 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
            Prove: (p_a & p_b & ...) -> exp:t_f{p_f}
            
            
-           
-           let f2 (x:int{x < 0}) : int:{f2 >= 0} =
+           let b:int{b < -2} = -10 in 
+           let f2 (x:int{x < 0}) : int:{f2_return >= 0} =
                 let y = x*x in
                 y
-            
+           in f2 b
+             
             f b
             DISProve: ~((x<0) & (y=f2) -> (f2 >= 0))
             DISProve: ~(b < 0) (replace x with b)
+            ( b = x ) -> (b < 0)
 
-            
           *)
-          let expr = (expression ctx env e (Some typenv)) in
-          (add_constraint env expr;
-          Printf.printf "Function body expression: %s\n" (Expr.to_string expr));
-          List.iter print_env_list !env; print_newline ()
+          (* let expr = (expression ctx env e (Some typenv)) in
+          (add_constraint local_env expr;
+          Printf.printf "Function body expression: %s\n" (Expr.to_string expr)); *)
+
+          let return_exp = (expression ctx env rettype (Some typenv)) in
+          (Printf.printf "Return type expression: %s\n" (Expr.to_string return_exp));
+          List.iter print_env_list !local_env; print_newline ();
+
+          (* treat function body as a program and prove conditions*)
+          let expr = (expression ctx local_env e (Some typenv)) in
+          add_constraint local_env expr;
+          Printf.printf "Function body expression handling: %s\n" (Expr.to_string expr);
+          List.iter print_env_list !local_env; print_newline ();
+
+          z3_solve ctx local_env return_exp; 
+          (* if proved rename return type with function name and add to global environment *)
+
+          (* prove conditions *)
+
+          (* implementation ff ctx local_env e; *)
+          (* List.iter print_env_list !local_env; print_newline ()
+           *)
+          (* if properties are proved, then add to global environment*)
+
           (* TODO: make verif. conditions for function here *)
 
           (* TODO: define functions inside function*)
