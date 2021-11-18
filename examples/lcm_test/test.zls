@@ -1,0 +1,24 @@
+(*let hybrid main () = () where 
+  rec trigger = (period (1.))
+   and automaton 
+	| First -> do t = robot_get ("transverse_vel") until trigger then Second
+	| Second -> do t = robot_get ("angular_vel") until trigger then First
+   end
+   
+  (*and t=robot_get ("angular_vel")
+  and s=robot_get ("transverse_vel")*)
+  and ()= present(trigger) -> (print_int 0; (print_float t);print_newline ()(*; print_float s*); robot_str("transverse_vel", -.30.))
+  else ()*)
+  
+  let hybrid main () = () where
+  rec trigger = (period (1.))
+  and automaton 
+	| Forward -> do vel = 30 until trigger then StopF
+	| StopF -> do vel = 0 until trigger then Backward
+	| Backward -> do vel = -30 until trigger then StopB
+	| StopB -> do vel = 0 until trigger then Forward
+   end
+  and () = present(trigger) ->
+    ((print_int vel); print_newline ();
+    move_robot_zls(vel))
+  else ()
