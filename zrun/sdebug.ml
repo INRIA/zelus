@@ -30,5 +30,7 @@ let fprint_ienv comment ff env =
       "@[%s (env): @,%a@]@\n" comment (Env.fprint_t fprint_ientry) env
 
 let print_ienv comment env =
-  if !vverbose then Format.eprintf "%a" (fprint_ienv comment) env
+  flush stderr; flush stdout;
+  if !vverbose then Format.eprintf "%a" (fprint_ienv comment) env;
+  flush stderr; flush stdout
 

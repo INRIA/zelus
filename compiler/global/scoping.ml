@@ -371,7 +371,7 @@ let rec equation env_pat env { desc; loc } =
              (automaton_handler is_weak env_for_states env_pat env) a_h_list in
          let state_opt =
            Util.optional_map (state env_for_states env) st_opt in
-         Zelus.EQautomaton({ is_weak = true; handlers; state_opt })
+         Zelus.EQautomaton({ is_weak; handlers; state_opt })
     | EQempty ->
        Zelus. EQempty
     | EQassert(e) -> Zelus.EQassert(expression env e)

@@ -21,8 +21,8 @@ let set_vverbose () =
   vverbose := true;
   set_verbose ()
 
-let main_node = ref (None: string option)
-let set_main s = main_node := Some(s)
+let main_nodes = ref ([] :string list)
+let set_main s = main_nodes := s :: !main_nodes
 
 let print_values = ref false
                  
@@ -38,3 +38,5 @@ let reset_number_of_fixpoint_iterations () = number_of_fixpoint_iterations := 0
 let no_assert = ref false
 
 let set_nocausality = ref false
+
+let set_check = ref false

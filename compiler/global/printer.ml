@@ -172,7 +172,7 @@ let print_eq_info ff { eq_write } =
 
 (* print a block *)
 let block exp body ff { b_vars; b_body; b_write; b_env } =
-  fprintf ff "@[<hov 0>local @[%a@]@[%a@]@[%a@]@[%a@]@]"
+  fprintf ff "@[<hov 0>local @[%a@]@ @[%a@]@ @[%a@]@ @[%a@]@]"
     (vardec_list exp) b_vars
     print_writes b_write
     print_env b_env

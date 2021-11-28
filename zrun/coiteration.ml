@@ -237,14 +237,20 @@ let equal_env env1 env2 =
     (fun { cur = cur1} { cur = cur2 } -> equal_values cur1 cur2)
     env1 env2
 
+let bit = ref 0
+        
 (* bounded fixpoint for a set of equations *)
 let fixpoint_eq genv env sem eq n s_eq bot =
   let sem s_eq env_in =
     (* let l1 = Env.bindings env_in in *)
+    bit := !bit + 1;
+    Sdebug.print_ienv ("Before step" ^ (string_of_int !bit)) env_in;
     let env = Env.append env_in env in
     (* let l2 = Env.bindings env in *)
     let* env_out, s_eq = sem genv env eq s_eq in
     (* let l3 = Env.bindings env_out in *)
+    Sdebug.print_ienv ("After step" ^ (string_of_int !bit))  env_out;
+    bit := !bit - 1;
     let env_out = complete_with_default env env_out in
     (* let l4 = Env.bindings env_out in *)
     return (env_out, s_eq) in
@@ -460,8 +466,6 @@ and ieq genv env { eq_desc; eq_loc  } =
          (Stuple
             (Scstate { pos = zero_float; der = zero_float } ::
             se :: s0 :: sp_h_list))
-    | EQinit(_, { e_desc = Econst(v) }) ->
-       return (Sval(Value(Eval.immediate v)))
     | EQinit(_, e) ->
        let* se = iexp genv env e in
        return (Stuple [Sopt(None); se])
@@ -880,10 +884,21 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
           cx in
      return (Env.singleton x { entry with cur },
              Stuple (Scstate({ sc with der }) :: Sopt(x0_opt) :: s0 :: s_list))
-  | EQinit(_, _), Sval(_) ->
-     Error.error eq_loc (Error.Enot_implemented) none
-  | EQinit(_, _), Stuple [Sopt(_); _] ->
-     Error.error eq_loc (Error.Enot_implemented) none
+  | EQinit(x, e), Stuple [Sopt(None); se] ->
+     (* first step *)
+     let* v, se = sexp genv env e se in
+     let entry = Env.find_opt x env in
+     let* ({ cur } as entry) =
+       Error.error eq_loc (Error.Eunbound_ident(x)) entry in
+     return (Env.singleton x { entry with last = Some(v) },
+             Stuple [Sopt(Some(cur)); se])
+  | EQinit(x, e), Stuple [Sopt(Some(v)); se] ->
+     (* remaining steps *)                     
+     let entry = Env.find_opt x env in
+     let* ({ cur } as entry) =
+       Error.error eq_loc (Error.Eunbound_ident(x)) entry in
+     return (Env.singleton x { entry with last = Some(v) },
+             Stuple [Sopt(Some(cur)); se])
   | EQif(e, eq1, eq2), Stuple [se; s_eq1; s_eq2] ->
       let* v, se = sexp genv env e se in
       let* env_eq, s =
@@ -1024,7 +1039,6 @@ and sblock genv env { b_vars; b_body = ({ eq_write } as eq); b_loc } s_b =
          Opt.mapfold3 
            (svardec genv env) Env.empty b_vars s_list (bot_list b_vars) in
        let bot = complete env env_v (names eq_write) in
-       (* Sdebug.print_ienv "Block" bot; *)
        let n = size eq  in
        let n = if n <= 0 then 0 else n+1 in
        let* env_eq, s_eq = fixpoint_eq genv env seq eq n s_eq bot in
@@ -1424,4 +1438,4 @@ let run_node output init step n =
          Format.eprintf "@[%d iterations out of %d.@.@]" i n;
          raise Stdlib.Exit in
   runrec init 0
-  
+ 
