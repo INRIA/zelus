@@ -11,4 +11,5 @@ let node g(r) returns (o init 42)
 
 let node main() returns (o)
   do o = run g(1) done
+
       

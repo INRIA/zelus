@@ -49,32 +49,32 @@ let parse_implementation_file source_name =
   parse Parser.implementation_file Lexer.main source_name
                
 (* The main entry function. Execute [n] steps of [main()] or [run main ()]  *)
-let eval_main genv main n_steps =
-  match main with
-  | None -> ()
-  | Some(main) ->
-     let fv =
-       find_gvalue_opt (Name main) genv in
-     match fv with
+let eval_main genv n_steps is_check main =
+  let fv =
+    find_gvalue_opt (Name main) genv in
+  match fv with
+  | None ->
+     Format.eprintf "The global value %s is unbound.\n" main;
+     raise Stdlib.Exit
+  | Some(fv) ->
+     let v = to_fun fv in
+     match v with
      | None ->
-        Format.eprintf "The global value %s is unbound.\n" main;
+        Format.eprintf "The global value %s is not a function.\n" main;
         raise Stdlib.Exit
-     | Some(fv) ->
-        let v = to_fun fv in
+     | Some(v) ->
+        let output =
+          if is_check then
+            fun v -> if (v = Vbool(true)) then () else raise Stdlib.Exit
+          else
+            fun v -> Output.pvalue_flush Format.std_formatter v in
         match v with
-        | None ->
-           Format.eprintf "The global value %s is not a function.\n" main;
-           raise Stdlib.Exit
-        | Some(v) ->
-           let output v =
-             Output.pvalue_flush Format.std_formatter v in
-           match v with
-           | Vfun(fv) ->
-              run_fun output fv n_steps
-           | Vnode { init; step } ->
-              run_node output init step n_steps
-           | _ -> assert false
-
+        | Vfun(fv) ->
+           run_fun output fv n_steps
+        | Vnode { init; step } ->
+           run_node output init step n_steps
+        | _ -> assert false
+             
 let apply_with_close_out f o =
   try
     f o;
@@ -89,7 +89,7 @@ let do_step comment step input =
 
 (* Evaluate all the definition in a file, store values *)
 (* and a main function/node, if given *)
-let eval_file modname filename suffix main n_steps =
+let eval_file modname filename suffix n_steps is_check main_nodes =
   (* output file in which values are stored *)
   let obj_name = filename ^ ".zlo" in
   let otc = open_out_bin obj_name in
@@ -103,8 +103,9 @@ let eval_file modname filename suffix main n_steps =
   Debug.print_message "Parsing done";
 
   (* Scoping *)
-  let impl_list = (* do_step "Scoping done" *) Scoping.program impl_list in
-
+  let impl_list = Scoping.program impl_list in
+  Debug.print_message "Scoping done";
+  
   (* Write defined variables for equations *)
   let impl_list = do_step "Write done" Write.program impl_list in
 
@@ -117,18 +118,19 @@ let eval_file modname filename suffix main n_steps =
   Debug.print_message "Evaluation of definitions done";
 
   (* Write the values into a file *)
-  Genv.write genv otc;
-  (* apply_with_close_out (Genv.write genv) otc; *)
+  (* Genv.write genv otc; *)
+  apply_with_close_out (Genv.write genv) otc;
   
-  (* evaluate a main function/node if given *)
-  eval_main genv main n_steps
+  (* evaluate a list of main function/nodes *)
+  List.iter (eval_main genv n_steps is_check) main_nodes
              
 let main file =
   if Filename.check_suffix file ".zls"
   then 
     let filename = Filename.chop_extension file in
     let modname = String.capitalize_ascii (Filename.basename filename) in
-    eval_file modname filename ".zls" !Smisc.main_node !Smisc.number_of_steps
+    eval_file modname
+      filename ".zls" !Smisc.number_of_steps !Smisc.set_check !Smisc.main_nodes 
   else raise (Arg.Bad "Expected *.zls file.")
                                                        
 let doc_main = "\tThe main node to evaluate"
@@ -140,7 +142,8 @@ let doc_nocausality = "\tTurn off the check that are variables are non bottom"
 let doc_print_values = "\tPrint values"
 let doc_number_of_fixpoint_iterations =
   "\tPrint the number of steps for fixpoints"
-    
+let doc_check = "\tCheck that the simulated node returns true"
+                    
 let errmsg = "Options are:"
 
 
@@ -157,6 +160,7 @@ let main () =
            "-nocausality", Arg.Set Smisc.set_nocausality, doc_nocausality;
            "-fix", Arg.Set Smisc.print_number_of_fixpoint_iterations,
            doc_number_of_fixpoint_iterations;
+           "-check", Arg.Set Smisc.set_check, doc_check;  
       ])
       main
       errmsg
