@@ -11,8 +11,7 @@ module Sundials_cvode = struct
   type rhsfn = float -> Zls.carray -> Zls.carray -> unit
   type dkyfn = nvec -> float -> int -> unit
 
-  let initialize (f : rhsfn) c =
-    Cvode.init Cvode.Adams Cvode.Functional Cvode.default_tolerances f 0.0 c
+  let initialize (f : rhsfn) c = Cvode.(init Adams default_tolerances f 0.0 c)
 
   let reinitialize s t c =
     Cvode.reinit s t c
@@ -64,10 +63,10 @@ module Sundials_cvodes = struct
   type dkysensfn = sensmat -> float -> int -> unit
 
   let initialize (f : rhsfn) params c uS0 =
-    let s = Cvode.(init Adams Functional default_tolerances (f params) 0.0 c) in
+    let s = Cvode.(init Adams default_tolerances (f params) 0.0 c) in
     let np = Array.length uS0 in
     let pbar = RealArray.make np 1. in
-    Sens.(init s EEtolerances Simultaneous
+    Sens.(init s EEtolerances (Simultaneous None)
             ~sens_params:{ pvals = Some params; pbar = Some pbar; plist = None; }
             (AllAtOnce None) uS0);
     Sens.set_err_con s true;
@@ -76,7 +75,7 @@ module Sundials_cvodes = struct
 
   let reinitialize s t c uS0 =
     Cvode.reinit s t c;
-    Sens.reinit s Simultaneous uS0
+    Sens.reinit s (Simultaneous None) uS0
 
   let step s tl c =
     fst (Cvode.solve_one_step s tl c)
