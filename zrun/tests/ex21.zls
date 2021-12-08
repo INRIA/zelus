@@ -1,0 +1,3 @@
+let node main() returns (o)
+  local last m
+  do m = 0 -> last m + 1 and o = m done
