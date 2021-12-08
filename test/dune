@@ -1,0 +1,8 @@
+(rule
+ (copy %{project_root}/lib/std/stdlib.zli stdlib.zli))
+
+(test
+ (name test_runner)
+ (modules test_runner)
+ (deps (glob_files good/*.zls) (glob_files bad/*.zls) stdlib.zli)
+ (libraries alcotest zlcompilerlibs))
