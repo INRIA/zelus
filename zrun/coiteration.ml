@@ -351,7 +351,7 @@ let rec iexp genv env { e_desc; e_loc  } =
        | Efby, [{ e_desc = Econst(v) }; e] ->
           (* synchronous register initialized with a static value *)
           let* s = iexp genv env e  in
-          return (Stuple [Sval(Value (Eval.immediate v)); s])
+          return (Stuple [Sval(Value (Combinatorial.immediate v)); s])
        | Efby, [e1; e2] ->
           let* s1 = iexp genv env e1 in
           let* s2 = iexp genv env e2 in
@@ -375,7 +375,7 @@ let rec iexp genv env { e_desc; e_loc  } =
           return (Stuple [s1; s2])
        | Erun _, [{ e_loc } as e1; e2] ->
           (* node instanciation. [e1] must be a static expression *)
-          let* v1 = Eval.exp genv (unlift env) e1 in          
+          let* v1 = Combinatorial.exp genv (unlift env) e1 in          
           let* v1 =
             (let* v1 = to_fun v1 in
              Primitives.get_node v1) |>
@@ -393,8 +393,8 @@ let rec iexp genv env { e_desc; e_loc  } =
        | Eperiod, [e1;e2] ->
           (* [e1] and [e2] must be static *)
           let env = unlift env in
-          let* v1 = Eval.exp genv env e1 in
-          let* v2 = Eval.exp genv env e2 in
+          let* v1 = Combinatorial.exp genv env e1 in
+          let* v2 = Combinatorial.exp genv env e2 in
           let* v1 = float v1 in
           let* v2 = float v2 in
           return
@@ -617,7 +617,7 @@ and iresult genv env { r_desc; r_loc } =
 and sexp genv env { e_desc; e_loc } s =
   let r = match e_desc, s with   
   | Econst(v), s ->
-     return (Value (Eval.immediate v), s)
+     return (Value (Combinatorial.immediate v), s)
   | Econstr0 { lname }, s ->
      return (Value (Vconstr0(lname)), s)
   | Elocal x, s ->
@@ -924,7 +924,7 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
   | EQand(eq_list), Stuple(s_list) ->
      let seq genv env acc eq s =
        let* env_eq, s = seq genv env eq s in
-       let* acc = Eval.merge env_eq acc in
+       let* acc = Combinatorial.merge env_eq acc in
        return (acc, s) in
      let* env_eq, s_list = mapfold2 (seq genv env) Env.empty eq_list s_list in
      return (env_eq, Stuple(s_list))
@@ -1004,7 +1004,7 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
   | _ -> none in
   Error.stop_at_location eq_loc r
 
-(* Evaluation of the result of a function *)            
+(* Combinatorialuation of the result of a function *)            
 and sresult genv env { r_desc; r_loc } s =
   let r = match r_desc with
     | Exp(e) -> sexp genv env e s
@@ -1276,7 +1276,7 @@ and sscondpat (genv : pvalue genv) (env : value ientry Env.t ) { desc; loc } s =
     | Econdand(sc1, sc2), Stuple [s1; s2] ->  
        let* (v1, env_sc1), s1 = sscondpat genv env sc1 s1 in
        let* (v2, env_sc2), s2 = sscondpat genv env sc2 s2 in
-       let* env_sc = Eval.merge env_sc1 env_sc2 in
+       let* env_sc = Combinatorial.merge env_sc1 env_sc2 in
        let s = Stuple [s1; s2] in 
        (match v1, v2 with
         | (Vbot, _) | (_, Vbot) -> return ((Vbot, Env.empty), s)
@@ -1289,7 +1289,7 @@ and sscondpat (genv : pvalue genv) (env : value ientry Env.t ) { desc; loc } s =
     | Econdor(sc1, sc2), Stuple [s1; s2] ->
        let* (v1, env_sc1), s1 = sscondpat genv env sc1 s1 in
        let* (v2, env_sc2), s2 = sscondpat genv env sc2 s2 in
-       let* env_sc = Eval.merge env_sc1 env_sc2 in
+       let* env_sc = Combinatorial.merge env_sc1 env_sc2 in
        (match v1, v2 with
         | (Vbot, _) | (_, Vbot) -> return ((Vbot, Env.empty), s)
         | (Vnil, _) | (_, Vnil) -> return ((Vnil, Env.empty), s)
@@ -1360,11 +1360,11 @@ and vfun genv env f_kind f_loc arg_list f_body =
        return
          (Vfun
             (fun v ->
-              let* env_local = Eval.matching_arg_in env_local arg v in
+              let* env_local = Combinatorial.matching_arg_in env_local arg v in
               funrec env_local f_args))
     | (Kstatic | Kfun), [] ->
        let env = Env.append env_local env in
-       Eval.result genv env f_body
+       Combinatorial.result genv env f_body
     | _ -> None in
   funrec Env.empty arg_list
 
@@ -1396,7 +1396,7 @@ let implementation genv { desc; loc } =
        return (Genv.open_module genv name)
     | Eletdecl(f, e) ->
        (* add the entry [f, v] in the current global environment *)
-       let* v = Eval.exp genv Env.empty e in
+       let* v = Combinatorial.exp genv Env.empty e in
        if !print_values then Output.letdecl Format.std_formatter f v;
        return (add f v genv)
     | Etypedecl _ ->
