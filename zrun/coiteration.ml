@@ -523,11 +523,11 @@ and iblock genv env { b_vars; b_body; b_loc  } =
     return (Stuple (s_b_body :: s_b_vars)) in
   Error.stop_at_location b_loc r
   
-and ivardec genv env { var_init; var_default; var_loc } =
+and ivardec genv env { var_init; var_default; var_loc; var_is_last } =
   let r =
     let* s_init =
       match var_init with
-      | None -> return Sempty
+      | None -> return (if var_is_last then Sval(Vnil) else Sempty)
       | Some(e) ->
          (* a state is necessary to store the previous value *)
          let* s = iexp genv env e in return (Stuple [Sopt(None); s]) in
@@ -668,18 +668,18 @@ and sexp genv env { e_desc; e_loc } s =
         let* v2, s2 = sexp genv env e2 s2 in
         return (v2, Stuple [s1; s2])
      | Erun _, [_; { e_desc } as arg],
-       Stuple [Sinstance { init; step }; s2] ->
-        (* the first argument has been computed the initialization phase *)
+       Stuple [Sinstance { init; step }; s_arg] ->
+        (* the first argument has been computed in the initialization phase *)
         (* [run f (e1,..., en)] : one of the ei can be bottom/nil *)
         (* That is, f may not be a strict function *)
-        let* v, s =
-          match e_desc, s with
+        let* v, s_arg =
+          match e_desc, s_arg with
           | Etuple(arg_list), Stuple(s_list) ->
              let* v_list, s_list = sexp_list genv env arg_list s_list in
              return (Value(Vtuple(v_list)), Stuple(s_list))
-          | _ -> sexp genv env arg s in
+          | _ -> sexp genv env arg s_arg in
         let* v, init = step init v in
-        return (v, Stuple [Sinstance { init; step }; s])
+        return (v, Stuple [Sinstance { init; step }; s_arg])
      | Eatomic, [e], s ->
         (* if one of the input is bot (or nil), the output is bot (or nil); *)
         (* that is, [e] is considered to be strict *)
@@ -1063,7 +1063,8 @@ and sblock_with_reset genv env b_eq s_eq r =
       return s_eq in
   sblock genv env b_eq s_eq
   
-and svardec genv env acc { var_name; var_init; var_default; var_loc } s v =
+and svardec genv env acc
+  { var_name; var_init; var_default; var_loc; var_is_last } s v =
   let r =
     match s with
     | Stuple [s_init;s_default] ->
@@ -1075,12 +1076,12 @@ and svardec genv env acc { var_name; var_init; var_default; var_loc } s v =
             return (Some(ve), se) in
        let* last, s_init =
          match var_init, s_init with
-         | None, se -> return (None, se)
+         | None, se when not var_is_last -> return (None, se)
          | Some(e), Stuple [Sopt(None); se] ->
             (* first instant *)
             let* ve, se = sexp genv env e se in
             return (Some(ve), Stuple [Sopt(None); se])
-         | Some(e), Stuple [Sopt(Some(v)); _] ->
+         | _, Stuple [Sopt(Some(v)); _] ->
             (* return the stored value *)
             return (Some(v), s_init)
          | _ -> none in
@@ -1331,11 +1332,15 @@ and sstate genv env { desc; loc } s =
 
 (* Build a function *)
 and to_fun v =
-  match v with
-  | Vfun _ | Vnode _ -> return v
-  | Vclosure({ f_kind; f_args; f_body }, genv, env) ->
-     vfun genv env f_kind f_args f_body
-  | _ -> none
+  try
+    match v with
+    | Vfun _ | Vnode _ -> return v
+    | Vclosure({ f_kind; f_args; f_body }, genv, env) ->
+       vfun genv env f_kind f_args f_body
+    | _ -> none
+  with
+    | Error.Error(loc, kind) -> Error.message loc kind; None
+
     
 (* Turn a closure into a value *)
 and vfun genv env f_kind arg_list f_body =
@@ -1368,6 +1373,8 @@ and vnode genv env arg f_body =
     | Stuple (s_body :: s_list) ->
        let* env_arg, s_list =
          Opt.mapfold3 (svardec genv env) Env.empty arg s_list v_list in
+       let* s_list =
+         Opt.map2 (set_vardec env_arg) arg s_list in
        let env = Env.append env_arg env in
        let* r, s_body = sresult genv env f_body s_body in
        return (r, Stuple (s_body :: s_list))
