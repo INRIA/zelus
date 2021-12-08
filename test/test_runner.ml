@@ -2,37 +2,46 @@ open Misc
 open Initial
 open Compiler
 
-let load_std_lib () =
+(* List file names that match a given extension [ext] in the directory [dir]. *)
+let files dir ext =
+  Array.to_list (Sys.readdir dir)
+  |> List.filter (fun file -> Filename.check_suffix file ext)
+  |> List.sort String.compare
+  |> List.map (fun file -> Filename.concat dir (Filename.chop_suffix file ext))
+
+(* Compile and load Stdlib. *)
+let _ =
   set_no_stdlib () ;
-  interface "Stdlib" "stdlib"
+  interface "Stdlib" "stdlib" ;
+  default_used_modules := ["Stdlib"]
 
-let _ = load_std_lib ()
-let dir_list = ["good"; "bad"]
-
-let files dir =
-  let files = Array.to_list (Sys.readdir dir) in
-  let files =
-    List.filter (fun file -> Filename.check_suffix file ".zlus") files in
-  let files = List.sort String.compare files in
-  List.map
-    (fun file -> Filename.concat dir (Filename.chop_suffix file ".zlus"))
-    files
-
+(* Compile one file. *)
 let good_one file =
+  Modules.clear () ;
   let modname = String.capitalize_ascii (Filename.basename file) in
   compile modname file
 
 exception Error
 
+(* Compile one bad file and check that an exception is raised. *)
 let bad_one file =
   let run () = try good_one file with _ -> raise Error in
   Alcotest.check_raises "error" Error run
 
+(* Check all good files. *)
 let good =
-  List.map (fun file -> (file, `Quick, fun () -> good_one file)) (files "good")
+  load_path := "./good" :: !load_path ;
+  List.map
+    (fun file -> (file, `Quick, fun () -> good_one file))
+    (files "good" ".zlus")
 
+(* Check all bad files. *)
 let bad =
-  List.map (fun file -> (file, `Quick, fun () -> bad_one file)) (files "bad")
+  load_path := "./bad" :: !load_path ;
+  List.map
+    (fun file -> (file, `Quick, fun () -> bad_one file))
+    (files "bad" ".zlus")
 
-let () =
-  Alcotest.run ~and_exit:false "zelus_tests" [("good", good); ("bad", bad)]
+
+(* Main test runner. *)
+let () = Alcotest.run  "zelus_tests" [("good", good); ("bad", bad)]
