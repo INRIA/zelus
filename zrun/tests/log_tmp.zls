@@ -20,24 +20,24 @@ let node after (a) returns (x)
 let node always_since (c,a) returns (x)
   do
     x = if a then c
-        else if after(a) then c && pre(x)
+        else if run after(a) then c && pre(x)
         else true
   done
 
 let node once_since (c,a) returns (x)
   do x = if a then c
-	 else if after(a) then c or pre(x)
+	 else if run after(a) then c or pre(x)
 	 else true
   done
 
 let node always_from_to (c, a, b) returns (x)
  do
-   x = implies (after(a), always_since(c, a) or once_since(b, a))
+   x = run implies (run after(a), run always_since(c, a) or run once_since(b, a))
  done
 
 let node once_from_to (c, a, b) returns (x)
   do
-    x = implies (after(a) && b, once_since(c, a))
+    x = run implies (run after(a) && b, run once_since(c, a))
   done
 
 let node alternating(a,b) returns (x)
@@ -52,21 +52,21 @@ let node alternating(a,b) returns (x)
   done
 
 let node not_between_and (a,b,c) returns (x)
-  do x = implies(c, not once_since(a,b)) 
+  do x = run implies(c, not (run once_since(a,b)))
   done
 
 let node main() returns (x1, x2, x3, x4, x5)
   local a, b, c
   do
-    x1 = alternating(a, b)
+    x1 = run alternating(a, b)
   and
-    x2 = not_between_and(a, b, c)
+    x2 = run not_between_and(a, b, c)
   and
-      x3 = once_from_to (c, a, b)
+      x3 = run once_from_to (c, a, b)
   and
-      x4 = always_from_to (c, a, b)
+      x4 = run always_from_to (c, a, b)
   and
-      x5 = once_since (c,a)
+      x5 = run once_since (c,a)
   and
       a = true fby true fby not a
   and

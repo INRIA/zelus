@@ -11,16 +11,16 @@
 (* or(true, _) = or(_, true) = true nor &(false, _) = &(_, false) *)
 (* even when _ is bot. *)
 
-let sequential_and_gate(x,y) returns (z)
+let node sequential_and_gate(x,y) returns (z)
     if x then z = y else z = false
 
-let sequential_or_gate(x,y) returns (z)
+let node sequential_or_gate(x,y) returns (z)
     if x then z = true else z = y
 
-let and_gate(x,y) returns (z)
+let node and_gate(x,y) returns (z)
     z = x && y
 
-let strict_or_gate(x,y) returns (z)
+let node strict_or_gate(x,y) returns (z)
     z = x or y
 
 
@@ -29,13 +29,13 @@ let node arbiter(i, request, pass_in, token_in)
     returns (grant, pass_out, token_out)
   local o
   do
-    grant = and_gate(request, o)
+    grant = run and_gate(request, o)
   and
-    pass_out = and_gate(not request, o)
+    pass_out = run and_gate(not request, o)
   and
    (* grant is given when there is a request and either 1/ it is my round or *)
    (* my left neibour had the token but did not take it *)
-   o = sequential_or_gate(token_in, pass_in) 
+   o = run sequential_or_gate(token_in, pass_in) 
   and
     token_out = i fby token_in
   done

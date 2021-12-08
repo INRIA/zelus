@@ -17,9 +17,9 @@ let node chrono (stst, rst)
             do
             unless stst continue START
         | START -> local d
-            do d = count_mod 2
-            and if edge (d = 0) then s = count_mod 3
-            and if edge (s = 0) then m = count_mod 5
+            do d = run count_mod 2
+            and if run edge (d = 0) then s = run count_mod 3
+            and if run edge (s = 0) then m = run count_mod 5
             unless stst continue STOP
       end
   every rst
@@ -32,7 +32,7 @@ let node chrono (stst, rst)
 *)  
 let node main () returns (s, m)
   local stst, rst
-  do (s, m) = chrono (stst, rst)
+  do (s, m) = run chrono (stst, rst)
   and stst = true fby 
             false fby 
             false fby 
