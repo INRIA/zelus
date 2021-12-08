@@ -104,7 +104,7 @@ let do_optional_step is_step comment step p =
 (** The main function for compiling a program *)
 let compile modname filename =
   (* input and output files *)
-  let source_name = filename ^ ".zlus" in
+  let source_name = filename ^ ".zls" in
   let obj_interf_name = filename ^ ".zci" in
 
   (* standard output for printing types and clocks *)
