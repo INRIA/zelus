@@ -1,9 +1,14 @@
 (executable 
     (name check)
     (modes byte exe)
+    (modules check)
     (promote (until-clean)))
 
 (rule
- (alias  runtest)
- (deps (glob_files good/*.zlus)) ; depends on all *.zls files
- (action (run ./check.exe)))
+ (copy %{project_root}/lib/std/stdlib.zli stdlib.zli))
+
+(test
+ (name test_runner)
+ (modules test_runner)
+ (deps (glob_files good/*.zlus) (glob_files bad/*.zlus) stdlib.zli)
+ (libraries alcotest zlcompilerlibs))

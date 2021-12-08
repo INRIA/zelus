@@ -14,7 +14,7 @@
 
 (* check the compiler *)
 
-let compiler = "../zeluc.exe -I ../_build/default/lib/std/"
+let compiler = "../compiler/zeluc.exe -I ../_build/default/lib/std/"
 
 let verbose = ref false
 
