@@ -1076,7 +1076,10 @@ and svardec genv env acc
             return (Some(ve), se) in
        let* last, s_init =
          match var_init, s_init with
-         | None, se when not var_is_last -> return (None, se)
+         | None, se ->
+            if var_is_last then
+              match se with | Sval(v) -> return (Some(v), se) | _ -> none
+            else return (None, se)
          | Some(e), Stuple [Sopt(None); se] ->
             (* first instant *)
             let* ve, se = sexp genv env e se in
@@ -1093,12 +1096,16 @@ and svardec genv env acc
 (* store the next value for [last x] in the state of [vardec] declarations *)
 (* the state is organised in [s_init; s_default] *)
 and set_vardec env_eq { var_name; var_loc } s =
+  let* v = find_value_opt var_name env_eq |>
+             Error.error var_loc (Error.Eunbound_ident(var_name)) in
   let r = match s with
     | Stuple [Sempty; _] -> return s
     | Stuple [Stuple [Sopt _; s_init]; s_default] ->
        (* store the current value of [var_name] into the state *)
-       let* v = find_value_opt var_name env_eq in
        return (Stuple [Stuple [Sopt(Some(v)); s_init]; s_default])
+    | Stuple [_; s_default] ->
+       (* store the current value of [var_name] into the state *)
+       return (Stuple [Sval(v); s_default])
     | _ -> none in
   Error.stop_at_location var_loc r
 
