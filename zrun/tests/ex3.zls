@@ -32,7 +32,7 @@ let node f1(r init 0) returns (m init 0)
 let node f1_same(r) returns (m)
   local s init r, r_i init 0, m_i init 0
   do s = last s + last r_i
-  and m = s + 0 -> last m_i
+  and m = s + (0 -> last m_i)
   and m_i = m
   and r_i = r done
 

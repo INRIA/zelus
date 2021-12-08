@@ -8,9 +8,24 @@ let node w(x,y) returns (z, t)
     m = (0 fby (x + y))
   done
 
-      
-let node main() returns (z, t)
+let node w_same(x,y) returns (t, z)
+  local m
   do
-    z, t = run w(t,1)
+    t = y + m
+  and
+    z = x + m
+  and
+    m = (0 fby (x + y))
+  done
+
+      
+let node main() returns (ok)
+  local z1, t1, z2, t2
+  do
+    z1, t1 = run w(t1,1)
+  and
+    t2, z2 = run w(t2,1)
+  and
+    ok = (z1 = z2) && (t1 = t2)  
   done
       

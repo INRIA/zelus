@@ -1,5 +1,8 @@
 let node incr(x, y) returns (o)
-  o = (0 fby x) + y
+  o = 0 fby x + y
 
-let node main1() returns (o)
-  o = run incr (o, 1)
+let node main() returns (o)
+  local o1, o2
+  do o1 = run incr (o1, 1)
+  and o2 = 0 fby o2 + 1
+  and o = (o1 = o2) done
