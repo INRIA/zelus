@@ -67,6 +67,7 @@ and 'a default =
   | Last : 'a -> 'a default
   | Default : 'a -> 'a default
 
+(*
 type ('a, 's) costream =
   | CoF : { init : 's;
             step : 's -> ('a * 's) option } ->
@@ -76,4 +77,4 @@ type ('a, 'b, 's) node =
   | CoFun : ('a list -> 'b option) -> ('a, 'b, 's) node
   | CoNode : { init : 's;
                step : 's -> 'a list -> ('b * 's) option } -> ('a, 'b, 's) node
- 
+ *)
