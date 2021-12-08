@@ -57,6 +57,7 @@ type 'exp vardec_desc =
     var_default: 'exp option;
     var_init: 'exp option;
     var_clock: bool;
+    var_is_last: bool;
     var_typeconstraint: type_expression option;
   }
 

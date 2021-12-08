@@ -573,18 +573,21 @@ let_list:
     { v }
   | ide = ide
     { [ make { var_name = ide; var_clock = false;
-	       var_init = None; var_default = None; var_typeconstraint = None }
+	       var_init = None; var_default = None;
+	       var_typeconstraint = None; var_is_last = false }
 	$startpos $endpos ] }
 ;
 
 %inline vardec:
-  | c = optional(CLOCK) ide = ide t_opt = optional(colon_type_expression)
+  | l = optional(LAST)
+    c = optional(CLOCK) ide = ide t_opt = optional(colon_type_expression)
     i_opt = optional(init_expression)
     d_opt = optional(default_expression)
     { make { var_name = ide;
 	     var_clock = (match c with | None -> false | Some _ -> true);
 	     var_init = i_opt; var_default = d_opt;
-	     var_typeconstraint = t_opt }
+	     var_typeconstraint = t_opt;
+	     var_is_last = (match l with | None -> false | Some _ -> true) }
       $startpos $endpos }
 ;
 
@@ -760,7 +763,7 @@ expression_desc:
       { e }
   | e = expression_comma_list %prec prec_list
       { Etuple(List.rev e) }
-  | e1 = expression FBY e2 = expression
+  | e1 = simple_expression FBY e2 = expression
       { Eop(Efby, [e1; e2]) }
   | i = is_inline RUN f = simple_expression e = simple_expression
       { Eop(Erun(i), [f; e]) }
@@ -775,14 +778,14 @@ expression_desc:
     { Eop(Eatomic, [e]) }
   | PRE e = expression
       { Eop(Eunarypre, [e]) }
+  | e1 = simple_expression MINUSGREATER e2 = expression
+      { Eop(Eminusgreater, [e1; e2]) }
   | UP e = expression
       { Eop(Eup, [e]) }
   | TEST e = expression
       { Eop(Etest, [e]) }
   | IF e1 = seq_expression THEN e2 = seq_expression ELSE e3 = seq_expression
       { Eop(Eifthenelse, [e1; e2; e3]) }
-  | e1 = expression MINUSGREATER e2 = expression
-      { Eop(Eminusgreater, [e1; e2]) }
   | MINUS e = expression  %prec prec_uminus
       { unary_minus "-" e ($startpos($1)) ($endpos($1)) }
   | s = SUBTRACTIVE e = expression  %prec prec_uminus
