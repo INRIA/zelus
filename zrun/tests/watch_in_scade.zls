@@ -126,14 +126,14 @@ let node counter(n) returns (ok)
 let node main () returns (a1, a2, a3, l, s, sh)
   local stst, rst, set, md
   do
-      stst = counter(5)
+      stst = run counter(5)
   and
-      rst = counter(10)
+      rst = run counter(10)
   and
-      set = counter(20)
+      set = run counter(20)
   and
-      md = counter(30)
+      md = run counter(30)
   and
-      (a1, a2, a3, l, s, sh) = root (stst, rst, set, md)
+      (a1, a2, a3, l, s, sh) = run root (stst, rst, set, md)
   done
       
