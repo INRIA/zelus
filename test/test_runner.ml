@@ -18,14 +18,21 @@ let files dir =
     (fun file -> Filename.concat dir (Filename.chop_suffix file ".zlus"))
     files
 
-let one file =
-  Format.printf "%s@." file ;
+let good_one file =
   let modname = String.capitalize_ascii (Filename.basename file) in
   compile modname file
 
-let suite dir =
-  List.map (fun file -> (file, `Quick, fun () -> one file)) (files dir)
+exception Error
+
+let bad_one file =
+  let run () = try good_one file with _ -> raise Error in
+  Alcotest.check_raises "error" Error run
+
+let good =
+  List.map (fun file -> (file, `Quick, fun () -> good_one file)) (files "good")
+
+let bad =
+  List.map (fun file -> (file, `Quick, fun () -> bad_one file)) (files "bad")
 
 let () =
-  Alcotest.run ~and_exit:false "zelus_tests"
-    (List.map (fun dir -> (dir, suite dir)) ["good"; "bad"])
+  Alcotest.run ~and_exit:false "zelus_tests" [("good", good); ("bad", bad)]
