@@ -67,6 +67,7 @@ type 'exp vardec =
     var_clock: bool; (* is-it a clock name ? *)
     var_loc: Location.t;
     var_typeconstraint: type_expression option;
+    var_is_last: bool; (* is-there an access to [last x] ? *)
     mutable var_typ: Deftypes.typ; (* its type *)
   }
 
