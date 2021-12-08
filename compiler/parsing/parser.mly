@@ -164,6 +164,8 @@ let scond_true start_pos end_pos =
 %nonassoc END
 %left COMMA
 %left RPAREN
+%nonassoc prec_minus_greater
+%nonassoc FBY
 %right MINUSGREATER EQUALGREATER
 %left OR BARBAR
 %left AMPERSAND AMPERAMPER
@@ -174,7 +176,6 @@ let scond_true start_pos end_pos =
 %left INFIX4
 %left ON
 %right prec_uminus
-%right FBY
 %right PREFIX
 %right PRE TEST UP
 %left DOT
@@ -778,7 +779,7 @@ expression_desc:
     { Eop(Eatomic, [e]) }
   | PRE e = expression
       { Eop(Eunarypre, [e]) }
-  | e1 = simple_expression MINUSGREATER e2 = expression
+  | e1 = expression MINUSGREATER e2 = expression %prec prec_minus_greater
       { Eop(Eminusgreater, [e1; e2]) }
   | UP e = expression
       { Eop(Eup, [e]) }
