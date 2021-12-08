@@ -1335,20 +1335,20 @@ and to_fun v =
   try
     match v with
     | Vfun _ | Vnode _ -> return v
-    | Vclosure({ f_kind; f_args; f_body }, genv, env) ->
-       vfun genv env f_kind f_args f_body
+    | Vclosure({ f_kind; f_loc; f_args; f_body }, genv, env) ->
+       vfun genv env f_kind f_loc f_args f_body
     | _ -> none
   with
     | Error.Error(loc, kind) -> Error.message loc kind; None
 
     
 (* Turn a closure into a value *)
-and vfun genv env f_kind arg_list f_body =
+and vfun genv env f_kind f_loc arg_list f_body =
   let rec funrec env_local arg_list =
     match f_kind, arg_list with
     | (Knode | Khybrid), [arg] ->
        let env = Env.append env_local env in
-       vnode genv env arg f_body
+       vnode genv env f_loc arg f_body
     | (Kstatic | Kfun), arg :: f_args ->
        return
          (Vfun
@@ -1361,7 +1361,7 @@ and vfun genv env f_kind arg_list f_body =
     | _ -> None in
   funrec Env.empty arg_list
 
-and vnode genv env arg f_body =
+and vnode genv env loc arg f_body =
   (* compute the initial state *)
   let env = liftid env in
   let* s_list = Opt.map (ivardec genv env) arg in
@@ -1372,7 +1372,8 @@ and vnode genv env arg f_body =
     match s with
     | Stuple (s_body :: s_list) ->
        let* env_arg, s_list =
-         Opt.mapfold3 (svardec genv env) Env.empty arg s_list v_list in
+         (Opt.mapfold3 (svardec genv env) Env.empty arg s_list v_list) |>
+       Error.error loc Error.Etype in
        let* s_list =
          Opt.map2 (set_vardec env_arg) arg s_list in
        let env = Env.append env_arg env in
