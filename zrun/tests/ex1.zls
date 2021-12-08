@@ -1,3 +1,4 @@
+(* test of a simple two-state automaton *)
 let node f1() returns (o init 42, c1, c2)
   do c1 = last o = 45
   and c2 = last o = 38
