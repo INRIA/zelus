@@ -3,15 +3,15 @@ let node w(x,y) returns (z, t)
   do
     z = x + m
   and
-    t = y + m
+    t = y * m
   and
     m = (0 fby (x + y))
   done
 
-let node w_same(x,y) returns (t, z)
+let node w_same(x,y) returns (z, t)
   local m
   do
-    t = y + m
+    t = y * m
   and
     z = x + m
   and
@@ -24,7 +24,7 @@ let node main() returns (ok)
   do
     z1, t1 = run w(t1,1)
   and
-    t2, z2 = run w(t2,1)
+    z2, t2 = run w(t2, 1)
   and
     ok = (z1 = z2) && (t1 = t2)  
   done

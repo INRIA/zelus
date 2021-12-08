@@ -14,8 +14,17 @@ let node f () returns (disp_1 init 42, disp_2 init 42)
     end
   done
       
-let node main() returns (disp11, disp22)
+let node main() returns (ok)
+  local disp11, disp22, disp111, disp222
   do
     (disp11, disp22) = run f()
+  and
+      (disp111, disp222) =
+    (0, 0) fby (0, 0) fby (0, 0) fby
+      (0, 0) fby (1, 0) fby
+      (2, 0) fby (3, 0) fby
+      (4, 0) fby (disp111, disp222)
+  and
+      ok = (disp11 = disp111) && (disp22 = disp222)
   done
       

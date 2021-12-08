@@ -4,8 +4,15 @@ let node f() returns (o1, o2)
   and o3 = o2 + 1
   and o2 = 1 fby o3 done
 
-let node main() returns (o)
-  local o1
-  do o, o1 = run f() done
+let node f_same() returns (o1, o2)
+  local o3 
+  do o1 = 0 -> pre (o2 + 1)
+  and o3 = o2 + 1
+  and o2 = 1 -> pre o3 done
+
+let node main() returns (ok)
+  local o1, o2, o11, o22
+  do o1, o2 = run f() and o11, o22 = run f_same ()
+  and ok = (o1 = o11) && (o2 = o22) done
 
      

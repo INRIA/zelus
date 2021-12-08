@@ -1,10 +1,11 @@
-let node wrong(x) returns (o)
-  do o = o + x done
+let node sum(x) returns (o)
+  do o = 0 fby (o + x) done
 
-let node sum(x) return (o)
-  do o = 0 fby o + 1 done
-      
+let node sum_same(x init 42) returns (o)
+  local o1 init 0
+  do o1 = 0 -> last o1 + last x and o = o1 done
+
 let node main() returns (o1, o2)
   do o1 = run sum(1)
-  and o2 = run sum(o1)
+  and o2 = run sum_same(1)
   done
