@@ -403,7 +403,7 @@ and letin is_rec env eq =
 
 and vardec env acc
 { desc = { var_name; var_init; var_default;
-           var_typeconstraint; var_clock }; loc } =
+           var_typeconstraint; var_clock; var_is_last }; loc } =
   if Env.mem var_name acc then Error.error loc (Enon_linear_pat(var_name));
   let var_default =
     Util.optional_map (expression env) var_default in
@@ -416,7 +416,8 @@ and vardec env acc
     Zelus.var_default = var_default;
     Zelus.var_typeconstraint = var_typeconstraint;
     Zelus.var_clock = var_clock; Zelus.var_loc = loc;
-    Zelus.var_typ = Deftypes.no_typ },
+    Zelus.var_typ = Deftypes.no_typ;
+    Zelus.var_is_last = var_is_last },
   Env.add var_name m acc
 
 (* [local x1 [init e1][default e'1],...,xn[...] do eq] *)
