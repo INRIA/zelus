@@ -1,8 +1,8 @@
-(executable 
-    (name check)
-    (modes byte exe)
-    (modules check)
-    (promote (until-clean)))
+;(executable 
+;   (name check)
+;   (modes byte exe)
+;   (modules check)
+;   (promote (until-clean)))
 
 (rule
  (copy %{project_root}/lib/std/stdlib.zli stdlib.zli))
@@ -10,5 +10,5 @@
 (test
  (name test)
  (modules test)
- (deps (glob_files good/*.zlus) (glob_files bad/*.zlus) stdlib.zli)
+ (deps (glob_files good/*.zls) (glob_files bad/*.zls) stdlib.zli)
  (libraries alcotest zlcompilerlibs))
