@@ -1,0 +1,11 @@
+let node my_delay(x, y) = x -> pre y
+    
+let node ff(x, y) = x + y
+    
+type 'a t = A of int | B of bool
+
+let f x =
+  match x with
+  | A x -> x
+  | B _ -> 0
+  | A 0 -> 1

@@ -1,0 +1,19 @@
+let atomic node plus1 x = pre x + 1
+    
+let node a x = o where
+  rec o = 0 -> plus1 x
+
+let node b (x, y) = x + 1 * y + 2, 42
+
+let node h (x, y) = b (x+1, y+2)
+    
+let node main () = () where
+ rec cpt = a (0 fby cpt) 
+ and () = print_int cpt
+
+let atomic node main2(f)(g)(x) = () where
+ rec cpt = f m and m = g (0 fby cpt)
+ and () = print_int cpt
+
+
+     

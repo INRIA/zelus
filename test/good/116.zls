@@ -1,0 +1,6 @@
+(* des exemples a traduire sous forme de programme Lustre *)
+let f(x) =
+  let y = x + 1 in
+  let z = y + 2 in
+  x + z + y
+    

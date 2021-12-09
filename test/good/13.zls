@@ -1,0 +1,7 @@
+let node test n = o where
+  rec automaton
+      | S0(k) -> 
+          do o = k -> pre o
+          until true then S0(o)
+      init S0(0)
+      

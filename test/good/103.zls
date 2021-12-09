@@ -1,0 +1,3 @@
+let hybrid main () =
+  present (init) -> () else ()
+

@@ -1,0 +1,14 @@
+let hybrid micro_step_delay(x) = o where
+  rec automaton
+      | Await -> do unless x(v) then Run(v)
+      | Run(v) -> do unless (init) then do emit o = v in Await
+      end
+
+let hybrid multi_micro_step_delay(x, k) = o where
+  rec automaton
+      | Await -> do unless x(v) then Run(v, k)
+      | Run(v, k0) ->
+	  do unless (init) on (k0 = 0) then do emit o = v in Await
+	  else x(w) then do emit o = v in Run(w, k)
+	  else (init) then do emit o = v in Run(v, k0 - 1)
+      end

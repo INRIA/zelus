@@ -1,0 +1,11 @@
+let node f() = x where
+  rec automaton
+      | Init(x0) -> do x = x0 -> pre x + 1 until (x >= 10) then Up(x)
+      | Up(x0) -> do x = x0 -> pre x + 2 until (x >= 20) then Down
+      | Down -> do x = 0 then Init(0)
+      init Init(-1)
+
+let node main() =
+  let x = f() in
+  print_int x; print_newline ()
+

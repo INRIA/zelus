@@ -1,0 +1,18 @@
+open T113
+
+let node bad(i, d) = good(i, d)
+
+let node k(x1, x2) =
+  let o1 = good(x1, 1) in
+  o1
+
+(*
+let node verybad() = o where
+  rec b = false fby (not b)
+  and present b -> do emit s = 42 done
+  and o = bad(s, 42)
+
+let node veryverybad() = () where
+  rec a = verybad() + 12
+  and b = verybad() +. 0.0
+*)

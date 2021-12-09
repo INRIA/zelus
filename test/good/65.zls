@@ -1,0 +1,22 @@
+(* automaton containing a period in the body in a nested let/in *)
+
+let hybrid nested z = x where
+  x = (let automaton
+           | S0 -> 
+              do
+                p = period (1.0 | 1.0)
+              until z then S1(3)
+
+           | S1(t) ->
+              do
+                p = period (2.0 | 2.0)
+              done
+           end
+       in p)
+
+let hybrid main () =
+  let
+  rec der y = 1.0 init -2.0
+  and x = nested (up(y)) in
+  ()
+

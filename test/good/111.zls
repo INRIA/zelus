@@ -1,0 +1,4 @@
+
+let hybrid count(clk) = o where
+  rec o = present clk | (init) -> (0 -> last o + 1) init 0
+

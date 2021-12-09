@@ -1,0 +1,6 @@
+type t = { x: int }
+
+let g x = x + 1
+    
+(* g y.x must be parsed as g (y.x) *)
+let f y = g y.x

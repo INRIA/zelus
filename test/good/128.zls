@@ -1,0 +1,27 @@
+let node f n x = n -> pre(x) + 1
+
+let node compose f g x = run f(run g(x+x))
+   
+let node higher f g x y = run (f g) (x+y+1)
+
+let node f3 n x = f 1 (x+3)
+    
+
+let node f1(x) = 0 -> pre x + 1
+let node f2(x) = x + 2
+
+let node h g x = g(x+1) + g(x+2)
+
+let static add(x, y) = x + y
+
+let node main1(x) = f(1+2)(x)
+
+let node main(x, t) =
+  let r = (compose f1 f2)(x + 1) + f1(x+2) + f1(x+3)
+      + (higher f3 f1) (1+4) (5+x) + (f (add(1, 2)))(x) in
+  ((boucle(42 + 1))(t)).(2) + r + main1(x)
+
+let node g x = x + x
+
+let node map_g(t) = map g (42+2) t
+   

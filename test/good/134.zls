@@ -1,0 +1,14 @@
+let node f (x, mi) = o where
+  rec init o = mi
+  and present x(v) -> do o = v done
+
+let node g x = o1, o2 where
+  rec b = true -> false
+  and present b -> do emit x = 1 done
+  and present b -> do emit y done
+  and o1 = f (x, 0)
+  and o2 = f (y, ())
+
+let node main () =
+  let o1, o2 = g 3 in print_endline(string_of_int o1)
+      

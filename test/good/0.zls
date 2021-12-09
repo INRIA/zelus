@@ -1,0 +1,13 @@
+type t = Zero | Constant of float | Linear of float
+
+let node simpl_chunk (dur, typ) =
+   match typ with
+   | Zero -> None
+   | Constant v ->
+       let new_c = (dur, Zero) in Some new_c
+   | Linear v ->
+       let new_c = (dur, Constant v) in Some new_c
+   end
+       (* Internal error (Aform: should be a name)
+	  new_c_20 *)
+       	  

@@ -1,0 +1,5 @@
+
+let node main z = 
+  let () = print_endline "1" in
+  let () = print_endline "2" in
+  ()
