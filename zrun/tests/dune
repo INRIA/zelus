@@ -1,3 +1,11 @@
+;(executable
+; (name zruntest)
+; (modes (byte exe))
+; ; depends on zlcompilelibs
+;  (libraries zelus.zlcompilerlibs)
+;  ; copy in the current dir.
+;  (promote (until-clean)))
+
 ;(executable 
 ;    (name check)
 ;    (modes byte exe)

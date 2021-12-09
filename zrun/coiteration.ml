@@ -406,6 +406,8 @@ let rec iexp genv env { e_desc; e_loc  } =
        let* s_list = Opt.map (iexp genv env) e_list in
        return (Stuple(s_list))
     | Eapp(e, e_list) ->
+       (* When [e] is a global value, it can denotes either a *)
+       (* combinatorial function or node; otherwise, [e] denotes a node *)
        let* s = iexp genv env e in
        let* s_list = Opt.map (iexp genv env) e_list in
        return (Stuple(s :: s_list))

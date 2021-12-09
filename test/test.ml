@@ -47,14 +47,14 @@ let good =
   load_path := "./good" :: !load_path ;
   List.map
     (fun file -> (file, `Quick, fun () -> good_one file))
-    (files "good" ".zlus")
+    (files "good" ".zls")
 
 (* Check all bad files. *)
 let bad =
   load_path := "./bad" :: !load_path ;
   List.map
     (fun file -> (file, `Quick, fun () -> bad_one file))
-    (files "bad" ".zlus")
+    (files "bad" ".zls")
 
 
 (* Main test runner. *)
