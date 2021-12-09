@@ -1,8 +1,0 @@
-let node f k x = o where
-rec o = pre x + k
-
-let atomic node g k () = o where
-rec o = 0 -> f k o + f k o + f k o
-
-let node main () =
-print_int (g 1 ()); print_newline ()

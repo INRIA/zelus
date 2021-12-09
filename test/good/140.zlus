@@ -1,7 +1,0 @@
-let node g x = y where
-   rec automaton
-       | A -> do y = x
-              unless (y <= 0) then B
-       | B -> do y = 0
-              unless (y = 0) then A
-       end

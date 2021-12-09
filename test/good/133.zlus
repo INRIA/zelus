@@ -1,7 +1,0 @@
-let node fix(f)(x) =
-  let rec o = run f (x, o) in o
-
-    
-let node ff (x, y) = 0 -> pre (x + y)
-
-let node fix_f x = fix ff x
