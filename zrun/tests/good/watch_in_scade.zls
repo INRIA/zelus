@@ -20,7 +20,7 @@ local
   sigSh default false,
   sigL default false,
   m init 0, s init 0, d init 0, (* -- chrono timers *)
-  wh, wm, ws, w (* -- clock timers *)
+  last wh, last wm, last ws, w (* -- clock timers *)
 do
   l_ =  sigL
 and
