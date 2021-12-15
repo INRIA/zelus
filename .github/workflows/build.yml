@@ -18,19 +18,17 @@ jobs:
           - gtk
           - nogtk
         ocaml-version:
-          - 4.11.1
+          - 4.13.1
           - 4.08.1
 
     steps:
-      - name: Install external dependencies
-        run: |
-          sudo apt-get -y update
-          sudo apt-get -y install gcc wget cmake
-        
+      - name: Checkout code
+        uses: actions/checkout@v2
+
       - name: Use OCaml ${{ matrix.ocaml-version }}
-        uses: avsm/setup-ocaml@v1
+        uses: ocaml/setup-ocaml@v2
         with:
-          ocaml-version: ${{ matrix.ocaml-version }}
+          ocaml-compiler: ${{ matrix.ocaml-version }}
         
       - name: Install OCaml dependencies
         run: opam install -y graphics ocamlfind menhir
@@ -39,9 +37,6 @@ jobs:
         if: matrix.solver == 'sundials'
         run: opam install -y sundialsml
 
-      - name: Checkout code
-        uses: actions/checkout@v2
-      
       - name: Install Zelus
         run: |
           opam pin -y -n -k path .
@@ -49,9 +44,7 @@ jobs:
 
       - name: Install Gtk
         if: matrix.plot == 'gtk'
-        run: |
-          sudo apt-get -y install gtk2.0
-          opam install -y lablgtk zelus-gtk
+        run: opam install -y zelus-gtk
 
       - name: Build all examples
         if: matrix.plot == 'gtk'
