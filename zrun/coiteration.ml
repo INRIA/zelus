@@ -405,9 +405,19 @@ let rec iexp genv env { e_desc; e_loc  } =
     | Etuple(e_list) -> 
        let* s_list = Opt.map (iexp genv env) e_list in
        return (Stuple(s_list))
+    | Eapp({ e_desc = Eglobal { lname } }, e_list) ->
+       (* When [e] is a global value, it can denote either a *)
+       (* combinatorial function or a node; otherwise, [e] must be *)
+       (* combinatorial *)
+       let* s_list = Opt.map (iexp genv env) e_list in
+       let* v =
+         (find_gvalue_opt lname genv) |>
+           Error.error e_loc (Error.Eunbound_lident(lname)) in
+       let* v = to_fun v in
+       let si =
+         match v with | Vnode si -> Sinstance(si) | _ -> Sempty in
+       return (Stuple (si :: s_list))
     | Eapp(e, e_list) ->
-       (* When [e] is a global value, it can denotes either a *)
-       (* combinatorial function or node; otherwise, [e] denotes a node *)
        let* s = iexp genv env e in
        let* s_list = Opt.map (iexp genv env) e_list in
        return (Stuple(s :: s_list))
@@ -671,17 +681,7 @@ and sexp genv env { e_desc; e_loc } s =
         return (v2, Stuple [s1; s2])
      | Erun _, [_; { e_desc } as arg],
        Stuple [Sinstance { init; step }; s_arg] ->
-        (* the first argument has been computed in the initialization phase *)
-        (* [run f (e1,..., en)] : one of the ei can be bottom/nil *)
-        (* That is, f may not be a strict function *)
-        let* v, s_arg =
-          match e_desc, s_arg with
-          | Etuple(arg_list), Stuple(s_list) ->
-             let* v_list, s_list = sexp_list genv env arg_list s_list in
-             return (Value(Vtuple(v_list)), Stuple(s_list))
-          | _ -> sexp genv env arg s_arg in
-        let* v, init = step init v in
-        return (v, Stuple [Sinstance { init; step }; s_arg])
+        run genv env init step arg s_arg
      | Eatomic, [e], s ->
         (* if one of the input is bot (or nil), the output is bot (or nil); *)
         (* that is, [e] is considered to be strict *)
@@ -727,6 +727,8 @@ and sexp genv env { e_desc; e_loc } s =
      let* v_list, s_list = sexp_list genv env e_list s_list in
      let* v = stuple v_list in
      return (v, Stuple(s_list))
+  | Eapp(_, [arg]), Stuple [Sinstance { init; step }; s_arg] ->
+     run genv env init step arg s_arg
   | Eapp({ e_loc } as e, e_list), Stuple (s :: s_list) ->
      (* [f] must return a combinatorial function *)
      let* v, s = sexp genv env e s in
@@ -801,6 +803,20 @@ and sexp genv env { e_desc; e_loc } s =
      return (r, s)
   | _ -> none in
   Error.stop_at_location e_loc r
+
+(* application of a node *)
+and run genv env init step arg s_arg =
+  (* the first argument has been computed in the initialization phase *)
+  (* [run f (e1,..., en)] : one of the ei can be bottom/nil *)
+  (* That is, f may not be a strict function *)
+  let* v, s_arg =
+    match arg.e_desc, s_arg with
+    | Etuple(arg_list), Stuple(s_list) ->
+       let* v_list, s_list = sexp_list genv env arg_list s_list in
+       return (Value(Vtuple(v_list)), Stuple(s_list))
+    | _ -> sexp genv env arg s_arg in
+  let* v, init = step init v in
+  return (v, Stuple [Sinstance { init; step }; s_arg])
 
 (* application of a combinatorial function *)
 and apply fv v_list =
