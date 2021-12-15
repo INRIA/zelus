@@ -19,7 +19,9 @@ jobs:
           ocaml-compiler: 4.13.1
             
       - name: Install OCaml dependencies
-        run: opam install -y graphics sundialsml zelus zelus-gtk
+        run: |
+          opam depext sundialsml
+          opam install graphics sundialsml zelus zelus-gtk
       
       - name: Build all examples
         run: |

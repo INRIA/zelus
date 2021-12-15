@@ -33,9 +33,13 @@ jobs:
       - name: Install OCaml dependencies
         run: opam install -y graphics ocamlfind menhir
 
-      - name: Install sundials
+      - name: Install Sundials
         if: matrix.solver == 'sundials'
-        run: opam install -y sundialsml
+        run: opam depext conf-sundials
+
+      - name: Install Sundials/ML
+        if: matrix.solver == 'sundials'
+        run: opam install sundialsml
 
       - name: Install Zelus
         run: |
