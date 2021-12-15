@@ -37,15 +37,7 @@ jobs:
 
       - name: Install sundials
         if: matrix.solver == 'sundials'
-        run: |
-          wget -nv --show-progress --progress=bar:force:noscroll https://github.com/LLNL/sundials/releases/download/v3.2.1/sundials-3.2.1.tar.gz
-          tar xzf sundials-3.2.1.tar.gz
-          mkdir sundials-3.2.1-build
-          cd sundials-3.2.1-build
-          cmake ../sundials-3.2.1
-          make -j
-          sudo make install
-          opam install -y sundialsml
+        run: opam install -y sundialsml
 
       - name: Checkout code
         uses: actions/checkout@v2

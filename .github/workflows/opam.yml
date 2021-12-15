@@ -14,16 +14,6 @@ jobs:
         run: |
           sudo apt-get -y update
           sudo apt-get -y install gcc wget cmake gtk2.0
-
-      - name: Install sundials
-        run: |
-          wget -nv --show-progress --progress=bar:force:noscroll https://github.com/LLNL/sundials/releases/download/v3.2.1/sundials-3.2.1.tar.gz
-          tar xzf sundials-3.2.1.tar.gz
-          mkdir sundials-3.2.1-build
-          cd sundials-3.2.1-build
-          cmake ../sundials-3.2.1
-          make -j
-          sudo make install
         
       - name: Use OCaml
         uses: avsm/setup-ocaml@v1
