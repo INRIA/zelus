@@ -1,12 +1,15 @@
 (executable
- (name zruntest)
- (modes (byte exe))
-  (libraries zelus.zlcompilerlibs zelus.zlrunlibs alcotest)
+ (name zrun)
+  (modes (byte exe))
+  (libraries zelus.zlcompilerlibs zelus.zlrunlibs)
+  ; copy in the current dir
+  (modules zrun)
   (promote (until-clean)))
 
-;(test
-; (name zruntest)
-; (modes (byte exe))
-;  (libraries zelus.zlcompilerlibs zelus.zlrunlibs alcotest)
-;  (deps (glob_files good/*.zls) (glob_files bad/*.zls) stdlib.zli))
+(library
+  (name zlrunlibs)
+  (public_name zelus.zlrunlibs)
+  (wrapped false)
+  (libraries zelus.zlcompilerlibs)
+  (modules :standard \ zrun))
   
