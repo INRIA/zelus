@@ -14,21 +14,23 @@
 (* the main *)
 open Misc
 open Smisc
+open Location
 open Monad
-open Opt
+open Result
 open Value
 open Lident
+open Find
 open Primitives
+open Error
 open Coiteration
-open Location
                
 let lexical_error err loc =
   Format.eprintf "%aIllegal character.@." output_location loc;
-  raise Stdlib.Exit
+  raise Smisc.Error
 
 let syntax_error loc =
   Format.eprintf "%aSyntax error.@." output_location loc;
-  raise Stdlib.Exit
+  raise Smisc.Error
 
 let parse parsing_fun lexing_fun source_name =
   let ic = open_in source_name in
@@ -49,31 +51,26 @@ let parse_implementation_file source_name =
   parse Parser.implementation_file Lexer.main source_name
                
 (* The main entry function. Execute [n] steps of [main()] or [run main ()]  *)
-let eval_main genv n_steps is_check main =
+let eval genv n_steps main =
   let fv =
     find_gvalue_opt (Name main) genv in
   match fv with
   | None ->
-     Format.eprintf "The global value %s is unbound.\n" main;
-     raise Stdlib.Exit
+     Format.eprintf "@[Zrun: the global value %s is unbound.@.@]"
+       main
   | Some(fv) ->
-     let v = to_fun fv in
-     match v with
-     | None ->
-        Format.eprintf "The global value %s is not a function.\n" main;
-        raise Stdlib.Exit
-     | Some(v) ->
-        let output =
-          if is_check then
-            fun v -> if (v = Vbool(true)) then () else raise Stdlib.Exit
-          else
-            fun v -> Output.pvalue_flush Format.std_formatter v in
-        match v with
-        | Vfun(fv) ->
-           run_fun output fv n_steps
-        | Vnode { init; step } ->
-           run_node output init step n_steps
-        | _ -> assert false
+     match fv with
+     | Vclosure({ c_funexp = { f_kind = (Kstatic | Kfun) } }) | Vfun _ ->
+        Coiteration.run_fun
+          no_location (Output.value_flush Format.std_formatter )
+          n_steps fv [void]
+     | Vclosure c ->
+        let si = Coiteration.catch (Coiteration.instance c) in
+        Coiteration.run_node
+          no_location (Output.value_flush Format.std_formatter ) n_steps si void
+     | _ ->
+        Format.eprintf "@[Zrun: the global value %s is not a function.@.@]"
+          main
              
 let apply_with_close_out f o =
   try
@@ -89,7 +86,7 @@ let do_step comment step input =
 
 (* Evaluate all the definition in a file, store values *)
 (* and a main function/node, if given *)
-let main modname filename n_steps is_check main_nodes =
+let main modname filename n_steps main_nodes =
   (* output file in which values are stored *)
   let obj_name = filename ^ ".zlo" in
   let otc = open_out_bin obj_name in
@@ -114,7 +111,7 @@ let main modname filename n_steps is_check main_nodes =
   (* Add Stdlib *)
   let genv = Genv.add_module genv Primitives.stdlib_env in
   
-  let genv = Opt.get (Coiteration.program genv impl_list) in
+  let genv = Coiteration.program genv impl_list in
   Debug.print_message "Evaluation of definitions done";
 
   (* Write the values into a file *)
@@ -122,6 +119,6 @@ let main modname filename n_steps is_check main_nodes =
   apply_with_close_out (Genv.write genv) otc;
   
   (* evaluate a list of main function/nodes *)
-  List.iter (eval_main genv n_steps is_check) main_nodes
+  List.iter (eval genv n_steps) main_nodes
              
                                                        

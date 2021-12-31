@@ -11,4 +11,5 @@ let node main() returns (ok, o1, o2)
   and o2 = 0 fby 1 fby 2 fby 3 fby 4 fby 2 fby 1 fby 0 fby (-1) fby (-2)
       fby (-3) fby o2
   and ok = (o1 = o2)
+  and o = o1
   done

@@ -1,6 +1,9 @@
 let node f(x) returns (y)
-    do y = (0 fby x) + 1 done
+    do y = (0 fby y) + 1 done
 
+let node h() returns (y)
+  do y = f(1) done
+      
 let node g() returns (y, z)
   do y = run f(z) and z = y done
     
@@ -9,8 +12,8 @@ let node main() returns (o)
   do  o1, o2 = run g() and o3 = (0 fby z) + 1 and z = o3
   and o = (o1 = o3) && (o2 = z) done
       
-let node main1() returns (o)
-  local m1 default 0, m2, half
+let node main1() returns ()
+  local m1 default 0, m2, half, o
   do
     if half then do done
     else do m1 = 42 -> pre m1 + 1 done
@@ -21,5 +24,7 @@ let node main1() returns (o)
       half = true -> not (pre half)
   and
       o = m1 = m2
+  and
+      assert o
   done
       

@@ -32,13 +32,12 @@ let _ =
  *)
 
 let n_steps = 10
-let is_check = false
 
 (* Run one file. *)
 let good_one filename =
   Modules.clear ();
   let modname = String.capitalize_ascii (Filename.basename filename) in
-  Eval.main modname filename n_steps is_check ["main"]
+  Eval.main modname filename n_steps ["main"]
 
 exception Error
 
@@ -60,7 +59,6 @@ let bad =
   List.map
     (fun file -> (file, `Quick, fun () -> bad_one file))
     (files "bad" ".zls")
-
-
+  
 (* Main test runner. *)
 let () = Alcotest.run  "zrun_tests" [("good", good); ("bad", bad)]

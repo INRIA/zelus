@@ -47,8 +47,6 @@ let rec pvalue ff v =
        ff "@[<hov 1>%a(%a)@]" Ident.fprint_t id pvalue_list l
   | Vfun _ ->
      Format.fprintf ff "<fun>"
-  | Vnode _ ->
-     Format.fprintf ff "<node>"
   | Vclosure _ ->
      Format.fprintf ff "<closure>"
   | Vrecord(l) ->

@@ -1,0 +1,3 @@
+let node main() returns ()
+  local x
+  do () = 1+() and x = 42 done  

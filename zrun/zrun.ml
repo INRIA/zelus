@@ -19,8 +19,7 @@ let main file =
   then 
     let filename = Filename.chop_extension file in
     let modname = String.capitalize_ascii (Filename.basename filename) in
-    Eval.main modname
-      filename !Smisc.number_of_steps !Smisc.set_check !Smisc.main_nodes 
+    Eval.main modname filename !Smisc.number_of_steps !Smisc.main_nodes 
   else raise (Arg.Bad "Expected *.zls file.")
 
 let doc_main = "\tThe main node to evaluate"
@@ -32,7 +31,6 @@ let doc_nocausality = "\tTurn off the check that are variables are non bottom"
 let doc_print_values = "\tPrint values"
 let doc_number_of_fixpoint_iterations =
   "\tPrint the number of steps for fixpoints"
-let doc_check = "\tCheck that the simulated node returns true"
                     
 let errmsg = "Options are:"
 
@@ -49,8 +47,7 @@ let main () =
            "-noassert", Arg.Set Smisc.no_assert, doc_no_assert;
            "-nocausality", Arg.Set Smisc.set_nocausality, doc_nocausality;
            "-fix", Arg.Set Smisc.print_number_of_fixpoint_iterations,
-           doc_number_of_fixpoint_iterations;
-           "-check", Arg.Set Smisc.set_check, doc_check;  
+           doc_number_of_fixpoint_iterations  
       ])
       main
       errmsg

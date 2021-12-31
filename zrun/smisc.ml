@@ -13,6 +13,8 @@
 
 open Misc
 
+exception Error
+        
 let set_verbose () =
   verbose := true;
   Printexc.record_backtrace true
@@ -38,5 +40,3 @@ let reset_number_of_fixpoint_iterations () = number_of_fixpoint_iterations := 0
 let no_assert = ref false
 
 let set_nocausality = ref false
-
-let set_check = ref false

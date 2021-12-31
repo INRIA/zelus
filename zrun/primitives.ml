@@ -18,9 +18,9 @@ open Opt
 open Lident
 
 (* remove dot and nil. *)
-(* [let** x = e1 in e2] returns bot if v = bot; nil if v = nil; *)
-(* e2[value(e1)/x] otherwise *)
-let (let**) v f =
+(* [let+ x = e in e'] returns [bot] if [e] returns bot; *)
+(* nil if e returns nil; [e'] otherwise *)
+let (let+) v f =
   match v with
   | Vbot -> return Vbot
   | Vnil -> return Vnil
@@ -39,6 +39,10 @@ let float v =
   match v with
   | Vfloat(i) -> return i | _ -> None
 
+let vfloat v =
+  match v with
+  | Value(Vfloat(i)) -> return i | _ -> None
+
 let get_present v =
   match v with
   | Vpresent(v) -> return v
@@ -48,17 +52,12 @@ let test v =
   match v with
   | Vpresent _ -> return (Vbool(true)) | Vabsent -> return (Vbool(false))
   | _ -> None
- 
-let get_fun v =
-  match v with
-  | Vfun _ -> return v
-  | _ -> None
-
+     
 let get_node v =
   match v with
-  | Vnode v -> return v
+  | Vclosure c -> return c
   | _ -> None
-
+       
 let get_record r =
   match r with
   | Vrecord(l) -> return l
@@ -143,73 +142,61 @@ let geti i v =
           
 (* ifthenelse *)
 let ifthenelse v1 v2 v3 =
-  match v1, v2, v3 with
-  | Vbot, _, _ -> return Vbot
-  | (Vnil, Vbot, _) | (Vnil, _, Vbot) -> return Vbot
-  | Vnil, _, _ -> return Vnil
-  | (Value(v1), _, _)  -> ifthenelse_op v1 v2 v3
-                 
+  let+ v1 = v1 in
+  ifthenelse_op v1 v2 v3
+                     
 (* lift a unary operator: [op bot = bot]; [op nil = nil] *)
 let lift1 op v =
-  let** v = v in
+  let+ v = v in
   let* v = op v in
   return (Value v)
 
 (* lift a binary operator: [op bot _ = bot]; [op _ bot = bot]; same for nil *)
-let lift2 op v1 v2 =
-  let v =
-    match v1, v2 with
-    | (Vbot, _) | (_, Vbot) -> Vbot
-    | (Vnil, _) | (_, Vnil) -> Vnil
-    | Value(v1), Value(v2) -> Value(op v1 v2) in
-  return v
-
-let sapp2 op v1 v2 =
+let sapp op v1 v2 =
   match v1, v2 with
   | (Vbot, _) | (_, Vbot) -> Vbot
   | (Vnil, _) | (_, Vnil) -> Vnil
   | Value(v1), Value(v2) -> Value(op v1 v2)
 
+let lift2 op v1 v2 = return (sapp op v1 v2)
+
 (* convert a value into a list *)
 let list_of v =
   match v with
-  | Value(Vvoid) -> return []
-  | Value(Vtuple(v_list)) -> return v_list
+  | Value(Vvoid) -> []
+  | Value(Vtuple(v_list)) -> v_list
   | Value(Vstuple(v_list)) ->
-     return (List.map (fun v -> Value(v)) v_list)
-  | Vbot | Vnil | Value _ -> return [v]
-              
+     List.map (fun v -> Value(v)) v_list
+  | Vbot | Vnil | Value _ -> [v]
+  
 (* gets the value *)
 let pvalue v =
   match v with
   | Vnil | Vbot -> None
   | Value(v) -> return v
-
-let is_pvalue v = not (is_none (pvalue v))
                     
-(* builds a synchronous pair. If one is bot, the result is bot; *)
-(* if one is nil, the result is nil *)
-let spair v1 v2 =
-  sapp2 (fun x1 x2 -> Vstuple [x1; x2]) v1 v2
-
 (* if one is bot, return bot; if one is nil, return nil *)
 let rec slist v_list =
   match v_list with
   | [] -> Value []
   | v :: v_list ->
      let v_r = slist v_list in
-     sapp2 (fun x xs -> x :: xs) v v_r
+     sapp (fun x xs -> x :: xs) v v_r
      
 let stuple v_list =
-  let** v_list = slist v_list in
+  let+ v_list = slist v_list in
   return (Value(Vstuple(v_list)))
   
 let constr1 f v_list =
-  let** v_list = slist v_list in
+  let+ v_list = slist v_list in
   return (Value(Vconstr1(f, v_list)))
 
+let state1 f v_list =
+  let+ v_list = slist v_list in
+  return (Value(Vstate1(f, v_list)))
+
 let atomic v =
-  let** v = v in
+  let+ v = v in
   match v with
   | Vtuple(l) -> stuple l
   | _ -> return (Value(v))
@@ -228,6 +215,7 @@ let unop op = Vfun op
 let binop op =
   Vfun(fun v1 -> return (Vfun (fun v2 -> op v1 v2)))
     
+(*
 (* state processes *)
 let zerop_process op s =
   Vnode
@@ -241,7 +229,8 @@ let unop_process op s =
     { init = s;
       step =
         fun s v -> let* v = lift1 (op s) v in return (v, s) }
-
+ *)
+  
 let _ = Random.init 0
 
 let random_bool_op _ =

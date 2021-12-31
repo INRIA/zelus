@@ -17,7 +17,19 @@ open Value
 open Monad
 open Opt
 open Ident
-   
+
+(* auxiliary functions for environments *)
+let lift f env =
+  Env.map (fun v -> { cur = f v; last = None; default = None }) env
+let liftid env = lift (fun x -> x) env
+let liftv env = lift (fun v -> Value(v)) env
+let unlift env = Env.map (fun { cur } -> cur) env
+               
+(* the set of names defined in a environment *)
+let names_env env = Env.fold (fun n _ acc -> S.add n acc) env S.empty
+
+let names eq_write = Deftypes.names S.empty eq_write
+
 (* match a value [v] against a pattern [p] *)
 let pmatch (v : pvalue) (p : pattern) : pvalue Env.t Opt.t =
   let rec pmatch acc v { pat_desc } =
@@ -120,3 +132,102 @@ let matchstate (ps : pvalue) ({ desc; loc } : statepat) : (pvalue Env.t) Opt.t =
      return env
   | _ -> none
   
+(* Auxiliary functions to lift bottom and nil to environments *)
+(* the bottom environment *)
+let bot_env (eq_write: Deftypes.defnames) : 'a extended ientry Env.t =
+  S.fold
+    (fun x acc -> Env.add x { cur = Vbot; last = None; default = None } acc)
+    (names eq_write) Env.empty
+
+(* the nil environment *)
+let nil_env (eq_write: Deftypes.defnames) : 'a extended ientry Env.t =
+  S.fold
+    (fun x acc -> Env.add x { cur = Vnil; last = None; default = None } acc)
+    (names eq_write) Env.empty
+
+(* a bot/nil value lifted to lists *)
+let bot_list l = List.map (fun _ -> Vbot) l
+
+(* a bot/nil value lifted to patterns *)
+let rec distribute v acc { pat_desc } =
+  match pat_desc with
+  | Evarpat(x) -> Env.add x v acc
+  | Etuplepat(p_list) | Econstr1pat(_, p_list) ->
+     List.fold_left (distribute v) acc p_list
+  | Ewildpat | Econstpat _ | Econstr0pat _ -> acc
+  | Ealiaspat(p, x) -> distribute v (Env.add x v acc) p
+  | Eorpat(p_left, _) -> distribute v acc p_left
+  | Erecordpat(p_e_list) ->
+     let distribute_record acc { arg } = distribute v acc arg in
+     List.fold_left distribute_record acc p_e_list
+  | Etypeconstraintpat(p, _) -> distribute v acc p
+                                
+let pbot p = distribute Vbot Env.empty p
+let pnil p = distribute Vnil Env.empty p
+        
+(* Pattern matching for equations *)
+let matcheq (v: value) (p: pattern) : value ientry Env.t Opt.t = 
+  let rec matchrec acc v ({ pat_desc; pat_loc } as p) =
+    match v with
+    | Vbot -> return (Env.append (liftid (pbot p)) acc)
+    | Vnil -> return (Env.append (liftid (pnil p)) acc)
+    | Value(v) ->
+       match v, pat_desc with
+       | Vtuple(v_list), Etuplepat(l_list) ->
+          match_list acc v_list l_list
+       | _ ->
+          let* env = pmatch v p in
+          return (Env.append (liftv env) acc)
+  and match_list acc v_list l_list =
+    Opt.fold2 matchrec acc v_list l_list in
+  matchrec Env.empty v p
+    
+let matchsig (v: value) ({ pat_loc } as p : pattern) :
+      (value * value ientry Env.t) Opt.t =
+  match v with
+  | Vbot ->
+     return (Vbot, liftid (pbot p))
+  | Vnil ->
+     return (Vnil, liftid (pnil p))
+  | Value(v) ->
+     let* v, env = matchsig v p in
+     return (Value(v), liftv env)
+
+(* definition [fun (x11,...) ... (xn1,...) returns (y1,...) eq] *)
+(* arg_in_1 = [x11;...]; ...; arg_in_n = [xn1;...]; arg_out = [y1;...] *)
+let matching_arg_in loc env arg v =
+  let open Result in
+  let open Error in
+  let match_in acc { var_name } v =
+    return (Env.add var_name { cur = v; last = None; default = None } acc) in
+  match arg, v with
+  | l, Vbot ->
+     fold2 { kind = Epattern_matching_failure; loc = loc }
+       match_in env l (List.map (fun _ -> Vbot) l)
+  | l, Vnil ->
+     fold2 { kind = Epattern_matching_failure; loc = loc }
+       match_in env l (List.map (fun _ -> Vnil) l)
+  | [], Value(Vvoid) -> return env
+  | l, Value(Vtuple(v_list)) -> 
+     fold2
+       { kind = Epattern_matching_failure; loc = loc }
+       match_in env l v_list
+  | [x], _ -> match_in Env.empty x v
+  | _ ->
+     (* type error *)
+     error { kind = Epattern_matching_failure; loc = loc }
+
+let matching_arg_out loc env arg =
+  let open Result in
+  let open Error in
+  let match_out { var_name } =
+    Find.find_value_opt var_name env |>
+      Opt.to_result ~none:{ kind = Eunbound_ident(var_name); loc = loc } in
+  let* v_list =
+    map match_out arg in
+  match v_list with
+  | [] -> return Primitives.void
+  | [v] -> return v
+  | _ -> return (Value(Vtuple(v_list)))
+  
+

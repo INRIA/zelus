@@ -14,6 +14,11 @@
 (* Set of values *)
 (* noinitialized and non causal values *)
 
+(* an input entry in the environment *)
+type 'a ientry = { cur: 'a; last : 'a option; default : 'a option }
+
+type 'a result = ('a, Error.error) Result.t
+
 type 'a extended =
   | Vnil : 'a extended
   | Vbot : 'a extended
@@ -31,35 +36,35 @@ type pvalue =
   | Vrecord : pvalue Zelus.record list -> pvalue
   | Vpresent : pvalue -> pvalue
   | Vabsent : pvalue
-  | Vtuple : value list -> pvalue
   | Vstuple : pvalue list -> pvalue
+  | Vtuple : value list -> pvalue
   | Vstate0 : Ident.t -> pvalue
   | Vstate1 : Ident.t * pvalue list -> pvalue
   | Vfun : (pvalue -> pvalue option) -> pvalue
-  | Vnode : (state, value, value) instance -> pvalue
-  | Vclosure : Zelus.funexp * pvalue Genv.genv * value Ident.Env.t -> pvalue
-                                   
+  | Vclosure : closure -> pvalue
+
+and closure =
+  { c_funexp : Zelus.funexp;
+    c_genv: pvalue Genv.genv;
+    c_env: value ientry Ident.Env.t }
+                                     
 and value = pvalue extended
-          
+
 and state =
   | Sempty : state
   | Stuple : state list -> state
   | Sval : value -> state
   | Sopt : value option -> state
-  | Sinstance : (state, value, value) instance -> state
+  | Sinstance : instance -> state
   | Scstate : { pos : value; der : value } -> state 
   | Szstate : { zin : bool; zout : value } -> state
   | Shorizon : { zin : bool; horizon : float } -> state
   | Speriod :
       { zin : bool; phase : float; period : float; horizon : float } -> state
 
-and ('s, 'a, 'b) instance =
-  { init : 's;
-    step : 's -> 'a -> ('b * 's) option
-  }
-  
-(* an input entry in the environment *)
-type 'a ientry = { cur: 'a; last : 'a option; default : 'a option }
+and instance =
+  { init : state;
+    step : closure }
 
 and 'a default =
   | Val : 'a default

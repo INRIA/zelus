@@ -125,19 +125,8 @@ and
 	no_derail_AB && no_derail_BC
 done
 
-let node main() returns (property)
-  local
-    on_A, on_B, on_C, ack_AB, ack_BC
+(* temporary solution. for the moment the main function must be *)
+(* of type unit -> t *)
+let node main() returns ()
   do
-    on_A = true
-  and
-      on_B = true
-  and
-      on_C = true
-  and
-      ack_AB = true
-  and
-      ack_BC = true
-  and
-      property =  ums_verif(on_A, on_B, on_C, ack_AB, ack_BC)
   done
