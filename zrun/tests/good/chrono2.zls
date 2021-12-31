@@ -36,10 +36,10 @@ let node counter(n) returns (c)
 let node main() returns (disp11, disp22)
   local stst11, rst11
   do
-      disp11, disp22 = run chrono(stst11, rst11)
+      disp11, disp22 =  chrono(stst11, rst11)
   and
-      stst11 = run counter(5)
+      stst11 =  counter(5)
   and
-      rst11 = run counter(10)
+      rst11 =  counter(10)
   done
       

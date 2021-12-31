@@ -16,5 +16,5 @@ let node f2() returns (o)
       fby 39 fby 38 done
     
 let node main() returns (o, o1, o2)
-    do o1, _, _ = run f1() and o2 = run f2() and o = o1 = o2 done
+    do o1, _, _ =  f1() and o2 =  f2() and o = o1 = o2 done
 

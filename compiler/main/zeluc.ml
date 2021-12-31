@@ -20,8 +20,8 @@ open Compiler
 
 let compile file =
   Modules.clear();
-  if !no_stdlib then set_no_stdlib();
-  if Filename.check_suffix file "zlus"
+  if !no_stdlib then Initial.set_no_stdlib();
+  if Filename.check_suffix file "zls"
   then
     let filename = Filename.chop_extension file in
     let modname = String.capitalize_ascii (Filename.basename filename) in

@@ -112,12 +112,12 @@ let rec exp genv env { e_desc; e_loc } =
     | Erecord_with(r, r_list) ->
        let* r = exp genv env r in
        let* label_arg_list = get_record r in
-       let* label_arg_list' =
+       let* ext_label_arg_list =
          Opt.map
            (fun { label; arg } ->
              let* arg = exp genv env arg in return ({ label; arg }))
            r_list in
-       let* r = record_with label_arg_list label_arg_list in
+       let* r = record_with label_arg_list ext_label_arg_list in
        return (Vrecord(r))
     | Etypeconstraint(e, _) -> exp genv env e
     | Efun(fe) ->
@@ -305,3 +305,5 @@ and matching_arg_in env arg v =
      Opt.fold2 match_in env l v_list
   | [x], _ -> match_in Env.empty x v
   | _ -> none
+
+           

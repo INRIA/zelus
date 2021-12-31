@@ -10,9 +10,9 @@ let node main() returns (ok)
   do
     x = 1
   and
-      o1 = run f(x)
+      o1 =  f(x)
   and
-      o2 = run f_same(x)
+      o2 =  f_same(x)
   and
       ok = (o1 = o2)
   done

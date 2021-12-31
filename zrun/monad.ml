@@ -203,14 +203,14 @@ module Result =
          let* acc = f acc x in
          seqfold f acc x_seq
 
-    let rec fold2 with_error f acc x_list y_list =
+    let rec fold2 when_error f acc x_list y_list =
       match x_list, y_list with
       | [], [] -> return acc
       | x :: x_list, y :: y_list ->
          let* acc = f acc x y in
-         let* acc = fold2 with_error f acc x_list y_list in
+         let* acc = fold2 when_error f acc x_list y_list in
          return acc
-      | _ -> error with_error
+      | _ -> error when_error
 
     let rec map2 with_error f x_list y_list =
       match x_list, y_list with
@@ -221,14 +221,14 @@ module Result =
          return (z :: z_list)
       | _ -> error with_error 
 
-    let rec map3 with_error f x_list y_list z_list =
+    let rec map3 when_error f x_list y_list z_list =
       match x_list, y_list, z_list with
       | [], [], [] -> return []
       | x :: x_list, y :: y_list, z :: z_list ->
          let* t = f x y z in
-         let* t_list = map3 with_error f x_list y_list z_list in
+         let* t_list = map3 when_error f x_list y_list z_list in
          return (t :: t_list)
-      | _ -> error with_error 
+      | _ -> error when_error 
 
     let rec mapfold f acc x_list =
       match x_list with
@@ -238,21 +238,21 @@ module Result =
          let* acc, s_list = mapfold f acc x_list in
          return (acc, s :: s_list)
 
-    let rec mapfold2 with_error f acc x_list y_list =
+    let rec mapfold2 when_error f acc x_list y_list =
       match x_list, y_list with
       | [], [] -> return (acc, [])
       | x :: x_list, y :: y_list ->
          let* acc, s = f acc x y in
-         let* acc, s_list = mapfold2 with_error f acc x_list y_list in
+         let* acc, s_list = mapfold2 when_error f acc x_list y_list in
          return (acc, s :: s_list)
-      | _ -> error with_error 
+      | _ -> error when_error 
 
-    let rec mapfold3 with_error f acc x_list y_list z_list =
+    let rec mapfold3 when_error f acc x_list y_list z_list =
       match x_list, y_list, z_list with
       | [], [], [] -> return (acc, [])
       | x :: x_list, y :: y_list, z :: z_list ->
          let* acc, s = f acc x y z in
-         let* acc, s_list = mapfold3 with_error f acc x_list y_list z_list in
+         let* acc, s_list = mapfold3 when_error f acc x_list y_list z_list in
          return (acc, s :: s_list)
-      | _ -> error with_error 
+      | _ -> error when_error 
   end

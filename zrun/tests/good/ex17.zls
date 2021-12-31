@@ -6,8 +6,8 @@ let node copy(x, y) returns (z, t)
 
 let node main () returns (t)
   local x, z
-  do x = run from (0)
-  and (t, z) = run copy(x, t) done
+  do x =  from (0)
+  and (t, z) =  copy(x, t) done
 
 let node main1() returns (t)
   do t = if false then t else 0 done

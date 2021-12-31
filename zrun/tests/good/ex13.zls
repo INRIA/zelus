@@ -6,6 +6,6 @@ let node sum_same(x init 42) returns (o)
   do o1 = 0 -> last o1 + last x and o = o1 done
 
 let node main() returns (o1, o2)
-  do o1 = run sum(1)
-  and o2 = run sum_same(1)
+  do o1 =  sum(1)
+  and o2 =  sum_same(1)
   done

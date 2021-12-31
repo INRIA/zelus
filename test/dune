@@ -1,8 +1,8 @@
-(executable 
-   (name check)
-   (modes byte exe)
-   (modules check)
-   (promote (until-clean)))
+;(executable 
+;   (name test)
+;   (modes byte exe)
+;   (modules test)
+;   (promote (until-clean)))
 
 (rule
  (copy %{project_root}/lib/std/stdlib.zli stdlib.zli))

@@ -25,15 +25,15 @@ let files dir ext =
 
 (* Compile and load Stdlib. *)
 let _ =
-  set_no_stdlib () ;
-  interface "Stdlib" "stdlib" ;
+  Initial.set_no_stdlib () ;
+  Compiler.interface "Stdlib" "stdlib" ;
   default_used_modules := ["Stdlib"]
 
 (* Compile one file. *)
 let good_one file =
   Modules.clear () ;
   let modname = String.capitalize_ascii (Filename.basename file) in
-  compile modname file
+  Compiler.compile modname file
 
 exception Error
 

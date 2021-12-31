@@ -27,13 +27,13 @@ let node main() returns (ok)
   do
     x = A fby A fby B fby C fby D fby x
   and
-      o1,o2 = run select(x)
+      o1,o2 =  select(x)
   and
-      o11, o22 = run select_same(x)
+      o11, o22 =  select_same(x)
   and
       ok = (o1 = o11) && (o2 = o22) & (o3 = o4)
   and
-      o3 = run is_A(x)
+      o3 =  is_A(x)
   and
-      o4 = run is_A_same(x)
+      o4 =  is_A_same(x)
   done

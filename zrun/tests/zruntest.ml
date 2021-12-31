@@ -24,20 +24,25 @@ let files dir ext =
   |> List.map (fun file -> Filename.concat dir (Filename.chop_suffix file ext))
 
 (* Compile and load Stdlib. *)
+(*
 let _ =
-  set_no_stdlib () ;
-  interface "Stdlib" "stdlib" ;
-  default_used_modules := ["Stdlib"]
+  Initial.set_no_stdlib ();
+  (* interface "Stdlib" "stdlib" ; *)
+   default_used_modules := ["Stdlib"]
+ *)
 
-(* Compile one file. *)
-let good_one file =
-  Modules.clear () ;
-  let modname = String.capitalize_ascii (Filename.basename file) in
-  compile modname file
+let n_steps = 10
+let is_check = false
+
+(* Run one file. *)
+let good_one filename =
+  Modules.clear ();
+  let modname = String.capitalize_ascii (Filename.basename filename) in
+  Eval.main modname filename n_steps is_check ["main"]
 
 exception Error
 
-(* Compile one bad file and check that an exception is raised. *)
+(* Run one bad file and check that an exception is raised. *)
 let bad_one file =
   let run () = try good_one file with _ -> raise Error in
   Alcotest.check_raises "error" Error run

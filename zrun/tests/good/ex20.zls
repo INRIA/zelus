@@ -18,8 +18,8 @@ let node main() returns (o)
 				o2_m, o2_s, o2_last_s, o2_r_i,
 				o2_last_r_i, o2_m_i, o2_last_m_i
   do r = 0 -> pre r + 1
-  and o1_m, o1_s, o1_r_i, o1_m_i = run f(r)
+  and o1_m, o1_s, o1_r_i, o1_m_i =  f(r)
   and o2_m, o2_s, o2_last_s, o2_r_i,
-      o2_last_r_i, o2_m_i, o2_last_m_i = run f_same(r)
+      o2_last_r_i, o2_m_i, o2_last_m_i =  f_same(r)
   and o = (o1_m = o2_m)
   done

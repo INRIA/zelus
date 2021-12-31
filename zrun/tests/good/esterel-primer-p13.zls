@@ -65,9 +65,9 @@ let node main() returns (ok)
   do
     i = true fby not i
   and
-    (o11, o22) = run p13(i)
+    (o11, o22) =  p13(i)
   and
-    (o111, o222) = run p13_default(i)
+    (o111, o222) =  p13_default(i)
   and
     ok = (o11 = o111) && (o22 = o222)
   done

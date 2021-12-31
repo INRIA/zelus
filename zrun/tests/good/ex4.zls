@@ -27,11 +27,11 @@ let node counter(phase, p) returns (o)
 let node main() returns (ok)
   local o1, o2, o
   do
-    o1 = run f (o)
+    o1 =  f (o)
   and
-    o2 = run f_same (o)
+    o2 =  f_same (o)
   and
-    o = run counter (0, 5)
+    o =  counter (0, 5)
   and
     ok = (o1 = o2)
   done

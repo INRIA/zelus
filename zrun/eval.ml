@@ -89,7 +89,7 @@ let do_step comment step input =
 
 (* Evaluate all the definition in a file, store values *)
 (* and a main function/node, if given *)
-let file modname filename n_steps is_check main_nodes =
+let main modname filename n_steps is_check main_nodes =
   (* output file in which values are stored *)
   let obj_name = filename ^ ".zlo" in
   let otc = open_out_bin obj_name in
@@ -124,3 +124,4 @@ let file modname filename n_steps is_check main_nodes =
   (* evaluate a list of main function/nodes *)
   List.iter (eval_main genv n_steps is_check) main_nodes
              
+                                                       

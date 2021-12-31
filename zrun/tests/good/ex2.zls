@@ -3,6 +3,6 @@ let node incr(x, y) returns (o)
 
 let node main() returns (o)
   local o1, o2
-  do o1 = run incr (o1, 1)
+  do o1 =  incr (o1, 1)
   and o2 = 0 fby o2 + 1
   and o = (o1 = o2) done

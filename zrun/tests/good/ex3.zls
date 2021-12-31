@@ -17,9 +17,9 @@ let node f_same2(r) returns (m)
 let node main_f() returns (o)
   local r, m1, m2, m3
   do r = 0 -> pre r + 1
-  and m1 = run f(r)
-  and m2 = run f_same(r)
-  and m3 = run f_same2(r)
+  and m1 =  f(r)
+  and m2 =  f_same(r)
+  and m3 =  f_same2(r)
   and o = (m1 = m2) && (m2 = m3)
   done
 
@@ -39,7 +39,7 @@ let node f1_same(r) returns (m)
 let node main_f1() returns (o)
   local r, m1, m2 
   do r = 0 -> pre r + 1
-  and m1 = run f1(r) and (m2) = run f1_same(r)
+  and m1 =  f1(r) and (m2) =  f1_same(r)
   and o = (m1 = m2)
   done
 
@@ -56,7 +56,7 @@ let node f1_same2(r) returns (m)
 let node main_f1_same2() returns (o)
   local r, o1, o2 
   do r = 0 -> pre r + 1
-  and o1 = run f1(r) and o2 = run f1_same2(r)
+  and o1 =  f1(r) and o2 =  f1_same2(r)
   and o = (o1 = o2)
   done
 
@@ -74,13 +74,13 @@ let node f1_same3(r) returns (m)
 let node main_f1_same3() returns (o)
   local r, o1, o2
   do r = 0 -> pre r + 1
-  and o1 = run f1(r) and o2 = run f1_same3(r)
+  and o1 =  f1(r) and o2 =  f1_same3(r)
   and o = (o1 = o2)
   done
 
 let node main() returns (o)
-  do o = run main_f () &&
-    run main_f1 () &&
-    run main_f1_same2 () &&
-    run main_f1_same3 ()
+  do o =  main_f () &&
+     main_f1 () &&
+     main_f1_same2 () &&
+     main_f1_same3 ()
   done

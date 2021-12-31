@@ -1,10 +1,10 @@
-;(executable
-; (name zruntest)
-; (modes (byte exe))
+(executable
+ (name zruntest)
+ (modes (byte exe))
 ; ; depends on zlcompilelibs
-;  (libraries zelus.zlcompilerlibs)
-;  ; copy in the current dir.
-;  (promote (until-clean)))
+  (libraries zelus.zlcompilerlibs zelus.zlrunlibs alcotest)
+  ; copy in the current dir.
+  (promote (until-clean)))
 
 ;(executable 
 ;    (name check)
@@ -12,11 +12,19 @@
 ;    (modules check)
 ;    (promote (until-clean)))
 
-(rule
- (copy %{project_root}/lib/std/stdlib.zli stdlib.zli))
+;(rule
+; (copy %{project_root}/lib/std/stdlib.zli stdlib.zli))
 
-(test
- (name zruntest)
- (modules zruntest)
- (deps (glob_files good/*.zls) (glob_files bad/*.zls) stdlib.zli)
- (libraries alcotest zlcompilerlibs))
+;(test
+; (name zruntest)
+; (modules zruntest)
+; (deps (glob_files good/*.zls) (glob_files bad/*.zls) stdlib.zli)
+; (libraries alcotest zelus.zlcompilerlibs))
+
+;(executable
+;  (name zruntest)
+;  (modes (byte exe))
+;  ; depends on zlcompilelibs
+;  (libraries alcotest zelus.zlcompilerlibs)
+;  ; copy in the current dir.
+;  (promote (until-clean)))

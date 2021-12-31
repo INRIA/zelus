@@ -2,6 +2,36 @@
   (name zrun)
   (modes (byte exe))
   ; depends on zlcompilelibs
-  (libraries zelus.zlcompilerlibs)
+  (libraries zlcompilerlibs zlrunlibs)
   ; copy in the current dir.
+  (modules zrun)
   (promote (until-clean)))
+
+
+(library
+  (name zlrunlibs)
+  (public_name zelus.zlrunlibs)
+  (wrapped false)
+  (libraries zelus.zlcompilerlibs)
+  (modules :standard \ zrun))
+
+;(executable
+;  (name zrun)
+;  (modes (byte exe))
+;  (modules zrun)
+;  (libraries zelus.zlcompilerlibs) ; zlrunlibs)
+;  (promote (until-clean)))
+
+;(executable
+;  (name zrun)
+;  (modes (byte exe))
+;  ; depends on zlcompilelibs
+;  (libraries zelus.zlcompilerlibs)
+;  ; copy in the current dir.
+;  (promote (until-clean)))
+
+;(library
+;  (name zlrunlibs)
+;  (public_name zelus.zlrunlibs)
+;  (wrapped false)
+;  (modules :standard \ zrun))

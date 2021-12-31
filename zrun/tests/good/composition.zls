@@ -28,9 +28,9 @@ let node main() returns (ok)
   and
       y = 0 -> pre y + 1
   and
-      (x1, z1, t1, r1) = run composition1(c1, c2, y)
+      (x1, z1, t1, r1) =  composition1(c1, c2, y)
   and
-      (x2, z2, t2, r2) = run composition2(c1, c2, y)
+      (x2, z2, t2, r2) =  composition2(c1, c2, y)
   and
       ok = (x1 = x2) && (z1 = z2) && (t1 = t2) && (r1 = r2)
   done

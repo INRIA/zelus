@@ -21,7 +21,7 @@ done
 let node main() returns (ok)
   local x_a,x_b,x_c, x_d, a_, b_, c_, d_
   do x_a,x_b,x_c,x_d = (1, 1, 1, 1)
-  and (a_,b_,c_,d_) = run exp_4(x_a,x_b,x_c,x_d)
+  and (a_,b_,c_,d_) =  exp_4(x_a,x_b,x_c,x_d)
   and ok = (a_ = 7) && (b_ = 7) && (c_ = 7) && (d_ = 7)
   done
 

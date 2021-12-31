@@ -92,12 +92,14 @@ let names eq_write = Deftypes.names S.empty eq_write
 (* Auxiliary functions to lift bottom and nil to environments *)
 (* the bottom environment *)
 let bot_env eq_write =
-  S.fold (fun x acc -> Env.add x { cur = Vbot; last = None; default = None } acc)
+  S.fold
+    (fun x acc -> Env.add x { cur = Vbot; last = None; default = None } acc)
     (names eq_write) Env.empty
 
 (* the nil environment *)
 let nil_env eq_write =
-  S.fold (fun x acc -> Env.add x { cur = Vnil; last = None; default = None } acc)
+  S.fold
+    (fun x acc -> Env.add x { cur = Vnil; last = None; default = None } acc)
     (names eq_write) Env.empty
 
 (* a bot/nil value lifted to lists *)

@@ -12,7 +12,7 @@ let node f_same() returns (o1, o2)
 
 let node main() returns (ok)
   local o1, o2, o11, o22
-  do o1, o2 = run f() and o11, o22 = run f_same ()
+  do o1, o2 =  f() and o11, o22 =  f_same ()
   and ok = (o1 = o11) && (o2 = o22) done
 
      

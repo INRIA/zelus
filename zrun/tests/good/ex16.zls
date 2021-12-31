@@ -3,6 +3,6 @@ let node copy(x, y) returns (t1, t2)
 
 let node main () returns (t, u)
   local x
-  do (t, u) = run copy(x, t)
+  do (t, u) =  copy(x, t)
   and x = 0 fby x + 1
   done

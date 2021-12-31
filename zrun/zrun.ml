@@ -19,10 +19,10 @@ let main file =
   then 
     let filename = Filename.chop_extension file in
     let modname = String.capitalize_ascii (Filename.basename filename) in
-    Eval.file modname
+    Eval.main modname
       filename !Smisc.number_of_steps !Smisc.set_check !Smisc.main_nodes 
   else raise (Arg.Bad "Expected *.zls file.")
-                                                       
+
 let doc_main = "\tThe main node to evaluate"
 let doc_number_of_steps = "\tThe number of steps"
 let doc_verbose = "\tVerbose mode"
