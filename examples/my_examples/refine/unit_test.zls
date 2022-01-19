@@ -7,10 +7,11 @@ let y1:float{y1 >= y0*.2.} = 10.0
 *)
 (*
 (*let f (a : int{a > 0}) (b : int{b > 0}) (c : int{c > 0}) : int{ 1 >= 0}  =  a*)
-
+(*
 let f (a : int{a > 0}) (b : int{b > 0}) (c : int{c > 0}) : int{f_return >= 0}  =  
 	   let y = a + b in
 	   y
+*)
 
 (* let f2 (x:int{ x <= 6 }) : int{ y >= 0 } =
          let y = x * x in
@@ -26,9 +27,18 @@ let f3 a b c = a + b *)
 
 let f (a : int{a > 0}) (b : int{b > 0}) (c : int{c > 0}) : int{f_return >= 0}  =  
 	   let z = a + b in
-	   let y = z in
+	   let w = b + c in
+	   let y = w + z in
 	   y
-	   
+
+let f2 (x : int{x < 0 }) : int{f2_return > 0} = x * x
+
+let add (x : int{x > 0}) (y : int{y > 0}) : int{ add_return >= x && add_return >= y} =
+		let z = x + y 
+		in z
+
+
+
 let node main () = 
 	print_int (f (-1) 2 4)
 

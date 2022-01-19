@@ -47,7 +47,18 @@ type variable =
 (*TODO :Change this to a Z3 expression type, then add stuff by AND-ing it on the head *)
 (*let z3env = ref []*)
 
-let add_constraint env premise = 
+type env_structure =
+(*
+      environment to hold
+      exp_env : local expression environment
+      var_env : local variable environment
+*)
+{
+  exp_env : expr list ref;
+  var_env : (string, expr) Hashtbl.t;
+}
+
+let add_constraint ({ exp_env = env; var_env = v}) premise = 
 (*
     env     -> environment (list of z3 expressions)
     premise -> z3 expression
@@ -223,16 +234,16 @@ let print_assignments m =
       | None -> ()
     )) decls
 
-let build_z3_premise ctx l =
+let build_z3_premise ctx ({exp_env = l; var_env = v}) =
 (*
     ctx -> z3 context
     l   -> list of z3 expressions
 
     Returns the conjunctions of z3 expressions in list l
 *)
-  match l with
+  match !l with
   | [] -> Boolean.mk_true ctx
-  | _ -> Boolean.mk_and ctx l
+  | _ -> Boolean.mk_and ctx !l
 
 (* let check_arg_list f arg_list =
 (*
@@ -273,6 +284,22 @@ let prove_function n arg_list =
   (* use z3 solve *)
 
 
+let print_env_list premise =
+(*
+  premise -> list of z3 expressions
+    
+  Print list of z3 expressions
+*)
+  (Printf.printf "Expression = %s ; " (Expr.to_string premise))
+
+let print_env ({exp_env = env; var_env = v}) = 
+(*
+  env -> expression environment
+  v   -> variable environment
+*)
+  Printf.printf ("Expression environment : \n");
+  List.iter print_env_list !env; print_newline ()
+
 let z3_solve ctx env constraints = 
 (*
   ctx         -> z3 context
@@ -283,10 +310,17 @@ let z3_solve ctx env constraints =
 
   Raises an exception if proof fails or resumes the operations
 *)
+  Printf.printf "\n--- Z3 SOLVE ---\n";
+  Printf.printf "environment:\n";
+  print_env !env; 
+  Printf.printf "constraint:\n";
+  Printf.printf "%s\n" (Expr.to_string constraints);
+  Printf.printf "--- Z3 SOLVE ---\n\n";
   let solver = (mk_solver ctx None) in
   let c = Boolean.mk_not ctx (Boolean.mk_implies ctx 
                                     (build_z3_premise ctx !env)
                                     (constraints)) in
+  Printf.printf "Constraint built: %s\n" (Expr.to_string c);
   let s = (Solver.add solver [c]) in
   let q = check solver [] in
   (if q == SATISFIABLE then
@@ -301,26 +335,30 @@ let z3_solve ctx env constraints =
       raise (TestFailedException "")))
   else
     (Printf.printf "Passed\n"));
-    add_constraint env constraints
+    add_constraint !env constraints
   
 	
 
-let create_z3_var ctx s =
+let create_z3_var ctx ({exp_env = e ; var_env = v}) s =
 (*
     ctx -> z3 context
     s   -> variable name
 
     Create generic z3 Real sort with given variable name s
 *)
-  Expr.mk_const ctx (Symbol.mk_string ctx s) (Real.mk_sort ctx)
-
-let print_env_list premise =
-(*
-    premise -> list of z3 expressions
-
-    Print list of z3 expressions
-*)
-    (Printf.printf "Expression = %s ; " (Expr.to_string premise))
+  Printf.printf "\n --- CREATE Z3 VAR : %s --- \n" s;
+  (* Look at environment for variable*)
+  if (Hashtbl.mem v s) then
+    (*if exists return varible*)
+      let found_var = Hashtbl.find v s in
+      Printf.printf "Existing variable, returning %s\n\n" (Expr.to_string found_var);
+      found_var
+  else
+    (*otherwise create a new variable and add to environment*)
+    let new_var = Expr.mk_const ctx (Symbol.mk_string ctx s) (Real.mk_sort ctx) in
+    Hashtbl.add v s new_var;
+    Printf.printf "New variable, returning %s\n\n" (Expr.to_string new_var);
+    new_var
 
 let print_function n f =
 (*
@@ -390,8 +428,8 @@ let rec equation ctx env typenv eq =
       Printf.printf "body_exp: %s\n" (Expr.to_string body_exp);
       let pat_exp = 
        (match p.p_desc with 
-       | Evarpat(n) -> Printf.printf "Evarpat: %s\n" n.source; create_z3_var ctx n.source
-       | _ -> Printf.printf "undefined"; create_z3_var ctx "undefined") in
+       | Evarpat(n) -> Printf.printf "Evarpat: %s\n" n.source; create_z3_var ctx env n.source
+       | _ -> Printf.printf "undefined"; create_z3_var ctx env "undefined") in
       Printf.printf "pat_exp: %s\n" (Expr.to_string pat_exp);
       let ret_exp = Boolean.mk_eq ctx pat_exp body_exp in
       Printf.printf "after ret_exp\n";
@@ -457,8 +495,10 @@ and operator ctx env typenv e e_list =
   | "!=" -> Boolean.mk_not ctx (Boolean.mk_eq ctx (expression ctx env (hd e_list) typenv) (expression ctx env (hd (tl e_list)) typenv))
   | "*." | "*" | "Stdlib.*." -> Arithmetic.mk_mul ctx [(expression ctx env (hd e_list) typenv); (expression ctx env (hd (tl e_list)) typenv)]
   | "+." | "+" | "Stdlib.+." -> Arithmetic.mk_add ctx [(expression ctx env (hd e_list) typenv); (expression ctx env (hd (tl e_list)) typenv)]
-  | s -> if (Hashtbl.mem !function_space s) then ((prove_function s e_list); Printf.printf "Yay\n" ) else Printf.printf "Oh no!\n"; 
-    create_z3_var ctx s
+  | "&&" -> Boolean.mk_and ctx [(expression ctx env (hd e_list) typenv); (expression ctx env (hd (tl e_list)) typenv)]
+  | "||" -> Boolean.mk_or ctx [(expression ctx env (hd e_list) typenv); (expression ctx env (hd (tl e_list)) typenv)]
+  | s -> Printf.printf "Non-standard operator s : %s" (s);if (Hashtbl.mem !function_space s) then ((prove_function s e_list); Printf.printf "Yay\n" ) else Printf.printf "Oh no!\n"; 
+    create_z3_var ctx env s
   | t -> Printf.printf "Invalid expression symbol: %s\n" t; Printf.printf "%d\n" (List.length e_list); Integer.mk_numeral_s ctx "42"
 
 (* translate expressions into Z3 constructs*)
@@ -477,10 +517,10 @@ and expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
 *)
   match desc with
     | Econst(i) -> immediate ctx i
-    | Eglobal { lname = ln } -> Printf.printf "Eglobal\n"; create_z3_var ctx (match ln with
+    | Eglobal { lname = ln } -> Printf.printf "Eglobal expression\n"; create_z3_var ctx env (match ln with
       (*TODO: Append a modname to Name if not found, rather than removing it from a Modname, so we preserve module info for global declarations *)
-      | Name(n) -> Printf.printf "%s\n" n; n
-      | Modname(qualid) -> Printf.printf "%s\n" qualid.id; qualid.id) 
+      | Name(n) -> Printf.printf "Name: %s\n" n; n
+      | Modname(qualid) -> Printf.printf "Modname: %s\n" qualid.id; qualid.id) 
     | Eapp({ app_inline = i; app_statefull = r }, e, e_list) -> 
       Printf.printf "Expression %s\n" (Expr.to_string (expression ctx env e typenv));
       Printf.printf "Expression app:\n";
@@ -508,7 +548,7 @@ and expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
         Printf.printf "Body:\n";*)
         let body_exp = expression ctx env e typenv in
         (List.iter (equation ctx env typenv) l.l_eq);
-        List.iter print_env_list !env; print_newline ();
+        print_env env;
         body_exp
         (* let eq_exp = equation ctx env typenv (List.hd l.l_eq) in *)
         (* Printf.printf "Body: %s\nEq: %s\n" (Expr.to_string body_exp) (Expr.to_string eq_exp); *)
@@ -682,6 +722,9 @@ and get_return_type ctx env ({ e_desc = desc; e_loc = loc }) typenv =
         body_exp
     | _ -> Printf.printf "Not a function return type."; Integer.mk_numeral_s ctx "42"
 
+and build_return_var ctx env n =
+      create_z3_var ctx env (Printf.sprintf "%s_return" n)
+
 and qualident t =
 (*
       t -> type data structure 
@@ -778,15 +821,15 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
       (* Add to Z3 an equality constraint that looks like: n == (Z3 parsed version of e) *)
       | Econstdecl(f, is_static, e) -> (Printf.printf "Econstdecl %s\n" f); 
         (*add_environment {name: n; type_t: ; refinement_t: true; assignment_t: expression Rename.empty e }*)
-        add_constraint env (Boolean.mk_eq ctx (create_z3_var ctx f) (expression ctx env e None));
-        List.iter print_env_list !env; print_newline ()
+        add_constraint !env (Boolean.mk_eq ctx (create_z3_var ctx !env f) (expression ctx !env e None));
+        print_env !env
       (* For constant functions, let x=f we assign x the type x:{float z | z=f} *)
       (* Refinement type of the form: let n1:n2{e1} = e2 *)
       | Erefinementdecl(n1, n2, e1, e2) ->
       	 Printf.printf "Erefinementdecl %s %s\n" n1 n2;
-         add_constraint env (Boolean.mk_eq ctx (create_z3_var ctx n1) (expression ctx env e2 None));
-         z3_solve ctx env (expression ctx env e1 None);
-         List.iter print_env_list !env; print_newline ()
+         add_constraint !env (Boolean.mk_eq ctx (create_z3_var ctx !env n1) (expression ctx !env e2 None));
+         z3_solve ctx env (expression ctx !env e1 None);
+         print_env !env
 
       | Efundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
 		      f_body = e; f_loc = loc }) -> (Printf.printf "Efundecl %s\n" n); 
@@ -822,9 +865,9 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
           f_body = e; f_loc = loc }, rettype) -> (Printf.printf "Erefinementfundecl %s\n" n); 
           let argc = (List.length p_list) in 
           let typenv = Hashtbl.create argc in
-          let local_env = ref [] in
+          let local_env = ref { exp_env = ref []; var_env = Hashtbl.create 0} in
           (* add function input constraints to local environment *)
-          (List.iter (pattern ctx local_env (Some typenv)) p_list);
+          (List.iter (pattern ctx !local_env (Some typenv)) p_list);
           Hashtbl.iter (fun a b -> (Printf.printf "%s:%s;" a b)) typenv;
           (* implementation_list ff ctx e; *)
 
@@ -850,9 +893,9 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
           (add_constraint local_env expr;
           Printf.printf "Function body expression: %s\n" (Expr.to_string expr)); *)
           (* create function constraint to be proven *)
-          let return_exp = (expression ctx env rettype (Some typenv)) in
+          let return_exp = (expression ctx !env rettype (Some typenv)) in
           (Printf.printf "Return type expression: %s\n" (Expr.to_string return_exp));
-          let function_argument_constraints = !local_env in
+          let function_argument_constraints = !(!local_env.exp_env) in
           let function_variable_type_map = typenv in
           let function_argument_list = get_argument_list( typenv ) in
           let f_new = { argument_constraints = function_argument_constraints;
@@ -861,29 +904,32 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
           add_function n f_new;
           Printf.printf "Printing function environment...\n";
           print_function_environment ();
-          List.iter print_env_list !local_env; print_newline ();
+          print_env !local_env;
 
           (* treat function body as a program and prove conditions*)
           (* input_var is the last variable returned by the function *)
-          let input_var = (expression ctx local_env e (Some typenv)) in
+          let input_var = (expression ctx !local_env e (Some typenv)) in
           Printf.printf "Function body expression handling: %s\n" (Expr.to_string input_var);
-          List.iter print_env_list !local_env; print_newline ();
+          print_env !local_env;
           
           
-          let return_var = (get_return_type ctx local_env rettype (Some typenv)) in
+          (*let return_var = (get_return_type ctx local_env rettype (Some typenv)) in*)
+          let return_var = build_return_var ctx !env n in 
           Printf.printf "Return var: %s\n" (Expr.to_string return_var);
           (*let input_var = (get_return_type ctx local_env e (Some typenv)) in
           Printf.printf "Return var in: %s\n" (Expr.to_string input_var);*)
           let ret_constraint = (Boolean.mk_eq ctx return_var input_var) in
           Printf.printf "return definition: %s\n" (Expr.to_string ret_constraint);
-          add_constraint local_env ret_constraint;
-          List.iter print_env_list !local_env; print_newline ();
+          add_constraint !local_env ret_constraint;
+          print_env !local_env;
           Printf.printf "Prove constraint: %s\n" (Expr.to_string return_exp);
-
+          
+          Printf.printf "Environment before solving: \n";
+          print_env !local_env;
           z3_solve ctx local_env return_exp;
           (* function proved, add to global environment, create a Z3 function 
           and a constraint defining its return type*)
-          List.iter print_env_list !local_env; print_newline ()
+          print_env !local_env
           (* if proved rename return type with function name and add to global environment *)
 
           (* prove conditions *)
@@ -921,6 +967,6 @@ let implementation_list ff ctx (impl_list) (*: Zelus.implementation_desc Zelus.l
     Returns the zelus program AST
 *)
   print_string "Hello, this is Z3 Refinement\n";
-  let z3env = ref [] in
+  let z3env = ref {exp_env = ref []; var_env = Hashtbl.create 0} in
   List.iter (implementation ff ctx z3env) impl_list;
   impl_list
