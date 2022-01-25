@@ -625,7 +625,7 @@ let implementation ff impl = match impl with
      fprintf ff "@[<v 2>let %a = %a@.@.@]" shortname n (inst 0) i
  | Oletvalue1(n, e ,i) ->
      fprintf ff "@[<v 2>let %a = %a@.@.@]" shortname n (inst 0) i ;
-     fprintf ff "\"%s\" is an output variable used in this code %a" n (inst 0) e 
+     fprintf ff "@[\"%s\" is an output variable using the lcm channel %a@.@.@]" n (inst 0) e 
   | Oletfun(n, pat_list, i) ->
      fprintf ff "@[<v 2>let %a %a =@ %a@.@.@]"
              shortname n pattern_list pat_list (inst 0) i

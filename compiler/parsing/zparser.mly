@@ -317,9 +317,7 @@ implementation:
   (*added here*)
   (*refinement type definition*)
   | LET ide = ide COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
-      { Erefinementdecl(ide, obj, seq1, seq2)}
-  | LET ide = ide LBRACE seq1= expression RBRACE EQUAL seq2= seq_expression
-      { Eipopannotation (ide, seq1, seq2) }    
+      { Erefinementdecl(ide, obj, seq1, seq2)}  
   | LET ide = ide fn = simple_pattern_list COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
       { Printf.printf "Erefinementfundecl\n"; Erefinementfundecl(ide, { f_kind = A; f_atomic = false;
 			f_args = fn; f_body = seq2;
@@ -330,6 +328,11 @@ implementation:
       { Printf.printf "Erefinementfundecl with WHERE\n"; Erefinementfundecl(ide, { f_kind = A; f_atomic = false; 
             f_args = fn; f_body = make(Elet(r, eqs, seq)) $startpos(seq) $endpos(eqs);
 		    f_loc = localise $startpos(fn) $endpos(eqs) }, seq1) }
+    (*added here, varable annotation using ip and op keywords*)
+  | LET ide = ide LBRACE OP seq1= expression RBRACE EQUAL seq2= seq_expression
+      { Eipopannotation (ide, seq1, seq2) }
+  (*| LET ide = ide LBRACE OP seq1 =seq_expression RBRACE EQUAL seq2= seq_expression
+      { Econstdecl (ide, false, seq2)}*)        
   | LET ide = ide fn = simple_pattern_list EQUAL seq = seq_expression
       { Printf.printf "Efundecl \n"; Efundecl(ide, { f_kind = A; f_atomic = false;
 			f_args = fn; f_body = seq;

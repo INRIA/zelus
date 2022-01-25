@@ -1,5 +1,5 @@
 (* The Zelus compiler, version 2.1-dev
-  (2022-01-20-5:4) *)
+  (2022-01-25-14:12) *)
 open Ztypes
 external move_robot_ml: int -> unit = "move_robot_cpp" 
 
@@ -20,7 +20,8 @@ external move_robot_ml: int -> unit = "move_robot_cpp"
  external robot_get_ml: string -> unit = "robot_get_ip" 
  let y = 4.
 
-"y" is an output variable used in this code from op ocamlprinter robot_store_ml "chan"
+"y" is an output variable using the lcm channel "chan"
+
 type ('e , 'd , 'c , 'b , 'a) _main =
   { mutable major_16 : 'e ;
     mutable h_23 : 'd ;
