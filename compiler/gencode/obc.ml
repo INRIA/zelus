@@ -59,6 +59,10 @@ type exp =
   | Ostore of string * float
    (*added here*)
   | Oget of string 
+  (*added here*)
+  | Oinp of exp * exp
+  (*added here*)
+  | Ooup of exp
   | Omethodcall of method_call			       
   | Oinst of inst
                           
@@ -179,6 +183,7 @@ and implementation_list = implementation list
 
 and implementation = 
   | Oletvalue of name * inst
+  | Oletvalue1 of name * inst * inst
   | Oletfun of name * pattern list * inst
   | Oletmachine of name * machine
   | Oopen of string

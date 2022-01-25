@@ -1,0 +1,9 @@
+let hybrid main () = () where 
+  rec trigger = (period (1.))
+ (*and let transvers {op "ip_chan"}*)
+   and automaton 
+	| First -> do t = robot_get ("transverse_vel") until trigger then Second
+	| Second -> do t = robot_get ("angular_vel") until trigger then First
+   end
+  and ()= present(trigger) -> (print_int 0; {op "inp_chan"};(print_float t);print_newline ()(*; print_float s*); robot_str("transverse_vel", -.30.))
+  else ()

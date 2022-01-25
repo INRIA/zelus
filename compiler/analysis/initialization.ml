@@ -384,6 +384,19 @@ and operator is_continuous env op ty e_list =
      exp_less_than_on_i is_continuous env e1 i;
      exp_less_than_on_i is_continuous env e2 i;
      Init.skeleton_on_i i ty;
+  (*added here*)
+  | Einp, [e1;e2] ->
+     print_endline("Initialization");
+     let i = Init.new_var () in
+     exp_less_than_on_i is_continuous env e1 i;
+     exp_less_than_on_i is_continuous env e2 i;
+     Init.skeleton_on_i i ty;
+  (*added here*)
+  | Eoup, [e] ->
+     print_endline("Initialization");
+     let i = Init.new_var () in
+     exp_less_than_on_i is_continuous env e i;
+     Init.skeleton_on_i i ty;
   | (Einitial | Eup |(*added here*) Eassert | Etest | Edisc
     | Eaccess | Eupdate | Eslice _ | Econcat), e_list ->
       (* here, we force the argument to be always initialized *)
@@ -646,6 +659,16 @@ let implementation ff impl =
         Global.set_init (Modules.find_value (Lident.Name(f1))) tis;
         (* output the signature *)
         if !Zmisc.print_initialization_types then Pinit.declaration ff f1 tis
+    (*added here*)
+    | Eipopannotation(f, e1, e2) ->
+        let ti_zero = Init.skeleton_on_i izero e2.e_typ in
+        Zmisc.push_binding_level ();
+        exp_less_than false Env.empty e2 ti_zero;
+        Zmisc.pop_binding_level ();
+        let tis = generalise ti_zero in
+        Global.set_init (Modules.find_value (Lident.Name(f))) tis;
+        (* output the signature *)
+        if !Zmisc.print_initialization_types then Pinit.declaration ff f tis 
     | Efundecl(f, { f_kind = k; f_atomic = atomic; f_args = p_list;
                     f_body = e; f_env = h0; f_loc = loc }) -> 
         let is_continuous = match k with | C -> true | _ -> false in

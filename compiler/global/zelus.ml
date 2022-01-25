@@ -80,6 +80,7 @@ and implementation_desc =
   (*added here*)
   (*refinement type definition*)
   | Erefinementdecl of name * name * exp * exp
+  | Eipopannotation of name * exp * exp
   | Efundecl of name * funexp
   | Erefinementfundecl of name * funexp * exp
 			 
@@ -147,6 +148,10 @@ and op =
   | Econtrol (*custom keyword*)
   (*added here*)
   | Estr (*custom keyword*)
+  (*added here*)
+  | Einp (*custom keyword*)
+  (*added here*)
+  | Eoup (*custom keyword*)
   | Einitial (* true at the very first instant *)
   | Edisc (* discontinuity of a flow *)
   | Ehorizon (* generate an event at a given horizon *)

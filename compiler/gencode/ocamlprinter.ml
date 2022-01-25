@@ -273,9 +273,16 @@ and exp prio ff e =
   (*added here*)
   | Ostore(cmd, key) ->
       fprintf ff "robot_store\"%s\"  %f" cmd key
-   (*added here*)
+  (*added here*)
   | Oget(cm) ->
    fprintf ff "robot_get \"%s\"" cm
+  (*added here*) 
+  | Oinp (e1, e2) ->
+      print_endline ("there is an input variable using the channel ")
+      
+  (*added here*) 
+  | Ooup (e) ->
+      fprintf ff "from op ocamlprinter robot_store_ml %a" (exp 0) e
   | Oinst(i) -> inst prio ff i
   end;
   if prio_e < prio then fprintf ff ")"
@@ -616,6 +623,9 @@ let machine f ff { ma_kind = k;
 let implementation ff impl = match impl with
   | Oletvalue(n, i) ->
      fprintf ff "@[<v 2>let %a = %a@.@.@]" shortname n (inst 0) i
+ | Oletvalue1(n, e ,i) ->
+     fprintf ff "@[<v 2>let %a = %a@.@.@]" shortname n (inst 0) i ;
+     fprintf ff "\"%s\" is an output variable used in this code %a" n (inst 0) e 
   | Oletfun(n, pat_list, i) ->
      fprintf ff "@[<v 2>let %a %a =@ %a@.@.@]"
              shortname n pattern_list pat_list (inst 0) i
@@ -640,5 +650,7 @@ let implementation_list ff impl_list =
   \n @[external robot_get: string -> float = \"robot_get_cpp\" @.@]
   \n @[external robot_str_ml: string -> float -> unit = \"robot_str_cpp\" @.@] ") else();
   if !robot then (fprintf ff "@[external control_robot_ml: int -> int -> unit = \"control_robot_c\" @.@]
-  \n @[external robot_store: string -> float -> unit = \"robot_store_c\" @.@] ") else ();
+  \n @[external robot_store: string -> float -> unit = \"robot_store_c\" @.@] 
+  \n @[external robot_store_ml: string -> unit = \"robot_store_op\" @.@] 
+  \n @[external robot_get_ml: string -> unit = \"robot_get_ip\" @.@] ") else ();
   List.iter (implementation ff) impl_list

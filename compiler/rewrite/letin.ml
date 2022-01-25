@@ -262,6 +262,9 @@ let implementation impl =
   (*TODO: refinement implementation of letin*)
   | Erefinementdecl(n1,n2,e1,e2) ->
      { impl with desc = Erefinementdecl(n1,n2, make_let e1, make_let e2) }
+  (*added here*)
+  | Eipopannotation(n, e1, e2) ->
+     { impl with desc = Eipopannotation(n, make_let e1, make_let e2) }   
   | Efundecl(n, ({ f_kind = k; f_body = e } as body)) ->
      { impl with desc = Efundecl(n, { body with f_body = make_let e }) }
        

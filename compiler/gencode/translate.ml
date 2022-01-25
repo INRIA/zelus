@@ -497,6 +497,17 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
   | Zelus.Estore(cmd, key) -> Ostore(cmd, key), code
   (*added here*)
   | Zelus.Eget(cm) -> Oget(cm), code
+  (*added here*)
+  | Zelus.Eop(Zelus.Einp, [e1; e2]) ->
+     print_endline("Translate");
+     let e1, code = exp env loop_path code e1 in
+     let e2, code = exp env loop_path code e2 in
+     Oinp(e1, e2), code
+  (*added here*)
+  | Zelus.Eop(Zelus.Eoup, [e]) ->
+     print_endline("Translate from op");
+     let e, code = exp env loop_path code e in
+     Ooup(e), code
   | Zelus.Eop(Zelus.Ehorizon, [e]) ->
      exp env loop_path code e
   | Zelus.Eop(Zelus.Eifthenelse, [e1; e2; e3]) ->
@@ -756,6 +767,13 @@ let implementation { Zelus.desc = desc } =
      Oletvalue(n1, s)
   | Zelus.Erefinementfundecl(n, ({ Zelus.f_kind = k; Zelus.f_args = pat_list;
       Zelus.f_body = e; Zelus.f_env = f_env }), _)
+  (*added here*)
+  | Zelus.Eipopannotation(n, e1, e2)->
+     let { step = s } = expression Env.empty e2 in
+     (*let e, code = exp env loop_path code e1 in
+     Ooup(e), code*)
+     let { step = e } = expression Env.empty e1 in
+     Oletvalue1(n, e, s)  
   | Zelus.Efundecl(n, { Zelus.f_kind = k; Zelus.f_args = pat_list;
 			Zelus.f_body = e; Zelus.f_env = f_env }) ->
      let pat_list = List.map pattern pat_list in

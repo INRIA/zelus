@@ -29,7 +29,9 @@ let rec priority_exp = function
   | Otypeconstraint _ | Otuple _ -> 3
   | Oconstr1 _ | Oapp _ | Omethodcall _
     | Ovec _ | Oupdate _ | Oslice _ | Oconcat _ -> 2
-  | (*added here*) Omove _ -> 0 | (*added here *)Ocontrol _ -> 0 | (*added here *)Ostr _ -> 0
+  | (*added here*) Omove _ -> 0 | (*added here *)Ocontrol _ -> 0
+  | (*added here*) Oinp _ -> 0| (*added here*) Ooup _ -> 0 
+  | (*added here *)Ostr _ -> 0
   | (*added here*) Ostore (_,_) -> 0
   | (*added here*) Oget (_) -> 0
   | Oifthenelse _  -> 0 | Oinst i -> priority_inst i
@@ -274,6 +276,12 @@ and exp prio ff e =
   (*added here*)
   | Oget(cm) ->
       fprintf ff "robot_get(%s)" cm 
+  (*added here*)
+  | Oinp (e1, e2) -> 
+      print_endline("Oinp printing");
+  (*added here*)
+  | Ooup (e) -> 
+      print_endline("Ooup printing");
   | Oinst(i) -> inst prio ff i
   end;
   if prio_e < prio then fprintf ff ")"
@@ -403,6 +411,8 @@ let machine f ff { ma_kind = k; ma_params = pat_list; ma_initialize = i_opt;
 let implementation ff impl = match impl with
   | Oletvalue(n, i) ->
      fprintf ff "@[<v 2>let %a = %a@.@.@]" shortname n (inst 0) i
+  | Oletvalue1(n,e, i) ->
+     fprintf ff "@[<v 2>let %a = %a@.@.@]" shortname n (inst 0) i   
   | Oletfun(n, pat_list, i) ->
      fprintf ff "@[<v 2>let %a %a =@ %a@.@.@]"
              shortname n pattern_list pat_list (inst 0) i

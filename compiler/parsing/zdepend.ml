@@ -57,6 +57,7 @@ and add_implem bv i =
   | Econstdecl (_, _, e) -> add_exp bv e
   (*added here*)
   | Erefinementdecl (_,_,_,e) -> add_exp bv e
+  | Eipopannotation (_,_,e) -> add_exp bv e
   | Efundecl (_, { f_args; f_body; _ }) ->
      List.iter (add_pattern bv) f_args;
      add_exp bv f_body
@@ -95,7 +96,7 @@ and add_exp bv exp =
 and add_op bv op =
   match op with
   | Efby | Eunarypre | Eifthenelse | Eminusgreater | Eup| Einitial | Edisc | (*added here*) Emove|(*added here*) Econtrol |(*added here*) Estr
-    | Etest | Eaccess | Eupdate | Econcat | Eatomic -> ()
+  |(*added here*) Einp |(*added here*) Eoup | Etest | Eaccess | Eupdate | Econcat | Eatomic -> ()
   | Eslice (s1, s2) -> add_size bv s1; add_size bv s2
 and add_field bv (lbl, e) = add bv lbl; add_exp bv e
 

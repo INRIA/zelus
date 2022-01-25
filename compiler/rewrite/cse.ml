@@ -170,7 +170,7 @@ let exp subst e =
 let implementation impl =
   match impl.desc with
       (*added here*)
-      | Eopen _ | Etypedecl _ | Econstdecl _ | Erefinementdecl _ -> impl
+      | Eopen _ | Etypedecl _ | Econstdecl _ | Erefinementdecl _ | (*added here*) Eipopannotation _-> impl
       | Efundecl(n, ({ f_body = e } as body)) ->
          { impl with desc =
 		       Efundecl(n, { body with f_body = exp Env.empty e }) }

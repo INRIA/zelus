@@ -835,6 +835,14 @@ and operator expected_k h loc op e_list =
     | Estr ->
         let ty = new_var () in
         Tdiscrete(true), [Initial.typ_string; Initial.typ_float], ty
+    (*added here*)
+    | Einp ->
+        let ty= new_var () in 
+        Tdiscrete(true), [ty; ty], ty
+    (*added here*)
+    | Eoup ->
+        let ty= new_var () in 
+        Tdiscrete(true), [Initial.typ_string], ty
     | Etest ->
         let ty = new_var () in
         Tany, [Initial.typ_bool], Initial.typ_signal ty
@@ -1411,6 +1419,11 @@ let implementation ff is_first impl =
        else Interface.update_refinement_type_of_value ff impl.loc f1 f2 pred tys*)
        if is_first then Interface.add_type_of_value ff impl.loc f1 false tys
        else Interface.update_type_of_value ff impl.loc f1 false tys*)
+    (*added here*)
+    |Eipopannotation(f, e1, e2) -> 
+      let tys = constdecl f false e2 in
+      if is_first then Interface.add_type_of_value ff impl.loc f false tys
+      else Interface.update_type_of_value ff impl.loc f false tys   
     | Efundecl(f, body) ->
        let tys = fundecl impl.loc f body in
        if is_first then Interface.add_type_of_value ff impl.loc f true tys

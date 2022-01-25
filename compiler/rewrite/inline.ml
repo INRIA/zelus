@@ -117,6 +117,8 @@ let operator renaming op =
   | Eupdate | Econcat | Eatomic -> op
   | Emove -> print_endline("Inline"); op
   | Econtrol -> print_endline("Inline"); op
+  | Einp -> print_endline("Inline"); op
+  | Eoup -> print_endline("Inline"); op
   | Estr -> print_endline("Inline"); op
   | Eslice(s1, s2) -> Eslice(size renaming s1, size renaming s2)
   		       

@@ -1,5 +1,5 @@
 (* The Zelus compiler, version 2.1-dev
-  (2022-01-20-5:4) *)
+  (2022-01-10-12:3) *)
 open Ztypes
 external move_robot_ml: int -> unit = "move_robot_cpp" 
 
@@ -18,7 +18,9 @@ external move_robot_ml: int -> unit = "move_robot_cpp"
  
   
  external robot_get_ml: string -> unit = "robot_get_ip" 
- type state__144 = Bot_Second_15 | Bot_First_14 
+ type state__164 = First_Second_15 | First_First_14 
+let transverse_vel = 5
+
 type ('i , 'h , 'g , 'f , 'e , 'd , 'c , 'b , 'a) _main =
   { mutable major_29 : 'i ;
     mutable h_41 : 'h ;
@@ -38,7 +40,7 @@ let main (cstate_42:Ztypes.cstate) =
       i_37 = (false:bool) ;
       h_35 = (42.:float) ;
       r_34 = (false:bool) ;
-      s_33 = (Bot_Second_15:state__144) ;
+      s_33 = (First_Second_15:state__164) ;
       result_32 = (():unit) ; t_30 = (42.:float) } in
   let main_step self ((time_28:float) , ()) =
     ((self.major_29 <- cstate_42.major ;
@@ -49,23 +51,23 @@ let main (cstate_42:Ztypes.cstate) =
            (let (z_36:bool) = (&&) self.major_29  ((>=) time_28  self.h_35) in
             let (trigger_31:zero) = z_36 in
             (begin match self.s_33 with
-                   | Bot_First_14 ->
+                   | First_First_14 ->
                        (if self.r_34 then ()) ;
                        self.t_30 <- (robot_get "transverse_vel") ;
                        (begin match trigger_31 with
                               | true ->
                                   encore_38 := true ;
                                   self.r_34 <- true ;
-                                  self.s_33 <- Bot_Second_15
+                                  self.s_33 <- First_Second_15
                               | _ -> self.r_34 <- false  end)
-                   | Bot_Second_15 ->
+                   | First_Second_15 ->
                        (if self.r_34 then ()) ;
                        self.t_30 <- (robot_get "angular_vel") ;
                        (begin match trigger_31 with
                               | true ->
                                   encore_38 := true ;
                                   self.r_34 <- true ;
-                                  self.s_33 <- Bot_First_14
+                                  self.s_33 <- First_First_14
                               | _ -> self.r_34 <- false  end)
                     end) ;
             self.h_39 <- (if !encore_38 then 0. else infinity) ;
@@ -75,16 +77,18 @@ let main (cstate_42:Ztypes.cstate) =
             self.i_37 <- false ;
             (begin match trigger_31 with
                    | true ->
+                       let _ = robot_store_ml "inp_chan" in
                        let _ = print_int 0 in
                        let _ = print_float self.t_30 in
                        let _ = print_newline () in
                        self.result_32 <- (robot_str_ml ("transverse_vel") (
                          (~-.) 30.)) | _ -> self.result_32 <- ()  end) ;
             (let () = self.result_32 in
+             let () = robot_store_ml "inp_chan" in
              ())) in
        cstate_42.horizon <- min cstate_42.horizon  self.h_41 ; result_47)):
     unit) in 
   let main_reset self  =
-    ((self.r_34 <- false ; self.s_33 <- Bot_First_14 ; self.i_37 <- true):
+    ((self.r_34 <- false ; self.s_33 <- First_First_14 ; self.i_37 <- true):
     unit) in
   Node { alloc = main_alloc; step = main_step ; reset = main_reset }

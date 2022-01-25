@@ -92,8 +92,13 @@ and implementation_desc =
     | Eopen of name
     | Etypedecl of name * name list * type_decl
     | Econstdecl of name * is_static * exp
+<<<<<<< HEAD
     (*refinement type implementation*)
     | Erefinementdecl of name * name * exp * exp
+=======
+    (*added here*)
+    | Eipopannotation of name * exp * exp
+>>>>>>> op keyword was added
     | Efundecl of name * funexp
     | Erefinementfundecl of name * funexp * exp
 
@@ -134,7 +139,7 @@ and desc =
   (*added here*)
   | Estore of name * float
   (*added here*)
-  | Eget of name 
+  | Eget of name
   | Eperiod of period
   | Ematch of exp * exp match_handler list
   | Epresent of exp present_handler list * exp default option
@@ -151,7 +156,8 @@ and 'a default =
   | Init of 'a | Default of 'a
 
 and op =
-  | Efby | Eunarypre | Eifthenelse | Eminusgreater | (*added here*)Emove |(*added here*) Econtrol |(*added here*) Estr
+  | Efby | Eunarypre | Eifthenelse | Eminusgreater | (*added here*)Emove |(*added here*) Econtrol 
+  |(*added here*) Einp|(*added here*) Eoup|(*added here*) Estr
   | Eup | Einitial | Edisc | Etest | Eaccess | Eupdate
   | Eslice of size * size | Econcat | Eatomic
 

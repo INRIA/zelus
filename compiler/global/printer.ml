@@ -119,6 +119,8 @@ and ptype ff ty =
   match ty.desc with
     | Etypevar(s) -> fprintf ff "'%s" s
     | Erefinement(s,_) -> ptype ff ty
+    (*added here
+    | Eipoptype(_) -> ptype ff ty*)
     | Etypeconstr(ln, ty_list) ->
         fprintf ff "@[<hov2>%a@]%a"
           (print_list_r_empty ptype "("","")") ty_list
@@ -536,6 +538,10 @@ let implementation ff impl =
     | Erefinementdecl(n1,n2,e1,e2) -> 
         fprintf ff "@[<v 2>let %s%a =@ %a@.@.@]"
            ("") shortname n1 expression e2
+    (*added here*)
+    | Eipopannotation(n,e1,e2) -> 
+          fprintf ff "@[<v 2>let %s%a =@ %a@.@.@]"
+             ("") shortname n expression e2
     | Efundecl(n, body) ->
        fprintf ff "@[<v 2>let %a =@ %a@.@]" shortname n funexp body
 
