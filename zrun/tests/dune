@@ -1,10 +1,16 @@
-(executable
- (name zruntest)
- (modes (byte exe))
-; ; depends on zlcompilelibs
-  (libraries zelus.zlcompilerlibs zelus.zlrunlibs alcotest)
-  ; copy in the current dir.
-  (promote (until-clean)))
+(test
+ (name zruntest) ; name of the test
+ (modules zruntest) ; ml file test runner
+ (deps (glob_files good/*.zls) (glob_files bad/*.zls)) ; files dependencies
+ (libraries zelus.zlcompilerlibs zelus.zlrunlibs alcotest)) ; libraries dependencies
+
+;(executable
+; (name zruntest)
+; (modes (byte exe))
+;; ; depends on zlcompilelibs
+;  (libraries zelus.zlcompilerlibs zelus.zlrunlibs alcotest)
+;  ; copy in the current dir.
+;  (promote (until-clean))) ; copy .exe and .bc in current dir until dune clean
 
 ;(executable 
 ;    (name check)
