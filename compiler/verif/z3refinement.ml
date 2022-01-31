@@ -360,6 +360,56 @@ let create_z3_var ctx ({exp_env = e ; var_env = v}) s =
     Printf.printf "New variable, returning %s\n\n" (Expr.to_string new_var);
     new_var
 
+let create_z3_var ctx ({exp_env = e ; var_env = v}) s =
+(*
+    ctx -> z3 context
+    s   -> variable name
+
+    Create generic z3 Real sort with given variable name s
+*)
+  Printf.printf "\n --- CREATE Z3 VAR : %s --- \n" s;
+  (* Look at environment for variable*)
+  if (Hashtbl.mem v s) then
+    (*if exists return varible*)
+      let found_var = Hashtbl.find v s in
+      Printf.printf "Existing variable, returning %s\n\n" (Expr.to_string found_var);
+      found_var
+  else
+    (*otherwise create a new variable and add to environment*)
+    let new_var = Expr.mk_const ctx (Symbol.mk_string ctx s) (Real.mk_sort ctx) in
+    Hashtbl.add v s new_var;
+    Printf.printf "New variable, returning %s\n\n" (Expr.to_string new_var);
+    new_var
+
+let create_z3_var_typed ctx ({exp_env = e ; var_env = v}) s basetype : expr =
+(*
+    ctx -> z3 context
+    s   -> variable name
+
+    Create generic z3 Real sort with given variable name s
+*)
+  Printf.printf "\n --- CREATE Z3 VAR TYPED : %s --- \n" s;
+  (* Look at environment for variable*)
+  if (Hashtbl.mem v s) then
+    (*if exists return varible*)
+      let found_var = Hashtbl.find v s in
+      Printf.printf "Existing variable, returning %s\n\n" (Expr.to_string found_var);
+      found_var
+  else
+    (*otherwise create a new variable and add to environment*)
+    let new_var =  
+    (match basetype with
+      | "int" -> Printf.printf " I will make an int here\n"; Expr.mk_const ctx (Symbol.mk_string ctx s) (Integer.mk_sort ctx)
+      | "float" -> Printf.printf " I will make a float here\n"; Expr.mk_const ctx (Symbol.mk_string ctx s) (Real.mk_sort ctx)
+      (* | "string" -> Printf.printf " I will make a string here\n"; (Expr.mk_const ctx (Symbol.mk_string ctx n.source) (.mk_sort ctx))
+      | "char" -> Printf.printf " I will make a char here\n"; (Expr.mk_const ctx (Symbol.mk_string ctx n.source) (.mk_sort ctx))*)
+      | "bool" -> Printf.printf " I will make a bool here\n"; (Expr.mk_const ctx (Symbol.mk_string ctx s) (Boolean.mk_sort ctx))
+      | _ ->  Printf.printf " I don't know what to make here\n"; Integer.mk_numeral_s ctx "42"
+    ) in
+    Hashtbl.add v s new_var;
+    Printf.printf "New variable, returning %s\n\n" (Expr.to_string new_var);
+    new_var
+
 let print_function n f =
 (*
     n -> function name
@@ -392,15 +442,17 @@ let immediate ctx i =
 
     Returns z3 sort
 *)
+  Printf.printf "\n --- CREATE Z3 VAR IMMEDIATE :  --- \n";
+  (* Look at environment for variable*)
   match i with
-  | Ebool(b) ->  Boolean.mk_val ctx b 
-  | Eint(i) -> (Printf.printf "Z3 Int %d\n") i; Integer.mk_numeral_s ctx (Printf.sprintf "%d" i)
-  (*TODO: in general reals and floating points are not the same*)
-  | Efloat(i) -> (Printf.printf "Z3 Float %f\n") i; Real.mk_numeral_s ctx (Printf.sprintf "%f" i)
-  | Estring(c) -> (Printf.printf "string: %s\n" c); Expr.mk_const ctx (Symbol.mk_string ctx c) (Real.mk_sort ctx)
-  | Echar(c) -> Printf.printf "%c" c; Integer.mk_numeral_s ctx "42"
-  | Evoid -> Printf.printf "void"; Integer.mk_numeral_s ctx "42"
-  | _ -> (Printf.printf "Ignore immediate \n"); Integer.mk_numeral_s ctx "42"
+      | Ebool(b) ->  Boolean.mk_val ctx b 
+      | Eint(i) -> (Printf.printf "Z3 Int %d\n") i; Integer.mk_numeral_s ctx (Printf.sprintf "%d" i)
+      (*TODO: in general reals and floating points are not the same*)
+      | Efloat(i) -> (Printf.printf "Z3 Float %f\n") i; Real.mk_numeral_s ctx (Printf.sprintf "%f" i)
+      | Estring(c) -> (Printf.printf "string: %s\n" c); Expr.mk_const ctx (Symbol.mk_string ctx c) (Real.mk_sort ctx)
+      | Echar(c) -> Printf.printf "%c" c; Integer.mk_numeral_s ctx "42"
+      | Evoid -> Printf.printf "void"; Integer.mk_numeral_s ctx "42"
+      | _ -> (Printf.printf "Ignore immediate \n"); Integer.mk_numeral_s ctx "42"
 
 (* let rec local ctx env typenv l =
    let expr = expression ctx env (List.hd l.l_eq) typenv in
@@ -486,6 +538,7 @@ and operator ctx env typenv e e_list =
         | _ -> () (*Binary operator case*)
     | _ -> () (*ERROR!*)
   *)
+  Printf.printf "Operator call %s : \n" e;
   match e with 
   | ">=" -> Arithmetic.mk_ge ctx (expression ctx env (hd e_list) typenv) (expression ctx env (hd (tl e_list)) typenv)
   | ">" -> Arithmetic.mk_gt ctx (expression ctx env (hd e_list) typenv) (expression ctx env (hd (tl e_list)) typenv)
@@ -502,6 +555,15 @@ and operator ctx env typenv e e_list =
   | t -> Printf.printf "Invalid expression symbol: %s\n" t; Printf.printf "%d\n" (List.length e_list); Integer.mk_numeral_s ctx "42"
 
 (* translate expressions into Z3 constructs*)
+
+and operator_expression_to_string ({ e_desc = desc; e_loc = loc}) =
+(* Used to prevent creation of isolated expressions of operators: i.e >=, >, && *)
+      match desc with 
+      | Eglobal { lname = ln } -> Printf.printf "Operator stringfy\n"; (match ln with
+        (*TODO: Append a modname to Name if not found, rather than removing it from a Modname, so we preserve module info for global declarations *)
+        | Name(n) -> Printf.printf "Name: %s\n" n; n
+        | Modname(qualid) -> Printf.printf "Modname: %s\n" qualid.id; qualid.id) 
+      | _ -> Printf.printf "undefined behavior\n"; "undefined"
 
 and expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
 (*
@@ -522,21 +584,15 @@ and expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
       | Name(n) -> Printf.printf "Name: %s\n" n; n
       | Modname(qualid) -> Printf.printf "Modname: %s\n" qualid.id; qualid.id) 
     | Eapp({ app_inline = i; app_statefull = r }, e, e_list) -> 
-      Printf.printf "Expression %s\n" (Expr.to_string (expression ctx env e typenv));
+      (*Printf.printf "Expression %s\n" (Expr.to_string (expression ctx env e typenv));*)
       Printf.printf "Expression app:\n";
-      operator ctx env typenv (Expr.to_string (expression ctx env e typenv)) e_list 
+      operator ctx env typenv (*Expr.to_string (expression ctx env e typenv)*) (operator_expression_to_string e) e_list 
     | Elocal(n) -> Printf.printf "Elocal: %s : %d\n" n.source n.num;
           (match typenv with
           | Some(t) -> let ismember = (Hashtbl.mem t n.source)
             in (if ismember then (let basetype = (Hashtbl.find t n.source) in
               Printf.printf "%s has type %s" n.source basetype;
-              (match basetype with
-              | "int" -> Printf.printf " I will make an int here\n"; Expr.mk_const ctx (Symbol.mk_string ctx n.source) (Integer.mk_sort ctx)
-              | "float" -> Printf.printf " I will make a float here\n"; Expr.mk_const ctx (Symbol.mk_string ctx n.source) (Real.mk_sort ctx)
-              (* | "string" -> Printf.printf " I will make a string here\n"; (Expr.mk_const ctx (Symbol.mk_string ctx n.source) (.mk_sort ctx))
-              | "char" -> Printf.printf " I will make a char here\n"; (Expr.mk_const ctx (Symbol.mk_string ctx n.source) (.mk_sort ctx))*)
-              | "bool" -> Printf.printf " I will make a bool here\n"; (Expr.mk_const ctx (Symbol.mk_string ctx n.source) (Boolean.mk_sort ctx))
-              | _ ->  Printf.printf " I don't know what to make here\n"; Integer.mk_numeral_s ctx "42"))
+              (create_z3_var_typed ctx env n.source basetype))
           else
             (Printf.printf "Creating var: %s\n" n.source; immediate ctx (Estring(n.source))) )
           | _ -> Printf.printf "Error: typenv not given!\n"; Expr.mk_const ctx (Symbol.mk_string ctx n.source) (Real.mk_sort ctx))
@@ -893,7 +949,7 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
           (add_constraint local_env expr;
           Printf.printf "Function body expression: %s\n" (Expr.to_string expr)); *)
           (* create function constraint to be proven *)
-          let return_exp = (expression ctx !env rettype (Some typenv)) in
+          let return_exp = (expression ctx !local_env rettype (Some typenv)) in
           (Printf.printf "Return type expression: %s\n" (Expr.to_string return_exp));
           let function_argument_constraints = !(!local_env.exp_env) in
           let function_variable_type_map = typenv in
@@ -914,7 +970,7 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
           
           
           (*let return_var = (get_return_type ctx local_env rettype (Some typenv)) in*)
-          let return_var = build_return_var ctx !env n in 
+          let return_var = build_return_var ctx !local_env n in 
           Printf.printf "Return var: %s\n" (Expr.to_string return_var);
           (*let input_var = (get_return_type ctx local_env e (Some typenv)) in
           Printf.printf "Return var in: %s\n" (Expr.to_string input_var);*)

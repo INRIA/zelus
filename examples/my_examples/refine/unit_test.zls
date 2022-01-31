@@ -25,6 +25,11 @@ let f3 a b c = a + b *)
 
 (*let f a b c = a + b*)
 
+let add (x : int{x > 0}) (y : int{y > 0}) : int{ add_return >= x && add_return >= y} =
+		let z = x + y 
+		in z
+
+
 let f (a : int{a > 0}) (b : int{b > 0}) (c : int{c > 0}) : int{f_return >= 0}  =  
 	   let z = a + b in
 	   let w = b + c in
@@ -32,11 +37,6 @@ let f (a : int{a > 0}) (b : int{b > 0}) (c : int{c > 0}) : int{f_return >= 0}  =
 	   y
 
 let f2 (x : int{x < 0 }) : int{f2_return > 0} = x * x
-
-let add (x : int{x > 0}) (y : int{y > 0}) : int{ add_return >= x && add_return >= y} =
-		let z = x + y 
-		in z
-
 
 
 let node main () = 
