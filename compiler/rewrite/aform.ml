@@ -246,8 +246,8 @@ let implementation impl =
     | Econstdecl(n, is_static, e) ->
        { impl with desc = Econstdecl(n, is_static, expression Env.empty e) }
     (*added here*)
-    | Eipopannotation(n, e1, e2) ->
-       { impl with desc = Eipopannotation(n, expression Env.empty e1, expression Env.empty e2) }   
+    | Eipopannotation(n, e1, e2, is_op) ->
+       { impl with desc = Eipopannotation(n, expression Env.empty e1, expression Env.empty e2, is_op) }    
     (*TODO: refinement implementation of aform*)
     | Erefinementdecl(n1,n2,e1,e2) ->
        { impl with desc = Erefinementdecl(n1,n2, expression Env.empty e1, expression Env.empty e2) }

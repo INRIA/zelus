@@ -402,6 +402,10 @@ let implementation acc impl =
     | Econstdecl(f, is_static, e) ->
        let e = expression Env.empty e in
        { impl with desc = Econstdecl(f, is_static, e) } :: acc
+    | Eipopannotation(n, e1, e2, is_op) ->
+       let e1 = expression Env.empty e1 in
+       let e2 = expression Env.empty e2 in
+       { impl with desc = Eipopannotation(n, e1, e2, is_op) } :: acc   
     | Efundecl(f, ({ f_args = p_list; f_body = e; f_env = f_env } as body)) ->
        let f_env, renaming = build f_env in
        let p_list = List.map (pattern renaming) p_list in

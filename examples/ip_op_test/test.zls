@@ -1,5 +1,5 @@
-let y: float{y>3.0}= 4.0
+
 let hybrid main ()= () where
    rec trigger = (period (1.))
-   and ()= present(trigger) -> (print_float y)
+   and ()= present(trigger) -> (let y:float{y>3.0}= 4.0 in print_float y)
 else ()

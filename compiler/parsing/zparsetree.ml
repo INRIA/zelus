@@ -95,10 +95,8 @@ and implementation_desc =
 <<<<<<< HEAD
     (*refinement type implementation*)
     | Erefinementdecl of name * name * exp * exp
-=======
     (*added here*)
-    | Eipopannotation of name * exp * exp
->>>>>>> op keyword was added
+    | Eipopannotation of name * exp * exp * is_op
     | Efundecl of name * funexp
     | Erefinementfundecl of name * funexp * exp
 
@@ -112,6 +110,8 @@ and funexp =
 and is_atomic = bool
 
 and is_static = bool
+
+and is_op = bool
                   
 and exp = desc localized
 

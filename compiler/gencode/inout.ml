@@ -457,6 +457,6 @@ let implementation impl =
      (* only continuous machines are concerned *)
      let cstate = Zident.fresh "cstate" in
      Oletmachine(f, machine f mach cstate)
-  | Oletmachine _ | Oletvalue _ | Oletvalue1 _ | Oletfun _ | Oopen _ | Otypedecl _ -> impl
+  | Oletmachine _ | Oletvalue _ | Oletvalueop _ | Oletvalueip _ | Oletfun _ | Oopen _ | Otypedecl _ -> impl
 									 
 let implementation_list impl_list = Zmisc.iter implementation impl_list

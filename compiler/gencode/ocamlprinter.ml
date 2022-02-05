@@ -24,7 +24,10 @@ open Format
 open Pp_tools
 open Printer
 open Oprinter
+open Hashtbl
 
+let op_table=((Hashtbl.create 15) : (string, inst) Hashtbl.t)
+let ip_table=((Hashtbl.create 15) : (string, inst) Hashtbl.t)
 
 let immediate ff = function
   | Oint i ->
@@ -623,9 +626,15 @@ let machine f ff { ma_kind = k;
 let implementation ff impl = match impl with
   | Oletvalue(n, i) ->
      fprintf ff "@[<v 2>let %a = %a@.@.@]" shortname n (inst 0) i
- | Oletvalue1(n, e ,i) ->
+  | Oletvalueop(n, e ,i) ->
+     Hashtbl.add op_table n e ;
+     fprintf ff "@[<v 2>let () = robot_store_ml %a %a@.@.@]" (inst 0) e (inst 0) i;
      fprintf ff "@[<v 2>let %a = %a@.@.@]" shortname n (inst 0) i ;
-     fprintf ff "@[\"%s\" is an output variable using the lcm channel %a@.@.@]" n (inst 0) e 
+     (*fprintf ff "@[\"%s\" is an output variable using the lcm channel %a@.@.@]" n (inst 0) (Hashtbl.find op_table n)*) 
+  | Oletvalueip(n, e ,i) ->
+     Hashtbl.add ip_table n e ;
+     (*fprintf ff "@[<v 2>let %a = %a@.@.@]" shortname n (inst 0) i ;*)
+     (*fprintf ff "@[\"%s\" is an input variable using the lcm channel %a@.@.@]" n (inst 0) e*)    
   | Oletfun(n, pat_list, i) ->
      fprintf ff "@[<v 2>let %a %a =@ %a@.@.@]"
              shortname n pattern_list pat_list (inst 0) i
@@ -650,7 +659,8 @@ let implementation_list ff impl_list =
   \n @[external robot_get: string -> float = \"robot_get_cpp\" @.@]
   \n @[external robot_str_ml: string -> float -> unit = \"robot_str_cpp\" @.@] ") else();
   if !robot then (fprintf ff "@[external control_robot_ml: int -> int -> unit = \"control_robot_c\" @.@]
-  \n @[external robot_store: string -> float -> unit = \"robot_store_c\" @.@] 
-  \n @[external robot_store_ml: string -> unit = \"robot_store_op\" @.@] 
   \n @[external robot_get_ml: string -> unit = \"robot_get_ip\" @.@] ") else ();
+  (*\n @[external robot_store: string -> float -> unit = \"robot_store_c\" @.@] 
+  \n @[external robot_store_ml: string -> float -> unit = \"robot_store_op\" @.@] *)
+  (*if !robot then (fprintf ff "@[external robot_store_ml: string -> float -> unit = \"robot_store_op\" @.@]") else ();*)(*for op implementation*)
   List.iter (implementation ff) impl_list

@@ -660,7 +660,7 @@ let implementation ff impl =
         (* output the signature *)
         if !Zmisc.print_initialization_types then Pinit.declaration ff f1 tis
     (*added here*)
-    | Eipopannotation(f, e1, e2) ->
+    | Eipopannotation(f, e1, e2, _) ->
         let ti_zero = Init.skeleton_on_i izero e2.e_typ in
         Zmisc.push_binding_level ();
         exp_less_than false Env.empty e2 ti_zero;

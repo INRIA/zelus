@@ -403,10 +403,10 @@ let implementation impl =
        let e2 = exp Env.empty e2 in
        { impl with desc = Erefinementdecl(n1,n2,e1,e2) }
     (*added here*)
-    | Eipopannotation(n, e1, e2) ->
+    | Eipopannotation(n, e1, e2, is_op) ->
        let e1 = exp Env.empty e1 in
        let e2 = exp Env.empty e2 in
-       { impl with desc = Eipopannotation(n, e1, e2) }   
+       { impl with desc = Eipopannotation(n, e1, e2, is_op) }   
     | Efundecl(n, ({ f_args = p_list; f_body = e; f_env = f_env } as body)) ->
         let signals, _, f_env = build Env.empty f_env in
 	let p_list = List.map (pattern signals) p_list in

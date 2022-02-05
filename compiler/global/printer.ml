@@ -539,7 +539,7 @@ let implementation ff impl =
         fprintf ff "@[<v 2>let %s%a =@ %a@.@.@]"
            ("") shortname n1 expression e2
     (*added here*)
-    | Eipopannotation(n,e1,e2) -> 
+    | Eipopannotation(n,e1,e2, is_op) -> 
           fprintf ff "@[<v 2>let %s%a =@ %a@.@.@]"
              ("") shortname n expression e2
     | Efundecl(n, body) ->

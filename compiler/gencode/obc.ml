@@ -183,7 +183,8 @@ and implementation_list = implementation list
 
 and implementation = 
   | Oletvalue of name * inst
-  | Oletvalue1 of name * inst * inst
+  | Oletvalueop of name * inst * inst
+  | Oletvalueip of name * inst * inst
   | Oletfun of name * pattern list * inst
   | Oletmachine of name * machine
   | Oopen of string

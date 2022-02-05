@@ -185,8 +185,8 @@ let implementation impl =
     | Erefinementdecl(n1,n2,e1,e2) ->
        { impl with desc = Erefinementdecl(n1,n2, exp e1, exp e2) }
     (*added here*)
-    | Eipopannotation(n, e1, e2) ->
-       { impl with desc = Eipopannotation(n, exp e1, exp e2) }   
+    | Eipopannotation(n, e1, e2, is_op) ->
+       { impl with desc = Eipopannotation(n, exp e1, exp e2, is_op) }   
     | Efundecl(n, ({ f_body = e } as body)) ->
         { impl with desc = Efundecl(n, { body with f_body = exp e }) }
 

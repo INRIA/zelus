@@ -768,12 +768,13 @@ let implementation { Zelus.desc = desc } =
   | Zelus.Erefinementfundecl(n, ({ Zelus.f_kind = k; Zelus.f_args = pat_list;
       Zelus.f_body = e; Zelus.f_env = f_env }), _)
   (*added here*)
-  | Zelus.Eipopannotation(n, e1, e2)->
+  | Zelus.Eipopannotation(n, e1, e2, is_op)->
      let { step = s } = expression Env.empty e2 in
      (*let e, code = exp env loop_path code e1 in
      Ooup(e), code*)
      let { step = e } = expression Env.empty e1 in
-     Oletvalue1(n, e, s)  
+     if is_op then Oletvalueop(n, e, s) else Oletvalueip(n, e, s)
+      
   | Zelus.Efundecl(n, { Zelus.f_kind = k; Zelus.f_args = pat_list;
 			Zelus.f_body = e; Zelus.f_env = f_env }) ->
      let pat_list = List.map pattern pat_list in

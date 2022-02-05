@@ -411,8 +411,10 @@ let machine f ff { ma_kind = k; ma_params = pat_list; ma_initialize = i_opt;
 let implementation ff impl = match impl with
   | Oletvalue(n, i) ->
      fprintf ff "@[<v 2>let %a = %a@.@.@]" shortname n (inst 0) i
-  | Oletvalue1(n,e, i) ->
-     fprintf ff "@[<v 2>let %a = %a@.@.@]" shortname n (inst 0) i   
+  | Oletvalueop(n,e, i) ->
+     fprintf ff "@[<v 2>let %a = %a@.@.@]" shortname n (inst 0) i  
+  | Oletvalueip(n,e, i) ->
+     fprintf ff "@[<v 2>let %a = %a@.@.@]" shortname n (inst 0) i      
   | Oletfun(n, pat_list, i) ->
      fprintf ff "@[<v 2>let %a %a =@ %a@.@.@]"
              shortname n pattern_list pat_list (inst 0) i

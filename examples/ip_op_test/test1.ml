@@ -1,26 +1,12 @@
 (* The Zelus compiler, version 2.1-dev
-  (2022-01-25-14:12) *)
+  (2022-01-27-22:3) *)
 open Ztypes
-external move_robot_ml: int -> unit = "move_robot_cpp" 
+external robot_store_ml: string -> float -> unit = "robot_store_op" 
+let () = robot_store_ml "output chan" 4.
 
-  
- external robot_get: string -> float = "robot_get_cpp" 
+let y = 4.
 
-  
- external robot_str_ml: string -> float -> unit = "robot_str_cpp" 
- external control_robot_ml: int -> int -> unit = "control_robot_c" 
-
-  
- external robot_store: string -> float -> unit = "robot_store_c" 
- 
-  
- external robot_store_ml: string -> unit = "robot_store_op" 
- 
-  
- external robot_get_ml: string -> unit = "robot_get_ip" 
- let y = 4.
-
-"y" is an output variable using the lcm channel "chan"
+let x = 'c'
 
 type ('e , 'd , 'c , 'b , 'a) _main =
   { mutable major_16 : 'e ;

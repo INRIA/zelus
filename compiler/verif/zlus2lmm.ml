@@ -326,6 +326,10 @@ let implementation lmm_nodes lmm_list impl =
       then Lconstdecl(n1, expression Ck_base e2) :: lmm_list
      else lmm_list
   | Erefinementfundecl(n, { f_kind = k; f_args = p_list; f_env = f_env; f_body = e }, _)
+  | Eipopannotation(n, e1, e2, _) ->
+      if Zmisc.S.mem n lmm_nodes
+      then Lipopannotation(n, expression Ck_base e1, expression Ck_base e2) :: lmm_list
+     else lmm_list
   | Efundecl(n, { f_kind = k; f_args = p_list; f_env = f_env; f_body = e }) ->
      if Zmisc.S.mem n lmm_nodes then
        let iset = List.fold_left (Vars.fv_pat S.empty) S.empty p_list in

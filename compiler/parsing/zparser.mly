@@ -330,7 +330,9 @@ implementation:
 		    f_loc = localise $startpos(fn) $endpos(eqs) }, seq1) }
     (*added here, varable annotation using ip and op keywords*)
   | LET ide = ide LBRACE OP seq1= expression RBRACE EQUAL seq2= seq_expression
-      { Eipopannotation (ide, seq1, seq2) }
+      { Eipopannotation (ide, seq1, seq2, true) }
+  | LET ide = ide LBRACE IP seq1= expression RBRACE EQUAL seq2= seq_expression
+      { Eipopannotation (ide, seq1, seq2, false) }    
   (*| LET ide = ide LBRACE OP seq1 =seq_expression RBRACE EQUAL seq2= seq_expression
       { Econstdecl (ide, false, seq2)}*)        
   | LET ide = ide fn = simple_pattern_list EQUAL seq = seq_expression

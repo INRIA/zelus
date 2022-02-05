@@ -535,10 +535,10 @@ let implementation impl =
         { impl with desc = Erefinementdecl(n1,n2,e1,e2) }
     | Erefinementfundecl(n, ({ f_body = e } as body), _)
     (*added here*)
-    | Eipopannotation(n, e1, e2) -> 
+    | Eipopannotation(n, e1, e2, is_op) -> 
         let e1 = exp S.empty e1 in
         let e2 = exp S.empty e2 in
-        { impl with desc = Eipopannotation(n, e1, e2) }    
+        { impl with desc = Eipopannotation(n, e1, e2, is_op) }    
     | Efundecl(n, ({ f_body = e } as body)) ->
         { impl with desc = Efundecl(n, { body with f_body = exp S.empty e }) }
 

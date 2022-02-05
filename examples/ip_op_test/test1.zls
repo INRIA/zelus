@@ -1,6 +1,6 @@
-let y{op "chan"} = 4.0
-
+let y{op "output chan"} = 4.0
+let x{ip "input chan"} = 'c'
 let hybrid main ()= () where
    rec trigger = (period (1.))
-   and ()= present(trigger) -> (print_float y; robot_str("transverse_vel", -.30.) (*let y{op "chan"} = 4.0; op "channel"*))
+   and ()= present(trigger) -> (print_float y(*; robot_str("transverse_vel", -.30.)*) (*let y{op "chan"} = 4.0; op "channel"*))
 else ()

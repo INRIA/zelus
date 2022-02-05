@@ -80,7 +80,7 @@ and implementation_desc =
   (*added here*)
   (*refinement type definition*)
   | Erefinementdecl of name * name * exp * exp
-  | Eipopannotation of name * exp * exp
+  | Eipopannotation of name * exp * exp * is_op
   | Efundecl of name * funexp
   | Erefinementfundecl of name * funexp * exp
 			 
@@ -95,6 +95,8 @@ and funexp =
 and is_atomic = bool
 
 and is_static = bool
+
+and is_op = bool
 		  
 and exp = 
   { mutable e_desc: desc; (* descriptor *)

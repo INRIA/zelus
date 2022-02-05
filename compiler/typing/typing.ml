@@ -1420,7 +1420,7 @@ let implementation ff is_first impl =
        if is_first then Interface.add_type_of_value ff impl.loc f1 false tys
        else Interface.update_type_of_value ff impl.loc f1 false tys*)
     (*added here*)
-    |Eipopannotation(f, e1, e2) -> 
+    |Eipopannotation(f, e1, e2, is_op) -> 
       let tys = constdecl f false e2 in
       if is_first then Interface.add_type_of_value ff impl.loc f false tys
       else Interface.update_type_of_value ff impl.loc f false tys   
