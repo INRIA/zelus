@@ -8,7 +8,7 @@
 #include <lcm/lcm.h>
 #include <time.h>
 #include "hash_tbl.h"
-#include "robot_store_t.h"
+#include "lcmtypes/robot_store_t.h"
 
 lcm_t * lcm;
 pthread_t lcm_listener; 
