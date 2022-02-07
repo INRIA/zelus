@@ -30,15 +30,15 @@ let add (x : int{x > 0}) (y : int{y > 0}) : int{ add_return >= x && add_return >
 		in z
 
 
-let f (a : int{a > 0}) (b : int{b > 0}) (c : int{c > 0}) : int{f_return >= 0}  =  
+(*let f (a : int{a > 0}) (b : int{b > 0}) (c : int{c > 0}) : int{f_return >= 0}  =  
 	   let z = a + b in
 	   let w = b + c in
 	   let y = w + z in
 	   y
 
-let f2 (x : int{x < 0 }) : int{f2_return > 0} = x * x
+let f2 (x : int{x < 0 }) : int{f2_return > 0} = x * x*)
 
 
 let node main () = 
-	print_int (f (-1) 2 4)
-
+	print_int (*f (-1) 2 4*) (add (-1) (-1));
+	(add 2 3)
