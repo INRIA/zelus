@@ -40,11 +40,12 @@ let def { eq_write = { Deftypes.dv = dv; Deftypes.di = di } } =
   (* derivatives are not taken into account *)
   Zident.S.union dv di
 
-(** Initialization equations [init x = e] and reset [init x = e]... every ...] *)
+(** Initialization equations [init x = e] and *)
+(* reset [init x = e]... every ...] *)
 let rec init { eq_desc = desc } =
   match desc with
   | EQinit _ -> true
-  | EQreset(eq_list, _) -> List.for_all init eq_list
+  | EQreset(eq_list, _) -> List.exists init eq_list
   | _ -> false
 
 let nodep ({ eq_desc }) =

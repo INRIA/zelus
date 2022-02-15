@@ -27,6 +27,43 @@ let node msort(left)(right)(select)(x) = (output, pask, l, r) where
   and ask = run select (l, r)
   and output = if ask then l else r
 
+(*
+let node msort(left)(right)(select)(x) = (output, pask, l, r) where
+  rec l = presenti ask_l -> run left x
+  and r = presenti ask_r -> run right x
+  and ask_l = pre(ask)
+  and ask_r = not(ask_l)
+  and ask = run select (l, r)
+  and output = if ask then l else r
+
+let node msort(left)(right)(select)(x) = (output, pask, l, r) where
+  new o1 = left() in
+  new o2 = right() in
+  automaton
+  | Run(v, w) ->
+    do output = if v < w then v else w
+    then if v < w then Run(o1#step(), w) else Run(v, o2#step())
+  init
+    let v = o1#step() in
+    let w = o2#step() in
+    Run(v, w)
+  end
+
+val msort : (unit -> { step : unit -> 'a with init step < (step # eps) } ->
+            { unit -> { step : unit -> 'a with init step < (step # eps) } ->
+            (int * int => int) -> int => int * bool * int * int
+
+let system fby(v) as self =
+  mem m = v
+  when get() returns (o)
+    o = last m
+  when set(v) returns ()
+    m = v
+  step(v) returns (o)
+    do o = self#get() in
+      () = self#set(v) done
+*)
+		 
 (* a sorted stream *)
 let node sample() = { tag = o; value = o } where
   rec o = (0 fby o) + Random.int 5

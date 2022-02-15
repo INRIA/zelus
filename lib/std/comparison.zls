@@ -1,0 +1,36 @@
+(* comparison operators on floatting point numbers *)
+
+(* [lt(x,y) = true] when [x < y]. The signal is piece-wise constant, i.e., it *)
+(* does not change during integration. *)
+let hybrid lt(x,y) = ok where
+  rec init ok = false
+  and present
+       (init) | (disc(y -. x)) | up(if ok then x -. y else y -. x) ->
+	do ok = x < y done
+
+   
+(* [leq(x,y) = true] when [x <= y]. The signal is piece-wise constant, i.e., it *)
+(* does not change during integration. *)
+let hybrid leq(x,y) = ok where
+  rec init ok = false
+  and present
+      (init) | (disc(y -. x)) | up(if ok then x -. y else y -. x) ->
+	do ok = x <= y done
+
+(* [gt(x,y) = true] when [x < y]. The signal is piece-wise constant, i.e., it *)
+(* does not change during integration. *)
+let hybrid gt(x,y) = ok where
+  rec init ok = false
+  and present
+      (init) | (disc(y -. x)) | up(if ok then y -. x else x -. y) ->
+	do ok = x > y done
+	    
+(* [geq(x,y) = true] when [x < y]. The signal is piece-wise constant, i.e., it *)
+(* does not change during integration. *)
+let hybrid geq(x,y) = ok where
+  rec init ok = false
+  and present
+      (init) | (disc(y -. x)) | up(if ok then y -. x else x -. y) ->
+	do ok = x >= y done
+
+   

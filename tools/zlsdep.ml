@@ -14,7 +14,8 @@
 (*                                                                     *)	
 (***********************************************************************)	
 
-open Deps_tools	
+open Deps_tools
+open Compiler
 open Format	
 
 type file_kind = ZLS | ZLI;;	
@@ -48,24 +49,27 @@ let file_dependencies source_file =
     file_dependencies_as ZLS source_file	
   else if Filename.check_suffix source_file ".zli" then	
     file_dependencies_as ZLI source_file	
-  else ()	
+  else ()
 
 (* Entry point *)	
 
 let usage = "Usage: zlsdep [options] <source files>\nOptions are:"	
 
 let _ =	
-  add_to_load_path Filename.current_dir_name;	
-  Arg.parse [	
-     "-I", Arg.String add_to_load_path,	
-       "<dir>  Add <dir> to the list of include directories";	
-     "-impl", Arg.String (file_dependencies_as ZLS),	
-       "<f> Process <f> as a .zls file";	
-     "-intf", Arg.String (file_dependencies_as ZLI),	
-       "<f> Process <f> as a .zli file";	
-     "-pp", Arg.String(fun s -> preprocessor := Some s),	
-       "<cmd> Pipe sources through preprocessor <cmd>";	
-     "-slash", Arg.Set force_slash,	
-       "   (Windows) Use forward slash / instead of backslash \\ in file paths";	
-    ] file_dependencies usage;	
-  exit (if !error_occurred then 2 else 0)
+  try
+    add_to_load_path Filename.current_dir_name;
+    Arg.parse [
+       "-I", Arg.String add_to_load_path,
+         "<dir>  Add <dir> to the list of include directories";
+       "-impl", Arg.String (file_dependencies_as ZLS),
+         "<f> Process <f> as a .zls file";
+       "-intf", Arg.String (file_dependencies_as ZLI),
+         "<f> Process <f> as a .zli file";
+       "-pp", Arg.String(fun s -> preprocessor := Some s),
+         "<cmd> Pipe sources through preprocessor <cmd>";
+       "-slash", Arg.Set force_slash,
+         "   (Windows) Use forward slash / instead of backslash \\ in file paths";
+      ] file_dependencies usage;
+    exit (if !error_occurred then 2 else 0)
+  with
+  | Zmisc.Error -> exit 2;;

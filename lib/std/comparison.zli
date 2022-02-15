@@ -1,0 +1,4 @@
+val lt : float * float -C-> bool
+val leq : float * float -C-> bool
+val gt : float * float -C-> bool
+val geq : float * float -C-> bool

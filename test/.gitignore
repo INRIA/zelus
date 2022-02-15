@@ -1,0 +1,9 @@
+*.cm*
+*.zci
+*.translation
+*.compilation
+*.log
+*.ok
+t*._main.ml
+t*.ml
+t*.test

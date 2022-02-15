@@ -349,27 +349,6 @@ let create_z3_var ctx ({exp_env = e ; var_env = v}) s =
     Printf.printf "New variable, returning %s\n\n" (Expr.to_string new_var);
     new_var
 
-let create_z3_var ctx ({exp_env = e ; var_env = v}) s =
-(*
-    ctx -> z3 context
-    s   -> variable name
-
-    Create generic z3 Real sort with given variable name s
-*)
-  Printf.printf "\n --- CREATE Z3 VAR : %s --- \n" s;
-  (* Look at environment for variable*)
-  if (Hashtbl.mem v s) then
-    (*if exists return varible*)
-      let found_var = Hashtbl.find v s in
-      Printf.printf "Existing variable, returning %s\n\n" (Expr.to_string found_var);
-      found_var
-  else
-    (*otherwise create a new variable and add to environment*)
-    let new_var = Expr.mk_const ctx (Symbol.mk_string ctx s) (Real.mk_sort ctx) in
-    Hashtbl.add v s new_var;
-    Printf.printf "New variable, returning %s\n\n" (Expr.to_string new_var);
-    new_var
-
 let create_z3_var_typed ctx ({exp_env = e ; var_env = v}) s basetype : expr =
 (*
     ctx -> z3 context
