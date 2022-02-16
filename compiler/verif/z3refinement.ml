@@ -668,7 +668,11 @@ and expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
     | Econstr1 (_, _) -> Printf.printf "Econstr1\n";Integer.mk_numeral_s ctx "42"
     | Elast _ -> Printf.printf "Elast\n";Integer.mk_numeral_s ctx "42"
     | Eop (_, _) -> Printf.printf "Eop\n";Integer.mk_numeral_s ctx "42"
-    | Etuple _ -> Printf.printf "Etuple\n";Integer.mk_numeral_s ctx "42"
+    (* used to type check pairs *)
+    | Etuple (e_list) -> Printf.printf "Etuple : "; 
+    let exp_list_temp = List.map (fun e -> Expr.to_string(expression ctx env e typenv)) e_list in
+    Printf.printf "Pair : [ ";
+    List.iter (fun s -> Printf.printf "%s " s) exp_list_temp; Printf.printf "]\n"; Integer.mk_numeral_s ctx "42"
     | Erecord_access (_, _) -> Printf.printf "Erecord_acess\n";Integer.mk_numeral_s ctx "42"
     | Erecord _-> Printf.printf "Erecord\n";Integer.mk_numeral_s ctx "42"
     | Erecord_with (_, _)-> Printf.printf "Erecord_with\n";Integer.mk_numeral_s ctx "42"

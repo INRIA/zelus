@@ -1,44 +1,78 @@
 (* Unit tests for refinement types *)
 
-(*let pi = 3.14159
+(* 	EXAMPLE 1: refinement variable declaration 
+
+	- test constant numbers, defined variables, operators
+*)
+let pi = 3.14159
 let w = 2.*.pi
 let y0:float{y0 >= pi} = 4.0
 let y1:float{y1 >= y0*.2.} = 10.0
+
+(*
+	EXAMPLE 2: refinement function declaration
+
+	- multiple refinement inputs
+	- 2 function body expressions
 *)
-(*
-(*let f (a : int{a > 0}) (b : int{b > 0}) (c : int{c > 0}) : int{ 1 >= 0}  =  a*)
-(*
 let f (a : int{a > 0}) (b : int{b > 0}) (c : int{c > 0}) : int{f_return >= 0}  =  
 	   let y = a + b in
 	   y
-*)
 
-(* let f2 (x:int{ x <= 6 }) : int{ y >= 0 } =
+
+(*
+	EXAMPLE 3: refinement functions as a math proof
+
+	- prove that the square of any negative number is a positive number
+*)
+let f2 (x:int{ x <= 0 }) : int{ y >= 0 } =
          let y = x * x in
 		 y
 
-let f3 a b c = a + b *)
+(*
+	EXAMPLE 3.1:
 
-(* let f3 (x:int{x>0}) = y:int{y>0} where
-	y = x*x *)
+	- same as above but as a direct expression
 *)
+let f3 (x:int{x>0}) : int{ f3_return > 0} = x*x
 
-(*let f a b c = a + b*)
 
-let add (x : int{x > 0}) (y : int{y > 0}) : int{ add_return >= x && add_return >= y} =
+(*
+	EXAMPLE 4: refinement function with multiple constraints in return type
+
+	- constraint on function inputs
+	- logical operator on return type to concatenate constraints
+*)
+ let add (x : int{x > 0}) (y : int{y > 0}) : int{ add_return >= x && add_return >= y} =
 		let z = x + y 
-		in z
+		in z 
 
+(*
+	EXAMPLE 5: refinement function with multiple body lines
 
-(*let f (a : int{a > 0}) (b : int{b > 0}) (c : int{c > 0}) : int{f_return >= 0}  =  
+	- multiple body lines
+*)
+let f4 (a : int{a > 0}) (b : int{b > 0}) (c : int{c > 0}) : int{f4_return >= 0}  =  
 	   let z = a + b in
 	   let w = b + c in
 	   let y = w + z in
 	   y
 
-let f2 (x : int{x < 0 }) : int{f2_return > 0} = x * x*)
+(*
+	EXAMPLE 6: currently patological example
+*)
+(* let f2 (x : int{x < 0 }) : int{f2_return > 0} = 
+	let y = x * x in 
+	add y y *)
 
 
-let node main () = 
-	print_int (*f (-1) 2 4*) (add (-1) (-1));
+let node main () =
+	(* let pair = (1, (2, 3)) in
+	print_int (fst pair) *)
+	(* let x = fst pair in
+	let y = fst (snd pair) in
+	let z = snd (snd pair) in
+	print_string "First: "; print_int x; print_newline (); print_string "Second : "; print_int y; print_newline ();
+	print_string "Third : "; print_int z; print_newline () *)
+	print_int (*f (-1) 2 4*) (add (3) (2));
 	(add 2 3)
