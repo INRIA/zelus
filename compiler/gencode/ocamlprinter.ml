@@ -655,10 +655,14 @@ let implementation_list ff impl_list =
   fprintf ff "@[(* %s *)@.@]" header_in_file;
   fprintf ff "@[open Ztypes@.@]";
   (* added here *)
-  if !robot then (fprintf ff "@[external move_robot_ml: int -> unit = \"move_robot_cpp\" @.@]
-  \n @[external robot_get: string -> float = \"robot_get_cpp\" @.@]
-  \n @[external robot_str_ml: string -> float -> unit = \"robot_str_cpp\" @.@] ") else();
-  if !robot then (fprintf ff "@[external control_robot_ml: int -> int -> unit = \"control_robot_c\" @.@]") else ();
+  if !robot then (fprintf ff "
+   @[external robot_get: string -> float = \"robot_get_cpp\" @.@]
+   @[external robot_str_ml: string -> float -> unit = \"robot_str_cpp\" @.@]
+   @[external lcm_start: unit -> int = \"LCM_start\" @.@] 
+   @[external lcm_stop: unit -> unit = \"LCM_stop\" @.@]
+  \n @[let () = ignore(lcm_start())@.@]") else();
+  (*if !robot then (fprintf ff "@[external control_robot_ml: int -> int -> unit = \"control_robot_c\" @.@]
+  \n @[external move_robot_ml: int -> unit = \"move_robot_cpp\" @.@]") else ();*)
   (*\n @[external robot_get_ml: string -> unit = \"robot_get_ip\" @.@] 
   \n @[external robot_store: string -> float -> unit = \"robot_store_c\" @.@] 
   \n @[external robot_store_ml: string -> float -> unit = \"robot_store_op\" @.@] *)

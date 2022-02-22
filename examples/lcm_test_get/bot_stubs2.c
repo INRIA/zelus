@@ -20,13 +20,13 @@ int running = 0;
 // Sends motor commands to the robot
 float a;
 
-static void
-motor_handler(const lcm_recv_buf_t *rbuf, const char * channel, 
+static void motor_handler(const lcm_recv_buf_t *rbuf, const char * channel, 
         const robot_store_t * msg, void * user)
 {
     //caml_acquire_runtime_system(); 
     //printf("Received message in C\n");
-    printf("writing to table %s", msg->command);
+    printf("Received message on channel \"%s\":\n", channel);
+    printf("writing to table '%s'", msg->command);
     insert_to_table(msg->command, msg->value);
     //caml_callback3(*caml_named_value("mbot_motor_callback"),
     //                Val_int(msg->utime), 
@@ -37,12 +37,12 @@ motor_handler(const lcm_recv_buf_t *rbuf, const char * channel,
 
 void *lcm_listen(void *param){
     //caml_c_thread_register();
-    robot_store_t_subscription_t *sub = \
-        robot_store_t_subscribe(lcm, "MBOT_MOTOR_TRANSVERSE", &motor_handler, NULL);
+    robot_store_t_subscription_t *sub = robot_store_t_subscribe(lcm, "MBOT_MOTOR_TRANSVERSE", &motor_handler, NULL); 
     printf("Listener Started\n");
+    printf("the value of running is %d\n",running);
     while(running)
         lcm_handle(lcm);
-    robot_store_t_unsubscribe(lcm, sub);
+    //robot_store_t_unsubscribe(lcm, sub);
     lcm_destroy(lcm);
     printf("Listener Stopped\n");
     //caml_c_thread_unregister();

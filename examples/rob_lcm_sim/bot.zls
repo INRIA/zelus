@@ -1,0 +1,29 @@
+let pi = 3.1416
+let x_last = 0.0
+let y_last = 0.0
+let theta_last = 0.0
+let wheel_base_half = 0.08125
+
+let hybrid exec()= (x, y, theta, d_left, d_right) where
+ rec 
+ der d_left = transverse -. (angular *. wheel_base_half) init 0.0
+ and der d_right = transverse +. (angular *. wheel_base_half) init 0.0
+ and der theta = angular init 0.0
+ and init transverse = 0.0
+ and init angular = 0.0
+ and vx = transverse *. (cos theta)
+ and vy = transverse *. (sin theta)
+ and der x = vx init 0.5
+ and der y = vy init -0.5
+ and (transverse, angular) = (present (period (0.04)) -> ((robot_str("transverse_vel", 0.5);robot_str("angular_vel",0.5));
+  (robot_get("transverse_vel"),robot_get("angular_vel"))) init (0.0, 0.0))
+  
+  
+let hybrid main () =
+  let rec (x,y,theta, dl, dr) = exec () in
+    present (period (0.04)) -> 
+    ((Drawrobot.show_robot x (x fby x) y (y fby y) theta);(*()*)
+    ()
+    );
+  ()
+

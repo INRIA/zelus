@@ -10,7 +10,7 @@ let hybrid main () = () where
    
   (*and t=robot_get ("angular_vel")
   and s=robot_get ("transverse_vel")*)
-  and ()= present(trigger) -> (print_int 0; (print_float t);print_newline ()(*; print_float s*); robot_str("transverse_vel", -.30.))
+  and ()= present(trigger) -> ((*print_int 0; (print_float t);print_newline ()*)(*; print_float s;*) robot_str("transverse_vel", -.30.))
   else ()
   
   
