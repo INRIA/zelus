@@ -327,6 +327,11 @@ implementation:
       { Efundecl(ide,
 		 { f_kind = k; f_atomic = a; f_args = fn; f_body = seq;
 		  f_loc = localise $startpos(fn) $endpos(seq) }) }
+  (* TODO : include refinement type matching here *)
+  | is_let a = is_atomic k = kind ide = ide fn = simple_pattern_list COLON 
+                         obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
+      { Erefinementfundecl(ide, { f_kind = k; f_atomic = a; f_args = fn; f_body = seq2;
+                                  f_loc = localise $startpos(fn) $endpos(fn)}, seq1 )}
   | is_let a = is_atomic k = kind ide = ide
 	  fn = simple_pattern_list EQUAL seq = seq_expression
           WHERE r = is_rec eqs = equation_list
@@ -904,6 +909,7 @@ simple_expression_desc:
       { Econst Evoid }
   | LPAREN e = expression_comma_list RPAREN
       { Etuple (List.rev e) }
+  (* adding support for refinement tuples*)
   | LPAREN e = seq_expression RPAREN
       { e.desc }
   | LPAREN e = simple_expression COLON t = type_expression RPAREN
@@ -931,6 +937,14 @@ expression_comma_list :
   | e1 = expression COMMA e2 = expression
       { [e2; e1] }
 ;
+
+(* refinement tuple definition *)
+// refinement_expression_comma_list:
+//   | ecl = refinement_expression_comma_list COMMA e = expression
+//       { e :: ecl}
+//   | e1 = expression COLON obj = ide LBRACE seq1 = seq_expression RBRACE COMMA e2 = expression COLON obj = ide LBRACE seq1 = seq_expression RBRACE
+//       { [Erefinement(); Erefinement()] }
+// ;
 
 expression:
   | x = localized(expression_desc)
@@ -963,6 +977,9 @@ expression_desc:
       { Eop(Einitial, []) }
   | UP e = expression
       { Eop(Eup, [e]) }
+  (* support for refinement types *)
+  | name_var = ide COLON basetype = ide LBRACE seq1 = seq_expression RBRACE 
+      { Erefinementtype(name_var, basetype, seq1) }
   (*added here*)
   | R_MOVE e = expression
       { Eop(Emove, [e])}

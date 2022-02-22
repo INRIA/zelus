@@ -1,10 +1,5 @@
-(* simulation (discrete) function *)
-let main =
-  let open Ztypes in
-  let Node { alloc = alloc; step = step; reset = reset } = Unit_test.main in
-  let mem = alloc () in
-  reset mem;
-  (fun x -> step mem x);;
+(* simulation (any) function *)
+let main x = Sandbox.main x;;
 (* (discrete) simulation loop *)
 while true do main () done;
 exit(0);;

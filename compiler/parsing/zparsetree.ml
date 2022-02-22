@@ -49,6 +49,7 @@ and type_expression_desc =
     | Etypefun of kind * string option * type_expression * type_expression
     | Etypefunrefinement of kind * string option * type_expression * type_expression * exp
     | Erefinement of type_expression * exp
+    (* | Erefinementtype of exp * exp * exp *)
 
 and size = size_desc localized
 
@@ -134,6 +135,7 @@ and desc =
   | Eautomaton of exp state_handler list * state_exp option
   | Ereset of exp * exp
   | Eblock of eq list block * exp 
+  | Erefinementtype of name * name * exp
 
 and is_rec = bool
 	       

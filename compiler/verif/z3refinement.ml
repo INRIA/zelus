@@ -487,17 +487,14 @@ and create_validation_check ctx env elem1 elem2 =
     elem1 -> argument used as input in function call
     elem2 -> argument used during function definition
 
-    return contraint to be check by z3
+    return specified input contrained to funciton argument variable
 *)
     Printf.printf "\n --- CHECK INPUT VALIDITY ---\n";
     let input_binding = Boolean.mk_eq ctx (expression ctx env elem1 None) elem2 in
-    let solver = (mk_solver ctx None) in
-    let c = (Boolean.mk_and ctx [ (input_binding);
-                                  (build_z3_premise ctx env);]) in
-    Printf.printf "Constraint built: %s\n" (Expr.to_string c);
-    c
+    (* Printf.printf "%s" (Expr.to_string input_binding); *)
+    input_binding
 
-and check_validity ctx checks =
+and check_validity ctx env checks =
 (*
     ctx -> z3 context
     constraints -> list of constraints to be satisfied by functions
@@ -507,27 +504,27 @@ and check_validity ctx checks =
     check if elem1 satisfies the conditions imposed by elem2
 *)
     Printf.printf "\n --- CHECK INPUT VALIDITY ---\n";
-    let solver = (mk_solver ctx None) in
-    let s = (Solver.add solver checks) in
-    let q = check solver [] in
-    (if q == SATISFIABLE then
-      (Printf.printf "Input is valid:\n";
-      (let m = (get_model solver) in    
-            match m with 
-            | None -> ()
-            | Some (m) -> 
-              (*Printf.printf "Model: \n%s\n" (Model.to_string m);*)
-              print_assignments m;
-        (*Printf.printf "Could not prove %s\n" (Expr.to_string input_binding);*)
-        ))
-    else
-      (Printf.printf "Input not checked\n";
-      raise (TestFailedException "")))
+    let arg_constraint = build_z3_premise ctx env in
+    z3_solve ctx checks arg_constraint
 
+and get_environment_constraints ctx local_env typenv arg =
+(* 
+  local_env -> environment 
+  arg       -> expression argument used during funciton call
+
+  Find constraints in the environment that are related to function input arguments
+*)
+  if (Hashtbl.mem local_env.var_env (Expr.to_string (expression ctx local_env arg typenv)) )
+    then (
+      Hashtbl.find local_env.var_env ( Expr.to_string (expression ctx local_env arg typenv))
+    ) else (
+      Boolean.mk_true ctx
+    )
 
 and prove_function ctx n local_env arg_list typenv =
-(* n        -> function name
-    arg_list -> list containing expression arguments
+(*  n        -> function name
+    arg_list -> list containing expression arguments used during function call
+
     
     Use function space to determine if argument list has expected type
     from function space
@@ -540,10 +537,15 @@ and prove_function ctx n local_env arg_list typenv =
       Printf.printf "TODO -- check if arguments obey constraints\n";
       print_function_temp n ref_fun;
       print_env local_env;
-      let constraint_env = ref { exp_env = ref ref_fun.argument_constraints; var_env = ref_fun.creation_env.var_env } in 
+      (* let expr_test = expression ctx local_env (List.hd arg_list) None in
+      Printf.printf "Arg_list[0]: %s\n" (Expr.to_string expr_test); *)
+      let constraint_env = ref { exp_env = ref ref_fun.argument_constraints ; var_env = ref_fun.creation_env.var_env } in 
       let arguments = List.map (fun elem -> create_z3_var ctx !constraint_env elem) ref_fun.argument_list in
       let checks = List.map2 (fun elem1 elem2 -> create_validation_check ctx !constraint_env elem1 elem2) arg_list arguments in
-      check_validity ctx checks;
+      (* let environment_constraints = List.map (get_environment_constraints ctx local_env typenv) arg_list in *)
+      (* print_env ({ exp_env = ref( checks @ environment_constraints); var_env = Hashtbl.create 0}); *)
+      let check_env = ref { exp_env = ref (checks @ !(local_env.exp_env)); var_env = Hashtbl.create 0} in
+      check_validity ctx !constraint_env check_env;
     ) 
     (* not a refinement function, so assume it is true*)
     else (
@@ -599,6 +601,7 @@ and operator ctx env typenv e e_list =
   | "!=" -> Boolean.mk_not ctx (Boolean.mk_eq ctx (expression ctx env (hd e_list) typenv) (expression ctx env (hd (tl e_list)) typenv))
   | "*." | "*" | "Stdlib.*." -> Arithmetic.mk_mul ctx [(expression ctx env (hd e_list) typenv); (expression ctx env (hd (tl e_list)) typenv)]
   | "+." | "+" | "Stdlib.+." -> Arithmetic.mk_add ctx [(expression ctx env (hd e_list) typenv); (expression ctx env (hd (tl e_list)) typenv)]
+  | "-." | "-" | "Stdlib.-." -> Arithmetic.mk_sub ctx [(expression ctx env (hd e_list) typenv); (expression ctx env (hd (tl e_list)) typenv)]
   | "&&" -> Boolean.mk_and ctx [(expression ctx env (hd e_list) typenv); (expression ctx env (hd (tl e_list)) typenv)]
   | "||" -> Boolean.mk_or ctx [(expression ctx env (hd e_list) typenv); (expression ctx env (hd (tl e_list)) typenv)]
   | s -> Printf.printf "Non-standard operator s : %s\n" (s); prove_function ctx s env e_list typenv

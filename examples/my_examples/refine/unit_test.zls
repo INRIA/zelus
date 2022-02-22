@@ -74,5 +74,5 @@ let node main () =
 	let z = snd (snd pair) in
 	print_string "First: "; print_int x; print_newline (); print_string "Second : "; print_int y; print_newline ();
 	print_string "Third : "; print_int z; print_newline () *)
-	print_int (*f (-1) 2 4*) (add (3) (2));
+	print_int (*f (-1) 2 4*) (add (4) (3));
 	(add 2 3)

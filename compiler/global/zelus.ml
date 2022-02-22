@@ -34,6 +34,7 @@ and type_expression_desc =
   | Etypefun of kind * Zident.t option * type_expression * type_expression
   | Etypefunrefinement of kind * Zident.t option * type_expression * type_expression * exp
   | Erefinement of type_expression * exp
+  (* | Erefinementtype of exp * exp * exp *)
 
 and size = size_desc localized
 
@@ -121,6 +122,7 @@ and desc =
   | Eperiod of exp period
   (*added here*)
   | Eassume of exp
+  | Erefinementtype of name * name * exp
   (*added here
   | Emove of exp*)
   | Estore of string * float (*custom keyword*)
