@@ -54,11 +54,13 @@ let z = g a b *)
 
 (* let h = g z a *)
 
-let discrete g (x:int{x*x = 1},y:int{y*y = 1}) : int{g_result * g_result = 1} = x * y
+(* let discrete g (x:int{x*x = 1},y:int{y*y = 1}) : int{g_result * g_result = 1} = x * y *)
 
-let discrete h a b = 
+let discrete g ( x,y : int{x*x = 1} * int{y*y = 1}) : int{g_return * g_return = 1} = x * y
+
+(* let discrete h a b = 
 	let z = g (a, b) in
-	g (z, a) 
+	g (z, a)  *)
 
 (* let discrete g x y = if x < 0 then -x else y
 
