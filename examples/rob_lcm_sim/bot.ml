@@ -2,9 +2,7 @@
   (2022-02-21-6:15) *)
 open Ztypes
 open Sys;;
-(catch_break true)
-
-
+catch_break true
    external robot_get: string -> float = "robot_get_cpp" 
 
    external robot_str_ml: string -> float -> unit = "robot_str_cpp" 
@@ -13,19 +11,18 @@ open Sys;;
  
    external lcm_stop: unit -> unit = "LCM_stop" 
 
-  
- let () = ignore(lcm_start())
- let cleanup () = 
-   print_string "Interrupted";
-   print_newline ();
-   lcm_stop ();;   
- let tryp () = 
-   try
-     print_string "trying";
-     (*(ignore (lcm_start ()));*)
-     ignore (input_line stdin);
-     print_string "here";
-   with Break -> cleanup ();;   
+  let () = ignore(lcm_start())
+  let cleanup () = 
+    print_string "Interrupted";
+    print_newline ();
+    lcm_stop ();;   
+  let tryp () = 
+    try
+      print_string "trying";
+      (*(ignore (lcm_start ()));*)
+      ignore (input_line stdin);
+      print_string "here";
+    with Break -> cleanup ();; 
 let pi = 3.1416
 
 let x_last = 0.
@@ -165,7 +162,8 @@ type ('h , 'g , 'f , 'e , 'd , 'c , 'b , 'a) _main =
     mutable i_106 : 'e ;
     mutable h_104 : 'd ;
     mutable i_113 : 'c ; mutable m_111 : 'b ; mutable m_109 : 'a }
-let main (cstate_123:Ztypes.cstate) =   
+
+let main (cstate_123:Ztypes.cstate) = 
   tryp ();
   let Node { alloc = i_116_alloc; step = i_116_step ; reset = i_116_reset } = exec 
   cstate_123 in
@@ -217,5 +215,4 @@ let main (cstate_123:Ztypes.cstate) =
   let main_reset self  =
     ((self.i_106 <- true ; i_116_reset self.i_116  ; self.i_113 <- true):
     unit) in
-  Node { alloc = main_alloc; step = main_step ; reset = main_reset } 
-  
+  Node { alloc = main_alloc; step = main_step ; reset = main_reset }
