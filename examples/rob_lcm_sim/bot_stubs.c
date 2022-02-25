@@ -63,6 +63,7 @@ robot_get_cpp(value var)
 
 CAMLprim value
 robot_str_cpp(value cmd,value mag){
+    printf("robot store is called\n");
     //insert_to_table(String_val(cmd), Double_val(mag));//Store the variable to the local hash table (it can also be an update to an existing variable)
     lcm_t * lcm2 = lcm_create(NULL);
     robot_store_t my_cmd;
