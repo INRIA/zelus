@@ -279,6 +279,8 @@ let rec exp is_continuous env ({ e_desc = desc; e_typ = ty } as e) =
           | Not_found -> Init.skeleton_on_i ione ty end
     | Etuple(e_list) -> 
         product (List.map (exp is_continuous env) e_list)
+    | Erefinementtuple(e_list, _, _) -> 
+          product (List.map (exp is_continuous env) e_list)
     | Econstr1(_, e_list) ->
         let i = Init.new_var () in
         List.iter (fun e -> exp_less_than_on_i is_continuous env e i) e_list;

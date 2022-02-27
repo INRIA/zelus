@@ -194,6 +194,7 @@ let rec types env ty =
   let desc = match ty.desc with
     | Etypevar(n) -> Zelus.Etypevar(n)
     | Etypetuple(ty_list) -> Zelus.Etypetuple(List.map (types env) ty_list)
+    | Erefinementpair(n, t) -> Zelus.Erefinementpair(n , types env t)
     | Etypeconstr(lname, ty_list) ->
        Zelus.Etypeconstr(longname lname, List.map (types env) ty_list)
     | Erefinement(bty, e_list) ->
@@ -246,6 +247,8 @@ and expression_types env { desc = desc; loc = loc } =
     | Evar(lname) -> Zaux.global (longname lname)
     | Elast(n) -> Zelus.Elast(name loc env n)
     | Etuple(e_list) -> Zelus.Etuple(List.map (expression_types env) e_list)
+    | Erefinementtuple(e_list, tuple_type, e) -> 
+        Zelus.Erefinementtuple(List.map (expression_types env) e_list, types env tuple_type, expression_types env e)
     | Econstr1(lname, e_list) ->
         Zelus.Econstr1(longname lname, List.map (expression_types env) e_list)
     | Eop(op, e_list) ->
@@ -613,6 +616,8 @@ let rec expression env { desc = desc; loc = loc } =
     | Evar(lname) -> Zaux.global (longname lname)
     | Elast(n) -> Zelus.Elast(name loc env n)
     | Etuple(e_list) -> Zelus.Etuple(List.map (expression env) e_list)
+    | Erefinementtuple(e_list, tuple_type, e) -> 
+      Zelus.Erefinementtuple(List.map (expression_types env) e_list, types env tuple_type, expression_types env e)
     | Econstr1(lname, e_list) ->
         Zelus.Econstr1(longname lname, List.map (expression env) e_list)
     | Eop(op, e_list) ->

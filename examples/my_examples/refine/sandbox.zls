@@ -56,9 +56,16 @@ let z = g a b *)
 
 (* let discrete g (x:int{x*x = 1},y:int{y*y = 1}) : int{g_result * g_result = 1} = x * y *)
 
-let discrete g ( x,y : int{x*x = 1} * int{y*y = 1}) : int{g_return * g_return = 1} = x * y
+(* let my_pair = ( 4 , 5 ) : x:int * y:int | x < y *)
 
-(* let discrete h a b = 
+let my_3pair = (5 , (5 + 3, (5 + 4, 5 + 5))) : x:int * (y:int * (z:int * w:int)) | x < y && y < z && z < w
+
+(* let my_pair3 : int * (int * int) = (4, (5, 6)) *)
+
+(* let discrete g ( x, (y, w) : int{ x * x = 1} * (int{y * y = 1} * int{w * w = 1})) : int{g_return * g_return = 1} = x * y * w *)
+
+(*
+let discrete h a b = 
 	let z = g (a, b) in
 	g (z, a)  *)
 
@@ -77,6 +84,7 @@ let discrete h a b =
 
 let discrete pos x = (x > 0) *)
 
+(* let add x = x + 1 *)
 
 let fun main () = ()
 	(* let pair = (1, (2, 3)) in
@@ -90,3 +98,5 @@ let fun main () = ()
 	let b = -1 in
 	(* let z = g a b in *)
 	h (a,b) *)
+	(* let x = 1 in
+	let y =  x fby add  *)

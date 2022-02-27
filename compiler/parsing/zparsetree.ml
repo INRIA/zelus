@@ -49,6 +49,7 @@ and type_expression_desc =
     | Etypefun of kind * string option * type_expression * type_expression
     | Etypefunrefinement of kind * string option * type_expression * type_expression * exp
     | Erefinement of type_expression * exp
+    | Erefinementpair of name * type_expression
     (* | Erefinementtype of exp * exp * exp *)
 
 and size = size_desc localized
@@ -117,6 +118,7 @@ and desc =
   | Eapp of app * exp * exp list
   | Eop of op * exp list
   | Etuple of exp list
+  | Erefinementtuple of exp list * type_expression * exp
   | Erecord_access of exp * longname
   | Erecord of (longname * exp) list
   | Erecord_with of exp * (longname * exp) list

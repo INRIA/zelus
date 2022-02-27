@@ -164,6 +164,10 @@ let rec expression venv renaming fun_defs ({ e_desc = desc } as e) =
       let e_list, fun_defs =
         Zmisc.map_fold (expression venv renaming) fun_defs e_list in
      { e with e_desc = Etuple(e_list) }, fun_defs
+  | Erefinementtuple(e_list, _,_) ->
+      let e_list, fun_defs =
+        Zmisc.map_fold (expression venv renaming) fun_defs e_list in
+     { e with e_desc = Etuple(e_list) }, fun_defs
   | Econstr1(c, e_list) ->
       let e_list, fun_defs =
         Zmisc.map_fold (expression venv renaming) fun_defs e_list in

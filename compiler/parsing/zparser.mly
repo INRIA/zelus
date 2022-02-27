@@ -912,6 +912,9 @@ simple_expression_desc:
       { Printf.printf "Desc void\n"; Econst Evoid }
   | LPAREN e = expression_comma_list RPAREN
       { Printf.printf "Desc Tuple\n"; Etuple (List.rev e) }
+  (* refinement tuples *)
+  | LPAREN e = expression_comma_list RPAREN COLON tl = type_star_list BAR e_ref = seq_expression 
+      { Printf.printf "Desc Refinement Tuple\n"; Erefinementtuple (List.rev e, make(Etypetuple(List.rev tl)) $startpos $endpos, e_ref) }
   | LPAREN e = seq_expression RPAREN
       { Printf.printf "Desc seq expression\n"; e.desc }
   | LPAREN e = simple_expression COLON t = type_expression RPAREN
@@ -1212,6 +1215,9 @@ simple_type:
   (*simple refinement type*)
   | basetype = simple_type LBRACE seq = seq_expression RBRACE 
       { Printf.printf "type refinement simple type\n"; make(Erefinement(basetype, seq)) $startpos $endpos}
+  (* refinement type specification for pairs *)
+  | binding_var = ide COLON basetype = simple_type
+      { Printf.printf "type refinement pair\n"; make(Erefinementpair(binding_var, basetype)) $startpos $endpos}
   | LPAREN t = type_expression COMMA tl = type_comma_list RPAREN i = ext_ident
       { Printf.printf "type expression list\n"; make (Etypeconstr(i, t :: tl)) $startpos $endpos }
   | t_arg = simple_type LBRACKET s = size_expression RBRACKET

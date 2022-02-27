@@ -635,6 +635,8 @@ let rec expression expected_k h ({ e_desc = desc; e_loc = loc } as e) =
     | Elast(x) -> last loc h x
     | Etuple(e_list) ->
         product (List.map (expression expected_k h) e_list)
+    | Erefinementtuple(e_list, _ , _) ->
+        product (List.map (expression expected_k h) e_list)
     | Eop(Eaccess, [e1; e2]) ->
         (* Special typing for [e1.(e2)]. [e1] must be of type [ty[size]]  *)
         (* with [size] a known expression at that point *)
