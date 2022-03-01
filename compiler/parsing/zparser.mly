@@ -915,6 +915,9 @@ simple_expression_desc:
   (* refinement tuples *)
   | LPAREN e = expression_comma_list RPAREN COLON tl = type_star_list BAR e_ref = seq_expression 
       { Printf.printf "Desc Refinement Tuple\n"; Erefinementtuple (List.rev e, make(Etypetuple(List.rev tl)) $startpos $endpos, e_ref) }
+  (* refinement pair function argument*)
+//   | LPAREN e = expression_comma_list COLON tl = type_star_list BAR e_ref = seq_expression RPAREN
+//       { Printf.printf "Desc Refinement Pair\n"; Erefinementfunpair( List.rev e, make(Etypetuple(List.rev tl)) $startpos $endpos, e_ref) }
   | LPAREN e = seq_expression RPAREN
       { Printf.printf "Desc seq expression\n"; e.desc }
   | LPAREN e = simple_expression COLON t = type_expression RPAREN
@@ -1192,6 +1195,9 @@ type_expression:
       { t }
   | tl = type_star_list
       { Printf.printf "type star list\n"; make(Etypetuple(List.rev tl)) $startpos $endpos}
+  (* functions with refinement pairs *)
+  | tl = type_star_list BAR e = seq_expression
+      { Printf.printf " function with refinement pair\n"; make(Erefinementpairfuntype(List.rev tl, e)) $startpos $endpos}
   | t_arg = type_expression a = arrow t_res = type_expression
       { Printf.printf "type exp -> type exp\n"; make(Etypefun(a, None, t_arg, t_res)) $startpos $endpos}
   | LPAREN id = IDENT COLON t_arg = type_expression RPAREN

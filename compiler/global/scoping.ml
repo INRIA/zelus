@@ -195,6 +195,7 @@ let rec types env ty =
     | Etypevar(n) -> Zelus.Etypevar(n)
     | Etypetuple(ty_list) -> Zelus.Etypetuple(List.map (types env) ty_list)
     | Erefinementpair(n, t) -> Zelus.Erefinementpair(n , types env t)
+    | Erefinementpairfuntype(ty_list, e) -> Zelus.Erefinementpairfuntype(List.map (types env) ty_list, expression_types env e)
     | Etypeconstr(lname, ty_list) ->
        Zelus.Etypeconstr(longname lname, List.map (types env) ty_list)
     | Erefinement(bty, e_list) ->

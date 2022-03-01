@@ -48,6 +48,7 @@ and type_expression_desc =
     | Etypevec of type_expression * size
     | Etypefun of kind * string option * type_expression * type_expression
     | Etypefunrefinement of kind * string option * type_expression * type_expression * exp
+    | Erefinementpairfuntype of type_expression list * exp
     | Erefinement of type_expression * exp
     | Erefinementpair of name * type_expression
     (* | Erefinementtype of exp * exp * exp *)
@@ -119,6 +120,7 @@ and desc =
   | Eop of op * exp list
   | Etuple of exp list
   | Erefinementtuple of exp list * type_expression * exp
+  | Erefinementfunpair of exp list * type_expression * exp
   | Erecord_access of exp * longname
   | Erecord of (longname * exp) list
   | Erecord_with of exp * (longname * exp) list

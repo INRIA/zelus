@@ -770,9 +770,29 @@ and expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
     | Eop (_, _) -> Printf.printf "Eop\n";Integer.mk_numeral_s ctx "42"
     (* used to type check pairs *)
     | Etuple (e_list) -> Printf.printf "Etuple : \n"; 
-    let exp_list_temp = List.map (fun e -> Expr.to_string(expression ctx env e typenv)) e_list in
-    Printf.printf "Pair : [ ";
-    List.iter (fun s -> Printf.printf "%s " s) exp_list_temp; Printf.printf "]\n"; Integer.mk_numeral_s ctx "42"
+    let exp_list_temp = List.map (fun e -> expression ctx env e typenv) e_list in
+    let mk_tuple = Symbol.mk_string ctx "mk_tuple" in
+    let field_name = [ Symbol.mk_string ctx "fst"; Symbol.mk_string ctx "snd"] in
+    let field_sort = [ Integer.mk_sort ctx; Integer.mk_sort ctx] in
+    let my_tuple = Tuple.mk_sort ctx mk_tuple field_name field_sort in
+    Printf.printf "My tuple: %s\n" (Sort.to_string my_tuple);
+    let f = (Expr.mk_const ctx (Symbol.mk_string ctx "f") (Integer.mk_sort ctx))  in 
+    let s = (Expr.mk_const ctx (Symbol.mk_string ctx "s") (Integer.mk_sort ctx)) in
+    (* create tuple declaration and retrieve fields (fst, snd) *)
+    let tuple_decl = Tuple.get_mk_decl my_tuple in
+    let my_fields = Tuple.get_field_decls my_tuple in
+    (* apply functions to get fst and snd elements*)
+    let app1 = FuncDecl.apply (tuple_decl) [f; s] in
+    let app2 = FuncDecl.apply (List.hd my_fields) [app1] in
+    let app3 = FuncDecl.apply (List.hd (List.tl my_fields)) [app1] in
+    (* equate functions to return expressions*)
+    let exp1 = Boolean.mk_eq ctx app2 (List.hd exp_list_temp) in
+    let exp2 = Boolean.mk_eq ctx app3 (List.hd (List.tl exp_list_temp)) in
+    Printf.printf "Expression 1: %s\n" (Expr.to_string exp1);
+    Printf.printf "Expression 2: %s\n" (Expr.to_string exp2);
+    (* Printf.printf "Pair : [ "; *)
+    (* List.iter (fun s -> Printf.printf "%s " (Expr.to_string s)) exp_list_temp; Printf.printf "]\n"; Integer.mk_numeral_s ctx "42" *)
+    Integer.mk_numeral_s ctx "42"
     (* refinement tuples *)
     | Erefinementtuple(e_list, tuple_type, e) -> Printf.printf "Erefinementtuple : \n";
      (*  5 , 5 + 3)
@@ -949,8 +969,21 @@ and get_return_type ctx env ({ e_desc = desc; e_loc = loc }) typenv =
         body_exp
     | _ -> Printf.printf "Not a function return type."; Integer.mk_numeral_s ctx "42"
 
-and build_return_var ctx env n =
-      create_z3_var ctx env (Printf.sprintf "%s_return" n)
+and build_input_var ctx env e typenv istuple =
+      if not istuple then (
+        [(expression ctx env e typenv)]
+      ) else (
+        match e.e_desc with 
+        | Etuple(e_list) ->
+          [(expression ctx env (List.hd e_list) typenv) ; (expression ctx env (List.hd (List.tl e_list)) typenv) ]
+      )
+
+and build_return_var ctx env n istuple =
+      if not istuple then (
+      [create_z3_var ctx env (Printf.sprintf "%s_return" n)]
+      ) else (
+      [create_z3_var ctx env (Printf.sprintf "%s_fst" n); create_z3_var ctx env (Printf.sprintf "%s_snd" n) ]
+      )
 
 and qualident t =
 (*
@@ -962,7 +995,25 @@ and qualident t =
     | Lident.Name(n) -> Printf.printf "%s \n" n
     | Lident.Modname({ Lident.qual = m; Lident.id = s }) -> Printf.printf "%s.%s \n" m s
 
-and add_tuple_list_to_type_env ctx pat_list typ_exp typenv =
+and print_type_element typ_elem =
+      Printf.printf "TYPE ELEMENT : \n";
+    match typ_elem.desc with
+    | Etypevar(n) -> Printf.printf "Etypevar %s" n
+    | Etypeconstr(basetype, t_exp_list) -> Printf.printf "Etypeconstr pairs\n"; 
+                                      (
+                                        match basetype with 
+                                        | Name(btype) -> Printf.printf "Basetype found %s\n" btype
+                                        | Modname(q) -> Printf.printf "Modname found %s\n" q.id
+                                      ) 
+    | Etypetuple(t_exp_list) -> Printf.printf "Etypetuple\n"; List.iter (print_type_element) t_exp_list
+    | Etypevec(t_exp, sz) -> Printf.printf "Etypevec \n"; print_type_element t_exp
+    | Etypefun(k, name, t_exp, t_exp2) -> Printf.printf "TODO -- print ETYPEFUN"
+    | Etypefunrefinement(k, name, typ_exp, typ_exp2, e) -> Printf.printf "TODO -- print ETYPEFUNREFINEMENT"
+    | Erefinementpairfuntype(t_exp_list, e) -> Printf.printf "Erefinementpairfuntype\n"; List.iter (fun elem -> print_type_element elem; Printf.printf "elem end\n\n") t_exp_list
+    | Erefinement(t_exp, e) -> Printf.printf "Erefinement\n"; print_type_element t_exp
+    | Erefinementpair(n, type_expression) -> Printf.printf "Erefinementpair\n"; print_type_element type_expression
+
+and add_tuple_list_to_type_env ctx env pat_list typ_exp typenv =
 (*
       ctx      -> Z3 context
       txp_list -> list of tuple elements
@@ -994,11 +1045,17 @@ and add_tuple_list_to_type_env ctx pat_list typ_exp typenv =
             | Etypevec(typ_exp, sz) -> Printf.printf "Etypevec\n"
             | Etypefun(k, t, typ_exp1, typ_exp2) -> Printf.printf "Etypefun\n"
             | Etypefunrefinement(k, t, typ_exp1, typ_exp2, e) -> Printf.printf "Etypefunrefinement\n"
+            | Erefinementpairfuntype(t_exp_list, e) -> Printf.printf "Erefinementpairfuntype\n";
+                     Printf.printf "Element: %s\n" n.source;
+                     let pair_expression = expression ctx env e typenv in
+                     (add_constraint env pair_expression;
+                     Printf.printf "Adding expression: %s\n" (Expr.to_string pair_expression))
+            | Erefinementpair(n, t_exp) -> Printf.printf "Erefinementpair\n"
             | _ -> Printf.printf "Unspecified type constraint match\n")
           | Econstpat(i) -> Printf.printf "Econstpat\n"
           | Econstr0pat(t) -> Printf.printf "Econstr0pat\n"
           | Econstr1pat(t, pat_list) -> Printf.printf "Econstr1pat\n"
-          | Etuplepat(pat_list) -> Printf.printf "Etyplepat\n"
+          | Etuplepat(pat_list) -> Printf.printf "Etuplepat\n"
           | Ealiaspat(pat, t) -> Printf.printf "Ealiaspat\n"
           | Eorpat(pat1, pat2) -> Printf.printf "Eorpat\n"
           | Erecordpat(l_p_list) -> Printf.printf "Erecordpat\n"
@@ -1026,6 +1083,8 @@ and type_exp_desc ctx env typenv t =
        let expr = (expression ctx env e typenv) in
        (add_constraint env expr;
        Printf.printf "Returning from e local: %s\n" (Expr.to_string expr))
+  | Erefinementpairfuntype(txp_list, exp) -> Printf.printf "Erefinementfunpair \n"
+       (* List.iter (fun elem ->         ) txp_list *)
 
 and pattern ctx env typenv pat = 
 (*
@@ -1053,16 +1112,26 @@ and pattern ctx env typenv pat =
           (*(pattern ctx env pat); *)
           (match typ_exp.desc with
           | Erefinement(t, e) -> Printf.printf "Adding to table: %s\n" n.source; 
-            match typenv with
-            | Some(tbl) -> Hashtbl.add tbl n.source (match t.desc with 
-            (* Find and then add base type to local typing environment *)
-            | Etypeconstr(l,_) -> (match l with
-                | Name(s) -> s
-                | Modname(q) -> q.id)
-            | _ -> "Unspecified typenv match\n")
-            | None -> ()
+            (
+              match typenv with
+                | Some(tbl) -> Hashtbl.add tbl n.source (match t.desc with 
+                (* Find and then add base type to local typing environment *)
+                | Etypeconstr(l,_) -> (match l with
+                    | Name(s) -> s
+                    | Modname(q) -> q.id)
+                | _ -> "Unspecified typenv match\n")
+                | None -> ()
+            )
+          | Erefinementpairfuntype(t_exp_list, e) -> Printf.printf "Erefinementpairfuntype\n"
+          | Erefinementpair(n, t_exp) -> Printf.printf "Erefinementpair\n"
+          | Etypevar(n) -> Printf.printf "Etypevar \n"
+          | Etypeconstr(name, t_exp_list) -> Printf.printf "Etypeconstr \n"
+          | Etypetuple(t_exp_list) -> Printf.printf "Etypetuple \n"
+          | Etypevec(t_exp, sz) -> Printf.printf "Etypevec \n"
+          | Etypefun(k, n, t_exp, t_exp2) -> Printf.printf "Etypefun \n"
+          | Etypefunrefinement(k, n, t_exp, t_exp2, e) -> Printf.printf "Etypefunrefinement \n"
           | _ -> Printf.printf "Unspecified type constraint match\n")
-        | Etuplepat(pat_list) -> Printf.printf "Etypetupl match: \n"; add_tuple_list_to_type_env ctx pat_list typ_exp typenv
+        | Etuplepat(pat_list) -> Printf.printf "Etypetuple match: \n"; add_tuple_list_to_type_env ctx env pat_list typ_exp typenv
         | _ -> Printf.printf "Unspecified pat.p_desc match\n");   
         (type_exp_desc ctx env (typenv) typ_exp)
 
@@ -1138,6 +1207,10 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
           let argc = (List.length p_list) in 
           let typenv = Hashtbl.create argc in
           let local_env = ref { exp_env = ref []; var_env = Hashtbl.create 0} in
+          let istuple = (match e.e_desc with
+                          | Etuple(_) -> true
+                          | _ -> false
+                        ) in
           (* add function input constraints to local environment *)
           (List.iter (pattern ctx !local_env (Some typenv)) p_list);
           Hashtbl.iter (fun a b -> (Printf.printf "%s:%s;" a b)) typenv;
@@ -1181,19 +1254,22 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
 
           (* treat function body as a program and prove conditions*)
           (* input_var is the last variable returned by the function *)
-          let input_var = (expression ctx !local_env e (Some typenv)) in
-          Printf.printf "Function body expression handling: %s\n" (Expr.to_string input_var);
+          (* let input_var = (expression ctx !local_env e (Some typenv)) in *)
+          let input_var = build_input_var ctx !local_env e (Some typenv) istuple in
+          List.iter (fun input_elem -> Printf.printf "Function body expression handling: %s\n" (Expr.to_string input_elem)) input_var;
           print_env !local_env;
           
           
           (*let return_var = (get_return_type ctx local_env rettype (Some typenv)) in*)
-          let return_var = build_return_var ctx !local_env n in 
-          Printf.printf "Return var: %s\n" (Expr.to_string return_var);
+          let return_var = build_return_var ctx !local_env n istuple in 
+          List.iter (fun return_elem -> Printf.printf "Return var: %s\n" (Expr.to_string return_elem)) return_var;
           (*let input_var = (get_return_type ctx local_env e (Some typenv)) in
           Printf.printf "Return var in: %s\n" (Expr.to_string input_var);*)
-          let ret_constraint = (Boolean.mk_eq ctx return_var input_var) in
-          Printf.printf "return definition: %s\n" (Expr.to_string ret_constraint);
-          add_constraint !local_env ret_constraint;
+          (* let ret_constraint = (Boolean.mk_eq ctx return_var input_var) in *)
+          let ret_constraint = List.map2 (fun input_elem return_elem -> Boolean.mk_eq ctx return_elem input_elem) input_var return_var in
+          List.iter (fun ret_elem -> Printf.printf "return definition: %s\n" (Expr.to_string ret_elem); 
+                     add_constraint !local_env ret_elem) ret_constraint;
+          (* add_constraint !local_env ret_constraint; *)
           print_env !local_env;
           Printf.printf "Prove constraint: %s\n" (Expr.to_string return_exp);
           
