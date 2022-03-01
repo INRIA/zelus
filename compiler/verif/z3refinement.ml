@@ -100,6 +100,30 @@ let add_function name f_add =
 *)
   Hashtbl.add (!function_space) name f_add 
 
+type stream_desc =
+(*
+    Stream object definitions
+*)
+{
+  initialization_var:   expr;
+  application_function: string;
+  return_exp : expr;
+  refinement_exp : expr list;
+}
+let stream_space =
+(* Hash table to store streams given a stream name*)
+  let stream_table : ((string, stream_desc) Hashtbl.t) = (Hashtbl.create 1)
+in ref stream_table
+
+let add_stream name stream_add =
+(*
+    name -> stream name
+    stream_add -> stream desc object
+
+    Add a new stream to stream space
+*)
+  Hashtbl.add (!stream_space) name stream_add
+
 (**
 (*Define refinement type pattern*)
 type z3op =
@@ -529,32 +553,37 @@ and prove_function ctx n local_env arg_list typenv =
     Use function space to determine if argument list has expected type
     from function space
 *)
-  if (Hashtbl.mem !function_space n) 
-    (* refinement function, make sure input list obeys constraints
-        *)
-    then (
-      let ref_fun = Hashtbl.find !function_space n in
-      Printf.printf "TODO -- check if arguments obey constraints\n";
-      print_function_temp n ref_fun;
-      print_env local_env;
-      (* let expr_test = expression ctx local_env (List.hd arg_list) None in
-      Printf.printf "Arg_list[0]: %s\n" (Expr.to_string expr_test); *)
-      let constraint_env = ref { exp_env = ref ref_fun.argument_constraints ; var_env = ref_fun.creation_env.var_env } in 
-      let arguments = List.map (fun elem -> create_z3_var ctx !constraint_env elem) ref_fun.argument_list in
-      let checks = List.map2 (fun elem1 elem2 -> create_validation_check ctx !constraint_env elem1 elem2) arg_list arguments in
-      (* let environment_constraints = List.map (get_environment_constraints ctx local_env typenv) arg_list in *)
-      (* print_env ({ exp_env = ref( checks @ environment_constraints); var_env = Hashtbl.create 0}); *)
-      let check_env = ref { exp_env = ref (checks @ !(local_env.exp_env)); var_env = Hashtbl.create 0} in
-      check_validity ctx !constraint_env check_env;
-    ) 
-    (* not a refinement function, so assume it is true*)
-    else (
-      Printf.printf "Function %s not defined, assuming it is true\n" n;
-      (* check if argument have other function calls*)
-      ignore(List.iter (fun e_elem -> ignore(expression ctx local_env e_elem typenv)) arg_list);
-    );
-    (* dummy value since we don't need to handle non-refined expressions*)
-    (* Figure out how to better ignore those expressions *)
+    (* if (Hashtbl.mem !stream_space n) then ()
+    (* if it is a stream *)
+
+    else ( *)(
+      if (Hashtbl.mem !function_space n) 
+        (* refinement function, make sure input list obeys constraints
+            *)
+        then (
+          let ref_fun = Hashtbl.find !function_space n in
+          Printf.printf "TODO -- check if arguments obey constraints\n";
+          print_function_temp n ref_fun;
+          print_env local_env;
+          (* let expr_test = expression ctx local_env (List.hd arg_list) None in
+          Printf.printf "Arg_list[0]: %s\n" (Expr.to_string expr_test); *)
+          let constraint_env = ref { exp_env = ref ref_fun.argument_constraints ; var_env = ref_fun.creation_env.var_env } in 
+          let arguments = List.map (fun elem -> create_z3_var ctx !constraint_env elem) ref_fun.argument_list in
+          let checks = List.map2 (fun elem1 elem2 -> create_validation_check ctx !constraint_env elem1 elem2) arg_list arguments in
+          (* let environment_constraints = List.map (get_environment_constraints ctx local_env typenv) arg_list in *)
+          (* print_env ({ exp_env = ref( checks @ environment_constraints); var_env = Hashtbl.create 0}); *)
+          let check_env = ref { exp_env = ref (checks @ !(local_env.exp_env)); var_env = Hashtbl.create 0} in
+          check_validity ctx !constraint_env check_env;
+        ) 
+        (* not a refinement function, so assume it is true*)
+        else (
+          Printf.printf "Function %s not defined, assuming it is true\n" n;
+          (* check if argument have other function calls*)
+          ignore(List.iter (fun e_elem -> ignore(expression ctx local_env e_elem typenv)) arg_list);
+        );
+        (* dummy value since we don't need to handle non-refined expressions*)
+        (* Figure out how to better ignore those expressions *)
+      );
     Integer.mk_numeral_s ctx "42"
 
 
@@ -715,6 +744,36 @@ and operator_expression_to_string ({ e_desc = desc; e_loc = loc}) =
         | Modname(qualid) -> Printf.printf "Modname: %s\n" qualid.id; qualid.id) 
       | _ -> Printf.printf "undefined behavior\n"; "undefined"
 
+and operation ctx env typenv op e_list =
+(*
+    ctx -> z3 context
+    env -> expression environment
+    typenv -> typing environment
+    op -> operation definition
+    e_list -> list of operands
+
+    Currently used to type check streams
+*)
+    match op, e_list with
+    | Eunarypre, [e] -> Printf.printf "Eunarypre\n" 
+    | Efby, [e1;e2] -> Printf.printf "Efby\n"
+    | Eminusgreater, [e1;e2] -> Printf.printf "Eminusgreater (->)\n";
+    (* e1 -> base case of stream*)
+    (* e2 -> induction hypothesis of stream*)
+    (* let new_stream = {initialization_var: e1; application_function: e2} in *)
+    (* add_stream  *)
+    | Eifthenelse, [e1; e2; e3] -> Printf.printf "Eifthenelse\n"
+    | Eup, [e] -> Printf.printf "Eup\n"
+    | Einitial, [] -> Printf.printf "Einitial\n"
+    | (Etest | Edisc | Ehorizon), [e] -> Printf.printf "Etest | Edisc |Ehorizon\n"
+    | Eaccess, [e1; e2] -> Printf.printf "Eaccess\n"
+    | Eupdate, [e1; i; e2] -> Printf.printf "Eupdate\n"
+    | Eslice _, [e] -> Printf.printf "Eslice\n"
+    | Econcat, [e1; e2] -> Printf.printf "Econcat\n"
+    | Eatomic, [e] -> Printf.printf "Eatomic\n"
+    | _ -> Printf.printf "Operation undefined\n"
+    
+
 and expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
 (*
         ctx    -> z3 context
@@ -753,6 +812,7 @@ and expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
         Printf.printf (Expr.to_string local_exp);
         Printf.printf "Body:\n";*)
         let body_exp = expression ctx env e typenv in
+        Printf.printf "Body exp :%s \n" (Expr.to_string body_exp);
         (List.iter (equation ctx env typenv) l.l_eq);
         print_env env;
         body_exp
@@ -767,7 +827,7 @@ and expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
     | Econstr0 _ -> Printf.printf "Econstr0\n"; Integer.mk_numeral_s ctx "42"
     | Econstr1 (_, _) -> Printf.printf "Econstr1\n";Integer.mk_numeral_s ctx "42"
     | Elast _ -> Printf.printf "Elast\n";Integer.mk_numeral_s ctx "42"
-    | Eop (_, _) -> Printf.printf "Eop\n";Integer.mk_numeral_s ctx "42"
+    | Eop ( op, e_list) -> Printf.printf "Eop\n"; operation ctx env typenv op e_list; Integer.mk_numeral_s ctx "42"
     (* used to type check pairs *)
     | Etuple (e_list) -> Printf.printf "Etuple : \n"; 
     let exp_list_temp = List.map (fun e -> expression ctx env e typenv) e_list in
@@ -1211,6 +1271,21 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
                           | Etuple(_) -> true
                           | _ -> false
                         ) in
+          let isstream = (match e.e_desc with
+                          | Elet(l, e) -> Printf.printf "Stream elet\n"; (match (List.hd l.l_eq).eq_desc with 
+                            | EQeq(p, e) -> ( match e.e_desc with
+                                | Eop(op, e_list) -> Printf.printf "Stream eop\n"; (
+                                  match op, e_list with
+                                  | Eminusgreater, [e1;e2] -> Printf.printf "Stream eminusgreater\n"; true
+                                  | _ -> Printf.printf "Stream eminusgreater false\n"; false
+                                  )  
+                                | _ -> Printf.printf "Stream eop false\n"; false   
+                            )
+                            | _ -> Printf.printf "Stream eqeq false\n"; false 
+                            )    
+                          | _ -> Printf.printf "Stream elet false\n"; false     
+                          ) in
+          if not isstream then (            
           (* add function input constraints to local environment *)
           (List.iter (pattern ctx !local_env (Some typenv)) p_list);
           Hashtbl.iter (fun a b -> (Printf.printf "%s:%s;" a b)) typenv;
@@ -1291,6 +1366,73 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
           (* TODO: make verif. conditions for function here *)
 
           (* TODO: define functions inside function*)
+          ) else (
+            (* Function is a stream *)
+            (* add function input constraints to local environment *)
+            Printf.printf "--STREAM--\n";
+            (List.iter (pattern ctx !local_env (Some typenv)) p_list);
+            Hashtbl.iter (fun a b -> (Printf.printf "%s:%s;" a b)) typenv;
+
+            (* create function constraint to be proven *)
+            let return_var = build_return_var ctx !local_env n istuple in 
+            let return_exp = (expression ctx !local_env rettype (Some typenv)) in
+            (Printf.printf "Return type expression: %s\n" (Expr.to_string return_exp));
+            let function_argument_constraints = !(!local_env.exp_env) in
+            let function_variable_type_map = typenv in
+            let function_argument_list = List.rev (get_argument_list( typenv )) in
+            let f_new = { argument_constraints = function_argument_constraints;
+                          variable_maps = function_variable_type_map;
+                          argument_list = function_argument_list; 
+                          creation_env = !local_env; } in
+            add_function n f_new;
+            Printf.printf "Printing function environment...\n";
+            print_function_environment ();
+            print_env !local_env;
+            (* stream typing rule*)
+            let base_exp = match e.e_desc with
+                          | Elet(l, e) -> (match (List.hd l.l_eq).eq_desc with 
+                            | EQeq(p, e) -> ( match e.e_desc with
+                                | Eop(op, e_list) -> (
+                                  match op, e_list with
+                                  | Eminusgreater, [e1;e2] -> 
+                                    (* prove stream base case *)
+                                    let base_var = expression ctx (!local_env) e1 (Some typenv) in
+                                    let binding_exp = Boolean.mk_eq ctx base_var (List.hd return_var) in 
+                                    let proof_env = ref {exp_env = ref (binding_exp ::!(!local_env.exp_env));
+                                                         var_env = (!local_env.var_env)} in
+                                    z3_solve ctx proof_env return_exp;
+                                    (* prove stream induction hypothesis *)
+                                    Printf.printf "Processing e2\n";
+                                    let fun_name = (match e2.e_desc with 
+                                                    | Eapp({ app_inline = i; app_statefull = r }, e, e_list) -> (operator_expression_to_string e)
+                                    ) in
+                                    Printf.printf "Function name: %s \n" fun_name;
+                                    let stream_application = Hashtbl.find !function_space fun_name in
+                                    let stream_app_arg = List.hd stream_application.argument_list in
+                                    let argument_relation_exp = Boolean.mk_eq ctx base_var ( create_z3_var ctx (stream_application.creation_env) stream_app_arg) in
+                                    let fun_relation_exp = Boolean.mk_eq ctx (List.hd return_var) (create_z3_var ctx (stream_application.creation_env) (Printf.sprintf "%s_return" fun_name)) in
+                                    let concatenate_envs = [argument_relation_exp; fun_relation_exp] @ !(stream_application.creation_env.exp_env) @ !(!local_env.exp_env) in
+                                    let function_proof_env = ref {exp_env = ref concatenate_envs; var_env = (!local_env.var_env)} in
+                                    Printf.printf "Argument relation %s - Fun relation %s\n" (Expr.to_string argument_relation_exp) (Expr.to_string fun_relation_exp); 
+                                    z3_solve ctx function_proof_env return_exp; 
+                                    let new_stream = {
+                                      initialization_var=   base_var;
+                                      application_function= fun_name;
+                                      return_exp = return_exp;
+                                      refinement_exp = !(!local_env.exp_env) @ [binding_exp];
+                                    } in add_stream n new_stream;
+                                    true
+
+                                    (* print_function fun_name stream_application; true *)
+                                    (* let fun_exp = expression ctx !local_env e2 (Some typenv) in true *)
+
+
+                                )  
+                            )
+                          )       
+          
+          in Printf.printf "end\n"
+          )
       | Eopen(n) -> (Printf.printf "Eopen %s\n" n)
       | Etypedecl(n, params, tydecl) -> (Printf.printf "Etypedecl %s\n" n)
 

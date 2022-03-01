@@ -309,16 +309,22 @@ implementation:
   | LET ide = ide COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
       { Erefinementdecl(ide, obj, seq1, seq2)}
   | LET ide = ide fn = simple_pattern_list COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
-      { Erefinementfundecl(ide, { f_kind = A; f_atomic = false;
+      { Printf.printf "Erefinementfundecl\n"; Erefinementfundecl(ide, { f_kind = A; f_atomic = false;
 			f_args = fn; f_body = seq2;
 			f_loc = localise $startpos(fn) $endpos(seq2) }, seq1) }
+  (* Erefinementfun defined with WHERE keyword*)
+  | LET ide = ide fn = simple_pattern_list COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL
+	seq = seq_expression WHERE r = is_rec eqs = equation_list
+      { Printf.printf "Erefinementfundecl with WHERE\n"; Erefinementfundecl(ide, { f_kind = A; f_atomic = false; 
+            f_args = fn; f_body = make(Elet(r, eqs, seq)) $startpos(seq) $endpos(eqs);
+		    f_loc = localise $startpos(fn) $endpos(eqs) }, seq1) }
   | LET ide = ide fn = simple_pattern_list EQUAL seq = seq_expression
-      { Efundecl(ide, { f_kind = A; f_atomic = false;
+      { Printf.printf "Efundecl \n"; Efundecl(ide, { f_kind = A; f_atomic = false;
 			f_args = fn; f_body = seq;
 			f_loc = localise $startpos(fn) $endpos(seq) }) }
   | LET ide = ide fn = simple_pattern_list EQUAL
 	seq = seq_expression WHERE r = is_rec eqs = equation_list
-      { Efundecl(ide, { f_kind = A; f_atomic = false; f_args = fn;
+      { Printf.printf "Efundecl with WHERE\n"; Efundecl(ide, { f_kind = A; f_atomic = false; f_args = fn;
 			f_body = make(Elet(r, eqs, seq))
 				 $startpos(seq) $endpos(eqs);
 		       f_loc = localise $startpos(fn) $endpos(eqs) }) }
@@ -332,6 +338,13 @@ implementation:
                          obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
       { Erefinementfundecl(ide, { f_kind = k; f_atomic = a; f_args = fn; f_body = seq2;
                                   f_loc = localise $startpos(fn) $endpos(fn)}, seq1 )}
+  (* kind refinement function with where*)
+  | is_let a = is_atomic k = kind ide = ide fn = simple_pattern_list COLON 
+                         obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq = seq_expression
+                         WHERE r = is_rec eqs = equation_list
+      { Printf.printf "Kinded refinement function with WHERE\n"; 
+        Erefinementfundecl(ide, { f_kind = k; f_atomic = a; f_args = fn; f_body = make(Elet(r, eqs, seq)) $startpos(seq) $endpos(eqs);
+			                      f_loc = localise $startpos(fn) $endpos(eqs) }, seq1) }
   | is_let a = is_atomic k = kind ide = ide
 	  fn = simple_pattern_list EQUAL seq = seq_expression
           WHERE r = is_rec eqs = equation_list
