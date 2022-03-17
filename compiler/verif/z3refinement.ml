@@ -65,7 +65,7 @@ let add_constraint ({ exp_env = env; var_env = v}) premise =
     
     Add premise to end of environment list
 *)
-   env := (!env)@[premise] 
+   env := premise::(!env) 
 
 (*
 type z3env =
@@ -378,7 +378,7 @@ let create_z3_var_typed ctx ({exp_env = e ; var_env = v}) s basetype : expr =
     ctx -> z3 context
     s   -> variable name
 
-    Create generic z3 Real sort with given variable name s
+    Create z3 sort with specific basetype with given variable name s
 *)
   Printf.printf "\n --- CREATE Z3 VAR TYPED : %s --- \n" s;
   (* Look at environment for variable*)
@@ -1209,6 +1209,7 @@ let get_argument_list typenv =
 
 (* main entry functions *)
 (* this function modifies the environemnt, returns unit *)
+
 let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localized*))  =
 (*
     ff        ->   printinf formart  (not used in this file)
@@ -1221,7 +1222,7 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
       match impl.desc with
       (* Add to Z3 an equality constraint that looks like: n == (Z3 parsed version of e) *)
       | Econstdecl(f, is_static, e) -> (Printf.printf "Econstdecl %s\n" f); 
-        (*add_environment {name: n; type_t: ; refinement_t: true; assignment_t: expression Rename.empty e }*)
+        (* constraint : f = e *)
         add_constraint !env (Boolean.mk_eq ctx (create_z3_var ctx !env f) (expression ctx !env e None));
         print_env !env
       (* For constant functions, let x=f we assign x the type x:{float z | z=f} *)
@@ -1322,6 +1323,7 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
                         variable_maps = function_variable_type_map;
                         argument_list = function_argument_list; 
                         creation_env = !local_env; } in
+          (* adding post and pre conditions of funtion to environment *)
           add_function n f_new;
           Printf.printf "Printing function environment...\n";
           print_function_environment ();
@@ -1447,7 +1449,7 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
 (* ([x/z]phi_x(z) & [y/z]phi_y(z) & [z/z']phi_z(z')) -> [e/z]phi_e(z) *)
 
 (* the main entry function *)
-let implementation_list ff ctx (impl_list) (*: Zelus.implementation_desc Zelus.localized list ) : Zelus.implementation_desc Zelus.localized list*) = 
+let implementation_list ff (impl_list) (*: Zelus.implementation_desc Zelus.localized list ) : Zelus.implementation_desc Zelus.localized list*) = 
 (*
     ff        ->   printinf formart  (not used in this file)
     ctx       ->   Z3 context variable
@@ -1458,6 +1460,8 @@ let implementation_list ff ctx (impl_list) (*: Zelus.implementation_desc Zelus.l
     Returns the zelus program AST
 *)
   print_string "Hello, this is Z3 Refinement\n";
+  let cfg = [("model", "true"); ("proof", "false")] in
+	let ctx = (mk_context cfg) in
   let z3env = ref {exp_env = ref []; var_env = Hashtbl.create 0} in
   List.iter (implementation ff ctx z3env) impl_list;
   impl_list
