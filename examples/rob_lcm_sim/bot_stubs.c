@@ -29,8 +29,9 @@ void *lcm_listen(void *param)
     robot_store_t_subscription_t *sub = robot_store_t_subscribe(lcm, FROM_ROBOT_CHANNEL, &motor_handler, NULL); 
     printf("Listener Started\n");
     printf("the value of running is %d\n",running);
-    while(running)
-        lcm_handle(lcm);
+    while(running){
+        lcm_handle(lcm); printf ("it's now %s", "running");
+    }    
     lcm_destroy(lcm);
     printf("Listener Stopped\n");
     return NULL;
@@ -51,6 +52,8 @@ CAMLprim value
 LCM_stop(value unit){
     printf("Stopping Listener...\n");
     running = 0;
+    //lcm_destroy(lcm);
+    //printf("Listener Stopped A\n");
     return Val_unit;
 }
 

@@ -1,8 +1,7 @@
 (* The Zelus compiler, version 2.1-dev
-  (2022-02-21-6:15) *)
+  (2022-03-15-12:51) *)
 open Ztypes
-open Sys;;
-catch_break true
+
    external robot_get: string -> float = "robot_get_cpp" 
 
    external robot_str_ml: string -> float -> unit = "robot_str_cpp" 
@@ -11,18 +10,8 @@ catch_break true
  
    external lcm_stop: unit -> unit = "LCM_stop" 
 
-  let () = ignore(lcm_start())
-  let cleanup () = 
-    print_string "Interrupted";
-    print_newline ();
-    lcm_stop ();;   
-  let tryp () = 
-    try
-      print_string "trying";
-      (*(ignore (lcm_start ()));*)
-      ignore (input_line stdin);
-      print_string "here";
-    with Break -> cleanup ();; 
+  
+ let () = ignore(lcm_start())
 let pi = 3.1416
 
 let x_last = 0.
@@ -164,7 +153,6 @@ type ('h , 'g , 'f , 'e , 'd , 'c , 'b , 'a) _main =
     mutable i_113 : 'c ; mutable m_111 : 'b ; mutable m_109 : 'a }
 
 let main (cstate_123:Ztypes.cstate) = 
-  tryp ();
   let Node { alloc = i_116_alloc; step = i_116_step ; reset = i_116_reset } = exec 
   cstate_123 in
   let main_alloc _ =

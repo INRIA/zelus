@@ -1,3 +1,11 @@
+open Sys;;
+catch_break true
+external lcm_stop: unit -> unit = "LCM_stop"
+let is_done = false;;
+let cleanup () =
+print_string "Interrupted";
+print_newline ();
+lcm_stop ();;
 module Make (SSolver : Zls.STATE_SOLVER) =
 struct
 
@@ -61,6 +69,7 @@ let go (Ztypes.Hsim { alloc      = main_alloc;
                       crossings  = main_zero;
                       reset      = main_reset;
                       horizon    = main_horizon; }) =
+  try
   let stepfn = Solver.step
         main_alloc
         main_csize
@@ -87,6 +96,7 @@ let go (Ztypes.Hsim { alloc      = main_alloc;
       step ()
   in
   step ()
+  with Break-> cleanup()
 
 let check (Ztypes.Hsim { alloc      = main_alloc;
                          maxsize    = main_maxsize;

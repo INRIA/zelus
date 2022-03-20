@@ -293,6 +293,15 @@ let emit_prelude ff ({ Lident.id = id } as qualid) info k =
       fprintf ff
         "@[<v>@[open Ztypes@]@;\
          @[open Zls@]@;\
+         @[open Sys;;@]@;\
+         @[catch_break true@]@;\
+         @[external lcm_stop: unit -> unit = \"LCM_stop\"@]@;\
+         @[let is_done = false;;@]@;\
+         @[let cleanup () = is_done = true;@]@;\
+         @[print_string \"Interrupted\";@]@;\
+         @[print_newline ();@]@;\
+         @[lcm_stop ();;@]@;\
+
          @;\
          @[(* simulation (continuous) function *)@.\
          @[<hov2>let main = @,\
@@ -355,7 +364,7 @@ let emit_simulation_code ff k =
   | Deftypes.Tcont ->
       fprintf ff "@[(* instantiate a numeric solver *)\n\
                   module Runtime = Zlsrun.Make (Defaultsolver)\n\
-                  let _ = Runtime.go main@.@]"
+                  let _ = try Runtime.go main\n with Break ->cleanup();\n Runtime.go main@.@]"
   | Deftypes.Tproba -> assert false
 
 (* emited code for bounded checking. Check that the function returns [true] *)
