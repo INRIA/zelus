@@ -29,3 +29,11 @@ help: ## Print this help
 	@awk 'BEGIN {FS = ":.*##"; printf "Usage:\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  make %-20s# %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
 .PHONY: test help
+
+# Doc (for opam):
+# opam pin -k path .              : install the current version of the compiler
+#                                   as an opam package
+# opam pin --help
+
+# opam pin remove zelus zelus-gtk : removes the opam package
+# opam install zelus zelus-gtk : install the (public) opam package
