@@ -2,7 +2,7 @@
 
 (rule
  (targets abro.ml abro_main.ml)
- (deps (:zl abro.zls) (package zelus) (package zelus-gtk))
+ (deps (:zl abro.zls) (package zelus))
  (action (run zeluc -s main -o abro_main %{zl})))
 
 (rule
