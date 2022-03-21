@@ -1,6 +1,8 @@
+(env (dev (flags (:standard -w -a))))
+
 (rule
  (targets ltta.ml ltta_main.ml)
- (deps (:zl ltta.zls) misc.zli)
+ (deps (:zl ltta.zls) misc.zli (package zelus))
  (action (run zeluc -deps -sampling 0 -s main -o ltta_main %{zl})))
 
 (executable

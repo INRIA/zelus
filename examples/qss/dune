@@ -1,11 +1,13 @@
+(env (dev (flags (:standard -w -a))))
+
 (rule
  (targets qss1.ml qss1_main.ml)
- (deps (:zl qss1.zls))
+ (deps (:zl qss1.zls) (package zelus) (package zelus-gtk))
  (action (run zeluc -gtk2 -s main -o qss1_main %{zl})))
 
 ; (rule
 ;  (targets qss2.ml qss2_main.ml)
-;  (deps (:zl qss2.zls))
+;  (deps (:zl qss2.zls) (package zelus) (package zelus-gtk))
 ;  (action (run zeluc -gtk2 -s main -o qss2_main %{zl})))
 
 (executables

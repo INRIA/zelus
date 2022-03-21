@@ -1,21 +1,23 @@
+(env (dev (flags (:standard -w -a))))
+
 (rule
  (targets abro.ml abro_main.ml)
- (deps (:zl abro.zls))
+ (deps (:zl abro.zls) (package zelus) (package zelus-gtk))
  (action (run zeluc -s main -o abro_main %{zl})))
 
 (rule
  (targets button.ml button_main.ml)
- (deps (:zl button.zls))
+ (deps (:zl button.zls) (package zelus))
  (action (run zeluc -s main -o button_main %{zl})))
 
 (rule
  (targets hermes.ml hermes_main.ml)
- (deps (:zl hermes.zls))
+ (deps (:zl hermes.zls) (package zelus))
  (action (run zeluc -s main -o hermes_main %{zl})))
 
 (rule
  (targets switch.ml switch_main.ml)
- (deps (:zl switch.zls))
+ (deps (:zl switch.zls) (package zelus))
  (action (run zeluc -s main -o switch_main %{zl})))
 
 (executables

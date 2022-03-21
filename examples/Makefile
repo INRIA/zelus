@@ -1,8 +1,5 @@
 all:
-	dune build --root .
+	dune build .
 
 clean:
-	dune clean --root .
-
-%.exe:
-	dune build --root . $@
+	dune clean .

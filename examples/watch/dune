@@ -1,6 +1,8 @@
+(env (dev (flags (:standard -w -a))))
+
 (rule
  (targets watch.ml watch_main.ml)
- (deps (:zl watch.zls) draw.zli)
+ (deps (:zl watch.zls) draw.zli (package zelus))
  (action (run zeluc -deps -s main -sampling 0 -o watch_main %{zl})))
 
 (executable

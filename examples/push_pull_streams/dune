@@ -1,16 +1,18 @@
+(env (dev (flags (:standard -w -a))))
+
 (rule
  (targets join.ml join_main1.ml)
- (deps (:zl join.zls))
+ (deps (:zl join.zls) (package zelus))
  (action (run zeluc -s main1 -o join_main1 %{zl})))
 
 (rule
  (targets join_main2.ml)
- (deps (:zl join.zls) (sandbox always))
+ (deps (:zl join.zls) (package zelus) (sandbox always))
  (action (run zeluc -s main2 -o join_main2 %{zl})))
 
 (rule
  (targets join_main3.ml)
- (deps (:zl join.zls) (sandbox always))
+ (deps (:zl join.zls) (package zelus) (sandbox always))
  (action (run zeluc -s main3 -o join_main3 %{zl})))
 
 (executables

@@ -1,6 +1,8 @@
+(env (dev (flags (:standard -w -a))))
+
 (rule
  (targets timing_test.ml timing_test_main.ml)
- (deps (:zl timing_test.zls) misc.zli)
+ (deps (:zl timing_test.zls) misc.zli (package zelus))
  (action (run zeluc -deps -s main -o timing_test_main %{zl})))
 
 (executable

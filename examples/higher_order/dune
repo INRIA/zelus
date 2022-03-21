@@ -1,6 +1,8 @@
+(env (dev (flags (:standard -w -a))))
+
 (rule
  (targets updown.ml updown_main.ml)
- (deps (:zl updown.zls))
+ (deps (:zl updown.zls) (package zelus))
  (action (run zeluc -s main -o updown_main %{zl})))
 
 (executable

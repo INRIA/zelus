@@ -1,6 +1,8 @@
+(env (dev (flags (:standard -w -a))))
+
 (rule
  (targets pi_calculator.ml pi_calculator_main.ml)
- (deps (:zl pi_calculator.zls))
+ (deps (:zl pi_calculator.zls) (package zelus))
  (action (run zeluc -s main -o pi_calculator_main %{zl})))
 
 (executable

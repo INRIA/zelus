@@ -1,6 +1,8 @@
+(env (dev (flags (:standard -w -a))))
+
 (rule
  (targets controlled_mass_spring.ml controlled_mass_spring_main.ml)
- (deps (:zl controlled_mass_spring.zls))
+ (deps (:zl controlled_mass_spring.zls) (package zelus))
  (action (run zeluc -s main -o controlled_mass_spring_main %{zl})))
 
 (executable
