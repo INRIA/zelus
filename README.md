@@ -15,12 +15,12 @@ Continuous-time models are simulated using an off-the-shelf numerical solver (he
 The easiest way to install Zelus is via [Opam](https://opam.ocaml.org/), the OCaml package manager.
 
 ```
-opam install zelus
+$ opam install zelus
 ```
 
 You can then test your installation with:
 ```
-zeluc -version
+$ zeluc -version
 ```
 
 The manual, examples, and research papers can be found at http://zelus.di.ens.fr
@@ -32,7 +32,7 @@ To switch to Sundials CVODE you need to install sundialsml (which requires sundi
 Some examples also depend on the zelus gtk library (which requires gtk2.0)
 
 ```
-opam install sundialsml zelus-gtk
+$ opam install sundialsml zelus-gtk
 ```
 
 ### Docker
@@ -40,12 +40,12 @@ opam install sundialsml zelus-gtk
 We also provide a dockerfile to setup an environment with all the dependencies.
 Build the image with (you might need to increase available memory in docker preferences):
 ```
-make docker-build
+$ make docker-build
 ```
 
 Run with:
 ```
-make docker-run
+$ make docker-run
 ```
 
 
@@ -76,23 +76,24 @@ The dynamics of the ball is expressed with four ODEs defining the position `(x, 
 Whenever the ball hits the ground `up(-. y)` the discrete time code of the body of the `present` construct is executed (here incrementing a simple counter).
 
 ### Compilation
+
 The zeluc compiler takes a zelus file (e.g., `bouncing.zls`) and compile it to OCaml code (e.g., `bouncing.ml`).
 
 ```
-zeluc bouncing.zls
+$ zeluc bouncing.zls
 ```
 
 You can also specify a simulation node.
 The compiler then generates an additional file containing the simulation code (e.g., `main.ml`).
 
 ```
-zeluc -s main bouncing.zls
+$ zeluc -s main bouncing.zls
 ```
 
 To build an executable, the last thing to do is to compile the OCaml code using the `zelus` library.
 
 ```
-ocamlfind ocamlc -linkpkg -package zelus bouncing.ml main.ml -o bouncing
+$ ocamlfind ocamlc -linkpkg -package zelus bouncing.ml main.ml -o bouncing
 ```
 
 ## Other Examples
@@ -102,7 +103,7 @@ The source code for several of the examples can be found in the `examples` direc
 To build most of the examples:
 
 ```
-cd examples && make
+$ cd examples && make
 ```
 
 The executables can be found in each example directory (e.g., `horloge/horloge_main.exe`).
@@ -115,8 +116,8 @@ We use [dune](https://dune.readthedocs.io/en/stable/) to build the compiler, the
 To build the project:
 
 ```
-./configure
-dune build
+$ ./configure
+$ dune build
 ```
 
 This produces two executables (and some tools in `./tools`):
@@ -129,24 +130,48 @@ Libraries are split in two packages:
 
 The build automatically detects if sundialsml is installed and updates the librairies accordingly.
 
+The main Makefile contains useful commands to build the project of install zelus as an opam development package from source.
+
+```
+$ make help
+Usage:
+  make all                 #  Build the compiler and libraries
+  make test                #  Launch the tests via dune
+  make examples            #  Build all the examples
+  make tools               #  Build the tools
+  make install             #  Install as an opam development package pinned to this directory
+  make uninstall           #  Remove opam pin
+  make clean               #  Clean the entire project
+  make docker-build        #  Build the Docker image
+  make docker-run          #  Launch a terminal in the Docker image
+  make help                #  Print this help
+```
+
 ### Test
 
-To run all the tests:
+To run all the tests you can use dune. 
+
 ```
-cd test
-make
+$ dune runtest
+```
+
+Or alternatively, the Makefile of the test directory.
+
+```
+$ cd test
+$ make
 ```
 
 Tests are split into 3 categories: `good`, `bad`, and `run`.
 To launch a single subset (e.g., `good`):
 ```
-cd good
-make
+$ cd good
+$ make
 ```
 
 To clean generated files:
 ```
-make clean
+$ make clean
 ```
 
 ## Citing Zelus
