@@ -1,5 +1,14 @@
 all:
-	dune build
+	dune build compiler lib
+
+examples:
+	dune build examples
+
+install:
+	opam pin -k path .
+
+uninstall:
+	opam pin remove zelus zelus-gtk
 
 clean:
 	dune clean
