@@ -346,17 +346,17 @@ let z3_solve ctx env constraints =
   let s = (Solver.add solver [c]) in
   let q = check solver [] in
   (if q == SATISFIABLE then
-    (Printf.printf "Counterexample found:\n";
+    (Printf.printf "\027[31mCounterexample found:\n";
     (let m = (get_model solver) in    
       		match m with 
           | None -> ()
 		      | Some (m) -> 
 	  	      (*Printf.printf "Model: \n%s\n" (Model.to_string m);*)
             print_assignments m;
-      Printf.printf "Could not prove %s\n" (Expr.to_string constraints);
+      Printf.printf "Could not prove: %s\n\027[0m" (Expr.to_string constraints);
       raise (TestFailedException "")))
   else
-    (Printf.printf "Passed\n"));
+    (Printf.printf "\027[32mPassed\027[0m\n";));
     add_constraint !env constraints
 
 let create_z3_var_typed ctx ({exp_env = e ; var_env = v}) s basetype : expr =
