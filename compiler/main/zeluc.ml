@@ -97,6 +97,7 @@ and doc_rif = "\t Use RIF format over stdin and stdout to communicate I/O to the
 and doc_deps = "\t Recursively compile dependencies"
 (* added here *)
 and doc_robot = "\t Enable robot mode"
+and doc_ref_verbose = "\t Enable verbose mode for refinement types"
 let errmsg = "Options are:"
 
 let set_verbose () =
@@ -106,6 +107,11 @@ let set_verbose () =
 let set_vverbose () =
   vverbose := true;
   set_verbose ()
+
+(* added here *)
+let set_ref_verbose () =
+  (*Printf.printf "\u001b[31mRefinement verbose\u001b[0m"*)
+  ref_verbose := true
 
 let add_include d =
   Deps_tools.add_to_load_path d;
@@ -123,6 +129,8 @@ let main () =
       (Arg.align [
           "-v", Arg.Unit set_verbose, doc_verbose;
           "-vv", Arg.Unit set_vverbose, doc_vverbose;
+          (* added here *)
+          "-ref_v", Arg.Unit set_ref_verbose, doc_ref_verbose;
           "-version", Arg.Unit show_version, doc_version;
           "-o", Arg.String set_outname, doc_outname;
           "-I", Arg.String add_include, doc_include;
