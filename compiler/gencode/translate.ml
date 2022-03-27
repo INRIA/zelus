@@ -481,7 +481,6 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      Omove(e), code
   (*added here*)
   | Zelus.Estore(cmd, key) -> Ostore(cmd, key), code
-  | Zelus.Eop(Zelus.Econtrol, [e]) ->
   | Zelus.Eop(Zelus.Econtrol, [e1; e2]) ->
      print_endline("Translate");
      let e1, code = exp env loop_path code e1 in
@@ -493,8 +492,6 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      let e1, code = exp env loop_path code e1 in
      let e2, code = exp env loop_path code e2 in
      Ostr(e1, e2), code
-  (*added here*)
-  | Zelus.Estore(cmd, key) -> Ostore(cmd, key), code
   (*added here*)
   | Zelus.Eget(cm) -> Oget(cm), code
   (*added here*)
@@ -760,21 +757,20 @@ let implementation { Zelus.desc = desc } =
      (* There should be no memory allocated by [e] *)
      let { step = s } = expression Env.empty e in
      Oletvalue(n, s)
-  (*TODO: refinement implementation of translate*)
-  | Zelus.Erefinementdecl(n1, n2, e1, e2)->
-      (* There should be no memory allocated by [e] *)
-     let { step = s } = expression Env.empty e2 in
-     Oletvalue(n1, s)
-  | Zelus.Erefinementfundecl(n, ({ Zelus.f_kind = k; Zelus.f_args = pat_list;
-      Zelus.f_body = e; Zelus.f_env = f_env }), _)
   (*added here*)
   | Zelus.Eipopannotation(n, e1, e2, is_op)->
      let { step = s } = expression Env.empty e2 in
      (*let e, code = exp env loop_path code e1 in
      Ooup(e), code*)
      let { step = e } = expression Env.empty e1 in
-     if is_op then Oletvalueop(n, e, s) else Oletvalueip(n, e, s)
-      
+     if is_op then Oletvalueop(n, e, s) else Oletvalueip(n, e, s)   
+  (*TODO: refinement implementation of translate*)
+  | Zelus.Erefinementdecl(n1, n2, e1, e2)->
+      (* There should be no memory allocated by [e] *)
+     let { step = s } = expression Env.empty e2 in
+     Oletvalue(n1, s)
+  | Zelus.Erefinementfundecl(n, ({ Zelus.f_kind = k; Zelus.f_args = pat_list;
+      Zelus.f_body = e; Zelus.f_env = f_env }), _)      
   | Zelus.Efundecl(n, { Zelus.f_kind = k; Zelus.f_args = pat_list;
 			Zelus.f_body = e; Zelus.f_env = f_env }) ->
      let pat_list = List.map pattern pat_list in

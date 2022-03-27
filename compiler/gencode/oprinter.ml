@@ -262,7 +262,6 @@ and exp prio ff e =
   (*added here*)
   | Ostore(cmd, key) ->
       fprintf ff "robot_store(%s , %f)" cmd key
-  | Ocontrol (e) -> 
   | Ocontrol (e1, e2) -> 
       print_endline("Ocontrol printing");
       fprintf ff "print_endline(\"robot is moving\")" 
@@ -270,9 +269,6 @@ and exp prio ff e =
   | Ostr (e1, e2) -> 
       print_endline("Ostr printing");
       fprintf ff "print_endline(\"robot is moving\")"  
-  (*added here*)
-  | Ostore(cmd, key) ->
-      fprintf ff "robot_store(%s , %f)" cmd key 
   (*added here*)
   | Oget(cm) ->
       fprintf ff "robot_get(%s)" cm 

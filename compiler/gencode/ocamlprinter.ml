@@ -264,8 +264,7 @@ and exp prio ff e =
       fprintf ff "move_robot_ml (%a)" (exp 0) e
   (*added here*)
   | Ostore(cmd, key) ->
-      fprintf ff "robot_store(\"%s\" , %f)" cmd key
-  | Ocontrol(e) ->
+      fprintf ff "robot_store\"%s\" , %f" cmd key
   | Ocontrol(e1, e2) ->
       print_endline("Ocontrol compilation");
       fprintf ff "control_robot_ml (%a) (%a)" (exp 0) e1 (exp 1) e2
@@ -273,9 +272,6 @@ and exp prio ff e =
    | Ostr(e1, e2) ->
    print_endline("Ostr compilation");
    fprintf ff "robot_str_ml (%a) (%a)" (exp 0) e1 (exp 1) e2
-  (*added here*)
-  | Ostore(cmd, key) ->
-      fprintf ff "robot_store\"%s\"  %f" cmd key
   (*added here*)
   | Oget(cm) ->
    fprintf ff "robot_get \"%s\"" cm
