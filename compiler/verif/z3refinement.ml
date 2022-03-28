@@ -124,6 +124,7 @@ let add_stream name stream_add =
 *)
   Hashtbl.add (!stream_space) name stream_add
 
+let proof_error_count = ref 0 (* count for proof errors *)
 (**
 (*Define refinement type vc_gen_pattern*)
 type z3op =
@@ -338,6 +339,7 @@ let z3_solve ctx env constraints =
   debug (Printf.sprintf "constraint:\n");
   debug (Printf.sprintf "%s\n" (Expr.to_string constraints));
   debug (Printf.sprintf "--- Z3 SOLVE ---\n\n");
+  try (
   let solver = (mk_solver ctx None) in
   let c = Boolean.mk_not ctx (Boolean.mk_implies ctx 
                                     (build_z3_premise ctx !env)
@@ -353,11 +355,15 @@ let z3_solve ctx env constraints =
 		      | Some (m) -> 
 	  	      (*Printf.printf "Model: \n%s\n" (Model.to_string m);*)
             print_assignments m;
-      Printf.printf "Could not prove: %s\n\027[0m" (Expr.to_string constraints);
-      raise (TestFailedException "")))
+      let err_msg = Printf.sprintf "Could not prove: %s\n\027[0m" (Expr.to_string constraints) in
+      proof_error_count := !proof_error_count + 1;
+      raise (TestFailedException err_msg)))
   else
     (Printf.printf "\027[32mPassed\027[0m\n";));
     add_constraint !env constraints
+  )
+  with 
+  | TestFailedException(msg) -> Printf.printf "%s" msg
 
 let create_z3_var_typed ctx ({exp_env = e ; var_env = v}) s basetype : expr =
 (*
@@ -1462,4 +1468,6 @@ let implementation_list ff (impl_list) (*: Zelus.implementation_desc Zelus.local
 	let ctx = (mk_context cfg) in
   let z3env = ref {exp_env = ref []; var_env = Hashtbl.create 0} in
   List.iter (implementation ff ctx z3env) impl_list;
+  if (!proof_error_count > 0) then (
+  Printf.printf "\027[31m[WARNING]\027[0m Failed proof count : %d \n" !proof_error_count);
   impl_list
