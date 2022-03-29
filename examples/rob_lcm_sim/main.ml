@@ -39,4 +39,5 @@ let main =
 module Runtime = Zlsrun.Make (Defaultsolver)
 let _ = try Runtime.go main
  with Break ->cleanup();
- Runtime.go main
+ try Runtime.go main
+ with Break -> ()
