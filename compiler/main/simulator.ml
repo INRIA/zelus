@@ -292,17 +292,18 @@ let emit_prelude ff ({ Lident.id = id } as qualid) info k =
       end else
       fprintf ff
         "@[<v>@[open Ztypes@]@;\
-         @[open Zls@]@;\
-         @[open Sys;;@]@;\
-         @[catch_break true@]@;\
-         @[external lcm_stop: unit -> unit = \"LCM_stop\"@]@;\
-         @[let is_done = false;;@]@;\
-         @[let cleanup () = is_done = true;@]@;\
-         @[print_string \"Interrupted\";@]@;\
-         @[print_newline ();@]@;\
-         @[lcm_stop ();;@]@;\
-
-         @;\
+         @[open Zls@]@;@]";
+         if !robot then fprintf ff
+         "@[open Sys;;@]@;\n\
+         @[catch_break true@]@;\n\
+         @[external lcm_stop: unit -> unit = \"LCM_stop\"@]@;\n\
+         @[let is_done = false;;@]@;\n\
+         @[let cleanup () = is_done = true;@]@;\n\
+         @[print_string \"Interrupted\";@]@;\n\
+         @[print_newline ();@]@;\n\
+         @[lcm_stop ();;@]@;@]" else ();
+       fprintf ff  
+         "@;\
          @[(* simulation (continuous) function *)@.\
          @[<hov2>let main = @,\
          @[<v>\
@@ -363,8 +364,10 @@ let emit_simulation_code ff k =
          exit(0);;@.@]"
   | Deftypes.Tcont ->
       fprintf ff "@[(* instantiate a numeric solver *)\n\
-                  module Runtime = Zlsrun.Make (Defaultsolver)\n\
-                  let _ = try Runtime.go main\n with Break ->cleanup();\n Runtime.go main@.@]"
+                  module Runtime = Zlsrun.Make (Defaultsolver)\n@]";
+      if !robot then fprintf ff" @[let _ = try Runtime.go main\n with Break ->cleanup();\n\
+                                try Runtime.go main\n with Break ->()@.@]"
+      else fprintf ff"@[let _ = Runtime.go main@]"
   | Deftypes.Tproba -> assert false
 
 (* emited code for bounded checking. Check that the function returns [true] *)
