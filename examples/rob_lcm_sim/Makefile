@@ -19,11 +19,14 @@ zelus-lcm-gen: ./lcmtypes/robot_store_t.lcm
 zelus-ocaml: bot.zls
 	$(ZELUC) $(ZFLAGS) bot.zls
 
-zelus-compile: ./lcmtypes/robot_store_t.o zelus-ocaml
-	$(OCAMLFIND) $(OCAMLOPT) $(MLFLAGS) -o zelus_side.opt drawrobot.ml bot.ml main.ml bot_stubs.c ./lcmtypes/robot_store_t.o -ccopt $(CCLIB)
+zelus-compile: ./lcmtypes/robot_store_t.o zelus-ocaml hash_tbl.o
+	$(OCAMLFIND) $(OCAMLOPT) $(MLFLAGS) -o zelus_side.opt drawrobot.ml bot.ml main.ml bot_stubs.c ./lcmtypes/robot_store_t.o hash_tbl.o -ccopt $(CCLIB)
 
-robot-compile: ./lcmtypes/robot_store_t.o robot_side.c
+hash_tbl.o: hash_tbl.c hash_tbl.h
+	$(GCC) -c hash_tbl.c -o hash_tbl.o
+
+robot-compile: ./lcmtypes/robot_store_t.o robot_side.c hash_tbl.o
 	$(GCC) -c robot_side.c `pkg-config --cflags lcm`
-	gcc -o robot_side ./lcmtypes/robot_store_t.o robot_side.o `pkg-config --libs lcm`
+	gcc -o robot_side ./lcmtypes/robot_store_t.o hash_tbl.o robot_side.o `pkg-config --libs lcm`
 clean: 
 	rm lcmtypes/*.c lcmtypes/*.h lcmtypes/*.o *.cmi *.cmx *.o *.zci main.ml bot.ml 

@@ -71,7 +71,7 @@ robot_str_cpp(value cmd,value mag){
     lcm_t * lcm2 = lcm_create(NULL);
     robot_store_t my_cmd;
     // Need to divide by 100 and convert to float since motor speeds come in as hundredths of units (and as integer arguments)
-    my_cmd.command = String_val(cmd);
+    my_cmd.command = (char *)String_val(cmd);
     my_cmd.value = Double_val(mag);
     robot_store_t_publish(lcm2, TO_ROBOT_CHANNEL, &my_cmd); 
     lcm_destroy(lcm2);
