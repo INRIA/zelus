@@ -7,9 +7,6 @@
 let pi = 3.14159
 let w = 2.*.pi
 let y0:float{y0 >= pi} = 4.0
-
-
-
 let y1:float{y1 >= y0*.2.} = 10.0
 
 (*
@@ -78,4 +75,4 @@ let node main () =
 	print_string "First: "; print_int x; print_newline (); print_string "Second : "; print_int y; print_newline ();
 	print_string "Third : "; print_int z; print_newline () *)
 	print_int (*f (-1) 2 4*) (add (4) (3));
-	(add 2 3)
+	(add (-1) 0)

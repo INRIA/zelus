@@ -732,6 +732,7 @@ and vc_gen_operator ctx env typenv e e_list =
   | "*." | "*" | "Stdlib.*." -> Arithmetic.mk_mul ctx [(vc_gen_expression ctx env (hd e_list) typenv); (vc_gen_expression ctx env (hd (tl e_list)) typenv)]
   | "+." | "+" | "Stdlib.+." -> Arithmetic.mk_add ctx [(vc_gen_expression ctx env (hd e_list) typenv); (vc_gen_expression ctx env (hd (tl e_list)) typenv)]
   | "-." | "-" | "Stdlib.-." -> Arithmetic.mk_sub ctx [(vc_gen_expression ctx env (hd e_list) typenv); (vc_gen_expression ctx env (hd (tl e_list)) typenv)]
+  | "~-" | "~-." -> debug(Printf.sprintf "Unary minus:"); Arithmetic.mk_unary_minus ctx (vc_gen_expression ctx env (hd e_list) typenv)
   | "&&" -> Boolean.mk_and ctx [(vc_gen_expression ctx env (hd e_list) typenv); (vc_gen_expression ctx env (hd (tl e_list)) typenv)]
   | "||" -> Boolean.mk_or ctx [(vc_gen_expression ctx env (hd e_list) typenv); (vc_gen_expression ctx env (hd (tl e_list)) typenv)]
   | s -> debug(Printf.sprintf "Non-standard vc_gen_operator s : %s\n" (s)); prove_function ctx s env e_list typenv
@@ -766,7 +767,12 @@ and vc_gen_operation ctx env typenv op e_list =
     (* e2 -> induction hypothesis of stream*)
     (* let new_stream = {initialization_var: e1; application_function: e2} in *)
     (* add_stream  *)
-    | Eifthenelse, [e1; e2; e3] -> debug(Printf.sprintf "Eifthenelse\n")
+    | Eifthenelse, [e1; e2; e3] -> 
+       (* let exp1 = (Expr.to_string (vc_gen_expression ctx env e1 typenv)) in
+       let exp2 = (Expr.to_string (vc_gen_expression ctx env e2 typenv)) in
+       let exp3 = (Expr.to_string (vc_gen_expression ctx env e3 typenv)) in
+       debug(Printf.sprintf "if [%s] then [%s] else [%s]\n" exp1 exp2 exp3);  *)
+       debug(Printf.sprintf "Eifthenelse\n")
     | Eup, [e] -> debug(Printf.sprintf "Eup\n")
     | Einitial, [] -> debug(Printf.sprintf "Einitial\n")
     | (Etest | Edisc | Ehorizon), [e] -> debug(Printf.sprintf "Etest | Edisc |Ehorizon\n")
