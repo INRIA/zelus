@@ -3,14 +3,6 @@ open Muf
 let freshname =
   Muf_utils.fresh
 
-let rec remove_all tbl x =
-  begin match Hashtbl.find_opt tbl x with
-  | None -> tbl
-  | Some _ ->
-    let _ = Hashtbl.remove tbl x in
-    remove_all tbl x
-  end
-
 let rec rename_patt :
   type a. (identifier, identifier) Hashtbl.t -> a pattern -> a pattern = begin
   fun tbl p ->
@@ -44,18 +36,21 @@ let rec rename_expr :
         end
       in n
     in
-    (* If an identifier in the pattern p exists in tbl then remove it from tbl -
-     * else do nothing,
-     * for all identifier in p *)
-    let rec upd_table p tbl =
+    let rec hide p tbl =
       begin match p.patt with
-      | Pany | Pconst _-> tbl
-      | Pid x ->
-        let tbl = remove_all tbl x in tbl
-      | Ptuple l ->
-        let tbl = List.fold_right upd_table l tbl in
-        tbl
-      | Ptype (p, _) -> upd_table p tbl
+      | Pany | Pconst _-> ()
+      | Pid x -> Hashtbl.add tbl x x
+      | Ptuple l -> List.iter (fun patt -> hide patt tbl) l
+      | Ptype (p, _) -> hide p tbl
+      | Pconstr _ -> assert false
+      end
+    in
+    let rec restore p tbl =
+      begin match p.patt with
+      | Pany | Pconst _-> ()
+      | Pid x -> Hashtbl.remove tbl x
+      | Ptuple l -> List.iter (fun patt -> restore patt tbl) l
+      | Ptype (p, _) -> restore p tbl
       | Pconstr _ -> assert false
       end
     in
@@ -67,8 +62,9 @@ let rec rename_expr :
           Evar n
         | Elet(p, e1, e2) ->
           let e1 = rename e1 in
-          let tbl = upd_table p tbl in
+          hide p tbl;
           let e2 = rename_expr e2 tbl in
+          restore p tbl;
           Elet(p, e1, e2)
         | Esample (prob, e) ->
           let prob = get_name  { modul = None; name = prob } in
