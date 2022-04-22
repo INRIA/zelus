@@ -10,32 +10,19 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Install external dependencies
-        run: |
-          sudo apt-get -y update
-          sudo apt-get -y install gcc wget cmake gtk2.0
-
-      - name: Install sundials
-        run: |
-          wget -nv --show-progress --progress=bar:force:noscroll https://github.com/LLNL/sundials/releases/download/v3.2.1/sundials-3.2.1.tar.gz
-          tar xzf sundials-3.2.1.tar.gz
-          mkdir sundials-3.2.1-build
-          cd sundials-3.2.1-build
-          cmake ../sundials-3.2.1
-          make -j
-          sudo make install
-        
-      - name: Use OCaml
-        uses: avsm/setup-ocaml@v1
-        with:
-          ocaml-version: 4.12.0
-        
-      - name: Install OCaml dependencies
-        run: opam install -y graphics sundialsml zelus zelus-gtk
-      
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Use OCaml
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: 4.13.1
+            
+      - name: Install OCaml dependencies
+        run: |
+          opam depext sundialsml
+          opam install graphics sundialsml zelus zelus-gtk
+      
       - name: Build all examples
         run: |
           cd examples 

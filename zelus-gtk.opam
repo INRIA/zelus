@@ -9,6 +9,7 @@ maintainer: ["Marc Pouzet <marc.pouzet@ens.fr>"]
 homepage: "http://zelus.di.ens.fr"
 doc: "http://zelus.di.ens.fr/man/"
 bug-reports: "https://github.com/INRIA/zelus/issues"
+license: "INRIA Non-Commercial License Agreement"
 depends: [
   "ocaml" {>= "4.12.0"}
   "dune" {>= "2.6"}

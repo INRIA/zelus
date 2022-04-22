@@ -21,36 +21,25 @@ jobs:
           - 4.13.1
 
     steps:
-      - name: Install external dependencies
-        run: |
-          sudo apt-get -y update
-          sudo apt-get -y install gcc wget cmake
-        
-      - name: Use OCaml ${{ matrix.ocaml-version }}
-        uses: avsm/setup-ocaml@v1
-        with:
-          ocaml-version: ${{ matrix.ocaml-version }}
-        
-      - name: Install OCaml dependencies
-        run: |
-          opam update
-          opam install -y graphics ocamlfind menhir
-
-      - name: Install sundials
-        if: matrix.solver == 'sundials'
-        run: |
-          wget -nv --show-progress --progress=bar:force:noscroll https://github.com/LLNL/sundials/releases/download/v3.2.1/sundials-3.2.1.tar.gz
-          tar xzf sundials-3.2.1.tar.gz
-          mkdir sundials-3.2.1-build
-          cd sundials-3.2.1-build
-          cmake ../sundials-3.2.1
-          make -j
-          sudo make install
-          opam install -y sundialsml
-
       - name: Checkout code
         uses: actions/checkout@v2
-      
+
+      - name: Use OCaml ${{ matrix.ocaml-version }}
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: ${{ matrix.ocaml-version }}
+        
+      - name: Install OCaml dependencies
+        run: opam install -y graphics ocamlfind menhir
+
+      - name: Install Sundials
+        if: matrix.solver == 'sundials'
+        run: opam depext conf-sundials
+
+      - name: Install Sundials/ML
+        if: matrix.solver == 'sundials'
+        run: opam install sundialsml
+
       - name: Install Zelus
         run: |
           opam pin -y -n -k path .
@@ -58,9 +47,7 @@ jobs:
 
       - name: Install Gtk
         if: matrix.plot == 'gtk'
-        run: |
-          sudo apt-get -y install gtk2.0
-          opam install -y lablgtk zelus-gtk
+        run: opam install -y zelus-gtk
 
       - name: Build all examples
         if: matrix.plot == 'gtk'
