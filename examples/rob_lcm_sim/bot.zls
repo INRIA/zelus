@@ -15,8 +15,8 @@ let hybrid exec()= (x, y, theta, d_left, d_right) where
  and vy = transverse *. (sin theta)
  and der x = vx init 0.5
  and der y = vy init -0.5
- and (transverse, angular) = (present (period (0.04)) -> ((robot_str("transverse_vel", 0.5);robot_str("angular_vel",0.5));
-  (robot_get("transverse_vel"),robot_get("angular_vel"))) init (0.0, 0.0))
+ and (transverse, angular) = (present (period (0.04)) -> ((robot_str("transverse_vel", 0.5);robot_str("angular_vel",0.5)); (0.0, 0.0)(*;
+  (robot_get("transverse_vel"),robot_get("angular_vel"))*)) init (0.0, 0.0))
   
   
 let hybrid main () =

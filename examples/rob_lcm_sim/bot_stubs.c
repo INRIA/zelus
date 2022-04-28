@@ -10,6 +10,7 @@
 #include "hash_tbl.h"
 #include "lcmtypes/robot_store_t.h"
 
+#define LCM_ADDR "udpm://239.255.76.67:7667?ttl=1"
 lcm_t * lcm;
 pthread_t lcm_listener; 
 int running = 0;
@@ -40,7 +41,7 @@ void *lcm_listen(void *param)
 CAMLprim value 
 LCM_start(value unit){
     printf("Starting LCM...\n");
-    lcm = lcm_create(NULL);
+    lcm = lcm_create(LCM_ADDR);
     if(!lcm)
         return Val_int(1);
     running = 1;
@@ -68,7 +69,7 @@ CAMLprim value
 robot_str_cpp(value cmd,value mag){
     //printf("robot store is called\n");
     //insert_to_table(String_val(cmd), Double_val(mag));//Store the variable to the local hash table (it can also be an update to an existing variable)
-    lcm_t * lcm2 = lcm_create(NULL);
+    lcm_t * lcm2 = lcm_create(LCM_ADDR);
     robot_store_t my_cmd;
     // Need to divide by 100 and convert to float since motor speeds come in as hundredths of units (and as integer arguments)
     my_cmd.command = (char *)String_val(cmd);
