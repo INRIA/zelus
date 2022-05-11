@@ -213,7 +213,7 @@ and compile_return :
 end
 
 
-let compile_node :
+let rec compile_node :
   type a b. formatter -> string -> a pattern list -> (a pattern, b expression) node -> unit = begin
   fun ff f params n ->
     let compile_method m ff (p, e) =
@@ -234,8 +234,8 @@ let compile_node :
         List.iter
           (fun p -> fprintf ff "@[<v 4>def %s(%a):@," f compile_patt p )
           params;
-        fprintf ff "%a@,return %s" compile_class (f, n) f;
-        List.iter (fun _ -> fprintf ff "@]") params
+        fprintf ff "%a" compile_class (f, n);
+        List.iter (fun _ -> fprintf ff "@,return %s@]" f) params
       end
     end
 end
