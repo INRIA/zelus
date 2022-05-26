@@ -188,6 +188,8 @@ let block l lo eq_list startpos endpos =
 %token OPEN           /* "open" */
 %token VAL            /* "val" */
 %token RUN            /* "run" */
+%token BOX            /* "box" */
+%token DIAMOND        /* "diamond" */
 %token <string> PREFIX
 %token <string> INFIX0
 %token <string> INFIX1
@@ -429,7 +431,7 @@ type_declaration_desc:
       { Eabbrev(t) }
 ;
 
-type_params :
+type_params:
   | LPAREN tvl = list_of(COMMA, type_var) RPAREN
       { tvl }
   | tv = type_var
@@ -602,7 +604,7 @@ index_desc:
 
 
 /* states of an automaton in an equation*/
-automaton_handlers(X) :
+automaton_handlers(X):
   | a = automaton_handler(X)
       { [a] }
   | ahs = automaton_handlers(X) BAR a = automaton_handler(X)
@@ -657,7 +659,7 @@ automaton_handler(X):
       $startpos $endpos }
 ;
 
-escape :
+escape:
   | scondpat THEN state
       { { e_cond = $1; e_reset = true; e_block = None; e_next_state = $3 } }
   | scondpat CONTINUE state
@@ -668,14 +670,14 @@ escape :
       { { e_cond = $1; e_reset = false; e_block = Some($3); e_next_state = $4 } }
 ;
 
-escape_list :
+escape_list:
   | e = escape
       { [e] }
   | el = escape_list ELSE e = escape
       { e :: el }
 ;
 
-state :
+state:
   | c = CONSTRUCTOR
       { make (Estate0(c)) $startpos $endpos }
   | c = CONSTRUCTOR LPAREN e = expression RPAREN
@@ -684,7 +686,7 @@ state :
       { make (Estate1(c, List.rev l)) $startpos $endpos }
 ;
 
-state_pat :
+state_pat:
   | c = CONSTRUCTOR
       { make (Estate0pat(c)) $startpos $endpos }
   | c = CONSTRUCTOR LPAREN l = list_of(COMMA, IDENT) RPAREN
@@ -692,7 +694,7 @@ state_pat :
 ;
 
 /* Pattern on a signal */
-scondpat :
+scondpat:
   | sc = localized(scondpat_desc) { sc }
 ;
 
@@ -860,7 +862,8 @@ simple_pattern:
   | UNDERSCORE
       { make Ewildpat $startpos $endpos }
   | LPAREN p = pattern COLON t = type_expression RPAREN
-      { make (Etypeconstraintpat(p, t)) $startpos $endpos }
+      { Printf.printf "simple_pattern: ( p:type_expression )\n";
+          make (Etypeconstraintpat(p, t)) $startpos $endpos }
   | LBRACE p = pattern_label_list RBRACE
       { make (Erecordpat(p)) $startpos $endpos }
 ;
@@ -872,7 +875,7 @@ pattern_comma_list:
       { p :: pc }
 ;
 
-pattern_label_list :
+pattern_label_list:
   | p = pattern_label SEMI pl = pattern_label_list
       { p :: pl }
   | p = pattern_label
@@ -883,13 +886,13 @@ pattern_label_list :
       { [] }
 ;
 
-pattern_label :
+pattern_label:
   | ei = ext_ident EQUAL p = pattern
       { (ei, p) }
 ;
 
 /* Expressions */
-seq_expression :
+seq_expression:
   | e = expression SEMI seq = seq_expression
       { make (Eseq(e, seq)) $startpos $endpos }
   | e = expression %prec prec_seq
@@ -944,14 +947,14 @@ simple_expression_desc:
       { Printf.printf "Desc update\n"; Eop(Eupdate, [e1; i; e2]) }
 ;
 
-simple_expression_list :
+simple_expression_list:
   | e = simple_expression
 	  { [e] }
   | l = simple_expression_list e = simple_expression
 	  { e :: l }
   ;
 
-expression_comma_list :
+expression_comma_list:
   | ecl = expression_comma_list COMMA e = expression
       { e :: ecl }
   | e1 = expression COMMA e2 = expression
@@ -1029,7 +1032,8 @@ expression_desc:
   | e1 = expression i = INFIX1 e2 = expression
       { binop i e1 e2 ($startpos(i)) ($endpos(i)) }
   | e1 = expression i = INFIX0 e2 = expression
-      { binop i e1 e2 ($startpos(i)) ($endpos(i)) }
+      { Printf.printf "expression: INFIX0: e1 %s e2\n" i;
+          binop i e1 e2 ($startpos(i)) ($endpos(i)) }
   | e1 = expression EQUAL e2 = expression
       { binop "=" e1 e2 ($startpos($2)) ($endpos($2)) }
   | e1 = expression OR e2 = expression
@@ -1043,11 +1047,26 @@ expression_desc:
   | e1 = expression s = SUBTRACTIVE e2 = expression
       { binop s e1 e2 ($startpos(s)) ($endpos(s)) }
   | e1 = expression AMPERAMPER e2 = expression
-      { binop "&&" e1 e2 ($startpos($2)) ($endpos($2)) }
+      { Printf.printf "expression_desc: e1 && e2\n";
+          binop "&&" e1 e2 ($startpos($2)) ($endpos($2)) }
   | e1 = expression BARBAR e2 = expression
       { binop "||" e1 e2 ($startpos($2)) ($endpos($2)) }
   | p = PREFIX e = expression
-      { unop p e ($startpos(p)) ($endpos(p)) }
+      { Printf.printf "expression_desc: PREFIX: %s e\n" p;
+          unop p e ($startpos(p)) ($endpos(p)) }
+
+    (* add box and diamond *)
+  /* | b = BOX LPAREN e = expression RPAREN
+      { Printf.printf "expression_desc: box(e)\n"; 
+        unop "box" e ($startpos(b)) ($endpos(b)) }
+  | d = DIAMOND LPAREN e = expression RPAREN
+      { Printf.printf "expression_desc: diamond(e)\n"; 
+        unop "diamond" e ($startpos(d)) ($endpos(d)) } */
+
+  | ltl_operator = ltl_operator LPAREN e = expression RPAREN
+      { Printf.printf "expression_desc: ltl_operator: %s(e)\n" ltl_operator; 
+        unop ltl_operator e ($startpos(ltl_operator)) ($endpos(ltl_operator)) }     
+
   | e = simple_expression
           LBRACE s1 = size_expression DOTDOT s2 = size_expression RBRACE
       { Eop(Eslice(s1, s2), [e]) }
@@ -1086,6 +1105,10 @@ expression_desc:
       { Eblock(make { b_locals = []; b_vars = lo; b_body = eqs }
 	       $startpos $endpos, r) }
 ;
+
+%inline ltl_operator:
+    | BOX { "box" }
+    | DIAMOND { "diamond" }
 
 /* Periods */
 period_expression:
@@ -1142,16 +1165,19 @@ label_expression:
 /* identifiers */
 ide:
   | i = IDENT
-      { i }
+      { Printf.printf "ide: IDENT: %s\n" i;
+          i }
   | LPAREN i = infx RPAREN
       { i }
 ;
 
-ext_ident :
+ext_ident:
   | q = qual_ident
-      { Modname(q) }
+      { Printf.printf "ext_ident: qual_ident\n";
+          Modname(q) }
   | i = ide
-      { Name(i) }
+      { Printf.printf "ext_ident: ide: %s\n" i;
+          Name(i) }
 ;
 
 infx:
@@ -1252,12 +1278,12 @@ type_star_list:
       { t :: tsl }
 ;
 
-type_var :
+type_var:
   | QUOTE i = IDENT
       { i }
 ;
 
-type_comma_list :
+type_comma_list:
   | te = type_expression COMMA tl = type_comma_list
       { te :: tl }
   | te = type_expression

@@ -1,0 +1,8 @@
+(* no box test: *)
+(* let add (x : int{x > 0}) (y : int{y > 0}) : int{ add_return >= x && add_return >= y} =
+		x + y *)
+    
+
+(* box test: *)
+ let add (x : int{x > 0}) (y : int{y > 0}) : int{ box(add_return >= x && add_return >= y)} =
+		 x + y 
