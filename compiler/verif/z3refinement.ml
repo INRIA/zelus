@@ -722,21 +722,36 @@ and vc_gen_operator ctx env typenv e e_list =
     | _ -> () (*ERROR!*)
   *)
   debug(Printf.sprintf "Operator call %s : \n" e);
-  match e with 
-  | ">=" -> Arithmetic.mk_ge ctx (vc_gen_expression ctx env (hd e_list) typenv) (vc_gen_expression ctx env (hd (tl e_list)) typenv)
-  | ">" -> Arithmetic.mk_gt ctx (vc_gen_expression ctx env (hd e_list) typenv) (vc_gen_expression ctx env (hd (tl e_list)) typenv)
-  | "<=" -> Arithmetic.mk_le ctx (vc_gen_expression ctx env (hd e_list) typenv) (vc_gen_expression ctx env (hd (tl e_list)) typenv)
-  | "<" -> Arithmetic.mk_lt ctx (vc_gen_expression ctx env (hd e_list) typenv) (vc_gen_expression ctx env (hd (tl e_list)) typenv)
-  | "=" -> Boolean.mk_eq ctx (vc_gen_expression ctx env (hd e_list) typenv) (vc_gen_expression ctx env (hd (tl e_list)) typenv)
-  | "!=" -> Boolean.mk_not ctx (Boolean.mk_eq ctx (vc_gen_expression ctx env (hd e_list) typenv) (vc_gen_expression ctx env (hd (tl e_list)) typenv))
-  | "*." | "*" | "Stdlib.*." -> Arithmetic.mk_mul ctx [(vc_gen_expression ctx env (hd e_list) typenv); (vc_gen_expression ctx env (hd (tl e_list)) typenv)]
-  | "+." | "+" | "Stdlib.+." -> Arithmetic.mk_add ctx [(vc_gen_expression ctx env (hd e_list) typenv); (vc_gen_expression ctx env (hd (tl e_list)) typenv)]
-  | "-." | "-" | "Stdlib.-." -> Arithmetic.mk_sub ctx [(vc_gen_expression ctx env (hd e_list) typenv); (vc_gen_expression ctx env (hd (tl e_list)) typenv)]
-  | "~-" | "~-." -> debug(Printf.sprintf "Unary minus:"); Arithmetic.mk_unary_minus ctx (vc_gen_expression ctx env (hd e_list) typenv)
-  | "&&" -> Boolean.mk_and ctx [(vc_gen_expression ctx env (hd e_list) typenv); (vc_gen_expression ctx env (hd (tl e_list)) typenv)]
-  | "||" -> Boolean.mk_or ctx [(vc_gen_expression ctx env (hd e_list) typenv); (vc_gen_expression ctx env (hd (tl e_list)) typenv)]
-  | s -> debug(Printf.sprintf "Non-standard vc_gen_operator s : %s\n" (s)); prove_function ctx s env e_list typenv
-  | t -> debug(Printf.sprintf "Invalid vc_gen_expression symbol: %s\n" t); debug(Printf.sprintf "%d\n" (List.length e_list)); Integer.mk_numeral_s ctx "42"
+  match e_list with 
+  | op_l :: [] -> begin
+    match e with
+    | "box" -> debug(Printf.sprintf "box:\n");
+      Quantifier.expr_of_quantifier (Quantifier.mk_forall ctx [] [] 
+                                        (vc_gen_expression ctx env op_l typenv) None [] [] None None)
+    | "diamond" -> debug(Printf.sprintf "diamond:\n");
+        Quantifier.expr_of_quantifier (Quantifier.mk_exists ctx [] [] 
+                                        (vc_gen_expression ctx env op_l typenv) None [] [] None None)
+    | "~-" | "~-." -> debug(Printf.sprintf "Unary minus:"); Arithmetic.mk_unary_minus ctx (vc_gen_expression ctx env op_l typenv)
+    | s -> debug(Printf.sprintf "Non-standard vc_gen_operator s : %s\n" s); prove_function ctx s env e_list typenv
+    | t -> debug(Printf.sprintf "Invalid vc_gen_expression symbol: %s\n" t); debug(Printf.sprintf "%d\n" (List.length e_list)); Integer.mk_numeral_s ctx "42"
+  end
+  | op_l :: op_r :: [] -> begin
+    match e with 
+    | ">=" -> Arithmetic.mk_ge ctx (vc_gen_expression ctx env op_l typenv) (vc_gen_expression ctx env op_r typenv)
+    | ">" -> Arithmetic.mk_gt ctx (vc_gen_expression ctx env op_l typenv) (vc_gen_expression ctx env op_r typenv)
+    | "<=" -> Arithmetic.mk_le ctx (vc_gen_expression ctx env op_l typenv) (vc_gen_expression ctx env op_r typenv)
+    | "<" -> Arithmetic.mk_lt ctx (vc_gen_expression ctx env op_l typenv) (vc_gen_expression ctx env op_r typenv)
+    | "=" -> Boolean.mk_eq ctx (vc_gen_expression ctx env op_l typenv) (vc_gen_expression ctx env op_r typenv)
+    | "!=" -> Boolean.mk_not ctx (Boolean.mk_eq ctx (vc_gen_expression ctx env op_l typenv) (vc_gen_expression ctx env op_r typenv))
+    | "*." | "*" | "Stdlib.*." -> Arithmetic.mk_mul ctx [(vc_gen_expression ctx env op_l typenv); (vc_gen_expression ctx env op_r typenv)]
+    | "+." | "+" | "Stdlib.+." -> Arithmetic.mk_add ctx [(vc_gen_expression ctx env op_l typenv); (vc_gen_expression ctx env op_r typenv)]
+    | "-." | "-" | "Stdlib.-." -> Arithmetic.mk_sub ctx [(vc_gen_expression ctx env op_l typenv); (vc_gen_expression ctx env op_r typenv)]
+    | "&&" -> Boolean.mk_and ctx [(vc_gen_expression ctx env op_l typenv); (vc_gen_expression ctx env op_r typenv)]
+    | "||" -> Boolean.mk_or ctx [(vc_gen_expression ctx env op_l typenv); (vc_gen_expression ctx env op_r typenv)]
+    | s -> debug(Printf.sprintf "Non-standard vc_gen_operator s : %s\n" (s)); prove_function ctx s env e_list typenv
+    | t -> debug(Printf.sprintf "Invalid vc_gen_expression symbol: %s\n" t); debug(Printf.sprintf "%d\n" (List.length e_list)); Integer.mk_numeral_s ctx "42"
+  end
+  | _ -> raise (Z3FailedException "vc_gen_operator e_list matching error")
 
 (* translate vc_gen_expressions into Z3 constructs*)
 
