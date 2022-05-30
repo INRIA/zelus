@@ -79,6 +79,7 @@ and type_decl_desc =
     | Eabbrev of type_expression
     | Evariant_type of constr_decl list
     | Erecord_type of (name * type_expression) list
+    | Ecustom_refinement_type of (name * type_expression) * exp
 
 and constr_decl = constr_decl_desc localized
     
@@ -93,7 +94,7 @@ and implementation_desc =
     | Etypedecl of name * name list * type_decl
     | Econstdecl of name * is_static * exp
     (*refinement type implementation*)
-    | Erefinementdecl of name * name * exp * exp
+    | Erefinementdecl of name * name * exp * exp 
     | Efundecl of name * funexp
     | Erefinementfundecl of name * funexp * exp
 

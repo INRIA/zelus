@@ -301,7 +301,8 @@ implementation:
   | OPEN c = CONSTRUCTOR
       { Eopen c }
   | TYPE tp = type_params id = IDENT td = localized(type_declaration_desc)
-      { Etypedecl(id, tp, td) }
+      { Printf.printf "implementation: type declaration: type %s = ...\n" id; 
+      Etypedecl(id, tp, td) }
   | LET ide = ide EQUAL seq = seq_expression
       { Econstdecl(ide, false, seq) }
   | LET STATIC ide = ide EQUAL seq = seq_expression
@@ -309,7 +310,8 @@ implementation:
   (*added here*)
   (*refinement type definition*)
   | LET ide = ide COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
-      { Erefinementdecl(ide, obj, seq1, seq2)}
+      { Printf.printf "Erefinementdecl\n";
+          Erefinementdecl(ide, obj, seq1, seq2)}
   | LET ide = ide fn = simple_pattern_list COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
       { Printf.printf "Erefinementfundecl\n"; Erefinementfundecl(ide, { f_kind = A; f_atomic = false;
 			f_args = fn; f_body = seq2;
@@ -390,7 +392,8 @@ interface:
   | OPEN c = CONSTRUCTOR
       { Einter_open(c) }
   | TYPE tp = type_params i = IDENT td = localized(type_declaration_desc)
-      { Einter_typedecl(i, tp, td) }
+      { Printf.printf "interface: type declaration\n";
+          Einter_typedecl(i, tp, td) }
   | VAL i = ide COLON t = type_expression
       { Einter_constdecl(i, t) }
 ;
@@ -407,7 +410,8 @@ scalar_interface :
   | OPEN c = CONSTRUCTOR
       { [make (Einter_open(c)) $startpos $endpos] }
   | TYPE tp = type_params i = IDENT td = localized(type_declaration_desc)
-      { [make (Einter_typedecl(i, tp, td)) $startpos $endpos] }
+      { Printf.printf "scalar_interface: type declaration\n";
+          [make (Einter_typedecl(i, tp, td)) $startpos $endpos] }
   | VAL i = ide COLON t = type_expression
       { [make (Einter_constdecl(i, t)) $startpos $endpos] }
   | EXTERNAL i = ide COLON t = type_expression EQUAL list_no_sep_of(STRING)
@@ -420,13 +424,18 @@ scalar_interface :
 
 type_declaration_desc:
   | /* empty */
-      { Eabstract_type }
+      { Printf.printf "type_declaration_desc: Eabstract_type\n";
+          Eabstract_type }
   | EQUAL l = list_of(BAR, localized(constr_decl_desc))
       { Evariant_type (l) }
   | EQUAL BAR l = list_of(BAR, localized(constr_decl_desc))
       { Evariant_type (l) }
   | EQUAL LBRACE s = label_list(label_type) RBRACE
-      { Erecord_type (s) }
+      { Printf.printf "type_declaration_desc: Erecord_type\n";
+          Erecord_type (s) }
+  | EQUAL LBRACE label_type = label_type BAR seq = seq_expression RBRACE
+      { Printf.printf "type_declaration_desc: Ecustom_refinement_type\n";
+          Ecustom_refinement_type (label_type, seq) }
   | EQUAL t = type_expression
       { Eabbrev(t) }
 ;
@@ -451,7 +460,8 @@ label_list(X):
 
 label_type:
   i = IDENT COLON t = type_expression
-  { (i, t) }
+  { Printf.printf "label_type: %s:type_expression\n" i;
+      (i, t) }
 ;
 
 constr_decl_desc:
@@ -1245,7 +1255,8 @@ type_expression:
   (*Refinement type expression*)
   (* TODO: Make a refinement type data structure that stores all the data from this *)
   (*make(Erefinement(basetype, seq)) $startpos $endpos*)
-  | basetype = simple_type LBRACE seq = seq_expression RBRACE {Printf.printf "type refinement\n"; make(Erefinement(basetype, seq)) $startpos $endpos} 
+  | basetype = simple_type LBRACE seq = seq_expression RBRACE 
+      {Printf.printf "type refinement\n"; make(Erefinement(basetype, seq)) $startpos $endpos} 
   | LPAREN id = IDENT COLON t_arg = simple_type LBRACE seq = seq_expression RBRACE RPAREN a = arrow t_res = type_expression
       { Printf.printf "type typefunrefinement\n"; make(Etypefunrefinement(a, Some(id), t_arg, t_res , seq)) $startpos $endpos}
 ;
