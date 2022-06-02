@@ -1,0 +1,10 @@
+
+
+
+
+
+
+
+
+let node main () =
+  let rec (a,b) = (1,2) : (int*int) {a>0} in (a,b)

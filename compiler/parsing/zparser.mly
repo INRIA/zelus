@@ -862,11 +862,13 @@ simple_pattern:
   | c = constructor
       { make (Econstr0pat(c)) $startpos $endpos }
   | i = ide
-      { make (Evarpat i) $startpos $endpos }
+      { Printf.printf "simple_pattern: ide\n";
+          make (Evarpat i) $startpos $endpos }
   | LPAREN p = pattern RPAREN
       { p }
   | LPAREN p = pattern_comma_list RPAREN
-      { make (Etuplepat (List.rev p)) $startpos $endpos }
+      { Printf.printf "simple_pattern: LPAREN pattern_comma_list RPAREN\n";
+          make (Etuplepat (List.rev p)) $startpos $endpos }
   | LPAREN RPAREN
       { make (Econstpat(Evoid)) $startpos $endpos }
   | UNDERSCORE

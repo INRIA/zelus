@@ -76,3 +76,22 @@ let node main () =
 	print_string "Third : "; print_int z; print_newline () *)
 	print_int (*f (-1) 2 4*) (add (4) (3));
 	(add (-1) 0)
+
+
+(*
+  EXAMPLE 7: usage of LTL operator in refinement definition
+
+	- currently supported operator: box, diamond
+	- LTL operator can be connected by &&, ||
+*)
+let add (x : int{x > 0}) (y : int{y > 0}) : int{ box(add_return >= x) && diamond(add_return >= y)} =
+  x + y 
+
+let x:int{box(x>=3) || box(x<2)} = 4
+
+
+(*
+  EXAMPLE 8: custom refinement type
+
+*)
+type nat = {v : int | v >= 0}
