@@ -723,7 +723,7 @@ and vc_gen_operator ctx env typenv e e_list =
   *)
   debug(Printf.sprintf "Operator call %s : \n" e);
   match e_list with 
-  | op_l :: [] -> begin
+  | op_l :: [] -> begin (* Unary operator case *)
     match e with
     | "box" -> debug(Printf.sprintf "box:\n");
       Quantifier.expr_of_quantifier (Quantifier.mk_forall ctx [] [] 
@@ -735,7 +735,7 @@ and vc_gen_operator ctx env typenv e e_list =
     | s -> debug(Printf.sprintf "Non-standard vc_gen_operator s : %s\n" s); prove_function ctx s env e_list typenv
     | t -> debug(Printf.sprintf "Invalid vc_gen_expression symbol: %s\n" t); debug(Printf.sprintf "%d\n" (List.length e_list)); Integer.mk_numeral_s ctx "42"
   end
-  | op_l :: op_r :: [] -> begin
+  | op_l :: op_r :: [] -> begin (* Binary operator case *)
     match e with 
     | ">=" -> Arithmetic.mk_ge ctx (vc_gen_expression ctx env op_l typenv) (vc_gen_expression ctx env op_r typenv)
     | ">" -> Arithmetic.mk_gt ctx (vc_gen_expression ctx env op_l typenv) (vc_gen_expression ctx env op_r typenv)
