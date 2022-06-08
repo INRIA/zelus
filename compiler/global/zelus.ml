@@ -33,7 +33,10 @@ and type_expression_desc =
   | Etypevec of type_expression * size
   | Etypefun of kind * Zident.t option * type_expression * type_expression
   | Etypefunrefinement of kind * Zident.t option * type_expression * type_expression * exp
+  | Erefinementpairfuntype of type_expression list * exp
   | Erefinement of type_expression * exp
+  | Erefinementpair of string * type_expression
+  (* | Erefinementtype of exp * exp * exp *)
 
 and size = size_desc localized
 
@@ -110,6 +113,7 @@ and desc =
   | Eapp of app * exp * exp list
   | Eop of op * exp list
   | Etuple of exp list
+  | Erefinementtuple of exp list * type_expression * exp
   | Erecord_access of exp * Lident.t
   | Erecord of (Lident.t * exp) list
   | Erecord_with of exp * (Lident.t * exp) list
@@ -121,6 +125,7 @@ and desc =
   | Eperiod of exp period
   (*added here*)
   | Eassume of exp
+  | Erefinementtype of name * name * exp
   (*added here
   | Emove of exp*)
   | Estore of string * float (*custom keyword*)

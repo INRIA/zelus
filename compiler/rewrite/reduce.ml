@@ -66,6 +66,7 @@ let rec type_expression venv renaming ({ desc = desc } as ty_e) =
       let ty_vec = type_expression venv renaming ty_vec in
       { ty_e with desc = Etypevec(ty_vec, size venv renaming s) }
   | Erefinement(_ , _ ) -> ty_e 
+  | Erefinementpairfuntype(ty_exp_list, _) -> ty_e
   | Etypefunrefinement(k, opt_name, ty_arg, ty_res, _ ) 
   | Etypefun(k, opt_name, ty_arg, ty_res) ->
      let ty_arg = type_expression venv renaming ty_arg in
@@ -161,6 +162,10 @@ let rec expression venv renaming fun_defs ({ e_desc = desc } as e) =
      let p2, fun_defs = expression venv renaming fun_defs p2 in
      { e with e_desc = Eperiod { p_phase = p1; p_period = p2 } }, fun_defs
   | Etuple(e_list) ->
+      let e_list, fun_defs =
+        Zmisc.map_fold (expression venv renaming) fun_defs e_list in
+     { e with e_desc = Etuple(e_list) }, fun_defs
+  | Erefinementtuple(e_list, _,_) ->
       let e_list, fun_defs =
         Zmisc.map_fold (expression venv renaming) fun_defs e_list in
      { e with e_desc = Etuple(e_list) }, fun_defs

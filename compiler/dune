@@ -14,7 +14,7 @@
   (name zlcompilerlibs)
   (public_name zelus.zlcompilerlibs)
   (wrapped false)
-  (modules :standard \ zeluc compiler simulator fixstep)
+  (modules :standard \ zeluc simulator fixstep)
   (libraries menhirLib z3))
 
 (executable
@@ -22,6 +22,7 @@
   (modes (byte exe))
   (libraries unix menhirLib zlcompilerlibs)
   (modules zeluc)
+  (modules zeluc simulator fixstep)
   (promote (until-clean)))
 
 (install

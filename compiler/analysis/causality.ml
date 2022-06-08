@@ -305,6 +305,8 @@ let rec exp env c_free ({ e_desc = desc; e_typ = ty; e_loc = loc } as e) =
         Causal.skeleton_on_c c ty
     | Etuple(e_list) ->
         product (List.map (exp env c_free) e_list)
+    | Erefinementtuple(e_list, _, _) ->
+        product (List.map (exp env c_free) e_list)
     | Eop(op, e_list) ->
         operator env op c_free ty e_list
     | Eapp(_, e, e_list) ->

@@ -1,0 +1,119 @@
+(* -- This is a sandbox environment for MARVLus tests --
+    
+    Once your example has been validated, add to unit_test.zls
+
+*)
+
+(* 	ISSUE: refinement variable declaration 
+
+	- negative number operator inside refinement constraint is resolved to dummy value of 42
+*)
+(* let pi = 3.14159
+let w = 2.*.pi
+let y0:float{ -y0 >= pi} = 4.0 *)
+(* let y1:float{y1 >= -y0*.2.} = 10.0 *)
+
+(*
+	ISSUE: currently patological example
+
+*)
+(* let f2 (x : int{x < 0 }) : int{f2_return > 0} = 
+	let y = x * x in 
+	add y y *)
+
+(* let abs x = if x = 0 then -x else x *)
+(* let abs x = if x < 0 then -x else x *)
+(* let pos x = (x > 0) *)
+(* let minus x = -x compiles fine *)
+
+(* let add = fun x y -> x + y *)
+
+(* let f2 x y = add (x*x) y *)
+(* let f2 x y = add (add x x) y *)
+(* 
+let g (x:int{x>0},y:int{x>0}) : int{g_return * g_return = 1} = x
+(* let g x y = o where o = x * y *)
+
+let h (x:int{x>0},y:int{x>0}) : int{h_return * h_return = 1} = 
+	let z = g (x, y) in
+	z
+ *)
+
+(* working implementation *)
+(* let g ((x,y) : int * int) = x
+let h (x:int,y:int)  = 
+	let z = g (x,y) in
+	z *)
+
+(* let discrete g (x:int{x*x = 1}) (y:int{y*y = 1}) : int{g_return*g_return = 1} = x * y
+let a = 1
+let b = -1
+let x = 3
+let y = 2
+let z = g a b *)
+
+(* let h = g z a *)
+
+(* let discrete g (x:int{x*x = 1},y:int{y*y = 1}) : int{g_result * g_result = 1} = x * y *)
+
+(* let my_pair = ( 4 , 5 ) : x:int * y:int | x < y *)
+
+(* let my_3pair = (5 , (5 + 3, (5 + 4, 5 + 5))) : x:int * (y:int * (z:int * w:int)) | x < y && y < z && z < w *)
+
+(* let my_3pair = (5 , 5 + 3, 5 + 4, 5 + 5) : x:int * y:int * z:int * w:int | x < y && y < z && z < w *)
+
+(* let my_pair3 : int * (int * int) = (4, (5, 6)) *)
+
+(* let discrete g ( x, (y, w) : int{ x * x = 1} * (int{y * y = 1} * int{w * w = 1})) : int{g_return * g_return = 1} = x * y * w *)
+
+(* let discrete g ( x, (y, w) : int{ x > 0} * (int{ x < y } * int{y < w})) : int{g_return > w} = x + w *)
+
+(* let discrete g ( x, (y, w) : int{ x > 0} * (int{ x < y } * int{y < w})) : int{ fst g_return > w && snd g_return > w} = (x + w, y + w) *)
+
+(* let discrete fun_pairs (x, (y, w) : x:int * (y:int * w:int) | x > 0 && x  < y && y < w ) : int{fun_pairs_return > w} = w + x *)
+
+(* let discrete fun_pairs (x, (y, w) : x:int * (y:int * w:int) | x > 0 && x  < y && y < w ) : int{ fun_pairs_fst > w && fun_pairs_snd > y} = (w + x, w + y) *)
+
+(*let add (x : int{x > 2}) : int{x >= 3} = x + 1
+let node stream_nat (m:int{m > 0}) : int{stream_nat_return > 0} = nat where
+  rec nat = m -> add(pre nat) *)
+
+(*
+let discrete h a b = 
+	let z = g (a, b) in
+	g (z, a)  *)
+
+(* let discrete g x y = if x < 0 then -x else y *)
+
+(*let discrete h a b = 
+	g (g a b) a *)
+
+let discrete abs x : int{abs_return >= 0} = if x < 0 then -x else x
+(* let discrete h x y  = 
+	let z = g x y in
+	z *)
+
+(* let discrete abs (x:int{x < 0}) : int = if x < 0 then -x else x *)
+
+(* let abs (x:int{x < 0}) : int{abs_return < 0} = x
+
+let discrete pos x = (x > 0) *)
+
+(* let add x = x + 1 *)
+
+let node main () =
+    (* stream_nat 1 *)
+	(* let pair = (1, (2, 3)) in
+	print_int (fst pair) *)
+	(* let x = fst pair in
+	let y = fst (snd pair) in
+	let z = snd (snd pair) in
+	print_string "First: "; print_int x; print_newline (); print_string "Second : "; print_int y; print_newline ();
+	print_string "Third : "; print_int z; print_newline () *)
+	(* let a = 1 in
+	let b = -1 in
+	(* let z = g a b in *)
+	h (a,b) *)
+	(* let x = 1 in
+	let y =  x fby add  *)
+	abs (-1)

@@ -48,7 +48,10 @@ and type_expression_desc =
     | Etypevec of type_expression * size
     | Etypefun of kind * string option * type_expression * type_expression
     | Etypefunrefinement of kind * string option * type_expression * type_expression * exp
+    | Erefinementpairfuntype of type_expression list * exp
     | Erefinement of type_expression * exp
+    | Erefinementpair of name * type_expression
+    (* | Erefinementtype of exp * exp * exp *)
 
 and size = size_desc localized
 
@@ -76,6 +79,7 @@ and type_decl_desc =
     | Eabbrev of type_expression
     | Evariant_type of constr_decl list
     | Erecord_type of (name * type_expression) list
+    | Ecustom_refinement_type of (name * type_expression) * exp
 
 and constr_decl = constr_decl_desc localized
     
@@ -90,7 +94,7 @@ and implementation_desc =
     | Etypedecl of name * name list * type_decl
     | Econstdecl of name * is_static * exp
     (*refinement type implementation*)
-    | Erefinementdecl of name * name * exp * exp
+    | Erefinementdecl of name * name * exp * exp 
     | Efundecl of name * funexp
     | Erefinementfundecl of name * funexp * exp
 
@@ -116,6 +120,8 @@ and desc =
   | Eapp of app * exp * exp list
   | Eop of op * exp list
   | Etuple of exp list
+  | Erefinementtuple of exp list * type_expression * exp
+  | Erefinementfunpair of exp list * type_expression * exp
   | Erecord_access of exp * longname
   | Erecord of (longname * exp) list
   | Erecord_with of exp * (longname * exp) list
@@ -134,6 +140,7 @@ and desc =
   | Eautomaton of exp state_handler list * state_exp option
   | Ereset of exp * exp
   | Eblock of eq list block * exp 
+  | Erefinementtype of name * name * exp
 
 and is_rec = bool
 	       
