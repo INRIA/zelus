@@ -32,22 +32,49 @@ type immediate =
 | Estring : string -> immediate
 | Evoid : immediate
 
-(* synchronous operators *)
+(* synchronous and array operators *)
 type operator =
   | Efby : operator
+  (* unit delay *)
   | Eifthenelse : operator
+  (* mux *)
   | Eminusgreater : operator
+  (* initialization *)
   | Eunarypre : operator
+  (* unit delay *)
   | Eseq : operator
+  (* instantaneous sequence *)
   | Erun : is_inline -> operator
+  (* mark that a function is a node (statefull) *)
   | Eatomic : operator
+  (* force its argument to be atomic *)
   | Etest : operator
+  (* test the present of a signal *)
   | Eup : operator
+  (* zero-crossing detection *)
   | Eperiod : operator
+  (* period *)
   | Ehorizon : operator
-  
+  (* generate an event at a given horizon *)
+  | Edisc : operator
+  (* generate an event whenever x <> last x outside of integration *)
+  | Emap
+  (* [map f (e1, ..., en)] *)
+  | Efold
+  (* [fold f e (e1,..., en)] *)
+  | Econcat
+  (* [concat e1 e2] *)
+  | Eget
+  (* [e.(e)] *)
+  | Eget_with_default
+  (* [e.(e) default e] *)
+  | Eslice
+  (* [e.(e..e)] *)
+  | Update
+  (* [| e with e <- e |] *)
+
 and is_inline = bool
-              
+
 type pateq = pateq_desc localized
 
 and pateq_desc = name list
@@ -69,6 +96,35 @@ and ('exp, 'body) block_desc =
     { b_vars: 'exp vardec list;
       b_body: 'body }
          
+(* body of a loop *)
+type ('exp, 'body) forloop = ('exp, 'body) forloop_desc localized
+
+and ('exp, 'body) forloop_desc =
+    { for_kind : 'exp for_kind;
+      for_index : 'exp for_index list;
+      for_inputs : 'exp for_input list;
+      for_body : 'body }
+
+and 'exp for_kind =
+  | Kparallel : 'exp for_kind
+  (* parallel loop *)
+  | Kforward : 'exp option -> 'exp for_kind
+  (* iteration during one instant. The argument is the stoping condition *)
+
+and 'exp for_index = 'exp for_index_desc localized
+
+and 'exp for_index_desc =
+  { index : Ident.t; (* i in e1..e2 *)
+    low : 'exp; (* [e1] *)
+    high : 'exp (* [e2] *) }
+
+and 'exp for_input = 'exp for_input_desc localized
+
+and 'exp for_input_desc =
+  { input : Ident.t; (* xi in e1 [by e2] *)
+    arg : 'exp; (* [e1] *)
+    by : 'exp (* [e2] *) }
+
 type pattern = pattern_desc localized
 
 and pattern_desc =
@@ -109,7 +165,7 @@ type ('scondpat, 'body) present_handler_desc =
 
 and ('scondpat, 'body) present_handler =
   ('scondpat, 'body) present_handler_desc localized
-  
+
 type is_weak = bool
 
 type exp = exp_desc localized
@@ -133,6 +189,9 @@ and exp_desc =
   | Epresent : (scondpat, exp) present_handler list * exp default -> exp_desc
   | Ereset : exp * exp -> exp_desc
   | Eassert : exp -> exp_desc
+  | Eforall : (exp, exp) forloop -> exp_desc
+       (* [forall [(e) | [id in e..e]]^eps [id in e [by e],]* do e] *)
+       (* forward [(e) | [id in e..e]]^eps [id in e [by e],]* [while e] do e] *)
 
 and is_rec = bool
            
