@@ -203,20 +203,20 @@ let rec types env ty =
     | Etypefunrefinement(k, n_opt, ty_arg, ty_res, e) -> 
         let ty_arg = types env ty_arg in
         let env =
-    match n_opt with
-    | None -> env
-    | Some(n) -> Rename.append (Rename.make (S.singleton n)) env in
-        let ty_res = types env ty_res in
-        Zelus.Etypefunrefinement(kind k, None, ty_arg, ty_res, expression_types env e)
-     | Etypevec(ty_arg, si) -> Zelus.Etypevec(types env ty_arg, size env si)
-    | Etypefun(k, n_opt, ty_arg, ty_res) ->
-       let ty_arg = types env ty_arg in
-       let env =
-	 match n_opt with
-	 | None -> env
-	 | Some(n) -> Rename.append (Rename.make (S.singleton n)) env in
-       let ty_res = types env ty_res in
-       Zelus.Etypefun(kind k, None, ty_arg, ty_res)
+          match n_opt with
+          | None -> env
+          | Some(n) -> Rename.append (Rename.make (S.singleton n)) env in
+              let ty_res = types env ty_res in
+              Zelus.Etypefunrefinement(kind k, None, ty_arg, ty_res, expression_types env e)
+          | Etypevec(ty_arg, si) -> Zelus.Etypevec(types env ty_arg, size env si)
+          | Etypefun(k, n_opt, ty_arg, ty_res) ->
+            let ty_arg = types env ty_arg in
+            let env =
+              match n_opt with
+              | None -> env
+              | Some(n) -> Rename.append (Rename.make (S.singleton n)) env in
+                  let ty_res = types env ty_res in
+                  Zelus.Etypefun(kind k, None, ty_arg, ty_res)
     | Etypevec(ty_arg, si) -> Zelus.Etypevec(types env ty_arg, size env si) in
   { Zelus.desc = desc; Zelus.loc = ty.loc }
 
@@ -225,8 +225,8 @@ and size env si =
     | Sconst(i) -> Zelus.Sconst(i)
     | Sname(Name(n)) ->
        begin try
-	   let { Rename.name = m } = Rename.find n env in Zelus.Sname(m)
-	 with Not_found -> Zelus.Sglobal(Lident.Name(n))
+          let { Rename.name = m } = Rename.find n env in Zelus.Sname(m)
+        with Not_found -> Zelus.Sglobal(Lident.Name(n))
        end
     | Sname(lname) -> Zelus.Sglobal(longname lname)
     | Sop(s_op, si1, si2) ->
@@ -980,6 +980,8 @@ let rec type_decl { desc = desc; loc = loc } =
   | Eabbrev(ty) -> Zelus.Eabbrev(types Rename.empty ty)
   | Evariant_type(constr_decl_list) ->
       Zelus.Evariant_type(List.map constr_decl constr_decl_list)
+  | Ecustom_refinement_type((n, ty), e) -> 
+      Zelus.Ecustom_refinement_type((n, types Rename.empty ty), expression Rename.empty e)
   | Erecord_type(n_ty_list) ->
       Zelus.Erecord_type
         (List.map (fun (n, ty) -> (n, types Rename.empty ty)) n_ty_list) in

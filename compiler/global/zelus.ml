@@ -64,6 +64,7 @@ and type_decl_desc =
   | Eabbrev of type_expression
   | Evariant_type of constr_decl list
   | Erecord_type of (name * type_expression) list
+  | Ecustom_refinement_type of (name * type_expression) * exp
 					     
 and constr_decl = constr_decl_desc localized
 
