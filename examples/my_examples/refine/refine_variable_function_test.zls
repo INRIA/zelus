@@ -1,0 +1,41 @@
+
+
+(* let a = 3 *)
+
+(* let pi = 3.14159 *)
+(* let pi = 3 *)
+
+(* let y0:float{y0 >= pi} = 4.0 *)
+
+(* let x:int{} = 3 *)
+(* let x:int = 3  *)
+
+
+  (* test: only one input is refinement *)
+let add1 (x : int{x > 0}) (y : int) : int =
+  x + y 
+
+let add2 (x : int) (y : int{y > 0}) : int =
+  x + y 
+
+  (* test: only return type is refinement *)
+  (* True case: *)
+let f1 (x : int) (y : int) : int{f1_return >= 0} =
+  x*x + y*y
+  (* False case: *)
+let f2 (x : int) (y : int) : int{f2_return > 0} =
+  x + y 
+
+  (* test: both input and output type is refinement *)
+let add (x : int{x > 0}) (y : int{y > 0}) : int{(add_return > 0) && (add_return = x+y)} =
+  x + y 
+
+  
+  (* test: no refinement *)
+let add3 (x:int) (y:int) : int =
+  x + y
+
+
+let x0:int = 3
+let x1:int{} = 3
+let x2:int{x2>4} = 3
