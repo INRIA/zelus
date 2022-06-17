@@ -105,6 +105,7 @@ and exp =
   }
     
 and desc =
+  | Edummy
   | Elocal of Zident.t
   | Eglobal of { lname : Lident.t; typ_instance : Deftypes.typ_instance }
   | Econst of immediate

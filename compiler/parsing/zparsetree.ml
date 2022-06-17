@@ -94,7 +94,7 @@ and implementation_desc =
     | Etypedecl of name * name list * type_decl
     | Econstdecl of name * is_static * exp
     (*refinement type implementation*)
-    | Erefinementdecl of name * name * exp * exp 
+    | Erefinementdecl of name * name * exp * exp * is_static
     | Efundecl of name * funexp
     | Erefinementfundecl of name * funexp * exp
 
@@ -112,6 +112,7 @@ and is_static = bool
 and exp = desc localized
 
 and desc =
+  | Edummy
   | Evar of longname
   | Econst of immediate
   | Econstr0 of constr

@@ -606,6 +606,7 @@ let block locals body env_pat env
 (** Scoping an expression *)
 let rec expression env { desc = desc; loc = loc } =
   let desc = match desc with
+    | Edummy -> Zelus.Edummy
     | Econst(i) -> Zelus.Econst (immediate i)
     | Econstr0(lname) -> Zelus.Econstr0(longname lname)
     | Evar(Name(n)) ->
@@ -1005,7 +1006,7 @@ let implementation imp =
       | Econstdecl(n, is_static, e) ->
          Zelus.Econstdecl(n, is_static, expression Rename.empty e)
       (*added here*)
-      | Erefinementdecl(n1, n2, e1, e2) ->
+      | Erefinementdecl(n1, n2, e1, e2, _) ->
       	 Zelus.Erefinementdecl(n1, n2, expression Rename.empty e1, expression Rename.empty e2)
       | Efundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
 		      f_body = e; f_loc = loc }) ->
