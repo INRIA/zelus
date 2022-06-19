@@ -84,6 +84,7 @@ let node main () =
 	- currently supported operator: box, diamond
 	- LTL operator can be connected by &&, ||
 *)
+
 let add7 (x : int{x > 0}) (y : int{y > 0}) : int{ box(add7_return >= x) && diamond(add7_return >= y)} =
   x + y 
 
@@ -94,6 +95,7 @@ let x:int{box(x>=3) || box(x<2)} = 4
   EXAMPLE 8: custom refinement type
 
 *)
+
 type nat = {v : int | v >= 0}
 
 (* 
