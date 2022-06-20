@@ -325,7 +325,7 @@ let implementation lmm_nodes lmm_list impl =
       if Zmisc.S.mem n1 lmm_nodes
       then Lconstdecl(n1, expression Ck_base e2) :: lmm_list
      else lmm_list
-  | Erefinementfundecl(n, { f_kind = k; f_args = p_list; f_env = f_env; f_body = e }, _)
+  | Erefinementfundecl(n, { f_kind = k; f_args = p_list; f_env = f_env; f_body = e })
   | Efundecl(n, { f_kind = k; f_args = p_list; f_env = f_env; f_body = e }) ->
      if Zmisc.S.mem n lmm_nodes then
        let iset = List.fold_left (Vars.fv_pat S.empty) S.empty p_list in

@@ -241,7 +241,7 @@ and local ({ l_eq = l_eq_list; l_env = l_env } as l) =
 let implementation impl =
   match impl.desc with
   | Eopen _ | Etypedecl _ | Econstdecl _ | Erefinementdecl _ | Efundecl(_, { f_kind = A }) -> impl
-  | Erefinementfundecl(n, ({ f_body = e; f_env = f_env } as body), _) 
+  | Erefinementfundecl(n, ({ f_body = e; f_env = f_env } as body)) 
   | Efundecl(n, ({ f_body = e; f_env = f_env } as body)) ->
      { impl with desc = Efundecl(n, { body with f_body = exp e }) }
 

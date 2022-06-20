@@ -82,7 +82,7 @@ and implementation_desc =
   (*refinement type definition*)
   | Erefinementdecl of name * name * exp * exp
   | Efundecl of name * funexp
-  | Erefinementfundecl of name * funexp * exp
+  | Erefinementfundecl of name * funexp
 			 
 and funexp =
   { f_kind: kind;

@@ -1018,13 +1018,13 @@ let implementation imp =
                              Zelus.f_loc = loc })
       (*added here*)
       | Erefinementfundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
-            f_body = e; f_loc = loc }, e2) ->
+            f_body = e; f_loc = loc }) ->
           let _, env, p_list = pattern_list Rename.empty p_list in
           Zelus.Erefinementfundecl(n, { Zelus.f_kind = kind k; Zelus.f_atomic = is_atomic;
                               Zelus.f_args = p_list;
             Zelus.f_body = expression env e;
                               Zelus.f_env = Rename.typ_env env;
-                              Zelus.f_loc = loc }, expression Rename.empty e2)
+                              Zelus.f_loc = loc })
       | Eopen(n) -> Zelus.Eopen(n)
       | Etypedecl(n, params, tydecl) ->
          Zelus.Etypedecl(n, params, type_decl tydecl) in

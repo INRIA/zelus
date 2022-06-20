@@ -536,7 +536,7 @@ let implementation ff impl =
           ("") shortname n1 expression e2
     | Efundecl(n, body) ->
         fprintf ff "@[<v 2>let %a =@ %a@.@]" shortname n funexp body
-    | Erefinementfundecl(n, body, e_refinement) -> 
+    | Erefinementfundecl(n, body) -> 
         fprintf ff "@[<v 2>let %a =@ %a@.@]" shortname n funexp body (* TODO: printing information can be more detailed *)
 
 let implementation_list ff imp_list =

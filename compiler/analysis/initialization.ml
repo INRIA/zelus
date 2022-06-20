@@ -649,7 +649,7 @@ let implementation ff impl =
         (* output the signature *)
         if !Zmisc.print_initialization_types then Pinit.declaration ff f tis
     | Erefinementfundecl(f, { f_kind = k; f_atomic = atomic; f_args = p_list;
-                    f_body = e; f_env = h0; f_loc = loc }, _) -> 
+                    f_body = e; f_env = h0; f_loc = loc }) -> 
         let is_continuous = match k with | C -> true | _ -> false in
         Zmisc.push_binding_level ();
         let env = build_env loc is_continuous h0 Env.empty in

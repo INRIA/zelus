@@ -1289,9 +1289,12 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
             and a constraint defining its return type*)
             (* List.iter print_env_list !local_env; print_newline (); *)
             
-      
       | Erefinementfundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
-          f_body = e; f_loc = loc }, rettype) -> debug(Printf.sprintf "Erefinementfundecl %s\n" n); 
+          f_body = e; f_loc = loc }) -> debug(Printf.sprintf "Erefinementfundecl %s\n" n);
+          let rettype = (match (List.hd p_list).p_desc with 
+                          |Etypeconstraintpat(_,t) -> (match t.desc with 
+                                                        |Erefinement(_,seq) -> seq)) in 
+          let p_list = (match p_list with | hd::xs->xs) in (* get the first element of p_list and remove it *)
           let argc = (List.length p_list) in 
           let typenv = Hashtbl.create argc in
           let local_env = { exp_env = ref []; var_env = Hashtbl.create 0} in

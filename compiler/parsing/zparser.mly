@@ -314,7 +314,7 @@ implementation:
           Erefinementdecl(ide, obj, seq1, seq2, false) }
     (*added here: use Erefinementdecl to store regular variable decl*)
   | LET ide = ide COLON obj = ide   EQUAL seq2 = seq_expression
-      { Printf.printf "Erefinementdecl\n";
+      { Printf.printf "Erefinementdecl trivially true\n";
           Erefinementdecl(ide, obj, 
           {desc=Econst(Ebool(true));loc=localise $startpos(seq2) $endpos(seq2)}, seq2, false) }           
   | LET ide = ide fn = simple_pattern_list COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
@@ -322,17 +322,17 @@ implementation:
 			f_args = fn; f_body = seq2;
 			f_loc = localise $startpos(fn) $endpos(seq2) }, seq1) }
     (*added here: use Erefinementfundecl to store regular fun decl*)
-  | LET ide = ide fn = simple_pattern_list COLON obj = ide  EQUAL seq2 = seq_expression
-      { Printf.printf "Erefinementfundecl\n"; Erefinementfundecl(ide, { f_kind = A; f_atomic = false;
+  /* | LET ide = ide fn = simple_pattern_list COLON obj = ide  EQUAL seq2 = seq_expression
+      { Printf.printf "Erefinementfundecl trivially true\n"; Erefinementfundecl(ide, { f_kind = A; f_atomic = false;
 			f_args = fn; f_body = seq2;
 			f_loc = localise $startpos(fn) $endpos(seq2) }, 
             {desc=Econst(Ebool(true));loc=localise $startpos(seq2) $endpos(seq2)}) }            
   (* Erefinementfun defined with WHERE keyword*)
-  | LET ide = ide fn = simple_pattern_list COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL
+  /* | LET ide = ide fn = simple_pattern_list COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL
 	seq = seq_expression WHERE r = is_rec eqs = equation_list
       { Printf.printf "Erefinementfundecl with WHERE\n"; Erefinementfundecl(ide, { f_kind = A; f_atomic = false; 
             f_args = fn; f_body = make(Elet(r, eqs, seq)) $startpos(seq) $endpos(eqs);
-		    f_loc = localise $startpos(fn) $endpos(eqs) }, seq1) }
+		    f_loc = localise $startpos(fn) $endpos(eqs) }, seq1) } */
   | LET ide = ide fn = simple_pattern_list EQUAL seq = seq_expression
       { Printf.printf "Efundecl \n"; Efundecl(ide, { f_kind = A; f_atomic = false;
 			f_args = fn; f_body = seq;
@@ -349,17 +349,17 @@ implementation:
 		 { f_kind = k; f_atomic = a; f_args = fn; f_body = seq;
 		  f_loc = localise $startpos(fn) $endpos(seq) }) }
   (* TODO : include refinement type matching here *)
-  | is_let a = is_atomic k = kind ide = ide fn = simple_pattern_list COLON 
+  /* | is_let a = is_atomic k = kind ide = ide fn = simple_pattern_list COLON 
                          obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
       { Erefinementfundecl(ide, { f_kind = k; f_atomic = a; f_args = fn; f_body = seq2;
-                                  f_loc = localise $startpos(fn) $endpos(fn)}, seq1 )}
+                                  f_loc = localise $startpos(fn) $endpos(fn)}, seq1 )} */
   (* kind refinement function with where*)
-  | is_let a = is_atomic k = kind ide = ide fn = simple_pattern_list COLON 
+  /* | is_let a = is_atomic k = kind ide = ide fn = simple_pattern_list COLON 
                          obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq = seq_expression
                          WHERE r = is_rec eqs = equation_list
       { Printf.printf "Kinded refinement function with WHERE\n"; 
         Erefinementfundecl(ide, { f_kind = k; f_atomic = a; f_args = fn; f_body = make(Elet(r, eqs, seq)) $startpos(seq) $endpos(eqs);
-			                      f_loc = localise $startpos(fn) $endpos(eqs) }, seq1) }
+			                      f_loc = localise $startpos(fn) $endpos(eqs) }, seq1) } */
   | is_let a = is_atomic k = kind ide = ide
 	  fn = simple_pattern_list EQUAL seq = seq_expression
           WHERE r = is_rec eqs = equation_list
@@ -1287,8 +1287,8 @@ simple_type:
   | t = simple_type i = ext_ident
       { Printf.printf "simple type constr\n"; make (Etypeconstr(i, [t])) $startpos $endpos }
   (*simple refinement type*)
-  | basetype = simple_type LBRACE seq = seq_expression RBRACE 
-      { Printf.printf "type refinement simple type\n"; make(Erefinement(basetype, seq)) $startpos $endpos}
+  /* | basetype = simple_type LBRACE seq = seq_expression RBRACE 
+      { Printf.printf "type refinement simple type\n"; make(Erefinement(basetype, seq)) $startpos $endpos} */
   (* refinement type specification for pairs *)
   | binding_var = ide COLON basetype = simple_type
       { Printf.printf "type refinement pair\n"; make(Erefinementpair(binding_var, basetype)) $startpos $endpos}

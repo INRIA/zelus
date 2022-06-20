@@ -96,14 +96,15 @@ and implementation_desc =
     (*refinement type implementation*)
     | Erefinementdecl of name * name * exp * exp * is_static
     | Efundecl of name * funexp
-    | Erefinementfundecl of name * funexp * exp
+    | Erefinementfundecl of name * funexp
 
 and funexp =
   { f_kind: kind;
     f_atomic: is_atomic;
     f_args: pattern list;
     f_body: exp;
-    f_loc: location }
+    f_loc: location;
+    }
     
 and is_atomic = bool
 

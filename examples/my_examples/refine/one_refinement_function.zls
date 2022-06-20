@@ -1,0 +1,7 @@
+
+
+
+
+
+let add1 (x : int{x > 0}) (y : int) : int{add1_return > 0} =
+  x * x

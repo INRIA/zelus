@@ -740,7 +740,7 @@ let implementation { Zelus.desc = desc } =
      let { step = s } = expression Env.empty e2 in
      Oletvalue(n1, s)
   | Zelus.Erefinementfundecl(n, ({ Zelus.f_kind = k; Zelus.f_args = pat_list;
-      Zelus.f_body = e; Zelus.f_env = f_env }), _)
+      Zelus.f_body = e; Zelus.f_env = f_env }))
   | Zelus.Efundecl(n, { Zelus.f_kind = k; Zelus.f_args = pat_list;
 			Zelus.f_body = e; Zelus.f_env = f_env }) ->
      let pat_list = List.map pattern pat_list in

@@ -531,7 +531,7 @@ let implementation impl =
         let e1 = exp S.empty e1 in
         let e2 = exp S.empty e2 in
         { impl with desc = Erefinementdecl(n1,n2,e1,e2) }
-    | Erefinementfundecl(n, ({ f_body = e } as body), _)
+    | Erefinementfundecl(n, ({ f_body = e } as body))
     | Efundecl(n, ({ f_body = e } as body)) ->
         { impl with desc = Efundecl(n, { body with f_body = exp S.empty e }) }
 
