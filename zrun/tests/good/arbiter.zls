@@ -20,7 +20,7 @@ let node sequential_or_gate(x,y) returns (z)
 let node and_gate(x,y) returns (z)
     z = x && y
 
-let node strict_or_gate(x,y) returns (z)
+let node or_gate(x,y) returns (z)
     z = x or y
 
 
@@ -35,7 +35,7 @@ let node arbiter(i, request, pass_in, token_in)
   and
    (* grant is given when there is a request and either 1/ it is my round or *)
    (* my left neibour had the token but did not take it *)
-   o =  sequential_or_gate(token_in, pass_in) 
+   o = sequential_or_gate(token_in, pass_in)
   and
     token_out = i fby token_in
   done
