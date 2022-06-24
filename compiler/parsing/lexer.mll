@@ -22,6 +22,7 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "assert", ASSERT;
   "atomic", ATOMIC;
   "automaton", AUTOMATON;
+  "by", BY;
   "clock", CLOCK;
   "continue", CONTINUE;
   "default", DEFAULT;
@@ -37,6 +38,8 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "external", EXTERNAL;
   "false", BOOL(false); 
   "fby", FBY;
+  "forall", FORALL;
+  "forward", FORWARD;
   "fun", FUN;
   "hybrid", HYBRID;
   "if", IF;
@@ -69,6 +72,7 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "val", VAL;
   "where", WHERE;
   "with", WITH;
+  "while", WHILE;
   "quo", INFIX3("quo");
   "mod", INFIX3("mod");
   "land", INFIX3("land");
@@ -126,8 +130,13 @@ let char_for_decimal_code lexbuf i =
 rule main = parse 
   | [' ' '\010' '\013' '\009' '\012'] +   { main lexbuf }
   | "."  { DOT }
+  | ".."  { DOTDOT }
   | "("  { LPAREN }
   | ")"  { RPAREN }
+  | "["  { LBRACKET }
+  | "]"  { RBRACKET }
+  | "[|" { LBRACKETBAR }
+  | "|]" { RBRACKETBAR }
   | "*"  { STAR }
   | ":"  { COLON }
   | "="  { EQUAL }

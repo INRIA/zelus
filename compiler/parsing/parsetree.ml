@@ -70,7 +70,7 @@ type operator =
   (* [e.(e) default e] *)
   | Eslice
   (* [e.(e..e)] *)
-  | Update
+  | Eupdate
   (* [| e with e <- e |] *)
 
 and is_inline = bool
@@ -101,12 +101,12 @@ type ('exp, 'body) forloop = ('exp, 'body) forloop_desc localized
 
 and ('exp, 'body) forloop_desc =
     { for_kind : 'exp for_kind;
-      for_index : 'exp for_index list;
+      for_indexes : 'exp for_index list;
       for_inputs : 'exp for_input list;
       for_body : 'body }
 
 and 'exp for_kind =
-  | Kparallel : 'exp for_kind
+  | Kforall : 'exp for_kind
   (* parallel loop *)
   | Kforward : 'exp option -> 'exp for_kind
   (* iteration during one instant. The argument is the stoping condition *)
@@ -114,16 +114,16 @@ and 'exp for_kind =
 and 'exp for_index = 'exp for_index_desc localized
 
 and 'exp for_index_desc =
-  { index : Ident.t; (* i in e1..e2 *)
+  { index : name; (* i in e1..e2 *)
     low : 'exp; (* [e1] *)
     high : 'exp (* [e2] *) }
 
 and 'exp for_input = 'exp for_input_desc localized
 
 and 'exp for_input_desc =
-  { input : Ident.t; (* xi in e1 [by e2] *)
-    arg : 'exp; (* [e1] *)
-    by : 'exp (* [e2] *) }
+  { input : name; (* xi in e1 [by e2], that is, xi = e1.(e2 * i) *)
+    exp : 'exp; (* [e1] *)
+    by : 'exp option (* [e2] *) }
 
 type pattern = pattern_desc localized
 
@@ -189,9 +189,10 @@ and exp_desc =
   | Epresent : (scondpat, exp) present_handler list * exp default -> exp_desc
   | Ereset : exp * exp -> exp_desc
   | Eassert : exp -> exp_desc
-  | Eforall : (exp, exp) forloop -> exp_desc
-       (* [forall [(e) | [id in e..e]]^eps [id in e [by e],]* do e] *)
-       (* forward [(e) | [id in e..e]]^eps [id in e [by e],]* [while e] do e] *)
+  | Eforloop : (exp, exp) forloop -> exp_desc
+       (* [forall [(e) | [id < e]]^eps [id in e [by e],]* do e] *)
+       (* forward [(e) | [id < e]]^eps [id in e [by e],]* 
+          [while e] do e] *)
 
 and is_rec = bool
            
@@ -208,9 +209,12 @@ and eq = eq_desc localized
 
 and eq_desc = 
   | EQeq : pattern * exp -> eq_desc
+  (* [p = e] *)
   | EQder :
       name * exp * exp option * (scondpat, exp) present_handler list -> eq_desc
+  (* [der n = e [init e0] [reset p1 -> e1 | ... | pn -> en]] *)
   | EQinit : name * exp -> eq_desc
+  (* [init n = e0 *)
   | EQemit : name * exp option -> eq_desc
   | EQif : exp * eq * eq -> eq_desc
   | EQand : eq list -> eq_desc

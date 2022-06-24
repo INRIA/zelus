@@ -42,18 +42,45 @@ type immediate =
 
 (* synchronous operators *)
 type operator =
-| Efby : operator (* unit delay *)
-| Eunarypre : operator (* unit delay *)
-| Eifthenelse : operator (* mux *)
-| Eminusgreater : operator (* initialization *)
-| Eseq : operator (* sequence *)
-| Erun : is_inline -> operator (* application of a statefull function *)
-| Eatomic : operator (* the argument is atomic *)
-| Etest : operator (* testing the presence of a signal *)
-| Eup : operator (* zero-crossing detection *)
-| Eperiod : operator (* period *)
-| Ehorizon : operator (* horizon *)
-
+  | Efby : operator
+  (* unit delay *)
+  | Eunarypre : operator
+  (* unit delay *)
+  | Eifthenelse : operator
+  (* mux *)
+  | Eminusgreater : operator
+  (* initialization *)
+  | Eseq : operator
+  (* sequence *)
+  | Erun : is_inline -> operator
+  (* application of a statefull function *)
+  | Eatomic : operator
+  (* the argument is atomic *)
+  | Etest : operator
+  (* testing the presence of a signal *)
+  | Eup : operator
+  (* zero-crossing detection *)
+  | Eperiod : operator
+  (* period *)
+  | Ehorizon : operator
+  (* generate an event at a given horizon *)
+  | Edisc : operator
+  (* generate an event whenever x <> last x outside of integration *)
+  | Emap
+  (* [map f (e1, ..., en)] *)
+  | Efold
+  (* [fold f e (e1,..., en)] *)
+  | Econcat
+  (* [concat e1 e2] *)
+  | Eget
+  (* [e.(e)] *)
+  | Eget_with_default
+  (* [e.(e) default e] *)
+  | Eslice
+  (* [e.(e..e)] *)
+  | Update
+  (* [| e with e <- e |] *)
+  
 and is_inline = bool
 
 type pateq = pateq_desc localized
@@ -99,6 +126,34 @@ type ('exp, 'eq) block =
     b_loc: Location.t;
     mutable b_write: Deftypes.defnames;
     mutable b_env: 'exp Deftypes.tentry Ident.Env.t }
+
+(* body of a loop *)
+type ('exp, 'body) forloop =
+  { for_loc : Location.t;
+    for_kind : 'exp for_kind;
+    for_indexes : 'exp for_index list;
+    for_inputs : 'exp for_input list;
+    for_body : 'body }
+
+and 'exp for_kind =
+  | Kforall : 'exp for_kind
+  (* parallel loop *)
+  | Kforward : 'exp option -> 'exp for_kind
+  (* iteration during one instant. The argument is the stoping condition *)
+
+and 'exp for_index = 'exp for_index_desc localized
+
+and 'exp for_index_desc =
+  { index : name; (* i in e1..e2 *)
+    low : 'exp; (* [e1] *)
+    high : 'exp (* [e2] *) }
+
+and 'exp for_input = 'exp for_input_desc localized
+
+and 'exp for_input_desc =
+  { input : name; (* xi in e1 [by e2], that is, xi = e1.(e2 * i) *)
+    exp : 'exp; (* [e1] *)
+    by : 'exp option (* [e2] *) }
 
 type statepatdesc =
   | Estate0pat : Ident.t -> statepatdesc 

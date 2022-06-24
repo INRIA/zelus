@@ -25,6 +25,24 @@ let unary_minus op e start_pos end_pos =
 let unary_minus_int x = -x
 and unary_minus_float x = -.x
 
+(* Representation of lists. [] for Pervasives.[] *)
+(* [e1;...;en] for Pervasives.(::) e1 (... Pervasives.[]) *)
+let list_name n = Modname { qual = Initial.stdlib_module; id = n }
+
+let nil_desc = Evar(list_name Initial.nil_name)
+
+let cons_desc x l start_pos end_pos =
+  Eapp(make (Evar(list_name Initial.cons_name)) start_pos end_pos,
+       [make (Etuple [x; l]) start_pos end_pos])
+
+let rec cons_list_desc l start_pos end_pos =
+  match l with
+  | [] -> nil_desc
+  | x :: l -> cons_desc x (cons_list l start_pos end_pos) start_pos end_pos
+
+and cons_list l start_pos end_pos =
+  make (cons_list_desc l start_pos end_pos) start_pos end_pos
+
 let no_eq start_pos end_pos = make (EQempty) start_pos end_pos
 
 (* constructors with arguments *)
@@ -55,6 +73,21 @@ let scond_true start_pos end_pos =
   make (Econdexp(make (Econst(Ebool(true))) start_pos end_pos))
        start_pos end_pos
 
+(* building a for loop *)
+let forward_loop { loc; desc = (index_list, input_list, opt_while, body) } =
+  { loc;
+    desc = { for_kind = Kforward(opt_while);
+	     for_indexes = index_list;
+	     for_inputs = input_list;
+	     for_body = body } }
+
+let forall_loop { loc; desc = (index_list, input_list, body) } =
+  { loc;
+    desc = { for_kind = Kforall;
+	     for_indexes = index_list;
+	     for_inputs = input_list;
+	     for_body = body } }
+
 %}
 
 %token <string> CONSTRUCTOR
@@ -74,6 +107,7 @@ let scond_true start_pos end_pos =
 %token AUTOMATON      /* "automaton" */
 %token BAR            /* "|" */
 %token BARBAR         /* "||" */
+%token BY             /* "by" */
 %token CLOCK          /* "clock" */
 %token COLON          /* ":" */
 %token COMMA          /* "," */
@@ -82,6 +116,7 @@ let scond_true start_pos end_pos =
 %token DO             /* "do" */
 %token DONE           /* "done" */
 %token DOT            /* "." */
+%token DOTDOT         /* ".." */
 %token DER            /* "der" */
 %token ELSE           /* "else" */
 %token EMIT           /* "emit" */
@@ -97,15 +132,23 @@ let scond_true start_pos end_pos =
 %token GREATER        /* ">" */
 %token HYBRID         /* "hybrid" */
 %token HORIZON        /* "horizon" */
+%token FORALL         /* "forall" */
+%token FORWARD        /* "forall" */
 %token IF             /* "if" */
 %token IN             /* "in" */
 %token INIT           /* "init" */
 %token INLINE         /* "inline" */
 %token LAST           /* "last" */
 %token LBRACE         /* "{" */
+%token RBRACE         /* "}" */
+%token LBRACKET       /* "[" */
+%token RBRACKET       /* "]" */
+%token LBRACKETBAR    /* "[|" */
+%token RBRACKETBAR    /* "|]" */
 %token LET            /* "let" */
 %token LOCAL          /* "local" */
 %token LPAREN         /* "(" */
+%token RPAREN         /* ")" */
 %token MATCH          /* "match" */
 %token MINUS          /* "-" */
 %token MINUSGREATER   /* "->" */
@@ -119,12 +162,10 @@ let scond_true start_pos end_pos =
 %token PRE            /* "pre" */
 %token PRESENT        /* "present" */
 %token QUOTE          /* "'" */
-%token RBRACE         /* "}" */
 %token REC            /* "rec" */
 %token RESET          /* "reset" */
 %token RETURNS        /* "returns" */
-%token RPAREN         /* ")" */
-%token RUN            /* ")" */
+%token RUN            /* "run" */
 %token SEMI           /* ";" */
 %token STAR           /* "*" */
 %token TEST           /* "?" */
@@ -137,6 +178,7 @@ let scond_true start_pos end_pos =
 %token VAL            /* "val" */
 %token WHERE          /* "where" */
 %token WITH           /* "with" */
+%token WHILE          /* "while" */
 
 %token <string> PREFIX
 %token <string> INFIX0
@@ -724,6 +766,10 @@ simple_expression_desc:
       { Econstr0(c) }
   | i = ext_ident
       { Evar i }
+  | LBRACKET RBRACKET
+      { nil_desc }
+  | LBRACKET l = list_of(SEMI, expression) RBRACKET
+      { cons_list_desc l ($startpos($1)) ($endpos($3)) }
   | LAST i = ide
       { Elast(i) }
   | a = atomic_constant
@@ -742,8 +788,13 @@ simple_expression_desc:
       { Erecord_access(e, i) }
   | LPAREN e = simple_expression COLON t = type_expression RPAREN
       { Etypeconstraint(e, t) }
-  
-  
+  | LBRACKETBAR e1 = simple_expression BAR e2 = simple_expression RBRACKETBAR
+      { Eop(Econcat, [e1; e2]) }
+  | LBRACKETBAR e1 = simple_expression WITH i = simple_expression
+					     EQUAL e2 = expression RBRACKETBAR
+      { Eop(Eupdate, [e1; i; e2]) }
+  | e1 = simple_expression DOT LPAREN e2 = expression RPAREN
+      { Eop(Eget, [e1; e2]) }
 ;
 
 expression_comma_list :
@@ -837,18 +888,74 @@ expression_desc:
       { Epresent(List.rev pe, Else(e)) }
   | RESET e = seq_expression EVERY r = expression
     { Ereset(e, r) }
+  | FORALL f = localized(forall_loop_desc)
+    { Eforloop (forall_loop f) }
+  | FORWARD f = localized(forward_loop_desc)
+    { Eforloop (forward_loop f) }
   | PERIOD p = period_expression
     { Eop(Eperiod, p) }
   | HORIZON e = simple_expression
     { Eop(Ehorizon, [e]) }
   | ASSERT e = simple_expression
     { Eassert(e) }
+  | e = simple_expression
+      LBRACE e1 = simple_expression DOTDOT e2 = simple_expression RBRACE
+      { Eop(Eslice, [e; e1; e2]) }
+
 ;
 
 %inline opt_end:
 /* empty */
     {}
   | END {}
+;
+
+/* Loops */
+%inline forall_loop_desc:
+  | li = index_list lin = input_list DO e = expression DONE
+    { (li, lin, e) }
+;
+
+%inline forward_loop_desc:
+  | li = index_list lin = input_list o = opt_while_condition
+           DO e = expression DONE
+    { (li, lin, o, e) }
+;
+
+/* indexes in a for loop */
+%inline index_list:
+  | l = list_of(COMMA, localized(index_desc)) { l }
+;
+
+%inline index_desc:
+  | i = ide IN e1 = simple_expression DOTDOT e2 = simple_expression
+     { { index = i; low = e1; high = e2 } }
+;
+
+/* input in a for loop */
+%inline input_list:
+  | l = list_of(COMMA, localized(input_desc)) { l }
+;
+
+%inline input_desc:
+  | i = ide IN e = simple_expression o = optional(by_expression)
+     { { input = i; exp = e; by = o } }
+;
+
+%inline by_expression:
+  | BY e = simple_expression
+    { e }
+;
+
+/* while condition for a forward loop */
+%inline opt_while_condition:
+  | o = optional(while_condition)
+    { o }
+;
+
+%inline while_condition:
+  | WHILE e = expression
+    { e}
 ;
 
 /* Periods */
