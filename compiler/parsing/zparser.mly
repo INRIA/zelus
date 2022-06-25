@@ -311,7 +311,13 @@ implementation:
   (*refinement type definition*)
   | LET ide = ide COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
       { Printf.printf "Erefinementdecl\n";
-          Erefinementdecl(ide, obj, seq1, seq2)}
+
+    (*added here: use Erefinementdecl to store regular variable decl*)
+  | LET ide = ide COLON obj = ide   EQUAL seq2 = seq_expression
+      { Printf.printf "Erefinementdecl\n";
+          Erefinementdecl(ide, obj, 
+          {desc=Edummy;loc=localise $startpos(seq2) $endpos(seq2)}, seq2, false) }          
+
   | LET ide = ide fn = simple_pattern_list COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
       { Printf.printf "Erefinementfundecl\n"; Erefinementfundecl(ide, { f_kind = A; f_atomic = false;
 			f_args = fn; f_body = seq2;
@@ -1031,6 +1037,9 @@ expression_desc:
       { Eop(Eminusgreater, [e1; e2]) }
   | MINUS e = expression  %prec prec_uminus
       { unary_minus "-" e ($startpos($1)) ($endpos($1)) }
+
+  | /* empty */ { Printf.printf "expression_desc: Edummy\n"; Edummy}
+
   | s = SUBTRACTIVE e = expression  %prec prec_uminus
       { unary_minus s e ($startpos(s)) ($endpos(s)) }
   | e1 = expression i = INFIX4 e2 = expression

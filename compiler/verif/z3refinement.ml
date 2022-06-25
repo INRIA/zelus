@@ -812,6 +812,7 @@ and vc_gen_expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
         Returns Z3 vc_gen_expression
 *)
   match desc with
+    | Edummy -> Boolean.mk_true ctx
     | Econst(i) -> immediate ctx i
     | Eglobal { lname = ln } -> debug(Printf.sprintf "Eglobal vc_gen_expression\n"); create_z3_var ctx env (match ln with
       (*TODO: Append a modname to Name if not found, rather than removing it from a Modname, so we preserve module info for global declarations *)

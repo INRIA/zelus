@@ -329,6 +329,17 @@ let type_one_typedecl loc gtype (typ_name, typ_params, typ) =
           | Modules.Already_defined (name) ->
               error loc (Ealready_defined_label name)
         end
+    | Ecustom_refinement_type((n_ty), e) ->
+        check_no_repeated_label loc [n_ty];
+        let l = type_record_type typ_vars [n_ty] final_typ in
+        (* add the list of record fields to the symbol table *)
+        begin try
+            List.iter (fun g -> add_label g.qualid.id g.info) l;
+            Record_type l
+          with
+          | Modules.Already_defined (name) ->
+              error loc (Ealready_defined_label name)
+        end        
   in
 
     (* modify the description associated to the declared type *)
