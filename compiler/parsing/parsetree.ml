@@ -58,19 +58,15 @@ type operator =
   (* generate an event at a given horizon *)
   | Edisc : operator
   (* generate an event whenever x <> last x outside of integration *)
-  | Emap
-  (* [map f (e1, ..., en)] *)
-  | Efold
-  (* [fold f e (e1,..., en)] *)
-  | Econcat
+  | Econcat : operator
   (* [concat e1 e2] *)
-  | Eget
+  | Eget : operator
   (* [e.(e)] *)
-  | Eget_with_default
+  | Eget_with_default : operator
   (* [e.(e) default e] *)
-  | Eslice
+  | Eslice : operator
   (* [e.(e..e)] *)
-  | Eupdate
+  | Eupdate : operator
   (* [| e with e <- e |] *)
 
 and is_inline = bool
@@ -101,8 +97,10 @@ type ('exp, 'body) forloop = ('exp, 'body) forloop_desc localized
 
 and ('exp, 'body) forloop_desc =
     { for_kind : 'exp for_kind;
-      for_indexes : 'exp for_index list;
-      for_inputs : 'exp for_input list;
+      for_index : 'exp for_index list;
+      for_input : 'exp for_input list;
+      for_output : 'exp for_output list;
+      for_init : 'exp for_initialization list;
       for_body : 'body }
 
 and 'exp for_kind =
@@ -111,19 +109,31 @@ and 'exp for_kind =
   | Kforward : 'exp option -> 'exp for_kind
   (* iteration during one instant. The argument is the stoping condition *)
 
+and 'exp for_initialization = 'exp for_initialization_desc localized
+
+and 'exp for_initialization_desc = 
+  { last_name : name; (* [last x = e] *)
+    last_exp : 'exp }
+                
 and 'exp for_index = 'exp for_index_desc localized
 
 and 'exp for_index_desc =
-  { index : name; (* i in e1..e2 *)
-    low : 'exp; (* [e1] *)
-    high : 'exp (* [e2] *) }
+  { i_name : name; (* i in e1..e2 *)
+    i_low : 'exp; (* [e1] *)
+    i_high : 'exp (* [e2] *) }
 
 and 'exp for_input = 'exp for_input_desc localized
 
 and 'exp for_input_desc =
-  { input : name; (* xi in e1 [by e2], that is, xi = e1.(e2 * i) *)
-    exp : 'exp; (* [e1] *)
-    by : 'exp option (* [e2] *) }
+  { in_name : name; (* xi in e1 [by e2], that is, xi = e1.(e2 * i) *)
+    in_exp : 'exp; (* [e1] *)
+    in_by : 'exp option (* [e2] *) }
+
+and 'exp for_output = 'exp for_output_desc localized
+
+and 'exp for_output_desc = (* xi out x *)
+  { out_left_name : name; (* xi  *)
+    out_right_name : name; (* x *) }
 
 type pattern = pattern_desc localized
 
@@ -189,10 +199,10 @@ and exp_desc =
   | Epresent : (scondpat, exp) present_handler list * exp default -> exp_desc
   | Ereset : exp * exp -> exp_desc
   | Eassert : exp -> exp_desc
-  | Eforloop : (exp, exp) forloop -> exp_desc
-       (* [forall [(e) | [id < e]]^eps [id in e [by e],]* do e] *)
-       (* forward [(e) | [id < e]]^eps [id in e [by e],]* 
-          [while e] do e] *)
+  | Eforloop : (exp, (exp, eq) block) forloop -> exp_desc
+       (* [forall [id in e..e]* [id in e [by e],]* returns (vardec_list) do eq] *)
+       (* forward [id in e..e]* [id in e [by e],]* 
+          [while e] do e] returns (vardec_list) *)
 
 and is_rec = bool
            
@@ -228,6 +238,11 @@ and eq_desc =
       (scondpat, eq) present_handler list * eq default -> eq_desc
   | EQempty : eq_desc
   | EQassert : exp -> eq_desc
+  | EQforloop : (exp, eq) forloop -> eq_desc
+       (* [forall [id in e..e]* [id in e [by e],]* returns (vardec_list) do eq] *)
+       (* forward [id in e..e]* [id in e [by e],]* 
+          [while e] do e] returns (vardec_list) *)
+
 
 and 'body escape_desc =
   { e_cond: scondpat; 

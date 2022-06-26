@@ -74,18 +74,24 @@ let scond_true start_pos end_pos =
        start_pos end_pos
 
 (* building a for loop *)
-let forward_loop { loc; desc = (index_list, input_list, opt_while, body) } =
+let forward_loop { loc; desc = (index_list, input_list, out_list,
+				opt_while, init_list, body) } =
   { loc;
     desc = { for_kind = Kforward(opt_while);
-	     for_indexes = index_list;
-	     for_inputs = input_list;
+	     for_index = index_list;
+	     for_input = input_list;
+	     for_output = output_list;
+	     for_init = init_list;
 	     for_body = body } }
 
-let forall_loop { loc; desc = (index_list, input_list, body) } =
+let forall_loop
+      { loc; desc = (index_list, input_list, out_list, init_list, body) } =
   { loc;
     desc = { for_kind = Kforall;
-	     for_indexes = index_list;
-	     for_inputs = input_list;
+	     for_index = index_list;
+	     for_input = input_list;
+	     for_output = output_list;
+	     for_init = init_list;
 	     for_body = body } }
 
 %}
@@ -137,6 +143,7 @@ let forall_loop { loc; desc = (index_list, input_list, body) } =
 %token IF             /* "if" */
 %token IN             /* "in" */
 %token INIT           /* "init" */
+%token INITIALIZE     /* "initialize" */
 %token INLINE         /* "inline" */
 %token LAST           /* "last" */
 %token LBRACE         /* "{" */
@@ -157,6 +164,7 @@ let forall_loop { loc; desc = (index_list, input_list, body) } =
 %token ON             /* "on" */
 %token OPEN           /* "open" */
 %token OR             /* "or" */
+%token OUT            /* "out" */
 %token PERIOD         /* "period" */
 %token PLUS           /* "+" */
 %token PRE            /* "pre" */
@@ -463,7 +471,12 @@ equation_desc:
       { EQder(i, e, opt, []) }
   | DER i = ide EQUAL e = seq_expression opt = optional_init
     RESET p = present_handlers(expression) %prec prec_der_with_reset
-      { EQder(i, e, opt, p) }
+    { EQder(i, e, opt, p) }
+  | FORALL f = localized(forall_loop_eq_desc)
+    { Eforloop (forall_loop f) }
+  | FORWARD f = localized(forward_loop_eq_desc)
+    { Eforloop (forward_loop f) }
+  
 ;
 
 %inline optional_init:
@@ -888,9 +901,9 @@ expression_desc:
       { Epresent(List.rev pe, Else(e)) }
   | RESET e = seq_expression EVERY r = expression
     { Ereset(e, r) }
-  | FORALL f = localized(forall_loop_desc)
+  | FORALL f = localized(forall_loop_exp_desc)
     { Eforloop (forall_loop f) }
-  | FORWARD f = localized(forward_loop_desc)
+  | FORWARD f = localized(forward_loop_exp_desc)
     { Eforloop (forward_loop f) }
   | PERIOD p = period_expression
     { Eop(Eperiod, p) }
@@ -911,15 +924,30 @@ expression_desc:
 ;
 
 /* Loops */
-%inline forall_loop_desc:
-  | li = index_list lin = input_list DO e = expression DONE
-    { (li, lin, e) }
+%inline forall_loop_eq_desc:
+  | li = index_list lin = input_list lo = output_list
+    DO eq = equation init = forall_loop_initialization DONE
+    { (li, lin, lo, init, eq) }
 ;
 
-%inline forward_loop_desc:
-  | li = index_list lin = input_list o = opt_while_condition
-           DO e = expression DONE
-    { (li, lin, o, e) }
+%inline forward_loop_eq_desc:
+  | li = index_list lin = input_list lo = output_list o = opt_while_condition
+           DO eq = equation init = forall_loop_initialization DONE
+    { (li, lin, lo, o, init, eq) }
+;
+
+%inline forall_loop_exp_desc:
+  | li = index_list lin = input_list lo = output_list
+    RETURNS p = param DO eq = equation init = forall_loop_initialization DONE
+    { (li, lin, lo, p, init,
+       make { b_vars = lo; b_body = eq } $startpos(p) $endpos(eq)) }
+;
+
+%inline forward_loop_exp_desc:
+  | li = index_list lin = input_list lo = output_list o = opt_while_condition
+    RETURNS p = param DO eq = equation init = forall_loop_initialization DONE
+    { (li, lin, lo, o, p, init,
+       make { b_vars = lo; b_body = eq } $startpos(p) $endpos(eq)) eq) }
 ;
 
 /* indexes in a for loop */
@@ -929,7 +957,7 @@ expression_desc:
 
 %inline index_desc:
   | i = ide IN e1 = simple_expression DOTDOT e2 = simple_expression
-     { { index = i; low = e1; high = e2 } }
+     { { i_name = i; i_low = e1; i_high = e2 } }
 ;
 
 /* input in a for loop */
@@ -939,12 +967,22 @@ expression_desc:
 
 %inline input_desc:
   | i = ide IN e = simple_expression o = optional(by_expression)
-     { { input = i; exp = e; by = o } }
+     { { in_name = i; in_exp = e; in_by = o } }
 ;
 
 %inline by_expression:
   | BY e = simple_expression
     { e }
+;
+
+/* Output in a for loop */
+%inline output_list:
+  | l = list_of(COMMA, localized(output_desc)) { l }
+;
+
+%inline output_desc:
+  | o_left = ide OUT o_right = ide
+     { { out_left_name = i; out_right_name = o_right } }
 ;
 
 /* while condition for a forward loop */
@@ -957,6 +995,23 @@ expression_desc:
   | WHILE e = expression
     { e}
 ;
+
+/* Initialization of a loop */
+%inline forall_loop_initialization:
+  | { [] }
+  | INITIALIZE init = initialization_equation_list
+    { init }
+;
+
+/* initialization in a for loop */
+%inline initialization_equation_list:
+  | l = list_of(AND, localized(initialization_equation_desc)) { l }
+;
+
+%inline initialization_equation_desc:
+  | LAST i = ide EQUAL e = expression
+     { { last_name = i; last_exp = e } }
+  ;
 
 /* Periods */
 %inline period_expression:

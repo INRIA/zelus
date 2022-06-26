@@ -45,6 +45,7 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "if", IF;
   "in", IN;
   "init", INIT;
+  "initialize", INITIALIZE;
   "inline", INLINE;
   "last", LAST;
   "let", LET;
@@ -55,6 +56,7 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "on", ON;
   "open", OPEN;
   "or", OR;
+  "out", OUT;
   "period", PERIOD;
   "horizon", HORIZON;
   "pre", PRE;

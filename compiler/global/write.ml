@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2021 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2022 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -220,7 +220,24 @@ and expression ({ e_desc } as e) =
        Epresent({ handlers; default_opt })
     | Ereset(e_body, e_res) ->
        Ereset(expression e_body, expression e_res)
-    | Eassert(e_body) -> Eassert(expression e_body) in
+    | Eassert(e_body) -> Eassert(expression e_body)
+    | Eforloop({ for_kind; for_indexes; for_inputs; for_body } as b) ->
+       let for_kind =
+         match for_kind with
+         | Kforall -> for_kind
+         | Kforward(e_opt) -> Kforward(Util.optional_map expression e_opt) in
+       let for_indexes =
+         List.map
+           (fun ({ i_low; i_high } as i) ->
+             { i with i_low = expression i_low; i_high = expression i_high })
+           for_indexes in
+       let for_inputs =
+         List.map
+           (fun ({ in_exp; in_by } as i) ->
+             { i with in_exp = expression in_exp;
+                      in_by = Util.optional_map expression in_by }) for_inputs in
+       let for_body = expression for_body in
+       Eforloop({ b with for_kind; for_indexes; for_inputs; for_body }) in
   { e with e_desc = desc }
 
 

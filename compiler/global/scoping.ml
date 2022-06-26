@@ -25,6 +25,7 @@ module Error =
       | Enon_linear_pat of string
       | Enon_linear_record of string
       | Enon_linear_automaton of string
+      | Enon_linear_forall of string
       | Eautomaton_with_mixed_transitions
       | Emissing_in_orpat of string
                            
@@ -55,6 +56,11 @@ module Error =
             "%aScoping error: the state %s is defined several times in \
                this automaton.@."
             Location.output_location loc name
+      | Enon_linear_forall(name) ->
+          Format.eprintf
+	    "%aScoping error: The variable %s is bound several times \
+               in this loop.@."
+            Location.output_location loc name
       | Eautomaton_with_mixed_transitions ->
 	 Format.eprintf
 	   "%aScoping error: this automaton mixes weak \
@@ -64,16 +70,22 @@ module Error =
       raise Misc.Error 
 end
 
+module S = Set.Make (String)
+
 module Env =
   struct
     include Map.Make(String)
 
+    (* update an environment *)
     let append env0 env =
       fold (fun x v acc -> update x (function _ -> Some(v)) acc)
         env0 env
+
+    (* makes a renaming for a set of names *)
+    let make defnames env =
+      S.fold (fun s acc -> let m = fresh s in add s m acc) defnames env
   end
 
-module S = Set.Make (String)
 
 (* make a block *)
 let make_block loc s_vars s_eq =
@@ -122,9 +134,15 @@ let operator op =
   | Eatomic -> Zelus.Eatomic  
   | Etest -> Zelus.Etest
   | Eup -> Zelus.Eup
+  | Edisc -> Zelus.Edisc
   | Eperiod -> Zelus.Eperiod
   | Ehorizon -> Zelus.Ehorizon
-
+  | Eget -> Zelus.Eget
+  | Eupdate -> Zelus.Eupdate
+  | Eget_with_default -> Zelus.Eget_with_default
+  | Eslice -> Zelus.Eslice
+  | Econcat -> Zelus.Econcat
+ 
 (* translate types. *)
 let rec types { desc; loc } =
   let desc = match desc with
@@ -255,7 +273,7 @@ and build_escape defnames { desc = { e_body } } =
 
 let buildeq eq =
   let defnames = buildeq S.empty eq in
-  S.fold (fun s acc -> let m = fresh s in Env.add s m acc) defnames Env.empty
+  Env.make defnames Env.empty
   
 (** Patterns **)
 let rec pattern_translate env { desc; loc } =
@@ -287,9 +305,7 @@ and pattern_translate_list env p_list = List.map (pattern_translate env) p_list
 (* Build the renaming environment then translate *)
 and pattern env p =
   let defnames = buildpat true S.empty p in
-  let env0 =
-    S.fold
-      (fun s acc -> let m = fresh s in Env.add s m acc) defnames Env.empty in
+  let env0 = Env.make defnames Env.empty in
   pattern_translate env0 p, env0
 
 let present_handler scondpat body env { desc = { p_cond; p_body }; loc } =
@@ -530,9 +546,7 @@ and scondpat env scpat =
     scondpat scpat in
   (* first build the environment for pattern variables *)
   let defnames = build_scondpat S.empty scpat in
-  let env0 =
-    S.fold
-      (fun s acc -> let m = fresh s in Env.add s m acc) defnames Env.empty in
+  let env0 = Env.make defnames Env.empty in
   (* translate *)
   let scpat = scondpat env0 env scpat in
   scpat, env0
@@ -605,11 +619,75 @@ and expression env { desc; loc } =
     | Ereset(e_body, e_res) ->
        Zelus.Ereset(expression env e_body, expression env e_res)
     | Eassert(e_body) ->
-       Zelus.Eassert(expression env e_body) in
+       Zelus.Eassert(expression env e_body)
+    | Eforloop(l_body) ->
+       Zelus.Eforloop(forloop env l_body) in
   { Zelus.e_desc = desc; Zelus.e_loc = loc;
     Zelus.e_typ = Deftypes.no_typ; Zelus.e_caus = Defcaus.no_typ;
     Zelus.e_init = Definit.no_typ }
 
+and forloop env { for_kind; for_indexes; for_inputs; for_body } =
+  (* check that indexes and input names are pairwise different *)
+  let for_indexes, i_env =
+    Util.mapfold
+      (fun acc { i_name; i_low; i_high; i_loc } ->
+        if Env.mem i_name acc
+        then Error.error i_loc (Error.Enon_linear_forall(i_name))
+        else
+          let m = fresh i_name in
+          { Zelus.i_name = m; Zelus.i_low = expression env i_low;
+            Zelus.i_high = expression env i_high; Zelus.i_loc = i_loc },
+          Env.add i_name m i_env) Env.empty for_indexes in
+  let for_inputs, in_env =
+    Util.mapfold
+      (fun acc { in_name; in_exp; in_by; in_loc } ->
+        if Env.mem in_name acc
+        then Error.error in_loc (Error.Enon_linear_forall(in_name))
+        else
+          let m = fresh in_name in
+          { Zelus.in_name = m; Zelus.in_low = expression env in_low;
+            Zelus.in_high = expression env in_high; Zelus.i_loc = i_loc },
+          Env.add i_name m i_env) Env.empty for_indexes in
+                
+  let defnames =
+    List.fold_left
+      (fun acc { in_name; in_loc } ->
+        if S.mem in_name acc
+        then Error.error in_loc (Error.Enon_linear_forall(in_name))
+        else S.add i_name acc) names for_indexes in
+  let env_in_names = Rename.make names in
+  
+    n(index_names, in_names) { desc = desc; loc = loc } =
+	 match desc with
+	 | Einput(n, _) | Eindex(n, _, _) ->
+			   (if (S.mem n in_names) || (S.mem n out_left)
+			    then Error.error loc (Error.Enon_linear_forall(n))
+			    else S.add n in_names), out_left, out_right
+	 | Eoutput(n, m) ->
+	    (if (S.mem n in_names) || (S.mem n out_left)
+	     then Error.error loc (Error.Enon_linear_forall(n))
+	     else S.add n in_names),
+	    (if S.mem n out_left
+	     then Error.error loc (Error.Enon_linear_forall(n))
+	     else S.add n out_left),
+	    (if S.mem m out_right
+	     then Error.error loc (Error.Enon_linear_forall(m))
+	     else S.add m out_right) in
+       let in_names, out_left, out_right =
+	 List.fold_left index (S.empty, S.empty, S.empty) index_list in
+       let init acc { desc = desc; loc = loc } =
+	 match desc with
+	 | Einit_last(n, _) ->
+	    if (S.mem n acc) || (S.mem n in_names) ||
+		 (S.mem n out_left) || (S.mem n out_right)
+	    then Error.error loc (Error.Enon_linear_forall(n))
+	    else S.add n acc in
+       let defnames = List.fold_left init defnames init_list in
+       let _, defnames_in_b_eq_list =
+	 build_block_equation_list defnames b_eq_list in
+       S.union defnames (S.union (S.diff defnames_in_b_eq_list out_left)
+			   out_right)
+       
 and recordrec loc env label_e_list =
   (* check that a label name appear only once *)
   let rec recordrec labels label_e_list =

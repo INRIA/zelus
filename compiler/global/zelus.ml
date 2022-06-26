@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2021 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2022 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -66,19 +66,15 @@ type operator =
   (* generate an event at a given horizon *)
   | Edisc : operator
   (* generate an event whenever x <> last x outside of integration *)
-  | Emap
-  (* [map f (e1, ..., en)] *)
-  | Efold
-  (* [fold f e (e1,..., en)] *)
-  | Econcat
+  | Econcat : operator
   (* [concat e1 e2] *)
-  | Eget
+  | Eget : operator
   (* [e.(e)] *)
-  | Eget_with_default
+  | Eget_with_default : operator
   (* [e.(e) default e] *)
-  | Eslice
+  | Eslice : operator
   (* [e.(e..e)] *)
-  | Update
+  | Eupdate : operator
   (* [| e with e <- e |] *)
   
 and is_inline = bool
@@ -131,29 +127,27 @@ type ('exp, 'eq) block =
 type ('exp, 'body) forloop =
   { for_loc : Location.t;
     for_kind : 'exp for_kind;
-    for_indexes : 'exp for_index list;
-    for_inputs : 'exp for_input list;
-    for_body : 'body }
+    for_indexes : 'exp for_index list; (* i in e..e *)
+    for_inputs : 'exp for_input list; (* xi in x [by e] *)
+    for_body : 'body } (* body of the loop *)
 
 and 'exp for_kind =
   | Kforall : 'exp for_kind
   (* parallel loop *)
   | Kforward : 'exp option -> 'exp for_kind
-  (* iteration during one instant. The argument is the stoping condition *)
+  (* iteration during one instant. The argument is the stopping condition *)
 
-and 'exp for_index = 'exp for_index_desc localized
+and 'exp for_index =
+  { i_name : name; (* i in e1..e2 *)
+    i_low : 'exp; (* [e1] *)
+    i_high : 'exp (* [e2] *);
+    i_loc : Location.t }
 
-and 'exp for_index_desc =
-  { index : name; (* i in e1..e2 *)
-    low : 'exp; (* [e1] *)
-    high : 'exp (* [e2] *) }
-
-and 'exp for_input = 'exp for_input_desc localized
-
-and 'exp for_input_desc =
-  { input : name; (* xi in e1 [by e2], that is, xi = e1.(e2 * i) *)
-    exp : 'exp; (* [e1] *)
-    by : 'exp option (* [e2] *) }
+and 'exp for_input =
+  { in_name : name; (* xi in e1 [by e2], that is, xi = e1.(e2 * i) *)
+    in_exp : 'exp; (* [e1] *)
+    in_by : 'exp option (* [e2] *);
+    in_loc : Location.t }
 
 type statepatdesc =
   | Estate0pat : Ident.t -> statepatdesc 
@@ -230,6 +224,10 @@ and exp_desc =
         default_opt : exp default } -> exp_desc
   | Ereset : exp * exp -> exp_desc
   | Eassert : exp -> exp_desc
+  | Eforloop : (exp, exp) forloop -> exp_desc
+       (* [forall [id in e..e]* [id in e [by e],]* do e] *)
+       (* forward [id in e..e]* [id in e [by e],]* 
+          [while e] do e] *)
 
 and is_rec = bool
 
