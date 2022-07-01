@@ -328,6 +328,8 @@ let rec type_decl ff = function
   | Orecord_type(s_ty_list) ->
      print_record
        (print_couple pp_print_string print_concrete_type """ :""") ff s_ty_list
+  (* print nothing for now, can add useful information later *)
+  | Ocustom_refinement_type(_) -> () 
        
 and constr_decl ff = function
   | Oconstr0decl(s) -> fprintf ff "%s" s

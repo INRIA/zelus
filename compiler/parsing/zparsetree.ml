@@ -114,7 +114,7 @@ and is_static = bool
 and exp = desc localized
 
 and desc =
-  | Edummy
+  (* | Edummy *)
   | Evar of longname
   | Econst of immediate
   | Econstr0 of constr
