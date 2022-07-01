@@ -311,12 +311,13 @@ implementation:
   (*refinement type definition*)
   | LET ide = ide COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
       { Printf.printf "Erefinementdecl\n";
-          Erefinementdecl(ide, obj, seq1, seq2, false) }
+
     (*added here: use Erefinementdecl to store regular variable decl*)
   | LET ide = ide COLON obj = ide   EQUAL seq2 = seq_expression
       { Printf.printf "Erefinementdecl\n";
           Erefinementdecl(ide, obj, 
           {desc=Econst(Ebool(true));loc=localise $startpos(seq2) $endpos(seq2)}, seq2, false) }           
+
   | LET ide = ide fn = simple_pattern_list COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
       { Printf.printf "Erefinementfundecl\n"; Erefinementfundecl(ide, { f_kind = A; f_atomic = false;
 			f_args = fn; f_body = seq2;
@@ -327,6 +328,7 @@ implementation:
 			f_args = fn; f_body = seq2;
 			f_loc = localise $startpos(fn) $endpos(seq2) }, 
             {desc=Econst(Ebool(true));loc=localise $startpos(seq2) $endpos(seq2)}) }            
+
   (* Erefinementfun defined with WHERE keyword*)
   | LET ide = ide fn = simple_pattern_list COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL
 	seq = seq_expression WHERE r = is_rec eqs = equation_list
