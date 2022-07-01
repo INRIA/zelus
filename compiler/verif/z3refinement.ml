@@ -450,6 +450,7 @@ let immediate ctx i =
       | Estring(c) -> debug (Printf.sprintf "string: %s\n" c); Expr.mk_const ctx (Symbol.mk_string ctx c) (Real.mk_sort ctx)
       | Echar(c) -> debug (Printf.sprintf "%c" c); Integer.mk_numeral_s ctx "42"
       | Evoid -> debug (Printf.sprintf "void"); Integer.mk_numeral_s ctx "42"
+      (* | Evoid -> debug (Printf.sprintf "void"); Boolean.mk_true ctx *)
       | _ -> debug (Printf.sprintf "Ignore immediate \n"); Integer.mk_numeral_s ctx "42"
 
 (* let rec local ctx env typenv l =
@@ -812,7 +813,7 @@ and vc_gen_expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
         Returns Z3 vc_gen_expression
 *)
   match desc with
-    | Edummy -> Boolean.mk_true ctx
+    (* | Econst(Evoid) -> Boolean.mk_true ctx *)
     | Econst(i) -> immediate ctx i
     | Eglobal { lname = ln } -> debug(Printf.sprintf "Eglobal vc_gen_expression\n"); create_z3_var ctx env (match ln with
       (*TODO: Append a modname to Name if not found, rather than removing it from a Modname, so we preserve module info for global declarations *)

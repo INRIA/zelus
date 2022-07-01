@@ -316,7 +316,7 @@ implementation:
   | LET ide = ide COLON obj = ide   EQUAL seq2 = seq_expression
       { Printf.printf "Erefinementdecl\n";
           Erefinementdecl(ide, obj, 
-          {desc=Edummy;loc=localise $startpos(seq2) $endpos(seq2)}, seq2, false) }          
+          {desc=Econst(Ebool(true));loc=localise $startpos(seq2) $endpos(seq2)}, seq2, false) }           
 
   | LET ide = ide fn = simple_pattern_list COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
       { Printf.printf "Erefinementfundecl\n"; Erefinementfundecl(ide, { f_kind = A; f_atomic = false;
@@ -327,7 +327,8 @@ implementation:
       { Printf.printf "Erefinementfundecl\n"; Erefinementfundecl(ide, { f_kind = A; f_atomic = false;
 			f_args = fn; f_body = seq2;
 			f_loc = localise $startpos(fn) $endpos(seq2) }, 
-            {desc=Edummy;loc=localise $startpos(seq2) $endpos(seq2)}) }            
+            {desc=Econst(Ebool(true));loc=localise $startpos(seq2) $endpos(seq2)}) }            
+
   (* Erefinementfun defined with WHERE keyword*)
   | LET ide = ide fn = simple_pattern_list COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL
 	seq = seq_expression WHERE r = is_rec eqs = equation_list
@@ -1044,7 +1045,9 @@ expression_desc:
   | MINUS e = expression  %prec prec_uminus
       { unary_minus "-" e ($startpos($1)) ($endpos($1)) }
 
-  | /* empty */ { Printf.printf "expression_desc: Edummy\n"; Edummy}
+  |  { Printf.printf "expression_desc: Econst(Ebool(true))\n"; Econst(Ebool(true))}
+  /* | empty { Printf.printf "expression_desc: void\n"; Econst(Evoid)} */
+
 
   | s = SUBTRACTIVE e = expression  %prec prec_uminus
       { unary_minus s e ($startpos(s)) ($endpos(s)) }

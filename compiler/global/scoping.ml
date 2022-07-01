@@ -606,7 +606,7 @@ let block locals body env_pat env
 (** Scoping an expression *)
 let rec expression env { desc = desc; loc = loc } =
   let desc = match desc with
-    | Edummy -> Zelus.Edummy
+    (* | Edummy -> Zelus.Edummy *)
     | Econst(i) -> Zelus.Econst (immediate i)
     | Econstr0(lname) -> Zelus.Econstr0(longname lname)
     | Evar(Name(n)) ->
