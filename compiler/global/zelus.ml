@@ -90,7 +90,9 @@ and funexp =
     f_args: pattern list;
     f_body: exp;
     mutable f_env: Deftypes.tentry Zident.Env.t;
-    f_loc: location }
+    f_loc: location;
+    f_retrefine: exp
+    }
     
 and is_atomic = bool
 

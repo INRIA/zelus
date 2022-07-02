@@ -1009,22 +1009,24 @@ let implementation imp =
       | Erefinementdecl(n1, n2, e1, e2, _) ->
       	 Zelus.Erefinementdecl(n1, n2, expression Rename.empty e1, expression Rename.empty e2)
       | Efundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
-		      f_body = e; f_loc = loc }) ->
+		      f_body = e; f_loc = loc; f_retrefine = retrefine }) ->
          let _, env, p_list = pattern_list Rename.empty p_list in
          Zelus.Efundecl(n, { Zelus.f_kind = kind k; Zelus.f_atomic = is_atomic;
                              Zelus.f_args = p_list;
 			     Zelus.f_body = expression env e;
                              Zelus.f_env = Rename.typ_env env;
-                             Zelus.f_loc = loc })
+                             Zelus.f_loc = loc;
+                             Zelus.f_retrefine = expression env retrefine})
       (*added here*)
       | Erefinementfundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
-            f_body = e; f_loc = loc }) ->
+                                f_body = e; f_loc = loc; f_retrefine = retrefine }) ->
           let _, env, p_list = pattern_list Rename.empty p_list in
           Zelus.Erefinementfundecl(n, { Zelus.f_kind = kind k; Zelus.f_atomic = is_atomic;
                               Zelus.f_args = p_list;
-            Zelus.f_body = expression env e;
+                              Zelus.f_body = expression env e;
                               Zelus.f_env = Rename.typ_env env;
-                              Zelus.f_loc = loc })
+                              Zelus.f_loc = loc;
+                              Zelus.f_retrefine = expression env retrefine })
       | Eopen(n) -> Zelus.Eopen(n)
       | Etypedecl(n, params, tydecl) ->
          Zelus.Etypedecl(n, params, type_decl tydecl) in

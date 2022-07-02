@@ -104,6 +104,7 @@ and funexp =
     f_args: pattern list;
     f_body: exp;
     f_loc: location;
+    f_retrefine: exp;
     }
     
 and is_atomic = bool

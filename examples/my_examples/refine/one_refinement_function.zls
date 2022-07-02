@@ -3,5 +3,14 @@
 
 
 
-let add1 (x : int{x > 0}) (y : int) : int{add1_return > 0} =
-  x * x
+let add1 (x : int{x > 0}) (y : int) : int{add1_return > 0} = x * x
+
+let add2 (x: int{x>0}) (y:int) : int{add2_return>0} = x+y
+
+let add3 (x: int{x>0}) (y:int) = x+y
+
+let add4 x y = x+y
+
+let add5 (x:int) (y:int) = x+y
+
+let add6 (x: int) (y:int) : int = x+y

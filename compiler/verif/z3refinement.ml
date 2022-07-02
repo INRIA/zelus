@@ -563,8 +563,7 @@ and prove_function ctx n local_env arg_list typenv =
 
     else ( *)(
       if (Hashtbl.mem !function_space n) 
-        (* refinement function, make sure input list obeys constraints
-            *)
+        (* refinement function, make sure input list obeys constraints *)
         then (
           let ref_fun = Hashtbl.find !function_space n in
           debug (Printf.sprintf "TODO -- check if arguments obey constraints\n");
@@ -574,6 +573,9 @@ and prove_function ctx n local_env arg_list typenv =
           Printf.printf "Arg_list[0]: %s\n" (Expr.to_string expr_test); *)
           let constraint_env = { exp_env = ref ref_fun.argument_constraints ; var_env = ref_fun.creation_env.var_env } in 
           let arguments = List.map (fun elem -> create_z3_var ctx constraint_env elem) ref_fun.argument_list in
+          Printf.printf "map2 error is here!!\n";
+          Printf.printf "name of function:%s\n" n;
+          Printf.printf "# of Arguments in arg_list:%d arguments:%d\n" (List.length arg_list) (List.length arguments);
           let checks = List.map2 (fun elem1 elem2 -> create_validation_check ctx constraint_env elem1 elem2) arg_list arguments in
           (* let environment_constraints = List.map (get_environment_constraints ctx local_env typenv) arg_list in *)
           (* print_env ({ exp_env = ref( checks @ environment_constraints); var_env = Hashtbl.create 0}); *)
@@ -733,7 +735,7 @@ and vc_gen_operator ctx env typenv e e_list =
         Quantifier.expr_of_quantifier (Quantifier.mk_exists ctx [] [] 
                                         (vc_gen_expression ctx env op_l typenv) None [] [] None None)
     | "~-" | "~-." -> debug(Printf.sprintf "Unary minus:"); Arithmetic.mk_unary_minus ctx (vc_gen_expression ctx env op_l typenv)
-    | s -> debug(Printf.sprintf "Non-standard vc_gen_operator s : %s\n" s); prove_function ctx s env e_list typenv
+    | s -> debug(Printf.sprintf "Non-standard vc_gen_operator s : %s\n" s);Printf.printf "op_l\n"; prove_function ctx s env e_list typenv
     | t -> debug(Printf.sprintf "Invalid vc_gen_expression symbol: %s\n" t); debug(Printf.sprintf "%d\n" (List.length e_list)); Integer.mk_numeral_s ctx "42"
   end
   | op_l :: op_r :: [] -> begin (* Binary operator case *)
@@ -821,7 +823,11 @@ and vc_gen_expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
       | Modname(qualid) -> debug(Printf.sprintf "Modname: %s\n" qualid.id); qualid.id) 
     | Eapp({ app_inline = i; app_statefull = r }, e, e_list) -> 
       (*Printf.printf "vc_gen_expression %s\n" (Expr.to_string (vc_gen_expression ctx env e typenv));*)
-      debug(Printf.sprintf "vc_gen_expression app:\n");
+      (* debug(Printf.sprintf "vc_gen_expression app:\n"); *)
+      
+      
+    (* TODO: print e_list *)
+    
       vc_gen_operator ctx env typenv (*Expr.to_string (vc_gen_expression ctx env e typenv)*) (operator_vc_gen_expression_to_string e) e_list 
     | Elocal(n) -> debug(Printf.sprintf "Elocal: %s : %d\n" n.source n.num);
           (match typenv with
@@ -1260,7 +1266,7 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
          z3_solve ctx env (vc_gen_expression ctx env e1 None);
          print_env env
 
-      | Efundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
+      | Erefinementfundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
 		      f_body = e; f_loc = loc }) -> debug(Printf.sprintf "Efundecl %s\n" n); 
             debug(Printf.sprintf "# of Arguments: %d\n" (List.length p_list));
 
@@ -1288,13 +1294,11 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
             (* function proved, add to global environment, create a Z3 function 
             and a constraint defining its return type*)
             (* List.iter print_env_list !local_env; print_newline (); *)
-            
-      | Erefinementfundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
-          f_body = e; f_loc = loc }) -> debug(Printf.sprintf "Erefinementfundecl %s\n" n);
-          let rettype = (match (List.hd p_list).p_desc with 
-                          |Etypeconstraintpat(_,t) -> (match t.desc with 
-                                                        |Erefinement(_,seq) -> seq)) in 
-          let p_list = (match p_list with | hd::xs->xs) in (* get the first element of p_list and remove it *)
+             
+      (* | Efundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
+                      f_body = e; f_loc = loc; f_retrefine = rettype }) *)
+      | Efundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
+          f_body = e; f_loc = loc; f_retrefine = rettype }) -> debug(Printf.sprintf "Erefinementfundecl %s\n" n);
           let argc = (List.length p_list) in 
           let typenv = Hashtbl.create argc in
           let local_env = { exp_env = ref []; var_env = Hashtbl.create 0} in
