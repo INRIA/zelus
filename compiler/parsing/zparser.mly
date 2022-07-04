@@ -319,19 +319,16 @@ implementation:
           Erefinementdecl(ide, obj, 
           {desc=Econst(Ebool(true));loc=localise $startpos(seq2) $endpos(seq2)}, seq2, false) }           
   /* | LET ide = ide fn = simple_pattern_list COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression */
-  | LET ide = ide fn = simple_pattern_list COLON t1 = ide LBRACE seq = seq_expression RBRACE 
-    EQUAL seq2 = seq_expression
+  | LET ide = ide fn = simple_pattern_list COLON ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
       { Printf.printf "Erefinementfundecl\n"; Efundecl(ide, { 
             f_kind = A; f_atomic = false;
             f_args = fn;
             f_body = seq2;
 			f_loc = localise $startpos(fn) $endpos(seq2);
-            f_retrefine = seq
+            f_retrefine = seq1
              }) }
-              /* | basetype = simple_type LBRACE seq = seq_expression RBRACE 
-      {Printf.printf "type refinement\n"; make(Erefinement(basetype, seq)) $startpos $endpos}  */
 
-    (*added here: use Erefinementfundecl to store regular fun decl*)
+    (*added here: use Erefinementfundecl to store non-refinement function*)
   | LET ide = ide fn = simple_pattern_list EQUAL seq = seq_expression    
   | LET ide = ide fn = simple_pattern_list COLON ide EQUAL seq = seq_expression
         { Printf.printf "Erefinementfundecl trivially true\n"; Efundecl(ide, { f_kind = A; f_atomic = false;
@@ -356,8 +353,8 @@ implementation:
         } */
   
   (* non-refinement function with WHERE *)
-  | LET ide = ide fn = simple_pattern_list EQUAL
-	seq = seq_expression WHERE r = is_rec eqs = equation_list
+  | LET ide = ide fn = simple_pattern_list EQUAL seq = seq_expression WHERE r = is_rec eqs = equation_list
+  | LET ide = ide fn = simple_pattern_list COLON ide EQUAL seq = seq_expression WHERE r = is_rec eqs = equation_list
         { Printf.printf "non-refinement function with WHERE\n"; Efundecl(ide, { f_kind = A; f_atomic = false; f_args = fn;
 			f_body = make(Elet(r, eqs, seq))
 				 $startpos(seq) $endpos(eqs);
@@ -385,8 +382,7 @@ implementation:
   /* which is in "dune build" stage */
   /* -> Now the verification is handled in Efundecl, see z3refinement.ml */
   (* kinded non-refinement function *)
-  | is_let a = is_atomic k = kind ide = ide fn = simple_pattern_list
-					EQUAL seq = seq_expression
+  | is_let a = is_atomic k = kind ide = ide fn = simple_pattern_list EQUAL seq = seq_expression
         { Printf.printf "Kinded non-refinement function\n"; 
             Efundecl(ide,
             { f_kind = k; f_atomic = a; f_args = fn; f_body = seq;

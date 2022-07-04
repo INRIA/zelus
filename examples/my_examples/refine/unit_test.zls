@@ -127,5 +127,11 @@ let add103 (x : int{x > 0}) (y : int{y > 0}) : int{(add103_return > 0) && (add10
   x + y 
 
 	(* - no refinement *)
-let add104 (x:int) (y:int) : int =
-  x + y
+let add104 (x:int) (y:int) : int = x+y
+let add105 (x:int) (y:int) = x+y
+let add106 (x:int) y = x+y
+let add107 x y = x+y
+
+
+
+(* designed to be failed cases: 3 *)

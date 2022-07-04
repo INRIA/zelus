@@ -14,3 +14,7 @@ let add4 x y = x+y
 let add5 (x:int) (y:int) = x+y
 
 let add6 (x: int) (y:int) : int = x+y
+
+let add7 (x:int{x>0}) y = x+y
+
+let add8 (x:int) y = x+y
