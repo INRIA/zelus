@@ -575,6 +575,7 @@ and prove_function ctx n local_env arg_list typenv =
           let arguments = List.map (fun elem -> create_z3_var ctx constraint_env elem) ref_fun.argument_list in
           Printf.printf "map2 error is here!!\n";
           Printf.printf "name of function:%s\n" n;
+          Printf.printf "length of ref_fun.argument_list:%d\n" (List.length ref_fun.argument_list);
           Printf.printf "# of Arguments in arg_list:%d arguments:%d\n" (List.length arg_list) (List.length arguments);
           let checks = List.map2 (fun elem1 elem2 -> create_validation_check ctx constraint_env elem1 elem2) arg_list arguments in
           (* let environment_constraints = List.map (get_environment_constraints ctx local_env typenv) arg_list in *)
@@ -725,6 +726,7 @@ and vc_gen_operator ctx env typenv e e_list =
     | _ -> () (*ERROR!*)
   *)
   debug(Printf.sprintf "Operator call %s : \n" e);
+  Printf.printf "Operator call: %s\n" e;
   match e_list with 
   | op_l :: [] -> begin (* Unary operator case *)
     match e with
@@ -735,7 +737,8 @@ and vc_gen_operator ctx env typenv e e_list =
         Quantifier.expr_of_quantifier (Quantifier.mk_exists ctx [] [] 
                                         (vc_gen_expression ctx env op_l typenv) None [] [] None None)
     | "~-" | "~-." -> debug(Printf.sprintf "Unary minus:"); Arithmetic.mk_unary_minus ctx (vc_gen_expression ctx env op_l typenv)
-    | s -> debug(Printf.sprintf "Non-standard vc_gen_operator s : %s\n" s);Printf.printf "op_l\n"; prove_function ctx s env e_list typenv
+    | s -> debug(Printf.sprintf "Non-standard vc_gen_operator s : %s\n" s); 
+      prove_function ctx s env e_list typenv
     | t -> debug(Printf.sprintf "Invalid vc_gen_expression symbol: %s\n" t); debug(Printf.sprintf "%d\n" (List.length e_list)); Integer.mk_numeral_s ctx "42"
   end
   | op_l :: op_r :: [] -> begin (* Binary operator case *)
@@ -754,7 +757,7 @@ and vc_gen_operator ctx env typenv e e_list =
     | s -> debug(Printf.sprintf "Non-standard vc_gen_operator s : %s\n" (s)); prove_function ctx s env e_list typenv
     | t -> debug(Printf.sprintf "Invalid vc_gen_expression symbol: %s\n" t); debug(Printf.sprintf "%d\n" (List.length e_list)); Integer.mk_numeral_s ctx "42"
   end
-  | _ -> raise (Z3FailedException "vc_gen_operator e_list matching error")
+  | _ -> raise (Z3FailedException "vc_gen_operator e_list matching error (having more than 2 arguments)")
 
 (* translate vc_gen_expressions into Z3 constructs*)
 
@@ -822,12 +825,12 @@ and vc_gen_expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
       | Name(n) -> debug(Printf.sprintf "Name: %s\n" n); n
       | Modname(qualid) -> debug(Printf.sprintf "Modname: %s\n" qualid.id); qualid.id) 
     | Eapp({ app_inline = i; app_statefull = r }, e, e_list) -> 
-      (*Printf.printf "vc_gen_expression %s\n" (Expr.to_string (vc_gen_expression ctx env e typenv));*)
+      (* Printf.printf "vc_gen_expression %s\n" (Expr.to_string (vc_gen_expression ctx env e typenv)); *)
       (* debug(Printf.sprintf "vc_gen_expression app:\n"); *)
-      
-      
-    (* TODO: print e_list *)
-    
+      Printf.printf "vc_gen_expression %s\n" (Expr.to_string (vc_gen_expression ctx env (List.hd e_list) typenv));
+
+
+    (* TODO: print e_list *)    
       vc_gen_operator ctx env typenv (*Expr.to_string (vc_gen_expression ctx env e typenv)*) (operator_vc_gen_expression_to_string e) e_list 
     | Elocal(n) -> debug(Printf.sprintf "Elocal: %s : %d\n" n.source n.num);
           (match typenv with
@@ -1358,7 +1361,9 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
                         argument_list = function_argument_list; 
                         creation_env = local_env; } in
           (* adding post and pre conditions of funtion to environment *)
-          add_function n f_new;
+          if (Expr.to_string return_exp)="true" 
+            then Printf.printf "this is a true function\n"
+            else (add_function n f_new);
           debug(Printf.sprintf "Printing function environment...\n");
           print_function_environment ();
           print_env local_env;
