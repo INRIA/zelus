@@ -92,49 +92,6 @@ and ('exp, 'body) block_desc =
     { b_vars: 'exp vardec list;
       b_body: 'body }
          
-(* body of a loop *)
-type ('exp, 'body) forloop = ('exp, 'body) forloop_desc localized
-
-and ('exp, 'body) forloop_desc =
-    { for_kind : 'exp for_kind;
-      for_index : 'exp for_index list;
-      for_input : 'exp for_input list;
-      for_output : 'exp for_output list;
-      for_init : 'exp for_initialization list;
-      for_body : 'body }
-
-and 'exp for_kind =
-  | Kforall : 'exp for_kind
-  (* parallel loop *)
-  | Kforward : 'exp option -> 'exp for_kind
-  (* iteration during one instant. The argument is the stoping condition *)
-
-and 'exp for_initialization = 'exp for_initialization_desc localized
-
-and 'exp for_initialization_desc = 
-  { last_name : name; (* [last x = e] *)
-    last_exp : 'exp }
-                
-and 'exp for_index = 'exp for_index_desc localized
-
-and 'exp for_index_desc =
-  { i_name : name; (* i in e1..e2 *)
-    i_low : 'exp; (* [e1] *)
-    i_high : 'exp (* [e2] *) }
-
-and 'exp for_input = 'exp for_input_desc localized
-
-and 'exp for_input_desc =
-  { in_name : name; (* xi in e1 [by e2], that is, xi = e1.(e2 * i) *)
-    in_exp : 'exp; (* [e1] *)
-    in_by : 'exp option (* [e2] *) }
-
-and 'exp for_output = 'exp for_output_desc localized
-
-and 'exp for_output_desc = (* xi out x *)
-  { out_left_name : name; (* xi  *)
-    out_right_name : name; (* x *) }
-
 type pattern = pattern_desc localized
 
 and pattern_desc =
@@ -199,11 +156,24 @@ and exp_desc =
   | Epresent : (scondpat, exp) present_handler list * exp default -> exp_desc
   | Ereset : exp * exp -> exp_desc
   | Eassert : exp -> exp_desc
-  | Eforloop : (exp, (exp, eq) block) forloop -> exp_desc
-       (* [forall [id in e..e]* [id in e [by e],]* returns (vardec_list) do eq] *)
-       (* forward [id in e..e]* [id in e [by e],]* 
-          [while e] do e] returns (vardec_list) *)
+  | Eforloop : loopresult forloop -> exp_desc
 
+and 'body forloop =
+  { for_size : exp;
+    for_kind : for_kind;
+    for_index : for_index_desc localized list;
+    for_body : 'body }
+
+(* result expression of a loop *)
+and loopresult =
+  | Forexp : exp -> loopresult (* [forall ... do e done] *)
+  | Forreturns : exp vardec list * forbody -> loopresult
+  (* [forall ... returns (...) local ... do eq initialize ... done] *) 
+
+and forbody =
+  { for_block : (exp, eq) block; (* local variables and body of the loop *)
+    for_initialize : for_initialize_desc localized list; (* [last x = ...] *) }
+  
 and is_rec = bool
            
 and scondpat = scondpat_desc localized
@@ -226,23 +196,50 @@ and eq_desc =
   | EQinit : name * exp -> eq_desc
   (* [init n = e0 *)
   | EQemit : name * exp option -> eq_desc
+  (* [emit n [= e] *)
   | EQif : exp * eq * eq -> eq_desc
+  (* [if e then [... and ...] else [... and ...]] *)
   | EQand : eq list -> eq_desc
+  (* parallel composition [eq1 and eq2] *)
   | EQlocal : exp vardec list * eq -> eq_desc
+  (* local variables in an equation [local ... do eq done] *)
   | EQlet : is_rec * eq * eq -> eq_desc
+  (* local definition in an equation [let [rec] eq in eq] *)
   | EQreset : eq * exp -> eq_desc
+  (* reset of an equation [reset eq every e] *)
   | EQautomaton : (exp, eq) block automaton_handler list *
         exp state option -> eq_desc
+  (* automaton ... *)
   | EQmatch : exp * (exp, eq) match_handler list -> eq_desc
   | EQpresent :
       (scondpat, eq) present_handler list * eq default -> eq_desc
   | EQempty : eq_desc
   | EQassert : exp -> eq_desc
-  | EQforloop : (exp, eq) forloop -> eq_desc
-       (* [forall [id in e..e]* [id in e [by e],]* returns (vardec_list) do eq] *)
-       (* forward [id in e..e]* [id in e [by e],]* 
-          [while e] do e] returns (vardec_list) *)
+  | EQforloop : (for_out_desc localized list * forbody) forloop -> eq_desc
+  (* [forall [id in e..e]* [id in e [by e],]* returns (vardec_list) do eq] *)
+  (* forward [id in e..e]* [id in e [by e],]* 
+     [while e] do e] returns (vardec_list) *)
 
+and for_kind =
+  | Kforall : for_kind
+  (* parallel loop *)
+  | Kforward : exp option -> for_kind
+  (* iteration during one instant. The argument is the stoping condition *)
+
+(* index definition for a loop *)
+and for_index_desc =
+  | Einput : name * exp * exp option -> for_index_desc
+  (* xi in e1 [by e2], that is, xi = e1.(i * e2) *)
+  | Eindex : name * exp * exp -> for_index_desc
+  (* i in e1..e2; [e1] and [e2] must be sizes *)
+
+and for_initialize_desc = 
+  { last_name : name; (* [last x = e] *)
+    last_exp : exp }
+
+and for_out_desc = 
+  { for_out_left : name; (* [last x = e] *)
+    for_out_right : name }
 
 and 'body escape_desc =
   { e_cond: scondpat; 
