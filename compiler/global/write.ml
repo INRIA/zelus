@@ -109,7 +109,36 @@ let rec equation ({ eq_desc } as eq)=
          | Else(eq) -> let eq, def = equation eq in Else(eq), def in
        EQpresent({ handlers; default_opt }), Deftypes.union def def_opt
     | EQempty -> EQempty, Deftypes.empty
-    | EQassert(e) -> EQassert(expression e), Deftypes.empty in
+    | EQassert(e) -> EQassert(expression e), Deftypes.empty
+    | EQforloop({ for_size; for_kind; for_index; for_body } as f) ->
+       let for_size = expression for_size in
+       let for_kind =
+         match for_kind with
+         | Kforall -> for_kind
+         | Kforward(e_opt) -> Kforward(Util.optional_map expression e_opt) in
+       let for_index =
+         List.map
+           (fun ({ desc } as i) ->
+             let desc = match desc with
+               | Einput(n, e, e_opt) ->
+                  Einput(n, expression e, Util.optional_map expression e_opt)
+               | Eindex(n, e1, e2) ->
+                  Eindex(n, expression e1, expression e2) in
+             {i with desc }) for_index in
+       let for_body, defnames =
+         match for_body with
+         | for_out_list, { for_block; for_initialize } ->
+            let for_out acc
+                  ({ desc = { for_out_left; for_out_right } } as fo) =
+              fo, Env.add for_out_left for_out_right acc in
+            let for_out_list, h_out =
+              Util.mapfold for_out Env.empty for_out_list in
+            let for_block, defnames, dv_for_block = block for_block in
+            let for_initialize =
+              List.map initialize for_initialize in
+            let defnames = Deftypes.subst defnames h_out in
+            (for_out_list, { for_block; for_initialize }), defnames in
+       EQforloop({ f with for_size; for_kind; for_index; for_body}), defnames in
   (* set the names defined in the equation *)
   { eq with eq_desc = eq_desc; eq_write = def }, def
 
@@ -221,26 +250,35 @@ and expression ({ e_desc } as e) =
     | Ereset(e_body, e_res) ->
        Ereset(expression e_body, expression e_res)
     | Eassert(e_body) -> Eassert(expression e_body)
-    | Eforloop({ for_kind; for_indexes; for_inputs; for_body } as b) ->
+    | Eforloop({ for_size; for_kind; for_index; for_body } as f) ->
+       let for_size = expression for_size in
        let for_kind =
          match for_kind with
          | Kforall -> for_kind
          | Kforward(e_opt) -> Kforward(Util.optional_map expression e_opt) in
-       let for_indexes =
+       let for_index =
          List.map
-           (fun ({ i_low; i_high } as i) ->
-             { i with i_low = expression i_low; i_high = expression i_high })
-           for_indexes in
-       let for_inputs =
-         List.map
-           (fun ({ in_exp; in_by } as i) ->
-             { i with in_exp = expression in_exp;
-                      in_by = Util.optional_map expression in_by }) for_inputs in
-       let for_body = expression for_body in
-       Eforloop({ b with for_kind; for_indexes; for_inputs; for_body }) in
+           (fun ({ desc } as i) ->
+             let desc = match desc with
+               | Einput(n, e, e_opt) ->
+                  Einput(n, expression e, Util.optional_map expression e_opt)
+               | Eindex(n, e1, e2) ->
+                  Eindex(n, expression e1, expression e2) in
+             {i with desc }) for_index in
+       let for_body =
+         match for_body with
+         | Forexp(e) -> Forexp(expression e)
+         | Forreturns(ret, { for_block; for_initialize }) ->
+            let ret, _ = Util.mapfold vardec S.empty ret in
+            let for_block, _, _ = block for_block in
+            let for_initialize = List.map initialize for_initialize in
+            Forreturns(ret, { for_block; for_initialize }) in
+       Eforloop({ f with for_size; for_kind; for_index; for_body }) in
   { e with e_desc = desc }
 
-
+and initialize ({ desc = { last_name; last_exp } } as i) =
+  { i with desc = { last_name; last_exp = expression last_exp } }
+  
 and arg acc v_list = Util.mapfold vardec acc v_list
                    
 and funexp ({ f_args; f_body } as fd) =

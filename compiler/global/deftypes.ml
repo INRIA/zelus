@@ -95,7 +95,14 @@ let diff { dv; di; der } names =
   { dv = Ident.S.diff dv names;
     di = Ident.S.diff di names;
     der = Ident.S.diff der names }
+let subst { dv; di; der } h =
+  let subst names =
+    Ident.S.map (fun n -> try Ident.Env.find n h with | Not_found -> n) names in
+  { dv = subst dv;
+    di = subst di;
+    der = subst der }
   
+
 (* introduced names in the [initialization] phase are fully generalized *)
 let make desc =
   { t_desc = desc; t_index = - 1; t_level = generic }
