@@ -34,6 +34,7 @@ let rec add_type_expr bv ty =
   | Etypevec (ty, s) -> add_type_expr bv ty; add_size bv s
   | Etypefun (_, _, ty1, ty2) -> add_type_expr bv ty1; add_type_expr bv ty2
   | Etypefunrefinement(_, _, ty1, ty2, e) -> print_string "Refined arguments"; add_type_expr bv ty1; add_type_expr bv ty2
+  | Erefinement(ty, _) -> add_type_expr bv ty
 
 let rec add_interface bv i =
   match i.desc with
@@ -56,7 +57,9 @@ and add_implem bv i =
   | Etypedecl (_, _, td) -> add_type_decl bv td
   | Econstdecl (_, _, e) -> add_exp bv e
   (*added here*)
-  | Erefinementdecl (_,_,_,e,_) -> add_exp bv e
+  | Erefinementdecl (_,ty_refine,_,e) -> 
+    add_type_expr bv ty_refine;
+    add_exp bv e
   | Efundecl (_, { f_args; f_body; _ }) ->
      List.iter (add_pattern bv) f_args;
      add_exp bv f_body

@@ -94,7 +94,7 @@ and implementation_desc =
     | Etypedecl of name * name list * type_decl
     | Econstdecl of name * is_static * exp
     (*refinement type implementation*)
-    | Erefinementdecl of name * name * exp * exp * is_static
+    | Erefinementdecl of name * type_expression * is_static * exp 
     | Efundecl of name * funexp
     | Erefinementfundecl of name * funexp * exp
 

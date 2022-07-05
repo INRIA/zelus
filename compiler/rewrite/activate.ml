@@ -180,8 +180,8 @@ let implementation impl =
     | Econstdecl(n, is_static, e) ->
        { impl with desc = Econstdecl(n, is_static, exp e) }
     (*TODO: refinement implementation of activate*)
-    | Erefinementdecl(n1,n2,e1,e2) ->
-       { impl with desc = Erefinementdecl(n1,n2, exp e1, exp e2) }
+    | Erefinementdecl(n1,ty_refine,is_static,e2) ->
+       { impl with desc = Erefinementdecl(n1,ty_refine,is_static,exp e2) }
     | Efundecl(n, ({ f_body = e } as body)) ->
         { impl with desc = Efundecl(n, { body with f_body = exp e }) }
 

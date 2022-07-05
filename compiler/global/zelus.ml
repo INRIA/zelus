@@ -80,7 +80,7 @@ and implementation_desc =
   | Econstdecl of name * is_static * exp
   (*added here*)
   (*refinement type definition*)
-  | Erefinementdecl of name * name * exp * exp
+  | Erefinementdecl of name * type_expression * is_static * exp
   | Efundecl of name * funexp
   | Erefinementfundecl of name * funexp * exp
 			 
