@@ -245,6 +245,11 @@ list_aux(S, X):
    r = list_aux(S, X) { List.rev r }
 ;
 
+%inline empty(X):
+  | { [] }
+  | r = X { r }
+;
+
 /* Non separated list */
 list_aux_no_sep(X):
 | x = X { [x] }
@@ -917,6 +922,10 @@ expression_desc:
 
 /* Loops for equations */
 %inline forall_loop_exp:
+  | s = simple_expression DO e = expression
+    { (s, [], Forexp(e)) }
+  | s = simple_expression RETURNS p = param b = forblock
+    { s, [], Forreturns(p, b) }
   | s = simple_expression li = index_list DO e = expression
     { (s, li, Forexp(e)) }
   | s = simple_expression li = index_list RETURNS p = param b = forblock
@@ -929,6 +938,12 @@ expression_desc:
 ;
 
 %inline forward_loop_exp:
+  | s = simple_expression o = opt_while_condition
+    DO e = expression
+    { (s, [], o, Forexp(e)) }
+  | s = simple_expression o = opt_while_condition
+    RETURNS p = param b = forblock
+    { (s, [], o, Forreturns(p, b)) }
   | s = simple_expression li = index_list o = opt_while_condition
     DO e = expression
     { (s, li, o, Forexp(e)) }
@@ -939,12 +954,22 @@ expression_desc:
 
 /* Loops for equations */
 %inline forall_loop_eq:
-  | s = simple_expression li = index_list lo = output_list f = forblock
+  | s = simple_expression li = empty(index_list) f = forblock
+    { (s, li, ([], f)) }
+  | s = simple_expression lo = output_list f = forblock
+    { (s, [], (lo, f)) }
+  | s = simple_expression li = index_list COMMA lo = output_list f = forblock
     { (s, li, (lo, f)) }
 ;
 
 %inline forward_loop_eq:
-  | s = simple_expression li = index_list lo = output_list
+  | s = simple_expression li = empty(index_list) o = opt_while_condition 
+    f = forblock
+    { (s, li, o, ([], f)) }
+  | s = simple_expression lo = output_list o = opt_while_condition 
+    f = forblock
+    { (s, [], o, (lo, f)) }
+  | s = simple_expression li = index_list COMMA lo = output_list
     o = opt_while_condition f = forblock
     { (s, li, o, (lo, f)) }
 ;
