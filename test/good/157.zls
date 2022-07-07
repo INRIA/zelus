@@ -1,0 +1,15 @@
+(* loops *)
+let node f x =
+  forall(4) xi in x, yi in y do 1 done
+
+let node f x =
+  forward(4) xi in x, yi in y do 1 done
+
+let node f x =
+  forall(4) xi in x, yi in y returns (o)
+    do o = 1 done
+
+let node f x = o where
+  rec forward(4) xi in x, zi in m, oi out o while true
+      do x = 1 done
+    
