@@ -189,6 +189,8 @@ let forall_loop (size, index_list, body) =
 %token <string> INFIX4
 %token EOF
 
+%nonassoc prec_fundef
+%right AND
 %nonassoc prec_seq
 %right SEMI
 %nonassoc prec_der_with_reset
@@ -221,6 +223,7 @@ let forall_loop (size, index_list, body) =
 %right PREFIX
 %right PRE TEST UP
 %left DOT
+
 
 %start implementation_file
 %type <Parsetree.implementation list> implementation_file
@@ -464,6 +467,12 @@ equation_desc:
       { EQinit(i, e) }
   | p = pattern EQUAL e = seq_expression
       { EQeq(p, e) }
+  | a = is_atomic k = kind ide = ide p_list = param_list r = result
+      { EQeq(make (Evarpat ide) $startpos(ide) $endpos(ide),
+	     make (Efun(make { f_atomic = a;
+			       f_kind = k; f_args = p_list; f_body = r }
+			$startpos $endpos))
+	     $startpos $endpos) } %prec prec_fundef
   | DER i = ide EQUAL e = seq_expression opt = optional_init
       { EQder(i, e, opt, []) }
   | DER i = ide EQUAL e = seq_expression opt = optional_init
