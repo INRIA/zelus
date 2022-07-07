@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2021 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2022 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -52,6 +52,7 @@ and doc_stdlib = "<dir> \t Directory for the standard library"
 and doc_locate_stdlib = "\t  Locate standard libray"
 and doc_no_stdlib = "\t  Do not load the stdlib module"
 and doc_typeonly = "\t  Stop after typing"
+and doc_parseonly = "\t  Stop after parsing"
 and doc_no_warning = "\t Turn off warnings"
 let errmsg = "Options are:"
 
@@ -79,6 +80,7 @@ let main () =
            "-ii",
 	   Arg.Set print_initialization_types, doc_print_initialisation_types;
            "-typeonly", Arg.Set typeonly, doc_typeonly;
+           "-parseonly", Arg.Set parseonly, doc_parseonly;
            "-nocausality", Arg.Set no_causality, doc_nocausality;
            "-noinit", Arg.Set no_initialization, doc_noinitialisation;
            "-where", Arg.Unit locate_stdlib, doc_locate_stdlib;
