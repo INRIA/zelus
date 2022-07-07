@@ -459,16 +459,15 @@ and trans_for_index env i_list =
 
 and trans_for_out env i_env for_out_list =
   let for_out acc { desc = { for_out_left; for_out_right }; loc } =
-    if S.mem for_out_left acc || Env.mem for_out_left i_env
+    if Env.mem for_out_left acc || Env.mem for_out_left i_env
     then Error.error loc (Error.Enon_linear_forall(for_out_left))
-    else if S.mem for_out_right acc || Env.mem for_out_right i_env then
-      Error.error loc (Error.Enon_linear_forall(for_out_right))
     else
-      { Zelus.desc = { Zelus.for_out_left = name loc env for_out_left;
+      let m = fresh for_out_left in
+      { Zelus.desc = { Zelus.for_out_left = m;
                        Zelus.for_out_right = name loc env for_out_right };
-        Zelus.loc = loc }, S.add for_out_left (S.add for_out_right acc) in
+        Zelus.loc = loc }, Env.add for_out_left m acc in
   Util.mapfold
-    for_out S.empty for_out_list
+    for_out Env.empty for_out_list
   
 (* translation of for loops *)
 and forloop_eq env_pat env
@@ -477,9 +476,9 @@ and forloop_eq env_pat env
   let for_index, i_env =
     trans_for_index env for_index in
   let env = Env.append i_env env in
-  let for_block = for_block_initialize env_pat env for_body in
   let for_out_list, acc =
     trans_for_out env i_env for_out_list in
+  let for_block = for_block_initialize env_pat env for_body in
   let for_kind =
     match for_kind with
     | Kforall -> Zelus.Kforall
