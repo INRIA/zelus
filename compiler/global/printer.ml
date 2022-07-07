@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2021 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2022 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -309,7 +309,17 @@ let rec expression ff e =
     | Efun(fe) ->
        funexp ff fe
     | Eassert(e_body) ->
-       fprintf ff "@[<hov 2>assert@ %a@]" expression e_body in
+       fprintf ff "@[<hov 2>assert@ %a@]" expression e_body
+    | Eforloop({ for_size; for_kind; for_index; for_env; for_body }) ->
+       let size ff for_size = expression ff for_size in
+       fprintf ff
+       "@[<hov 2>%a@ %a@ %a@ %a@ %a@ %a@]"
+       kind_of_forloop for_kind
+       size for_size
+       index_list for_index
+       with_while_condition for_kind
+       for_result for_body
+       print_env for_env in
   if Deftypes.is_no_typ e.e_typ && !vverbose then
     fprintf ff "@[<hov 2>(%a :@ %a)@]" exp e Ptypes.output e.e_typ
   else exp ff e
@@ -334,8 +344,10 @@ and funexp ff { f_kind; f_args; f_body; f_env } =
     arg_list f_args s print_env f_env result f_body
 
 and arg_list ff a_list =
-  print_list_r (vardec_list expression) "(" "" ")" ff a_list
-  
+  print_list_r arg "(" "" ")" ff a_list
+
+and arg ff a = vardec_list expression ff a
+             
 and operator ff op e_list =
   match op, e_list with
   | Eunarypre, [e] -> fprintf ff "pre %a" expression e
@@ -414,6 +426,62 @@ and equation ff ({ eq_desc = desc } as eq) =
   | EQempty -> fprintf ff "()"
   | EQassert(e) ->
      fprintf ff "@[<hov2>assert %a@]" expression e
+  | EQforloop({ for_size; for_kind; for_index; for_env;
+                for_body = (for_out, body) }) ->
+     let size ff for_size = expression ff for_size in
+     let for_out_list ff l =
+       let for_out ff { desc = { for_out_left; for_out_right } } =
+         fprintf ff "@[%a out %a@]" name for_out_left name for_out_right in
+       print_list_r for_out "" "," "" ff l in
+     fprintf ff
+       "@[<hov 2>%a@ %a@ %a@ %a@ %a@ %a@ %a@]"
+       kind_of_forloop for_kind
+       size for_size
+       index_list for_index
+       for_out_list for_out
+       with_while_condition for_kind
+       block_for_initialize body
+       print_env for_env
+
+(* print for loops *)
+and kind_of_forloop ff for_kind =
+  match for_kind with
+  | Kforall -> fprintf ff "forall "
+  | Kforward _ -> fprintf ff "forward"
+
+and with_while_condition ff for_kind =
+  match for_kind with
+  | Kforward(Some(e)) -> fprintf ff "@[<hov 2>while@ %a@]" expression e
+  | _ -> ()
+
+and index_list ff l =
+  let index ff { desc = desc } =
+    match desc with
+    | Einput(i, e, e_opt) ->
+       fprintf ff "@[%a in %a@]" name i expression e;
+       Util.optional_unit
+         (fun ff e -> fprintf ff " by %a " expression e) ff e_opt
+    | Eindex(i, e1, e2) ->
+       fprintf ff
+	 "@[%a in %a .. %a@]" name i expression e1 expression e2 in
+  print_list_r index "" "," "" ff l
+
+and for_initialize_list ff l =
+  let for_initialize ff { desc = { last_name; last_exp } } =
+    fprintf ff "@[last %a = %a@]" name last_name expression last_exp in
+  print_list_r for_initialize "" " and " "" ff l
+
+and block_for_initialize ff { for_block; for_initialize } =
+  block_of_equation ff for_block;
+  for_initialize_list ff for_initialize
+
+and for_result ff r =
+  match r with
+  | Forexp(e) -> fprintf ff "@[ do %a done@]" expression e
+  | Forreturns(v_list, b) ->
+     fprintf ff "@[<hov 2>returns@ %a@ %a@]"
+       arg v_list
+       block_for_initialize b
     
 and block_of_equation ff b_eq =
   block expression equation ff b_eq
