@@ -1,5 +1,13 @@
 (* loops *)
-let node f x =
+let f = (1+2)+let x = (1+2) in
+let x = (1+2) in (1+2)+(1+2)(1+2)+
+  let x = (1+2) in (1+2)+(1+2)(1+2)+(1+2)
+
+let g =
+  let h x y = 2 in
+  h + 1
+
+let node f x y z =
   forall(4) xi in x, yi in y do 1 done
 
 let node f x =
@@ -11,5 +19,10 @@ let node f x =
 
 let node f x = o where
   rec forward(4) xi in x, zi in m, oi out o while true
-      do x = 1 done
-    
+        local z, k, r init 42
+        do x = 1 done
+
+let node f x returns o
+  local m, z, t
+  do m = z and t = 0 done
+      
