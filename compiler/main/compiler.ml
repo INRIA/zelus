@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2021 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2022 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -18,6 +18,8 @@ open Misc
 open Global
 open Zelus
 open Format
+
+exception Stop
 
 let lexical_error err loc =
   eprintf "%aIllegal character.@." output_location loc;
@@ -98,6 +100,9 @@ let do_step comment step input =
   Debug.print_program output;
   output
   
+let do_optional_stop is_stop p =
+  if is_stop then raise Stop else p
+  
 let do_optional_step is_step comment step p = 
   if is_step then do_step comment step p else p
 
@@ -120,19 +125,24 @@ let compile modname filename =
   let impl_list = parse_implementation_file source_name in
   Debug.print_message "Parsing done";
   (* Scoping *)
-  impl_list
-  |> do_step "Scoping done" Scoping.program
-  (* Write defined variables for equations *)
-  |> do_step "Write done" Write.program
-  (* Typing *)
-  |> do_step "Typing done" (Typing.program info_ff true)
-  (* Causality *)
-  |> do_optional_step (not !no_causality)
-       "Causality done" (Causality.program info_ff)
-  (* Initialization *)
-  |> do_optional_step (not !no_initialization)
-       "Initialisation done" (Initialization.program info_ff)
-  |> fun _ -> ();
+  (* begin try *)
+  begin try
+      impl_list
+      |> do_step "Scoping done" Scoping.program
+      (* Write defined variables for equations *)
+      |> do_step "Write done" Write.program
+      |> do_optional_stop !parseonly
+      (* Typing *)
+      |> do_step "Typing done" (Typing.program info_ff true)
+      |> do_optional_stop !typeonly
+      (* Causality *)
+      |> do_optional_step (not !no_causality)
+           "Causality done" (Causality.program info_ff)
+      (* Initialization *)
+      |> do_optional_step (not !no_initialization)
+           "Initialisation done" (Initialization.program info_ff)
+      |> fun _ -> ()
+    with | Stop -> () end;
   (* Write the symbol table into the interface file *)
   let itc = open_out_bin obj_interf_name in
   apply_with_close_out Modules.write itc;
