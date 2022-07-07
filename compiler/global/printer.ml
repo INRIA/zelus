@@ -69,11 +69,11 @@ let rec ptype ff { desc } =
   match desc with
   | Etypevar(s) -> fprintf ff "'%s" s
   | Etypeconstr(ln, ty_list) ->
-     fprintf ff "@[<hov2>%a@]%a"
+     fprintf ff "@[<hov2>%a@,%a@]"
        (print_list_r_empty ptype "("","")") ty_list
        longname ln
   | Etypetuple(ty_list) ->
-     fprintf ff "@[<hov2>%a@]" (print_list_r ptype "(""*"")") ty_list
+     fprintf ff "@[<hov2>%a@]" (print_list_r ptype "(" " * " ")") ty_list
   | Etypefun(k, ty_arg, ty_res) ->
      let s =
        match k with | Kfun -> "->" | Khybrid | Knode -> "=>" | Kstatic -> ">" in
@@ -117,8 +117,7 @@ let vardec_list exp ff vardec_list =
     fprintf ff "@[%a%a%a@]" 
       name x (default exp) d_opt (init exp) i_opt in
   if vardec_list <> []
-  then fprintf ff "@[<v 2>%a@ @]"
-    (print_list_r vardec "" "," "") vardec_list
+  then print_list_r vardec "" "," "" ff vardec_list
 
 let skind ff k =
   let s = match k with
@@ -154,7 +153,6 @@ let print_writes ff { dv ; di; der } =
     let dv = Ident.S.elements dv in
     let di = Ident.S.elements di in
     let der = Ident.S.elements der in
-    open_box 0;
     if dv <> [] then
       fprintf ff
   	    "@[<v 0>(* dv = {@[%a@]} *)@ @]" (print_list_r name "" "," "") dv;
@@ -163,8 +161,7 @@ let print_writes ff { dv ; di; der } =
   	    "@[<v 0>(* di = {@[%a@]} *)@ @]" (print_list_r name "" "," "") di;
     if der <> [] then
       fprintf ff
-  	    "@[<v 0>(* der = {@[%a@]} *)@ @]" (print_list_r name "" "," "") der;
-    close_box ()
+  	    "@[<v 0>(* der = {@[%a@]} *)@ @]" (print_list_r name "" "," "") der
   end
 
 let print_eq_info ff { eq_write } =
@@ -172,7 +169,7 @@ let print_eq_info ff { eq_write } =
 
 (* print a block *)
 let block exp body ff { b_vars; b_body; b_write; b_env } =
-  fprintf ff "@[<hov 0>local @[%a@]@ @[%a@]@ @[%a@]@ @[%a@]@]"
+  fprintf ff "@[<hov 0>local@ %a in@ %a%a%a@]"
     (vardec_list exp) b_vars
     print_writes b_write
     print_env b_env
@@ -291,7 +288,7 @@ let rec expression ff e =
 	    (print_record longname expression """ =""") "" ";" "")
          ln_e_list
     | Elet(l, e) ->
-       fprintf ff "@[<v 0>%a@ %a@]" leq l expression e
+       fprintf ff "@[<v 0>%a%a@]" leq l expression e
     | Etypeconstraint(e, typ) ->
        fprintf ff "@[(%a: %a)@]" expression e ptype typ
     | Ematch { is_total; e; handlers } ->
@@ -330,7 +327,7 @@ and result ff { r_desc } =
   | Returns(b) -> result_block ff b
                 
 and result_block ff { b_vars; b_body; b_write; b_env } =
-  fprintf ff "@[<hov 0> %a@ where rec@ @[%a@]@[%a@]@[%a@]@]"
+  fprintf ff "@[<hov 2>%a@ where rec@ @[%a@]@[%a@]@[%a@]@]"
     (vardec_list expression) b_vars
     print_writes b_write
     print_env b_env
@@ -344,9 +341,9 @@ and funexp ff { f_kind; f_args; f_body; f_env } =
     arg_list f_args s print_env f_env result f_body
 
 and arg_list ff a_list =
-  print_list_r arg "(" "" ")" ff a_list
+  print_list_r arg "" "" "" ff a_list
 
-and arg ff a = vardec_list expression ff a
+and arg ff a = fprintf ff "(%a)" (vardec_list expression) a
              
 and operator ff op e_list =
   match op, e_list with
@@ -431,10 +428,10 @@ and equation ff ({ eq_desc = desc } as eq) =
      let size ff for_size = expression ff for_size in
      let for_out_list ff l =
        let for_out ff { desc = { for_out_left; for_out_right } } =
-         fprintf ff "@[%a out %a@]" name for_out_left name for_out_right in
+         fprintf ff "@ @[%a out %a@]" name for_out_left name for_out_right in
        print_list_r for_out "" "," "" ff l in
      fprintf ff
-       "@[<hov 2>%a@ %a@ %a@ %a@ %a@ %a@ %a@]"
+       "@[<hov 2>%a@ %a%a%a%a%a@ %a@]"
        kind_of_forloop for_kind
        size for_size
        index_list for_index
@@ -451,7 +448,7 @@ and kind_of_forloop ff for_kind =
 
 and with_while_condition ff for_kind =
   match for_kind with
-  | Kforward(Some(e)) -> fprintf ff "@[<hov 2>while@ %a@]" expression e
+  | Kforward(Some(e)) -> fprintf ff "@ @[<hov 2>while@ %a@]" expression e
   | _ -> ()
 
 and index_list ff l =
@@ -486,15 +483,9 @@ and for_result ff r =
 and block_of_equation ff b_eq =
   block expression equation ff b_eq
 
-and equation_list po pf ff eq_list =
-  match eq_list with
-  | [] -> fprintf ff "%s%s" po pf
-  | [eq] -> equation ff eq
-  | _ -> print_list_l equation po "and " pf ff eq_list
-
 and leq ff { l_rec; l_eq; l_env } =
   let s = if l_rec then "rec " else "" in
-  fprintf ff "@[<v0>%alet %s%a@ in@,@]"
+  fprintf ff "@[<v0>%alet %s%a in@ @]"
     print_env l_env s equation l_eq
 
 and leqs ff l =
@@ -508,16 +499,16 @@ let constr_decl ff { desc = desc } =
 
 let type_decl ff { desc = desc } =
   match desc with
-    | Eabstract_type -> ()
-    | Eabbrev(ty) ->
-        fprintf ff " = %a" ptype ty
-    | Evariant_type(constr_decl_list) ->
-        fprintf
-          ff " = %a" (print_list_l constr_decl "" "|" "") constr_decl_list
-    | Erecord_type(n_ty_list) ->
-        fprintf ff " = %a"
-          (print_list_r
-             (print_couple shortname ptype "" " :" "") "{" ";" "}") n_ty_list
+  | Eabstract_type -> ()
+  | Eabbrev(ty) ->
+     fprintf ff " = %a" ptype ty
+  | Evariant_type(constr_decl_list) ->
+     fprintf
+       ff " = %a" (print_list_l constr_decl "" "|" "") constr_decl_list
+  | Erecord_type(n_ty_list) ->
+     fprintf ff " = %a"
+       (print_list_r
+          (print_couple shortname ptype "" " :" "") "{" ";" "}") n_ty_list
 
 (* Debug printer for (Ident.t * Deftypes.typ) Misc.State.t *)
 let state_ident_typ =
@@ -529,32 +520,30 @@ let state_ident_typ =
 let state_eq = State.fprint_t equation
 
 let open_module ff n =
-  fprintf ff "@[open ";
-  shortname ff n;
-  fprintf ff "@.@]"
+  fprintf ff "@[open %a@]@." shortname n
 
 let implementation ff impl =
   match impl.desc with
-    | Eopen(n) -> open_module ff n
-    | Etypedecl(n, params, ty_decl) ->
-        fprintf ff "@[<v 2>type %a%s %a@.@.@]"
-          Ptypes.print_type_params params
-          n type_decl ty_decl
-    | Eletdecl(n, e) ->
-        fprintf ff "@[<v 2>let %a =@ %a@.@]" shortname n expression e
-
+  | Eopen(n) -> open_module ff n
+  | Etypedecl(n, params, ty_decl) ->
+     fprintf ff "@[<v 2>type %a%s %a@]@."
+       Ptypes.print_type_params params
+       n type_decl ty_decl
+  | Eletdecl(n, e) ->
+     fprintf ff "@[<v2>let %a =@ %a@]@." shortname n expression e
+    
 let program ff imp_list = List.iter (implementation ff) imp_list
 
 let interface ff { desc } =
   match desc with
   | Einter_open(n) -> open_module ff n
   | Einter_typedecl(n, params, ty_decl) ->
-     fprintf ff "@[<v 2>type %a%s %a@.@.@]"
+     fprintf ff "@[<v 2>type %a%s %a@]@."
        Ptypes.print_type_params params
        n type_decl ty_decl
   | Einter_constdecl(n, ty, n_list) ->
      let print_n ff n = fprintf ff "%s" n in
-     fprintf ff "@[<v 2>val %s : %a%a@.@]"
+     fprintf ff "@[<v 2>val %s : %a%a@]@."
        n ptype ty (print_list_r print_n "=[" " " "]") n_list
 
 let interface_list ff int_list =
