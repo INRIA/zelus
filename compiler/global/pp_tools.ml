@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2021 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2022 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -34,7 +34,7 @@ let print_list_r print po sep pf ff l =
     | [] -> ()
     | [x] -> print ff x
     | x :: l ->
-       fprintf ff "@[<hov>%a@ %s@ @[%a@]@]" print x sep printrec l in
+       fprintf ff "@[<hov>%a%s@ @[%a@]@]" print x sep printrec l in
   fprintf ff "@[%s%a%s@]" po printrec l pf
 
 (* prints in a row a [po body [sep body]+ pf] *)
