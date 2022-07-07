@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2021 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2022 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -60,6 +60,7 @@ let print_initialization_types = ref false
 let no_causality = ref false
 let no_initialization = ref false
 let typeonly = ref false
+let parseonly = ref false
 
 (* generic and non generic variables in the various type systems *)
 let generic = -1
