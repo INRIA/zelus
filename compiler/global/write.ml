@@ -117,14 +117,7 @@ let rec equation ({ eq_desc } as eq)=
          | Kforall -> for_kind
          | Kforward(e_opt) -> Kforward(Util.optional_map expression e_opt) in
        let for_index =
-         List.map
-           (fun ({ desc } as i) ->
-             let desc = match desc with
-               | Einput(n, e, e_opt) ->
-                  Einput(n, expression e, Util.optional_map expression e_opt)
-               | Eindex(n, e1, e2) ->
-                  Eindex(n, expression e1, expression e2) in
-             {i with desc }) for_index in
+         for_index_w for_index in
        let for_body, defnames =
          match for_body with
          | for_out_list, { for_block; for_initialize } ->
@@ -256,15 +249,7 @@ and expression ({ e_desc } as e) =
          match for_kind with
          | Kforall -> for_kind
          | Kforward(e_opt) -> Kforward(Util.optional_map expression e_opt) in
-       let for_index =
-         List.map
-           (fun ({ desc } as i) ->
-             let desc = match desc with
-               | Einput(n, e, e_opt) ->
-                  Einput(n, expression e, Util.optional_map expression e_opt)
-               | Eindex(n, e1, e2) ->
-                  Eindex(n, expression e1, expression e2) in
-             {i with desc }) for_index in
+       let for_index = for_index_w for_index in
        let for_body =
          match for_body with
          | Forexp(e) -> Forexp(expression e)
@@ -278,7 +263,17 @@ and expression ({ e_desc } as e) =
 
 and initialize ({ desc = { last_name; last_exp } } as i) =
   { i with desc = { last_name; last_exp = expression last_exp } }
-  
+
+and for_index_w for_index = 
+  let index ({ desc } as i) =
+    let desc = match desc with
+      | Einput(n, e, e_opt) ->
+         Einput(n, expression e, Util.optional_map expression e_opt)
+      | Eindex(n, e1, e2) ->
+         Eindex(n, expression e1, expression e2) in
+    {i with desc } in
+  List.map index for_index
+       
 and arg acc v_list = Util.mapfold vardec acc v_list
                    
 and funexp ({ f_args; f_body } as fd) =
