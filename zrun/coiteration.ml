@@ -15,13 +15,12 @@
 (* This is based on a companion file and working notes on the co-iterative *)
 (* semantics presented at the SYNCHRON workshop, December 2019, *)
 (* the class on "Advanced Functional Programming" given at Bamberg
-   Univ. in June-July 2019 and the Master MPRI - M2, Fall 2019 *)
-(* The original version of this code is taken from the GitHub Zrun repository: *)
+   Univ. in June-July 2019 and the Master MPRI - M2, Fall 2019, 2020, 2021 *)
+(* The original version of this code is taken from the GitHub Zrun repo: *)
 (* https://github.com/marcpouzet/zrun *)
-(* Zrun was programmed right after the COVID black out in June 2020 *)
+(* Zrun was programmed right after the COVID black out, in June 2020 *)
 (* This new version includes Zelus constructs: ODEs and zero-crossing; *)
-(* higher order functions *)
-(* The implem. was done in 2021 *)
+(* higher order functions; the implem. was done in 2021 and updated in 2022 *)
 open Smisc
 open Error
 open Monad
@@ -157,15 +156,13 @@ let rec iexp genv env { e_desc; e_loc  } =
         let* si = instance v in
         let* s2 = iexp genv env e2 in
         return (Stuple [Sinstance(si); s2])
-     | Eatomic, [e] ->
-        iexp genv env e
-     | Etest, [e] ->
+     | (Eatomic | Etest | Edisc), [e] ->
         iexp genv env e
      | Eup, [e] ->
         let* s = iexp genv env e in
         return
           (Stuple [Szstate { zin = false; zout = max_float }; s])
-     | Eperiod, [e1;e2] ->
+     | Eperiod, [e1; e2] ->
         (* [e1] and [e2] must be static *)
         let* v1 = Combinatorial.exp genv env e1 in
         let* v2 = Combinatorial.exp genv env e2 in
@@ -176,6 +173,15 @@ let rec iexp genv env { e_desc; e_loc  } =
         return
           (Speriod
              { zin = false; phase = v1; period = v2; horizon = v1 +. v2 })
+     | (Econcat | Eget), [e1; e2] ->
+        let* s1 = iexp genv env e1 in
+        let* s2 = iexp genv env e2 in
+        return (Stuple [s1; s2])
+     | (Eget_with_default | Eslice | Eupdate), [e1; e2; e3] ->
+        let* s1 = iexp genv env e1 in
+        let* s2 = iexp genv env e2 in
+        let* s3 = iexp genv env e3 in
+        return (Stuple [s1; s2; s3])
      | _ -> error { kind = Etype; loc = e_loc }
      end
   | Etuple(e_list) -> 
@@ -238,6 +244,54 @@ let rec iexp genv env { e_desc; e_loc  } =
   | Eassert(e_body) ->
      let* s_body = iexp genv env e_body in
      return s_body
+  | Eforloop({ for_size; for_kind; for_index; for_body }) ->
+     (* [for_size] must be a static expression *)
+     let* v = Combinatorial.exp genv env for_size in          
+     let* v = Primitives.pvalue v |>
+                Opt.to_result ~none: { kind = Etype; loc = e_loc} in
+     let* v =
+       Primitives.int v |>
+         Opt.to_result ~none: { kind = Etype; loc = e_loc} in
+     let* s_kind = ifor_kind genv env for_kind in
+     let* si_list = map (ifor_index genv env) for_index in
+     let* s_result = ifor_result genv env for_body in
+     (* the initial state is an array [s^n] where [n] is the size *)
+     return (Stuple (Sval(Value(Vint(v))) :: s_kind ::
+                       Sarray (Array.make v s_result) :: si_list))
+
+and ifor_kind genv env for_kind =
+  match for_kind with
+  | Kforall -> return Sempty
+  | Kforward(e_opt) ->
+     match e_opt with | None -> return Sempty | Some(e) -> iexp genv env e
+
+and ifor_index genv env { desc; loc } =
+  match desc with
+  | Einput(_, e, e_opt) ->
+     let* se = iexp genv env e in
+     let* se_opt =
+       match e_opt with | None -> return Sempty | Some(e) -> iexp genv env e in
+     return (Stuple [se; se_opt])
+  | Eindex(_, e1, e2) ->
+     let* s1 = iexp genv env e1 in
+     let* s2 = iexp genv env e2 in
+     return (Stuple [s1; s2])
+
+and ifor_result genv env r =
+  match r with
+  | Forexp(e) -> iexp genv env e
+  | Forreturns(v_list, b) ->
+     let* s_v_list = map (ivardec genv env) v_list in
+     let* s_b = ifor_block_initialize genv env b in
+     return (Stuple (s_b :: s_v_list))
+
+and ifor_block_initialize genv env { for_block; for_initialize } =
+  let* s_b = iblock genv env for_block in
+  let* s_i_list = map (ifor_initialize genv env) for_initialize in
+  return (Stuple (s_b :: s_i_list))
+
+and ifor_initialize genv env { desc = { last_exp } } =
+  iexp genv env last_exp
   
 and ieq genv env { eq_desc; eq_loc  } =
   match eq_desc with
@@ -305,7 +359,21 @@ and ieq genv env { eq_desc; eq_loc  } =
   | EQassert(e) ->
      let* se = iexp genv env e in
      return se
-  
+  | EQforloop({ for_size; for_kind; for_index; for_body = (_, f_b) }) ->
+     (* [for_size] must be a static expression *)
+     let* v = Combinatorial.exp genv env for_size in          
+     let* v = Primitives.pvalue v |>
+                Opt.to_result ~none: { kind = Etype; loc = eq_loc} in
+     let* v =
+       Primitives.int v |>
+         Opt.to_result ~none: { kind = Etype; loc = eq_loc} in
+     let* s_kind = ifor_kind genv env for_kind in
+     let* si_list = map (ifor_index genv env) for_index in
+     let* s_b = ifor_block_initialize genv env f_b in
+     (* the initial state is an array [s^n] of size [n] *)
+     return (Stuple (Sval(Value(Vint(v))) :: s_kind ::
+                       Sarray(Array.make v s_b) :: si_list))
+
 and iblock genv env { b_vars; b_body; b_loc  } =
   let* s_b_vars = map (ivardec genv env) b_vars in
   let* s_b_body = ieq genv env b_body in
@@ -602,8 +670,51 @@ let rec sexp genv env { e_desc; e_loc } s =
      let* v, s = sexp genv env e_body s in
      let* r = Combinatorial.check_assertion e_loc v void in
      return (r, s)
+  | Eforloop({ for_kind; for_index; for_body }),
+    Stuple
+      (Sval(Value(Vint(for_size))) :: s_kind :: Sarray(s_b_array) :: si_list) ->
+     error { kind = Estate; loc = e_loc }
   | _ -> error { kind = Estate; loc = e_loc }
 
+and sfor_kind genv env for_kind =
+  match for_kind with
+  | Kforall -> return Sempty
+  | Kforward(e_opt) ->
+     match e_opt with | None -> return Sempty | Some(e) -> iexp genv env e
+
+and sfor_index genv env { desc; loc } s =
+  error { kind = Estate; loc }
+(*
+match desc, s with
+  | Einput(x, e, e_opt), Stuple [se; se_opt] ->
+     let* ve, se = sexp genv env e se in
+     let* ve_opt, se_opt =
+       match e_opt, se_opt with
+       | None, None -> return (Env.add x
+                                 none, return Sempty | Some(e) -> iexp genv env e in
+     return (Stuple [se; se_opt])
+  | Eindex(x, e1, e2), Stuple [se1; se2] ->
+     let* s1 = iexp genv env e1 in
+     let* s2 = iexp genv env e2 in
+     return (Stuple [s1; s2])
+ *)
+       
+and ifor_result genv env r =
+  match r with
+  | Forexp(e) -> iexp genv env e
+  | Forreturns(v_list, b) ->
+     let* s_v_list = map (ivardec genv env) v_list in
+     let* s_b = ifor_block_initialize genv env b in
+     return (Stuple (s_b :: s_v_list))
+
+and ifor_block_initialize genv env { for_block; for_initialize } =
+  let* s_b = iblock genv env for_block in
+  let* s_i_list = map (ifor_initialize genv env) for_initialize in
+  return (Stuple (s_b :: s_i_list))
+
+and ifor_initialize genv env { desc = { last_exp } } =
+  iexp genv env last_exp
+  
 (* a function can take a tuple that is non strict *)
 and sarg genv env ({ e_desc; e_loc } as e) s =
   match e_desc, s with
@@ -840,6 +951,9 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
      let* ve, s = sexp genv env e s in
      let* r = Combinatorial.check_assertion eq_loc ve Env.empty in
      return (r, s)
+  | EQforloop({ for_kind; for_index; for_body }),
+    Stuple (Sval(Value(Vint(for_size))) :: s_kind :: s_b :: si_list) ->
+     error { kind = Estate; loc = eq_loc }
   | _ -> error { kind = Estate; loc = eq_loc }
 
 (* Combinatorialuation of the result of a function *)            
