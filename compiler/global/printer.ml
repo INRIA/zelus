@@ -116,8 +116,8 @@ let vardec_list exp ff vardec_list =
       { var_name = x; var_default = d_opt; var_init = i_opt } =
     fprintf ff "@[%a%a%a@]" 
       name x (default exp) d_opt (init exp) i_opt in
-  if vardec_list <> []
-  then print_list_r vardec "" "," "" ff vardec_list
+  print_if_not_empty
+    (print_list_r vardec "" "," "") ff vardec_list
 
 let skind ff k =
   let s = match k with
@@ -143,9 +143,9 @@ let print_binding ff (n, { t_sort; t_typ }) =
 let print_env ff env =
   if !vverbose then begin
     let env = Ident.Env.bindings env in
-    if env <> [] then
-      fprintf ff "@[<v 0>(* defs: %a *)@,@]"
-        (print_list_r print_binding """;""") env
+    print_if_not_empty
+      (fun ff env -> fprintf ff "@[<hov 0>(* defs: %a *)@,@]"
+                       (print_list_r print_binding """;""") env) ff env
   end
 
 let print_writes ff { dv ; di; der } =
@@ -169,11 +169,14 @@ let print_eq_info ff { eq_write } =
 
 (* print a block *)
 let block exp body ff { b_vars; b_body; b_write; b_env } =
-  fprintf ff "@[<hov 0>local@ %a in@ %a%a%a@]"
-    (vardec_list exp) b_vars
-    print_writes b_write
-    print_env b_env
-    body b_body
+  match b_vars with
+  | [] -> body ff b_body
+  | _ ->
+     fprintf ff "@[<hov 0>local@ %a in@ %a%a%a@]"
+       (vardec_list exp) b_vars
+       print_writes b_write
+       print_env b_env             
+       body b_body
 
 let match_handler body ff { m_pat; m_body; m_env; m_reset; m_zero } =
   fprintf ff "@[<hov 4>| %a -> %s%s@,%a%a@]"
@@ -203,6 +206,10 @@ let scondpat expression ff scpat =
        fprintf ff "@[%a on@ %a@]" scondpat scpat1 expression e in
   scondpat ff scpat
 
+(* test whether a block is empty or not *)
+let is_empty_block { b_vars; b_body = { eq_desc } } =
+  (b_vars = []) && (eq_desc = EQempty)
+  
 let automaton_handler_list
       is_weak leqs body body_in_escape expression ff s_h_list e_opt =
   let statepat ff spat = match spat.desc with
@@ -218,9 +225,6 @@ let automaton_handler_list
        fprintf ff "@[if %a@,then %a@,else %a@]"
          expression e state se1 state se2 in
 
-  (* test whether a block is empty or not *)
-  let is_empty_block { b_body = { eq_desc } } = eq_desc = EQempty in
-  
   let automaton_handler is_weak body body_in_escape expression ff
         { s_state; s_let; s_body; s_trans; s_env } =
     
@@ -310,13 +314,13 @@ let rec expression ff e =
     | Eforloop({ for_size; for_kind; for_index; for_env; for_body }) ->
        let size ff for_size = expression ff for_size in
        fprintf ff
-       "@[<hov 2>%a@ %a@ %a@ %a@ %a@ %a@]"
-       kind_of_forloop for_kind
-       size for_size
-       index_list for_index
-       with_while_condition for_kind
-       for_result for_body
-       print_env for_env in
+         "@[<hov 2>%a(%a)@ %a@,%a@,%a@ %a@]"
+         kind_of_forloop for_kind
+         size for_size
+         index_list for_index
+         with_while_condition for_kind
+         for_result for_body
+         print_env for_env in
   if Deftypes.is_no_typ e.e_typ && !vverbose then
     fprintf ff "@[<hov 2>(%a :@ %a)@]" exp e Ptypes.output e.e_typ
   else exp ff e
@@ -337,7 +341,7 @@ and funexp ff { f_kind; f_args; f_body; f_env } =
   let s =
     match f_kind with
     | Kstatic -> ">" | Kfun -> "->" | Khybrid | Knode -> "=>" in
-  fprintf ff "@[<v 2>fun %a %s @ %a%a@]"
+  fprintf ff "@[<hov 2>fun %a %s@ %a%a@]"
     arg_list f_args s print_env f_env result f_body
 
 and arg_list ff a_list =
@@ -428,27 +432,30 @@ and equation ff ({ eq_desc = desc } as eq) =
      let size ff for_size = expression ff for_size in
      let for_out_list ff l =
        let for_out ff { desc = { for_out_left; for_out_right } } =
-         fprintf ff "@ @[%a out %a@]" name for_out_left name for_out_right in
+         fprintf ff "@[%a out %a@]" name for_out_left name for_out_right in
        print_list_r for_out "" "," "" ff l in
-     fprintf ff
-       "@[<hov 2>%a@ %a%a%a%a%a@ %a@]"
+     let comma =
+       match for_index, for_out with | ([], _) | (_, []) -> "" | _ -> ", " in
+     fprintf ff  "@[<hov 2>%a(%a)@ %a%s@,%a@,%a@,%a@ %a@]"
        kind_of_forloop for_kind
        size for_size
        index_list for_index
+       comma
        for_out_list for_out
        with_while_condition for_kind
        block_for_initialize body
        print_env for_env
 
+                               
 (* print for loops *)
 and kind_of_forloop ff for_kind =
   match for_kind with
-  | Kforall -> fprintf ff "forall "
+  | Kforall -> fprintf ff "forall"
   | Kforward _ -> fprintf ff "forward"
 
 and with_while_condition ff for_kind =
   match for_kind with
-  | Kforward(Some(e)) -> fprintf ff "@ @[<hov 2>while@ %a@]" expression e
+  | Kforward(Some(e)) -> fprintf ff "@ @[<hov 2>while@ %a@ @]" expression e
   | _ -> ()
 
 and index_list ff l =
@@ -476,20 +483,21 @@ and for_result ff r =
   match r with
   | Forexp(e) -> fprintf ff "@[ do %a done@]" expression e
   | Forreturns(v_list, b) ->
-     fprintf ff "@[<hov 2>returns@ %a@ %a@]"
+     fprintf ff "@[<hov 2> returns@ %a@ %a@]"
        arg v_list
        block_for_initialize b
     
 and block_of_equation ff b_eq =
   block expression equation ff b_eq
 
-and leq ff { l_rec; l_eq; l_env } =
-  let s = if l_rec then "rec " else "" in
-  fprintf ff "@[<v0>%alet %s%a in@ @]"
-    print_env l_env s equation l_eq
+(* "@[<v0>%alet %s%a in@ @]" *)
 
-and leqs ff l =
-  if l <> [] then fprintf ff "@[%a@]" (print_list_l leq "" "" "") l
+and leq ff { l_rec; l_eq; l_env } =
+  let s = if l_rec then " rec " else "" in
+  fprintf ff "@[<v0>@[<hov2>%alet%s@ %a@] in@ @]"
+              print_env l_env s equation l_eq
+
+and leqs ff l =  print_if_not_empty (print_list_l leq "" "" "") ff l
 
 let constr_decl ff { desc = desc } =
   match desc with
@@ -530,7 +538,7 @@ let implementation ff impl =
        Ptypes.print_type_params params
        n type_decl ty_decl
   | Eletdecl(n, e) ->
-     fprintf ff "@[<v2>let %a =@ %a@]@." shortname n expression e
+     fprintf ff "@[<hov2>let %a =@ %a@]@." shortname n expression e
     
 let program ff imp_list = List.iter (implementation ff) imp_list
 
