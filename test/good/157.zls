@@ -3,6 +3,8 @@ let f = (1+2)+let x = (1+2) in
 let x = (1+2) in (1+2)+(1+2)(1+2)+
   let x = (1+2) in (1+2)+(1+2)(1+2)+(1+2)
 
+let l = 1
+
 let g =
   let h x y = 2 in
   h + 1
@@ -18,7 +20,8 @@ let node f x =
     do o = 1 done
 
 let node f x = o where
-  rec forward(4) xi in x, zi in m, oi out o while true
+   rec forward(4) xi in x, zi in m, oi out o, oz out m, r out o, t out m
+       while true
         local z, k, r init 42
         do x = 1 done
 
