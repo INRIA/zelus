@@ -26,6 +26,7 @@ open Primitives
 open Match
 open Sdebug
 
+       
 (* given an environment [x1\v1,...,xn\vn] *)
 (* where [v1],...,[vn] are arrays of length [length] *)
 (* and index [i:length], returns [x1\v1.(i),...,xn\vn.(i)] *)
@@ -34,7 +35,7 @@ let geti_env env i =
   let entry v = { cur = v; last = None; default = None } in
   Env.fold
     (fun x v acc ->
-      let vi = geti v i in
+      let vi = Primitives.geti v i in
       match vi with | None -> acc | Some(vi) -> Env.add x (entry vi) acc)
     env Env.empty
       
@@ -84,6 +85,61 @@ let (let*+) v f =
   let* v = v in
   let+ v = v in
   f v
+
+(* array operations *)
+let concat loc v1 v2 =
+  match v1, v2 with
+  | (Vbot, _) | (_, Vbot) -> return Vbot
+  | (Vnil, _) | (_, Vnil) -> return Vnil
+  | Value(Varray(v1)), Value(Varray(v2)) ->
+     return (Value(Varray(Array.append v1 v2)))
+  | _ -> error { kind = Etype; loc }
+        
+let geti loc v i =
+  match v, i with
+  | (Vbot, _) | (_, Vbot) -> return Vbot
+  | (Vnil, _) | (_, Vnil) -> return Vnil
+  | Value(v), Value(i) ->
+     match v, i with
+     | Varray(a), Vint(i) ->
+        if (i >= 0) && (i < Array.length a) then return (a.(i))
+        else error { kind = Esize(Array.length a, i); loc }
+     | _ -> error { kind = Etype; loc }
+
+let get_with_default loc v i default =
+  match v, i with
+  | (Vbot, _) | (_, Vbot) -> return Vbot
+  | (Vnil, _) | (_, Vnil) -> return Vnil
+  | Value(v), Value(i) ->
+     match v, i with
+     | Varray(a), Vint(i) ->
+        if (i >= 0) && (i < Array.length a) then return (a.(i))
+        else return (default)
+     | _ -> error { kind = Etype; loc }
+
+let slice loc v i1 i2 =
+  match v, i1, i2 with
+  | (Vbot, _, _) | (_, Vbot, _) | (_, _, Vbot) -> return Vbot
+  | (Vnil, _, _) | (_, Vnil, _) | (_, _, Vnil) -> return Vnil
+  | Value(v), Value(i1), Value(i2) ->
+     match v, i1, i2 with
+     | Varray(v), Vint(i1), Vint(i2) ->
+        return (Value(Varray(Array.sub v i1 i2)))
+     | _ -> error { kind = Etype; loc }
+
+let update loc v i w =
+  match v, i, w with
+  | (Vbot, _, _) | (_, Vbot, _) | (_, _, Vbot) -> return Vbot
+  | (Vnil, _, _) | (_, Vnil, _) | (_, _, Vnil) -> return Vnil
+  | Value(a), Value(i), _ ->
+     match a, i with
+     | Varray(a), Vint(i) ->
+        if (i >= 0) && (i < Array.length a) then
+          let a = Array.copy a in
+          a.(i) <- w;
+          return (Value(Varray(a)))
+        else return v
+     | _ -> error { kind = Etype; loc }
 
 (* Pattern matching *)
 let match_handler_list loc body genv env ve handlers =
