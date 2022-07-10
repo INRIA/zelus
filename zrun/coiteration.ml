@@ -212,7 +212,10 @@ let rec iexp genv env { e_desc; e_loc  } =
         return
           (Speriod
              { zin = false; phase = v1; period = v2; horizon = v1 +. v2 })
-     | (Econcat | Eget), [e1; e2] ->
+     | Eget, [e1; _] ->
+        let* s1 = iexp genv env e1 in
+        return s1
+     | Econcat, [e1; e2] ->
         let* s1 = iexp genv env e1 in
         let* s2 = iexp genv env e2 in
         return (Stuple [s1; s2])
@@ -624,6 +627,33 @@ let rec sexp genv env { e_desc; e_loc } s =
                (Value(Vbool(zin)), Stuple [Shorizon { h with horizon }; s])
         else
           return (Value(Vbool(zin)), Stuple [Shorizon(h); s])
+     | Econcat, [e1; e2], Stuple [s1; s2] ->
+        let* v1, s1 = sexp genv env e1 s1 in
+        let* v2, s2 = sexp genv env e2 s2 in
+        let* v = Combinatorial.concat e_loc v1 v2 in
+        return (v, Stuple [s1; s2])
+     | Eget, [e; i], s ->
+        let* v, s = sexp genv env e s in
+        let* i = Combinatorial.exp genv env i in
+        return (v, s)
+     | Eget_with_default, [e; ei; default], Stuple [se; si; s_default] ->
+        let* v, se = sexp genv env e se in
+        let* vi, si = sexp genv env ei si in
+        let* default, s_default = sexp genv env default s_default in
+        let* v = Combinatorial.get_with_default e_loc v vi default in
+        return (v, s)
+     | Eslice, [e; i1; i2], s ->
+        let* v, s = sexp genv env e s in
+        let* i1 = Combinatorial.exp genv env i1 in
+        let* i2 = Combinatorial.exp genv env i2 in
+        let* v = Combinatorial.slice e_loc v i1 i2 in
+        return (v, s)        
+     | Eupdate, [e1; i; e2], Stuple [s1; s2] ->
+        let* v1, s1 = sexp genv env e1 s1 in
+        let* i = Combinatorial.exp genv env i in
+        let* v2, s2 = sexp genv env e2 s2 in
+        let* v = Combinatorial.update e_loc v1 i v2 in
+        return (v, Stuple [s1; s2])
      | _ -> error { kind = Etype; loc = e_loc }
      end
   | Econstr1 { lname; arg_list }, Stuple(s_list) ->
