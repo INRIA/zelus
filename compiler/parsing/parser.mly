@@ -222,6 +222,7 @@ let forall_loop (size, index_list, body) =
 %right prec_uminus
 %right PREFIX
 %right PRE TEST UP
+%left DEFAULT
 %left DOT
 
 
@@ -814,6 +815,9 @@ simple_expression_desc:
       { Eop(Eupdate, [e1; i; e2]) }
   | e1 = simple_expression DOT LPAREN e2 = expression RPAREN
       { Eop(Eget, [e1; e2]) }
+  | e1 = simple_expression DOT LPAREN e2 = expression RPAREN
+    DEFAULT e3 = simple_expression
+      { Eop(Eget_with_default, [e1; e2; e3]) }
 ;
 
 expression_comma_list :
