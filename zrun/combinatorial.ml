@@ -25,6 +25,19 @@ open Value
 open Primitives
 open Match
 open Sdebug
+
+(* given an environment [x1\v1,...,xn\vn] *)
+(* where [v1],...,[vn] are arrays of length [length] *)
+(* and index [i:length], returns [x1\v1.(i),...,xn\vn.(i)] *)
+let geti_env env i =
+  let open Opt in
+  let entry v = { cur = v; last = None; default = None } in
+  Env.fold
+    (fun x v acc ->
+      let vi = geti v i in
+      match vi with | None -> acc | Some(vi) -> Env.add x (entry vi) acc)
+    env Env.empty
+      
    
 (* merge two environments provided they do not overlap *)
 let merge loc env1 env2 =
