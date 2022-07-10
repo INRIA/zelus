@@ -13,6 +13,9 @@ let node plus11 x =
 let node main1 () =
   plus (plus1 (f 0), plus1 (f 0))
 
-let node main () =
+let node main2 () =
   plus11 (f 0)
 
+let node main () =
+  let x = f 0 in
+  x.(2)
