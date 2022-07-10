@@ -672,48 +672,49 @@ let rec sexp genv env { e_desc; e_loc } s =
      return (r, s)
   | Eforloop({ for_kind; for_index; for_body }),
     Stuple
-      (Sval(Value(Vint(for_size))) :: s_kind :: Sarray(s_b_array) :: si_list) ->
-     error { kind = Estate; loc = e_loc }
+      (((Sval(Value(Vint(for_size)))) as sv) ::
+         s_kind :: Sarray(s_b_array) :: si_list) ->
+     (* computes a local environment for variables introduced *)
+     (* in the index list *)
+     let* l_env, si_list =
+       mapfold2 { kind = Estate; loc = e_loc }
+         (sfor_index e_loc genv env) Env.empty for_index si_list in
+     let* v, s_b_array =
+       sfor_result e_loc genv env l_env for_body s_b_array in
+     return (v, Stuple (sv :: s_kind :: Sarray(s_b_array) :: si_list))
   | _ -> error { kind = Estate; loc = e_loc }
 
-and sfor_kind genv env for_kind =
-  match for_kind with
-  | Kforall -> return Sempty
-  | Kforward(e_opt) ->
-     match e_opt with | None -> return Sempty | Some(e) -> iexp genv env e
+and sfor_kind loc genv env for_kind =
+  error { kind = Enot_implemented; loc }
 
-and sfor_index genv env { desc; loc } s =
-  error { kind = Estate; loc }
-(*
-match desc, s with
-  | Einput(x, e, e_opt), Stuple [se; se_opt] ->
+(* evaluate a index returns a local environment *)
+and sfor_index loc genv env l_env { desc; loc } s =
+  match desc, s with
+  | Einput(x, e, None), Stuple [se; se_opt] ->
      let* ve, se = sexp genv env e se in
-     let* ve_opt, se_opt =
-       match e_opt, se_opt with
-       | None, None -> return (Env.add x
-                                 none, return Sempty | Some(e) -> iexp genv env e in
-     return (Stuple [se; se_opt])
+     return (Env.add x ve l_env, se)
+  | Einput(x, e, Some(e_by)), Stuple [se; se_opt] ->
+     error { kind = Enot_implemented; loc }
   | Eindex(x, e1, e2), Stuple [se1; se2] ->
-     let* s1 = iexp genv env e1 in
-     let* s2 = iexp genv env e2 in
-     return (Stuple [s1; s2])
- *)
-       
-and ifor_result genv env r =
-  match r with
-  | Forexp(e) -> iexp genv env e
-  | Forreturns(v_list, b) ->
-     let* s_v_list = map (ivardec genv env) v_list in
-     let* s_b = ifor_block_initialize genv env b in
-     return (Stuple (s_b :: s_v_list))
+     error { kind = Enot_implemented; loc }
+  | _ ->
+     error { kind = Estate; loc }
+             
+and sfor_result loc genv env l_env for_body s_body_array =
+  match for_body, s_body_array with
+  | Forexp(e), se ->
+     let* ve, se = sexp genv env e se in
+     return (ve, se)
+  | Forreturns(v_list, { for_block }), Stuple [s_list; s_b] ->
+     error { kind = Enot_implemented; loc }
 
-and ifor_block_initialize genv env { for_block; for_initialize } =
-  let* s_b = iblock genv env for_block in
-  let* s_i_list = map (ifor_initialize genv env) for_initialize in
-  return (Stuple (s_b :: s_i_list))
 
-and ifor_initialize genv env { desc = { last_exp } } =
-  iexp genv env last_exp
+and sfor_block_initialize genv env { for_block } s_b =
+  let* env, env_local, s_b = sblock genv env for_block s_b in
+  return (env, env_local, s_b)
+
+and sfor_initialize genv env { desc = { last_exp } } =
+  sexp genv env last_exp
   
 (* a function can take a tuple that is non strict *)
 and sarg genv env ({ e_desc; e_loc } as e) s =
@@ -769,7 +770,7 @@ and sleq genv env { l_rec; l_eq = ({ eq_write } as l_eq); l_loc } s_eq =
     seq genv env l_eq s_eq
     
 and slets loc genv env leq_list s_list =
-  mapfold2 { kind = Estate; loc = loc }
+  mapfold2 { kind = Estate; loc }
     (fun acc leq s -> let* env, s = sleq genv env leq s in
                       return (Env.append env acc, s))
     env leq_list s_list
