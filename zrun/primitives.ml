@@ -127,17 +127,15 @@ let lte_op v1 v2 =
 let gte_op v1 v2 =
   return (Vbool(v1 >= v2))
   
-let geti i v =
-  let rec geti i v_list =
-    match v_list with
-    | [] -> None
-    | v :: v_list -> if i = 0 then Some(v) else geti (i-1) v_list in
+let geti v i =
   match v with
   | Vbot -> return Vbot
   | Vnil -> return Vnil
   | Value(v) ->
      match v with
-     | Vtuple(v_list) -> if i >= 0 then geti i v_list else None
+     | Varray(v) ->
+        let n = Array.length v in
+        if (i < n) && (i >= 0) then return (v.(i)) else None
      | _ -> None
           
 (* ifthenelse *)
