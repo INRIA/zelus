@@ -1,0 +1,18 @@
+let node f x =
+  forall(4) do x done
+
+let node plus1 x =
+  forall(4) xi in x do xi+1 done
+
+let node plus (x, y) =
+  forall(4) xi in x, yi in y do xi+yi done
+
+let node plus11 x =
+  forall(4) xi in x do let rec cpt = xi fby cpt + 1 in cpt done
+      
+let node main1 () =
+  plus (plus1 (f 0), plus1 (f 0))
+
+let node main () =
+  plus11 (f 0)
+
