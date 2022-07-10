@@ -37,6 +37,45 @@ open Sdebug
    
 (* evaluation functions *)
 
+(* duplicate a value into a list *)
+let rec list_of n v = if n = 0 then [] else v :: (list_of (n-1) v)
+                    
+(* loop iteration *)
+(* parallel forall loops; take a list of states *)
+let forall_i f s_list =
+  let rec for_rec i s_list =
+        match s_list with
+        | [] -> return ([], [])
+        | s :: s_list ->
+           let* x, s = f i s in
+           let* x_list, s_list = for_rec (i+1) s_list in
+           return (x :: x_list, s :: s_list) in
+  for_rec 0 s_list
+
+(* instantaneous for loops; take a single state and iterate on it *)
+let forward_i default f s =
+  let rec for_rec default i s =
+    if i = 0 then return default
+    else
+      let* v, s = f i s in
+      for_rec v (i+1) s in
+  for_rec default 0 s
+
+(* instantaneous for loops with a stopping condition *)
+let forward_i_with_stopping_condition loc write f cond (s, sc) =
+  let rec for_rec i (s, sc) =
+    if i = 0 then return Env.empty
+    else
+      let* env, s = f i s in
+      let* v, sc = cond env sc in
+      match v with
+      | Vbot -> return (bot_env write) | Vnil -> return (nil_env write)
+      | Value(v) ->
+         let* b = Opt.to_result ~none:{ kind = Etype; loc = loc } (bool v) in
+         if b then for_rec (i+1) (s, sc)
+         else return env in
+  for_rec 0 (s, sc)
+  
 (* [reset init step genv env body s r] resets [step genv env body] *)
 (* when [r] is true *)
 let reset init step genv env body s r =
@@ -252,18 +291,21 @@ let rec iexp genv env { e_desc; e_loc  } =
      let* v =
        Primitives.int v |>
          Opt.to_result ~none: { kind = Etype; loc = e_loc} in
-     let* s_kind = ifor_kind genv env for_kind in
      let* si_list = map (ifor_index genv env) for_index in
      let* s_result = ifor_result genv env for_body in
-     (* the initial state is an array [s^n] where [n] is the size *)
-     return (Stuple (Sval(Value(Vint(v))) :: s_kind ::
-                       Sarray (Array.make v s_result) :: si_list))
+     (* the initial state is [s_1;...;s_{v-1}] for a parallel forall loop; *)
+     (* it is [s] for a forward loop *)
+     let* s_kind, s_result = ifor_kind genv env for_kind v s_result in
+     return (Stuple (Sval(Value(Vint(v))) :: s_kind :: s_result :: si_list))
 
-and ifor_kind genv env for_kind =
+and ifor_kind genv env for_kind v s_result =
   match for_kind with
-  | Kforall -> return Sempty
+  | Kforall -> return (Sempty, Slist(list_of v s_result))
   | Kforward(e_opt) ->
-     match e_opt with | None -> return Sempty | Some(e) -> iexp genv env e
+     match e_opt with
+     | None -> return (Sempty, Sempty)
+     | Some(e) ->
+        let* se = iexp genv env e in return (se, s_result)
 
 and ifor_index genv env { desc; loc } =
   match desc with
@@ -367,12 +409,12 @@ and ieq genv env { eq_desc; eq_loc  } =
      let* v =
        Primitives.int v |>
          Opt.to_result ~none: { kind = Etype; loc = eq_loc} in
-     let* s_kind = ifor_kind genv env for_kind in
      let* si_list = map (ifor_index genv env) for_index in
      let* s_b = ifor_block_initialize genv env f_b in
-     (* the initial state is an array [s^n] of size [n] *)
-     return (Stuple (Sval(Value(Vint(v))) :: s_kind ::
-                       Sarray(Array.make v s_b) :: si_list))
+     (* the initial state is [s_1;...;s_{v-1}] for a parallel forall loop; *)
+     (* it is [s_b] empty for a forward loop *)
+     let* s_kind, s_b = ifor_kind genv env for_kind v s_b in
+     return (Stuple (Sval(Value(Vint(v))) :: s_kind :: s_b :: si_list))
 
 and iblock genv env { b_vars; b_body; b_loc  } =
   let* s_b_vars = map (ivardec genv env) b_vars in
@@ -673,42 +715,50 @@ let rec sexp genv env { e_desc; e_loc } s =
   | Eforloop({ for_kind; for_index; for_body }),
     Stuple
       (((Sval(Value(Vint(for_size)))) as sv) ::
-         s_kind :: Sarray(s_b_array) :: si_list) ->
+         s_kind :: s_for_body :: si_list) ->
      (* computes a local environment for variables introduced *)
      (* in the index list *)
      let* l_env, si_list =
        mapfold2 { kind = Estate; loc = e_loc }
          (sfor_index e_loc genv env) Env.empty for_index si_list in
-     let* v, s_b_array =
-       sfor_result e_loc genv env l_env for_body s_b_array in
-     return (v, Stuple (sv :: s_kind :: Sarray(s_b_array) :: si_list))
+     let* v, s_for_body =
+       sfor_result
+         e_loc genv env l_env for_body s_for_body in
+     return (v, Stuple (sv :: s_kind :: s_for_body :: si_list))
   | _ -> error { kind = Estate; loc = e_loc }
 
-and sfor_kind loc genv env for_kind =
+and sfor_kind loc genv env for_kind s_kind =
   error { kind = Enot_implemented; loc }
-
-(* evaluate a index returns a local environment *)
+  
+(* evaluate an index returns a local environment *)
 and sfor_index loc genv env l_env { desc; loc } s =
   match desc, s with
   | Einput(x, e, None), Stuple [se; se_opt] ->
+     (* xi in e stands for xi = e.(i) *)
      let* ve, se = sexp genv env e se in
-     return (Env.add x ve l_env, se)
+     return (Env.add x ve l_env, Stuple [se; se_opt])
   | Einput(x, e, Some(e_by)), Stuple [se; se_opt] ->
      error { kind = Enot_implemented; loc }
   | Eindex(x, e1, e2), Stuple [se1; se2] ->
      error { kind = Enot_implemented; loc }
   | _ ->
      error { kind = Estate; loc }
-             
-and sfor_result loc genv env l_env for_body s_body_array =
-  match for_body, s_body_array with
-  | Forexp(e), se ->
-     let* ve, se = sexp genv env e se in
-     return (ve, se)
+     
+and sfor_result loc genv env l_env for_body s_for_body =
+  match for_body, s_for_body with
+  | Forexp(e), Slist(s_list) ->
+     let* ve_list, s_list =
+       forall_i
+         (fun i se ->
+           let env = Env.append env (Combinatorial.geti_env l_env i) in
+           sexp genv env e se) s_list in
+     return (Value(Varray(Array.of_list ve_list)), Slist(s_list))
   | Forreturns(v_list, { for_block }), Stuple [s_list; s_b] ->
      error { kind = Enot_implemented; loc }
+  | _ ->
+     error { kind = Estate; loc }
 
-
+   
 and sfor_block_initialize genv env { for_block } s_b =
   let* env, env_local, s_b = sblock genv env for_block s_b in
   return (env, env_local, s_b)
