@@ -42,7 +42,7 @@ type pvalue =
   | Vstate1 : Ident.t * pvalue list -> pvalue
   | Vfun : (pvalue -> pvalue option) -> pvalue
   | Vclosure : closure -> pvalue
-  | Varray : { length: int; v : int -> value } -> pvalue
+  | Varray : value Array.t -> pvalue
 
 and closure =
   { c_funexp : Zelus.funexp;
@@ -62,7 +62,7 @@ and state =
   | Shorizon : { zin : bool; horizon : float } -> state
   | Speriod :
       { zin : bool; phase : float; period : float; horizon : float } -> state
-  | Sarray : state array -> state
+  | Slist : state list -> state
 
 and instance =
   { init : state;
