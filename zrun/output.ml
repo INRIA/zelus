@@ -58,6 +58,11 @@ let rec pvalue ff v =
      Format.fprintf ff "abs"
   | Vpresent(v) ->
      Format.fprintf ff "!%a" pvalue v
+  | Varray(v) ->
+     Format.fprintf ff "@[<hov1>[|%a|]@]"
+       (fun ff v ->
+         Array.iter (fun x -> Format.fprintf ff "%a;@," value x) v)
+       v
     
 and value ff v =
   match v with
