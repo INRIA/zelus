@@ -188,16 +188,6 @@ module Result =
          let* x_list = map f x_list in
          return (xv :: x_list)
 
-    let mapi f x_list =
-      let rec map_rec i x_list =
-        match x_list with
-        | [] -> return []
-        | x :: x_list ->
-           let* xv = f i x in
-           let* x_list = map_rec (i+1) x_list in
-           return (xv :: x_list) in
-      map_rec 0 x_list
-
     let rec fold f acc x_list =
       match x_list with
       | [] -> return acc
