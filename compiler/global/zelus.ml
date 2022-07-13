@@ -199,7 +199,7 @@ and exp_desc =
         default_opt : exp default } -> exp_desc
   | Ereset : exp * exp -> exp_desc
   | Eassert : exp -> exp_desc
-  | Eforloop : loopresult forloop -> exp_desc
+  | Eforloop : for_exp forloop -> exp_desc
 
 and 'body forloop =
   { for_size : exp;
@@ -209,15 +209,13 @@ and 'body forloop =
     for_env : exp Deftypes.tentry Ident.Env.t; }
 
 (* result expression of a loop *)
-and loopresult =
-  | Forexp : exp -> loopresult (* [forall ... do e done] *)
-  | Forreturns : exp vardec list * forbody -> loopresult
+and for_exp =
+  | Forexp : exp -> for_exp (* [forall ... do e done] *)
+  | Forreturns :
+      { returns : exp vardec list;
+        body : (exp, eq) block;
+        env : exp Deftypes.tentry Ident.Env.t; } -> for_exp
   (* [forall ... returns (...) local ... do eq initialize ... done] *) 
-
-and forbody =
-  { for_block : (exp, eq) block; (* block *)
-    for_initialize : for_initialize_desc localized list; (* [last x = ...] *)
-  } 
  
 and is_rec = bool
 
@@ -267,31 +265,43 @@ and eq_desc =
         handlers : (exp, eq) match_handler list } -> eq_desc
   | EQempty : eq_desc
   | EQassert : exp -> eq_desc
-  | EQforloop : (for_out_desc localized list * forbody) forloop -> eq_desc
+  | EQforloop : for_eq forloop -> eq_desc
   (* [forall [id in e..e]* [id in e [by e],]* returns (vardec_list) do eq] *)
   (* forward [id in e..e]* [id in e [by e],]* 
      [while e] do e] returns (vardec_list) *)
 
+and for_eq =
+  { for_out : for_out_desc localized list;
+    (* [xi init vi] *)
+    (* [xi] is an output; the successive values are accumulated *)
+    (* [xi out x] *)
+    (* [xi] are local output; [x] is the output st [xi = x.(i)] *)
+    for_block : (exp, eq) block; (* loop body *)
+    for_out_env : exp Deftypes.tentry Ident.Env.t; 
+  }
+
 and for_kind =
   | Kforall : for_kind
   (* parallel loop *)
-  | Kforward : exp option -> for_kind
+  | Kforward : for_exit option -> for_kind
   (* iteration during one instant. The argument is the stoping condition *)
+
+and for_exit = | Until : exp -> for_exit | Unless : exp -> for_exit
 
 (* index definition for a loop *)
 and for_index_desc =
-  | Einput : Ident.t * exp * exp option -> for_index_desc
+  | Einput : { id: Ident.t; e : exp; by : exp option } -> for_index_desc
   (* xi in e1 [by e2], that is, xi = e1.(i * e2) *)
-  | Eindex : Ident.t * exp * exp -> for_index_desc
+  | Eindex : { id: Ident.t; e_left : exp; e_right : exp } -> for_index_desc
   (* i in e1..e2; [e1] and [e2] must be sizes *)
 
-and for_initialize_desc = 
-  { last_name : Ident.t; (* [last x = e] *)
-    last_exp : exp }
-
 and for_out_desc = 
-  { for_out_left : Ident.t; (* [last x = e] *)
-    for_out_right : Ident.t }
+  | Earray :
+      (* [xi out x] means that the output is the array x st x.(i) = xi *)
+      { xi : Ident.t; x: Ident.t } -> for_out_desc
+  | Eaccumulate :
+      (* [xi init v] means that the output is the cumulated value of xi *)
+      { xi : Ident.t; init : exp } -> for_out_desc
  
 and 'body automaton_handler =
   { s_state: statepat;

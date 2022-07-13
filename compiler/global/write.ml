@@ -110,28 +110,33 @@ let rec equation ({ eq_desc } as eq)=
        EQpresent({ handlers; default_opt }), Deftypes.union def def_opt
     | EQempty -> EQempty, Deftypes.empty
     | EQassert(e) -> EQassert(expression e), Deftypes.empty
-    | EQforloop({ for_size; for_kind; for_index; for_body } as f) ->
+    | EQforloop({ for_size; for_kind;
+                  for_index;
+                  for_body = ({ for_out; for_block } as f_body) } as f) ->
        let for_size = expression for_size in
        let for_kind =
          match for_kind with
          | Kforall -> for_kind
-         | Kforward(e_opt) -> Kforward(Util.optional_map expression e_opt) in
+         | Kforward(e_opt) ->
+            let exit = function | Until(e) -> Until(expression e)
+                       | Unless(e) -> Unless(expression e) in
+            Kforward(Util.optional_map exit e_opt) in
        let for_index =
          for_index_w for_index in
-       let for_body, defnames =
-         match for_body with
-         | for_out_list, { for_block; for_initialize } ->
-            let for_out acc
-                  ({ desc = { for_out_left; for_out_right } } as fo) =
-              fo, Env.add for_out_left for_out_right acc in
-            let for_out_list, h_out =
-              Util.mapfold for_out Env.empty for_out_list in
-            let for_block, defnames, dv_for_block = block for_block in
-            let for_initialize =
-              List.map initialize for_initialize in
-            let defnames = Deftypes.subst defnames h_out in
-            (for_out_list, { for_block; for_initialize }), defnames in
-       EQforloop({ f with for_size; for_kind; for_index; for_body}), defnames in
+       let for_out_one h_out ({ desc } as fo) =
+         let desc, h_out = match desc with
+           | Earray { xi; x } -> desc, Env.add xi x h_out
+           | Eaccumulate({ init } as a) ->
+              let init = expression init in
+              Eaccumulate({ a with init }), h_out in
+         { fo with desc }, h_out in
+         let for_out, h_out =
+              Util.mapfold for_out_one Env.empty for_out in
+       let for_block, defnames, dv_for_block = block for_block in
+       let defnames = Deftypes.subst defnames h_out in
+       EQforloop({ f with for_size; for_kind; for_index;
+                          for_body = { f_body with for_out; for_block }}),
+       defnames in
   (* set the names defined in the equation *)
   { eq with eq_desc = eq_desc; eq_write = def }, def
 
@@ -248,30 +253,30 @@ and expression ({ e_desc } as e) =
        let for_kind =
          match for_kind with
          | Kforall -> for_kind
-         | Kforward(e_opt) -> Kforward(Util.optional_map expression e_opt) in
+         | Kforward(e_opt) ->
+            let exit = function | Until(e) -> Until(expression e)
+                       | Unless(e) -> Unless(expression e) in
+            Kforward(Util.optional_map exit e_opt) in
        let for_index = for_index_w for_index in
        let for_body =
          match for_body with
          | Forexp(e) -> Forexp(expression e)
-         | Forreturns(ret, { for_block; for_initialize }) ->
-            let ret, _ = Util.mapfold vardec S.empty ret in
-            let for_block, _, _ = block for_block in
-            let for_initialize = List.map initialize for_initialize in
-            Forreturns(ret, { for_block; for_initialize }) in
+         | Forreturns({ returns; body } as f_returns) ->
+            let returns, _ = Util.mapfold vardec S.empty returns in
+            let body, _, _ = block body in
+            Forreturns({ f_returns with returns; body }) in
        Eforloop({ f with for_size; for_kind; for_index; for_body }) in
   { e with e_desc = desc }
-
-and initialize ({ desc = { last_name; last_exp } } as i) =
-  { i with desc = { last_name; last_exp = expression last_exp } }
 
 and for_index_w for_index = 
   let index ({ desc } as i) =
     let desc = match desc with
-      | Einput(n, e, e_opt) ->
-         Einput(n, expression e, Util.optional_map expression e_opt)
-      | Eindex(n, e1, e2) ->
-         Eindex(n, expression e1, expression e2) in
-    {i with desc } in
+      | Einput { id; e; by } ->
+         Einput { id; e = expression e; by = Util.optional_map expression by }
+      | Eindex { id; e_left; e_right } ->
+         Eindex { id; e_left = expression e_left;
+                  e_right = expression e_right } in
+    { i with desc } in
   List.map index for_index
        
 and arg acc v_list = Util.mapfold vardec acc v_list

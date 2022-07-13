@@ -74,9 +74,9 @@ let scond_true start_pos end_pos =
        start_pos end_pos
 
 (* building a for loop *)
-let forward_loop (size, index_list, opt_while, body) =
+let forward_loop (size, index_list, opt_cond, body) =
   { for_size = size;
-    for_kind = Kforward(opt_while);
+    for_kind = Kforward(opt_cond);
     for_index = index_list;
     for_body = body }
 
@@ -135,7 +135,6 @@ let forall_loop (size, index_list, body) =
 %token IF             /* "if" */
 %token IN             /* "in" */
 %token INIT           /* "init" */
-%token INITIALIZE     /* "initialize" */
 %token INLINE         /* "inline" */
 %token LAST           /* "last" */
 %token LBRACE         /* "{" */
@@ -178,7 +177,6 @@ let forall_loop (size, index_list, body) =
 %token VAL            /* "val" */
 %token WHERE          /* "where" */
 %token WITH           /* "with" */
-%token WHILE          /* "while" */
 
 %token <string> PREFIX
 %token <string> INFIX0
@@ -937,54 +935,55 @@ expression_desc:
 %inline forall_loop_exp:
   | s = simple_expression DO e = expression
     { (s, [], Forexp(e)) }
-  | s = simple_expression RETURNS p = param b = forblock
-    { s, [], Forreturns(p, b) }
+  | s = simple_expression RETURNS p = param
+    b = block(equation_empty_and_list)
+    { (s, [], Forreturns { returns = p; body = b }) }
   | s = simple_expression li = index_list DO e = expression
     { (s, li, Forexp(e)) }
-  | s = simple_expression li = index_list RETURNS p = param b = forblock
-    { s, li, Forreturns(p, b) }
+  | s = simple_expression li = index_list RETURNS p = param
+    b = block(equation_empty_and_list)
+    { (s, li, Forreturns { returns = p; body = b }) }
 ;
 
-%inline forblock:
-  | b = block(equation) i = forall_loop_initialize
-    { { for_block = b; for_initialize = i } }
-;
 
 %inline forward_loop_exp:
-  | s = simple_expression o = opt_while_condition
-    DO e = expression
+  | s = simple_expression
+    DO e = expression o = opt_loop_condition
     { (s, [], o, Forexp(e)) }
-  | s = simple_expression o = opt_while_condition
-    RETURNS p = param b = forblock
-    { (s, [], o, Forreturns(p, b)) }
-  | s = simple_expression li = index_list o = opt_while_condition
-    DO e = expression
+  | s = simple_expression
+    RETURNS p = param b = block(equation_empty_and_list) o = opt_loop_condition
+    { (s, [], o, Forreturns { returns = p; body = b }) }
+  | s = simple_expression li = index_list
+    DO e = expression o = opt_loop_condition
     { (s, li, o, Forexp(e)) }
-  | s = simple_expression li = index_list o = opt_while_condition
-    RETURNS p = param b = forblock
-    { (s, li, o, Forreturns(p, b)) }
+  | s = simple_expression li = index_list
+    RETURNS p = param b = block(equation_empty_and_list) o = opt_loop_condition
+    { (s, li, o, Forreturns { returns = p; body = b }) }
 ;
 
 /* Loops for equations */
 %inline forall_loop_eq:
-  | s = simple_expression li = empty(index_list) f = forblock
-    { (s, li, ([], f)) }
-  | s = simple_expression lo = output_list f = forblock
-    { (s, [], (lo, f)) }
-  | s = simple_expression li = index_list COMMA lo = output_list f = forblock
-    { (s, li, (lo, f)) }
+  | s = simple_expression li = empty(index_list)
+    f = block(equation_empty_and_list)
+    { (s, li, { for_out = []; for_block = f }) }
+  | s = simple_expression lo = output_list
+    f = block(equation_empty_and_list)
+    { (s, [], { for_out = lo; for_block = f }) }
+  | s = simple_expression li = index_list COMMA lo = output_list
+    f = block(equation_empty_and_list)
+    { (s, li, { for_out = lo; for_block = f }) }
 ;
 
 %inline forward_loop_eq:
-  | s = simple_expression li = empty(index_list) o = opt_while_condition 
-    f = forblock
-    { (s, li, o, ([], f)) }
-  | s = simple_expression lo = output_list o = opt_while_condition 
-    f = forblock
-    { (s, [], o, (lo, f)) }
+  | s = simple_expression li = empty(index_list)
+    f = block(equation_empty_and_list)  o = opt_loop_condition 
+    { (s, li, o, { for_out = []; for_block = f}) }
+  | s = simple_expression lo = output_list
+    f = block(equation_empty_and_list) o = opt_loop_condition 
+    { (s, [], o, { for_out = lo; for_block = f }) }
   | s = simple_expression li = index_list COMMA lo = output_list
-    o = opt_while_condition f = forblock
-    { (s, li, o, (lo, f)) }
+    f = block(equation_empty_and_list) o = opt_loop_condition 
+    { (s, li, o, { for_out = lo; for_block = f }) }
 ;
 
 /* indexes in a for loop */
@@ -994,9 +993,9 @@ expression_desc:
 
 %inline index_desc:
   | i = ide IN e1 = simple_expression DOTDOT e2 = simple_expression
-     { Eindex(i, e1, e2) }
+     { Eindex { id = i; e_left = e1; e_right = e2 } }
   | i = ide IN e = simple_expression o = optional(by_expression)
-     { Einput(i, e, o) }
+     { Einput { id = i; e = e; by = o } }
 ;
 
 %inline by_expression:
@@ -1005,32 +1004,17 @@ expression_desc:
 ;
 
 /* while condition for a forward loop */
-%inline opt_while_condition:
-  | o = optional(while_condition)
+%inline opt_loop_condition:
+  | o = optional(loop_condition)
     { o }
 ;
 
-%inline while_condition:
-  | WHILE e = expression
-    { e }
+%inline loop_condition:
+  | UNTIL e = expression
+    { Until(e) }
+  | UNLESS e = expression
+    { Unless(e) }
 ;
-
-/* Initialization of a loop */
-%inline forall_loop_initialize:
-  | { [] }
-  | INITIALIZE init = initialize_equation_list
-    { init }
-;
-
-/* initialization in a for loop */
-%inline initialize_equation_list:
-  | l = list_of(AND, localized(initialize_equation_desc)) { l }
-;
-
-%inline initialize_equation_desc:
-  | LAST i = ide EQUAL e = expression
-     { { last_name = i; last_exp = e } }
-  ;
 
 /* outputs of a loop */
 %inline output_list:
@@ -1038,8 +1022,12 @@ expression_desc:
 ;
 
 %inline output_desc:
+  /* [xi out x. [x] is an array st [x.(i) = xi] */
   | i = ide OUT o = ide
-    { { for_out_left = i; for_out_right = o } }
+    { Earray { xi = i; x = o } }
+  /* [xi init e]. The visible output is the last value of [xi] */
+  | i = ide INIT e = simple_expression
+    { Eaccumulate { xi = i; init = e } }
 ;
 
 /* Periods */

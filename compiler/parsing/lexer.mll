@@ -45,7 +45,6 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "if", IF;
   "in", IN;
   "init", INIT;
-  "initialize", INITIALIZE;
   "inline", INLINE;
   "last", LAST;
   "let", LET;
@@ -74,7 +73,6 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "val", VAL;
   "where", WHERE;
   "with", WITH;
-  "while", WHILE;
   "quo", INFIX3("quo");
   "mod", INFIX3("mod");
   "land", INFIX3("land");

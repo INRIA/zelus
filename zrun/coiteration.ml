@@ -295,49 +295,44 @@ let rec iexp genv env { e_desc; e_loc  } =
        Primitives.int v |>
          Opt.to_result ~none: { kind = Etype; loc = e_loc} in
      let* si_list = map (ifor_index genv env) for_index in
-     let* s_result = ifor_result genv env for_body in
+     let* s_body = ifor_exp genv env for_body in
      (* the initial state is [s_1;...;s_{v-1}] for a parallel forall loop; *)
      (* it is [s] for a forward loop *)
-     let* s_kind, s_result = ifor_kind genv env for_kind v s_result in
-     return (Stuple (Sval(Value(Vint(v))) :: s_kind :: s_result :: si_list))
+     let* s_kind, s_body = ifor_kind genv env for_kind v s_body in
+     return (Stuple (Sval(Value(Vint(v))) :: s_kind :: s_body :: si_list))
 
-and ifor_kind genv env for_kind v s_result =
+and ifor_kind genv env for_kind v s_body =
   match for_kind with
-  | Kforall -> return (Sempty, Slist(list_of v s_result))
+  | Kforall -> return (Sempty, Slist(list_of v s_body))
   | Kforward(e_opt) ->
      match e_opt with
      | None -> return (Sempty, Sempty)
      | Some(e) ->
-        let* se = iexp genv env e in return (se, s_result)
+        let* se =
+          match e with
+          | Until(e) -> iexp genv env e | Unless(e) -> iexp genv env e in
+        return (se, s_body)
 
 and ifor_index genv env { desc; loc } =
   match desc with
-  | Einput(_, e, e_opt) ->
+  | Einput { e; by } ->
      let* se = iexp genv env e in
      let* se_opt =
-       match e_opt with | None -> return Sempty | Some(e) -> iexp genv env e in
+       match by with | None -> return Sempty | Some(e) -> iexp genv env e in
      return (Stuple [se; se_opt])
-  | Eindex(_, e1, e2) ->
-     let* s1 = iexp genv env e1 in
-     let* s2 = iexp genv env e2 in
+  | Eindex { e_left; e_right } ->
+     let* s1 = iexp genv env e_left in
+     let* s2 = iexp genv env e_right in
      return (Stuple [s1; s2])
 
-and ifor_result genv env r =
+and ifor_exp genv env r =
   match r with
   | Forexp(e) -> iexp genv env e
-  | Forreturns(v_list, b) ->
-     let* s_v_list = map (ivardec genv env) v_list in
-     let* s_b = ifor_block_initialize genv env b in
+  | Forreturns { returns; body } ->
+     let* s_v_list = map (ivardec genv env) returns in
+     let* s_b = iblock genv env body in
      return (Stuple (s_b :: s_v_list))
 
-and ifor_block_initialize genv env { for_block; for_initialize } =
-  let* s_b = iblock genv env for_block in
-  let* s_i_list = map (ifor_initialize genv env) for_initialize in
-  return (Stuple (s_b :: s_i_list))
-
-and ifor_initialize genv env { desc = { last_exp } } =
-  iexp genv env last_exp
-  
 and ieq genv env { eq_desc; eq_loc  } =
   match eq_desc with
   | EQeq(_, e) -> iexp genv env e
@@ -404,7 +399,8 @@ and ieq genv env { eq_desc; eq_loc  } =
   | EQassert(e) ->
      let* se = iexp genv env e in
      return se
-  | EQforloop({ for_size; for_kind; for_index; for_body = (_, f_b) }) ->
+  | EQforloop({ for_size; for_kind; for_index;
+                for_body = { for_out; for_block } }) ->
      (* [for_size] must be a static expression *)
      let* v = Combinatorial.exp genv env for_size in          
      let* v = Primitives.pvalue v |>
@@ -413,7 +409,7 @@ and ieq genv env { eq_desc; eq_loc  } =
        Primitives.int v |>
          Opt.to_result ~none: { kind = Etype; loc = eq_loc} in
      let* si_list = map (ifor_index genv env) for_index in
-     let* s_b = ifor_block_initialize genv env f_b in
+     let* s_b = iblock genv env for_block in
      (* the initial state is [s_1;...;s_{v-1}] for a parallel forall loop; *)
      (* it is [s_b] empty for a forward loop *)
      let* s_kind, s_b = ifor_kind genv env for_kind v s_b in
@@ -763,13 +759,13 @@ and sfor_kind loc genv env for_kind s_kind =
 (* evaluate an index returns a local environment *)
 and sfor_index loc genv env l_env { desc; loc } s =
   match desc, s with
-  | Einput(x, e, None), Stuple [se; se_opt] ->
+  | Einput { id; e; by = None }, Stuple [se; se_opt] ->
      (* xi in e stands for xi = e.(i) *)
      let* ve, se = sexp genv env e se in
-     return (Env.add x ve l_env, Stuple [se; se_opt])
-  | Einput(x, e, Some(e_by)), Stuple [se; se_opt] ->
+     return (Env.add id ve l_env, Stuple [se; se_opt])
+  | Einput { id; e; by = Some _ }, Stuple [se; se_opt] ->
      error { kind = Enot_implemented; loc }
-  | Eindex(x, e1, e2), Stuple [se1; se2] ->
+  | Eindex { id; e_left; e_right }, Stuple [se1; se2] ->
      error { kind = Enot_implemented; loc }
   | _ ->
      error { kind = Estate; loc }
@@ -783,19 +779,11 @@ and sfor_result loc genv env l_env for_body s_for_body =
            let env = Env.append env (Combinatorial.geti_env l_env i) in
            sexp genv env e se) s_list in
      return (Value(Varray(Array.of_list ve_list)), Slist(s_list))
-  | Forreturns(v_list, { for_block }), Stuple [s_list; s_b] ->
+  | Forreturns { returns; body }, Stuple [s_list; s_b] ->
      error { kind = Enot_implemented; loc }
   | _ ->
      error { kind = Estate; loc }
 
-   
-and sfor_block_initialize genv env { for_block } s_b =
-  let* env, env_local, s_b = sblock genv env for_block s_b in
-  return (env, env_local, s_b)
-
-and sfor_initialize genv env { desc = { last_exp } } =
-  sexp genv env last_exp
-  
 (* a function can take a tuple that is non strict *)
 and sarg genv env ({ e_desc; e_loc } as e) s =
   match e_desc, s with

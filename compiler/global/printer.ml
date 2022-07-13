@@ -318,8 +318,8 @@ let rec expression ff e =
          kind_of_forloop for_kind
          size for_size
          index_list for_index
-         with_while_condition for_kind
-         for_result for_body
+         for_exit_condition for_kind
+         for_exp for_body
          print_env for_env in
   if Deftypes.is_no_typ e.e_typ && !vverbose then
     fprintf ff "@[<hov 2>(%a :@ %a)@]" exp e Ptypes.output e.e_typ
@@ -428,11 +428,15 @@ and equation ff ({ eq_desc = desc } as eq) =
   | EQassert(e) ->
      fprintf ff "@[<hov2>assert %a@]" expression e
   | EQforloop({ for_size; for_kind; for_index; for_env;
-                for_body = (for_out, body) }) ->
+                for_body = { for_out; for_block } }) ->
      let size ff for_size = expression ff for_size in
-     let for_out_list ff l =
-       let for_out ff { desc = { for_out_left; for_out_right } } =
-         fprintf ff "@[%a out %a@]" name for_out_left name for_out_right in
+     let print_for_out ff l =
+       let for_out ff { desc } =
+         match desc with
+         | Earray { xi; x } ->
+            fprintf ff "@[%a out %a@]" name xi name x
+         | Eaccumulate { xi; init } ->
+            fprintf ff "@[%a init %a@]" name xi expression init in
        print_list_r for_out "" "," "" ff l in
      let comma =
        match for_index, for_out with | ([], _) | (_, []) -> "" | _ -> ", " in
@@ -441,9 +445,9 @@ and equation ff ({ eq_desc = desc } as eq) =
        size for_size
        index_list for_index
        comma
-       for_out_list for_out
-       with_while_condition for_kind
-       block_for_initialize body
+       print_for_out for_out
+       block_of_equation for_block
+       for_exit_condition for_kind
        print_env for_env
 
                                
@@ -453,39 +457,33 @@ and kind_of_forloop ff for_kind =
   | Kforall -> fprintf ff "forall"
   | Kforward _ -> fprintf ff "forward"
 
-and with_while_condition ff for_kind =
+and for_exit_condition ff for_kind =
   match for_kind with
-  | Kforward(Some(e)) -> fprintf ff "@ @[<hov 2>while@ %a@ @]" expression e
+  | Kforward(Some(Until(e))) ->
+     fprintf ff "@ @[<hov 2>until@ %a@ @]" expression e
+  | Kforward(Some(Unless(e))) ->
+     fprintf ff "@ @[<hov 2>unless@ %a@ @]" expression e
   | _ -> ()
 
 and index_list ff l =
   let index ff { desc = desc } =
     match desc with
-    | Einput(i, e, e_opt) ->
-       fprintf ff "@[%a in %a@]" name i expression e;
+    | Einput {id; e; by } ->
+       fprintf ff "@[%a in %a@]" name id expression e;
        Util.optional_unit
-         (fun ff e -> fprintf ff " by %a " expression e) ff e_opt
-    | Eindex(i, e1, e2) ->
+         (fun ff e -> fprintf ff " by %a " expression e) ff by
+    | Eindex {id; e_left; e_right } ->
        fprintf ff
-	 "@[%a in %a .. %a@]" name i expression e1 expression e2 in
+	 "@[%a in %a .. %a@]" name id expression e_left expression e_right in
   print_list_r index "" "," "" ff l
 
-and for_initialize_list ff l =
-  let for_initialize ff { desc = { last_name; last_exp } } =
-    fprintf ff "@[last %a = %a@]" name last_name expression last_exp in
-  print_list_r for_initialize "" " and " "" ff l
-
-and block_for_initialize ff { for_block; for_initialize } =
-  block_of_equation ff for_block;
-  for_initialize_list ff for_initialize
-
-and for_result ff r =
+and for_exp ff r =
   match r with
   | Forexp(e) -> fprintf ff "@[ do %a done@]" expression e
-  | Forreturns(v_list, b) ->
+  | Forreturns { returns; body } ->
      fprintf ff "@[<hov 2> returns@ %a@ %a@]"
-       arg v_list
-       block_for_initialize b
+       arg returns
+       block_of_equation body
     
 and block_of_equation ff b_eq =
   block expression equation ff b_eq
