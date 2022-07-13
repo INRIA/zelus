@@ -1,8 +1,40 @@
 let node f x =
   forall(4) do x done
 
+(*
+let node f x =
+  forward(4) returns (o default 0)
+    do o = 0 -> pre o + 1 until o = 42 done 
+*)
+
+(* produit de matrices *)
+(*
+let node f a b =
+  forward i < 4, ai in a, ri out r do
+    forward (j < 5), rij out ri do
+      forward (k < 6), bk in b, cpt init 0 do
+        cpt = last cpt + ai.(k) * bk.(j)
+      done
+*)
+   (*
+let node f x =
+  forward i < 4, ai in a returns ([ri] out r)
+     do
+        ri = forward (j < 5) returns (sum out ri)
+                do
+                   sum = forward (k < 6) returns (sum last 0)
+                          do sum = last sum + ai.(k) * bk.(j) done
+                done
+     done
+*)
+(*
+let node f x =
+  forward i < 4, oi default 0 do
+    do oi = 0 -> pre oi + 1 unless oi = 42 done
+ *)
+
 let node plus1 x =
-  forall(4) xi in x do xi+1 done
+  forward(4) xi in x do xi+1 done
 
 let node plus (x, y) =
   forall(4) xi in x, yi in y do xi+yi done
@@ -13,9 +45,9 @@ let node plus11 x =
 let node main1 () =
   plus (plus1 (f 0), plus1 (f 0))
 
-let node main2 () =
+let node main () =
   plus11 (f 0)
 
-let node main () =
+let node main2 () =
   let x = f 0 in
-  x.(2)
+  x.(0) default 42
