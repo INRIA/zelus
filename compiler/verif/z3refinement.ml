@@ -1250,17 +1250,17 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
 *)
       match impl.desc with
       (* Add to Z3 an equality constraint that looks like: n == (Z3 parsed version of e) *)
-      | Econstdecl(f, is_static, e) -> debug(Printf.sprintf "Econstdecl %s\n" f); 
+      (* | Erefinementdecl(f, is_static, e) -> debug(Printf.sprintf "Econstdecl %s\n" f); 
         (* constraint : f = e *)
         add_constraint env (Boolean.mk_eq ctx (create_z3_var ctx env f) (vc_gen_expression ctx env e None));
-        print_env env
+        print_env env *)
       (* For constant functions, let x=f we assign x the type x:{float z | z=f} *)
       (* Refinement type of the form: let n1:n2{e1} = e2 *)
-      | Erefinementdecl(n1, ty_refine, is_static, e2) ->
+      | Econstdecl(n1, ty_refine, is_static, e2) ->
       	 debug(Printf.sprintf "Erefinementdecl %s\n" n1);
          add_constraint env (Boolean.mk_eq ctx (create_z3_var ctx env n1) (vc_gen_expression ctx env e2 None));
          (* z3_solve ctx env (vc_gen_expression ctx env e1 None); *)
-         (* modified to be: z3_solve in vc_gen_typ_exp_desc 
+         (* modified to be: calling z3_solve in vc_gen_typ_exp_desc 
           instead of in here *)
          vc_gen_typ_exp_desc ctx env None ty_refine;
          print_env env

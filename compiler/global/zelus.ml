@@ -77,10 +77,10 @@ and implementation = implementation_desc localized
 and implementation_desc =
   | Eopen of name
   | Etypedecl of name * name list * type_decl
-  | Econstdecl of name * is_static * exp
+  (* | Erefinementdecl of name * is_static * exp *)
   (*added here*)
   (*refinement type definition*)
-  | Erefinementdecl of name * type_expression * is_static * exp
+  | Econstdecl of name * type_expression * is_static * exp
   | Efundecl of name * funexp
   | Erefinementfundecl of name * funexp * exp
 			 

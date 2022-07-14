@@ -393,9 +393,9 @@ and letin renaming env p_list e_list e =
 
 let implementation acc impl = 
   match impl.desc with
-    | Econstdecl(f, is_static, e) ->
+    | Econstdecl(f, ty_refine, is_static, e) ->
        let e = expression Env.empty e in
-       { impl with desc = Econstdecl(f, is_static, e) } :: acc
+       { impl with desc = Econstdecl(f, ty_refine, is_static, e) } :: acc
     | Efundecl(f, ({ f_args = p_list; f_body = e; f_env = f_env } as body)) ->
        let f_env, renaming = build f_env in
        let p_list = List.map (pattern renaming) p_list in

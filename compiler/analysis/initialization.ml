@@ -609,7 +609,7 @@ let implementation ff impl =
   try
     match impl.desc with
     | Eopen _ | Etypedecl _ -> ()
-    | Econstdecl(f, _, e) ->
+    (* | Econstdecl(f, _, e) ->
         (* the expression [e] must be initialized *)
         let ti_zero = Init.skeleton_on_i izero e.e_typ in
         Zmisc.push_binding_level ();
@@ -618,9 +618,9 @@ let implementation ff impl =
         let tis = generalise ti_zero in
         Global.set_init (Modules.find_value (Lident.Name(f))) tis;
         (* output the signature *)
-        if !Zmisc.print_initialization_types then Pinit.declaration ff f tis
+        if !Zmisc.print_initialization_types then Pinit.declaration ff f tis *)
     (*TODO: implement initialization for refinement types*)
-    | Erefinementdecl(f1,f2,e1,e2) ->
+    | Econstdecl(f1,f2,e1,e2) ->
         let ti_zero = Init.skeleton_on_i izero e2.e_typ in
         Zmisc.push_binding_level ();
         exp_less_than false Env.empty e2 ti_zero;

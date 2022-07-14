@@ -304,19 +304,29 @@ implementation:
       { Printf.printf "implementation: type declaration: type %s = ...\n" id; 
       Etypedecl(id, tp, td) }
   | LET ide = ide EQUAL seq = seq_expression
-      { Econstdecl(ide, false, seq) }
+      { Econstdecl(ide, 
+             make(Erefinement(
+                 (make (Etypeconstr(Name("float"), [])) $startpos(ide) $endpos(ide)),
+                  {desc=Econst(Ebool(true));loc=localise $startpos(ide) $endpos(ide)}   
+                            ) ) $startpos(ide) $endpos(ide),
+            false, seq) }
   | LET STATIC ide = ide EQUAL seq = seq_expression
-      { Econstdecl(ide, true, seq) }
+      { Econstdecl(ide, 
+             make(Erefinement(
+                 (make (Etypeconstr(Name("float"), [])) $startpos(ide) $endpos(ide)),
+                  {desc=Econst(Ebool(true));loc=localise $startpos(ide) $endpos(ide)}   
+                            ) ) $startpos(ide) $endpos(ide),
+            true, seq) }
   (*added here*)
   (*refinement type definition*)
   /* | LET ide = ide COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression */
   | LET ide = ide COLON ty_refine = type_expression EQUAL seq2 = seq_expression
       { Printf.printf "Erefinementdecl\n";
-          Erefinementdecl(ide, ty_refine, false, seq2) }
+          Econstdecl(ide, ty_refine, false, seq2) }
     (*added here: use Erefinementdecl to store regular variable decl*)
   | LET ide = ide COLON i = ext_ident EQUAL seq2 = seq_expression
       { Printf.printf "Erefinementdecl\n";
-          Erefinementdecl(ide, 
+          Econstdecl(ide, 
              make(Erefinement(
                  (make (Etypeconstr(i, [])) $startpos(i) $endpos(i)),
                   {desc=Econst(Ebool(true));loc=localise $startpos(i) $endpos(i)}   

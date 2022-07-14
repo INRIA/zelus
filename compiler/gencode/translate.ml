@@ -730,12 +730,12 @@ let implementation { Zelus.desc = desc } =
   | Zelus.Eopen(n) -> Oopen(n)
   | Zelus.Etypedecl(n, params, ty_decl) ->
      Otypedecl([n, params, type_of_type_decl ty_decl])
-  | Zelus.Econstdecl(n, _, e) ->
+  (* | Zelus.Econstdecl(n, _, e) ->
      (* There should be no memory allocated by [e] *)
      let { step = s } = expression Env.empty e in
-     Oletvalue(n, s)
+     Oletvalue(n, s) *)
   (*TODO: refinement implementation of translate*)
-  | Zelus.Erefinementdecl(n1, n2, e1, e2)->
+  | Zelus.Econstdecl(n1, n2, e1, e2)->
       (* There should be no memory allocated by [e] *)
      let { step = s } = expression Env.empty e2 in
      Oletvalue(n1, s)

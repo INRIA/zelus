@@ -55,9 +55,9 @@ and add_implem bv i =
   | Eopen s ->
     if not (StringSet.mem s !bv) then bv := StringSet.add s !bv;
   | Etypedecl (_, _, td) -> add_type_decl bv td
-  | Econstdecl (_, _, e) -> add_exp bv e
+  (* | Econstdecl (_, _, e) -> add_exp bv e *)
   (*added here*)
-  | Erefinementdecl (_,ty_refine,_,e) -> 
+  | Econstdecl (_,ty_refine,_,e) -> 
     add_type_expr bv ty_refine;
     add_exp bv e
   | Efundecl (_, { f_args; f_body; _ }) ->

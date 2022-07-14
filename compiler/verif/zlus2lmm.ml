@@ -316,12 +316,12 @@ let implementation lmm_nodes lmm_list impl =
   | Eopen _ -> lmm_list
   | Etypedecl(n, params, td) ->
      typedecl impl.loc n params td :: lmm_list
-  | Econstdecl(n, _, e) ->
+  (* | Econstdecl(n, _, e) ->
       if Zmisc.S.mem n lmm_nodes
       then Lconstdecl(n, expression Ck_base e) :: lmm_list
-     else lmm_list
+     else lmm_list *)
   (*TODO: refinement implementation of zlus2lmm*)
-  | Erefinementdecl(n1,n2,e1,e2) ->
+  | Econstdecl(n1,n2,e1,e2) ->
       if Zmisc.S.mem n1 lmm_nodes
       then Lconstdecl(n1, expression Ck_base e2) :: lmm_list
      else lmm_list
