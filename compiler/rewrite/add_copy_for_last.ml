@@ -259,7 +259,7 @@ and scondpat subst ({ desc = desc } as scpat) =
 let implementation impl =
   match impl.desc with
   (*added here*)
-  | Eopen _ | Etypedecl _ | Econstdecl _ | Erefinementdecl _ 
+  | Eopen _ | Etypedecl _ | Econstdecl _ | Erefinementdecl _ | Ecustom_refinementdecl _
   | Efundecl(_, { f_kind = S | A }) -> impl
   | Efundecl(n, ({ f_body = e } as body)) ->
      { impl with desc = Efundecl(n, { body with f_body = exp Env.empty e }) }

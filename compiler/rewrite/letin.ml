@@ -260,6 +260,8 @@ let implementation impl =
   (*TODO: refinement implementation of letin*)
   | Erefinementdecl(n1,n2,e1,e2) ->
      { impl with desc = Erefinementdecl(n1,n2, make_let e1, make_let e2) }
+  | Ecustom_refinementdecl(n1,tp,e) ->
+     { impl with desc = Ecustom_refinementdecl(n1,tp, make_let e) }
   | Efundecl(n, ({ f_kind = k; f_body = e } as body)) ->
      { impl with desc = Efundecl(n, { body with f_body = make_let e }) }
        

@@ -200,6 +200,8 @@ let rec types env ty =
        Zelus.Etypeconstr(longname lname, List.map (types env) ty_list)
     | Erefinement(bty, e_list) ->
        Zelus.Erefinement(types env bty, expression_types env e_list)
+    | Ecustom_refinement((n, ty), e) -> 
+       Zelus.Ecustom_refinement((n, types Rename.empty ty), expression_types env e)
     | Etypefunrefinement(k, n_opt, ty_arg, ty_res, e) -> 
         let ty_arg = types env ty_arg in
         let env =
@@ -1008,6 +1010,8 @@ let implementation imp =
       (*added here*)
       | Erefinementdecl(n1, n2, e1, e2, _) ->
       	 Zelus.Erefinementdecl(n1, n2, expression Rename.empty e1, expression Rename.empty e2)
+      | Ecustom_refinementdecl(n, tp, e, _) ->
+         Zelus.Ecustom_refinementdecl(n, types Rename.empty tp, expression Rename.empty e)
       | Efundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
 		      f_body = e; f_loc = loc }) ->
          let _, env, p_list = pattern_list Rename.empty p_list in
@@ -1025,6 +1029,14 @@ let implementation imp =
             Zelus.f_body = expression env e;
                               Zelus.f_env = Rename.typ_env env;
                               Zelus.f_loc = loc }, expression Rename.empty e2)
+      | Ecustom_refinementfundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
+            f_body = e; f_loc = loc }, tp_expr) ->
+          let _, env, p_list = pattern_list Rename.empty p_list in
+          Zelus.Ecustom_refinementfundecl(n, { Zelus.f_kind = kind k; Zelus.f_atomic = is_atomic;
+                              Zelus.f_args = p_list;
+            Zelus.f_body = expression env e;
+                              Zelus.f_env = Rename.typ_env env;
+                              Zelus.f_loc = loc }, types Rename.empty tp_expr)
       | Eopen(n) -> Zelus.Eopen(n)
       | Etypedecl(n, params, tydecl) ->
          Zelus.Etypedecl(n, params, type_decl tydecl) in

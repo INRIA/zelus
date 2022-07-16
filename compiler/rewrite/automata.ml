@@ -531,6 +531,10 @@ let implementation impl =
         let e1 = exp S.empty e1 in
         let e2 = exp S.empty e2 in
         { impl with desc = Erefinementdecl(n1,n2,e1,e2) }
+    | Ecustom_refinementdecl(n1, tp, e) ->
+        (* let tp = types S.empty tp in *) (* WHAT SHOULD I DO HERE? *)
+        let e = exp S.empty e in
+        { impl with desc = Ecustom_refinementdecl(n1, tp, e)}
     | Erefinementfundecl(n, ({ f_body = e } as body), _)
     | Efundecl(n, ({ f_body = e } as body)) ->
         { impl with desc = Efundecl(n, { body with f_body = exp S.empty e }) }

@@ -66,6 +66,7 @@ let rec type_expression venv renaming ({ desc = desc } as ty_e) =
       let ty_vec = type_expression venv renaming ty_vec in
       { ty_e with desc = Etypevec(ty_vec, size venv renaming s) }
   | Erefinement(_ , _ ) -> ty_e 
+  | Ecustom_refinement(_, _) -> ty_e 
   | Erefinementpairfuntype(ty_exp_list, _) -> ty_e
   | Etypefunrefinement(k, opt_name, ty_arg, ty_res, _ ) 
   | Etypefun(k, opt_name, ty_arg, ty_res) ->

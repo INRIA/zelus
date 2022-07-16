@@ -1397,6 +1397,10 @@ let implementation ff is_first impl =
        else Interface.update_refinement_type_of_value ff impl.loc f1 f2 pred tys*)
        if is_first then Interface.add_type_of_value ff impl.loc f1 false tys
        else Interface.update_type_of_value ff impl.loc f1 false tys*)
+    | Ecustom_refinementdecl(f1, tp, e) ->
+        let tys = constdecl f1 false e in
+        if is_first then Interface.add_type_of_value ff impl.loc f1 false tys
+        else Interface.update_type_of_value ff impl.loc f1 false tys
     | Efundecl(f, body) ->
        let tys = fundecl impl.loc f body in
        if is_first then Interface.add_type_of_value ff impl.loc f true tys
@@ -1405,6 +1409,10 @@ let implementation ff is_first impl =
        let tys = fundecl impl.loc f body in
        if is_first then Interface.add_type_of_value ff impl.loc f true tys
        else Interface.update_type_of_value ff impl.loc f true tys
+    | Ecustom_refinementfundecl(f, body, _ ) ->   
+      let tys = fundecl impl.loc f body in
+      if is_first then Interface.add_type_of_value ff impl.loc f true tys
+      else Interface.update_type_of_value ff impl.loc f true tys
     | Eopen(modname) ->
        if is_first then Modules.open_module modname
     | Etypedecl(f, params, ty) ->

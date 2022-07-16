@@ -1,0 +1,28 @@
+(*let n = 5*)
+(*let node fact n = res where 
+rec res = n -> if n = 0 then 1 else n * pre res*)
+(*let rec fact n = if n = 0 then 1 else n*fact(n-1)*)
+
+(*x = (a,b)     want (a+b, b+a+b)    (0,1) (1,1) (1,2) (2,3) (3,5)*)
+(*let rec x = (0,1) fby (snd(x), snd(x) + fst(x)) in snd(x);;*)
+(*let node main () =
+  let x = (0,1) (*: (int * int) {((fst(x) >= 0) && (snd(x) >= 0))}*) in snd(x)*)
+(*let rec x = (0,1) fby (snd(x), snd(x) + fst(x)) : (int * int) {((fst(x) >= 0) && (snd(x) >= 0))} in snd(x)*)
+
+
+let add104 (x:{v : int | v >= 0}) (y:{v : int | v >= 0}) : {v : int | v >= 0} =
+  x + y 
+
+let x : {v : int | v >= 0} = 10
+(* let add103 (x : int{x > 0}) (y : int{y > 0}) : int{(add103_return > 0) && (add103_return = x+y)} =
+  x + y *)
+let node main () =
+  (*let x : (int) {(x > 0)} = 10 in x*)
+  (*let rec x = (0,1) fby (snd(x), snd(x) + fst(x)) : (int * int) {((fst(x) >= 0) && (snd(x) >= 0))} in snd(x)*)
+  (*let rec x = 1 fby (1+x) : (int) {(x >= 0)} in x*)
+  (* let rec x : (int) {(x >= 0)} = 0 fby (x + (1 fby x)) in x *)
+  let rec x : {g : int | (g >= 0)} = 0 fby (x + (1 fby x)) in x
+  (* let x : {v : int | v >= 0} = 10 *)
+  (* let x:int = 3 in x *)
+
+

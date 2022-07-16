@@ -19,6 +19,10 @@ let f (a : int{a > 0}) (b : int{b >= 0}) (c : int{c > 0}) : int{f_return > 0}  =
 	   let y = a + b in
 	   y
 
+(* let fnew (a : {v : int | v > 0}) (b : {n : int | n >= 0}) (c : {m : int | m > 0}) : {r : int | r > 0}  =  
+	   let y = a + b in
+	   y *)
+
 
 (*
 	EXAMPLE 3: refinement functions as a math proof

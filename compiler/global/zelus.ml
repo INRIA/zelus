@@ -36,6 +36,7 @@ and type_expression_desc =
   | Erefinementpairfuntype of type_expression list * exp
   | Erefinement of type_expression * exp
   | Erefinementpair of string * type_expression
+  | Ecustom_refinement of (name * type_expression) * exp
   (* | Erefinementtype of exp * exp * exp *)
 
 and size = size_desc localized
@@ -81,8 +82,10 @@ and implementation_desc =
   (*added here*)
   (*refinement type definition*)
   | Erefinementdecl of name * name * exp * exp
+  | Ecustom_refinementdecl of name * type_expression * exp
   | Efundecl of name * funexp
   | Erefinementfundecl of name * funexp * exp
+  | Ecustom_refinementfundecl of name * funexp * type_expression
 			 
 and funexp =
   { f_kind: kind;

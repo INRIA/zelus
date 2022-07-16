@@ -1259,6 +1259,7 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
          add_constraint env (Boolean.mk_eq ctx (create_z3_var ctx env n1) (vc_gen_expression ctx env e2 None));
          z3_solve ctx env (vc_gen_expression ctx env e1 None);
          print_env env
+      | Ecustom_refinementdecl(n1, tp, e) -> debug(Printf.sprintf "Ecustom_refinementdecl %s [TO BE IMPLEMENTED]\n" n1);
 
       | Efundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
 		      f_body = e; f_loc = loc }) -> debug(Printf.sprintf "Efundecl %s\n" n); 
@@ -1462,6 +1463,8 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
           
           in debug(Printf.sprintf "end\n")
           )
+      | Ecustom_refinementfundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
+          f_body = e; f_loc = loc }, rettype) -> debug(Printf.sprintf "Ecustom_refinementfundecl [TO BE IMPLEMENTED]\n")
       | Eopen(n) -> debug(Printf.sprintf "Eopen %s\n" n)
       | Etypedecl(n, params, tydecl) -> debug(Printf.sprintf "Etypedecl %s\n" n)
 

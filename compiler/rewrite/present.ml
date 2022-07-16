@@ -400,6 +400,9 @@ let implementation impl =
        let e1 = exp Env.empty e1 in
        let e2 = exp Env.empty e2 in
        { impl with desc = Erefinementdecl(n1,n2,e1,e2) }
+    | Ecustom_refinementdecl(n1,tp,e) ->
+       let e = exp Env.empty e in
+       { impl with desc = Ecustom_refinementdecl(n1,tp,e) }
     | Efundecl(n, ({ f_args = p_list; f_body = e; f_env = f_env } as body)) ->
         let signals, _, f_env = build Env.empty f_env in
 	let p_list = List.map (pattern signals) p_list in

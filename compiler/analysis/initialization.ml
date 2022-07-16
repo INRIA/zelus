@@ -629,6 +629,15 @@ let implementation ff impl =
         Global.set_init (Modules.find_value (Lident.Name(f1))) tis;
         (* output the signature *)
         if !Zmisc.print_initialization_types then Pinit.declaration ff f1 tis
+    | Ecustom_refinementdecl(f1,tp,e) ->
+        let ti_zero = Init.skeleton_on_i izero e.e_typ in
+        Zmisc.push_binding_level ();
+        exp_less_than false Env.empty e ti_zero;
+        Zmisc.pop_binding_level ();
+        let tis = generalise ti_zero in
+        Global.set_init (Modules.find_value (Lident.Name(f1))) tis;
+        (* output the signature *)
+        if !Zmisc.print_initialization_types then Pinit.declaration ff f1 tis
     | Efundecl(f, { f_kind = k; f_atomic = atomic; f_args = p_list;
                     f_body = e; f_env = h0; f_loc = loc }) -> 
         let is_continuous = match k with | C -> true | _ -> false in
@@ -661,6 +670,25 @@ let implementation ff impl =
         let expected_ti =
           funtype_list (List.map (fun p -> Init.skeleton p.p_typ) p_list)
             (Init.skeleton e.e_typ) in
+        less_than impl.loc actual_ti expected_ti;
+        Zmisc.pop_binding_level ();
+        let tis = generalise actual_ti in
+        Global.set_init (Modules.find_value (Lident.Name(f))) tis;
+        (* output the signature *)
+        if !Zmisc.print_initialization_types then Pinit.declaration ff f tis 
+    | Ecustom_refinementfundecl(f, { f_kind = k; f_atomic = atomic; f_args = p_list;
+                f_body = e; f_env = h0; f_loc = loc }, _) -> 
+        let is_continuous = match k with | C -> true | _ -> false in
+        Zmisc.push_binding_level ();
+        let env = build_env loc is_continuous h0 Env.empty in
+        let ti_list = List.map (fun p -> Init.skeleton p.p_typ) p_list in
+        List.iter2 (pattern is_continuous env) p_list ti_list;
+        let ti_res = exp is_continuous env e in
+        let actual_ti = funtype_list ti_list ti_res in
+        (* for an atomic node, all outputs depend on all inputs *)
+        let expected_ti =
+        funtype_list (List.map (fun p -> Init.skeleton p.p_typ) p_list)
+        (Init.skeleton e.e_typ) in
         less_than impl.loc actual_ti expected_ti;
         Zmisc.pop_binding_level ();
         let tis = generalise actual_ti in

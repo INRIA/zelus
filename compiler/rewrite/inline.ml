@@ -80,7 +80,7 @@ let rename x renaming =
 (** Renaming of type expressions *)
 let rec type_expression renaming ({ desc = desc } as ty_e) =
   match desc with
-  | Erefinement(_ , _) | Etypevar _ -> ty_e
+  | Erefinement(_ , _) | Ecustom_refinement(_ , _) | Etypevar _ -> ty_e
   | Etypeconstr(g, ty_list) ->
      { ty_e with desc =
 		   Etypeconstr(g, List.map (type_expression renaming) ty_list) }

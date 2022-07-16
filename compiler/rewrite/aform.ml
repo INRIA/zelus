@@ -246,6 +246,8 @@ let implementation impl =
     (*TODO: refinement implementation of aform*)
     | Erefinementdecl(n1,n2,e1,e2) ->
        { impl with desc = Erefinementdecl(n1,n2, expression Env.empty e1, expression Env.empty e2) }
+   | Ecustom_refinementdecl(n1,tp,e) ->
+       { impl with desc = Ecustom_refinementdecl(n1,tp, expression Env.empty e) }
     | Erefinementfundecl(n, ({ f_body = e; f_env = f_env; f_args = p_list }  as body), _)
     | Efundecl(n, ({ f_body = e; f_env = f_env; f_args = p_list } as body)) ->
        let subst, f_env = build f_env Env.empty in

@@ -745,6 +745,14 @@ let implementation ff { desc = desc; loc = loc } =
        Global.set_causality (Modules.find_value (Lident.Name(f1))) tcs;
        (* output the signature *)
        if !Zmisc.print_causality_types then Pcaus.declaration ff f1 tcs
+    | Ecustom_refinementdecl(f1, tp, e) ->
+       Zmisc.push_binding_level ();
+       let tc = exp Env.empty (Causal.new_var ()) e in
+       Zmisc.pop_binding_level ();
+       let tcs = generalise tc in
+       Global.set_causality (Modules.find_value (Lident.Name(f1))) tcs;
+       (* output the signature *)
+       if !Zmisc.print_causality_types then Pcaus.declaration ff f1 tcs
     | Efundecl (f, { f_kind = k; f_atomic = atomic;
                      f_args = p_list; f_body = e; f_env = h0 }) ->
        Zmisc.push_binding_level ();
@@ -767,6 +775,27 @@ let implementation ff { desc = desc; loc = loc } =
        (* output the signature *)
        if !Zmisc.print_causality_types then Pcaus.declaration ff f tcs
     | Erefinementfundecl (f, { f_kind = k; f_atomic = atomic;
+              f_args = p_list; f_body = e; f_env = h0 }, _) ->
+        Zmisc.push_binding_level ();
+        let env = build_env h0 Env.empty in
+        let actual_tc_list = List.map (pattern env) p_list in
+        let actual_tc_res = exp env (Causal.new_var ()) e in
+        let actual_tc = Causal.funtype_list actual_tc_list actual_tc_res in
+        (* for an atomic node, all outputs depend on all inputs *)
+        let actual_tc =
+        if atomic then
+        let c_res = Causal.new_var () in
+        let expected_tc = Causal.fresh_on_c c_res actual_tc in
+        less_than loc env actual_tc expected_tc;
+        expected_tc
+        else actual_tc in
+        Zmisc.pop_binding_level ();
+        let tcs = generalise actual_tc in
+        (* then add the current entries in the global environment *)
+        Global.set_causality (Modules.find_value (Lident.Name(f))) tcs;
+        (* output the signature *)
+        if !Zmisc.print_causality_types then Pcaus.declaration ff f tcs
+    | Ecustom_refinementfundecl (f, { f_kind = k; f_atomic = atomic;
               f_args = p_list; f_body = e; f_env = h0 }, _) ->
         Zmisc.push_binding_level ();
         let env = build_env h0 Env.empty in

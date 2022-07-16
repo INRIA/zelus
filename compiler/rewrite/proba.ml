@@ -160,7 +160,7 @@ and local prob ({ l_eq = eq_list } as l) =
 
 let implementation impl =
   match impl.desc with
-  | Eopen _ | Etypedecl _ | Econstdecl _ | Erefinementdecl _ 
+  | Eopen _ | Etypedecl _ | Econstdecl _ | Erefinementdecl _ | Ecustom_refinementdecl _
   | Efundecl(_, { f_kind = (S | AS | A | AD | D | C) }) -> impl
   | Efundecl(n, ({ f_kind = P; f_args = pat_list;
 		   f_body = e; f_env = f_env } as body)) ->

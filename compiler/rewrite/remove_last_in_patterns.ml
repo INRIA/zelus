@@ -284,7 +284,7 @@ and scondpat subst ({ desc = desc } as scpat) =
 
 let implementation impl =
   match impl.desc with
-  | Eopen _ | Etypedecl _ | Econstdecl _ | Erefinementdecl _
+  | Eopen _ | Etypedecl _ | Econstdecl _ | Erefinementdecl _ | Ecustom_refinementdecl _
   | Efundecl(_, { f_kind = S | A }) -> impl
   | Efundecl(n, ({ f_body = e; f_env = f_env } as body)) ->
      let f_env, new_env, subst, eq_list = valenv Env.empty f_env in

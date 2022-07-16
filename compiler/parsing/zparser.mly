@@ -304,7 +304,7 @@ implementation:
       { Printf.printf "implementation: type declaration: type %s = ...\n" id; 
       Etypedecl(id, tp, td) }
   | LET ide = ide EQUAL seq = seq_expression
-      { Econstdecl(ide, false, seq) }
+      { Printf.printf "implementation: LET ide EQUAL seq_expression\n"; Econstdecl(ide, false, seq) }
   | LET STATIC ide = ide EQUAL seq = seq_expression
       { Econstdecl(ide, true, seq) }
   (*added here*)
@@ -316,7 +316,15 @@ implementation:
   | LET ide = ide COLON obj = ide   EQUAL seq2 = seq_expression
       { Printf.printf "Erefinementdecl\n";
           Erefinementdecl(ide, obj, 
-          {desc=Econst(Ebool(true));loc=localise $startpos(seq2) $endpos(seq2)}, seq2, false) }           
+          {desc=Econst(Ebool(true));loc=localise $startpos(seq2) $endpos(seq2)}, seq2, false) }
+    (*added here: support for new syntax for refinement variables*)
+  | LET ide = ide COLON tp_expr = type_expression EQUAL seq = seq_expression
+      { Printf.printf "Erefinementdecl with new syntax\n"; Ecustom_refinementdecl(ide, tp_expr, seq, false) }
+    (*added here: support for new syntax of refinement function*)
+  | LET ide = ide fn = simple_pattern_list COLON tp_expr = type_expression EQUAL seq = seq_expression
+      { Printf.printf "Erefinementfundecl with new syntax\n"; Ecustom_refinementfundecl(ide, { f_kind = A; f_atomic = false;
+			f_args = fn; f_body = seq;
+			f_loc = localise $startpos(fn) $endpos(seq) }, tp_expr) }           
   | LET ide = ide fn = simple_pattern_list COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
       { Printf.printf "Erefinementfundecl\n"; Erefinementfundecl(ide, { f_kind = A; f_atomic = false;
 			f_args = fn; f_body = seq2;
@@ -884,7 +892,7 @@ simple_pattern:
       { make (Econstpat(Evoid)) $startpos $endpos }
   | UNDERSCORE
       { make Ewildpat $startpos $endpos }
-  | LPAREN p = pattern COLON t = type_expression RPAREN
+  | p = pattern COLON t = type_expression
       { Printf.printf "simple_pattern: ( p:type_expression )\n";
           make (Etypeconstraintpat(p, t)) $startpos $endpos }
   | LBRACE p = pattern_label_list RBRACE
@@ -1101,7 +1109,7 @@ expression_desc:
   | e1 = simple_expression DOT LPAREN e2 = expression RPAREN
       { Eop(Eaccess, [e1; e2]) }
   | LET defs = equation_list IN e = seq_expression
-      { Elet(false, defs, e) }
+      { Printf.printf "LET equation_list IN seq_expression\n"; Elet(false, defs, e) }
   | LET REC defs = equation_list IN e = seq_expression
       { Elet(true, defs, e) }
   | PERIOD p = period_expression
@@ -1274,7 +1282,9 @@ type_expression:
   (* TODO: Make a refinement type data structure that stores all the data from this *)
   (*make(Erefinement(basetype, seq)) $startpos $endpos*)
   | basetype = simple_type LBRACE seq = seq_expression RBRACE 
-      {Printf.printf "type refinement\n"; make(Erefinement(basetype, seq)) $startpos $endpos} 
+      {Printf.printf "type refinement\n"; make(Erefinement(basetype, seq)) $startpos $endpos}  
+  | LBRACE lbl = label_type BAR seq = seq_expression RBRACE
+      {Printf.printf "type refinement standard\n"; make(Ecustom_refinement(lbl, seq)) $startpos $endpos}
   | LPAREN id = IDENT COLON t_arg = simple_type LBRACE seq = seq_expression RBRACE RPAREN a = arrow t_res = type_expression
       { Printf.printf "type typefunrefinement\n"; make(Etypefunrefinement(a, Some(id), t_arg, t_res , seq)) $startpos $endpos}
 ;
