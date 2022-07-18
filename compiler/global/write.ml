@@ -116,7 +116,7 @@ let rec equation ({ eq_desc } as eq)=
        let for_size = expression for_size in
        let for_kind =
          match for_kind with
-         | Kforall -> for_kind
+         | Kforeach -> for_kind
          | Kforward(e_opt) ->
             let exit = function | Until(e) -> Until(expression e)
                        | Unless(e) -> Unless(expression e) in
@@ -252,7 +252,7 @@ and expression ({ e_desc } as e) =
        let for_size = expression for_size in
        let for_kind =
          match for_kind with
-         | Kforall -> for_kind
+         | Kforeach -> for_kind
          | Kforward(e_opt) ->
             let exit = function | Until(e) -> Until(expression e)
                        | Unless(e) -> Unless(expression e) in
@@ -262,12 +262,16 @@ and expression ({ e_desc } as e) =
          match for_body with
          | Forexp(e) -> Forexp(expression e)
          | Forreturns({ returns; body } as f_returns) ->
-            let returns, _ = Util.mapfold vardec S.empty returns in
+            let returns, _ = Util.mapfold for_vardec S.empty returns in
             let body, _, _ = block body in
             Forreturns({ f_returns with returns; body }) in
        Eforloop({ f with for_size; for_kind; for_index; for_body }) in
   { e with e_desc = desc }
 
+and for_vardec acc ({ desc = ({ for_vardec } as v) } as fv ) =
+  let for_vardec, acc = vardec acc for_vardec in
+  { fv with desc = { v with for_vardec } }, acc
+ 
 and for_index_w for_index = 
   let index ({ desc } as i) =
     let desc = match desc with

@@ -66,6 +66,8 @@ type operator =
   (* generate an event at a given horizon *)
   | Edisc : operator
   (* generate an event whenever x <> last x outside of integration *)
+  | Earray_list : operator
+  (* [| e1;...;en |] *)
   | Econcat : operator
   (* [concat e1 e2] *)
   | Eget : operator
@@ -210,13 +212,18 @@ and 'body forloop =
 
 (* result expression of a loop *)
 and for_exp =
-  | Forexp : exp -> for_exp (* [forall ... do e done] *)
+  | Forexp : exp -> for_exp (* [for[each|ward] ... do e done] *)
   | Forreturns :
-      { returns : exp vardec list;
+      { returns : for_vardec_desc localized list;
         body : (exp, eq) block;
         env : exp Deftypes.tentry Ident.Env.t; } -> for_exp
-  (* [forall ... returns (...) local ... do eq initialize ... done] *) 
- 
+  (* [for[each|ward] ... returns (...) local ... do eq initialize ... done] *) 
+  
+and for_vardec_desc =
+  { for_array : int; (* 0 means x; 1 means [|x|]; 2 means [|[| x|]|]; etc *)
+    for_vardec : exp vardec; (* [x [init e] [default e]] *)
+  }
+
 and is_rec = bool
 
 and scondpat = scondpat_desc localized
@@ -266,7 +273,7 @@ and eq_desc =
   | EQempty : eq_desc
   | EQassert : exp -> eq_desc
   | EQforloop : for_eq forloop -> eq_desc
-  (* [forall [id in e..e]* [id in e [by e],]* returns (vardec_list) do eq] *)
+  (* [foreach [id in e..e]* [id in e [by e],]* returns (vardec_list) do eq] *)
   (* forward [id in e..e]* [id in e [by e],]* 
      [while e] do e] returns (vardec_list) *)
 
@@ -281,7 +288,7 @@ and for_eq =
   }
 
 and for_kind =
-  | Kforall : for_kind
+  | Kforeach : for_kind
   (* parallel loop *)
   | Kforward : for_exit option -> for_kind
   (* iteration during one instant. The argument is the stoping condition *)
