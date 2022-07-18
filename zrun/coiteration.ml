@@ -771,10 +771,10 @@ let rec sexp genv env { e_desc; e_loc } s =
           return (Value(Varray(Array.of_list ve_list)), s_kind, Slist(s_list))
        | Kforward(None), Sempty, Forexp(e), s0_for_body ->
           (* hyperserial loop; the transition function is iterated *)
-          (* on the same state; for the moment, the resulting state is *)
-          (* discarded, that is, iteration starts from the initial state *)
+          (* on the same state; for the moment, the final state *)
+          (* is discarded, i.e., the loop always starts from the static state *)
           (* I do not know if this should be the unique and default behavior *)
-          (* versus keeping the state from instant to the other *)
+          (* The alternative is keeping the state from step to steps *)
           let* ve, _ =
             (* the default value is [nil] *)
             forward_i for_size Vnil
