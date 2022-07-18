@@ -111,13 +111,13 @@ let init exp ff e_opt =
 let default exp ff e_opt =
   match e_opt with | None -> () | Some(e) -> fprintf ff " default %a" exp e
   
+let vardec exp ff { var_name = x; var_default = d_opt; var_init = i_opt } =
+  fprintf ff "@[%a%a%a@]" 
+    name x (default exp) d_opt (init exp) i_opt
+
 let vardec_list exp ff vardec_list =
-  let vardec ff
-      { var_name = x; var_default = d_opt; var_init = i_opt } =
-    fprintf ff "@[%a%a%a@]" 
-      name x (default exp) d_opt (init exp) i_opt in
   print_if_not_empty
-    (print_list_r vardec "" "," "") ff vardec_list
+    (print_list_r (vardec exp) "" "," "") ff vardec_list
 
 let skind ff k =
   let s = match k with
@@ -348,7 +348,8 @@ and arg_list ff a_list =
   print_list_r arg "" "" "" ff a_list
 
 and arg ff a = fprintf ff "(%a)" (vardec_list expression) a
-             
+
+    
 and operator ff op e_list =
   match op, e_list with
   | Eunarypre, [e] -> fprintf ff "pre %a" expression e
@@ -372,6 +373,24 @@ and operator ff op e_list =
   | Erun(is_inline), [e1; e2] ->
      fprintf ff "@[%srun@ %a@ %a@]"
        (if is_inline then "inline " else "") expression e1 expression e2
+  | Ehorizon, [e] ->
+     fprintf ff "horizon %a" expression e
+  | Edisc, [e] ->
+     fprintf ff "disc %a" expression e
+  | Earray_list, l ->
+     Pp_tools.print_list_l expression
+       "[|" ";" "|]" ff l
+  | Econcat, [e1; e2] ->
+     fprintf ff "@[<hov0>%a | @,%a@]" expression e1 expression e2
+  | Eget, [e1; e2] ->
+     fprintf ff "%a.(%a)" expression e1 expression e2
+  | Eget_with_default, [e1; e2; e3] ->
+     fprintf ff "%a.(%a) default %a" expression e1 expression e2 expression e3
+  | Eslice, [e1; e2; e3] ->
+     fprintf ff "%a.(%a..%a)" expression e1 expression e2 expression e3
+  | Eupdate, [e1; e2; e3] ->
+     fprintf ff "[|<hov 2%a with@, %a <- %a|]@]"
+       expression e1 expression e2 expression e3
   | _ -> assert false
 
 and equation ff ({ eq_desc = desc } as eq) =
@@ -454,7 +473,7 @@ and equation ff ({ eq_desc = desc } as eq) =
 (* print for loops *)
 and kind_of_forloop ff for_kind =
   match for_kind with
-  | Kforall -> fprintf ff "forall"
+  | Kforeach -> fprintf ff "foreach"
   | Kforward _ -> fprintf ff "forward"
 
 and for_exit_condition ff for_kind =
@@ -482,9 +501,17 @@ and for_exp ff r =
   | Forexp(e) -> fprintf ff "@[ do %a done@]" expression e
   | Forreturns { returns; body } ->
      fprintf ff "@[<hov 2> returns@ %a@ %a@]"
-       arg returns
+       for_returns returns
        block_of_equation body
-    
+
+and for_returns ff for_vardec_list =
+  let for_vardec ff { desc = { for_array; for_vardec } } =
+    let rec print_array_of n ff x =
+      if n = 0 then vardec expression ff x
+      else fprintf ff "@[<hov 1>[|@,%a@,|]@]" (print_array_of (n-1)) x in
+    print_array_of for_array ff for_vardec in
+  print_list_r for_vardec "(" "" ")" ff for_vardec_list
+
 and block_of_equation ff b_eq =
   block expression equation ff b_eq
 

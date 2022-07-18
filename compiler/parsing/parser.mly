@@ -80,9 +80,9 @@ let forward_loop (size, index_list, opt_cond, body) =
     for_index = index_list;
     for_body = body }
 
-let forall_loop (size, index_list, body) =
+let foreach_loop (size, index_list, body) =
   { for_size = size;
-    for_kind = Kforall;
+    for_kind = Kforeach;
     for_index = index_list;
     for_body = body }
 
@@ -130,8 +130,8 @@ let forall_loop (size, index_list, body) =
 %token GREATER        /* ">" */
 %token HYBRID         /* "hybrid" */
 %token HORIZON        /* "horizon" */
-%token FORALL         /* "forall" */
-%token FORWARD        /* "forall" */
+%token FOREACH        /* "foreach" */
+%token FORWARD        /* "forward" */
 %token IF             /* "if" */
 %token IN             /* "in" */
 %token INIT           /* "init" */
@@ -274,6 +274,13 @@ localized(X):
       { Some(x) }
 ;
 
+/* Nested [|[|...X...|]|] */
+array_of(X):
+  | x = X { (0, x) }
+  | LBRACKETBAR x = array_of(X) RBRACKETBAR
+    { fst x + 1, snd x }
+;
+
 /* Interface */
 interface_file:
   | EOF
@@ -409,6 +416,16 @@ implementation:
       $startpos $endpos }
 ;
 
+%inline for_return_list:
+  | l = list_of(COMMA, for_vardec)
+    { l }
+;
+
+%inline for_vardec:
+  | p = array_of(vardec)
+    { make { for_array = fst p; for_vardec = snd p } $startpos $endpos }
+;
+
 %inline equation_and_list:
   | l = list_of(AND, equation)
     { match l with
@@ -477,8 +494,8 @@ equation_desc:
   | DER i = ide EQUAL e = seq_expression opt = optional_init
     RESET p = present_handlers(expression) %prec prec_der_with_reset
     { EQder(i, e, opt, p) }
-  | FORALL f = forall_loop_eq DONE
-    { EQforloop (forall_loop f) }
+  | FOREACH f = foreach_loop_eq DONE
+    { EQforloop (foreach_loop f) }
   | FORWARD f = forward_loop_eq DONE
     { EQforloop (forward_loop f) }
   
@@ -806,6 +823,10 @@ simple_expression_desc:
       { Erecord_access(e, i) }
   | LPAREN e = simple_expression COLON t = type_expression RPAREN
       { Etypeconstraint(e, t) }
+  | LBRACKETBAR RBRACKETBAR
+    { Eop(Earray_list, []) }
+  | LBRACKETBAR l = list_of(SEMI, expression) RBRACKETBAR
+    { Eop(Earray_list, l) }
   | LBRACKETBAR e1 = simple_expression BAR e2 = simple_expression RBRACKETBAR
       { Eop(Econcat, [e1; e2]) }
   | LBRACKETBAR e1 = simple_expression WITH i = simple_expression
@@ -915,8 +936,8 @@ expression_desc:
     { Eop(Ehorizon, [e]) }
   | ASSERT e = simple_expression
     { Eassert(e) }
-  | FORALL f = forall_loop_exp DONE
-    { Eforloop (forall_loop f) }
+  | FOREACH f = foreach_loop_exp DONE
+    { Eforloop (foreach_loop f) }
   | FORWARD f = forward_loop_exp DONE
     { Eforloop (forward_loop f) }
   | e = simple_expression
@@ -932,15 +953,15 @@ expression_desc:
 ;
 
 /* Loops for equations */
-%inline forall_loop_exp:
+%inline foreach_loop_exp:
   | s = simple_expression DO e = expression
     { (s, [], Forexp(e)) }
-  | s = simple_expression RETURNS p = param
+  | s = simple_expression RETURNS p = for_return_list
     b = block(equation_empty_and_list)
     { (s, [], Forreturns { returns = p; body = b }) }
   | s = simple_expression li = index_list DO e = expression
     { (s, li, Forexp(e)) }
-  | s = simple_expression li = index_list RETURNS p = param
+  | s = simple_expression li = index_list RETURNS p = for_return_list
     b = block(equation_empty_and_list)
     { (s, li, Forreturns { returns = p; body = b }) }
 ;
@@ -951,18 +972,20 @@ expression_desc:
     DO e = expression o = opt_loop_condition
     { (s, [], o, Forexp(e)) }
   | s = simple_expression
-    RETURNS p = param b = block(equation_empty_and_list) o = opt_loop_condition
+    RETURNS p = for_return_list b = block(equation_empty_and_list)
+    o = opt_loop_condition
     { (s, [], o, Forreturns { returns = p; body = b }) }
   | s = simple_expression li = index_list
     DO e = expression o = opt_loop_condition
     { (s, li, o, Forexp(e)) }
   | s = simple_expression li = index_list
-    RETURNS p = param b = block(equation_empty_and_list) o = opt_loop_condition
+    RETURNS p = for_return_list b = block(equation_empty_and_list)
+    o = opt_loop_condition
     { (s, li, o, Forreturns { returns = p; body = b }) }
 ;
 
 /* Loops for equations */
-%inline forall_loop_eq:
+%inline foreach_loop_eq:
   | s = simple_expression li = empty(index_list)
     f = block(equation_empty_and_list)
     { (s, li, { for_out = []; for_block = f }) }

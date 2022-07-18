@@ -38,7 +38,7 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "external", EXTERNAL;
   "false", BOOL(false); 
   "fby", FBY;
-  "forall", FORALL;
+  "foreach", FOREACH;
   "forward", FORWARD;
   "fun", FUN;
   "hybrid", HYBRID;
