@@ -42,7 +42,16 @@ let node g x =
   and lo = 1 fby o in
   o
 
-let node main () = g 1
+let node main4 () = g 1
+
+let node scalar (x, y) =
+  forward(4) xi in x, yi in y do
+      let rec cpt = (0 fby cpt) + xi * yi in
+      cpt
+    done
+  
+let node main () =
+  scalar (forall(4) do 1 done, forall(4) do 2 done)
 
 let node plus1 x =
   forward(4) xi in x do xi+1 done
