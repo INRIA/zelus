@@ -5,12 +5,13 @@ let node f x =
 *)
 
 (* produit de matrices *)
+
 (*
 let node f a b =
-  forward i < 4, ai in a, ri out r do
-    forward (j < 5), rij out ri do
-      forward (k < 6), bk in b, cpt init 0 do
-        cpt = last cpt + ai.(k) * bk.(j)
+  forward(i < 4) ai in a, ri out r do
+     forward(j < 5) rij out ri do
+      forward(k < 6) bk in b, cpt init 0 do
+        cpt = last cpt + a.(i).(k) * b.(k).(j)
       done
 *)
    (*
@@ -30,40 +31,66 @@ let node f x =
     do oi = 0 -> pre oi + 1 unless oi = 42 done
  *)
 
+let node f x = foreach(4) do x done
+
 let node f x =
-  forall(4) do x done
+  foreach(4) returns ([cpti init 0], [mi])
+  local s do
+    cpti = last cpti + x;
+    mi = cpti + s;
+    s = 0 fby mi + 1;
+  done
+
+let node f x =
+  foreach(4), cpti init 0 out cpt, mi out m
+  local s do
+    cpti = last cpti + x;
+    mi = cpti + s;
+    s = 0 fby mi + 1;
+  done
 
 let node g x =
   let rec o =
-    forward(4) do
+    forward(4) do 
       let rec cpt = (0 fby cpt) + lo in
       cpt
     done
   and lo = 1 fby o in
   o
 
-let node main4 () = g 1
+let node main4 () = g [| 1; 2; 3 |]
+
+let node sum(xi, yi) = cpt where
+  rec cpt = (0 fby cpt) + xi * yi
 
 let node scalar (x, y) =
-  forward(4) xi in x, yi in y do
-      let rec cpt = (0 fby cpt) + xi * yi in
-      cpt
-    done
+  forward(4) xi in x, yi in y do sum(xi, yi) done
   
 let node main () =
-  scalar (forall(4) do 1 done, forall(4) do 2 done)
+  scalar (foreach(4) do 2 done, foreach(4) do 2 done)
 
 let node plus1 x =
-  forward(4) xi in x do xi+1 done
+  foreach(4) xi in x do xi + 1 done
 
 let node plus (x, y) =
-  forall(4) xi in x, yi in y do xi+yi done
+  foreach(4) xi in x, yi in y do xi+yi done
 
 let node plus11 x =
-  forall(4) xi in x do let rec cpt = xi fby cpt + 1 in cpt done
-      
-let node main1 () =
-  plus (plus1 (f 0), plus1 (f 0))
+  foreach(4) xi in x do
+    let rec cpt = xi fby cpt + 1 in cpt
+  done
+
+let node copy x =
+  foreach(4) xi in x do
+    let rec cpt = (0 fby cpt) + xi in
+    cpt
+  done
+  
+let node main () =
+  plus (plus1 (f 0), plus1 (f 1))
+
+let node main () =
+  plus1 (copy (f 1))
 
 let node main2() =
   plus11 (f 0)
