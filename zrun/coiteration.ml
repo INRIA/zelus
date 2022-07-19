@@ -42,7 +42,8 @@ let rec list_of n v = if n = 0 then [] else v :: (list_of (n-1) v)
                     
 (* loop iteration *)
 (* parallel for loops; take a list of states *)
-let foreach_i f s_list =
+let foreach_i : (int -> 's -> ('r * 's, 'error) Result.t) -> 's list -> ('r list * 's list, 'error) Result.t =
+  fun f s_list ->
   let rec for_rec i s_list =
     match s_list with
     | [] -> return ([], [])
