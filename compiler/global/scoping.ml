@@ -273,16 +273,15 @@ and build_escape defnames { desc = { e_body } } =
   S.union defnames defnames_e_body
 
 and build_for_body_eq defnames { for_out; for_block } =
-  let build_for_out (acc_left, acc_right, acc_init) { desc } =
-    match desc with
-    | Earray { xi; x } -> S.add xi acc_left, S.add x acc_right, acc_init
-    | Eaccumulate { xi } -> acc_left, acc_right, S.add xi acc_init in
-  let acc_left, acc_right, acc_init =
-    List.fold_left build_for_out (S.empty, S.empty, S.empty) for_out in
+  let build_for_out (acc_left, acc_right) { desc = { xi; x } } =
+    let acc_left = build_vardec acc_left xi in
+    let acc_right = match x with | None -> acc_right | Some(x) -> S.add x acc_right in
+    acc_left, acc_right in
+  let acc_left, acc_right =
+    List.fold_left build_for_out (S.empty, S.empty) for_out in
    
  (* computes defnames for the block *)
   let _, defnames_body = build_block defnames for_block in
-  let defnames_body = S.union defnames_body acc_init in
   S.union defnames
     (S.union (S.diff defnames_body acc_left) acc_right)
         
@@ -443,24 +442,11 @@ and trans_for_index env i_list =
   Util.mapfold index Env.empty i_list
 
 and trans_for_out env i_env for_out =
-  let for_out_one (out_env, init_env) { desc; loc } =
-    let desc, out_env, init_env = match desc with
-      | Earray { xi; x } ->
-         if Env.mem xi i_env || Env.mem xi out_env || Env.mem xi init_env
-         then Error.error loc (Error.Enon_linear_forloop(xi))
-         else
-           let m = fresh xi in
-           Zelus.Earray { xi = m; x = name loc env x },
-           Env.add xi m out_env, init_env
-      | Eaccumulate { xi; init } ->
-         if Env.mem xi i_env || Env.mem xi out_env || Env.mem xi init_env
-         then Error.error loc (Error.Enon_linear_forloop(xi))
-         else
-           let m = fresh xi in
-           Zelus.Eaccumulate { xi = m; init = expression env init },
-           out_env, Env.add xi m init_env in
-    { Zelus.desc = desc; Zelus.loc = loc }, (out_env, init_env) in
-    Util.mapfold for_out_one (Env.empty, Env.empty) for_out
+  let for_out_one out_env { desc = { xi; x }; loc } =
+    let xi, out_env = vardec env out_env xi in
+    let x = Util.optional_map (name loc env) x in
+    { Zelus.desc = { Zelus.xi = xi; Zelus.x = x }; Zelus.loc = loc }, out_env in
+    Util.mapfold for_out_one Env.empty for_out
 
 (* translation of for loops *)
 and forloop_eq env_pat env { for_size; for_kind; for_index;
@@ -469,7 +455,7 @@ and forloop_eq env_pat env { for_size; for_kind; for_index;
     let for_index, i_env =
       trans_for_index env for_index in
     let env = Env.append i_env env in
-    let for_out, (out_env, init_env) =
+    let for_out, out_env =
       trans_for_out env i_env for_out in
     let env_body, for_block = block equation env_pat env for_block in
     let for_kind =

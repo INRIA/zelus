@@ -450,12 +450,10 @@ and equation ff ({ eq_desc = desc } as eq) =
                 for_body = { for_out; for_block } }) ->
      let size ff for_size = expression ff for_size in
      let print_for_out ff l =
-       let for_out ff { desc } =
-         match desc with
-         | Earray { xi; x } ->
-            fprintf ff "@[%a out %a@]" name xi name x
-         | Eaccumulate { xi; init } ->
-            fprintf ff "@[%a init %a@]" name xi expression init in
+       let for_out ff { desc = { xi; x } } =
+         match x with
+         | None -> vardec expression ff xi
+         | Some(x) -> fprintf ff "@[<hov2>%a out@, %a@]" (vardec expression) xi name x in
        print_list_r for_out "" "," "" ff l in
      let comma =
        match for_index, for_out with | ([], _) | (_, []) -> "" | _ -> ", " in

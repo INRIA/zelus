@@ -123,13 +123,10 @@ let rec equation ({ eq_desc } as eq)=
             Kforward(Util.optional_map exit e_opt) in
        let for_index =
          for_index_w for_index in
-       let for_out_one h_out ({ desc } as fo) =
-         let desc, h_out = match desc with
-           | Earray { xi; x } -> desc, Env.add xi x h_out
-           | Eaccumulate({ init } as a) ->
-              let init = expression init in
-              Eaccumulate({ a with init }), h_out in
-         { fo with desc }, h_out in
+       let for_out_one h_out ({ desc = { xi = ({ var_name } as xi); x } } as fo) =
+         let xi, _ = vardec S.empty xi in
+         let h_out = match x with | None -> h_out | Some(x) -> Env.add var_name x h_out in
+         { fo with desc = { xi; x } }, h_out in
          let for_out, h_out =
               Util.mapfold for_out_one Env.empty for_out in
        let for_block, defnames, dv_for_block = block for_block in
