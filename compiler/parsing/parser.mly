@@ -416,9 +416,11 @@ implementation:
       $startpos $endpos }
 ;
 
-%inline for_return_list:
-  | l = list_of(COMMA, for_vardec)
-    { l }
+%inline for_return:
+  | fv = for_vardec
+    { [fv] }
+  | LPAREN l = optional(list_of(COMMA, for_vardec)) RPAREN
+    { match l with None -> [] | Some(l) -> l }
 ;
 
 %inline for_vardec:
@@ -791,7 +793,7 @@ seq_expression :
 ;
 
 
-simple_expression:
+%inline simple_expression:
   | desc = simple_expression_desc
       { make desc $startpos $endpos }
 ;
@@ -832,11 +834,6 @@ simple_expression_desc:
   | LBRACKETBAR e1 = simple_expression WITH i = simple_expression
 					     EQUAL e2 = expression RBRACKETBAR
       { Eop(Eupdate, [e1; i; e2]) }
-  | e1 = simple_expression DOT LPAREN e2 = expression RPAREN
-      { Eop(Eget, [e1; e2]) }
-  | e1 = simple_expression DOT LPAREN e2 = expression RPAREN
-    DEFAULT e3 = simple_expression
-      { Eop(Eget_with_default, [e1; e2; e3]) }
 ;
 
 expression_comma_list :
@@ -940,8 +937,13 @@ expression_desc:
     { Eforloop (foreach_loop f) }
   | FORWARD f = forward_loop_exp DONE
     { Eforloop (forward_loop f) }
-  | e = simple_expression
-      LBRACE e1 = simple_expression DOTDOT e2 = simple_expression RBRACE
+  | e1 = simple_expression DOT LPAREN e2 = expression RPAREN
+      { Eop(Eget, [e1; e2]) }
+  | e1 = simple_expression DOT LPAREN e2 = expression RPAREN
+    DEFAULT e3 = expression
+      { Eop(Eget_with_default, [e1; e2; e3]) }
+  | e = simple_expression DOT
+      LPAREN e1 = simple_expression DOTDOT e2 = simple_expression RPAREN
       { Eop(Eslice, [e; e1; e2]) }
 
 ;
@@ -956,12 +958,12 @@ expression_desc:
 %inline foreach_loop_exp:
   | s = simple_expression DO e = expression
     { (s, [], Forexp(e)) }
-  | s = simple_expression RETURNS p = for_return_list
+  | s = simple_expression RETURNS p = for_return
     b = block(equation_empty_and_list)
     { (s, [], Forreturns { returns = p; body = b }) }
   | s = simple_expression li = index_list DO e = expression
     { (s, li, Forexp(e)) }
-  | s = simple_expression li = index_list RETURNS p = for_return_list
+  | s = simple_expression li = index_list RETURNS p = for_return
     b = block(equation_empty_and_list)
     { (s, li, Forreturns { returns = p; body = b }) }
 ;
@@ -972,14 +974,14 @@ expression_desc:
     DO e = expression o = opt_loop_condition
     { (s, [], o, Forexp(e)) }
   | s = simple_expression
-    RETURNS p = for_return_list b = block(equation_empty_and_list)
+    RETURNS p = for_return b = block(equation_empty_and_list)
     o = opt_loop_condition
     { (s, [], o, Forreturns { returns = p; body = b }) }
   | s = simple_expression li = index_list
     DO e = expression o = opt_loop_condition
     { (s, li, o, Forexp(e)) }
   | s = simple_expression li = index_list
-    RETURNS p = for_return_list b = block(equation_empty_and_list)
+    RETURNS p = for_return b = block(equation_empty_and_list)
     o = opt_loop_condition
     { (s, li, o, Forreturns { returns = p; body = b }) }
 ;
@@ -1045,12 +1047,10 @@ expression_desc:
 ;
 
 %inline output_desc:
-  /* [xi out x. [x] is an array st [x.(i) = xi] */
-  | i = ide OUT o = ide
-    { Earray { xi = i; x = o } }
-  /* [xi init e]. The visible output is the last value of [xi] */
-  | i = ide INIT e = simple_expression
-    { Eaccumulate { xi = i; init = e } }
+  | xi = vardec
+    { { xi = xi; x = None } }
+  | xi = vardec OUT o = ide
+    { { xi = xi; x = Some(o) } }
 ;
 
 /* Periods */
