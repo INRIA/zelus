@@ -34,7 +34,7 @@ and type_expression_desc =
   | Etypefun of kind * Zident.t option * type_expression * type_expression
   | Etypefunrefinement of kind * Zident.t option * type_expression * type_expression * exp
   | Erefinementpairfuntype of type_expression list * exp
-  | Erefinement of type_expression * exp
+  | Erefinement of (name * type_expression) * exp
   | Erefinementpair of string * type_expression
   (* | Erefinementtype of exp * exp * exp *)
 
@@ -91,7 +91,7 @@ and funexp =
     f_body: exp;
     mutable f_env: Deftypes.tentry Zident.Env.t;
     f_loc: location;
-    f_retrefine: exp
+    f_retrefine: type_expression
     }
     
 and is_atomic = bool

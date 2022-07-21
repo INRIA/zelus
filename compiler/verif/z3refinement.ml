@@ -1106,7 +1106,7 @@ and print_type_element typ_elem =
     | Etypefun(k, name, t_exp, t_exp2) -> debug(Printf.sprintf "TODO -- print ETYPEFUN")
     | Etypefunrefinement(k, name, typ_exp, typ_exp2, e) -> debug(Printf.sprintf "TODO -- print ETYPEFUNREFINEMENT")
     | Erefinementpairfuntype(t_exp_list, e) -> debug(Printf.sprintf "Erefinementpairfuntype\n"); List.iter (fun elem -> print_type_element elem; debug(Printf.sprintf "elem end\n\n")) t_exp_list
-    | Erefinement(t_exp, e) -> debug(Printf.sprintf "Erefinement\n"); print_type_element t_exp
+    | Erefinement((n, ty), e) -> debug(Printf.sprintf "Erefinement\n"); print_type_element ty
     | Erefinementpair(n, type_vc_gen_expression) -> debug(Printf.sprintf "Erefinementpair\n"); print_type_element type_vc_gen_expression
 
 and add_tuple_list_to_type_env ctx env pat_list typ_exp typenv =
@@ -1124,7 +1124,7 @@ and add_tuple_list_to_type_env ctx env pat_list typ_exp typenv =
           | Evarpat(n) -> debug(Printf.sprintf "Evarpat in Etypeconstraintpat: (%s : %d) \n" n.source n.num);
             (*(vc_gen_pattern ctx env pat); *)
             (match typ_exp.desc with
-            | Erefinement(t, e) -> debug(Printf.sprintf "Adding to table: %s\n" n.source); 
+            | Erefinement((n1, t), e) -> debug(Printf.sprintf "Adding to table: %s\n" n.source); 
               (
               match typenv with
               | Some(tbl) -> Hashtbl.add tbl n.source (match t.desc with 
@@ -1207,7 +1207,7 @@ and vc_gen_pattern ctx env typenv pat =
         | Evarpat(n) -> debug(Printf.sprintf "Evarpat in Etypeconstraintpat: (%s : %d) \n" n.source n.num);
           (*(vc_gen_pattern ctx env pat); *)
           (match typ_exp.desc with
-          | Erefinement(t, e) -> debug(Printf.sprintf "Adding to table: %s\n" n.source); 
+          | Erefinement((n1,t), e) -> debug(Printf.sprintf "Adding to table: %s\n" n.source); 
             (
               match typenv with
                 | Some(tbl) -> Hashtbl.add tbl n.source (match t.desc with 
@@ -1302,6 +1302,10 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
                       f_body = e; f_loc = loc; f_retrefine = rettype }) *)
       | Efundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
           f_body = e; f_loc = loc; f_retrefine = rettype }) -> debug(Printf.sprintf "Erefinementfundecl %s\n" n);
+          
+          (* added to test parsing, remove later and use substituition function *)
+          let rettype = match rettype.desc with | Erefinement(_, exp)-> exp in
+          
           let argc = (List.length p_list) in 
           let typenv = Hashtbl.create argc in
           let local_env = { exp_env = ref []; var_env = Hashtbl.create 0} in
