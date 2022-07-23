@@ -1,13 +1,16 @@
 let node f(x) returns (y)
-    do y = (0 fby y) + 1 done
+    do y = (1 fby y + x) done
 
 let node h() returns (y)
-  do y = f(1) done
+  do y = f(0 fby y) done
+
+let node main() returns (o)
+  do o = h () done
       
 let node g() returns (y, z)
   do y = run f(z) and z = y done
     
-let node main() returns (o)
+let node main2() returns (o)
   local o1, o2, o3, z
   do  o1, o2 = run g() and o3 = (0 fby z) + 1 and z = o3
   and o = (o1 = o3) && (o2 = z) done
