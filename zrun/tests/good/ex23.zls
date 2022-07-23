@@ -1,0 +1,124 @@
+let node f x = x.(4 .. 5)
+
+let node f x =
+  forward(4) i in 0 .. 3 returns (o default 0)
+    do o = 0 -> pre o + 1 until o = 42 done 
+
+let node f x =
+  forward(4) returns (o default 0)
+    do o = 0 -> (pre o + 1) until o = 42 done 
+
+let node f x =
+  forward(4) xi in x returns (o default 0)
+    do o = (0 fby o) + xi done 
+
+(* produit de matrices *)
+
+let node f a b = r where rec
+  forward(4) i in 0 .. 3, ai in a, ri out r do
+     forward(5) j in 0 .. 4, rij out ri do
+      forward(6) k in 0 .. 5, bk in b, cpt init 0 out s do
+        cpt = last cpt + ai.(k) * bk.(j)
+      done
+     done
+  done
+	  
+   (*
+let node f x =
+  forward i < 4, ai in a returns ([ri] out r)
+     do
+        ri = forward (j < 5) returns (sum out ri)
+                do
+                   sum = forward (k < 6) returns (sum last 0)
+                          do sum = last sum + ai.(k) * bk.(j) done
+                done
+     done
+*)
+(*
+let node f x =
+  forward i < 4, oi default 0 do
+    do oi = 0 -> pre oi + 1 unless oi = 42 done
+ *)
+
+let node f x = foreach(4) do x done
+
+let node ff x =
+  foreach(4) xi in x returns ([|cpti init 0|], [|mi|])
+  local s do
+    cpti = last cpti + x
+  and
+    mi = cpti + s
+  and
+    s = 0 fby mi + 1
+  done
+
+let node ff x = m where rec
+  foreach(4) xi in x, m init 0 do
+    foreach(4) xij in xi, m init last m do
+      m = last m + xij
+    done
+  done
+
+let node g x =
+  let rec o =
+    forward(4) do 
+      let rec cpt = (0 fby cpt) + lo in
+      cpt
+    done
+  and lo = 1 fby o in
+  o
+
+(*
+let node f x = cpt, m where
+    rec foreach(4) cpti init 0, r out cpt, mi out m
+          local s do
+            cpti = last cpti + x
+          and
+	    mi = cpti + s
+          and
+	    s = 0 fby mi + 1
+          done
+ *)
+    
+let node main4 () = g [| 1; 2; 3 |]
+
+let node sum(xi, yi) = cpt where
+  rec cpt = (0 fby cpt) + xi * yi
+
+let node scalar (x, y) =
+  forward(4) xi in x, yi in y do sum(xi, yi) done
+   
+let node main () =
+  scalar (foreach(4) do 2 done, foreach(4) do 2 done)
+
+let node plus1 x =
+  foreach(4) xi in x do xi + 1 done
+
+let node plus (x, y) =
+  foreach(4) xi in x, yi in y do xi+yi done
+
+let node plus11 x =
+  foreach(4) xi in x do
+    let rec cpt = xi fby cpt + 1 in cpt
+  done
+
+let node copy x =
+  foreach(4) xi in x do
+    let rec cpt = (0 fby cpt) + xi in
+    cpt
+  done
+  
+let node main1 () =
+  plus (plus1 (f 0), plus1 (f 1))
+
+let node main1 () =
+  plus1 (copy (f 1))
+
+let node main2() =
+  plus11 (f 0)
+
+let node main3 () =
+  let x = f 0 in
+  x.(0) default 42
+
+
