@@ -102,7 +102,7 @@ let geti loc v i =
   | Value(v), Value(i) ->
      match v, i with
      | Varray(a), Vint(i) ->
-        if (i >= 0) && (i < Array.length a) then return (a.(i))
+        if (i >= 0) && (i < Array.length a) then return (Value(a.(i)))
         else error { kind = Esize(Array.length a, i); loc }
      | _ -> error { kind = Etype; loc }
 
@@ -113,7 +113,7 @@ let get_with_default loc v i default =
   | Value(v), Value(i) ->
      match v, i with
      | Varray(a), Vint(i) ->
-        if (i >= 0) && (i < Array.length a) then return (a.(i))
+        if (i >= 0) && (i < Array.length a) then return (Value(a.(i)))
         else return (default)
      | _ -> error { kind = Etype; loc }
 
@@ -131,7 +131,7 @@ let update loc v i w =
   match v, i, w with
   | (Vbot, _, _) | (_, Vbot, _) | (_, _, Vbot) -> return Vbot
   | (Vnil, _, _) | (_, Vnil, _) | (_, _, Vnil) -> return Vnil
-  | Value(a), Value(i), _ ->
+  | Value(a), Value(i), Value(w) ->
      match a, i with
      | Varray(a), Vint(i) ->
         if (i >= 0) && (i < Array.length a) then
