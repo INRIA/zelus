@@ -42,7 +42,7 @@ type pvalue =
   | Vstate1 : Ident.t * pvalue list -> pvalue
   | Vfun : (pvalue -> pvalue option) -> pvalue
   | Vclosure : closure -> pvalue
-  | Varray : value Array.t -> pvalue
+  | Varray : pvalue Array.t -> pvalue
 
 and closure =
   { c_funexp : Zelus.funexp;
