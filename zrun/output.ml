@@ -61,7 +61,7 @@ let rec pvalue ff v =
   | Varray(v) ->
      Format.fprintf ff "@[<hov1>[|%a|]@]"
        (fun ff v ->
-         Array.iter (fun x -> Format.fprintf ff "%a;@," value x) v)
+         Array.iter (fun x -> Format.fprintf ff "%a;@," pvalue x) v)
        v
     
 and value ff v =
