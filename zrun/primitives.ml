@@ -135,7 +135,7 @@ let geti v i =
      match v with
      | Varray(v) ->
         let n = Array.length v in
-        if (i < n) && (i >= 0) then return (v.(i)) else None
+        if (i < n) && (i >= 0) then return (Value(v.(i))) else None
      | _ -> None
           
 (* ifthenelse *)
@@ -193,6 +193,13 @@ let state1 f v_list =
   let+ v_list = slist v_list in
   return (Value(Vstate1(f, v_list)))
 
+let array v_list =
+  let+ v_list = slist v_list in
+  return (Value(Varray(Array.of_list v_list)))
+
+let lift f v =
+  match v with | Vbot -> Vbot | Vnil -> Vnil | Value(v) -> Value(f v)
+                                                         
 let atomic v =
   let+ v = v in
   match v with
