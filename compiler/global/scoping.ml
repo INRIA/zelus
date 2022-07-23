@@ -709,7 +709,8 @@ and forloop_exp env { for_size; for_kind; for_index; for_body } =
     | Forexp(e) ->
        env, Zelus.Forexp(expression env e)
     | Forreturns { returns; body } ->
-       let returns, env_v_list = Util.mapfold (for_vardec env) Env.empty returns in
+       let returns, env_v_list =
+         Util.mapfold (for_vardec env) Env.empty returns in
        let env = Env.append env_v_list env in
        let env_body, body = block equation env_v_list env body in
        env_body, Zelus.Forreturns { returns; body; env = Ident.Env.empty } in
