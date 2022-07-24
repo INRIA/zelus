@@ -3,6 +3,7 @@
 (*                        The ZRun Interpreter                         *)
 (*                                                                     *)
 (*                             Marc Pouzet                             *)
+(*                                2022                                 *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -102,8 +103,9 @@ let geti loc v i =
   | Value(v), Value(i) ->
      match v, i with
      | Varray(a), Vint(i) ->
-        if (i >= 0) && (i < Array.length a) then return (Value(a.(i)))
-        else error { kind = Esize(Array.length a, i); loc }
+        let n = Array.length a in
+        if (i >= 0) && (i < n) then return (Value(a.(i)))
+        else error { kind = Esize { size = n; index = i }; loc }
      | _ -> error { kind = Etype; loc }
 
 let get_with_default loc v i default =
@@ -114,8 +116,9 @@ let get_with_default loc v i default =
      match v, i with
      | Varray(a), Vint(i) ->
         if (i >= 0) && (i < Array.length a) then return (Value(a.(i)))
-        else return (default)
+        else return default
      | _ -> error { kind = Etype; loc }
+
 
 let slice loc v i1 i2 =
   match v, i1, i2 with
@@ -124,7 +127,11 @@ let slice loc v i1 i2 =
   | Value(v), Value(i1), Value(i2) ->
      match v, i1, i2 with
      | Varray(v), Vint(i1), Vint(i2) ->
-        return (Value(Varray(Array.sub v i1 i2)))
+        let n = Array.length v in
+        if i1 < n then
+          if i2 < n then return (Value(Varray(Array.sub v i1 (i2+1))))
+          else error { kind = Esize { size = n; index = i2 }; loc }
+        else error { kind = Esize { size = n; index = i1 }; loc }
      | _ -> error { kind = Etype; loc }
 
 let update loc v i w =
