@@ -1,7 +1,14 @@
-let node f1 x = x.(4 .. 7)
+let node f1 x =
+  let rec n = 0 -> pre n + 1 in
+  [| x with n <- 3 |]
 
 let node f x = foreach(4) do x done
-    
+
+let node main0 () =
+  let x = f 4 in
+  let y = f1 x in
+  foreach(4) yi in y do yi done
+      
 let node ff x = m where rec
     m = foreach(4) xi in x returns (m init 0)
           do
