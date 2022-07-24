@@ -144,6 +144,7 @@ let foreach_loop (size, index_list, body) =
 %token LBRACKETBAR    /* "[|" */
 %token RBRACKETBAR    /* "|]" */
 %token LET            /* "let" */
+%token LESSMINUS      /* "<-" */
 %token LOCAL          /* "local" */
 %token LPAREN         /* "(" */
 %token RPAREN         /* ")" */
@@ -831,8 +832,8 @@ simple_expression_desc:
     { Eop(Earray_list, l) }
   | LBRACKETBAR e1 = simple_expression BAR e2 = simple_expression RBRACKETBAR
       { Eop(Econcat, [e1; e2]) }
-  | LBRACKETBAR e1 = simple_expression WITH i = simple_expression
-					     EQUAL e2 = expression RBRACKETBAR
+  | LBRACKETBAR e1 = simple_expression
+    WITH i = simple_expression LESSMINUS e2 = expression RBRACKETBAR
       { Eop(Eupdate, [e1; i; e2]) }
 ;
 
