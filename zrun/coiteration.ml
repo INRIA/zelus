@@ -683,12 +683,12 @@ let rec sexp genv env { e_desc; e_loc } s =
         let* i2 = Combinatorial.exp genv env i2 in
         let* v = Combinatorial.slice e_loc v i1 i2 in
         return (v, s)        
-     | Eupdate, [e1; i; e2], Stuple [s1; s2] ->
+     | Eupdate, [e1; e2; e3], Stuple [s1; s2; s3] ->
         let* v1, s1 = sexp genv env e1 s1 in
-        let* i = Combinatorial.exp genv env i in
         let* v2, s2 = sexp genv env e2 s2 in
-        let* v = Combinatorial.update e_loc v1 i v2 in
-        return (v, Stuple [s1; s2])
+        let* v3, s3 = sexp genv env e3 s3 in
+        let* v = Combinatorial.update e_loc v1 v2 v3 in
+        return (v, Stuple [s1; s2; s3])
      | Earray_list, e_list, Stuple s_list ->
         let* v_list, s_list = slist e_loc genv env sexp e_list s_list in
         let v_list = Primitives.slist v_list in
