@@ -149,6 +149,7 @@ rule main = parse
   | ";"  { SEMI }
   | "->" { MINUSGREATER }
   | "=>" { EQUALGREATER }
+  | "<-" { LESSMINUS }
   | "|"  { BAR }
   | "-"  { MINUS }
   | "+"  { PLUS }
