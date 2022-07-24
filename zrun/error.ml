@@ -35,7 +35,8 @@ type kind =
   | Emerge_env : kind (* two equations have names in common *)
   | Erecursive_value : kind (* recursive value definition *)
   | Enot_causal : Ident.S.t -> kind (* a set of variables whose value is bot *)
-  | Esize : int * int -> kind (* the actual size is out of bounds *)
+  | Esize : { size : int; index : int }-> kind
+  (* the actual size is out of bounds *)
   | Eunexpected_failure : kind (* an error that should not arrive *)
                       
 type error = { kind : kind; loc : Location.t }
@@ -101,8 +102,8 @@ let message loc kind =
      let pnames ff names = Ident.S.iter (Ident.fprint_t ff) names in
      eprintf "@[The following variables are not causal:\n\
               %a@.@]" pnames bot_names
-  | Esize(actual_index, length) ->
+  | Esize { size; index } ->
      eprintf "@[%aZrun: the array is of length %d but accessed at index %d.@.@]"
-       output_location loc length actual_index
+       output_location loc size index
   | Eunexpected_failure ->
      eprintf "@[%aZrun: unexpected error.@.@]" output_location loc
