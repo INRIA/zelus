@@ -69,10 +69,19 @@ let forward_i n default f s =
       for_rec v (i+1) s in
   for_rec default 0 s
 
+let forward_i_without_stop_condition n f acc_env0 s =
+  let rec for_rec i acc_env s =
+    if i = n then return ([], acc_env0, s)
+    else
+      let* f_env, acc_env, s = f i acc_env s in
+      let* env_list, acc_env, s = for_rec (i+1) acc_env s in
+      return (f_env :: env_list, acc_env, s) in
+  for_rec 0 acc_env0 s
+
 (* instantaneous for loops with a stopping condition *)
 let forward_i_with_stop_condition loc n write f cond (s, sc) =
   let rec for_rec i (s, sc) =
-    if i = n then return ([Env.empty], Env.empty, (s, sc))
+    if i = n then return ([], Env.empty, (s, sc))
     else
       let* f_env, s = f i s in
       let* v, sc = cond f_env sc in
@@ -89,15 +98,6 @@ let forward_i_with_stop_condition loc n write f cond (s, sc) =
              else return ([f_env], f_env, (s, sc)) in
            return (f_env :: env_list, env, s_sc) in
   for_rec 0 (s, sc)
-
-let forward_i_without_stop_condition n write f s =
-  let rec for_rec i s =
-    if i = n then return ([Env.empty], Env.empty, s)
-    else
-      let* f_env, s = f i s in
-      let* env_list, env, s = for_rec (i+1) s in
-      return (f_env :: env_list, env, s) in
-  for_rec 0 s
 
 (* parallel loop: the step function is iterated with different states;
  *- output is an array. *)
@@ -136,8 +136,15 @@ let forward sbody env l_env n default s =
         let env = Env.append env (Combinatorial.geti_env l_env i) in
         sbody env se) s
 
-let forward_i_without_stop_condition sbody env l_env n write s =
-  forward_i_without_stop_condition n write
-      (fun i se ->
-        let env = Env.append env (Combinatorial.geti_env l_env i) in
-        sbody env se) s
+(* [l_env] is the environment for indexes; [acc_env_0] is the environment *)
+(* for accumulated variables; [env] is the current environment *)
+let forward_i_without_stop_condition sbody env l_env acc_env0 n s =
+  forward_i_without_stop_condition n
+      (fun i acc_env se ->
+        let env = Env.append env
+                    (Env.append acc_env0 (Combinatorial.geti_env l_env i)) in
+        let* env, local_env, s = sbody env s in
+        (* every entry [x\v] becomes [x \ { cur = bot; last = v }] *)
+        let acc_env = x_to_last_x local_env acc_env in
+        return (env, acc_env, s))
+      acc_env0 s

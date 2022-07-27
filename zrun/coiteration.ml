@@ -577,6 +577,7 @@ let rec sexp genv env { e_desc; e_loc } s =
          Opt.to_result ~none:{ kind = Eunbound_lident(lname); loc = e_loc } in
      return (Value(v), s)
   | Elast x, s ->
+     let l = Env.bindings env in
      let* v =
        find_last_opt x env  |>
          Opt.to_result ~none:{ kind = Eunbound_last_ident(x); loc = e_loc } in
@@ -788,9 +789,11 @@ let rec sexp genv env { e_desc; e_loc } s =
               s_kind :: s_for_body :: si_list) ->
      (* computes a local environment for variables introduced *)
      (* in the index list *)
+     let l1 = Env.bindings env in
      let* l_env, si_list =
        mapfold2 { kind = Estate; loc = e_loc }
          (sfor_index e_loc genv env) Env.empty for_index si_list in
+     let l2 = Env.bindings l_env in
      let* v, s_kind, s_for_body =
        match for_body, s_for_body with
        | Forexp(e), _ ->
@@ -818,11 +821,13 @@ let rec sexp genv env { e_desc; e_loc } s =
           (* are accumulated values such that *)
           (* [acc_env(last x)(i) = acc_env(x)(i-1)] where [i] is the *)
           (* iteration index. *)
-          let* (env_v, acc_env), sr_list =
+           let* (env_v, acc_env), sr_list =
             mapfold3 { kind = Estate; loc = e_loc }
               (sforvardec genv env)
               (Env.empty, Env.empty) returns sr_list
               (bot_list returns) in
+           let l3 = Env.bindings env_v in
+           let l4 = Env.bindings acc_env in
           (* 2/ runs the body *)
           let* env_list, acc_env, s_kind, s_for_body =
             match for_kind, s_kind, s_for_body with
@@ -833,12 +838,10 @@ let rec sexp genv env { e_desc; e_loc } s =
                    sbody env l_env acc_env s_list in
                return (env_list, acc_env, s_kind, Slist(s_list))
             | Kforward(None), Sempty, _ ->
-               let sbody env s =
-                 let* _, env_eq, s = sblock genv env body s in
-                 return (env_eq, s) in
+               let sbody env s = sblock genv env body s in
                let* env_list, acc_env, _ =
                  Forloop.forward_i_without_stop_condition
-                   sbody env l_env for_size body.b_write s_for_body in
+                   sbody env l_env acc_env for_size s_for_body in
                return (env_list, acc_env, s_kind, s_for_body)
             | _ -> error { kind = Estate; loc = e_loc } in
           let* v = for_loop_matching_out env_list acc_env e_loc returns in
@@ -1143,12 +1146,10 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
               sbody env l_env acc_env s_list in
           return (env_list, acc_env, s_kind, Slist(s_list))
        | Kforward(None), Sempty, _ ->
-          let sbody env s =
-            let* _, env_eq, s = sblock genv env for_block s in
-            return (env_eq, s) in
+          let sbody env s = sblock genv env for_block s in
           let* env_list, acc_env, _ =
             Forloop.forward_i_without_stop_condition
-              sbody env l_env for_size for_block.b_write s_for_body in
+              sbody env l_env acc_env for_size s_for_body in
           return (env_list, acc_env, s_kind, s_for_body)
        | _ -> error { kind = Estate; loc = eq_loc } in
      let* env = for_loop_out_env env_list acc_env eq_loc for_out in
@@ -1170,11 +1171,13 @@ and sresult genv env { r_desc; r_loc } s =
 
 (* block [local x1 [init e1 | default e1 | ],..., xn [...] do eq done *)
 and sblock genv env { b_vars; b_body = ({ eq_write } as eq); b_loc } s_b =
+  let l3 = Env.bindings env in
   match s_b with
   | Stuple (s_eq :: s_list) ->
      let* env_v, s_list =
        mapfold3 { kind = Estate; loc = b_loc }
          (svardec genv env) Env.empty b_vars s_list (bot_list b_vars) in
+     let l4 = Env.bindings env_v in
      let bot = Fix.complete env env_v (names eq_write) in
      let n = (Fix.size eq) + 1 in
      let* env_eq, s_eq = Fix.eq genv env seq eq n s_eq bot in
@@ -1186,6 +1189,7 @@ and sblock genv env { b_vars; b_body = ({ eq_write } as eq); b_loc } s_b =
      (* remove all local variables from [env_eq] *)
      let env = Env.append env_eq env in
      let env_eq = remove env_v env_eq in
+     let l5 = Env.bindings env_eq in
      return (env, env_eq, Stuple (s_eq :: s_list))
   | _ ->
      error { kind = Estate; loc = b_loc }
