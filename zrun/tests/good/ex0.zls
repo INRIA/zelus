@@ -1,6 +1,16 @@
-let node f(x) returns (y)
-    do y = (1 fby y + x) done
+let g = 42
 
+let node f(x, y) returns (o)
+  local z, t
+  do o = x + z
+  and z = y + 1
+  and t = z + 2
+  done
+
+let node main() returns (m)
+    local k
+    do m = f(0, m) and k = 0 fby m + 2 done
+(*
 let node h() returns (y)
   do y = f(0 fby y) done
 
@@ -30,4 +40,5 @@ let node main1() returns ()
   and
       assert o
   done
-      
+ *)
+	

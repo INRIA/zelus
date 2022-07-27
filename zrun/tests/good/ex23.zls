@@ -17,12 +17,12 @@ let node f x =
 let node f a b = r where rec
   forward(4) i in 0 .. 3, ai in a, ri out r do
      forward(5) j in 0 .. 4, rij out ri do
-      forward(6) k in 0 .. 5, bk in b, cpt init 0 out s do
-        cpt = last cpt + ai.(k) * bk.(j)
+      forward(6) k in 0 .. 5, bk in b, rij init 0 do
+        rij = last rij + ai.(k) * bk.(j)
       done
      done
   done
-	  
+
    (*
 let node f x =
   forward i < 4, ai in a returns ([ri] out r)
