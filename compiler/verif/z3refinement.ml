@@ -1303,7 +1303,8 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
       | Efundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
           f_body = e; f_loc = loc; f_retrefine = rettype }) -> debug(Printf.sprintf "Erefinementfundecl %s\n" n);
           
-          (* added to test parsing, remove later and use substituition function *)
+          (* added to test parsing *)
+          (* TODO: remove the following line later and call substituition function *)
           let rettype = match rettype.desc with | Erefinement(_, exp)-> exp in
           
           let argc = (List.length p_list) in 

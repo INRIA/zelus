@@ -109,21 +109,21 @@ let x2:int{x2>4} = 3
 	EXAMPLE 10: optionally make function input and output type to be refinement 
 *)
 	(* - only one input is refinement *)
-let add101 (x : int{x > 0}) (y : int) : int =
+let add101 (x : {v:int | v>0}) (y : int) : int =
   x + y 
-let add102 (x : int) (y : int{y > 0}) : int =
+let add102 (x : int) (y : int{v:int | v>0}) : int =
   x + y 
 
 	(* - only return type is refinement *)
 		(* True case: *)
-let f101 (x : int) (y : int) : int{f101_return >= 0} =
+let f101 (x : int) (y : int) : {v:int | v > 0} =
   x*x + y*y
 		(* False case: *)
-let f102 (x : int) (y : int) : int{f102_return > 0} =
+let f102 (x : int) (y : int) : {v:int | v > 0} =
 x + y 
 
 	(* - both input and output type is refinement *)
-let add103 (x : int{x > 0}) (y : int{y > 0}) : int{(add103_return > 0) && (add103_return = x+y)} =
+let add103 (x : {v:int | v > 0}) (y : {v:int | v > 0}) : {v:int | (v > 0) && (v = x+y)} =
   x + y 
 
 	(* - no refinement *)

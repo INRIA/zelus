@@ -96,7 +96,6 @@ and implementation_desc =
     (*refinement type implementation*)
     | Erefinementdecl of name * name * exp * exp * is_static
     | Efundecl of name * funexp
-    | Erefinementfundecl of name * funexp
 
 and funexp =
   { f_kind: kind;
