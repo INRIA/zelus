@@ -320,14 +320,14 @@ implementation:
           
     (* non-refinement variable decl *)
   | LET ide = ide EQUAL seq = seq_expression
-  | LET ide = ide COLON i = ext_ident EQUAL seq2 = seq_expression
+  | LET ide = ide COLON ext_ident EQUAL seq = seq_expression
       { Printf.printf "Erefinementdecl\n";
           Econstdecl(ide,            
                { desc=Erefinement(
                     ("emptyalias", make (Etypeconstr(Name("emptytype"), [])) $startpos $endpos),
                     {desc=Econst(Ebool(true));loc=localise $startpos(ide) $endpos(ide)}
                 );loc=localise $startpos(ide) $endpos(ide) },
-               false, seq2) }        
+               false, seq) }        
 
     (* basic refinement function *)
   /* | LET ide = ide fn = simple_pattern_list COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression */
