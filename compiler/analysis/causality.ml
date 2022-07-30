@@ -767,7 +767,7 @@ let implementation ff { desc = desc; loc = loc } =
        (* output the signature *)
        if !Zmisc.print_causality_types then Pcaus.declaration ff f tcs
     | Erefinementfundecl (f, { f_kind = k; f_atomic = atomic;
-              f_args = p_list; f_body = e; f_env = h0 }, _) ->
+              f_args = p_list; f_body = e; f_env = h0 }) ->
         Zmisc.push_binding_level ();
         let env = build_env h0 Env.empty in
         let actual_tc_list = List.map (pattern env) p_list in

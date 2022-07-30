@@ -244,9 +244,12 @@ let implementation impl =
     (* | Econstdecl(n, is_static, e) ->
        { impl with desc = Econstdecl(n, is_static, expression Env.empty e) } *)
     (*TODO: refinement implementation of aform*)
+
     | Econstdecl(n1,ty_refine,is_static,e2) ->
        { impl with desc = Econstdecl(n1,ty_refine,is_static,expression Env.empty e2) }
-    | Erefinementfundecl(n, ({ f_body = e; f_env = f_env; f_args = p_list }  as body), _)
+
+    | Erefinementfundecl(n, ({ f_body = e; f_env = f_env; f_args = p_list }  as body))
+
     | Efundecl(n, ({ f_body = e; f_env = f_env; f_args = p_list } as body)) ->
        let subst, f_env = build f_env Env.empty in
        let p_list = List.map (pattern subst) p_list in

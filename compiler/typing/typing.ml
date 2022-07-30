@@ -1401,7 +1401,7 @@ let implementation ff is_first impl =
        let tys = fundecl impl.loc f body in
        if is_first then Interface.add_type_of_value ff impl.loc f true tys
        else Interface.update_type_of_value ff impl.loc f true tys
-    | Erefinementfundecl(f, body, _ ) ->   
+    | Erefinementfundecl(f, body) ->   
        let tys = fundecl impl.loc f body in
        if is_first then Interface.add_type_of_value ff impl.loc f true tys
        else Interface.update_type_of_value ff impl.loc f true tys
