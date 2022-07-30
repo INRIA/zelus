@@ -527,11 +527,11 @@ let implementation ff impl =
         fprintf ff "@[<v 2>type %a%s %a@.@.@]"
           Ptypes.print_type_params params
           n type_decl ty_decl
-    | Econstdecl(n, is_static, e) ->
+    (* | Erefinementdecl(n, is_static, e) ->
         fprintf ff "@[<v 2>let %s%a =@ %a@.@.@]"
-          (if is_static then "static " else "") shortname n expression e
+          (if is_static then "static " else "") shortname n expression e *)
     (*TODO: implement printing for refinement types*)
-    | Erefinementdecl(n1,n2,e1,e2) -> 
+    | Econstdecl(n1,n2,e1,e2) -> 
         fprintf ff "@[<v 2>let %s%a =@ %a@.@.@]"
           ("") shortname n1 expression e2
     | Efundecl(n, body) ->

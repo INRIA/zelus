@@ -303,21 +303,31 @@ implementation:
   | TYPE tp = type_params id = IDENT td = localized(type_declaration_desc)
       { Printf.printf "implementation: type declaration: type %s = ...\n" id; 
       Etypedecl(id, tp, td) }
-  | LET ide = ide EQUAL seq = seq_expression
-      { Econstdecl(ide, false, seq) }
-  | LET STATIC ide = ide EQUAL seq = seq_expression
-      { Econstdecl(ide, true, seq) }
-  (*added here*)
-  (*refinement type definition*)
-  | LET ide = ide COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
-      { Printf.printf "Erefinementdecl\n";
-          Erefinementdecl(ide, obj, seq1, seq2, false) }
 
-    (*added here: use Erefinementdecl to store regular variable decl*)
-  | LET ide = ide COLON obj = ide   EQUAL seq2 = seq_expression
-      { Printf.printf "Erefinementdecl trivially true\n";
-          Erefinementdecl(ide, obj, 
-          {desc=Econst(Ebool(true));loc=localise $startpos(seq2) $endpos(seq2)}, seq2, false) }
+  | LET STATIC ide = ide EQUAL seq = seq_expression
+      { Econstdecl(ide,                            
+               { desc=Erefinement(
+                    ("emptyalias", make (Etypeconstr(Name("emptytype"), [])) $startpos $endpos),
+                    {desc=Econst(Ebool(true));loc=localise $startpos(ide) $endpos(ide)}
+                );loc=localise $startpos(ide) $endpos(ide) },                                                        
+            true, seq) }
+            
+    (* refinement variable decl *)
+  /* | LET ide = ide COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression */
+  | LET ide = ide COLON ty_refine = type_expression EQUAL seq2 = seq_expression
+      { Printf.printf "Erefinementdecl\n";
+          Econstdecl(ide, ty_refine, false, seq2) }
+          
+    (* non-refinement variable decl *)
+  | LET ide = ide EQUAL seq = seq_expression
+  | LET ide = ide COLON i = ext_ident EQUAL seq2 = seq_expression
+      { Printf.printf "Erefinementdecl\n";
+          Econstdecl(ide,            
+               { desc=Erefinement(
+                    ("emptyalias", make (Etypeconstr(Name("emptytype"), [])) $startpos $endpos),
+                    {desc=Econst(Ebool(true));loc=localise $startpos(ide) $endpos(ide)}
+                );loc=localise $startpos(ide) $endpos(ide) },
+               false, seq2) }        
 
     (* basic refinement function *)
   /* | LET ide = ide fn = simple_pattern_list COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression */
@@ -330,7 +340,7 @@ implementation:
             f_retrefine = retrefine
              }) }
 
-    (*added here: use Erefinementfundecl to store non-refinement function*)
+    (* non-refinement function*)
   | LET ide = ide fn = simple_pattern_list EQUAL seq = seq_expression    
   | LET ide = ide fn = simple_pattern_list COLON ide EQUAL seq = seq_expression
         { Printf.printf "Efundecl trivially true\n"; Efundecl(ide, { f_kind = A; f_atomic = false;
@@ -1321,11 +1331,13 @@ type_expression:
   (* TODO: Make a refinement type data structure that stores all the data from this *)
   (*make(Erefinement(basetype, seq)) $startpos $endpos*)
 
+  (* New-syntax Erefinement in type_expression *)
   | LBRACE label_type = label_type BAR seq = seq_expression RBRACE
     { Printf.printf "new-syntax type refinement\n"; make(Erefinement(label_type, seq)) $startpos $endpos}
 
   /* | basetype = simple_type LBRACE seq = seq_expression RBRACE 
       {Printf.printf "type refinement\n"; make(Erefinement(basetype, seq)) $startpos $endpos}  */
+
   | LPAREN id = IDENT COLON t_arg = simple_type LBRACE seq = seq_expression RBRACE RPAREN a = arrow t_res = type_expression
       { Printf.printf "type typefunrefinement\n"; make(Etypefunrefinement(a, Some(id), t_arg, t_res , seq)) $startpos $endpos}
 ;
@@ -1338,8 +1350,10 @@ simple_type:
   | t = simple_type i = ext_ident
       { Printf.printf "simple type constr\n"; make (Etypeconstr(i, [t])) $startpos $endpos }
   (*simple refinement type*)
+
   /* | basetype = simple_type LBRACE seq = seq_expression RBRACE 
       { Printf.printf "type refinement simple type\n"; make(Erefinement(basetype, seq)) $startpos $endpos} */
+
   (* refinement type specification for pairs *)
   | binding_var = ide COLON basetype = simple_type
       { Printf.printf "type refinement pair\n"; make(Erefinementpair(binding_var, basetype)) $startpos $endpos}

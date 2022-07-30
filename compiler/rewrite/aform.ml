@@ -241,12 +241,15 @@ and block subst ({ b_vars = v_list; b_body = eq_list; b_env = b_env } as b) =
 let implementation impl =
   match impl.desc with
     | Eopen _ | Etypedecl _ -> impl
-    | Econstdecl(n, is_static, e) ->
-       { impl with desc = Econstdecl(n, is_static, expression Env.empty e) }
+    (* | Econstdecl(n, is_static, e) ->
+       { impl with desc = Econstdecl(n, is_static, expression Env.empty e) } *)
     (*TODO: refinement implementation of aform*)
-    | Erefinementdecl(n1,n2,e1,e2) ->
-       { impl with desc = Erefinementdecl(n1,n2, expression Env.empty e1, expression Env.empty e2) }
+
+    | Econstdecl(n1,ty_refine,is_static,e2) ->
+       { impl with desc = Econstdecl(n1,ty_refine,is_static,expression Env.empty e2) }
+
     | Erefinementfundecl(n, ({ f_body = e; f_env = f_env; f_args = p_list }  as body))
+
     | Efundecl(n, ({ f_body = e; f_env = f_env; f_args = p_list } as body)) ->
        let subst, f_env = build f_env Env.empty in
        let p_list = List.map (pattern subst) p_list in

@@ -1003,11 +1003,11 @@ let type_decls n_params_typdecl_list =
 let implementation imp =
   try
     let desc = match imp.desc with
-      | Econstdecl(n, is_static, e) ->
-         Zelus.Econstdecl(n, is_static, expression Rename.empty e)
+      (* | Erefinementdecl(n, is_static, e) ->
+         Zelus.Econstdecl(n, is_static, expression Rename.empty e) *)
       (*added here*)
-      | Erefinementdecl(n1, n2, e1, e2, _) ->
-      	 Zelus.Erefinementdecl(n1, n2, expression Rename.empty e1, expression Rename.empty e2)
+      | Econstdecl(n1, ty_refine, is_static, e2) ->
+        Zelus.Econstdecl(n1, types Rename.empty ty_refine, is_static, expression Rename.empty e2)
       | Efundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
 		      f_body = e; f_loc = loc; f_retrefine = rettype }) ->
          let _, env, p_list = pattern_list Rename.empty p_list in
