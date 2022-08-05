@@ -39,6 +39,7 @@ struct
   include (Map.Make(M))
 
   (* let append env0 env = fold add env0 env *)
+  (* names in [env0] mask names in [env] *)
   let append env0 env =
     fold (fun x v acc -> update x (function _ -> Some(v)) acc)
       env0 env
