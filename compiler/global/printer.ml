@@ -489,9 +489,11 @@ and index_list ff l =
        fprintf ff "@[%a in %a@]" name id expression e;
        Util.optional_unit
          (fun ff e -> fprintf ff " by %a " expression e) ff by
-    | Eindex {id; e_left; e_right } ->
+    | Eindex {id; e_left; e_right; dir } ->
        fprintf ff
-	 "@[%a in %a .. %a@]" name id expression e_left expression e_right in
+	 "@[%a in %a %s %a@]"
+         name id expression e_left (if dir then "to" else "downto")
+         expression e_right in
   print_list_r index "" "," "" ff l
 
 and for_exp ff r =
