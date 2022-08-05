@@ -115,6 +115,7 @@ let foreach_loop (size, index_list, body) =
 %token DONE           /* "done" */
 %token DOT            /* "." */
 %token DOTDOT         /* ".." */
+%token DOWNTO         /* "downto" */
 %token DER            /* "der" */
 %token ELSE           /* "else" */
 %token EMIT           /* "emit" */
@@ -170,6 +171,7 @@ let foreach_loop (size, index_list, body) =
 %token STAR           /* "*" */
 %token TEST           /* "?" */
 %token THEN           /* "then" */
+%token TO             /* "to" */
 %token TYPE           /* "type" */
 %token UNDERSCORE     /* "_" */
 %token UNLESS         /* "unless" */
@@ -206,6 +208,8 @@ let foreach_loop (size, index_list, body) =
 %left  BAR
 %nonassoc END
 %left COMMA
+%left TO DOWNTO
+%left prec_in_index
 %left RPAREN
 %nonassoc prec_minus_greater
 %nonassoc FBY
@@ -834,7 +838,13 @@ simple_expression_desc:
       { Eop(Econcat, [e1; e2]) }
   | LBRACKETBAR e1 = simple_expression
     WITH i = simple_expression LESSMINUS e2 = expression RBRACKETBAR
-      { Eop(Eupdate, [e1; i; e2]) }
+    { Eop(Eupdate, [e1; i; e2]) }
+  | e1 = simple_expression DOT LPAREN e2 = expression RPAREN
+      { Eop(Eget, [e1; e2]) }
+  | e = simple_expression DOT
+      LPAREN e1 = simple_expression DOTDOT e2 = simple_expression RPAREN
+      { Eop(Eslice, [e; e1; e2]) }
+
 ;
 
 expression_comma_list :
@@ -939,14 +949,9 @@ expression_desc:
   | FORWARD f = forward_loop_exp DONE
     { Eforloop (forward_loop f) }
   | e1 = simple_expression DOT LPAREN e2 = expression RPAREN
-      { Eop(Eget, [e1; e2]) }
-  | e1 = simple_expression DOT LPAREN e2 = expression RPAREN
     DEFAULT e3 = expression
       { Eop(Eget_with_default, [e1; e2; e3]) }
-  | e = simple_expression DOT
-      LPAREN e1 = simple_expression DOTDOT e2 = simple_expression RPAREN
-      { Eop(Eslice, [e; e1; e2]) }
-
+  
 ;
 
 %inline opt_end:
@@ -1018,9 +1023,11 @@ expression_desc:
 ;
 
 %inline index_desc:
-  | i = ide IN e1 = simple_expression DOTDOT e2 = simple_expression
-     { Eindex { id = i; e_left = e1; e_right = e2 } }
-  | i = ide IN e = simple_expression o = optional(by_expression)
+  | i = ide IN e1 = expression TO e2 = expression
+     { Eindex { id = i; e_left = e1; e_right = e2; dir = true } }
+  | i = ide IN e1 = expression DOWNTO e2 = expression
+     { Eindex { id = i; e_left = e1; e_right = e2; dir = false } }
+  | i = ide IN e = expression o = optional(by_expression) %prec prec_in_index
      { Einput { id = i; e = e; by = o } }
 ;
 
