@@ -29,6 +29,7 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "der", DER;
   "do", DO;
   "done", DONE;
+  "downto", DOWNTO;
   "else", ELSE;
   "emit", EMIT;
   "end", END;
@@ -65,6 +66,7 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "returns", RETURNS;
   "run", RUN;
   "then", THEN;
+  "to", TO;
   "true", BOOL(true); 
   "type", TYPE;
   "unless", UNLESS;
