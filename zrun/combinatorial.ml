@@ -28,19 +28,6 @@ open Match
 open Sdebug
 
        
-(* given an environment [x1\v1,...,xn\vn] *)
-(* where [v1],...,[vn] are arrays of length [length] *)
-(* and index [i:length], returns [x1\v1.(i),...,xn\vn.(i)] *)
-let geti_env env i =
-  let open Opt in
-  let entry v = { cur = v; last = None; default = None } in
-  Env.fold
-    (fun x v acc ->
-      let vi = Primitives.geti v i in
-      match vi with | None -> acc | Some(vi) -> Env.add x (entry vi) acc)
-    env Env.empty
-      
-   
 (* merge two environments provided they do not overlap *)
 let merge loc env1 env2 =
   let s = Env.to_seq env1 in
@@ -96,7 +83,7 @@ let concat loc v1 v2 =
      return (Value(Varray(Array.append v1 v2)))
   | _ -> error { kind = Etype; loc }
         
-let geti loc v i =
+let get loc v i =
   match v, i with
   | (Vbot, _) | (_, Vbot) -> return Vbot
   | (Vnil, _) | (_, Vnil) -> return Vnil
@@ -105,7 +92,7 @@ let geti loc v i =
      | Varray(a), Vint(i) ->
         let n = Array.length a in
         if (i >= 0) && (i < n) then return (Value(a.(i)))
-        else error { kind = Esize { size = n; index = i }; loc }
+        else error { kind = Earray_size { size = n; index = i }; loc }
      | _ -> error { kind = Etype; loc }
 
 let get_with_default loc v i default =
@@ -119,7 +106,6 @@ let get_with_default loc v i default =
         else return default
      | _ -> error { kind = Etype; loc }
 
-
 let slice loc v i1 i2 =
   match v, i1, i2 with
   | (Vbot, _, _) | (_, Vbot, _) | (_, _, Vbot) -> return Vbot
@@ -130,8 +116,8 @@ let slice loc v i1 i2 =
         let n = Array.length v in
         if i1 < n then
           if i2 < n then return (Value(Varray(Array.sub v i1 (i2+1))))
-          else error { kind = Esize { size = n; index = i2 }; loc }
-        else error { kind = Esize { size = n; index = i1 }; loc }
+          else error { kind = Earray_size { size = n; index = i2 }; loc }
+        else error { kind = Earray_size { size = n; index = i1 }; loc }
      | _ -> error { kind = Etype; loc }
 
 let update loc v i w =
@@ -148,6 +134,13 @@ let update loc v i w =
         else return v
      | _ -> error { kind = Etype; loc }
 
+(* check that a value is an integer *)
+let int loc v =
+  let* v = Primitives.pvalue v |>
+             Opt.to_result ~none: { kind = Etype; loc } in
+  (* and an integer value *)
+  Primitives.int v |> Opt.to_result ~none: { kind = Etype; loc}
+  
 (* Pattern matching *)
 let match_handler_list loc body genv env ve handlers =
   let rec match_rec handlers =
@@ -416,3 +409,4 @@ and result genv env { r_desc; r_loc } =
      let* env, _ = block genv env b in
      let* v = Match.matching_arg_out b_loc env b_vars in
      return v
+
