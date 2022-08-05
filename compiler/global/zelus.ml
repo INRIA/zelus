@@ -299,8 +299,9 @@ and for_exit = | Until : exp -> for_exit | Unless : exp -> for_exit
 and for_index_desc =
   | Einput : { id: Ident.t; e : exp; by : exp option } -> for_index_desc
   (* xi in e1 [by e2], that is, xi = e1.(i * e2) *)
-  | Eindex : { id: Ident.t; e_left : exp; e_right : exp } -> for_index_desc
-  (* i in e1..e2; [e1] and [e2] must be sizes *)
+  | Eindex :
+      { id: Ident.t; e_left : exp; e_right : exp; dir : bool } -> for_index_desc
+  (* [i in e1 to e2] or [i in e1 downto e2]; [e1] and [e2] must be sizes *)
 
 and for_out_desc = 
   { xi : exp vardec; (* [xi [init e] [default e]] [out x] *)
