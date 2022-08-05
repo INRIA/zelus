@@ -141,15 +141,15 @@ let equal_env env1 env2 =
 (* bounded fixpoint for a set of equations *)
 let eq genv env sem eq n s_eq bot =
   let sem s_eq env_in =
-    (* let l1 = Env.bindings env_in in *)
+    let l1 = Env.bindings env_in in
     Sdebug.print_ienv "Before step" env_in;
     let env = Env.append env_in env in
-    (* let l2 = Env.bindings env in *)
+    let l2 = Env.bindings env in
     let* env_out, s_eq = sem genv env eq s_eq in
-    (* let l3 = Env.bindings env_out in *)
+    let l3 = Env.bindings env_out in
     Sdebug.print_ienv "After step" env_out;
     let env_out = complete_with_default env env_out in
-    (* let l4 = Env.bindings env_out in *)
+    let l4 = Env.bindings env_out in
     return (env_out, s_eq) in
   let* m, env_out, s_eq = fixpoint n equal_env sem s_eq bot in
   return (env_out, s_eq)
