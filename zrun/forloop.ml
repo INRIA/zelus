@@ -24,15 +24,54 @@ open Find
 open Primitives
 open Match
 
+(* index in a loop body *)
+type index =
+  (* [xi in e by e'] means that in the i-th iteration, xi = e.(e' * i) *)
+  | Vinput : { ve : pvalue array; by : int option } -> index
+  (* [j in e0 to e1 or j in e0 downto e1] means that in the i-th iteration *)
+  (* j = i + e0 in the first case; j = e1 - i in the second with i in [0..n-1] *)
+  | Vindex : { ve_left : int; ve_right : int; dir : bool } -> index
+
+      
+(* given an index environment [i_env = [x1\v1,...,xk\vk]]
+ *- and index [i: [0..n-1]], returns an environment [l_env]
+ *- where:
+ *-  - if i_env(x) = Vinput { ve; by } then l_env(x) = ve.(by * i)
+ *-  - if i_env(x) = Vindex { ve_left; ve_right; dir } then
+                               l_env(x) = ve_left + i  if dir
+                               l_env(x) = ve_right -i  otherwise *)
+let geti_env i_env i =
+  let open Opt in
+  let entry v = { cur = v; last = None; default = None } in
+  Env.fold
+    (fun x v acc ->
+      match v with
+      | Vbot | Vnil as v -> Env.add x (entry v) acc
+      | Value(v) ->
+         match v with
+         | Vindex { ve_left; ve_right; dir } ->
+            let i = if dir then ve_left + i else ve_right - i in
+            Env.add x (entry (Value(Vint(i)))) acc
+         | Vinput { ve; by } ->
+            let i = match by with
+              | None -> i | Some(v) -> i + v in
+            let vi = Primitives.geti ve i in
+            match vi with | None -> acc | Some(vi) -> Env.add x (entry vi) acc)
+    i_env Env.empty
+      
 (* [x_to_last_x env acc_env = acc_env'] such that for every [x] *)
 (* in Dom(acc_env), replace entry [x\...] by [x\{ last = v }] *)
 (* if env(x) = { cur = v } *)
 let x_to_last_x local_env acc_env =
-  Env.mapi
+  Sdebug.print_ienv "x_to_last_x: local_env:" local_env;
+  Sdebug.print_ienv "x_to_last_x (before): acc_env:" acc_env;
+  let acc_env =
+    Env.mapi
     (fun x ({ default }) ->
       let v = Find.find_value_opt x local_env in
       { cur = Vbot; last = v; default })
-    acc_env
+    acc_env in
+  Sdebug.print_ienv "x_to_last_x (after): acc_env" acc_env; acc_env
 
 (* loop iteration *)
 (* parallel for loops; take a list of states *)
@@ -69,11 +108,17 @@ let forward_i n default f s =
       for_rec v (i+1) s in
   for_rec default 0 s
 
-let forward_i_without_stop_condition n f acc_env0 s =
+let forward_i_without_stop_condition:
+      int -> (int -> (value ientry Env.t as 'a) -> state ->
+              ('a * 'a * state, 'e) Result.t) -> 'a -> state ->
+      ('a list * 'a * state, 'e) Result.t =
+  fun n f acc_env0 s ->
   let rec for_rec i acc_env s =
-    if i = n then return ([], acc_env0, s)
+    Sdebug.print_ienv "Debut iteration" acc_env;
+    if i = n then return ([], acc_env, s)
     else
       let* f_env, acc_env, s = f i acc_env s in
+      Sdebug.print_ienv "Env iteration" f_env;
       let* env_list, acc_env, s = for_rec (i+1) acc_env s in
       return (f_env :: env_list, acc_env, s) in
   for_rec 0 acc_env0 s
@@ -99,52 +144,55 @@ let forward_i_with_stop_condition loc n write f cond (s, sc) =
            return (f_env :: env_list, env, s_sc) in
   for_rec 0 (s, sc)
 
+(* main entry functions *)
+
 (* parallel loop: the step function is iterated with different states;
  *- output is an array. *)
-let foreach sbody env l_env s_list =
+let foreach sbody env i_env s_list =
   let* ve_list, s_list =
     foreach_i
       (fun i se ->
-        let env = Env.append env (Combinatorial.geti_env l_env i) in
+        let env = Env.append (geti_env i_env i) env in
         sbody env se) s_list in
   let ve_list = Primitives.slist ve_list in
   return (Primitives.lift (fun v -> Varray(Array.of_list v)) ve_list, s_list)
 
 (* Parallel loop with accumulation *)
 (* every step computes an environment. The output [v/x] at iteration [i] *)
-(* becomes an input [v/last x] for iteration [i+1], for all x in init_names *)
-(* the output is computed using the [out] function. *)
-let foreach_with_accumulation_i
-      sbody env l_env acc_env0 s_list =
+(* becomes an input [v/last x] for iteration [i+1] *)
+let foreach_with_accumulation_i sbody env i_env acc_env0 s_list =
   let* env_list, acc_env, s_list =
     foreach_with_accumulation_i
       (fun i acc_env s ->
-        let env = Env.append env
-                    (Env.append acc_env (Combinatorial.geti_env l_env i)) in
-        let* env, local_env, s = sbody env s in
+        let env = Env.append (geti_env i_env i)
+                    (Env.append acc_env env) in
+        let* local_env, s = sbody env s in
         (* every entry [x\v] becomes [x \ { cur = bot; last = v }] *)
         let acc_env = x_to_last_x local_env acc_env in
-        return (env, acc_env, s))
+        return (local_env, acc_env, s))
       acc_env0 s_list in
   return (env_list, acc_env0, s_list)
 
 (* hyperserial loop: the step function is iterated on the very same state;
  *- output is the last value *)
-let forward sbody env l_env n default s =
+let forward sbody env i_env n default s =
   forward_i n default
       (fun i se ->
-        let env = Env.append env (Combinatorial.geti_env l_env i) in
+        let env = Env.append (geti_env i_env i) env in
         sbody env se) s
 
-(* [l_env] is the environment for indexes; [acc_env_0] is the environment *)
+(* [i_env] is the environment for indexes; [acc_env_0] is the environment *)
 (* for accumulated variables; [env] is the current environment *)
-let forward_i_without_stop_condition sbody env l_env acc_env0 n s =
+let forward_i_without_stop_condition sbody env i_env acc_env0 n s =
   forward_i_without_stop_condition n
       (fun i acc_env se ->
-        let env = Env.append env
-                    (Env.append acc_env0 (Combinatorial.geti_env l_env i)) in
-        let* env, local_env, s = sbody env s in
+        Sdebug.print_ienv "Forward: Env:" env;
+        Sdebug.print_ienv "Forward: Env acc (before):" acc_env;
+        let env = Env.append (geti_env i_env i)
+                    (Env.append acc_env env) in
+        let* local_env, s = sbody env s in
         (* every entry [x\v] becomes [x \ { cur = bot; last = v }] *)
         let acc_env = x_to_last_x local_env acc_env in
-        return (env, acc_env, s))
+        Sdebug.print_ienv "Forward: Env acc (after):" acc_env;
+        return (local_env, acc_env, s))
       acc_env0 s
