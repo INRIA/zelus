@@ -274,9 +274,9 @@ and for_index_w for_index =
     let desc = match desc with
       | Einput { id; e; by } ->
          Einput { id; e = expression e; by = Util.optional_map expression by }
-      | Eindex { id; e_left; e_right } ->
+      | Eindex { id; e_left; e_right; dir } ->
          Eindex { id; e_left = expression e_left;
-                  e_right = expression e_right } in
+                  e_right = expression e_right; dir } in
     { i with desc } in
   List.map index for_index
        
