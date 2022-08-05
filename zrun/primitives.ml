@@ -128,16 +128,10 @@ let gte_op v1 v2 =
   return (Vbool(v1 >= v2))
   
 let geti v i =
-  match v with
-  | Vbot -> return Vbot
-  | Vnil -> return Vnil
-  | Value(v) ->
-     match v with
-     | Varray(v) ->
-        let n = Array.length v in
-        if (i < n) && (i >= 0) then return (Value(v.(i))) else None
-     | _ -> None
-          
+  let n = Array.length v in
+  if (i < n) && (i >= 0) then return (Value(v.(i))) else None
+
+
 (* ifthenelse *)
 let ifthenelse v1 v2 v3 =
   let+ v1 = v1 in
