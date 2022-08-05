@@ -431,18 +431,22 @@ and trans_for_index env i_list =
            let e = expression env e in
            let by = Util.optional_map (expression env) by in
            Zelus.Einput { id = m; e; by }, Env.add id m acc
-      | Eindex { id; e_left; e_right } ->
+      | Eindex { id; e_left; e_right; dir } ->
          if Env.mem id acc then Error.error loc (Error.Enon_linear_forloop(id))
          else
            let m = fresh id in
            let e_left = expression env e_left in
            let e_right = expression env e_right in
-           Zelus.Eindex { id = m; e_left; e_right }, Env.add id m acc in
+           Zelus.Eindex { id = m; e_left; e_right; dir }, Env.add id m acc in
     { Zelus.desc = desc; Zelus.loc = loc }, acc in
   Util.mapfold index Env.empty i_list
 
 and trans_for_out env i_env for_out =
-  let for_out_one out_env { desc = { xi; x }; loc } =
+  let for_out_one out_env
+        { desc = { xi = { desc = { var_name } } as xi; x }; loc } =
+    (* check that output name [xi] is distinct for input names. This is *)
+    (* not mandatory but makes loops simpler to understand *)
+    if Env.mem var_name i_env then Error.error loc (Enon_linear_pat(var_name));
     let xi, out_env = vardec env out_env xi in
     let x = Util.optional_map (name loc env) x in
     { Zelus.desc = { Zelus.xi = xi; Zelus.x = x }; Zelus.loc = loc }, out_env in
@@ -457,6 +461,8 @@ and forloop_eq env_pat env { for_size; for_kind; for_index;
     let env = Env.append i_env env in
     let for_out, out_env =
       trans_for_out env i_env for_out in
+    let env = Env.append out_env env in
+    let env_pat = Env.append out_env env in
     let env_body, for_block = block equation env_pat env for_block in
     let for_kind =
       match for_kind with
