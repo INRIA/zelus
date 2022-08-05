@@ -14,3 +14,4 @@ wc:
 	compiler/main/*.ml \
 	compiler/parsing/*.mll compiler/parsing/*.mly \
 	zrun/*.ml
+
