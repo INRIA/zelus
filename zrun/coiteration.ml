@@ -880,23 +880,24 @@ and sforvardec genv env (array_env, acc_env) { desc = { for_vardec } } s v =
   sfdec genv env (array_env, acc_env) for_vardec s v
   
 (* compute the initial value of accumulated variables *)
+(* [x = { cur = bot; last = v; default = d }] when [xi init v][out x] *)
+(* [x = { cur = bot; last = None; default = None }] when [xi out x] *)
 and sfor_out genv env acc_env
   { desc = { for_name; for_init; for_out_name }; loc } s_init =
-  match for_init with
-  | None -> return (acc_env, s_init)
-  | Some(e) ->
-     let* v, s_init = sexp genv env e s_init in
-     let* default =
+  let* last, default, s_init =
+    match for_init with
+    | None -> return (None, None, s_init)
+    | Some(e) ->
+       let* v, s_init = sexp genv env e s_init in
        match for_out_name with
-     | None ->
-        let* { default } =
-          Env.find_opt for_name env |>
-            Opt.to_result ~none:{ kind = Eundefined_ident(for_name); loc } in
-        return default
-     | Some _ -> return None in
-     return
-       (Env.add for_name { cur = Vbot; last = Some(v); default } acc_env,
-           s_init)
+       | None ->
+          let* { default } =
+            Env.find_opt for_name env |>
+              Opt.to_result ~none:{ kind = Eundefined_ident(for_name); loc } in
+          return (Some(v), default, s_init)
+       | Some _ ->
+          return (Some(v), None, s_init) in
+  return (Env.add for_name { cur = Vbot; last; default } acc_env, s_init)
        
 (* evaluate an index returns a local environment *)
 and sfor_index for_size genv env i_env { desc; loc } s =
@@ -1232,12 +1233,12 @@ and sresult genv env { r_desc; r_loc } s =
   match r_desc with
   | Exp(e) -> sexp genv env e s
   | Returns(b) ->
-     (* let l1 = Env.bindings env in *)
-     let* _, local_env, s = sblock genv env b s in
-     (* let l2 = Env.bindings env in *)
-     let* v = matching_out local_env b in
+     Sdebug.print_ienv "Return (env): before" env;
+     let* env, local_env, s = sblock genv env b s in
+     Sdebug.print_ienv "Return (env): after" env;
+     Sdebug.print_ienv "Return (local env): after" local_env;
+     let* v = matching_out env b in
      return (v, s)
-
 
 (* block [local x1 [init e1 | default e1 | ],..., xn [...] do eq done *)
 and sblock genv env { b_vars; b_body = ({ eq_write } as eq); b_loc } s_b =

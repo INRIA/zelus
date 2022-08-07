@@ -333,7 +333,7 @@ and result ff { r_desc } =
   | Returns(b) -> result_block ff b
                 
 and result_block ff { b_vars; b_body; b_write; b_env } =
-  fprintf ff "@[<hov 2>%a@ where rec@ @[%a@]@[%a@]@[%a@]@]"
+  fprintf ff "@[<hov 2>returns@ %a@ @[%a@]@[%a@]@[%a@]@]"
     (vardec_list expression) b_vars
     print_writes b_write
     print_env b_env
