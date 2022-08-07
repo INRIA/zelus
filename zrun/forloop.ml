@@ -99,7 +99,7 @@ let foreach_with_accumulation_i f acc_0 s_list =
        return (x :: x_list, acc, s :: s_list) in
   for_rec 0 acc_0 s_list
 
-(* instantaneous for loops; take a single state and iterate on it *)
+(* instantaneous for loop; take a single state and iterate on it *)
 let forward_i n default f s =
   let rec for_rec default i s =
     if i = n then return (default, s)
@@ -123,7 +123,7 @@ let forward_i_without_exit_condition:
       return (f_env :: env_list, acc_env, s) in
   for_rec 0 acc_env0 s
 
-(* instantaneous for loops with an exit condition *)
+(* instantaneous for loops with an exit condition [cond] *)
 (* this condition must be combinational *)
 let forward_i_with_exit_condition loc n write f cond acc_env0 s =
   let rec for_rec i acc_env s =
@@ -158,20 +158,22 @@ let foreach sbody env i_env s_list =
   let ve_list = Primitives.slist ve_list in
   return (Primitives.lift (fun v -> Varray(Array.of_list v)) ve_list, s_list)
 
+let step sbody env i_env i acc_env s =
+  Sdebug.print_ienv "Forward: Env:" env;
+  Sdebug.print_ienv "Forward: Env acc (before):" acc_env;
+  let env = Env.append (geti_env i_env i) (Env.append acc_env env) in
+  let* local_env, s = sbody env s in
+  (* every entry [x\v] becomes [x \ { cur = bot; last = v }] *)
+  let acc_env = x_to_last_x local_env acc_env in
+  Sdebug.print_ienv "Forward: Env acc (after):" acc_env;
+  return (local_env, acc_env, s)
+
 (* Parallel loop with accumulation *)
 (* every step computes an environment. The output [v/x] at iteration [i] *)
 (* becomes an input [v/last x] for iteration [i+1] *)
 let foreach_with_accumulation_i sbody env i_env acc_env0 s_list =
   let* env_list, acc_env, s_list =
-    foreach_with_accumulation_i
-      (fun i acc_env s ->
-        let env = Env.append (geti_env i_env i)
-                    (Env.append acc_env env) in
-        let* local_env, s = sbody env s in
-        (* every entry [x\v] becomes [x \ { cur = bot; last = v }] *)
-        let acc_env = x_to_last_x local_env acc_env in
-        return (local_env, acc_env, s))
-      acc_env0 s_list in
+    foreach_with_accumulation_i (step sbody env i_env) acc_env0 s_list in
   return (env_list, acc_env0, s_list)
 
 (* hyperserial loop: the step function is iterated on the very same state;
@@ -185,29 +187,8 @@ let forward sbody env i_env n default s =
 (* [i_env] is the environment for indexes; [acc_env_0] is the environment *)
 (* for accumulated variables; [env] is the current environment *)
 let forward_i_without_exit_condition sbody env i_env acc_env0 n s =
-  forward_i_without_exit_condition n
-      (fun i acc_env se ->
-        Sdebug.print_ienv "Forward: Env:" env;
-        Sdebug.print_ienv "Forward: Env acc (before):" acc_env;
-        let env = Env.append (geti_env i_env i)
-                    (Env.append acc_env env) in
-        let* local_env, s = sbody env s in
-        (* every entry [x\v] becomes [x \ { cur = bot; last = v }] *)
-        let acc_env = x_to_last_x local_env acc_env in
-        Sdebug.print_ienv "Forward: Env acc (after):" acc_env;
-        return (local_env, acc_env, s))
-      acc_env0 s
+  forward_i_without_exit_condition n (step sbody env i_env) acc_env0 s
 
 let forward_i_with_exit_condition loc write sbody cond env i_env acc_env0 n s =
   forward_i_with_exit_condition loc n write
-      (fun i acc_env se ->
-        Sdebug.print_ienv "Forward: Env:" env;
-        Sdebug.print_ienv "Forward: Env acc (before):" acc_env;
-        let env = Env.append (geti_env i_env i)
-                    (Env.append acc_env env) in
-        let* local_env, s = sbody env s in
-        (* every entry [x\v] becomes [x \ { cur = bot; last = v }] *)
-        let acc_env = x_to_last_x local_env acc_env in
-        Sdebug.print_ienv "Forward: Env acc (after):" acc_env;
-        return (local_env, acc_env, s))
-      cond acc_env0 s
+      (step sbody env i_env) cond acc_env0 s
