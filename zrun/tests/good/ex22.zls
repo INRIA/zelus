@@ -88,11 +88,7 @@ let node scalar2 (x, y) =
   forward(4) i in 0 to 3 returns (m init 0)
     do m = last m + x.(i) * y.(i) done
 
-(* scalar product in equational form *)
-let node scalar2_eq (x, y) = m where
-  rec forward(4) i in 0 to 3, m init 0
-    do m = last m + x.(i) * y.(i) done
-
+ 
 let node main7 () =
   scalar1 ([| 1; 2; 3; 4 |], [| 1; 1; 1; 1 |])
 
@@ -132,13 +128,6 @@ let node sum m =
              do o' = last o' + mij done
     done
       
-(* sum of the elements of a two dimension array - equational form *)
-let node sum_eq m returns (o)
-  forward(4) mi in m, o init 0 do
-    forward(4) mij in mi, o init last o
-      do o = last o + mij done
-    done
-
 let node main12 () =
   let v = [| [| 1; 2; 3; 4 |];
 	     [| 1; 2; 3; 4 |];
