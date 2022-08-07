@@ -110,10 +110,12 @@ let init exp ff e_opt =
   match e_opt with | None -> () | Some(e) -> fprintf ff " init %a" exp e
 let default exp ff e_opt =
   match e_opt with | None -> () | Some(e) -> fprintf ff " default %a" exp e
-  
+let out ff o_opt =
+  match o_opt with | None -> () | Some(x) -> fprintf ff " out %a" name x
+                                           
 let vardec exp ff { var_name = x; var_default = d_opt; var_init = i_opt } =
   fprintf ff "@[%a%a%a@]" 
-    name x (default exp) d_opt (init exp) i_opt
+    name x (init exp) i_opt (default exp) d_opt 
 
 let vardec_list exp ff vardec_list =
   print_if_not_empty
@@ -188,7 +190,7 @@ let present_handler scondpat body ff { p_cond; p_body; p_env } =
   fprintf ff "@[<hov4>| (%a) ->@ @[<v 0>%a%a@]@]"
     scondpat p_cond print_env p_env body p_body
 
-let default body ff default_opt =
+let with_default body ff default_opt =
   match default_opt with
   | Init(b) -> fprintf ff "@[<hov2>init@,%a@]" body b
   | Else(b) -> fprintf ff "@[<hov2>else@,%a@]" body b
@@ -304,7 +306,7 @@ let rec expression ff e =
        fprintf ff "@[<v>@[<hov 2>present@ @[%a@]@]@ @[%a@]@]"
          (print_list_l (present_handler (scondpat expression) expression)
 	    """""") handlers
-         (default expression) default_opt
+         (with_default expression) default_opt
     | Ereset(e_body, e) ->
        fprintf ff "@[<hov>reset@ %a@ every %a@]" expression e_body expression e
     | Efun(fe) ->
@@ -434,7 +436,7 @@ and equation ff ({ eq_desc = desc } as eq) =
      fprintf ff "@[<hov0>present@ @[%a@]@%a]"
        (print_list_l
 	  (present_handler (scondpat expression) equation) """""") handlers
-       (default equation) default_opt
+       (with_default equation) default_opt
   | EQreset(eq, e) ->
      fprintf ff "@[<hov2>reset@ @[%a@]@ @[<hov 2>every@ %a@]@]"
        equation eq expression e
@@ -450,10 +452,11 @@ and equation ff ({ eq_desc = desc } as eq) =
                 for_body = { for_out; for_block } }) ->
      let size ff for_size = expression ff for_size in
      let print_for_out ff l =
-       let for_out ff { desc = { xi; x } } =
-         match x with
-         | None -> vardec expression ff xi
-         | Some(x) -> fprintf ff "@[<hov2>%a out@, %a@]" (vardec expression) xi name x in
+       let for_out ff
+             { desc = { for_name = x; for_out_name = o_opt;
+                        for_init = i_opt } } =
+         fprintf ff "@[%a%a%a@]" 
+           name x (init expression) i_opt out o_opt in
        print_list_r for_out "" "," "" ff l in
      let comma =
        match for_index, for_out with | ([], _) | (_, []) -> "" | _ -> ", " in

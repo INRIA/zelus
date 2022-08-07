@@ -303,9 +303,11 @@ and for_index_desc =
       { id: Ident.t; e_left : exp; e_right : exp; dir : bool } -> for_index_desc
   (* [i in e1 to e2] or [i in e1 downto e2]; [e1] and [e2] must be sizes *)
 
-and for_out_desc = 
-  { xi : exp vardec; (* [xi [init e] [default e]] [out x] *)
-    x : Ident.t option; (* [xi out x] *)
+(* output of a for loop in equational form *)
+and for_out_desc =
+  { for_name : Ident.t; (* xi [init e] [out x] *)
+    for_out_name : Ident.t option; (* [xi out x] *)
+    for_init : exp option
   }
  
 and 'body automaton_handler =

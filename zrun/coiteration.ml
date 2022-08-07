@@ -299,7 +299,9 @@ and ifor_index genv env { desc; loc } =
      let* s2 = iexp genv env e_right in
      return (Stuple [s1; s2])
 
-and ifor_out genv env { desc = { xi } } = ivardec genv env xi
+and ifor_out genv env { desc = { for_name; for_init; for_out_name } } =
+  match for_init with
+  | None -> return Sempty | Some(e) -> iexp genv env e
 
 and ifor_vardec genv env { desc = { for_vardec } } = ivardec genv env for_vardec
                                                    
@@ -525,7 +527,7 @@ let array_of loc x env_list =
 (* [x init v ] : returns the accumulated value of [x] *)
 (* [[|x init v|] : returns an array of the accumulated values of [x] *)
 (* [|x|] : returns an array such that [x.(i) = env_list.(i).(x)] *)
-let for_loop_matching_out env_list acc_env loc returns =
+let for_matching_out env_list acc_env loc returns =
   let* v_list =
     map
       (fun { desc = { for_array; for_vardec = { var_name; var_init } } } ->
@@ -541,23 +543,30 @@ let for_loop_matching_out env_list acc_env loc returns =
   | _ -> (* return a non strict tuple *)
      return (Value(Vtuple(v_list)))
 
-(* given a declaration for outputs [xi [init e] out x] *)
-(* and [env_list], return [env'] such that [[env'(y) = env(y)] *)
-let for_loop_out_env env_list acc_env loc for_out =
+(* given a list of environments (one per iteration) [env_list] *)
+(* and an accumulated environment [acc_env] return the environment *)
+(* [env'] computed by a for loop *)
+(* [env'(x) = acc_env(last x)] if x in Dom(acc_env) and *)
+(* [env'(x).(i) = env_list.(i).(x) otherwise *)
+let for_env_out env_list acc_env loc for_out =
   fold
-    (fun acc { desc = { xi = { var_name; var_init }; x } } ->
-      match var_init, x with
+    (fun acc { desc = { for_name; for_init; for_out_name } } ->
+      match for_init, for_out_name with
       | None, None ->
          (* this situation should not arrive *)
          error { kind = Eunexpected_failure; loc }
       | Some _, None ->
          (* accumulation. look for acc_env(last var_name) *)
+         let* { last; default } =
+           Env.find_opt for_name acc_env |>
+             Opt.to_result ~none:{ kind = Eunbound_ident(for_name); loc } in
          let* v =
-           find_last_opt var_name acc_env |>
-             Opt.to_result ~none:{ kind = Eunbound_ident(var_name); loc } in
-         return (Env.add var_name { cur = v; last = None; default = None } acc)
+           last |>
+             Opt.to_result ~none: { kind = Eunbound_last_ident(for_name); loc }
+         in
+         return (Env.add for_name { cur = v; last = None; default } acc)
       | _, Some(x) ->
-           let* v = array_of loc var_name env_list in
+           let* v = array_of loc for_name env_list in
            return (Env.add x { cur = v; last = None; default = None } acc))
     Env.empty for_out
     
@@ -849,7 +858,7 @@ let rec sexp genv env { e_desc; e_loc } s =
                    sbody env i_env acc_env for_size s_for_body in
                return (env_list, acc_env, s_kind, s_for_body)
             | _ -> error { kind = Estate; loc = e_loc } in
-          let* v = for_loop_matching_out env_list acc_env e_loc returns in
+          let* v = for_matching_out env_list acc_env e_loc returns in
           return (v, s_kind, Stuple (s_for_body :: sr_list))
        | _ -> error { kind = Estate; loc = e_loc } in
      return (v, Stuple (sv :: s_kind :: s_for_body :: si_list))
@@ -870,9 +879,25 @@ and sfdec genv env (array_env, acc_env) ({ var_init } as var_dec) s v =
 and sforvardec genv env (array_env, acc_env) { desc = { for_vardec } } s v =
   sfdec genv env (array_env, acc_env) for_vardec s v
   
-and sfor_out genv env (array_env, acc_env) { desc = { xi } } s v =
-  sfdec genv env (array_env, acc_env) xi s v
-  
+(* compute the initial value of accumulated variables *)
+and sfor_out genv env acc_env
+  { desc = { for_name; for_init; for_out_name }; loc } s_init =
+  match for_init with
+  | None -> return (acc_env, s_init)
+  | Some(e) ->
+     let* v, s_init = sexp genv env e s_init in
+     let* default =
+       match for_out_name with
+     | None ->
+        let* { default } =
+          Env.find_opt for_name env |>
+            Opt.to_result ~none:{ kind = Eundefined_ident(for_name); loc } in
+        return default
+     | Some _ -> return None in
+     return
+       (Env.add for_name { cur = Vbot; last = Some(v); default } acc_env,
+           s_init)
+       
 (* evaluate an index returns a local environment *)
 and sfor_index for_size genv env i_env { desc; loc } s =
   (* check that [v] is indeed an array of length [for_size] *)
@@ -1173,11 +1198,10 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
      (* are accumulated values such that *)
      (* [acc_env(last x)(i) = acc_env(x)(i-1)] where [i] is the *)
      (* iteration index. *)
-     let* (env_v, acc_env), fo_list =
-       mapfold3 { kind = Estate; loc = eq_loc }
+     let* acc_env, fo_list =
+       mapfold2 { kind = Estate; loc = eq_loc }
          (sfor_out genv env)
-         (Env.empty, Env.empty) for_out fo_list
-         (bot_list for_out) in
+         Env.empty for_out fo_list in
      (* 2/ runs the body *)
      let* env_list, acc_env, s_kind, s_for_block =
        match for_kind, s_kind, s_for_block with
@@ -1198,7 +1222,7 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
               sbody env i_env acc_env for_size s_for_block in
           return (env_list, acc_env, s_kind, s_for_block)
        | _ -> error { kind = Estate; loc = eq_loc } in
-     let* env = for_loop_out_env env_list acc_env eq_loc for_out in
+     let* env = for_env_out env_list acc_env eq_loc for_out in
      return (env,
              Stuple (sv :: s_kind :: Stuple (s_for_block :: fo_list) :: si_list))
   | _ -> error { kind = Estate; loc = eq_loc }

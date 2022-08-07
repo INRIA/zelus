@@ -1054,11 +1054,16 @@ expression_desc:
   | l = list_of(COMMA, localized(output_desc)) { l }
 ;
 
+%inline out_ide:
+  | OUT ide = ide
+    { ide }
+;
+
 %inline output_desc:
-  | xi = vardec
-    { { xi = xi; x = None } }
-  | xi = vardec OUT o = ide
-    { { xi = xi; x = Some(o) } }
+   | ide = ide o = out_ide
+    { { for_name = ide; for_out_name = Some(o); for_init = None } }
+  | ide = ide i = init_expression o_opt = optional(out_ide)
+    { { for_name = ide; for_out_name = o_opt; for_init = Some(i) } }
 ;
 
 /* Periods */

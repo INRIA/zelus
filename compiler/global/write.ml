@@ -123,12 +123,12 @@ let rec equation ({ eq_desc } as eq)=
             Kforward(Util.optional_map exit e_opt) in
        let for_index =
          for_index_w for_index in
-       let for_out_one h_out ({ desc = { xi = ({ var_name } as xi); x } } as fo) =
-         let xi, _ = vardec S.empty xi in
-         let h_out = match x with | None -> h_out | Some(x) -> Env.add var_name x h_out in
-         { fo with desc = { xi; x } }, h_out in
-         let for_out, h_out =
-              Util.mapfold for_out_one Env.empty for_out in
+       (* From outside, when the output is [xi out x] *)
+       (* the defined variable in the loop body is [x], not [xi] *)
+       let for_out_one h_out { desc = { for_name; for_out_name } } =
+         match for_out_name with
+           | None -> h_out | Some(x) -> Env.add for_name x h_out in
+       let h_out = List.fold_left for_out_one Env.empty for_out in
        let for_block, defnames, dv_for_block = block for_block in
        let defnames = Deftypes.subst defnames h_out in
        EQforloop({ f with for_size; for_kind; for_index;

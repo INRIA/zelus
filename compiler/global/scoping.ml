@@ -273,17 +273,22 @@ and build_escape defnames { desc = { e_body } } =
   S.union defnames defnames_e_body
 
 and build_for_body_eq defnames { for_out; for_block } =
-  let build_for_out (acc_left, acc_right) { desc = { xi; x } } =
-    let acc_left = build_vardec acc_left xi in
-    let acc_right = match x with | None -> acc_right | Some(x) -> S.add x acc_right in
-    acc_left, acc_right in
+  (* [xi [init e] [default e]] means that [xi] is defined by the for loop *)
+  (* and visible outside of it. On the contrary *)
+  (* [xi [init e] [default e] out x] means that [xi] stay local and *)
+  (* [x] is defined by the for loop and visible outside of it *)
+  let build_for_out (acc_left, acc_right) { desc = { for_name; for_out_name } } =
+    match for_out_name with
+    | None -> acc_left, acc_right
+    | Some(x) -> S.add for_name acc_left, S.add x acc_right in
   let acc_left, acc_right =
     List.fold_left build_for_out (S.empty, S.empty) for_out in
    
  (* computes defnames for the block *)
   let _, defnames_body = build_block defnames for_block in
   S.union defnames
-    (S.union (S.diff defnames_body acc_left) acc_right)
+    (S.union (* remove [xi] in defnames *)
+       (S.diff defnames_body acc_left) acc_right)
         
 let buildeq eq =
   let defnames = buildeq S.empty eq in
@@ -442,14 +447,27 @@ and trans_for_index env i_list =
   Util.mapfold index Env.empty i_list
 
 and trans_for_out env i_env for_out =
-  let for_out_one out_env
-        { desc = { xi = { desc = { var_name } } as xi; x }; loc } =
-    (* check that output name [xi] is distinct for input names. This is *)
+  (* [local_out_env] is the environment for variables defined in the for loop *)
+  (* that are associated to an output [xi out x]. In that case, [xi] is local *)
+  (* to the loop body; [x] is the only visible defined variable *)
+  (* otherwise, [xi] is defined by the for loop and visible outside of it *)
+  let for_out_one local_out_env
+        { desc = { for_name; for_init; for_out_name }; loc } =
+    (* check that output name [xi] is distinct from input names. This is *)
     (* not mandatory but makes loops simpler to understand *)
-    if Env.mem var_name i_env then Error.error loc (Enon_linear_pat(var_name));
-    let xi, out_env = vardec env out_env xi in
-    let x = Util.optional_map (name loc env) x in
-    { Zelus.desc = { Zelus.xi = xi; Zelus.x = x }; Zelus.loc = loc }, out_env in
+    if Env.mem for_name i_env then Error.error loc (Enon_linear_pat(for_name));
+    let for_name, local_out_env =
+      match for_out_name with
+      | None -> name loc env for_name, local_out_env
+      | Some(x) -> let m = fresh for_name in
+                   m, Env.add for_name m local_out_env in
+    let for_init =
+      Util.optional_map (expression env) for_init in
+    let for_out_name = Util.optional_map (name loc env) for_out_name in
+    { Zelus.desc =
+        { Zelus.for_name = for_name; Zelus.for_init = for_init;
+          Zelus.for_out_name = for_out_name }; Zelus.loc = loc },
+    local_out_env in
     Util.mapfold for_out_one Env.empty for_out
 
 (* translation of for loops *)
@@ -459,10 +477,10 @@ and forloop_eq env_pat env { for_size; for_kind; for_index;
     let for_index, i_env =
       trans_for_index env for_index in
     let env = Env.append i_env env in
-    let for_out, out_env =
+    let for_out, local_out_env =
       trans_for_out env i_env for_out in
-    let env = Env.append out_env env in
-    let env_pat = Env.append out_env env in
+    let env = Env.append local_out_env env in
+    let env_pat = Env.append local_out_env env in
     let env_body, for_block = block equation env_pat env for_block in
     let for_kind =
       match for_kind with
