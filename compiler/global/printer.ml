@@ -466,8 +466,8 @@ and equation ff ({ eq_desc = desc } as eq) =
        index_list for_index
        comma
        print_for_out for_out
-       block_of_equation for_block
        for_exit_condition for_kind
+       block_of_equation for_block
        print_env for_env
 
                                
@@ -479,11 +479,10 @@ and kind_of_forloop ff for_kind =
 
 and for_exit_condition ff for_kind =
   match for_kind with
-  | Kforward(Some(Until(e))) ->
-     fprintf ff "@ @[<hov 2>until@ %a@ @]" expression e
-  | Kforward(Some(Unless(e))) ->
-     fprintf ff "@ @[<hov 2>unless@ %a@ @]" expression e
-  | _ -> ()
+  | Kforward(e_opt) ->
+     Pp_tools.print_opt
+       (fun ff e -> fprintf ff "@[<hov 2>while@ %a@ @]" expression e) ff e_opt
+  | Kforeach -> ()
 
 and index_list ff l =
   let index ff { desc = desc } =

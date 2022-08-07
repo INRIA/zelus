@@ -118,9 +118,7 @@ let rec equation ({ eq_desc } as eq)=
          match for_kind with
          | Kforeach -> for_kind
          | Kforward(e_opt) ->
-            let exit = function | Until(e) -> Until(expression e)
-                       | Unless(e) -> Unless(expression e) in
-            Kforward(Util.optional_map exit e_opt) in
+            Kforward(Util.optional_map expression e_opt) in
        let for_index =
          for_index_w for_index in
        (* From outside, when the output is [xi out x] *)
@@ -251,9 +249,7 @@ and expression ({ e_desc } as e) =
          match for_kind with
          | Kforeach -> for_kind
          | Kforward(e_opt) ->
-            let exit = function | Until(e) -> Until(expression e)
-                       | Unless(e) -> Unless(expression e) in
-            Kforward(Util.optional_map exit e_opt) in
+            Kforward(Util.optional_map expression e_opt) in
        let for_index = for_index_w for_index in
        let for_body =
          match for_body with

@@ -74,6 +74,7 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "up", UP;
   "val", VAL;
   "where", WHERE;
+  "while", WHILE;
   "with", WITH;
   "quo", INFIX3("quo");
   "mod", INFIX3("mod");

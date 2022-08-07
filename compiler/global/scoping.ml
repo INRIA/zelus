@@ -486,10 +486,7 @@ and forloop_eq env_pat env { for_size; for_kind; for_index;
       match for_kind with
       | Kforeach -> Zelus.Kforeach
       | Kforward(e_opt) ->
-         let exit =
-           function | Until(e) -> Zelus.Until(expression env_body e)
-                    | Unless(e) -> Zelus.Unless(expression env_body e) in
-         Zelus.Kforward(Util.optional_map exit e_opt) in
+         Zelus.Kforward(Util.optional_map (expression env_body) e_opt) in
     { Zelus.for_size = for_size;
       Zelus.for_kind = for_kind;
       Zelus.for_index = for_index;
@@ -742,10 +739,7 @@ and forloop_exp env { for_size; for_kind; for_index; for_body } =
     match for_kind with
     | Kforeach -> Zelus.Kforeach
     | Kforward(e_opt) ->
-       let exit =
-         function | Until(e) -> Zelus.Until(expression env_body e)
-                  | Unless(e) -> Zelus.Unless(expression env_body e) in
-       Zelus.Kforward(Util.optional_map exit e_opt) in
+       Zelus.Kforward(Util.optional_map (expression env_body) e_opt) in
   { Zelus.for_size = for_size; Zelus.for_kind = for_kind;
     Zelus.for_index = for_index; Zelus.for_body = for_body;
     Zelus.for_env = Ident.Env.empty }

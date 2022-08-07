@@ -293,7 +293,7 @@ and for_kind =
   | Kforward : for_exit option -> for_kind
   (* iteration during one instant. The argument is the stoping condition *)
 
-and for_exit = | Until : exp -> for_exit | Unless : exp -> for_exit
+and for_exit = exp
 
 (* index definition for a loop *)
 and for_index_desc =

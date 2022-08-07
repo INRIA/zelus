@@ -179,6 +179,7 @@ let foreach_loop (size, index_list, body) =
 %token UP             /* "up" */
 %token VAL            /* "val" */
 %token WHERE          /* "where" */
+%token WHILE          /* "while" */
 %token WITH           /* "with" */
 
 %token <string> PREFIX
@@ -1006,14 +1007,15 @@ expression_desc:
 ;
 
 %inline forward_loop_eq:
-  | s = simple_expression li = empty(index_list)
-    f = block(equation_empty_and_list)  o = opt_loop_condition 
+  | s = simple_expression li = empty(index_list) o = opt_loop_condition 
+    f = block(equation_empty_and_list)
     { (s, li, o, { for_out = []; for_block = f}) }
-  | s = simple_expression lo = output_list
-    f = block(equation_empty_and_list) o = opt_loop_condition 
+  | s = simple_expression lo = output_list o = opt_loop_condition 
+    f = block(equation_empty_and_list)
     { (s, [], o, { for_out = lo; for_block = f }) }
   | s = simple_expression li = index_list COMMA lo = output_list
-    f = block(equation_empty_and_list) o = opt_loop_condition 
+    o = opt_loop_condition 
+    f = block(equation_empty_and_list)
     { (s, li, o, { for_out = lo; for_block = f }) }
 ;
 
@@ -1043,10 +1045,8 @@ expression_desc:
 ;
 
 %inline loop_condition:
-  | UNTIL e = expression
-    { Until(e) }
-  | UNLESS e = expression
-    { Unless(e) }
+  | WHILE e = expression
+    { e }
 ;
 
 /* outputs of a loop */

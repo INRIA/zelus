@@ -276,9 +276,7 @@ and ifor_kind genv env for_kind v s_body =
      match e_opt with
      | None -> return (Sempty, s_body)
      | Some(e) ->
-        let* se =
-          match e with
-          | Until(e) -> iexp genv env e | Unless(e) -> iexp genv env e in
+        let* se = iexp genv env e in
         return (se, s_body)
 
 and ifor_index genv env { desc; loc } =
