@@ -1,19 +1,18 @@
 let node f x = x.(4 .. 5)
 
 let node f x =
-  forward(4) i in 0 .. 3 returns (o default 0)
-    do o = 0 -> pre o + 1 until o = 42 done 
+  forward(4) i in 0 to 3 returns (o default 0)
+    do o = 0 -> pre o + 1 done
 
 let node f x =
   forward(4) returns (o default 0)
-    do o = 0 -> (pre o + 1) until o = 42 done 
+    do o = 0 -> (pre o + 1) done
 
 let node f x =
   forward(4) xi in x returns (o default 0)
     do o = (0 fby o) + xi done 
 
-(* produit de matrices *)
-
+(* matrix product *)
 let node f a b = r where rec
   forward(4) i in 0 to 3, ai in a, ri out r do
      forward(5) j in 0 to 4, rij out ri do
@@ -22,23 +21,6 @@ let node f a b = r where rec
       done
      done
   done
-
-   (*
-let node f x =
-  forward i < 4, ai in a returns ([ri] out r)
-     do
-        ri = forward (j < 5) returns (sum out ri)
-                do
-                   sum = forward (k < 6) returns (sum last 0)
-                          do sum = last sum + ai.(k) * bk.(j) done
-                done
-     done
-*)
-(*
-let node f x =
-  forward i < 4, oi default 0 do
-    do oi = 0 -> pre oi + 1 unless oi = 42 done
- *)
 
 let node f x = foreach(4) do x done
 
@@ -68,18 +50,6 @@ let node g x =
   and lo = 1 fby o in
   o
 
-(*
-let node f x = cpt, m where
-    rec foreach(4) cpti init 0, r out cpt, mi out m
-          local s do
-            cpti = last cpti + x
-          and
-	    mi = cpti + s
-          and
-	    s = 0 fby mi + 1
-          done
- *)
-    
 let node main4 () = g [| 1; 2; 3 |]
 
 let node sum(xi, yi) = cpt where
