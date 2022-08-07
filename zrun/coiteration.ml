@@ -852,8 +852,19 @@ let rec sexp genv env { e_desc; e_loc } s =
                  let* _, local_env, s = sblock genv env body s in
                  return (local_env, s) in
                let* env_list, acc_env, _ =
-                 Forloop.forward_i_without_stop_condition
+                 Forloop.forward_i_without_exit_condition
                    sbody env i_env acc_env for_size s_for_body in
+               return (env_list, acc_env, s_kind, s_for_body)
+            | Kforward(Some(e_while)), Sempty, _ ->
+               (* for the moment, the exit condition must be combinatorial *)
+               let sbody env s =
+                 let* _, local_env, s = sblock genv env body s in
+                 return (local_env, s) in
+               let cond env = Combinatorial.exp genv env e_while in
+               let* env_list, acc_env, _ =
+                 Forloop.forward_i_with_exit_condition e_while.e_loc
+                   body.b_write
+                   sbody cond env i_env acc_env for_size s_for_body in
                return (env_list, acc_env, s_kind, s_for_body)
             | _ -> error { kind = Estate; loc = e_loc } in
           let* v = for_matching_out env_list acc_env e_loc returns in
@@ -1217,7 +1228,7 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
             let* _, local_env, s = sblock genv env for_block s in
             return (local_env, s) in
           let* env_list, acc_env, _ =
-            Forloop.forward_i_without_stop_condition
+            Forloop.forward_i_without_exit_condition
               sbody env i_env acc_env for_size s_for_block in
           return (env_list, acc_env, s_kind, s_for_block)
        | _ -> error { kind = Estate; loc = eq_loc } in

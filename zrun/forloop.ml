@@ -108,7 +108,7 @@ let forward_i n default f s =
       for_rec v (i+1) s in
   for_rec default 0 s
 
-let forward_i_without_stop_condition:
+let forward_i_without_exit_condition:
       int -> (int -> (value ientry Env.t as 'a) -> state ->
               ('a * 'a * state, 'e) Result.t) -> 'a -> state ->
       ('a list * 'a * state, 'e) Result.t =
@@ -123,26 +123,27 @@ let forward_i_without_stop_condition:
       return (f_env :: env_list, acc_env, s) in
   for_rec 0 acc_env0 s
 
-(* instantaneous for loops with a stopping condition *)
-let forward_i_with_stop_condition loc n write f cond (s, sc) =
-  let rec for_rec i (s, sc) =
-    if i = n then return ([], Env.empty, (s, sc))
+(* instantaneous for loops with an exit condition *)
+(* this condition must be combinational *)
+let forward_i_with_exit_condition loc n write f cond acc_env0 s =
+  let rec for_rec i acc_env s =
+    if i = n then return ([], acc_env, s)
     else
-      let* f_env, s = f i s in
-      let* v, sc = cond f_env sc in
+      let* f_env, acc_env, s = f i acc_env s in
+      let* v = cond f_env in
       match v with
       | Vbot ->
-         let f_env = bot_env write in return ([f_env], f_env, (s, sc)) 
+         let f_env = bot_env write in return ([f_env], acc_env, s) 
       | Vnil ->
-         let f_env = nil_env write in return ([f_env], f_env, (s, sc))
+         let f_env = nil_env write in return ([f_env], acc_env, s)
       | Value(v) ->
            let* b =
              Opt.to_result ~none:{ kind = Etype; loc = loc } (bool v) in
-           let* env_list, env, s_sc =
-             if b then for_rec (i+1) (s, sc)
-             else return ([f_env], f_env, (s, sc)) in
-           return (f_env :: env_list, env, s_sc) in
-  for_rec 0 (s, sc)
+           let* env_list, acc_env, s =
+             if b then for_rec (i+1) acc_env s
+             else return ([], acc_env, s) in
+           return (f_env :: env_list, acc_env, s) in
+  for_rec 0 acc_env0 s
 
 (* main entry functions *)
 
@@ -183,8 +184,8 @@ let forward sbody env i_env n default s =
 
 (* [i_env] is the environment for indexes; [acc_env_0] is the environment *)
 (* for accumulated variables; [env] is the current environment *)
-let forward_i_without_stop_condition sbody env i_env acc_env0 n s =
-  forward_i_without_stop_condition n
+let forward_i_without_exit_condition sbody env i_env acc_env0 n s =
+  forward_i_without_exit_condition n
       (fun i acc_env se ->
         Sdebug.print_ienv "Forward: Env:" env;
         Sdebug.print_ienv "Forward: Env acc (before):" acc_env;
@@ -196,3 +197,17 @@ let forward_i_without_stop_condition sbody env i_env acc_env0 n s =
         Sdebug.print_ienv "Forward: Env acc (after):" acc_env;
         return (local_env, acc_env, s))
       acc_env0 s
+
+let forward_i_with_exit_condition loc write sbody cond env i_env acc_env0 n s =
+  forward_i_with_exit_condition loc n write
+      (fun i acc_env se ->
+        Sdebug.print_ienv "Forward: Env:" env;
+        Sdebug.print_ienv "Forward: Env acc (before):" acc_env;
+        let env = Env.append (geti_env i_env i)
+                    (Env.append acc_env env) in
+        let* local_env, s = sbody env s in
+        (* every entry [x\v] becomes [x \ { cur = bot; last = v }] *)
+        let acc_env = x_to_last_x local_env acc_env in
+        Sdebug.print_ienv "Forward: Env acc (after):" acc_env;
+        return (local_env, acc_env, s))
+      cond acc_env0 s
