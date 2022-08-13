@@ -59,16 +59,26 @@ let node main6() =
 
 
 (* matrix product in equational form *)
-let node prod_matrix0(a_3_4, b_4_5) = r where rec
-  forward(3) i in 0 to 2, ai in a_3_4, ri out r do
-     forward(5) j in 0 to 4, rij out ri do
-      forward(4) k in 0 to 3, bk in b_4_5, rij init 0 do
+let node prod_matrix0(l)(m)(n)(a_l_m, b_m_n) = r where rec
+  forward(l) i in 0 to l-1, ai in a_l_m, ri out r do
+     forward(n) j in 0 to n-1, rij out ri do
+      forward(m) k in 0 to m-1, bk in b_m_n, rij init 0 do
         rij = last rij + ai.(k) * bk.(j)
       done
      done
   done
 
-	  
+
+let node main7 () =
+  let m1 = [| [| 1; 2; 3; 4 |];
+	      [| 5; 6; 7; 8 |];
+	      [| 9; 10; 11; 12 |] |] in
+  let id = [| [| 1; 1; 1; 1; 1 |];
+	      [| 1; 1; 1; 1; 1 |];
+	      [| 1; 1; 1; 1; 1 |];
+	      [| 1; 1; 1; 1; 1|] |] in
+  run (prod_matrix0(3)(4)(5))(m1, id)
+ 
 (* the same with a return *)
 let node prod_matrix1(a_3_4, b_4_5) returns (r)
   forward(3) i in 0 to 2, ai in a_3_4, ri out r do
@@ -80,7 +90,7 @@ let node prod_matrix1(a_3_4, b_4_5) returns (r)
   done
 
 	  
-let node main7 () =
+let node main8 () =
   let m1 = [| [| 1; 2; 3; 4 |];
 	      [| 5; 6; 7; 8 |];
 	      [| 9; 10; 11; 12 |] |] in
@@ -88,7 +98,7 @@ let node main7 () =
 	      [| 1; 1; 1; 1; 1 |];
 	      [| 1; 1; 1; 1; 1 |];
 	      [| 1; 1; 1; 1; 1|] |] in
-  assert (prod_matrix0(m1, id) = prod_matrix1(m1, id))
+  assert (run (prod_matrix0(3)(4)(5))(m1, id) = prod_matrix1(m1, id))
     
 
 (*let f{a,b,c}(x, y, z) =

@@ -1,15 +1,14 @@
 let node make(n)() = foreach(n) i in 0 to n-1 do i done
 
-let node f x = x.(4 .. 19)
+let node f x = x.(4 .. 5)
 
 let node main0 () =
   let t = run (make(10))() in
-  t, f t (* let v = f t in
-  assert (v = [| 5; 6 |]) *)
+  let v = f t in
+  assert (v = [| 4; 5 |])
   
-(*
 let node f () =
-  forward(10) i in 0 to 9 returns (o default 0)
+  forward(10) i in 0 to 9 returns (o init 0)
     do o = 0 -> pre o + i done
 
 let node main1 () =
@@ -213,4 +212,4 @@ let node cholesky(a) returns (l)
 					   else 0
 	    done
 *)
-*)
+

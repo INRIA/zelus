@@ -11,3 +11,8 @@ let node main0 () =
 let node main1 () =
   run (sum_from1(42)) (1)
 
+let node sum_from2(n1)(n2)(x) returns (o)
+    o = n1 fby o + n2
+    
+let node main2 () =
+  run (sum_from2(42)(43))(1)
