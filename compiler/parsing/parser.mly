@@ -978,18 +978,19 @@ expression_desc:
 
 %inline forward_loop_exp:
   | s = simple_expression
-    DO e = expression o = opt_loop_condition
+    o = opt_loop_condition DO e = expression 
     { (s, [], o, Forexp(e)) }
   | s = simple_expression
-    RETURNS p = for_return b = block(equation_empty_and_list)
-    o = opt_loop_condition
+    RETURNS p = for_return
+    o = opt_loop_condition b = block(equation_empty_and_list)
     { (s, [], o, Forreturns { returns = p; body = b }) }
-  | s = simple_expression li = index_list
-    DO e = expression o = opt_loop_condition
+  | s = simple_expression li = index_list o = opt_loop_condition
+    DO e = expression 
     { (s, li, o, Forexp(e)) }
   | s = simple_expression li = index_list
-    RETURNS p = for_return b = block(equation_empty_and_list)
+    RETURNS p = for_return
     o = opt_loop_condition
+    b = block(equation_empty_and_list)
     { (s, li, o, Forreturns { returns = p; body = b }) }
 ;
 
