@@ -115,7 +115,7 @@ let slice loc v i1 i2 =
      | Varray(v), Vint(i1), Vint(i2) ->
         let n = Array.length v in
         if i1 < n then
-          if i2 < n then return (Value(Varray(Array.sub v i1 (i2+1))))
+          if i2 < n then return (Value(Varray(Array.sub v i1 (i2+1-i1))))
           else error { kind = Earray_size { size = n; index = i2 }; loc }
         else error { kind = Earray_size { size = n; index = i1 }; loc }
      | _ -> error { kind = Etype; loc }
