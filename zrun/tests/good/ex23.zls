@@ -1,6 +1,6 @@
 let node make(n)() = foreach(n) i in 0 to n-1 do i done
 
-let node f x = x.(4 .. 5)
+let node f x = x.(4 .. 19)
 
 let node main0 () =
   let t = run (make(10))() in
