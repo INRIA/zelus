@@ -1062,9 +1062,17 @@ expression_desc:
 
 %inline output_desc:
    | ide = ide o = out_ide
-    { { for_name = ide; for_out_name = Some(o); for_init = None } }
+    { { for_name = ide; for_out_name = Some(o);
+	for_init = None; for_default = None } }
   | ide = ide i = init_expression o_opt = optional(out_ide)
-    { { for_name = ide; for_out_name = o_opt; for_init = Some(i) } }
+    { { for_name = ide; for_out_name = o_opt;
+	for_init = Some(i); for_default = None } }
+  | ide = ide d = default_expression o_opt = optional(out_ide)
+    { { for_name = ide; for_out_name = o_opt;
+	for_init = None; for_default = Some(d) } }
+  | ide = ide i = init_expression d = default_expression o_opt = optional(out_ide)
+    { { for_name = ide; for_out_name = o_opt;
+	for_init = Some(i); for_default = Some(d) } }
 ;
 
 /* Periods */

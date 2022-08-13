@@ -252,9 +252,10 @@ and for_index_desc =
 
 (* output of a for loop in equational form *)
 and for_out_desc =
-  { for_name : name; (* xi [init e] [out x] *)
+  { for_name : name; (* xi [init e] [default e] [out x] *)
     for_out_name : name option; (* [xi out x] *)
-    for_init : exp option
+    for_init : exp option;
+    for_default : exp option;
   }
 
 and 'body escape_desc =

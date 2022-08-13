@@ -123,10 +123,16 @@ let rec equation ({ eq_desc } as eq)=
          for_index_w for_index in
        (* From outside, when the output is [xi out x] *)
        (* the defined variable in the loop body is [x], not [xi] *)
-       let for_out_one h_out { desc = { for_name; for_out_name } } =
-         match for_out_name with
+       let for_out_one h_out
+             ({ desc = { for_name; for_init; for_default; for_out_name } } as fo) =
+         let h_out =
+           match for_out_name with
            | None -> h_out | Some(x) -> Env.add for_name x h_out in
-       let h_out = List.fold_left for_out_one Env.empty for_out in
+         let for_init = Util.optional_map expression for_init in
+         let for_default = Util.optional_map expression for_default in
+         { fo with  desc = { for_name; for_init; for_default; for_out_name } },
+         h_out in 
+       let for_out, h_out = Util.mapfold for_out_one Env.empty for_out in
        let for_block, defnames, dv_for_block = block for_block in
        let defnames = Deftypes.subst defnames h_out in
        EQforloop({ f with for_size; for_kind; for_index;

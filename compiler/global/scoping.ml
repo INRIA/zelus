@@ -452,7 +452,7 @@ and trans_for_out env i_env for_out =
   (* to the loop body; [x] is the only visible defined variable *)
   (* otherwise, [xi] is defined by the for loop and visible outside of it *)
   let for_out_one local_out_env
-        { desc = { for_name; for_init; for_out_name }; loc } =
+        { desc = { for_name; for_init; for_default; for_out_name }; loc } =
     (* check that output name [xi] is distinct from input names. This is *)
     (* not mandatory but makes loops simpler to understand *)
     if Env.mem for_name i_env then Error.error loc (Enon_linear_pat(for_name));
@@ -463,10 +463,13 @@ and trans_for_out env i_env for_out =
                    m, Env.add for_name m local_out_env in
     let for_init =
       Util.optional_map (expression env) for_init in
+    let for_default =
+      Util.optional_map (expression env) for_default in
     let for_out_name = Util.optional_map (name loc env) for_out_name in
     { Zelus.desc =
         { Zelus.for_name = for_name; Zelus.for_init = for_init;
-          Zelus.for_out_name = for_out_name }; Zelus.loc = loc },
+          Zelus.for_default = for_default; Zelus.for_out_name = for_out_name };
+      Zelus.loc = loc },
     local_out_env in
     Util.mapfold for_out_one Env.empty for_out
 
