@@ -1,26 +1,36 @@
+let node make(n)() = foreach(n) i in 0 to n-1 do i done
+
 let node f x = x.(4 .. 5)
 
-let node f x =
-  forward(4) i in 0 to 3 returns (o default 0)
-    do o = 0 -> pre o + 1 done
+let node main0 () =
+  let t = run (make(10))() in
+  t, f t (* let v = f t in
+  assert (v = [| 5; 6 |]) *)
+  
+(*
+let node f () =
+  forward(10) i in 0 to 9 returns (o default 0)
+    do o = 0 -> pre o + i done
 
+let node main1 () =
+  let v = f () in
+  v
+    
 let node f x =
   forward(4) returns (o default 0)
     do o = 0 -> (pre o + 1) done
 
+let node main2 () =
+  let v = f () in
+  v
+
 let node f x =
-  forward(4) xi in x returns (o default 0)
+  forward(10) xi in x returns (o default 0)
     do o = (0 fby o) + xi done 
 
-(* matrix product *)
-let node f a b = r where rec
-  forward(4) i in 0 to 3, ai in a, ri out r do
-     forward(5) j in 0 to 4, rij out ri do
-      forward(6) k in 0 to 5, bk in b, rij init 0 do
-        rij = last rij + ai.(k) * bk.(j)
-      done
-     done
-  done
+let node main3 () =
+  let t = make(10) in
+  f v
 
 let node f x = foreach(4) do x done
 
@@ -78,17 +88,129 @@ let node copy x =
     cpt
   done
   
-let node main1 () =
+let node main5 () =
   plus (plus1 (f 0), plus1 (f 1))
 
-let node main1 () =
+let node main6 () =
   plus1 (copy (f 1))
 
-let node main2() =
+let node main7() =
   plus11 (f 0)
 
-let node main3 () =
+let node main8 () =
   let x = f 0 in
   x.(0) default 42
 
+(* sequential search in a array *)
+let node find0 (x, a) returns (index, found)
+  (index, found) =
+    forward(5) i in 0 to 4, ai in a returns (index init 0, c init false)
+      while not (last c) do index = i and c = (ai = x) done
 
+let node main9 () =
+  let v = find0 (3, [| 0; 1; 2; 3; 4 |]) in
+  assert (v = (3, true))
+
+let node find1 (x, a) returns (index, found)
+  forward(5) i in 0 to 4, ai in a, index init 0, found init false
+     while not (last found) do index = i and found = (ai = x) done
+
+let node main10 () =
+  let v = find1 (3, [| 0; 1; 2; 3; 4 |]) in
+  assert (v = (3, true))
+
+
+let node fill_up0 (max_i) returns (s)
+    s = forward(5) i in 0 to 4 returns ([|a init 0|])
+           while i < max_i do a = i done
+
+let node main11 () =
+    let v = fill_up0 (2) in
+  assert (v = [|0;1;1;1;1|])
+
+let node fill_up1 (max_i) returns (s)
+    forward(5) i in 0 to 4, si init 0 out s
+           while i < max_i do si = i done
+
+let node main12 () =
+  let v = fill_up1 (2) in
+  assert (v = [|0;1;1;1;1|])
+
+
+let node scalar_10 (x, y) returns (o)
+    forward(10) xi in x, yi in y, o init 0
+      do o = last o + xi * yi done
+
+let node scalar_n n (x, y) returns (o)
+    forward(n) xi in x, yi in y, o init 0
+      do o = last o + xi * yi done
+
+let node main13 () =
+  let v1 = foreach(10) i in 0 to 9 do i done in
+  let v2 = foreach(10) i in 0 to 9 do i done in
+  let v = run (scalar_n (10)) (v1, v2) in
+  assert (v = scalar_10 (v1, v2))
+  
+(*
+
+let cholesky <<n>> (a:[n,n]float) = (l:[n,n]float)
+  forward i in 0 to n-1, ai in a, l init [n,n]0 do
+    forward j in 0 to n-1, aij in Ai, l init last l do
+      if  j < i then
+	l = [| last l with [i,j] = (aij -. vec_vec (l.(i).(j)) / a.(j).(j) |]
+      else
+	if j = i then
+	  l = [| last l with [i,j] = sqrt (aij - vec_vec (l.(i),l.(j)) |]
+        else l = last l
+    done
+  done
+	    *)
+      
+(*
+let node cholesky(a) returns (l)
+    forward i in 0 to n, ai in a, li out l do
+      forward k in 0 to i + 1, lik out li
+        let tmp_sum = scalar((last l).(i), (last l).(k)) in
+        do if i = k then
+	     lik = sqrt(ai.(i) - tmp_sum)
+	   else
+	     lik = (1.0 /. (last l).(k) *. (ai.(k) - tmp_sum))
+	done
+*)	       
+	
+(*def cholesky(A):
+    """Performs a Cholesky decomposition of A, which must 
+    be a symmetric and positive definite matrix. The function
+    returns the lower variant triangular matrix, L."""
+    n = len(A)
+
+    # Create zero matrix for L
+    L = [[0.0] * n for i in xrange(n)]
+
+    # Perform the Cholesky decomposition
+    for i in xrange(n):
+        for k in xrange(i+1):
+            tmp_sum = sum(L[i][j] * L[k][j] for j in xrange(k))
+            
+            if (i == k): # Diagonal elements
+                # LaTeX: l_{kk} = \sqrt{ a_{kk} - \sum^{k-1}_{j=1} l^2_{kj}}
+                L[i][k] = sqrt(A[i][i] - tmp_sum)
+            else:
+                # LaTeX: l_{ik} = \frac{1}{l_{kk}} \left( a_{ik} - \sum^{k-1}_{j=1} l_{ij} l_{kj} \right)
+                L[i][k] = (1.0 / L[k][k] * (A[i][k] - tmp_sum))
+    return L
+ 
+A = [[6, 3, 4, 8], [3, 6, 5, 1], [4, 5, 10, 7], [8, 1, 7, 25]]
+		L = cholesky(A) *)
+
+(*
+let node cholesky(a) returns (l)
+    l = forward i in 0 to 5, ai in a do
+          forward aij in ai returns (l init 0)
+            do v = scalar (l.(j), l.(i))
+            and l = [| last l with i, j <- if j < i then (aij - v) / l.(j).(j)
+					   else if j = i then sqrt (aij - v)
+					   else 0
+	    done
+*)
+*)

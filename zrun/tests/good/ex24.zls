@@ -1,7 +1,7 @@
 (* for loops in equational form *)
  let node f() returns (r)
   forward(3) i in 0 to 2, ri out r do
-   forward(5) j in 0 to 4, ri init 0 do
+   forward(5) j in 0 to 4, ri init 0 while ri < 2 do
       ri = last ri + 1
      done
    done
