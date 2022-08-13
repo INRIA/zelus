@@ -195,6 +195,8 @@ let matchsig (v: value) ({ pat_loc } as p : pattern) :
 
 (* definition [fun (x11,...) ... (xn1,...) returns (y1,...) eq] *)
 (* arg_in_1 = [x11;...]; ...; arg_in_n = [xn1;...]; arg_out = [y1;...] *)
+(* computes the matching of [v] with [arg]. The resulting substitution is *)
+(* added to [env] *)
 let matching_arg_in loc env arg v =
   let open Result in
   let open Error in
@@ -212,7 +214,7 @@ let matching_arg_in loc env arg v =
      fold2
        { kind = Epattern_matching_failure; loc = loc }
        match_in env l v_list
-  | [x], _ -> match_in Env.empty x v
+  | [x], _ -> match_in env x v
   | _ ->
      (* type error *)
      error { kind = Epattern_matching_failure; loc = loc }
