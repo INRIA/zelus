@@ -21,8 +21,9 @@ type kind =
   | Eunbound_last_ident : Ident.t -> kind (* unbound last variable *)
   | Eunbound_lident : Lident.t -> kind (* unbound global variable *)
   | Eundefined_ident : Ident.t -> kind (* no definition is given *)
-  | Eshould_be_a_node : kind (* [x] should be a node *)
-  | Eshould_be_a_function : kind (* [x] should be a value *)
+  | Eshould_be_a_node : kind (* the expression should return a node *)
+  | Eshould_be_combinatorial : kind
+  (* the expression should be combinatorial *)
   | Eand_non_linear : Ident.t  -> kind (* [x] appears twice *)
   | Eno_default : Ident.t -> kind (* no default value is given to [x] *)
   | Einitial_state_with_parameter : Ident.t  -> kind
@@ -39,6 +40,11 @@ type kind =
   (* the array is of size [size] but accessed out-of-bound, at index > size *)
   | Eloop_index : { size : int; index : int } -> kind
   (* the loop has [size] iterations but the index is of a different size *)
+  | Earray_cannot_be_filled : { name: Ident.t;
+                                size : int;
+                                missing : int } -> kind
+  (* the returned value for [id] should be an array of size [size]; *)
+  (* [missing] elements are missing *)
   | Eunexpected_failure : kind (* an error that should not arrive *)
                       
 type error = { kind : kind; loc : Location.t }
@@ -67,8 +73,8 @@ let message loc kind =
   | Eshould_be_a_node ->
      eprintf "@[%aZrun: this expression should return a node.@.@]"
        output_location loc 
-  | Eshould_be_a_function ->
-     eprintf "@[%aZrun: this expression should return a function.@.@]"
+  | Eshould_be_combinatorial ->
+     eprintf "@[%aZrun: this expression should be combinatorial.@.@]"
        output_location loc 
   | Eand_non_linear(name) ->
      eprintf
@@ -111,5 +117,10 @@ let message loc kind =
      eprintf
        "@[%aZrun: the loop has %d iterations but the index is of lenfth %d.@.@]"
        output_location loc size index
+  | Earray_cannot_be_filled { name; size; missing } ->
+     eprintf
+     "@[%aZrun: the result should be an array of size %d but %d elements are\
+        missing. Either declare %s with an init or a default value.@.@]"
+      output_location loc size missing (Ident.source name)
   | Eunexpected_failure ->
      eprintf "@[%aZrun: unexpected error.@.@]" output_location loc

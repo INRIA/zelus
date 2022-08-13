@@ -182,7 +182,7 @@ let rec exp genv env { e_desc; e_loc } =
         | Vbool(b) ->
            if b then exp genv env e2 else exp genv env e3
         | _ -> error { kind = Etype; loc = e_loc } end
-     | _ -> error { kind = Eshould_be_a_function; loc = e_loc }
+     | _ -> error { kind = Eshould_be_combinatorial; loc = e_loc }
      end
   | Econstr1 { lname; arg_list } ->
      let* v_list = exp_list genv env arg_list in
@@ -239,7 +239,9 @@ let rec exp genv env { e_desc; e_loc } =
      | Vbool _ -> exp genv env e_body
      | _ -> error { kind = Etype; loc = e_loc }
      end
-  | Elast _ -> error { kind = Eshould_be_a_function; loc = e_loc }
+  | Elast x ->
+     find_last_opt x env |>
+       Opt.to_result ~none:{ kind = Eunbound_last_ident(x); loc = e_loc }   
   | Eassert(e_body) ->
      let* v = exp genv env e_body in
      let* r = check_assertion e_loc v void in
@@ -281,35 +283,40 @@ and record_with label_arg_list ext_label_arg_list =
   
 (* application [fv v_list] of a combinatorial function *)
 and apply loc fv v_list =
-  match fv with
-  | Vfun(op) ->
-     let* fv =
-       match v_list with
-       | [] -> (* typing error *)
-          error { kind = Etype; loc = loc }
-       | v :: v_list ->
-          let+ v = v in
-          let* fv =
-            op v |> Opt.to_result ~none:{ kind = Etype; loc = loc } in
-          apply loc fv v_list in
-     return fv
-  | Vclosure { c_funexp = { f_kind = (Kstatic | Kfun); f_args; f_body } as fe;
-               c_genv; c_env } ->
-     apply_closure c_genv c_env fe f_args f_body v_list
+  match fv, v_list with
+  | _, [] -> return (Value(fv))
+  | Vfun(op), v :: v_list -> apply_op loc op v v_list
+  | Vclosure { c_funexp = { f_kind; f_args; f_body } as fe;
+               c_genv; c_env }, _ ->
+     apply_closure loc c_genv c_env fe f_args f_body v_list
   | _ ->
-     return (Value(fv))
+     (* typing error *)
+     error { kind = Etype; loc = loc }
 
+and apply_op loc op v v_list =
+  let+ v = v in
+  let* fv =
+    op v |> Opt.to_result ~none:{ kind = Etype; loc = loc } in
+  apply loc fv v_list
+                                            
 (* apply a closure to a list of arguments *)
-and apply_closure genv env ({ f_loc } as fe) f_args f_body v_list =
+and apply_closure loc genv env ({ f_kind; f_loc } as fe) f_args f_body v_list =
   match f_args, v_list with
-  | [], [] ->
-     result genv env f_body
+  | [], _ ->
+     (* check that the kind is combinatorial *)
+     let* r =
+       match f_kind with
+       | Knode | Khybrid ->
+          error { kind = Eshould_be_combinatorial; loc }
+       | Kstatic | Kfun ->
+          match v_list with
+          | [] -> result genv env f_body
+          | _ -> let*+ fv = result genv env f_body in
+                 apply loc fv v_list in
+     return r
   | arg :: f_args, v :: v_list ->
      let* env = Match.matching_arg_in f_loc env arg v in
-     apply_closure genv env fe f_args f_body v_list
-  | [], _ ->
-     let*+ fv = result genv env f_body in
-     apply f_loc fv v_list
+     apply_closure loc genv env fe f_args f_body v_list
   | _, [] ->
      return
        (Value(Vclosure({ c_funexp = { fe with f_args = f_args };
@@ -381,7 +388,7 @@ and eval_eq genv env { eq_desc; eq_write; eq_loc } =
        let* l_env = eval_eq genv env l_eq in
        eval_eq genv (Env.append l_env env) eq_let
   | EQder _ | EQinit _ | EQautomaton _ ->
-     error { kind = Eshould_be_a_function; loc = eq_loc }
+     error { kind = Eshould_be_combinatorial; loc = eq_loc }
   | EQpresent _  | EQemit _ | EQlocal _ ->
      error { kind = Enot_implemented; loc = eq_loc }
   
@@ -397,7 +404,7 @@ and block genv env { b_vars; b_body; b_loc } =
         | (None, None) -> return (S.add var_name acc)
         | _ ->
            (* type error *)
-           error { kind = Eshould_be_a_function; loc = b_loc })
+           error { kind = Eshould_be_combinatorial; loc = b_loc })
       S.empty b_vars in
   let* b_env = eval_eq genv env b_body in
   return (Env.append b_env env, b_env)

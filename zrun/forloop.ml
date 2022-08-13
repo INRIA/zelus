@@ -126,11 +126,12 @@ let forward_i_without_exit_condition:
 (* instantaneous for loops with an exit condition [cond] *)
 (* this condition must be combinational *)
 let forward_i_with_exit_condition loc n write f cond acc_env0 s =
-  let rec for_rec i acc_env s =
+  let rec for_rec : int -> (value ientry Env.t as 'a) -> state ->
+                    ('a list * 'a * state, 'e) Result.t =
+    fun i acc_env s ->
     if i = n then return ([], acc_env, s)
     else
-      let* f_env, acc_env, s = f i acc_env s in
-      let* v = cond f_env in
+      let* v = cond i acc_env in
       match v with
       | Vbot ->
          let f_env = bot_env write in return ([f_env], acc_env, s) 
@@ -139,10 +140,11 @@ let forward_i_with_exit_condition loc n write f cond acc_env0 s =
       | Value(v) ->
            let* b =
              Opt.to_result ~none:{ kind = Etype; loc = loc } (bool v) in
-           let* env_list, acc_env, s =
-             if b then for_rec (i+1) acc_env s
-             else return ([], acc_env, s) in
-           return (f_env :: env_list, acc_env, s) in
+           if b then
+             let* f_env, acc_env, s = f i acc_env s in
+             let* env_list, acc_env, s = for_rec (i+1) acc_env s in
+             return (f_env :: env_list, acc_env, s)
+           else return ([], acc_env, s) in
   for_rec 0 acc_env0 s
 
 (* main entry functions *)
@@ -190,5 +192,10 @@ let forward_i_without_exit_condition sbody env i_env acc_env0 n s =
   forward_i_without_exit_condition n (step sbody env i_env) acc_env0 s
 
 let forward_i_with_exit_condition loc write sbody cond env i_env acc_env0 n s =
+  let exit_condition i acc_env =
+    let env = Env.append (geti_env i_env i) (Env.append acc_env env) in
+    cond env in
   forward_i_with_exit_condition loc n write
-      (step sbody env i_env) cond acc_env0 s
+    (step sbody env i_env)
+    exit_condition
+    acc_env0 s

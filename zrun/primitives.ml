@@ -174,7 +174,7 @@ let rec slist v_list =
   | v :: v_list ->
      let v_r = slist v_list in
      sapp (fun x xs -> x :: xs) v v_r
-     
+
 let stuple v_list =
   let+ v_list = slist v_list in
   return (Value(Vstuple(v_list)))

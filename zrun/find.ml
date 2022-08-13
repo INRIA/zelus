@@ -23,7 +23,11 @@ let find_value_opt x env =
 let find_last_opt x env =
   let* { last } = Env.find_opt x env in
   last
-           
+
+let find_default_opt x env =
+  let* { default } = Env.find_opt x env in
+  default
+
 let find_gvalue_opt x env =
   try
     let { Global.info } = Genv.find x env in

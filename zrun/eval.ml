@@ -64,8 +64,8 @@ let eval genv n_steps main =
         Coiteration.run_fun
           no_location (Output.value_flush Format.std_formatter )
           n_steps fv [void]
-     | Vclosure c ->
-        let si = Coiteration.catch (Coiteration.instance c) in
+     | Vclosure({ c_funexp = { f_kind = Knode | Khybrid; f_loc } } as c) ->
+        let si = Coiteration.catch (Coiteration.instance f_loc c) in
         Coiteration.run_node
           no_location (Output.value_flush Format.std_formatter ) n_steps si void
      | _ ->
