@@ -1,4 +1,21 @@
 (* simple examples of for loops *)
+let node g x returns (y, z)
+    do y = x and z = x done
+
+let node main__0 () =
+  let m = g(1) in m
+    
+let node f x = x, x
+
+let node main_0 () =
+  let v = f 1 in
+  assert ((=) v (1, 1))
+
+let node main___0 () =
+  let v1 = g 1 in
+  let v2 = g v1 in
+  assert ((=) v2 ((1, 1),(1,1)))
+	    
 let node f1 x =
   let rec n = 0 -> pre n + 1 in
   [| x with n <- 3 |]
@@ -8,7 +25,9 @@ let node f x = foreach(4) do x done
 let node main0 () =
   let x = f 4 in
   let y = f1 x in
-  foreach(4) yi in y do yi done
+  let v = foreach(4) yi in y do yi done in
+  assert (v = [|3;4;4;4|])
+
       
 let node f2 x =
   let y1 = [| x with 0 <- 42 |] in
@@ -17,7 +36,8 @@ let node f2 x =
 
 let node main00 () =
   let x = f 4 in
-  f2 x
+  let v = f2 x in
+  assert (v = ([|42;4;4;4|], [|42;43;4;4|]))
     
 let node g x =
   forward(4) xi in x do 
@@ -33,9 +53,11 @@ let node gg x =
      done) + (0 fby o) in
   o
 
-let node main1 () = g [| 1; 2; 3; 4 |]
+let node main1 () =
+  let v = g [| 1; 2; 3; 4 |] in assert (v = 10)
 
-let node main11 () = gg [| 1; 2; 3; 4 |]
+let node main1_1 () =
+  let v = gg [| 1; 2; 3; 4 |] in assert (v = 10)
 
 (* scalar product *)
 let node scalar0 (x, y) =
@@ -51,7 +73,7 @@ let node scalar1 (x, y) =
 let node main2 () =
   let i1 = foreach(4) do 2 done in
   let i2 = foreach(4) do 2 done in
-  assert (scalar0(i1, i3) = scalar1(i1, i2))
+  assert (scalar0(i1, i2) = scalar1(i1, i2))
 
 let node plus1 x =
   foreach(4) xi in x do xi + 1 done
@@ -71,7 +93,8 @@ let node copy x =
   done
   
 let node main3 () =
-  plus (plus1 (f 0), plus1 (f 1))
+  let v = plus11 (plus (plus1 (f 0), plus1 (f 1))) in
+  assert (v = [|3;3;3;3|])
 
 let node main4 () =
   plus1 (copy (f 1))
@@ -86,6 +109,10 @@ let node main6 () =
 (* scalar product using index x.(i) instead of xi (where xi in x) *)
 let node scalar2 (x, y) =
   forward(4) i in 0 to 3 returns (m init 0)
+    do m = last m + x.(i) * y.(i) done
+
+let node scalar2_eq (x, y) returns (m)
+  forward(4) i in 0 to 3, m init 0
     do m = last m + x.(i) * y.(i) done
 
  
@@ -149,10 +176,17 @@ let node main13 () =
   assert (v = fast_g 3)
     
 (* transposition *)
-let node transpose_3_4(m) =
+let node transpose_n_m(n)(m)(a) =
+  foreach(m) i in 0 to m-1 do
+    foreach(n) j in 0 to n-1 do
+      a.(j).(i)
+    done
+    done
+
+let node transpose_3_4(a) =
   foreach(4) i in 0 to 3 do
     foreach(3) j in 0 to 2 do
-      m.(j).(i)
+      a.(j).(i)
     done
     done
 
@@ -164,12 +198,13 @@ let node transpose_4_3(m) =
   done
 
 let node main14 () =
-  let m = [| [| 1; 2; 3; 4 |];
+  let a = [| [| 1; 2; 3; 4 |];
 	     [| 5; 6; 7; 8 |];
 	     [| 9; 10; 11; 12 |] |] in
-  let m1 = transpose_3_4 m in
-  let m2 = transpose_4_3 m1 in
-  assert (m = m2)
+  let a1 = transpose_3_4 a in
+  let a2 = transpose_4_3 a1 in
+  let a3 = run (transpose_n_m(3)(4))(a) in
+  assert (a = a2 && a1 = a3)
     
 (* matrix product *)
 let node prod_matrix0(a_3_4, b_4_5) = r where rec
