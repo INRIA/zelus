@@ -178,7 +178,7 @@ let rec slist v_list =
 let stuple v_list =
   let+ v_list = slist v_list in
   return (Value(Vstuple(v_list)))
-  
+
 let constr1 f v_list =
   let+ v_list = slist v_list in
   return (Value(Vconstr1(f, v_list)))
@@ -194,6 +194,7 @@ let array v_list =
 let lift f v =
   match v with | Vbot -> Vbot | Vnil -> Vnil | Value(v) -> Value(f v)
                                                          
+(* if one component contains bot or nil, returns bot or nil *)
 let atomic v =
   let+ v = v in
   match v with

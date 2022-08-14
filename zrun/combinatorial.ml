@@ -294,7 +294,8 @@ and apply loc fv v_list =
      error { kind = Etype; loc = loc }
 
 and apply_op loc op v v_list =
-  let+ v = v in
+  let*+ v =
+    Primitives.atomic v |> Opt.to_result ~none:{ kind = Etype; loc } in
   let* fv =
     op v |> Opt.to_result ~none:{ kind = Etype; loc = loc } in
   apply loc fv v_list
