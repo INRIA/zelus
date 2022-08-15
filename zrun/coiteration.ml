@@ -1008,25 +1008,32 @@ and run loc { init; step } v =
   return (v, { init; step })
 
 and runstep loc s { c_funexp = { f_args; f_body }; c_genv; c_env } v =
-  let matching a_list s_list v_list =
+  let match_in_list a_list s_list v_list =
     let match_in acc vdec s v =
       let* acc, s = svardec c_genv c_env acc vdec s v in
       let* s = set_vardec acc vdec s in
       return (acc, s) in
-    mapfold3 { kind = Estate; loc = loc }
+    mapfold3 { kind = Epattern_matching_failure; loc }
       match_in Env.empty a_list s_list v_list in
 
-  let v_list = Primitives.list_of v in
   match f_args, s with
   | [arg_list], Stuple (s_body :: s_arg_list) ->
+     let* v_list =
+       (* special case for a single argument *)
+       match arg_list with
+       | [_] -> let* v =
+                  Primitives.atomic v |>
+                    Opt.to_result ~none:{ kind = Etype; loc } in
+                return [v]
+       | _ -> return (Primitives.list_of v) in
      let* env_arg_list, s_arg_list =
-       matching arg_list s_arg_list v_list in
+       match_in_list arg_list s_arg_list v_list in
      let env = Env.append env_arg_list c_env in
      let* r, s_body = sresult c_genv env f_body s_body in
      return (r, Stuple (s_body :: s_arg_list))
   | _ ->
-     error { kind = Etype; loc = loc }
-  
+     error { kind = Etype; loc }
+
 and sexp_list loc genv env e_list s_list =
   slist loc genv env sexp e_list s_list
 
