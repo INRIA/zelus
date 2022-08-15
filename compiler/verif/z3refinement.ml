@@ -47,6 +47,11 @@ type variable =
 (*TODO :Change this to a Z3 vc_gen_expression type, then add stuff by AND-ing it on the head *)
 (*let z3env = ref []*)
 
+let debug message =
+  (* log debug message *)
+  if !ref_verbose then (Printf.printf "[DEBUG] : %s\n" message) 
+
+
 type env_structure =
 (*
       environment to hold
@@ -101,6 +106,37 @@ let function_space =
 (*Hash table to store functions given a function name*)
     let function_table : ((string, function_desc ) Hashtbl.t) =  (Hashtbl.create 1)
     in ref function_table
+
+let type_space =
+    let type_table : ((string, custom_t) Hashtbl.t) = (Hashtbl.create 1)
+    in ref type_table
+
+let erefinement2customt erefinement ctx env typenv =
+  match erefinement.desc with
+  | Erefinement(t,e) -> (
+    debug(Printf.sprintf "Etypevar e2t");
+    match (snd t).desc with
+    | Etypevar(basetype) -> (
+      debug(Printf.sprintf "Etypevar e2t");
+      let t_new = { base_type = basetype;
+      reference_variable = fst t;
+      phi = e; } in  
+      t_new
+    )
+    | _ -> { base_type = "";
+             reference_variable = "";
+             phi = e; } 
+  )
+
+
+let add_type name t_add =
+(*
+    name  -> type name
+    t_add -> Erefinement object
+
+    Adds a new type to type space
+*)
+  Hashtbl.add (!type_space) name t_add 
 
 let add_function name f_add =
 (*
@@ -258,9 +294,6 @@ let rec prove_satisfiability op : bool =
 	evaluate var ty (arg) (arg2)
 *)
 exception TestFailedException of string
-let debug message =
-  (* log debug message *)
-  if !ref_verbose then (Printf.printf "[DEBUG] : %s\n" message) 
 
 let print_assignments m = 
 (*
@@ -1256,6 +1289,7 @@ and vc_gen_typ_exp_desc ctx env typenv t =
   | Erefinement(t, e) -> debug(Printf.sprintf "Erefinement\n");  
        let expr = (vc_gen_expression ctx env e typenv) in
        (debug(Printf.sprintf "Returning from e local: %s\n" (Expr.to_string expr));
+       (debug(Printf.sprintf "t.name %s" (fst t)));
        (* add_constraint env expr; *)
        z3_solve ctx env expr;
        )
@@ -1349,7 +1383,14 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
          (* z3_solve ctx env (vc_gen_expression ctx env e1 None); *)
          (* modified to be: calling z3_solve in vc_gen_typ_exp_desc 
           instead of in here *)
-         vc_gen_typ_exp_desc ctx env None ty_refine;
+          (* add to Hash Table*)
+          (* vc_gen_substitute *)
+          let custom_type = erefinement2customt ty_refine ctx env None in
+          add_type n1 custom_type; 
+          let expr_subs = vc_gen_substitute n1 env ctx (Some(!type_space)) in
+          (* z3_solve *)
+          (* z3_solve ctx env expr_subs; *)
+         (* vc_gen_typ_exp_desc ctx env None ty_refine; *)
          print_env env
 
       | Erefinementfundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;
