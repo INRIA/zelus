@@ -1,1 +1,1 @@
-let x : {v : float | v >= 0} = -1.2
+let node main () = let (x: {v:float | v >= 0}) = -1.2 in x

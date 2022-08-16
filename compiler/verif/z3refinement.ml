@@ -524,7 +524,7 @@ let rec vc_gen_equation ctx env typenv eq =
        | Evarpat(n) -> debug (Printf.sprintf "Evarpat: %s\n" n.source); create_z3_var ctx env n.source
        | Etypeconstraintpat(p1,t) -> let var_name = 
           (match p1.p_desc with 
-          | Evarpat(n1) -> debug (Printf.sprintf "Etypeconstraintpat: %s\n" n1.source); n1.source
+          | Evarpat(n1) -> debug (Printf.sprintf "Etypeconstraintpat: %s\n" n1.source); add_constraint env (Boolean.mk_eq ctx body_exp (create_z3_var ctx env (n1.source))); n1.source
           | _ -> debug (Printf.sprintf "Wrong pattern for variable in Etypeconstraintpat\n"); "undefined var_name") in
           let (base_type_1, ref_var) = match t.desc with
             | Erefinement(lbl, ref_exp) -> debug (Printf.sprintf "Basetype: %s\n" (match (snd(lbl)).desc with
@@ -544,7 +544,9 @@ let rec vc_gen_equation ctx env typenv eq =
                       | _ -> "basetype_not_right"); reference_variable = fst(lbl); phi = ref_exp};
                     let add_constraint_expr = (vc_gen_substitute (var_name) env ctx (Some(tbl))) in
                     debug (Printf.sprintf "add_constraint exp: %s\n" (Expr.to_string add_constraint_expr));
-                    add_constraint env add_constraint_expr;
+                    (* cannot add refinment expression directly to environment *)
+                    z3_solve ctx env add_constraint_expr;
+                    (* add_constraint env add_constraint_expr; *)
                 | None -> ());
               ((match (snd(lbl)).desc with
                   | Etypeconstr(long_name, _) -> (match long_name with
