@@ -1,7 +1,7 @@
 (* simulation (discrete) function *)
 let main =
   let open Ztypes in
-  let Node { alloc = alloc; step = step; reset = reset } = Sandbox.main in
+  let Node { alloc = alloc; step = step; reset = reset } = Subs.main in
   let mem = alloc () in
   reset mem;
   (fun x -> step mem x);;

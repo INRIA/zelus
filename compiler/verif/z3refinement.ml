@@ -114,21 +114,19 @@ let type_space =
 let erefinement2customt erefinement ctx env typenv =
   match erefinement.desc with
   | Erefinement(t,e) -> (
-    debug(Printf.sprintf "Etypevar e2t");
+    debug(Printf.sprintf "Erefinement e2t");
     match (snd t).desc with
-    | Etypevar(basetype) -> (
-      debug(Printf.sprintf "Etypevar e2t");
-      let t_new = { base_type = basetype;
-      reference_variable = fst t;
-      phi = e; } in  
-      t_new
-    )
-    | _ -> { base_type = "";
+    | Etypeconstr(name, t_exp_list) -> 
+      (
+        match name with
+          | Lident.Name(basetype) -> debug(basetype); debug(fst t); { base_type = basetype;
+             reference_variable = fst t;
+             phi = e; }
+      ) 
+    | _ -> debug(Printf.sprintf "Unknown e2t"); { base_type = "";
              reference_variable = "";
              phi = e; } 
   )
-
-
 let add_type name t_add =
 (*
     name  -> type name
@@ -895,7 +893,9 @@ and vc_gen_substitute (var : string) env ctx typenv : expr =
       let sub_phi = (Hashtbl.find tbl var).phi in
       (* debug (Printf.sprintf "check 1\n"); *)
       let sub_reference_variable = (Hashtbl.find tbl var).reference_variable in
+      debug(sub_reference_variable);
       let sub_basetype = (Hashtbl.find tbl var).base_type in
+      debug(sub_basetype);
       let arg2 = (create_z3_var_typed ctx env sub_reference_variable sub_basetype) in
       let arg3 = (create_z3_var_typed ctx env var sub_basetype) in
       let arg1 = (vc_gen_expression ctx env sub_phi typenv) in
@@ -905,7 +905,8 @@ and vc_gen_substitute (var : string) env ctx typenv : expr =
       debug(Printf.sprintf "Arg1:%s \n" (Expr.to_string arg1));
       debug(Printf.sprintf "Arg2:%s \n" (Expr.to_string arg2));
       debug(Printf.sprintf "Arg3:%s \n" (Expr.to_string arg3));
-      debug(Printf.sprintf "After sub:%s \n" (Expr.to_string (Expr.substitute_one arg1 (arg2) (arg3))));
+      let after_subs = Expr.substitute_one arg1 arg2 arg3 in
+      debug(Printf.sprintf "After sub:%s \n" (Expr.to_string after_subs));
       (* let a1 = Expr.mk_const ctx (Symbol.mk_string ctx "z") (Integer.mk_sort ctx) in
       let a2 = Expr.mk_const ctx (Symbol.mk_string ctx "z") (Integer.mk_sort ctx) in
       let a3 = Expr.mk_const ctx (Symbol.mk_string ctx "y") (Integer.mk_sort ctx) in
@@ -913,7 +914,7 @@ and vc_gen_substitute (var : string) env ctx typenv : expr =
       debug(Printf.sprintf "A2:%s \n" (Expr.to_string a2));
       debug(Printf.sprintf "A3:%s \n" (Expr.to_string a3));
       debug(Printf.sprintf "After sub test:%s \n" (Expr.to_string (Expr.substitute_one a1 (a2) (a3)))); *)
-      Expr.substitute_one arg1 arg2 arg3
+      after_subs
   | None -> debug (Printf.sprintf "Something is wrong with typenv\n"); Integer.mk_numeral_s ctx "42"
 
 and vc_gen_expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
@@ -1386,10 +1387,11 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
           (* add to Hash Table*)
           (* vc_gen_substitute *)
           let custom_type = erefinement2customt ty_refine ctx env None in
-          add_type n1 custom_type; 
+          add_type n1 custom_type;
+          print_env env; 
           let expr_subs = vc_gen_substitute n1 env ctx (Some(!type_space)) in
           (* z3_solve *)
-          (* z3_solve ctx env expr_subs; *)
+          z3_solve ctx env expr_subs;
          (* vc_gen_typ_exp_desc ctx env None ty_refine; *)
          print_env env
 
