@@ -23,7 +23,7 @@
 (* higher order functions; the implem. was done in 2021 and updated in 2022 *)
 (* update in 2022 with array constructs inspired by those of SISAL; yet *)
 (* they can be combined with synchronous stream operations. *)
-.open Smisc
+open Smisc
 open Error
 open Monad
 open Opt                                                            
