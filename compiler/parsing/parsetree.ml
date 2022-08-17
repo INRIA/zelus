@@ -169,7 +169,8 @@ and 'body forloop =
 
 (* result expression of a loop *)
 and for_exp =
-  | Forexp : exp -> for_exp (* [for[each|ward] ... do e done] *)
+  | Forexp : { exp : exp; default : exp option } -> for_exp
+  (* [for[each|ward] ... do e done] *)
   | Forreturns :
       { returns : for_vardec_desc localized list; body : (exp, eq) block } -> for_exp
   (* [for[each|ward] ... returns (...) local ... do eq initialize ... done] *) 

@@ -683,12 +683,12 @@ colon_type_expression:
 ;
 
 init_expression:
-  | INIT e = simple_expression
+  | INIT e = expression
     { e }
 ;
 
 default_expression:
-  | DEFAULT e = simple_expression
+  | DEFAULT e = expression
     { e }
 ;
 
@@ -964,12 +964,14 @@ expression_desc:
 /* Loops for equations */
 %inline foreach_loop_exp:
   | s = simple_expression DO e = expression
-    { (s, [], Forexp(e)) }
+    d_opt = optional(default_expression)
+    { (s, [], Forexp { exp = e; default = d_opt }) }
   | s = simple_expression RETURNS p = for_return
     b = block(equation_empty_and_list)
     { (s, [], Forreturns { returns = p; body = b }) }
   | s = simple_expression li = index_list DO e = expression
-    { (s, li, Forexp(e)) }
+    d_opt = optional(default_expression)
+    { (s, li, Forexp { exp = e; default = d_opt }) }
   | s = simple_expression li = index_list RETURNS p = for_return
     b = block(equation_empty_and_list)
     { (s, li, Forreturns { returns = p; body = b }) }
@@ -979,14 +981,16 @@ expression_desc:
 %inline forward_loop_exp:
   | s = simple_expression
     o = opt_loop_condition DO e = expression 
-    { (s, [], o, Forexp(e)) }
+    d_opt = optional(default_expression)
+    { (s, [], o, Forexp { exp = e; default = d_opt }) }
   | s = simple_expression
     RETURNS p = for_return
     o = opt_loop_condition b = block(equation_empty_and_list)
     { (s, [], o, Forreturns { returns = p; body = b }) }
   | s = simple_expression li = index_list o = opt_loop_condition
     DO e = expression 
-    { (s, li, o, Forexp(e)) }
+    d_opt = optional(default_expression)
+    { (s, li, o, Forexp { exp = e; default = d_opt }) }
   | s = simple_expression li = index_list
     RETURNS p = for_return
     o = opt_loop_condition

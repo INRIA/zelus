@@ -259,7 +259,9 @@ and expression ({ e_desc } as e) =
        let for_index = for_index_w for_index in
        let for_body =
          match for_body with
-         | Forexp(e) -> Forexp(expression e)
+         | Forexp { exp; default } ->
+            Forexp { exp = expression exp;
+                     default = Util.optional_map expression default }
          | Forreturns({ returns; body } as f_returns) ->
             let returns, _ = Util.mapfold for_vardec S.empty returns in
             let body, _, _ = block body in

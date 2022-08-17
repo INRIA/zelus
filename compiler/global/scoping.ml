@@ -730,8 +730,10 @@ and forloop_exp env { for_size; for_kind; for_index; for_body } =
     trans_for_index env for_index in
   let env = Env.append i_env env in
   let env_body, for_body = match for_body with
-    | Forexp(e) ->
-       env, Zelus.Forexp(expression env e)
+    | Forexp { exp; default } ->
+       let exp = expression env exp in
+       let default = Util.optional_map (expression env) default in
+       env, Zelus.Forexp { exp = exp; default = default }
     | Forreturns { returns; body } ->
        let returns, env_v_list =
          Util.mapfold (for_vardec env) Env.empty returns in

@@ -500,7 +500,8 @@ and index_list ff l =
 
 and for_exp ff r =
   match r with
-  | Forexp(e) -> fprintf ff "@[ do %a done@]" expression e
+  | Forexp { exp; default = d} ->
+     fprintf ff "@[ do %a%a done@]" expression exp (default expression) d
   | Forreturns { returns; body } ->
      fprintf ff "@[<hov 2> returns@ %a@ %a@]"
        for_returns returns
