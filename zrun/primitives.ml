@@ -195,6 +195,24 @@ let lift f v =
   match v with | Vbot -> Vbot | Vnil -> Vnil | Value(v) -> Value(f v)
                                                          
 (* if one component contains bot or nil, returns bot or nil *)
+(*
+let aatomic v =
+  let (let+) x f =
+  match x with | Vbot -> Vbot | Vnil -> Vnil | Value(v) -> f v in
+
+  let rec slist v_list =
+  match v_list with
+  | [] -> Value []
+  | v :: v_list ->
+     let v_r = slist v_list in
+     sapp (fun x xs -> x :: xs) v v_r in
+  let+ v = v in
+  match v with
+  | Vtuple(v_list) ->
+     let+ v_list = slist v_list in Value(Vstuple(v_list))
+  | _ -> Value(v)
+ *)
+
 let atomic v =
   let+ v = v in
   match v with
