@@ -21,7 +21,9 @@
 (* Zrun was programmed right after the COVID black out, in June 2020 *)
 (* This new version includes Zelus constructs: ODEs and zero-crossing; *)
 (* higher order functions; the implem. was done in 2021 and updated in 2022 *)
-open Smisc
+(* update in 2022 with array constructs inspired by those of SISAL; yet *)
+(* they can be combined with synchronous stream operations. *)
+.open Smisc
 open Error
 open Monad
 open Opt                                                            
