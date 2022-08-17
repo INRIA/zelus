@@ -37,9 +37,6 @@ open Sdebug
    
 (* evaluation functions *)
 
-(* duplicate a value into a list *)
-let rec list_of n v = if n = 0 then [] else v :: (list_of (n-1) v)
-   
 (* [reset init step genv env body s r] resets [step genv env body] *)
 (* when [r] is true *)
 let reset init step genv env body s r =
@@ -257,12 +254,8 @@ let rec iexp genv env { e_desc; e_loc  } =
   | Eforloop({ for_size; for_kind; for_index; for_body }) ->
      (* [for_size] must be a static expression *)
      let* v = Combinatorial.exp genv env for_size in          
-     let* v = Primitives.pvalue v |>
-                Opt.to_result ~none: { kind = Etype; loc = e_loc} in
      (* and an integer value *)
-     let* v =
-       Primitives.int v |>
-         Opt.to_result ~none: { kind = Etype; loc = e_loc} in
+     let* v = Combinatorial.int e_loc v in
      let* si_list = map (ifor_index genv env) for_index in
      let* s_body = ifor_exp genv env for_body in
      (* the initial state is [s_1;...;s_{v-1}] for a parallel for loop; *)
@@ -270,9 +263,13 @@ let rec iexp genv env { e_desc; e_loc  } =
      let* s_kind, s_body = ifor_kind genv env for_kind v s_body in
      return (Stuple (Sval(Value(Vint(v))) :: s_kind :: s_body :: si_list))
 
+and iexp_opt genv env e_opt =
+  match e_opt with | None -> return Sempty | Some(e) -> iexp genv env e
+                              
 and ifor_kind genv env for_kind v s_body =
   match for_kind with
-  | Kforeach -> return (Sempty, Slist(list_of v s_body))
+  | Kforeach -> (* the initial state is a list of states *)
+     return (Sempty, Slist(Util.list_of v s_body))
   | Kforward(e_opt) ->
      match e_opt with
      | None -> return (Sempty, s_body)
@@ -299,18 +296,20 @@ and ifor_index genv env { desc; loc } =
      let* s2 = iexp genv env e_right in
      return (Stuple [s1; s2])
 
-and ifor_out genv env { desc = { for_name; for_init; for_default; for_out_name } } =
-  let* s_init =
-    match for_init with | None -> return Sempty | Some(e) -> iexp genv env e in
-  let* s_default =
-    match for_default with | None -> return Sempty | Some(e) -> iexp genv env e in
+and ifor_out genv env
+  { desc = { for_name; for_init; for_default; for_out_name } } =
+  let* s_init = iexp_opt genv env for_init in
+  let* s_default = iexp_opt genv env for_default in
   return (Stuple [s_init; s_default])
 
 and ifor_vardec genv env { desc = { for_vardec } } = ivardec genv env for_vardec
                                                    
 and ifor_exp genv env r =
   match r with
-  | Forexp(e) -> iexp genv env e
+  | Forexp { exp; default } ->
+     let* s = iexp genv env exp in
+     let* s_default = iexp_opt genv env default in
+     return (Stuple [s; s_default])
   | Forreturns { returns; body } ->
      let* s_v_list = map (ifor_vardec genv env) returns in
      let* s_b = iblock genv env body in
@@ -323,9 +322,7 @@ and ieq genv env { eq_desc; eq_loc  } =
      (* [x becomes an input; x' an output] *)
      (* they are stored as a state [x';x] *)
      let* se = iexp genv env e in
-     let* s0 =
-       match e0_opt with
-       | None -> return Sempty | Some(e0) -> iexp genv env e0 in
+     let* s0 = iexp_opt genv env e0_opt in
      let* sp_h_list =
        map (ipresent_handler iscondpat iexp genv env) p_h_list in
      return
@@ -335,11 +332,8 @@ and ieq genv env { eq_desc; eq_loc  } =
   | EQinit(_, e) ->
      let* se = iexp genv env e in
      return (Stuple [Sopt(None); se])
-  | EQemit(x, e_opt) ->
-     let* s =
-       match e_opt with
-       | None -> return Sempty | Some(e) -> iexp genv env e in
-     return s
+  | EQemit(_, e_opt) ->
+     iexp_opt genv env e_opt
   | EQif(e, eq1, eq2) ->
      let* se = iexp genv env e in
      let* seq1 = ieq genv env eq1 in
@@ -512,41 +506,6 @@ let matching_out env { b_vars; b_loc } =
   | _ -> (* return a non strict tuple *)
      return (Value(Vtuple(v_list)))
 
-(* given [x] and [env_list], returns array [v] st [v.(i) = env_list.(i).(x)] *)
-(* when [missing <> 0] complete with a default element *)
-let array_of missing loc (var_name, var_init, var_default) acc_env env_list =
-  let* v_list =
-    map
-      (fun env ->
-        find_value_opt var_name env |>
-          Opt.to_result ~none:{ kind = Eunbound_ident(var_name); loc })
-      env_list in
-  (* if one is bot or nil, the result is bot or nil *)
-  let v_list = Primitives.slist v_list in
-  if missing = 0 then
-    return (Primitives.lift (fun v -> Varray(Array.of_list v)) v_list)
-  else
-    let* default =
-      match var_init, var_default with
-      | None, None ->
-         let size = List.length env_list + missing in
-         error { kind = Earray_cannot_be_filled { name = var_name;
-                                                  size = size; missing };
-                 loc }
-      | _, Some _ ->
-         find_default_opt var_name acc_env |>
-           Opt.to_result ~none:{ kind = Eunbound_ident(var_name); loc }
-      | Some _, None ->
-         find_last_opt var_name acc_env |>
-           Opt.to_result ~none:{ kind = Eunbound_ident(var_name); loc } in
-    match default with
-    | Vbot -> return Vbot
-    | Vnil -> return Vnil
-    | Value(d) ->
-       let d_list = list_of missing d in
-       return (Primitives.lift
-                 (fun v -> Varray(Array.of_list (v @ d_list))) v_list)
-  
 (* Return a value for a for loop *)
 (* [env_list] is the list of environments, each produced by an iteration *)
 (* [acc_env] is the final environment for the accumulated variables *)
@@ -565,7 +524,7 @@ let for_matching_out missing env_list env_v acc_env returns =
            find_last_opt var_name acc_env |>
              Opt.to_result ~none:{ kind = Eunbound_ident(var_name); loc }
         | _ ->
-           array_of missing loc
+           Forloop.array_of missing loc
              (var_name, var_init, var_default) acc_env env_list)
       returns in
   match v_list with
@@ -593,7 +552,7 @@ let for_env_out missing env_list acc_env loc for_out =
              Opt.to_result ~none:{ kind = Eunbound_last_ident(for_name); loc } in
          return (Env.add for_name { cur = v; last = None; default = None } acc)
       | _, _, Some(x) ->
-         let* v = array_of missing loc
+         let* v = Forloop.array_of missing loc
                     (for_name, for_init, for_default) acc_env env_list in
          return (Env.add x { cur = v; last = None; default = None } acc))
     Env.empty for_out
@@ -829,14 +788,14 @@ let rec sexp genv env { e_desc; e_loc } s =
   | Eforloop({ for_kind; for_index; for_body }),
     Stuple (((Sval(Value(Vint(for_size)))) as sv) ::
               s_kind :: s_for_body :: si_list) ->
-     (* computes a local environment for variables introduced *)
+     (* computes a local environment for variables names introduced *)
      (* in the index list *)
      let* i_env, si_list =
        mapfold2 { kind = Estate; loc = e_loc }
          (sfor_index for_size genv env) Env.empty for_index si_list in
      let* v, s_kind, s_for_body =
        match for_body, s_for_body with
-       | Forexp(e), _ ->
+       | Forexp { exp = e; default = d_opt}, Stuple [s_for_body; s_default] ->
           let* ve, s_kind, s_for_body =
             match for_kind, s_kind, s_for_body with
             | Kforeach, Sempty, Slist(s_list) ->
@@ -847,12 +806,25 @@ let rec sexp genv env { e_desc; e_loc } s =
                return (ve, s_kind, Slist(s_list))
             | Kforward(None), Sempty, _ ->
                (* hyperserial loop; the transition function is iterated *)
-               (* on the same state; the final state is discarded. *)
+               (* on the same state *)
+               let* default, s_default =
+                 match d_opt with
+                 | None ->
+                    (* An error is raised if there is no iteration *)
+                    (* and no default value is given *)
+                    if for_size <= 0 then
+                      error { kind = Eloop_no_iteration; loc = e_loc }
+                    else
+                      (* the default value is [nil] *)
+                      return (Vnil, s_default)
+                 | Some(e) ->
+                    let* v, s_default = sexp genv env e s_default in
+                    return (v, s_default) in
+               (* the final state is discarded *)
                let* ve, _ =
-                 (* the default value is [nil] *)
                  Forloop.forward (fun env s -> sexp genv env e s)
-                   env i_env for_size Vnil s_for_body in
-               return (ve, s_kind, s_for_body)
+                   env i_env for_size default s_for_body in
+               return (ve, s_kind, s_for_body) 
             | _ -> error { kind = Estate; loc = e_loc } in
           return (ve, s_kind, s_for_body)
        | Forreturns { returns; body }, Stuple (s_for_body :: sr_list) ->
@@ -899,13 +871,18 @@ let rec sexp genv env { e_desc; e_loc } s =
                let missing = for_size - List.length env_list in
                return (missing, env_list, acc_env, s_kind, s_for_body)
             | _ -> error { kind = Estate; loc = e_loc } in
-          let* v =
-            for_matching_out missing env_list env_v acc_env returns in
+          (* return the result of the for loop *)
+          let* v = for_matching_out missing env_list env_v acc_env returns in
           return (v, s_kind, Stuple (s_for_body :: sr_list))
        | _ -> error { kind = Estate; loc = e_loc } in
      return (v, Stuple (sv :: s_kind :: s_for_body :: si_list))
   | _ -> error { kind = Estate; loc = e_loc }
 
+and sexp_opt genv env e_opt s =
+  match e_opt with
+  | None -> return (None, s)
+  | Some(e) -> let* v, s = sexp genv env e s in return (Some(v), s)
+                                              
 (* given a var declaration [[|... x [init e][default e']...|]
  *- add an entry into [env_acc] if x is an accumulated value; [env_array]
  *- otherwise *)
@@ -926,17 +903,11 @@ and sforvardec genv env (array_env, acc_env) { desc = { for_vardec } } s v =
 (* [xi = { cur = bot; last = v; default = d }] when [xi init v default d][out x] *)
 (* [xi = { cur = bot; last = None; default = None }] when [xi out x] *)
 and sfor_out genv env acc_env
-  { desc = { for_name; for_init; for_default; for_out_name }; loc } s =
+  { desc = { for_name; for_init; for_default }; loc } s =
   match s with
   | Stuple [s_init; s_default] ->
-     let* last, s_init =
-       match for_init with
-       | None -> return (None, s_init)
-       | Some(e) -> let* v, s = sexp genv env e s_init in return (Some(v), s) in
-     let* default, s_default =
-       match for_init with
-       | None -> return (None, s_default)
-       | Some(e) -> let* v, s = sexp genv env e s_default in return (Some(v), s) in
+     let* last, s_init = sexp_opt genv env for_init s_init in
+     let* default, s_default = sexp_opt genv env for_default s_default in
      return
        (Env.add for_name { cur = Vbot; last; default } acc_env,
         Stuple [s_init; s_default])
