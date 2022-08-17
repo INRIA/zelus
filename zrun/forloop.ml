@@ -1,9 +1,8 @@
-(***********************************************************************)
+(* *********************************************************************)
 (*                                                                     *)
+(*                        The ZRun Interpreter                         *)
 (*                                                                     *)
-(*          Zelus, a synchronous language for hybrid systems           *)
-(*                                                                     *)
-(*  (c) 2022 Inria Paris (see the AUTHORS file)                        *)
+(*                             Marc Pouzet                             *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -12,7 +11,7 @@
 (*                                                                     *)
 (* *********************************************************************)
 
-(* The different form of step functions for for loops *)
+(* The evaluation functions for for loops. *)
 
 open Error
 open Monad
@@ -73,6 +72,41 @@ let x_to_last_x local_env acc_env =
     acc_env in
   Sdebug.print_ienv "x_to_last_x (after): acc_env" acc_env; acc_env
 
+(* given [x] and [env_list], returns array [v] st [v.(i) = env_list.(i).(x)] *)
+(* when [missing <> 0] complete with a default element *)
+let array_of missing loc (var_name, var_init, var_default) acc_env env_list =
+  let* v_list =
+    map
+      (fun env ->
+        find_value_opt var_name env |>
+          Opt.to_result ~none:{ kind = Eunbound_ident(var_name); loc })
+      env_list in
+  (* if one is bot or nil, the result is bot or nil *)
+  let v_list = Primitives.slist v_list in
+  if missing = 0 then
+    return (Primitives.lift (fun v -> Varray(Array.of_list v)) v_list)
+  else
+    let* default =
+      match var_init, var_default with
+      | None, None ->
+         let size = List.length env_list + missing in
+         error { kind = Earray_cannot_be_filled { name = var_name;
+                                                  size = size; missing };
+                 loc }
+      | _, Some _ ->
+         find_default_opt var_name acc_env |>
+           Opt.to_result ~none:{ kind = Eunbound_ident(var_name); loc }
+      | Some _, None ->
+         find_last_opt var_name acc_env |>
+           Opt.to_result ~none:{ kind = Eunbound_ident(var_name); loc } in
+    match default with
+    | Vbot -> return Vbot
+    | Vnil -> return Vnil
+    | Value(d) ->
+       let d_list = Util.list_of missing d in
+       return (Primitives.lift
+                 (fun v -> Varray(Array.of_list (v @ d_list))) v_list)
+    
 (* loop iteration *)
 (* parallel for loops; take a list of states *)
 let foreach_i : (int -> 's -> ('r * 's, 'error) Result.t) -> 's list
