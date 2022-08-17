@@ -513,7 +513,7 @@ let matching_out env { b_vars; b_loc } =
 (* [[|x init v|] : returns an array of the accumulated values of [x] *)
 (* [|x|] : returns an array such that [x.(i) = env_list.(i).(x)] *)
 (* [non_filled] is the number of iterations not done in case of a forward loop *)
-let for_matching_out missing env_list env_v acc_env returns =
+let for_matching_out missing env_list acc_env returns =
   let* v_list =
     map
       (fun { desc = { for_array; for_vardec = { var_name; var_init; var_default } };
@@ -833,10 +833,9 @@ let rec sexp genv env { e_desc; e_loc } s =
           (* are accumulated values such that *)
           (* [acc_env(last x)(i) = acc_env(x)(i-1)] where [i] is the *)
           (* iteration index. *)
-           let* (env_v, acc_env), sr_list =
+           let* acc_env, sr_list =
             mapfold3 { kind = Estate; loc = e_loc }
-              (sforvardec genv env)
-              (Env.empty, Env.empty) returns sr_list
+              (sfor_vardec genv env) Env.empty returns sr_list
               (bot_list returns) in
            (* 2/ runs the body *)
           let* missing, env_list, acc_env, s_kind, s_for_body =
@@ -872,7 +871,7 @@ let rec sexp genv env { e_desc; e_loc } s =
                return (missing, env_list, acc_env, s_kind, s_for_body)
             | _ -> error { kind = Estate; loc = e_loc } in
           (* return the result of the for loop *)
-          let* v = for_matching_out missing env_list env_v acc_env returns in
+          let* v = for_matching_out missing env_list acc_env returns in
           return (v, s_kind, Stuple (s_for_body :: sr_list))
        | _ -> error { kind = Estate; loc = e_loc } in
      return (v, Stuple (sv :: s_kind :: s_for_body :: si_list))
@@ -883,6 +882,7 @@ and sexp_opt genv env e_opt s =
   | None -> return (None, s)
   | Some(e) -> let* v, s = sexp genv env e s in return (Some(v), s)
                                               
+(*
 (* given a var declaration [[|... x [init e][default e']...|]
  *- add an entry into [env_acc] if x is an accumulated value; [env_array]
  *- otherwise *)
@@ -897,7 +897,11 @@ and sfdec genv env (array_env, acc_env) ({ var_init } as var_dec) s v =
 
 and sforvardec genv env (array_env, acc_env) { desc = { for_vardec } } s v =
   sfdec genv env (array_env, acc_env) for_vardec s v
-  
+ *)
+                                              
+and sfor_vardec genv env acc_env { desc = { for_vardec } } s v =
+  svardec genv env acc_env for_vardec s v
+
 (* compute the initial value of accumulated variables *)
 (* [xi = { cur = bot; last = v; default = None }] when [xi init v][out x] *)
 (* [xi = { cur = bot; last = v; default = d }] when [xi init v default d][out x] *)
@@ -1311,12 +1315,7 @@ and svardec genv env acc
   { var_name; var_init; var_default; var_loc; var_is_last } s v =
   match s with
   | Stuple [s_init;s_default] ->
-     let* default, s_default =
-       match var_default, s_default with
-       | None, se -> return (None, se)
-       | Some(e), se ->
-          let* ve, se = sexp genv env e se in
-          return (Some(ve), se) in
+     let* default, s_default = sexp_opt genv env var_default s_default in
      let* last, s_init =
        match var_init, s_init with
        | None, se ->
