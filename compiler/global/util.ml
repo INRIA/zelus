@@ -61,4 +61,6 @@ let mapfold f acc l =
        y :: l, acc in
   maprec acc l
 
-         
+(* duplicate a value into a list *)
+let rec list_of n v = if n = 0 then [] else v :: (list_of (n-1) v)
+   
