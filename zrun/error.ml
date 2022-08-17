@@ -40,6 +40,8 @@ type kind =
   (* the array is of size [size] but accessed out-of-bound, at index > size *)
   | Eloop_index : { size : int; index : int } -> kind
   (* the loop has [size] iterations but the index is of a different size *)
+  | Eloop_no_iteration : kind
+  (* the loop should iterate at least once; or give a default value *)
   | Earray_cannot_be_filled : { name: Ident.t;
                                 size : int;
                                 missing : int } -> kind
@@ -117,6 +119,12 @@ let message loc kind =
      eprintf
        "@[%aZrun: the loop has %d iterations but the index is of lenfth %d.@.@]"
        output_location loc size index
+  | Eloop_no_iteration ->
+     eprintf
+       "@[%aZrun: the loop has no iteration. Either give a default value\
+        or ensure there is at least one iteration.@.@]"
+       output_location loc
+  (* the loop should iterate at least once; or give a default value *)
   | Earray_cannot_be_filled { name; size; missing } ->
      eprintf
      "@[%aZrun: the result should be an array of size %d but %d elements are\
