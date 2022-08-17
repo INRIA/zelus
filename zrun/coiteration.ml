@@ -261,7 +261,8 @@ let rec iexp genv env { e_desc; e_loc  } =
      (* the initial state is [s_1;...;s_{v-1}] for a parallel for loop; *)
      (* it is [s] for a forward loop *)
      let* s_kind, s_body = ifor_kind genv env for_kind v s_body in
-     return (Stuple (Sval(Value(Vint(v))) :: s_kind :: s_body :: si_list))
+     return
+       (Stuple (Sval(Value(Vint(v))) :: s_kind :: s_body :: si_list))
 
 and iexp_opt genv env e_opt =
   match e_opt with | None -> return Sempty | Some(e) -> iexp genv env e
@@ -306,10 +307,8 @@ and ifor_vardec genv env { desc = { for_vardec } } = ivardec genv env for_vardec
                                                    
 and ifor_exp genv env r =
   match r with
-  | Forexp { exp; default } ->
-     let* s = iexp genv env exp in
-     let* s_default = iexp_opt genv env default in
-     return (Stuple [s; s_default])
+  | Forexp { exp } ->
+     iexp genv env exp
   | Forreturns { returns; body } ->
      let* s_v_list = map (ifor_vardec genv env) returns in
      let* s_b = iblock genv env body in
@@ -795,7 +794,8 @@ let rec sexp genv env { e_desc; e_loc } s =
          (sfor_index for_size genv env) Env.empty for_index si_list in
      let* v, s_kind, s_for_body =
        match for_body, s_for_body with
-       | Forexp { exp = e; default = d_opt}, Stuple [s_for_body; s_default] ->
+       | Forexp { exp = e; default = d_opt}, _ ->
+          (* the default expression must be combinatorial. *)
           let* ve, s_kind, s_for_body =
             match for_kind, s_kind, s_for_body with
             | Kforeach, Sempty, Slist(s_list) ->
@@ -807,7 +807,7 @@ let rec sexp genv env { e_desc; e_loc } s =
             | Kforward(None), Sempty, _ ->
                (* hyperserial loop; the transition function is iterated *)
                (* on the same state *)
-               let* default, s_default =
+               let* default =
                  match d_opt with
                  | None ->
                     (* An error is raised if there is no iteration *)
@@ -816,10 +816,8 @@ let rec sexp genv env { e_desc; e_loc } s =
                       error { kind = Eloop_no_iteration; loc = e_loc }
                     else
                       (* the default value is [nil] *)
-                      return (Vnil, s_default)
-                 | Some(e) ->
-                    let* v, s_default = sexp genv env e s_default in
-                    return (v, s_default) in
+                      return Vnil 
+                 | Some(e) -> Combinatorial.exp genv env e in
                (* the final state is discarded *)
                let* ve, _ =
                  Forloop.forward (fun env s -> sexp genv env e s)
@@ -881,24 +879,7 @@ and sexp_opt genv env e_opt s =
   match e_opt with
   | None -> return (None, s)
   | Some(e) -> let* v, s = sexp genv env e s in return (Some(v), s)
-                                              
-(*
-(* given a var declaration [[|... x [init e][default e']...|]
- *- add an entry into [env_acc] if x is an accumulated value; [env_array]
- *- otherwise *)
-and sfdec genv env (array_env, acc_env) ({ var_init } as var_dec) s v =
-  match var_init with
-  | None ->
-     let* env_array, s = svardec genv env array_env var_dec s v in
-     return ((env_array, acc_env), s)
-  | Some _ ->
-     let* env_acc, s = svardec genv env acc_env var_dec s v in
-     return ((array_env, env_acc), s)
-
-and sforvardec genv env (array_env, acc_env) { desc = { for_vardec } } s v =
-  sfdec genv env (array_env, acc_env) for_vardec s v
- *)
-                                              
+                                                   
 and sfor_vardec genv env acc_env { desc = { for_vardec } } s v =
   svardec genv env acc_env for_vardec s v
 
