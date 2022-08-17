@@ -16,3 +16,4 @@ let node sum_from2(n1)(n2)(x) returns (o)
     
 let node main2 () =
   run (sum_from2(42)(43))(1)
+
