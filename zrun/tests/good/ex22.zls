@@ -75,6 +75,9 @@ let node main2 () =
   let i2 = foreach(4) do 2 done in
   assert (scalar0(i1, i2) = scalar1(i1, i2))
 
+let node main22 () =
+  foreach(4) do 2 done
+
 let node plus1 x =
   foreach(4) xi in x do xi + 1 done
 
