@@ -82,6 +82,7 @@ let verbose = ref false
 let vverbose = ref false
 (* added here *)
 let ref_verbose = ref false
+let verify = ref false
 let print_types = ref false
 let print_causality_types = ref false
 let print_initialization_types = ref false
