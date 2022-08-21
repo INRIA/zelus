@@ -16,6 +16,7 @@ open Z3.Arithmetic
 open Z3.Arithmetic.Integer
 open Z3.Arithmetic.Real
 open Z3.BitVector
+open Z3enums
 
 exception Z3FailedException of string
 
@@ -363,9 +364,21 @@ let print_function_temp n f =
       Printf.printf "Creation environment\n";
       print_env f.creation_env
   )
-    
 
-let z3_solve ctx env constraints = 
+let make_void ctx =
+  let void_sort = Sort.mk_uninterpreted_s ctx "NULL" in
+  Expr.mk_fresh_const ctx "NULL" void_sort
+
+let sort2type sort_enum =
+  match sort_enum with
+  |	BOOL_SORT -> "bool"
+  |	INT_SORT -> "int"
+  |	REAL_SORT -> "float"
+  |	FLOATING_POINT_SORT -> "float"
+  |	CHAR_SORT -> "char"
+  |	_ -> "NULL"
+
+let z3_proof ctx env vc constraints =
 (*
   ctx         -> z3 context
   env         -> environment (list of z3 vc_gen_expression)
@@ -383,11 +396,8 @@ let z3_solve ctx env constraints =
   debug (Printf.sprintf "--- Z3 SOLVE ---\n\n");
   try (
   let solver = (mk_solver ctx None) in
-  let c = Boolean.mk_not ctx (Boolean.mk_implies ctx 
-                                    (build_z3_premise ctx env)
-                                    (constraints)) in
-  (Printf.printf "Proving constraint: %s\n" (Expr.to_string c));
-  let s = (Solver.add solver [c]) in
+  (Printf.printf "Proving constraint: %s\n" (Expr.to_string vc));
+  let s = (Solver.add solver [vc]) in
   let q = check solver [] in
   (if q == SATISFIABLE then
     (Printf.printf "\027[31mCounterexample found:\n";
@@ -406,6 +416,49 @@ let z3_solve ctx env constraints =
   )
   with 
   | TestFailedException(msg) -> Printf.printf "%s" msg
+
+let z3_solve ctx env constraints = 
+(*
+  ctx         -> z3 context
+  env         -> environment (list of z3 vc_gen_expression)
+  constraints -> z3 constraints to solve
+
+  Attempts to prove that ! ( environement expreession -> constraints)
+
+  Raises an exception if proof fails or resumes the operations
+*)
+  let vc = Boolean.mk_not ctx (Boolean.mk_implies ctx 
+  (build_z3_premise ctx env)
+  (constraints)) in
+  z3_proof ctx env vc constraints
+
+
+let z3_solve_stream ctx env stream_c constraints =
+(*
+  ctx         -> z3 context
+  env         -> environment (list of z3 vc_gen_expression)
+  stream_c -> z3 constraints derived from stream
+  constraints -> stream type we want to prove
+
+  Attempts to prove that 
+  
+  ! ( (env::stream_c[0] -> refinement_expr ) and ( env::stream_c[1] -> refinment_expr))
+
+  Raises an exception if proof fails or resumes the operations
+*)
+  match stream_c with
+    | stream1 :: stream2 :: [] -> 
+      let env1 = stream1::(!(env.exp_env)) in
+      let env2 = stream2::(!(env.exp_env)) in
+      let vc = Boolean.mk_not ctx (Boolean.mk_and ctx 
+                                    [(Boolean.mk_implies ctx 
+                                        (Boolean.mk_and ctx env1)
+                                        (constraints));
+                                      (Boolean.mk_implies ctx 
+                                        (Boolean.mk_and ctx env2)
+                                        (constraints)) 
+                                      ]) in
+      z3_proof ctx env vc constraints
 
 let create_z3_var_typed ctx ({exp_env = e ; var_env = v}) s basetype : expr =
 (*
@@ -430,7 +483,7 @@ let create_z3_var_typed ctx ({exp_env = e ; var_env = v}) s basetype : expr =
       (* | "string" -> Printf.printf " I will make a string here\n"; (Expr.mk_const ctx (Symbol.mk_string ctx n.source) (.mk_sort ctx))
       | "char" -> Printf.printf " I will make a char here\n"; (Expr.mk_const ctx (Symbol.mk_string ctx n.source) (.mk_sort ctx))*)
       | "bool" -> debug(Printf.sprintf " I will make a bool here\n"); (Expr.mk_const ctx (Symbol.mk_string ctx s) (Boolean.mk_sort ctx))
-      | _ ->  debug (Printf.sprintf " I don't know what to make here\n"); Integer.mk_numeral_s ctx "42"
+      | _ ->  debug (Printf.sprintf " I don't know what to make here\n"); make_void ctx
     ) in
     Hashtbl.add v s new_var;
     debug (Printf.sprintf "New variable, returning %s\n\n" (Expr.to_string new_var));
@@ -473,6 +526,7 @@ let print_function_environment () =
 *)
     Hashtbl.iter ( fun n f -> print_function n f ) (!function_space)
 
+
 let immediate ctx i = 
 (*
     ctx -> z3 context
@@ -491,7 +545,7 @@ let immediate ctx i =
       | Efloat(i) -> debug ((Printf.sprintf "Z3 Float %f\n") i); Real.mk_numeral_s ctx (Printf.sprintf "%f" i)
       | Estring(c) -> debug (Printf.sprintf "string: %s\n" c); Expr.mk_const ctx (Symbol.mk_string ctx c) (Real.mk_sort ctx)
       | Echar(c) -> debug (Printf.sprintf "%c" c); Integer.mk_numeral_s ctx "42"
-      | Evoid -> debug (Printf.sprintf "void"); Integer.mk_numeral_s ctx "42"
+      | Evoid -> debug (Printf.sprintf "void"); make_void ctx
       (* | Evoid -> debug (Printf.sprintf "void"); Boolean.mk_true ctx *)
       | _ -> debug (Printf.sprintf "Ignore immediate \n"); Integer.mk_numeral_s ctx "42"
 
@@ -504,7 +558,95 @@ let immediate ctx i =
     l_eq: eq list; (* the set of parallel equations *)
     mutable l_env: Deftypes.tentry Zident.Env.t;
     l_loc: location } *)
-let rec vc_gen_equation ctx env typenv eq =
+let rec create_base_var_from_pattern ctx env pat = 
+    match pat.p_desc with 
+    | Etypeconstraintpat(p,t) ->
+      let base_type = 
+        (
+          match t.desc with
+            | Erefinement(lbl, ref_exp) -> 
+              (
+                match (snd(lbl)).desc with 
+                  | Etypeconstr(long_name, _) -> 
+                      (
+                        match long_name with
+                          | Name(s) -> s
+                          | Modname(q) -> q.id
+                      )
+              )
+        ) in
+      (match p.p_desc with 
+      | Evarpat(n) -> debug (Printf.sprintf "Etypeconstraintpat: %s\n" n.source); create_z3_var_typed ctx env n.source base_type
+      ) 
+
+and vc_gen_equation_operation ctx env typenv op e_list pat =
+    (*
+        ctx -> z3 context
+        env -> vc_gen_expression environment
+        typenv -> typing environment
+        op -> vc_gen_operation definition
+        e_list -> list of operands
+    
+        Currently used to type check streams
+    *)
+    let base_var = create_base_var_from_pattern ctx env pat in 
+    let refinement_expr = 
+        match pat.p_desc with 
+        | Etypeconstraintpat(p, t) ->
+          let var_name = (match p.p_desc with 
+                           | Evarpat(n) -> n.source) in
+          (
+            match t.desc with 
+             | Erefinement(lbl, ref_exp) ->
+                (
+                   add_variable_to_table ctx env typenv var_name ref_exp lbl;
+                   (vc_gen_substitute (var_name) env ctx typenv)
+                )
+          )
+    in
+    match op, e_list with
+        | Efby, [e1; e2] ->
+            let exp1 = Boolean.mk_eq ctx base_var (vc_gen_expression ctx env e1 typenv) in
+            let exp2 = Boolean.mk_eq ctx base_var (vc_gen_expression ctx env e2 typenv) in
+            let base_name = (Expr.to_string base_var) in
+            debug(Printf.sprintf "[%s] fby [%s] -> [%s]\n" (Expr.to_string exp1) (Expr.to_string exp2) (Expr.to_string refinement_expr));
+  
+            (* apply stream typing rule *)
+            z3_solve_stream ctx env [exp1; exp2] refinement_expr
+
+        | _ -> vc_gen_operation ctx env typenv op e_list 
+
+and vc_gen_equation_expression ctx env e typenv pat =
+(*
+        ctx    -> z3 context
+        env    -> environment (list of z3 vc_gen_expressions)
+        desc   -> vc_gen_expression desciption
+        loc    -> vc_gen_expression location
+        typenv -> typing environment ( Hash table of string = variable name * string = base type)
+
+        Processes zelus vc_gen_expression into z3 vc_gen_expression
+
+        Returns Z3 vc_gen_expression
+*)
+  match e.e_desc with
+  (* | Econst(Evoid) -> Boolean.mk_true ctx *)
+  | Eop ( op, e_list) -> debug(Printf.sprintf "Eop pat\n"); vc_gen_equation_operation ctx env typenv op e_list pat; create_base_var_from_pattern ctx env pat
+  | _ -> vc_gen_expression ctx env e typenv
+
+and add_variable_to_table ctx env typenv var_name ref_exp lbl = 
+    (match typenv with
+    | Some(tbl) -> if (Hashtbl.mem tbl var_name) then
+        debug (Printf.sprintf "Variable already exists in typenv\n")
+      else
+        debug (Printf.sprintf "Creating variable\n");
+        Hashtbl.add tbl var_name {base_type = (match (snd(lbl)).desc with
+          | Etypeconstr(long_name, _) -> (match long_name with
+            | Name(s) -> s
+            | Modname(q) -> q.id)
+          | _ -> "basetype_not_right"); reference_variable = fst(lbl); phi = ref_exp}
+    | None -> ())
+
+and vc_gen_equation ctx env typenv eq =
 (*
     ctx    -> z3 context
     env    -> environment (list of z3 vc_gen_expression)
@@ -517,7 +659,7 @@ let rec vc_gen_equation ctx env typenv eq =
 *)
     match eq.eq_desc with
     | EQeq(p, e) -> debug (Printf.sprintf "EQeq:\n");
-      let body_exp = vc_gen_expression ctx env e typenv in
+      let body_exp = vc_gen_equation_expression ctx env e typenv p in
       debug (Printf.sprintf "body_exp: %s\n" (Expr.to_string body_exp));
       let pat_exp = 
        (match p.p_desc with 
@@ -527,27 +669,13 @@ let rec vc_gen_equation ctx env typenv eq =
           | Evarpat(n1) -> debug (Printf.sprintf "Etypeconstraintpat: %s\n" n1.source); add_constraint env (Boolean.mk_eq ctx body_exp (create_z3_var ctx env (n1.source))); n1.source
           | _ -> debug (Printf.sprintf "Wrong pattern for variable in Etypeconstraintpat\n"); "undefined var_name") in
           let (base_type_1, ref_var) = match t.desc with
-            | Erefinement(lbl, ref_exp) -> debug (Printf.sprintf "Basetype: %s\n" (match (snd(lbl)).desc with
-              | Etypeconstr(long_name, _) -> (match long_name with
-                | Name(s) -> s
-                | Modname(q) -> q.id)
-              | _ -> "basetype_not_right"));
-              (match typenv with
-                | Some(tbl) -> if (Hashtbl.mem tbl var_name) then
-                    debug (Printf.sprintf "Variable already exists in typenv\n")
-                  else
-                    debug (Printf.sprintf "Creating variable\n");
-                    Hashtbl.add tbl var_name {base_type = (match (snd(lbl)).desc with
-                      | Etypeconstr(long_name, _) -> (match long_name with
-                        | Name(s) -> s
-                        | Modname(q) -> q.id)
-                      | _ -> "basetype_not_right"); reference_variable = fst(lbl); phi = ref_exp};
-                    let add_constraint_expr = (vc_gen_substitute (var_name) env ctx (Some(tbl))) in
-                    debug (Printf.sprintf "add_constraint exp: %s\n" (Expr.to_string add_constraint_expr));
-                    (* cannot add refinment expression directly to environment *)
-                    z3_solve ctx env add_constraint_expr;
-                    (* add_constraint env add_constraint_expr; *)
-                | None -> ());
+            | Erefinement(lbl, ref_exp) -> 
+              
+              add_variable_to_table ctx env typenv var_name ref_exp lbl;
+              let add_constraint_expr = (vc_gen_substitute (var_name) env ctx typenv) in
+              debug (Printf.sprintf "add_constraint exp: %s\n" (Expr.to_string add_constraint_expr));
+              z3_solve ctx env add_constraint_expr;
+
               ((match (snd(lbl)).desc with
                   | Etypeconstr(long_name, _) -> (match long_name with
                     | Name(s) -> s
@@ -1188,11 +1316,12 @@ and build_input_var ctx env e typenv istuple =
           [(vc_gen_expression ctx env (List.hd e_list) typenv) ; (vc_gen_expression ctx env (List.hd (List.tl e_list)) typenv) ]
       )
 
-and build_return_var ctx env n istuple =
+and build_return_var ctx env n istuple sort_enum =
+      let return_type = sort2type sort_enum in
       if not istuple then (
-      [create_z3_var ctx env (Printf.sprintf "%s_return" n)]
+      [create_z3_var_typed ctx env (Printf.sprintf "%s_return" n) return_type]
       ) else (
-      [create_z3_var ctx env (Printf.sprintf "%s_fst" n); create_z3_var ctx env (Printf.sprintf "%s_snd" n) ]
+      [create_z3_var_typed ctx env (Printf.sprintf "%s_fst" n) return_type; create_z3_var_typed ctx env (Printf.sprintf "%s_snd" n) return_type]
       )
 
 and qualident t =
@@ -1510,7 +1639,7 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
           
           
           (*let return_var = (get_return_type ctx local_env rettype (Some typenv)) in*)
-          let return_var = build_return_var ctx local_env n istuple in 
+          let return_var = build_return_var ctx local_env n istuple (Sort.get_sort_kind (Expr.get_sort (List.hd input_var))) in 
           List.iter (fun return_elem -> debug(Printf.sprintf "Return var: %s\n" (Expr.to_string return_elem))) return_var;
           (*let input_var = (get_return_type ctx local_env e (Some typenv)) in
           Printf.printf "Return var in: %s\n" (Expr.to_string input_var);*)
@@ -1548,7 +1677,7 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
             Hashtbl.iter (fun a b -> debug(Printf.sprintf "%s:%s;" a b.base_type)) typenv;
 
             (* create function constraint to be proven *)
-            let return_var = build_return_var ctx local_env n istuple in 
+            let return_var = build_return_var ctx local_env n istuple (REAL_SORT) in 
             let return_exp = (vc_gen_expression ctx local_env rettype (Some typenv)) in
             debug(Printf.sprintf "Return type vc_gen_expression: %s\n" (Expr.to_string return_exp));
             let function_argument_constraints = !(local_env.exp_env) in
