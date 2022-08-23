@@ -607,15 +607,34 @@ and vc_gen_equation_operation ctx env typenv op e_list pat =
     match op, e_list with
         | Efby, [e1; e2] ->
             let exp1 = Boolean.mk_eq ctx base_var (vc_gen_expression ctx env e1 typenv) in
-            let exp2 = Boolean.mk_eq ctx base_var (vc_gen_expression ctx env e2 typenv) in
+            let stream_def = (vc_gen_expression ctx env e2 typenv) in
+            let exp2 = Boolean.mk_eq ctx base_var stream_def in
             let base_name = (Expr.to_string base_var) in
             debug(Printf.sprintf "[%s] fby [%s] -> [%s]\n" (Expr.to_string exp1) (Expr.to_string exp2) (Expr.to_string refinement_expr));
-  
-            (* apply stream typing rule *)
-            z3_solve_stream ctx env [exp1; exp2] refinement_expr
+            if (expression_contains stream_def base_var) then (
+              debug(Printf.sprintf "FBY is recursive");
+              (* check if there is better way to identify recursion *)
+              let next_step_var = build_next_step_var ctx env base_name (get_expression_sort base_var) in
+              let exp3 = Boolean.mk_eq ctx next_step_var stream_def in
+              let vc1 = Boolean.mk_implies ctx exp1 refinement_expr in
+              let next_refinement_expr = Expr.substitute_one (refinement_expr) (base_var) (next_step_var) in
+              debug(Printf.sprintf "Next refinement: %s\n" (Expr.to_string next_refinement_expr));
+              let vc2 = Boolean.mk_implies ctx (Boolean.mk_and ctx [exp1; exp3]) (next_refinement_expr) in
+              let vc = Boolean.mk_and ctx [vc1; vc2] in 
+              z3_proof ctx env vc refinement_expr;
+            ) else (
+              (* apply stream typing rule - no recursion*)
+              z3_solve_stream ctx env [exp1; exp2] refinement_expr
+            )
 
         | _ -> vc_gen_operation ctx env typenv op e_list 
 
+and expression_contains expr var =
+      let args = List.map (fun elem -> Expr.to_string elem) (Expr.get_args expr) in
+      let var_name = Expr.to_string var in
+      debug(Printf.sprintf "Var name: %s \n" var_name);
+      List.mem var_name args
+      
 and vc_gen_equation_expression ctx env e typenv pat =
 (*
         ctx    -> z3 context
@@ -631,6 +650,29 @@ and vc_gen_equation_expression ctx env e typenv pat =
   match e.e_desc with
   (* | Econst(Evoid) -> Boolean.mk_true ctx *)
   | Eop ( op, e_list) -> debug(Printf.sprintf "Eop pat\n"); vc_gen_equation_operation ctx env typenv op e_list pat; create_base_var_from_pattern ctx env pat
+  | Econst(i) ->  debug(Printf.sprintf "Econst\n");Integer.mk_numeral_s ctx "42"
+  | Eglobal {lname = ln} -> debug(Printf.sprintf "Eglobal\n");Integer.mk_numeral_s ctx "42"
+  | Eapp({ app_inline = i; app_statefull = r }, e, e_list) -> debug(Printf.sprintf "Eapp\n");
+    (* debug( Printf.sprintf "E: %s\n" (Expr.to_string (vc_gen_expression ctx env e typenv)));
+    List.iter (fun a -> debug(Printf.sprintf "E_List: %s \n" (Expr.to_string (vc_gen_expression ctx env a typenv)))) e_list; *)
+    let app_expr = vc_gen_operator ctx env typenv (operator_vc_gen_expression_to_string e) e_list in
+    debug( Printf.sprintf "App expr: %s\n" (Expr.to_string app_expr)); app_expr
+  | Elocal(n) -> debug(Printf.sprintf "Elocal\n");Integer.mk_numeral_s ctx "42"
+  | Elet(l, e) -> debug(Printf.sprintf "Elet\n");Integer.mk_numeral_s ctx "42"
+  | Econstr0 _ -> debug(Printf.sprintf "Econstr0\n");Integer.mk_numeral_s ctx "42"
+  | Econstr1(_ , _) -> debug(Printf.sprintf "Econstr1\n");Integer.mk_numeral_s ctx "42"
+  | Elast _ -> debug(Printf.sprintf "Elast\n");Integer.mk_numeral_s ctx "42"
+  | Etuple (e_tuple) -> debug(Printf.sprintf "Etuple\n");Integer.mk_numeral_s ctx "42"
+  | Erecord_access (_, _) -> debug(Printf.sprintf "Erecord_acess\n");Integer.mk_numeral_s ctx "42"
+  | Erecord _-> debug(Printf.sprintf "Erecord\n");Integer.mk_numeral_s ctx "42"
+  | Erecord_with (_, _)-> debug(Printf.sprintf "Erecord_with\n");Integer.mk_numeral_s ctx "42"
+  | Etypeconstraint (_, _)-> debug(Printf.sprintf "Etypeconstraint\n");Integer.mk_numeral_s ctx "42"
+  | Epresent (_, _)-> debug(Printf.sprintf "Epresent\n");Integer.mk_numeral_s ctx "42"
+  | Ematch (_, _, _)-> debug(Printf.sprintf "Ematch\n");Integer.mk_numeral_s ctx "42"
+  | Eseq ( e1, e2)-> debug(Printf.sprintf ("Eseq : (e1 = %s e2 = %s)\n") (Expr.to_string (vc_gen_expression ctx env e1 typenv)) (Expr.to_string (vc_gen_expression ctx env e2 typenv)));
+    Integer.mk_numeral_s ctx "42"
+  | Eperiod _-> debug(Printf.sprintf "Eperiod\n"); Integer.mk_numeral_s ctx "42"
+  | Eblock (_, _)-> debug(Printf.sprintf "Eblock\n"); Integer.mk_numeral_s ctx "42"  
   | _ -> vc_gen_expression ctx env e typenv
 
 and add_variable_to_table ctx env typenv var_name ref_exp lbl = 
@@ -1323,6 +1365,13 @@ and build_return_var ctx env n istuple sort_enum =
       ) else (
       [create_z3_var_typed ctx env (Printf.sprintf "%s_fst" n) return_type; create_z3_var_typed ctx env (Printf.sprintf "%s_snd" n) return_type]
       )
+
+and build_next_step_var ctx env n sort_enum =
+      let return_type = sort2type sort_enum in
+      create_z3_var_typed ctx env (Printf.sprintf "%s_next" n) return_type
+
+and get_expression_sort expr =
+  (Sort.get_sort_kind (Expr.get_sort (expr)))
 
 and qualident t =
 (*
