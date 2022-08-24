@@ -100,10 +100,37 @@ let node main8 () =
 	      [| 1; 1; 1; 1; 1|] |] in
   assert (run (prod_matrix0(3)(4)(5))(m1, id) = prod_matrix1(m1, id))
     
+let node f x = forward xi in x returns (o init 0)
+                 do o = last o + xi done
 
+let node main9 () =
+  let v = foreach(4) do 2 done in
+  f v
+    
+let node or_n(n)(x, y) =
+  forward i in 0 to n-1, xi in x, yi in y returns (o init false, index init 0)
+    while not last o do o = last o || (xi || yi) and index = i done
+
+let node main10 () =
+  run (or_n(4))([|false; false; true; false|], [| false; true; false; false |])
+    
 (*let f{a,b,c}(x, y, z) =
-    forall{a} xi in x do xi + 1 done,
-    forall{b} yi in y do yi + 1 done,
-    forall{c} zi in z do zi + 1 done
+    foreach{a} xi in x do xi + 1 done,
+    forward{b} yi in y do yi + 1 done,
+    forward{c} zi in z do zi + 1 done
 
 val f : 'a 'b 'c . int['a] * int['b] * int['c] -> int['a] * int['b] * int['c] *)
+
+(*
+let rec node xor(n)(x:[n]bool, y:[n]bool) returns (o)
+    sizeof n of
+    | 0 -> false
+    | n -> (x.(0) || y.(0)) || (xor(n-1)(x.(1 .. n-1), y.(1 .. n-1)))
+
+let node or_n(n)(x:[n]bool, y:[n]bool) returns (o)
+  sizeof n of
+    | 0 -> o = false
+    | 1 -> o = x.(0) || y.(0)
+    | n -> o = or_n(n/2)(x.(0 .. n/2 - 1), y.(0 .. n/2 - 1))
+               || or_n(n/2)(x.(n/2 .. n - 1), y.(n/2 .. n))
+*)
