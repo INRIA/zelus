@@ -140,6 +140,8 @@ rule main = parse
   | "]"  { RBRACKET }
   | "[|" { LBRACKETBAR }
   | "|]" { RBRACKETBAR }
+  | "{"  { LBRACE }
+  | "}"  { RBRACE }
   | "*"  { STAR }
   | ":"  { COLON }
   | "="  { EQUAL }

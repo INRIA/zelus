@@ -683,12 +683,12 @@ colon_type_expression:
 ;
 
 init_expression:
-  | INIT e = expression
+  | INIT e = simple_expression
     { e }
 ;
 
 default_expression:
-  | DEFAULT e = expression
+  | DEFAULT e = simple_expression
     { e }
 ;
 
@@ -952,7 +952,6 @@ expression_desc:
   | e1 = simple_expression DOT LPAREN e2 = expression RPAREN
     DEFAULT e3 = expression
       { Eop(Eget_with_default, [e1; e2; e3]) }
-  
 ;
 
 %inline opt_end:
@@ -965,16 +964,16 @@ expression_desc:
 %inline foreach_loop_exp:
   | s = simple_expression DO e = expression
     d_opt = optional(default_expression)
-    { (s, [], Forexp { exp = e; default = d_opt }) }
+    { (Some(s), [], Forexp { exp = e; default = d_opt }) }
   | s = simple_expression RETURNS p = for_return
     b = block(equation_empty_and_list)
-    { (s, [], Forreturns { returns = p; body = b }) }
-  | s = simple_expression li = index_list DO e = expression
+    { (Some(s), [], Forreturns { returns = p; body = b }) }
+  | s_opt = optional(simple_expression) li = index_list DO e = expression
     d_opt = optional(default_expression)
-    { (s, li, Forexp { exp = e; default = d_opt }) }
-  | s = simple_expression li = index_list RETURNS p = for_return
+    { (s_opt, li, Forexp { exp = e; default = d_opt }) }
+  | s_opt = optional(simple_expression) li = index_list RETURNS p = for_return
     b = block(equation_empty_and_list)
-    { (s, li, Forreturns { returns = p; body = b }) }
+    { (s_opt, li, Forreturns { returns = p; body = b }) }
 ;
 
 
@@ -982,46 +981,52 @@ expression_desc:
   | s = simple_expression
     o = opt_loop_condition DO e = expression 
     d_opt = optional(default_expression)
-    { (s, [], o, Forexp { exp = e; default = d_opt }) }
+    { (Some(s), [], o, Forexp { exp = e; default = d_opt }) }
   | s = simple_expression
     RETURNS p = for_return
     o = opt_loop_condition b = block(equation_empty_and_list)
-    { (s, [], o, Forreturns { returns = p; body = b }) }
-  | s = simple_expression li = index_list o = opt_loop_condition
+    { (Some(s), [], o, Forreturns { returns = p; body = b }) }
+  | s_opt = optional(simple_expression) li = index_list o = opt_loop_condition
     DO e = expression 
     d_opt = optional(default_expression)
-    { (s, li, o, Forexp { exp = e; default = d_opt }) }
-  | s = simple_expression li = index_list
+    { (s_opt, li, o, Forexp { exp = e; default = d_opt }) }
+  | s_opt = optional(simple_expression) li = index_list
     RETURNS p = for_return
     o = opt_loop_condition
     b = block(equation_empty_and_list)
-    { (s, li, o, Forreturns { returns = p; body = b }) }
+    { (s_opt, li, o, Forreturns { returns = p; body = b }) }
 ;
 
 /* Loops for equations */
 %inline foreach_loop_eq:
-  | s = simple_expression li = empty(index_list)
+  | s = simple_expression
     f = block(equation_empty_and_list)
-    { (s, li, { for_out = []; for_block = f }) }
+    { (Some(s), [], { for_out = []; for_block = f }) }
+  | s_opt = optional(simple_expression) li = index_list
+    f = block(equation_empty_and_list)
+    { (s_opt, li, { for_out = []; for_block = f }) }
   | s = simple_expression lo = output_list
     f = block(equation_empty_and_list)
-    { (s, [], { for_out = lo; for_block = f }) }
-  | s = simple_expression li = index_list COMMA lo = output_list
+    { (Some(s), [], { for_out = lo; for_block = f }) }
+  | s_opt = optional(simple_expression) li = index_list COMMA lo = output_list
     f = block(equation_empty_and_list)
-    { (s, li, { for_out = lo; for_block = f }) }
+    { (s_opt, li, { for_out = lo; for_block = f }) }
 ;
 
 %inline forward_loop_eq:
-  | s = simple_expression li = empty(index_list) o = opt_loop_condition 
+  | s = simple_expression o = opt_loop_condition 
     f = block(equation_empty_and_list)
-    { (s, li, o, { for_out = []; for_block = f}) }
+    { (Some(s), [], o, { for_out = []; for_block = f}) }
+  | s_opt = optional(simple_expression) li = index_list o = opt_loop_condition 
+    f = block(equation_empty_and_list)
+    { (s_opt, li, o, { for_out = []; for_block = f}) }
   | s = simple_expression lo = output_list o = opt_loop_condition 
     f = block(equation_empty_and_list)
-    { (s, [], o, { for_out = lo; for_block = f }) }
-  | s = simple_expression li = index_list COMMA lo = output_list
+    { (Some(s), [], o, { for_out = lo; for_block = f }) }
+  | s_opt = optional(simple_expression) li = index_list COMMA lo = output_list
     o = opt_loop_condition 
     f = block(equation_empty_and_list)
-    { (s, li, o, { for_out = lo; for_block = f }) }
+    { (s_opt, li, o, { for_out = lo; for_block = f }) }
 ;
 
 /* indexes in a for loop */

@@ -113,7 +113,7 @@ let rec equation ({ eq_desc } as eq)=
     | EQforloop({ for_size; for_kind;
                   for_index;
                   for_body = ({ for_out; for_block } as f_body) } as f) ->
-       let for_size = expression for_size in
+       let for_size = Util.optional_map expression for_size in
        let for_kind =
          match for_kind with
          | Kforeach -> for_kind
@@ -250,7 +250,7 @@ and expression ({ e_desc } as e) =
        Ereset(expression e_body, expression e_res)
     | Eassert(e_body) -> Eassert(expression e_body)
     | Eforloop({ for_size; for_kind; for_index; for_body } as f) ->
-       let for_size = expression for_size in
+       let for_size = Util.optional_map expression for_size in
        let for_kind =
          match for_kind with
          | Kforeach -> for_kind

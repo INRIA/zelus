@@ -314,9 +314,11 @@ let rec expression ff e =
     | Eassert(e_body) ->
        fprintf ff "@[<hov 2>assert@ %a@]" expression e_body
     | Eforloop({ for_size; for_kind; for_index; for_env; for_body }) ->
-       let size ff for_size = expression ff for_size in
+       let size ff for_size =
+         Util.optional_unit (fun ff e -> fprintf ff "(%a)@ " expression e)
+           ff for_size in
        fprintf ff
-         "@[<hov 2>%a(%a)@ %a@,%a@,%a@ %a@]"
+         "@[<hov 2>%a%a%a@,%a@,%a@ %a@]"
          kind_of_forloop for_kind
          size for_size
          index_list for_index
@@ -450,7 +452,9 @@ and equation ff ({ eq_desc = desc } as eq) =
      fprintf ff "@[<hov2>assert %a@]" expression e
   | EQforloop({ for_size; for_kind; for_index; for_env;
                 for_body = { for_out; for_block } }) ->
-     let size ff for_size = expression ff for_size in
+     let size ff for_size =
+       Util.optional_unit (fun ff e -> fprintf ff "(%a)@ " expression e)
+           ff for_size in
      let print_for_out ff l =
        let for_out ff
              { desc = { for_name = x; for_out_name = o_opt;
@@ -460,7 +464,7 @@ and equation ff ({ eq_desc = desc } as eq) =
        print_list_r for_out "" "," "" ff l in
      let comma =
        match for_index, for_out with | ([], _) | (_, []) -> "" | _ -> ", " in
-     fprintf ff  "@[<hov 2>%a(%a)@ %a%s@,%a@,%a@,%a@ %a@]"
+     fprintf ff  "@[<hov 2>%a%a%a%s@,%a@,%a@,%a@ %a@]"
        kind_of_forloop for_kind
        size for_size
        index_list for_index

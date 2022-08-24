@@ -476,7 +476,7 @@ and trans_for_out env i_env for_out =
 (* translation of for loops *)
 and forloop_eq env_pat env { for_size; for_kind; for_index;
                              for_body = { for_out; for_block } } =
-    let for_size = expression env for_size in
+    let for_size = Util.optional_map (expression env) for_size in
     let for_index, i_env =
       trans_for_index env for_index in
     let env = Env.append i_env env in
@@ -725,7 +725,7 @@ and expression env { desc; loc } =
     Zelus.e_init = Definit.no_typ }
   
 and forloop_exp env { for_size; for_kind; for_index; for_body } =
-  let for_size = expression env for_size in
+  let for_size = Util.optional_map (expression env) for_size in
   let for_index, i_env =
     trans_for_index env for_index in
   let env = Env.append i_env env in

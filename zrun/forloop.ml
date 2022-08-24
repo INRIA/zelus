@@ -45,17 +45,14 @@ let geti_env i_env i =
   Env.fold
     (fun x v acc ->
       match v with
-      | Vbot | Vnil as v -> Env.add x (entry v) acc
-      | Value(v) ->
-         match v with
-         | Vindex { ve_left; ve_right; dir } ->
-            let i = if dir then ve_left + i else ve_right - i in
-            Env.add x (entry (Value(Vint(i)))) acc
-         | Vinput { ve; by } ->
-            let i = match by with
-              | None -> i | Some(v) -> i + v in
-            let vi = Primitives.geti ve i in
-            match vi with | None -> acc | Some(vi) -> Env.add x (entry vi) acc)
+      | Vindex { ve_left; ve_right; dir } ->
+         let i = if dir then ve_left + i else ve_right - i in
+         Env.add x (entry (Value(Vint(i)))) acc
+      | Vinput { ve; by } ->
+         let i = match by with
+           | None -> i | Some(v) -> i + v in
+         let vi = Primitives.geti ve i in
+         match vi with | None -> acc | Some(vi) -> Env.add x (entry vi) acc)
     i_env Env.empty
       
 (* [x_to_last_x env acc_env = acc_env'] such that for every [x] *)
@@ -107,6 +104,36 @@ let array_of missing loc (var_name, var_init, var_default) acc_env env_list =
        return (Primitives.lift
                  (fun v -> Varray(Array.of_list (v @ d_list))) v_list)
     
+let (let+) v f =
+  match v with
+  | Vbot -> return Vbot
+  | Vnil -> return Vnil
+  | Value(v) -> f v
+
+let (and+) v1 v2 =
+  match v1, v2 with
+  | (Vbot, _) | (_, Vbot) -> Vbot
+  | (Vnil, _) | (_, Vnil) -> Vnil
+  | Value(v1), Value(v2) -> Value(v1, v2)
+
+(* check that [v] is indeed an array of length [for_size] *)
+let input loc v by =
+  let+ v = v in
+  match v with
+  | Varray(a) ->
+     let actual_size = Array.length a in
+     return (Value(actual_size, Vinput { ve = a; by }))
+  | _ -> error { kind = Etype; loc }
+     
+let index loc ve_left ve_right dir =
+  let+ ve_left = ve_left and+ ve_right = ve_right in
+  match ve_left, ve_right with
+  | Vint(ve_left), Vint(ve_right) ->
+     let actual_size =
+       (if dir then ve_right - ve_left else ve_left - ve_right) + 1 in
+     return (Value(actual_size, Vindex { ve_left; ve_right; dir }))
+  | _ -> error { kind = Etype; loc }
+
 (* loop iteration *)
 (* parallel for loops; take a list of states *)
 let foreach_i : (int -> 's -> ('r * 's, 'error) Result.t) -> 's list

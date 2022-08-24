@@ -204,7 +204,7 @@ and exp_desc =
   | Eforloop : for_exp forloop -> exp_desc
 
 and 'body forloop =
-  { for_size : exp;
+  { for_size : exp option;
     for_kind : for_kind;
     for_index : for_index_desc localized list;
     for_body : 'body;
