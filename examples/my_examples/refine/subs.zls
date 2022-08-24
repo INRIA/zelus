@@ -1,1 +1,10 @@
-let node main () = let (x: {v:float | v >= 0}) = -1.2 in x
+(* let x: {v:float | v >= 0} = 1.2
+let node main () = let (x: {v:float | v >= 0}) = 1.2 in x   *)
+
+(* let node main() =
+ let (x : {v : int | v >= 0}) = (0) fby (7)
+ in () *)
+
+let node main () =
+let rec (x : {v : int | v >= 0}) = 0 fby (x + 1)
+in ()

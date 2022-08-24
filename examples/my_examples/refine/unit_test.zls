@@ -135,3 +135,7 @@ let add107 x y = x+y
 
 
 (* designed to be failed cases: 3 *)
+(* 
+	EXAMPLE 11: Refinement variable typing rule
+*)
+let y6 : {v:float | v >= 0} = -1.2
