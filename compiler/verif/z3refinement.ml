@@ -619,8 +619,8 @@ and vc_gen_equation_operation ctx env typenv op e_list pat =
               let vc1 = Boolean.mk_implies ctx exp1 refinement_expr in
               let next_refinement_expr = Expr.substitute_one (refinement_expr) (base_var) (next_step_var) in
               debug(Printf.sprintf "Next refinement: %s\n" (Expr.to_string next_refinement_expr));
-              let vc2 = Boolean.mk_implies ctx (Boolean.mk_and ctx [exp1; exp3]) (next_refinement_expr) in
-              let vc = Boolean.mk_and ctx [vc1; vc2] in 
+              let vc2 = Boolean.mk_implies ctx (Boolean.mk_and ctx [refinement_expr; exp3]) (next_refinement_expr) in
+              let vc = Boolean.mk_not ctx (Boolean.mk_and ctx [vc1; vc2]) in 
               z3_proof ctx env vc refinement_expr;
             ) else (
               (* apply stream typing rule - no recursion*)
