@@ -1131,6 +1131,7 @@ and vc_gen_expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
          let local_exp = vc_gen_expression ctx env l typenv in
         Printf.printf (Expr.to_string local_exp);
         Printf.printf "Body:\n";*)
+        debug(Printf.sprintf "Is recursive %b" l.l_rec);
         (List.iter (vc_gen_equation ctx env typenv) l.l_eq);
         let body_exp = vc_gen_expression ctx env e typenv in
         debug(Printf.sprintf "Body exp :%s \n" (Expr.to_string body_exp));
