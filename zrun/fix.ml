@@ -31,7 +31,9 @@ open Error
  *-               /\ (forall x in Dom(env), env(x) <> bot)
  *-               /\ (env_out, _ = fixpoint_eq genv sem eq n s_eq bot)
  *-               => (forall x in names /\ Dom(env_out), env_out(x) <> bot) *)
-let causal loc env env_out names =
+let causal loc (env: value ientry Env.t) (env_out: value ientry Env.t ) names =
+  let l1 = Env.bindings env in
+  let l2 = Env.bindings env_out in
   let bot v = match v with | Vbot -> true | _ -> false in
   let bot_name n =
     let r = find_value_opt n env_out in
