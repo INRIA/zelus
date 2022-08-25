@@ -1,15 +1,16 @@
 let g = 42
 
 let node f(x, y) returns (o)
-  local z, t
-  do o = x + z
-  and z = y + 1
-  and t = z + 2
+  local z
+  do o = x + y
+  and z = z + 1
   done
 
+let node g(x, y) returns (o)
+  o = let rec z = z + 1 and o = x + y in o
+
 let node main() returns (m)
-    local k
-    do m = f(0, m) and k = 0 fby m + 2 done
+  m = f(1, 2)
 (*
 let node h() returns (y)
   do y = f(0 fby y) done

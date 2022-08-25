@@ -200,7 +200,6 @@ let foreach_loop (size, index_list, body) =
 %nonassoc prec_ident
 %right prec_list
 %left EVERY
-%left INIT
 %nonassoc PRESENT
 %nonassoc THEN
 %nonassoc ELSE
@@ -226,7 +225,7 @@ let foreach_loop (size, index_list, body) =
 %right prec_uminus
 %right PREFIX
 %right PRE TEST UP
-%left DEFAULT
+%left INIT DEFAULT
 %left DOT
 
 
@@ -497,9 +496,9 @@ equation_desc:
 			       f_kind = k; f_args = p_list; f_body = r }
 			$startpos $endpos))
 	     $startpos $endpos) } %prec prec_fundef
-  | DER i = ide EQUAL e = seq_expression opt = optional_init
+  | DER i = ide EQUAL e = seq_expression opt = optional(init_expression)
       { EQder(i, e, opt, []) }
-  | DER i = ide EQUAL e = seq_expression opt = optional_init
+  | DER i = ide EQUAL e = seq_expression opt = optional(init_expression)
     RESET p = present_handlers(expression) %prec prec_der_with_reset
     { EQder(i, e, opt, p) }
   | FOREACH f = foreach_loop_eq DONE
@@ -507,13 +506,6 @@ equation_desc:
   | FORWARD f = forward_loop_eq DONE
     { EQforloop (forward_loop f) }
   
-;
-
-%inline optional_init:
-  | /* empty */
-      { None }
-  | INIT e = expression
-      { Some(e) }
 ;
 
 /* states of an automaton in an equation*/
@@ -683,12 +675,12 @@ colon_type_expression:
 ;
 
 init_expression:
-  | INIT e = simple_expression
+  | INIT e = expression
     { e }
 ;
 
 default_expression:
-  | DEFAULT e = simple_expression
+  | DEFAULT e = expression
     { e }
 ;
 

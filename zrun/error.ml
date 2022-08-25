@@ -110,8 +110,10 @@ let message loc kind =
        output_location loc
   | Enot_causal(bot_names) ->
      let pnames ff names = Ident.S.iter (Ident.fprint_t ff) names in
-     eprintf "@[The following variables are not causal:\n\
-              %a@.@]" pnames bot_names
+     eprintf "@[%aZrun: the following variables are not causal:\n\
+              %a@.@]"
+       output_location loc
+       pnames bot_names
   | Earray_size { size; index } ->
      eprintf "@[%aZrun: the array is of length %d but accessed at index %d.@.@]"
        output_location loc size index

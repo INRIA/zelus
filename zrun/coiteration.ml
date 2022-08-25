@@ -1091,7 +1091,9 @@ and sleq genv env { l_rec; l_eq = ({ eq_write } as l_eq); l_loc } s_eq =
     (* compute a bounded fix-point in [n] steps *)
     let bot = bot_env eq_write in
     let n = (Fix.size l_eq) + 1 in
+    let l1 = Env.bindings env in
     let* env_eq, s_eq = Fix.eq genv env seq l_eq n s_eq bot in
+    let l2 = Env.bindings env_eq in
     (* a dynamic check of causality: all defined names in [eq] *)
     (* must be non bottom provided that all free vars. are non bottom *)
     let* _ = Fix.causal l_loc env env_eq (names eq_write) in
@@ -1394,15 +1396,24 @@ and sblock genv env { b_vars; b_body = ({ eq_write } as eq); b_loc } s_b =
      let bot = Fix.complete env env_v (names eq_write) in
      let n = (Fix.size eq) + 1 in
      let* env_eq, s_eq = Fix.eq genv env seq eq n s_eq bot in
-     (* a dynamic check of causality for [x1,...,xn] *)
-     let _ = Fix.causal b_loc env env_eq (names_env env_v) in
+     let l1 = Env.bindings env in
+     let l2 = Env.bindings env_eq in
+     let l3 = Env.bindings env_v in
+     (* a dynamic check of causality: all locally defined names *)
+     (* [x1,...,xn] must be non bottom provided that all free vars *)
+     (* are non bottom *)
+     let _ =
+       Fix.causal b_loc env env_eq (Match.names_env env_v) in
      (* store the next last value *)
      let* s_list = map2 { kind = Estate; loc = b_loc }
                      (set_vardec env_eq) b_vars s_list in
      (* remove all local variables from [env_eq] *)
      let env = Env.append env_eq env in
-     let env_eq = remove env_v env_eq in
-     return (env, env_eq, Stuple (s_eq :: s_list))
+     (* compute variables that are visible - distinct from [x1,...,xn] *)
+     let env_visible_eq = remove env_v env_eq in
+     let l1 = Env.bindings env in
+     let l2 = Env.bindings env_visible_eq in
+     return (env, env_visible_eq, Stuple (s_eq :: s_list))
   | _ ->
      error { kind = Estate; loc = b_loc }
 
