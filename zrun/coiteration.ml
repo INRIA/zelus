@@ -1402,7 +1402,7 @@ and sblock genv env { b_vars; b_body = ({ eq_write } as eq); b_loc } s_b =
      (* a dynamic check of causality: all locally defined names *)
      (* [x1,...,xn] must be non bottom provided that all free vars *)
      (* are non bottom *)
-     let _ =
+     let* _ =
        Fix.causal b_loc env env_eq (Match.names_env env_v) in
      (* store the next last value *)
      let* s_list = map2 { kind = Estate; loc = b_loc }
