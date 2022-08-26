@@ -52,6 +52,8 @@ and closure =
 and value = pvalue extended
 
 and state =
+  | Sbot : state
+  | Snil : state
   | Sempty : state
   | Stuple : state list -> state
   | Sval : value -> state
