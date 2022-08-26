@@ -68,6 +68,12 @@ let (let+) v f =
   | Vnil -> return Vnil
   | Value(v) -> f v
 
+let (and+) v1 v2 =
+  match v1, v2 with
+  | (Vbot, _) | (_, Vbot) -> Vbot
+  | (Vnil, _) | (_, Vnil) -> Vnil
+  | Value(v1), Value(v2) -> Value(v1, v2)
+
 (* [let*+ x = e in e'] composes [let*] and [let+] *)
 let (let*+) v f =
   let* v = v in
