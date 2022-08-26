@@ -38,18 +38,8 @@ open Match
 open Sdebug
    
 (* evaluation functions *)
-
-let (let+) v f =
-  match v with
-  | Vbot -> return Vbot
-  | Vnil -> return Vnil
-  | Value(v) -> f v
-
-let (and+) v1 v2 =
-  match v1, v2 with
-  | (Vbot, _) | (_, Vbot) -> Vbot
-  | (Vnil, _) | (_, Vnil) -> Vnil
-  | Value(v1), Value(v2) -> Value(v1, v2)
+let (let+) = Combinatorial.(let+)
+let (and+) = Combinatorial.(and+)
                           
 (* [reset init step genv env body s r] resets [step genv env body] *)
 (* when [r] is true *)
@@ -546,7 +536,8 @@ let matching_out env { b_vars; b_loc } =
 let for_matching_out missing env_list acc_env returns =
   let* v_list =
     map
-      (fun { desc = { for_array; for_vardec = { var_name; var_init; var_default } };
+      (fun { desc = { for_array;
+                      for_vardec = { var_name; var_init; var_default } };
              loc } ->
         match var_init with
         | Some _ when for_array = 0 ->
@@ -593,6 +584,8 @@ let for_env_out missing env_list acc_env loc for_out =
 (* Its type is [state -> (value * state) option] *)
 let rec sexp genv env { e_desc; e_loc } s =
   match e_desc, s with   
+  | _, Sbot -> return (Vbot, s)
+  | _, Snil -> return (Vnil, s)
   | Econst(v), s ->
      return (Value (Combinatorial.immediate v), s)
   | Econstr0 { lname }, s ->
@@ -1091,9 +1084,7 @@ and sleq genv env { l_rec; l_eq = ({ eq_write } as l_eq); l_loc } s_eq =
     (* compute a bounded fix-point in [n] steps *)
     let bot = bot_env eq_write in
     let n = (Fix.size l_eq) + 1 in
-    let l1 = Env.bindings env in
     let* env_eq, s_eq = Fix.eq genv env seq l_eq n s_eq bot in
-    let l2 = Env.bindings env_eq in
     (* a dynamic check of causality: all defined names in [eq] *)
     (* must be non bottom provided that all free vars. are non bottom *)
     let* _ = Fix.causal l_loc env env_eq (names eq_write) in
@@ -1110,13 +1101,16 @@ and slets loc genv env leq_list s_list =
 (* step function for an equation *)
 and seq genv env { eq_desc; eq_write; eq_loc } s =
   match eq_desc, s with 
+  | _, Sbot ->
+     return (bot_env eq_write, s)
+  | _, Snil ->
+     return (nil_env eq_write, s)
   | EQeq(p, e), s -> 
      let* v, s = sexp genv env e s in
      let* env_p =
        matcheq v p |>
-         Opt.to_result ~none:{ kind = Epattern_matching_failure; loc = eq_loc }
-     in
-     (* let l = Env.bindings env_p in *)
+         Opt.to_result ~none:{ kind = Epattern_matching_failure;
+                               loc = eq_loc } in
      return (env_p, s)
   | EQder(x, e, e0_opt, p_h_list),
     Stuple (Scstate({ pos } as sc) :: s :: Sopt(x0_opt) :: s0 :: s_list) ->
@@ -1173,8 +1167,10 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
       let* env_eq, s =
         match v with
         (* if the condition is bot/nil then all variables have value bot/nil *)
-        | Vbot -> return (bot_env eq_write, Stuple [se; s_eq1; s_eq2])
-        | Vnil -> return (nil_env eq_write, Stuple [se; s_eq1; s_eq2])
+        | Vbot -> return (bot_env eq_write, Sbot)
+        (* Stuple [se; s_eq1; s_eq2]) *)
+        | Vnil -> return (nil_env eq_write, Snil)
+        (* Stuple [se; s_eq1; s_eq2]) *)
         | Value(b) ->
            let* v =
              bool b |> Opt.to_result ~none:{ kind = Etype; loc = e.e_loc } in
@@ -1396,9 +1392,6 @@ and sblock genv env { b_vars; b_body = ({ eq_write } as eq); b_loc } s_b =
      let bot = Fix.complete env env_v (names eq_write) in
      let n = (Fix.size eq) + 1 in
      let* env_eq, s_eq = Fix.eq genv env seq eq n s_eq bot in
-     let l1 = Env.bindings env in
-     let l2 = Env.bindings env_eq in
-     let l3 = Env.bindings env_v in
      (* a dynamic check of causality: all locally defined names *)
      (* [x1,...,xn] must be non bottom provided that all free vars *)
      (* are non bottom *)
@@ -1411,8 +1404,6 @@ and sblock genv env { b_vars; b_body = ({ eq_write } as eq); b_loc } s_b =
      let env = Env.append env_eq env in
      (* compute variables that are visible - distinct from [x1,...,xn] *)
      let env_visible_eq = remove env_v env_eq in
-     let l1 = Env.bindings env in
-     let l2 = Env.bindings env_visible_eq in
      return (env, env_visible_eq, Stuple (s_eq :: s_list))
   | _ ->
      error { kind = Estate; loc = b_loc }
