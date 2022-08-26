@@ -51,7 +51,7 @@ let parse_implementation_file source_name =
   parse Parser.implementation_file Lexer.main source_name
                
 (* The main entry function. Execute [n] steps of [main()] or [run main ()]  *)
-let eval genv n_steps main =
+let eval_main genv n_steps main =
   let fv =
     find_gvalue_opt (Name main) genv in
   match fv with
@@ -60,14 +60,23 @@ let eval genv n_steps main =
        main
   | Some(fv) ->
      match fv with
-     | Vclosure({ c_funexp = { f_kind = (Kstatic | Kfun) } }) | Vfun _ ->
+     | Vclosure({ c_funexp = { f_kind; f_loc; f_args = [[]] } } as c) ->
+        begin match f_kind with
+        | Knode | Khybrid ->
+           let si = Coiteration.catch (Coiteration.instance f_loc c) in
+           Coiteration.run_node
+             no_location (Output.value_flush Format.std_formatter )
+             n_steps si void
+        | Kstatic | Kfun ->
+           Coiteration.run_fun
+          no_location (Output.value_flush Format.std_formatter )
+          n_steps fv [void] end
+     | Vclosure({ c_funexp = { f_args = _ } }) ->
+        Format.eprintf "@[Zrun: the argument of %s should be void.@.@]" main
+     | Vfun _ ->
         Coiteration.run_fun
           no_location (Output.value_flush Format.std_formatter )
           n_steps fv [void]
-     | Vclosure({ c_funexp = { f_kind = Knode | Khybrid; f_loc } } as c) ->
-        let si = Coiteration.catch (Coiteration.instance f_loc c) in
-        Coiteration.run_node
-          no_location (Output.value_flush Format.std_formatter ) n_steps si void
      | _ ->
         Format.eprintf "@[Zrun: the global value %s is not a function.@.@]"
           main
@@ -85,8 +94,7 @@ let do_step comment step input =
   output
 
 (* Evaluate all the definition in a file, store values *)
-(* and a main function/node, if given *)
-let main modname filename n_steps main_nodes =
+let eval_definitions_in_file modname filename =
   (* output file in which values are stored *)
   let obj_name = filename ^ ".zlo" in
   let otc = open_out_bin obj_name in
@@ -117,8 +125,35 @@ let main modname filename n_steps main_nodes =
   (* Write the values into a file *)
   (* Genv.write genv otc; *)
   apply_with_close_out (Genv.write genv) otc;
-  
-  (* evaluate a list of main function/nodes *)
-  List.iter (eval genv n_steps) main_nodes
-             
-                                                       
+
+  genv
+
+ (* evaluate the body of a list of main nodes *)    
+ let main modname filename n_steps main_nodes =
+   let genv = eval_definitions_in_file modname filename in
+     
+   (* evaluate a list of main function/nodes *)
+   List.iter (eval_main genv n_steps) main_nodes
+
+ let all modname filename n_steps =
+   let open Genv in
+   let { current = { values } } = eval_definitions_in_file modname filename in
+     
+   let eval _ v =
+     match v with
+     | Vclosure({ c_funexp = { f_kind; f_loc; f_args = [[]] } } as c) ->
+        begin match f_kind with
+        | Knode | Khybrid ->
+           let si = Coiteration.catch (Coiteration.instance f_loc c) in
+           Coiteration.run_node
+             no_location (Output.value_flush Format.std_formatter )
+             n_steps si void
+        | Kstatic | Kfun ->
+           Coiteration.run_fun
+          no_location (Output.value_flush Format.std_formatter )
+          n_steps v [void] end
+     | _ -> () in
+   
+     (* evaluate a list of main function/nodes *)
+   E.iter eval values
+     
