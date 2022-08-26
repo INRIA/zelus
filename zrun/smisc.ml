@@ -23,11 +23,16 @@ let set_vverbose () =
   vverbose := true;
   set_verbose ()
 
+(* the list of nodes to evaluate *)
 let main_nodes = ref ([] :string list)
 let set_main s = main_nodes := s :: !main_nodes
 
+(* evaluate all nodes *)
+let all = ref false
+                
 let print_values = ref false
                  
+(* number of synchronous steps for the evaluation *)
 let number_of_steps = ref 0
 let set_number_of_steps n = number_of_steps := n
 
@@ -37,6 +42,8 @@ let incr_number_of_fixpoint_iterations n =
   number_of_fixpoint_iterations := !number_of_fixpoint_iterations + n
 let reset_number_of_fixpoint_iterations () = number_of_fixpoint_iterations := 0
                     
+(* remove the check of assertions during evaluation *)
 let no_assert = ref false
 
+(* remove the check that fix-point equation produce non bottom values *)
 let set_nocausality = ref false
