@@ -15,6 +15,8 @@ let node f2() returns (o)
       fby 42 fby 41 fby 40
       fby 39 fby 38 done
     
-let node main() returns (o, o1, o2)
-    do o1, _, _ =  f1() and o2 =  f2() and o = o1 = o2 done
+let node main() returns ()
+  local o1, o2
+  do o1, _, _ =  f1() and o2 =  f2() and
+     assert (o1 = o2) done
 
