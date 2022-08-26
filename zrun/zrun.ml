@@ -19,10 +19,16 @@ let main file =
   then 
     let filename = Filename.chop_extension file in
     let modname = String.capitalize_ascii (Filename.basename filename) in
-    Eval.main modname filename !Smisc.number_of_steps !Smisc.main_nodes 
+    let n_steps = !Smisc.number_of_steps in
+    let l_nodes = !Smisc.main_nodes in
+    if !Smisc.all then
+      Eval.all modname filename n_steps 
+    else
+      Eval.main modname filename n_steps l_nodes
   else raise (Arg.Bad "Expected *.zls file.")
 
 let doc_main = "\tThe main node to evaluate"
+let doc_all = "\tEvaluate all nodes"
 let doc_number_of_steps = "\tThe number of steps"
 let doc_verbose = "\tVerbose mode"
 let doc_vverbose = "\t Set even more verbose mode"
@@ -40,6 +46,7 @@ let main () =
     Arg.parse
       (Arg.align
          [ "-s", Arg.String Smisc.set_main, doc_main;
+           "-all", Arg.Set Smisc.all, doc_all;
            "-n", Arg.Int Smisc.set_number_of_steps, doc_number_of_steps;
            "-v", Arg.Unit set_verbose, doc_verbose;
            "-vv", Arg.Unit set_vverbose, doc_vverbose;
