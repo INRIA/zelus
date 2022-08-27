@@ -135,23 +135,25 @@ let eval_definitions_in_file modname filename =
    (* evaluate a list of main function/nodes *)
    List.iter (eval_main genv n_steps) main_nodes
 
+ (* evaluate all nodes/functions whose input is () *)
  let all modname filename n_steps =
    let open Genv in
    let { current = { values } } = eval_definitions_in_file modname filename in
      
-   let eval _ v =
+   let eval name v =
      match v with
      | Vclosure({ c_funexp = { f_kind; f_loc; f_args = [[]] } } as c) ->
         begin match f_kind with
         | Knode | Khybrid ->
+           let ff = Format.std_formatter in
            let si = Coiteration.catch (Coiteration.instance f_loc c) in
+           Format.fprintf ff "@[Evaluate %d steps of %s@.@]" n_steps name;
            Coiteration.run_node
-             no_location (Output.value_flush Format.std_formatter )
-             n_steps si void
+             no_location (Output.value_flush ff) n_steps si void
         | Kstatic | Kfun ->
+           let ff = Format.std_formatter in
            Coiteration.run_fun
-          no_location (Output.value_flush Format.std_formatter )
-          n_steps v [void] end
+             no_location (Output.value_flush ff) n_steps v [void] end
      | _ -> () in
    
      (* evaluate a list of main function/nodes *)
