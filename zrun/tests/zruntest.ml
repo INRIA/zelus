@@ -1,9 +1,8 @@
-(***********************************************************************)
+(* *********************************************************************)
 (*                                                                     *)
+(*                        The ZRun Interpreter                         *)
 (*                                                                     *)
-(*          Zelus, a synchronous language for hybrid systems           *)
-(*                                                                     *)
-(*  (c) 2021 Inria Paris (see the AUTHORS file)                        *)
+(*                             Marc Pouzet                             *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -11,6 +10,8 @@
 (*  LICENSE file).                                                     *)
 (*                                                                     *)
 (* *********************************************************************)
+
+(* Initial version from Guillaume Baudart, INRIA *)
 
 open Misc
 open Initial
@@ -37,7 +38,8 @@ let n_steps = 10
 let good_one filename =
   Modules.clear ();
   let modname = String.capitalize_ascii (Filename.basename filename) in
-  Eval.main modname filename n_steps ["main"]
+  (* evaluate all functions whose input is () *)
+  Eval.all modname filename n_steps
 
 exception Error
 

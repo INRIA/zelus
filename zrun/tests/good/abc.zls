@@ -53,15 +53,15 @@ and
 done
     
 let node raising(i, initVal)
-  returns(out)
+  returns(o)
 do
-  out = initVal -> not(pre(i)) && i
+  o = initVal -> not(pre(i)) && i
 done
 
 let node falling(i, initVal)
-  returns(out)
+  returns(o)
 do
-  out = initVal -> pre(i) && not(i)
+  o = initVal -> pre(i) && not(i)
 done
 
 (*

@@ -56,7 +56,9 @@ let node main1 () =
   let v = g [| 1; 2; 3; 4 |] in assert (v = 10)
 
 let node main1_1 () =
-  let v = gg [| 1; 2; 3; 4 |] in assert (v = 10)
+  let v = gg [| 1; 2; 3; 4 |] in
+  let rec cpt = 10 fby cpt + 10 in
+  assert (v = cpt)
 
 (* scalar product *)
 let node scalar0 (x, y) =
@@ -100,8 +102,15 @@ let node copy x =
   done
   
 let node main3 () =
-  let v = plus11 (plus (plus1 (f 0), plus1 (f 1))) in
-  assert (v = [|3;3;3;3|])
+  let v0 = f 0 in
+  let v1 = f 1 in
+  let v00 = plus1 v0 in
+  let v11 = plus1 v1 in
+  let v2 = plus (v00, v11) in
+  let v3 = plus1 v2 in
+  let v = plus1 (plus (plus1 (f 0), plus1 (f 1))) in
+  assert (v3 = v);
+  assert (v = [|4;4;4;4|])
 
 let node main4 () =
   plus1 (copy (f 1))
@@ -289,23 +298,23 @@ let node main17 () =
   let m1 = [| [| 1; 2; 3; 4 |];
 	      [| 5; 6; 7; 8 |];
 	      [| 9; 10; 11; 12 |] |] in
-  let un = [| [| 1; 1; 1; 1; 1 |];
+  let full_one = [| [| 1; 1; 1; 1; 1 |];
 	      [| 1; 1; 1; 1; 1 |];
 	      [| 1; 1; 1; 1; 1 |];
 	      [| 1; 1; 1; 1; 1|] |] in
-  prod_matrix2 (m1, id)
+  prod_matrix2 (m1, full_one)
 
 let node main18 () =
   let m1 = [| [| 1; 2; 3; 4 |];
 	      [| 5; 6; 7; 8 |];
 	      [| 9; 10; 11; 12 |] |] in
-  let un = [| [| 1; 1; 1; 1; 1 |];
+  let full_one = [| [| 1; 1; 1; 1; 1 |];
 	      [| 1; 1; 1; 1; 1 |];
 	      [| 1; 1; 1; 1; 1 |];
 	      [| 1; 1; 1; 1; 1|] |] in
-  let p0 = prod_matrix0 (m1, id) in
-  let p1 = prod_matrix1 (m1, id) in
-  let p2 = prod_matrix1 (m1, id) in
+  let p0 = prod_matrix0 (m1, full_one) in
+  let p1 = prod_matrix1 (m1, full_one) in
+  let p2 = prod_matrix1 (m1, full_one) in
   assert (p0 = p1 && p1 = p2)
 
 let node f(x) = o where

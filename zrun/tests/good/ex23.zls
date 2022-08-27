@@ -28,8 +28,8 @@ let node f x =
     do o = (0 fby o) + xi done 
 
 let node main3 () =
-  let t = make(10) in
-  f v
+  let t = run (make(10))() in
+  f t
 
 let node f x = foreach(4) do x done
 
