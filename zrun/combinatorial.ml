@@ -82,63 +82,50 @@ let (let*+) v f =
 
 (* array operations *)
 let concat loc v1 v2 =
+  let+ v1 = v1 and+ v2 = v2 in
   match v1, v2 with
-  | (Vbot, _) | (_, Vbot) -> return Vbot
-  | (Vnil, _) | (_, Vnil) -> return Vnil
-  | Value(Varray(v1)), Value(Varray(v2)) ->
+  | Varray(v1), Varray(v2) ->
      return (Value(Varray(Array.append v1 v2)))
   | _ -> error { kind = Etype; loc }
-        
+       
 let get loc v i =
+  let+ v = v and+ i = i in
   match v, i with
-  | (Vbot, _) | (_, Vbot) -> return Vbot
-  | (Vnil, _) | (_, Vnil) -> return Vnil
-  | Value(v), Value(i) ->
-     match v, i with
-     | Varray(a), Vint(i) ->
-        let n = Array.length a in
-        if (i >= 0) && (i < n) then return (Value(a.(i)))
-        else error { kind = Earray_size { size = n; index = i }; loc }
-     | _ -> error { kind = Etype; loc }
+  | Varray(a), Vint(i) ->
+     let n = Array.length a in
+     if (i >= 0) && (i < n) then return (Value(a.(i)))
+     else error { kind = Earray_size { size = n; index = i }; loc }
+  | _ -> error { kind = Etype; loc }
 
 let get_with_default loc v i default =
+  let+ v = v and+ i = i in
   match v, i with
-  | (Vbot, _) | (_, Vbot) -> return Vbot
-  | (Vnil, _) | (_, Vnil) -> return Vnil
-  | Value(v), Value(i) ->
-     match v, i with
-     | Varray(a), Vint(i) ->
-        if (i >= 0) && (i < Array.length a) then return (Value(a.(i)))
-        else return default
-     | _ -> error { kind = Etype; loc }
+  | Varray(a), Vint(i) ->
+     if (i >= 0) && (i < Array.length a) then return (Value(a.(i)))
+     else return default
+  | _ -> error { kind = Etype; loc }
 
 let slice loc v i1 i2 =
+  let+ v = v and+ i1 = i1 and+ i2 = i2 in
   match v, i1, i2 with
-  | (Vbot, _, _) | (_, Vbot, _) | (_, _, Vbot) -> return Vbot
-  | (Vnil, _, _) | (_, Vnil, _) | (_, _, Vnil) -> return Vnil
-  | Value(v), Value(i1), Value(i2) ->
-     match v, i1, i2 with
-     | Varray(v), Vint(i1), Vint(i2) ->
-        let n = Array.length v in
-        if i1 < n then
-          if i2 < n then return (Value(Varray(Array.sub v i1 (i2+1-i1))))
-          else error { kind = Earray_size { size = n; index = i2 }; loc }
-        else error { kind = Earray_size { size = n; index = i1 }; loc }
-     | _ -> error { kind = Etype; loc }
-
+  | Varray(v), Vint(i1), Vint(i2) ->
+     let n = Array.length v in
+     if i1 < n then
+       if i2 < n then return (Value(Varray(Array.sub v i1 (i2+1-i1))))
+       else error { kind = Earray_size { size = n; index = i2 }; loc }
+     else error { kind = Earray_size { size = n; index = i1 }; loc }
+  | _ -> error { kind = Etype; loc }
+       
 let update loc v i w =
-  match v, i, w with
-  | (Vbot, _, _) | (_, Vbot, _) | (_, _, Vbot) -> return Vbot
-  | (Vnil, _, _) | (_, Vnil, _) | (_, _, Vnil) -> return Vnil
-  | Value(a), Value(i), Value(w) ->
-     match a, i with
-     | Varray(a), Vint(i) ->
-        if (i >= 0) && (i < Array.length a) then
-          let a = Array.copy a in
-          a.(i) <- w;
-          return (Value(Varray(a)))
-        else return v
-     | _ -> error { kind = Etype; loc }
+  let+ a = v and+ i = i and+ w = w in
+  match a, i with
+  | Varray(a), Vint(i) ->
+     if (i >= 0) && (i < Array.length a) then
+       let a = Array.copy a in
+       a.(i) <- w;
+       return (Value(Varray(a)))
+     else return v
+  | _ -> error { kind = Etype; loc }
 
 (* check that a value is an integer *)
 let int loc v =
@@ -253,7 +240,8 @@ let rec exp genv env { e_desc; e_loc } =
      let* r = check_assertion e_loc v void in
      return r
   | Epresent _ -> error { kind = Enot_implemented; loc = e_loc }
-   
+  | Eforloop _ -> error { kind = Enot_implemented; loc = e_loc }
+                
 and exp_list genv env e_list = map (exp genv env) e_list
 
 and record_access { label; arg } =
@@ -398,7 +386,8 @@ and eval_eq genv env { eq_desc; eq_write; eq_loc } =
      error { kind = Eshould_be_combinatorial; loc = eq_loc }
   | EQpresent _  | EQemit _ | EQlocal _ ->
      error { kind = Enot_implemented; loc = eq_loc }
-  
+  | EQforloop _ -> error { kind = Enot_implemented; loc = eq_loc }
+ 
 and funexp genv env fe =
   Result.return (Value(Vclosure { c_funexp = fe; c_genv = genv; c_env = env }))
 
