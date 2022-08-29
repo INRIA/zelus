@@ -20,8 +20,8 @@ int running = 0;
 static void motor_handler(const lcm_recv_buf_t *rbuf, const char * channel, 
         const robot_store_t * msg, void * user)
 {
-    printf("Received message on channel \"%s\":\n", channel);
-    printf("writing to table '%s'", msg->command);
+    //printf("Received message on channel \"%s\":\n", channel);
+    //printf("writing to table '%s'", msg->command);
     insert_to_table(msg->command, msg->value);
 }
 
@@ -31,7 +31,7 @@ void *lcm_listen(void *param)
     printf("Listener Started\n");
     printf("the value of running is %d\n",running);
     while(running){
-        lcm_handle(lcm); printf ("it's now %s", "running");
+        lcm_handle(lcm); //printf ("it's now %s", "running");
     }    
     lcm_destroy(lcm);
     printf("Listener Stopped\n");
