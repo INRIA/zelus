@@ -391,9 +391,9 @@ and operator ff op e_list =
   | Eget_with_default, [e1; e2; e3] ->
      fprintf ff "%a.(%a) default %a" expression e1 expression e2 expression e3
   | Eslice, [e1; e2; e3] ->
-     fprintf ff "%a.(%a..%a)" expression e1 expression e2 expression e3
+     fprintf ff "%a.(%a .. %a)" expression e1 expression e2 expression e3
   | Eupdate, [e1; e2; e3] ->
-     fprintf ff "[|<hov 2%a with@, %a <- %a|]@]"
+     fprintf ff "@[<hov 2>[|%a with@, %a <- %a|]@]"
        expression e1 expression e2 expression e3
   | _ -> assert false
 
