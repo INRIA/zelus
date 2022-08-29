@@ -1,6 +1,10 @@
-let node m() =
-  let v = foreach(4) do 1 done in
-  length v
+let node m1() returns (o)
+  let r = 1 + 2 in
+  let m = r + 2 in
+  do o = 42 done
+
+let node m2() =
+  let t = foreach(4) do 1 done in length t
 
 let node make(n)() = foreach(n) i in 0 to n-1 do i done
 
