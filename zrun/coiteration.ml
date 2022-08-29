@@ -276,7 +276,7 @@ and ifor_kind genv env for_size for_kind s_body =
        | Kforward _ -> (* the body must be combinatorial *)
           s_body
        | Kforeach -> (* the initial state is a list of states *)
-          Slist(Util.list_of v s_body) in
+          Stuple(Util.list_of v s_body) in
      return (s_size, s_body)
     
 and iexp_opt genv env e_opt =
@@ -832,6 +832,11 @@ let rec sexp genv env { e_desc; e_loc } s =
        | Vnil ->
           return (Vnil, None, s_for_body, si, si_list)
        | Value(size, i_env) ->
+          (* allocate the memory if the loop is a foreach loop *)
+          let s_for_body =
+            match for_kind with
+            | Kforward _ -> s_for_body
+            | Kforeach -> Stuple(Util.list_of size s_for_body) in
           let* i_env, si_list =
             mapfold2v { kind = Estate; loc = e_loc }
               (sfor_index size genv env) i_env index_list si_list in
@@ -853,12 +858,12 @@ and sforloop_exp loc genv env for_size for_kind for_body i_env s_for_body =
           (* the default expression must be combinatorial. *)
           let* ve, s_for_body =
             match for_kind, s_for_body with
-            | Kforeach, Slist(s_list) ->
+            | Kforeach, Stuple(s_list) ->
                (* parallel loop; every iteration has its own state *)
                let* ve, s_list =
                  Forloop.foreach
                    (fun env s -> sexp genv env e s) env i_env s_list in
-               return (ve, Slist(s_list))
+               return (ve, Stuple(s_list))
             | Kforward(None), _ ->
                (* hyperserial loop; the transition function is iterated *)
                (* on the same state *)
@@ -893,14 +898,14 @@ and sforloop_exp loc genv env for_size for_kind for_body i_env s_for_body =
           (* 2/ runs the body *)
           let* missing, env_list, acc_env, s_for_body =
             match for_kind, s_for_body with
-            | Kforeach, Slist(s_list) ->
+            | Kforeach, Stuple(s_list) ->
                let sbody env s =
                  let* _, local_env, s = sblock genv env body s in
                  return (local_env, s) in
                let* env_list, acc_env, s_list =
                  Forloop.foreach_with_accumulation_i
                    sbody env i_env acc_env s_list in
-               return (0, env_list, acc_env, Slist(s_list))
+               return (0, env_list, acc_env, Stuple(s_list))
             | Kforward(None), _ ->
                let sbody env s =
                  let* _, local_env, s = sblock genv env body s in
@@ -1269,8 +1274,8 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
        (* [present z1 -> eq1 | ...] *)
        | Some(env_handler), _, _ -> return (env_handler, s)
        | _, Init _, s ->
-          (* this case should not arrive; no [init ...] with a present between *)
-          (* equations. *)
+          (* this case should not arrive because it is syntactically *)
+          (* incorrect *)
           error { kind = Eunexpected_failure; loc = eq_loc } in
      (* complete missing entries in the environment *)
      let* env_handler = Fix.by eq_loc env env_handler (names eq_write) in
@@ -1334,14 +1339,14 @@ and sforloop_eq
      (* 2/ runs the body *)
      let* missing, env_list, acc_env, s_for_block =
        match for_kind, s_for_block with
-       | Kforeach, Slist(s_list) ->
+       | Kforeach, Stuple(s_list) ->
           let sbody env s =
             let* _, local_env, s = sblock genv env for_block s in
             return (local_env, s) in
           let* env_list, acc_env, s_list =
             Forloop.foreach_with_accumulation_i
               sbody env i_env acc_env s_list in
-          return (0, env_list, acc_env, Slist(s_list))
+          return (0, env_list, acc_env, Stuple(s_list))
        | Kforward(None), _ ->
           let sbody env s =
             let* _, local_env, s = sblock genv env for_block s in
