@@ -20,9 +20,9 @@ type 'a ientry = { cur: 'a; last : 'a option; default : 'a option }
 type 'a result = ('a, Error.error) Result.t
 
 type 'a extended =
-  | Vnil : 'a extended
-  | Vbot : 'a extended
-  | Value : 'a -> 'a extended
+  | Vnil : 'a extended (* non initialized value *)
+  | Vbot : 'a extended (* bottom value *)
+  | Value : 'a -> 'a extended (* value *)
   
 type pvalue =
   | Vint : int -> pvalue
@@ -40,7 +40,7 @@ type pvalue =
   | Vtuple : value list -> pvalue
   | Vstate0 : Ident.t -> pvalue
   | Vstate1 : Ident.t * pvalue list -> pvalue
-  | Vfun : (pvalue -> pvalue option) -> pvalue
+  | Vfun : (pvalue -> pvalue option) -> pvalue (* inported stateless function *)
   | Vclosure : closure -> pvalue
   | Varray : pvalue Array.t -> pvalue
 
@@ -55,8 +55,8 @@ and state =
   | Sbot : state
   | Snil : state
   | Sempty : state
-  | Stuple : state list -> state
   | Sval : value -> state
+  | Stuple : state list -> state
   | Sopt : value option -> state
   | Sinstance : instance -> state
   | Scstate : { pos : value; der : value } -> state 
@@ -64,16 +64,12 @@ and state =
   | Shorizon : { zin : bool; horizon : float } -> state
   | Speriod :
       { zin : bool; phase : float; period : float; horizon : float } -> state
-  | Slist : state list -> state
 
+(* instance of a node *)
 and instance =
-  { init : state;
-    step : closure }
-
-and 'a default =
-  | Val : 'a default
-  | Last : 'a -> 'a default
-  | Default : 'a -> 'a default
+  { init : state; (* current state *)
+    step : closure; (* step function *)
+  }
 
 (*
 type ('a, 's) costream =
