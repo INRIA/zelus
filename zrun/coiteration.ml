@@ -1308,7 +1308,12 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
       | Vnil ->
          return (nil_env eq_write, None, s_for_body, si, si_list)
       | Value(size, i_env) ->
-         let* i_env, si_list =
+         (* allocate the memory if the loop is a foreach loop *)
+          let s_for_body =
+            match for_kind with
+            | Kforward _ -> s_for_body
+            | Kforeach -> Stuple(Util.list_of size s_for_body) in
+          let* i_env, si_list =
            mapfold2v { kind = Estate; loc = eq_loc }
              (sfor_index size genv env) i_env index_list si_list in
          (* step in the body only if [i_env] is not bot or nil *)
