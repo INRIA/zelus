@@ -126,7 +126,12 @@ let lte_op v1 v2 =
 
 let gte_op v1 v2 =
   return (Vbool(v1 >= v2))
-  
+
+let length_op v =
+  match v with
+  | Varray(a) -> return (Vint(Array.length a))
+  | _ -> none
+       
 let geti v i =
   let n = Array.length v in
   if (i < n) && (i >= 0) then return (Value(v.(i))) else None
@@ -279,7 +284,8 @@ let list_of_primitives =
    "<", binop lt_op;
    ">", binop gt_op;
    "<=", binop lte_op;
-   ">=", binop gte_op]
+   ">=", binop gte_op;
+   "length", unop length_op]
 
 let list_of_random_primitives =
   ["random_bool", zerop random_bool_op;
