@@ -69,7 +69,7 @@ type operator =
   | Eslice : operator
   (* [e.(e..e)] *)
   | Eupdate : operator
-  (* [| e with e <- e |] *)
+  (* [| e with (e1,...,en) <- e |] *)
 
 and is_inline = bool
 
