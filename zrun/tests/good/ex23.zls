@@ -4,7 +4,7 @@ let node m1() returns (o)
   do o = 42 done
 
 let node m2() =
-  let t = foreach(4) do 1 done in length t
+  let t = foreach i in 0 to 4 do 1 done in length t
 
 let node make(n)() = foreach(n) i in 0 to n-1 do i done
 
@@ -174,13 +174,10 @@ let node cholesky(n)(a) returns (l)
                   forward k in 0 to i-1 returns (cpt init 0)
                     do cpt = last cpt +. (last l).(i).(k) *. (last l).(j).(k)
                     done in
-                do let lji = if i = j then sqrt(aij -. tmp_sum)
+                let lji = if i = j then sqrt(aij -. tmp_sum)
                              else (aij -. tmp_sum) /. (last l).(i).(i) in
-                   do l = [| last l with j <-
-                          [| (last l).(j) with i <- lji |] |]
-                   done
-                done
-              done
+                do l = [| last l with j,i <- lji |] done
+	      done
      done
   done
 
@@ -192,18 +189,18 @@ let node cholesky(n)(a) returns (l)
             forward k in 0 to i-1 returns (cpt init 0)
                do cpt = last cpt +. (last l).(i).(k) *. (last l).(j).(k)
                done in
-      do let lji = if i = j then sqrt(aij -. tmp_sum)
-                   else (aij -. tmp_sum) /. (last l).(i).(i) in
-         do l = [| last l with j <-
-                          [| (last l).(j) with i <- lji |] |]
-         done
-      done
+      let lji = if i = j then sqrt(aij -. tmp_sum)
+                else (aij -. tmp_sum) /. (last l).(i).(i) in
+      do l = [| last l with j, i <- lji |] done
     done
   done
-(* on aimerait ecrire *)
-(* [| last l with j, i <- lji |] au lieu de:
-   [| last l with j <- [| (last l).(j) with i <- lji |] |] *)
-   
+
+let node main14() = run (mat(5, 0))()
+
+let node main15() =
+  let m = [| [| 1; 2; 3 |]; [| 1; 2; 3 |]; [| 1; 2; 3 |] |] in
+  run (cholesky(3))(m)
+
 (*
 let node cholesky(n)(a) returns (l)
   forward i in 0 to n-1, ai in a, l init mat(n, 0.0) do
@@ -218,9 +215,8 @@ let node cholesky(n)(a) returns (l)
       done
    done
  done
-	     *)
-             
-(* et:
+
+One like to write:
 
 forward i in 0 to n-1, ai in a,
         j in 0 to n-1, aij in ai, l init mat(n, 0.0)
@@ -228,25 +224,21 @@ forward i in 0 to n-1, ai in a,
      ...
     done
 
-au lieu de:
+instead of:
 
 forward i in 0 to n-1, ai in a, l init mat(n, 0.0) do
     forward j in 0 to n-1, aij in ai, l init last l do
       
- *)
-
-(*
-   let node cholesky(n)(a) returns (l)
-    forward i in 0 to n-1, ai in a,
+let node cholesky(n)(a) returns (l)
+   forward i in 0 to n-1, ai in a,
             j in 0 to n-1, aij in ai, l init mat(n, 0.0)
     do
      let tmp_sum =
           forward k in 0 to i-1 returns (cpt init 0.0)
 	   do cpt = last cpt +. (last l).(i).(k) *. (last l).(j).(k)) done in
-     do let lji = if i = j then sqrt   (aij -. tmp_sum)
+     let lji = if i = j then sqrt   (aij -. tmp_sum)
                   else (aij -. tmp_sum) /. (last l).(i).(i) in
-        do l = [| last l with i,j  <- lji |] done
-     done
+     do l = [| last l with i,j  <- lji |] done
     done
 *)
 
