@@ -148,6 +148,9 @@ let nil_env (eq_write: Deftypes.defnames) : 'a extended ientry Env.t =
 (* a bot/nil value lifted to lists *)
 let bot_list l = List.map (fun _ -> Vbot) l
 
+let sbot_list l = List.map (fun _ -> Sbot) l
+let snil_list l = List.map (fun _ -> Snil) l
+
 (* a bot/nil value lifted to patterns *)
 let rec distribute v acc { pat_desc } =
   match pat_desc with

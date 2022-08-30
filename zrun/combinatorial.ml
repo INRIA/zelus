@@ -116,6 +116,7 @@ let slice loc v i1 i2 =
      else error { kind = Earray_size { size = n; index = i1 }; loc }
   | _ -> error { kind = Etype; loc }
        
+(* [| v with i <- w |] *)
 let update loc v i w =
   let+ a = v and+ i = i and+ w = w in
   match a, i with
@@ -126,6 +127,18 @@ let update loc v i w =
        return (Value(Varray(a)))
      else return v
   | _ -> error { kind = Etype; loc }
+       
+(* [| v with i1,..., in <- w |] is a shortcut for *)
+(* [| v with i1 <- [| v.(i1) with i2,...,in <- w |] |] *)
+let rec update_list loc v i_list w =
+  match i_list with
+  | [] -> error { kind = Eunexpected_failure; loc }
+  | i :: i_list ->
+     let* w = match i_list with
+       | [] -> return w
+       | _ -> let* v = get loc v i in
+              update_list loc v i_list w in
+     update loc v i w
 
 (* check that a value is an integer *)
 let int loc v =

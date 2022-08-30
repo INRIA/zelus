@@ -56,7 +56,8 @@ and state =
   | Snil : state
   | Sempty : state
   | Sval : value -> state
-  | Stuple : state list -> state
+  | Spair : state * state -> state
+  | Slist : state list -> state
   | Sopt : value option -> state
   | Sinstance : instance -> state
   | Scstate : { pos : value; der : value } -> state 
