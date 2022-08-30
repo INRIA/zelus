@@ -7,9 +7,6 @@
 let pi = 3.14159
 let w = 2.*.pi
 let y0:float{y0 >= pi} = 4.0
-
-
-
 let y1:float{y1 >= y0*.2.} = 10.0
 
 (*
@@ -78,4 +75,60 @@ let node main () =
 	print_string "First: "; print_int x; print_newline (); print_string "Second : "; print_int y; print_newline ();
 	print_string "Third : "; print_int z; print_newline () *)
 	print_int (*f (-1) 2 4*) (add (4) (3));
-	(add 2 3)
+	(add (-1) 0)
+
+
+(*
+  EXAMPLE 7: usage of LTL operator in refinement definition
+
+	- currently supported operator: box, diamond
+	- LTL operator can be connected by &&, ||
+*)
+
+let add7 (x : int{x > 0}) (y : int{y > 0}) : int{ box(add7_return >= x) && diamond(add7_return >= y)} =
+  x + y 
+
+let x:int{box(x>=3) || box(x<2)} = 4
+
+
+(*
+  EXAMPLE 8: custom refinement type
+
+*)
+
+type nat = {v : int | v >= 0}
+
+(* 
+	EXAMPLE 9: treat base variable as trivially true refinement variable
+*)
+let x0:int = 3
+let x1:int{} = 3
+
+		(* False case: *)
+let x2:int{x2>4} = 3
+
+(* 
+	EXAMPLE 10: optionally make function input and output type to be refinement 
+*)
+	(* - only one input is refinement *)
+let add101 (x : int{x > 0}) (y : int) : int =
+  x + y 
+let add102 (x : int) (y : int{y > 0}) : int =
+  x + y 
+
+	(* - only return type is refinement *)
+		(* True case: *)
+let f101 (x : int) (y : int) : int{f101_return >= 0} =
+  x*x + y*y
+		(* False case: *)
+let f102 (x : int) (y : int) : int{f102_return > 0} =
+x + y 
+
+	(* - both input and output type is refinement *)
+let add103 (x : int{x > 0}) (y : int{y > 0}) : int{(add103_return > 0) && (add103_return = x+y)} =
+  x + y 
+
+	(* - no refinement *)
+let add104 (x:int) (y:int) : int =
+  x + y
+

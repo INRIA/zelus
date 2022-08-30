@@ -60,6 +60,7 @@ and type_of_type_decl { Zelus.desc = desc } =
       Ovariant_type(List.map constr_decl constr_decl_list)
   | Zelus.Erecord_type(n_ty_list) ->
      Orecord_type(List.map (fun (n, ty) -> (n, type_expression ty)) n_ty_list)
+  | Zelus.Ecustom_refinement_type((n, ty), _) -> Ocustom_refinement_type(n, type_expression ty)
 
 and constr_decl { desc = desc } =
   match desc with

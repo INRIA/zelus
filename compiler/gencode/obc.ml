@@ -213,6 +213,7 @@ and type_decl =
   | Oabbrev of type_expression
   | Ovariant_type of constr_decl list
   | Orecord_type of (string * type_expression) list
+  | Ocustom_refinement_type of (string * type_expression)
 					       
 and constr_decl =
   | Oconstr0decl of string

@@ -1,0 +1,18 @@
+
+
+
+
+(* custom refinement type test: *)
+type nat = {v : int | v >= 0}
+
+(* custom regular type *)
+type service_info =
+  { service_name : string;
+    port         : int;
+  }  
+
+
+(* type abtype *)
+
+(* refinement type declaration *)
+(* let y0:float{y0 >= 3.14} = 4.0 *)

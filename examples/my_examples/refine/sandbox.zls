@@ -70,24 +70,25 @@ let z = g a b *)
 
 (* let discrete g ( x, (y, w) : int{ x > 0} * (int{ x < y } * int{y < w})) : int{ fst g_return > w && snd g_return > w} = (x + w, y + w) *)
 
-let discrete fun_pairs (x, (y, w) : x:int * (y:int * w:int) | x > 0 && x  < y && y < w ) : int{fun_pairs_return > w} = w + x
+(* let discrete fun_pairs (x, (y, w) : x:int * (y:int * w:int) | x > 0 && x  < y && y < w ) : int{fun_pairs_return > w} = w + x *)
 
 (* let discrete fun_pairs (x, (y, w) : x:int * (y:int * w:int) | x > 0 && x  < y && y < w ) : int{ fun_pairs_fst > w && fun_pairs_snd > y} = (w + x, w + y) *)
 
-let add (x : int{x > 2}) : int{x >= 3} = x + 1
+(*let add (x : int{x > 2}) : int{x >= 3} = x + 1
 let node stream_nat (m:int{m > 0}) : int{stream_nat_return > 0} = nat where
-  rec nat = m -> add(pre nat)
+  rec nat = m -> add(pre nat) *)
 
 (*
 let discrete h a b = 
 	let z = g (a, b) in
 	g (z, a)  *)
 
-(* let discrete g x y = if x < 0 then -x else y
+(* let discrete g x y = if x < 0 then -x else y *)
 
-let discrete h a b = 
+(*let discrete h a b = 
 	g (g a b) a *)
 
+let discrete abs x : int{abs_return >= 0} = if x < 0 then -x else x
 (* let discrete h x y  = 
 	let z = g x y in
 	z *)
@@ -101,7 +102,7 @@ let discrete pos x = (x > 0) *)
 (* let add x = x + 1 *)
 
 let node main () =
-    stream_nat 1
+    (* stream_nat 1 *)
 	(* let pair = (1, (2, 3)) in
 	print_int (fst pair) *)
 	(* let x = fst pair in
@@ -115,3 +116,4 @@ let node main () =
 	h (a,b) *)
 	(* let x = 1 in
 	let y =  x fby add  *)
+	abs (-1)

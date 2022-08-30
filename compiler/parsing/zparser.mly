@@ -198,6 +198,8 @@ let block l lo eq_list startpos endpos =
 %token OPEN           /* "open" */
 %token VAL            /* "val" */
 %token RUN            /* "run" */
+%token BOX            /* "box" */
+%token DIAMOND        /* "diamond" */
 %token <string> PREFIX
 %token <string> INFIX0
 %token <string> INFIX1
@@ -309,7 +311,8 @@ implementation:
   | OPEN c = CONSTRUCTOR
       { Eopen c }
   | TYPE tp = type_params id = IDENT td = localized(type_declaration_desc)
-      { Etypedecl(id, tp, td) }
+      { Printf.printf "implementation: type declaration: type %s = ...\n" id; 
+      Etypedecl(id, tp, td) }
   | LET ide = ide EQUAL seq = seq_expression
       { Econstdecl(ide, false, seq) }
   | LET STATIC ide = ide EQUAL seq = seq_expression
@@ -317,11 +320,23 @@ implementation:
   (*added here*)
   (*refinement type definition*)
   | LET ide = ide COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
-      { Erefinementdecl(ide, obj, seq1, seq2)}  
+      { Printf.printf "Erefinementdecl\n";
+          Erefinementdecl(ide, obj, seq1, seq2, false) }
+    (*added here: use Erefinementdecl to store regular variable decl*)
+  | LET ide = ide COLON obj = ide   EQUAL seq2 = seq_expression
+      { Printf.printf "Erefinementdecl\n";
+          Erefinementdecl(ide, obj, 
+          {desc=Econst(Ebool(true));loc=localise $startpos(seq2) $endpos(seq2)}, seq2, false) }           
   | LET ide = ide fn = simple_pattern_list COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL seq2 = seq_expression
       { Printf.printf "Erefinementfundecl\n"; Erefinementfundecl(ide, { f_kind = A; f_atomic = false;
 			f_args = fn; f_body = seq2;
 			f_loc = localise $startpos(fn) $endpos(seq2) }, seq1) }
+    (*added here: use Erefinementfundecl to store regular fun decl*)
+  | LET ide = ide fn = simple_pattern_list COLON obj = ide  EQUAL seq2 = seq_expression
+      { Printf.printf "Erefinementfundecl\n"; Erefinementfundecl(ide, { f_kind = A; f_atomic = false;
+			f_args = fn; f_body = seq2;
+			f_loc = localise $startpos(fn) $endpos(seq2) }, 
+            {desc=Econst(Ebool(true));loc=localise $startpos(seq2) $endpos(seq2)}) }            
   (* Erefinementfun defined with WHERE keyword*)
   | LET ide = ide fn = simple_pattern_list COLON obj = ide LBRACE seq1 = seq_expression RBRACE EQUAL
 	seq = seq_expression WHERE r = is_rec eqs = equation_list
@@ -405,7 +420,8 @@ interface:
   | OPEN c = CONSTRUCTOR
       { Einter_open(c) }
   | TYPE tp = type_params i = IDENT td = localized(type_declaration_desc)
-      { Einter_typedecl(i, tp, td) }
+      { Printf.printf "interface: type declaration\n";
+          Einter_typedecl(i, tp, td) }
   | VAL i = ide COLON t = type_expression
       { Einter_constdecl(i, t) }
 ;
@@ -422,7 +438,8 @@ scalar_interface :
   | OPEN c = CONSTRUCTOR
       { [make (Einter_open(c)) $startpos $endpos] }
   | TYPE tp = type_params i = IDENT td = localized(type_declaration_desc)
-      { [make (Einter_typedecl(i, tp, td)) $startpos $endpos] }
+      { Printf.printf "scalar_interface: type declaration\n";
+          [make (Einter_typedecl(i, tp, td)) $startpos $endpos] }
   | VAL i = ide COLON t = type_expression
       { [make (Einter_constdecl(i, t)) $startpos $endpos] }
   | EXTERNAL i = ide COLON t = type_expression EQUAL list_no_sep_of(STRING)
@@ -435,18 +452,23 @@ scalar_interface :
 
 type_declaration_desc:
   | /* empty */
-      { Eabstract_type }
+      { Printf.printf "type_declaration_desc: Eabstract_type\n";
+          Eabstract_type }
   | EQUAL l = list_of(BAR, localized(constr_decl_desc))
       { Evariant_type (l) }
   | EQUAL BAR l = list_of(BAR, localized(constr_decl_desc))
       { Evariant_type (l) }
   | EQUAL LBRACE s = label_list(label_type) RBRACE
-      { Erecord_type (s) }
+      { Printf.printf "type_declaration_desc: Erecord_type\n";
+          Erecord_type (s) }
+  | EQUAL LBRACE label_type = label_type BAR seq = seq_expression RBRACE
+      { Printf.printf "type_declaration_desc: Ecustom_refinement_type\n";
+          Ecustom_refinement_type (label_type, seq) }
   | EQUAL t = type_expression
       { Eabbrev(t) }
 ;
 
-type_params :
+type_params:
   | LPAREN tvl = list_of(COMMA, type_var) RPAREN
       { tvl }
   | tv = type_var
@@ -466,7 +488,8 @@ label_list(X):
 
 label_type:
   i = IDENT COLON t = type_expression
-  { (i, t) }
+  { Printf.printf "label_type: %s:type_expression\n" i;
+      (i, t) }
 ;
 
 constr_decl_desc:
@@ -622,7 +645,7 @@ index_desc:
 
 
 /* states of an automaton in an equation*/
-automaton_handlers(X) :
+automaton_handlers(X):
   | a = automaton_handler(X)
       { [a] }
   | ahs = automaton_handlers(X) BAR a = automaton_handler(X)
@@ -677,7 +700,7 @@ automaton_handler(X):
       $startpos $endpos }
 ;
 
-escape :
+escape:
   | scondpat THEN state
       { { e_cond = $1; e_reset = true; e_block = None; e_next_state = $3 } }
   | scondpat CONTINUE state
@@ -688,14 +711,14 @@ escape :
       { { e_cond = $1; e_reset = false; e_block = Some($3); e_next_state = $4 } }
 ;
 
-escape_list :
+escape_list:
   | e = escape
       { [e] }
   | el = escape_list ELSE e = escape
       { e :: el }
 ;
 
-state :
+state:
   | c = CONSTRUCTOR
       { make (Estate0(c)) $startpos $endpos }
   | c = CONSTRUCTOR LPAREN e = expression RPAREN
@@ -704,7 +727,7 @@ state :
       { make (Estate1(c, List.rev l)) $startpos $endpos }
 ;
 
-state_pat :
+state_pat:
   | c = CONSTRUCTOR
       { make (Estate0pat(c)) $startpos $endpos }
   | c = CONSTRUCTOR LPAREN l = list_of(COMMA, IDENT) RPAREN
@@ -712,7 +735,7 @@ state_pat :
 ;
 
 /* Pattern on a signal */
-scondpat :
+scondpat:
   | sc = localized(scondpat_desc) { sc }
 ;
 
@@ -882,17 +905,20 @@ simple_pattern:
   | c = constructor
       { make (Econstr0pat(c)) $startpos $endpos }
   | i = ide
-      { make (Evarpat i) $startpos $endpos }
+      { Printf.printf "simple_pattern: ide\n";
+          make (Evarpat i) $startpos $endpos }
   | LPAREN p = pattern RPAREN
       { p }
   | LPAREN p = pattern_comma_list RPAREN
-      { make (Etuplepat (List.rev p)) $startpos $endpos }
+      { Printf.printf "simple_pattern: LPAREN pattern_comma_list RPAREN\n";
+          make (Etuplepat (List.rev p)) $startpos $endpos }
   | LPAREN RPAREN
       { make (Econstpat(Evoid)) $startpos $endpos }
   | UNDERSCORE
       { make Ewildpat $startpos $endpos }
   | LPAREN p = pattern COLON t = type_expression RPAREN
-      { make (Etypeconstraintpat(p, t)) $startpos $endpos }
+      { Printf.printf "simple_pattern: ( p:type_expression )\n";
+          make (Etypeconstraintpat(p, t)) $startpos $endpos }
   | LBRACE p = pattern_label_list RBRACE
       { make (Erecordpat(p)) $startpos $endpos }
 ;
@@ -904,7 +930,7 @@ pattern_comma_list:
       { p :: pc }
 ;
 
-pattern_label_list :
+pattern_label_list:
   | p = pattern_label SEMI pl = pattern_label_list
       { p :: pl }
   | p = pattern_label
@@ -915,13 +941,13 @@ pattern_label_list :
       { [] }
 ;
 
-pattern_label :
+pattern_label:
   | ei = ext_ident EQUAL p = pattern
       { (ei, p) }
 ;
 
 /* Expressions */
-seq_expression :
+seq_expression:
   | e = expression SEMI seq = seq_expression
       { make (Eseq(e, seq)) $startpos $endpos }
   | e = expression %prec prec_seq
@@ -976,14 +1002,14 @@ simple_expression_desc:
       { Printf.printf "Desc update\n"; Eop(Eupdate, [e1; i; e2]) }
 ;
 
-simple_expression_list :
+simple_expression_list:
   | e = simple_expression
 	  { [e] }
   | l = simple_expression_list e = simple_expression
 	  { e :: l }
   ;
 
-expression_comma_list :
+expression_comma_list:
   | ecl = expression_comma_list COMMA e = expression
       { e :: ecl }
   | e1 = expression COMMA e2 = expression
@@ -1060,6 +1086,11 @@ expression_desc:
       { Eop(Eminusgreater, [e1; e2]) }
   | MINUS e = expression  %prec prec_uminus
       { unary_minus "-" e ($startpos($1)) ($endpos($1)) }
+
+  |  { Printf.printf "expression_desc: Econst(Ebool(true))\n"; Econst(Ebool(true))}
+  /* | empty { Printf.printf "expression_desc: void\n"; Econst(Evoid)} */
+
+
   | s = SUBTRACTIVE e = expression  %prec prec_uminus
       { unary_minus s e ($startpos(s)) ($endpos(s)) }
   | e1 = expression i = INFIX4 e2 = expression
@@ -1073,7 +1104,8 @@ expression_desc:
   | e1 = expression i = INFIX1 e2 = expression
       { binop i e1 e2 ($startpos(i)) ($endpos(i)) }
   | e1 = expression i = INFIX0 e2 = expression
-      { binop i e1 e2 ($startpos(i)) ($endpos(i)) }
+      { Printf.printf "expression: INFIX0: e1 %s e2\n" i;
+          binop i e1 e2 ($startpos(i)) ($endpos(i)) }
   | e1 = expression EQUAL e2 = expression
       { binop "=" e1 e2 ($startpos($2)) ($endpos($2)) }
   | e1 = expression OR e2 = expression
@@ -1087,11 +1119,26 @@ expression_desc:
   | e1 = expression s = SUBTRACTIVE e2 = expression
       { binop s e1 e2 ($startpos(s)) ($endpos(s)) }
   | e1 = expression AMPERAMPER e2 = expression
-      { binop "&&" e1 e2 ($startpos($2)) ($endpos($2)) }
+      { Printf.printf "expression_desc: e1 && e2\n";
+          binop "&&" e1 e2 ($startpos($2)) ($endpos($2)) }
   | e1 = expression BARBAR e2 = expression
       { binop "||" e1 e2 ($startpos($2)) ($endpos($2)) }
   | p = PREFIX e = expression
-      { unop p e ($startpos(p)) ($endpos(p)) }
+      { Printf.printf "expression_desc: PREFIX: %s e\n" p;
+          unop p e ($startpos(p)) ($endpos(p)) }
+
+    (* add box and diamond *)
+  /* | b = BOX LPAREN e = expression RPAREN
+      { Printf.printf "expression_desc: box(e)\n"; 
+        unop "box" e ($startpos(b)) ($endpos(b)) }
+  | d = DIAMOND LPAREN e = expression RPAREN
+      { Printf.printf "expression_desc: diamond(e)\n"; 
+        unop "diamond" e ($startpos(d)) ($endpos(d)) } */
+
+  | ltl_operator = ltl_operator LPAREN e = expression RPAREN
+      { Printf.printf "expression_desc: ltl_operator: %s(e)\n" ltl_operator; 
+        unop ltl_operator e ($startpos(ltl_operator)) ($endpos(ltl_operator)) }     
+
   | e = simple_expression
           LBRACE s1 = size_expression DOTDOT s2 = size_expression RBRACE
       { Eop(Eslice(s1, s2), [e]) }
@@ -1133,6 +1180,10 @@ expression_desc:
       { Eblock(make { b_locals = []; b_vars = lo; b_body = eqs }
 	       $startpos $endpos, r) }
 ;
+
+%inline ltl_operator:
+    | BOX { "box" }
+    | DIAMOND { "diamond" }
 
 /* Periods */
 period_expression:
@@ -1197,16 +1248,19 @@ label_expression:
 /* identifiers */
 ide:
   | i = IDENT
-      { i }
+      { Printf.printf "ide: IDENT: %s\n" i;
+          i }
   | LPAREN i = infx RPAREN
       { i }
 ;
 
-ext_ident :
+ext_ident:
   | q = qual_ident
-      { Modname(q) }
+      { Printf.printf "ext_ident: qual_ident\n";
+          Modname(q) }
   | i = ide
-      { Name(i) }
+      { Printf.printf "ext_ident: ide: %s\n" i;
+          Name(i) }
 ;
 
 infx:
@@ -1279,7 +1333,8 @@ type_expression:
   (*Refinement type expression*)
   (* TODO: Make a refinement type data structure that stores all the data from this *)
   (*make(Erefinement(basetype, seq)) $startpos $endpos*)
-  | basetype = simple_type LBRACE seq = seq_expression RBRACE {Printf.printf "type refinement\n"; make(Erefinement(basetype, seq)) $startpos $endpos} 
+  | basetype = simple_type LBRACE seq = seq_expression RBRACE 
+      {Printf.printf "type refinement\n"; make(Erefinement(basetype, seq)) $startpos $endpos} 
   | LPAREN id = IDENT COLON t_arg = simple_type LBRACE seq = seq_expression RBRACE RPAREN a = arrow t_res = type_expression
       { Printf.printf "type typefunrefinement\n"; make(Etypefunrefinement(a, Some(id), t_arg, t_res , seq)) $startpos $endpos}
 ;
@@ -1312,12 +1367,12 @@ type_star_list:
       { t :: tsl }
 ;
 
-type_var :
+type_var:
   | QUOTE i = IDENT
       { i }
 ;
 
-type_comma_list :
+type_comma_list:
   | te = type_expression COMMA tl = type_comma_list
       { te :: tl }
   | te = type_expression
