@@ -830,14 +830,22 @@ simple_expression_desc:
   | LBRACKETBAR e1 = simple_expression BAR e2 = simple_expression RBRACKETBAR
       { Eop(Econcat, [e1; e2]) }
   | LBRACKETBAR e1 = simple_expression
-    WITH i = simple_expression LESSMINUS e2 = expression RBRACKETBAR
-    { Eop(Eupdate, [e1; i; e2]) }
+    WITH i_list = update_array_comma_list LESSMINUS e2 = expression RBRACKETBAR
+    { Eop(Eupdate, e1 :: e2 :: List.rev i_list) }
   | e1 = simple_expression DOT LPAREN e2 = expression RPAREN
       { Eop(Eget, [e1; e2]) }
   | e = simple_expression DOT
       LPAREN e1 = simple_expression DOTDOT e2 = simple_expression RPAREN
       { Eop(Eslice, [e; e1; e2]) }
 
+;
+
+/* [| e with e1,...,en <- e' |] */
+update_array_comma_list:
+  | e = simple_expression
+    { [ e ] }
+  | l = update_array_comma_list COMMA e = simple_expression
+    { e :: l }
 ;
 
 expression_comma_list :
