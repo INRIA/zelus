@@ -318,7 +318,7 @@ let rec expression ff e =
          Util.optional_unit (fun ff e -> fprintf ff "(%a)@ " expression e)
            ff for_size in
        fprintf ff
-         "@[<hov 2>%a%a%a@,%a@,%a@ %a@]"
+         "@[<hov 2>%a@,%a%a@,%a@,%a@ %a@]"
          kind_of_forloop for_kind
          size for_size
          index_list for_index
@@ -478,8 +478,8 @@ and equation ff ({ eq_desc = desc } as eq) =
 (* print for loops *)
 and kind_of_forloop ff for_kind =
   match for_kind with
-  | Kforeach -> fprintf ff "foreach"
-  | Kforward _ -> fprintf ff "forward"
+  | Kforeach -> fprintf ff "foreach "
+  | Kforward _ -> fprintf ff "forward "
 
 and for_exit_condition ff for_kind =
   match for_kind with
