@@ -217,6 +217,10 @@ let matching_arg_in loc env arg v =
      fold2
        { kind = Epattern_matching_failure; loc = loc }
        match_in env l v_list
+  | l, Value(Vstuple(v_list)) -> 
+     fold2
+       { kind = Epattern_matching_failure; loc = loc }
+       (fun acc n pvalue -> match_in acc n (Value(pvalue))) env l v_list
   | [x], _ -> match_in env x v
   | _ ->
      (* type error *)

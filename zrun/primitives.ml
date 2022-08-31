@@ -107,6 +107,34 @@ let div_op v1 v2 =
   let* v2 = int v2 in
   return (Vint(v1 / v2))
 
+let add_float_op v1 v2 =
+  let* v1 = float v1 in
+  let* v2 = float v2 in
+  return (Vfloat(v1 +. v2))
+
+let uminus_float_op v =
+  let* v = float v in
+  return (Vfloat(-. v))
+  
+let minus_float_op v1 v2 =
+  let* v1 = float v1 in
+  let* v2 = float v2 in
+  return (Vfloat(v1 -. v2))
+    
+let mult_float_op v1 v2 =
+  let* v1 = float v1 in
+  let* v2 = float v2 in
+  return (Vfloat(v1 *. v2))
+
+let div_float_op v1 v2 =
+  let* v1 = float v1 in
+  let* v2 = float v2 in
+  return (Vfloat(v1 /. v2))
+
+let sqrt_op v =
+  let* v = float v in
+  return (Vfloat(sqrt v))
+
 let mod_op v1 v2 =
   let* v1 = int v1 in
   let* v2 = int v2 in
@@ -274,6 +302,13 @@ let list_of_primitives =
    "-", binop minus_op;
    "/", binop div_op;
    "*", binop mult_op;
+   "+.", binop add_float_op;
+   "-.", binop minus_float_op;
+   "~-.", unop uminus_float_op;
+   "-.", binop minus_float_op;
+   "/.", binop div_float_op;
+   "*.", binop mult_float_op;
+   "sqrt", unop sqrt_op;
    "not", unop not_op;
    "&&", binop and_op;
    "&", binop and_op;
