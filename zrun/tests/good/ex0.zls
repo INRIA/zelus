@@ -3,11 +3,11 @@ let g = 42
 let node f(x, y) returns (o)
   local z
   do o = x + y
-  and z = 0 + 1
+  and z = x + 1
   done
 
 let node g(x, y) returns (o)
-  o = let rec z = 0 + 1 and o = x + y in o
+  o = let rec z = x + 1 and o = x + y in o
 
 let node main1() returns (m)
   m = f(1, 2)
