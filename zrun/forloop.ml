@@ -46,7 +46,7 @@ let geti_env i_env i =
     (fun x v acc ->
       match v with
       | Vindex { ve_left; ve_right; dir } ->
-         let i = if dir then ve_left + i else ve_right - i in
+         let i = if dir then ve_left + i else ve_left - i in
          Env.add x (entry (Value(Vint(i)))) acc
       | Vinput { ve; by } ->
          let i = match by with
