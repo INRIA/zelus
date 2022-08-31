@@ -316,20 +316,20 @@ let implementation lmm_nodes lmm_list impl =
   | Eopen _ -> lmm_list
   | Etypedecl(n, params, td) ->
      typedecl impl.loc n params td :: lmm_list
-  | Econstdecl(n, _, e) ->
+  (* | Econstdecl(n, _, e) ->
       if Zmisc.S.mem n lmm_nodes
       then Lconstdecl(n, expression Ck_base e) :: lmm_list
-     else lmm_list
+     else lmm_list *)
+  (*TODO: refinement implementation of zlus2lmm*)
   | Eipopannotation(n, e1, e2, _) ->
       if Zmisc.S.mem n lmm_nodes
       then Lipopannotation(n, expression Ck_base e1, expression Ck_base e2) :: lmm_list
      else lmm_list   
-  (*TODO: refinement implementation of zlus2lmm*)
-  | Erefinementdecl(n1,n2,e1,e2) ->
+  | Econstdecl(n1,n2,e1,e2) ->
       if Zmisc.S.mem n1 lmm_nodes
       then Lconstdecl(n1, expression Ck_base e2) :: lmm_list
      else lmm_list
-  | Erefinementfundecl(n, { f_kind = k; f_args = p_list; f_env = f_env; f_body = e }, _)
+  | Erefinementfundecl(n, { f_kind = k; f_args = p_list; f_env = f_env; f_body = e })
   | Efundecl(n, { f_kind = k; f_args = p_list; f_env = f_env; f_body = e }) ->
      if Zmisc.S.mem n lmm_nodes then
        let iset = List.fold_left (Vars.fv_pat S.empty) S.empty p_list in

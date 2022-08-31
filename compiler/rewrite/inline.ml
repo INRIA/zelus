@@ -399,9 +399,9 @@ and letin renaming env p_list e_list e =
 
 let implementation acc impl = 
   match impl.desc with
-    | Econstdecl(f, is_static, e) ->
+    | Econstdecl(f, ty_refine, is_static, e) ->
        let e = expression Env.empty e in
-       { impl with desc = Econstdecl(f, is_static, e) } :: acc
+       { impl with desc = Econstdecl(f, ty_refine, is_static, e) } :: acc
     | Eipopannotation(n, e1, e2, is_op) ->
        let e1 = expression Env.empty e1 in
        let e2 = expression Env.empty e2 in

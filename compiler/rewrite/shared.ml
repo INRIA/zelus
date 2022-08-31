@@ -165,7 +165,7 @@ let exp ({ e_desc = desc } as e) =
 let implementation impl =
   match impl.desc with
   (*added here*)
-  | Eopen _ | Etypedecl _ | Econstdecl _ | Erefinementdecl _ | Eipopannotation _-> impl
+  | Eopen _ | Etypedecl _ | Econstdecl _ | Eipopannotation _ -> impl
   | Efundecl(n, ({ f_body = e } as body)) ->
      { impl with desc = Efundecl(n, { body with f_body = exp e }) }
        

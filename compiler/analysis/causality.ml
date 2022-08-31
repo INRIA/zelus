@@ -753,17 +753,17 @@ let implementation ff { desc = desc; loc = loc } =
   try
     match desc with
     | Eopen _ | Etypedecl _ -> ()
-    | Econstdecl(f, _, e) ->
+    (* | Erefinementdecl(f, _, e) ->
        Zmisc.push_binding_level ();
        let tc = exp Env.empty (Causal.new_var ()) e in
        Zmisc.pop_binding_level ();
        let tcs = generalise tc in
        Global.set_causality (Modules.find_value (Lident.Name(f))) tcs;
        (* output the signature *)
-       if !Zmisc.print_causality_types then Pcaus.declaration ff f tcs
+       if !Zmisc.print_causality_types then Pcaus.declaration ff f tcs *)
     (*TODO: implement refinement type causality*)
-    | Erefinementdecl(f1,f2,e1,e2) ->
-    Zmisc.push_binding_level ();
+    | Econstdecl(f1,f2,e1,e2) ->
+       Zmisc.push_binding_level ();
        let tc = exp Env.empty (Causal.new_var ()) e2 in
        Zmisc.pop_binding_level ();
        let tcs = generalise tc in
@@ -801,7 +801,7 @@ let implementation ff { desc = desc; loc = loc } =
        (* output the signature *)
        if !Zmisc.print_causality_types then Pcaus.declaration ff f tcs
     | Erefinementfundecl (f, { f_kind = k; f_atomic = atomic;
-              f_args = p_list; f_body = e; f_env = h0 }, _) ->
+              f_args = p_list; f_body = e; f_env = h0 }) ->
         Zmisc.push_binding_level ();
         let env = build_env h0 Env.empty in
         let actual_tc_list = List.map (pattern env) p_list in

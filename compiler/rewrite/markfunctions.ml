@@ -356,8 +356,8 @@ let funexp_mark_to_inline info ({ f_body = e } as funexp) =
     
 let implementation impl =
   match impl.desc with
-  | Eopen _ | Etypedecl _ | Econstdecl _ | Erefinementdecl _ | (*added here*) Eipopannotation _-> impl
-  | Erefinementfundecl(n, funexp, _) | Efundecl(n, funexp) ->
+  | Eopen _ | Etypedecl _ | Econstdecl _  | (*added here*) Eipopannotation _-> impl
+  | Erefinementfundecl(n, funexp) | Efundecl(n, funexp) ->
       let info = funexp_info funexp in
       let funexp = funexp_mark_to_inline info funexp in
       { impl with desc = Efundecl(n, funexp) }

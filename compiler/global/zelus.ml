@@ -34,7 +34,7 @@ and type_expression_desc =
   | Etypefun of kind * Zident.t option * type_expression * type_expression
   | Etypefunrefinement of kind * Zident.t option * type_expression * type_expression * exp
   | Erefinementpairfuntype of type_expression list * exp
-  | Erefinement of type_expression * exp
+  | Erefinement of (name * type_expression) * exp
   | Erefinementpair of string * type_expression
   (* | Erefinementtype of exp * exp * exp *)
 
@@ -77,13 +77,13 @@ and implementation = implementation_desc localized
 and implementation_desc =
   | Eopen of name
   | Etypedecl of name * name list * type_decl
-  | Econstdecl of name * is_static * exp
+  (* | Erefinementdecl of name * is_static * exp *)
   (*added here*)
   (*refinement type definition*)
-  | Erefinementdecl of name * name * exp * exp
   | Eipopannotation of name * exp * exp * is_op
+  | Econstdecl of name * type_expression * is_static * exp
   | Efundecl of name * funexp
-  | Erefinementfundecl of name * funexp * exp
+  | Erefinementfundecl of name * funexp
 			 
 and funexp =
   { f_kind: kind;
@@ -91,7 +91,9 @@ and funexp =
     f_args: pattern list;
     f_body: exp;
     mutable f_env: Deftypes.tentry Zident.Env.t;
-    f_loc: location }
+    f_loc: location;
+    f_retrefine: type_expression
+    }
     
 and is_atomic = bool
 

@@ -142,8 +142,10 @@ let compile modname filename =
   let impl_list =
     step "Typing done." (Typing.implementation_list info_ff true) impl_list in
   (* Adding verification here *)
-  let impl_list = 
-    step "Verification done." (Z3refinement.implementation_list info_ff) impl_list in
+  let impl_list =
+    if !verify then step "Verification done" 
+  (Z3refinement.implementation_list info_ff) impl_list 
+    else impl_list in
   let impl_list =
     if not !no_causality
     then step "Causality check done"

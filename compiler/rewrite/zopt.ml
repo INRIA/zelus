@@ -233,10 +233,10 @@ let expression ({ e_desc = desc } as e) =
 
 let implementation impl =
   match impl.desc with
-  | Econstdecl(n, is_static, e) ->
-     { impl with desc = Econstdecl(n, is_static, expression e) }
   | Eipopannotation(n, e1, e2, is_op) ->
      { impl with desc = Eipopannotation(n, expression e1, expression e2, is_op) }   
+  | Econstdecl(n, ty_refine, is_static, e) ->
+     { impl with desc = Econstdecl(n, ty_refine, is_static, expression e) }
   | Efundecl(n, ({ f_body = e } as body)) ->
      { impl with desc = Efundecl(n, { body with f_body = expression e }) }
   | _ -> impl
