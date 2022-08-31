@@ -1,0 +1,4 @@
+let node m1() returns (o)
+  let r = 1 + 2 in
+  let m = r + 2 in
+  do o = 42 done
