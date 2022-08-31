@@ -19,10 +19,20 @@
 (* The original version of this code is taken from the GitHub Zrun repo: *)
 (* https://github.com/marcpouzet/zrun *)
 (* Zrun was programmed right after the COVID black out, in June 2020 *)
-(* This new version includes Zelus constructs: ODEs and zero-crossing; *)
-(* higher order functions; the implem. was done in 2021 and updated in 2022 *)
-(* update in 2022 with array constructs inspired by those of SISAL; yet *)
-(* they can be combined with synchronous stream operations. *)
+(* This new version includes Zelus constructs: 
+ *- ODEs and zero-crossing;
+ *- higher order functions; 
+ *- the implem. was done in 2021 and updated in 2022;
+ *- update during summer 2022 with array constructs inspired by that
+ *- of the beautiful SISAL language; they were implemented in Zelus v2 (2017).
+ *- w.r.t SISAL, for loops can contain stateful (stream) functions;
+ *- and two style of for loop constructs are provided:
+ *- 1/ foreach loop : a parallel composition - every iteration has its 
+ *- own state;
+ *- 2/ forward loop is an "hyper-serial" loop; iteration is done on the
+ *- very same state. It is a form of bounded "clock domain" (cf. PhD. thesis of
+ *- Cedric Pasteur
+ *- the size of arrays and the number of iterations must be known statically. *)
 open Smisc
 open Error
 open Monad
@@ -178,13 +188,18 @@ let rec iexp genv env { e_desc; e_loc  } =
           (Speriod
              { zin = false; phase = v1; period = v2; horizon = v1 +. v2 })
      | Eget, [e1; _] ->
+        (* [e1.(i)] - i must be combinatorial *)
+        let* s1 = iexp genv env e1 in
+        return s1
+     | Eslice, [e1; _; _] ->
+        (* [e1.(i1 .. i2)] - i1 and i2 must be combinatorial *)
         let* s1 = iexp genv env e1 in
         return s1
      | Econcat, [e1; e2] ->
         let* s1 = iexp genv env e1 in
         let* s2 = iexp genv env e2 in
         return (Slist [s1; s2])
-     | (Eget_with_default | Eslice), [e1; e2; e3] ->
+     | (Eget_with_default), [e1; e2; e3] ->
         let* s1 = iexp genv env e1 in
         let* s2 = iexp genv env e2 in
         let* s3 = iexp genv env e3 in
@@ -257,10 +272,10 @@ let rec iexp genv env { e_desc; e_loc  } =
      return s_body
   | Eforloop({ for_size; for_kind; for_index; for_body }) ->
      let* si_list = map (ifor_index genv env) for_index in
-     let* s_body = ifor_exp genv env for_body in
+     let* s_body, sr_list = ifor_exp genv env for_body in
      let* s_size, s_body =
        ifor_kind genv env for_size for_kind s_body in
-     return (Slist (s_size :: s_body :: si_list))
+     return (Slist (s_size :: Slist(s_body :: sr_list) :: si_list))
      
 and ifor_kind genv env for_size for_kind s_body =
   match for_size with
@@ -271,13 +286,16 @@ and ifor_kind genv env for_size for_kind s_body =
      (* and an integer value *)
      let* v = Combinatorial.int e_loc v in
      let s_size = Sopt(Some(Value(Vint(v)))) in
-     let s_body =
-       match for_kind with
-       | Kforward _ -> (* the body must be combinatorial *)
-          s_body
-       | Kforeach -> (* the initial state is a list of states *)
-          Slist(Util.list_of v s_body) in
+     let s_body = ialloc_foreach_loop v for_kind s_body in 
      return (s_size, s_body)
+
+(* duplicate the memory [n] times if the loop is a foreach loop *)
+and ialloc_foreach_loop size for_kind s_for_body =
+  match for_kind with
+  | Kforward _ -> (* the while condition must be combinatorial *)
+     s_for_body
+  | Kforeach -> (* the initial state is a list of states *)
+     Slist(Util.list_of size s_for_body)
     
 and iexp_opt genv env e_opt =
   match e_opt with | None -> return Sempty | Some(e) -> iexp genv env e
@@ -311,11 +329,13 @@ and ifor_vardec genv env { desc = { for_vardec } } = ivardec genv env for_vardec
 and ifor_exp genv env r =
   match r with
   | Forexp { exp } ->
-     iexp genv env exp
+     (* the default branch is supposed to be stateless *)
+     let* s = iexp genv env exp in
+     return (s, [])
   | Forreturns { returns; body } ->
-     let* s_v_list = map (ifor_vardec genv env) returns in
+     let* sr_list = map (ifor_vardec genv env) returns in
      let* s_b = iblock genv env body in
-     return (Slist (s_b :: s_v_list))
+     return (s_b, sr_list)
 
 and ieq genv env { eq_desc; eq_loc  } =
   match eq_desc with
@@ -586,21 +606,21 @@ let rec sexp genv env { e_desc; e_loc } s =
   match e_desc, s with   
   | _, Sbot -> return (Vbot, s)
   | _, Snil -> return (Vnil, s)
-  | Econst(v), s ->
+  | Econst(v), Sempty ->
      return (Value (Combinatorial.immediate v), s)
-  | Econstr0 { lname }, s ->
+  | Econstr0 { lname }, Sempty ->
      return (Value (Vconstr0(lname)), s)
-  | Elocal x, s ->
+  | Elocal x, Sempty ->
      let* v =
        find_value_opt x env |>
          Opt.to_result ~none:{ kind = Eunbound_ident(x); loc = e_loc } in
      return (v, s)
-  | Eglobal { lname }, s ->
+  | Eglobal { lname }, Sempty ->
      let* v =
        find_gvalue_opt lname genv |>
          Opt.to_result ~none:{ kind = Eunbound_lident(lname); loc = e_loc } in
      return (Value(v), s)
-  | Elast x, s ->
+  | Elast x, Sempty ->
      let* v =
        find_last_opt x env  |>
          Opt.to_result ~none:{ kind = Eunbound_last_ident(x); loc = e_loc } in
@@ -714,7 +734,7 @@ let rec sexp genv env { e_desc; e_loc } s =
         let* v_arg, s_arg = sexp genv env arg s_arg in
         let* i_list, s_list = slist e_loc genv env sexp i_list s_list in
         let* v = Combinatorial.update_list e_loc v i_list v_arg in
-        return (v, Slist s_list)
+        return (v, Slist (s :: s_arg :: s_list))
      | Earray_list, e_list, Slist s_list ->
         let* v_list, s_list = slist e_loc genv env sexp e_list s_list in
         let v_list = Primitives.slist v_list in
@@ -810,7 +830,8 @@ let rec sexp genv env { e_desc; e_loc } s =
      let* r = Combinatorial.check_assertion e_loc v void in
      return (r, s)
   | Eforloop({ for_kind; for_index; for_body }),
-    Slist ((Sopt(Some(Value(Vint(size)))) as sv) :: s_for_body :: si_list) ->
+    Slist ((Sopt(Some(Value(Vint(size)))) as sv) ::
+             Slist(s_for_body :: sr_list) :: si_list) ->
      (* the size [size] is known *)
      (* computes a local environment for variables names introduced *)
      (* in the index list; do it sequentially *)
@@ -818,44 +839,47 @@ let rec sexp genv env { e_desc; e_loc } s =
        mapfold2v { kind = Estate; loc = e_loc }
          (sfor_index size genv env) Env.empty for_index si_list in
      (* step in the body only if [i_env] is not bot or nil *)
-     let* r, s_for_body =
-       sforloop_exp e_loc genv env size for_kind for_body i_env s_for_body in
-     return (r, Slist(sv :: s_for_body :: si_list))
+     let* r, s_for_body, sr_list =
+       sforloop_exp
+         e_loc genv env size for_kind for_body i_env s_for_body sr_list in
+     return (r, Slist(sv :: Slist(s_for_body :: sr_list) :: si_list))
   | Eforloop({ for_kind; for_index = index :: index_list; for_body }),
-    Slist (Sopt(None) :: s_for_body :: si :: si_list) ->
+    Slist (Sopt(None) :: Slist(s_for_body :: sr_list) :: si :: si_list) ->
      (* the size is not known *)
      let* size_i_env, si =
        sfor_index_no_size genv env Env.empty index si in
-     let* r, s_size, s_for_body, si, si_list =
+     (* step in the body only if the index is not bot or nil *)
+     let* r, s_size, s_for_body, sr_list, si, si_list =
        match size_i_env with
        | Vbot ->
-          return (Vbot, None, s_for_body, si, sbot_list si_list)
+          return (Vbot, None, s_for_body, sr_list, si, sbot_list si_list)
        | Vnil ->
-          return (Vnil, None, s_for_body, si, snil_list si_list)
+          return (Vnil, None, s_for_body, sr_list, si, snil_list si_list)
        | Value(size, i_env) ->
           (* allocate the memory if the loop is a foreach loop *)
-          let s_for_body =
-            match for_kind with
-            | Kforward _ -> s_for_body
-            | Kforeach -> Slist(Util.list_of size s_for_body) in
+          let s_for_body = ialloc_foreach_loop size for_kind s_for_body in
           let* i_env, si_list =
             mapfold2v { kind = Estate; loc = e_loc }
               (sfor_index size genv env) i_env index_list si_list in
           (* step in the body only if [i_env] is not bot or nil *)
-          let* r, s_for_body =
-            sforloop_exp e_loc genv env size for_kind for_body i_env s_for_body
-          in
-          return (r, Some(Value(Vint(size))), s_for_body, si, si_list) in
-     return (r, Slist (Sopt(s_size) :: s_for_body :: si :: si_list))
+          let* r, s_for_body, sr_list =
+            sforloop_exp e_loc genv env size for_kind for_body i_env
+              s_for_body sr_list in
+          return (r, Some(Value(Vint(size))),
+                  s_for_body, sr_list, si, si_list) in
+     return (r, Slist (Sopt(s_size) :: Slist(s_for_body :: sr_list) ::
+                         si :: si_list))
   | _ -> error { kind = Estate; loc = e_loc }
        
-and sforloop_exp loc genv env for_size for_kind for_body i_env s_for_body =
+and sforloop_exp
+  loc genv env for_size for_kind for_body i_env s_for_body sr_list =
   match i_env with
-  | Vbot -> return (Vbot, s_for_body) | Vnil -> return (Vnil, s_for_body)
+  | Vbot -> return (Vbot, s_for_body, sr_list)
+  | Vnil -> return (Vnil, s_for_body, sr_list)
   | Value(i_env) ->
-     let* v, s_for_body =
-       match for_body, s_for_body with
-       | Forexp { exp = e; default = d_opt}, _ ->
+     let* v, s_for_body, sr_list =
+       match for_body with
+       | Forexp { exp = e; default = d_opt} ->
           (* the default expression must be combinatorial. *)
           let* ve, s_for_body =
             match for_kind, s_for_body with
@@ -885,8 +909,8 @@ and sforloop_exp loc genv env for_size for_kind for_body i_env s_for_body =
                    env i_env for_size default s_for_body in
                return (ve, s_for_body) 
             | _ -> error { kind = Estate; loc } in
-          return (ve, s_for_body)
-       | Forreturns { returns; body }, Slist (s_for_body :: sr_list) ->
+          return (ve, s_for_body, sr_list)
+       | Forreturns { returns; body } ->
           (* 1/ computes the environment from the [returns] *)
           (* environment [env_v + acc_env]. Vars in [acc_env] *)
           (* are accumulated values such that *)
@@ -931,9 +955,8 @@ and sforloop_exp loc genv env for_size for_kind for_body i_env s_for_body =
             | _ -> error { kind = Estate; loc } in
           (* return the result of the for loop *)
           let* v = for_matching_out missing env_list acc_env returns in
-          return (v, Slist (s_for_body :: sr_list))
-       | _ -> error { kind = Estate; loc } in
-     return (v, s_for_body)
+          return (v, s_for_body, sr_list) in
+     return (v, s_for_body, sr_list)
      
 and sexp_opt genv env e_opt s =
   match e_opt with
@@ -1218,6 +1241,11 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
   | EQlocal(b_eq), s_eq ->
      let* _, env_local, s_eq = sblock genv env b_eq s_eq in
      return (env_local, s_eq)
+  | EQlet(leq, eq), Slist [s_leq; s_eq] ->
+     let* env_eq, s_leq = sleq genv env leq s_leq in
+     let env = Env.append env_eq env in
+     let* env_local, s_eq = seq genv env eq s_eq in
+     return (env_local, Slist [s_leq; s_eq])
   | EQautomaton { is_weak; handlers; state_opt },
     Slist (ps :: Sval(pr) :: si :: s_list) ->
      (* [ps] = state where to go; *)
@@ -1287,58 +1315,57 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
      let* r = Combinatorial.check_assertion eq_loc ve Env.empty in
      return (r, s)
   | EQforloop({ for_kind; for_index; for_body }),
-    Slist ((Sopt(Some(Value(Vint(size)))) as sv) :: s_for_body :: si_list) ->
+    Slist ((Sopt(Some(Value(Vint(size)))) as sv) ::
+             Slist(s_for_block :: so_list) :: si_list) ->
      (* computes a local environment for variables introduced *)
      (* in the index list *)
      let* i_env, si_list =
        mapfold2v { kind = Estate; loc = eq_loc }
          (sfor_index size genv env) Env.empty for_index si_list in
      (* step in the body only if [i_env] is not bot or nil *)
-     let* r, s_for_body =
-       sforloop_eq eq_loc genv env size for_kind for_body i_env s_for_body in
-     return (r, Slist(sv :: s_for_body :: si_list))
+     let* r, s_for_block, so_list =
+       sforloop_eq
+         eq_loc genv env size for_kind for_body i_env s_for_block so_list in
+     return (r, Slist(sv :: Slist(s_for_block :: so_list) :: si_list))
   | EQforloop({ for_kind; for_index = index :: index_list; for_body }),
-    Slist (Sopt(None) :: s_for_body :: si :: si_list) ->
+    Slist (Sopt(None) :: Slist(s_for_block :: so_list) :: si :: si_list) ->
     (* the size is not known *)
     let* size_i_env, si =
        sfor_index_no_size genv env Env.empty index si in
-    let* r, s_size, s_for_body, si, si_list =
+    let* r, s_size, s_for_body, so_list, si, si_list =
       match size_i_env with
       | Vbot ->
-         return (bot_env eq_write, None, s_for_body, si, si_list)
+         return (bot_env eq_write, None, s_for_block, so_list, si, si_list)
       | Vnil ->
-         return (nil_env eq_write, None, s_for_body, si, si_list)
+         return (nil_env eq_write, None, s_for_block, so_list, si, si_list)
       | Value(size, i_env) ->
          (* allocate the memory if the loop is a foreach loop *)
-          let s_for_body =
-            match for_kind with
-            | Kforward _ -> s_for_body
-            | Kforeach -> Slist(Util.list_of size s_for_body) in
+          let s_for_body = ialloc_foreach_loop size for_kind s_for_block in
           let* i_env, si_list =
            mapfold2v { kind = Estate; loc = eq_loc }
              (sfor_index size genv env) i_env index_list si_list in
          (* step in the body only if [i_env] is not bot or nil *)
-         let* r, s_for_body =
+         let* r, s_for_body, so_list =
            sforloop_eq
-             eq_loc genv env size for_kind for_body i_env s_for_body in
-         return (r, Some(Value(Vint(size))), s_for_body, si, si_list) in
-    return (r, Slist (Sopt(s_size) :: s_for_body :: si :: si_list))
+             eq_loc genv env size for_kind for_body i_env s_for_body so_list in
+         return (r, Some(Value(Vint(size))),
+                 s_for_body, so_list, si, si_list) in
+    return (r, Slist (Sopt(s_size) :: Slist(s_for_block :: so_list) ::
+                        si :: si_list))
   | _ -> error { kind = Estate; loc = eq_loc }
        
 and sforloop_eq
-  loc genv env size for_kind { for_out; for_block } i_env s_for_body =
+  loc genv env size for_kind { for_out; for_block } i_env s_for_block so_list =
   match i_env with
-  | Vbot -> return (bot_env for_block.b_write, s_for_body)
-  | Vnil -> return (nil_env for_block.b_write, s_for_body)
+  | Vbot -> return (bot_env for_block.b_write, s_for_block, so_list)
+  | Vnil -> return (nil_env for_block.b_write, s_for_block, so_list)
   | Value(i_env) ->
-     match s_for_body with
-  | Slist (s_for_block :: so_list) ->
      (* 1/ computes the environment from the [returns] *)
      (* environment [env_v + acc_env]. Vars in [acc_env] *)
      (* are accumulated values such that *)
      (* [acc_env(last x)(i) = acc_env(x)(i-1)] where [i] is the *)
      (* iteration index. *)
-     let* acc_env, fo_list =
+     let* acc_env, so_list =
        mapfold2 { kind = Estate; loc }
          (sfor_out genv env)
          Env.empty for_out so_list in
@@ -1377,9 +1404,7 @@ and sforloop_eq
        | _ -> error { kind = Estate; loc } in
      let* env =
        for_env_out missing env_list acc_env loc for_out in
-     return (env, Slist (s_for_block :: fo_list))
-  | _ ->
-     error { kind = Estate; loc }
+     return (env, s_for_block, so_list)
     
 (* Combinatorialuation of the result of a function *)            
 and sresult genv env { r_desc; r_loc } s =
