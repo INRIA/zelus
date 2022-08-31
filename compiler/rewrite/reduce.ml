@@ -612,8 +612,8 @@ let implementation_list ff impl_list =
            try
              let v = Static.expression Env.empty e2 in
              (* add [f \ v] in the global symbol table *)
-             let v = Global.value_name (Modules.qualify f) v in
-             set_value_code f v;
+             let v = Global.value_name (Modules.qualify f1) v in
+             set_value_code f1 v;
              exp_of_value empty v
            with
              Static.Error _ -> expression Env.empty Env.empty empty e2
@@ -621,9 +621,9 @@ let implementation_list ff impl_list =
         (*let e1, { fundefs = fun_defs } = expression Env.empty Env.empty empty e1 in *)
        { impl with desc = Econstdecl(f1, f2, e1, e2) } ::
 	 List.fold_right make fun_defs impl_defs
-    | Eipopannotation(f, e1, e2, is_op) ->
+    (*| Eipopannotation(f, e1, e2, is_op) ->
        { impl with desc = Eipopannotation(f, e1, e2, is_op) } ::
-	 List.fold_right make fun_defs impl_defs   
+	 List.fold_right make fun_defs impl_defs   *)
     | Efundecl(f, funexp) ->
        let ({ info = { value_typ = tys } } as entry) =
 	 try Modules.find_value (Lident.Name(f))
