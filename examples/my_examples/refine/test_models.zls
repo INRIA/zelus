@@ -1,0 +1,7 @@
+let node exec () = 
+	let rec x = ((0.0 fby x+.1.) models (robot_get ("x"))) in x
+
+
+let hybrid main () =
+	let trigger =(period (0.1)) in
+		present trigger  -> (print_float (exec ())) else ()

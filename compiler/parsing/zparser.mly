@@ -200,6 +200,7 @@ let block l lo eq_list startpos endpos =
 %token RUN            /* "run" */
 %token BOX            /* "box" */
 %token DIAMOND        /* "diamond" */
+%token MODELS         /* "models" */
 %token <string> PREFIX
 %token <string> INFIX0
 %token <string> INFIX1
@@ -1129,6 +1130,9 @@ expression_desc:
   (*added here*)    
   | OP e=expression 
       { Eop(Eoup, [e])}
+
+  | e1 = expression MODELS e2 = expression
+    { Eop(Emodels, [e1; e2])}
   (*added here
   | R_STORE rob = robot_expression
       { Eop(Estore, [rob])}*)
