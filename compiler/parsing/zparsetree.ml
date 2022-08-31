@@ -50,6 +50,7 @@ and type_expression_desc =
     | Etypefunrefinement of kind * string option * type_expression * type_expression * exp
     | Erefinementpairfuntype of type_expression list * exp
     | Erefinement of (name * type_expression) * exp
+    | Erefinementlabeledtuple of (name * type_expression) list * exp
     | Erefinementpair of name * type_expression
     (* | Erefinementtype of exp * exp * exp *)
 
