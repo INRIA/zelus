@@ -18,13 +18,14 @@
    Univ. in June-July 2019 and the Master MPRI - M2, Fall 2019, 2020, 2021 *)
 (* The original version of this code is taken from the GitHub Zrun repo: *)
 (* https://github.com/marcpouzet/zrun *)
-(* Zrun was programmed right after the COVID black out, in June 2020 *)
+(* Zrun was programmed right after the COVID confinment, in Mai-June 2020 *)
 (* This new version includes Zelus constructs: 
  *- ODEs and zero-crossing;
  *- higher order functions; 
  *- the implem. was done in 2021 and updated in 2022;
  *- update during summer 2022 with array constructs inspired by that
- *- of the beautiful SISAL language; they were implemented in Zelus v2 (2017).
+ *- of the (beautiful!) SISAL language; they were implemented in Zelus 
+ *- v2 (2017).
  *- w.r.t SISAL, for loops can contain stateful (stream) functions;
  *- and two style of for loop constructs are provided:
  *- 1/ foreach loop : a parallel composition - every iteration has its 
