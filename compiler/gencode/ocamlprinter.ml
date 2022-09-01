@@ -278,10 +278,18 @@ and exp prio ff e =
   (*added here*) 
   | Oinp (e1, e2) ->
       print_endline ("there is an input variable using the channel ")
-      
   (*added here*) 
   | Ooup (e) ->
       fprintf ff "from op ocamlprinter robot_store_ml %a" (exp 0) e
+  (*added here*)
+  | Omodels(e1, e2) ->
+    fprintf ff "@[%a@]" (exp 0)
+    (if !robot then
+      (print_endline("Robot mode");
+      e2)
+    else
+      (print_endline("Not Robot mode");
+      e1))
   | Oinst(i) -> inst prio ff i
   end;
   if prio_e < prio then fprintf ff ")"

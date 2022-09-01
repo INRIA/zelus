@@ -112,7 +112,7 @@ and size renaming ({ desc = desc } as s) =
 (** Rename an operator *)
 let operator renaming op =
   match op with
-  | Eunarypre | Efby | Eminusgreater | Eifthenelse (*|added here Emove*)
+  | Eunarypre | Efby | Eminusgreater | Eifthenelse (*added here*) | Emodels (*|added here Emove*)
   | Eup |(*added here*) Eassert | Etest | Edisc | Ehorizon | Einitial | Eaccess
   | Eupdate | Econcat | Eatomic -> op
   | Emove -> print_endline("Inline"); op

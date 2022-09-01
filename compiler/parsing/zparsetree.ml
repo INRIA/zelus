@@ -158,7 +158,7 @@ and 'a default =
   | Init of 'a | Default of 'a
 
 and op =
-  | Efby | Eunarypre | Eifthenelse | Eminusgreater | (*added here*)Emove |(*added here*) Econtrol 
+  | Efby | Eunarypre | Eifthenelse | Eminusgreater | (*added here*)Emove |(*added here*) Econtrol | (*added here*) Emodels 
   |(*added here*) Einp|(*added here*) Eoup|(*added here*) Estr
   | Eup | Einitial | Edisc | Etest | Eaccess | Eupdate
   | Eslice of size * size | Econcat | Eatomic

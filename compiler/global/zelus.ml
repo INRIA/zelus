@@ -158,6 +158,8 @@ and op =
   | Einp (*custom keyword*)
   (*added here*)
   | Eoup (*custom keyword*)
+  (*added here*)
+  | Emodels 
   | Einitial (* true at the very first instant *)
   | Edisc (* discontinuity of a flow *)
   | Ehorizon (* generate an event at a given horizon *)

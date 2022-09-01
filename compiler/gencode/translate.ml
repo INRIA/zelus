@@ -495,6 +495,10 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      Ostr(e1, e2), code
   (*added here*)
   | Zelus.Eget(cm) -> Oget(cm), code
+  | Zelus.Eop(Zelus.Emodels, [e1; e2]) ->
+    let e1, code = exp env loop_path code e1 in
+    let e2, code = exp env loop_path code e2 in
+    Omodels(e1, e2), code
   (*added here*)
   | Zelus.Eop(Zelus.Einp, [e1; e2]) ->
      print_endline("Translate");

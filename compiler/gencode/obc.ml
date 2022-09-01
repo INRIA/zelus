@@ -63,6 +63,8 @@ type exp =
   | Oinp of exp * exp
   (*added here*)
   | Ooup of exp
+  (*added here*)
+  | Omodels of exp * exp
   | Omethodcall of method_call			       
   | Oinst of inst
                           
