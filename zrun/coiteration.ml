@@ -30,9 +30,9 @@
  *- 1/ foreach loop : a parallel composition - every iteration has its 
  *- own state;
  *- 2/ forward loop is an "hyper-serial" loop; iteration is done on the
- *- very same state. It is a form of bounded "clock domain" (cf. PhD. thesis of
+ *- very same state. It is a form of bounded "clock domain" (PPDP'13) by
  *- Cedric Pasteur
- *- the size of arrays and the number of iterations must be known statically. *)
+ *- 3/ the size of arrays/number of iterations must be known statically. *)
 open Smisc
 open Error
 open Monad
