@@ -20,7 +20,7 @@ let node main2() =
    
 (* scalar product in equational form *)
 let node scalar_eq (x, y) = m where
-  rec forward(4) i in 0 to 3, m init 0
+  rec forward i in 0 to 3, m init 0
         do m = last m + x.(i) * y.(i) done
 
 let node main3 () =
@@ -57,27 +57,25 @@ let node main6() =
 	     [|9; 10; 11; 12|] |] in
   assert (sum_eq m = (12 * 13)/2)
 
-
 (* matrix product in equational form *)
 let node prod_matrix0(l)(m)(n)(a_l_m, b_m_n) = r where rec
-  forward(l) i in 0 to l-1, ai in a_l_m, ri out r do
-     forward(n) j in 0 to n-1, rij out ri do
-      forward(m) k in 0 to m-1, bk in b_m_n, rij init 0 do
+  forward i in 0 to l-1, ai in a_l_m, ri out r do
+     forward j in 0 to n-1, rij out ri do
+      forward k in 0 to m-1, bk in b_m_n, rij init 0 do
         rij = last rij + ai.(k) * bk.(j)
       done
      done
   done
 
-
 let node main7 () =
   let m1 = [| [| 1; 2; 3; 4 |];
 	      [| 5; 6; 7; 8 |];
 	      [| 9; 10; 11; 12 |] |] in
-  let id = [| [| 1; 1; 1; 1; 1 |];
+  let ones = [| [| 1; 1; 1; 1; 1 |];
 	      [| 1; 1; 1; 1; 1 |];
 	      [| 1; 1; 1; 1; 1 |];
 	      [| 1; 1; 1; 1; 1|] |] in
-  run (prod_matrix0(3)(4)(5))(m1, id)
+  run (prod_matrix0(3)(4)(5))(m1, ones)
  
 (* the same with a return *)
 let node prod_matrix1(a_3_4, b_4_5) returns (r)
@@ -88,7 +86,6 @@ let node prod_matrix1(a_3_4, b_4_5) returns (r)
       done
      done
   done
-
 	  
 let node main8 () =
   let m1 = [| [| 1; 2; 3; 4 |];
