@@ -9,7 +9,7 @@
 let mat = fun (n,v) -> fun () =>
   foreach i in 0 to n-1 do foreach i in 0 to n-1 do v done done
 
-let node main14() = run (mat(5, 0.0))()
+let node main1() = run (mat(5, 0.0))()
 
 (* cholesky *)
 let node cholesky_exp(n)(a) returns (l)
@@ -45,13 +45,13 @@ let node cholesky(n)(a) returns (l)
     done
   done
 
-let node main15() =
+let node main2() =
   let m = [| [| 1.0; 2.0; 4.0 |];
 	     [| 2.0; 3.0; 5.0 |];
 	     [| 4.0; 5.0; 6.0 |] |] in
   run (cholesky(3))(m)
 
-let node main16() =
+let node main3() =
   let m = [| [| 1.0; 0.0; 0.0 |];
 	     [| 0.0; 1.0; 0.0 |];
 	     [| 0.0; 0.0; 1.0 |] |] in
@@ -66,7 +66,7 @@ array([[ 2.,  0.,  0.],
        [ 6.,  1.,  0.],
        [-8.,  5.,  3.]]) *)
     
-let node main17() =
+let node main4() =
   let m = [| [|4.0; 12.0; -16.0 |];
 	     [| 12.0; 37.0; -43.0 |];
 	     [| -16.0; -43.0; 98.0 |] |] in
@@ -88,22 +88,47 @@ let node main18() =
        [| -8.;  5.;  3. |] |] in
   assert (m_result = m_expected)
 
+let vec n = fun v => foreach i in 0 .. n-1 do v done
+
 (* https://en.wikipedia.org/wiki/Triangular_matrix#Forward_and_back_substitution*)
 (* Forward subsitution *)
 (* L is a lower triangular matrix *)
 (* solve Lx = b *)
-let node forward(m)(l, b) returns (x init (run vec 0)(0))
-  forward i in 0 .. m-1, li in l, bi in b, x init last x do
+let node forward_subsitution(l, b) returns (x init (run vec 0)(0))
+  forward i in 0 to length l - 1, x init last x do
     let r =
       forward j in 0 to i-1 returns (cpt init 0.0)
-        do cpt = last cpt +. li.(j) *. (last x).(j) done in
+        do cpt = last cpt +. l.(i).(j) *. (last x).(j) done in
     do
-      x = [| last x with i <- (bi -. r) /. l.(m).(m)
+      x = [| last x with i <- (b.(i) -. r) /. l.(i).(i)
     done
   done
-	  
-    
+
 (* Back substitution *)
 (* U is an upper triangular matrix *)
 (* solve Ux = b *)
-    
+let node backward_subsitution(l, b) returns (x init (run vec 0)(0))
+  forward i in length l - 1 downto 0, x init last x do
+    let r =
+      forward j in 0 to i-1 returns (cpt init 0.0)
+        do cpt = last cpt +. l.(i).(j) *. (last x).(j) done in
+    do
+      x = [| last x with i <- (b.(i) -. r) /. l.(i).(i)
+    done
+  done
+
+let node main5() =
+  let l = [| [| 1.0; 0.0; 0.0; 0.0 |];
+	     [| 1.0; 1.0; 0.0; 0.0  |];
+	     [| 1.0; 10;  1.0; 0.0  |];
+	     [| 1.0; 1.0; 1.0; 1.0  |] |] in
+  let m = [| 1.0; 1.0; 1.0; 1.0 |] in
+  run (forward_substitution(l, m))
+
+let node main6() =
+  let l = [| [| 1.0; 1.0; 1.0; 1.0 |];
+	     [| 0.0; 1.0; 1.0; 1.0  |];
+	     [| 0.0; 0.0; 1.0; 1.0  |];
+	     [| 0.0; 0.0; 0.0; 1.0  |] |] in
+  let m = [| 1.0; 1.0; 1.0; 1.0 |] in
+  run (backward_substitution(l, m))
