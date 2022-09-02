@@ -12,9 +12,9 @@ let mat = fun (n,v) -> fun () =>
 let node main1() = run (mat(5, 0.0))()
 
 (* cholesky *)
-let node cholesky_exp(n)(a) returns (l)
+let node cholesky_exp(n)(a) returns (l init run (mat(n, 0.0)) ())
   do l =
-   forward i in 0 to n-1, ai in a returns (l init run (mat(n, 0.0)) ())
+   forward i in 0 to n-1, ai in a returns (l init last l)
      do l = forward j in 0 to n-1, aij in ai returns (l init last l)
               do
                 let tmp_sum =
@@ -88,42 +88,42 @@ let node main18() =
        [| -8.;  5.;  3. |] |] in
   assert (m_result = m_expected)
 
-let vec n = fun v => foreach i in 0 .. n-1 do v done
+let vec n = fun v => foreach i in 0 to n-1 do v done
 
 (* https://en.wikipedia.org/wiki/Triangular_matrix#Forward_and_back_substitution*)
 (* Forward subsitution *)
 (* L is a lower triangular matrix *)
 (* solve Lx = b *)
-let node forward_subsitution(l, b) returns (x init (run vec 0)(0))
-  forward i in 0 to length l - 1, x init last x do
+let node forward_substitution(l, b) returns (x)
+  forward i in 0 to length l - 1, x init run (vec 0)(0) do
     let r =
-      forward j in 0 to i-1 returns (cpt init 0.0)
+      forward j in 0 to i - 1 returns (cpt init 0.0)
         do cpt = last cpt +. l.(i).(j) *. (last x).(j) done in
     do
-      x = [| last x with i <- (b.(i) -. r) /. l.(i).(i)
+      x = [| last x with i <- (b.(i) -. r) /. l.(i).(i) |]
     done
   done
-
+	
 (* Back substitution *)
 (* U is an upper triangular matrix *)
 (* solve Ux = b *)
-let node backward_subsitution(l, b) returns (x init (run vec 0)(0))
-  forward i in length l - 1 downto 0, x init last x do
+let node backward_substitution(l, b) returns (x)
+  forward i in length l - 1 downto 0, x init run (vec 0)(0) do
     let r =
-      forward j in 0 to i-1 returns (cpt init 0.0)
+      forward j in 0 to i - 1 returns (cpt init 0.0)
         do cpt = last cpt +. l.(i).(j) *. (last x).(j) done in
     do
-      x = [| last x with i <- (b.(i) -. r) /. l.(i).(i)
+      x = [| last x with i <- (b.(i) -. r) /. l.(i).(i) |]
     done
   done
-
+	
 let node main5() =
   let l = [| [| 1.0; 0.0; 0.0; 0.0 |];
 	     [| 1.0; 1.0; 0.0; 0.0  |];
 	     [| 1.0; 10;  1.0; 0.0  |];
 	     [| 1.0; 1.0; 1.0; 1.0  |] |] in
   let m = [| 1.0; 1.0; 1.0; 1.0 |] in
-  run (forward_substitution(l, m))
+  forward_substitution(l, m)
 
 let node main6() =
   let l = [| [| 1.0; 1.0; 1.0; 1.0 |];
@@ -131,4 +131,4 @@ let node main6() =
 	     [| 0.0; 0.0; 1.0; 1.0  |];
 	     [| 0.0; 0.0; 0.0; 1.0  |] |] in
   let m = [| 1.0; 1.0; 1.0; 1.0 |] in
-  run (backward_substitution(l, m))
+  backward_substitution(l, m)

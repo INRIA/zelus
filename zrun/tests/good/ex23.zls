@@ -116,7 +116,7 @@ let node main9 () =
   assert (v = (3, true))
 
 let node find1 (x, a) returns (index, found)
-  forward(5) i in 0 to 4, ai in a, index init 0, found init false
+  forward i in 0 to length a - 1, ai in a, index init 0, found init false
      while not (last found) do index = i and found = (ai = x) done
 
 let node main10 () =
@@ -159,15 +159,15 @@ let node main13 () =
 (* triangular matrix such that [l * (transpose l) = a] *)
 (* not very elegant. Repetitions. Not efficient because [n x n] steps *)
 (* instead of [n x n-1 / 2] *)
-let mat = fun (n,v) -> fun () =>
+let mat = fun (n, v) -> fun () =>
   foreach i in 0 to n-1 do foreach i in 0 to n-1 do v done done
 
 let node main14() = run (mat(5, 0.0))()
 
 (* cholesky *)
-let node cholesky_exp(n)(a) returns (l)
+let node cholesky_exp(n)(a) returns (l init run (mat(n, 0.0)) ())
   do l =
-   forward i in 0 to n-1, ai in a returns (l init run (mat(n, 0.0)) ())
+   forward i in 0 to n-1, ai in a returns (l init last l)
      do l = forward j in 0 to n-1, aij in ai returns (l init last l)
               do
                 let tmp_sum =
@@ -184,8 +184,8 @@ let node cholesky_exp(n)(a) returns (l)
   done
 
 (* in equational form *)
-let node cholesky(n)(a) returns (l)
-  forward i in 0 to n-1, ai in a, l init run (mat(n, 0.0))() do
+let node cholesky(n)(a) returns (l init run (mat(n, 0.0))())
+  forward i in 0 to n-1, ai in a, l init  do
     forward j in 0 to n-1, aij in ai, l init last l do
       let tmp_sum =
             forward k in 0 to i-1 returns (cpt init 0.0)
