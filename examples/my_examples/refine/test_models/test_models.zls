@@ -1,0 +1,12 @@
+let node exec () = 
+	let rec (x:{v:float | v >= 0.}) = (((1.0) fby (x-.1.)) models (robot_get ("x"))) in x
+	(*let rec (x) = ((0.0 fby x+.1.) models (robot_get ("x"))) in x*)
+	(*let rec (x) = (0.0 fby x+.1.) in x*)
+	(*let rec (x:{v:float | v <= 0.}) = (0.0 fby x+.1.) in x*)
+
+	(*let rec x = (robot_get ("x"))*) (* This should throw an error when verifying*)
+
+
+let hybrid main () =
+	let trigger =(period (0.1)) in
+		present trigger  -> (print_float (exec ())) else ()

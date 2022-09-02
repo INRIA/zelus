@@ -649,7 +649,11 @@ and vc_gen_equation_expression ctx env e typenv pat =
 *)
   match e.e_desc with
   (* | Econst(Evoid) -> Boolean.mk_true ctx *)
-  | Eop ( op, e_list) -> debug(Printf.sprintf "Eop pat\n"); vc_gen_equation_operation ctx env typenv op e_list pat; create_base_var_from_pattern ctx env pat
+  | Eop ( op, e_list) -> 
+      (match (op, e_list) with
+        | Emodels, [e1; e2] -> debug(Printf.sprintf "Eop pat models\n"); vc_gen_equation_expression ctx env e1 typenv pat
+        | _ -> debug(Printf.sprintf "Eop pat\n"); vc_gen_equation_operation ctx env typenv op e_list pat; create_base_var_from_pattern ctx env pat
+      )
   | Econst(i) ->  debug(Printf.sprintf "Econst\n");Integer.mk_numeral_s ctx "42"
   | Eglobal {lname = ln} -> debug(Printf.sprintf "Eglobal\n");Integer.mk_numeral_s ctx "42"
   | Eapp({ app_inline = i; app_statefull = r }, e, e_list) -> debug(Printf.sprintf "Eapp\n");
@@ -1148,9 +1152,7 @@ and vc_gen_expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
     | Econstr0 _ -> debug(Printf.sprintf "Econstr0\n"); Integer.mk_numeral_s ctx "42"
     | Econstr1 (_, _) -> debug(Printf.sprintf "Econstr1\n");Integer.mk_numeral_s ctx "42"
     | Elast _ -> debug(Printf.sprintf "Elast\n");Integer.mk_numeral_s ctx "42"
-    | Eop ( op, e_list) -> (match (op, e_list) with
-        | (Emodels, [e1; e2]) -> debug(Printf.sprintf "Eop models\n"); vc_gen_expression ctx env e1 typenv; 
-        | _ -> debug(Printf.sprintf "Eop\n"); vc_gen_operation ctx env typenv op e_list; Integer.mk_numeral_s ctx "42")
+    | Eop ( op, e_list) -> debug(Printf.sprintf "Eop\n"); vc_gen_operation ctx env typenv op e_list; Integer.mk_numeral_s ctx "42"
     (* used to type check pairs *)
     | Etuple (e_list) -> debug(Printf.sprintf "Etuple : \n"); 
     let exp_list_temp = List.map (fun e -> vc_gen_expression ctx env e typenv) e_list in
