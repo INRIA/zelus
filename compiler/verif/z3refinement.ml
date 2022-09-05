@@ -1203,7 +1203,8 @@ and vc_gen_expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
     | Eseq ( e1, e2)-> debug(Printf.sprintf ("Eseq : (e1 = %s e2 = %s)\n") (Expr.to_string (vc_gen_expression ctx env e1 typenv)) (Expr.to_string (vc_gen_expression ctx env e2 typenv)));
      Integer.mk_numeral_s ctx "42"
     | Eperiod _-> debug(Printf.sprintf "Eperiod\n"); Integer.mk_numeral_s ctx "42"
-    | Eblock (_, _)-> debug(Printf.sprintf "Eblock\n"); Integer.mk_numeral_s ctx "42"  
+    | Eblock (_, _)-> debug(Printf.sprintf "Eblock\n"); Integer.mk_numeral_s ctx "42"
+    | Eget _-> raise (Z3FailedException "Error using robot_get while verifying")  
     | _ -> (debug(Printf.sprintf "Ignore vc_gen_expression\n")); Integer.mk_numeral_s ctx "42"
 
     (*| Econstr0(lname) -> Zelus.Econstr0(longname lname)
