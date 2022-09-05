@@ -3,7 +3,14 @@
 let node sim () =
 	(*let rec  ((x, y):{(v:int*w:int) | true}) = (5, 6) in (x, y)*)
 	(*let  ((x,y):{v:(int*int) | true}) = (5, 6) in (x, y)*)
-	let  ((x,y):{ (v:int) * (w:int) | v < w}) = (5, 6) in (x, y)
+	
+
+	(*let rec ((x,y):{ (v:float) * (w:float) | v < w}) = (5., (5.+.1.)) in (x, y)*)
+	(*let  ((x,y):{ (v:float) * (w:float) | v < w}) = (5., 6.) in 
+		let (z : {v:float | v < 0.}) = x in z*)
+	let rec ((x, y):{(v:int) * (w:int) | v < w}) = (0, 1) fby (x,x+1) in (x, y)
+	
+
 	(*let (x:{v:float | v >= 0}) =  5. in x*)
 	(*let rec (x:{v:float | v > 0.}) = (-5.) in x*)
 	(*let rec ((x, y):{v:(int*int) | true}) = (5, 7) in (x, y);; (* this type checks *)*)

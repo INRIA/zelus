@@ -688,7 +688,10 @@ and add_variable_to_table ctx env typenv var_name ref_exp lbl =
             | Modname(q) -> q.id)
           | _ -> "basetype_not_right"); reference_variable = fst(lbl); phi = ref_exp}
     | None -> ())
-
+(*
+and vc_gen_exp_tuple_equation ctx env typenv vars_lhs refvars ref_constraint exp_rhs = 
+        match exp.e_desc with
+        | *)
 and vc_gen_equation ctx env typenv eq =
 (*
     ctx    -> z3 context
@@ -732,11 +735,34 @@ and vc_gen_equation ctx env typenv eq =
                     debug (Printf.sprintf "Equality constraints: %s\n" (Expr.to_string equality_constraints));
                     let ref_constraint = (vc_gen_expression ctx env ref_exp typenv) in
                     debug (Printf.sprintf "Original refinement constraint: %s\n" (Expr.to_string ref_constraint));
-                    let new_constraint = Expr.substitute ref_constraint z3vars_ref z3vars in
-                    debug (Printf.sprintf "Replaced refinement constraint: %s\n" (Expr.to_string new_constraint));
-                    add_constraint env equality_constraints;
-                    z3_solve ctx env new_constraint
-                | Eop(op, e_list) -> debug(Printf.sprintf "operation"))
+                    let assume_constraint = Expr.substitute ref_constraint z3vars_ref z3vars in
+                    let test_constraints = Expr.substitute ref_constraint z3vars_ref right_hand_sides in
+                    (*debug (Printf.sprintf "Replaced refinement constraint: %s\n" (Expr.to_string new_constraint));*)
+                    add_constraint env assume_constraint;
+                    z3_solve ctx env test_constraints;
+                | Eop(op, e_list) -> debug(Printf.sprintf "operation");
+                    (match op, e_list with
+                    | Efby, [e1; e2] -> (
+                            match (e1.e_desc, e2.e_desc) with
+                            | (Etuple(e1_list), Etuple(e2_list)) -> debug (Printf.sprintf "Found a tuple fby tuple!");
+                                let e1_exps = List.map (fun x -> (vc_gen_expression ctx env x typenv)) e1_list in 
+                                let e2_exps = List.map (fun x -> (vc_gen_expression ctx env x typenv)) e2_list in
+                                (Printf.printf "("); (ignore (List.map (fun x -> (Printf.printf "%s," (Expr.to_string x) )) e1_exps)); (Printf.printf ") fby ");
+                                (Printf.printf "("); (ignore (List.map (fun x -> (Printf.printf "%s," (Expr.to_string x) )) e2_exps)); (Printf.printf ")\n");
+                                let ref_constraint = (vc_gen_expression ctx env ref_exp typenv) in
+                                let ref_replaced_constraint = Expr.substitute ref_constraint z3vars_ref z3vars in
+                                let next_step_vars = List.map2 (fun x ty -> (create_z3_var_typed ctx env (Printf.sprintf "%s_next" x) ty)) vars_names vars_basetypes_strings in
+                                let exps1 = List.map2 (Boolean.mk_eq ctx) z3vars e1_exps in
+                                let exps3 = List.map2 (Boolean.mk_eq ctx) next_step_vars e2_exps in
+                                let vc1 = Boolean.mk_implies ctx (Boolean.mk_and ctx exps1) ref_replaced_constraint in
+                                let next_refinement_expr = Expr.substitute ref_constraint z3vars_ref next_step_vars in
+                                debug(Printf.sprintf "Next refinement: %s\n" (Expr.to_string next_refinement_expr));
+                                let vc2 = Boolean.mk_implies ctx (Boolean.mk_and ctx (ref_replaced_constraint :: exps3)) next_refinement_expr in
+                                let vc = Boolean.mk_not ctx (Boolean.mk_and ctx [vc1; vc2]) in
+                                z3_proof ctx env vc ref_replaced_constraint
+                            )
+                    )
+                )
                 (* end goal: return an equality constraint btw original variables and their RHS, and also add the refinement constraint but with the variables substituted*)
           | _ ->
       let body_exp = vc_gen_equation_expression ctx env e typenv p in
