@@ -1340,7 +1340,7 @@ type_expression:
     { Printf.printf "new-syntax type refinement\n"; make(Erefinement(label_type, seq)) $startpos $endpos}
 
   | LBRACE label_type_star_list = label_type_star_list BAR seq = seq_expression RBRACE
-    {Printf.printf "new-syntax refinement tuple\n"; make(Erefinementlabeledtuple(label_type_star_list, seq)) $startpos $endpos}
+    {Printf.printf "new-syntax refinement tuple\n"; make(Erefinementlabeledtuple(List.rev label_type_star_list, seq)) $startpos $endpos}
 
   /* | basetype = simple_type LBRACE seq = seq_expression RBRACE 
       {Printf.printf "type refinement\n"; make(Erefinement(basetype, seq)) $startpos $endpos}  */
