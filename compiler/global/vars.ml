@@ -63,6 +63,7 @@ let operator acc = function
     | Ehorizon | Eaccess | Eupdate | Econcat | Eatomic -> acc
     (*added here*)
     | Emove | Econtrol -> print_endline("Vars"); acc
+    | Emodels -> acc;
     | Emove | Estr |Einp |Eoup-> print_endline("Vars"); acc
     | Eslice(s1, s2) -> size (size acc s1) s2
 	   

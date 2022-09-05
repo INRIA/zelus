@@ -281,6 +281,8 @@ and operator loc env = function
   | Einp -> Zelus.Einp
   (*added here*)
   | Eoup -> Zelus.Eoup
+  (*added here*)
+  | Emodels -> Zelus.Emodels
   | Einitial -> Zelus.Einitial
   | Edisc -> Zelus.Edisc
   | Etest -> Zelus.Etest

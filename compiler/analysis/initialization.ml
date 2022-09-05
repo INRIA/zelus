@@ -392,6 +392,12 @@ and operator is_continuous env op ty e_list =
      exp_less_than_on_i is_continuous env e2 i;
      Init.skeleton_on_i i ty;
   (*added here*)
+  | Emodels, [e1;e2] ->
+     let i = Init.new_var () in
+     exp_less_than_on_i is_continuous env e1 i;
+     exp_less_than_on_i is_continuous env e2 i;
+     Init.skeleton_on_i i ty;
+  (*added here*)
   | Eoup, [e] ->
      print_endline("Initialization");
      let i = Init.new_var () in

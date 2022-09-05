@@ -34,6 +34,7 @@ let rec priority_exp = function
   | (*added here *)Ostr _ -> 0
   | (*added here*) Ostore (_,_) -> 0
   | (*added here*) Oget (_) -> 0
+  | (*added here*) Omodels _ -> 0
   | Oifthenelse _  -> 0 | Oinst i -> priority_inst i
 
 and priority_inst = function
@@ -275,6 +276,15 @@ and exp prio ff e =
   (*added here*)
   | Oinp (e1, e2) -> 
       print_endline("Oinp printing");
+  (*added here*)
+  | Omodels(e1, e2) ->
+    fprintf ff "@[%a@]" (exp 0)
+    (if !robot then 
+      (print_endline("Robot mode");
+      e2)
+    else
+      (print_endline("Not Robot mode");
+      e1))
   (*added here*)
   | Ooup (e) -> 
       print_endline("Ooup printing");

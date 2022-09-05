@@ -70,7 +70,7 @@ let rec size ({ rel = rel } as renaming) ({ desc = desc } as s) =
 
 let operator renaming op =
   match op with
-  | Efby | Eunarypre | Eifthenelse 
+  | Efby | Eunarypre | Eifthenelse | (*added here*) Emodels 
     | Eminusgreater | Eup | (*added here*) Eassert| Einitial | Edisc
     | Ehorizon | Etest | Eaccess | Eupdate | Econcat | Eatomic -> op
   | Eslice(s1, s2) -> Eslice(size renaming s1, size renaming s2)

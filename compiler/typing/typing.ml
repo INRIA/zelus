@@ -815,7 +815,7 @@ and operator expected_k h loc op e_list =
     | Eunarypre ->
         let ty = new_var () in
         Tdiscrete(true), [ty], ty
-    | (Eminusgreater | Efby) ->
+    | (Eminusgreater | Efby | (*added here*) Emodels) ->
         let ty = new_var () in
         Tdiscrete(true), [ty; ty], ty
     | (Eup | Ehorizon) ->
