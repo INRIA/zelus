@@ -1,0 +1,8 @@
+(* Some correct examples of fby streams *)
+let node main () = 
+	let rec (x:{v:int | (v < 0) || (v > 0)}) = (-1) fby (-x) in
+	let rec (y:{v:int | v >= 0}) = (0) fby (y+1) in ()
+
+(* An incorrect example *)
+(*let node main () = 
+	let rec (x:{v:int | (v >= 0)}) = (0) fby (x - 1) in ()*)

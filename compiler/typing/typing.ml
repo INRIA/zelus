@@ -1378,12 +1378,12 @@ let fundecl loc f ({ f_kind = k; f_atomic = is_atomic;
 let implementation ff is_first impl =
   try 
     match impl.desc with
-    | Econstdecl(f, is_static, e) ->
+    (* | Erefinementdecl(f, is_static, e) ->
        let tys = constdecl f is_static e in
        if is_first then Interface.add_type_of_value ff impl.loc f is_static tys
-       else Interface.update_type_of_value ff impl.loc f is_static tys
+       else Interface.update_type_of_value ff impl.loc f is_static tys *)
     (*TODO: add refinement type implementation here*)
-    |Erefinementdecl(f1, f2, e1, e2) -> 
+    |Econstdecl(f1, f2, e1, e2) -> 
       let tys = constdecl f1 false e2 in
       if is_first then Interface.add_type_of_value ff impl.loc f1 false tys
       else Interface.update_type_of_value ff impl.loc f1 false tys
@@ -1401,7 +1401,7 @@ let implementation ff is_first impl =
        let tys = fundecl impl.loc f body in
        if is_first then Interface.add_type_of_value ff impl.loc f true tys
        else Interface.update_type_of_value ff impl.loc f true tys
-    | Erefinementfundecl(f, body, _ ) ->   
+    | Erefinementfundecl(f, body) ->   
        let tys = fundecl impl.loc f body in
        if is_first then Interface.add_type_of_value ff impl.loc f true tys
        else Interface.update_type_of_value ff impl.loc f true tys

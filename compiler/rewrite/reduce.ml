@@ -587,7 +587,7 @@ let implementation_list ff impl_list =
   (* [fun_defs] is the list of extra functions that have been introduced *)
   let implementation impl_defs impl = 
     match impl.desc with
-    | Econstdecl(f, is_static, e) ->
+    (* | Econstdecl(f, is_static, e) ->
        (* is [is_static = true], f is a compile-time constant *)
        let e, { fundefs = fun_defs } =
          if is_static then
@@ -601,9 +601,9 @@ let implementation_list ff impl_list =
              Static.Error _ -> expression Env.empty Env.empty empty e
          else expression Env.empty Env.empty empty e in
        { impl with desc = Econstdecl(f, is_static, e) } ::
-	 List.fold_right make fun_defs impl_defs
+	 List.fold_right make fun_defs impl_defs *)
     (*TODO: refinement implementation of reduce*)
-    | Erefinementdecl(f1, f2, e1, e2) ->
+    | Econstdecl(f1, f2, e1, e2) ->
        (* is [is_static = true], f is a compile-time constant *)
        let e2, { fundefs = fun_defs } =
          if false then
@@ -617,7 +617,7 @@ let implementation_list ff impl_list =
              Static.Error _ -> expression Env.empty Env.empty empty e2
          else expression Env.empty Env.empty empty e2 in
         (*let e1, { fundefs = fun_defs } = expression Env.empty Env.empty empty e1 in *)
-       { impl with desc = Erefinementdecl(f1, f2, e1, e2) } ::
+       { impl with desc = Econstdecl(f1, f2, e1, e2) } ::
 	 List.fold_right make fun_defs impl_defs
     | Efundecl(f, funexp) ->
        let ({ info = { value_typ = tys } } as entry) =

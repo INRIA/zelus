@@ -523,15 +523,16 @@ and automaton lnames is_weak handler_list se_opt =
 let implementation impl =
   match impl.desc with
     | Eopen _ | Etypedecl _ -> impl
-    | Econstdecl(n, is_static, e) ->
+    (* | Econstdecl(n, is_static, e) ->
         let e = exp S.empty e in
-        { impl with desc = Econstdecl(n, is_static, e) }
+        { impl with desc = Econstdecl(n, is_static, e) } *)
     (*TODO: refinement implementation of automata*)
-    | Erefinementdecl(n1,n2,e1,e2) -> 
-        let e1 = exp S.empty e1 in
+    | Econstdecl(n1,ty_refine,is_static,e2) -> 
+        (* let e1 = exp S.empty e1 in *)
         let e2 = exp S.empty e2 in
-        { impl with desc = Erefinementdecl(n1,n2,e1,e2) }
-    | Erefinementfundecl(n, ({ f_body = e } as body), _)
+        { impl with desc = Econstdecl(n1,ty_refine,is_static,e2) }
+
+    | Erefinementfundecl(n, ({ f_body = e } as body))
     | Efundecl(n, ({ f_body = e } as body)) ->
         { impl with desc = Efundecl(n, { body with f_body = exp S.empty e }) }
 

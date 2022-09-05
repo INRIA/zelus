@@ -40,7 +40,7 @@ let kind = function
 let rec type_expression { Zelus.desc = desc } =
   match desc with
   | Zelus.Etypevar(s) -> Otypevar(s)
-  | Zelus.Erefinement(s, _) -> type_expression s
+  | Zelus.Erefinement((_,s), _) -> type_expression s
   | Zelus.Erefinementpairfuntype(ty_list , _) -> Otypetuple(List.map type_expression ty_list)
   | Erefinementpair(ln, s) -> type_expression s 
   | Zelus.Etypeconstr(ln, ty_list) ->
@@ -60,6 +60,7 @@ and type_of_type_decl { Zelus.desc = desc } =
       Ovariant_type(List.map constr_decl constr_decl_list)
   | Zelus.Erecord_type(n_ty_list) ->
      Orecord_type(List.map (fun (n, ty) -> (n, type_expression ty)) n_ty_list)
+  | Zelus.Ecustom_refinement_type((n, ty), _) -> Ocustom_refinement_type(n, type_expression ty)
 
 and constr_decl { desc = desc } =
   match desc with
@@ -729,17 +730,17 @@ let implementation { Zelus.desc = desc } =
   | Zelus.Eopen(n) -> Oopen(n)
   | Zelus.Etypedecl(n, params, ty_decl) ->
      Otypedecl([n, params, type_of_type_decl ty_decl])
-  | Zelus.Econstdecl(n, _, e) ->
+  (* | Zelus.Econstdecl(n, _, e) ->
      (* There should be no memory allocated by [e] *)
      let { step = s } = expression Env.empty e in
-     Oletvalue(n, s)
+     Oletvalue(n, s) *)
   (*TODO: refinement implementation of translate*)
-  | Zelus.Erefinementdecl(n1, n2, e1, e2)->
+  | Zelus.Econstdecl(n1, n2, e1, e2)->
       (* There should be no memory allocated by [e] *)
      let { step = s } = expression Env.empty e2 in
      Oletvalue(n1, s)
   | Zelus.Erefinementfundecl(n, ({ Zelus.f_kind = k; Zelus.f_args = pat_list;
-      Zelus.f_body = e; Zelus.f_env = f_env }), _)
+      Zelus.f_body = e; Zelus.f_env = f_env }))
   | Zelus.Efundecl(n, { Zelus.f_kind = k; Zelus.f_args = pat_list;
 			Zelus.f_body = e; Zelus.f_env = f_env }) ->
      let pat_list = List.map pattern pat_list in
