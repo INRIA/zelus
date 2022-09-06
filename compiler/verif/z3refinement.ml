@@ -621,12 +621,34 @@ and vc_gen_equation_operation ctx env typenv op e_list pat =
               debug(Printf.sprintf "Next refinement: %s\n" (Expr.to_string next_refinement_expr));
               let vc2 = Boolean.mk_implies ctx (Boolean.mk_and ctx [refinement_expr; exp3]) (next_refinement_expr) in
               let vc = Boolean.mk_not ctx (Boolean.mk_and ctx [vc1; vc2]) in 
-              z3_proof ctx env vc refinement_expr;
+              z3_proof ctx env vc refinement_expr
             ) else (
               (* apply stream typing rule - no recursion*)
               z3_solve_stream ctx env [exp1; exp2] refinement_expr
             )
-
+        | Eifthenelse, [e1 ; e2; e3] -> 
+            debug("Eifthenelse\n");
+            let exp1 = vc_gen_expression ctx env e1 typenv in 
+            debug(Printf.sprintf "Exp1: %s" (Expr.to_string exp1));
+            let exp2 = vc_gen_expression ctx env e2 typenv in
+            debug(Printf.sprintf "Exp2: %s" (Expr.to_string exp2));
+            let exp3 = vc_gen_expression ctx env e3 typenv in 
+            debug(Printf.sprintf "Exp3: %s" (Expr.to_string exp3));
+            let exp1_lhs = vc_gen_expression ctx env e1 typenv in
+            debug(Printf.sprintf "Exp1_lhs: %s" (Expr.to_string exp1_lhs));
+            let exp1_rhs = Expr.substitute_one (refinement_expr) (base_var) (exp2) in
+            debug(Printf.sprintf "Exp1_rhs: %s" (Expr.to_string exp1_rhs));
+            let exp2_lhs = Boolean.mk_not ctx exp1_lhs in 
+            debug(Printf.sprintf "Exp2_lhs: %s" (Expr.to_string exp2_lhs));
+            let exp2_rhs = Expr.substitute_one (refinement_expr) (base_var) (exp3) in
+            debug(Printf.sprintf "Exp2_rhs: %s" (Expr.to_string exp2_rhs));
+            let vc = Boolean.mk_not ctx (
+              Boolean.mk_and ctx [ 
+                Boolean.mk_implies ctx (exp1_lhs) (exp1_rhs);
+                Boolean.mk_implies ctx (exp2_lhs) (exp2_rhs);
+              ]
+            ) in
+            z3_proof ctx env vc refinement_expr
         | _ -> vc_gen_operation ctx env typenv op e_list 
 
 and expression_contains expr var =
@@ -651,7 +673,7 @@ and vc_gen_equation_expression ctx env e typenv pat =
   match e.e_desc with
   (* | Econst(Evoid) -> Boolean.mk_true ctx *)
   | Eop ( op, e_list) -> debug(Printf.sprintf "Eop pat\n"); vc_gen_equation_operation ctx env typenv op e_list pat; create_base_var_from_pattern ctx env pat
-  | Econst(i) ->  debug(Printf.sprintf "Econst\n"); immediate ctx i (*Integer.mk_numeral_s ctx "42"*)
+  | Econst(i) ->  debug(Printf.sprintf "Econst\n"); immediate ctx i
   | Eglobal {lname = ln} -> debug(Printf.sprintf "Eglobal\n");Integer.mk_numeral_s ctx "42"
   | Eapp({ app_inline = i; app_statefull = r }, e, e_list) -> debug(Printf.sprintf "Eapp\n");
     (* debug( Printf.sprintf "E: %s\n" (Expr.to_string (vc_gen_expression ctx env e typenv)));
@@ -1183,7 +1205,7 @@ and vc_gen_expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
       vc_gen_operator ctx env typenv (*Expr.to_string (vc_gen_expression ctx env e typenv)*) (operator_vc_gen_expression_to_string e) e_list 
     | Elocal(n) -> debug(Printf.sprintf "Elocal: %s : %d\n" n.source n.num);
           (match typenv with
-          | Some(t) -> let ismember = (Hashtbl.mem t n.source)
+          | Some(t) -> let ismember = (Hashtbl.mem t n.source) 
             in (if ismember then (let customtype = (Hashtbl.find t n.source) in
             debug(Printf.sprintf "%s has type %s" n.source customtype.base_type);
               (create_z3_var_typed ctx env n.source customtype.base_type))
@@ -1645,13 +1667,13 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
 		      f_body = e; f_loc = loc }) -> debug(Printf.sprintf "Efundecl %s\n" n); 
             debug(Printf.sprintf "# of Arguments: %d\n" (List.length p_list));
 
-            let argc = (List.length p_list) in 
-            let typenv = Hashtbl.create argc in
+            (* let argc = (List.length p_list) in  *)
+            let typenv = Hashtbl.copy !type_space in
             let local_env = { exp_env = ref []; var_env = Hashtbl.create 0}  in
             (List.iter (vc_gen_pattern ctx local_env (Some typenv)) p_list);
             Hashtbl.iter (fun a b -> debug(Printf.sprintf "%s:%s;" a b.base_type)) typenv;
             (* implementation_list ff ctx e; *) 
-            debug(Printf.sprintf "Argc: %d\n" argc);
+            (* debug(Printf.sprintf "Argc: %d\n" argc); *)
             
   
             (* treat function body as a program and prove conditions*)
@@ -1679,8 +1701,8 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
           (* TODO: remove the following line later and call substituition function *)
           let rettype = match rettype.desc with | Erefinement(_, exp)-> exp in
           
-          let argc = (List.length p_list) in 
-          let typenv = Hashtbl.create argc in
+          (* let argc = (List.length p_list) in  *)
+          let typenv = Hashtbl.copy !type_space in
           let local_env = { exp_env = ref []; var_env = Hashtbl.create 0} in
           let istuple = (match e.e_desc with
                           | Etuple(_) -> true
