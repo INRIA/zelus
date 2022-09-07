@@ -65,6 +65,20 @@ type env_structure =
   var_env : (string, expr) Hashtbl.t;
 }
 
+let copy_list l =
+(* 
+  returns a copy of the list
+*)
+  List.map (fun e -> e) l
+
+let copy_env env =
+(*
+  returns a copy of the environment   
+*)
+  let env_exp_copy = copy_list !(env.exp_env) in
+  let var_env_copy = Hashtbl.copy env.var_env in
+  {exp_env = ref env_exp_copy; var_env = var_env_copy }
+
 type custom_t = {
 (*
       string base_type;
@@ -1248,8 +1262,11 @@ and vc_gen_expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
             in (if ismember then (let customtype = (Hashtbl.find t n.source) in
             debug(Printf.sprintf "%s has type %s" n.source customtype.base_type);
               (create_z3_var_typed ctx env n.source customtype.base_type))
-          else
-            (debug(Printf.sprintf "Creating var: %s\n" n.source); immediate ctx (Estring(n.source))) )
+          else 
+            (
+              let ismember_env = (Hashtbl.mem (env.var_env) n.source) in
+              (if ismember_env then (Hashtbl.find (env.var_env) n.source) else
+              (debug(Printf.sprintf "Creating var: %s\n" n.source); immediate ctx (Estring(n.source))))) )
           | _ -> debug(Printf.sprintf "Error: typenv not given!\n"); Expr.mk_const ctx (Symbol.mk_string ctx n.source) (Real.mk_sort ctx))
     | Elet (l, e)-> 
         debug(Printf.sprintf "Elet parsing: \n");
@@ -1708,7 +1725,7 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
 
             (* let argc = (List.length p_list) in  *)
             let typenv = Hashtbl.copy !type_space in
-            let local_env = { exp_env = ref []; var_env = Hashtbl.create 0}  in
+            let local_env = copy_env env in
             (List.iter (vc_gen_pattern ctx local_env (Some typenv)) p_list);
             Hashtbl.iter (fun a b -> debug(Printf.sprintf "%s:%s;" a b.base_type)) typenv;
             (* implementation_list ff ctx e; *) 
@@ -1742,7 +1759,7 @@ let implementation ff ctx env (impl (*: Zelus.implementation_desc Zelus.localize
           
           (* let argc = (List.length p_list) in  *)
           let typenv = Hashtbl.copy !type_space in
-          let local_env = { exp_env = ref []; var_env = Hashtbl.create 0} in
+          let local_env = copy_env env in
           let istuple = (match e.e_desc with
                           | Etuple(_) -> true
                           | _ -> false
