@@ -35,6 +35,7 @@ open Zelus
 
 open List
 open Hashtbl
+open Str
 
 
 (*
@@ -623,9 +624,10 @@ and vc_gen_equation_operation ctx env typenv op e_list pat =
               let vc = Boolean.mk_not ctx (Boolean.mk_and ctx [vc1; vc2]) in 
               z3_proof ctx env vc refinement_expr
             ) else (
+              debug(Printf.sprintf "FBY is not recursive");
               (* apply stream typing rule - no recursion*)
               z3_solve_stream ctx env [exp1; exp2] refinement_expr
-            )
+            ); base_var
         | Eifthenelse, [e1 ; e2; e3] -> 
             debug("Eifthenelse\n");
             let exp1 = vc_gen_expression ctx env e1 typenv in 
@@ -648,14 +650,24 @@ and vc_gen_equation_operation ctx env typenv op e_list pat =
                 Boolean.mk_implies ctx (exp2_lhs) (exp2_rhs);
               ]
             ) in
-            z3_proof ctx env vc refinement_expr
+            z3_proof ctx env vc refinement_expr;
+            base_var
         | _ -> vc_gen_operation ctx env typenv op e_list 
 
+and is_substring s1 s2 =
+(*
+    Checks whether s2 is a substring of s1 
+*)
+    try ignore (Str.search_forward s1 s2 0); true
+    with Not_found -> false  
+
 and expression_contains expr var =
-      let args = List.map (fun elem -> Expr.to_string elem) (Expr.get_args expr) in
+      debug(Printf.sprintf "expression contains [%s]:\n" (Expr.to_string expr));
       let var_name = Expr.to_string var in
+      let re = Str.regexp_string var_name in
+      let args = List.map (fun elem -> is_substring re (Expr.to_string elem)) (Expr.get_args expr) in
       debug(Printf.sprintf "Var name: %s \n" var_name);
-      List.mem var_name args
+      List.mem true args
       
 and vc_gen_equation_expression ctx env e typenv pat =
 (*
@@ -671,7 +683,7 @@ and vc_gen_equation_expression ctx env e typenv pat =
 *)
   match e.e_desc with
   (* | Econst(Evoid) -> Boolean.mk_true ctx *)
-  | Eop ( op, e_list) -> debug(Printf.sprintf "Eop pat\n"); vc_gen_equation_operation ctx env typenv op e_list pat; create_base_var_from_pattern ctx env pat
+  | Eop ( op, e_list) -> debug(Printf.sprintf "Eop pat\n"); vc_gen_equation_operation ctx env typenv op e_list pat
   | Econst(i) ->  debug(Printf.sprintf "Econst\n"); immediate ctx i
   | Eglobal {lname = ln} -> debug(Printf.sprintf "Eglobal\n");Integer.mk_numeral_s ctx "42"
   | Eapp({ app_inline = i; app_statefull = r }, e, e_list) -> debug(Printf.sprintf "Eapp\n");
@@ -1050,28 +1062,28 @@ and vc_gen_operation ctx env typenv op e_list =
     Currently used to type check streams
 *)
     match op, e_list with
-    | Eunarypre, [e] -> debug(Printf.sprintf "Eunarypre\n") 
-    | Efby, [e1;e2] -> debug(Printf.sprintf "Efby\n")
-    | Eminusgreater, [e1;e2] -> debug(Printf.sprintf "Eminusgreater (->)\n")
+    | Eunarypre, [e] -> debug(Printf.sprintf "Eunarypre\n"); Integer.mk_numeral_s ctx "42" 
+    | Efby, [e1;e2] -> debug(Printf.sprintf "Efby\n"); Integer.mk_numeral_s ctx "42"
+    | Eminusgreater, [e1;e2] -> debug(Printf.sprintf "Eminusgreater (->)\n"); Integer.mk_numeral_s ctx "42"
     (* e1 -> base case of stream*)
     (* e2 -> induction hypothesis of stream*)
     (* let new_stream = {initialization_var: e1; application_function: e2} in *)
     (* add_stream  *)
     | Eifthenelse, [e1; e2; e3] -> 
-       (* let exp1 = (Expr.to_string (vc_gen_expression ctx env e1 typenv)) in
-       let exp2 = (Expr.to_string (vc_gen_expression ctx env e2 typenv)) in
-       let exp3 = (Expr.to_string (vc_gen_expression ctx env e3 typenv)) in
-       debug(Printf.sprintf "if [%s] then [%s] else [%s]\n" exp1 exp2 exp3);  *)
-       debug(Printf.sprintf "Eifthenelse\n")
-    | Eup, [e] -> debug(Printf.sprintf "Eup\n")
-    | Einitial, [] -> debug(Printf.sprintf "Einitial\n")
-    | (Etest | Edisc | Ehorizon), [e] -> debug(Printf.sprintf "Etest | Edisc |Ehorizon\n")
-    | Eaccess, [e1; e2] -> debug(Printf.sprintf "Eaccess\n")
-    | Eupdate, [e1; i; e2] -> debug(Printf.sprintf "Eupdate\n")
-    | Eslice _, [e] -> debug(Printf.sprintf "Eslice\n")
-    | Econcat, [e1; e2] -> debug(Printf.sprintf "Econcat\n")
-    | Eatomic, [e] -> debug(Printf.sprintf "Eatomic\n")
-    | _ -> debug(Printf.sprintf "Operation undefined\n")
+      debug(Printf.sprintf "Eifthenelse\n");
+      let expc = vc_gen_expression ctx env e1 typenv in
+      let expt = vc_gen_expression ctx env e2 typenv in
+      let expf = vc_gen_expression ctx env e3 typenv in
+      Boolean.mk_ite ctx expc expt expf
+    | Eup, [e] -> debug(Printf.sprintf "Eup\n"); Integer.mk_numeral_s ctx "42"
+    | Einitial, [] -> debug(Printf.sprintf "Einitial\n"); Integer.mk_numeral_s ctx "42"
+    | (Etest | Edisc | Ehorizon), [e] -> debug(Printf.sprintf "Etest | Edisc |Ehorizon\n"); Integer.mk_numeral_s ctx "42"
+    | Eaccess, [e1; e2] -> debug(Printf.sprintf "Eaccess\n"); Integer.mk_numeral_s ctx "42"
+    | Eupdate, [e1; i; e2] -> debug(Printf.sprintf "Eupdate\n"); Integer.mk_numeral_s ctx "42"
+    | Eslice _, [e] -> debug(Printf.sprintf "Eslice\n"); Integer.mk_numeral_s ctx "42"
+    | Econcat, [e1; e2] -> debug(Printf.sprintf "Econcat\n"); Integer.mk_numeral_s ctx "42"
+    | Eatomic, [e] -> debug(Printf.sprintf "Eatomic\n"); Integer.mk_numeral_s ctx "42"
+    | _ -> debug(Printf.sprintf "Operation undefined\n"); Integer.mk_numeral_s ctx "42"
     
 
 (* the alpha substitution function*)
@@ -1172,7 +1184,7 @@ and vc_gen_expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
     | Econstr0 _ -> debug(Printf.sprintf "Econstr0\n"); Integer.mk_numeral_s ctx "42"
     | Econstr1 (_, _) -> debug(Printf.sprintf "Econstr1\n");Integer.mk_numeral_s ctx "42"
     | Elast _ -> debug(Printf.sprintf "Elast\n");Integer.mk_numeral_s ctx "42"
-    | Eop ( op, e_list) -> debug(Printf.sprintf "Eop\n"); vc_gen_operation ctx env typenv op e_list; Integer.mk_numeral_s ctx "42"
+    | Eop ( op, e_list) -> debug(Printf.sprintf "Eop\n"); vc_gen_operation ctx env typenv op e_list
     (* used to type check pairs *)
     | Etuple (e_list) -> debug(Printf.sprintf "Etuple : \n"); 
     let exp_list_temp = List.map (fun e -> vc_gen_expression ctx env e typenv) e_list in
