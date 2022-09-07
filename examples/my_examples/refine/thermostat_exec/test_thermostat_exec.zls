@@ -1,0 +1,6 @@
+let node sim () =
+	let rec ((power, temp):{(p:float)*(t:float) | ((t >= 14. && t <= 18.) && ((t <= 17.96 && p = 0.05) || (t >= 14.01 && p = 0.)))}) = (0., 15.) fby ((if (temp <= 16.) then 0.05 else 0.), (temp +. (power -. 0.01))) in (power, temp)
+	
+let hybrid main () = 
+	let rec trigger = (period (0.1)) in
+	present (trigger) -> (let (p, t) = sim () in (print_float t; print_newline ())) else ()

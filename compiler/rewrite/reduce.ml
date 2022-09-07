@@ -59,6 +59,9 @@ let rec type_expression venv renaming ({ desc = desc } as ty_e) =
   | Etypeconstr(g, ty_list) ->
       let ty_list = List.map (type_expression venv renaming) ty_list in
       { ty_e with desc = Etypeconstr(g, ty_list) }
+  | Erefinementlabeledtuple(ty_labeled_list, e) -> 
+      let ty_labeled_list = (List.map (fun (l, t) -> (l, (type_expression venv renaming t))) ty_labeled_list) in 
+      {ty_e with desc=Erefinementlabeledtuple(ty_labeled_list, e) }
   | Etypetuple(ty_list) ->
       let ty_list = List.map (type_expression venv renaming) ty_list in
       { ty_e with desc = Etypetuple(ty_list) }

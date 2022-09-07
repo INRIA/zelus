@@ -731,7 +731,7 @@ and vc_gen_equation ctx env typenv eq =
     match eq.eq_desc with
     | EQeq(p, e) -> debug (Printf.sprintf "EQeq:\n");
         match p.p_desc with
-          | Etypeconstraintpat(p1, t) -> match t.desc with
+          | Etypeconstraintpat(p1, t) -> (match t.desc with
 
             | Erefinementlabeledtuple(lbl_ty_list, ref_exp) -> debug (Printf.sprintf "Refinement labeled tuple"); 
                 (* Get list of variable names on the LHS *)
@@ -814,60 +814,62 @@ and vc_gen_equation ctx env typenv eq =
                     )
                 )
                 (* end goal: return an equality constraint btw original variables and their RHS, and also add the refinement constraint but with the variables substituted*)
-          | _ ->
-      let body_exp = vc_gen_equation_expression ctx env e typenv p in
-      debug (Printf.sprintf "body_exp: %s\n" (Expr.to_string body_exp));
-      let pat_exp = 
-       (match p.p_desc with 
-       | Evarpat(n) -> debug (Printf.sprintf "Evarpat: %s\n" n.source); create_z3_var ctx env n.source
-       | Etypeconstraintpat(p1,t) -> match t.desc with
-          | _ -> (let var_name = 
-          (match p1.p_desc with 
-             | Evarpat(n1) -> debug (Printf.sprintf "Etypeconstraintpat: %s\n" n1.source); add_constraint env (Boolean.mk_eq ctx body_exp (create_z3_var ctx env (n1.source))); n1.source
-             | _ -> debug (Printf.sprintf "Wrong pattern for variable in Etypeconstraintpat\n"); "undefined var_name") in
-             let (base_type_1, ref_var) = match t.desc with
-               | Erefinement(lbl, ref_exp) -> 
-                 
-                 add_variable_to_table ctx env typenv var_name ref_exp lbl;
-                 let add_constraint_expr = (vc_gen_substitute (var_name) env ctx typenv) in
-                 debug (Printf.sprintf "add_constraint exp: %s\n" (Expr.to_string add_constraint_expr));
-                 z3_solve ctx env add_constraint_expr;
-
-                 ((match (snd(lbl)).desc with
-                     | Etypeconstr(long_name, _) -> (match long_name with
-                       | Name(s) -> s
-                       | Modname(q) -> q.id)
-                     | _ -> "basetype_not_right"), fst(lbl))
-               | _ -> debug (Printf.sprintf "Wrong type expression for variable in Etypeconstraintpat\n"); ("undefined base_type", "undefined ref_var") in
-               create_z3_var_typed ctx env var_name base_type_1)
-       | _ -> debug (Printf.sprintf "undefined_var"); create_z3_var ctx env "undefined_var") in
-      debug (Printf.sprintf "pat_exp: %s\n" (Expr.to_string pat_exp));
-      let ret_exp = Boolean.mk_eq ctx pat_exp body_exp in
-      debug (Printf.sprintf "after ret_exp\n");
-      debug (Printf.sprintf "EQ vc_gen_expression: %s\n" (Expr.to_string ret_exp));
-      add_constraint env ret_exp
-      (*ret_exp*)
-    (* [p = e] *)
-    (* | EQder(_, _, _, _) -> Printf.printf "EQder\n"
-    (* [der n = e [init e0] [reset p1 -> e1 | ... | pn -> en]] *)
-    | EQinit(_,_) -> Printf.printf "EQinit\n"
-    (* [init n = e0 *)
-    | EQnext(_,_,_) -> Printf.printf "EQnext\n"
-    (* [next n = e] *)
-    | EQpluseq(_,_) -> Printf.printf "EQpluseq\n"
-    (* [n += e] *)
-    | EQautomaton(_,_,_) -> Printf.printf "EQautomaton\n"
-    (*added here
-    | EQr_move of exp*)
-    | EQpresent(_,_) -> Printf.printf "EQpresent\n"
-    | EQmatch(_,_,_) -> Printf.printf "EQmatch\n"
-    | EQreset(_,_) -> Printf.printf "EQreset\n"
-    | EQemit(_,_) -> Printf.printf "EQemit\n"
-    | EQblock(_) -> Printf.printf "EQblock\n"
-    | EQand(_) -> Printf.printf "EQand\n" (* eq1 and ... and eqn *)
-    | EQbefore(_) -> Printf.printf "EQbefore\n" (* eq1 before ... before eqn *)
-    | EQforall(_) -> Printf.printf "EQforall\n" forall i in ... do ... initialize ... done *)
-    | _ -> debug(Printf.sprintf "Ignoring vc_gen_equation for now\n")
+          | _ -> debug (Printf.sprintf "else case");
+              let body_exp = vc_gen_equation_expression ctx env e typenv p in
+              debug (Printf.sprintf "body_exp: %s\n" (Expr.to_string body_exp));
+              let pat_exp = 
+               (match p.p_desc with 
+               | Evarpat(n) -> debug (Printf.sprintf "Evarpat: %s\n" n.source); create_z3_var ctx env n.source
+               | Etypeconstraintpat(p1,t) -> match t.desc with
+                  | _ -> (let var_name = 
+                  (match p1.p_desc with 
+                     | Evarpat(n1) -> debug (Printf.sprintf "Etypeconstraintpat: %s\n" n1.source); add_constraint env (Boolean.mk_eq ctx body_exp (create_z3_var ctx env (n1.source))); n1.source
+                     | _ -> debug (Printf.sprintf "Wrong pattern for variable in Etypeconstraintpat\n"); "undefined var_name") in
+                     let (base_type_1, ref_var) = match t.desc with
+                       | Erefinement(lbl, ref_exp) -> 
+                         
+                         add_variable_to_table ctx env typenv var_name ref_exp lbl;
+                         let add_constraint_expr = (vc_gen_substitute (var_name) env ctx typenv) in
+                         debug (Printf.sprintf "add_constraint exp: %s\n" (Expr.to_string add_constraint_expr));
+                         z3_solve ctx env add_constraint_expr;
+        
+                         ((match (snd(lbl)).desc with
+                             | Etypeconstr(long_name, _) -> (match long_name with
+                               | Name(s) -> s
+                               | Modname(q) -> q.id)
+                             | _ -> "basetype_not_right"), fst(lbl))
+                       | _ -> debug (Printf.sprintf "Wrong type expression for variable in Etypeconstraintpat\n"); ("undefined base_type", "undefined ref_var") in
+                       create_z3_var_typed ctx env var_name base_type_1)
+               | _ -> debug (Printf.sprintf "undefined_var"); create_z3_var ctx env "undefined_var") in
+              debug (Printf.sprintf "pat_exp: %s\n" (Expr.to_string pat_exp));
+              let ret_exp = Boolean.mk_eq ctx pat_exp body_exp in
+              debug (Printf.sprintf "after ret_exp\n");
+              debug (Printf.sprintf "EQ vc_gen_expression: %s\n" (Expr.to_string ret_exp));
+              add_constraint env ret_exp
+              (*ret_exp*)
+            (* [p = e] *)
+            (* | EQder(_, _, _, _) -> Printf.printf "EQder\n"
+            (* [der n = e [init e0] [reset p1 -> e1 | ... | pn -> en]] *)
+            | EQinit(_,_) -> Printf.printf "EQinit\n"
+            (* [init n = e0 *)
+            | EQnext(_,_,_) -> Printf.printf "EQnext\n"
+            (* [next n = e] *)
+            | EQpluseq(_,_) -> Printf.printf "EQpluseq\n"
+            (* [n += e] *)
+            | EQautomaton(_,_,_) -> Printf.printf "EQautomaton\n"
+            (*added here
+            | EQr_move of exp*)
+            | EQpresent(_,_) -> Printf.printf "EQpresent\n"
+            | EQmatch(_,_,_) -> Printf.printf "EQmatch\n"
+            | EQreset(_,_) -> Printf.printf "EQreset\n"
+            | EQemit(_,_) -> Printf.printf "EQemit\n"
+            | EQblock(_) -> Printf.printf "EQblock\n"
+            | EQand(_) -> Printf.printf "EQand\n" (* eq1 and ... and eqn *)
+            | EQbefore(_) -> Printf.printf "EQbefore\n" (* eq1 before ... before eqn *)
+            | EQforall(_) -> Printf.printf "EQforall\n" forall i in ... do ... initialize ... done *)
+            | _ -> debug(Printf.sprintf "Ignoring vc_gen_equation for now\n"))
+          | _ -> debug(Printf.sprintf "Ignoring this equation for now\n")
+    
 
 and create_validation_check ctx env elem1 elem2 = 
 (*
