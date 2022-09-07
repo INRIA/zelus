@@ -87,6 +87,9 @@ let rec type_expression renaming ({ desc = desc } as ty_e) =
   | Etypetuple(ty_list) ->
      { ty_e with desc =
 		   Etypetuple(List.map (type_expression renaming) ty_list) }
+  | Erefinementlabeledtuple(labeled_ty_list, e) ->
+     { ty_e with desc = 
+             Erefinementlabeledtuple(List.map (fun (l, t) -> (l, (type_expression renaming t))) labeled_ty_list, e )}
   | Etypevec(ty_vec, s) ->
      { ty_e with desc =
 		   Etypevec(type_expression renaming ty_vec, size renaming s) }

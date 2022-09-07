@@ -42,6 +42,7 @@ let rec type_expression { Zelus.desc = desc } =
   | Zelus.Etypevar(s) -> Otypevar(s)
   | Zelus.Erefinement((_,s), _) -> type_expression s
   | Zelus.Erefinementpairfuntype(ty_list , _) -> Otypetuple(List.map type_expression ty_list)
+  | Zelus.Erefinementlabeledtuple(labeled_ty_list, _) -> Otypetuple(List.map (fun (l, t) -> type_expression t) labeled_ty_list)
   | Erefinementpair(ln, s) -> type_expression s 
   | Zelus.Etypeconstr(ln, ty_list) ->
      Otypeconstr(ln, List.map type_expression ty_list)
