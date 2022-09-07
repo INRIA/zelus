@@ -1,0 +1,9 @@
+(rule
+ (targets fibonacci.ml fibonacci_main.ml)
+ (deps (:zl fibonacci.zls))
+ (action (run zeluc -s main -o fibonacci_main %{zl})))
+
+(executable
+  (name fibonacci_main)
+  (libraries zelus)
+  (promote (until-clean)))

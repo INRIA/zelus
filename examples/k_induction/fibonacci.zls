@@ -1,0 +1,11 @@
+(* Demonstrates k-inductive streams using the fibonacci sequence *)
+let node model () = 
+    (* A node that outputs the fibonacci sequence, defined in a single line *)
+    (*let rec x = 0 fby ((1 fby x)+x) in x*)
+    (* The "tribonacci" sequence, which is the fibonacci sequence but sums the last three numbers in the sequence *)
+    let rec x = 0 fby ((0 fby ((1 fby x)+x))+x) in x
+
+let hybrid main () =
+  let trigger = period (0.5) in
+  present trigger -> (print_int (model ()); print_newline ()) else ()
+
