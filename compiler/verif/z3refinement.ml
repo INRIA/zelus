@@ -670,6 +670,7 @@ and expression_contains expr var =
       List.mem true args
       
 and vc_gen_equation_expression ctx env e typenv pat =
+       (* TODO: check if pat is a tuple or not *)
 (*
         ctx    -> z3 context
         env    -> environment (list of z3 vc_gen_expressions)
@@ -721,7 +722,10 @@ and add_variable_to_table ctx env typenv var_name ref_exp lbl =
             | Modname(q) -> q.id)
           | _ -> "basetype_not_right"); reference_variable = fst(lbl); phi = ref_exp}
     | None -> ())
-
+(*
+and vc_gen_exp_tuple_equation ctx env typenv vars_lhs refvars ref_constraint exp_rhs = 
+        match exp.e_desc with
+        | *)
 and vc_gen_equation ctx env typenv eq =
 (*
     ctx    -> z3 context
@@ -735,32 +739,116 @@ and vc_gen_equation ctx env typenv eq =
 *)
     match eq.eq_desc with
     | EQeq(p, e) -> debug (Printf.sprintf "EQeq:\n");
+        match p.p_desc with
+          | Etypeconstraintpat(p1, t) -> match t.desc with
+
+            | Erefinementlabeledtuple(lbl_ty_list, ref_exp) -> debug (Printf.sprintf "Refinement labeled tuple"); 
+                (* Get list of variable names on the LHS *)
+                let vars_names = (match p1.p_desc with 
+                    | Etuplepat(l) -> (List.map (fun x -> match x.p_desc with
+                        | Evarpat(n) -> n.source) l)) in 
+                (* Get list of reference variables (important for the later replacement stage) and a list of types to associate with the original variable names *)
+                let (vars_refnames, vars_basetypes) = List.split lbl_ty_list in
+                Printf.printf "Will perform the following substitutions:\n";
+                ignore (List.map2 (Printf.printf "[%s/%s]\n") vars_names vars_refnames);
+                let vars_basetypes_strings = (List.map (fun ty-> 
+                (match ty.desc with
+                   | Etypeconstr(long_name, _) -> (match long_name with
+                     | Name(s) -> s
+                     | Modname(q) -> q.id)
+                   | _ -> "basetype_not_right")) vars_basetypes) in
+                let z3vars_ref = (List.map2 (fun x ty -> create_z3_var_typed ctx env x ty) vars_refnames vars_basetypes_strings) in
+                (* Make a list of Z3 variables *)
+                let z3vars = (List.map2 (fun x ty -> create_z3_var_typed ctx env x ty) vars_names vars_basetypes_strings) in 
+                (* Treat the variables separately *)
+                (match e.e_desc with
+                | Etuple(e_list) -> debug(Printf.sprintf "Tuple with %d elements" (List.length e_list));
+                    (* Create equality constraints for each element of tuple *)
+                    let right_hand_sides = List.map (fun x -> (vc_gen_expression ctx env x typenv)) e_list in 
+                    let equality_constraints = (Boolean.mk_and ctx (List.map2 (Boolean.mk_eq ctx) z3vars right_hand_sides)) in 
+                    debug (Printf.sprintf "Equality constraints: %s\n" (Expr.to_string equality_constraints));
+                    let ref_constraint = (vc_gen_expression ctx env ref_exp typenv) in
+                    debug (Printf.sprintf "Original refinement constraint: %s\n" (Expr.to_string ref_constraint));
+                    let assume_constraint = Expr.substitute ref_constraint z3vars_ref z3vars in
+                    let test_constraints = Expr.substitute ref_constraint z3vars_ref right_hand_sides in
+                    (*debug (Printf.sprintf "Replaced refinement constraint: %s\n" (Expr.to_string new_constraint));*)
+                    add_constraint env assume_constraint;
+                    z3_solve ctx env test_constraints;
+                | Eop(op, e_list) -> debug(Printf.sprintf "operation");
+                    (match op, e_list with
+                    | Efby, [e1; e2] -> (
+                            (* Proving let rec x:{v:t | phi} = e1 fby e2 requires:
+                                    * phi[x/v] => phi[e1/v] AND
+                                    * phi[x/v] => phi[e2/v]
+                                to be true at ALL times, which essentially means we need to DISprove the negation.
+                            *)
+                            match (e1.e_desc, e2.e_desc) with
+                            | (Etuple(e1_list), Etuple(e2_list)) -> debug (Printf.sprintf "Found a tuple fby tuple!");
+                                (* Parses e1 and e2 into Z3 expressions *)
+                                let e1_exps = List.map (fun x -> (vc_gen_expression ctx env x typenv)) e1_list in 
+                                let e2_exps = List.map (fun x -> (vc_gen_expression ctx env x typenv)) e2_list in
+                                (Printf.printf "("); (ignore (List.map (fun x -> (Printf.printf "%s," (Expr.to_string x) )) e1_exps)); (Printf.printf ") fby ");
+                                (Printf.printf "("); (ignore (List.map (fun x -> (Printf.printf "%s," (Expr.to_string x) )) e2_exps)); (Printf.printf ")\n");
+                                (* Parses phi into a Z3 expression *)
+                                let ref_constraint = (vc_gen_expression ctx env ref_exp typenv) in
+                                (* Gets phi[x/v] *)
+                                let ref_replaced_constraint = Expr.substitute ref_constraint z3vars_ref z3vars in
+                                (* Gets "next step" variables, or those associated with e2 *)
+                                (*let next_step_vars = List.map2 (fun x ty -> (create_z3_var_typed ctx env (Printf.sprintf "%s_next" x) ty)) vars_names vars_basetypes_strings in*)
+                                (*
+                                let exps1 = List.map2 (Boolean.mk_eq ctx) z3vars e1_exps in
+                                let exps3 = List.map2 (Boolean.mk_eq ctx) next_step_vars e2_exps in*)
+                                (* vc1: 
+                                let vc1 = Boolean.mk_implies ctx (Boolean.mk_and ctx exps1) ref_replaced_constraint in
+                                let next_refinement_expr = Expr.substitute ref_constraint z3vars_ref next_step_vars in
+                                debug(Printf.sprintf "Next refinement: %s\n" (Expr.to_string next_refinement_expr));
+                                let vc2 = Boolean.mk_implies ctx (Boolean.mk_and ctx (ref_replaced_constraint :: exps3)) next_refinement_expr in
+                                let vc = Boolean.mk_not ctx (Boolean.mk_and ctx [vc1; vc2]) in
+                                z3_proof ctx env vc ref_replaced_constraint *)
+
+                                (* Gets us phi[e1 / v] *)
+                                let phi_e1 = Expr.substitute ref_constraint z3vars_ref e1_exps in
+                                (* Gets us phi[e2 / v] *)
+                                let phi_e2 = Expr.substitute ref_constraint z3vars_ref e2_exps in
+                                debug(Printf.sprintf "phi_e1: %s\n" (Expr.to_string phi_e1));
+                                debug(Printf.sprintf "phi_e2: %s\n" (Expr.to_string phi_e2));
+                                (* vc1 === phi[x/v] => phi[e1 / v] *)
+                                let vc1 = Boolean.mk_implies ctx ref_replaced_constraint phi_e1 in
+                                (* vc2 === phi[x/v] => phi[e2 / v] *)
+                                let vc2 = Boolean.mk_implies ctx ref_replaced_constraint phi_e2 in
+                                (* Tries to disprove the VCs then adds them to the environment if no counterexample found *)
+                                z3_proof ctx env (Boolean.mk_not ctx vc1) vc1;
+                                z3_proof ctx env (Boolean.mk_not ctx vc2) vc2;
+                            )
+                    )
+                )
+                (* end goal: return an equality constraint btw original variables and their RHS, and also add the refinement constraint but with the variables substituted*)
+          | _ ->
       let body_exp = vc_gen_equation_expression ctx env e typenv p in
       debug (Printf.sprintf "body_exp: %s\n" (Expr.to_string body_exp));
       let pat_exp = 
        (match p.p_desc with 
        | Evarpat(n) -> debug (Printf.sprintf "Evarpat: %s\n" n.source); create_z3_var ctx env n.source
-       | Etypeconstraintpat(p1,t) -> let var_name =                                     
+       | Etypeconstraintpat(p1,t) -> match t.desc with
+          | _ -> (let var_name = 
           (match p1.p_desc with 
-          (* TODO: create_z3_var_typed *)
-          | Evarpat(n1) -> debug (Printf.sprintf "Etypeconstraintpat: %s\n" n1.source); add_constraint env (Boolean.mk_eq ctx body_exp (create_base_var_from_pattern ctx env p)); n1.source
-          | _ -> debug (Printf.sprintf "Wrong pattern for variable in Etypeconstraintpat\n"); "undefined var_name") in
-          let (base_type_1, ref_var) = match t.desc with
-            | Erefinement(lbl, ref_exp) -> 
-              
-              add_variable_to_table ctx env typenv var_name ref_exp lbl;
-              let add_constraint_expr = (vc_gen_substitute (var_name) env ctx typenv) in
-              debug (Printf.sprintf "add_constraint exp: %s\n" (Expr.to_string add_constraint_expr));
-              z3_solve ctx env add_constraint_expr;
+             | Evarpat(n1) -> debug (Printf.sprintf "Etypeconstraintpat: %s\n" n1.source); add_constraint env (Boolean.mk_eq ctx body_exp (create_z3_var ctx env (n1.source))); n1.source
+             | _ -> debug (Printf.sprintf "Wrong pattern for variable in Etypeconstraintpat\n"); "undefined var_name") in
+             let (base_type_1, ref_var) = match t.desc with
+               | Erefinement(lbl, ref_exp) -> 
+                 
+                 add_variable_to_table ctx env typenv var_name ref_exp lbl;
+                 let add_constraint_expr = (vc_gen_substitute (var_name) env ctx typenv) in
+                 debug (Printf.sprintf "add_constraint exp: %s\n" (Expr.to_string add_constraint_expr));
+                 z3_solve ctx env add_constraint_expr;
 
-              ((match (snd(lbl)).desc with
-                  | Etypeconstr(long_name, _) -> (match long_name with
-                    | Name(s) -> s
-                    | Modname(q) -> q.id)
-                  | _ -> "basetype_not_right"), fst(lbl))
-            (* add pattern match for non-refinement variables *)
-            | _ -> debug (Printf.sprintf "Wrong type expression for variable in Etypeconstraintpat\n"); ("undefined base_type", "undefined ref_var") in
-            create_z3_var_typed ctx env var_name base_type_1
+                 ((match (snd(lbl)).desc with
+                     | Etypeconstr(long_name, _) -> (match long_name with
+                       | Name(s) -> s
+                       | Modname(q) -> q.id)
+                     | _ -> "basetype_not_right"), fst(lbl))
+               | _ -> debug (Printf.sprintf "Wrong type expression for variable in Etypeconstraintpat\n"); ("undefined base_type", "undefined ref_var") in
+               create_z3_var_typed ctx env var_name base_type_1)
        | _ -> debug (Printf.sprintf "undefined_var"); create_z3_var ctx env "undefined_var") in
       debug (Printf.sprintf "pat_exp: %s\n" (Expr.to_string pat_exp));
       let ret_exp = Boolean.mk_eq ctx pat_exp body_exp in

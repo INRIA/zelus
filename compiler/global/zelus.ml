@@ -33,6 +33,7 @@ and type_expression_desc =
   | Etypevec of type_expression * size
   | Etypefun of kind * Zident.t option * type_expression * type_expression
   | Etypefunrefinement of kind * Zident.t option * type_expression * type_expression * exp
+  | Erefinementlabeledtuple of (name * type_expression) list * exp
   | Erefinementpairfuntype of type_expression list * exp
   | Erefinement of (name * type_expression) * exp
   | Erefinementpair of string * type_expression

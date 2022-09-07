@@ -527,9 +527,10 @@ label_list(X):
 ;
 
 label_type:
-  i = IDENT COLON t = type_expression
+  | i = IDENT COLON t = type_expression
   { Printf.printf "label_type: %s:type_expression\n" i;
       (i, t) }
+  | LPAREN t=label_type RPAREN { t }
 ;
 
 constr_decl_desc:
@@ -1008,12 +1009,15 @@ simple_expression_desc:
       { Printf.printf "Desc void\n"; Econst Evoid }
   | LPAREN e = expression_comma_list RPAREN
       { Printf.printf "Desc Tuple\n"; Etuple (List.rev e) }
+
+(*
   (* refinement tuples *)
   | LPAREN e = expression_comma_list RPAREN COLON tl = type_star_list BAR e_ref = seq_expression 
       { Printf.printf "Desc Refinement Tuple\n"; Erefinementtuple (List.rev e, make(Etypetuple(List.rev tl)) $startpos $endpos, e_ref) }
   (* refinement pair function argument*)
 //   | LPAREN e = expression_comma_list COLON tl = type_star_list BAR e_ref = seq_expression RPAREN
 //       { Printf.printf "Desc Refinement Pair\n"; Erefinementfunpair( List.rev e, make(Etypetuple(List.rev tl)) $startpos $endpos, e_ref) }
+*)
   | LPAREN e = seq_expression RPAREN
       { Printf.printf "Desc seq expression\n"; e.desc }
   | LPAREN e = simple_expression COLON t = type_expression RPAREN
@@ -1335,6 +1339,9 @@ type_expression:
   | LBRACE label_type = label_type BAR seq = seq_expression RBRACE
     { Printf.printf "new-syntax type refinement\n"; make(Erefinement(label_type, seq)) $startpos $endpos}
 
+  | LBRACE label_type_star_list = label_type_star_list BAR seq = seq_expression RBRACE
+    {Printf.printf "new-syntax refinement tuple\n"; make(Erefinementlabeledtuple(List.rev label_type_star_list, seq)) $startpos $endpos}
+
   /* | basetype = simple_type LBRACE seq = seq_expression RBRACE 
       {Printf.printf "type refinement\n"; make(Erefinement(basetype, seq)) $startpos $endpos}  */
 
@@ -1353,12 +1360,12 @@ simple_type:
 
   /* | basetype = simple_type LBRACE seq = seq_expression RBRACE 
       { Printf.printf "type refinement simple type\n"; make(Erefinement(basetype, seq)) $startpos $endpos} */
-
+   
   (* refinement type specification for pairs *)
-  | binding_var = ide COLON basetype = simple_type
-      { Printf.printf "type refinement pair\n"; make(Erefinementpair(binding_var, basetype)) $startpos $endpos}
-  | LPAREN t = type_expression COMMA tl = type_comma_list RPAREN i = ext_ident
-      { Printf.printf "type expression list\n"; make (Etypeconstr(i, t :: tl)) $startpos $endpos }
+  (*| binding_var = ide COLON basetype = simple_type
+      { Printf.printf "type refinement pair\n"; make(Erefinementpair(binding_var, basetype)) $startpos $endpos}*)
+  (*| LPAREN t = type_expression COMMA tl = type_comma_list RPAREN i = ext_ident
+      { Printf.printf "type expression list\n"; make (Etypeconstr(i, t :: tl)) $startpos $endpos }*)
   | t_arg = simple_type LBRACKET s = size_expression RBRACKET
       { Printf.printf "type vec\n"; make(Etypevec(t_arg, s)) $startpos $endpos}
   | LPAREN t = type_expression RPAREN
@@ -1371,6 +1378,12 @@ type_star_list:
   | tsl = type_star_list STAR t = simple_type
       { t :: tsl }
 ;
+
+label_type_star_list:
+  | t1=label_type STAR t2 = label_type
+      { Printf.printf "label_type star list\n";[t2; t1]}
+  | tsl = label_type_star_list STAR t = label_type
+      { t :: tsl }
 
 type_var:
   | QUOTE i = IDENT

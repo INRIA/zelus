@@ -1,0 +1,8 @@
+let node sim () =
+	(*let rec ((x, y):{(v:int) * (w:int) | w >= 0}) = (1, 1) fby (-x, (if (x < 0) then -x else x)) in (x, y)*)
+	let rec ((power, temp):{(p:float)*(t:float) | ((t >= 14. && t <= 18.) && ((t <= 17.96 && p = 0.05) || (t >= 14.01 && p = 0.)))}) = (0., 15.) fby ((if (temp <= 16.) then 0.05 else 0.), (temp +. (power -. 0.01))) in (power, temp)
+	
+
+	(*let (x:{v:float | v >= 0}) =  5. in x*)
+	(*let rec (x:{v:float | v > 0.}) = (-5.) in x*)
+	(*let rec ((x, y):{v:(int*int) | true}) = (5, 7) in (x, y);; (* this type checks *)*)
