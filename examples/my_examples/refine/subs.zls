@@ -5,6 +5,20 @@ let node main () = let (x: {v:float | v >= 0}) = 1.2 in x   *)
  let (x : {v : int | v >= 0}) = (0) fby (7)
  in () *)
 
-let node main () =
+(* let node main () =
 let rec (x : {v : int | v >= 0}) = 0 fby (x + 1)
-in ()
+in () *)
+
+(* let node main () =
+    let (x : {v : int | v >= 0 || v < 0}) = 5 in
+    let (x_abs : {v : int | v >= 0}) = if x < 0 then (-x) else x
+    in () *)
+
+(* 
+    
+   vc:  x < 0 -> -x >= 0    and  not (x < 0)  ->  x >= 0
+
+*)
+let node main () =
+ let rec (xf : { x:int | x < 9 }) =
+  5 fby (if xf < 1 then xf + 1 else xf - 1) in xf

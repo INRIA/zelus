@@ -1,0 +1,10 @@
+(rule
+ (targets test_thermostat_exec.ml test_thermostat_exec_main.ml)
+ (deps (:zl test_thermostat_exec.zls))
+ (action (run zeluc -s main -verify -ref_v -o test_thermostat_exec_main %{zl})))
+
+(executable
+  (name test_thermostat_exec_main)
+  (libraries zelus )
+  (promote (until-clean)))
+

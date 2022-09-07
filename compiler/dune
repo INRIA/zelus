@@ -15,7 +15,7 @@
   (public_name zelus.zlcompilerlibs)
   (wrapped false)
   (modules :standard \ zeluc simulator fixstep)
-  (libraries menhirLib z3))
+  (libraries menhirLib z3 str))
 
 (executable
   (name zeluc)
