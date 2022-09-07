@@ -35,6 +35,7 @@ open Zelus
 
 open List
 open Hashtbl
+open Str
 
 
 (*
@@ -623,10 +624,10 @@ and vc_gen_equation_operation ctx env typenv op e_list pat =
               let vc = Boolean.mk_not ctx (Boolean.mk_and ctx [vc1; vc2]) in 
               z3_proof ctx env vc refinement_expr
             ) else (
+              debug(Printf.sprintf "FBY is not recursive");
               (* apply stream typing rule - no recursion*)
               z3_solve_stream ctx env [exp1; exp2] refinement_expr
             ); base_var
-
         | Eifthenelse, [e1 ; e2; e3] -> 
             debug("Eifthenelse\n");
             let exp1 = vc_gen_expression ctx env e1 typenv in 
@@ -651,14 +652,22 @@ and vc_gen_equation_operation ctx env typenv op e_list pat =
             ) in
             z3_proof ctx env vc refinement_expr;
             base_var
-
         | _ -> vc_gen_operation ctx env typenv op e_list 
 
+and is_substring s1 s2 =
+(*
+    Checks whether s2 is a substring of s1 
+*)
+    try ignore (Str.search_forward s1 s2 0); true
+    with Not_found -> false  
+
 and expression_contains expr var =
-      let args = List.map (fun elem -> Expr.to_string elem) (Expr.get_args expr) in
+      debug(Printf.sprintf "expression contains [%s]:\n" (Expr.to_string expr));
       let var_name = Expr.to_string var in
+      let re = Str.regexp_string var_name in
+      let args = List.map (fun elem -> is_substring re (Expr.to_string elem)) (Expr.get_args expr) in
       debug(Printf.sprintf "Var name: %s \n" var_name);
-      List.mem var_name args
+      List.mem true args
       
 and vc_gen_equation_expression ctx env e typenv pat =
        (* TODO: check if pat is a tuple or not *)
@@ -1149,15 +1158,11 @@ and vc_gen_operation ctx env typenv op e_list =
     (* let new_stream = {initialization_var: e1; application_function: e2} in *)
     (* add_stream  *)
     | Eifthenelse, [e1; e2; e3] -> 
-       (* let exp1 = (Expr.to_string (vc_gen_expression ctx env e1 typenv)) in
-       let exp2 = (Expr.to_string (vc_gen_expression ctx env e2 typenv)) in
-       let exp3 = (Expr.to_string (vc_gen_expression ctx env e3 typenv)) in
-       debug(Printf.sprintf "if [%s] then [%s] else [%s]\n" exp1 exp2 exp3);  *)
-       debug(Printf.sprintf "Eifthenelse\n");
-       let expc = vc_gen_expression ctx env e1 typenv in
-       let expt = vc_gen_expression ctx env e2 typenv in
-       let expf = vc_gen_expression ctx env e3 typenv in
-       Boolean.mk_ite ctx expc expt expf
+      debug(Printf.sprintf "Eifthenelse\n");
+      let expc = vc_gen_expression ctx env e1 typenv in
+      let expt = vc_gen_expression ctx env e2 typenv in
+      let expf = vc_gen_expression ctx env e3 typenv in
+      Boolean.mk_ite ctx expc expt expf
     | Eup, [e] -> debug(Printf.sprintf "Eup\n"); Integer.mk_numeral_s ctx "42"
     | Einitial, [] -> debug(Printf.sprintf "Einitial\n"); Integer.mk_numeral_s ctx "42"
     | (Etest | Edisc | Ehorizon), [e] -> debug(Printf.sprintf "Etest | Edisc |Ehorizon\n"); Integer.mk_numeral_s ctx "42"

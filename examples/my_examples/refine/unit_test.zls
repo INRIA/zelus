@@ -94,6 +94,7 @@ let x : {v:int | box(v>=3) || box(v<2)} = 4
   EXAMPLE 8: custom refinement type
 
 *)
+
 type nat = {v : int | v >= 0}
 
 (* 
