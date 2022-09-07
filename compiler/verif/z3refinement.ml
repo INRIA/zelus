@@ -768,23 +768,48 @@ and vc_gen_equation ctx env typenv eq =
                 | Eop(op, e_list) -> debug(Printf.sprintf "operation");
                     (match op, e_list with
                     | Efby, [e1; e2] -> (
+                            (* Proving let rec x:{v:t | phi} = e1 fby e2 requires:
+                                    * phi[x/v] => phi[e1/v] AND
+                                    * phi[x/v] => phi[e2/v]
+                                to be true at ALL times, which essentially means we need to DISprove the negation.
+                            *)
                             match (e1.e_desc, e2.e_desc) with
                             | (Etuple(e1_list), Etuple(e2_list)) -> debug (Printf.sprintf "Found a tuple fby tuple!");
+                                (* Parses e1 and e2 into Z3 expressions *)
                                 let e1_exps = List.map (fun x -> (vc_gen_expression ctx env x typenv)) e1_list in 
                                 let e2_exps = List.map (fun x -> (vc_gen_expression ctx env x typenv)) e2_list in
                                 (Printf.printf "("); (ignore (List.map (fun x -> (Printf.printf "%s," (Expr.to_string x) )) e1_exps)); (Printf.printf ") fby ");
                                 (Printf.printf "("); (ignore (List.map (fun x -> (Printf.printf "%s," (Expr.to_string x) )) e2_exps)); (Printf.printf ")\n");
+                                (* Parses phi into a Z3 expression *)
                                 let ref_constraint = (vc_gen_expression ctx env ref_exp typenv) in
+                                (* Gets phi[x/v] *)
                                 let ref_replaced_constraint = Expr.substitute ref_constraint z3vars_ref z3vars in
-                                let next_step_vars = List.map2 (fun x ty -> (create_z3_var_typed ctx env (Printf.sprintf "%s_next" x) ty)) vars_names vars_basetypes_strings in
+                                (* Gets "next step" variables, or those associated with e2 *)
+                                (*let next_step_vars = List.map2 (fun x ty -> (create_z3_var_typed ctx env (Printf.sprintf "%s_next" x) ty)) vars_names vars_basetypes_strings in*)
+                                (*
                                 let exps1 = List.map2 (Boolean.mk_eq ctx) z3vars e1_exps in
-                                let exps3 = List.map2 (Boolean.mk_eq ctx) next_step_vars e2_exps in
+                                let exps3 = List.map2 (Boolean.mk_eq ctx) next_step_vars e2_exps in*)
+                                (* vc1: 
                                 let vc1 = Boolean.mk_implies ctx (Boolean.mk_and ctx exps1) ref_replaced_constraint in
                                 let next_refinement_expr = Expr.substitute ref_constraint z3vars_ref next_step_vars in
                                 debug(Printf.sprintf "Next refinement: %s\n" (Expr.to_string next_refinement_expr));
                                 let vc2 = Boolean.mk_implies ctx (Boolean.mk_and ctx (ref_replaced_constraint :: exps3)) next_refinement_expr in
                                 let vc = Boolean.mk_not ctx (Boolean.mk_and ctx [vc1; vc2]) in
-                                z3_proof ctx env vc ref_replaced_constraint
+                                z3_proof ctx env vc ref_replaced_constraint *)
+
+                                (* Gets us phi[e1 / v] *)
+                                let phi_e1 = Expr.substitute ref_constraint z3vars_ref e1_exps in
+                                (* Gets us phi[e2 / v] *)
+                                let phi_e2 = Expr.substitute ref_constraint z3vars_ref e2_exps in
+                                debug(Printf.sprintf "phi_e1: %s\n" (Expr.to_string phi_e1));
+                                debug(Printf.sprintf "phi_e2: %s\n" (Expr.to_string phi_e2));
+                                (* vc1 === phi[x/v] => phi[e1 / v] *)
+                                let vc1 = Boolean.mk_implies ctx ref_replaced_constraint phi_e1 in
+                                (* vc2 === phi[x/v] => phi[e2 / v] *)
+                                let vc2 = Boolean.mk_implies ctx ref_replaced_constraint phi_e2 in
+                                (* Tries to disprove the VCs then adds them to the environment if no counterexample found *)
+                                z3_proof ctx env (Boolean.mk_not ctx vc1) vc1;
+                                z3_proof ctx env (Boolean.mk_not ctx vc2) vc2;
                             )
                     )
                 )
