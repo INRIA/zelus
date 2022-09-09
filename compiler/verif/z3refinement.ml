@@ -393,7 +393,7 @@ let sort2type sort_enum =
   |	CHAR_SORT -> "char"
   |	_ -> "NULL"
 
-let rec cloc ctx vc model truth depth = 
+let rec cloc ctx vc model truth = 
     let model_eval = Model.eval model vc false in
         match model_eval with
         | Some(m) ->(* 
@@ -411,23 +411,23 @@ let rec cloc ctx vc model truth depth =
                 let boolval = ((Boolean.get_bool_value m) == L_TRUE) in
                 (if (boolval == truth) then (
                    ( match (FuncDecl.get_decl_kind (Expr.get_func_decl vc)) with
-                    | OP_NOT -> cloc ctx (List.hd (Expr.get_args vc)) model (not truth) (depth + 1)
+                    | OP_NOT -> cloc ctx (List.hd (Expr.get_args vc)) model (not truth)
                     | OP_AND ->
                         (match truth with
                         | true -> (Printf.printf "%s\n" (Expr.to_string vc)) 
-                        | _ -> (List.iter (fun x -> (cloc ctx x model false (depth + 1))) (Expr.get_args vc)) 
+                        | _ -> (List.iter (fun x -> (cloc ctx x model false)) (Expr.get_args vc)) 
                         )
                     | OP_IMPLIES ->
                         (match truth with
                         | true -> (Printf.printf "%s\n" (Expr.to_string vc))
-                        | _ -> (cloc ctx (List.nth (Expr.get_args vc) 1) model false (depth + 1))
+                        | _ -> (cloc ctx (List.nth (Expr.get_args vc) 1) model false)
                         )
                     | OP_OR -> 
                         (match truth with
-                        | true -> (List.iter (fun x -> (cloc ctx x model true (depth + 1))) (Expr.get_args vc))
+                        | true -> (List.iter (fun x -> (cloc ctx x model true)) (Expr.get_args vc))
                         | _ -> (Printf.printf "%s\n" (Expr.to_string vc))
                         )
-                    | _ ->  (Printf.printf "%.*s%s\n" depth "\t" (Expr.to_string vc))
+                    | _ ->  (Printf.printf "%s\n" (Expr.to_string vc))
                     ))
                 else ()))
                
@@ -467,7 +467,7 @@ let z3_proof ctx env vc constraints =
       let err_msg = Printf.sprintf "Could not prove: %s\n\027[0m" (Expr.to_string constraints) in
       proof_error_count := !proof_error_count + 1;
       Printf.printf "Root Cause:\n======================================================================\n";
-      cloc ctx (Boolean.mk_not ctx vc) m false 0;
+      cloc ctx (Boolean.mk_not ctx vc) m false;
       Printf.printf "======================================================================\n";
       raise (TestFailedException err_msg)))
   else
