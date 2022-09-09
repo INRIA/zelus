@@ -315,7 +315,7 @@ let print_assignments m =
 
     Print counterexamples found for a given z3 model
 *)
-  let decls = (Model.get_decls m) in
+  let decls = (Model.get_const_decls m) in
     List.iter (fun a -> (match (Model.get_const_interp m a) with
       | Some(e) -> Printf.printf "\t%s: %s\n" (Symbol.get_string (FuncDecl.get_name a)) 
           (if (Arithmetic.is_real e) then (Arithmetic.Real.to_decimal_string e 5) else (Expr.to_string e))
@@ -393,6 +393,48 @@ let sort2type sort_enum =
   |	CHAR_SORT -> "char"
   |	_ -> "NULL"
 
+let rec cloc ctx vc model truth depth = 
+    let model_eval = Model.eval model vc false in
+        match model_eval with
+        | Some(m) ->(* 
+            try (
+            let solver = (mk_solver ctx None) in
+            let s = (Solver.add solver [m]) in
+            let q = check solver [] in
+            (match q with
+                | UNSATISFIABLE -> let exp_fault = (get_unsat_core solver) in List.iter (fun x -> Printf.printf "%s\n" (Expr.to_string x)) exp_fault;  ()
+                | _ -> ()
+            ) )
+            with 
+            | TestFailedException(msg) -> Printf.printf "%s" msg*)
+            if (Boolean.is_bool m) then (
+                let boolval = ((Boolean.get_bool_value m) == L_TRUE) in
+                (if (boolval == truth) then (
+                   ( match (FuncDecl.get_decl_kind (Expr.get_func_decl vc)) with
+                    | OP_NOT -> cloc ctx (List.hd (Expr.get_args vc)) model (not truth) (depth + 1)
+                    | OP_AND ->
+                        (match truth with
+                        | true -> (Printf.printf "%s\n" (Expr.to_string vc)) 
+                        | _ -> (List.iter (fun x -> (cloc ctx x model false (depth + 1))) (Expr.get_args vc)) 
+                        )
+                    | OP_IMPLIES ->
+                        (match truth with
+                        | true -> (Printf.printf "%s\n" (Expr.to_string vc))
+                        | _ -> (cloc ctx (List.nth (Expr.get_args vc) 1) model false (depth + 1))
+                        )
+                    | OP_OR -> 
+                        (match truth with
+                        | true -> (List.iter (fun x -> (cloc ctx x model true (depth + 1))) (Expr.get_args vc))
+                        | _ -> (Printf.printf "%s\n" (Expr.to_string vc))
+                        )
+                    | _ ->  (Printf.printf "%.*s%s\n" depth "\t" (Expr.to_string vc))
+                    ))
+                else ()))
+               
+             else ()
+                
+            
+        | _ -> ()
 let z3_proof ctx env vc constraints =
 (*
   ctx         -> z3 context
@@ -424,6 +466,9 @@ let z3_proof ctx env vc constraints =
             print_assignments m;
       let err_msg = Printf.sprintf "Could not prove: %s\n\027[0m" (Expr.to_string constraints) in
       proof_error_count := !proof_error_count + 1;
+      Printf.printf "Root Cause:\n======================================================================\n";
+      cloc ctx (Boolean.mk_not ctx vc) m false 0;
+      Printf.printf "======================================================================\n";
       raise (TestFailedException err_msg)))
   else
     (Printf.printf "\027[32mPassed\027[0m\n";));
@@ -698,7 +743,11 @@ and vc_gen_equation_expression ctx env e typenv pat =
 *)
   match e.e_desc with
   (* | Econst(Evoid) -> Boolean.mk_true ctx *)
-  | Eop ( op, e_list) -> debug(Printf.sprintf "Eop pat\n"); vc_gen_equation_operation ctx env typenv op e_list pat
+  | Eop ( op, e_list) -> 
+      (match (op, e_list) with
+        | Emodels, [e1; e2] -> debug(Printf.sprintf "Eop pat models\n"); vc_gen_equation_expression ctx env e1 typenv pat
+        | _ -> debug(Printf.sprintf "Eop pat\n"); vc_gen_equation_operation ctx env typenv op e_list pat
+      )
   | Econst(i) ->  debug(Printf.sprintf "Econst\n"); immediate ctx i
   | Eglobal {lname = ln} -> debug(Printf.sprintf "Eglobal\n");Integer.mk_numeral_s ctx "42"
   | Eapp({ app_inline = i; app_statefull = r }, e, e_list) -> debug(Printf.sprintf "Eapp\n");
@@ -827,12 +876,12 @@ and vc_gen_equation ctx env typenv eq =
                                 debug(Printf.sprintf "phi_e1: %s\n" (Expr.to_string phi_e1));
                                 debug(Printf.sprintf "phi_e2: %s\n" (Expr.to_string phi_e2));
                                 (* vc1 === phi[x/v] => phi[e1 / v] *)
-                                let vc1 = Boolean.mk_implies ctx ref_replaced_constraint phi_e1 in
+                                let vc1 = Boolean.mk_implies ctx (Boolean.mk_and ctx [(Boolean.mk_and ctx !(env.exp_env)); ref_replaced_constraint]) phi_e1 in
                                 (* vc2 === phi[x/v] => phi[e2 / v] *)
-                                let vc2 = Boolean.mk_implies ctx ref_replaced_constraint phi_e2 in
+                                let vc2 = Boolean.mk_implies ctx (Boolean.mk_and ctx [(Boolean.mk_and ctx !(env.exp_env)); ref_replaced_constraint]) phi_e2 in
                                 (* Tries to disprove the VCs then adds them to the environment if no counterexample found *)
                                 z3_proof ctx env (Boolean.mk_not ctx vc1) vc1;
-                                z3_proof ctx env (Boolean.mk_not ctx vc2) vc2;
+                                z3_proof ctx env (Boolean.mk_not ctx vc2) vc2
                             )
                     )
                 )
@@ -1137,6 +1186,7 @@ and vc_gen_operator ctx env typenv e e_list =
     | "*." | "*" | "Stdlib.*." -> Arithmetic.mk_mul ctx [(vc_gen_expression ctx env op_l typenv); (vc_gen_expression ctx env op_r typenv)]
     | "+." | "+" | "Stdlib.+." -> Arithmetic.mk_add ctx [(vc_gen_expression ctx env op_l typenv); (vc_gen_expression ctx env op_r typenv)]
     | "-." | "-" | "Stdlib.-." -> Arithmetic.mk_sub ctx [(vc_gen_expression ctx env op_l typenv); (vc_gen_expression ctx env op_r typenv)]
+    | "/." | "/" | "Stdlib./." -> (Arithmetic.mk_div ctx (vc_gen_expression ctx env op_l typenv) (vc_gen_expression ctx env op_r typenv))
     | "&&" -> Boolean.mk_and ctx [(vc_gen_expression ctx env op_l typenv); (vc_gen_expression ctx env op_r typenv)]
     | "||" -> Boolean.mk_or ctx [(vc_gen_expression ctx env op_l typenv); (vc_gen_expression ctx env op_r typenv)]
     | s -> debug(Printf.sprintf "Non-standard vc_gen_operator s : %s\n" (s)); prove_function ctx s env e_list typenv
@@ -1187,6 +1237,7 @@ and vc_gen_operation ctx env typenv op e_list =
     | Eslice _, [e] -> debug(Printf.sprintf "Eslice\n"); Integer.mk_numeral_s ctx "42"
     | Econcat, [e1; e2] -> debug(Printf.sprintf "Econcat\n"); Integer.mk_numeral_s ctx "42"
     | Eatomic, [e] -> debug(Printf.sprintf "Eatomic\n"); Integer.mk_numeral_s ctx "42"
+    | Emodels, [e1; e2] -> vc_gen_expression ctx env e1 typenv
     | _ -> debug(Printf.sprintf "Operation undefined\n"); Integer.mk_numeral_s ctx "42"
     
 
@@ -1342,7 +1393,8 @@ and vc_gen_expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
     | Eseq ( e1, e2)-> debug(Printf.sprintf ("Eseq : (e1 = %s e2 = %s)\n") (Expr.to_string (vc_gen_expression ctx env e1 typenv)) (Expr.to_string (vc_gen_expression ctx env e2 typenv)));
      Integer.mk_numeral_s ctx "42"
     | Eperiod _-> debug(Printf.sprintf "Eperiod\n"); Integer.mk_numeral_s ctx "42"
-    | Eblock (_, _)-> debug(Printf.sprintf "Eblock\n"); Integer.mk_numeral_s ctx "42"  
+    | Eblock (_, _)-> debug(Printf.sprintf "Eblock\n"); Integer.mk_numeral_s ctx "42"
+    | Eget _-> raise (Z3FailedException "Error using robot_get while verifying")  
     | _ -> (debug(Printf.sprintf "Ignore vc_gen_expression\n")); Integer.mk_numeral_s ctx "42"
 
     (*| Econstr0(lname) -> Zelus.Econstr0(longname lname)
