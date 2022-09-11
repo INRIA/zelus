@@ -1,0 +1,10 @@
+(rule
+ (targets acc.ml acc_main.ml)
+ (deps (:zl acc.zls))
+ (action (run zeluc -s main -verify -ref_v -o acc_main %{zl})))
+
+(executable
+  (name acc_main)
+  (libraries zelus )
+  (promote (until-clean)))
+
