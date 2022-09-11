@@ -24,7 +24,10 @@ open Format
 open Pp_tools
 open Printer
 open Oprinter
+open Hashtbl
 
+let op_table=((Hashtbl.create 15) : (string, inst) Hashtbl.t)
+let ip_table=((Hashtbl.create 15) : (string, inst) Hashtbl.t)
 
 let immediate ff = function
   | Oint i ->
@@ -258,10 +261,35 @@ and exp prio ff e =
   | Omove(e) ->
       print_endline("Omove compilation");
       (*fprintf ff "print_endline(\"robot is moving\")"*)
-      fprintf ff "move_robot_ml %a" (exp 0) e
+      fprintf ff "move_robot_ml (%a)" (exp 0) e
   (*added here*)
   | Ostore(cmd, key) ->
-      fprintf ff "robot_store(\"%s\" , %f)" cmd key
+      fprintf ff "robot_store\"%s\" , %f" cmd key
+  | Ocontrol(e1, e2) ->
+      print_endline("Ocontrol compilation");
+      fprintf ff "control_robot_ml (%a) (%a)" (exp 0) e1 (exp 1) e2
+   (*added here*)
+   | Ostr(e1, e2) ->
+   print_endline("Ostr compilation");
+   fprintf ff "robot_str_ml (%a) (%a)" (exp 0) e1 (exp 1) e2
+  (*added here*)
+  | Oget(cm) ->
+   fprintf ff "robot_get \"%s\"" cm
+  (*added here*) 
+  | Oinp (e1, e2) ->
+      print_endline ("there is an input variable using the channel ")
+  (*added here*) 
+  | Ooup (e) ->
+      fprintf ff "from op ocamlprinter robot_store_ml %a" (exp 0) e
+  (*added here*)
+  | Omodels(e1, e2) ->
+    fprintf ff "@[%a@]" (exp 0)
+    (if !robot then
+      (print_endline("Robot mode");
+      e2)
+    else
+      (print_endline("Not Robot mode");
+      e1))
   | Oinst(i) -> inst prio ff i
   end;
   if prio_e < prio then fprintf ff ")"
@@ -602,6 +630,15 @@ let machine f ff { ma_kind = k;
 let implementation ff impl = match impl with
   | Oletvalue(n, i) ->
      fprintf ff "@[<v 2>let %a = %a@.@.@]" shortname n (inst 0) i
+  | Oletvalueop(n, e ,i) ->
+     Hashtbl.add op_table n e ;
+     fprintf ff "@[<v 2>let () = robot_store_ml %a %a@.@.@]" (inst 0) e (inst 0) i;
+     fprintf ff "@[<v 2>let %a = %a@.@.@]" shortname n (inst 0) i ;
+     (*fprintf ff "@[\"%s\" is an output variable using the lcm channel %a@.@.@]" n (inst 0) (Hashtbl.find op_table n)*) 
+  | Oletvalueip(n, e ,i) ->
+     Hashtbl.add ip_table n e ;
+     (*fprintf ff "@[<v 2>let %a = %a@.@.@]" shortname n (inst 0) i ;*)
+     (*fprintf ff "@[\"%s\" is an input variable using the lcm channel %a@.@.@]" n (inst 0) e*)    
   | Oletfun(n, pat_list, i) ->
      fprintf ff "@[<v 2>let %a %a =@ %a@.@.@]"
              shortname n pattern_list pat_list (inst 0) i
@@ -622,5 +659,16 @@ let implementation_list ff impl_list =
   fprintf ff "@[(* %s *)@.@]" header_in_file;
   fprintf ff "@[open Ztypes@.@]";
   (* added here *)
-  if !robot then (fprintf ff "@[external move_robot_ml: int -> unit = \"move_robot_c\" @.@] \n @[external robot_store: string * float -> unit = \"robot_store_c\" @.@] ") else ();
+  if !robot then (fprintf ff "
+   @[external robot_get: string -> float = \"robot_get_cpp\" @.@]
+   @[external robot_str_ml: string -> float -> unit = \"robot_str_cpp\" @.@]
+   @[external lcm_start: unit -> int = \"LCM_start\" @.@] 
+   @[external lcm_stop: unit -> unit = \"LCM_stop\" @.@]
+  \n @[let () = ignore(lcm_start())@.@]") else();
+  (*if !robot then (fprintf ff "@[external control_robot_ml: int -> int -> unit = \"control_robot_c\" @.@]
+  \n @[external move_robot_ml: int -> unit = \"move_robot_cpp\" @.@]") else ();*)
+  (*\n @[external robot_get_ml: string -> unit = \"robot_get_ip\" @.@] 
+  \n @[external robot_store: string -> float -> unit = \"robot_store_c\" @.@] 
+  \n @[external robot_store_ml: string -> float -> unit = \"robot_store_op\" @.@] *)
+  (*if !robot then (fprintf ff "@[external robot_store_ml: string -> float -> unit = \"robot_store_op\" @.@]") else ();*)(*for op implementation*)
   List.iter (implementation ff) impl_list

@@ -29,8 +29,12 @@ let rec priority_exp = function
   | Otypeconstraint _ | Otuple _ -> 3
   | Oconstr1 _ | Oapp _ | Omethodcall _
     | Ovec _ | Oupdate _ | Oslice _ | Oconcat _ -> 2
-  | (*added here*) Omove _ -> 0 
+  | (*added here*) Omove _ -> 0 | (*added here *)Ocontrol _ -> 0
+  | (*added here*) Oinp _ -> 0| (*added here*) Ooup _ -> 0 
+  | (*added here *)Ostr _ -> 0
   | (*added here*) Ostore (_,_) -> 0
+  | (*added here*) Oget (_) -> 0
+  | (*added here*) Omodels _ -> 0
   | Oifthenelse _  -> 0 | Oinst i -> priority_inst i
 
 and priority_inst = function
@@ -259,6 +263,31 @@ and exp prio ff e =
   (*added here*)
   | Ostore(cmd, key) ->
       fprintf ff "robot_store(%s , %f)" cmd key
+  | Ocontrol (e1, e2) -> 
+      print_endline("Ocontrol printing");
+      fprintf ff "print_endline(\"robot is moving\")" 
+  (*added here*)
+  | Ostr (e1, e2) -> 
+      print_endline("Ostr printing");
+      fprintf ff "print_endline(\"robot is moving\")"  
+  (*added here*)
+  | Oget(cm) ->
+      fprintf ff "robot_get(%s)" cm 
+  (*added here*)
+  | Oinp (e1, e2) -> 
+      print_endline("Oinp printing");
+  (*added here*)
+  | Omodels(e1, e2) ->
+    fprintf ff "@[%a@]" (exp 0)
+    (if !robot then 
+      (print_endline("Robot mode");
+      e2)
+    else
+      (print_endline("Not Robot mode");
+      e1))
+  (*added here*)
+  | Ooup (e) -> 
+      print_endline("Ooup printing");
   | Oinst(i) -> inst prio ff i
   end;
   if prio_e < prio then fprintf ff ")"
@@ -390,6 +419,10 @@ let machine f ff { ma_kind = k; ma_params = pat_list; ma_initialize = i_opt;
 let implementation ff impl = match impl with
   | Oletvalue(n, i) ->
      fprintf ff "@[<v 2>let %a = %a@.@.@]" shortname n (inst 0) i
+  | Oletvalueop(n,e, i) ->
+     fprintf ff "@[<v 2>let %a = %a@.@.@]" shortname n (inst 0) i  
+  | Oletvalueip(n,e, i) ->
+     fprintf ff "@[<v 2>let %a = %a@.@.@]" shortname n (inst 0) i      
   | Oletfun(n, pat_list, i) ->
      fprintf ff "@[<v 2>let %a %a =@ %a@.@.@]"
              shortname n pattern_list pat_list (inst 0) i

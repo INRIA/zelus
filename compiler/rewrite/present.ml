@@ -204,6 +204,8 @@ let rec exp signals ({ e_desc = desc } as e) =
     | Eassume(e1) -> Eassume(exp signals e1)
     (*added here*)
     | Estore(cmd, key) -> desc
+     (*added here*)
+     | Eget(cm) -> desc
     | Eperiod { p_phase = p1; p_period = p2 } ->
        Eperiod { p_phase = Zmisc.optional_map (exp signals) p1;
                  p_period = exp signals p2 }
@@ -400,6 +402,11 @@ let implementation impl =
        (* let e1 = exp Env.empty e1 in *)
        let e2 = exp Env.empty e2 in
        { impl with desc = Econstdecl(n1,ty_refine,is_static,e2) }
+    (*added here*)
+    | Eipopannotation(n, e1, e2, is_op) ->
+       let e1 = exp Env.empty e1 in
+       let e2 = exp Env.empty e2 in
+       { impl with desc = Eipopannotation(n, e1, e2, is_op) }   
     | Efundecl(n, ({ f_args = p_list; f_body = e; f_env = f_env } as body)) ->
         let signals, _, f_env = build Env.empty f_env in
 	let p_list = List.map (pattern signals) p_list in

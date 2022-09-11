@@ -115,10 +115,14 @@ and size renaming ({ desc = desc } as s) =
 (** Rename an operator *)
 let operator renaming op =
   match op with
-  | Eunarypre | Efby | Eminusgreater | Eifthenelse (*|added here Emove*)
+  | Eunarypre | Efby | Eminusgreater | Eifthenelse (*added here*) | Emodels (*|added here Emove*)
   | Eup |(*added here*) Eassert | Etest | Edisc | Ehorizon | Einitial | Eaccess
   | Eupdate | Econcat | Eatomic -> op
   | Emove -> print_endline("Inline"); op
+  | Econtrol -> print_endline("Inline"); op
+  | Einp -> print_endline("Inline"); op
+  | Eoup -> print_endline("Inline"); op
+  | Estr -> print_endline("Inline"); op
   | Eslice(s1, s2) -> Eslice(size renaming s1, size renaming s2)
   		       
 (** Renaming of patterns *)
@@ -195,6 +199,8 @@ let rec expression renaming ({ e_desc = desc } as e) =
      {e with e_desc = Eassume(expression renaming e1)}
   (*added here*)
   | Estore(cmd, key) -> e
+    (*added here*)
+    | Eget(cm) -> e
   | Eperiod { p_phase = p1; p_period = p2 } ->
      { e with e_desc = Eperiod { p_phase = Zmisc.optional_map (expression renaming) p1;
                                  p_period = expression renaming p2 } }
@@ -399,6 +405,10 @@ let implementation acc impl =
     | Econstdecl(f, ty_refine, is_static, e) ->
        let e = expression Env.empty e in
        { impl with desc = Econstdecl(f, ty_refine, is_static, e) } :: acc
+    | Eipopannotation(n, e1, e2, is_op) ->
+       let e1 = expression Env.empty e1 in
+       let e2 = expression Env.empty e2 in
+       { impl with desc = Eipopannotation(n, e1, e2, is_op) } :: acc   
     | Efundecl(f, ({ f_args = p_list; f_body = e; f_env = f_env } as body)) ->
        let f_env, renaming = build f_env in
        let p_list = List.map (pattern renaming) p_list in

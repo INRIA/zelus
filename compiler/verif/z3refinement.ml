@@ -745,6 +745,7 @@ and vc_gen_equation_expression ctx env e typenv pat =
   (* | Econst(Evoid) -> Boolean.mk_true ctx *)
   | Eop ( op, e_list) -> 
       (match (op, e_list) with
+        | Emodels, [e1; e2] -> debug(Printf.sprintf "Eop pat models\n"); vc_gen_equation_expression ctx env e1 typenv pat
         | _ -> debug(Printf.sprintf "Eop pat\n"); vc_gen_equation_operation ctx env typenv op e_list pat
       )
   | Econst(i) ->  debug(Printf.sprintf "Econst\n"); immediate ctx i
@@ -1301,6 +1302,7 @@ and vc_gen_operation ctx env typenv op e_list =
     | Eslice _, [e] -> debug(Printf.sprintf "Eslice\n"); Integer.mk_numeral_s ctx "42"
     | Econcat, [e1; e2] -> debug(Printf.sprintf "Econcat\n"); Integer.mk_numeral_s ctx "42"
     | Eatomic, [e] -> debug(Printf.sprintf "Eatomic\n"); Integer.mk_numeral_s ctx "42"
+    | Emodels, [e1; e2] -> vc_gen_expression ctx env e1 typenv
     | _ -> debug(Printf.sprintf "Operation undefined\n"); Integer.mk_numeral_s ctx "42"
     
 
@@ -1457,6 +1459,7 @@ and vc_gen_expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
      Integer.mk_numeral_s ctx "42"
     | Eperiod _-> debug(Printf.sprintf "Eperiod\n"); Integer.mk_numeral_s ctx "42"
     | Eblock (_, _)-> debug(Printf.sprintf "Eblock\n"); Integer.mk_numeral_s ctx "42"
+    | Eget _-> raise (Z3FailedException "Error using robot_get while verifying")  
     | _ -> (debug(Printf.sprintf "Ignore vc_gen_expression\n")); Integer.mk_numeral_s ctx "42"
 
     (*| Econstr0(lname) -> Zelus.Econstr0(longname lname)

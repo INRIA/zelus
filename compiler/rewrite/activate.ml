@@ -87,6 +87,8 @@ let rec exp e =
     | Eassume(e1) -> Eassume(exp e1)
     (*added here*)
     | Estore(cmd,key) -> Estore(cmd, key)
+     (*added here*)
+     | Eget(cm) -> Eget(cm)
     | Eperiod { p_phase = p1; p_period = p2 } ->
        Eperiod { p_phase = Zmisc.optional_map exp p1; p_period = exp p2 }
     | Elet(l, e) -> Elet(local l, exp e)
@@ -180,6 +182,9 @@ let implementation impl =
     (* | Econstdecl(n, is_static, e) ->
        { impl with desc = Econstdecl(n, is_static, exp e) } *)
     (*TODO: refinement implementation of activate*)
+    (*added here*)
+    | Eipopannotation(n, e1, e2, is_op) ->
+       { impl with desc = Eipopannotation(n, exp e1, exp e2, is_op) }   
     | Econstdecl(n1,ty_refine,is_static,e2) ->
        { impl with desc = Econstdecl(n1,ty_refine,is_static,exp e2) }
     | Efundecl(n, ({ f_body = e } as body)) ->

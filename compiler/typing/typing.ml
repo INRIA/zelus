@@ -738,6 +738,12 @@ let rec expression expected_k h ({ e_desc = desc; e_loc = loc } as e) =
         ty
     (*added here*)
     | Eassume(e) -> expression expected_k h e 
+    (*added here*)
+    | Estore(cmd, key) ->
+     let ty = new_var () in
+        ty
+    (*added here*)
+    | Eget(cm) -> Initial.typ_float
     | Eperiod(p) ->
         (* periods are only valid in a continuous context *)
         less_than loc Tcont expected_k;
@@ -809,7 +815,7 @@ and operator expected_k h loc op e_list =
     | Eunarypre ->
         let ty = new_var () in
         Tdiscrete(true), [ty], ty
-    | (Eminusgreater | Efby) ->
+    | (Eminusgreater | Efby | (*added here*) Emodels) ->
         let ty = new_var () in
         Tdiscrete(true), [ty; ty], ty
     | (Eup | Ehorizon) ->
@@ -821,6 +827,22 @@ and operator expected_k h loc op e_list =
     | Emove ->
         let ty = new_var () in
         Tdiscrete(true), [Initial.typ_int], ty
+    (*added here*)
+    | Econtrol ->
+        let ty = new_var () in
+        Tdiscrete(true), [Initial.typ_int; Initial.typ_int], ty
+    (*added here*)
+    | Estr ->
+        let ty = new_var () in
+        Tdiscrete(true), [Initial.typ_string; Initial.typ_float], ty
+    (*added here*)
+    | Einp ->
+        let ty= new_var () in 
+        Tdiscrete(true), [ty; ty], ty
+    (*added here*)
+    | Eoup ->
+        let ty= new_var () in 
+        Tdiscrete(true), [Initial.typ_string], ty
     | Etest ->
         let ty = new_var () in
         Tany, [Initial.typ_bool], Initial.typ_signal ty
@@ -1397,6 +1419,11 @@ let implementation ff is_first impl =
        else Interface.update_refinement_type_of_value ff impl.loc f1 f2 pred tys*)
        if is_first then Interface.add_type_of_value ff impl.loc f1 false tys
        else Interface.update_type_of_value ff impl.loc f1 false tys*)
+    (*added here*)
+    |Eipopannotation(f, e1, e2, is_op) -> 
+      let tys = constdecl f false e2 in
+      if is_first then Interface.add_type_of_value ff impl.loc f false tys
+      else Interface.update_type_of_value ff impl.loc f false tys   
     | Efundecl(f, body) ->
        let tys = fundecl impl.loc f body in
        if is_first then Interface.add_type_of_value ff impl.loc f true tys

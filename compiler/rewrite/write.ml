@@ -183,6 +183,8 @@ and expression ({ e_desc = desc } as e) =
     | Eassume(e1) -> Eassume(expression e1)
     (*added here*)
     | Estore(cmd,key) -> desc
+      (*added here*)
+      | Eget(cm) -> desc
     | Eperiod { p_phase = p1; p_period = p2 } ->
        Eperiod
 	 { p_phase = Zmisc.optional_map expression p1; p_period = expression p2 }
@@ -191,6 +193,8 @@ and expression ({ e_desc = desc } as e) =
 
 let implementation impl =
   match impl.desc with
+  | Eipopannotation(n, e1, e2, is_op) ->
+     { impl with desc = Eipopannotation(n, expression e1, expression e2, is_op) }   
   | Econstdecl(n, ty_refine, is_static, e) ->
      { impl with desc = Econstdecl(n, ty_refine, is_static, expression e) }
   | Efundecl(n, ({ f_body = e } as body)) ->

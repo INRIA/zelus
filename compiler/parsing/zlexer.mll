@@ -66,7 +66,17 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   (*added here*)
   "move_robot_zls", R_MOVE;
   (*added here*)
+  "control_robot_zls", R_CONTROL;
+  (*added here*)
   "robot_store", R_STORE;
+  (*added here*)
+  "robot_str", R_STR;
+  (*added here*)
+  "robot_get", R_GET;
+  (*added here*)
+  "ip", IP;
+  (*added here*)
+  "op", OP;
   "before", BEFORE;
   "out", OUT;
   "and", AND;
@@ -97,6 +107,8 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "else", ELSE;
   "box", BOX;
   "diamond", DIAMOND;
+  (* added here *)
+  "models", MODELS;
   "quo", INFIX3("quo");
   "mod", INFIX3("mod");
   "land", INFIX3("land");

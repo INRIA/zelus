@@ -61,7 +61,10 @@ let operator acc = function
   | Efby | Eunarypre | Eifthenelse | Etest 
     | Eminusgreater | Eup |(*added here*) Eassert (*| added here Emove *) | Einitial | Edisc
     | Ehorizon | Eaccess | Eupdate | Econcat | Eatomic -> acc
-    | Emove -> print_endline("Vars"); acc
+    (*added here*)
+    | Emove | Econtrol -> print_endline("Vars"); acc
+    | Emodels -> acc;
+    | Emove | Estr |Einp |Eoup-> print_endline("Vars"); acc
     | Eslice(s1, s2) -> size (size acc s1) s2
 	   
 let rec fv bounded (last_acc, acc) e =
@@ -97,6 +100,8 @@ let rec fv bounded (last_acc, acc) e =
   | Eassume(e1) -> (fv bounded (last_acc, acc) e1)
   (*added here*)
   | Estore(cmd,key) -> last_acc, acc
+  (*added here*)
+  | Eget(cm) -> last_acc, acc
   | Econst _ | Econstr0 _ | Eglobal _ | Eperiod _ -> last_acc, acc
   | Epresent _ | Ematch _ -> assert false
         

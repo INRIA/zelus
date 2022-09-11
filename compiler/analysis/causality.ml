@@ -355,6 +355,8 @@ let rec exp env c_free ({ e_desc = desc; e_typ = ty; e_loc = loc } as e) =
       Causal.skeleton_on_c c_e ty
     (*added here*)
     | Estore(cmd, key) -> Causal.skeleton ty
+    (*added here*)
+    | Eget(cm) -> Causal.skeleton ty
     | Ematch(_, e, h_e_list) ->
         let c_body = Causal.intro_less_c c_free in
         let c_e = Causal.intro_less_c c_body in
@@ -408,6 +410,33 @@ and operator env op c_free ty e_list =
        Causal.skeleton_on_c c_res ty
   (*added here*)
   | Emove, [e] ->
+      print_endline("Causality");
+      exp_less_than_on_c env c_free e (Causal.new_var ());
+      Causal.skeleton_on_c c_res ty 
+  (*added here*)
+  | Econtrol, [e1;e2] ->
+      print_endline("Causality");
+      exp_less_than_on_c env c_free e1 (Causal.new_var ());
+      exp_less_than_on_c env c_free e2 (Causal.new_var ());
+      Causal.skeleton_on_c c_res ty 
+  (*added here*)
+  | Estr, [e1;e2] ->
+      print_endline("Causality");
+      exp_less_than_on_c env c_free e1 (Causal.new_var ());
+      exp_less_than_on_c env c_free e2 (Causal.new_var ());
+      Causal.skeleton_on_c c_res ty 
+  (*added here*)
+  | Einp, [e1;e2] ->
+      print_endline("Causality");
+      exp_less_than_on_c env c_free e1 (Causal.new_var ());
+      exp_less_than_on_c env c_free e2 (Causal.new_var ());
+      Causal.skeleton_on_c c_res ty
+  | Emodels, [e1;e2] ->
+      exp_less_than_on_c env c_free e1 (Causal.new_var ());
+      exp_less_than_on_c env c_free e2 (Causal.new_var ());
+      Causal.skeleton_on_c c_res ty
+  (*added here*)
+  | Eoup, [e] ->
       print_endline("Causality");
       exp_less_than_on_c env c_free e (Causal.new_var ());
       Causal.skeleton_on_c c_res ty 
@@ -745,6 +774,15 @@ let implementation ff { desc = desc; loc = loc } =
        Global.set_causality (Modules.find_value (Lident.Name(f1))) tcs;
        (* output the signature *)
        if !Zmisc.print_causality_types then Pcaus.declaration ff f1 tcs
+    (*added here*)
+    | Eipopannotation(f,e1,e2,_) ->
+       Zmisc.push_binding_level ();
+       let tc = exp Env.empty (Causal.new_var ()) e2 in
+       Zmisc.pop_binding_level ();
+       let tcs = generalise tc in
+       Global.set_causality (Modules.find_value (Lident.Name(f))) tcs;
+       (* output the signature *)
+       if !Zmisc.print_causality_types then Pcaus.declaration ff f tcs       
     | Efundecl (f, { f_kind = k; f_atomic = atomic;
                      f_args = p_list; f_body = e; f_env = h0 }) ->
        Zmisc.push_binding_level ();

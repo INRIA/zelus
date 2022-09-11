@@ -321,6 +321,10 @@ let implementation lmm_nodes lmm_list impl =
       then Lconstdecl(n, expression Ck_base e) :: lmm_list
      else lmm_list *)
   (*TODO: refinement implementation of zlus2lmm*)
+  | Eipopannotation(n, e1, e2, _) ->
+      if Zmisc.S.mem n lmm_nodes
+      then Lipopannotation(n, expression Ck_base e1, expression Ck_base e2) :: lmm_list
+     else lmm_list   
   | Econstdecl(n1,n2,e1,e2) ->
       if Zmisc.S.mem n1 lmm_nodes
       then Lconstdecl(n1, expression Ck_base e2) :: lmm_list

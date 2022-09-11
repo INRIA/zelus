@@ -75,7 +75,10 @@ let rec expression major ({ e_desc = e_desc } as e) =
   | Estore(cmd, key) -> e
   | Elocal _ | Eglobal _ | Econst _ | Econstr0 _ | Elast _ -> e
   | Epresent _ | Ematch _ | Eperiod _ -> assert false
-
+(*added here*)
+  | Estore(cmd, key) -> e
+(*added here*)
+| Eget(cm) -> e
 (* Translation of equations *)
 (* [major] is the current major. [eq_list] is a list of equations and *)
 (* [env] the current environment *)
@@ -140,7 +143,7 @@ and local major ({ l_eq = eq_list } as l) =
 
 let implementation impl =
   match impl.desc with
-  | Eopen _ | Etypedecl _ | Econstdecl _  (*| Erefinementdecl _*)
+  | Eopen _ | Etypedecl _ | Econstdecl _  |(*added here*) Eipopannotation _ (*| Erefinementdecl _*)
   | Efundecl(_, { f_kind = (S | AS | A | AD | D | P) }) -> impl
   | Erefinementfundecl(n, ({ f_body = e; f_env = f_env } as body))
   | Efundecl(n, ({ f_kind = C; f_body = e; f_env = f_env } as body)) ->

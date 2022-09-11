@@ -1,0 +1,6 @@
+let node exec () = 
+	let rec (x:{v:float | v >= 0.}) = (0.0 fby (x-.1.)) in x
+
+let hybrid main () =
+	let trigger =(period (0.1)) in
+		present trigger  -> (print_float (exec ())) else ()

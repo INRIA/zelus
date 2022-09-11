@@ -95,6 +95,8 @@ and implementation_desc =
     | Etypedecl of name * name list * type_decl
     (* | Erefinementdecl of name * is_static * exp *)
     (*refinement type implementation*)
+    (*added here*)
+    | Eipopannotation of name * exp * exp * is_op
     | Econstdecl of name * type_expression * is_static * exp 
     | Efundecl of name * funexp
 
@@ -110,6 +112,8 @@ and funexp =
 and is_atomic = bool
 
 and is_static = bool
+
+and is_op = bool
                   
 and exp = desc localized
 
@@ -137,6 +141,8 @@ and desc =
   | Emove of exp*)
   (*added here*)
   | Estore of name * float
+  (*added here*)
+  | Eget of name
   | Eperiod of period
   | Ematch of exp * exp match_handler list
   | Epresent of exp present_handler list * exp default option
@@ -153,7 +159,8 @@ and 'a default =
   | Init of 'a | Default of 'a
 
 and op =
-  | Efby | Eunarypre | Eifthenelse | Eminusgreater | (*added here*)Emove 
+  | Efby | Eunarypre | Eifthenelse | Eminusgreater | (*added here*)Emove |(*added here*) Econtrol | (*added here*) Emodels 
+  |(*added here*) Einp|(*added here*) Eoup|(*added here*) Estr
   | Eup | Einitial | Edisc | Etest | Eaccess | Eupdate
   | Eslice of size * size | Econcat | Eatomic
 
@@ -179,6 +186,9 @@ and period =
 and robot_input =
   { cmd : name;
     key : float }
+and rbt_input =
+    { cm : name
+       }
 
 and constr = longname
 

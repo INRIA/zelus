@@ -199,6 +199,9 @@ let rec types env ty =
     | Erefinementpairfuntype(ty_list, e) -> Zelus.Erefinementpairfuntype(List.map (types env) ty_list, expression_types env e)
     | Etypeconstr(lname, ty_list) ->
        Zelus.Etypeconstr(longname lname, List.map (types env) ty_list)
+       (*added here   
+    | Eipoptype(e_list) ->
+       Zelus.Eipoptype(expression_types env e_list)*)  
     | Erefinement((n,ty), e_list) -> 
        Zelus.Erefinement((n, types env ty), expression_types env e_list)
     | Etypefunrefinement(k, n_opt, ty_arg, ty_res, e) -> 
@@ -209,15 +212,15 @@ let rec types env ty =
           | Some(n) -> Rename.append (Rename.make (S.singleton n)) env in
               let ty_res = types env ty_res in
               Zelus.Etypefunrefinement(kind k, None, ty_arg, ty_res, expression_types env e)
-          | Etypevec(ty_arg, si) -> Zelus.Etypevec(types env ty_arg, size env si)
+          | Etypevec(ty_arg, si) -> Zelus.Etypevec(types env ty_arg, size env si) 
           | Etypefun(k, n_opt, ty_arg, ty_res) ->
-            let ty_arg = types env ty_arg in
-            let env =
-              match n_opt with
-              | None -> env
-              | Some(n) -> Rename.append (Rename.make (S.singleton n)) env in
-                  let ty_res = types env ty_res in
-                  Zelus.Etypefun(kind k, None, ty_arg, ty_res)
+             let ty_arg = types env ty_arg in
+             let env =
+               match n_opt with
+               | None -> env
+               | Some(n) -> Rename.append (Rename.make (S.singleton n)) env in
+                   let ty_res = types env ty_res in
+                   Zelus.Etypefun(kind k, None, ty_arg, ty_res)
     | Etypevec(ty_arg, si) -> Zelus.Etypevec(types env ty_arg, size env si) in
   { Zelus.desc = desc; Zelus.loc = ty.loc }
 
@@ -271,6 +274,16 @@ and operator loc env = function
   | Eup -> Zelus.Eup
   (*added here*)
   | Emove -> Zelus.Emove
+  (*added here*)
+  | Econtrol -> Zelus.Econtrol
+  (*added here*)
+  | Estr -> Zelus.Estr
+  (*added here*)
+  | Einp -> Zelus.Einp
+  (*added here*)
+  | Eoup -> Zelus.Eoup
+  (*added here*)
+  | Emodels -> Zelus.Emodels
   | Einitial -> Zelus.Einitial
   | Edisc -> Zelus.Edisc
   | Etest -> Zelus.Etest
@@ -649,7 +662,14 @@ let rec expression env { desc = desc; loc = loc } =
        Zelus.Eperiod(period env p)
     (*added here*)
     | Eassume(e) -> 
-       Zelus.Eassume(expression env e)   
+       Zelus.Eassume(expression env e) 
+    (*added here*)
+    | Estore(c, k) ->
+      		print_string("Robot command: "); print_string (c); print_string("\n");
+      		print_string ("Value: "); print_float (k); print_string("\n"); Zelus.Estore(c, k) 
+    (*added here*)
+    | Eget(c) ->
+      	  Zelus.Eget(c)
     (*added here
     | Emove(e) ->
        Zelus.Emove(expression env e)	*)
@@ -1007,6 +1027,8 @@ let implementation imp =
       (* | Erefinementdecl(n, is_static, e) ->
          Zelus.Econstdecl(n, is_static, expression Rename.empty e) *)
       (*added here*)
+      | Eipopannotation(n, e1, e2, is_op) ->
+      	 Zelus.Eipopannotation(n, expression Rename.empty e1, expression Rename.empty e2, is_op)   
       | Econstdecl(n1, ty_refine, is_static, e2) ->
         Zelus.Econstdecl(n1, types Rename.empty ty_refine, is_static, expression Rename.empty e2)
       | Efundecl(n, { f_kind = k; f_atomic = is_atomic; f_args = p_list;

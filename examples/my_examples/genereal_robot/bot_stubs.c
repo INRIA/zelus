@@ -10,12 +10,9 @@
 // Sends motor commands to the robot
 CAMLprim value robot_store_c(value pair) //, value magnitude)
 {
-	printf("Tag value: %d\n", Tag_val(pair));
-	printf("Block size: %ld\n", Wosize_val(pair));
-	printf("Isblock: %d\n", Is_block(pair));
-	
-	printf("Command: %s\n", String_val(Field(pair,0)));
-	printf("Magnitude: %f\n", Double_val(Field(pair,1)));
+        
+	//printf("Command: %s\n", (String_val(command)));
+	//printf("Magnitude: %f\n", (Double_val(magnitude)));
 	
 	//printf("hello world\n");
 	//printf("%f\n", Double_val(magnitude));
@@ -38,7 +35,31 @@ CAMLprim value robot_store_c(value pair) //, value magnitude)
 
 }
 
+CAMLprim value 
+robot_str_cpp(value command, value magnitude)
+{
+        
+	printf("Command: %s\n", (String_val(command)));
+	printf("Magnitude: %f\n", (Double_val(magnitude)));
+	
+	
+    printf("exit\n");
+   
+	//lcm_destroy(lcm);
+    return Val_unit;
+
+}
+
 CAMLprim value
-move_robot_c(value speed){
+move_robot_cpp(value speed){
+	return Val_unit;
+}
+CAMLprim value
+robot_get_cpp(value speed){
+	return Val_unit;
+}
+
+CAMLprim value
+control_robot_c(value t_speed, value a_speed){
 	return Val_unit;
 }

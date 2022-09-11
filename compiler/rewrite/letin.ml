@@ -148,6 +148,8 @@ let rec expression ({ e_desc = desc } as e) =
      {e with e_desc = Eassume(e1)}, ctx1
   (*added here*)
   | Estore(cmd,key) -> e, empty
+  (*added here*)
+  | Eget(cm) -> e, empty
   | Epresent _ | Ematch _ | Eperiod _ -> assert false
 				    
 (** Translate an equation. *)
@@ -258,6 +260,9 @@ let implementation impl =
   (* | Econstdecl(n, is_static, e) ->
      { impl with desc = Econstdecl(n, is_static, make_let e) } *)
   (*TODO: refinement implementation of letin*)
+  (*added here*)
+  | Eipopannotation(n, e1, e2, is_op) ->
+     { impl with desc = Eipopannotation(n, make_let e1, make_let e2, is_op) }   
   | Econstdecl(n1,ty_refine,is_static,e2) ->
      { impl with desc = Econstdecl(n1, ty_refine, is_static, make_let e2) }
   | Efundecl(n, ({ f_kind = k; f_body = e } as body)) ->
