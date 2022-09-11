@@ -7,25 +7,25 @@ let node maxz (x:{w:int | true}) : {v:int | v >= 0 && ((x < 0 ) || (x = v ))} = 
 
 let node exec () = 
   let rec ((xf, vf, af, xl, vl, al): 
-    {(x:float)*(v:float)*(a:float)*(x2:float)*(v2:float)*(a2:float) | ((x +. ((v*. v)  /. (2.0*.b)) +. (v *. dt /. 2.)) < (x2 +. ((v2 *. v2) /. (2.0*.b)) ) ) &&
+    {(x:float)*(v:float)*(a:float)*(x2:float)*(v2:float)*(a2:float) | ((x +. ((v*. v)  /. (2.0*.b)) +. (v*. dt /. 2.)) < (x2 +. ((v2 *. v2) /. (2.0*.b)) +. (v2*. dt/. 2.)) ) &&
         (x >= 0.) && (x < x2) && (v >= 0.) && (x2 >= 0.) && (v2 >= 0.) &&
 		(*((a = 0.) || (x +. ((v *. v) /. (-.2. *. a)) ) < xl) && *)
 		(*(v >= 0) &&*)
-		((((x +. ((v *. v) /. (2.0*.b)) +. (v *. dt) + (v *. dt /. 2.)) < ((x2 +. ((v2 *. v2) /. (2.0*.b))))) && (a = 0.)) (* used to be a <= 0*) ||
-		 (((x +. ((v *. v) /. (2.0*.b)) +. (v *. dt) + (v *. dt /. 2.)) >= ((x2 +. ((v2 *. v2) /. (2.0*.b))))) && (a = -. b))) &&
-        (*(((x2 >= 6.) && (a2 = -.b)) || ((x2 < 6.) && (a2 = 0.)))*) && (a2 = -. b) && (x2 >= xli)
+		((((x +. ((v *. v) /. (2.0*.b)) +. (v *. dt) +. (v *. dt /. 2.)) < ((x2 +. ((v2 *. v2) /. (2.0*.b)) +. (v2 *. dt /. 2.)))) && (a = 0.)) (* used to be a <= 0*) ||
+		 (((x +. ((v *. v) /. (2.0*.b)) +. (v *. dt) +. (v *. dt /. 2.)) >= ((x2 +. ((v2 *. v2) /. (2.0*.b)) +. (v2 *. dt /. 2.)))) && (a = -. b))) &&
+        (((x2 >= 6.) && (a2 = -.b)) || ((x2 < 6.) && (a2 = 0.))) &&
     }) = 
-    (0., vfi, 0., xli, vfi, -. b) fby 
+    (0., vfi, 0., xli, vfi, 0.) fby 
         (let vl_next = (if (vl +. (al *. dt) < 0.) then 0. else vl +. (al *. dt)) in
             (let xl_next = (xl +. (vl_next *. dt)) in
         (let v_next = (if (vf +. (af *. dt) < 0.) then 0. else vf +. (af *. dt)) in
             (let x_next = (xf +. (v_next *. dt)) in
     (x_next,
      v_next,
-     (if (x_next +. ((v_next *. v_next) /. (2.0*.b)) +. (v_next *. dt) +. (v_next *. dt /. 2.)) >= (xl_next +. ((vl_next *. vl_next) /. (2.0*.b))) then (-.b) else 0.),
+     (if (x_next +. ((v_next *. v_next) /. (2.0*.b)) +. (v_next *. dt)+. (v_next *. dt /. 2.)) >= (xl_next +. ((vl_next *. vl_next) /. (2.0*.b)) +. (vl_next *. dt /. 2.)) then (-.b) else 0.),
      xl_next,
      vl_next,
-     -. b)
+     (if (xl_next >= 6.) then (-.b) else 0.))
     ))))
     in (xf, vf, af, xl, vl, al)
 	

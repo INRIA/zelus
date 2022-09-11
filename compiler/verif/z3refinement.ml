@@ -1229,8 +1229,8 @@ and vc_gen_operator ctx env typenv e e_list =
   | op_l :: [] -> begin (* Unary operator case *)
     match e with
     | "box" -> debug(Printf.sprintf "box:\n");
-      Quantifier.expr_of_quantifier (Quantifier.mk_forall ctx [] [] 
-                                        (vc_gen_expression ctx env op_l typenv) None [] [] None None)
+      (*Quantifier.expr_of_quantifier (Quantifier.mk_forall ctx [] [] 
+                                        (vc_gen_expression ctx env op_l typenv) None [] [] None None)*) (vc_gen_expression ctx env op_l typenv)
     | "diamond" -> debug(Printf.sprintf "diamond:\n");
         Quantifier.expr_of_quantifier (Quantifier.mk_exists ctx [] [] 
                                         (vc_gen_expression ctx env op_l typenv) None [] [] None None)
