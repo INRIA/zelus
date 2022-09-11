@@ -12,13 +12,13 @@ let node exec () =
     }) = 
     (xl, vfi, 0.) fby 
         (let v_next = ((if (vf +. (af *. dt) < 0.) then 0. else vf +. (af *. dt)) models (robot_get ("vel"))) in
-            (let d_next = (df -. (v_next *. dt)) in
+            (let d_next = ((df -. (v_next *. dt)) models (robot_get ("dist")) )in
     ((d_next,
      v_next,
-     (if (d_next -. ((v_next *. v_next) /. (2.0*.b)) -. (v_next *. dt) -. (v_next *. dt /. 2.)) <= 0. then (-.b) else 0.))
-    ))
-    in (df, vf, af)
+     (if (d_next -. ((v_next *. v_next) /. (2.0*.b)) -. (v_next *. dt) -. (v_next *. dt /. 2.)) <= 0.5 then (-.b) else 0.))
+    )))
+    in (robot_str ("brake", af)); (df, vf, af)
 	
 let hybrid main () = 
 	let rec trigger = (period (dt)) in
-	present (trigger) -> (let (x, v, a) = exec () in (print_float x; print_newline ())) else ()
+	present (trigger) -> (let (d, v, a) = exec () in (print_float d; print_string ","; print_float v; print_string ","; print_float a; print_newline ())) else ()

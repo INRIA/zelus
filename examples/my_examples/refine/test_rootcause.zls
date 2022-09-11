@@ -1,0 +1,3 @@
+let node sim () =
+	let rec ((x, y):{(v:int) * (w:int) | w >= 0 && w < 10}) = (1, -1) in (x, y)
+	

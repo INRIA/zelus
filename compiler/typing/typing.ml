@@ -812,10 +812,13 @@ and operator expected_k h loc op e_list =
     | Eifthenelse ->
         let ty = new_var () in
         Tany, [Initial.typ_bool; ty; ty], ty
+    | (*Added here*) Emodels ->
+        let ty = new_var () in
+        Tany, [ty; ty], ty
     | Eunarypre ->
         let ty = new_var () in
         Tdiscrete(true), [ty], ty
-    | (Eminusgreater | Efby | (*added here*) Emodels) ->
+    | (Eminusgreater | Efby ) ->
         let ty = new_var () in
         Tdiscrete(true), [ty; ty], ty
     | (Eup | Ehorizon) ->
