@@ -119,6 +119,8 @@ and ptype ff ty =
   match ty.desc with
     | Etypevar(s) -> fprintf ff "'%s" s
     | Erefinement(s,_) -> ptype ff ty
+    (*added here
+    | Eipoptype(_) -> ptype ff ty*)
     | Etypeconstr(ln, ty_list) ->
         fprintf ff "@[<hov2>%a@]%a"
           (print_list_r_empty ptype "("","")") ty_list
@@ -327,6 +329,8 @@ and operator ff op e_list =
   (*added here*)
   | Emove, [e] ->  
       fprintf ff "move_robot_ml(%a)" expression e 
+  | Econtrol, [e1; e2] ->  
+      fprintf ff "control_robot_ml(%a, %a )" expression e1 expression e2
   (*DANGEROUS: CHANGE IT BACK TO ASSERT FALSE*)
   | _ -> assert false
 
@@ -533,7 +537,11 @@ let implementation ff impl =
     (*TODO: implement printing for refinement types*)
     | Econstdecl(n1,n2,e1,e2) -> 
         fprintf ff "@[<v 2>let %s%a =@ %a@.@.@]"
-          ("") shortname n1 expression e2
+           ("") shortname n1 expression e2
+    (*added here*)
+    | Eipopannotation(n,e1,e2, is_op) -> 
+          fprintf ff "@[<v 2>let %s%a =@ %a@.@.@]"
+             ("") shortname n expression e2
     | Efundecl(n, body) ->
         fprintf ff "@[<v 2>let %a =@ %a@.@]" shortname n funexp body
     | Erefinementfundecl(n, body) -> 

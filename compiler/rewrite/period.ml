@@ -168,6 +168,7 @@ let rec expression major time ({ e_desc = e_desc } as e) =
                 Eassume(expression major time e1) }
   (*added here*)
   | Estore(cmd, key) -> e
+  | Eget(cm) -> e
   | Elocal _ | Eglobal _ | Econst _ | Econstr0 _ | Elast _ -> e
   | Epresent _ | Ematch _ -> assert false
 
@@ -237,7 +238,7 @@ and local major time ({ l_eq = eq_list } as l) =
 let implementation impl =
   match impl.desc with
   (*added here*)
-  | Eopen _ | Etypedecl _ | Econstdecl _ 
+  | Eopen _ | Etypedecl _ | Econstdecl _ | Eipopannotation _
   | Efundecl(_, { f_kind = (S | AS | A | AD | D | P) }) -> impl
   | Efundecl(n, ({ f_kind = C; f_args = pat_list;
 		   f_body = e; f_env = f_env } as body)) ->

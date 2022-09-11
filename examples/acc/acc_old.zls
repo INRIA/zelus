@@ -1,0 +1,23 @@
+let vfi:{v: float | v > 0.} = 0.8
+let dt:{v: float | v > 0.} = 0.1
+let b:{v: float | v > 0.} = 0.136
+let xl:{v: float | v > 0.} = 5.
+
+
+let node exec () = 
+  let rec ((xf, vf, af): 
+    {(x:float)*(v:float)*(a:float) | (*(x +. ((v*. v)  /. (2.0*.b)) +. (v*. dt) < xl) &&*)
+		(*((a = 0.) || (x +. ((v *. v) /. (-.2. *. a)) ) < xl) && *)
+		(v >= 0) &&
+		((((x +. ((v *. v) /. (2.0*.b)) +. (v *. dt)) < xl) && (a = 0.)) (* used to be a <= 0*) ||
+		 (((x +. ((v *. v) /. (2.0*.b)) +. (v *. dt)) >= xl) && (a = -. b)))
+    }) = 
+    (0., vfi, 0.) fby
+    (xf +. ((vf+. af *. dt) *. dt),
+     (if (vf +. (af *. dt) < 0.) then 0. else vf +. (af *. dt)),
+     (if (xf +. (((vf) *. (vf)) /. (2.0*.b)) +. ((vf) *. dt)) >= xl then (-.b) else 0.))
+    in (xf, vf, af)
+	
+let hybrid main () = 
+	let rec trigger = (period (dt)) in
+	present (trigger) -> (let (x, v, a) = exec () in (print_float x; print_newline ())) else ()

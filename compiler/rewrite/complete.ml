@@ -66,6 +66,8 @@ let rec exp ({ e_desc } as e) =
         Eassume(exp e1)
     (*added here*)
     | Estore(cmd,key) -> e_desc
+    (*added here*)
+    | Eget(cm) -> e_desc
     | Ematch(total, e, m_h_list) ->
         let e = exp e in
         let m_h_list = match_handler_exp_list m_h_list in
@@ -164,6 +166,6 @@ let implementation impl =
   match impl.desc with
   | Efundecl(n, ({ f_kind = C; f_body = e } as body)) ->
      { impl with desc = Efundecl(n, { body with f_body = exp e }) }
-  | Eopen _ | Etypedecl _ | Econstdecl _ | Efundecl _  -> impl
+  | Eopen _ | Etypedecl _ | Econstdecl _ | Efundecl _ | (*added here*) Eipopannotation _ -> impl
        
 let implementation_list impl_list = Zmisc.iter implementation impl_list

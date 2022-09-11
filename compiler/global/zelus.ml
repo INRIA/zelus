@@ -81,6 +81,7 @@ and implementation_desc =
   (* | Erefinementdecl of name * is_static * exp *)
   (*added here*)
   (*refinement type definition*)
+  | Eipopannotation of name * exp * exp * is_op
   | Econstdecl of name * type_expression * is_static * exp
   | Efundecl of name * funexp
   | Erefinementfundecl of name * funexp
@@ -98,6 +99,8 @@ and funexp =
 and is_atomic = bool
 
 and is_static = bool
+
+and is_op = bool
 		  
 and exp = 
   { mutable e_desc: desc; (* descriptor *)
@@ -134,6 +137,7 @@ and desc =
   (*added here
   | Emove of exp*)
   | Estore of string * float (*custom keyword*)
+  | Eget of string  (*custom keyword*)
   | Eblock of eq list block * exp
 
 and is_rec = bool
@@ -147,6 +151,16 @@ and op =
   | Eassert  (*custom keyword*)
   (*added here*)
   | Emove (*custom keyword*)
+  (*added here*)
+  | Econtrol (*custom keyword*)
+  (*added here*)
+  | Estr (*custom keyword*)
+  (*added here*)
+  | Einp (*custom keyword*)
+  (*added here*)
+  | Eoup (*custom keyword*)
+  (*added here*)
+  | Emodels 
   | Einitial (* true at the very first instant *)
   | Edisc (* discontinuity of a flow *)
   | Ehorizon (* generate an event at a given horizon *)

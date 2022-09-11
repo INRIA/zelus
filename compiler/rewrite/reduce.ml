@@ -270,6 +270,8 @@ let rec expression venv renaming fun_defs ({ e_desc = desc } as e) =
       	  { e with e_desc = Eassume(e1)}, fun_defs
   (*added here*)
   | Estore(cmd, key) -> e, fun_defs
+  (*added here*)
+  | Eget(cm) -> e, fun_defs
   | Elet(l, e_let) ->
      let l, (renaming, fun_defs) = local venv (renaming, fun_defs) l in
      let e_let, fun_defs =
@@ -622,6 +624,9 @@ let implementation_list ff impl_list =
         (*let e1, { fundefs = fun_defs } = expression Env.empty Env.empty empty e1 in *)
        { impl with desc = Econstdecl(f1, f2, e1, e2) } ::
 	 List.fold_right make fun_defs impl_defs
+    (*| Eipopannotation(f, e1, e2, is_op) ->
+       { impl with desc = Eipopannotation(f, e1, e2, is_op) } ::
+	 List.fold_right make fun_defs impl_defs   *)
     | Efundecl(f, funexp) ->
        let ({ info = { value_typ = tys } } as entry) =
 	 try Modules.find_value (Lident.Name(f))

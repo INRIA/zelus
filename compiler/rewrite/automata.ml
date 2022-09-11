@@ -260,6 +260,8 @@ let rec exp lnames ({ e_desc = desc } as e) =
     | Eassume(e1) -> Eassume(exp lnames e1)
     (*added here*)
     | Estore(cmd,key) -> Estore(cmd, key)
+    (*added here*)
+    | Eget(cm) -> Eget(cm)
     | Eperiod { p_phase = p1; p_period = p2 } ->
        Eperiod { p_phase = Zmisc.optional_map (exp lnames) p1;
                  p_period = exp lnames p2 }
@@ -526,6 +528,11 @@ let implementation impl =
     (* | Econstdecl(n, is_static, e) ->
         let e = exp S.empty e in
         { impl with desc = Econstdecl(n, is_static, e) } *)
+    (*added here*)
+    | Eipopannotation(n, e1, e2, is_op) -> 
+        let e1 = exp S.empty e1 in
+        let e2 = exp S.empty e2 in
+        { impl with desc = Eipopannotation(n, e1, e2, is_op) }      
     (*TODO: refinement implementation of automata*)
     | Econstdecl(n1,ty_refine,is_static,e2) -> 
         (* let e1 = exp S.empty e1 in *)

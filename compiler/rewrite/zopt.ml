@@ -155,6 +155,8 @@ let rec rename_expression ren ({ e_desc = desc } as e) =
      { e with e_desc = Eassume(rename_expression ren e1) }
   (*added here*)
   | Estore(cmd,key) -> e
+  (*added here*)
+  | Eget(cm) -> e
   | Eperiod _ | Epresent _ | Ematch _ | Elet _ | Eblock _ -> assert false
 						
 and rename_local ren ({ l_eq = eq_list } as l) =
@@ -231,6 +233,8 @@ let expression ({ e_desc = desc } as e) =
 
 let implementation impl =
   match impl.desc with
+  | Eipopannotation(n, e1, e2, is_op) ->
+     { impl with desc = Eipopannotation(n, expression e1, expression e2, is_op) }   
   | Econstdecl(n, ty_refine, is_static, e) ->
      { impl with desc = Econstdecl(n, ty_refine, is_static, expression e) }
   | Efundecl(n, ({ f_body = e } as body)) ->

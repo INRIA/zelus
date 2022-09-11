@@ -149,7 +149,17 @@ let block l lo eq_list startpos endpos =
 (*added here*)
 %token R_MOVE         /* "move_robot_zls" */
 (*added here*)
+%token R_CONTROL      /* "control_robot_zls" */
+(*added here*)
 %token R_STORE        /* "robot_store" */
+(*added here*)
+%token R_STR          /* "robot_str" */
+(*added here*)
+%token R_GET          /* "robot_get" */
+(*added here*)
+%token IP             /* "ip" */
+(*added here*)
+%token OP             /* "op" */
 %token EXCEPTION      /* "exception" */
 %token EXTERNAL       /* "external" */
 %token IN             /* "in" */
@@ -190,6 +200,7 @@ let block l lo eq_list startpos endpos =
 %token RUN            /* "run" */
 %token BOX            /* "box" */
 %token DIAMOND        /* "diamond" */
+%token MODELS         /* "models" */
 %token <string> PREFIX
 %token <string> INFIX0
 %token <string> INFIX1
@@ -318,6 +329,12 @@ implementation:
       { Printf.printf "Erefinementdecl\n";
           Econstdecl(ide, ty_refine, false, seq2) }
           
+    (*added here, varable annotation using ip and op keywords*)
+  | LET ide = ide LBRACE OP seq1= expression RBRACE EQUAL seq2= seq_expression
+      { Eipopannotation (ide, seq1, seq2, true) }
+  | LET ide = ide LBRACE IP seq1= expression RBRACE EQUAL seq2= seq_expression
+      { Eipopannotation (ide, seq1, seq2, false) }    
+
     (* non-refinement variable decl *)
   | LET ide = ide EQUAL seq = seq_expression
   | LET ide = ide COLON ext_ident EQUAL seq = seq_expression
@@ -601,6 +618,9 @@ equation_desc:
   (*added here*)
   | R_STORE p = pattern EQUAL rob = robot_expression
     { EQeq(p, make (Estore(rob.cmd, rob.key)) $startpos(rob) $endpos(rob)) }
+    (*added here*)
+  | R_GET p = pattern EQUAL rob = rbt_expression
+    { EQeq(p, make (Eget(rob.cm)) $startpos(rob) $endpos(rob)) }
   | DER i = ide EQUAL e = seq_expression opt = optional_init
       { EQder(i, e, opt, []) }
   | DER i = ide EQUAL e = seq_expression opt = optional_init
@@ -787,6 +807,18 @@ scondpat_desc :
   (*added here*)
   | R_MOVE e = simple_expression
       { Econdexp (make (Eop(Emove, [e])) $startpos $endpos)}
+  (*added here*)
+  | R_CONTROL e = simple_expression
+      { Econdexp (make (Eop(Econtrol, [e])) $startpos $endpos)}
+  (*added here*)
+  | R_STR e = simple_expression
+      { Econdexp (make (Eop(Estr, [e])) $startpos $endpos)}
+  (*added here*)
+  (*| IP e= simple_expression
+      { Econdexp (make (Eop(Einp, [e])) $startpos $endpos)}*)
+  (*added here*)
+  | OP e= simple_expression
+      { Econdexp (make (Eop(Eoup, [e])) $startpos $endpos)}
   (*added here
   | R_STORE rob = robot_expression
        {Econdexp (make (Eop(Estore, [rob])) $startpos $endpos)}*)
@@ -1090,6 +1122,21 @@ expression_desc:
   (*added here*)
   | R_MOVE e = expression
       { Eop(Emove, [e])}
+  (*added here*)
+  | R_CONTROL LPAREN e1= expression COMMA e2=expression RPAREN
+      { Eop(Econtrol, [e1;e2])}
+  (*added here*)
+  | R_STR LPAREN e1= expression COMMA e2=expression RPAREN
+      { Eop(Estr, [e1;e2])}
+  (*added here*)    
+  | e1= expression LBRACE IP QUOTE e2=expression QUOTE RBRACE
+      { Eop(Einp, [e1;e2])}
+  (*added here*)    
+  | OP e=expression 
+      { Eop(Eoup, [e])}
+
+  | e1 = expression MODELS e2 = expression
+    { Eop(Emodels, [e1; e2])}
   (*added here
   | R_STORE rob = robot_expression
       { Eop(Estore, [rob])}*)
@@ -1176,6 +1223,9 @@ expression_desc:
   (*added here*)
   | R_STORE rob = robot_expression
         {Estore(rob.cmd, rob.key)}
+  (*added here*)
+  | R_GET rob = rbt_expression
+        {Eget(rob.cm)}
   | AUTOMATON opt_bar a = automaton_handlers(seq_expression)
       { Eautomaton(List.rev a, None) }
   | AUTOMATON opt_bar a = automaton_handlers(seq_expression) INIT s = state
@@ -1210,7 +1260,15 @@ period_expression:
 robot_expression:
   | LPAREN r_cmd = STRING COMMA r_key = FLOAT RPAREN
       {{cmd = r_cmd; key = r_key}}
-
+  (*added here*)
+rbt_expression:
+  | LPAREN r_cm = STRING   RPAREN
+      {{cm = r_cm}}  
+(*added here
+ip_op_expression:
+  | OP chan= expression
+      {{channel= chan}}
+;*)      
 constructor:
   | c = CONSTRUCTOR
       { Name(c) } %prec prec_ident
@@ -1328,6 +1386,11 @@ type_expression:
       { Printf.printf " function with refinement pair\n"; make(Erefinementpairfuntype(List.rev tl, e)) $startpos $endpos}
   | t_arg = type_expression a = arrow t_res = type_expression
       { Printf.printf "type exp -> type exp\n"; make(Etypefun(a, None, t_arg, t_res)) $startpos $endpos}
+  | LPAREN id = IDENT COLON t_arg = type_expression RPAREN
+			    a = arrow t_res = type_expression
+    { make(Etypefun(a, Some(id), t_arg, t_res)) $startpos $endpos}
+  (*added here
+  | LBRACE seq = seq_expression RBRACE {make(Eipoptype(seq)) $startpos $endpos}*)
   | LPAREN id = IDENT COLON t_arg = type_expression RPAREN
 			    a = arrow t_res = type_expression
       { Printf.printf "type arrow and :\n"; make(Etypefun(a, Some(id), t_arg, t_res)) $startpos $endpos}

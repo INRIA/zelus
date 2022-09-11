@@ -1,0 +1,77 @@
+(* Robot get keyword *)
+
+
+let hybrid main () = () where 
+  rec trigger = (period (1.))
+   and automaton 
+	| First -> do t = robot_get ("transverse_vel") until trigger then Second
+	| Second -> do t = robot_get ("angular_vel") until trigger then First
+   end
+   
+  (*and t=robot_get ("angular_vel")
+  and s=robot_get ("transverse_vel")*)
+  and ()= present(trigger) -> (print_int 0; (print_float t);print_newline ()(*; print_float s*); robot_str("transverse_vel", -.30.))
+  else ()
+  
+  
+  
+  
+  
+  
+  
+  
+  (*all things below are unnecessary*)
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  (*let pi = 3.14159
+let w = pi*.2.0
+let y0 = 1.0
+let y'0 = 0.0*)
+  (*and () 
+  rec der y  =  y' init y0
+  and der y' = -.w*.w*.y init y'0
+  and t = robot_get("angular_vel")
+  and trigger = up(y) (*and
+  present trigger -> local cpt in
+  do  cpt = 0 fby cpt + 1*)
+  and ()= present (trigger) -> ((print_float(t)); print_int 0; robot_store("transverse_vel",30.))*)
+  
+    
+    
+    
+   (*et hybrid main () = () where
+  rec der y  =  y' init y0
+  and der y' = -.w*.w*.y init y'0
+  and trigger = up(y) and
+  present trigger -> local cpt in
+    do  cpt = 0 fby cpt + 1
+    and () = robot_store("transverse_vel" , 30.)
+    and  () = print_endline (string_of_float last y) 
+    done*)
+   
+   (*let hybrid main () = () where
+  rec trigger = (period (1.))
+  and automaton 
+	| Forward -> do vel1 = 30 until trigger then StopF
+	| StopF -> do vel1 = 0 until trigger then Backward
+	| Backward -> do vel1 = -30 until trigger then StopB
+	| StopB -> do vel1 = 0 until trigger then Forward
+   end
+  and () = present(trigger) ->
+    ((print_int vel1); print_newline ();
+    move_robot_zls(vel1))
+  else ()*)

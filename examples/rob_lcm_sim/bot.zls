@@ -1,0 +1,21 @@
+let pi = 3.1416
+let x_last = 0.0
+let y_last = 0.0
+let theta_last = 0.0
+let wheel_base_half = 0.08125
+
+let hybrid exec()= (odometry_x, odometry_y, odometry_theta) where
+ rec 
+ (transverse, angular) = (present (period (0.04)) -> ((robot_str("transverse_vel", 0.5);robot_str("angular_vel",0.5)); (0.5, 0.5)(*;
+  (robot_get("transverse_vel"),robot_get("angular_vel"))*)) init (0.0, 0.0))
+  and  (odometry_x, (odometry_y, odometry_theta))= (present (period (0.04)) -> ((robot_get("odometry_x"),(robot_get("odometry_y"),robot_get("odometry_theta")))) init (0.0, (0.0, 0.0)))
+  and  var = (present (period (0.04)) -> ((print_float odometry_x ); print_newline() ) init () )
+  
+let hybrid main () =
+  let rec (x,y,theta) = exec () in
+    present (period (0.04)) -> 
+    ((Drawrobot.show_robot x (x fby x) y (y fby y) theta);(*()*)
+    ()
+    );
+  ()
+

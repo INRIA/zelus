@@ -315,7 +315,7 @@ let print_assignments m =
 
     Print counterexamples found for a given z3 model
 *)
-  let decls = (Model.get_decls m) in
+  let decls = (Model.get_const_decls m) in
     List.iter (fun a -> (match (Model.get_const_interp m a) with
       | Some(e) -> Printf.printf "\t%s: %s\n" (Symbol.get_string (FuncDecl.get_name a)) 
           (if (Arithmetic.is_real e) then (Arithmetic.Real.to_decimal_string e 5) else (Expr.to_string e))
@@ -393,6 +393,48 @@ let sort2type sort_enum =
   |	CHAR_SORT -> "char"
   |	_ -> "NULL"
 
+let rec cloc ctx vc model truth = 
+    let model_eval = Model.eval model vc false in
+        match model_eval with
+        | Some(m) ->(* 
+            try (
+            let solver = (mk_solver ctx None) in
+            let s = (Solver.add solver [m]) in
+            let q = check solver [] in
+            (match q with
+                | UNSATISFIABLE -> let exp_fault = (get_unsat_core solver) in List.iter (fun x -> Printf.printf "%s\n" (Expr.to_string x)) exp_fault;  ()
+                | _ -> ()
+            ) )
+            with 
+            | TestFailedException(msg) -> Printf.printf "%s" msg*)
+            if (Boolean.is_bool m) then (
+                let boolval = ((Boolean.get_bool_value m) == L_TRUE) in
+                (if (boolval == truth) then (
+                   ( match (FuncDecl.get_decl_kind (Expr.get_func_decl vc)) with
+                    | OP_NOT -> cloc ctx (List.hd (Expr.get_args vc)) model (not truth)
+                    | OP_AND ->
+                        (match truth with
+                        | true -> (Printf.printf "%s\n" (Expr.to_string vc)) 
+                        | _ -> (List.iter (fun x -> (cloc ctx x model false)) (Expr.get_args vc)) 
+                        )
+                    | OP_IMPLIES ->
+                        (match truth with
+                        | true -> (Printf.printf "%s\n" (Expr.to_string vc))
+                        | _ -> (cloc ctx (List.nth (Expr.get_args vc) 1) model false)
+                        )
+                    | OP_OR -> 
+                        (match truth with
+                        | true -> (List.iter (fun x -> (cloc ctx x model true)) (Expr.get_args vc))
+                        | _ -> (Printf.printf "%s\n" (Expr.to_string vc))
+                        )
+                    | _ ->  (Printf.printf "%s\n" (Expr.to_string vc))
+                    ))
+                else ()))
+               
+             else ()
+                
+            
+        | _ -> ()
 let z3_proof ctx env vc constraints =
 (*
   ctx         -> z3 context
@@ -424,6 +466,9 @@ let z3_proof ctx env vc constraints =
             print_assignments m;
       let err_msg = Printf.sprintf "Could not prove: %s\n\027[0m" (Expr.to_string constraints) in
       proof_error_count := !proof_error_count + 1;
+      Printf.printf "Root Cause:\n======================================================================\n";
+      cloc ctx (Boolean.mk_not ctx vc) m false;
+      Printf.printf "======================================================================\n";
       raise (TestFailedException err_msg)))
   else
     (Printf.printf "\027[32mPassed\027[0m\n";));
@@ -698,7 +743,11 @@ and vc_gen_equation_expression ctx env e typenv pat =
 *)
   match e.e_desc with
   (* | Econst(Evoid) -> Boolean.mk_true ctx *)
-  | Eop ( op, e_list) -> debug(Printf.sprintf "Eop pat\n"); vc_gen_equation_operation ctx env typenv op e_list pat
+  | Eop ( op, e_list) -> 
+      (match (op, e_list) with
+        | Emodels, [e1; e2] -> debug(Printf.sprintf "Eop pat models\n"); vc_gen_equation_expression ctx env e1 typenv pat
+        | _ -> debug(Printf.sprintf "Eop pat\n"); vc_gen_equation_operation ctx env typenv op e_list pat
+      )
   | Econst(i) ->  debug(Printf.sprintf "Econst\n"); immediate ctx i
   | Eglobal {lname = ln} -> debug(Printf.sprintf "Eglobal\n");Integer.mk_numeral_s ctx "42"
   | Eapp({ app_inline = i; app_statefull = r }, e, e_list) -> debug(Printf.sprintf "Eapp\n");
@@ -706,7 +755,7 @@ and vc_gen_equation_expression ctx env e typenv pat =
     List.iter (fun a -> debug(Printf.sprintf "E_List: %s \n" (Expr.to_string (vc_gen_expression ctx env a typenv)))) e_list; *)
     let app_expr = vc_gen_operator ctx env typenv (operator_vc_gen_expression_to_string e) e_list in
     debug( Printf.sprintf "App expr: %s\n" (Expr.to_string app_expr)); app_expr
-  | Elocal(n) -> debug(Printf.sprintf "Elocal\n");Integer.mk_numeral_s ctx "42"
+  | Elocal(n) -> debug(Printf.sprintf "Elocal\n");(*Integer.mk_numeral_s ctx "42"*) create_z3_var_typed ctx env n.source "float"
   | Elet(l, e) -> debug(Printf.sprintf "Elet\n");Integer.mk_numeral_s ctx "42"
   | Econstr0 _ -> debug(Printf.sprintf "Econstr0\n");Integer.mk_numeral_s ctx "42"
   | Econstr1(_ , _) -> debug(Printf.sprintf "Econstr1\n");Integer.mk_numeral_s ctx "42"
@@ -736,27 +785,8 @@ and add_variable_to_table ctx env typenv var_name ref_exp lbl =
             | Modname(q) -> q.id)
           | _ -> "basetype_not_right"); reference_variable = fst(lbl); phi = ref_exp}
     | None -> ())
-(*
-and vc_gen_exp_tuple_equation ctx env typenv vars_lhs refvars ref_constraint exp_rhs = 
-        match exp.e_desc with
-        | *)
-and vc_gen_equation ctx env typenv eq =
-(*
-    ctx    -> z3 context
-    env    -> environment (list of z3 vc_gen_expression)
-    typenv -> typing environment ( Hash table of string = variable name * string = base type)
-    eq     -> zelus vc_gen_equation
 
-    Creates z3 vc_gen_expression from zelus vc_gen_equation
-
-    Returns z3 vc_gen_expression
-*)
-    match eq.eq_desc with
-    | EQeq(p, e) -> debug (Printf.sprintf "EQeq:\n");
-        match p.p_desc with
-          | Etypeconstraintpat(p1, t) -> (match t.desc with
-
-            | Erefinementlabeledtuple(lbl_ty_list, ref_exp) -> debug (Printf.sprintf "Refinement labeled tuple"); 
+and  vc_gen_refinement_labeled_tuple ctx env typenv lbl_ty_list ref_exp p1 e =
                 (* Get list of variable names on the LHS *)
                 let vars_names = (match p1.p_desc with 
                     | Etuplepat(l) -> (List.map (fun x -> match x.p_desc with
@@ -827,16 +857,100 @@ and vc_gen_equation ctx env typenv eq =
                                 debug(Printf.sprintf "phi_e1: %s\n" (Expr.to_string phi_e1));
                                 debug(Printf.sprintf "phi_e2: %s\n" (Expr.to_string phi_e2));
                                 (* vc1 === phi[x/v] => phi[e1 / v] *)
-                                let vc1 = Boolean.mk_implies ctx ref_replaced_constraint phi_e1 in
+                                let vc1 = Boolean.mk_implies ctx (Boolean.mk_and ctx [(Boolean.mk_and ctx !(env.exp_env)); ref_replaced_constraint]) phi_e1 in
                                 (* vc2 === phi[x/v] => phi[e2 / v] *)
-                                let vc2 = Boolean.mk_implies ctx ref_replaced_constraint phi_e2 in
+                                let vc2 = Boolean.mk_implies ctx (Boolean.mk_and ctx [(Boolean.mk_and ctx !(env.exp_env)); ref_replaced_constraint]) phi_e2 in
                                 (* Tries to disprove the VCs then adds them to the environment if no counterexample found *)
                                 z3_proof ctx env (Boolean.mk_not ctx vc1) vc1;
-                                z3_proof ctx env (Boolean.mk_not ctx vc2) vc2;
+                                z3_proof ctx env (Boolean.mk_not ctx vc2) vc2
+
+                            | (Etuple(e1_list), e_second) -> debug (Printf.sprintf "Found a tuple fby let");
+                                let rec is_only_lets_and_tuple_on_bottom e = (match (e) with
+                                                                    | Elet(l, e_inner) -> is_only_lets_and_tuple_on_bottom e_inner.e_desc
+                                                                    | Etuple(_) -> true
+                                                                    | _ -> false) in
+                                    (if (is_only_lets_and_tuple_on_bottom e_second) then (Printf.printf "Lets and tuple on bottom"; let rec collapse_lets_and_return_tuple e list_of_replacements = 
+                                            (match e with
+                                            | Elet(l, e_inner) -> (*(List.iter (vc_gen_equation ctx env typenv) l.l_eq);*) 
+                                                collapse_lets_and_return_tuple e_inner.e_desc 
+                                                    ((List.map (fun eq -> (match eq.eq_desc with 
+                                                                            | EQeq(p, e) ->
+                                                                                (match p.p_desc with
+                                                                                    | Evarpat(n) -> (create_z3_var ctx env n.source, vc_gen_expression ctx env e typenv)))) l.l_eq)@list_of_replacements)
+                                            | Etuple(e2_list) -> (list_of_replacements, e2_list)) in 
+                            let (replacements, e2_list) = (collapse_lets_and_return_tuple e_second []) in
+                                let (let_vars, let_replacements) = (List.split replacements) in
+                                (Printf.printf "List of replacements:\n"); (List.iter2 (fun v r -> (Printf.printf "%s -> %s\n" (Expr.to_string v) (Expr.to_string r))) let_vars let_replacements); 
+                                
+                                let e1_exps = List.map (fun x -> (vc_gen_expression ctx env x typenv)) e1_list in 
+                                (*let e2_exps = List.map (fun x -> (Expr.substitute (vc_gen_expression ctx env x typenv) let_vars let_replacements)) e2_list in*)
+                                let e2_exps_pre_replace = List.map (fun x -> (vc_gen_expression ctx env x typenv)) e2_list in
+                                let rec recursively_replace exp rep_from rep_to = (match (rep_from, rep_to) with
+                                        |([], []) -> exp
+                                        |_ -> (let replaced = Expr.substitute_one exp (hd rep_from) (hd rep_to) in recursively_replace replaced (tl rep_from) (tl rep_to))) in
+                                let e2_exps = List.map (fun x -> (recursively_replace x let_vars let_replacements)) e2_exps_pre_replace in
+                                (Printf.printf "("); (ignore (List.map (fun x -> (Printf.printf "%s," (Expr.to_string x) )) e1_exps)); (Printf.printf ") fby ");
+                                (Printf.printf "("); (ignore (List.map (fun x -> (Printf.printf "%s," (Expr.to_string x) )) e2_exps)); (Printf.printf ")\n");
+                                (* Parses phi into a Z3 expression *)
+                                let ref_constraint = (vc_gen_expression ctx env ref_exp typenv) in
+                                (* Gets phi[x/v] *)
+                                let ref_replaced_constraint = Expr.substitute ref_constraint z3vars_ref z3vars in
+                                (* Gets "next step" variables, or those associated with e2 *)
+                                (*let next_step_vars = List.map2 (fun x ty -> (create_z3_var_typed ctx env (Printf.sprintf "%s_next" x) ty)) vars_names vars_basetypes_strings in*)
+                                (*
+                                let exps1 = List.map2 (Boolean.mk_eq ctx) z3vars e1_exps in
+                                let exps3 = List.map2 (Boolean.mk_eq ctx) next_step_vars e2_exps in*)
+                                (* vc1: 
+                                let vc1 = Boolean.mk_implies ctx (Boolean.mk_and ctx exps1) ref_replaced_constraint in
+                                let next_refinement_expr = Expr.substitute ref_constraint z3vars_ref next_step_vars in
+                                debug(Printf.sprintf "Next refinement: %s\n" (Expr.to_string next_refinement_expr));
+                                let vc2 = Boolean.mk_implies ctx (Boolean.mk_and ctx (ref_replaced_constraint :: exps3)) next_refinement_expr in
+                                let vc = Boolean.mk_not ctx (Boolean.mk_and ctx [vc1; vc2]) in
+                                z3_proof ctx env vc ref_replaced_constraint *)
+
+                                (* Gets us phi[e1 / v] *)
+                                let phi_e1 = Expr.substitute ref_constraint z3vars_ref e1_exps in
+                                (* Gets us phi[e2 / v] *)
+                                let phi_e2 = Expr.substitute ref_constraint z3vars_ref e2_exps in
+                                debug(Printf.sprintf "phi_e1: %s\n" (Expr.to_string phi_e1));
+                                debug(Printf.sprintf "phi_e2: %s\n" (Expr.to_string phi_e2));
+                                (* vc1 === phi[x/v] => phi[e1 / v] *)
+                                let vc1 = Boolean.mk_implies ctx (Boolean.mk_and ctx [(Boolean.mk_and ctx !(env.exp_env)); ref_replaced_constraint]) phi_e1 in
+                                (* vc2 === phi[x/v] => phi[e2 / v] *)
+                                let vc2 = Boolean.mk_implies ctx (Boolean.mk_and ctx [(Boolean.mk_and ctx !(env.exp_env)); ref_replaced_constraint]) phi_e2 in
+                                (* Tries to disprove the VCs then adds them to the environment if no counterexample found *)
+                                z3_proof ctx env (Boolean.mk_not ctx vc1) vc1;
+                                z3_proof ctx env (Boolean.mk_not ctx vc2) vc2
+
+                            ))
                             )
+
                     )
                 )
+(*
+and vc_gen_exp_tuple_equation ctx env typenv vars_lhs refvars ref_constraint exp_rhs = 
+        match exp.e_desc with
+        | *)
+and vc_gen_equation ctx env typenv eq =
+(*
+    ctx    -> z3 context
+    env    -> environment (list of z3 vc_gen_expression)
+    typenv -> typing environment ( Hash table of string = variable name * string = base type)
+    eq     -> zelus vc_gen_equation
+
+    Creates z3 vc_gen_expression from zelus vc_gen_equation
+
+    Returns z3 vc_gen_expression
+*)
+    match eq.eq_desc with
+    | EQeq(p, e) -> debug (Printf.sprintf "EQeq:\n");
+        (match p.p_desc with
+          | Etypeconstraintpat(p1, t) -> (match t.desc with
+
+            | Erefinementlabeledtuple(lbl_ty_list, ref_exp) -> debug (Printf.sprintf "Refinement labeled tuple"); 
+                vc_gen_refinement_labeled_tuple ctx env typenv lbl_ty_list ref_exp p1 e
                 (* end goal: return an equality constraint btw original variables and their RHS, and also add the refinement constraint but with the variables substituted*)
+                )
           | _ -> debug (Printf.sprintf "else case");
               let body_exp = vc_gen_equation_expression ctx env e typenv p in
               debug (Printf.sprintf "body_exp: %s\n" (Expr.to_string body_exp));
@@ -869,6 +983,7 @@ and vc_gen_equation ctx env typenv eq =
               debug (Printf.sprintf "after ret_exp\n");
               debug (Printf.sprintf "EQ vc_gen_expression: %s\n" (Expr.to_string ret_exp));
               add_constraint env ret_exp
+                )
               (*ret_exp*)
             (* [p = e] *)
             (* | EQder(_, _, _, _) -> Printf.printf "EQder\n"
@@ -890,8 +1005,7 @@ and vc_gen_equation ctx env typenv eq =
             | EQand(_) -> Printf.printf "EQand\n" (* eq1 and ... and eqn *)
             | EQbefore(_) -> Printf.printf "EQbefore\n" (* eq1 before ... before eqn *)
             | EQforall(_) -> Printf.printf "EQforall\n" forall i in ... do ... initialize ... done *)
-            | _ -> debug(Printf.sprintf "Ignoring vc_gen_equation for now\n"))
-          | _ -> debug(Printf.sprintf "Ignoring this equation for now\n")
+            | _ -> debug(Printf.sprintf "Ignoring vc_gen_equation for now\n")
     
 
 and create_validation_check ctx env elem1 elem2 = 
@@ -1116,8 +1230,8 @@ and vc_gen_operator ctx env typenv e e_list =
   | op_l :: [] -> begin (* Unary operator case *)
     match e with
     | "box" -> debug(Printf.sprintf "box:\n");
-      Quantifier.expr_of_quantifier (Quantifier.mk_forall ctx [] [] 
-                                        (vc_gen_expression ctx env op_l typenv) None [] [] None None)
+      (*Quantifier.expr_of_quantifier (Quantifier.mk_forall ctx [] [] 
+                                        (vc_gen_expression ctx env op_l typenv) None [] [] None None)*) (vc_gen_expression ctx env op_l typenv)
     | "diamond" -> debug(Printf.sprintf "diamond:\n");
         Quantifier.expr_of_quantifier (Quantifier.mk_exists ctx [] [] 
                                         (vc_gen_expression ctx env op_l typenv) None [] [] None None)
@@ -1137,6 +1251,7 @@ and vc_gen_operator ctx env typenv e e_list =
     | "*." | "*" | "Stdlib.*." -> Arithmetic.mk_mul ctx [(vc_gen_expression ctx env op_l typenv); (vc_gen_expression ctx env op_r typenv)]
     | "+." | "+" | "Stdlib.+." -> Arithmetic.mk_add ctx [(vc_gen_expression ctx env op_l typenv); (vc_gen_expression ctx env op_r typenv)]
     | "-." | "-" | "Stdlib.-." -> Arithmetic.mk_sub ctx [(vc_gen_expression ctx env op_l typenv); (vc_gen_expression ctx env op_r typenv)]
+    | "/." | "/" | "Stdlib./." -> (Arithmetic.mk_div ctx (vc_gen_expression ctx env op_l typenv) (vc_gen_expression ctx env op_r typenv))
     | "&&" -> Boolean.mk_and ctx [(vc_gen_expression ctx env op_l typenv); (vc_gen_expression ctx env op_r typenv)]
     | "||" -> Boolean.mk_or ctx [(vc_gen_expression ctx env op_l typenv); (vc_gen_expression ctx env op_r typenv)]
     | s -> debug(Printf.sprintf "Non-standard vc_gen_operator s : %s\n" (s)); prove_function ctx s env e_list typenv
@@ -1187,6 +1302,7 @@ and vc_gen_operation ctx env typenv op e_list =
     | Eslice _, [e] -> debug(Printf.sprintf "Eslice\n"); Integer.mk_numeral_s ctx "42"
     | Econcat, [e1; e2] -> debug(Printf.sprintf "Econcat\n"); Integer.mk_numeral_s ctx "42"
     | Eatomic, [e] -> debug(Printf.sprintf "Eatomic\n"); Integer.mk_numeral_s ctx "42"
+    | Emodels, [e1; e2] -> vc_gen_expression ctx env e1 typenv
     | _ -> debug(Printf.sprintf "Operation undefined\n"); Integer.mk_numeral_s ctx "42"
     
 
@@ -1342,7 +1458,8 @@ and vc_gen_expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
     | Eseq ( e1, e2)-> debug(Printf.sprintf ("Eseq : (e1 = %s e2 = %s)\n") (Expr.to_string (vc_gen_expression ctx env e1 typenv)) (Expr.to_string (vc_gen_expression ctx env e2 typenv)));
      Integer.mk_numeral_s ctx "42"
     | Eperiod _-> debug(Printf.sprintf "Eperiod\n"); Integer.mk_numeral_s ctx "42"
-    | Eblock (_, _)-> debug(Printf.sprintf "Eblock\n"); Integer.mk_numeral_s ctx "42"  
+    | Eblock (_, _)-> debug(Printf.sprintf "Eblock\n"); Integer.mk_numeral_s ctx "42"
+    | Eget _-> raise (Z3FailedException "Error using robot_get while verifying")  
     | _ -> (debug(Printf.sprintf "Ignore vc_gen_expression\n")); Integer.mk_numeral_s ctx "42"
 
     (*| Econstr0(lname) -> Zelus.Econstr0(longname lname)

@@ -154,8 +154,10 @@ let rec exp e =
   (*added here*)
   | Eassume(e1) ->
      { e with e_desc = Eassume(exp e1)}
-  (*added here*)
+   (*added here*)
   | Estore(cmd,key) -> e
+   (*added here*)
+   | Eget(cm) -> e
   | Eperiod { p_phase = p1; p_period = p2 } ->
      { e with e_desc = Eperiod
                          { p_phase = Zmisc.optional_map exp p1; p_period = exp p2 } }
@@ -240,8 +242,7 @@ and local ({ l_eq = l_eq_list; l_env = l_env } as l) =
 
 let implementation impl =
   match impl.desc with
-
-  | Eopen _ | Etypedecl _ | Econstdecl _ | Efundecl(_, { f_kind = A }) -> impl
+  | Eopen _ | Etypedecl _ | Econstdecl _ | Eipopannotation _ | Efundecl(_, { f_kind = A }) -> impl
   | Erefinementfundecl(n, ({ f_body = e; f_env = f_env } as body)) 
   | Efundecl(n, ({ f_body = e; f_env = f_env } as body)) ->
      { impl with desc = Efundecl(n, { body with f_body = exp e }) }

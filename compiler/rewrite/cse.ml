@@ -93,7 +93,10 @@ let rec exp subst e =
   (*added here*)
   | Estore(cmd, key) -> e
   | Eperiod _ | Epresent _ | Ematch _ | Elet _ | Eblock _ -> assert false
-    
+  (*added here*)
+  | Estore(cmd, key) -> e  
+  (*added here*)
+  | Eget(cm) -> e  
 (* [equation subst eq = eq'] apply a substitution to eq. *)
 and equation subst eq =
   match eq.eq_desc with
@@ -167,7 +170,7 @@ let exp subst e =
 let implementation impl =
   match impl.desc with
       (*added here*)
-      | Eopen _ | Etypedecl _ | Econstdecl _  -> impl
+      | Eopen _ | Etypedecl _ | Econstdecl _  | (*added here*) Eipopannotation _-> impl
       | Efundecl(n, ({ f_body = e } as body)) ->
          { impl with desc =
 		       Efundecl(n, { body with f_body = exp Env.empty e }) }

@@ -144,6 +144,7 @@ let type_decl ff ty_decl =
 let implementation ff impl =
   match impl with
   | Lconstdecl(n, e) -> fprintf ff "@[(const %s %a)@]\n@." n expression e
+  | Lipopannotation(n, e1, e2) -> fprintf ff "@[(const %s %a %a)@]\n@." n expression e1 expression e2
   | Lfundecl(n, f) -> fundecl ff n f
   | Ltypedecl(n, ty_decl) ->
      fprintf ff "@[<v 2>(type %s@, %a)@.@]" n type_decl ty_decl

@@ -87,6 +87,7 @@ and tentry =
   
 and implementation =
   | Lconstdecl of name * exp
+  | Lipopannotation of name * exp * exp
   | Lfundecl of name * funexp
   | Ltypedecl of name * type_decl
                  

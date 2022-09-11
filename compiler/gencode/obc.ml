@@ -52,7 +52,19 @@ type exp =
   (*added here*)
   | Omove of exp
   (*added here*)
+  | Ocontrol of exp * exp
+  (*added here*)
+  | Ostr of exp * exp
+  (*added here*)
   | Ostore of string * float
+   (*added here*)
+  | Oget of string 
+  (*added here*)
+  | Oinp of exp * exp
+  (*added here*)
+  | Ooup of exp
+  (*added here*)
+  | Omodels of exp * exp
   | Omethodcall of method_call			       
   | Oinst of inst
                           
@@ -173,6 +185,8 @@ and implementation_list = implementation list
 
 and implementation = 
   | Oletvalue of name * inst
+  | Oletvalueop of name * inst * inst
+  | Oletvalueip of name * inst * inst
   | Oletfun of name * pattern list * inst
   | Oletmachine of name * machine
   | Oopen of string

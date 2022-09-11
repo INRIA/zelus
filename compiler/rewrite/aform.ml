@@ -115,6 +115,8 @@ let rec expression subst ({ e_desc = desc } as e) =
      { e with e_desc = Eassume(expression subst e1) }
   (*added here*)
   | Estore(cmd,key) -> e
+   (*added here*)
+   | Eget(cm) -> e
   | Elet(l, e_let) ->
      let subst, l = local subst l in
      { e with e_desc = Elet(l, expression subst e_let) }
@@ -241,6 +243,9 @@ and block subst ({ b_vars = v_list; b_body = eq_list; b_env = b_env } as b) =
 let implementation impl =
   match impl.desc with
     | Eopen _ | Etypedecl _ -> impl
+    (*added here*)
+    | Eipopannotation(n, e1, e2, is_op) ->
+       { impl with desc = Eipopannotation(n, expression Env.empty e1, expression Env.empty e2, is_op) }    
     (* | Econstdecl(n, is_static, e) ->
        { impl with desc = Econstdecl(n, is_static, expression Env.empty e) } *)
     (*TODO: refinement implementation of aform*)

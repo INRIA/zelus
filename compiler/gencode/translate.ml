@@ -483,6 +483,34 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      Omove(e), code
   (*added here*)
   | Zelus.Estore(cmd, key) -> Ostore(cmd, key), code
+  | Zelus.Eop(Zelus.Econtrol, [e1; e2]) ->
+     print_endline("Translate");
+     let e1, code = exp env loop_path code e1 in
+     let e2, code = exp env loop_path code e2 in
+     Ocontrol(e1, e2), code
+  (*added here*)
+  | Zelus.Eop(Zelus.Estr, [e1; e2]) ->
+     print_endline("Translate");
+     let e1, code = exp env loop_path code e1 in
+     let e2, code = exp env loop_path code e2 in
+     Ostr(e1, e2), code
+  (*added here*)
+  | Zelus.Eget(cm) -> Oget(cm), code
+  | Zelus.Eop(Zelus.Emodels, [e1; e2]) ->
+    let e1, code = exp env loop_path code e1 in
+    let e2, code = exp env loop_path code e2 in
+    Omodels(e1, e2), code
+  (*added here*)
+  | Zelus.Eop(Zelus.Einp, [e1; e2]) ->
+     print_endline("Translate");
+     let e1, code = exp env loop_path code e1 in
+     let e2, code = exp env loop_path code e2 in
+     Oinp(e1, e2), code
+  (*added here*)
+  | Zelus.Eop(Zelus.Eoup, [e]) ->
+     print_endline("Translate from op");
+     let e, code = exp env loop_path code e in
+     Ooup(e), code
   | Zelus.Eop(Zelus.Ehorizon, [e]) ->
      exp env loop_path code e
   | Zelus.Eop(Zelus.Eifthenelse, [e1; e2; e3]) ->
@@ -735,6 +763,13 @@ let implementation { Zelus.desc = desc } =
      (* There should be no memory allocated by [e] *)
      let { step = s } = expression Env.empty e in
      Oletvalue(n, s) *)
+  (*added here*)
+  | Zelus.Eipopannotation(n, e1, e2, is_op)->
+     let { step = s } = expression Env.empty e2 in
+     (*let e, code = exp env loop_path code e1 in
+     Ooup(e), code*)
+     let { step = e } = expression Env.empty e1 in
+     if is_op then Oletvalueop(n, e, s) else Oletvalueip(n, e, s)   
   (*TODO: refinement implementation of translate*)
   | Zelus.Econstdecl(n1, n2, e1, e2)->
       (* There should be no memory allocated by [e] *)
