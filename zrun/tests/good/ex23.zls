@@ -165,10 +165,10 @@ let mat = fun (n, v) -> fun () =>
 let node main14() = run (mat(5, 0.0))()
 
 (* cholesky *)
-let node cholesky_exp(n)(a) returns (l init run (mat(n, 0.0)) ())
+let node cholesky_exp(n)(a) returns (l)
   do l =
-   forward i in 0 to n-1, ai in a returns (l init last l)
-     do l = forward j in 0 to n-1, aij in ai returns (l init last l)
+    forward i in 0 to n-1, ai in a returns l init (run (mat (n, 0.0)) ())
+      do l = forward j in 0 to n-1, aij in ai returns (l init last l)
               do
                 let tmp_sum =
                   forward k in 0 to i-1 returns (cpt init 0.0)
@@ -184,8 +184,8 @@ let node cholesky_exp(n)(a) returns (l init run (mat(n, 0.0)) ())
   done
 
 (* in equational form *)
-let node cholesky(n)(a) returns (l init run (mat(n, 0.0))())
-  forward i in 0 to n-1, ai in a, l init  do
+let node cholesky(n)(a) returns (l)
+  forward i in 0 to n-1, ai in a, l init (run (mat (n, 0.0)) ()) do
     forward j in 0 to n-1, aij in ai, l init last l do
       let tmp_sum =
             forward k in 0 to i-1 returns (cpt init 0.0)
