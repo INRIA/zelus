@@ -12,9 +12,9 @@ let mat = fun (n,v) -> fun () =>
 let node main1() = run (mat(5, 0.0))()
 
 (* cholesky *)
-let node cholesky_exp(n)(a) returns (l init run (mat(n, 0.0)) ())
+let node cholesky_exp(n)(a) returns (l)
   do l =
-   forward i in 0 to n-1, ai in a returns (l init last l)
+   forward i in 0 to n-1, ai in a returns (l init run (mat(n, 0.0)) ())
      do l = forward j in 0 to n-1, aij in ai returns (l init last l)
               do
                 let tmp_sum =
