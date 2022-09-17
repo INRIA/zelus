@@ -25,32 +25,59 @@
 module P2
  output O;
  signal S in
- emit S;              (* l1 *)
+ emit S;              
  present O then       
       present S then
-         pause;       (* l2 *)
-      end;            
-      emit O          (* l3 *)
+        pause;
+      end;      (* line 9 *)      
+      emit O  
  end
  end signal
 
     *)
 
-(* We do a simple one-hot coding for the control structure *)
-do
-  l1 = true fby false
-and
-  s = true fby false
-and
-  l_o_true = if o then true else false fby l_o_true
-and
-  l_o_true_s_true = if l_o_true then if s the true else false fby l_o_true_s_true
-and
-  l2 = false fby l_o_true_s_true
-and
-  o = l2 fby false
-and
-    l3 = l2
-    *)
-  
 
+(* p1; p2 *)
+(* node seq(p1)(p2)(x, term) =
+  let o, term = cond_act p1 (x, term) in
+  let o2, term = cond_act p2 (o, term) in
+  o2, term *)
+
+(* we use a simple one-hot coding with a boolean variable term at line 9 *)
+node p2 () returns (o default false)
+   local s default false,
+         term default true
+   do
+     s = true fby false
+   and
+   if o then
+     do if s then
+          do term = false fby true done
+        else do done
+     and
+      o = if term then true fby false else false
+     done
+   else do done
+   done
+     
+(* complete every branch with the default value when the *)
+(* equation is missing *)
+node p2_exand_default () returns (o)
+   local s, term
+   do
+     s = true fby false
+   and
+   if o then
+     do if s then
+               do term = false fby true done
+        else do term = true done
+     and
+      o = if term then true fby false else false
+     done
+   else do term = true and o = false done
+   done
+     
+let node main () =
+  let o1 = p2 () in
+  let o2 = p2_expand_default () in
+  assert (o1 = o2)
