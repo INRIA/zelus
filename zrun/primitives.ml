@@ -165,11 +165,29 @@ let geti v i =
   if (i < n) && (i >= 0) then return (Value(v.(i))) else None
 
 
-(* ifthenelse *)
+(* ifthenelse. this one is strict w.r.t the first argument *)
 let ifthenelse v1 v2 v3 =
   let+ v1 = v1 in
   ifthenelse_op v1 v2 v3
-                     
+
+(* this one is a bit experimental; it can be used to implement *)
+(* the constructive semantics of Esterel *)
+let ifthenelse' v1 v2 v3 =
+  match v1 with
+  | Vbot -> return (if v2 = v3 then v2 else Vbot)
+  | Vnil -> return (if v2 = v3 then v2 else Vnil)
+  | Value(v1) -> ifthenelse_op v1 v2 v3
+(* with it, we can define [or_gate] and [and_gate] *)
+(* with three values:
+ *- or(x, true) = or(true, x) = true
+ *- and(x, false) = and(false, x) = false
+ *- with or(x, y) = if x then true else y
+ *- with and(x, y) = if x then y else false
+
+let or_gate(x,y) = if x then true else y
+let and_gate(x,y) = if x then y else false
+*)
+               
 (* lift a unary operator: [op bot = bot]; [op nil = nil] *)
 let lift1 op v =
   let+ v = v in
