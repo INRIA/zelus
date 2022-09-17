@@ -1,0 +1,37 @@
+(* Example from the Esterel draft; version 3; page 39 *)
+   (* this program is said to be causal with following explanation. *)
+   (* GB
+   writes:
+
+      "We first start analyzing what the “signal S” statement must do
+      with status ⊥ for O. For this, we analyze its body with status
+      ⊥ for O and S. We immediately find that S must be emitted since
+      we must execute the “emit S” statement. Therefore, we redo the
+      analysis with status ⊥ for O and + for S. We reach the test for
+      O. Since the status of O is unknown, there is nothing we must do
+      and we can make progress only by analyzing what we cannot do in
+      the branches of the test. In the then branch, there is a present
+      test for S. Since S is known to be present, we cannot take the
+      implicit else branch that would terminate. Since the then branch
+      is a pause statement, it cannot terminate. Summing up things,
+      the “present S” test cannot termi- nate. Therefore, the “emit O”
+      statement cannot be executed and O cannot be emitted. As a
+      consequence we must set O absent and redo the analysis of the
+      program with status − for O. We now find that we must take the
+      im- plicit else branch of the “present O” test that terminates
+      execution. The program is constructive since we have fully
+      determined the signal statuses."
+      
+module P2
+ output O;
+ signal S in
+ emit S;
+ present O then
+      present S then
+         pause;
+      end;
+      emit O
+ end
+ end signal
+
+      
