@@ -37,7 +37,9 @@ let doc_nocausality = "\tTurn off the check that are variables are non bottom"
 let doc_print_values = "\tPrint values"
 let doc_number_of_fixpoint_iterations =
   "\tPrint the number of steps for fixpoints"
-                    
+let doc_esterel =
+  "\t Sets the interpretation of if/then/else to that of Esterel"
+                   
 let errmsg = "Options are:"
 
 
@@ -54,7 +56,8 @@ let main () =
            "-noassert", Arg.Set Smisc.no_assert, doc_no_assert;
            "-nocausality", Arg.Set Smisc.set_nocausality, doc_nocausality;
            "-fix", Arg.Set Smisc.print_number_of_fixpoint_iterations,
-           doc_number_of_fixpoint_iterations  
+           doc_number_of_fixpoint_iterations;
+           "-esterel", Arg.Set Smisc.set_esterel, doc_esterel
       ])
       main
       errmsg

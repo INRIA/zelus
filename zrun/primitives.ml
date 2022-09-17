@@ -187,7 +187,8 @@ let ifthenelse' v1 v2 v3 =
 let or_gate(x,y) = if x then true else y
 let and_gate(x,y) = if x then y else false
 *)
-               
+let ifthenelse = if !Smisc.set_esterel then ifthenelse' else ifthenelse
+
 (* lift a unary operator: [op bot = bot]; [op nil = nil] *)
 let lift1 op v =
   let+ v = v in
