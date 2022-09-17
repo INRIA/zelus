@@ -25,13 +25,32 @@
 module P2
  output O;
  signal S in
- emit S;
- present O then
+ emit S;              (* l1 *)
+ present O then       
       present S then
-         pause;
-      end;
-      emit O
+         pause;       (* l2 *)
+      end;            
+      emit O          (* l3 *)
  end
  end signal
 
-      
+    *)
+
+(* We do a simple one-hot coding for the control structure *)
+do
+  l1 = true fby false
+and
+  s = true fby false
+and
+  l_o_true = if o then true else false fby l_o_true
+and
+  l_o_true_s_true = if l_o_true then if s the true else false fby l_o_true_s_true
+and
+  l2 = false fby l_o_true_s_true
+and
+  o = l2 fby false
+and
+    l3 = l2
+    *)
+  
+
