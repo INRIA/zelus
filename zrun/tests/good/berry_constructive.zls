@@ -8,6 +8,9 @@
 let mux(c, x, y) returns (o)
   if c then o = x else o = y
 
+(* or equivalently, because [x] and [y] are variable *)
+let mux(c, x, y) = if c then x else y
+  
 let node f(x) returns (o) o = 2 * x
 let node g(x) returns (o) o = x - 1
     
