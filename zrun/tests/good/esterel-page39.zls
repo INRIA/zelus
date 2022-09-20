@@ -21,7 +21,9 @@
       im- plicit else branch of the “present O” test that terminates
       execution. The program is constructive since we have fully
       determined the signal statuses."
-      
+    *)
+
+(*
 module P2
  output O;
  signal S in
@@ -29,55 +31,60 @@ module P2
  present O then       
       present S then
         pause;
-      end;      (* line 9 *)      
+      end;      
       emit O  
  end
  end signal
+*)
 
-    *)
-
-
-(* p1; p2 *)
-(* node seq(p1)(p2)(x, term) =
-  let o, term = cond_act p1 (x, term) in
-  let o2, term = cond_act p2 (o, term) in
-  o2, term *)
-
-(* we use a simple one-hot coding with a boolean variable term at line 9 *)
-node p2 () returns (o default false)
-   local s default false,
-         term default true
+let node first(x) = let rec o = x fby o in o
+  
+(* a very naive encoding. This program is not causal because *)
+(* [o] is considered to depend on [o]. It is a control-dependence: because *)
+(* the equation [o = ...] appear under the condition that tests [o], [o] *)
+(* is considered to depend on [o] *)
+(* it is rejected by zrun: zrun.exe -s main -n 1 esterel-page39.zls
+*- Zrun: the following variables are not causal: o_3
+ *)
+let node p2 () returns (o default false)
+   local s, term1 default true
    do
      s = true fby false
    and
-   if o then
-     do if s then
-          do term = false fby true done
+   if first o then
+     do if first s then
+          do term1 = false fby true done
         else do done
      and
-      o = if term then true fby false else false
+      o = if term1 then true fby false else false
      done
    else do done
    done
-     
-(* complete every branch with the default value when the *)
-(* equation is missing *)
-node p2_exand_default () returns (o)
-   local s, term
+
+(* In fact, o does not really depends on [o] but on term1 whose initial *)
+(* value is false, whatever be that of [o] and [s] *)
+(* the circuit compilation of Esterel generates an alternative *)
+(* encoding using a mux (strict if/then/else) in which [o] depends *)
+(* on [term1] whose value at the first instant, does not depend on [o]. *)
+  
+
+(* an equivalent form where every branch is completed *)
+let node p2_expanded () returns (o)
+   local s, term1
    do
      s = true fby false
    and
-   if o then
-     do if s then
-               do term = false fby true done
-        else do term = true done
+   if first o then
+     do if first s then
+          do term1 = false fby true done
+        else do term1 = true done
      and
-      o = if term then true fby false else false
+      o = if term1 then true fby false else false
      done
-   else do term = true and o = false done
+   else do term1 = true and o = false done
    done
-     
+   
 let node main () =
   let o1 = p2 () in
-  let o2 = p2_expand_default () in
+  let o2 = p2_expanded () in
   assert (o1 = o2)
