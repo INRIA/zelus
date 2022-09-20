@@ -171,7 +171,7 @@ let ifthenelse v1 v2 v3 =
   ifthenelse_op v1 v2 v3
 
 (* this one is a bit experimental; it can be used to implement *)
-(* the constructive semantics of Esterel *)
+(* the constructive semantics of Esterel. *)
 let ifthenelse' v1 v2 v3 =
   match v1 with
   | Vbot -> return (if v2 = v3 then v2 else Vbot)
