@@ -1,0 +1,4 @@
+let node f() returns (o1)
+    o1 = forward i in 0 to 4, xi in x returns (o init 42)
+           o = last o + xi + i
+         done
