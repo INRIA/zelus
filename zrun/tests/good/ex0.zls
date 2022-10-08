@@ -1,5 +1,11 @@
 let g = 42
 
+let node from(x') = o where
+  rec o = 1 -> pre(o + x')
+
+let node main() =
+  let rec o = from(o) in o
+    
 let node f(x, y) returns (o)
   local z
   do o = x + y

@@ -174,9 +174,12 @@ let ifthenelse v1 v2 v3 =
 (* the constructive semantics of Esterel. *)
 let ifthenelse' v1 v2 v3 =
   match v1 with
-  | Vbot -> return (if v2 = v3 then v2 else Vbot)
-  | Vnil -> return (if v2 = v3 then v2 else Vnil)
   | Value(v1) -> ifthenelse_op v1 v2 v3
+  | _ -> return (if v2 = v3 then v2 else v1)
+  
+let ifthenelse'' v1 v2 v3 =
+  if v2 = v3 then return v2
+  else ifthenelse v1 v2 v3
 (* with it, we can define [or_gate] and [and_gate] *)
 (* with three values:
  *- or(x, true) = or(true, x) = true
@@ -186,8 +189,10 @@ let ifthenelse' v1 v2 v3 =
 
 let or_gate(x,y) = if x then true else y
 let and_gate(x,y) = if x then y else false
+Hence, [x = x or true] == [x = if x then true else true = true]
 *)
-let ifthenelse = if !Smisc.set_esterel then ifthenelse' else ifthenelse
+let ifthenelse =
+  if !Smisc.set_esterel then ifthenelse' else ifthenelse
 
 (* lift a unary operator: [op bot = bot]; [op nil = nil] *)
 let lift1 op v =

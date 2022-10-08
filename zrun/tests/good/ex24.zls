@@ -59,13 +59,14 @@ let node main6() =
 
 (* matrix product in equational form *)
 let node prod_matrix0(l)(m)(n)(a_l_m, b_m_n) = r where rec
-  forward i in 0 to l-1, ai in a_l_m, ri out r do
-     forward j in 0 to n-1, rij out ri do
-      forward k in 0 to m-1, bk in b_m_n, rij init 0 do
-        rij = last rij + ai.(k) * bk.(j)
+  forward i in 0 to l - 1, ri out r do
+     forward j in 0 to n - 1, rij out ri do
+      forward k in 0 to m - 1, rij init 0 do
+        rij = last rij + a_l_m.(i).(k) * b_m_n.(k).(j)
       done
      done
   done
+
 
 let node main7 () =
   let m1 = [| [| 1; 2; 3; 4 |];

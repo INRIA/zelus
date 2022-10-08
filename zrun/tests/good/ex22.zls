@@ -1,3 +1,4 @@
+
 (* simple examples of for loops *)
 let node g x returns (y, z)
     do y = x and z = x done
@@ -43,7 +44,8 @@ let node g x =
     let rec cpt = (0 fby cpt) + xi in
     cpt
   done
-
+      
+      
 let node gg x =
   let rec o =
     (forward(4) xi in x do 
@@ -62,14 +64,18 @@ let node main1_1 () =
 
 (* scalar product *)
 let node scalar0 (x, y) =
-  forward(4) xi in x, yi in y returns (cpt init 0)
+  forward xi in x, yi in y returns (cpt init 0)
     do cpt = last cpt + xi * yi done
+
+let node scalar01 (x, y) =
+  forward xi in x, yi in y returns (cpt)
+    do cpt = (0 fby cpt) + xi * yi done
 
 let node sum(xi, yi) = cpt where
   rec cpt = (0 fby cpt) + xi * yi
 
 let node scalar00 (x, y) =
-  forward(4) xi in x, yi in y
+  forward xi in x, yi in y
      do sum(xi, yi) default 0 done
 
 let node scalar1 (x, y) =
@@ -124,7 +130,7 @@ let node main6 () =
 
 (* scalar product using index x.(i) instead of xi (where xi in x) *)
 let node scalar2 (x, y) =
-  forward(4) i in 0 to 3 returns (m init 0)
+  forward i in 0 to length x - 1 returns (m init 0)
     do m = last m + x.(i) * y.(i) done
 
 let node scalar2_eq (x, y) returns (m)

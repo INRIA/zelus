@@ -125,8 +125,8 @@ let spresent_handler_list loc sscondpat bot nil sbody genv env p_h_list s_list =
   spresent_rec p_h_list s_list
 
 (* [sem genv env e = CoF f s] such that [iexp genv env e = s] *)
-(* and [sexp genv env e = f] *)
 let rec iexp genv env { e_desc; e_loc  } =
+(* and [sexp genv env e = f] *)
   match e_desc with
   | Econst _ | Econstr0 _ | Elocal _ | Eglobal _ | Elast _ ->
      return Sempty
@@ -1349,7 +1349,7 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
          let* r, s_for_body, so_list =
            sforloop_eq
              eq_loc genv env size for_kind for_body i_env s_for_body so_list in
-         return (r, Some(Value(Vint(size))),
+         return (r, (*** None ***) Some(Value(Vint(size))),
                  s_for_body, so_list, si, si_list) in
     return (r, Slist (Sopt(s_size) :: Slist(s_for_block :: so_list) ::
                         si :: si_list))
