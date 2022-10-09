@@ -1349,7 +1349,7 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
          let* r, s_for_body, so_list =
            sforloop_eq
              eq_loc genv env size for_kind for_body i_env s_for_body so_list in
-         return (r, (*** None ***) Some(Value(Vint(size))),
+         return (r, None (*** Some(Value(Vint(size))) ***),
                  s_for_body, so_list, si, si_list) in
     return (r, Slist (Sopt(s_size) :: Slist(s_for_block :: so_list) ::
                         si :: si_list))
