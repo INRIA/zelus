@@ -605,7 +605,7 @@ let for_env_out missing env_list acc_env loc for_out =
 (* Its type is [state -> (value * state) option] *)
 let rec sexp genv env { e_desc; e_loc } s =
   match e_desc, s with   
-  | _, Sbot -> return (Vbot, s)
+  | _, Sbot -> return (Vbot, s) (* Voir remarque PE-Dagand *)
   | _, Snil -> return (Vnil, s)
   | Econst(v), Sempty ->
      return (Value (Combinatorial.immediate v), s)
