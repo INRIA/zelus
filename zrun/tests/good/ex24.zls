@@ -1,3 +1,17 @@
+(* produit scalaire *)
+let node prod (x, y) returns (c)
+    c = (0.0 fby c) +. x *. y
+
+let node scalar(x, y) returns (c)
+    c = forward xi in x, yi in y do
+          prod(xi, yi)
+        done
+
+let node main() =
+  let t1 = [|1.0; 2.0; 3.;4.0 |] in
+  let t2 = [|1.0; 2.0; 3.;4.0 |] in
+  scalar(t1, t2)
+    
 (* for loops in equational form *)
  let node f() returns (r)
   forward(3) i in 0 to 2, ri out r do
