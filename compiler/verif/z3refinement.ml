@@ -317,7 +317,7 @@ let print_assignments m =
 *)
   let decls = (Model.get_const_decls m) in
     List.iter (fun a -> (match (Model.get_const_interp m a) with
-      | Some(e) -> Printf.printf "\t%s: %s\n" (Symbol.get_string (FuncDecl.get_name a)) 
+      | Some(e) -> Printf.printf "\t%s = %s\n" (Symbol.get_string (FuncDecl.get_name a)) 
           (if (Arithmetic.is_real e) then (Arithmetic.Real.to_decimal_string e 5) else (Expr.to_string e))
       | None -> ()
     )) decls
