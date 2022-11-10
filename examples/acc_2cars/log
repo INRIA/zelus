@@ -1,0 +1,4489 @@
+compiling acc_2cars
+ide: IDENT: vfi
+ide: IDENT: float
+ext_ident: ide: float
+type constr
+label_type: v:type_expression
+ide: IDENT: v
+ext_ident: ide: v
+Desc var
+Simple expression
+Desc const
+Simple expression
+expression: INFIX0: e1 > e2
+new-syntax type refinement
+Desc const
+Simple expression
+Erefinementdecl
+ide: IDENT: dt
+ide: IDENT: float
+ext_ident: ide: float
+type constr
+label_type: v:type_expression
+ide: IDENT: v
+ext_ident: ide: v
+Desc var
+Simple expression
+Desc const
+Simple expression
+expression: INFIX0: e1 > e2
+new-syntax type refinement
+Desc const
+Simple expression
+Erefinementdecl
+ide: IDENT: b
+ide: IDENT: float
+ext_ident: ide: float
+type constr
+label_type: v:type_expression
+ide: IDENT: v
+ext_ident: ide: v
+Desc var
+Simple expression
+Desc const
+Simple expression
+expression: INFIX0: e1 > e2
+new-syntax type refinement
+Desc const
+Simple expression
+Erefinementdecl
+ide: IDENT: xli
+ide: IDENT: float
+ext_ident: ide: float
+type constr
+label_type: v:type_expression
+ide: IDENT: v
+ext_ident: ide: v
+Desc var
+Simple expression
+Desc const
+Simple expression
+expression: INFIX0: e1 > e2
+new-syntax type refinement
+Desc const
+Simple expression
+Erefinementdecl
+ide: IDENT: amax
+ide: IDENT: float
+ext_ident: ide: float
+type constr
+label_type: v:type_expression
+ide: IDENT: v
+ext_ident: ide: v
+Desc var
+Simple expression
+Desc const
+Simple expression
+expression: INFIX0: e1 > e2
+new-syntax type refinement
+Desc const
+Simple expression
+Erefinementdecl
+ide: IDENT: exec
+ide: IDENT: xf
+simple_pattern: ide
+ide: IDENT: vf
+simple_pattern: ide
+ide: IDENT: af
+simple_pattern: ide
+ide: IDENT: xl
+simple_pattern: ide
+ide: IDENT: vl
+simple_pattern: ide
+ide: IDENT: al
+simple_pattern: ide
+simple_pattern: LPAREN pattern_comma_list RPAREN
+ide: IDENT: float
+ext_ident: ide: float
+type constr
+label_type: x:type_expression
+ide: IDENT: float
+ext_ident: ide: float
+type constr
+label_type: v:type_expression
+label_type star list
+ide: IDENT: float
+ext_ident: ide: float
+type constr
+label_type: a:type_expression
+ide: IDENT: float
+ext_ident: ide: float
+type constr
+label_type: x2:type_expression
+ide: IDENT: float
+ext_ident: ide: float
+type constr
+label_type: v2:type_expression
+ide: IDENT: float
+ext_ident: ide: float
+type constr
+label_type: a2:type_expression
+ide: IDENT: x
+ext_ident: ide: x
+Desc var
+Simple expression
+ide: IDENT: x2
+ext_ident: ide: x2
+Desc var
+Simple expression
+expression: INFIX0: e1 < e2
+Desc seq expression
+Simple expression
+ide: IDENT: x
+ext_ident: ide: x
+Desc var
+Simple expression
+ide: IDENT: v
+ext_ident: ide: v
+Desc var
+Simple expression
+ide: IDENT: v
+ext_ident: ide: v
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc const
+Simple expression
+ide: IDENT: b
+ext_ident: ide: b
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+Desc const
+Simple expression
+ide: IDENT: amax
+ext_ident: ide: amax
+Desc var
+Simple expression
+ide: IDENT: b
+ext_ident: ide: b
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+ide: IDENT: dt
+ext_ident: ide: dt
+Desc var
+Simple expression
+ide: IDENT: v
+ext_ident: ide: v
+Desc var
+Simple expression
+ide: IDENT: amax
+ext_ident: ide: amax
+Desc var
+Simple expression
+ide: IDENT: dt
+ext_ident: ide: dt
+Desc var
+Simple expression
+ide: IDENT: dt
+ext_ident: ide: dt
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc const
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+ide: IDENT: v
+ext_ident: ide: v
+Desc var
+Simple expression
+ide: IDENT: dt
+ext_ident: ide: dt
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc const
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+ide: IDENT: x2
+ext_ident: ide: x2
+Desc var
+Simple expression
+ide: IDENT: v2
+ext_ident: ide: v2
+Desc var
+Simple expression
+ide: IDENT: v2
+ext_ident: ide: v2
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc const
+Simple expression
+ide: IDENT: b
+ext_ident: ide: b
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+ide: IDENT: v2
+ext_ident: ide: v2
+Desc var
+Simple expression
+ide: IDENT: dt
+ext_ident: ide: dt
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc const
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+expression: INFIX0: e1 < e2
+Desc seq expression
+Simple expression
+ide: IDENT: a
+ext_ident: ide: a
+Desc var
+Simple expression
+Desc const
+Simple expression
+Desc seq expression
+Simple expression
+expression_desc: e1 && e2
+Desc seq expression
+Simple expression
+expression_desc: e1 && e2
+ide: IDENT: x
+ext_ident: ide: x
+Desc var
+Simple expression
+ide: IDENT: v
+ext_ident: ide: v
+Desc var
+Simple expression
+ide: IDENT: v
+ext_ident: ide: v
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc const
+Simple expression
+ide: IDENT: b
+ext_ident: ide: b
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+Desc const
+Simple expression
+ide: IDENT: amax
+ext_ident: ide: amax
+Desc var
+Simple expression
+ide: IDENT: b
+ext_ident: ide: b
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+ide: IDENT: dt
+ext_ident: ide: dt
+Desc var
+Simple expression
+ide: IDENT: v
+ext_ident: ide: v
+Desc var
+Simple expression
+ide: IDENT: amax
+ext_ident: ide: amax
+Desc var
+Simple expression
+ide: IDENT: dt
+ext_ident: ide: dt
+Desc var
+Simple expression
+ide: IDENT: dt
+ext_ident: ide: dt
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc const
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+ide: IDENT: v
+ext_ident: ide: v
+Desc var
+Simple expression
+ide: IDENT: dt
+ext_ident: ide: dt
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc const
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+ide: IDENT: x2
+ext_ident: ide: x2
+Desc var
+Simple expression
+ide: IDENT: v2
+ext_ident: ide: v2
+Desc var
+Simple expression
+ide: IDENT: v2
+ext_ident: ide: v2
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc const
+Simple expression
+ide: IDENT: b
+ext_ident: ide: b
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+ide: IDENT: v2
+ext_ident: ide: v2
+Desc var
+Simple expression
+ide: IDENT: dt
+ext_ident: ide: dt
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc const
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+expression: INFIX0: e1 < e2
+Desc seq expression
+Simple expression
+ide: IDENT: a
+ext_ident: ide: a
+Desc var
+Simple expression
+ide: IDENT: b
+ext_ident: ide: b
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+expression_desc: e1 && e2
+Desc seq expression
+Simple expression
+expression_desc: e1 && e2
+expression_desc: Econst(Ebool(true))
+expression_desc: e1 && e2
+new-syntax refinement tuple
+simple_pattern: ( p:type_expression )
+Desc const
+Simple expression
+ide: IDENT: vfi
+ext_ident: ide: vfi
+Desc var
+Simple expression
+Desc const
+Simple expression
+ide: IDENT: xli
+ext_ident: ide: xli
+Desc var
+Simple expression
+ide: IDENT: vfi
+ext_ident: ide: vfi
+Desc var
+Simple expression
+Desc const
+Simple expression
+Desc Tuple
+Simple expression
+ide: IDENT: vl_next
+simple_pattern: ide
+ide: IDENT: vl
+ext_ident: ide: vl
+Desc var
+Simple expression
+ide: IDENT: al
+ext_ident: ide: al
+Desc var
+Simple expression
+ide: IDENT: dt
+ext_ident: ide: dt
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc const
+Simple expression
+expression: INFIX0: e1 < e2
+Desc seq expression
+Simple expression
+Desc const
+Simple expression
+ide: IDENT: vl
+ext_ident: ide: vl
+Desc var
+Simple expression
+ide: IDENT: al
+ext_ident: ide: al
+Desc var
+Simple expression
+ide: IDENT: dt
+ext_ident: ide: dt
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+ide: IDENT: xl_next
+simple_pattern: ide
+ide: IDENT: xl
+ext_ident: ide: xl
+Desc var
+Simple expression
+ide: IDENT: vl_next
+ext_ident: ide: vl_next
+Desc var
+Simple expression
+ide: IDENT: dt
+ext_ident: ide: dt
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+ide: IDENT: v_next
+simple_pattern: ide
+ide: IDENT: vf
+ext_ident: ide: vf
+Desc var
+Simple expression
+ide: IDENT: af
+ext_ident: ide: af
+Desc var
+Simple expression
+ide: IDENT: dt
+ext_ident: ide: dt
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc const
+Simple expression
+expression: INFIX0: e1 < e2
+Desc seq expression
+Simple expression
+Desc const
+Simple expression
+ide: IDENT: vf
+ext_ident: ide: vf
+Desc var
+Simple expression
+ide: IDENT: af
+ext_ident: ide: af
+Desc var
+Simple expression
+ide: IDENT: dt
+ext_ident: ide: dt
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+ide: IDENT: x_next
+simple_pattern: ide
+ide: IDENT: xf
+ext_ident: ide: xf
+Desc var
+Simple expression
+ide: IDENT: v_next
+ext_ident: ide: v_next
+Desc var
+Simple expression
+ide: IDENT: dt
+ext_ident: ide: dt
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+ide: IDENT: x_next
+ext_ident: ide: x_next
+Desc var
+Simple expression
+ide: IDENT: v_next
+ext_ident: ide: v_next
+Desc var
+Simple expression
+ide: IDENT: x_next
+ext_ident: ide: x_next
+Desc var
+Simple expression
+ide: IDENT: v_next
+ext_ident: ide: v_next
+Desc var
+Simple expression
+ide: IDENT: v_next
+ext_ident: ide: v_next
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc const
+Simple expression
+ide: IDENT: b
+ext_ident: ide: b
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+Desc const
+Simple expression
+ide: IDENT: amax
+ext_ident: ide: amax
+Desc var
+Simple expression
+ide: IDENT: b
+ext_ident: ide: b
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+ide: IDENT: dt
+ext_ident: ide: dt
+Desc var
+Simple expression
+ide: IDENT: v_next
+ext_ident: ide: v_next
+Desc var
+Simple expression
+ide: IDENT: amax
+ext_ident: ide: amax
+Desc var
+Simple expression
+ide: IDENT: dt
+ext_ident: ide: dt
+Desc var
+Simple expression
+ide: IDENT: dt
+ext_ident: ide: dt
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc const
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+ide: IDENT: v_next
+ext_ident: ide: v_next
+Desc var
+Simple expression
+ide: IDENT: dt
+ext_ident: ide: dt
+Desc var
+Simple expression
+Desc const
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+ide: IDENT: xl_next
+ext_ident: ide: xl_next
+Desc var
+Simple expression
+ide: IDENT: vl_next
+ext_ident: ide: vl_next
+Desc var
+Simple expression
+ide: IDENT: vl_next
+ext_ident: ide: vl_next
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc const
+Simple expression
+ide: IDENT: b
+ext_ident: ide: b
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+ide: IDENT: vl_next
+ext_ident: ide: vl_next
+Desc var
+Simple expression
+ide: IDENT: dt
+ext_ident: ide: dt
+Desc var
+Simple expression
+Desc const
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+expression: INFIX0: e1 >= e2
+ide: IDENT: b
+ext_ident: ide: b
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+ide: IDENT: amax
+ext_ident: ide: amax
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+ide: IDENT: xl_next
+ext_ident: ide: xl_next
+Desc var
+Simple expression
+ide: IDENT: vl_next
+ext_ident: ide: vl_next
+Desc var
+Simple expression
+ide: IDENT: xl_next
+ext_ident: ide: xl_next
+Desc var
+Simple expression
+Desc const
+Simple expression
+expression: INFIX0: e1 >= e2
+Desc seq expression
+Simple expression
+ide: IDENT: b
+ext_ident: ide: b
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+Desc const
+Simple expression
+Desc seq expression
+Simple expression
+Desc Tuple
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+ide: IDENT: xf
+ext_ident: ide: xf
+Desc var
+Simple expression
+ide: IDENT: vf
+ext_ident: ide: vf
+Desc var
+Simple expression
+ide: IDENT: af
+ext_ident: ide: af
+Desc var
+Simple expression
+ide: IDENT: xl
+ext_ident: ide: xl
+Desc var
+Simple expression
+ide: IDENT: vl
+ext_ident: ide: vl
+Desc var
+Simple expression
+ide: IDENT: al
+ext_ident: ide: al
+Desc var
+Simple expression
+Desc Tuple
+Simple expression
+Kinded non-refinement function
+ide: IDENT: main
+ide: IDENT: trigger
+simple_pattern: ide
+ide: IDENT: dt
+ext_ident: ide: dt
+Desc var
+Simple expression
+Desc seq expression
+Simple expression
+ide: IDENT: trigger
+ext_ident: ide: trigger
+Desc var
+Simple expression
+Desc seq expression
+ide: IDENT: x
+simple_pattern: ide
+ide: IDENT: v
+simple_pattern: ide
+ide: IDENT: a
+simple_pattern: ide
+ide: IDENT: xl
+simple_pattern: ide
+ide: IDENT: vl
+simple_pattern: ide
+ide: IDENT: al
+simple_pattern: ide
+simple_pattern: LPAREN pattern_comma_list RPAREN
+ide: IDENT: exec
+ext_ident: ide: exec
+Desc var
+Desc void
+ide: IDENT: print_float
+ext_ident: ide: print_float
+Desc var
+ide: IDENT: x
+ext_ident: ide: x
+Desc var
+ide: IDENT: print_string
+ext_ident: ide: print_string
+Desc var
+Desc const
+ide: IDENT: print_float
+ext_ident: ide: print_float
+Desc var
+ide: IDENT: xl
+ext_ident: ide: xl
+Desc var
+ide: IDENT: print_newline
+ext_ident: ide: print_newline
+Desc var
+Desc void
+Desc seq expression
+Simple expression
+Desc seq expression
+Simple expression
+Desc void
+Simple expression
+Kinded non-refinement function
+vc_gen_expression v
+Operator call: >
+Proving constraint: (not (=> (and (= vfi (/ 4.0 5.0))) (> vfi 0.0)))
+[32mPassed[0m
+vc_gen_expression v
+Operator call: >
+Proving constraint: (not (=> (and (= dt (/ 1.0 10.0)) (> vfi 0.0) (= vfi (/ 4.0 5.0))) (> dt 0.0)))
+[32mPassed[0m
+vc_gen_expression v
+Operator call: >
+Proving constraint: (not (=> (and (= b (/ 17.0 125.0))
+              (> dt 0.0)
+              (= dt (/ 1.0 10.0))
+              (> vfi 0.0)
+              (= vfi (/ 4.0 5.0)))
+         (> b 0.0)))
+[32mPassed[0m
+vc_gen_expression v
+Operator call: >
+Proving constraint: (not (=> (and (= xli 5.0)
+              (> b 0.0)
+              (= b (/ 17.0 125.0))
+              (> dt 0.0)
+              (= dt (/ 1.0 10.0))
+              (> vfi 0.0)
+              (= vfi (/ 4.0 5.0)))
+         (> xli 0.0)))
+[32mPassed[0m
+vc_gen_expression v
+Operator call: >
+Proving constraint: (not (=> (and (= amax (/ 1.0 20.0))
+              (> xli 0.0)
+              (= xli 5.0)
+              (> b 0.0)
+              (= b (/ 17.0 125.0))
+              (> dt 0.0)
+              (= dt (/ 1.0 10.0))
+              (> vfi 0.0)
+              (= vfi (/ 4.0 5.0)))
+         (> amax 0.0)))
+[32mPassed[0m
+this is a true function
+Will perform the following substitutions:
+[xf/x]
+[vf/v]
+[af/a]
+[xl/x2]
+[vl/v2]
+[al/a2]
+Lets and tuple on bottomvc_gen_expression vl
+Operator call: +.
+vc_gen_expression al
+Operator call: *.
+vc_gen_expression (+ vl (* al dt))
+Operator call: <
+vc_gen_expression vl
+Operator call: +.
+vc_gen_expression al
+Operator call: *.
+vc_gen_expression vl
+Operator call: +.
+vc_gen_expression al
+Operator call: *.
+vc_gen_expression xl
+Operator call: +.
+vc_gen_expression vl_next
+Operator call: *.
+vc_gen_expression vf
+Operator call: +.
+vc_gen_expression af
+Operator call: *.
+vc_gen_expression (+ vf (* af dt))
+Operator call: <
+vc_gen_expression vf
+Operator call: +.
+vc_gen_expression af
+Operator call: *.
+vc_gen_expression vf
+Operator call: +.
+vc_gen_expression af
+Operator call: *.
+vc_gen_expression xf
+Operator call: +.
+vc_gen_expression v_next
+Operator call: *.
+List of replacements:
+x_next -> (+ xf (* v_next dt))
+v_next -> (ite (< (+ vf (* af dt)) 0.0) 0.0 (+ vf (* af dt)))
+xl_next -> (+ xl (* vl_next dt))
+vl_next -> (ite (< (+ vl (* al dt)) 0.0) 0.0 (+ vl (* al dt)))
+vc_gen_expression x_next
+Operator call: +.
+vc_gen_expression v_next
+Operator call: *.
+vc_gen_expression (* v_next v_next)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v_next
+Operator call: *.
+vc_gen_expression (+ x_next (/ (* v_next v_next) (* 2.0 b)))
+Operator call: +.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v_next)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x_next
+Operator call: +.
+vc_gen_expression v_next
+Operator call: *.
+vc_gen_expression (* v_next v_next)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v_next
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v_next) (/ (* amax dt dt) 2.0)))))
+  (+ x_next (/ (* v_next v_next) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v_next
+Operator call: *.
+vc_gen_expression (* v_next dt)
+Operator call: /.
+vc_gen_expression v_next
+Operator call: *.
+vc_gen_expression x_next
+Operator call: +.
+vc_gen_expression v_next
+Operator call: *.
+vc_gen_expression (* v_next v_next)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v_next
+Operator call: *.
+vc_gen_expression (+ x_next (/ (* v_next v_next) (* 2.0 b)))
+Operator call: +.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v_next)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x_next
+Operator call: +.
+vc_gen_expression v_next
+Operator call: *.
+vc_gen_expression (* v_next v_next)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v_next
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v_next) (/ (* amax dt dt) 2.0)))))
+  (+ x_next (/ (* v_next v_next) (* 2.0 b)) a!1 (/ (* v_next dt) 2.0)))
+Operator call: >=
+vc_gen_expression xl_next
+Operator call: +.
+vc_gen_expression vl_next
+Operator call: *.
+vc_gen_expression (* vl_next vl_next)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression vl_next
+Operator call: *.
+vc_gen_expression (+ xl_next (/ (* vl_next vl_next) (* 2.0 b)))
+Operator call: +.
+vc_gen_expression vl_next
+Operator call: *.
+vc_gen_expression (* vl_next dt)
+Operator call: /.
+vc_gen_expression vl_next
+Operator call: *.
+vc_gen_expression xl_next
+Operator call: +.
+vc_gen_expression vl_next
+Operator call: *.
+vc_gen_expression (* vl_next vl_next)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression vl_next
+Operator call: *.
+vc_gen_expression x_next
+Operator call: +.
+vc_gen_expression v_next
+Operator call: *.
+vc_gen_expression (* v_next v_next)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v_next
+Operator call: *.
+vc_gen_expression (+ x_next (/ (* v_next v_next) (* 2.0 b)))
+Operator call: +.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v_next)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x_next
+Operator call: +.
+vc_gen_expression v_next
+Operator call: *.
+vc_gen_expression (* v_next v_next)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v_next
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v_next) (/ (* amax dt dt) 2.0)))))
+  (+ x_next (/ (* v_next v_next) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v_next
+Operator call: *.
+vc_gen_expression (* v_next dt)
+Operator call: /.
+vc_gen_expression v_next
+Operator call: *.
+vc_gen_expression x_next
+Operator call: +.
+vc_gen_expression v_next
+Operator call: *.
+vc_gen_expression (* v_next v_next)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v_next
+Operator call: *.
+vc_gen_expression (+ x_next (/ (* v_next v_next) (* 2.0 b)))
+Operator call: +.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v_next)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x_next
+Operator call: +.
+vc_gen_expression v_next
+Operator call: *.
+vc_gen_expression (* v_next v_next)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v_next
+Operator call: *.
+vc_gen_expression b
+Operator call: ~-.
+vc_gen_expression xl_next
+Operator call: >=
+vc_gen_expression b
+Operator call: ~-.
+(0.0,vfi,0.0,xli,vfi,0.0,) fby ((let ((a!1 (ite (< (+ vf (* af dt)) 0.0) 0.0 (+ vf (* af dt)))))
+  (+ xf (* a!1 dt))),(ite (< (+ vf (* af dt)) 0.0) 0.0 (+ vf (* af dt))),(let ((a!1 (ite (< (+ vf (* af dt)) 0.0) 0.0 (+ vf (* af dt))))
+      (a!3 (ite (< (+ vl (* al dt)) 0.0) 0.0 (+ vl (* al dt)))))
+(let ((a!2 (* (+ 1.0 (/ amax b)) (+ (* dt a!1) (/ (* amax dt dt) 2.0)))))
+(let ((a!4 (>= (+ xf
+                  (* a!1 dt)
+                  (/ (* a!1 a!1) (* 2.0 b))
+                  a!2
+                  (/ (* a!1 dt) 2.0))
+               (+ xl (* a!3 dt) (/ (* a!3 a!3) (* 2.0 b)) (/ (* a!3 dt) 2.0)))))
+  (ite a!4 (- b) amax)))),(let ((a!1 (ite (< (+ vl (* al dt)) 0.0) 0.0 (+ vl (* al dt)))))
+  (+ xl (* a!1 dt))),(ite (< (+ vl (* al dt)) 0.0) 0.0 (+ vl (* al dt))),(let ((a!1 (ite (< (+ vl (* al dt)) 0.0) 0.0 (+ vl (* al dt)))))
+  (ite (>= (+ xl (* a!1 dt)) 6.0) (- b) 0.0)),)
+vc_gen_expression x
+Operator call: <
+vc_gen_expression (< x x2)
+Operator call: &&
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v dt)
+Operator call: /.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1 (/ (* v dt) 2.0)))
+Operator call: <
+vc_gen_expression x2
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 v2)
+Operator call: /.
+vc_gen_expression 2
+Operator call: *.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (+ x2 (/ (* v2 v2) (* (to_real 2) b)))
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 dt)
+Operator call: /.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression x2
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 v2)
+Operator call: /.
+vc_gen_expression 2
+Operator call: *.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v dt)
+Operator call: /.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0))))
+      (a!2 (+ x2 (/ (* v2 v2) (* (to_real 2) b)) (/ (* v2 dt) 2.0))))
+  (< (+ x (/ (* v v) (* 2.0 b)) a!1 (/ (* v dt) 2.0)) a!2))
+Operator call: &&
+vc_gen_expression a
+Operator call: =
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v dt)
+Operator call: /.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1 (/ (* v dt) 2.0)))
+Operator call: <
+vc_gen_expression x2
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 v2)
+Operator call: /.
+vc_gen_expression 2
+Operator call: *.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (+ x2 (/ (* v2 v2) (* (to_real 2) b)))
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 dt)
+Operator call: /.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression x2
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 v2)
+Operator call: /.
+vc_gen_expression 2
+Operator call: *.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v dt)
+Operator call: /.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: <
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0))))
+      (a!2 (+ x2 (/ (* v2 v2) (* (to_real 2) b)) (/ (* v2 dt) 2.0))))
+(let ((a!3 (< (+ x (/ (* v v) (* 2.0 b)) a!1 (/ (* v dt) 2.0)) a!2)))
+  (and (< x x2) a!3 (= a (to_real 0)))))
+Operator call: &&
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v dt)
+Operator call: /.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1 (/ (* v dt) 2.0)))
+Operator call: <
+vc_gen_expression x2
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 v2)
+Operator call: /.
+vc_gen_expression 2
+Operator call: *.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (+ x2 (/ (* v2 v2) (* (to_real 2) b)))
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 dt)
+Operator call: /.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression x2
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 v2)
+Operator call: /.
+vc_gen_expression 2
+Operator call: *.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v dt)
+Operator call: /.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0))))
+      (a!2 (+ x2 (/ (* v2 v2) (* (to_real 2) b)) (/ (* v2 dt) 2.0))))
+  (< (+ x (/ (* v v) (* 2.0 b)) a!1 (/ (* v dt) 2.0)) a!2))
+Operator call: &&
+vc_gen_expression a
+Operator call: =
+vc_gen_expression b
+Operator call: ~-
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v dt)
+Operator call: /.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1 (/ (* v dt) 2.0)))
+Operator call: <
+vc_gen_expression x2
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 v2)
+Operator call: /.
+vc_gen_expression 2
+Operator call: *.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (+ x2 (/ (* v2 v2) (* (to_real 2) b)))
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 dt)
+Operator call: /.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression x2
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 v2)
+Operator call: /.
+vc_gen_expression 2
+Operator call: *.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v dt)
+Operator call: /.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: <
+vc_gen_expression (< x x2)
+Operator call: &&
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v dt)
+Operator call: /.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1 (/ (* v dt) 2.0)))
+Operator call: <
+vc_gen_expression x2
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 v2)
+Operator call: /.
+vc_gen_expression 2
+Operator call: *.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (+ x2 (/ (* v2 v2) (* (to_real 2) b)))
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 dt)
+Operator call: /.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression x2
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 v2)
+Operator call: /.
+vc_gen_expression 2
+Operator call: *.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v dt)
+Operator call: /.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0))))
+      (a!2 (+ x2 (/ (* v2 v2) (* (to_real 2) b)) (/ (* v2 dt) 2.0))))
+  (< (+ x (/ (* v v) (* 2.0 b)) a!1 (/ (* v dt) 2.0)) a!2))
+Operator call: &&
+vc_gen_expression a
+Operator call: =
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v dt)
+Operator call: /.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1 (/ (* v dt) 2.0)))
+Operator call: <
+vc_gen_expression x2
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 v2)
+Operator call: /.
+vc_gen_expression 2
+Operator call: *.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (+ x2 (/ (* v2 v2) (* (to_real 2) b)))
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 dt)
+Operator call: /.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression x2
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 v2)
+Operator call: /.
+vc_gen_expression 2
+Operator call: *.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v dt)
+Operator call: /.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: <
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0))))
+      (a!2 (+ x2 (/ (* v2 v2) (* (to_real 2) b)) (/ (* v2 dt) 2.0))))
+(let ((a!3 (< (+ x (/ (* v v) (* 2.0 b)) a!1 (/ (* v dt) 2.0)) a!2)))
+  (and (< x x2) a!3 (= a (to_real 0)) a!3 (= a (- b)))))
+Operator call: &&
+vc_gen_expression x
+Operator call: <
+vc_gen_expression (< x x2)
+Operator call: &&
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v dt)
+Operator call: /.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1 (/ (* v dt) 2.0)))
+Operator call: <
+vc_gen_expression x2
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 v2)
+Operator call: /.
+vc_gen_expression 2
+Operator call: *.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (+ x2 (/ (* v2 v2) (* (to_real 2) b)))
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 dt)
+Operator call: /.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression x2
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 v2)
+Operator call: /.
+vc_gen_expression 2
+Operator call: *.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v dt)
+Operator call: /.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0))))
+      (a!2 (+ x2 (/ (* v2 v2) (* (to_real 2) b)) (/ (* v2 dt) 2.0))))
+  (< (+ x (/ (* v v) (* 2.0 b)) a!1 (/ (* v dt) 2.0)) a!2))
+Operator call: &&
+vc_gen_expression a
+Operator call: =
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v dt)
+Operator call: /.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1 (/ (* v dt) 2.0)))
+Operator call: <
+vc_gen_expression x2
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 v2)
+Operator call: /.
+vc_gen_expression 2
+Operator call: *.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (+ x2 (/ (* v2 v2) (* (to_real 2) b)))
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 dt)
+Operator call: /.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression x2
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 v2)
+Operator call: /.
+vc_gen_expression 2
+Operator call: *.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v dt)
+Operator call: /.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: <
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0))))
+      (a!2 (+ x2 (/ (* v2 v2) (* (to_real 2) b)) (/ (* v2 dt) 2.0))))
+(let ((a!3 (< (+ x (/ (* v v) (* 2.0 b)) a!1 (/ (* v dt) 2.0)) a!2)))
+  (and (< x x2) a!3 (= a (to_real 0)))))
+Operator call: &&
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v dt)
+Operator call: /.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1 (/ (* v dt) 2.0)))
+Operator call: <
+vc_gen_expression x2
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 v2)
+Operator call: /.
+vc_gen_expression 2
+Operator call: *.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (+ x2 (/ (* v2 v2) (* (to_real 2) b)))
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 dt)
+Operator call: /.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression x2
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 v2)
+Operator call: /.
+vc_gen_expression 2
+Operator call: *.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v dt)
+Operator call: /.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0))))
+      (a!2 (+ x2 (/ (* v2 v2) (* (to_real 2) b)) (/ (* v2 dt) 2.0))))
+  (< (+ x (/ (* v v) (* 2.0 b)) a!1 (/ (* v dt) 2.0)) a!2))
+Operator call: &&
+vc_gen_expression a
+Operator call: =
+vc_gen_expression b
+Operator call: ~-
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v dt)
+Operator call: /.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1 (/ (* v dt) 2.0)))
+Operator call: <
+vc_gen_expression x2
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 v2)
+Operator call: /.
+vc_gen_expression 2
+Operator call: *.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (+ x2 (/ (* v2 v2) (* (to_real 2) b)))
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 dt)
+Operator call: /.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression x2
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 v2)
+Operator call: /.
+vc_gen_expression 2
+Operator call: *.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v dt)
+Operator call: /.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: <
+vc_gen_expression (< x x2)
+Operator call: &&
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v dt)
+Operator call: /.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1 (/ (* v dt) 2.0)))
+Operator call: <
+vc_gen_expression x2
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 v2)
+Operator call: /.
+vc_gen_expression 2
+Operator call: *.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (+ x2 (/ (* v2 v2) (* (to_real 2) b)))
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 dt)
+Operator call: /.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression x2
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 v2)
+Operator call: /.
+vc_gen_expression 2
+Operator call: *.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v dt)
+Operator call: /.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0))))
+      (a!2 (+ x2 (/ (* v2 v2) (* (to_real 2) b)) (/ (* v2 dt) 2.0))))
+  (< (+ x (/ (* v v) (* 2.0 b)) a!1 (/ (* v dt) 2.0)) a!2))
+Operator call: &&
+vc_gen_expression a
+Operator call: =
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v dt)
+Operator call: /.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1 (/ (* v dt) 2.0)))
+Operator call: <
+vc_gen_expression x2
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 v2)
+Operator call: /.
+vc_gen_expression 2
+Operator call: *.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (+ x2 (/ (* v2 v2) (* (to_real 2) b)))
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 dt)
+Operator call: /.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression x2
+Operator call: +.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression (* v2 v2)
+Operator call: /.
+vc_gen_expression 2
+Operator call: *.
+vc_gen_expression v2
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt v) (/ (* amax dt dt) 2.0)))))
+  (+ x (/ (* v v) (* 2.0 b)) a!1))
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v dt)
+Operator call: /.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (+ x (/ (* v v) (* 2.0 b)))
+Operator call: +
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression (+ 1.0 (/ amax b))
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression (* dt v)
+Operator call: +.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt dt)
+Operator call: /.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression (* amax dt)
+Operator call: *.
+vc_gen_expression amax
+Operator call: *.
+vc_gen_expression dt
+Operator call: *.
+vc_gen_expression 1.0
+Operator call: +.
+vc_gen_expression amax
+Operator call: /.
+vc_gen_expression x
+Operator call: +.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression (* v v)
+Operator call: /.
+vc_gen_expression 2.0
+Operator call: *.
+vc_gen_expression v
+Operator call: *.
+vc_gen_expression x
+Operator call: <
+Proving constraint: (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt vf) (/ (* amax dt dt) 2.0))))
+      (a!2 (+ xl (/ (* vl vl) (* (to_real 2) b)) (/ (* vl dt) 2.0)))
+      (a!4 (* (+ 1.0 (/ amax b)) (+ (* dt vfi) (/ (* amax dt dt) 2.0))))
+      (a!5 (+ xli (/ (* vfi vfi) (* (to_real 2) b)) (/ (* vfi dt) 2.0))))
+(let ((a!3 (< (+ xf (/ (* vf vf) (* 2.0 b)) a!1 (/ (* vf dt) 2.0)) a!2))
+      (a!6 (< (+ 0.0 (/ (* vfi vfi) (* 2.0 b)) a!4 (/ (* vfi dt) 2.0)) a!5)))
+(let ((a!7 (=> (and (> amax 0.0)
+                    (= amax (/ 1.0 20.0))
+                    (> xli 0.0)
+                    (= xli 5.0)
+                    (> b 0.0)
+                    (= b (/ 17.0 125.0))
+                    (> dt 0.0)
+                    (= dt (/ 1.0 10.0))
+                    (> vfi 0.0)
+                    (= vfi (/ 4.0 5.0))
+                    (< xf xl)
+                    a!3
+                    (= af (to_real 0))
+                    a!3
+                    (= af (- b))
+                    true)
+               (and (< 0.0 xli) a!6 (= 0.0 (to_real 0)) a!6 (= 0.0 (- b)) true))))
+  (not a!7))))
+[32mPassed[0m
+Proving constraint: (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt vf) (/ (* amax dt dt) 2.0))))
+      (a!2 (+ xl (/ (* vl vl) (* (to_real 2) b)) (/ (* vl dt) 2.0)))
+      (a!4 (ite (< (+ vf (* af dt)) 0.0) 0.0 (+ vf (* af dt))))
+      (a!5 (ite (< (+ vl (* al dt)) 0.0) 0.0 (+ vl (* al dt)))))
+(let ((a!3 (< (+ xf (/ (* vf vf) (* 2.0 b)) a!1 (/ (* vf dt) 2.0)) a!2))
+      (a!6 (* (+ 1.0 (/ amax b)) (+ (* dt a!4) (/ (* amax dt dt) 2.0))))
+      (a!8 (+ (+ xl (* a!5 dt))
+              (/ (* a!5 a!5) (* (to_real 2) b))
+              (/ (* a!5 dt) 2.0))))
+(let ((a!7 (+ (+ xf (* a!4 dt))
+              (/ (* a!4 a!4) (* 2.0 b))
+              a!6
+              (/ (* a!4 dt) 2.0))))
+(let ((a!9 (>= a!7
+               (+ (+ xl (* a!5 dt))
+                  (/ (* a!5 a!5) (* 2.0 b))
+                  (/ (* a!5 dt) 2.0)))))
+(let ((a!10 (and (< (+ xf (* a!4 dt)) (+ xl (* a!5 dt)))
+                 (< a!7 a!8)
+                 (= (ite a!9 (- b) amax) (to_real 0))
+                 (< a!7 a!8)
+                 (= (ite a!9 (- b) amax) (- b))
+                 true)))
+(let ((a!11 (=> (and (> amax 0.0)
+                     (= amax (/ 1.0 20.0))
+                     (> xli 0.0)
+                     (= xli 5.0)
+                     (> b 0.0)
+                     (= b (/ 17.0 125.0))
+                     (> dt 0.0)
+                     (= dt (/ 1.0 10.0))
+                     (> vfi 0.0)
+                     (= vfi (/ 4.0 5.0))
+                     (< xf xl)
+                     a!3
+                     (= af (to_real 0))
+                     a!3
+                     (= af (- b))
+                     true)
+                a!10)))
+  (not a!11)))))))
+[32mPassed[0m
+Proving constraint: (let ((a!1 (* (+ 1.0 (/ amax b)) (+ (* dt vf) (/ (* amax dt dt) 2.0))))
+      (a!2 (+ xl (/ (* vl vl) (* (to_real 2) b)) (/ (* vl dt) 2.0)))
+      (a!5 (ite (< (+ vf (* af dt)) 0.0) 0.0 (+ vf (* af dt))))
+      (a!6 (ite (< (+ vl (* al dt)) 0.0) 0.0 (+ vl (* al dt))))
+      (a!12 (* (+ 1.0 (/ amax b)) (+ (* dt vfi) (/ (* amax dt dt) 2.0))))
+      (a!13 (+ xli (/ (* vfi vfi) (* (to_real 2) b)) (/ (* vfi dt) 2.0))))
+(let ((a!3 (< (+ xf (/ (* vf vf) (* 2.0 b)) a!1 (/ (* vf dt) 2.0)) a!2))
+      (a!7 (* (+ 1.0 (/ amax b)) (+ (* dt a!5) (/ (* amax dt dt) 2.0))))
+      (a!9 (+ (+ xl (* a!6 dt))
+              (/ (* a!6 a!6) (* (to_real 2) b))
+              (/ (* a!6 dt) 2.0)))
+      (a!14 (< (+ 0.0 (/ (* vfi vfi) (* 2.0 b)) a!12 (/ (* vfi dt) 2.0)) a!13)))
+(let ((a!4 (and (> amax 0.0)
+                (= amax (/ 1.0 20.0))
+                (> xli 0.0)
+                (= xli 5.0)
+                (> b 0.0)
+                (= b (/ 17.0 125.0))
+                (> dt 0.0)
+                (= dt (/ 1.0 10.0))
+                (> vfi 0.0)
+                (= vfi (/ 4.0 5.0))
+                (< xf xl)
+                a!3
+                (= af (to_real 0))
+                a!3
+                (= af (- b))
+                true))
+      (a!8 (+ (+ xf (* a!5 dt))
+              (/ (* a!5 a!5) (* 2.0 b))
+              a!7
+              (/ (* a!5 dt) 2.0))))
+(let ((a!10 (>= a!8
+                (+ (+ xl (* a!6 dt))
+                   (/ (* a!6 a!6) (* 2.0 b))
+                   (/ (* a!6 dt) 2.0))))
+      (a!15 (=> a!4
+                (and (< 0.0 xli)
+                     a!14
+                     (= 0.0 (to_real 0))
+                     a!14
+                     (= 0.0 (- b))
+                     true))))
+(let ((a!11 (and (< (+ xf (* a!5 dt)) (+ xl (* a!6 dt)))
+                 (< a!8 a!9)
+                 (= (ite a!10 (- b) amax) (to_real 0))
+                 (< a!8 a!9)
+                 (= (ite a!10 (- b) amax) (- b))
+                 true)))
+  (not (=> (and (= exec_return 42)
+                (=> a!4 a!11)
+                a!15
+                (> amax 0.0)
+                (= amax (/ 1.0 20.0))
+                (> xli 0.0)
+                (= xli 5.0)
+                (> b 0.0)
+                (= b (/ 17.0 125.0))
+                (> dt 0.0)
+                (= dt (/ 1.0 10.0))
+                (> vfi 0.0)
+                (= vfi (/ 4.0 5.0)))
+           true)))))))
+[32mPassed[0m
+this is a true function
+Proving constraint: (let ((a!1 (=> (and (= main_return 42)
+                    (= trigger (to_real 42))
+                    (> amax 0.0)
+                    (= amax (/ 1.0 20.0))
+                    (> xli 0.0)
+                    (= xli 5.0)
+                    (> b 0.0)
+                    (= b (/ 17.0 125.0))
+                    (> dt 0.0)
+                    (= dt (/ 1.0 10.0))
+                    (> vfi 0.0)
+                    (= vfi (/ 4.0 5.0)))
+               true)))
+  (not a!1))
+[32mPassed[0m
+Hello, this is Z3 Refinement
