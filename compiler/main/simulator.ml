@@ -298,7 +298,7 @@ let emit_prelude ff ({ Lident.id = id } as qualid) info k =
          @[catch_break true@]@;\n\
          @[external lcm_stop: unit -> unit = \"LCM_stop\"@]@;\n\
          @[let is_done = false;;@]@;\n\
-         @[let cleanup () = is_done = true;@]@;\n\
+         @[let cleanup () = ();@]@;\n\
          @[print_string \"Interrupted\";@]@;\n\
          @[print_newline ();@]@;\n\
          @[lcm_stop ();;@]@;@]" else ();
@@ -365,8 +365,8 @@ let emit_simulation_code ff k =
   | Deftypes.Tcont ->
       fprintf ff "@[(* instantiate a numeric solver *)\n\
                   module Runtime = Zlsrun.Make (Defaultsolver)\n@]";
-      if !robot then fprintf ff" @[let _ = try Runtime.go main\n with Break ->cleanup();\n\
-                                try Runtime.go main\n with Break ->()@.@]"
+      if !robot then fprintf ff" @[let _ = try Runtime.go main\n with Break ->cleanup()(*;\n\
+                                try Runtime.go main\n with Break ->()*)@.@]"
       else fprintf ff"@[let _ = Runtime.go main@]"
   | Deftypes.Tproba -> assert false
 
