@@ -2,8 +2,8 @@ let vfi:{v: float | v > 0.} = 0.5
 let dt:{v: float | v > 0.} = 0.1
 let b:{v: float | v > 0.} = 0.136
 let xli:{v: float | v > 0.} = 2.
-let xbrake:{v: float | v >= xli} = 3.
-let amax:{v: float | v >= 0.} = 0.136
+let xbrake:{v: float | v >= xli} = 4.
+let amax:{v: float | v >= 0.} = 0.06
 
 let node exec () = 
   let rec ((xf, vf, af, xl, vl, al): 
@@ -14,8 +14,8 @@ let node exec () =
         (v >= 0.) && 
         (x >= 0.) && 
         (a >= -.b) &&
-        ((((x +. ((v*.v)/.(2.*.b)) +. ((1.+.(amax /. b))*.(2.*.dt*.v+.((amax*.(4.*.dt*.dt))/. 2.))) +. ((v*.dt)/. 2.)) < (x2 +. (((v2-.(b*.dt))*.(v2-.(b*.dt)))/.(2.*.b)) +. (((v2-.(b*.dt))*.dt)/. 2.))) && (a = amax)) ||
-         (((x +. ((v*.v)/.(2.*.b)) +. ((1.+.(amax /. b))*.(2.*.dt*.v+.((amax*.(4.*.dt*.dt))/. 2.)))  +.((v*.dt)/. 2.))  >= (x2 +. (((v2-.(b*.dt))*.(v2-.(b*.dt)))/.(2.*.b)) +. (((v2-.(b*.dt))*.dt)/. 2.))) && (a = -.b))) &&      
+        ((((x +. ((v*.v)/.(2.*.b)) +. ((1.+.(amax /. b))*.(2.*.dt*.v+.((amax*.(4.*.dt*.dt))/. 2.))) +. ((v*.dt)/. 2.)) +. 0.5 < (x2 +. (((v2-.(b*.dt))*.(v2-.(b*.dt)))/.(2.*.b)) +. (((v2-.(b*.dt))*.dt)/. 2.))) && (a = amax)) ||
+         (((x +. ((v*.v)/.(2.*.b)) +. ((1.+.(amax /. b))*.(2.*.dt*.v+.((amax*.(4.*.dt*.dt))/. 2.)))  +. ((v*.dt)/. 2.)) +. 0.5 >= (x2 +. (((v2-.(b*.dt))*.(v2-.(b*.dt)))/.(2.*.b)) +. (((v2-.(b*.dt))*.dt)/. 2.))) && (a = -.b))) &&      
         (((x2 >= xbrake) && (a2 = -.b)) || ((x2 < xbrake) && (a2 = 0.))) &&
        ((x +. ((v*.v)/.(2.*.b)) +. ((v*.dt)/. 2.)) < (x2 +. ((v2*.v2)/.(2.*.b)) +. ((v2*.dt)/. 2.)))
     }) = 
@@ -26,15 +26,15 @@ let node exec () =
             (let x_next = (xf +. (v_next *. dt)) models (robot_get ("x_f")) in
     (x_next,
      v_next,
-     (if (x_next +. ((v_next *. v_next) /. (2.0*.b)) +. ((1.+.(amax /. b))*.(2.*.dt*.v_next+.((amax*.(4.*.dt*.dt))/. 2.))) +. (v_next *. dt /. 2.)) >=
+     (if (x_next +. ((v_next *. v_next) /. (2.0*.b)) +. ((1.+.(amax /. b))*.(2.*.dt*.v_next+.((amax*.(4.*.dt*.dt))/. 2.))) +. (v_next *. dt /. 2.)) +. 0.5 >=
          (xl_next +. (((vl_next-.(b*.dt)) *. (vl_next-.(b*.dt))) /. (2.0*.b)) +. ((vl_next-.(b*.dt)) *. dt /. 2.)) then (-.b) else amax),
      xl_next,
      vl_next,
      (if (xl_next >= xbrake) then (-.b) else 0.))
     ))))
-    in (xf, vf, af, xl, vl, al)
+    in ((robot_str ("accel", af)); (xf, vf, af, xl, vl, al))
 	
 let hybrid main () = 
 	let rec trigger = (period (dt)) in
-	present (trigger) -> (let (x, v, a, xl, vl, al) = exec () in (print_float x; print_string ";"; print_float xl; print_newline ())) else ()
+	present (trigger) -> (let (x, v, a, xl, vl, al) = exec () in (print_float x; print_string ","; print_float v; print_string ","; print_float a; print_string ","; print_float xl; print_string ","; print_float vl; print_string ","; print_float al; print_newline ())) else ()
 

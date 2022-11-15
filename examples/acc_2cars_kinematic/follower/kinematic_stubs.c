@@ -14,7 +14,7 @@
 lcm_t * lcm;
 pthread_t lcm_listener; 
 int running = 0;
-#define FROM_ROBOT_CHANNEL  "FROM_ROBOT_SIDE"
+#define FROM_ROBOT_CHANNEL  "TO_ROBOT_SIDE"
 #define TO_ROBOT_CHANNEL  "TO_ROBOT_SIDE"
 
 static void motor_handler(const lcm_recv_buf_t *rbuf, const char * channel, 
@@ -23,20 +23,6 @@ static void motor_handler(const lcm_recv_buf_t *rbuf, const char * channel,
     //printf("Received message on channel \"%s\":\n", channel);
     //printf("writing to table '%s'", msg->command);
     insert_to_table(msg->command, msg->value);
-    if ( strcmp(msg->command, "dist") == 0){
-      insert_to_table("x_l", (msg->value + get_value("odometry_x")));
-    }
-    if ( strcmp(msg->command, "vel_lidar") == 0){
-      insert_to_table("v_l", (msg->value + get_value("vel")));
-    }
-    if (strcmp(msg->command, "vel") == 0){
-      insert_to_table("v_f", msg->value);
-    }
-    if (strcmp(msg->command, "odometry_x") == 0){
-      insert_to_table("x_f", msg->value);
-    }
-//    printf("xf: %f, xl: %f, vf: %f, vl:%f\n", get_value("x_f"), get_value("x_l"), get_value("v_f"), get_value("v_l"));
-
 }
 
 void *lcm_listen(void *param)

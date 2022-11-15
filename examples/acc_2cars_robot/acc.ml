@@ -1,5 +1,5 @@
 (* The Zelus compiler, version 2.2-dev
-  (2022-10-28-20:36) *)
+  (2022-11-10-21:54) *)
 open Ztypes
 
    external robot_get: string -> float = "robot_get_cpp" 
@@ -20,9 +20,9 @@ let b = 0.136
 
 let xli = 2.
 
-let xbrake = 3.
+let xbrake = 4.
 
-let amax = 0.136
+let amax = 0.06
 
 type ('b , 'a) _exec =
   { mutable i_96 : 'b ; mutable m_89 : 'a }
@@ -56,23 +56,31 @@ let exec  =
        let (x_next_88:float) = robot_get "x_f" in
        self.m_89 <- (x_next_88 ,
                      v_next_87 ,
-                     (if (>=) ((+.) ((+.) ((+.) x_next_88 
-                                                ((/.) (( *. ) v_next_87 
-                                                              v_next_87) 
-                                                      (( *. ) 2.  b))) 
-                                          (( *. ) ((+.) 1.  ((/.) amax  b)) 
-                                                  ((+.) (( *. ) (( *. ) 
-                                                                   2.  dt) 
-                                                                v_next_87) 
-                                                        ((/.) (( *. ) 
-                                                                 amax 
+                     (if (>=) ((+.) ((+.) ((+.) ((+.) x_next_88 
+                                                      ((/.) (( *. ) v_next_87
+                                                                    
+                                                                    v_next_87)
+                                                             (( *. ) 2.  b)))
+                                                
+                                                (( *. ) ((+.) 1. 
+                                                              ((/.) amax  b))
+                                                        
+                                                        ((+.) (( *. ) 
                                                                  (( *. ) 
+                                                                    2.  dt) 
+                                                                 v_next_87) 
+                                                              ((/.) (
+                                                                    ( *. ) 
+                                                                    amax 
+                                                                    (
+                                                                    ( *. ) 
                                                                     (
                                                                     ( *. ) 
                                                                     4.  dt) 
                                                                     dt))  
-                                                              2.)))) 
-                                    ((/.) (( *. ) v_next_87  dt)  2.)) 
+                                                                    2.)))) 
+                                          ((/.) (( *. ) v_next_87  dt)  2.)) 
+                                    0.5) 
                               ((+.) ((+.) xl_next_86 
                                           ((/.) (( *. ) ((-.) vl_next_85 
                                                               (( *. ) b  dt))
@@ -88,11 +96,12 @@ let exec  =
                      xl_next_86 ,
                      vl_next_85 ,
                      (if (>=) xl_next_86  xbrake then (~-.) b else 0.)) ;
-       (xf_83 , vf_81 , af_79 , xl_84 , vl_82 , al_80))):float *
-                                                         float *
-                                                         float *
-                                                         float *
-                                                         float * float) in
+       (let _ = robot_str_ml ("accel") (af_79) in
+        (xf_83 , vf_81 , af_79 , xl_84 , vl_82 , al_80)))):float *
+                                                           float *
+                                                           float *
+                                                           float *
+                                                           float * float) in
   Node { alloc = exec_alloc; reset = exec_reset ; step = exec_step }
 type ('g , 'f , 'e , 'd , 'c , 'b , 'a) _main =
   { mutable major_98 : 'g ;
@@ -155,9 +164,11 @@ let main (cstate_130:Ztypes.cstate) =
                          let (x_next_121:float) = robot_get "x_f" in
                          self.m_122 <- (x_next_121 ,
                                         v_next_120 ,
-                                        (if (>=) ((+.) ((+.) ((+.) x_next_121
-                                                                   
-                                                                   ((/.) 
+                                        (if (>=) ((+.) ((+.) ((+.) ((+.) 
+                                                                    x_next_121
+                                                                    
+                                                                    (
+                                                                    (/.) 
                                                                     (
                                                                     ( *. ) 
                                                                     v_next_120
@@ -167,20 +178,25 @@ let main (cstate_130:Ztypes.cstate) =
                                                                     (
                                                                     ( *. ) 
                                                                     2.  b))) 
-                                                             (( *. ) 
-                                                                ((+.) 
-                                                                   1. 
-                                                                   ((/.) 
-                                                                    amax  b))
-                                                                
-                                                                ((+.) 
                                                                    (( *. ) 
+                                                                    (
+                                                                    (+.) 
+                                                                    1. 
+                                                                    (
+                                                                    (/.) 
+                                                                    amax  b))
+                                                                    
+                                                                    (
+                                                                    (+.) 
+                                                                    (
+                                                                    ( *. ) 
                                                                     (
                                                                     ( *. ) 
                                                                     2.  dt) 
                                                                     v_next_120)
-                                                                   
-                                                                   ((/.) 
+                                                                    
+                                                                    (
+                                                                    (/.) 
                                                                     (
                                                                     ( *. ) 
                                                                     amax 
@@ -191,10 +207,12 @@ let main (cstate_130:Ztypes.cstate) =
                                                                     4.  dt) 
                                                                     dt))  
                                                                     2.)))) 
-                                                       ((/.) (( *. ) 
-                                                                v_next_120 
-                                                                dt)  
-                                                             2.)) 
+                                                             ((/.) (( *. ) 
+                                                                    v_next_120
+                                                                     
+                                                                    dt)  
+                                                                   2.))  
+                                                       0.5) 
                                                  ((+.) ((+.) xl_next_119 
                                                              ((/.) (( *. ) 
                                                                     (
@@ -228,15 +246,24 @@ let main (cstate_130:Ztypes.cstate) =
                                         (if (>=) xl_next_119  xbrake
                                          then (~-.) b
                                          else 0.)) ;
-                         (let (v_108:float) = vf_114 in
-                          let (a_106:float) = af_112 in
-                          let (vl_109:float) = vl_115 in
+                         (let _ = robot_str_ml ("accel") (af_112) in
                           let (al_107:float) = al_113 in
+                          let (vl_109:float) = vl_115 in
                           let (xl_111:float) = xl_117 in
+                          let (a_106:float) = af_112 in
+                          let (v_108:float) = vf_114 in
                           let (x_110:float) = xf_116 in
                           let _ = print_float x_110 in
-                          let _ = print_string ";" in
+                          let _ = print_string "," in
+                          let _ = print_float v_108 in
+                          let _ = print_string "," in
+                          let _ = print_float a_106 in
+                          let _ = print_string "," in
                           let _ = print_float xl_111 in
+                          let _ = print_string "," in
+                          let _ = print_float vl_109 in
+                          let _ = print_string "," in
+                          let _ = print_float al_107 in
                           self.result_100 <- print_newline ()))
                     | _ -> self.result_100 <- ()  end) ; self.result_100)) in
        cstate_130.horizon <- min cstate_130.horizon  self.h_105 ; result_135)):

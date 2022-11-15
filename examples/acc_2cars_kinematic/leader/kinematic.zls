@@ -1,0 +1,16 @@
+let dt:{v: float | v > 0.} = 0.1
+let b:{v: float | v > 0.} = 0.136
+let vi:{v: float | v > 0.} = 0.5
+let dbrake:{v:float | v > 0.} = 2.
+let node exec () = 
+    let rec (x,v,a) = 
+	(((0. fby (x +. (v *. dt))) models (robot_get ("odometry_x"))),
+	 (vi fby (if ((v +. (a *. dt)) < 0.) then 0. else (v +. (a *. dt)))),
+	 (0. fby if (x >= dbrake) then (-. b) else 0.)) in 
+    ((robot_str ("transverse_vel", v)); (x,v,a))
+	
+let hybrid main () = 
+	let rec trigger = (period (dt)) in
+	present (trigger) -> (let (x, v, a) = exec () in (print_float x; print_string ","; print_float v; print_string ","; print_float a; print_newline ())) else ()
+
+

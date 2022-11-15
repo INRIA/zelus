@@ -1,0 +1,12 @@
+let dt = 0.02
+let vi = 0.5
+
+let node exec () = 
+	let rec (v, a) = (vi fby (if (v +. (a*.dt) < 0.) then 0. else v +. (a *. dt)),
+			  (robot_get ("accel")))
+	in (robot_str ("transverse_vel", v)); v
+	
+let hybrid main () = 
+	let rec trigger = (period (dt)) in
+	present (trigger) -> (let v = exec () in (print_float v; print_newline ())) else ()
+

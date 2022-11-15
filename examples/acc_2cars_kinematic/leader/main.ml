@@ -16,7 +16,7 @@ let main =
     { dvec = cmake 0; cvec = cmake 0; zinvec = zmake 0; zoutvec = cmake 0; 
       cindex = 0; zindex = 0; cend = 0; zend = 0; cmax = 0; zmax = 0; 
       major = false; horizon = 0.0 } in 
-  let Node { alloc = alloc; step = hstep; reset = reset } = Acc.main cstate in 
+  let Node { alloc = alloc; step = hstep; reset = reset } = Kinematic.main cstate in 
   let step mem cvec dvec zin t = 
     cstate.major <- true; cstate.cvec <- cvec; cstate.dvec <- dvec; 
     cstate.cindex <- 0; cstate.zindex <- 0; cstate.horizon <- infinity;  
