@@ -23,7 +23,7 @@ let node constructive1(c, x) returns (y)
   and y =  mux (c, y2, y1)
   done
 
- let node constructive2(c, x) returns (y)
+let node constructive2(c, x) returns (y)
   y =  mux (c,  g( f(x)),  f( g(x)))
 
 let node main() returns (ok)

@@ -1,5 +1,33 @@
+let node fibo () returns (o)
+  local po
+  do po = 1 fby (po + o)
+  and o = 1 fby po done
+
+let node euler_forward(h, x0, xprime) returns (x)
+    x = x0 -> pre(x +. h *. xprime)
+
+let node euler_backward(h, x0, xprime) returns (x)
+    x = x0 -> pre(x) +. h *. xprime
+
+(* [ (x(n+1) - x(n)) / h = f x(n) *)
+let node main45() returns (x)
+  x = euler_forward(0.1, 1.0, 0.5 *. x)
+
+let node sum(x) returns (o)
+  forward xi in x, o init 0 
+    do o = last o + 1 done
+
+let node main42() =
+  sum([|1.0; 2.0; 3.0|])
+
 let g = 42
 
+let node from(x') = o where
+  rec o = 1 -> pre(o + x')
+
+let node main() =
+  let rec o = from(o) in o
+    
 let node f(x, y) returns (o)
   local z
   do o = x + y
@@ -49,4 +77,3 @@ let node main5() returns ()
       assert o
   done
  
-	
