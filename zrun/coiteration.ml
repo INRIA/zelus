@@ -125,8 +125,8 @@ let spresent_handler_list loc sscondpat bot nil sbody genv env p_h_list s_list =
   spresent_rec p_h_list s_list
 
 (* [sem genv env e = CoF f s] such that [iexp genv env e = s] *)
-(* and [sexp genv env e = f] *)
 let rec iexp genv env { e_desc; e_loc  } =
+(* and [sexp genv env e = f] *)
   match e_desc with
   | Econst _ | Econstr0 _ | Elocal _ | Eglobal _ | Elast _ ->
      return Sempty
@@ -605,7 +605,7 @@ let for_env_out missing env_list acc_env loc for_out =
 (* Its type is [state -> (value * state) option] *)
 let rec sexp genv env { e_desc; e_loc } s =
   match e_desc, s with   
-  | _, Sbot -> return (Vbot, s)
+  | _, Sbot -> return (Vbot, s) (* Voir remarque PE-Dagand *)
   | _, Snil -> return (Vnil, s)
   | Econst(v), Sempty ->
      return (Value (Combinatorial.immediate v), s)
@@ -866,7 +866,7 @@ let rec sexp genv env { e_desc; e_loc } s =
           let* r, s_for_body, sr_list =
             sforloop_exp e_loc genv env size for_kind for_body i_env
               s_for_body sr_list in
-          return (r, Some(Value(Vint(size))),
+          return (r, size_of_for_kind for_kind size,
                   s_for_body, sr_list, si, si_list) in
      return (r, Slist (Sopt(s_size) :: Slist(s_for_body :: sr_list) ::
                          si :: si_list))
@@ -1349,12 +1349,20 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
          let* r, s_for_body, so_list =
            sforloop_eq
              eq_loc genv env size for_kind for_body i_env s_for_body so_list in
-         return (r, Some(Value(Vint(size))),
+         return (r, size_of_for_kind for_kind size,
                  s_for_body, so_list, si, si_list) in
     return (r, Slist (Sopt(s_size) :: Slist(s_for_block :: so_list) ::
                         si :: si_list))
   | _ -> error { kind = Estate; loc = eq_loc }
-       
+
+(* how the size must be kept or not from one reaction to the other *)
+and size_of_for_kind for_kind size =
+  match for_kind with
+  (* between steps, the size of a foreach must not change *)
+  | Kforeach -> Some(Value(Vint(size)))
+  (* whereas it can change for a forward loop *)
+  | Kforward _ -> None
+                                                                        
 and sforloop_eq
   loc genv env size for_kind { for_out; for_block } i_env s_for_block so_list =
   match i_env with
