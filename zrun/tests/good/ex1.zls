@@ -20,3 +20,42 @@ let node main() returns ()
   do o1, _, _ =  f1() and o2 =  f2() and
      assert (o1 = o2) done
 
+let node relay(low, high, u) returns (o)
+    automaton
+    | Low -> do o = false unless (u <= low) then High
+    | High -> do o = true unless (u >= high) then Low
+    end
+
+
+let node relay_compiled(low, high, u) returns (o)
+  local s init Low
+  do match last s with
+    | Low -> do s = if (u <= low) then High else Low done
+    | High -> do s = if (u >= high) then Low else High done
+    end
+  and match s with
+      | Low -> do o = false done
+      | High -> do o = true done
+      end
+  done
+      
+let node main1() returns (o, u)
+  do o = relay(-1, 1, u)
+  and u = 0 fby (if o then u + 1 else u - 1) done
+      
+let node main2() returns (u, o1, o2)
+  do o1 = relay(-1, 1, u)
+  and u = 0 fby (if o1 then u + 1 else u - 1)
+  and o2 = relay_compiled(-1, 1, u)
+  and assert (o1 = o2)
+  done
+
+let node main3() returns ()
+  let rec u = true fby true fby (not u) fby u in
+  let o1 = relay(-1, 1, u) in
+  let o2 = relay_compiled(-1, 1, u) in
+  do assert (o1 = o2) done
+
+let node main4 () returns (o)
+  o = if true then 1 else "2"
+    

@@ -26,6 +26,12 @@ let (let+) v f =
   | Vnil -> return Vnil
   | Value(v) -> f v
 
+let (and+) v1 v2 =
+  match v1, v2 with
+  | (Vbot, _) | (_, Vbot) -> Vbot
+  | (Vnil, _) | (_, Vnil) -> Vnil
+  | Value(v1), Value(v2) -> Value(v1, v2)
+
 let bool v =
   match v with
   | Vbool(b) -> return b
@@ -165,21 +171,28 @@ let geti v i =
   if (i < n) && (i >= 0) then return (Value(v.(i))) else None
 
 
+(* ifthenelse. this one is strict w.r.t all arguments *)
+let lustre_ifthenelse v1 v2 v3 =
+  let+ v1 = v1 in
+  let+ _ = v2 in
+  let+ _ = v3 in
+  ifthenelse_op v1 v2 v3
+
 (* ifthenelse. this one is strict w.r.t the first argument *)
-let ifthenelse v1 v2 v3 =
+let lazy_ifthenelse v1 v2 v3 =
   let+ v1 = v1 in
   ifthenelse_op v1 v2 v3
 
 (* this one is a bit experimental; it can be used to implement *)
 (* the constructive semantics of Esterel. *)
-let ifthenelse' v1 v2 v3 =
+let esterel_ifthenelse v1 v2 v3 =
   match v1 with
   | Value(v1) -> ifthenelse_op v1 v2 v3
   | _ -> return (if v2 = v3 then v2 else v1)
   
-let ifthenelse'' v1 v2 v3 =
+let esterel_ifthenelse v1 v2 v3 =
   if v2 = v3 then return v2
-  else ifthenelse v1 v2 v3
+  else lazy_ifthenelse v1 v2 v3
 (* with it, we can define [or_gate] and [and_gate] *)
 (* with three values:
  *- or(x, true) = or(true, x) = true
@@ -192,7 +205,9 @@ let and_gate(x,y) = if x then y else false
 Hence, [x = x or true] == [x = if x then true else true = true]
 *)
 let ifthenelse =
-  if !Smisc.set_esterel then ifthenelse' else ifthenelse
+  if !Smisc.set_esterel then esterel_ifthenelse
+  else if !Smisc.set_lustre then lustre_ifthenelse
+  else lazy_ifthenelse
 
 (* lift a unary operator: [op bot = bot]; [op nil = nil] *)
 let lift1 op v =

@@ -1,4 +1,28 @@
+let node p(x, y) returns (o)
+  o = (0.0 fby o) +. x *. y
 
+let node scalar(x, y) returns (o)
+  forward xi in x, yi in y, o init 0
+    do o = p(xi, yi) done
+
+let node main42() =
+  scalar([|1.0; 2.0; 3.0|],
+	 [|1.0; 2.0; 3.0|])
+
+let node sum(x, y) returns (z)
+    forward xi in x, yi in y, zi out z do
+      zi = xi +. yi
+    done
+
+let node map2(f)(x, y)
+    returns (z)
+    forward xi in x, yi in y, zi out z do
+      zi = f(xi, yi)
+    done
+
+
+
+  
 (* simple examples of for loops *)
 let node g x returns (y, z)
     do y = x and z = x done
@@ -182,8 +206,8 @@ let node sum m returns (o)
   done
 		 
 let node sum_eq m returns (o)
-  forward(4) mi in m, o init 0 do
-    forward(4) mij in mi, o init last o do
+  forward mi in m, o init 0 do
+    forward mij in mi, o init last o do
       o = last o + mij done
     done
 
@@ -328,3 +352,4 @@ let node f(x) = o where
              do o1 = 1 done
 
 let node main19 () = f 0
+

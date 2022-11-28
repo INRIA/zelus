@@ -17,6 +17,8 @@ let node sequential_and_gate(x,y) returns (z)
 let node sequential_or_gate(x,y) returns (z)
     if x then z = true else z = y
 
+let node sequential_or_gate(x, y) = if x then true else y
+  
 (* the two below are strict w.r.t their argument *)
 let node and_gate(x,y) returns (z)
     z = x && y
@@ -25,21 +27,24 @@ let node or_gate(x,y) returns (z)
     z = x or y
 
 (* the two below are implement using the conditional. *)
+(*
 let node or_gate(x,y) = if x then y else false
 let node and_gate(x, y) = if x then true else y
-
+ *)
+    
 (* i is the initial value of one block *)
 let node arbiter(i, request, pass_in, token_in)
-    returns (grant, pass_out, token_out)
+  returns (grant, pass_out, token_out)
   local o
   do
     grant =  and_gate(request, o)
   and
     pass_out = and_gate(not request, o)
   and
-   (* grant is given when there is a request and either 1/ it is my round or *)
+   (* grant is given when there is a request and either 
+   1/ it is my round or *)
    (* my left neibour had the token but did not take it *)
-   o = sequential_or_gate(token_in, pass_in)
+      o = sequential_or_gate (token_in, pass_in) (* (pass_in, token_in) *)
   and
     token_out = i fby token_in
   done

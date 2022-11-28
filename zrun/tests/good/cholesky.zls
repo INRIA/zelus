@@ -108,13 +108,13 @@ let cholesky <<n>> (A:[n,n]float) = (L:[n,n]float)
     b = map <<_>> (fun a l -> (a - vec_vec (l,ld)) / d) (ab,lb);
     mj = t ++[ d ]++ b; 
  *)
-let node transpose(n,m,a) =
+let node transpose(n,m)(a) =
     foreach i in 0 to n - 1 do
       foreach j in 0 to m - 1 do
 	a.(j).(i)
       done
     done
-	      
+
 let node chauds_les_skis(n)(a) =
   let rec
       l = transpose(n, n, m)

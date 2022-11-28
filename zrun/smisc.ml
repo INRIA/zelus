@@ -48,5 +48,8 @@ let no_assert = ref false
 (* remove the check that fix-point equation produce non bottom values *)
 let set_nocausality = ref false
 
-(* sets the interpretation of the if/then/else *)
+(* sets the interpretation of the if/then/else to Esterel *)
 let set_esterel = ref false
+
+(* sets the interpretation of the if/then/else to Lustre *)
+let set_lustre = ref false

@@ -1,4 +1,4 @@
-(* 
+   (* 
   This example is taken from:  S. Malik "Analysis of cyclic combinational 
   circuits" 1994 
   It is the prototypical example of a cyclic circuit that is constructively 
