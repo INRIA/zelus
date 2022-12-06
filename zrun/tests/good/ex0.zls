@@ -2,7 +2,7 @@ let node incr(x) returns (o)
     o = 0 fby x + 1
 
 let node nat () =
-  let rec o = incr o in o, 0
+  let rec o = incr o and x = x + 1 in o
     
 let node fibo () returns (o)
   local po
@@ -23,9 +23,12 @@ let node sum(x) returns (o)
   o = forward xi in x
         do let rec o = (0.0 fby o) +. xi in o done
 
+
+let node sum(x) returns (s)
+    s = (0 fby s) + x
+    
 let node sum(x) returns (o)
-  forward xi in x, o init 0.0
-     do o = last o +. xi done
+  o = forward xi in x do sum(xi) done
 
 let node sum(x, y) = o where
   rec v = x *. y and o = (0.0 fby o) +. v
@@ -37,7 +40,7 @@ let node scalar(t1, t2) =
 
     
 let node main42() =
-  scalar([|1.0; 2.0; 3.0|] fby [|2.0; 3.0 fby 42.0; 4.0|],
+  scalar([|1.0; 2.0; 3.0|] fby [|2.0; 3.0; 4.0|] ,
 	 [|1.0; 2.0; 3.0 |])
       
 let g = 42

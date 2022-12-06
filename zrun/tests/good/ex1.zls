@@ -30,8 +30,10 @@ let node relay(low, high, u) returns (o)
 let node relay_compiled(low, high, u) returns (o)
   local s init Low
   do match last s with
-    | Low -> do s = if (u <= low) then High else Low done
-    | High -> do s = if (u >= high) then Low else High done
+     | Low ->
+	 do s = if (u <= low) then High else Low done
+     | High ->
+	 do s = if (u >= high) then Low else High done
     end
   and match s with
       | Low -> do o = false done

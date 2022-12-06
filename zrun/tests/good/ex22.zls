@@ -290,6 +290,15 @@ let node prod_matrix1(a_3_4, b_4_5) = r where rec
                 done
        done
 
+let node prod_matrix11(n,m,p)(a, b) returns (r)
+  forward i in 0 to n-1, ri out r do
+    forward j in 0 to m-1, rji out ri do
+      forward k in 0 to p - 1, rji init 0 do
+        rji = last rji + a.(i).(k) * b.(k).(j)
+      done
+    done
+  done
+  
 let node main16 () =
   let m1 = [| [| 1; 2; 3; 4 |];
 	      [| 5; 6; 7; 8 |];
@@ -298,7 +307,7 @@ let node main16 () =
 	      [| 1; 1; 1; 1; 1 |];
 	      [| 1; 1; 1; 1; 1 |];
 	      [| 1; 1; 1; 1; 1|] |] in
-  prod_matrix1 (m1, id)
+  run (prod_matrix11(3, 5, 4))(m1, id)
     
 let node transpose_4_5(m) =
   foreach(5) i in 0 to 4 do
