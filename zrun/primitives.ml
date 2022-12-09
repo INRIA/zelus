@@ -186,7 +186,8 @@ let lazy_ifthenelse v1 v2 v3 =
 let esterel_or_op v1 v2 =
   match v1, v2 with
   | (Value(Vbool(true)), (Vbot | Vnil)) | ((Vbot|Vnil), Value(Vbool(true)))
-  | (Value(Vbool(true)), Value(Vbool _)) | (Value(Vbool _), Value(Vbool(true))) -> return (Value(Vbool(true)))
+    | (Value(Vbool(true)), Value(Vbool _))
+    | (Value(Vbool _), Value(Vbool(true))) -> return (Value(Vbool(true)))
   | (Value(Vbool(false)), Vbot) | (Vbot, Value(Vbool(false))) -> return Vbot
   | (Value(Vbool(false)), Vnil) | (Vnil, Value(Vbool(false))) -> return Vnil
   | (Value(Vbool(false)), Value(Vbool v)) -> return (Value(Vbool(v)))
@@ -197,7 +198,8 @@ let esterel_or_op v1 v2 =
 let esterel_and_op v1 v2 =
   match v1, v2 with
   | (Value(Vbool(false)), (Vbot | Vnil)) | ((Vbot|Vnil), Value(Vbool(false)))
-  | (Value(Vbool(false)), Value(Vbool _)) | (Value(Vbool _), Value(Vbool(false))) -> return (Value(Vbool(false)))
+    | (Value(Vbool(false)), Value(Vbool _))
+    | (Value(Vbool _), Value(Vbool(false))) -> return (Value(Vbool(false)))
   | (Value(Vbool(true)), Vbot) | (Vbot, Value(Vbool(true))) -> return Vbot
   | (Value(Vbool(true)), Vnil) | (Vnil, Value(Vbool(true))) -> return Vnil
   | (Value(Vbool(true)), Value(Vbool v)) -> return (Value(Vbool(v)))
@@ -205,8 +207,38 @@ let esterel_and_op v1 v2 =
   | (_, Vnil) | (Vnil, _) -> return Vnil
   | _ -> none
 
+(* this one is a bit experimental; it can be used to implement *)
+(* an alternative semantics to the constructive semantics of Esterel *)
+(* it is closer to the "logical semantics of Esterel" than the *)
+(* the "constructive semantics" through it is not entirely clear. *)
+(* note that this is very different than the treatment of activation *)
+(* conditions (e.g., if c then eq1 else eq2 which correspond to a *)
+(* condition on a clock. In that case, when c = bot, then the resulting *)
+(* environment is also bot *)
+let esterel_ifthenelse v1 v2 v3 =
+  match v1 with
+  | Value(v1) -> ifthenelse_op v1 v2 v3
+  | _ -> return (if v2 = v3 then v2 else v1)
+  
+let esterel_ifthenelse v1 v2 v3 =
+  if v2 = v3 then return v2
+  else lazy_ifthenelse v1 v2 v3
+(* with it, we can define [or_gate] and [and_gate] *)
+(* with three values:
+ *- or(x, true) = or(true, x) = true
+ *- and(x, false) = and(false, x) = false
+ *- with or(x, y) = if x then true else y
+ *- with and(x, y) = if x then y else false
+
+let or_gate(x,y) = if x then true else y
+let and_gate(x,y) = if x then y else false
+Hence, [x = x or true] == [x = if x then true else true = true]
+*)
+  
 let ifthenelse =
-  if !Smisc.set_lustre then lustre_ifthenelse else lazy_ifthenelse
+  if !Smisc.set_lustre then lustre_ifthenelse else
+    if !Smisc.set_esterel then esterel_ifthenelse
+    else lazy_ifthenelse
 
 (* lift a unary operator: [op bot = bot]; [op nil = nil] *)
 let lift1 op v =
