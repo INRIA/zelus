@@ -2,7 +2,7 @@ let node incr(x) returns (o)
     o = 0 fby x + 1
 
 let node nat () =
-  let rec o = incr o and x = x + 1 in o
+  let rec o = incr o and x = o + 1 in o
     
 let node fibo () returns (o)
   local po
