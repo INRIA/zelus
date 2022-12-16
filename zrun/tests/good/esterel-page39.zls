@@ -46,6 +46,7 @@ let node first(x) = let rec o = x fby o in o
 (* it is rejected by zrun: zrun.exe -s main -n 1 esterel-page39.zls
 *- Zrun: the following variables are not causal: o_3
  *)
+(*
 let node p2 () returns (o default false)
    local s, term1 default true
    do
@@ -60,7 +61,8 @@ let node p2 () returns (o default false)
      done
    else do done
    done
-
+ *)
+  
 (* In fact, o does not really depends on [o] but on term1 whose initial *)
 (* value is false, whatever be that of [o] and [s] *)
 (* the circuit compilation of Esterel generates an alternative *)
@@ -69,6 +71,7 @@ let node p2 () returns (o default false)
   
 
 (* an equivalent form where every branch is completed *)
+(* it is neither causal *)
 let node p2_expanded () returns (o)
    local s, term1
    do
@@ -85,6 +88,5 @@ let node p2_expanded () returns (o)
    done
    
 let node main () =
-  let o1 = p2 () in
   let o2 = p2_expanded () in
-  assert (o1 = o2)
+  o2
