@@ -1,0 +1,5 @@
+let node f(x init x) =
+  x + last x
+
+let node main() =
+  f(42)
