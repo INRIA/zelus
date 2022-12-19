@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2022 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2023 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -239,7 +239,12 @@ let rec buildeq defnames { desc } =
   | EQassert _ -> defnames
   | EQforloop({ for_body }) -> build_for_body_eq defnames for_body
     
-and build_vardec defnames { desc = { var_name } } = S.add var_name defnames
+and build_vardec defnames { desc = { var_name }; loc } =
+  if S.mem var_name defnames then Error.error loc (Enon_linear_pat(var_name));
+  S.add var_name defnames
+
+and build_for_vardec defnames { desc = { for_vardec } } =
+  build_vardec defnames for_vardec
 
 and build_match_handler defnames { desc = { m_body } } =
   buildeq defnames m_body
@@ -366,7 +371,7 @@ let rec equation env_pat env { desc; loc } =
        let and_eq_list = List.map (equation env_pat env) and_eq_list in
        Zelus.EQand(and_eq_list)
     | EQlocal(v_list, eq) ->
-       let v_list, env_v_list = Util.mapfold (vardec env) Env.empty v_list in
+       let v_list, env_v_list = vardec_list env v_list in
        let env_pat = Env.append env_v_list env_pat in
        let env = Env.append env_v_list env in
        let eq = equation env_pat env eq in
@@ -509,33 +514,52 @@ and letin is_rec env eq =
   let new_env = Env.append env_pat env in
   equation env_pat (if is_rec then new_env else env) eq, new_env
   
-and vardec env acc { desc = { var_name; var_init; var_default;
-                              var_typeconstraint; var_clock; var_is_last }; loc } =
-  if Env.mem var_name acc then Error.error loc (Enon_linear_pat(var_name));
+and vardec env
+{ desc = { var_name; var_init; var_default;
+           var_typeconstraint; var_clock; var_is_last }; loc } =
   let var_default =
     Util.optional_map (expression env) var_default in
   let var_init =
     Util.optional_map (expression env) var_init in
   let var_typeconstraint =
     Util.optional_map types var_typeconstraint in
-  let m = Ident.fresh var_name in
+  let m = name loc env var_name in
   { Zelus.var_name = m; Zelus.var_init = var_init;
     Zelus.var_default = var_default;
     Zelus.var_typeconstraint = var_typeconstraint;
     Zelus.var_clock = var_clock; Zelus.var_loc = loc;
     Zelus.var_typ = Deftypes.no_typ;
-    Zelus.var_is_last = var_is_last },
-  Env.add var_name m acc
+    Zelus.var_is_last = var_is_last }
 
-and for_vardec env acc { desc = { for_array; for_vardec }; loc } =
-  let for_vardec, acc = vardec env acc for_vardec in
+(* treat a list of variable declarations *)
+(*- computes the list of names;
+ *- builds an initial environment;
+ *- apply the substitution;
+ *- the two steps is necessary because [local x init y, y init x do ... done]
+ *- is corrects and a short-cut for 
+ *- [local last x, last y do last x = y and last y = x and ... done] *)
+and vardec_list env v_list =
+  let defnames = List.fold_left build_vardec S.empty v_list in
+  let env_v_list = Env.make defnames Env.empty in
+  let env = Env.append env_v_list env in
+  let v_list = List.map (vardec env) v_list in
+  v_list, env_v_list
+       
+and for_vardec env { desc = { for_array; for_vardec }; loc } =
+  let for_vardec = vardec env for_vardec in
   { Zelus.desc = { Zelus.for_array = for_array; Zelus.for_vardec = for_vardec };
-    Zelus.loc = loc },
-  acc
-  
+    Zelus.loc = loc }
+
+and for_vardec_list env for_v_list =
+  let defnames = List.fold_left build_for_vardec S.empty for_v_list in
+  let env_v_list = Env.make defnames Env.empty in
+  let env = Env.append env_v_list env in
+  let v_list = List.map (for_vardec env) for_v_list in
+  v_list, env_v_list
+
 (* [local x1 [init e1][default e'1],...,xn[...] do eq] *)
 and block body env_pat env { desc = { b_vars; b_body }; loc } =
-  let b_vars, env_b_vars = Util.mapfold (vardec env) Env.empty b_vars in
+  let b_vars, env_b_vars = vardec_list env b_vars in
   let env_pat = Env.append env_b_vars env_pat in
   let env = Env.append env_b_vars env in
   let b = body env_pat env b_body in
@@ -735,8 +759,7 @@ and forloop_exp env { for_size; for_kind; for_index; for_body } =
        let default = Util.optional_map (expression env) default in
        env, Zelus.Forexp { exp = exp; default = default }
     | Forreturns { returns; body } ->
-       let returns, env_v_list =
-         Util.mapfold (for_vardec env) Env.empty returns in
+       let returns, env_v_list = for_vardec_list env returns in
        let env = Env.append env_v_list env in
        let env_body, body = block equation env_v_list env body in
        env_body, Zelus.Forreturns { returns; body; env = Ident.Env.empty } in
@@ -764,21 +787,21 @@ and recordrec loc env label_e_list =
   recordrec S.empty label_e_list
   
 and funexp env { desc = { f_kind; f_atomic; f_args; f_body }; loc } =
-  let f_args, env_f_args = Util.mapfold (arg env) Env.empty f_args in
+  let f_args, env_f_args = Util.mapfold arg env f_args in
   let env = Env.append env_f_args env in
   let f_body = result env f_body in
   { Zelus.f_kind = kind f_kind; Zelus.f_atomic = f_atomic;
     Zelus.f_args = f_args; Zelus.f_body = f_body; Zelus.f_loc = loc;
     Zelus.f_env = Ident.Env.empty }
   
-and arg env acc v_list = Util.mapfold (vardec env) acc v_list
+and arg env v_list = vardec_list env v_list
                        
 and result env { desc; loc } =
   let r_desc =
     match desc with
     | Exp(e) -> Zelus.Exp(expression env e)
     | Returns(v_list, eq) ->
-       let v_list, env_v_list = Util.mapfold (vardec env) Env.empty v_list in
+       let v_list, env_v_list = vardec_list env v_list in
        let env = Env.append env_v_list env in
        let eq = equation env_v_list env eq in
        Zelus.Returns(make_block loc v_list eq) in
