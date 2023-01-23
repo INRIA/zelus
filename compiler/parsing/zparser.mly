@@ -572,7 +572,7 @@ optional_init:
 ;
 
 %inline equation_list:
-  | l = list_of(AND, equation) { l }
+  | l = list_of(AND, equation) { Printf.printf "Equation List with %d elements\n" (List.length l); l }
 ;
 
 %inline equation:
@@ -1209,9 +1209,9 @@ expression_desc:
   | e1 = simple_expression DOT LPAREN e2 = expression RPAREN
       { Eop(Eaccess, [e1; e2]) }
   | LET defs = equation_list IN e = seq_expression
-      { Elet(false, defs, e) }
+      { Printf.printf "Let with list of equations\n"; Elet(false, defs, e) }
   | LET REC defs = equation_list IN e = seq_expression
-      { Elet(true, defs, e) }
+      { Printf.printf "Let Rec with list of equations\n"; Elet(true, defs, e) }
   | PERIOD p = period_expression
       { Eperiod(p) }
   (*added here*)
