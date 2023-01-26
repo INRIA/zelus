@@ -1,0 +1,4 @@
+let node exec () = 
+	let rec (x:{v:float | v > 1.}) = 1.1 fby (x +. 1.)
+		and (y:{v:float | v > x}) = x *. x
+		in ()

@@ -1345,6 +1345,13 @@ and vc_gen_substitute (var : string) env ctx typenv : expr =
       debug(Printf.sprintf "After sub test:%s \n" (Expr.to_string (Expr.substitute_one a1 (a2) (a3)))); *)
       after_subs
   | None -> debug (Printf.sprintf "Something is wrong with typenv\n"); Integer.mk_numeral_s ctx "42"
+  (** Check parallel equations together
+      @param ctx The Z3 context in which to invoke the solver
+      @param env The environment of assumptions generated prior
+      @param typenv The environment of previously-defined variable types
+      @param eqs The list of AST equation objects
+      @return () nothing
+      *)
 and vc_gen_equation_parallel ctx env typenv eqs = 
     (* Step 1: Find all expressions with type refinements and extract their predicates. *)
     (*         Then Replace their binding variables. e.g. x:{v:int | v > 0} produces the constraint x > 0*)
@@ -1355,7 +1362,7 @@ and vc_gen_equation_parallel ctx env typenv eqs =
                     | Etypeconstraintpat(p1, t) -> 
                         (match t.desc with 
                         | Erefinement(lbl, ref_exp) ->
-                                        (* Extract the equation variable and binding variable from a definition. eg. in x:{v:int | x > 0}, eq_var will be x and bind_var will be v *) 
+                                        (* Extract the equation variable and binding variable from a definition. eg. in x:{v:int | phi}, eq_var will be x and bind_var will be v *) 
                                         let eq_var = (match p1.p_desc with
                                                      | Evarpat(n) -> n.source) in
                                         let bind_var = (fst lbl) in 
@@ -1365,33 +1372,35 @@ and vc_gen_equation_parallel ctx env typenv eqs =
                                                             | Name (s) -> s
                                                             | Modname(q) -> q.id)
                                                        | _ -> "basetype_not_right") in   
+                                        (* Creates the equation variable x *)
                                         let z3_eq_var = (create_z3_var_typed ctx env eq_var basetype) in
+                                        (* Creates the binding variable phi *)
                                         let z3_bind_var = (create_z3_var_typed ctx env bind_var basetype) in
+                                        (* Gets the Z3 format of phi *)
                                         let ref_constraint = (vc_gen_expression ctx env ref_exp typenv) in
+                                        (* rhs_substituted is the refinement predicate, with the binding variable replaced with the right-hand side of the equation (phi[v -> e]) *)
                                         let rhs_substituted = (match e.e_desc with
-                                        (* Special case for fby *)
-                                        | Eop (Efby, [e1; e2]) -> (Printf.printf "fby\n");
+                                        (* Special case for fby, as the left and right sides of the fby expression need to be checked independently *)
+                                        | Eop (Efby, [e1; e2]) ->
                                                (Boolean.mk_and ctx [
                                                        (Expr.substitute_one ref_constraint z3_bind_var (vc_gen_expression ctx env e1 typenv)); 
                                                        (Expr.substitute_one ref_constraint z3_bind_var (vc_gen_expression ctx env e2 typenv))
                                                ] )
-                                        | _ -> (Printf.printf "Other exp\n"); (Expr.substitute_one ref_constraint z3_bind_var (vc_gen_expression ctx env e typenv))) in
-                                        (*debug (Printf.sprintf "Original refinement constraint: %s\n" (Expr.to_string ref_constraint));*)
-                                        debug (Printf.sprintf "RHS: %s\n" (Expr.to_string rhs_substituted));
-                                        let replaced_constraint = (Expr.substitute_one ref_constraint z3_bind_var z3_eq_var) in
-                                        (*debug (Printf.sprintf "Replaced constraint: %s\n" (Expr.to_string replaced_constraint));*)
-                                        (replaced_constraint, rhs_substituted)::eqlist
+                                        | _ -> (Expr.substitute_one ref_constraint z3_bind_var (vc_gen_expression ctx env e typenv))) in
+                                        (* lhs_substituted is the refinement predicate with the binding variable replaced with the variable defined by the equation (phi[v -> x]) *)
+                                        let lhs_substituted = (Expr.substitute_one ref_constraint z3_bind_var z3_eq_var) in
+                                        (lhs_substituted, rhs_substituted)::eqlist
                         | _ -> (* Not a refinement expression *) eqlist)
                     | _ -> (* Not a type constraint pattern *) eqlist)
                 | _ -> (* Not an equation *) eqlist)) eqs [] in
-        Printf.printf "Parallel equation constraints:\n";
-        let (refinement_lhs, refinement_rhs) = (List.split refinement_preds) in
-        List.iter (fun x -> (Printf.printf "%s\n" (Expr.to_string x))) refinement_lhs; 
-        Printf.printf "vc_gen_equation_parallel\n";
-    (* Step 2: Test these constraints against each parallel equation (order should not matter) *)
-        let parallel_constraints = (Boolean.mk_and ctx refinement_rhs) in
-        let vcs = (List.map (fun x -> ((Printf.printf "%s -> %s\n" (Expr.to_string parallel_constraints) (Expr.to_string x)); (Boolean.mk_implies ctx parallel_constraints))) refinement_rhs) in ()
-    (* Step 3: Add constraints to the environment if verification successful *)
+        let (lhs, rhs) = (List.split refinement_preds) in
+        (* Test these constraints against each parallel equation (order should not matter) *)
+        (* and together all of the lhs expressions *)
+        (* For each equation, we want the vc: (phi_1[v -> x_1] &...& phi_n[v -> x_n]) => phi_i[v -> e_i] for i=0..n where a refinement constraint is present. *)
+        let parallel_constraints = (Boolean.mk_and ctx lhs) in
+        let vcs = (List.map (fun x -> ((Printf.printf "%s -> %s\n" (Expr.to_string parallel_constraints) (Expr.to_string x)); (Boolean.mk_implies ctx parallel_constraints x))) rhs) in 
+        (* Test each constraint one-by-one (might make it easier to figure out which equation caused a failure) and add its corresponding LHS constraint to the environment if it passes *)
+        (List.iter (fun (phi_lhs, vc) -> (z3_proof ctx env (Boolean.mk_not ctx vc) phi_lhs)) (List.combine lhs vcs))
 
 and vc_gen_expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
 (*
@@ -1439,9 +1448,7 @@ and vc_gen_expression ctx env ({ e_desc = desc; e_loc = loc }) typenv =
         Printf.printf (Expr.to_string local_exp);
         Printf.printf "Body:\n";*)
         debug(Printf.sprintf "Is recursive %b" l.l_rec);
-        (* TODO: Handle vc_gen in parallel *)
         (vc_gen_equation_parallel ctx env typenv l.l_eq);
-        (*(List.iter (vc_gen_equation ctx env typenv) l.l_eq);*)
         let body_exp = vc_gen_expression ctx env e typenv in
         debug(Printf.sprintf "Body exp :%s \n" (Expr.to_string body_exp));
         print_env env;

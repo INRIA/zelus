@@ -1,8 +1,0 @@
-let node exec () = 
-	let rec (x:{v:float | v > 0.}) = (*5.+.3.*)0. fby (x +. 1.)
-		and (y:{v:float | v > x}) = 7.+.x(*1. fby (y +. x)*)
-		(*and (y:{v:int | v > 1}) = 1 fby (y + 1)*)
-		(*and y = x fby (y + 1)
-		and w =0 fby (x + z)
-		and z = w fby (x + w)*)
-		in ()

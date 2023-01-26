@@ -1,0 +1,4 @@
+let node exec () = 
+	let rec x = 1. fby (-. x)
+		and (y:{v:float | v >= 0.}) = (if (x > 0.) then x else (-. x))
+		in ()

@@ -572,7 +572,7 @@ optional_init:
 ;
 
 %inline equation_list:
-  | l = list_of(AND, equation) { Printf.printf "Equation List with %d elements\n" (List.length l); l }
+  | l = list_of(AND, equation) { l }
 ;
 
 %inline equation:
