@@ -1,0 +1,79 @@
+val open_graph : string -AD-> unit
+val close_graph : unit -AD-> unit
+val set_window_title : string -AD-> unit
+val resize_window : int -> int -AD-> unit
+val clear_graph : unit -AD-> unit
+val size_x : unit -> int
+val size_y : unit -> int
+type color
+val rgb : int -> int -> int -> color
+val set_color : color -AD-> unit
+val background : color
+val foreground : color
+val black : color
+val white : color
+val red : color
+val green : color
+val blue : color
+val yellow : color
+val cyan : color
+val magenta : color
+val plot : int * int -AD-> unit
+val plots : (int * int) array -AD-> unit
+val point_color : int * int -> color
+val moveto : int -> int -AD-> unit
+val rmoveto : int -> int -AD-> unit
+val current_x : unit -> int
+val current_y : unit -> int
+val current_point : unit -> int * int
+val lineto : int -> int -AD-> unit
+val rlineto : int -> int -AD-> unit
+val curveto : int * int -> int * int -> int * int -AD-> unit
+val draw_rect : int -> int -> int -> int -AD-> unit
+val draw_poly_line : (int * int) array -AD-> unit
+val draw_poly : (int * int) array -AD-> unit
+val draw_segments : (int * int * int * int) array -AD-> unit
+val draw_arc : int -> int -> int -> int -> int -> int -AD-> unit
+val draw_ellipse : int -> int -> int -> int -AD-> unit
+val draw_circle : int -> int -> int -AD-> unit
+val set_line_width : int -AD-> unit
+val draw_char : char -AD-> unit
+val draw_string : string -AD-> unit
+val set_font : string -AD-> unit
+val set_text_size : int -AD-> unit
+val text_size : string -> int * int
+val fill_rect : int -> int -> int -> int -AD-> unit
+val fill_poly : (int * int) array -AD-> unit
+val fill_arc : int -> int -> int -> int -> int -> int -AD-> unit
+val fill_ellipse : int -> int -> int -> int -AD-> unit
+val fill_circle : int -> int -> int -AD-> unit
+type image
+val transp : color
+val make_image : color array array -> image
+val dump_image : image -> color array array
+val draw_image : image -> int -> int -> unit
+val get_image : int -> int -> int -> int -> image
+val create_image : int -> int -> image
+val blit_image : image -> int -> int -AD-> unit
+type status =
+  { mouse_x : int;              (** X coordinate of the mouse *)
+    mouse_y : int;              (** Y coordinate of the mouse *)
+    button : bool;              (** true if a mouse button is pressed *)
+    keypressed : bool;          (** true if a key has been pressed *)
+    key : char;                 (** the character for the key pressed *)
+  }
+type event =
+    Button_down                 (** A mouse button is pressed *)
+  | Button_up                   (** A mouse button is released *)
+  | Key_pressed                 (** A key is pressed *)
+  | Mouse_motion                (** The mouse is moved *)
+  | Poll                        (** Don't wait; return immediately *)
+val wait_next_event : event list -AD-> status
+val mouse_pos : unit -> int * int
+val button_down : unit -> bool
+val read_key : unit -> char
+val key_pressed : unit -> bool
+val sound : int -> int -> unit
+val auto_synchronize : bool -AD-> unit
+val synchronize : unit -AD-> unit
+val display_mode : bool -AD-> unit
