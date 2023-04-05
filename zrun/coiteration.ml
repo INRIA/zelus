@@ -1170,7 +1170,7 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
      let cur =
        match cx_opt with
        | None ->
-          (* no event is present; return the value computed by the solver *)
+          (* no reset event; return the value computed by the solver *)
           pos
        | Some(cx) ->
           (* otherwise the value returned by the handler *)
@@ -1353,9 +1353,17 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
                  s_for_body, so_list, si, si_list) in
     return (r, Slist (Sopt(s_size) :: Slist(s_for_block :: so_list) ::
                         si :: si_list))
-  | EQemit _, _ ->
+  | EQemit(x, e_opt), s ->
      (* not implemented *)
-     error { kind = Enot_implemented; loc = eq_loc }
+     let* v, s = sexp_opt genv env e_opt s in
+     let* ({ cur } as entry) =
+       Env.find_opt x env |>
+         Opt.to_result ~none:{ kind = Eunbound_ident(x); loc = eq_loc } in
+     let cur =
+       match cur with
+       | Vbot -> Vbot | Vnil -> Vnil | Value(v) -> Value(Vpresent(v)) in
+     return (Env.singleton x { entry with cur }, s)
+  (* error { kind = Enot_implemented; loc = eq_loc } *)
   | _ -> error { kind = Estate; loc = eq_loc }
 
 (* how the size must be kept or not from one reaction to the other *)
