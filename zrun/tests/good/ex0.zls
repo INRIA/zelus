@@ -1,3 +1,6 @@
+let node first() returns (o)
+  emit o = 1
+
 let node incr(x) returns (o)
     o = 0 fby x + 1
 

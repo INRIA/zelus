@@ -13,7 +13,24 @@
   (name zlcompilerlibs)
   (public_name zelus.zlcompilerlibs)
   (wrapped false)
-  (modules :standard \ zeluc)
+  ;(modules :standard vars \ zeluc)
+  (modules
+    config
+    ; directory global
+    debug genames initial modules printer util
+    defcaus global lident pcaus ptypes vars
+    definit graph location pinit scoping write
+    deftypes ident misc pp_tools state zelus
+    ; directory parsing
+    parsetree lexer parser
+    ; directory typing
+    interface kind matching patternsig total typerrors types typing
+    ; directory analysis
+    causal causality init initialization
+    ; directory rewrite
+    ; reduce inline
+    ; directory main
+    compiler)
   (libraries menhirLib))
 
 (executable

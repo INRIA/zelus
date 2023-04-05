@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2022 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2023 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -47,6 +47,34 @@ let show_version () =
   Printf.printf "Std lib: "; locate_stdlib ();
   Printf.printf "\n";
   ()
+
+  (* sets the main simulation node *)
+let simulation_node = ref None
+let set_simulation_node (n:string) = simulation_node := Some(n)
+
+(* sets the output filepath *)
+let outname = ref None
+let set_outname (n:string) = outname := Some(n)
+
+(* sets the output filepath for nodes *)
+let node_outname = ref None
+let set_node_outname (n:string) = node_outname := Some(n)
+
+(* sets the checking flag *)
+let number_of_checks = ref 0
+let set_check (n: int) = number_of_checks := n
+
+(* sampling the main loop on a real timer *)
+let sampling_period = ref 0.0
+let set_sampling_period p = sampling_period := p
+
+(* level of inlining *)
+let inlining_level = ref 10
+let set_inlining_level l = inlining_level := l
+let inline_all = ref false
+
+(* turn on the discrete zero-crossing detection *)
+let dzero = ref false
 
 (* other options of the compiler *)
 let verbose = ref false

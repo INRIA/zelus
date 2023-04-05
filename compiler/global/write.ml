@@ -18,23 +18,23 @@ open Ident
 open Zelus
 open Deftypes
    
-let rec fv_pat bounded acc { pat_desc } =
+let rec fv_pat acc { pat_desc } =
   match pat_desc with
   | Ewildpat | Econstr0pat _ | Econstpat _ -> acc
   | Evarpat(x) -> 
-     if (S.mem x acc) || (S.mem x bounded) then acc else S.add x acc
+     if S.mem x acc then acc else S.add x acc
   | Econstr1pat(_, pat_list) | Etuplepat(pat_list) ->
-     List.fold_left (fv_pat bounded) acc pat_list
+     List.fold_left fv_pat acc pat_list
   | Erecordpat(label_pat_list) ->
      List.fold_left
-       (fun acc { arg } -> fv_pat bounded acc arg) acc label_pat_list
+       (fun acc { arg } -> fv_pat acc arg) acc label_pat_list
   | Ealiaspat(p, name) ->
      let acc = 
-       if (S.mem name acc) || (S.mem name bounded)
+       if S.mem name acc
        then acc else S.add name acc in
-     fv_pat bounded acc p
-  | Eorpat(p1, _) -> fv_pat bounded acc p1
-  | Etypeconstraintpat(p, _) -> fv_pat bounded acc p
+     fv_pat acc p
+  | Eorpat(p1, _) -> fv_pat acc p1
+  | Etypeconstraintpat(p, _) -> fv_pat acc p
 
                           
 (* computes [dv] and [di] *)
@@ -43,7 +43,7 @@ let rec equation ({ eq_desc } as eq)=
     match eq_desc with
     | EQeq(pat, e) ->
        EQeq(pat, expression e),
-       { Deftypes.empty with dv = fv_pat S.empty S.empty pat }
+       { Deftypes.empty with dv = fv_pat S.empty pat }
     | EQder(x, e, e0_opt, handlers) ->
        let e0_opt, di =
          match e0_opt with
@@ -92,10 +92,12 @@ let rec equation ({ eq_desc } as eq)=
        let handlers, def =
          Util.mapfold match_handler Deftypes.empty handlers in
        EQmatch({ m with e; handlers }), def
-    | EQautomaton({ handlers } as a_h) ->
+    | EQautomaton({ handlers; state_opt } as a_h) ->
+       let state_opt =
+         Util.optional_map state state_opt in
        let handlers, def =
          Util.mapfold automaton_handler empty handlers in
-       EQautomaton({ a_h with handlers }), def
+       EQautomaton({ a_h with handlers; state_opt }), def
     | EQpresent({ handlers; default_opt }) ->
        let present_handler acc ({ p_body } as p) =
          let p_body, def_body = equation p_body in
@@ -124,7 +126,8 @@ let rec equation ({ eq_desc } as eq)=
        (* From outside, when the output is [xi out x] *)
        (* the defined variable in the loop body is [x], not [xi] *)
        let for_out_one h_out
-             ({ desc = { for_name; for_init; for_default; for_out_name } } as fo) =
+             ({ desc = { for_name; for_init; for_default; for_out_name } }
+              as fo) =
          let h_out =
            match for_out_name with
            | None -> h_out | Some(x) -> Env.add for_name x h_out in
@@ -269,7 +272,7 @@ and expression ({ e_desc } as e) =
        Eforloop({ f with for_size; for_kind; for_index; for_body }) in
   { e with e_desc = desc }
 
-and for_vardec acc ({ desc = ({ for_vardec } as v) } as fv ) =
+and for_vardec acc ({ desc = ({ for_vardec } as v) } as fv) =
   let for_vardec, acc = vardec acc for_vardec in
   { fv with desc = { v with for_vardec } }, acc
  
@@ -308,3 +311,4 @@ let implementation ({ desc } as i) =
   { i with desc = desc }
   
 let program i_list = List.map implementation i_list
+let implementation_list = program

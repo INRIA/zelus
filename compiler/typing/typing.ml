@@ -751,7 +751,7 @@ and equation expected_k h { eq_desc; eq_loc } =
      pattern h p ty_e;
      (* check that the pattern is total *)
      check_total_pattern p;
-     let dv = Write.fv_pat S.empty S.empty p in
+     let dv = Write.fv_pat S.empty p in
      { Deftypes.empty with dv = dv }, actual_k
   | EQder(n, e, e0_opt, handlers) ->
      (* a derivative is only possible in a stateful context *)
@@ -999,4 +999,5 @@ let program ff is_first impl_list =
   List.iter (implementation ff is_first) impl_list;
   Misc.no_warning := not is_first;
   impl_list
-  
+
+let implementation_list = program

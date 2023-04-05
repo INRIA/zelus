@@ -113,8 +113,10 @@ let default exp ff e_opt =
 let out ff o_opt =
   match o_opt with | None -> () | Some(x) -> fprintf ff " out %a" name x
                                            
-let vardec exp ff { var_name = x; var_default = d_opt; var_init = i_opt } =
-  fprintf ff "@[%a%a%a@]" 
+let vardec exp ff
+      { var_name = x; var_default = d_opt; var_init = i_opt; var_is_last } =
+  fprintf ff "@[%s%a%a%a@]" 
+    (if var_is_last then "last " else "")
     name x (init exp) i_opt (default exp) d_opt 
 
 let vardec_list exp ff vardec_list =

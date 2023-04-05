@@ -97,7 +97,7 @@ let vec n = fun v => foreach i in 0 to n-1 do v done
 (* L is a lower triangular matrix *)
 (* solve Lx = b *)
 let node forward_substitution(l, b) returns (x)
-  forward i in 0 to length l - 1, x init run (vec 0)(0) do
+  forward i in 0 to length l - 1, x init run (vec (length l))(0) do
     let r =
       forward j in 0 to i - 1 returns (cpt init 0.0)
         do cpt = last cpt +. l.(i).(j) *. (last x).(j) done in
@@ -110,7 +110,7 @@ let node forward_substitution(l, b) returns (x)
 (* U is an upper triangular matrix *)
 (* solve Ux = b *)
 let node backward_substitution(l, b) returns (x)
-  forward i in length l - 1 downto 0, x init run (vec 0)(0) do
+  forward i in length l - 1 downto 0, x init run (vec (length l))(0) do
     let r =
       forward j in 0 to i - 1 returns (cpt init 0.0)
         do cpt = last cpt +. l.(i).(j) *. (last x).(j) done in

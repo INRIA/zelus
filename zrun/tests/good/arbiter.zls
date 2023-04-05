@@ -79,4 +79,4 @@ let node main() returns (grant1, grant2, grant3)
   and
     grant1, grant2, grant3 =  arbiter_three(request1, request2, request3)
   done
-      
+ 

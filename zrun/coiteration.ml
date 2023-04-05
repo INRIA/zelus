@@ -1353,6 +1353,9 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
                  s_for_body, so_list, si, si_list) in
     return (r, Slist (Sopt(s_size) :: Slist(s_for_block :: so_list) ::
                         si :: si_list))
+  | EQemit _, _ ->
+     (* not implemented *)
+     error { kind = Enot_implemented; loc = eq_loc }
   | _ -> error { kind = Estate; loc = eq_loc }
 
 (* how the size must be kept or not from one reaction to the other *)
@@ -1477,7 +1480,7 @@ and svardec genv env acc
             | _ -> error { kind = Estate; loc = var_loc }
           else return (None, se)
        | Some(e), Slist [Sopt(None); se] ->
-          (* first instant *)
+          (* first instant. *)
           let* ve, se = sexp genv env e se in
           return (Some(ve), Slist [Sopt(None); se])
        | _, Slist [Sopt(Some(v)); _] ->

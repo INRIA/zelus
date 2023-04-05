@@ -859,4 +859,5 @@ let interface interf =
   with
     | Error.Err(loc, err) -> Error.message loc err
 
+let implementation_list = program
 let interface_list inter_list = Util.iter interface inter_list

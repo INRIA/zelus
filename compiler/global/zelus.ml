@@ -125,7 +125,6 @@ type ('exp, 'eq) block =
     mutable b_write: Deftypes.defnames;
     mutable b_env: 'exp Deftypes.tentry Ident.Env.t }
 
-
 type statepatdesc =
   | Estate0pat : Ident.t -> statepatdesc 
   | Estate1pat : Ident.t * Ident.t list -> statepatdesc

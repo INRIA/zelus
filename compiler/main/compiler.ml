@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2022 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2023 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -128,19 +128,26 @@ let compile modname filename =
   (* begin try *)
   begin try
       impl_list
-      |> do_step "Scoping done" Scoping.program
+      |> do_step "Scoping done" Scoping.implementation_list
       (* Write defined variables for equations *)
-      |> do_step "Write done" Write.program
+      |> do_step "Write done" Write.implementation_list
       |> do_optional_stop !parseonly
       (* Typing *)
-      |> do_step "Typing done" (Typing.program info_ff true)
-      |> do_optional_stop !typeonly
+      |> do_step "Typing done" (Typing.implementation_list info_ff true)
       (* Causality *)
       |> do_optional_step (not !no_causality)
-           "Causality done" (Causality.program info_ff)
+           "Causality done" (Causality.implementation_list info_ff)
       (* Initialization *)
       |> do_optional_step (not !no_initialization)
-           "Initialisation done" (Initialization.program info_ff)
+           "Initialisation done" (Initialization.implementation_list info_ff)
+      |> (Util.continue_if_not !Misc.typeonly)
+      (* |> do_step "Reduce static expressions for global values \
+                  that have no more static parameter. See below:"
+	   (Reduce.implementation_list info_ff) impl_list
+      |> do_step "Inlining of annotated and small function calls. See below:"
+	   Inline.implementation_list impl_list
+      |> do_step "Re-typing done. See below:"
+	   (Typing.implementation_list info_ff false) impl_list *)
       |> fun _ -> ()
     with | Stop -> () end;
   (* Write the symbol table into the interface file *)

@@ -1,11 +1,11 @@
 (* triangular *)
-let node triangular(n)() returns o
+let node triangular(n)(t) returns o
   forward i in 0 to n - 1, o init 0 do
     forward j in 0 to i, o init last o do (*    while (j < i) do *)
       o = 1
     done
   done
-
+	
 (* triangular *)
 (*
 let node triangular_exp(n)() returns o

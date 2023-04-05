@@ -1,7 +1,8 @@
 (executable
  (name zrun)
   (modes (byte exe))
-  (libraries zelus.zlcompilerlibs zelus.zlrunlibs)
+  ;(libraries zelus.zlcompilerlibs zelus.zlrunlibs)
+  (libraries zelus.zlrunlibs)
   ; copy in the current dir
   (modules zrun)
   (promote (until-clean)))
@@ -12,4 +13,3 @@
   (wrapped false)
   (libraries zelus.zlcompilerlibs)
   (modules :standard \ zrun))
-  
