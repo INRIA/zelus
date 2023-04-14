@@ -124,8 +124,6 @@ let compile modname filename =
   (* Parsing of the file *)
   let impl_list = parse_implementation_file source_name in
   Debug.print_message "Parsing done";
-  (* Scoping *)
-  (* begin try *)
   begin try
       impl_list
       |> do_step "Scoping done" Scoping.implementation_list

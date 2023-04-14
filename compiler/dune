@@ -18,7 +18,8 @@
     config
     ; directory global
     debug genames initial modules printer util
-    defcaus global lident pcaus ptypes vars
+    defcaus global lident pcaus ptypes
+    ; vars
     definit graph location pinit scoping write
     deftypes ident misc pp_tools state zelus
     ; directory parsing

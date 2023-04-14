@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2022 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2023 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -69,7 +69,7 @@ type operator =
   | Earray_list : operator
   (* [| e1;...;en |] *)
   | Econcat : operator
-  (* [concat e1 e2] *)
+  (* [ e1 ++ e2] *)
   | Eget : operator
   (* [e.(e)] *)
   | Eget_with_default : operator
@@ -279,10 +279,6 @@ and eq_desc =
 
 and for_eq =
   { for_out : for_out_desc localized list;
-    (* [xi init vi] *)
-    (* [xi] is an output; the successive values are accumulated *)
-    (* [xi out x] *)
-    (* [xi] are local output; [x] is the output st [xi = x.(i)] *)
     for_block : (exp, eq) block; (* loop body *)
     for_out_env : exp Deftypes.tentry Ident.Env.t; 
   }
@@ -360,13 +356,13 @@ and interface_desc =
 and type_decl = type_decl_desc localized
     
 and type_decl_desc =
-    | Eabstract_type : type_decl_desc 
-    | Eabbrev : type_expression -> type_decl_desc 
-    | Evariant_type : constr_decl list -> type_decl_desc 
-    | Erecord_type : (name * type_expression) list -> type_decl_desc 
+  | Eabstract_type : type_decl_desc 
+  | Eabbrev : type_expression -> type_decl_desc 
+  | Evariant_type : constr_decl list -> type_decl_desc 
+  | Erecord_type : (name * type_expression) list -> type_decl_desc 
 
 and constr_decl = constr_decl_desc localized
-    
+
 and constr_decl_desc =
   | Econstr0decl : name -> constr_decl_desc 
   | Econstr1decl : name * type_expression list -> constr_decl_desc 

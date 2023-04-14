@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2021 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2023 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -48,9 +48,9 @@ and typ_scheme =
 and typ_instance = { typ_instance : typ list }
 
 and kind =
-  | Tfun
-  | Tnode
-  | Tstatic
+  | Tfun (* combinatorial expression *)
+  | Tnode (* stateful expression *)
+  | Tstatic (* static expression - known before reactions *)
       
 (* entry in the typing environment *)
 type 'a tentry = 

@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2021 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2023 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -114,8 +114,7 @@ let immediate = function
 
 (** Types for local identifiers *)
 let var loc h n =
-  try Env.find n h
-  with Not_found -> error loc (Evar_undefined(n))
+  try Env.find n h with | Not_found -> error loc (Evar_undefined(n))
 
 let typ_of_var loc h n = let { t_typ } = var loc h n in t_typ
 
@@ -170,8 +169,7 @@ let rec get_all_labels loc ty =
   | Tlink(link) -> get_all_labels loc link
   | _ -> assert false
 
-(** Check that every declared name is associated to a **)
-(* defining equation *)
+(** Check that every declared name is associated to a defining equation *)
 (* Returns a new [defined_names] where names from [n_list] *)
 (* have been removed *)
 let check_definitions_for_every_name defined_names n_list =
@@ -367,9 +365,8 @@ let match_handlers body loc expected_k h is_total m_handlers pat_ty ty =
   (* the kind is the sup of all kinds *)
   Kind.sup_list k_list
 
-(** Typing a present handler. Returns defined names **)
-(* for every branch the expected kind is discrete. For the default case *)
-(* it is the kind of the context. *)
+(** Typing a present handler. *)
+(*- Returns defined names and the kind is the supremum *)
 let present_handlers scondpat body loc expected_k h h_list opt expected_ty =
   let handler ({ p_cond; p_body } as ph) =
     (* local variables from [scpat] cannot be accessed through a last *)
@@ -678,8 +675,28 @@ and operator expected_k h loc op e_list =
     | Eperiod ->
        Tstatic, [Initial.typ_float; Initial.typ_float], Initial.typ_zero
     | Ehorizon ->
-       Tnode, [Initial.typ_float], Initial.typ_zero in
-  less_than loc actual_k expected_k;
+       Tnode, [Initial.typ_float], Initial.typ_zero
+    | Edisc ->
+       Tnode, [Initial.typ_float], Initial.typ_zero
+    | Earray_list ->
+       let ty = new_var () in
+       Tfun, List.map (fun _ -> ty) e_list, Initial.typ_array ty
+    | Econcat ->
+       let ty = Initial.typ_array (new_var ()) in
+       Tfun, [ty; ty], ty
+    | Eget ->
+       let ty = new_var () in
+       Tfun, [Initial.typ_array ty; Initial.typ_int], ty
+    | Eget_with_default ->
+       let ty = new_var () in
+       Tfun, [Initial.typ_array ty; Initial.typ_int; ty], ty
+    | Eslice ->
+       let ty = Initial.typ_array (new_var ()) in
+       Tfun, [ty; ty], ty
+    | Eupdate ->
+       let ty = new_var () in
+       Tfun, [Initial.typ_array ty; Initial.typ_int; ty],
+       Initial.typ_array ty in  less_than loc actual_k expected_k;
   let actual_k_list =
     List.map2 (expect expected_k h) e_list ty_args in
   ty_res, Kind.sup actual_k (Kind.sup_list actual_k_list)

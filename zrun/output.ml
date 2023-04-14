@@ -63,7 +63,15 @@ let rec pvalue ff v =
        (fun ff v ->
          Array.iter (fun x -> Format.fprintf ff "%a;@," pvalue x) v)
        v
-    
+  | Vmap(m) -> pmap ff m
+
+and pmap ff { m_left; m_right; m_u; m_else } =
+  match m_else with
+  | None -> Format.fprintf ff "@[[%d..%d] -> ...@]" m_left m_right
+  | Some(m) ->
+     Format.fprintf
+       ff "@[<hov>[%d..%d] -> ... @,else %a@]" m_left m_right pmap m
+
 and value ff v =
   match v with
   | Vnil -> Format.fprintf ff "nil"

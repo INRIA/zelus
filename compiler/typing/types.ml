@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2021 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2023 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -39,8 +39,6 @@ let rec arrowtype_list k ty_arg_list ty_res =
 let constr name ty_list abbrev = make (Tconstr(name, ty_list, abbrev))
 let nconstr name ty_list = constr name ty_list (ref Tnil)
 
-let new_discrete_var () =
-  { t_desc = Tvar; t_level = !binding_level; t_index = symbol#name }
 let new_var () =
   { t_desc = Tvar; t_level = !binding_level; t_index = symbol#name }
 let new_generic_var () =
