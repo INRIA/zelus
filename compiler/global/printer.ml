@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2022 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2023 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -383,11 +383,16 @@ and operator ff op e_list =
      fprintf ff "horizon %a" expression e
   | Edisc, [e] ->
      fprintf ff "disc %a" expression e
+  | Earray(op), l ->
+     array_operator ff op l
+  | _ -> assert false
+
+and array_operator ff op l =
+  match op, l with
   | Earray_list, l ->
-     Pp_tools.print_list_l expression
-       "[|" ";" "|]" ff l
+     Pp_tools.print_list_l expression "[|" ";" "|]" ff l
   | Econcat, [e1; e2] ->
-     fprintf ff "@[<hov0>%a | @,%a@]" expression e1 expression e2
+     fprintf ff "@<hov0>%a ++ @,%a@" expression e1 expression e2
   | Eget, [e1; e2] ->
      fprintf ff "%a.(%a)" expression e1 expression e2
   | Eget_with_default, [e1; e2; e3] ->
@@ -397,6 +402,12 @@ and operator ff op e_list =
   | Eupdate, [e1; e2; e3] ->
      fprintf ff "@[<hov 2>[|%a with@, %a <- %a|]@]"
        expression e1 expression e2 expression e3
+  | Etranspose, [e] ->
+     fprintf ff "@[<hov 2>transpose@ %a@]" expression e
+  | Ereverse, [e] ->
+     fprintf ff "@[<hov 2>reverse@ %a@]" expression e
+  | Eflatten, [e] ->
+     fprintf ff "@[<hov 2>flatten@ %a@]" expression e
   | _ -> assert false
 
 and equation ff ({ eq_desc = desc } as eq) =

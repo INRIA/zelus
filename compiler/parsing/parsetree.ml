@@ -58,18 +58,27 @@ type operator =
   (* generate an event at a given horizon *)
   | Edisc : operator
   (* generate an event whenever x <> last x outside of integration *)
-  | Earray_list : operator
+  | Earray : array_operator -> operator
+
+and array_operator =
+  | Earray_list : array_operator
   (* [| e1;...;en |] *)
-  | Econcat : operator
-  (* [concat e1 e2] *)
-  | Eget : operator
+  | Econcat : array_operator
+  (* [e1 ++ e2] *)
+  | Eget : array_operator
   (* [e.(e)] *)
-  | Eget_with_default : operator
+  | Eget_with_default : array_operator
   (* [e.(e) default e] *)
-  | Eslice : operator
+  | Eslice : array_operator
   (* [e.(e..e)] *)
-  | Eupdate : operator
+  | Eupdate : array_operator
   (* [| e with (e1,...,en) <- e |] *)
+  | Etranspose : array_operator
+  (* [transpose e] *)
+  | Eflatten : array_operator
+  (* [flatten e] *)
+  | Ereverse : array_operator
+  (* [reverse e] *)
 
 and is_inline = bool
 
@@ -165,7 +174,9 @@ and 'body forloop =
   { for_size : exp option;
     for_kind : for_kind;
     for_index : for_index_desc localized list;
-    for_body : 'body }
+    for_body : 'body;
+    for_resume : bool; (* resume or restart *)
+  }
 
 (* result expression of a loop *)
 and for_exp =

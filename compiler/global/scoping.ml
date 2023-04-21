@@ -123,7 +123,7 @@ let immediate c =
   | Echar(c) -> Zelus.Echar(c)
                 
 (* synchronous operators *)
-let operator op =
+let rec operator op =
   match op with
   | Efby -> Zelus.Efby
   | Eifthenelse -> Zelus.Eifthenelse
@@ -137,12 +137,19 @@ let operator op =
   | Edisc -> Zelus.Edisc
   | Eperiod -> Zelus.Eperiod
   | Ehorizon -> Zelus.Ehorizon
+  | Earray(op) -> Zelus.Earray(array_operator op)
+
+and array_operator op =
+  match op with
   | Eget -> Zelus.Eget
   | Eupdate -> Zelus.Eupdate
   | Eget_with_default -> Zelus.Eget_with_default
   | Eslice -> Zelus.Eslice
   | Econcat -> Zelus.Econcat
   | Earray_list -> Zelus.Earray_list
+  | Etranspose -> Zelus.Etranspose
+  | Ereverse -> Zelus.Ereverse
+  | Eflatten -> Zelus.Eflatten
  
 (* translate types. *)
 let rec types { desc; loc } =
@@ -479,7 +486,7 @@ and trans_for_out env i_env for_out =
     Util.mapfold for_out_one Env.empty for_out
 
 (* translation of for loops *)
-and forloop_eq env_pat env { for_size; for_kind; for_index;
+and forloop_eq env_pat env { for_size; for_kind; for_index; for_resume;
                              for_body = { for_out; for_block } } =
     let for_size = Util.optional_map (expression env) for_size in
     let for_index, i_env =
@@ -499,7 +506,8 @@ and forloop_eq env_pat env { for_size; for_kind; for_index;
       Zelus.for_kind = for_kind;
       Zelus.for_index = for_index;
       Zelus.for_body = { for_out; for_block; for_out_env = Ident.Env.empty };
-      Zelus.for_env = Ident.Env.empty }
+      Zelus.for_env = Ident.Env.empty;
+      Zelus.for_resume = for_resume }
 
 (** Translating a sequence of local declarations *)
 and leqs env l =
@@ -748,7 +756,7 @@ and expression env { desc; loc } =
     Zelus.e_typ = Deftypes.no_typ; Zelus.e_caus = Defcaus.no_typ;
     Zelus.e_init = Definit.no_typ }
   
-and forloop_exp env { for_size; for_kind; for_index; for_body } =
+and forloop_exp env { for_size; for_kind; for_index; for_body; for_resume } =
   let for_size = Util.optional_map (expression env) for_size in
   let for_index, i_env =
     trans_for_index env for_index in
@@ -770,7 +778,8 @@ and forloop_exp env { for_size; for_kind; for_index; for_body } =
        Zelus.Kforward(Util.optional_map (expression env_body) e_opt) in
   { Zelus.for_size = for_size; Zelus.for_kind = for_kind;
     Zelus.for_index = for_index; Zelus.for_body = for_body;
-    Zelus.for_env = Ident.Env.empty }
+    Zelus.for_env = Ident.Env.empty;
+    Zelus.for_resume = for_resume }
   
 and recordrec loc env label_e_list =
   (* check that a label name appear only once *)

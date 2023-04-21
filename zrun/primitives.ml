@@ -161,16 +161,14 @@ let lte_op v1 v2 =
 let gte_op v1 v2 =
   return (Vbool(v1 >= v2))
 
+let length v =
+  match v with
+  | Vmap { m_length } -> m_length | Vflat(a) -> Array.length a
 let length_op v =
   match v with
-  | Varray(a) -> return (Vint(Array.length a))
+  | Varray(a) -> return (Vint(length a))
   | _ -> none
        
-let geti v i =
-  let n = Array.length v in
-  if (i < n) && (i >= 0) then return (Value(v.(i))) else None
-
-
 (* ifthenelse. this one is strict w.r.t all arguments *)
 let lustre_ifthenelse v1 v2 v3 =
   let+ v1 = v1 in
@@ -292,7 +290,7 @@ let state1 f v_list =
 
 let array v_list =
   let+ v_list = slist v_list in
-  return (Value(Varray(Array.of_list v_list)))
+  return (Value(Varray(Vflat(Array.of_list v_list))))
 
 let lift f v =
   match v with | Vbot -> Vbot | Vnil -> Vnil | Value(v) -> Value(f v)

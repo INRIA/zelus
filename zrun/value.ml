@@ -42,16 +42,18 @@ type pvalue =
   | Vstate1 : Ident.t * pvalue list -> pvalue
   | Vfun : (pvalue -> pvalue option) -> pvalue (* inported stateless function *)
   | Vclosure : closure -> pvalue
-  | Varray : pvalue Array.t -> pvalue
-  | Vmap : map -> pvalue
+  | Varray : pvalue array -> pvalue
+
+and 'a array =
+  | Vflat : 'a Array.t -> 'a array
+  | Vmap : 'a map -> 'a array
 
 (* bounded maps *)
 (* [get x i = v if x.left <= i <= right then x i
                   else match otherwise with | None -> error 
                                             | Some(x) -> get x i *)
-and map =
-  { m_left : int; m_right : int; m_u : int -> pvalue;
-    m_else : map option }
+and 'a map =
+  { m_length : int; m_u : int -> 'a result }
 
 and closure =
   { c_funexp : Zelus.funexp;

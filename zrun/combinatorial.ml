@@ -3,7 +3,6 @@
 (*                        The ZRun Interpreter                         *)
 (*                                                                     *)
 (*                             Marc Pouzet                             *)
-(*                                2022                                 *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -82,50 +81,102 @@ let (let*+) v f =
 
 (* array operations *)
 let concat loc v1 v2 =
+  let concat v1 v2 =
+    match v1, v2 with
+    | Vflat(v1), Vflat(v2) ->
+       return (Value(Varray(Vflat(Array.append v1 v2))))
+    | Vmap { m_length = l1; m_u = mu1}, Vmap { m_length = l2; m_u = mu2 } ->
+       let m_length = l1 + l2 in
+       let m_u i = if i <= l1 then mu1 i else mu2 (i - l1) in
+       return (Value(Varray(Vmap { m_length; m_u })))
+    | Vmap { m_length; m_u }, Vflat(v) ->
+       let m_u i = if i <= m_length
+                   then m_u i else return (v.(i - m_length)) in
+       let m_length = m_length + Array.length v in
+       return (Value(Varray(Vmap { m_length; m_u })))
+    | Vflat(v), Vmap { m_length; m_u } ->
+       let lv = Array.length v in
+       let m_length = m_length + lv in
+       let m_u i = if i <= lv then return (v.(i)) else m_u (i - lv) in
+       return (Value(Varray(Vmap { m_length; m_u }))) in
   let+ v1 = v1 and+ v2 = v2 in
   match v1, v2 with
   | Varray(v1), Varray(v2) ->
-     return (Value(Varray(Array.append v1 v2)))
+     concat v1 v2
   | _ -> error { kind = Etype; loc }
        
+let get_in_array loc a i =
+  match a with
+  | Vflat(a) ->
+     let n = Array.length a in
+     if (i >= 0) && (i < n) then return (a.(i))
+     else error { kind = Earray_size { size = n; index = i }; loc }
+  | Vmap { m_length; m_u } ->
+     if (i >= 0) && (i < m_length) then m_u i
+     else error { kind = Earray_size { size = m_length; index = i }; loc }
+
 let get loc v i =
   let+ v = v and+ i = i in
   match v, i with
   | Varray(a), Vint(i) ->
-     let n = Array.length a in
-     if (i >= 0) && (i < n) then return (Value(a.(i)))
-     else error { kind = Earray_size { size = n; index = i }; loc }
+     let* v = get_in_array loc a i in
+     return (Value(v))
   | _ -> error { kind = Etype; loc }
 
 let get_with_default loc v i default =
+  let get a i =
+    match a with
+    | Vflat(a) ->
+       let n = Array.length a in
+       if (i >= 0) && (i < n) then return (Value(a.(i)))
+       else return default
+    | Vmap { m_length; m_u } ->
+       if (i >= 0) && (i < m_length) then
+         let* v = m_u i in return (Value(v))
+       else return default in
   let+ v = v and+ i = i in
   match v, i with
-  | Varray(a), Vint(i) ->
-     if (i >= 0) && (i < Array.length a) then return (Value(a.(i)))
-     else return default
+  | Varray(a), Vint(i) -> get a i
   | _ -> error { kind = Etype; loc }
 
 let slice loc v i1 i2 =
+  let slice v i1 i2 = match v with
+    | Vflat(a) ->
+       let n = Array.length a in
+       if i1 < n then
+         if i2 < n then
+           return (Value(Varray(Vflat(Array.sub a i1 (i2 - i1 + 1)))))
+         else error { kind = Earray_size { size = n; index = i2 }; loc }
+       else error { kind = Earray_size { size = n; index = i1 }; loc }
+    | Vmap { m_length; m_u } ->
+       if i1 < m_length then
+         if i2 < m_length then
+           return (Value(Varray(Vmap { m_length = i2 - i1 + 1; m_u })))
+         else
+           error { kind = Earray_size { size = m_length; index = i2 }; loc }
+       else error { kind = Earray_size { size = m_length; index = i1 }; loc } in
   let+ v = v and+ i1 = i1 and+ i2 = i2 in
   match v, i1, i2 with
-  | Varray(v), Vint(i1), Vint(i2) ->
-     let n = Array.length v in
-     if i1 < n then
-       if i2 < n then return (Value(Varray(Array.sub v i1 (i2+1-i1))))
-       else error { kind = Earray_size { size = n; index = i2 }; loc }
-     else error { kind = Earray_size { size = n; index = i1 }; loc }
+  | Varray(v), Vint(i1), Vint(i2) -> slice v i1 i2
   | _ -> error { kind = Etype; loc }
        
 (* [| v with i <- w |] *)
 let update loc v i w =
+  let update v i w =
+    match v with
+    | Vflat(a) ->
+       if (i >= 0) && (i < Array.length a) then
+         let a = Array.copy a in
+         a.(i) <- w;
+         return (Vflat(a)) else return v
+    | Vmap { m_length; m_u } ->
+       return
+         (Vmap { m_length; m_u = fun j -> if i = j then return w else m_u j }) in
   let+ a = v and+ i = i and+ w = w in
   match a, i with
   | Varray(a), Vint(i) ->
-     if (i >= 0) && (i < Array.length a) then
-       let a = Array.copy a in
-       a.(i) <- w;
-       return (Value(Varray(a)))
-     else return v
+     let* a = update a i w in
+     return (Value(Varray(a)))
   | _ -> error { kind = Etype; loc }
        
 (* [| v with i1,..., in <- w |] is a shortcut for *)
@@ -140,6 +191,95 @@ let rec update_list loc v i_list w =
               update_list loc v i_list w in
      update loc v i w
 
+(* conversion between a flat array and a map *)
+let map_o_flat loc v =
+  match v with
+  | Vflat(f) ->
+     return
+       (Vmap { m_length = Array.length f; m_u = fun i -> return (f.(i)) })
+  | Vmap _ -> return v
+let flat_of_map_array loc v =
+  let fill length a m_u =
+    let rec fillrec length =
+      if length = 0 then return a
+      else let* v = m_u length in a.(length) <- v; fillrec (length - 1) in
+    fillrec length in
+  match v with
+    | Vflat _ -> return v
+    | Vmap { m_length; m_u } ->
+       if m_length = 0 then return (Vflat([||]))
+       else let* v = m_u 0 in
+            let a = Array.make m_length v in
+            let* v = fill m_length a m_u in
+            return (Vflat v)
+
+(* transpose. [transpose v = \j:[n].\i:[m].v[i][j]] *)
+let dim v =
+  match v with
+    | Vflat(a) -> Array.length a, fun i -> return a.(i)
+    | Vmap { m_length; m_u } -> m_length, m_u
+  
+(* [v i j] *)
+let get_get loc v i j =
+  let* v = get_in_array loc v i in
+  match v with
+  | Varray(v) -> get_in_array loc v j
+  | _ -> error { kind = Etype; loc }
+
+let dim_dim loc a =
+  let m, u_v = dim a in
+  let* a = u_v 0 in
+  match a with
+  | Varray(v) -> let n, _ = dim v in return (m, n)
+  | _ -> error { kind = Etype; loc }
+
+let transpose loc v =
+  let+ v = v in
+  match v with
+  | Varray(v) ->
+     let* m, n = dim_dim loc v in
+     return
+       (Value
+          (Varray
+             (Vmap
+                { m_length = n;
+                  m_u = fun j ->
+                        return
+                          (Varray(Vmap { m_length = m;
+                                         m_u = fun i ->
+                                               get_get loc v i j })) })))
+  | _ -> error { kind = Etype; loc }
+ 
+
+(* flatten: imposes that the size of internal arrays are the same, that is *)
+(* flatten : 'n,'m. ['n]['m]'a -> ['n * 'm]'a *)
+let flatten loc v =
+  let+ v = v in
+  match v with
+  | Varray(v) ->
+     let* m, n = dim_dim loc v in
+     return
+       (Value(Varray
+                (Vmap
+                   { m_length = m * n;
+                     m_u = fun i -> let q = i / n in
+                                    let r = i mod n in
+                                    get_get loc v q r })))
+  | _ -> error { kind = Etype; loc }
+     
+(* reverse *)
+let reverse loc v =
+  let+ v = v in
+  match v with
+  | Varray(v) ->
+     let n, u = dim v in
+     return
+       (Value(Varray
+                (Vmap
+                   { m_length = n;
+                     m_u = fun i -> get_in_array loc v (n - i) })))
+  | _ -> error { kind = Etype; loc }
+ 
 (* check that a value is an integer *)
 let int loc v =
   let* v = Primitives.pvalue v |>

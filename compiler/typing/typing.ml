@@ -678,25 +678,41 @@ and operator expected_k h loc op e_list =
        Tnode, [Initial.typ_float], Initial.typ_zero
     | Edisc ->
        Tnode, [Initial.typ_float], Initial.typ_zero
-    | Earray_list ->
-       let ty = new_var () in
-       Tfun, List.map (fun _ -> ty) e_list, Initial.typ_array ty
-    | Econcat ->
-       let ty = Initial.typ_array (new_var ()) in
-       Tfun, [ty; ty], ty
-    | Eget ->
-       let ty = new_var () in
-       Tfun, [Initial.typ_array ty; Initial.typ_int], ty
-    | Eget_with_default ->
-       let ty = new_var () in
-       Tfun, [Initial.typ_array ty; Initial.typ_int; ty], ty
-    | Eslice ->
-       let ty = Initial.typ_array (new_var ()) in
-       Tfun, [ty; ty], ty
-    | Eupdate ->
-       let ty = new_var () in
-       Tfun, [Initial.typ_array ty; Initial.typ_int; ty],
-       Initial.typ_array ty in  less_than loc actual_k expected_k;
+    | Earray(op) ->
+       let actual_k, ty_args, ty_res =
+         match op with
+         | Earray_list ->
+            let ty = new_var () in
+            Tfun, List.map (fun _ -> ty) e_list, Initial.typ_array ty
+         | Econcat ->
+            let ty = Initial.typ_array (new_var ()) in
+            Tfun, [ty; ty], ty
+         | Eget ->
+            let ty = new_var () in
+            Tfun, [Initial.typ_array ty; Initial.typ_int], ty
+         | Eget_with_default ->
+            let ty = new_var () in
+            Tfun, [Initial.typ_array ty; Initial.typ_int; ty], ty
+         | Eslice ->
+            let ty = Initial.typ_array (new_var ()) in
+            Tfun, [ty; ty], ty
+         | Eupdate ->
+            let ty = new_var () in
+            Tfun, [Initial.typ_array ty; Initial.typ_int; ty],
+            Initial.typ_array ty
+         | Etranspose ->
+            let ty = new_var () in
+            Tfun, [Initial.typ_array (Initial.typ_array ty)],
+            Initial.typ_array (Initial.typ_array ty)
+         | Ereverse ->
+            let ty = new_var () in
+            Tfun, [Initial.typ_array ty], Initial.typ_array ty
+         | Eflatten ->
+            let ty = new_var () in
+            Tfun, [Initial.typ_array (Initial.typ_array ty)],
+            Initial.typ_array ty in
+       actual_k, ty_args, ty_res in
+  less_than loc actual_k expected_k;
   let actual_k_list =
     List.map2 (expect expected_k h) e_list ty_args in
   ty_res, Kind.sup actual_k (Kind.sup_list actual_k_list)

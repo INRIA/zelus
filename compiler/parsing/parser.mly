@@ -74,17 +74,19 @@ let scond_true start_pos end_pos =
        start_pos end_pos
 
 (* building a for loop *)
-let forward_loop (size, index_list, opt_cond, body) =
+let forward_loop resume (size, index_list, opt_cond, body) =
   { for_size = size;
     for_kind = Kforward(opt_cond);
     for_index = index_list;
-    for_body = body }
+    for_body = body;
+    for_resume = resume }
 
-let foreach_loop (size, index_list, body) =
+let foreach_loop resume (size, index_list, body) =
   { for_size = size;
     for_kind = Kforeach;
     for_index = index_list;
-    for_body = body }
+    for_body = body;
+    for_resume = resume }
 
 %}
 
@@ -160,11 +162,13 @@ let foreach_loop (size, index_list, body) =
 %token OUT            /* "out" */
 %token PERIOD         /* "period" */
 %token PLUS           /* "+" */
+%token PLUSPLUS       /* "++" */
 %token PRE            /* "pre" */
 %token PRESENT        /* "present" */
 %token QUOTE          /* "'" */
 %token REC            /* "rec" */
 %token RESET          /* "reset" */
+%token RESUME         /* "resume" */
 %token RETURNS        /* "returns" */
 %token RUN            /* "run" */
 %token SEMI           /* ";" */
@@ -173,6 +177,9 @@ let foreach_loop (size, index_list, body) =
 %token THEN           /* "then" */
 %token TO             /* "to" */
 %token TYPE           /* "type" */
+%token TRANSPOSE      /* "transpose" */
+%token FLATTEN        /* "flatten" */
+%token REVERSE        /* "reverse" */
 %token UNDERSCORE     /* "_" */
 %token UNLESS         /* "unless" */
 %token UNTIL          /* "until" */
@@ -218,7 +225,7 @@ let foreach_loop (size, index_list, body) =
 %left AMPERSAND AMPERAMPER
 %left INFIX0 GREATER EQUAL
 %right INFIX1
-%left INFIX2 PLUS SUBTRACTIVE MINUS
+%left INFIX2 PLUS SUBTRACTIVE MINUS PLUSPLUS
 %left STAR INFIX3
 %left INFIX4
 %left ON
@@ -502,9 +509,11 @@ equation_desc:
     RESET p = present_handlers(expression) %prec prec_der_with_reset
     { EQder(i, e, opt, p) }
   | FOREACH f = foreach_loop_eq DONE
-    { EQforloop (foreach_loop f) }
+    { EQforloop (foreach_loop false f) }
   | FORWARD f = forward_loop_eq DONE
-    { EQforloop (forward_loop f) }
+    { EQforloop (forward_loop false f) }
+  | FORWARD f = forward_loop_eq RESUME
+    { EQforloop (forward_loop true f) }
   
 ;
 
@@ -824,19 +833,17 @@ simple_expression_desc:
   | LPAREN e = simple_expression COLON t = type_expression RPAREN
       { Etypeconstraint(e, t) }
   | LBRACKETBAR RBRACKETBAR
-    { Eop(Earray_list, []) }
+    { Eop(Earray(Earray_list), []) }
   | LBRACKETBAR l = list_of(SEMI, expression) RBRACKETBAR
-    { Eop(Earray_list, l) }
-  | LBRACKETBAR e1 = simple_expression BAR e2 = simple_expression RBRACKETBAR
-      { Eop(Econcat, [e1; e2]) }
+    { Eop(Earray(Earray_list), l) }
   | LBRACKETBAR e1 = simple_expression
     WITH i_list = update_array_comma_list LESSMINUS e2 = expression RBRACKETBAR
-    { Eop(Eupdate, e1 :: e2 :: List.rev i_list) }
+    { Eop(Earray(Eupdate), e1 :: e2 :: List.rev i_list) }
   | e1 = simple_expression DOT LPAREN e2 = expression RPAREN
-      { Eop(Eget, [e1; e2]) }
+      { Eop(Earray(Eget), [e1; e2]) }
   | e = simple_expression DOT
       LPAREN e1 = simple_expression DOTDOT e2 = simple_expression RPAREN
-      { Eop(Eslice, [e; e1; e2]) }
+      { Eop(Earray(Eslice), [e; e1; e2]) }
 
 ;
 
@@ -946,12 +953,23 @@ expression_desc:
   | ASSERT e = simple_expression
     { Eassert(e) }
   | FOREACH f = foreach_loop_exp DONE
-    { Eforloop (foreach_loop f) }
+    { Eforloop (foreach_loop false f) }
   | FORWARD f = forward_loop_exp DONE
-    { Eforloop (forward_loop f) }
+    { Eforloop (forward_loop false f) }
+  | FORWARD f = forward_loop_exp RESUME
+    { Eforloop (forward_loop true f) }
   | e1 = simple_expression DOT LPAREN e2 = expression RPAREN
     DEFAULT e3 = expression
-      { Eop(Eget_with_default, [e1; e2; e3]) }
+    { Eop(Earray(Eget_with_default), [e1; e2; e3]) }
+  | e1 = expression PLUSPLUS e2 = expression 
+      { Eop(Earray(Econcat), [e1; e2]) }
+  | TRANSPOSE e = simple_expression
+      { Eop(Earray(Etranspose), [e]) }
+  | FLATTEN e = simple_expression
+      { Eop(Earray(Eflatten), [e]) }
+  | REVERSE e = simple_expression
+      { Eop(Earray(Ereverse), [e]) }
+  
 ;
 
 %inline opt_end:

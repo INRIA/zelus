@@ -63,12 +63,16 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "present", PRESENT;
   "rec", REC;
   "reset", RESET;
+  "resume", RESUME;
   "returns", RETURNS;
   "run", RUN;
   "then", THEN;
   "to", TO;
   "true", BOOL(true); 
   "type", TYPE;
+  "transpose", TRANSPOSE;
+  "reverse", REVERSE;
+  "flatten", FLATTEN;
   "unless", UNLESS;
   "until", UNTIL;
   "up", UP;
@@ -158,6 +162,7 @@ rule main = parse
   | "|"  { BAR }
   | "-"  { MINUS }
   | "+"  { PLUS }
+  | "++" { PLUSPLUS }
   | "-." { SUBTRACTIVE "-." }
   | "_"  { UNDERSCORE }
   | "?"  { TEST }
