@@ -1,0 +1,36 @@
+
+datafile = "ball_spring.out"
+
+set terminal postscript color;
+set grid
+
+set title "ball spring model"
+set multiplot layout 2,1
+set lmargin at screen 0.1
+
+set ylabel "height"
+set key top
+plot for [i=2:3] datafile \
+    using 1:(column(i)) title column(i) with linespoints
+
+set notitle
+set nokey
+set ylabel "0 = fall, 1 = stuck"
+
+set ytics 0,1
+plot datafile using 1:4 title column(4) with linespoints
+
+unset multiplot
+# # # # # # # # # # # # # # # # # #
+set title "ball spring model"
+set multiplot layout 2,1
+
+set ytics autofreq
+set ylabel "ball-spring contact"
+plot datafile using 1:5 title column(5) with linespoints
+set notitle
+set ylabel "separation force > threshold"
+plot datafile using 1:6 title column(6) with linespoints
+
+unset multiplot
+

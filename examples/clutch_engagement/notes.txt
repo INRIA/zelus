@@ -1,0 +1,73 @@
+Modelisation of a clutch
+------------------------
+
+The Simulink clutch model has two modes "Locked" and "Slipping" each of
+which defines the dynamics of an engine and vehicle.
+
+There are three variations of the clutch model in the set of Simulink
+examples:
+    sldemo_clutch.mdl		models the modes using enabled subsystems
+    sldemo_clutch_if.mdl	models the modes using an if/then block
+    sf_clutch.mdl		models the modes with Stateflow
+
+Our version in Zélus is based on sf_clutch.mdl.
+
+The Simulink model defines the parameters:
+    R	    equivalent net radius		    1 m
+    be	    engine damping			    2 Nm/rad/sec
+    bv	    vehicle damping			    1 Nm/rad/sec
+    Ie	    engine inertia			    1 kg m2
+    Iv	    vehicle inertia			    5 kg m2
+    muk     kinetic coefficient of friction	    1
+    mus     static coefficient of friction	    1.5
+    Tin	    input (engine) torque		    [1 2; 2 2; 3 2; 4 2;  5 2;
+						     6 0; 7 0; 8 0; 9 0; 10 0]
+    Fn	    normal force between friction plates    [ 0.0 0.0;
+						      1.0 0.8;
+						      2.0 1.6;
+						      3.0 1.6;
+						      4.0 1.6;
+						      5.0 1.6;
+						      4.0 1.6;
+						      5.0 1.6;
+						      6.0 0.8;
+						      7.0 0.0;
+						      8.0 0.0;
+						      9.0 0.0;
+						     10.0 0.0 ]
+
+(These values are defined inside the Model Workspace. The can be obtained
+ from Matlab by opening the Simulink model and typing:
+    model_ws = get_param('sf_clutch', 'ModelWorkspace')
+    q = evalin(model_ws, 'be')
+    q.value
+ and so on, for the various parameter names.)
+
+This example includes dumps of inputs and outputs from Simulink in the
+subdirectory "simulink". The differences between runs in Zélus, with various
+parameters, and those in Simulink, with various parameters, can be plotted
+by typing:
+
+    make diffs
+
+which generates the files:
+
+  diff_sundials.pdf	Zélus + Sundials vs Simulink ODE45
+  diff_sundialsI.pdf    Zélus + Sundials + custom Illinois vs Simulink ODE45
+  diff_ode45.pdf	Zélus + ODE45 vs Simulink ODE45
+  diff_ode23.pdf	Zélus + ODE23 vs Simulink ODE23
+  diff_ode3.pdf		Zélus + ODE23F vs Simulink ODE3	(fixed step)
+
+Each file shows the result of subtracting the values obtained by Simulink
+values from the values obtained Zélus. Linear interpolation is used to
+approximate missing data points. Ideally, the resulting graphs should be
+close to zero for the entire simulation period.
+
+Encountered problems
+====================
+
+- it doesn't work with simulimk (default options) : "Too  much work".
+  With the "-onestep" option, the computation is very slow when w_e = w_v and the state is not "Locked" yet. I don't know why.
+
+(It works well with a fixed step algorithm)
+

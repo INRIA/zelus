@@ -1,0 +1,42 @@
+(* Author: François Bidet *)
+
+open Constants;;
+
+let max(a, b) = max a b
+
+let guard_int(x_int, x_merg) = g_int where
+    rec (int_xr, _, _, int_vx, _, _) = x_int
+    and (xr, _, _, vx, _, _) = x_merg
+    and g_int = int_xr -. t_gap_m *. int_vx -. xr
+
+let guard_rear(x_rear, x_merg) = g_rear where
+    rec (rear_xr, _, _, rear_vx, _, _) = x_rear
+    and (xr, _, _, vx, _, _) = x_merg
+    and g_rear = xr -. rear_xr -. t_gap_m *. rear_vx
+
+
+let hybrid y_ref(x_rear, x_int, x_merg) = ry where
+    rec (int_xr, _, _, int_vx, _, _) = x_int
+    and (rear_xr, _, _, rear_vx, _, _) = x_rear
+    and (xr, _, _, vx, _, _) = x_merg
+    and automaton
+        | Before -> do
+          ry = 0.
+          until up(guard_int(x_int, x_merg)) on (xr > rear_xr +. t_gap_m *. rear_vx) then After
+          else up(guard_rear(x_rear, x_merg)) on (xr < int_xr +. t_gap_m *. int_vx) then After
+        | After -> do
+          ry = 3.5
+          done
+        end
+
+let hybrid vehicle(x_init, x_rear, x_int) = x_merg where
+    rec x_merg = Vehicle.vehicle(x_init, x_merg_ref)
+    and x_merg_ref = (rxr, ryr, rphi, rvx, rvy, romega)
+    and (int_xr, _, _, int_vx, _, _) = x_int
+    and (rear_xr, _, _, rear_vx, _, _) = x_rear
+    and rvx = int_vx
+    and rxr = max(int_xr -. t_gap *. int_vx, (int_xr -. t_gap *. int_vx +. rear_xr +. t_gap *. rear_vx) /. 2.)
+    and ryr = y_ref(x_rear, x_int, x_merg)
+    and rphi = 0.
+    and rvy = 0.
+    and romega = 0.

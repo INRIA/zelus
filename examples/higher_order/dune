@@ -1,0 +1,9 @@
+(rule
+ (targets updown.ml updown_main.ml)
+ (deps (:zl updown.zls))
+ (action (run zeluc -s main -o updown_main %{zl})))
+
+(executable
+  (name updown_main)
+  (libraries zelus)
+  (promote (until-clean)))

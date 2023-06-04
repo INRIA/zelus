@@ -1,0 +1,3 @@
+
+val show  : float -> float -> float -AD-> unit
+

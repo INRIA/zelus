@@ -1,0 +1,90 @@
+(** Model of Engine Gas Dynamics adapted from the Mathworks Simulink Fuel
+    Controller model. *)
+
+(** Intake Manifold *)
+
+let pumping (u1, u2) = y where
+  y = (-.0.366 +. 0.08979 *. u1 *. u2)
+      -. (0.0337 *. u2 *. (u1 ** 2.0))
+      +. (0.0001 *. u1 *. (u2 ** 2.0))
+
+(* Intake Manifold Vacuum *)
+(* Throttle Flow vs. Valve Angle and Pressure *)
+
+let hybrid intake_manifold (mdot_input, eng_speed) = (mdot_cyl, man_press)
+  where
+  rec der man_press = 0.41328 *. (mdot_input -. mdot_cyl) init 0.589
+                              (* TODO: this last is problematic! *)
+  and mdot_cyl = pumping (man_press, eng_speed)
+
+(** Throttle *)
+
+let sonic_flow = 1.0
+
+let hybrid direction u =
+  present
+    | up(u)   -> 1.0
+    | up(-.u) -> -1.0
+  init (if u = 0.0 then 0.0 else if u > 0.0 then 1.0 else -. 1.0)
+
+let f (u) = 2.821 -. (0.05231 *. u)
+            +. (0.10299 *. (u ** 2.0))
+            -. (0.00063 *. (u ** 3.0))
+
+let g (u) = 2.0 *. sqrt (u -. (u ** 2.0))
+
+let hybrid throttle (throt_angle, man_press, atm_press) = throt_flow where
+  rec pratio = min (man_press /. atm_press) (atm_press /. man_press)
+  and init cond = (pratio >= 0.5)
+  and present
+      | up(pratio -. 0.5) -> do cond = true  done
+      | up(0.5 -. pratio) -> do cond = false done
+  and throt_flow = f(throt_angle)
+      *. (if cond then g(pratio) else sonic_flow)
+      *. direction (atm_press -. man_press)
+
+(** Throttle & Manifold *)
+(* Air-Fuel Intake Dynamics *)
+
+let atmospheric_pressure = 1.0
+
+let hybrid throttle_and_manifold (engine_speed, throttle_angle) =
+  (mass_airflow_rate, map) where
+  rec throttle_flow =
+    throttle (max 0.0 throttle_angle, map, atmospheric_pressure)
+                    (* TODO: this last is problematic! *)
+  and (mass_airflow_rate, map) = intake_manifold (throttle_flow, engine_speed)
+
+(** Mixing & Combustion *)
+
+let fcn u = (1.0 -. tanh (4.0 *. (u -. 14.6))) /. 2.0
+
+(*
+  In the original Simulink version, the system lag is specified using a transfer
+  function block: 3 / s + 3 with initial output 1/14.6. Such blocks can be
+  converted to a state-space representation in Matlab:
+      b = [3]; a = [1, 3]; [A, B, C, D] = tf2ss(b, a)
+
+  giving:
+      A = -3, B = 1, C = 3, and D = 0
+
+  where:
+      x_dot = Ax + B u
+      y = Cx + Du
+
+  Finding the initial value of x for this system with the additional constraint
+  of a desired initial output (1/14.6) is a linear programming problem. The
+  value found by Simulink was 0.02283105022831.
+*)
+let hybrid mixing (fuel_rate, air_flow) = (o2_out, air_fuel_ratio) where
+  rec y = air_flow /. (max fuel_rate 0.1)
+  and air_fuel_ratio = Library.statespace (-. 3.0, 1.0, 3.0, 0.0, 0.02283105022831, y)
+                       (* System Lag *)
+  and o2_out = fcn (air_fuel_ratio)
+
+(** Engine Gas Dynamics *)
+
+let hybrid engine_gas_dynamics (engine_speed, throttle_angle, fuel_rate) =
+  (o2_out, map, air_fuel_ratio) where
+  rec (air_flow, map) = throttle_and_manifold (engine_speed, throttle_angle)
+  and (o2_out, air_fuel_ratio) = mixing (fuel_rate, air_flow)

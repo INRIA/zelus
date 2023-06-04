@@ -1,0 +1,9 @@
+(rule
+ (targets watch.ml watch_main.ml)
+ (deps (:zl watch.zls) draw.zli)
+ (action (run zeluc -deps -s main -sampling 0 -o watch_main %{zl})))
+
+(executable
+  (name watch_main)
+  (libraries unix graphics zelus)
+  (promote (until-clean)))

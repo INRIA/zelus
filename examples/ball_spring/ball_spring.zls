@@ -1,0 +1,72 @@
+
+open Graphics
+node start () =
+  open_graph " 200x500";
+  auto_synchronize false;
+  set_line_width 4
+
+(**Graphical features **)
+(* [z]: ball height *)
+(* [z_platform]: platform height *)
+(* [rad]: ball radius *)
+let discrete draw_ball_platform(z,z_platform,rad) =
+  clear_graph ();
+  let z = truncate (z *. 10.0) in
+  let z_platform = truncate (z_platform *. 10.0) in
+  set_color red;
+  fill_circle 100 z (truncate(rad *. 10.0));
+  set_color green;
+  moveto 10 z_platform;
+  lineto 190 z_platform;
+  (* add spring zigzags *)
+  let h = z_platform / 8 in
+  moveto  20 z_platform;
+  lineto 180 (z_platform - h);
+  lineto  20 (z_platform - 2 * h);
+  lineto 180 (z_platform - 3 * h);
+  lineto  20 (z_platform - 4 * h);
+  lineto 180 (z_platform - 5 * h);
+  lineto  20 (z_platform - 6 * h);
+  lineto 180 (z_platform - 7 * h);
+  lineto  20 (z_platform - 8 * h);
+  lineto 180 (z_platform - 9 * h);
+  synchronize ()
+
+(*physical constants for the ball*)
+let g = 9.81
+let m = 1.0
+let radius = 2.0
+
+(*and for the platform*)
+let mp = 10.0
+let k = 2.0
+let f = 0.5 (* damping *)
+let base_level = 15.0
+let f_scratch = 0.1 (* level of interaction when stuck *)
+
+open Dump
+
+let hybrid simu (x_init) = x, xp where
+  rec z = up(xp -. x)
+  and rv = (2. *. mp *. last vp -. mp *. last v +. m *. last v) /. (mp +. m)
+  and rvp = (2. *. m *. last v -. m *. last vp +. mp *. last vp) /. (mp +. m)
+  and der v = -.g init 0.0 reset z -> rv
+  and der vp = -. (k /. mp)  *. xp -. (f /. mp) *. vp init 0.0 reset z -> rvp
+  and der x = v init x_init
+  and der xp = vp init 0.0
+
+  and der t = 1.0 init 0.0
+  and _ = present (period (0.01)) | (init) ->
+    let pos = scope2 (0.0, 100.0, ("ball", linear, x),
+                      ("platform", linear, xp))
+    in
+    let w1 = window("ball_spring", 20.0, t, pos) in
+    ()
+
+let hybrid main () = () where
+  rec init tmp = start ()
+  and t = period (0.1)
+  and x, xp = simu(10.)
+  and z = x +. base_level
+  and zp = xp +. base_level -. radius
+  and _ = present t | (init) -> draw_ball_platform(z, zp, radius)
