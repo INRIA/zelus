@@ -262,6 +262,19 @@ and for_index_desc =
       { id: name; e_left: exp; e_right : exp; dir: bool } -> for_index_desc
   (* i in e1 to e2 or i in e1 downto e2; [e1] and [e2] must be sizes *)
 
+(* input patterns for loops *)
+(* E.g., [xi]++[yi]++[|_|] in e] *)
+and for_in_pat = for_in_pat_desc localized
+
+and for_in_pat_desc =
+  | Eloop_name : name -> for_in_pat_desc (* [xi] *)
+  | Eloop_op : array_operator * for_in_pat list -> for_in_pat_desc
+  | Eloop_pat : pattern -> for_in_pat_desc
+
+(* outputs for loops *)
+(* E.g., [xi]++[yi]++[|y|] out x *)
+(* E.g., xi init e *)
+
 (* output of a for loop in equational form *)
 and for_out_desc =
   { for_name : name; (* xi [init e] [default e] [out x] *)
