@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2022 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2023 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -65,6 +65,23 @@ let immediate ff = function
   | Echar c -> fprintf ff "'%c'" c
   | Evoid -> fprintf ff "()"
 
+let psize ff s =
+  let operator =
+    function Esize_minus -> "-" | Esize_plus -> "+" | Esize_mult -> "*" in
+  let priority =
+    function Esize_plus -> 0 | Esize_minus -> 1 | Esize_mult -> 2 in
+  let rec psize prio ff { desc = desc } =
+    match desc with
+    | Esizeconst(i) -> fprintf ff "%d" i
+    | Esizevar(n) -> shortname ff n
+    | Esizeop(op, e1, e2) ->
+       let prio_op = priority op in
+       if prio > prio_op then fprintf ff "(";
+       fprintf ff "@[%a %s %a@]"
+         (psize prio_op) e1 (operator op) (psize prio_op) e2;
+       if prio > prio_op then fprintf ff ")" in
+  psize 0 ff s
+
 let rec ptype ff { desc } =
   match desc with
   | Etypevar(s) -> fprintf ff "'%s" s
@@ -75,14 +92,21 @@ let rec ptype ff { desc } =
   | Etypetuple(ty_list) ->
      fprintf ff "@[<hov2>%a@]" (print_list_r ptype "(" " * " ")") ty_list
   | Etypefun(k, ty_arg, ty_res) ->
-     let s =
-       match k with | Kfun -> "->" | Khybrid | Knode -> "=>" | Kstatic -> ">" in
+     let s = match k with
+       | Kfun(k) ->
+          (match k with
+           | Kconst -> "-V->" | Kstatic -> "-S->" | Kany -> "-A->" )
+       | Knode(k) ->
+          (match k with
+           | Kdiscrete -> "-D->" | Khybrid -> "-C->") in
      fprintf ff "@[<hov2>%a %s %a@]" ptype ty_arg s ptype ty_res
-
+  | Esize(is_singleton, s) ->
+     if is_singleton then fprintf ff "@[<%a>@]" psize s
+     else fprintf ff "@[[%a]@]" psize s
+  | Evec(ty, s) -> fprintf ff "@[[%a]]%a@]" psize s ptype ty
      
 let print_record print1 print2 po sep pf ff { label; arg } =
   fprintf ff "@[<hov>%s@[%a@]%s@ @[%a@]%s@]" po print1 label sep print2 arg pf
-
 
 let rec pattern ff { pat_desc } =
   match pat_desc with
@@ -113,8 +137,10 @@ let default exp ff e_opt =
 let out ff o_opt =
   match o_opt with | None -> () | Some(x) -> fprintf ff " out %a" name x
                                            
-let vardec exp ff { var_name = x; var_default = d_opt; var_init = i_opt } =
-  fprintf ff "@[%a%a%a@]" 
+let vardec exp ff
+      { var_name = x; var_default = d_opt; var_init = i_opt; var_is_last } =
+  fprintf ff "@[%s%a%a%a@]" 
+    (if var_is_last then "last " else "")
     name x (init exp) i_opt (default exp) d_opt 
 
 let vardec_list exp ff vardec_list =
@@ -123,22 +149,23 @@ let vardec_list exp ff vardec_list =
 
 let skind ff k =
   let s = match k with
-  | Cont -> "cont" | Zero -> "zero" | Discrete -> "reg" in
+    | Cont -> "cont" | Zero -> "zero" | Discrete -> "reg" in
   fprintf ff "%s" s
 
-let tkind ff k =
+let vkind ff k =
   match k with
-  | Tstatic -> fprintf ff "S"
-  | Tfun -> fprintf ff "F"
-  | Tnode -> fprintf ff "N"
+  | Kconst -> fprintf ff "const"
+  | Kstatic -> fprintf ff "static"
+  | Kany -> fprintf ff "val"
 
 let print_binding ff (n, { t_sort; t_typ }) =
   match t_sort with
-  | Sstatic -> fprintf ff "@[static %a: %a@,@]" name n Ptypes.output t_typ
-  | Sval -> fprintf ff "@[val %a: %a@,@]" name n Ptypes.output t_typ
-  | Svar ->
+  | Sort_const -> fprintf ff "@[const %a: %a@,@]" name n Ptypes.output t_typ
+  | Sort_static -> fprintf ff "@[static %a: %a@,@]" name n Ptypes.output t_typ
+  | Sort_val -> fprintf ff "@[val %a: %a@,@]" name n Ptypes.output t_typ
+  | Sort_var ->
      fprintf ff "@[var %a: %a@,@]" name n Ptypes.output t_typ
-  | Smem { m_kind } ->
+  | Sort_mem { m_kind } ->
        fprintf ff "@[%a %a: %a@,@]"
          skind m_kind name n Ptypes.output t_typ
 
@@ -344,9 +371,12 @@ and result_block ff { b_vars; b_body; b_write; b_env } =
 and funexp ff { f_kind; f_args; f_body; f_env } =
   let s =
     match f_kind with
-    | Kstatic -> ">" | Kfun -> "->" | Khybrid | Knode -> "=>" in
-  fprintf ff "@[<hov 2>fun %a %s@ %a%a@]"
-    arg_list f_args s print_env f_env result f_body
+    | Kfun(k) ->
+       (match k with | Kconst -> "const" | Kstatic -> "static" | Kany -> "fun")
+    | Knode(k) ->
+       (match k with | Kdiscrete -> "node" | Khybrid -> "hybrid") in
+  fprintf ff "@[<hov 2>%s %a ->@ %a%a@]"
+    s arg_list f_args print_env f_env result f_body
 
 and arg_list ff a_list =
   print_list_r arg "" "" "" ff a_list
@@ -381,11 +411,16 @@ and operator ff op e_list =
      fprintf ff "horizon %a" expression e
   | Edisc, [e] ->
      fprintf ff "disc %a" expression e
+  | Earray(op), l ->
+     array_operator ff op l
+  | _ -> assert false
+
+and array_operator ff op l =
+  match op, l with
   | Earray_list, l ->
-     Pp_tools.print_list_l expression
-       "[|" ";" "|]" ff l
+     Pp_tools.print_list_l expression "[|" ";" "|]" ff l
   | Econcat, [e1; e2] ->
-     fprintf ff "@[<hov0>%a | @,%a@]" expression e1 expression e2
+     fprintf ff "@<hov0>%a ++ @,%a@" expression e1 expression e2
   | Eget, [e1; e2] ->
      fprintf ff "%a.(%a)" expression e1 expression e2
   | Eget_with_default, [e1; e2; e3] ->
@@ -395,6 +430,12 @@ and operator ff op e_list =
   | Eupdate, [e1; e2; e3] ->
      fprintf ff "@[<hov 2>[|%a with@, %a <- %a|]@]"
        expression e1 expression e2 expression e3
+  | Etranspose, [e] ->
+     fprintf ff "@[<hov 2>transpose@ %a@]" expression e
+  | Ereverse, [e] ->
+     fprintf ff "@[<hov 2>reverse@ %a@]" expression e
+  | Eflatten, [e] ->
+     fprintf ff "@[<hov 2>flatten@ %a@]" expression e
   | _ -> assert false
 
 and equation ff ({ eq_desc = desc } as eq) =
@@ -565,26 +606,30 @@ let open_module ff n =
 let implementation ff impl =
   match impl.desc with
   | Eopen(n) -> open_module ff n
-  | Etypedecl(n, params, ty_decl) ->
-     fprintf ff "@[<v 2>type %a%s %a@]@."
-       Ptypes.print_type_params params
-       n type_decl ty_decl
-  | Eletdecl(n, e) ->
-     fprintf ff "@[<hov2>let %a =@ %a@]@." shortname n expression e
+  | Etypedecl { name; ty_params; size_params; ty_decl } ->
+     fprintf ff "@[<v 2>type %a%s%a %a@]@."
+       Ptypes.print_type_params ty_params
+       name Ptypes.print_size_params size_params
+       type_decl ty_decl
+  | Eletdecl { name; const; e } ->
+     fprintf ff "@[<hov2>let %s%a =@ %a@]@."
+       (if const then "const " else "") shortname name expression e
     
 let program ff imp_list = List.iter (implementation ff) imp_list
 
 let interface ff { desc } =
   match desc with
   | Einter_open(n) -> open_module ff n
-  | Einter_typedecl(n, params, ty_decl) ->
-     fprintf ff "@[<v 2>type %a%s %a@]@."
-       Ptypes.print_type_params params
-       n type_decl ty_decl
-  | Einter_constdecl(n, ty, n_list) ->
+  | Einter_typedecl { name; ty_params; size_params; ty_decl } ->
+     fprintf ff "@[<v 2>type %a%s%a %a@]@."
+       Ptypes.print_type_params ty_params
+       name Ptypes.print_size_params size_params
+       type_decl ty_decl
+  | Einter_constdecl { name; const; ty; info } ->
      let print_n ff n = fprintf ff "%s" n in
-     fprintf ff "@[<v 2>val %s : %a%a@]@."
-       n ptype ty (print_list_r print_n "=[" " " "]") n_list
+     fprintf ff "@[<v 2>%s %s : %a%a@]@."
+       (if const then "const" else "val") name
+       ptype ty (print_list_r print_n "=[" " " "]") info
 
 let interface_list ff int_list =
   List.iter (interface ff) int_list

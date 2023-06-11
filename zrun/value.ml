@@ -19,10 +19,10 @@ type 'a ientry = { cur: 'a; last : 'a option; default : 'a option }
 
 type 'a result = ('a, Error.error) Result.t
 
-type 'a extended =
-  | Vnil : 'a extended (* non initialized value *)
-  | Vbot : 'a extended (* bottom value *)
-  | Value : 'a -> 'a extended (* value *)
+type 'a star =
+  | Vnil : 'a star (* non initialized value *)
+  | Vbot : 'a star (* bottom value *)
+  | Value : 'a -> 'a star (* value *)
   
 type pvalue =
   | Vint : int -> pvalue
@@ -42,14 +42,25 @@ type pvalue =
   | Vstate1 : Ident.t * pvalue list -> pvalue
   | Vfun : (pvalue -> pvalue option) -> pvalue (* inported stateless function *)
   | Vclosure : closure -> pvalue
-  | Varray : pvalue Array.t -> pvalue
+  | Varray : pvalue array -> pvalue
+
+and 'a array =
+  | Vflat : 'a Array.t -> 'a array
+  | Vmap : 'a map -> 'a array
+
+(* bounded maps *)
+(* [get x i = v if x.left <= i <= right then x i
+                  else match otherwise with | None -> error 
+                                            | Some(x) -> get x i *)
+and 'a map =
+  { m_length : int; m_u : int -> 'a result }
 
 and closure =
   { c_funexp : Zelus.funexp;
     c_genv: pvalue Genv.genv;
     c_env: value ientry Ident.Env.t }
                                      
-and value = pvalue extended
+and value = pvalue star
 
 and state =
   | Sbot : state

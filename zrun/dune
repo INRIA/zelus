@@ -1,15 +1,18 @@
-(executable
- (name zrun)
-  (modes (byte exe))
-  (libraries zelus.zlcompilerlibs zelus.zlrunlibs)
-  ; copy in the current dir
-  (modules zrun)
-  (promote (until-clean)))
-
+; all the necessary modules to make zrun except the entry module
 (library
   (name zlrunlibs)
   (public_name zelus.zlrunlibs)
   (wrapped false)
-  (libraries zelus.zlcompilerlibs)
+  (libraries zelus.zlgloballibs)
   (modules :standard \ zrun))
-  
+
+; the entry module to get the executable
+(executable
+ (name zrun)
+  (modes (byte exe))
+  ;(libraries zelus.zlcompilerlibs zelus.zlrunlibs)
+  (libraries zelus.zlgloballibs zelus.zlrunlibs)
+  ; copy in the current dir
+  (modules zrun)
+  (promote (until-clean)))
+

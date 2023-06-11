@@ -62,12 +62,12 @@ let eval_main genv n_steps main =
      match fv with
      | Vclosure({ c_funexp = { f_kind; f_loc; f_args = [[]] } } as c) ->
         begin match f_kind with
-        | Knode | Khybrid ->
+        | Knode _ ->
            let si = Coiteration.catch (Coiteration.instance f_loc c) in
            Coiteration.run_node
              no_location (Output.value_flush Format.std_formatter )
              n_steps si void
-        | Kstatic | Kfun ->
+        | Kfun _ ->
            Coiteration.run_fun
           no_location (Output.value_flush Format.std_formatter )
           n_steps fv [void] end
@@ -144,13 +144,13 @@ let eval_definitions_in_file modname filename =
      match v with
      | Vclosure({ c_funexp = { f_kind; f_loc; f_args = [[]] } } as c) ->
         begin match f_kind with
-        | Knode | Khybrid ->
+        | Knode _ ->
            let ff = Format.std_formatter in
            let si = Coiteration.catch (Coiteration.instance f_loc c) in
            Format.fprintf ff "@[Evaluate %d steps of %s@.@]" n_steps name;
            Coiteration.run_node
              no_location (Output.value_flush ff) n_steps si void
-        | Kstatic | Kfun ->
+        | Kfun _ ->
            let ff = Format.std_formatter in
            Coiteration.run_fun
              no_location (Output.value_flush ff) n_steps v [void] end

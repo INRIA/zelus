@@ -60,15 +60,15 @@ let node p2 () returns (o default false)
      done
    else do done
    done
-
+  
 (* In fact, o does not really depends on [o] but on term1 whose initial *)
 (* value is false, whatever be that of [o] and [s] *)
 (* the circuit compilation of Esterel generates an alternative *)
 (* encoding using a mux (strict if/then/else) in which [o] depends *)
 (* on [term1] whose value at the first instant, does not depend on [o]. *)
   
-
 (* an equivalent form where every branch is completed *)
+(* it is neither causal *)
 let node p2_expanded () returns (o)
    local s, term1
    do
@@ -84,6 +84,10 @@ let node p2_expanded () returns (o)
    else do term1 = true and o = false done
    done
    
+let node main () =
+  let o2 = p2_expanded () in
+  o2
+
 let node main () =
   let o1 = p2 () in
   let o2 = p2_expanded () in

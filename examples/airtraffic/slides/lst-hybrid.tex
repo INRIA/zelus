@@ -1,0 +1,31 @@
+
+\lstdefinelanguage{hybrid}
+   {morekeywords={
+	let,in,rec,where,end,if,then,else,do,done,run,
+	open,
+	fun,node,hybrid,
+	match,with,automaton,emit,
+	pre,when,whenot,fby,merge,on,clock,
+	or,and,not,as,mod,
+	unless,until,continue,reset,every,await,
+	init,der,type,last,
+        period,local,present
+    },
+    sensitive=true,
+    morecomment=[n]{(*}{*)},
+    morestring=[b]",
+    mathescape=true,
+    basicstyle=\sffamily\footnotesize,
+    literate={->}{{$\rightarrow\;$}}1
+    }
+
+\lstnewenvironment{hybrid}
+    {\lstset{language=hybrid}}
+    {}
+
+%int boolean float char string
+%sig static
+
+\newcommand{\hy}[1]{\ensuremath{\mbox{\lstinline[language=hybrid]{#1}}}}
+\newcommand{\hys}[1]{\ensuremath{\mbox{\lstinline[language=hybrid,basicstyle=\sffamily\tiny]{#1}}}}
+

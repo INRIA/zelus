@@ -76,7 +76,7 @@ let pmatch (v : pvalue) (p : pattern) : pvalue Env.t Opt.t =
   pmatch Env.empty v p
   
 (* pattern matching for equations [p = e] and function application *)
-(* [v] is an extended value; [p] is a pattern but pattern matching *)
+(* [v] is an star value; [p] is a pattern but pattern matching *)
 (* should not fail. In the case of a failure, this is considered as *)
 (* a typing error *)
 let pmatcheq (v : pvalue) (p : pattern) : pvalue Env.t Opt.t =
@@ -134,13 +134,13 @@ let matchstate (ps : pvalue) ({ desc; loc } : statepat) : (pvalue Env.t) Opt.t =
   
 (* Auxiliary functions to lift bottom and nil to environments *)
 (* the bottom environment *)
-let bot_env (eq_write: Deftypes.defnames) : 'a extended ientry Env.t =
+let bot_env (eq_write: Deftypes.defnames) : 'a star ientry Env.t =
   S.fold
     (fun x acc -> Env.add x { cur = Vbot; last = None; default = None } acc)
     (names eq_write) Env.empty
 
 (* the nil environment *)
-let nil_env (eq_write: Deftypes.defnames) : 'a extended ientry Env.t =
+let nil_env (eq_write: Deftypes.defnames) : 'a star ientry Env.t =
   S.fold
     (fun x acc -> Env.add x { cur = Vnil; last = None; default = None } acc)
     (names eq_write) Env.empty

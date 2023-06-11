@@ -63,4 +63,6 @@ let mapfold f acc l =
 
 (* duplicate a value into a list *)
 let rec list_of n v = if n = 0 then [] else v :: (list_of (n-1) v)
-   
+
+(* execute only *)
+let continue_if_not b x f = if b then x else f x

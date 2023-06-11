@@ -1,4 +1,4 @@
 let node f() returns (o1)
-    o1 = forward i in 0 to 4, xi in x returns (o init 42)
+    o1 = forward i in 0 to 4, xi in [|1;2;3;4;5|] returns (o init 42) do
            o = last o + xi + i
          done

@@ -26,6 +26,12 @@ let (let+) v f =
   | Vnil -> return Vnil
   | Value(v) -> f v
 
+let (and+) v1 v2 =
+  match v1, v2 with
+  | (Vbot, _) | (_, Vbot) -> Vbot
+  | (Vnil, _) | (_, Vnil) -> Vnil
+  | Value(v1), Value(v2) -> Value(v1, v2)
+
 let bool v =
   match v with
   | Vbool(b) -> return b
@@ -55,7 +61,7 @@ let test v =
      
 let get_node v =
   match v with
-  | Vclosure ({ c_funexp = { f_kind = Knode | Khybrid } } as c) -> return c
+  | Vclosure ({ c_funexp = { f_kind = Knode _ } } as c) -> return c
   | _ -> None
        
 let get_record r =
@@ -155,31 +161,67 @@ let lte_op v1 v2 =
 let gte_op v1 v2 =
   return (Vbool(v1 >= v2))
 
+let length v =
+  match v with
+  | Vmap { m_length } -> m_length | Vflat(a) -> Array.length a
 let length_op v =
   match v with
-  | Varray(a) -> return (Vint(Array.length a))
+  | Varray(a) -> return (Vint(length a))
   | _ -> none
        
-let geti v i =
-  let n = Array.length v in
-  if (i < n) && (i >= 0) then return (Value(v.(i))) else None
-
+(* ifthenelse. this one is strict w.r.t all arguments *)
+let lustre_ifthenelse v1 v2 v3 =
+  let+ v1 = v1 in
+  let+ _ = v2 in
+  let+ _ = v3 in
+  ifthenelse_op v1 v2 v3
 
 (* ifthenelse. this one is strict w.r.t the first argument *)
-let ifthenelse v1 v2 v3 =
+let lazy_ifthenelse v1 v2 v3 =
   let+ v1 = v1 in
   ifthenelse_op v1 v2 v3
 
+let esterel_or_op v1 v2 =
+  match v1, v2 with
+  | (Value(Vbool(true)), (Vbot | Vnil)) | ((Vbot|Vnil), Value(Vbool(true)))
+    | (Value(Vbool(true)), Value(Vbool _))
+    | (Value(Vbool _), Value(Vbool(true))) -> return (Value(Vbool(true)))
+  | (Value(Vbool(false)), Vbot) | (Vbot, Value(Vbool(false))) -> return Vbot
+  | (Value(Vbool(false)), Vnil) | (Vnil, Value(Vbool(false))) -> return Vnil
+  | (Value(Vbool(false)), Value(Vbool v)) -> return (Value(Vbool(v)))
+  | (_, Vbot) | (Vbot, _) -> return Vbot
+  | (_, Vnil) | (Vnil, _) -> return Vnil
+  | _ -> none
+
+let esterel_and_op v1 v2 =
+  match v1, v2 with
+  | (Value(Vbool(false)), (Vbot | Vnil)) | ((Vbot|Vnil), Value(Vbool(false)))
+    | (Value(Vbool(false)), Value(Vbool _))
+    | (Value(Vbool _), Value(Vbool(false))) -> return (Value(Vbool(false)))
+  | (Value(Vbool(true)), Vbot) | (Vbot, Value(Vbool(true))) -> return Vbot
+  | (Value(Vbool(true)), Vnil) | (Vnil, Value(Vbool(true))) -> return Vnil
+  | (Value(Vbool(true)), Value(Vbool v)) -> return (Value(Vbool(v)))
+  | (_, Vbot) | (Vbot, _) -> return Vbot
+  | (_, Vnil) | (Vnil, _) -> return Vnil
+  | _ -> none
+
 (* this one is a bit experimental; it can be used to implement *)
 (* the constructive semantics of Esterel. *)
-let ifthenelse' v1 v2 v3 =
+(* an alternative semantics to the constructive semantics of Esterel *)
+(* it is closer to the "logical semantics of Esterel" than the *)
+(* the "constructive semantics" through it is not entirely clear. *)
+(* note that this is very different than the treatment of activation *)
+(* conditions (e.g., if c then eq1 else eq2 which correspond to a *)
+(* condition on a clock. In that case, when c = bot, then the resulting *)
+(* environment is also bot *)
+let esterel_ifthenelse v1 v2 v3 =
   match v1 with
   | Value(v1) -> ifthenelse_op v1 v2 v3
   | _ -> return (if v2 = v3 then v2 else v1)
   
-let ifthenelse'' v1 v2 v3 =
+let esterel_ifthenelse v1 v2 v3 =
   if v2 = v3 then return v2
-  else ifthenelse v1 v2 v3
+  else lazy_ifthenelse v1 v2 v3
 (* with it, we can define [or_gate] and [and_gate] *)
 (* with three values:
  *- or(x, true) = or(true, x) = true
@@ -192,7 +234,9 @@ let and_gate(x,y) = if x then y else false
 Hence, [x = x or true] == [x = if x then true else true = true]
 *)
 let ifthenelse =
-  if !Smisc.set_esterel then ifthenelse' else ifthenelse
+  if !Smisc.set_lustre then lustre_ifthenelse else
+    if !Smisc.set_esterel then esterel_ifthenelse
+    else lazy_ifthenelse
 
 (* lift a unary operator: [op bot = bot]; [op nil = nil] *)
 let lift1 op v =
@@ -246,7 +290,7 @@ let state1 f v_list =
 
 let array v_list =
   let+ v_list = slist v_list in
-  return (Value(Varray(Array.of_list v_list)))
+  return (Value(Varray(Vflat(Array.of_list v_list))))
 
 let lift f v =
   match v with | Vbot -> Vbot | Vnil -> Vnil | Value(v) -> Value(f v)
@@ -352,7 +396,13 @@ let list_of_random_primitives =
    "random_float", unop random_float_op]
 
 let to_env acc l = List.fold_left (fun acc (n, v) -> Genv.E.add n v acc) acc l
-                 
+
+let list_of_esterel_primitives =
+  if !Smisc.set_esterel
+  then ["or", esterel_or_op;
+        "&", esterel_and_op]
+  else []
+  
 let stdlib_env =
   { Genv.name = "Stdlib";
     Genv.values =

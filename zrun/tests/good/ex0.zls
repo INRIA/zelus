@@ -1,10 +1,19 @@
+let node first() returns (o)
+  emit o = 1
+
+let node incr(x) returns (o)
+    o = 0 fby x + 1
+
+let node nat () =
+  let rec o = incr o and x = o + 1 in o
+    
 let node fibo () returns (o)
   local po
   do po = 1 fby (po + o)
   and o = 1 fby po done
 
 let node euler_forward(h, x0, xprime) returns (x)
-    x = x0 -> pre(x +. h *. xprime)
+  x = x0 -> pre(x +. h *. xprime)
 
 let node euler_backward(h, x0, xprime) returns (x)
     x = x0 -> pre(x) +. h *. xprime
@@ -14,12 +23,29 @@ let node main45() returns (x)
   x = euler_forward(0.1, 1.0, 0.5 *. x)
 
 let node sum(x) returns (o)
-  forward xi in x, o init 0 
-    do o = last o + 1 done
+  o = forward xi in x
+        do let rec o = (0.0 fby o) +. xi in o done
 
+
+let node sum(x) returns (s)
+    s = (0 fby s) + x
+    
+let node sum(x) returns (o)
+  o = forward xi in x do sum(xi) done
+
+let node sum(x, y) = o where
+  rec v = x *. y and o = (0.0 fby o) +. v
+
+let node scalar(t1, t2) =
+  forward xi in t1, yi in t2 do
+    sum(xi, yi)
+  done
+
+    
 let node main42() =
-  sum([|1.0; 2.0; 3.0|])
-
+  scalar([|1.0; 2.0; 3.0|] fby [|2.0; 3.0; 4.0|] ,
+	 [|1.0; 2.0; 3.0 |])
+      
 let g = 42
 
 let node from(x') = o where

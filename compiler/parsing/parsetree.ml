@@ -18,10 +18,17 @@ and type_expression_desc =
   | Etypefun : kind * type_expression * type_expression -> type_expression_desc
 
 and kind =
-  | Kfun : kind
-  | Knode : kind
-  | Khybrid : kind
-  | Kstatic : kind
+  | Knode : tkind -> kind (* stateful *)
+  | Kfun : vkind -> kind (* combinatorial *)
+
+and vkind =
+  | Kconst (* constant; known at compilation time *)
+  | Kstatic (* constant; known at instantiation time *)
+  | Kany (* known dynamically *)
+
+and tkind =
+  | Kdiscrete (* only discrete-time state variables *)
+  | Khybrid (* discrete-time and continuous-time state variables *)
 
 (* constants *)
 type immediate =
@@ -58,18 +65,27 @@ type operator =
   (* generate an event at a given horizon *)
   | Edisc : operator
   (* generate an event whenever x <> last x outside of integration *)
-  | Earray_list : operator
+  | Earray : array_operator -> operator
+
+and array_operator =
+  | Earray_list : array_operator
   (* [| e1;...;en |] *)
-  | Econcat : operator
-  (* [concat e1 e2] *)
-  | Eget : operator
+  | Econcat : array_operator
+  (* [e1 ++ e2] *)
+  | Eget : array_operator
   (* [e.(e)] *)
-  | Eget_with_default : operator
+  | Eget_with_default : array_operator
   (* [e.(e) default e] *)
-  | Eslice : operator
+  | Eslice : array_operator
   (* [e.(e..e)] *)
-  | Eupdate : operator
+  | Eupdate : array_operator
   (* [| e with (e1,...,en) <- e |] *)
+  | Etranspose : array_operator
+  (* [transpose e] *)
+  | Eflatten : array_operator
+  (* [flatten e] *)
+  | Ereverse : array_operator
+  (* [reverse e] *)
 
 and is_inline = bool
 
@@ -149,7 +165,7 @@ and exp_desc =
   | Eop : operator * exp list -> exp_desc 
   | Etuple : exp list -> exp_desc 
   | Eapp : exp *  exp list -> exp_desc 
-  | Elet : is_rec * eq * exp -> exp_desc 
+  | Elet : leq * exp -> exp_desc 
   | Erecord_access : exp * longname -> exp_desc
   | Erecord : (longname * exp) list -> exp_desc
   | Erecord_with : exp * (longname * exp) list -> exp_desc
@@ -165,7 +181,9 @@ and 'body forloop =
   { for_size : exp option;
     for_kind : for_kind;
     for_index : for_index_desc localized list;
-    for_body : 'body }
+    for_body : 'body;
+    for_resume : bool; (* resume or restart *)
+  }
 
 (* result expression of a loop *)
 and for_exp =
@@ -209,7 +227,7 @@ and eq_desc =
   (* parallel composition [eq1 and eq2] *)
   | EQlocal : exp vardec list * eq -> eq_desc
   (* local variables in an equation [local ... do eq done] *)
-  | EQlet : is_rec * eq * eq -> eq_desc
+  | EQlet : leq * eq -> eq_desc
   (* local definition in an equation [let [rec] eq in eq] *)
   | EQreset : eq * exp -> eq_desc
   (* reset of an equation [reset eq every e] *)
@@ -251,6 +269,19 @@ and for_index_desc =
       { id: name; e_left: exp; e_right : exp; dir: bool } -> for_index_desc
   (* i in e1 to e2 or i in e1 downto e2; [e1] and [e2] must be sizes *)
 
+(* input patterns for loops *)
+(* E.g., [xi]++[yi]++[|_|] in e] *)
+and for_in_pat = for_in_pat_desc localized
+
+and for_in_pat_desc =
+  | Eloop_name : name -> for_in_pat_desc (* [xi] *)
+  | Eloop_op : array_operator * for_in_pat list -> for_in_pat_desc
+  | Eloop_pat : pattern -> for_in_pat_desc
+
+(* outputs for loops *)
+(* E.g., [xi]++[yi]++[|y|] out x *)
+(* E.g., xi init e *)
+
 (* output of a for loop in equational form *)
 and for_out_desc =
   { for_name : name; (* xi [init e] [default e] [out x] *)
@@ -282,7 +313,8 @@ and 'body automaton_handler = 'body automaton_handler_desc localized
 and 'a default =
   | Init : 'a -> 'a default | Else : 'a -> 'a default | NoDefault
 
-and leq = (is_rec * eq) localized
+and leq = leq_desc localized
+and leq_desc = { l_kind: vkind; l_rec: is_rec; l_eq: eq }
 
 and is_atomic = bool
 
@@ -296,7 +328,11 @@ and funexp_desc =
 and funexp = funexp_desc localized
 
 and arg = exp vardec list
-        
+
+(* and arg1 =
+  | Apat: pattern -> arg1
+  | Avardec : exp vardec -> arg1 *)
+
 and result = result_desc localized
 
 and result_desc =
@@ -308,8 +344,12 @@ type interface = interface_desc localized
 
 and interface_desc =
   | Einter_open : name -> interface_desc 
-  | Einter_typedecl : name * name list * type_decl -> interface_desc 
-  | Einter_constdecl : name * type_expression * name list -> interface_desc 
+  | Einter_typedecl :
+      { name: name; ty_params: name list; size_params: name list;
+        ty_decl: type_decl } -> interface_desc 
+  | Einter_constdecl :
+      { name: name; const: bool; ty: type_expression; info: name list }
+      -> interface_desc 
 
 and type_decl = type_decl_desc localized
     
@@ -329,7 +369,10 @@ type implementation = implementation_desc localized
 
 and implementation_desc =
   | Eopen : name -> implementation_desc
-  | Eletdecl : name * exp -> implementation_desc
-  | Etypedecl : name * name list * type_decl -> implementation_desc
+  | Eletdecl :
+      { name: name; const: bool; e: exp } -> implementation_desc
+  | Etypedecl :
+      { name: name; ty_params: name list; size_params: name list;
+        ty_decl: type_decl } -> implementation_desc
   
 type program = implementation list

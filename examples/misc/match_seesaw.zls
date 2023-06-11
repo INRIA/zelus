@@ -1,0 +1,50 @@
+(* pour tester ../../bin/zeluc.byte -i -v -I ../../lib t23.zls *)
+(* pour debugger
+   set arguments -I ../lib ../test/good/t23.zls *)
+
+let hybrid f0 y = w where
+  der w = 1.0 init 0.0
+
+let hybrid f1 y = w where
+  rec x = (let rec o = true -> not (pre o) in o) every y init true
+  and init w = 0.0
+  and match x with
+      | true  -> do der w =  1.0 done
+      | false -> do der w = -1.0 done
+      end
+
+let hybrid f2 y = w where
+  rec x = (let rec o = true -> not (pre o) in o) every y init true
+  and init w = 0.0
+  and match x with
+      | true  ->
+          local l in
+          do
+              der l = 1.0 init 1.0
+          and der w = l
+          done
+      | false ->
+          do der w = -1.0 done
+      end
+
+open Scope
+
+let sample_p = 0.2
+
+let hybrid main () = () where
+  rec der t = 1.0 init 0.0
+(*rec period p = (1.0) *)
+  and der t1 = 1.0 init -1.0 reset -1.0 every p
+  and p = up(t1)
+  and x = f0 p 
+
+  and der t2 = 1.0 init -0.2 reset -0.2 every sample
+  and sample = up(t2)
+(*and period sample = (0.2) *)
+
+  and win =
+    (let s1 = Scope.scope (-. 5.0, 5.0, ("seesaw", Scope.linear, x)) in
+     Scope.window ("match_seesaw", 10.0, t, s1)) every sample init ()
+  
+  (* TODO: changing win to _ causes an assert failure in normalize *)
+

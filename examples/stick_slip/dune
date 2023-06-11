@@ -1,0 +1,9 @@
+(rule
+ (targets stick_slip.ml stick_slip_main.ml)
+ (deps (:zl stick_slip.zls))
+ (action (run zeluc -s main -o stick_slip_main %{zl})))
+
+(executable
+  (name stick_slip_main)
+  (libraries graphics zelus)
+  (promote (until-clean)))

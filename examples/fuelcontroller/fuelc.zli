@@ -1,0 +1,13 @@
+val testengineonly : unit -C-> unit
+val testcontrolleronly : unit -C-> unit
+val simulation :
+  bool * bool * bool * bool * bool -C-> float * float * float * float * float
+val sensors_baseline : unit -> bool * bool * bool * bool * bool
+val sensors_mapfail : unit -D-> bool * bool * bool * bool * bool
+val sensor_scope : bool * bool * bool * bool * bool -D-> Gtkplot.scope
+val plot :
+  float *
+  string * (bool * bool * bool * bool * bool) * float * float * float * float
+    -D-> unit
+val basicfuel : unit -C-> unit
+val mapfail : unit -C-> unit

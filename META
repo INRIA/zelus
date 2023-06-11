@@ -1,0 +1,13 @@
+directory = "/usr/local/lib/zelus"
+version = "3.0"
+description = "A synchronous language with ODEs"
+requires = "bigarray sundialsml"
+archive(byte) = "zllib.cma"
+archive(native) = "zllib.cmxa"
+package "gtk" (
+    version = "3.0"
+    description = "A synchronous language with ODEs (with gtk)"
+    requires = "bigarray sundialsml lablgtk2"
+    archive(byte) = "zllibgtk.cma"
+    archive(native) = "zllibgtk.cmxa"
+)

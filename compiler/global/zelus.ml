@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2022 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2023 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -16,6 +16,20 @@ type 'a localized = { desc: 'a; loc: Location.t }
 
 type name = String.t
 
+(** kinds *)
+type kind =
+  | Knode : tkind -> kind (* stateful *)
+  | Kfun : vkind -> kind (* combinatorial *)
+
+and vkind =
+  | Kconst (* constant; known at compilation time *)
+  | Kstatic (* constant; known at instantiation time *)
+  | Kany (* known dynamically *)
+
+and tkind =
+  | Kdiscrete (* only discrete-time state variables *)
+  | Khybrid (* discrete-time and continuous-time state variables *)
+
 (** Types *)
 type type_expression = type_expression_desc localized
 
@@ -24,12 +38,21 @@ and type_expression_desc =
   | Etypeconstr : Lident.t * type_expression list -> type_expression_desc
   | Etypetuple : type_expression list -> type_expression_desc
   | Etypefun : kind * type_expression * type_expression -> type_expression_desc
+  (* refinment types for integers and arrays *)
+  | Esize : is_singleton * size -> type_expression_desc
+  (* a subset of positive integers *)
+  | Evec : type_expression * size -> type_expression_desc
+  (* [size]t *)
 
-and kind =
-  | Kfun : kind (* combinatorial *)
-  | Knode : kind (* stateful node *)
-  | Khybrid : kind (* stateful hybrid node *)
-  | Kstatic : kind (* constant; known at instanciation time *)
+and is_singleton = bool
+
+and size = size_desc localized
+and size_desc =
+  | Esizeconst : int -> size_desc
+  | Esizevar : name -> size_desc
+  | Esizeop : size_op * size * size -> size_desc
+
+and size_op = Esize_minus | Esize_plus | Esize_mult
 
 (* constants *)
 type immediate =
@@ -66,19 +89,28 @@ type operator =
   (* generate an event at a given horizon *)
   | Edisc : operator
   (* generate an event whenever x <> last x outside of integration *)
-  | Earray_list : operator
+  | Earray : array_operator -> operator
+
+and array_operator =
+  | Earray_list : array_operator
   (* [| e1;...;en |] *)
-  | Econcat : operator
-  (* [concat e1 e2] *)
-  | Eget : operator
+  | Econcat : array_operator
+  (* [ e1 ++ e2] *)
+  | Eget : array_operator
   (* [e.(e)] *)
-  | Eget_with_default : operator
+  | Eget_with_default : array_operator
   (* [e.(e) default e] *)
-  | Eslice : operator
+  | Eslice : array_operator
   (* [e.(e..e)] *)
-  | Eupdate : operator
+  | Eupdate : array_operator
   (* [| e with e <- e |] *)
-  
+  | Etranspose : array_operator
+  (* [transpose e] *)
+  | Eflatten : array_operator
+  (* [flatten e] *)
+  | Ereverse : array_operator
+  (* [reverse e] *)
+
 and is_inline = bool
 
 type pateq = pateq_desc localized
@@ -124,7 +156,6 @@ type ('exp, 'eq) block =
     b_loc: Location.t;
     mutable b_write: Deftypes.defnames;
     mutable b_env: 'exp Deftypes.tentry Ident.Env.t }
-
 
 type statepatdesc =
   | Estate0pat : Ident.t -> statepatdesc 
@@ -208,6 +239,7 @@ and 'body forloop =
     for_kind : for_kind;
     for_index : for_index_desc localized list;
     for_body : 'body;
+    for_resume : bool; (* resume or restart *)
     for_env : exp Deftypes.tentry Ident.Env.t; }
 
 (* result expression of a loop *)
@@ -237,9 +269,10 @@ and scondpat_desc =
   | Econdon : scondpat * exp -> scondpat_desc
 
 and leq =
-  { l_rec: is_rec;
+  { l_kind: vkind;
+    l_rec: is_rec;
     l_eq: eq;
-    l_loc: Location.t;
+    l_loc : Location.t;
     mutable l_env: exp Deftypes.tentry Ident.Env.t;
   }
   
@@ -280,10 +313,6 @@ and eq_desc =
 
 and for_eq =
   { for_out : for_out_desc localized list;
-    (* [xi init vi] *)
-    (* [xi] is an output; the successive values are accumulated *)
-    (* [xi out x] *)
-    (* [xi] are local output; [x] is the output st [xi = x.(i)] *)
     for_block : (exp, eq) block; (* loop body *)
     for_out_env : exp Deftypes.tentry Ident.Env.t; 
   }
@@ -355,19 +384,23 @@ type interface = interface_desc localized
 
 and interface_desc =
   | Einter_open : name -> interface_desc 
-  | Einter_typedecl : name * name list * type_decl -> interface_desc 
-  | Einter_constdecl : name * type_expression * name list -> interface_desc 
+  | Einter_typedecl :
+      { name: name; ty_params: name list; size_params: name list;
+        ty_decl: type_decl } -> interface_desc 
+  | Einter_constdecl :
+      { name: name; const: bool; ty: type_expression; info: name list }
+      -> interface_desc 
 
 and type_decl = type_decl_desc localized
     
 and type_decl_desc =
-    | Eabstract_type : type_decl_desc 
-    | Eabbrev : type_expression -> type_decl_desc 
-    | Evariant_type : constr_decl list -> type_decl_desc 
-    | Erecord_type : (name * type_expression) list -> type_decl_desc 
+  | Eabstract_type : type_decl_desc 
+  | Eabbrev : type_expression -> type_decl_desc 
+  | Evariant_type : constr_decl list -> type_decl_desc 
+  | Erecord_type : (name * type_expression) list -> type_decl_desc 
 
 and constr_decl = constr_decl_desc localized
-    
+
 and constr_decl_desc =
   | Econstr0decl : name -> constr_decl_desc 
   | Econstr1decl : name * type_expression list -> constr_decl_desc 
@@ -376,8 +409,11 @@ type implementation = implementation_desc localized
 
 and implementation_desc =
   | Eopen : name -> implementation_desc
-  | Eletdecl : name * exp -> implementation_desc
-  | Etypedecl : name * name list * type_decl -> implementation_desc
+  | Eletdecl :
+      { name: name; const: bool; e: exp } -> implementation_desc
+  | Etypedecl :
+      { name: name; ty_params: name list; size_params: name list;
+        ty_decl: type_decl } -> implementation_desc
 
 type program = implementation list
 

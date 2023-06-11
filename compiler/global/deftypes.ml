@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2021 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2023 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -28,14 +28,27 @@ type 'a loc =
 
 type typ = typ_desc loc
 
- and typ_desc =
-   | Tvar
-   | Tproduct of typ list
-   | Tconstr of Lident.qualident * typ list * abbrev ref
-   | Tarrow of kind * typ * typ 
-   | Tlink of typ
+and typ_desc =
+  | Tvar
+  | Tproduct of typ list
+  | Tconstr of Lident.qualident * typ list * abbrev ref
+  | Tvec of typ * size
+  | Tsize of is_singleton * size
+  | Tarrow of kind * typ * typ 
+  | Tlink of typ
 
-		   
+and is_singleton = bool
+
+and size = size_desc loc
+
+and size_desc =
+  | Sconst of int
+  | Svar
+  | Sop of op * size * size
+  | Slink of size
+
+and op = Splus | Sminus | Smult
+
 and abbrev =
   | Tnil
   | Tcons of typ list * typ
@@ -43,15 +56,24 @@ and abbrev =
 (* type scheme *)
 and typ_scheme =
     { typ_vars: typ list;
+      size_vars: size list;
       mutable typ_body: typ }
 	
 and typ_instance = { typ_instance : typ list }
 
 and kind =
-  | Tfun
-  | Tnode
-  | Tstatic
-      
+  | Tfun : vkind -> kind (* combinatorial expression *)
+  | Tnode : tkind -> kind (* stateful expression *)
+
+and vkind =
+  | Tconst (* value known at compile time *)
+  | Tstatic (* value known at instantiation time *)
+  | Tany (* dynamically know value *)
+
+and tkind =
+  | Tdiscrete (* contains discrete-time state variables *)
+  | Thybrid (* contains continuous-time state variables *)
+
 (* entry in the typing environment *)
 type 'a tentry = 
   { mutable t_sort: tsort; (* sort *)
@@ -61,10 +83,11 @@ type 'a tentry =
   }
 
 and tsort =
-  | Sstatic (* a static variable *)
-  | Sval (* a let variable *)
-  | Svar (* a shared variable *)
-  | Smem : { m_kind: mkind } -> tsort (* a state variable *)
+  | Sort_const (* a variable whose value is known at compile time *)
+  | Sort_static (* the value is known at instantiation time *)
+  | Sort_val (* a let variable *)
+  | Sort_var (* a shared variable *)
+  | Sort_mem : { m_kind: mkind } -> tsort (* a state variable *)
 
 (* the different kinds of internal state variables *)
 and mkind =
@@ -111,21 +134,24 @@ let no_typ = make (Tproduct [])
 let rec is_no_typ { t_desc = desc } =
   match desc with
   | Tproduct [] -> true | Tlink(link) -> is_no_typ link | _ -> false
-let no_typ_scheme = { typ_vars = []; typ_body = no_typ }
+let no_typ_scheme = { typ_vars = []; size_vars = []; typ_body = no_typ }
 let no_typ_instance = { typ_instance = [] }
 let no_abbrev () = ref Tnil
 
 let last t_sort =
   match t_sort with
-  | Smem _ -> t_sort
-  | Sval | Svar | Sstatic -> Smem { m_kind = Discrete }
+  | Sort_mem _ -> t_sort
+  | Sort_val | Sort_var | Sort_const | Sort_static ->
+     Sort_mem { m_kind = Discrete }
 let init t_sort =
   match t_sort with
-  | Smem _ -> t_sort
-  | Sval | Svar | Sstatic -> Smem { m_kind = Discrete }
+  | Sort_mem _ -> t_sort
+  | Sort_val | Sort_var | Sort_const | Sort_static ->
+     Sort_mem { m_kind = Discrete }
 let cont t_sort =
   match t_sort with
-  | Smem _ | Sval | Svar | Sstatic -> Smem { m_kind = Cont }
+  | Sort_mem _ | Sort_val | Sort_var | Sort_const | Sort_static ->
+     Sort_mem { m_kind = Cont }
                                   
 let desc ty = ty.t_desc
 let index ty = ty.t_index

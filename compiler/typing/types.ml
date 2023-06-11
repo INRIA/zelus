@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2021 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2023 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -28,6 +28,10 @@ let make ty =
   { t_desc = ty; t_level = generic; t_index = symbol#name }
 let product ty_list =
   make (Tproduct(ty_list))
+let vec ty e = make (Tvec(ty, e))
+let const v = make (Sconst(v))
+let size is_singleton si = make (Tsize(is_singleton, si))
+let op o si1 si2 = make (Sop(o, si1, si2))
 let arrowtype k ty_arg ty_res =
   make (Tarrow(k, ty_arg, ty_res))
 let rec arrowtype_list k ty_arg_list ty_res =
@@ -39,8 +43,11 @@ let rec arrowtype_list k ty_arg_list ty_res =
 let constr name ty_list abbrev = make (Tconstr(name, ty_list, abbrev))
 let nconstr name ty_list = constr name ty_list (ref Tnil)
 
-let new_discrete_var () =
-  { t_desc = Tvar; t_level = !binding_level; t_index = symbol#name }
+let new_size_var () =
+  { t_desc = Svar; t_level = !binding_level; t_index = symbol#name }
+let new_generic_size_var () =
+  { t_desc = Svar; t_level = generic; t_index = symbol#name }
+
 let new_var () =
   { t_desc = Tvar; t_level = !binding_level; t_index = symbol#name }
 let new_generic_var () =
@@ -49,7 +56,7 @@ let rec new_var_list n =
   match n with
     0 -> []
   | n -> (new_var ()) :: new_var_list (n - 1)
-let forall l typ_body = { typ_vars = l; typ_body = typ_body }
+let forall l typ_body = { size_vars = []; typ_vars = l; typ_body = typ_body }
 
 			    
 (* typing errors *)
@@ -81,6 +88,8 @@ let occur_check level index ty =
     | Tconstr(name, ty_list, _) ->
        List.iter check ty_list
     | Tarrow(_, ty_arg, ty_res) -> check ty_arg; check ty_res
+    | Tsize _ -> ()
+    | Tvec(ty, _) -> check ty
     | Tlink(link) -> check link
   in check ty
 
@@ -112,16 +121,19 @@ let rec gen_ty is_gen ty =
     | Tarrow(_, ty_arg, ty_res) ->
 	     ty.t_level <-
 	       min (gen_ty is_gen ty_arg) (gen_ty is_gen ty_res)
+    | Tsize _ -> ()
+    | Tvec(ty, si) ->
+       ty.t_level <- gen_ty is_gen ty
     | Tlink(link) ->
        ty.t_level <- gen_ty is_gen link
   end;
   ty.t_level
-      
+
 (* main generalisation function *)
 let gen non_expensive typ_body =
   list_of_typ_vars := [];
   ignore (gen_ty non_expensive typ_body);
-  { typ_vars = !list_of_typ_vars; typ_body = typ_body }
+  { size_vars = []; typ_vars = !list_of_typ_vars; typ_body = typ_body }
 
 let s = ref []
 let save v = s := v :: !s
@@ -157,6 +169,13 @@ let rec copy ty =
     | Tarrow(k, ty_arg, ty_res) ->
        if level = generic
        then arrowtype k (copy ty_arg) (copy ty_res)
+       else ty
+    | Tsize(is_singleton, si) ->
+       if level = generic
+       then size is_singleton si
+       else ty
+    | Tvec(ty, si) ->
+       if level = generic then vec (copy ty) si
        else ty
       
 (* instanciation *)
@@ -292,13 +311,12 @@ let filter_actual_arrow ty =
 (** representation of types. This is mandatory for them to be used once *)
 (** static typing is performed *)
 
-   
 (** Is-it a node ? *)
 let is_a_node_name lname =
   let { info = { value_typ = { typ_body = typ_body } } } = 
     Modules.find_value lname in
   match typ_body.t_desc with
-    | Tarrow(Tnode, _, _) -> true | _ -> false
+    | Tarrow(Tnode _, _, _) -> true | _ -> false
 
 (** Is-it a function? *)
 let is_a_function_name lname =
@@ -306,7 +324,7 @@ let is_a_function_name lname =
     Modules.find_value lname in
   let ty = typ_repr ty in
   match ty.t_desc with
-    | Tarrow(Tfun, _, _) -> true | _ -> false
+    | Tarrow(Tfun _, _, _) -> true | _ -> false
 
 (* kind of a function type *)
 let kind_of_arrowtype ty =

@@ -1,0 +1,23 @@
+(* Author: François Bidet *)
+
+open Constants
+
+(* return random number in [-1,1] *)
+let hybrid normed_noise() =
+    present(period(dt_noise)) -> (Random.float 2.) -. 1. init 0.
+    (*0. (* random disabled *)*)
+
+let hybrid measure_error() = v where
+    rec v = (v1, v2, v3, v4, v5, v6)
+    and v1 = normed_noise() *. 0.04
+    and v2 = normed_noise() *. 0.04
+    and v3 = normed_noise() *. pi /. 180.
+    and v4 = normed_noise() *. 0.05
+    and v5 = normed_noise() *. 0.05
+    and v6 = normed_noise() *. 2. *. pi /. 180.
+
+let hybrid disturbances() = w where
+    rec w = (w1, w2, w3)
+    and w1 = normed_noise() *. 0.1
+    and w2 = normed_noise() *. 0.057
+    and w3 = normed_noise() *. 0.043

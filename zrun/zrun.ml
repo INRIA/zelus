@@ -39,6 +39,8 @@ let doc_number_of_fixpoint_iterations =
   "\tPrint the number of steps for fixpoints"
 let doc_esterel =
   "\t Sets the interpretation of if/then/else to that of Esterel"
+let doc_lustre =
+  "\t Sets the interpretation of if/then/else to that of Lustre"
                    
 let errmsg = "Options are:"
 
@@ -57,7 +59,8 @@ let main () =
            "-nocausality", Arg.Set Smisc.set_nocausality, doc_nocausality;
            "-fix", Arg.Set Smisc.print_number_of_fixpoint_iterations,
            doc_number_of_fixpoint_iterations;
-           "-esterel", Arg.Set Smisc.set_esterel, doc_esterel
+           "-esterel", Arg.Set Smisc.set_esterel, doc_esterel;
+           "-lustre", Arg.Set Smisc.set_lustre, doc_lustre
       ])
       main
       errmsg

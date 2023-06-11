@@ -1,0 +1,6 @@
+let node f(x init 0 default 42) = m where
+  let rec o = 0 -> pre o + 1 in
+  do m = o + 1 done
+
+let node main() = f(42)
+

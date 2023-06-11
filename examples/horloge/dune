@@ -1,0 +1,9 @@
+(rule
+ (targets horloge.ml horloge_main.ml)
+ (deps (:zl horloge.zls) draw.zli)
+ (action (run zeluc -deps -s main -sampling 0 -o horloge_main %{zl})))
+
+(executable
+  (name horloge_main)
+  (libraries unix graphics zelus)
+  (promote (until-clean)))

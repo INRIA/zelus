@@ -1,0 +1,16 @@
+(rule
+ (targets qss1.ml qss1_main.ml)
+ (deps (:zl qss1.zls))
+ (action (run zeluc -gtk2 -s main -o qss1_main %{zl})))
+
+; (rule
+;  (targets qss2.ml qss2_main.ml)
+;  (deps (:zl qss2.zls))
+;  (action (run zeluc -gtk2 -s main -o qss2_main %{zl})))
+
+(executables
+  (names qss1_main 
+  ;qss2_main
+  )
+  (libraries lablgtk2 zelus zelus-gtk)
+  (promote (until-clean)))

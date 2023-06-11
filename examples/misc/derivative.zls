@@ -1,0 +1,30 @@
+(* Low pass filter. Transfer function:
+ * H(x) = wc / (s + wc) = 1 / (1 + (s/wc))
+ * In state form: der(y) = wc (x - y) *)
+let hybrid low_pass(wc, x) = y where
+  rec der y = wc *. (x -. y) init 0.0
+  
+(* The derivative of x is approximated by the difference 
+ * between x and its low pass filtering *)
+
+(* let hybrid derivative(k1, k2, x) = x' where
+    rec der x' = -. k1 *. x +. k2 *. x' init 0.0 *)
+let hybrid derivative(td, x) = x' where
+   rec x' = x -. low_pass(1.0 /. td, x)
+   
+let hybrid main () =
+  let der t = 1.0 init 0.0 in
+  let x = sin (t) in
+  (* let x = t *. t in *)
+  let x' = derivative(0.0001, x) in
+  let x'_ref = cos (t) in
+   let error = abs_float (x' -. x'_ref) in
+   present
+    (period (0.001)) ->
+       let x = Scope.scope (-2.0, 2.0, ("x =", Scope.linear, x))
+       and x' = Scope.scope (-2.0, 2.0, ("x' =", Scope.linear, x'))
+       and x_ref =
+                Scope.scope (-2.0, 2.0, ("error =", Scope.linear, error)) in
+       Scope.window3 ("derivative", 8.0, t, x, x', x_ref)
+  else ()
+

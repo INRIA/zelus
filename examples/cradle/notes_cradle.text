@@ -1,0 +1,54 @@
+
+Tiré directement de l'exemple simulink :
+   - trois billes b0, b1, b2,
+     avec position (angle) p0 p1 p2
+     et vitesse (tangentielle ?) v0 v1 v2
+   - état initial avec des billes immobiles (ici 2)
+     et des billes  en l'air (ici 1)
+   - en cas de choc, echange VITESSE ET ANGLE entre les billes
+
+    / | |
+   /  | |
+ p0   | |
+     p1 p2 
+
+Plusieurs enseignements intéressants
+====================================
+
+Bug Scheduling
+--------------
+  (semble-t-il) un bug dans le scheduling qui fait que la version ou
+  on echange VITESSE ET ANGLE ne marche pas
+  -> on se contente d'echanger les VITESSES
+
+Fausse immobilité
+-----------------
+  on observe des "chocs" bizares entre billes immobiles, explication :
+  quand une bille :
+    p0=eps v0<>eps
+  tappe une bille PARFAITEMENT immobile :
+    p1=v1=0.0
+  on echange les vitesses, MAIS PAS LA POSITION :
+    p0=eps v0=0.0
+    p1=0.0 v1<>eps
+
+  Evidemment, ca n'arive qu'une fois !
+  A partir d'un moment, il n'existe plus de billes
+  parfaitement immobile, mais des billes RELATIVEMENT 
+  immobiles : p=eps et v=eps
+  d'où des "micros-chocs"
+
+Ratage de la transmission
+-------------------------
+  Meme en corrigeant on n'obtiendra pas le resultat escompté car :
+  b0, en mouvement, frappe b1, typiquement :
+  p0 = +eps, v0 = xx, p1 = 0, v1 = 0, p2 = 0, v2 = 0 
+->
+  p0 = 0, v0 = 0, p1 = +eps, v1 = xxx, p2 = 0, v2 = 0 
+
+Probleme : on a un changement (p1 - p2) passe de 0 à +eps,
+qui n'est pas décelé comme un zero-crossing :
+- ni dans le discret (0 -> +eps)
+- ni dans le continu (+eps -> ++eps etc)
+
+C'est encore un probleme de decoleage ?

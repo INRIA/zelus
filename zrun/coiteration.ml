@@ -188,26 +188,9 @@ let rec iexp genv env { e_desc; e_loc  } =
         return
           (Speriod
              { zin = false; phase = v1; period = v2; horizon = v1 +. v2 })
-     | Eget, [e1; _] ->
-        (* [e1.(i)] - i must be combinatorial *)
-        let* s1 = iexp genv env e1 in
-        return s1
-     | Eslice, [e1; _; _] ->
-        (* [e1.(i1 .. i2)] - i1 and i2 must be combinatorial *)
-        let* s1 = iexp genv env e1 in
-        return s1
-     | Econcat, [e1; e2] ->
-        let* s1 = iexp genv env e1 in
-        let* s2 = iexp genv env e2 in
-        return (Slist [s1; s2])
-     | (Eget_with_default), [e1; e2; e3] ->
-        let* s1 = iexp genv env e1 in
-        let* s2 = iexp genv env e2 in
-        let* s3 = iexp genv env e3 in
-        return (Slist [s1; s2; s3])
-     | (Earray_list | Eupdate), e_list ->
-        let* s_list = map(iexp genv env) e_list in
-        return (Slist(s_list))
+     | Earray _, e_list ->
+        let* s_list = map (iexp genv env) e_list in
+        return (Slist s_list) 
      | _ -> error { kind = Etype; loc = e_loc }
      end
   | Etuple(e_list) -> 
@@ -223,7 +206,7 @@ let rec iexp genv env { e_desc; e_loc  } =
          Opt.to_result ~none: { kind = Eunbound_lident(lname); loc = e_loc} in
      let* s =
        match v with
-       | Vclosure ({ c_funexp = { f_kind = Knode | Khybrid } } as c) ->
+       | Vclosure ({ c_funexp = { f_kind = Knode _ } } as c) ->
           let* si = instance e_loc c in
           return (Sinstance(si))
        | Vclosure _ | Vfun _ -> return Sempty
@@ -707,41 +690,57 @@ let rec sexp genv env { e_desc; e_loc } s =
                (Value(Vbool(zin)), Slist [Shorizon { h with horizon }; s])
         else
           return (Value(Vbool(zin)), Slist [Shorizon(h); s])
-     | Econcat, [e1; e2], Slist [s1; s2] ->
-        let* v1, s1 = sexp genv env e1 s1 in
-        let* v2, s2 = sexp genv env e2 s2 in
-        let* v = Combinatorial.concat e_loc v1 v2 in
-        return (v, Slist [s1; s2])
-     | Eget, [e; i], s ->
-        let* v, s = sexp genv env e s in
-        let* i = Combinatorial.exp genv env i in
-        let* v = Combinatorial.get e_loc v i in
-        return (v, s)
-     | Eget_with_default, [e; ei; default], Slist [se; si; s_default] ->
-        let* v, se = sexp genv env e se in
-        let* vi, si = sexp genv env ei si in
-        let* default, s_default = sexp genv env default s_default in
-        let* v = Combinatorial.get_with_default e_loc v vi default in
-        return (v, s)
-     | Eslice, [e; i1; i2], s ->
-        let* v, s = sexp genv env e s in
-        let* i1 = Combinatorial.exp genv env i1 in
-        let* i2 = Combinatorial.exp genv env i2 in
-        let* v = Combinatorial.slice e_loc v i1 i2 in
-        return (v, s)        
-     | Eupdate, (e :: arg :: i_list), Slist (s :: s_arg :: s_list) ->
-        (* [| e with i1,..., in <- arg |] *)
-        let* v, s = sexp genv env e s in
-        let* v_arg, s_arg = sexp genv env arg s_arg in
-        let* i_list, s_list = slist e_loc genv env sexp i_list s_list in
-        let* v = Combinatorial.update_list e_loc v i_list v_arg in
-        return (v, Slist (s :: s_arg :: s_list))
-     | Earray_list, e_list, Slist s_list ->
-        let* v_list, s_list = slist e_loc genv env sexp e_list s_list in
-        let v_list = Primitives.slist v_list in
-        return
-          (Primitives.lift (fun v -> Varray(Array.of_list v)) v_list,
-           Slist s_list)
+     | Earray(op), _, _ ->
+        begin match op, e_list, s with
+          | Econcat, [e1; e2], Slist [s1; s2] ->
+             let* v1, s1 = sexp genv env e1 s1 in
+             let* v2, s2 = sexp genv env e2 s2 in
+             let* v = Combinatorial.concat e_loc v1 v2 in
+             return (v, Slist [s1; s2])
+          | Eget, [e; i], s ->
+             let* v, s = sexp genv env e s in
+             let* i = Combinatorial.exp genv env i in
+             let* v = Combinatorial.get e_loc v i in
+             return (v, s)
+          | Eget_with_default, [e; ei; default], Slist [se; si; s_default] ->
+             let* v, se = sexp genv env e se in
+             let* vi, si = sexp genv env ei si in
+             let* default, s_default = sexp genv env default s_default in
+             let* v = Combinatorial.get_with_default e_loc v vi default in
+             return (v, s)
+          | Eslice, [e; i1; i2], s ->
+             let* v, s = sexp genv env e s in
+             let* i1 = Combinatorial.exp genv env i1 in
+             let* i2 = Combinatorial.exp genv env i2 in
+             let* v = Combinatorial.slice e_loc v i1 i2 in
+             return (v, s)        
+          | Eupdate, (e :: arg :: i_list), Slist (s :: s_arg :: s_list) ->
+             (* [| e with i1,..., in <- arg |] *)
+             let* v, s = sexp genv env e s in
+             let* v_arg, s_arg = sexp genv env arg s_arg in
+             let* i_list, s_list = slist e_loc genv env sexp i_list s_list in
+             let* v = Combinatorial.update_list e_loc v i_list v_arg in
+             return (v, Slist (s :: s_arg :: s_list))
+          | Earray_list, e_list, Slist s_list ->
+             let* v_list, s_list = slist e_loc genv env sexp e_list s_list in
+             let v_list = Primitives.slist v_list in
+             return
+               (Primitives.lift (fun v -> Varray(Vflat(Array.of_list v))) v_list,
+                Slist s_list)
+          | Etranspose, [e], s ->
+             let* v, s = sexp genv env e s in
+             let*v = Combinatorial.transpose e_loc v in
+             return (v, s)
+          | Eflatten, [e], s ->
+             let* v, s = sexp genv env e s in
+             let*v = Combinatorial.flatten e_loc v in
+             return (v, s)
+          | Ereverse, [e], s ->
+             let* v, s = sexp genv env e s in
+             let*v = Combinatorial.reverse e_loc v in
+             return (v, s)
+          | _ -> error { kind = Etype; loc = e_loc }
+        end
      | _ -> error { kind = Etype; loc = e_loc }
      end
   | Econstr1 { lname; arg_list }, Slist(s_list) ->
@@ -830,7 +829,7 @@ let rec sexp genv env { e_desc; e_loc } s =
      let* v, s = sexp genv env e_body s in
      let* r = Combinatorial.check_assertion e_loc v void in
      return (r, s)
-  | Eforloop({ for_kind; for_index; for_body }),
+  | Eforloop({ for_kind; for_index; for_body; for_resume }),
     Slist ((Sopt(Some(Value(Vint(size)))) as sv) ::
              Slist(s_for_body :: sr_list) :: si_list) ->
      (* the size [size] is known *)
@@ -840,11 +839,15 @@ let rec sexp genv env { e_desc; e_loc } s =
        mapfold2v { kind = Estate; loc = e_loc }
          (sfor_index size genv env) Env.empty for_index si_list in
      (* step in the body only if [i_env] is not bot or nil *)
-     let* r, s_for_body, sr_list =
+     let* r, s_for_body_new, sr_list =
        sforloop_exp
-         e_loc genv env size for_kind for_body i_env s_for_body sr_list in
+         e_loc genv env size for_kind for_resume for_body
+         i_env s_for_body sr_list in
+     let s_for_body = if for_resume then s_for_body_new
+                      else s_for_body in
      return (r, Slist(sv :: Slist(s_for_body :: sr_list) :: si_list))
-  | Eforloop({ for_kind; for_index = index :: index_list; for_body }),
+  | Eforloop
+      ({ for_kind; for_index = index :: index_list; for_body; for_resume }),
     Slist (Sopt(None) :: Slist(s_for_body :: sr_list) :: si :: si_list) ->
      (* the size is not known *)
      let* size_i_env, si =
@@ -863,9 +866,11 @@ let rec sexp genv env { e_desc; e_loc } s =
             mapfold2v { kind = Estate; loc = e_loc }
               (sfor_index size genv env) i_env index_list si_list in
           (* step in the body only if [i_env] is not bot or nil *)
-          let* r, s_for_body, sr_list =
-            sforloop_exp e_loc genv env size for_kind for_body i_env
+          let* r, s_for_body_new, sr_list =
+            sforloop_exp e_loc genv env size for_kind for_resume for_body i_env
               s_for_body sr_list in
+          let s_for_body = if for_resume then s_for_body_new
+                            else s_for_body in
           return (r, size_of_for_kind for_kind size,
                   s_for_body, sr_list, si, si_list) in
      return (r, Slist (Sopt(s_size) :: Slist(s_for_body :: sr_list) ::
@@ -873,7 +878,7 @@ let rec sexp genv env { e_desc; e_loc } s =
   | _ -> error { kind = Estate; loc = e_loc }
        
 and sforloop_exp
-  loc genv env for_size for_kind for_body i_env s_for_body sr_list =
+  loc genv env for_size for_kind for_resume for_body i_env s_for_body sr_list =
   match i_env with
   | Vbot -> return (Vbot, s_for_body, sr_list)
   | Vnil -> return (Vnil, s_for_body, sr_list)
@@ -887,7 +892,7 @@ and sforloop_exp
             | Kforeach, Slist(s_list) ->
                (* parallel loop; every iteration has its own state *)
                let* ve, s_list =
-                 Forloop.foreach
+                 Forloop.foreach loc
                    (fun env s -> sexp genv env e s) env i_env s_list in
                return (ve, Slist(s_list))
             | Kforward(None), _ ->
@@ -905,9 +910,11 @@ and sforloop_exp
                       return Vnil 
                  | Some(e) -> Combinatorial.exp genv env e in
                (* the final state is discarded *)
-               let* ve, _ =
-                 Forloop.forward (fun env s -> sexp genv env e s)
+               let* ve, s_for_body_new =
+                 Forloop.forward loc (fun env s -> sexp genv env e s)
                    env i_env for_size default s_for_body in
+               let s_for_body =
+                 if for_resume then s_for_body_new else s_for_body in
                return (ve, s_for_body) 
             | _ -> error { kind = Estate; loc } in
           return (ve, s_for_body, sr_list)
@@ -929,16 +936,18 @@ and sforloop_exp
                  let* _, local_env, s = sblock genv env body s in
                  return (local_env, s) in
                let* env_list, acc_env, s_list =
-                 Forloop.foreach_with_accumulation_i
+                 Forloop.foreach_with_accumulation_i loc
                    sbody env i_env acc_env s_list in
                return (0, env_list, acc_env, Slist(s_list))
             | Kforward(None), _ ->
                let sbody env s =
                  let* _, local_env, s = sblock genv env body s in
                  return (local_env, s) in
-               let* env_list, acc_env, _ =
-                 Forloop.forward_i_without_exit_condition
+               let* env_list, acc_env, s_for_body_new =
+                 Forloop.forward_i_without_exit_condition loc
                    sbody env i_env acc_env for_size s_for_body in
+               let s_for_body =
+                 if for_resume then s_for_body_new else s_for_body in
                return (0, env_list, acc_env, s_for_body)
             | Kforward(Some(e_while)), _ ->
                (* for the moment, the exit condition must be combinatorial *)
@@ -946,12 +955,14 @@ and sforloop_exp
                  let* _, local_env, s = sblock genv env body s in
                  return (local_env, s) in
                let cond env = Combinatorial.exp genv env e_while in
-               let* env_list, acc_env, _ =
+               let* env_list, acc_env, s_for_body_new =
                  Forloop.forward_i_with_exit_condition e_while.e_loc
                    body.b_write
                    sbody cond env i_env acc_env for_size s_for_body in
                (* was-it a complete iteration? *)
                let missing = for_size - List.length env_list in
+               let s_for_body =
+                 if for_resume then s_for_body_new else s_for_body in
                return (missing, env_list, acc_env, s_for_body)
             | _ -> error { kind = Estate; loc } in
           (* return the result of the for loop *)
@@ -1170,7 +1181,7 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
      let cur =
        match cx_opt with
        | None ->
-          (* no event is present; return the value computed by the solver *)
+          (* no reset event; return the value computed by the solver *)
           pos
        | Some(cx) ->
           (* otherwise the value returned by the handler *)
@@ -1315,7 +1326,7 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
      let* ve, s = sexp genv env e s in
      let* r = Combinatorial.check_assertion eq_loc ve Env.empty in
      return (r, s)
-  | EQforloop({ for_kind; for_index; for_body }),
+  | EQforloop({ for_kind; for_index; for_body; for_resume }),
     Slist ((Sopt(Some(Value(Vint(size)))) as sv) ::
              Slist(s_for_block :: so_list) :: si_list) ->
      (* computes a local environment for variables introduced *)
@@ -1324,11 +1335,15 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
        mapfold2v { kind = Estate; loc = eq_loc }
          (sfor_index size genv env) Env.empty for_index si_list in
      (* step in the body only if [i_env] is not bot or nil *)
-     let* r, s_for_block, so_list =
+     let* r, s_for_block_new, so_list =
        sforloop_eq
-         eq_loc genv env size for_kind for_body i_env s_for_block so_list in
+         eq_loc genv env size for_kind for_resume for_body
+         i_env s_for_block so_list in
+     let s_for_block = if for_resume then s_for_block_new
+                            else s_for_block in
      return (r, Slist(sv :: Slist(s_for_block :: so_list) :: si_list))
-  | EQforloop({ for_kind; for_index = index :: index_list; for_body }),
+  | EQforloop
+       ({ for_kind; for_index = index :: index_list; for_body; for_resume }),
     Slist (Sopt(None) :: Slist(s_for_block :: so_list) :: si :: si_list) ->
     (* the size is not known *)
     let* size_i_env, si =
@@ -1346,13 +1361,27 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
            mapfold2v { kind = Estate; loc = eq_loc }
              (sfor_index size genv env) i_env index_list si_list in
          (* step in the body only if [i_env] is not bot or nil *)
-         let* r, s_for_body, so_list =
+         let* r, s_for_body_new, so_list =
            sforloop_eq
-             eq_loc genv env size for_kind for_body i_env s_for_body so_list in
+             eq_loc genv env size for_kind for_resume for_body
+             i_env s_for_body so_list in
+         let s_for_body = if for_resume then s_for_body_new
+                            else s_for_body in
          return (r, size_of_for_kind for_kind size,
                  s_for_body, so_list, si, si_list) in
     return (r, Slist (Sopt(s_size) :: Slist(s_for_block :: so_list) ::
                         si :: si_list))
+  | EQemit(x, e_opt), s ->
+     (* not implemented *)
+     let* v, s = sexp_opt genv env e_opt s in
+     let* ({ cur } as entry) =
+       Env.find_opt x env |>
+         Opt.to_result ~none:{ kind = Eunbound_ident(x); loc = eq_loc } in
+     let cur =
+       match cur with
+       | Vbot -> Vbot | Vnil -> Vnil | Value(v) -> Value(Vpresent(v)) in
+     return (Env.singleton x { entry with cur }, s)
+  (* error { kind = Enot_implemented; loc = eq_loc } *)
   | _ -> error { kind = Estate; loc = eq_loc }
 
 (* how the size must be kept or not from one reaction to the other *)
@@ -1364,7 +1393,8 @@ and size_of_for_kind for_kind size =
   | Kforward _ -> None
                                                                         
 and sforloop_eq
-  loc genv env size for_kind { for_out; for_block } i_env s_for_block so_list =
+  loc genv env size for_kind for_resume { for_out; for_block }
+  i_env s_for_block so_list =
   match i_env with
   | Vbot -> return (bot_env for_block.b_write, s_for_block, so_list)
   | Vnil -> return (nil_env for_block.b_write, s_for_block, so_list)
@@ -1386,16 +1416,18 @@ and sforloop_eq
             let* _, local_env, s = sblock genv env for_block s in
             return (local_env, s) in
           let* env_list, acc_env, s_list =
-            Forloop.foreach_with_accumulation_i
+            Forloop.foreach_with_accumulation_i loc
               sbody env i_env acc_env s_list in
           return (0, env_list, acc_env, Slist(s_list))
        | Kforward(None), _ ->
           let sbody env s =
             let* _, local_env, s = sblock genv env for_block s in
             return (local_env, s) in
-          let* env_list, acc_env, _ =
-            Forloop.forward_i_without_exit_condition
+          let* env_list, acc_env, s_for_block_new =
+            Forloop.forward_i_without_exit_condition loc
               sbody env i_env acc_env size s_for_block in
+          let s_for_block =
+            if for_resume then s_for_block_new else s_for_block in
           return (0, env_list, acc_env, s_for_block)
        | Kforward(Some(e_while)), _ ->
           (* for the moment, the exit condition must be combinatorial *)
@@ -1403,12 +1435,14 @@ and sforloop_eq
             let* _, local_env, s = sblock genv env for_block s in
             return (local_env, s) in
           let cond env = Combinatorial.exp genv env e_while in
-          let* env_list, acc_env, _ =
+          let* env_list, acc_env, s_for_block_new =
             Forloop.forward_i_with_exit_condition e_while.e_loc
               for_block.b_write
               sbody cond env i_env acc_env size s_for_block in
           (* was-it a complete iteration? *)
           let missing = size - List.length env_list in
+          let s_for_block =
+            if for_resume then s_for_block_new else s_for_block in
           return (missing, env_list, acc_env, s_for_block)
        | _ -> error { kind = Estate; loc } in
      let* env =
@@ -1477,7 +1511,7 @@ and svardec genv env acc
             | _ -> error { kind = Estate; loc = var_loc }
           else return (None, se)
        | Some(e), Slist [Sopt(None); se] ->
-          (* first instant *)
+          (* first instant. *)
           let* ve, se = sexp genv env e se in
           return (Some(ve), Slist [Sopt(None); se])
        | _, Slist [Sopt(Some(v)); _] ->
@@ -1754,13 +1788,13 @@ let implementation genv { desc; loc } =
   | Eopen(name) ->
      (* add [name] in the list of known modules *)
      return (Genv.open_module genv name)
-  | Eletdecl(f, e) ->
+  | Eletdecl { name; e } ->
      (* add the entry [f, v] in the current global environment *)
      let* v = Combinatorial.exp genv Env.empty e in
      let* v = no_bot_no_nil loc v in
      (* debug info (a bit of imperative code here!) *)
-     if !print_values then Output.letdecl Format.std_formatter f v;
-     return (add f v genv)
+     if !print_values then Output.letdecl Format.std_formatter name v;
+     return (add name v genv)
   | Etypedecl _ ->
      return genv
      

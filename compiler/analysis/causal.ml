@@ -276,6 +276,7 @@ let skeleton_on_c c ty =
     | Tlink(ty) -> skeleton_on_c is_right c_right ty in
   skeleton_on_c true c ty
 
+
 (* the skeleton for the type of a variable. no constraint for function types *)
 (* only for other types *)
 let skeleton_for_variables ty =

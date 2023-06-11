@@ -9,13 +9,48 @@
 (subdir parsing
   (menhir (modules parser) (infer true) (flags --explain --table)))
 
+; all the modules necessary to generate a zelus term
+(library
+  (name zlgloballibs)
+  (public_name zelus.zlgloballibs)
+  (wrapped false)
+  (modules
+    config debug genames initial modules printer util
+    defcaus global lident pcaus ptypes write
+    definit graph location pinit scoping zelus
+    deftypes ident misc pp_tools state
+    misc location initial parsetree lexer parser)
+  (libraries menhirLib))	
+
+; all the modules necessary to type check a zelus term
+(library
+  (name zltypinglibs)
+  (public_name zelus.zltypinglibs)
+  (wrapped false)
+  (modules
+    interface matching total types
+    kind patternsig typerrors typing)
+  (libraries zlgloballibs))
+
+; all the modules necessary to do causality and initialization analyses
+(library
+  (name zlanalysislibs)
+  (public_name zelus.zlanalysislibs)
+  (wrapped false)
+  (modules
+    causal causality init initialization)
+    (libraries zlgloballibs zltypinglibs))
+
+; all the modules to compile a zelus term
 (library
   (name zlcompilerlibs)
   (public_name zelus.zlcompilerlibs)
   (wrapped false)
-  (modules :standard \ zeluc)
-  (libraries menhirLib))
+  (modules
+    compiler)
+  (libraries zlgloballibs zltypinglibs zlanalysislibs))
 
+; the executable to compile a zelus term
 (executable
   (name zeluc)
   (modes (byte exe))

@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2021 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2023 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -575,16 +575,18 @@ let implementation ff impl =
   try
     match impl.desc with
     | Eopen _ | Etypedecl _ -> ()
-    | Eletdecl(f, e) ->
+    | Eletdecl { name; e } ->
         Misc.push_binding_level ();
         let ti = exp Env.empty e in
         Misc.pop_binding_level ();
         let tis = generalise ti in
-        Global.set_init (Modules.find_value (Lident.Name(f))) tis;
+        Global.set_init (Modules.find_value (Lident.Name(name))) tis;
         (* output the signature *)
-        if !Misc.print_initialization_types then Pinit.declaration ff f tis
+        if !Misc.print_initialization_types then Pinit.declaration ff name tis
   with
   | Error(loc, kind) -> message loc kind
                           
 let program ff impl_list =
   List.iter (implementation ff) impl_list; impl_list
+
+let implementation_list = program

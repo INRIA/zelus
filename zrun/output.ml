@@ -58,12 +58,19 @@ let rec pvalue ff v =
      Format.fprintf ff "abs"
   | Vpresent(v) ->
      Format.fprintf ff "!%a" pvalue v
-  | Varray(v) ->
+  | Varray(a) -> parray ff a
+
+and parray ff a =
+  match a with
+  | Vflat(v) ->
      Format.fprintf ff "@[<hov1>[|%a|]@]"
        (fun ff v ->
          Array.iter (fun x -> Format.fprintf ff "%a;@," pvalue x) v)
        v
-    
+  | Vmap(m) -> pmap ff m
+
+and pmap ff { m_length; m_u } = Format.fprintf ff "@[[%d] -> ...@]" m_length
+
 and value ff v =
   match v with
   | Vnil -> Format.fprintf ff "nil"

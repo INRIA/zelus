@@ -1,0 +1,16 @@
+val draw_system :
+  float *
+  float *
+  float * 
+  float * 
+  float * 
+  float * 
+  float * 
+  float * 
+  float *
+  int * 
+  int * 
+  int -AD-> unit
+val input : unit -AD-> bool
+val play_tic : unit -AD-> unit
+val play_toc : unit -AD-> unit
