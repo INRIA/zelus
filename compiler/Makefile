@@ -1,8 +1,9 @@
 all:
-	dune build 
+	dune build -- zeluc.exe
+
 
 debug:
-	dune build --debug-backtraces --debug-dependency-path
+	dune build --debug-backtraces --debug-dependency-path -- zeluc.bc
 
 clean:
 	dune clean
