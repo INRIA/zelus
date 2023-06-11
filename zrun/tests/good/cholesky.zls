@@ -1,0 +1,157 @@
+(* Cholesky. [a] is a [n x n] definite positive matrix. [l] is a *)
+(* triangular matrix such that [l * (transpose l) = a] *)
+(* not very elegant. Repetitions. Not efficient because [n x n] steps *)
+(* instead of [n x n-1 / 2] *)
+let mat = fun (n, v) -> fun () =>
+  foreach i in 0 to n-1 do foreach i in 0 to n-1 do v done done
+
+let node main14() = run (mat(5, 0.0))()
+
+(* cholesky *)
+let node cholesky_exp(n)(a) returns (l)
+  do l =
+    forward i in 0 to n-1, ai in a returns (l init (run (mat (n, 0.0)) ()))
+      do l = forward j in 0 to n-1, aij in ai returns (l init last l)
+              do
+                let tmp_sum =
+                  forward k in 0 to i-1 returns (cpt init 0.0)
+                    do cpt = last cpt +. (last l).(i).(k) *. (last l).(j).(k)
+                    done in
+                let lij = if i = j then sqrt(aij -. tmp_sum)
+                          else if j < i then
+		                 (aij -. tmp_sum) /. (last l).(j).(j)
+		               else 0.0 in
+                do l = [| last l with i, j <- lij |] done
+	      done
+     done
+  done
+
+(* in equational form *)
+let node cholesky(n)(a) returns (l)
+  forward i in 0 to n-1, ai in a, l init (run (mat (n, 0.0)) ()) do
+    forward j in 0 to n-1, aij in ai, l init last l do
+      let tmp_sum =
+            forward k in 0 to i-1 returns (cpt init 0.0)
+               do cpt = last cpt +. (last l).(i).(k) *. (last l).(j).(k)
+               done in
+      let lij = if i = j then sqrt(aij -. tmp_sum)
+                else if j < i then (aij -. tmp_sum) /. (last l).(j).(j)
+                else 0.0 in
+      do l = [| last l with i, j <- lij |] done
+    done
+  done
+
+let node main15() =
+  let m = [| [| 1.0; 2.0; 4.0 |];
+	     [| 2.0; 3.0; 5.0 |];
+	     [| 4.0; 5.0; 6.0 |] |] in
+  run (cholesky(3))(m)
+
+let node main16() =
+  let m = [| [| 1.0; 0.0; 0.0 |];
+	     [| 0.0; 1.0; 0.0 |];
+	     [| 0.0; 0.0; 1.0 |] |] in
+  run (cholesky(3))(m)
+
+(*
+m2 = numpy.array ([[4.0, 12.0, -16.0],
+                  [12.0, 37.0, -43.0], 
+                  [-16.0, -43.0, 98.0]])
+>>> numpy.linalg.cholesky(m2)
+array([[ 2.,  0.,  0.],
+       [ 6.,  1.,  0.],
+       [-8.,  5.,  3.]]) *)
+    
+let node main17() =
+  let m = [| [|4.0; 12.0; -16.0 |];
+	     [| 12.0; 37.0; -43.0 |];
+	     [| -16.0; -43.0; 98.0 |] |] in
+  let m_result = run (cholesky(3))(m) in
+  let m_expected =
+    [| [| 2.;  0.;  0. |];
+       [| 6.;  1.;  0. |];
+       [| -8.;  5.; 3. |] |] in
+  assert (m_result = m_expected)
+
+let node main18() =
+  let m = [| [|4.0; 12.0; -16.0 |];
+	     [| 12.0; 37.0; -43.0 |];
+	     [| -16.0; -43.0; 98.0 |] |] in
+  let m_result = run (cholesky_exp(3))(m) in
+  let m_expected =
+    [| [| 2.;  0.;  0. |];
+       [| 6.;  1.;  0. |];
+       [| -8.;  5.;  3. |] |] in
+  assert (m_result = m_expected)
+
+(*
+// Code Baptiste.
+
+Produit scalaire
+let vec_vec <<n>> (u,v) = (a)
+  forward _<n (ui in u, vi in v, a init 0)
+    a = last a + ui * vi
+ *)
+
+let node vec_vec(u, v) returns (a)
+  forward ui in u, vi in v do a = last a +. ui *. vi done
+
+(*
+// Version "optimisée" et renversée: on sait vérifier les accès: juste quantif existentielle
+let cholesky <<n>> (A:[n,n]float) = (L:[n,n]float)
+  L = transpose M;
+  forward j<n (Aj in transpose A, M of mj) do
+    at ++[ ad ]++ ab = A_j;
+    lt ++[ ld ]++ lb = transpose last M;
+    t = map <<j>> (fun _ _ -> 0) (at,lt);
+    d = sqrt (ad - vec_vec (ld,ld));
+    b = map <<_>> (fun a l -> (a - vec_vec (l,ld)) / d) (ab,lb);
+    mj = t ++[ d ]++ b; 
+ *)
+let node transpose(n,m)(a) =
+    foreach i in 0 to n - 1 do
+      foreach j in 0 to m - 1 do
+	a.(j).(i)
+      done
+    done
+
+let node chauds_les_skis(n)(a) =
+  let rec
+      l = transpose(n, n, m)
+  and
+      forward j in 0 to n - 1, aj in transpose(n, n, a),
+              mj out m do
+       at = aj.(0 .. (j-1))
+     and
+	 ad = aj.(j)
+     and
+	 ab = aj.((j+1) .. (n-1))
+     and
+	 t_last_m = transpose(j, n, last m)
+     and
+	 lt = t_last_m.(0 .. (j-1))
+     and
+	 ld = t_last_m.(j)
+     and
+	 lb = t_last_m.((j+1) .. (n-1))
+     and
+	 t = foreach k in 0 to j - 1 do 0 done
+     and
+         d = sqrt (ad - vec_vec(ld, ld))
+     and
+         b = foreach a in ab, l in lb do (a -. vec_vec (l, ld)) / d done
+     and
+         mj = [| t ++ [| d |] ++ b |]
+     done in
+  l
+
+(* let node main19() =
+  let m = [| [|4.0; 12.0; -16.0 |];
+	     [| 12.0; 37.0; -43.0 |];
+	     [| -16.0; -43.0; 98.0 |] |] in
+  let m_result = run (chauds_les_skis(3))(m) in
+  let m_expected =
+    [| [| 2.;  0.;  0. |];
+       [| 6.;  1.;  0. |];
+       [| -8.;  5.;  3. |] |] in
+  m_result, m_expected *)
