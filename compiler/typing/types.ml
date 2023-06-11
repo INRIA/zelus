@@ -47,6 +47,7 @@ let new_size_var () =
   { t_desc = Svar; t_level = !binding_level; t_index = symbol#name }
 let new_generic_size_var () =
   { t_desc = Svar; t_level = generic; t_index = symbol#name }
+
 let new_var () =
   { t_desc = Tvar; t_level = !binding_level; t_index = symbol#name }
 let new_generic_var () =
@@ -127,7 +128,7 @@ let rec gen_ty is_gen ty =
        ty.t_level <- gen_ty is_gen link
   end;
   ty.t_level
-      
+
 (* main generalisation function *)
 let gen non_expensive typ_body =
   list_of_typ_vars := [];

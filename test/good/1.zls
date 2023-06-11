@@ -2,7 +2,7 @@ type t2 = int
 
 let f0 x  = x + 1
     
-let f11 x y z  = x + y + z
+let f11 (x init 0)x y z  = x + y + z
 
 let k (m1, m2, m3) s = f1 (m1, m2, m, s)
     

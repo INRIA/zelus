@@ -329,9 +329,9 @@ and funexp = funexp_desc localized
 
 and arg = exp vardec list
 
-and arg1 =
+(* and arg1 =
   | Apat: pattern -> arg1
-  | Avardec : exp vardec -> arg1
+  | Avardec : exp vardec -> arg1 *)
 
 and result = result_desc localized
 
