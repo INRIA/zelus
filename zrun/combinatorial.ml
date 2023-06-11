@@ -454,9 +454,9 @@ and apply_closure loc genv env ({ f_kind; f_loc } as fe) f_args f_body v_list =
      (* check that the kind is combinatorial *)
      let* r =
        match f_kind with
-       | Knode | Khybrid ->
+       | Knode _ ->
           error { kind = Eshould_be_combinatorial; loc }
-       | Kstatic | Kfun ->
+       | Kfun _ ->
           match v_list with
           | [] -> result genv env f_body
           | _ -> let*+ fv = result genv env f_body in

@@ -206,7 +206,7 @@ let rec iexp genv env { e_desc; e_loc  } =
          Opt.to_result ~none: { kind = Eunbound_lident(lname); loc = e_loc} in
      let* s =
        match v with
-       | Vclosure ({ c_funexp = { f_kind = Knode | Khybrid } } as c) ->
+       | Vclosure ({ c_funexp = { f_kind = Knode _ } } as c) ->
           let* si = instance e_loc c in
           return (Sinstance(si))
        | Vclosure _ | Vfun _ -> return Sempty
@@ -1788,13 +1788,13 @@ let implementation genv { desc; loc } =
   | Eopen(name) ->
      (* add [name] in the list of known modules *)
      return (Genv.open_module genv name)
-  | Eletdecl(f, e) ->
+  | Eletdecl { name; e } ->
      (* add the entry [f, v] in the current global environment *)
      let* v = Combinatorial.exp genv Env.empty e in
      let* v = no_bot_no_nil loc v in
      (* debug info (a bit of imperative code here!) *)
-     if !print_values then Output.letdecl Format.std_formatter f v;
-     return (add f v genv)
+     if !print_values then Output.letdecl Format.std_formatter name v;
+     return (add name v genv)
   | Etypedecl _ ->
      return genv
      

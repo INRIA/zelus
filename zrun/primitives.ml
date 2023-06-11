@@ -61,7 +61,7 @@ let test v =
      
 let get_node v =
   match v with
-  | Vclosure ({ c_funexp = { f_kind = Knode | Khybrid } } as c) -> return c
+  | Vclosure ({ c_funexp = { f_kind = Knode _ } } as c) -> return c
   | _ -> None
        
 let get_record r =
