@@ -16,6 +16,20 @@ type 'a localized = { desc: 'a; loc: Location.t }
 
 type name = String.t
 
+(** kinds *)
+type kind =
+  | Knode : tkind -> kind (* stateful *)
+  | Kfun : vkind -> kind (* combinatorial *)
+
+and vkind =
+  | Kconst (* constant; known at compilation time *)
+  | Kstatic (* constant; known at instantiation time *)
+  | Kany (* known dynamically *)
+
+and tkind =
+  | Kdiscrete (* only discrete-time state variables *)
+  | Khybrid (* discrete-time and continuous-time state variables *)
+
 (** Types *)
 type type_expression = type_expression_desc localized
 
@@ -24,12 +38,21 @@ and type_expression_desc =
   | Etypeconstr : Lident.t * type_expression list -> type_expression_desc
   | Etypetuple : type_expression list -> type_expression_desc
   | Etypefun : kind * type_expression * type_expression -> type_expression_desc
+  (* refinment types for integers and arrays *)
+  | Esize : is_singleton * size -> type_expression_desc
+  (* a subset of positive integers *)
+  | Evec : type_expression * size -> type_expression_desc
+  (* [size]t *)
 
-and kind =
-  | Kfun : kind (* combinatorial *)
-  | Knode : kind (* stateful node *)
-  | Khybrid : kind (* stateful hybrid node *)
-  | Kstatic : kind (* constant; known at instanciation time *)
+and is_singleton = bool
+
+and size = size_desc localized
+and size_desc =
+  | Esizeconst : int -> size_desc
+  | Esizevar : name -> size_desc
+  | Esizeop : size_op * size * size -> size_desc
+
+and size_op = Esize_minus | Esize_plus | Esize_mult
 
 (* constants *)
 type immediate =
@@ -246,9 +269,10 @@ and scondpat_desc =
   | Econdon : scondpat * exp -> scondpat_desc
 
 and leq =
-  { l_rec: is_rec;
+  { l_kind: vkind;
+    l_rec: is_rec;
     l_eq: eq;
-    l_loc: Location.t;
+    l_loc : Location.t;
     mutable l_env: exp Deftypes.tentry Ident.Env.t;
   }
   
@@ -360,8 +384,12 @@ type interface = interface_desc localized
 
 and interface_desc =
   | Einter_open : name -> interface_desc 
-  | Einter_typedecl : name * name list * type_decl -> interface_desc 
-  | Einter_constdecl : name * type_expression * name list -> interface_desc 
+  | Einter_typedecl :
+      { name: name; ty_params: name list; size_params: name list;
+        ty_decl: type_decl } -> interface_desc 
+  | Einter_constdecl :
+      { name: name; const: bool; ty: type_expression; info: name list }
+      -> interface_desc 
 
 and type_decl = type_decl_desc localized
     
@@ -381,8 +409,11 @@ type implementation = implementation_desc localized
 
 and implementation_desc =
   | Eopen : name -> implementation_desc
-  | Eletdecl : name * exp -> implementation_desc
-  | Etypedecl : name * name list * type_decl -> implementation_desc
+  | Eletdecl :
+      { name: name; const: bool; e: exp } -> implementation_desc
+  | Etypedecl :
+      { name: name; ty_params: name list; size_params: name list;
+        ty_decl: type_decl } -> implementation_desc
 
 type program = implementation list
 

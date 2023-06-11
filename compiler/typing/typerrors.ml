@@ -40,7 +40,7 @@ type error =
   | Eshould_be_a_signal of Ident.t * typ
   | Ecannot_be_set of bool * Ident.t
   | Etype_clash of typ * typ
-  | Etype_kind_clash of kind * typ
+  | Etype_kind_clash of vkind * typ
   | Earity_clash of int * int
   | Estate_arity_clash of Ident.t * int * int
   | Estate_unbound of Ident.t
@@ -74,11 +74,13 @@ let kind_of_ident k =
   | Derivative -> "derivative"
   | Initial -> "initial value"
                         
-let kind_message kind =
-  match kind with
-  | Tfun -> "function" 
-  | Tnode -> "node"
-  | Tstatic -> "static"
+let vkind_message = function
+    | Tconst -> "constant"
+    | Tstatic -> "static" | Tany -> "combinatorial"
+
+let kind_message = function
+  | Tfun(k) -> vkind_message k
+  | Tnode(k) -> (match k with | Tdiscrete -> "node" | Thybrid -> "hybrid node")
   		
 let message loc kind =
   begin match kind with
@@ -124,9 +126,10 @@ let message loc kind =
        output_location loc
        (Ident.source s) (Ident.source s) (Ident.source s)
   | Eshould_be_a_signal(s, expected_ty) ->
-      eprintf "@[%aType error: %s is a value of type %a,@ \
-               but is expected to be a signal @,\
-               (maybe a default value or initialization is missing).@.@]"
+      eprintf "@[%aType error: the variable %s of type %a is defined by case \
+                   but one case is missing. \n\
+                   Either define the variable as a signal or \
+                   give a default value.@.@]"
         output_location loc
         (Ident.source s)
 	Ptypes.output expected_ty
@@ -149,7 +152,7 @@ let message loc kind =
                which does not belong to the %s kind.@.@]"
         output_location loc
         Ptypes.output actual_ty
-        (kind_message k)
+        (vkind_message k)
   | Earity_clash(actual_arit, expected_arit) ->
       eprintf "@[%aType error: this expression expects %d arguments,@ \
                but is given %d arguments.@.@]"

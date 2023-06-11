@@ -111,6 +111,7 @@ let foreach_loop resume (size, index_list, body) =
 %token CLOCK          /* "clock" */
 %token COLON          /* ":" */
 %token COMMA          /* "," */
+%token CONST          /* "const" */
 %token CONTINUE       /* "continue" */
 %token DEFAULT        /* "default" */
 %token DO             /* "do" */
@@ -124,7 +125,6 @@ let foreach_loop resume (size, index_list, body) =
 %token END            /* "end" */
 %token EQUAL          /* "=" */
 %token EQUALEQUAL     /* "==" */
-%token EQUALGREATER   /* "=>" */
 %token EVERY          /* "every" */
 %token EXCEPTION      /* "exception" */
 %token EXTERNAL       /* "external" */
@@ -154,6 +154,11 @@ let foreach_loop resume (size, index_list, body) =
 %token MATCH          /* "match" */
 %token MINUS          /* "-" */
 %token MINUSGREATER   /* "->" */
+%token AFUN           /* "-A->" */
+%token DFUN           /* "-D->" */
+%token SFUN           /* "-S->" */
+%token VFUN           /* "-V->" */
+%token CFUN           /* "-C->" */
 %token NODE           /* "node" */
 %token OF             /* "of" */
 %token ON             /* "on" */
@@ -173,6 +178,7 @@ let foreach_loop resume (size, index_list, body) =
 %token RUN            /* "run" */
 %token SEMI           /* ";" */
 %token STAR           /* "*" */
+%token STATIC         /* "static" */
 %token TEST           /* "?" */
 %token THEN           /* "then" */
 %token TO             /* "to" */
@@ -220,7 +226,7 @@ let foreach_loop resume (size, index_list, body) =
 %left RPAREN
 %nonassoc prec_minus_greater
 %nonassoc FBY
-%right MINUSGREATER EQUALGREATER
+%right MINUSGREATER VFUN SFUN DFUN CFUN AFUN 
 %left OR BARBAR
 %left AMPERSAND AMPERAMPER
 %left INFIX0 GREATER EQUAL
@@ -304,10 +310,12 @@ interface_file:
 interface:
   | OPEN c = CONSTRUCTOR
       { Einter_open(c) }
-  | TYPE tp = type_params i = IDENT td = localized(type_declaration_desc)
-      { Einter_typedecl(i, tp, td) }
-  | VAL i = ide COLON t = type_expression
-      { Einter_constdecl(i, t, []) }
+  | TYPE tp = type_params i = IDENT sp = size_params
+    td = localized(type_declaration_desc)
+    { Einter_typedecl
+	{ name = i; ty_params = tp; size_params = sp; ty_decl = td } }
+  | v = val_or_const i = ide COLON t = type_expression
+      { Einter_constdecl { name = i; const = v; ty = t; info = [] } }
 ;
 
 /* Scalar interface */
@@ -322,11 +330,14 @@ scalar_interface :
   | OPEN c = CONSTRUCTOR
       { [make (Einter_open(c)) $startpos $endpos] }
   | TYPE tp = type_params i = IDENT td = localized(type_declaration_desc)
-      { [make (Einter_typedecl(i, tp, td)) $startpos $endpos] }
-  | VAL i = ide COLON t = type_expression
-      { [make (Einter_constdecl(i, t, [])) $startpos $endpos] }
+    { [make (Einter_typedecl { name = i; ty_params = tp; size_params = [];
+			       ty_decl = td }) $startpos $endpos] }
+  | v = val_or_const i = ide COLON t = type_expression
+    { [make (Einter_constdecl { name = i; const = v; ty = t; info = [] })
+       $startpos $endpos] }
   | EXTERNAL i = ide COLON t = type_expression EQUAL l = list_no_sep_of(STRING)
-      { [make (Einter_constdecl(i, t, l)) $startpos $endpos] }
+    { [make (Einter_constdecl { name = i; const = false;
+				ty = t; info = l }) $startpos $endpos] }
   | EXCEPTION constructor
       { [] }
   | EXCEPTION constructor OF type_expression
@@ -346,8 +357,22 @@ type_declaration_desc:
       { Eabbrev(t) }
 ;
 
+val_or_const :
+  | VAL { false }
+  | CONST { true }
+;
+
 type_params :
   | LPAREN tvl = list_of(COMMA, type_var) RPAREN
+      { tvl }
+  | tv = type_var
+      { [tv] }
+  |
+      { [] }
+;
+
+size_params :
+  | LBRACKET tvl = list_of(COMMA, type_var) RBRACKET
       { tvl }
   | tv = type_var
       { [tv] }
@@ -393,17 +418,37 @@ decl_list(X):
 implementation:
   | OPEN c = CONSTRUCTOR
     { Eopen c }
-  | TYPE tp = type_params id = IDENT td = localized(type_declaration_desc)
-      { Etypedecl(id, tp, td) }
-  | LET ide = ide EQUAL seq = seq_expression
-      { Eletdecl(ide, seq) }
-  | LET a = is_atomic k = kind ide = ide 
+  | TYPE tp = type_params id = IDENT sp = size_params
+    td = localized(type_declaration_desc)
+    { Etypedecl
+	{ name = id; ty_params = tp; size_params = sp; ty_decl = td } }
+  | LET v = const ide = ide EQUAL seq = seq_expression
+      { Eletdecl { name = ide; const = v; e = seq } }
+  | LET v = const a = is_atomic k = tkind ide = ide 
         p_list = param_list r = result
-    { Eletdecl(ide,
-	       make (Efun(make { f_atomic = a;
-				 f_kind = k; f_args = p_list; f_body = r }
-			  $startpos $endpos))
-	       $startpos $endpos) }
+    { Eletdecl { name = ide; const = v;
+		 e = make (Efun(make { f_atomic = a;
+				       f_kind = k; f_args = p_list;
+				       f_body = r }
+				$startpos $endpos)) $startpos $endpos } }
+;
+
+%inline const:
+  | CONST { true }
+  | { false }
+;
+
+%inline vkind:
+  | CONST { Kconst }
+  | STATIC { Kstatic }
+  | { Kany }
+;
+
+%inline tkind:
+  |    { Kfun(Kany) }
+  | FUN { Kfun(Kany) }
+  | NODE { Knode(Kdiscrete) }
+  | HYBRID { Knode(Khybrid) }
 ;
 
 %inline is_atomic:
@@ -411,11 +456,12 @@ implementation:
   | { false }
 ;
 
-%inline kind:
-  |        { Kfun }
-  | FUN    { Kfun }
-  | NODE   { Knode }
-  | HYBRID { Khybrid }
+%inline fkind:
+  | CONST { Kfun(Kconst) }
+  | STATIC { Kfun(Kstatic) }
+  | FUN    { Kfun(Kany) }
+  | NODE   { Knode(Kdiscrete) }
+  | HYBRID { Knode(Khybrid) }
 ;
 
 %inline result:
@@ -424,7 +470,9 @@ implementation:
   | EQUAL seq = seq_expression
     { make (Exp(seq)) $startpos $endpos }
   | EQUAL seq = seq_expression WHERE i = is_rec eq = equation_and_list
-    { make (Exp(make (Elet(i, eq, seq)) $startpos(seq) $endpos(eq)))
+    { make (Exp(make (Elet(make { l_rec = i; l_kind = Kany; l_eq = eq }
+			  $startpos(eq) $endpos(eq), seq))
+		$startpos(seq) $endpos(eq)))
       $startpos $endpos }
 ;
 
@@ -465,8 +513,9 @@ equation_desc:
     { eq.desc }
   | RESET eq = equation_and_list EVERY e = expression
     { EQreset(eq, e) }
-  | LET i = is_rec let_eq = equation_and_list IN eq = equation
-    { EQlet(i, let_eq, eq) }
+  | LET v = vkind i = is_rec let_eq = equation_and_list IN eq = equation
+    { EQlet(make { l_rec = i; l_kind = v; l_eq = let_eq}
+	    $startpos $endpos(let_eq), eq) }
   | AUTOMATON opt_bar a = automaton_handlers(equation_empty_and_list) END
     { EQautomaton(List.rev a, None) }
   | AUTOMATON opt_bar
@@ -497,7 +546,7 @@ equation_desc:
       { EQinit(i, e) }
   | p = pattern EQUAL e = seq_expression
       { EQeq(p, e) }
-  | a = is_atomic k = kind ide = ide p_list = param_list r = result
+  | a = is_atomic k = tkind ide = ide p_list = param_list r = result
       { EQeq(make (Evarpat ide) $startpos(ide) $endpos(ide),
 	     make (Efun(make { f_atomic = a;
 			       f_kind = k; f_args = p_list; f_body = r }
@@ -628,8 +677,8 @@ let_list:
 ;
 
 %inline one_let:
-  | LET i = is_rec eq = equation_and_list
-    { make (i, eq) $startpos $endpos }
+  | LET v = vkind i = is_rec eq = equation_and_list
+    { make { l_rec = i; l_kind = v; l_eq = eq } $startpos $endpos }
 ;
 
 %inline local_list:
@@ -879,7 +928,7 @@ expression_desc:
       { Eop(Erun(i), [f; e]) }
   | f = simple_expression arg_list = simple_expression_list
       { app f arg_list }
-  | a = is_atomic FUN p_list = param_list k = arrow e = expression
+  | a = is_atomic k = fkind p_list = param_list MINUSGREATER e = expression
       { Efun (make { f_atomic = a; f_kind = k;
 		     f_args = p_list;
 		     f_body = make (Exp(e)) $startpos(e) $endpos(e) }
@@ -932,8 +981,8 @@ expression_desc:
       { binop "||" e1 e2 ($startpos($2)) ($endpos($2)) }
   | p = PREFIX e = expression
       { unop p e ($startpos(p)) ($endpos(p)) }
-  | LET i = is_rec eq = equation_and_list IN e = seq_expression
-    { Elet(i, eq, e) }
+  | LET v = vkind i = is_rec eq = equation_and_list IN e = seq_expression
+    { Elet(make { l_rec = i; l_kind = v; l_eq = eq } $startpos $endpos(eq), e) }
   | MATCH e = seq_expression WITH opt_bar m = match_handlers(expression) opt_end
       { Ematch(e, List.rev m) }
   | PRESENT opt_bar pe = present_handlers(expression) opt_end %prec prec_present
@@ -1191,14 +1240,6 @@ infx:
   | ON              { "on" }  
 ;
 
-%inline arrow:
-  | MINUSGREATER
-      { Kfun }
-  | EQUALGREATER
-    { Knode }
-  | GREATER
-    { Kstatic }
-;
 
 /* Type expressions */
 type_expression:
@@ -1240,4 +1281,19 @@ type_comma_list :
       { te :: tl }
   | te = type_expression
       { [te] }
+;
+
+%inline arrow:
+  | MINUSGREATER
+      { Kfun(Kany) }
+  | VFUN
+       { Kfun(Kconst) }
+  | SFUN
+       { Kfun(Kstatic) }
+  | AFUN
+       { Kfun(Kany) }
+  | DFUN
+       { Knode(Kdiscrete) }
+  | CFUN
+       { Knode(Khybrid) }
 ;

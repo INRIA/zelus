@@ -306,7 +306,8 @@ and result ({ r_desc } as r) =
 let implementation ({ desc } as i) =
   let desc = match desc with
     | Eopen _ -> desc
-    | Eletdecl(f, e) -> Eletdecl(f, expression e)
+    | Eletdecl({ name; const; e } as entry) ->
+               Eletdecl { entry with e = expression e }
     | Etypedecl _ -> desc in
   { i with desc = desc }
   

@@ -50,7 +50,7 @@ let all_last loc h set =
     | None, None ->
        try
 	 ignore (Types.filter_signal t_typ);
-	 tentry.t_sort <- Svar
+	 tentry.t_sort <- Sort_var
        with Types.Unify -> error loc (Eshould_be_a_signal(elt, t_typ)) in
   S.iter check set
 

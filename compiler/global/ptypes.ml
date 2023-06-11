@@ -28,12 +28,34 @@ let print_list print_el sep ff l =
     printrec ff l
 
 let arrow_tostring = function 
-  | Tfun -> "->" | Tnode -> "=>" | Tstatic -> ">"
-                          
+  | Tfun(k) ->
+     (match k with Tconst -> "-V->" | Tstatic -> "-S->" | Tany -> "-A->")
+  | Tnode(k) ->
+     (match k with Tdiscrete -> "-D->" | Thybrid -> "-C->")
+
+let print_size_type ff si =
+  let operator = function Splus -> "+" | Sminus -> "-" | Smult -> "*" in
+  let priority = function Splus -> 0 | Sminus -> 1 | Smult -> 2 in
+  let rec printrec prio ff { t_desc; t_level; t_index } =
+    match t_desc with
+    | Svar ->
+       (* prefix non generalized type variables with "_" *)
+       let p = if t_level <> Misc.notgeneric then "" else "_" in
+       fprintf ff "@['%s%s@]" p (type_name#name t_index)
+    | Sconst(i) -> fprintf ff "%d" i
+    | Sop(op, si1, si2) ->
+       let prio_op = priority op in
+       if prio > prio_op then fprintf ff "(";
+       fprintf ff "@[%a %s %a@]"
+	 (printrec prio_op) si1 (operator op) (printrec prio_op) si2;
+       if prio > prio_op then fprintf ff ")"
+    | Slink(si) -> printrec prio ff si in
+  printrec 0 ff si
+
 let rec print prio ff { t_desc; t_level; t_index } =
   let priority = function
-    | Tvar -> 3 | Tproduct _ -> 2 | Tconstr _ -> 3 | Tarrow _ -> 1
-    | Tlink _ -> prio in
+    | Tvar -> 3 | Tproduct _ -> 2 | Tconstr _ | Tvec _ | Tsize _ -> 3
+    | Tarrow _ -> 1 | Tlink _ -> prio in
   let prio_current = priority t_desc in
   if prio_current < prio then fprintf ff "(";
   begin match t_desc with
@@ -58,6 +80,11 @@ let rec print prio ff { t_desc; t_level; t_index } =
      let print_arg ff ty = print (prio_current + 1) ff ty in
      fprintf ff "@[<hov 2>%a@ %s@ %a@]"
        print_arg ty_arg (arrow_tostring k) (print prio_current) ty_res
+  | Tsize(is_singleton, si) ->
+     if is_singleton then fprintf ff "@[<%a>@]" print_size_type si
+     else fprintf ff "@[[%a]@]" print_size_type si
+  | Tvec(ty, si) ->
+     fprintf ff "@[%a[%a]@]" (print prio_current) ty print_size_type si
   | Tlink(link) -> print prio ff link
   end;
   if prio_current < prio then fprintf ff ")"  
@@ -66,6 +93,9 @@ let print_scheme ff { typ_body } = print 0 ff typ_body
 
 let print_type_params ff pl =
   print_list_r_empty (fun ff s -> fprintf ff "'%s" s) "("","") " ff pl
+
+let print_size_params ff pl =
+  print_list_r_empty (fun ff s -> fprintf ff "'%s" s) "["",""] " ff pl
 
 let print_one_type_variable ff i =
   fprintf ff "'%s" (type_name#name i)

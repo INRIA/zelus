@@ -170,7 +170,7 @@ let build_env l_env env =
     let cur_tc = Causal.annotate (Cname n) (Causal.skeleton ty) in
     let last_tc_opt =
       match sort with
-      | Smem _ ->
+      | Sort_mem _ ->
           Some(Causal.annotate (Clast n) (Causal.skeleton ty))
       | _ -> None in
     Env.add n { t_typ = cur_tc; t_last_typ = last_tc_opt } acc in
@@ -182,7 +182,7 @@ let build_env_on_c c l_env env =
     let cur_tc = Causal.annotate (Cname n) (Causal.skeleton_on_c c ty) in
     let last_tc_opt =
       match sort with
-      | Smem _ ->
+      | Sort_mem _ ->
           Some(Causal.annotate (Clast n) (Causal.skeleton_on_c c ty))
       | _ -> None in
     Env.add n { t_typ = cur_tc; t_last_typ = last_tc_opt } acc in
@@ -708,14 +708,14 @@ let implementation ff { desc = desc; loc = loc } =
   try
     match desc with
     | Eopen _ | Etypedecl _ -> ()
-    | Eletdecl(f, e) ->
+    | Eletdecl { name; e } ->
        Misc.push_binding_level ();
        let tc = exp Env.empty (Causal.new_var ()) e in
        Misc.pop_binding_level ();
        let tcs = generalise tc in
-       Global.set_causality (Modules.find_value (Lident.Name(f))) tcs;
+       Global.set_causality (Modules.find_value (Lident.Name(name))) tcs;
        (* output the signature *)
-       if !Misc.print_causality_types then Pcaus.declaration ff f tcs
+       if !Misc.print_causality_types then Pcaus.declaration ff name tcs
   with
   | Error(loc, kind) -> message loc kind
 

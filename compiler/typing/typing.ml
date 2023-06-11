@@ -69,16 +69,23 @@ let unify_pat pat expected_ty actual_ty =
 let less_than loc actual_k expected_k =
   if not (Kind.is_less_than actual_k expected_k)
   then error loc (Ekind_clash(actual_k, expected_k))
-  
+
+let stateful loc expected_k =
+  if not (Kind.stateful expected_k)
+  then error loc
+         (Ekind_clash(Deftypes.Tnode(Deftypes.Tdiscrete), expected_k))
+
 let type_is_in_kind loc actual_k ty =
   if not (Kind.in_kind actual_k ty)
   then error loc (Etype_kind_clash(actual_k, ty))
 
+let less_than loc actual_k expected_k =
+  if not (Kind.is_less_than actual_k expected_k)
+  then error loc (Ekind_clash(actual_k, expected_k))
+
 let sort_less_than loc sort expected_k =
-  match sort, expected_k with
-  | Sstatic, _ -> ()
-  | _, Tstatic -> error loc (Ekind_clash(Deftypes.Tfun, expected_k))
-  | _ -> ()
+  let actual_k = Kind.kind_of_sort sort in
+  less_than loc actual_k expected_k
 
 (* An expression is expansive if it is an application *)
 let rec expansive { e_desc = desc } =
@@ -203,7 +210,7 @@ let tentry sort =
   { t_typ = Types.new_var (); t_default = None; t_init = None; t_sort = sort }
  
 let env_of_pattern acc pat =
-  let entry x acc = Env.add x (tentry Sval) acc in
+  let entry x acc = Env.add x (tentry Sort_val) acc in
   let rec pattern acc { pat_desc } =
     match pat_desc with
     | Ewildpat | Econstpat _ | Econstr0pat _ -> acc
@@ -234,13 +241,13 @@ and env_of_statepat spat =
     | Estate0pat _ -> acc
     | Estate1pat(_, l) -> List.fold_left (fun acc n -> S.add n acc) acc l in
   let acc = env_of S.empty spat in
-  S.fold (fun n acc -> Env.add n (tentry Sval) acc) acc Env.empty
+  S.fold (fun n acc -> Env.add n (tentry Sort_val) acc) acc Env.empty
 
 let env_of_pattern pat = env_of_pattern Env.empty pat  
 
 let env_of_equation { eq_write } =
   S.fold
-    (fun n acc -> Env.add n (tentry Sval) acc)
+    (fun n acc -> Env.add n (tentry Sort_val) acc)
     (Deftypes.names S.empty eq_write) Env.empty
 
 (** Typing a pateq **)
@@ -383,11 +390,11 @@ let present_handlers scondpat body loc expected_k h h_list opt expected_ty =
   (* treat the optional default case *)
   let defined_names_list, actual_k =
     match opt with
-    | NoDefault -> Deftypes.empty :: defined_names_list, Tstatic
+    | NoDefault -> Deftypes.empty :: defined_names_list, Tfun(Tconst)
     | Init(b) ->
-       let defined_names, _ = body expected_k h b expected_ty in
-       less_than loc Tnode expected_k;
-       defined_names :: defined_names_list, Tnode
+       let defined_names, actual_k = body (Tnode(Tdiscrete)) h b expected_ty in
+       stateful loc expected_k;
+       defined_names :: defined_names_list, actual_k
     | Else(b) ->
        let defined_names, actual_k = body expected_k h b expected_ty in
        defined_names :: defined_names_list, actual_k in
@@ -423,7 +430,7 @@ let rec automaton_handlers
     | None ->
        begin match statepat.desc with
        | Estate1pat _ -> error statepat.loc Estate_initial
-       | Estate0pat _ -> Tstatic
+       | Estate0pat _ -> Tfun(Tconst)
        end
     | Some(se) -> state_expression h def_states true se in
   
@@ -520,38 +527,39 @@ let rec vardec_list expected_k h n_list =
     let expected_ty = Types.new_var () in
     let actual_k =
       Util.optional_with_default
-        (fun e -> expect expected_k h e expected_ty) Tstatic var_default in
+        (fun e -> expect expected_k h e expected_ty)
+        (Tfun(Tconst)) var_default in
     (* the initialization must appear in a statefull function *)
     let actual_k_init =
       Util.optional_with_default
-        (fun e -> less_than e.e_loc Tnode expected_k;
-                  let _ = expect expected_k h e expected_ty in
-                  Tnode) Tstatic var_init in
+        (fun e -> stateful e.e_loc expected_k;
+                  expect (Tnode(Tdiscrete)) h e expected_ty)
+        (Tfun(Tconst)) var_init in
     let actual_k = Kind.sup actual_k actual_k_init in
     let entry =
-      { t_sort = Sval; t_default = var_default;
+      { t_sort = Sort_val; t_default = var_default;
         t_init = var_init; t_typ = expected_ty } in
     (* type annotation *)
     v.var_typ <- expected_ty;
     Env.add var_name entry acc_h,
     Kind.sup actual_k (Kind.sup actual_k_init acc_k) in
-  List.fold_left vardec (Env.empty, Tstatic) n_list
+  List.fold_left vardec (Env.empty, Tfun(Tconst)) n_list
 
 (* [expression expected_k h e] returns the type for [e] and [actual kind] *)
 and expression expected_k h ({ e_desc; e_loc } as e) =
   let ty, actual_k = match e_desc with
-    | Econst(i) -> immediate i, Tstatic
+    | Econst(i) -> immediate i, Tfun(Tconst)
     | Elocal(x) ->
        let { t_typ = typ; t_sort = sort } = var e_loc h x in
        sort_less_than e_loc sort expected_k;
-       typ, Kind.kind_of sort
+       typ, Kind.kind_of_sort  sort
     | Eglobal ({ lname = lname } as g) ->
        let qualid, typ_instance, ty =
          global_with_instance e_loc lname in
        g.lname <- Lident.Modname(qualid);
        g.typ_instance <- typ_instance;
-       ty, Tstatic
-    | Elast(x) -> last e_loc h x, Tfun
+       ty, Tfun(Tconst)
+    | Elast(x) -> last e_loc h x, Tfun(Tany)
     | Etuple(e_list) ->
        let ty_k_list = List.map (expression expected_k h) e_list in
        let ty_list, k_list = List.split ty_k_list in
@@ -565,7 +573,7 @@ and expression expected_k h ({ e_desc; e_loc } as e) =
          get_constr e_loc lname in
        if n <> 0 then error e_loc (Econstr_arity(lname, n, 0));
        c.lname <- Lident.Modname(qualid);
-       ty_res, Tstatic
+       ty_res, Tfun(Tconst)
     | Econstr1({ lname; arg_list } as c) ->
        let qualid,
            { constr_arg = ty_list; constr_res = ty_res; constr_arity = n } =
@@ -608,9 +616,9 @@ and expression expected_k h ({ e_desc; e_loc } as e) =
        ty, Kind.sup actual_k actual_k_e
     | Efun(fe) ->
        (* functions are only allowed in a static context *)
-       less_than e_loc expected_k Tstatic;
+       less_than e_loc expected_k (Tfun(Tstatic));
        let ty = funexp h fe in
-       ty, Tstatic
+       ty, expected_k
     | Ematch({ is_total; e; handlers } as mh) ->
         let expected_pat_ty, actual_pat_k = expression expected_k h e in
         let expected_ty = new_var () in
@@ -650,66 +658,66 @@ and operator expected_k h loc op e_list =
     match op with
     | Eifthenelse ->
         let ty = new_var () in
-        Tfun, [Initial.typ_bool; ty; ty], ty
+        Tfun(Tconst), [Initial.typ_bool; ty; ty], ty
     | Eunarypre ->
         let ty = new_var () in
-        Tnode, [ty], ty
+        Tnode(Tdiscrete), [ty], ty
     | (Eminusgreater | Efby) ->
         let ty = new_var () in
-        Tnode, [ty; ty], ty
+        Tnode(Tdiscrete), [ty; ty], ty
     | Erun _ ->
        let ty1 = new_var () in
        let ty2 = new_var () in
-       Tnode, [ty1], ty2
+       Tnode(Tdiscrete), [ty1], ty2
     | Eseq ->
        let ty = new_var () in
-       Tfun, [Initial.typ_unit; ty], ty
+       Tfun(Tconst), [Initial.typ_unit; ty], ty
     | Eatomic ->
        let ty = new_var () in
-       Tfun, [ty], ty
+       Tfun(Tconst), [ty], ty
     | Etest ->
        let ty = new_var () in
-       Tfun, [Initial.typ_signal ty], Initial.typ_bool
+       Tfun(Tconst), [Initial.typ_signal ty], Initial.typ_bool
     | Eup ->
-       Tnode, [Initial.typ_float], Initial.typ_zero
+       Tnode(Thybrid), [Initial.typ_float], Initial.typ_zero
     | Eperiod ->
-       Tstatic, [Initial.typ_float; Initial.typ_float], Initial.typ_zero
+       Tfun(Tconst), [Initial.typ_float; Initial.typ_float], Initial.typ_zero
     | Ehorizon ->
-       Tnode, [Initial.typ_float], Initial.typ_zero
+       Tnode(Thybrid), [Initial.typ_float], Initial.typ_zero
     | Edisc ->
-       Tnode, [Initial.typ_float], Initial.typ_zero
+       Tnode(Thybrid), [Initial.typ_float], Initial.typ_zero
     | Earray(op) ->
        let actual_k, ty_args, ty_res =
          match op with
          | Earray_list ->
             let ty = new_var () in
-            Tfun, List.map (fun _ -> ty) e_list, Initial.typ_array ty
+            Tfun(Tconst), List.map (fun _ -> ty) e_list, Initial.typ_array ty
          | Econcat ->
             let ty = Initial.typ_array (new_var ()) in
-            Tfun, [ty; ty], ty
+            Tfun(Tconst), [ty; ty], ty
          | Eget ->
             let ty = new_var () in
-            Tfun, [Initial.typ_array ty; Initial.typ_int], ty
+            Tfun(Tconst), [Initial.typ_array ty; Initial.typ_int], ty
          | Eget_with_default ->
             let ty = new_var () in
-            Tfun, [Initial.typ_array ty; Initial.typ_int; ty], ty
+            Tfun(Tconst), [Initial.typ_array ty; Initial.typ_int; ty], ty
          | Eslice ->
             let ty = Initial.typ_array (new_var ()) in
-            Tfun, [ty; ty], ty
+            Tfun(Tconst), [ty; ty], ty
          | Eupdate ->
             let ty = new_var () in
-            Tfun, [Initial.typ_array ty; Initial.typ_int; ty],
+            Tfun(Tconst), [Initial.typ_array ty; Initial.typ_int; ty],
             Initial.typ_array ty
          | Etranspose ->
             let ty = new_var () in
-            Tfun, [Initial.typ_array (Initial.typ_array ty)],
+            Tfun(Tconst), [Initial.typ_array (Initial.typ_array ty)],
             Initial.typ_array (Initial.typ_array ty)
          | Ereverse ->
             let ty = new_var () in
-            Tfun, [Initial.typ_array ty], Initial.typ_array ty
+            Tfun(Tconst), [Initial.typ_array ty], Initial.typ_array ty
          | Eflatten ->
             let ty = new_var () in
-            Tfun, [Initial.typ_array (Initial.typ_array ty)],
+            Tfun(Tconst), [Initial.typ_array (Initial.typ_array ty)],
             Initial.typ_array ty in
        actual_k, ty_args, ty_res in
   less_than loc actual_k expected_k;
@@ -730,8 +738,9 @@ and funexp h ({ f_kind; f_args; f_body } as body) =
 and arg_list expected_k h args =
   let h_args, actual_k_args =
     List.fold_left
-      (fun (acc_h, acc_k) arg -> vardec_list expected_k h arg)
-      (Env.empty, Tstatic) args in
+      (fun (acc_h, acc_k) arg ->
+        vardec_list expected_k (Env.append acc_h h) arg)
+      (Env.empty, Tfun(Tconst)) args in
   let ty_args =
     List.map (type_of_vardec_list h_args) args in
   h_args, actual_k_args, ty_args
@@ -756,6 +765,7 @@ and expect expected_k h e expected_ty =
   unify_expr e expected_ty actual_ty;
   actual_k
 
+
 (** Typing an application **)
 and apply loc expected_k h e arg_list =
   (* first type the function body *)
@@ -765,13 +775,19 @@ and apply loc expected_k h e arg_list =
     | [] -> ty_fct, actual_k_fct
     | arg :: arg_list ->
        let arg_k, ty1, ty2 =
-         try Types.filter_arrow Tfun ty_fct
+         try Types.filter_arrow (Tfun(Tany)) ty_fct
          with Unify -> error loc (Eapplication_of_non_function) in
-       let expected_k = match arg_k with | Tstatic -> Tstatic | _ -> expected_k in
-       let actual_k_arg = expect expected_k h arg ty1 in
+       let expected_arg_k =
+         match arg_k with
+         | Tfun(Tconst) | Tfun(Tstatic) -> arg_k
+         | _ -> expected_k in
+       let actual_k_arg = expect expected_arg_k h arg ty1 in
        let actual_k_fct =
-         match actual_k_fct, arg_k, actual_k_arg with
-         | Tstatic, Tfun, Tstatic -> Tstatic
+         match actual_k_fct, arg_k with
+         (* |-const f : t -A-> t' and |-k e: t then |-k f e: t' *)
+         | Tfun(Tconst), Tfun _ -> actual_k_arg
+         (* |-static f : t -A-> t' and |-k e: t then |-static\/k f e: t' *)
+         | Tfun(Tstatic), Tfun _ -> Kind.sup actual_k_fct actual_k_arg
          | _ -> Kind.sup actual_k_fct (Kind.sup arg_k actual_k_arg) in
        args actual_k_fct ty2 arg_list in
   args actual_k_fct ty_fct arg_list
@@ -788,7 +804,7 @@ and equation expected_k h { eq_desc; eq_loc } =
      { Deftypes.empty with dv = dv }, actual_k
   | EQder(n, e, e0_opt, handlers) ->
      (* a derivative is only possible in a stateful context *)
-     less_than eq_loc Tnode expected_k;
+     less_than eq_loc (Tnode(Thybrid)) expected_k;
      let actual_ty = der eq_loc h n in
      let _ = expect expected_k h e actual_ty in
      unify eq_loc Initial. typ_float actual_ty;
@@ -800,27 +816,28 @@ and equation expected_k h { eq_desc; eq_loc } =
           let _ = init eq_loc h n in S.singleton n in
      ignore (present_handler_exp_list
                eq_loc expected_k h handlers NoDefault Initial.typ_float);
-     { Deftypes.empty with di = di; der = S.singleton n }, Tnode
+     { Deftypes.empty with di = di; der = S.singleton n }, Tnode(Thybrid)
   | EQinit(n, e0) ->
      (* an initialization is valid only in a stateful context *)
-     less_than eq_loc Tnode expected_k;
+     stateful eq_loc expected_k;
      let actual_ty = init eq_loc h n in
      let _ = expect expected_k h e0 actual_ty in
-     { Deftypes.empty with di = S.singleton n }, Tnode
+     { Deftypes.empty with di = S.singleton n }, expected_k
   | EQemit(n, e_opt) ->
      let ty_e = new_var () in
      let actual_ty = typ_of_var eq_loc h n in
      let actual_k =
        match e_opt with
        | None ->
-          unify eq_loc (Initial.typ_signal Initial.typ_unit) actual_ty; Tstatic
+          unify eq_loc (Initial.typ_signal Initial.typ_unit) actual_ty;
+          Tfun(Tconst)
        | Some(e) ->
           unify eq_loc (Initial.typ_signal ty_e) actual_ty;
           expect expected_k h e ty_e in
      { Deftypes.empty with dv = S.singleton n }, actual_k
   | EQautomaton({ is_weak; handlers; state_opt }) ->
      (* automata are only valid in a statefull context *)
-     less_than eq_loc Tnode expected_k;
+     stateful eq_loc expected_k;
      automaton_handlers_eq is_weak eq_loc expected_k h handlers state_opt
   | EQmatch({ is_total; e; handlers } as mh) ->
      let expected_pat_ty, actual_k_e = expression expected_k h e in
@@ -843,7 +860,7 @@ and equation expected_k h { eq_desc; eq_loc } =
        equation expected_k h eq in
      defnames, Kind.sup actual_k_e actual_k_eq
   | EQand(eq_list) -> equation_list expected_k h eq_list
-  | EQempty -> Deftypes.empty, Tstatic
+  | EQempty -> Deftypes.empty, Tfun(Tconst)
   | EQlocal(b_eq) ->
      let _, _, defnames, actual_k = block_eq expected_k h b_eq in
      defnames, actual_k
@@ -861,7 +878,7 @@ and equation_list expected_k h eq_list =
       let defined_names_eq, actual_k_eq = equation expected_k h eq in
       Total.join eq.eq_loc defined_names_eq defined_names,
     Kind.sup actual_k_eq actual_k)
-    (Deftypes.empty, Tstatic) eq_list
+    (Deftypes.empty, Tfun(Tconst)) eq_list
 
 (** Type a present handler when the body is an expression or equation **)
 and present_handler_exp_list loc expected_k h p_h_list default_opt expected_ty =
@@ -926,7 +943,7 @@ and leqs expected_k h l =
   List.fold_left
     (fun (h, acc_k) l_eq ->
       let h, actual_k = leq expected_k h l_eq in
-      h, Kind.sup acc_k actual_k) (h, Tstatic) l
+      h, Kind.sup acc_k actual_k) (h, Tfun(Tconst)) l
   
 (** Typing a signal condition **)
 and scondpat expected_k type_of_condition h scpat =
@@ -950,7 +967,9 @@ and scondpat expected_k type_of_condition h scpat =
        actual_k
     | Econdon(sc1, e) ->
        let actual_k1 = typrec expected_k sc1 in
-       let actual_k = expect Tfun h e Initial.typ_bool in
+       (* we impose that [e] is a combinatorial expression *)
+       (* not to have state variable that evolve only when [sc1] is true *)
+       let actual_k = expect (Tfun(Tany)) h e Initial.typ_bool in
        Kind.sup actual_k1 actual_k in
   typrec expected_k scpat
 
@@ -967,7 +986,7 @@ and state_expression h def_states actual_reset { desc; loc } =
          then error loc (Estate_arity_clash(s, 0, List.length args));
          r.s_reset <-
            check_target_state loc expected_reset actual_reset;
-         Tstatic
+         Tfun(Tconst)
        with
        | Not_found -> error loc (Estate_unbound s)
      end
@@ -978,9 +997,11 @@ and state_expression h def_states actual_reset { desc; loc } =
        with
        | Not_found -> error loc (Estate_unbound s) in
      begin try
+         (* we impose that [e] is combinatorial *)
          let actual_k_list =
            List.map2
-             (fun e expected_ty -> expect Tfun h e expected_ty) l args in
+             (fun e expected_ty -> expect (Tfun(Tany)) h e expected_ty)
+             l args in
          r.s_reset <-
            check_target_state loc expected_reset actual_reset;
          Kind.sup_list actual_k_list
@@ -990,7 +1011,8 @@ and state_expression h def_states actual_reset { desc; loc } =
             (Estate_arity_clash(s, List.length l, List.length args))
      end
   | Estateif(e, se1, se2) ->
-     let actual_k = expect Tfun h e Initial.typ_bool in
+     (* we impose that [e] is combinatorial *)
+     let actual_k = expect (Tfun(Tany)) h e Initial.typ_bool in
      let actual_k1 = state_expression h def_states actual_reset se1 in
      let actual_k2 = state_expression h def_states actual_reset se2 in
      Kind.sup actual_k (Kind.sup actual_k1 actual_k2)
@@ -1001,19 +1023,21 @@ let implementation ff is_first { desc; loc } =
     match desc with
     | Eopen(modname) ->
        if is_first then Modules.open_module modname
-    | Eletdecl(f, e) ->
+    | Eletdecl { name; const; e } ->
        Misc.push_binding_level ();
        (* a value a top level must be static. As it is the bottom kind *)
        (* no need to return it *)
-       let ty, _ = expression Tstatic Env.empty e in
+       let expected_k = Tfun(if const then Tconst else Tstatic) in
+       let ty, _ = expression expected_k Env.empty e in
        (* check that the type is well formed *)
        type_is_in_kind loc Tstatic ty;
        Misc.pop_binding_level ();
        let tys = Types.gen (not (expansive e)) ty in
-       if is_first then Interface.add_type_of_value ff loc f true tys
-       else Interface.update_type_of_value ff loc f true tys
-    | Etypedecl(f, params, ty) ->
-       if is_first then Interface.typedecl ff loc f params ty
+       if is_first then Interface.add_type_of_value ff loc name const tys
+       else Interface.update_type_of_value ff loc name const tys
+    | Etypedecl { name; ty_params; size_params; ty_decl } ->
+       if is_first then
+         Interface.typedecl ff loc name size_params ty_params ty_decl
   with
   | Typerrors.Error(loc, err) ->
      if is_first then Typerrors.message loc err

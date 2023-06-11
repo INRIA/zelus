@@ -25,6 +25,7 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "by", BY;
   "clock", CLOCK;
   "continue", CONTINUE;
+  "const", CONST;
   "default", DEFAULT;
   "der", DER;
   "do", DO;
@@ -73,6 +74,7 @@ List.iter (fun (str,tok) -> Hashtbl.add keyword_table str tok) [
   "transpose", TRANSPOSE;
   "reverse", REVERSE;
   "flatten", FLATTEN;
+  "static", STATIC;
   "unless", UNLESS;
   "until", UNTIL;
   "up", UP;
@@ -157,7 +159,11 @@ rule main = parse
   | ","  { COMMA }
   | ";"  { SEMI }
   | "->" { MINUSGREATER }
-  | "=>" { EQUALGREATER }
+  | "-V->" { VFUN }
+  | "-S->" { SFUN }
+  | "-A->" { AFUN }
+  | "-D->" { DFUN }
+  | "-C->" { CFUN }
   | "<-" { LESSMINUS }
   | "|"  { BAR }
   | "-"  { MINUS }

@@ -108,10 +108,20 @@ let longname ln =
      Lident.Modname { Lident.qual = qual; Lident.id = id }
 
            
+let vkind =
+  function
+  | Kconst -> Zelus.Kconst
+  | Kstatic -> Zelus.Kstatic
+  | Kany -> Zelus.Kany
+
+let tkind =
+  function
+  | Kdiscrete -> Zelus.Kdiscrete | Khybrid -> Zelus.Khybrid
+
 let kind =
   function
-  | Kfun -> Zelus.Kfun | Knode -> Zelus.Knode | Khybrid -> Zelus.Khybrid
-  | Kstatic -> Zelus.Kstatic
+  | Kfun(v) -> Zelus.Kfun(vkind v)
+  | Knode(t) -> Zelus.Knode(tkind t)
 
 let immediate c =
   match c with
@@ -225,8 +235,7 @@ let rec buildeq defnames { desc } =
      let defnames_v_list = List.fold_left build_vardec S.empty v_list in
      let defnames_eq = buildeq S.empty eq in
      S.union defnames (S.diff defnames_eq defnames_v_list)
-  | EQlet(_, _, eq) ->
-     buildeq defnames eq
+  | EQlet(_, eq) -> buildeq defnames eq
   | EQif(_, eq1, eq2) ->
      let defnames = buildeq defnames eq1 in
      buildeq defnames eq2
@@ -383,11 +392,10 @@ let rec equation env_pat env { desc; loc } =
        let env = Env.append env_v_list env in
        let eq = equation env_pat env eq in
        Zelus.EQlocal(make_block loc v_list eq)
-    | EQlet(is_rec, eq_let, eq) ->
-       let eq_let, env = letin is_rec env eq_let in
-       let eq = equation env_pat env eq in
-       Zelus.EQlet({ l_rec = is_rec; l_eq = eq_let; l_loc = loc;
-                     l_env = Ident.Env.empty }, eq)
+    | EQlet(l_eq, in_eq) ->
+       let l_eq, env = letin env l_eq in
+       let in_eq = equation env_pat env in_eq in
+       Zelus.EQlet(l_eq, in_eq)
     | EQif(e, eq1, eq2) ->
        let e = expression env e in
        let eq1 = equation env_pat env eq1 in
@@ -510,17 +518,14 @@ and forloop_eq env_pat env { for_size; for_kind; for_index; for_resume;
       Zelus.for_resume = for_resume }
 
 (** Translating a sequence of local declarations *)
-and leqs env l =
-  let one env { desc = (is_rec, eq); loc } =
-    let eq, env = letin is_rec env eq in
-    { Zelus.l_rec = is_rec; Zelus.l_eq = eq; Zelus.l_loc = loc;
-      Zelus.l_env = Ident.Env.empty }, env in
-  Util.mapfold one env l
+and leqs env l = Util.mapfold letin env l
   
-and letin is_rec env eq =
-  let env_pat = buildeq eq in
+and letin env { desc = { l_kind; l_rec; l_eq }; loc } =
+  let env_pat = buildeq l_eq in
   let new_env = Env.append env_pat env in
-  equation env_pat (if is_rec then new_env else env) eq, new_env
+  let l_eq = equation env_pat (if l_rec then new_env else env) l_eq in
+  let l_kind = vkind l_kind in
+  { l_kind; l_rec; l_eq; l_loc = loc; l_env = Ident.Env.empty }, new_env
   
 and vardec env
 { desc = { var_name; var_init; var_default;
@@ -542,8 +547,9 @@ and vardec env
 (* treat a list of variable declarations *)
 (*- computes the list of names;
  *- builds an initial environment;
- *- apply the substitution;
- *- the two steps is necessary because [local x init y, y init x do ... done]
+ *- apply the substitution; 
+ *- the two steps is necessary because 
+ *- [local x init y, y init x do ... x = ... and y = ... done]
  *- is corrects and a short-cut for 
  *- [local last x, last y do last x = y and last y = x and ... done] *)
 and vardec_list env v_list =
@@ -551,7 +557,7 @@ and vardec_list env v_list =
   let env_v_list = Env.make defnames Env.empty in
   let env = Env.append env_v_list env in
   let v_list = List.map (vardec env) v_list in
-  v_list, env_v_list
+  v_list, env_v_list 
        
 and for_vardec env { desc = { for_array; for_vardec }; loc } =
   let for_vardec = vardec env for_vardec in
@@ -710,13 +716,10 @@ and expression env { desc; loc } =
     | Etuple(e_list) ->
        let e_list = List.map (expression env) e_list in
        Zelus.Etuple(e_list)
-    | Elet(is_rec, eq, e) ->
-       let env_pat = buildeq eq in
-       let env_let = Env.append env_pat env in
-       let eq = equation env_pat (if is_rec then env_let else env) eq in
-       let e = expression env_let e in
-       Zelus.Elet({ l_rec = is_rec; l_eq = eq; l_loc = loc;
-                    l_env = Ident.Env.empty }, e)
+    | Elet(leq, e) ->
+       let leq, new_env = letin env leq in
+       let e = expression new_env e in
+       Zelus.Elet(leq, e)
     | Eapp(f, arg_list) ->
        let f = expression env f in
        let arg_list = List.map (expression env) arg_list in
@@ -796,14 +799,15 @@ and recordrec loc env label_e_list =
   recordrec S.empty label_e_list
   
 and funexp env { desc = { f_kind; f_atomic; f_args; f_body }; loc } =
-  let f_args, env_f_args = Util.mapfold arg env f_args in
-  let env = Env.append env_f_args env in
+  let f_args, env = Util.mapfold arg env f_args in
   let f_body = result env f_body in
   { Zelus.f_kind = kind f_kind; Zelus.f_atomic = f_atomic;
     Zelus.f_args = f_args; Zelus.f_body = f_body; Zelus.f_loc = loc;
     Zelus.f_env = Ident.Env.empty }
   
-and arg env v_list = vardec_list env v_list
+and arg env v_list =
+  let v_list, env_v_list = vardec_list env v_list in
+  v_list, Env.append env_v_list env
                        
 and result env { desc; loc } =
   let r_desc =
@@ -844,12 +848,12 @@ let implementation { desc; loc } =
   try
     let desc = match desc with
       | Eopen(n) -> Zelus.Eopen(n)
-      | Eletdecl(f, e) ->
+      | Eletdecl { name; const; e } ->
          let e = expression Env.empty e in
-         Zelus.Eletdecl(f, e)
-      | Etypedecl(f, params, td) ->
-         let td = type_decl td in
-         Zelus.Etypedecl(f, params, td) in
+         Zelus.Eletdecl { name = name; const = const; e = e}
+      | Etypedecl { name; ty_params; size_params; ty_decl } ->
+         let ty_decl = type_decl ty_decl in
+         Zelus.Etypedecl { name = name; ty_params; size_params; ty_decl } in
     { Zelus.desc = desc; Zelus.loc = loc }
   with
     Error.Err(loc, kind) -> Error.message loc kind
@@ -860,10 +864,12 @@ let interface interf =
   try
     let desc = match interf.desc with
       | Einter_open(n) -> Zelus.Einter_open(n)
-      | Einter_typedecl(n, params, tydecl) ->
-          Zelus.Einter_typedecl(n, params, type_decl tydecl)
-      | Einter_constdecl(n, typ, l) ->
-          Zelus.Einter_constdecl(n, types typ, l) in
+      | Einter_typedecl { name; ty_params; size_params; ty_decl } ->
+         let ty_decl = type_decl ty_decl in
+         Zelus.Einter_typedecl { name; ty_params; size_params; ty_decl }
+      | Einter_constdecl { name; const; ty; info } ->
+         let ty = types ty in
+         Zelus.Einter_constdecl { name; const = const; ty; info } in
       { Zelus.desc = desc; Zelus.loc = interf.loc }
   with
     | Error.Err(loc, err) -> Error.message loc err
