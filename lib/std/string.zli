@@ -11,7 +11,7 @@ val get : string -> int -> char
    if [n] is outside the range 0 to [(String.length s - 1)]. *)
 
 
-val set : string -> int -> char -AD-> unit
+val set : string -> int -> char -> unit
 (** [String.set s n c] modifies string [s] in place,
    replacing the character number [n] by [c].
    You can also write [s.[n] <- c] instead of [String.set s n c].

@@ -1,8 +1,16 @@
 type t2 = int
 
-let ff(x:t2) = 1 + x
+let f0 x  = x + 1
+    
+let f11 x y z  = x + y + z
 
-let node fff(x) =
+let k (m1, m2, m3) s = f1 (m1, m2, m, s)
+    
+let ff(x) = 1 + x
+
+let fff(x) = ff(x+1)
+    
+let node ffff(x) =
   let rec o = pre o + 1 in
   o + x
     
@@ -11,10 +19,10 @@ let hybrid f (x) =
   let rec der k = 2.0 +. k init 3.0 in
   m +. x +. 1.0 +. k
 
-let i1 j = k where
+let i1 j = k where rec
   match true with
   | true -> match true with
-            | true -> do k = () done
+            | true -> do emit k = () done
 	    | false -> do done
             end
   | false -> do done
@@ -28,9 +36,8 @@ let hybrid g(x) =
 let hybrid h(x, y) =
   let z = x+1 in
   let t = y+1 in
+  let m = g(x) in
   z, t
-
-  
     
 let hybrid main () =
   let _ = f(3.0)

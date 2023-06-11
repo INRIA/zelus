@@ -1,11 +1,11 @@
-val initialise : int -AD-> unit
+val initialise : int -> unit
 (** Initialise the generator, using the argument as a seed.
      The same seed will always yield the same sequence of numbers. *)
 
-val full_init : int array -AD-> unit
+val full_init : int array -> unit
 (** Same as {!Random.init} but takes more data as seed. *)
 
-val self_init : unit -AD-> unit
+val self_init : unit -> unit
 (** Initialize the generator with a more-or-less random seed chosen
    in a system-dependent way. *)
 
@@ -17,15 +17,15 @@ val int : int -> int
      and [bound] (exclusive).  [bound] must be more than 0 and less
      than 2{^30}. *)
 
-val int32 : Int32.t -> Int32.t;;
+val int32 : Int32.t -> Int32.t
 (** [Random.int32 bound] returns a random integer between 0 (inclusive)
      and [bound] (exclusive).  [bound] must be greater than 0. *)
 
-val nativeint : Nativeint.t -> Nativeint.t;;
+val nativeint : Nativeint.t -> Nativeint.t
 (** [Random.nativeint bound] returns a random integer between 0 (inclusive)
      and [bound] (exclusive).  [bound] must be greater than 0. *)
 
-val int64 : Int64.t -> Int64.t;;
+val int64 : Int64.t -> Int64.t
 (** [Random.int64 bound] returns a random integer between 0 (inclusive)
      and [bound] (exclusive).  [bound] must be greater than 0. *)
 

@@ -25,7 +25,7 @@ val rev_append : 'a list -> 'a list -> 'a list
 
 val concat : 'a list list -> 'a list
 
-val flatten : 'a list list -> 'a list
+val flat : 'a list list -> 'a list
 
 val iter : ('a -> unit) -> 'a list -> unit
 
