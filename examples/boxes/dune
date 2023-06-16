@@ -1,6 +1,8 @@
+(env (dev (flags (:standard -w -a))))
+
 (rule
  (targets boxes.ml boxes_main.ml)
- (deps (:zl boxes.zls) showboxes.zli)
+ (deps (:zl boxes.zls) showboxes.zli (package zelus))
  (action (run zeluc -deps -s main -o boxes_main %{zl})))
 
 (executable

@@ -1,6 +1,8 @@
+(env (dev (flags (:standard -w -a))))
+
 (rule
  (targets stick_slip.ml stick_slip_main.ml)
- (deps (:zl stick_slip.zls))
+ (deps (:zl stick_slip.zls) (package zelus))
  (action (run zeluc -s main -o stick_slip_main %{zl})))
 
 (executable

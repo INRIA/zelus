@@ -1,6 +1,8 @@
+(env (dev (flags (:standard -w -a))))
+
 (rule
  (targets pong.ml pong_main.ml)
- (deps (:zl pong.zls))
+ (deps (:zl pong.zls) (package zelus))
  (action (run zeluc -s main -o pong_main %{zl})))
 
 (executable

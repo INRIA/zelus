@@ -1,11 +1,13 @@
+(env (dev (flags (:standard -w -a))))
+
 (rule
  (targets power.ml power_main.ml)
- (deps (:zl power.zls))
+ (deps (:zl power.zls) (package zelus) (package zelus-gtk))
  (action (run zeluc -gtk2 -s main -o power_main %{zl})))
 
 (rule
  (targets powerV1.ml powerV1_main.ml)
- (deps (:zl powerV1.zls))
+ (deps (:zl powerV1.zls) (package zelus) (package zelus-gtk))
  (action (run zeluc -gtk2 -s main -o powerV1_main %{zl})))
 
 (executables

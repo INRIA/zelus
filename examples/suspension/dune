@@ -1,6 +1,8 @@
+(env (dev (flags (:standard -w -a))))
+
 (rule
  (targets suspension.ml suspension_main.ml)
- (deps (:zl suspension.zls))
+ (deps (:zl suspension.zls) (package zelus) (package zelus-gtk))
  (action (run zeluc -gtk2 -s main -o suspension_main %{zl})))
 
 (executable

@@ -1,6 +1,8 @@
+(env (dev (flags (:standard -w -a))))
+
 (rule
  (targets coffee.ml coffee_main.ml)
- (deps (:zl coffee.zls))
+ (deps (:zl coffee.zls) (package zelus))
  (action (run zeluc -s main -o coffee_main %{zl})))
 
 (executable

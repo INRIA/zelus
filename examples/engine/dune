@@ -1,6 +1,8 @@
+(env (dev (flags (:standard -w -a))))
+
 (rule
  (targets engine.ml engine_main.ml)
- (deps (:zl engine.zls))
+ (deps (:zl engine.zls) (package zelus) (package zelus-gtk))
  (action (run zeluc -gtk2 -s main -o engine_main %{zl})))
 
 (executable
