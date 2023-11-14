@@ -18,6 +18,16 @@ ball.opt: showball.cmx world.cmx ball.cmx ball_main.cmx
 	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) graphics.cmxa \
 	    $(ZLEXTRALIBS:.cma=.cmxa) $^
 
+ball.byte: INCLUDES += $(GRAPHICS)
+ball.opt: INCLUDES += $(GRAPHICS)
+
+autoball.byte: INCLUDES += $(GRAPHICS)
+autoball.opt: INCLUDES += $(GRAPHICS)
+
+flatball.byte: INCLUDES += $(GRAPHICS)
+flatball.opt: INCLUDES += $(GRAPHICS)
+
+showball.cmo: INCLUDES += $(GRAPHICS)
 ball_main.cmo: INCLUDES += $(SUNDIALS)
 ball_main.cmx: INCLUDES += $(SUNDIALS)
 

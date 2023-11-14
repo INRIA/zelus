@@ -17,6 +17,8 @@ ltta.byte: misc.cmo ltta.cmo ltta_main.cmo
 	$(OCAMLC) $(OCAMLFLAGS) -o $@ $(INCLUDES) \
 	    -I $(ZLLIB) $(ZLSTDLIBS) $(ZLEXTRALIBS) graphics.cma $^
 
+ltta.byte: INCLUDES += $(GRAPHICS)
+
 ltta_main.cmo: INCLUDE += $(SUNDIALS)
 
 ltta.ml ltta_main.ml: misc.zci ltta.zls

@@ -10,7 +10,7 @@ let node oxygen_status (ego_in) = (o2_normal, ego_out, failed) where
           do
                 o2_normal = false
             and failed = false
-          until (after (479, true)) then O2_running
+          until (aftern (479, true)) then O2_running
           done
 
       | O2_running ->

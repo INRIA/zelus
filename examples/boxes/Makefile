@@ -14,6 +14,9 @@ boxes.opt: showboxes.cmx boxes.cmx boxes_main.cmx
 	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) graphics.cmxa \
 	    $(ZLEXTRALIBS:.cma=.cmxa) $^
 
+boxes.byte: INCLUDES += $(GRAPHICS)
+boxes.opt: INCLUDES += $(GRAPHICS)
+
 boxes.ml boxes_main.ml: showboxes.zci boxes.zls
 	$(ZELUC) $(ZELUCFLAGS) -s main boxes.zls
 	mv main.ml boxes_main.ml

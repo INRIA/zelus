@@ -20,6 +20,9 @@ watch.opt: draw.cmx watch.cmx watch_main.cmx
 watch_main.cmo: INCLUDE += $(SUNDIALS)
 watch_main.cmx: INCLUDE += $(SUNDIALS)
 
+watch.byte: INCLUDES += $(GRAPHICS)
+watch.opt: INCLUDES += $(GRAPHICS)
+
 watch.ml watch_main.ml: draw.zci watch.zls
 	$(ZELUC) -I $(ZLLIB) $(ZLCFLAGS) -s main -sampling 0 watch.zls
 	mv main.ml watch_main.ml

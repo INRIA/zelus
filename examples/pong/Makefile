@@ -9,9 +9,11 @@ byte: $(EXAMPLE:%.zls=%.byte)
 opt:  $(EXAMPLE:%.zls=%.opt)
 
 pong.byte: ZLEXTRALIBS += graphics.cma $(OBJ)
+pong.byte: INCLUDES += $(GRAPHICS)
 pong.byte: $(OBJ)
 
 pong.opt: ZLEXTRALIBS += graphics.cmxa $(OBJ:.cmo=.cmx)
+pong.opt: INCLUDES += $(GRAPHICS)
 pong.opt: $(OBJ:%.cmo=%.cmx)
 
 clean:

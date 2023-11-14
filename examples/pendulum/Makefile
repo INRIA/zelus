@@ -10,10 +10,15 @@ byte: $(EXAMPLE:%.zls=%.byte)
 opt:  $(EXAMPLE:%.zls=%.opt)
 
 pendulum.byte: ZLEXTRALIBS += graphics.cma $(OBJ)
+pendulum.byte: INCLUDES += $(GRAPHICS)
 pendulum.byte: $(OBJ)
 
 pendulum.opt: ZLEXTRALIBS += graphics.cmxa $(OBJ:.cmo=.cmx)
+pendulum.opt: INCLUDES += $(GRAPHICS)
 pendulum.opt: $(OBJ:%.cmo=%.cmx)
+
+data.cmo: INCLUDES += $(GRAPHICS)
+data.cmx: INCLUDES += $(GRAPHICS)
 
 pendulum.ml pendulum_main.ml: pendulum.zls
 	$(ZELUC) $(ZELUCFLAGS) -sampling 0.01 -s manual $<

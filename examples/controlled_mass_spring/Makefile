@@ -8,6 +8,8 @@ byte: $(EXAMPLE:%.zls=%.byte)
 
 controlled_mass_spring.byte: ZLEXTRALIBS += graphics.cma $(OBJ)
 
+controlled_mass_spring.byte: INCLUDES += $(GRAPHICS)
+
 clean:
 	-@rm -f *~ *.cmi *.cmo *.cmx *.annot *.o *.zci *.obc *.ml *.out *.byte *.opt
 realclean cleanall: clean

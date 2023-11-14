@@ -4,7 +4,7 @@
 let node was (x) = x'
   where rec x' = x -> (pre x' || x)
 
-let node after (n, ev) =
+let node aftern (n, ev) =
   let rec x = 0 -> if ev then pre x + 1 else pre x in
   was (x >= n)
 
@@ -62,12 +62,10 @@ let hybrid zigzag (zperiod, amplitude) = y where
       | Rising -> do
             der y = slope
           until (up(y -. amplitude)) then Falling
-          done
 
       | Falling -> do
             der y = -. slope
           until (up(-. amplitude -. y)) then Rising
-          done
 
 (* State-space equations *)
 

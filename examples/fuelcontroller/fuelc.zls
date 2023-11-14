@@ -103,7 +103,7 @@ let sensors_baseline () =
   (sw_engine, sw_throttle, sw_speed, sw_ego, sw_map)
 
 let node failat n =
-  not (after (truncate (n /. fixedstep_period)) true)
+  not (aftern (truncate (n /. fixedstep_period)) true)
 
 let node sensors_mapfail () =
   let sw_engine =   true

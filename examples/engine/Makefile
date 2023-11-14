@@ -9,9 +9,11 @@ byte: $(EXAMPLE:%.zls=%.byte)
 opt:  $(EXAMPLE:%.zls=%.opt)
 
 engine.byte: ZLEXTRALIBS += graphics.cma $(OBJ)
+engine.byte: INCLUDES += $(GRAPHICS)
 engine.byte: $(OBJ)
 
 engine.opt: ZLEXTRALIBS += graphics.cmxa $(OBJ:.cmo=.cmx)
+engine.opt: INCLUDES += $(GRAPHICS)
 engine.opt: $(OBJ:%.cmo=%.cmx)
 
 clean:

@@ -9,9 +9,11 @@ byte: $(EXAMPLE:%.zls=%.byte)
 opt:  $(EXAMPLE:%.zls=%.opt)
 
 suspension.byte: ZLEXTRALIBS += graphics.cma $(OBJ)
+suspension.byte: INCLUDES += $(GRAPHICS)
 suspension.byte: $(OBJ)
 
 suspension.opt: ZLEXTRALIBS += graphics.cmxa $(OBJ:.cmo=.cmx)
+suspension.opt: INCLUDES += $(GRAPHICS)
 suspension.opt: $(OBJ:%.cmo=%.cmx)
 
 clean:

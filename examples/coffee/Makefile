@@ -16,6 +16,9 @@ coffee.opt: coffee.cmx coffee_main.cmx
 	$(OCAMLOPT) $(OCAMLOPTFLAGS) -o $@ $(INCLUDES) \
 	    -I $(ZLLIB) $(ZLSTDLIBS:.cma=.cmxa) $(ZLEXTRALIBS:.cma=.cmxa) graphics.cmxa $^
 
+coffee.byte: INCLUDES += $(GRAPHICS)
+coffee.opt: INCLUDES += $(GRAPHICS)
+
 coffee_main.cmo: INCLUDE += $(SUNDIALS)
 coffee_main.cmx: INCLUDE += $(SUNDIALS)
 

@@ -20,6 +20,12 @@ horloge.opt: draw.cmx horloge.cmx horloge_main.cmx
 horloge_main.cmo: INCLUDE += $(SUNDIALS)
 horloge_main.cmx: INCLUDE += $(SUNDIALS)
 
+draw.cmo: INCLUDES += $(GRAPHICS)
+draw.cmx: INCLUDES += $(GRAPHICS)
+
+horloge.byte: INCLUDES += $(GRAPHICS)
+horloge.opt: INCLUDES += $(GRAPHICS)
+
 horloge.ml horloge_main.ml: draw.zci horloge.zls
 	$(ZELUC) -I $(ZLLIB) $(ZLCFLAGS) -s main -sampling 0 horloge.zls
 	mv main.ml horloge_main.ml

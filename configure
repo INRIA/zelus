@@ -181,7 +181,7 @@ fi
 
 # Check for opam
 if command -v opam >/dev/null 2>&1; then
-    opam_libpath="$(opam config var lib)/"
+    opam_libpath="$(opam var lib)/"
 else
     opam_libpath=''
 fi
@@ -224,6 +224,10 @@ if [ ${for_compile} -eq 1 ]; then
 	fi
     fi
 fi
+
+# Check for graphics installation
+graphics_path="${opam_libpath}graphics"
+graphics_incl="-I ${graphics_path}"
 
 # Check for sundialsml installation
 sundialsml_path=${SUNDIALSML:-"${ocaml_libpath}sundialsml"}
@@ -332,6 +336,7 @@ cat config.log
 	 s#@for_compile@#${for_compile}#;
 	 s#@VERSION@#${version}#;
 	 s#@DEFAULT_SOLVER@#${default_solver}#;
+	 s#@GRAPHICS_INCL@#${graphics_incl}#;
 	 s#@SUNDIALSML_INCL@#${sundialsml_incl}#;
 	 s#@LABLGTK2_PATH@#${lablgtk2_path}#;
 	 s#@MENHIRLIB@#${menhirlib}#;
