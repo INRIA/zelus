@@ -1,0 +1,20 @@
+
+open Scope (* Dump *)
+
+let node plot (x, y) =
+  let s1 =
+    scope (-10.0, 2.0, ("x", linear, x)) in
+  let s2 =
+    scope (-20.0, 5.0, ("y", linear, y)) in
+  let rec t = 0.0 fby t +. 0.1 in
+  window2 ("lastlast", 4.0, t, s1, s2)
+
+let hybrid main () =
+  let rec der y = x init 0.0
+          reset z -> -4.0 *. last x
+  and der x = 1.0 init 0.0
+          reset z -> -3.0 *. last y
+  and z = up(y -. 2.0)
+  and tick = period (0.1)
+  in present tick -> plot (x, y) else ()
+
