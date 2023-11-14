@@ -426,7 +426,7 @@ let env_of_eq_list expected_k eq_list =
        match expected_k with
        | Deftypes.Tstatic _ -> Deftypes.static
        | Deftypes.Tany | Deftypes.Tdiscrete false -> Deftypes.variable
-       | Deftypes. Tcont
+       | Deftypes.Tcont
        | Deftypes.Tdiscrete true
        | Deftypes.Tproba ->
 	  if S.mem n inames then Deftypes.imemory

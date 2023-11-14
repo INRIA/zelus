@@ -11,7 +11,8 @@ let node euler(h)(x0, xprime) = x
 
 (* Model of a heater *)
 (* (temp(n+1) - temp(n)) / h = alpha(n) * (c(n) - temp(n)) if u(n) *)
-(*                             beta(n) * (temp_ext(n) - temp(n) otherwise *)
+(*                             beta(n) * (temp_ext(n) - temp(n)) otherwise *)
+
 let node heater(h)(c, alpha, beta, temp_ext, temp0, u) = temp where
   rec temp =
     euler(h)(temp0, 

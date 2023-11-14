@@ -108,7 +108,17 @@ $ cd examples && make
 
 The executables can be found in each example directory (e.g., `horloge/horloge_main.exe`).
 
-## Development
+## Development (inslallation from the sources)
+
+### First, you need to install [opam] (https://opam.ocaml.org) and
+[dune] (https://dune.readthedocs.io/en/stable/).
+
+Install sundials <= 6.1 (https://computing.llnl.gov/projects/sundials/sundials-software).
+Install sundialsml 6.1 from the source (https://inria-parkas.github.io/sundialsml/). 
+Warning: as of Nov. 2023, sundialsml only works with sundials <= 6.1. We hare
+working on updating it with the latest version. Moreover, sundialsml only works with OCaml up to version 4.14.1. It does not work yet with OCaml version >= 5.0.
+
+Everything should work then!
 
 ### Compiler
 
