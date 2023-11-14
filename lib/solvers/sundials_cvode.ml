@@ -9,7 +9,7 @@ type rhsfn = float -> Zls.carray -> Zls.carray -> unit
 type dkyfn = nvec -> float -> int -> unit
      
 let initialize (f : rhsfn) c =
-  Cvode.init Cvode.Adams Cvode.Functional Cvode.default_tolerances f 0.0 c
+  Cvode.(init Adams default_tolerances f 0.0 c)
 
 let reinitialize s t c =
   Cvode.reinit s t c
