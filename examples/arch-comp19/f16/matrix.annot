@@ -1,0 +1,2787 @@
+"matrix.ml" 7 70 74 "matrix.ml" 7 70 78
+type(
+  'a t -> int
+)
+ident(
+  def dim1 "matrix.ml" 8 93 93 "matrix.ml" 1 0 -1
+)
+"matrix.ml" 7 70 79 "matrix.ml" 7 70 80
+type(
+  'a t
+)
+ident(
+  def m "matrix.ml" 7 70 83 "matrix.ml" 7 70 92
+)
+"matrix.ml" 7 70 83 "matrix.ml" 7 70 86
+type(
+  int * int -> int
+)
+ident(
+  int_ref Stdlib.fst "stdlib.mli" 679 25801 25801 "stdlib.mli" 679 25801 25841
+)
+"matrix.ml" 7 70 87 "matrix.ml" 7 70 88
+type(
+  'a t
+)
+ident(
+  int_ref m "matrix.ml" 7 70 79 "matrix.ml" 7 70 80
+)
+"matrix.ml" 7 70 87 "matrix.ml" 7 70 92
+type(
+  int * int
+)
+"matrix.ml" 7 70 83 "matrix.ml" 7 70 92
+type(
+  int
+)
+"matrix.ml" 8 93 97 "matrix.ml" 8 93 101
+type(
+  'a t -> int
+)
+ident(
+  def dim2 "matrix.ml" 10 117 117 "matrix.ml" 1 0 -1
+)
+"matrix.ml" 8 93 102 "matrix.ml" 8 93 103
+type(
+  'a t
+)
+ident(
+  def m "matrix.ml" 8 93 106 "matrix.ml" 8 93 115
+)
+"matrix.ml" 8 93 106 "matrix.ml" 8 93 109
+type(
+  int * int -> int
+)
+ident(
+  int_ref Stdlib.snd "stdlib.mli" 682 25888 25888 "stdlib.mli" 682 25888 25928
+)
+"matrix.ml" 8 93 110 "matrix.ml" 8 93 111
+type(
+  'a t
+)
+ident(
+  int_ref m "matrix.ml" 8 93 102 "matrix.ml" 8 93 103
+)
+"matrix.ml" 8 93 110 "matrix.ml" 8 93 115
+type(
+  int * int
+)
+"matrix.ml" 8 93 106 "matrix.ml" 8 93 115
+type(
+  int
+)
+"matrix.ml" 10 117 121 "matrix.ml" 10 117 127
+type(
+  int -> int -> 'a -> 'a t
+)
+ident(
+  def create "matrix.ml" 12 189 189 "matrix.ml" 1 0 -1
+)
+"matrix.ml" 10 117 128 "matrix.ml" 10 117 129
+type(
+  int
+)
+ident(
+  def i "matrix.ml" 10 117 130 "matrix.ml" 11 137 188
+)
+"matrix.ml" 10 117 130 "matrix.ml" 10 117 131
+type(
+  int
+)
+ident(
+  def j "matrix.ml" 10 117 132 "matrix.ml" 11 137 188
+)
+"matrix.ml" 10 117 132 "matrix.ml" 10 117 134
+type(
+  'a
+)
+ident(
+  def el "matrix.ml" 11 137 139 "matrix.ml" 11 137 188
+)
+"matrix.ml" 11 137 147 "matrix.ml" 11 137 148
+type(
+  int
+)
+ident(
+  int_ref i "matrix.ml" 10 117 128 "matrix.ml" 10 117 129
+)
+"matrix.ml" 11 137 149 "matrix.ml" 11 137 150
+type(
+  int
+)
+ident(
+  int_ref j "matrix.ml" 10 117 130 "matrix.ml" 10 117 131
+)
+"matrix.ml" 11 137 147 "matrix.ml" 11 137 150
+type(
+  int * int
+)
+"matrix.ml" 11 137 162 "matrix.ml" 11 137 179
+type(
+  int -> int -> 'a -> 'a array array
+)
+ident(
+  int_ref Stdlib.Array.make_matrix "array.mli" 74 3548 3548 "array.mli" 74 3548 3600
+)
+"matrix.ml" 11 137 180 "matrix.ml" 11 137 181
+type(
+  int
+)
+ident(
+  int_ref i "matrix.ml" 10 117 128 "matrix.ml" 10 117 129
+)
+"matrix.ml" 11 137 182 "matrix.ml" 11 137 183
+type(
+  int
+)
+ident(
+  int_ref j "matrix.ml" 10 117 130 "matrix.ml" 10 117 131
+)
+"matrix.ml" 11 137 184 "matrix.ml" 11 137 186
+type(
+  'a
+)
+ident(
+  int_ref el "matrix.ml" 10 117 132 "matrix.ml" 10 117 134
+)
+"matrix.ml" 11 137 162 "matrix.ml" 11 137 186
+call(
+  stack
+)
+type(
+  'a array array
+)
+"matrix.ml" 11 137 139 "matrix.ml" 11 137 188
+type(
+  'a t
+)
+"matrix.ml" 12 189 193 "matrix.ml" 12 189 196
+type(
+  'a t -> int -> int -> 'a
+)
+ident(
+  def get "matrix.ml" 18 335 335 "matrix.ml" 1 0 -1
+)
+"matrix.ml" 12 189 197 "matrix.ml" 12 189 198
+type(
+  'a t
+)
+ident(
+  def m "matrix.ml" 12 189 199 "matrix.ml" 17 315 334
+)
+"matrix.ml" 12 189 199 "matrix.ml" 12 189 200
+type(
+  int
+)
+ident(
+  def i "matrix.ml" 12 189 201 "matrix.ml" 17 315 334
+)
+"matrix.ml" 12 189 201 "matrix.ml" 12 189 202
+type(
+  int
+)
+ident(
+  def j "matrix.ml" 13 205 207 "matrix.ml" 17 315 334
+)
+"matrix.ml" 13 205 210 "matrix.ml" 13 205 211
+type(
+  int
+)
+ident(
+  int_ref i "matrix.ml" 12 189 199 "matrix.ml" 12 189 200
+)
+"matrix.ml" 13 205 212 "matrix.ml" 13 205 214
+type(
+  int -> int -> bool
+)
+ident(
+  int_ref Stdlib.( >= ) "stdlib.mli" 82 3273 3273 "stdlib.mli" 82 3273 3325
+)
+"matrix.ml" 13 205 215 "matrix.ml" 13 205 216
+type(
+  int
+)
+"matrix.ml" 13 205 210 "matrix.ml" 13 205 216
+type(
+  bool
+)
+"matrix.ml" 13 205 217 "matrix.ml" 13 205 219
+type(
+  bool -> bool -> bool
+)
+ident(
+  int_ref Stdlib.( && ) "stdlib.mli" 143 5989 5989 "stdlib.mli" 143 5989 6040
+)
+"matrix.ml" 13 205 220 "matrix.ml" 13 205 221
+type(
+  int
+)
+ident(
+  int_ref i "matrix.ml" 12 189 199 "matrix.ml" 12 189 200
+)
+"matrix.ml" 13 205 222 "matrix.ml" 13 205 223
+type(
+  int -> int -> bool
+)
+ident(
+  int_ref Stdlib.( < ) "stdlib.mli" 70 2854 2854 "stdlib.mli" 70 2854 2901
+)
+"matrix.ml" 13 205 224 "matrix.ml" 13 205 228
+type(
+  'a t -> int
+)
+ident(
+  int_ref dim1 "matrix.ml" 7 70 74 "matrix.ml" 7 70 78
+)
+"matrix.ml" 13 205 229 "matrix.ml" 13 205 230
+type(
+  'a t
+)
+ident(
+  int_ref m "matrix.ml" 12 189 197 "matrix.ml" 12 189 198
+)
+"matrix.ml" 13 205 224 "matrix.ml" 13 205 230
+call(
+  stack
+)
+type(
+  int
+)
+"matrix.ml" 13 205 220 "matrix.ml" 13 205 230
+type(
+  bool
+)
+"matrix.ml" 13 205 210 "matrix.ml" 13 205 230
+type(
+  bool
+)
+"matrix.ml" 14 236 243 "matrix.ml" 14 236 244
+type(
+  int
+)
+ident(
+  int_ref j "matrix.ml" 12 189 201 "matrix.ml" 12 189 202
+)
+"matrix.ml" 14 236 245 "matrix.ml" 14 236 247
+type(
+  int -> int -> bool
+)
+ident(
+  int_ref Stdlib.( >= ) "stdlib.mli" 82 3273 3273 "stdlib.mli" 82 3273 3325
+)
+"matrix.ml" 14 236 248 "matrix.ml" 14 236 249
+type(
+  int
+)
+"matrix.ml" 14 236 243 "matrix.ml" 14 236 249
+type(
+  bool
+)
+"matrix.ml" 14 236 250 "matrix.ml" 14 236 252
+type(
+  bool -> bool -> bool
+)
+ident(
+  int_ref Stdlib.( && ) "stdlib.mli" 143 5989 5989 "stdlib.mli" 143 5989 6040
+)
+"matrix.ml" 14 236 253 "matrix.ml" 14 236 254
+type(
+  int
+)
+ident(
+  int_ref j "matrix.ml" 12 189 201 "matrix.ml" 12 189 202
+)
+"matrix.ml" 14 236 255 "matrix.ml" 14 236 256
+type(
+  int -> int -> bool
+)
+ident(
+  int_ref Stdlib.( < ) "stdlib.mli" 70 2854 2854 "stdlib.mli" 70 2854 2901
+)
+"matrix.ml" 14 236 257 "matrix.ml" 14 236 261
+type(
+  'a t -> int
+)
+ident(
+  int_ref dim2 "matrix.ml" 8 93 97 "matrix.ml" 8 93 101
+)
+"matrix.ml" 14 236 262 "matrix.ml" 14 236 263
+type(
+  'a t
+)
+ident(
+  int_ref m "matrix.ml" 12 189 197 "matrix.ml" 12 189 198
+)
+"matrix.ml" 14 236 257 "matrix.ml" 14 236 263
+call(
+  stack
+)
+type(
+  int
+)
+"matrix.ml" 14 236 253 "matrix.ml" 14 236 263
+type(
+  bool
+)
+"matrix.ml" 14 236 243 "matrix.ml" 14 236 263
+type(
+  bool
+)
+"matrix.ml" 15 269 275 "matrix.ml" 15 269 276
+type(
+  'a t
+)
+ident(
+  int_ref m "matrix.ml" 12 189 197 "matrix.ml" 12 189 198
+)
+"matrix.ml" 15 269 275 "matrix.ml" 15 269 284
+type(
+  'a array array
+)
+"matrix.ml" 15 269 286 "matrix.ml" 15 269 287
+type(
+  int
+)
+ident(
+  int_ref i "matrix.ml" 12 189 199 "matrix.ml" 12 189 200
+)
+"matrix.ml" 15 269 275 "matrix.ml" 15 269 288
+type(
+  'a array
+)
+"matrix.ml" 15 269 290 "matrix.ml" 15 269 291
+type(
+  int
+)
+ident(
+  int_ref j "matrix.ml" 12 189 201 "matrix.ml" 12 189 202
+)
+"matrix.ml" 15 269 275 "matrix.ml" 15 269 292
+type(
+  'a
+)
+"matrix.ml" 16 293 309 "matrix.ml" 16 293 314
+type(
+  bool
+)
+"matrix.ml" 16 293 302 "matrix.ml" 16 293 314
+type(
+  'a
+)
+"matrix.ml" 14 236 240 "matrix.ml" 16 293 314
+type(
+  'a
+)
+"matrix.ml" 17 315 329 "matrix.ml" 17 315 334
+type(
+  bool
+)
+"matrix.ml" 17 315 322 "matrix.ml" 17 315 334
+type(
+  'a
+)
+"matrix.ml" 13 205 207 "matrix.ml" 17 315 334
+type(
+  'a
+)
+"matrix.ml" 18 335 339 "matrix.ml" 18 335 342
+type(
+  'a t -> int -> int -> 'a -> unit
+)
+ident(
+  def set "matrix.ml" 25 489 489 "matrix.ml" 1 0 -1
+)
+"matrix.ml" 18 335 343 "matrix.ml" 18 335 344
+type(
+  'a t
+)
+ident(
+  def m "matrix.ml" 18 335 345 "matrix.ml" 23 468 487
+)
+"matrix.ml" 18 335 345 "matrix.ml" 18 335 346
+type(
+  int
+)
+ident(
+  def i "matrix.ml" 18 335 347 "matrix.ml" 23 468 487
+)
+"matrix.ml" 18 335 347 "matrix.ml" 18 335 348
+type(
+  int
+)
+ident(
+  def j "matrix.ml" 18 335 349 "matrix.ml" 23 468 487
+)
+"matrix.ml" 18 335 349 "matrix.ml" 18 335 350
+type(
+  'a
+)
+ident(
+  def v "matrix.ml" 19 353 355 "matrix.ml" 23 468 487
+)
+"matrix.ml" 19 353 358 "matrix.ml" 19 353 359
+type(
+  int
+)
+ident(
+  int_ref i "matrix.ml" 18 335 345 "matrix.ml" 18 335 346
+)
+"matrix.ml" 19 353 360 "matrix.ml" 19 353 362
+type(
+  int -> int -> bool
+)
+ident(
+  int_ref Stdlib.( >= ) "stdlib.mli" 82 3273 3273 "stdlib.mli" 82 3273 3325
+)
+"matrix.ml" 19 353 363 "matrix.ml" 19 353 364
+type(
+  int
+)
+"matrix.ml" 19 353 358 "matrix.ml" 19 353 364
+type(
+  bool
+)
+"matrix.ml" 19 353 365 "matrix.ml" 19 353 367
+type(
+  bool -> bool -> bool
+)
+ident(
+  int_ref Stdlib.( && ) "stdlib.mli" 143 5989 5989 "stdlib.mli" 143 5989 6040
+)
+"matrix.ml" 19 353 368 "matrix.ml" 19 353 369
+type(
+  int
+)
+ident(
+  int_ref i "matrix.ml" 18 335 345 "matrix.ml" 18 335 346
+)
+"matrix.ml" 19 353 370 "matrix.ml" 19 353 371
+type(
+  int -> int -> bool
+)
+ident(
+  int_ref Stdlib.( < ) "stdlib.mli" 70 2854 2854 "stdlib.mli" 70 2854 2901
+)
+"matrix.ml" 19 353 372 "matrix.ml" 19 353 376
+type(
+  'a t -> int
+)
+ident(
+  int_ref dim1 "matrix.ml" 7 70 74 "matrix.ml" 7 70 78
+)
+"matrix.ml" 19 353 377 "matrix.ml" 19 353 378
+type(
+  'a t
+)
+ident(
+  int_ref m "matrix.ml" 18 335 343 "matrix.ml" 18 335 344
+)
+"matrix.ml" 19 353 372 "matrix.ml" 19 353 378
+call(
+  stack
+)
+type(
+  int
+)
+"matrix.ml" 19 353 368 "matrix.ml" 19 353 378
+type(
+  bool
+)
+"matrix.ml" 19 353 358 "matrix.ml" 19 353 378
+type(
+  bool
+)
+"matrix.ml" 20 384 391 "matrix.ml" 20 384 392
+type(
+  int
+)
+ident(
+  int_ref j "matrix.ml" 18 335 347 "matrix.ml" 18 335 348
+)
+"matrix.ml" 20 384 393 "matrix.ml" 20 384 395
+type(
+  int -> int -> bool
+)
+ident(
+  int_ref Stdlib.( >= ) "stdlib.mli" 82 3273 3273 "stdlib.mli" 82 3273 3325
+)
+"matrix.ml" 20 384 396 "matrix.ml" 20 384 397
+type(
+  int
+)
+"matrix.ml" 20 384 391 "matrix.ml" 20 384 397
+type(
+  bool
+)
+"matrix.ml" 20 384 398 "matrix.ml" 20 384 400
+type(
+  bool -> bool -> bool
+)
+ident(
+  int_ref Stdlib.( && ) "stdlib.mli" 143 5989 5989 "stdlib.mli" 143 5989 6040
+)
+"matrix.ml" 20 384 401 "matrix.ml" 20 384 402
+type(
+  int
+)
+ident(
+  int_ref j "matrix.ml" 18 335 347 "matrix.ml" 18 335 348
+)
+"matrix.ml" 20 384 403 "matrix.ml" 20 384 404
+type(
+  int -> int -> bool
+)
+ident(
+  int_ref Stdlib.( < ) "stdlib.mli" 70 2854 2854 "stdlib.mli" 70 2854 2901
+)
+"matrix.ml" 20 384 405 "matrix.ml" 20 384 409
+type(
+  'a t -> int
+)
+ident(
+  int_ref dim2 "matrix.ml" 8 93 97 "matrix.ml" 8 93 101
+)
+"matrix.ml" 20 384 410 "matrix.ml" 20 384 411
+type(
+  'a t
+)
+ident(
+  int_ref m "matrix.ml" 18 335 343 "matrix.ml" 18 335 344
+)
+"matrix.ml" 20 384 405 "matrix.ml" 20 384 411
+call(
+  stack
+)
+type(
+  int
+)
+"matrix.ml" 20 384 401 "matrix.ml" 20 384 411
+type(
+  bool
+)
+"matrix.ml" 20 384 391 "matrix.ml" 20 384 411
+type(
+  bool
+)
+"matrix.ml" 21 417 423 "matrix.ml" 21 417 424
+type(
+  'a t
+)
+ident(
+  int_ref m "matrix.ml" 18 335 343 "matrix.ml" 18 335 344
+)
+"matrix.ml" 21 417 423 "matrix.ml" 21 417 432
+type(
+  'a array array
+)
+"matrix.ml" 21 417 434 "matrix.ml" 21 417 435
+type(
+  int
+)
+ident(
+  int_ref i "matrix.ml" 18 335 345 "matrix.ml" 18 335 346
+)
+"matrix.ml" 21 417 423 "matrix.ml" 21 417 436
+type(
+  'a array
+)
+"matrix.ml" 21 417 438 "matrix.ml" 21 417 439
+type(
+  int
+)
+ident(
+  int_ref j "matrix.ml" 18 335 347 "matrix.ml" 18 335 348
+)
+"matrix.ml" 21 417 444 "matrix.ml" 21 417 445
+type(
+  'a
+)
+ident(
+  int_ref v "matrix.ml" 18 335 349 "matrix.ml" 18 335 350
+)
+"matrix.ml" 21 417 423 "matrix.ml" 21 417 445
+type(
+  unit
+)
+"matrix.ml" 22 446 462 "matrix.ml" 22 446 467
+type(
+  bool
+)
+"matrix.ml" 22 446 455 "matrix.ml" 22 446 467
+type(
+  unit
+)
+"matrix.ml" 20 384 388 "matrix.ml" 22 446 467
+type(
+  unit
+)
+"matrix.ml" 23 468 482 "matrix.ml" 23 468 487
+type(
+  bool
+)
+"matrix.ml" 23 468 475 "matrix.ml" 23 468 487
+type(
+  unit
+)
+"matrix.ml" 19 353 355 "matrix.ml" 23 468 487
+type(
+  unit
+)
+"matrix.ml" 25 489 493 "matrix.ml" 25 489 500
+type(
+  'a t -> int -> 'a array
+)
+ident(
+  def get_row "matrix.ml" 28 572 572 "matrix.ml" 1 0 -1
+)
+"matrix.ml" 25 489 501 "matrix.ml" 25 489 502
+type(
+  'a t
+)
+ident(
+  def m "matrix.ml" 25 489 503 "matrix.ml" 27 552 571
+)
+"matrix.ml" 25 489 503 "matrix.ml" 25 489 504
+type(
+  int
+)
+ident(
+  def i "matrix.ml" 26 507 509 "matrix.ml" 27 552 571
+)
+"matrix.ml" 26 507 512 "matrix.ml" 26 507 513
+type(
+  int
+)
+ident(
+  int_ref i "matrix.ml" 25 489 503 "matrix.ml" 25 489 504
+)
+"matrix.ml" 26 507 514 "matrix.ml" 26 507 516
+type(
+  int -> int -> bool
+)
+ident(
+  int_ref Stdlib.( >= ) "stdlib.mli" 82 3273 3273 "stdlib.mli" 82 3273 3325
+)
+"matrix.ml" 26 507 517 "matrix.ml" 26 507 518
+type(
+  int
+)
+"matrix.ml" 26 507 512 "matrix.ml" 26 507 518
+type(
+  bool
+)
+"matrix.ml" 26 507 519 "matrix.ml" 26 507 521
+type(
+  bool -> bool -> bool
+)
+ident(
+  int_ref Stdlib.( && ) "stdlib.mli" 143 5989 5989 "stdlib.mli" 143 5989 6040
+)
+"matrix.ml" 26 507 522 "matrix.ml" 26 507 523
+type(
+  int
+)
+ident(
+  int_ref i "matrix.ml" 25 489 503 "matrix.ml" 25 489 504
+)
+"matrix.ml" 26 507 524 "matrix.ml" 26 507 525
+type(
+  int -> int -> bool
+)
+ident(
+  int_ref Stdlib.( < ) "stdlib.mli" 70 2854 2854 "stdlib.mli" 70 2854 2901
+)
+"matrix.ml" 26 507 526 "matrix.ml" 26 507 530
+type(
+  'a t -> int
+)
+ident(
+  int_ref dim1 "matrix.ml" 7 70 74 "matrix.ml" 7 70 78
+)
+"matrix.ml" 26 507 531 "matrix.ml" 26 507 532
+type(
+  'a t
+)
+ident(
+  int_ref m "matrix.ml" 25 489 501 "matrix.ml" 25 489 502
+)
+"matrix.ml" 26 507 526 "matrix.ml" 26 507 532
+call(
+  stack
+)
+type(
+  int
+)
+"matrix.ml" 26 507 522 "matrix.ml" 26 507 532
+type(
+  bool
+)
+"matrix.ml" 26 507 512 "matrix.ml" 26 507 532
+type(
+  bool
+)
+"matrix.ml" 26 507 538 "matrix.ml" 26 507 539
+type(
+  'a t
+)
+ident(
+  int_ref m "matrix.ml" 25 489 501 "matrix.ml" 25 489 502
+)
+"matrix.ml" 26 507 538 "matrix.ml" 26 507 547
+type(
+  'a array array
+)
+"matrix.ml" 26 507 549 "matrix.ml" 26 507 550
+type(
+  int
+)
+ident(
+  int_ref i "matrix.ml" 25 489 503 "matrix.ml" 25 489 504
+)
+"matrix.ml" 26 507 538 "matrix.ml" 26 507 551
+type(
+  'a array
+)
+"matrix.ml" 27 552 566 "matrix.ml" 27 552 571
+type(
+  bool
+)
+"matrix.ml" 27 552 559 "matrix.ml" 27 552 571
+type(
+  'a array
+)
+"matrix.ml" 26 507 509 "matrix.ml" 27 552 571
+type(
+  'a array
+)
+"matrix.ml" 28 572 576 "matrix.ml" 28 572 593
+type(
+  'a t -> int -> 'a list -> unit
+)
+ident(
+  def set_row_from_list "matrix.ml" 36 774 774 "matrix.ml" 1 0 -1
+)
+"matrix.ml" 28 572 594 "matrix.ml" 28 572 595
+type(
+  'a t
+)
+ident(
+  def m "matrix.ml" 28 572 596 "matrix.ml" 34 753 772
+)
+"matrix.ml" 28 572 596 "matrix.ml" 28 572 597
+type(
+  int
+)
+ident(
+  def i "matrix.ml" 28 572 598 "matrix.ml" 34 753 772
+)
+"matrix.ml" 28 572 598 "matrix.ml" 28 572 599
+type(
+  'a list
+)
+ident(
+  def l "matrix.ml" 29 602 604 "matrix.ml" 34 753 772
+)
+"matrix.ml" 29 602 607 "matrix.ml" 29 602 608
+type(
+  int
+)
+ident(
+  int_ref i "matrix.ml" 28 572 596 "matrix.ml" 28 572 597
+)
+"matrix.ml" 29 602 609 "matrix.ml" 29 602 611
+type(
+  int -> int -> bool
+)
+ident(
+  int_ref Stdlib.( >= ) "stdlib.mli" 82 3273 3273 "stdlib.mli" 82 3273 3325
+)
+"matrix.ml" 29 602 612 "matrix.ml" 29 602 613
+type(
+  int
+)
+"matrix.ml" 29 602 607 "matrix.ml" 29 602 613
+type(
+  bool
+)
+"matrix.ml" 29 602 614 "matrix.ml" 29 602 616
+type(
+  bool -> bool -> bool
+)
+ident(
+  int_ref Stdlib.( && ) "stdlib.mli" 143 5989 5989 "stdlib.mli" 143 5989 6040
+)
+"matrix.ml" 29 602 617 "matrix.ml" 29 602 618
+type(
+  int
+)
+ident(
+  int_ref i "matrix.ml" 28 572 596 "matrix.ml" 28 572 597
+)
+"matrix.ml" 29 602 619 "matrix.ml" 29 602 620
+type(
+  int -> int -> bool
+)
+ident(
+  int_ref Stdlib.( < ) "stdlib.mli" 70 2854 2854 "stdlib.mli" 70 2854 2901
+)
+"matrix.ml" 29 602 621 "matrix.ml" 29 602 625
+type(
+  'a t -> int
+)
+ident(
+  int_ref dim1 "matrix.ml" 7 70 74 "matrix.ml" 7 70 78
+)
+"matrix.ml" 29 602 626 "matrix.ml" 29 602 627
+type(
+  'a t
+)
+ident(
+  int_ref m "matrix.ml" 28 572 594 "matrix.ml" 28 572 595
+)
+"matrix.ml" 29 602 621 "matrix.ml" 29 602 627
+call(
+  stack
+)
+type(
+  int
+)
+"matrix.ml" 29 602 617 "matrix.ml" 29 602 627
+type(
+  bool
+)
+"matrix.ml" 29 602 607 "matrix.ml" 29 602 627
+type(
+  bool
+)
+"matrix.ml" 30 633 641 "matrix.ml" 30 633 644
+type(
+  'a array
+)
+ident(
+  def row "matrix.ml" 31 666 670 "matrix.ml" 33 731 752
+)
+"matrix.ml" 30 633 647 "matrix.ml" 30 633 660
+type(
+  'a list -> 'a array
+)
+ident(
+  int_ref Stdlib.Array.of_list "array.mli" 132 6010 6010 "array.mli" 132 6010 6043
+)
+"matrix.ml" 30 633 661 "matrix.ml" 30 633 662
+type(
+  'a list
+)
+ident(
+  int_ref l "matrix.ml" 28 572 598 "matrix.ml" 28 572 599
+)
+"matrix.ml" 30 633 647 "matrix.ml" 30 633 662
+call(
+  stack
+)
+type(
+  'a array
+)
+"matrix.ml" 31 666 673 "matrix.ml" 31 666 685
+type(
+  'a array -> int
+)
+ident(
+  int_ref Stdlib.Array.length "array.mli" 18 1105 1105 "array.mli" 18 1105 1156
+)
+"matrix.ml" 31 666 686 "matrix.ml" 31 666 689
+type(
+  'a array
+)
+ident(
+  int_ref row "matrix.ml" 30 633 641 "matrix.ml" 30 633 644
+)
+"matrix.ml" 31 666 673 "matrix.ml" 31 666 689
+type(
+  int
+)
+"matrix.ml" 31 666 690 "matrix.ml" 31 666 691
+type(
+  int -> int -> bool
+)
+ident(
+  int_ref Stdlib.( = ) "stdlib.mli" 57 2220 2220 "stdlib.mli" 57 2220 2264
+)
+"matrix.ml" 31 666 692 "matrix.ml" 31 666 696
+type(
+  'a t -> int
+)
+ident(
+  int_ref dim2 "matrix.ml" 8 93 97 "matrix.ml" 8 93 101
+)
+"matrix.ml" 31 666 697 "matrix.ml" 31 666 698
+type(
+  'a t
+)
+ident(
+  int_ref m "matrix.ml" 28 572 594 "matrix.ml" 28 572 595
+)
+"matrix.ml" 31 666 692 "matrix.ml" 31 666 698
+call(
+  stack
+)
+type(
+  int
+)
+"matrix.ml" 31 666 673 "matrix.ml" 31 666 698
+type(
+  bool
+)
+"matrix.ml" 32 704 710 "matrix.ml" 32 704 711
+type(
+  'a t
+)
+ident(
+  int_ref m "matrix.ml" 28 572 594 "matrix.ml" 28 572 595
+)
+"matrix.ml" 32 704 710 "matrix.ml" 32 704 719
+type(
+  'a array array
+)
+"matrix.ml" 32 704 721 "matrix.ml" 32 704 722
+type(
+  int
+)
+ident(
+  int_ref i "matrix.ml" 28 572 596 "matrix.ml" 28 572 597
+)
+"matrix.ml" 32 704 727 "matrix.ml" 32 704 730
+type(
+  'a array
+)
+ident(
+  int_ref row "matrix.ml" 30 633 641 "matrix.ml" 30 633 644
+)
+"matrix.ml" 32 704 710 "matrix.ml" 32 704 730
+type(
+  unit
+)
+"matrix.ml" 33 731 747 "matrix.ml" 33 731 752
+type(
+  bool
+)
+"matrix.ml" 33 731 740 "matrix.ml" 33 731 752
+type(
+  unit
+)
+"matrix.ml" 31 666 670 "matrix.ml" 33 731 752
+type(
+  unit
+)
+"matrix.ml" 30 633 637 "matrix.ml" 33 731 752
+type(
+  unit
+)
+"matrix.ml" 34 753 767 "matrix.ml" 34 753 772
+type(
+  bool
+)
+"matrix.ml" 34 753 760 "matrix.ml" 34 753 772
+type(
+  unit
+)
+"matrix.ml" 29 602 604 "matrix.ml" 34 753 772
+type(
+  unit
+)
+"matrix.ml" 36 774 778 "matrix.ml" 36 774 787
+type(
+  float t -> int -> float -> float
+)
+ident(
+  def lut1d_col "matrix.ml" 45 1085 1085 "matrix.ml" 1 0 -1
+)
+"matrix.ml" 36 774 788 "matrix.ml" 36 774 793
+type(
+  float t
+)
+ident(
+  def table "matrix.ml" 36 774 794 "matrix.ml" 43 1030 1083
+)
+"matrix.ml" 36 774 794 "matrix.ml" 36 774 795
+type(
+  int
+)
+ident(
+  def i "matrix.ml" 36 774 796 "matrix.ml" 43 1030 1083
+)
+"matrix.ml" 36 774 796 "matrix.ml" 36 774 799
+type(
+  float
+)
+ident(
+  def j_f "matrix.ml" 37 802 804 "matrix.ml" 43 1030 1083
+)
+"matrix.ml" 37 802 808 "matrix.ml" 37 802 816
+type(
+  'a -> 'a -> 'a -> 'a
+)
+ident(
+  def saturate "matrix.ml" 39 891 893 "matrix.ml" 43 1030 1083
+)
+"matrix.ml" 37 802 817 "matrix.ml" 37 802 820
+type(
+  'a
+)
+ident(
+  def low "matrix.ml" 37 802 821 "matrix.ml" 38 830 887
+)
+"matrix.ml" 37 802 821 "matrix.ml" 37 802 825
+type(
+  'a
+)
+ident(
+  def high "matrix.ml" 37 802 826 "matrix.ml" 38 830 887
+)
+"matrix.ml" 37 802 826 "matrix.ml" 37 802 827
+type(
+  'a
+)
+ident(
+  def i "matrix.ml" 38 830 834 "matrix.ml" 38 830 887
+)
+"matrix.ml" 38 830 837 "matrix.ml" 38 830 838
+type(
+  'a
+)
+ident(
+  int_ref i "matrix.ml" 37 802 826 "matrix.ml" 37 802 827
+)
+"matrix.ml" 38 830 839 "matrix.ml" 38 830 840
+type(
+  'a -> 'a -> bool
+)
+ident(
+  int_ref Stdlib.( > ) "stdlib.mli" 74 2992 2992 "stdlib.mli" 74 2992 3042
+)
+"matrix.ml" 38 830 841 "matrix.ml" 38 830 845
+type(
+  'a
+)
+ident(
+  int_ref high "matrix.ml" 37 802 821 "matrix.ml" 37 802 825
+)
+"matrix.ml" 38 830 837 "matrix.ml" 38 830 845
+type(
+  bool
+)
+"matrix.ml" 38 830 851 "matrix.ml" 38 830 855
+type(
+  'a
+)
+ident(
+  int_ref high "matrix.ml" 37 802 821 "matrix.ml" 37 802 825
+)
+"matrix.ml" 38 830 864 "matrix.ml" 38 830 865
+type(
+  'a
+)
+ident(
+  int_ref i "matrix.ml" 37 802 826 "matrix.ml" 37 802 827
+)
+"matrix.ml" 38 830 866 "matrix.ml" 38 830 867
+type(
+  'a -> 'a -> bool
+)
+ident(
+  int_ref Stdlib.( < ) "stdlib.mli" 70 2854 2854 "stdlib.mli" 70 2854 2901
+)
+"matrix.ml" 38 830 868 "matrix.ml" 38 830 871
+type(
+  'a
+)
+ident(
+  int_ref low "matrix.ml" 37 802 817 "matrix.ml" 37 802 820
+)
+"matrix.ml" 38 830 864 "matrix.ml" 38 830 871
+type(
+  bool
+)
+"matrix.ml" 38 830 877 "matrix.ml" 38 830 880
+type(
+  'a
+)
+ident(
+  int_ref low "matrix.ml" 37 802 817 "matrix.ml" 37 802 820
+)
+"matrix.ml" 38 830 886 "matrix.ml" 38 830 887
+type(
+  'a
+)
+ident(
+  int_ref i "matrix.ml" 37 802 826 "matrix.ml" 37 802 827
+)
+"matrix.ml" 38 830 861 "matrix.ml" 38 830 887
+type(
+  'a
+)
+"matrix.ml" 38 830 834 "matrix.ml" 38 830 887
+type(
+  'a
+)
+"matrix.ml" 39 891 897 "matrix.ml" 39 891 898
+type(
+  float
+)
+ident(
+  def j "matrix.ml" 40 960 962 "matrix.ml" 43 1030 1083
+)
+"matrix.ml" 39 891 901 "matrix.ml" 39 891 909
+type(
+  float -> float -> float -> float
+)
+ident(
+  int_ref saturate "matrix.ml" 37 802 808 "matrix.ml" 37 802 816
+)
+"matrix.ml" 39 891 910 "matrix.ml" 39 891 912
+type(
+  float
+)
+"matrix.ml" 39 891 914 "matrix.ml" 39 891 926
+type(
+  int -> float
+)
+ident(
+  int_ref Stdlib.float_of_int "stdlib.mli" 521 20047 20047 "stdlib.mli" 521 20047 20099
+)
+"matrix.ml" 39 891 928 "matrix.ml" 39 891 932
+type(
+  float t -> int
+)
+ident(
+  int_ref dim2 "matrix.ml" 8 93 97 "matrix.ml" 8 93 101
+)
+"matrix.ml" 39 891 933 "matrix.ml" 39 891 938
+type(
+  float t
+)
+ident(
+  int_ref table "matrix.ml" 36 774 788 "matrix.ml" 36 774 793
+)
+"matrix.ml" 39 891 928 "matrix.ml" 39 891 938
+call(
+  stack
+)
+type(
+  int
+)
+"matrix.ml" 39 891 939 "matrix.ml" 39 891 940
+type(
+  int -> int -> int
+)
+ident(
+  int_ref Stdlib.( - ) "stdlib.mli" 271 10513 10513 "stdlib.mli" 271 10513 10559
+)
+"matrix.ml" 39 891 941 "matrix.ml" 39 891 942
+type(
+  int
+)
+"matrix.ml" 39 891 927 "matrix.ml" 39 891 943
+type(
+  int
+)
+"matrix.ml" 39 891 913 "matrix.ml" 39 891 944
+type(
+  float
+)
+"matrix.ml" 39 891 946 "matrix.ml" 39 891 951
+type(
+  float -> float
+)
+ident(
+  int_ref Stdlib.floor "stdlib.mli" 477 18288 18288 "stdlib.mli" 478 18349 18374
+)
+"matrix.ml" 39 891 952 "matrix.ml" 39 891 955
+type(
+  float
+)
+ident(
+  int_ref j_f "matrix.ml" 36 774 796 "matrix.ml" 36 774 799
+)
+"matrix.ml" 39 891 945 "matrix.ml" 39 891 956
+type(
+  float
+)
+"matrix.ml" 39 891 901 "matrix.ml" 39 891 956
+call(
+  stack
+)
+type(
+  float
+)
+"matrix.ml" 40 960 966 "matrix.ml" 40 960 968
+type(
+  float
+)
+ident(
+  def dj "matrix.ml" 40 960 983 "matrix.ml" 43 1030 1083
+)
+"matrix.ml" 40 960 971 "matrix.ml" 40 960 974
+type(
+  float
+)
+ident(
+  int_ref j_f "matrix.ml" 36 774 796 "matrix.ml" 36 774 799
+)
+"matrix.ml" 40 960 975 "matrix.ml" 40 960 977
+type(
+  float -> float -> float
+)
+ident(
+  int_ref Stdlib.( -. ) "stdlib.mli" 375 14458 14458 "stdlib.mli" 375 14458 14513
+)
+"matrix.ml" 40 960 978 "matrix.ml" 40 960 979
+type(
+  float
+)
+ident(
+  int_ref j "matrix.ml" 39 891 897 "matrix.ml" 39 891 898
+)
+"matrix.ml" 40 960 971 "matrix.ml" 40 960 979
+type(
+  float
+)
+"matrix.ml" 40 960 987 "matrix.ml" 40 960 990
+type(
+  float
+)
+ident(
+  def cdj "matrix.ml" 42 1006 1008 "matrix.ml" 43 1030 1083
+)
+"matrix.ml" 40 960 993 "matrix.ml" 40 960 995
+type(
+  float
+)
+"matrix.ml" 40 960 996 "matrix.ml" 40 960 998
+type(
+  float -> float -> float
+)
+ident(
+  int_ref Stdlib.( -. ) "stdlib.mli" 375 14458 14458 "stdlib.mli" 375 14458 14513
+)
+"matrix.ml" 40 960 999 "matrix.ml" 40 960 1001
+type(
+  float
+)
+ident(
+  int_ref dj "matrix.ml" 40 960 966 "matrix.ml" 40 960 968
+)
+"matrix.ml" 40 960 993 "matrix.ml" 40 960 1001
+type(
+  float
+)
+"matrix.ml" 42 1006 1012 "matrix.ml" 42 1006 1013
+type(
+  int
+)
+ident(
+  def j "matrix.ml" 43 1030 1032 "matrix.ml" 43 1030 1083
+)
+"matrix.ml" 42 1006 1016 "matrix.ml" 42 1006 1024
+type(
+  float -> int
+)
+ident(
+  int_ref Stdlib.truncate "stdlib.mli" 524 20146 20146 "stdlib.mli" 524 20146 20194
+)
+"matrix.ml" 42 1006 1025 "matrix.ml" 42 1006 1026
+type(
+  float
+)
+ident(
+  int_ref j "matrix.ml" 39 891 897 "matrix.ml" 39 891 898
+)
+"matrix.ml" 42 1006 1016 "matrix.ml" 42 1006 1026
+type(
+  int
+)
+"matrix.ml" 43 1030 1033 "matrix.ml" 43 1030 1036
+type(
+  float t -> int -> int -> float
+)
+ident(
+  int_ref get "matrix.ml" 12 189 193 "matrix.ml" 12 189 196
+)
+"matrix.ml" 43 1030 1037 "matrix.ml" 43 1030 1042
+type(
+  float t
+)
+ident(
+  int_ref table "matrix.ml" 36 774 788 "matrix.ml" 36 774 793
+)
+"matrix.ml" 43 1030 1043 "matrix.ml" 43 1030 1044
+type(
+  int
+)
+ident(
+  int_ref i "matrix.ml" 36 774 794 "matrix.ml" 36 774 795
+)
+"matrix.ml" 43 1030 1045 "matrix.ml" 43 1030 1046
+type(
+  int
+)
+ident(
+  int_ref j "matrix.ml" 42 1006 1012 "matrix.ml" 42 1006 1013
+)
+"matrix.ml" 43 1030 1032 "matrix.ml" 43 1030 1047
+call(
+  stack
+)
+type(
+  float
+)
+"matrix.ml" 43 1030 1048 "matrix.ml" 43 1030 1050
+type(
+  float -> float -> float
+)
+ident(
+  int_ref Stdlib.( *. ) "stdlib.mli" 379 14606 14606 "stdlib.mli" 379 14606 14661
+)
+"matrix.ml" 43 1030 1051 "matrix.ml" 43 1030 1054
+type(
+  float
+)
+ident(
+  int_ref cdj "matrix.ml" 40 960 987 "matrix.ml" 40 960 990
+)
+"matrix.ml" 43 1030 1032 "matrix.ml" 43 1030 1054
+type(
+  float
+)
+"matrix.ml" 43 1030 1055 "matrix.ml" 43 1030 1057
+type(
+  float -> float -> float
+)
+ident(
+  int_ref Stdlib.( +. ) "stdlib.mli" 371 14313 14313 "stdlib.mli" 371 14313 14368
+)
+"matrix.ml" 43 1030 1059 "matrix.ml" 43 1030 1062
+type(
+  float t -> int -> int -> float
+)
+ident(
+  int_ref get "matrix.ml" 12 189 193 "matrix.ml" 12 189 196
+)
+"matrix.ml" 43 1030 1063 "matrix.ml" 43 1030 1068
+type(
+  float t
+)
+ident(
+  int_ref table "matrix.ml" 36 774 788 "matrix.ml" 36 774 793
+)
+"matrix.ml" 43 1030 1069 "matrix.ml" 43 1030 1070
+type(
+  int
+)
+ident(
+  int_ref i "matrix.ml" 36 774 794 "matrix.ml" 36 774 795
+)
+"matrix.ml" 43 1030 1072 "matrix.ml" 43 1030 1073
+type(
+  int
+)
+ident(
+  int_ref j "matrix.ml" 42 1006 1012 "matrix.ml" 42 1006 1013
+)
+"matrix.ml" 43 1030 1073 "matrix.ml" 43 1030 1074
+type(
+  int -> int -> int
+)
+ident(
+  int_ref Stdlib.( + ) "stdlib.mli" 267 10384 10384 "stdlib.mli" 267 10384 10430
+)
+"matrix.ml" 43 1030 1074 "matrix.ml" 43 1030 1075
+type(
+  int
+)
+"matrix.ml" 43 1030 1071 "matrix.ml" 43 1030 1076
+type(
+  int
+)
+"matrix.ml" 43 1030 1058 "matrix.ml" 43 1030 1077
+call(
+  stack
+)
+type(
+  float
+)
+"matrix.ml" 43 1030 1078 "matrix.ml" 43 1030 1080
+type(
+  float -> float -> float
+)
+ident(
+  int_ref Stdlib.( *. ) "stdlib.mli" 379 14606 14606 "stdlib.mli" 379 14606 14661
+)
+"matrix.ml" 43 1030 1081 "matrix.ml" 43 1030 1083
+type(
+  float
+)
+ident(
+  int_ref dj "matrix.ml" 40 960 966 "matrix.ml" 40 960 968
+)
+"matrix.ml" 43 1030 1058 "matrix.ml" 43 1030 1083
+type(
+  float
+)
+"matrix.ml" 43 1030 1032 "matrix.ml" 43 1030 1083
+type(
+  float
+)
+"matrix.ml" 42 1006 1008 "matrix.ml" 43 1030 1083
+type(
+  float
+)
+"matrix.ml" 40 960 983 "matrix.ml" 43 1030 1083
+type(
+  float
+)
+"matrix.ml" 40 960 962 "matrix.ml" 43 1030 1083
+type(
+  float
+)
+"matrix.ml" 39 891 893 "matrix.ml" 43 1030 1083
+type(
+  float
+)
+"matrix.ml" 37 802 804 "matrix.ml" 43 1030 1083
+type(
+  float
+)
+"matrix.ml" 45 1085 1089 "matrix.ml" 45 1085 1098
+type(
+  float t -> float -> int -> 'a -> float
+)
+ident(
+  def lut1d_row "matrix.ml" 54 1402 1402 "matrix.ml" 1 0 -1
+)
+"matrix.ml" 45 1085 1099 "matrix.ml" 45 1085 1104
+type(
+  float t
+)
+ident(
+  def table "matrix.ml" 45 1085 1105 "matrix.ml" 52 1347 1400
+)
+"matrix.ml" 45 1085 1105 "matrix.ml" 45 1085 1108
+type(
+  float
+)
+ident(
+  def i_f "matrix.ml" 45 1085 1109 "matrix.ml" 52 1347 1400
+)
+"matrix.ml" 45 1085 1109 "matrix.ml" 45 1085 1110
+type(
+  int
+)
+ident(
+  def j "matrix.ml" 45 1085 1111 "matrix.ml" 52 1347 1400
+)
+"matrix.ml" 45 1085 1111 "matrix.ml" 45 1085 1116
+type(
+  'a
+)
+ident(
+  def alpha "matrix.ml" 46 1119 1121 "matrix.ml" 52 1347 1400
+)
+"matrix.ml" 46 1119 1125 "matrix.ml" 46 1119 1133
+type(
+  'b -> 'b -> 'b -> 'b
+)
+ident(
+  def saturate "matrix.ml" 48 1208 1210 "matrix.ml" 52 1347 1400
+)
+"matrix.ml" 46 1119 1134 "matrix.ml" 46 1119 1137
+type(
+  'b
+)
+ident(
+  def low "matrix.ml" 46 1119 1138 "matrix.ml" 47 1147 1204
+)
+"matrix.ml" 46 1119 1138 "matrix.ml" 46 1119 1142
+type(
+  'b
+)
+ident(
+  def high "matrix.ml" 46 1119 1143 "matrix.ml" 47 1147 1204
+)
+"matrix.ml" 46 1119 1143 "matrix.ml" 46 1119 1144
+type(
+  'b
+)
+ident(
+  def i "matrix.ml" 47 1147 1151 "matrix.ml" 47 1147 1204
+)
+"matrix.ml" 47 1147 1154 "matrix.ml" 47 1147 1155
+type(
+  'b
+)
+ident(
+  int_ref i "matrix.ml" 46 1119 1143 "matrix.ml" 46 1119 1144
+)
+"matrix.ml" 47 1147 1156 "matrix.ml" 47 1147 1157
+type(
+  'b -> 'b -> bool
+)
+ident(
+  int_ref Stdlib.( > ) "stdlib.mli" 74 2992 2992 "stdlib.mli" 74 2992 3042
+)
+"matrix.ml" 47 1147 1158 "matrix.ml" 47 1147 1162
+type(
+  'b
+)
+ident(
+  int_ref high "matrix.ml" 46 1119 1138 "matrix.ml" 46 1119 1142
+)
+"matrix.ml" 47 1147 1154 "matrix.ml" 47 1147 1162
+type(
+  bool
+)
+"matrix.ml" 47 1147 1168 "matrix.ml" 47 1147 1172
+type(
+  'b
+)
+ident(
+  int_ref high "matrix.ml" 46 1119 1138 "matrix.ml" 46 1119 1142
+)
+"matrix.ml" 47 1147 1181 "matrix.ml" 47 1147 1182
+type(
+  'b
+)
+ident(
+  int_ref i "matrix.ml" 46 1119 1143 "matrix.ml" 46 1119 1144
+)
+"matrix.ml" 47 1147 1183 "matrix.ml" 47 1147 1184
+type(
+  'b -> 'b -> bool
+)
+ident(
+  int_ref Stdlib.( < ) "stdlib.mli" 70 2854 2854 "stdlib.mli" 70 2854 2901
+)
+"matrix.ml" 47 1147 1185 "matrix.ml" 47 1147 1188
+type(
+  'b
+)
+ident(
+  int_ref low "matrix.ml" 46 1119 1134 "matrix.ml" 46 1119 1137
+)
+"matrix.ml" 47 1147 1181 "matrix.ml" 47 1147 1188
+type(
+  bool
+)
+"matrix.ml" 47 1147 1194 "matrix.ml" 47 1147 1197
+type(
+  'b
+)
+ident(
+  int_ref low "matrix.ml" 46 1119 1134 "matrix.ml" 46 1119 1137
+)
+"matrix.ml" 47 1147 1203 "matrix.ml" 47 1147 1204
+type(
+  'b
+)
+ident(
+  int_ref i "matrix.ml" 46 1119 1143 "matrix.ml" 46 1119 1144
+)
+"matrix.ml" 47 1147 1178 "matrix.ml" 47 1147 1204
+type(
+  'b
+)
+"matrix.ml" 47 1147 1151 "matrix.ml" 47 1147 1204
+type(
+  'b
+)
+"matrix.ml" 48 1208 1214 "matrix.ml" 48 1208 1215
+type(
+  float
+)
+ident(
+  def i "matrix.ml" 49 1277 1279 "matrix.ml" 52 1347 1400
+)
+"matrix.ml" 48 1208 1218 "matrix.ml" 48 1208 1226
+type(
+  float -> float -> float -> float
+)
+ident(
+  int_ref saturate "matrix.ml" 46 1119 1125 "matrix.ml" 46 1119 1133
+)
+"matrix.ml" 48 1208 1227 "matrix.ml" 48 1208 1229
+type(
+  float
+)
+"matrix.ml" 48 1208 1231 "matrix.ml" 48 1208 1243
+type(
+  int -> float
+)
+ident(
+  int_ref Stdlib.float_of_int "stdlib.mli" 521 20047 20047 "stdlib.mli" 521 20047 20099
+)
+"matrix.ml" 48 1208 1245 "matrix.ml" 48 1208 1249
+type(
+  float t -> int
+)
+ident(
+  int_ref dim1 "matrix.ml" 7 70 74 "matrix.ml" 7 70 78
+)
+"matrix.ml" 48 1208 1250 "matrix.ml" 48 1208 1255
+type(
+  float t
+)
+ident(
+  int_ref table "matrix.ml" 45 1085 1099 "matrix.ml" 45 1085 1104
+)
+"matrix.ml" 48 1208 1245 "matrix.ml" 48 1208 1255
+call(
+  stack
+)
+type(
+  int
+)
+"matrix.ml" 48 1208 1256 "matrix.ml" 48 1208 1257
+type(
+  int -> int -> int
+)
+ident(
+  int_ref Stdlib.( - ) "stdlib.mli" 271 10513 10513 "stdlib.mli" 271 10513 10559
+)
+"matrix.ml" 48 1208 1258 "matrix.ml" 48 1208 1259
+type(
+  int
+)
+"matrix.ml" 48 1208 1244 "matrix.ml" 48 1208 1260
+type(
+  int
+)
+"matrix.ml" 48 1208 1230 "matrix.ml" 48 1208 1261
+type(
+  float
+)
+"matrix.ml" 48 1208 1263 "matrix.ml" 48 1208 1268
+type(
+  float -> float
+)
+ident(
+  int_ref Stdlib.floor "stdlib.mli" 477 18288 18288 "stdlib.mli" 478 18349 18374
+)
+"matrix.ml" 48 1208 1269 "matrix.ml" 48 1208 1272
+type(
+  float
+)
+ident(
+  int_ref i_f "matrix.ml" 45 1085 1105 "matrix.ml" 45 1085 1108
+)
+"matrix.ml" 48 1208 1262 "matrix.ml" 48 1208 1273
+type(
+  float
+)
+"matrix.ml" 48 1208 1218 "matrix.ml" 48 1208 1273
+call(
+  stack
+)
+type(
+  float
+)
+"matrix.ml" 49 1277 1283 "matrix.ml" 49 1277 1285
+type(
+  float
+)
+ident(
+  def di "matrix.ml" 49 1277 1300 "matrix.ml" 52 1347 1400
+)
+"matrix.ml" 49 1277 1288 "matrix.ml" 49 1277 1291
+type(
+  float
+)
+ident(
+  int_ref i_f "matrix.ml" 45 1085 1105 "matrix.ml" 45 1085 1108
+)
+"matrix.ml" 49 1277 1292 "matrix.ml" 49 1277 1294
+type(
+  float -> float -> float
+)
+ident(
+  int_ref Stdlib.( -. ) "stdlib.mli" 375 14458 14458 "stdlib.mli" 375 14458 14513
+)
+"matrix.ml" 49 1277 1295 "matrix.ml" 49 1277 1296
+type(
+  float
+)
+ident(
+  int_ref i "matrix.ml" 48 1208 1214 "matrix.ml" 48 1208 1215
+)
+"matrix.ml" 49 1277 1288 "matrix.ml" 49 1277 1296
+type(
+  float
+)
+"matrix.ml" 49 1277 1304 "matrix.ml" 49 1277 1307
+type(
+  float
+)
+ident(
+  def cdi "matrix.ml" 51 1323 1325 "matrix.ml" 52 1347 1400
+)
+"matrix.ml" 49 1277 1310 "matrix.ml" 49 1277 1312
+type(
+  float
+)
+"matrix.ml" 49 1277 1313 "matrix.ml" 49 1277 1315
+type(
+  float -> float -> float
+)
+ident(
+  int_ref Stdlib.( -. ) "stdlib.mli" 375 14458 14458 "stdlib.mli" 375 14458 14513
+)
+"matrix.ml" 49 1277 1316 "matrix.ml" 49 1277 1318
+type(
+  float
+)
+ident(
+  int_ref di "matrix.ml" 49 1277 1283 "matrix.ml" 49 1277 1285
+)
+"matrix.ml" 49 1277 1310 "matrix.ml" 49 1277 1318
+type(
+  float
+)
+"matrix.ml" 51 1323 1329 "matrix.ml" 51 1323 1330
+type(
+  int
+)
+ident(
+  def i "matrix.ml" 52 1347 1349 "matrix.ml" 52 1347 1400
+)
+"matrix.ml" 51 1323 1333 "matrix.ml" 51 1323 1341
+type(
+  float -> int
+)
+ident(
+  int_ref Stdlib.truncate "stdlib.mli" 524 20146 20146 "stdlib.mli" 524 20146 20194
+)
+"matrix.ml" 51 1323 1342 "matrix.ml" 51 1323 1343
+type(
+  float
+)
+ident(
+  int_ref i "matrix.ml" 48 1208 1214 "matrix.ml" 48 1208 1215
+)
+"matrix.ml" 51 1323 1333 "matrix.ml" 51 1323 1343
+type(
+  int
+)
+"matrix.ml" 52 1347 1350 "matrix.ml" 52 1347 1353
+type(
+  float t -> int -> int -> float
+)
+ident(
+  int_ref get "matrix.ml" 12 189 193 "matrix.ml" 12 189 196
+)
+"matrix.ml" 52 1347 1354 "matrix.ml" 52 1347 1359
+type(
+  float t
+)
+ident(
+  int_ref table "matrix.ml" 45 1085 1099 "matrix.ml" 45 1085 1104
+)
+"matrix.ml" 52 1347 1360 "matrix.ml" 52 1347 1361
+type(
+  int
+)
+ident(
+  int_ref i "matrix.ml" 51 1323 1329 "matrix.ml" 51 1323 1330
+)
+"matrix.ml" 52 1347 1362 "matrix.ml" 52 1347 1363
+type(
+  int
+)
+ident(
+  int_ref j "matrix.ml" 45 1085 1109 "matrix.ml" 45 1085 1110
+)
+"matrix.ml" 52 1347 1349 "matrix.ml" 52 1347 1364
+call(
+  stack
+)
+type(
+  float
+)
+"matrix.ml" 52 1347 1365 "matrix.ml" 52 1347 1367
+type(
+  float -> float -> float
+)
+ident(
+  int_ref Stdlib.( *. ) "stdlib.mli" 379 14606 14606 "stdlib.mli" 379 14606 14661
+)
+"matrix.ml" 52 1347 1368 "matrix.ml" 52 1347 1371
+type(
+  float
+)
+ident(
+  int_ref cdi "matrix.ml" 49 1277 1304 "matrix.ml" 49 1277 1307
+)
+"matrix.ml" 52 1347 1349 "matrix.ml" 52 1347 1371
+type(
+  float
+)
+"matrix.ml" 52 1347 1372 "matrix.ml" 52 1347 1374
+type(
+  float -> float -> float
+)
+ident(
+  int_ref Stdlib.( +. ) "stdlib.mli" 371 14313 14313 "stdlib.mli" 371 14313 14368
+)
+"matrix.ml" 52 1347 1376 "matrix.ml" 52 1347 1379
+type(
+  float t -> int -> int -> float
+)
+ident(
+  int_ref get "matrix.ml" 12 189 193 "matrix.ml" 12 189 196
+)
+"matrix.ml" 52 1347 1380 "matrix.ml" 52 1347 1385
+type(
+  float t
+)
+ident(
+  int_ref table "matrix.ml" 45 1085 1099 "matrix.ml" 45 1085 1104
+)
+"matrix.ml" 52 1347 1387 "matrix.ml" 52 1347 1388
+type(
+  int
+)
+ident(
+  int_ref i "matrix.ml" 51 1323 1329 "matrix.ml" 51 1323 1330
+)
+"matrix.ml" 52 1347 1388 "matrix.ml" 52 1347 1389
+type(
+  int -> int -> int
+)
+ident(
+  int_ref Stdlib.( + ) "stdlib.mli" 267 10384 10384 "stdlib.mli" 267 10384 10430
+)
+"matrix.ml" 52 1347 1389 "matrix.ml" 52 1347 1390
+type(
+  int
+)
+"matrix.ml" 52 1347 1386 "matrix.ml" 52 1347 1391
+type(
+  int
+)
+"matrix.ml" 52 1347 1392 "matrix.ml" 52 1347 1393
+type(
+  int
+)
+ident(
+  int_ref j "matrix.ml" 45 1085 1109 "matrix.ml" 45 1085 1110
+)
+"matrix.ml" 52 1347 1375 "matrix.ml" 52 1347 1394
+call(
+  stack
+)
+type(
+  float
+)
+"matrix.ml" 52 1347 1395 "matrix.ml" 52 1347 1397
+type(
+  float -> float -> float
+)
+ident(
+  int_ref Stdlib.( *. ) "stdlib.mli" 379 14606 14606 "stdlib.mli" 379 14606 14661
+)
+"matrix.ml" 52 1347 1398 "matrix.ml" 52 1347 1400
+type(
+  float
+)
+ident(
+  int_ref di "matrix.ml" 49 1277 1283 "matrix.ml" 49 1277 1285
+)
+"matrix.ml" 52 1347 1375 "matrix.ml" 52 1347 1400
+type(
+  float
+)
+"matrix.ml" 52 1347 1349 "matrix.ml" 52 1347 1400
+type(
+  float
+)
+"matrix.ml" 51 1323 1325 "matrix.ml" 52 1347 1400
+type(
+  float
+)
+"matrix.ml" 49 1277 1300 "matrix.ml" 52 1347 1400
+type(
+  float
+)
+"matrix.ml" 49 1277 1279 "matrix.ml" 52 1347 1400
+type(
+  float
+)
+"matrix.ml" 48 1208 1210 "matrix.ml" 52 1347 1400
+type(
+  float
+)
+"matrix.ml" 46 1119 1121 "matrix.ml" 52 1347 1400
+type(
+  float
+)
+"matrix.ml" 54 1402 1406 "matrix.ml" 54 1402 1411
+type(
+  float t -> float -> float -> float
+)
+ident(
+  def lut2d "matrix.ml" 66 1906 1927 "matrix.ml" 1 0 -1
+)
+"matrix.ml" 54 1402 1412 "matrix.ml" 54 1402 1417
+type(
+  float t
+)
+ident(
+  def table "matrix.ml" 54 1402 1418 "matrix.ml" 66 1906 1927
+)
+"matrix.ml" 54 1402 1418 "matrix.ml" 54 1402 1421
+type(
+  float
+)
+ident(
+  def i_f "matrix.ml" 54 1402 1422 "matrix.ml" 66 1906 1927
+)
+"matrix.ml" 54 1402 1422 "matrix.ml" 54 1402 1425
+type(
+  float
+)
+ident(
+  def j_f "matrix.ml" 55 1428 1430 "matrix.ml" 66 1906 1927
+)
+"matrix.ml" 55 1428 1434 "matrix.ml" 55 1428 1442
+type(
+  'a -> 'a -> 'a -> 'a
+)
+ident(
+  def saturate "matrix.ml" 58 1518 1520 "matrix.ml" 66 1906 1927
+)
+"matrix.ml" 55 1428 1443 "matrix.ml" 55 1428 1446
+type(
+  'a
+)
+ident(
+  def low "matrix.ml" 55 1428 1447 "matrix.ml" 56 1456 1513
+)
+"matrix.ml" 55 1428 1447 "matrix.ml" 55 1428 1451
+type(
+  'a
+)
+ident(
+  def high "matrix.ml" 55 1428 1452 "matrix.ml" 56 1456 1513
+)
+"matrix.ml" 55 1428 1452 "matrix.ml" 55 1428 1453
+type(
+  'a
+)
+ident(
+  def i "matrix.ml" 56 1456 1460 "matrix.ml" 56 1456 1513
+)
+"matrix.ml" 56 1456 1463 "matrix.ml" 56 1456 1464
+type(
+  'a
+)
+ident(
+  int_ref i "matrix.ml" 55 1428 1452 "matrix.ml" 55 1428 1453
+)
+"matrix.ml" 56 1456 1465 "matrix.ml" 56 1456 1466
+type(
+  'a -> 'a -> bool
+)
+ident(
+  int_ref Stdlib.( > ) "stdlib.mli" 74 2992 2992 "stdlib.mli" 74 2992 3042
+)
+"matrix.ml" 56 1456 1467 "matrix.ml" 56 1456 1471
+type(
+  'a
+)
+ident(
+  int_ref high "matrix.ml" 55 1428 1447 "matrix.ml" 55 1428 1451
+)
+"matrix.ml" 56 1456 1463 "matrix.ml" 56 1456 1471
+type(
+  bool
+)
+"matrix.ml" 56 1456 1477 "matrix.ml" 56 1456 1481
+type(
+  'a
+)
+ident(
+  int_ref high "matrix.ml" 55 1428 1447 "matrix.ml" 55 1428 1451
+)
+"matrix.ml" 56 1456 1490 "matrix.ml" 56 1456 1491
+type(
+  'a
+)
+ident(
+  int_ref i "matrix.ml" 55 1428 1452 "matrix.ml" 55 1428 1453
+)
+"matrix.ml" 56 1456 1492 "matrix.ml" 56 1456 1493
+type(
+  'a -> 'a -> bool
+)
+ident(
+  int_ref Stdlib.( < ) "stdlib.mli" 70 2854 2854 "stdlib.mli" 70 2854 2901
+)
+"matrix.ml" 56 1456 1494 "matrix.ml" 56 1456 1497
+type(
+  'a
+)
+ident(
+  int_ref low "matrix.ml" 55 1428 1443 "matrix.ml" 55 1428 1446
+)
+"matrix.ml" 56 1456 1490 "matrix.ml" 56 1456 1497
+type(
+  bool
+)
+"matrix.ml" 56 1456 1503 "matrix.ml" 56 1456 1506
+type(
+  'a
+)
+ident(
+  int_ref low "matrix.ml" 55 1428 1443 "matrix.ml" 55 1428 1446
+)
+"matrix.ml" 56 1456 1512 "matrix.ml" 56 1456 1513
+type(
+  'a
+)
+ident(
+  int_ref i "matrix.ml" 55 1428 1452 "matrix.ml" 55 1428 1453
+)
+"matrix.ml" 56 1456 1487 "matrix.ml" 56 1456 1513
+type(
+  'a
+)
+"matrix.ml" 56 1456 1460 "matrix.ml" 56 1456 1513
+type(
+  'a
+)
+"matrix.ml" 58 1518 1524 "matrix.ml" 58 1518 1525
+type(
+  float
+)
+ident(
+  def i "matrix.ml" 59 1587 1589 "matrix.ml" 66 1906 1927
+)
+"matrix.ml" 58 1518 1528 "matrix.ml" 58 1518 1536
+type(
+  float -> float -> float -> float
+)
+ident(
+  int_ref saturate "matrix.ml" 55 1428 1434 "matrix.ml" 55 1428 1442
+)
+"matrix.ml" 58 1518 1537 "matrix.ml" 58 1518 1539
+type(
+  float
+)
+"matrix.ml" 58 1518 1541 "matrix.ml" 58 1518 1553
+type(
+  int -> float
+)
+ident(
+  int_ref Stdlib.float_of_int "stdlib.mli" 521 20047 20047 "stdlib.mli" 521 20047 20099
+)
+"matrix.ml" 58 1518 1555 "matrix.ml" 58 1518 1559
+type(
+  float t -> int
+)
+ident(
+  int_ref dim1 "matrix.ml" 7 70 74 "matrix.ml" 7 70 78
+)
+"matrix.ml" 58 1518 1560 "matrix.ml" 58 1518 1565
+type(
+  float t
+)
+ident(
+  int_ref table "matrix.ml" 54 1402 1412 "matrix.ml" 54 1402 1417
+)
+"matrix.ml" 58 1518 1555 "matrix.ml" 58 1518 1565
+call(
+  stack
+)
+type(
+  int
+)
+"matrix.ml" 58 1518 1566 "matrix.ml" 58 1518 1567
+type(
+  int -> int -> int
+)
+ident(
+  int_ref Stdlib.( - ) "stdlib.mli" 271 10513 10513 "stdlib.mli" 271 10513 10559
+)
+"matrix.ml" 58 1518 1568 "matrix.ml" 58 1518 1569
+type(
+  int
+)
+"matrix.ml" 58 1518 1554 "matrix.ml" 58 1518 1570
+type(
+  int
+)
+"matrix.ml" 58 1518 1540 "matrix.ml" 58 1518 1571
+type(
+  float
+)
+"matrix.ml" 58 1518 1573 "matrix.ml" 58 1518 1578
+type(
+  float -> float
+)
+ident(
+  int_ref Stdlib.floor "stdlib.mli" 477 18288 18288 "stdlib.mli" 478 18349 18374
+)
+"matrix.ml" 58 1518 1579 "matrix.ml" 58 1518 1582
+type(
+  float
+)
+ident(
+  int_ref i_f "matrix.ml" 54 1402 1418 "matrix.ml" 54 1402 1421
+)
+"matrix.ml" 58 1518 1572 "matrix.ml" 58 1518 1583
+type(
+  float
+)
+"matrix.ml" 58 1518 1528 "matrix.ml" 58 1518 1583
+call(
+  stack
+)
+type(
+  float
+)
+"matrix.ml" 59 1587 1593 "matrix.ml" 59 1587 1595
+type(
+  float
+)
+ident(
+  def di "matrix.ml" 59 1587 1610 "matrix.ml" 66 1906 1927
+)
+"matrix.ml" 59 1587 1598 "matrix.ml" 59 1587 1601
+type(
+  float
+)
+ident(
+  int_ref i_f "matrix.ml" 54 1402 1418 "matrix.ml" 54 1402 1421
+)
+"matrix.ml" 59 1587 1602 "matrix.ml" 59 1587 1604
+type(
+  float -> float -> float
+)
+ident(
+  int_ref Stdlib.( -. ) "stdlib.mli" 375 14458 14458 "stdlib.mli" 375 14458 14513
+)
+"matrix.ml" 59 1587 1605 "matrix.ml" 59 1587 1606
+type(
+  float
+)
+ident(
+  int_ref i "matrix.ml" 58 1518 1524 "matrix.ml" 58 1518 1525
+)
+"matrix.ml" 59 1587 1598 "matrix.ml" 59 1587 1606
+type(
+  float
+)
+"matrix.ml" 59 1587 1614 "matrix.ml" 59 1587 1617
+type(
+  float
+)
+ident(
+  def cdi "matrix.ml" 60 1632 1634 "matrix.ml" 66 1906 1927
+)
+"matrix.ml" 59 1587 1620 "matrix.ml" 59 1587 1622
+type(
+  float
+)
+"matrix.ml" 59 1587 1623 "matrix.ml" 59 1587 1625
+type(
+  float -> float -> float
+)
+ident(
+  int_ref Stdlib.( -. ) "stdlib.mli" 375 14458 14458 "stdlib.mli" 375 14458 14513
+)
+"matrix.ml" 59 1587 1626 "matrix.ml" 59 1587 1628
+type(
+  float
+)
+ident(
+  int_ref di "matrix.ml" 59 1587 1593 "matrix.ml" 59 1587 1595
+)
+"matrix.ml" 59 1587 1620 "matrix.ml" 59 1587 1628
+type(
+  float
+)
+"matrix.ml" 60 1632 1638 "matrix.ml" 60 1632 1639
+type(
+  float
+)
+ident(
+  def j "matrix.ml" 61 1701 1703 "matrix.ml" 66 1906 1927
+)
+"matrix.ml" 60 1632 1642 "matrix.ml" 60 1632 1650
+type(
+  float -> float -> float -> float
+)
+ident(
+  int_ref saturate "matrix.ml" 55 1428 1434 "matrix.ml" 55 1428 1442
+)
+"matrix.ml" 60 1632 1651 "matrix.ml" 60 1632 1653
+type(
+  float
+)
+"matrix.ml" 60 1632 1655 "matrix.ml" 60 1632 1667
+type(
+  int -> float
+)
+ident(
+  int_ref Stdlib.float_of_int "stdlib.mli" 521 20047 20047 "stdlib.mli" 521 20047 20099
+)
+"matrix.ml" 60 1632 1669 "matrix.ml" 60 1632 1673
+type(
+  float t -> int
+)
+ident(
+  int_ref dim2 "matrix.ml" 8 93 97 "matrix.ml" 8 93 101
+)
+"matrix.ml" 60 1632 1674 "matrix.ml" 60 1632 1679
+type(
+  float t
+)
+ident(
+  int_ref table "matrix.ml" 54 1402 1412 "matrix.ml" 54 1402 1417
+)
+"matrix.ml" 60 1632 1669 "matrix.ml" 60 1632 1679
+call(
+  stack
+)
+type(
+  int
+)
+"matrix.ml" 60 1632 1680 "matrix.ml" 60 1632 1681
+type(
+  int -> int -> int
+)
+ident(
+  int_ref Stdlib.( - ) "stdlib.mli" 271 10513 10513 "stdlib.mli" 271 10513 10559
+)
+"matrix.ml" 60 1632 1682 "matrix.ml" 60 1632 1683
+type(
+  int
+)
+"matrix.ml" 60 1632 1668 "matrix.ml" 60 1632 1684
+type(
+  int
+)
+"matrix.ml" 60 1632 1654 "matrix.ml" 60 1632 1685
+type(
+  float
+)
+"matrix.ml" 60 1632 1687 "matrix.ml" 60 1632 1692
+type(
+  float -> float
+)
+ident(
+  int_ref Stdlib.floor "stdlib.mli" 477 18288 18288 "stdlib.mli" 478 18349 18374
+)
+"matrix.ml" 60 1632 1693 "matrix.ml" 60 1632 1696
+type(
+  float
+)
+ident(
+  int_ref j_f "matrix.ml" 54 1402 1422 "matrix.ml" 54 1402 1425
+)
+"matrix.ml" 60 1632 1686 "matrix.ml" 60 1632 1697
+type(
+  float
+)
+"matrix.ml" 60 1632 1642 "matrix.ml" 60 1632 1697
+call(
+  stack
+)
+type(
+  float
+)
+"matrix.ml" 61 1701 1707 "matrix.ml" 61 1701 1709
+type(
+  float
+)
+ident(
+  def dj "matrix.ml" 63 1725 1727 "matrix.ml" 66 1906 1927
+)
+"matrix.ml" 61 1701 1712 "matrix.ml" 61 1701 1715
+type(
+  float
+)
+ident(
+  int_ref j_f "matrix.ml" 54 1402 1422 "matrix.ml" 54 1402 1425
+)
+"matrix.ml" 61 1701 1716 "matrix.ml" 61 1701 1718
+type(
+  float -> float -> float
+)
+ident(
+  int_ref Stdlib.( -. ) "stdlib.mli" 375 14458 14458 "stdlib.mli" 375 14458 14513
+)
+"matrix.ml" 61 1701 1719 "matrix.ml" 61 1701 1720
+type(
+  float
+)
+ident(
+  int_ref j "matrix.ml" 60 1632 1638 "matrix.ml" 60 1632 1639
+)
+"matrix.ml" 61 1701 1712 "matrix.ml" 61 1701 1720
+type(
+  float
+)
+"matrix.ml" 63 1725 1731 "matrix.ml" 63 1725 1732
+type(
+  int
+)
+ident(
+  def i "matrix.ml" 64 1768 1770 "matrix.ml" 66 1906 1927
+)
+"matrix.ml" 63 1725 1735 "matrix.ml" 63 1725 1743
+type(
+  float -> int
+)
+ident(
+  int_ref Stdlib.truncate "stdlib.mli" 524 20146 20146 "stdlib.mli" 524 20146 20194
+)
+"matrix.ml" 63 1725 1744 "matrix.ml" 63 1725 1745
+type(
+  float
+)
+ident(
+  int_ref i "matrix.ml" 58 1518 1524 "matrix.ml" 58 1518 1525
+)
+"matrix.ml" 63 1725 1735 "matrix.ml" 63 1725 1745
+type(
+  int
+)
+"matrix.ml" 63 1725 1750 "matrix.ml" 63 1725 1751
+type(
+  int
+)
+ident(
+  def j "matrix.ml" 64 1768 1770 "matrix.ml" 66 1906 1927
+)
+"matrix.ml" 63 1725 1754 "matrix.ml" 63 1725 1762
+type(
+  float -> int
+)
+ident(
+  int_ref Stdlib.truncate "stdlib.mli" 524 20146 20146 "stdlib.mli" 524 20146 20194
+)
+"matrix.ml" 63 1725 1763 "matrix.ml" 63 1725 1764
+type(
+  float
+)
+ident(
+  int_ref j "matrix.ml" 60 1632 1638 "matrix.ml" 60 1632 1639
+)
+"matrix.ml" 63 1725 1754 "matrix.ml" 63 1725 1764
+type(
+  int
+)
+"matrix.ml" 64 1768 1774 "matrix.ml" 64 1768 1775
+type(
+  float
+)
+ident(
+  def s "matrix.ml" 65 1833 1835 "matrix.ml" 66 1906 1927
+)
+"matrix.ml" 64 1768 1779 "matrix.ml" 64 1768 1782
+type(
+  float t -> int -> int -> float
+)
+ident(
+  int_ref get "matrix.ml" 12 189 193 "matrix.ml" 12 189 196
+)
+"matrix.ml" 64 1768 1783 "matrix.ml" 64 1768 1788
+type(
+  float t
+)
+ident(
+  int_ref table "matrix.ml" 54 1402 1412 "matrix.ml" 54 1402 1417
+)
+"matrix.ml" 64 1768 1789 "matrix.ml" 64 1768 1790
+type(
+  int
+)
+ident(
+  int_ref i "matrix.ml" 63 1725 1731 "matrix.ml" 63 1725 1732
+)
+"matrix.ml" 64 1768 1791 "matrix.ml" 64 1768 1792
+type(
+  int
+)
+ident(
+  int_ref j "matrix.ml" 63 1725 1750 "matrix.ml" 63 1725 1751
+)
+"matrix.ml" 64 1768 1778 "matrix.ml" 64 1768 1793
+call(
+  stack
+)
+type(
+  float
+)
+"matrix.ml" 64 1768 1794 "matrix.ml" 64 1768 1796
+type(
+  float -> float -> float
+)
+ident(
+  int_ref Stdlib.( *. ) "stdlib.mli" 379 14606 14606 "stdlib.mli" 379 14606 14661
+)
+"matrix.ml" 64 1768 1797 "matrix.ml" 64 1768 1800
+type(
+  float
+)
+ident(
+  int_ref cdi "matrix.ml" 59 1587 1614 "matrix.ml" 59 1587 1617
+)
+"matrix.ml" 64 1768 1778 "matrix.ml" 64 1768 1800
+type(
+  float
+)
+"matrix.ml" 64 1768 1801 "matrix.ml" 64 1768 1803
+type(
+  float -> float -> float
+)
+ident(
+  int_ref Stdlib.( +. ) "stdlib.mli" 371 14313 14313 "stdlib.mli" 371 14313 14368
+)
+"matrix.ml" 64 1768 1805 "matrix.ml" 64 1768 1808
+type(
+  float t -> int -> int -> float
+)
+ident(
+  int_ref get "matrix.ml" 12 189 193 "matrix.ml" 12 189 196
+)
+"matrix.ml" 64 1768 1809 "matrix.ml" 64 1768 1814
+type(
+  float t
+)
+ident(
+  int_ref table "matrix.ml" 54 1402 1412 "matrix.ml" 54 1402 1417
+)
+"matrix.ml" 64 1768 1816 "matrix.ml" 64 1768 1817
+type(
+  int
+)
+ident(
+  int_ref i "matrix.ml" 63 1725 1731 "matrix.ml" 63 1725 1732
+)
+"matrix.ml" 64 1768 1817 "matrix.ml" 64 1768 1818
+type(
+  int -> int -> int
+)
+ident(
+  int_ref Stdlib.( + ) "stdlib.mli" 267 10384 10384 "stdlib.mli" 267 10384 10430
+)
+"matrix.ml" 64 1768 1818 "matrix.ml" 64 1768 1819
+type(
+  int
+)
+"matrix.ml" 64 1768 1815 "matrix.ml" 64 1768 1820
+type(
+  int
+)
+"matrix.ml" 64 1768 1821 "matrix.ml" 64 1768 1822
+type(
+  int
+)
+ident(
+  int_ref j "matrix.ml" 63 1725 1750 "matrix.ml" 63 1725 1751
+)
+"matrix.ml" 64 1768 1804 "matrix.ml" 64 1768 1823
+call(
+  stack
+)
+type(
+  float
+)
+"matrix.ml" 64 1768 1824 "matrix.ml" 64 1768 1826
+type(
+  float -> float -> float
+)
+ident(
+  int_ref Stdlib.( *. ) "stdlib.mli" 379 14606 14606 "stdlib.mli" 379 14606 14661
+)
+"matrix.ml" 64 1768 1827 "matrix.ml" 64 1768 1829
+type(
+  float
+)
+ident(
+  int_ref di "matrix.ml" 59 1587 1593 "matrix.ml" 59 1587 1595
+)
+"matrix.ml" 64 1768 1804 "matrix.ml" 64 1768 1829
+type(
+  float
+)
+"matrix.ml" 64 1768 1778 "matrix.ml" 64 1768 1829
+type(
+  float
+)
+"matrix.ml" 65 1833 1839 "matrix.ml" 65 1833 1840
+type(
+  float
+)
+ident(
+  def t "matrix.ml" 66 1906 1908 "matrix.ml" 66 1906 1927
+)
+"matrix.ml" 65 1833 1844 "matrix.ml" 65 1833 1847
+type(
+  float t -> int -> int -> float
+)
+ident(
+  int_ref get "matrix.ml" 12 189 193 "matrix.ml" 12 189 196
+)
+"matrix.ml" 65 1833 1848 "matrix.ml" 65 1833 1853
+type(
+  float t
+)
+ident(
+  int_ref table "matrix.ml" 54 1402 1412 "matrix.ml" 54 1402 1417
+)
+"matrix.ml" 65 1833 1854 "matrix.ml" 65 1833 1855
+type(
+  int
+)
+ident(
+  int_ref i "matrix.ml" 63 1725 1731 "matrix.ml" 63 1725 1732
+)
+"matrix.ml" 65 1833 1857 "matrix.ml" 65 1833 1858
+type(
+  int
+)
+ident(
+  int_ref j "matrix.ml" 63 1725 1750 "matrix.ml" 63 1725 1751
+)
+"matrix.ml" 65 1833 1858 "matrix.ml" 65 1833 1859
+type(
+  int -> int -> int
+)
+ident(
+  int_ref Stdlib.( + ) "stdlib.mli" 267 10384 10384 "stdlib.mli" 267 10384 10430
+)
+"matrix.ml" 65 1833 1859 "matrix.ml" 65 1833 1860
+type(
+  int
+)
+"matrix.ml" 65 1833 1856 "matrix.ml" 65 1833 1861
+type(
+  int
+)
+"matrix.ml" 65 1833 1843 "matrix.ml" 65 1833 1862
+call(
+  stack
+)
+type(
+  float
+)
+"matrix.ml" 65 1833 1863 "matrix.ml" 65 1833 1865
+type(
+  float -> float -> float
+)
+ident(
+  int_ref Stdlib.( *. ) "stdlib.mli" 379 14606 14606 "stdlib.mli" 379 14606 14661
+)
+"matrix.ml" 65 1833 1866 "matrix.ml" 65 1833 1869
+type(
+  float
+)
+ident(
+  int_ref cdi "matrix.ml" 59 1587 1614 "matrix.ml" 59 1587 1617
+)
+"matrix.ml" 65 1833 1843 "matrix.ml" 65 1833 1869
+type(
+  float
+)
+"matrix.ml" 65 1833 1870 "matrix.ml" 65 1833 1872
+type(
+  float -> float -> float
+)
+ident(
+  int_ref Stdlib.( +. ) "stdlib.mli" 371 14313 14313 "stdlib.mli" 371 14313 14368
+)
+"matrix.ml" 65 1833 1874 "matrix.ml" 65 1833 1877
+type(
+  float t -> int -> int -> float
+)
+ident(
+  int_ref get "matrix.ml" 12 189 193 "matrix.ml" 12 189 196
+)
+"matrix.ml" 65 1833 1878 "matrix.ml" 65 1833 1883
+type(
+  float t
+)
+ident(
+  int_ref table "matrix.ml" 54 1402 1412 "matrix.ml" 54 1402 1417
+)
+"matrix.ml" 65 1833 1885 "matrix.ml" 65 1833 1886
+type(
+  int
+)
+ident(
+  int_ref i "matrix.ml" 63 1725 1731 "matrix.ml" 63 1725 1732
+)
+"matrix.ml" 65 1833 1886 "matrix.ml" 65 1833 1887
+type(
+  int -> int -> int
+)
+ident(
+  int_ref Stdlib.( + ) "stdlib.mli" 267 10384 10384 "stdlib.mli" 267 10384 10430
+)
+"matrix.ml" 65 1833 1887 "matrix.ml" 65 1833 1888
+type(
+  int
+)
+"matrix.ml" 65 1833 1884 "matrix.ml" 65 1833 1889
+type(
+  int
+)
+"matrix.ml" 65 1833 1891 "matrix.ml" 65 1833 1892
+type(
+  int
+)
+ident(
+  int_ref j "matrix.ml" 63 1725 1750 "matrix.ml" 63 1725 1751
+)
+"matrix.ml" 65 1833 1892 "matrix.ml" 65 1833 1893
+type(
+  int -> int -> int
+)
+ident(
+  int_ref Stdlib.( + ) "stdlib.mli" 267 10384 10384 "stdlib.mli" 267 10384 10430
+)
+"matrix.ml" 65 1833 1893 "matrix.ml" 65 1833 1894
+type(
+  int
+)
+"matrix.ml" 65 1833 1890 "matrix.ml" 65 1833 1895
+type(
+  int
+)
+"matrix.ml" 65 1833 1873 "matrix.ml" 65 1833 1896
+call(
+  stack
+)
+type(
+  float
+)
+"matrix.ml" 65 1833 1897 "matrix.ml" 65 1833 1899
+type(
+  float -> float -> float
+)
+ident(
+  int_ref Stdlib.( *. ) "stdlib.mli" 379 14606 14606 "stdlib.mli" 379 14606 14661
+)
+"matrix.ml" 65 1833 1900 "matrix.ml" 65 1833 1902
+type(
+  float
+)
+ident(
+  int_ref di "matrix.ml" 59 1587 1593 "matrix.ml" 59 1587 1595
+)
+"matrix.ml" 65 1833 1873 "matrix.ml" 65 1833 1902
+type(
+  float
+)
+"matrix.ml" 65 1833 1843 "matrix.ml" 65 1833 1902
+type(
+  float
+)
+"matrix.ml" 66 1906 1908 "matrix.ml" 66 1906 1909
+type(
+  float
+)
+ident(
+  int_ref s "matrix.ml" 64 1768 1774 "matrix.ml" 64 1768 1775
+)
+"matrix.ml" 66 1906 1910 "matrix.ml" 66 1906 1912
+type(
+  float -> float -> float
+)
+ident(
+  int_ref Stdlib.( +. ) "stdlib.mli" 371 14313 14313 "stdlib.mli" 371 14313 14368
+)
+"matrix.ml" 66 1906 1914 "matrix.ml" 66 1906 1915
+type(
+  float
+)
+ident(
+  int_ref t "matrix.ml" 65 1833 1839 "matrix.ml" 65 1833 1840
+)
+"matrix.ml" 66 1906 1916 "matrix.ml" 66 1906 1918
+type(
+  float -> float -> float
+)
+ident(
+  int_ref Stdlib.( -. ) "stdlib.mli" 375 14458 14458 "stdlib.mli" 375 14458 14513
+)
+"matrix.ml" 66 1906 1919 "matrix.ml" 66 1906 1920
+type(
+  float
+)
+ident(
+  int_ref s "matrix.ml" 64 1768 1774 "matrix.ml" 64 1768 1775
+)
+"matrix.ml" 66 1906 1913 "matrix.ml" 66 1906 1921
+type(
+  float
+)
+"matrix.ml" 66 1906 1922 "matrix.ml" 66 1906 1924
+type(
+  float -> float -> float
+)
+ident(
+  int_ref Stdlib.( *. ) "stdlib.mli" 379 14606 14606 "stdlib.mli" 379 14606 14661
+)
+"matrix.ml" 66 1906 1925 "matrix.ml" 66 1906 1927
+type(
+  float
+)
+ident(
+  int_ref dj "matrix.ml" 61 1701 1707 "matrix.ml" 61 1701 1709
+)
+"matrix.ml" 66 1906 1913 "matrix.ml" 66 1906 1927
+type(
+  float
+)
+"matrix.ml" 66 1906 1908 "matrix.ml" 66 1906 1927
+type(
+  float
+)
+"matrix.ml" 65 1833 1835 "matrix.ml" 66 1906 1927
+type(
+  float
+)
+"matrix.ml" 64 1768 1770 "matrix.ml" 66 1906 1927
+type(
+  float
+)
+"matrix.ml" 63 1725 1727 "matrix.ml" 66 1906 1927
+type(
+  float
+)
+"matrix.ml" 61 1701 1703 "matrix.ml" 66 1906 1927
+type(
+  float
+)
+"matrix.ml" 60 1632 1634 "matrix.ml" 66 1906 1927
+type(
+  float
+)
+"matrix.ml" 59 1587 1610 "matrix.ml" 66 1906 1927
+type(
+  float
+)
+"matrix.ml" 59 1587 1589 "matrix.ml" 66 1906 1927
+type(
+  float
+)
+"matrix.ml" 58 1518 1520 "matrix.ml" 66 1906 1927
+type(
+  float
+)
+"matrix.ml" 55 1428 1430 "matrix.ml" 66 1906 1927
+type(
+  float
+)
