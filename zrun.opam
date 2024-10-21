@@ -1,0 +1,7 @@
+opam-version: "1.0"
+version: "z0"
+synopsis: "ZRun, A synchronous language interpreter"
+authors: [
+  "Marc Pouzet <marc.pouzet@ens.fr>"
+  ]
+maintainer: ["Marc Pouzet <marc.pouzet@ens.fr>"]

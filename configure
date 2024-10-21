@@ -2,7 +2,7 @@
 
 #load "unix.cma"
 
-let version = "2.2"
+let version = "2024"
 let subversion = "dev"
 
 let prefix = ref (Filename.concat (Sys.getcwd ()) "_build/install/default/")
@@ -40,7 +40,7 @@ let () =
       "date", dquote @@ get_current_date ();
     ]
   in
-  let oc = open_out_bin "zconfig.ml" in
+  let oc = open_out_bin "config.ml" in
   List.iter
     (fun (x, s) -> Printf.fprintf oc {|let %s = %s
 |} x s)
