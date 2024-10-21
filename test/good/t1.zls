@@ -1,3 +1,10 @@
+let node main__() = o where
+  rec automaton
+      | S1 -> let rec cpt = 0 -> pre cpt + 1 in
+              do o = cpt + 1 until (cpt = 42) then S2
+      | S2 -> let rec cpt = 0 -> pre cpt + 1 in
+              do o = cpt + -1 done
+      end
 type t2 = int
 
 let ff(x:t2) = 1 + x
