@@ -121,6 +121,9 @@ clean:
 realclean: clean
 	rm -f zelus.pdf zelus.ps zelus.html
 	rm -rf $(WWWMAN) css js
+	rm -rf samples/*.zls
+	rm -rf manual.chkl
+	rm -rf manual.pdf
 
 #implicit rules
 .SUFFIXES: .tex .html .aux .ps .pdf
