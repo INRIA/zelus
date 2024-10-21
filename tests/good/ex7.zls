@@ -1,0 +1,39 @@
+type t = A | B | C | D
+
+let node is_A(x) returns (ok)
+    do ok = if x = A then true else false done
+
+let node is_A_same(x) returns (ok default false)
+  match x with | A -> do ok = true done | _ -> do done
+						   
+let node select(x) returns (o1 init 0, o2 init 0)
+  match x with
+  | A -> do o1 = last o1 + 1 and o2 = 1 done
+  | B -> do o1 = last o1 - 1 and o2 = 2 done
+  | C -> do o1 = 0 and o2 = 3 done
+  | D -> do o1 = 42 and o2 = 4 done
+  end
+
+let node select_same(x) returns (o1 init 0, o2)
+  do o1, o2 = match x with
+	      | A -> (last o1 + 1, 1)
+	      | B -> (last o1 - 1, 2)
+	      | C -> (0, 3)
+	      | D -> (42, 4)
+	      end done
+      
+let node main() returns ()
+  local x, o1, o2, o11, o22, o3, o4
+  do
+    x = A fby A fby B fby C fby D fby x
+  and
+      o1,o2 =  select(x)
+  and
+      o11, o22 =  select_same(x)
+  and
+      assert ((o1 = o11) && (o2 = o22) & (o3 = o4))
+  and
+      o3 =  is_A(x)
+  and
+      o4 =  is_A_same(x)
+  done

@@ -1,0 +1,77 @@
+let sum_matrix_1(n)(m)(x, y) returns (z)
+  forward(n) (xi in x, yi in y) returns (zi out z) do
+    forward(m) (xij in xi, yij in yi) returns (zij out zi) do
+      zij = xij + yij
+    done
+  done
+
+let sum_matrix_2(n)(m)(x, y) returns (z)
+  forward(n) (xi in x, yi in y) returns (zi out z) do
+    forward resume (m) (xij in xi, yij in yi) returns (zij out zi) do
+      zij = xij + yij
+    done
+  done
+
+let sum_matrix_3(n)(m)(x, y) returns (z)
+  forward resume (n) (xi in x, yi in y) returns (zi out z) do
+    forward(m) (xij in xi, yij in yi) returns (zij out zi) do
+      zij = xij + yij
+    done
+  done
+
+let sum_matrix_4(n)(m)(x, y) returns (z)
+  forward resume (n) (xi in x, yi in y) returns (zi out z) do
+    forward resume (m) (xij in xi, yij in yi) returns (zij out zi) do
+      zij = xij + yij
+    done
+  done
+
+let sum_matrix_5(n)(m)(x, y) returns (z)
+  foreach(n) (xi in x, yi in y) returns (zi out z) do
+    foreach(m) (xij in xi, yij in yi) returns (zij out zi) do
+      zij = xij + yij
+    done
+  done
+
+let sum_matrix_6(n)(m)(x, y) returns (z)
+  foreach(n) (xi in x, yi in y) returns (zi out z) do
+    forward (m) (xij in xi, yij in yi) returns (zij out zi) do
+      zij = xij + yij
+    done
+  done
+
+let sum_matrix_7(n)(m)(x, y) returns (z)
+  foreach (n) (xi in x, yi in y) returns (zi out z) do
+    forward resume (m) (xij in xi, yij in yi) returns (zij out zi) do
+      zij = xij + yij
+    done
+  done
+
+let sum_matrix_8(n)(m)(x, y) returns (z)
+  forward (n) (xi in x, yi in y) returns (zi out z) do
+    foreach (m) (xij in xi, yij in yi) returns (zij out zi) do
+      zij = xij + yij
+    done
+  done
+
+let sum_matrix_9(n)(m)(x, y) returns (z)
+  forward resume (n) (xi in x, yi in y) returns (zi out z) do
+    foreach (m) (xij in xi, yij in yi) returns (zij out zi) do
+      zij = xij + yij
+    done
+  done
+
+let main1() returns o
+  let v1 = [|[|1;2;3|];[|4;5;6|]|] in
+  let v2 = [|[|1;2;3|];[|4;5;6|]|] in
+  do o = sum_matrix_1(2)(3)(v1, v2) 
+  and assert(o = sum_matrix_2(2)(3)(v1, v2))
+  and assert(o = sum_matrix_3(2)(3)(v1, v2))
+  and assert(o = sum_matrix_4(2)(3)(v1, v2)) 
+  and assert(o = sum_matrix_5(2)(3)(v1, v2)) 
+  and assert(o = sum_matrix_6(2)(3)(v1, v2)) 
+  and assert(o = sum_matrix_7(2)(3)(v1, v2)) 
+  and assert(o = sum_matrix_8(2)(3)(v1, v2)) 
+  and assert(o = sum_matrix_9(2)(3)(v1, v2)) 
+  done
+

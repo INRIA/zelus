@@ -1,0 +1,161 @@
+(*
+--
+-- Button : manage a single button
+--
+-- in:
+--   button : true, whenever button is pressed
+--   lock   : true, whenever lock is pressed
+--   unlock : true, whenever unlock is pressed
+--   deselect : deselect button
+-- out:
+--   preselLight : command of preselection light
+--   selectLight : command of selection light
+ *)
+let node node_button(button,
+                lock,
+                unlock,
+                deselect)
+  returns(preselLight,
+          selectLight)
+local
+  sigLightPresel default false,
+  sigLightSel default false
+do
+  preselLight =  sigLightPresel
+and
+  selectLight =  sigLightSel
+and
+  automaton
+    (* -- Unselect : if lock, another button is locked
+    --            else waits for own preselection *)
+  | Unselected ->
+      do
+      unless (lock) then WaitUnlock
+      unless (button) then Preselected
+
+    (* -- Preselect : wait for lock, or deselection by itself or other *)
+  | Preselected ->
+      do
+       sigLightPresel =  true
+      unless (lock) then Locked
+      unless (deselect) then Unselected
+      
+    (* -- Locked state : wait for unlock only, and returns in Preselected *)
+  | Locked ->
+    do sigLightSel = true
+    unless (unlock) then Preselected
+      
+    (* -- other lock : wait for unlock only, and returns in Unselected *)
+
+  | WaitUnlock ->
+    do unless (unlock) then Unselected
+  end
+done
+    
+let node raising(i, initVal)
+  returns(o)
+do
+  o = initVal -> not(pre(i)) && i
+done
+
+let node falling(i, initVal)
+  returns(o)
+do
+  o = initVal -> pre(i) && not(i)
+done
+
+(*
+--
+-- ABC module
+--          
+ *)
+let node abc(a, b, c, lock)
+  returns(a_PRESELECTED_ON, b_PRESELECTED_ON, c_PRESELECTED_ON,
+          a_PRESELECTED_OFF, b_PRESELECTED_OFF, c_PRESELECTED_OFF,
+          a_LOCKED_ON, b_LOCKED_ON, c_LOCKED_ON,
+          a_LOCKED_OFF, b_LOCKED_OFF, c_LOCKED_OFF)
+local
+   lockSig default false,
+   unlockSig default false,
+  a_preselLight,
+  b_preselLight,
+  c_preselLight,
+  a_selLight,
+  b_selLight,
+  c_selLight,
+  deselect,
+  localLock,
+  localUnlock
+do
+(*  --
+  -- Manage lock/unlock signal
+  -- *)
+  localUnlock =  unlockSig
+and
+  localLock =  lockSig
+and
+  (* -- detect raising/falling edge *)
+  automaton
+  | LockLow ->
+      do unless (lock) then do lockSig = true in LockHigh
+
+  | LockHigh ->
+      do unless (lock) then do unlockSig = true in LockLow
+  end
+and
+    (* call buttons *)
+    a_preselLight, a_selLight  = 
+   node_button(a, localLock, localUnlock, deselect)
+and
+    b_preselLight, b_selLight = 
+   node_button(b, localLock, localUnlock, deselect)
+and
+    c_preselLight, c_selLight = 
+   node_button(c, localLock, localUnlock, deselect)
+and
+  (* handle deselection  *)
+    deselect = (a or b or c)
+and
+  (* ---
+  --- *)
+    a_PRESELECTED_ON =  raising(a_preselLight, false)
+and
+    a_PRESELECTED_OFF =  falling(a_preselLight, true)
+and
+    a_LOCKED_ON =  raising(a_selLight, false)
+and
+    a_LOCKED_OFF =  falling(a_selLight, true)
+and
+    b_PRESELECTED_ON =  raising(b_preselLight, false)
+and
+    b_PRESELECTED_OFF =  falling(b_preselLight, true)
+and
+    b_LOCKED_ON =  raising(b_selLight, false)
+and
+    b_LOCKED_OFF =  falling(b_selLight, true)
+and
+    c_PRESELECTED_ON =  raising(c_preselLight, false)
+and
+    c_PRESELECTED_OFF =  falling(c_preselLight, true)
+and
+    c_LOCKED_ON =  raising(c_selLight, false)
+and
+  c_LOCKED_OFF =  falling(c_selLight, true)
+done
+
+let node main() returns
+    (a_PRESELECTED_ON, b_PRESELECTED_ON, c_PRESELECTED_ON,
+     a_PRESELECTED_OFF, b_PRESELECTED_OFF, c_PRESELECTED_OFF,
+     a_LOCKED_ON, b_LOCKED_ON, c_LOCKED_ON,
+     a_LOCKED_OFF, b_LOCKED_OFF, c_LOCKED_OFF)
+  local a, b, c, lock
+  do  a = true
+  and b = true
+  and c = true
+  and lock = true
+  and
+      (a_PRESELECTED_ON, b_PRESELECTED_ON, c_PRESELECTED_ON,
+       a_PRESELECTED_OFF, b_PRESELECTED_OFF, c_PRESELECTED_OFF,
+       a_LOCKED_ON, b_LOCKED_ON, c_LOCKED_ON,
+       a_LOCKED_OFF, b_LOCKED_OFF, c_LOCKED_OFF) = abc (a, b, c, lock)
+  done

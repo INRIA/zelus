@@ -1,0 +1,76 @@
+(* example from the Lustre distribution *)
+let node two_states(set,r,i) returns (state)
+ do
+  state = i -> if set && not (pre state) then true
+               else if r && pre(state) then false
+               else pre(state)
+ done
+
+let node edge(x) returns (edge )
+ do
+  edge = x -> x && not (pre x)
+ done
+
+let node implies(a,b) returns (implies)
+  do implies = if a then b else true done
+
+let node after (a) returns (x)
+  do x = false -> pre(a or x) done
+
+let node always_since (c,a) returns (x)
+  do
+    x = if a then c
+        else if  after(a) then c && pre(x)
+        else true
+  done
+
+let node once_since (c,a) returns (x)
+  do x = if a then c
+	 else if  after(a) then c or pre(x)
+	 else true
+  done
+
+let node always_from_to (c, a, b) returns (x)
+ do
+   x =  implies ( after(a),  always_since(c, a) or  once_since(b, a))
+ done
+
+let node once_from_to (c, a, b) returns (x)
+  do
+    x =  implies ( after(a) && b,  once_since(c, a))
+  done
+
+let node alternating(a,b) returns (x)
+  local a_forbiden, b_forbiden
+  do a_forbiden = false -> if pre(a) && not a then true
+                          else if pre(b) && not b then false	
+			  else pre(a_forbiden)
+  and b_forbiden = true -> if pre(b) && not b then true
+                           else if pre(a) && not a then false	
+		           else pre(b_forbiden)
+  and x = not(a && a_forbiden) && not(b && b_forbiden)
+  done
+
+let node not_between_and (a,b,c) returns (x)
+  do x =  implies(c, not ( once_since(a,b)))
+  done
+
+let node main() returns (x1, x2, x3, x4, x5)
+  local a, b, c
+  do
+    x1 =  alternating(a, b)
+  and
+    x2 =  not_between_and(a, b, c)
+  and
+      x3 =  once_from_to (c, a, b)
+  and
+      x4 =  always_from_to (c, a, b)
+  and
+      x5 = once_since (c,a)
+  and
+      a = true fby true fby not a
+  and
+      b = true fby not b
+  and
+      c = false fby false fby not c
+  done

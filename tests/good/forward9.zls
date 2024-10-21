@@ -1,0 +1,22 @@
+(* two forms of loop - equation versus expression *)
+let f() returns (o)
+ forward(2) returns (o)
+   do forward resume (5) returns (o init (0))
+      do o = last o + 1 done
+   done 
+
+
+let g() returns (o)
+ o = forward(2) returns (o)
+       do o = forward resume (5) returns (o init 0)
+                do o = last o + 1 done
+       done 
+
+let h() returns (o)
+ o = forward(2) returns (o init 0)
+       do o = forward (5) returns (o1 init last o)
+                do o1 = last o1 + 1 done
+       done 
+
+let main3 () returns (o1, o2, o3)
+  do o1 = f() and o2 = g() and o3 = h() (* and assert (o1 = o2) *) done

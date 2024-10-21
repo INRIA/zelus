@@ -1,0 +1,53 @@
+let node f(g)() = run g (1)
+
+let node main___() = let y = 1 in run (f (node x -> x + 2 + y)) ()
+
+type t  = A |B |C |D 
+
+let
+  is_A_1 =
+    (node  (x_2) returns (ok_3) ok_3 = ((if ((=) x_2 A) then true else false)) )  
+let is_A = is_A_1
+let
+  is_A_same_4 =
+    (node  (x_5) returns (ok_6 default false)
+         match x_5 with | A  ->  ok_6 = true  | _  ->  do done  )  
+let is_A_same = is_A_same_4
+let
+  select_7 =
+    (node  (x_8) returns (o1_9, o2_10)
+         do do init o2_10 = 0 and init o1_9 = 0  done
+         and match x_8 with
+              | A  ->  do o2_10 = 1 and o1_9 = ((+) last o1_9 1)  done 
+              | B  ->  do o2_10 = 2 and o1_9 = ((-) last o1_9 1)  done 
+              | C  ->  do o2_10 = 3 and o1_9 = 0  done 
+              | D  ->  do o2_10 = 4 and o1_9 = 42  done  
+          done )  
+let select = select_7
+
+let
+  select_same_11 =
+    (node  (x_12) returns (o1_13, o2_14)
+         do init o1_13 = 0
+         and (o1_13, o2_14) =
+                match x_12 with
+                  | A  ->  ((((+) last o1_13 1), 1))
+                  | B  ->  (((-) last o1_13 1), 2)
+                  | C  ->  ((0, 3))
+                  | D  ->  ((42, 4)) 
+          done )  
+
+let select_same = select_same_11
+let
+  main_15 =
+    (node  () returns ()
+         local x_22, o1_16, o2_18, o11_17, o22_19, o3_20, o4_21
+         do o4_21 = (is_A_same x_22)
+         and o3_20 = (is_A x_22)
+         and assert ((&) ((&&) ((=) o1_16 o11_17) ((=) o2_18 o22_19))
+                         ((=) o3_20 o4_21))
+         and (o11_17, o22_19) = (select_same x_22)
+         and (o1_16, o2_18) = (select x_22)
+         and x_22 = (A fby (A fby (B fby (C fby (D fby x_22))))) done)  
+let main = main_15
+

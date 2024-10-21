@@ -1,0 +1,121 @@
+-------------------------- Watch Interface-------------------------
+-- stst : start/stop button
+-- rst : reset button
+-- set : set time button
+-- md : mode selection button
+-- a1, a2, a3 : time data display
+-- L : is displaying lap time
+-- S : is in setting time mode
+-- Sh : is in setting hour mode
+-- S and not Sh : is in setting minutes mode
+-------------------------------------------------------------------
+
+node root (stst,rst,set,md:bool) returns (a1,a2,a3 : int32; L,S,Sh : bool)
+sig
+  isStart, -- is the chrono started?
+  is_w, -- is watch in clock mode?
+  sigS, sigSh, sigL;
+var
+  m,s,d : int32 last = 0; -- chrono timers
+  wh,wm,ws,w : int32; -- clock timers
+let
+
+  L =  'sigL;
+  S =  'sigS;
+  Sh =  'sigSh;
+
+  automaton -- Chrono ---------------------------------------------------------
+    initial state Stop
+      unless
+        if (stst and not  'is_w) resume Start;
+        -- NC if (rst and pre L) and not  'is_w resume Stop;
+        if (rst and not (false -> pre L) and not  'is_w) restart Stop;
+      let
+        m,s,d = (0,0,0) -> (last 'm, last 's, last 'd);
+    --    m = 0 -> last 'm;
+    --    s = 0 -> last 's;
+    --    d = 0 -> last 'd;
+      tel
+
+    state Start
+      unless if (stst and not  'is_w) resume Stop;
+      let
+        d = (last 'd + 1) mod 100;
+        s = (if (d < last 'd) then last 's + 1 else last 's) mod 60;
+        m = if (s < last 's) then last 'm + 1 else last 'm;
+        emit 'isStart;
+      tel
+  returns m, s, d; -------------------------------------------------------------
+
+  automaton -- Watch ----------------------------------------------------------
+    initial state Count
+      let
+        wm = 0 -> (if (ws < last 'ws) then last 'wm + 1 else last 'wm) mod 60;
+        wh = 0 -> (if (wm < last 'wm) then last 'wh + 1 else last 'wh) mod 24;
+      tel
+      until if (set and  'is_w) restart Set;
+
+    state Set -- Set time
+      let
+        emit 'sigS;
+        automaton -- set Watch --------------------------------------
+          initial state Set_hr -- set hour first 
+            let
+              emit 'sigSh;
+              wh = (if stst then last 'wh + 1
+                    else if rst then last 'wh +23
+                         else last 'wh) mod 24;
+            tel
+            until if set restart Set_mn;
+--            until if (set and  'is_w) restart Set_mn;
+
+          state Set_mn -- then set minutes
+            let
+              wm = (if stst then last 'wm + 1
+                    else if rst then last 'wm +59
+                         else last 'wm) mod 60;
+            tel
+            until if set restart Set_end;
+--            until if (set and  'is_w) restart Set_end;
+
+          final state Set_end -- then terminates the Set state
+      returns wm, wh; --------------------------------------------------------
+    tel
+    until synchro resume Count;
+  returns wm, wh; ------------------------------------------------------------
+  w = 0 -> (pre w + 1) mod 100;
+  ws = 0 -> (if (w < pre w) then pre ws + 1 else pre ws) mod 60;
+
+  
+  automaton -- Display -------------------------------------------------------
+    initial state DispClk -- display watch
+    unless if (md and not S) resume DispChr;
+    let
+      emit 'is_w;
+      a1,a2,a3 = (wh, wm, ws);
+    tel
+
+    state DispChr -- display chrono
+    unless if md resume DispClk;
+    -- unless if (md and not S) resume DispClk;
+    var
+      lm,ls,ld : int32 last = 0; -- chrono display (to deal with lap time)
+    let
+      a1,a2,a3 = (lm, ls, ld);
+
+      automaton -- deal with lap time and current time -----------
+        initial state DispTime
+        unless if (rst and  'isStart) restart DispLap;
+        let
+          lm,ls,ld = (m, s, d);
+        tel
+
+        state DispLap
+        unless if (rst) restart DispTime;
+        let
+          emit 'sigL;
+        tel
+      returns .. ; --------------------------------------------------------
+    tel
+  returns .. ; ------------------------------------------------------------
+tel

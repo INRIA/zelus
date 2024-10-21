@@ -1,1 +1,7 @@
-(env (dev (flags (:standard -w +a-4-6-7-9-27-29-32..42-44-45-48-50-60-68-70 -warn-error -a+31))))
+(env
+ (dev
+  (flags (:standard -w -9-27-32-33-35 -warn-error -A))))
+  
+; compile only zrunthe compiler; exclude examples
+; (dirs :standard \ examples)
+

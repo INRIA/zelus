@@ -1,0 +1,22 @@
+let f m = forward(m)[j] returns (x init 0)
+             do x = last x + j done
+
+let f1 n m = 
+  forward(n)[i] returns (x)
+    do forward resume (m)[j] returns (x init 0)
+        do x = last x + j done done
+
+let f2 n m = 
+  forward(m)[i] returns (x init 0)
+    do forward (n)[j] returns (x init last x)
+        do x = last x + j done done
+
+let main () returns (o, o', o1, o2)
+  do o = f 15
+  and o' = f 10
+  and o1 = f1 10 15
+  and o2 = f2 10 15
+  and assert (o = 105)
+  and assert (o1 = 1050)
+  and assert (o2 = 675)
+  done

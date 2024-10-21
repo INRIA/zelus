@@ -1,0 +1,25 @@
+let node count(n) returns (o)
+  local cpt
+  do cpt = ((0 fby cpt) + 1) mod n
+  and o = (cpt = 0)
+  done
+
+let node f(x) returns (o)
+  local h
+  do
+    reset
+      o = 1 + (0 fby (o+x))
+    every
+      h
+  and
+      h =  count(6)
+  done
+	  
+let node main() returns (ok)
+  local o1, o2, o3
+  do o1 =  f(o1)
+  and o2 = 1 fby 3 fby 7 fby
+      15 fby 31 fby o3
+  and o3 = 1 fby 3 fby
+      7 fby 15 fby 31 fby 63 fby o3
+  and ok = (o1 = o2) done

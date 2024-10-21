@@ -1,0 +1,13 @@
+let node f13(x) = 0 fby x + 1
+
+let r12 =
+    (node  (x_13)  ->
+       local x_21, m_22 init 0 do
+       do m_22 = ((+) x_13 1) and x_21 = last m_22  done in 
+       x_21) 
+
+let node g14() returns (y, z)
+  do y = inline run f13(z) and z = y done
+
+let node g14() returns (y, z)
+  do y = inline run r12 (z) and z = y done

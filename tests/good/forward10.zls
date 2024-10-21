@@ -1,0 +1,40 @@
+(* forward loops with a stopping condition *)
+let iota(n) returns (o)
+  forward(n)[i] returns (oi out o)
+    do oi = i done
+
+let find_1(n)(v) returns (o, index)
+ let t = iota(n) in
+ forward[i](ti in t) returns (o, index)
+   do index = i and o = ti
+   until o = v done
+
+let find_2(n)(v) returns (o, index)
+ let t = iota(n) in
+ forward[i](ti in t) returns (o init 0, index)
+   do index = i and o = ti
+   unless last o = v done
+
+let find_3(n)(v) returns (o, index)
+ let t = iota(n) in
+ forward[i](ti in t) returns (o init 0, index)
+   do index = i and o = ti
+   while not (last o = v) done
+
+let iterate() returns (o, index)
+  (* compute the sum until [o - last o > v] *)
+  forward(45)[i] returns (o init 0, index init 0)
+    do o = last o + i and index = last index + 1
+    until o - last o > 3 done
+
+let main() returns (o1, index1, o2, index2, o3, index3)
+  do
+   (o1, index1) = find_1(10)(5)
+  and
+   (o2, index2) = find_2(10)(5)
+  and
+   (o3, index3) = find_3(10)(5)
+  and
+   assert 
+     (o1 = o2) && (o2 = o3) && index1 = index2 && index2 = index3
+  done

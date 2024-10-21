@@ -1,0 +1,4 @@
+let mat = fun (n,v) -> node () ->
+  foreach i in 0 to n-1 do foreach i in 0 to n-1 do v done done
+
+let node main1() = run (mat (5, 0.0)) ()

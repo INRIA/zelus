@@ -1,0 +1,6 @@
+let node f() returns (c, o)
+  do automaton
+  | S1 -> do o = true until c then S2
+  | S2 -> do o = false until c then S1
+  end
+  and c = true fby not c done

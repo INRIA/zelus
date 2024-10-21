@@ -1,0 +1,57 @@
+(* test of a simple two-state automaton *)
+let node f1() returns (o init 42, c1, c2)
+  do c1 = last o = 45
+  and c2 = last o = 38
+  and automaton
+  | One -> do o = last o + 1 unless c1 then Two
+  | Two -> do o = last o - 1 unless c2 then Three
+  | Three -> do done
+  end
+  done
+      
+let node f2() returns (o)
+  do o = 43 fby 44
+      fby 45 fby 44 fby 43
+      fby 42 fby 41 fby 40
+      fby 39 fby 38 done
+    
+let node main() returns ()
+  local o1, o2
+  do o1, _, _ =  f1() and o2 =  f2() and
+     assert (o1 = o2) done
+
+let node relay(low, high, u) returns (o)
+    automaton
+    | Low -> do o = false unless (u <= low) then High
+    | High -> do o = true unless (u >= high) then Low
+    end
+
+
+let node relay_compiled(low, high, u) returns (o)
+  local s init Low
+  do match last s with
+     | Low ->
+	 do s = if (u <= low) then High else Low done
+     | High ->
+	 do s = if (u >= high) then Low else High done
+    end
+  and match s with
+      | Low -> do o = false done
+      | High -> do o = true done
+      end
+  done
+      
+let node main1() returns (o, u)
+  do o = relay(-1, 1, u)
+  and u = 0 fby (if o then u + 1 else u - 1) done
+      
+let node main2() returns (u, o1, o2)
+  do o1 = relay(-1, 1, u)
+  and u = 0 fby (if o1 then u + 1 else u - 1)
+  and o2 = relay_compiled(-1, 1, u)
+  and assert (o1 = o2)
+  done
+
+let node main3 () returns (o)
+  o = if true then 1 else "2"
+    

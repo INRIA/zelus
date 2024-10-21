@@ -1,0 +1,18 @@
+let node f(x) returns (o init 0)
+  do o = last o + x done
+
+let node f_same(x) returns (o)
+  local last_o
+  do o = last_o + x and last_o = 0 fby o done
+
+let node main() returns (ok)
+  local x, o1, o2
+  do
+    x = 1
+  and
+      o1 =  f(x)
+  and
+      o2 =  f_same(x)
+  and
+      ok = (o1 = o2)
+  done

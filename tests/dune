@@ -1,0 +1,22 @@
+(test
+ (name zruntest)
+ ; name of the test
+ (modules zruntest)
+ ; ml file test runner
+ (deps (glob_files good/*.zls) (glob_files bad/*.zls))
+ ; files dependencies
+ (libraries
+   zrun.global_lib zrun.zrun_lib alcotest))
+ ; libraries dependencies
+
+(test
+ (name zwritetest)
+ ; name of the test
+ (modules zwritetest)
+ ; ml file test runner
+ (deps (glob_files good/*.zls) (glob_files bad/*.zls))
+ ; files dependencies
+ (libraries
+   zrun.global_lib zrun.zrun_lib zrun.typdefs_lib
+   zrun.rewrite_lib alcotest))
+ ; libraries dependencies

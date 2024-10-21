@@ -1,0 +1,18 @@
+let h1 x returns (y, z)
+  local m in
+  match x with
+  | true -> do y, z = true, true and m = 2 done
+  | false -> do y, z = (false, false) done
+  end
+ 
+let h2 x =
+  let present x -> y, z = true, true
+      else local s do s = 2 and y, s = false, false done in
+  y + z
+  
+let h3 x =
+  let automaton
+      | S1 -> local x do y, x = true, true until x then S2
+      | S2 -> local z do x, z = false, false until z then S1
+      end in
+  y, z

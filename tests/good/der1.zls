@@ -1,0 +1,11 @@
+let hybrid f(z, x) returns (o)
+  local r, l, m
+  do  der o = 1.0 +. r init 0.0 reset z -> last o +. 1.0
+  and m = o +. 1.0
+  and present z -> r = m +. 2.0 | z -> r = (let der m2 = 2.0 reset z -> 1.0 in m2 + 1)
+  and match x with
+      | true ->
+          local m do der m = 1.0 reset z -> last m +. 1.0 and l = m done
+      | false ->
+          local s do l = (let der m2 = 2.0 reset z -> 1.0 in m2 + 1) done
+  done

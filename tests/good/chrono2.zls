@@ -1,0 +1,45 @@
+(* automaton from [EMSOFT'05] *)
+let node chrono (stst, rst) returns (disp_1 init 42, disp_2 init 42)
+  local s init 0, m init 0, r
+  do automaton
+	CHRONO ->
+	  do automaton
+	       STOP ->
+		 do r = false
+		 unless stst continue START
+	     | START ->
+		 local d
+		 do d = 0 -> (pre d + 1) mod 100
+		 and s = if d = 0 then (last s + 1) mod 60 else last s
+		 and m = if s = 0 then (last m + 1) mod 60  else last m
+		 and r = true
+		 unless stst continue STOP
+	     end
+	  until rst & (not r) then CHRONO
+      end
+  and
+      automaton
+	TIME ->
+	  do disp_1 = s
+	  and disp_2 = m
+	  until rst & r then LAP
+      | LAP ->
+	  do until rst then TIME
+      end
+  done
+
+let node counter(n) returns (c)
+  local cpt
+  do cpt = 0 -> (pre cpt + 1) mod n
+  and c = true -> (cpt = 0) done
+
+let node main() returns (disp11, disp22)
+  local stst11, rst11
+  do
+      disp11, disp22 =  chrono(stst11, rst11)
+  and
+      stst11 =  counter(5)
+  and
+      rst11 =  counter(10)
+  done
+      

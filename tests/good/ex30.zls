@@ -1,0 +1,20 @@
+(* triangular *)
+let node triangular(n)(t) returns o
+  forward i in 0 to n - 1 returns (o init 0) do
+    forward j in 0 to i returns (o init last o) do (*    while (j < i) do *)
+      o = 1
+    done
+  done
+	
+(* triangular *)
+(*
+let node triangular_exp(n)() returns o
+  o = forward i in 0 to n - 1 returns (o init 0) do
+        o = forward j in 0 to i returns (o init last o) do
+              (*    while (j < i) do *)
+              o = last o + 1
+            done
+      done
+	    *)
+	
+let node main () = run (triangular(5))()

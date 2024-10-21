@@ -1,0 +1,25 @@
+let node f(r) returns (m, s init 0, r_i init 0, m_i init 0)
+  do s = last s + last r_i
+  and m = s + (0 -> last m_i)
+  and m_i = m
+  and r_i = r done
+
+let node f_same(r) returns (m, s, last_s, r_i, last_r_i, m_i, last_m_i)
+  do s = last_s + last_r_i
+  and m = s + (0 -> last_m_i)
+  and last_s = 0 fby s
+  and last_r_i = 0 fby r_i
+  and last_m_i = 0 fby m_i
+  and m_i = m
+  and r_i = r done
+
+let node main() returns (o)
+  local r, o1_m, o1_s, o1_r_i, o1_m_i,
+				o2_m, o2_s, o2_last_s, o2_r_i,
+				o2_last_r_i, o2_m_i, o2_last_m_i
+  do r = 0 -> pre r + 1
+  and o1_m, o1_s, o1_r_i, o1_m_i =  f(r)
+  and o2_m, o2_s, o2_last_s, o2_r_i,
+      o2_last_r_i, o2_m_i, o2_last_m_i =  f_same(r)
+  and o = (o1_m = o2_m)
+  done

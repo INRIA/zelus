@@ -1,0 +1,3 @@
+directory = "/usr/local/lib/zeluc"
+version = "3.0"
+description = "Zelus, a Synchronous Languages with ODEs"

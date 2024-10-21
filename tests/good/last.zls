@@ -1,0 +1,34 @@
+(* Un exemple inspire de celui de Baptiste ou *)
+(* un tableau final produit par une boucle forward est rempli *)
+(* progressivement *)
+(* entree: un tableau x = [|x(0);...;x(n-1)|]. *)
+(* sortie: un tableau y = [|y(0);...;y(n-1)|] ou *)
+(* y(i) = sigma_{k = 0}{i-1} y(k) * x(k) *)
+let node scalar(x,y) returns (o)
+  forward xi in x, yi in y returns (o init 0.0)
+    do o = last o +. xi *. yi
+    done
+
+let node acc(x) returns (y)
+  forward i in 0 to length x - 1, xi in x returns (yi out y) do
+    (* a chaque iteration, on definit l'element yi de la sortie y *)
+    (* que contient [last y] ? *)
+    yi = scalar(last y, x.(0 .. i))
+  done
+
+(* Il y a deux problemes dans ce programme:
+
+ *- ce programme est rejete par zrun parce que
+ *- last y n'est defini qu'a condition d'avoir declare y avec une
+ *- valeur initiale; c'est une limitation qu'il faudrait revoir;
+ *- une possibilite est de considerer que pour chaque variable [y] definie
+ *- dans un noeud, on memorise [last y]. Ou bien on fait une passe au
+ *- prealable pour savoir si une variable necessite une valeur [last y]
+
+ *- quelle est la taille de [last y] ? Est-ce [i]?
+ *)
+   
+(*
+Question pour Baptiste: comment ecris-tu cet exemple dans ton prototype ?
+ *)
+   

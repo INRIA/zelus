@@ -1,0 +1,27 @@
+(* example by Baptiste Pauget. M2 MPRI report *)
+let node exp_4(x_a,x_b,x_c,x_d) returns (a_,b_,c_,d_)
+  local a,b,c,d, ab,ac,ad,bc,bd,cd, abc,abd,acd,bcd
+  do a,b,c,d = (x_a,x_b,x_c,x_d)
+  and ab = a+b
+  and ac = a+c
+  and ad = a+d
+  and bc = b+c
+  and bd = b+d
+  and cd = c+d
+  and abc = ab+ac+bc
+  and abd = ab+ad+bd
+  and acd = ac+ad+cd
+  and bcd = bc+bd+cd
+  and d_ = 1 + abc
+  and c_ = 1 + abd
+  and b_ = 1 + acd
+  and a_ = 1 + bcd
+done
+
+let node main() returns (ok)
+  local x_a,x_b,x_c, x_d, a_, b_, c_, d_
+  do x_a,x_b,x_c,x_d = (1, 1, 1, 1)
+  and (a_,b_,c_,d_) =  exp_4(x_a,x_b,x_c,x_d)
+  and ok = (a_ = 7) && (b_ = 7) && (c_ = 7) && (d_ = 7)
+  done
+

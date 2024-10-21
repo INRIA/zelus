@@ -1,0 +1,5 @@
+let rec f3<<n>>(x) =
+  if n=0 then x
+  else f3<<n-1>>(x+1)
+
+let node main3 () = f3<<4>>(0)

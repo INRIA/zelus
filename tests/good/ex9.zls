@@ -1,0 +1,31 @@
+let node w(x,y) returns (z, t)
+  local m
+  do
+    z = x + m
+  and
+    t = y * m
+  and
+    m = (0 fby (x + y))
+  done
+
+let node w_same(x,y) returns (z, t)
+  local m
+  do
+    t = y * m
+  and
+    z = x + m
+  and
+    m = (0 fby (x + y))
+  done
+
+      
+let node main() returns (ok)
+  local z1, t1, z2, t2
+  do
+    z1, t1 =  inline w (t1,1)
+  and
+    z2, t2 =  w(t2, 1)
+  and
+    ok = (z1 = z2) && (t1 = t2)  
+  done
+      

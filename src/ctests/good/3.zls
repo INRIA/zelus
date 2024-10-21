@@ -1,0 +1,11 @@
+let node f1 () returns (o)
+  if true then o = 1 else o = 2
+
+(*
+let node f2 () returns (o)
+  automaton
+  | A -> do o = 1 until true then B
+  | B -> do o = 2 until false then A
+  init
+    if true then B else A
+  end *)

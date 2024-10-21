@@ -1,0 +1,40 @@
+let node main () returns (o)
+  o = 1 -> 2
+
+let node f() returns (o init 42)
+  local m, s init 0 do
+  o = 0 -> pre o + 1 + last o + last s and s = o
+  and m = 1 fby m + o
+  done
+
+  let static
+  r_8 =
+    (node  () returns o_9
+       local lx_12 init 42
+       do
+         local lx_13, last z_10 init 0
+         do o_9 = ((+) last* lx_12 1) and z_10 = ((+) lx_13 2)
+         and lx_13 = last* z_10 + 1
+         and lx_12 = o_9 done
+       done) 
+
+let node f() returns (o init 42)
+  local z init 0 do o = last o + 1 and z = last z + 2 done
+
+let node ff() returns (o)
+  local m init 42 do
+  m = o and o = last* m + 1 done
+
+  let node g(r init 0) returns (o)
+  local m init 42 do m = o and o = last* m + 1 done
+
+let node gg(r) returns (o)
+  local rc, m init 42 do rc = r and m = o and o = last* m + 1 done
+
+let node main__() returns (o init 42)
+  o = last o + 1
+
+let node main___() returns (o)
+  local last_o do o = last_o + 1 and last_o = 42 fby o done
+
+let node test() = main__() = main___()

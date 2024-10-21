@@ -1,0 +1,22 @@
+let node make1(n)() = 
+  forward(n) i in 0 to n-1 returns ([|oi|]) do oi = i done
+
+let node make2(n)() = 
+  foreach(n) i in 0 to n-1 returns ([|oi|]) do oi = i done
+
+let node main1() returns ()
+  assert ((run make1(4))() = (run make2(4)) ())
+
+let node f x = x.(4 .. 5)
+
+let node main0 () =
+  let t = run (make1(10))() in
+  let v = f t in
+  assert (v = [| 4; 5 |])
+  
+let f () =
+  forward(10) i in 0 to 9 returns (o init 0)
+    do o = 0 -> pre o + i done
+
+let node main1 () returns (v)
+  do v = f () and assert (v = 45) done

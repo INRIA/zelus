@@ -1,0 +1,12 @@
+let node f() returns (o)
+  o = (0 fby o) + 1
+
+let node deadlock() returns (o1, o2, o3)
+  do o1 = (0 fby o2) and o2 = o1 and o3 = 1 done
+    
+let node sum(x) returns (o)
+  o = 1 fby (o + x)
+
+let node main() returns (o)
+  o = sum(0 fby o)
+    

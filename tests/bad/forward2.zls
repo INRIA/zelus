@@ -1,0 +1,4 @@
+let f n = forward(n)[i] returns (x init (0 -> 1))
+           do x = last x + i done
+
+let main () = f 10

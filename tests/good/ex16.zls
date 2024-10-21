@@ -1,0 +1,8 @@
+let node copy(x, y) returns (t1, t2)
+  do t1 = x and t2 = y done
+
+let node main () returns (t, u)
+  local x
+  do (t, u) =  copy(x, t)
+  and x = 0 fby x + 1
+  done

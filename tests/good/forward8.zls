@@ -1,0 +1,26 @@
+(* matrix product *)
+let matrix_product_1(m1, m2) returns (m3)
+  forward(m1i in m1) returns (m3i out m3)
+    do forward (m2j in m2.T) returns (m3ij out m3i)
+         do forward (m1ik in m1i, m2kj in m2j) returns (m3ij init 0)
+              do m3ij = last m3ij + m1ik * m2kj done
+         done
+    done
+
+
+let main () returns (m12, m123, m23, m123')
+  let m1 = [|[|1;2;3|];
+             [|4;5;6|]|] in
+  let m2 = [|[|1;2;3;4|];
+             [|5;6;7;8|];
+             [|10;11;12;13|]|] in
+  let m3 = [|[|1;2;3;4|];
+             [|5;6;7;8|];
+             [|10;11;12;13|];
+             [|14;15;16;17|]|] in
+  do m12 = matrix_product_1(m1, m2) 
+  and m123 = matrix_product_1(m12, m3)
+  and m23 = matrix_product_1(m2, m3)
+  and m123' = matrix_product_1(m1, m23)
+  and assert(m123 = m123')
+  done

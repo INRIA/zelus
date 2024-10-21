@@ -1,0 +1,41 @@
+let scalar_product_1(n)(x, y) returns (z)
+  z = forward(n) (xi in x, yi in y) returns (z) 
+        do z = (0 fby z) + xi * yi done
+
+let scalar_product_2(x, y) returns (z)
+  z = forward (xi in x, yi in y) returns (z) 
+      do z = (0 fby z) + xi * yi done
+
+let main_1 () returns (o)
+  let v1 = [|1;2;3|] in
+  let v2 = [|1;2;3|] in
+  do o = scalar_product_1(3)(v1, v2)
+  and assert (o = scalar_product_2(v1, v2)) done
+
+(* test of transposition *)
+let sum_vectors_1(x, y) returns (z)
+  forward (xi in x, yi in y) returns (zi out z) 
+    do zi = xi + yi done
+
+(* for all i in [n], j in [m]. tx.(j).(i) = x.(i).(j) *)
+let transpose(n)(m)(x) returns (y)
+  forward(m)[i] returns (yi out y)
+    do forward(n)[j] returns (yij out yi)
+       do yij = x.(j).(i) done done
+
+let main_2 () returns (o, o')
+  let m = [|[|1;2;3|];[|4;5;6|]|] in
+  do o = transpose(2)(3)(m) and o' = m.T and assert (o = o') done
+  
+let sum(n)(m)(x) returns (o)
+  forward(n)(xi in x) returns (o init 0) do
+    forward(m)(xij in xi) returns (o init last o)
+      do o = last o + xij done
+    done
+    
+let main_3() returns (o1, o2)
+  let v1 = [|[|1;2;3|];[|4;5;6|]|] in
+  do o1 = sum(2)(3)(v1) and
+     o2 = sum(3)(2)(v1.T) and
+  assert(o1 = o2) done
+  

@@ -1,0 +1,86 @@
+let node count_mod (n) returns (cpt)
+  cpt = 0 -> (pre cpt + 1) mod n
+  
+let node edge (b) returns (o)
+  o = b && (true -> not (pre b))
+  
+  
+(* 
+  A simple chronometer.
+  Compared to the paper, we use smaller constants in the counters to speedup the outputs. 
+*)
+let node chrono (stst, rst)
+  returns (s init 0, m init 0)
+  reset
+      automaton
+        | STOP ->
+            do
+            unless stst continue START
+        | START -> local d
+            do d =  count_mod 2
+            and if  edge (d = 0) then s =  count_mod 3
+            and if  edge (s = 0) then m =  count_mod 5
+            unless stst continue STOP
+      end
+  every rst
+
+    
+(* 
+  The chronometer starts at the first instant (see `stst`); 
+  is reset at step 23 (see `rst`);
+  and restarted at step 24 (see `stst`). 
+*)  
+let node main () returns (s, m)
+  local stst, rst
+  do (s, m) = chrono (stst, rst)
+  and stst = true fby 
+            false fby 
+            false fby 
+            false fby 
+            false fby 
+            false fby 
+            false fby 
+            false fby 
+            false fby 
+            false fby
+            false fby 
+            false fby 
+            false fby 
+            false fby 
+            false fby
+            false fby 
+            false fby 
+            false fby 
+            false fby 
+            false fby
+            false fby 
+            false fby 
+            false fby 
+            true fby false
+      
+  and rst = false fby 
+            false fby 
+            false fby 
+            false fby 
+            false fby 
+            false fby 
+            false fby 
+            false fby 
+            false fby 
+            false fby
+            false fby 
+            false fby 
+            false fby 
+            false fby 
+            false fby
+            false fby 
+            false fby 
+            false fby 
+            false fby 
+            false fby
+            false fby 
+            false fby 
+            true fby 
+            false 
+  done
+      

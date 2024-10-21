@@ -1,0 +1,6 @@
+let node f() returns (state, r, cond)
+  do init state = 0
+  and init r = 0
+  and if cond then state = 1 else r = 1
+  and cond = true
+  done

@@ -1,0 +1,202 @@
+(* file lustre_versus_lucid_synchrone_versus_esterel.zls *)
+
+(* These program illustrate the difference between three types of *)
+(* causalities *)
+
+(* The strongest is that of Lustre: "every feedback loop must cross a unit delay" *)
+
+(* It is even more constraining when code generation is considered. *)
+(* The (VERIMAG) Lustre compiler statically inline all function calls *)
+
+let node copy(x, y) returns (o1, o2)
+  do o1 = x and o2 = y done
+      
+let node gonthier() returns (o)
+  local x, o1
+  do (o1, o) = copy(x, o1)
+  and x = 0 fby (x + 1)
+  done
+
+(* this program is accepted by the VERIMAG Lustre compiler while it is *)
+(* rejected by the Scade compiler, unless a pragma "expand" is added at *)
+(* the definition of the copy function or call. It is an "inline" directive *)
+
+(* This program is causally correct: all stream variables are non bottom values *)
+
+(* To run it for 10 steps, type:
+ *- zrun.exe -s gonthier -n 10 lustre_versus_lucid_synchrone_versus_esterel.zls *)
+
+let node every_n n returns o
+  local cpt
+  do cpt = 0 fby (cpt + 1) mod n
+  and o = cpt = 0 done
+
+(* The following program has two modes that define streams by-case. *)
+(* When [c] is true, [o1] depends on [o2] *)
+(* when [c] is false, [o2] depends on [o1] *)
+let node two_modes () returns (o1 init 0, o2 init 0)
+  local c
+  do
+    if c then
+      do o1 = o2 + 1 done
+    else
+      do o2 = o1 + 1 done
+  and
+    c = every_n 5
+  done
+(* To run it for 10 steps, type:
+ *- zrun.exe -s two_modes -n 10 lustre_versus_lucid_synchrone_versus_esterel.zls *)
+
+(* It is equivalent to *)
+let node two_modes_with_last () returns (o1, o2)
+  local c, last_o1, last_o2
+  do
+    if c then
+      do o1 = o2 + 1 and o2 = last_o2 done
+    else
+      do o2 = o1 + 1 and o1 = last_o1 done
+  and last_o1 = 0 fby o1
+  and last_o2 = 0 fby o2
+  and
+    c = every_n 5
+  done
+(* To run it for 10 steps, type:
+ *- zrun.exe -s two_modes -n 10 lustre_versus_lucid_synchrone_versus_esterel.zls *)
+
+
+(* then two programs above cannot be written as is in Lustre because *)
+(* the language does not provide a way to define streams by-case with *)
+(* a causality analysis that exploit this type of definition. *)
+(* If translated into *)
+let node two_modes_lustre () returns (o1, o2)
+  local c, last_o1, last_o2
+  do
+    o1 = if c then o2 + 1 else last_o1
+  and
+   o2 = if c then last_o2 else o1 + 1
+  and
+   last_o1 = 0 -> pre o1
+  and
+   last_o2 = 0 -> pre o2
+  and
+   c = every_n 5
+  done
+(* To run it for 10 steps, type:
+ *- zrun.exe -s two_modes_lustre -n 10 lustre_versus_lucid_synchrone_versus_esterel.zls *)
+
+(* Your can check that the three versions are equialent for 10 steps by defining *)
+let node compare() returns ()
+  local o1, o2, o'1, o'2, o''1, o''2
+  do (o1, o2) = two_modes ()
+  and (o'1, o'2) = two_modes_with_last ()
+  and (o''1, o''2) = two_modes_lustre ()
+  and assert (o1 = o'1) && (o2 = o'2) && (o1 = o''1) && (o2 = o''2)
+  done
+
+(* type: ../../zrun.exe -s compare -n 20 lustre_versus_lucid_synchrone_versus_esterel.zls *)
+
+(* The concrete syntax in Lustre for the last one is:
+
+  node two_modes_lustre(x: int) returns (o1: int; o2: int)
+  var last_o1, last_o2: int;
+      c: bool;
+  let
+    o1 = if c then o2 + 1 else last_o1;
+    o2 = if c then last_o1 else o1 + 1;
+    last_o1 = 0 -> pre o1;
+    last_o2 = 0 -> pre o2;
+    c = every_n(5);
+  tel;
+
+   The (compile-time) causality analysis of Lustre rejects this program because
+   it considers that [o1] depends on [o2] (which is
+   the case when [c] is true; and [o2] depends on [o1] (which is the case when [c]
+   if false but does not take into account that the two are exclusive
+ *)
+
+(* Note that the translation into flatten if/then/else is only correct
+   when the two bodies are stateless. Otherwise, the translation
+   should use the [when] and [current] operators of Lustre; or [when]
+   and [merge] of Lucid Synchrone and Scade *)
+
+   (* By default, zrun takes a lazy interpretation of the conditional
+      if/then/else, that is, the output is bottom if the condition is
+      bottom; otherwise, it returns what the value of the selected
+      branch. This means that the various form of the two_node
+      function are equivalent (they produce the same output streams)
+      *)
+
+(* To run it for 10 steps with a Lustre interpretation of the
+   conditional that is strict (the output is bottom as whenever one of
+   the inputs is bottom), type:
+
+ *- zrun.exe -lustre -s two_modes_lustre -n 10
+   lustre_versus_lucid_synchrone_versus_esterel.zls *)
+
+(* Finally, Esterel accept more programs to be causally correct by
+   interpreting boolean operations in three-valued logic. E.g.:
+
+   let node esterel_correct() returns (o)
+     do o = true or o done
+
+   is causally correct (and the output [o] is [true])
+
+ *)
+
+(* Instead of defining two different interpretations for boolean operators,
+   we follow a different approach that extend the interpretation of the
+   conditional. *)
+
+(* defines the sequential or and and operators as *)
+let node or_gate(x, y) returns (o)
+  o = if x then true else y
+
+let node and_gate(x, y) returns (o)
+   o = if x then y else false
+
+(**
+   let node is_causal_in_esterel() returns (o)
+   (* true is put purposely on the right of the argument. Otherwise *)
+   (* the lazy interpretation would give solution [o = true] *)
+   (* instead of [o = bot] *)
+   o = or_gate(o, true)
+ **)
+     
+(* To run it for 10 steps with an interpretation of the conditional such that:
+
+   if _ then v else v = v
+   if bot then _ else _ = bot
+   if true then v else _ = v
+   if false then _ else v = v
+
+   Type:
+
+ *- zrun.exe -esterel -s is_causal_in_esterel -n 10
+   lustre_versus_lucid_synchrone_versus_esterel.zls *)
+
+   (* This interpretation is not exactly that of Esterel because Esterel
+   builds the [if/then/else] (mux) from the [or] and [and] gate
+   whereas we build the [or] and [and] from the conditional. The consequence
+      if that some programs that we consider causal are not in Esterel. E.g. *)
+
+(**
+   let node is_not_causal_in_esterel() returns (o)
+   o = if o then true else true
+ **)
+    
+(* that is not causal in Esterel because the boolean conditional
+   [mux(c, x, y) = if c then x else y is translated into (c /\ x) \/
+   (not c /\ y)] whose result is [bot] when [c = bot] and [x = y =
+   true] where as [zrun -esterel] returns true. This is
+   because the translation of the boolean conditional corresponds to
+   [(c /\ x) \/ (not c /\ y) \/ (x /\ y)] *)
+
+(* type:
+
+   zrun.exe -esterel -s is_not_causal_in_esterel -n 10
+   lustre_versus_lucid_synchrone_versus_esterel.zls
+
+It is causally correct with zrun -esterel because the if/then/else is
+interpreted as the definition above. *)
+   
+  

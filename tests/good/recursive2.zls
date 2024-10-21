@@ -1,0 +1,13 @@
+(* recursive functions defined at top level *)
+let rec f<<n>>(x) =
+  let rec if n=0 then do o = x done
+  else do o = g<<n-1>>(x+1) done in
+  o
+  
+and g<<n>> (x) = f<<n-1>> (x-1)
+
+let h = f
+
+let main1 () = f<<4>>(0)
+
+

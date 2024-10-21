@@ -1,0 +1,210 @@
+(include_subdirs unqualified)
+
+(rule
+ (copy %{project_root}/config.ml config.ml))
+
+(subdir parsing
+  (ocamllex lexer))
+
+(subdir parsing
+  (menhir (modules parser) (infer true) (flags --explain --table)
+  ))
+
+; all the modules necessary to parse
+(library
+  (name parse_lib)
+  (public_name zrun.parse_lib)
+  (wrapped false)
+  (modules
+    location ; position in the source file
+    lexer parser parsetree ; parsing
+  )
+  (libraries menhirLib))
+
+; all the modules necessary for building the ast after parsing
+(library
+  (name global_lib)
+  (public_name zrun.global_lib)
+  (wrapped false)
+  (modules
+    config misc ; general configuration and common global variables
+    ident ; idents
+    lident ; long idents
+    defnames ; defined names by an equation
+    util ; useful functions
+    zelus ; the ast
+    write ; computes defined variables for equations
+    scoping ; associate unique names
+    pp_tools ; pretty printer tools
+    printer ; printer for the ast
+    graph ; acyclic graph manipulation
+    noinfo ; no information to be attached to patterns, expressions and eqs.
+  )
+  (libraries parse_lib))
+
+;; the ZRun interpreter
+; all the necessary modules to make zrun except the entry modules
+(library
+  (name zrun_lib)
+  (public_name zrun.zrun_lib)
+  (wrapped false)
+  (modules
+    error ; error messages
+    value ; the type of values
+    genv ; the type of a global environment
+    debug ; all the information for debuging
+    primitives ; the value of primitives
+    find ; find the current value and the last value of a variable
+    match ; the evaluation of pattern matching
+    arrays ; representing an array value
+    records ; reprenting a record
+    fix ; a bounded fix-point
+    monad ; useful monad to deal with errors
+    coiteration ; the main execution loop
+    output ; printing
+    forloop ; evaluation functions for for loops
+    eval ; evaluation of an expression
+  )   	 
+  (libraries zrun.parse_lib zrun.global_lib))
+
+ ;; the Zelus compiler
+ ; type definition and global info in the global type environment
+ (library
+  (name typdefs_lib)
+  (public_name zrun.typdefs_lib)
+  (wrapped false)
+  (modules
+    genames ; generate fresh names
+    deftypes ; definition of types
+    defcaus ; definition of causality types
+    definit ; definition of initialisation types
+    initial ; definition of general types, values
+    ptypes ; printing types
+    pcaus ; printing causality types
+    pinit ; printing initialization types
+    typinfo ; type annotation for Zelus terms
+    global ; definition of entries in the global type environment
+    modules ; global symbol table for typing
+  )
+  (libraries zrun.global_lib)
+)
+
+; typing
+ (library
+  (name typing_lib)
+  (public_name zrun.typing_lib)
+  (wrapped false)
+  (modules
+    types ; type manipulation and unification between types
+    interface ; interface
+    kind ; kinds
+    total ; check totatlity of pattern matching
+    patternsig ; check totality of pattern matching
+    matching ; check totality of pattern matching
+    typerrors ; type errors;
+    typing ; the main typing functions
+    )
+  (libraries zrun.global_lib zrun.typdefs_lib)
+)
+
+; causality and initialisation analyses
+ (library
+  (name analyses_lib)
+  (public_name zrun.analyses_lib)
+  (wrapped false)
+  (modules
+    causal ; type manipulation and unification between types for causality
+    init ;  type manipulation and unification between types for initialisation
+    causality ; causality inference
+    initialization ; initialization inference
+    )
+  (libraries zrun.global_lib zrun.typdefs_lib zrun.typing_lib)
+)
+
+; rewriting steps
+ (library
+  (name rewrite_lib)
+  (public_name zrun.rewrite_lib)
+  (wrapped false)
+  (modules
+    state ; the data structure to represent a state
+    cost ; a cost function used to decide which function call to inline
+    mapfold ; generic mapfold
+    aux ; auxiliary functions for building terms
+    static ; static reduction
+    inline ; inlining of function calls
+    der ; remove the initialization and handler part of a derivative equation
+    lastinpatterns ; remove last in patterns
+    copylast ; add copies [lx = last*x] for [last x] when [x] is local
+             ; all variables in patterns must be value (remove last)
+    automata ; rewrite automata into match/reset
+    present ; rewrite present into match
+    pre ; rewrite fby/fby into (init/last)
+    period ; translate periods into horizons
+    encore ; add horizons [horizon h = 0.0] for zero-crossings
+    disc ; compile the operation disc with an horizon
+    reset ; rewrite -> and resets
+    complete ; complete equations with [der x = 0.0]
+    shared ; normalise equations to shared variables into [x = ...]
+    letin ; un-nesting of let/in and blocks
+    ; deadcode ; deadcode removal
+    vars ; read variables
+    dependences ; data-dependences between equations
+    control ; fusion of control dependences
+    schedule ; static scheduling
+    rewrite ; compose rewriting steps
+  )
+  (libraries zrun.global_lib zrun.typdefs_lib zrun.zrun_lib)
+)
+
+;sequential code generation
+ (library
+  (name seqcode_lib)
+  (public_name zrun.seqcode_lib)
+  (wrapped false)
+  (modules
+    obc; the AST for representing Mealy machines
+    oaux; auxiliary functions for building terms
+    oprinter; the printer
+    ocamlprinter; print OCaml code
+  )
+  (libraries zrun.global_lib zrun.typdefs_lib)
+)
+
+; The ZRun interpreter
+(executable
+ (name zrun)
+  (modes (byte exe))
+  (modules 
+    zrun; the main function
+  )
+  (libraries zrun.parse_lib zrun.global_lib zrun.zrun_lib)
+  (promote (until-clean) (into ..)))
+
+; Source-to-source transformations
+(executable
+ (name zwrite)
+  (modes (byte exe))
+  (modules
+	zwrite; the main function
+  )
+  (libraries zrun.parse_lib zrun.global_lib zrun.zrun_lib zrun.rewrite_lib)
+  (promote (until-clean) (into ..)))
+
+; The compiler
+(executable
+ (name zeluc)
+  (modes (byte exe))
+  (modules
+	compiler; the compiler
+	simulator; the generation of the main function
+	zeluc; the main function
+  )
+  (libraries zrun.parse_lib zrun.global_lib zrun.zrun_lib
+  zrun.typing_lib zrun.analyses_lib zrun.rewrite_lib)
+  (promote (until-clean) (into ..)))
+
+(install
+ (package zrun)
+ (section bin)
+ (files (zrun.exe as zrun)))

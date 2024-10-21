@@ -1,0 +1,367 @@
+let node p(x, y) returns (o)
+  o = (0.0 fby o) +. x *. y
+
+let node sum_(s)() returns (o)
+  forward(s)[i] returns (o init 0) do
+    o = last o + i
+  done
+
+let node main() = run (sum_(4)) ()
+
+let node scalar(x, y) returns (o)
+  forward xi in x, yi in y returns (o init 0)
+    do o = p(xi, yi) done
+
+let node main42() =
+  scalar([|1.0; 2.0; 3.0|],
+	 [|1.0; 2.0; 3.0|])
+
+let node sum(x, y) returns (z)
+    forward xi in x, yi in y returns (zi out z) do
+      zi = xi +. yi
+    done
+
+let node map2(f)(x, y)
+    returns (z)
+    forward xi in x, yi in y returns (zi out z) do
+      zi = f(xi, yi)
+    done
+
+(* simple examples of for loops *)
+let node g x returns (y, z)
+    do y = x and z = x done
+
+let node main__0 () =
+  let m = g(1) in m
+
+let node f x = x, x
+
+let node main_0 () =
+  let v = f 1 in
+  assert ((=) v (1, 1))
+
+let node main___0 () =
+  let v1 = g 1 in
+  let v2 = g v1 in
+  assert ((=) v2 ((1, 1),(1,1)))
+
+let node f1 x =
+  let rec n = 0 -> pre n + 1 in
+  [| x with n <- 3 |]
+
+let node f x = foreach(4) do x done
+
+let node main0 () =
+  let x = f 4 in
+  let y = f1 x in
+  let v = foreach(4) yi in y do yi done in
+  x, y, v
+
+let node f2 x =
+  let y1 = [| x with 0 <- 42 |] in
+  let y2 = [| y1 with 1 <- 43 |] in
+  y1, y2
+
+let node main00 () =
+  let x = f 4 in
+  let v = f2 x in
+  assert (v = ([|42;4;4;4|], [|42;43;4;4|]))
+
+let node g x =
+  forward(4) xi in x do
+    let rec cpt = (0 fby cpt) + xi in
+    cpt
+  done
+
+let node gg x =
+  let rec o =
+    (forward(4) xi in x do
+      let rec cpt = (0 fby cpt) + xi in
+      cpt
+     done) + (0 fby o) in
+  o
+
+let node main1 () =
+  let v = g [| 1; 2; 3; 4 |] in assert (v = 10)
+
+let node main1_1 () =
+  let v = gg [| 1; 2; 3; 4 |] in
+  let rec cpt = 10 fby cpt + 10 in
+  assert (v = cpt)
+
+(* scalar product *)
+let node scalar0 (x, y) =
+  forward xi in x, yi in y returns (cpt init 0)
+    do cpt = last cpt + xi * yi done
+
+let node scalar01 (x, y) =
+  forward xi in x, yi in y returns (cpt)
+    do cpt = (0 fby cpt) + xi * yi done
+
+let node sum(xi, yi) = cpt where
+  rec cpt = (0 fby cpt) + xi * yi
+
+let node scalar00 (x, y) =
+  forward xi in x, yi in y
+     do sum(xi, yi) default 0 done
+
+let node scalar1 (x, y) =
+  forward(4) xi in x, yi in y returns (cpt init 0)
+     do cpt = sum(xi, yi) done
+
+let node main2 () =
+  let i1 = foreach(4) do 2 done in
+  let i2 = foreach(4) do 2 done in
+  assert (scalar0(i1, i2) = scalar1(i1, i2))
+
+let node main22 () =
+  foreach(4) do 2 done
+
+let node plus1 x =
+  foreach(4) xi in x do xi + 1 done
+
+let node plus (x, y) =
+  foreach(4) xi in x, yi in y do xi + yi done
+
+let node plus11 x =
+  foreach(4) xi in x do
+    let rec cpt = xi fby cpt + 1 in cpt
+  done
+
+let node copy x =
+  foreach(4) xi in x do
+    let rec cpt = (0 fby cpt) + xi in
+    cpt
+  done
+  
+let node main3 () =
+  let v0 = f 0 in
+  let v1 = f 1 in
+  let v00 = plus1 v0 in
+  let v11 = plus1 v1 in
+  let v2 = plus (v00, v11) in
+  let v3 = plus1 v2 in
+  let v = plus1 (plus (plus1 (f 0), plus1 (f 1))) in
+  assert (v3 = v);
+  assert (v = [|4;4;4;4|])
+
+let node main4 () =
+  plus1 (copy (f 1))
+
+let node main5() =
+  plus11 (f 0)
+
+let node main6 () =
+  let x = f 0 in
+  x.(400) default 42
+
+(* scalar product using index x.(i) instead of xi (where xi in x) *)
+let node scalar2 (x, y) =
+  forward i in 0 to length x - 1 returns (m init 0)
+    do m = last m + x.(i) * y.(i) done
+
+let node scalar2_eq (x, y) returns (m)
+  forward(4) i in 0 to 3 returns (m init 0)
+    do m = last m + x.(i) * y.(i) done
+
+ 
+let node main7 () =
+  scalar1 ([| 1; 2; 3; 4 |], [| 1; 1; 1; 1 |])
+
+let node main8 () =
+  scalar1 (foreach(4) do 1 done, foreach(4) do 2 done)
+
+let node main9 () =
+  scalar2 ([| 1; 2; 3; 4 |], [| 1; 1; 1; 1 |])
+
+let node main10 () =
+  let i1 = foreach(4) do 1 done in
+  let i2 = foreach(4) do 2 done in
+  let r0 = scalar0(i1, i2) in
+  let r1 = scalar1(i1, i2) in
+  let r2 = scalar2(i1, i2) in
+  let r2_eq = scalar2_eq(i1, i2) in
+  assert (r0 = r1 && r1 = r2 && r2 = r2_eq)
+  
+
+(* computes the array of partial sums *)
+let node sum0 (x) =
+  forward(6) xi in x returns ([|o init 0|])
+     do o = last o + xi done
+
+let node sum1 (x) =
+  forward(6) xi in x returns (r, o init 0)
+     do o = last o + xi and r = o done
+
+let node main11 () =
+  let v = [| 1; 2; 3; 4; 5; 6 |] in
+  sum0 v, sum1 v
+
+(* sum of the elements of a two dimension array *)
+let node sum m returns (o)
+  do
+    o =
+      forward(4) mi in m returns (o init 0)
+        do o =
+           forward(4) mij in mi returns (o' init last o)
+             do o' = last o' + mij done
+        done
+  done
+		 
+let node sum_eq m returns (o)
+  forward mi in m returns (o init 0) do
+    forward mij in mi returns (o init last o) do
+      o = last o + mij done
+    done
+
+let node main12 () =
+  let v = [| [| 1; 2; 3; 4 |];
+	     [| 1; 2; 3; 4 |];
+	     [| 1; 2; 3; 4 |];
+	     [| 1; 2; 3; 4 |] |] in
+  assert (sum v = 40);
+  assert (sum_eq v = 40)
+
+(* sum_{i < n} i *)
+let node g () =
+  forward(4) i in 0 to 3 returns (cpt init 0)
+    do cpt = last cpt + i
+    done
+
+let node fast_g n = ((n+1) * n) / 2
+    
+let node main13 () =
+  let v = g () in
+  assert (v = fast_g 3)
+    
+(* transposition *)
+let node transpose_n_m(n)(m)(a) =
+  foreach(m) i in 0 to m-1 do
+    foreach(n) j in 0 to n-1 do
+      a.(j).(i)
+    done
+    done
+
+let node transpose_3_4(a) =
+  foreach(4) i in 0 to 3 do
+    foreach(3) j in 0 to 2 do
+      a.(j).(i)
+    done
+    done
+
+let node transpose_4_3(m) =
+  foreach(3) i in 0 to 2 do
+    foreach(4) j in 0 to 3 do
+      m.(j).(i)
+    done
+  done
+
+let node main14 () =
+  let a = [| [| 1; 2; 3; 4 |];
+	     [| 5; 6; 7; 8 |];
+	     [| 9; 10; 11; 12 |] |] in
+  let a1 = transpose_3_4 a in
+  let a2 = transpose_4_3 a1 in
+  let a3 = run (transpose_n_m(3)(4))(a) in
+  assert (a = a2 && a1 = a3)
+    
+(* matrix product *)
+let node prod_matrix0(a_3_4, b_4_5) = r where rec
+  r = forward(3) i in 0 to 2, ai in a_3_4 returns (ri)
+       do ri = forward(5) j in 0 to 4 returns (rij)
+                do rij = forward(4) k in 0 to 3, bk in b_4_5 returns (cpt init 0)
+                          do cpt = last cpt + ai.(k) * bk.(j) done
+                done
+       done
+
+let node main15 () =
+  let m1 = [| [| 1; 2; 3; 4 |];
+	      [| 5; 6; 7; 8 |];
+	      [| 9; 10; 11; 12 |] |] in
+  let id = [| [| 1; 1; 1; 1; 1 |];
+	      [| 1; 1; 1; 1; 1 |];
+	      [| 1; 1; 1; 1; 1 |];
+	      [| 1; 1; 1; 1; 1|] |] in
+  prod_matrix0 (m1, id)
+
+let node prod_matrix1(a_3_4, b_4_5) = r where rec
+  r = forward(3) i in 0 to 2 returns (ri)
+       do ri = forward(5) j in 0 to 4 returns (rij)
+                do rij = forward(4) k in 0 to 3 returns (cpt init 0)
+                           do cpt = last cpt +
+                               a_3_4.(i).(k) * b_4_5.(k).(j) done
+                done
+       done
+
+let node prod_matrix11(n,m,p)(a, b) returns (r)
+  forward i in 0 to n-1 returns (ri out r) do
+    forward j in 0 to m-1 returns (rji out ri) do
+      forward k in 0 to p - 1 returns (rji init 0) do
+        rji = last rji + a.(i).(k) * b.(k).(j)
+      done
+    done
+  done
+  
+let node main16 () =
+  let m1 = [| [| 1; 2; 3; 4 |];
+	      [| 5; 6; 7; 8 |];
+	      [| 9; 10; 11; 12 |] |] in
+  let id = [| [| 1; 1; 1; 1; 1 |];
+	      [| 1; 1; 1; 1; 1 |];
+	      [| 1; 1; 1; 1; 1 |];
+	      [| 1; 1; 1; 1; 1|] |] in
+  run (prod_matrix11(3, 5, 4))(m1, id)
+    
+let node transpose_4_5(m) =
+  foreach(5) i in 0 to 4 do
+    foreach(4) j in 0 to 3 do
+      m.(j).(i)
+    done
+  done
+
+(* the same with a transpose in between *)
+let node prod_matrix2(a_3_4, b_4_5) = r where rec
+  r = forward(3) i in 0 to 2, ai in a_3_4 returns (ri)
+       do ri = forward(5) j in 0 to 4, bj in transpose_4_5(b_4_5) returns (rij)
+                do rij = forward(4) aik in ai, bkj in bj returns (cpt init 0)
+                          do cpt = last cpt + aik * bkj done
+                done
+       done
+
+let node prod_matrix3(l)(m)(n)(a_l_m, b_m_n) = r where rec
+  r = forward(l) i in 0 to l-1, ai in a_l_m returns (ri)
+       do ri = forward(n) j in 0 to n-1, bj in transpose_n_m(b_m_n) returns (rij)
+                do rij = forward(m) aik in ai, bkj in bj returns (cpt init 0)
+                          do cpt = last cpt + aik * bkj done
+                done
+       done
+
+let node main17 () =
+  let m1 = [| [| 1; 2; 3; 4 |];
+	      [| 5; 6; 7; 8 |];
+	      [| 9; 10; 11; 12 |] |] in
+  let full_one = [| [| 1; 1; 1; 1; 1 |];
+	      [| 1; 1; 1; 1; 1 |];
+	      [| 1; 1; 1; 1; 1 |];
+	      [| 1; 1; 1; 1; 1|] |] in
+  prod_matrix2 (m1, full_one)
+
+let node main18 () =
+  let m1 = [| [| 1; 2; 3; 4 |];
+	      [| 5; 6; 7; 8 |];
+	      [| 9; 10; 11; 12 |] |] in
+  let full_one = [| [| 1; 1; 1; 1; 1 |];
+	      [| 1; 1; 1; 1; 1 |];
+	      [| 1; 1; 1; 1; 1 |];
+	      [| 1; 1; 1; 1; 1|] |] in
+  let p0 = prod_matrix0 (m1, full_one) in
+  let p1 = prod_matrix1 (m1, full_one) in
+  let p2 = prod_matrix1 (m1, full_one) in
+  assert (p0 = p1 && p1 = p2)
+
+let node f(x) = o where
+  rec o = forward(4) returns ([|o1 init 42|])
+             do o1 = 1 done
+
+let node main19 () = f 0
+

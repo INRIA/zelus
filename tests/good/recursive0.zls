@@ -1,0 +1,117 @@
+(* recursive functions *)
+let f1 = fun x returns o
+  if true then o = 1 else o = 2
+let main1 () = f1 ()
+
+let f3 =
+  let rec or_<<n>> = fun (x) returns (o)
+    if n = 0 then
+      o = false
+    else if n = 1 then o = x.(0)
+    else do o = or_<<n/2>>(x.(0 .. n/2-1)) || or_<<n/2>>(x.(n/2 .. n-1)) done
+         in
+  or_
+
+let main2 () = f3 <<4>> [|true; false; false; false |]
+
+let f33 =
+  let rec sum_<<n>> = fun (x) returns (o)
+    if n = 1 then
+      do o = x.(0) done
+      else do o = (sum_<<n/2>>(x.(0 .. n/2-1))) +
+                  (sum_<<n/2>>(x.(n/2 .. n-1))) done in
+  sum_
+
+let main3 () = (f33 <<4>>) [|1; 2; 3; 4 |]
+
+let main4 () = let f<<n>>() = n + 1 in f<<4>>
+
+let rec or_n<<n>> = fun (x) returns (o)
+  if n = 0 then
+    o = false
+  else if n = 1 then o = x.(0)
+  else o = or_n<<n/2>>(x.(0 .. n/2-1)) || or_n<<n/2>>(x.(n/2 .. n-1))
+
+let main5() returns ()
+  assert (or_n<<4>>([|true; false; false; false |]))
+
+let rec or_n<<n>>(x) returns (o)
+  local m
+  do
+  if n = 0 then
+    m = false
+  else if n = 1 then m = x.(0)
+  else m = (or_n<<n/2>>(x.(0 .. n/2-1))) || (or_n<<n/2>>(x.(n/2 .. n-1)))
+  and o = m
+  done
+
+
+let main5() returns ()
+  assert
+    (or_n<<8>>([|true; false; false; false; true; false; false; false |]))
+
+let main55() returns (o)
+  let m = foreach(15) returns ([|xi|]) do xi = false done in
+  do o = or_n<<15>>(m) done
+  
+let main555() returns (o)
+  let m = foreach(15) returns ([|xi|]) do xi = false done in
+  let static v = or_n<<15>> in
+  do o = v(m) done
+    
+let rec fby_n1<<n>> = node (x) returns (o)
+  local m
+  do o = x fby m
+  and if n = 0 then
+        do m = x done
+      else
+        do m = run (fby_n1<<n-1>>)(x) done
+  done
+
+let node main6() =
+  let rec x = 0 -> pre x + 1 in
+  run (fby_n1<<6>>)(x)
+
+let rec node fby_n2<<n>>(x) returns (o)
+  local m
+  do o = x fby m
+  and if n = 0 then
+        m = x
+      else
+        m = run (fby_n2<<n-1>>)(x)
+  done
+
+let node main7() =
+  let rec x = 0 -> pre x + 1 in
+  run (fby_n2<<6>>)(x)
+
+let node main8() returns ()
+  let rec x = 0 -> pre x + 1 in
+  assert (run(fby_n1<<3>>)(x) = run(fby_n2<<3>>)(x))
+
+let xor x y = if x then not y else y
+
+let adder(x, y, c) returns (s, c')
+ do s = xor (xor x y) c
+ and c' = if x then y || c else y && c
+ done
+
+let main9() =
+  let x = [| true; false; true;  false; true;  false; true;  false |] in
+  let y = [| true; true;  false; false; true;  true;  false; false |] in
+  let c = [| true; true;  true;  true;  false; false; false; false |] in
+  forward (xi in x, yi in y, ci in c) returns ([|zi|], [|c'i|])
+    do zi, c'i = adder(xi, yi, ci) done
+
+let rec add_n<<n>> = fun (x, y, c) returns (o, c')
+  if n = 0 then do o = [||] and c' = false done
+  else let s, c = adder(x.(0), y.(0), c) in
+       if n = 1 then
+        do o = [|s|] and c' = c done
+       else let o', c = add_n<<n-1>>(x.(1 .. n-1), y.(1 .. n-1), c) in
+        do o = [|s|] ++ o' and c' = c done
+
+let main10() returns ()
+  assert (add_n<<4>>([|true; false; false; false |], 
+                     [|true; false; false; false |], false) =
+          ([| false; true; false; false |], false))

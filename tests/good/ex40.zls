@@ -1,0 +1,15 @@
+type t = A | B | C | D
+
+let
+  select_7_9 =
+    node  ()  returns (o1_9_11, o2_10_12)
+         local x_8_10, lx_28, lx_29
+         do lx_29 = o1_9_11
+         and lx_28 = o2_10_12
+         and match x_8_10 with
+             | A  ->  do o1_9_11 = ((+) last* lx_29 1) and o2_10_12 = 1  done 
+             | B  ->  do o1_9_11 = ((-) last* lx_29 1) and o2_10_12 = 2  done 
+             | C  ->  do o1_9_11 = 0 and o2_10_12 = 3  done 
+             | D  ->  do o1_9_11 = 42 and o2_10_12 = 4  done  
+         and init lx_29 = (0) and init lx_28 = (0)
+	 and x_8_10 = A fby B fby C fby D fby x_8_10 done  

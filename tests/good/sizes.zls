@@ -1,0 +1,22 @@
+let ff<<n>> = node (x) returns (o)
+  local m
+  do o = x + m + n and m = 0 done
+
+let f1 () = ff<<10>>
+
+let node main1() returns ()
+  assert (run (ff<<10>>) (0) = 10)
+
+let fff<<n>> = fun (x) returns (o)
+  local m do o = x + m + n and m = 0 done 
+
+let main2() returns ()
+  assert ((fff <<10>>) (0) = 10)
+
+let ffff = fun (x) returns (o)
+  local m do o = x + m and m = 0 done 
+
+let node main3() returns ()
+  assert (ffff 0 = 0)
+
+

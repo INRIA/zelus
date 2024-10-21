@@ -1,0 +1,24 @@
+let y = 1 + 2
+
+let z = y + 1
+
+let node f () =
+  let static m = y + z in
+  m + 1
+    
+let f1 h g x = h g x + 1
+
+let g x returns o
+  let static m = f1 (fun g y -> g y) (fun x -> x + 2) 1 in
+  if m = 3 then do o = 1 done else do o = 2 done
+
+
+let h x y = x + 1
+
+let f2 g x = inline (h y) (g x + 1)
+
+let node f3() returns o o = 0 fby o + 1
+
+let node main() returns o
+  let static o' = g 0 in
+  do o = o' done

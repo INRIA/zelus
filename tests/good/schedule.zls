@@ -1,0 +1,49 @@
+(* let node main() returns (m)
+  local r do r = 42 and m = 0 -> pre m done
+    
+ *)
+
+let node main() returns ()
+ local m default 0, half, z do
+ if half then do done
+ else
+   local r do r = 42 and m = 0 fby m done
+ and
+   half = false
+ and
+   z = false
+ done
+
+  let node main5() returns ()
+  local m1 default 0, m2, half, o
+  do
+    if half then do done
+    else do m1 = 42 fby m1 + 1 done
+  and
+    if half then do m2 = 0 done
+    else do m2 = 43 fby m2 + 1 done
+  and
+      half = true fby not (pre half)
+  and
+      o = m1 = m2
+  and
+      assert o
+done
+  
+
+let node main6() returns ()
+  local m1 default 0, m2, half, o
+  do
+    if half then do done
+    else do m1 = 42 -> pre m1 + 1 done
+  and
+    if half then do m2 = 0 done
+    else do m2 = 42 -> pre m2 + 1 done
+  and
+      half = true -> not (pre half)
+  and
+      o = m1 = m2
+  and
+      assert o
+  done
+

@@ -1,0 +1,37 @@
+(* this example is taken from the slides given at Bamberg, summer 2019 *)
+(* for its static scheduling, the if/then/else must be split *)
+let node composition1(c1, c2, y) returns (x, z, t, r)
+    do
+      if c1 then do x = y + 1 done else do x = 1 done
+    and
+      if c2 then do t = x + 1 done else do t = 1 done
+    and
+      if c1 then do z = t + 1 done else do z = 2 done
+    and
+      if c2 then do r = z + 2 done else do r = 2 done
+    done
+
+let node composition2(c1, c2, y) returns (x, z, t, r)
+    do
+      if c1 then do x = y + 1 and z = t + 1 done
+      else do x = 1 and z = 2 done
+    and
+      if c2 then do t = x + 1 and r = z + 2 done
+      else do t = 1 and r = 2 done
+    done
+	  
+let node main() returns (ok)
+  local c1, c2, y, x1, z1, t1, r1, x2, z2, t2, r2
+  do  c1 = true fby true fby not c1
+  and
+      c2 = false fby not c2
+  and
+      y = 0 -> pre y + 1
+  and
+      (x1, z1, t1, r1) =  composition1(c1, c2, y)
+  and
+      (x2, z2, t2, r2) =  composition2(c1, c2, y)
+  and
+      ok = (x1 = x2) && (z1 = z2) && (t1 = t2) && (r1 = r2)
+  done
+      

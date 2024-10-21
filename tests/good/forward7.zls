@@ -1,0 +1,22 @@
+let sum1 n w x returns (o)
+  forward(n) returns (o) do
+    forward resume (n) (xi in x) returns (o init w)
+      do o = last o + xi done
+    done
+
+(* we test that the initialization for o is equivalent *)
+(* to have an initial delay inside the body of the loop *)
+let sum2 n w x returns (o)
+  forward(n) (xi in x) returns (o) do
+    forward resume (n) (xi in x) returns (o)
+      do o = (w fby o) + xi done
+    done
+ 
+let main () returns (o1)
+  let x = [| 1; 1; 1; 1|] in
+  do o1 = sum1 4 100 x done
+
+let main2 () returns (o1, o2)
+  let x = [| 1; 1; 1; 1 |] in
+  do o1 = sum1 4 100 x and o2 = sum2 4 100 x and assert (o1 = o2) done
+

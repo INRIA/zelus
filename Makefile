@@ -1,40 +1,52 @@
-all: ## Build the compiler and libraries
-	dune build compiler lib
+## Build zrun, compiler and libraries
+all: zrun.exe zwrite.exe zeluc.exe
 
-test: ## Launch the tests via dune
-	dune runtest --force
+zrun.exe:
+	(cd src; dune build -- zrun.exe)
 
-examples: ## Build all the examples
-	dune build examples
+zwrite.exe:
+	(cd src; dune build -- zwrite.exe)
 
-tools: ## Build the tools
-	dune build tools
+zeluc.exe:
+	(cd src; dune build -- zeluc.exe)
 
-install: ## Install as an opam development package pinned to this directory
-	opam pin -k path .
+zrun.exe.verbose:
+	(cd src; dune build --verbose -- zrun.exe)
 
-uninstall: ## Remove opam pin
-	opam pin remove zelus zelus-gtk
+tests:
+	(cd tests; dune test)
 
-clean: ## Clean the entire project
-	dune clean
+debug:
+	(cd src; dune build --debug-backtraces --debug-dependency-path -- zrun.bc)
+	(cd src; dune build --debug-backtraces --debug-dependency-path -- zwrite.bc)
+	(cd src; dune build --debug-backtraces --debug-dependency-path -- zeluc.bc)
 
-docker-build: ## Build the Docker image
-	docker build -t zelus -f zelus.docker .
+clean:
+	dune clean;
+	(cd tests/good/; rm -f *.zlo);
+	(cd tests/bad/; rm -f *.zlo)
 
-docker-run: ## Launch a terminal in the Docker image
-	docker run -ti --rm zelus bash
+wc:
+	(cd src;
+	wc global/*.ml \
+	parsing/parsetree.ml parsing/*.mll \
+	zrun/*.ml \
+	tydefs/*.ml \
+	compiler/rewrite/*.ml \
+	compiler/typing/*.ml \
+	compiler/analysis/*.ml \
+	compiler/gencode/*.ml \
+	compiler/main/*.ml)
 
-help: ## Print this help
-	@awk 'BEGIN {FS = ":.*##"; printf "Usage:\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  make %-20s# %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
-.PHONY: test help
+# Extract the ZRun interpreter from the development
+zrun.update.git:
+	rm -r -f zrun.update.git;
+	mkdir zrun.update.git;
+	cp -r configure zrun.update.git;
+	cp -r config.ml zrun.update.git;
+	cp -r src/global zrun.update.git/src;
+	cp -r src/parser zrun.update.git/src;
+	cp -r zrun/zrun zrun.update.git/src;	
 
-# Doc (for opam):
-# opam pin -k path .              : install the current version of the compiler
-#                                   as an opam package
-# opam pin --help
-
-# opam pin remove zelus zelus-gtk : removes the opam package
-# opam install zelus zelus-gtk : install the (public) opam package
-
+.PHONY: zeluc.exe zeluc.exe zrun.exe zwrite.exe zrun.exe.verbose tests debug clean wc

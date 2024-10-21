@@ -1,0 +1,82 @@
+(* The example of a cyclic token ring arbiter from Robert de Simone (mentionned in
+ *- the Esterel primer V5, Berry). Used as an example to illustrate the
+ *- fixpoint semantics presented in the paper:
+ *- The semantics and execution of a synchronous block-diagram language,
+ *- Stephen Edwards and Edward Lee, SCP, 2003 *)
+
+(* The semantics we have defined is Kahnian. In particular, *)
+(* all imported functions are strict, i.e., if one of the xi in *)
+(* f(x1,...,xn)) is bot, then the result is also bot. *)
+(* This is also true for boolean functions: it is not possible to have *)
+(* or(true, _) = or(_, true) = true nor &(false, _) = &(_, false) *)
+(* even when _ is bot. *)
+
+let node sequential_and_gate(x,y) returns (z)
+    if x then z = y else z = false
+
+let node sequential_or_gate(x,y) returns (z)
+    if x then z = true else z = y
+
+let node sequential_or_gate(x, y) = if x then true else y
+  
+(* the two below are strict w.r.t their argument *)
+let node and_gate(x,y) returns (z)
+    z = x && y
+
+let node or_gate(x,y) returns (z)
+    z = x or y
+
+(* the two below are implemented using the conditional. *)
+(*
+let node or_gate(x,y) = if x then y else false
+let node and_gate(x, y) = if x then true else y
+ *)
+    
+(* i is the initial value of one block *)
+let node arbiter(i, request, pass_in, token_in)
+  returns (grant, pass_out, token_out)
+  local o
+  do
+    grant =  and_gate(request, o)
+  and
+    pass_out = and_gate(not request, o)
+  and
+   (* grant is given when there is a request and either 
+   1/ it is my round or *)
+   (* my left neibour had the token but did not take it *)
+      o = sequential_or_gate (token_in, pass_in) (* (pass_in, token_in) *)
+  and
+    token_out = i fby token_in
+  done
+      
+let node arbiter_three(request1, request2, request3)
+    returns (grant1, grant2, grant3)
+  local pass_out1,
+        pass_out2,
+        pass_out3,
+        token_out1,
+        token_out2,
+        token_out3
+  do
+    grant1, pass_out1, token_out1 =
+       arbiter(true, request1, pass_out3, token_out3)
+  and
+    grant2, pass_out2, token_out2 =
+       arbiter(false, request2, pass_out1, token_out1)
+  and
+    grant3, pass_out3, token_out3 =
+       arbiter(false, request3, pass_out2, token_out2)
+  done
+
+let node main() returns (grant1, grant2, grant3) 
+  local request1, request2, request3
+  do
+    request1 = true
+  and
+    request2 = true
+  and
+    request3 = true
+  and
+    grant1, grant2, grant3 =  arbiter_three(request1, request2, request3)
+  done
+ 

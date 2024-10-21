@@ -1,0 +1,50 @@
+(* a small automaton with strong pre-emption *)
+let node aut (go1, go2) returns (r1, r2, a1, a2, a3, a4)
+local
+  isStart default false,
+  m init 0, s init 0, d init 0
+  do
+    r1 = go1 and r2 = go2 and (a1, a2, a3, a4) = (m, s, d, isStart)
+  and
+  automaton
+  | Stop ->
+      do
+	m = 0 -> last m
+      and
+	s = 0 -> last s
+      and
+	d = 0 -> last d
+      unless
+        (go1 && not go2) continue Start
+      unless (go2)  then Stop
+  | Start ->
+      do
+        d = (last d + 1) mod 5
+      and
+	s = (if (d < last d) then last s + 1 else last s) mod 6
+      and
+	m = if (s < last s) then last m + 1 else last m
+      and
+	isStart = true
+      unless (go1 && ((not go2))) continue Stop
+  end
+  done  
+
+let node counter(n) returns (ok)
+  local c
+  do
+      c = 0 -> (pre c + 1) mod n
+  and
+      ok = (c = 0)
+  done
+      
+let node main () returns (r1, r2, a1, a2, a3, a4)
+  local go1, go2
+  do
+      go1 =  counter(5)
+  and
+      go2 =  counter(10)
+  and
+      (r1, r2, a1, a2, a3, a4) =  aut (go1, go2)
+  done
+      

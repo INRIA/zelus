@@ -1,0 +1,24 @@
+let node f() returns (o init 42)
+  local last r do
+   o = last o + 1 and r = last r + 2
+  done
+
+let node g() returns (o)
+  local r do
+   o = 1 + last r and r = last r + 2 and init r = 0
+  done
+
+let node h() returns (o init 42, k)
+  local r do
+   o = last o + 1 and r = 2 
+   and init r = 0 and k = last k + 2 and init k = 0
+  done
+
+let
+  h_7 =
+    (node  () returns ()
+         local lx_15
+         do local r_10
+            do r_10 = 2 and init lx_15 = 0 done
+         and lx_15 = 1 done) 
+

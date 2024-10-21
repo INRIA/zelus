@@ -1,0 +1,22 @@
+let node f(n)(m)(x) returns (cpt)
+  forward(n) (xi in x) returns (cpt init 100) do
+    forward(m) (xij in xi) returns (cpt init last cpt) do
+      cpt = last cpt + xij
+    done
+  done
+
+let node g(n)(m)(x) returns (cpt)
+  forward(n) (xi in x) returns (cpt) do
+    forward resume (m) (xij in xi) returns (cpt init 100) do
+      cpt = last cpt + xij
+    done
+  done
+
+let node main1() returns o
+  let v = [|[|1;2;3|];[|4;5;6|]|] in
+  do o = run (f(2)(3))(v) done
+
+let node main2() returns (o1, o2)
+  let v = [|[|1;2;3|];[|4;5;6|]|] in
+  do o1 = run (f(2)(3))(v) and o2 = run (g(2)(3))(v) 
+  and assert (o1 = o2) done

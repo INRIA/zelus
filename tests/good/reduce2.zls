@@ -1,0 +1,6 @@
+let rec r1<<n>>(y) returns (o)
+  if n = 0 then do o = y+2 done
+  else do o = r1<<n-1>>(y) + 1 done
+
+let r2 x = r1<<4>>(x)
+

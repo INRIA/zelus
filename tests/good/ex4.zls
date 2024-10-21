@@ -1,0 +1,37 @@
+(* test of default *)
+let node f(c) returns (o')
+  local o default 0
+  do
+      if c then do o = 0 fby o + 1 done
+  and
+      o' = o
+  done
+
+let node f_same(c) returns (o')
+  local o, d_o
+  do
+      if c then o = 0 fby o + 1 else o = d_o
+  and
+      o' = o
+  and
+      d_o = 0
+  done
+
+(* compteur modulo *)
+let node counter(phase, p) returns (o)
+  local cpt
+  do cpt =  1 + phase -> if pre cpt = p - 1 then 0 else pre cpt + 1
+  and o = (cpt = 0)
+  done
+
+let node main() returns (ok)
+  local o1, o2, o
+  do
+    o1 =  f (o)
+  and
+    o2 =  f_same (o)
+  and
+    o =  counter (0, 5)
+  and
+    ok = (o1 = o2)
+  done

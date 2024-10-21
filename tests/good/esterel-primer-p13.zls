@@ -1,0 +1,71 @@
+(* Constructiveness in the sense of Esterel *)
+(* Verbatim from The Esterel Primer, V5.91, Berry, 2000
+*-
+*- 1. An unknown signal can be set present if it is emitted.
+*- 2. An unknown signal can be set absent if no emitter can emit it.
+*- 3. The then branch of a test can be executed if the 
+      test is executed and the signal is present.
+*- 4. The else branch of a test can be executed if the 
+      test is executed and the signal is absent.
+*- 5. The then branch of a test cannot be executed if the signal is absent.
+*- 6. The else branch of a test cannot be executed if the signal is present.
+*)
+
+(* Moreover, Esterel makes a special treatment of the two boolean operators
+*- (or and &) that are considered parallel and not sequential.
+*)
+
+(* zrun follows 1-6 but it is the direct consequence of the lazy semantics.
+*- zrun only provides a lazy mux; hence, or and & are sequential, not parallel. 
+*- I do not know if this choice I made is reasonnable. Probably not if a program 
+*- is interpreted as a synchronous circuit. I had in mind to define a lazy (that is
+*- sequential) evaluation of the step function. 
+*)
+
+(* Example from the Esterel primer v5.91, Berry, 2000 :
+ *- Section 5.1.4
+   module P13:
+     input I;
+     output O1, O2;
+     present I then
+        present O2 then emit O1 end
+     else
+        present O1 then emit O2 end
+     end present
+   end module *)
+(* This program is said to be constructive causal *)
+
+let node p13(i) returns (o1 default false, o2 default false)
+  if i then
+    do if o2 then o1 = true done
+  else
+    do if o1 then o2 = true done
+  
+(* This may appear complicated to explain that p13 is indeed causal but the
+ *- explanation is in fact purely syntactic, hence very simple.
+ *- the declaration of o1 with a default value means that a control structure
+ *- that partially define o1 is completed with the default value. It means that
+ *- p13 is semantically equivalent to p13_default below.
+ *- it is trivial to state that p13_default is correct. *)
+let node p13_default(i) returns (o1, o2)
+  do
+  if i then
+    do if o2 then o1 = true else o1 = false
+    and o2 = false done
+  else
+    do if o1 then o2 = true else o2 = false
+    and o1 = false
+    done
+  done
+
+let node main() returns (ok)
+  local i, o11, o22, o111, o222
+  do
+    i = true fby not i
+  and
+    (o11, o22) =  p13(i)
+  and
+    (o111, o222) =  p13_default(i)
+  and
+    ok = (o11 = o111) && (o22 = o222)
+  done

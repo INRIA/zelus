@@ -1,0 +1,130 @@
+(* A nested set of blocks to observe the number of iteration *)
+(* to compute the fix-point *)
+(* Complexity is exponential O(2^n) where n is the max nested number of blocks *)
+let node main() returns (x)
+  local x1, x'1 do (* 3 + 1 iteration because 2 var. a defined*)
+    local x2, x'2 do (* 5 + 1 iteration because 4 var. a defined*)
+      local x3, x'3 do (* 7 + 1 iteration because 6 var. a defined *)
+	local x4, x'4 do (* 9 + 1 iterations because 8 variables are defined *)
+	      x1 = x'1
+	  and
+	      x'1 = x2
+	  and
+	      x2 = x'2
+	  and
+	      x'2 = x3
+	  and
+	      x3 = x'3
+	  and
+	      x'3 = x4
+	  and
+	      x4 = x'4
+	  and
+	      x'4 = x
+	  and
+	      x = 0 
+	  done
+        done
+      done
+    done
+
+let node main2() returns (x)
+  local x1, x'1, x2, x'2, x3, x'3, x4, x'4
+  do 
+    x1 = x'1
+  and
+      x'1 = x2
+  and
+      x2 = x'2
+  and
+      x'2 = x3
+  and
+      x3 = x'3
+  and
+      x'3 = x4
+  and
+      x4 = x'4
+  and
+      x'4 = x
+  and
+      x = 0 
+  done
+  
+let node main3() returns (x)
+    local x1 do
+      local x'1 do
+	local x2 do
+	  local x'2 do
+	    local x3 do
+	      local x'3 do
+		local x4 do
+		  local x'4 do
+		    x1 = x'1
+		  and
+		      x'1 = x2
+		  and
+		      x2 = x'2
+		  and
+		      x'2 = x3
+		  and
+		      x3 = x'3
+		  and
+		      x'3 = x4
+		  and
+		      x4 = x'4
+		  and
+		      x'4 = x
+		  and
+		      x = 0 
+		  done
+		done
+	      done
+            done
+	  done
+	done
+      done
+    done
+
+let node main4() returns (x)
+    local x1 do
+      local x2 do
+	local x3 do
+	  x1 = x2
+	and
+	    x2 = x3
+	and
+	    x3 =  x
+	and
+	    x = 0 
+	done
+      done
+    done
+
+let f(g) = fun (x) returns (y)
+  local m do
+    y = m and m = g x
+  done
+
+(* this one is exponential *)
+let main5() returns (x)
+  x = f(f(f(f(fun x -> x)))) 0
+
+let f(g) = (fun x -> y) where
+  rec y =
+    let rec m = g x and y = m in
+    y
+
+let g h x = y where
+  rec y =
+    let rec m = h x and y = m in
+    y
+
+(*
+let main7() = g(g(g(g(g(g(g(g(g(fun x -> x))))))))) 0
+*)
+let main7() = g(g(g(fun x -> x))) 0
+
+(* let f = fun x -> y where rec y = x + 1 *)
+
+
+

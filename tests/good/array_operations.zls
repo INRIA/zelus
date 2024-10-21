@@ -1,0 +1,71 @@
+(* test of the various array primitives *)
+(* slices, concat, update, reverse, transpose *)
+
+(* concat *)
+let iota(n) = forward(n)[i] returns ([|o|]) do o = i done
+
+(* sum *)
+let sum(x) = forward (xi in x) returns (o init 0) do o = last o + xi done
+
+let f1(n, m, k) returns (o1, o2, o3, o, o')
+  do o1 = iota(n)
+  and o2 = iota(m)
+  and o3 = iota(k)
+  and o = (o1 ++ o2) ++ o3
+  and o' = o1 ++ (o2 ++ o3)
+  and assert (o = o')
+  done
+
+let f2(n) returns (o1, o2)
+  let o = iota(n) in
+  do o1 = o.(0) and o2 = o.(n-1) and assert (o1 = 0) && (o2 = n-1) 
+  done
+
+let f3(n) returns (o)
+  let v = iota(n) in
+  do o = v.(n) default 1000 and assert (o = 1000) 
+  done
+
+let f4(n) returns (o1, o2)
+  let o = iota(n) in
+  do o1 = o.(0 .. n/2-1) 
+  and o2 = o.(n/2 .. n-1)
+  and assert (o = o1 ++ o2)
+  done
+
+let f5(n) returns (o)
+  let v = iota(n) in
+  do o = [| v with (n/2) <- 1000 |] and assert (o.(n/2) = 1000)
+  done
+
+let f6(n) returns (o)
+  let v = iota(n) in
+  let v = [|v;v;v;v|] in
+  do o = [| v with 1,(n/2) <- 1000 |] 
+  and assert (o.(1).(n/2) = 1000)
+done
+
+let ff() returns (o, s)
+  let v = [|[|1;2;3|];[|4;5;6|]|] in do o = v.F and s = sum(o) done
+
+let f7(n) returns (o, r)
+  let v = iota(n) in
+  let s = n * (n-1)/2 in
+  let vv = [|v;v;v;v|] in
+  do o = vv.T and r = vv.F 
+  and assert (sum(v) = s) && (sum(r) = 4 * s) && vv = o.T 
+  done
+
+let f8(n) returns (o, r)
+  let v = iota(n) in
+  do o = v and r = o.R and assert o = r.R done
+
+let main_1 () = f1 (4, 5, 6)
+let main_2 () = f2 10
+let main_3 () = f3 10
+let main_4 () = f4 10
+let main_5 () = f5 10
+let main_6 () = f6 10
+let main_7 () = f7 10
+let main_8 () = f8 10
+

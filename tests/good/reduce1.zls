@@ -1,0 +1,15 @@
+let h1 () =
+  let static m = 42 + 1 in
+  m + 2
+
+let h2 () =
+  let static m = 42 + 2 in
+  m
+
+let h3 (x) returns o
+  if x then do o = h1 () + 1 done else do o = 42 done
+
+let h4 () = h2 () + 1
+
+
+

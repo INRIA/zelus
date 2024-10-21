@@ -1,0 +1,29 @@
+let f() =
+  let m = (let z = 1 in z + 1)
+  in m
+	
+let g(x) =
+  let m = (let z = 1 in z + 1)
+  in let h = m + 1 in
+     h + m; h - m; 1 + m; 42
+
+let h(x) returns (o)
+   local y
+   do
+    local m do y = 2 and m = y done
+   and
+    o = let m = (let z = 1 in
+                 z + 1)
+        in match x with
+           | true -> let h = m + 1 in
+                     h + m
+           | false -> (let r = m + 1 in r + 1) + (let g = m + 2 in g * g)	  
+   done
+
+
+let i(x) returns (o, y)
+   do
+    local m init 42 do y = 2 done
+   and
+    o = local k init m do k = 1 + 2 in k
+   done

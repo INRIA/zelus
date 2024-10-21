@@ -1,0 +1,9 @@
+let node ff () returns (o init 42, m)
+  forward(2) returns (mi init 0 out m, o init last o)
+    do o = last o + 1 and mi = last mi done
+
+let node ff () =
+  local o init 42, m do
+    forward(2) returns (mi init 0 out m, o init last o)
+    do o = last o + 1 and mi = last mi done in
+  o, m

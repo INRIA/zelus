@@ -1,0 +1,94 @@
+(* Example from the Esterel draft; version 3; page 39 *)
+   (* this program is said to be causal with following explanation. *)
+   (* GB
+   writes:
+
+      "We first start analyzing what the “signal S” statement must do
+      with status ⊥ for O. For this, we analyze its body with status
+      ⊥ for O and S. We immediately find that S must be emitted since
+      we must execute the “emit S” statement. Therefore, we redo the
+      analysis with status ⊥ for O and + for S. We reach the test for
+      O. Since the status of O is unknown, there is nothing we must do
+      and we can make progress only by analyzing what we cannot do in
+      the branches of the test. In the then branch, there is a present
+      test for S. Since S is known to be present, we cannot take the
+      implicit else branch that would terminate. Since the then branch
+      is a pause statement, it cannot terminate. Summing up things,
+      the “present S” test cannot termi- nate. Therefore, the “emit O”
+      statement cannot be executed and O cannot be emitted. As a
+      consequence we must set O absent and redo the analysis of the
+      program with status − for O. We now find that we must take the
+      im- plicit else branch of the “present O” test that terminates
+      execution. The program is constructive since we have fully
+      determined the signal statuses."
+    *)
+
+(*
+module P2
+ output O;
+ signal S in
+ emit S;              
+ present O then       
+      present S then
+        pause;
+      end;      
+      emit O  
+ end
+ end signal
+*)
+
+let node first(x) = let rec o = x fby o in o
+  
+(* a very naive encoding. This program is not causal because *)
+(* [o] is considered to depend on [o]. It is a control-dependence: because *)
+(* the equation [o = ...] appear under the condition that tests [o], [o] *)
+(* is considered to depend on [o] *)
+(* it is rejected by zrun: zrun.exe -s main -n 1 esterel-page39.zls
+*- Zrun: the following variables are not causal: o_3
+ *)
+let node p2 () returns (o default false)
+   local s, term1 default true
+   do
+     s = true fby false
+   and
+   if first o then
+     do if first s then
+          do term1 = false fby true done
+        else do done
+     and
+      o = if term1 then true fby false else false
+     done
+   else do done
+   done
+  
+(* In fact, o does not really depends on [o] but on term1 whose initial *)
+(* value is false, whatever be that of [o] and [s] *)
+(* the circuit compilation of Esterel generates an alternative *)
+(* encoding using a mux (strict if/then/else) in which [o] depends *)
+(* on [term1] whose value at the first instant, does not depend on [o]. *)
+  
+(* an equivalent form where every branch is completed *)
+(* it is neither causal *)
+let node p2_expanded () returns (o)
+   local s, term1
+   do
+     s = true fby false
+   and
+   if first o then
+     do if first s then
+          do term1 = false fby true done
+        else do term1 = true done
+     and
+      o = if term1 then true fby false else false
+     done
+   else do term1 = true and o = false done
+   done
+   
+let node main () =
+  let o2 = p2_expanded () in
+  o2
+
+let node main () =
+  let o1 = p2 () in
+  let o2 = p2_expanded () in
+  assert (o1 = o2)

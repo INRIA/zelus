@@ -1,0 +1,148 @@
+(* produit scalaire *)
+let node prod (x, y) returns (c)
+    c = (0.0 fby c) +. x *. y
+
+let node scalar(x, y) returns (c)
+    c = forward xi in x, yi in y do
+          prod(xi, yi)
+        done
+
+let node main() =
+  let t1 = [|1.0; 2.0; 3.;4.0 |] fby [|1.0; 3.0; 4.; 5.0 |]  in
+  let t2 = [|1.0; 2.0; 3.;4.0 |] in
+  scalar(t1, t2)
+    
+(* for loops in equational form *)
+ let node f() returns (r)
+  forward(3) i in 0 to 2 returns (ri out r) do
+   forward(5) j in 0 to 4 returns (ri init 0) do
+      ri = last ri + 1
+     while ri < 2 done
+   done
+
+let node main1() = f()
+
+let node f() returns (ri)
+  forward(3) i in 0 to 2 returns (ri init 0) do
+   forward(5) j in 0 to 4 returns (ri init last ri) do
+      ri = last ri + 1
+     done
+   done
+
+let node main2() =
+   assert (f() = 15)
+   
+(* scalar product in equational form *)
+let node scalar_eq (x, y) = m where
+  rec forward i in 0 to 3 returns (m init 0)
+        do m = last m + x.(i) * y.(i) done
+
+let node main3 () =
+  let v1 = [|1; 2; 3; 4|] in
+  let v2 = [|1; 2; 3; 4|] in
+  assert (scalar_eq (v1, v2) = 30)
+
+let node sum_eq1 (x) returns (m)
+  forward(4) xi in x returns (m init 0)
+    do m = last m + xi done
+
+let node main4() =
+  let v = [|1; 2; 3; 4|] in
+  assert (sum_eq1 v = 10)
+    
+let node sum_eq2 (x) = m where
+  rec forward(4) i in 0 to 3 returns (m init 0)
+    do m = last m + x.(i) done
+
+let node main5() =
+  let v = [|1; 2; 3; 4|] in
+  assert (sum_eq1 v = 10 && sum_eq2 v = 10)
+
+(* sum of the elements of a two dimension array - equational form *)
+let node sum_eq m returns (o')
+    forward(3) mi in m returns (o' init 0) do
+      forward(4) mij in mi returns (o' init last o')
+         do o' = last o' + mij done
+      done
+
+let node main6() =
+  let m = [| [|1; 2; 3; 4|];
+	     [|5; 6; 7; 8 |];
+	     [|9; 10; 11; 12|] |] in
+  assert (sum_eq m = (12 * 13)/2)
+
+(* matrix product in equational form *)
+let node prod_matrix0(l)(m)(n)(a_l_m, b_m_n) = r where rec
+  forward i in 0 to l - 1 returns (ri out r) do
+     forward j in 0 to n - 1 returns (rij out ri) do
+      forward k in 0 to m - 1 returns (rij init 0) do
+        rij = last rij + a_l_m.(i).(k) * b_m_n.(k).(j)
+      done
+     done
+  done
+
+
+let node main7 () =
+  let m1 = [| [| 1; 2; 3; 4 |];
+	      [| 5; 6; 7; 8 |];
+	      [| 9; 10; 11; 12 |] |] in
+  let ones = [| [| 1; 1; 1; 1; 1 |];
+	      [| 1; 1; 1; 1; 1 |];
+	      [| 1; 1; 1; 1; 1 |];
+	      [| 1; 1; 1; 1; 1|] |] in
+  run (prod_matrix0(3)(4)(5))(m1, ones)
+ 
+(* the same with a return *)
+let node prod_matrix1(a_3_4, b_4_5) returns (r)
+  forward(3) i in 0 to 2, ai in a_3_4 returns (ri out r) do
+     forward(5) j in 0 to 4 returns (rij out ri) do
+      forward(4) k in 0 to 3, bk in b_4_5 returns (rij init 0) do
+        rij = last rij + ai.(k) * bk.(j)
+      done
+     done
+  done
+	  
+let node main8 () =
+  let m1 = [| [| 1; 2; 3; 4 |];
+	      [| 5; 6; 7; 8 |];
+	      [| 9; 10; 11; 12 |] |] in
+  let id = [| [| 1; 1; 1; 1; 1 |];
+	      [| 1; 1; 1; 1; 1 |];
+	      [| 1; 1; 1; 1; 1 |];
+	      [| 1; 1; 1; 1; 1|] |] in
+  assert (run (prod_matrix0(3)(4)(5))(m1, id) = prod_matrix1(m1, id))
+    
+let node f x = forward xi in x returns (o init 0)
+                 do o = last o + xi done
+
+let node main9 () =
+  let v = foreach(4) do 2 done in
+  f v
+    
+let node or_n(n)(x, y) =
+  forward i in 0 to n-1, xi in x, yi in y returns (o init false, index init 0)
+    do o = last o || (xi || yi) and index = i while not last o done
+
+let node main10 () =
+  run (or_n(4))([|false; false; true; false|], [| false; true; false; false |])
+    
+(*let f{a,b,c}(x, y, z) =
+    foreach{a} xi in x do xi + 1 done,
+    forward{b} yi in y do yi + 1 done,
+    forward{c} zi in z do zi + 1 done
+
+val f : 'a 'b 'c . int['a] * int['b] * int['c] -> int['a] * int['b] * int['c] *)
+
+(*
+let rec node xor(n)(x:[n]bool, y:[n]bool) returns (o)
+    sizeof n of
+    | 0 -> false
+    | n -> (x.(0) || y.(0)) || (xor(n-1)(x.(1 .. n-1), y.(1 .. n-1)))
+
+let node or_n(n)(x:[n]bool, y:[n]bool) returns (o)
+  sizeof n of
+    | 0 -> o = false
+    | 1 -> o = x.(0) || y.(0)
+    | n -> o = or_n(n/2)(x.(0 .. n/2 - 1), y.(0 .. n/2 - 1))
+               || or_n(n/2)(x.(n/2 .. n - 1), y.(n/2 .. n))
+*)

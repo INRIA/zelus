@@ -1,0 +1,34 @@
+let node sum(x) returns (o)
+  forward (xi in x) returns (o) do
+    o = xi + (0 fby o)
+  done
+
+let f () =
+  forward(10) (i in 0 to 9) returns (o)
+    do o = 0 -> pre o + i done
+
+let node make1(n)() = 
+  forward(n) (i in 0 to n-1) returns ([|o|]) do o = i done
+
+let make2(n) = 
+  forward (i in 0 to n-1) returns ([|o|]) do o = i done
+
+let make3(n) = 
+  forward(n) returns ([|o|]) 
+     local i init 0 do o = last i and i = last i + 1 done
+
+let node main() returns (s)
+  let o = [| 1; 2; 3; 4 |] in
+  do s = sum(o) done
+
+let node main1() returns ()
+  assert (f() = sum(run (make1(10))()))
+
+let node main2() returns (s1, s2, s3)
+  let o = [| 1; 2; 3; 4 |] in
+  do s1 = sum(run(make1(4))()) 
+  and s2 = sum(make2(4))
+  and s3 = sum(make3(4))
+  and assert (s1 = s2 && s1 = s3)
+  done
+

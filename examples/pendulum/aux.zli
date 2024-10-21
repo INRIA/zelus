@@ -1,2 +1,0 @@
-type key = Start | Freeze | Resume | Nothing
-val input : unit -> key

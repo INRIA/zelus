@@ -1,0 +1,12 @@
+let f n = forward (n)[i] returns (x init 0)
+           do x = last x + i done
+
+let node g n () = 
+  forward(n)[i] returns (x init 0)
+    do x = last x + i done
+
+let node main () returns (o1, o2)
+  do o1 = f 10
+  and o2 = run (g 10) ()
+  and assert (o1 = o2) && (o1 = 45)
+  done

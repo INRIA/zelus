@@ -1,0 +1,25 @@
+(* Example fron JLC - 1/09/2022 *)
+(* sorted array predicate *)
+
+let node monotonic (last a) returns (o default true)
+    automaton
+    | S0 ->
+	do unless true continue Constant
+    | Constant ->
+	do unless (a > last a) continue Increasing
+           unless (a < last a) continue Decreasing
+	   unless (a = last a) continue Constant
+    | Increasing ->
+	do unless (a < last a) continue NonMonotonic
+    | Decreasing ->
+        do unless (a > last a) continue NonMonotonic
+    | NonMonotonic ->
+        do o = false done
+    end
+
+let node root(a) returns (o)
+    o = forward ai in a do monotonic ai done
+
+let node main() =
+  let a = [| 1; 2; 3; 4; 4; 4; 3; 2; 1; 5; 6 |] in
+  root(a)

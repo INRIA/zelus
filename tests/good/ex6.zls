@@ -1,0 +1,21 @@
+type t = A | B | C | D
+
+let node main() returns (o, o1 init 0, o2 init 0)
+  local x
+  do
+    x = A fby A fby B fby C fby D fby x
+  and
+    match x with
+    | A -> do o1 = last o1 + 1 done
+    | B -> do o1 = last o1 - 1 done
+    | C -> do o1 = 0 done
+    | D -> do o1 = 42 done
+    end
+  and
+      o2 = match x with | A -> last o2 + 1 | B -> last o1 - 1
+                        | C -> 0 | D -> 42 end
+  and
+      o = (o1 = o2)
+  done
+      
+

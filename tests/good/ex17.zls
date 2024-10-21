@@ -1,0 +1,14 @@
+let node from(x) returns (z)
+  do z = x -> pre z + 1 done
+
+let node copy(x, y) returns (z, t)
+  do z = x and t = y done
+
+let node main () returns (t)
+  local x, z
+  do x =  from (0)
+  and (t, z) =  copy(x, t) done
+
+let node main1() returns (t)
+  do t = if false then t else 0 done
+	   

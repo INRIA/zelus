@@ -1,0 +1,19 @@
+(* curried functions *)
+let node sum_from(n)(x) returns (o)
+    o = n fby (o + x)
+
+let node sum_from1(n)(x) =
+  let rec o = n fby (o + x) in o
+
+let node main0 () =
+  run (sum_from(42)) (1)
+
+let node main1 () =
+  run (sum_from1(42)) (1)
+
+let node sum_from2(n1)(n2)(x) returns (o)
+    o = n1 fby o + n2
+    
+let node main2 () =
+  run (sum_from2(42)(43))(1)
+

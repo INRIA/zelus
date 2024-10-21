@@ -1,0 +1,32 @@
+(* recursive functions defined at top level *)
+let rec f1<<n>>(x) returns o 
+  if n=0 then o = x
+  else o = g1<<n-1>>(x+1)
+and g1<<n>>(x) = g1<<n-1>>(x)
+
+let rec f2<<n>>(x) =
+  match n with
+  | 0 -> x
+  | _ -> g2<<n-1>>(x+1)
+and g2<<n>>(x) = g2<<n-1>>(x)
+
+  
+let rec f3<<n>>(x) =
+  if n=0 then x
+  else f3<<n-1>>(x+1)
+
+and g4<<n>>(x) = g4<<n-1>>(x) 
+
+let f4 () =
+    let rec fff<<n>>(x) = 
+      match n with | 0 -> x | n -> gg<<n-1>>(x+1)
+    and gg<<n>>(x) = gg<<n-1>>(x) in
+    fff<<4>>(0)
+
+let node main1 () = f1<<4>>(0)
+let node main2 () = f2<<4>>(0)
+let node main3 () = f3<<4>>(0)
+let node main4 () = g4<<4>>(0)
+let node main5 () = f4 ()
+
+

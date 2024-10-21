@@ -1,0 +1,53 @@
+type v = True | False | NotYet
+
+(* phi ::= phi or phi | phi and phi | phi until phi | next phi | true | false *)
+(*       | not phi | x *)
+
+let true_l = True
+let false_l = False
+let notyet_l = NotYet
+
+let not_l x = match x with | True -> False | False -> True | NotYet -> NotYet
+let and_l (x, y) =
+  match x, y with 
+  | (False, _) | (_, False) -> False
+  | (True, x) | (x, True) -> x
+  | _ -> NotYet
+let or_l (x, y) =
+  match x, y with 
+  | (True, _) | (_, True) -> True
+  | (False, x) | (x, False) -> x
+  | _ -> NotYet
+
+let node next_ phi input = o where rec
+  automaton
+  | One -> do o = notyet_l then Run
+  | Run -> do o = run phi input done
+  end
+
+let node until_ phi1 phi2 input = o where rec
+  automaton
+  | Await -> do o = run phi1 input unless (run phi2 input = True) then Ok
+  | Ok -> do o = true_l done
+  end
+
+let node not_ phi input = o where rec
+  o = not_l (run phi input)
+
+let node and_ phi1 phi2 input = o where rec
+  o = and_l (run phi1 input, run phi2 input)
+
+let node or_ phi1 phi2 input = o where rec
+  o = or_l (run phi1 input, run phi2 input)
+
+let node true_ input = true_l
+let node false_ input = false_l
+
+(* F phi *)
+let node ultimately phi input = until_ true_ phi input
+
+(* examples *)
+(* [x until (next y)] is translated into *)
+let node main x y input = until_ x (next_ y) input
+(* with [x = t t t t t t ...
+         y = t f f f t ... *)

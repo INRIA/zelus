@@ -1,0 +1,7 @@
+let node make(n)() = foreach(n) i in 0 to n-1 do i done
+
+let f x = x + 1
+
+let g y = inline f y + 1
+
+let main () = inline g(f(0))

@@ -1,0 +1,138 @@
+(* Classical operations on matrices *)
+let vec n = node v -> foreach i in 0 to n-1 do v done
+let node id v = v
+
+(* Cholesky. [a] is a [n x n] definite positive matrix. [l] is a *)
+(* triangular matrix such that [l * (transpose l) = a] *)
+
+(* Forward and back substitution to compute the inverse of a *)
+(* left triangular matrix *)
+
+let mat = fun (n,v) -> node () ->
+  foreach i in 0 to n-1 do foreach i in 0 to n-1 do v done done
+
+let node main1() = run (mat(5, 0.0))()
+
+(* cholesky *)
+let node cholesky_exp(n)(a) returns (l)
+  do l =
+   forward i in 0 to n-1, ai in a returns (l1 init run (mat(n, 0.0)) ())
+     do l1 = forward j in 0 to n-1, aij in ai returns (l init last l1)
+              do
+                let tmp_sum =
+                  forward k in 0 to i-1 returns (cpt init 0.0)
+                    do cpt = last cpt +. (last l).(i).(k) *. (last l).(j).(k)
+                    done in
+                let lij = if i = j then sqrt(aij -. tmp_sum)
+                          else if j < i then
+		                 (aij -. tmp_sum) /. (last l).(j).(j)
+		               else 0.0 in
+                do l = [| last l with i, j <- lij |] done
+	      done
+     done
+  done
+
+(* in equational form *)
+let node cholesky(n)(a) returns (l)
+  forward i in 0 to n-1, ai in a returns (l init run (mat(n, 0.0))()) do
+    forward j in 0 to n-1, aij in ai returns (l init last l) do
+      let tmp_sum =
+            forward k in 0 to i-1 returns (cpt init 0.0)
+               do cpt = last cpt +. (last l).(i).(k) *. (last l).(j).(k)
+               done in
+      let lij = if i = j then sqrt(aij -. tmp_sum)
+                else if j < i then (aij -. tmp_sum) /. (last l).(j).(j)
+                else 0.0 in
+      do l = [| last l with i, j <- lij |] done
+    done
+  done
+
+(*
+let node main2() =
+  let m = [| [| 1.0; 2.0; 4.0 |];
+	     [| 2.0; 3.0; 5.0 |];
+	     [| 4.0; 5.0; 6.0 |] |] in
+  run (cholesky(3))(m)
+
+let node main3() =
+  let m = [| [| 1.0; 0.0; 0.0 |];
+	     [| 0.0; 1.0; 0.0 |];
+	     [| 0.0; 0.0; 1.0 |] |] in
+  run (cholesky(3))(m)
+ *)
+	  
+(*
+m2 = numpy.array ([[4.0, 12.0, -16.0],
+                  [12.0, 37.0, -43.0], 
+                  [-16.0, -43.0, 98.0]])
+>>> numpy.linalg.cholesky(m2)
+array([[ 2.,  0.,  0.],
+       [ 6.,  1.,  0.],
+       [-8.,  5.,  3.]]) *)
+    
+let node main4() =
+  let m = [| [|4.0; 12.0; -16.0 |];
+	     [| 12.0; 37.0; -43.0 |];
+	     [| -16.0; -43.0; 98.0 |] |] in
+  let m_result = run (cholesky(3))(m) in
+  let m_expected =
+    [| [| 2.;  0.;  0. |];
+       [| 6.;  1.;  0. |];
+       [| -8.;  5.;  3. |] |] in
+  assert (m_result = m_expected)
+
+let node main18() =
+  let m = [| [|4.0; 12.0; -16.0 |];
+	     [| 12.0; 37.0; -43.0 |];
+	     [| -16.0; -43.0; 98.0 |] |] in
+  let m_result = run (cholesky_exp(3))(m) in
+  let m_expected =
+    [| [| 2.;  0.;  0. |];
+       [| 6.;  1.;  0. |];
+       [| -8.;  5.;  3. |] |] in
+  assert (m_result = m_expected)
+
+let vec n = node v -> foreach i in 0 to n-1 do v done
+
+(* https://en.wikipedia.org/wiki/Triangular_matrix#Forward_and_back_substitution*)
+(* Forward subsitution *)
+(* L is a lower triangular matrix *)
+(* solve Lx = b *)
+let node forward_substitution(n)(l, b) returns (x)
+  forward i in 0 to n - 1 returns (x init run (vec n)(0.0)) do
+    let r =
+      forward j in 0 to i - 1 returns (cpt init 0.0)
+        do cpt = last cpt +. l.(i).(j) *. (last x).(j) done in
+    do
+      x = [| last x with i <- (b.(i) -. r) /. l.(i).(i) |]
+    done
+  done
+	
+(* Back substitution *)
+(* U is an upper triangular matrix *)
+(* solve Ux = b *)
+let node backward_substitution(n)(l, b) returns (x)
+  forward i in n - 1 downto 0 returns (x init run (vec n)(0.0)) do
+    let r =
+      forward j in 0 to i - 1 returns (cpt init 0.0)
+        do cpt = last cpt +. l.(i).(j) *. (last x).(j) done in
+    do
+      x = [| last x with i <- (b.(i) -. r) /. l.(i).(i) |]
+    done
+  done
+	
+let node main5() =
+  let l = [| [| 1.0; 0.0; 0.0; 0.0 |];
+	     [| 1.0; 1.0; 0.0; 0.0  |];
+	     [| 1.0; 10.0;  1.0; 0.0  |];
+	     [| 1.0; 1.0; 1.0; 1.0  |] |] in
+  let m = [| 1.0; 1.0; 1.0; 1.0 |] in
+  run (forward_substitution(4))(l, m)
+
+let node main6() =
+  let l = [| [| 1.0; 1.0; 1.0; 1.0 |];
+	     [| 0.0; 1.0; 1.0; 1.0  |];
+	     [| 0.0; 0.0; 1.0; 1.0  |];
+	     [| 0.0; 0.0; 0.0; 1.0  |] |] in
+  let m = [| 1.0; 1.0; 1.0; 1.0 |] in
+  run (backward_substitution(4))(l, m)

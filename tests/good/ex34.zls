@@ -1,0 +1,7 @@
+let node f() =
+  let z = 1 in
+  local x,m do x = 1 and m = x + 1 in 
+  x + 1; if z = 0 then x else 1
+
+let node g() returns (last o)
+  o = 0 -> last o + 1

@@ -1,0 +1,15 @@
+let node f() returns (x)
+    automaton
+    | Await -> do x = 0 -> pre x + 1
+               until (x = 4) then Run(2)
+    | Run(v) -> do x = v -> pre x - 1 until (x = -3) then Await
+    end
+
+let node main() returns (ok, o1, o2)
+  local o
+  do o1 =  f ()
+  and o2 = 0 fby 1 fby 2 fby 3 fby 4 fby 2 fby 1 fby 0 fby (-1) fby (-2)
+      fby (-3) fby o2
+  and ok = (o1 = o2)
+  and o = o1
+  done
