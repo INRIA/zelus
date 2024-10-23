@@ -1,0 +1,103 @@
+open Basics
+
+(*
+  A plot window comprises one or more scopes.
+  Each scope plots one or more signals.
+
+  There are four plotting styles:
+
+    linear              plot straight lines between successive samples
+
+    points true         plot dots at the end of vertical lines ("lollipops")
+
+    points false        plot dots
+
+    piecewise           plot a horizontal line from the previous sample and
+                        a dot for the current sample
+
+    square              plot a horizontal line across from the previous sample
+                        and then a vertical line to the current sample
+
+  Scopes
+  ------
+
+  A scope is created by passing initial upper and lower limits for the y-axis,
+  i.e. a default range for signal values, and a triple for each signal: name,
+  type, value.
+
+  For example, a scope for linear plotting of a single signal x with a default
+  range of [-1.0, 1.0]:
+
+    sig1 = scope (-1.0, 1.0, ("x", linear, x))
+
+  For example, to additionally plot a discrete signal p:
+
+    sig2 = scope2 (-1.0, 1.0, ("x", linear, x), ("p", discrete false, p))
+
+  Windows
+  -------
+
+  A window is created by passing a name, an initial upper limit for the
+  x-axis (i.e., the time), a flow of x-axis values (i.e., sample times), and one
+  or more scopes.
+
+  For example, a window called "model plot" with time horizon 20.0 and time
+  values calculated in parallel for displaying the scope sig1:
+
+    let rec t = 0.0 fby (t +. sample_period) in
+    w1 = window ("model plot", 20.0, t, sig1)
+
+  For example, to additionally plot the scope sig2:
+
+    w2 = window2 ("model plot", 20.0, t, sig1, sig2)
+
+*)
+
+let piecewise = Gtkplot.piecewise
+let square    = Gtkplot.square
+let linear    = Gtkplot.linear
+let discrete points x  = Gtkplot.points x
+
+let node scopen (yl, yu, l) =
+  let init ls = Gtkplot.signal_l (Gtkplot.getSignals l) in
+  let init sc = Gtkplot.scope (yl, yu, ls) in
+  Gtkplot.update_l (ls, Gtkplot.getValues l);
+  sc
+
+let node scope (yl, yu, (n1, t1, v1)) =
+  scopen (yl, yu, [ (n1, t1, v1) ])
+
+let node scope2 (yl, yu, (n1, t1, v1), (n2, t2, v2)) =
+  scopen (yl, yu, [ (n1, t1, v1); (n2, t2, v2) ])
+
+let node scope3 (yl, yu, (n1, t1, v1), (n2, t2, v2), (n3, t3, v3)) =
+  scopen (yl, yu, [ (n1, t1, v1); (n2, t2, v2); (n3, t3, v3) ])
+
+let node scope4 (yl, yu,
+                 (n1, t1, v1), (n2, t2, v2), (n3, t3, v3), (n4, t4, v4)) =
+  scopen (yl, yu, [ (n1, t1, v1); (n2, t2, v2); (n3, t3, v3); (n4, t4, v4) ])
+
+let node scope5 (yl, yu,
+                 (n1, t1, v1), (n2, t2, v2), (n3, t3, v3), (n4, t4, v4),
+                 (n5, t5, v5)) =
+  scopen (yl, yu,
+    [ (n1, t1, v1); (n2, t2, v2); (n3, t3, v3); (n4, t4, v4); (n5, t5, v5) ])
+
+let node windown (title, imaxt, v, ls) =
+  let init w = Gtkplot.window (title, imaxt, ls) in
+  Gtkplot.tick (w, v)
+
+let node window (title, imaxt, v, s1) =
+  windown (title, imaxt, v, [ s1 ])
+
+let node window2 (title, imaxt, v, s1, s2) =
+  windown (title, imaxt, v, [ s1; s2 ])
+
+let node window3 (title, imaxt, v, s1, s2, s3) =
+  windown (title, imaxt, v, [ s1; s2; s3 ])
+
+let node window4 (title, imaxt, v, s1, s2, s3, s4) =
+  windown (title, imaxt, v, [ s1; s2; s3; s4 ])
+
+let node window5 (title, imaxt, v, s1, s2, s3, s4, s5) =
+  windown (title, imaxt, v, [ s1; s2; s3; s4; s5 ])

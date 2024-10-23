@@ -1,0 +1,19 @@
+
+val output_strings : out_channel -> string list -> unit
+val output_quoted_strings : out_channel -> string list -> unit
+val output_floats : out_channel -> float list  -> unit
+
+val stdform_of_float : int -> int -> float -> string
+
+(** [float_eq (max_relative_err, a, b)] returns true if
+ *  [a] = [b] to within ((1 - max_relative_error) * 100)% *)
+val float_eq : float -> float -> float -> bool
+
+(* to within 99.9999% *)
+val (=~=) : float -> float -> bool
+
+(* discontinuous sgn. Warning: only for testing *)
+val bad_sgn : float -> float
+
+(* exit. Warning: use it carrefully (mainly for testing) *)
+val exit : int -> unit

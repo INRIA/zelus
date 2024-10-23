@@ -1,0 +1,44 @@
+;(copy_files# solvers/*.{ml,mli})
+
+(rule
+ (target stdlib.zci)
+ (deps stdlib.zli)
+ (action (run ../../zeluc.exe -nostdlib %{deps})))
+
+(rule
+ (targets char.zci complex.zci int32.zci nativeint.zci
+          int64.zci random.zci string.zci graphics.zci
+	  basics.zci node.zci run.zci list.zci)
+ (deps (:zli char.zli complex.zli int32.zli nativeint.zli
+        int64.zli random.zli string.zli graphics.zli basics.zli
+	node.zli run.zli list.zli) stdlib.zci)
+ (action (run ../../zeluc.exe %{zli})))
+
+;(rule
+; (targets dump.zci dump.ml)
+; (deps (:zls dump.zls) basics.zci list.zci)
+; (action (run ../../zeluc.exe %{zls})))
+
+;(library
+; (name zlstdlib)
+; (libraries unix
+;  (select solvers.ml from
+;   (sundialsml -> solvers.sundials.ml)
+;   ( -> solvers.nosundials.ml))
+;  (select node.ml from
+;   (sundialsml -> node.sundials.ml)
+;   ( -> node.nosundials.ml))
+;  (select defaultsolver.ml from
+;   (sundialsml -> defaultsolver.sundials.ml)
+;   ( -> defaultsolver.nosundials.ml)))
+; (public_name zelus)
+; (wrapped false)
+; (modules ztypes zls basics zlsolve lift dump solvers illinois odexx solvers defaultsolver zlsrun run node_base node))
+
+(install
+ (package zelus)
+ (section share)
+ (files stdlib.zci char.zci complex.zci int32.zci int64.zci nativeint.zci
+        random.zci string.zci graphics.zci basics.zci node.zci run.zci
+	list.zci))
+; dump.zci))

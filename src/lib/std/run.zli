@@ -1,0 +1,2 @@
+(* Higher-order operator to apply a stream of stream functions *)
+val irun : ('a -D-> 'b) * 'a -D-> 'b

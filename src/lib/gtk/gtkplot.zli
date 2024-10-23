@@ -1,0 +1,22 @@
+
+type signal_type
+
+val points  : bool -AD-> signal_type
+val piecewise : signal_type
+val square : signal_type
+val linear : signal_type
+
+type signal
+type scope
+type window
+
+val getSignals: (string * signal_type * 'a) list -> (string * signal_type) list
+val getValues: ('a * 'b * float) list -> float list
+
+val signal : string * signal_type -AD-> signal
+val signal_l : (string * signal_type) list -AD-> signal list
+val update : signal * float -AD-> unit
+val update_l : signal list * float list -AD-> unit
+val scope  : float * float * signal list -AD-> scope
+val window : string * float * scope list -AD-> window
+val tick   : window * float -AD-> unit
