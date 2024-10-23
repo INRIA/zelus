@@ -12,8 +12,8 @@
 
 ; all the modules necessary to parse
 (library
-  (name parse_lib)
-  (public_name zrun.parse_lib)
+  (name parser_lib)
+  (public_name zelus.parse_lib)
   (wrapped false)
   (modules
     location ; position in the source file
@@ -24,7 +24,7 @@
 ; all the modules necessary for building the ast after parsing
 (library
   (name global_lib)
-  (public_name zrun.global_lib)
+  (public_name zelus.global_lib)
   (wrapped false)
   (modules
     config misc ; general configuration and common global variables
@@ -37,16 +37,15 @@
     scoping ; associate unique names
     pp_tools ; pretty printer tools
     printer ; printer for the ast
-    graph ; acyclic graph manipulation
     noinfo ; no information to be attached to patterns, expressions and eqs.
   )
-  (libraries parse_lib))
+  (libraries parser_lib))
 
 ;; the ZRun interpreter
 ; all the necessary modules to make zrun except the entry modules
 (library
   (name zrun_lib)
-  (public_name zrun.zrun_lib)
+  (public_name zelus.zrun_lib)
   (wrapped false)
   (modules
     error ; error messages
@@ -65,13 +64,13 @@
     forloop ; evaluation functions for for loops
     eval ; evaluation of an expression
   )   	 
-  (libraries zrun.parse_lib zrun.global_lib))
+  (libraries zelus.parser_lib zelus.global_lib))
 
  ;; the Zelus compiler
  ; type definition and global info in the global type environment
  (library
   (name typdefs_lib)
-  (public_name zrun.typdefs_lib)
+  (public_name zelus.typdefs_lib)
   (wrapped false)
   (modules
     genames ; generate fresh names
@@ -86,9 +85,18 @@
     global ; definition of entries in the global type environment
     modules ; global symbol table for typing
   )
-  (libraries zrun.global_lib)
+  (libraries zelus.global_lib)
 )
 
+(library
+  (name common_lib)
+  (public_name zelus.common_lib)
+  (wrapped false)
+  (modules
+    graph ; acyclic graph manipulation
+  )
+)
+    
 ; typing
  (library
   (name typing_lib)
@@ -104,7 +112,7 @@
     typerrors ; type errors;
     typing ; the main typing functions
     )
-  (libraries zrun.global_lib zrun.typdefs_lib)
+  (libraries zelus.global_lib zelus.typdefs_lib)
 )
 
 ; causality and initialisation analyses
@@ -118,7 +126,8 @@
     causality ; causality inference
     initialization ; initialization inference
     )
-  (libraries zrun.global_lib zrun.typdefs_lib zrun.typing_lib)
+  (libraries zelus.global_lib zelus.typdefs_lib zelus.common_lib
+   zelus.typing_lib)
 )
 
 ; rewriting steps
@@ -171,16 +180,6 @@
   (libraries zrun.global_lib zrun.typdefs_lib)
 )
 
-; The ZRun interpreter
-(executable
- (name zrun)
-  (modes (byte exe))
-  (modules 
-    zrun; the main function
-  )
-  (libraries zrun.parse_lib zrun.global_lib zrun.zrun_lib)
-  (promote (until-clean) (into ..)))
-
 ; Source-to-source transformations
 (executable
  (name zwrite)
@@ -188,7 +187,7 @@
   (modules
 	zwrite; the main function
   )
-  (libraries zrun.parse_lib zrun.global_lib zrun.zrun_lib zrun.rewrite_lib)
+  (libraries zelus.parse_lib zelus.global_lib zelus.zrun_lib zelus.rewrite_lib)
   (promote (until-clean) (into ..)))
 
 ; The compiler
@@ -200,11 +199,11 @@
 	simulator; the generation of the main function
 	zeluc; the main function
   )
-  (libraries zrun.parse_lib zrun.global_lib zrun.zrun_lib
-  zrun.typing_lib zrun.analyses_lib zrun.rewrite_lib)
+  (libraries zelus.parse_lib zelus.global_lib zelus.zrun_lib
+  zelus.typing_lib zelus.analyses_lib zelus.rewrite_lib)
   (promote (until-clean) (into ..)))
 
 (install
- (package zrun)
+ (package zelus)
  (section bin)
- (files (zrun.exe as zrun)))
+ (files (zelus.exe as zelus)))
