@@ -1,5 +1,5 @@
-opam-version: "2.0"
-version: "2.2"
+opam-version: "2.2"
+version: "3.0"
 synopsis: "A synchronous language with ODEs"
 authors: [
   "Timothy Bourke <timothy.bourke@inria.fr>"
@@ -11,9 +11,9 @@ doc: "http://zelus.di.ens.fr/man/"
 bug-reports: "https://github.com/INRIA/zelus/issues"
 license: "INRIA Non-Commercial License Agreement"
 depends: [
-  "ocaml" {>= "4.08.1"}
+  "ocaml" {>= "5.2.0"}
   "dune" {>= "2.9"}
-  "menhir" {>= "20180523"}
+  "menhir" {>= "20240715"}
   "alcotest" {with-test}
 ]
 depopts: ["sundialsml"]
