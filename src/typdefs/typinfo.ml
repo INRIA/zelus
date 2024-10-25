@@ -39,3 +39,4 @@ let set_caus typinfo tc = { typinfo with t_caus = tc }
 let set_init typinfo ti = { typinfo with t_init = ti }
 
 let get_type { t_typ } = t_typ
+let get_caus { t_caus } = t_caus

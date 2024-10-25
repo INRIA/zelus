@@ -12,66 +12,37 @@
 (*                                                                     *)
 (* *********************************************************************)
 
-(* the main functions *)
+(* the sequence of source-to-source transformations applied to the input program *)
 open Misc
 open Location
                
-exception Stop
+let hybrid_list =
+  ["der", "Remove handlers in definitions of derivatives. See below:",
+   Der.program;
+   "period", "Translation of periods done. See below:",
+   Period.program;
+   "disc", "Translation of disc done. See below:",
+   Disc.program]
 
-let lexical_error err loc =
-  Format.eprintf "%aIllegal character.@." output_location loc;
-  raise Error
-
-let syntax_error loc =
-  Format.eprintf "%aSyntax error.@." output_location loc;
-  raise Error
-
-let parse parsing_fun lexing_fun source_name =
-  let ic = open_in source_name in
-  let lexbuf = Lexing.from_channel ic in
-  lexbuf.Lexing.lex_curr_p <-
-    { lexbuf.Lexing.lex_curr_p with Lexing.pos_fname = source_name };
-  try
-    parsing_fun lexing_fun lexbuf
-  with
-  | Lexer.Lexical_error(err, loc) ->
-     close_in ic; lexical_error err loc
-  | Parser.Error ->
-     close_in ic;
-     syntax_error
-       (Loc(Lexing.lexeme_start lexbuf, Lexing.lexeme_end lexbuf))
-     
-let parse_implementation_file source_name =
-  parse Parser.implementation_file Lexer.main source_name
-               
-let apply_with_close_out f o =
-  try
-    f o;
-    close_out o
-  with x -> close_out o; raise x
-
-let print_message comment =
-  if !verbose then
-    Format.fprintf Format.err_formatter
-      "@[------------------------------------------------------------------\n\
-       %s\n\
-       --------------------------------------------------------------------@]@."
-      comment
-
-let do_step comment output step input = 
-  print_message comment;
-  let o = step input in
-  output o;
-  o
+(*
+let optim_list =
+  ["horizon",
+   "Gather all horizons into a single one per function. See below:",
+   Horizon.program;
+   "aform", "A-normal form. See below:",
+   Aform.program;
+   "deadcode", "Dead-code removal. See below:",
+   Deadcode.program;
+   "copy", "Remove of copy variables. See below:",
+   Copy.program]
+*)
 
 let default_list =
   ["static", "Static reduction done. See below:",
    Static.program;
    "inline", "Inlining done. See below:",
-   Inline.program;
-   "der", "Remove handlers in definitions of derivatives. See below:",
-   Der.program;
-   "auto", "Translation of automata. See below:",
+   Inline.program] @ hybrid_list @ [
+   "automata", "Translation of automata. See below:",
    Automata.program;
    "present", "Translation of present. See below:",
    Present.program;
@@ -119,7 +90,7 @@ let set_steps w =
   List.iter
     (fun l -> set true (List.hd l); List.iter (fun s -> set false s) (List.tl l))
     l_l
-let rewrite_list () =
+let rewrite_list =
   List.filter (fun (w, _, _) -> S.mem w !s_set) default_list
 
 let compare name n_steps genv0 p p' =
@@ -131,43 +102,14 @@ let compare name n_steps genv0 p p' =
   Coiteration.check n_steps genv genv'; p'
     
 (* Apply a sequence of source-to-source transformation *)
-(* do equivalence checking for every step if the flag is turned on *)
-let main modname filename n_steps =
-  let transform_and_compare genv p (name, comment, transform) =
-    let p' = transform genv p in
+(* do equivalence checking for every step if [n_steps <> 0] *)
+let main print_message genv0 p n_steps =
+  let rewrite_and_compare genv p (name, comment, rewrite) =
+    let p' = rewrite genv p in
     print_message comment;
     Debug.print_program p';
     if n_steps = 0 then p' else compare name n_steps genv p p' in
     
-  let iter genv p l = List.fold_left (transform_and_compare genv) p l in
+  let iter genv p l = List.fold_left (rewrite_and_compare genv) p l in
   
-  let _ = Format.std_formatter in
-  
-  (* output file in which values are stored *)
-  let obj_name = filename ^ ".zlo" in
-  let otc = open_out_bin obj_name in
-  let source_name = filename ^ ".zls" in
-  (* set the current opened module *)
-  Location.initialize source_name;
-
-  (* Parsing *)
-  let p = parse_implementation_file source_name in
-  Debug.print_message "Parsing done";
-
-  (* defines the initial global environment for values *)
-  let genv0 = Genv.initialize modname [] in
-  (* Add Stdlib *)
-  let genv0 = Genv.add_module genv0 (Primitives.stdlib_env ()) in
-  
-  (* Associate unique index to variables *)
-  let module Scoping = Scoping.Make(Typinfo) in
-  let p = do_step "Scoping done. See below:" Debug.print_program
-            Scoping.program p in
-  (* Write defined variables for equations *)
-  let module Write = Write.Make(Typinfo) in
-  let p = do_step "Write done. See below: "
-      Debug.print_program Write.program p in
-  (* Source-to-source transformations start here *)
-  let _ = iter genv0 p (rewrite_list ()) in
-
-  apply_with_close_out (fun _ -> ()) otc
+  iter genv0 p rewrite_list

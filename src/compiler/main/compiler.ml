@@ -139,12 +139,28 @@ let compile modname filename =
               (Typing.program info_ff true) p in
     let p = do_optional_step !Misc.no_causality "Causality done. See below:"
               Debug.print_program (Causality.program info_ff) p in
-    let _ = do_optional_step
+    let p = do_optional_step
               !Misc.no_initialization "Initialization done. See below:"
               Debug.print_program (Initialization.program info_ff) p in
     (* Write the symbol table into the interface file *)
     let itc = open_out_bin obj_interf_name in
+    apply_with_close_out Modules.write itc;
     if !Misc.typeonly then raise Stop;
-    apply_with_close_out Modules.write itc
+
+    (* Mark functions calls to be inlined. This step uses type informations *)
+    (* computed during the causality analysis *)
+    let _ = do_step "Mark functions calls to be inlined. See below:"
+	      Debug.print_program Markfunctions.program p in
+
+    (* source-to-source transformations *)
+
+    (* defines the initial global environment for values *)
+    let genv0 = Genv.initialize modname [] in
+    (* Add Stdlib *)
+    let genv0 = Genv.add_module genv0 (Primitives.stdlib_env ()) in
+
+    let _ = Rewrite.main print_message genv0 p !Misc.n_steps in
+
+    ()
   with
   | Stop -> ()

@@ -56,23 +56,38 @@ and doc_simulation =
    \t\t   where <out> is equal to the argument of -o if the flag\n\
    \t\t   has been set, or <node> otherwise"
 and doc_sampling = "<p> \t Sets the sampling period to p (float <= 1.0)"
-and doc_check = "<n> \t Check that the simulated node returns true for n steps"
 and doc_use_gtk = "\t Use lablgtk2 interface."
 and doc_inlining_level = "<n> \t Level of inlining"
 and doc_inline_all = "\t Inline all function calls"
 and doc_dzero = "\t Turn on discrete zero-crossing detection"
 and doc_nocausality = "\t (undocumented)"
-and doc_no_deadcode = "\t (undocumented)"
 and doc_no_initialization = "\t (undocumented)"
 and doc_nosimplify = "\t (undocumented)"
-and doc_noreduce = "\t (undocumented)"
-and doc_lmm = "<n>\t Translate the node into Lustre--"
-and doc_red_name = "\t Static reduction for"
+and doc_no_deadcode = "\t (undocumented)"
 and doc_zsign = "\t Use the sign function for the zero-crossing argument"
 and doc_with_copy = "\t Add of a copy method for the state"
-and doc_rif = "\t Use RIF format over stdin and stdout to communicate I/O to the node being simulated"
 and doc_no_opt = "\t (undocumented)"
 and doc_no_warning = "\t Turn off warnings"
+and doc_check = "<n> \t Check equivalence for that amount of steps"
+and doc_set_steps = "\t Option to control source-to-source rewriting steps\n\
+    \t\t +<s> turn on step s\n\
+    \t\t -<s> turn off step s\n\
+    \t\t s can be: +a: takes all; -a: takes none\n\
+    \t\t static: static reduction \n\
+    \t\t inline: inlining \n\
+    \t\t der: normalize derivative \n\
+    \t\t copylast: add copy equations [lx = last* x] for lasts \n\
+    \t\t lastinpatterns: add copies for lasts that are inputs or outputs \n\
+    \t\t auto: remove automata statements \n\
+    \t\t present: remove present statements \n\
+    \t\t pre: remove pre/fby \n\
+    \t\t reset: normalise resets; remove initialization (->) \n\
+    \t\t complete: complete branches \n\
+    \t\t encore: add an extra step when a zero-crossing \n\
+    \t\t\t change a discrete-time state variable \n\
+    \t\t letin: fuse blocks \n\
+    \t\t schedule: static scheduling \n\
+    \t\t Example: -step -a+step+inline+static. Default is +a."
 let errmsg = "Options are:"
 
 let set_verbose () =
@@ -116,7 +131,10 @@ let main () =
           "-inlineall", Arg.Set inline_all, doc_inline_all;
           "-zsign", Arg.Set zsign, doc_zsign;
           "-copy", Arg.Set with_copy, doc_with_copy;
-          "-rif", Arg.Set use_rif, doc_rif;
+          "-check", Arg.Int set_check_equivalence_for_n_steps, doc_check;
+          "-inline", Arg.Int Misc.set_inlining_level, doc_inlining_level;
+          "-inlineall", Arg.Set inline_all, doc_inline_all;
+          "-step", Arg.String Rewrite.set_steps, doc_set_steps;
       ])
       compile
       errmsg;

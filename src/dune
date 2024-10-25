@@ -116,15 +116,26 @@
   (libraries zelus.global_lib zelus.typdefs_lib)
 )
 
-; causality and initialisation analyses
+; causality analysis
  (library
-  (name analyses_lib)
-  (public_name zelus.analyses_lib)
+  (name causality_lib)
+  (public_name zelus.causality_lib)
   (wrapped false)
   (modules
     causal ; type manipulation and unification between types for causality
-    init ;  type manipulation and unification between types for initialisation
     causality ; causality inference
+    )
+  (libraries zelus.global_lib zelus.typdefs_lib zelus.common_lib
+   zelus.typing_lib)
+)
+
+; initialisation analysis
+ (library
+  (name initialization_lib)
+  (public_name zelus.initialization_lib)
+  (wrapped false)
+  (modules
+    init ;  type manipulation and unification between types for initialisation
     initialization ; initialization inference
     )
   (libraries zelus.global_lib zelus.typdefs_lib zelus.common_lib
@@ -141,6 +152,7 @@
     cost ; a cost function used to decide which function call to inline
     mapfold ; generic mapfold
     aux ; auxiliary functions for building terms
+    markfunctions ; mark function calls to be inlined
     static ; static reduction
     inline ; inlining of function calls
     der ; remove the initialization and handler part of a derivative equation
@@ -164,7 +176,8 @@
     schedule ; static scheduling
     rewrite ; compose rewriting steps
   )
-  (libraries zelus.global_lib zelus.typdefs_lib zelus.common_lib zelus.zrun_lib)
+  (libraries zelus.global_lib zelus.typdefs_lib zelus.common_lib
+   zelus.causality_lib zelus.zrun_lib)
 )
 
 ;sequential code generation
@@ -181,16 +194,6 @@
   (libraries zelus.global_lib zelus.typdefs_lib)
 )
 
-; Source-to-source transformations
-(executable
- (name zwrite)
-  (modes (byte exe))
-  (modules
-	zwrite; the main function
-  )
-  (libraries zelus.parser_lib zelus.global_lib zelus.zrun_lib zelus.rewrite_lib)
-  (promote (until-clean) (into ..)))
-
 ; The compiler
 (executable
  (name zeluc)
@@ -201,7 +204,7 @@
 	zeluc; the main function
   )
   (libraries zelus.parser_lib zelus.global_lib zelus.zrun_lib
-  zelus.typing_lib zelus.analyses_lib zelus.rewrite_lib)
+  zelus.typing_lib zelus.causality_lib zelus.initialization_lib zelus.rewrite_lib)
   (promote (until-clean) (into ..)))
 
 (install

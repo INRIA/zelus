@@ -141,8 +141,8 @@ let lustre = ref false
 let static_reduction = ref false
 
 (* check equivalence *)
-let equivalence_checking = ref 0
-let set_equivalence_checking n = equivalence_checking := n
+let n_steps = ref 0
+let set_check_equivalence_for_n_steps n = n_steps := n
 
 (* sets the inline flags *)
 let inlining_level = ref 10

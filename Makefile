@@ -1,8 +1,5 @@
 ## Build the compiler and libraries
-all: zwrite.exe zeluc.exe
-
-zwrite.exe:
-	(cd src; dune build -- zwrite.exe)
+all: zeluc.exe
 
 zeluc.exe:
 	(cd src; dune build -- zeluc.exe)
@@ -11,7 +8,6 @@ tests:
 	(cd tests; dune test)
 
 debug:
-	(cd src; dune build --debug-backtraces --debug-dependency-path -- zwrite.bc)
 	(cd src; dune build --debug-backtraces --debug-dependency-path -- zeluc.bc)
 
 clean:

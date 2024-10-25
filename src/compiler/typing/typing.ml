@@ -1236,7 +1236,7 @@ let implementation ff is_first { desc; loc } =
     | Eopen(modname) ->
        if is_first then Modules.open_module modname
     | Eletdecl { d_leq } ->
-       let new_h, actual_k = leq (Tfun(Tconst)) Env.empty d_leq in
+       let new_h, actual_k = leq (Tfun(Tany)) Env.empty d_leq in
        (* check that there is no unbounded size variables *)
        check_no_unbounded_size_name loc new_h;
        (* update the global environment *)
