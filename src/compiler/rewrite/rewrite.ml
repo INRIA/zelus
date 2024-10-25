@@ -24,18 +24,17 @@ let hybrid_list =
    "disc", "Translation of disc done. See below:",
    Disc.program]
 
-(*
 let optim_list =
-  ["horizon",
-   "Gather all horizons into a single one per function. See below:",
-   Horizon.program;
-   "aform", "A-normal form. See below:",
+  ["aform", "A-normal form. See below:",
    Aform.program;
    "deadcode", "Dead-code removal. See below:",
    Deadcode.program;
-   "copy", "Remove of copy variables. See below:",
-   Copy.program]
-*)
+   "cse", "Common sub-expression elimination. See below:",
+   Cse.program;
+  "copy", "Remove of copy variables. See below:",
+   Copy.program;
+   "zopt", "Sharing of zero-crossings. See below:",
+   Zopt.program]
 
 let default_list =
   ["static", "Static reduction done. See below:",
@@ -55,8 +54,8 @@ let default_list =
    "shared",
    "Normalise equations to shared variables in [x = ...]. See below:",
    Shared.program;
-   (* "encore", "Add an extra discrete step for weak transitions. See below:",
-    Encore.program; *)
+   "encore", "Add an extra discrete step for weak transitions. See below:",
+    Encore.program;
    "lastinpatterns",
    "Replace [last x] by [last* m] when [x] is an input variable.\n\
     See below:",
@@ -66,7 +65,7 @@ let default_list =
     is a local variable. See below:",
    Copylast.program;
    "letin", "Un-nesting of let/in and blocks. See below:",
-   Letin.program;
+   Letin.program] @ optim_list @ [
    "schedule", "Static scheduling. See below:",
    Schedule.program ]
 

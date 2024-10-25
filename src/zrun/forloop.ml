@@ -203,13 +203,10 @@ let step loc sbody env i_env i acc_env s =
   Debug.print_state "For loop: state before step = " s;
   let* env_0 = geti_env loc i_env i in
   let env = Env.append env_0 env in
-  let l1 = Env.to_list env in
   Debug.print_ienv "For loop: acc_env = " acc_env;
   let* is_exit, local_env, s = sbody env acc_env s in
   (* every entry [x\v] from [acc_env] becomes [x \ { cur = bot; last = v }] *)
-  let l2 = Env.to_list local_env in
   let acc_env = x_to_lastx acc_env local_env in
-  let l3 = Env.to_list acc_env in
   Debug.print_ienv "For loop: local_env = " local_env;
   Debug.print_ienv "For loop: acc_env = " acc_env;
   Debug.print_state "For loop: state after step = " s;

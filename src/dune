@@ -169,7 +169,11 @@
     complete ; complete equations with [der x = 0.0]
     shared ; normalise equations to shared variables into [x = ...]
     letin ; un-nesting of let/in and blocks
-    ; deadcode ; deadcode removal
+    aform ; A-normal form
+    zopt ; sharing of zero-crossings
+    copy ; remove of copy variables
+    cse ; common sub-expression elimination
+    deadcode ; deadcode removal
     vars ; read variables
     dependences ; data-dependences between equations
     control ; fusion of control dependences

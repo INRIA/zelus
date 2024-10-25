@@ -1602,12 +1602,10 @@ and seq genv env { eq_desc; eq_write; eq_loc } s =
              is_bool b |> Opt.to_result ~none:{ kind = Etype; loc = e.e_loc } in
            if v then
              let* env_true, s_eq_true = seq genv env eq_true s_eq_true in
-             let l1 = Env.to_list env_true in
              (* complete the output environment with default *)
              (* or last values from all variables defined in [eq_write] but *)
              (* not in [env1] *)
              let* env_true = Fix.by eq_loc env env_true (names eq_write) in
-             let l2 = Env.to_list env_true in
              return (env_true, [s_eq_true; s_eq_false])
            else
              let* env_false, s_eq_false = seq genv env eq_false s_eq_false in
@@ -1935,17 +1933,12 @@ and sblock_with_reset genv env b_eq s_eq r =
 (* for[ward|each] [resume] (n)[i](...) returns (acc_env)
      local x1,...,xm do eq [[while|until|unless] c] *)
 and sforblock genv env acc_env b for_exit s_b =
-  let l0 = Env.to_list env in
-  let l1 = Env.to_list acc_env in
   (* the semantics for a block [local x1,...,xn do eq] *)
   let sbody genv env b s_b acc_env =
     let sem s_b env_in =
       let* env, env_eq_not_x, s_b =
         sblock genv (Env.append env_in env) b s_b in
-      let l1 = Env.to_list env in
-      let l2 = Env.to_list env_eq_not_x in
       let new_env_in = Fix.complete env_in env_eq_not_x in
-      let l3 = Env.to_list new_env_in in
       return ((env, new_env_in), s_b) in
     let* _, (env, new_acc_env), s_b =
       Fix.fixpoint b.b_loc (Env.cardinal acc_env + 1) Fix.stop sem s_b acc_env
@@ -1966,8 +1959,6 @@ and sforblock genv env acc_env b for_exit s_b =
   match for_exit with
   | None ->
      let* env, new_acc_env, s_b = sbody genv env b s_b acc_env in
-     let l1 = Env.to_list env in
-     let l2 = Env.to_list new_acc_env in
      return (false, new_acc_env, s_b)
   | Some { for_exit; for_exit_kind } ->
      match for_exit_kind with
