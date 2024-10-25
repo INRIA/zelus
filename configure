@@ -1,6 +1,4 @@
-#!/usr/bin/env ocaml
-
-#load "unix.cma"
+#!/usr/bin/env ocaml -I +unix unix.cma
 
 let version = "2024"
 let subversion = "dev"
