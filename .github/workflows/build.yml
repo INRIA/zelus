@@ -18,8 +18,7 @@ jobs:
           - gtk
           - nogtk
         ocaml-version:
-          - 4.13.1
-          - 4.08.1
+          - 5.2.0
 
     steps:
       - name: Checkout code
