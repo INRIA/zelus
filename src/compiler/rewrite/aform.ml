@@ -24,50 +24,36 @@ open Deftypes
 (* the type of the accumulator *)
 type acc =
   { renaming: Ident.t Env.t; (* renaming environment *)
-    env: (Typinfo.pattern * Typinfo.exp) Env.t;
+    subst: (Typinfo.pattern * Typinfo.exp) Env.t;
   }
   
-(* Build a renaming from an environment *)
-let build global_funs ({ renaming } as acc) env =
-  let buildrec n entry (env, renaming) =
-    let m = Ident.fresh (Ident.source n) in
-    Env.add m entry env,
-    Env.add n m renaming in
-  let env, renaming = Env.fold buildrec env (Env.empty, renaming) in
-  env, { acc with renaming }
-
-(* associate a pattern and an expression to a variable according to its type *)
-(* [intro t_env subst = subst', t_env'] *)
-let build global_funs ({ renaming; env } as acc) env =
-  (* returns a pair [spat, se] with [spat] a pattern, [se] an expression *)
-  let result { source } entry acc ty =
-    let id = Ident.fresh source in
-    (Aux.varpat id, Aux.var id),
-    Env.add id { entry with t_tys = Deftypes.scheme ty } acc in
-  let rec value id entry acc ({ t_desc } as ty) =
-    match t_desc with
-    | Tvar | Tarrow _ | Tvec _ | Tconstr _ -> result id entry acc ty
-    | Tproduct(ty_list) ->
-       let p_e_list, acc = Util.mapfold (value id entry) acc ty_list in
-       let p_list, e_list = List.split p_e_list in
-       (Aux.tuplepat p_list, Aux.tuple e_list), acc
-    | Tlink(ty_link) -> value id entry acc ty_link in
-  let add id ({ t_tys = { typ_body }; t_sort; t_path } as entry)
-        (subst_acc, env_acc) =
+(* Build an accumulator from an environment *)
+let build global_funs ({ renaming; subst } as acc) env =
+  let rec buildrec n ({ t_tys = { typ_body }; t_sort; t_path } as entry)
+    (env, acc) =
     match t_sort with
     | Sort_val | Sort_var ->
-	let r, env_acc = value id entry env_acc typ_body in
-	Env.add id r subst_acc, env_acc
+       let pat_e, env = value n entry env typ_body in
+       env, { acc with subst = Env.add n pat_e subst }
     | _ ->
-     (* state variables are not splitted but renamed *)
-     let r, env_acc = result id entry env_acc typ_body in
-     Env.add id r subst_acc, env_acc in
-  let buildrec n entry (env, renaming) =
-    let m = Ident.fresh (Ident.source n) in
-    Env.add m entry env,
-    Env.add n m renaming in
-  let env, renaming = Env.fold buildrec env (Env.empty, renaming) in
-  env, { acc with renaming }Env.fold add t_env (subst, Env.empty)
+       (* state variables are not splitted but simply renamed *)
+       let m = Ident.fresh (Ident.source n) in
+       Env.add m entry env,
+       { acc with renaming = Env.add n m renaming }
+  and value n entry env { t_desc } =
+    (* produce [pat, e] such that [...x... = ...] is replaced *)
+    (* by [...pat... = ...] and [x] by [e] *)
+    match t_desc with
+      | Tvar | Tarrow _ | Tvec _ | Tconstr _ ->
+         let m = Ident.fresh (Ident.source n) in
+         (Aux.varpat m, Aux.var m), Env.add m entry env
+      | Tproduct(ty_list) ->
+         let p_e_list, acc = Util.mapfold (value n entry) env ty_list in
+         let p_list, e_list = List.split p_e_list in
+         (Aux.tuplepat p_list, Aux.tuple e_list), acc
+      | Tlink(ty_link) -> value n entry env ty_link in
+  let env, acc = Env.fold buildrec env (Env.empty, acc) in
+  env, acc
 
 (* matching. Translate [(p1,...,pn) = (e1,...,en)] into the set of *)
 (* equations [p1 = e1 and ... and pn = en] *)
