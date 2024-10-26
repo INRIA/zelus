@@ -20,235 +20,129 @@
 open Ident
 open Zelus
 open Deftypes
-       
+
+type 'a tree = | Leaf of 'a | Lpar of 'a tree list
+
 (* the type of the accumulator *)
 type acc =
   { renaming: Ident.t Env.t; (* renaming environment *)
-    subst: (Typinfo.pattern * Typinfo.exp) Env.t;
+    subst: Ident.t tree Env.t;
   }
-  
+
+let empty = { renaming = Env.empty; subst = Env.empty }
+
+let find { renaming; subst } id =
+  try Env.find id renaming with | Not_found -> assert false
+
+let last_ident global_funs acc id = find acc id, acc
+let init_ident global_funs acc id = find acc id, acc
+let der_ident global_funs acc id = find acc id, acc
+
+let rec make_pat t =
+  match t with
+  | Leaf(id) -> Aux.varpat id
+  | Lpar(t_list) -> Aux.tuplepat (List.map make_pat t_list)
+
+let rec make_exp t =
+  match t with
+  | Leaf(id) -> Aux.var id
+  | Lpar(t_list) -> Aux.tuple (List.map make_exp t_list)
+
+let rec names acc t =
+  match t with
+  | Leaf(id) -> id :: acc
+  | Lpar(t_list) -> List.fold_left names acc t_list
+
 (* Build an accumulator from an environment *)
 let build global_funs ({ renaming; subst } as acc) env =
   let rec buildrec n ({ t_tys = { typ_body }; t_sort; t_path } as entry)
     (env, acc) =
     match t_sort with
     | Sort_val | Sort_var ->
-       let pat_e, env = value n entry env typ_body in
-       env, { acc with subst = Env.add n pat_e subst }
+       let t, env = value n entry env typ_body in
+       env, { acc with subst = Env.add n t subst }
     | _ ->
        (* state variables are not splitted but simply renamed *)
        let m = Ident.fresh (Ident.source n) in
        Env.add m entry env,
        { acc with renaming = Env.add n m renaming }
   and value n entry env { t_desc } =
-    (* produce [pat, e] such that [...x... = ...] is replaced *)
-    (* by [...pat... = ...] and [x] by [e] *)
+    (* produce a tree according to the structure of [t_desc] *)
     match t_desc with
       | Tvar | Tarrow _ | Tvec _ | Tconstr _ ->
          let m = Ident.fresh (Ident.source n) in
-         (Aux.varpat m, Aux.var m), Env.add m entry env
+         Leaf(m), Env.add m entry env
       | Tproduct(ty_list) ->
-         let p_e_list, acc = Util.mapfold (value n entry) env ty_list in
-         let p_list, e_list = List.split p_e_list in
-         (Aux.tuplepat p_list, Aux.tuple e_list), acc
+         let t_list, acc = Util.mapfold (value n entry) env ty_list in
+         Lpar(t_list), env
       | Tlink(ty_link) -> value n entry env ty_link in
   let env, acc = Env.fold buildrec env (Env.empty, acc) in
   env, acc
 
-(* matching. Translate [(p1,...,pn) = (e1,...,en)] into the set of *)
-(* equations [p1 = e1 and ... and pn = en] *)
-(* [compose] defines the type of equation: [init p = e] or [p = e] *)
-let rec matching compose eq_list ({ pat_desc } as p) ({ e_desc } as e) =
+(* matching. Translate [(p1,...,pn) = (e1,...,en)] into *)
+(* [p1 = e1 and ... and pn = en] *)
+let rec matching eq_list ({ pat_desc } as p) ({ e_desc } as e) =
   match pat_desc, e_desc with
     | Etuplepat(p_list), Etuple(e_list) ->
-        matching_list compose eq_list p_list e_list
-    | _ -> (compose p e) :: eq_list
+        List.fold_left2 matching eq_list p_list e_list
+    | _ -> (Aux.eq_make p e) :: eq_list 
 
-and matching_list compose eq_list p_list e_list =
-  List.fold_left2 (matching compose) eq_list p_list e_list
+let pattern funs { renaming; subst } ({ pat_desc } as p) =
+  match pat_desc with
+  | Evarpat(x) -> 
+     begin try
+         { p with pat_desc = Evarpat(Env.find x renaming) }
+       with
+       | Not_found ->
+          try
+            make_pat (Env.find x subst)
+          with | Not_found -> assert false
+     end
+  | _ -> raise Mapfold.Fallback
 
-(* Functions which traverse the ast *)
-(** expressions *)
-let rec expression subst ({ e_desc = desc } as e) =
-  match desc with
-  | Econst _ | Econstr0 _ | Eglobal _ -> e
-  | Elast(x) -> { e with e_desc = Elast(name_of_name x subst) }
-  | Elocal(x) ->
-     let ename = exp_of_name x subst in 
-     { e with e_desc = ename.e_desc }
-  | Etuple(e_list) ->
-     { e with e_desc = Etuple(List.map (expression subst) e_list) }
-  | Econstr1(c, e_list) ->
-     { e with e_desc = Econstr1(c, List.map (expression subst) e_list) }
-  | Erecord(n_e_list) -> 
-     { e with e_desc =
-		Erecord(List.map (fun (ln, e) ->
-				  (ln, expression subst e)) n_e_list) }
-  | Erecord_access(e_record, ln) ->
-     { e with e_desc = Erecord_access(expression subst e_record, ln) }
-  | Erecord_with(e_record, n_e_list) -> 
-     { e with e_desc =
-		Erecord_with(expression subst e_record,
-			     List.map (fun (ln, e) ->
-				       (ln, expression subst e)) n_e_list) }
-  | Eop(op, e_list) ->
-     { e with e_desc = Eop(op, List.map (expression subst) e_list) }
-  | Eapp(app, e_op, e_list) ->
-     let e_op = expression subst e_op in
-     let e_list = List.map (expression subst) e_list in
-     { e with e_desc = Eapp(app, e_op, e_list) }
-  | Etypeconstraint(e1, ty) -> 
-     { e with e_desc = Etypeconstraint(expression subst e1, ty) }      
-  | Eseq(e1, e2) ->
-     { e with e_desc = Eseq(expression subst e1, expression subst e2) }
-  | Elet(l, e_let) ->
-     let subst, l = local subst l in
-     { e with e_desc = Elet(l, expression subst e_let) }
-  | Eperiod _ | Epresent _ | Ematch _ | Eblock _ -> assert false
+let expression funs acc e =
+  let ({ e_desc } as e), ({ renaming; subst } as acc) =
+    Mapfold.expression_it funs acc e in
+  match e_desc with
+  | Evar(x) ->
+     begin try
+         { e with e_desc = Evar(Env.find x renaming) }
+       with
+       | Not_found ->
+          try
+            make_exp (Env.find x subst)
+          with | Not_found -> assert false
+     end
+  | _ -> e
 
-(** Local declarations *)
-and local subst ({ l_eq = eq_list; l_env = l_env } as l) =
-  let subst, l_env = build l_env subst in
-  let eq_list = equation_list subst eq_list in
-  subst, { l with l_eq = eq_list; l_env = l_env }
+let equation funs acc eq =
+  let ({ eq_desc } as eq), acc = Mapfold.equation_it funs acc eq in
+  let eq = match eq_desc with
+    | EQeq(p, e) ->
+       Aux.par (matching [] p e)
+    | _ -> eq in
+  eq, acc
 
-and pattern subst p =
-  match p.p_desc with
-  | Ewildpat | Econstpat _ | Econstr0pat _ -> p
-  | Etuplepat(p_list) -> 
-      { p with p_desc = Etuplepat(List.map (pattern subst) p_list) }
-  | Econstr1pat(c, p_list) -> 
-      { p with p_desc = Econstr1pat(c, List.map (pattern subst) p_list) }
-  | Evarpat(x) ->
-     let pname = pat_of_name x subst in     
-     { p with p_desc = pname.p_desc }
-  | Ealiaspat(p1, n) ->
-      { p with p_desc = Ealiaspat(pattern subst p1, name_of_name n subst) }
-  | Eorpat(p1, p2) ->
-      { p with p_desc = Eorpat(pattern subst p1, pattern subst p2) }
-  | Erecordpat(l_p_list) ->
-      let l_p_list = 
-        List.map (fun (l, p) -> (l, pattern subst p)) l_p_list in
-      { p with p_desc = Erecordpat(l_p_list) }
-  | Etypeconstraintpat(p1, ty) ->
-      { p with p_desc = Etypeconstraintpat(pattern subst p1, ty) }
-
-and equation subst eq_list ({ eq_desc = desc } as eq) =
-  let returns eq eq_desc eq_list =
-    { eq with eq_desc = eq_desc; eq_write = Deftypes.empty } :: eq_list in
-  match desc with
-  | EQeq(p, e) -> 
-     let p = pattern subst p in
-     let e = expression subst e in
-     matching (fun p e -> Zaux.eqmake (EQeq(p, e))) eq_list p e
-  | EQder(x, e, e_opt, []) ->
-     returns eq (EQder(name_of_name x subst, expression subst e,
-		       Zmisc.optional_map (expression subst) e_opt, [])) eq_list
-  | EQinit(x, e) ->
-     (* [x] should not be renamed as it is a state variable *)
-     returns eq (EQinit(name_of_name x subst,
-			expression subst e)) eq_list
-  | EQnext(x, e, e_opt) ->
-     (* [x] should not be renamed as it is a state variable *)
-     returns eq (EQnext(name_of_name x subst, expression subst e,
-			Zmisc.optional_map (expression subst) e_opt)) eq_list
-  | EQpluseq(x, e) ->
-     (* [x] should not be renamed as it is a multi-write variable *)
-     returns eq (EQpluseq(name_of_name x subst,
-			  expression subst e)) eq_list
-  | EQreset(reset_eq_list, e) ->
-     returns eq (EQreset(equation_list subst reset_eq_list,
-			 expression subst e)) eq_list
-  | EQmatch(total, e, m_h_list) ->
-     returns eq (EQmatch(total, expression subst e, 
-			 List.map (handler subst) m_h_list)) eq_list
-  | EQblock(b) ->
-     returns eq (EQblock(block subst b)) eq_list
-  | EQand(and_eq_list) ->
-     returns eq (EQand(equation_list subst and_eq_list)) eq_list
-  | EQbefore(before_eq_list) ->
-     returns eq (EQbefore(equation_list subst before_eq_list)) eq_list
-  | EQforall ({ for_index = i_list; for_init = init_list;
-		for_body = b_eq_list;
-		for_in_env = fi_env; for_out_env = fo_env } as b) ->
-     let subst, fi_env = build fi_env subst in
-     let subst, fo_env = build fo_env subst in
-     let index ({ desc = desc } as ind) =
-       let desc = match desc with
-	 | Einput(i, e) -> Einput(name_of_name i subst, expression subst e)
-	 | Eoutput(oi, o) ->
-	    Eoutput(name_of_name oi subst, name_of_name o subst)
-	 | Eindex(i, e1, e2) ->
-	    Eindex(name_of_name i subst,
-		   expression subst e1, expression subst e2) in
-       { ind with desc = desc } in
-     let init ({ desc = desc } as ini) =
-       let desc = match desc with
-	 | Einit_last(i, e) ->
-	    Einit_last(name_of_name i subst, expression subst e) in
-       { ini with desc = desc } in
-     let i_list = List.map index i_list in
-     let init_list = List.map init init_list in
-     let b_eq_list = block subst b_eq_list in
-     returns eq
-	     (EQforall
-		{ b with for_index = i_list; for_init = init_list;
-			 for_body = b_eq_list; for_in_env = fi_env;
-			 for_out_env = fo_env }) eq_list
-  | EQautomaton _ | EQpresent _ | EQder _ | EQemit _ -> assert false
-							       
-and equation_list subst eq_list =
-  let eq_list = List.fold_left (equation subst) [] eq_list in List.rev eq_list
-
-and handler subst ({ m_pat = p; m_body = b; m_env = m_env } as m_h) =
-  let subst, m_env = build m_env subst in
-  let p = pattern subst p in
-  { m_h with m_pat = p; m_body = block subst b; m_env = m_env }
-
-     
-and block subst ({ b_vars = v_list; b_body = eq_list; b_env = b_env } as b) =
-  (* the field [b.b_locals] must be [] as this compilation step is done *)
-  (* after normalisation *)
-  let vardec_list subst v_list =
+let vardec_list funs ({ renaming; subst } as acc) v_list =
   (* Warning. if [n] is a state variable or associated with a *)
   (* default value of combine function, it is not split into a tuple *)
   (* but a single name. The code below makes this assumption. *)
-  let vardec acc ({ vardec_name = n} as v) =
-    let p = pat_of_name n subst in
-    let nset = Vars.fv_pat S.empty S.empty p in
-    S.fold (fun n acc -> { v with vardec_name = n } :: acc) nset acc in
-  List.fold_left vardec [] v_list in
+  let vardec v_list ({ var_name } as v) =
+    let t = Env.find var_name subst in
+    List.fold_left
+      (fun v_list n -> { v with var_name = n } :: v_list) v_list (names [] t) in
+  List.fold_left vardec [] v_list, acc
   
- let subst, b_env = build b_env subst in
-  let v_list = vardec_list subst v_list in
-  { b with b_vars = v_list; b_body = equation_list subst eq_list;
-	   b_env = b_env; b_write = Deftypes.empty }
-
-let implementation impl =
-  match impl.desc with
-    | Eopen _ | Etypedecl _ -> impl
-    | Econstdecl(n, is_static, e) ->
-       { impl with desc = Econstdecl(n, is_static, expression Env.empty e) }
-    | Efundecl(n, ({ f_body = e; f_env = f_env; f_args = p_list } as body)) ->
-       let subst, f_env = build f_env Env.empty in
-       let p_list = List.map (pattern subst) p_list in
-       let e = expression subst e in
-       { impl with desc =
-		     Efundecl(n, { body with f_body = e;
-					     f_env = f_env; f_args = p_list }) }
-
-let implementation_list impl_list = Zmisc.iter implementation impl_list
-
 let set_index funs acc n =
   let _ = Ident.set n in n, acc
 let get_index funs acc n = Ident.get (), acc
 
 let program genv p =
-  let global_funs = { Mapfold.default_global_funs with build; var_ident } in
+  let global_funs = { Mapfold.default_global_funs with build } in
   let funs =
     { Mapfold.defaults with
-      expression; global_funs; set_index; get_index; implementation; 
-      open_t } in
-  let p, _ = Mapfold.program_it funs { empty with genv } p in
+      equation; vardec_list;
+      set_index; get_index; global_funs } in
+  let p, _ = Mapfold.program_it funs empty p in
   p
 

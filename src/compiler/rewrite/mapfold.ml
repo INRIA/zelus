@@ -153,6 +153,10 @@ type ('a, 'info1, 'ienv1, 'info2, 'ienv2) it_funs =
       ('a, 'info1, 'ienv1, 'info2, 'ienv2) it_funs ->
       'a -> ('info1, ('info1, 'ienv1) exp) vardec ->
       ('info2, ('info2, 'ienv2) exp) vardec * 'a;
+    vardec_list :
+      ('a, 'info1, 'ienv1, 'info2, 'ienv2) it_funs ->
+      'a -> ('info1, ('info1, 'ienv1) exp) vardec list ->
+      ('info2, ('info2, 'ienv2) exp) vardec list * 'a;
     for_vardec :
       ('a, 'info1, 'ienv1, 'info2, 'ienv2) it_funs -> 'a ->
       ('info1, 'ienv1) for_vardec -> ('info2, 'ienv2) for_vardec * 'a;
@@ -510,6 +514,11 @@ and vardec funs acc
       (type_expression_it funs.global_funs) acc var_typeconstraint in
   { v with var_name; var_default; var_init; var_typeconstraint }, acc
 
+and vardec_list_it funs acc v_list = funs.vardec_list funs acc v_list
+
+and vardec_list funs acc v_list =
+  Util.mapfold (vardec_it funs) acc v_list
+
 and for_vardec_it funs acc v = funs.for_vardec funs acc v
 
 and for_vardec funs acc ({ desc = { for_array; for_vardec } } as f) =
@@ -544,8 +553,7 @@ and block_it funs acc b = funs.block funs acc b
 
 and block funs acc ({ b_vars; b_body; b_write; b_env } as b) =
   let b_env, acc = build_it funs.global_funs acc b_env in
-  let b_vars, acc = 
-    Util.mapfold (vardec_it funs) acc b_vars in
+  let b_vars, acc = vardec_list_it funs acc b_vars in
   let b_body, acc = equation_it funs acc b_body in
   let b_write, acc = write_t funs acc b_write in
   { b with b_vars; b_body; b_env; b_write }, acc
@@ -565,7 +573,7 @@ and result funs acc ({ r_desc } as r) =
 and funexp_it funs acc f = funs.funexp funs acc f
 
 and funexp funs acc ({ f_args; f_body; f_env } as f) =
-  let arg acc v_list = Util.mapfold (vardec_it funs) acc v_list in
+  let arg acc v_list = vardec_list_it funs acc v_list in
   let f_env, acc = build_it funs.global_funs acc f_env in
   let f_args, acc = Util.mapfold arg acc f_args in
   let f_body, acc = result_it funs acc f_body in
@@ -1008,6 +1016,7 @@ let defaults =
     scondpat;
     expression;
     vardec;
+    vardec_list;
     for_vardec;
     for_out_t;
     for_returns;
@@ -1064,6 +1073,7 @@ let defaults_stop =
     scondpat = stop;
     expression = stop;
     vardec = stop;
+    vardec_list = stop;
     for_vardec = stop;
     for_out_t = stop;
     for_returns = stop;
