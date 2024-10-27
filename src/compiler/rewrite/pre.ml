@@ -30,6 +30,11 @@ open Mapfold
 let fresh_x () = fresh "x"
 let fresh_m () = fresh "m"
 
+(* Defines a value [let x = e in e_let] *)
+let let_value e =
+  let x = fresh_x () in
+  Aux.e_letrec [Aux.id_eq x e] (var x)
+
 (* two options - generates let/rec or local/in *)
 (* [let rec m = e and x = last* m in x] *)
 let let_mem_value e =
@@ -71,6 +76,17 @@ let expression funs acc e =
   | Eop(Eunarypre, [e1]) ->
      (* [let rec m = e1 and x = last* m in x] *)
      local_mem_value e1, acc
+  | Eop(Eminusgreater, [e1; e2]) ->
+     (* turns it into [let m = e1 -> e2 in x] *)
+     let_value e, acc
+  | Eop(Eifthenelse, [e1; e2; e3]) ->
+     (* if [e2] (and [e3]) is stateful, name the result *)
+     let e2 = if Unsafe.expression e2 then let_value e2 else e2 in
+     let e3 = if Unsafe.expression e3 then let_value e3 else e3 in
+     { e with e_desc = Eop(Eifthenelse, [e1; e2; e3]) }, acc
+  | Eop(Eup, [e1]) ->
+     (* turns it into [let x = up(e1) in x] *)
+     let_value e, acc
   | _ -> e, acc
 
 let set_index funs acc n =

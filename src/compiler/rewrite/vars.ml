@@ -55,6 +55,11 @@ type t =
     v: S.t; (* variables *)
   }
 
+let pattern { lv; v } p =
+  let _, { last; current } =
+    Mapfold.pattern_it funs { empty with last = lv; current = v } p in
+  { lv = last; v = current }
+
 let expression { lv; v } e =
   let _, { last; current } =
     Mapfold.expression_it funs

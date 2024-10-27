@@ -150,6 +150,7 @@
   (modules
     state ; the data structure to represent a state
     cost ; a cost function used to decide which function call to inline
+    unsafe ; is an expression/equation unsafe
     mapfold ; generic mapfold
     aux ; auxiliary functions for building terms
     markfunctions ; mark function calls to be inlined
@@ -170,11 +171,11 @@
     shared ; normalise equations to shared variables into [x = ...]
     letin ; un-nesting of let/in and blocks
     aform ; A-normal form
-    zopt ; sharing of zero-crossings
+    ; zopt ; sharing of zero-crossings
     copy ; remove of copy variables
     ; cse ; common sub-expression elimination
-    deadcode ; deadcode removal
     vars ; read variables
+    deadcode ; deadcode removal
     dependences ; data-dependences between equations
     control ; fusion of control dependences
     schedule ; static scheduling

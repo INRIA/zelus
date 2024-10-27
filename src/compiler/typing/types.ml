@@ -442,6 +442,17 @@ let rec is_a_signal { t_desc = desc } =
     | Tlink(link) -> is_a_signal link
     | _ -> None
 
+(* A function is combinatorial if its type is *)
+(* that of a combinatorial function *)
+let rec is_combinatorial n ty =
+  if n = 0 then true
+  else
+    let ty = typ_repr ty in
+    match ty.t_desc with
+    | Tarrow { ty_kind = Tnode _ } -> false
+    | Tarrow { ty_res } -> is_combinatorial (n-1) ty_res
+    | _ -> true
+
 (* Is-it a node ? *)
 let is_a_node_name lname =
   let { info = { value_typ = { typ_body } } } = 

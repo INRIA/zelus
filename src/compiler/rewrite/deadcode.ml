@@ -15,29 +15,30 @@
 (* dead-code removal. *)
 (* this is applied to normalized code *)
 
-open Zmisc
-open Zident
+open Misc
+open Ident
 open Vars
 open Zelus
+open Defnames
 open Deftypes
 
-(** Dead-code removal. First build a table [yn -> {x1,...,xk}] wich associate *)
-(** the list of read variables used to produce yn *)
-(** then recursively mark all useful variable according to *)
-(** read-in dependences *)
-(** An equation [eq] is marked useful when it may be unsafe, that *)
-(** is, it has side effets and/or is non total *)
-(** For the moment, only combinatorial functions *)
-(** are considered safe. *)
-(** finally, only keep equations and name defs. for useful variables *)
-(** horizons are considered to be useful *)
+(* Dead-code removal. First build a table [yn -> {x1,...,xk}] wich associate *)
+(* the list of read variables used to produce yn *)
+(* then recursively mark all useful variable according to *)
+(* read-in dependences *)
+(* An equation [eq] is marked useful when it may be unsafe, that *)
+(* is, it has side effets and/or is non total *)
+(* For the moment, only combinatorial functions *)
+(* are considered safe. *)
+(* finally, only keep equations and name defs. for useful variables *)
+(* horizons are considered to be useful *)
 type table = cont Env.t
  and cont = 
    { mutable c_vars: S.t; (* set of variables *)
      mutable c_useful: bool; (* is-it a useful variable? *)
      mutable c_visited: bool; (* has it been visited already? *) }
      
-(** Useful function. For debugging purpose. *)
+(* Useful function. For debugging purpose. *)
 let print ff table =
   let names ff l =
     Pp_tools.print_list_r Printer.name "{" "," "}" ff (S.elements l) in
@@ -57,7 +58,7 @@ let add is_useful w r table =
   let mark_useful set table =
     let mark x table =
       try
-	let { c_useful = u } as cont = Env.find x table in
+	let { c_useful } as cont = Env.find x table in
 	cont.c_useful <- true;
 	table
       with
@@ -69,9 +70,9 @@ let add is_useful w r table =
   
   let add x table =
     try
-      let { c_vars = l; c_useful = u } as cont = Env.find x table in
-      cont.c_vars <- S.union r l;
-      cont.c_useful <- u || is_useful;
+      let { c_vars; c_useful } as cont = Env.find x table in
+      cont.c_vars <- S.union r c_vars;
+      cont.c_useful <- c_useful || is_useful;
       table
     with 
     | Not_found ->
@@ -83,14 +84,14 @@ let add is_useful w r table =
   S.fold add w table
 
 	 
-(** Extend [table] where every entry [y -> {x1,...,xn}] *)
-(** is marked to also depend on names in [names] *)
+(* Extend [table] where every entry [y -> {x1,...,xn}] *)
+(* is marked to also depend on names in [names] *)
 let extend table names =
   Env.map 
-    (fun ({ c_vars = l } as cont) -> { cont with c_vars = S.union l names })
+    (fun ({ c_vars } as cont) -> { cont with c_vars = S.union c_vars names })
     table
 
-(** Fusion of two tables *)
+(* Fusion of two tables *)
 let merge table1 table2 =
   let add x ({ c_vars = l1; c_useful = u1 } as cont1) table =
     try
@@ -101,77 +102,32 @@ let merge table1 table2 =
     | Not_found -> Env.add x cont1 table in
   Env.fold add table2 table1
 
-(** Build the association table [yk -> { x1,..., xn}] *)     
-let rec build_equation table { eq_desc = desc } =
-  match desc with
-  | EQeq(p, e) ->
-     let w = fv_pat S.empty S.empty p in
-     (* for every [x in w], add the link [x -> {x1, ..., xn }] to table *)
-     let r = fve S.empty e in
-     add (Unsafe.exp e) w r table
-  | EQpluseq(n, e) | EQinit(n, e)
-  | EQder(n, e, None, []) -> 
-     let r = fve S.empty e in
-     add (Unsafe.exp e) (S.singleton n) r table
-  | EQmatch(_, e, m_h_list) ->
-     let r = fve S.empty e in
-     let u = Unsafe.exp e in
-     (* mark read variables to be useful when [e] is potentially unsafe *)
-     let table = add u S.empty r table in
-     let table_b =
-       List.fold_left
-	 (fun table { m_body = b } -> build_block table b)
-	 Env.empty m_h_list in
-     merge table (extend table_b r)
-  | EQreset(res_eq_list, e) ->
-     let r = fve S.empty e in
-     let u = Unsafe.exp e in
-     (* mark read variables to be useful when [e] is potentially unsafe *)
-     let table = add u S.empty r table in
-     let table_res = build_equation_list Env.empty res_eq_list in
-     merge table (extend table_res r)
-  | EQforall { for_index = i_list; for_init = init_list;
-               for_body = b_eq_list } ->
-     let index table { desc = desc } =
-       match desc with
-       | Einput(i, e) ->
-	  add (Unsafe.exp e) (S.singleton i) (fve S.empty e) table
-       | Eoutput(i, j) ->
-	  add false (S.singleton j) (S.singleton i) table
-       | Eindex(i, e1, e2) ->
-	  add ((Unsafe.exp e1) || (Unsafe.exp e2))
-	      (S.singleton i) (fve (fve S.empty e1) e2) table in
-     let init table { desc = desc } =
-       match desc with
-       | Einit_last(i, e) ->
-	  add (Unsafe.exp e) (S.singleton i) (fve S.empty e) table in
-     let table = List.fold_left index table i_list in
-     let table = List.fold_left init table init_list in
-     build_block table b_eq_list
-  | EQand(eq_list) | EQbefore(eq_list) -> build_equation_list table eq_list
-  | EQblock _ | EQder _ | EQnext _ | EQautomaton _
-  | EQpresent _ | EQemit _ -> assert false
-
-and build_block table { b_body = eq_list } = build_equation_list table eq_list
+(* Build the association table [yk -> { x1,..., xn}] *)     
+let equation funs table eq =
+  let { eq_desc } as eq, table = Mapfold.equation_it funs table eq in
+  let eq, table =
+    match eq_desc with
+    | EQeq(p, e) ->
+       let { v = w } = Vars.pattern { lv = S.empty; v = S.empty } p in
+       let { v = r } = Vars.expression { lv = S.empty; v = S.empty } e in
+       (* for every [x in w], add the link [x -> {x1, ..., xn }] to table *)
+       eq, add (Unsafe.expression e) w r table
+    | _ -> eq, table in
+  eq, table
   
-and build_local table { l_eq = eq_list } = build_equation_list table eq_list
-  
-and build_equation_list table eq_list =
-  List.fold_left build_equation table eq_list
-
-(** Visit the table: recursively mark all useful variables *)
-(** returns the set of useful variables *)
-(** [read] is a set of variables *)
+(* Visit the table: recursively mark all useful variables *)
+(* returns the set of useful variables *)
+(* [read] is a set of variables *)
 let visit read table =
   let useful = ref S.empty in
   (* recursively mark visited nodes which are useful *)
-  let rec visit x ({ c_vars = l; c_useful = u; c_visited = v } as entry) = 
-    if not v then
+  let rec visit x ({ c_vars; c_useful; c_visited } as entry) = 
+    if not c_visited then
       begin
         entry.c_visited <- true;
         entry.c_useful <- true;
         useful := S.add x !useful;
-	S.iter visit_fathers l
+	S.iter visit_fathers c_vars
       end
   and visit_fathers x =
     useful := S.add x !useful;
@@ -181,26 +137,21 @@ let visit read table =
     with
       Not_found -> ()
   (* look for an entry in the table that is not marked but useful *)
-  and visit_table x ({ c_useful = u; c_visited = v } as entry) =
-    if not v && u then visit x entry in
+  and visit_table x ({ c_useful; c_visited } as entry) =
+    if not c_visited && c_useful then visit x entry in
   (* recursively mark nodes and their predecessors *)
   S.iter visit_fathers read;
   Env.iter visit_table table;
   !useful
 
-(** Empty block *)
-let is_empty_block { b_locals = l; b_body = eq_list } =
-  (l = []) && (eq_list = [])
-
-(** remove useless names in write names *)
-let writes useful { dv = dv; di = di; der = der; nv = nv; mv = mv } =
+(* remove useless names in write names *)
+let writes useful { dv; di; der } =
   let filter set = S.filter (fun x -> S.mem x useful) set in
-  { dv = filter dv; di = filter di; der = filter der;
-    nv = filter nv; mv = filter mv }
+  { dv = filter dv; di = filter di; der = filter der }
 			
 (* remove useless names in a pattern *)
-let rec pattern useful ({ p_desc = desc } as p) =
-  match desc with
+let rec pattern useful ({ pat_desc } as p) =
+  match pat_desc with
   | Ewildpat | Econstpat _ | Econstr0pat _ -> p
   | Etuplepat(p_list) ->
      { p with p_desc = Etuplepat(List.map (pattern useful) p_list) }
@@ -221,7 +172,7 @@ let rec pattern useful ({ p_desc = desc } as p) =
      let p = pattern useful p in
      { p with p_desc = Etypeconstraintpat(p, ty_exp) }
 
-(** Remove useless equations. [useful] is the set of useful names *)
+(* Remove useless equations. [useful] is the set of useful names *)
 let rec remove_equation useful
 			({ eq_desc = desc; eq_write = w } as eq) eq_list =
   match desc with
@@ -313,14 +264,14 @@ and remove_local useful ({ l_eq = eq_list; l_env = l_env } as l) =
   let l_env = Env.filter (fun x entry -> S.mem x useful) l_env in
   { l with l_eq = eq_list; l_env = l_env }
 
-(** Compute the set of horizons *)
+(* Compute the set of horizons *)
 let horizon read { l_env = l_env } =
   let take h { t_sort = sort } acc =
     match sort with
     | Smem { m_kind = Some(Horizon) } -> S.add h acc | _ -> acc in
   Env.fold take l_env read
     
-(** the main entry for expressions. Warning: [e] must be in normal form *)
+(* the main entry for expressions. Warning: [e] must be in normal form *)
 let exp ({ e_desc = desc } as e) =
   match desc with
   | Elet(l, e_let) ->
