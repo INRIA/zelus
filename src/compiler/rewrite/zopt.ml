@@ -88,13 +88,13 @@ let sharp
  * eq': the new equation in which zero-crossing variables have been removed
  * zenv.env: the set of zero-crossing variables defined in eq
  * zenv.rename: Zident.t -> Zident.t, the substitution of zero-crossing variables *)
-let rec equation ({ eq_desc = desc } as eq) =
+let equation funs ({ eq_desc = desc } as eq) =
   match desc with
-  | EQeq _ | EQpluseq _ | EQder _ | EQinit _ -> eq, zempty
-  | EQmatch(total, e, m_h_list) ->
-     let m_h_list, zenv =
-       Zmisc.map_fold (fun acc ({ m_body = b } as m_h) ->
-		      let b, zenv = block b in
+  | EQmatch({ handlers } as h) ->
+     let handlers, env =
+       Util.mapfold
+         (fun acc ({ m_body = b } as m_h) ->
+	   let b, zenv = block b in
 		      { m_h with m_body = b },
 		      sharp acc zenv)
 		     zempty m_h_list in
