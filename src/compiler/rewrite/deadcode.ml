@@ -187,28 +187,19 @@ let equation funs useful eq =
      else { eq with eq_desc; eq_write = writes useful eq_write }, useful
   | _ -> eq, useful
 				     
-and remove_block useful ({ b_vars; b_body; b_write; b_env } as b) =
-  let l_list = List.map (remove_local useful) l_list in
-  let eq_list = remove_equation_list useful eq_list in
-  let n_list =
-    List.filter (fun { vardec_name = x } -> S.mem x useful) n_list in
-  let n_env = Env.filter (fun x entry -> S.mem x useful) n_env in
-  let w = S.filter (fun x -> S.mem x useful) w in
-  { b with b_vars = n_list; b_locals = l_list; b_body = eq_list; 
-    b_write = { defnames with dv = w }; b_env = n_env }
+let block funs useful ({ b_vars; b_body; b_write; b_env } as b) =
+  let b_body, useful = Mapfold.equation_it funs useful b_body in
+  let b_vars =
+    List.filter (fun { var_name = x } -> S.mem x useful) b_vars in
+  let b_env = Env.filter (fun x entry -> S.mem x useful) b_env in
+  let dv = S.filter (fun x -> S.mem x useful) b_write.dv in
+  { b with b_vars; b_body; b_write = { b_write with dv  }; b_env }
 
-and remove_local useful ({ l_eq = eq_list; l_env = l_env } as l) =
-  let eq_list = remove_equation_list useful eq_list in
+let leq funs useful ({ l_eq; l_env } as l) =
+  let eq, useful = Mapfold.equation_it funs useful l_eq in
   let l_env = Env.filter (fun x entry -> S.mem x useful) l_env in
-  { l with l_eq = eq_list; l_env = l_env }
+  { l with l_eq; l_env = l_env }
 
-(* Compute the set of horizons *)
-let horizon read { l_env = l_env } =
-  let take h { t_sort = sort } acc =
-    match sort with
-    | Smem { m_kind = Some(Horizon) } -> S.add h acc | _ -> acc in
-  Env.fold take l_env read
-    
 (* the main entry for expressions. Warning: [e] must be in normal form *)
 let exp ({ e_desc = desc } as e) =
   match desc with
@@ -224,10 +215,15 @@ let exp ({ e_desc = desc } as e) =
      if eq_list = [] then e_let else { e with e_desc = Elet(l, e_let) }
   | _ -> e
            
-let implementation impl =
-  match impl.desc with
-  | Eopen _ | Etypedecl _ | Econstdecl _ -> impl
-  | Efundecl(n, ({ f_body = e } as body)) ->
-     { impl with desc = Efundecl(n, { body with f_body = exp e }) }
-       
-let implementation_list impl_list = Zmisc.iter implementation impl_list
+let program _ p =
+  let global_funs = Mapfold.default_global_funs in
+  let funs =
+    { Mapfold.defaults with expression; equation; result; block;
+                            reset_e; reset_eq; match_handler_eq;
+                            match_handler_e; present_handler_eq;
+                            present_handler_e; if_eq;
+                            set_index; get_index; global_funs } in
+  let { p_impl_list } as p, _ =
+    Mapfold.program_it funs empty p in
+  { p with p_impl_list = p_impl_list }
+
