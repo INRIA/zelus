@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2020 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -19,7 +19,7 @@
 (* Two phases algorithm: 
  * one phase computes zero-crossing variables and a substitution;
  * the second one applies the subsitution *)
-open Zident
+open Ident
 open Zelus
 open Deftypes
 
@@ -27,20 +27,23 @@ open Deftypes
  * env: the environment of zero-crossings;
  * ren: Zident.t -> Zident.t defines the renaming of zero-crossings
  * size: number of entries in env *)
-type zenv = { env: Deftypes.tentry Env.t; ren: Zident.t Env.t; size: int }
+type env =
+  { env: Deftypes.typentry Env.t;
+    renaming: Ident.t Env.t;
+    size: int }
 
-let zempty = { env = Env.empty; ren = Env.empty; size = 0 }
+let empty = { env = Env.empty; renaming = Env.empty; size = 0 }
 
 (* Partition an environment into an environment of zero-crossing variables *)
 (* and its complement *)
 let zero_from_env env =
-  let select key { t_sort = s } =
-    match s with
-    | Smem { m_kind = Some(Zero) } -> true | _ -> false in
+  let select key { t_sort } =
+    match t_sort with
+    | Sort_mem { m_mkind = Some(Zero) } -> true | _ -> false in
   Env.partition select env
 
 let vars_of_env vars env =
-  List.filter (fun { vardec_name = x } -> Env.mem x env) vars
+  List.filter (fun { var_name } -> Env.mem var_name env) vars
 	      
 (* Make a renaming from two environment *)
 (* [make env2 env1 = ren] where 
@@ -63,21 +66,23 @@ let make env2 env1 =
 let compose r2_by_1 r2 =
   Env.map (fun n2 -> try Env.find n2 r2_by_1 with Not_found -> assert false) r2
 	  
-(* Composition of two environment *)
+(* Composition of two environment; parallel and exclusive *)
 let parallel
-      { env = env1; ren = r1; size = s1 } { env = env2; ren = r2; size = s2 } =
-  { env = Env.append env1 env2; ren = Env.append r1 r2; size = s1 + s2 }
+      { env = env1; renaming = r1; size = s1 }
+      { env = env2; renaming = r2; size = s2 } =
+  { env = Env.append env1 env2; renaming = Env.append r1 r2; size = s1 + s2 }
 
 let sharp
-      { env = env1; ren = r1; size = s1 } { env = env2; ren = r2; size = s2 } =
+      { env = env1; renaming = r1; size = s1 }
+      { env = env2; renaming = r2; size = s2 } =
   (* all names of env2 are renamed by those from env1 if s1 >= s2 *)
     if s1 >= s2
   then let r2_by_1 = make env2 env1 in
        let r = Env.append r1 (Env.append r2_by_1 (compose r2_by_1 r2)) in
-       { env = env1; ren = r; size = s1 }
+       { env = env1; renaming = r; size = s1 }
   else let r1_by_2 = make env1 env2 in
        let r = Env.append r2 (Env.append r1_by_2 (compose r1_by_2 r1)) in
-       { env = env2; ren = r; size = s2 }
+       { env = env2; renaming = r; size = s2 }
   
 (* [equation eq = eq', zenv] where
  * eq': the new equation in which zero-crossing variables have been removed
