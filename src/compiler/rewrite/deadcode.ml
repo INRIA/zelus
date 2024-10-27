@@ -149,107 +149,45 @@ let writes useful { dv; di; der } =
   let filter set = S.filter (fun x -> S.mem x useful) set in
   { dv = filter dv; di = filter di; der = filter der }
 			
-(* remove useless names in a pattern *)
-let rec pattern useful ({ pat_desc } as p) =
+(* remove useless names in a pattern. [useful] is the set of useful names *)
+let pattern funs useful ({ pat_desc } as p) =
   match pat_desc with
-  | Ewildpat | Econstpat _ | Econstr0pat _ -> p
-  | Etuplepat(p_list) ->
-     { p with p_desc = Etuplepat(List.map (pattern useful) p_list) }
-  | Econstr1pat(c, p_list) ->
-     { p with p_desc = Econstr1pat(c, List.map (pattern useful) p_list) }
-  | Evarpat(x) -> if S.mem x useful then p else { p with p_desc = Ewildpat }
+  | Evarpat(x) ->
+     if S.mem x useful then p, useful else { p with pat_desc = Ewildpat }, useful
   | Ealiaspat(p_alias, x) ->
-     let p_alias = pattern useful p_alias in
-     if S.mem x useful then { p with p_desc = Ealiaspat(p_alias, x) }
-     else p_alias
-  | Eorpat(p1, p2) ->
-     { p with p_desc = Eorpat(pattern useful p1, pattern useful p2) }
-  | Erecordpat(ln_pat_list) ->
-     { p with p_desc =
-                Erecordpat(List.map (fun (ln, p) ->
-                               (ln, pattern useful p)) ln_pat_list) }
-  | Etypeconstraintpat(p, ty_exp) ->
-     let p = pattern useful p in
-     { p with p_desc = Etypeconstraintpat(p, ty_exp) }
+     let p_alias, acc = Mapfold.pattern funs useful p_alias in
+     if S.mem x useful then { p with pat_desc = Ealiaspat(p_alias, x) }, useful
+     else p_alias, useful
+  | _ -> raise Mapfold.Fallback
+
+let eq_empty = Aux.eqmake Defnames.empty EQempty
 
 (* Remove useless equations. [useful] is the set of useful names *)
-let rec remove_equation useful
-			({ eq_desc = desc; eq_write = w } as eq) eq_list =
-  match desc with
+let equation funs useful eq =
+  let { eq_desc; eq_write } as eq, useful = Mapfold.equation_it funs useful eq in
+  match eq_desc with
   | EQeq(p, e) ->
-     let w = fv_pat S.empty S.empty p in
-     if Unsafe.exp e || S.exists (fun x -> S.mem x useful) w
+     let { v = w } = Vars.pattern { lv = S.empty; v = S.empty } p in
+     if Unsafe.expression e || S.exists (fun x -> S.mem x useful) w
      then (* the equation is useful *)
-       { eq with eq_desc = EQeq(pattern useful p, e) } :: eq_list else eq_list
-  | EQpluseq(n, e) | EQder(n, e, None, [])
-  | EQinit(n, e) ->
-     if Unsafe.exp e || S.mem n useful then eq :: eq_list else eq_list
-  | EQmatch(total, e, m_h_list) ->
-     let m_h_list = 
-       List.map
-	 (fun ({ m_body = b } as m_h) ->
-	  { m_h with m_body = remove_block useful b }) m_h_list in
+       { eq with eq_desc = EQeq(p, e) }, useful
+     else eq_empty, useful
+  | EQder { id; e; e_opt = None; handlers = [] } | EQinit(id, e) ->
+     if Unsafe.expression e || S.mem id useful then eq, useful
+     else eq_empty, useful
+  | EQmatch { e; handlers } ->
      (* remove the equation if all handlers are empty *)
-     if not (Unsafe.exp e)
-	&& List.for_all (fun { m_body = b} -> is_empty_block b) m_h_list
-     then eq_list
-     else { eq with eq_desc = EQmatch(total, e, m_h_list);
-		    eq_write = writes useful w } :: eq_list
-  | EQreset(res_eq_list, e) ->
-     let res_eq_list = remove_equation_list useful res_eq_list in
+     if not (Unsafe.expression e)
+	&& List.for_all (fun { m_body} -> Aux.is_empty m_body) handlers
+     then eq_empty, useful
+     else { eq with eq_desc; eq_write = writes useful eq_write }, useful
+  | EQreset(res_eq, e) ->
      (* remove the equation if the body is empty *)
-     if not (Unsafe.exp e) && res_eq_list = [] then eq_list
-     else { eq with eq_desc = EQreset(res_eq_list, e);
-		    eq_write = writes useful w } :: eq_list
-  | EQforall({ for_index = i_list; for_init = init_list; for_body = b_eq_list;
-	       for_in_env = in_env; for_out_env = out_env } as f_body) ->
-     let index acc ({ desc = desc } as ind) =
-       match desc with
-       | Einput(i, e) ->
-	  if (Unsafe.exp e) || (S.mem i useful) then ind :: acc else acc
-       | Eoutput(xo, o) ->
-	  if (S.mem xo useful) || (S.mem o useful) then ind :: acc else acc
-       | Eindex _ ->
-	  (* the index i in [e1 .. e2] is kept *)
-	  ind :: acc in
-     let init acc ({ desc = desc } as ini) =
-       match desc with
-       | Einit_last(i, e) ->
-	  if (Unsafe.exp e) || (S.mem i useful) then ini :: acc else acc in
-     let i_list = List.fold_left index [] i_list in
-     let init_list = List.fold_left init [] init_list in
-     let b_eq_list = remove_block useful b_eq_list in
-     let in_env = Env.filter (fun x entry -> S.mem x useful) in_env in
-     let out_env = Env.filter (fun x entry -> S.mem x useful) out_env in
-     if is_empty_block b_eq_list then eq_list
-     else { eq with eq_desc =
-                      EQforall { f_body with
-                                 for_index = i_list;
-				 for_init = init_list;
-				 for_body = b_eq_list;
-				 for_in_env = in_env;
-				 for_out_env = out_env } } :: eq_list
-  | EQbefore(before_eq_list) ->
-     let before_eq_list = remove_equation_list useful before_eq_list in
-     (* remove the equation if the body is empty *)
-     if before_eq_list = [] then eq_list
-     else (Zaux.before before_eq_list) :: eq_list
-  | EQand(and_eq_list) ->
-     let and_eq_list = remove_equation_list useful and_eq_list in
-     (* remove the equation if the body is empty *)
-     if and_eq_list = [] then eq_list
-     else (Zaux.par and_eq_list) :: eq_list
-  | EQnext _ | EQder _ | EQautomaton _ | EQblock _ 
-  | EQpresent _ | EQemit _ -> assert false
+     if not (Unsafe.expression e) && Aux.is_empty res_eq then eq_empty, useful
+     else { eq with eq_desc; eq_write = writes useful eq_write }, useful
+  | _ -> eq, useful
 				     
-and remove_equation_list useful eq_list =
-  List.fold_right (remove_equation useful) eq_list []
-		  
-and remove_block useful 
-    ({ b_vars = n_list; b_locals = l_list;
-       b_body = eq_list; 
-       b_write = ({ dv = w } as defnames);
-       b_env = n_env } as b) =
+and remove_block useful ({ b_vars; b_body; b_write; b_env } as b) =
   let l_list = List.map (remove_local useful) l_list in
   let eq_list = remove_equation_list useful eq_list in
   let n_list =

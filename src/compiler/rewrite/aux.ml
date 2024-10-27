@@ -71,6 +71,9 @@ let record l_list e_list =
 let ifthenelse e e_true e_false =
   emake (Eop(Eifthenelse, [e_true; e_false]))
 
+let is_empty { eq_desc } =
+  match eq_desc with | EQempty -> true | _ -> false
+
 let eqmake w desc =
   { eq_desc = desc; eq_loc = no_location; eq_write = w;
     eq_safe = true; eq_index = -1 }
