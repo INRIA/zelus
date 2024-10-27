@@ -38,6 +38,8 @@ type table = cont Env.t
      mutable c_useful: bool; (* is-it a useful variable? *)
      mutable c_visited: bool; (* has it been visited already? *) }
      
+let empty = Env.empty
+
 (* Useful function. For debugging purpose. *)
 let print ff table =
   let names ff l =
@@ -114,7 +116,14 @@ let equation funs table eq =
        eq, add (Unsafe.expression e) w r table
     | _ -> eq, table in
   eq, table
-  
+
+let build_table_for_equation eq =
+  let global_funs = Mapfold.default_global_funs in
+  let funs =
+    { Mapfold.defaults with equation; global_funs } in
+  let _, table = Mapfold.equation_it funs empty eq in
+  table
+
 (* Visit the table: recursively mark all useful variables *)
 (* returns the set of useful variables *)
 (* [read] is a set of variables *)
@@ -145,9 +154,9 @@ let visit read table =
   !useful
 
 (* remove useless names in write names *)
-let writes useful { dv; di; der } =
+let writes funs useful { dv; di; der } =
   let filter set = S.filter (fun x -> S.mem x useful) set in
-  { dv = filter dv; di = filter di; der = filter der }
+  { dv = filter dv; di = filter di; der = filter der }, useful
 			
 (* remove useless names in a pattern. [useful] is the set of useful names *)
 let pattern funs useful ({ pat_desc } as p) =
@@ -160,10 +169,9 @@ let pattern funs useful ({ pat_desc } as p) =
      else p_alias, useful
   | _ -> raise Mapfold.Fallback
 
-let eq_empty = Aux.eqmake Defnames.empty EQempty
-
 (* Remove useless equations. [useful] is the set of useful names *)
 let equation funs useful eq =
+  let eq_empty = Aux.eqmake Defnames.empty EQempty in
   let { eq_desc; eq_write } as eq, useful = Mapfold.equation_it funs useful eq in
   match eq_desc with
   | EQeq(p, e) ->
@@ -180,11 +188,15 @@ let equation funs useful eq =
      if not (Unsafe.expression e)
 	&& List.for_all (fun { m_body} -> Aux.is_empty m_body) handlers
      then eq_empty, useful
-     else { eq with eq_desc; eq_write = writes useful eq_write }, useful
+     else
+       let eq_write, useful = writes funs useful eq_write in
+       { eq with eq_desc; eq_write }, useful
   | EQreset(res_eq, e) ->
      (* remove the equation if the body is empty *)
      if not (Unsafe.expression e) && Aux.is_empty res_eq then eq_empty, useful
-     else { eq with eq_desc; eq_write = writes useful eq_write }, useful
+     else
+       let eq_write, useful = writes funs useful eq_write in
+       { eq with eq_desc; eq_write }, useful
   | _ -> eq, useful
 				     
 let block funs useful ({ b_vars; b_body; b_write; b_env } as b) =
@@ -195,34 +207,35 @@ let block funs useful ({ b_vars; b_body; b_write; b_env } as b) =
   let dv = S.filter (fun x -> S.mem x useful) b_write.dv in
   { b with b_vars; b_body; b_write = { b_write with dv  }; b_env }
 
-let leq funs useful ({ l_eq; l_env } as l) =
+let leq_t funs useful ({ l_eq; l_env } as l) =
   let eq, useful = Mapfold.equation_it funs useful l_eq in
   let l_env = Env.filter (fun x entry -> S.mem x useful) l_env in
   { l with l_eq; l_env = l_env }
 
+let remove_useless_in_equation useful eq =
+  let global_funs = Mapfold.default_global_funs in
+  let funs =
+    { Mapfold.defaults with equation; global_funs } in
+  let eq, _ = Mapfold.equation_it funs useful eq in
+  eq
+
 (* the main entry for expressions. Warning: [e] must be in normal form *)
-let exp ({ e_desc = desc } as e) =
-  match desc with
-  | Elet(l, e_let) ->
-     let read = fve S.empty e_let in
-     (* horizons are considered as outputs *)
-     let read = horizon read l in
-     let table = build_local Env.empty l in
-     (* Format.printf "%a@.@." print table; *)
-     let useful = visit read table in
-     (* Format.printf "%a@." print table; flush stdout; *)
-     let { l_eq = eq_list } as l = remove_local useful l in
-     if eq_list = [] then e_let else { e with e_desc = Elet(l, e_let) }
-  | _ -> e
+let expression funs acc e =
+  let { e_desc } as e, acc = Mapfold.expression_it funs acc e in
+  match e_desc with
+  | Elet({ l_eq } as l, e_let) ->
+     let { v } = Vars.expression { lv = S.empty; v = S.empty } e_let in
+     let table = build_table_for_equation l_eq in
+     let useful = visit v table in
+     let l_eq = remove_useless_in_equation useful l_eq in
+     if Aux.is_empty l_eq then e_let, acc
+     else { e with e_desc = Elet({ l with l_eq }, e_let) }, acc
+  | _ -> e, acc
            
 let program _ p =
   let global_funs = Mapfold.default_global_funs in
   let funs =
-    { Mapfold.defaults with expression; equation; result; block;
-                            reset_e; reset_eq; match_handler_eq;
-                            match_handler_e; present_handler_eq;
-                            present_handler_e; if_eq;
-                            set_index; get_index; global_funs } in
+    { Mapfold.defaults with expression; global_funs } in
   let { p_impl_list } as p, _ =
     Mapfold.program_it funs empty p in
   { p with p_impl_list = p_impl_list }

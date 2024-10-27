@@ -29,12 +29,13 @@ let optim_list =
    Aform.program;
    "deadcode", "Dead-code removal. See below:",
    Deadcode.program;
-   "cse", "Common sub-expression elimination. See below:",
-   Cse.program;
+   (* "cse", "Common sub-expression elimination. See below:",
+   Cse.program; *)
   "copy", "Remove of copy variables. See below:",
    Copy.program;
-   "zopt", "Sharing of zero-crossings. See below:",
-   Zopt.program]
+   (* "zopt", "Sharing of zero-crossings. See below:",
+   Zopt.program *)
+  ]
 
 let default_list =
   ["static", "Static reduction done. See below:",
