@@ -172,7 +172,7 @@
     aform ; A-normal form
     zopt ; sharing of zero-crossings
     copy ; remove of copy variables
-    cse ; common sub-expression elimination
+    ; cse ; common sub-expression elimination
     deadcode ; deadcode removal
     vars ; read variables
     dependences ; data-dependences between equations

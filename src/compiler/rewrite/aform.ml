@@ -31,12 +31,16 @@ type acc =
 
 let empty = { renaming = Env.empty; subst = Env.empty }
 
+(* matching. Translate [(p1,...,pn) = (e1,...,en)] into *)
+(* [p1 = e1 and ... and pn = en] *)
+let rec matching eq_list ({ pat_desc } as p) ({ e_desc } as e) =
+  match pat_desc, e_desc with
+    | Etuplepat(p_list), Etuple(e_list) ->
+        List.fold_left2 matching eq_list p_list e_list
+    | _ -> (Aux.eq_make p e) :: eq_list 
+
 let find { renaming; subst } id =
   try Env.find id renaming with | Not_found -> assert false
-
-let last_ident global_funs acc id = find acc id, acc
-let init_ident global_funs acc id = find acc id, acc
-let der_ident global_funs acc id = find acc id, acc
 
 let rec make_pat t =
   match t with
@@ -52,6 +56,8 @@ let rec names acc t =
   match t with
   | Leaf(id) -> id :: acc
   | Lpar(t_list) -> List.fold_left names acc t_list
+
+let var_ident global_funs acc id = find acc id, acc
 
 (* Build an accumulator from an environment *)
 let build global_funs ({ renaming; subst } as acc) env =
@@ -79,41 +85,31 @@ let build global_funs ({ renaming; subst } as acc) env =
   let env, acc = Env.fold buildrec env (Env.empty, acc) in
   env, acc
 
-(* matching. Translate [(p1,...,pn) = (e1,...,en)] into *)
-(* [p1 = e1 and ... and pn = en] *)
-let rec matching eq_list ({ pat_desc } as p) ({ e_desc } as e) =
-  match pat_desc, e_desc with
-    | Etuplepat(p_list), Etuple(e_list) ->
-        List.fold_left2 matching eq_list p_list e_list
-    | _ -> (Aux.eq_make p e) :: eq_list 
-
-let pattern funs { renaming; subst } ({ pat_desc } as p) =
+let pattern funs ({ renaming; subst } as acc) ({ pat_desc } as p) =
   match pat_desc with
   | Evarpat(x) -> 
-     begin try
-         { p with pat_desc = Evarpat(Env.find x renaming) }
+     let p =
+       try { p with pat_desc = Evarpat(Env.find x renaming) }
        with
        | Not_found ->
           try
             make_pat (Env.find x subst)
-          with | Not_found -> assert false
-     end
+          with | Not_found -> assert false in
+     p, acc
   | _ -> raise Mapfold.Fallback
 
-let expression funs acc e =
-  let ({ e_desc } as e), ({ renaming; subst } as acc) =
-    Mapfold.expression_it funs acc e in
+let expression funs ({ renaming; subst } as acc) ({ e_desc } as e) =
   match e_desc with
   | Evar(x) ->
-     begin try
-         { e with e_desc = Evar(Env.find x renaming) }
+     let e =
+       try { e with e_desc = Evar(Env.find x renaming) }
        with
        | Not_found ->
           try
             make_exp (Env.find x subst)
-          with | Not_found -> assert false
-     end
-  | _ -> e
+          with | Not_found -> assert false in
+     e, acc
+  | _ -> raise Mapfold.Fallback
 
 let equation funs acc eq =
   let ({ eq_desc } as eq), acc = Mapfold.equation_it funs acc eq in
@@ -138,10 +134,10 @@ let set_index funs acc n =
 let get_index funs acc n = Ident.get (), acc
 
 let program genv p =
-  let global_funs = { Mapfold.default_global_funs with build } in
+  let global_funs = { Mapfold.default_global_funs with build; var_ident } in
   let funs =
     { Mapfold.defaults with
-      equation; vardec_list;
+      pattern; expression; equation; vardec_list;
       set_index; get_index; global_funs } in
   let p, _ = Mapfold.program_it funs empty p in
   p
