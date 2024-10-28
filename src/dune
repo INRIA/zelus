@@ -94,9 +94,11 @@
   (wrapped false)
   (modules
     graph ; acyclic graph manipulation
-    parseq ; a data-structure to represent parallel and sequential composition    
+    parseq ; a data-structure to represent
+           ; parallel and sequential composition
+    aux ; auxiliary functions for building terms
   )
-  (libraries zelus.global_lib)
+  (libraries zelus.global_lib zelus.typdefs_lib)
 )
     
 ; typing
@@ -152,7 +154,6 @@
     cost ; a cost function used to decide which function call to inline
     unsafe ; is an expression/equation unsafe
     mapfold ; generic mapfold
-    aux ; auxiliary functions for building terms
     markfunctions ; mark function calls to be inlined
     static ; static reduction
     inline ; inlining of function calls

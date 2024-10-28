@@ -373,26 +373,25 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
   | Zelus.Erecord(label_e_list) ->
      let label_e_list, code =
        Util.mapfold
-	 (fun code { label; arg } ->
+	 (fun code { Zelus.label; Zelus.arg } ->
            let arg, code = exp env loop_path code arg in
 	   { label; arg }, code) code label_e_list in
      Erecord(label_e_list), code
-  | Zelus.Erecord_access { label; arg } ->
+  | Zelus.Erecord_access { Zelus.label; Zelus.arg } ->
      let arg, code =
-       exp env loop_path code e_record in
+       exp env loop_path code arg in
      Erecord_access { label; arg }, code
   | Zelus.Erecord_with(e_record, label_e_list) ->
      let e_record, code =
        exp env loop_path code e_record in
      let label_e_list, code =
-       Zmisc.map_fold
-	 (fun code { label; arg } ->
-           let arg, code = exp env loop_path code e in
+       Util.mapfold
+	 (fun code { Zelus.label; Zelus.arg } ->
+           let arg, code = exp env loop_path code arg in
 	   { label; arg }, code) code label_e_list in
      Erecord_with(e_record, label_e_list), code
   | Zelus.Etypeconstraint(e, ty_exp) ->
      let e, code = exp env loop_path code e in
-     let ty_exp = type_expression ty_exp in
      Etypeconstraint(e, ty_exp), code
   | Zelus.Eop(Zelus.Eup, [e]) ->
      (* implement the zero-crossing up(x) by up(if x >=0 then 1 else -1) *)
@@ -408,43 +407,47 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
   | Zelus.Eop(Zelus.Earray(Eget), [e1; e2]) ->
      let e1, code = exp env loop_path code e1 in
      let e2, code = exp env loop_path code e2 in
-     Eget(e1, e2), code
+     Eget { e = e1; index = e2 }, code
   | Zelus.Eop(Zelus.Earray(Eupdate), [e1; i; e2]) ->
-     let _, se = Ztypes.filter_vec e1.Zelus.e_typ in
+     let ty = Typinfo.get_type e1.e_info in
+     let _, se = Types.filter_vec ty in
      let se = size_of_type se in
      let e1, code = exp env loop_path code e1 in
      let i, code = exp env loop_path code i in
      let e2, code = exp env loop_path code e2 in
-     Eupdate(se, e1, i, e2), code
+     Eupdate { e = e1; index = i; arg = e2; size = se }, code
   | Zelus.Eop(Zelus.Earray(Eslice), [e1; e2; e]) ->
      let s1 = size s1 in
      let s2 = size s2 in
      let e, code = exp env loop_path code e in
-     Eslice(e, s1, s2), code
+     Eslice { e; left = s1; right = s2 }, code
   | Zelus.Eop(Zelus.Earray(Econcat), [e1; e2]) ->
-     let _, s1 = Ztypes.filter_vec e1.Zelus.e_typ in
-     let _, s2 = Ztypes.filter_vec e2.Zelus.e_typ in
+     let ty1 = Typinfo.get_type e1.e_info in
+     let ty2 = Typinfo.get_type e2.e_info in
+     let _, s1 = Types.filter_vec ty1 in
+     let _, s2 = Types.filter_vec ty2 in
      let s1 = size_of_type s1 in
      let s2 = size_of_type s2 in
      let e1, code = exp env loop_path code e1 in
      let e2, code = exp env loop_path code e2 in
-     Econcat(e1, s1, e2, s2), code
+     Econcat { left = e1; left_size = s1; right = e2; right_size = s2 }, code
   | Zelus.Eop(Zelus.Eatomic, [e]) ->
      exp env loop_path code e  
-  | Zelus.Elet _ | Zelus.Eseq _ | Zelus.Eperiod _ 
+  | Zelus.Elet _ | Zelus.Eop(Eseq, _) | Zelus.Eop(Eperiod, _) 
   | Zelus.Eop _ | Zelus.Epresent _
   | Zelus.Ematch _ | Zelus.Elocal _ -> assert false
-  | Zelus.Eapp(_, e_fun, e_list) ->
+  | Zelus.Eapp { f; arg_list } ->
+     let ty = Typinfo.get_type f.e_info in
      (* compute the sequence of static arguments and non static ones *)
      let se_list, ne_list, ty_res =
-       Ztypes.split_arguments e_fun.Zelus.e_typ e_list in
-     let e_fun, code = exp env loop_path code e_fun in
-     let se_list, code = Zmisc.map_fold (exp env loop_path) code se_list in
-     let ne_list, code = Zmisc.map_fold (exp env loop_path) code ne_list in
-     let e_fun = app e_fun se_list in
+       Types.split_arguments ty arg_list in
+     let f, code = exp env loop_path code f in
+     let se_list, code = Util.mapfold (exp env loop_path) code se_list in
+     let ne_list, code = Util.mapfold (exp env loop_path) code ne_list in
+     let e_fun = app f se_list in
      match ne_list with
      | [] -> e_fun, code
-     | _ -> let k = Ztypes.kind_of_funtype ty_res in
+     | _ -> let k = Types.kind_of_funtype ty_res in
 	    apply k env loop_path e_fun ne_list code
   			 
 (** Patterns *)
