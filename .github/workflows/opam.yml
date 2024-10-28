@@ -16,7 +16,7 @@ jobs:
       - name: Use OCaml
         uses: ocaml/setup-ocaml@v2
         with:
-          ocaml-compiler: 4.13.1
+          ocaml-compiler: 5.2.0
             
       - name: Install OCaml dependencies
         run: |
