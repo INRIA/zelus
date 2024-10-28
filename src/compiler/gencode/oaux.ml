@@ -37,6 +37,7 @@ let plus e1 e2 = binop "+" e1 e2
 let mult e1 e2 = binop "*" e1 e2
 let minus e1 e2 = binop "-" e1 e2
 let min e1 e2 = binop "min" e1 e2
+let div e1 e2 = binop "/" e1 e2
 let zero = int_const 0
 let one = int_const 1
 let ffalse = bool false

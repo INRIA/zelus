@@ -193,30 +193,21 @@ let out_of n env =
   | In _ -> assert false
   | Out(x, sort) -> x, ty, sort, ix_list
 
-(** Translate size expressions *)
-let rec size_of_type = function
-  | Tconst(i) -> Sconst(i)
-  | Tglobal(q) -> Sglobal(Lident.Modname(q))
-  | Tname(n) -> Sname(n)
-  | Top(op, s1, s2) ->
+(* Translate size expressions *)
+let rec size_of_type si =
+  let open Deftypes in
+  match si with
+  | Sint(i) -> Oaux.int_const i
+  | Svar(n) -> Evar { is_mutable = false; id = n }
+  | Sfrac { num; denom } ->
+     Oaux.div (size_of_type num) (Oaux.int_const denom)
+  | Sop(op, s1, s2) ->
      let e1 = size_of_type s1 in
      let e2 = size_of_type s2 in
      match op with
-     | Tplus -> Sop(Splus, e1, e2)
-     | Tminus -> Sop(Sminus, e1, e2)
-
-(** Translate size expressions *)
-let rec size { Zelus.desc = desc } =
-  match desc with
-  | Zelus.Sconst(i) -> Sconst(i)
-  | Zelus.Sglobal(ln) -> Sglobal(ln)
-  | Zelus.Sname n -> Sname(n)
-  | Zelus.Sop(op, s1, s2) ->
-     let s1 = size s1 in
-     let s2 = size s2 in
-     match op with
-     | Zelus.Splus -> Sop(Splus, s1, s2)
-     | Zelus.Sminus -> Sop(Sminus, s1, s2)
+     | Splus -> Oaux.plus e1 e2
+     | Sminus -> Oaux.minus e1 e2
+     | Smult -> Oaux.mult e1 e2
 
 (* makes an initial value from a type. returns None when it fails *)
 let choose env ty =
@@ -250,7 +241,7 @@ let choose env ty =
     | Tvar -> eany
     | Tproduct(ty_l) -> tuple (List.map value ty_l)
     | Tarrow _ -> eany
-    | Tvec(ty, s) -> vec (value ty) (size_of_type s)
+    | Tvec(ty, si) -> vec (value ty) (size_of_type si)
     | Tconstr(id, _, _) ->
        if id = Initial.int_ident then ezero
        else if id = Initial.bool_ident then efalse
@@ -269,7 +260,7 @@ let choose env ty =
       match g_list with
       | [] -> raise Not_found
       | { qualid = qualid; info = { constr_arity = arity } } :: g_list ->
-          if arity = 0 then Zelus.Econstr0(Lident.Modname(qualid))
+          if arity = 0 then Econstr0 { lname = Lident.Modname(qualid) }
           else findrec g_list in
     try
       (* look for a constructor with arity 0 *)
@@ -279,7 +270,8 @@ let choose env ty =
         (* otherwise, pick one *)
         let { qualid = qualid; info = { constr_arg = ty_list } } =
                                       List.hd g_list in
-        Zelus.Econstr1(Lident.Modname(qualid), List.map value ty_list) in
+        Econstr1 { lname = Lident.Modname(qualid);
+                   arg_list = List.map value ty_list } in
   Some(value ty)
 
 (** Computes a default value *)
@@ -294,8 +286,8 @@ let default env ty v_opt =
 let append loop_path l_env env =
   (* add a memory variable for every state variable in [l_env] *)
   (* and a [letvar] declaration for every shared variable *)
-  let addrec n { t_sort = k; t_typ = ty } (env_acc, mem_acc, var_acc) =
-    match k with
+  let addrec n { t_sort; t_typ } (env_acc, mem_acc, var_acc) =
+    match t_sort with
       | Sstatic
       | Sval ->
 	 Env.add n { e_typ = ty; e_sort = Out(n, k); e_size = [] } env_acc,
@@ -305,8 +297,9 @@ let append loop_path l_env env =
 	 mem_acc, (n, is_mutable ty, ty, default env ty v_opt) :: var_acc
       | Smem { m_kind = k_opt } ->
 	 Env.add n
-		 { e_typ = ty; e_sort = Out(n, k); e_size = loop_path } env_acc,
-	 Parseq.cons { m_name = n; m_value = choose env ty; m_typ = ty;
+	   { e_typ = ty; e_sort = Out(n, t_sort); e_size = loop_path }
+           env_acc,
+	 Parseq.cons { m_name = n; m_value = choose env ty; m_typ = t_typ;
 		      m_kind = k_opt; m_size = [] } mem_acc,
 	 var_acc in
   Env.fold addrec l_env (env, Parseq.empty, [])
