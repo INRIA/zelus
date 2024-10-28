@@ -3,7 +3,7 @@
 (*                                                                     *)
 (*          Zelus, a synchronous language for hybrid systems           *)
 (*                                                                     *)
-(*  (c) 2020 Inria Paris (see the AUTHORS file)                        *)
+(*  (c) 2024 Inria Paris (see the AUTHORS file)                        *)
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique. All rights reserved. This file is distributed under   *)
@@ -14,38 +14,39 @@
 
 (* translation from zelus code to obc *)
 (* applied to normalized and scheduled code *)
-open Zmisc
-open Zident
+open Misc
+open Ident
 open Global
 open Deftypes
 open Obc
        
 (* application *)
 let app e_fun e_list =
-  match e_list with | [] -> e_fun | _ -> Oapp(e_fun, e_list)
+  match e_list with | [] -> e_fun | _ -> Eapp { f = e_fun; arg_list = e_list }
 					     
-let sequence inst1 inst2 =
+(* let sequence inst1 inst2 =
   match inst1, inst2 with
-  | (Osequence [], inst) | (inst, Osequence []) -> inst
+  | (Esequence [], inst) | (inst, Osequence []) -> inst
   | Osequence(l1), Osequence(l2) -> Osequence(l1 @ l2)
   | _, Osequence(l2) -> Osequence(inst1 :: l2)
-  | _ -> Osequence [inst1; inst2]
+  | _ -> Osequence [inst1; inst2] *)
 
 (** Translation of the kind *)
 let kind = function
-  | Zelus.S | Zelus.A | Zelus.AD | Zelus.AS -> Ofun
-  | Zelus.C | Zelus.D -> Onode | Zelus.P -> Onode
+  | Zelus.Kfun _ -> Kfun
+  | Zelus.Knode k ->
+     Knode (match k with Zelus.Kdiscrete -> Kdiscrete | Zelus.Kcont -> Kcont)
     
 (** Translating type expressions. *)
 let rec type_expression { Zelus.desc = desc } =
   match desc with
-  | Zelus.Etypevar(s) -> Otypevar(s)
+  | Zelus.Etypevar(s) -> Etypevar(s)
   | Zelus.Etypeconstr(ln, ty_list) ->
-     Otypeconstr(ln, List.map type_expression ty_list)
+     Etypeconstr(ln, List.map type_expression ty_list)
   | Zelus.Etypetuple(ty_list) ->
-    Otypetuple(List.map type_expression ty_list)
+     Etypetuple(List.map type_expression ty_list)
   | Zelus.Etypevec(ty, s) ->
-     Otypevec(type_expression ty, size s)
+     Etypevec(type_expression ty, size s)
   | Zelus.Etypefun(k, opt_name, ty_arg, ty_res) ->
      Otypefun(kind k, opt_name, type_expression ty_arg, type_expression ty_res)
 
