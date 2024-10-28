@@ -28,7 +28,8 @@ let priority_exp = function
   | Etypeconstraint _ | Etuple _ | Efor _ | Ewhile _ -> 3
   | Econstr1 _ | Eapp _ | Emethodcall _ -> 2
   | Eassign _ | Eassign_state _  -> 1
-  | Eifthenelse _  | Ematch _ | Elet _ | Eletvar _ | Esequence _ -> 0
+  | Eifthenelse _  | Ematch _ | Elet _ | Eletvar _ | Eletmem _ | Eletinstance _
+    | Esequence _ -> 0
   | Efun _ | Emachine _ -> 0
 
 let immediate ff = function
@@ -56,7 +57,7 @@ let rec pattern ff pat = match pat with
   | Econstr0pat(lname) -> longname ff lname
   | Econstr1pat(lname, pat_list) ->
      fprintf ff "@[%a%a@]"
-             longname lname (print_list_r pattern "("","")") pat_list
+       longname lname (print_list_r pattern "("","")") pat_list
   | Evarpat { id; ty } ->
      fprintf ff "@[(%a:%a)@]" name id Printer.ptype ty
   | Etuplepat(pat_list) ->
@@ -68,13 +69,13 @@ let rec pattern ff pat = match pat with
   | Erecordpat(n_pat_list) ->
      print_list_r
        (print_record longname pattern "" " =" "") "{" ";" "}" ff n_pat_list
-                  
+
 and pattern_list ff pat_list =
   print_list_r pattern """""" ff pat_list
-               
+
 and pattern_comma_list ff pat_list =
   print_list_r pattern "("","")" ff pat_list
-               
+
 and method_name m_name = m_name
 
 (** Print the call to a method *)
@@ -88,12 +89,12 @@ and method_call ff { met_name = m; met_instance = i_opt; met_args = e_list } =
        | [] -> fprintf ff "self.%a" name o
        | e_list ->
 	  fprintf ff "self.%a.%a" name o
-		  (print_list_no_space
-		     (print_with_braces (exp 3) "(" ")") "" "." "") e_list in
+	    (print_list_no_space
+	       (print_with_braces (exp 3) "(" ")") "" "." "") e_list in
   fprintf ff "@[<hov 2>%a.%s @ %a@]"
-	  instance i_opt m
-	  (print_list_r (exp 3) "" "" "") e_list
-          
+    instance i_opt m
+    (print_list_r (exp 3) "" "" "") e_list
+
 and left_value ff left =
   match left with
   | Eleft_name(n) -> name ff n
@@ -101,7 +102,7 @@ and left_value ff left =
      fprintf ff "@[%a.%a@]" left_value left longname n
   | Eleft_index(left, idx) ->
      fprintf ff "@[%a.(%a)@]" left_value left (exp 0) idx
-             
+
 and left_state_value ff left =
   match left with
   | Eself -> fprintf ff "self."
@@ -114,7 +115,7 @@ and left_state_value ff left =
      fprintf ff "@[%a.(%a)@]" left_state_value left (exp 0) idx
   | Eleft_state_primitive_access(left, a) ->
      fprintf ff "@[%a%s@]" left_state_value left (state_primitive_access a)
-       
+
 and assign ff left e =
   match left with
   | Eleft_name(n) ->
@@ -130,8 +131,8 @@ and assign_state ff left e =
 
 and state_primitive_access a =
   match a with
-    | Eder -> ".der" | Epos -> ".pos"
-    | Ezero_out -> ".zout"  | Ezero_in -> ".zin" 
+  | Eder -> ".der" | Epos -> ".pos"
+  | Ezero_out -> ".zout"  | Ezero_in -> ".zin" 
 
 and var ff n = name ff n
 
@@ -142,7 +143,7 @@ and letvar ff n ty e_opt e =
        "@[<v 0>var %a: %a in@ %a@]" name n Printer.ptype ty (exp 0) e
   | Some(e0) ->
      fprintf ff "@[<v 0>var %a: %a = %a in@ %a@]"
-	     name n Printer.ptype ty (exp 0) e0 (exp 0) e
+       name n Printer.ptype ty (exp 0) e0 (exp 0) e
 
 and exp prio ff e =
   let prio_e = priority_exp e in
@@ -152,7 +153,7 @@ and exp prio ff e =
   | Econstr0 { lname } -> longname ff lname
   | Econstr1 { lname; arg_list } ->
      fprintf ff "@[%a%a@]"
-             longname lname (print_list_r (exp prio_e) "("","")") arg_list
+       longname lname (print_list_r (exp prio_e) "("","")") arg_list
   | Eglobal { lname } -> longname ff lname
   | Evar { id } -> var ff id
   | Estate_access(l) -> left_state_value ff l
@@ -160,8 +161,8 @@ and exp prio ff e =
      fprintf ff "@[<hov2>%a@]" (print_list_r (exp prio_e) "("","")") e_list
   | Eapp { f; arg_list } ->
      fprintf ff "@[<hov2>%a %a@]"
-             (exp (prio_e + 1)) f (print_list_r (exp (prio_e + 1)) """""")
-             arg_list
+       (exp (prio_e + 1)) f (print_list_r (exp (prio_e + 1)) """""")
+       arg_list
   | Emethodcall m -> method_call ff m
   | Erecord(label_e_list) ->
      print_list_r
@@ -177,11 +178,19 @@ and exp prio ff e =
      fprintf ff "@[(%a : %a)@]" (exp prio_e) e Printer.ptype ty_e
   | Eifthenelse(e, e1, e2) ->
      fprintf ff "@[<hv>if %a@ @[<hv 2>then@ %a@]@ @[<hv 2>else@ %a@]@]"
-             (exp 0) e (exp 1) e1 (exp 1) e2
+       (exp 0) e (exp 1) e1 (exp 1) e2
   | Elet(p, e1, e2) ->
      fprintf ff "@[<v 0>let %a in@ %a@]" pat_exp (p, e1) (exp (prio_e - 1)) e2
   | Eletvar { id; is_mutable; ty; e_opt; e } ->
      letvar ff id ty e_opt e
+  | Eletmem(m_list, e) ->
+     fprintf ff "@[<v 0>let @[<v 2>mem@,@[%a@]@] in@ %a@]"
+       (print_list_r memory "" ";" "") m_list
+       (exp 0) e
+  | Eletinstance(i_list, e) ->
+     fprintf ff "@[<v 0>let @[<v 2>instances@,@[%a@]@] in@ %a@]"
+       (print_list_r instance "" ";" "") i_list
+       (exp 0) e
   | Ematch(e, match_handler_l) ->
      fprintf ff "@[<v2>match %a with@ @[%a@]@]"
        (exp 0) e
@@ -204,12 +213,12 @@ and exp prio ff e =
      fprintf ff "%a.(@[%a@])" (exp prio_e) e Printer.size size
   | Eupdate { e; size; index; arg } ->
      fprintf ff "@[<hov2>{%a:%a with@ %a = %a}@]"
-             (exp prio_e) e Printer.size size Printer.size index (exp 0) arg
+       (exp prio_e) e Printer.size size Printer.size index (exp 0) arg
   | Emake { e; size } ->
      fprintf ff "%a[%a]" (exp prio_e) e Printer.size size
   | Eslice { e; left; right } ->
      fprintf ff "%a{%a..%a}"
-             (exp prio_e) e Printer.size left Printer.size right
+       (exp prio_e) e Printer.size left Printer.size right
   | Econcat { left; left_size; right; right_size } ->
      fprintf ff "{%a:%a | %a:%a}"
        (exp 0) left Printer.size left_size (exp 0) right
@@ -221,10 +230,10 @@ and exp prio ff e =
 
 and pat_exp ff (p, e) =
   fprintf ff "@[@[%a@] =@ @[%a@]@]" pattern p (exp 0) e
-          
+
 and exp_with_typ ff (e, ty) =
   fprintf ff "(%a:%a)" (exp 2) e ptype ty
-	  
+
 and expression ff e = exp 0 ff e
 
 and match_handler ff { m_pat = pat; m_body = b } =
@@ -240,24 +249,24 @@ and mkind mk =
 
 and memory ff { m_name; m_value; m_typ; m_kind = k; m_size } =
   fprintf ff "%s%a%a : %a = %a" (mkind k) name m_name
-	     (print_list_no_space (print_with_braces (exp 0) "[" "]") "" "" "")
-	     m_size ptype m_typ (print_opt (exp 0)) m_value
-             
+    (print_list_no_space (print_with_braces (exp 0) "[" "]") "" "" "")
+    m_size ptype m_typ (print_opt (exp 0)) m_value
+
 and instance ff { i_name; i_machine; i_kind;
 		  i_params; i_sizes } =
   fprintf ff "@[%a : %s(%a)%a%a@]" name i_name (kind i_kind) (exp 0) i_machine
-	  (print_list_no_space
-	     (print_with_braces (exp 0) "(" ")") "" "" "")
-	  i_params
-	  (print_list_no_space
-	     (print_with_braces (exp 0) "[" "]") "" "" "")
-	  i_sizes
-          
+    (print_list_no_space
+       (print_with_braces (exp 0) "(" ")") "" "" "")
+    i_params
+    (print_list_no_space
+       (print_with_braces (exp 0) "[" "]") "" "" "")
+    i_sizes
+
 and pmethod ff { me_name; me_params; me_body; me_typ } =
   fprintf ff "@[<hov 2>method %s %a@ =@ (%a:%a)@]"
     (method_name me_name) pattern_list me_params (exp 2) me_body
     ptype me_typ
-          
+
 and pinitialize ff i_opt =
   match i_opt with
   | None -> ()
@@ -267,14 +276,14 @@ and pinitialize ff i_opt =
 and machine ff { ma_kind; ma_params; ma_initialize;
 		 ma_memories; ma_instances; ma_methods } =
   fprintf ff
-   "@[<hov 2>machine(%s)%a@ \
-   {@, %a@,@[<v2>memories@ @[%a@]@]@;@[<v 2>instances@ @[%a@]@]@;@[%a@]@]]}@.@]"
-   (kind ma_kind)
-   pattern_list ma_params
-   pinitialize ma_initialize
-   (print_list_r_empty memory """;""") ma_memories
-   (print_list_r_empty instance """;""") ma_instances
-   (print_list_r pmethod """""") ma_methods
+    "@[<hov 2>machine(%s)%a@ \
+     {@, %a@,@[<v2>memories@ @[%a@]@]@;@[<v 2>instances@ @[%a@]@]@;@[%a@]@]]}@.@]"
+    (kind ma_kind)
+    pattern_list ma_params
+    pinitialize ma_initialize
+    (print_list_r_empty memory """;""") ma_memories
+    (print_list_r_empty instance """;""") ma_instances
+    (print_list_r pmethod """""") ma_methods
 
 (* The main entry functions for expressions and instructions *)
 let type_decl ff ty_decl = Printer.type_decl ff ty_decl
