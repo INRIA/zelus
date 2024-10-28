@@ -21,6 +21,12 @@ open Pp_tools
 open Printer
 open Oprinter
 
+let typ_bool =
+  { Zelus.desc = Zelus.Etypeconstr(Lident.Modname (Initial.bool_ident), []);
+    Zelus.loc = Location.no_location }
+let typ_float =
+  { Zelus.desc = Zelus.Etypeconstr(Lident.Modname (Initial.float_ident), []);
+    Zelus.loc = Location.no_location }
 
 let immediate ff = function
   | Eint i ->
@@ -41,8 +47,34 @@ let immediate ff = function
 		    
 let default_list_of_methods = [Oaux.step; Oaux.reset]
 
+(* Define the data-type for the internal state of a machine *)
+(* A prefix "_" is added to the name of the machine to avoid *)
+(* name conflicts *)
+let def_type_for_a_machine ff f memories instances =
+  let one_entry ff (n, m) =
+    fprintf ff "@[mutable %a : '%s@]" name n m in
+  let i, params, entries =
+    List.fold_right
+      (fun { m_name = n } (i, params, entries) ->
+        let m = Genames.int_to_alpha i in (i+1, m :: params, (n, m) :: entries))
+      memories (0, [], []) in
+  let i, params, entries =
+    List.fold_right
+      (fun { i_name = n } (i, params, entries) ->
+        let m = Genames.int_to_alpha i in (i+1, m :: params, (n, m) :: entries))
+      instances (i, params, entries) in
+  (* if the state is empty, produce the dummy state type [unit] *)
+  if entries = []
+  then fprintf ff "@[type _%s = unit@.@.@]" f
+  else
+    fprintf ff "@[<v 2>type @[%a@] _%s =@ { @[%a@] }@.@.@]"
+      (Pp_tools.print_list_r (fun ff s -> fprintf ff "'%s" s)
+         "("","")") params
+      f
+      (Pp_tools.print_list_r one_entry """;""") entries
+
 (* Print the call to a method *)
-and method_call ff { met_name; met_instance; met_args } =
+let method_call ff { met_name; met_instance; met_args } =
   let m = method_name met_name in
   let instance_name ff i_opt =
     match i_opt with
@@ -62,12 +94,12 @@ and method_call ff { met_name; met_instance; met_args } =
 	  instance_name met_instance m instance met_instance
 	  (print_list_r (exp 3) "" "" "") met_args
 
-and var ff left =
+let var ff left =
   match left with
   | Eleft_name(n) -> fprintf ff "@[!%a@]" name n
   | _ -> left_value ff left
 
-and left_state_value ff left =
+let left_state_value ff left =
   match left with
   | Eself -> fprintf ff "self."
   | Eleft_instance_name(n) -> fprintf ff "self.%a" name n
@@ -81,20 +113,20 @@ and left_state_value ff left =
      fprintf ff "@[%a%s@]" left_state_value left
        (Oprinter.state_primitive_access a)
 
-and assign ff left e =
+let assign ff left e =
   match left with
   | Eleft_name(n) ->
      fprintf ff "@[<v 2>%a := %a@]" name n (exp 2) e
   | _ ->
      fprintf ff "@[<v 2>%a <- %a@]" left_value left (exp 2) e
 
-and assign_state ff left e =
+let assign_state ff left e =
   match left with
   | Eleft_state_global(gname) ->
      fprintf ff "@[<v 2>%a := %a@]" longname gname (exp 2) e
   | _ -> fprintf ff "@[<v 2>%a <- %a@]" left_state_value left (exp 2) e
 
-and letvar ff n is_mutable ty e_opt e =
+let rec letvar ff n is_mutable ty e_opt e =
   let s = if is_mutable then "" else "ref " in
   match e_opt with
   | None ->
@@ -141,7 +173,14 @@ and exp prio ff e =
   | Elet(p, e1, e2) ->
      fprintf ff "@[<v 0>let %a in@ %a@]" pat_exp (p, e1) (exp (prio_e - 1)) e2
   | Eletvar { id; is_mutable; ty; e_opt; e } ->
-     letvar ff id ty e_opt e
+     letvar ff id is_mutable ty e_opt e
+  | Eletmem(m_list, e) ->
+     fprintf ff "@[<v 0>let %a in@ %a@]"
+       (print_list_r print_memory "" "and" "") m_list (exp 0) e
+  | Eletinstance(i_list, e) ->
+     fprintf ff
+       "@[<v 0>let %a in@ %a@]"
+        (print_list_r print_instance "" "and" "") i_list (exp 0) e
   | Ematch(e, match_handler_l) ->
      fprintf ff "@[<v2>match %a with@ @[%a@]@]"
        (exp 0) e
@@ -211,42 +250,9 @@ and pat_exp ff (p, e) =
 and match_handler ff { m_pat; m_body } =
   fprintf ff "@[<hov 4>| %a ->@ %a@]" pattern m_pat (exp 0) m_body
 
-(* Define the data-type for the internal state of a machine *)
-(* A prefix "_" is added to the name of the machine to avoid *)
-(* name conflicts *)
-let def_type_for_a_machine ff f memories instances =
-  let one_entry ff (n, m) =
-    fprintf ff "@[mutable %a : '%s@]" name n m in
-  let i, params, entries =
-    List.fold_right
-      (fun { m_name = n } (i, params, entries) ->
-        let m = Genames.int_to_alpha i in (i+1, m :: params, (n, m) :: entries))
-      memories (0, [], []) in
-  let i, params, entries =
-    List.fold_right
-      (fun { i_name = n } (i, params, entries) ->
-        let m = Genames.int_to_alpha i in (i+1, m :: params, (n, m) :: entries))
-      instances (i, params, entries) in
-  (* if the state is empty, produce the dummy state type [unit] *)
-  if entries = []
-  then fprintf ff "@[type _%s = unit@.@.@]" f
-  else
-    fprintf ff "@[<v 2>type @[%a@] _%s =@ { @[%a@] }@.@.@]"
-      (Pp_tools.print_list_r (fun ff s -> fprintf ff "'%s" s)
-         "("","")") params
-      f
-      (Pp_tools.print_list_r one_entry """;""") entries
-
-let exp_with_typ ff (e, ty) = fprintf ff "(%a:%a)" (exp 2) e ptype ty
-
-(* Print the method as a function *)
-let pmethod f ff { me_name; me_params; me_body; me_typ } =
-  fprintf ff "@[<v 2>let %s_%s self %a =@ (%a:%a) in@]"
-    f (method_name me_name) pattern_list me_params (exp 2) me_body
-    Printer.ptype me_typ
-
 (* create an array of type t[n_1]...[n_k] *)
-let array_make print arg ff ie_size =
+and array_make : 'a. (_ -> 'a -> _) -> 'a -> _ -> _ -> _ =
+  fun print arg ff ie_size ->
   let rec array_rec ff = function
     | [] -> fprintf ff "%a" print arg
     | ie :: ie_size ->
@@ -254,7 +260,7 @@ let array_make print arg ff ie_size =
 	       (exp 3) ie array_rec ie_size in
   array_rec ff ie_size
 
-let rec array_of e_opt ty ff ie_size =
+and array_of e_opt ty ff ie_size =
   let exp_of ff (e_opt, ty) =
     match e_opt, ty with
     | Some(e), _ -> exp 2 ff e
@@ -267,6 +273,48 @@ let rec array_of e_opt ty ff ie_size =
 	     "@[<hov 2>Array.init %a@ (fun _ -> %a)@]" (exp 3) ie
 	     (array_of e_opt ty) ie_list
 
+(* Print the allocation function *)
+and print_memory ff { m_name; m_value; m_typ; m_kind; m_size } =
+  match m_kind with
+  | Ediscrete ->
+     (* discrete state variable *)
+     begin
+       match m_value with
+       | None ->
+	  fprintf ff "@[%a = %a@]" name m_name
+	    (array_make (fun ff _ -> fprintf ff "(Obj.magic (): %a)"
+				       ptype m_typ) ())
+	    m_size
+       | Some(e) ->
+	  fprintf ff "@[%a = %a@]" name m_name
+	    (array_make exp_with_typ (e, m_typ)) m_size
+     end
+  | Ezero ->
+     fprintf ff "@[%a = @[<hov 2>{ zin = %a;@ zout = %a }@]@]"
+       name m_name (array_of m_value typ_bool) m_size
+       (array_of (Some(Econst(Efloat(1.0)))) typ_float)
+       m_size
+  | Econt ->
+     fprintf ff "@[%a = @[<hov 2>{ pos = %a; der = %a }@]@]"
+       name m_name (array_of m_value m_typ) m_size
+       (* the default value of a derivative must be zero *)
+       (array_of (Some(Econst(Efloat(0.0)))) m_typ) m_size
+  | Ehorizon | Emajor ->
+     fprintf ff "%a = %a" name m_name (array_of m_value m_typ) m_size
+    
+and print_instance ff { i_name; i_machine; i_kind; i_params; i_sizes } =
+    fprintf ff "@[%a = %a (* %s *)@ @]" name i_name
+      (array_make (fun ff n -> fprintf ff "%a_alloc ()" name n) i_name)
+      i_sizes (kind i_kind)
+
+and exp_with_typ ff (e, ty) = fprintf ff "(%a:%a)" (exp 2) e ptype ty
+
+(* Print the method as a function *)
+let pmethod f ff { me_name; me_params; me_body; me_typ } =
+  fprintf ff "@[<v 2>let %s_%s self %a =@ (%a:%a) in@]"
+    f (method_name me_name) pattern_list me_params (exp 2) me_body
+    Printer.ptype me_typ
+
 let constructor_for_kind = function
   | Zelus.Knode _ -> "Node"
   | Zelus.Kfun _ -> assert false
@@ -278,46 +326,7 @@ let print_initialize ff e_opt =
   match e_opt with
   | None -> fprintf ff "()" | Some(e) -> fprintf ff "%a" (exp 0) e
 
-(* Print the allocation function *)
 let palloc f i_opt memories ff instances =
-  let typ_bool =
-    { Zelus.desc = Zelus.Etypeconstr(Lident.Modname (Initial.bool_ident), []);
-      Zelus.loc = Location.no_location } in
-  let typ_float =
-    { Zelus.desc = Zelus.Etypeconstr(Lident.Modname (Initial.float_ident), []);
-      Zelus.loc = Location.no_location } in
-  let print_memory ff { m_name; m_value; m_typ; m_kind; m_size } =
-    match m_kind with
-    | Ediscrete ->
-       (* discrete state variable *)
-       begin
-	 match m_value with
-         | None ->
-	    fprintf ff "@[%a = %a@]" name m_name
-	      (array_make (fun ff _ -> fprintf ff "(Obj.magic (): %a)"
-					 ptype m_typ) ())
-	      m_size
-         | Some(e) ->
-	    fprintf ff "@[%a = %a@]" name m_name
-	      (array_make exp_with_typ (e, m_typ)) m_size
-       end
-    | Ezero ->
-       fprintf ff "@[%a = @[<hov 2>{ zin = %a;@ zout = %a }@]@]"
-	 name m_name (array_of m_value typ_bool) m_size
-	 (array_of (Some(Econst(Efloat(1.0)))) typ_float)
-	 m_size
-    | Econt ->
-       fprintf ff "@[%a = @[<hov 2>{ pos = %a; der = %a }@]@]"
-	 name m_name (array_of m_value m_typ) m_size
-	 (* the default value of a derivative must be zero *)
-	 (array_of (Some(Econst(Efloat(0.0)))) m_typ) m_size
-    | Ehorizon | Emajor ->
-       fprintf ff "%a = %a" name m_name (array_of m_value m_typ) m_size in
-  
-  let print_instance ff { i_name; i_machine; i_kind; i_params; i_sizes } =
-    fprintf ff "@[%a = %a (* %s *)@ @]" name i_name
-      (array_make (fun ff n -> fprintf ff "%a_alloc ()" name n) i_name)
-      i_sizes (kind i_kind)  in
   if memories = []
   then if instances = []
        then fprintf ff "@[let %s_alloc _ = %a in@]" f print_initialize i_opt
