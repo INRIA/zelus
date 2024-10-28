@@ -41,41 +41,6 @@ let immediate ff = function
 		    
 let default_list_of_methods = [Oaux.step; Oaux.reset]
 
-let print_concrete_type ff ty =
-  let priority =
-    function | Etypevar _ | Etypeconstr _ | Etypevec _ | Etypesize _ -> 2
-             | Etypetuple _ -> 2 | Etypefun _ -> 1 in
-  let rec ptype prio ff ty =
-    let prio_ty = priority ty in
-    if prio_ty < prio then fprintf ff "(";
-    begin match ty with
-    | Etypevar(s) -> fprintf ff "'%s" s
-    | Etypefun(k, ty_arg, ty_res) ->
-      begin match k with
-        | Fun ->
-           fprintf ff "@[<hov2>%a ->@ %a@]"
-              (ptype (prio_ty+1)) ty_arg (ptype prio_ty) ty
-        | Node | Hybrid ->
-           fprintf ff "@[<hov2>(%a, %a) node@]"
-             (ptype (prio_ty+1)) ty_arg (ptype prio_ty) ty
-        end
-    | Etypetuple(ty_list) ->
-       fprintf ff
-	       "@[<hov2>%a@]" (print_list_r (ptype prio_ty) "("" *"")") ty_list
-    | Etypeconstr(ln, ty_list) ->
-       fprintf ff "@[<hov2>%a@]%a"
-               (print_list_r_empty (ptype 2) "("","")") ty_list longname ln
-    | Etypevec(ty_arg, si) ->
-       fprintf ff "@[%a %a@]" (ptype prio_ty) ty_arg
-               longname (Lident.Modname Initial.array_ident)
-    | Etypesize(is_singleton, si) ->
-       fprintf ff "@[%a@]" longname (Lident.Modname Initial.array_ident)
-     end;
-    if prio_ty < prio then fprintf ff ")" in
-  ptype 0 ff ty
-
-let ptype ff ty = print_concrete_type ff ty
-
 (* Print the call to a method *)
 and method_call ff { met_name; met_instance; met_args } =
   let m = method_name met_name in
@@ -169,7 +134,7 @@ and exp prio ff e =
        (print_list_r
           (print_record longname (exp 0) "" " =" "") "{" ";" "}") label_e_list
   | Etypeconstraint(e, ty_e) ->
-      fprintf ff "@[(%a : %a)@]" (exp prio_e) e print_concrete_type ty_e
+      fprintf ff "@[(%a : %a)@]" (exp prio_e) e ptype ty_e
   | Eifthenelse(e, e1, e2) ->
       fprintf ff "@[<hv>if %a@ @[<hv 2>then@ %a@]@ @[<hv 2>else@ %a@]@]"
         (exp 0) e (exp prio_e) e1 (exp prio_e) e2
@@ -196,24 +161,24 @@ and exp prio ff e =
        fprintf ff
          "@[<hv>%a@]" (print_list_r (exp 1) "" ";" "") e_list
   | Eget { e; size} ->
-     fprintf ff "%a.(@[%a@])" (exp prio_e) e (psize 0) size
+     fprintf ff "%a.(@[%a@])" (exp prio_e) e Printer.size size
   | Eupdate { e; index; arg } ->
      (* returns a fresh vector [_t] of size [se] equal to [e2] except at *)
      (* [i] where it is equal to [e2] *)
      fprintf ff "@[(let _t = Array.copy (%a) in@ _t.(%a) <- %a; _t)@]"
-             (exp 0) e (psize 0) index (exp 0) arg
+             (exp 0) e Printer.size index (exp 0) arg
   | Emake { e; size } ->
      (* make a vector *)
      let print_vec ff e se =
        match e with
        | Econst _ ->
 	  fprintf ff "@[<hov 2>Array.make@ (%a)@ (%a)@]"
-                                  (psize prio_e) se (exp prio_e) e
+                                  Printer.size se (exp prio_e) e
        | Emake { e; size } ->
 	  fprintf ff "@[<hov 2>Array.make_matrix@ (%a)@ (%a)@ (%a)@]"
-                      (psize prio_e) se (psize prio_e) size (exp prio_e) e
+                      Printer.size se Printer.size size (exp prio_e) e
        | _ -> fprintf ff "@[<hov 2>Array.init@ @[(%a)@]@ @[(fun _ -> %a)@]@]"
-		      (psize prio_e) se (exp prio_e) e in
+		      Printer.size se (exp prio_e) e in
      print_vec ff e size
   | Eslice { e; left; right; length } ->
      (* returns a fresh vector [_t] of size [s1+s2] *)
@@ -222,8 +187,8 @@ and exp prio ff e =
                     for i = 0 to %a - 1 do @ \
                       _t.(i) <- %a.(i+%a) done; @ \
                     _t)@]"
-             (psize 2) length (exp 2) e (psize 0) right
-             (exp 2) e (psize 0) left
+             Printer.size length (exp 2) e Printer.size right
+             (exp 2) e Printer.size left
   | Econcat { left; left_size; right; right_size } ->
      (* returns a fresh vector [_t] of size [s1+s2] *)
      (* with _t.(i) = e1.(i) forall i in [0..s1-1] and *)
@@ -232,9 +197,9 @@ and exp prio ff e =
                     Array.blit %a 0 _t 0 %a; @ \
                     Array.blit %a 0 _t %a; @ \
                     _t)@]"
-             (psize 0) left_size (psize 0) right_size (exp 2) left
-             (exp 2) left (psize 0) left_size
-             (exp 2) right (psize 0) right_size
+             Printer.size left_size Printer.size right_size (exp 2) left
+             (exp 2) left Printer.size left_size
+             (exp 2) right Printer.size right_size
   | Emachine(ma) -> machine ff ma
   | Efun _ -> ()
   end;
@@ -278,7 +243,7 @@ let exp_with_typ ff (e, ty) = fprintf ff "(%a:%a)" (exp 2) e ptype ty
 let pmethod f ff { me_name; me_params; me_body; me_typ } =
   fprintf ff "@[<v 2>let %s_%s self %a =@ (%a:%a) in@]"
     f (method_name me_name) pattern_list me_params (exp 2) me_body
-    print_concrete_type me_typ
+    Printer.ptype me_typ
 
 (* create an array of type t[n_1]...[n_k] *)
 let array_make print arg ff ie_size =
@@ -303,8 +268,8 @@ let rec array_of e_opt ty ff ie_size =
 	     (array_of e_opt ty) ie_list
 
 let constructor_for_kind = function
-  | Node | Hybrid -> "Node"
-  | Fun -> assert false
+  | Zelus.Knode _ -> "Node"
+  | Zelus.Kfun _ -> assert false
 
 let expected_list_of_methods = default_list_of_methods
 
@@ -315,8 +280,12 @@ let print_initialize ff e_opt =
 
 (* Print the allocation function *)
 let palloc f i_opt memories ff instances =
-  let typ_bool = Etypeconstr(Lident.Modname (Initial.bool_ident), []) in
-  let typ_float = Etypeconstr(Lident.Modname (Initial.float_ident), []) in
+  let typ_bool =
+    { Zelus.desc = Zelus.Etypeconstr(Lident.Modname (Initial.bool_ident), []);
+      Zelus.loc = Location.no_location } in
+  let typ_float =
+    { Zelus.desc = Zelus.Etypeconstr(Lident.Modname (Initial.float_ident), []);
+      Zelus.loc = Location.no_location } in
   let print_memory ff { m_name; m_value; m_typ; m_kind; m_size } =
     match m_kind with
     | Ediscrete ->
@@ -378,8 +347,8 @@ let def_instance_function ff { i_name; i_machine; i_kind; i_params; i_sizes } =
   let list_of_methods ff m_list =  print_list_r method_name """;""" ff m_list in
 
   match i_kind with
-  | Fun -> ()
-  | Node | Hybrid ->
+  | Zelus.Kfun _ -> ()
+  | Zelus.Knode _ ->
      let m_name_list = expected_list_of_methods in
      let k = constructor_for_kind i_kind in
      fprintf ff
@@ -405,8 +374,8 @@ let machine f ff { ma_kind; ma_params; ma_initialize; ma_memories;
   (* or [k { alloc = f_alloc; m1 = f_m1; ...; mn = f_mn }] *)
   let tuple_of_methods ff m_name_list =
     match ma_kind with
-    | Fun -> fprintf ff "%s" f
-    | Node | Hybrid ->
+    | Zelus.Kfun _ -> fprintf ff "%s" f
+    | Zelus.Knode _ ->
        let method_name ff me_name =
 	 let m = method_name me_name in
 	 fprintf ff "@[%s = %s_%s@]" m f m in
