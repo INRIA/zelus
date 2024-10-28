@@ -352,40 +352,42 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
   match desc with
   | Zelus.Econst(i) -> Oconst(immediate i), code
   | Zelus.Evar(n)
-  | Zelus.Elast(n) -> var (entry_of n env), code
-  | Zelus.Eglobal { lname = ln } -> Oglobal(ln), code
-  | Zelus.Econstr0(ln) -> Oconstr0(ln), code
-  | Zelus.Econstr1(ln, e_list) ->
-      let e_list, code = Zmisc.map_fold (exp env loop_path) code e_list in
-      Oconstr1(ln, e_list), code
+  | Zelus.Elast { id = n } -> var (entry_of n env), code
+  | Zelus.Eglobal { lname = ln } -> Eglobal(ln), code
+  | Zelus.Econstr0 { lname } -> Econstr0 { lname }, code
+  | Zelus.Econstr1 { lname; arg_list } ->
+      let arg_list, code = Misc.mapfold (exp env loop_path) code arg_list in
+      Econstr1 { lname; arg_list }, code
   | Zelus.Etuple(e_list) ->
-     let e_list, code = Zmisc.map_fold (exp env loop_path) code e_list in
-     Otuple(e_list), code
+     let e_list, code = Misc.mapfold (exp env loop_path) code e_list in
+     Etuple(e_list), code
   | Zelus.Erecord(label_e_list) ->
      let label_e_list, code =
-       Zmisc.map_fold
-	 (fun code (l, e) -> let e, code = exp env loop_path code e in
-			     (l, e), code) code label_e_list in
-     Orecord(label_e_list), code
-  | Zelus.Erecord_access(e_record, longname) ->
-     let e_record, code =
+       Util.mapfold
+	 (fun code { label; arg } ->
+           let arg, code = exp env loop_path code arg in
+	   { label; arg }, code) code label_e_list in
+     Erecord(label_e_list), code
+  | Zelus.Erecord_access { label; arg } ->
+     let arg, code =
        exp env loop_path code e_record in
-     Orecord_access(e_record, longname), code
+     Erecord_access { label; arg }, code
   | Zelus.Erecord_with(e_record, label_e_list) ->
      let e_record, code =
        exp env loop_path code e_record in
      let label_e_list, code =
        Zmisc.map_fold
-	 (fun code (l, e) -> let e, code = exp env loop_path code e in
-			     (l, e), code) code label_e_list in
-     Orecord_with(e_record, label_e_list), code
+	 (fun code { label; arg } ->
+           let arg, code = exp env loop_path code e in
+	   { label; arg }, code) code label_e_list in
+     Erecord_with(e_record, label_e_list), code
   | Zelus.Etypeconstraint(e, ty_exp) ->
      let e, code = exp env loop_path code e in
      let ty_exp = type_expression ty_exp in
-     Otypeconstraint(e, ty_exp), code
+     Etypeconstraint(e, ty_exp), code
   | Zelus.Eop(Zelus.Eup, [e]) ->
      (* implement the zero-crossing up(x) by up(if x >=0 then 1 else -1) *)
-     let e = if !Zmisc.zsign then Zaux.sgn e else e in 
+     let e = if !Misc.zsign then Zaux.sgn e else e in 
      exp env loop_path code e
   | Zelus.Eop(Zelus.Ehorizon, [e]) ->
      exp env loop_path code e
@@ -393,31 +395,31 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      let e1, code = exp env loop_path code e1 in
      let e2, code = exp env loop_path code e2 in
      let e3, code = exp env loop_path code e3 in
-     Oifthenelse(e1, e2, e3), code
-  | Zelus.Eop(Zelus.Eaccess, [e1; e2]) ->
+     Eifthenelse(e1, e2, e3), code
+  | Zelus.Eop(Zelus.Earray(Eget), [e1; e2]) ->
      let e1, code = exp env loop_path code e1 in
      let e2, code = exp env loop_path code e2 in
-     Oaccess(e1, e2), code
-  | Zelus.Eop(Zelus.Eupdate, [e1; i; e2]) ->
+     Eget(e1, e2), code
+  | Zelus.Eop(Zelus.Earray(Eupdate), [e1; i; e2]) ->
      let _, se = Ztypes.filter_vec e1.Zelus.e_typ in
      let se = size_of_type se in
      let e1, code = exp env loop_path code e1 in
      let i, code = exp env loop_path code i in
      let e2, code = exp env loop_path code e2 in
-     Oupdate(se, e1, i, e2), code
-  | Zelus.Eop(Zelus.Eslice(s1, s2), [e]) ->
+     Eupdate(se, e1, i, e2), code
+  | Zelus.Eop(Zelus.Earray(Eslice), [e1; e2; e]) ->
      let s1 = size s1 in
      let s2 = size s2 in
      let e, code = exp env loop_path code e in
-     Oslice(e, s1, s2), code
-  | Zelus.Eop(Zelus.Econcat, [e1; e2]) ->
+     Eslice(e, s1, s2), code
+  | Zelus.Eop(Zelus.Earray(Econcat), [e1; e2]) ->
      let _, s1 = Ztypes.filter_vec e1.Zelus.e_typ in
      let _, s2 = Ztypes.filter_vec e2.Zelus.e_typ in
      let s1 = size_of_type s1 in
      let s2 = size_of_type s2 in
      let e1, code = exp env loop_path code e1 in
      let e2, code = exp env loop_path code e2 in
-     Oconcat(e1, s1, e2, s2), code
+     Econcat(e1, s1, e2, s2), code
   | Zelus.Eop(Zelus.Eatomic, [e]) ->
      exp env loop_path code e  
   | Zelus.Elet _ | Zelus.Eseq _ | Zelus.Eperiod _ 
