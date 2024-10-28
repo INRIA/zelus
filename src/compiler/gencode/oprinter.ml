@@ -267,14 +267,14 @@ and memory ff { m_name; m_value; m_typ; m_kind; m_size } =
     (print_list_no_space (print_with_braces (exp 0) "[" "]") "" "" "")
     m_size ptype m_typ (print_opt (exp 0)) m_value
 
-and instance ff { i_name; i_machine; i_kind; i_params; i_sizes } =
+and instance ff { i_name; i_machine; i_kind; i_params; i_size } =
   fprintf ff "@[%a : %s(%a)%a%a@]" name i_name (kind i_kind) (exp 0) i_machine
     (print_list_no_space
        (print_with_braces (exp 0) "(" ")") "" "" "")
     i_params
     (print_list_no_space
        (print_with_braces (exp 0) "[" "]") "" "" "")
-    i_sizes
+    i_size
 
 and pmethod ff { me_name; me_params; me_body; me_typ } =
   fprintf ff "@[<hov 2>method %s %a@ =@ (%a:%a)@]"

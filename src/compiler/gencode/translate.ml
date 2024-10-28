@@ -323,9 +323,10 @@ let apply k env loop_path e e_list
   | Deftypes.Tfun _ -> Eapp { f = e; arg_list = e_list }, code
   | Deftypes.Tnode _ ->
      (* the first [n-1] arguments are static *)
-     let se_list, arg = Misc.firsts e_list in
-     let f_opt = match e with | Eglobal(g) -> Some(g) | _ -> None in
-     let loop_path = List.map (fun ix -> Elocal(ix)) loop_path in
+     let se_list, arg = Util.firsts e_list in
+     let f_opt = match e with | Eglobal { lname } -> Some lname | _ -> None in
+     let loop_path =
+       List.map (fun ix -> Evar { is_mutable = false; id = ix }) loop_path in
      (* create an instance *)
      let o = Ident.fresh "i" in
      let j_code = { i_name = o; i_machine = e; i_kind = k;
@@ -338,8 +339,8 @@ let apply k env loop_path e e_list
 		     met_instance = Some(o, loop_path); met_args = [arg] }) in
      step_code,
      { code with instances = Parseq.cons j_code j;
-		 init = seq (Oexp(reset_code)) i;
-		 reset = seq (Oexp(reset_code)) r }
+		 init = Oaux.seq reset_code i;
+		 reset = Oaux.seq reset_code r }
        
 (** Translation of expressions under an environment [env] *)
 (* [code] is the code already generated in the context. *)

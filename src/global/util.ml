@@ -66,5 +66,11 @@ let mapfold f acc l =
 (* duplicate a value into a list *)
 let rec list_of n v = if n = 0 then [] else v :: (list_of (n-1) v)
 
+(* takes the first patterns of the list, except the last one *)
+let rec firsts = function
+    | [] -> assert false
+    | [p] -> [], p
+    | p :: l -> let head, tail = firsts l in p :: head, tail
+
 (* execute only *)
 let continue_if_not b x f = if b then x else f x

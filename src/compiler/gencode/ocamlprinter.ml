@@ -285,24 +285,24 @@ and print_memory ff { m_name; m_value; m_typ; m_kind; m_size } =
      end
   | Some(k) ->
      match k with
-       Ezero ->
+       Zero ->
         fprintf ff "@[%a = @[<hov 2>{ zin = %a;@ zout = %a }@]@]"
           name m_name (array_of m_value Initial.typ_bool) m_size
           (array_of (Some(Econst(Efloat(1.0)))) Initial.typ_float)
           m_size
-     | Econt ->
+     | Cont ->
         fprintf ff "@[%a = @[<hov 2>{ pos = %a; der = %a }@]@]"
           name m_name (array_of m_value m_typ) m_size
           (* the default value of a derivative must be zero *)
           (array_of (Some(Econst(Efloat(0.0)))) m_typ) m_size
-     | Ehorizon | Emajor | Eperiod | Eencore ->
+     | Horizon | Major | Period | Encore ->
         fprintf ff "%a = %a" name m_name (array_of m_value m_typ) m_size
      
     
-and print_instance ff { i_name; i_machine; i_kind; i_params; i_sizes } =
+and print_instance ff { i_name; i_machine; i_kind; i_params; i_size } =
     fprintf ff "@[%a = %a (* %s *)@ @]" name i_name
       (array_make (fun ff n -> fprintf ff "%a_alloc ()" name n) i_name)
-      i_sizes (kind i_kind)
+      i_size (kind i_kind)
 
 and exp_with_typ ff (e, ty) = fprintf ff "(%a:%a)" (exp 2) e ptype ty
 
@@ -344,7 +344,7 @@ let palloc f i_opt memories ff instances =
 
 (* print an entry [let n_alloc, n_step, n_reset, ... = f ... in] *)
 (* for every instance *)
-let def_instance_function ff { i_name; i_machine; i_kind; i_params; i_sizes } =
+let def_instance_function ff { i_name; i_machine; i_kind; i_params; i_size } =
   (* Define the method *)
   let method_name ff me_name =
     let m = method_name me_name in
@@ -360,7 +360,7 @@ let def_instance_function ff { i_name; i_machine; i_kind; i_params; i_sizes } =
      fprintf ff
        "@[let %s { alloc = %a_alloc; %a } = %a %a in@]"
        k name i_name list_of_methods m_name_list
-       (exp 0) i_machine (print_list_r (exp 1) "" " " "") i_sizes
+       (exp 0) i_machine (print_list_r (exp 1) "" " " "") i_size
 
 (* Print a machine as pieces with a type definition for the state *)
 (* and a collection of functions *)
