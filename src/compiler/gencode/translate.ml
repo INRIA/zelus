@@ -91,15 +91,18 @@ let state is_read n k =
 
 (* index in an array *)
 let rec index e =
-  function [] -> e | ei :: ei_list ->
-                      Eget { e = index e ei_list; index = Evar { is_mutable = false;
-                                                                 id = ei } }
+  function
+  | [] -> e
+  | ei :: ei_list ->
+     Eget { e = index e ei_list; index = Evar { is_mutable = false;
+                                                id = ei } }
 
 let rec left_value_index lv =
   function
   | [] -> lv
   | ei :: ei_list ->
-     Eleft_index(left_value_index lv ei_list, Evar { is_mutable = false; id = ei })
+     Eleft_index(left_value_index lv ei_list,
+                 Evar { is_mutable = false; id = ei })
 
 let rec left_state_value_index lv = function
   | [] -> lv
@@ -138,33 +141,33 @@ let def { e_typ; e_sort; e_size = ei_list } e ({ step = s } as code) =
   | Out(id, sort) ->
      match sort with
      | Sort_val ->
-        { code with step =
-                      Elet(Evarpat
-                             { id; ty = Interface.type_expression_of_typ e_typ },
-                           e, s) }
+        let step = Elet(Evarpat
+                          { id; ty = Interface.type_expression_of_typ e_typ },
+                        e, s) in
+        { code with step }
+                      
      | Sort_var ->
 	{ code with step =
                       Oaux.seq
 			(Eassign(left_value_index (Eleft_name id) ei_list, e))
 			     s }
      | Sort_mem { m_mkind } ->
-	{ code with step =
-                      Oaux.seq
-			(Eassign_state(left_state_value_index
-					 (state false id m_mkind) ei_list, e)) s }
+	let step = Oaux.seq
+		     (Eassign_state(left_state_value_index
+				      (state false id m_mkind) ei_list, e)) s in
+        { code with step }
 	  
 (* Generate the code for [der x = e] *)
 let der { e_sort; e_size = ei_list } e ({ step = s } as code) =
   match e_sort with
   | In _ -> assert false
   | Out(n, sort) ->
-     { code with step =
-		   Oaux.seq
-		     (Eassign_state(left_state_value_index
-				      (Eleft_state_primitive_access
-					 (Eleft_state_name(n), Eder)) ei_list,
-                                    e))
-		     s }
+     let step =
+       Oaux.seq (Eassign_state(left_state_value_index
+				 (Eleft_state_primitive_access
+				    (Eleft_state_name(n), Eder)) ei_list,
+                               e)) s in
+     { code with step }
        
 (* Generate an if/then *)
 let ifthen r_e i_code s = Oaux.seq (Eifthenelse(r_e, i_code, Oaux.void)) s
@@ -296,7 +299,8 @@ let append loop_path l_env env =
 	 Env.add n { e_typ = typ_body; e_sort = Out(n, t_sort); e_size = [] }
            env_acc,
 	 mem_acc,
-         (n, is_mutable typ_body, typ_body, default env typ_body None) :: var_acc
+         (n, is_mutable typ_body, typ_body, default env typ_body None)
+         :: var_acc
       | Sort_mem { m_mkind } ->
 	 Env.add n
 	   { e_typ = typ_body; e_sort = Out(n, t_sort); e_size = loop_path }

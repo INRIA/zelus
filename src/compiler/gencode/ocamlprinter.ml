@@ -21,13 +21,6 @@ open Pp_tools
 open Printer
 open Oprinter
 
-let typ_bool =
-  { Zelus.desc = Zelus.Etypeconstr(Lident.Modname (Initial.bool_ident), []);
-    Zelus.loc = Location.no_location }
-let typ_float =
-  { Zelus.desc = Zelus.Etypeconstr(Lident.Modname (Initial.float_ident), []);
-    Zelus.loc = Location.no_location }
-
 let immediate ff = function
   | Eint i ->
       if i < 0 then fprintf ff "(%a)" pp_print_int i else pp_print_int ff i
@@ -166,7 +159,7 @@ and exp prio ff e =
        (print_list_r
           (print_record longname (exp 0) "" " =" "") "{" ";" "}") label_e_list
   | Etypeconstraint(e, ty_e) ->
-      fprintf ff "@[(%a : %a)@]" (exp prio_e) e ptype ty_e
+      fprintf ff "@[(%a : %a)@]" (exp prio_e) e Printer.ptype ty_e
   | Eifthenelse(e, e1, e2) ->
       fprintf ff "@[<hv>if %a@ @[<hv 2>then@ %a@]@ @[<hv 2>else@ %a@]@]"
         (exp 0) e (exp prio_e) e1 (exp prio_e) e2
@@ -277,7 +270,7 @@ and array_of e_opt ty ff ie_size =
 (* Print the allocation function *)
 and print_memory ff { m_name; m_value; m_typ; m_kind; m_size } =
   match m_kind with
-  | Ediscrete ->
+  | None ->
      (* discrete state variable *)
      begin
        match m_value with
@@ -290,18 +283,21 @@ and print_memory ff { m_name; m_value; m_typ; m_kind; m_size } =
 	  fprintf ff "@[%a = %a@]" name m_name
 	    (array_make exp_with_typ (e, m_typ)) m_size
      end
-  | Ezero ->
-     fprintf ff "@[%a = @[<hov 2>{ zin = %a;@ zout = %a }@]@]"
-       name m_name (array_of m_value typ_bool) m_size
-       (array_of (Some(Econst(Efloat(1.0)))) typ_float)
-       m_size
-  | Econt ->
-     fprintf ff "@[%a = @[<hov 2>{ pos = %a; der = %a }@]@]"
-       name m_name (array_of m_value m_typ) m_size
-       (* the default value of a derivative must be zero *)
-       (array_of (Some(Econst(Efloat(0.0)))) m_typ) m_size
-  | Ehorizon | Emajor ->
-     fprintf ff "%a = %a" name m_name (array_of m_value m_typ) m_size
+  | Some(k) ->
+     match k with
+       Ezero ->
+        fprintf ff "@[%a = @[<hov 2>{ zin = %a;@ zout = %a }@]@]"
+          name m_name (array_of m_value Initial.typ_bool) m_size
+          (array_of (Some(Econst(Efloat(1.0)))) Initial.typ_float)
+          m_size
+     | Econt ->
+        fprintf ff "@[%a = @[<hov 2>{ pos = %a; der = %a }@]@]"
+          name m_name (array_of m_value m_typ) m_size
+          (* the default value of a derivative must be zero *)
+          (array_of (Some(Econst(Efloat(0.0)))) m_typ) m_size
+     | Ehorizon | Emajor | Eperiod | Eencore ->
+        fprintf ff "%a = %a" name m_name (array_of m_value m_typ) m_size
+     
     
 and print_instance ff { i_name; i_machine; i_kind; i_params; i_sizes } =
     fprintf ff "@[%a = %a (* %s *)@ @]" name i_name
@@ -314,11 +310,11 @@ and exp_with_typ ff (e, ty) = fprintf ff "(%a:%a)" (exp 2) e ptype ty
 let pmethod f ff { me_name; me_params; me_body; me_typ } =
   fprintf ff "@[<v 2>let %s_%s self %a =@ (%a:%a) in@]"
     f (method_name me_name) pattern_list me_params (exp 2) me_body
-    Printer.ptype me_typ
+    ptype me_typ
 
 let constructor_for_kind = function
-  | Zelus.Knode _ -> "Node"
-  | Zelus.Kfun _ -> assert false
+  | Deftypes.Tnode _ -> "Node"
+  | Deftypes.Tfun _ -> assert false
 
 let expected_list_of_methods = default_list_of_methods
 
@@ -357,8 +353,8 @@ let def_instance_function ff { i_name; i_machine; i_kind; i_params; i_sizes } =
   let list_of_methods ff m_list =  print_list_r method_name """;""" ff m_list in
 
   match i_kind with
-  | Zelus.Kfun _ -> ()
-  | Zelus.Knode _ ->
+  | Deftypes.Tfun _ -> ()
+  | Deftypes.Tnode _ ->
      let m_name_list = expected_list_of_methods in
      let k = constructor_for_kind i_kind in
      fprintf ff
@@ -384,8 +380,8 @@ let machine f ff { ma_kind; ma_params; ma_initialize; ma_memories;
   (* or [k { alloc = f_alloc; m1 = f_m1; ...; mn = f_mn }] *)
   let tuple_of_methods ff m_name_list =
     match ma_kind with
-    | Zelus.Kfun _ -> fprintf ff "%s" f
-    | Zelus.Knode _ ->
+    | Deftypes.Tfun _ -> fprintf ff "%s" f
+    | Deftypes.Tnode _ ->
        let method_name ff me_name =
 	 let m = method_name me_name in
 	 fprintf ff "@[%s = %s_%s@]" m f m in

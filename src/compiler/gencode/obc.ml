@@ -26,7 +26,7 @@ type ('pattern, 'body) match_handler =
 (* type declaration *)
 type type_expression = Zelus.type_expression
 
-type kind = Zelus.kind
+type kind = Efun | Enode
 
 type size_expression = Zelus.size_expression
 
@@ -77,7 +77,7 @@ and exp =
   | Ematch of exp * (pattern, exp) match_handler list
   | Elet of pattern * exp * exp (* [let p = e1 in e2] *)
   | Eletvar of { id: Ident.t; is_mutable: is_mutable;
-                 ty: type_expression; e_opt: exp option; e : exp }
+                 ty: Deftypes.typ; e_opt: exp option; e : exp }
   (* var id : ty [= e1] in e2 *)
   | Eletmem of mentry list * exp (* [let mem m1...mk in e] *)
   | Eletinstance of ientry list * exp (* [let instances i1...ik in e] *)
@@ -132,7 +132,7 @@ and primitive_access =
 
 (* Definition of a sequential machine *)
 and machine =
-  { ma_kind: kind;
+  { ma_kind: Deftypes.kind;
     (* combinatorial, continuous-time or discrete-time *)
     ma_initialize: exp option;
     ma_params: pattern list; (* list of static parameters *)
@@ -144,15 +144,15 @@ and machine =
 and mentry =
   { m_name: Ident.t; (* its name *)
     m_value: exp option; (* its initial value *)
-    m_typ: type_expression; (* its type *)
-    m_kind: mkind; (* the kind of the memory *)
+    m_typ: Deftypes.typ; (* its type *)
+    m_kind: Deftypes.mkind option; (* the kind of the memory *)
     m_size: exp path; (* it may be an array *)
   }
 
 and ientry =
   { i_name: Ident.t; (* its name *)
     i_machine: exp;  (* the machine it belongs to *)
-    i_kind: kind;  (* the kind of the machine *)
+    i_kind: Deftypes.kind;  (* the kind of the machine *)
     i_params: exp path; (* static parameters used at instance creation *)
     i_sizes: exp list; (* it is possibly an array of instances *)
   }
@@ -161,7 +161,7 @@ and method_desc =
   { me_name: method_name; (* name of the method *)
     me_params: pattern list; (* list of input arguments *)
     me_body: exp; (* its result *)
-    me_typ: type_expression; (* type of the result *)
+    me_typ: Deftypes.typ; (* type of the result *)
   }
 
 and methodcall =
@@ -180,9 +180,9 @@ and mkind =
   | Econt (* continuous state variable *)
   | Ezero (* zero-crossing *)
   | Ehorizon (* horizon *)
-  | Emajor (* major step *)
-  | Ediscrete (* discrete state variable *)
-
+  | Emajor (* true in discrete mode; major step *)
+  | Eencore (* a cascade event *)
+  | Eperiod (* a event defined by a period *)
         
 and 'a path = 'a list
 

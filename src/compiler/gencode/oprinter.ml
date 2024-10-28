@@ -20,6 +20,13 @@ open Format
 open Pp_tools
 open Printer
     
+let kind = function
+  | Deftypes.Tfun _ -> "any"
+  | Deftypes.Tnode(k) ->
+     match k with
+     | Deftypes.Tdiscrete -> "discrete"
+     | Deftypes.Tcont -> "continuous"
+
 (* Priorities *)
 let priority_exp = function
   | Econst _ | Econstr0 _| Eglobal _ | Evar _ 
@@ -31,6 +38,8 @@ let priority_exp = function
   | Eifthenelse _  | Ematch _ | Elet _ | Eletvar _ | Eletmem _ | Eletinstance _
     | Esequence _ -> 0
   | Efun _ | Emachine _ -> 0
+
+let ptype ff ty = Ptypes.output ff ty
 
 let immediate ff = function
   | Eint i ->
@@ -140,10 +149,10 @@ and letvar ff n ty e_opt e =
   match e_opt with
   | None ->
      fprintf ff
-       "@[<v 0>var %a: %a in@ %a@]" name n Printer.ptype ty (exp 0) e
+       "@[<v 0>var %a: %a in@ %a@]" name n ptype ty (exp 0) e
   | Some(e0) ->
      fprintf ff "@[<v 0>var %a: %a = %a in@ %a@]"
-       name n Printer.ptype ty (exp 0) e0 (exp 0) e
+       name n ptype ty (exp 0) e0 (exp 0) e
 
 and exp prio ff e =
   let prio_e = priority_exp e in
@@ -241,19 +250,22 @@ and match_handler ff { m_pat = pat; m_body = b } =
 
 and mkind mk =
   match mk with
-  | Econt -> "cont "
-  | Ezero -> "zero "
-  | Ediscrete -> ""
-  | Ehorizon -> "horizon "
-  | Emajor -> "major "
+  | None -> ""
+  | Some(mk) ->
+     match mk with
+     | Econt -> "cont "
+     | Ezero -> "zero "
+     | Ehorizon -> "horizon "
+     | Emajor -> "major "
+     | Eencore -> "encore "
+     | Eperiod -> "period "
 
 and memory ff { m_name; m_value; m_typ; m_kind = k; m_size } =
   fprintf ff "%s%a%a : %a = %a" (mkind k) name m_name
     (print_list_no_space (print_with_braces (exp 0) "[" "]") "" "" "")
     m_size ptype m_typ (print_opt (exp 0)) m_value
 
-and instance ff { i_name; i_machine; i_kind;
-		  i_params; i_sizes } =
+and instance ff { i_name; i_machine; i_kind; i_params; i_sizes } =
   fprintf ff "@[%a : %s(%a)%a%a@]" name i_name (kind i_kind) (exp 0) i_machine
     (print_list_no_space
        (print_with_braces (exp 0) "(" ")") "" "" "")
