@@ -94,6 +94,7 @@
   (wrapped false)
   (modules
     graph ; acyclic graph manipulation
+    parseq ; a data-structure to represent parallel and sequential composition    
   )
   (libraries zelus.global_lib)
 )
@@ -148,7 +149,6 @@
   (public_name zelus.rewrite_lib)
   (wrapped false)
   (modules
-    state ; the data structure to represent a state
     cost ; a cost function used to decide which function call to inline
     unsafe ; is an expression/equation unsafe
     mapfold ; generic mapfold
@@ -197,7 +197,7 @@
     ocamlprinter; print OCaml code
     translate; translate into sequential code
   )
-  (libraries zelus.global_lib zelus.typdefs_lib)
+  (libraries zelus.global_lib zelus.typdefs_lib zelus.common_lib)
 )
 
 ; The compiler

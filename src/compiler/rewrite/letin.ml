@@ -29,28 +29,28 @@ open Location
 open Ident
 open Zelus
 open Aux
-open State
+open Parseq
 
 (* a structure to represent nested equations before they are turned into *)
 (* Zelus equations *)
 type ('info, 'env) acc =
-  { c_vardec: ('info, ('info, 'env) exp) vardec list State.t;
-    c_eq: ('info, 'env) eq State.t }
+  { c_vardec: ('info, ('info, 'env) exp) vardec list Parseq.t;
+    c_eq: ('info, 'env) eq Parseq.t }
 
-let empty = { c_vardec = State.Empty; c_eq = State.Empty }
+let empty = { c_vardec = Parseq.Empty; c_eq = Parseq.Empty }
 
 let empty_eq = eqmake Defnames.empty EQempty
 
 let par { c_vardec = v1; c_eq = c_eq1 } { c_vardec = v2; c_eq = c_eq2 } =
-  { c_vardec = State.par v1 v2; c_eq = State.par c_eq1 c_eq2 }
+  { c_vardec = Parseq.par v1 v2; c_eq = Parseq.par c_eq1 c_eq2 }
 let seq { c_vardec = v1; c_eq = c_eq1 } { c_vardec = v2; c_eq = c_eq2 } =
-  { c_vardec = State.seq v1 v2; c_eq = State.seq c_eq1 c_eq2 }
+  { c_vardec = Parseq.seq v1 v2; c_eq = Parseq.seq c_eq1 c_eq2 }
 let add_seq eq ({ c_eq } as ctx) =
-  { ctx with c_eq = State.seq (State.singleton eq) c_eq }
+  { ctx with c_eq = Parseq.seq (Parseq.singleton eq) c_eq }
 let add_par eq ({ c_eq } as ctx) =
-  { ctx with c_eq = State.par (State.singleton eq) c_eq }
+  { ctx with c_eq = Parseq.par (Parseq.singleton eq) c_eq }
 let add_vardec vardec_list ({ c_vardec } as ctx) =
-  { ctx with c_vardec = State.Cons(vardec_list, c_vardec) }
+  { ctx with c_vardec = Parseq.Cons(vardec_list, c_vardec) }
 let add_names n_names ctx =
   let vardec_list = S.fold (fun id acc -> Aux.id_vardec id :: acc) n_names [] in
   add_vardec vardec_list ctx
@@ -60,35 +60,35 @@ let equations eqs =
   (* computes the set of sequential equations *)
   let rec seq eqs eq_list =
     match eqs with
-    | State.Empty -> eq_list
-    | State.Cons(eq, eqs) -> eq :: seq eqs eq_list
-    | State.Seq(eqs1, eqs2) ->
+    | Parseq.Empty -> eq_list
+    | Parseq.Cons(eq, eqs) -> eq :: seq eqs eq_list
+    | Parseq.Seq(eqs1, eqs2) ->
        seq eqs1 (seq eqs2 eq_list)
-    | State.Par(eqs1, eqs2) ->
+    | Parseq.Par(eqs1, eqs2) ->
        let par_eq_list = par [] eqs1 in
        let par_eq_list = par par_eq_list eqs2 in
        Aux.par par_eq_list :: eq_list
   (* and the set of parallel equations *)
   and par eq_list eqs =
     match eqs with
-    | State.Empty -> eq_list
-    | State.Cons(eq, eqs) -> par (eq :: eq_list) eqs
-    | State.Seq(eqs1, eqs2) ->
+    | Parseq.Empty -> eq_list
+    | Parseq.Cons(eq, eqs) -> par (eq :: eq_list) eqs
+    | Parseq.Seq(eqs1, eqs2) ->
        let seq_eq_list = seq eqs2 [] in
        let seq_eq_list = seq eqs1 seq_eq_list in
        Aux.seq seq_eq_list :: eq_list
-    | State.Par(eqs1, eqs2) ->
+    | Parseq.Par(eqs1, eqs2) ->
        par (par eq_list eqs1) eqs2 in
   par [] eqs
 
 (* build an equation [local vardec_list do eq done] from [acc] *)
 let eq_local { c_vardec; c_eq } =
-  let vardec_list = State.fold (@) c_vardec [] in
+  let vardec_list = Parseq.fold (@) c_vardec [] in
   let eq_list = equations c_eq in
   Aux.eq_local (block_make vardec_list eq_list)     
 
 let e_local { c_vardec; c_eq } e =
-  let vardec_list = State.fold (@) c_vardec [] in
+  let vardec_list = Parseq.fold (@) c_vardec [] in
   let eq_list = equations c_eq in
   match eq_list with
   | [] -> e | _ -> Aux.e_local (Aux.block_make vardec_list eq_list) e    

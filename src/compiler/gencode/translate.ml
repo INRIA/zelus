@@ -43,11 +43,11 @@ type env = entry Env.t (* the symbol table *)
  and loop_path = Ident.t list
 			 
 type code =
-  { mem: mentry State.t; (* set of state variables *)
-    init: Obc.inst; (* sequence of initializations for [mem] *)
-    instances: ientry State.t; (* set of instances *)
-    reset: Obc.inst; (* sequence of equations for resetting the block *)
-    step: inst; (* body *)
+  { init: Obc.exp Parseq.t; (* sequence of initializations for [mem] *)
+    mem: mentry Parseq.t; (* set of state variables *)
+    instances: ientry Parseq.t; (* set of instances *)
+    reset: Obc.exp Parseq.t; (* sequence of equations for resetting the block *)
+    step: Obc.exp Parseq.t; (* body *)
   }
 
 let fprint ff (env: entry Env.t) =
@@ -55,16 +55,16 @@ let fprint ff (env: entry Env.t) =
     Format.fprintf ff "@[{ typ = %a;@,size = %a}@]"
 		   Ptypes.output ty
 		   (Pp_tools.print_list_r Printer.name "[" "," "]") size in
-  Zident.Env.fprint_t fprint_entry ff env
+  Ident.Env.fprint_t fprint_entry ff env
 		   
-let empty_code = { mem = State.empty; init = Osequence [];
-		   instances = State.empty;
-		   reset = Osequence []; step = Osequence [] }
+let empty_code = { mem = Parseq.empty; init = Parseq.empty;
+		   instances = Parseq.empty;
+		   reset = Parseq.empty; step = Parseq.empty }
 
 let seq { mem = m1; init = i1; instances = j1; reset = r1; step = s1 } 
 	{ mem = m2; init = i2; instances = j2; reset = r2; step = s2 } =
-  { mem = State.seq m1 m2; init = sequence i1 i2; instances = State.par j1 j2;
-    reset = sequence r1 r2; step = sequence s1 s2 }
+  { mem = Parseq.seq m1 m2; init = Parseq.seq i1 i2; instances = Parseq.par j1 j2;
+    reset = Parseq.seq r1 r2; step = Parseq.seq s1 s2 }
 
 let empty_path = []
 
@@ -73,53 +73,41 @@ let entry_of n env =
   try
     Env.find n env
   with Not_found ->
-    Zmisc.internal_error "Unbound variable" Printer.name n
-
-
-(** Translation of immediate values *)
-let immediate = function
-  | Deftypes.Eint(i) -> Oint(i)
-  | Deftypes.Efloat(f) -> Ofloat(f)
-  | Deftypes.Ebool(b) -> Obool(b)
-  | Deftypes.Echar(c) -> Ochar(c)
-  | Deftypes.Estring(s) -> Ostring(s)
-  | Deftypes.Evoid -> Ovoid
-
-let constant = function
-  | Deftypes.Cimmediate(i) -> Oconst(immediate i)
-  | Deftypes.Cglobal(ln) -> Oglobal(ln)
+    Misc.internal_error "Unbound variable" Printer.name n
 
 (* read/write of a state variable. *)
 let state is_read n k =
   match k with
-  | None -> Oleft_state_name(n)
+  | None -> Eleft_state_name(n)
   | Some(k) ->
      match k with
      | Deftypes.Cont ->
-	Oleft_state_primitive_access (Oleft_state_name(n), Ocont)
+	Eleft_state_primitive_access (Eleft_state_name(n), Epos)
      | Deftypes.Zero ->
-	Oleft_state_primitive_access
-	  (Oleft_state_name(n), if is_read then Ozero_in else Ozero_out)
+	Eleft_state_primitive_access
+	  (Eleft_state_name(n), if is_read then Ezero_in else Ezero_out)
      | Deftypes.Horizon | Deftypes.Period
-     | Deftypes.Encore | Deftypes.Major -> Oleft_state_name(n)
+     | Deftypes.Encore | Deftypes.Major -> Eleft_state_name(n)
 
 (* index in an array *)
 let rec index e =
-  function [] -> e | ei :: ei_list -> Oaccess(index e ei_list, Olocal(ei))
+  function [] -> e | ei :: ei_list -> Eget { e = index e ei_list; size = ei }
 
 let rec left_value_index lv =
   function
   | [] -> lv
-  | ei :: ei_list -> Oleft_index(left_value_index lv ei_list, Olocal(ei))
+  | ei :: ei_list ->
+     Eleft_index(left_value_index lv ei_list, Evar { is_mutable = false; id = ei })
 
 let rec left_state_value_index lv = function
   | [] -> lv
   | ei :: ei_list ->
-     Oleft_state_index(left_state_value_index lv ei_list, Olocal(ei))
+     Eleft_state_index(left_state_value_index lv ei_list,
+                       Evar { is_mutable = false; id = ei })
 						      
 (* read of a variable *)
-let var { e_sort = sort; e_typ = ty; e_size = ei_list } =
-  match sort with
+let var { e_sort; e_typ; e_size = ei_list } =
+  match e_sort with
   | In(e) -> index e ei_list
   | Out(n, sort) ->
      match sort with
@@ -326,10 +314,10 @@ let append loop_path l_env env =
       | Smem { m_kind = k_opt } ->
 	 Env.add n
 		 { e_typ = ty; e_sort = Out(n, k); e_size = loop_path } env_acc,
-	 State.cons { m_name = n; m_value = choose env ty; m_typ = ty;
+	 Parseq.cons { m_name = n; m_value = choose env ty; m_typ = ty;
 		      m_kind = k_opt; m_size = [] } mem_acc,
 	 var_acc in
-  Env.fold addrec l_env (env, State.empty, [])
+  Env.fold addrec l_env (env, Parseq.empty, [])
 
 
 (** Translation of a stateful function application [f se1 ... sen e] *)
@@ -360,7 +348,7 @@ let apply k env loop_path e e_list
        Omethodcall({ met_machine = f_opt; met_name = Oaux.step;
 		     met_instance = Some(o, loop_path); met_args = [arg] }) in
      step_code,
-     { code with instances = State.cons j_code j;
+     { code with instances = Parseq.cons j_code j;
 		 init = sequence (Oexp(reset_code)) i;
 		 reset = sequence (Oexp(reset_code)) r }
        
@@ -571,16 +559,16 @@ let rec equation env loop_path { Zelus.eq_desc = desc } code =
        block env (ix :: loop_path) b_eq_list in
      (* transforms instances into arrays *)
      let j_code =
-       State.map
+       Parseq.map
 	 (array_of_instance (Oaux.plus (Oaux.minus e2 e1) Oaux.one)) j_code in
      let m_code =
-       State.map
+       Parseq.map
 	 (array_of_memory (Oaux.plus (Oaux.minus e2 e1) Oaux.one)) m_code in
      (* generate the initialization code *)
      let initialization_list,
 	 { mem = m; instances = j; init = i; reset = r; step = s } =
        Zmisc.map_fold init code init_list in
-     { mem = State.seq m_code m; instances = State.seq j_code j;
+     { mem = Parseq.seq m_code m; instances = Parseq.seq j_code j;
        init = sequence (for_loop true ix e1 e2 i_code) i;
        reset = sequence (for_loop true ix e1 e2 r_code) r;
        step = sequence (Osequence initialization_list)
@@ -601,7 +589,7 @@ and match_handlers env loop_path p_h_list =
     let { mem = m_code; step = s_code } as b_code =  block env loop_path b in
     { w_pat = pattern p; w_body = letvar var_acc s_code },
     seq code
-	{ b_code with step = Osequence []; mem = State.seq mem_acc m_code } in
+	{ b_code with step = Osequence []; mem = Parseq.seq mem_acc m_code } in
   Zmisc.map_fold body empty_code p_h_list
 	  
 and local env loop_path { Zelus.l_eq = eq_list; Zelus.l_env = l_env } e =
@@ -617,7 +605,7 @@ and block env loop_path { Zelus.b_body = eq_list; Zelus.b_env = n_env  } =
   add_mem_vars_to_code eq_code mem_acc var_acc
 
 and add_mem_vars_to_code ({ mem; step } as code) mem_acc var_acc =
-  { code with mem = State.seq mem_acc mem; step = letvar var_acc step }
+  { code with mem = Parseq.seq mem_acc mem; step = letvar var_acc step }
          
 (* Define a function or a machine according to a kind [k] *)
 let machine n k pat_list { mem = m; instances = j; reset = r; step = s }
@@ -633,8 +621,8 @@ let machine n k pat_list { mem = m; instances = j; reset = r; step = s }
        { ma_kind = k;
 	 ma_params = pat_list;
 	 ma_initialize = None;
-	 ma_memories = State.list [] m;
-	 ma_instances = State.list [] j;
+	 ma_memories = Parseq.list [] m;
+	 ma_instances = Parseq.list [] j;
 	 ma_methods = 
 	   [ { me_name = Oaux.reset; me_params = []; me_body = r;
                me_typ = Initial.typ_unit };
