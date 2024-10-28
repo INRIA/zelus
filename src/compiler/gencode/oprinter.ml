@@ -20,8 +20,6 @@ open Format
 open Pp_tools
 open Printer
     
-let kind k = match k with | Fun -> "fun" | Node -> "node" | Hybrid -> "hybrid"
-
 (* Priorities *)
 let priority_exp = function
   | Econst _ | Econstr0 _| Eglobal _ | Evar _ 
@@ -32,53 +30,6 @@ let priority_exp = function
   | Eassign _ | Eassign_state _  -> 1
   | Eifthenelse _  | Ematch _ | Elet _ | Eletvar _ | Esequence _ -> 0
   | Efun _ | Emachine _ -> 0
-
-let rec psize prio ff si =
-  let operator =
-    function Splus -> "+" | Sminus -> "-" | Smult -> "*" in
-  let priority = function Splus -> 0 | Sminus -> 1 | Smult -> 3 in
-  match si with
-  | Sconst(i) -> fprintf ff "%d" i
-  | Svar(n) -> name ff n
-  | Sop(op, e1, e2) ->
-     let prio_op = priority op in
-     if prio > prio_op then fprintf ff "(";
-     fprintf ff "@[%a %s %a@]"
-	     (psize prio_op) e1 (operator op) (psize prio_op) e2;
-     if prio > prio_op then fprintf ff ")"
-  | Sdiv { num; denom } ->
-     if prio > 2 then fprintf ff "(";
-     fprintf ff "@[%a / %d@]" (psize 2) num denom;
-     if prio > 2 then fprintf ff ")"
-
-let print_concrete_type ff ty =
-  let priority =
-    function | Etypevar _ | Etypeconstr _ | Etypevec _ | Etypesize _ -> 2
-             | Etypetuple _ -> 2 | Etypefun _ -> 1 in
-  let rec ptype prio ff ty =
-    let prio_ty = priority ty in
-    if prio_ty < prio then fprintf ff "(";
-    begin match ty with
-    | Etypevar(s) -> fprintf ff "'%s" s
-    | Etypefun(k, ty_arg, ty_res) ->
-       let k = match k with Fun -> "->" | Node -> "-N->" | Hybrid -> "-H->" in
-       fprintf ff "@[<hov2>%a %s@ %a@]"
-         (ptype (prio_ty + 1)) ty_arg k (ptype prio_ty) ty
-    | Etypetuple(ty_list) ->
-       fprintf ff
-	       "@[<hov2>%a@]" (print_list_r (ptype prio_ty) "("" *"")") ty_list
-    | Etypeconstr(ln, ty_list) ->
-       fprintf ff "@[<hov2>%a@]%a"
-               (print_list_r_empty (ptype 2) "("","")") ty_list longname ln
-    | Etypevec(ty_arg, si) ->
-       fprintf ff "@[%a[%a]@]" (ptype prio_ty) ty_arg (psize 0) si
-    | Etypesize(is_singleton, si) ->
-       if is_singleton then
-         fprintf ff "@[<%a>@]" (psize 0) si else
-         fprintf ff "@[[%a]@]" (psize 0) si
-    end;
-    if prio_ty < prio then fprintf ff ")" in
-  ptype 0 ff ty
 
 let immediate ff = function
   | Eint i ->
@@ -107,13 +58,13 @@ let rec pattern ff pat = match pat with
      fprintf ff "@[%a%a@]"
              longname lname (print_list_r pattern "("","")") pat_list
   | Evarpat { id; ty } ->
-     fprintf ff "@[(%a:%a)@]" name id print_concrete_type ty
+     fprintf ff "@[(%a:%a)@]" name id Printer.ptype ty
   | Etuplepat(pat_list) ->
      pattern_comma_list ff pat_list
   | Ealiaspat(p, n) -> fprintf ff "@[%a as %a@]" pattern p name n
   | Eorpat(pat1, pat2) -> fprintf ff "@[%a | %a@]" pattern pat1 pattern pat2
   | Etypeconstraintpat(p, ty_exp) ->
-     fprintf ff "@[(%a: %a)@]" pattern p print_concrete_type ty_exp
+     fprintf ff "@[(%a: %a)@]" pattern p Printer.ptype ty_exp
   | Erecordpat(n_pat_list) ->
      print_list_r
        (print_record longname pattern "" " =" "") "{" ";" "}" ff n_pat_list
@@ -188,10 +139,10 @@ and letvar ff n ty e_opt e =
   match e_opt with
   | None ->
      fprintf ff
-       "@[<v 0>var %a: %a in@ %a@]" name n print_concrete_type ty (exp 0) e
+       "@[<v 0>var %a: %a in@ %a@]" name n Printer.ptype ty (exp 0) e
   | Some(e0) ->
      fprintf ff "@[<v 0>var %a: %a = %a in@ %a@]"
-	     name n print_concrete_type ty (exp 0) e0 (exp 0) e
+	     name n Printer.ptype ty (exp 0) e0 (exp 0) e
 
 and exp prio ff e =
   let prio_e = priority_exp e in
@@ -223,7 +174,7 @@ and exp prio ff e =
        (print_list_r
           (print_record longname (exp 0) "" " =" "") "{" ";" "}") label_e_list
   | Etypeconstraint(e, ty_e) ->
-     fprintf ff "@[(%a : %a)@]" (exp prio_e) e print_concrete_type ty_e
+     fprintf ff "@[(%a : %a)@]" (exp prio_e) e Printer.ptype ty_e
   | Eifthenelse(e, e1, e2) ->
      fprintf ff "@[<hv>if %a@ @[<hv 2>then@ %a@]@ @[<hv 2>else@ %a@]@]"
              (exp 0) e (exp 1) e1 (exp 1) e2
@@ -250,18 +201,19 @@ and exp prio ff e =
        fprintf ff
          "@[<hv>%a@]" (print_list_r (exp 1) "" ";" "") e_list
   | Eget { e; size} ->
-     fprintf ff "%a.(@[%a@])" (exp prio_e) e (psize 0) size
+     fprintf ff "%a.(@[%a@])" (exp prio_e) e Printer.size size
   | Eupdate { e; size; index; arg } ->
      fprintf ff "@[<hov2>{%a:%a with@ %a = %a}@]"
-             (exp prio_e) e (psize 0) size (psize 0) index (exp 0) arg
+             (exp prio_e) e Printer.size size Printer.size index (exp 0) arg
   | Emake { e; size } ->
-     fprintf ff "%a[%a]" (exp prio_e) e (psize 0) size
+     fprintf ff "%a[%a]" (exp prio_e) e Printer.size size
   | Eslice { e; left; right } ->
      fprintf ff "%a{%a..%a}"
-             (exp prio_e) e (psize 0) left (psize 0) right
+             (exp prio_e) e Printer.size left Printer.size right
   | Econcat { left; left_size; right; right_size } ->
      fprintf ff "{%a:%a | %a:%a}"
-             (exp 0) left (psize 0) left_size (exp 0) right (psize 0) right_size
+       (exp 0) left Printer.size left_size (exp 0) right
+       Printer.size right_size
   | Emachine(ma) -> machine ff ma
   | Efun _ -> ()
   end;
@@ -289,7 +241,7 @@ and mkind mk =
 and memory ff { m_name; m_value; m_typ; m_kind = k; m_size } =
   fprintf ff "%s%a%a : %a = %a" (mkind k) name m_name
 	     (print_list_no_space (print_with_braces (exp 0) "[" "]") "" "" "")
-	     m_size print_concrete_type m_typ (print_opt (exp 0)) m_value
+	     m_size ptype m_typ (print_opt (exp 0)) m_value
              
 and instance ff { i_name; i_machine; i_kind;
 		  i_params; i_sizes } =
@@ -304,14 +256,14 @@ and instance ff { i_name; i_machine; i_kind;
 and pmethod ff { me_name; me_params; me_body; me_typ } =
   fprintf ff "@[<hov 2>method %s %a@ =@ (%a:%a)@]"
     (method_name me_name) pattern_list me_params (exp 2) me_body
-    print_concrete_type me_typ
+    ptype me_typ
           
 and pinitialize ff i_opt =
   match i_opt with
   | None -> ()
   | Some(e) -> fprintf ff "@[<hov2>initialize@;%a@]" (exp 0) e
 
-(** Print a machine *)
+(* Print a machine *)
 and machine ff { ma_kind; ma_params; ma_initialize;
 		 ma_memories; ma_instances; ma_methods } =
   fprintf ff
@@ -324,21 +276,10 @@ and machine ff { ma_kind; ma_params; ma_initialize;
    (print_list_r_empty instance """;""") ma_instances
    (print_list_r pmethod """""") ma_methods
 
-(** The main entry functions for expressions and instructions *)
-let rec type_decl ff = function
-  | Eabstract_type -> ()
-  | Eabbrev(ty) -> print_concrete_type ff ty
-  | Evariant_type(constr_decl_list) ->
-     print_list_l constr_decl """| """ ff constr_decl_list
-  | Erecord_type(s_ty_list) ->
-     print_list_r
-       (print_couple pp_print_string print_concrete_type "" " :" "")
-       "" "|" "" ff s_ty_list
+(* The main entry functions for expressions and instructions *)
+let type_decl ff ty_decl = Printer.type_decl ff ty_decl
 
-and constr_decl ff = function
-  | Econstr0decl(s) -> fprintf ff "%s" s
-  | Econstr1decl(s, ty_list) ->
-     fprintf ff "%s of %a" s (print_list_l print_concrete_type """ *""") ty_list
+and constr_decl ff constr = Printer.constr_decl ff constr
 
 let implementation ff impl = match impl with
   | Eletdef(n, e) ->
