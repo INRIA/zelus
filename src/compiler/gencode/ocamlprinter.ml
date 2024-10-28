@@ -185,9 +185,10 @@ and exp prio ff e =
      fprintf ff "@[<v2>match %a with@ @[%a@]@]"
        (exp 0) e
        (print_list_l match_handler """""") match_handler_l
-  | Efor { index; left; right; e } ->
-     fprintf ff "@[<hv>for %a = %a to %a@ @[<hv 2>do@ %a@ done@]@]"
-       name index (exp 0) left (exp 0) right (exp 0) e
+  | Efor { index; dir; left; right; e } ->
+     fprintf ff "@[<hv>for %a = %a %s %a@ @[<hv 2>do@ %a@ done@]@]"
+       name index (exp 0) left (if dir then "to" else "downto")
+       (exp 0) right (exp 0) e
   | Ewhile { cond; e } ->
      fprintf ff "@[<hv>while %a do %a done@]@]"
        (exp 0) cond (exp 0) e
@@ -199,25 +200,25 @@ and exp prio ff e =
      else
        fprintf ff
          "@[<hv>%a@]" (print_list_r (exp 1) "" ";" "") e_list
-  | Eget { e; size} ->
-     fprintf ff "%a.(@[%a@])" (exp prio_e) e Printer.size size
+  | Eget { e; index} ->
+     fprintf ff "%a.(@[%a@])" (exp prio_e) e (exp 0) index
   | Eupdate { e; index; arg } ->
      (* returns a fresh vector [_t] of size [se] equal to [e2] except at *)
      (* [i] where it is equal to [e2] *)
      fprintf ff "@[(let _t = Array.copy (%a) in@ _t.(%a) <- %a; _t)@]"
-             (exp 0) e Printer.size index (exp 0) arg
+             (exp 0) e (exp 0) index (exp 0) arg
   | Emake { e; size } ->
      (* make a vector *)
      let print_vec ff e se =
        match e with
        | Econst _ ->
 	  fprintf ff "@[<hov 2>Array.make@ (%a)@ (%a)@]"
-                                  Printer.size se (exp prio_e) e
+                                  (exp 0) se (exp prio_e) e
        | Emake { e; size } ->
 	  fprintf ff "@[<hov 2>Array.make_matrix@ (%a)@ (%a)@ (%a)@]"
-                      Printer.size se Printer.size size (exp prio_e) e
+                      (exp 0) se (exp 0) size (exp prio_e) e
        | _ -> fprintf ff "@[<hov 2>Array.init@ @[(%a)@]@ @[(fun _ -> %a)@]@]"
-		      Printer.size se (exp prio_e) e in
+		      (exp 0) se (exp prio_e) e in
      print_vec ff e size
   | Eslice { e; left; right; length } ->
      (* returns a fresh vector [_t] of size [s1+s2] *)
@@ -226,8 +227,8 @@ and exp prio ff e =
                     for i = 0 to %a - 1 do @ \
                       _t.(i) <- %a.(i+%a) done; @ \
                     _t)@]"
-             Printer.size length (exp 2) e Printer.size right
-             (exp 2) e Printer.size left
+             (exp 0) length (exp 2) e (exp 0) right
+             (exp 2) e (exp 0) left
   | Econcat { left; left_size; right; right_size } ->
      (* returns a fresh vector [_t] of size [s1+s2] *)
      (* with _t.(i) = e1.(i) forall i in [0..s1-1] and *)
@@ -236,9 +237,9 @@ and exp prio ff e =
                     Array.blit %a 0 _t 0 %a; @ \
                     Array.blit %a 0 _t %a; @ \
                     _t)@]"
-             Printer.size left_size Printer.size right_size (exp 2) left
-             (exp 2) left Printer.size left_size
-             (exp 2) right Printer.size right_size
+             (exp 0) left_size (exp 0) right_size (exp 2) left
+             (exp 2) left (exp 0) left_size
+             (exp 2) right (exp 0) right_size
   | Emachine(ma) -> machine ff ma
   | Efun _ -> ()
   end;

@@ -43,11 +43,11 @@ type env = entry Env.t (* the symbol table *)
  and loop_path = Ident.t list
 			 
 type code =
-  { init: Obc.exp Parseq.t; (* sequence of initializations for [mem] *)
+  { init: Obc.exp; (* sequence of initializations for [mem] *)
     mem: mentry Parseq.t; (* set of state variables *)
     instances: ientry Parseq.t; (* set of instances *)
-    reset: Obc.exp Parseq.t; (* sequence of equations for resetting the block *)
-    step: Obc.exp Parseq.t; (* body *)
+    reset: Obc.exp; (* sequence of equations for resetting the block *)
+    step: Obc.exp; (* body *)
   }
 
 let fprint ff (env: entry Env.t) =
@@ -57,14 +57,14 @@ let fprint ff (env: entry Env.t) =
 		   (Pp_tools.print_list_r Printer.name "[" "," "]") size in
   Ident.Env.fprint_t fprint_entry ff env
 		   
-let empty_code = { mem = Parseq.empty; init = Parseq.empty;
+let empty_code = { mem = Parseq.empty; init = Oaux.void;
 		   instances = Parseq.empty;
-		   reset = Parseq.empty; step = Parseq.empty }
+		   reset = Oaux.void; step = Oaux.void }
 
 let seq { mem = m1; init = i1; instances = j1; reset = r1; step = s1 } 
 	{ mem = m2; init = i2; instances = j2; reset = r2; step = s2 } =
-  { mem = Parseq.seq m1 m2; init = Parseq.seq i1 i2; instances = Parseq.par j1 j2;
-    reset = Parseq.seq r1 r2; step = Parseq.seq s1 s2 }
+  { mem = Parseq.seq m1 m2; init = Oaux.seq i1 i2; instances = Parseq.par j1 j2;
+    reset = Oaux.seq r1 r2; step = Oaux.seq s1 s2 }
 
 let empty_path = []
 
@@ -91,7 +91,9 @@ let state is_read n k =
 
 (* index in an array *)
 let rec index e =
-  function [] -> e | ei :: ei_list -> Eget { e = index e ei_list; size = ei }
+  function [] -> e | ei :: ei_list ->
+                      Eget { e = index e ei_list; index = Evar { is_mutable = false;
+                                                                 id = ei } }
 
 let rec left_value_index lv =
   function
@@ -111,90 +113,80 @@ let var { e_sort; e_typ; e_size = ei_list } =
   | In(e) -> index e ei_list
   | Out(n, sort) ->
      match sort with
-     | Sstatic | Sval -> index (Olocal(n)) ei_list
-     | Svar _ ->
-        index (Ovar(is_mutable ty, n)) ei_list
-     | Smem { m_kind = k } ->
-        Ostate(left_state_value_index (state true n k) ei_list)
+     | Sort_val -> index (Evar { is_mutable = false; id = n }) ei_list
+     | Sort_var ->
+        let i = is_mutable e_typ in
+        index (Evar { is_mutable = i; id = n }) ei_list
+     | Sort_mem { m_mkind } ->
+        Estate_access(left_state_value_index (state true n m_mkind) ei_list)
 
-(** Make an assignment according to the sort of a variable [n] *)
-let assign { e_sort = sort; e_size = ei_list } e =
-  match sort with
+(* Make an assignment according to the sort of a variable [n] *)
+let assign { e_sort; e_size = ei_list } e =
+  match e_sort with
   | In _ -> assert false
   | Out(n, sort) ->
      match sort with
-     | Sstatic | Sval -> assert false
-     | Svar _ -> Oassign(left_value_index (Oleft_name n) ei_list, e)
-     | Smem { m_kind = k } ->
-	Oassign_state(left_state_value_index (state false n k) ei_list, e)
+     | Sort_val -> assert false
+     | Sort_var -> Eassign(left_value_index (Eleft_name n) ei_list, e)
+     | Sort_mem { m_mkind } ->
+	Eassign_state(left_state_value_index (state false n m_mkind) ei_list, e)
 
-(** Generate the code for a definition *)
-let def { e_typ = ty; e_sort = sort; e_size = ei_list } e
-        ({ step = s } as code) =
-  match sort with
+(* Generate the code for a definition *)
+let def { e_typ; e_sort; e_size = ei_list } e ({ step = s } as code) =
+  match e_sort with
   | In _ -> assert false
-  | Out(n, sort) ->
+  | Out(id, sort) ->
      match sort with
-     | Sstatic | Sval ->
+     | Sort_val ->
         { code with step =
-                      Olet(Ovarpat(n, type_expression_of_typ ty), e, s) }
-     | Svar _ ->
+                      Elet(Evarpat
+                             { id; ty = Interface.type_expression_of_typ e_typ },
+                           e, s) }
+     | Sort_var ->
 	{ code with step =
-                      sequence
-			(Oassign(left_value_index (Oleft_name n) ei_list, e))
+                      Oaux.seq
+			(Eassign(left_value_index (Eleft_name id) ei_list, e))
 			     s }
-     | Smem { m_kind = k } ->
-	{ code with step = sequence
-			     (Oassign_state(left_state_value_index
-					      (state false n k) ei_list, e)) s }
+     | Sort_mem { m_mkind } ->
+	{ code with step =
+                      Oaux.seq
+			(Eassign_state(left_state_value_index
+					 (state false id m_mkind) ei_list, e)) s }
 	  
-(** Generate the code for [der x = e] *)
-let der { e_sort = sort; e_size = ei_list } e ({ step = s } as code) =
-  match sort with
+(* Generate the code for [der x = e] *)
+let der { e_sort; e_size = ei_list } e ({ step = s } as code) =
+  match e_sort with
   | In _ -> assert false
   | Out(n, sort) ->
      { code with step =
-		   sequence
-		     (Oassign_state(left_state_value_index
-				      (Oleft_state_primitive_access
-					 (Oleft_state_name(n), Oder)) ei_list,
+		   Oaux.seq
+		     (Eassign_state(left_state_value_index
+				      (Eleft_state_primitive_access
+					 (Eleft_state_name(n), Eder)) ei_list,
                                     e))
 		     s }
        
-(** Generate an if/then *)
-let ifthen r_e i_code s = sequence (Oif(r_e, i_code, None)) s
+(* Generate an if/then *)
+let ifthen r_e i_code s = Oaux.seq (Eifthenelse(r_e, i_code, Oaux.void)) s
 				   
-(** Generate a for loop *)
-let for_loop direction ix e1 e2 i_body =
-  match i_body with
-  | Osequence [] -> Osequence []
-  | _ -> Ofor(direction, ix, e1, e2, i_body)
+(* Generate a for loop *)
+let for_loop dir ix e1 e2 e_body =
+  match e_body with
+  | Econst (Evoid) | Esequence [] -> e_body
+  | _ -> Efor { index = ix; dir = dir; left = e1; right = e2; e = e_body }
 
-(** Generate the code for the definition of a value *)
+(* Generate the code for the definition of a value *)
 let letpat p e ({ step = s } as code) =
-  { code with step = Olet(p, e, s) }
+  { code with step = Elet(p, e, s) }
 
-(** Generate the code for initializing shared variables *)
+(* Generate the code for initializing shared variables *)
 let rec letvar l s =
   match l with
   | [] -> s
-  | (n, is_mutable, ty, v_opt) :: l ->
-     Oletvar(n, is_mutable, ty, v_opt, letvar l s)
+  | (id, is_mutable, ty, e_opt) :: l ->
+     Eletvar { id; is_mutable; ty; e_opt; e = letvar l s }
 				  
-(** Compile an equation [n += e] *)
-let pluseq ({ e_sort = sort; e_size = ei_list } as entry)
-	   e ({ step = s } as code) =
-  let ln =
-    match sort with
-    | In _ -> assert false
-    | Out(n, sort) ->
-       match sort with
-       | Svar { v_combine = Some(ln) } | Smem { m_combine = Some(ln) } -> ln
-       | _ -> Zmisc.internal_error "Unbound variable" Printer.name n in
-  { code with step =
-		sequence (assign entry
-				 (Oapp(Oglobal(ln), [var entry; e]))) s }
-    
+   
 let out_of n env =
   let { e_typ = ty; e_sort = sort; e_size = ix_list } = entry_of n env in
   match sort with

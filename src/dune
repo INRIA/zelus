@@ -197,7 +197,8 @@
     ocamlprinter; print OCaml code
     translate; translate into sequential code
   )
-  (libraries zelus.global_lib zelus.typdefs_lib zelus.common_lib)
+  (libraries zelus.global_lib zelus.typdefs_lib
+   zelus.common_lib zelus.typing_lib)
 )
 
 ; The compiler

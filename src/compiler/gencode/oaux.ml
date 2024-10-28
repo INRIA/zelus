@@ -66,6 +66,14 @@ let varmut x = var true x
 
 let ifthenelse c e1 e2 = Eifthenelse(c, e1, e2)
 
+let seq e1 e2 =
+  match e1, e2 with
+  | (Econst(Evoid), e) | (e, Econst(Evoid)) -> e
+  | Esequence e_list1, Esequence e_list2 -> Esequence(e_list1 @ e_list2)
+  | Esequence e_list1, _ -> Esequence (e_list1 @ [e2])
+  | _, Esequence e_list2 -> Esequence (e1 :: e_list2)
+  | _ -> Esequence [e1; e2]
+
 let sequence e_list =
   let seq e e_list =
     match e, e_list with

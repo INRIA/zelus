@@ -87,21 +87,21 @@ and exp =
   | Eapp of { f: exp; arg_list: exp list }
   | Emethodcall of methodcall
   | Etypeconstraint of exp * type_expression
-  | Efor of { index: Ident.t; left: exp; right: exp; e: exp }
+  | Efor of { index: Ident.t; dir: bool; left: exp; right: exp; e: exp }
   | Ewhile of { cond: exp; e: exp }
   | Emachine of machine
   | Efun of { pat_list: pattern list; e: exp }
   (* array operations *)
-  | Eget of { e: exp; size: size_expression } (* access in an array *)
-  | Eupdate of { e: exp; size: size_expression; index: size_expression; arg: exp }
+  | Eget of { e: exp; index: exp } (* access in an array *)
+  | Eupdate of { e: exp; size: exp; index: exp; arg: exp }
   (* update of an array of size [s1] *)
   | Eslice of
-      { e: exp; left: size_expression;
-        right: size_expression; length: size_expression } (* e{s1..s2} *)
-  | Econcat of { left: exp; left_size: size_expression;
-                 right: exp; right_size: size_expression }
+      { e: exp; left: exp;
+        right: exp; length: exp } (* e{s1..s2} *)
+  | Econcat of { left: exp; left_size: exp;
+                 right: exp; right_size: exp }
   (* { e1 | e2 } *)
-  | Emake of { e: exp; size: size_expression }
+  | Emake of { e: exp; size: exp }
   (* e1[e2] build an array of size [s2] with value [e1] *)
                
 (* when [is_mutable = true] a variable [x] is mutable which means that *)

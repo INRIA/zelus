@@ -195,9 +195,10 @@ and exp prio ff e =
      fprintf ff "@[<v2>match %a with@ @[%a@]@]"
        (exp 0) e
        (print_list_l match_handler """""") match_handler_l
-  | Efor { index; left; right; e } ->
-     fprintf ff "@[<hv>for %a = %a to %a@ @[<hv 2>do@ %a@ done@]@]"
-       name index (exp 0) left (exp 0) right (exp 0) e
+  | Efor { index; dir; left; right; e } ->
+     fprintf ff "@[<hv>for %a = %a %s %a@ @[<hv 2>do@ %a@ done@]@]"
+       name index (exp 0) left (if dir then "to" else "downto")
+       (exp 0) right (exp 0) e
   | Ewhile { cond; e } ->
      fprintf ff "@[<hv>while %a do %a done@]@]"
        (exp 0) cond (exp 0) e
@@ -209,20 +210,19 @@ and exp prio ff e =
      else
        fprintf ff
          "@[<hv>%a@]" (print_list_r (exp 1) "" ";" "") e_list
-  | Eget { e; size} ->
-     fprintf ff "%a.(@[%a@])" (exp prio_e) e Printer.size size
+  | Eget { e; index } ->
+     fprintf ff "%a.(@[%a@])" (exp prio_e) e (exp 0) index
   | Eupdate { e; size; index; arg } ->
      fprintf ff "@[<hov2>{%a:%a with@ %a = %a}@]"
-       (exp prio_e) e Printer.size size Printer.size index (exp 0) arg
+       (exp prio_e) e (exp 0) size (exp 0) index (exp 0) arg
   | Emake { e; size } ->
-     fprintf ff "%a[%a]" (exp prio_e) e Printer.size size
+     fprintf ff "%a[%a]" (exp prio_e) e (exp 0) size
   | Eslice { e; left; right } ->
      fprintf ff "%a{%a..%a}"
-       (exp prio_e) e Printer.size left Printer.size right
+       (exp prio_e) e (exp 0) left (exp 0) right
   | Econcat { left; left_size; right; right_size } ->
      fprintf ff "{%a:%a | %a:%a}"
-       (exp 0) left Printer.size left_size (exp 0) right
-       Printer.size right_size
+       (exp 0) left (exp 0) left_size (exp 0) right (exp 0) right_size
   | Emachine(ma) -> machine ff ma
   | Efun _ -> ()
   end;
