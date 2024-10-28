@@ -278,29 +278,32 @@ let choose env ty =
 let default env ty v_opt =
   match v_opt with
   | None -> choose env ty
-  | Some(v) -> Some(constant v)
+  | Some(v) -> Some(Econst v)
 			
-(** Extension of an environment *)
+(* Extension of an environment *)
 (* The access to a state variable [x] is turned into the access on an *)
 (* array access x.(i1)...(in) if loop_path = [i1;...;in] *)
 let append loop_path l_env env =
   (* add a memory variable for every state variable in [l_env] *)
   (* and a [letvar] declaration for every shared variable *)
-  let addrec n { t_sort; t_typ } (env_acc, mem_acc, var_acc) =
+  let addrec n { t_sort; t_tys = { typ_body } } (env_acc, mem_acc, var_acc) =
     match t_sort with
-      | Sstatic
-      | Sval ->
-	 Env.add n { e_typ = ty; e_sort = Out(n, k); e_size = [] } env_acc,
-	 mem_acc, var_acc
-      | Svar { v_default = v_opt } ->
-	 Env.add n { e_typ = ty; e_sort = Out(n, k); e_size = [] } env_acc,
-	 mem_acc, (n, is_mutable ty, ty, default env ty v_opt) :: var_acc
-      | Smem { m_kind = k_opt } ->
-	 Env.add n
-	   { e_typ = ty; e_sort = Out(n, t_sort); e_size = loop_path }
+      | Sort_val ->
+	 Env.add n { e_typ = typ_body; e_sort = Out(n, t_sort); e_size = [] }
            env_acc,
-	 Parseq.cons { m_name = n; m_value = choose env ty; m_typ = t_typ;
-		      m_kind = k_opt; m_size = [] } mem_acc,
+	 mem_acc, var_acc
+      | Sort_var ->
+	 Env.add n { e_typ = typ_body; e_sort = Out(n, t_sort); e_size = [] }
+           env_acc,
+	 mem_acc,
+         (n, is_mutable typ_body, typ_body, default env typ_body None) :: var_acc
+      | Sort_mem { m_mkind } ->
+	 Env.add n
+	   { e_typ = typ_body; e_sort = Out(n, t_sort); e_size = loop_path }
+           env_acc,
+	 Parseq.cons
+           { m_name = n; m_value = choose env typ_body; m_typ = typ_body;
+	     m_kind = m_mkind; m_size = [] } mem_acc,
 	 var_acc in
   Env.fold addrec l_env (env, Parseq.empty, [])
 
