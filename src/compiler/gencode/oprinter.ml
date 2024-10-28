@@ -24,7 +24,7 @@ open Printer
 let priority_exp = function
   | Econst _ | Econstr0 _| Eglobal _ | Evar _ 
     | Estate_access _ | Eget _ | Eupdate _ | Eslice _
-    | Econcat _ | Emake _ | Erecord _ | Erecord_access _ | Erecord_with _
+    | Econcat _ | Evec _ | Erecord _ | Erecord_access _ | Erecord_with _
   | Etypeconstraint _ | Etuple _ | Efor _ | Ewhile _ -> 3
   | Econstr1 _ | Eapp _ | Emethodcall _ -> 2
   | Eassign _ | Eassign_state _  -> 1
@@ -215,7 +215,7 @@ and exp prio ff e =
   | Eupdate { e; size; index; arg } ->
      fprintf ff "@[<hov2>{%a:%a with@ %a = %a}@]"
        (exp prio_e) e (exp 0) size (exp 0) index (exp 0) arg
-  | Emake { e; size } ->
+  | Evec { e; size } ->
      fprintf ff "%a[%a]" (exp prio_e) e (exp 0) size
   | Eslice { e; left; right } ->
      fprintf ff "%a{%a..%a}"

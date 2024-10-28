@@ -207,14 +207,14 @@ and exp prio ff e =
      (* [i] where it is equal to [e2] *)
      fprintf ff "@[(let _t = Array.copy (%a) in@ _t.(%a) <- %a; _t)@]"
              (exp 0) e (exp 0) index (exp 0) arg
-  | Emake { e; size } ->
+  | Evec { e; size } ->
      (* make a vector *)
      let print_vec ff e se =
        match e with
        | Econst _ ->
 	  fprintf ff "@[<hov 2>Array.make@ (%a)@ (%a)@]"
                                   (exp 0) se (exp prio_e) e
-       | Emake { e; size } ->
+       | Evec { e; size } ->
 	  fprintf ff "@[<hov 2>Array.make_matrix@ (%a)@ (%a)@ (%a)@]"
                       (exp 0) se (exp 0) size (exp prio_e) e
        | _ -> fprintf ff "@[<hov 2>Array.init@ @[(%a)@]@ @[(fun _ -> %a)@]@]"

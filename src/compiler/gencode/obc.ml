@@ -101,7 +101,7 @@ and exp =
   | Econcat of { left: exp; left_size: exp;
                  right: exp; right_size: exp }
   (* { e1 | e2 } *)
-  | Emake of { e: exp; size: exp }
+  | Evec of { e: exp; size: exp }
   (* e1[e2] build an array of size [s2] with value [e1] *)
                
 (* when [is_mutable = true] a variable [x] is mutable which means that *)

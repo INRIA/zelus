@@ -220,16 +220,16 @@ let rec size { Zelus.desc = desc } =
 
 (* makes an initial value from a type. returns None when it fails *)
 let choose env ty =
-  let tuple l = Otuple(l) in
-  let efalse = Oconst(Obool(false)) in
-  let echar0 = Oconst(Ochar('a')) in
+  let tuple l = Etuple(l) in
+  let efalse = Econst(Ebool(false)) in
+  let echar0 = Econst(Echar('a')) in
   (* on purpose, take an initial value different from zero *)
-  let ezero = Oconst(Oint(42)) in
-  let efzero = Oconst(Ofloat(42.0)) in
-  let estring0 = Oconst(Ostring("aaaaaaa")) in
-  let evoid = Oconst(Ovoid) in
-  let eany = Oconst(Oany) in
-  let vec e s = Ovec(e, s) in
+  let ezero = Econst(Eint(42)) in
+  let efzero = Econst(Efloat(42.0)) in
+  let estring0 = Econst(Estring("aaaaaaa")) in
+  let evoid = Econst(Evoid) in
+  let eany = Econst(Eany) in
+  let vec e size = Evec { e; size } in
   let rec value_from_deftype id =
     try
       let { info = { type_desc = ty_c } } = 
@@ -238,10 +238,10 @@ let choose env ty =
       | Variant_type(g_list) -> value_from_variant_list g_list
       | Abstract_type -> eany
       | Record_type(l_list) ->
-          Orecord(
+          Erecord(
 	    List.map 
               (fun { qualid = qualid; info = { label_res = ty } } -> 
-                 (Lident.Modname(qualid), value ty)) l_list)
+                 { label = Lident.Modname(qualid); arg = value ty }) l_list)
       | Abbrev(_, ty) -> value ty
     with
       | Not_found -> eany
@@ -249,7 +249,7 @@ let choose env ty =
     match ty.t_desc with
     | Tvar -> eany
     | Tproduct(ty_l) -> tuple (List.map value ty_l)
-    | Tfun _ -> eany
+    | Tarrow _ -> eany
     | Tvec(ty, s) -> vec (value ty) (size_of_type s)
     | Tconstr(id, _, _) ->
        if id = Initial.int_ident then ezero
@@ -269,7 +269,7 @@ let choose env ty =
       match g_list with
       | [] -> raise Not_found
       | { qualid = qualid; info = { constr_arity = arity } } :: g_list ->
-          if arity = 0 then Oconstr0(Lident.Modname(qualid))
+          if arity = 0 then Zelus.Econstr0(Lident.Modname(qualid))
           else findrec g_list in
     try
       (* look for a constructor with arity 0 *)
@@ -279,7 +279,7 @@ let choose env ty =
         (* otherwise, pick one *)
         let { qualid = qualid; info = { constr_arg = ty_list } } =
                                       List.hd g_list in
-        Oconstr1(Lident.Modname(qualid), List.map value ty_list) in
+        Zelus.Econstr1(Lident.Modname(qualid), List.map value ty_list) in
   Some(value ty)
 
 (** Computes a default value *)
