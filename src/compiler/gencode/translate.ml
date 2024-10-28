@@ -20,60 +20,6 @@ open Global
 open Deftypes
 open Obc
        
-(* application *)
-let app e_fun e_list =
-  match e_list with | [] -> e_fun | _ -> Eapp { f = e_fun; arg_list = e_list }
-					     
-(* let sequence inst1 inst2 =
-  match inst1, inst2 with
-  | (Esequence [], inst) | (inst, Osequence []) -> inst
-  | Osequence(l1), Osequence(l2) -> Osequence(l1 @ l2)
-  | _, Osequence(l2) -> Osequence(inst1 :: l2)
-  | _ -> Osequence [inst1; inst2] *)
-
-(** Translation of the kind *)
-let kind = function
-  | Zelus.Kfun _ -> Kfun
-  | Zelus.Knode k ->
-     Knode (match k with Zelus.Kdiscrete -> Kdiscrete | Zelus.Kcont -> Kcont)
-    
-(** Translating type expressions. *)
-let rec type_expression { Zelus.desc = desc } =
-  match desc with
-  | Zelus.Etypevar(s) -> Etypevar(s)
-  | Zelus.Etypeconstr(ln, ty_list) ->
-     Etypeconstr(ln, List.map type_expression ty_list)
-  | Zelus.Etypetuple(ty_list) ->
-     Etypetuple(List.map type_expression ty_list)
-  | Zelus.Etypevec(ty, s) ->
-     Etypevec(type_expression ty, size s)
-  | Zelus.Etypefun(k, opt_name, ty_arg, ty_res) ->
-     Otypefun(kind k, opt_name, type_expression ty_arg, type_expression ty_res)
-
-and type_of_type_decl { Zelus.desc = desc } =
-  match desc with
-  | Zelus.Eabstract_type -> Oabstract_type
-  | Zelus.Eabbrev(ty) -> Oabbrev(type_expression ty)
-  | Zelus.Evariant_type(constr_decl_list) ->
-      Ovariant_type(List.map constr_decl constr_decl_list)
-  | Zelus.Erecord_type(n_ty_list) ->
-     Orecord_type(List.map (fun (n, ty) -> (n, type_expression ty)) n_ty_list)
-
-and constr_decl { desc = desc } =
-  match desc with
-  | Econstr0decl(n) -> Oconstr0decl(n)
-  | Econstr1decl(n, ty_list) ->
-      Oconstr1decl(n, List.map type_expression ty_list)
-      
-and size { Zelus.desc = desc } =
-  match desc with
-  | Zelus.Sconst(i) -> Sconst(i)
-  | Zelus.Sglobal(ln) ->  Sglobal(ln)
-  | Zelus.Sname(n) -> Sname(n)
-  | Zelus.Sop(op, s1, s2) ->
-     let operator = function Zelus.Splus -> Splus | Zelus.Sminus -> Sminus in
-     Sop(operator op, size s1, size s2)
-
 (* is-it a mutable value? Only vectors are considered at the moment *)
 let rec is_mutable { t_desc = desc } =
   match desc with
@@ -81,11 +27,6 @@ let rec is_mutable { t_desc = desc } =
   | Tlink(link) -> is_mutable link
   | _ -> false
            
-(* translating an internal type into a type expression *)
-let type_expression_of_typ ty =
-  let ty_exp = Interface.type_expression_of_typ ty in
-  type_expression ty_exp
-
 (* The translation uses an environment to store information about identifiers *)
 type env = entry Env.t (* the symbol table *)
  and entry =
@@ -96,10 +37,10 @@ type env = entry Env.t (* the symbol table *)
  and sort =
    | In of exp
    (* the variable [x] is implemented by [e.(i_1)...(i_n)]; e.g., [x in e] *)
-   | Out of Zident.t * Deftypes.tsort
+   | Out of Ident.t * Deftypes.tsort
    (* the variable [x] is stored into [y.(i_1)...(i_n); e.g. [x out y]] *)
 
- and loop_path = Zident.t list
+ and loop_path = Ident.t list
 			 
 type code =
   { mem: mentry State.t; (* set of state variables *)
