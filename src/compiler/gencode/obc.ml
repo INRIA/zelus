@@ -23,6 +23,13 @@ type ('pattern, 'body) match_handler =
     m_body: 'body;
   }
 
+(* type declaration *)
+type type_expression = Zelus.type_expression
+
+type kind = Zelus.kind
+
+type size_expression = Zelus.size_expression
+
 type immediate =
   | Eint of int
   | Eint32 of int
@@ -82,13 +89,16 @@ and exp =
   | Emachine of machine
   | Efun of { pat_list: pattern list; e: exp }
   (* array operations *)
-  | Eget of { e: exp; size: size } (* access in an array *)
-  | Eupdate of { e: exp; size: size; index: size; arg: exp }
+  | Eget of { e: exp; size: size_expression } (* access in an array *)
+  | Eupdate of { e: exp; size: size_expression; index: size_expression; arg: exp }
   (* update of an array of size [s1] *)
-  | Eslice of { e: exp; left: size; right: size; length: size } (* e{s1..s2} *)
-  | Econcat of { left: exp; left_size: size; right: exp; right_size: size }
+  | Eslice of
+      { e: exp; left: size_expression;
+        right: size_expression; length: size_expression } (* e{s1..s2} *)
+  | Econcat of { left: exp; left_size: size_expression;
+                 right: exp; right_size: size_expression }
   (* { e1 | e2 } *)
-  | Emake of { e: exp; size: size }
+  | Emake of { e: exp; size: size_expression }
   (* e1[e2] build an array of size [s2] with value [e1] *)
                
 (* when [is_mutable = true] a variable [x] is mutable which means that *)
@@ -173,40 +183,13 @@ and mkind =
         
 and 'a path = 'a list
 
-and implementation_list = implementation list
+type type_decl = Zelus.type_decl
+
+type implementation_list = implementation list[@@deriving show]
 
 and implementation = 
   | Eletdef of name * exp
   | Eopen of string
   | Etypedecl of (string * string list * type_decl) list
 
-(* type declaration *)
-and type_expression = 
-  | Etypevar of name
-  | Etypefun of kind * type_expression * type_expression
-  | Etypetuple of type_expression list
-  | Etypeconstr of Lident.t * type_expression list
-  | Etypevec of type_expression * size
-  | Etypesize of is_singleton * size
 
-and kind = Fun | Node | Hybrid
-
-and type_decl =
-  | Eabstract_type
-  | Eabbrev of type_expression
-  | Evariant_type of constr_decl list
-  | Erecord_type of (string * type_expression) list
-					       
-and constr_decl =
-  | Econstr0decl of string
-  | Econstr1decl of string * type_expression list
-
-and is_singleton = bool
-
-and size =
-  | Sconst of int
-  | Svar of Ident.t
-  | Sop of op * size * size
-  | Sdiv of { num: size; denom: int }
-
-and op = Splus | Sminus | Smult
