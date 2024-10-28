@@ -195,6 +195,7 @@
     oaux; auxiliary functions for building terms
     oprinter; the printer
     ocamlprinter; print OCaml code
+    translate; translate into sequential code
   )
   (libraries zelus.global_lib zelus.typdefs_lib)
 )
@@ -209,7 +210,8 @@
 	zeluc; the main function
   )
   (libraries zelus.parser_lib zelus.global_lib zelus.zrun_lib
-  zelus.typing_lib zelus.causality_lib zelus.initialization_lib zelus.rewrite_lib)
+  zelus.typing_lib zelus.causality_lib zelus.initialization_lib
+  zelus.rewrite_lib zelus.seqcode_lib)
   (promote (until-clean) (into ..)))
 
 (install
