@@ -75,9 +75,12 @@ and exp =
   | Erecord_with of exp * exp record list
   | Eifthenelse of exp * exp * exp
   | Ematch of exp * (pattern, exp) match_handler list
-  | Elet of pattern * exp * exp
+  | Elet of pattern * exp * exp (* [let p = e1 in e2] *)
   | Eletvar of { id: Ident.t; is_mutable: is_mutable;
-                ty: type_expression; e_opt: exp option; e : exp }
+                 ty: type_expression; e_opt: exp option; e : exp }
+  (* var id : ty [= e1] in e2 *)
+  | Eletmem of mentry list * exp (* [let mem m1...mk in e] *)
+  | Eletinstance of ientry list * exp (* [let instances i1...ik in e] *)
   | Eassign of left_value * exp (* [x.v <- ...] *)
   | Eassign_state of left_state_value * exp (* [x.v <- ...] *)
   | Esequence of exp list
