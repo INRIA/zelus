@@ -75,6 +75,15 @@ let entry_of n env =
   with Not_found ->
     Misc.internal_error "Unbound variable" Printer.name n
 
+(** Translation of immediate values *)
+let immediate = function
+  | Zelus.Eint(i) -> Eint(i)
+  | Zelus.Efloat(f) -> Efloat(f)
+  | Zelus.Ebool(b) -> Ebool(b)
+  | Zelus.Echar(c) -> Echar(c)
+  | Zelus.Estring(s) -> Estring(s)
+  | Zelus.Evoid -> Evoid
+
 (* read/write of a state variable. *)
 let state is_read n k =
   match k with
@@ -350,16 +359,16 @@ let apply k env loop_path e e_list
 (* a nested loop forall in ... forall i1 do ... e ... *)
 let rec exp env loop_path code { Zelus.e_desc = desc } =
   match desc with
-  | Zelus.Econst(i) -> Oconst(immediate i), code
+  | Zelus.Econst(i) -> Econst(immediate i), code
   | Zelus.Evar(n)
   | Zelus.Elast { id = n } -> var (entry_of n env), code
-  | Zelus.Eglobal { lname = ln } -> Eglobal(ln), code
+  | Zelus.Eglobal { lname = ln } -> Eglobal { lname = ln }, code
   | Zelus.Econstr0 { lname } -> Econstr0 { lname }, code
   | Zelus.Econstr1 { lname; arg_list } ->
-      let arg_list, code = Misc.mapfold (exp env loop_path) code arg_list in
+      let arg_list, code = Util.mapfold (exp env loop_path) code arg_list in
       Econstr1 { lname; arg_list }, code
   | Zelus.Etuple(e_list) ->
-     let e_list, code = Misc.mapfold (exp env loop_path) code e_list in
+     let e_list, code = Util.mapfold (exp env loop_path) code e_list in
      Etuple(e_list), code
   | Zelus.Erecord(label_e_list) ->
      let label_e_list, code =
@@ -387,7 +396,7 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      Etypeconstraint(e, ty_exp), code
   | Zelus.Eop(Zelus.Eup, [e]) ->
      (* implement the zero-crossing up(x) by up(if x >=0 then 1 else -1) *)
-     let e = if !Misc.zsign then Zaux.sgn e else e in 
+     let e = if !Misc.zsign then Aux.sgn e else e in 
      exp env loop_path code e
   | Zelus.Eop(Zelus.Ehorizon, [e]) ->
      exp env loop_path code e
@@ -424,7 +433,7 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      exp env loop_path code e  
   | Zelus.Elet _ | Zelus.Eseq _ | Zelus.Eperiod _ 
   | Zelus.Eop _ | Zelus.Epresent _
-  | Zelus.Ematch _ | Zelus.Eblock _ -> assert false
+  | Zelus.Ematch _ | Zelus.Elocal _ -> assert false
   | Zelus.Eapp(_, e_fun, e_list) ->
      (* compute the sequence of static arguments and non static ones *)
      let se_list, ne_list, ty_res =
