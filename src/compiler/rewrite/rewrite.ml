@@ -79,10 +79,12 @@ let set_steps w =
   let set p s =
     match s with
     | "a" -> s_set := if p then s_all else S.empty
-    | "static" | "inline" | "der" | "lastinpatterns" | "copylast"
+    | "static" | "inline" | "der" | "period" | "disc"
+      | "lastinpatterns" | "copylast"
     | "auto" | "present"
     | "pre" | "reset" | "complete" | "shared" | "encore" | "letin" 
-    | "schedule" -> s_set := if p then S.add s !s_set else S.remove s !s_set
+    | "schedule" | "aform" | "deadcode" | "copy" ->
+       s_set := if p then S.add s !s_set else S.remove s !s_set
     | "" -> ()
     | _ -> raise (Arg.Bad ("unknown pass " ^ s)) in
   let l = String.split_on_char '+' w in
