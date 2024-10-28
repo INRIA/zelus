@@ -320,29 +320,26 @@ let append loop_path l_env env =
 let apply k env loop_path e e_list
 	  ({ mem = m; init = i; instances = j; reset = r; step = s } as code) =
   match k with
-  | Deftypes.Tstatic _
-  | Deftypes.Tany | Deftypes.Tdiscrete(false) -> Oapp(e, e_list), code
-  | Deftypes.Tdiscrete(true)
-  | Deftypes.Tcont
-  | Deftypes.Tproba ->
+  | Deftypes.Tfun _ -> Eapp { f = e; arg_list = e_list }, code
+  | Deftypes.Tnode _ ->
      (* the first [n-1] arguments are static *)
-     let se_list, arg = Zmisc.firsts e_list in
-     let f_opt = match e with | Oglobal(g) -> Some(g) | _ -> None in
-     let loop_path = List.map (fun ix -> Olocal(ix)) loop_path in
+     let se_list, arg = Misc.firsts e_list in
+     let f_opt = match e with | Eglobal(g) -> Some(g) | _ -> None in
+     let loop_path = List.map (fun ix -> Elocal(ix)) loop_path in
      (* create an instance *)
-     let o = Zident.fresh "i" in
+     let o = Ident.fresh "i" in
      let j_code = { i_name = o; i_machine = e; i_kind = k;
 		    i_params = se_list; i_size = [] } in
      let reset_code =
-       Omethodcall({ met_machine = f_opt; met_name = Oaux.reset;
+       Emethodcall({ met_machine = f_opt; met_name = Oaux.reset;
 		     met_instance = Some(o, loop_path); met_args = [] }) in
      let step_code =
-       Omethodcall({ met_machine = f_opt; met_name = Oaux.step;
+       Emethodcall({ met_machine = f_opt; met_name = Oaux.step;
 		     met_instance = Some(o, loop_path); met_args = [arg] }) in
      step_code,
      { code with instances = Parseq.cons j_code j;
-		 init = sequence (Oexp(reset_code)) i;
-		 reset = sequence (Oexp(reset_code)) r }
+		 init = seq (Oexp(reset_code)) i;
+		 reset = seq (Oexp(reset_code)) r }
        
 (** Translation of expressions under an environment [env] *)
 (* [code] is the code already generated in the context. *)
@@ -353,7 +350,7 @@ let apply k env loop_path e e_list
 let rec exp env loop_path code { Zelus.e_desc = desc } =
   match desc with
   | Zelus.Econst(i) -> Oconst(immediate i), code
-  | Zelus.Elocal(n)
+  | Zelus.Evar(n)
   | Zelus.Elast(n) -> var (entry_of n env), code
   | Zelus.Eglobal { lname = ln } -> Oglobal(ln), code
   | Zelus.Econstr0(ln) -> Oconstr0(ln), code

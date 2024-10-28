@@ -41,6 +41,12 @@ let print_list print_el sep ff l =
   in
     printrec ff l
 
+let kind k =
+  match k with
+  | Cont -> "cont" | Zero -> "zero"
+  | Period -> "period" | Horizon -> "horizon"
+  | Encore -> "encore" | Major -> "major"
+
 let arrow_tostring = function 
   | Tfun(k) ->
      (match k with Tconst -> "-V->" | Tstatic -> "-S->" | Tany -> "-A->")

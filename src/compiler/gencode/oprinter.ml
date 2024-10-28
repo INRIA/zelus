@@ -260,8 +260,10 @@ and mkind mk =
      | Eencore -> "encore "
      | Eperiod -> "period "
 
-and memory ff { m_name; m_value; m_typ; m_kind = k; m_size } =
-  fprintf ff "%s%a%a : %a = %a" (mkind k) name m_name
+and memory ff { m_name; m_value; m_typ; m_kind; m_size } =
+  let mem = function
+    | None -> "" | Some(k) -> (Ptypes.kind k) ^ " " in
+  fprintf ff "%s%a%a : %a = %a" (mem m_kind) name m_name
     (print_list_no_space (print_with_braces (exp 0) "[" "]") "" "" "")
     m_size ptype m_typ (print_opt (exp 0)) m_value
 
