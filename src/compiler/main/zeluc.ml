@@ -76,6 +76,8 @@ and doc_set_steps = "\t Option to control source-to-source rewriting steps\n\
     \t\t static: static reduction \n\
     \t\t inline: inlining \n\
     \t\t der: normalize derivative \n\
+    \t\t period: remove periods \n\
+    \t\t disc: remove discrete zero-crossings \n\
     \t\t copylast: add copy equations [lx = last* x] for lasts \n\
     \t\t lastinpatterns: add copies for lasts that are inputs or outputs \n\
     \t\t auto: remove automata statements \n\
@@ -87,6 +89,8 @@ and doc_set_steps = "\t Option to control source-to-source rewriting steps\n\
     \t\t\t change a discrete-time state variable \n\
     \t\t letin: fuse blocks \n\
     \t\t schedule: static scheduling \n\
+    \t\t aform: translation into A-normal form \n\
+    \t\t copy: remove copy variables \n\
     \t\t Example: -step -a+step+inline+static. Default is +a."
 let errmsg = "Options are:"
 
@@ -132,8 +136,6 @@ let main () =
           "-zsign", Arg.Set zsign, doc_zsign;
           "-copy", Arg.Set with_copy, doc_with_copy;
           "-check", Arg.Int set_check_equivalence_for_n_steps, doc_check;
-          "-inline", Arg.Int Misc.set_inlining_level, doc_inlining_level;
-          "-inlineall", Arg.Set inline_all, doc_inline_all;
           "-step", Arg.String Rewrite.set_steps, doc_set_steps;
       ])
       compile
