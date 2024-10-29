@@ -421,7 +421,7 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      let s2 = size s2 in
      let e, code = exp env loop_path code e in
      Eslice { e; left = s1; right = s2 }, code
-  | Zelus.Eop(Zelus.Earray(Econcat), [e1; e2]) ->
+  | Zelus.Eop(Zelus.Earray(Econcat), [e1; e2]) -> 
      let ty1 = Typinfo.get_type e1.e_info in
      let ty2 = Typinfo.get_type e2.e_info in
      let _, s1 = Types.filter_vec ty1 in
@@ -439,34 +439,37 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
   | Zelus.Eapp { f; arg_list } ->
      let ty = Typinfo.get_type f.e_info in
      (* compute the sequence of static arguments and non static ones *)
-     let se_list, ne_list, ty_res =
+     let se_list, ne_list, ty_res = 
        Types.split_arguments ty arg_list in
      let f, code = exp env loop_path code f in
      let se_list, code = Util.mapfold (exp env loop_path) code se_list in
      let ne_list, code = Util.mapfold (exp env loop_path) code ne_list in
-     let e_fun = app f se_list in
+     let e_fun = apply f se_list in
      match ne_list with
      | [] -> e_fun, code
      | _ -> let k = Types.kind_of_funtype ty_res in
 	    apply k env loop_path e_fun ne_list code
   			 
 (** Patterns *)
-and pattern { Zelus.p_desc = desc; Zelus.p_typ = ty } =
+and pattern { Zelus.pat_desc = desc; Zelus.pat_info = info } =
+  let ty = Typinfo.get_type info in
   match desc with
-  | Zelus.Ewildpat -> Owildpat
-  | Zelus.Econstpat(im) -> Oconstpat(immediate im)
-  | Zelus.Econstr0pat(c0) -> Oconstr0pat(c0)
+  | Zelus.Ewildpat -> Ewildpat
+  | Zelus.Econstpat(im) -> Econstpat(immediate im)
+  | Zelus.Econstr0pat(c0) -> Econstr0pat(c0)
   | Zelus.Econstr1pat(c1, p_list) ->
-      Oconstr1pat(c1, List.map pattern p_list)
-  | Zelus.Etuplepat(p_list) -> Otuplepat(List.map pattern p_list)
-  | Zelus.Evarpat(n) -> Ovarpat(n, type_expression_of_typ ty)
+      Econstr1pat(c1, List.map pattern p_list)
+  | Zelus.Etuplepat(p_list) -> Etuplepat(List.map pattern p_list)
+  | Zelus.Evarpat(id) -> Evarpat { id; ty = type_expression_of_typ ty }
   | Zelus.Erecordpat(label_pat_list) ->
-     Orecordpat(List.map (fun (label, pat) -> (label, pattern pat))
-			 label_pat_list)
+     Erecordpat
+       (List.map
+          (fun { Zelus.label; Zelus.arg } -> { label; arg = pattern arg })
+	  label_pat_list)
   | Zelus.Etypeconstraintpat(p, ty) ->
-     Otypeconstraintpat(pattern p, type_expression ty)
-  | Zelus.Ealiaspat(p, n) -> Oaliaspat(pattern p, n)
-  | Zelus.Eorpat(p1, p2) -> Oorpat(pattern p1, pattern p2)
+     Etypeconstraintpat(pattern p, ty)
+  | Zelus.Ealiaspat(p, n) -> Ealiaspat(pattern p, n)
+  | Zelus.Eorpat(p1, p2) -> Eorpat(pattern p1, pattern p2)
 				  
 (** Equations *)
 let rec equation env loop_path { Zelus.eq_desc = desc } code =
