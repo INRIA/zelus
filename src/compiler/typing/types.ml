@@ -424,6 +424,22 @@ let filter_actual_arrow ty =
      ty_kind, ty_name_opt, ty_arg, ty_res
   | _ -> assert false
 
+(* Splits the list of arguments of a function application *)
+(* if [f e1 ... en] is an application with [f] of type
+ * - t1 -S-> ... -S-> ti-1 -k1-> ... -kn-> tn+1
+ * - returns [e1,...,ei] as static arguments; [ei+1;...; en] as non static 
+ * - and the type of the result of the application *)
+let rec split_arguments ty_fun e_list =
+  match e_list with
+  | [] -> [], [], ty_fun
+  | e :: e_rest_list ->
+     let k, _, _, ty_res = filter_actual_arrow ty_fun in
+     match k with
+     | Tfun(Tstatic) ->
+	let se_list, ne_list, ty_res = split_arguments ty_res e_rest_list in
+	e :: se_list, ne_list, ty_res
+     | _ -> [], e_list, ty_fun
+
 let filter_vec ty =
   let ty = typ_repr ty in
   match ty.t_desc with
@@ -467,6 +483,12 @@ let is_a_function_name lname =
   let ty = typ_repr typ_body in
   match ty.t_desc with
     | Tarrow { ty_kind = Tfun _ } -> true | _ -> false
+
+(* kind of a function type *)
+let kind_of_funtype ty =
+  let ty = typ_repr ty in
+  match ty.t_desc with
+  | Tarrow { ty_kind } -> ty_kind | _ -> assert false
 
 (* kind of a function type *)
 let kind_of_arrowtype ty =
