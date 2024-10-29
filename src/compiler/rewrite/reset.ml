@@ -73,16 +73,6 @@ type acc = { init : Ident.t option }
 
 let empty = { init = None }
 
-(* Static expressions - simple sufficient condition for [e] to be static *)
-let rec static { e_desc } =
-  match e_desc with
-  | Econst _ | Econstr0 _ | Eglobal _ -> true
-  | Etuple(e_list) -> List.for_all static e_list
-  | Erecord(qual_e_list) ->
-     List.for_all (fun { arg } -> static arg) qual_e_list
-  | Erecord_access { arg } -> static arg
-  | _ -> false
-
 let intro { init } =
   let id = match init with | None -> fresh () | Some(id) -> id in
   id, { init = Some(id) }
@@ -163,7 +153,7 @@ and if_eq funs acc (eq_true, eq_false) =
 (* Equations *)
 let equation funs acc ({ eq_desc } as eq) =
   match eq_desc with
-  | EQinit(_, e) when static e -> eq, acc
+  | EQinit(_, e) when Types.static e -> eq, acc
   | EQinit(x, e) ->
      let e, acc = Mapfold.expression_it funs acc e in
      reset_init acc { eq with eq_desc = EQinit(x, e) }
