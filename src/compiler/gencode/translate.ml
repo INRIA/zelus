@@ -420,7 +420,7 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      let e1, code = exp env loop_path code e1 in
      let e2, code = exp env loop_path code e2 in
      let e, code = exp env loop_path code e in
-     Eslice { e; left = e1; right = e2; length =  }, code
+     Eslice { e; left = e1; right = e2 }, code
   | Zelus.Eop(Zelus.Earray(Econcat), [e1; e2]) -> 
      let ty1 = Typinfo.get_type e1.e_info in
      let ty2 = Typinfo.get_type e2.e_info in

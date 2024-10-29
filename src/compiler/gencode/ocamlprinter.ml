@@ -220,7 +220,7 @@ and exp prio ff e =
                     for i = 0 to %a - 1 do @ \
                       _t.(i) <- %a.(i+%a) done; @ \
                     _t)@]"
-             (exp 0) length (exp 2) e (exp 0) right
+             (exp 0) left (exp 2) e (exp 0) right
              (exp 2) e (exp 0) left
   | Econcat { left; left_size; right; right_size } ->
      (* returns a fresh vector [_t] of size [s1+s2] *)
