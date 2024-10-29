@@ -213,8 +213,8 @@ and exp prio ff e =
        | _ -> fprintf ff "@[<hov 2>Array.init@ @[(%a)@]@ @[(fun _ -> %a)@]@]"
 		      (exp 0) se (exp prio_e) e in
      print_vec ff e size
-  | Eslice { e; left; right; length } ->
-     (* returns a fresh vector [_t] of size [s1+s2] *)
+  | Eslice { e; left; right } ->
+     (* returns a fresh vector [_t] of size [s2-s1+1] *)
      (* with _t.(i) = e.(i + s1) for all i in [0..s2-1] *)
      fprintf ff "@[(let _t = Array.make %a %a.(0) in @ \
                     for i = 0 to %a - 1 do @ \

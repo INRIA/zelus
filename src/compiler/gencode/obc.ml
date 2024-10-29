@@ -94,13 +94,12 @@ and exp =
   (* array operations *)
   | Eget of { e: exp; index: exp } (* access in an array *)
   | Eupdate of { e: exp; size: exp; index: exp; arg: exp }
-  (* update of an array of size [s1] *)
+  (* update of an array [e1] of size [s1] [|e1 with (i) <- e2|]*)
   | Eslice of
-      { e: exp; left: exp;
-        right: exp; length: exp } (* e{s1..s2} *)
+      { e: exp; left: exp; right: exp } (* e{s1..s2} *)
   | Econcat of { left: exp; left_size: exp;
                  right: exp; right_size: exp }
-  (* { e1 | e2 } *)
+  (* { e1 ++ e2 } *)
   | Evec of { e: exp; size: exp }
   (* e1[e2] build an array of size [s2] with value [e1] *)
                
