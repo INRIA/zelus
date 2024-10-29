@@ -350,7 +350,29 @@ let apply k env loop_path e e_list
      { code with instances = Parseq.cons j_code j;
 		 init = Oaux.seq reset_code i;
 		 reset = Oaux.seq reset_code r }
-       
+
+(* Define a function or a machine according to a kind [k] *)
+let machine k pat_list { mem = m; instances = j; reset = r; step = e }
+	    ty_res =
+  let k = Interface.kindtype k in
+  match k with
+  | Deftypes.Tfun _ -> Efun { pat_list; e }
+  | Deftypes.Tnode _ ->
+    (* the [n-1] parameters are static *)
+    let pat_list, p = Util.firsts pat_list in
+    let body =
+       { ma_kind = k;
+	 ma_params = pat_list;
+	 ma_initialize = None;
+	 ma_memories = Parseq.list [] m;
+	 ma_instances = Parseq.list [] j;
+	 ma_methods = 
+	   [ { me_name = Oaux.reset; me_params = []; me_body = r;
+               me_typ = Initial.typ_unit };
+	     { me_name = Oaux.step; me_params = [p]; me_body = e;
+               me_typ = ty_res } ] } in
+     Emachine(body)
+ 
 (** Translation of expressions under an environment [env] *)
 (* [code] is the code already generated in the context. *)
 (* [exp env e code = e', code'] where [code'] extends [code] with new *)
@@ -456,11 +478,11 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
   | Zelus.Efun { Zelus.f_kind = k; Zelus.f_args = arg_list;
 		 Zelus.f_body = r; Zelus.f_env = f_env } ->
      let ty = Typinfo.get_type r.r_info in
-     let pat_list = List.map (fun a_list -> List.map arg a_list) arg_list in
+     let pat_list = List.map arg arg_list in
      let env, mem_acc, var_acc = append empty_path f_env Env.empty in
-     let code = result env r in
-     let code = add_mem_vars_to_code code mem_acc var_acc in
-     machine k pat_list code ty
+     let code_body = result env loop_path empty_code r in
+     let code_body = add_mem_vars_to_code code_body mem_acc var_acc in
+     machine k pat_list code_body ty, code
   | Esizeapp _ -> Misc.not_yet_implemented "sizeapp"
   | Eforloop _ -> Misc.not_yet_implemented "for loops"
   | Ereset _ -> Misc.not_yet_implemented "reset"
@@ -473,9 +495,9 @@ and vardec { Zelus.var_name = id; Zelus.var_info = info } =
   let ty = Typinfo.get_type info in
   Evarpat { id; ty = Interface.type_expression_of_typ ty }
 
-and result env { Zelus.r_desc } =
+and result env loop_path code { Zelus.r_desc } =
   match r_desc with
-  | Exp(e) -> expression env e
+  | Exp(e) -> exp env loop_path code e
   | Returns { b_vars; b_body; b_env } ->
      let env, mem_acc, var_acc = append [] b_env env in
      let eq_code = equation env [] b_body empty_code in
@@ -502,8 +524,8 @@ and pattern { Zelus.pat_desc = desc; Zelus.pat_info = info } =
   | Zelus.Ealiaspat(p, n) -> Ealiaspat(pattern p, n)
   | Zelus.Eorpat(p1, p2) -> Eorpat(pattern p1, pattern p2)
 				  
-(** Equations *)
-let rec equation env loop_path { Zelus.eq_desc = desc } code =
+(* Equations *)
+and equation env loop_path { Zelus.eq_desc = desc } code =
   match desc with
   | Zelus.EQeq({ Zelus.pat_desc = Zelus.Evarpat(n) }, e) ->
      let e, code = exp env loop_path code e in
@@ -580,28 +602,6 @@ and block env loop_path { Zelus.b_body = eq; Zelus.b_env = b_env  } =
 and add_mem_vars_to_code ({ mem; step } as code) mem_acc var_acc =
   { code with mem = Parseq.seq mem_acc mem; step = letvar var_acc step }
          
-(* Define a function or a machine according to a kind [k] *)
-let machine k pat_list { mem = m; instances = j; reset = r; step = e }
-	    ty_res =
-  let k = Interface.kindtype k in
-  match k with
-  | Deftypes.Tfun _ -> Efun { pat_list; e }
-  | Deftypes.Tnode _ ->
-    (* the [n-1] parameters are static *)
-    let pat_list, p = Util.firsts pat_list in
-    let body =
-       { ma_kind = k;
-	 ma_params = pat_list;
-	 ma_initialize = None;
-	 ma_memories = Parseq.list [] m;
-	 ma_instances = Parseq.list [] j;
-	 ma_methods = 
-	   [ { me_name = Oaux.reset; me_params = []; me_body = r;
-               me_typ = Initial.typ_unit };
-	     { me_name = Oaux.step; me_params = [p]; me_body = e;
-               me_typ = ty_res } ] } in
-     Emachine(body)
- 
 (* Translation of an expression. After normalisation *)
 (* the body of a function is either of the form [e] with [e] stateless *)
 (* or [let Eq in e] with [e] stateless *)
