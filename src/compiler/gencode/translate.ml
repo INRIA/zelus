@@ -448,10 +448,19 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      let se_list, code = Util.mapfold (exp env loop_path) code se_list in
      let ne_list, code = Util.mapfold (exp env loop_path) code ne_list in
      let e_fun = make_app f se_list in
-     match ne_list with
-     | [] -> e_fun, code
-     | _ -> let k = Types.kind_of_funtype ty_res in
-	    apply k env loop_path e_fun ne_list code
+     let e_fun, code = match ne_list with
+       | [] -> e_fun, code
+       | _ -> let k = Types.kind_of_funtype ty_res in
+	      apply k env loop_path e_fun ne_list code in
+     e_fun, code
+  | Zelus.Efun { Zelus.f_kind = k; Zelus.f_args = pat_list;
+		 Zelus.f_body = r; Zelus.f_env = f_env } ->
+     let ty = Typinfo.get_type r.r_info in
+     let pat_list = List.map pattern pat_list in
+     let env, mem_acc, var_acc = append empty_path f_env Env.empty in
+     let code = expression env e in
+     let code = add_mem_vars_to_code code mem_acc var_acc in
+     machine k pat_list code ty
   			 
 (** Patterns *)
 and pattern { Zelus.pat_desc = desc; Zelus.pat_info = info } =
@@ -553,11 +562,11 @@ and add_mem_vars_to_code ({ mem; step } as code) mem_acc var_acc =
   { code with mem = Parseq.seq mem_acc mem; step = letvar var_acc step }
          
 (* Define a function or a machine according to a kind [k] *)
-let machine n k pat_list { mem = m; instances = j; reset = r; step = e }
+let machine k pat_list { mem = m; instances = j; reset = r; step = e }
 	    ty_res =
   let k = Interface.kindtype k in
   match k with
-  | Deftypes.Tfun _ -> Eletdef(n, Efun { pat_list; e })
+  | Deftypes.Tfun _ -> Efun { pat_list; e }
   | Deftypes.Tnode _ ->
     (* the [n-1] parameters are static *)
     let pat_list, p = Util.firsts pat_list in
@@ -572,7 +581,7 @@ let machine n k pat_list { mem = m; instances = j; reset = r; step = e }
                me_typ = Initial.typ_unit };
 	     { me_name = Oaux.step; me_params = [p]; me_body = e;
                me_typ = ty_res } ] } in
-     Eletdef(n, Emachine(body))
+     Emachine(body)
  
 (* Translation of an expression. After normalisation *)
 (* the body of a function is either of the form [e] with [e] stateless *)
@@ -589,16 +598,9 @@ let implementation { Zelus.desc = desc } =
   | Zelus.Eopen(n) -> Eopen(n)
   | Zelus.Etypedecl { name; ty_params; ty_decl } ->
      Etypedecl([n, params, type_of_type_decl ty_decl])
-  | Zelus.Econstdecl(n, _, e) ->
+  | Zelus.Eletdecl { d_leq } ->
      (* There should be no memory allocated by [e] *)
      let { step = s } = expression Env.empty e in
      Eletvalue(n, s)
-  | Zelus.Efundecl(n, { Zelus.f_kind = k; Zelus.f_args = pat_list;
-			Zelus.f_body = e; Zelus.f_env = f_env }) ->
-     let pat_list = List.map pattern pat_list in
-     let env, mem_acc, var_acc = append empty_path f_env Env.empty in
-     let code = expression env e in
-     let code = add_mem_vars_to_code code mem_acc var_acc in
-     machine n k pat_list code e.Zelus.e_typ
 	     
 let implementation_list impl_list = Util.iter implementation impl_list
