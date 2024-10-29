@@ -453,10 +453,10 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
        | _ -> let k = Types.kind_of_funtype ty_res in
 	      apply k env loop_path e_fun ne_list code in
      e_fun, code
-  | Zelus.Efun { Zelus.f_kind = k; Zelus.f_args = pat_list;
+  | Zelus.Efun { Zelus.f_kind = k; Zelus.f_args = arg_list;
 		 Zelus.f_body = r; Zelus.f_env = f_env } ->
      let ty = Typinfo.get_type r.r_info in
-     let pat_list = List.map pattern pat_list in
+     let pat_list = List.map (fun a_list -> List.map pattern a_list) arg_list in
      let env, mem_acc, var_acc = append empty_path f_env Env.empty in
      let code = expression env e in
      let code = add_mem_vars_to_code code mem_acc var_acc in
@@ -466,8 +466,14 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
   | Ereset _ -> Misc.not_yet_implemented "reset"
   | Eassert _ -> Misc.not_yet_implemented "assert"
      
-  			 
-(** Patterns *)
+and arg a_list =
+  match a_list with | [] -> Ewildpat | _ -> Etuplepat (List.map vardec a_list)
+
+and vardec { Zelus.var_name = id; Zelus.var_info = info } =
+  let ty = Typinfo.get_type info in
+  Evarpat { id; ty = Interface.type_expression_of_typ ty }
+
+(* Patterns *)
 and pattern { Zelus.pat_desc = desc; Zelus.pat_info = info } =
   let ty = Typinfo.get_type info in
   match desc with
