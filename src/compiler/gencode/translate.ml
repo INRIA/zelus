@@ -461,6 +461,11 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      let code = expression env e in
      let code = add_mem_vars_to_code code mem_acc var_acc in
      machine k pat_list code ty
+  | Esizeapp _ -> Misc.not_yet_implemented "sizeapp"
+  | Eforloop _ -> Misc.not_yet_implemented "for loops"
+  | Ereset _ -> Misc.not_yet_implemented "reset"
+  | Eassert _ -> Misc.not_yet_implemented "assert"
+     
   			 
 (** Patterns *)
 and pattern { Zelus.pat_desc = desc; Zelus.pat_info = info } =
