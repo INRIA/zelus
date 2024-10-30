@@ -2,7 +2,7 @@
 all: zeluc.exe
 
 zeluc.exe:
-	(cd src; dune build -- zeluc.exe)
+	(cd src; dune build -- zeluc.exe; dune build lib)
 
 tests:
 	(cd tests; dune test)

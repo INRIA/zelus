@@ -30,7 +30,8 @@ type io_table =
  *- 1/ a first pass computes the set of causality tags
  *- that appear in the body of a function; 
  *- 2/ then the IO for all of them;
- *- 3/ if a function call [f arg1...argn] has to be inlined, it 
+ *- 3/ if a function call [f arg1...argn] has to be inlined because, otherwise
+ *- it would prevent a correct feed-back loop, it 
  *- is rewritten into [inline f arg1...argn].
  *- the decision is made according to the causality type.
  *- (see the [to_inline] function)
@@ -63,7 +64,7 @@ let funexp_build_io_table { f_args; f_body = ({ r_info } as r) } =
          let c_set =
            List.fold_left Causal.vars (Causal.vars c_set tc) tc_list in
          e, c_set
-      | _ -> Mapfold.expression_it funs c_set e in
+      | _ -> Mapfold.expression funs c_set e in
     let global_funs = Mapfold.default_global_funs in
     let funs =  { Mapfold.defaults with expression; global_funs } in
     let _, c_set = Mapfold.result_it funs c_set r in
@@ -157,7 +158,7 @@ let funexp_apply_io_table io_table ({ f_body } as f) =
                (fun { e_info } -> Typinfo.get_caus e_info) (op :: arg_list) in
            to_inline io_table tc_arg_list tc_res in
        { e with e_desc = Eapp({ is_inline; f; arg_list }) }, acc
-    | _ -> Mapfold.expression_it funs acc e in
+    | _ -> Mapfold.expression funs acc e in
   let global_funs = Mapfold.default_global_funs in
   let funs =  { Mapfold.defaults with expression; global_funs } in
   let f_body, _= Mapfold.result_it funs () f_body in
