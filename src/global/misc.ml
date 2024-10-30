@@ -76,7 +76,7 @@ let inline_all = ref false
 
 let verbose = ref false
 let vverbose = ref false
-let debug = ref false
+let debug = ref true
 
 let set_verbose () =
   verbose := true;
