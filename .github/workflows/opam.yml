@@ -1,0 +1,25 @@
+name: Opam
+
+on:
+  push:
+    branches:
+      - 2024
+    
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Use OCaml
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: 5.2.0
+            
+      - name: Install OCaml dependencies
+        run: |
+          opam install graphics zelus
+      
+

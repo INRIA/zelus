@@ -214,6 +214,7 @@
   (libraries zelus.parser_lib zelus.global_lib zelus.zrun_lib
   zelus.typing_lib zelus.causality_lib zelus.initialization_lib
   zelus.rewrite_lib zelus.seqcode_lib)
+  (preprocess (pps ppx_deriving.show))
   (promote (until-clean) (into ..)))
 
 (install

@@ -102,7 +102,7 @@ let print_message comment =
 let do_step comment output step input = 
   print_message comment;
   let o = step input in
-  if !Misc.debug then output Format.err_formatter o;
+  if !Misc.verbose then output Format.err_formatter o;
   o
 
 let do_optional_step no_step comment output step input = 
@@ -162,6 +162,8 @@ let compile modname filename =
     let p = do_step "Mark functions calls to be inlined. See below:"
 	      Printer.program Markfunctions.program p in
 
+    let _ = Zelus.pp_program p in
+    
     (* source-to-source transformations *)
 
     (* defines the initial global environment for values *)
