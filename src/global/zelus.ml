@@ -488,7 +488,4 @@ and ('info, 'ienv) implementation_desc =
 type ('info, 'ienv) program = 
   { p_impl_list : ('info, 'ienv) implementation list;
     p_index : Ident.num }
-    [@@deriving show]
-
-let f = show_program;;
 

@@ -162,7 +162,7 @@ let compile modname filename =
     let p = do_step "Mark functions calls to be inlined. See below:"
 	      Printer.program Markfunctions.program p in
 
-    let _ = Zelus.pp_program p in
+    let _ = Zelus.show_program in
     
     (* source-to-source transformations *)
 
