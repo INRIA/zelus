@@ -133,7 +133,7 @@ let compile modname filename =
 
   (* Parsing *)
   let p = parse_implementation_file source_name in
-  Debug.print_message "Parsing done";
+  print_message "Parsing done";
 
   try
     (* Associate unique index to variables *)
@@ -175,7 +175,7 @@ let compile modname filename =
     let p = do_step "Generation of sequential code done. See below:"
               Oprinter.program Translate.program p in
 
-    (* emit OCaml code and write it in the appropriate file*)
+    (* emit OCaml code and write it in the appropriate file *)
     let mlc = open_out ml_name in
     let _ = do_step "Emit OCaml code. See below:"
               Ocamlprinter.program (write_implementation mlc) p in
