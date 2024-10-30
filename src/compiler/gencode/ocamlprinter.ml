@@ -403,8 +403,10 @@ let machine f ff { ma_kind; ma_params; ma_initialize; ma_memories;
 	  tuple_of_methods ma_methods
 
 let implementation ff impl = match impl with
-  | Eletdef(n, e) ->
-     fprintf ff "@[<v 2>let %a = %a@.@.@]" shortname n (exp 0) e
+  | Eletdef(n_e_list) ->
+     let print ff (n, e) = fprintf ff "@[%a = %a@]" shortname n (exp 0) e in
+     fprintf ff "@[<v 2>let %a@.@]"
+       (Pp_tools.print_list_l print "" "and " "") n_e_list
   | Eopen(s) ->
      fprintf ff "@[open %s@.@]" s
   | Etypedecl(l) ->

@@ -372,7 +372,10 @@ let machine k pat_list { mem = m; instances = j; reset = r; step = e }
 	     { me_name = Oaux.step; me_params = [p]; me_body = e;
                me_typ = ty_res } ] } in
      Emachine(body)
- 
+
+let add_mem_vars_to_code ({ mem; step } as code) mem_acc var_acc =
+  { code with mem = Parseq.seq mem_acc mem; step = letvar var_acc step }
+
 (** Translation of expressions under an environment [env] *)
 (* [code] is the code already generated in the context. *)
 (* [exp env e code = e', code'] where [code'] extends [code] with new *)
@@ -480,7 +483,7 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      let ty = Typinfo.get_type r.r_info in
      let pat_list = List.map arg arg_list in
      let env, mem_acc, var_acc = append empty_path f_env Env.empty in
-     let code_body = result env loop_path empty_code r in
+     let code_body = result env r in
      let code_body = add_mem_vars_to_code code_body mem_acc var_acc in
      machine k pat_list code_body ty, code
   | Esizeapp _ -> Misc.not_yet_implemented "sizeapp"
@@ -495,14 +498,23 @@ and vardec { Zelus.var_name = id; Zelus.var_info = info } =
   let ty = Typinfo.get_type info in
   Evarpat { id; ty = Interface.type_expression_of_typ ty }
 
-and result env loop_path code { Zelus.r_desc } =
+and result env { Zelus.r_desc } =
   match r_desc with
-  | Exp(e) -> exp env loop_path code e
+  | Exp(e) -> exp_to_code env e
   | Returns { b_vars; b_body; b_env } ->
      let env, mem_acc, var_acc = append [] b_env env in
      let eq_code = equation env [] b_body empty_code in
      add_mem_vars_to_code eq_code mem_acc var_acc
 
+(* Translation of an expression. After normalisation *)
+(* the body of a function is either of the form [e] with [e] stateless *)
+(* or [let Eq in e] with [e] stateless *)
+and exp_to_code env ({ Zelus.e_desc } as e) =
+  match e_desc with
+  | Zelus.Elet(l, e_let) -> local env empty_path l e_let
+  | _ -> let e, code = exp env empty_path empty_code e in
+	 { code with step = e }       
+ 
 (* Patterns *)
 and pattern { Zelus.pat_desc = desc; Zelus.pat_info = info } =
   let ty = Typinfo.get_type info in
@@ -579,12 +591,13 @@ and equation_list env loop_path eq_list code =
 		  
 (* Translation of a math/with handler. *)
 and match_handlers env loop_path p_h_list =
-  let body code { Zelus.m_pat = p; Zelus.m_body = b; Zelus.m_env = m_env } =
+  let body code { Zelus.m_pat = p; Zelus.m_body = eq; Zelus.m_env = m_env } =
     let env, mem_acc, var_acc = append loop_path m_env env in
-    let { mem = m_code; step = s_code } as b_code =  block env loop_path b in
+    let { mem = m_code; step = s_code } as eq_code =
+      equation env loop_path eq empty_code in
     { m_pat = pattern p; m_body = letvar var_acc s_code },
     seq code
-	{ b_code with step = Esequence []; mem = Parseq.seq mem_acc m_code } in
+	{ eq_code with step = Esequence []; mem = Parseq.seq mem_acc m_code } in
   Util.mapfold body empty_code p_h_list
 	  
 and local env loop_path { Zelus.l_eq = eq; Zelus.l_env = l_env } e =
@@ -599,9 +612,6 @@ and block env loop_path { Zelus.b_body = eq; Zelus.b_env = b_env  } =
   let eq_code = equation env loop_path eq empty_code in
   add_mem_vars_to_code eq_code mem_acc var_acc
 
-and add_mem_vars_to_code ({ mem; step } as code) mem_acc var_acc =
-  { code with mem = Parseq.seq mem_acc mem; step = letvar var_acc step }
-         
 (* Translation of an expression. After normalisation *)
 (* the body of a function is either of the form [e] with [e] stateless *)
 (* or [let Eq in e] with [e] stateless *)
@@ -610,16 +620,19 @@ let expression env ({ Zelus.e_desc = desc } as e) =
   | Zelus.Elet(l, e_let) -> local env empty_path l e_let
   | _ -> let e, code = exp env empty_path empty_code e in
 	 { code with step = e }       
- 
+
 (** Translation of a declaration *)
 let implementation { Zelus.desc = desc } =
   match desc with
   | Zelus.Eopen(n) -> Eopen(n)
   | Zelus.Etypedecl { name; ty_params; ty_decl } ->
-     Etypedecl([n, params, type_of_type_decl ty_decl])
-  | Zelus.Eletdecl { d_leq } ->
-     (* There should be no memory allocated by [e] *)
-     let { step = s } = expression Env.empty e in
-     Eletvalue(n, s)
+     Etypedecl [name, ty_params, ty_decl]
+  | Zelus.Eletdecl { d_leq = { Zelus.l_eq = { eq_desc } } } ->
+     match eq_desc with
+       | Zelus.EQeq({ pat_desc = Evarpat(name) }, e) ->
+          (* There should be no memory allocated by [e] *)
+          let { step = e } = exp_to_code Env.empty e in
+          Eletdef [Ident.source name, e]
+       | _ -> Misc.not_yet_implemented "letdef"
 	     
 let implementation_list impl_list = Util.iter implementation impl_list

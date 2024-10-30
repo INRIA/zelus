@@ -190,8 +190,7 @@ type type_decl = Zelus.type_decl
 type implementation_list = implementation list[@@deriving show]
 
 and implementation = 
-  | Eletdef of name * exp
-  | Eopen of string
-  | Etypedecl of (string * string list * type_decl) list
-
+  | Eletdef of (name * exp) list
+  | Eopen of name
+  | Etypedecl of (name * name list * type_decl) list
 
