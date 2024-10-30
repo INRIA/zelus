@@ -102,17 +102,27 @@ let print_message comment =
 let do_step comment output step input = 
   print_message comment;
   let o = step input in
-  output o;
+  if !Misc.debug then output Format.err_formatter o;
   o
 
 let do_optional_step no_step comment output step input = 
   if no_step then input else do_step comment output step input
 
+(* write the OCaml code into file [mlc] *)
+let write_implementation mlc p_obc =
+  let write mlc =
+    let mlc_ff = Format.formatter_of_out_channel mlc in
+    Format.pp_set_max_boxes mlc_ff max_int;
+    Ocamlprinter.program mlc_ff p_obc in
+  apply_with_close_out write mlc;
+  p_obc
+
 (* The main function for compiling a program *)
 let compile modname filename =
-  let source_name = filename ^ ".zls" in
-  let obj_interf_name = filename ^ ".zci" in
-
+  let source_name = filename ^ ".zls"
+  and obj_interf_name = filename ^ ".zci"
+  and ml_name = filename ^ ".ml" in
+  
   (* standard output for printing types *)
   let info_ff = Format.formatter_of_out_channel stdout in
   Format.pp_set_max_boxes info_ff max_int;
@@ -128,20 +138,20 @@ let compile modname filename =
   try
     (* Associate unique index to variables *)
     let module Scoping = Scoping.Make(Typinfo) in
-    let p = do_step "Scoping done. See below:" Debug.print_program
+    let p = do_step "Scoping done. See below:" Printer.program
               Scoping.program p in
     (* Write defined variables for equations *)
     let module Write = Write.Make(Typinfo) in
     let p = do_step "Write done. See below: "
-              Debug.print_program Write.program p in
+              Printer.program Write.program p in
     if !parseonly then raise Stop;
-    let p = do_step "Typing done. See below:" Debug.print_program
+    let p = do_step "Typing done. See below:" Printer.program
               (Typing.program info_ff true) p in
     let p = do_optional_step !Misc.no_causality "Causality done. See below:"
-              Debug.print_program (Causality.program info_ff) p in
+              Printer.program (Causality.program info_ff) p in
     let p = do_optional_step
               !Misc.no_initialization "Initialization done. See below:"
-              Debug.print_program (Initialization.program info_ff) p in
+              Printer.program (Initialization.program info_ff) p in
     (* Write the symbol table into the interface file *)
     let itc = open_out_bin obj_interf_name in
     apply_with_close_out Modules.write itc;
@@ -149,8 +159,8 @@ let compile modname filename =
 
     (* Mark functions calls to be inlined. This step uses type informations *)
     (* computed during the causality analysis *)
-    let _ = do_step "Mark functions calls to be inlined. See below:"
-	      Debug.print_program Markfunctions.program p in
+    let p = do_step "Mark functions calls to be inlined. See below:"
+	      Printer.program Markfunctions.program p in
 
     (* source-to-source transformations *)
 
@@ -161,6 +171,14 @@ let compile modname filename =
 
     let _ = Rewrite.main print_message genv0 p !Misc.n_steps in
 
+    (* generation of sequential code *)
+    let p = do_step "Generation of sequential code done. See below:"
+              Oprinter.program Translate.program p in
+
+    (* emit OCaml code and write it in the appropriate file*)
+    let mlc = open_out ml_name in
+    let _ = do_step "Emit OCaml code. See below:"
+              Ocamlprinter.program (write_implementation mlc) p in
     ()
   with
   | Stop -> ()

@@ -423,3 +423,6 @@ let implementation_list ff impl_list =
   fprintf ff "@[(* %s *)@.@]" header_in_file;
   fprintf ff "@[open Ztypes@.@]";
   List.iter (implementation ff) impl_list
+
+let program ff { p_impl_list } =
+  implementation_list ff p_impl_list

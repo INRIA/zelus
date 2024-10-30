@@ -187,10 +187,11 @@ and 'a path = 'a list
 
 type type_decl = Zelus.type_decl
 
-type implementation_list = implementation list[@@deriving show]
-
-and implementation = 
+type implementation = 
   | Eletdef of (name * exp) list
   | Eopen of name
   | Etypedecl of (name * name list * type_decl) list
 
+type program =
+  { p_impl_list: implementation list }
+    [@@deriving show]

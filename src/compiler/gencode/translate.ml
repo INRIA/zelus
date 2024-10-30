@@ -615,14 +615,14 @@ and block env loop_path { Zelus.b_body = eq; Zelus.b_env = b_env  } =
 (* Translation of an expression. After normalisation *)
 (* the body of a function is either of the form [e] with [e] stateless *)
 (* or [let Eq in e] with [e] stateless *)
-let expression env ({ Zelus.e_desc = desc } as e) =
-  match desc with
+let expression env ({ Zelus.e_desc } as e) =
+  match e_desc with
   | Zelus.Elet(l, e_let) -> local env empty_path l e_let
   | _ -> let e, code = exp env empty_path empty_code e in
 	 { code with step = e }       
 
 (** Translation of a declaration *)
-let implementation { Zelus.desc = desc } =
+let implementation { Zelus.desc } =
   match desc with
   | Zelus.Eopen(n) -> Eopen(n)
   | Zelus.Etypedecl { name; ty_params; ty_decl } ->
@@ -635,4 +635,5 @@ let implementation { Zelus.desc = desc } =
           Eletdef [Ident.source name, e]
        | _ -> Misc.not_yet_implemented "letdef"
 	     
-let implementation_list impl_list = Util.iter implementation impl_list
+let program { Zelus.p_impl_list } =
+  { p_impl_list = Util.iter implementation p_impl_list }
