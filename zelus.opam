@@ -1,4 +1,4 @@
-opam-version: "2.2"
+opam-version: "2.2.1"
 version: "3.0"
 synopsis: "A synchronous language with ODEs"
 authors: [
@@ -16,7 +16,7 @@ depends: [
   "menhir" {>= "20240715"}
   "alcotest" {with-test}
 ]
-depopts: ["sundialsml"]
+depopts: []
 build: [
   ["dune" "subst"] {dev}
   [
