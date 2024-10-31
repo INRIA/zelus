@@ -1,3 +1,10 @@
+let node f0(x) returns (o)
+    o = 0 -> pre(o) + x
+
+let node f00(x) returns (o)
+    o = 0 fby o + x
+
+    (*
 let node f1 () returns (o)
   if true then o = 1 else o = 2
 
@@ -14,3 +21,4 @@ let node f3 () returns (o)
   init
     if true then B else A
   end
+*)
