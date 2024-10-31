@@ -462,7 +462,7 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      let e1, code  = exp env loop_path code e1 in
      let e2, code = exp env loop_path code e2 in
      Oaux.seq e1 e2, code
-   | Zelus.Eapp { f; arg_list } ->
+  | Zelus.Eapp { f; arg_list } ->
      (* make an application *)
      let make_app f arg_list =
        match arg_list with | [] -> f | _ -> Eapp { f; arg_list } in
@@ -487,13 +487,20 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      let code_body = result env r in
      let code_body = add_mem_vars_to_code code_body mem_acc var_acc in
      machine k pat_list code_body ty, code
+  | Ereset(e, r_e) ->
+     let { init = i_code } = code in
+     let e, ({ init = ri_code } as r_code) =
+       exp env loop_path empty_code e in
+     let r_e, r_code = exp env loop_path r_code r_e in
+     (* execute the initialization code when [r_e] is true *)
+     let { step = s } as code = seq r_code { empty_code with init = i_code } in
+     e, { code with step = ifthen r_e ri_code s }
   | Esizeapp _ -> Misc.not_yet_implemented "sizeapp"
   | Eforloop _ -> Misc.not_yet_implemented "for loops"
-  | Ereset _ -> Misc.not_yet_implemented "reset"
   | Eassert _ -> Misc.not_yet_implemented "assert"
-  | Zelus.Elet _
-    | Zelus.Eop(Eperiod, _)  | Zelus.Eop _ | Zelus.Epresent _
-  | Zelus.Ematch _ | Zelus.Elocal _ -> assert false
+  | Zelus.Elet _ | Zelus.Ematch _ | Zelus.Elocal _ ->
+     Misc.not_yet_implemented "let"
+  | Zelus.Eop(Eperiod, _)  | Zelus.Eop _ | Zelus.Epresent _ -> assert false
  
 and arg a_list =
   match a_list with | [] -> Ewildpat | _ -> Etuplepat (List.map vardec a_list)
