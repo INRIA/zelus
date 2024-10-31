@@ -21,6 +21,9 @@ open Ident
 open Zelus
 open Deftypes
 
+let unbound x =
+  Misc.internal_error "A-normal form" Ident.fprint_t x
+
 type 'a tree = | Leaf of 'a | Lpar of 'a tree list
 
 (* the type of the accumulator *)
@@ -40,7 +43,7 @@ let rec matching eq_list ({ pat_desc } as p) ({ e_desc } as e) =
     | _ -> (Aux.eq_make p e) :: eq_list 
 
 let find { renaming; subst } id =
-  try Env.find id renaming with | Not_found -> assert false
+  try Env.find id renaming with | Not_found -> unbound id
 
 let rec make_pat t =
   match t with
@@ -94,7 +97,7 @@ let pattern funs ({ renaming; subst } as acc) ({ pat_desc } as p) =
        | Not_found ->
           try
             make_pat (Env.find x subst)
-          with | Not_found -> assert false in
+          with | Not_found -> unbound x in
      p, acc
   | _ -> raise Mapfold.Fallback
 
@@ -107,12 +110,12 @@ let expression funs ({ renaming; subst } as acc) ({ e_desc } as e) =
        | Not_found ->
           try
             make_exp (Env.find x subst)
-          with | Not_found -> assert false in
+          with | Not_found -> unbound x in
      e, acc
   | _ -> raise Mapfold.Fallback
 
 let equation funs acc eq =
-  let ({ eq_desc } as eq), acc = Mapfold.equation_it funs acc eq in
+  let ({ eq_desc } as eq), acc = Mapfold.equation funs acc eq in
   let eq = match eq_desc with
     | EQeq(p, e) ->
        Aux.par (matching [] p e)
@@ -124,9 +127,12 @@ let vardec_list funs ({ renaming; subst } as acc) v_list =
   (* default value of combine function, it is not split into a tuple *)
   (* but a single name. The code below makes this assumption. *)
   let vardec v_list ({ var_name } as v) =
-    let t = Env.find var_name subst in
+    let n_list =
+      try [Env.find var_name renaming]
+      with Not_found ->
+        try names [] (Env.find var_name subst) with Not_found -> unbound var_name in
     List.fold_left
-      (fun v_list n -> { v with var_name = n } :: v_list) v_list (names [] t) in
+      (fun v_list n -> { v with var_name = n } :: v_list) v_list n_list in
   List.fold_left vardec [] v_list, acc
   
 let set_index funs acc n =

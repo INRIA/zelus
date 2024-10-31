@@ -82,17 +82,18 @@ let period major time phase period =
   (*  and z = major && (time >= last h) in z] *)
   let h = Ident.fresh "h" in
   let z = Ident.fresh "z" in
-  Aux.e_local (Aux.block_make [Aux.vardec h false
-                                 (Some(Aux.plus (Aux.var time) phase)) None;
-                               Aux.vardec z false None None]
-                 [Aux.eq_and
-                    (Aux.id_eq h (Aux.horizon
-                                    (Aux.ifthenelse (Aux.var z)
-                                        (Aux.plus (Aux.last_star h) period)
-                                        (Aux.last_star h))))
-                       (Aux.id_eq z (Aux.and_op major
-                                       (Aux.greater_or_equal (Aux.var time)
-                                          (Aux.last_star z))))])
+  Aux.e_local
+    (Aux.block_make [Aux.vardec h false
+                       (Some(Aux.plus (Aux.var time) phase)) None;
+                     Aux.vardec z false None None]
+       [Aux.eq_and
+          (Aux.id_eq h (Aux.horizon
+                          (Aux.ifthenelse (Aux.var z)
+                             (Aux.plus (Aux.last_star h) period)
+                             (Aux.last_star h))))
+          (Aux.id_eq z (Aux.and_op major
+                          (Aux.greater_or_equal (Aux.var time)
+                             (Aux.last_star z))))])
     (Aux.var z)
 
 (* Add the extra input parameter "time" for hybrid nodes *)
@@ -103,7 +104,7 @@ let funexp funs acc ({ f_kind } as f) =
      let time, _ = intro acc_local in
      { f with f_args = [Aux.vardec time false None None] :: f_args;
               f_env = Env.add time Typinfo.no_ienv f_env }, acc
-  | _ -> raise Mapfold.Fallback
+  | _ -> Mapfold.funexp funs acc f
 
 (* add the extra time argument for the application of hybrid nodes *)
 let expression funs acc ({ e_desc } as e) =

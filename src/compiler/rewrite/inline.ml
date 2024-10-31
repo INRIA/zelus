@@ -24,7 +24,7 @@ open Error
 open Mapfold
 
 let error { kind; loc } =
-  Format.eprintf "Error during static reduction\n";
+  Format.eprintf "Error during inlining\n";
   Error.message loc kind;
   raise Error
 

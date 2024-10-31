@@ -1,6 +1,9 @@
 let node f1 () returns (o)
   if true then o = 1 else o = 2
 
+let hybrid f11 (z) returns (o)
+    der o = 1.0 init 0.0 reset z -> 2.0
+	
 let node f2 () returns (o)
   o = f1() + f1()
   
