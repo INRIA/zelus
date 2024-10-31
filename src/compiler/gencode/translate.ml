@@ -458,10 +458,11 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      Econcat { left = e1; left_size = s1; right = e2; right_size = s2 }, code
   | Zelus.Eop(Zelus.Eatomic, [e]) ->
      exp env loop_path code e  
-  | Zelus.Elet _ | Zelus.Eop(Eseq, _) | Zelus.Eop(Eperiod, _) 
-  | Zelus.Eop _ | Zelus.Epresent _
-  | Zelus.Ematch _ | Zelus.Elocal _ -> assert false
-  | Zelus.Eapp { f; arg_list } ->
+  | Zelus.Eop(Eseq, [e1; e2]) ->
+     let e1, code  = exp env loop_path code e1 in
+     let e2, code = exp env loop_path code e2 in
+     Oaux.seq e1 e2, code
+   | Zelus.Eapp { f; arg_list } ->
      (* make an application *)
      let make_app f arg_list =
        match arg_list with | [] -> f | _ -> Eapp { f; arg_list } in
@@ -490,7 +491,10 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
   | Eforloop _ -> Misc.not_yet_implemented "for loops"
   | Ereset _ -> Misc.not_yet_implemented "reset"
   | Eassert _ -> Misc.not_yet_implemented "assert"
-     
+  | Zelus.Elet _
+    | Zelus.Eop(Eperiod, _)  | Zelus.Eop _ | Zelus.Epresent _
+  | Zelus.Ematch _ | Zelus.Elocal _ -> assert false
+ 
 and arg a_list =
   match a_list with | [] -> Ewildpat | _ -> Etuplepat (List.map vardec a_list)
 

@@ -164,7 +164,7 @@ let pattern funs useful ({ pat_desc } as p) =
   | Evarpat(x) ->
      if S.mem x useful then p, useful else { p with pat_desc = Ewildpat }, useful
   | Ealiaspat(p_alias, x) ->
-     let p_alias, acc = Mapfold.pattern funs useful p_alias in
+     let p_alias, acc = Mapfold.pattern_it funs useful p_alias in
      if S.mem x useful then { p with pat_desc = Ealiaspat(p_alias, x) }, useful
      else p_alias, useful
   | _ -> raise Mapfold.Fallback
@@ -172,7 +172,7 @@ let pattern funs useful ({ pat_desc } as p) =
 (* Remove useless equations. [useful] is the set of useful names *)
 let equation funs useful eq =
   let eq_empty = Aux.eqmake Defnames.empty EQempty in
-  let { eq_desc; eq_write } as eq, useful = Mapfold.equation_it funs useful eq in
+  let { eq_desc; eq_write } as eq, useful = Mapfold.equation funs useful eq in
   match eq_desc with
   | EQeq(p, e) ->
      let { v = w } = Vars.pattern { lv = S.empty; v = S.empty } p in
@@ -221,7 +221,7 @@ let remove_useless_in_equation useful eq =
 
 (* the main entry for expressions. Warning: [e] must be in normal form *)
 let expression funs acc e =
-  let { e_desc } as e, acc = Mapfold.expression_it funs acc e in
+  let { e_desc } as e, acc = Mapfold.expression funs acc e in
   match e_desc with
   | Elet({ l_eq } as l, e_let) ->
      let { v } = Vars.expression { lv = S.empty; v = S.empty } e_let in
