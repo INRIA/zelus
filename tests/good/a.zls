@@ -1,6 +1,6 @@
 let node f(g)() = run g (1)
 
-let node main___() = let y = 1 in run (f (node x -> x + 2 + y)) ()
+let node main___() = let y = 1 in run (f (node x -> x + 2 + 1)) ()
 
 type t  = A |B |C |D 
 

@@ -1,14 +1,23 @@
-## Build the compiler and libraries
 all: zeluc.exe
 
+## Build the compiler and libraries
+## dune build src lib
+
 zeluc.exe:
-	(cd src; dune build -- zeluc.exe; dune build lib)
+	(cd src; dune build -- zeluc.exe);
+	dune build lib
 
 tests:
-	(cd tests; dune test)
+	dune test
 
 debug:
 	(cd src; dune build --debug-backtraces --debug-dependency-path -- zeluc.bc)
+
+opam-install: ## Install as an opam development package pinned to this directory
+	opam pin -k path .
+
+opam-uninstall: ## Remove opam pin
+	opam pin remove zelus zelus-gtk
 
 clean:
 	dune clean;
@@ -29,3 +38,12 @@ wc:
 	compiler/main/*.ml)
 
 .PHONY: zeluc.exe zeluc.exe zrun.exe zwrite.exe zrun.exe.verbose tests debug clean wc
+
+# Doc (for opam):
+# opam pin -k path .              : install the current version of the compiler
+#                                   as an opam package
+# opam pin --help
+
+# opam pin remove zelus zelus-gtk : removes the opam package
+# opam install zelus zelus-gtk : install the (public) opam package
+

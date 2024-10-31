@@ -233,7 +233,7 @@ let is_empty_block { b_vars; b_body = { eq_desc } } =
   (b_vars = []) && (eq_desc = EQempty)
   
 let automaton_handler_list
-      is_weak leqs body body_in_escape expression ff s_h_list e_opt =
+      is_weak leqs body body_in_escape expression ff (s_h_list, e_opt) =
   let statepat ff { desc } = match desc with
     | Estate0pat(n) -> name ff n
     | Estate1pat(n, n_list) ->
@@ -244,7 +244,7 @@ let automaton_handler_list
     | Estate1(n, e_list) ->
        fprintf ff "%a%a" name n (print_list_r expression "("","")") e_list
     | Estateif(e, se1, se2) ->
-       fprintf ff "@[if %a@,then %a@,else %a@]"
+       fprintf ff "@[<hov0>if %a@ then %a@ else %a@]"
          expression e state se1 state se2 in
 
   let automaton_handler is_weak body body_in_escape expression ff
@@ -270,7 +270,7 @@ let automaton_handler_list
     let escape_list ff t_list =
       if t_list = [] then fprintf ff "done"
       else
-        print_list_r escape
+        Pp_tools.print_list_r escape
 	  (if is_weak then "until " else "unless ") "" "" ff t_list in
     fprintf ff "@[<v 4>| %a ->@ @[<v0>%a%a@,%a@]@]"
       statepat s_state
@@ -282,89 +282,87 @@ let automaton_handler_list
       """"""
       ff s_h_list in
 
-    fprintf ff "@[<hov0>automaton%s@ @[%a@]@,%a@]"
+    fprintf ff "@[<hov0>@[automaton%s@ %a@]@ %a@ end@]"
 	 (if is_weak then "(* weak *)" else "(* strong *)")
 	 automaton_handler_list s_h_list
-	 (print_opt (print_with_braces state " init" "")) e_opt
+	 (Pp_tools.print_opt (Pp_tools.print_with_braces state "init " "")) e_opt
 
-let rec expression ff e =
-  let exp ff { e_desc } =
-    match e_desc with
-    | Evar n -> name ff n
-    | Eglobal { lname } -> longname ff lname
-    | Eop(op, e_list) -> 
-        fprintf ff "@[(";
-        operator ff op e_list;
-        fprintf ff ")@]"
-    | Elast { copy; id } ->
-       fprintf ff "last%s %a" (if copy then "" else "*") name id
-    | Econstr0 { lname } -> longname ff lname
-    | Econst c -> immediate ff c
-    | Eapp { is_inline; f; arg_list } ->
-       fprintf ff "@[(";
-       let s = if is_inline then "inline " else "" in
-       fprintf ff "@[%s%a %a@]"
-         s expression f (print_list_r expression "" "" "") arg_list;
-       fprintf ff ")@]"
-    | Esizeapp { f; size_list } ->
-       fprintf ff "@[(%a %a)@]" expression f
+let rec expression ff { e_desc } =
+  match e_desc with
+  | Evar n -> name ff n
+  | Eglobal { lname } -> longname ff lname
+  | Eop(op, e_list) -> 
+     fprintf ff "@[(";
+     operator ff op e_list;
+     fprintf ff ")@]"
+  | Elast { copy; id } ->
+     fprintf ff "last%s %a" (if copy then "" else "*") name id
+  | Econstr0 { lname } -> longname ff lname
+  | Econst c -> immediate ff c
+  | Eapp { is_inline; f; arg_list } ->
+     fprintf ff "@[(";
+     let s = if is_inline then "inline " else "" in
+     fprintf ff "@[%s%a %a@]"
+       s expression f (print_list_r expression "" "" "") arg_list;
+     fprintf ff ")@]"
+  | Esizeapp { f; size_list } ->
+     fprintf ff "@[(%a %a)@]" expression f
        (print_list_l size "<<" "," ">>") size_list 
-    | Econstr1 { lname; arg_list } ->
-       fprintf ff "@[(%a%a)@]"
-         longname lname (print_list_r expression "(" "," ")") arg_list
-    | Etuple(e_list) ->
-       fprintf ff "@[%a@]" (print_list_r expression "(tuple " "" ")") e_list
-    | Erecord_access { label; arg } ->
-       fprintf ff "@[%a.%a@]" expression arg longname label
-    | Erecord(ln_e_list) ->
-       print_list_r
-         (print_record longname expression "" " =" "") "{" ";" "}" ff ln_e_list
-    | Erecord_with(e, ln_e_list) ->
-       fprintf ff "@[{ %a with %a }@]"
-         expression e
-         (print_list_r
-	    (print_record longname expression """ =""") "" ";" "")
-         ln_e_list
-    | Elet(l, e) ->
-       fprintf ff "@[<v0>(%ain @,%a)@]" leq l expression e
-    | Elocal(b_eq, e) ->
-        fprintf ff "@[<v0>(%a in @,%a)@]"
-          block_of_equation b_eq expression e
-    | Etypeconstraint(e, typ) ->
-       fprintf ff "@[(%a: %a)@]" expression e ptype typ
-    | Ematch { is_total; e; handlers } ->
-       fprintf ff "@[<v>@[<hov 2>%smatch %a with@ @[%a@]@]@]"
-         (if is_total then "total " else "")
-         expression e (print_list_l (match_handler expression) """""")
-         handlers
-    | Epresent { handlers; default_opt } ->
-       fprintf ff "@[<v>@[<hov 2>present@ @[%a@]@]@ @[%a@]@]"
-         (print_list_l (present_handler (scondpat expression) expression)
-	    """""") handlers
-         (with_default expression) default_opt
-    | Ereset(e_body, e) ->
-       fprintf ff "@[<hov>reset@ %a@ every %a@]" expression e_body expression e
-    | Efun(fe) ->
-       fprintf ff "@[(%a)@]" funexp fe
-    | Eassert(e_body) ->
-       fprintf ff "@[<hov 2>assert@ %a@]" expression e_body
-    | Eforloop({ for_size; for_kind; for_index; for_input; for_body;
+  | Econstr1 { lname; arg_list } ->
+     fprintf ff "@[(%a%a)@]"
+       longname lname (print_list_r expression "(" "," ")") arg_list
+  | Etuple(e_list) ->
+     fprintf ff "@[%a@]" (print_list_r expression "(tuple " "" ")") e_list
+  | Erecord_access { label; arg } ->
+     fprintf ff "@[%a.%a@]" expression arg longname label
+  | Erecord(ln_e_list) ->
+     print_list_r
+       (print_record longname expression "" " =" "") "{" ";" "}" ff ln_e_list
+  | Erecord_with(e, ln_e_list) ->
+     fprintf ff "@[{ %a with %a }@]"
+       expression e
+       (print_list_r
+	  (print_record longname expression """ =""") "" ";" "")
+       ln_e_list
+  | Elet(l, e) ->
+     fprintf ff "@[<v0>(%ain @,%a)@]" leq l expression e
+  | Elocal(b_eq, e) ->
+     fprintf ff "@[<v0>(%a in @,%a)@]"
+       block_of_equation b_eq expression e
+  | Etypeconstraint(e, typ) ->
+     fprintf ff "@[(%a: %a)@]" expression e ptype typ
+  | Ematch { is_total; e; handlers } ->
+     fprintf ff "@[<v>@[<hov 2>%smatch %a with@ @[%a@]@]@]"
+       (if is_total then "total " else "")
+       expression e (print_list_l (match_handler expression) """""")
+       handlers
+  | Epresent { handlers; default_opt } ->
+     fprintf ff "@[<v>@[<hov 2>present@ @[%a@]@]@ @[%a@]@]"
+       (print_list_l (present_handler (scondpat expression) expression)
+	  """""") handlers
+       (with_default expression) default_opt
+  | Ereset(e_body, e) ->
+     fprintf ff "@[<hov>reset@ %a@ every %a@]" expression e_body expression e
+  | Efun(fe) ->
+     fprintf ff "@[(%a)@]" funexp fe
+  | Eassert(e_body) ->
+     fprintf ff "@[<hov 2>assert@ %a@]" expression e_body
+  | Eforloop({ for_size; for_kind; for_index; for_input; for_body;
                for_env; for_resume }) ->
-       let size ff for_size =
-         Util.optional_unit (fun ff e -> fprintf ff "(%a)@ " expression e)
-           ff for_size in
-       fprintf ff
-         "@[<hov 2>%a%a@,%a%a(%a) %a@ %a@ @[%a@]@ @]"
-         kind_of_forloop for_kind
-         for_resume_or_restart for_resume
-         size for_size
-         index_opt for_index
-         input_list for_input
-         print_env_names for_env
-         for_exp for_body 
-         for_exit_condition for_kind in
-  exp ff e
-  
+     let size ff for_size =
+       Util.optional_unit (fun ff e -> fprintf ff "(%a)@ " expression e)
+         ff for_size in
+     fprintf ff
+       "@[<hov 2>%a%a@,%a%a(%a) %a@ %a@ @[%a@]@ @]"
+       kind_of_forloop for_kind
+       for_resume_or_restart for_resume
+       size for_size
+       index_opt for_index
+       input_list for_input
+       print_env_names for_env
+       for_exp for_body 
+       for_exit_condition for_kind
+
 and result ff { r_desc } =
   match r_desc with
   | Exp(e) -> fprintf ff "@[<hov 2>->@ %a@]" expression e
@@ -483,7 +481,7 @@ and equation ff ({ eq_desc = desc } as eq) =
   | EQautomaton { is_weak; handlers; state_opt } ->
      automaton_handler_list
        is_weak leqs block_of_equation block_of_equation expression
-       ff handlers state_opt
+       ff (handlers, state_opt)
   | EQmatch { is_total; e; handlers } ->
      fprintf ff "@[<hov0>%smatch %a with@ @[%a@]@]"
        (if is_total then "total " else "")

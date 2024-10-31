@@ -92,7 +92,7 @@ let set_steps w =
   List.iter
     (fun l -> set true (List.hd l); List.iter (fun s -> set false s) (List.tl l))
     l_l
-let rewrite_list =
+let rewrite_list () =
   List.filter (fun (w, _, _) -> S.mem w !s_set) default_list
 
 let compare name n_steps genv0 p p' =
@@ -114,4 +114,4 @@ let main print_message genv0 p n_steps =
     
   let iter genv p l = List.fold_left (rewrite_and_compare genv) p l in
   
-  iter genv0 p rewrite_list
+  iter genv0 p (rewrite_list ())

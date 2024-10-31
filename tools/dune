@@ -1,9 +1,0 @@
-(rule 
- (copy %{project_root}/compiler/main/compiler.ml compiler.ml))
-
-(ocamllex zltohtml)
-
-(executables
- (names zltohtml diff_log luciole_zls zlsdep)
- (libraries zelus.zlcompilerlibs menhirLib str)
- (promote (until-clean)))

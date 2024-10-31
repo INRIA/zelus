@@ -2,6 +2,6 @@
  (dev
   (flags (:standard -w -9-27-32-33-35 -warn-error -A))))
   
-; compile only zrunthe compiler; exclude examples
+; compile only the compiler; exclude examples
 ; (dirs :standard \ examples)
 
