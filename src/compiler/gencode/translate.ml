@@ -487,7 +487,7 @@ let rec exp env loop_path code { Zelus.e_desc = desc } =
      let code_body = result env r in
      let code_body = add_mem_vars_to_code code_body mem_acc var_acc in
      machine k pat_list code_body ty, code
-  | Ereset(e, r_e) ->
+  | Zelus.Ereset(e, r_e) ->
      let { init = i_code } = code in
      let e, ({ init = ri_code } as r_code) =
        exp env loop_path empty_code e in
