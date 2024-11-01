@@ -163,6 +163,7 @@
              ; all variables in patterns must be value (remove last)
     automata ; rewrite automata into match/reset
     present ; rewrite present into match
+    exp2eq ; translate match and reset expressions into their equational form
     pre ; rewrite fby/fby into (init/last)
     period ; translate periods into horizons
     encore ; add horizons [horizon h = 0.0] for zero-crossings

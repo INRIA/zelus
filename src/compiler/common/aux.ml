@@ -174,7 +174,9 @@ let rec eq_let_list leq_list eq =
 
 and eq_let leq eq =
   eqmake eq.eq_write (EQlet(leq, eq))
-    
+
+let e_let leq e = emake (Elet(leq, e))
+
 let pat_of_vardec_make { var_name } = pat_make var_name
 
 let pat_of_vardec_list_make vardec_list =
