@@ -83,7 +83,7 @@ let set_steps w =
       | "lastinpatterns" | "copylast"
     | "auto" | "present"
     | "pre" | "reset" | "complete" | "shared" | "encore" | "letin" 
-    | "schedule" | "aform" | "deadcode" | "copy" ->
+    | "schedule" | "aform" | "deadcode" | "copy" | "exp2seq" ->
        s_set := if p then S.add s !s_set else S.remove s !s_set
     | "" -> ()
     | _ -> raise (Arg.Bad ("unknown pass " ^ s)) in

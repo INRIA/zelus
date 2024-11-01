@@ -82,6 +82,7 @@ and doc_set_steps = "\t Option to control source-to-source rewriting steps\n\
     \t\t lastinpatterns: add copies for lasts that are inputs or outputs \n\
     \t\t auto: remove automata statements \n\
     \t\t present: remove present statements \n\
+    \t\t exp2eq: remove pattern matching and resets on expressions \n\
     \t\t pre: remove pre/fby \n\
     \t\t reset: normalise resets; remove initialization (->) \n\
     \t\t complete: complete branches \n\
