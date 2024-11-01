@@ -101,8 +101,9 @@ let no_leq loc =
 let rename_t ({ e_renaming } as acc) x = 
   try Env.find x e_renaming, acc
   with Not_found ->
-    Debug.print_string "Static: unbound identifier" (Ident.name x);
-    raise Error (* x, acc *)
+    Format.eprintf "Error during static reduction; unbound identifier %s"
+      (Ident.name x);
+    raise Error
 
 let write_t acc { dv; di; der } =
   let rename acc x = let x, _ = rename_t acc x in x in

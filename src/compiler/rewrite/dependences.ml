@@ -173,7 +173,7 @@ let make eqs =
     name_to_index (Env.empty, Env.empty, []) eqs in
   let g = make_read_write xtable itable eq_info_list in
   let g = make_unsafes xtable itable g eqs in
-  if !Misc.debug then Format.eprintf "@[%a@.@]" dump eq_info_list;
+  if !Misc.vverbose then Format.eprintf "@[%a@.@]" dump eq_info_list;
   Graph.outputs g
 
 (* Print a graph of equations *)
