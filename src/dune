@@ -164,6 +164,7 @@
     automata ; rewrite automata into match/reset
     present ; rewrite present into match
     exp2eq ; translate match and reset expressions into their equational form
+    returns ; rewrite [returns (p) eq]
     pre ; rewrite fby/fby into (init/last)
     period ; translate periods into horizons
     encore ; add horizons [horizon h = 0.0] for zero-crossings

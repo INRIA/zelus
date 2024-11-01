@@ -1,5 +1,5 @@
 let node f0(x) returns (o)
-    o = 0 -> pre(o) + x
+    o = 0 -> pre(o+1) + x
 
 let node f00(x) returns (o)
     o = 0 fby o + x

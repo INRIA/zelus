@@ -151,6 +151,8 @@ let implementation funs acc impl =
 and open_t funs ({ genv } as acc) modname =
   let genv = Genv.open_module genv modname in modname, { acc with genv }
 
+(* all local names can restart from 0 *)
+(* to be done later; for the moment, starts from the current value *)
 let set_index funs acc n =
   let _ = Ident.set n in n, acc
 let get_index funs acc n = Ident.get (), acc
