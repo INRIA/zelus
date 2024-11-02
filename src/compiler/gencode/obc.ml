@@ -89,6 +89,7 @@ and exp =
   | Etypeconstraint of exp * type_expression
   | Efor of { index: Ident.t; dir: bool; left: exp; right: exp; e: exp }
   | Ewhile of { cond: exp; e: exp }
+  | Eassert of exp
   | Emachine of machine
   | Efun of { pat_list: pattern list; e: exp }
   (* array operations *)

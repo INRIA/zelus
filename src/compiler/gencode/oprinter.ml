@@ -33,7 +33,7 @@ let priority_exp = function
     | Estate_access _ | Eget _ | Eupdate _ | Eslice _
     | Econcat _ | Evec _ | Erecord _ | Erecord_access _ | Erecord_with _
   | Etypeconstraint _ | Etuple _ | Efor _ | Ewhile _ -> 3
-  | Econstr1 _ | Eapp _ | Emethodcall _ -> 2
+  | Econstr1 _ | Eapp _ | Emethodcall _ | Eassert _ -> 2
   | Eassign _ | Eassign_state _  -> 1
   | Eifthenelse _  | Ematch _ | Elet _ | Eletvar _ | Eletmem _ | Eletinstance _
     | Esequence _ -> 0
@@ -211,6 +211,8 @@ and exp prio ff e =
   | Ewhile { cond; e } ->
      fprintf ff "@[<hv>while %a do %a done@]@]"
        (exp 0) cond (exp 0) e
+  | Eassert(e) ->
+     fprintf ff "@[<hv>assert@ %a@]" (exp 2) e
   | Eassign(left, e) -> assign ff left e
   | Eassign_state(left, e) -> assign_state ff left e
   | Esequence(e_list) ->

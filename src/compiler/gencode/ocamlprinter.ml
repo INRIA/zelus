@@ -185,6 +185,8 @@ and exp prio ff e =
   | Ewhile { cond; e } ->
      fprintf ff "@[<hv>while %a do %a done@]@]"
        (exp 0) cond (exp 0) e
+  | Eassert(e) -> 
+     fprintf ff "@[<hv>assert@ %a@]" (exp 2) e
   | Eassign(left, e) -> assign ff left e
   | Eassign_state(left, e) -> assign_state ff left e
   | Esequence(e_list) ->
